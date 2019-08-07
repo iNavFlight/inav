@@ -11,6 +11,7 @@
 #include "common/maths.h"
 #include "common/time.h"
 #include "common/utils.h"
+#include "common/uvarint.h"
 
 #include "drivers/max7456.h"
 #include "drivers/time.h"
@@ -35,7 +36,7 @@
 #define FRSKY_OSD_CHAR_METADATA_BYTES 10
 #define FRSKY_OSD_CHAR_TOTAL_BYTES (FRSKY_OSD_CHAR_DATA_BYTES + FRSKY_OSD_CHAR_METADATA_BYTES)
 
-#define FRSKY_OSD_SEND_BUFFER_SIZE 128
+#define FRSKY_OSD_SEND_BUFFER_SIZE 192
 #define FRSKY_OSD_RECV_BUFFER_SIZE 128
 
 #define FRSKY_OSD_CMD_RESPONSE_ERROR 0
@@ -65,11 +66,13 @@ typedef enum
 
     OSD_CMD_DRAWING_SET_STROKE_COLOR = 22,
     OSD_CMD_DRAWING_SET_FILL_COLOR = 23,
-    OSD_CMD_DRAWING_SET_COLOR_INVERSION = 24,
-    OSD_CMD_DRAWING_SET_PIXEL = 25,
-    OSD_CMD_DRAWING_SET_PIXEL_TO_STROKE_COLOR = 26,
-    OSD_CMD_DRAWING_SET_PIXEL_TO_FILL_COLOR = 27,
+    OSD_CMD_DRAWING_SET_STROKE_AND_FILL_COLOR = 24,
+    OSD_CMD_DRAWING_SET_COLOR_INVERSION = 25,
+    OSD_CMD_DRAWING_SET_PIXEL = 26,
+    OSD_CMD_DRAWING_SET_PIXEL_TO_STROKE_COLOR = 27,
+    OSD_CMD_DRAWING_SET_PIXEL_TO_FILL_COLOR = 28,
 
+    OSD_CMD_DRAWING_CLIP_TO_RECT = 31,
     OSD_CMD_DRAWING_CLEAR_SCREEN = 32,
     OSD_CMD_DRAWING_CLEAR_RECT = 33,
     OSD_CMD_DRAWING_RESET = 34,
@@ -77,17 +80,19 @@ typedef enum
     OSD_CMD_DRAWING_DRAW_BITMAP_MASK = 36,
     OSD_CMD_DRAWING_DRAW_CHAR = 37,
     OSD_CMD_DRAWING_DRAW_CHAR_MASK = 38,
-    OSD_CMD_DRAWING_MOVE_TO_POINT = 39,
-    OSD_CMD_DRAWING_STROKE_LINE_TO_POINT = 40,
-    OSD_CMD_DRAWING_STROKE_TRIANGLE = 41,
-    OSD_CMD_DRAWING_FILL_TRIANGLE = 42,
-    OSD_CMD_DRAWING_FILL_STROKE_TRIANGLE = 43,
-    OSD_CMD_DRAWING_STROKE_RECT = 44,
-    OSD_CMD_DRAWING_FILL_RECT = 45,
-    OSD_CMD_DRAWING_FILL_STROKE_RECT = 46,
-    OSD_CMD_DRAWING_STROKE_ELLIPSE_IN_RECT = 47,
-    OSD_CMD_DRAWING_FILL_ELLIPSE_IN_RECT = 48,
-    OSD_CMD_DRAWING_FILL_STROKE_ELLIPSE_IN_RECT = 49,
+    OSD_CMD_DRAWING_DRAW_STRING = 39,
+    OSD_CMD_DRAWING_DRAW_STRING_MASK = 40,
+    OSD_CMD_DRAWING_MOVE_TO_POINT = 41,
+    OSD_CMD_DRAWING_STROKE_LINE_TO_POINT = 42,
+    OSD_CMD_DRAWING_STROKE_TRIANGLE = 43,
+    OSD_CMD_DRAWING_FILL_TRIANGLE = 44,
+    OSD_CMD_DRAWING_FILL_STROKE_TRIANGLE = 45,
+    OSD_CMD_DRAWING_STROKE_RECT = 46,
+    OSD_CMD_DRAWING_FILL_RECT = 47,
+    OSD_CMD_DRAWING_FILL_STROKE_RECT = 48,
+    OSD_CMD_DRAWING_STROKE_ELLIPSE_IN_RECT = 49,
+    OSD_CMD_DRAWING_FILL_ELLIPSE_IN_RECT = 50,
+    OSD_CMD_DRAWING_FILL_STROKE_ELLIPSE_IN_RECT = 51,
 
     OSD_CMD_CTM_RESET = 60,
     OSD_CMD_CTM_SET = 61,
@@ -138,8 +143,15 @@ typedef struct frskyOSDDrawGridCharCmd_s {
     uint8_t gx;
     uint8_t gy;
     uint16_t chr;
-    uint8_t attr;
+    uint8_t opts;
 } __attribute__((packed)) frskyOSDDrawGridCharCmd_t;
+
+typedef struct frskyOSDDrawGridStrHeaderCmd_s {
+    uint8_t gx;
+    uint8_t gy;
+    uint8_t opts;
+    // uvarint with size and blob folow
+} __attribute__((packed)) frskyOSDDrawGridStrHeaderCmd_t;
 
 typedef struct frskyOSDPoint_s {
     int x : 12;
@@ -167,17 +179,29 @@ typedef struct frskyOSDSetPixel_s {
     uint8_t color;
 }  __attribute__((packed)) frskyOSDSetPixel_t;
 
-typedef struct frskyOSDDrawCharacter_s {
+typedef struct frskyOSDDrawCharacterCmd_s {
     frskyOSDPoint_t p;
     uint16_t chr;
     uint8_t opts;
-}  __attribute__((packed)) frskyOSDDrawCharacter_t;
+}  __attribute__((packed)) frskyOSDDrawCharacterCmd_t;
 
-
-typedef struct frskyOSDDrawCharacterMask_s {
-    frskyOSDDrawCharacter_t dc;
+typedef struct frskyOSDDrawCharacterMaskCmd_s {
+    frskyOSDDrawCharacterCmd_t dc;
     uint8_t maskColor;
-}  __attribute__((packed)) frskyOSDDrawCharacterMask_t;
+}  __attribute__((packed)) frskyOSDDrawCharacterMaskCmd_t;
+
+typedef struct frskyOSDDrawStrCommandHeaderCmd_s {
+    frskyOSDPoint_t p;
+    uint8_t opts;
+    // uvarint with size and blob follow
+} __attribute__((packed)) frskyOSDDrawStrCommandHeaderCmd_t;
+
+typedef struct frskyOSDDrawStrMaskCommandHeaderCmd_s {
+    frskyOSDPoint_t p;
+    uint8_t opts;
+    uint8_t maskColor;
+    // uvarint with size and blob follow
+} __attribute__((packed)) frskyOSDDrawStrMaskCommandHeaderCmd_t;
 
 
 typedef struct frskyOSDState_s {
@@ -188,7 +212,8 @@ typedef struct frskyOSDState_s {
     struct {
         uint8_t state;
         uint8_t crc;
-        uint8_t expected;
+        uint16_t expected;
+        uint8_t expectedShift;
         uint8_t data[FRSKY_OSD_RECV_BUFFER_SIZE];
         uint8_t pos;
     } recvBuffer;
@@ -224,6 +249,7 @@ static void frskyOSDResetReceiveBuffer(void)
     state.recvBuffer.state = RECV_STATE_NONE;
     state.recvBuffer.crc = 0;
     state.recvBuffer.expected = 0;
+    state.recvBuffer.expectedShift = 0;
     state.recvBuffer.pos = 0;
 }
 
@@ -239,23 +265,6 @@ static void frskyOSDProcessCommandU8(uint8_t *crc, uint8_t c)
     serialWrite(state.port, c);
     if (crc) {
         *crc = crc8_dvb_s2(*crc, c);
-    }
-}
-
-static void frskyOSDFlushSendBuffer(void)
-{
-    if (state.sendBuffer.pos > 0) {
-        frskyOSDProcessCommandU8(NULL, FRSKY_OSD_PREAMBLE_BYTE_0);
-        frskyOSDProcessCommandU8(NULL, FRSKY_OSD_PREAMBLE_BYTE_1);
-
-        uint8_t crc = 0;
-        frskyOSDProcessCommandU8(&crc, state.sendBuffer.pos);
-
-        for (unsigned ii = 0; ii < state.sendBuffer.pos; ii++) {
-            frskyOSDProcessCommandU8(&crc, state.sendBuffer.data[ii]);
-        }
-        frskyOSDProcessCommandU8(NULL, crc);
-        state.sendBuffer.pos = 0;
     }
 }
 
@@ -305,16 +314,20 @@ static void frskyOSDUpdateReceiveBuffer(void)
                 state.recvBuffer.state = RECV_STATE_LENGTH;
                 break;
             case RECV_STATE_LENGTH:
-                FRSKY_OSD_TRACE("Payload of size %u", c);
-                if (c > sizeof(state.recvBuffer.data)) {
-                    FRSKY_OSD_ERROR("Can't handle payload of size %u with a buffer of size %u",
-                        c, sizeof(state.recvBuffer.data));
-                    frskyOSDResetReceiveBuffer();
-                    break;
-                }
                 state.recvBuffer.crc = frskyOSDChecksum(state.recvBuffer.crc, c);
-                state.recvBuffer.expected = c;
-                state.recvBuffer.state = c > 0 ? RECV_STATE_DATA : RECV_STATE_CHECKSUM;
+                state.recvBuffer.expected |= (c & 0x7F) << state.recvBuffer.expectedShift;
+                state.recvBuffer.expectedShift += 7;
+                if (c < 0x80) {
+                    // Full uvarint decoded. Check against buffer size.
+                    if (state.recvBuffer.expected > sizeof(state.recvBuffer.data)) {
+                        FRSKY_OSD_ERROR("Can't handle payload of size %u with a buffer of size %u",
+                            state.recvBuffer.expected, sizeof(state.recvBuffer.data));
+                        frskyOSDResetReceiveBuffer();
+                        break;
+                    }
+                    FRSKY_OSD_TRACE("Payload of size %u", state.recvBuffer.expected);
+                    state.recvBuffer.state = state.recvBuffer.expected > 0 ? RECV_STATE_DATA : RECV_STATE_CHECKSUM;
+                }
                 break;
             case RECV_STATE_DATA:
                 state.recvBuffer.data[state.recvBuffer.pos++] = c;
@@ -379,19 +392,22 @@ static bool frskyOSDHandleCommand(osdCommand_e cmd, const void *payload, size_t 
                 resp->pixelWidth, resp->pixelHeight, resp->gridColumns, resp->gridRows);
 #warning TODO wait a bit for camera detection
             frskyOSDClearScreen();
+            frskyOSDResetDrawingState();
             return true;
         }
         case OSD_CMD_READ_FONT:
         {
-            if (size < sizeof(uint16_t) + FRSKY_OSD_CHAR_TOTAL_BYTES) {
-                break;
-            }
             if (!state.recvOsdCharacter.chr) {
                 FRSKY_OSD_DEBUG("Got unexpected font character");
                 break;
             }
+            if (size < sizeof(uint16_t) + FRSKY_OSD_CHAR_TOTAL_BYTES) {
+                FRSKY_OSD_TRACE("Received buffer too small for a character: %u bytes", size);
+                break;
+            }
             const frskyOSDCharacter_t *chr = payload;
             state.recvOsdCharacter.addr = chr->addr;
+            FRSKY_OSD_TRACE("Received character %u", chr->addr);
             // Skip character address
             memcpy(state.recvOsdCharacter.chr->data, &chr->data, MIN(sizeof(state.recvOsdCharacter.chr->data), (size_t)FRSKY_OSD_CHAR_TOTAL_BYTES));
             return true;
@@ -402,21 +418,25 @@ static bool frskyOSDHandleCommand(osdCommand_e cmd, const void *payload, size_t 
     return false;
 }
 
-static void frskyOSDDispatchCommands(void)
+static bool frskyOSDDispatchResponse(void)
 {
     const uint8_t *payload = state.recvBuffer.data;
     int remaining = (int)state.recvBuffer.pos;
+    bool ok = false;
     if (remaining > 0) {
         // OSD sends commands one by one, so we don't need to handle
         // a frame with multiple ones.
         uint8_t cmd = *payload;
         payload++;
         remaining--;
-        if (!frskyOSDHandleCommand(cmd, payload, remaining)) {
+        if (frskyOSDHandleCommand(cmd, payload, remaining)) {
+            ok = true;
+        } else {
             FRSKY_OSD_DEBUG("Discarding buffer due to unhandled command %u (%d bytes remaining)", cmd, remaining);
         }
     }
     frskyOSDResetReceiveBuffer();
+    return ok;
 }
 
 static void frskyOSDClearReceiveBuffer(void)
@@ -424,7 +444,7 @@ static void frskyOSDClearReceiveBuffer(void)
     frskyOSDUpdateReceiveBuffer();
 
     if (frskyOSDIsResponseAvailable()) {
-        frskyOSDDispatchCommands();
+        frskyOSDDispatchResponse();
     } else if (state.recvBuffer.pos > 0) {
         FRSKY_OSD_DEBUG("Discarding receive buffer with %u bytes", state.recvBuffer.pos);
         frskyOSDResetReceiveBuffer();
@@ -439,13 +459,14 @@ static void frskyOSDSendAsyncCommand(uint8_t cmd, const void *data, size_t size)
 
 static bool frskyOSDSendSyncCommand(uint8_t cmd, const void *data, size_t size, timeMs_t timeout)
 {
+    FRSKY_OSD_TRACE("Send sync cmd %u", cmd);
     frskyOSDClearReceiveBuffer();
     frskyOSDSendCommand(cmd, data, size);
     frskyOSDFlushSendBuffer();
     timeMs_t end = millis() + timeout;
     while (millis() < end) {
         frskyOSDUpdateReceiveBuffer();
-        if (frskyOSDIsResponseAvailable()) {
+        if (frskyOSDIsResponseAvailable() && frskyOSDDispatchResponse()) {
             FRSKY_OSD_DEBUG("Got sync response");
             return true;
         }
@@ -512,7 +533,7 @@ void frskyOSDUpdate(void)
     frskyOSDUpdateReceiveBuffer();
 
     if (frskyOSDIsResponseAvailable()) {
-        frskyOSDDispatchCommands();
+        frskyOSDDispatchResponse();
     }
 
     if (!frskyOSDIsReady()) {
@@ -521,15 +542,56 @@ void frskyOSDUpdate(void)
     }
 }
 
-void frskyOSDBeginTransaction(void)
+void frskyOSDBeginTransaction(frskyOSDTransactionOptions_e opts)
 {
-    frskyOSDSendAsyncCommand(OSD_CMD_TRANSACTION_BEGIN, NULL, 0);
+    if (opts & FRSKY_OSD_TRANSACTION_OPT_PROFILED) {
+        frskyOSDPoint_t p = { .x = 0, .y = 10};
+        frskyOSDSendAsyncCommand(OSD_CMD_TRANSACTION_BEGIN_PROFILED, &p, sizeof(p));
+        if (opts & FRSKY_OSD_TRANSACTION_OPT_RESET_DRAWING) {
+            frskyOSDResetDrawingState();
+        }
+    } else if (opts & FRSKY_OSD_TRANSACTION_OPT_RESET_DRAWING) {
+        frskyOSDSendAsyncCommand(OSD_CMD_TRANSACTION_BEGIN_RESET_DRAWING, NULL, 0);
+    } else {
+        frskyOSDSendAsyncCommand(OSD_CMD_TRANSACTION_BEGIN, NULL, 0);
+    }
 }
 
 void frskyOSDCommitTransaction(void)
 {
+    // Check wether the only command in the queue is a transaction begin.
+    // In that, case, discard the send buffer since it will make generate
+    // an empty transaction.
+    if (state.sendBuffer.pos == 1) {
+        if (state.sendBuffer.data[0] == OSD_CMD_TRANSACTION_BEGIN ||
+            state.sendBuffer.data[0] == OSD_CMD_TRANSACTION_BEGIN_RESET_DRAWING) {
+
+            state.sendBuffer.pos = 0;
+            return;
+        }
+    }
     frskyOSDSendAsyncCommand(OSD_CMD_TRANSACTION_COMMIT, NULL, 0);
     frskyOSDFlushSendBuffer();
+}
+
+void frskyOSDFlushSendBuffer(void)
+{
+    if (state.sendBuffer.pos > 0) {
+        frskyOSDProcessCommandU8(NULL, FRSKY_OSD_PREAMBLE_BYTE_0);
+        frskyOSDProcessCommandU8(NULL, FRSKY_OSD_PREAMBLE_BYTE_1);
+
+        uint8_t crc = 0;
+        uint8_t buffer[4];
+        int lengthSize = uvarintEncode(state.sendBuffer.pos, buffer, sizeof(buffer));
+        for (int ii = 0; ii < lengthSize; ii++) {
+            frskyOSDProcessCommandU8(&crc, buffer[ii]);
+        }
+        for (unsigned ii = 0; ii < state.sendBuffer.pos; ii++) {
+            frskyOSDProcessCommandU8(&crc, state.sendBuffer.data[ii]);
+        }
+        frskyOSDProcessCommandU8(NULL, crc);
+        state.sendBuffer.pos = 0;
+    }
 }
 
 bool frskyOSDReadFontCharacter(unsigned char_address, osdCharacter_t *chr)
@@ -540,11 +602,10 @@ bool frskyOSDReadFontCharacter(unsigned char_address, osdCharacter_t *chr)
 
     uint16_t addr = char_address;
 
-
     state.recvOsdCharacter.addr = UINT16_MAX;
     state.recvOsdCharacter.chr = chr;
 
-    // 500ms should be more than enough to receive ~60 bytes @ 115200 bps
+    // 500ms should be more than enough to receive ~70 bytes @ 115200 bps
     bool ok = frskyOSDSendSyncCommand(OSD_CMD_READ_FONT, &addr, sizeof(addr), 500);
 
     state.recvOsdCharacter.chr = NULL;
@@ -566,7 +627,7 @@ bool frskyOSDWriteFontCharacter(unsigned char_address, const osdCharacter_t *chr
 
     memcpy(&c.data, chr, sizeof(c.data));
     c.addr = char_address;
-    FRSKY_OSD_DEBUG("WRITE FONT CHR %u", char_address);
+    FRSKY_OSD_TRACE("Writing font character %u", char_address);
     frskyOSDSendSyncCommand(OSD_CMD_WRITE_FONT, &c, sizeof(c), 1000);
     return true;
 }
@@ -591,22 +652,45 @@ unsigned frskyOSDGetPixelHeight(void)
     return state.info.viewport.height;
 }
 
+static void frskyOSDSendCharInGrid(unsigned x, unsigned y, uint16_t chr, textAttributes_t attr)
+{
+    uint8_t payload[] = {
+        x,
+        y,
+        chr & 0xFF,
+        chr >> 8,
+        frskyOSDEncodeAttr(attr),
+    };
+    frskyOSDSendAsyncCommand(OSD_CMD_DRAW_GRID_CHR, payload, sizeof(payload));
+}
+
+static void frskyOSDSendAsyncBlobCommand(uint8_t cmd, const void *header, size_t headerSize, const void *blob, size_t blobSize)
+{
+    uint8_t payload[128];
+
+    memcpy(payload, header, headerSize);
+
+    int uvarintSize = uvarintEncode(blobSize, &payload[headerSize], sizeof(payload) - headerSize);
+    memcpy(&payload[headerSize + uvarintSize], blob, blobSize);
+    frskyOSDSendAsyncCommand(cmd, payload,  headerSize + uvarintSize + blobSize);
+}
+
 void frskyOSDDrawStringInGrid(unsigned x, unsigned y, const char *buff, textAttributes_t attr)
 {
     unsigned charsUpdated = 0;
-    char updatedChar = 0;
     const char *updatedCharAt = NULL;
     unsigned pos = FRSKY_OSD_GRID_BUFFER_POS(x, y);
-    for (const char *p = buff; *p; p++, pos++) {
+    const char *p;
+    unsigned xx;
+    for (p = buff, xx = x; *p && xx < state.info.grid.columns; p++, pos++, xx++) {
         unsigned val = FRSKY_OSD_GRID_BUFFER_ENCODE(*p, attr);
         if (max7456ScreenBuffer[pos] != val) {
-            if (charsUpdated++ == 1) {
+            if (++charsUpdated == 1) {
                 // First character that needs to be updated, save it
                 // in case we can issue a single update.
-                updatedChar = *p;
                 updatedCharAt = p;
             }
-
+            max7456ScreenBuffer[pos] = val;
         }
     }
 
@@ -615,21 +699,16 @@ void frskyOSDDrawStringInGrid(unsigned x, unsigned y, const char *buff, textAttr
     }
 
     if (charsUpdated == 1) {
-        frskyOSDDrawCharInGrid(x + (updatedCharAt - buff), y, updatedChar, attr);
+        frskyOSDSendCharInGrid(x + (updatedCharAt - buff), y, *updatedCharAt, attr);
         return;
     }
 
-    uint8_t payload[128];
+    frskyOSDDrawGridStrHeaderCmd_t cmd;
+    cmd.gx = x;
+    cmd.gy = y;
+    cmd.opts = frskyOSDEncodeAttr(attr);
 
-    size_t buffSize = strlen(buff) + 1;
-
-    payload[0] = buffSize;
-    payload[1] = x;
-    payload[2] = y;
-    payload[3] = frskyOSDEncodeAttr(attr);
-    memcpy(&payload[4], buff, buffSize - 1);
-    payload[buffSize + 3] = '\0';
-    frskyOSDSendAsyncCommand(OSD_CMD_DRAW_GRID_STR, payload, buffSize + 4);
+    frskyOSDSendAsyncBlobCommand(OSD_CMD_DRAW_GRID_STR, &cmd, sizeof(cmd), buff, strlen(buff) + 1);
 }
 
 void frskyOSDDrawCharInGrid(unsigned x, unsigned y, uint16_t chr, textAttributes_t attr)
@@ -641,16 +720,9 @@ void frskyOSDDrawCharInGrid(unsigned x, unsigned y, uint16_t chr, textAttributes
         return;
     }
 
-    max7456ScreenBuffer[pos] = val;
+    frskyOSDSendCharInGrid(x, y, chr, attr);
 
-    uint8_t payload[] = {
-        x,
-        y,
-        chr & 0xFF,
-        chr >> 8,
-        frskyOSDEncodeAttr(attr),
-    };
-    frskyOSDSendAsyncCommand(OSD_CMD_DRAW_GRID_CHR, payload, sizeof(payload));
+    max7456ScreenBuffer[pos] = val;
 }
 
 bool frskyOSDReadCharInGrid(unsigned x, unsigned y, uint16_t *c, textAttributes_t *attr)
@@ -681,6 +753,12 @@ void frskyOSDSetFillColor(frskyOSDColor_e color)
     frskyOSDSendAsyncCommand(OSD_CMD_DRAWING_SET_FILL_COLOR, &c, sizeof(c));
 }
 
+void frskyOSDSetStrokeAndFillColor(frskyOSDColor_e color)
+{
+    uint8_t c = color;
+    frskyOSDSendAsyncCommand(OSD_CMD_DRAWING_SET_STROKE_AND_FILL_COLOR, &c, sizeof(c));
+}
+
 void frskyOSDSetColorInversion(bool inverted)
 {
     uint8_t c = inverted ? 1 : 0;
@@ -705,27 +783,54 @@ void frskyOSDSetPixelToFillColor(int x, int y)
     frskyOSDSendAsyncCommand(OSD_CMD_DRAWING_SET_PIXEL_TO_FILL_COLOR, &p, sizeof(p));
 }
 
+void frskyOSDClipToRect(int x, int y, int w, int h)
+{
+    frskyOSDRect_t r = { .origin = { .x = x, .y = y}, .size = {.w = w, .h = h}};
+    frskyOSDSendAsyncCommand(OSD_CMD_DRAWING_CLIP_TO_RECT, &r, sizeof(r));
+}
+
 void frskyOSDClearRect(int x, int y, int w, int h)
 {
     frskyOSDRect_t r = { .origin = { .x = x, .y = y}, .size = {.w = w, .h = h}};
     frskyOSDSendAsyncCommand(OSD_CMD_DRAWING_CLEAR_RECT, &r, sizeof(r));
 }
 
-void frskyOSDResetDrawingContext(void)
+void frskyOSDResetDrawingState(void)
 {
     frskyOSDSendAsyncCommand(OSD_CMD_DRAWING_RESET, NULL, 0);
 }
 
 void frskyOSDDrawCharacter(int x, int y, uint16_t chr, uint8_t opts)
 {
-    frskyOSDDrawCharacter_t dc = { .p = {.x = x, .y = y}, .chr = chr, .opts = opts};
+    frskyOSDDrawCharacterCmd_t dc = { .p = {.x = x, .y = y}, .chr = chr, .opts = opts};
     frskyOSDSendAsyncCommand(OSD_CMD_DRAWING_DRAW_CHAR, &dc, sizeof(dc));
 }
 
 void frskyOSDDrawCharacterMask(int x, int y, uint16_t chr, frskyOSDColor_e color, uint8_t opts)
 {
-    frskyOSDDrawCharacterMask_t dc = { .dc = { .p = {.x = x, .y = y}, .chr = chr, .opts = opts}, .maskColor = color};
+    frskyOSDDrawCharacterMaskCmd_t dc = { .dc = { .p = {.x = x, .y = y}, .chr = chr, .opts = opts}, .maskColor = color};
     frskyOSDSendAsyncCommand(OSD_CMD_DRAWING_DRAW_CHAR_MASK, &dc, sizeof(dc));
+}
+
+void frskyOSDDrawString(int x, int y, const char *s, uint8_t opts)
+{
+    frskyOSDDrawStrCommandHeaderCmd_t cmd;
+    cmd.p.x = x;
+    cmd.p.y = y;
+    cmd.opts = opts;
+
+    frskyOSDSendAsyncBlobCommand(OSD_CMD_DRAWING_DRAW_STRING, &cmd, sizeof(cmd), s, strlen(s) + 1);
+}
+
+void frskyOSDDrawStringMask(int x, int y, const char *s, frskyOSDColor_e color, uint8_t opts)
+{
+    frskyOSDDrawStrMaskCommandHeaderCmd_t cmd;
+    cmd.p.x = x;
+    cmd.p.y = y;
+    cmd.opts = opts;
+    cmd.maskColor = color;
+
+    frskyOSDSendAsyncBlobCommand(OSD_CMD_DRAWING_DRAW_STRING_MASK, &cmd, sizeof(cmd), s, strlen(s) + 1);
 }
 
 void frskyOSDMoveToPoint(int x, int y)

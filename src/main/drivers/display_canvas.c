@@ -38,7 +38,16 @@ void displayCanvasSetFillColor(displayCanvas_t *displayCanvas, displayCanvasColo
     if (displayCanvas->vTable->setFillColor) {
         displayCanvas->vTable->setFillColor(displayCanvas, color);
     }
+}
 
+void displayCanvasSetStrokeAndFillColor(displayCanvas_t *displayCanvas, displayCanvasColor_e color)
+{
+    if (displayCanvas->vTable->setStrokeAndFillColor) {
+        displayCanvas->vTable->setStrokeAndFillColor(displayCanvas, color);
+    } else {
+        displayCanvasSetStrokeColor(displayCanvas, color);
+        displayCanvasSetFillColor(displayCanvas, color);
+    }
 }
 
 void displayCanvasSetColorInversion(displayCanvas_t *displayCanvas, bool inverted)
@@ -69,6 +78,13 @@ void displayCanvasSetPixelToFillColor(displayCanvas_t *displayCanvas, int x, int
     }
 }
 
+void displayCanvasClipToRect(displayCanvas_t *displayCanvas, int x, int y, int w, int h)
+{
+    if (displayCanvas->vTable->clipToRect) {
+        displayCanvas->vTable->clipToRect(displayCanvas, x, y, w, h);
+    }
+}
+
 void displayCanvasClearRect(displayCanvas_t *displayCanvas, int x, int y, int w, int h)
 {
     if (displayCanvas->vTable->clearRect) {
@@ -76,14 +92,14 @@ void displayCanvasClearRect(displayCanvas_t *displayCanvas, int x, int y, int w,
     }
 }
 
-void displayCanvasResetDrawingContext(displayCanvas_t *displayCanvas)
+void displayCanvasResetDrawingState(displayCanvas_t *displayCanvas)
 {
-    if (displayCanvas->vTable->resetDrawingContext) {
-        displayCanvas->vTable->resetDrawingContext(displayCanvas);
+    if (displayCanvas->vTable->resetDrawingState) {
+        displayCanvas->vTable->resetDrawingState(displayCanvas);
     }
 }
 
-void displayCanvasDrawCharacter(displayCanvas_t *displayCanvas, int x, int y, uint16_t chr, uint8_t opts)
+void displayCanvasDrawCharacter(displayCanvas_t *displayCanvas, int x, int y, uint16_t chr, displayCanvasBitmapOption_t opts)
 {
     if (displayCanvas->vTable->drawCharacter) {
         displayCanvas->vTable->drawCharacter(displayCanvas, x, y, chr, opts);
@@ -97,6 +113,19 @@ void displayCanvasDrawCharacterMask(displayCanvas_t *displayCanvas, int x, int y
     }
 }
 
+void displayCanvasDrawString(displayCanvas_t *displayCanvas, int x, int y, const char *s, displayCanvasBitmapOption_t opts)
+{
+    if (displayCanvas->vTable->drawString) {
+        displayCanvas->vTable->drawString(displayCanvas, x, y, s, opts);
+    }
+}
+
+void displayCanvasDrawStringMask(displayCanvas_t *displayCanvas, int x, int y, const char *s, displayCanvasColor_e color, displayCanvasBitmapOption_t opts)
+{
+    if (displayCanvas->vTable->drawStringMask) {
+        displayCanvas->vTable->drawStringMask(displayCanvas, x, y, s, color, opts);
+    }
+}
 
 void displayCanvasMoveToPoint(displayCanvas_t *displayCanvas, int x, int y)
 {

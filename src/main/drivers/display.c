@@ -25,10 +25,11 @@
 
 #include "config/parameter_group_ids.h"
 
+#include "drivers/display.h"
+#include "drivers/display_canvas.h"
 #include "drivers/display_font_metadata.h"
 #include "drivers/time.h"
 
-#include "display.h"
 
 #define SW_BLINK_CYCLE_MS 200 // 200ms on / 200ms off
 
@@ -284,7 +285,12 @@ void displayCommitTransaction(displayPort_t *instance)
 
 bool displayGetCanvas(displayCanvas_t *canvas, const displayPort_t *instance)
 {
-    return instance->vTable->getCanvas ? instance->vTable->getCanvas(canvas, instance) : false;
+    if (canvas && instance->vTable->getCanvas && instance->vTable->getCanvas(canvas, instance)) {
+        canvas->gridElementWidth = canvas->width / instance->cols;
+        canvas->gridElementHeight = canvas->height / instance->rows;
+        return true;
+    }
+    return false;
 }
 
 void displayInit(displayPort_t *instance, const displayPortVTable_t *vTable)

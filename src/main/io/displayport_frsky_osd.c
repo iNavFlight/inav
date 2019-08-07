@@ -129,7 +129,6 @@ static textAttributes_t supportedTextAttributes(const displayPort_t *displayPort
     textAttributes_t attr = TEXT_ATTRIBUTES_NONE;
     TEXT_ATTRIBUTES_ADD_INVERTED(attr);
     TEXT_ATTRIBUTES_ADD_SOLID_BG(attr);
-    // TEXT_ATTRIBUTES_ADD_BLINK(attr); TODO?
     return attr;
 }
 
@@ -214,6 +213,13 @@ static void setFillColor(displayCanvas_t *displayCanvas, displayCanvasColor_e co
     frskyOSDSetFillColor(frskyOSDGetColor(color));
 }
 
+static void setStrokeAndFillColor(displayCanvas_t *displayCanvas, displayCanvasColor_e color)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDSetStrokeAndFillColor(frskyOSDGetColor(color));
+}
+
 static void setColorInversion(displayCanvas_t *displayCanvas, bool inverted)
 {
     UNUSED(displayCanvas);
@@ -242,6 +248,13 @@ static void setPixelToFillColor(displayCanvas_t *displayCanvas, int x, int y)
     frskyOSDSetPixelToFillColor(x, y);
 }
 
+static void clipToRect(displayCanvas_t *displayCanvas, int x, int y, int w, int h)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDClipToRect(x, y, w, h);
+}
+
 static void clearRect(displayCanvas_t *displayCanvas, int x, int y, int w, int h)
 {
     UNUSED(displayCanvas);
@@ -249,11 +262,11 @@ static void clearRect(displayCanvas_t *displayCanvas, int x, int y, int w, int h
     frskyOSDClearRect(x, y, w, h);
 }
 
-static void resetDrawingContext(displayCanvas_t *displayCanvas)
+static void resetDrawingState(displayCanvas_t *displayCanvas)
 {
     UNUSED(displayCanvas);
 
-    frskyOSDResetDrawingContext();
+    frskyOSDResetDrawingState();
 }
 
 static void drawCharacter(displayCanvas_t *displayCanvas, int x, int y, uint16_t chr, displayCanvasBitmapOption_t opts)
@@ -268,6 +281,20 @@ static void drawCharacterMask(displayCanvas_t *displayCanvas, int x, int y, uint
     UNUSED(displayCanvas);
 
     frskyOSDDrawCharacterMask(x, y, chr, frskyOSDGetColor(color), opts);
+}
+
+static void drawString(displayCanvas_t *displayCanvas, int x, int y, const char *s, displayCanvasBitmapOption_t opts)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDDrawString(x, y, s, opts);
+}
+
+static void drawStringMask(displayCanvas_t *displayCanvas, int x, int y, const char *s, displayCanvasColor_e color, displayCanvasBitmapOption_t opts)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDDrawStringMask(x, y, s, frskyOSDGetColor(color), opts);
 }
 
 static void moveToPoint(displayCanvas_t *displayCanvas, int x, int y)
@@ -400,15 +427,19 @@ static void contextPop(displayCanvas_t *displayCanvas)
 static const displayCanvasVTable_t frskyOSDCanvasVTable = {
     .setStrokeColor = setStrokeColor,
     .setFillColor = setFillColor,
+    .setStrokeAndFillColor = setStrokeAndFillColor,
     .setColorInversion = setColorInversion,
     .setPixel = setPixel,
     .setPixelToStrokeColor = setPixelToStrokeColor,
     .setPixelToFillColor = setPixelToFillColor,
 
+    .clipToRect = clipToRect,
     .clearRect = clearRect,
-    .resetDrawingContext = resetDrawingContext,
+    .resetDrawingState = resetDrawingState,
     .drawCharacter = drawCharacter,
     .drawCharacterMask = drawCharacterMask,
+    .drawString = drawString,
+    .drawStringMask = drawStringMask,
     .moveToPoint = moveToPoint,
     .strokeLineToPoint = strokeLineToPoint,
     .strokeTriangle = strokeTriangle,
@@ -436,8 +467,8 @@ static bool getCanvas(displayCanvas_t *canvas, const displayPort_t *instance)
     UNUSED(instance);
 
     canvas->vTable = &frskyOSDCanvasVTable;
-    canvas->widthPixels = frskyOSDGetPixelWidth();
-    canvas->heightPixels = frskyOSDGetPixelHeight();
+    canvas->width = frskyOSDGetPixelWidth();
+    canvas->height = frskyOSDGetPixelHeight();
     return true;
 }
 

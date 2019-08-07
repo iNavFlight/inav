@@ -47,22 +47,28 @@ typedef struct displayCanvasVTable_s displayCanvasVTable_t;
 typedef struct displayCanvas_s {
     const displayCanvasVTable_t *vTable;
     void *device;
-    uint16_t widthPixels;
-    uint16_t heightPixels;
+    uint16_t width;
+    uint16_t height;
+    uint8_t gridElementWidth;
+    uint8_t gridElementHeight;
 } displayCanvas_t;
 
 typedef struct displayCanvasVTable_s {
     void (*setStrokeColor)(displayCanvas_t *displayCanvas, displayCanvasColor_e color);
     void (*setFillColor)(displayCanvas_t *displayCanvas, displayCanvasColor_e color);
+    void (*setStrokeAndFillColor)(displayCanvas_t *displayCanvas, displayCanvasColor_e color);
     void (*setColorInversion)(displayCanvas_t *displayCanvas, bool inverted);
     void (*setPixel)(displayCanvas_t *displayCanvas, int x, int y, displayCanvasColor_e color);
     void (*setPixelToStrokeColor)(displayCanvas_t *displayCanvas, int x, int y);
     void (*setPixelToFillColor)(displayCanvas_t *displayCanvas, int x, int y);
 
+    void (*clipToRect)(displayCanvas_t *displayCanvas, int x, int y, int w, int h);
     void (*clearRect)(displayCanvas_t *displayCanvas, int x, int y, int w, int h);
-    void (*resetDrawingContext)(displayCanvas_t *displayCanvas);
+    void (*resetDrawingState)(displayCanvas_t *displayCanvas);
     void (*drawCharacter)(displayCanvas_t *displayCanvas, int x, int y, uint16_t chr, displayCanvasBitmapOption_t opts);
     void (*drawCharacterMask)(displayCanvas_t *displayCanvas, int x, int y, uint16_t chr, displayCanvasColor_e color, displayCanvasBitmapOption_t opts);
+    void (*drawString)(displayCanvas_t *displayCanvas, int x, int y, const char *s, displayCanvasBitmapOption_t opts);
+    void (*drawStringMask)(displayCanvas_t *displayCanvas, int x, int y, const char *s, displayCanvasColor_e color, displayCanvasBitmapOption_t opts);
     void (*moveToPoint)(displayCanvas_t *displayCanvas, int x, int y);
     void (*strokeLineToPoint)(displayCanvas_t *displayCanvas, int x, int y);
     void (*strokeTriangle)(displayCanvas_t *displayCanvas, int x1, int y1, int x2, int y2, int x3, int y3);
@@ -88,15 +94,19 @@ typedef struct displayCanvasVTable_s {
 
 void displayCanvasSetStrokeColor(displayCanvas_t *displayCanvas, displayCanvasColor_e color);
 void displayCanvasSetFillColor(displayCanvas_t *displayCanvas, displayCanvasColor_e color);
+void displayCanvasSetStrokeAndFillColor(displayCanvas_t *displayCanvas, displayCanvasColor_e color);
 void displayCanvasSetColorInversion(displayCanvas_t *displayCanvas, bool inverted);
 void displayCanvasSetPixel(displayCanvas_t *displayCanvas, int x, int y, displayCanvasColor_e);
 void displayCanvasSetPixelToStrokeColor(displayCanvas_t *displayCanvas, int x, int y);
 void displayCanvasSetPixelToFillColor(displayCanvas_t *displayCanvas, int x, int y);
 
+void displayCanvasClipToRect(displayCanvas_t *displayCanvas, int x, int y, int w, int h);
 void displayCanvasClearRect(displayCanvas_t *displayCanvas, int x, int y, int w, int h);
-void displayCanvasResetDrawingContext(displayCanvas_t *displayCanvas);
+void displayCanvasResetDrawingState(displayCanvas_t *displayCanvas);
 void displayCanvasDrawCharacter(displayCanvas_t *displayCanvas, int x, int y, uint16_t chr, displayCanvasBitmapOption_t opts);
 void displayCanvasDrawCharacterMask(displayCanvas_t *displayCanvas, int x, int y, uint16_t chr, displayCanvasColor_e color, displayCanvasBitmapOption_t opts);
+void displayCanvasDrawString(displayCanvas_t *displayCanvas, int x, int y, const char *s, displayCanvasBitmapOption_t opts);
+void displayCanvasDrawStringMask(displayCanvas_t *displayCanvas, int x, int y, const char *s, displayCanvasColor_e color, displayCanvasBitmapOption_t opts);
 void displayCanvasMoveToPoint(displayCanvas_t *displayCanvas, int x, int y);
 void displayCanvasStrokeLineToPoint(displayCanvas_t *displayCanvas, int x, int y);
 void displayCanvasStrokeTriangle(displayCanvas_t *displayCanvas, int x1, int y1, int x2, int y2, int x3, int y3);
