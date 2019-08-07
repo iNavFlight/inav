@@ -7,6 +7,11 @@
 #include "drivers/osd.h"
 
 typedef enum {
+    FRSKY_OSD_TRANSACTION_OPT_PROFILED = 1 << 0,
+    FRSKY_OSD_TRANSACTION_OPT_RESET_DRAWING = 1 << 1,
+} frskyOSDTransactionOptions_e;
+
+typedef enum {
     FRSKY_OSD_COLOR_BLACK = 0,
     FRSKY_OSD_COLOR_TRANSPARENT = 1,
     FRSKY_OSD_COLOR_WHITE = 2,
@@ -16,7 +21,7 @@ typedef enum {
 bool frskyOSDInit(videoSystem_e videoSystem);
 bool frskyOSDIsReady(void);
 void frskyOSDUpdate(void);
-void frskyOSDBeginTransaction(void);
+void frskyOSDBeginTransaction(frskyOSDTransactionOptions_e opts);
 void frskyOSDCommitTransaction(void);
 bool frskyOSDReadFontCharacter(unsigned char_address, osdCharacter_t *chr);
 bool frskyOSDWriteFontCharacter(unsigned char_address, const osdCharacter_t *chr);

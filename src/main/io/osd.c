@@ -2941,6 +2941,7 @@ static void osdCompleteAsyncInitialization(void)
 
     osdDisplayHasCanvas = displayGetCanvas(&osdCanvas, osdDisplayPort);
 
+    displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
     displayClearScreen(osdDisplayPort);
 
     uint8_t y = 1;
@@ -3019,6 +3020,7 @@ static void osdCompleteAsyncInitialization(void)
     }
 #endif
 
+    displayCommitTransaction(osdDisplayPort);
     displayResync(osdDisplayPort);
     osdSetNextRefreshIn(SPLASH_SCREEN_DISPLAY_TIME);
 }
@@ -3301,7 +3303,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
 
 #ifdef USE_CMS
     if (!displayIsGrabbed(osdDisplayPort)) {
-        displayBeginTransaction(osdDisplayPort);
+        displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
         if (fullRedraw) {
             displayClearScreen(osdDisplayPort);
             fullRedraw = false;

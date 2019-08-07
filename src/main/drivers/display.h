@@ -30,6 +30,12 @@ typedef struct displayConfig_s {
 
 PG_DECLARE(displayConfig_t, displayConfig);
 
+typedef enum {
+    DISPLAY_TRANSACTION_OPT_NONE = 0,
+    DISPLAY_TRANSACTION_OPT_PROFILED = 1 << 0,
+    DISPLAY_TRANSACTION_OPT_RESET_DRAWING = 1 << 1,
+} displayTransactionOption_e;
+
 // Represents the attributes for a given piece of text
 // either a single character or a string. For forward
 // compatibility, always use the TEXT_ATTRIBUTE...
@@ -94,7 +100,7 @@ typedef struct displayPortVTable_s {
     bool (*getFontMetadata)(displayFontMetadata_t *metadata, const displayPort_t *displayPort);
     int (*writeFontCharacter)(displayPort_t *instance, uint16_t addr, const osdCharacter_t *chr);
     bool (*isReady)(displayPort_t *displayPort);
-    void (*beginTransaction)(displayPort_t *displayPort);
+    void (*beginTransaction)(displayPort_t *displayPort, displayTransactionOption_e opts);
     void (*commitTransaction)(displayPort_t *displayPort);
     bool (*getCanvas)(displayCanvas_t *canvas, const displayPort_t *displayPort);
 } displayPortVTable_t;
@@ -127,7 +133,7 @@ uint16_t displayTxBytesFree(const displayPort_t *instance);
 bool displayGetFontMetadata(displayFontMetadata_t *metadata, const displayPort_t *instance);
 int displayWriteFontCharacter(displayPort_t *instance, uint16_t addr, const osdCharacter_t *chr);
 bool displayIsReady(displayPort_t *instance);
-void displayBeginTransaction(displayPort_t *instance);
+void displayBeginTransaction(displayPort_t *instance, displayTransactionOption_e opts);
 void displayCommitTransaction(displayPort_t *instance);
 bool displayGetCanvas(displayCanvas_t *canvas, const displayPort_t *instance);
 void displayInit(displayPort_t *instance, const displayPortVTable_t *vTable);

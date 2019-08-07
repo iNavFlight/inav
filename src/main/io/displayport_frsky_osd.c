@@ -162,11 +162,19 @@ static bool isReady(displayPort_t *instance)
     return false;
 }
 
-static void beginTransaction(displayPort_t *instance)
+static void beginTransaction(displayPort_t *instance, displayTransactionOption_e opts)
 {
     UNUSED(instance);
 
-    frskyOSDBeginTransaction();
+    frskyOSDTransactionOptions_e frskyOpts = 0;
+    if (opts & DISPLAY_TRANSACTION_OPT_PROFILED) {
+        frskyOpts |= FRSKY_OSD_TRANSACTION_OPT_PROFILED;
+    }
+    if (opts & DISPLAY_TRANSACTION_OPT_RESET_DRAWING) {
+        frskyOpts |= FRSKY_OSD_TRANSACTION_OPT_RESET_DRAWING;
+    }
+
+    frskyOSDBeginTransaction(frskyOpts);
 }
 
 static void commitTransaction(displayPort_t *instance)

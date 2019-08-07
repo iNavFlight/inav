@@ -268,10 +268,10 @@ bool displayIsReady(displayPort_t *instance)
     return true;
 }
 
-void displayBeginTransaction(displayPort_t *instance)
+void displayBeginTransaction(displayPort_t *instance, displayTransactionOption_e opts)
 {
     if (instance->vTable->beginTransaction) {
-        instance->vTable->beginTransaction(instance);
+        instance->vTable->beginTransaction(instance, opts);
     }
 }
 
