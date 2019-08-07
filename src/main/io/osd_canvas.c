@@ -28,6 +28,8 @@
 
 #include "platform.h"
 
+#if defined(USE_CANVAS)
+
 #include "common/log.h"
 #include "common/maths.h"
 #include "common/printf.h"
@@ -306,3 +308,5 @@ void osdCanvasDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *can
         prevRollAngle = rollAngle;
     }
 }
+
+#endif

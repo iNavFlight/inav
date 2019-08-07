@@ -24,6 +24,8 @@
  * @author Alberto Garcia Hierro <alberto@garciahierro.com>
  */
 
+#include "platform.h"
+
 #include "common/utils.h"
 
 #include "drivers/display.h"
@@ -74,36 +76,50 @@ void osdDrawVario(displayPort_t *display, displayCanvas_t *canvas, const osdDraw
     uint8_t gx;
     uint8_t gy;
 
+#if defined(USE_CANVAS)
     if (canvas) {
         osdCanvasDrawVario(display, canvas, p, zvel);
     } else {
+#endif
         osdDrawPointGetGrid(&gx, &gy, display, canvas, p);
         osdGridDrawVario(display, gx, gy, zvel);
+#if defined(USE_CANVAS)
     }
+#endif
 }
 
 void osdDrawDirArrow(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float degrees, bool eraseBefore)
 {
+#if !defined(USE_CANVAS)
+    UNUSED(eraseBefore);
+#endif
     uint8_t gx;
     uint8_t gy;
 
+#if defined(USE_CANVAS)
     if (canvas) {
         osdCanvasDrawDirArrow(display, canvas, p, degrees, eraseBefore);
     } else {
+#endif
         osdDrawPointGetGrid(&gx, &gy, display, canvas, p);
         osdGridDrawDirArrow(display, gx, gy, degrees);
+#if defined(USE_CANVAS)
     }
+#endif
 }
 
 void osdDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float rollAngle, float pitchAngle)
 {
     uint8_t gx;
     uint8_t gy;
-
+#if defined(USE_CANVAS)
     if (canvas) {
         osdCanvasDrawArtificialHorizon(display, canvas, p, pitchAngle, rollAngle);
     } else {
+#endif
         osdDrawPointGetGrid(&gx, &gy, display, canvas, p);
         osdGridDrawArtificialHorizon(display, gx, gy, pitchAngle, rollAngle);
+#if defined(USE_CANVAS)
     }
+#endif
 }
