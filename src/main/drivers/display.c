@@ -257,7 +257,7 @@ int displayWriteFontCharacter(displayPort_t *instance, uint16_t addr, const osdC
     return -1;
 }
 
-bool displayIsReady(const displayPort_t *instance)
+bool displayIsReady(displayPort_t *instance)
 {
     if (instance->vTable->isReady) {
         return instance->vTable->isReady(instance);

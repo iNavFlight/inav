@@ -93,7 +93,7 @@ typedef struct displayPortVTable_s {
     textAttributes_t (*supportedTextAttributes)(const displayPort_t *displayPort);
     bool (*getFontMetadata)(displayFontMetadata_t *metadata, const displayPort_t *displayPort);
     int (*writeFontCharacter)(displayPort_t *instance, uint16_t addr, const osdCharacter_t *chr);
-    bool (*isReady)(const displayPort_t *displayPort);
+    bool (*isReady)(displayPort_t *displayPort);
     void (*beginTransaction)(displayPort_t *displayPort);
     void (*commitTransaction)(displayPort_t *displayPort);
     bool (*getCanvas)(displayCanvas_t *canvas, const displayPort_t *displayPort);
@@ -126,7 +126,7 @@ void displayResync(displayPort_t *instance);
 uint16_t displayTxBytesFree(const displayPort_t *instance);
 bool displayGetFontMetadata(displayFontMetadata_t *metadata, const displayPort_t *instance);
 int displayWriteFontCharacter(displayPort_t *instance, uint16_t addr, const osdCharacter_t *chr);
-bool displayIsReady(const displayPort_t *instance);
+bool displayIsReady(displayPort_t *instance);
 void displayBeginTransaction(displayPort_t *instance);
 void displayCommitTransaction(displayPort_t *instance);
 bool displayGetCanvas(displayCanvas_t *canvas, const displayPort_t *instance);

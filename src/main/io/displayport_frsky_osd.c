@@ -95,14 +95,19 @@ static bool isTransferInProgress(const displayPort_t *displayPort)
     return false;
 }
 
+static void updateGridSize(displayPort_t *displayPort)
+{
+    displayPort->rows = frskyOSDGetGridRows();
+    displayPort->cols = frskyOSDGetGridCols();
+}
+
 static void resync(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
     // TODO(agh): Do we need to flush the screen here?
     // MAX7456's driver does a full redraw in resync(),
     // so some callers might be expecting that.
-    displayPort->rows = frskyOSDGetGridRows();
-    displayPort->cols = frskyOSDGetGridCols();
+    updateGridSize(displayPort);
 }
 
 static int heartbeat(displayPort_t *displayPort)
@@ -148,11 +153,13 @@ static int writeFontCharacter(displayPort_t *instance, uint16_t addr, const osdC
     return 0;
 }
 
-static bool isReady(const displayPort_t *instance)
+static bool isReady(displayPort_t *instance)
 {
-    UNUSED(instance);
-
-    return frskyOSDIsReady();
+    if (frskyOSDIsReady()) {
+        updateGridSize(instance);
+        return true;
+    }
+    return false;
 }
 
 static void beginTransaction(displayPort_t *instance)
