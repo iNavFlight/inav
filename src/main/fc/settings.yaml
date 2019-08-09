@@ -125,6 +125,9 @@ tables:
   - name: nav_extra_arming_safety
     values: ["OFF", "ON", "ALLOW_BYPASS"]
     enum: navExtraArmingSafety_e
+  - name: rssi_source
+    values: ["NONE", "AUTO", "ADC", "CHANNEL", "PROTOCOL", "MSP"]
+    enum: rssiSource_e
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -368,6 +371,9 @@ groups:
         field: maxcheck
         min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
+      - name: rssi_source
+        field: rssi_source
+        table: rssi_source
       - name: rssi_channel
         min: 0
         max: MAX_SUPPORTED_RC_CHANNEL_COUNT

@@ -58,7 +58,7 @@ extern uint8_t __config_end;
 #include "drivers/io_impl.h"
 #include "drivers/osd_symbols.h"
 #include "drivers/rx_pwm.h"
-#include "drivers/sdcard.h"
+#include "drivers/sdcard/sdcard.h"
 #include "drivers/sensor.h"
 #include "drivers/serial.h"
 #include "drivers/stack_check.h"
@@ -139,10 +139,10 @@ static void cliAssert(char *cmdline);
 static const char * const featureNames[] = {
     "THR_VBAT_COMP", "VBAT", "TX_PROF_SEL", "BAT_PROF_AUTOSWITCH", "MOTOR_STOP",
     "", "SOFTSERIAL", "GPS", "",
-    "", "TELEMETRY", "CURRENT_METER", "3D", "RX_PARALLEL_PWM",
-    "RX_MSP", "RSSI_ADC", "LED_STRIP", "DASHBOARD", "",
+    "", "TELEMETRY", "CURRENT_METER", "3D", "",
+    "", "RSSI_ADC", "LED_STRIP", "DASHBOARD", "",
     "BLACKBOX", "", "TRANSPONDER", "AIRMODE",
-    "SUPEREXPO", "VTX", "RX_SPI", "", "PWM_SERVO_DRIVER", "PWM_OUTPUT_ENABLE",
+    "SUPEREXPO", "VTX", "", "", "PWM_SERVO_DRIVER", "PWM_OUTPUT_ENABLE",
     "OSD", "FW_LAUNCH", NULL
 };
 
@@ -1679,11 +1679,11 @@ static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions
     const char *format = "logic %d %d %d %d %d %d %d %d";
     for (uint32_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
         const logicCondition_t logic = logicConditions[i];
-        
+
         bool equalsDefault = false;
         if (defaultLogicConditions) {
             logicCondition_t defaultValue = defaultLogicConditions[i];
-            equalsDefault = 
+            equalsDefault =
                 logic.enabled == defaultValue.enabled &&
                 logic.operation == defaultValue.operation &&
                 logic.operandA.type == defaultValue.operandA.type &&
@@ -1730,9 +1730,9 @@ static void cliLogic(char *cmdline) {
             INDEX = 0,
             ENABLED,
             OPERATION,
-            OPERAND_A_TYPE, 
+            OPERAND_A_TYPE,
             OPERAND_A_VALUE,
-            OPERAND_B_TYPE, 
+            OPERAND_B_TYPE,
             OPERAND_B_VALUE,
             FLAGS,
             ARGS_COUNT
@@ -1758,7 +1758,7 @@ static void cliLogic(char *cmdline) {
             args[OPERAND_B_TYPE] >= 0 && args[OPERAND_B_TYPE] < LOGIC_CONDITION_OPERAND_TYPE_LAST &&
             args[OPERAND_B_VALUE] >= -1000000 && args[OPERAND_B_VALUE] <= 1000000 &&
             args[FLAGS] >= 0 && args[FLAGS] <= 255
-        
+
         ) {
             logicConditionsMutable(i)->enabled = args[ENABLED];
             logicConditionsMutable(i)->operation = args[OPERATION];
@@ -3147,7 +3147,7 @@ const clicmd_t cmdTable[] = {
 #endif
     CLI_COMMAND_DEF("servo", "configure servos", NULL, cliServo),
 #ifdef USE_LOGIC_CONDITIONS
-    CLI_COMMAND_DEF("logic", "configure logic conditions", 
+    CLI_COMMAND_DEF("logic", "configure logic conditions",
         "<rule> <enabled> <operation> <operand A type> <operand A value> <operand B type> <operand B value> <flags>\r\n"
         "\treset\r\n", cliLogic),
 #endif

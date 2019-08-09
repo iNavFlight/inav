@@ -2,16 +2,10 @@
 
 A receiver is used to receive radio control signals from your transmitter and convert them into signals that the flight controller can understand.
 
-There are 3 basic types of receivers:
+There are 2 basic types of receivers:
 
-1. Parallel PWM Receivers
-2. PPM Receivers
-3. Serial Receivers
-
-## Parallel PWM Receivers
-
-8 channel support, 1 channel per input pin.  On some platforms using parallel input will disable the use of serial ports
-and SoftSerial making it hard to use telemetry or GPS features.
+1. PPM Receivers
+2. Serial Receivers
 
 ## PPM Receivers
 
@@ -49,7 +43,7 @@ http://www.lemon-rx.com/shop/index.php?route=product/product&product_id=118
 
 #### Spektrum pesudo RSSI
 
-As of iNav 1.6, a pseudo RSSI, based on satellite fade count is supported and reported as normal iNav RSSI (0-1023 range). In order to use this feature, the following is necessary:
+As of iNav 1.6, a pseudo RSSI, based on satellite fade count is supported and reported as normal iNav RSSI (0-1023 range). In order to use this feature, the following is necessary:obj/inav_2.2.2_SPRACINGF3EVO.hex
 
 * Bind the satellite receiver using a physical RX; the bind function provided by the flight controller is not sufficient.
 * The CLI variable `rssi_channel` is set to channel 9:
@@ -63,7 +57,7 @@ This pseudo-RSSI should work on all makes of Spektrum satellite RX; it is tested
 16 channels via serial currently supported.  See below how to set up your transmitter.
 
 * You probably need an inverter between the receiver output and the flight controller. However, some flight controllers have this built in and doesn't need one.
-* Some OpenLRS receivers produce a non-inverted SBUS signal. It is possible to switch SBUS inversion off using CLI command `set sbus_inversion = OFF` when using an F3 based flight controller.
+* Some OpenLRS receivers produce obj/inav_2.2.2_SPRACINGF3EVO.hexa non-inverted SBUS signal. It is possible to switch SBUS inversion off using CLI command `set sbus_inversion = OFF` when using an F3 based flight controller.
 * Softserial ports cannot be used with SBUS because it runs at too high of a bitrate (1Mbps).  Refer to the chapter specific to your board to determine which port(s) may be used.
 * You will need to configure the channel mapping in the GUI (Receiver tab) or CLI (`map` command). Note that channels above 8 are mapped "straight", with no remapping.
 
@@ -128,7 +122,7 @@ SUMH is a legacy Graupner protocol.  Graupner have issued a firmware updates for
 
 10 channels via serial currently supported.
 
-IBUS is the FlySky digital serial protocol and is available with the FS-IA6B, FS-X6B and FS-IA10 receivers. 
+IBUS is the FlySky digital serial protocol and is available with the FS-IA6B, FS-X6B and FS-IA10 receivers.
 The Turnigy TGY-IA6B and TGY-IA10 are the same devices with a different label, therefore they also work.
 
 IBUS can provide up to 120Hz refresh rate, more than double compared to standard 50Hz of PPM.
@@ -147,7 +141,7 @@ The flash is avaliable here: https://github.com/benb0jangles/FlySky-i6-Mod-
 ```
 After flash "10ch Timer Mod i6 Updater", it is passible to get RSSI signal on selected Aux channel from FS-i6 Err sensor.
 
-It is possible to use IBUS RX and IBUS telemetry on only one port of the hardware UART. More information in Telemetry.md.
+It is possible to use IBUS RX and IBUS telemetry on only one port of the hardware UART. More information in Telemetry.md.obj/inav_2.2.2_SPRACINGF3EVO.hex
 
 ## MultiWii serial protocol (MSP)
 
@@ -155,16 +149,15 @@ Allows you to use MSP commands as the RC input.  Only 8 channel support to maint
 
 ## Configuration
 
-There are 3 features that control receiver mode:
+The receiver type can be set from the configurator or CLI.
 
 ```
-RX_PPM
-RX_SERIAL
-RX_PARALLEL_PWM
-RX_MSP
+# get receiver_type
+receiver_type = NONE
+Allowed values: NONE, PWM, PPM, SERIAL, MSP, SPI, UIB
 ```
 
-Only one receiver feature can be enabled at a time.
+Note that `PWM` is a synonym for `NONE`. 
 
 ### RX signal-loss detection
 

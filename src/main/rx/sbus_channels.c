@@ -74,6 +74,11 @@ uint8_t sbusChannelsDecode(rxRuntimeConfig_t *rxRuntimeConfig, const sbusChannel
         return RX_FRAME_COMPLETE | RX_FRAME_FAILSAFE;
     }
 
+    if (channels->flags & SBUS_FLAG_SIGNAL_LOSS) {
+        // The received data is a repeat of the last valid data so can be considered complete.
+        return RX_FRAME_COMPLETE | RX_FRAME_DROPPED;
+    }
+
     return RX_FRAME_COMPLETE;
 }
 

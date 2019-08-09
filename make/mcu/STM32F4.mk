@@ -163,7 +163,8 @@ MCU_COMMON_SRC = \
             drivers/timer_impl_stdperiph.c \
             drivers/timer_stm32f4xx.c \
             drivers/uart_inverter.c \
-            drivers/dma_stm32f4xx.c
+            drivers/dma_stm32f4xx.c \
+            drivers/sdcard/sdmmc_sdio_f4xx.c
 
 ifeq ($(PERIPH_DRIVER), HAL)
 VCP_SRC = \

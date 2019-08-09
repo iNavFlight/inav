@@ -57,11 +57,11 @@ static long cmsx_Vtx_FeatureWriteback(void)
 }
 
 static const char * const vtxBandNames[] = {
-    "BOSCAM A",
-    "BOSCAM B",
-    "BOSCAM E",
-    "FATSHARK",
-    "RACEBAND",
+    "A",
+    "B",
+    "E",
+    "F",
+    "R",
 };
 
 static const OSD_TAB_t entryVtxBand = {&cmsx_vtxBand,4,&vtxBandNames[0]};

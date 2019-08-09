@@ -63,6 +63,10 @@
         #endif
     #endif
 
+    #if defined(USE_GYRO_ICM20689)
+        BUSDEV_REGISTER_SPI(busdev_icm20689,    DEVHW_ICM20689,     ICM20689_SPI_BUS,   ICM20689_CS_PIN,    GYRO_INT_EXTI,  DEVFLAGS_NONE);
+    #endif
+
     #if defined(USE_GYRO_BMI160)
         #if defined(BMI160_SPI_BUS)
         BUSDEV_REGISTER_SPI(busdev_bmi160,      DEVHW_BMI160,       BMI160_SPI_BUS,     BMI160_CS_PIN,      GYRO_INT_EXTI,  DEVFLAGS_NONE);
@@ -277,9 +281,12 @@
     BUSDEV_REGISTER_SPI(busdev_sdcard_spi,  DEVHW_SDCARD,       SDCARD_SPI_BUS,     SDCARD_CS_PIN,      NONE,           DEVFLAGS_USE_MANUAL_DEVICE_SELECT | DEVFLAGS_SPI_MODE_0);
 #endif
 
+/*
+// FIXME(digitalentity): This is unnecessary at the moment as SDIO is not part of BusDevice infrastructure
 #if defined(USE_SDCARD) && defined(USE_SDCARD_SDIO)
     BUSDEV_REGISTER_SDIO(busdev_sdcard_sdio,DEVHW_SDCARD,       SDCARD_SDIO_BUS,    SDCARD_CS_PIN,      NONE,           DEVFLAGS_USE_MANUAL_DEVICE_SELECT);
 #endif
+*/
 
 #if defined(USE_OLED_UG2864)
     #if !defined(UG2864_I2C_BUS)

@@ -61,7 +61,6 @@
 #include "drivers/pwm_output.h"
 #include "drivers/pwm_output.h"
 #include "drivers/rx_pwm.h"
-#include "drivers/sdcard.h"
 #include "drivers/sensor.h"
 #include "drivers/serial.h"
 #include "drivers/serial_softserial.h"
@@ -77,6 +76,7 @@
 #include "drivers/io_pca9685.h"
 #include "drivers/vtx_rtc6705.h"
 #include "drivers/vtx_common.h"
+#include "drivers/sdcard/sdcard.h"
 
 #include "fc/cli.h"
 #include "fc/config.h"
