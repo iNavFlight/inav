@@ -54,8 +54,6 @@ typedef enum {
 #ifdef USE_ASYNC_GYRO_PROCESSING
     TASK_PID,
     TASK_GYRO,
-    TASK_ACC,
-    TASK_ATTI,
 #else
     TASK_GYROPID,
 #endif

@@ -38,8 +38,7 @@
 
 typedef enum {
     ASYNC_MODE_NONE,
-    ASYNC_MODE_GYRO,
-    ASYNC_MODE_ALL
+    ASYNC_MODE_GYRO
 } asyncMode_e;
 
 typedef enum {
@@ -149,6 +148,5 @@ uint32_t getPidUpdateRate(void);
 timeDelta_t getGyroUpdateRate(void);
 uint16_t getAccUpdateRate(void);
 #ifdef USE_ASYNC_GYRO_PROCESSING
-uint16_t getAttitudeUpdateRate(void);
 uint8_t getAsyncMode(void);
 #endif

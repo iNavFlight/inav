@@ -184,28 +184,10 @@ timeDelta_t getGyroUpdateRate(void)
 
 uint16_t getAccUpdateRate(void)
 {
-#ifdef USE_ASYNC_GYRO_PROCESSING
-    // ACC will be updated at its own rate
-    if (systemConfig()->asyncMode == ASYNC_MODE_ALL) {
-        return 1000000 / systemConfig()->accTaskFrequency;
-    } else {
-        return getPidUpdateRate();
-    }
-#else
-    // ACC updated at same frequency in taskMainPidLoop in mw.c
-    return gyro.targetLooptime;
-#endif
+    return getPidUpdateRate();
 }
 
 #ifdef USE_ASYNC_GYRO_PROCESSING
-uint16_t getAttitudeUpdateRate(void) {
-    if (systemConfig()->asyncMode == ASYNC_MODE_ALL) {
-        return 1000000 / systemConfig()->attitudeTaskFrequency;
-    } else {
-        return getPidUpdateRate();
-    }
-}
-
 uint8_t getAsyncMode(void) {
     return systemConfig()->asyncMode;
 }

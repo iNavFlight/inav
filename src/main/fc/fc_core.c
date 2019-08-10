@@ -755,18 +755,13 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     if (getAsyncMode() == ASYNC_MODE_NONE) {
         taskGyro(currentTimeUs);
     }
-
-    if (getAsyncMode() != ASYNC_MODE_ALL && sensors(SENSOR_ACC)) {
-        imuUpdateAccelerometer();
-        imuUpdateAttitude(currentTimeUs);
-    }
 #else
     /* Update gyroscope */
     taskGyro(currentTimeUs);
-    imuUpdateAccelerometer();
-    imuUpdateAttitude(currentTimeUs);
 #endif
 
+    imuUpdateAccelerometer();
+    imuUpdateAttitude(currentTimeUs);
 
     annexCode();
 

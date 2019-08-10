@@ -252,20 +252,6 @@ void taskSyncPwmDriver(timeUs_t currentTimeUs)
 }
 #endif
 
-#ifdef USE_ASYNC_GYRO_PROCESSING
-void taskAttitude(timeUs_t currentTimeUs)
-{
-    imuUpdateAttitude(currentTimeUs);
-}
-
-void taskAcc(timeUs_t currentTimeUs)
-{
-    UNUSED(currentTimeUs);
-
-    imuUpdateAccelerometer();
-}
-#endif
-
 #ifdef USE_OSD
 void taskUpdateOsd(timeUs_t currentTimeUs)
 {
@@ -287,15 +273,6 @@ void fcTasksInit(void)
         rescheduleTask(TASK_GYRO, getGyroUpdateRate());
         setTaskEnabled(TASK_GYRO, true);
     }
-
-    if (getAsyncMode() == ASYNC_MODE_ALL && sensors(SENSOR_ACC)) {
-        rescheduleTask(TASK_ACC, getAccUpdateRate());
-        setTaskEnabled(TASK_ACC, true);
-
-        rescheduleTask(TASK_ATTI, getAttitudeUpdateRate());
-        setTaskEnabled(TASK_ATTI, true);
-    }
-
 #else
     rescheduleTask(TASK_GYROPID, getGyroUpdateRate());
     setTaskEnabled(TASK_GYROPID, true);
@@ -395,20 +372,6 @@ cfTask_t cfTasks[TASK_COUNT] = {
             .taskFunc = taskGyro,
             .desiredPeriod = TASK_PERIOD_HZ(1000), //Run at 1000Hz
             .staticPriority = TASK_PRIORITY_REALTIME,
-        },
-
-        [TASK_ACC] = {
-            .taskName = "ACC",
-            .taskFunc = taskAcc,
-            .desiredPeriod = TASK_PERIOD_HZ(520), //520Hz is ACC bandwidth (260Hz) * 2
-            .staticPriority = TASK_PRIORITY_HIGH,
-        },
-
-        [TASK_ATTI] = {
-            .taskName = "ATTITUDE",
-            .taskFunc = taskAttitude,
-            .desiredPeriod = TASK_PERIOD_HZ(60), //With acc LPF at 15Hz 60Hz attitude refresh should be enough
-            .staticPriority = TASK_PRIORITY_HIGH,
         },
 
     #else
