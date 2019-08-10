@@ -704,7 +704,7 @@ void FAST_CODE NOINLINE taskGyro(timeUs_t currentTimeUs) {
                 gyroSyncFailureCount = 0;
                 break;
             }
-            else if ((currentDeltaTime + cmpTimeUs(gyroUpdateUs, currentTimeUs)) >= (timeDelta_t)(getLooptime() + GYRO_WATCHDOG_DELAY)) {
+            else if ((currentDeltaTime + cmpTimeUs(gyroUpdateUs, currentTimeUs)) >= (timeDelta_t)(getGyroUpdateRate() + GYRO_WATCHDOG_DELAY)) {
                 gyroSyncFailureCount++;
                 break;
             }
@@ -746,9 +746,22 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         updateAccExtremes();
     }
 
+#ifdef USE_ASYNC_GYRO_PROCESSING
+    if (getAsyncMode() == ASYNC_MODE_NONE) {
+        taskGyro(currentTimeUs);
+    }
+
+    if (getAsyncMode() != ASYNC_MODE_ALL && sensors(SENSOR_ACC)) {
+        imuUpdateAccelerometer();
+        imuUpdateAttitude(currentTimeUs);
+    }
+#else
+    /* Update gyroscope */
     taskGyro(currentTimeUs);
     imuUpdateAccelerometer();
     imuUpdateAttitude(currentTimeUs);
+#endif
+
 
     annexCode();
 

@@ -107,7 +107,7 @@ PG_RESET_TEMPLATE(featureConfig_t, featureConfig,
     .enabledFeatures = DEFAULT_FEATURES | COMMON_DEFAULT_FEATURES
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 3);
+PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 4);
 
 PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .current_profile_index = 0,
@@ -115,6 +115,9 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .debug_mode = DEBUG_NONE,
     .i2c_speed = I2C_SPEED_400KHZ,
     .cpuUnderclock = 0,
+    .accTaskFrequency = ACC_TASK_FREQUENCY_DEFAULT,
+    .attitudeTaskFrequency = ATTITUDE_TASK_FREQUENCY_DEFAULT,
+    .asyncMode = ASYNC_MODE_NONE,
     .throttle_tilt_compensation_strength = 0,      // 0-100, 0 - disabled
     .name = { 0 }
 );
@@ -161,9 +164,52 @@ __attribute__((weak)) void targetConfiguration(void)
 #define SECOND_PORT_INDEX 1
 #endif
 
-uint32_t getLooptime(void) {
+uint32_t getPidUpdateRate(void)
+{
+#ifdef USE_ASYNC_GYRO_PROCESSING
+    if (systemConfig()->asyncMode == ASYNC_MODE_NONE) {
+        return getGyroUpdateRate();
+    } else {
+        return gyroConfig()->looptime;
+    }
+#else
     return gyro.targetLooptime;
-} 
+#endif
+}
+
+timeDelta_t getGyroUpdateRate(void)
+{
+    return gyro.targetLooptime;
+}
+
+uint16_t getAccUpdateRate(void)
+{
+#ifdef USE_ASYNC_GYRO_PROCESSING
+    // ACC will be updated at its own rate
+    if (systemConfig()->asyncMode == ASYNC_MODE_ALL) {
+        return 1000000 / systemConfig()->accTaskFrequency;
+    } else {
+        return getPidUpdateRate();
+    }
+#else
+    // ACC updated at same frequency in taskMainPidLoop in mw.c
+    return gyro.targetLooptime;
+#endif
+}
+
+#ifdef USE_ASYNC_GYRO_PROCESSING
+uint16_t getAttitudeUpdateRate(void) {
+    if (systemConfig()->asyncMode == ASYNC_MODE_ALL) {
+        return 1000000 / systemConfig()->attitudeTaskFrequency;
+    } else {
+        return getPidUpdateRate();
+    }
+}
+
+uint8_t getAsyncMode(void) {
+    return systemConfig()->asyncMode;
+}
+#endif
 
 void validateAndFixConfig(void)
 {
@@ -214,6 +260,15 @@ void validateAndFixConfig(void)
         // software serial needs free PWM ports
         featureClear(FEATURE_SOFTSERIAL);
     }
+
+#ifdef USE_ASYNC_GYRO_PROCESSING
+    /*
+     * When async processing mode is enabled, gyroSync has to be forced to "ON"
+     */
+    if (getAsyncMode() != ASYNC_MODE_NONE) {
+        gyroConfigMutable()->gyroSync = 1;
+    }
+#endif
 
 #if defined(USE_LED_STRIP) && (defined(USE_SOFTSERIAL1) || defined(USE_SOFTSERIAL2))
     if (featureConfigured(FEATURE_SOFTSERIAL) && featureConfigured(FEATURE_LED_STRIP)) {
@@ -308,6 +363,7 @@ void validateAndFixConfig(void)
 
 #if !defined(USE_MPU_DATA_READY_SIGNAL)
     gyroConfigMutable()->gyroSync = false;
+    systemConfigMutable()->asyncMode = ASYNC_MODE_NONE;
 #endif
 
     // Call target-specific validation function

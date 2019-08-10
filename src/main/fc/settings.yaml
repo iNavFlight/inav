@@ -1882,6 +1882,20 @@ groups:
         type: bool
       - name: debug_mode
         table: debug_modes
+      - name: acc_task_frequency
+        field: accTaskFrequency
+        condition: USE_ASYNC_GYRO_PROCESSING
+        min: ACC_TASK_FREQUENCY_MIN
+        max: ACC_TASK_FREQUENCY_MAX
+      - name: attitude_task_frequency
+        field: attitudeTaskFrequency
+        condition: USE_ASYNC_GYRO_PROCESSING
+        min: ATTITUDE_TASK_FREQUENCY_MIN
+        max: ATTITUDE_TASK_FREQUENCY_MAX
+      - name: async_mode
+        field: asyncMode
+        condition: USE_ASYNC_GYRO_PROCESSING
+        table: async_mode
       - name: throttle_tilt_comp_str
         field: throttle_tilt_compensation_strength
         min: 0

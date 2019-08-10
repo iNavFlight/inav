@@ -43,6 +43,7 @@
 
 void targetConfiguration(void)
 {
+    systemConfigMutable()->asyncMode = ASYNC_MODE_NONE;
     mixerConfigMutable()->platformType = PLATFORM_MULTIROTOR;
 
     featureSet(FEATURE_VBAT);
