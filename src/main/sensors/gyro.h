@@ -68,6 +68,9 @@ bool gyroInit(void);
 void gyroInitFilters(void);
 void gyroGetMeasuredRotationRate(fpVector3_t *imuMeasuredRotationBF);
 void gyroUpdate(void);
+#ifdef USE_ASYNC_GYRO_PROCESSING
+void gyroUpdateAccumulatedRates(timeDelta_t gyroUpdateDeltaUs);
+#endif
 void gyroStartCalibration(void);
 bool gyroIsCalibrationComplete(void);
 bool gyroReadTemperature(void);

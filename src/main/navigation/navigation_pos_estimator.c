@@ -823,7 +823,7 @@ void initializePositionEstimator(void)
  * Update estimator
  *  Update rate: loop rate (>100Hz)
  */
-void FAST_CODE NOINLINE updatePositionEstimator(void)
+void updatePositionEstimator(void)
 {
     static bool isInitialized = false;
 

@@ -53,7 +53,7 @@ static float rcStickUnfiltered[4];
 static void rcInterpolationInit(int rcFilterFreqency)
 {
     for (int stick = 0; stick < 4; stick++) {
-        biquadFilterInitLPF(&rcSmoothFilter[stick], rcFilterFreqency, getLooptime());
+        biquadFilterInitLPF(&rcSmoothFilter[stick], rcFilterFreqency, getPidUpdateRate());
     }
 }
 
