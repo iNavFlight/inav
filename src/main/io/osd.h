@@ -231,8 +231,8 @@ typedef struct osdConfig_s {
     uint16_t hud_radar_range_max;
     uint16_t hud_radar_nearest;
 
-    uint16_t alt_decimal_neg_threshold;
-    uint16_t alt_decimal_pos_threshold;
+    uint8_t alt_decimal_digits;
+    uint8_t alt_total_digits;
     
     uint8_t left_sidebar_scroll; // from osd_sidebar_scroll_e
     uint8_t right_sidebar_scroll; // from osd_sidebar_scroll_e

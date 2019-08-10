@@ -437,38 +437,32 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
 */
 void osdFormatAltitudeSymbol(char *buff, int32_t alt)
 {
-    uint8_t n_decimals = 0;
-    int16_t neg_thre = osdConfig()->alt_decimal_neg_threshold * (-1);
-    int16_t pos_thre = osdConfig()->alt_decimal_pos_threshold;
+    uint8_t n_decimals = osdConfig()->alt_decimal_digits;
+    uint8_t n_digits = osdConfig()->alt_total_digits;
 
     switch ((osd_unit_e)osdConfig()->units) {
         case OSD_UNIT_UK:
             FALLTHROUGH;
         case OSD_UNIT_IMPERIAL:
-            if (osdFormatCentiNumber(buff , CENTIMETERS_TO_CENTIFEET(alt), 1000, 0, 2, 3)) {
+            if (osdFormatCentiNumber(buff , CENTIMETERS_TO_CENTIFEET(alt), 1000, n_decimals, 3, n_digits)) {
                 // Scaled to kft
-                buff[3] = SYM_ALT_KFT;
+                buff[n_digits] = SYM_ALT_KFT;
             } else {
                 // Formatted in feet
-                buff[3] = SYM_ALT_FT;
+                buff[n_digits] = SYM_ALT_FT;
             }
-            buff[4] = '\0';
+            buff[n_digits + 1] = '\0';
             break;
         case OSD_UNIT_METRIC:
             // alt is alredy in cm
-            if (neg_thre || pos_thre) {
-                if(alt > neg_thre && alt < pos_thre) {
-                    n_decimals = 1;
-                }
-            }
-            if (osdFormatCentiNumber(buff, alt, 1000, n_decimals, 2, 4)) {
+            if (osdFormatCentiNumber(buff, alt, 1000, n_decimals, 3, n_digits)) {
                 // Scaled to km
-                buff[4] = SYM_ALT_KM;
+                buff[n_digits] = SYM_ALT_KM;
             } else {
                 // Formatted in m
-                buff[4] = SYM_ALT_M;
+                buff[n_digits] = SYM_ALT_M;
             }
-            buff[5] = '\0';
+            buff[n_digits + 1] = '\0';
             break;
     }
 }
@@ -2818,8 +2812,8 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->hud_radar_range_min = 10;
     osdConfig->hud_radar_range_max = 4000;
     osdConfig->hud_radar_nearest = 0;
-    osdConfig->alt_decimal_neg_threshold = 1000;
-    osdConfig->alt_decimal_pos_threshold = 2000;
+    osdConfig->alt_decimal_digits = 2;
+    osdConfig->alt_total_digits = 4;
     osdConfig->left_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
     osdConfig->right_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
     osdConfig->sidebar_scroll_arrows = 0;

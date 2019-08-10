@@ -343,8 +343,8 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  osd_estimations_wind_compensation  | ON | Use wind estimation for remaining flight time/distance estimation |
 |  osd_failsafe_switch_layout  | OFF | If enabled the OSD automatically switches to the first layout during failsafe |
 |  osd_temp_label_align | LEFT | Allows to chose between left and right alignment for the OSD temperature sensor labels. Valid values are `LEFT` and `RIGHT` |
-|  osd_alt_decimal_neg_threshold | 1000 | Negative altitude threshold for printing a decimal digit in OSD real-time altitude fields, in centimeters (default value will display a decimal digit from -10 meters). Accepted range is from 0 to 10000 (100 meters). Input positive number, will be converted to negative internally at runtime. Setting to 0 will disable decimal digit printing. Only works if units are set to METRIC. |
-|  osd_alt_decimal_pos_threshold | 2000 | Positive altitude threshold for printing a decimal digit in OSD real-time altitude fields, in centimeters (default value will display a decimal digit up to 20 meters). Accepted range is from 0 to 10000 (up to 100 meters). Setting to 0 will disable decimal digit printing. Only works if units are set to METRIC. |
+|  osd_alt_decimal_digits | 2 | Number of decimal digits to be displayed in OSD altitude fields. Accepted range is from 0 to 3. Setting to 0 will disable decimal digit printing. |
+|  osd_alt_total_digits | 4 | Total number of digits to be printed in OSD altitude fields. Includes the decimal digits, so a setting of total 4 and decimal 2 will display XX.XX for values below 99.99, afterwards will be scaled to XXX.X and XXXX (only integers) above 100 and 1000 values, respectively. Accepted range is from 3 to 7. |
 |  display_force_sw_blink  | OFF | OFF = OSD hardware blink / ON = OSD software blink. If OSD warning text/values are invisible, try setting this to ON |
 |  magzero_x  | 0 | Magnetometer calibration X offset. If its 0 none offset has been applied and calibration is failed. |
 |  magzero_y  | 0 | Magnetometer calibration Y offset. If its 0 none offset has been applied and calibration is failed. |
