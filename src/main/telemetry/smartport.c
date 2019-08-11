@@ -76,7 +76,7 @@ enum
     FSSP_DATAID_CELLS      = 0x0300 ,
     FSSP_DATAID_CELLS_LAST = 0x030F ,
     FSSP_DATAID_HEADING    = 0x0840 ,
-    FSSP_DATAID_FPV        = 0x0850 ,
+    FSSP_DATAID_FPV        = 0x0450 ,
     FSSP_DATAID_PITCH      = 0x0430 ,
     FSSP_DATAID_ROLL       = 0x0440 ,
     FSSP_DATAID_ACCX       = 0x0700 ,
