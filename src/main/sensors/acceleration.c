@@ -668,7 +668,7 @@ void accInitFilters(void)
 {   
     accSoftLpfFilterApplyFn = nullFilterApply;
 
-    if (acc.accTargetLooptime && accelerometerConfig()->acc_lpf_hz) {
+    if (getAccUpdateRate() && accelerometerConfig()->acc_lpf_hz) {
 
         switch (accelerometerConfig()->acc_soft_lpf_type) 
         {
@@ -676,21 +676,21 @@ void accInitFilters(void)
             accSoftLpfFilterApplyFn = (filterApplyFnPtr)pt1FilterApply;
             for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
                 accSoftLpfFilter[axis] = &accFilter[axis].pt1;
-                pt1FilterInit(accSoftLpfFilter[axis], accelerometerConfig()->acc_lpf_hz, acc.accTargetLooptime * 1e-6f);
+                pt1FilterInit(accSoftLpfFilter[axis], accelerometerConfig()->acc_lpf_hz, getAccUpdateRate() * 1e-6f);
             }
             break;
         case FILTER_BIQUAD:
             accSoftLpfFilterApplyFn = (filterApplyFnPtr)biquadFilterApply;
             for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
                 accSoftLpfFilter[axis] = &accFilter[axis].biquad;
-                biquadFilterInitLPF(accSoftLpfFilter[axis], accelerometerConfig()->acc_lpf_hz, acc.accTargetLooptime);
+                biquadFilterInitLPF(accSoftLpfFilter[axis], accelerometerConfig()->acc_lpf_hz, getAccUpdateRate());
             }
             break;
         }
 
     }
 
-    const float accDt = acc.accTargetLooptime * 1e-6f;
+    const float accDt = getAccUpdateRate() * 1e-6f;
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         pt1FilterInit(&accVibeFloorFilter[axis], ACC_VIBE_FLOOR_FILT_HZ, accDt);
         pt1FilterInit(&accVibeFilter[axis], ACC_VIBE_FILT_HZ, accDt);
@@ -700,11 +700,11 @@ void accInitFilters(void)
     STATIC_FASTRAM biquadFilter_t accFilterNotch[XYZ_AXIS_COUNT];
     accNotchFilterApplyFn = nullFilterApply;
 
-    if (acc.accTargetLooptime && accelerometerConfig()->acc_notch_hz) {
+    if (getAccUpdateRate() && accelerometerConfig()->acc_notch_hz) {
         accNotchFilterApplyFn = (filterApplyFnPtr)biquadFilterApply;
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             accNotchFilter[axis] = &accFilterNotch[axis];
-            biquadFilterInitNotch(accNotchFilter[axis], acc.accTargetLooptime, accelerometerConfig()->acc_notch_hz, accelerometerConfig()->acc_notch_cutoff);
+            biquadFilterInitNotch(accNotchFilter[axis], getAccUpdateRate(), accelerometerConfig()->acc_notch_hz, accelerometerConfig()->acc_notch_cutoff);
         }
     }
 #endif

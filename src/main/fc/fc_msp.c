@@ -1144,8 +1144,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP_INAV_PID:
     #ifdef USE_ASYNC_GYRO_PROCESSING
         sbufWriteU8(dst, systemConfig()->asyncMode);
-        sbufWriteU16(dst, systemConfig()->accTaskFrequency);
-        sbufWriteU16(dst, systemConfig()->attitudeTaskFrequency);
+        sbufWriteU16(dst, 0);
+        sbufWriteU16(dst, 0);
     #else
         sbufWriteU8(dst, 0);
         sbufWriteU16(dst, 0);
@@ -2059,8 +2059,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         if (dataSize >= 15) {
 #ifdef USE_ASYNC_GYRO_PROCESSING
             systemConfigMutable()->asyncMode = sbufReadU8(src);
-            systemConfigMutable()->accTaskFrequency = sbufReadU16(src);
-            systemConfigMutable()->attitudeTaskFrequency = sbufReadU16(src);
+            sbufReadU16(src);
+            sbufReadU16(src);
 #else
             sbufReadU8(src);
             sbufReadU16(src);

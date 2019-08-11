@@ -79,7 +79,7 @@ tables:
       "FLOW", "SBUS", "FPORT", "ALWAYS", "STAGE2", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "GENERIC", "ITERM_RELAX", "D_BOOST"]
   - name: async_mode
-    values: ["NONE", "GYRO", "ALL"]
+    values: ["NONE", "GYRO"]
   - name: aux_operator
     values: ["OR", "AND"]
     enum: modeActivationOperator_e
@@ -1882,20 +1882,15 @@ groups:
         type: bool
       - name: debug_mode
         table: debug_modes
-      - name: acc_task_frequency
-        field: accTaskFrequency
-        condition: USE_ASYNC_GYRO_PROCESSING
-        min: ACC_TASK_FREQUENCY_MIN
-        max: ACC_TASK_FREQUENCY_MAX
-      - name: attitude_task_frequency
-        field: attitudeTaskFrequency
-        condition: USE_ASYNC_GYRO_PROCESSING
-        min: ATTITUDE_TASK_FREQUENCY_MIN
-        max: ATTITUDE_TASK_FREQUENCY_MAX
       - name: async_mode
         field: asyncMode
         condition: USE_ASYNC_GYRO_PROCESSING
         table: async_mode
+      - name: pid_looptime
+        field: pidLooptime
+        condition: USE_ASYNC_GYRO_PROCESSING
+        min: 125
+        max: 9000
       - name: throttle_tilt_comp_str
         field: throttle_tilt_compensation_strength
         min: 0

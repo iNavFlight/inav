@@ -35,6 +35,8 @@
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
 
+#include "fc/config.h"
+
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/flashfs.h"
 #include "io/serial.h"
@@ -239,7 +241,7 @@ bool blackboxDeviceOpen(void)
              *                              = floor((looptime_ns * 3) / 500.0)
              *                              = (looptime_ns * 3) / 500
              */
-            blackboxMaxHeaderBytesPerIteration = constrain((gyro.targetLooptime * 3) / 500, 1, BLACKBOX_TARGET_HEADER_BUDGET_PER_ITERATION);
+            blackboxMaxHeaderBytesPerIteration = constrain((getPidUpdateRate() * 3) / 500, 1, BLACKBOX_TARGET_HEADER_BUDGET_PER_ITERATION);
 
             return blackboxPort != NULL;
         }

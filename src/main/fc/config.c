@@ -107,7 +107,7 @@ PG_RESET_TEMPLATE(featureConfig_t, featureConfig,
     .enabledFeatures = DEFAULT_FEATURES | COMMON_DEFAULT_FEATURES
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 4);
+PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 6);
 
 PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .current_profile_index = 0,
@@ -115,9 +115,8 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .debug_mode = DEBUG_NONE,
     .i2c_speed = I2C_SPEED_400KHZ,
     .cpuUnderclock = 0,
-    .accTaskFrequency = ACC_TASK_FREQUENCY_DEFAULT,
-    .attitudeTaskFrequency = ATTITUDE_TASK_FREQUENCY_DEFAULT,
     .asyncMode = ASYNC_MODE_NONE,
+    .pidLooptime = 1000,
     .throttle_tilt_compensation_strength = 0,      // 0-100, 0 - disabled
     .name = { 0 }
 );
@@ -170,7 +169,7 @@ uint32_t getPidUpdateRate(void)
     if (systemConfig()->asyncMode == ASYNC_MODE_NONE) {
         return getGyroUpdateRate();
     } else {
-        return gyroConfig()->looptime;
+        return systemConfig()->pidLooptime;
     }
 #else
     return gyro.targetLooptime;
@@ -184,7 +183,7 @@ timeDelta_t getGyroUpdateRate(void)
 
 uint16_t getAccUpdateRate(void)
 {
-    return getPidUpdateRate();
+    return acc.accTargetLooptime;
 }
 
 #ifdef USE_ASYNC_GYRO_PROCESSING
