@@ -651,7 +651,7 @@ void brainFpvRadarMap(void)
     //===========================================================================================
     // Draw Home location on map
 
-    uint32_t distance = GPS_distanceToHome;
+    float distance = GPS_distanceToHome;
 
     if (distance > bfOsdConfig()->radar_max_dist_m) {
         distance = bfOsdConfig()->radar_max_dist_m;
@@ -681,19 +681,14 @@ void brainFpvRadarMap(void)
         fpVector3_t poi;
         geoConvertGeodeticToLocalOrigin(&poi, &radar_pois[i].gps, GEO_ALT_ABSOLUTE);
 
-        distance = calculateDistanceToDestination(&poi) / 100; // In meters
-
-//        if (hide_blinking_items && (distance >= bfOsdConfig()->radar_max_dist_m)) {
-//            // too far away, blink it
-//            continue;
-//        }
+        distance = calculateDistanceToDestination(&poi) / 100.f; // In meters
 
         if (distance > (float)bfOsdConfig()->radar_max_dist_m) {
             distance = bfOsdConfig()->radar_max_dist_m;
         }
 
         int16_t direction = CENTIDEGREES_TO_DEGREES(calculateBearingToDestination(&poi)) - DECIDEGREES_TO_DEGREES(attitude.values.yaw);
-        distance_px = MAP_MAX_DIST_PX * (float)distance / (float)bfOsdConfig()->radar_max_dist_m;
+        distance_px = MAP_MAX_DIST_PX * distance / (float)bfOsdConfig()->radar_max_dist_m;
 
         x = GRAPHICS_X_MIDDLE + roundf(distance_px * sin_approx(DEGREES_TO_RADIANS(direction)));
         y = GRAPHICS_Y_MIDDLE - roundf(distance_px * cos_approx(DEGREES_TO_RADIANS(direction)));
@@ -715,7 +710,7 @@ void brainFpvRadarMap(void)
             write_string(buff, x, y - 3, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
         }
         else {
-            direction = radar_pois[i].direction - DECIDEGREES_TO_DEGREES(attitude.values.yaw);
+            direction = radar_pois[i].heading - DECIDEGREES_TO_DEGREES(attitude.values.yaw);
             draw_polygon_simple(x, y, direction, UAV_SYM, 4, 1);
         }
     }
