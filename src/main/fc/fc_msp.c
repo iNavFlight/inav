@@ -90,6 +90,8 @@
 #include "msp/msp_serial.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_private.h"
+#include "common/vector.h"
 
 #include "rx/rx.h"
 #include "rx/msp.h"
@@ -287,6 +289,7 @@ static void serializeDataflashReadReply(sbuf_t *dst, uint32_t address, uint16_t 
  */
 static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessFnPtr *mspPostProcessFn)
 {
+    fpVector3_t home;
     switch (cmdMSP) {
     case MSP_API_VERSION:
         sbufWriteU8(dst, MSP_PROTOCOL_VERSION);
@@ -800,6 +803,13 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, getHeadingHoldTarget());
         break;
 #endif
+
+    case MSP2_INAV_HOME_POSITION:
+        sbufWriteU8(dst, STATE(GPS_FIX_HOME) ? 1 : 0);
+        sbufWriteU32(dst, getHomePosition().x);
+        sbufWriteU32(dst, getHomePosition().y);
+        sbufWriteU32(dst, getHomePosition().z);
+        break;
 
     case MSP_GPSSVINFO:
         /* Compatibility stub - return zero SVs */

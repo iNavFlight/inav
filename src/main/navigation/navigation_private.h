@@ -387,6 +387,7 @@ void setDesiredPosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlag
 void setDesiredSurfaceOffset(float surfaceOffset);
 void setDesiredPositionToFarAwayTarget(int32_t yaw, int32_t distance, navSetWaypointFlags_t useMask);
 void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAltitudeControllerMode_e mode);
+fpVector3_t getHomePosition(void);
 
 bool isWaypointReached(const navWaypointPosition_t * waypoint, const bool isWaypointHome);
 bool isWaypointMissed(const navWaypointPosition_t * waypoint);

@@ -2202,6 +2202,10 @@ void setHomePosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlags_t
     ENABLE_STATE(GPS_FIX_HOME);
 }
 
+fpVector3_t getHomePosition(void) {
+    return posControl.rthState.homePosition.pos;
+}
+
 static navigationHomeFlags_t navigationActualStateHomeValidity(void)
 {
     navigationHomeFlags_t flags = 0;

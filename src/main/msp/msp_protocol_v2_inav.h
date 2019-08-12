@@ -62,3 +62,5 @@
 #define MSP2_SET_PID                            0x2031
 
 #define MSP2_INAV_OPFLOW_CALIBRATION            0x2032
+
+#define MSP2_INAV_HOME_POSITION                 0x2040
