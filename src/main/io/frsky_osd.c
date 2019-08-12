@@ -412,6 +412,11 @@ static bool frskyOSDHandleCommand(osdCommand_e cmd, const void *payload, size_t 
             memcpy(state.recvOsdCharacter.chr->data, &chr->data, MIN(sizeof(state.recvOsdCharacter.chr->data), (size_t)FRSKY_OSD_CHAR_TOTAL_BYTES));
             return true;
         }
+        case OSD_CMD_WRITE_FONT:
+        {
+            // We only wait for the confirmation, we're not interested in the data
+            return true;
+        }
         default:
             break;
     }
