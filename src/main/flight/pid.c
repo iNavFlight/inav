@@ -240,6 +240,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .dBoostGyroDeltaLpfHz = D_BOOST_GYRO_LPF_HZ,
         .antigravityGain = 1.0f,
         .antigravityAccelerator = 1.0f,
+        .antigravityCutoff = ANTI_GRAVITY_THROTTLE_FILTER_CUTOFF,
 );
 
 void pidInit(void)
@@ -319,7 +320,7 @@ bool pidInitFilters(void)
     }
 
 #ifdef USE_ANTIGRAVITY
-    pt1FilterInit(&antigravityThrottleLpf, ANTI_GRAVITY_THROTTLE_FILTER_CUTOFF, refreshRate * 1e-6f);
+    pt1FilterInit(&antigravityThrottleLpf, pidProfile()->antigravityCutoff, refreshRate * 1e-6f);
 #endif
 
 #ifdef USE_D_BOOST
