@@ -289,7 +289,6 @@ static void serializeDataflashReadReply(sbuf_t *dst, uint32_t address, uint16_t 
  */
 static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessFnPtr *mspPostProcessFn)
 {
-    fpVector3_t home;
     switch (cmdMSP) {
     case MSP_API_VERSION:
         sbufWriteU8(dst, MSP_PROTOCOL_VERSION);
@@ -805,10 +804,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
 
     case MSP2_INAV_HOME_POSITION:
-        sbufWriteU8(dst, STATE(GPS_FIX_HOME) ? 1 : 0);
         sbufWriteU32(dst, getHomePosition().x);
         sbufWriteU32(dst, getHomePosition().y);
         sbufWriteU32(dst, getHomePosition().z);
+        sbufWriteU8(dst, 1);    // For compability with LTM 'O' frame
+        sbufWriteU8(dst, STATE(GPS_FIX_HOME) ? 1 : 0);
         break;
 
     case MSP_GPSSVINFO:
