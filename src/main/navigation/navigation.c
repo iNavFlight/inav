@@ -3045,7 +3045,7 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
     }
 
     // Don't allow arming if first waypoint is farther than configured safe distance
-    if (posControl.waypointCount > 0) {
+    if ((posControl.waypointCount > 0) && (navConfig()->general.waypoint_safe_distance != 0)) {
         fpVector3_t startingWaypointPos;
         mapWaypointToLocalPosition(&startingWaypointPos, &posControl.waypointList[0]);
 
