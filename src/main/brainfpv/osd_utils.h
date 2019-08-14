@@ -139,15 +139,9 @@
 #define LIMIT(x, l, h)               MAX(l, MIN(x, h))
 
 // Check if coordinates are valid. If not, return. Assumes signed coordinates for working correct also with values lesser than 0.
-#if (GRAPHICS_LEFT == 0) && (GRAPHICS_TOP == 0)
-#define CHECK_COORDS(x, y)           if (x > GRAPHICS_RIGHT || y > GRAPHICS_BOTTOM) { return; }
-#define CHECK_COORD_X(x)             if (x > GRAPHICS_RIGHT) { return; }
-#define CHECK_COORD_Y(y)             if (y > GRAPHICS_BOTTOM) { return; }
-#else
 #define CHECK_COORDS(x, y)           if (x < GRAPHICS_LEFT || x > GRAPHICS_RIGHT || y < GRAPHICS_TOP || y > GRAPHICS_BOTTOM) { return; }
 #define CHECK_COORD_X(x)             if (x < GRAPHICS_LEFT || x > GRAPHICS_RIGHT) { return; }
 #define CHECK_COORD_Y(y)             if (y < GRAPHICS_TOP  || y > GRAPHICS_BOTTOM) { return; }
-#endif
 
 // Clip coordinates out of range. Assumes signed coordinates for working correct also with values lesser than 0.
 #define CLIP_COORDS(x, y)            { CLIP_COORD_X(x); CLIP_COORD_Y(y); }
