@@ -1000,6 +1000,8 @@ static int osdGetHeadingAngle(int angle)
 
 #if defined(USE_GPS)
 
+#if !defined(USE_BRAINFPV_OSD)
+
 /* Draws a map with the given symbol in the center and given point of interest
  * defined by its distance in meters and direction in degrees.
  * referenceHeading indicates the up direction in the map, in degrees, while
@@ -1148,7 +1150,6 @@ static void osdDrawHomeMap(int referenceHeading, uint8_t referenceSym, uint16_t 
     osdDrawMap(referenceHeading, referenceSym, SYM_HOME, GPS_distanceToHome, GPS_directionToHome, SYM_ARROW_UP, drawn, usedScale);
 }
 
-#if !defined(USE_BRAINFPV_OSD)
 
 /* Draws a map with the aircraft in the center and the home moving around.
  * See osdDrawMap() for reference.
@@ -1518,21 +1519,28 @@ static bool osdDrawSingleElement(uint8_t item)
             osdFormatCentiNumber(&buff[2], centiHDOP, 0, 1, 0, 2);
             break;
         }
-
     case OSD_MAP_NORTH:
+#if !defined(USE_BRAINFPV_OSD)
         {
             static uint16_t drawn = 0;
             static uint32_t scale = 0;
             osdDrawHomeMap(0, 'N', &drawn, &scale);
             return true;
         }
+#else
+        return true;
+#endif
     case OSD_MAP_TAKEOFF:
+#if !defined(USE_BRAINFPV_OSD)
         {
             static uint16_t drawn = 0;
             static uint32_t scale = 0;
             osdDrawHomeMap(CENTIDEGREES_TO_DEGREES(navigationGetHomeHeading()), 'T', &drawn, &scale);
             return true;
         }
+#else
+        return true;
+#endif
     case OSD_RADAR:
 #if defined(USE_BRAINFPV_OSD)
         brainfpv_item = true;
@@ -2551,6 +2559,7 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 
     case OSD_MAP_SCALE:
+#if !defined(USE_BRAINFPV_OSD)
         {
             float scaleToUnit;
             int scaleUnitDivisor;
@@ -2588,7 +2597,11 @@ static bool osdDrawSingleElement(uint8_t item)
             buff[5] = '\0';
             break;
         }
+#else
+        break;
+#endif
     case OSD_MAP_REFERENCE:
+#if !defined(USE_BRAINFPV_OSD)
         {
             char referenceSymbol;
             if (osdMapData.referenceSymbol) {
@@ -2602,6 +2615,9 @@ static bool osdDrawSingleElement(uint8_t item)
             displayWriteChar(osdDisplayPort, elemPosX, elemPosY + 1, referenceSymbol);
             return true;
         }
+#else
+        break;
+#endif
 
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     case OSD_RC_SOURCE:
