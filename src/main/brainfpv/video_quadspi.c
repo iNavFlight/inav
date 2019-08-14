@@ -162,6 +162,7 @@ void Vsync_ISR(extiCallbackRec_t *cb)
             EXTIEnable(vsync_io, false);
             EXTIEnable(hsync_io, false);
         }
+        CH_IRQ_EPILOGUE();
         return;
     }
     else {
@@ -172,6 +173,7 @@ void Vsync_ISR(extiCallbackRec_t *cb)
 
     // discard spurious vsync pulses (due to improper grounding), so we don't overload the CPU
     if (active_line > 0 && active_line < video_type_cfg_ntsc.graphics_hight_real - 10) {
+        CH_IRQ_EPILOGUE();
         return false;
     }
 
@@ -211,6 +213,7 @@ void Vsync_ISR(extiCallbackRec_t *cb)
     // Get ready for the first line. We will start outputting data at line zero.
     active_line = 0 - (video_type_cfg_act->graphics_line_start + y_offset);
     buffer_offset = 0;
+    CH_IRQ_EPILOGUE();
 }
 
 void Hsync_ISR(extiCallbackRec_t *cb)
