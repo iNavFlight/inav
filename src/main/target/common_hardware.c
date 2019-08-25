@@ -97,6 +97,17 @@
     #endif
 #endif
 
+#if defined(USE_BARO_SPL006)
+    #if defined(SPL006_SPI_BUS)
+      BUSDEV_REGISTER_SPI(busdev_spl006,      DEVHW_SPL006,       SPL006_SPI_BUS,     SPL006_CS_PIN,      NONE,           DEVFLAGS_NONE);
+    #elif defined(SPL006_I2C_BUS) || defined(BARO_I2C_BUS)
+      #if !defined(SPL006_I2C_BUS)
+        #define SPL006_I2C_BUS BARO_I2C_BUS
+      #endif
+      BUSDEV_REGISTER_I2C(busdev_spl006,      DEVHW_SPL006,       SPL006_I2C_BUS,     0x76,               NONE,           DEVFLAGS_NONE);
+    #endif
+#endif
+
 #if defined(USE_BARO_LPS25H)
     #if defined(LPS25H_SPI_BUS)
     BUSDEV_REGISTER_SPI(busdev_lps25h,      DEVHW_LPS25H,       LPS25H_SPI_BUS,     LPS25H_CS_PIN,      NONE,           DEVFLAGS_NONE);
