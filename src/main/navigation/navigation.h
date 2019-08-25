@@ -112,7 +112,8 @@ typedef enum {
     NAV_RTH_APROACH_LANDING_DECISION = 2,     // 2-alt=maxAlt, angle=(homeYaw+angle in decision point)
     NAV_RTH_APROACH_LANDING_SAFEALT = 3,      // 3-alt=safeAlt, angle<>homeYaw
     NAV_RTH_APROACH_LANDING_HOMEYAW = 4,      // 4-alt=safeAlt, angle=homeYaw
-    NAV_RTH_APROACH_LANDING_FINAL = 5,        // 5-final aproach
+    NAV_RTH_APROACH_LANDING_RESET = 5,        // 5-reset alt
+    NAV_RTH_APROACH_LANDING_FINAL = 6,        // 6-final aproach
 } navRTHAproachLanding_e;
 
 typedef struct positionEstimationConfig_s {

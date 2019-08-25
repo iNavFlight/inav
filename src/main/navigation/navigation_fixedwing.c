@@ -66,7 +66,6 @@ static bool isAutoThrottleManuallyIncreased = false;
 static int32_t navHeadingError;
 static int8_t loiterDirYaw = 1;
 static uint8_t virtualAproach = NAV_RTH_APROACH_LANDING_ABOVE_MAXALT;
-static bool aproachAlt = 0;
 
 /*-----------------------------------------------------------
  * Altitude controller
@@ -83,7 +82,6 @@ void resetFixedWingAltitudeController(void)
     isPitchAdjustmentValid = false;
     throttleSpeedAdjustment = 0;
     virtualAproach = NAV_RTH_APROACH_LANDING_ABOVE_MAXALT;
-    aproachAlt = false;
 }
 
 bool adjustFixedWingAltitudeFromRCInput(void)
@@ -122,11 +120,11 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
     if (virtualAproach == NAV_RTH_APROACH_LANDING_SAFEALT || virtualAproach == NAV_RTH_APROACH_LANDING_HOMEYAW) {
         posControl.desiredState.pos.z = navConfig()->fw.land_safe_alt;
     }
+    if (virtualAproach == NAV_RTH_APROACH_LANDING_RESET) {
+        navPidReset(&posControl.pids.fw_alt);
+        virtualAproach = NAV_RTH_APROACH_LANDING_FINAL;
+    }
     if (virtualAproach == NAV_RTH_APROACH_LANDING_FINAL) {
-        if (!aproachAlt) {
-            navPidReset(&posControl.pids.fw_alt);
-            aproachAlt = true;
-        }
         loiter_t loiter;
         calculateLoiter(&loiter, CENTIDEGREES_TO_RADIANS(posControl.rthState.homePosition.yaw), navConfig()->fw.land_aproach_distance, 0, 0);
         posControl.desiredState.pos.z = scaleRangef(loiter.distance, 0, navConfig()->fw.land_aproach_distance * 2, 0, navConfig()->fw.land_safe_alt);
@@ -241,7 +239,6 @@ void resetFixedWingPositionController(void)
     isRollAdjustmentValid = false;
 
     virtualAproach = NAV_RTH_APROACH_LANDING_ABOVE_MAXALT;
-    aproachAlt = false;
 
     pt1FilterReset(&fwPosControllerCorrectionFilterState, 0.0f);
 }
@@ -308,12 +305,12 @@ static void calculateVirtualPositionTarget_FW(navigationFSMStateFlags_t navState
                 }
                 if ((loiter.distance <= (distanceAproach)) &&
                     (virtualAproach == NAV_RTH_APROACH_LANDING_HOMEYAW)) {
-                    virtualAproach = MAX(virtualAproach, NAV_RTH_APROACH_LANDING_FINAL);
+                    virtualAproach = MAX(virtualAproach, NAV_RTH_APROACH_LANDING_RESET);
                 }
                 if (virtualAproach == NAV_RTH_APROACH_LANDING_DECISION || virtualAproach == NAV_RTH_APROACH_LANDING_SAFEALT) {
                     calculateLoiter(&loiter, CENTIDEGREES_TO_RADIANS(posControl.rthState.homePosition.yaw + angle), distanceAproach , 0, 0);
                 }
-                if (virtualAproach == NAV_RTH_APROACH_LANDING_FINAL) {
+                if (virtualAproach == NAV_RTH_APROACH_LANDING_RESET || virtualAproach == NAV_RTH_APROACH_LANDING_FINAL) {
                     calculateLoiter(&loiter, CENTIDEGREES_TO_RADIANS(posControl.rthState.homePosition.yaw), loiterRadiusTan, 0, 0);
 
                     float aproach = MIN(loiter.distance - (M_PIf * navConfig()->fw.loiter_radius / 4), 2 * loiterRadiusTan);
