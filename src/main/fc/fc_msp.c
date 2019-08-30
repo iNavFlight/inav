@@ -405,7 +405,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
-        case MSP2_INAV_STATUS:
+    case MSP2_INAV_STATUS:
         {
             // Preserves full arming flags and box modes
             boxBitmask_t mspBoxModeFlags;
@@ -2827,6 +2827,17 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         break;
 #endif
+    case MSP_SET_BOX:
+        {
+            boxBitmask_t inputMask;
+            memset(&inputMask, 0, sizeof(inputMask));
+            //copy over all provided bytes, up to the size of a boxBitmask_t
+            memcpy(&inputMask, sbufConstPtr(src), dataSize <= sizeof(inputMask) ? dataSize : sizeof(inputMask));
+            unpackBoxModeFlags(&inputMask);
+            mspRcModeUpdate(&inputMask);
+        }
+        //if (!setMspModeActivation(sbufConstPtr(src), dataSize)) return MSP_RESULT_ERROR;
+        break;
 
     default:
         return MSP_RESULT_ERROR;

@@ -365,6 +365,20 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     }
 }
 
+void unpackBoxModeFlags(boxBitmask_t *mspBoxModeFlags) 
+{
+    boxBitmask_t newMask; //temporary to hold the results of unpacking
+    memset(&newMask, 0, sizeof(boxBitmask_t));
+    
+    for (int i = 0; i < activeBoxIdCount; ++i) {
+        if(bitArrayGet(mspBoxModeFlags->bits, i)) {
+            bitArraySet(newMask.bits, activeBoxIds[i]);
+        }
+    }
+    //shove the resulsts of unpacking back into the input structure
+    *mspBoxModeFlags = newMask;
+}
+
 uint16_t packSensorStatus(void)
 {
     // Sensor bits

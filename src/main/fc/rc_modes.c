@@ -41,6 +41,7 @@ static bool isUsingNAVModes = false;
 #endif
 
 boxBitmask_t rcModeActivationMask; // one bit per mode defined in boxId_e
+boxBitmask_t mspRcModeActivationMask;
 
 // TODO(alberto): It looks like we can now safely remove this assert, since everything
 // but BB is able to handle more than 32 boxes and all the definitions use
@@ -130,6 +131,11 @@ void rcModeUpdate(boxBitmask_t *newState)
     rcModeActivationMask = *newState;
 }
 
+void mspRcModeUpdate(boxBitmask_t *newState)
+{
+    mspRcModeActivationMask = *newState;
+}
+
 bool isModeActivationConditionPresent(boxId_e modeId)
 {
     for (int index = 0; index < MAX_MODE_ACTIVATION_CONDITION_COUNT; index++) {
@@ -175,7 +181,7 @@ void updateActivatedModes(void)
 
     // Now see which modes should be enabled
     for (int modeIndex = 0; modeIndex < CHECKBOX_ITEM_COUNT; modeIndex++) {
-        // only modes with conditions specified are considered
+        // first see if there is a rc-based condition for the mode
         if (specifiedConditionCountPerMode[modeIndex] > 0) {
             // For AND logic, the specified condition count and valid condition count must be the same.
             // For OR logic, the valid condition count must be greater than zero.
@@ -192,6 +198,9 @@ void updateActivatedModes(void)
                     bitArraySet(newMask.bits, modeIndex);
                 }
             }
+        //if no rc-based condition, activate based on MSP requested modes
+        } else if(bitArrayGet(mspRcModeActivationMask.bits, modeIndex)) {
+            bitArraySet(newMask.bits, modeIndex);
         }
     }
 
