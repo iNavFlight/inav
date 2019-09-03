@@ -35,6 +35,7 @@
 
 #include "io/pwmdriver_i2c.h"
 #include "io/esc_serialshot.h"
+#include "sensors/esc_sensor.h"
 
 #include "config/feature.h"
 
@@ -79,6 +80,7 @@ typedef struct {
 typedef struct {
     pwmOutputPort_t *   pwmPort;        // May be NULL if motor doesn't use the PWM port
     uint16_t            value;          // Used to keep track of last motor value
+    bool                requestTelemetry;
 } pwmOutputMotor_t;
 
 static pwmOutputPort_t pwmOutputPorts[MAX_PWM_OUTPUT_PORTS];
@@ -321,16 +323,32 @@ bool isMotorProtocolDigital(void)
     return isMotorProtocolDshot() || isMotorProtocolSerialShot();
 }
 
+void pwmRequestMotorTelemetry(int motorIndex)
+{
+    const int motorCount = getMotorCount();
+    for (int index = 0; index < motorCount; index++) {
+        if (motors[index].pwmPort && motors[index].pwmPort->configured && index == motorIndex) {
+            motors[index].requestTelemetry = true;
+        }
+    }
+}
+
 void pwmCompleteMotorUpdate(void)
 {
-    // Get motor count from mixer
-    int motorCount = getMotorCount();
+    // This only makes sense for digital motor protocols
+    if (!isMotorProtocolDigital()) {
+        return;
+    }
 
-    // Get latest REAL time
+    int motorCount = getMotorCount();
     timeUs_t currentTimeUs = micros();
 
+#ifdef USE_ESC_SENSOR
+    escSensorUpdate(currentTimeUs);
+#endif
+
     // Enforce motor update rate
-    if (!isMotorProtocolDigital() || (digitalMotorUpdateIntervalUs == 0) || ((currentTimeUs - digitalMotorLastUpdateUs) <= digitalMotorUpdateIntervalUs)) {
+    if ((digitalMotorUpdateIntervalUs == 0) || ((currentTimeUs - digitalMotorLastUpdateUs) <= digitalMotorUpdateIntervalUs)) {
         return;
     }
 
@@ -341,11 +359,10 @@ void pwmCompleteMotorUpdate(void)
         // Generate DMA buffers
         for (int index = 0; index < motorCount; index++) {
             if (motors[index].pwmPort && motors[index].pwmPort->configured) {
-                // TODO: ESC telemetry
-                uint16_t packet = prepareDshotPacket(motors[index].value, false);
-
+                uint16_t packet = prepareDshotPacket(motors[index].value, motors[index].requestTelemetry);
                 loadDmaBufferDshot(motors[index].pwmPort->dmaBuffer, packet);
                 timerPWMPrepareDMA(motors[index].pwmPort->tch, DSHOT_DMA_BUFFER_SIZE);
+                motors[index].requestTelemetry = false;
             }
         }
 
@@ -398,6 +415,10 @@ void pwmMotorPreconfigure(void)
         case PWM_TYPE_DSHOT600:
         case PWM_TYPE_DSHOT300:
         case PWM_TYPE_DSHOT150:
+#ifdef USE_ESC_SENSOR
+            // DSHOT supports a dedicated wire ESC telemetry. Kick off the ESC-sensor receiver initialization
+            escSensorInitialize();
+#endif
             motorConfigDigitalUpdateInterval(motorConfig()->motorPwmRate);
             motorWritePtr = pwmWriteDigital;
             break;

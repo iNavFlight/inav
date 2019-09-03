@@ -37,6 +37,7 @@
 #endif
 
 #define USE_DSHOT
+#define USE_ESC_SENSOR
 
 // Status LED
 #define LED0                    PA8
