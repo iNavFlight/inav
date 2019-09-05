@@ -32,8 +32,8 @@ void kalmanInit(kalmanState_t *filter, float qValue, float qRateBias, float r) {
     filter->bias = 0.0f;
     filter->out = 0.0f;
     
-    for (uint8_t i = 0; i < KALMAN_COVARIANCE_RATE_BIAS; i++) {
-        for (uint8_t j = 0; j < KALMAN_COVARIANCE_RATE_BIAS; j++) {
+    for (uint8_t i = 0; i < KALMAN_MATRIX_SIZE; i++) {
+        for (uint8_t j = 0; j < KALMAN_MATRIX_SIZE; j++) {
             filter->P[i][j] = 0.0f;
         }    
     }
