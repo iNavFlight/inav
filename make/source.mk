@@ -12,6 +12,7 @@ COMMON_SRC = \
             common/crc.c \
             common/encoding.c \
             common/filter.c \
+            common/kalman.c \
             common/gps_conversion.c \
             common/log.c \
             common/logic_condition.c \
