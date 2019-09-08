@@ -32,7 +32,8 @@
 
 PG_REGISTER_ARRAY(globalFunction_t, MAX_GLOBAL_FUNCTIONS, globalFunctions, PG_GLOBAL_FUNCTIONS, 0);
 
-EXTENDED_FASTRAM uint32_t globalFunctionsFlags = 0;
+EXTENDED_FASTRAM uint64_t globalFunctionsFlags = 0;
+EXTENDED_FASTRAM globalFunctionState_t globalFunctionsStates[MAX_GLOBAL_FUNCTIONS];
 
 void pgResetFn_globalFunctions(globalFunction_t *instance)
 {
@@ -50,7 +51,33 @@ void pgResetFn_globalFunctions(globalFunction_t *instance)
     }
 }
 
+void globalFunctionsProcess(int8_t functionId) {
+    //Process only activated functions
+    if (globalFunctions(functionId)->enabled) {
+
+        const int conditionValue = logicConditionGetValue(globalFunctions(functionId)->conditionId);
+
+        globalFunctionsStates[functionId].active = (bool) conditionValue;
+        globalFunctionsStates[functionId].value = logicConditionGetOperandValue(
+            globalFunctions(functionId)->withValue.type,
+            globalFunctions(functionId)->withValue.value
+        );
+
+        switch (globalFunctions(functionId)->action) {
+            case GLOBAL_FUNCTION_ACTION_OVERRIDE_ARMING_SAFETY:
+                if (conditionValue) {
+                    GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_ARMING_SAFETY);
+                } else {
+                    GLOBAL_FUNCTION_FLAG_DISABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_ARMING_SAFETY);
+                }
+                break;
+        }
+    }
+}
+
 void globalFunctionsUpdateTask(timeUs_t currentTimeUs) {
     UNUSED(currentTimeUs);
-    //TODO fill processing task
+    for (uint8_t i = 0; i < MAX_GLOBAL_FUNCTIONS; i++) {
+        globalFunctionsProcess(i);
+    }
 }
