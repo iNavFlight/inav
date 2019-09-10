@@ -35,6 +35,7 @@
 #include "common/bitarray.h"
 #include "common/time.h"
 #include "common/utils.h"
+#include "common/global_functions.h"
 
 #include "config/parameter_group_ids.h"
 
@@ -487,6 +488,18 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU32(dst, logicConditions(i)->operandA.value);
             sbufWriteU8(dst, logicConditions(i)->operandB.type);
             sbufWriteU32(dst, logicConditions(i)->operandB.value);
+            sbufWriteU8(dst, logicConditions(i)->flags);
+        }
+        break;
+#endif
+#ifdef USE_GLOBAL_FUNCTIONS
+    case MSP2_INAV_GLOBAL_FUNCTIONS:
+        for (int i = 0; i < MAX_GLOBAL_FUNCTIONS; i++) {
+            sbufWriteU8(dst, globalFunctions(i)->enabled);
+            sbufWriteU8(dst, globalFunctions(i)->conditionId);
+            sbufWriteU8(dst, globalFunctions(i)->action);
+            sbufWriteU8(dst, globalFunctions(i)->withValue.type);
+            sbufWriteU32(dst, globalFunctions(i)->withValue.value);
             sbufWriteU8(dst, logicConditions(i)->flags);
         }
         break;
@@ -1911,6 +1924,20 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             logicConditionsMutable(tmp_u8)->operandB.type = sbufReadU8(src);
             logicConditionsMutable(tmp_u8)->operandB.value = sbufReadU32(src);
             logicConditionsMutable(tmp_u8)->flags = sbufReadU8(src);
+        } else
+            return MSP_RESULT_ERROR;
+        break;
+#endif
+#ifdef USE_GLOBAL_FUNCTIONS
+    case MSP2_INAV_SET_GLOBAL_FUNCTIONS:
+        sbufReadU8Safe(&tmp_u8, src);
+        if ((dataSize == 14) && (tmp_u8 < MAX_GLOBAL_FUNCTIONS)) {
+            globalFunctionsMutable(tmp_u8)->enabled = sbufReadU8(src);
+            globalFunctionsMutable(tmp_u8)->conditionId = sbufReadU8(src);
+            globalFunctionsMutable(tmp_u8)->action = sbufReadU8(src);
+            globalFunctionsMutable(tmp_u8)->withValue.type = sbufReadU8(src);
+            globalFunctionsMutable(tmp_u8)->withValue.value = sbufReadU32(src);
+            globalFunctionsMutable(tmp_u8)->flags = sbufReadU8(src);
         } else
             return MSP_RESULT_ERROR;
         break;
