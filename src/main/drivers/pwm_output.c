@@ -304,19 +304,19 @@ static void pwmWriteDigital(uint8_t index, uint16_t value)
     motors[index].value = constrain(value, 0, 2047);
 }
 
-bool FAST_CODE NOINLINE isMotorProtocolDshot(void)
+bool isMotorProtocolDshot(void)
 {
     // We look at cached `initMotorProtocol` to make sure we are consistent with the initialized config
     // motorConfig()->motorPwmProtocol may change at run time which will cause uninitialized structures to be used
     return getMotorProtocolProperties(initMotorProtocol)->isDSHOT;
 }
 
-bool FAST_CODE NOINLINE isMotorProtocolSerialShot(void)
+bool isMotorProtocolSerialShot(void)
 {
     return getMotorProtocolProperties(initMotorProtocol)->isSerialShot;
 }
 
-bool FAST_CODE NOINLINE isMotorProtocolDigital(void)
+bool isMotorProtocolDigital(void)
 {
     return isMotorProtocolDshot() || isMotorProtocolSerialShot();
 }

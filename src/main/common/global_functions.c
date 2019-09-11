@@ -27,6 +27,7 @@
 #include "config/parameter_group_ids.h"
 
 #include "common/utils.h"
+#include "common/maths.h"
 #include "common/global_functions.h"
 #include "common/logic_condition.h"
 
@@ -34,6 +35,7 @@ PG_REGISTER_ARRAY(globalFunction_t, MAX_GLOBAL_FUNCTIONS, globalFunctions, PG_GL
 
 EXTENDED_FASTRAM uint64_t globalFunctionsFlags = 0;
 EXTENDED_FASTRAM globalFunctionState_t globalFunctionsStates[MAX_GLOBAL_FUNCTIONS];
+EXTENDED_FASTRAM int globalFunctionValues[GLOBAL_FUNCTION_ACTION_LAST];
 
 void pgResetFn_globalFunctions(globalFunction_t *instance)
 {
@@ -67,17 +69,33 @@ void globalFunctionsProcess(int8_t functionId) {
             case GLOBAL_FUNCTION_ACTION_OVERRIDE_ARMING_SAFETY:
                 if (conditionValue) {
                     GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_ARMING_SAFETY);
-                } else {
-                    GLOBAL_FUNCTION_FLAG_DISABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_ARMING_SAFETY);
+                }
+                break;
+            case GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE_SCALE:
+                if (conditionValue) {
+                    globalFunctionValues[GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE_SCALE] = globalFunctionsStates[functionId].value;
+                    GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE_SCALE);
                 }
                 break;
         }
     }
 }
 
-void globalFunctionsUpdateTask(timeUs_t currentTimeUs) {
+void NOINLINE globalFunctionsUpdateTask(timeUs_t currentTimeUs) {
     UNUSED(currentTimeUs);
+
+    //Disable all flags
+    globalFunctionsFlags = 0;
+
     for (uint8_t i = 0; i < MAX_GLOBAL_FUNCTIONS; i++) {
         globalFunctionsProcess(i);
+    }
+}
+
+float NOINLINE getThrottleScale(float globalThrottleScale) {
+    if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE_SCALE)) {
+        return constrainf(globalFunctionValues[GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE_SCALE] / 100.0f, 0.0f, 1.0f);
+    } else {
+        return globalThrottleScale;
     }
 }

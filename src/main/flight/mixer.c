@@ -27,6 +27,7 @@
 #include "common/filter.h"
 #include "common/maths.h"
 #include "common/utils.h"
+#include "common/global_functions.h"
 
 #include "config/feature.h"
 #include "config/parameter_group.h"
@@ -342,7 +343,7 @@ void FAST_CODE NOINLINE mixTable(const float dT)
         throttleMax = motorConfig()->maxthrottle;
 
         // Throttle scaling to limit max throttle when battery is full
-        throttleCommand = ((throttleCommand - throttleMin) * motorConfig()->throttleScale) + throttleMin;
+        throttleCommand = ((throttleCommand - throttleMin) * getThrottleScale(motorConfig()->throttleScale)) + throttleMin;
 
         // Throttle compensation based on battery voltage
         if (feature(FEATURE_THR_VBAT_COMP) && isAmperageConfigured() && feature(FEATURE_VBAT)) {                // throttleCommand = scaleRange(throttleCommand - throttleMin, 0, throttleMax - throttleMin, 0, motorConfig()->throttleFullBatLimit - throttleMin) + throttleMin;
