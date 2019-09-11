@@ -579,7 +579,7 @@ bool isFixedWingItermLimitActive(float stickPosition)
     return fabsf(stickPosition) > pidProfile()->fixedWingItermLimitOnStickPosition;
 }
 
-static void FAST_CODE pidApplyFixedWingRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT)
+static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT)
 {
     const float rateError = pidState->rateTarget - pidState->gyroRate;
 
@@ -871,7 +871,7 @@ float pidHeadingHold(float dT)
  * TURN ASSISTANT mode is an assisted mode to do a Yaw rotation on a ground plane, allowing one-stick turn in RATE more
  * and keeping ROLL and PITCH attitude though the turn.
  */
-static void pidTurnAssistant(pidState_t *pidState)
+static void NOINLINE pidTurnAssistant(pidState_t *pidState)
 {
     fpVector3_t targetRates;
     targetRates.x = 0.0f;
