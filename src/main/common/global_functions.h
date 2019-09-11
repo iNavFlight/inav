@@ -51,6 +51,8 @@ typedef struct globalFunctionState_s {
     uint8_t flags;
 } globalFunctionState_t;
 
+extern uint64_t globalFunctionsFlags;
+
 #define GLOBAL_FUNCTION_FLAG_DISABLE(mask) (globalFunctionsFlags &= ~(mask))
 #define GLOBAL_FUNCTION_FLAG_ENABLE(mask) (globalFunctionsFlags |= (mask))
 #define GLOBAL_FUNCTION_FLAG(mask) (globalFunctionsFlags & (mask))

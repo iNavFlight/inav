@@ -30,6 +30,7 @@
 #include "common/color.h"
 #include "common/utils.h"
 #include "common/filter.h"
+#include "common/global_functions.h"
 
 #include "drivers/light_led.h"
 #include "drivers/serial.h"
@@ -443,7 +444,11 @@ void tryArm(void)
 {
     updateArmingStatus();
 
-    if (!isArmingDisabled() || emergencyArmingIsEnabled()) {
+    if (
+        !isArmingDisabled() || 
+        emergencyArmingIsEnabled() || 
+        GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_ARMING_SAFETY)
+    ) {
         if (ARMING_FLAG(ARMED)) {
             return;
         }
