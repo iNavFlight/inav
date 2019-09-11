@@ -1,5 +1,5 @@
-F7X2RE_TARGETS += $(TARGET)
-FEATURES       += SDCARD VCP ONBOARDFLASH
+F7X5XI_TARGETS += $(TARGET)
+FEATURES       += SDCARD VCP
 
 TARGET_SRC = \
             drivers/accgyro/accgyro_mpu6000.c \
@@ -7,7 +7,6 @@ TARGET_SRC = \
             drivers/barometer/barometer_bmp085.c \
             drivers/barometer/barometer_bmp280.c \
             drivers/barometer/barometer_ms56xx.c \
-            drivers/compass/compass_ak8975.c \
             drivers/compass/compass_hmc5883l.c \
             drivers/compass/compass_qmc5883l.c \
             drivers/compass/compass_ist8310.c \

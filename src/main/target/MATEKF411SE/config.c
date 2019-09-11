@@ -15,15 +15,11 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include <stdint.h>
+#include "platform.h"
+#include "io/piniobox.h"
 
-#define SIM_MIN_TRANSMIT_INTERVAL 10
-#define SIM_DEFAULT_TRANSMIT_INTERVAL 60
-#define SIM_N_TX_FLAGS 5
-#define SIM_DEFAULT_TX_FLAGS "f"
-#define SIM_PIN "0000"
-
-
-void handleSimTelemetry(void);
-void initSimTelemetry(void);
-void checkSimTelemetryState(void);
+void targetConfiguration(void)
+{
+    pinioBoxConfigMutable()->permanentId[0] = 47;
+}

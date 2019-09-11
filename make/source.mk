@@ -28,6 +28,7 @@ COMMON_SRC = \
             config/config_streamer.c \
             config/feature.c \
             config/parameter_group.c \
+            config/general_settings.c \
             drivers/adc.c \
             drivers/buf_writer.c \
             drivers/bus.c \
@@ -227,9 +228,10 @@ endif
 
 ifneq ($(filter SDCARD,$(FEATURES)),)
 TARGET_SRC += \
-            drivers/sdcard.c \
-            drivers/sdcard_spi.c \
-            drivers/sdcard_standard.c \
+            drivers/sdcard/sdcard.c \
+            drivers/sdcard/sdcard_spi.c \
+            drivers/sdcard/sdcard_sdio.c \
+            drivers/sdcard/sdcard_standard.c \
             io/asyncfatfs/asyncfatfs.c \
             io/asyncfatfs/fat_standard.c
 endif

@@ -42,9 +42,7 @@ extern uint8_t __config_end;
 // F7
 #elif defined(STM32F722xx)
 #  define FLASH_PAGE_SIZE                 ((uint32_t)0x4000) // 16K sectors
-# elif defined(STM32F745xx)
-#  define FLASH_PAGE_SIZE                 ((uint32_t)0x8000) // 32K sectors
-# elif defined(STM32F746xx)
+# elif defined(STM32F745xx) || defined(STM32F746xx) || defined(STM32F765xx)
 #  define FLASH_PAGE_SIZE                 ((uint32_t)0x8000)
 # elif defined(UNIT_TEST)
 #  define FLASH_PAGE_SIZE                 (0x400)
@@ -86,7 +84,7 @@ void config_streamer_start(config_streamer_t *c, uintptr_t base, int size)
     c->err = 0;
 }
 
-#if defined(STM32F745xx) || defined(STM32F746xx)
+#if defined(STM32F745xx) || defined(STM32F746xx) || defined(STM32F765xx)
 /*
 Sector 0    0x08000000 - 0x08007FFF 32 Kbytes
 Sector 1    0x08008000 - 0x0800FFFF 32 Kbytes

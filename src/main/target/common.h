@@ -105,7 +105,7 @@
 #define NAV_AUTO_MAG_DECLINATION_PRECISE
 
 #define USE_D_BOOST
-
+#define USE_ANTIGRAVITY
 
 #else // FLASH_SIZE < 256
 #define LOG_LEVEL_MAXIMUM LOG_LEVEL_ERROR
@@ -158,6 +158,7 @@
 #ifndef STM32F3 //F3 series does not have enoug RAM to support logic conditions
 #define USE_LOGIC_CONDITIONS
 #define USE_GLOBAL_FUNCTIONS
+#define USE_CLI_BATCH
 #endif
 
 //Enable DST calculations

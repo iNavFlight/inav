@@ -76,6 +76,7 @@ enum
     FSSP_DATAID_CELLS      = 0x0300 ,
     FSSP_DATAID_CELLS_LAST = 0x030F ,
     FSSP_DATAID_HEADING    = 0x0840 ,
+    FSSP_DATAID_FPV        = 0x0450 ,
     FSSP_DATAID_PITCH      = 0x0430 ,
     FSSP_DATAID_ROLL       = 0x0440 ,
     FSSP_DATAID_ACCX       = 0x0700 ,
@@ -106,6 +107,7 @@ const uint16_t frSkyDataIdTable[] = {
     //FSSP_DATAID_CELLS     ,
     //FSSP_DATAID_CELLS_LAST,
     FSSP_DATAID_HEADING   ,
+    FSSP_DATAID_FPV       ,
     FSSP_DATAID_PITCH     ,
     FSSP_DATAID_ROLL      ,
     FSSP_DATAID_ACCX      ,
@@ -511,6 +513,12 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
             case FSSP_DATAID_GPS_ALT    :
                 if (smartPortShouldSendGPSData()) {
                     smartPortSendPackage(id, gpsSol.llh.alt); // cm
+                    *clearToSend = false;
+                }
+                break;
+            case FSSP_DATAID_FPV       :
+                if (smartPortShouldSendGPSData()) {
+                    smartPortSendPackage(id, gpsSol.groundCourse); // given in 10*deg
                     *clearToSend = false;
                 }
                 break;

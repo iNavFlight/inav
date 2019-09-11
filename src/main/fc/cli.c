@@ -59,7 +59,7 @@ extern uint8_t __config_end;
 #include "drivers/io_impl.h"
 #include "drivers/osd_symbols.h"
 #include "drivers/rx_pwm.h"
-#include "drivers/sdcard.h"
+#include "drivers/sdcard/sdcard.h"
 #include "drivers/sensor.h"
 #include "drivers/serial.h"
 #include "drivers/stack_check.h"
@@ -136,6 +136,11 @@ static uint32_t bufferIndex = 0;
 static void cliAssert(char *cmdline);
 #endif
 
+#ifdef USE_CLI_BATCH
+static bool commandBatchActive = false;
+static bool commandBatchError = false;
+#endif
+
 // sync this with features_e
 static const char * const featureNames[] = {
     "THR_VBAT_COMP", "VBAT", "TX_PROF_SEL", "BAT_PROF_AUTOSWITCH", "MOTOR_STOP",
@@ -208,6 +213,28 @@ static void cliPrintLine(const char *str)
 {
     cliPrint(str);
     cliPrintLinefeed();
+}
+
+static void cliPrintError(const char *str)
+{
+    cliPrint("### ERROR: ");
+    cliPrint(str);
+#ifdef USE_CLI_BATCH
+    if (commandBatchActive) {
+        commandBatchError = true;
+    }
+#endif
+}
+
+static void cliPrintErrorLine(const char *str)
+{
+    cliPrint("### ERROR: ");
+    cliPrintLine(str);
+#ifdef USE_CLI_BATCH
+    if (commandBatchActive) {
+        commandBatchError = true;
+    }
+#endif
 }
 
 #ifdef CLI_MINIMAL_VERBOSITY
@@ -299,6 +326,27 @@ static void cliPrintLinef(const char *format, ...)
     va_end(va);
 }
 
+static void cliPrintErrorVa(const char *format, va_list va)
+{
+    cliPrint("### ERROR: ");
+    cliPrintfva(format, va);
+    va_end(va);
+
+#ifdef USE_CLI_BATCH
+    if (commandBatchActive) {
+        commandBatchError = true;
+    }
+#endif
+}
+
+static void cliPrintErrorLinef(const char *format, ...)
+{
+    va_list va;
+    va_start(va, format);
+    cliPrintErrorVa(format, va);
+    cliPrintLinefeed();
+}
+
 static void printValuePointer(const setting_t *var, const void *valuePointer, uint32_t full)
 {
     int32_t value = 0;
@@ -359,7 +407,7 @@ static void printValuePointer(const setting_t *var, const void *valuePointer, ui
             cliPrintf(name);
         } else {
             settingGetName(var, buf);
-            cliPrintLinef("VALUE %d OUT OF RANGE FOR %s", (int)value, buf);
+            cliPrintErrorLinef("VALUE %d OUT OF RANGE FOR %s", (int)value, buf);
         }
         break;
     }
@@ -513,12 +561,12 @@ static void cliPrompt(void)
 
 static void cliShowParseError(void)
 {
-    cliPrintLine("Parse error");
+    cliPrintErrorLinef("Parse error");
 }
 
 static void cliShowArgumentRangeError(char *name, int min, int max)
 {
-    cliPrintLinef("%s must be between %d and %d", name, min, max);
+    cliPrintErrorLinef("%s must be between %d and %d", name, min, max);
 }
 
 static const char *nextArg(const char *currentArg)
@@ -565,11 +613,16 @@ static void cliAssert(char *cmdline)
 
     if (assertFailureLine) {
         if (assertFailureFile) {
-            cliPrintLinef("Assertion failed at line %d, file %s", assertFailureLine, assertFailureFile);
+            cliPrintErrorLinef("Assertion failed at line %d, file %s", assertFailureLine, assertFailureFile);
         }
         else {
-            cliPrintLinef("Assertion failed at line %d", assertFailureLine);
+            cliPrintErrorLinef("Assertion failed at line %d", assertFailureLine);
         }
+#ifdef USE_CLI_BATCH
+        if (commandBatchActive) {
+            commandBatchError = true;
+        }
+#endif
     }
     else {
         cliPrintLine("No assert() failed");
@@ -701,7 +754,7 @@ static void cliSerial(char *cmdline)
     currentConfig = serialFindPortConfiguration(val);
     if (!currentConfig) {
         // Invalid port ID
-        cliPrintLinef("Invalid port ID %d", val);
+        cliPrintErrorLinef("Invalid port ID %d", val);
         return;
     }
     memcpy(&portConfig, currentConfig, sizeof(portConfig));
@@ -2214,7 +2267,7 @@ static void cliFeature(char *cmdline)
 
         for (uint32_t i = 0; ; i++) {
             if (featureNames[i] == NULL) {
-                cliPrintLine("Invalid name");
+                cliPrintErrorLine("Invalid name");
                 break;
             }
 
@@ -2223,7 +2276,7 @@ static void cliFeature(char *cmdline)
                 mask = 1 << i;
 #ifndef USE_GPS
                 if (mask & FEATURE_GPS) {
-                    cliPrintLine("unavailable");
+                    cliPrintErrorLine("unavailable");
                     break;
                 }
 #endif
@@ -2289,7 +2342,7 @@ static void cliBeeper(char *cmdline)
 
         for (uint32_t i = 0; ; i++) {
             if (i == beeperCount) {
-                cliPrintLine("Invalid name");
+                cliPrintErrorLine("Invalid name");
                 break;
             }
             if (sl_strncasecmp(cmdline, beeperNameForTableIndex(i), len) == 0) {
@@ -2594,9 +2647,53 @@ static void cliDumpBatteryProfile(uint8_t profileIndex, uint8_t dumpMask)
     dumpAllValues(BATTERY_CONFIG_VALUE, dumpMask);
 }
 
+#ifdef USE_CLI_BATCH
+static void cliPrintCommandBatchWarning(const char *warning)
+{
+    cliPrintErrorLinef("ERRORS WERE DETECTED - PLEASE REVIEW BEFORE CONTINUING");
+    if (warning) {
+        cliPrintErrorLinef(warning);
+    }
+}
+
+static void resetCommandBatch(void)
+{
+    commandBatchActive = false;
+    commandBatchError = false;
+}
+
+static void cliBatch(char *cmdline)
+{
+    if (strncasecmp(cmdline, "start", 5) == 0) {
+        if (!commandBatchActive) {
+            commandBatchActive = true;
+            commandBatchError = false;
+        }
+        cliPrintLine("Command batch started");
+    } else if (strncasecmp(cmdline, "end", 3) == 0) {
+        if (commandBatchActive && commandBatchError) {
+            cliPrintCommandBatchWarning(NULL);
+        } else {
+            cliPrintLine("Command batch ended");
+        }
+        resetCommandBatch();
+    } else {
+        cliPrintErrorLinef("Invalid option");
+    }
+}
+#endif
+
 static void cliSave(char *cmdline)
 {
     UNUSED(cmdline);
+
+#ifdef USE_CLI_BATCH
+    if (commandBatchActive && commandBatchError) {
+        cliPrintCommandBatchWarning("PLEASE FIX ERRORS THEN 'SAVE'");
+        resetCommandBatch();
+        return;
+    }
+#endif
 
     cliPrint("Saving");
     //copyCurrentProfileToProfileSlot(getConfigProfile();
@@ -2610,6 +2707,10 @@ static void cliDefaults(char *cmdline)
 
     cliPrint("Resetting to defaults");
     resetEEPROM();
+
+#ifdef USE_CLI_BATCH
+    commandBatchError = false;
+#endif
 
     if (!checkCommand(cmdline, "noreboot"))
         cliReboot();
@@ -2641,7 +2742,7 @@ static void cliGet(char *cmdline)
         return;
     }
 
-    cliPrintLine("Invalid name");
+    cliPrintErrorLine("Invalid name");
 }
 
 static void cliSet(char *cmdline)
@@ -2731,7 +2832,7 @@ static void cliSet(char *cmdline)
                     cliPrintf("%s set to ", name);
                     cliPrintVar(val, 0);
                 } else {
-                    cliPrint("Invalid value. ");
+                    cliPrintError("Invalid value. ");
                     cliPrintVarRange(val);
                     cliPrintLinefeed();
                 }
@@ -2739,7 +2840,7 @@ static void cliSet(char *cmdline)
                 return;
             }
         }
-        cliPrintLine("Invalid name");
+        cliPrintErrorLine("Invalid name");
     } else {
         // no equals, check for matching variables.
         cliGet(cmdline);
@@ -2866,7 +2967,7 @@ static void cliStatus(char *cmdline)
         unsigned invalidIndex;
         if (!settingsValidate(&invalidIndex)) {
             settingGetName(settingGet(invalidIndex), buf);
-            cliPrintLinef("Invalid setting: %s", buf);
+            cliPrintErrorLinef("Invalid setting: %s", buf);
         }
     }
 #else
@@ -3018,9 +3119,19 @@ static void printConfig(const char *cmdline, bool doDiff)
         dumpMask = dumpMask | SHOW_DEFAULTS;   // add default values as comments for changed values
     }
 
+#ifdef USE_CLI_BATCH
+    bool batchModeEnabled = false;
+#endif
+
     if ((dumpMask & DUMP_MASTER) || (dumpMask & DUMP_ALL)) {
         cliPrintHashLine("version");
         cliVersion(NULL);
+
+#ifdef USE_CLI_BATCH
+        cliPrintHashLine("start the command batch");
+        cliPrintLine("batch start");
+        batchModeEnabled = true;
+#endif
 
         if ((dumpMask & (DUMP_ALL | DO_DIFF)) == (DUMP_ALL | DO_DIFF)) {
 #ifndef CLI_MINIMAL_VERBOSITY
@@ -3127,6 +3238,9 @@ static void printConfig(const char *cmdline, bool doDiff)
             cliPrintLinef("battery_profile %d", currentBatteryProfileIndexSave + 1);
 
             cliPrintHashLine("save configuration\r\nsave");
+#ifdef USE_CLI_BATCH
+            batchModeEnabled = false;
+#endif
         } else {
             // dump just the current profiles
             cliDumpProfile(getConfigProfile(), dumpMask);
@@ -3141,6 +3255,14 @@ static void printConfig(const char *cmdline, bool doDiff)
     if (dumpMask & DUMP_BATTERY_PROFILE) {
         cliDumpBatteryProfile(getConfigBatteryProfile(), dumpMask);
     }
+
+#ifdef USE_CLI_BATCH
+    if (batchModeEnabled) {
+        cliPrintHashLine("end the command batch");
+        cliPrintLine("batch end");
+    }
+#endif
+
     // restore configs from copies
     restoreConfigs();
 }
@@ -3189,6 +3311,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("assert", "", NULL, cliAssert),
 #endif
     CLI_COMMAND_DEF("aux", "configure modes", NULL, cliAux),
+#ifdef USE_CLI_BATCH
+    CLI_COMMAND_DEF("batch", "start or end a batch of commands", "start | end", cliBatch),
+#endif
 #ifdef BEEPER
     CLI_COMMAND_DEF("beeper", "turn on/off beeper", "list\r\n"
             "\t<+|->[name]", cliBeeper),
@@ -3384,7 +3509,7 @@ void cliProcess(void)
                 if (cmd < cmdTable + ARRAYLEN(cmdTable))
                     cmd->func(cliBuffer + strlen(cmd->name) + 1);
                 else
-                    cliPrint("Unknown command, try 'help'");
+                    cliPrintError("Unknown command, try 'help'");
                 bufferIndex = 0;
             }
 
@@ -3427,6 +3552,11 @@ void cliEnter(serialPort_t *serialPort)
     cliPrintLine("\r\nCLI");
 #endif
     cliPrompt();
+
+#ifdef USE_CLI_BATCH
+    resetCommandBatch();
+#endif
+
     ENABLE_ARMING_FLAG(ARMING_DISABLED_CLI);
 }
 
