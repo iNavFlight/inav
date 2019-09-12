@@ -59,6 +59,7 @@ static float motorMixRange;
 static float mixerScale = 1.0f;
 static EXTENDED_FASTRAM motorMixer_t currentMixer[MAX_SUPPORTED_MOTORS];
 static EXTENDED_FASTRAM uint8_t motorCount = 0;
+EXTENDED_FASTRAM int mixerThrottleCommand;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(flight3DConfig_t, flight3DConfig, PG_MOTOR_3D_CONFIG, 0);
 
@@ -313,7 +314,7 @@ void FAST_CODE NOINLINE mixTable(const float dT)
     }
 
     int16_t rpyMixRange = rpyMixMax - rpyMixMin;
-    int16_t throttleRange, throttleCommand;
+    int16_t throttleRange;
     int16_t throttleMin, throttleMax;
     static int16_t throttlePrevious = 0;   // Store the last throttle direction for deadband transitions
 
@@ -324,29 +325,29 @@ void FAST_CODE NOINLINE mixTable(const float dT)
         if ((rcCommand[THROTTLE] <= (PWM_RANGE_MIDDLE - rcControlsConfig()->deadband3d_throttle))) { // Out of band handling
             throttleMax = flight3DConfig()->deadband3d_low;
             throttleMin = motorConfig()->minthrottle;
-            throttlePrevious = throttleCommand = rcCommand[THROTTLE];
+            throttlePrevious = mixerThrottleCommand = rcCommand[THROTTLE];
         } else if (rcCommand[THROTTLE] >= (PWM_RANGE_MIDDLE + rcControlsConfig()->deadband3d_throttle)) { // Positive handling
             throttleMax = motorConfig()->maxthrottle;
             throttleMin = flight3DConfig()->deadband3d_high;
-            throttlePrevious = throttleCommand = rcCommand[THROTTLE];
+            throttlePrevious = mixerThrottleCommand = rcCommand[THROTTLE];
         } else if ((throttlePrevious <= (PWM_RANGE_MIDDLE - rcControlsConfig()->deadband3d_throttle)))  { // Deadband handling from negative to positive
-            throttleCommand = throttleMax = flight3DConfig()->deadband3d_low;
+            mixerThrottleCommand = throttleMax = flight3DConfig()->deadband3d_low;
             throttleMin = motorConfig()->minthrottle;
         } else {  // Deadband handling from positive to negative
             throttleMax = motorConfig()->maxthrottle;
-            throttleCommand = throttleMin = flight3DConfig()->deadband3d_high;
+            mixerThrottleCommand = throttleMin = flight3DConfig()->deadband3d_high;
         }
     } else {
-        throttleCommand = rcCommand[THROTTLE];
+        mixerThrottleCommand = rcCommand[THROTTLE];
         throttleMin = motorConfig()->minthrottle;
         throttleMax = motorConfig()->maxthrottle;
 
         // Throttle scaling to limit max throttle when battery is full
-        throttleCommand = ((throttleCommand - throttleMin) * motorConfig()->throttleScale) + throttleMin;
+        mixerThrottleCommand = ((mixerThrottleCommand - throttleMin) * motorConfig()->throttleScale) + throttleMin;
 
         // Throttle compensation based on battery voltage
-        if (feature(FEATURE_THR_VBAT_COMP) && isAmperageConfigured() && feature(FEATURE_VBAT)) {                // throttleCommand = scaleRange(throttleCommand - throttleMin, 0, throttleMax - throttleMin, 0, motorConfig()->throttleFullBatLimit - throttleMin) + throttleMin;
-            throttleCommand = MIN(throttleMin + (throttleCommand - throttleMin) * calculateThrottleCompensationFactor(), throttleMax);
+        if (feature(FEATURE_THR_VBAT_COMP) && isAmperageConfigured() && feature(FEATURE_VBAT)) {                
+            mixerThrottleCommand = MIN(throttleMin + (mixerThrottleCommand - throttleMin) * calculateThrottleCompensationFactor(), throttleMax);
         }
     }
 
@@ -371,7 +372,7 @@ void FAST_CODE NOINLINE mixTable(const float dT)
     // roll/pitch/yaw. This could move throttle down, but also up for those low throttle flips.
     if (ARMING_FLAG(ARMED)) {
         for (int i = 0; i < motorCount; i++) {
-            motor[i] = rpyMix[i] + constrain(throttleCommand * currentMixer[i].throttle, throttleMin, throttleMax);
+            motor[i] = rpyMix[i] + constrain(mixerThrottleCommand * currentMixer[i].throttle, throttleMin, throttleMax);
 
             if (failsafeIsActive()) {
                 motor[i] = constrain(motor[i], motorConfig()->mincommand, motorConfig()->maxthrottle);
