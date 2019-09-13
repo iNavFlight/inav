@@ -344,8 +344,11 @@ void FAST_CODE NOINLINE mixTable(const float dT)
         throttleMax = motorConfig()->maxthrottle;
 
         // Throttle scaling to limit max throttle when battery is full
+    #ifdef USE_GLOBAL_FUNCTIONS
         mixerThrottleCommand = ((mixerThrottleCommand - throttleMin) * getThrottleScale(motorConfig()->throttleScale)) + throttleMin;
-
+    #else
+        mixerThrottleCommand = ((mixerThrottleCommand - throttleMin) * motorConfig()->throttleScale) + throttleMin;
+    #endif
         // Throttle compensation based on battery voltage
         if (feature(FEATURE_THR_VBAT_COMP) && isAmperageConfigured() && feature(FEATURE_VBAT)) {                
             mixerThrottleCommand = MIN(throttleMin + (mixerThrottleCommand - throttleMin) * calculateThrottleCompensationFactor(), throttleMax);

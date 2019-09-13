@@ -443,12 +443,18 @@ void releaseSharedTelemetryPorts(void) {
 void tryArm(void)
 {
     updateArmingStatus();
-
+#ifdef USE_GLOBAL_FUNCTIONS
     if (
         !isArmingDisabled() || 
         emergencyArmingIsEnabled() || 
         GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_ARMING_SAFETY)
     ) {
+#else 
+    if (
+        !isArmingDisabled() || 
+        emergencyArmingIsEnabled()
+    ) {
+#endif
         if (ARMING_FLAG(ARMED)) {
             return;
         }

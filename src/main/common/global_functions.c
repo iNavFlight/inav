@@ -31,6 +31,8 @@
 #include "common/global_functions.h"
 #include "common/logic_condition.h"
 
+#ifdef USE_GLOBAL_FUNCTIONS
+
 PG_REGISTER_ARRAY(globalFunction_t, MAX_GLOBAL_FUNCTIONS, globalFunctions, PG_GLOBAL_FUNCTIONS, 0);
 
 EXTENDED_FASTRAM uint64_t globalFunctionsFlags = 0;
@@ -99,3 +101,5 @@ float NOINLINE getThrottleScale(float globalThrottleScale) {
         return globalThrottleScale;
     }
 }
+
+#endif
