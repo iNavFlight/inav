@@ -36,7 +36,7 @@ tables:
   - name: failsafe_procedure
     values: ["SET-THR", "DROP", "RTH", "NONE"]
   - name: current_sensor
-    values: ["NONE", "ADC", "VIRTUAL"]
+    values: ["NONE", "ADC", "VIRTUAL", "ESC"]
     enum: currentSensor_e
   - name: gps_provider
     values: ["NMEA", "UBLOX", "UNUSED", "NAZA", "UBLOX7", "MTK"]

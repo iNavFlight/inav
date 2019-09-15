@@ -48,6 +48,7 @@
 #include "config/feature.h"
 
 #include "sensors/battery.h"
+#include "sensors/esc_sensor.h"
 
 #include "rx/rx.h"
 
@@ -445,7 +446,22 @@ void currentMeterUpdate(timeUs_t timeDelta)
                 amperage += throttleFactor * batteryMetersConfig()->current.scale / 1000;
             }
             break;
+#if defined(USE_ESC_SENSOR)
+        case CURRENT_SENSOR_ESC:
+            {
+                escSensorData_t * escSensor = escSensorGetData();
+                if (escSensor && escSensor->dataAge <= ESC_DATA_MAX_AGE) {
+                    amperage = escSensor->current;
+                }
+                else {
+                    amperage = pt1FilterApply4(&amperageFilterState, amperage, AMPERAGE_LPF_FREQ, timeDelta * 1e-6f);
+                    amperage = 0;
+                }
+            }
+            break;
+#endif
         case CURRENT_SENSOR_NONE:
+        default:
             amperage = 0;
             break;
     }
