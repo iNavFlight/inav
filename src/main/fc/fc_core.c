@@ -30,6 +30,7 @@
 #include "common/color.h"
 #include "common/utils.h"
 #include "common/filter.h"
+#include "common/global_functions.h"
 
 #include "drivers/light_led.h"
 #include "drivers/serial.h"
@@ -442,8 +443,18 @@ void releaseSharedTelemetryPorts(void) {
 void tryArm(void)
 {
     updateArmingStatus();
-
-    if (!isArmingDisabled() || emergencyArmingIsEnabled()) {
+#ifdef USE_GLOBAL_FUNCTIONS
+    if (
+        !isArmingDisabled() || 
+        emergencyArmingIsEnabled() || 
+        GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_ARMING_SAFETY)
+    ) {
+#else 
+    if (
+        !isArmingDisabled() || 
+        emergencyArmingIsEnabled()
+    ) {
+#endif
         if (ARMING_FLAG(ARMED)) {
             return;
         }

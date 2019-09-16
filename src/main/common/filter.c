@@ -200,7 +200,7 @@ void biquadFilterInit(biquadFilter_t *filter, uint16_t filterFreq, uint32_t samp
 }
 
 // Computes a biquad_t filter on a sample
-float FAST_CODE biquadFilterApply(biquadFilter_t *filter, float input)
+float FAST_CODE NOINLINE biquadFilterApply(biquadFilter_t *filter, float input)
 {
     const float result = filter->b0 * input + filter->d1;
     filter->d1 = filter->b1 * input - filter->a1 * result + filter->d2;
