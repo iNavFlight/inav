@@ -79,3 +79,10 @@
 | 8             | AIR           |                                       |
 
     
+### Flags
+
+All flags are reseted on ARM and DISARM event.
+
+| bit   | Decimal   | Function              |
+|----   |----       |----                   |
+| 0     | 1         | Latch - after activation LC will stay active until LATCH flag is reseted |

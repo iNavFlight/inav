@@ -72,7 +72,6 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_TROTTLE_POS, // %
     LOGIC_CONDITION_OPERAND_FLIGHT_ATTITUDE_ROLL, // deg
     LOGIC_CONDITION_OPERAND_FLIGHT_ATTITUDE_PITCH, // deg
-    LOGIC_CONDITION_OPERAND_FLIGHT_MODE,
 } logicFlightOperands_e;
 
 typedef enum {
@@ -123,3 +122,4 @@ int logicConditionGetOperandValue(logicOperandType_e type, int operand);
 
 int logicConditionGetValue(int8_t conditionId);
 void logicConditionUpdateTask(timeUs_t currentTimeUs);
+void logicConditionReset(void);
