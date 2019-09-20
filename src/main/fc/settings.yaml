@@ -179,6 +179,11 @@ groups:
         condition: USE_GYRO_BIQUAD_RC_FIR2
         min: 0
         max: 500
+      - name: dyn_notch_width_percent
+        field: dyn_notch_width_percent
+        condition: USE_DYNAMIC_FILTERS
+        min: 0
+        max: 20
       - name: gyro_to_use
         condition: USE_DUAL_GYRO
         min: 0

@@ -60,6 +60,7 @@ typedef struct gyroConfig_s {
     uint16_t gyro_soft_notch_hz_2;
     uint16_t gyro_soft_notch_cutoff_2;
     uint16_t gyro_stage2_lowpass_hz;
+    uint8_t dyn_notch_width_percent;
 } gyroConfig_t;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);

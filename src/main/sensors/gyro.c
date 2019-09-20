@@ -96,7 +96,18 @@ STATIC_FASTRAM filterApplyFnPtr gyroFilterStage2ApplyFn;
 STATIC_FASTRAM void *stage2Filter[XYZ_AXIS_COUNT];
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 5);
+#ifdef USE_DYNAMIC_FILTERS
+
+#define DYNAMIC_NOTCH_DEFAULT_CENTER_HZ 350
+#define DYNAMIC_NOTCH_DEFAULT_CUTOFF_HZ 300
+
+static EXTENDED_FASTRAM filterApplyFnPtr notchFilterDynApplyFn;
+static EXTENDED_FASTRAM filterApplyFnPtr notchFilterDynApplyFn2;
+static EXTENDED_FASTRAM biquadFilter_t notchFilterDyn[XYZ_AXIS_COUNT];
+static EXTENDED_FASTRAM biquadFilter_t notchFilterDyn2[XYZ_AXIS_COUNT];
+#endif
+
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 6);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_lpf = GYRO_LPF_42HZ,      // 42HZ value is defined for Invensense/TDK gyros
@@ -111,7 +122,8 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_soft_notch_cutoff_1 = 1,
     .gyro_soft_notch_hz_2 = 0,
     .gyro_soft_notch_cutoff_2 = 1,
-    .gyro_stage2_lowpass_hz = 0
+    .gyro_stage2_lowpass_hz = 0,
+    .dyn_notch_width_percent = 8,
 );
 
 STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHardware)
@@ -251,6 +263,33 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     return gyroHardware;
 }
 
+#ifdef USE_DYNAMIC_FILTERS
+bool isDynamicFilterActive(void)
+{
+    return true;
+}
+
+static void gyroInitFilterDynamicNotch(void)
+{
+
+    notchFilterDynApplyFn = nullFilterApply;
+    notchFilterDynApplyFn2 = nullFilterApply;
+
+    if (isDynamicFilterActive()) {
+        notchFilterDynApplyFn = (filterApplyFnPtr)biquadFilterApplyDF1; // must be this function, not DF2
+        if(gyroConfig()->dyn_notch_width_percent != 0) {
+            notchFilterDynApplyFn2 = (filterApplyFnPtr)biquadFilterApplyDF1; // must be this function, not DF2
+        }
+        const float notchQ = filterGetNotchQ(DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, DYNAMIC_NOTCH_DEFAULT_CUTOFF_HZ); // any defaults OK here
+        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            biquadFilterInit(&notchFilterDyn[axis], DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, getLooptime(), notchQ, FILTER_NOTCH);
+            biquadFilterInit(&notchFilterDyn2[axis], DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, getLooptime(), notchQ, FILTER_NOTCH);
+        }
+    }
+
+}
+#endif
+
 bool gyroInit(void)
 {
     memset(&gyro, 0, sizeof(gyro));
@@ -280,6 +319,9 @@ bool gyroInit(void)
     }
 
     gyroInitFilters();
+#ifdef USE_DYNAMIC_FILTERS
+    gyroInitFilterDynamicNotch();
+#endif
     return true;
 }
 

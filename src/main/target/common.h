@@ -64,6 +64,7 @@
 #endif
 
 #if (FLASH_SIZE > 256)
+#define USE_DYNAMIC_FILTERS
 #define USE_EXTENDED_CMS_MENUS
 #define USE_UAV_INTERCONNECT
 #define USE_RX_UIB
