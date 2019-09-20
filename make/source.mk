@@ -241,5 +241,22 @@ ifneq ($(filter VCP,$(FEATURES)),)
 TARGET_SRC += $(VCP_SRC)
 endif
 
+ifneq ($(DSP_LIB),)
+
+INCLUDE_DIRS += $(DSP_LIB)/Include
+
+TARGET_SRC += $(DSP_LIB)/Source/BasicMathFunctions/arm_mult_f32.c
+TARGET_SRC += $(DSP_LIB)/Source/TransformFunctions/arm_rfft_fast_f32.c
+TARGET_SRC += $(DSP_LIB)/Source/TransformFunctions/arm_cfft_f32.c
+TARGET_SRC += $(DSP_LIB)/Source/TransformFunctions/arm_rfft_fast_init_f32.c
+TARGET_SRC += $(DSP_LIB)/Source/TransformFunctions/arm_cfft_radix8_f32.c
+TARGET_SRC += $(DSP_LIB)/Source/CommonTables/arm_common_tables.c
+
+TARGET_SRC += $(DSP_LIB)/Source/ComplexMathFunctions/arm_cmplx_mag_f32.c
+TARGET_SRC += $(DSP_LIB)/Source/StatisticsFunctions/arm_max_f32.c
+
+TARGET_SRC += $(wildcard $(DSP_LIB)/Source/*/*.S)
+endif
+
 # Search path and source files for the ST stdperiph library
 VPATH        := $(VPATH):$(STDPERIPH_DIR)/src

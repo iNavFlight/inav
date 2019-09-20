@@ -66,6 +66,8 @@
 #include "sensors/gyro.h"
 #include "sensors/sensors.h"
 
+#include "flight/gyroanalyse.h"
+
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
 #endif
@@ -105,6 +107,7 @@ static EXTENDED_FASTRAM filterApplyFnPtr notchFilterDynApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr notchFilterDynApplyFn2;
 static EXTENDED_FASTRAM biquadFilter_t notchFilterDyn[XYZ_AXIS_COUNT];
 static EXTENDED_FASTRAM biquadFilter_t notchFilterDyn2[XYZ_AXIS_COUNT];
+EXTENDED_FASTRAM gyroAnalyseState_t gyroAnalyseState;
 #endif
 
 PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 6);
@@ -494,7 +497,14 @@ void FAST_CODE NOINLINE gyroUpdate()
         gyroADCf = notchFilter2ApplyFn(notchFilter2[axis], gyroADCf);
 #endif
         gyro.gyroADCf[axis] = gyroADCf;
+
+    #ifdef USE_DYNAMIC_FILTERS
+        if (isDynamicFilterActive()) {
+            gyroDataAnalyse(&gyroAnalyseState, &notchFilterDyn[axis], &notchFilterDyn2[axis]);
+        }
+    #endif
     }
+
 }
 
 bool gyroReadTemperature(void)
