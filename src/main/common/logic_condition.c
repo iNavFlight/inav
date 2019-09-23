@@ -66,9 +66,25 @@ logicConditionState_t logicConditionStates[MAX_LOGIC_CONDITIONS];
 void logicConditionProcess(uint8_t i) {
 
     if (logicConditions(i)->enabled) {
-        const int operandAValue = logicConditionGetOperandValue(logicConditions(i)->operandA.type, logicConditions(i)->operandA.value);
-        const int operandBValue = logicConditionGetOperandValue(logicConditions(i)->operandB.type, logicConditions(i)->operandB.value);
-        logicConditionStates[i].value = logicConditionCompute(logicConditions(i)->operation, operandAValue, operandBValue);
+        
+        /*
+         * Process condition only when latch flag is not set
+         * Latched LCs can only go from OFF to ON, not the other way
+         */
+        if (!(logicConditionStates[i].flags & LOGIC_CONDITION_FLAG_LATCH)) {
+            const int operandAValue = logicConditionGetOperandValue(logicConditions(i)->operandA.type, logicConditions(i)->operandA.value);
+            const int operandBValue = logicConditionGetOperandValue(logicConditions(i)->operandB.type, logicConditions(i)->operandB.value);
+            const int newValue = logicConditionCompute(logicConditions(i)->operation, operandAValue, operandBValue);
+        
+            logicConditionStates[i].value = newValue;
+
+            /*
+             * if value evaluates as true, put a latch on logic condition
+             */
+            if (logicConditions(i)->flags & LOGIC_CONDITION_FLAG_LATCH && newValue) {
+                logicConditionStates[i].flags |= LOGIC_CONDITION_FLAG_LATCH;
+            }
+        }
     } else {
         logicConditionStates[i].value = false;
     }
@@ -215,10 +231,6 @@ static int logicConditionGetFlightOperandValue(int operand) {
             return constrain(attitude.values.pitch / 10, -180, 180);
             break;
 
-        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE:
-            return true;
-            break;
-
         default:
             return 0;
             break;
@@ -323,5 +335,12 @@ void logicConditionUpdateTask(timeUs_t currentTimeUs) {
     UNUSED(currentTimeUs);
     for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
         logicConditionProcess(i);
+    }
+}
+
+void logicConditionReset(void) {
+    for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
+        logicConditionStates[i].value = 0;
+        logicConditionStates[i].flags = 0;
     }
 }

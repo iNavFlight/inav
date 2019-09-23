@@ -387,7 +387,7 @@ void disarm(disarmReason_t disarmReason)
 #endif
 
         statsOnDisarm();
-
+        logicConditionReset();
         beeper(BEEPER_DISARMING);      // emit disarm tone
     }
 }
@@ -475,6 +475,7 @@ void tryArm(void)
 
         ENABLE_ARMING_FLAG(ARMED);
         ENABLE_ARMING_FLAG(WAS_EVER_ARMED);
+        logicConditionReset();
         headFreeModeHold = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
 
         resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
