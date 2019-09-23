@@ -450,6 +450,9 @@ void currentMeterUpdate(timeUs_t timeDelta)
             break;
     }
 
+    // Clamp amperage to positive values
+    amperage = MAX(0, amperage);
+
     // Work around int64 math compiler bug, don't change it unless the bug has been fixed !
     // should be: mAhdrawnRaw += (int64_t)amperage * timeDelta / 1000;
     mAhdrawnRaw += (int64_t)((int32_t)amperage * timeDelta) / 1000;
