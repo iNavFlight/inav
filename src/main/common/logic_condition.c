@@ -74,7 +74,12 @@ void logicConditionProcess(uint8_t i) {
         if (!(logicConditionStates[i].flags & LOGIC_CONDITION_FLAG_LATCH)) {
             const int operandAValue = logicConditionGetOperandValue(logicConditions(i)->operandA.type, logicConditions(i)->operandA.value);
             const int operandBValue = logicConditionGetOperandValue(logicConditions(i)->operandB.type, logicConditions(i)->operandB.value);
-            const int newValue = logicConditionCompute(logicConditions(i)->operation, operandAValue, operandBValue);
+            const int newValue = logicConditionCompute(
+                logicConditionStates[i].value, 
+                logicConditions(i)->operation, 
+                operandAValue, 
+                operandBValue
+            );
         
             logicConditionStates[i].value = newValue;
 
@@ -90,7 +95,8 @@ void logicConditionProcess(uint8_t i) {
     }
 }
 
-int logicConditionCompute(
+static int logicConditionCompute(
+    int currentVaue,
     logicOperation_e operation,
     int operandA,
     int operandB
@@ -147,6 +153,20 @@ int logicConditionCompute(
 
         case LOGIC_CONDITION_NOT:
             return !operandA;
+            break;
+
+        case LOGIC_CONDITION_STICKY:
+            // Operand A is activation operator
+            if (operandA) {
+                return true;
+            }
+            //Operand B is deactivation operator
+            if (operandB) {
+                return false;
+            }
+
+            //When both operands are not met, keep current value 
+            return currentVaue;
             break;
 
         default:

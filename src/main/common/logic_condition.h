@@ -42,6 +42,7 @@ typedef enum {
     LOGIC_CONDITION_NAND,           // 10
     LOGIC_CONDITION_NOR,            // 11
     LOGIC_CONDITION_NOT,            // 12
+    LOGIC_CONDITION_STICKY,         // 13
     LOGIC_CONDITION_LAST
 } logicOperation_e;
 
@@ -111,12 +112,6 @@ typedef struct logicConditionState_s {
 } logicConditionState_t;
 
 void logicConditionProcess(uint8_t i);
-
-int logicConditionCompute(
-    logicOperation_e operation,
-    int operandA,
-    int operandB
-);
 
 int logicConditionGetOperandValue(logicOperandType_e type, int operand);
 
