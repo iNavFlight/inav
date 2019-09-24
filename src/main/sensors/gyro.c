@@ -520,12 +520,15 @@ void FAST_CODE NOINLINE gyroUpdate()
             gyroDataAnalysePush(&gyroAnalyseState, axis, gyroADCf);
             gyroADCf = notchFilterDynApplyFn((filter_t *)&notchFilterDyn[axis], gyroADCf);
             gyroADCf = notchFilterDynApplyFn2((filter_t *)&notchFilterDyn2[axis], gyroADCf);
-
-            gyroDataAnalyse(&gyroAnalyseState, &notchFilterDyn[axis], &notchFilterDyn2[axis]);
         }
 #endif
     }
 
+#ifdef USE_DYNAMIC_FILTERS
+    if (isDynamicFilterActive()) {
+        gyroDataAnalyse(&gyroAnalyseState, notchFilterDyn, notchFilterDyn2);
+    }
+#endif
 }
 
 bool gyroReadTemperature(void)

@@ -40,6 +40,7 @@
 #include "drivers/time.h"
 
 #include "sensors/gyro.h"
+#include "fc/config.h"
 
 #include "gyroanalyse.h"
 
@@ -327,11 +328,14 @@ static NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state, biquadFilt
             // 7us
             // calculate cutoffFreq and notch Q, update notch filter  =1.8+((A2-150)*0.004)
             if (state->prevCenterFreq[state->updateAxis] != state->centerFreq[state->updateAxis]) {
+                
+                DEBUG_SET(DEBUG_FFT_FREQ, state->updateAxis + 5, state->centerFreq[state->updateAxis]);
+
                 if (dualNotch) {
-                    biquadFilterUpdate(&notchFilterDyn[state->updateAxis], state->centerFreq[state->updateAxis] * dynNotch1Ctr, gyro.targetLooptime, dynNotchQ, FILTER_NOTCH);
-                    biquadFilterUpdate(&notchFilterDyn2[state->updateAxis], state->centerFreq[state->updateAxis] * dynNotch2Ctr, gyro.targetLooptime, dynNotchQ, FILTER_NOTCH);
+                    biquadFilterUpdate(&notchFilterDyn[state->updateAxis], state->centerFreq[state->updateAxis] * dynNotch1Ctr, getLooptime(), dynNotchQ, FILTER_NOTCH);
+                    biquadFilterUpdate(&notchFilterDyn2[state->updateAxis], state->centerFreq[state->updateAxis] * dynNotch2Ctr, getLooptime(), dynNotchQ, FILTER_NOTCH);
                 } else {
-                    biquadFilterUpdate(&notchFilterDyn[state->updateAxis], state->centerFreq[state->updateAxis], gyro.targetLooptime, dynNotchQ, FILTER_NOTCH);
+                    biquadFilterUpdate(&notchFilterDyn[state->updateAxis], state->centerFreq[state->updateAxis], getLooptime(), dynNotchQ, FILTER_NOTCH);
                 }
             }
             DEBUG_SET(DEBUG_FFT_TIME, 1, micros() - startTime);
