@@ -20,10 +20,10 @@
 
 #pragma once
 
+#ifdef USE_DYNAMIC_FILTERS
+
 #include "arm_math.h"
-
 #include "common/filter.h"
-
 
 // max for F3 targets
 #define FFT_WINDOW_SIZE 32
@@ -60,3 +60,4 @@ void gyroDataAnalysePush(gyroAnalyseState_t *gyroAnalyse, int axis, float sample
 void gyroDataAnalyse(gyroAnalyseState_t *gyroAnalyse, biquadFilter_t *notchFilterDyn, biquadFilter_t *notchFilterDyn2);
 uint16_t getMaxFFT(void);
 void resetMaxFFT(void);
+#endif

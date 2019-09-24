@@ -28,6 +28,7 @@
 #include "platform.h"
 
 #ifdef USE_DYNAMIC_FILTERS
+
 #include "build/debug.h"
 
 #include "common/filter.h"
