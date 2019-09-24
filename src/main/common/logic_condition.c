@@ -63,34 +63,8 @@ void pgResetFn_logicConditions(logicCondition_t *instance)
 
 logicConditionState_t logicConditionStates[MAX_LOGIC_CONDITIONS];
 
-void logicConditionProcess(uint8_t i) {
-
-    if (logicConditions(i)->enabled) {
-        
-        /*
-         * Process condition only when latch flag is not set
-         * Latched LCs can only go from OFF to ON, not the other way
-         */
-        if (!(logicConditionStates[i].flags & LOGIC_CONDITION_FLAG_LATCH)) {
-            const int operandAValue = logicConditionGetOperandValue(logicConditions(i)->operandA.type, logicConditions(i)->operandA.value);
-            const int operandBValue = logicConditionGetOperandValue(logicConditions(i)->operandB.type, logicConditions(i)->operandB.value);
-            const int newValue = logicConditionCompute(logicConditions(i)->operation, operandAValue, operandBValue);
-        
-            logicConditionStates[i].value = newValue;
-
-            /*
-             * if value evaluates as true, put a latch on logic condition
-             */
-            if (logicConditions(i)->flags & LOGIC_CONDITION_FLAG_LATCH && newValue) {
-                logicConditionStates[i].flags |= LOGIC_CONDITION_FLAG_LATCH;
-            }
-        }
-    } else {
-        logicConditionStates[i].value = false;
-    }
-}
-
-int logicConditionCompute(
+static int logicConditionCompute(
+    int currentVaue,
     logicOperation_e operation,
     int operandA,
     int operandB
@@ -149,9 +123,55 @@ int logicConditionCompute(
             return !operandA;
             break;
 
+        case LOGIC_CONDITION_STICKY:
+            // Operand A is activation operator
+            if (operandA) {
+                return true;
+            }
+            //Operand B is deactivation operator
+            if (operandB) {
+                return false;
+            }
+
+            //When both operands are not met, keep current value 
+            return currentVaue;
+            break;
+
         default:
             return false;
             break; 
+    }
+}
+
+void logicConditionProcess(uint8_t i) {
+
+    if (logicConditions(i)->enabled) {
+        
+        /*
+         * Process condition only when latch flag is not set
+         * Latched LCs can only go from OFF to ON, not the other way
+         */
+        if (!(logicConditionStates[i].flags & LOGIC_CONDITION_FLAG_LATCH)) {
+            const int operandAValue = logicConditionGetOperandValue(logicConditions(i)->operandA.type, logicConditions(i)->operandA.value);
+            const int operandBValue = logicConditionGetOperandValue(logicConditions(i)->operandB.type, logicConditions(i)->operandB.value);
+            const int newValue = logicConditionCompute(
+                logicConditionStates[i].value, 
+                logicConditions(i)->operation, 
+                operandAValue, 
+                operandBValue
+            );
+        
+            logicConditionStates[i].value = newValue;
+
+            /*
+             * if value evaluates as true, put a latch on logic condition
+             */
+            if (logicConditions(i)->flags & LOGIC_CONDITION_FLAG_LATCH && newValue) {
+                logicConditionStates[i].flags |= LOGIC_CONDITION_FLAG_LATCH;
+            }
+        }
+    } else {
+        logicConditionStates[i].value = false;
     }
 }
 

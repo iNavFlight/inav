@@ -31,6 +31,7 @@
 | 10            | NAND          |                                   |
 | 11            | NOR           |                                   |
 | 12            | NOT           |                                   |         
+| 13            | STICKY        | `Operand A` is activation operator, `Operand B` is deactivation operator. After activation, operator will return `true` until Operand B is evaluated as `true`|         
 
 ### Operands
 
