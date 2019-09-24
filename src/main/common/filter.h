@@ -81,6 +81,7 @@ float biquadFilterApply(biquadFilter_t *filter, float sample);
 float biquadFilterReset(biquadFilter_t *filter, float value);
 float biquadFilterApplyDF1(biquadFilter_t *filter, float input);
 float filterGetNotchQ(uint16_t centerFreq, uint16_t cutoff);
+void biquadFilterUpdate(biquadFilter_t *filter, float filterFreq, uint32_t refreshRate, float Q, biquadFilterType_e filterType);
 
 void firFilterInit(firFilter_t *filter, float *buf, uint8_t bufLength, const float *coeffs);
 void firFilterInit2(firFilter_t *filter, float *buf, uint8_t bufLength, const float *coeffs, uint8_t coeffsLength);

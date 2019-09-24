@@ -127,6 +127,9 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_soft_notch_cutoff_2 = 1,
     .gyro_stage2_lowpass_hz = 0,
     .dyn_notch_width_percent = 8,
+    .dyn_notch_range = DYN_NOTCH_RANGE_MEDIUM,
+    .dyn_notch_q = 120,
+    .dyn_notch_min_hz = 150,
 );
 
 STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHardware)
@@ -324,6 +327,7 @@ bool gyroInit(void)
     gyroInitFilters();
 #ifdef USE_DYNAMIC_FILTERS
     gyroInitFilterDynamicNotch();
+    gyroDataAnalyseStateInit(&gyroAnalyseState, getLooptime());
 #endif
     return true;
 }
@@ -474,6 +478,15 @@ void FAST_CODE NOINLINE gyroUpdate()
 
         DEBUG_SET(DEBUG_GYRO, axis, lrintf(gyroADCf));
 
+#ifdef USE_DYNAMIC_FILTERS
+        if (isDynamicFilterActive()) {
+            if (axis == FD_ROLL) {
+                DEBUG_SET(DEBUG_FFT, 0, lrintf(gyroADCf));
+                DEBUG_SET(DEBUG_FFT_FREQ, 3, lrintf(gyroADCf));
+            }
+        }
+#endif
+
         if (axis < 2) {
             DEBUG_SET(DEBUG_STAGE2, axis, lrintf(gyroADCf));
         }
@@ -498,11 +511,19 @@ void FAST_CODE NOINLINE gyroUpdate()
 #endif
         gyro.gyroADCf[axis] = gyroADCf;
 
-    #ifdef USE_DYNAMIC_FILTERS
+#ifdef USE_DYNAMIC_FILTERS
         if (isDynamicFilterActive()) {
+            if (axis == FD_ROLL) {
+                DEBUG_SET(DEBUG_FFT, 1, lrintf(gyroADCf));
+                DEBUG_SET(DEBUG_FFT_FREQ, 2, lrintf(gyroADCf));
+            }
+            gyroDataAnalysePush(&gyroAnalyseState, axis, gyroADCf);
+            gyroADCf = notchFilterDynApplyFn((filter_t *)&notchFilterDyn[axis], gyroADCf);
+            gyroADCf = notchFilterDynApplyFn2((filter_t *)&notchFilterDyn2[axis], gyroADCf);
+
             gyroDataAnalyse(&gyroAnalyseState, &notchFilterDyn[axis], &notchFilterDyn2[axis]);
         }
-    #endif
+#endif
     }
 
 }

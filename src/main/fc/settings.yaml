@@ -78,7 +78,7 @@ tables:
     values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "AGL", "FLOW_RAW",
       "FLOW", "SBUS", "FPORT", "ALWAYS", "STAGE2", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "GENERIC", "ITERM_RELAX", 
-      "D_BOOST", "ANTIGRAVITY"]
+      "D_BOOST", "ANTIGRAVITY", "FFT", "FFT_TIME", "FFT_FREQ"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -129,6 +129,9 @@ tables:
   - name: rssi_source
     values: ["NONE", "AUTO", "ADC", "CHANNEL", "PROTOCOL", "MSP"]
     enum: rssiSource_e
+  - name: dynamicFilterRangeTable
+    values: ["HIGH", "MEDIUM", "LOW"]
+    enum: dynamicFilterRange_e
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -184,6 +187,20 @@ groups:
         condition: USE_DYNAMIC_FILTERS
         min: 0
         max: 20
+      - name: dyn_notch_range
+        field: dyn_notch_range
+        condition: USE_DYNAMIC_FILTERS
+        table: dynamicFilterRangeTable
+      - name: dyn_notch_q
+        field: dyn_notch_q
+        condition: USE_DYNAMIC_FILTERS
+        min: 1
+        max: 1000
+      - name: dyn_notch_min_hz
+        field: dyn_notch_min_hz
+        condition: USE_DYNAMIC_FILTERS
+        min: 60
+        max: 1000
       - name: gyro_to_use
         condition: USE_DUAL_GYRO
         min: 0

@@ -232,6 +232,23 @@ float biquadFilterReset(biquadFilter_t *filter, float value)
     return value;
 }
 
+FAST_CODE void biquadFilterUpdate(biquadFilter_t *filter, float filterFreq, uint32_t refreshRate, float Q, biquadFilterType_e filterType)
+{
+    // backup state
+    float x1 = filter->x1;
+    float x2 = filter->x2;
+    float y1 = filter->y1;
+    float y2 = filter->y2;
+
+    biquadFilterInit(filter, filterFreq, refreshRate, Q, filterType);
+
+    // restore state
+    filter->x1 = x1;
+    filter->x2 = x2;
+    filter->y1 = y1;
+    filter->y2 = y2;
+}
+
 /*
  * FIR filter
  */
