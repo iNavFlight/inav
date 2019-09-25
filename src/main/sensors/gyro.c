@@ -34,6 +34,7 @@
 
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
+#include "config/feature.h"
 
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_mpu.h"
@@ -272,7 +273,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
 #ifdef USE_DYNAMIC_FILTERS
 bool isDynamicFilterActive(void)
 {
-    return true;
+    return feature(FEATURE_DYNAMIC_FILTERS);
 }
 
 static void gyroInitFilterDynamicNotch(void)
