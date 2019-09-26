@@ -20,6 +20,7 @@
 #include "io/serial.h"
 
 #define FRSKY_OSD_BAUDRATE 115200
+#define FRSKY_OSD_SUPPORTED_API_VERSION 1
 
 #define FRSKY_OSD_PREAMBLE_BYTE_0 '$'
 #define FRSKY_OSD_PREAMBLE_BYTE_1 'A'
@@ -135,6 +136,8 @@ typedef struct frskyOSDInfoResponse_s {
     uint16_t pixelHeight;
     uint8_t tvStandard;
     uint8_t hasDetectedCamera;
+    uint16_t maxFrameSize;
+    uint8_t contextStackSize;
 } __attribute__((packed)) frskyOSDInfoResponse_t;
 
 typedef struct frskyOSDFontCharacter_s {
@@ -490,7 +493,8 @@ static void frskyOSDRequestInfo(void)
 {
     timeMs_t now = millis();
     if (state.info.nextRequest < now) {
-        frskyOSDSendAsyncCommand(OSD_CMD_INFO, NULL, 0);
+        uint8_t version = FRSKY_OSD_SUPPORTED_API_VERSION;
+        frskyOSDSendAsyncCommand(OSD_CMD_INFO, &version, sizeof(version));
         frskyOSDFlushSendBuffer();
         state.info.nextRequest = now + 1000;
     }
