@@ -28,6 +28,8 @@
 
 #include "platform.h"
 
+#if defined(USE_OSD)
+
 #include "common/maths.h"
 #include "common/utils.h"
 
@@ -150,3 +152,5 @@ void osdGridDrawArtificialHorizon(displayPort_t *display, unsigned gx, unsigned 
         }
     }
 }
+
+#endif
