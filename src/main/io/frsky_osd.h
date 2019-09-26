@@ -18,6 +18,14 @@ typedef enum {
     FRSKY_OSD_COLOR_GRAY = 3,
 } frskyOSDColor_e;
 
+typedef enum {
+    FRSKY_OSD_OUTLINE_TYPE_NONE = 0,
+    FRSKY_OSD_OUTLINE_TYPE_TOP = 1 << 0,
+    FRSKY_OSD_OUTLINE_TYPE_RIGHT = 1 << 1,
+    FRSKY_OSD_OUTLINE_TYPE_BOTTOM = 1 << 2,
+    FRSKY_OSD_OUTLINE_TYPE_LEFT = 1 << 3,
+} frskyOSDLineOutlineType_e;
+
 bool frskyOSDInit(videoSystem_e videoSystem);
 bool frskyOSDIsReady(void);
 void frskyOSDUpdate(void);
@@ -45,6 +53,9 @@ void frskyOSDSetColorInversion(bool inverted);
 void frskyOSDSetPixel(int x, int y, frskyOSDColor_e color);
 void frskyOSDSetPixelToStrokeColor(int x, int y);
 void frskyOSDSetPixelToFillColor(int x, int y);
+void frskyOSDSetStrokeWidth(unsigned width);
+void frskyOSDSetLineOutlineType(frskyOSDLineOutlineType_e outlineType);
+void frskyOSDSetLineOutlineColor(frskyOSDColor_e outlineColor);
 
 void frskyOSDClipToRect(int x, int y, int w, int h);
 void frskyOSDClearRect(int x, int y, int w, int h);

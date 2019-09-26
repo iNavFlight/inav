@@ -42,6 +42,14 @@ typedef enum {
     DISPLAY_CANVAS_COLOR_GRAY = 3,
 } displayCanvasColor_e;
 
+typedef enum {
+    DISPLAY_CANVAS_OUTLINE_TYPE_NONE = 0,
+    DISPLAY_CANVAS_OUTLINE_TYPE_TOP = 1 << 0,
+    DISPLAY_CANVAS_OUTLINE_TYPE_RIGHT = 1 << 1,
+    DISPLAY_CANVAS_OUTLINE_TYPE_BOTTOM = 1 << 2,
+    DISPLAY_CANVAS_OUTLINE_TYPE_LEFT = 1 << 3,
+} displayCanvasOutlineType_e;
+
 typedef struct displayCanvasVTable_s displayCanvasVTable_t;
 
 typedef struct displayCanvas_s {
@@ -61,6 +69,9 @@ typedef struct displayCanvasVTable_s {
     void (*setPixel)(displayCanvas_t *displayCanvas, int x, int y, displayCanvasColor_e color);
     void (*setPixelToStrokeColor)(displayCanvas_t *displayCanvas, int x, int y);
     void (*setPixelToFillColor)(displayCanvas_t *displayCanvas, int x, int y);
+    void (*setStrokeWidth)(displayCanvas_t *displayCanvas, unsigned w);
+    void (*setLineOutlineType)(displayCanvas_t *displayCanvas, displayCanvasOutlineType_e outlineType);
+    void (*setLineOutlineColor)(displayCanvas_t *displayCanvas, displayCanvasColor_e outlineColor);
 
     void (*clipToRect)(displayCanvas_t *displayCanvas, int x, int y, int w, int h);
     void (*clearRect)(displayCanvas_t *displayCanvas, int x, int y, int w, int h);
@@ -99,6 +110,9 @@ void displayCanvasSetColorInversion(displayCanvas_t *displayCanvas, bool inverte
 void displayCanvasSetPixel(displayCanvas_t *displayCanvas, int x, int y, displayCanvasColor_e);
 void displayCanvasSetPixelToStrokeColor(displayCanvas_t *displayCanvas, int x, int y);
 void displayCanvasSetPixelToFillColor(displayCanvas_t *displayCanvas, int x, int y);
+void displayCanvasSetStrokeWidth(displayCanvas_t *displayCanvas, unsigned w);
+void displayCanvasSetLineOutlineType(displayCanvas_t *displayCanvas, displayCanvasOutlineType_e outlineType);
+void displayCanvasSetLineOutlineColor(displayCanvas_t *displayCanvas, displayCanvasColor_e outlineColor);
 
 void displayCanvasClipToRect(displayCanvas_t *displayCanvas, int x, int y, int w, int h);
 void displayCanvasClearRect(displayCanvas_t *displayCanvas, int x, int y, int w, int h);

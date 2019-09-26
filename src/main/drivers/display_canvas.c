@@ -78,6 +78,27 @@ void displayCanvasSetPixelToFillColor(displayCanvas_t *displayCanvas, int x, int
     }
 }
 
+void displayCanvasSetStrokeWidth(displayCanvas_t *displayCanvas, unsigned w)
+{
+    if (displayCanvas->vTable->setStrokeWidth) {
+        displayCanvas->vTable->setStrokeWidth(displayCanvas, w);
+    }
+}
+
+void displayCanvasSetLineOutlineType(displayCanvas_t *displayCanvas, displayCanvasOutlineType_e outlineType)
+{
+    if (displayCanvas->vTable->setLineOutlineType) {
+        displayCanvas->vTable->setLineOutlineType(displayCanvas, outlineType);
+    }
+}
+
+void displayCanvasSetLineOutlineColor(displayCanvas_t *displayCanvas, displayCanvasColor_e outlineColor)
+{
+    if (displayCanvas->vTable->setLineOutlineColor) {
+        displayCanvas->vTable->setLineOutlineColor(displayCanvas, outlineColor);
+    }
+}
+
 void displayCanvasClipToRect(displayCanvas_t *displayCanvas, int x, int y, int w, int h)
 {
     if (displayCanvas->vTable->clipToRect) {

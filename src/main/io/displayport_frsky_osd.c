@@ -248,6 +248,27 @@ static void setPixelToFillColor(displayCanvas_t *displayCanvas, int x, int y)
     frskyOSDSetPixelToFillColor(x, y);
 }
 
+static void setStrokeWidth(displayCanvas_t *displayCanvas, unsigned w)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDSetStrokeWidth(w);
+}
+
+static void setLineOutlineType(displayCanvas_t *displayCanvas, displayCanvasOutlineType_e outlineType)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDSetLineOutlineType(outlineType);
+}
+
+static void setLineOutlineColor(displayCanvas_t *displayCanvas, displayCanvasColor_e outlineColor)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDSetLineOutlineColor(outlineColor);
+}
+
 static void clipToRect(displayCanvas_t *displayCanvas, int x, int y, int w, int h)
 {
     UNUSED(displayCanvas);
@@ -432,6 +453,9 @@ static const displayCanvasVTable_t frskyOSDCanvasVTable = {
     .setPixel = setPixel,
     .setPixelToStrokeColor = setPixelToStrokeColor,
     .setPixelToFillColor = setPixelToFillColor,
+    .setStrokeWidth = setStrokeWidth,
+    .setLineOutlineType = setLineOutlineType,
+    .setLineOutlineColor = setLineOutlineColor,
 
     .clipToRect = clipToRect,
     .clearRect = clearRect,
