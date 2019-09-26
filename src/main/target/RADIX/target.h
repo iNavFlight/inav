@@ -185,3 +185,5 @@
 extern bool brainfpv_settings_updated;
 extern bool brainfpv_settings_updated_from_cms;
 void brainFPVUpdateSettings(void);
+bool brainfpv_is_radixli(void);
+

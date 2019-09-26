@@ -20,10 +20,9 @@
 
 #include <platform.h>
 
-#ifdef TARGET_CONFIG
-
 #include "fc/config.h"
 #include "sensors/gyro.h"
+#include "sensors/battery.h"
 #include "blackbox/blackbox.h"
 #include "io/osd.h"
 
@@ -32,5 +31,9 @@ void targetConfiguration(void)
     gyroConfigMutable()->looptime = 1000;
     //blackboxConfigMutable()->p_denom = 128;
     osdConfigMutable()->rssi_alarm = 70; // for CRSF
+
+    if (brainfpv_is_radixli()) {
+        // value for RADIX LI wPB
+        batteryMetersConfigMutable()->current.scale = 500;
+    }
 }
-#endif

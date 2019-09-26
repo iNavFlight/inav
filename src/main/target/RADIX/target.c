@@ -79,3 +79,12 @@ void brainFPVUpdateSettings(void) {
     }
     brainfpv_settings_updated_from_cms = false;
 }
+
+#define RADIX_LI_IDENT_ADDR 0x1FFF7800
+#define RADIX_LI_MAGIC 0x52414C49
+bool brainfpv_is_radixli(void)
+{
+    uint32_t * magic = 0x1FFF7800;
+    return (*magic == RADIX_LI_MAGIC);
+}
+
