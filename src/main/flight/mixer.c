@@ -150,6 +150,13 @@ void mixerUpdateStateFlags(void)
 
 void mixerInit(void)
 {
+#if defined(RADIX)
+    // Disable 2nd motor for airplane
+    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
+        primaryMotorMixerMutable(1)->throttle = 0.0f;
+    }
+#endif
+
     computeMotorCount();
     loadPrimaryMotorMixer();
     // in 3D mode, mixer gain has to be halved
