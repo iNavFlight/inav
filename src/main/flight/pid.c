@@ -53,7 +53,7 @@
 #include "sensors/acceleration.h"
 #include "sensors/compass.h"
 #include "sensors/pitotmeter.h"
-
+#include "common/global_functions.h"
 
 typedef struct {
     float kP;   // Proportional gain
@@ -971,7 +971,11 @@ void FAST_CODE pidController(float dT)
         if (axis == FD_YAW && headingHoldState == HEADING_HOLD_ENABLED) {
             rateTarget = pidHeadingHold(dT);
         } else {
+#ifdef USE_GLOBAL_FUNCTIONS
+            rateTarget = pidRcCommandToRate(getRcCommandOverride(rcCommand, axis), currentControlRateProfile->stabilized.rates[axis]);
+#else 
             rateTarget = pidRcCommandToRate(rcCommand[axis], currentControlRateProfile->stabilized.rates[axis]);
+#endif
         }
 
         // Limit desired rate to something gyro can measure reliably

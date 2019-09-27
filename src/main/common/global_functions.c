@@ -33,6 +33,8 @@
 
 #ifdef USE_GLOBAL_FUNCTIONS
 
+#include "common/axis.h"
+
 PG_REGISTER_ARRAY(globalFunction_t, MAX_GLOBAL_FUNCTIONS, globalFunctions, PG_GLOBAL_FUNCTIONS, 0);
 
 EXTENDED_FASTRAM uint64_t globalFunctionsFlags = 0;
@@ -79,6 +81,11 @@ void globalFunctionsProcess(int8_t functionId) {
                     GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE_SCALE);
                 }
                 break;
+            case GLOBAL_FUNCTION_ACTION_SWAP_ROLL_PITCH:
+                if (conditionValue) {
+                    GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_SWAP_ROLL_PITCH);
+                }
+                break;
         }
     }
 }
@@ -99,6 +106,16 @@ float NOINLINE getThrottleScale(float globalThrottleScale) {
         return constrainf(globalFunctionValues[GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE_SCALE] / 100.0f, 0.0f, 1.0f);
     } else {
         return globalThrottleScale;
+    }
+}
+
+int16_t getRcCommandOverride(int16_t command[], uint8_t axis) {
+    if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_SWAP_ROLL_PITCH) && axis == FD_ROLL) {
+        return command[FD_YAW];
+    } else if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_SWAP_ROLL_PITCH) && axis == FD_YAW) {
+        return command[FD_ROLL];
+    } else {
+        return command[axis];
     }
 }
 
