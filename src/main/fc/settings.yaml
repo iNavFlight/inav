@@ -78,7 +78,7 @@ tables:
     values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "AGL", "FLOW_RAW",
       "FLOW", "SBUS", "FPORT", "ALWAYS", "STAGE2", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "GENERIC", "ITERM_RELAX", 
-      "D_BOOST", "ANTIGRAVITY", "FFT", "FFT_TIME", "FFT_FREQ"]
+      "D_BOOST", "ANTIGRAVITY", "FFT", "FFT_TIME", "FFT_FREQ", "DEBUG_IMU2"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator

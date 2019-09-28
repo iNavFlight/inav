@@ -37,6 +37,7 @@
 #include "drivers/time.h"
 #include "drivers/system.h"
 #include "drivers/pwm_output.h"
+#include "drivers/accgyro/accgyro_bno055.h"
 
 #include "sensors/sensors.h"
 #include "sensors/diagnostics.h"
@@ -746,6 +747,20 @@ static float calculateThrottleTiltCompensationFactor(uint8_t throttleTiltCompens
     } else {
         return 1.0f;
     }
+}
+
+void taskSecondaryImu(timeUs_t currentTimeUs)
+{
+    static bool secondaryImuPresent = false;
+    static bool secondaryImuChecked = false;
+
+    if (!secondaryImuChecked) {
+        secondaryImuPresent = bno055Init();
+        secondaryImuChecked = true;
+    }
+
+    DEBUG_SET(DEBUG_IMU2, 0, secondaryImuChecked);
+    DEBUG_SET(DEBUG_IMU2, 1, secondaryImuPresent);
 }
 
 void taskMainPidLoop(timeUs_t currentTimeUs)

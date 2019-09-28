@@ -116,6 +116,7 @@ typedef enum {
 #ifdef USE_GLOBAL_FUNCTIONS
     TASK_GLOBAL_FUNCTIONS,
 #endif
+    TASK_SECONDARY_IMU,
     /* Count of real tasks */
     TASK_COUNT,
 

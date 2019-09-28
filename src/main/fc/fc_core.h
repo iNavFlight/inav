@@ -46,3 +46,4 @@ bool isCalibrating(void);
 float getFlightTime(void);
 
 void fcReboot(bool bootLoader);
+void taskSecondaryImu(timeUs_t currentTimeUs);

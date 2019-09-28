@@ -343,6 +343,7 @@ void fcTasksInit(void)
 #ifdef USE_GLOBAL_FUNCTIONS
     setTaskEnabled(TASK_GLOBAL_FUNCTIONS, true);
 #endif
+    setTaskEnabled(TASK_SECONDARY_IMU, true);
 }
 
 cfTask_t cfTasks[TASK_COUNT] = {
@@ -564,4 +565,10 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .staticPriority = TASK_PRIORITY_IDLE,
     },
 #endif
+    [TASK_SECONDARY_IMU] = {
+        .taskName = "IMU2",
+        .taskFunc = taskSecondaryImu,
+        .desiredPeriod = TASK_PERIOD_HZ(10),          // 10Hz @100msec
+        .staticPriority = TASK_PRIORITY_IDLE,
+    },
 };

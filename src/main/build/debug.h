@@ -74,5 +74,6 @@ typedef enum {
     DEBUG_FFT,
     DEBUG_FFT_TIME,
     DEBUG_FFT_FREQ,
+    DEBUG_IMU2,
     DEBUG_COUNT
 } debugType_e;

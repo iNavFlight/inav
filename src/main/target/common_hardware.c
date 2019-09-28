@@ -312,7 +312,9 @@
             #define PCA9685_I2C_BUS BUS_I2C1
         #endif
         BUSDEV_REGISTER_I2C(busdev_pca9685,      DEVHW_PCA9685,       PCA9685_I2C_BUS,     0x40,               NONE,           DEVFLAGS_NONE);
-    #endif
+    #endif`
 #endif
+
+    BUSDEV_REGISTER_I2C(busdev_bno055,      DEVHW_BNO055,       BUS_I2C1,     0x29,               NONE,           DEVFLAGS_NONE);
 
 #endif  // USE_TARGET_HARDWARE_DESCRIPTORS

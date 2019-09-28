@@ -66,6 +66,8 @@ COMMON_SRC = \
             drivers/temperature/ds18b20.c \
             drivers/temperature/lm75.c \
             drivers/pitotmeter_ms4525.c \
+            drivers/pitotmeter_ms4525.c \
+            drivers/accgyro/accgyro_bno055.c \
             fc/cli.c \
             fc/config.c \
             fc/controlrate_profile.c \
