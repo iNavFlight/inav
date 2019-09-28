@@ -761,6 +761,13 @@ void taskSecondaryImu(timeUs_t currentTimeUs)
 
     DEBUG_SET(DEBUG_IMU2, 0, secondaryImuChecked);
     DEBUG_SET(DEBUG_IMU2, 1, secondaryImuPresent);
+
+    if (secondaryImuPresent) {
+        fpVector3_t eulerAngles = bno055GetEurlerAngles();
+        DEBUG_SET(DEBUG_IMU2, 5, eulerAngles.x);
+        DEBUG_SET(DEBUG_IMU2, 6, eulerAngles.y);
+        DEBUG_SET(DEBUG_IMU2, 7, eulerAngles.z);
+    }
 }
 
 void taskMainPidLoop(timeUs_t currentTimeUs)

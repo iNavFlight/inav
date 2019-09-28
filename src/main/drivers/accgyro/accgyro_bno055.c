@@ -27,6 +27,8 @@
 #include "drivers/bus.h"
 #include "drivers/time.h"
 #include "build/debug.h"
+#include "common/vector.h"
+#include "drivers/accgyro/accgyro_bno055.h"
 
 static busDevice_t * busDev;
 
@@ -60,18 +62,23 @@ bool bno055Init(void)
         return false;
     }
 
-    // /* Reset device */
-    // busWrite(busDev, PCA9685_MODE1, 0x00);
-
-    // /* Set refresh rate */
-    // pca9685setPWMFreq(PCA9685_SERVO_FREQUENCY);
-
-    // delay(1);
-
-    // for (uint8_t i = 0; i < PCA9685_SERVO_COUNT; i++) {
-    //     pca9685setPWMOn(i, 0);
-    //     pca9685setPWMOff(i, 1500);
-    // }
+    busWrite(busDev, BNO055_ADDR_PWR_MODE, BNO055_PWR_MODE_NORMAL); //Set power mode NORMAL
+    delay(25);
+    busWrite(busDev, BNO055_ADDR_OPR_MODE, BNO055_OPR_MODE_NDOF); //Set operational mode NDOF
+    delay(50);
 
     return true;
+}
+
+fpVector3_t bno055GetEurlerAngles(void)
+{
+    fpVector3_t eurlerAngles;
+
+    int8_t buf;
+    busRead(busDev, BNO055_ADDR_EUL_ROLL_LSB, &buf);
+    eurlerAngles.x = buf; 
+    busRead(busDev, BNO055_ADDR_EUL_ROLL_MSB, &buf);
+    eurlerAngles.x += buf << 8;
+
+    return eurlerAngles;
 }

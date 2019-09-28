@@ -22,4 +22,14 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
+#define BNO055_ADDR_PWR_MODE 0x3E
+#define BNO055_ADDR_OPR_MODE 0x3D
+
+#define BNO055_PWR_MODE_NORMAL  0x00
+#define BNO055_OPR_MODE_NDOF    0x0C
+
+#define BNO055_ADDR_EUL_ROLL_LSB 0x1C
+#define BNO055_ADDR_EUL_ROLL_MSB 0x1D
+
 bool bno055Init(void);
+fpVector3_t bno055GetEurlerAngles(void)
