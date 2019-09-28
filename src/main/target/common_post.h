@@ -51,3 +51,8 @@
 #undef USE_SERIALRX_XBUS
 #undef USE_SERIALRX_JETIEXBUS
 #endif
+
+#if defined(SIMULATOR_BUILD) || defined(UNIT_TEST)
+// This feature uses 'arm_math.h', which does not exist for x86.
+#undef USE_DYNAMIC_FILTERS
+#endif
