@@ -88,6 +88,7 @@
 #include "flight/failsafe.h"
 
 #include "config/feature.h"
+#include "common/vector.h"
 
 // June 2013     V2.2-dev
 

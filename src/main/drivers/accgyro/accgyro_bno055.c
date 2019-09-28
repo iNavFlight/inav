@@ -74,11 +74,12 @@ fpVector3_t bno055GetEurlerAngles(void)
 {
     fpVector3_t eurlerAngles;
 
-    int8_t buf;
-    busRead(busDev, BNO055_ADDR_EUL_ROLL_LSB, &buf);
-    eurlerAngles.x = buf; 
-    busRead(busDev, BNO055_ADDR_EUL_ROLL_MSB, &buf);
-    eurlerAngles.x += buf << 8;
+    uint8_t buf[6];
+    busReadBuf(busDev, BNO055_ADDR_EUL_YAW_LSB, buf, 6);
+
+    eurlerAngles.x = ((int16_t)((buf[3] << 8) | buf[2])) / 16;
+    eurlerAngles.y = ((int16_t)((buf[5] << 8) | buf[4])) / 16;
+    eurlerAngles.z = ((int16_t)((buf[1] << 8) | buf[0])) / 16;
 
     return eurlerAngles;
 }
