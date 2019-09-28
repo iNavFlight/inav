@@ -72,7 +72,7 @@ float pt1FilterApply3(pt1Filter_t *filter, float input, float dT)
     return filter->state;
 }
 
-float pt1FilterApply4(pt1Filter_t *filter, float input, float f_cut, float dT)
+float FAST_CODE NOINLINE pt1FilterApply4(pt1Filter_t *filter, float input, float f_cut, float dT)
 {
     // Pre calculate and store RC
     if (!filter->RC) {

@@ -136,6 +136,9 @@ static EXTENDED_FASTRAM float dBoostFactor;
 static EXTENDED_FASTRAM float dBoostMaxAtAlleceleration;
 #endif
 
+static EXTENDED_FASTRAM uint16_t yawPLimit;
+static EXTENDED_FASTRAM uint8_t yawLpfHz;
+
 PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 10);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
@@ -256,6 +259,13 @@ void pidInit(void)
     itermRelax = pidProfile()->iterm_relax;
     itermRelaxType = pidProfile()->iterm_relax_type;
     itermRelaxSetpointThreshold = MC_ITERM_RELAX_SETPOINT_THRESHOLD * MC_ITERM_RELAX_CUTOFF_DEFAULT / pidProfile()->iterm_relax_cutoff;
+
+    if (mixerConfig()->platformType == PLATFORM_MULTIROTOR) {
+        yawPLimit = pidProfile()->yaw_p_limit;
+    } else {
+        yawPLimit = 0;
+    }
+    yawLpfHz = pidProfile()->yaw_lpf_hz;
 
 #ifdef USE_D_BOOST
     dBoostFactor = pidProfile()->dBoostFactor;
@@ -579,18 +589,28 @@ bool isFixedWingItermLimitActive(float stickPosition)
     return fabsf(stickPosition) > pidProfile()->fixedWingItermLimitOnStickPosition;
 }
 
+static FAST_CODE NOINLINE float pTermProcess(pidState_t *pidState, flight_dynamics_index_t axis, float rateError, float dT) {
+    float newPTerm = rateError * pidState->kP;
+
+    if (axis == FD_YAW) {
+        // Constrain YAW by yaw_p_limit value if not servo driven (in that case servo limits apply)
+        if (yawPLimit) {
+            newPTerm = constrain(newPTerm, -yawPLimit, yawPLimit);
+        }
+
+        if (yawLpfHz) {
+            newPTerm = pt1FilterApply4(&pidState->ptermLpfState, newPTerm, yawLpfHz, dT);
+        }
+    }
+
+    return newPTerm;
+}
+
 static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT)
 {
     const float rateError = pidState->rateTarget - pidState->gyroRate;
-
-    // Calculate new P-term and FF-term
-    float newPTerm = rateError * pidState->kP;
-    float newFFTerm = pidState->rateTarget * pidState->kFF;
-
-    // Additional P-term LPF on YAW axis
-    if (axis == FD_YAW && pidProfile()->yaw_lpf_hz) {
-        newPTerm = pt1FilterApply4(&pidState->ptermLpfState, newPTerm, pidProfile()->yaw_lpf_hz, dT);
-    }
+    const float newPTerm = pTermProcess(pidState, axis, rateError, dT);
+    const float newFFTerm = pidState->rateTarget * pidState->kFF;
 
     // Calculate integral
     pidState->errorGyroIf += rateError * pidState->kI * dT;
@@ -688,18 +708,7 @@ static float applyDBoost(pidState_t *pidState, flight_dynamics_index_t axis, flo
 static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT)
 {
     const float rateError = pidState->rateTarget - pidState->gyroRate;
-
-    // Calculate new P-term
-    float newPTerm = rateError * pidState->kP;
-    // Constrain YAW by yaw_p_limit value if not servo driven (in that case servo limits apply)
-    if (axis == FD_YAW && (getMotorCount() >= 4 && pidProfile()->yaw_p_limit)) {
-        newPTerm = constrain(newPTerm, -pidProfile()->yaw_p_limit, pidProfile()->yaw_p_limit);
-    }
-
-    // Additional P-term LPF on YAW axis
-    if (axis == FD_YAW && pidProfile()->yaw_lpf_hz) {
-        newPTerm = pt1FilterApply4(&pidState->ptermLpfState, newPTerm, pidProfile()->yaw_lpf_hz, dT);
-    }
+    const float newPTerm = pTermProcess(pidState, axis, rateError, dT);
 
     // Calculate new D-term
     float newDTerm;
