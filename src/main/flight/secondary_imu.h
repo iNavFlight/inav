@@ -21,18 +21,23 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
+
 #pragma once
 
-#include "common/vector.h"
+#include "config/parameter_group.h"
+#include "common/time.h"
 
-typedef struct {
-    uint8_t sys;
-    uint8_t gyr;
-    uint8_t acc;
-    uint8_t mag;
-} bno055CalibStat_t;
+typedef struct secondaryImuConfig_s {
+    uint8_t enabled;
+    int16_t rollDeciDegrees;
+    int16_t pitchDeciDegrees;
+    int16_t yawDeciDegrees;
+} secondaryImuConfig_t;
 
-bool bno055Init(void);
-fpVector3_t bno055GetEurlerAngles(void);
-void bno055FetchEulerAngles(int32_t * buffer);
-bno055CalibStat_t bno055GetCalibStat(void);
+typedef struct secondaryImuState_s {
+    int16_t rawEulerAngles[3];
+} secondaryImuState_t;
+
+PG_DECLARE(secondaryImuConfig_t, secondaryImuConfig);
+
+void taskSecondaryImu(timeUs_t currentTimeUs);

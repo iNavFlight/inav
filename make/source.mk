@@ -95,6 +95,7 @@ COMMON_SRC = \
             flight/servos.c \
             flight/wind_estimator.c \
             flight/gyroanalyse.c \
+            flight/secondary_imu.c \
             io/beeper.c \
             io/lights.c \
             io/pwmdriver_i2c.c \

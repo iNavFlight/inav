@@ -303,6 +303,27 @@ groups:
         type: uint8_t
         table: alignment
 
+  - name: PG_SECONDARY_IMU
+    type: secondaryImuConfig_t
+    headers: ["flight/secondary_imu.h"]
+    condition: USE_OPFLOW
+    members:
+      - name: imu2_enabled
+        field: enabled
+        type: bool
+      - name: imu2_align_roll
+        field: rollDeciDegrees
+        min: -1800
+        max: 3600
+      - name: imu2_align_pitch
+        field: pitchDeciDegrees
+        min: -1800
+        max: 3600
+      - name: imu2_align_yaw
+        field: yawDeciDegrees
+        min: -1800
+        max: 3600
+
   - name: PG_COMPASS_CONFIG
     type: compassConfig_t
     headers: ["sensors/compass.h"]

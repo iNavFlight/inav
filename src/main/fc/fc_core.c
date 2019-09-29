@@ -750,33 +750,6 @@ static float calculateThrottleTiltCompensationFactor(uint8_t throttleTiltCompens
     }
 }
 
-void taskSecondaryImu(timeUs_t currentTimeUs)
-{
-    static bool secondaryImuPresent = false;
-    static bool secondaryImuChecked = false;
-
-    if (!secondaryImuChecked) {
-        secondaryImuPresent = bno055Init();
-        secondaryImuChecked = true;
-    }
-
-    DEBUG_SET(DEBUG_IMU2, 0, secondaryImuChecked);
-    DEBUG_SET(DEBUG_IMU2, 1, secondaryImuPresent);
-
-    if (secondaryImuPresent) {
-        fpVector3_t eulerAngles = bno055GetEurlerAngles();
-        DEBUG_SET(DEBUG_IMU2, 0, eulerAngles.x);
-        DEBUG_SET(DEBUG_IMU2, 1, eulerAngles.y);
-        DEBUG_SET(DEBUG_IMU2, 2, eulerAngles.z);
-
-        bno055CalibStat_t stats = bno055GetCalibStat();
-        DEBUG_SET(DEBUG_IMU2, 3, stats.mag);
-        DEBUG_SET(DEBUG_IMU2, 4, stats.acc);
-        DEBUG_SET(DEBUG_IMU2, 5, stats.gyr);
-        DEBUG_SET(DEBUG_IMU2, 6, stats.sys);
-    }
-}
-
 void taskMainPidLoop(timeUs_t currentTimeUs)
 {
     cycleTime = getTaskDeltaTime(TASK_SELF);

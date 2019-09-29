@@ -47,6 +47,7 @@
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/wind_estimator.h"
+#include "flight/secondary_imu.h"
 
 #include "navigation/navigation.h"
 
@@ -343,7 +344,9 @@ void fcTasksInit(void)
 #ifdef USE_GLOBAL_FUNCTIONS
     setTaskEnabled(TASK_GLOBAL_FUNCTIONS, true);
 #endif
-    setTaskEnabled(TASK_SECONDARY_IMU, true);
+#ifdef USE_SECONDARY_IMU
+    setTaskEnabled(TASK_SECONDARY_IMU, secondaryImuConfig()->enabled);
+#endif
 }
 
 cfTask_t cfTasks[TASK_COUNT] = {
@@ -565,10 +568,12 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .staticPriority = TASK_PRIORITY_IDLE,
     },
 #endif
+#ifdef USE_SECONDARY_IMU
     [TASK_SECONDARY_IMU] = {
         .taskName = "IMU2",
         .taskFunc = taskSecondaryImu,
         .desiredPeriod = TASK_PERIOD_HZ(10),          // 10Hz @100msec
         .staticPriority = TASK_PRIORITY_IDLE,
     },
+#endif
 };

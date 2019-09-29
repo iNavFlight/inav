@@ -30,6 +30,22 @@
 #include "common/vector.h"
 #include "drivers/accgyro/accgyro_bno055.h"
 
+#ifdef USE_IMU_BNO055
+
+#define BNO055_ADDR_PWR_MODE    0x3E
+#define BNO055_ADDR_OPR_MODE    0x3D
+#define BNO055_ADDR_CALIB_STAT  0x35
+
+#define BNO055_PWR_MODE_NORMAL  0x00
+#define BNO055_OPR_MODE_NDOF    0x0C
+
+#define BNO055_ADDR_EUL_YAW_LSB     0x1A
+#define BNO055_ADDR_EUL_YAW_MSB     0x1B
+#define BNO055_ADDR_EUL_ROLL_LSB    0x1C
+#define BNO055_ADDR_EUL_ROLL_MSB    0x1D
+#define BNO055_ADDR_EUL_PITCH_LSB   0x1E
+#define BNO055_ADDR_EUL_PITCH_MSB   0x1F
+
 static busDevice_t * busDev;
 
 static bool deviceDetect(busDevice_t * busDev)
@@ -70,6 +86,16 @@ bool bno055Init(void)
     return true;
 }
 
+void bno055FetchEulerAngles(int32_t * buffer)
+{
+    uint8_t buf[6];
+    busReadBuf(busDev, BNO055_ADDR_EUL_YAW_LSB, buf, 6);
+
+    buffer[0] = ((int16_t)((buf[3] << 8) | buf[2])) / 16;
+    buffer[1] = ((int16_t)((buf[5] << 8) | buf[4])) / -16; //Pitch has to be reversed to match INAV notation
+    buffer[2] = ((int16_t)((buf[1] << 8) | buf[0])) / 16;
+}
+
 fpVector3_t bno055GetEurlerAngles(void)
 {
     fpVector3_t eurlerAngles;
@@ -98,3 +124,5 @@ bno055CalibStat_t bno055GetCalibStat(void)
 
     return stats;
 }
+
+#endif

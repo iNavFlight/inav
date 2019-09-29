@@ -108,6 +108,9 @@
 #define USE_D_BOOST
 #define USE_ANTIGRAVITY
 
+#define USE_SECONDARY_IMU
+#define USE_IMU_BNO055
+
 #else // FLASH_SIZE < 256
 #define LOG_LEVEL_MAXIMUM LOG_LEVEL_ERROR
 #endif
