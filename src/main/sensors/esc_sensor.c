@@ -108,9 +108,9 @@ static bool escSensorDecodeFrame(void)
         if (checksum == telemetryBuffer[TELEMETRY_FRAME_SIZE - 1]) {
             escSensorData[escSensorMotor].dataAge       = 0;
             escSensorData[escSensorMotor].temperature   = telemetryBuffer[0];
-            escSensorData[escSensorMotor].voltage       = telemetryBuffer[1] << 8 | telemetryBuffer[2];
-            escSensorData[escSensorMotor].current       = telemetryBuffer[3] << 8 | telemetryBuffer[4];
-            escSensorData[escSensorMotor].erpm          = telemetryBuffer[7] << 8 | telemetryBuffer[8];            
+            escSensorData[escSensorMotor].voltage       = ((uint16_t)telemetryBuffer[1]) << 8 | telemetryBuffer[2];
+            escSensorData[escSensorMotor].current       = ((uint16_t)telemetryBuffer[3]) << 8 | telemetryBuffer[4];
+            escSensorData[escSensorMotor].erpm          = ((uint16_t)telemetryBuffer[7]) << 8 | telemetryBuffer[8];
             escSensorDataNeedsUpdate = true;
             return ESC_SENSOR_FRAME_COMPLETE;
         }

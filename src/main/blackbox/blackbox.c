@@ -1625,7 +1625,7 @@ static bool blackboxWriteSysinfo(void)
 
         BLACKBOX_PRINT_HEADER_LINE_CUSTOM(
             if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_VBAT)) {
-                blackboxPrintfHeaderLine("vbat_scale", "%u", batteryMetersConfig()->voltage_scale / 10);
+                blackboxPrintfHeaderLine("vbat_scale", "%u", batteryMetersConfig()->voltage.scale / 10);
             } else {
                 xmitState.headerIndex += 2; // Skip the next two vbat fields too
             }
