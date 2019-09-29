@@ -24,8 +24,9 @@
 
 #include "common/vector.h"
 
-#define BNO055_ADDR_PWR_MODE 0x3E
-#define BNO055_ADDR_OPR_MODE 0x3D
+#define BNO055_ADDR_PWR_MODE    0x3E
+#define BNO055_ADDR_OPR_MODE    0x3D
+#define BNO055_ADDR_CALIB_STAT  0x35
 
 #define BNO055_PWR_MODE_NORMAL  0x00
 #define BNO055_OPR_MODE_NDOF    0x0C
@@ -37,5 +38,13 @@
 #define BNO055_ADDR_EUL_PITCH_LSB   0x1E
 #define BNO055_ADDR_EUL_PITCH_MSB   0x1F
 
+typedef struct {
+    uint8_t sys;
+    uint8_t gyr;
+    uint8_t acc;
+    uint8_t mag;
+} bno055CalibStat_t;
+
 bool bno055Init(void);
 fpVector3_t bno055GetEurlerAngles(void);
+bno055CalibStat_t bno055GetCalibStat(void);

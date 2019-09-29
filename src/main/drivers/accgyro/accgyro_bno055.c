@@ -83,3 +83,18 @@ fpVector3_t bno055GetEurlerAngles(void)
 
     return eurlerAngles;
 }
+
+bno055CalibStat_t bno055GetCalibStat(void)
+{
+    bno055CalibStat_t stats;
+    uint8_t buf;
+
+    busRead(busDev, BNO055_ADDR_CALIB_STAT, &buf);
+
+    stats.mag = buf & 0b00000011;
+    stats.acc = (buf >> 2) & 0b00000011;
+    stats.gyr = (buf >> 4) & 0b00000011;
+    stats.sys = (buf >> 6) & 0b00000011;
+
+    return stats;
+}
