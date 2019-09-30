@@ -21,7 +21,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
-
+#include "common/utils.h"
 #include "flight/secondary_imu.h"
 #include "config/parameter_group_ids.h"
 #include "sensors/boardalignment.h"
