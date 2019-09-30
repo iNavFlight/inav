@@ -34,5 +34,5 @@ typedef struct {
 
 bool bno055Init(void);
 fpVector3_t bno055GetEurlerAngles(void);
-void bno055FetchEulerAngles(int32_t * buffer);
+void bno055FetchEulerAngles(int16_t * buffer);
 bno055CalibStat_t bno055GetCalibStat(void);

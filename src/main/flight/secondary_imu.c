@@ -38,6 +38,8 @@ PG_RESET_TEMPLATE(secondaryImuConfig_t, secondaryImuConfig,
     .rollDeciDegrees = 0,
     .pitchDeciDegrees = 0,
     .yawDeciDegrees = 0,
+    .useForOsdHeading = 0,
+    .useForOsdAHI = 0,
 );
 
 EXTENDED_FASTRAM secondaryImuState_t secondaryImuState;
@@ -45,40 +47,56 @@ EXTENDED_FASTRAM secondaryImuState_t secondaryImuState;
 void taskSecondaryImu(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
-    static bool secondaryImuPresent = false;
     static bool secondaryImuChecked = false;
 
     if (!secondaryImuChecked) {
-        secondaryImuPresent = bno055Init();
+        secondaryImuState.active = bno055Init();
         secondaryImuChecked = true;
     }
 
-    if (secondaryImuPresent) 
+    if (secondaryImuState.active) 
     {
-        int32_t angles[3];
-        bno055FetchEulerAngles(angles);
+        bno055FetchEulerAngles(secondaryImuState.eulerAngles.raw);
 
+        //TODO this way of rotating a vector makes no sense, something simpler have to be developed
         const fpVector3_t v = {
-            .x = angles[0],
-            .y = angles[1],
-            .z = angles[2],
+            .x = secondaryImuState.eulerAngles.raw[0],
+            .y = secondaryImuState.eulerAngles.raw[1],
+            .z = secondaryImuState.eulerAngles.raw[2],
          };
 
         fpVector3_t rotated;
 
-        fp_angles_t compassAngles = {
+        fp_angles_t imuAngles = {
              .angles.roll = DECIDEGREES_TO_RADIANS(secondaryImuConfig()->rollDeciDegrees),
              .angles.pitch = DECIDEGREES_TO_RADIANS(secondaryImuConfig()->pitchDeciDegrees),
              .angles.yaw = DECIDEGREES_TO_RADIANS(secondaryImuConfig()->yawDeciDegrees),
         };
         fpMat3_t rotationMatrix;
-        rotationMatrixFromAngles(&rotationMatrix, &compassAngles);
+        rotationMatrixFromAngles(&rotationMatrix, &imuAngles);
         rotationMatrixRotateVector(&rotated, &v, &rotationMatrix);
-        rotated.z = ((int32_t)(rotated.z + DECIDEGREES_TO_DEGREES(secondaryImuConfig()->yawDeciDegrees))) % 360;
+        rotated.z = ((int32_t)(rotated.z + secondaryImuConfig()->yawDeciDegrees)) % 3600;
 
-        DEBUG_SET(DEBUG_IMU2, 0, rotated.x);
-        DEBUG_SET(DEBUG_IMU2, 1, rotated.y);
-        DEBUG_SET(DEBUG_IMU2, 2, rotated.z);
-        DEBUG_SET(DEBUG_IMU2, 3, angles[2]);
+        secondaryImuState.eulerAngles.values.roll = rotated.x;
+        secondaryImuState.eulerAngles.values.pitch = rotated.y;
+        secondaryImuState.eulerAngles.values.yaw = rotated.z;
+
+        static uint8_t tick = 0;
+        tick++;
+        if (tick == 10) {
+            secondaryImuState.calibrationStatus = bno055GetCalibStat();
+            tick = 0;
+        }
+
+        DEBUG_SET(DEBUG_IMU2, 0, secondaryImuState.eulerAngles.values.roll);
+        DEBUG_SET(DEBUG_IMU2, 1, secondaryImuState.eulerAngles.values.pitch);
+        DEBUG_SET(DEBUG_IMU2, 2, secondaryImuState.eulerAngles.values.yaw);
+
+        DEBUG_SET(DEBUG_IMU2, 3, secondaryImuState.calibrationStatus.mag);
+        DEBUG_SET(DEBUG_IMU2, 4, secondaryImuState.calibrationStatus.gyr);
+        DEBUG_SET(DEBUG_IMU2, 5, secondaryImuState.calibrationStatus.acc);
+        
+
     }
 }
+

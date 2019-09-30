@@ -26,17 +26,25 @@
 
 #include "config/parameter_group.h"
 #include "common/time.h"
+#include "sensors/sensors.h"
+#include "drivers/accgyro/accgyro_bno055.h"
 
 typedef struct secondaryImuConfig_s {
     uint8_t enabled;
     int16_t rollDeciDegrees;
     int16_t pitchDeciDegrees;
     int16_t yawDeciDegrees;
+    uint8_t useForOsdHeading;
+    uint8_t useForOsdAHI;
 } secondaryImuConfig_t;
 
 typedef struct secondaryImuState_s {
-    int16_t rawEulerAngles[3];
+    flightDynamicsTrims_t eulerAngles;
+    bno055CalibStat_t calibrationStatus;
+    uint8_t active;
 } secondaryImuState_t;
+
+extern secondaryImuState_t secondaryImuState;
 
 PG_DECLARE(secondaryImuConfig_t, secondaryImuConfig);
 

@@ -81,6 +81,7 @@
 #include "flight/pid.h"
 #include "flight/rth_estimator.h"
 #include "flight/wind_estimator.h"
+#include "flight/secondary_imu.h"
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
@@ -966,12 +967,28 @@ static uint8_t osdUpdateSidebar(osd_sidebar_scroll_e scroll, osd_sidebar_t *side
 
 static bool osdIsHeadingValid(void)
 {
+#ifdef USE_SECONDARY_IMU
+    if (secondaryImuConfig()->useForOsdHeading) {
+        return true;
+    } else {
+        return isImuHeadingValid();
+    }
+#else 
     return isImuHeadingValid();
+#endif
 }
 
 int16_t osdGetHeading(void)
 {
-    return attitude.values.yaw;
+#ifdef USE_SECONDARY_IMU
+    if (secondaryImuConfig()->useForOsdHeading) {
+        return secondaryImuState.eulerAngles.values.yaw;
+    } else {
+        return attitude.values.yaw;
+    }
+#else 
+    return secondaryImuState.eulerAngles.values.yaw;
+#endif
 }
 
 // Returns a heading angle in degrees normalized to [0, 360).
@@ -1767,8 +1784,20 @@ static bool osdDrawSingleElement(uint8_t item)
 
             float pitch_rad_to_char = (float)(AH_HEIGHT / 2 + 0.5) / DEGREES_TO_RADIANS(osdConfig()->ahi_max_pitch);
 
-            float rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
-            float pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
+            float rollAngle;
+            float pitchAngle;
+#ifdef USE_SECONDARY_IMU
+            if (secondaryImuConfig()->useForOsdAHI) {
+                rollAngle = DECIDEGREES_TO_RADIANS(secondaryImuState.eulerAngles.values.roll);
+                pitchAngle = DECIDEGREES_TO_RADIANS(secondaryImuState.eulerAngles.values.pitch);
+            } else {
+                rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
+                pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);    
+            }
+#else
+            rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
+            pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
+#endif
 
             if (osdConfig()->ahi_reverse_roll) {
                 rollAngle = -rollAngle;

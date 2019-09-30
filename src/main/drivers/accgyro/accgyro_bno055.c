@@ -86,14 +86,14 @@ bool bno055Init(void)
     return true;
 }
 
-void bno055FetchEulerAngles(int32_t * buffer)
+void bno055FetchEulerAngles(int16_t * buffer)
 {
     uint8_t buf[6];
     busReadBuf(busDev, BNO055_ADDR_EUL_YAW_LSB, buf, 6);
 
-    buffer[0] = ((int16_t)((buf[3] << 8) | buf[2])) / 16;
-    buffer[1] = ((int16_t)((buf[5] << 8) | buf[4])) / -16; //Pitch has to be reversed to match INAV notation
-    buffer[2] = ((int16_t)((buf[1] << 8) | buf[0])) / 16;
+    buffer[0] = ((int16_t)((buf[3] << 8) | buf[2])) / 1.6f;
+    buffer[1] = ((int16_t)((buf[5] << 8) | buf[4])) / -1.6f; //Pitch has to be reversed to match INAV notation
+    buffer[2] = ((int16_t)((buf[1] << 8) | buf[0])) / 1.6f;
 }
 
 fpVector3_t bno055GetEurlerAngles(void)

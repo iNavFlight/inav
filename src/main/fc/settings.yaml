@@ -311,6 +311,12 @@ groups:
       - name: imu2_enabled
         field: enabled
         type: bool
+      - name: imu2_use_for_osd_heading
+        field: useForOsdHeading
+        type: bool
+      - name: imu2_use_for_osd_ahi
+        field: useForOsdAHI
+        type: bool
       - name: imu2_align_roll
         field: rollDeciDegrees
         min: -1800

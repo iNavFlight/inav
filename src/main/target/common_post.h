@@ -52,6 +52,11 @@
 #undef USE_SERIALRX_JETIEXBUS
 #endif
 
+#if defined(USE_I2C) && (FLASH_SIZE > 256)
+#define USE_SECONDARY_IMU
+#define USE_IMU_BNO055
+#endif
+
 #if defined(SIMULATOR_BUILD) || defined(UNIT_TEST)
 // This feature uses 'arm_math.h', which does not exist for x86.
 #undef USE_DYNAMIC_FILTERS
