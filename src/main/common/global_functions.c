@@ -31,6 +31,9 @@
 #include "common/global_functions.h"
 #include "common/logic_condition.h"
 
+#include "io/vtx.h"
+#include "drivers/vtx_common.h"
+
 #ifdef USE_GLOBAL_FUNCTIONS
 
 #include "common/axis.h"
@@ -62,6 +65,7 @@ void globalFunctionsProcess(int8_t functionId) {
     if (globalFunctions(functionId)->enabled) {
 
         const int conditionValue = logicConditionGetValue(globalFunctions(functionId)->conditionId);
+        const int previousValue = globalFunctionsStates[functionId].active;
 
         globalFunctionsStates[functionId].active = (bool) conditionValue;
         globalFunctionsStates[functionId].value = logicConditionGetOperandValue(
@@ -84,6 +88,14 @@ void globalFunctionsProcess(int8_t functionId) {
             case GLOBAL_FUNCTION_ACTION_SWAP_ROLL_YAW:
                 if (conditionValue) {
                     GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_SWAP_ROLL_YAW);
+                }
+                break;
+            case GLOBAL_FUNCTION_ACTION_SET_VTX_POWER_LEVEL:
+                if (conditionValue && !previousValue) {
+                    vtxDeviceCapability_t vtxDeviceCapability;
+                    if (vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
+                        vtxSettingsConfigMutable()->power = constrain(globalFunctionsStates[functionId].value, VTX_SETTINGS_MIN_POWER, vtxDeviceCapability.powerCount);
+                    }
                 }
                 break;
         }
