@@ -42,8 +42,15 @@ typedef enum {
     CURRENT_SENSOR_NONE = 0,
     CURRENT_SENSOR_ADC,
     CURRENT_SENSOR_VIRTUAL,
+    CURRENT_SENSOR_ESC,
     CURRENT_SENSOR_MAX = CURRENT_SENSOR_VIRTUAL
 } currentSensor_e;
+
+typedef enum {
+    VOLTAGE_SENSOR_NONE = 0,
+    VOLTAGE_SENSOR_ADC,
+    VOLTAGE_SENSOR_ESC
+} voltageSensor_e;
 
 typedef enum {
     BAT_CAPACITY_UNIT_MAH,
@@ -62,7 +69,10 @@ typedef enum {
 
 typedef struct batteryMetersConfig_s {
 
-    uint16_t voltage_scale;
+    struct {
+        uint16_t scale;
+        voltageSensor_e type;
+    } voltage;
 
     struct {
         int16_t scale;          // scale the current sensor output voltage to milliamps. Value in 1/10th mV/A

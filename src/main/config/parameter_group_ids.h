@@ -108,7 +108,8 @@
 #define PG_RCDEVICE_CONFIG 1018
 #define PG_GENERAL_SETTINGS 1019
 #define PG_GLOBAL_FUNCTIONS 1020
-#define PG_INAV_END 1020
+#define PG_ESC_SENSOR_CONFIG 1021
+#define PG_INAV_END 1021
 
 // OSD configuration (subject to change)
 //#define PG_OSD_FONT_CONFIG 2047
