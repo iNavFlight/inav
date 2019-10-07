@@ -31,12 +31,14 @@
 typedef enum {
     GLOBAL_FUNCTION_ACTION_OVERRIDE_ARMING_SAFETY = 0,
     GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE_SCALE,
+    GLOBAL_FUNCTION_ACTION_SWAP_ROLL_YAW,
     GLOBAL_FUNCTION_ACTION_LAST
 } globalFunctionActions_e;
 
 typedef enum {
     GLOBAL_FUNCTION_FLAG_OVERRIDE_ARMING_SAFETY = (1 << 0),
     GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE_SCALE = (1 << 1),
+    GLOBAL_FUNCTION_FLAG_OVERRIDE_SWAP_ROLL_YAW = (1 << 2),
 } globalFunctionFlags_t;
 
 typedef struct globalFunction_s {
@@ -63,3 +65,4 @@ PG_DECLARE_ARRAY(globalFunction_t, MAX_GLOBAL_FUNCTIONS, globalFunctions);
 
 void globalFunctionsUpdateTask(timeUs_t currentTimeUs);
 float getThrottleScale(float globalThrottleScale);
+int16_t getRcCommandOverride(int16_t command[], uint8_t axis);
