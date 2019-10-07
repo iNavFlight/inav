@@ -81,9 +81,9 @@ void globalFunctionsProcess(int8_t functionId) {
                     GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE_SCALE);
                 }
                 break;
-            case GLOBAL_FUNCTION_ACTION_SWAP_ROLL_PITCH:
+            case GLOBAL_FUNCTION_ACTION_SWAP_ROLL_YAW:
                 if (conditionValue) {
-                    GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_SWAP_ROLL_PITCH);
+                    GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_SWAP_ROLL_YAW);
                 }
                 break;
         }
@@ -109,10 +109,10 @@ float NOINLINE getThrottleScale(float globalThrottleScale) {
     }
 }
 
-int16_t getRcCommandOverride(int16_t command[], uint8_t axis) {
-    if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_SWAP_ROLL_PITCH) && axis == FD_ROLL) {
+int16_t FAST_CODE getRcCommandOverride(int16_t command[], uint8_t axis) {
+    if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_SWAP_ROLL_YAW) && axis == FD_ROLL) {
         return command[FD_YAW];
-    } else if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_SWAP_ROLL_PITCH) && axis == FD_YAW) {
+    } else if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_SWAP_ROLL_YAW) && axis == FD_YAW) {
         return command[FD_ROLL];
     } else {
         return command[axis];
