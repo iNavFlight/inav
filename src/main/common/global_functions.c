@@ -98,6 +98,21 @@ void globalFunctionsProcess(int8_t functionId) {
                     }
                 }
                 break;
+            case GLOBAL_FUNCTION_ACTION_INVERT_ROLL:
+                if (conditionValue) {
+                    GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_ROLL);
+                }
+                break;
+            case GLOBAL_FUNCTION_ACTION_INVERT_PITCH:
+                if (conditionValue) {
+                    GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_PITCH);
+                }
+                break;
+            case GLOBAL_FUNCTION_ACTION_INVERT_YAW:
+                if (conditionValue) {
+                    GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_YAW);
+                }
+                break;
         }
     }
 }
@@ -122,13 +137,25 @@ float NOINLINE getThrottleScale(float globalThrottleScale) {
 }
 
 int16_t FAST_CODE getRcCommandOverride(int16_t command[], uint8_t axis) {
+    int16_t outputValue = command[axis];
+
     if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_SWAP_ROLL_YAW) && axis == FD_ROLL) {
-        return command[FD_YAW];
+        outputValue = command[FD_YAW];
     } else if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_SWAP_ROLL_YAW) && axis == FD_YAW) {
-        return command[FD_ROLL];
-    } else {
-        return command[axis];
+        outputValue = command[FD_ROLL];
     }
+
+    if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_ROLL) && axis == FD_ROLL) {
+        outputValue *= -1;
+    }
+    if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_PITCH) && axis == FD_PITCH) {
+        outputValue *= -1;
+    }
+    if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_YAW) && axis == FD_YAW) {
+        outputValue *= -1;
+    }
+
+    return outputValue;
 }
 
 #endif
