@@ -36,8 +36,11 @@ tables:
   - name: failsafe_procedure
     values: ["SET-THR", "DROP", "RTH", "NONE"]
   - name: current_sensor
-    values: ["NONE", "ADC", "VIRTUAL"]
+    values: ["NONE", "ADC", "VIRTUAL", "ESC"]
     enum: currentSensor_e
+  - name: voltage_sensor
+    values: ["NONE", "ADC", "ESC"]
+    enum: voltageSensor_e
   - name: gps_provider
     values: ["NMEA", "UBLOX", "UNUSED", "NAZA", "UBLOX7", "MTK"]
     enum: gpsProvider_e
@@ -615,8 +618,12 @@ groups:
     type: batteryMetersConfig_t
     headers: ["sensors/battery.h"]
     members:
+      - name: vbat_meter_type
+        field: voltage.type
+        table: voltage_sensor
+        type: uint8_t
       - name: vbat_scale
-        field: voltage_scale
+        field: voltage.scale
         condition: USE_ADC
         min: VBAT_SCALE_MIN
         max: VBAT_SCALE_MAX

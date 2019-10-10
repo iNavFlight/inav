@@ -31,7 +31,12 @@
 #include "common/global_functions.h"
 #include "common/logic_condition.h"
 
+#include "io/vtx.h"
+#include "drivers/vtx_common.h"
+
 #ifdef USE_GLOBAL_FUNCTIONS
+
+#include "common/axis.h"
 
 PG_REGISTER_ARRAY(globalFunction_t, MAX_GLOBAL_FUNCTIONS, globalFunctions, PG_GLOBAL_FUNCTIONS, 0);
 
@@ -60,6 +65,7 @@ void globalFunctionsProcess(int8_t functionId) {
     if (globalFunctions(functionId)->enabled) {
 
         const int conditionValue = logicConditionGetValue(globalFunctions(functionId)->conditionId);
+        const int previousValue = globalFunctionsStates[functionId].active;
 
         globalFunctionsStates[functionId].active = (bool) conditionValue;
         globalFunctionsStates[functionId].value = logicConditionGetOperandValue(
@@ -77,6 +83,34 @@ void globalFunctionsProcess(int8_t functionId) {
                 if (conditionValue) {
                     globalFunctionValues[GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE_SCALE] = globalFunctionsStates[functionId].value;
                     GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE_SCALE);
+                }
+                break;
+            case GLOBAL_FUNCTION_ACTION_SWAP_ROLL_YAW:
+                if (conditionValue) {
+                    GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_SWAP_ROLL_YAW);
+                }
+                break;
+            case GLOBAL_FUNCTION_ACTION_SET_VTX_POWER_LEVEL:
+                if (conditionValue && !previousValue) {
+                    vtxDeviceCapability_t vtxDeviceCapability;
+                    if (vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
+                        vtxSettingsConfigMutable()->power = constrain(globalFunctionsStates[functionId].value, VTX_SETTINGS_MIN_POWER, vtxDeviceCapability.powerCount);
+                    }
+                }
+                break;
+            case GLOBAL_FUNCTION_ACTION_INVERT_ROLL:
+                if (conditionValue) {
+                    GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_ROLL);
+                }
+                break;
+            case GLOBAL_FUNCTION_ACTION_INVERT_PITCH:
+                if (conditionValue) {
+                    GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_PITCH);
+                }
+                break;
+            case GLOBAL_FUNCTION_ACTION_INVERT_YAW:
+                if (conditionValue) {
+                    GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_YAW);
                 }
                 break;
         }
@@ -100,6 +134,28 @@ float NOINLINE getThrottleScale(float globalThrottleScale) {
     } else {
         return globalThrottleScale;
     }
+}
+
+int16_t FAST_CODE getRcCommandOverride(int16_t command[], uint8_t axis) {
+    int16_t outputValue = command[axis];
+
+    if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_SWAP_ROLL_YAW) && axis == FD_ROLL) {
+        outputValue = command[FD_YAW];
+    } else if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_SWAP_ROLL_YAW) && axis == FD_YAW) {
+        outputValue = command[FD_ROLL];
+    }
+
+    if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_ROLL) && axis == FD_ROLL) {
+        outputValue *= -1;
+    }
+    if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_PITCH) && axis == FD_PITCH) {
+        outputValue *= -1;
+    }
+    if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_YAW) && axis == FD_YAW) {
+        outputValue *= -1;
+    }
+
+    return outputValue;
 }
 
 #endif
