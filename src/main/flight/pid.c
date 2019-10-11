@@ -94,6 +94,7 @@ typedef struct {
     pt1Filter_t dBoostLpf;
     biquadFilter_t dBoostGyroLpf;
 #endif
+    bool itermLimitActive;
 } pidState_t;
 
 #ifdef USE_DTERM_NOTCH
@@ -138,6 +139,12 @@ static EXTENDED_FASTRAM float dBoostMaxAtAlleceleration;
 
 static EXTENDED_FASTRAM uint16_t yawPLimit;
 static EXTENDED_FASTRAM uint8_t yawLpfHz;
+static EXTENDED_FASTRAM uint16_t pidSumLimit;
+static EXTENDED_FASTRAM float motorItermWindupPoint;
+static EXTENDED_FASTRAM float antiWindupScaler;
+
+typedef void (*pidControllerFnPtr)(pidState_t *pidState, flight_dynamics_index_t axis, float dT);
+static EXTENDED_FASTRAM pidControllerFnPtr pidControllerApplyFn;
 
 PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 10);
 
@@ -245,38 +252,6 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .antigravityAccelerator = 1.0f,
         .antigravityCutoff = ANTI_GRAVITY_THROTTLE_FILTER_CUTOFF,
 );
-
-void pidInit(void)
-{
-    pidResetTPAFilter();
-
-    // Calculate max overall tilt (max pitch + max roll combined) as a limit to heading hold
-    headingHoldCosZLimit = cos_approx(DECIDEGREES_TO_RADIANS(pidProfile()->max_angle_inclination[FD_ROLL])) *
-                           cos_approx(DECIDEGREES_TO_RADIANS(pidProfile()->max_angle_inclination[FD_PITCH]));
-
-    pidGainsUpdateRequired = false;
-
-    itermRelax = pidProfile()->iterm_relax;
-    itermRelaxType = pidProfile()->iterm_relax_type;
-    itermRelaxSetpointThreshold = MC_ITERM_RELAX_SETPOINT_THRESHOLD * MC_ITERM_RELAX_CUTOFF_DEFAULT / pidProfile()->iterm_relax_cutoff;
-
-    if (mixerConfig()->platformType == PLATFORM_MULTIROTOR) {
-        yawPLimit = pidProfile()->yaw_p_limit;
-    } else {
-        yawPLimit = 0;
-    }
-    yawLpfHz = pidProfile()->yaw_lpf_hz;
-
-#ifdef USE_D_BOOST
-    dBoostFactor = pidProfile()->dBoostFactor;
-    dBoostMaxAtAlleceleration = pidProfile()->dBoostMaxAtAlleceleration;
-#endif
-
-#ifdef USE_ANTIGRAVITY
-    antigravityGain = pidProfile()->antigravityGain;
-    antigravityAccelerator = pidProfile()->antigravityAccelerator;
-#endif
-}
 
 bool pidInitFilters(void)
 {
@@ -606,6 +581,14 @@ static FAST_CODE NOINLINE float pTermProcess(pidState_t *pidState, flight_dynami
     return newPTerm;
 }
 
+static void applyItermLimiting(pidState_t *pidState) {
+    if (pidState->itermLimitActive) {
+        pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -pidState->errorGyroIfLimit, pidState->errorGyroIfLimit);
+    } else {
+        pidState->errorGyroIfLimit = fabsf(pidState->errorGyroIf);
+    }
+}
+
 static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT)
 {
     const float rateError = pidState->rateTarget - pidState->gyroRate;
@@ -615,11 +598,7 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
     // Calculate integral
     pidState->errorGyroIf += rateError * pidState->kI * dT;
 
-    if (STATE(ANTI_WINDUP) || isFixedWingItermLimitActive(pidState->stickPosition)) {
-        pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -pidState->errorGyroIfLimit, pidState->errorGyroIfLimit);
-    } else {
-        pidState->errorGyroIfLimit = fabsf(pidState->errorGyroIf);
-    }
+    applyItermLimiting(pidState);
 
     if (pidProfile()->fixedWingItermThrowLimit != 0) {
         pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -pidProfile()->fixedWingItermThrowLimit, pidProfile()->fixedWingItermThrowLimit);
@@ -631,7 +610,7 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
     }
 #endif
 
-    axisPID[axis] = constrainf(newPTerm + newFFTerm + pidState->errorGyroIf, -pidProfile()->pidSumLimit, +pidProfile()->pidSumLimit);
+    axisPID[axis] = constrainf(newPTerm + newFFTerm + pidState->errorGyroIf, -pidSumLimit, +pidSumLimit);
 
 #ifdef USE_BLACKBOX
     axisPID_P[axis] = newPTerm;
@@ -705,7 +684,7 @@ static float applyDBoost(pidState_t *pidState, flight_dynamics_index_t axis, flo
 }
 #endif
 
-static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT)
+static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT)
 {
     const float rateError = pidState->rateTarget - pidState->gyroRate;
     const float newPTerm = pTermProcess(pidState, axis, rateError, dT);
@@ -741,11 +720,7 @@ static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, fl
 
     // TODO: Get feedback from mixer on available correction range for each axis
     const float newOutput = newPTerm + newDTerm + pidState->errorGyroIf;
-    const float newOutputLimited = constrainf(newOutput, -pidProfile()->pidSumLimit, +pidProfile()->pidSumLimit);
-
-    // Prevent strong Iterm accumulation during stick inputs
-    const float motorItermWindupPoint = 1.0f - (pidProfile()->itermWindupPointPercent / 100.0f);
-    const float antiWindupScaler = constrainf((1.0f - getMotorMixRange()) / motorItermWindupPoint, 0.0f, 1.0f);
+    const float newOutputLimited = constrainf(newOutput, -pidSumLimit, +pidSumLimit);
 
     float itermErrorRate = rateError;
     applyItermRelax(axis, pidState->gyroRate, pidState->rateTarget, &itermErrorRate);
@@ -761,11 +736,7 @@ static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, fl
                              + ((newOutputLimited - newOutput) * pidState->kT * antiWindupScaler * dT);
 
     // Don't grow I-term if motors are at their limit
-    if (STATE(ANTI_WINDUP) || mixerIsOutputSaturated()) {
-        pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -pidState->errorGyroIfLimit, pidState->errorGyroIfLimit);
-    } else {
-        pidState->errorGyroIfLimit = fabsf(pidState->errorGyroIf);
-    }
+    applyItermLimiting(pidState);
 
     axisPID[axis] = newOutputLimited;
 
@@ -957,7 +928,20 @@ static void pidApplyFpvCameraAngleMix(pidState_t *pidState, uint8_t fpvCameraAng
     pidState[YAW].rateTarget = constrainf(yawRate * cosCameraAngle + rollRate * sinCameraAngle, -GYRO_SATURATION_LIMIT, GYRO_SATURATION_LIMIT);
 }
 
-void FAST_CODE pidController(float dT)
+void checkItermLimitingActive(pidState_t *pidState)
+{
+    bool shouldActivate;
+    if (STATE(FIXED_WING)) {
+        shouldActivate = isFixedWingItermLimitActive(pidState->stickPosition);
+    } else 
+    {
+        shouldActivate = mixerIsOutputSaturated();
+    }
+
+    pidState->itermLimitActive = STATE(ANTI_WINDUP) || shouldActivate; 
+}
+
+void FAST_CODE NOINLINE pidController(float dT)
 {
     if (!pidFiltersConfigured) {
         return;
@@ -1008,20 +992,16 @@ void FAST_CODE pidController(float dT)
         pidApplyFpvCameraAngleMix(pidState, currentControlRateProfile->misc.fpvCamAngleDegrees);
     }
 
-    // Apply setpoint rate of change limits
-    for (int axis = 0; axis < 3; axis++) {
-        pidApplySetpointRateLimiting(&pidState[axis], axis, dT);
-    }
+    // Prevent strong Iterm accumulation during stick inputs
+    antiWindupScaler = constrainf((1.0f - getMotorMixRange()) / motorItermWindupPoint, 0.0f, 1.0f);
 
-    // Step 4: Run gyro-driven control
     for (int axis = 0; axis < 3; axis++) {
-        // Apply PID setpoint controller
-        if (STATE(FIXED_WING)) {
-            pidApplyFixedWingRateController(&pidState[axis], axis, dT);
-        }
-        else {
-            pidApplyMulticopterRateController(&pidState[axis], axis, dT);
-        }
+        // Apply setpoint rate of change limits
+        pidApplySetpointRateLimiting(&pidState[axis], axis, dT);
+        
+        // Step 4: Run gyro-driven control
+        checkItermLimitingActive(&pidState[axis]);
+        pidControllerApplyFn(&pidState[axis], axis, dT);
     }
 }
 
@@ -1041,4 +1021,44 @@ pidType_e pidIndexGetType(pidIndex_e pidIndex)
         return PID_TYPE_NONE;
     }
     return PID_TYPE_PID;
+}
+
+void pidInit(void)
+{
+    pidResetTPAFilter();
+
+    // Calculate max overall tilt (max pitch + max roll combined) as a limit to heading hold
+    headingHoldCosZLimit = cos_approx(DECIDEGREES_TO_RADIANS(pidProfile()->max_angle_inclination[FD_ROLL])) *
+                           cos_approx(DECIDEGREES_TO_RADIANS(pidProfile()->max_angle_inclination[FD_PITCH]));
+
+    pidGainsUpdateRequired = false;
+
+    itermRelax = pidProfile()->iterm_relax;
+    itermRelaxType = pidProfile()->iterm_relax_type;
+    itermRelaxSetpointThreshold = MC_ITERM_RELAX_SETPOINT_THRESHOLD * MC_ITERM_RELAX_CUTOFF_DEFAULT / pidProfile()->iterm_relax_cutoff;
+
+    if (mixerConfig()->platformType == PLATFORM_MULTIROTOR) {
+        yawPLimit = pidProfile()->yaw_p_limit;
+    } else {
+        yawPLimit = 0;
+    }
+    yawLpfHz = pidProfile()->yaw_lpf_hz;
+    pidSumLimit = pidProfile()->pidSumLimit;
+    motorItermWindupPoint = 1.0f - (pidProfile()->itermWindupPointPercent / 100.0f);
+
+#ifdef USE_D_BOOST
+    dBoostFactor = pidProfile()->dBoostFactor;
+    dBoostMaxAtAlleceleration = pidProfile()->dBoostMaxAtAlleceleration;
+#endif
+
+#ifdef USE_ANTIGRAVITY
+    antigravityGain = pidProfile()->antigravityGain;
+    antigravityAccelerator = pidProfile()->antigravityAccelerator;
+#endif
+    
+    if (STATE(FIXED_WING)) {
+        pidControllerApplyFn = pidApplyFixedWingRateController;
+    } else {
+        pidControllerApplyFn = pidApplyMulticopterRateController;
+    }
 }
