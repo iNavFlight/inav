@@ -145,11 +145,12 @@ static EXTENDED_FASTRAM float antiWindupScaler;
 static EXTENDED_FASTRAM float iTermAntigravityGain;
 static EXTENDED_FASTRAM uint16_t fixedWingItermThrowLimit;
 static EXTENDED_FASTRAM float fixedWingItermLimitOnStickPosition;
+static EXTENDED_FASTRAM uint8_t usedPidControllerType;
 
 typedef void (*pidControllerFnPtr)(pidState_t *pidState, flight_dynamics_index_t axis, float dT);
 static EXTENDED_FASTRAM pidControllerFnPtr pidControllerApplyFn;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 10);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 11);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -254,6 +255,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .antigravityGain = 1.0f,
         .antigravityAccelerator = 1.0f,
         .antigravityCutoff = ANTI_GRAVITY_THROTTLE_FILTER_CUTOFF,
+        .pidControllerType = PID_TYPE_AUTO,
 );
 
 bool pidInitFilters(void)
@@ -324,7 +326,7 @@ bool pidInitFilters(void)
 
 void pidResetTPAFilter(void)
 {
-    if (STATE(FIXED_WING) && currentControlRateProfile->throttle.fixedWingTauMs > 0) {
+    if (usedPidControllerType == PID_TYPE_PIFF && currentControlRateProfile->throttle.fixedWingTauMs > 0) {
         pt1FilterInitRC(&fixedWingTpaFilter, currentControlRateProfile->throttle.fixedWingTauMs * 1e-3f, getLooptime() * 1e-6f);
         pt1FilterReset(&fixedWingTpaFilter, motorConfig()->minthrottle);
     }
@@ -422,7 +424,7 @@ void FAST_CODE NOINLINE updatePIDCoefficients(float dT)
     STATIC_FASTRAM uint16_t prevThrottle = 0;
 
     // Check if throttle changed. Different logic for fixed wing vs multirotor
-    if (STATE(FIXED_WING) && (currentControlRateProfile->throttle.fixedWingTauMs > 0)) {
+    if (usedPidControllerType == PID_TYPE_PIFF && (currentControlRateProfile->throttle.fixedWingTauMs > 0)) {
         uint16_t filteredThrottle = pt1FilterApply3(&fixedWingTpaFilter, rcCommand[THROTTLE], dT);
         if (filteredThrottle != prevThrottle) {
             prevThrottle = filteredThrottle;
@@ -437,7 +439,7 @@ void FAST_CODE NOINLINE updatePIDCoefficients(float dT)
     }
 
 #ifdef USE_ANTIGRAVITY
-    if (!STATE(FIXED_WING)) {
+    if (usedPidControllerType == PID_TYPE_PID) {
         antigravityThrottleHpf = rcCommand[THROTTLE] - pt1FilterApply(&antigravityThrottleLpf, rcCommand[THROTTLE]);
     }
 #endif
@@ -454,12 +456,12 @@ void FAST_CODE NOINLINE updatePIDCoefficients(float dT)
         return;
     }
 
-    const float tpaFactor = STATE(FIXED_WING) ? calculateFixedWingTPAFactor(prevThrottle) : calculateMultirotorTPAFactor();
+    const float tpaFactor = usedPidControllerType == PID_TYPE_PIFF ? calculateFixedWingTPAFactor(prevThrottle) : calculateMultirotorTPAFactor();
 
     // PID coefficients can be update only with THROTTLE and TPA or inflight PID adjustments
     //TODO: Next step would be to update those only at THROTTLE or inflight adjustments change
     for (int axis = 0; axis < 3; axis++) {
-        if (STATE(FIXED_WING)) {
+        if (usedPidControllerType == PID_TYPE_PIFF) {
             // Airplanes - scale all PIDs according to TPA
             pidState[axis].kP  = pidBank()->pid[axis].P / FP_PID_RATE_P_MULTIPLIER  * tpaFactor;
             pidState[axis].kI  = pidBank()->pid[axis].I / FP_PID_RATE_I_MULTIPLIER  * tpaFactor;
@@ -590,6 +592,12 @@ static void applyItermLimiting(pidState_t *pidState) {
     } else {
         pidState->errorGyroIfLimit = fabsf(pidState->errorGyroIf);
     }
+}
+
+static void nullRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT) {
+    UNUSED(pidState);
+    UNUSED(axis);
+    UNUSED(dT);
 }
 
 static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT)
@@ -931,7 +939,7 @@ static void pidApplyFpvCameraAngleMix(pidState_t *pidState, uint8_t fpvCameraAng
 void checkItermLimitingActive(pidState_t *pidState)
 {
     bool shouldActivate;
-    if (STATE(FIXED_WING)) {
+    if (usedPidControllerType == PID_TYPE_PIFF) {
         shouldActivate = isFixedWingItermLimitActive(pidState->stickPosition);
     } else 
     {
@@ -1013,11 +1021,10 @@ void FAST_CODE NOINLINE pidController(float dT)
 
 pidType_e pidIndexGetType(pidIndex_e pidIndex)
 {
+    if (pidIndex == PID_ROLL || pidIndex == PID_PITCH || pidIndex == PID_YAW) {
+        return usedPidControllerType;    
+    }
     if (STATE(FIXED_WING)) {
-        // FW specific
-        if (pidIndex == PID_ROLL || pidIndex == PID_PITCH || pidIndex == PID_YAW) {
-            return PID_TYPE_PIFF;
-        }
         if (pidIndex == PID_VEL_XY || pidIndex == PID_VEL_Z) {
             return PID_TYPE_NONE;
         }
@@ -1064,9 +1071,21 @@ void pidInit(void)
     antigravityAccelerator = pidProfile()->antigravityAccelerator;
 #endif
     
-    if (STATE(FIXED_WING)) {
-        pidControllerApplyFn = pidApplyFixedWingRateController;
+    if (pidProfile()->pidControllerType == PID_TYPE_AUTO) {
+        if (STATE(FIXED_WING)) {
+            usedPidControllerType = PID_TYPE_PIFF;
+        } else {
+            usedPidControllerType = PID_TYPE_PID;
+        }
     } else {
+        usedPidControllerType = pidProfile()->pidControllerType;
+    }
+
+    if (usedPidControllerType == PID_TYPE_PIFF) {
+        pidControllerApplyFn = pidApplyFixedWingRateController;
+    } else if (usedPidControllerType == PID_TYPE_PID) {
         pidControllerApplyFn = pidApplyMulticopterRateController;
+    } else {
+        pidControllerApplyFn = nullRateController;
     }
 }
