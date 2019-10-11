@@ -102,10 +102,10 @@ STATIC_FASTRAM filterApplyFnPtr notchFilterApplyFn;
 #endif
 
 STATIC_FASTRAM bool pidFiltersConfigured = false;
-FASTRAM float headingHoldCosZLimit;
-FASTRAM int16_t headingHoldTarget;
-STATIC_FASTRAM pt1Filter_t headingHoldRateFilter;
-STATIC_FASTRAM pt1Filter_t fixedWingTpaFilter;
+static EXTENDED_FASTRAM float headingHoldCosZLimit;
+static EXTENDED_FASTRAM int16_t headingHoldTarget;
+static EXTENDED_FASTRAM pt1Filter_t headingHoldRateFilter;
+static EXTENDED_FASTRAM pt1Filter_t fixedWingTpaFilter;
 
 // Thrust PID Attenuation factor. 0.0f means fully attenuated, 1.0f no attenuation is applied
 STATIC_FASTRAM bool pidGainsUpdateRequired;
