@@ -142,7 +142,9 @@ static EXTENDED_FASTRAM uint8_t yawLpfHz;
 static EXTENDED_FASTRAM uint16_t pidSumLimit;
 static EXTENDED_FASTRAM float motorItermWindupPoint;
 static EXTENDED_FASTRAM float antiWindupScaler;
+#ifdef USE_ANTIGRAVITY
 static EXTENDED_FASTRAM float iTermAntigravityGain;
+#endif
 static EXTENDED_FASTRAM uint16_t fixedWingItermThrowLimit;
 static EXTENDED_FASTRAM float fixedWingItermLimitOnStickPosition;
 static EXTENDED_FASTRAM uint8_t usedPidControllerType;
@@ -936,7 +938,7 @@ static void pidApplyFpvCameraAngleMix(pidState_t *pidState, uint8_t fpvCameraAng
     pidState[YAW].rateTarget = constrainf(yawRate * cosCameraAngle + rollRate * sinCameraAngle, -GYRO_SATURATION_LIMIT, GYRO_SATURATION_LIMIT);
 }
 
-void checkItermLimitingActive(pidState_t *pidState)
+void FAST_CODE checkItermLimitingActive(pidState_t *pidState)
 {
     bool shouldActivate;
     if (usedPidControllerType == PID_TYPE_PIFF) {
