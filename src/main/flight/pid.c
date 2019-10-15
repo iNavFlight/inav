@@ -151,6 +151,7 @@ static EXTENDED_FASTRAM uint8_t usedPidControllerType;
 
 typedef void (*pidControllerFnPtr)(pidState_t *pidState, flight_dynamics_index_t axis, float dT);
 static EXTENDED_FASTRAM pidControllerFnPtr pidControllerApplyFn;
+static EXTENDED_FASTRAM filterApplyFnPtr dTermLpfFilterApplyFn;
 
 PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 11);
 
@@ -704,7 +705,7 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
 
     // Calculate new D-term
     float newDTerm;
-    if (pidBank()->pid[axis].D == 0) {
+    if (pidState->kD == 0) {
         // optimisation for when D8 is zero, often used by YAW axis
         newDTerm = 0;
     } else {
@@ -717,9 +718,7 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
 #endif
 
         // Apply additional lowpass
-        if (pidProfile()->dterm_lpf_hz) {
-            deltaFiltered = biquadFilterApply(&pidState->deltaLpfState, deltaFiltered);
-        }
+        deltaFiltered = dTermLpfFilterApplyFn(&pidState->deltaLpfState, deltaFiltered);
 
         firFilterUpdate(&pidState->gyroRateFilter, deltaFiltered);
         newDTerm = firFilterApply(&pidState->gyroRateFilter);
@@ -1006,7 +1005,7 @@ void FAST_CODE NOINLINE pidController(float dT)
     antiWindupScaler = constrainf((1.0f - getMotorMixRange()) / motorItermWindupPoint, 0.0f, 1.0f);
 
 #ifdef USE_ANTIGRAVITY
-    float iTermAntigravityGain = scaleRangef(fabsf(antigravityThrottleHpf) * antigravityAccelerator, 0.0f, 1000.0f, 1.0f, antigravityGain);    
+    iTermAntigravityGain = scaleRangef(fabsf(antigravityThrottleHpf) * antigravityAccelerator, 0.0f, 1000.0f, 1.0f, antigravityGain);    
     DEBUG_SET(DEBUG_ANTIGRAVITY, 0, iTermAntigravityGain * 100);
     DEBUG_SET(DEBUG_ANTIGRAVITY, 1, antigravityThrottleHpf);
 #endif
@@ -1081,6 +1080,12 @@ void pidInit(void)
         }
     } else {
         usedPidControllerType = pidProfile()->pidControllerType;
+    }
+
+    if (pidProfile()->dterm_lpf_hz) {
+        dTermLpfFilterApplyFn = (filterApplyFnPtr) biquadFilterApply;
+    } else {
+        dTermLpfFilterApplyFn = nullFilterApply;
     }
 
     if (usedPidControllerType == PID_TYPE_PIFF) {
