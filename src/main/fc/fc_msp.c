@@ -1165,7 +1165,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, 0); //Legacy, no longer in use async processing value
         sbufWriteU8(dst, pidProfile()->heading_hold_rate_limit);
         sbufWriteU8(dst, HEADING_HOLD_ERROR_LPF_FREQ);
-        sbufWriteU16(dst, mixerConfig()->yaw_jump_prevention_limit);
+        sbufWriteU16(dst, 0);
         sbufWriteU8(dst, gyroConfig()->gyro_lpf);
         sbufWriteU8(dst, accelerometerConfig()->acc_lpf_hz);
         sbufWriteU8(dst, 0); //reserved
@@ -1398,7 +1398,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP2_INAV_MIXER:
         sbufWriteU8(dst, mixerConfig()->yaw_motor_direction);
-        sbufWriteU16(dst, mixerConfig()->yaw_jump_prevention_limit);
+        sbufWriteU16(dst, 0);
         sbufWriteU8(dst, mixerConfig()->platformType);
         sbufWriteU8(dst, mixerConfig()->hasFlaps);
         sbufWriteU16(dst, mixerConfig()->appliedMixerPreset);
@@ -2088,10 +2088,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU16(src);  //Legacy, no longer in use async processing value
             pidProfileMutable()->heading_hold_rate_limit = sbufReadU8(src);
             sbufReadU8(src); //HEADING_HOLD_ERROR_LPF_FREQ
-            mixerConfigMutable()->yaw_jump_prevention_limit = sbufReadU16(src);
+            sbufReadU16(src); //Legacy yaw_jump_prevention_limit
             gyroConfigMutable()->gyro_lpf = sbufReadU8(src);
             accelerometerConfigMutable()->acc_lpf_hz = sbufReadU8(src);
-            sbufReadU8(src); //reserved
+            sbufReadU8(src); //reserved 
             sbufReadU8(src); //reserved
             sbufReadU8(src); //reserved
             sbufReadU8(src); //reserved
@@ -2733,7 +2733,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP2_INAV_SET_MIXER:
         mixerConfigMutable()->yaw_motor_direction = sbufReadU8(src);
-        mixerConfigMutable()->yaw_jump_prevention_limit = sbufReadU16(src);
+        sbufReadU16(src); // Was yaw_jump_prevention_limit
         mixerConfigMutable()->platformType = sbufReadU8(src);
         mixerConfigMutable()->hasFlaps = sbufReadU8(src);
         mixerConfigMutable()->appliedMixerPreset = sbufReadU16(src);

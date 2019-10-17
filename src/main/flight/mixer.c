@@ -70,11 +70,10 @@ PG_RESET_TEMPLATE(flight3DConfig_t, flight3DConfig,
     .neutral3d = 1460
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(mixerConfig_t, mixerConfig, PG_MIXER_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(mixerConfig_t, mixerConfig, PG_MIXER_CONFIG, 2);
 
 PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
     .yaw_motor_direction = 1,
-    .yaw_jump_prevention_limit = 200,
     .platformType = PLATFORM_MULTIROTOR,
     .hasFlaps = false,
     .appliedMixerPreset = -1, //This flag is not available in CLI and used by Configurator only
@@ -291,11 +290,6 @@ void FAST_CODE NOINLINE mixTable(const float dT)
         input[ROLL] = axisPID[ROLL];
         input[PITCH] = axisPID[PITCH];
         input[YAW] = axisPID[YAW];
-
-        if (motorCount >= 4 && mixerConfig()->yaw_jump_prevention_limit < YAW_JUMP_PREVENTION_LIMIT_HIGH) {
-            // prevent "yaw jump" during yaw correction
-            input[YAW] = constrain(input[YAW], -mixerConfig()->yaw_jump_prevention_limit - ABS(rcCommand[YAW]), mixerConfig()->yaw_jump_prevention_limit + ABS(rcCommand[YAW]));
-        }
     }
 
     // Initial mixer concept by bdoiron74 reused and optimized for Air Mode

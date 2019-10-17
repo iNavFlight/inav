@@ -98,8 +98,6 @@ void targetConfiguration(void)
     boardAlignmentMutable()->pitchDeciDegrees = 165;
     boardAlignmentMutable()->yawDeciDegrees = 0;
 
-    mixerConfigMutable()->yaw_jump_prevention_limit = 200;
-
     imuConfigMutable()->small_angle = 30;
 
     gpsConfigMutable()->provider = GPS_UBLOX;
