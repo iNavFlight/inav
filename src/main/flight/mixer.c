@@ -56,8 +56,8 @@
 
 FASTRAM int16_t motor[MAX_SUPPORTED_MOTORS];
 FASTRAM int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
-static EXTENDED_FASTRAM float motorMixRange;
-static EXTENDED_FASTRAM float mixerScale = 1.0f;
+static float motorMixRange;
+static float mixerScale = 1.0f;
 static EXTENDED_FASTRAM motorMixer_t currentMixer[MAX_SUPPORTED_MOTORS];
 static EXTENDED_FASTRAM uint8_t motorCount = 0;
 EXTENDED_FASTRAM int mixerThrottleCommand;
