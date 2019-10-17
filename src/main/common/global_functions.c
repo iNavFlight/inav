@@ -113,6 +113,12 @@ void globalFunctionsProcess(int8_t functionId) {
                     GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_YAW);
                 }
                 break;
+            case GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE:
+                if (conditionValue) {
+                    globalFunctionValues[GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE] = globalFunctionsStates[functionId].value;
+                    GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE);
+                }
+                break;
         }
     }
 }
