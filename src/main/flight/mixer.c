@@ -74,7 +74,7 @@ PG_REGISTER_WITH_RESET_TEMPLATE(mixerConfig_t, mixerConfig, PG_MIXER_CONFIG, 1);
 
 PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
     .yaw_motor_direction = 1,
-    .yaw_jump_prevention_limit = 200,
+    .yaw_jump_prevention_limit = 500,
     .platformType = PLATFORM_MULTIROTOR,
     .hasFlaps = false,
     .appliedMixerPreset = -1, //This flag is not available in CLI and used by Configurator only
