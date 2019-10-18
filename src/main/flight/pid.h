@@ -26,7 +26,7 @@
 #define PID_SUM_LIMIT_DEFAULT   500
 #define YAW_P_LIMIT_MIN 100                 // Maximum value for yaw P limiter
 #define YAW_P_LIMIT_MAX 500                 // Maximum value for yaw P limiter
-#define YAW_P_LIMIT_DEFAULT 300             // Default value for yaw P limiter
+#define YAW_P_LIMIT_DEFAULT 500             // Default value for yaw P limiter
 
 #define HEADING_HOLD_RATE_LIMIT_MIN 10
 #define HEADING_HOLD_RATE_LIMIT_MAX 250
@@ -51,7 +51,7 @@ FP-PID has been rescaled to match LuxFloat (and MWRewrite) from Cleanflight 1.13
 #define FP_PID_YAWHOLD_P_MULTIPLIER 80.0f
 
 #define MC_ITERM_RELAX_SETPOINT_THRESHOLD 40.0f
-#define MC_ITERM_RELAX_CUTOFF_DEFAULT 20
+#define MC_ITERM_RELAX_CUTOFF_DEFAULT 15
 
 #define ANTI_GRAVITY_THROTTLE_FILTER_CUTOFF 15  // The anti gravity throttle highpass filter cutoff
 
