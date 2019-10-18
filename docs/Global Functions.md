@@ -25,6 +25,7 @@ _Global Functions_ (abbr. GF) are a mechanism allowing to override certain fligh
 | 4             | INVERT_ROLL                   | Inverts ROLL axis input for PID/PIFF controller |
 | 5             | INVERT_PITCH                  | Inverts PITCH axis input for PID/PIFF controller  |
 | 6             | INVERT_YAW                    | Inverts YAW axis input for PID/PIFF controller |
+| 7             | OVERRIDE_THROTTLE             | Override throttle value that is fed to the motors by mixer. Operand is scaled in us. `1000` means throttle cut, `1500` means half throttle |
 
 ## Flags
 
@@ -54,3 +55,22 @@ gf 1 1 0 5 0 0 0
 ```
 
 Inverts ROLL and PITCH input when Logic Condition `0` evaluates as `true`. Moving Pitch stick up will cause pitch down (up for rear facing camera). Moving Roll stick right will cause roll left of a quad (right in rear facing camera)
+
+### Cut motors but keep other throttle bindings active
+
+`gf 0 1 0 7 0 1000 0`
+
+Sets Thhrottle output to `0%` when Logic Condition `0` evaluates as `true`
+
+### Set throttle to 50% and keep other throttle bindings active
+
+`gf 0 1 0 7 0 1500 0`
+
+Sets Thhrottle output to about `50%` when Logic Condition `0` evaluates as `true`
+
+### Set throttle control to different RC channel
+
+`gf 0 1 0 7 1 7 0`
+
+If Logic Condition `0` evaluates as `true`, motor throttle control is bound to RC channel 7 instead of throttle channel
+
