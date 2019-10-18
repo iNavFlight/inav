@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include "common/base.h"
 #include "common/time.h"
 
 //#define SCHEDULER_DEBUG
@@ -147,20 +148,20 @@ typedef struct {
 #endif
 } cfTask_t;
 
-extern cfTask_t cfTasks[TASK_COUNT];
-extern uint16_t averageSystemLoadPercent;
+EXTERN_C cfTask_t cfTasks[TASK_COUNT];
+EXTERN_C uint16_t averageSystemLoadPercent;
 
-void getCheckFuncInfo(cfCheckFuncInfo_t *checkFuncInfo);
-void getTaskInfo(cfTaskId_e taskId, cfTaskInfo_t *taskInfo);
-void rescheduleTask(cfTaskId_e taskId, timeDelta_t newPeriodUs);
-void setTaskEnabled(cfTaskId_e taskId, bool newEnabledState);
-timeDelta_t getTaskDeltaTime(cfTaskId_e taskId);
-void schedulerResetTaskStatistics(cfTaskId_e taskId);
+EXTERN_C void getCheckFuncInfo(cfCheckFuncInfo_t *checkFuncInfo);
+EXTERN_C void getTaskInfo(cfTaskId_e taskId, cfTaskInfo_t *taskInfo);
+EXTERN_C void rescheduleTask(cfTaskId_e taskId, timeDelta_t newPeriodUs);
+EXTERN_C void setTaskEnabled(cfTaskId_e taskId, bool newEnabledState);
+EXTERN_C timeDelta_t getTaskDeltaTime(cfTaskId_e taskId);
+EXTERN_C void schedulerResetTaskStatistics(cfTaskId_e taskId);
 
-void schedulerInit(void);
-void scheduler(void);
-void taskSystem(timeUs_t currentTimeUs);
-void taskRunRealtimeCallbacks(timeUs_t currentTimeUs);
+EXTERN_C void schedulerInit(void);
+EXTERN_C void scheduler(void);
+EXTERN_C void taskSystem(timeUs_t currentTimeUs);
+EXTERN_C void taskRunRealtimeCallbacks(timeUs_t currentTimeUs);
 
 #define TASK_PERIOD_HZ(hz) (1000000 / (hz))
 #define TASK_PERIOD_MS(ms) ((ms) * 1000)

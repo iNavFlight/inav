@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <common/base.h>
+
 #define SOFTSERIAL_BUFFER_SIZE 256
 
 typedef enum {
@@ -27,9 +29,9 @@ typedef enum {
 serialPort_t *openSoftSerial(softSerialPortIndex_e portIndex, serialReceiveCallbackPtr rxCallback, void *rxCallbackData, uint32_t baud, portMode_t mode, portOptions_t options);
 
 // serialPort API
-void softSerialWriteByte(serialPort_t *instance, uint8_t ch);
-uint32_t softSerialRxBytesWaiting(const serialPort_t *instance);
-uint32_t softSerialTxBytesFree(const serialPort_t *instance);
-uint8_t softSerialReadByte(serialPort_t *instance);
-void softSerialSetBaudRate(serialPort_t *s, uint32_t baudRate);
-bool isSoftSerialTransmitBufferEmpty(const serialPort_t *s);
+EXTERN_C void softSerialWriteByte(serialPort_t *instance, uint8_t ch);
+EXTERN_C uint32_t softSerialRxBytesWaiting(const serialPort_t *instance);
+EXTERN_C uint32_t softSerialTxBytesFree(const serialPort_t *instance);
+EXTERN_C uint8_t softSerialReadByte(serialPort_t *instance);
+EXTERN_C void softSerialSetBaudRate(serialPort_t *s, uint32_t baudRate);
+EXTERN_C bool isSoftSerialTransmitBufferEmpty(const serialPort_t *s);

@@ -142,8 +142,10 @@ LoopMarkHeapStack:
   bl CopyFastCode
 
 /* Call the clock system initialization function.*/
-  bl  SystemInit   
-/* Call the application's entry point.*/
+  bl  SystemInit
+/* Call static constructors */
+  bl  __libc_init_array
+/* Call the application entry point */
   bl  main
   bx  lr    
 

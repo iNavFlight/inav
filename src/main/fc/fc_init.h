@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <common/base.h>
+
 typedef enum {
     SYSTEM_STATE_INITIALISING   = 0,
     SYSTEM_STATE_CONFIG_LOADED  = (1 << 0),
@@ -26,5 +28,5 @@ typedef enum {
     SYSTEM_STATE_READY          = (1 << 7)
 } systemState_e;
 
-extern uint8_t systemState;
-void init(void);
+EXTERN_C uint8_t systemState;
+EXTERN_C void init(void);
