@@ -145,8 +145,6 @@ static EXTENDED_FASTRAM float antiWindupScaler;
 #ifdef USE_ANTIGRAVITY
 static EXTENDED_FASTRAM float iTermAntigravityGain;
 #endif
-static EXTENDED_FASTRAM uint16_t fixedWingItermThrowLimit;
-static EXTENDED_FASTRAM float fixedWingItermLimitOnStickPosition;
 static EXTENDED_FASTRAM uint8_t usedPidControllerType;
 
 typedef void (*pidControllerFnPtr)(pidState_t *pidState, flight_dynamics_index_t axis, float dT);
@@ -569,7 +567,7 @@ bool isFixedWingItermLimitActive(float stickPosition)
         return false;
     }
 
-    return fabsf(stickPosition) > fixedWingItermLimitOnStickPosition;
+    return fabsf(stickPosition) > pidProfile()->fixedWingItermLimitOnStickPosition;
 }
 
 static FAST_CODE NOINLINE float pTermProcess(pidState_t *pidState, flight_dynamics_index_t axis, float rateError, float dT) {
@@ -614,8 +612,8 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
 
     applyItermLimiting(pidState);
 
-    if (fixedWingItermThrowLimit != 0) {
-        pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -fixedWingItermThrowLimit, fixedWingItermThrowLimit);
+    if (pidProfile()->fixedWingItermThrowLimit != 0) {
+        pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -pidProfile()->fixedWingItermThrowLimit, pidProfile()->fixedWingItermThrowLimit);
     }
 
 #ifdef USE_AUTOTUNE_FIXED_WING
@@ -1059,8 +1057,6 @@ void pidInit(void)
     yawLpfHz = pidProfile()->yaw_lpf_hz;
     pidSumLimit = pidProfile()->pidSumLimit;
     motorItermWindupPoint = 1.0f - (pidProfile()->itermWindupPointPercent / 100.0f);
-    fixedWingItermThrowLimit = pidProfile()->fixedWingItermThrowLimit;
-    fixedWingItermLimitOnStickPosition = pidProfile()->fixedWingItermLimitOnStickPosition;
 
 #ifdef USE_D_BOOST
     dBoostFactor = pidProfile()->dBoostFactor;
