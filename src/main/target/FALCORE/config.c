@@ -172,7 +172,6 @@ void targetConfiguration(void)
     pidProfileMutable()->dterm_soft_notch_hz = 0;
     pidProfileMutable()->dterm_soft_notch_cutoff = 1;
     pidProfileMutable()->pidSumLimit = 500;
-    pidProfileMutable()->yaw_p_limit = 300;
     pidProfileMutable()->axisAccelerationLimitRollPitch = 0;
     pidProfileMutable()->axisAccelerationLimitYaw = 10000;
 

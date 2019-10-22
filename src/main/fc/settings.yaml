@@ -1081,9 +1081,10 @@ groups:
         field: pidSumLimit
         min: PID_SUM_LIMIT_MIN
         max: PID_SUM_LIMIT_MAX
-      - name: yaw_p_limit
-        min: YAW_P_LIMIT_MIN
-        max: YAW_P_LIMIT_MAX
+      - name: pidsum_limit_yaw
+        field: pidSumLimitYaw
+        min: PID_SUM_LIMIT_MIN
+        max: PID_SUM_LIMIT_MAX
       - name: iterm_windup
         field: itermWindupPointPercent
         min: 0
