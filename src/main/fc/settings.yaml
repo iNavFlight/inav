@@ -510,6 +510,10 @@ groups:
         field: throttleScale
         min: 0
         max: 1
+      - name: motor_poles
+        field: motorPoleCount
+        min: 4
+        max: 255
 
   - name: PG_FAILSAFE_CONFIG
     type: failsafeConfig_t

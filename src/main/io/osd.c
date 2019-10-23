@@ -99,6 +99,7 @@
 #include "sensors/sensors.h"
 #include "sensors/pitotmeter.h"
 #include "sensors/temperature.h"
+#include "sensors/esc_sensor.h"
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
@@ -878,6 +879,19 @@ static void osdFormatThrottlePosition(char *buff, bool autoThr, textAttributes_t
             TEXT_ATTRIBUTES_ADD_BLINK(*elemAttr);
     }
     tfp_sprintf(buff + 2, "%3d", (constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN));
+}
+
+static void osdFormatRpm(char *buff, uint32_t rpm)
+{
+    // FIXME: We need a new symbol for RPM
+    buff[0] = SYM_BLANK;
+    buff[1] = SYM_THR;
+    if (rpm) {
+        osdFormatCentiNumber(buff + 2, rpm * 100, 0, 2, 0, 3);
+    }
+    else {
+        strcpy(buff + 2, "---");
+    }
 }
 
 int32_t osdGetAltitude(void)
@@ -2461,6 +2475,20 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 #endif
 
+#if defined(USE_ESC_SENSOR)
+    case OSD_ESC_RPM:
+        {
+            escSensorData_t * escSensor = escSensorGetData();
+            if (escSensor && escSensor->dataAge <= ESC_DATA_MAX_AGE) {
+                osdFormatRpm(buff, escSensor->rpm);
+            }
+            else {
+                osdFormatRpm(buff, 0);
+            }
+            return true;
+        }
+#endif
+
     default:
         return false;
     }
@@ -2525,6 +2553,12 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
             elementIndex = OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE;
         }
         if (elementIndex == OSD_3D_SPEED) {
+            elementIndex++;
+        }
+    }
+
+    if (!STATE(ESC_SENSOR_ENABLED)) {
+        if (elementIndex == OSD_ESC_RPM) {
             elementIndex++;
         }
     }
@@ -2665,6 +2699,10 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_GFORCE_Z] = OSD_POS(12, 7);
 
     osdConfig->item_pos[0][OSD_VTX_POWER] = OSD_POS(3, 5);
+
+#if defined(USE_ESC_SENSOR)
+    osdConfig->item_pos[0][OSD_ESC_RPM] = OSD_POS(1, 2);
+#endif
 
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     osdConfig->item_pos[0][OSD_RC_SOURCE] = OSD_POS(3, 4);
