@@ -278,6 +278,7 @@
 #define MAX_PWM_OUTPUT_PORTS    6
 #define TARGET_MOTOR_COUNT      6
 #define USE_DSHOT
+#define USE_ESC_SENSOR
 
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
