@@ -881,6 +881,7 @@ static void osdFormatThrottlePosition(char *buff, bool autoThr, textAttributes_t
     tfp_sprintf(buff + 2, "%3d", (constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN));
 }
 
+#if defined(USE_ESC_SENSOR)
 static void osdFormatRpm(char *buff, uint32_t rpm)
 {
     // FIXME: We need a new symbol for RPM
@@ -893,6 +894,7 @@ static void osdFormatRpm(char *buff, uint32_t rpm)
         strcpy(buff + 2, "---");
     }
 }
+#endif
 
 int32_t osdGetAltitude(void)
 {
