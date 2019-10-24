@@ -314,6 +314,13 @@ void FAST_CODE NOINLINE mixTable(const float dT)
     static int16_t throttlePrevious = 0;   // Store the last throttle direction for deadband transitions
 
     // Find min and max throttle based on condition.
+#ifdef USE_GLOBAL_FUNCTIONS
+    if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE)) {
+        throttleMin = motorConfig()->minthrottle;
+        throttleMax = motorConfig()->maxthrottle;
+        mixerThrottleCommand = constrain(globalFunctionValues[GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE], throttleMin, throttleMax); 
+    } else
+#endif
     if (feature(FEATURE_3D)) {
         if (!ARMING_FLAG(ARMED)) throttlePrevious = PWM_RANGE_MIDDLE; // When disarmed set to mid_rc. It always results in positive direction after arming.
 

@@ -3012,6 +3012,10 @@ static bool mspSettingInfoCommand(sbuf_t *dst, sbuf_t *src)
         return false;
     }
 
+    char name_buf[SETTING_MAX_WORD_LENGTH+1];
+    settingGetName(setting, name_buf);
+    sbufWriteDataSafe(dst, name_buf, strlen(name_buf) + 1);
+
     // Parameter Group ID
     sbufWriteU16(dst, settingGetPgn(setting));
 

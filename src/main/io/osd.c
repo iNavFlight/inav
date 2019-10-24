@@ -43,6 +43,7 @@
 #include "common/axis.h"
 #include "common/constants.h"
 #include "common/filter.h"
+#include "common/log.h"
 #include "common/olc.h"
 #include "common/printf.h"
 #include "common/string_light.h"
@@ -55,6 +56,8 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/display.h"
+#include "drivers/display_canvas.h"
+#include "drivers/display_font_metadata.h"
 #include "drivers/osd_symbols.h"
 #include "drivers/time.h"
 #include "drivers/vtx_common.h"
@@ -62,6 +65,7 @@
 #include "io/flashfs.h"
 #include "io/gps.h"
 #include "io/osd.h"
+#include "io/osd_common.h"
 #include "io/osd_hud.h"
 #include "io/vtx.h"
 #include "io/vtx_string.h"
@@ -179,13 +183,11 @@ typedef struct osdMapData_s {
 static osdMapData_t osdMapData;
 
 static displayPort_t *osdDisplayPort;
+static bool osdDisplayIsReady = false;
+static displayCanvas_t osdCanvas;
+static bool osdDisplayHasCanvas = false;
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
-#define AH_HEIGHT 9
-#define AH_WIDTH 11
-#define AH_PREV_SIZE (AH_WIDTH > AH_HEIGHT ? AH_WIDTH : AH_HEIGHT)
-#define AH_H_SYM_COUNT 9
-#define AH_V_SYM_COUNT 6
 #define AH_SIDEBAR_WIDTH_POS 7
 #define AH_SIDEBAR_HEIGHT_POS 3
 
@@ -975,7 +977,7 @@ int16_t osdGetHeading(void)
 }
 
 // Returns a heading angle in degrees normalized to [0, 360).
-static int osdGetHeadingAngle(int angle)
+int osdGetHeadingAngle(int angle)
 {
     while (angle < 0) {
         angle += 360;
@@ -1358,29 +1360,22 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             if (STATE(GPS_FIX) && STATE(GPS_FIX_HOME) && isImuHeadingValid()) {
                 if (GPS_distanceToHome < (navConfig()->general.min_rth_distance / 100) ) {
-                    buff[0] = SYM_HOME_NEAR;
+                    displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_HOME_NEAR);
                 }
                 else
                 {
-                    // There are 16 orientations for the home direction arrow.
-                    // so we use 22.5deg per image, where the 1st image is used
-                    // for [349, 11], the 2nd for [12, 33], etc...
                     int homeDirection = GPS_directionToHome - DECIDEGREES_TO_DEGREES(osdGetHeading());
-                    // Add 11 to the angle, so first character maps to [349, 11]
-                    int homeArrowDir = osdGetHeadingAngle(homeDirection + 11);
-                    unsigned arrowOffset = homeArrowDir * 2 / 45;
-                    buff[0] = SYM_ARROW_UP + arrowOffset;
+                    osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX, elemPosY), homeDirection, true);
                 }
             } else {
                 // No home or no fix or unknown heading, blink.
                 // If we're unarmed, show the arrow pointing up so users can see the arrow
                 // while configuring the OSD. If we're armed, show a '-' indicating that
                 // we don't know the direction to home.
-                buff[0] = ARMING_FLAG(ARMED) ? '-' : SYM_ARROW_UP;
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+                displayWriteCharWithAttr(osdDisplayPort, elemPosX, elemPosY, ARMING_FLAG(ARMED) ? '-' : SYM_ARROW_UP, elemAttr);
             }
-            buff[1] = '\0';
-            break;
+            return true;
         }
 
     case OSD_HOME_HEADING_ERROR:
@@ -1759,71 +1754,14 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_ARTIFICIAL_HORIZON:
         {
-            osdCrosshairPosition(&elemPosX, &elemPosY);
-
-            // Store the positions we draw over to erase only these at the next iteration
-            static int8_t previous_written[AH_PREV_SIZE];
-            static int8_t previous_orient = -1;
-
-            float pitch_rad_to_char = (float)(AH_HEIGHT / 2 + 0.5) / DEGREES_TO_RADIANS(osdConfig()->ahi_max_pitch);
-
             float rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
             float pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
 
             if (osdConfig()->ahi_reverse_roll) {
                 rollAngle = -rollAngle;
             }
-
-            float ky = sin_approx(rollAngle);
-            float kx = cos_approx(rollAngle);
-
-            if (previous_orient != -1) {
-                for (int i = 0; i < AH_PREV_SIZE; ++i) {
-                    if (previous_written[i] > -1) {
-                        int8_t dx = (previous_orient ? previous_written[i] : i) - AH_PREV_SIZE / 2;
-                        int8_t dy = (previous_orient ? i : previous_written[i]) - AH_PREV_SIZE / 2;
-                        displayWriteChar(osdDisplayPort, elemPosX + dx, elemPosY - dy, SYM_BLANK);
-                        previous_written[i] = -1;
-                    }
-                }
-            }
-
-            if (fabsf(ky) < fabsf(kx)) {
-
-                previous_orient = 0;
-
-                for (int8_t dx = -AH_WIDTH / 2; dx <= AH_WIDTH / 2; dx++) {
-                    float fy = dx * (ky / kx) + pitchAngle * pitch_rad_to_char + 0.49f;
-                    int8_t dy = floorf(fy);
-                    const uint8_t chX = elemPosX + dx, chY = elemPosY - dy;
-                    uint16_t c;
-
-                    if ((dy >= -AH_HEIGHT / 2) && (dy <= AH_HEIGHT / 2) && displayReadCharWithAttr(osdDisplayPort, chX, chY, &c, NULL) && (c == SYM_BLANK)) {
-                        c = SYM_AH_H_START + ((AH_H_SYM_COUNT - 1) - (uint8_t)((fy - dy) * AH_H_SYM_COUNT));
-                        displayWriteChar(osdDisplayPort, elemPosX + dx, elemPosY - dy, c);
-                        previous_written[dx + AH_PREV_SIZE / 2] = dy + AH_PREV_SIZE / 2;
-                    }
-                }
-
-            } else {
-
-                previous_orient = 1;
-
-                for (int8_t dy = -AH_HEIGHT / 2; dy <= AH_HEIGHT / 2; dy++) {
-                    const float fx = (dy - pitchAngle * pitch_rad_to_char) * (kx / ky) + 0.5f;
-                    const int8_t dx = floorf(fx);
-                    const uint8_t chX = elemPosX + dx, chY = elemPosY - dy;
-                    uint16_t c;
-
-                    if ((dx >= -AH_WIDTH / 2) && (dx <= AH_WIDTH / 2) && displayReadCharWithAttr(osdDisplayPort, chX, chY, &c, NULL) && (c == SYM_BLANK)) {
-                        c = SYM_AH_V_START + (fx - dx) * AH_V_SYM_COUNT;
-                        displayWriteChar(osdDisplayPort, chX, chY, c);
-                        previous_written[dy + AH_PREV_SIZE / 2] = dx + AH_PREV_SIZE / 2;
-                    }
-                }
-
-            }
-
+            osdDrawArtificialHorizon(osdDisplayPort, osdGetDisplayPortCanvas(),
+                 OSD_DRAW_POINT_GRID(elemPosX, elemPosY), rollAngle, pitchAngle);
             osdDrawSingleElement(OSD_HORIZON_SIDEBARS);
             osdDrawSingleElement(OSD_CROSSHAIRS);
 
@@ -1875,39 +1813,8 @@ static bool osdDrawSingleElement(uint8_t item)
 #if defined(USE_BARO) || defined(USE_GPS)
     case OSD_VARIO:
         {
-            int16_t v = getEstimatedActualVelocity(Z) / 50; //50cm = 1 arrow
-            uint8_t vchars[] = {SYM_BLANK, SYM_BLANK, SYM_BLANK, SYM_BLANK, SYM_BLANK};
-
-            if (v >= 6)
-                vchars[0] = SYM_VARIO_UP_2A;
-            else if (v == 5)
-                vchars[0] = SYM_VARIO_UP_1A;
-            if (v >=4)
-                vchars[1] = SYM_VARIO_UP_2A;
-            else if (v == 3)
-                vchars[1] = SYM_VARIO_UP_1A;
-            if (v >=2)
-                vchars[2] = SYM_VARIO_UP_2A;
-            else if (v == 1)
-                vchars[2] = SYM_VARIO_UP_1A;
-            if (v <= -2)
-                vchars[2] = SYM_VARIO_DOWN_2A;
-            else if (v == -1)
-                vchars[2] = SYM_VARIO_DOWN_1A;
-            if (v <= -4)
-                vchars[3] = SYM_VARIO_DOWN_2A;
-            else if (v == -3)
-                vchars[3] = SYM_VARIO_DOWN_1A;
-            if (v <= -6)
-                vchars[4] = SYM_VARIO_DOWN_2A;
-            else if (v == -5)
-                vchars[4] = SYM_VARIO_DOWN_1A;
-
-            displayWriteChar(osdDisplayPort, elemPosX, elemPosY, vchars[0]);
-            displayWriteChar(osdDisplayPort, elemPosX, elemPosY+1, vchars[1]);
-            displayWriteChar(osdDisplayPort, elemPosX, elemPosY+2, vchars[2]);
-            displayWriteChar(osdDisplayPort, elemPosX, elemPosY+3, vchars[3]);
-            displayWriteChar(osdDisplayPort, elemPosX, elemPosY+4, vchars[4]);
+            float zvel = getEstimatedActualVelocity(Z);
+            osdDrawVario(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX, elemPosY), zvel);
             return true;
         }
 
@@ -2829,26 +2736,28 @@ static void osdSetNextRefreshIn(uint32_t timeMs) {
     refreshWaitForResumeCmdRelease = true;
 }
 
-void osdInit(displayPort_t *osdDisplayPortToUse)
+static void osdCompleteAsyncInitialization(void)
 {
-    if (!osdDisplayPortToUse)
+    if (!displayIsReady(osdDisplayPort)) {
+        // Update the display.
+        // XXX: Rename displayDrawScreen() and associated functions
+        // to displayUpdate()
+        displayDrawScreen(osdDisplayPort);
         return;
+    }
 
-    BUILD_BUG_ON(OSD_POS_MAX != OSD_POS(31,31));
+    osdDisplayIsReady = true;
 
-    osdDisplayPort = osdDisplayPortToUse;
+    osdDisplayHasCanvas = displayGetCanvas(&osdCanvas, osdDisplayPort);
 
-#ifdef USE_CMS
-    cmsDisplayPortRegister(osdDisplayPort);
-#endif
-
-    armState = ARMING_FLAG(ARMED);
-
+    displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
     displayClearScreen(osdDisplayPort);
 
     uint8_t y = 1;
     displayFontMetadata_t metadata;
     bool fontHasMetadata = displayGetFontMetadata(&metadata, osdDisplayPort);
+    LOG_D(OSD, "Font metadata version %s: %u (%u chars)",
+        fontHasMetadata ? "Y" : "N", metadata.version, metadata.charCount);
 
     if (fontHasMetadata && metadata.charCount > 256) {
         hasExtendedFont = true;
@@ -2920,8 +2829,26 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
     }
 #endif
 
+    displayCommitTransaction(osdDisplayPort);
     displayResync(osdDisplayPort);
     osdSetNextRefreshIn(SPLASH_SCREEN_DISPLAY_TIME);
+}
+
+void osdInit(displayPort_t *osdDisplayPortToUse)
+{
+    if (!osdDisplayPortToUse)
+        return;
+
+    BUILD_BUG_ON(OSD_POS_MAX != OSD_POS(31,31));
+
+    osdDisplayPort = osdDisplayPortToUse;
+
+#ifdef USE_CMS
+    cmsDisplayPortRegister(osdDisplayPort);
+#endif
+
+    armState = ARMING_FLAG(ARMED);
+    osdCompleteAsyncInitialization();
 }
 
 static void osdResetStats(void)
@@ -3185,12 +3112,14 @@ static void osdRefresh(timeUs_t currentTimeUs)
 
 #ifdef USE_CMS
     if (!displayIsGrabbed(osdDisplayPort)) {
+        displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
         if (fullRedraw) {
             displayClearScreen(osdDisplayPort);
             fullRedraw = false;
         }
         osdDrawNextElement();
         displayHeartbeat(osdDisplayPort);
+        displayCommitTransaction(osdDisplayPort);
 #ifdef OSD_CALLS_CMS
     } else {
         cmsUpdate(currentTimeUs);
@@ -3208,6 +3137,11 @@ void osdUpdate(timeUs_t currentTimeUs)
 
     // don't touch buffers if DMA transaction is in progress
     if (displayIsTransferInProgress(osdDisplayPort)) {
+        return;
+    }
+
+    if (!osdDisplayIsReady) {
+        osdCompleteAsyncInitialization();
         return;
     }
 
@@ -3306,6 +3240,14 @@ bool osdItemIsFixed(osd_items_e item)
 displayPort_t *osdGetDisplayPort(void)
 {
     return osdDisplayPort;
+}
+
+displayCanvas_t *osdGetDisplayPortCanvas(void)
+{
+    if (osdDisplayHasCanvas) {
+        return &osdCanvas;
+    }
+    return NULL;
 }
 
 #endif // OSD
