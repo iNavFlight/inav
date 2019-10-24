@@ -166,6 +166,7 @@
 
 // Number of available PWM outputs
 #define USE_DSHOT
+#define USE_ESC_SENSOR
 #define MAX_PWM_OUTPUT_PORTS    4
 #define TARGET_MOTOR_COUNT      4
 

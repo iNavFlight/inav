@@ -174,6 +174,7 @@
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #define USE_DSHOT
+#define USE_ESC_SENSOR
 #define USE_SERIALSHOT
 
 // Number of available PWM outputs
