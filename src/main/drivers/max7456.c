@@ -176,10 +176,9 @@
 #define CHAR_MODE_EXT           (1 << 2)
 #define CHAR_MODE_IS_EXT(m)     ((m) & CHAR_MODE_EXT)
 
-// we write everything in max7456ScreenBuffer and set a dirty bit
-// in screenIsDirty to upgrade only changed chars this solution
-// is faster than redrawing the whole screen on each frame
-uint16_t max7456ScreenBuffer[MAX7456_BUFFER_CHARS_PAL] ALIGNED(4);
+// we write everything in osdCharacterGridBuffer and set a dirty bit
+// in screenIsDirty to update only changed chars. This solution
+// is faster than redrawing the whole screen on each frame.
 static BITARRAY_DECLARE(screenIsDirty, MAX7456_BUFFER_CHARS_PAL);
 
 //max chars to update in one idle
@@ -307,7 +306,7 @@ uint8_t max7456GetRowsCount(void)
 }
 
 //because MAX7456 need some time to detect video system etc. we need to wait for a while to initialize it at startup
-//and in case of restart we need to reinitialize chip. Note that we can't touch max7456ScreenBuffer here, since
+//and in case of restart we need to reinitialize chip. Note that we can't touch osdCharacterGridBuffer here, since
 //it might already have some data by the first time this function is called.
 static void max7456ReInit(void)
 {
@@ -382,9 +381,9 @@ void max7456Init(const videoSystem_e videoSystem)
     state.registers.dmm = 0;
     state.videoSystem = videoSystem;
 
-    // Set max7456ScreenBuffer to all blanks
-    for (uint_fast16_t ii = 0; ii < ARRAYLEN(max7456ScreenBuffer); ii++) {
-        max7456ScreenBuffer[ii] = CHAR_BLANK;
+    // Set screen buffer to all blanks
+    for (uint_fast16_t ii = 0; ii < ARRAYLEN(osdCharacterGridBuffer); ii++) {
+        osdCharacterGridBuffer[ii] = CHAR_BLANK;
     }
 
     // Wait for software reset to finish
@@ -409,9 +408,9 @@ void max7456Init(const videoSystem_e videoSystem)
 
 void max7456ClearScreen(void)
 {
-    for (uint_fast16_t ii = 0; ii < ARRAYLEN(max7456ScreenBuffer); ii++) {
-        if (max7456ScreenBuffer[ii] != CHAR_BLANK) {
-            max7456ScreenBuffer[ii] = CHAR_BLANK;
+    for (uint_fast16_t ii = 0; ii < ARRAYLEN(osdCharacterGridBuffer); ii++) {
+        if (osdCharacterGridBuffer[ii] != CHAR_BLANK) {
+            osdCharacterGridBuffer[ii] = CHAR_BLANK;
             bitArraySet(screenIsDirty, ii);
         }
     }
@@ -421,8 +420,8 @@ void max7456WriteChar(uint8_t x, uint8_t y, uint16_t c, uint8_t mode)
 {
     unsigned pos = y * MAX7456_CHARS_PER_LINE + x;
     uint16_t val = MAKE_CHAR_MODE(c, mode);
-    if (max7456ScreenBuffer[pos] != val) {
-        max7456ScreenBuffer[pos] = val;
+    if (osdCharacterGridBuffer[pos] != val) {
+        osdCharacterGridBuffer[pos] = val;
         bitArraySet(screenIsDirty, pos);
     }
 }
@@ -430,8 +429,8 @@ void max7456WriteChar(uint8_t x, uint8_t y, uint16_t c, uint8_t mode)
 bool max7456ReadChar(uint8_t x, uint8_t y, uint16_t *c, uint8_t *mode)
 {
     unsigned pos = y * MAX7456_CHARS_PER_LINE + x;
-    if (pos < ARRAYLEN(max7456ScreenBuffer)) {
-        uint16_t val = max7456ScreenBuffer[pos];
+    if (pos < ARRAYLEN(osdCharacterGridBuffer)) {
+        uint16_t val = osdCharacterGridBuffer[pos];
         *c = CHAR_BYTE(val);
         *mode = MODE_BYTE(val);
         if (CHAR_MODE_IS_EXT(*mode)) {
@@ -454,8 +453,8 @@ void max7456Write(uint8_t x, uint8_t y, const char *buff, uint8_t mode)
             break;
         }
         c = MAKE_CHAR_MODE_U8(*buff, mode);
-        if (max7456ScreenBuffer[pos] != c) {
-            max7456ScreenBuffer[pos] = c;
+        if (osdCharacterGridBuffer[pos] != c) {
+            osdCharacterGridBuffer[pos] = c;
             bitArraySet(screenIsDirty, pos);
         }
     }
@@ -482,8 +481,8 @@ static bool max7456DrawScreenPartial(void)
         uint8_t ph = pos >> 8;
         uint8_t pl = pos & 0xff;
 
-        charMode = MODE_BYTE(max7456ScreenBuffer[pos]);
-        uint8_t chr = CHAR_BYTE(max7456ScreenBuffer[pos]);
+        charMode = MODE_BYTE(osdCharacterGridBuffer[pos]);
+        uint8_t chr = CHAR_BYTE(osdCharacterGridBuffer[pos]);
         if (CHAR_MODE_IS_EXT(charMode)) {
             if (!DMM_IS_8BIT_MODE(state.registers.dmm)) {
                 state.registers.dmm |= DMM_8BIT_MODE;
@@ -621,8 +620,8 @@ void max7456RefreshAll(void)
 
         // Mark non-blank characters as dirty
         BITARRAY_CLR_ALL(screenIsDirty);
-        for (unsigned ii = 0; ii < ARRAYLEN(max7456ScreenBuffer); ii++) {
-            if (!CHAR_IS_BLANK(max7456ScreenBuffer[ii])) {
+        for (unsigned ii = 0; ii < ARRAYLEN(osdCharacterGridBuffer); ii++) {
+            if (!CHAR_IS_BLANK(osdCharacterGridBuffer[ii])) {
                 bitArraySet(screenIsDirty, ii);
             }
         }

@@ -13,7 +13,6 @@
 #include "common/utils.h"
 #include "common/uvarint.h"
 
-#include "drivers/max7456.h"
 #include "drivers/time.h"
 
 #include "io/frsky_osd.h"
@@ -25,7 +24,6 @@
 #define FRSKY_OSD_PREAMBLE_BYTE_0 '$'
 #define FRSKY_OSD_PREAMBLE_BYTE_1 'A'
 
-#define FRSKY_OSD_GRID_BUFFER_POS(x, y) (y * MAX7456_CHARS_PER_LINE + x)
 #define FRSKY_OSD_GRID_BUFFER_CHAR_BITS 9
 #define FRSKY_OSD_GRID_BUFFER_CHAR_MASK ((1 << FRSKY_OSD_GRID_BUFFER_CHAR_BITS) - 1)
 #define FRSKY_OSD_GRID_BUFFER_ENCODE(chr, attr) ((chr & FRSKY_OSD_GRID_BUFFER_CHAR_MASK) | (attr << FRSKY_OSD_GRID_BUFFER_CHAR_BITS))
@@ -694,18 +692,18 @@ void frskyOSDDrawStringInGrid(unsigned x, unsigned y, const char *buff, textAttr
 {
     unsigned charsUpdated = 0;
     const char *updatedCharAt = NULL;
-    unsigned pos = FRSKY_OSD_GRID_BUFFER_POS(x, y);
+    uint16_t *entry = osdCharacterGridBufferGetEntryPtr(x, y);
     const char *p;
     unsigned xx;
-    for (p = buff, xx = x; *p && xx < state.info.grid.columns; p++, pos++, xx++) {
+    for (p = buff, xx = x; *p && xx < state.info.grid.columns; p++, entry++, xx++) {
         unsigned val = FRSKY_OSD_GRID_BUFFER_ENCODE(*p, attr);
-        if (max7456ScreenBuffer[pos] != val) {
+        if (*entry != val) {
             if (++charsUpdated == 1) {
                 // First character that needs to be updated, save it
                 // in case we can issue a single update.
                 updatedCharAt = p;
             }
-            max7456ScreenBuffer[pos] = val;
+            *entry = val;
         }
     }
 
@@ -728,22 +726,21 @@ void frskyOSDDrawStringInGrid(unsigned x, unsigned y, const char *buff, textAttr
 
 void frskyOSDDrawCharInGrid(unsigned x, unsigned y, uint16_t chr, textAttributes_t attr)
 {
-    unsigned pos = FRSKY_OSD_GRID_BUFFER_POS(x, y);
+    uint16_t *entry = osdCharacterGridBufferGetEntryPtr(x, y);
     unsigned val = FRSKY_OSD_GRID_BUFFER_ENCODE(chr, attr);
 
-    if (max7456ScreenBuffer[pos] == val) {
+    if (*entry == val) {
         return;
     }
 
     frskyOSDSendCharInGrid(x, y, chr, attr);
 
-    max7456ScreenBuffer[pos] = val;
+    *entry = val;
 }
 
 bool frskyOSDReadCharInGrid(unsigned x, unsigned y, uint16_t *c, textAttributes_t *attr)
 {
-    unsigned pos = FRSKY_OSD_GRID_BUFFER_POS(x, y);
-    uint16_t val = max7456ScreenBuffer[pos];
+    uint16_t val = *osdCharacterGridBufferGetEntryPtr(x, y);
     // We use the lower 10 bits for characters
     *c = val & FRSKY_OSD_GRID_BUFFER_CHAR_MASK;
     *attr = val >> FRSKY_OSD_GRID_BUFFER_CHAR_BITS;
@@ -752,7 +749,7 @@ bool frskyOSDReadCharInGrid(unsigned x, unsigned y, uint16_t *c, textAttributes_
 
 void frskyOSDClearScreen(void)
 {
-    memset(max7456ScreenBuffer, 0, sizeof(max7456ScreenBuffer));
+    osdCharacterGridBufferClear();
     frskyOSDSendAsyncCommand(OSD_CMD_DRAWING_CLEAR_SCREEN, NULL, 0);
 }
 

@@ -44,8 +44,6 @@ enum VIDEO_TYPES { AUTO = 0, PAL, NTSC };
 #define MAX7456_MODE_BLINK    (1 << 4)
 #define MAX7456_MODE_SOLID_BG (1 << 5)
 
-extern uint16_t max7456ScreenBuffer[MAX7456_BUFFER_CHARS_PAL] ALIGNED(4);
-
 void max7456Init(const videoSystem_e videoSystem);
 void max7456Update(void);
 void max7456ReadNvm(uint16_t char_address, osdCharacter_t *chr);
