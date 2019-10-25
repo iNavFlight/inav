@@ -2487,7 +2487,7 @@ static bool osdDrawSingleElement(uint8_t item)
             else {
                 osdFormatRpm(buff, 0);
             }
-            return true;
+            break;
         }
 #endif
 
