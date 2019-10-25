@@ -36,6 +36,14 @@ float nullFilterApply(void *filter, float input)
     return input;
 }
 
+float nullFilterApply4(void *filter, float input, float f_cut, float dt)
+{
+    UNUSED(filter);
+    UNUSED(f_cut);
+    UNUSED(dt);
+    return input;
+}
+
 // PT1 Low Pass filter
 
 // f_cut = cutoff frequency

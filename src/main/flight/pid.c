@@ -95,6 +95,7 @@ typedef struct {
     biquadFilter_t dBoostGyroLpf;
 #endif
     uint16_t pidSumLimit;
+    filterApply4FnPtr ptermFilterApplyFn;
 } pidState_t;
 
 #ifdef USE_DTERM_NOTCH
@@ -274,8 +275,14 @@ void pidInit(void)
     for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
         if (axis == FD_YAW) {
             pidState[axis].pidSumLimit = pidProfile()->pidSumLimitYaw;
+            if (yawLpfHz) {
+                pidState[axis].ptermFilterApplyFn = (filterApply4FnPtr) pt1FilterApply4;
+            } else {
+                pidState[axis].ptermFilterApplyFn = (filterApply4FnPtr) nullFilterApply4;
+            }
         } else {
             pidState[axis].pidSumLimit = pidProfile()->pidSumLimit;
+            pidState[axis].ptermFilterApplyFn = (filterApply4FnPtr) nullFilterApply4;
         }
     }
 }
@@ -591,22 +598,16 @@ bool isFixedWingItermLimitActive(float stickPosition)
     return fabsf(stickPosition) > pidProfile()->fixedWingItermLimitOnStickPosition;
 }
 
-static FAST_CODE NOINLINE float pTermProcess(pidState_t *pidState, flight_dynamics_index_t axis, float rateError, float dT) {
+static FAST_CODE NOINLINE float pTermProcess(pidState_t *pidState, float rateError, float dT) {
     float newPTerm = rateError * pidState->kP;
 
-    if (axis == FD_YAW) {
-        if (yawLpfHz) {
-            newPTerm = pt1FilterApply4(&pidState->ptermLpfState, newPTerm, yawLpfHz, dT);
-        }
-    }
-
-    return newPTerm;
+    return pidState->ptermFilterApplyFn(&pidState->ptermLpfState, newPTerm, yawLpfHz, dT);
 }
 
 static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT)
 {
     const float rateError = pidState->rateTarget - pidState->gyroRate;
-    const float newPTerm = pTermProcess(pidState, axis, rateError, dT);
+    const float newPTerm = pTermProcess(pidState, rateError, dT);
     const float newFFTerm = pidState->rateTarget * pidState->kFF;
 
     // Calculate integral
@@ -705,7 +706,7 @@ static float applyDBoost(pidState_t *pidState, flight_dynamics_index_t axis, flo
 static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT)
 {
     const float rateError = pidState->rateTarget - pidState->gyroRate;
-    const float newPTerm = pTermProcess(pidState, axis, rateError, dT);
+    const float newPTerm = pTermProcess(pidState, rateError, dT);
 
     // Calculate new D-term
     float newDTerm;
