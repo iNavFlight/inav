@@ -162,3 +162,7 @@
 #define MAX_PWM_OUTPUT_PORTS        7
 #define USE_DSHOT
 #define USE_SERIALSHOT
+
+#define USE_SECONDARY_IMU
+#define USE_IMU_BNO055
+#define BNO055_I2C_BUS          BUS_I2C1
