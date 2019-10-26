@@ -81,7 +81,7 @@ tables:
     values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "AGL", "FLOW_RAW",
       "FLOW", "SBUS", "FPORT", "ALWAYS", "STAGE2", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "GENERIC", "ITERM_RELAX", 
-      "D_BOOST", "ANTIGRAVITY", "FFT", "FFT_TIME", "FFT_FREQ"]
+      "D_BOOST", "ANTIGRAVITY", "FFT", "FFT_TIME", "FFT_FREQ", "ERPM"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -510,6 +510,10 @@ groups:
         field: throttleScale
         min: 0
         max: 1
+      - name: motor_poles
+        field: motorPoleCount
+        min: 4
+        max: 255
 
   - name: PG_FAILSAFE_CONFIG
     type: failsafeConfig_t

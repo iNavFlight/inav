@@ -13,7 +13,6 @@
 #include "common/utils.h"
 #include "common/uvarint.h"
 
-#include "drivers/max7456.h"
 #include "drivers/time.h"
 
 #include "io/frsky_osd.h"
@@ -25,7 +24,6 @@
 #define FRSKY_OSD_PREAMBLE_BYTE_0 '$'
 #define FRSKY_OSD_PREAMBLE_BYTE_1 'A'
 
-#define FRSKY_OSD_GRID_BUFFER_POS(x, y) (y * MAX7456_CHARS_PER_LINE + x)
 #define FRSKY_OSD_GRID_BUFFER_CHAR_BITS 9
 #define FRSKY_OSD_GRID_BUFFER_CHAR_MASK ((1 << FRSKY_OSD_GRID_BUFFER_CHAR_BITS) - 1)
 #define FRSKY_OSD_GRID_BUFFER_ENCODE(chr, attr) ((chr & FRSKY_OSD_GRID_BUFFER_CHAR_MASK) | (attr << FRSKY_OSD_GRID_BUFFER_CHAR_BITS))
@@ -41,6 +39,8 @@
 #define FRSKY_OSD_RECV_BUFFER_SIZE 128
 
 #define FRSKY_OSD_CMD_RESPONSE_ERROR 0
+
+#define FRSKY_OSD_INFO_INTERVAL_MS 1000
 
 #define FRSKY_OSD_TRACE(fmt, ...)
 #define FRSKY_OSD_DEBUG(fmt, ...) LOG_D(OSD, fmt,  ##__VA_ARGS__)
@@ -244,6 +244,8 @@ typedef struct frskyOSDState_s {
         osdCharacter_t *chr;
     } recvOsdCharacter;
     serialPort_t *port;
+    bool initialized;
+    timeMs_t nextInfoRequest;
 } frskyOSDState_t;
 
 static frskyOSDState_t state;
@@ -302,6 +304,7 @@ static void frskyOSDStateReset(serialPort_t *port)
     state.info.viewport.height = 0;
 
     state.port = port;
+    state.initialized = false;
 }
 
 static void frskyOSDUpdateReceiveBuffer(void)
@@ -396,12 +399,14 @@ static bool frskyOSDHandleCommand(osdCommand_e cmd, const void *payload, size_t 
             state.info.grid.columns = resp->gridColumns;
             state.info.viewport.width = resp->pixelWidth;
             state.info.viewport.height = resp->pixelHeight;
-            FRSKY_OSD_DEBUG("FrSky OSD initialized. Version %u.%u.%u, pixels=%ux%u, grid=%ux%u",
-                resp->versionMajor, resp->versionMinor, resp->versionPatch,
-                resp->pixelWidth, resp->pixelHeight, resp->gridColumns, resp->gridRows);
-#warning TODO wait a bit for camera detection
-            frskyOSDClearScreen();
-            frskyOSDResetDrawingState();
+            if (!state.initialized) {
+                FRSKY_OSD_DEBUG("FrSky OSD initialized. Version %u.%u.%u, pixels=%ux%u, grid=%ux%u",
+                    resp->versionMajor, resp->versionMinor, resp->versionPatch,
+                    resp->pixelWidth, resp->pixelHeight, resp->gridColumns, resp->gridRows);
+                state.initialized = true;
+                frskyOSDClearScreen();
+                frskyOSDResetDrawingState();
+            }
             return true;
         }
         case OSD_CMD_READ_FONT:
@@ -489,6 +494,11 @@ static bool frskyOSDSendSyncCommand(uint8_t cmd, const void *data, size_t size, 
     return false;
 }
 
+static bool frskyOSDShouldRequestInfo(void)
+{
+    return !frskyOSDIsReady() || millis() > state.nextInfoRequest;
+}
+
 static void frskyOSDRequestInfo(void)
 {
     timeMs_t now = millis();
@@ -496,7 +506,7 @@ static void frskyOSDRequestInfo(void)
         uint8_t version = FRSKY_OSD_SUPPORTED_API_VERSION;
         frskyOSDSendAsyncCommand(OSD_CMD_INFO, &version, sizeof(version));
         frskyOSDFlushSendBuffer();
-        state.info.nextRequest = now + 1000;
+        state.info.nextRequest = now + FRSKY_OSD_INFO_INTERVAL_MS;
     }
 }
 
@@ -551,8 +561,7 @@ void frskyOSDUpdate(void)
         frskyOSDDispatchResponse();
     }
 
-    if (!frskyOSDIsReady()) {
-        // Info not received yet
+    if (frskyOSDShouldRequestInfo()) {
         frskyOSDRequestInfo();
     }
 }
@@ -694,18 +703,18 @@ void frskyOSDDrawStringInGrid(unsigned x, unsigned y, const char *buff, textAttr
 {
     unsigned charsUpdated = 0;
     const char *updatedCharAt = NULL;
-    unsigned pos = FRSKY_OSD_GRID_BUFFER_POS(x, y);
+    uint16_t *entry = osdCharacterGridBufferGetEntryPtr(x, y);
     const char *p;
     unsigned xx;
-    for (p = buff, xx = x; *p && xx < state.info.grid.columns; p++, pos++, xx++) {
+    for (p = buff, xx = x; *p && xx < state.info.grid.columns; p++, entry++, xx++) {
         unsigned val = FRSKY_OSD_GRID_BUFFER_ENCODE(*p, attr);
-        if (max7456ScreenBuffer[pos] != val) {
+        if (*entry != val) {
             if (++charsUpdated == 1) {
                 // First character that needs to be updated, save it
                 // in case we can issue a single update.
                 updatedCharAt = p;
             }
-            max7456ScreenBuffer[pos] = val;
+            *entry = val;
         }
     }
 
@@ -728,22 +737,21 @@ void frskyOSDDrawStringInGrid(unsigned x, unsigned y, const char *buff, textAttr
 
 void frskyOSDDrawCharInGrid(unsigned x, unsigned y, uint16_t chr, textAttributes_t attr)
 {
-    unsigned pos = FRSKY_OSD_GRID_BUFFER_POS(x, y);
+    uint16_t *entry = osdCharacterGridBufferGetEntryPtr(x, y);
     unsigned val = FRSKY_OSD_GRID_BUFFER_ENCODE(chr, attr);
 
-    if (max7456ScreenBuffer[pos] == val) {
+    if (*entry == val) {
         return;
     }
 
     frskyOSDSendCharInGrid(x, y, chr, attr);
 
-    max7456ScreenBuffer[pos] = val;
+    *entry = val;
 }
 
 bool frskyOSDReadCharInGrid(unsigned x, unsigned y, uint16_t *c, textAttributes_t *attr)
 {
-    unsigned pos = FRSKY_OSD_GRID_BUFFER_POS(x, y);
-    uint16_t val = max7456ScreenBuffer[pos];
+    uint16_t val = *osdCharacterGridBufferGetEntryPtr(x, y);
     // We use the lower 10 bits for characters
     *c = val & FRSKY_OSD_GRID_BUFFER_CHAR_MASK;
     *attr = val >> FRSKY_OSD_GRID_BUFFER_CHAR_BITS;
@@ -752,7 +760,7 @@ bool frskyOSDReadCharInGrid(unsigned x, unsigned y, uint16_t *c, textAttributes_
 
 void frskyOSDClearScreen(void)
 {
-    memset(max7456ScreenBuffer, 0, sizeof(max7456ScreenBuffer));
+    osdCharacterGridBufferClear();
     frskyOSDSendAsyncCommand(OSD_CMD_DRAWING_CLEAR_SCREEN, NULL, 0);
 }
 
@@ -807,13 +815,13 @@ void frskyOSDSetStrokeWidth(unsigned width)
 void frskyOSDSetLineOutlineType(frskyOSDLineOutlineType_e outlineType)
 {
     uint8_t type = outlineType;
-    frskyOSDSendAsyncCommand(OSD_CMD_DRAWING_SET_STROKE_WIDTH, &type, sizeof(type));
+    frskyOSDSendAsyncCommand(OSD_CMD_DRAWING_SET_LINE_OUTLINE_TYPE, &type, sizeof(type));
 }
 
 void frskyOSDSetLineOutlineColor(frskyOSDColor_e outlineColor)
 {
     uint8_t color = outlineColor;
-    frskyOSDSendAsyncCommand(OSD_CMD_DRAWING_SET_STROKE_WIDTH, &color, sizeof(color));
+    frskyOSDSendAsyncCommand(OSD_CMD_DRAWING_SET_LINE_OUTLINE_COLOR, &color, sizeof(color));
 }
 
 void frskyOSDClipToRect(int x, int y, int w, int h)

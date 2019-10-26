@@ -38,6 +38,9 @@
 #define OSD_AHI_H_SYM_COUNT 9
 #define OSD_AHI_V_SYM_COUNT 6
 
+#define OSD_HEADING_GRAPH_WIDTH 9
+#define OSD_HEADING_GRAPH_DECIDEGREES_PER_CHAR 225
+
 typedef struct displayPort_s displayPort_t;
 typedef struct displayCanvas_s displayCanvas_t;
 
@@ -72,3 +75,6 @@ void osdDrawVario(displayPort_t *display, displayCanvas_t *canvas, const osdDraw
 // the arrow will be erased first (need for e.g. the home arrow, since it uses multiple symbols)
 void osdDrawDirArrow(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float degrees, bool eraseBefore);
 void osdDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float rollAngle, float pitchAngle);
+// Draws a heading graph with heading given as 0.1 degree steps i.e. [0, 3600). It uses 9 horizontal
+// grid slots.
+void osdDrawHeadingGraph(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, int heading);

@@ -70,6 +70,9 @@
 #define USE_RX_UIB
 #define USE_HOTT_TEXTMODE
 
+// NAZA GPS support for F4+ only
+#define USE_GPS_PROTO_NAZA
+
 // Allow default rangefinders
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_MSP
@@ -125,7 +128,6 @@
 #define USE_CMS
 #define CMS_MENU_OSD
 #define USE_GPS_PROTO_NMEA
-#define USE_GPS_PROTO_NAZA
 #define USE_GPS_PROTO_MTK
 #define NAV_GPS_GLITCH_DETECTION
 #define NAV_NON_VOLATILE_WAYPOINT_STORAGE

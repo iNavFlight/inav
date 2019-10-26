@@ -99,6 +99,7 @@
 #include "sensors/sensors.h"
 #include "sensors/pitotmeter.h"
 #include "sensors/temperature.h"
+#include "sensors/esc_sensor.h"
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
@@ -184,8 +185,12 @@ static osdMapData_t osdMapData;
 
 static displayPort_t *osdDisplayPort;
 static bool osdDisplayIsReady = false;
+#if defined(USE_CANVAS)
 static displayCanvas_t osdCanvas;
-static bool osdDisplayHasCanvas = false;
+static bool osdDisplayHasCanvas;
+#else
+#define osdDisplayHasCanvas false
+#endif
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 #define AH_SIDEBAR_WIDTH_POS 7
@@ -879,6 +884,28 @@ static void osdFormatThrottlePosition(char *buff, bool autoThr, textAttributes_t
     }
     tfp_sprintf(buff + 2, "%3d", (constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN));
 }
+
+#if defined(USE_ESC_SENSOR)
+static void osdFormatRpm(char *buff, uint32_t rpm)
+{
+    // FIXME: We need a new symbol for RPM
+    buff[0] = SYM_BLANK;
+    buff[1] = SYM_THR;
+    if (rpm) {
+        if (rpm >= 1000) {
+            osdFormatCentiNumber(buff + 2, rpm / 10, 0, 1, 1, 2);
+            buff[4] = 'K';
+            buff[5] = '\0';
+        }
+        else {
+            tfp_sprintf(buff + 2, "%3lu", rpm);
+        }
+    }
+    else {
+        strcpy(buff + 2, "---");
+    }
+}
+#endif
 
 int32_t osdGetAltitude(void)
 {
@@ -2163,49 +2190,14 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_HEADING_GRAPH:
         {
-            static const uint8_t graph[] = {
-                SYM_HEADING_LINE,
-                SYM_HEADING_E,
-                SYM_HEADING_LINE,
-                SYM_HEADING_DIVIDED_LINE,
-                SYM_HEADING_LINE,
-                SYM_HEADING_S,
-                SYM_HEADING_LINE,
-                SYM_HEADING_DIVIDED_LINE,
-                SYM_HEADING_LINE,
-                SYM_HEADING_W,
-                SYM_HEADING_LINE,
-                SYM_HEADING_DIVIDED_LINE,
-                SYM_HEADING_LINE,
-                SYM_HEADING_N,
-                SYM_HEADING_LINE,
-                SYM_HEADING_DIVIDED_LINE,
-                SYM_HEADING_LINE,
-                SYM_HEADING_E,
-                SYM_HEADING_LINE,
-                SYM_HEADING_DIVIDED_LINE,
-                SYM_HEADING_LINE,
-                SYM_HEADING_S,
-                SYM_HEADING_LINE,
-                SYM_HEADING_DIVIDED_LINE,
-                SYM_HEADING_LINE,
-                SYM_HEADING_W,
-                SYM_HEADING_LINE,
-            };
             if (osdIsHeadingValid()) {
-                int16_t h = DECIDEGREES_TO_DEGREES(osdGetHeading());
-                if (h >= 180) {
-                    h -= 360;
-                }
-                int hh = h * 4;
-                hh = hh + 720 + 45;
-                hh = hh / 90;
-                memcpy_fn(buff, graph + hh + 1, 9);
+                osdDrawHeadingGraph(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX, elemPosY), osdGetHeading());
+                return true;
             } else {
                 buff[0] = buff[2] = buff[4] = buff[6] = buff[8] = SYM_HEADING_LINE;
                 buff[1] = buff[3] = buff[5] = buff[7] = SYM_HEADING_DIVIDED_LINE;
+                buff[OSD_HEADING_GRAPH_WIDTH] = '\0';
             }
-            buff[9] = '\0';
             break;
         }
 
@@ -2461,6 +2453,20 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 #endif
 
+#if defined(USE_ESC_SENSOR)
+    case OSD_ESC_RPM:
+        {
+            escSensorData_t * escSensor = escSensorGetData();
+            if (escSensor && escSensor->dataAge <= ESC_DATA_MAX_AGE) {
+                osdFormatRpm(buff, escSensor->rpm);
+            }
+            else {
+                osdFormatRpm(buff, 0);
+            }
+            break;
+        }
+#endif
+
     default:
         return false;
     }
@@ -2525,6 +2531,12 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
             elementIndex = OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE;
         }
         if (elementIndex == OSD_3D_SPEED) {
+            elementIndex++;
+        }
+    }
+
+    if (!STATE(ESC_SENSOR_ENABLED)) {
+        if (elementIndex == OSD_ESC_RPM) {
             elementIndex++;
         }
     }
@@ -2666,6 +2678,10 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
 
     osdConfig->item_pos[0][OSD_VTX_POWER] = OSD_POS(3, 5);
 
+#if defined(USE_ESC_SENSOR)
+    osdConfig->item_pos[0][OSD_ESC_RPM] = OSD_POS(1, 2);
+#endif
+
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     osdConfig->item_pos[0][OSD_RC_SOURCE] = OSD_POS(3, 4);
 #endif
@@ -2748,7 +2764,9 @@ static void osdCompleteAsyncInitialization(void)
 
     osdDisplayIsReady = true;
 
+#if defined(USE_CANVAS)
     osdDisplayHasCanvas = displayGetCanvas(&osdCanvas, osdDisplayPort);
+#endif
 
     displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
     displayClearScreen(osdDisplayPort);
@@ -3244,9 +3262,11 @@ displayPort_t *osdGetDisplayPort(void)
 
 displayCanvas_t *osdGetDisplayPortCanvas(void)
 {
+#if defined(USE_CANVAS)
     if (osdDisplayHasCanvas) {
         return &osdCanvas;
     }
+#endif
     return NULL;
 }
 

@@ -30,6 +30,8 @@
 
 #if defined(USE_CANVAS)
 
+#define AHI_MAX_DRAW_INTERVAL_MS 1000
+
 #include "common/log.h"
 #include "common/maths.h"
 #include "common/printf.h"
@@ -37,7 +39,9 @@
 
 #include "drivers/display.h"
 #include "drivers/display_canvas.h"
+#include "drivers/osd.h"
 #include "drivers/osd_symbols.h"
+#include "drivers/time.h"
 
 #include "io/osd_common.h"
 
@@ -123,26 +127,33 @@ void osdCanvasDrawDirArrow(displayPort_t *display, displayCanvas_t *canvas, cons
 
 static void osdDrawArtificialHorizonLevelLine(displayCanvas_t *canvas, int width, int pos, int margin, bool erase)
 {
-    // Vertical strokes
-    displayCanvasFillStrokeRect(canvas, -width / 2, -pos - 1, 3, -10);
-    displayCanvasFillStrokeRect(canvas, width / 2, -pos - 1, 3, -10);
-    // Horizontal strokes
-    displayCanvasFillStrokeRect(canvas, -width / 2 + 1, -pos - 1, width / 2 - margin, 3);
-    displayCanvasFillStrokeRect(canvas, width / 2 + 1, -pos - 1, -width / 2 + margin, 3);
+    displayCanvasSetLineOutlineType(canvas, DISPLAY_CANVAS_OUTLINE_TYPE_BOTTOM);
 
-    if (!erase) {
-        // When we're not erasing the old AHI position, we need to clean up so black
-        // strokes left by the horizontal strokes.
+    if (erase) {
+        displayCanvasSetStrokeColor(canvas, DISPLAY_CANVAS_COLOR_TRANSPARENT);
+        displayCanvasSetLineOutlineColor(canvas, DISPLAY_CANVAS_COLOR_TRANSPARENT);
+    } else {
         displayCanvasSetStrokeColor(canvas, DISPLAY_CANVAS_COLOR_WHITE);
-
-        displayCanvasMoveToPoint(canvas, -width / 2, -pos - 1);
-        displayCanvasStrokeLineToPoint(canvas, -width / 2 + 3, -pos - 1);
-
-        displayCanvasMoveToPoint(canvas, width / 2, -pos - 1);
-        displayCanvasStrokeLineToPoint(canvas, width / 2 - 3, -pos - 1);
-
-        displayCanvasSetStrokeColor(canvas, DISPLAY_CANVAS_COLOR_BLACK);
+        displayCanvasSetLineOutlineColor(canvas, DISPLAY_CANVAS_COLOR_BLACK);
     }
+
+    int yoff = pos >= 0 ? 10 : -10;
+    int yc = -pos - 1;
+    int sz = width / 2;
+
+    // Horizontal strokes
+    displayCanvasMoveToPoint(canvas, -sz, yc);
+    displayCanvasStrokeLineToPoint(canvas, -margin, yc);
+    displayCanvasMoveToPoint(canvas, sz, yc);
+    displayCanvasStrokeLineToPoint(canvas, margin, yc);
+
+    // Vertical strokes
+    displayCanvasSetLineOutlineType(canvas, DISPLAY_CANVAS_OUTLINE_TYPE_LEFT);
+    displayCanvasMoveToPoint(canvas, -sz, yc);
+    displayCanvasStrokeLineToPoint(canvas, -sz, yc + yoff);
+    displayCanvasSetLineOutlineType(canvas, DISPLAY_CANVAS_OUTLINE_TYPE_RIGHT);
+    displayCanvasMoveToPoint(canvas, sz, yc);
+    displayCanvasStrokeLineToPoint(canvas, sz, yc + yoff);
 }
 
 static void osdDrawArtificialHorizonShapes(displayCanvas_t *canvas, float pitchAngle, float rollAngle, bool erase)
@@ -185,13 +196,14 @@ static void osdDrawArtificialHorizonShapes(displayCanvas_t *canvas, float pitchA
     }
 
     displayCanvasClipToRect(canvas, lx + 1, ty + 1, maxWidth - 2, maxHeight - 2);
+    osdGridBufferClearPixelRect(canvas, lx, ty, maxWidth, maxHeight);
 
     if (erase) {
-        displayCanvasSetFillColor(canvas, DISPLAY_CANVAS_COLOR_TRANSPARENT);
-        displayCanvasSetStrokeColor(canvas, DISPLAY_CANVAS_COLOR_TRANSPARENT);
+        displayCanvasSetStrokeAndFillColor(canvas, DISPLAY_CANVAS_COLOR_TRANSPARENT);
+        displayCanvasSetLineOutlineColor(canvas, DISPLAY_CANVAS_COLOR_TRANSPARENT);
     } else {
-        displayCanvasSetFillColor(canvas, DISPLAY_CANVAS_COLOR_WHITE);
-        displayCanvasSetStrokeColor(canvas, DISPLAY_CANVAS_COLOR_BLACK);
+        displayCanvasSetStrokeColor(canvas, DISPLAY_CANVAS_COLOR_WHITE);
+        displayCanvasSetLineOutlineColor(canvas, DISPLAY_CANVAS_COLOR_BLACK);
     }
 
     // The draw just the 5 bars closest to the current pitch level
@@ -209,62 +221,21 @@ static void osdDrawArtificialHorizonShapes(displayCanvas_t *canvas, float pitchA
 
     for (int ii = pitchCenter - 2; ii <= pitchCenter + 2; ii++) {
         if (ii == 0) {
-            displayCanvasFillStrokeRect(canvas, -barWidth / 2, -1, barWidth / 2 - crosshairMargin, 3);
-            displayCanvasFillStrokeRect(canvas, barWidth / 2, -1, -barWidth / 2 + crosshairMargin, 3);
+            displayCanvasSetLineOutlineType(canvas, DISPLAY_CANVAS_OUTLINE_TYPE_BOTTOM);
+            displayCanvasMoveToPoint(canvas, -barWidth / 2, 0);
+            displayCanvasStrokeLineToPoint(canvas, -crosshairMargin, 0);
+            displayCanvasMoveToPoint(canvas, barWidth / 2, 0);
+            displayCanvasStrokeLineToPoint(canvas, crosshairMargin, 0);
             continue;
         }
 
         int pos = ii * 10 * pixelsPerDegreeLevel;
         int margin = (ii > 9 || ii < -9) ? 9 : 6;
-        if (pos > 0) {
-            osdDrawArtificialHorizonLevelLine(canvas, levelBarWidth, -pos, margin, erase);
-        } else {
-            displayCanvasContextPush(canvas);
-            displayCanvasCtmScale(canvas, 1, -1);
-            osdDrawArtificialHorizonLevelLine(canvas, levelBarWidth, pos, margin, erase);
-            displayCanvasContextPop(canvas);
-        }
+        osdDrawArtificialHorizonLevelLine(canvas, levelBarWidth, -pos, margin, erase);
     }
 
     displayCanvasContextPop(canvas);
 
-#if 0
-
-
-
-    // The draw just the 5 bars closest to the current pitch level
-    float pitchDegrees = RADIANS_TO_DEGREES(pitchAngle);
-    float pitchCenter = roundf(pitchDegrees / 10.0f);
-    float pitchOffset = -pitchDegrees * pixelsDegreeLevel;
-    float translateX = osdCanvas.widthPixels / 2;
-    float translateY = osdCanvas.heightPixels / 2;
-
-    displayCanvasCtmTranslate(canvas, 0, pitchOffset);
-    displayCanvasContextPush(canvas);
-    displayCanvasCtmRotate(canvas, -rollAngle);
-    displayCanvasCtmTranslate(canvas, translateX, translateY);
-
-    for (int ii = pitchCenter - 2; ii <= pitchCenter + 2; ii++) {
-        if (ii == 0) {
-            displayCanvasFillStrokeRect(canvas, -width / 2, -1, width / 2 - crosshairMargin, 3);
-            displayCanvasFillStrokeRect(canvas, width / 2, -1, -width / 2 + crosshairMargin, 3);
-            continue;
-        }
-
-        int pos = ii * 10 * pixelsDegreeLevel;
-        int margin = 6;
-        if (pos > 0) {
-            osdDrawArtificialHorizonLevelLine(levelWidth, -pos, margin, erase);
-        } else {
-            displayCanvasContextPush(canvas);
-            displayCanvasCtmScale(canvas, 1, -1);
-            osdDrawArtificialHorizonLevelLine(levelWidth, pos, margin, erase);
-            displayCanvasContextPop(canvas);
-        }
-    }
-
-    displayCanvasContextPop(canvas);
-#endif
     displayCanvasCtmTranslate(canvas, translateX, translateY);
     displayCanvasCtmScale(canvas, 0.5f, 0.5f);
 
@@ -300,13 +271,79 @@ void osdCanvasDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *can
 
     static float prevPitchAngle = 9999;
     static float prevRollAngle = 9999;
+    static timeMs_t nextDrawMs = 0;
 
-    if (fabsf(prevPitchAngle - pitchAngle) > 0.01f || fabsf(prevRollAngle - rollAngle) > 0.01f) {
+    timeMs_t now = millis();
+
+    if (fabsf(prevPitchAngle - pitchAngle) > 0.01f ||
+        fabsf(prevRollAngle - rollAngle) > 0.01f ||
+        now > nextDrawMs) {
+
         osdDrawArtificialHorizonShapes(canvas, prevPitchAngle, prevRollAngle, true);
         osdDrawArtificialHorizonShapes(canvas, pitchAngle, rollAngle, false);
         prevPitchAngle = pitchAngle;
         prevRollAngle = rollAngle;
+        nextDrawMs = now + AHI_MAX_DRAW_INTERVAL_MS;
     }
+}
+
+void osdCanvasDrawHeadingGraph(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, int heading)
+{
+    static const uint8_t graph[] = {
+        SYM_HEADING_W,
+        SYM_HEADING_LINE,
+        SYM_HEADING_DIVIDED_LINE,
+        SYM_HEADING_LINE,
+        SYM_HEADING_N,
+        SYM_HEADING_LINE,
+        SYM_HEADING_DIVIDED_LINE,
+        SYM_HEADING_LINE,
+        SYM_HEADING_E,
+        SYM_HEADING_LINE,
+        SYM_HEADING_DIVIDED_LINE,
+        SYM_HEADING_LINE,
+        SYM_HEADING_S,
+        SYM_HEADING_LINE,
+        SYM_HEADING_DIVIDED_LINE,
+        SYM_HEADING_LINE,
+        SYM_HEADING_W,
+        SYM_HEADING_LINE,
+        SYM_HEADING_DIVIDED_LINE,
+        SYM_HEADING_LINE,
+        SYM_HEADING_N,
+        SYM_HEADING_LINE,
+        SYM_HEADING_DIVIDED_LINE,
+        SYM_HEADING_LINE,
+        SYM_HEADING_E,
+        SYM_HEADING_LINE,
+    };
+
+    STATIC_ASSERT(sizeof(graph) > (3599 / OSD_HEADING_GRAPH_DECIDEGREES_PER_CHAR) + OSD_HEADING_GRAPH_WIDTH + 1, graph_is_too_short);
+
+    char buf[OSD_HEADING_GRAPH_WIDTH + 1];
+    int px;
+    int py;
+
+    osdDrawPointGetPixels(&px, &py, display, canvas, p);
+    int rw = OSD_HEADING_GRAPH_WIDTH * canvas->gridElementWidth;
+    int rh = canvas->gridElementHeight;
+
+    displayCanvasClipToRect(canvas, px, py, rw, rh);
+
+    int idx = heading / OSD_HEADING_GRAPH_DECIDEGREES_PER_CHAR;
+    int offset = ((heading % OSD_HEADING_GRAPH_DECIDEGREES_PER_CHAR) * canvas->gridElementWidth) / OSD_HEADING_GRAPH_DECIDEGREES_PER_CHAR;
+    memcpy_fn(buf, graph + idx, sizeof(buf) - 1);
+    buf[sizeof(buf) - 1] = '\0';
+    // We need a +1 because characters are 12px wide, so
+    // they can't have a 1px arrow centered. All existing fonts
+    // place the arrow at 5px, hence there's a 1px offset.
+    // TODO: Put this in font metadata and read it back.
+    displayCanvasDrawString(canvas, px - offset + 1, py, buf, DISPLAY_CANVAS_BITMAP_OPT_ERASE_TRANSPARENT);
+
+    displayCanvasSetStrokeColor(canvas, DISPLAY_CANVAS_COLOR_BLACK);
+    displayCanvasSetFillColor(canvas, DISPLAY_CANVAS_COLOR_WHITE);
+    int rmx = px + rw / 2;
+    displayCanvasFillStrokeTriangle(canvas, rmx - 2, py - 1, rmx + 2, py - 1, rmx, py + 1);
 }
 
 #endif
