@@ -888,7 +888,12 @@ static void osdFormatRpm(char *buff, uint32_t rpm)
     buff[0] = SYM_BLANK;
     buff[1] = SYM_THR;
     if (rpm) {
-        tfp_sprintf(buff + 2, "%3d", rpm);
+        if (rpm >= 1000) {
+            tfp_sprintf(buff + 2, "%2dk", rpm / 1000);
+        }
+        else {
+            tfp_sprintf(buff + 2, "%3d", rpm);
+        }
     }
     else {
         strcpy(buff + 2, "---");
