@@ -153,4 +153,48 @@ void osdGridDrawArtificialHorizon(displayPort_t *display, unsigned gx, unsigned 
     }
 }
 
+void osdGridDrawHeadingGraph(displayPort_t *display, unsigned gx, unsigned gy, int heading)
+{
+    static const uint8_t graph[] = {
+        SYM_HEADING_LINE,
+        SYM_HEADING_E,
+        SYM_HEADING_LINE,
+        SYM_HEADING_DIVIDED_LINE,
+        SYM_HEADING_LINE,
+        SYM_HEADING_S,
+        SYM_HEADING_LINE,
+        SYM_HEADING_DIVIDED_LINE,
+        SYM_HEADING_LINE,
+        SYM_HEADING_W,
+        SYM_HEADING_LINE,
+        SYM_HEADING_DIVIDED_LINE,
+        SYM_HEADING_LINE,
+        SYM_HEADING_N,
+        SYM_HEADING_LINE,
+        SYM_HEADING_DIVIDED_LINE,
+        SYM_HEADING_LINE,
+        SYM_HEADING_E,
+        SYM_HEADING_LINE,
+        SYM_HEADING_DIVIDED_LINE,
+        SYM_HEADING_LINE,
+        SYM_HEADING_S,
+        SYM_HEADING_LINE,
+        SYM_HEADING_DIVIDED_LINE,
+        SYM_HEADING_LINE,
+        SYM_HEADING_W,
+        SYM_HEADING_LINE,
+    };
+    char buf[OSD_HEADING_GRAPH_WIDTH + 1];
+    int16_t h = DECIDEGREES_TO_DEGREES(heading);
+    if (h >= 180) {
+        h -= 360;
+    }
+    int hh = h * 4;
+    hh = hh + 720 + 45;
+    hh = hh / 90;
+    memcpy_fn(buf, graph + hh + 1, sizeof(buf) - 1);
+    buf[sizeof(buf) - 1] = '\0';
+    displayWrite(display, gx, gy, buf);
+}
+
 #endif

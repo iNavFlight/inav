@@ -185,8 +185,12 @@ static osdMapData_t osdMapData;
 
 static displayPort_t *osdDisplayPort;
 static bool osdDisplayIsReady = false;
+#if defined(USE_CANVAS)
 static displayCanvas_t osdCanvas;
-static bool osdDisplayHasCanvas = false;
+static bool osdDisplayHasCanvas;
+#else
+#define osdDisplayHasCanvas false
+#endif
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 #define AH_SIDEBAR_WIDTH_POS 7
@@ -889,7 +893,9 @@ static void osdFormatRpm(char *buff, uint32_t rpm)
     buff[1] = SYM_THR;
     if (rpm) {
         if (rpm >= 1000) {
-            tfp_sprintf(buff + 2, "%2luK", rpm / 1000);
+            osdFormatCentiNumber(buff + 2, rpm / 10, 0, 1, 1, 2);
+            buff[4] = 'K';
+            buff[5] = '\0';
         }
         else {
             tfp_sprintf(buff + 2, "%3lu", rpm);
@@ -2184,49 +2190,14 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_HEADING_GRAPH:
         {
-            static const uint8_t graph[] = {
-                SYM_HEADING_LINE,
-                SYM_HEADING_E,
-                SYM_HEADING_LINE,
-                SYM_HEADING_DIVIDED_LINE,
-                SYM_HEADING_LINE,
-                SYM_HEADING_S,
-                SYM_HEADING_LINE,
-                SYM_HEADING_DIVIDED_LINE,
-                SYM_HEADING_LINE,
-                SYM_HEADING_W,
-                SYM_HEADING_LINE,
-                SYM_HEADING_DIVIDED_LINE,
-                SYM_HEADING_LINE,
-                SYM_HEADING_N,
-                SYM_HEADING_LINE,
-                SYM_HEADING_DIVIDED_LINE,
-                SYM_HEADING_LINE,
-                SYM_HEADING_E,
-                SYM_HEADING_LINE,
-                SYM_HEADING_DIVIDED_LINE,
-                SYM_HEADING_LINE,
-                SYM_HEADING_S,
-                SYM_HEADING_LINE,
-                SYM_HEADING_DIVIDED_LINE,
-                SYM_HEADING_LINE,
-                SYM_HEADING_W,
-                SYM_HEADING_LINE,
-            };
             if (osdIsHeadingValid()) {
-                int16_t h = DECIDEGREES_TO_DEGREES(osdGetHeading());
-                if (h >= 180) {
-                    h -= 360;
-                }
-                int hh = h * 4;
-                hh = hh + 720 + 45;
-                hh = hh / 90;
-                memcpy_fn(buff, graph + hh + 1, 9);
+                osdDrawHeadingGraph(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX, elemPosY), osdGetHeading());
+                return true;
             } else {
                 buff[0] = buff[2] = buff[4] = buff[6] = buff[8] = SYM_HEADING_LINE;
                 buff[1] = buff[3] = buff[5] = buff[7] = SYM_HEADING_DIVIDED_LINE;
+                buff[OSD_HEADING_GRAPH_WIDTH] = '\0';
             }
-            buff[9] = '\0';
             break;
         }
 
@@ -2793,7 +2764,9 @@ static void osdCompleteAsyncInitialization(void)
 
     osdDisplayIsReady = true;
 
+#if defined(USE_CANVAS)
     osdDisplayHasCanvas = displayGetCanvas(&osdCanvas, osdDisplayPort);
+#endif
 
     displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
     displayClearScreen(osdDisplayPort);
@@ -3289,9 +3262,11 @@ displayPort_t *osdGetDisplayPort(void)
 
 displayCanvas_t *osdGetDisplayPortCanvas(void)
 {
+#if defined(USE_CANVAS)
     if (osdDisplayHasCanvas) {
         return &osdCanvas;
     }
+#endif
     return NULL;
 }
 

@@ -285,11 +285,16 @@ void displayCommitTransaction(displayPort_t *instance)
 
 bool displayGetCanvas(displayCanvas_t *canvas, const displayPort_t *instance)
 {
+#if defined(USE_CANVAS)
     if (canvas && instance->vTable->getCanvas && instance->vTable->getCanvas(canvas, instance)) {
         canvas->gridElementWidth = canvas->width / instance->cols;
         canvas->gridElementHeight = canvas->height / instance->rows;
         return true;
     }
+#else
+    UNUSED(canvas);
+    UNUSED(instance);
+#endif
     return false;
 }
 
