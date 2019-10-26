@@ -185,8 +185,12 @@ static osdMapData_t osdMapData;
 
 static displayPort_t *osdDisplayPort;
 static bool osdDisplayIsReady = false;
+#if defined(USE_CANVAS)
 static displayCanvas_t osdCanvas;
-static bool osdDisplayHasCanvas = false;
+static bool osdDisplayHasCanvas;
+#else
+#define osdDisplayHasCanvas false
+#endif
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 #define AH_SIDEBAR_WIDTH_POS 7
@@ -2793,7 +2797,9 @@ static void osdCompleteAsyncInitialization(void)
 
     osdDisplayIsReady = true;
 
+#if defined(USE_CANVAS)
     osdDisplayHasCanvas = displayGetCanvas(&osdCanvas, osdDisplayPort);
+#endif
 
     displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
     displayClearScreen(osdDisplayPort);
@@ -3289,9 +3295,11 @@ displayPort_t *osdGetDisplayPort(void)
 
 displayCanvas_t *osdGetDisplayPortCanvas(void)
 {
+#if defined(USE_CANVAS)
     if (osdDisplayHasCanvas) {
         return &osdCanvas;
     }
+#endif
     return NULL;
 }
 
