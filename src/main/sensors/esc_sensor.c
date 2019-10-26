@@ -116,7 +116,7 @@ static bool escSensorDecodeFrame(void)
             escSensorDataNeedsUpdate = true;
 
             if (escSensorMotor < 4) {
-                DEBUG_SET(DEBUG_ERPM, escSensorMotor, escSensorData[escSensorMotor].erpm);
+                DEBUG_SET(DEBUG_ERPM, escSensorMotor, escSensorData[escSensorMotor].rpm);
             }
 
             return ESC_SENSOR_FRAME_COMPLETE;
