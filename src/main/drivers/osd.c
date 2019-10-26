@@ -23,6 +23,7 @@
  *
  */
 
+#include "drivers/display_canvas.h"
 #include "drivers/osd.h"
 
 uint16_t osdCharacterGridBuffer[OSD_CHARACTER_GRID_BUFFER_SIZE] ALIGNED(4);
@@ -34,6 +35,66 @@ void osdCharacterGridBufferClear(void)
     for (; ptr < end; ptr++) {
         *ptr = 0;
     }
+}
+
+static void osdGridBufferConstrainRect(int *x, int *y, int *w, int *h, int totalWidth, int totalHeight)
+{
+    if (*w < 0) {
+        *x += *w;
+        *w = -*w;
+    }
+    if (*h < 0) {
+        *y += *h;
+        *h = -*h;
+    }
+    if (*x < 0) {
+        *w -= *x;
+        *x = 0;
+    }
+    if (*y < 0) {
+        *h += *y;
+        *y = 0;
+    }
+    int maxX = *x + *w;
+    int extraWidth = maxX - totalWidth;
+    if (extraWidth > 0) {
+        *w -= extraWidth;
+    }
+    int maxY = *y + *h;
+    int extraHeight = maxY - totalHeight;
+    if (extraHeight > 0) {
+        *h -= extraHeight;
+    }
+}
+
+void osdGridBufferClearGridRect(int x, int y, int w, int h)
+{
+    osdGridBufferConstrainRect(&x, &y, &w, &h, OSD_CHARACTER_GRID_MAX_WIDTH, OSD_CHARACTER_GRID_MAX_HEIGHT);
+    int maxX = x + w;
+    int maxY = y + h;
+    for (int ii = x; ii < maxX + w; ii++) {
+        for (int jj = y; jj < maxY; jj++) {
+            *osdCharacterGridBufferGetEntryPtr(ii, jj) = 0;
+        }
+    }
+}
+
+void osdGridBufferClearPixelRect(displayCanvas_t *canvas, int x, int y, int w, int h)
+{
+    // Ensure we clear all grid slots that overlap with this rect
+    if (w < 0) {
+        x += w;
+        w = -w;
+    }
+    if (h < 0) {
+        y += h;
+        h = -h;
+    }
+    int gx = x / canvas->gridElementWidth;
+    int gy = y / canvas->gridElementHeight;
+    int gw = (w + canvas->gridElementWidth - 1) / canvas->gridElementWidth;
+    int gh = (h + canvas->gridElementHeight - 1) / canvas->gridElementHeight;
+    osdGridBufferClearGridRect(gx, gy, gw, gh);
 }
 
 uint16_t *osdCharacterGridBufferGetEntryPtr(unsigned x, unsigned y)
