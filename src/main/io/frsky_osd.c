@@ -40,6 +40,8 @@
 
 #define FRSKY_OSD_CMD_RESPONSE_ERROR 0
 
+#define FRSKY_OSD_INFO_INTERVAL_MS 1000
+
 #define FRSKY_OSD_TRACE(fmt, ...)
 #define FRSKY_OSD_DEBUG(fmt, ...) LOG_D(OSD, fmt,  ##__VA_ARGS__)
 #define FRSKY_OSD_ERROR(fmt, ...) LOG_E(OSD, fmt,  ##__VA_ARGS__)
@@ -242,6 +244,8 @@ typedef struct frskyOSDState_s {
         osdCharacter_t *chr;
     } recvOsdCharacter;
     serialPort_t *port;
+    bool initialized;
+    timeMs_t nextInfoRequest;
 } frskyOSDState_t;
 
 static frskyOSDState_t state;
@@ -300,6 +304,7 @@ static void frskyOSDStateReset(serialPort_t *port)
     state.info.viewport.height = 0;
 
     state.port = port;
+    state.initialized = false;
 }
 
 static void frskyOSDUpdateReceiveBuffer(void)
@@ -394,12 +399,14 @@ static bool frskyOSDHandleCommand(osdCommand_e cmd, const void *payload, size_t 
             state.info.grid.columns = resp->gridColumns;
             state.info.viewport.width = resp->pixelWidth;
             state.info.viewport.height = resp->pixelHeight;
-            FRSKY_OSD_DEBUG("FrSky OSD initialized. Version %u.%u.%u, pixels=%ux%u, grid=%ux%u",
-                resp->versionMajor, resp->versionMinor, resp->versionPatch,
-                resp->pixelWidth, resp->pixelHeight, resp->gridColumns, resp->gridRows);
-#warning TODO wait a bit for camera detection
-            frskyOSDClearScreen();
-            frskyOSDResetDrawingState();
+            if (!state.initialized) {
+                FRSKY_OSD_DEBUG("FrSky OSD initialized. Version %u.%u.%u, pixels=%ux%u, grid=%ux%u",
+                    resp->versionMajor, resp->versionMinor, resp->versionPatch,
+                    resp->pixelWidth, resp->pixelHeight, resp->gridColumns, resp->gridRows);
+                state.initialized = true;
+                frskyOSDClearScreen();
+                frskyOSDResetDrawingState();
+            }
             return true;
         }
         case OSD_CMD_READ_FONT:
@@ -487,6 +494,11 @@ static bool frskyOSDSendSyncCommand(uint8_t cmd, const void *data, size_t size, 
     return false;
 }
 
+static bool frskyOSDShouldRequestInfo(void)
+{
+    return !frskyOSDIsReady() || millis() > state.nextInfoRequest;
+}
+
 static void frskyOSDRequestInfo(void)
 {
     timeMs_t now = millis();
@@ -494,7 +506,7 @@ static void frskyOSDRequestInfo(void)
         uint8_t version = FRSKY_OSD_SUPPORTED_API_VERSION;
         frskyOSDSendAsyncCommand(OSD_CMD_INFO, &version, sizeof(version));
         frskyOSDFlushSendBuffer();
-        state.info.nextRequest = now + 1000;
+        state.info.nextRequest = now + FRSKY_OSD_INFO_INTERVAL_MS;
     }
 }
 
@@ -549,8 +561,7 @@ void frskyOSDUpdate(void)
         frskyOSDDispatchResponse();
     }
 
-    if (!frskyOSDIsReady()) {
-        // Info not received yet
+    if (frskyOSDShouldRequestInfo()) {
         frskyOSDRequestInfo();
     }
 }
