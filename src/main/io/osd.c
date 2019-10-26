@@ -889,10 +889,10 @@ static void osdFormatRpm(char *buff, uint32_t rpm)
     buff[1] = SYM_THR;
     if (rpm) {
         if (rpm >= 1000) {
-            tfp_sprintf(buff + 2, "%2dk", rpm / 1000);
+            tfp_sprintf(buff + 2, "%2luk", rpm / 1000);
         }
         else {
-            tfp_sprintf(buff + 2, "%3d", rpm);
+            tfp_sprintf(buff + 2, "%3lu", rpm);
         }
     }
     else {
