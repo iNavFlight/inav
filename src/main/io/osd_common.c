@@ -123,3 +123,19 @@ void osdDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *canvas, c
     }
 #endif
 }
+
+void osdDrawHeadingGraph(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, int heading)
+{
+    uint8_t gx;
+    uint8_t gy;
+#if defined(USE_CANVAS)
+    if (canvas) {
+        osdCanvasDrawHeadingGraph(display, canvas, p, heading);
+    } else {
+#endif
+        osdDrawPointGetGrid(&gx, &gy, display, canvas, p);
+        osdGridDrawHeadingGraph(display, gx, gy, heading);
+#if defined(USE_CANVAS)
+    }
+#endif
+}

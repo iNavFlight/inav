@@ -2188,49 +2188,14 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_HEADING_GRAPH:
         {
-            static const uint8_t graph[] = {
-                SYM_HEADING_LINE,
-                SYM_HEADING_E,
-                SYM_HEADING_LINE,
-                SYM_HEADING_DIVIDED_LINE,
-                SYM_HEADING_LINE,
-                SYM_HEADING_S,
-                SYM_HEADING_LINE,
-                SYM_HEADING_DIVIDED_LINE,
-                SYM_HEADING_LINE,
-                SYM_HEADING_W,
-                SYM_HEADING_LINE,
-                SYM_HEADING_DIVIDED_LINE,
-                SYM_HEADING_LINE,
-                SYM_HEADING_N,
-                SYM_HEADING_LINE,
-                SYM_HEADING_DIVIDED_LINE,
-                SYM_HEADING_LINE,
-                SYM_HEADING_E,
-                SYM_HEADING_LINE,
-                SYM_HEADING_DIVIDED_LINE,
-                SYM_HEADING_LINE,
-                SYM_HEADING_S,
-                SYM_HEADING_LINE,
-                SYM_HEADING_DIVIDED_LINE,
-                SYM_HEADING_LINE,
-                SYM_HEADING_W,
-                SYM_HEADING_LINE,
-            };
             if (osdIsHeadingValid()) {
-                int16_t h = DECIDEGREES_TO_DEGREES(osdGetHeading());
-                if (h >= 180) {
-                    h -= 360;
-                }
-                int hh = h * 4;
-                hh = hh + 720 + 45;
-                hh = hh / 90;
-                memcpy_fn(buff, graph + hh + 1, 9);
+                osdDrawHeadingGraph(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX, elemPosY), osdGetHeading());
+                return true;
             } else {
                 buff[0] = buff[2] = buff[4] = buff[6] = buff[8] = SYM_HEADING_LINE;
                 buff[1] = buff[3] = buff[5] = buff[7] = SYM_HEADING_DIVIDED_LINE;
+                buff[OSD_HEADING_GRAPH_WIDTH] = '\0';
             }
-            buff[9] = '\0';
             break;
         }
 

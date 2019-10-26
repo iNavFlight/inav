@@ -287,4 +287,63 @@ void osdCanvasDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *can
     }
 }
 
+void osdCanvasDrawHeadingGraph(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, int heading)
+{
+    static const uint8_t graph[] = {
+        SYM_HEADING_W,
+        SYM_HEADING_LINE,
+        SYM_HEADING_DIVIDED_LINE,
+        SYM_HEADING_LINE,
+        SYM_HEADING_N,
+        SYM_HEADING_LINE,
+        SYM_HEADING_DIVIDED_LINE,
+        SYM_HEADING_LINE,
+        SYM_HEADING_E,
+        SYM_HEADING_LINE,
+        SYM_HEADING_DIVIDED_LINE,
+        SYM_HEADING_LINE,
+        SYM_HEADING_S,
+        SYM_HEADING_LINE,
+        SYM_HEADING_DIVIDED_LINE,
+        SYM_HEADING_LINE,
+        SYM_HEADING_W,
+        SYM_HEADING_LINE,
+        SYM_HEADING_DIVIDED_LINE,
+        SYM_HEADING_LINE,
+        SYM_HEADING_N,
+        SYM_HEADING_LINE,
+        SYM_HEADING_DIVIDED_LINE,
+        SYM_HEADING_LINE,
+        SYM_HEADING_E,
+        SYM_HEADING_LINE,
+    };
+
+    STATIC_ASSERT(sizeof(graph) > (3599 / OSD_HEADING_GRAPH_DECIDEGREES_PER_CHAR) + OSD_HEADING_GRAPH_WIDTH + 1, graph_is_too_short);
+
+    char buf[OSD_HEADING_GRAPH_WIDTH + 1];
+    int px;
+    int py;
+
+    osdDrawPointGetPixels(&px, &py, display, canvas, p);
+    int rw = OSD_HEADING_GRAPH_WIDTH * canvas->gridElementWidth;
+    int rh = canvas->gridElementHeight;
+
+    displayCanvasClipToRect(canvas, px, py, rw, rh);
+
+    int idx = heading / OSD_HEADING_GRAPH_DECIDEGREES_PER_CHAR;
+    int offset = ((heading % OSD_HEADING_GRAPH_DECIDEGREES_PER_CHAR) * canvas->gridElementWidth) / OSD_HEADING_GRAPH_DECIDEGREES_PER_CHAR;
+    memcpy_fn(buf, graph + idx, sizeof(buf) - 1);
+    buf[sizeof(buf) - 1] = '\0';
+    // We need a +1 because characters are 12px wide, so
+    // they can't have a 1px arrow centered. All existing fonts
+    // place the arrow at 5px, hence there's a 1px offset.
+    // TODO: Put this in font metadata and read it back.
+    displayCanvasDrawString(canvas, px - offset + 1, py, buf, DISPLAY_CANVAS_BITMAP_OPT_ERASE_TRANSPARENT);
+
+    displayCanvasSetStrokeColor(canvas, DISPLAY_CANVAS_COLOR_BLACK);
+    displayCanvasSetFillColor(canvas, DISPLAY_CANVAS_COLOR_WHITE);
+    int rmx = px + rw / 2;
+    displayCanvasFillStrokeTriangle(canvas, rmx - 2, py - 1, rmx + 2, py - 1, rmx, py + 1);
+}
+
 #endif
