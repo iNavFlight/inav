@@ -804,13 +804,13 @@ void frskyOSDSetStrokeWidth(unsigned width)
 void frskyOSDSetLineOutlineType(frskyOSDLineOutlineType_e outlineType)
 {
     uint8_t type = outlineType;
-    frskyOSDSendAsyncCommand(OSD_CMD_DRAWING_SET_STROKE_WIDTH, &type, sizeof(type));
+    frskyOSDSendAsyncCommand(OSD_CMD_DRAWING_SET_LINE_OUTLINE_TYPE, &type, sizeof(type));
 }
 
 void frskyOSDSetLineOutlineColor(frskyOSDColor_e outlineColor)
 {
     uint8_t color = outlineColor;
-    frskyOSDSendAsyncCommand(OSD_CMD_DRAWING_SET_STROKE_WIDTH, &color, sizeof(color));
+    frskyOSDSendAsyncCommand(OSD_CMD_DRAWING_SET_LINE_OUTLINE_COLOR, &color, sizeof(color));
 }
 
 void frskyOSDClipToRect(int x, int y, int w, int h)
