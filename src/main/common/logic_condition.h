@@ -42,6 +42,7 @@ typedef enum {
     LOGIC_CONDITION_NAND,           // 10
     LOGIC_CONDITION_NOR,            // 11
     LOGIC_CONDITION_NOT,            // 12
+    LOGIC_CONDITION_STICKY,         // 13
     LOGIC_CONDITION_LAST
 } logicOperation_e;
 
@@ -72,7 +73,6 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_TROTTLE_POS, // %
     LOGIC_CONDITION_OPERAND_FLIGHT_ATTITUDE_ROLL, // deg
     LOGIC_CONDITION_OPERAND_FLIGHT_ATTITUDE_PITCH, // deg
-    LOGIC_CONDITION_OPERAND_FLIGHT_MODE,
 } logicFlightOperands_e;
 
 typedef enum {
@@ -113,13 +113,8 @@ typedef struct logicConditionState_s {
 
 void logicConditionProcess(uint8_t i);
 
-int logicConditionCompute(
-    logicOperation_e operation,
-    int operandA,
-    int operandB
-);
-
 int logicConditionGetOperandValue(logicOperandType_e type, int operand);
 
 int logicConditionGetValue(int8_t conditionId);
 void logicConditionUpdateTask(timeUs_t currentTimeUs);
+void logicConditionReset(void);

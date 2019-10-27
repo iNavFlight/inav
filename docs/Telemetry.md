@@ -255,9 +255,9 @@ INAV can use a SimCom SIM800 series cellular module to provide telemetry via tex
 
 The telemetry message looks like this:
 ```
-12.34V 2.0A ALT:5 SPD:10/13.6 DIS:78/19833 COG:16 SAT:21  SIG:9 ANG maps.google.com/?q=@50.3812711,20.1440378
+12.34V 2.0A ALT:5 SPD:10/13.6 DIS:78/19833 HDG:16 SAT:21  SIG:9 ANG maps.google.com/?q=6FG22222%2B222
 ```
-giving battery voltage, current, altitude (m), speed / average speed (m/s), distance to home / total traveled distance (m), course over ground (degrees), number of satellites, cellular signal strength, flight mode and GPS coordinates as a Google Maps link. `SIG` has a range of 0 -- 31, with a value of 10 or higher indicating a usable signal quality.
+giving battery voltage, current, altitude (m), speed / average speed (m/s), distance to home / total traveled distance (m), heading (degrees), number of satellites, cellular signal strength, flight mode and GPS coordinates as a Google Maps link. `SIG` has a range of 0 -- 31, with a value of 10 or higher indicating a usable signal quality.
 
 Transmission at regular intervals can be set by giving a string of flags in the CLI variable `sim_transmit_flags`: `T` - transmit continuously, `F` - transmit in failsafe mode, `A` - transmit when altitude is lower than `sim_low_altitude`, `G` - transmit when GPS signal quality is low. `A` only transmits in ALT HOLD, WAYPOINT, RTH, and FAILSAFE flight modes. The transmission interval is given by `sim_transmit_interval` and is 60 seconds by default.
 

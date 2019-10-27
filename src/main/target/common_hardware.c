@@ -97,6 +97,17 @@
     #endif
 #endif
 
+#if defined(USE_BARO_SPL06)
+    #if defined(SPL06_SPI_BUS)
+      BUSDEV_REGISTER_SPI(busdev_spl06,     DEVHW_SPL06,        SPL06_SPI_BUS,      SPL06_CS_PIN,       NONE,           DEVFLAGS_NONE);
+    #elif defined(SPL06_I2C_BUS) || defined(BARO_I2C_BUS)
+      #if !defined(SPL06_I2C_BUS)
+        #define SPL06_I2C_BUS BARO_I2C_BUS
+      #endif
+      BUSDEV_REGISTER_I2C(busdev_spl06,     DEVHW_SPL06,        SPL06_I2C_BUS,      0x76,               NONE,           DEVFLAGS_NONE);
+    #endif
+#endif
+
 #if defined(USE_BARO_LPS25H)
     #if defined(LPS25H_SPI_BUS)
     BUSDEV_REGISTER_SPI(busdev_lps25h,      DEVHW_LPS25H,       LPS25H_SPI_BUS,     LPS25H_CS_PIN,      NONE,           DEVFLAGS_NONE);
@@ -281,9 +292,12 @@
     BUSDEV_REGISTER_SPI(busdev_sdcard_spi,  DEVHW_SDCARD,       SDCARD_SPI_BUS,     SDCARD_CS_PIN,      NONE,           DEVFLAGS_USE_MANUAL_DEVICE_SELECT | DEVFLAGS_SPI_MODE_0);
 #endif
 
+/*
+// FIXME(digitalentity): This is unnecessary at the moment as SDIO is not part of BusDevice infrastructure
 #if defined(USE_SDCARD) && defined(USE_SDCARD_SDIO)
     BUSDEV_REGISTER_SDIO(busdev_sdcard_sdio,DEVHW_SDCARD,       SDCARD_SDIO_BUS,    SDCARD_CS_PIN,      NONE,           DEVFLAGS_USE_MANUAL_DEVICE_SELECT);
 #endif
+*/
 
 #if defined(USE_OLED_UG2864)
     #if !defined(UG2864_I2C_BUS)

@@ -30,6 +30,7 @@
 #include "common/color.h"
 #include "common/utils.h"
 #include "common/filter.h"
+#include "common/global_functions.h"
 
 #include "drivers/light_led.h"
 #include "drivers/serial.h"
@@ -386,7 +387,7 @@ void disarm(disarmReason_t disarmReason)
 #endif
 
         statsOnDisarm();
-
+        logicConditionReset();
         beeper(BEEPER_DISARMING);      // emit disarm tone
     }
 }
@@ -442,8 +443,18 @@ void releaseSharedTelemetryPorts(void) {
 void tryArm(void)
 {
     updateArmingStatus();
-
-    if (!isArmingDisabled() || emergencyArmingIsEnabled()) {
+#ifdef USE_GLOBAL_FUNCTIONS
+    if (
+        !isArmingDisabled() || 
+        emergencyArmingIsEnabled() || 
+        GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_ARMING_SAFETY)
+    ) {
+#else 
+    if (
+        !isArmingDisabled() || 
+        emergencyArmingIsEnabled()
+    ) {
+#endif
         if (ARMING_FLAG(ARMED)) {
             return;
         }
@@ -464,6 +475,7 @@ void tryArm(void)
 
         ENABLE_ARMING_FLAG(ARMED);
         ENABLE_ARMING_FLAG(WAS_EVER_ARMED);
+        logicConditionReset();
         headFreeModeHold = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
 
         resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));

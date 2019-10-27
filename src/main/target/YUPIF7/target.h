@@ -152,6 +152,7 @@
 
 // DSHOT
 #define USE_DSHOT
+#define USE_ESC_SENSOR
 
 // Default configuration
 #define SERIALRX_PROVIDER       SERIALRX_SBUS

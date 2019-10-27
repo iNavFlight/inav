@@ -48,6 +48,7 @@
 #include "config/feature.h"
 
 #include "sensors/battery.h"
+#include "sensors/esc_sensor.h"
 
 #include "rx/rx.h"
 
@@ -115,11 +116,14 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
     }
 }
 
-PG_REGISTER_WITH_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig, PG_BATTERY_METERS_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig, PG_BATTERY_METERS_CONFIG, 1);
 
 PG_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig,
 
-    .voltage_scale = VBAT_SCALE_DEFAULT,
+    .voltage = {
+        .type = VOLTAGE_SENSOR_ADC,
+        .scale = VBAT_SCALE_DEFAULT,
+    },
 
     .current = {
         .type = CURRENT_SENSOR_ADC,
@@ -202,9 +206,32 @@ static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
 {
     static pt1Filter_t vbatFilterState;
 
-    // calculate battery voltage based on ADC reading
-    // result is Vbatt in 0.01V steps. 3.3V = ADC Vref, 0xFFF = 12bit adc, 1100 = 11:1 voltage divider (10k:1k)
-    vbat = (uint64_t)adcGetChannel(ADC_BATTERY) * batteryMetersConfig()->voltage_scale * ADCVREF / (0xFFF * 1000);
+    switch (batteryMetersConfig()->voltage.type) {
+        case VOLTAGE_SENSOR_ADC:
+            {
+                // calculate battery voltage based on ADC reading
+                // result is Vbatt in 0.01V steps. 3.3V = ADC Vref, 0xFFF = 12bit adc, 1100 = 11:1 voltage divider (10k:1k)
+                vbat = (uint64_t)adcGetChannel(ADC_BATTERY) * batteryMetersConfig()->voltage.scale * ADCVREF / (0xFFF * 1000);
+                break;
+            }
+#if defined(USE_ESC_SENSOR)
+        case VOLTAGE_SENSOR_ESC:
+            {
+                escSensorData_t * escSensor = escSensorGetData();
+                if (escSensor && escSensor->dataAge <= ESC_DATA_MAX_AGE) {
+                    vbat = escSensor->voltage;
+                }
+                else {
+                    vbat = 0;
+                }
+            }
+            break;
+#endif
+        case VOLTAGE_SENSOR_NONE:
+        default:
+            vbat = 0;
+            break;
+    }
 
     if (justConnected) {
         pt1FilterReset(&vbatFilterState, vbat);
@@ -445,10 +472,27 @@ void currentMeterUpdate(timeUs_t timeDelta)
                 amperage += throttleFactor * batteryMetersConfig()->current.scale / 1000;
             }
             break;
+#if defined(USE_ESC_SENSOR)
+        case CURRENT_SENSOR_ESC:
+            {
+                escSensorData_t * escSensor = escSensorGetData();
+                if (escSensor && escSensor->dataAge <= ESC_DATA_MAX_AGE) {
+                    amperage = pt1FilterApply4(&amperageFilterState, escSensor->current, AMPERAGE_LPF_FREQ, timeDelta * 1e-6f);
+                }
+                else {
+                    amperage = 0;
+                }
+            }
+            break;
+#endif
         case CURRENT_SENSOR_NONE:
+        default:
             amperage = 0;
             break;
     }
+
+    // Clamp amperage to positive values
+    amperage = MAX(0, amperage);
 
     // Work around int64 math compiler bug, don't change it unless the bug has been fixed !
     // should be: mAhdrawnRaw += (int64_t)amperage * timeDelta / 1000;

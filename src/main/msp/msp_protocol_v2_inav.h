@@ -57,6 +57,9 @@
 #define MSP2_INAV_SET_SERVO_MIXER               0x2021
 #define MSP2_INAV_LOGIC_CONDITIONS              0x2022
 #define MSP2_INAV_SET_LOGIC_CONDITIONS          0x2023
+#define MSP2_INAV_GLOBAL_FUNCTIONS              0x2024
+#define MSP2_INAV_SET_GLOBAL_FUNCTIONS          0x2025
+#define MSP2_INAV_LOGIC_CONDITIONS_STATUS       0x2026
 
 #define MSP2_PID                                0x2030
 #define MSP2_SET_PID                            0x2031

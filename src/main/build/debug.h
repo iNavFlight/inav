@@ -70,5 +70,10 @@ typedef enum {
     DEBUG_GENERIC,
     DEBUG_ITERM_RELAX,
     DEBUG_D_BOOST,
+    DEBUG_ANTIGRAVITY,
+    DEBUG_FFT,
+    DEBUG_FFT_TIME,
+    DEBUG_FFT_FREQ,
+    DEBUG_ERPM,
     DEBUG_COUNT
 } debugType_e;
