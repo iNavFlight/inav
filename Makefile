@@ -29,6 +29,8 @@ OPTIONS   ?=
 # Debugger optons, must be empty or GDB
 DEBUG     ?=
 
+SEMIHOSTING ?=
+
 # Build suffix
 BUILD_SUFFIX ?=
 
@@ -180,6 +182,14 @@ OPTIMIZE    = -Os
 LTO_FLAGS   = -flto -fuse-linker-plugin $(OPTIMIZE)
 endif
 
+ifneq ($(SEMIHOSTING),)
+SEMIHOSTING_CFLAGS	= -DSEMIHOSTING
+SEMIHOSTING_LDFLAGS	= --specs=rdimon.specs -lc -lrdimon
+else
+SEMIHOSTING_CFLAGS	=
+SEMIHOSTING_LDFLAGS	=
+endif
+
 DEBUG_FLAGS = -ggdb3 -DDEBUG
 
 CFLAGS      += $(ARCH_FLAGS) \
@@ -187,6 +197,7 @@ CFLAGS      += $(ARCH_FLAGS) \
               $(addprefix -D,$(OPTIONS)) \
               $(addprefix -I,$(INCLUDE_DIRS)) \
               $(DEBUG_FLAGS) \
+              $(SEMIHOSTING_CFLAGS) \
               -std=gnu99 \
               -Wall -Wextra -Wunsafe-loop-optimizations -Wdouble-promotion \
               -Wstrict-prototypes \
@@ -217,6 +228,7 @@ LDFLAGS     = -lm \
               $(ARCH_FLAGS) \
               $(LTO_FLAGS) \
               $(DEBUG_FLAGS) \
+              $(SEMIHOSTING_LDFLAGS) \
               -static \
               -Wl,-gc-sections,-Map,$(TARGET_MAP) \
               -Wl,-L$(LINKER_DIR) \
