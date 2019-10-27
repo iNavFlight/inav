@@ -33,6 +33,9 @@
 #define BEEPER              PD15
 #define BEEPER_INVERTED
 
+#define USE_DSHOT
+#define USE_ESC_SENSOR
+
 #define USE_ACC
 #define USE_GYRO
 
