@@ -380,6 +380,7 @@ $(STFLASH_TARGETS) :
 st-flash: $(TARGET_BIN)
 	$(V0) st-flash --reset write $< $(FLASH_ORIGIN)
 
+elf:	$(TARGET_ELF)
 binary: $(TARGET_BIN)
 hex:    $(TARGET_HEX)
 
