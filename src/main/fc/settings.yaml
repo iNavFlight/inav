@@ -1499,7 +1499,12 @@ groups:
         field: fw.land_aproach_distance
         condition: NAV_FIXED_WING_LANDING
         min: 0
-        max: 10000
+        max: 20000
+      - name: nav_fw_land_distance
+        field: fw.land_distance
+        condition: NAV_FIXED_WING_LANDING
+        min: 0
+        max: 20000
 
       - name: nav_fw_launch_velocity
         field: fw.launch_velocity_thresh

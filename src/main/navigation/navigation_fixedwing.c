@@ -126,8 +126,8 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
     }
     if (virtualAproach == NAV_RTH_APROACH_LANDING_FINAL) {
         loiter_t loiter;
-        calculateLoiter(&loiter, CENTIDEGREES_TO_RADIANS(posControl.rthState.homePosition.yaw), navConfig()->fw.land_aproach_distance, 0, 0);
-        posControl.desiredState.pos.z = scaleRangef(loiter.distance, 0, navConfig()->fw.land_aproach_distance * 2, 0, navConfig()->fw.land_safe_alt);
+        calculateLoiter(&loiter, CENTIDEGREES_TO_RADIANS(posControl.rthState.homePosition.yaw), navConfig()->fw.land_distance, 0, 0);
+        posControl.desiredState.pos.z = scaleRangef(loiter.distance, 0, navConfig()->fw.land_aproach_distance + navConfig()->fw.land_distance, 0, navConfig()->fw.land_safe_alt);
         if (posControl.desiredState.pos.z > navConfig()->fw.land_safe_alt) posControl.desiredState.pos.z = navConfig()->fw.land_safe_alt;
     }
 
@@ -266,6 +266,8 @@ static void calculateVirtualPositionTarget_FW(navigationFSMStateFlags_t navState
     // If angular visibility of a waypoint is less than 30deg, don't calculate circular loiter, go straight to the target
     #define TAN_15DEG    0.26795f
     float loiterRadiusTan = (navConfig()->fw.loiter_radius / TAN_15DEG);
+    if (virtualAproach > NAV_RTH_APROACH_LANDING_DECISION)
+        loiterRadiusTan += navConfig()->fw.land_aproach_distance - navConfig()->fw.loiter_radius;
     bool needToCalculateCircularLoiter = isApproachingLastWaypoint()
                                             && (loiter.distance <= loiterRadiusTan)
                                             && (loiter.distance > 50.0f)

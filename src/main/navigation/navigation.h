@@ -216,6 +216,7 @@ typedef struct navConfig_s {
         uint16_t land_safe_alt;              // Height from which the last approach is made
         uint16_t land_motor_off_alt;         // Height of engine shutdown
         uint16_t land_aproach_distance;      // Distance of final aproach
+        uint16_t land_distance;              // Distance from home point to touch down
         uint16_t launch_velocity_thresh;     // Velocity threshold for swing launch detection
         uint16_t launch_accel_thresh;        // Acceleration threshold for launch detection (cm/s/s)
         uint16_t launch_time_thresh;         // Time threshold for launch detection (ms)

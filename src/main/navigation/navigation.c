@@ -151,6 +151,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .land_safe_alt = 1500,                  // 15m to safe flying
         .land_motor_off_alt = 500,              // 5m when motor cut off
         .land_aproach_distance = 7500,          // 75m for aproach
+        .land_distance = 7500,                  // 75m for land
 
         // Fixed wing launch
         .launch_velocity_thresh = 300,          // 3 m/s
