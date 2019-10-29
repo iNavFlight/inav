@@ -313,9 +313,6 @@ void fcTasksInit(void)
 #ifdef USE_PWM_SERVO_DRIVER
     setTaskEnabled(TASK_PWMDRIVER, feature(FEATURE_PWM_SERVO_DRIVER));
 #endif
-#ifdef USE_OSD
-    setTaskEnabled(TASK_OSD, feature(FEATURE_OSD));
-#endif
 #ifdef USE_CMS
 #ifdef USE_MSP_DISPLAYPORT
     setTaskEnabled(TASK_CMS, true);
