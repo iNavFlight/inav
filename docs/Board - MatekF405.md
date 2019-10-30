@@ -75,8 +75,22 @@ I2C requires that the WS2812 led strip is moved to S5, thus WS2812 is not usable
 Soft serial is available as an alternative to a hardware UART on RX4/TX4 and TX2. By default this is NOT inverted. In order to use this feature:
 
 * Enable soft serial
-* Do not assign any function to hardware UART4 or UART2-TX
-* Assign the desired function to the soft-serial port
+* Do not assign any function to hardware UART4
+* Assign the desired function to the soft-serial ports
+* UART4 TX/RX pads will be used as SoftSerial 1 TX/RX pads
+* UART2 TX pad will be used as SoftSerial 2 TX pad
+
+RX2 and SBUS pads can be used as normal for receiver-only UART. If you need a full duplex UART (IE: TBS Crossfire) and SoftSerial, then use UART 1, 3 or 5 for Full Duplex.
+
+#### Common scenarios for SoftSerial on this boards:
+You need to wire a FrSky receiver (SBUS and SmartPort) to the Flight controller
+* Connect SBUS from Receiver to SBUS pin on the Flight Controller
+* Connect SmartPort from Receiver to TX2 pad on the Flight Controller
+* Enable SoftSerial and set UART2 for Serial RX and SoftSerial 2 for SmartPort Telemetry
+
+You need to wire a SmartAudio or Trump VTX to the Flight controller
+* Connect SmartAudio/Tramp from VTX to the TX4 pad on the Flight Controller
+* Enable SoftSerial and set SoftSerial 1 for SmartAudio or Tramp
 
 ### USB
 
