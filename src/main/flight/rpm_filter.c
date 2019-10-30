@@ -22,27 +22,24 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
-#pragma once
+#include "flight/rpm_filter.h"
 
-typedef struct {
-    uint8_t dataAge;
-    int8_t temperature;
-    int16_t voltage;
-    int32_t current;
-    int16_t rpm;
-} escSensorData_t;
+#include "common/utils.h"
+#include "common/maths.h"
 
-typedef struct escSensorConfig_s {
-    uint16_t currentOffset;             // offset consumed by the flight controller / VTX / cam / ... in mA
-} escSensorConfig_t;
+#ifdef USE_RPM_FILTER
 
-PG_DECLARE(escSensorConfig_t, escSensorConfig);
+void rpmFilterInit(void) {
 
-#define ESC_DATA_MAX_AGE    10
-#define ESC_DATA_INVALID    255
+}
 
-bool escSensorInitialize(void);
-void escSensorUpdate(timeUs_t currentTimeUs);
-escSensorData_t * escSensorGetData(void);
-escSensorData_t * getEscTelemetry(uint8_t esc);
-uint32_t computeRpm(int16_t erpm);
+void NOINLINE rpmFilterUpdateTask(timeUs_t currentTimeUs) {
+    UNUSED(currentTimeUs);
+
+}
+
+float rpmFilterGyroApply(uint8_t axis, float input) {
+    
+}
+
+#endif

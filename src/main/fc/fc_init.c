@@ -90,6 +90,7 @@
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
+#include "flight/rpm_filter.h"
 
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/beeper.h"
@@ -645,6 +646,13 @@ void init(void)
 #ifdef USE_OSD
     if (feature(FEATURE_OSD) && (osdDisplayPort != NULL)) {
         setTaskEnabled(TASK_OSD, feature(FEATURE_OSD));
+    }
+#endif
+
+#ifdef USE_RPM_FILTER
+    if (STATE(ESC_SENSOR_ENABLED) && feature(FEATURE_RPM_FILTER)) {
+        rpmFilterInit();
+        setTaskEnabled(TASK_RPM_FILTER, true);
     }
 #endif
 

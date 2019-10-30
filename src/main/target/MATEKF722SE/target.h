@@ -199,3 +199,5 @@
 #define USE_DSHOT
 #define USE_SERIALSHOT
 #define USE_ESC_SENSOR
+
+#define USE_RPM_FILTER
