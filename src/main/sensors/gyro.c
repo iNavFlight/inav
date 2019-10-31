@@ -510,7 +510,6 @@ void FAST_CODE NOINLINE gyroUpdate()
 #ifdef USE_GYRO_NOTCH_2
         gyroADCf = notchFilter2ApplyFn(notchFilter2[axis], gyroADCf);
 #endif
-        gyro.gyroADCf[axis] = gyroADCf;
 
 #ifdef USE_DYNAMIC_FILTERS
         if (isDynamicFilterActive()) {
@@ -523,6 +522,7 @@ void FAST_CODE NOINLINE gyroUpdate()
             gyroADCf = notchFilterDynApplyFn2((filter_t *)&notchFilterDyn2[axis], gyroADCf);
         }
 #endif
+        gyro.gyroADCf[axis] = gyroADCf;
     }
 
 #ifdef USE_DYNAMIC_FILTERS
