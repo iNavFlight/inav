@@ -566,7 +566,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_RPM_FILTER] = {
         .taskName = "RPM",
         .taskFunc = rpmFilterUpdateTask,
-        .desiredPeriod = TASK_PERIOD_HZ(300),          // 10Hz @100msec
+        .desiredPeriod = TASK_PERIOD_HZ(RPM_FILTER_UPDATE_RATE_HZ),          // 300Hz @3,33ms
         .staticPriority = TASK_PRIORITY_LOW,
     },
 #endif

@@ -27,6 +27,25 @@
 #include "config/parameter_group.h"
 #include "common/time.h"
 
-void rpmFilterInit(void);
+typedef struct rpmFilterConfig_s {
+    uint8_t gyro_filter_enabled;
+    uint8_t dterm_filter_enabled;
+
+    uint8_t  gyro_harmonics;
+    uint8_t  gyro_min_hz;
+    uint16_t gyro_q;
+
+    uint8_t  dterm_harmonics;
+    uint8_t  dterm_min_hz;
+    uint16_t dterm_q;
+
+} rpmFilterConfig_t;
+
+PG_DECLARE(rpmFilterConfig_t, rpmFilterConfig);
+
+#define RPM_FILTER_UPDATE_RATE_HZ 300
+#define RPM_FILTER_UPDATE_RATE_US (1000000.0f / RPM_FILTER_UPDATE_RATE_HZ)
+
+void rpmFiltersInit(void);
 void rpmFilterUpdateTask(timeUs_t currentTimeUs);
 float rpmFilterGyroApply(uint8_t axis, float input);

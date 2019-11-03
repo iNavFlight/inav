@@ -651,7 +651,7 @@ void init(void)
 
 #ifdef USE_RPM_FILTER
     if (STATE(ESC_SENSOR_ENABLED) && feature(FEATURE_RPM_FILTER)) {
-        rpmFilterInit();
+        rpmFiltersInit();
         setTaskEnabled(TASK_RPM_FILTER, true);
     }
 #endif
