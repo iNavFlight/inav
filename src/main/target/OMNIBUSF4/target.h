@@ -111,16 +111,13 @@
 #define USE_BARO
 
 #if !defined(DYSF4PRO) || !defined(DYSF4PROV2) || !defined(OMNIBUSF4)
-
   #define USE_BARO_BMP280
   #define BMP280_SPI_BUS        BUS_SPI3
   #define BMP280_CS_PIN         PB3 // v1
-
   // Support external barometers
   #define BARO_I2C_BUS          I2C_EXT_BUS
   #define USE_BARO_BMP085
   #define USE_BARO_MS5611
-
 #else
   #define BARO_I2C_BUS          I2C_EXT_BUS
   #define USE_BARO_BMP085
