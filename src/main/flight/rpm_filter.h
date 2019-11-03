@@ -49,3 +49,4 @@ PG_DECLARE(rpmFilterConfig_t, rpmFilterConfig);
 void rpmFiltersInit(void);
 void rpmFilterUpdateTask(timeUs_t currentTimeUs);
 float rpmFilterGyroApply(uint8_t axis, float input);
+float rpmFilterDtermApply(uint8_t axis, float input);

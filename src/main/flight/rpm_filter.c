@@ -67,6 +67,7 @@ static EXTENDED_FASTRAM pt1Filter_t erpmFilter[MAX_SUPPORTED_MOTORS];
 static EXTENDED_FASTRAM float motorRpm[MAX_SUPPORTED_MOTORS];
 static EXTENDED_FASTRAM float erpmToHz;
 static EXTENDED_FASTRAM rpmFilterBank_t gyroRpmFilters;
+static EXTENDED_FASTRAM rpmFilterBank_t dtermRpmFilters;
 static EXTENDED_FASTRAM rpmFilterApplyFnPtr rpmGyroApplyFn;
 static EXTENDED_FASTRAM rpmFilterApplyFnPtr rpmDtermApplyFn;
 
@@ -126,6 +127,18 @@ void rpmFiltersInit(void) {
     } else {
         rpmGyroApplyFn = (rpmFilterApplyFnPtr)nullRpmFilterApply;
     }
+
+    if (rpmFilterConfig()->dterm_filter_enabled) {
+        rpmFilterInit(
+            &dtermRpmFilters,
+            rpmFilterConfig()->dterm_q,
+            rpmFilterConfig()->dterm_min_hz,
+            rpmFilterConfig()->dterm_harmonics
+        );
+        rpmDtermApplyFn = (rpmFilterApplyFnPtr)rpmFilterApply;
+    } else {
+        rpmDtermApplyFn = (rpmFilterApplyFnPtr)nullRpmFilterApply;
+    }
 }
 
 void NOINLINE rpmFilterUpdateTask(timeUs_t currentTimeUs) {
@@ -135,6 +148,10 @@ void NOINLINE rpmFilterUpdateTask(timeUs_t currentTimeUs) {
 
 float rpmFilterGyroApply(uint8_t axis, float input) {
     return rpmGyroApplyFn(&gyroRpmFilters, axis, input);
+}
+
+float rpmFilterDtermApply(uint8_t axis, float input) {
+    return rpmDtermApplyFn(&gyroRpmFilters, axis, input);
 }
 
 #endif
