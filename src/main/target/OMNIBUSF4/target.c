@@ -24,7 +24,7 @@
 #include "drivers/bus.h"
 
 const timerHardware_t timerHardware[] = {
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4PRO_LEDSTRIPM5) ||  defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4PRO_LEDSTRIPM5) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)
     DEF_TIM(TIM10, CH1, PB8,  TIM_USE_PPM,                  0, 0), // PPM
     DEF_TIM(TIM4,  CH4, PB9,  TIM_USE_ANY,                  0, 0), // S2_IN
 #else
