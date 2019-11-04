@@ -110,7 +110,7 @@
 
 #define USE_BARO
 
-#if !defined(DYSF4PRO) && !defined(DYSF4PROV2) && !defined(OMNIBUSF4)
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4PRO_LEDSTRIPM5) ||  defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)
   #define USE_BARO_BMP280
   #define BMP280_SPI_BUS        BUS_SPI3
   #define BMP280_CS_PIN         PB3 // v1
@@ -200,7 +200,7 @@
 
 #define USE_SPI_DEVICE_1
 
-#if !defined(DYSF4PRO) && !defined(DYSF4PROV2) && !defined(OMNIBUSF4)
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4PRO_LEDSTRIPM5) ||  defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)
   #define USE_SPI_DEVICE_2
   #define SPI2_NSS_PIN          PB12
   #define SPI2_SCK_PIN          PB13
@@ -209,7 +209,7 @@
 #endif
 
 #define USE_SPI_DEVICE_3
-#if !defined(DYSF4PRO) && !defined(DYSF4PROV2) && !defined(OMNIBUSF4)
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4PRO_LEDSTRIPM5) ||  defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)
   #define SPI3_NSS_PIN          PA15
 #else
   #define SPI3_NSS_PIN          PB3
@@ -223,13 +223,7 @@
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PA15
 
-#if defined(DYSF4PRO) || defined(DYSF4PROV2) || defined(OMNIBUSF4)
-  #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
-  #define M25P16_CS_PIN           SPI3_NSS_PIN
-  #define M25P16_SPI_BUS          BUS_SPI3
-  #define USE_FLASHFS
-  #define USE_FLASH_M25P16
-#else
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4PRO_LEDSTRIPM5) ||  defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)
   #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
   #define USE_SDCARD
   #define USE_SDCARD_SPI
@@ -239,6 +233,12 @@
 
   #define SDCARD_DETECT_PIN     PB7
   #define SDCARD_DETECT_INVERTED
+#else
+  #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+  #define M25P16_CS_PIN           SPI3_NSS_PIN
+  #define M25P16_SPI_BUS          BUS_SPI3
+  #define USE_FLASHFS
+  #define USE_FLASH_M25P16
 #endif
 
 #define USE_ADC
