@@ -110,7 +110,7 @@
 
 #define USE_BARO
 
-#if !defined(DYSF4PRO) || !defined(DYSF4PROV2) || !defined(OMNIBUSF4)
+#if !defined(DYSF4PRO) && !defined(DYSF4PROV2) && !defined(OMNIBUSF4)
   #define USE_BARO_BMP280
   #define BMP280_SPI_BUS        BUS_SPI3
   #define BMP280_CS_PIN         PB3 // v1
