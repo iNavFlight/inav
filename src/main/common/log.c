@@ -137,7 +137,11 @@ static size_t logFormatPrefix(char *buf, const timeMs_t timeMs)
 
 static bool logHasOutput(void)
 {
+#if defined(SEMIHOSTING)
+    return true;
+#else
     return logPort || mspLogPort;
+#endif
 }
 
 static bool logIsEnabled(logTopic_e topic, unsigned level)
