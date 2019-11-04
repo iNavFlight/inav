@@ -26,18 +26,40 @@ ifeq ($(filter $(TARGET),$(VALID_TARGETS)),)
 $(error Target '$(TARGET)' is not valid, must be one of $(VALID_TARGETS). Have you prepared a valid target.mk?)
 endif
 
-ifeq ($(filter $(TARGET),$(F1_TARGETS) $(F3_TARGETS) $(F4_TARGETS) $(F7_TARGETS)),)
-$(error Target '$(TARGET)' has not specified a valid STM group, must be one of F1, F3, F405, F411, F427 or F7x. Have you prepared a valid target.mk?)
+ifeq ($(filter $(TARGET),$(F3_TARGETS) $(F4_TARGETS) $(F7_TARGETS)),)
+$(error Target '$(TARGET)' has not specified a valid STM group, must be one of F3, F405, F411, F427 or F7x. Have you prepared a valid target.mk?)
 endif
 
 ifeq ($(TARGET),$(filter $(TARGET),$(F3_TARGETS)))
-TARGET_MCU := STM32F3
-else ifeq ($(TARGET),$(filter $(TARGET), $(F4_TARGETS)))
-TARGET_MCU := STM32F4
-else ifeq ($(TARGET),$(filter $(TARGET), $(F7_TARGETS)))
-TARGET_MCU := STM32F7
-else ifeq ($(TARGET),$(filter $(TARGET), $(F1_TARGETS)))
-TARGET_MCU := STM32F1
+TARGET_MCU 			:= STM32F303
+TARGET_MCU_GROUP 	:= STM32F3
+else ifeq ($(TARGET),$(filter $(TARGET), $(F405_TARGETS)))
+TARGET_MCU			:= STM32F405
+TARGET_MCU_GROUP 	:= STM32F4
+else ifeq ($(TARGET),$(filter $(TARGET), $(F411_TARGETS)))
+TARGET_MCU			:= STM32F411
+TARGET_MCU_GROUP 	:= STM32F4
+else ifeq ($(TARGET),$(filter $(TARGET), $(F427_TARGETS)))
+TARGET_MCU			:= STM32F427
+TARGET_MCU_GROUP 	:= STM32F4
+else ifeq ($(TARGET),$(filter $(TARGET), $(F446_TARGETS)))
+TARGET_MCU			:= STM32F446
+TARGET_MCU_GROUP 	:= STM32F4
+else ifeq ($(TARGET),$(filter $(TARGET), $(F7X2RE_TARGETS)))
+TARGET_MCU			:= STM32F7X2RE
+TARGET_MCU_GROUP 	:= STM32F7
+else ifeq ($(TARGET),$(filter $(TARGET), $(F7X5XE_TARGETS)))
+TARGET_MCU			:= STM32F7X5XE
+TARGET_MCU_GROUP 	:= STM32F7
+else ifeq ($(TARGET),$(filter $(TARGET), $(F7X5XG_TARGETS)))
+TARGET_MCU			:= STM32F7X5XG
+TARGET_MCU_GROUP 	:= STM32F7
+else ifeq ($(TARGET),$(filter $(TARGET), $(F7X5XI_TARGETS)))
+TARGET_MCU			:= STM32F7X5XI
+TARGET_MCU_GROUP 	:= STM32F7
+else ifeq ($(TARGET),$(filter $(TARGET), $(F7X6XG_TARGETS)))
+TARGET_MCU			:= STM32F7X6XG
+TARGET_MCU_GROUP 	:= STM32F7
 else
 $(error Unknown target MCU specified.)
 endif

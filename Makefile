@@ -110,7 +110,7 @@ CSOURCES        := $(shell find $(SRC_DIR) -name '*.c')
 
 # start specific includes
 include $(ROOT)/make/mcu/STM32.mk
-include $(ROOT)/make/mcu/$(TARGET_MCU).mk
+include $(ROOT)/make/mcu/$(TARGET_MCU_GROUP).mk
 
 # Configure default flash sizes for the targets (largest size specified gets hit first) if flash not specified already.
 ifeq ($(FLASH_SIZE),)
@@ -123,7 +123,7 @@ endif
 
 # Configure devide and target-specific defines and compiler flags
 DEVICE_FLAGS    := $(DEVICE_FLAGS) -DFLASH_SIZE=$(FLASH_SIZE)
-TARGET_FLAGS    := $(TARGET_FLAGS) -D$(TARGET_MCU) -D$(TARGET)
+TARGET_FLAGS    := $(TARGET_FLAGS) -D$(TARGET_MCU) -D$(TARGET_MCU_GROUP) -D$(TARGET)
 
 ifneq ($(HSE_VALUE),)
 DEVICE_FLAGS    := $(DEVICE_FLAGS) -DHSE_VALUE=$(HSE_VALUE)
@@ -274,6 +274,7 @@ CLEAN_ARTIFACTS += $(TARGET_OBJS) $(TARGET_MAP)
 
 include $(ROOT)/make/stamp.mk
 include $(ROOT)/make/settings.mk
+include $(ROOT)/make/svd.mk
 
 # Make sure build date and revision is updated on every incremental build
 $(TARGET_OBJ_DIR)/build/version.o : $(TARGET_SRC)
