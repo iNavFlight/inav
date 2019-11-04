@@ -259,7 +259,7 @@
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
 #define USE_LED_STRIP
-#if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)) && !defined(OMNIBUSF4PRO_LEDSTRIPM5)
+#if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)) && !defined(OMNIBUSF4PRO_LEDSTRIPM5)
 #   define WS2811_PIN                   PB6
 #else
 #   define WS2811_PIN                   PA1
