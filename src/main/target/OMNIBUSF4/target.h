@@ -69,22 +69,23 @@
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
-#if defined(DYSF4PRO) || defined(DYSF4PROV2)
-  #define USE_GYRO_MPU6000
-  #define GYRO_MPU6000_ALIGN      CW180_DEG
-
-  #define USE_ACC_MPU6000
-  #define ACC_MPU6000_ALIGN       CW180_DEG
-#else
+// Long sentence, OMNIBUSF4 always defined
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4PRO_LEDSTRIPM5) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)
   #define USE_GYRO_MPU6000
   #define GYRO_MPU6000_ALIGN      CW270_DEG
 
   #define USE_ACC_MPU6000
   #define ACC_MPU6000_ALIGN       CW270_DEG
+#else
+  #define USE_GYRO_MPU6000
+  #define GYRO_MPU6000_ALIGN      CW180_DEG
+
+  #define USE_ACC_MPU6000
+  #define ACC_MPU6000_ALIGN       CW180_DEG
 #endif
 
 // Support for OMNIBUS F4 PRO CORNER - it has ICM20608 instead of MPU6000
-#if !defined(DYSF4PRO) && !defined(DYSF4PROV2)
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4PRO_LEDSTRIPM5) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)
   #define MPU6500_CS_PIN          MPU6000_CS_PIN
   #define MPU6500_SPI_BUS         MPU6000_SPI_BUS
 
@@ -259,9 +260,9 @@
 
 #define USE_LED_STRIP
 #if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)) && !defined(OMNIBUSF4PRO_LEDSTRIPM5)
-#   define WS2811_PIN                   PB6
+  #define WS2811_PIN                   PB6
 #else
-#   define WS2811_PIN                   PA1
+  #define WS2811_PIN                   PA1
 #endif
 
 #define DEFAULT_RX_TYPE         RX_TYPE_PPM
