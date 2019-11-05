@@ -45,7 +45,7 @@ const timerHardware_t timerHardware[] = {
 #if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)) && !defined(OMNIBUSF4PRO_LEDSTRIPM5)
     DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO,   0, 0), // S5_OUT
 #else
-    DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO,   0, 0), // S5_OUT
+    DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_LED,                                              0, 0), // S5_OUT, Motor 5 LED strip
 #endif
     DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO,   0, 0), // S6_OUT
 #if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)) && !defined(OMNIBUSF4PRO_LEDSTRIPM5)
