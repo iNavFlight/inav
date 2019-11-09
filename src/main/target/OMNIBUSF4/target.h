@@ -166,26 +166,26 @@
 
 #elif defined(OMNIBUSF4V3_S6_SS)        // one softserial on S6
 #define USE_SOFTSERIAL1
-#define SOFTSERIAL_1_RX_PIN     PA8     // shared with S6 output
-#define SOFTSERIAL_1_TX_PIN     PA8     // shared with S6 output
+#define SOFTSERIAL_1_RX_PIN     PA8     // S6 output
+#define SOFTSERIAL_1_TX_PIN     PA8     // S6 output
 
 #define SERIAL_PORT_COUNT       5       // VCP, USART1, USART3, USART6, SOFTSERIAL1
 
 #elif defined(OMNIBUSF4V3_S5S6_SS)      // one softserial on S5/RX S6/TX
 #define USE_SOFTSERIAL1
-#define SOFTSERIAL_1_RX_PIN     PA1     // shared with S5 output
-#define SOFTSERIAL_1_TX_PIN     PA8     // shared with S6 output
+#define SOFTSERIAL_1_RX_PIN     PA1     // S5 output
+#define SOFTSERIAL_1_TX_PIN     PA8     // S6 output
 
 #define SERIAL_PORT_COUNT       5       // VCP, USART1, USART3, USART6, SOFTSERIAL1
 
 #elif defined(OMNIBUSF4V3_S5_S6_2SS)    // two softserials, one on S5 and one on S6
 #define USE_SOFTSERIAL1
-#define SOFTSERIAL_1_RX_PIN     PA1     // shared with S5 output
-#define SOFTSERIAL_1_TX_PIN     PA1     // shared with S5 output
+#define SOFTSERIAL_1_RX_PIN     PA1     // S5 output
+#define SOFTSERIAL_1_TX_PIN     PA1     // S5 output
 
 #define USE_SOFTSERIAL2
-#define SOFTSERIAL_2_RX_PIN     PA8     // shared with S6 output
-#define SOFTSERIAL_2_TX_PIN     PA8     // shared with S6 output
+#define SOFTSERIAL_2_RX_PIN     PA8     // S6 output
+#define SOFTSERIAL_2_TX_PIN     PA8     // S6 output
 
 #define SERIAL_PORT_COUNT       6       // VCP, USART1, USART3, USART6, SOFTSERIAL1, SOFTSERIAL2
 
@@ -259,7 +259,7 @@
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
 #define USE_LED_STRIP
-#if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)) && !defined(OMNIBUSF4PRO_LEDSTRIPM5)
+#if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS))
   #define WS2811_PIN                   PB6
 #else
   #define WS2811_PIN                   PA1
