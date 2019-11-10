@@ -110,7 +110,7 @@
 
 #define USE_BARO
 
-#if defined(DYSF4PRO) || defined(DYSF4PROV2) || defined(OMNIBUSF4)
+#if defined(DYSF4PRO) || defined(DYSF4PROV2) || (defined(OMNIBUSF4) && !defined(OMNIBUSF4PRO))
   #define BARO_I2C_BUS          I2C_EXT_BUS
   #define USE_BARO_BMP085
   #define USE_BARO_BMP280
@@ -201,7 +201,7 @@
 
 #define USE_SPI_DEVICE_1
 
-#if !defined(DYSF4PRO) && !defined(DYSF4PROV2) && !defined(OMNIBUSF4)
+#if !defined(DYSF4PRO) && !defined(DYSF4PROV2) && (!defined(OMNIBUSF4) || defined(OMNIBUSF4PRO))
   #define USE_SPI_DEVICE_2
   #define SPI2_NSS_PIN          PB12
   #define SPI2_SCK_PIN          PB13
@@ -210,7 +210,7 @@
 #endif
 
 #define USE_SPI_DEVICE_3
-#if !defined(DYSF4PRO) && !defined(DYSF4PROV2) && !defined(OMNIBUSF4)
+#if !defined(DYSF4PRO) && !defined(DYSF4PROV2) && (!defined(OMNIBUSF4) && !defined(OMNIBUSF4PRO))
   #define SPI3_NSS_PIN          PA15
 #else
   #define SPI3_NSS_PIN          PB3
@@ -224,7 +224,7 @@
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PA15
 
-#if defined(DYSF4PRO) || defined(DYSF4PROV2) || defined(OMNIBUSF4)
+#if defined(DYSF4PRO) || defined(DYSF4PROV2) || (defined(OMNIBUSF4) && !defined(OMNIBUSF4PRO))
   #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
   #define M25P16_CS_PIN           SPI3_NSS_PIN
   #define M25P16_SPI_BUS          BUS_SPI3
