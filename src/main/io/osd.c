@@ -888,21 +888,19 @@ static void osdFormatThrottlePosition(char *buff, bool autoThr, textAttributes_t
 #if defined(USE_ESC_SENSOR)
 static void osdFormatRpm(char *buff, uint32_t rpm)
 {
-    // FIXME: We need a new symbol for RPM
-    buff[0] = SYM_BLANK;
-    buff[1] = SYM_THR;
+    buff[0] = SYM_RPM;
     if (rpm) {
         if (rpm >= 1000) {
-            osdFormatCentiNumber(buff + 2, rpm / 10, 0, 1, 1, 2);
-            buff[4] = 'K';
-            buff[5] = '\0';
+            osdFormatCentiNumber(buff + 1, rpm / 10, 0, 1, 1, 2);
+            buff[3] = 'K';
+            buff[4] = '\0';
         }
         else {
-            tfp_sprintf(buff + 2, "%3lu", rpm);
+            tfp_sprintf(buff + 1, "%3lu", rpm);
         }
     }
     else {
-        strcpy(buff + 2, "---");
+        strcpy(buff + 1, "---");
     }
 }
 #endif
