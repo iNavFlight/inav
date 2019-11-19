@@ -1448,6 +1448,7 @@ groups:
       - name: nav_rth_home_offset_direction
         field: general.rth_home_offset_direction
         max: 359
+
       - name: nav_mc_bank_angle
         field: mc.max_bank_angle
         min: 15

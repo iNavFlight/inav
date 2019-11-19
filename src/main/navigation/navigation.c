@@ -56,6 +56,7 @@
 #include "sensors/acceleration.h"
 #include "sensors/boardalignment.h"
 
+
 // Multirotors:
 #define MR_RTH_CLIMB_OVERSHOOT_CM   100  // target this amount of cm *above* the target altitude to ensure it is actually reached (Vz > 0 at target alt)
 #define MR_RTH_CLIMB_MARGIN_MIN_CM  100  // start cruising home this amount of cm *before* reaching the cruise altitude (while continuing the ascend)
@@ -2221,7 +2222,6 @@ static navigationHomeFlags_t navigationActualStateHomeValidity(void)
 /*-----------------------------------------------------------
  * Update home position, calculate distance and bearing to home
  *-----------------------------------------------------------*/
-
 void updateHomePosition(void)
 {
     // Disarmed and have a valid position, constantly update home
@@ -2566,7 +2566,6 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
     // WP #0 - special waypoint - HOME
     if ((wpNumber == 0) && ARMING_FLAG(ARMED) && (posControl.flags.estPosStatus >= EST_USABLE) && posControl.gpsOrigin.valid && posControl.flags.isGCSAssistedNavigationEnabled) {
         // Forcibly set home position. Note that this is only valid if already armed, otherwise home will be reset instantly
-
         geoConvertGeodeticToLocal(&wpPos.pos, &posControl.gpsOrigin, &wpLLH, GEO_ALT_RELATIVE);
         setHomePosition(&wpPos.pos, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, NAV_HOME_VALID_ALL);
     }
