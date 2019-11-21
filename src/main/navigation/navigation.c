@@ -2241,11 +2241,11 @@ void updateHomePosition(void)
             }
             if (setHome) {
                 if (navConfig()->general.rth_home_offset_distance != 0) { // apply user defined offset
-                    fpVector3_t newHome;
-                    newHome.x = posControl.actualState.abs.pos.x + 100 * navConfig()->general.rth_home_offset_distance * cos_approx(DEGREES_TO_RADIANS(navConfig()->general.rth_home_offset_direction));
-                    newHome.y = posControl.actualState.abs.pos.y + 100 * navConfig()->general.rth_home_offset_distance * sin_approx(DEGREES_TO_RADIANS(navConfig()->general.rth_home_offset_direction));
-                    newHome.z = posControl.actualState.abs.pos.z;
-                    setHomePosition(&newHome, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
+                    fpVector3_t offsetHome;
+                    offsetHome.x = posControl.actualState.abs.pos.x + 100 * navConfig()->general.rth_home_offset_distance * cos_approx(DEGREES_TO_RADIANS(navConfig()->general.rth_home_offset_direction));
+                    offsetHome.y = posControl.actualState.abs.pos.y + 100 * navConfig()->general.rth_home_offset_distance * sin_approx(DEGREES_TO_RADIANS(navConfig()->general.rth_home_offset_direction));
+                    offsetHome.z = posControl.actualState.abs.pos.z;
+                    setHomePosition(&offsetHome, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
                 } else {
                     setHomePosition(&posControl.actualState.abs.pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
                 }
