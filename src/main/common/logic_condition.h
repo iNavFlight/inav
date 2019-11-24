@@ -42,6 +42,7 @@ typedef enum {
     LOGIC_CONDITION_NAND,           // 10
     LOGIC_CONDITION_NOR,            // 11
     LOGIC_CONDITION_NOT,            // 12
+    LOGIC_CONDITION_STICKY,         // 13
     LOGIC_CONDITION_LAST
 } logicOperation_e;
 
@@ -49,6 +50,7 @@ typedef enum logicOperandType_s {
     LOGIC_CONDITION_OPERAND_TYPE_VALUE = 0,
     LOGIC_CONDITION_OPERAND_TYPE_RC_CHANNEL,
     LOGIC_CONDITION_OPERAND_TYPE_FLIGHT,
+    LOGIC_CONDITION_OPERAND_TYPE_FLIGHT_MODE,
     LOGIC_CONDITION_OPERAND_TYPE_LC,    // Result of different LC and LC operand
     LOGIC_CONDITION_OPERAND_TYPE_LAST
 } logicOperandType_e;
@@ -72,6 +74,18 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_ATTITUDE_ROLL, // deg
     LOGIC_CONDITION_OPERAND_FLIGHT_ATTITUDE_PITCH, // deg
 } logicFlightOperands_e;
+
+typedef enum {
+    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_FAILSAFE,
+    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_MANUAL,
+    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_RTH,
+    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_POSHOLD,
+    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_CRUISE,
+    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_ALTHOLD,
+    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_ANGLE,
+    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_HORIZON,
+    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_AIR,
+} logicFlightModeOperands_e;
 
 typedef enum {
     LOGIC_CONDITION_FLAG_LATCH      = 1 << 0,
@@ -99,13 +113,8 @@ typedef struct logicConditionState_s {
 
 void logicConditionProcess(uint8_t i);
 
-int logicConditionCompute(
-    logicOperation_e operation,
-    int operandA,
-    int operandB
-);
-
 int logicConditionGetOperandValue(logicOperandType_e type, int operand);
 
 int logicConditionGetValue(int8_t conditionId);
 void logicConditionUpdateTask(timeUs_t currentTimeUs);
+void logicConditionReset(void);

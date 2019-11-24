@@ -43,21 +43,6 @@ http://seriouslypro.com/spracingf3#manual
 
 ### IO_1
 
-The 8 pin IO_1 connector has the following pinouts when used in RX_PARALLEL_PWM mode.
-
-| Pin | Function       | Notes                                        |
-| --- | -------------- | -------------------------------------------- |
-| 1   | Ground         |                                              |
-| 2   | VCC_IN         | Voltage as-supplied by BEC.                  |
-| 3   | RC_CH1         | |
-| 4   | RC_CH2         | |
-| 5   | RC_CH5         | |
-| 6   | RC_CH6         | |
-| 7   | LED_STRIP      | Enable `feature LED_STRIP`                   |
-| 8   | VCC            | 3.3v output for LOW CURRENT application only |
-
-When RX_PPM/RX_SERIAL is used the IO_1 pinout is as follows.
-
 | Pin | Function       | Notes                                        |
 | --- | -------------- | -------------------------------------------- |
 | 1   | Ground         |                                              |
@@ -70,21 +55,6 @@ When RX_PPM/RX_SERIAL is used the IO_1 pinout is as follows.
 | 8   | VCC            | 3.3v output for LOW CURRENT application only |
 
 ### IO_2
-
-The 8 pin IO_2 connector has the following pinouts when used in RX_PARALLEL_PWM mode.
-
-| Pin | Function          | Notes                                        |
-| --- | ----------------- | -------------------------------------------- |
-| 1   | Ground            |                                              |
-| 2   | VCC_IN            | Voltage as-supplied by BEC.                  |
-| 3   | RC_CH3            |                                              |
-| 4   | RC_CH4            |                                              |
-| 5   | RC_CH7/HC-SR04_TRIG |                                              |
-| 6   | RC_CH8/HC-SR04_ECHO |                                              |
-| 7   | ADC_1             | Current Sensor                               |
-| 8   | ADC_2             | RSSI                                         |
-
-When RX_PPM/RX_SERIAL is used the IO_2 pinout is as follows.
 
 | Pin | Function                  | Notes                                        |
 | --- | ------------------------- | -------------------------------------------- |

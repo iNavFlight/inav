@@ -35,6 +35,7 @@
 
 #include "io/pwmdriver_i2c.h"
 #include "io/esc_serialshot.h"
+#include "sensors/esc_sensor.h"
 
 #include "config/feature.h"
 
@@ -79,15 +80,16 @@ typedef struct {
 typedef struct {
     pwmOutputPort_t *   pwmPort;        // May be NULL if motor doesn't use the PWM port
     uint16_t            value;          // Used to keep track of last motor value
+    bool                requestTelemetry;
 } pwmOutputMotor_t;
 
 static pwmOutputPort_t pwmOutputPorts[MAX_PWM_OUTPUT_PORTS];
 
-static pwmOutputMotor_t        motors[MAX_PWM_MOTORS];
+static pwmOutputMotor_t        motors[MAX_MOTORS];
 static motorPwmProtocolTypes_e initMotorProtocol;
 static pwmWriteFuncPtr         motorWritePtr = NULL;    // Function to write value to motors
 
-static pwmOutputPort_t *       servos[MAX_PWM_SERVOS];
+static pwmOutputPort_t *       servos[MAX_SERVOS];
 static pwmWriteFuncPtr         servoWritePtr = NULL;    // Function to write value to motors
 
 #if defined(USE_DSHOT) || defined(USE_SERIALSHOT)
@@ -304,33 +306,49 @@ static void pwmWriteDigital(uint8_t index, uint16_t value)
     motors[index].value = constrain(value, 0, 2047);
 }
 
-bool FAST_CODE NOINLINE isMotorProtocolDshot(void)
+bool isMotorProtocolDshot(void)
 {
     // We look at cached `initMotorProtocol` to make sure we are consistent with the initialized config
     // motorConfig()->motorPwmProtocol may change at run time which will cause uninitialized structures to be used
     return getMotorProtocolProperties(initMotorProtocol)->isDSHOT;
 }
 
-bool FAST_CODE NOINLINE isMotorProtocolSerialShot(void)
+bool isMotorProtocolSerialShot(void)
 {
     return getMotorProtocolProperties(initMotorProtocol)->isSerialShot;
 }
 
-bool FAST_CODE NOINLINE isMotorProtocolDigital(void)
+bool isMotorProtocolDigital(void)
 {
     return isMotorProtocolDshot() || isMotorProtocolSerialShot();
 }
 
+void pwmRequestMotorTelemetry(int motorIndex)
+{
+    const int motorCount = getMotorCount();
+    for (int index = 0; index < motorCount; index++) {
+        if (motors[index].pwmPort && motors[index].pwmPort->configured && index == motorIndex) {
+            motors[index].requestTelemetry = true;
+        }
+    }
+}
+
 void pwmCompleteMotorUpdate(void)
 {
-    // Get motor count from mixer
-    int motorCount = getMotorCount();
+    // This only makes sense for digital motor protocols
+    if (!isMotorProtocolDigital()) {
+        return;
+    }
 
-    // Get latest REAL time
+    int motorCount = getMotorCount();
     timeUs_t currentTimeUs = micros();
 
+#ifdef USE_ESC_SENSOR
+    escSensorUpdate(currentTimeUs);
+#endif
+
     // Enforce motor update rate
-    if (!isMotorProtocolDigital() || (digitalMotorUpdateIntervalUs == 0) || ((currentTimeUs - digitalMotorLastUpdateUs) <= digitalMotorUpdateIntervalUs)) {
+    if ((digitalMotorUpdateIntervalUs == 0) || ((currentTimeUs - digitalMotorLastUpdateUs) <= digitalMotorUpdateIntervalUs)) {
         return;
     }
 
@@ -341,11 +359,10 @@ void pwmCompleteMotorUpdate(void)
         // Generate DMA buffers
         for (int index = 0; index < motorCount; index++) {
             if (motors[index].pwmPort && motors[index].pwmPort->configured) {
-                // TODO: ESC telemetry
-                uint16_t packet = prepareDshotPacket(motors[index].value, false);
-
+                uint16_t packet = prepareDshotPacket(motors[index].value, motors[index].requestTelemetry);
                 loadDmaBufferDshot(motors[index].pwmPort->dmaBuffer, packet);
                 timerPWMPrepareDMA(motors[index].pwmPort->tch, DSHOT_DMA_BUFFER_SIZE);
+                motors[index].requestTelemetry = false;
             }
         }
 
@@ -398,6 +415,10 @@ void pwmMotorPreconfigure(void)
         case PWM_TYPE_DSHOT600:
         case PWM_TYPE_DSHOT300:
         case PWM_TYPE_DSHOT150:
+#ifdef USE_ESC_SENSOR
+            // DSHOT supports a dedicated wire ESC telemetry. Kick off the ESC-sensor receiver initialization
+            escSensorInitialize();
+#endif
             motorConfigDigitalUpdateInterval(motorConfig()->motorPwmRate);
             motorWritePtr = pwmWriteDigital;
             break;

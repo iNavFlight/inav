@@ -63,12 +63,12 @@ bool serialshotInitialize(void)
         return true;
     }
 
-    portConfig = findSerialPortConfig(FUNCTION_SERIALSHOT);
+    portConfig = findSerialPortConfig(FUNCTION_ESCSERIAL);
     if (!portConfig) {
         return false;
     }
 
-    escPort = openSerialPort(portConfig->identifier, FUNCTION_SERIALSHOT, NULL, NULL, SERIALSHOT_UART_BAUD, MODE_RXTX, SERIAL_NOT_INVERTED | SERIAL_UNIDIR);
+    escPort = openSerialPort(portConfig->identifier, FUNCTION_ESCSERIAL, NULL, NULL, SERIALSHOT_UART_BAUD, MODE_RXTX, SERIAL_NOT_INVERTED | SERIAL_UNIDIR);
     if (!escPort) {
         return false;
     }

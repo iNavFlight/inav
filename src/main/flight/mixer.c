@@ -27,6 +27,7 @@
 #include "common/filter.h"
 #include "common/maths.h"
 #include "common/utils.h"
+#include "common/global_functions.h"
 
 #include "config/feature.h"
 #include "config/parameter_group.h"
@@ -59,6 +60,7 @@ static float motorMixRange;
 static float mixerScale = 1.0f;
 static EXTENDED_FASTRAM motorMixer_t currentMixer[MAX_SUPPORTED_MOTORS];
 static EXTENDED_FASTRAM uint8_t motorCount = 0;
+EXTENDED_FASTRAM int mixerThrottleCommand;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(flight3DConfig_t, flight3DConfig, PG_MOTOR_3D_CONFIG, 0);
 
@@ -72,7 +74,7 @@ PG_REGISTER_WITH_RESET_TEMPLATE(mixerConfig_t, mixerConfig, PG_MIXER_CONFIG, 1);
 
 PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
     .yaw_motor_direction = 1,
-    .yaw_jump_prevention_limit = 200,
+    .yaw_jump_prevention_limit = 350,
     .platformType = PLATFORM_MULTIROTOR,
     .hasFlaps = false,
     .appliedMixerPreset = -1, //This flag is not available in CLI and used by Configurator only
@@ -89,17 +91,21 @@ PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
 #define DEFAULT_MIN_THROTTLE    1150
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(motorConfig_t, motorConfig, PG_MOTOR_CONFIG, 2);
+#define DEFAULT_MAX_THROTTLE    1850
+
+PG_REGISTER_WITH_RESET_TEMPLATE(motorConfig_t, motorConfig, PG_MOTOR_CONFIG, 4);
 
 PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .minthrottle = DEFAULT_MIN_THROTTLE,
     .motorPwmProtocol = DEFAULT_PWM_PROTOCOL,
     .motorPwmRate = DEFAULT_PWM_RATE,
-    .maxthrottle = 1850,
+    .maxthrottle = DEFAULT_MAX_THROTTLE,
     .mincommand = 1000,
     .motorAccelTimeMs = 0,
     .motorDecelTimeMs = 0,
-    .digitalIdleOffsetValue = 450   // Same scale as in Betaflight
+    .digitalIdleOffsetValue = 450,  // Same scale as in Betaflight
+    .throttleScale = 1.0f,
+    .motorPoleCount = 14            // Most brushless motors that we use are 14 poles
 );
 
 PG_REGISTER_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer, PG_MOTOR_MIXER, 0);
@@ -310,37 +316,51 @@ void FAST_CODE NOINLINE mixTable(const float dT)
     }
 
     int16_t rpyMixRange = rpyMixMax - rpyMixMin;
-    int16_t throttleRange, throttleCommand;
+    int16_t throttleRange;
     int16_t throttleMin, throttleMax;
     static int16_t throttlePrevious = 0;   // Store the last throttle direction for deadband transitions
 
     // Find min and max throttle based on condition.
+#ifdef USE_GLOBAL_FUNCTIONS
+    if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE)) {
+        throttleMin = motorConfig()->minthrottle;
+        throttleMax = motorConfig()->maxthrottle;
+        mixerThrottleCommand = constrain(globalFunctionValues[GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE], throttleMin, throttleMax); 
+    } else
+#endif
     if (feature(FEATURE_3D)) {
         if (!ARMING_FLAG(ARMED)) throttlePrevious = PWM_RANGE_MIDDLE; // When disarmed set to mid_rc. It always results in positive direction after arming.
 
         if ((rcCommand[THROTTLE] <= (PWM_RANGE_MIDDLE - rcControlsConfig()->deadband3d_throttle))) { // Out of band handling
             throttleMax = flight3DConfig()->deadband3d_low;
             throttleMin = motorConfig()->minthrottle;
-            throttlePrevious = throttleCommand = rcCommand[THROTTLE];
+            throttlePrevious = mixerThrottleCommand = rcCommand[THROTTLE];
         } else if (rcCommand[THROTTLE] >= (PWM_RANGE_MIDDLE + rcControlsConfig()->deadband3d_throttle)) { // Positive handling
             throttleMax = motorConfig()->maxthrottle;
             throttleMin = flight3DConfig()->deadband3d_high;
-            throttlePrevious = throttleCommand = rcCommand[THROTTLE];
+            throttlePrevious = mixerThrottleCommand = rcCommand[THROTTLE];
         } else if ((throttlePrevious <= (PWM_RANGE_MIDDLE - rcControlsConfig()->deadband3d_throttle)))  { // Deadband handling from negative to positive
-            throttleCommand = throttleMax = flight3DConfig()->deadband3d_low;
+            mixerThrottleCommand = throttleMax = flight3DConfig()->deadband3d_low;
             throttleMin = motorConfig()->minthrottle;
         } else {  // Deadband handling from positive to negative
             throttleMax = motorConfig()->maxthrottle;
-            throttleCommand = throttleMin = flight3DConfig()->deadband3d_high;
+            mixerThrottleCommand = throttleMin = flight3DConfig()->deadband3d_high;
         }
     } else {
-        throttleCommand = rcCommand[THROTTLE];
+        mixerThrottleCommand = rcCommand[THROTTLE];
         throttleMin = motorConfig()->minthrottle;
         throttleMax = motorConfig()->maxthrottle;
 
+        // Throttle scaling to limit max throttle when battery is full
+    #ifdef USE_GLOBAL_FUNCTIONS
+        mixerThrottleCommand = ((mixerThrottleCommand - throttleMin) * getThrottleScale(motorConfig()->throttleScale)) + throttleMin;
+    #else
+        mixerThrottleCommand = ((mixerThrottleCommand - throttleMin) * motorConfig()->throttleScale) + throttleMin;
+    #endif
         // Throttle compensation based on battery voltage
-        if (feature(FEATURE_THR_VBAT_COMP) && feature(FEATURE_VBAT) && isAmperageConfigured())
-            throttleCommand = MIN(throttleMin + (throttleCommand - throttleMin) * calculateThrottleCompensationFactor(), throttleMax);
+        if (feature(FEATURE_THR_VBAT_COMP) && isAmperageConfigured() && feature(FEATURE_VBAT)) {                
+            mixerThrottleCommand = MIN(throttleMin + (mixerThrottleCommand - throttleMin) * calculateThrottleCompensationFactor(), throttleMax);
+        }
     }
 
     throttleRange = throttleMax - throttleMin;
@@ -364,7 +384,7 @@ void FAST_CODE NOINLINE mixTable(const float dT)
     // roll/pitch/yaw. This could move throttle down, but also up for those low throttle flips.
     if (ARMING_FLAG(ARMED)) {
         for (int i = 0; i < motorCount; i++) {
-            motor[i] = rpyMix[i] + constrain(throttleCommand * currentMixer[i].throttle, throttleMin, throttleMax);
+            motor[i] = rpyMix[i] + constrain(mixerThrottleCommand * currentMixer[i].throttle, throttleMin, throttleMax);
 
             if (failsafeIsActive()) {
                 motor[i] = constrain(motor[i], motorConfig()->mincommand, motorConfig()->maxthrottle);

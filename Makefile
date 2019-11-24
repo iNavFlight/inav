@@ -69,8 +69,15 @@ INCLUDE_DIRS    := $(SRC_DIR) \
                    $(ROOT)/src/main/target
 LINKER_DIR      := $(ROOT)/src/main/target/link
 
+# import macros common to all supported build systems
+include $(ROOT)/make/system-id.mk
+
+# developer preferences, edit these at will, they'll be gitignored
+-include $(ROOT)/make/local.mk
+
 # default xtal value for F4 targets
 HSE_VALUE       = 8000000
+MHZ_VALUE      ?=
 
 # used for turning on features like VCP and SDCARD
 FEATURES        =
@@ -82,8 +89,9 @@ VALID_TARGETS  := $(subst /,, $(subst ./src/main/target/,, $(VALID_TARGETS)))
 VALID_TARGETS  := $(VALID_TARGETS) $(ALT_TARGETS)
 VALID_TARGETS  := $(sort $(VALID_TARGETS))
 
-CLEAN_TARGETS = $(addprefix clean_,$(VALID_TARGETS) )
-TARGETS_CLEAN = $(addsuffix _clean,$(VALID_TARGETS) )
+CLEAN_TARGETS   = $(addprefix clean_,$(VALID_TARGETS) )
+TARGETS_CLEAN   = $(addsuffix _clean,$(VALID_TARGETS) )
+STFLASH_TARGETS = $(addprefix st-flash_,$(VALID_TARGETS) )
 
 ifeq ($(filter $(TARGET),$(ALT_TARGETS)), $(TARGET))
 BASE_TARGET    := $(firstword $(subst /,, $(subst ./src/main/target/,, $(dir $(wildcard $(ROOT)/src/main/target/*/$(TARGET).mk)))))
@@ -123,9 +131,10 @@ GROUP_2_TARGETS := SPRACINGF3 SPRACINGF3EVO SPRACINGF3EVO_1SS SPRACINGF3MINI SPR
 GROUP_3_TARGETS := OMNIBUS AIRBOTF4 BLUEJAYF4 OMNIBUSF4 OMNIBUSF4PRO FIREWORKSV2 SPARKY2 MATEKF405 OMNIBUSF7 DYSF4PRO OMNIBUSF4PRO_LEDSTRIPM5 OMNIBUSF7NXT OMNIBUSF7V2 ASGARD32F4
 GROUP_4_TARGETS := ANYFC ANYFCF7 ANYFCF7_EXTERNAL_BARO ANYFCM7 ALIENFLIGHTNGF7 PIXRACER YUPIF4 YUPIF4MINI YUPIF4R2 YUPIF7 MATEKF405SE MATEKF411 MATEKF722 MATEKF405OSD MATEKF405_SERVOS6 NOX
 GROUP_5_TARGETS := ASGARD32F7 CHEBUZZF3 CLRACINGF4AIRV3 DALRCF405 DALRCF722DUAL DYSF4PROV2 F4BY FISHDRONEF4 FOXEERF405 FOXEERF722DUAL FRSKYF3 FRSKYF4 FURYF3 FURYF3_SPIFLASH FURYF4OSD
-GROUP_6_TARGETS := MAMBAF405 OMNIBUSF4V3 OMNIBUSF4V3_S6_SS OMNIBUSF4V3_S5S6_SS OMNIBUSF4V3_S5_S6_2SS
+GROUP_6_TARGETS := MAMBAF405 OMNIBUSF4V3 OMNIBUSF4V3_S6_SS OMNIBUSF4V3_S5S6_SS OMNIBUSF4V3_S5_S6_2SS AIKONF4
 GROUP_7_TARGETS := KAKUTEF4 KAKUTEF4V2 KAKUTEF7 KAKUTEF7MINI KFC32F3_INAV KROOZX MATEKF411_RSSI MATEKF411_SFTSRL2 MATEKF722MINI MATEKF722SE MATEKF722_HEXSERVO
-GROUP_OTHER_TARGETS := $(filter-out $(GROUP_1_TARGETS) $(GROUP_2_TARGETS) $(GROUP_3_TARGETS) $(GROUP_4_TARGETS) $(GROUP_5_TARGETS) $(GROUP_6_TARGETS) $(GROUP_7_TARGETS), $(VALID_TARGETS))
+GROUP_8_TARGETS := MATEKF765
+GROUP_OTHER_TARGETS := $(filter-out $(GROUP_1_TARGETS) $(GROUP_2_TARGETS) $(GROUP_3_TARGETS) $(GROUP_4_TARGETS) $(GROUP_5_TARGETS) $(GROUP_6_TARGETS) $(GROUP_7_TARGETS) $(GROUP_8_TARGETS), $(VALID_TARGETS))
 
 REVISION = $(shell git rev-parse --short HEAD)
 
@@ -168,6 +177,10 @@ ifneq ($(HSE_VALUE),)
 DEVICE_FLAGS    := $(DEVICE_FLAGS) -DHSE_VALUE=$(HSE_VALUE)
 endif
 
+ifneq ($(MHZ_VALUE),)
+DEVICE_FLAGS    := $(DEVICE_FLAGS) -DMHZ_VALUE=$(MHZ_VALUE)
+endif
+
 ifneq ($(BASE_TARGET), $(TARGET))
 TARGET_FLAGS    := $(TARGET_FLAGS) -D$(BASE_TARGET)
 endif
@@ -189,19 +202,21 @@ include $(ROOT)/make/source.mk
 include $(ROOT)/make/release.mk
 
 ###############################################################################
-# Things that might need changing to use different tools
+#
+# Toolchain installer
 #
 
+TOOLS_DIR := $(ROOT)/tools
+DL_DIR    := $(ROOT)/downloads
+
+include $(ROOT)/make/tools.mk
+
+#
 # Tool names
-ifneq ($(TOOLCHAINPATH),)
-CROSS_CC    = $(TOOLCHAINPATH)/arm-none-eabi-gcc
-OBJCOPY     = $(TOOLCHAINPATH)/arm-none-eabi-objcopy
-SIZE        = $(TOOLCHAINPATH)/arm-none-eabi-size
-else
-CROSS_CC    = arm-none-eabi-gcc
-OBJCOPY     = arm-none-eabi-objcopy
-SIZE        = arm-none-eabi-size
-endif
+#
+CROSS_CC    = $(ARM_SDK_PREFIX)gcc
+OBJCOPY     = $(ARM_SDK_PREFIX)objcopy
+SIZE        = $(ARM_SDK_PREFIX)size
 
 #
 # Tool options.
@@ -313,16 +328,16 @@ $(GENERATED_SETTINGS): $(SETTINGS_GENERATOR) $(SETTINGS_FILE) $(STAMP)
 CFLAGS                  += -I$(TARGET_OBJ_DIR)
 
 $(STAMP): .FORCE
-	$(V1) CFLAGS="$(CFLAGS)" TARGET=$(TARGET) ruby $(BUILD_STAMP) $(SETTINGS_FILE) $(STAMP)
+	$(V1) CPP_PATH="$(ARM_SDK_DIR)/bin" CFLAGS="$(CFLAGS)" TARGET=$(TARGET) ruby $(BUILD_STAMP) $(SETTINGS_FILE) $(STAMP)
 
 # Use a pattern rule, since they're different than normal rules.
 # See https://www.gnu.org/software/make/manual/make.html#Pattern-Examples
 %generated.h %generated.c:
 	$(V1) echo "settings.yaml -> settings_generated.h, settings_generated.c" "$(STDOUT)"
-	$(V1) CFLAGS="$(CFLAGS)" TARGET=$(TARGET) ruby $(SETTINGS_GENERATOR) . $(SETTINGS_FILE) -o $(TARGET_OBJ_DIR)
+	$(V1) CPP_PATH="$(ARM_SDK_DIR)/bin" CFLAGS="$(CFLAGS)" TARGET=$(TARGET) ruby $(SETTINGS_GENERATOR) . $(SETTINGS_FILE) -o $(TARGET_OBJ_DIR)
 
 settings-json:
-	$(V0) CFLAGS="$(CFLAGS)" TARGET=$(TARGET) ruby $(SETTINGS_GENERATOR) . $(SETTINGS_FILE) --json settings.json
+	$(V0) CPP_PATH="$(ARM_SDK_DIR)/bin" CFLAGS="$(CFLAGS)" TARGET=$(TARGET) ruby $(SETTINGS_GENERATOR) . $(SETTINGS_FILE) --json settings.json
 
 clean-settings:
 	$(V1) $(RM) $(GENERATED_SETTINGS)
@@ -369,6 +384,14 @@ $(TARGET_OBJ_DIR)/%.o: %.S
 	$(V1) $(CROSS_CC) -c -o $@ $(ASFLAGS) $<
 
 
+# mkdirs
+$(DL_DIR):
+	mkdir -p $@
+
+$(TOOLS_DIR):
+	mkdir -p $@
+
+
 ## all               : Build all valid targets
 all: $(VALID_TARGETS)
 
@@ -392,6 +415,9 @@ targets-group-6: $(GROUP_6_TARGETS)
 
 ## targets-group-7   : build some targets
 targets-group-7: $(GROUP_7_TARGETS)
+
+## targets-group-8   : build some targets
+targets-group-8: $(GROUP_8_TARGETS)
 
 ## targets-group-rest: build the rest of the targets (not listed in group 1, 2 or 3)
 targets-group-rest: $(GROUP_OTHER_TARGETS)
@@ -438,11 +464,12 @@ flash_$(TARGET): $(TARGET_HEX)
 ## flash             : flash firmware (.hex) onto flight controller
 flash: flash_$(TARGET)
 
-st-flash_$(TARGET): $(TARGET_BIN)
-	$(V0) st-flash --reset write $< 0x08000000
+$(STFLASH_TARGETS) :
+	$(V0) $(MAKE) -j 8 TARGET=$(subst st-flash_,,$@) st-flash
 
 ## st-flash          : flash firmware (.bin) onto flight controller
-st-flash: st-flash_$(TARGET)
+st-flash: $(TARGET_BIN)
+	$(V0) st-flash --reset write $< 0x08000000
 
 binary: $(TARGET_BIN)
 hex:    $(TARGET_HEX)
@@ -487,6 +514,7 @@ targets:
 	$(V0) @echo "targets-group-5:    $(GROUP_5_TARGETS)"
 	$(V0) @echo "targets-group-6:    $(GROUP_6_TARGETS)"
 	$(V0) @echo "targets-group-7:    $(GROUP_7_TARGETS)"
+	$(V0) @echo "targets-group-7:    $(GROUP_8_TARGETS)"
 	$(V0) @echo "targets-group-rest: $(GROUP_OTHER_TARGETS)"
 	$(V0) @echo "Release targets:    $(RELEASE_TARGETS)"
 

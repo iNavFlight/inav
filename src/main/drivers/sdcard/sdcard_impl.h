@@ -27,8 +27,8 @@
 #include "drivers/bus_spi.h"
 #include "drivers/time.h"
 
-#include "drivers/sdcard.h"
-#include "drivers/sdcard_standard.h"
+#include "drivers/sdcard/sdcard.h"
+#include "drivers/sdcard/sdcard_standard.h"
 
 #define SDCARD_TIMEOUT_INIT_MILLIS                  200
 #define SDCARD_MAX_CONSECUTIVE_FAILURES             8
@@ -50,8 +50,6 @@ typedef enum {
 } sdcardState_e;
 
 typedef struct sdcard_t {
-    busDevice_t * dev;
-
     struct {
         uint8_t *buffer;
         uint32_t blockIndex;
@@ -76,6 +74,14 @@ typedef struct sdcard_t {
     sdcardCSD_t csd;
 
     IO_t cardDetectPin;
+
+#if defined(USE_SDCARD_SPI)
+    busDevice_t * dev;
+#endif
+
+#if defined(USE_SDCARD_SDIO)
+    DMA_t dma;
+#endif
 } sdcard_t;
 
 extern sdcard_t sdcard;

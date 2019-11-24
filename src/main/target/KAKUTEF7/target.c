@@ -28,8 +28,6 @@
 #include "drivers/timer.h"
 #include "drivers/bus.h"
 
-BUSDEV_REGISTER_SPI_TAG(busdev_icm20689,     DEVHW_ICM20689,      ICM20689_SPI_BUS,    ICM20689_CS_PIN,     ICM20689_EXTI_PIN,       0,  DEVFLAGS_NONE);
-
 const timerHardware_t timerHardware[] = {
     DEF_TIM(TIM1, CH3, PE13, TIM_USE_PPM,                                               0, 1), // PPM, DMA2_ST6
 

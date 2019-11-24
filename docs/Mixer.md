@@ -91,3 +91,16 @@ The `smix` command is used to list, create or modify rules. To list the currentl
 To create or modify rules use the `smix` command with the following syntax: `smix <n> <servo_index> <input_id> <weight> <speed> <logic_condition_id>`. `<n>` is representing the index of the servo mixing rule to create or modify (integer). To disable a mixing rule set the weight to 0.
 
 `logic_condition_id` default value is `-1` for rules that should be always executed. 
+
+### Logic Conditions
+
+[Logic Conditions](Logic%20Conditions.md) allows to activate/deactivate `smix` rules based on user input and flight parameters. If Logic Condition evaluates as `false`, smix rule connected with with LC will not be active and used inside the Mixer. 
+
+This mechanism allows to move servos when desired conditions are met. For example, if an airplane is equipped with a pitot tube and flaps, flaps can be automatically deployed when airspeed goes below a threshold.
+
+Other usages can be:
+
+* automatic parachute deployment
+* VTOL and especially tail-sitters that require change in mixings during flight mode transition
+* crowbar airbrakes
+* any kind of servo mixings that should be changed during flight

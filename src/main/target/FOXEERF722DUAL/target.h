@@ -121,7 +121,7 @@
 #define USE_BARO_MS5611
 
 #define USE_MAG
-#define MAG_I2C_BUS             BUS_I2C2
+#define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
@@ -153,6 +153,7 @@
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 #define MAX_PWM_OUTPUT_PORTS            6
 #define USE_DSHOT
+#define USE_ESC_SENSOR
 
 /*** Used pins ***/
 #define TARGET_IO_PORTA         0xffff

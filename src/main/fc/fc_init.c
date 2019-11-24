@@ -61,7 +61,6 @@
 #include "drivers/pwm_output.h"
 #include "drivers/pwm_output.h"
 #include "drivers/rx_pwm.h"
-#include "drivers/sdcard.h"
 #include "drivers/sensor.h"
 #include "drivers/serial.h"
 #include "drivers/serial_softserial.h"
@@ -77,6 +76,7 @@
 #include "drivers/io_pca9685.h"
 #include "drivers/vtx_rtc6705.h"
 #include "drivers/vtx_common.h"
+#include "drivers/sdcard/sdcard.h"
 
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -95,6 +95,7 @@
 #include "io/beeper.h"
 #include "io/lights.h"
 #include "io/dashboard.h"
+#include "io/displayport_frsky_osd.h"
 #include "io/displayport_msp.h"
 #include "io/displayport_max7456.h"
 #include "io/flashfs.h"
@@ -129,6 +130,8 @@
 #include "sensors/pitotmeter.h"
 #include "sensors/rangefinder.h"
 #include "sensors/sensors.h"
+
+#include "scheduler/scheduler.h"
 
 #include "telemetry/telemetry.h"
 
@@ -507,11 +510,21 @@ void init(void)
 
 #ifdef USE_OSD
     if (feature(FEATURE_OSD)) {
+#if defined(USE_FRSKYOSD)
+        if (!osdDisplayPort) {
+            osdDisplayPort = frskyOSDDisplayPortInit(osdConfig()->video_system);
+        }
+#endif
 #if defined(USE_MAX7456)
-        // If there is a max7456 chip for the OSD then use it
-        osdDisplayPort = max7456DisplayPortInit(osdConfig()->video_system);
+        // If there is a max7456 chip for the OSD and we have no
+        // external OSD initialized, use it.
+        if (!osdDisplayPort) {
+            osdDisplayPort = max7456DisplayPortInit(osdConfig()->video_system);
+        }
 #elif defined(USE_OSD_OVER_MSP_DISPLAYPORT) // OSD over MSP; not supported (yet)
-        osdDisplayPort = displayPortMspInit();
+        if (!osdDisplayPort) {
+            osdDisplayPort = displayPortMspInit();
+        }
 #endif
         // osdInit  will register with CMS by itself.
         osdInit(osdDisplayPort);
@@ -628,6 +641,12 @@ void init(void)
     latchActiveFeatures();
     motorControlEnable = true;
     fcTasksInit();
+
+#ifdef USE_OSD
+    if (feature(FEATURE_OSD) && (osdDisplayPort != NULL)) {
+        setTaskEnabled(TASK_OSD, feature(FEATURE_OSD));
+    }
+#endif
 
     systemState |= SYSTEM_STATE_READY;
 }
