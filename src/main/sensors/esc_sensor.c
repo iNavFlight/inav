@@ -131,8 +131,7 @@ static bool escSensorDecodeFrame(void)
 }
 
 uint32_t FAST_CODE computeRpm(int16_t erpm) {
-    //TODO move motorConfig()->motorPoleCount to FASTRAM
-    return lrintf((float)erpm * 100.0f / (motorConfig()->motorPoleCount / 2));
+    return lrintf((float)erpm * ERPM_PER_LSB / (motorConfig()->motorPoleCount / 2));
 }
 
 escSensorData_t * getEscTelemetry(uint8_t esc)

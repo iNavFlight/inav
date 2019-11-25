@@ -40,6 +40,7 @@ PG_DECLARE(escSensorConfig_t, escSensorConfig);
 
 #define ESC_DATA_MAX_AGE    10
 #define ESC_DATA_INVALID    255
+#define ERPM_PER_LSB        100.0f
 
 bool escSensorInitialize(void);
 void escSensorUpdate(timeUs_t currentTimeUs);

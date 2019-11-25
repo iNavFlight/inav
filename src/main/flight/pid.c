@@ -41,6 +41,7 @@
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
+#include "flight/rpm_filter.h"
 
 #include "io/gps.h"
 
@@ -722,6 +723,10 @@ static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, fl
 #ifdef USE_DTERM_NOTCH
         // Apply D-term notch
         deltaFiltered = notchFilterApplyFn(&pidState->deltaNotchFilter, deltaFiltered);
+#endif
+
+#ifdef USE_RPM_FILTER
+        deltaFiltered = rpmFilterDtermApply((uint8_t)axis, deltaFiltered);
 #endif
 
         // Apply additional lowpass

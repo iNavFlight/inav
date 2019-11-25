@@ -43,7 +43,7 @@ typedef struct rpmFilterConfig_s {
 
 PG_DECLARE(rpmFilterConfig_t, rpmFilterConfig);
 
-#define RPM_FILTER_UPDATE_RATE_HZ 300
+#define RPM_FILTER_UPDATE_RATE_HZ 500
 #define RPM_FILTER_UPDATE_RATE_US (1000000.0f / RPM_FILTER_UPDATE_RATE_HZ)
 
 void rpmFiltersInit(void);
