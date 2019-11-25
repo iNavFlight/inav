@@ -131,6 +131,8 @@
 #include "sensors/rangefinder.h"
 #include "sensors/sensors.h"
 
+#include "scheduler/scheduler.h"
+
 #include "telemetry/telemetry.h"
 
 #include "uav_interconnect/uav_interconnect.h"
@@ -639,6 +641,12 @@ void init(void)
     latchActiveFeatures();
     motorControlEnable = true;
     fcTasksInit();
+
+#ifdef USE_OSD
+    if (feature(FEATURE_OSD) && (osdDisplayPort != NULL)) {
+        setTaskEnabled(TASK_OSD, feature(FEATURE_OSD));
+    }
+#endif
 
     systemState |= SYSTEM_STATE_READY;
 }
