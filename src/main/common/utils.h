@@ -28,6 +28,9 @@
 #define CONCAT_HELPER(x,y) x ## y
 #define CONCAT(x,y) CONCAT_HELPER(x, y)
 
+#define CONCAT3_HELPER(x, y, z) x ## y ## z
+#define CONCAT3(x, y, z) CONCAT3_HELPER(x, y, z)
+
 #define CONCAT4_HELPER(x, y, z, w) x ## y ## z ## w
 #define CONCAT4(x, y, z, w) CONCAT4_HELPER(x, y, z, w)
 
