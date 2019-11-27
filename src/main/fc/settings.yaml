@@ -16,7 +16,7 @@ tables:
     values: ["NONE", "PMW3901", "CXOF", "MSP", "FAKE"]
     enum: opticalFlowSensor_e
   - name: baro_hardware
-    values: ["NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "LPS25H", "SPL006", "FAKE"]
+    values: ["NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "LPS25H", "SPL06", "FAKE"]
     enum: baroSensor_e
   - name: pitot_hardware
     values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE"]
@@ -78,10 +78,10 @@ tables:
   - name: i2c_speed
     values: ["400KHZ", "800KHZ", "100KHZ", "200KHZ"]
   - name: debug_modes
-    values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "AGL", "FLOW_RAW",
-      "FLOW", "SBUS", "FPORT", "ALWAYS", "STAGE2", "SAG_COMP_VOLTAGE",
-      "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "GENERIC", "ITERM_RELAX", 
-      "D_BOOST", "ANTIGRAVITY", "FFT", "FFT_TIME", "FFT_FREQ"]
+    values: ["NONE", "GYRO", "AGL", "FLOW_RAW",
+      "FLOW", "SBUS", "FPORT", "ALWAYS", "SAG_COMP_VOLTAGE",
+      "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "ITERM_RELAX", 
+      "ERPM"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -167,25 +167,20 @@ groups:
         max: 128
       - name: gyro_notch1_hz
         field: gyro_soft_notch_hz_1
-        condition: USE_GYRO_NOTCH_1
         max: 500
       - name: gyro_notch1_cutoff
         field: gyro_soft_notch_cutoff_1
-        condition: USE_GYRO_NOTCH_1
         min: 1
         max: 500
       - name: gyro_notch2_hz
         field: gyro_soft_notch_hz_2
-        condition: USE_GYRO_NOTCH_2
         max: 500
       - name: gyro_notch2_cutoff
         field: gyro_soft_notch_cutoff_2
-        condition: USE_GYRO_NOTCH_2
         min: 1
         max: 500
       - name: gyro_stage2_lowpass_hz
         field: gyro_stage2_lowpass_hz
-        condition: USE_GYRO_BIQUAD_RC_FIR2
         min: 0
         max: 500
       - name: dyn_notch_width_percent
@@ -239,11 +234,9 @@ groups:
     headers: ["sensors/acceleration.h"]
     members:
       - name: acc_notch_hz
-        condition: USE_ACC_NOTCH
         min: 0
         max: 255
       - name: acc_notch_cutoff
-        condition: USE_ACC_NOTCH
         min: 1
         max: 255
       - name: align_acc
@@ -513,6 +506,10 @@ groups:
         field: throttleScale
         min: 0
         max: 1
+      - name: motor_poles
+        field: motorPoleCount
+        min: 4
+        max: 255
 
   - name: PG_FAILSAFE_CONFIG
     type: failsafeConfig_t
@@ -1075,12 +1072,10 @@ groups:
         max: 1
       - name: dterm_notch_hz
         field: dterm_soft_notch_hz
-        condition: USE_DTERM_NOTCH
         min: 0
         max: 500
       - name: dterm_notch_cutoff
         field: dterm_soft_notch_cutoff
-        condition: USE_DTERM_NOTCH
         min: 1
         max: 500
       - name: pidsum_limit

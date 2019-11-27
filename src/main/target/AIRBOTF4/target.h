@@ -159,3 +159,4 @@
 #define PCA9685_I2C_BUS         BUS_I2C2
 
 #define USE_DSHOT
+#define USE_ESC_SENSOR

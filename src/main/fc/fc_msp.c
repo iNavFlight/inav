@@ -1101,43 +1101,19 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, gyroConfig()->gyro_soft_lpf_hz);
         sbufWriteU16(dst, pidProfile()->dterm_lpf_hz);
         sbufWriteU16(dst, pidProfile()->yaw_lpf_hz);
-#ifdef USE_GYRO_NOTCH_1
         sbufWriteU16(dst, gyroConfig()->gyro_soft_notch_hz_1); //masterConfig.gyro_soft_notch_hz_1
         sbufWriteU16(dst, gyroConfig()->gyro_soft_notch_cutoff_1); //BF: masterConfig.gyro_soft_notch_cutoff_1
-#else
-        sbufWriteU16(dst, 0); //masterConfig.gyro_soft_notch_hz_1
-        sbufWriteU16(dst, 1); //BF: masterConfig.gyro_soft_notch_cutoff_1
-#endif
 
-#ifdef USE_DTERM_NOTCH
         sbufWriteU16(dst, pidProfile()->dterm_soft_notch_hz); //BF: pidProfile()->dterm_notch_hz
         sbufWriteU16(dst, pidProfile()->dterm_soft_notch_cutoff); //pidProfile()->dterm_notch_cutoff
-#else
-        sbufWriteU16(dst, 0); //BF: pidProfile()->dterm_notch_hz
-        sbufWriteU16(dst, 1); //pidProfile()->dterm_notch_cutoff
-#endif
 
-#ifdef USE_GYRO_NOTCH_2
         sbufWriteU16(dst, gyroConfig()->gyro_soft_notch_hz_2); //BF: masterConfig.gyro_soft_notch_hz_2
         sbufWriteU16(dst, gyroConfig()->gyro_soft_notch_cutoff_2); //BF: masterConfig.gyro_soft_notch_cutoff_2
-#else
-        sbufWriteU16(dst, 0); //BF: masterConfig.gyro_soft_notch_hz_2
-        sbufWriteU16(dst, 1); //BF: masterConfig.gyro_soft_notch_cutoff_2
-#endif
 
-#ifdef USE_ACC_NOTCH
         sbufWriteU16(dst, accelerometerConfig()->acc_notch_hz);
         sbufWriteU16(dst, accelerometerConfig()->acc_notch_cutoff);
-#else
-        sbufWriteU16(dst, 0);
-        sbufWriteU16(dst, 1);
-#endif
 
-#ifdef USE_GYRO_BIQUAD_RC_FIR2
         sbufWriteU16(dst, gyroConfig()->gyro_stage2_lowpass_hz);
-#else
-        sbufWriteU16(dst, 0);
-#endif
         break;
 
     case MSP_PID_ADVANCED:
@@ -2017,43 +1993,38 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             gyroConfigMutable()->gyro_soft_lpf_hz = sbufReadU8(src);
             pidProfileMutable()->dterm_lpf_hz = constrain(sbufReadU16(src), 0, 255);
             pidProfileMutable()->yaw_lpf_hz = constrain(sbufReadU16(src), 0, 255);
-#ifdef USE_GYRO_NOTCH_1
             if (dataSize >= 9) {
                 gyroConfigMutable()->gyro_soft_notch_hz_1 = constrain(sbufReadU16(src), 0, 500);
                 gyroConfigMutable()->gyro_soft_notch_cutoff_1 = constrain(sbufReadU16(src), 1, 500);
-            } else
+            } else {
                 return MSP_RESULT_ERROR;
-#endif
-#ifdef USE_DTERM_NOTCH
+            }
             if (dataSize >= 13) {
                 pidProfileMutable()->dterm_soft_notch_hz = constrain(sbufReadU16(src), 0, 500);
                 pidProfileMutable()->dterm_soft_notch_cutoff = constrain(sbufReadU16(src), 1, 500);
                 pidInitFilters();
-            } else
+            } else {
                 return MSP_RESULT_ERROR;
-#endif
-#ifdef USE_GYRO_NOTCH_2
+            }
             if (dataSize >= 17) {
                 gyroConfigMutable()->gyro_soft_notch_hz_2 = constrain(sbufReadU16(src), 0, 500);
                 gyroConfigMutable()->gyro_soft_notch_cutoff_2 = constrain(sbufReadU16(src), 1, 500);
-            } else
+            } else {
                 return MSP_RESULT_ERROR;
-#endif
+            }
 
-#ifdef USE_ACC_NOTCH
             if (dataSize >= 21) {
                 accelerometerConfigMutable()->acc_notch_hz = constrain(sbufReadU16(src), 0, 255);
                 accelerometerConfigMutable()->acc_notch_cutoff = constrain(sbufReadU16(src), 1, 255);
-            } else
+            } else {
                 return MSP_RESULT_ERROR;
-#endif
+            }
 
-#ifdef USE_GYRO_BIQUAD_RC_FIR2
             if (dataSize >= 22) {
                 gyroConfigMutable()->gyro_stage2_lowpass_hz = constrain(sbufReadU16(src), 0, 500);
-            } else
+            } else {
                 return MSP_RESULT_ERROR;
-#endif
+            }
         } else
             return MSP_RESULT_ERROR;
         break;
@@ -3011,6 +2982,10 @@ static bool mspSettingInfoCommand(sbuf_t *dst, sbuf_t *src)
     if (!setting) {
         return false;
     }
+
+    char name_buf[SETTING_MAX_WORD_LENGTH+1];
+    settingGetName(setting, name_buf);
+    sbufWriteDataSafe(dst, name_buf, strlen(name_buf) + 1);
 
     // Parameter Group ID
     sbufWriteU16(dst, settingGetPgn(setting));
