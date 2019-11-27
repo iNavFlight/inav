@@ -81,11 +81,8 @@ typedef struct {
     rateLimitFilter_t axisAccelFilter;
     pt1Filter_t ptermLpfState;
     biquadFilter_t deltaLpfState;
-
     // Dterm notch filtering
-#ifdef USE_DTERM_NOTCH
     biquadFilter_t deltaNotchFilter;
-#endif
     float stickPosition;
 
 #ifdef USE_D_BOOST
@@ -96,10 +93,7 @@ typedef struct {
 #endif
 } pidState_t;
 
-#ifdef USE_DTERM_NOTCH
 STATIC_FASTRAM filterApplyFnPtr notchFilterApplyFn;
-#endif
-
 STATIC_FASTRAM bool pidFiltersConfigured = false;
 FASTRAM float headingHoldCosZLimit;
 FASTRAM int16_t headingHoldTarget;
@@ -310,7 +304,6 @@ bool pidInitFilters(void)
         firFilterInit(&pidState[axis].gyroRateFilter, pidState[axis].gyroRateBuf, PID_GYRO_RATE_BUF_LENGTH, dtermCoeffs);
     }
 
-#ifdef USE_DTERM_NOTCH
     notchFilterApplyFn = nullFilterApply;
     if (pidProfile()->dterm_soft_notch_hz != 0) {
         notchFilterApplyFn = (filterApplyFnPtr)biquadFilterApply;
@@ -318,7 +311,6 @@ bool pidInitFilters(void)
             biquadFilterInitNotch(&pidState[axis].deltaNotchFilter, refreshRate, pidProfile()->dterm_soft_notch_hz, pidProfile()->dterm_soft_notch_cutoff);
         }
     }
-#endif
 
     // Init other filters
     for (int axis = 0; axis < 3; ++ axis) {
@@ -682,14 +674,6 @@ static float FAST_CODE applyDBoost(pidState_t *pidState, flight_dynamics_index_t
         dBoost = pt1FilterApply4(&pidState->dBoostLpf, dBoost, D_BOOST_LPF_HZ, dT);
         dBoost = constrainf(dBoost, 1.0f, dBoostFactor);
 
-        if (axis == FD_ROLL) {
-            DEBUG_SET(DEBUG_D_BOOST, 0, dBoostGyroAcceleration);
-            DEBUG_SET(DEBUG_D_BOOST, 1, dBoostRateAcceleration);
-            DEBUG_SET(DEBUG_D_BOOST, 2, dBoost * 100);
-        } else if (axis == FD_PITCH) {
-            DEBUG_SET(DEBUG_D_BOOST, 3, dBoost * 100);
-        }
-
         pidState->previousRateTarget = pidState->rateTarget;
         pidState->previousRateGyro = pidState->gyroRate;
     } 
@@ -719,10 +703,8 @@ static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, fl
         // Calculate delta for Dterm calculation. Apply filters before derivative to minimize effects of dterm kick
         float deltaFiltered = pidProfile()->dterm_setpoint_weight * pidState->rateTarget - pidState->gyroRate;
 
-#ifdef USE_DTERM_NOTCH
         // Apply D-term notch
         deltaFiltered = notchFilterApplyFn(&pidState->deltaNotchFilter, deltaFiltered);
-#endif
 
         // Apply additional lowpass
         if (pidProfile()->dterm_lpf_hz) {
@@ -752,8 +734,6 @@ static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, fl
 
 #ifdef USE_ANTIGRAVITY
     const float iTermAntigravityGain = scaleRangef(fabsf(antigravityThrottleHpf) * antigravityAccelerator, 0.0f, 1000.0f, 1.0f, antigravityGain);    
-    DEBUG_SET(DEBUG_ANTIGRAVITY, 0, iTermAntigravityGain * 100);
-    DEBUG_SET(DEBUG_ANTIGRAVITY, 1, antigravityThrottleHpf);
     itermErrorRate *= iTermAntigravityGain;
 #endif
 
