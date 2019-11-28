@@ -100,18 +100,18 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
 
         // General navigation parameters
         .pos_failure_timeout = 5,               // 5 sec
-        .waypoint_radius = 100,                 // 2m diameter
-        .waypoint_safe_distance = 10000,        // centimeters - first waypoint should be closer than this
-        .max_auto_speed = 300,                  // 3 m/s = 10.8 km/h
-        .max_auto_climb_rate = 500,             // 5 m/s
-        .max_manual_speed = 500,
+        .waypoint_radius = 1000,                // 10m diameter
+        .waypoint_safe_distance = 30000,        // centimeters - first waypoint should be closer than this
+        .max_auto_speed = 600,                  // 6 m/s
+        .max_auto_climb_rate = 200,             // 2 m/s
+        .max_manual_speed = 700,
         .max_manual_climb_rate = 200,
         .land_descent_rate = 200,               // centimeters/s
         .land_slowdown_minalt = 500,            // altitude in centimeters
         .land_slowdown_maxalt = 2000,           // altitude in meters
         .emerg_descent_rate = 500,              // centimeters/s
-        .min_rth_distance = 500,                // centimeters, if closer than this land immediately
-        .rth_altitude = 1000,                   // altitude in centimeters
+        .min_rth_distance = 1000,               // centimeters, if closer than this land immediately
+        .rth_altitude = 4000,                   // altitude in centimeters
         .rth_home_altitude = 0,                 // altitude in centimeters
         .rth_abort_threshold = 50000,           // centimeters - 500m should be safe for all aircraft
         .max_terrain_follow_altitude = 100,     // max altitude in centimeters in terrain following mode
@@ -139,10 +139,10 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .max_bank_angle = 35,                   // degrees
         .max_climb_angle = 20,                  // degrees
         .max_dive_angle = 15,                   // degrees
-        .cruise_throttle = 1400,
+        .cruise_throttle = 1500,
         .cruise_speed = 0,                      // cm/s
         .max_throttle = 1700,
-        .min_throttle = 1200,
+        .min_throttle = 1400,
         .pitch_to_throttle = 10,                // pwm units per degree of pitch (10pwm units ~ 1% throttle)
         .loiter_radius = 5000,                  // 50m
 

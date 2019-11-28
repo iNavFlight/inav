@@ -180,33 +180,33 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  nav_extra_arming_safety  | ON | If set to ON drone won't arm if no GPS fix and any navigation mode like RTH or POSHOLD is configured. ALLOW_BYPASS allows the user to momentarily disable this check by holding yaw high (left stick held at the bottom right in mode 2) when switch arming is used |
 |  nav_user_control_mode  | ATTI | Defines how Pitch/Roll input from RC receiver affects flight in POSHOLD mode: ATTI - pitch/roll controls attitude like in ANGLE mode; CRUISE - pitch/roll controls velocity in forward and right direction. |
 |  nav_position_timeout  | 5 | If GPS fails wait for this much seconds before switching to emergency landing mode (0 - disable) |
-|  nav_wp_radius  | 100 | Waypoint radius [cm]. Waypoint would be considered reached if machine is within this radius |
-|  nav_wp_safe_distance  | 10000 | First waypoint in the mission should be closer than this value [cm] |
-|  nav_auto_speed  | 300 | Maximum velocity firmware is allowed in full auto modes (RTH, WP) [cm/s] [Multirotor only] |
-|  nav_auto_climb_rate  | 500 | Maximum climb/descent rate that UAV is allowed to reach during navigation modes. [cm/s] |
-|  nav_manual_speed  | 500 | Maximum velocity firmware is allowed when processing pilot input for POSHOLD/CRUISE control mode [cm/s] [Multirotor only] |
+|  nav_wp_radius  | 1000 | Waypoint radius [cm]. Waypoint would be considered reached if machine is within this radius |
+|  nav_wp_safe_distance  | 30000 | First waypoint in the mission should be closer than this value [cm] |
+|  nav_auto_speed  | 600 | Maximum velocity firmware is allowed in full auto modes (RTH, WP) [cm/s] [Multirotor only] |
+|  nav_auto_climb_rate  | 200 | Maximum climb/descent rate that UAV is allowed to reach during navigation modes. [cm/s] |
+|  nav_manual_speed  | 700 | Maximum velocity firmware is allowed when processing pilot input for POSHOLD/CRUISE control mode [cm/s] [Multirotor only] |
 |  nav_manual_climb_rate  | 200 | Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s] |
 |  nav_landing_speed  | 200 | Vertical descent velocity during the RTH landing phase. [cm/s] |
 |  nav_land_slowdown_minalt  | 500 | Defines at what altitude the descent velocity should start to be 25% of nav_landing_speed [cm] |
 |  nav_land_slowdown_maxalt  | 2000 | Defines at what altitude the descent velocity should start to ramp down from 100% nav_landing_speed to 25% nav_landing_speed. [cm] |
 |  nav_emerg_landing_speed  | 500 | Rate of descent UAV will try to maintain when doing emergency descent sequence [cm/s] |
-|  nav_min_rth_distance  | 500 | Minimum distance from homepoint when RTH full procedure will be activated [cm]. Below this distance, the mode will activate at the current location and the final phase is executed (loiter / land). Above this distance, the full procedure is activated, which may include initial climb and flying directly to the homepoint before entering the loiter / land phase. |
+|  nav_min_rth_distance  | 1000 | Minimum distance from homepoint when RTH full procedure will be activated [cm]. Below this distance, the mode will activate at the current location and the final phase is executed (loiter / land). Above this distance, the full procedure is activated, which may include initial climb and flying directly to the homepoint before entering the loiter / land phase. |
 |  nav_overrides_motor_stop | ON | Setting to OFF combined with MOTOR_STOP feature will allow user to stop motor when in autonomous modes. On most places this setting is likely to cause a stall. |
 |  nav_rth_climb_first  | ON | If set to ON drone will climb to nav_rth_altitude first and head home afterwards. If set to OFF drone will head home instantly and climb on the way. |
 |  nav_rth_tail_first  | OFF | If set to ON drone will return tail-first. Obviously meaningless for airplanes. |
 |  nav_rth_allow_landing  | ALWAYS | If set to ON drone will land as a last phase of RTH. |
 |  nav_rth_climb_ignore_emerg  | OFF | If set to ON, aircraft will execute initial climb regardless of position sensor (GPS) status. |
 |  nav_rth_alt_mode  | AT_LEAST | Configure how the aircraft will manage altitude on the way home, see Navigation modes on wiki for more details |
-|  nav_rth_altitude  | 1000 | Used in EXTRA, FIXED and AT_LEAST rth alt modes [cm] (Default 1000 means 10 meters) |
+|  nav_rth_altitude  | 4000 | Used in EXTRA, FIXED and AT_LEAST rth alt modes [cm] (Default 4000 means 40 meters) |
 |  nav_rth_home_altitude  | 0 | Aircraft will climb/descend to this altitude after reaching home if landing is not enabled. Set to 0 to stay at `nav_rth_altitude` (default) [cm] |
 |  nav_rth_abort_threshold  | 50000 | RTH sanity checking feature will notice if distance to home is increasing during RTH and once amount of increase exceeds the threshold defined by this parameter, instead of continuing RTH machine will enter emergency landing, self-level and go down safely. Default is 500m which is safe enough for both multirotor machines and airplanes. [cm] |
 |  nav_mc_bank_angle  | 30 | Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude |
 |  nav_mc_hover_thr  | 1500 | Multicopter hover throttle hint for altitude controller. Should be set to approximate throttle value when drone is hovering. |
 |  nav_mc_auto_disarm_delay  | 2000 |  |
-|  nav_fw_cruise_thr  | 1400 | Cruise throttle in GPS assisted modes, this includes RTH. Should be set high enough to avoid stalling. This values gives INAV a base for throttle when flying straight, and it will increase or decrease throttle based on pitch of airplane and the parameters below. In addition it will increase throttle if GPS speed gets below 7m/s ( hardcoded )  |
+|  nav_fw_cruise_thr  | 1500 | Cruise throttle in GPS assisted modes, this includes RTH. Should be set high enough to avoid stalling. This values gives INAV a base for throttle when flying straight, and it will increase or decrease throttle based on pitch of airplane and the parameters below. In addition it will increase throttle if GPS speed gets below 7m/s ( hardcoded )  |
 |  nav_fw_cruise_speed  | 0 | Speed for the plane/wing at cruise throttle used for remaining flight time/distance estimation in cm/s |
 |  nav_fw_allow_manual_thr_increase  | OFF | Enable the possibility to manually increase the throttle in auto throttle controlled modes for fixed wing |
-|  nav_fw_min_thr  | 1200 | Minimum throttle for flying wing in GPS assisted modes |
+|  nav_fw_min_thr  | 1400 | Minimum throttle for flying wing in GPS assisted modes |
 |  nav_fw_max_thr  | 1700 | Maximum throttle for flying wing in GPS assisted modes |
 |  nav_fw_bank_angle  | 20 | Max roll angle when rolling / turning in GPS assisted modes, is also restrained by global max_angle_inclination_rll |
 |  nav_fw_climb_angle  | 20 | Max pitch angle when climbing in GPS assisted modes, is also restrained by global max_angle_inclination_pit |
