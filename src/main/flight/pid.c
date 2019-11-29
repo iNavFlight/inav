@@ -674,7 +674,6 @@ static float FAST_CODE applyDBoost(pidState_t *pidState, float dT) {
 #else 
 static float applyDBoost(pidState_t *pidState, float dT) {
     UNUSED(pidState);
-    UNUSED(axis);
     UNUSED(dT);
     return 1.0f;
 }
