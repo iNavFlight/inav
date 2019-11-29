@@ -651,7 +651,7 @@ static void FAST_CODE applyItermRelax(const int axis, const float gyroRate, floa
     }
 }
 #ifdef USE_D_BOOST
-static float FAST_CODE applyDBoost(pidState_t *pidState, flight_dynamics_index_t axis, float dT) {
+static float FAST_CODE applyDBoost(pidState_t *pidState, float dT) {
     
     float dBoost = 1.0f;
     
@@ -672,7 +672,7 @@ static float FAST_CODE applyDBoost(pidState_t *pidState, flight_dynamics_index_t
     return dBoost;
 }
 #else 
-static float applyDBoost(pidState_t *pidState, flight_dynamics_index_t axis, float dT) {
+static float applyDBoost(pidState_t *pidState, float dT) {
     UNUSED(pidState);
     UNUSED(axis);
     UNUSED(dT);
@@ -704,7 +704,7 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
         newDTerm = firFilterApply(&pidState->gyroRateFilter);
 
         // Calculate derivative
-        newDTerm =  newDTerm * (pidState->kD / dT) * applyDBoost(pidState, axis, dT);
+        newDTerm =  newDTerm * (pidState->kD / dT) * applyDBoost(pidState, dT);
 
         // Additionally constrain D
         newDTerm = constrainf(newDTerm, -300.0f, 300.0f);
