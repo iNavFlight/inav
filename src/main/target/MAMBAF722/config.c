@@ -49,4 +49,8 @@ void targetConfiguration(void)
 {
     // RX6 is hard-wired to ESC-telemetry
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART6)].functionMask = FUNCTION_ESCSERIAL;
+
+    // Built-in bluetooth on SERIAL4
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART4)].functionMask = FUNCTION_MSP;
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART4)].msp_baudrateIndex = BAUD_19200;
 }
