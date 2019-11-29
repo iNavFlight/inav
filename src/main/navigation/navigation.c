@@ -100,7 +100,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
 
         // General navigation parameters
         .pos_failure_timeout = 5,               // 5 sec
-        .waypoint_radius = 1000,                // 10m diameter
+        .waypoint_radius = 100,                 // 1m diameter
         .waypoint_safe_distance = 30000,        // centimeters - first waypoint should be closer than this
         .max_auto_speed = 600,                  // 6 m/s
         .max_auto_climb_rate = 200,             // 2 m/s
