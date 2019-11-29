@@ -110,6 +110,9 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
 
 PG_REGISTER_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer, PG_MOTOR_MIXER, 0);
 
+typedef void (*motorRateLimitingApplyFnPtr)(const float dT);
+static EXTENDED_FASTRAM motorRateLimitingApplyFnPtr motorRateLimitingApplyFn;
+
 static void computeMotorCount(void)
 {
     motorCount = 0;
@@ -154,6 +157,49 @@ void mixerUpdateStateFlags(void)
     }
 }
 
+void nullMotorRateLimiting(const float dT)
+{
+    UNUSED(dT);
+}
+
+void applyMotorRateLimiting(const float dT)
+{
+    static float motorPrevious[MAX_SUPPORTED_MOTORS] = { 0 };
+
+    if (feature(FEATURE_3D)) {
+        // FIXME: Don't apply rate limiting in 3D mode
+        for (int i = 0; i < motorCount; i++) {
+            motorPrevious[i] = motor[i];
+        }
+    }
+    else {
+        // Calculate max motor step
+        const uint16_t motorRange = motorConfig()->maxthrottle - motorConfig()->minthrottle;
+        const float motorMaxInc = (motorConfig()->motorAccelTimeMs == 0) ? 2000 : motorRange * dT / (motorConfig()->motorAccelTimeMs * 1e-3f);
+        const float motorMaxDec = (motorConfig()->motorDecelTimeMs == 0) ? 2000 : motorRange * dT / (motorConfig()->motorDecelTimeMs * 1e-3f);
+
+        for (int i = 0; i < motorCount; i++) {
+            // Apply motor rate limiting
+            motorPrevious[i] = constrainf(motor[i], motorPrevious[i] - motorMaxDec, motorPrevious[i] + motorMaxInc);
+
+            // Handle throttle below min_throttle (motor start/stop)
+            if (motorPrevious[i] < motorConfig()->minthrottle) {
+                if (motor[i] < motorConfig()->minthrottle) {
+                    motorPrevious[i] = motor[i];
+                }
+                else {
+                    motorPrevious[i] = motorConfig()->minthrottle;
+                }
+            }
+        }
+    }
+
+    // Update motor values
+    for (int i = 0; i < motorCount; i++) {
+        motor[i] = motorPrevious[i];
+    }
+}
+
 void mixerInit(void)
 {
     computeMotorCount();
@@ -164,6 +210,12 @@ void mixerInit(void)
     }
 
     mixerResetDisarmedMotors();
+
+    if (motorConfig()->motorAccelTimeMs || motorConfig()->motorDecelTimeMs) {
+        motorRateLimitingApplyFn = applyMotorRateLimiting;
+    } else {
+        motorRateLimitingApplyFn = nullMotorRateLimiting;
+    }
 }
 
 void mixerResetDisarmedMotors(void)
@@ -238,44 +290,6 @@ void stopMotors(void)
 void stopPwmAllMotors(void)
 {
     pwmShutdownPulsesForAllMotors(motorCount);
-}
-
-static void applyMotorRateLimiting(const float dT)
-{
-    static float motorPrevious[MAX_SUPPORTED_MOTORS] = { 0 };
-
-    if (feature(FEATURE_3D)) {
-        // FIXME: Don't apply rate limiting in 3D mode
-        for (int i = 0; i < motorCount; i++) {
-            motorPrevious[i] = motor[i];
-        }
-    }
-    else {
-        // Calculate max motor step
-        const uint16_t motorRange = motorConfig()->maxthrottle - motorConfig()->minthrottle;
-        const float motorMaxInc = (motorConfig()->motorAccelTimeMs == 0) ? 2000 : motorRange * dT / (motorConfig()->motorAccelTimeMs * 1e-3f);
-        const float motorMaxDec = (motorConfig()->motorDecelTimeMs == 0) ? 2000 : motorRange * dT / (motorConfig()->motorDecelTimeMs * 1e-3f);
-
-        for (int i = 0; i < motorCount; i++) {
-            // Apply motor rate limiting
-            motorPrevious[i] = constrainf(motor[i], motorPrevious[i] - motorMaxDec, motorPrevious[i] + motorMaxInc);
-
-            // Handle throttle below min_throttle (motor start/stop)
-            if (motorPrevious[i] < motorConfig()->minthrottle) {
-                if (motor[i] < motorConfig()->minthrottle) {
-                    motorPrevious[i] = motor[i];
-                }
-                else {
-                    motorPrevious[i] = motorConfig()->minthrottle;
-                }
-            }
-        }
-    }
-
-    // Update motor values
-    for (int i = 0; i < motorCount; i++) {
-        motor[i] = motorPrevious[i];
-    }
 }
 
 void FAST_CODE NOINLINE mixTable(const float dT)
@@ -414,7 +428,7 @@ void FAST_CODE NOINLINE mixTable(const float dT)
     }
 
     /* Apply motor acceleration/deceleration limit */
-    applyMotorRateLimiting(dT);
+    motorRateLimitingApplyFn(dT);
 }
 
 motorStatus_e getMotorStatus(void)
