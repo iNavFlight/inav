@@ -986,8 +986,6 @@ void FAST_CODE NOINLINE pidController(float dT)
 
 #ifdef USE_ANTIGRAVITY
     iTermAntigravityGain = scaleRangef(fabsf(antigravityThrottleHpf) * antigravityAccelerator, 0.0f, 1000.0f, 1.0f, antigravityGain);    
-    DEBUG_SET(DEBUG_ANTIGRAVITY, 0, iTermAntigravityGain * 100);
-    DEBUG_SET(DEBUG_ANTIGRAVITY, 1, antigravityThrottleHpf);
 #endif
 
     for (int axis = 0; axis < 3; axis++) {
