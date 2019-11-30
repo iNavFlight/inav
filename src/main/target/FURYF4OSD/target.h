@@ -17,9 +17,13 @@
 
 #pragma once
 
+#ifdef MAMBAF405
+#define TARGET_BOARD_IDENTIFIER "MBF4"
+#define USBD_PRODUCT_STRING     "MAMBAF405"
+#else
 #define TARGET_BOARD_IDENTIFIER "FYF4"
-
 #define USBD_PRODUCT_STRING     "FuryF4"
+#endif
 
 #define LED0                    PB5
 #define LED1                    PB4
