@@ -72,9 +72,10 @@ typedef enum {
 
 // TODO(agh): PIDFF
 typedef enum {
-    PID_TYPE_NONE,  // Not used in the current platform/mixer/configuration
+    PID_TYPE_NONE = 0,  // Not used in the current platform/mixer/configuration
     PID_TYPE_PID,   // Uses P, I and D terms
     PID_TYPE_PIFF,  // Uses P, I and FF, ignoring D
+    PID_TYPE_AUTO,  // Autodetect
 } pidType_e;
 
 typedef struct pid8_s {
@@ -100,6 +101,7 @@ typedef enum {
 } itermRelaxType_e;
 
 typedef struct pidProfile_s {
+    uint8_t pidControllerType;
     pidBank_t bank_fw;
     pidBank_t bank_mc;
 
@@ -155,18 +157,16 @@ typedef struct pidAutotuneConfig_s {
 PG_DECLARE_PROFILE(pidProfile_t, pidProfile);
 PG_DECLARE(pidAutotuneConfig_t, pidAutotuneConfig);
 
-static inline const pidBank_t * pidBank(void) { return STATE(FIXED_WING) ? &pidProfile()->bank_fw : &pidProfile()->bank_mc; }
-static inline pidBank_t * pidBankMutable(void) { return STATE(FIXED_WING) ? &pidProfileMutable()->bank_fw : &pidProfileMutable()->bank_mc; }
+static uint8_t usedPidControllerType;
+
+static inline const pidBank_t * pidBank(void) { return usedPidControllerType == PID_TYPE_PIFF ? &pidProfile()->bank_fw : &pidProfile()->bank_mc; }
+static inline pidBank_t * pidBankMutable(void) { return usedPidControllerType == PID_TYPE_PIFF ? &pidProfileMutable()->bank_fw : &pidProfileMutable()->bank_mc; }
 
 extern int16_t axisPID[];
 extern int32_t axisPID_P[], axisPID_I[], axisPID_D[], axisPID_Setpoint[];
 
 void pidInit(void);
-
-#ifdef USE_DTERM_NOTCH
 bool pidInitFilters(void);
-#endif
-
 void pidResetErrorAccumulators(void);
 void pidResetTPAFilter(void);
 
