@@ -466,7 +466,9 @@ void FAST_CODE NOINLINE gyroUpdate()
         DEBUG_SET(DEBUG_GYRO, axis, lrintf(gyroADCf));
 
 #ifdef USE_RPM_FILTER
+        DEBUG_SET(DEBUG_RPM_FILTER, axis, gyroADCf);
         gyroADCf = rpmFilterGyroApply(axis, gyroADCf);
+        DEBUG_SET(DEBUG_RPM_FILTER, axis + 3, gyroADCf);
 #endif
 
         gyroADCf = gyroFilterStage2ApplyFn(stage2Filter[axis], gyroADCf);

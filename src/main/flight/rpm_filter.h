@@ -46,6 +46,7 @@ PG_DECLARE(rpmFilterConfig_t, rpmFilterConfig);
 #define RPM_FILTER_UPDATE_RATE_HZ 500
 #define RPM_FILTER_UPDATE_RATE_US (1000000.0f / RPM_FILTER_UPDATE_RATE_HZ)
 
+void disableRpmFilters(void);
 void rpmFiltersInit(void);
 void rpmFilterUpdateTask(timeUs_t currentTimeUs);
 float rpmFilterGyroApply(uint8_t axis, float input);

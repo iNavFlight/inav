@@ -128,6 +128,11 @@ static void rpmFilterInit(rpmFilterBank_t *filter, uint16_t q, uint8_t minHz, ui
     }
 }
 
+void disableRpmFilters(void) {
+    rpmGyroApplyFn = (rpmFilterApplyFnPtr)nullRpmFilterApply;
+    rpmDtermApplyFn = (rpmFilterApplyFnPtr)nullRpmFilterApply;
+}
+
 void rpmFiltersInit(void)
 {
     for (uint8_t i = 0; i < MAX_SUPPORTED_MOTORS; i++)
@@ -145,10 +150,6 @@ void rpmFiltersInit(void)
             rpmFilterConfig()->gyro_harmonics);
         rpmGyroApplyFn = (rpmFilterApplyFnPtr)rpmFilterApply;
     }
-    else
-    {
-        rpmGyroApplyFn = (rpmFilterApplyFnPtr)nullRpmFilterApply;
-    }
 
     if (rpmFilterConfig()->dterm_filter_enabled)
     {
@@ -158,10 +159,6 @@ void rpmFiltersInit(void)
             rpmFilterConfig()->dterm_min_hz,
             rpmFilterConfig()->dterm_harmonics);
         rpmDtermApplyFn = (rpmFilterApplyFnPtr)rpmFilterApply;
-    }
-    else
-    {
-        rpmDtermApplyFn = (rpmFilterApplyFnPtr)nullRpmFilterApply;
     }
 }
 
