@@ -1770,7 +1770,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 tfp_sprintf(buff, "W%u/%u", posControl.activeWaypointIndex, posControl.waypointCount);
                 displayWrite(osdGetDisplayPort(), 13, osdConfig()->hud_margin_v - 1, buff);
 
-                for (uint8_t i = osdConfig()->hud_wp_disp - 1; i >= 0 ; i--) { // Display in reverse order so the next WP is always written on top
+                for (int i = osdConfig()->hud_wp_disp - 1; i >= 0 ; i--) { // Display in reverse order so the next WP is always written on top
                     j = posControl.activeWaypointIndex + i;
                     if (posControl.waypointList[j].lat != 0 && posControl.waypointList[j].lon != 0 && j <= posControl.waypointCount) {
                         wp2.lat = posControl.waypointList[j].lat;
