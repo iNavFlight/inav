@@ -214,7 +214,7 @@ float rpmFilterGyroApply(uint8_t axis, float input)
 
 float rpmFilterDtermApply(uint8_t axis, float input)
 {
-    return rpmDtermApplyFn(&gyroRpmFilters, axis, input);
+    return rpmDtermApplyFn(&dtermRpmFilters, axis, input);
 }
 
 #endif
