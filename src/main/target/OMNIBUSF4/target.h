@@ -162,7 +162,7 @@
   #define INVERTER_PIN_UART6_TX PC9
 #endif
 
-#if defined(OMNIBUSF4V3) &&!(defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS))
+#if defined(OMNIBUSF4V3) && !(defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS))
 #define USE_SOFTSERIAL1
 #define SOFTSERIAL_1_RX_PIN     PC6     // shared with UART6 TX
 #define SOFTSERIAL_1_TX_PIN     PC6     // shared with UART6 TX
@@ -264,7 +264,7 @@
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
 #define USE_LED_STRIP
-#if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)) &&!defined(OMNIBUSF4PRO_LEDSTRIPM5)
+#if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)) && !defined(OMNIBUSF4PRO_LEDSTRIPM5)
   #define WS2811_PIN                   PB6
 #else
   #define WS2811_PIN                   PA1
