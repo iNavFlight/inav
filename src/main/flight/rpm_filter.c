@@ -27,6 +27,8 @@
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
 
+#include "build/debug.h"
+
 #include "common/axis.h"
 #include "common/utils.h"
 #include "common/maths.h"
@@ -194,6 +196,10 @@ void NOINLINE rpmFilterUpdateTask(timeUs_t currentTimeUs)
     {
         const escSensorData_t *escState = getEscTelemetry(i); //Get ESC telemetry
         const float baseFrequency = pt1FilterApply(&motorFrequencyFilter[i], escState->rpm * erpmToHz); //Filter motor frequency
+
+        if (i < 4) {
+            DEBUG_SET(DEBUG_RPM_FREQ, i, (int)baseFrequency);
+        }
 
         if (rpmFilterConfig()->gyro_filter_enabled)
         {
