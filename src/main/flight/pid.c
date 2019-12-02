@@ -80,7 +80,7 @@ typedef struct {
     // Rate filtering
     rateLimitFilter_t axisAccelFilter;
     pt1Filter_t ptermLpfState;
-    filter_t deltaLpfState;
+    filter_t dtermLpfState;
     // Dterm notch filtering
     biquadFilter_t deltaNotchFilter;
     float stickPosition;
@@ -298,9 +298,9 @@ bool pidInitFilters(void)
     if (pidProfile()->dterm_lpf_hz) {
         for (int axis = 0; axis < 3; ++ axis) {
             if (pidProfile()->dterm_lpf_type == FILTER_PT1) {
-                pt1FilterInit(&pidState[axis].deltaLpfState.pt1, pidProfile()->dterm_lpf_hz, refreshRate * 1e-6f);
+                pt1FilterInit(&pidState[axis].dtermLpfState.pt1, pidProfile()->dterm_lpf_hz, refreshRate * 1e-6f);
             } else {
-                biquadFilterInitLPF(&pidState[axis].deltaLpfState.biquad, pidProfile()->dterm_lpf_hz, refreshRate);
+                biquadFilterInitLPF(&pidState[axis].dtermLpfState.biquad, pidProfile()->dterm_lpf_hz, refreshRate);
             }
         }
     }
@@ -704,7 +704,7 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
         deltaFiltered = notchFilterApplyFn(&pidState->deltaNotchFilter, deltaFiltered);
 
         // Apply additional lowpass
-        deltaFiltered = dTermLpfFilterApplyFn((filter_t *) &pidState->deltaLpfState, deltaFiltered);
+        deltaFiltered = dTermLpfFilterApplyFn((filter_t *) &pidState->dtermLpfState, deltaFiltered);
 
         firFilterUpdate(&pidState->gyroRateFilter, deltaFiltered);
         newDTerm = firFilterApply(&pidState->gyroRateFilter);
