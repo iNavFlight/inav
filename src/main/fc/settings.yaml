@@ -1044,6 +1044,12 @@ groups:
       - name: dterm_lpf_type
         field: dterm_lpf_type
         table: filter_type
+      - name: dterm_lpf2_hz
+        min: 0
+        max: 500
+      - name: dterm_lpf2_type
+        field: dterm_lpf2_type
+        table: filter_type
       - name: use_dterm_fir_filter
         field: use_dterm_fir_filter
         type: bool
