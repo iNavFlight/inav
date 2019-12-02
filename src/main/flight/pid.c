@@ -80,7 +80,7 @@ typedef struct {
     // Rate filtering
     rateLimitFilter_t axisAccelFilter;
     pt1Filter_t ptermLpfState;
-    biquadFilter_t deltaLpfState;
+    filter_t deltaLpfState;
     // Dterm notch filtering
     biquadFilter_t deltaNotchFilter;
     float stickPosition;
@@ -145,7 +145,7 @@ typedef void (*pidControllerFnPtr)(pidState_t *pidState, flight_dynamics_index_t
 static EXTENDED_FASTRAM pidControllerFnPtr pidControllerApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr dTermLpfFilterApplyFn;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 11);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 12);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -216,6 +216,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
 
         .dterm_soft_notch_hz = 0,
         .dterm_soft_notch_cutoff = 1,
+        .dterm_lpf_type = 1, //Default to BIQUAD
         .dterm_lpf_hz = 40,
         .yaw_lpf_hz = 0,
         .dterm_setpoint_weight = 1.0f,
@@ -294,8 +295,14 @@ bool pidInitFilters(void)
     }
 
     // Init other filters
-    for (int axis = 0; axis < 3; ++ axis) {
-        biquadFilterInitLPF(&pidState[axis].deltaLpfState, pidProfile()->dterm_lpf_hz, refreshRate);
+    if (pidProfile()->dterm_lpf_hz) {
+        for (int axis = 0; axis < 3; ++ axis) {
+            if (pidProfile()->dterm_lpf_type == FILTER_PT1) {
+                pt1FilterInit(&pidState[axis].deltaLpfState.pt1, pidProfile()->dterm_lpf_hz, refreshRate * 1e-6f);
+            } else {
+                biquadFilterInitLPF(&pidState[axis].deltaLpfState.biquad, pidProfile()->dterm_lpf_hz, refreshRate);
+            }
+        }
     }
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
@@ -697,7 +704,7 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
         deltaFiltered = notchFilterApplyFn(&pidState->deltaNotchFilter, deltaFiltered);
 
         // Apply additional lowpass
-        deltaFiltered = dTermLpfFilterApplyFn(&pidState->deltaLpfState, deltaFiltered);
+        deltaFiltered = dTermLpfFilterApplyFn((filter_t *) &pidState->deltaLpfState, deltaFiltered);
 
         firFilterUpdate(&pidState->gyroRateFilter, deltaFiltered);
         newDTerm = firFilterApply(&pidState->gyroRateFilter);
@@ -1057,10 +1064,13 @@ void pidInit(void)
         usedPidControllerType = pidProfile()->pidControllerType;
     }
 
+    dTermLpfFilterApplyFn = nullFilterApply;
     if (pidProfile()->dterm_lpf_hz) {
-        dTermLpfFilterApplyFn = (filterApplyFnPtr) biquadFilterApply;
-    } else {
-        dTermLpfFilterApplyFn = nullFilterApply;
+        if (pidProfile()->dterm_lpf_type == FILTER_PT1) {
+            dTermLpfFilterApplyFn = (filterApplyFnPtr) pt1FilterApply;
+        } else {
+            dTermLpfFilterApplyFn = (filterApplyFnPtr) biquadFilterApply;
+        }
     }
 
     if (usedPidControllerType == PID_TYPE_PIFF) {

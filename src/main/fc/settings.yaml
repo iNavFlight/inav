@@ -1041,6 +1041,9 @@ groups:
       - name: dterm_lpf_hz
         min: 0
         max: 200
+      - name: dterm_lpf_type
+        field: dterm_lpf_type
+        table: filter_type
       - name: use_dterm_fir_filter
         field: use_dterm_fir_filter
         type: bool
