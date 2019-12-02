@@ -38,7 +38,7 @@
 #define TARGET_BOARD_IDENTIFIER "OBF4"
 #endif
 
-#if defined(DYSF4PRO)
+#if defined(DYSF4PRO) || defined(DYSF4PROV2)
 #define USBD_PRODUCT_STRING "DysF4Pro"
 #else
 #define USBD_PRODUCT_STRING "Omnibus F4"
