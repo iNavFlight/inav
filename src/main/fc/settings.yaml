@@ -1040,7 +1040,7 @@ groups:
         max: 900
       - name: dterm_lpf_hz
         min: 0
-        max: 200
+        max: 500
       - name: dterm_lpf_type
         field: dterm_lpf_type
         table: filter_type
