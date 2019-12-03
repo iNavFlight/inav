@@ -58,6 +58,7 @@
 #undef USE_SERIALRX_SUMH
 #undef USE_SERIALRX_XBUS
 #undef USE_SERIALRX_JETIEXBUS
+#undef USE_PWM_SERVO_DRIVER
 #endif
 
 #if defined(SIMULATOR_BUILD) || defined(UNIT_TEST)
