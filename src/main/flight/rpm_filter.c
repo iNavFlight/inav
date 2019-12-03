@@ -65,6 +65,7 @@ typedef struct
 } rpmFilterBank_t;
 
 typedef float (*rpmFilterApplyFnPtr)(rpmFilterBank_t *filter, uint8_t axis, float input);
+typedef void (*rpmFilterUpdateFnPtr)(rpmFilterBank_t *filterBank, uint8_t motor, float baseFrequency);
 
 static EXTENDED_FASTRAM pt1Filter_t motorFrequencyFilter[MAX_SUPPORTED_MOTORS];
 static EXTENDED_FASTRAM float erpmToHz;
@@ -72,6 +73,8 @@ static EXTENDED_FASTRAM rpmFilterBank_t gyroRpmFilters;
 static EXTENDED_FASTRAM rpmFilterBank_t dtermRpmFilters;
 static EXTENDED_FASTRAM rpmFilterApplyFnPtr rpmGyroApplyFn;
 static EXTENDED_FASTRAM rpmFilterApplyFnPtr rpmDtermApplyFn;
+static EXTENDED_FASTRAM rpmFilterUpdateFnPtr rpmGyroUpdateFn;
+static EXTENDED_FASTRAM rpmFilterUpdateFnPtr rpmDtermUpdateFn;
 
 float nullRpmFilterApply(rpmFilterBank_t *filter, uint8_t axis, float input)
 {
@@ -80,7 +83,13 @@ float nullRpmFilterApply(rpmFilterBank_t *filter, uint8_t axis, float input)
     return input;
 }
 
-float rpmFilterApply(rpmFilterBank_t *filterBank, uint8_t axis, float input)
+void nullRpmFilterUpdate(rpmFilterBank_t *filterBank, uint8_t motor, float baseFrequency) {
+    UNUSED(filterBank);
+    UNUSED(motor);
+    UNUSED(baseFrequency);
+}
+
+float FAST_CODE rpmFilterApply(rpmFilterBank_t *filterBank, uint8_t axis, float input)
 {
     float output = input;
 
@@ -135,38 +144,8 @@ void disableRpmFilters(void) {
     rpmDtermApplyFn = (rpmFilterApplyFnPtr)nullRpmFilterApply;
 }
 
-void rpmFiltersInit(void)
+void FAST_CODE NOINLINE rpmFilterUpdate(rpmFilterBank_t *filterBank, uint8_t motor, float baseFrequency)
 {
-    for (uint8_t i = 0; i < MAX_SUPPORTED_MOTORS; i++)
-    {
-        pt1FilterInit(&motorFrequencyFilter[i], RPM_FILTER_RPM_LPF_HZ, RPM_FILTER_UPDATE_RATE_US * 1e-6f);
-    }
-    erpmToHz = ERPM_PER_LSB / (motorConfig()->motorPoleCount / 2) / RPM_TO_HZ;
-
-    if (rpmFilterConfig()->gyro_filter_enabled)
-    {
-        rpmFilterInit(
-            &gyroRpmFilters,
-            rpmFilterConfig()->gyro_q,
-            rpmFilterConfig()->gyro_min_hz,
-            rpmFilterConfig()->gyro_harmonics);
-        rpmGyroApplyFn = (rpmFilterApplyFnPtr)rpmFilterApply;
-    }
-
-    if (rpmFilterConfig()->dterm_filter_enabled)
-    {
-        rpmFilterInit(
-            &dtermRpmFilters,
-            rpmFilterConfig()->dterm_q,
-            rpmFilterConfig()->dterm_min_hz,
-            rpmFilterConfig()->dterm_harmonics);
-        rpmDtermApplyFn = (rpmFilterApplyFnPtr)rpmFilterApply;
-    }
-}
-
-void rpmFilterUpdate(rpmFilterBank_t *filterBank, uint8_t motor, float baseFrequency)
-{
-
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++)
     {
         for (int harmonicIndex = 0; harmonicIndex < filterBank->harmonics; harmonicIndex++)
@@ -184,7 +163,41 @@ void rpmFilterUpdate(rpmFilterBank_t *filterBank, uint8_t motor, float baseFrequ
     }
 }
 
-void NOINLINE rpmFilterUpdateTask(timeUs_t currentTimeUs)
+void rpmFiltersInit(void)
+{
+    for (uint8_t i = 0; i < MAX_SUPPORTED_MOTORS; i++)
+    {
+        pt1FilterInit(&motorFrequencyFilter[i], RPM_FILTER_RPM_LPF_HZ, RPM_FILTER_UPDATE_RATE_US * 1e-6f);
+    }
+    erpmToHz = ERPM_PER_LSB / (motorConfig()->motorPoleCount / 2) / RPM_TO_HZ;
+
+    rpmGyroUpdateFn = (rpmFilterUpdateFnPtr)nullRpmFilterUpdate;
+    rpmDtermUpdateFn = (rpmFilterUpdateFnPtr)nullRpmFilterUpdate;
+
+    if (rpmFilterConfig()->gyro_filter_enabled)
+    {
+        rpmFilterInit(
+            &gyroRpmFilters,
+            rpmFilterConfig()->gyro_q,
+            rpmFilterConfig()->gyro_min_hz,
+            rpmFilterConfig()->gyro_harmonics);
+        rpmGyroApplyFn = (rpmFilterApplyFnPtr)rpmFilterApply;
+        rpmGyroUpdateFn = (rpmFilterUpdateFnPtr)rpmFilterUpdate;
+    }
+
+    if (rpmFilterConfig()->dterm_filter_enabled)
+    {
+        rpmFilterInit(
+            &dtermRpmFilters,
+            rpmFilterConfig()->dterm_q,
+            rpmFilterConfig()->dterm_min_hz,
+            rpmFilterConfig()->dterm_harmonics);
+        rpmDtermApplyFn = (rpmFilterApplyFnPtr)rpmFilterApply;
+        rpmDtermUpdateFn = (rpmFilterUpdateFnPtr)rpmFilterUpdate;
+    }
+}
+
+void FAST_CODE NOINLINE rpmFilterUpdateTask(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
 
@@ -201,24 +214,17 @@ void NOINLINE rpmFilterUpdateTask(timeUs_t currentTimeUs)
             DEBUG_SET(DEBUG_RPM_FREQ, i, (int)baseFrequency);
         }
 
-        if (rpmFilterConfig()->gyro_filter_enabled)
-        {
-            rpmFilterUpdate(&gyroRpmFilters, i, baseFrequency);
-        }
-
-        if (rpmFilterConfig()->gyro_filter_enabled)
-        {
-            rpmFilterUpdate(&dtermRpmFilters, i, baseFrequency);
-        }
+        rpmGyroUpdateFn(&gyroRpmFilters, i, baseFrequency);
+        rpmDtermUpdateFn(&dtermRpmFilters, i, baseFrequency);
     }
 }
 
-float rpmFilterGyroApply(uint8_t axis, float input)
+float FAST_CODE rpmFilterGyroApply(uint8_t axis, float input)
 {
     return rpmGyroApplyFn(&gyroRpmFilters, axis, input);
 }
 
-float rpmFilterDtermApply(uint8_t axis, float input)
+float FAST_CODE rpmFilterDtermApply(uint8_t axis, float input)
 {
     return rpmDtermApplyFn(&dtermRpmFilters, axis, input);
 }

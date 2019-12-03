@@ -134,7 +134,7 @@ uint32_t FAST_CODE computeRpm(int16_t erpm) {
     return lrintf((float)erpm * ERPM_PER_LSB / (motorConfig()->motorPoleCount / 2));
 }
 
-escSensorData_t * getEscTelemetry(uint8_t esc)
+escSensorData_t NOINLINE * getEscTelemetry(uint8_t esc)
 {
     return &escSensorData[esc];
 }
