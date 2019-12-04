@@ -218,12 +218,8 @@ void init(void)
 
     // Latch active features to be used for feature() in the remainder of init().
     latchActiveFeatures();
-
-#ifdef ALIENFLIGHTF3
-    ledInit(hardwareRevision == AFF3_REV_1 ? false : true);
-#else
+    
     ledInit(false);
-#endif
 
 #ifdef USE_EXTI
     EXTIInit();
