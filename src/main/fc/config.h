@@ -44,7 +44,7 @@ typedef enum {
     FEATURE_DYNAMIC_FILTERS = 1 << 5,   // was FEATURE_SERVO_TILT
     FEATURE_SOFTSERIAL = 1 << 6,
     FEATURE_GPS = 1 << 7,
-    FEATURE_RPM_FILTER = 1 << 8,        // was FEATURE_FAILSAFE
+    FEATURE_UNUSED_3 = 1 << 8,        // was FEATURE_FAILSAFE
     FEATURE_UNUSED_4 = 1 << 9,          // was FEATURE_SONAR
     FEATURE_TELEMETRY = 1 << 10,
     FEATURE_CURRENT_METER = 1 << 11,
