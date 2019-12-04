@@ -82,10 +82,10 @@ STATIC_FASTRAM_UNIT_TESTED zeroCalibrationVector_t gyroCalibration;
 STATIC_FASTRAM int32_t gyroADC[XYZ_AXIS_COUNT];
 
 STATIC_FASTRAM filterApplyFnPtr gyroLpfApplyFn;
-STATIC_FASTRAM void *gyroLpfState[XYZ_AXIS_COUNT];
+STATIC_FASTRAM filter_t gyroLpfState[XYZ_AXIS_COUNT];
 
 STATIC_FASTRAM filterApplyFnPtr gyroLpf2ApplyFn;
-STATIC_FASTRAM void *gyroLpf2State[XYZ_AXIS_COUNT];
+STATIC_FASTRAM filter_t gyroLpf2State[XYZ_AXIS_COUNT];
 
 STATIC_FASTRAM filterApplyFnPtr notchFilter1ApplyFn;
 STATIC_FASTRAM void *notchFilter1[XYZ_AXIS_COUNT];
@@ -329,8 +329,8 @@ bool gyroInit(void)
 
 void gyroInitFilters(void)
 {
-    STATIC_FASTRAM filter_t gyroFilterLPF[XYZ_AXIS_COUNT];
     gyroLpfApplyFn = nullFilterApply;
+    gyroLpf2ApplyFn = nullFilterApply;
 
     STATIC_FASTRAM biquadFilter_t gyroFilterNotch_1[XYZ_AXIS_COUNT];
     notchFilter1ApplyFn = nullFilterApply;
@@ -338,24 +338,19 @@ void gyroInitFilters(void)
     STATIC_FASTRAM biquadFilter_t gyroFilterNotch_2[XYZ_AXIS_COUNT];
     notchFilter2ApplyFn = nullFilterApply;
     
-    STATIC_FASTRAM filter_t gyroFilterStage2[XYZ_AXIS_COUNT];
-    gyroLpf2ApplyFn = nullFilterApply;
-
     if (gyroConfig()->gyro_stage2_lowpass_hz > 0) {
         switch (gyroConfig()->gyro_stage2_lowpass_type) 
         {
             case FILTER_PT1:
                 gyroLpfApplyFn = (filterApplyFnPtr)pt1FilterApply;
                 for (int axis = 0; axis < 3; axis++) {
-                    gyroLpf2State[axis] = &gyroFilterStage2[axis].pt1;
-                    pt1FilterInit(gyroLpf2State[axis], gyroConfig()->gyro_stage2_lowpass_hz, getLooptime()* 1e-6f);
+                    pt1FilterInit(&gyroLpf2State[axis].pt1, gyroConfig()->gyro_stage2_lowpass_hz, getLooptime()* 1e-6f);
                 }
                 break;
             case FILTER_BIQUAD:
                 gyroLpf2ApplyFn = (filterApplyFnPtr)biquadFilterApply;
                 for (int axis = 0; axis < 3; axis++) {
-                    gyroLpf2State[axis] = &gyroFilterStage2[axis].biquad;
-                    biquadFilterInitLPF(gyroLpf2State[axis], gyroConfig()->gyro_stage2_lowpass_hz, getLooptime());
+                    biquadFilterInitLPF(&gyroLpf2State[axis].biquad, gyroConfig()->gyro_stage2_lowpass_hz, getLooptime());
                 }
                 break;
         }
@@ -369,15 +364,13 @@ void gyroInitFilters(void)
         case FILTER_PT1:
             gyroLpfApplyFn = (filterApplyFnPtr)pt1FilterApply;
             for (int axis = 0; axis < 3; axis++) {
-                gyroLpfState[axis] = &gyroFilterLPF[axis].pt1;
-                pt1FilterInit(gyroLpfState[axis], gyroConfig()->gyro_soft_lpf_hz, getLooptime()* 1e-6f);
+                pt1FilterInit(&gyroLpfState[axis].pt1, gyroConfig()->gyro_soft_lpf_hz, getLooptime()* 1e-6f);
             }
             break;
         case FILTER_BIQUAD:
             gyroLpfApplyFn = (filterApplyFnPtr)biquadFilterApply;
             for (int axis = 0; axis < 3; axis++) {
-                gyroLpfState[axis] = &gyroFilterLPF[axis].biquad;
-                biquadFilterInitLPF(gyroLpfState[axis], gyroConfig()->gyro_soft_lpf_hz, getLooptime());
+                biquadFilterInitLPF(&gyroLpfState[axis].biquad, gyroConfig()->gyro_soft_lpf_hz, getLooptime());
             }
             break;
         }
@@ -478,8 +471,8 @@ void FAST_CODE NOINLINE gyroUpdate()
 
         DEBUG_SET(DEBUG_GYRO, axis, lrintf(gyroADCf));
 
-        gyroADCf = gyroLpf2ApplyFn(gyroLpf2State[axis], gyroADCf);
-        gyroADCf = gyroLpfApplyFn(gyroLpfState[axis], gyroADCf);
+        gyroADCf = gyroLpf2ApplyFn((filter_t *) &gyroLpf2State[axis], gyroADCf);
+        gyroADCf = gyroLpfApplyFn((filter_t *) &gyroLpfState[axis], gyroADCf);
         gyroADCf = notchFilter1ApplyFn(notchFilter1[axis], gyroADCf);
         gyroADCf = notchFilter2ApplyFn(notchFilter2[axis], gyroADCf);
 
