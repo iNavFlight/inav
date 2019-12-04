@@ -183,6 +183,9 @@ groups:
         field: gyro_stage2_lowpass_hz
         min: 0
         max: 500
+      - name: gyro_stage2_lowpass_type
+        field: gyro_stage2_lowpass_type
+        table: filter_type
       - name: dyn_notch_width_percent
         field: dyn_notch_width_percent
         condition: USE_DYNAMIC_FILTERS
