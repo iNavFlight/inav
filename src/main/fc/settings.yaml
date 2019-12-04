@@ -81,7 +81,7 @@ tables:
     values: ["NONE", "GYRO", "AGL", "FLOW_RAW",
       "FLOW", "SBUS", "FPORT", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "ITERM_RELAX", 
-      "ERPM"]
+      "ERPM", "RPM_FILTER", "RPM_FREQ"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -871,6 +871,46 @@ groups:
         min: 0
         max: 3
 
+  - name: PG_RPM_FILTER_CONFIG
+    condition: USE_RPM_FILTER
+    type: rpmFilterConfig_t
+    members:
+      - name: rpm_gyro_filter_enabled
+        field: gyro_filter_enabled
+        type: bool
+      - name: rpm_dterm_filter_enabled
+        field: dterm_filter_enabled
+        type: bool
+      - name: rpm_gyro_harmonics
+        field: gyro_harmonics
+        type: uint8_t
+        min: 1
+        max: 3
+      - name: rpm_gyro_min_hz
+        field: gyro_min_hz
+        type: uint8_t
+        min: 50
+        max: 200
+      - name: rpm_gyro_q
+        field: gyro_q
+        type: uint16_t
+        min: 1
+        max: 3000
+      - name: dterm_gyro_harmonics
+        field: dterm_harmonics
+        type: uint8_t
+        min: 1
+        max: 3
+      - name: rpm_dterm_min_hz
+        field: dterm_min_hz
+        type: uint8_t
+        min: 50
+        max: 200
+      - name: rpm_dterm_q
+        field: dterm_q
+        type: uint16_t
+        min: 1
+        max: 3000
   - name: PG_GPS_CONFIG
     type: gpsConfig_t
     condition: USE_GPS

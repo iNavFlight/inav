@@ -24,26 +24,30 @@
 
 #pragma once
 
-typedef struct {
-    uint8_t dataAge;
-    int8_t temperature;
-    int16_t voltage;
-    int32_t current;
-    int16_t rpm;
-} escSensorData_t;
+#include "config/parameter_group.h"
+#include "common/time.h"
 
-typedef struct escSensorConfig_s {
-    uint16_t currentOffset;             // offset consumed by the flight controller / VTX / cam / ... in mA
-} escSensorConfig_t;
+typedef struct rpmFilterConfig_s {
+    uint8_t gyro_filter_enabled;
+    uint8_t dterm_filter_enabled;
 
-PG_DECLARE(escSensorConfig_t, escSensorConfig);
+    uint8_t  gyro_harmonics;
+    uint8_t  gyro_min_hz;
+    uint16_t gyro_q;
 
-#define ESC_DATA_MAX_AGE    10
-#define ESC_DATA_INVALID    255
-#define ERPM_PER_LSB        100.0f
+    uint8_t  dterm_harmonics;
+    uint8_t  dterm_min_hz;
+    uint16_t dterm_q;
 
-bool escSensorInitialize(void);
-void escSensorUpdate(timeUs_t currentTimeUs);
-escSensorData_t * escSensorGetData(void);
-escSensorData_t * getEscTelemetry(uint8_t esc);
-uint32_t computeRpm(int16_t erpm);
+} rpmFilterConfig_t;
+
+PG_DECLARE(rpmFilterConfig_t, rpmFilterConfig);
+
+#define RPM_FILTER_UPDATE_RATE_HZ 500
+#define RPM_FILTER_UPDATE_RATE_US (1000000.0f / RPM_FILTER_UPDATE_RATE_HZ)
+
+void disableRpmFilters(void);
+void rpmFiltersInit(void);
+void rpmFilterUpdateTask(timeUs_t currentTimeUs);
+float rpmFilterGyroApply(uint8_t axis, float input);
+float rpmFilterDtermApply(uint8_t axis, float input);

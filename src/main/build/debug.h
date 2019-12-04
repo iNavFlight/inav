@@ -65,5 +65,7 @@ typedef enum {
     DEBUG_ACC,
     DEBUG_ITERM_RELAX,
     DEBUG_ERPM,
+    DEBUG_RPM_FILTER,
+    DEBUG_RPM_FREQ,
     DEBUG_COUNT
 } debugType_e;

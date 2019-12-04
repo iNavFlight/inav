@@ -47,6 +47,7 @@
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/wind_estimator.h"
+#include "flight/rpm_filter.h"
 
 #include "navigation/navigation.h"
 
@@ -559,6 +560,14 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskFunc = globalFunctionsUpdateTask,
         .desiredPeriod = TASK_PERIOD_HZ(10),          // 10Hz @100msec
         .staticPriority = TASK_PRIORITY_IDLE,
+    },
+#endif
+#ifdef USE_RPM_FILTER
+    [TASK_RPM_FILTER] = {
+        .taskName = "RPM",
+        .taskFunc = rpmFilterUpdateTask,
+        .desiredPeriod = TASK_PERIOD_HZ(RPM_FILTER_UPDATE_RATE_HZ),          // 300Hz @3,33ms
+        .staticPriority = TASK_PRIORITY_LOW,
     },
 #endif
 };
