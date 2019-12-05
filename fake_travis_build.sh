@@ -2,7 +2,6 @@
 
 targets=("PUBLISHMETA=True" \
     "RUNTESTS=True" \
-    "TARGET=COLIBRI_RACE" \
     "TARGET=SPRACINGF3" \
     "TARGET=SPRACINGF3EVO" \
     "TARGET=LUX_RACE" \

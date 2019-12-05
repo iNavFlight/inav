@@ -130,6 +130,15 @@ static bool escSensorDecodeFrame(void)
     return ESC_SENSOR_FRAME_PENDING;
 }
 
+uint32_t FAST_CODE computeRpm(int16_t erpm) {
+    return lrintf((float)erpm * ERPM_PER_LSB / (motorConfig()->motorPoleCount / 2));
+}
+
+escSensorData_t NOINLINE * getEscTelemetry(uint8_t esc)
+{
+    return &escSensorData[esc];
+}
+
 escSensorData_t * escSensorGetData(void)
 {
     if (!escSensorPort) {
@@ -160,7 +169,7 @@ escSensorData_t * escSensorGetData(void)
         if (usedEscSensorCount) {
             escSensorDataCombined.current = (uint32_t)escSensorDataCombined.current * getMotorCount() / usedEscSensorCount + escSensorConfig()->currentOffset;
             escSensorDataCombined.voltage = (uint32_t)escSensorDataCombined.voltage / usedEscSensorCount;
-            escSensorDataCombined.rpm = lrintf(((float)escSensorDataCombined.rpm / usedEscSensorCount) * 100.0f / (motorConfig()->motorPoleCount / 2));
+            escSensorDataCombined.rpm = computeRpm((float)escSensorDataCombined.rpm / usedEscSensorCount);
         }
         else {
             escSensorDataCombined.dataAge = ESC_DATA_INVALID;

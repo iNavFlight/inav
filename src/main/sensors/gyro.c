@@ -68,6 +68,7 @@
 #include "sensors/sensors.h"
 
 #include "flight/gyroanalyse.h"
+#include "flight/rpm_filter.h"
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
@@ -455,6 +456,12 @@ void FAST_CODE NOINLINE gyroUpdate()
 
         DEBUG_SET(DEBUG_GYRO, axis, lrintf(gyroADCf));
 
+#ifdef USE_RPM_FILTER
+        DEBUG_SET(DEBUG_RPM_FILTER, axis, gyroADCf);
+        gyroADCf = rpmFilterGyroApply(axis, gyroADCf);
+        DEBUG_SET(DEBUG_RPM_FILTER, axis + 3, gyroADCf);
+#endif
+
         gyroADCf = gyroLpf2ApplyFn((filter_t *) &gyroLpf2State[axis], gyroADCf);
         gyroADCf = gyroLpfApplyFn((filter_t *) &gyroLpfState[axis], gyroADCf);
         gyroADCf = notchFilter1ApplyFn(notchFilter1[axis], gyroADCf);
@@ -475,6 +482,7 @@ void FAST_CODE NOINLINE gyroUpdate()
         gyroDataAnalyse(&gyroAnalyseState, notchFilterDyn, notchFilterDyn2);
     }
 #endif
+
 }
 
 bool gyroReadTemperature(void)
