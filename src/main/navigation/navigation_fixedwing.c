@@ -61,6 +61,7 @@
 
 static bool isPitchAdjustmentValid = false;
 static bool isRollAdjustmentValid = false;
+static bool isYawAdjustmentValid = false;
 static float throttleSpeedAdjustment = 0;
 static bool isAutoThrottleManuallyIncreased = false;
 static int32_t navHeadingError;
@@ -210,7 +211,9 @@ void resetFixedWingPositionController(void)
 
     navPidReset(&posControl.pids.fw_nav);
     posControl.rcAdjustment[ROLL] = 0;
+    posControl.rcAdjustment[YAW] = 0;
     isRollAdjustmentValid = false;
+    isYawAdjustmentValid = false;
 
     pt1FilterReset(&fwPosControllerCorrectionFilterState, 0.0f);
 }
@@ -333,6 +336,17 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
 
     // Convert rollAdjustment to decidegrees (rcAdjustment holds decidegrees)
     posControl.rcAdjustment[ROLL] = CENTIDEGREES_TO_DECIDEGREES(rollAdjustment);
+
+    /*
+     * Yaw adjustment
+     * It is working in relative mode and we aim to keep error at zero
+     */
+    float yawAdjustment = navPidApply2(&posControl.pids.fw_heading, 0, navHeadingError, US2S(deltaMicros),
+                                       -500,
+                                        500,
+                                        pidFlags);
+
+    posControl.rcAdjustment[YAW] = yawAdjustment;
 }
 
 void applyFixedWingPositionController(timeUs_t currentTimeUs)
@@ -376,10 +390,12 @@ void applyFixedWingPositionController(timeUs_t currentTimeUs)
         }
 
         isRollAdjustmentValid = true;
+        isYawAdjustmentValid = true;
     }
     else {
         // No valid pos sensor data, don't adjust pitch automatically, rcCommand[ROLL] is passed through to PID controller
         isRollAdjustmentValid = false;
+        isYawAdjustmentValid = false;
     }
 }
 
@@ -446,6 +462,10 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         // ROLL >0 right, <0 left
         int16_t rollCorrection = constrain(posControl.rcAdjustment[ROLL], -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_bank_angle), DEGREES_TO_DECIDEGREES(navConfig()->fw.max_bank_angle));
         rcCommand[ROLL] = pidAngleToRcCommand(rollCorrection, pidProfile()->max_angle_inclination[FD_ROLL]);
+    }
+
+    if (isYawAdjustmentValid && (navStateFlags & NAV_CTL_POS)) {
+        rcCommand[YAW] = posControl.rcAdjustment[YAW];
     }
 
     if (isPitchAdjustmentValid && (navStateFlags & NAV_CTL_ALT)) {

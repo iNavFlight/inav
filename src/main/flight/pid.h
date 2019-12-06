@@ -67,6 +67,7 @@ typedef enum {
     PID_LEVEL,      //   +       +
     PID_HEADING,    //   +       +
     PID_VEL_Z,      //   +       n/a
+    PID_POS_HEADING,//   n/a     +
     PID_ITEM_COUNT
 } pidIndex_e;
 

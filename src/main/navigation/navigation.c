@@ -3195,6 +3195,13 @@ void navigationUsePIDs(void)
                                         0.0f,
                                         NAV_DTERM_CUT_HZ
     );
+
+    navPidInit(&posControl.pids.fw_heading, (float)pidProfile()->bank_fw.pid[PID_POS_HEADING].P / 100.0f,
+                                        (float)pidProfile()->bank_fw.pid[PID_POS_HEADING].I / 100.0f,
+                                        (float)pidProfile()->bank_fw.pid[PID_POS_HEADING].D / 100.0f,
+                                        0.0f,
+                                        NAV_DTERM_CUT_HZ
+    );
 }
 
 void navigationInit(void)

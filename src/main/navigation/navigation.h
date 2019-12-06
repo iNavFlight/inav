@@ -306,6 +306,7 @@ typedef struct navigationPIDControllers_s {
     /* Fixed-wing PIDs */
     pidController_t fw_alt;
     pidController_t fw_nav;
+    pidController_t fw_heading;
 } navigationPIDControllers_t;
 
 /* MultiWii-compatible params for telemetry */

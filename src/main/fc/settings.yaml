@@ -1228,6 +1228,21 @@ groups:
         condition: USE_NAV
         min: 0
         max: 255
+      - name: nav_fw_pos_hdg_p
+        field: bank_fw.pid[PID_POS_HEADING].P
+        condition: USE_NAV
+        min: 0
+        max: 255
+      - name: nav_fw_pos_hdg_i
+        field: bank_fw.pid[PID_POS_HEADING].I
+        condition: USE_NAV
+        min: 0
+        max: 255
+      - name: nav_fw_pos_hdg_d
+        field: bank_fw.pid[PID_POS_HEADING].D
+        condition: USE_NAV
+        min: 0
+        max: 255
       - name: mc_iterm_relax_type
         field: iterm_relax_type
         table: iterm_relax_type
