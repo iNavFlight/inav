@@ -2084,7 +2084,8 @@ float getFinalRTHAltitude(void)
 static void updateDesiredRTHAltitude(void)
 {
     if (ARMING_FLAG(ARMED)) {
-        if (!(navGetStateFlags(posControl.navState) & NAV_AUTO_RTH)) {
+        if (!((navGetStateFlags(posControl.navState) & NAV_AUTO_RTH)
+          || ((navGetStateFlags(posControl.navState) & NAV_AUTO_WP) && posControl.waypointList[posControl.activeWaypointIndex].action == NAV_WP_ACTION_RTH))) {
             switch (navConfig()->general.flags.rth_alt_control_mode) {
                 case NAV_RTH_NO_ALT:
                     posControl.rthState.rthInitialAltitude = posControl.actualState.abs.pos.z;
