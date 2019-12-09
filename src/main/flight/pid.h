@@ -26,7 +26,7 @@
 #define PID_SUM_LIMIT_DEFAULT   500
 #define YAW_P_LIMIT_MIN 100                 // Maximum value for yaw P limiter
 #define YAW_P_LIMIT_MAX 500                 // Maximum value for yaw P limiter
-#define YAW_P_LIMIT_DEFAULT 300             // Default value for yaw P limiter
+#define YAW_P_LIMIT_DEFAULT 500             // Default value for yaw P limiter
 
 #define HEADING_HOLD_RATE_LIMIT_MIN 10
 #define HEADING_HOLD_RATE_LIMIT_MAX 250
@@ -51,7 +51,9 @@ FP-PID has been rescaled to match LuxFloat (and MWRewrite) from Cleanflight 1.13
 #define FP_PID_YAWHOLD_P_MULTIPLIER 80.0f
 
 #define MC_ITERM_RELAX_SETPOINT_THRESHOLD 40.0f
-#define MC_ITERM_RELAX_CUTOFF_DEFAULT 20
+#define MC_ITERM_RELAX_CUTOFF_DEFAULT 15
+
+#define ANTI_GRAVITY_THROTTLE_FILTER_CUTOFF 15  // The anti gravity throttle highpass filter cutoff
 
 typedef enum {
     /* PID              MC      FW  */
@@ -106,7 +108,6 @@ typedef struct pidProfile_s {
     uint8_t dterm_lpf_hz;                   // (default 17Hz, Range 1-50Hz) Used for PT1 element in PID1, PID2 and PID5
     uint8_t use_dterm_fir_filter;           // Use classical INAV FIR differentiator. Very noise robust, can be quite slowish
 
-    uint8_t yaw_pterm_lpf_hz;               // Used for filering Pterm noise on noisy frames
     uint8_t yaw_lpf_hz;
     uint16_t yaw_p_limit;
 
@@ -138,6 +139,9 @@ typedef struct pidProfile_s {
     float dBoostFactor;
     float dBoostMaxAtAlleceleration;
     uint8_t dBoostGyroDeltaLpfHz;
+    float antigravityGain;
+    float antigravityAccelerator;
+    uint8_t antigravityCutoff;
 } pidProfile_t;
 
 typedef struct pidAutotuneConfig_s {
@@ -171,8 +175,8 @@ struct motorConfig_s;
 struct rxConfig_s;
 
 void schedulePidGainsUpdate(void);
-void updatePIDCoefficients(void);
-void pidController(void);
+void updatePIDCoefficients(float dT);
+void pidController(float dT);
 
 float pidRateToRcCommand(float rateDPS, uint8_t rate);
 int16_t pidAngleToRcCommand(float angleDeciDegrees, int16_t maxInclination);

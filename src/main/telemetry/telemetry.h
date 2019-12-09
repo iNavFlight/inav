@@ -75,6 +75,7 @@ typedef struct telemetryConfig_s {
     uint16_t accEventThresholdNegX;
     int16_t simLowAltitude;
     uint8_t simGroundStationNumber[16];
+    uint8_t simPin[8];
     struct {
         uint8_t extended_status_rate;
         uint8_t rc_channels_rate;

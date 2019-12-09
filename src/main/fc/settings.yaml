@@ -16,7 +16,7 @@ tables:
     values: ["NONE", "PMW3901", "CXOF", "MSP", "FAKE"]
     enum: opticalFlowSensor_e
   - name: baro_hardware
-    values: ["NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "LPS25H", "FAKE"]
+    values: ["NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "LPS25H", "SPL06", "FAKE"]
     enum: baroSensor_e
   - name: pitot_hardware
     values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE"]
@@ -36,8 +36,11 @@ tables:
   - name: failsafe_procedure
     values: ["SET-THR", "DROP", "RTH", "NONE"]
   - name: current_sensor
-    values: ["NONE", "ADC", "VIRTUAL"]
+    values: ["NONE", "ADC", "VIRTUAL", "ESC"]
     enum: currentSensor_e
+  - name: voltage_sensor
+    values: ["NONE", "ADC", "ESC"]
+    enum: voltageSensor_e
   - name: gps_provider
     values: ["NMEA", "UBLOX", "UNUSED", "NAZA", "UBLOX7", "MTK"]
     enum: gpsProvider_e
@@ -77,7 +80,8 @@ tables:
   - name: debug_modes
     values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "AGL", "FLOW_RAW",
       "FLOW", "SBUS", "FPORT", "ALWAYS", "STAGE2", "SAG_COMP_VOLTAGE",
-      "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "GENERIC", "ITERM_RELAX", "D_BOOST"]
+      "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "GENERIC", "ITERM_RELAX", 
+      "D_BOOST", "ANTIGRAVITY", "FFT", "FFT_TIME", "FFT_FREQ", "ERPM"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -125,6 +129,12 @@ tables:
   - name: nav_extra_arming_safety
     values: ["OFF", "ON", "ALLOW_BYPASS"]
     enum: navExtraArmingSafety_e
+  - name: rssi_source
+    values: ["NONE", "AUTO", "ADC", "CHANNEL", "PROTOCOL", "MSP"]
+    enum: rssiSource_e
+  - name: dynamicFilterRangeTable
+    values: ["HIGH", "MEDIUM", "LOW"]
+    enum: dynamicFilterRange_e
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -175,6 +185,25 @@ groups:
         condition: USE_GYRO_BIQUAD_RC_FIR2
         min: 0
         max: 500
+      - name: dyn_notch_width_percent
+        field: dyn_notch_width_percent
+        condition: USE_DYNAMIC_FILTERS
+        min: 0
+        max: 20
+      - name: dyn_notch_range
+        field: dyn_notch_range
+        condition: USE_DYNAMIC_FILTERS
+        table: dynamicFilterRangeTable
+      - name: dyn_notch_q
+        field: dyn_notch_q
+        condition: USE_DYNAMIC_FILTERS
+        min: 1
+        max: 1000
+      - name: dyn_notch_min_hz
+        field: dyn_notch_min_hz
+        condition: USE_DYNAMIC_FILTERS
+        min: 60
+        max: 1000
       - name: gyro_to_use
         condition: USE_DUAL_GYRO
         min: 0
@@ -368,6 +397,9 @@ groups:
         field: maxcheck
         min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
+      - name: rssi_source
+        field: rssi_source
+        table: rssi_source
       - name: rssi_channel
         min: 0
         max: MAX_SUPPORTED_RC_CHANNEL_COUNT
@@ -474,6 +506,14 @@ groups:
       - name: motor_pwm_protocol
         field: motorPwmProtocol
         table: motor_pwm_protocol
+      - name: throttle_scale
+        field: throttleScale
+        min: 0
+        max: 1
+      - name: motor_poles
+        field: motorPoleCount
+        min: 4
+        max: 255
 
   - name: PG_FAILSAFE_CONFIG
     type: failsafeConfig_t
@@ -555,8 +595,12 @@ groups:
     type: batteryMetersConfig_t
     headers: ["sensors/battery.h"]
     members:
+      - name: vbat_meter_type
+        field: voltage.type
+        table: voltage_sensor
+        type: uint8_t
       - name: vbat_scale
-        field: voltage_scale
+        field: voltage.scale
         condition: USE_ADC
         min: VBAT_SCALE_MIN
         max: VBAT_SCALE_MAX
@@ -821,6 +865,15 @@ groups:
         field: switchDisarmDelayMs
         min: 0
         max: 1000
+
+  - name: PG_GENERAL_SETTINGS
+    type: generalSettings_t
+    members:
+      - name: applied_defaults
+        field: appliedDefaults
+        type: uint8_t
+        min: 0
+        max: 3
 
   - name: PG_GPS_CONFIG
     type: gpsConfig_t
@@ -1166,6 +1219,21 @@ groups:
         condition: USE_D_BOOST
         min: 10
         max: 250
+      - name: antigravity_gain
+        field: antigravityGain
+        condition: USE_ANTIGRAVITY
+        min: 1
+        max: 20
+      - name: antigravity_accelerator
+        field: antigravityAccelerator
+        condition: USE_ANTIGRAVITY
+        min: 1
+        max: 20
+      - name: antigravity_cutoff_lpf_hz
+        field: antigravityCutoff
+        condition: USE_ANTIGRAVITY
+        min: 1
+        max: 30
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t
@@ -1592,6 +1660,11 @@ groups:
         condition: USE_TELEMETRY_SIM
         type: string
         max: 16
+      - name: sim_pin
+        field: simPin
+        condition: USE_TELEMETRY_SIM
+        type: string
+        max: 8
       - name: sim_transmit_interval
         field: simTransmitInterval
         condition: USE_TELEMETRY_SIM
