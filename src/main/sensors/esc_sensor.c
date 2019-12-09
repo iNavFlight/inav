@@ -43,6 +43,8 @@
 #include "drivers/pwm_output.h"
 #include "sensors/esc_sensor.h"
 #include "io/serial.h"
+#include "fc/runtime_config.h"
+
 
 #if defined(USE_ESC_SENSOR)
 
@@ -110,8 +112,13 @@ static bool escSensorDecodeFrame(void)
             escSensorData[escSensorMotor].temperature   = telemetryBuffer[0];
             escSensorData[escSensorMotor].voltage       = ((uint16_t)telemetryBuffer[1]) << 8 | telemetryBuffer[2];
             escSensorData[escSensorMotor].current       = ((uint16_t)telemetryBuffer[3]) << 8 | telemetryBuffer[4];
-            escSensorData[escSensorMotor].erpm          = ((uint16_t)telemetryBuffer[7]) << 8 | telemetryBuffer[8];
+            escSensorData[escSensorMotor].rpm          = ((uint16_t)telemetryBuffer[7]) << 8 | telemetryBuffer[8];
             escSensorDataNeedsUpdate = true;
+
+            if (escSensorMotor < 4) {
+                DEBUG_SET(DEBUG_ERPM, escSensorMotor, escSensorData[escSensorMotor].rpm);
+            }
+
             return ESC_SENSOR_FRAME_COMPLETE;
         }
         else {
@@ -121,6 +128,15 @@ static bool escSensorDecodeFrame(void)
     }
 
     return ESC_SENSOR_FRAME_PENDING;
+}
+
+uint32_t FAST_CODE computeRpm(int16_t erpm) {
+    return lrintf((float)erpm * ERPM_PER_LSB / (motorConfig()->motorPoleCount / 2));
+}
+
+escSensorData_t NOINLINE * getEscTelemetry(uint8_t esc)
+{
+    return &escSensorData[esc];
 }
 
 escSensorData_t * escSensorGetData(void)
@@ -134,7 +150,7 @@ escSensorData_t * escSensorGetData(void)
         escSensorDataCombined.temperature = 0;
         escSensorDataCombined.voltage = 0;
         escSensorDataCombined.current = 0;
-        escSensorDataCombined.erpm = 0;
+        escSensorDataCombined.rpm = 0;
 
         // Combine data only from active sensors, ignore stale sensors
         int usedEscSensorCount = 0;
@@ -145,7 +161,7 @@ escSensorData_t * escSensorGetData(void)
                 escSensorDataCombined.temperature = MAX(escSensorDataCombined.temperature, escSensorData[i].temperature);
                 escSensorDataCombined.voltage += escSensorData[i].voltage;
                 escSensorDataCombined.current += escSensorData[i].current;
-                escSensorDataCombined.erpm += escSensorData[i].erpm;
+                escSensorDataCombined.rpm += escSensorData[i].rpm;
             }
         }
 
@@ -153,7 +169,7 @@ escSensorData_t * escSensorGetData(void)
         if (usedEscSensorCount) {
             escSensorDataCombined.current = (uint32_t)escSensorDataCombined.current * getMotorCount() / usedEscSensorCount + escSensorConfig()->currentOffset;
             escSensorDataCombined.voltage = (uint32_t)escSensorDataCombined.voltage / usedEscSensorCount;
-            escSensorDataCombined.erpm = (uint32_t)escSensorDataCombined.erpm / usedEscSensorCount;
+            escSensorDataCombined.rpm = computeRpm((float)escSensorDataCombined.rpm / usedEscSensorCount);
         }
         else {
             escSensorDataCombined.dataAge = ESC_DATA_INVALID;
@@ -190,6 +206,8 @@ bool escSensorInitialize(void)
     for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
         escSensorData[i].dataAge = ESC_DATA_INVALID;
     }
+
+    ENABLE_STATE(ESC_SENSOR_ENABLED);
 
     return true;
 }

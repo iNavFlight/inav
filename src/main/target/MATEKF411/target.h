@@ -164,6 +164,7 @@
 #define BIND_PIN                PA10 //  RX1
 
 #define USE_DSHOT
+#define USE_ESC_SENSOR
 
 #define USE_SERIALSHOT
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE

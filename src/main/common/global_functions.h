@@ -36,6 +36,7 @@ typedef enum {
     GLOBAL_FUNCTION_ACTION_INVERT_ROLL,
     GLOBAL_FUNCTION_ACTION_INVERT_PITCH,
     GLOBAL_FUNCTION_ACTION_INVERT_YAW,
+    GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE,
     GLOBAL_FUNCTION_ACTION_LAST
 } globalFunctionActions_e;
 
@@ -46,6 +47,7 @@ typedef enum {
     GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_ROLL = (1 << 3),
     GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_PITCH = (1 << 4),
     GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_YAW = (1 << 5),
+    GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE = (1 << 6),
 } globalFunctionFlags_t;
 
 typedef struct globalFunction_s {
@@ -69,6 +71,7 @@ extern uint64_t globalFunctionsFlags;
 #define GLOBAL_FUNCTION_FLAG(mask) (globalFunctionsFlags & (mask))
 
 PG_DECLARE_ARRAY(globalFunction_t, MAX_GLOBAL_FUNCTIONS, globalFunctions);
+extern int globalFunctionValues[GLOBAL_FUNCTION_ACTION_LAST];
 
 void globalFunctionsUpdateTask(timeUs_t currentTimeUs);
 float getThrottleScale(float globalThrottleScale);

@@ -74,7 +74,7 @@ PG_REGISTER_WITH_RESET_TEMPLATE(mixerConfig_t, mixerConfig, PG_MIXER_CONFIG, 1);
 
 PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
     .yaw_motor_direction = 1,
-    .yaw_jump_prevention_limit = 200,
+    .yaw_jump_prevention_limit = 350,
     .platformType = PLATFORM_MULTIROTOR,
     .hasFlaps = false,
     .appliedMixerPreset = -1, //This flag is not available in CLI and used by Configurator only
@@ -93,7 +93,7 @@ PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
 
 #define DEFAULT_MAX_THROTTLE    1850
 
-PG_REGISTER_WITH_RESET_TEMPLATE(motorConfig_t, motorConfig, PG_MOTOR_CONFIG, 3);
+PG_REGISTER_WITH_RESET_TEMPLATE(motorConfig_t, motorConfig, PG_MOTOR_CONFIG, 4);
 
 PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .minthrottle = DEFAULT_MIN_THROTTLE,
@@ -103,11 +103,15 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .mincommand = 1000,
     .motorAccelTimeMs = 0,
     .motorDecelTimeMs = 0,
-    .digitalIdleOffsetValue = 450,   // Same scale as in Betaflight
-    .throttleScale = 1.0f
+    .digitalIdleOffsetValue = 450,  // Same scale as in Betaflight
+    .throttleScale = 1.0f,
+    .motorPoleCount = 14            // Most brushless motors that we use are 14 poles
 );
 
 PG_REGISTER_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer, PG_MOTOR_MIXER, 0);
+
+typedef void (*motorRateLimitingApplyFnPtr)(const float dT);
+static EXTENDED_FASTRAM motorRateLimitingApplyFnPtr motorRateLimitingApplyFn;
 
 static void computeMotorCount(void)
 {
@@ -153,6 +157,49 @@ void mixerUpdateStateFlags(void)
     }
 }
 
+void nullMotorRateLimiting(const float dT)
+{
+    UNUSED(dT);
+}
+
+void applyMotorRateLimiting(const float dT)
+{
+    static float motorPrevious[MAX_SUPPORTED_MOTORS] = { 0 };
+
+    if (feature(FEATURE_3D)) {
+        // FIXME: Don't apply rate limiting in 3D mode
+        for (int i = 0; i < motorCount; i++) {
+            motorPrevious[i] = motor[i];
+        }
+    }
+    else {
+        // Calculate max motor step
+        const uint16_t motorRange = motorConfig()->maxthrottle - motorConfig()->minthrottle;
+        const float motorMaxInc = (motorConfig()->motorAccelTimeMs == 0) ? 2000 : motorRange * dT / (motorConfig()->motorAccelTimeMs * 1e-3f);
+        const float motorMaxDec = (motorConfig()->motorDecelTimeMs == 0) ? 2000 : motorRange * dT / (motorConfig()->motorDecelTimeMs * 1e-3f);
+
+        for (int i = 0; i < motorCount; i++) {
+            // Apply motor rate limiting
+            motorPrevious[i] = constrainf(motor[i], motorPrevious[i] - motorMaxDec, motorPrevious[i] + motorMaxInc);
+
+            // Handle throttle below min_throttle (motor start/stop)
+            if (motorPrevious[i] < motorConfig()->minthrottle) {
+                if (motor[i] < motorConfig()->minthrottle) {
+                    motorPrevious[i] = motor[i];
+                }
+                else {
+                    motorPrevious[i] = motorConfig()->minthrottle;
+                }
+            }
+        }
+    }
+
+    // Update motor values
+    for (int i = 0; i < motorCount; i++) {
+        motor[i] = motorPrevious[i];
+    }
+}
+
 void mixerInit(void)
 {
     computeMotorCount();
@@ -163,6 +210,12 @@ void mixerInit(void)
     }
 
     mixerResetDisarmedMotors();
+
+    if (motorConfig()->motorAccelTimeMs || motorConfig()->motorDecelTimeMs) {
+        motorRateLimitingApplyFn = applyMotorRateLimiting;
+    } else {
+        motorRateLimitingApplyFn = nullMotorRateLimiting;
+    }
 }
 
 void mixerResetDisarmedMotors(void)
@@ -239,44 +292,6 @@ void stopPwmAllMotors(void)
     pwmShutdownPulsesForAllMotors(motorCount);
 }
 
-static void applyMotorRateLimiting(const float dT)
-{
-    static float motorPrevious[MAX_SUPPORTED_MOTORS] = { 0 };
-
-    if (feature(FEATURE_3D)) {
-        // FIXME: Don't apply rate limiting in 3D mode
-        for (int i = 0; i < motorCount; i++) {
-            motorPrevious[i] = motor[i];
-        }
-    }
-    else {
-        // Calculate max motor step
-        const uint16_t motorRange = motorConfig()->maxthrottle - motorConfig()->minthrottle;
-        const float motorMaxInc = (motorConfig()->motorAccelTimeMs == 0) ? 2000 : motorRange * dT / (motorConfig()->motorAccelTimeMs * 1e-3f);
-        const float motorMaxDec = (motorConfig()->motorDecelTimeMs == 0) ? 2000 : motorRange * dT / (motorConfig()->motorDecelTimeMs * 1e-3f);
-
-        for (int i = 0; i < motorCount; i++) {
-            // Apply motor rate limiting
-            motorPrevious[i] = constrainf(motor[i], motorPrevious[i] - motorMaxDec, motorPrevious[i] + motorMaxInc);
-
-            // Handle throttle below min_throttle (motor start/stop)
-            if (motorPrevious[i] < motorConfig()->minthrottle) {
-                if (motor[i] < motorConfig()->minthrottle) {
-                    motorPrevious[i] = motor[i];
-                }
-                else {
-                    motorPrevious[i] = motorConfig()->minthrottle;
-                }
-            }
-        }
-    }
-
-    // Update motor values
-    for (int i = 0; i < motorCount; i++) {
-        motor[i] = motorPrevious[i];
-    }
-}
-
 void FAST_CODE NOINLINE mixTable(const float dT)
 {
     int16_t input[3];   // RPY, range [-500:+500]
@@ -320,6 +335,13 @@ void FAST_CODE NOINLINE mixTable(const float dT)
     static int16_t throttlePrevious = 0;   // Store the last throttle direction for deadband transitions
 
     // Find min and max throttle based on condition.
+#ifdef USE_GLOBAL_FUNCTIONS
+    if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE)) {
+        throttleMin = motorConfig()->minthrottle;
+        throttleMax = motorConfig()->maxthrottle;
+        mixerThrottleCommand = constrain(globalFunctionValues[GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE], throttleMin, throttleMax); 
+    } else
+#endif
     if (feature(FEATURE_3D)) {
         if (!ARMING_FLAG(ARMED)) throttlePrevious = PWM_RANGE_MIDDLE; // When disarmed set to mid_rc. It always results in positive direction after arming.
 
@@ -406,7 +428,7 @@ void FAST_CODE NOINLINE mixTable(const float dT)
     }
 
     /* Apply motor acceleration/deceleration limit */
-    applyMotorRateLimiting(dT);
+    motorRateLimitingApplyFn(dT);
 }
 
 motorStatus_e getMotorStatus(void)

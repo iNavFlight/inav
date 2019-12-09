@@ -50,7 +50,7 @@ from another BEC.  Just ensure that the GROUND is the same for all BEC outputs a
 
 | Target                | Pin  | LED Strip | Signal |
 | --------------------- | ---- | --------- | -------|
-| ChebuzzF3/F3Discovery | PB8  | Data In   | PB8    |
+| F3Discovery | PB8  | Data In   | PB8    |
 | Sparky                | PWM5 | Data In   | PA6    |
 
 If you have LEDs that are intermittent, flicker or show the wrong colors then drop the VIN to less than 4.7v, e.g. by using an inline

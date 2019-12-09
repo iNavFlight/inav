@@ -161,6 +161,7 @@
 
 #define MAX_PWM_OUTPUT_PORTS        7
 #define USE_DSHOT
+#define USE_ESC_SENSOR
 #define USE_SERIALSHOT
 
 #define USE_SECONDARY_IMU
