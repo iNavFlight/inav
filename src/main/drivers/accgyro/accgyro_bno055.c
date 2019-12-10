@@ -32,31 +32,54 @@
 
 #ifdef USE_IMU_BNO055
 
-#define BNO055_ADDR_PWR_MODE    0x3E
-#define BNO055_ADDR_OPR_MODE    0x3D
-#define BNO055_ADDR_CALIB_STAT  0x35
+#define BNO055_ADDR_PWR_MODE 0x3E
+#define BNO055_ADDR_OPR_MODE 0x3D
+#define BNO055_ADDR_CALIB_STAT 0x35
 
-#define BNO055_PWR_MODE_NORMAL  0x00
-#define BNO055_OPR_MODE_NDOF    0x0C
+#define BNO055_PWR_MODE_NORMAL 0x00
+#define BNO055_OPR_MODE_NDOF 0x0C
 
-#define BNO055_ADDR_EUL_YAW_LSB     0x1A
-#define BNO055_ADDR_EUL_YAW_MSB     0x1B
-#define BNO055_ADDR_EUL_ROLL_LSB    0x1C
-#define BNO055_ADDR_EUL_ROLL_MSB    0x1D
-#define BNO055_ADDR_EUL_PITCH_LSB   0x1E
-#define BNO055_ADDR_EUL_PITCH_MSB   0x1F
+#define BNO055_ADDR_EUL_YAW_LSB 0x1A
+#define BNO055_ADDR_EUL_YAW_MSB 0x1B
+#define BNO055_ADDR_EUL_ROLL_LSB 0x1C
+#define BNO055_ADDR_EUL_ROLL_MSB 0x1D
+#define BNO055_ADDR_EUL_PITCH_LSB 0x1E
+#define BNO055_ADDR_EUL_PITCH_MSB 0x1F
 
-static busDevice_t * busDev;
+#define BNO055_ADDR_GYR_OFFSET_Z_MSB 0x66
+#define BNO055_ADDR_GYR_OFFSET_Z_LSB 0x65
+#define BNO055_ADDR_GYR_OFFSET_Y_MSB 0x64
+#define BNO055_ADDR_GYR_OFFSET_Y_LSB 0x63
+#define BNO055_ADDR_GYR_OFFSET_X_MSB 0x62
+#define BNO055_ADDR_GYR_OFFSET_X_LSB 0x61
 
-static bool deviceDetect(busDevice_t * busDev)
+#define BNO055_ADDR_MAG_OFFSET_Z_MSB 0x60
+#define BNO055_ADDR_MAG_OFFSET_Z_LSB 0x5F
+#define BNO055_ADDR_MAG_OFFSET_Y_MSB 0x5E
+#define BNO055_ADDR_MAG_OFFSET_Y_LSB 0x5D
+#define BNO055_ADDR_MAG_OFFSET_X_MSB 0x5C
+#define BNO055_ADDR_MAG_OFFSET_X_LSB 0x5B
+
+#define BNO055_ADDR_ACC_OFFSET_Z_MSB 0x5A
+#define BNO055_ADDR_ACC_OFFSET_Z_LSB 0x59
+#define BNO055_ADDR_ACC_OFFSET_Y_MSB 0x58
+#define BNO055_ADDR_ACC_OFFSET_Y_LSB 0x57
+#define BNO055_ADDR_ACC_OFFSET_X_MSB 0x56
+#define BNO055_ADDR_ACC_OFFSET_X_LSB 0x55
+
+static busDevice_t *busDev;
+
+static bool deviceDetect(busDevice_t *busDev)
 {
-    for (int retry = 0; retry < 5; retry++) {
+    for (int retry = 0; retry < 5; retry++)
+    {
         uint8_t sig;
 
         delay(150);
 
         bool ack = busRead(busDev, 0x00, &sig);
-        if (ack) {
+        if (ack)
+        {
             return true;
         }
     };
@@ -67,12 +90,14 @@ static bool deviceDetect(busDevice_t * busDev)
 bool bno055Init(void)
 {
     busDev = busDeviceInit(BUSTYPE_I2C, DEVHW_BNO055, 0, 0);
-    if (busDev == NULL) {
+    if (busDev == NULL)
+    {
         DEBUG_SET(DEBUG_IMU2, 2, 1);
         return false;
     }
 
-    if (!deviceDetect(busDev)) {
+    if (!deviceDetect(busDev))
+    {
         DEBUG_SET(DEBUG_IMU2, 2, 2);
         busDeviceDeInit(busDev);
         return false;
@@ -86,7 +111,7 @@ bool bno055Init(void)
     return true;
 }
 
-void bno055FetchEulerAngles(int16_t * buffer)
+void bno055FetchEulerAngles(int16_t *buffer)
 {
     uint8_t buf[6];
     busReadBuf(busDev, BNO055_ADDR_EUL_YAW_LSB, buf, 6);
@@ -123,6 +148,44 @@ bno055CalibStat_t bno055GetCalibStat(void)
     stats.sys = (buf >> 6) & 0b00000011;
 
     return stats;
+}
+
+bno055CalibrationData_t bno055GetCalibrationData(void)
+{
+    bno055CalibrationData_t data;
+    uint8_t buf[18];
+
+    busReadBuf(busDev, BNO055_ADDR_ACC_OFFSET_X_LSB, buf, 18);
+
+    uint8_t bufferBit = 0;
+    for (uint8_t sensorIndex = 0; sensorIndex < 3; sensorIndex++)
+    {
+        for (uint8_t axisIndex = 0; axisIndex < 3; axisIndex++)
+        {
+            data.raw[sensorIndex][axisIndex] = (int16_t)((buf[bufferBit + 1] << 8) | buf[bufferBit]);
+            bufferBit += 2;
+        }
+    }
+
+    return data;
+}
+
+void bno055SetCalibrationData(bno055CalibrationData_t data)
+{
+    uint8_t buf[18];
+
+    uint8_t bufferBit = 0;
+    for (uint8_t sensorIndex = 0; sensorIndex < 3; sensorIndex++)
+    {
+        for (uint8_t axisIndex = 0; axisIndex < 3; axisIndex++)
+        {
+            buf[bufferBit] = (uint8_t)(data.raw[sensorIndex][axisIndex] & 0xff);
+            buf[bufferBit + 1] = (uint8_t)((data.raw[sensorIndex][axisIndex] >> 8 ) & 0xff);
+            bufferBit += 2;
+        }
+    }
+
+    busWriteBuf(busDev, BNO055_ADDR_ACC_OFFSET_X_LSB, buf, 18);
 }
 
 #endif

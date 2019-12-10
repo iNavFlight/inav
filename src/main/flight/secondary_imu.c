@@ -31,16 +31,23 @@
 #include "drivers/sensor.h"
 #include "drivers/accgyro/accgyro_bno055.h"
 
-PG_REGISTER_WITH_RESET_TEMPLATE(secondaryImuConfig_t, secondaryImuConfig, PG_SECONDARY_IMU, 0);
+PG_REGISTER_WITH_RESET_FN(secondaryImuConfig_t, secondaryImuConfig, PG_SECONDARY_IMU, 1);
 
-PG_RESET_TEMPLATE(secondaryImuConfig_t, secondaryImuConfig,
-    .enabled = 0,
-    .rollDeciDegrees = 0,
-    .pitchDeciDegrees = 0,
-    .yawDeciDegrees = 0,
-    .useForOsdHeading = 0,
-    .useForOsdAHI = 0,
-);
+void pgResetFn_secondaryImuConfig(secondaryImuConfig_t *instance)
+{
+    instance->enabled = 0;
+    instance->rollDeciDegrees = 0;
+    instance->pitchDeciDegrees = 0;
+    instance->yawDeciDegrees = 0;
+    instance->useForOsdHeading = 0;
+    instance->useForOsdAHI = 0;
+
+    for (uint8_t i = 0; i < 3 ; i++) {
+        instance->calibrationAcc[i] = 0;
+        instance->calibrationMag[i] = 0;
+        instance->calibrationGyro[i] = 0;
+    }
+}
 
 EXTENDED_FASTRAM secondaryImuState_t secondaryImuState;
 
@@ -95,8 +102,6 @@ void taskSecondaryImu(timeUs_t currentTimeUs)
         DEBUG_SET(DEBUG_IMU2, 3, secondaryImuState.calibrationStatus.mag);
         DEBUG_SET(DEBUG_IMU2, 4, secondaryImuState.calibrationStatus.gyr);
         DEBUG_SET(DEBUG_IMU2, 5, secondaryImuState.calibrationStatus.acc);
-        
-
     }
 }
 

@@ -36,6 +36,9 @@ typedef struct secondaryImuConfig_s {
     int16_t yawDeciDegrees;
     uint8_t useForOsdHeading;
     uint8_t useForOsdAHI;
+    int16_t calibrationGyro[3];
+    int16_t calibrationMag[3];
+    int16_t calibrationAcc[3];
 } secondaryImuConfig_t;
 
 typedef struct secondaryImuState_s {

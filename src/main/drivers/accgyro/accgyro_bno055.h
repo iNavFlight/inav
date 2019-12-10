@@ -32,7 +32,19 @@ typedef struct {
     uint8_t mag;
 } bno055CalibStat_t;
 
+typedef enum {
+    ACC = 0,
+    MAG = 1,
+    GYRO = 2
+} bno055Sensor_e;
+
+typedef struct {
+    int16_t raw[3][3];
+} bno055CalibrationData_t;
+
 bool bno055Init(void);
 fpVector3_t bno055GetEurlerAngles(void);
 void bno055FetchEulerAngles(int16_t * buffer);
 bno055CalibStat_t bno055GetCalibStat(void);
+bno055CalibrationData_t bno055GetCalibrationData(void);
+void bno055SetCalibrationData(bno055CalibrationData_t data);
