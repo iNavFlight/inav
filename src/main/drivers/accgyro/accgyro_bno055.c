@@ -46,6 +46,11 @@
 #define BNO055_ADDR_EUL_PITCH_LSB 0x1E
 #define BNO055_ADDR_EUL_PITCH_MSB 0x1F
 
+#define BNO055_ADDR_MAG_RADIUS_Z_MSB 0x6A 
+#define BNO055_ADDR_MAG_RADIUS_Z_LSB 0x69
+#define BNO055_ADDR_ACC_RADIUS_Z_MSB 0x68
+#define BNO055_ADDR_ACC_RADIUS_Z_LSB 0x67
+
 #define BNO055_ADDR_GYR_OFFSET_Z_MSB 0x66
 #define BNO055_ADDR_GYR_OFFSET_Z_LSB 0x65
 #define BNO055_ADDR_GYR_OFFSET_Y_MSB 0x64
@@ -153,39 +158,50 @@ bno055CalibStat_t bno055GetCalibStat(void)
 bno055CalibrationData_t bno055GetCalibrationData(void)
 {
     bno055CalibrationData_t data;
-    uint8_t buf[18];
+    uint8_t buf[22];
 
-    busReadBuf(busDev, BNO055_ADDR_ACC_OFFSET_X_LSB, buf, 18);
+    busReadBuf(busDev, BNO055_ADDR_ACC_OFFSET_X_LSB, buf, 22);
 
     uint8_t bufferBit = 0;
     for (uint8_t sensorIndex = 0; sensorIndex < 3; sensorIndex++)
     {
         for (uint8_t axisIndex = 0; axisIndex < 3; axisIndex++)
         {
-            data.raw[sensorIndex][axisIndex] = (int16_t)((buf[bufferBit + 1] << 8) | buf[bufferBit]);
+            data.offset[sensorIndex][axisIndex] = (int16_t)((buf[bufferBit + 1] << 8) | buf[bufferBit]);
             bufferBit += 2;
         }
     }
+
+    data.radius[ACC] = (int16_t)((buf[19] << 8) | buf[18]);
+    data.radius[MAG] = (int16_t)((buf[21] << 8) | buf[20]);
 
     return data;
 }
 
 void bno055SetCalibrationData(bno055CalibrationData_t data)
 {
-    uint8_t buf[18];
+    uint8_t buf[22];
 
+    //Prepare gains
     uint8_t bufferBit = 0;
     for (uint8_t sensorIndex = 0; sensorIndex < 3; sensorIndex++)
     {
         for (uint8_t axisIndex = 0; axisIndex < 3; axisIndex++)
         {
-            buf[bufferBit] = (uint8_t)(data.raw[sensorIndex][axisIndex] & 0xff);
-            buf[bufferBit + 1] = (uint8_t)((data.raw[sensorIndex][axisIndex] >> 8 ) & 0xff);
+            buf[bufferBit] = (uint8_t)(data.offset[sensorIndex][axisIndex] & 0xff);
+            buf[bufferBit + 1] = (uint8_t)((data.offset[sensorIndex][axisIndex] >> 8 ) & 0xff);
             bufferBit += 2;
         }
     }
 
-    busWriteBuf(busDev, BNO055_ADDR_ACC_OFFSET_X_LSB, buf, 18);
+    //Prepare radius
+    buf[18] = (uint8_t)(data.radius[ACC] & 0xff);
+    buf[19] = (uint8_t)((data.radius[ACC] >> 8 ) & 0xff);
+    buf[20] = (uint8_t)(data.radius[MAG] & 0xff);
+    buf[21] = (uint8_t)((data.radius[MAG] >> 8 ) & 0xff);
+
+    //Write to the device
+    busWriteBuf(busDev, BNO055_ADDR_ACC_OFFSET_X_LSB, buf, 22);
 }
 
 #endif

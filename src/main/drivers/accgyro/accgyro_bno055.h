@@ -39,7 +39,8 @@ typedef enum {
 } bno055Sensor_e;
 
 typedef struct {
-    int16_t raw[3][3];
+    int16_t radius[2];
+    int16_t offset[3][3];
 } bno055CalibrationData_t;
 
 bool bno055Init(void);
