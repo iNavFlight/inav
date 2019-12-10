@@ -1194,7 +1194,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigatio
             return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
         }
         else {
-            setDesiredPosition(tmpHomePos, 0, NAV_POS_UPDATE_Z);
+            setDesiredPosition(tmpHomePos, 0, NAV_POS_UPDATE_Z | NAV_POS_UPDATE_XY);
             return NAV_FSM_EVENT_NONE;
         }
     }
@@ -3045,7 +3045,7 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
     }
 
     // Don't allow arming if first waypoint is farther than configured safe distance
-    if (posControl.waypointCount > 0) {
+    if ((posControl.waypointCount > 0) && (navConfig()->general.waypoint_safe_distance != 0)) {
         fpVector3_t startingWaypointPos;
         mapWaypointToLocalPosition(&startingWaypointPos, &posControl.waypointList[0]);
 

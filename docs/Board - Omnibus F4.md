@@ -86,7 +86,7 @@ More target options:
 
 ## Radio Receivers
 
-This board does not support Parallel PWM receiver connection. Only SerialRX, PPM and MSP receivers are supported.
+SerialRX, PPM and MSP receivers are supported.
 
 SerialRX and PPM receivers should be connected to dedicated _PPM SBUS_ connector above _Motor 1_. MSP receivers should be connected to one of UARTs configured as MSP.
 

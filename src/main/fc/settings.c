@@ -8,6 +8,7 @@
 
 #include "fc/settings.h"
 
+#include "config/general_settings.h"
 #include "settings_generated.c"
 
 static bool settingGetWord(char *buf, int idx)

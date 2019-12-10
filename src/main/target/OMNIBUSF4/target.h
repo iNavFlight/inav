@@ -69,22 +69,23 @@
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
-#if defined(DYSF4PRO) || defined(DYSF4PROV2)
-  #define USE_GYRO_MPU6000
-  #define GYRO_MPU6000_ALIGN      CW180_DEG
-
-  #define USE_ACC_MPU6000
-  #define ACC_MPU6000_ALIGN       CW180_DEG
-#else
+// Long sentence, OMNIBUSF4 always defined
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4PRO_LEDSTRIPM5) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)
   #define USE_GYRO_MPU6000
   #define GYRO_MPU6000_ALIGN      CW270_DEG
 
   #define USE_ACC_MPU6000
   #define ACC_MPU6000_ALIGN       CW270_DEG
+#else
+  #define USE_GYRO_MPU6000
+  #define GYRO_MPU6000_ALIGN      CW180_DEG
+
+  #define USE_ACC_MPU6000
+  #define ACC_MPU6000_ALIGN       CW180_DEG
 #endif
 
 // Support for OMNIBUS F4 PRO CORNER - it has ICM20608 instead of MPU6000
-#if !defined(DYSF4PRO) && !defined(DYSF4PROV2)
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4PRO_LEDSTRIPM5) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)
   #define MPU6500_CS_PIN          MPU6000_CS_PIN
   #define MPU6500_SPI_BUS         MPU6000_SPI_BUS
 
@@ -110,19 +111,18 @@
 
 #define USE_BARO
 
-#if defined(DYSF4PRO) || defined(DYSF4PROV2)
-  #define BARO_I2C_BUS          I2C_EXT_BUS
-  #define USE_BARO_BMP085
-  #define USE_BARO_BMP280
-  #define USE_BARO_MS5611
-#else
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4PRO_LEDSTRIPM5) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)
   #define USE_BARO_BMP280
   #define BMP280_SPI_BUS        BUS_SPI3
   #define BMP280_CS_PIN         PB3 // v1
-
   // Support external barometers
   #define BARO_I2C_BUS          I2C_EXT_BUS
   #define USE_BARO_BMP085
+  #define USE_BARO_MS5611
+#else
+  #define BARO_I2C_BUS          I2C_EXT_BUS
+  #define USE_BARO_BMP085
+  #define USE_BARO_BMP280
   #define USE_BARO_MS5611
 #endif
 
@@ -166,26 +166,26 @@
 
 #elif defined(OMNIBUSF4V3_S6_SS)        // one softserial on S6
 #define USE_SOFTSERIAL1
-#define SOFTSERIAL_1_RX_PIN     PA8     // shared with S6 output
-#define SOFTSERIAL_1_TX_PIN     PA8     // shared with S6 output
+#define SOFTSERIAL_1_RX_PIN     PA8     // S6 output
+#define SOFTSERIAL_1_TX_PIN     PA8     // S6 output
 
 #define SERIAL_PORT_COUNT       5       // VCP, USART1, USART3, USART6, SOFTSERIAL1
 
 #elif defined(OMNIBUSF4V3_S5S6_SS)      // one softserial on S5/RX S6/TX
 #define USE_SOFTSERIAL1
-#define SOFTSERIAL_1_RX_PIN     PA1     // shared with S5 output
-#define SOFTSERIAL_1_TX_PIN     PA8     // shared with S6 output
+#define SOFTSERIAL_1_RX_PIN     PA1     // S5 output
+#define SOFTSERIAL_1_TX_PIN     PA8     // S6 output
 
 #define SERIAL_PORT_COUNT       5       // VCP, USART1, USART3, USART6, SOFTSERIAL1
 
 #elif defined(OMNIBUSF4V3_S5_S6_2SS)    // two softserials, one on S5 and one on S6
 #define USE_SOFTSERIAL1
-#define SOFTSERIAL_1_RX_PIN     PA1     // shared with S5 output
-#define SOFTSERIAL_1_TX_PIN     PA1     // shared with S5 output
+#define SOFTSERIAL_1_RX_PIN     PA1     // S5 output
+#define SOFTSERIAL_1_TX_PIN     PA1     // S5 output
 
 #define USE_SOFTSERIAL2
-#define SOFTSERIAL_2_RX_PIN     PA8     // shared with S6 output
-#define SOFTSERIAL_2_TX_PIN     PA8     // shared with S6 output
+#define SOFTSERIAL_2_RX_PIN     PA8     // S6 output
+#define SOFTSERIAL_2_TX_PIN     PA8     // S6 output
 
 #define SERIAL_PORT_COUNT       6       // VCP, USART1, USART3, USART6, SOFTSERIAL1, SOFTSERIAL2
 
@@ -201,7 +201,7 @@
 
 #define USE_SPI_DEVICE_1
 
-#if !defined(DYSF4PRO) && !defined(DYSF4PROV2)
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4PRO_LEDSTRIPM5) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)
   #define USE_SPI_DEVICE_2
   #define SPI2_NSS_PIN          PB12
   #define SPI2_SCK_PIN          PB13
@@ -210,7 +210,7 @@
 #endif
 
 #define USE_SPI_DEVICE_3
-#if !defined(DYSF4PRO) && !defined(DYSF4PROV2)
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4PRO_LEDSTRIPM5) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)
   #define SPI3_NSS_PIN          PA15
 #else
   #define SPI3_NSS_PIN          PB3
@@ -224,13 +224,7 @@
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PA15
 
-#if defined(DYSF4PRO) || defined(DYSF4PROV2)
-  #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
-  #define M25P16_CS_PIN           SPI3_NSS_PIN
-  #define M25P16_SPI_BUS          BUS_SPI3
-  #define USE_FLASHFS
-  #define USE_FLASH_M25P16
-#else
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4PRO_LEDSTRIPM5) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)
   #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
   #define USE_SDCARD
   #define USE_SDCARD_SPI
@@ -240,6 +234,12 @@
 
   #define SDCARD_DETECT_PIN     PB7
   #define SDCARD_DETECT_INVERTED
+#else
+  #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+  #define M25P16_CS_PIN           SPI3_NSS_PIN
+  #define M25P16_SPI_BUS          BUS_SPI3
+  #define USE_FLASHFS
+  #define USE_FLASH_M25P16
 #endif
 
 #define USE_ADC
@@ -259,10 +259,10 @@
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
 #define USE_LED_STRIP
-#if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)) && !defined(OMNIBUSF4PRO_LEDSTRIPM5)
-#   define WS2811_PIN                   PB6
+#if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS))
+  #define WS2811_PIN                   PB6
 #else
-#   define WS2811_PIN                   PA1
+  #define WS2811_PIN                   PA1
 #endif
 
 #define DEFAULT_RX_TYPE         RX_TYPE_PPM
@@ -278,6 +278,7 @@
 #define MAX_PWM_OUTPUT_PORTS    6
 #define TARGET_MOTOR_COUNT      6
 #define USE_DSHOT
+#define USE_ESC_SENSOR
 
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff

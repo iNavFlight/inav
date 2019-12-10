@@ -45,7 +45,6 @@
 #include "telemetry/sim.h"
 #include "telemetry/telemetry.h"
 
-
 #define SIM_AT_COMMAND_MAX_SIZE 255
 #define SIM_RESPONSE_BUFFER_SIZE 255
 #define SIM_CYCLE_MS 5000                       // wait between sim command cycles
@@ -53,8 +52,7 @@
 #define SIM_AT_COMMAND_DELAY_MIN_MS 500
 #define SIM_STARTUP_DELAY_MS 10000
 #define SIM_SMS_COMMAND_RTH "RTH"
-#define SIM_PIN "0000"
-#define SIM_LOW_ALT_WARNING_MODES (NAV_ALTHOLD_MODE || NAV_RTH_MODE || NAV_WP_MODE || FAILSAFE_MODE)
+#define SIM_LOW_ALT_WARNING_MODES (NAV_ALTHOLD_MODE | NAV_RTH_MODE | NAV_WP_MODE | FAILSAFE_MODE)
 
 #define SIM_RESPONSE_CODE_OK    ('O' << 24 | 'K' << 16)
 #define SIM_RESPONSE_CODE_ERROR ('E' << 24 | 'R' << 16 | 'R' << 8 | 'O')
@@ -398,7 +396,7 @@ static void sendSMS(void)
         getAltitudeMeters(),
         groundSpeed, avgSpeed / 10, avgSpeed % 10,
         GPS_distanceToHome, getTotalTravelDistance() / 100,
-        attitude.values.yaw,
+        DECIDEGREES_TO_DEGREES(attitude.values.yaw),
         gpsSol.numSat, gpsFixIndicators[gpsSol.fixType],
         simRssi,
         getStateOfForcedRTH() == RTH_IDLE ? modeDescriptions[getFlightModeForTelemetry()] : "RTH",
@@ -452,7 +450,9 @@ void handleSimTelemetry()
         simTelemetryState = SIM_STATE_INIT_ENTER_PIN;
         break;
         case SIM_STATE_INIT_ENTER_PIN:
-        sendATCommand("AT+CPIN=" SIM_PIN "\r");
+        sendATCommand("AT+CPIN=");
+        sendATCommand((char*)telemetryConfig()->simPin);        
+        sendATCommand("\r");
         simTelemetryState = SIM_STATE_SET_MODES;
         break;
         case SIM_STATE_SET_MODES:

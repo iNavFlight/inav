@@ -27,6 +27,7 @@
 #define BEEPER_INVERTED
 
 #define USE_DSHOT
+#define USE_ESC_SENSOR
 
 // MPU6500 interrupt
 #define USE_EXTI

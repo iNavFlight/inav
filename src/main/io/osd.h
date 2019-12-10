@@ -150,6 +150,7 @@ typedef enum {
     OSD_GFORCE_Z,
     OSD_RC_SOURCE,
     OSD_VTX_POWER,
+    OSD_ESC_RPM,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -248,6 +249,7 @@ typedef struct osdConfig_s {
 PG_DECLARE(osdConfig_t, osdConfig);
 
 typedef struct displayPort_s displayPort_t;
+typedef struct displayCanvas_s displayCanvas_t;
 
 void osdInit(displayPort_t *osdDisplayPort);
 void osdUpdate(timeUs_t currentTimeUs);
@@ -264,10 +266,14 @@ int osdGetActiveLayout(bool *overridden);
 bool osdItemIsFixed(osd_items_e item);
 
 displayPort_t *osdGetDisplayPort(void);
+displayCanvas_t *osdGetDisplayPortCanvas(void);
 
 int16_t osdGetHeading(void);
 int32_t osdGetAltitude(void);
+
 void osdCrosshairPosition(uint8_t *x, uint8_t *y);
 bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length);
 void osdFormatAltitudeSymbol(char *buff, int32_t alt);
 void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D);
+// Returns a heading angle in degrees normalized to [0, 360).
+int osdGetHeadingAngle(int angle);

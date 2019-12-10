@@ -30,9 +30,9 @@
 #include "drivers/io.h"
 #include "drivers/bus.h"
 
-#include "drivers/sdcard.h"
-#include "drivers/sdcard_impl.h"
-#include "drivers/sdcard_standard.h"
+#include "drivers/sdcard/sdcard.h"
+#include "drivers/sdcard/sdcard_impl.h"
+#include "drivers/sdcard/sdcard_standard.h"
 
 #include "scheduler/protothreads.h"
 

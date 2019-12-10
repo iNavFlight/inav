@@ -136,10 +136,6 @@ static bool mpu6500DeviceDetect(busDevice_t * dev)
                 // Retry detection
                 break;
         }
-
-        if (!attemptsRemaining) {
-            return false;
-        }
     } while (attemptsRemaining--);
 
     return false;
