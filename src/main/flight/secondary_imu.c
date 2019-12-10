@@ -22,6 +22,7 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 #include "common/utils.h"
+#include "common/axis.h"
 #include "flight/secondary_imu.h"
 #include "config/parameter_group_ids.h"
 #include "sensors/boardalignment.h"
@@ -43,10 +44,12 @@ void pgResetFn_secondaryImuConfig(secondaryImuConfig_t *instance)
     instance->useForOsdAHI = 0;
 
     for (uint8_t i = 0; i < 3 ; i++) {
-        instance->calibrationAcc[i] = 0;
-        instance->calibrationMag[i] = 0;
-        instance->calibrationGyro[i] = 0;
+        instance->calibrationOffsetGyro[i] = 0;
+        instance->calibrationOffsetMag[i] = 0;
+        instance->calibrationOffsetAcc[i] = 0;
     }
+    instance->calibrationRadiusAcc = 0;
+    instance->calibrationRadiusMag = 0;
 }
 
 EXTENDED_FASTRAM secondaryImuState_t secondaryImuState;
@@ -57,7 +60,21 @@ void taskSecondaryImu(timeUs_t currentTimeUs)
     static bool secondaryImuChecked = false;
 
     if (!secondaryImuChecked) {
-        secondaryImuState.active = bno055Init();
+
+        bno055CalibrationData_t calibrationData;
+        calibrationData.offset[ACC][X] = secondaryImuConfig()->calibrationOffsetAcc[X];
+        calibrationData.offset[ACC][Y] = secondaryImuConfig()->calibrationOffsetAcc[Y];
+        calibrationData.offset[ACC][Z] = secondaryImuConfig()->calibrationOffsetAcc[Z];
+        calibrationData.offset[MAG][X] = secondaryImuConfig()->calibrationOffsetMag[X];
+        calibrationData.offset[MAG][Y] = secondaryImuConfig()->calibrationOffsetMag[Y];
+        calibrationData.offset[MAG][Z] = secondaryImuConfig()->calibrationOffsetMag[Z];
+        calibrationData.offset[GYRO][X] = secondaryImuConfig()->calibrationOffsetGyro[X];
+        calibrationData.offset[GYRO][Y] = secondaryImuConfig()->calibrationOffsetGyro[Y];
+        calibrationData.offset[GYRO][Z] = secondaryImuConfig()->calibrationOffsetGyro[Z];
+        calibrationData.radius[ACC] = secondaryImuConfig()->calibrationRadiusAcc;
+        calibrationData.radius[MAG] = secondaryImuConfig()->calibrationRadiusMag;
+
+        secondaryImuState.active = bno055Init(calibrationData);
         secondaryImuChecked = true;
     }
 

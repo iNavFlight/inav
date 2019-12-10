@@ -328,6 +328,10 @@ groups:
         field: yawDeciDegrees
         min: -1800
         max: 3600
+      - name: imu2_gain_acc_x
+        field: calibrationOffsetAcc[X]
+        min: INT16_MIN
+        max: INT16_MAX
 
   - name: PG_COMPASS_CONFIG
     type: compassConfig_t

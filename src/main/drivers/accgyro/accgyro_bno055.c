@@ -36,8 +36,9 @@
 #define BNO055_ADDR_OPR_MODE 0x3D
 #define BNO055_ADDR_CALIB_STAT 0x35
 
-#define BNO055_PWR_MODE_NORMAL 0x00
-#define BNO055_OPR_MODE_NDOF 0x0C
+#define BNO055_PWR_MODE_NORMAL  0x00
+#define BNO055_OPR_MODE_CONFIG  0x00
+#define BNO055_OPR_MODE_NDOF    0x0C
 
 #define BNO055_ADDR_EUL_YAW_LSB 0x1A
 #define BNO055_ADDR_EUL_YAW_MSB 0x1B
@@ -92,7 +93,7 @@ static bool deviceDetect(busDevice_t *busDev)
     return false;
 }
 
-bool bno055Init(void)
+bool bno055Init(bno055CalibrationData_t calibrationData)
 {
     busDev = busDeviceInit(BUSTYPE_I2C, DEVHW_BNO055, 0, 0);
     if (busDev == NULL)
@@ -110,6 +111,9 @@ bool bno055Init(void)
 
     busWrite(busDev, BNO055_ADDR_PWR_MODE, BNO055_PWR_MODE_NORMAL); //Set power mode NORMAL
     delay(25);
+    busWrite(busDev, BNO055_ADDR_OPR_MODE, BNO055_OPR_MODE_CONFIG); //Set operational mode CONFIG_MODE
+    delay(30);
+    bno055SetCalibrationData(calibrationData);
     busWrite(busDev, BNO055_ADDR_OPR_MODE, BNO055_OPR_MODE_NDOF); //Set operational mode NDOF
     delay(50);
 
