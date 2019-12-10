@@ -34,7 +34,7 @@
 
 #include "common/log.h"
 #include "common/maths.h"
-#include "common/printf.h"
+#include "common/typeconversion.h"
 #include "common/utils.h"
 
 #include "drivers/display.h"
@@ -249,7 +249,7 @@ static void osdDrawArtificialHorizonShapes(displayCanvas_t *canvas, float pitchA
 
         int level = ii * 10;
         int absLevel = ABS(level);
-        tfp_snprintf(buf, sizeof(buf), "%d", absLevel);
+        itoa(absLevel, buf, 10);
         int pos = level * pixelsPerDegreeLevel;
         int charY = 9 - pos * 2;
         int cx = (absLevel >= 100 ? -1.5f : -1.0) * canvas->gridElementWidth;
