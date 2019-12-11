@@ -47,6 +47,7 @@ typedef struct secondaryImuState_s {
     flightDynamicsTrims_t eulerAngles;
     bno055CalibStat_t calibrationStatus;
     uint8_t active;
+    float magDeclination;
 } secondaryImuState_t;
 
 extern secondaryImuState_t secondaryImuState;

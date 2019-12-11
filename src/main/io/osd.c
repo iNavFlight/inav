@@ -1014,7 +1014,7 @@ int16_t osdGetHeading(void)
         return attitude.values.yaw;
     }
 #else 
-    return secondaryImuState.eulerAngles.values.yaw;
+    return attitude.values.yaw;
 #endif
 }
 

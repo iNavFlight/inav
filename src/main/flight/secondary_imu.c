@@ -26,6 +26,7 @@
 #include "flight/secondary_imu.h"
 #include "config/parameter_group_ids.h"
 #include "sensors/boardalignment.h"
+#include "sensors/compass.h"
 
 #include "build/debug.h"
 
@@ -56,10 +57,18 @@ EXTENDED_FASTRAM secondaryImuState_t secondaryImuState;
 
 void taskSecondaryImu(timeUs_t currentTimeUs)
 {
+    /*
+     * Secondary IMU works in decidegrees
+     */
     UNUSED(currentTimeUs);
     static bool secondaryImuChecked = false;
 
     if (!secondaryImuChecked) {
+
+        // Create magnetic declination matrix
+        const int deg = compassConfig()->mag_declination / 100;
+        const int min = compassConfig()->mag_declination % 100;
+        secondaryImuState.magDeclination = (deg + min / 60.0f) * 10.0f;
 
         bno055CalibrationData_t calibrationData;
         calibrationData.offset[ACC][X] = secondaryImuConfig()->calibrationOffsetAcc[X];
@@ -81,6 +90,9 @@ void taskSecondaryImu(timeUs_t currentTimeUs)
     if (secondaryImuState.active) 
     {
         bno055FetchEulerAngles(secondaryImuState.eulerAngles.raw);
+
+        //Apply mag declination
+        secondaryImuState.eulerAngles.raw[2] += secondaryImuState.magDeclination;
 
         //TODO this way of rotating a vector makes no sense, something simpler have to be developed
         const fpVector3_t v = {
