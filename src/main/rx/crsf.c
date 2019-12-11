@@ -61,6 +61,7 @@ static uint8_t telemetryBuf[CRSF_FRAME_SIZE_MAX];
 static uint8_t telemetryBufLen = 0;
 
 crsfLinkInfo_t crsf_link_info;
+uint16_t raw_lq;
 
 /*
  * CRSF protocol
@@ -205,8 +206,13 @@ STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
             memset(&crsf_link_info, 0, sizeof(crsf_link_info));
             crsf_link_info.snr = -20;
             link_stats_received = false;
+            raw_lq = 0;
         }
     }
+
+    crsfChannelData[16] = scaleRange(constrain(raw_lq, 0, 100), 0, 100, 191, 1791);    // will map to [1000;2000] range
+
+    lqTrackerSet(rxRuntimeConfig->lqTracker, scaleRange(constrain(raw_lq, 0, 100), 0, 100, 0, RSSI_MAX_VALUE));
 
     if (crsfFrameDone) {
         crsfFrameDone = false;
@@ -245,15 +251,9 @@ STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 
 void crsfUpdateLinkStats(void)
 {
-    // Inject link quality into channel 17
     const crsfPayloadLinkStatistics_t* linkStats = (crsfPayloadLinkStatistics_t*)&crsfFrame.frame.payload;
 
-	// Inject link quality into channel 17
-	const crsfPayloadLinkStatistics_t* linkStats = (crsfPayloadLinkStatistics_t*)&crsfFrame.frame.payload;
-
-	crsfChannelData[16] = scaleRange(constrain(linkStats->uplinkLQ, 0, 100), 0, 100, 191, 1791);    // will map to [1000;2000] range
-
-	lqTrackerSet(rxRuntimeConfig->lqTracker, scaleRange(constrain(linkStats->uplinkLQ, 0, 100), 0, 100, 0, RSSI_MAX_VALUE));
+    raw_lq = linkStats->uplinkLQ;
 
     crsf_link_info.lq = linkStats->uplinkLQ;
     if (linkStats->rfMode == 2) {
