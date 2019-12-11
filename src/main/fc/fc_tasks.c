@@ -343,7 +343,7 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_GLOBAL_FUNCTIONS, true);
 #endif
 #ifdef USE_SECONDARY_IMU
-    setTaskEnabled(TASK_SECONDARY_IMU, secondaryImuConfig()->enabled);
+    setTaskEnabled(TASK_SECONDARY_IMU, secondaryImuConfig()->enabled && secondaryImuState.active);
 #endif
 }
 

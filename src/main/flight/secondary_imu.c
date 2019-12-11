@@ -35,6 +35,8 @@
 
 PG_REGISTER_WITH_RESET_FN(secondaryImuConfig_t, secondaryImuConfig, PG_SECONDARY_IMU, 1);
 
+EXTENDED_FASTRAM secondaryImuState_t secondaryImuState;
+
 void pgResetFn_secondaryImuConfig(secondaryImuConfig_t *instance)
 {
     instance->enabled = 0;
@@ -44,7 +46,8 @@ void pgResetFn_secondaryImuConfig(secondaryImuConfig_t *instance)
     instance->useForOsdHeading = 0;
     instance->useForOsdAHI = 0;
 
-    for (uint8_t i = 0; i < 3 ; i++) {
+    for (uint8_t i = 0; i < 3; i++)
+    {
         instance->calibrationOffsetGyro[i] = 0;
         instance->calibrationOffsetMag[i] = 0;
         instance->calibrationOffsetAcc[i] = 0;
@@ -53,84 +56,84 @@ void pgResetFn_secondaryImuConfig(secondaryImuConfig_t *instance)
     instance->calibrationRadiusMag = 0;
 }
 
-EXTENDED_FASTRAM secondaryImuState_t secondaryImuState;
+void secondaryImuInit(void)
+{
+    // Create magnetic declination matrix
+    const int deg = compassConfig()->mag_declination / 100;
+    const int min = compassConfig()->mag_declination % 100;
+    secondaryImuState.magDeclination = (deg + min / 60.0f) * 10.0f;
+
+    bno055CalibrationData_t calibrationData;
+    calibrationData.offset[ACC][X] = secondaryImuConfig()->calibrationOffsetAcc[X];
+    calibrationData.offset[ACC][Y] = secondaryImuConfig()->calibrationOffsetAcc[Y];
+    calibrationData.offset[ACC][Z] = secondaryImuConfig()->calibrationOffsetAcc[Z];
+    calibrationData.offset[MAG][X] = secondaryImuConfig()->calibrationOffsetMag[X];
+    calibrationData.offset[MAG][Y] = secondaryImuConfig()->calibrationOffsetMag[Y];
+    calibrationData.offset[MAG][Z] = secondaryImuConfig()->calibrationOffsetMag[Z];
+    calibrationData.offset[GYRO][X] = secondaryImuConfig()->calibrationOffsetGyro[X];
+    calibrationData.offset[GYRO][Y] = secondaryImuConfig()->calibrationOffsetGyro[Y];
+    calibrationData.offset[GYRO][Z] = secondaryImuConfig()->calibrationOffsetGyro[Z];
+    calibrationData.radius[ACC] = secondaryImuConfig()->calibrationRadiusAcc;
+    calibrationData.radius[MAG] = secondaryImuConfig()->calibrationRadiusMag;
+
+    secondaryImuState.active = bno055Init(calibrationData);
+}
 
 void taskSecondaryImu(timeUs_t currentTimeUs)
 {
+    if (!secondaryImuState.active)
+    {
+        return;
+    }
     /*
      * Secondary IMU works in decidegrees
      */
     UNUSED(currentTimeUs);
-    static bool secondaryImuChecked = false;
 
-    if (!secondaryImuChecked) {
+    bno055FetchEulerAngles(secondaryImuState.eulerAngles.raw);
 
-        // Create magnetic declination matrix
-        const int deg = compassConfig()->mag_declination / 100;
-        const int min = compassConfig()->mag_declination % 100;
-        secondaryImuState.magDeclination = (deg + min / 60.0f) * 10.0f;
+    //Apply mag declination
+    secondaryImuState.eulerAngles.raw[2] += secondaryImuState.magDeclination;
 
-        bno055CalibrationData_t calibrationData;
-        calibrationData.offset[ACC][X] = secondaryImuConfig()->calibrationOffsetAcc[X];
-        calibrationData.offset[ACC][Y] = secondaryImuConfig()->calibrationOffsetAcc[Y];
-        calibrationData.offset[ACC][Z] = secondaryImuConfig()->calibrationOffsetAcc[Z];
-        calibrationData.offset[MAG][X] = secondaryImuConfig()->calibrationOffsetMag[X];
-        calibrationData.offset[MAG][Y] = secondaryImuConfig()->calibrationOffsetMag[Y];
-        calibrationData.offset[MAG][Z] = secondaryImuConfig()->calibrationOffsetMag[Z];
-        calibrationData.offset[GYRO][X] = secondaryImuConfig()->calibrationOffsetGyro[X];
-        calibrationData.offset[GYRO][Y] = secondaryImuConfig()->calibrationOffsetGyro[Y];
-        calibrationData.offset[GYRO][Z] = secondaryImuConfig()->calibrationOffsetGyro[Z];
-        calibrationData.radius[ACC] = secondaryImuConfig()->calibrationRadiusAcc;
-        calibrationData.radius[MAG] = secondaryImuConfig()->calibrationRadiusMag;
+    //TODO this way of rotating a vector makes no sense, something simpler have to be developed
+    const fpVector3_t v = {
+        .x = secondaryImuState.eulerAngles.raw[0],
+        .y = secondaryImuState.eulerAngles.raw[1],
+        .z = secondaryImuState.eulerAngles.raw[2],
+    };
 
-        secondaryImuState.active = bno055Init(calibrationData);
-        secondaryImuChecked = true;
-    }
+    fpVector3_t rotated;
 
-    if (secondaryImuState.active) 
+    fp_angles_t imuAngles = {
+        .angles.roll = DECIDEGREES_TO_RADIANS(secondaryImuConfig()->rollDeciDegrees),
+        .angles.pitch = DECIDEGREES_TO_RADIANS(secondaryImuConfig()->pitchDeciDegrees),
+        .angles.yaw = DECIDEGREES_TO_RADIANS(secondaryImuConfig()->yawDeciDegrees),
+    };
+    fpMat3_t rotationMatrix;
+    rotationMatrixFromAngles(&rotationMatrix, &imuAngles);
+    rotationMatrixRotateVector(&rotated, &v, &rotationMatrix);
+    rotated.z = ((int32_t)(rotated.z + secondaryImuConfig()->yawDeciDegrees)) % 3600;
+
+    secondaryImuState.eulerAngles.values.roll = rotated.x;
+    secondaryImuState.eulerAngles.values.pitch = rotated.y;
+    secondaryImuState.eulerAngles.values.yaw = rotated.z;
+
+    /*
+     * Every 10 cycles fetch current calibration state
+     */
+    static uint8_t tick = 0;
+    tick++;
+    if (tick == 10)
     {
-        bno055FetchEulerAngles(secondaryImuState.eulerAngles.raw);
-
-        //Apply mag declination
-        secondaryImuState.eulerAngles.raw[2] += secondaryImuState.magDeclination;
-
-        //TODO this way of rotating a vector makes no sense, something simpler have to be developed
-        const fpVector3_t v = {
-            .x = secondaryImuState.eulerAngles.raw[0],
-            .y = secondaryImuState.eulerAngles.raw[1],
-            .z = secondaryImuState.eulerAngles.raw[2],
-         };
-
-        fpVector3_t rotated;
-
-        fp_angles_t imuAngles = {
-             .angles.roll = DECIDEGREES_TO_RADIANS(secondaryImuConfig()->rollDeciDegrees),
-             .angles.pitch = DECIDEGREES_TO_RADIANS(secondaryImuConfig()->pitchDeciDegrees),
-             .angles.yaw = DECIDEGREES_TO_RADIANS(secondaryImuConfig()->yawDeciDegrees),
-        };
-        fpMat3_t rotationMatrix;
-        rotationMatrixFromAngles(&rotationMatrix, &imuAngles);
-        rotationMatrixRotateVector(&rotated, &v, &rotationMatrix);
-        rotated.z = ((int32_t)(rotated.z + secondaryImuConfig()->yawDeciDegrees)) % 3600;
-
-        secondaryImuState.eulerAngles.values.roll = rotated.x;
-        secondaryImuState.eulerAngles.values.pitch = rotated.y;
-        secondaryImuState.eulerAngles.values.yaw = rotated.z;
-
-        static uint8_t tick = 0;
-        tick++;
-        if (tick == 10) {
-            secondaryImuState.calibrationStatus = bno055GetCalibStat();
-            tick = 0;
-        }
-
-        DEBUG_SET(DEBUG_IMU2, 0, secondaryImuState.eulerAngles.values.roll);
-        DEBUG_SET(DEBUG_IMU2, 1, secondaryImuState.eulerAngles.values.pitch);
-        DEBUG_SET(DEBUG_IMU2, 2, secondaryImuState.eulerAngles.values.yaw);
-
-        DEBUG_SET(DEBUG_IMU2, 3, secondaryImuState.calibrationStatus.mag);
-        DEBUG_SET(DEBUG_IMU2, 4, secondaryImuState.calibrationStatus.gyr);
-        DEBUG_SET(DEBUG_IMU2, 5, secondaryImuState.calibrationStatus.acc);
+        secondaryImuState.calibrationStatus = bno055GetCalibStat();
+        tick = 0;
     }
-}
 
+    DEBUG_SET(DEBUG_IMU2, 0, secondaryImuState.eulerAngles.values.roll);
+    DEBUG_SET(DEBUG_IMU2, 1, secondaryImuState.eulerAngles.values.pitch);
+    DEBUG_SET(DEBUG_IMU2, 2, secondaryImuState.eulerAngles.values.yaw);
+
+    DEBUG_SET(DEBUG_IMU2, 3, secondaryImuState.calibrationStatus.mag);
+    DEBUG_SET(DEBUG_IMU2, 4, secondaryImuState.calibrationStatus.gyr);
+    DEBUG_SET(DEBUG_IMU2, 5, secondaryImuState.calibrationStatus.acc);
+}

@@ -637,6 +637,10 @@ void init(void)
     // Latch active features AGAIN since some may be modified by init().
     latchActiveFeatures();
     motorControlEnable = true;
+
+#ifdef USE_SECONDARY_IMU
+    secondaryImuInit();
+#endif
     fcTasksInit();
 
 #ifdef USE_OSD
