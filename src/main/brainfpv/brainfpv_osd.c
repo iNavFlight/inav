@@ -139,9 +139,6 @@ const char * const gitTag = __GIT_TAG__;
 void video_qspi_enable(void);
 extern binary_semaphore_t onScreenDisplaySemaphore;
 
-extern uint8_t *draw_buffer;
-extern uint8_t *disp_buffer;
-
 extern bool cmsInMenu;
 bool brainfpv_user_avatar_set = false;
 bool osd_arming_or_stats = false;
@@ -162,7 +159,7 @@ void draw_stick(int16_t x, int16_t y, int16_t horizontal, int16_t vertical);
 #define MAX_X(x) (x * 12)
 #define MAX_Y(y) (y * 18)
 
-uint16_t maxScreenSize = VIDEO_BUFFER_CHARS_PAL;
+//uint16_t maxScreenSize = VIDEO_BUFFER_CHARS_PAL;
 
 static uint8_t videoSignalCfg = 0;
 
@@ -220,16 +217,16 @@ uint16_t max7456GetScreenSize(void)
 {
     switch (videoSignalCfg) {
         case PAL:
-            return VIDEO_BUFFER_CHARS_PAL;
+            return MAX7456_BUFFER_CHARS_PAL;
         case NTSC:
-            return VIDEO_BUFFER_CHARS_NTSC;
+            return MAX7456_BUFFER_CHARS_NTSC;
         default:
             if (Video_GetType() == VIDEO_TYPE_NTSC)
-                return VIDEO_BUFFER_CHARS_NTSC;
+                return MAX7456_BUFFER_CHARS_NTSC;
             else
-                return VIDEO_BUFFER_CHARS_PAL;
+                return MAX7456_BUFFER_CHARS_PAL;
     }
-    return VIDEO_BUFFER_CHARS_PAL;
+    return MAX7456_BUFFER_CHARS_PAL;
 }
 
 
@@ -237,16 +234,16 @@ uint8_t max7456GetRowsCount(void)
 {
     switch (videoSignalCfg) {
         case PAL:
-            return VIDEO_LINES_PAL;
+            return MAX7456_LINES_NTSC;
         case NTSC:
-            return VIDEO_LINES_NTSC;
+            return MAX7456_LINES_PAL;
         default:
             if (Video_GetType() == VIDEO_TYPE_NTSC)
-                return VIDEO_LINES_NTSC;
+                return MAX7456_LINES_NTSC;
             else
-                return VIDEO_LINES_PAL;
+                return MAX7456_LINES_PAL;
     }
-    return VIDEO_LINES_PAL;
+    return MAX7456_LINES_PAL;
 }
 
 void max7456Write(uint8_t x, uint8_t y, const char *buff, uint8_t mode)
@@ -276,7 +273,7 @@ void  max7456RefreshAll(void)
 {
 }
 
-static uint8_t dummyBuffer[VIDEO_BUFFER_CHARS_PAL+40];
+static uint8_t dummyBuffer[MAX7456_BUFFER_CHARS_PAL + 40];
 uint8_t* max7456GetScreenBuffer(void)
 {
     return dummyBuffer;
@@ -318,10 +315,10 @@ void brainFpvOsdInit(void)
     // update number of rows
     chThdSleep(MS2ST(200));
     if (Video_GetType() == VIDEO_TYPE_NTSC) {
-        osdDisplayPort->rows = VIDEO_LINES_NTSC;
+        osdDisplayPort->rows = MAX7456_LINES_NTSC;
     }
     else {
-        osdDisplayPort->rows = VIDEO_LINES_PAL;
+        osdDisplayPort->rows = MAX7456_LINES_PAL;
     }
 }
 
@@ -812,9 +809,6 @@ bool osdElementRssi_BrainFPV(uint16_t x_pos, uint16_t y_pos)
 
         x_pos = MAX_X(x_pos);
         y_pos = MAX_Y(y_pos);
-
-        // set the RSSI for other things in betaflight
-        setRssiCrsfLq(crsf_link_info.lq);
 
         // Blink if LQ is low
         if (hide_blinking_items && (crsf_link_info.lq <= osdConfig()->rssi_alarm)) {
