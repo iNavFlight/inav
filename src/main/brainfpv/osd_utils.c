@@ -69,7 +69,7 @@ void clearGraphics(void)
 
 void draw_image(uint16_t x, uint16_t y, const struct Image * image)
 {
-	CHECK_COORDS(x + image->width, y);
+	CHECK_COORDS_UPPER(x + image->width, y);
 	uint8_t byte_width = image->width / 4;
 	uint8_t pixel_offset = 2 * (x % 4);
 	uint8_t mask1 = 0xFF;
@@ -1506,7 +1506,7 @@ void osd_draw_vertical_scale(int v, int range, int halign, int x, int y, int hei
         } else {
             style = 0;
         }
-        if (flags & HUD_VSCALE_FLAG_NO_NEGATIVE && rv < 0) {
+        if ((flags & HUD_VSCALE_FLAG_NO_NEGATIVE) && (rv < 0)) {
             continue;
         }
         if (style) {

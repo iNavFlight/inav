@@ -140,6 +140,7 @@
 
 // Check if coordinates are valid. If not, return. Assumes signed coordinates for working correct also with values lesser than 0.
 #define CHECK_COORDS(x, y)           if (x < GRAPHICS_LEFT || x > GRAPHICS_RIGHT || y < GRAPHICS_TOP || y > GRAPHICS_BOTTOM) { return; }
+#define CHECK_COORDS_UPPER(x, y)     if (x > GRAPHICS_RIGHT || y > GRAPHICS_BOTTOM) { return; }
 #define CHECK_COORD_X(x)             if (x < GRAPHICS_LEFT || x > GRAPHICS_RIGHT) { return; }
 #define CHECK_COORD_Y(y)             if (y < GRAPHICS_TOP  || y > GRAPHICS_BOTTOM) { return; }
 
