@@ -2033,7 +2033,7 @@ groups:
       - name: brainfpv_osd_font
         field: font
         min: 0
-        max: 4
+        max: 5
       - name: brainfpv_ir_sys
         field: ir_system
         min: 0
