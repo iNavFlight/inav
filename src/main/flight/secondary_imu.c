@@ -137,3 +137,22 @@ void taskSecondaryImu(timeUs_t currentTimeUs)
     DEBUG_SET(DEBUG_IMU2, 4, secondaryImuState.calibrationStatus.gyr);
     DEBUG_SET(DEBUG_IMU2, 5, secondaryImuState.calibrationStatus.acc);
 }
+
+void secondaryImuFetchCalibration(void) {
+    bno055CalibrationData_t calibrationData = bno055GetCalibrationData();
+
+    secondaryImuConfigMutable()->calibrationOffsetAcc[X] = calibrationData.offset[ACC][X];
+    secondaryImuConfigMutable()->calibrationOffsetAcc[Y] = calibrationData.offset[ACC][Y];
+    secondaryImuConfigMutable()->calibrationOffsetAcc[Z] = calibrationData.offset[ACC][Z];
+
+    secondaryImuConfigMutable()->calibrationOffsetMag[X] = calibrationData.offset[MAG][X];
+    secondaryImuConfigMutable()->calibrationOffsetMag[Y] = calibrationData.offset[MAG][Y];
+    secondaryImuConfigMutable()->calibrationOffsetMag[Z] = calibrationData.offset[MAG][Z];
+
+    secondaryImuConfigMutable()->calibrationOffsetGyro[X] = calibrationData.offset[GYRO][X];
+    secondaryImuConfigMutable()->calibrationOffsetGyro[Y] = calibrationData.offset[GYRO][Y];
+    secondaryImuConfigMutable()->calibrationOffsetGyro[Z] = calibrationData.offset[GYRO][Z];
+
+    secondaryImuConfigMutable()->calibrationRadiusAcc = calibrationData.radius[ACC];
+    secondaryImuConfigMutable()->calibrationRadiusMag = calibrationData.radius[MAG];
+}
