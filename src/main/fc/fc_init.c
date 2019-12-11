@@ -648,7 +648,7 @@ void init(void)
     motorControlEnable = true;
     fcTasksInit();
 
-#ifdef USE_OSD
+#if defined(USE_OSD) && !defined(USE_BRAINFPV_OSD)
     if (feature(FEATURE_OSD) && (osdDisplayPort != NULL)) {
         setTaskEnabled(TASK_OSD, feature(FEATURE_OSD));
     }
