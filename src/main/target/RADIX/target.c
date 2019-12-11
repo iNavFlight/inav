@@ -84,7 +84,7 @@ void brainFPVUpdateSettings(void) {
 #define RADIX_LI_MAGIC 0x52414C49
 bool brainfpv_is_radixli(void)
 {
-    uint32_t * magic = 0x1FFF7800;
+    uint32_t * magic = (uint32_t *)0x1FFF7800;
     return (*magic == RADIX_LI_MAGIC);
 }
 
