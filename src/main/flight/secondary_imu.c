@@ -21,6 +21,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
+#include "stdint.h"
 #include "common/utils.h"
 #include "common/axis.h"
 #include "flight/secondary_imu.h"
@@ -64,19 +65,19 @@ void secondaryImuInit(void)
     secondaryImuState.magDeclination = (deg + min / 60.0f) * 10.0f;
 
     bno055CalibrationData_t calibrationData;
-    calibrationData.offset[ACC][X] = secondaryImuConfig()->calibrationOffsetAcc[X];
-    calibrationData.offset[ACC][Y] = secondaryImuConfig()->calibrationOffsetAcc[Y];
-    calibrationData.offset[ACC][Z] = secondaryImuConfig()->calibrationOffsetAcc[Z];
-    calibrationData.offset[MAG][X] = secondaryImuConfig()->calibrationOffsetMag[X];
-    calibrationData.offset[MAG][Y] = secondaryImuConfig()->calibrationOffsetMag[Y];
-    calibrationData.offset[MAG][Z] = secondaryImuConfig()->calibrationOffsetMag[Z];
-    calibrationData.offset[GYRO][X] = secondaryImuConfig()->calibrationOffsetGyro[X];
-    calibrationData.offset[GYRO][Y] = secondaryImuConfig()->calibrationOffsetGyro[Y];
-    calibrationData.offset[GYRO][Z] = secondaryImuConfig()->calibrationOffsetGyro[Z];
-    calibrationData.radius[ACC] = secondaryImuConfig()->calibrationRadiusAcc;
-    calibrationData.radius[MAG] = secondaryImuConfig()->calibrationRadiusMag;
+        calibrationData.offset[ACC][X] = secondaryImuConfig()->calibrationOffsetAcc[X];
+        calibrationData.offset[ACC][Y] = secondaryImuConfig()->calibrationOffsetAcc[Y];
+        calibrationData.offset[ACC][Z] = secondaryImuConfig()->calibrationOffsetAcc[Z];
+        calibrationData.offset[MAG][X] = secondaryImuConfig()->calibrationOffsetMag[X];
+        calibrationData.offset[MAG][Y] = secondaryImuConfig()->calibrationOffsetMag[Y];
+        calibrationData.offset[MAG][Z] = secondaryImuConfig()->calibrationOffsetMag[Z];
+        calibrationData.offset[GYRO][X] = secondaryImuConfig()->calibrationOffsetGyro[X];
+        calibrationData.offset[GYRO][Y] = secondaryImuConfig()->calibrationOffsetGyro[Y];
+        calibrationData.offset[GYRO][Z] = secondaryImuConfig()->calibrationOffsetGyro[Z];
+        calibrationData.radius[ACC] = secondaryImuConfig()->calibrationRadiusAcc;
+        calibrationData.radius[MAG] = secondaryImuConfig()->calibrationRadiusMag;
 
-    secondaryImuState.active = bno055Init(calibrationData);
+    secondaryImuState.active = bno055Init(calibrationData, (secondaryImuConfig()->calibrationRadiusAcc && secondaryImuConfig()->calibrationRadiusMag));
 }
 
 void taskSecondaryImu(timeUs_t currentTimeUs)

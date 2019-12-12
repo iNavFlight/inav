@@ -332,6 +332,34 @@ groups:
         field: calibrationOffsetAcc[X]
         min: INT16_MIN
         max: INT16_MAX
+      - name: imu2_gain_acc_y
+        field: calibrationOffsetAcc[Y]
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: imu2_gain_acc_z
+        field: calibrationOffsetAcc[Z]
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: imu2_gain_mag_x
+        field: calibrationOffsetMag[X]
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: imu2_gain_mag_y
+        field: calibrationOffsetMag[Y]
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: imu2_gain_mag_z
+        field: calibrationOffsetMag[Z]
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: imu2_radius_acc
+        field: calibrationRadiusAcc
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: imu2_radius_mag
+        field: calibrationRadiusMag
+        min: INT16_MIN
+        max: INT16_MAX
 
   - name: PG_COMPASS_CONFIG
     type: compassConfig_t

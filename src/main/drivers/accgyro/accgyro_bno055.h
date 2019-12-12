@@ -43,7 +43,7 @@ typedef struct {
     int16_t offset[3][3];
 } bno055CalibrationData_t;
 
-bool bno055Init(bno055CalibrationData_t calibrationData);
+bool bno055Init(bno055CalibrationData_t calibrationData, bool setCalibration);
 fpVector3_t bno055GetEurlerAngles(void);
 void bno055FetchEulerAngles(int16_t * buffer);
 bno055CalibStat_t bno055GetCalibStat(void);

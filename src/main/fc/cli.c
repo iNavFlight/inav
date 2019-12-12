@@ -2695,6 +2695,7 @@ static void printImu2Status(void)
     cliPrintLinef("Acc: %d", secondaryImuState.calibrationStatus.acc);
     cliPrintLinef("Mag: %d", secondaryImuState.calibrationStatus.mag);
     cliPrintLine("Calibration gains:");
+    
     cliPrintLinef(
         "Gyro: %d %d %d", 
         secondaryImuConfig()->calibrationOffsetGyro[X], 

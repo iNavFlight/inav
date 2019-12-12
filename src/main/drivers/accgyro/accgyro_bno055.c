@@ -47,10 +47,10 @@
 #define BNO055_ADDR_EUL_PITCH_LSB 0x1E
 #define BNO055_ADDR_EUL_PITCH_MSB 0x1F
 
-#define BNO055_ADDR_MAG_RADIUS_Z_MSB 0x6A 
-#define BNO055_ADDR_MAG_RADIUS_Z_LSB 0x69
-#define BNO055_ADDR_ACC_RADIUS_Z_MSB 0x68
-#define BNO055_ADDR_ACC_RADIUS_Z_LSB 0x67
+#define BNO055_ADDR_MAG_RADIUS_MSB 0x6A 
+#define BNO055_ADDR_MAG_RADIUS_LSB 0x69
+#define BNO055_ADDR_ACC_RADIUS_MSB 0x68
+#define BNO055_ADDR_ACC_RADIUS_LSB 0x67
 
 #define BNO055_ADDR_GYR_OFFSET_Z_MSB 0x66
 #define BNO055_ADDR_GYR_OFFSET_Z_LSB 0x65
@@ -93,7 +93,13 @@ static bool deviceDetect(busDevice_t *busDev)
     return false;
 }
 
-bool bno055Init(bno055CalibrationData_t calibrationData)
+static void bno055SetMode(uint8_t mode) 
+{
+    busWrite(busDev, BNO055_ADDR_OPR_MODE, mode);
+    delay(25);
+}
+
+bool bno055Init(bno055CalibrationData_t calibrationData, bool setCalibration)
 {
     busDev = busDeviceInit(BUSTYPE_I2C, DEVHW_BNO055, 0, 0);
     if (busDev == NULL)
@@ -111,11 +117,11 @@ bool bno055Init(bno055CalibrationData_t calibrationData)
 
     busWrite(busDev, BNO055_ADDR_PWR_MODE, BNO055_PWR_MODE_NORMAL); //Set power mode NORMAL
     delay(25);
-    busWrite(busDev, BNO055_ADDR_OPR_MODE, BNO055_OPR_MODE_CONFIG); //Set operational mode CONFIG_MODE
-    delay(30);
-    bno055SetCalibrationData(calibrationData);
-    busWrite(busDev, BNO055_ADDR_OPR_MODE, BNO055_OPR_MODE_NDOF); //Set operational mode NDOF
-    delay(50);
+    if (setCalibration) {
+        bno055SetMode(BNO055_OPR_MODE_CONFIG);
+        bno055SetCalibrationData(calibrationData);
+    }
+    bno055SetMode(BNO055_OPR_MODE_NDOF);
 
     return true;
 }
@@ -164,7 +170,11 @@ bno055CalibrationData_t bno055GetCalibrationData(void)
     bno055CalibrationData_t data;
     uint8_t buf[22];
 
+    bno055SetMode(BNO055_OPR_MODE_CONFIG);
+
     busReadBuf(busDev, BNO055_ADDR_ACC_OFFSET_X_LSB, buf, 22);
+
+    bno055SetMode(BNO055_OPR_MODE_NDOF);
 
     uint8_t bufferBit = 0;
     for (uint8_t sensorIndex = 0; sensorIndex < 3; sensorIndex++)
@@ -182,13 +192,14 @@ bno055CalibrationData_t bno055GetCalibrationData(void)
     return data;
 }
 
-void bno055SetCalibrationData(bno055CalibrationData_t data)
+void bno055SetCalibrationData(bno055CalibrationData_t data) 
 {
-    uint8_t buf[22];
+    uint8_t buf[12];
 
     //Prepare gains
+    //We do not restore gyro offsets, they are quickly calibrated at startup
     uint8_t bufferBit = 0;
-    for (uint8_t sensorIndex = 0; sensorIndex < 3; sensorIndex++)
+    for (uint8_t sensorIndex = 0; sensorIndex < 2; sensorIndex++)
     {
         for (uint8_t axisIndex = 0; axisIndex < 3; axisIndex++)
         {
@@ -198,14 +209,16 @@ void bno055SetCalibrationData(bno055CalibrationData_t data)
         }
     }
 
+    busWriteBuf(busDev, BNO055_ADDR_ACC_OFFSET_X_LSB, buf, 12);
+
     //Prepare radius
-    buf[18] = (uint8_t)(data.radius[ACC] & 0xff);
-    buf[19] = (uint8_t)((data.radius[ACC] >> 8 ) & 0xff);
-    buf[20] = (uint8_t)(data.radius[MAG] & 0xff);
-    buf[21] = (uint8_t)((data.radius[MAG] >> 8 ) & 0xff);
+    buf[0] = (uint8_t)(data.radius[ACC] & 0xff);
+    buf[1] = (uint8_t)((data.radius[ACC] >> 8 ) & 0xff);
+    buf[2] = (uint8_t)(data.radius[MAG] & 0xff);
+    buf[3] = (uint8_t)((data.radius[MAG] >> 8 ) & 0xff);
 
     //Write to the device
-    busWriteBuf(busDev, BNO055_ADDR_ACC_OFFSET_X_LSB, buf, 22);
+    busWriteBuf(busDev, BNO055_ADDR_ACC_RADIUS_LSB, buf, 4);
 }
 
 #endif
