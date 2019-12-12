@@ -212,7 +212,7 @@ static void osdDrawArtificialHorizonShapes(displayCanvas_t *canvas, float pitchA
 
     displayCanvasCtmTranslate(canvas, 0, pitchOffset);
     displayCanvasContextPush(canvas);
-    displayCanvasCtmRotate(canvas, -rollAngle);
+    displayCanvasCtmRotate(canvas, rollAngle);
 
     displayCanvasCtmTranslate(canvas, translateX, translateY);
 
@@ -237,8 +237,8 @@ static void osdDrawArtificialHorizonShapes(displayCanvas_t *canvas, float pitchA
     displayCanvasCtmScale(canvas, 0.5f, 0.5f);
 
     // Draw line labels
-    float sx = sin_approx(-rollAngle);
-    float sy = cos_approx(rollAngle);
+    float sx = sin_approx(rollAngle);
+    float sy = cos_approx(-rollAngle);
     for (int ii = pitchCenter - 2; ii <= pitchCenter + 2; ii++) {
         if (ii == 0) {
             continue;
