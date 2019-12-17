@@ -40,7 +40,6 @@
 #define GYRO_1_EXTI_PIN         PC13
 #define GYRO_2_EXTI_PIN         PC14
 #define GYRO_INT_EXTI           GYRO_1_EXTI_PIN
-#define MPU_INT_EXTI
 
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
@@ -153,7 +152,6 @@
 #define SPI3_SCK_PIN            PB3
 #define SPI3_MISO_PIN           PB4
 #define SPI3_MOSI_PIN           PB5
-#define SPI3_CLOCK_LEADING_EDGE
 #define SDCARD_SPI_BUS          BUS_SPI3
 #define SDCARD_CS_PIN           PC3
 
@@ -218,3 +216,4 @@
 #define MAX_PWM_OUTPUT_PORTS    8
 
 #define USE_DSHOT
+#define USE_ESC_SENSOR

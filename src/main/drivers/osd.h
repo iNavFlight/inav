@@ -22,10 +22,15 @@
 
 #include <stdint.h>
 
+#include "common/utils.h"
+
 #define OSD_CHAR_WIDTH 12
 #define OSD_CHAR_HEIGHT 18
 #define OSD_CHAR_BITS_PER_PIXEL 2
-#define OSD_CHAR_BYTES (OSD_CHAR_WIDTH * OSD_CHAR_HEIGHT * OSD_CHAR_BITS_PER_PIXEL / 8)
+#define OSD_CHAR_VISIBLE_BYTES (OSD_CHAR_WIDTH * OSD_CHAR_HEIGHT * OSD_CHAR_BITS_PER_PIXEL / 8)
+// Only the first 54 bytes of a character represent visible data. However, some OSD drivers
+// accept 64 bytes and use the extra 10 bytes for metadata.
+#define OSD_CHAR_BYTES 64
 
 #define OSD_CHARACTER_COLOR_BLACK 0
 #define OSD_CHARACTER_COLOR_TRANSPARENT 1
@@ -33,6 +38,7 @@
 
 // 3 is unused but it's interpreted as transparent by all drivers
 
+typedef struct displayCanvas_s displayCanvas_t;
 
 // Video Character Display parameters
 
@@ -54,3 +60,15 @@ typedef enum {
 typedef struct osdCharacter_s {
     uint8_t data[OSD_CHAR_BYTES];
 } osdCharacter_t;
+
+#define OSD_CHARACTER_GRID_MAX_WIDTH 30
+#define OSD_CHARACTER_GRID_MAX_HEIGHT 16
+#define OSD_CHARACTER_GRID_BUFFER_SIZE (OSD_CHARACTER_GRID_MAX_WIDTH * OSD_CHARACTER_GRID_MAX_HEIGHT)
+
+extern uint16_t osdCharacterGridBuffer[OSD_CHARACTER_GRID_BUFFER_SIZE] ALIGNED(4);
+
+// Sets all buffer entries to 0
+void osdCharacterGridBufferClear(void);
+void osdGridBufferClearGridRect(int x, int y, int w, int h);
+void osdGridBufferClearPixelRect(displayCanvas_t *canvas, int x, int y, int w, int h);
+uint16_t *osdCharacterGridBufferGetEntryPtr(unsigned x, unsigned y);

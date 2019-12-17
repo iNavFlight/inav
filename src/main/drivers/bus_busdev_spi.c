@@ -29,6 +29,12 @@
 #include "drivers/bus_spi.h"
 #include "drivers/time.h"
 
+bool spiBusInitHost(const busDevice_t * dev)
+{
+    const bool spiLeadingEdge = (dev->flags & DEVFLAGS_SPI_MODE_0);
+    return spiInitDevice(dev->busdev.spi.spiBus, spiLeadingEdge);
+}
+
 void spiBusSelectDevice(const busDevice_t * dev)
 {
     IOLo(dev->busdev.spi.csnPin);

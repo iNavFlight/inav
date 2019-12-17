@@ -87,7 +87,7 @@ static void mpu6050AccAndGyroInit(gyroDev_t *gyro)
         busWrite(gyro->busDev, MPU_RA_GYRO_CONFIG, INV_FSR_2000DPS << 3);
         delayMicroseconds(15);
 
-        // Accel +/- 8 G Full Scale
+        // Accel +/- 16 G Full Scale
         busWrite(gyro->busDev, MPU_RA_ACCEL_CONFIG, INV_FSR_16G << 3);
         delayMicroseconds(15);
 

@@ -23,6 +23,7 @@
 #include "common/axis.h"
 
 #include "drivers/pwm_esc_detect.h"
+#include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
 
 #include "fc/controlrate_profile.h"
@@ -49,7 +50,7 @@ void targetConfiguration(void)
 {
     // alternative defaults settings for ALIENFLIGHTF1 and ALIENFLIGHTF3 targets
     serialConfigMutable()->portConfigs[2].functionMask = FUNCTION_RX_SERIAL;
-    batteryMetersConfigMutable()->voltage_scale = 200;
+    batteryMetersConfigMutable()->voltage.scale = 200;
     rxConfigMutable()->spektrum_sat_bind = 5;
     rxConfigMutable()->spektrum_sat_bind_autoreset = 1;
 

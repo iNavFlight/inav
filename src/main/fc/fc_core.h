@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <stdbool.h>
+
 #include "common/time.h"
 
 typedef enum disarmReason_e {
@@ -38,7 +40,9 @@ void disarm(disarmReason_t disarmReason);
 void tryArm(void);
 disarmReason_t getDisarmReason(void);
 
+void emergencyArmingUpdate(bool armingSwitchIsOn);
+
 bool isCalibrating(void);
-float getFlightTime();
+float getFlightTime(void);
 
 void fcReboot(bool bootLoader);

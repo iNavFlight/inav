@@ -42,8 +42,6 @@
 
 #define USE_GYRO_MPU6500
 #define USE_ACC_MPU6500
-#define ICM20689_CS_PIN         SPI1_NSS_PIN
-#define ICM20689_EXTI_PIN       PC4
 
 #define USE_ACC
 #define USE_ACC_SPI_MPU6500
@@ -95,6 +93,14 @@
 #define USE_ESCSERIAL
 #define ESCSERIAL_TIMER_TX_HARDWARE 0
 
+#define UG2864_I2C_BUS          BUS_I2C1
+#define USE_DASHBOARD
+#define USE_OLED_UG2864
+#define DASHBOARD_ARMED_BITMAP
+
+#define USE_PITOT
+#define PITOT_I2C_BUS           BUS_I2C1
+
 //SPI ports
 #define USE_SPI
 
@@ -143,6 +149,10 @@
 // LED Strip can run off Pin 5 (PB1) of the motor outputs
 #define USE_LED_STRIP
 #define WS2811_PIN                      PB1
+
+// DSHOT
+#define USE_DSHOT
+#define USE_ESC_SENSOR
 
 // Default configuration
 #define SERIALRX_PROVIDER       SERIALRX_SBUS

@@ -15,18 +15,21 @@ COMMON_SRC = \
             common/gps_conversion.c \
             common/log.c \
             common/logic_condition.c \
+            common/global_functions.c \
             common/maths.c \
             common/memory.c \
             common/olc.c \
             common/printf.c \
             common/streambuf.c \
+            common/string_light.c \
             common/time.c \
             common/typeconversion.c \
-            common/string_light.c \
+            common/uvarint.c \
             config/config_eeprom.c \
             config/config_streamer.c \
             config/feature.c \
             config/parameter_group.c \
+            config/general_settings.c \
             drivers/adc.c \
             drivers/buf_writer.c \
             drivers/bus.c \
@@ -35,16 +38,19 @@ COMMON_SRC = \
             drivers/bus_i2c_soft.c \
             drivers/bus_spi.c \
             drivers/display.c \
+            drivers/display_canvas.c \
+            drivers/display_font_metadata.c \
             drivers/exti.c \
             drivers/io.c \
             drivers/io_pca9685.c \
             drivers/light_led.c \
-            drivers/logging.c \
+            drivers/osd.c \
             drivers/resource.c \
             drivers/rx_nrf24l01.c \
             drivers/rx_spi.c \
             drivers/rx_xn297.c \
             drivers/pitotmeter_adc.c \
+            drivers/pitotmeter_virtual.c \
             drivers/pwm_esc_detect.c \
             drivers/pwm_mapping.c \
             drivers/pwm_output.c \
@@ -90,10 +96,14 @@ COMMON_SRC = \
             flight/rth_estimator.c \
             flight/servos.c \
             flight/wind_estimator.c \
+            flight/gyroanalyse.c \
+            flight/rpm_filter.c \
             io/beeper.c \
+            io/esc_serialshot.c \
+            io/frsky_osd.c \
             io/lights.c \
-            io/pwmdriver_i2c.c \
             io/piniobox.c \
+            io/pwmdriver_i2c.c \
             io/serial.c \
             io/serial_4way.c \
             io/serial_4way_avrootloader.c \
@@ -102,11 +112,13 @@ COMMON_SRC = \
             io/rcdevice.c \
             io/rcdevice_cam.c \
             msp/msp_serial.c \
+            rx/crsf.c \
+            rx/eleres.c \
             rx/fport.c \
             rx/ibus.c \
             rx/jetiexbus.c \
             rx/msp.c \
-            rx/uib_rx.c \
+            rx/msp_override.c \
             rx/nrf24_cx10.c \
             rx/nrf24_inav.c \
             rx/nrf24_h8_3d.c \
@@ -115,14 +127,13 @@ COMMON_SRC = \
             rx/pwm.c \
             rx/rx.c \
             rx/rx_spi.c \
-            rx/crsf.c \
             rx/sbus.c \
             rx/sbus_channels.c \
             rx/spektrum.c \
             rx/sumd.c \
             rx/sumh.c \
+            rx/uib_rx.c \
             rx/xbus.c \
-            rx/eleres.c \
             scheduler/scheduler.c \
             sensors/acceleration.c \
             sensors/battery.c \
@@ -132,6 +143,7 @@ COMMON_SRC = \
             sensors/diagnostics.c \
             sensors/gyro.c \
             sensors/initialisation.c \
+            sensors/esc_sensor.c \
             uav_interconnect/uav_interconnect_bus.c \
             uav_interconnect/uav_interconnect_rangefinder.c \
             blackbox/blackbox.c \
@@ -144,8 +156,10 @@ COMMON_SRC = \
             cms/cms_menu_imu.c \
             cms/cms_menu_ledstrip.c \
             cms/cms_menu_misc.c \
+            cms/cms_menu_mixer_servo.c \
             cms/cms_menu_navigation.c \
             cms/cms_menu_osd.c \
+            cms/cms_menu_saveexit.c \
             cms/cms_menu_vtx_smartaudio.c \
             cms/cms_menu_vtx_tramp.c \
             cms/cms_menu_vtx_ffpv.c \
@@ -163,15 +177,21 @@ COMMON_SRC = \
             io/opflow_cxof.c \
             io/opflow_msp.c \
             io/dashboard.c \
+            io/displayport_frsky_osd.c \
             io/displayport_max7456.c \
             io/displayport_msp.c \
             io/displayport_oled.c \
+            io/displayport_hott.c \
             io/gps.c \
             io/gps_ublox.c \
             io/gps_nmea.c \
             io/gps_naza.c \
             io/ledstrip.c \
             io/osd.c \
+            io/osd_canvas.c \
+            io/osd_common.c \
+            io/osd_grid.c \
+            io/osd_hud.c \
             navigation/navigation.c \
             navigation/navigation_fixedwing.c \
             navigation/navigation_fw_launch.c \
@@ -194,6 +214,7 @@ COMMON_SRC = \
             telemetry/mavlink.c \
             telemetry/msp_shared.c \
             telemetry/smartport.c \
+            telemetry/sim.c \
             telemetry/telemetry.c \
             io/vtx.c \
             io/vtx_string.c \
@@ -220,9 +241,10 @@ endif
 
 ifneq ($(filter SDCARD,$(FEATURES)),)
 TARGET_SRC += \
-            drivers/sdcard.c \
-            drivers/sdcard_spi.c \
-            drivers/sdcard_standard.c \
+            drivers/sdcard/sdcard.c \
+            drivers/sdcard/sdcard_spi.c \
+            drivers/sdcard/sdcard_sdio.c \
+            drivers/sdcard/sdcard_standard.c \
             io/asyncfatfs/asyncfatfs.c \
             io/asyncfatfs/fat_standard.c \
             $(MSC_SRC)
@@ -233,7 +255,24 @@ TARGET_SRC += $(VCP_SRC)
 endif
 
 ifneq ($(filter MSC,$(FEATURES)),)
-SRC += $(MSC_SRC)
+TARGET_SRC += $(MSC_SRC)
+endif
+
+ifneq ($(DSP_LIB),)
+
+INCLUDE_DIRS += $(DSP_LIB)/Include
+
+TARGET_SRC += $(DSP_LIB)/Source/BasicMathFunctions/arm_mult_f32.c
+TARGET_SRC += $(DSP_LIB)/Source/TransformFunctions/arm_rfft_fast_f32.c
+TARGET_SRC += $(DSP_LIB)/Source/TransformFunctions/arm_cfft_f32.c
+TARGET_SRC += $(DSP_LIB)/Source/TransformFunctions/arm_rfft_fast_init_f32.c
+TARGET_SRC += $(DSP_LIB)/Source/TransformFunctions/arm_cfft_radix8_f32.c
+TARGET_SRC += $(DSP_LIB)/Source/CommonTables/arm_common_tables.c
+
+TARGET_SRC += $(DSP_LIB)/Source/ComplexMathFunctions/arm_cmplx_mag_f32.c
+TARGET_SRC += $(DSP_LIB)/Source/StatisticsFunctions/arm_max_f32.c
+
+TARGET_SRC += $(wildcard $(DSP_LIB)/Source/*/*.S)
 endif
 
 # Search path and source files for the ST stdperiph library

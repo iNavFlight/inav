@@ -17,6 +17,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <math.h>
 
 #include "platform.h"
 
@@ -67,7 +68,7 @@ void impl_timerConfigBase(TCH_t * tch, uint16_t period, uint32_t hz)
 
     TIM_TimeBaseStructInit(&TIM_TimeBaseStructure);
     TIM_TimeBaseStructure.TIM_Period = (period - 1) & 0xffff; // AKA TIMx_ARR
-    TIM_TimeBaseStructure.TIM_Prescaler = (timerGetBaseClock(tch) / hz) - 1;
+    TIM_TimeBaseStructure.TIM_Prescaler = lrintf((float)timerGetBaseClock(tch) / hz + 0.01f) - 1;
     TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
     TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
     TIM_TimeBaseInit(tim, &TIM_TimeBaseStructure);
@@ -322,16 +323,20 @@ bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint8_t dmaBuf
     DMA_InitStructure.DMA_BufferSize = dmaBufferElementCount;
     DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
     DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
-    uint32_t DMA_MemoryDataSize;
+    DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
+
     switch (dmaBufferElementSize) {
         case 1:
-            DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
+            DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
+            DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
             break;
         case 2:
-            DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
+            DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
+            DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
             break;
         case 4:
-            DMA_MemoryDataSize = DMA_MemoryDataSize_Word;
+            DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Word;
+            DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Word;
             break;
         default:
             // Programmer error
@@ -339,20 +344,15 @@ bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint8_t dmaBuf
 
             }
     }
-    DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize;
-    DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
-
 
 #ifdef STM32F4
     DMA_InitStructure.DMA_Channel = dmaGetChannelByTag(tch->timHw->dmaTag);
     DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)dmaBuffer;
     DMA_InitStructure.DMA_DIR = DMA_DIR_MemoryToPeripheral;
-    DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Word;
     DMA_InitStructure.DMA_Priority = DMA_Priority_High;
 #else // F3
     DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)dmaBuffer;
     DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralDST;
-    DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Word;
     DMA_InitStructure.DMA_Priority = DMA_Priority_High;
     DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
 #endif

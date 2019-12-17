@@ -35,7 +35,7 @@
 
 #include "usbd_storage.h"
 
-#include "drivers/sdcard.h"
+#include "drivers/sdcard/sdcard.h"
 #include "drivers/light_led.h"
 #include "drivers/io.h"
 #include "drivers/bus_spi.h"

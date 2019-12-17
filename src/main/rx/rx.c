@@ -49,41 +49,43 @@
 #include "io/serial.h"
 
 #include "rx/rx.h"
+#include "rx/crsf.h"
+#include "rx/eleres.h"
+#include "rx/ibus.h"
+#include "rx/jetiexbus.h"
 #include "rx/fport.h"
+#include "rx/msp.h"
+#include "rx/msp_override.h"
 #include "rx/pwm.h"
+#include "rx/rx_spi.h"
 #include "rx/sbus.h"
 #include "rx/spektrum.h"
 #include "rx/sumd.h"
 #include "rx/sumh.h"
-#include "rx/msp.h"
-#include "rx/xbus.h"
-#include "rx/ibus.h"
-#include "rx/jetiexbus.h"
-#include "rx/rx_spi.h"
-#include "rx/crsf.h"
-#include "rx/eleres.h"
 #include "rx/uib_rx.h"
+#include "rx/xbus.h"
 
 
 //#define DEBUG_RX_SIGNAL_LOSS
-
-typedef struct rcChannel_s {
-    int16_t raw;        // Value received via RX - [1000;2000]
-    int16_t data;       // Value after processing - [1000;2000]
-    timeMs_t expiresAt; // Time when this value becomes too old and it's discarded
-} rcChannel_t;
 
 const char rcChannelLetters[] = "AERT";
 
 static uint16_t rssi = 0;                  // range: [0;1023]
 static timeUs_t lastMspRssiUpdateUs = 0;
 
-#define MSP_RSSI_TIMEOUT_US 1500000   // 1.5 sec
+#define MSP_RSSI_TIMEOUT_US     1500000   // 1.5 sec
+#define RX_LQ_INTERVAL_MS       200
+#define RX_LQ_TIMEOUT_MS        1000
 
-static rssiSource_e rssiSource;
+static rxLinkQualityTracker_e rxLQTracker;
+static rssiSource_e activeRssiSource;
 
 static bool rxDataProcessingRequired = false;
 static bool auxiliaryProcessingRequired = false;
+
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+static bool mspOverrideDataProcessingRequired = false;
+#endif
 
 static bool rxSignalReceived = false;
 static bool rxFlightChannelsValid = false;
@@ -96,15 +98,13 @@ static uint8_t skipRxSamples = 0;
 
 static rcChannel_t rcChannels[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 
-#define MAX_INVALID_PULS_TIME    300
-
 #define SKIP_RC_ON_SUSPEND_PERIOD 1500000           // 1.5 second period in usec (call frequency independent)
 #define SKIP_RC_SAMPLES_ON_RESUME  2                // flush 2 samples to drop wrong measurements (timing independent)
 
 rxRuntimeConfig_t rxRuntimeConfig;
 static uint8_t rcSampleIndex = 0;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 7);
+PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 8);
 
 #ifndef RX_SPI_DEFAULT_PROTOCOL
 #define RX_SPI_DEFAULT_PROTOCOL 0
@@ -135,6 +135,10 @@ PG_RESET_TEMPLATE(rxConfig_t, rxConfig,
     .rssiMax = RSSI_VISIBLE_VALUE_MAX,
     .sbusSyncInterval = SBUS_DEFAULT_INTERFRAME_DELAY_US,
     .rcFilterFrequency = 50,
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    .mspOverrideChannels = 15,
+#endif
+    .rssi_source = RSSI_SOURCE_AUTO,
 );
 
 void resetAllRxChannelRangeConfigurations(void)
@@ -161,18 +165,16 @@ static uint16_t nullReadRawRC(const rxRuntimeConfig_t *rxRuntimeConfig, uint8_t 
 {
     UNUSED(rxRuntimeConfig);
     UNUSED(channel);
-
     return PPM_RCVR_TIMEOUT;
 }
 
 static uint8_t nullFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 {
     UNUSED(rxRuntimeConfig);
-
     return RX_FRAME_PENDING;
 }
 
-static bool isPulseValid(uint16_t pulseDuration)
+bool isRxPulseValid(uint16_t pulseDuration)
 {
     return  pulseDuration >= rxConfig()->rx_min_usec &&
             pulseDuration <= rxConfig()->rx_max_usec;
@@ -240,18 +242,21 @@ bool serialRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
 
 void rxInit(void)
 {
+    lqTrackerReset(&rxLQTracker);
+
+    rxRuntimeConfig.lqTracker = &rxLQTracker;
     rxRuntimeConfig.rcReadRawFn = nullReadRawRC;
     rxRuntimeConfig.rcFrameStatusFn = nullFrameStatus;
     rxRuntimeConfig.rxSignalTimeout = DELAY_10_HZ;
     rxRuntimeConfig.requireFiltering = false;
     rcSampleIndex = 0;
 
-      timeMs_t nowMs = millis();
+    timeMs_t nowMs = millis();
 
     for (int i = 0; i < MAX_SUPPORTED_RC_CHANNEL_COUNT; i++) {
         rcChannels[i].raw = PWM_RANGE_MIDDLE;
         rcChannels[i].data = PWM_RANGE_MIDDLE;
-        rcChannels[i].expiresAt = nowMs + MAX_INVALID_PULS_TIME;
+        rcChannels[i].expiresAt = nowMs + MAX_INVALID_RX_PULSE_TIME;
     }
 
     rcChannels[THROTTLE].raw = (feature(FEATURE_3D)) ? PWM_RANGE_MIDDLE : rxConfig()->rx_min_usec;
@@ -275,10 +280,13 @@ void rxInit(void)
     }
 
     switch (rxConfig()->receiverType) {
-#if defined(USE_RX_PWM) || defined(USE_RX_PPM)
-        case RX_TYPE_PWM:
+#if defined(USE_RX_PPM)
         case RX_TYPE_PPM:
-            rxPwmInit(rxConfig(), &rxRuntimeConfig);
+            if (!rxPpmInit(&rxRuntimeConfig)) {
+                rxConfigMutable()->receiverType = RX_TYPE_NONE;
+                rxRuntimeConfig.rcReadRawFn = nullReadRawRC;
+                rxRuntimeConfig.rcFrameStatusFn = nullFrameStatus;
+            }
             break;
 #endif
 
@@ -314,68 +322,55 @@ void rxInit(void)
             break;
 #endif
 
-        case RX_TYPE_NONE:
         default:
-            // Already configured for NONE
+        case RX_TYPE_NONE:
+        case RX_TYPE_PWM:
+            rxConfigMutable()->receiverType = RX_TYPE_NONE;
+            rxRuntimeConfig.rcReadRawFn = nullReadRawRC;
+            rxRuntimeConfig.rcFrameStatusFn = nullFrameStatus;
             break;
     }
 
     rxUpdateRSSISource();
+
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    if (rxConfig()->receiverType != RX_TYPE_MSP) {
+        mspOverrideInit();
+    }
+#endif
 }
 
 void rxUpdateRSSISource(void)
 {
-    rssiSource = RSSI_SOURCE_NONE;
+    activeRssiSource = RSSI_SOURCE_NONE;
+
+    if (rxConfig()->rssi_source == RSSI_SOURCE_NONE) {
+        return;
+    }
 
 #if defined(USE_ADC)
-    if (feature(FEATURE_RSSI_ADC)) {
-        rssiSource = RSSI_SOURCE_ADC;
-        return;
+    if (rxConfig()->rssi_source == RSSI_SOURCE_ADC || rxConfig()->rssi_source == RSSI_SOURCE_AUTO) {
+        if (feature(FEATURE_RSSI_ADC)) {
+            activeRssiSource = RSSI_SOURCE_ADC;
+            return;
+        }
     }
 #endif
 
-    if (rxConfig()->rssi_channel > 0) {
-        rssiSource = RSSI_SOURCE_RX_CHANNEL;
-        return;
+    if (rxConfig()->rssi_source == RSSI_SOURCE_RX_CHANNEL || rxConfig()->rssi_source == RSSI_SOURCE_AUTO) {
+        if (rxConfig()->rssi_channel > 0) {
+            activeRssiSource = RSSI_SOURCE_RX_CHANNEL;
+            return;
+        }
     }
 
-    bool serialProtocolSupportsRSSI = false;
-    switch (rxConfig()->receiverType) {
-#if defined(USE_SERIAL_RX)
-    case RX_TYPE_SERIAL:
-        switch (rxConfig()->serialrx_provider) {
-#if defined(USE_SERIALRX_FPORT)
-        case SERIALRX_FPORT:
-            serialProtocolSupportsRSSI = true;
-            break;
-#endif
-        default:
-            break;
-        }
-        break;
-#endif
-#if defined(USE_RX_SPI)
-    case RX_TYPE_SPI:
-        switch (rxConfig()->rx_spi_protocol) {
-#if defined(USE_RX_ELERES)
-        case RFM22_ELERES:
-            serialProtocolSupportsRSSI = true;
-            break;
-        break;
-#endif
-        default:
-            break;
-        }
-#endif
-        break;
-    }
-    if (serialProtocolSupportsRSSI) {
-        rssiSource = RSSI_SOURCE_RX_PROTOCOL;
+    if (rxConfig()->rssi_source == RSSI_SOURCE_RX_PROTOCOL) {
+        activeRssiSource = RSSI_SOURCE_RX_PROTOCOL;
         return;
     }
 }
 
-static uint8_t calculateChannelRemapping(const uint8_t *channelMap, uint8_t channelMapEntryCount, uint8_t channelToRemap)
+uint8_t calculateChannelRemapping(const uint8_t *channelMap, uint8_t channelMapEntryCount, uint8_t channelToRemap)
 {
     if (channelToRemap < channelMapEntryCount) {
         return channelMap[channelToRemap];
@@ -433,7 +428,16 @@ bool rxUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime)
         rxDataProcessingRequired = true;
     }
 
-    return rxDataProcessingRequired || auxiliaryProcessingRequired; // data driven or 50Hz
+    bool result = rxDataProcessingRequired || auxiliaryProcessingRequired;
+
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    if (rxConfig()->receiverType != RX_TYPE_MSP) {
+        mspOverrideDataProcessingRequired = mspOverrideUpdateCheck(currentTimeUs, currentDeltaTime);
+        result = result || mspOverrideDataProcessingRequired;
+    }
+#endif
+
+    return result;
 }
 
 #define FILTERING_SAMPLE_COUNT  5
@@ -471,10 +475,14 @@ static uint16_t applyChannelFiltering(uint8_t chan, uint16_t sample)
 
 bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
 {
-    UNUSED(currentTimeUs);
-
     int16_t rcStaging[MAX_SUPPORTED_RC_CHANNEL_COUNT];
     const timeMs_t currentTimeMs = millis();
+
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    if ((rxConfig()->receiverType != RX_TYPE_MSP) && mspOverrideDataProcessingRequired) {
+        mspOverrideCalculateChannels(currentTimeUs);
+    }
+#endif
 
     if (auxiliaryProcessingRequired) {
         auxiliaryProcessingRequired = !rxRuntimeConfig.rcProcessFrameFn(&rxRuntimeConfig);
@@ -515,13 +523,13 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
         rcChannels[channel].raw = sample;
 
         // Apply invalid pulse value logic
-        if (!isPulseValid(sample)) {
+        if (!isRxPulseValid(sample)) {
             sample = rcChannels[channel].data;   // hold channel, replace with old value
             if ((currentTimeMs > rcChannels[channel].expiresAt) && (channel < NON_AUX_CHANNEL_COUNT)) {
                 rxFlightChannelsValid = false;
             }
         } else {
-            rcChannels[channel].expiresAt = currentTimeMs + MAX_INVALID_PULS_TIME;
+            rcChannels[channel].expiresAt = currentTimeMs + MAX_INVALID_RX_PULSE_TIME;
         }
 
         // Save channel value
@@ -541,6 +549,12 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
             }
         }
     }
+
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    if (IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE) && !mspOverrideIsInFailsafe()) {
+        mspOverrideChannels(rcChannels);
+    }
+#endif
 
     // Update failsafe
     if (rxFlightChannelsValid && rxSignalReceived) {
@@ -564,9 +578,9 @@ void parseRcChannels(const char *input)
 
 #define RSSI_SAMPLE_COUNT 16
 
-void setRSSI(uint16_t rssiValue, rssiSource_e source, bool filtered)
+static void setRSSIValue(uint16_t rssiValue, rssiSource_e source, bool filtered)
 {
-    if (source != rssiSource) {
+    if (source != activeRssiSource) {
         return;
     }
 
@@ -604,55 +618,52 @@ void setRSSI(uint16_t rssiValue, rssiSource_e source, bool filtered)
 
 void setRSSIFromMSP(uint8_t newMspRssi)
 {
-    if (rssiSource == RSSI_SOURCE_NONE) {
-        rssiSource = RSSI_SOURCE_MSP;
+    if (activeRssiSource == RSSI_SOURCE_NONE && (rxConfig()->rssi_source == RSSI_SOURCE_MSP || rxConfig()->rssi_source == RSSI_SOURCE_AUTO)) {
+        activeRssiSource = RSSI_SOURCE_MSP;
     }
 
-    if (rssiSource == RSSI_SOURCE_MSP) {
+    if (activeRssiSource == RSSI_SOURCE_MSP) {
         rssi = ((uint16_t)newMspRssi) << 2;
         lastMspRssiUpdateUs = micros();
     }
 }
 
-#ifdef USE_RX_ELERES
-static void updateRSSIeleres(uint32_t currentTime)
+static void updateRSSIFromChannel(void)
 {
-    UNUSED(currentTime);
-    setRSSI(eleresRssi(), RSSI_SOURCE_RX_PROTOCOL, true);
-}
-#endif // USE_RX_ELERES
-
-static void updateRSSIPWM(void)
-{
-    int16_t pwmRssi = 0;
-    // Read value of AUX channel as rssi
-    unsigned rssiChannel = rxConfig()->rssi_channel;
-    if (rssiChannel > 0) {
-        pwmRssi = rcChannels[rssiChannel - 1].raw;
-
-        // Range of rawPwmRssi is [1000;2000]. rssi should be in [0;1023];
-        uint16_t rawRSSI = (uint16_t)((constrain(pwmRssi - 1000, 0, 1000) / 1000.0f) * (RSSI_MAX_VALUE * 1.0f));
-        setRSSI(rawRSSI, RSSI_SOURCE_RX_CHANNEL, false);
+    if (rxConfig()->rssi_channel > 0) {
+        int pwmRssi = rcChannels[rxConfig()->rssi_channel - 1].raw;
+        int rawRSSI = (uint16_t)((constrain(pwmRssi - 1000, 0, 1000) / 1000.0f) * (RSSI_MAX_VALUE * 1.0f));
+        setRSSIValue(rawRSSI, RSSI_SOURCE_RX_CHANNEL, false);
     }
 }
 
-static void updateRSSIADC(void)
+static void updateRSSIFromADC(void)
 {
 #ifdef USE_ADC
     uint16_t rawRSSI = adcGetChannel(ADC_RSSI) / 4;    // Reduce to [0;1023]
-    setRSSI(rawRSSI, RSSI_SOURCE_ADC, false);
+    setRSSIValue(rawRSSI, RSSI_SOURCE_ADC, false);
+#else
+    setRSSIValue(0, RSSI_SOURCE_ADC, false);
 #endif
+}
+
+static void updateRSSIFromProtocol(void)
+{
+    setRSSIValue(lqTrackerGet(&rxLQTracker), RSSI_SOURCE_RX_PROTOCOL, false);
 }
 
 void updateRSSI(timeUs_t currentTimeUs)
 {
     // Read RSSI
-    switch (rssiSource) {
-    case RSSI_SOURCE_RX_CHANNEL:
-        updateRSSIPWM();
-        break;
+    switch (activeRssiSource) {
     case RSSI_SOURCE_ADC:
-        updateRSSIADC();
+        updateRSSIFromADC();
+        break;
+    case RSSI_SOURCE_RX_CHANNEL:
+        updateRSSIFromChannel();
+        break;
+    case RSSI_SOURCE_RX_PROTOCOL:
+        updateRSSIFromProtocol();
         break;
     case RSSI_SOURCE_MSP:
         if (cmpTimeUs(currentTimeUs, lastMspRssiUpdateUs) > MSP_RSSI_TIMEOUT_US) {
@@ -660,11 +671,7 @@ void updateRSSI(timeUs_t currentTimeUs)
         }
         break;
     default:
-#ifdef USE_RX_ELERES
-        if (rxConfig()->receiverType == RX_TYPE_SPI && rxConfig()->rx_spi_protocol == RFM22_ELERES) {
-            updateRSSIeleres(currentTimeUs);
-        }
-#endif
+        rssi = 0;
         break;
     }
 }
@@ -676,7 +683,7 @@ uint16_t getRSSI(void)
 
 rssiSource_e getRSSISource(void)
 {
-    return rssiSource;
+    return activeRssiSource;
 }
 
 uint16_t rxGetRefreshRate(void)
@@ -692,4 +699,41 @@ int16_t rxGetChannelValue(unsigned channelNumber)
 int16_t rxGetRawChannelValue(unsigned channelNumber)
 {
     return rcChannels[channelNumber].raw;
+}
+
+void lqTrackerReset(rxLinkQualityTracker_e * lqTracker)
+{
+    lqTracker->lastUpdatedMs = millis();
+    lqTracker->lqAccumulator = 0;
+    lqTracker->lqCount = 0;
+    lqTracker->lqValue = 0;
+}
+
+void lqTrackerAccumulate(rxLinkQualityTracker_e * lqTracker, uint16_t rawValue)
+{
+    const timeMs_t currentTimeMs = millis();
+
+    if (((currentTimeMs - lqTracker->lastUpdatedMs) > RX_LQ_INTERVAL_MS) && lqTracker->lqCount) {
+        lqTrackerSet(lqTracker, lqTracker->lqAccumulator / lqTracker->lqCount);
+        lqTracker->lqAccumulator = 0;
+        lqTracker->lqCount = 0;
+    }
+
+    lqTracker->lqAccumulator += rawValue;
+    lqTracker->lqCount += 1;
+}
+
+void lqTrackerSet(rxLinkQualityTracker_e * lqTracker, uint16_t rawValue)
+{
+    lqTracker->lqValue = rawValue;
+    lqTracker->lastUpdatedMs = millis();
+}
+
+uint16_t lqTrackerGet(rxLinkQualityTracker_e * lqTracker)
+{
+    if ((millis() - lqTracker->lastUpdatedMs) > RX_LQ_TIMEOUT_MS) {
+        lqTracker->lqValue = 0;
+    }
+
+    return lqTracker->lqValue;
 }

@@ -168,6 +168,7 @@ typedef enum {
 uint8_t timerClockDivisor(TIM_TypeDef *tim);
 uint32_t timerGetBaseClockHW(const timerHardware_t * timHw);
 
+const timerHardware_t * timerGetByUsageFlag(timerUsageFlag_e flag);
 const timerHardware_t * timerGetByTag(ioTag_t tag, timerUsageFlag_e flag);
 TCH_t * timerGetTCH(const timerHardware_t * timHw);
 

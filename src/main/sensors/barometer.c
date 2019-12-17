@@ -33,10 +33,11 @@
 #include "drivers/barometer/barometer.h"
 #include "drivers/barometer/barometer_bmp085.h"
 #include "drivers/barometer/barometer_bmp280.h"
+#include "drivers/barometer/barometer_bmp388.h"
 #include "drivers/barometer/barometer_lps25h.h"
 #include "drivers/barometer/barometer_fake.h"
 #include "drivers/barometer/barometer_ms56xx.h"
-#include "drivers/logging.h"
+#include "drivers/barometer/barometer_spl06.h"
 #include "drivers/time.h"
 
 #include "fc/runtime_config.h"
@@ -132,6 +133,32 @@ bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
         }
         FALLTHROUGH;
 
+    case BARO_BMP388:
+#if defined(USE_BARO_BMP388) || defined(USE_BARO_SPI_BMP388)
+        if (bmp388Detect(dev)) {
+            baroHardware = BARO_BMP388;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (baroHardwareToUse != BARO_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
+    case BARO_SPL06:
+#if defined(USE_BARO_SPL06) || defined(USE_BARO_SPI_SPL06)
+        if (spl06Detect(dev)) {
+            baroHardware = BARO_SPL06;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (baroHardwareToUse != BARO_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
     case BARO_LPS25H:
 #if defined(USE_BARO_LPS25H)
         if (lps25hDetect(dev)) {
@@ -162,8 +189,6 @@ bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
         baroHardware = BARO_NONE;
         break;
     }
-
-    addBootlogEvent6(BOOT_EVENT_BARO_DETECTION, BOOT_EVENT_FLAGS_NONE, baroHardware, 0, 0, 0);
 
     if (baroHardware == BARO_NONE) {
         sensorsClear(SENSOR_BARO);

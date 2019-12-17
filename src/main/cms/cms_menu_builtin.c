@@ -42,6 +42,7 @@
 
 #include "cms/cms_menu_imu.h"
 #include "cms/cms_menu_blackbox.h"
+#include "cms/cms_menu_mixer_servo.h"
 #include "cms/cms_menu_navigation.h"
 #include "cms/cms_menu_vtx.h"
 #include "cms/cms_menu_osd.h"
@@ -106,6 +107,7 @@ static const OSD_Entry menuFeaturesEntries[] =
 {
     OSD_LABEL_ENTRY("--- FEATURES ---"),
     OSD_SUBMENU_ENTRY("BLACKBOX", &cmsx_menuBlackbox),
+    OSD_SUBMENU_ENTRY("MIXER & SERVOS", &cmsx_menuMixerServo),
 #if defined(USE_NAV)
     OSD_SUBMENU_ENTRY("NAVIGATION", &cmsx_menuNavigation),
 #endif

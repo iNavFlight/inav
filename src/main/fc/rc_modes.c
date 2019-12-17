@@ -31,11 +31,11 @@
 
 #include "fc/config.h"
 #include "fc/rc_controls.h"
+#include "fc/runtime_config.h"
 
 #include "rx/rx.h"
 
 static uint8_t specifiedConditionCountPerMode[CHECKBOX_ITEM_COUNT];
-static bool isUsingSticksToArm = true;
 #ifdef USE_NAV
 static bool isUsingNAVModes = false;
 #endif
@@ -54,14 +54,62 @@ boxBitmask_t rcModeActivationMask; // one bit per mode defined in boxId_e
 PG_REGISTER_ARRAY(modeActivationCondition_t, MAX_MODE_ACTIVATION_CONDITION_COUNT, modeActivationConditions, PG_MODE_ACTIVATION_PROFILE, 0);
 PG_REGISTER(modeActivationOperatorConfig_t, modeActivationOperatorConfig, PG_MODE_ACTIVATION_OPERATOR_CONFIG, 0);
 
-bool isUsingSticksForArming(void)
-{
-    return isUsingSticksToArm;
+static void processAirmodeAirplane(void) {
+    if (feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE)) {
+        ENABLE_STATE(AIRMODE_ACTIVE);
+    } else {
+        DISABLE_STATE(AIRMODE_ACTIVE);
+    }
 }
 
-bool isAirmodeActive(void)
-{
-    return feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE);
+static void processAirmodeMultirotor(void) {
+    if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
+        if (feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE)) {
+            ENABLE_STATE(AIRMODE_ACTIVE);
+        } else {
+            DISABLE_STATE(AIRMODE_ACTIVE);
+        }
+    } else if (rcControlsConfig()->airmodeHandlingType == THROTTLE_THRESHOLD) {
+
+        if (!ARMING_FLAG(ARMED)) {
+            /*
+             * Disarm disables airmode immediately
+             */
+            DISABLE_STATE(AIRMODE_ACTIVE);
+        } else if (
+            !STATE(AIRMODE_ACTIVE) && 
+            rcCommand[THROTTLE] > rcControlsConfig()->airmodeThrottleThreshold &&
+            (feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE))
+        ) {
+            /*
+             * Airmode is allowed to be active only after ARMED and then THROTTLE goes above
+             * activation threshold
+             */
+            ENABLE_STATE(AIRMODE_ACTIVE);
+        } else if (
+            STATE(AIRMODE_ACTIVE) &&
+            !feature(FEATURE_AIRMODE) &&
+            !IS_RC_MODE_ACTIVE(BOXAIRMODE)
+        ) {
+            /*
+             *  When user disables BOXAIRMODE, turn airmode off as well
+             */
+            DISABLE_STATE(AIRMODE_ACTIVE);
+        }
+
+    } else {
+        DISABLE_STATE(AIRMODE_ACTIVE);
+    }
+}
+
+void processAirmode(void) {
+
+    if (STATE(FIXED_WING)) {
+        processAirmodeAirplane();
+    } else {
+        processAirmodeMultirotor();
+    }
+
 }
 
 #if defined(USE_NAV)
@@ -158,8 +206,6 @@ void updateUsedModeActivationConditionFlags(void)
             specifiedConditionCountPerMode[modeActivationConditions(index)->modeId]++;
         }
     }
-
-    isUsingSticksToArm = !isModeActivationConditionPresent(BOXARM);
 
 #ifdef USE_NAV
     isUsingNAVModes = isModeActivationConditionPresent(BOXNAVPOSHOLD) ||

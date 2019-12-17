@@ -18,6 +18,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include <math.h>
 
 #include "platform.h"
 
@@ -82,7 +83,7 @@ void impl_timerConfigBase(TCH_t * tch, uint16_t period, uint32_t hz)
     }
 
     timHandle->Instance = timer;
-    timHandle->Init.Prescaler = (timerGetBaseClock(tch) / hz) - 1;
+    timHandle->Init.Prescaler = lrintf((float)timerGetBaseClock(tch) / hz + 0.01f) - 1;
     timHandle->Init.Period = (period - 1) & 0xffff; // AKA TIMx_ARR
     timHandle->Init.RepetitionCounter = 0;
     timHandle->Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -346,16 +347,19 @@ bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint8_t dmaBuf
     init.Channel = channelLL;
     init.PeriphOrM2MSrcAddress = (uint32_t)impl_timerCCR(tch);
     init.PeriphOrM2MSrcIncMode = LL_DMA_PERIPH_NOINCREMENT;
-    uint32_t memoryDataSize;
+
     switch (dmaBufferElementSize) {
         case 1:
-            memoryDataSize = LL_DMA_MDATAALIGN_BYTE;
+            init.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_BYTE;
+            init.PeriphOrM2MSrcDataSize = LL_DMA_MDATAALIGN_BYTE;
             break;
         case 2:
-            memoryDataSize = LL_DMA_MDATAALIGN_HALFWORD;
+            init.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_HALFWORD;
+            init.PeriphOrM2MSrcDataSize = LL_DMA_MDATAALIGN_HALFWORD;
             break;
         case 4:
-            memoryDataSize = LL_DMA_MDATAALIGN_WORD;
+            init.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_WORD;
+            init.PeriphOrM2MSrcDataSize = LL_DMA_PDATAALIGN_WORD;
             break;
         default:
             // Programmer error
@@ -364,10 +368,8 @@ bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint8_t dmaBuf
             }
     }
 
-    init.PeriphOrM2MSrcDataSize = LL_DMA_PDATAALIGN_WORD;
     init.MemoryOrM2MDstAddress = (uint32_t)dmaBuffer;
     init.MemoryOrM2MDstIncMode = LL_DMA_MEMORY_INCREMENT;
-    init.MemoryOrM2MDstDataSize = memoryDataSize;
     init.NbData = dmaBufferElementCount;
     init.Direction = LL_DMA_DIRECTION_MEMORY_TO_PERIPH;
     init.Mode = LL_DMA_MODE_NORMAL;

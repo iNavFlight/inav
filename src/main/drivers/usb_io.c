@@ -25,9 +25,6 @@
 #include "drivers/io.h"
 #include "drivers/time.h"
 #include "usb_io.h"
-#include "sdcard.h"
-
-
 
 #ifdef USB_DETECT_PIN
 static IO_t usbDetectPin = IO_NONE;
@@ -69,11 +66,11 @@ void usbGenerateDisconnectPulse(void)
     IO_t usbPin = IOGetByTag(IO_TAG(PA12));
     IOConfigGPIO(usbPin, IOCFG_OUT_OD);
 
-    IOHi(usbPin);
+    IOLo(usbPin);
 
     delay(200);
 
-    IOLo(usbPin);
+    IOHi(usbPin);
 }
 
 #endif

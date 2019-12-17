@@ -74,7 +74,7 @@ typedef struct {
     bool    pidSaturated;
     float   gainP;
     float   gainI;
-    float   gainD;
+    float   gainFF;
 } pidAutotuneData_t;
 
 #define AUTOTUNE_SAVE_PERIOD        5000        // Save interval is 5 seconds - when we turn off autotune we'll restore values from previous update at most 5 sec ago
@@ -90,7 +90,8 @@ void autotuneUpdateGains(pidAutotuneData_t * data)
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         pidBankMutable()->pid[axis].P = lrintf(data[axis].gainP);
         pidBankMutable()->pid[axis].I = lrintf(data[axis].gainI);
-        pidBankMutable()->pid[axis].D = lrintf(data[axis].gainD);
+        pidBankMutable()->pid[axis].D = 0;
+        pidBankMutable()->pid[axis].FF = lrintf(data[axis].gainFF);
     }
     schedulePidGainsUpdate();
 }
@@ -114,7 +115,7 @@ void autotuneStart(void)
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         tuneCurrent[axis].gainP = pidBank()->pid[axis].P;
         tuneCurrent[axis].gainI = pidBank()->pid[axis].I;
-        tuneCurrent[axis].gainD = pidBank()->pid[axis].D;
+        tuneCurrent[axis].gainFF = pidBank()->pid[axis].FF;
         tuneCurrent[axis].pidSaturated = false;
         tuneCurrent[axis].stateEnterTime = millis();
         tuneCurrent[axis].state = DEMAND_TOO_LOW;
@@ -200,18 +201,18 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
                 break;
             case DEMAND_OVERSHOOT:
                 if (stateTimeMs >= pidAutotuneConfig()->fw_overshoot_time) {
-                    tuneCurrent[axis].gainD = tuneCurrent[axis].gainD * (100 - AUTOTUNE_FIXED_WING_DECREASE_STEP) / 100.0f;
-                    if (tuneCurrent[axis].gainD < AUTOTUNE_FIXED_WING_MIN_FF) {
-                        tuneCurrent[axis].gainD = AUTOTUNE_FIXED_WING_MIN_FF;
+                    tuneCurrent[axis].gainFF = tuneCurrent[axis].gainFF * (100 - AUTOTUNE_FIXED_WING_DECREASE_STEP) / 100.0f;
+                    if (tuneCurrent[axis].gainFF < AUTOTUNE_FIXED_WING_MIN_FF) {
+                        tuneCurrent[axis].gainFF = AUTOTUNE_FIXED_WING_MIN_FF;
                     }
                     gainsUpdated = true;
                 }
                 break;
             case DEMAND_UNDERSHOOT:
                 if (stateTimeMs >= pidAutotuneConfig()->fw_undershoot_time && !tuneCurrent[axis].pidSaturated) {
-                    tuneCurrent[axis].gainD = tuneCurrent[axis].gainD * (100 + AUTOTUNE_FIXED_WING_INCREASE_STEP) / 100.0f;
-                    if (tuneCurrent[axis].gainD > AUTOTUNE_FIXED_WING_MAX_FF) {
-                        tuneCurrent[axis].gainD = AUTOTUNE_FIXED_WING_MAX_FF;
+                    tuneCurrent[axis].gainFF = tuneCurrent[axis].gainFF * (100 + AUTOTUNE_FIXED_WING_INCREASE_STEP) / 100.0f;
+                    if (tuneCurrent[axis].gainFF > AUTOTUNE_FIXED_WING_MAX_FF) {
+                        tuneCurrent[axis].gainFF = AUTOTUNE_FIXED_WING_MAX_FF;
                     }
                     gainsUpdated = true;
                 }
@@ -220,24 +221,24 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
 
         if (gainsUpdated) {
             // Set P-gain to 10% of FF gain (quite agressive - FIXME)
-            tuneCurrent[axis].gainP = tuneCurrent[axis].gainD * (pidAutotuneConfig()->fw_ff_to_p_gain / 100.0f);
+            tuneCurrent[axis].gainP = tuneCurrent[axis].gainFF * (pidAutotuneConfig()->fw_ff_to_p_gain / 100.0f);
 
             // Set integrator gain to reach the same response as FF gain in 0.667 second
-            tuneCurrent[axis].gainI = (tuneCurrent[axis].gainD / FP_PID_RATE_FF_MULTIPLIER) * (1000.0f / pidAutotuneConfig()->fw_ff_to_i_time_constant) * FP_PID_RATE_I_MULTIPLIER;
+            tuneCurrent[axis].gainI = (tuneCurrent[axis].gainFF / FP_PID_RATE_FF_MULTIPLIER) * (1000.0f / pidAutotuneConfig()->fw_ff_to_i_time_constant) * FP_PID_RATE_I_MULTIPLIER;
             tuneCurrent[axis].gainI = constrainf(tuneCurrent[axis].gainI, 2.0f, 50.0f);
             autotuneUpdateGains(tuneCurrent);
 
             switch (axis) {
             case FD_ROLL:
-                blackboxLogAutotuneEvent(ADJUSTMENT_ROLL_D, tuneCurrent[axis].gainD);
+                blackboxLogAutotuneEvent(ADJUSTMENT_ROLL_D, tuneCurrent[axis].gainFF);
                 break;
 
             case FD_PITCH:
-                blackboxLogAutotuneEvent(ADJUSTMENT_PITCH_D, tuneCurrent[axis].gainD);
+                blackboxLogAutotuneEvent(ADJUSTMENT_PITCH_D, tuneCurrent[axis].gainFF);
                 break;
 
             case FD_YAW:
-                blackboxLogAutotuneEvent(ADJUSTMENT_YAW_D, tuneCurrent[axis].gainD);
+                blackboxLogAutotuneEvent(ADJUSTMENT_YAW_D, tuneCurrent[axis].gainFF);
                 break;
             }
         }

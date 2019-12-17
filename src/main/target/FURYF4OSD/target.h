@@ -17,9 +17,13 @@
 
 #pragma once
 
+#ifdef MAMBAF405
+#define TARGET_BOARD_IDENTIFIER "MBF4"
+#define USBD_PRODUCT_STRING     "MAMBAF405"
+#else
 #define TARGET_BOARD_IDENTIFIER "FYF4"
-
 #define USBD_PRODUCT_STRING     "FuryF4"
+#endif
 
 #define LED0                    PB5
 #define LED1                    PB4
@@ -60,7 +64,6 @@
 #define SPI3_SCK_PIN            PC10
 #define SPI3_MISO_PIN   	      PC11
 #define SPI3_MOSI_PIN   	      PC12
-#define SPI3_CLOCK_LEADING_EDGE
 
 // *************** M25P256 flash ********************
 #define USE_FLASHFS
@@ -106,6 +109,12 @@
 
 #define SERIAL_PORT_COUNT       5
 
+#ifdef MAMBAF405
+#   define USE_UART_INVERTER
+#   define INVERTER_PIN_UART1_RX    PC0
+#endif
+
+
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART1
@@ -135,9 +144,6 @@
 
 #define TEMPERATURE_I2C_BUS         DEFAULT_I2C_BUS
 
-#define USE_OPTICAL_FLOW
-#define USE_OPFLOW_MSP
-
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_MSP
 #define USE_RANGEFINDER_HCSR04_I2C
@@ -150,13 +156,15 @@
 #define ADC_INSTANCE                ADC1
 #define ADC1_DMA_STREAM             DMA2_Stream0
 #define ADC_CHANNEL_1_PIN           PC1
+
 #ifdef MAMBAF405
-#define ADC_CHANNEL_2_PIN           PC3
-#define ADC_CHANNEL_3_PIN           PC2
+#   define ADC_CHANNEL_2_PIN       PC3
+#   define ADC_CHANNEL_3_PIN       PC2
 #else
-#define ADC_CHANNEL_2_PIN           PC2
-#define ADC_CHANNEL_3_PIN           PC3
+#   define ADC_CHANNEL_2_PIN       PC2
+#   define ADC_CHANNEL_3_PIN       PC3
 #endif
+
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
@@ -178,6 +186,7 @@
 #define TARGET_IO_PORTD         (BIT(2))
 
 #define USE_DSHOT
+#define USE_ESC_SENSOR
 
 #define MAX_PWM_OUTPUT_PORTS       6
 

@@ -41,10 +41,10 @@ typedef enum {
     FEATURE_TX_PROF_SEL = 1 << 2,       // Profile selection by TX stick command
     FEATURE_BAT_PROFILE_AUTOSWITCH = 1 << 3,
     FEATURE_MOTOR_STOP = 1 << 4,
-    NOT_USED_10 = 1 << 5,               // was FEATURE_SERVO_TILT
+    FEATURE_DYNAMIC_FILTERS = 1 << 5,   // was FEATURE_SERVO_TILT
     FEATURE_SOFTSERIAL = 1 << 6,
     FEATURE_GPS = 1 << 7,
-    FEATURE_UNUSED_3 = 1 << 8,          // was FEATURE_FAILSAFE
+    FEATURE_UNUSED_3 = 1 << 8,        // was FEATURE_FAILSAFE
     FEATURE_UNUSED_4 = 1 << 9,          // was FEATURE_SONAR
     FEATURE_TELEMETRY = 1 << 10,
     FEATURE_CURRENT_METER = 1 << 11,
@@ -76,7 +76,6 @@ typedef struct systemConfig_s {
     uint8_t i2c_speed;
     uint8_t cpuUnderclock;
     uint8_t throttle_tilt_compensation_strength;    // the correction that will be applied at throttle_correction_angle.
-    inputFilteringMode_e pwmRxInputFilteringMode;
     char name[MAX_NAME_LENGTH + 1];
 } systemConfig_t;
 

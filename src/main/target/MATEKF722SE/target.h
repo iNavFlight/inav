@@ -79,6 +79,7 @@
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
+#define USE_MAG_AK8975
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
@@ -122,7 +123,6 @@
 #   define SDCARD_SPI_BUS          BUS_SPI3
 #   define SDCARD_CS_PIN           PD2
 #   define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
-#   define SPI3_CLOCK_LEADING_EDGE                          // TODO(digitalentity): implement DEVFLAGS_SPI_MODE_0 flag in SPI drivers
 #endif
 
 // *************** UART *****************************
@@ -197,3 +197,5 @@
 
 #define MAX_PWM_OUTPUT_PORTS        8
 #define USE_DSHOT
+#define USE_SERIALSHOT
+#define USE_ESC_SENSOR

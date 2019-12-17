@@ -20,7 +20,7 @@
 #include "config/parameter_group.h"
 #include "common/logic_condition.h"
 
-#define MAX_SUPPORTED_SERVOS 8
+#define MAX_SUPPORTED_SERVOS 16
 
 // These must be consecutive
 typedef enum {
@@ -108,9 +108,8 @@ typedef struct servoMixer_s {
 
 #define MAX_SERVO_RULES (2 * MAX_SUPPORTED_SERVOS)
 #define MAX_SERVO_SPEED UINT8_MAX
-#define MAX_SERVO_BOXES 3
-
-#define SERVO_MIXER_INPUT_WIDTH 1000
+#define SERVO_OUTPUT_MAX 2500
+#define SERVO_OUTPUT_MIN 500
 
 PG_DECLARE_ARRAY(servoMixer_t, MAX_SERVO_RULES, customServoMixers);
 
@@ -149,3 +148,4 @@ void loadCustomServoMixer(void);
 void servoMixer(float dT);
 void servoComputeScalingFactors(uint8_t servoIndex);
 void servosInit(void);
+int getServoCount(void);

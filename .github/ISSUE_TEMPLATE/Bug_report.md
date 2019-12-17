@@ -1,6 +1,9 @@
 ---
 name: "\U0001F41B Bug report"
 about: Report an issue to help make INAV better
+title: ''
+labels: ''
+assignees: ''
 
 ---
 

@@ -69,7 +69,6 @@
 #define SPI3_SCK_PIN            PB3
 #define SPI3_MISO_PIN   	    PB4
 #define SPI3_MOSI_PIN   	    PB5
-#define SPI3_CLOCK_LEADING_EDGE
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
@@ -170,9 +169,6 @@
 
 #define TEMPERATURE_I2C_BUS         DEFAULT_I2C_BUS
 
-#define USE_OPTICAL_FLOW
-#define USE_OPFLOW_MSP
-
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_MSP
 #define USE_RANGEFINDER_HCSR04_I2C
@@ -208,6 +204,8 @@
 #define TARGET_IO_PORTD         (BIT(2))
 
 #define USE_DSHOT
+#define USE_ESC_SENSOR
+#define USE_SERIALSHOT
 
 #define MAX_PWM_OUTPUT_PORTS       6
 

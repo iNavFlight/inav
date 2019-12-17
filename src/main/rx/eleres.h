@@ -5,7 +5,7 @@
 void eleresSetRcDataFromPayload(uint16_t *rcData, const uint8_t *payload);
 uint8_t eleresBind(void);
 uint16_t eleresRssi(void);
-rx_spi_received_e eleresDataReceived(uint8_t *payload);
+rx_spi_received_e eleresDataReceived(uint8_t *payload, uint16_t *linkQuality);
 void eleresInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
 
 typedef struct

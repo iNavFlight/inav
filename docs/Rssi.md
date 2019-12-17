@@ -17,10 +17,11 @@ e.g. if you used channel 9 then you would set:
 ```
 set rssi_channel = 9
 ```
-Note: Some systems such as EZUHF invert the RSSI ( 0 = Full signal / 100 = Lost signal). To correct this problem you can invert the channel input so you will get a correct reading by using command:
+Note: Some systems such as EZUHF invert the RSSI ( 0 = Full signal / 100 = Lost signal). To correct this problem you can invert the RSSI scale so you will get a correct reading by using these commands:
 
 ```
-set rssi_ppm_invert = 1
+set rssi_min = 100
+set rssi_max = 0
 ```
 Default is set to "0" for normal operation ( 100 = Full signal / 0 = Lost signal).
 
@@ -40,5 +41,3 @@ Under CLI :
 
 
 FrSky D4R-II and X8R supported.
-
-The feature can not be used when RX_PARALLEL_PWM is enabled.

@@ -23,6 +23,7 @@
 #include "maths.h"
 #include "vector.h"
 #include "quaternion.h"
+#include "platform.h"
 
 // http://lolengine.net/blog/2011/12/21/better-function-approximations
 // Chebyshev http://stackoverflow.com/questions/345085/how-do-trigonometric-functions-work/345117#345117
@@ -139,6 +140,15 @@ int32_t applyDeadband(int32_t value, int32_t deadband)
     return value;
 }
 
+float fapplyDeadbandf(float value, float deadband)
+{
+    if (fabsf(value) < deadband) {
+        return 0;
+    }
+
+    return value >= 0 ? value - deadband : value + deadband;
+}
+
 int constrain(int amt, int low, int high)
 {
     if (amt < low)
@@ -149,7 +159,7 @@ int constrain(int amt, int low, int high)
         return amt;
 }
 
-float constrainf(float amt, float low, float high)
+float FAST_CODE NOINLINE constrainf(float amt, float low, float high)
 {
     if (amt < low)
         return low;

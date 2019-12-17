@@ -27,7 +27,6 @@
 #define I2C2_OVERCLOCK false
 #define USE_I2C_PULLUP          // Enable built-in pullups on all boards in case external ones are too week
 
-#define USE_RX_PWM
 #define USE_RX_PPM
 #define USE_SERIAL_RX
 #define USE_SERIALRX_SPEKTRUM   // Cheap and fairly common protocol
@@ -59,7 +58,6 @@
 #define USE_TELEMETRY_LTM
 #define USE_TELEMETRY_FRSKY
 
-#define USE_GYRO_BIQUAD_RC_FIR2
 #define USE_MR_BRAKING_MODE
 
 #if defined(STM_FAST_TARGET)
@@ -69,9 +67,14 @@
 #endif
 
 #if (FLASH_SIZE > 256)
+#define USE_DYNAMIC_FILTERS
 #define USE_EXTENDED_CMS_MENUS
 #define USE_UAV_INTERCONNECT
 #define USE_RX_UIB
+#define USE_HOTT_TEXTMODE
+
+// NAZA GPS support for F4+ only
+#define USE_GPS_PROTO_NAZA
 
 // Allow default rangefinders
 #define USE_RANGEFINDER
@@ -102,10 +105,16 @@
 
 #define USE_PWM_DRIVER_PCA9685
 
-#define USE_BOOTLOG
-#define BOOTLOG_DESCRIPTIONS
+#define USE_TELEMETRY_SIM
+#define USE_FRSKYOSD
 
 #define NAV_NON_VOLATILE_WAYPOINT_CLI
+
+#define NAV_AUTO_MAG_DECLINATION_PRECISE
+
+#define USE_D_BOOST
+#define USE_ANTIGRAVITY
+
 #else // FLASH_SIZE < 256
 #define LOG_LEVEL_MAXIMUM LOG_LEVEL_ERROR
 #endif
@@ -115,16 +124,10 @@
 #define USE_AUTOTUNE_FIXED_WING
 #define USE_LOG
 #define USE_STATS
-#define USE_GYRO_NOTCH_1
-#define USE_GYRO_NOTCH_2
-#define USE_DTERM_NOTCH
-#define USE_ACC_NOTCH
 #define USE_CMS
 #define CMS_MENU_OSD
 #define USE_GPS_PROTO_NMEA
-#define USE_GPS_PROTO_NAZA
 #define USE_GPS_PROTO_MTK
-#define NAV_AUTO_MAG_DECLINATION
 #define NAV_GPS_GLITCH_DETECTION
 #define NAV_NON_VOLATILE_WAYPOINT_STORAGE
 #define USE_TELEMETRY_HOTT
@@ -135,6 +138,7 @@
 #define USE_MSP_OVER_TELEMETRY
 // These are rather exotic serial protocols
 #define USE_RX_MSP
+//#define USE_MSP_RC_OVERRIDE
 #define USE_SERIALRX_SUMD
 #define USE_SERIALRX_SUMH
 #define USE_SERIALRX_XBUS
@@ -143,10 +147,10 @@
 #define USE_PWM_SERVO_DRIVER
 #define USE_SERIAL_PASSTHROUGH
 #define NAV_MAX_WAYPOINTS       60
-#define MAX_BOOTLOG_ENTRIES     64
 #define USE_RCDEVICE
 #define USE_PITOT
 #define USE_PITOT_ADC
+#define USE_PITOT_VIRTUAL
 
 //Enable VTX control
 #define USE_VTX_CONTROL
@@ -156,6 +160,8 @@
 
 #ifndef STM32F3 //F3 series does not have enoug RAM to support logic conditions
 #define USE_LOGIC_CONDITIONS
+#define USE_GLOBAL_FUNCTIONS
+#define USE_CLI_BATCH
 #endif
 
 //Enable DST calculations
