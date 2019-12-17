@@ -46,11 +46,14 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
+#include <stdbool.h>
 #include "usbd_core.h"
 #include "usbd_desc.h"
 #include "usbd_conf.h"
 #include "platform.h"
 #include "build/version.h"
+#include "drivers/usb_msc.h"
+
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/

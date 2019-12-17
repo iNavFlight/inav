@@ -49,7 +49,8 @@
 #include "usbd_msc.h"
 #include "msc/usbd_storage.h"
 
-USBD_HandleTypeDef USBD_Device;
+// declared in drivers/serial_usb_vcp.c for F7
+extern USBD_HandleTypeDef USBD_Device;
 
 #define DEBOUNCE_TIME_MS 20
 
