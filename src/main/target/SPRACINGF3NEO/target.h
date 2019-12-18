@@ -113,7 +113,6 @@
 #undef USE_VTX_FFPV
 #undef USE_VTX_SMARTAUDIO           // Disabled due to flash size
 #undef USE_VTX_TRAMP                // Disabled due to flash size
-#undef USE_PWM_SERVO_DRIVER         // Disabled due to RAM size
 
 #undef USE_PITOT                    // Disabled due to RAM size
 #undef USE_PITOT_ADC                // Disabled due to RAM size

@@ -16,7 +16,7 @@ tables:
     values: ["NONE", "PMW3901", "CXOF", "MSP", "FAKE"]
     enum: opticalFlowSensor_e
   - name: baro_hardware
-    values: ["NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "LPS25H", "SPL06", "FAKE"]
+    values: ["NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "LPS25H", "SPL06", "BMP388", "FAKE"]
     enum: baroSensor_e
   - name: pitot_hardware
     values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE"]
@@ -78,10 +78,10 @@ tables:
   - name: i2c_speed
     values: ["400KHZ", "800KHZ", "100KHZ", "200KHZ"]
   - name: debug_modes
-    values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "AGL", "FLOW_RAW",
-      "FLOW", "SBUS", "FPORT", "ALWAYS", "STAGE2", "SAG_COMP_VOLTAGE",
-      "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "GENERIC", "ITERM_RELAX", 
-      "D_BOOST", "ANTIGRAVITY", "FFT", "FFT_TIME", "FFT_FREQ", "ERPM"]
+    values: ["NONE", "GYRO", "AGL", "FLOW_RAW",
+      "FLOW", "SBUS", "FPORT", "ALWAYS", "SAG_COMP_VOLTAGE",
+      "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "ITERM_RELAX", 
+      "ERPM", "RPM_FILTER", "RPM_FREQ"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -135,6 +135,9 @@ tables:
   - name: dynamicFilterRangeTable
     values: ["HIGH", "MEDIUM", "LOW"]
     enum: dynamicFilterRange_e
+  - name: pidTypeTable
+    values: ["NONE", "PID", "PIFF", "AUTO"]
+    enum: pidType_e
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -164,25 +167,20 @@ groups:
         max: 128
       - name: gyro_notch1_hz
         field: gyro_soft_notch_hz_1
-        condition: USE_GYRO_NOTCH_1
         max: 500
       - name: gyro_notch1_cutoff
         field: gyro_soft_notch_cutoff_1
-        condition: USE_GYRO_NOTCH_1
         min: 1
         max: 500
       - name: gyro_notch2_hz
         field: gyro_soft_notch_hz_2
-        condition: USE_GYRO_NOTCH_2
         max: 500
       - name: gyro_notch2_cutoff
         field: gyro_soft_notch_cutoff_2
-        condition: USE_GYRO_NOTCH_2
         min: 1
         max: 500
       - name: gyro_stage2_lowpass_hz
         field: gyro_stage2_lowpass_hz
-        condition: USE_GYRO_BIQUAD_RC_FIR2
         min: 0
         max: 500
       - name: dyn_notch_width_percent
@@ -236,11 +234,9 @@ groups:
     headers: ["sensors/acceleration.h"]
     members:
       - name: acc_notch_hz
-        condition: USE_ACC_NOTCH
         min: 0
         max: 255
       - name: acc_notch_cutoff
-        condition: USE_ACC_NOTCH
         min: 1
         max: 255
       - name: align_acc
@@ -875,6 +871,46 @@ groups:
         min: 0
         max: 3
 
+  - name: PG_RPM_FILTER_CONFIG
+    condition: USE_RPM_FILTER
+    type: rpmFilterConfig_t
+    members:
+      - name: rpm_gyro_filter_enabled
+        field: gyro_filter_enabled
+        type: bool
+      - name: rpm_dterm_filter_enabled
+        field: dterm_filter_enabled
+        type: bool
+      - name: rpm_gyro_harmonics
+        field: gyro_harmonics
+        type: uint8_t
+        min: 1
+        max: 3
+      - name: rpm_gyro_min_hz
+        field: gyro_min_hz
+        type: uint8_t
+        min: 50
+        max: 200
+      - name: rpm_gyro_q
+        field: gyro_q
+        type: uint16_t
+        min: 1
+        max: 3000
+      - name: dterm_gyro_harmonics
+        field: dterm_harmonics
+        type: uint8_t
+        min: 1
+        max: 3
+      - name: rpm_dterm_min_hz
+        field: dterm_min_hz
+        type: uint8_t
+        min: 50
+        max: 200
+      - name: rpm_dterm_q
+        field: dterm_q
+        type: uint16_t
+        min: 1
+        max: 3000
   - name: PG_GPS_CONFIG
     type: gpsConfig_t
     condition: USE_GPS
@@ -1076,12 +1112,10 @@ groups:
         max: 1
       - name: dterm_notch_hz
         field: dterm_soft_notch_hz
-        condition: USE_DTERM_NOTCH
         min: 0
         max: 500
       - name: dterm_notch_cutoff
         field: dterm_soft_notch_cutoff
-        condition: USE_DTERM_NOTCH
         min: 1
         max: 500
       - name: pidsum_limit
@@ -1234,6 +1268,9 @@ groups:
         condition: USE_ANTIGRAVITY
         min: 1
         max: 30
+      - name: pid_type
+        field: pidControllerType
+        table: pidTypeTable
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t
