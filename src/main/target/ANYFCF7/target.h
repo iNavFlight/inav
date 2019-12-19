@@ -141,6 +141,7 @@
 #define SDCARD_DETECT_PIN       PD3
 #define SDCARD_SPI_BUS          BUS_SPI4
 #define SDCARD_CS_PIN           SPI4_NSS_PIN
+#define USE_USB_MSC
 
 #define USE_I2C
 #define USE_I2C_DEVICE_4

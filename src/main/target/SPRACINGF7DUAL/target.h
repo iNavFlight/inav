@@ -155,6 +155,8 @@
 #define SDCARD_SPI_BUS          BUS_SPI3
 #define SDCARD_CS_PIN           PC3
 
+#define USE_USB_MSC
+
 // disabled for motor outputs 5-8:
 //#define USE_VTX_RTC6705
 //#define USE_VTX_RTC6705_SOFTSPI

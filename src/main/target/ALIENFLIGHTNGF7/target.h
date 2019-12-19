@@ -90,6 +90,7 @@
 #define SDCARD_DETECT_PIN       PB11
 #define SDCARD_SPI_BUS          BUS_SPI2
 #define SDCARD_CS_PIN           PB10
+#define USE_USB_MSC
 
 #define M25P16_CS_PIN           SPI2_NSS_PIN
 #define M25P16_SPI_BUS          BUS_SPI2

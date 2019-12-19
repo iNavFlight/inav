@@ -72,6 +72,8 @@
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
+#define USE_USB_MSC
+
 // *************** M25P256 flash ********************
 #define USE_FLASHFS
 #define USE_FLASH_M25P16

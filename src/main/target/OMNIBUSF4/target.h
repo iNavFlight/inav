@@ -240,6 +240,7 @@
   #define M25P16_SPI_BUS          BUS_SPI3
   #define USE_FLASHFS
   #define USE_FLASH_M25P16
+  #define USE_USB_MSC
 #endif
 
 #define USE_ADC
