@@ -54,7 +54,6 @@
 #include "build/version.h"
 #include "drivers/usb_msc.h"
 
-
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 #define USBD_VID                      0x0483
