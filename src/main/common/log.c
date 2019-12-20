@@ -20,6 +20,10 @@
 #include <stdarg.h>
 #include <ctype.h>
 
+#if defined(SEMIHOSTING)
+#include <stdio.h>
+#endif
+
 #include "build/version.h"
 
 #include "drivers/serial.h"
@@ -103,6 +107,18 @@ static void logPutcp(void *p, char ch)
 
 static void logPrint(const char *buf, size_t size)
 {
+#if defined(SEMIHOSTING)
+    static bool semihostingInitialized = false;
+    extern void initialise_monitor_handles(void);
+
+    if (!semihostingInitialized) {
+        initialise_monitor_handles();
+        semihostingInitialized = true;
+    }
+    for (size_t ii = 0; ii < size; ii++) {
+        fputc(buf[ii], stdout);
+    }
+#endif
     if (logPort) {
         // Send data via UART (if configured & connected - a safeguard against zombie VCP)
         if (serialIsConnected(logPort)) {
@@ -121,7 +137,11 @@ static size_t logFormatPrefix(char *buf, const timeMs_t timeMs)
 
 static bool logHasOutput(void)
 {
+#if defined(SEMIHOSTING)
+    return true;
+#else
     return logPort || mspLogPort;
+#endif
 }
 
 static bool logIsEnabled(logTopic_e topic, unsigned level)

@@ -413,11 +413,11 @@ uint32_t hse_value = HSE_VALUE;
 #endif /* STM32F401xx */
 
 #if defined(STM32F410xx) || defined(STM32F411xE)
-#define PLL_N      336
+#define PLL_N      192
 /* SYSCLK = PLL_VCO / PLL_P */
-#define PLL_P      4
+#define PLL_P      2
 /* USB OTG FS, SDIO and RNG Clock =  PLL_VCO / PLLQ */
-#define PLL_Q      7
+#define PLL_Q      4
 #endif /* STM32F410xx || STM32F411xE */
 
 /******************************************************************************/
