@@ -54,7 +54,7 @@ static const uint8_t STORAGE_Inquirydata[] =
     (USBD_STD_INQUIRY_LENGTH - 5),
 #endif
     0x00, 0x00, 0x00,
-    'B', 'E', 'T', 'A', 'F', 'L', 'T', ' ', // Manufacturer : 8 bytes
+    'I', 'N', 'A', 'V', ' ', 'F', 'C', ' ', // Manufacturer : 8 bytes
     'O', 'n', 'b', 'o', 'a', 'r', 'd', ' ', // Product      : 16 Bytes
     'F', 'l', 'a', 's', 'h', ' ', ' ', ' ', //
     ' ', ' ', ' ' ,' ',                     // Version      : 4 Bytes

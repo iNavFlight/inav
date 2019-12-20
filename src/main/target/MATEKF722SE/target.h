@@ -123,7 +123,6 @@
 #   define SDCARD_SPI_BUS          BUS_SPI3
 #   define SDCARD_CS_PIN           PD2
 #   define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
-#   define USE_USB_MSC
 #endif
 
 // *************** UART *****************************
@@ -150,7 +149,7 @@
 #define USE_UART6
 #define UART6_TX_PIN            PC6
 #define UART6_RX_PIN            PC7
-
+     
 #define USE_SOFTSERIAL1
 #define SOFTSERIAL_1_TX_PIN      PA2
 #define SOFTSERIAL_1_RX_PIN      PA2

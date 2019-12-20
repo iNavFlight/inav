@@ -21,7 +21,7 @@
 #define TARGET_BOARD_IDENTIFIER "MF7P"
 #define USBD_PRODUCT_STRING  "MATEKF722PX"
 
-#define LED0                    PA14  //Blue   SWCLK
+#define LED0                    PA14  //Blue   SWCLK 
 #define LED1                    PA13  //Green  SWDIO
 
 #define BEEPER                  PC13
@@ -93,8 +93,6 @@
 #define SDCARD_SPI_BUS          BUS_SPI2
 #define SDCARD_CS_PIN           PC15
 
-#define USE_USB_MSC
-
 // *************** UART *****************************
 #define USE_VCP
 #define USB_DETECT_PIN          PC14
@@ -123,7 +121,7 @@
 #define USE_UART6
 #define UART6_TX_PIN            PC6
 #define UART6_RX_PIN            PC7
-
+     
 #define USE_SOFTSERIAL1
 #define SOFTSERIAL_1_TX_PIN      PA2 //TX2 pad
 #define SOFTSERIAL_1_RX_PIN      PA2

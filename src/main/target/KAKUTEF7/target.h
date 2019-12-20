@@ -130,7 +130,6 @@
 #define SDCARD_CS_PIN           SPI1_NSS_PIN
 #define SDCARD_DETECT_INVERTED
 #define SDCARD_DETECT_PIN       PD8
-#define USE_USB_MSC
 #endif
 
 #define USE_I2C

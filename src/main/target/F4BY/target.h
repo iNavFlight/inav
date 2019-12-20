@@ -65,7 +65,6 @@
 #define USE_SDCARD_SPI
 #define SDCARD_SPI_BUS          BUS_SPI2
 #define SDCARD_CS_PIN           PE15
-#define USE_USB_MSC
 
 #define USE_VCP
 #define VBUS_SENSING_PIN        PA9
