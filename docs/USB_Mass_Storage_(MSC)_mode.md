@@ -2,6 +2,13 @@
 
 iNav (after 2.3.0) offers USB MSC (mass storage device class) SD card access, meaning you can mount the FC (SD card) as an OS file system via USB to read BB logs (and delete them).
 
+MSC mode can also be used with internal flash blackbox logging. In this case:
+
+* The file system is read-only. In order to delete logs it is necessary to clear the flash (configurator, CLI or other tool).
+* The logs are presented as a single, consolidated file (`inav_all.bbl`) and individual logs (`inav_001.bbl` etc.).
+* Other informative files (e.g. `readme.txt`) may also exist in the virtual file system.
+
+
 ## Usage
 
 To put the FC in MSC mode:
@@ -16,7 +23,9 @@ To put the FC in MSC mode:
 
 ## Performance
 
-Reading is quite slow, typically c. 340kBs, for example:
+Internal flash is quite fast.
+
+For an SD card, reading is quite slow, typically c. 340kBs, for example:
 
 ```
 ####################
