@@ -78,6 +78,7 @@
 #include "drivers/vtx_common.h"
 #ifdef USE_USB_MSC
 #include "drivers/usb_msc.h"
+#include "msc/emfat_file.h"
 #endif
 #include "drivers/sdcard/sdcard.h"
 
@@ -370,6 +371,19 @@ void init(void)
      * so there is no bottleneck in reading and writing data
      */
     mscInit();
+#if defined(USE_FLASHFS)
+        // If the blackbox device is onboard flash, then initialize and scan
+        // it to identify the log files *before* starting the USB device to
+        // prevent timeouts of the mass storage device.
+        if (blackboxConfig()->device == BLACKBOX_DEVICE_FLASH) {
+#ifdef USE_FLASH_M25P16
+            // Must initialise the device to read _anything_
+            m25p16_init(0);
+#endif
+            emfat_init_files();
+        }
+#endif
+
     if (mscCheckBoot() || mscCheckButton()) {
         if (mscStart() == 0) {
              mscWaitForButton();

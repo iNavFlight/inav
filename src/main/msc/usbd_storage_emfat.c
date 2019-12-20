@@ -64,18 +64,6 @@ static int8_t STORAGE_Init(uint8_t lun)
 {
     UNUSED(lun);
 
-    LED0_ON;
-
-#ifdef USE_FLASHFS
-#ifdef USE_FLASH
-    flashInit(flashConfig());
-#endif
-    flashfsInit();
-#endif
-    emfat_init_files();
-
-    delay(1000);
-
     LED0_OFF;
 
     return 0;
