@@ -388,5 +388,5 @@ void emfat_init_files(void)
     // Detect and list individual power cycle sessions
     emfat_find_log(&entries[ENTRY_INDEX_BBL + 1], EMFAT_MAX_ENTRY - (ENTRY_INDEX_BBL + 1));
 
-    emfat_init(&emfat, "emfat", entries);
+    emfat_init(&emfat, "INAV_FC", entries);
 }
