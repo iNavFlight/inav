@@ -113,6 +113,12 @@ typedef enum {
 #ifdef USE_LOGIC_CONDITIONS
     TASK_LOGIC_CONDITIONS,
 #endif
+#ifdef USE_GLOBAL_FUNCTIONS
+    TASK_GLOBAL_FUNCTIONS,
+#endif
+#ifdef USE_RPM_FILTER
+    TASK_RPM_FILTER,
+#endif
     /* Count of real tasks */
     TASK_COUNT,
 

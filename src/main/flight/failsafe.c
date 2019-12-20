@@ -155,7 +155,7 @@ void failsafeReset(void)
     failsafeState.receivingRxDataPeriodPreset = 0;
     failsafeState.phase = FAILSAFE_IDLE;
     failsafeState.rxLinkState = FAILSAFE_RXLINK_DOWN;
-    failsafeState.bypassNavigation = true;
+    failsafeState.activeProcedure = failsafeConfig()->failsafe_procedure;
 
     failsafeState.lastGoodRcCommand[ROLL] = 0;
     failsafeState.lastGoodRcCommand[PITCH] = 0;
@@ -173,12 +173,15 @@ void failsafeInit(void)
 #ifdef USE_NAV
 bool failsafeBypassNavigation(void)
 {
-    return failsafeState.active && failsafeState.controlling && failsafeState.bypassNavigation;
+    return failsafeState.active &&
+           failsafeState.controlling &&
+           failsafeProcedureLogic[failsafeState.activeProcedure].bypassNavigation;
 }
 
 bool failsafeMayRequireNavigationMode(void)
 {
-    return failsafeConfig()->failsafe_procedure == FAILSAFE_PROCEDURE_RTH;
+    return (failsafeConfig()->failsafe_procedure == FAILSAFE_PROCEDURE_RTH) ||
+           (failsafeConfig()->failsafe_min_distance_procedure == FAILSAFE_PROCEDURE_RTH);
 }
 #endif
 
@@ -204,13 +207,15 @@ bool failsafeShouldApplyControlInput(void)
 
 bool failsafeRequiresAngleMode(void)
 {
-    return failsafeState.active && failsafeState.controlling && failsafeProcedureLogic[failsafeConfig()->failsafe_procedure].forceAngleMode;
+    return failsafeState.active &&
+           failsafeState.controlling &&
+           failsafeProcedureLogic[failsafeState.activeProcedure].forceAngleMode;
 }
 
 bool failsafeRequiresMotorStop(void)
 {
     return failsafeState.active &&
-           failsafeConfig()->failsafe_procedure == FAILSAFE_PROCEDURE_AUTO_LANDING &&
+           failsafeState.activeProcedure == FAILSAFE_PROCEDURE_AUTO_LANDING &&
            failsafeConfig()->failsafe_throttle < motorConfig()->minthrottle;
 }
 
@@ -224,12 +229,16 @@ static bool failsafeShouldHaveCausedLandingByNow(void)
     return failsafeConfig()->failsafe_off_delay && (millis() > failsafeState.landingShouldBeFinishedAt);
 }
 
+static void failsafeSetActiveProcedure(failsafeProcedure_e procedure)
+{
+    failsafeState.activeProcedure = procedure;
+}
+
 static void failsafeActivate(failsafePhase_e newPhase)
 {
     failsafeState.active = true;
     failsafeState.controlling = true;
     failsafeState.phase = newPhase;
-    failsafeState.bypassNavigation = failsafeProcedureLogic[failsafeConfig()->failsafe_procedure].bypassNavigation;
     ENABLE_FLIGHT_MODE(FAILSAFE_MODE);
     failsafeState.landingShouldBeFinishedAt = millis() + failsafeConfig()->failsafe_off_delay * MILLIS_PER_TENTH_SECOND;
 
@@ -264,7 +273,7 @@ void failsafeApplyControlInput(void)
 
     // Apply channel values
     for (int idx = 0; idx < 4; idx++) {
-        switch (failsafeProcedureLogic[failsafeConfig()->failsafe_procedure].channelBehavior[idx]) {
+        switch (failsafeProcedureLogic[failsafeState.activeProcedure].channelBehavior[idx]) {
             case FAILSAFE_CHANNEL_HOLD:
                 rcCommand[idx] = failsafeState.lastGoodRcCommand[idx];
                 break;
@@ -344,6 +353,25 @@ static bool failsafeCheckStickMotion(void)
     }
 }
 
+static failsafeProcedure_e failsafeChooseFailsafeProcedure(void)
+{
+    if (FLIGHT_MODE(NAV_WP_MODE) && !failsafeConfig()->failsafe_mission) {
+        return FAILSAFE_PROCEDURE_NONE;
+    }
+
+    // Craft is closer than minimum failsafe procedure distance (if set to non-zero)
+    // GPS must also be working, and home position set
+    if ((failsafeConfig()->failsafe_min_distance > 0) &&
+        ((GPS_distanceToHome * 100) < failsafeConfig()->failsafe_min_distance) &&
+        sensors(SENSOR_GPS) && STATE(GPS_FIX) && STATE(GPS_FIX_HOME)) {
+
+        // Use the alternate, minimum distance failsafe procedure instead
+        return failsafeConfig()->failsafe_min_distance_procedure;
+    }
+
+    return failsafeConfig()->failsafe_procedure;
+}
+
 void failsafeUpdateState(void)
 {
     if (!failsafeIsMonitoring() || failsafeIsSuspended()) {
@@ -376,6 +404,7 @@ void failsafeUpdateState(void)
                         if ((failsafeConfig()->failsafe_throttle_low_delay && (millis() > failsafeState.throttleLowPeriod)) || STATE(NAV_MOTOR_STOP_OR_IDLE)) {
                             // JustDisarm: throttle was LOW for at least 'failsafe_throttle_low_delay' seconds or waiting for launch
                             // Don't disarm at all if `failsafe_throttle_low_delay` is set to zero
+                            failsafeSetActiveProcedure(FAILSAFE_PROCEDURE_DROP_IT);
                             failsafeActivate(FAILSAFE_LANDED);  // skip auto-landing procedure
                             failsafeState.receivingRxDataPeriodPreset = PERIOD_OF_3_SECONDS; // require 3 seconds of valid rxData
                         } else {
@@ -399,22 +428,10 @@ void failsafeUpdateState(void)
                 if (receivingRxDataAndNotFailsafeMode) {
                     failsafeState.phase = FAILSAFE_RX_LOSS_RECOVERED;
                 } else {
-                    uint8_t failsafe_procedure_to_use = failsafeConfig()->failsafe_procedure;
+                    // Set active failsafe procedure
+                    failsafeSetActiveProcedure(failsafeChooseFailsafeProcedure());
 
-                    if (FLIGHT_MODE(NAV_WP_MODE) && !failsafeConfig()->failsafe_mission) {
-                        failsafe_procedure_to_use = FAILSAFE_PROCEDURE_NONE;
-                    }
-
-                    // Craft is closer than minimum failsafe procedure distance (if set to non-zero)
-                    // GPS must also be working, and home position set
-                    if ((failsafeConfig()->failsafe_min_distance > 0) &&
-                        ((GPS_distanceToHome * 100) < failsafeConfig()->failsafe_min_distance) &&
-                        sensors(SENSOR_GPS) && STATE(GPS_FIX) && STATE(GPS_FIX_HOME)) {
-                        // Use the alternate, minimum distance failsafe procedure instead
-                        failsafe_procedure_to_use = failsafeConfig()->failsafe_min_distance_procedure;
-                    }
-
-                    switch (failsafe_procedure_to_use) {
+                    switch (failsafeState.activeProcedure) {
                         case FAILSAFE_PROCEDURE_AUTO_LANDING:
                             // Stabilize, and set Throttle to specified level
                             failsafeActivate(FAILSAFE_LANDING);
@@ -475,8 +492,8 @@ void failsafeUpdateState(void)
                         default:
                             // This shouldn't happen. If RTH was somehow aborted during failsafe - fallback to FAILSAFE_LANDING procedure
                             abortForcedRTH();
+                            failsafeSetActiveProcedure(FAILSAFE_PROCEDURE_AUTO_LANDING);
                             failsafeActivate(FAILSAFE_LANDING);
-                            failsafeState.bypassNavigation = true;  // Force bypassing navigation
                             reprocessState = true;
                             break;
                     }

@@ -140,11 +140,11 @@ bool adjustMulticopterAltitudeFromRCInput(void)
             // Make sure we can satisfy max_manual_climb_rate in both up and down directions
             if (rcThrottleAdjustment > 0) {
                 // Scaling from altHoldThrottleRCZero to maxthrottle
-                rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (motorConfig()->maxthrottle - altHoldThrottleRCZero - rcControlsConfig()->alt_hold_deadband);
+                rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (float)(motorConfig()->maxthrottle - altHoldThrottleRCZero - rcControlsConfig()->alt_hold_deadband);
             }
             else {
                 // Scaling from minthrottle to altHoldThrottleRCZero
-                rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (altHoldThrottleRCZero - motorConfig()->minthrottle - rcControlsConfig()->alt_hold_deadband);
+                rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (float)(altHoldThrottleRCZero - motorConfig()->minthrottle - rcControlsConfig()->alt_hold_deadband);
             }
 
             updateClimbRateToAltitudeController(rcClimbRate, ROC_TO_ALT_NORMAL);
@@ -387,8 +387,8 @@ bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcR
     if (rcPitchAdjustment || rcRollAdjustment) {
         // If mode is GPS_CRUISE, move target position, otherwise POS controller will passthru the RC input to ANGLE PID
         if (navConfig()->general.flags.user_control_mode == NAV_GPS_CRUISE) {
-            const float rcVelX = rcPitchAdjustment * navConfig()->general.max_manual_speed / (500 - rcControlsConfig()->pos_hold_deadband);
-            const float rcVelY = rcRollAdjustment * navConfig()->general.max_manual_speed / (500 - rcControlsConfig()->pos_hold_deadband);
+            const float rcVelX = rcPitchAdjustment * navConfig()->general.max_manual_speed / (float)(500 - rcControlsConfig()->pos_hold_deadband);
+            const float rcVelY = rcRollAdjustment * navConfig()->general.max_manual_speed / (float)(500 - rcControlsConfig()->pos_hold_deadband);
 
             // Rotate these velocities from body frame to to earth frame
             const float neuVelX = rcVelX * posControl.actualState.cosYaw - rcVelY * posControl.actualState.sinYaw;
@@ -660,10 +660,6 @@ bool isMulticopterLandingDetected(void)
 
     bool possibleLandingDetected = isAtMinimalThrust && !verticalMovement && !horizontalMovement;
 
-    DEBUG_SET(DEBUG_NAV_LANDING_DETECTOR, 0, isAtMinimalThrust * 100 + !verticalMovement * 10 + !horizontalMovement * 1);
-    DEBUG_SET(DEBUG_NAV_LANDING_DETECTOR, 1, (landingThrSamples == 0) ? 0 : (rcCommandAdjustedThrottle - (landingThrSum / landingThrSamples)));
-    DEBUG_SET(DEBUG_NAV_LANDING_DETECTOR, 2, (currentTimeUs - landingTimer) / 1000);
-
     // If we have surface sensor (for example sonar) - use it to detect touchdown
     if ((posControl.flags.estAglStatus == EST_TRUSTED) && (posControl.actualState.agl.pos.z >= 0)) {
         // TODO: Come up with a clever way to let sonar increase detection performance, not just add extra safety.
@@ -729,11 +725,11 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
     }
     else {
         /* Sensors has gone haywire, attempt to land regardless */
-        if (failsafeConfig()) {
-            rcCommand[THROTTLE] = failsafeConfig()->failsafe_throttle;
+        if (failsafeConfig()->failsafe_procedure == FAILSAFE_PROCEDURE_DROP_IT) {
+            rcCommand[THROTTLE] = motorConfig()->minthrottle;
         }
         else {
-            rcCommand[THROTTLE] = motorConfig()->minthrottle;
+            rcCommand[THROTTLE] = failsafeConfig()->failsafe_throttle;
         }
     }
 }

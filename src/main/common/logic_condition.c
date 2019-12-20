@@ -34,6 +34,7 @@
 #include "maths.h"
 #include "fc/fc_core.h"
 #include "fc/rc_controls.h"
+#include "fc/runtime_config.h"
 #include "navigation/navigation.h"
 #include "sensors/battery.h"
 #include "sensors/pitotmeter.h"
@@ -62,18 +63,8 @@ void pgResetFn_logicConditions(logicCondition_t *instance)
 
 logicConditionState_t logicConditionStates[MAX_LOGIC_CONDITIONS];
 
-void logicConditionProcess(uint8_t i) {
-
-    if (logicConditions(i)->enabled) {
-        const int operandAValue = logicConditionGetOperandValue(logicConditions(i)->operandA.type, logicConditions(i)->operandA.value);
-        const int operandBValue = logicConditionGetOperandValue(logicConditions(i)->operandB.type, logicConditions(i)->operandB.value);
-        logicConditionStates[i].value = logicConditionCompute(logicConditions(i)->operation, operandAValue, operandBValue);
-    } else {
-        logicConditionStates[i].value = false;
-    }
-}
-
-int logicConditionCompute(
+static int logicConditionCompute(
+    int currentVaue,
     logicOperation_e operation,
     int operandA,
     int operandB
@@ -132,9 +123,55 @@ int logicConditionCompute(
             return !operandA;
             break;
 
+        case LOGIC_CONDITION_STICKY:
+            // Operand A is activation operator
+            if (operandA) {
+                return true;
+            }
+            //Operand B is deactivation operator
+            if (operandB) {
+                return false;
+            }
+
+            //When both operands are not met, keep current value 
+            return currentVaue;
+            break;
+
         default:
             return false;
             break; 
+    }
+}
+
+void logicConditionProcess(uint8_t i) {
+
+    if (logicConditions(i)->enabled) {
+        
+        /*
+         * Process condition only when latch flag is not set
+         * Latched LCs can only go from OFF to ON, not the other way
+         */
+        if (!(logicConditionStates[i].flags & LOGIC_CONDITION_FLAG_LATCH)) {
+            const int operandAValue = logicConditionGetOperandValue(logicConditions(i)->operandA.type, logicConditions(i)->operandA.value);
+            const int operandBValue = logicConditionGetOperandValue(logicConditions(i)->operandB.type, logicConditions(i)->operandB.value);
+            const int newValue = logicConditionCompute(
+                logicConditionStates[i].value, 
+                logicConditions(i)->operation, 
+                operandAValue, 
+                operandBValue
+            );
+        
+            logicConditionStates[i].value = newValue;
+
+            /*
+             * if value evaluates as true, put a latch on logic condition
+             */
+            if (logicConditions(i)->flags & LOGIC_CONDITION_FLAG_LATCH && newValue) {
+                logicConditionStates[i].flags |= LOGIC_CONDITION_FLAG_LATCH;
+            }
+        }
+    } else {
+        logicConditionStates[i].value = false;
     }
 }
 
@@ -220,6 +257,52 @@ static int logicConditionGetFlightOperandValue(int operand) {
     }
 }
 
+static int logicConditionGetFlightModeOperandValue(int operand) {
+
+    switch (operand) {
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_FAILSAFE:
+            return (bool) FLIGHT_MODE(FAILSAFE_MODE);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_MANUAL:
+            return (bool) FLIGHT_MODE(MANUAL_MODE);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_RTH:
+            return (bool) FLIGHT_MODE(NAV_RTH_MODE);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_POSHOLD:
+            return (bool) FLIGHT_MODE(NAV_POSHOLD_MODE);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_CRUISE:
+            return (bool) FLIGHT_MODE(NAV_CRUISE_MODE);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_ALTHOLD:
+            return (bool) FLIGHT_MODE(NAV_ALTHOLD_MODE);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_ANGLE:
+            return (bool) FLIGHT_MODE(ANGLE_MODE);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_HORIZON:
+            return (bool) FLIGHT_MODE(HORIZON_MODE);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_AIR:
+            return (bool) FLIGHT_MODE(AIRMODE_ACTIVE);
+            break;
+
+        default:
+            return 0;
+            break;
+    }
+}
+
 int logicConditionGetOperandValue(logicOperandType_e type, int operand) {
     int retVal = 0;
 
@@ -238,6 +321,10 @@ int logicConditionGetOperandValue(logicOperandType_e type, int operand) {
 
         case LOGIC_CONDITION_OPERAND_TYPE_FLIGHT:
             retVal = logicConditionGetFlightOperandValue(operand);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_TYPE_FLIGHT_MODE:
+            retVal = logicConditionGetFlightModeOperandValue(operand);
             break;
 
         case LOGIC_CONDITION_OPERAND_TYPE_LC:
@@ -268,5 +355,12 @@ void logicConditionUpdateTask(timeUs_t currentTimeUs) {
     UNUSED(currentTimeUs);
     for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
         logicConditionProcess(i);
+    }
+}
+
+void logicConditionReset(void) {
+    for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
+        logicConditionStates[i].value = 0;
+        logicConditionStates[i].flags = 0;
     }
 }

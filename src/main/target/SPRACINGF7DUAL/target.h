@@ -40,7 +40,6 @@
 #define GYRO_1_EXTI_PIN         PC13
 #define GYRO_2_EXTI_PIN         PC14
 #define GYRO_INT_EXTI           GYRO_1_EXTI_PIN
-#define MPU_INT_EXTI
 
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
@@ -217,3 +216,4 @@
 #define MAX_PWM_OUTPUT_PORTS    8
 
 #define USE_DSHOT
+#define USE_ESC_SENSOR

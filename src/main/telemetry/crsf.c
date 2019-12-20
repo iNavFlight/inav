@@ -229,7 +229,7 @@ static void crsfFrameVarioSensor(sbuf_t *dst)
     // use sbufWrite since CRC does not include frame length
     sbufWriteU8(dst, CRSF_FRAME_VARIO_SENSOR_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
     crsfSerialize8(dst, CRSF_FRAMETYPE_VARIO_SENSOR);
-    crsfSerialize16(dst, getEstimatedActualVelocity(Z));
+    crsfSerialize16(dst, lrintf(getEstimatedActualVelocity(Z)));
 }
 
 /*
