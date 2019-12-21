@@ -175,7 +175,3 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
 #define TARGET_IO_PORTE         0xffff
-
-#ifdef USE_USB_MSC
-# undef USE_USB_MSC
-#endif
