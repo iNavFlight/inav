@@ -476,17 +476,15 @@ static int emfat_find_log(emfat_entry_t *entry, int maxCount, int flashfsUsedSpa
 
     return logCount;
 }
-#else
-#warning "Undefined USE_FLASHFS"
 #endif  // USE_FLASHFS
 
 void emfat_init_files(void)
 {
+#ifdef USE_FLASHFS
     int flashfsUsedSpace = 0;
     int entryIndex = PREDEFINED_ENTRY_COUNT;
     emfat_entry_t *entry;
 
-#ifdef USE_FLASHFS
     flashfsInit();
     flashfsUsedSpace = flashfsIdentifyStartOfFreeSpace();
 
@@ -508,9 +506,6 @@ void emfat_init_files(void)
         emfat_set_entry_cma(entry);
         ++entryIndex;
     }
-#else
-#warning "Undefined USE_FLASHFS"
-#endif // USE_FLASHFS
 
     // Padding file to fill out the filesystem size to FILESYSTEM_SIZE_MB
     if (flashfsUsedSpace * 2 < FILESYSTEM_SIZE_MB * 1024 * 1024) {
@@ -521,11 +516,11 @@ void emfat_init_files(void)
         entry->max_size = entry->curr_size;
         emfat_set_entry_cma(entry);
     }
+#endif // USE_FLASHFS
     // create the predefined entries
     for (size_t i = 0 ; i < PREDEFINED_ENTRY_COUNT ; i++) {
         entries[i] = entriesPredefined[i];
         emfat_set_entry_cma(&entries[i]);
     }
-
     emfat_init(&emfat, "INAV_FC", entries);
 }
