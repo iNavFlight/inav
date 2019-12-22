@@ -97,6 +97,7 @@ COMMON_SRC = \
             flight/servos.c \
             flight/wind_estimator.c \
             flight/gyroanalyse.c \
+            flight/rpm_filter.c \
             io/beeper.c \
             io/esc_serialshot.c \
             io/frsky_osd.c \
@@ -234,7 +235,8 @@ TARGET_SRC   := $(filter-out $(MCU_EXCLUDES), $(TARGET_SRC))
 ifneq ($(filter ONBOARDFLASH,$(FEATURES)),)
 TARGET_SRC += \
             drivers/flash_m25p16.c \
-            io/flashfs.c
+            io/flashfs.c \
+            $(MSC_SRC)
 endif
 
 ifneq ($(filter SDCARD,$(FEATURES)),)
@@ -244,11 +246,16 @@ TARGET_SRC += \
             drivers/sdcard/sdcard_sdio.c \
             drivers/sdcard/sdcard_standard.c \
             io/asyncfatfs/asyncfatfs.c \
-            io/asyncfatfs/fat_standard.c
+            io/asyncfatfs/fat_standard.c \
+            $(MSC_SRC)
 endif
 
 ifneq ($(filter VCP,$(FEATURES)),)
 TARGET_SRC += $(VCP_SRC)
+endif
+
+ifneq ($(filter MSC,$(FEATURES)),)
+TARGET_SRC += $(MSC_SRC)
 endif
 
 ifneq ($(DSP_LIB),)

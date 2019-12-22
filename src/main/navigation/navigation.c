@@ -1370,6 +1370,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
     switch (posControl.waypointList[posControl.activeWaypointIndex].action) {
         case NAV_WP_ACTION_WAYPOINT:
             calculateAndSetActiveWaypoint(&posControl.waypointList[posControl.activeWaypointIndex]);
+            posControl.wpInitialDistance = calculateDistanceToDestination(&posControl.activeWaypoint.pos);
+            posControl.wpInitialAltitude = posControl.actualState.abs.pos.z;
             return NAV_FSM_EVENT_SUCCESS;       // will switch to NAV_STATE_WAYPOINT_IN_PROGRESS
 
         case NAV_WP_ACTION_RTH:
@@ -1394,7 +1396,13 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_IN_PROGRESS(na
                     return NAV_FSM_EVENT_SUCCESS;   // will switch to NAV_STATE_WAYPOINT_REACHED
                 }
                 else {
-                    setDesiredPosition(&posControl.activeWaypoint.pos, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_BEARING);
+                    fpVector3_t tmpWaypoint;
+                    tmpWaypoint.x = posControl.activeWaypoint.pos.x;
+                    tmpWaypoint.y = posControl.activeWaypoint.pos.y;
+                    tmpWaypoint.z = scaleRange(constrainf(posControl.wpDistance, posControl.wpInitialDistance / 10, posControl.wpInitialDistance),
+                        posControl.wpInitialDistance, posControl.wpInitialDistance / 10,
+                        posControl.wpInitialAltitude, posControl.activeWaypoint.pos.z);
+                    setDesiredPosition(&tmpWaypoint, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING);
                     return NAV_FSM_EVENT_NONE;      // will re-process state in >10ms
                 }
                 break;
@@ -2042,15 +2050,15 @@ bool isWaypointMissed(const navWaypointPosition_t * waypoint)
 static bool isWaypointPositionReached(const fpVector3_t * pos, const bool isWaypointHome)
 {
     // We consider waypoint reached if within specified radius
-    const uint32_t wpDistance = calculateDistanceToDestination(pos);
+    posControl.wpDistance = calculateDistanceToDestination(pos);
 
     if (STATE(FIXED_WING) && isWaypointHome) {
         // Airplane will do a circular loiter over home and might never approach it closer than waypoint_radius - need extra check
-        return (wpDistance <= navConfig()->general.waypoint_radius)
-                || (wpDistance <= (navConfig()->fw.loiter_radius * 1.10f));  // 10% margin of desired circular loiter radius
+        return (posControl.wpDistance <= navConfig()->general.waypoint_radius)
+                || (posControl.wpDistance <= (navConfig()->fw.loiter_radius * 1.10f));  // 10% margin of desired circular loiter radius
     }
     else {
-        return (wpDistance <= navConfig()->general.waypoint_radius);
+        return (posControl.wpDistance <= navConfig()->general.waypoint_radius);
     }
 }
 
@@ -2078,7 +2086,8 @@ float getFinalRTHAltitude(void)
 static void updateDesiredRTHAltitude(void)
 {
     if (ARMING_FLAG(ARMED)) {
-        if (!(navGetStateFlags(posControl.navState) & NAV_AUTO_RTH)) {
+        if (!((navGetStateFlags(posControl.navState) & NAV_AUTO_RTH)
+          || ((navGetStateFlags(posControl.navState) & NAV_AUTO_WP) && posControl.waypointList[posControl.activeWaypointIndex].action == NAV_WP_ACTION_RTH))) {
             switch (navConfig()->general.flags.rth_alt_control_mode) {
                 case NAV_RTH_NO_ALT:
                     posControl.rthState.rthInitialAltitude = posControl.actualState.abs.pos.z;
@@ -2400,9 +2409,6 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAlti
         if (STATE(FIXED_WING)) {
             // Fixed wing climb rate controller is open-loop. We simply move the known altitude target
             float timeDelta = US2S(currentTimeUs - lastUpdateTimeUs);
-
-            DEBUG_SET(DEBUG_FW_CLIMB_RATE_TO_ALTITUDE, 0, desiredClimbRate);
-            DEBUG_SET(DEBUG_FW_CLIMB_RATE_TO_ALTITUDE, 1, timeDelta * 1000);
 
             if (timeDelta <= HZ2S(MIN_POSITION_UPDATE_RATE_HZ)) {
                 posControl.desiredState.pos.z += desiredClimbRate * timeDelta;

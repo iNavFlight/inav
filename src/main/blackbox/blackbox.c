@@ -58,6 +58,7 @@
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
+#include "flight/rpm_filter.h"
 
 #include "io/beeper.h"
 #include "io/gps.h"
@@ -1679,7 +1680,6 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("velPID", "%d,%d,%d",                    pidBank()->pid[PID_VEL_Z].P,
                                                                             pidBank()->pid[PID_VEL_Z].I,
                                                                             pidBank()->pid[PID_VEL_Z].D);
-        BLACKBOX_PRINT_HEADER_LINE("yaw_p_limit", "%d",                     pidProfile()->yaw_p_limit);
         BLACKBOX_PRINT_HEADER_LINE("yaw_lpf_hz", "%d",                      pidProfile()->yaw_lpf_hz);
         BLACKBOX_PRINT_HEADER_LINE("dterm_lpf_hz", "%d",                    pidProfile()->dterm_lpf_hz);
         BLACKBOX_PRINT_HEADER_LINE("dterm_notch_hz", "%d",                  pidProfile()->dterm_soft_notch_hz);
@@ -1709,8 +1709,19 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("gyro_stage2_lowpass_hz", "%d",          gyroConfig()->gyro_stage2_lowpass_hz);
         BLACKBOX_PRINT_HEADER_LINE("dterm_setpoint_weight", "%f",           (double)pidProfile()->dterm_setpoint_weight);
         BLACKBOX_PRINT_HEADER_LINE("pidSumLimit", "%d",                     pidProfile()->pidSumLimit);
+        BLACKBOX_PRINT_HEADER_LINE("pidSumLimitYaw", "%d",                  pidProfile()->pidSumLimitYaw);
         BLACKBOX_PRINT_HEADER_LINE("axisAccelerationLimitYaw", "%d",        pidProfile()->axisAccelerationLimitYaw);
         BLACKBOX_PRINT_HEADER_LINE("axisAccelerationLimitRollPitch", "%d",  pidProfile()->axisAccelerationLimitRollPitch);
+#ifdef USE_RPM_FILTER
+        BLACKBOX_PRINT_HEADER_LINE("rpm_gyro_filter_enabled", "%d",         rpmFilterConfig()->gyro_filter_enabled);
+        BLACKBOX_PRINT_HEADER_LINE("rpm_gyro_harmonics", "%d",              rpmFilterConfig()->gyro_harmonics);
+        BLACKBOX_PRINT_HEADER_LINE("rpm_gyro_min_hz", "%d",                 rpmFilterConfig()->gyro_min_hz);
+        BLACKBOX_PRINT_HEADER_LINE("rpm_gyro_q", "%d",                      rpmFilterConfig()->gyro_q);
+        BLACKBOX_PRINT_HEADER_LINE("rpm_dterm_filter_enabled", "%d",        rpmFilterConfig()->dterm_filter_enabled);
+        BLACKBOX_PRINT_HEADER_LINE("rpm_dterm_harmonics", "%d",             rpmFilterConfig()->dterm_harmonics);
+        BLACKBOX_PRINT_HEADER_LINE("rpm_dterm_min_hz", "%d",                rpmFilterConfig()->dterm_min_hz);
+        BLACKBOX_PRINT_HEADER_LINE("rpm_dterm_q", "%d",                     rpmFilterConfig()->dterm_q);
+#endif
         default:
             return true;
     }
