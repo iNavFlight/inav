@@ -322,7 +322,7 @@ void pidResetTPAFilter(void)
 {
     if (usedPidControllerType == PID_TYPE_PIFF && currentControlRateProfile->throttle.fixedWingTauMs > 0) {
         pt1FilterInitRC(&fixedWingTpaFilter, currentControlRateProfile->throttle.fixedWingTauMs * 1e-3f, getLooptime() * 1e-6f);
-        pt1FilterReset(&fixedWingTpaFilter, motorConfig()->minthrottle);
+        pt1FilterReset(&fixedWingTpaFilter, getThrottleIdleValue());
     }
 }
 
@@ -370,10 +370,10 @@ static float calculateFixedWingTPAFactor(uint16_t throttle)
 
     // tpa_rate is amount of curve TPA applied to PIDs
     // tpa_breakpoint for fixed wing is cruise throttle value (value at which PIDs were tuned)
-    if (currentControlRateProfile->throttle.dynPID != 0 && currentControlRateProfile->throttle.pa_breakpoint > motorConfig()->minthrottle) {
-        if (throttle > motorConfig()->minthrottle) {
+    if (currentControlRateProfile->throttle.dynPID != 0 && currentControlRateProfile->throttle.pa_breakpoint > getThrottleIdleValue()) {
+        if (throttle > getThrottleIdleValue()) {
             // Calculate TPA according to throttle
-            tpaFactor = 0.5f + ((float)(currentControlRateProfile->throttle.pa_breakpoint - motorConfig()->minthrottle) / (throttle - motorConfig()->minthrottle) / 2.0f);
+            tpaFactor = 0.5f + ((float)(currentControlRateProfile->throttle.pa_breakpoint - getThrottleIdleValue()) / (throttle - getThrottleIdleValue()) / 2.0f);
 
             // Limit to [0.5; 2] range
             tpaFactor = constrainf(tpaFactor, 0.5f, 2.0f);

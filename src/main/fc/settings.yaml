@@ -478,10 +478,6 @@ groups:
     type: motorConfig_t
     headers: ["flight/mixer.h"]
     members:
-      - name: min_throttle
-        field: minthrottle
-        min: PWM_RANGE_MIN
-        max: PWM_RANGE_MAX
       - name: max_throttle
         field: maxthrottle
         min: PWM_RANGE_MIN
@@ -509,6 +505,10 @@ groups:
         field: throttleScale
         min: 0
         max: 1
+      - name: throttle_idle
+        field: throttleIdle
+        min: 4
+        max: 30
       - name: motor_poles
         field: motorPoleCount
         min: 4

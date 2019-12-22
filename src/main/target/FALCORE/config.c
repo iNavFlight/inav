@@ -82,7 +82,6 @@ void targetConfiguration(void)
     blackboxConfigMutable()->rate_num = 1;
     blackboxConfigMutable()->rate_denom = 4;
 
-    motorConfigMutable()->minthrottle = 1015;
     motorConfigMutable()->maxthrottle = 2000;
     motorConfigMutable()->mincommand = 980;
     motorConfigMutable()->motorPwmRate = 2000;

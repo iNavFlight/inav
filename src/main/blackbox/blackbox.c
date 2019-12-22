@@ -755,7 +755,7 @@ static void writeIntraframe(void)
      * Write the throttle separately from the rest of the RC data so we can apply a predictor to it.
      * Throttle lies in range [minthrottle..maxthrottle]:
      */
-    blackboxWriteUnsignedVB(blackboxCurrent->rcCommand[THROTTLE] - motorConfig()->minthrottle);
+    blackboxWriteUnsignedVB(blackboxCurrent->rcCommand[THROTTLE] - getThrottleIdleValue());
 
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_VBAT)) {
         /*
@@ -809,7 +809,7 @@ static void writeIntraframe(void)
     }
 
     //Motors can be below minthrottle when disarmed, but that doesn't happen much
-    blackboxWriteUnsignedVB(blackboxCurrent->motor[0] - motorConfig()->minthrottle);
+    blackboxWriteUnsignedVB(blackboxCurrent->motor[0] - getThrottleIdleValue());
 
     //Motors tend to be similar to each other so use the first motor's value as a predictor of the others
     const int motorCount = getMotorCount();
@@ -1618,10 +1618,10 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("Log start datetime", "%s",              blackboxGetStartDateTime(buf));
         BLACKBOX_PRINT_HEADER_LINE("Craft name", "%s",                      systemConfig()->name);
         BLACKBOX_PRINT_HEADER_LINE("P interval", "%u/%u",                   blackboxConfig()->rate_num, blackboxConfig()->rate_denom);
-        BLACKBOX_PRINT_HEADER_LINE("minthrottle", "%d",                     motorConfig()->minthrottle);
+        BLACKBOX_PRINT_HEADER_LINE("minthrottle", "%d",                     getThrottleIdleValue());
         BLACKBOX_PRINT_HEADER_LINE("maxthrottle", "%d",                     motorConfig()->maxthrottle);
         BLACKBOX_PRINT_HEADER_LINE("gyro_scale", "0x%x",                    castFloatBytesToInt(1.0f));
-        BLACKBOX_PRINT_HEADER_LINE("motorOutput", "%d,%d",                  motorConfig()->minthrottle,motorConfig()->maxthrottle);
+        BLACKBOX_PRINT_HEADER_LINE("motorOutput", "%d,%d",                  getThrottleIdleValue(),motorConfig()->maxthrottle);
         BLACKBOX_PRINT_HEADER_LINE("acc_1G", "%u",                          acc.dev.acc_1G);
 
         BLACKBOX_PRINT_HEADER_LINE_CUSTOM(
