@@ -201,7 +201,7 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  nav_rth_altitude  | 1000 | Used in EXTRA, FIXED and AT_LEAST rth alt modes [cm] (Default 1000 means 10 meters) |
 |  nav_rth_home_altitude  | 0 | Aircraft will climb/descend to this altitude after reaching home if landing is not enabled. Set to 0 to stay at `nav_rth_altitude` (default) [cm] |
 |  nav_rth_abort_threshold  | 50000 | RTH sanity checking feature will notice if distance to home is increasing during RTH and once amount of increase exceeds the threshold defined by this parameter, instead of continuing RTH machine will enter emergency landing, self-level and go down safely. Default is 500m which is safe enough for both multirotor machines and airplanes. [cm] |
-|  nav_rth_home_offset_distance  | 0 | Distance offset from GPS established home to "safe" position used for RTH (metre, 0 disables) |
+|  nav_rth_home_offset_distance  | 0 | Distance offset from GPS established home to "safe" position used for RTH (cm, 0 disables) |
 |  nav_rth_home_offset_direction | 0 | Direction offset from GPS established home to "safe" position used for RTH (degrees, 0=N, 90=E, 180=S, 270=W, requires non-zero offset distance) |
 |  nav_mc_bank_angle  | 30 | Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude |
 |  nav_mc_hover_thr  | 1500 | Multicopter hover throttle hint for altitude controller. Should be set to approximate throttle value when drone is hovering. |

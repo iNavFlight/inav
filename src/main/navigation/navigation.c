@@ -115,7 +115,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .rth_home_altitude = 0,                 // altitude in centimeters
         .rth_abort_threshold = 50000,           // centimeters - 500m should be safe for all aircraft
         .max_terrain_follow_altitude = 100,     // max altitude in centimeters in terrain following mode
-        .rth_home_offset_distance = 0,          // Distance offset from GPS established home to "safe" position used for RTH (metre, 0 disables)
+        .rth_home_offset_distance = 0,          // Distance offset from GPS established home to "safe" position used for RTH (cm, 0 disables)
         .rth_home_offset_direction = 0,         // Direction offset from GPS established home to "safe" position used for RTH (degrees, 0=N, 90=E, 180=S, 270=W, requires non-zero offset distance)
         },
 
@@ -2251,8 +2251,8 @@ void updateHomePosition(void)
             if (setHome) {
                 if (navConfig()->general.rth_home_offset_distance != 0) { // apply user defined offset
                     fpVector3_t offsetHome;
-                    offsetHome.x = posControl.actualState.abs.pos.x + 100 * navConfig()->general.rth_home_offset_distance * cos_approx(DEGREES_TO_RADIANS(navConfig()->general.rth_home_offset_direction));
-                    offsetHome.y = posControl.actualState.abs.pos.y + 100 * navConfig()->general.rth_home_offset_distance * sin_approx(DEGREES_TO_RADIANS(navConfig()->general.rth_home_offset_direction));
+                    offsetHome.x = posControl.actualState.abs.pos.x + navConfig()->general.rth_home_offset_distance * cos_approx(DEGREES_TO_RADIANS(navConfig()->general.rth_home_offset_direction));
+                    offsetHome.y = posControl.actualState.abs.pos.y + navConfig()->general.rth_home_offset_distance * sin_approx(DEGREES_TO_RADIANS(navConfig()->general.rth_home_offset_direction));
                     offsetHome.z = posControl.actualState.abs.pos.z;
                     setHomePosition(&offsetHome, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
                 } else {
