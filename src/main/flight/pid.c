@@ -1053,7 +1053,7 @@ void pidInit(void)
 #endif
     
     if (pidProfile()->pidControllerType == PID_TYPE_AUTO) {
-        if (STATE(FIXED_WING)) {
+        if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
             usedPidControllerType = PID_TYPE_PIFF;
         } else {
             usedPidControllerType = PID_TYPE_PID;
@@ -1075,4 +1075,11 @@ void pidInit(void)
     } else {
         pidControllerApplyFn = nullRateController;
     }
+}
+
+const pidBank_t FAST_CODE NOINLINE * pidBank(void) { 
+    return usedPidControllerType == PID_TYPE_PIFF ? &pidProfile()->bank_fw : &pidProfile()->bank_mc; 
+}
+pidBank_t FAST_CODE NOINLINE * pidBankMutable(void) { 
+    return usedPidControllerType == PID_TYPE_PIFF ? &pidProfileMutable()->bank_fw : &pidProfileMutable()->bank_mc;
 }
