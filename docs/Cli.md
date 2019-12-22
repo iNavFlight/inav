@@ -80,6 +80,7 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 | `led`            | configure leds                                 |
 | `map`            | mapping of rc channel order                    |
 | `motor`          | get/set motor output value                     |
+| `msc`            | Enter USB Mass storage mode. See docs/USB_Mass_Storage_(MSC)_mode.md for usage information.|
 | `play_sound`     | index, or none for next                        |
 | `profile`        | index (0 to 2)                                 |
 | `rxrange`        | configure rx channel ranges (end-points) |

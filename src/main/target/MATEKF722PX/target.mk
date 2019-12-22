@@ -1,5 +1,5 @@
 F7X2RE_TARGETS += $(TARGET)
-FEATURES       += SDCARD VCP ONBOARDFLASH
+FEATURES       += SDCARD VCP ONBOARDFLASH MSC
 
 TARGET_SRC = \
             drivers/accgyro/accgyro_mpu6000.c \
@@ -14,4 +14,3 @@ TARGET_SRC = \
             drivers/compass/compass_lis3mdl.c \
             drivers/light_ws2811strip.c \
             drivers/pitotmeter_adc.c \
-
