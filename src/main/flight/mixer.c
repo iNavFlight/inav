@@ -85,25 +85,22 @@ PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
 #ifdef BRUSHED_MOTORS
 #define DEFAULT_PWM_PROTOCOL    PWM_TYPE_BRUSHED
 #define DEFAULT_PWM_RATE        16000
-#define DEFAULT_MIN_THROTTLE    1000
 #else
 #define DEFAULT_PWM_PROTOCOL    PWM_TYPE_STANDARD
 #define DEFAULT_PWM_RATE        400
-#define DEFAULT_MIN_THROTTLE    1150
 #endif
 
 #define DEFAULT_MAX_THROTTLE    1850
 
-PG_REGISTER_WITH_RESET_TEMPLATE(motorConfig_t, motorConfig, PG_MOTOR_CONFIG, 4);
+PG_REGISTER_WITH_RESET_TEMPLATE(motorConfig_t, motorConfig, PG_MOTOR_CONFIG, 5);
 
 PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .motorPwmProtocol = DEFAULT_PWM_PROTOCOL,
     .motorPwmRate = DEFAULT_PWM_RATE,
     .maxthrottle = DEFAULT_MAX_THROTTLE,
-    .mincommand = 1000,
+    .mincommand = 1000, 
     .motorAccelTimeMs = 0,
     .motorDecelTimeMs = 0,
-    .digitalIdleOffsetValue = 450,  // Same scale as in Betaflight
     .throttleIdle = 15.0f,
     .throttleScale = 1.0f,
     .motorPoleCount = 14            // Most brushless motors that we use are 14 poles
@@ -241,15 +238,14 @@ void FAST_CODE NOINLINE writeMotors(void)
 #ifdef USE_DSHOT
         // If we use DSHOT we need to convert motorValue to DSHOT ranges
         if (isMotorProtocolDigital()) {
-            const float dshotMinThrottleOffset = (DSHOT_MAX_THROTTLE - DSHOT_MIN_THROTTLE) / 10000.0f * motorConfig()->digitalIdleOffsetValue;
 
             if (feature(FEATURE_3D)) {
                 if (motor[i] >= throttleIdleValue && motor[i] <= flight3DConfig()->deadband3d_low) {
-                    motorValue = scaleRangef(motor[i], throttleIdleValue, flight3DConfig()->deadband3d_low, DSHOT_3D_DEADBAND_LOW, dshotMinThrottleOffset + DSHOT_MIN_THROTTLE);
+                    motorValue = scaleRangef(motor[i], motorConfig()->mincommand, flight3DConfig()->deadband3d_low, DSHOT_3D_DEADBAND_LOW, DSHOT_MIN_THROTTLE);
                     motorValue = constrain(motorValue, DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW);
                 }
                 else if (motor[i] >= flight3DConfig()->deadband3d_high && motor[i] <= motorConfig()->maxthrottle) {
-                    motorValue = scaleRangef(motor[i], flight3DConfig()->deadband3d_high, motorConfig()->maxthrottle, dshotMinThrottleOffset + DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE);
+                    motorValue = scaleRangef(motor[i], flight3DConfig()->deadband3d_high, motorConfig()->maxthrottle, DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE);
                     motorValue = constrain(motorValue, DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE);
                 }
                 else {
@@ -261,9 +257,12 @@ void FAST_CODE NOINLINE writeMotors(void)
                     motorValue = DSHOT_DISARM_COMMAND;
                 }
                 else {
-                    motorValue = scaleRangef(motor[i], throttleIdleValue, motorConfig()->maxthrottle, (dshotMinThrottleOffset + DSHOT_MIN_THROTTLE), DSHOT_MAX_THROTTLE);
-                    motorValue = constrain(motorValue, (dshotMinThrottleOffset + DSHOT_MIN_THROTTLE), DSHOT_MAX_THROTTLE);
+                    motorValue = scaleRangef(motor[i], motorConfig()->mincommand, motorConfig()->maxthrottle, DSHOT_MIN_THROTTLE, DSHOT_MAX_THROTTLE);
+                    motorValue = constrain(motorValue, DSHOT_MIN_THROTTLE, DSHOT_MAX_THROTTLE);
                 }
+            }
+            if (i < 4) {
+                DEBUG_SET(DEBUG_DSHOT, motorCount, motorValue);
             }
         }
         else {

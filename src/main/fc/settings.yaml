@@ -81,7 +81,7 @@ tables:
     values: ["NONE", "GYRO", "AGL", "FLOW_RAW",
       "FLOW", "SBUS", "FPORT", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "ITERM_RELAX", 
-      "ERPM", "RPM_FILTER", "RPM_FREQ"]
+      "ERPM", "RPM_FILTER", "RPM_FREQ", "DSHOT"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
