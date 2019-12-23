@@ -38,7 +38,7 @@
 #include "msp/msp_serial.h"
 
 static mspPort_t mspPorts[MAX_MSP_PORT_COUNT];
-
+static int djiUartIndex = -1;
 
 static void resetMspPort(mspPort_t *mspPortToReset, serialPort_t *serialPort)
 {
@@ -66,6 +66,8 @@ void mspSerialAllocatePorts(void)
 
         portConfig = findNextSerialPortConfig(FUNCTION_MSP);
     }
+    // TODO: uncomment and specify the port you connected your DJI Air Unit too.
+    // djiUartIndex = findSerialPortIndexByIdentifier(SERIAL_PORT_USART1);
 }
 
 void mspSerialReleasePortIfAllocated(serialPort_t *serialPort)
@@ -383,7 +385,7 @@ static int mspSerialEncode(mspPort_t *msp, mspPacket_t *packet, mspVersion_e msp
     return mspSerialSendFrame(msp, hdrBuf, hdrLen, sbufPtr(&packet->buf), dataLen, crcBuf, crcLen);
 }
 
-static mspPostProcessFnPtr mspSerialProcessReceivedCommand(mspPort_t *msp, mspProcessCommandFnPtr mspProcessCommandFn)
+static mspPostProcessFnPtr mspSerialProcessReceivedCommand(mspPort_t *msp, mspProcessCommandFnPtr mspProcessCommandFn, int djiGoggles)
 {
     uint8_t outBuf[MSP_PORT_OUTBUF_SIZE];
 
@@ -403,7 +405,7 @@ static mspPostProcessFnPtr mspSerialProcessReceivedCommand(mspPort_t *msp, mspPr
     };
 
     mspPostProcessFnPtr mspPostProcessFn = NULL;
-    const mspResult_e status = mspProcessCommandFn(&command, &reply, &mspPostProcessFn);
+    const mspResult_e status = mspProcessCommandFn(&command, &reply, &mspPostProcessFn, djiGoggles);
 
     if (status != MSP_RESULT_NO_REPLY) {
         sbufSwitchToReader(&reply.buf, outBufHead); // change streambuf direction
@@ -482,7 +484,8 @@ void mspSerialProcess(mspEvaluateNonMspData_e evaluateNonMspData, mspProcessComm
                 }
 
                 if (mspPort->c_state == MSP_COMMAND_RECEIVED) {
-                    mspPostProcessFn = mspSerialProcessReceivedCommand(mspPort, mspProcessCommandFn);
+                    int djiGoggles = (portIndex == djiUartIndex);
+                    mspPostProcessFn = mspSerialProcessReceivedCommand(mspPort, mspProcessCommandFn, djiGoggles);
                     break; // process one command at a time so as not to block.
                 }
             }

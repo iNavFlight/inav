@@ -36,6 +36,7 @@
 #include "common/time.h"
 #include "common/utils.h"
 #include "common/global_functions.h"
+#include "common/printf.h"
 
 #include "config/parameter_group_ids.h"
 
@@ -158,6 +159,71 @@ typedef enum {
 
 static uint8_t escMode;
 static uint8_t escPortIndex;
+static char speedAndAlt[16];
+
+#define OSD_STAT_COUNT 24
+#define OSD_TIMER_COUNT 2
+#define OSD_WARNING_COUNT 16
+static int btfl_osd_item_count = 56;
+static int btfl_osd_item_order[] = {
+    OSD_RSSI_VALUE,
+    OSD_MAIN_BATT_VOLTAGE,
+    OSD_CROSSHAIRS,
+    OSD_ARTIFICIAL_HORIZON,
+    OSD_HORIZON_SIDEBARS,
+    OSD_ONTIME,
+    OSD_FLYTIME,
+    OSD_FLYMODE,
+    OSD_CRAFT_NAME,
+    OSD_THROTTLE_POS,
+    OSD_VTX_CHANNEL,
+    OSD_CURRENT_DRAW,
+    OSD_MAH_DRAWN,
+    OSD_GPS_SPEED,
+    OSD_GPS_SATS,
+    OSD_ALTITUDE,
+    OSD_ROLL_PIDS,
+    OSD_PITCH_PIDS,
+    OSD_YAW_PIDS,
+    OSD_POWER,
+    -1, //OSD_PIDRATE_PROFILE,
+    -1, //OSD_WARNINGS,
+    -1, //OSD_MAIN_BATT_CELL_VOLTAGE,
+    OSD_GPS_LON,
+    OSD_GPS_LAT,
+    OSD_DEBUG,
+    OSD_ATTITUDE_PITCH,
+    OSD_ATTITUDE_ROLL,
+    -1, //OSD_MAIN_BATT_USAGE,
+    -1, //OSD_DISARMED,
+    OSD_HOME_DIR,
+    OSD_HOME_DIST,
+    OSD_HEADING,
+    OSD_VARIO_NUM,
+    -1, //OSD_COMPASS_BAR,
+    -1, //OSD_ESC_TMP,
+    -1, //OSD_ESC_RPM,
+    OSD_REMAINING_FLIGHT_TIME_BEFORE_RTH,
+    OSD_RTC_TIME,
+    -1, //OSD_ADJUSTMENT_RANGE,
+    OSD_IMU_TEMPERATURE,
+    -1, //OSD_ANTI_GRAVITY,
+    OSD_GFORCE,
+    -1, //OSD_MOTOR_DIAG,
+    -1, //OSD_LOG_STATUS,
+    -1, //OSD_FLIP_ARROW,
+    -1, //OSD_LINK_QUALITY,
+    OSD_TRIP_DIST,
+    -1, //OSD_STICK_OVERLAY_LEFT,
+    -1, //OSD_STICK_OVERLAY_RIGHT,
+    -1, //OSD_DISPLAY_NAME,
+    -1, //OSD_ESC_RPM_FREQ,
+    -1, //OSD_RATE_PROFILE_NAME,
+    -1, //OSD_PID_PROFILE_NAME,
+    -1, //OSD_PROFILE_NAME,
+    -1, //OSD_RSSI_DBM_VALUE,
+    -1, //OSD_RC_CHANNELS
+};
 
 static void mspFc4waySerialCommand(sbuf_t *dst, sbuf_t *src, mspPostProcessFnPtr *mspPostProcessFn)
 {
@@ -286,13 +352,11 @@ static void serializeDataflashReadReply(sbuf_t *dst, uint32_t address, uint16_t 
  * Returns true if the command was processd, false otherwise.
  * May set mspPostProcessFunc to a function to be called once the command has been processed
  */
-static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessFnPtr *mspPostProcessFn)
+static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessFnPtr *mspPostProcessFn, int djiGoggles)
 {
     switch (cmdMSP) {
     case MSP_API_VERSION:
         sbufWriteU8(dst, MSP_PROTOCOL_VERSION);
-        sbufWriteU8(dst, API_VERSION_MAJOR);
-        sbufWriteU8(dst, API_VERSION_MINOR);
         break;
 
     case MSP_FC_VARIANT:
@@ -300,9 +364,15 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_FC_VERSION:
-        sbufWriteU8(dst, FC_VERSION_MAJOR);
-        sbufWriteU8(dst, FC_VERSION_MINOR);
-        sbufWriteU8(dst, FC_VERSION_PATCH_LEVEL);
+        if (djiGoggles) {
+            sbufWriteU8(dst, 4);
+            sbufWriteU8(dst, 1);
+            sbufWriteU8(dst, 1);
+        } else {
+            sbufWriteU8(dst, FC_VERSION_MAJOR);
+            sbufWriteU8(dst, FC_VERSION_MINOR);
+            sbufWriteU8(dst, FC_VERSION_PATCH_LEVEL);
+        }
         break;
 
     case MSP_BOARD_INFO:
@@ -386,7 +456,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP_STATUS:
         {
             boxBitmask_t mspBoxModeFlags;
-            packBoxModeFlags(&mspBoxModeFlags);
+            const int flagBits = packBoxModeFlags(&mspBoxModeFlags);
 
             sbufWriteU16(dst, (uint16_t)cycleTime);
 #ifdef USE_I2C
@@ -397,8 +467,31 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU16(dst, packSensorStatus());
             sbufWriteData(dst, &mspBoxModeFlags, 4);
             sbufWriteU8(dst, getConfigProfile());
+            if (djiGoggles) {
+                sbufWriteU16(dst, constrain(averageSystemLoadPercent, 0, 100));
+                if (cmdMSP == MSP_STATUS_EX) {
+                        sbufWriteU8(dst, 3); //PID_PROFILE_COUNT);
+                        sbufWriteU8(dst, 1); //getCurrentControlRateProfileIndex());
+                    } else {
+                        sbufWriteU16(dst, 0); // gyro cycle time
+                    }
+                    int byteCount = (flagBits - 32 + 7) / 8;        // 32 already stored, round up
+                    byteCount = constrain(byteCount, 0, 15);        // limit to 16 bytes (128 bits)
+                    sbufWriteU8(dst, byteCount);
+                    sbufWriteData(dst, ((uint8_t*)&mspBoxModeFlags) + 4, byteCount);
+    
+                    // Write arming disable flags
+                    // 1 byte, flag count
+                    sbufWriteU8(dst, ARMING_DISABLE_FLAGS_COUNT);
+                    // 4 bytes, flags
+                    const uint32_t armingDisableFlags = 0; //getArmingDisableFlags();
+                    sbufWriteU32(dst, armingDisableFlags);
+    
+                    // config state flags - bits to indicate the state of the configuration, reboot required, etc.
+                    // other flags can be added as needed
+                    sbufWriteU8(dst, 0); // (getRebootRequired() << 0));
 
-            if (cmdMSP == MSP_STATUS_EX) {
+            } else if (cmdMSP == MSP_STATUS_EX) {
                 sbufWriteU16(dst, averageSystemLoadPercent);
                 sbufWriteU16(dst, armingFlags);
                 sbufWriteU8(dst, accGetCalibrationAxisFlags());
@@ -544,11 +637,13 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU32(dst, 0);
         sbufWriteU16(dst, 0);
 #endif
+        if (! djiGoggles) {
 #if defined(USE_BARO)
-        sbufWriteU32(dst, baroGetLatestAltitude());
+            sbufWriteU32(dst, baroGetLatestAltitude());
 #else
-        sbufWriteU32(dst, 0);
+            sbufWriteU32(dst, 0);
 #endif
+        }
         break;
 
     case MSP_SONAR_ALTITUDE:
@@ -580,6 +675,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, (uint16_t)constrain(getMAhDrawn(), 0, 0xFFFF)); // milliamp hours drawn from battery
         sbufWriteU16(dst, getRSSI());
         sbufWriteU16(dst, (int16_t)constrain(getAmperage(), -0x8000, 0x7FFF)); // send amperage in 0.01 A steps, range is -320A to 320A
+        if (djiGoggles)
+            sbufWriteU16(dst, getBatteryVoltage());
         break;
 
     case MSP2_INAV_ANALOG:
@@ -615,6 +712,18 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, currentControlRateProfile->throttle.rcExpo8);
         sbufWriteU16(dst, currentControlRateProfile->throttle.pa_breakpoint);
         sbufWriteU8(dst, currentControlRateProfile->stabilized.rcYawExpo8);
+        if (djiGoggles) {
+            sbufWriteU16(dst, 0); //currentControlRateProfile->tpa_breakpoint);
+            sbufWriteU8(dst, 0); //currentControlRateProfile->rcExpo[FD_YAW]);
+            sbufWriteU8(dst, 0); //currentControlRateProfile->rcRates[FD_YAW]);
+            sbufWriteU8(dst, 0); //currentControlRateProfile->rcRates[FD_PITCH]);
+            sbufWriteU8(dst, 0); //currentControlRateProfile->rcExpo[FD_PITCH]);
+            sbufWriteU8(dst, 0); //currentControlRateProfile->throttle_limit_type);
+            sbufWriteU8(dst, 0); //currentControlRateProfile->throttle_limit_percent);
+            sbufWriteU16(dst, 0); //currentControlRateProfile->rate_limit[FD_ROLL]);
+            sbufWriteU16(dst, 0); //currentControlRateProfile->rate_limit[FD_PITCH]);
+            sbufWriteU16(dst, 0); //currentControlRateProfile->rate_limit[FD_YAW]);
+        }
         break;
 
     case MSP2_INAV_RATE_PROFILE:
@@ -799,7 +908,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, gpsSol.llh.alt/100); // meters
         sbufWriteU16(dst, gpsSol.groundSpeed);
         sbufWriteU16(dst, gpsSol.groundCourse);
-        sbufWriteU16(dst, gpsSol.hdop);
+        if (! djiGoggles)
+            sbufWriteU16(dst, gpsSol.hdop);
         break;
 
     case MSP_COMP_GPS:
@@ -807,6 +917,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, GPS_directionToHome);
         sbufWriteU8(dst, gpsSol.flags.gpsHeartbeat ? 1 : 0);
         break;
+
 #ifdef USE_NAV
     case MSP_NAV_STATUS:
         sbufWriteU8(dst, NAV_Status.mode);
@@ -1008,6 +1119,18 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 #endif
 
+    case MSP_BATTERY_STATE:
+        if (djiGoggles) {
+            sbufWriteU8(dst, (uint8_t) constrain(getBatteryCellCount(), 0, 255)); // 0 indicates battery not detected.
+            sbufWriteU16(dst, currentBatteryProfile->capacity.value);
+            sbufWriteU8(dst, (uint8_t) constrain((getBatteryVoltage() + 5) / 10, 0, 255)); // in 0.1V steps
+            sbufWriteU16(dst, (uint16_t) constrain(getMAhDrawn(), 0, 0xFFFF)); // milliamp hours drawn from battery
+            sbufWriteU16(dst, (int16_t) constrain(getAmperage(), -0x8000, 0x7FFF)); // send current in 0.01 A steps, range is -320A to 320A
+            sbufWriteU8(dst, (uint8_t) getBatteryState());
+            sbufWriteU16(dst, getBatteryVoltage()); // in 0.01V steps
+        }
+        break;
+
     case MSP_DATAFLASH_SUMMARY:
         serializeDataflashSummaryReply(dst);
         break;
@@ -1039,18 +1162,68 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP_OSD_CONFIG:
 #ifdef USE_OSD
-        sbufWriteU8(dst, OSD_DRIVER_MAX7456); // OSD supported
-        // send video system (AUTO/PAL/NTSC)
-        sbufWriteU8(dst, osdConfig()->video_system);
-        sbufWriteU8(dst, osdConfig()->units);
-        sbufWriteU8(dst, osdConfig()->rssi_alarm);
-        sbufWriteU16(dst, currentBatteryProfile->capacity.warning);
-        sbufWriteU16(dst, osdConfig()->time_alarm);
-        sbufWriteU16(dst, osdConfig()->alt_alarm);
-        sbufWriteU16(dst, osdConfig()->dist_alarm);
-        sbufWriteU16(dst, osdConfig()->neg_alt_alarm);
-        for (int i = 0; i < OSD_ITEM_COUNT; i++) {
-            sbufWriteU16(dst, osdConfig()->item_pos[0][i]);
+        if (djiGoggles) {
+            sbufWriteU8(dst, OSD_DRIVER_MAX7456); // OSD supported
+            sbufWriteU8(dst, osdConfig()->video_system);
+            sbufWriteU8(dst, osdConfig()->units);
+            sbufWriteU8(dst, osdConfig()->rssi_alarm);
+            sbufWriteU16(dst, currentBatteryProfile->capacity.warning);
+            // Reuse old timer alarm (U16) as OSD_ITEM_COUNT
+            sbufWriteU8(dst, 0);
+            sbufWriteU8(dst, btfl_osd_item_count);
+            sbufWriteU16(dst, osdConfig()->alt_alarm);
+            // Element position and visibility
+            for (int i = 0; i < btfl_osd_item_count; i++) {
+                int j = btfl_osd_item_order[i];
+                uint16_t val = 0;
+                if (j >= 0) {
+                    val = osdConfig()->item_pos[0][j];
+                    if (val & 0x0800)
+                        val |= 0x3000;  // visible in all 3 OSD profiles
+                }
+                sbufWriteU16(dst, val);
+            }
+            // Post flight statistics
+            sbufWriteU8(dst, OSD_STAT_COUNT);
+            for (int i = 0; i < OSD_STAT_COUNT; i++ ) {
+                sbufWriteU8(dst, 0); //osdStatGetState(i));
+            }
+            // Timers
+            sbufWriteU8(dst, OSD_TIMER_COUNT);
+            for (int i = 0; i < OSD_TIMER_COUNT; i++) {
+                sbufWriteU16(dst, 0); //osdConfig()->timers[i]);
+            }
+            // Enabled warnings
+            // Send low word first for backwards compatibility (API < 1.41)
+            sbufWriteU16(dst, 0); //(uint16_t)(osdConfig()->enabledWarnings & 0xFFFF));
+            // API >= 1.41
+            // Send the warnings count and 32bit enabled warnings flags.
+            // Add currently active OSD profile (0 indicates OSD profiles not available).
+            // Add OSD stick overlay mode (0 indicates OSD stick overlay not available).
+            sbufWriteU8(dst, OSD_WARNING_COUNT);
+            sbufWriteU32(dst, 0); //osdConfig()->enabledWarnings);
+            // If the feature is not available there is only 1 profile and it's always selected
+            sbufWriteU8(dst, 1);
+            sbufWriteU8(dst, 1);
+            sbufWriteU8(dst, 0);  // USE_OSD_STICK_OVERLAY
+            // API >= 1.43
+            // Add the camera frame element width/height
+            //sbufWriteU8(dst, 0); //osdConfig()->camera_frame_width);
+            //sbufWriteU8(dst, 0); //osdConfig()->camera_frame_height);
+        } else {
+            sbufWriteU8(dst, OSD_DRIVER_MAX7456); // OSD supported
+            // send video system (AUTO/PAL/NTSC)
+            sbufWriteU8(dst, osdConfig()->video_system);
+            sbufWriteU8(dst, osdConfig()->units);
+            sbufWriteU8(dst, osdConfig()->rssi_alarm);
+            sbufWriteU16(dst, currentBatteryProfile->capacity.warning);
+            sbufWriteU16(dst, osdConfig()->time_alarm);
+            sbufWriteU16(dst, osdConfig()->alt_alarm);
+            sbufWriteU16(dst, osdConfig()->dist_alarm);
+            sbufWriteU16(dst, osdConfig()->neg_alt_alarm);
+            for (int i = 0; i < OSD_ITEM_COUNT; i++) {
+                sbufWriteU16(dst, osdConfig()->item_pos[0][i]);
+            }
         }
 #else
         sbufWriteU8(dst, OSD_DRIVER_NONE); // OSD not supported
@@ -1098,6 +1271,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_FILTER_CONFIG :
+        if (djiGoggles) {
+        } else {
         sbufWriteU8(dst, gyroConfig()->gyro_soft_lpf_hz);
         sbufWriteU16(dst, pidProfile()->dterm_lpf_hz);
         sbufWriteU16(dst, pidProfile()->yaw_lpf_hz);
@@ -1138,25 +1313,65 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #else
         sbufWriteU16(dst, 0);
 #endif
+        }
         break;
 
     case MSP_PID_ADVANCED:
-        sbufWriteU16(dst, 0); // pidProfile()->rollPitchItermIgnoreRate
-        sbufWriteU16(dst, 0); // pidProfile()->yawItermIgnoreRate
-        sbufWriteU16(dst, pidProfile()->yaw_p_limit);
-        sbufWriteU8(dst, 0); //BF: pidProfile()->deltaMethod
-        sbufWriteU8(dst, 0); //BF: pidProfile()->vbatPidCompensation
-        sbufWriteU8(dst, 0); //BF: pidProfile()->setpointRelaxRatio
-        sbufWriteU8(dst, constrain(pidProfile()->dterm_setpoint_weight * 100, 0, 255));
-        sbufWriteU16(dst, pidProfile()->pidSumLimit);
-        sbufWriteU8(dst, 0); //BF: pidProfile()->itermThrottleGain
+        if (djiGoggles) {
+            sbufWriteU16(dst, 0);
+            sbufWriteU16(dst, 0);
+            sbufWriteU16(dst, 0); // was pidProfile.yaw_p_limit
+            sbufWriteU8(dst, 0); // reserved
+            sbufWriteU8(dst, 0); //pidProfile()->vbatPidCompensation);
+            sbufWriteU8(dst, 0); //pidProfile()->feedForwardTransition);
+            sbufWriteU8(dst, 0); // was low byte of pidProfile()->dtermSetpointWeight
+            sbufWriteU8(dst, 0); // reserved
+            sbufWriteU8(dst, 0); // reserved
+            sbufWriteU8(dst, 0); // reserved
+            sbufWriteU16(dst, constrain(pidProfile()->axisAccelerationLimitRollPitch / 10, 0, 65535));
+            sbufWriteU16(dst, constrain(pidProfile()->axisAccelerationLimitYaw / 10, 0, 65535));
+            sbufWriteU8(dst, 0); //pidProfile()->levelAngleLimit);
+            sbufWriteU8(dst, 0); // was pidProfile.levelSensitivity
+            sbufWriteU16(dst, 0); //pidProfile()->itermThrottleThreshold);
+            sbufWriteU16(dst, 0); //pidProfile()->itermAcceleratorGain);
+            sbufWriteU16(dst, 0); // was pidProfile()->dtermSetpointWeight
+            sbufWriteU8(dst, 0); //pidProfile()->iterm_rotation);
+            sbufWriteU8(dst, 0); // was pidProfile()->smart_feedforward
+            sbufWriteU8(dst, 0);
+            sbufWriteU8(dst, 0);
+            sbufWriteU8(dst, 0);
+            sbufWriteU8(dst, 0);
+            sbufWriteU8(dst, 0);
+            sbufWriteU16(dst, 0); //pidProfile()->pid[PID_ROLL].F);
+            sbufWriteU16(dst, 0); //pidProfile()->pid[PID_PITCH].F);
+            sbufWriteU16(dst, 0); //pidProfile()->pid[PID_YAW].F);
+            sbufWriteU8(dst, 0); //pidProfile()->antiGravityMode);
+            sbufWriteU8(dst, 0);
+            sbufWriteU8(dst, 0);
+            sbufWriteU8(dst, 0);
+            sbufWriteU8(dst, 0);
+            sbufWriteU8(dst, 0);
+            sbufWriteU8(dst, 0);
+            sbufWriteU8(dst, 0);
+            sbufWriteU8(dst, 0);
+        } else {
+            sbufWriteU16(dst, 0); // pidProfile()->rollPitchItermIgnoreRate
+            sbufWriteU16(dst, 0); // pidProfile()->yawItermIgnoreRate
+            sbufWriteU16(dst, pidProfile()->yaw_p_limit);
+            sbufWriteU8(dst, 0); //BF: pidProfile()->deltaMethod
+            sbufWriteU8(dst, 0); //BF: pidProfile()->vbatPidCompensation
+            sbufWriteU8(dst, 0); //BF: pidProfile()->setpointRelaxRatio
+            sbufWriteU8(dst, constrain(pidProfile()->dterm_setpoint_weight * 100, 0, 255));
+            sbufWriteU16(dst, pidProfile()->pidSumLimit);
+            sbufWriteU8(dst, 0); //BF: pidProfile()->itermThrottleGain
 
-        /*
-         * To keep compatibility on MSP frame length level with Betaflight, axis axisAccelerationLimitYaw
-         * limit will be sent and received in [dps / 10]
-         */
-        sbufWriteU16(dst, constrain(pidProfile()->axisAccelerationLimitRollPitch / 10, 0, 65535));
-        sbufWriteU16(dst, constrain(pidProfile()->axisAccelerationLimitYaw / 10, 0, 65535));
+            /*
+             * To keep compatibility on MSP frame length level with Betaflight, axis axisAccelerationLimitYaw
+             * limit will be sent and received in [dps / 10]
+             */
+            sbufWriteU16(dst, constrain(pidProfile()->axisAccelerationLimitRollPitch / 10, 0, 65535));
+            sbufWriteU16(dst, constrain(pidProfile()->axisAccelerationLimitYaw / 10, 0, 65535));
+        }
         break;
 
     case MSP_INAV_PID:
@@ -1333,7 +1548,18 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_RTC:
-        {
+        if (djiGoggles) {
+            dateTime_t dt;
+            if (rtcGetDateTime(&dt)) {
+                sbufWriteU16(dst, dt.year);
+                sbufWriteU8(dst, dt.month);
+                sbufWriteU8(dst, dt.day);
+                sbufWriteU8(dst, dt.hours);
+                sbufWriteU8(dst, dt.minutes);
+                sbufWriteU8(dst, dt.seconds);
+                sbufWriteU16(dst, dt.millis);
+            }
+        } else {
             int32_t seconds = 0;
             uint16_t millis = 0;
             rtcTime_t t;
@@ -1376,7 +1602,16 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_NAME:
-        {
+        if (djiGoggles) {
+            int speed = (int)(gpsSol.groundSpeed * 0.0223694);  // centimeters per second to MPH
+            int altitude = (int)lrintf(getEstimatedActualPosition(Z) * 0.0328084);  // centimeters to feet
+            //int altitude = (int)(gpsSol.llh.alt * 0.0328084);   // centimeters to feet
+            int len = tfp_snprintf(speedAndAlt, 12, "%3dS %4dA", speed, altitude);
+            if (len > 12) {
+                len = 12;
+            }
+            sbufWriteData(dst, speedAndAlt, len);
+        } else {
             const char *name = systemConfig()->name;
             while (*name) {
                 sbufWriteU8(dst, *name++);
@@ -3193,7 +3428,7 @@ static mspResult_e mspProcessSensorCommand(uint16_t cmdMSP, sbuf_t *src)
 /*
  * Returns MSP_RESULT_ACK, MSP_RESULT_ERROR or MSP_RESULT_NO_REPLY
  */
-mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn)
+mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn, int djiGoggles)
 {
     mspResult_e ret = MSP_RESULT_ACK;
     sbuf_t *dst = &reply->buf;
@@ -3204,7 +3439,7 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
 
     if (MSP2_IS_SENSOR_MESSAGE(cmdMSP)) {
         ret = mspProcessSensorCommand(cmdMSP, src);
-    } else if (mspFcProcessOutCommand(cmdMSP, dst, mspPostProcessFn)) {
+    } else if (mspFcProcessOutCommand(cmdMSP, dst, mspPostProcessFn, djiGoggles)) {
         ret = MSP_RESULT_ACK;
 #ifdef USE_SERIAL_4WAY_BLHELI_INTERFACE
     } else if (cmdMSP == MSP_SET_4WAY_IF) {

@@ -55,6 +55,8 @@ typedef enum {
                                                        ARMING_DISABLED_PWM_OUTPUT_ERROR),
 } armingFlag_e;
 
+#define ARMING_DISABLE_FLAGS_COUNT (27 + 1)
+
 // Arming blockers that can be overriden by emergency arming.
 // Keep in mind that this feature is intended to allow arming in
 // situations where we might just need the motors to spin so the

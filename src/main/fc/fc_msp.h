@@ -20,4 +20,4 @@
 #include "msp/msp.h"
 
 void mspFcInit(void);
-mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn);
+mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn, int djiGoggles);

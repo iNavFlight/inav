@@ -59,7 +59,8 @@ static void processMspPacket(void)
     mspPackage.responsePacket->buf.end = mspPackage.responseBuffer;
 
     mspPostProcessFnPtr mspPostProcessFn = NULL;
-    if (mspFcProcessCommand(mspPackage.requestPacket, mspPackage.responsePacket, &mspPostProcessFn) == MSP_RESULT_ERROR) {
+    int djiGoggles = 0;
+    if (mspFcProcessCommand(mspPackage.requestPacket, mspPackage.responsePacket, &mspPostProcessFn, djiGoggles) == MSP_RESULT_ERROR) {
         sbufWriteU8(&mspPackage.responsePacket->buf, TELEMETRY_MSP_ERROR);
     }
     if (mspPostProcessFn) {

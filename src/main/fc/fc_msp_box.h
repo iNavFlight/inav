@@ -31,7 +31,7 @@ const box_t *findBoxByActiveBoxId(uint8_t activeBoxId);
 const box_t *findBoxByPermanentId(uint8_t permanentId);
 
 struct boxBitmask_s;
-void packBoxModeFlags(struct boxBitmask_s * mspBoxModeFlags);
+int packBoxModeFlags(struct boxBitmask_s * mspBoxModeFlags);
 uint16_t packSensorStatus(void);
 struct sbuf_s;
 bool serializeBoxNamesReply(struct sbuf_s *dst);

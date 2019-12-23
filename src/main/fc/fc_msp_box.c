@@ -302,7 +302,7 @@ void initActiveBoxIds(void)
 #define IS_ENABLED(mask) (mask == 0 ? 0 : 1)
 #define CHECK_ACTIVE_BOX(condition, index)    do { if (IS_ENABLED(condition)) { activeBoxes[index] = 1; } } while(0)
 
-void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
+int packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
 {
     uint8_t activeBoxes[CHECKBOX_ITEM_COUNT];
     memset(activeBoxes, 0, sizeof(activeBoxes));
@@ -357,12 +357,15 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE)),   BOXMSPRCOVERRIDE);
 #endif
 
+    int activeCount = 0;
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
     for (uint32_t i = 0; i < activeBoxIdCount; i++) {
         if (activeBoxes[activeBoxIds[i]]) {
             bitArraySet(mspBoxModeFlags->bits, i);
+            activeCount++;
         }
     }
+    return activeCount;
 }
 
 uint16_t packSensorStatus(void)
