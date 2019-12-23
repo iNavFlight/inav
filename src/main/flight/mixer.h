@@ -64,7 +64,6 @@ PG_DECLARE_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer);
 
 typedef struct mixerConfig_s {
     int8_t yaw_motor_direction;
-    uint16_t yaw_jump_prevention_limit;      // make limit configurable (original fixed value was 100)
     uint8_t platformType;
     bool hasFlaps;
     int16_t appliedMixerPreset;
