@@ -61,7 +61,7 @@ static float mixerScale = 1.0f;
 static EXTENDED_FASTRAM motorMixer_t currentMixer[MAX_SUPPORTED_MOTORS];
 static EXTENDED_FASTRAM uint8_t motorCount = 0;
 EXTENDED_FASTRAM int mixerThrottleCommand;
-static EXTENDED_FASTRAM int throttleIdleValue = 1150; 
+EXTENDED_FASTRAM int throttleIdleValue = 1150; 
 
 PG_REGISTER_WITH_RESET_TEMPLATE(flight3DConfig_t, flight3DConfig, PG_MOTOR_3D_CONFIG, 0);
 
