@@ -61,7 +61,7 @@ static float mixerScale = 1.0f;
 static EXTENDED_FASTRAM motorMixer_t currentMixer[MAX_SUPPORTED_MOTORS];
 static EXTENDED_FASTRAM uint8_t motorCount = 0;
 EXTENDED_FASTRAM int mixerThrottleCommand;
-EXTENDED_FASTRAM int throttleIdleValue = 1150; 
+static EXTENDED_FASTRAM int throttleIdleValue = 0; 
 
 PG_REGISTER_WITH_RESET_TEMPLATE(flight3DConfig_t, flight3DConfig, PG_MOTOR_3D_CONFIG, 0);
 
@@ -112,6 +112,10 @@ static EXTENDED_FASTRAM motorRateLimitingApplyFnPtr motorRateLimitingApplyFn;
 
 int getThrottleIdleValue(void)
 {
+    if (!throttleIdleValue) {
+        throttleIdleValue = motorConfig()->mincommand + (((motorConfig()->maxthrottle - motorConfig()->mincommand) / 100.0f) * motorConfig()->throttleIdle);
+    }
+
     return throttleIdleValue;
 }
 
@@ -204,7 +208,6 @@ void applyMotorRateLimiting(const float dT)
 
 void mixerInit(void)
 {
-    throttleIdleValue = motorConfig()->mincommand + (((motorConfig()->maxthrottle - motorConfig()->mincommand) / 100.0f) * motorConfig()->throttleIdle);
     computeMotorCount();
     loadPrimaryMotorMixer();
     // in 3D mode, mixer gain has to be halved
