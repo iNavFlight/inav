@@ -80,8 +80,8 @@ tables:
   - name: debug_modes
     values: ["NONE", "GYRO", "AGL", "FLOW_RAW",
       "FLOW", "SBUS", "FPORT", "ALWAYS", "SAG_COMP_VOLTAGE",
-      "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "ITERM_RELAX", 
-      "ERPM", "RPM_FILTER", "RPM_FREQ", "DSHOT"]
+      "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "ITERM_RELAX",
+      "ERPM", "RPM_FILTER", "RPM_FREQ"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -1480,7 +1480,12 @@ groups:
       - name: nav_rth_home_altitude
         field: general.rth_home_altitude
         max: 65000
-
+      - name: nav_rth_home_offset_distance
+        field: general.rth_home_offset_distance
+        max: 65000
+      - name: nav_rth_home_offset_direction
+        field: general.rth_home_offset_direction
+        max: 359
       - name: nav_mc_bank_angle
         field: mc.max_bank_angle
         min: 15

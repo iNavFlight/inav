@@ -263,9 +263,6 @@ void FAST_CODE NOINLINE writeMotors(void)
                     motorValue = constrain(motorValue, DSHOT_MIN_THROTTLE, DSHOT_MAX_THROTTLE);
                 }
             }
-            if (i < 4) {
-                DEBUG_SET(DEBUG_DSHOT, motorCount, motorValue);
-            }
         }
         else {
             motorValue = motor[i];
