@@ -364,7 +364,7 @@ void rxUpdateRSSISource(void)
         }
     }
 
-    if (rxConfig()->rssi_source == RSSI_SOURCE_RX_PROTOCOL) {
+    if (rxConfig()->rssi_source == RSSI_SOURCE_RX_PROTOCOL || rxConfig()->rssi_source == RSSI_SOURCE_AUTO) {
         activeRssiSource = RSSI_SOURCE_RX_PROTOCOL;
         return;
     }
