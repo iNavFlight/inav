@@ -72,8 +72,8 @@ void osdGridBufferClearGridRect(int x, int y, int w, int h)
     osdGridBufferConstrainRect(&x, &y, &w, &h, OSD_CHARACTER_GRID_MAX_WIDTH, OSD_CHARACTER_GRID_MAX_HEIGHT);
     int maxX = x + w;
     int maxY = y + h;
-    for (int ii = x; ii < maxX + w; ii++) {
-        for (int jj = y; jj < maxY; jj++) {
+    for (int ii = x; ii <= maxX + w; ii++) {
+        for (int jj = y; jj <= maxY; jj++) {
             *osdCharacterGridBufferGetEntryPtr(ii, jj) = 0;
         }
     }

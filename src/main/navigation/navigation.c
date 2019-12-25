@@ -80,7 +80,7 @@ radar_pois_t radar_pois[RADAR_MAX_POIS];
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 0);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 4);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 5);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -115,7 +115,9 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .rth_home_altitude = 0,                 // altitude in centimeters
         .rth_abort_threshold = 50000,           // centimeters - 500m should be safe for all aircraft
         .max_terrain_follow_altitude = 100,     // max altitude in centimeters in terrain following mode
-    },
+        .rth_home_offset_distance = 0,          // Distance offset from GPS established home to "safe" position used for RTH (cm, 0 disables)
+        .rth_home_offset_direction = 0,         // Direction offset from GPS established home to "safe" position used for RTH (degrees, 0=N, 90=E, 180=S, 270=W, requires non-zero offset distance)
+        },
 
     // MC-specific
     .mc = {
@@ -129,7 +131,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .braking_boost_timeout = 750,           // Timout boost after 750ms
         .braking_boost_speed_threshold = 150,   // Boost can happen only above 1.5m/s
         .braking_boost_disengage_speed = 100,   // Disable boost at 1m/s
-        .braking_bank_angle = 40,               // Max braking angle     
+        .braking_bank_angle = 40,               // Max braking angle
         .posDecelerationTime = 120,             // posDecelerationTime * 100
         .posResponseExpo = 10,                  // posResponseExpo * 100
     },
@@ -2247,7 +2249,15 @@ void updateHomePosition(void)
                     break;
             }
             if (setHome) {
-                setHomePosition(&posControl.actualState.abs.pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
+                if (navConfig()->general.rth_home_offset_distance != 0) { // apply user defined offset
+                    fpVector3_t offsetHome;
+                    offsetHome.x = posControl.actualState.abs.pos.x + navConfig()->general.rth_home_offset_distance * cos_approx(DEGREES_TO_RADIANS(navConfig()->general.rth_home_offset_direction));
+                    offsetHome.y = posControl.actualState.abs.pos.y + navConfig()->general.rth_home_offset_distance * sin_approx(DEGREES_TO_RADIANS(navConfig()->general.rth_home_offset_direction));
+                    offsetHome.z = posControl.actualState.abs.pos.z;
+                    setHomePosition(&offsetHome, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
+                } else {
+                    setHomePosition(&posControl.actualState.abs.pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
+                }
             }
         }
     }
@@ -3140,7 +3150,7 @@ void navigationUsePIDs(void)
     // Initialize position hold P-controller
     for (int axis = 0; axis < 2; axis++) {
         navPidInit(
-            &posControl.pids.pos[axis], 
+            &posControl.pids.pos[axis],
             (float)pidProfile()->bank_mc.pid[PID_POS_XY].P / 100.0f,
             0.0f,
             0.0f,
@@ -3158,7 +3168,7 @@ void navigationUsePIDs(void)
 
     // Initialize altitude hold PID-controllers (pos_z, vel_z, acc_z
     navPidInit(
-        &posControl.pids.pos[Z], 
+        &posControl.pids.pos[Z],
         (float)pidProfile()->bank_mc.pid[PID_POS_Z].P / 100.0f,
         0.0f,
         0.0f,

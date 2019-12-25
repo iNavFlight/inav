@@ -80,7 +80,7 @@ tables:
   - name: debug_modes
     values: ["NONE", "GYRO", "AGL", "FLOW_RAW",
       "FLOW", "SBUS", "FPORT", "ALWAYS", "SAG_COMP_VOLTAGE",
-      "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "ITERM_RELAX", 
+      "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "ITERM_RELAX",
       "ERPM", "RPM_FILTER", "RPM_FREQ"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
@@ -183,6 +183,9 @@ groups:
         field: gyro_stage2_lowpass_hz
         min: 0
         max: 500
+      - name: gyro_stage2_lowpass_type
+        field: gyro_stage2_lowpass_type
+        table: filter_type
       - name: dyn_notch_width_percent
         field: dyn_notch_width_percent
         condition: USE_DYNAMIC_FILTERS
@@ -685,9 +688,6 @@ groups:
       - name: yaw_motor_direction
         min: -1
         max: 1
-      - name: yaw_jump_prevention_limit
-        min: YAW_JUMP_PREVENTION_LIMIT_LOW
-        max: YAW_JUMP_PREVENTION_LIMIT_HIGH
       - name: platform_type
         field: platformType
         type: uint8_t
@@ -1122,9 +1122,10 @@ groups:
         field: pidSumLimit
         min: PID_SUM_LIMIT_MIN
         max: PID_SUM_LIMIT_MAX
-      - name: yaw_p_limit
-        min: YAW_P_LIMIT_MIN
-        max: YAW_P_LIMIT_MAX
+      - name: pidsum_limit_yaw
+        field: pidSumLimitYaw
+        min: PID_SUM_LIMIT_MIN
+        max: PID_SUM_LIMIT_MAX
       - name: iterm_windup
         field: itermWindupPointPercent
         min: 0
@@ -1479,7 +1480,12 @@ groups:
       - name: nav_rth_home_altitude
         field: general.rth_home_altitude
         max: 65000
-
+      - name: nav_rth_home_offset_distance
+        field: general.rth_home_offset_distance
+        max: 65000
+      - name: nav_rth_home_offset_direction
+        field: general.rth_home_offset_direction
+        max: 359
       - name: nav_mc_bank_angle
         field: mc.max_bank_angle
         min: 15

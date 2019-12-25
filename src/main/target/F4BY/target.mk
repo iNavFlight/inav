@@ -1,5 +1,5 @@
 F405_TARGETS    += $(TARGET)
-FEATURES        += SDCARD VCP
+FEATURES        += SDCARD VCP MSC
 
 TARGET_SRC = \
             drivers/accgyro/accgyro_mpu6000.c \
