@@ -146,7 +146,7 @@ typedef void (*pidControllerFnPtr)(pidState_t *pidState, flight_dynamics_index_t
 static EXTENDED_FASTRAM pidControllerFnPtr pidControllerApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr dTermLpfFilterApplyFn;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 11);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 12);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -263,6 +263,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .antigravityAccelerator = 1.0f,
         .antigravityCutoff = ANTI_GRAVITY_THROTTLE_FILTER_CUTOFF,
         .pidControllerType = PID_TYPE_AUTO,
+        .navFwPosHdgPidsumLimit = PID_SUM_LIMIT_YAW_DEFAULT,
 );
 
 bool pidInitFilters(void)

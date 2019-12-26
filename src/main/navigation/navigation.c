@@ -80,7 +80,7 @@ radar_pois_t radar_pois[RADAR_MAX_POIS];
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 0);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 5);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 6);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -165,7 +165,8 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .launch_climb_angle = 18,               // 18 degrees
         .launch_max_angle = 45,                 // 45 deg
         .cruise_yaw_rate  = 20,                 // 20dps
-        .allow_manual_thr_increase = false
+        .allow_manual_thr_increase = false,
+        .useFwNavYawControl = 0,
     }
 );
 
@@ -1775,6 +1776,11 @@ float navPidApply3(pidController_t *pid, const float setpoint, const float measu
         }
     }
 
+    /*
+     * Limit both output and Iterm to limit windup
+     */
+    pid->integrator = constrain(pid->integrator, outMin, outMax);
+
     return outValConstrained;
 }
 
@@ -3211,7 +3217,7 @@ void navigationUsePIDs(void)
                                         (float)pidProfile()->bank_fw.pid[PID_POS_HEADING].I / 100.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_HEADING].D / 100.0f,
                                         0.0f,
-                                        NAV_DTERM_CUT_HZ
+                                        2.0f
     );
 }
 

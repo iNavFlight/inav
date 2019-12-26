@@ -216,6 +216,7 @@ typedef struct navConfig_s {
         uint8_t  launch_max_angle;           // Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg]
         uint8_t  cruise_yaw_rate;            // Max yaw rate (dps) when CRUISE MODE is enabled
         bool     allow_manual_thr_increase;
+        bool useFwNavYawControl;
     } fw;
 } navConfig_t;
 

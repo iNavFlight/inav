@@ -143,6 +143,8 @@ typedef struct pidProfile_s {
     float antigravityGain;
     float antigravityAccelerator;
     uint8_t antigravityCutoff;
+
+    int navFwPosHdgPidsumLimit;
 } pidProfile_t;
 
 typedef struct pidAutotuneConfig_s {

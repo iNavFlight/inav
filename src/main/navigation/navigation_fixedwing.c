@@ -210,7 +210,9 @@ void resetFixedWingPositionController(void)
     virtualDesiredPosition.z = 0;
 
     navPidReset(&posControl.pids.fw_nav);
+    navPidReset(&posControl.pids.fw_heading);
     posControl.rcAdjustment[ROLL] = 0;
+    posControl.rcAdjustment[YAW] = 0;
     posControl.rcAdjustment[YAW] = 0;
     isRollAdjustmentValid = false;
     isYawAdjustmentValid = false;
@@ -295,7 +297,10 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
     // We have virtual position target, calculate heading error
     int32_t virtualTargetBearing = calculateBearingToDestination(&virtualDesiredPosition);
 
-    // Calculate NAV heading error
+    /*
+     * Calculate NAV heading error
+     * Units are centidegrees
+     */
     navHeadingError = wrap_18000(virtualTargetBearing - posControl.actualState.yaw);
 
     // Forced turn direction
@@ -341,12 +346,34 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
      * Yaw adjustment
      * It is working in relative mode and we aim to keep error at zero
      */
-    float yawAdjustment = navPidApply2(&posControl.pids.fw_heading, 0, navHeadingError, US2S(deltaMicros),
-                                       -500,
-                                        500,
-                                        pidFlags);
+    if (navConfig()->fw.useFwNavYawControl) {
 
-    posControl.rcAdjustment[YAW] = yawAdjustment;
+        static float limit = 0.0f;
+
+        if (limit == 0.0f) {
+            limit = pidProfile()->navFwPosHdgPidsumLimit * 100.0f;
+        }
+
+        float yawAdjustment = navPidApply2(
+            &posControl.pids.fw_heading, 
+            0, 
+            navHeadingError, 
+            US2S(deltaMicros),
+            -limit,
+            limit,
+            pidFlags
+            ) / 100.0f;
+
+        DEBUG_SET(DEBUG_NAV_YAW, 0, posControl.pids.fw_heading.proportional);
+        DEBUG_SET(DEBUG_NAV_YAW, 1, posControl.pids.fw_heading.integral);
+        DEBUG_SET(DEBUG_NAV_YAW, 2, posControl.pids.fw_heading.derivative);
+        DEBUG_SET(DEBUG_NAV_YAW, 3, navHeadingError);
+        DEBUG_SET(DEBUG_NAV_YAW, 4, posControl.pids.fw_heading.output_constrained);
+
+        posControl.rcAdjustment[YAW] = yawAdjustment;
+    } else {
+        posControl.rcAdjustment[YAW] = 0;
+    }
 }
 
 void applyFixedWingPositionController(timeUs_t currentTimeUs)
