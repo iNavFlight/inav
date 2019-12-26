@@ -359,7 +359,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
         float yawAdjustment = navPidApply2(
             &posControl.pids.fw_heading, 
             0, 
-            navHeadingError, 
+            applyDeadband(navHeadingError, navConfig()->fw.yawControlDeadband * 100), 
             US2S(deltaMicros),
             -limit,
             limit,

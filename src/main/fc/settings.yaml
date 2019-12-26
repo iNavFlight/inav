@@ -1667,6 +1667,10 @@ groups:
       - name: nav_use_fw_yaw_control
         field: fw.useFwNavYawControl
         type: bool
+      - name: nav_fw_yaw_deadband
+        field: fw.yawControlDeadband
+        min: 0
+        max: 90
 
   - name: PG_TELEMETRY_CONFIG
     type: telemetryConfig_t

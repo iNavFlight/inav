@@ -167,6 +167,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .cruise_yaw_rate  = 20,                 // 20dps
         .allow_manual_thr_increase = false,
         .useFwNavYawControl = 0,
+        .yawControlDeadband = 0,
     }
 );
 
@@ -3212,10 +3213,10 @@ void navigationUsePIDs(void)
                                         0.0f,
                                         NAV_DTERM_CUT_HZ
     );
-
+    
     navPidInit(&posControl.pids.fw_heading, (float)pidProfile()->bank_fw.pid[PID_POS_HEADING].P / 10.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_HEADING].I / 10.0f,
-                                        (float)pidProfile()->bank_fw.pid[PID_POS_HEADING].D / 10.0f,
+                                        (float)pidProfile()->bank_fw.pid[PID_POS_HEADING].D / 100.0f,
                                         0.0f,
                                         2.0f
     );

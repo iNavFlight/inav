@@ -217,6 +217,7 @@ typedef struct navConfig_s {
         uint8_t  cruise_yaw_rate;            // Max yaw rate (dps) when CRUISE MODE is enabled
         bool     allow_manual_thr_increase;
         bool useFwNavYawControl;
+        uint8_t yawControlDeadband;
     } fw;
 } navConfig_t;
 
