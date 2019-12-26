@@ -354,6 +354,8 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
             limit = pidProfile()->navFwPosHdgPidsumLimit * 100.0f;
         }
 
+        const pidControllerFlags_e yawPidFlags = errorIsDecreasing ? PID_SHRINK_INTEGRATOR : 0;
+
         float yawAdjustment = navPidApply2(
             &posControl.pids.fw_heading, 
             0, 
@@ -361,7 +363,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
             US2S(deltaMicros),
             -limit,
             limit,
-            pidFlags
+            yawPidFlags
             ) / 100.0f;
 
         DEBUG_SET(DEBUG_NAV_YAW, 0, posControl.pids.fw_heading.proportional);
