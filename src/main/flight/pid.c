@@ -221,7 +221,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
                 [PID_POS_HEADING] = {
                     .P = 20,
                     .I = 10,
-                    .D = 10,
+                    .D = 50,
                     .FF = 0
                 }
             }
