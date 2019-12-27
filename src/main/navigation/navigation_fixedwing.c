@@ -346,7 +346,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
      * Yaw adjustment
      * It is working in relative mode and we aim to keep error at zero
      */
-    if (navConfig()->fw.useFwNavYawControl) {
+    if (STATE(FW_HEADING_USE_YAW)) {
 
         static float limit = 0.0f;
 

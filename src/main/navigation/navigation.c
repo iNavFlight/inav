@@ -3250,6 +3250,16 @@ void navigationInit(void)
 
     /* Use system config */
     navigationUsePIDs();
+
+    if (
+        mixerConfig()->platformType == PLATFORM_BOAT ||
+        mixerConfig()->platformType == PLATFORM_ROVER ||
+        navConfig()->fw.useFwNavYawControl
+    ) {
+        ENABLE_STATE(FW_HEADING_USE_YAW);
+    } else {
+        DISABLE_STATE(FW_HEADING_USE_YAW);
+    }
 }
 
 /*-----------------------------------------------------------

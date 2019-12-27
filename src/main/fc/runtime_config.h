@@ -123,6 +123,7 @@ typedef enum {
     NAV_EXTRA_ARMING_SAFETY_BYPASSED    = (1 << 14),    // nav_extra_arming_safey was bypassed. Keep it until power cycle.
     AIRMODE_ACTIVE                      = (1 << 15),
     ESC_SENSOR_ENABLED                  = (1 << 16),
+    FW_HEADING_USE_YAW                  = (1 << 17),
 } stateFlags_t;
 
 #define DISABLE_STATE(mask) (stateFlags &= ~(mask))

@@ -140,11 +140,14 @@ bool mixerIsOutputSaturated(void)
 
 void mixerUpdateStateFlags(void)
 {
-    // set flag that we're on something with wings
-    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
-        ENABLE_STATE(FIXED_WING);
-    } else if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
-        DISABLE_STATE(FIXED_WING);
+    // set flag that we're on something with wings or a land/water vehicle
+    if (
+        mixerConfig()->platformType == PLATFORM_AIRPLANE ||
+        mixerConfig()->platformType == PLATFORM_ROVER ||
+        mixerConfig()->platformType == PLATFORM_BOAT ||
+        mixerConfig()->platformType == PLATFORM_OTHER
+    ) {
+        ENABLE_STATE(FIXED_WING); //This is not entirely true, but much closer to reality than not using FIXED_WING mode
     } else {
         DISABLE_STATE(FIXED_WING);
     }
