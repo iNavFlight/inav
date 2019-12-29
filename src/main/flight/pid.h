@@ -105,7 +105,13 @@ typedef struct pidProfile_s {
 
     uint16_t dterm_soft_notch_hz;           // Dterm Notch frequency
     uint16_t dterm_soft_notch_cutoff;       // Dterm Notch Cutoff frequency
-    uint8_t dterm_lpf_hz;                   // (default 17Hz, Range 1-50Hz) Used for PT1 element in PID1, PID2 and PID5
+    
+    uint8_t dterm_lpf_type;                 // Dterm LPF type: PT1, BIQUAD
+    uint16_t dterm_lpf_hz;                  
+    
+    uint8_t dterm_lpf2_type;                // Dterm LPF type: PT1, BIQUAD
+    uint16_t dterm_lpf2_hz;                 
+    
     uint8_t use_dterm_fir_filter;           // Use classical INAV FIR differentiator. Very noise robust, can be quite slowish
 
     uint8_t yaw_lpf_hz;
