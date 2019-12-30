@@ -119,6 +119,7 @@
 
 extern timeDelta_t cycleTime; // FIXME dependency on mw.c
 
+static const char * const betaflightIdentifier = BETAFLIGHT_IDENTIFIER;
 static const char * const flightControllerIdentifier = INAV_IDENTIFIER; // 4 UPPER CASE alpha numeric characters that identify the flight controller.
 static const char * const boardIdentifier = TARGET_BOARD_IDENTIFIER;
 
@@ -357,10 +358,20 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     switch (cmdMSP) {
     case MSP_API_VERSION:
         sbufWriteU8(dst, MSP_PROTOCOL_VERSION);
+        if (djiGoggles) {
+            sbufWriteU8(dst, 1);
+            sbufWriteU8(dst, 42);
+        } else {
+            sbufWriteU8(dst, API_VERSION_MAJOR);
+            sbufWriteU8(dst, API_VERSION_MINOR);
+        }
         break;
 
     case MSP_FC_VARIANT:
-        sbufWriteData(dst, flightControllerIdentifier, FLIGHT_CONTROLLER_IDENTIFIER_LENGTH);
+        if (djiGoggles)
+            sbufWriteData(dst, betaflightIdentifier, FLIGHT_CONTROLLER_IDENTIFIER_LENGTH);
+        else
+            sbufWriteData(dst, flightControllerIdentifier, FLIGHT_CONTROLLER_IDENTIFIER_LENGTH);
         break;
 
     case MSP_FC_VERSION:
