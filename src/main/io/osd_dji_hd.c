@@ -206,6 +206,7 @@ static void djiPackBoxModeBitmask(boxBitmask_t * flightModeBitmask)
 {
     memset(flightModeBitmask, 0, sizeof(boxBitmask_t));
 
+    // Map flight modes to DJI-supported bits
     switch(getFlightModeForTelemetry()) {
         case FLM_MANUAL:
         case FLM_ACRO:
@@ -234,6 +235,11 @@ static void djiPackBoxModeBitmask(boxBitmask_t * flightModeBitmask)
         default:
             // Unsupported ATM, keep at ANGLE
             bitArraySet(flightModeBitmask->bits, 1);    // DJI: 1 << 1 : ANGLE
+    }
+
+    // Set ARMED mode
+    if (ARMING_FLAG(ARMED)) {
+        bitArraySet(flightModeBitmask->bits, 0);        // DJI: 1 << 0 : ARMED
     }
 }
 
