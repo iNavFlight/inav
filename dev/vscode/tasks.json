@@ -1,0 +1,70 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "options": {
+        "env": {
+            "TARGET": "${config:TARGET}",
+            "SEMIHOSTING": "${config:SEMIHOSTING}"
+        }
+    },
+    "tasks": [
+        {
+            "label": "hex",
+            "type": "shell",
+            "command": "make", "args": ["hex"],
+            "problemMatcher": "$gcc",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+            }
+        },
+        {
+            "label": "elf",
+            "type": "shell",
+            "command": "make", "args": ["elf"],
+            "problemMatcher": "$gcc",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+            }
+        },
+        {
+            "label": "openocd-flash",
+            "type": "shell",
+            "command": "make", "args": ["openocd-flash"],
+            "dependsOn": "elf"
+        },
+        {
+            "label": "clean",
+            "type": "shell",
+            "command": "make", "args": ["clean"],
+            "problemMatcher": []
+        },
+        {
+            "label": "svd",
+            "type": "shell",
+            "command": "make", "args": ["svd"],
+            "problemMatcher": []
+        },
+        {
+            "label": "openocd-cfg",
+            "type": "shell",
+            "command": "make", "args": ["openocd-cfg"],
+            "problemMatcher": []
+        },
+        {
+            "label": "openocd-debug-prepare",
+            "type": "shell",
+            "dependsOn": ["svd", "openocd-cfg", "openocd-flash"],
+            "problemMatcher": []
+        }
+    ]
+}

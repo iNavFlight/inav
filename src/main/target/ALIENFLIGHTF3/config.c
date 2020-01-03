@@ -57,7 +57,6 @@ void targetConfiguration(void)
     if (hardwareMotorType == MOTOR_BRUSHED) {
         motorConfigMutable()->motorPwmProtocol = PWM_TYPE_BRUSHED;
         motorConfigMutable()->motorPwmRate = BRUSHED_MOTORS_PWM_RATE;
-        motorConfigMutable()->minthrottle = 1000;
     }
 
     pidProfileMutable()->bank_mc.pid[ROLL].P = 36;

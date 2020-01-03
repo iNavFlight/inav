@@ -136,3 +136,7 @@
 #define TARGET_IO_PORTD 0xffff
 
 #define PCA9685_I2C_BUS         BUS_I2C2
+
+#ifdef USE_USB_MSC
+# undef USE_USB_MSC
+#endif

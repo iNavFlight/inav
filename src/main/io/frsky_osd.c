@@ -43,8 +43,8 @@
 #define FRSKY_OSD_INFO_INTERVAL_MS 1000
 
 #define FRSKY_OSD_TRACE(fmt, ...)
-#define FRSKY_OSD_DEBUG(fmt, ...) LOG_D(OSD, fmt,  ##__VA_ARGS__)
-#define FRSKY_OSD_ERROR(fmt, ...) LOG_E(OSD, fmt,  ##__VA_ARGS__)
+#define FRSKY_OSD_DEBUG(fmt, ...) LOG_D(OSD, "FrSky OSD: " fmt,  ##__VA_ARGS__)
+#define FRSKY_OSD_ERROR(fmt, ...) LOG_E(OSD, "FrSky OSD: " fmt,  ##__VA_ARGS__)
 #define FRSKY_OSD_ASSERT(x)
 
 typedef enum
@@ -389,7 +389,7 @@ static bool frskyOSDHandleCommand(osdCommand_e cmd, const void *payload, size_t 
             }
             const frskyOSDInfoResponse_t *resp = payload;
             if (resp->magic[0] != 'A' || resp->magic[1] != 'G' || resp->magic[2] != 'H') {
-                FRSKY_OSD_ERROR("Invalid magic number %x %x %x, expecting AGH",
+                FRSKY_OSD_ERROR("invalid magic number %x %x %x, expecting AGH",
                     resp->magic[0], resp->magic[1], resp->magic[2]);
                 return false;
             }
@@ -400,7 +400,7 @@ static bool frskyOSDHandleCommand(osdCommand_e cmd, const void *payload, size_t 
             state.info.viewport.width = resp->pixelWidth;
             state.info.viewport.height = resp->pixelHeight;
             if (!state.initialized) {
-                FRSKY_OSD_DEBUG("FrSky OSD initialized. Version %u.%u.%u, pixels=%ux%u, grid=%ux%u",
+                FRSKY_OSD_DEBUG("initialized. Version %u.%u.%u, pixels=%ux%u, grid=%ux%u",
                     resp->versionMajor, resp->versionMinor, resp->versionPatch,
                     resp->pixelWidth, resp->pixelHeight, resp->gridColumns, resp->gridRows);
                 state.initialized = true;
@@ -525,12 +525,11 @@ static uint8_t frskyOSDEncodeAttr(textAttributes_t attr)
 bool frskyOSDInit(videoSystem_e videoSystem)
 {
     UNUSED(videoSystem);
-    FRSKY_OSD_TRACE("frskyOSDInit()");
     // TODO: Use videoSystem to set the signal standard when
     // no input is detected.
     const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_FRSKY_OSD);
     if (portConfig) {
-        FRSKY_OSD_TRACE("FrSky OSD configured, trying to connect...");
+        FRSKY_OSD_TRACE("configured, trying to connect...");
         portOptions_t portOptions = 0;
         serialPort_t *port = openSerialPort(portConfig->identifier,
             FUNCTION_FRSKY_OSD, NULL, NULL, FRSKY_OSD_BAUDRATE,
