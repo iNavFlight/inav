@@ -319,6 +319,9 @@ groups:
       - name: imu2_use_for_osd_ahi
         field: useForOsdAHI
         type: bool
+      - name: imu2_use_for_stabilized
+        field: useForStabilized
+        type: bool
       - name: imu2_align_roll
         field: rollDeciDegrees
         min: -1800

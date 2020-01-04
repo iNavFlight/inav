@@ -46,6 +46,7 @@ void pgResetFn_secondaryImuConfig(secondaryImuConfig_t *instance)
     instance->yawDeciDegrees = 0;
     instance->useForOsdHeading = 0;
     instance->useForOsdAHI = 0;
+    instance->useForStabilized = 0;
 
     for (uint8_t i = 0; i < 3; i++)
     {
