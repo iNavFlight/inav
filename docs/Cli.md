@@ -182,7 +182,7 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  nav_user_control_mode  | ATTI | Defines how Pitch/Roll input from RC receiver affects flight in POSHOLD mode: ATTI - pitch/roll controls attitude like in ANGLE mode; CRUISE - pitch/roll controls velocity in forward and right direction. |
 |  nav_position_timeout  | 5 | If GPS fails wait for this much seconds before switching to emergency landing mode (0 - disable) |
 |  nav_wp_radius  | 100 | Waypoint radius [cm]. Waypoint would be considered reached if machine is within this radius |
-|  nav_wp_safe_distance  | 10000 | First waypoint in the mission should be closer than this value [cm] |
+|  nav_wp_safe_distance  | 10000 | First waypoint in the mission should be closer than this value [cm]. A value of 0 disables this check. |
 |  nav_auto_speed  | 300 | Maximum velocity firmware is allowed in full auto modes (RTH, WP) [cm/s] [Multirotor only] |
 |  nav_auto_climb_rate  | 500 | Maximum climb/descent rate that UAV is allowed to reach during navigation modes. [cm/s] |
 |  nav_manual_speed  | 500 | Maximum velocity firmware is allowed when processing pilot input for POSHOLD/CRUISE control mode [cm/s] [Multirotor only] |
