@@ -62,7 +62,8 @@ void secondaryImuInit(void)
     // Create magnetic declination matrix
     const int deg = compassConfig()->mag_declination / 100;
     const int min = compassConfig()->mag_declination % 100;
-    secondaryImuState.magDeclination = (deg + min / 60.0f) * 10.0f;
+
+    secondaryImuSetMagneticDeclination(deg + min / 60.0f);
 
     bno055CalibrationData_t calibrationData;
         calibrationData.offset[ACC][X] = secondaryImuConfig()->calibrationOffsetAcc[X];
@@ -137,6 +138,7 @@ void taskSecondaryImu(timeUs_t currentTimeUs)
     DEBUG_SET(DEBUG_IMU2, 3, secondaryImuState.calibrationStatus.mag);
     DEBUG_SET(DEBUG_IMU2, 4, secondaryImuState.calibrationStatus.gyr);
     DEBUG_SET(DEBUG_IMU2, 5, secondaryImuState.calibrationStatus.acc);
+    DEBUG_SET(DEBUG_IMU2, 6, secondaryImuState.magDeclination);
 }
 
 void secondaryImuFetchCalibration(void) {
@@ -156,4 +158,8 @@ void secondaryImuFetchCalibration(void) {
 
     secondaryImuConfigMutable()->calibrationRadiusAcc = calibrationData.radius[ACC];
     secondaryImuConfigMutable()->calibrationRadiusMag = calibrationData.radius[MAG];
+}
+
+void secondaryImuSetMagneticDeclination(float declination) { //Incoming units are degrees
+    secondaryImuState.magDeclination = declination * 10.0f; //Internally declination is stored in decidegrees
 }

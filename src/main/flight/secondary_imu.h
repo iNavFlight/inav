@@ -57,3 +57,4 @@ PG_DECLARE(secondaryImuConfig_t, secondaryImuConfig);
 void secondaryImuInit(void);
 void taskSecondaryImu(timeUs_t currentTimeUs);
 void secondaryImuFetchCalibration(void);
+void secondaryImuSetMagneticDeclination(float declination);
