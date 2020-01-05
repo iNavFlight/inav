@@ -46,9 +46,12 @@ typedef enum {
     FUNCTION_VTX_TRAMP           = (1 << 12), // 4096
     FUNCTION_UAV_INTERCONNECT    = (1 << 13), // 8192
     FUNCTION_OPTICAL_FLOW        = (1 << 14), // 16384
-    FUNCTION_DEBUG_TRACE         = (1 << 15), // 32768
+    FUNCTION_LOG                 = (1 << 15), // 32768
     FUNCTION_RANGEFINDER         = (1 << 16), // 65536
     FUNCTION_VTX_FFPV            = (1 << 17), // 131072
+    FUNCTION_ESCSERIAL           = (1 << 18), // 262144: this is used for both SERIALSHOT and ESC_SENSOR telemetry
+    FUNCTION_TELEMETRY_SIM       = (1 << 19), // 524288
+    FUNCTION_FRSKY_OSD           = (1 << 20), // 1048576
 } serialPortFunction_e;
 
 typedef enum {

@@ -22,6 +22,7 @@
 #include "platform.h"
 
 #include "blackbox/blackbox.h"
+#include "blackbox/blackbox_io.h"
 
 #include "build/assert.h"
 #include "build/atomic.h"
@@ -30,9 +31,10 @@
 
 #include "common/axis.h"
 #include "common/color.h"
+#include "common/log.h"
 #include "common/maths.h"
-#include "common/printf.h"
 #include "common/memory.h"
+#include "common/printf.h"
 
 #include "config/config_eeprom.h"
 #include "config/feature.h"
@@ -41,6 +43,7 @@
 
 #include "cms/cms.h"
 
+#include "drivers/1-wire.h"
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/adc.h"
 #include "drivers/compass/compass.h"
@@ -51,14 +54,13 @@
 #include "drivers/io.h"
 #include "drivers/io_pca9685.h"
 #include "drivers/light_led.h"
-#include "drivers/logging.h"
 #include "drivers/nvic.h"
+#include "drivers/osd.h"
 #include "drivers/pwm_esc_detect.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
 #include "drivers/pwm_output.h"
 #include "drivers/rx_pwm.h"
-#include "drivers/sdcard.h"
 #include "drivers/sensor.h"
 #include "drivers/serial.h"
 #include "drivers/serial_softserial.h"
@@ -69,12 +71,16 @@
 #include "drivers/time.h"
 #include "drivers/timer.h"
 #include "drivers/uart_inverter.h"
-#include "drivers/vcd.h"
 #include "drivers/io.h"
 #include "drivers/exti.h"
 #include "drivers/io_pca9685.h"
 #include "drivers/vtx_rtc6705.h"
 #include "drivers/vtx_common.h"
+#ifdef USE_USB_MSC
+#include "drivers/usb_msc.h"
+#include "msc/emfat_file.h"
+#endif
+#include "drivers/sdcard/sdcard.h"
 
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -88,11 +94,13 @@
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
+#include "flight/rpm_filter.h"
 
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/beeper.h"
 #include "io/lights.h"
 #include "io/dashboard.h"
+#include "io/displayport_frsky_osd.h"
 #include "io/displayport_msp.h"
 #include "io/displayport_max7456.h"
 #include "io/flashfs.h"
@@ -127,6 +135,8 @@
 #include "sensors/pitotmeter.h"
 #include "sensors/rangefinder.h"
 #include "sensors/sensors.h"
+
+#include "scheduler/scheduler.h"
 
 #include "telemetry/telemetry.h"
 
@@ -177,8 +187,6 @@ void init(void)
 #endif
 
     systemState = SYSTEM_STATE_INITIALISING;
-    initBootlog();
-
     printfSupportInit();
 
     // Initialize system and CPU clocks to their initial values
@@ -208,7 +216,6 @@ void init(void)
     initialisePreBootHardware();
 #endif
 
-    addBootlogEvent2(BOOT_EVENT_CONFIG_LOADED, BOOT_EVENT_FLAGS_NONE);
     systemState |= SYSTEM_STATE_CONFIG_LOADED;
 
     debugMode = systemConfig()->debug_mode;
@@ -216,17 +223,11 @@ void init(void)
     // Latch active features to be used for feature() in the remainder of init().
     latchActiveFeatures();
 
-#ifdef ALIENFLIGHTF3
-    ledInit(hardwareRevision == AFF3_REV_1 ? false : true);
-#else
     ledInit(false);
-#endif
 
 #ifdef USE_EXTI
     EXTIInit();
 #endif
-
-    addBootlogEvent2(BOOT_EVENT_SYSTEM_INIT_DONE, BOOT_EVENT_FLAGS_NONE);
 
 #ifdef USE_SPEKTRUM_BIND
     if (rxConfig()->receiverType == RX_TYPE_SERIAL) {
@@ -259,54 +260,44 @@ void init(void)
     serialInit(feature(FEATURE_SOFTSERIAL), SERIAL_PORT_NONE);
 #endif
 
-    // Initialize MSP serial ports here so DEBUG_TRACE can share a port with MSP.
+    // Initialize MSP serial ports here so LOG can share a port with MSP.
     // XXX: Don't call mspFcInit() yet, since it initializes the boxes and needs
     // to run after the sensors have been detected.
     mspSerialInit();
 
-#if defined(USE_DEBUG_TRACE)
-    // Debug trace uses serial output, so we only can init it after serial port is ready
-    // From this point on we can use DEBUG_TRACE() to produce real-time debugging information
-    debugTraceInit();
+#if defined(USE_LOG)
+    // LOG might use serial output, so we only can init it after serial port is ready
+    // From this point on we can use LOG_*() to produce real-time debugging information
+    logInit();
 #endif
 
+    // Initialize servo and motor mixers
+    // This needs to be called early to set up platform type correctly and count required motors & servos
     servosInit();
-    mixerUpdateStateFlags();    // This needs to be called early to allow pwm mapper to use information about FIXED_WING state
+    mixerUpdateStateFlags();
+    mixerInit();
 
+    // Some sanity checking
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_BRUSHED) {
+        featureClear(FEATURE_3D);
+    }
+
+    // Initialize motor and servo outpus
+    if (pwmMotorAndServoInit()) {
+        DISABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
+    }
+    else {
+        ENABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
+    }
+
+    /*
     drv_pwm_config_t pwm_params;
     memset(&pwm_params, 0, sizeof(pwm_params));
-
-#ifdef USE_RANGEFINDER_HCSR04
-    // HC-SR04 has a dedicated connection to FC and require two pins
-    if (rangefinderConfig()->rangefinder_hardware == RANGEFINDER_HCSR04) {
-        const rangefinderHardwarePins_t *rangefinderHardwarePins = rangefinderGetHardwarePins();
-        if (rangefinderHardwarePins) {
-            pwm_params.useTriggerRangefinder = true;
-            pwm_params.rangefinderIOConfig.triggerTag = rangefinderHardwarePins->triggerTag;
-            pwm_params.rangefinderIOConfig.echoTag = rangefinderHardwarePins->echoTag;
-        }
-    }
-#endif
 
     // when using airplane/wing mixer, servo/motor outputs are remapped
     pwm_params.flyingPlatformType = mixerConfig()->platformType;
 
-#ifdef STM32F303xC
-    pwm_params.useUART3 = doesConfigurationUsePort(SERIAL_PORT_USART3);
-#endif
-#if defined(USE_UART2) && defined(STM32F40_41xxx)
-    pwm_params.useUART2 = doesConfigurationUsePort(SERIAL_PORT_USART2);
-#endif
-#if defined(USE_UART6) && defined(STM32F40_41xxx)
-    pwm_params.useUART6 = doesConfigurationUsePort(SERIAL_PORT_USART6);
-#endif
-    pwm_params.useVbat = feature(FEATURE_VBAT);
-    pwm_params.useSoftSerial = feature(FEATURE_SOFTSERIAL);
     pwm_params.useParallelPWM = (rxConfig()->receiverType == RX_TYPE_PWM);
-    pwm_params.useRSSIADC = feature(FEATURE_RSSI_ADC);
-    pwm_params.useCurrentMeterADC = feature(FEATURE_CURRENT_METER)
-        && batteryMetersConfig()->current.type == CURRENT_SENSOR_ADC;
-    pwm_params.useLEDStrip = feature(FEATURE_LED_STRIP);
     pwm_params.usePPM = (rxConfig()->receiverType == RX_TYPE_PPM);
     pwm_params.useSerialRx = (rxConfig()->receiverType == RX_TYPE_SERIAL);
 
@@ -314,18 +305,6 @@ void init(void)
     pwm_params.servoCenterPulse = servoConfig()->servoCenterPulse;
     pwm_params.servoPwmRate = servoConfig()->servoPwmRate;
 
-    pwm_params.pwmProtocolType = motorConfig()->motorPwmProtocol;
-#ifndef BRUSHED_MOTORS
-    pwm_params.useFastPwm = (motorConfig()->motorPwmProtocol == PWM_TYPE_ONESHOT125) ||
-                            (motorConfig()->motorPwmProtocol == PWM_TYPE_ONESHOT42) ||
-                            (motorConfig()->motorPwmProtocol == PWM_TYPE_MULTISHOT);
-#endif
-    pwm_params.motorPwmRate = motorConfig()->motorPwmRate;
-
-    if (motorConfig()->motorPwmProtocol == PWM_TYPE_BRUSHED) {
-        pwm_params.useFastPwm = false;
-        featureClear(FEATURE_3D);
-    }
 
     pwm_params.enablePWMOutput = feature(FEATURE_PWM_OUTPUT_ENABLE);
 
@@ -334,24 +313,14 @@ void init(void)
 #endif
 
 #ifdef USE_PWM_SERVO_DRIVER
-    /*
-    If external PWM driver is enabled, for example PCA9685, disable internal
-    servo handling mechanism, since external device will do that
-    */
+    // If external PWM driver is enabled, for example PCA9685, disable internal
+    // servo handling mechanism, since external device will do that
     if (feature(FEATURE_PWM_SERVO_DRIVER)) {
         pwm_params.useServoOutputs = false;
     }
 #endif
+    */
 
-    // pwmInit() needs to be called as soon as possible for ESC compatibility reasons
-    pwmInit(&pwm_params);
-
-    mixerUsePWMIOConfiguration();
-
-    if (!pwm_params.useFastPwm)
-        motorControlEnable = true;
-
-    addBootlogEvent2(BOOT_EVENT_PWM_INIT_DONE, BOOT_EVENT_FLAGS_NONE);
     systemState |= SYSTEM_STATE_MOTORS_READY;
 
 #ifdef BEEPER
@@ -379,27 +348,6 @@ void init(void)
     // Initialize buses
     busInit();
 
-#ifdef USE_SPI
-#ifdef USE_SPI_DEVICE_1
-    spiInit(SPIDEV_1);
-#endif
-#ifdef USE_SPI_DEVICE_2
-    spiInit(SPIDEV_2);
-#endif
-#ifdef USE_SPI_DEVICE_3
-#ifdef ALIENFLIGHTF3
-    if (hardwareRevision == AFF3_REV_2) {
-        spiInit(SPIDEV_3);
-    }
-#else
-    spiInit(SPIDEV_3);
-#endif
-#endif
-#ifdef USE_SPI_DEVICE_4
-    spiInit(SPIDEV_4);
-#endif
-#endif
-
 #ifdef USE_HARDWARE_REVISION_DETECTION
     updateHardwareRevision();
 #endif
@@ -415,6 +363,33 @@ void init(void)
 #if defined(USE_RANGEFINDER_HCSR04) && defined(USE_SOFTSERIAL2) && defined(SPRACINGF3)
     if ((rangefinderConfig()->rangefinder_hardware == RANGEFINDER_HCSR04) && feature(FEATURE_SOFTSERIAL)) {
         serialRemovePort(SERIAL_PORT_SOFTSERIAL2);
+    }
+#endif
+
+#ifdef USE_USB_MSC
+    /* MSC mode will start after init, but will not allow scheduler to run,
+     * so there is no bottleneck in reading and writing data
+     */
+    mscInit();
+#if defined(USE_FLASHFS)
+        // If the blackbox device is onboard flash, then initialize and scan
+        // it to identify the log files *before* starting the USB device to
+        // prevent timeouts of the mass storage device.
+        if (blackboxConfig()->device == BLACKBOX_DEVICE_FLASH) {
+#ifdef USE_FLASH_M25P16
+            // Must initialise the device to read _anything_
+            m25p16_init(0);
+#endif
+            emfat_init_files();
+        }
+#endif
+
+    if (mscCheckBoot() || mscCheckButton()) {
+        if (mscStart() == 0) {
+             mscWaitForButton();
+        } else {
+             NVIC_SystemReset();
+        }
     }
 #endif
 
@@ -497,8 +472,6 @@ void init(void)
 
     /* Extra 500ms delay prior to initialising hardware if board is cold-booting */
     if (!isMPUSoftReset()) {
-        addBootlogEvent2(BOOT_EVENT_EXTRA_BOOT_DELAY, BOOT_EVENT_FLAGS_NONE);
-
         LED1_ON;
         LED0_OFF;
 
@@ -531,12 +504,16 @@ void init(void)
     }
 #endif
 
+    // 1-Wire IF chip
+#ifdef USE_1WIRE
+    owInit();
+#endif
+
     if (!sensorsAutodetect()) {
         // if gyro was not detected due to whatever reason, we give up now.
         failureMode(FAILURE_MISSING_ACC);
     }
 
-    addBootlogEvent2(BOOT_EVENT_SENSOR_INIT_DONE, BOOT_EVENT_FLAGS_NONE);
     systemState |= SYSTEM_STATE_SENSORS_READY;
 
     flashLedsAndBeep();
@@ -561,11 +538,21 @@ void init(void)
 
 #ifdef USE_OSD
     if (feature(FEATURE_OSD)) {
+#if defined(USE_FRSKYOSD)
+        if (!osdDisplayPort) {
+            osdDisplayPort = frskyOSDDisplayPortInit(osdConfig()->video_system);
+        }
+#endif
 #if defined(USE_MAX7456)
-        // If there is a max7456 chip for the OSD then use it
-        osdDisplayPort = max7456DisplayPortInit(osdConfig()->video_system);
+        // If there is a max7456 chip for the OSD and we have no
+        // external OSD initialized, use it.
+        if (!osdDisplayPort) {
+            osdDisplayPort = max7456DisplayPortInit(osdConfig()->video_system);
+        }
 #elif defined(USE_OSD_OVER_MSP_DISPLAYPORT) // OSD over MSP; not supported (yet)
-        osdDisplayPort = displayPortMspInit();
+        if (!osdDisplayPort) {
+            osdDisplayPort = displayPortMspInit();
+        }
 #endif
         // osdInit  will register with CMS by itself.
         osdInit(osdDisplayPort);
@@ -586,7 +573,6 @@ void init(void)
 #ifdef USE_GPS
     if (feature(FEATURE_GPS)) {
         gpsInit();
-        addBootlogEvent2(BOOT_EVENT_GPS_INIT_DONE, BOOT_EVENT_FLAGS_NONE);
     }
 #endif
 
@@ -600,36 +586,44 @@ void init(void)
 
     if (feature(FEATURE_LED_STRIP)) {
         ledStripEnable();
-        addBootlogEvent2(BOOT_EVENT_LEDSTRIP_INIT_DONE, BOOT_EVENT_FLAGS_NONE);
     }
 #endif
 
 #ifdef USE_TELEMETRY
     if (feature(FEATURE_TELEMETRY)) {
         telemetryInit();
-        addBootlogEvent2(BOOT_EVENT_TELEMETRY_INIT_DONE, BOOT_EVENT_FLAGS_NONE);
     }
 #endif
 
+#ifdef USE_BLACKBOX
+    // SDCARD and FLASHFS are used only for blackbox
+    // Make sure we only init what's necessary for blackbox
+    switch (blackboxConfig()->device) {
 #ifdef USE_FLASHFS
+        case BLACKBOX_DEVICE_FLASH:
 #ifdef USE_FLASH_M25P16
-    m25p16_init(0);
+            m25p16_init(0);
 #endif
-
-    flashfsInit();
+            flashfsInit();
+            break;
 #endif
 
 #ifdef USE_SDCARD
-    sdcardInsertionDetectInit();
-    sdcard_init();
-    afatfs_init();
+        case BLACKBOX_DEVICE_SDCARD:
+            sdcardInsertionDetectInit();
+            sdcard_init();
+            afatfs_init();
+            break;
 #endif
+        default:
+            break;
+    }
 
-#ifdef USE_BLACKBOX
     blackboxInit();
 #endif
 
-    gyroSetCalibrationCycles(CALIBRATING_GYRO_CYCLES);
+    gyroStartCalibration();
+
 #ifdef USE_BARO
     baroStartCalibration();
 #endif
@@ -676,6 +670,19 @@ void init(void)
     motorControlEnable = true;
     fcTasksInit();
 
-    addBootlogEvent2(BOOT_EVENT_SYSTEM_READY, BOOT_EVENT_FLAGS_NONE);
+#ifdef USE_OSD
+    if (feature(FEATURE_OSD) && (osdDisplayPort != NULL)) {
+        setTaskEnabled(TASK_OSD, feature(FEATURE_OSD));
+    }
+#endif
+
+#ifdef USE_RPM_FILTER
+    disableRpmFilters();
+    if (STATE(ESC_SENSOR_ENABLED) && (rpmFilterConfig()->gyro_filter_enabled || rpmFilterConfig()->dterm_filter_enabled)) {
+        rpmFiltersInit();
+        setTaskEnabled(TASK_RPM_FILTER, true);
+    }
+#endif
+
     systemState |= SYSTEM_STATE_READY;
 }

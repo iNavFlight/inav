@@ -27,6 +27,7 @@
 
 #include "drivers/io.h"
 #include "drivers/pwm_output.h"
+#include "drivers/pwm_mapping.h"
 #include "flight/mixer.h"
 #include "rx/rx.h"
 #include "io/serial.h"
@@ -36,6 +37,5 @@ void targetConfiguration(void)
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(TELEMETRY_UART)].functionMask = FUNCTION_TELEMETRY_SMARTPORT;
     motorConfigMutable()->motorPwmProtocol = PWM_TYPE_MULTISHOT;
     motorConfigMutable()->motorPwmRate = 4000;
-    motorConfigMutable()->minthrottle = 1075;
     motorConfigMutable()->maxthrottle = 1950;
 }

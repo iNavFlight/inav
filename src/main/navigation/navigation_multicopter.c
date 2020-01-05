@@ -39,6 +39,7 @@
 #include "fc/config.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_curves.h"
+#include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 
 #include "flight/pid.h"
@@ -74,13 +75,24 @@ static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
 
     posControl.pids.pos[Z].output_constrained = targetVel;
 
-    // limit max vertical acceleration to 1/5G (~200 cm/s/s) if we are increasing velocity.
-    // if we are decelerating - don't limit (allow better recovery from falling)
-    if (ABS(targetVel) > ABS(posControl.desiredState.vel.z)) {
-        const float maxVelDifference = US2S(deltaMicros) * (GRAVITY_CMSS / 5.0f);
+    // Limit max up/down acceleration target
+    const float smallVelChange = US2S(deltaMicros) * (GRAVITY_CMSS * 0.1f);
+    const float velTargetChange = targetVel - posControl.desiredState.vel.z;
+
+    if (velTargetChange <= -smallVelChange) {
+        // Large & Negative - acceleration is _down_. We can't reach more than -1G in any possible condition. Hard limit to 0.8G to stay safe
+        // This should be safe enough for stability since we only reduce throttle
+        const float maxVelDifference = US2S(deltaMicros) * (GRAVITY_CMSS * 0.8f);
+        posControl.desiredState.vel.z = constrainf(targetVel, posControl.desiredState.vel.z - maxVelDifference, posControl.desiredState.vel.z + maxVelDifference);
+    }
+    else if (velTargetChange >= smallVelChange) {
+        // Large and positive - acceleration is _up_. We are limited by thrust/weight ratio which is usually about 2:1 (hover around 50% throttle).
+        // T/W ratio = 2 means we are able to reach 1G acceleration in "UP" direction. Hard limit to 0.5G to be on a safe side and avoid abrupt throttle changes
+        const float maxVelDifference = US2S(deltaMicros) * (GRAVITY_CMSS * 0.5f);
         posControl.desiredState.vel.z = constrainf(targetVel, posControl.desiredState.vel.z - maxVelDifference, posControl.desiredState.vel.z + maxVelDifference);
     }
     else {
+        // Small - desired acceleration is less than 0.1G. We should be safe setting velocity target directly - any platform should be able to satisfy this
         posControl.desiredState.vel.z = targetVel;
     }
 
@@ -92,7 +104,7 @@ static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
 static void updateAltitudeThrottleController_MC(timeDelta_t deltaMicros)
 {
     // Calculate min and max throttle boundaries (to compensate for integral windup)
-    const int16_t thrAdjustmentMin = (int16_t)motorConfig()->minthrottle - (int16_t)navConfig()->mc.hover_throttle;
+    const int16_t thrAdjustmentMin = (int16_t)getThrottleIdleValue() - (int16_t)navConfig()->mc.hover_throttle;
     const int16_t thrAdjustmentMax = (int16_t)motorConfig()->maxthrottle - (int16_t)navConfig()->mc.hover_throttle;
 
     posControl.rcAdjustment[THROTTLE] = navPidApply2(&posControl.pids.vel[Z], posControl.desiredState.vel.z, navGetCurrentActualPositionAndVelocity()->vel.z, US2S(deltaMicros), thrAdjustmentMin, thrAdjustmentMax, 0);
@@ -104,7 +116,7 @@ static void updateAltitudeThrottleController_MC(timeDelta_t deltaMicros)
 bool adjustMulticopterAltitudeFromRCInput(void)
 {
     if (posControl.flags.isTerrainFollowEnabled) {
-        const float altTarget = scaleRangef(rcCommand[THROTTLE], motorConfig()->minthrottle, motorConfig()->maxthrottle, 0, navConfig()->general.max_terrain_follow_altitude);
+        const float altTarget = scaleRangef(rcCommand[THROTTLE], getThrottleIdleValue(), motorConfig()->maxthrottle, 0, navConfig()->general.max_terrain_follow_altitude);
 
         // In terrain follow mode we apply different logic for terrain control
         if (posControl.flags.estAglStatus == EST_TRUSTED && altTarget > 10.0f) {
@@ -128,11 +140,11 @@ bool adjustMulticopterAltitudeFromRCInput(void)
             // Make sure we can satisfy max_manual_climb_rate in both up and down directions
             if (rcThrottleAdjustment > 0) {
                 // Scaling from altHoldThrottleRCZero to maxthrottle
-                rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (motorConfig()->maxthrottle - altHoldThrottleRCZero - rcControlsConfig()->alt_hold_deadband);
+                rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (float)(motorConfig()->maxthrottle - altHoldThrottleRCZero - rcControlsConfig()->alt_hold_deadband);
             }
             else {
                 // Scaling from minthrottle to altHoldThrottleRCZero
-                rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (altHoldThrottleRCZero - motorConfig()->minthrottle - rcControlsConfig()->alt_hold_deadband);
+                rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (float)(altHoldThrottleRCZero - getThrottleIdleValue() - rcControlsConfig()->alt_hold_deadband);
             }
 
             updateClimbRateToAltitudeController(rcClimbRate, ROC_TO_ALT_NORMAL);
@@ -169,11 +181,12 @@ void setupMulticopterAltitudeController(void)
 
     // Make sure we are able to satisfy the deadband
     altHoldThrottleRCZero = constrain(altHoldThrottleRCZero,
-                                      motorConfig()->minthrottle + rcControlsConfig()->alt_hold_deadband + 10,
+                                      getThrottleIdleValue() + rcControlsConfig()->alt_hold_deadband + 10,
                                       motorConfig()->maxthrottle - rcControlsConfig()->alt_hold_deadband - 10);
 
-    /* Force AH controller to initialize althold integral for pending takeoff on reset */
-    if (throttleStatus == THROTTLE_LOW) {
+    // Force AH controller to initialize althold integral for pending takeoff on reset
+    // Signal for that is low throttle _and_ low actual altitude
+    if (throttleStatus == THROTTLE_LOW && fabsf(navGetCurrentActualPositionAndVelocity()->pos.z) <= 50.0f) {
         prepareForTakeoffOnReset = true;
     }
 }
@@ -236,7 +249,7 @@ static void applyMulticopterAltitudeController(timeUs_t currentTimeUs)
     }
 
     // Update throttle controller
-    rcCommand[THROTTLE] = constrain((int16_t)navConfig()->mc.hover_throttle + posControl.rcAdjustment[THROTTLE], motorConfig()->minthrottle, motorConfig()->maxthrottle);
+    rcCommand[THROTTLE] = constrain((int16_t)navConfig()->mc.hover_throttle + posControl.rcAdjustment[THROTTLE], getThrottleIdleValue(), motorConfig()->maxthrottle);
 
     // Save processed throttle for future use
     rcCommandAdjustedThrottle = rcCommand[THROTTLE];
@@ -261,16 +274,105 @@ bool adjustMulticopterHeadingFromRCInput(void)
 /*-----------------------------------------------------------
  * XY-position controller for multicopter aircraft
  *-----------------------------------------------------------*/
-static pt1Filter_t mcPosControllerAccFilterStateX, mcPosControllerAccFilterStateY;
 static float lastAccelTargetX = 0.0f, lastAccelTargetY = 0.0f;
+
+void resetMulticopterBrakingMode(void)
+{
+    DISABLE_STATE(NAV_CRUISE_BRAKING);
+    DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
+    DISABLE_STATE(NAV_CRUISE_BRAKING_LOCKED);
+}
+
+static void processMulticopterBrakingMode(const bool isAdjusting)
+{
+#ifdef USE_MR_BRAKING_MODE
+    static uint32_t brakingModeDisengageAt = 0;
+    static uint32_t brakingBoostModeDisengageAt = 0;
+
+    if (!(NAV_Status.state == MW_NAV_STATE_NONE || NAV_Status.state == MW_NAV_STATE_HOLD_INFINIT)) {
+        resetMulticopterBrakingMode();
+        return;
+    }
+
+    const bool brakingEntryAllowed =
+        IS_RC_MODE_ACTIVE(BOXBRAKING) &&
+        !STATE(NAV_CRUISE_BRAKING_LOCKED) &&
+        posControl.actualState.velXY > navConfig()->mc.braking_speed_threshold &&
+        !isAdjusting &&
+        navConfig()->general.flags.user_control_mode == NAV_GPS_CRUISE &&
+        navConfig()->mc.braking_speed_threshold > 0;
+
+
+    /*
+     * Case one, when we order to brake (sticks to the center) and we are moving above threshold
+     * Speed is above 1m/s and sticks are centered
+     * Extra condition: BRAKING flight mode has to be enabled
+     */
+    if (brakingEntryAllowed) {
+        /*
+         * Set currnt position and target position
+         * Enabling NAV_CRUISE_BRAKING locks other routines from setting position!
+         */
+        setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, 0, NAV_POS_UPDATE_XY);
+
+        ENABLE_STATE(NAV_CRUISE_BRAKING_LOCKED);
+        ENABLE_STATE(NAV_CRUISE_BRAKING);
+
+        //Set forced BRAKING disengage moment
+        brakingModeDisengageAt = millis() + navConfig()->mc.braking_timeout;
+
+        //If speed above threshold, start boost mode as well
+        if (posControl.actualState.velXY > navConfig()->mc.braking_boost_speed_threshold) {
+            ENABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
+
+            brakingBoostModeDisengageAt = millis() + navConfig()->mc.braking_boost_timeout;
+        }
+
+    }
+
+    // We can enter braking only after user started to move the sticks
+    if (STATE(NAV_CRUISE_BRAKING_LOCKED) && isAdjusting) {
+        DISABLE_STATE(NAV_CRUISE_BRAKING_LOCKED);
+    }
+
+    /*
+     * Case when speed dropped, disengage BREAKING_BOOST
+     */
+    if (
+        STATE(NAV_CRUISE_BRAKING_BOOST) && (
+            posControl.actualState.velXY <= navConfig()->mc.braking_boost_disengage_speed ||
+            brakingBoostModeDisengageAt < millis()
+    )) {
+        DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
+    }
+
+    /*
+     * Case when we were braking but copter finally stopped or we started to move the sticks
+     */
+    if (STATE(NAV_CRUISE_BRAKING) && (
+        posControl.actualState.velXY <= navConfig()->mc.braking_disengage_speed ||  //We stopped
+        isAdjusting ||                                                              //Moved the sticks
+        brakingModeDisengageAt < millis()                                           //Braking is done to timed disengage
+    )) {
+        DISABLE_STATE(NAV_CRUISE_BRAKING);
+        DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
+
+        /*
+         * When braking is done, store current position as desired one
+         * We do not want to go back to the place where braking has started
+         */
+        setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, 0, NAV_POS_UPDATE_XY);
+    }
+#else
+    UNUSED(isAdjusting);
+#endif
+}
 
 void resetMulticopterPositionController(void)
 {
     for (int axis = 0; axis < 2; axis++) {
         navPidReset(&posControl.pids.vel[axis]);
         posControl.rcAdjustment[axis] = 0;
-        pt1FilterReset(&mcPosControllerAccFilterStateX, 0.0f);
-        pt1FilterReset(&mcPosControllerAccFilterStateY, 0.0f);
         lastAccelTargetX = 0.0f;
         lastAccelTargetY = 0.0f;
     }
@@ -278,11 +380,15 @@ void resetMulticopterPositionController(void)
 
 bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcRollAdjustment)
 {
+    // Process braking mode
+    processMulticopterBrakingMode(rcPitchAdjustment || rcRollAdjustment);
+
+    // Actually change position
     if (rcPitchAdjustment || rcRollAdjustment) {
         // If mode is GPS_CRUISE, move target position, otherwise POS controller will passthru the RC input to ANGLE PID
         if (navConfig()->general.flags.user_control_mode == NAV_GPS_CRUISE) {
-            const float rcVelX = rcPitchAdjustment * navConfig()->general.max_manual_speed / (500 - rcControlsConfig()->pos_hold_deadband);
-            const float rcVelY = rcRollAdjustment * navConfig()->general.max_manual_speed / (500 - rcControlsConfig()->pos_hold_deadband);
+            const float rcVelX = rcPitchAdjustment * navConfig()->general.max_manual_speed / (float)(500 - rcControlsConfig()->pos_hold_deadband);
+            const float rcVelY = rcRollAdjustment * navConfig()->general.max_manual_speed / (float)(500 - rcControlsConfig()->pos_hold_deadband);
 
             // Rotate these velocities from body frame to to earth frame
             const float neuVelX = rcVelX * posControl.actualState.cosYaw - rcVelY * posControl.actualState.sinYaw;
@@ -393,7 +499,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     if (STATE(NAV_CRUISE_BRAKING)) {
         maxAccelChange = maxAccelChange * 2;
     }
-#endif 
+#endif
 
     const float accelLimitXMin = constrainf(lastAccelTargetX - maxAccelChange, -accelLimitX, +accelLimitX);
     const float accelLimitXMax = constrainf(lastAccelTargetX + maxAccelChange, -accelLimitX, +accelLimitX);
@@ -409,33 +515,30 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     float newAccelY = navPidApply2(&posControl.pids.vel[Y], posControl.desiredState.vel.y, navGetCurrentActualPositionAndVelocity()->vel.y, US2S(deltaMicros), accelLimitYMin, accelLimitYMax, 0);
 
     int32_t maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.max_bank_angle);
-    uint8_t accCutoffFrequency = NAV_ACCEL_CUTOFF_FREQUENCY_HZ;
 
 #ifdef USE_MR_BRAKING_MODE
     //Boost required accelerations
-    if (STATE(NAV_CRUISE_BRAKING_BOOST) && navConfig()->mc.braking_boost_factor > 0)
-    {
-        const float rawBoostFactor = (100.0f + (float)navConfig()->mc.braking_boost_factor) / 100.0f;
-        
+    if (STATE(NAV_CRUISE_BRAKING_BOOST) && navConfig()->mc.braking_boost_factor > 0) {
+        const float rawBoostFactor = (float)navConfig()->mc.braking_boost_factor / 100.0f;
+
         //Scale boost factor according to speed
         const float boostFactor = constrainf(
             scaleRangef(
-                posControl.actualState.velXY, 
-                navConfig()->mc.braking_boost_speed_threshold, 
-                navConfig()->general.max_manual_speed, 
-                0, 
+                posControl.actualState.velXY,
+                navConfig()->mc.braking_boost_speed_threshold,
+                navConfig()->general.max_manual_speed,
+                0.0f,
                 rawBoostFactor
             ),
-            0, 
+            0.0f,
             rawBoostFactor
         );
 
         //Boost required acceleration for harder braking
-        newAccelX = newAccelX * boostFactor;
-        newAccelY = newAccelY * boostFactor;
+        newAccelX = newAccelX * (1.0f + boostFactor);
+        newAccelY = newAccelY * (1.0f + boostFactor);
 
         maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.braking_bank_angle);
-        accCutoffFrequency = NAV_ACCEL_CUTOFF_FREQUENCY_HZ * 2;
     }
 #endif
 
@@ -443,13 +546,9 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     lastAccelTargetX = newAccelX;
     lastAccelTargetY = newAccelY;
 
-    // Apply LPF to jerk limited acceleration target
-    const float accelN = pt1FilterApply4(&mcPosControllerAccFilterStateX, newAccelX, accCutoffFrequency, US2S(deltaMicros));
-    const float accelE = pt1FilterApply4(&mcPosControllerAccFilterStateY, newAccelY, accCutoffFrequency, US2S(deltaMicros));
-
     // Rotate acceleration target into forward-right frame (aircraft)
-    const float accelForward = accelN * posControl.actualState.cosYaw + accelE * posControl.actualState.sinYaw;
-    const float accelRight = -accelN * posControl.actualState.sinYaw + accelE * posControl.actualState.cosYaw;
+    const float accelForward = newAccelX * posControl.actualState.cosYaw + newAccelY * posControl.actualState.sinYaw;
+    const float accelRight = -newAccelX * posControl.actualState.sinYaw + newAccelY * posControl.actualState.cosYaw;
 
     // Calculate banking angles
     const float desiredPitch = atan2_approx(accelForward, GRAVITY_CMSS);
@@ -561,10 +660,6 @@ bool isMulticopterLandingDetected(void)
 
     bool possibleLandingDetected = isAtMinimalThrust && !verticalMovement && !horizontalMovement;
 
-    DEBUG_SET(DEBUG_NAV_LANDING_DETECTOR, 0, isAtMinimalThrust * 100 + !verticalMovement * 10 + !horizontalMovement * 1);
-    DEBUG_SET(DEBUG_NAV_LANDING_DETECTOR, 1, (landingThrSamples == 0) ? 0 : (rcCommandAdjustedThrottle - (landingThrSum / landingThrSamples)));
-    DEBUG_SET(DEBUG_NAV_LANDING_DETECTOR, 2, (currentTimeUs - landingTimer) / 1000);
-
     // If we have surface sensor (for example sonar) - use it to detect touchdown
     if ((posControl.flags.estAglStatus == EST_TRUSTED) && (posControl.actualState.agl.pos.z >= 0)) {
         // TODO: Come up with a clever way to let sonar increase detection performance, not just add extra safety.
@@ -626,15 +721,15 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
         }
 
         // Update throttle controller
-        rcCommand[THROTTLE] = constrain((int16_t)navConfig()->mc.hover_throttle + posControl.rcAdjustment[THROTTLE], motorConfig()->minthrottle, motorConfig()->maxthrottle);
+        rcCommand[THROTTLE] = constrain((int16_t)navConfig()->mc.hover_throttle + posControl.rcAdjustment[THROTTLE], getThrottleIdleValue(), motorConfig()->maxthrottle);
     }
     else {
         /* Sensors has gone haywire, attempt to land regardless */
-        if (failsafeConfig()) {
-            rcCommand[THROTTLE] = failsafeConfig()->failsafe_throttle;
+        if (failsafeConfig()->failsafe_procedure == FAILSAFE_PROCEDURE_DROP_IT) {
+            rcCommand[THROTTLE] = getThrottleIdleValue();
         }
         else {
-            rcCommand[THROTTLE] = motorConfig()->minthrottle;
+            rcCommand[THROTTLE] = failsafeConfig()->failsafe_throttle;
         }
     }
 }

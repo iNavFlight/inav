@@ -11,6 +11,7 @@ TARGET_SRC = \
              drivers/compass/compass_ist8310.c \
              drivers/compass/compass_mag3110.c \
              drivers/rangefinder/rangefinder_hcsr04.c \
+             drivers/serial_softserial.c \
              drivers/serial_usb_vcp.c \
              drivers/max7456.c
 

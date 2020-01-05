@@ -30,13 +30,17 @@ typedef struct pt1Filter_s {
 /* this holds the data required to update samples thru a filter */
 typedef struct biquadFilter_s {
     float b0, b1, b2, a1, a2;
-    float d1, d2;
+    float x1, x2, y1, y2;
 } biquadFilter_t;
+
+typedef union { 
+    biquadFilter_t biquad; 
+    pt1Filter_t pt1; 
+} filter_t;
 
 typedef enum {
     FILTER_PT1 = 0,
-    FILTER_BIQUAD,
-    FILTER_FIR,
+    FILTER_BIQUAD
 } filterType_e;
 
 typedef enum {
@@ -52,8 +56,10 @@ typedef struct firFilter_s {
 } firFilter_t;
 
 typedef float (*filterApplyFnPtr)(void *filter, float input);
+typedef float (*filterApply4FnPtr)(void *filter, float input, float f_cut, float dt);
 
 float nullFilterApply(void *filter, float input);
+float nullFilterApply4(void *filter, float input, float f_cut, float dt);
 
 void pt1FilterInit(pt1Filter_t *filter, float f_cut, float dT);
 void pt1FilterInitRC(pt1Filter_t *filter, float tau, float dT);
@@ -67,17 +73,16 @@ void pt1FilterReset(pt1Filter_t *filter, float input);
 void rateLimitFilterInit(rateLimitFilter_t *filter);
 float rateLimitFilterApply4(rateLimitFilter_t *filter, float input, float rate_limit, float dT);
 
-void biquadRCFIR2FilterInit(biquadFilter_t *filter, uint16_t f_cut, uint32_t samplingIntervalUs);
-
 void biquadFilterInitNotch(biquadFilter_t *filter, uint32_t samplingIntervalUs, uint16_t filterFreq, uint16_t cutoffHz);
 void biquadFilterInitLPF(biquadFilter_t *filter, uint16_t filterFreq, uint32_t samplingIntervalUs);
 void biquadFilterInit(biquadFilter_t *filter, uint16_t filterFreq, uint32_t samplingIntervalUs, float Q, biquadFilterType_e filterType);
 float biquadFilterApply(biquadFilter_t *filter, float sample);
 float biquadFilterReset(biquadFilter_t *filter, float value);
+float biquadFilterApplyDF1(biquadFilter_t *filter, float input);
 float filterGetNotchQ(uint16_t centerFreq, uint16_t cutoff);
+void biquadFilterUpdate(biquadFilter_t *filter, float filterFreq, uint32_t refreshRate, float Q, biquadFilterType_e filterType);
 
 void firFilterInit(firFilter_t *filter, float *buf, uint8_t bufLength, const float *coeffs);
 void firFilterInit2(firFilter_t *filter, float *buf, uint8_t bufLength, const float *coeffs, uint8_t coeffsLength);
 void firFilterUpdate(firFilter_t *filter, float input);
 float firFilterApply(const firFilter_t *filter);
-

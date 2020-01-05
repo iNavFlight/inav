@@ -23,6 +23,7 @@
 #include "common/axis.h"
 #include "common/maths.h"
 #include "common/filter.h"
+#include "common/calibration.h"
 
 #include "sensors/sensors.h"
 
@@ -44,9 +45,13 @@
 #define INAV_SURFACE_TIMEOUT_MS             400     // Surface timeout    (missed 3 readings in a row)
 #define INAV_FLOW_TIMEOUT_MS                200
 
+#define CALIBRATING_GRAVITY_TIME_MS         2000
+
 // Time constants for calculating Baro/Sonar averages. Should be the same value to impose same amount of group delay
 #define INAV_BARO_AVERAGE_HZ                1.0f
 #define INAV_SURFACE_AVERAGE_HZ             1.0f
+
+#define INAV_ACC_CLIPPING_RC_CONSTANT           (0.010f)    // Reduce acc weight for ~10ms after clipping
 
 #define RANGEFINDER_RELIABILITY_RC_CONSTANT     (0.47802f)
 #define RANGEFINDER_RELIABILITY_LIGHT_THRESHOLD (0.15f)
@@ -123,9 +128,12 @@ typedef struct {
 } navPositionEstimatorESTIMATE_t;
 
 typedef struct {
-    fpVector3_t     accelNEU;
-    fpVector3_t     accelBias;
-    bool            gravityCalibrationComplete;
+     timeUs_t               lastUpdateTime;
+    fpVector3_t             accelNEU;
+    fpVector3_t             accelBias;
+    float                   calibratedGravityCMSS;
+    float                   accWeightFactor;
+    zeroCalibrationScalar_t gravityCalibration;
 } navPosisitonEstimatorIMU_t;
 
 typedef enum {
@@ -178,5 +186,5 @@ typedef struct {
 extern float updateEPE(const float oldEPE, const float dt, const float newEPE, const float w);
 extern void estimationCalculateAGL(estimationContext_t * ctx);
 extern bool estimationCalculateCorrection_XY_FLOW(estimationContext_t * ctx);
-
+extern float navGetAccelerometerWeight(void);
 

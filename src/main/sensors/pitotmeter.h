@@ -19,6 +19,7 @@
 
 #include "config/parameter_group.h"
 #include "common/filter.h"
+#include "common/calibration.h"
 
 #include "drivers/pitotmeter.h"
 
@@ -46,17 +47,19 @@ typedef struct pito_s {
     pitotDev_t dev;
     float airSpeed;
 
+    zeroCalibrationScalar_t zeroCalibration;
     pt1Filter_t lpfState;
     timeUs_t lastMeasurementUs;
     timeMs_t lastSeenHealthyMs;
-    timeMs_t calibrationTimeoutMs;
-    bool calibrationFinished;
 
     float pressureZero;
     float pressure;
 } pitot_t;
 
 #ifdef USE_PITOT
+
+#define AIR_DENSITY_SEA_LEVEL_15C   1.225f      // Air density at sea level and 15 degrees Celsius
+#define P0                          101325.0f   // standard pressure [Pa]
 
 extern pitot_t pitot;
 

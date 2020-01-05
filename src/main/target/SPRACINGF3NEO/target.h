@@ -101,7 +101,6 @@
 #define SPI2_SCK_PIN            PB13
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PB15
-#define SPI2_CLOCK_LEADING_EDGE
 
 #define SPI3_NSS_PIN            PA15
 #define SPI3_SCK_PIN            PB3
@@ -114,7 +113,9 @@
 #undef USE_VTX_FFPV
 #undef USE_VTX_SMARTAUDIO           // Disabled due to flash size
 #undef USE_VTX_TRAMP                // Disabled due to flash size
-#undef USE_PWM_SERVO_DRIVER         // Disabled due to RAM size
+
+#undef USE_PITOT                    // Disabled due to RAM size
+#undef USE_PITOT_ADC                // Disabled due to RAM size
 
 #define RTC6705_CS_PIN          PF4
 #define RTC6705_SPI_INSTANCE    SPI3
@@ -177,3 +178,5 @@
 #define TARGET_IO_PORTC 0xffff
 #define TARGET_IO_PORTD (BIT(2))
 #define TARGET_IO_PORTF (BIT(0)|BIT(1)|BIT(4))
+
+#undef USE_TELEMETRY_FRSKY

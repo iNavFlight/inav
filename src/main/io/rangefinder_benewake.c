@@ -77,17 +77,15 @@ static bool benewakeRangefinderDetect(void)
 static void benewakeRangefinderInit(void)
 {
     if (!portConfig) {
-        return false;
+        return;
     }
 
     serialPort = openSerialPort(portConfig->identifier, FUNCTION_RANGEFINDER, NULL, NULL, baudRates[BAUD_115200], MODE_RX, SERIAL_NOT_INVERTED);
     if (!serialPort) {
-        return false;
+        return;
     }
 
     bufferPtr = 0;
-
-    return true;
 }
 
 static void benewakeRangefinderUpdate(void)
@@ -125,13 +123,6 @@ static void benewakeRangefinderUpdate(void)
                 if (sensorData == 0 || qual <= BENEWAKE_MIN_QUALITY) {
                     sensorData = -1;
                 }
-
-                /*
-                debug[0] = ((tfminiPacket_t *) &buffer[0])->distL;
-                debug[1] = ((tfminiPacket_t *) &buffer[0])->distH;
-                debug[2] = ((tfminiPacket_t *) &buffer[0])->strengthH;
-                debug[3] = ((tfminiPacket_t *) &buffer[0])->strengthL;
-                */
             }
 
             // Prepare for new packet

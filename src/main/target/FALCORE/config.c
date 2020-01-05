@@ -19,6 +19,7 @@
 #include "platform.h"
 #include "config/feature.h"
 #include "drivers/pwm_output.h"
+#include "drivers/pwm_mapping.h"
 #include "blackbox/blackbox.h"
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
@@ -81,7 +82,6 @@ void targetConfiguration(void)
     blackboxConfigMutable()->rate_num = 1;
     blackboxConfigMutable()->rate_denom = 4;
 
-    motorConfigMutable()->minthrottle = 1015;
     motorConfigMutable()->maxthrottle = 2000;
     motorConfigMutable()->mincommand = 980;
     motorConfigMutable()->motorPwmRate = 2000;
@@ -96,8 +96,6 @@ void targetConfiguration(void)
     boardAlignmentMutable()->rollDeciDegrees = 0;
     boardAlignmentMutable()->pitchDeciDegrees = 165;
     boardAlignmentMutable()->yawDeciDegrees = 0;
-
-    mixerConfigMutable()->yaw_jump_prevention_limit = 200;
 
     imuConfigMutable()->small_angle = 30;
 
@@ -173,7 +171,6 @@ void targetConfiguration(void)
     pidProfileMutable()->dterm_soft_notch_hz = 0;
     pidProfileMutable()->dterm_soft_notch_cutoff = 1;
     pidProfileMutable()->pidSumLimit = 500;
-    pidProfileMutable()->yaw_p_limit = 300;
     pidProfileMutable()->axisAccelerationLimitRollPitch = 0;
     pidProfileMutable()->axisAccelerationLimitYaw = 10000;
 

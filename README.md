@@ -47,7 +47,10 @@ Users of FrSky Taranis X9 and Q X7 can use INAV Lua Telemetry screen created by 
 See: https://github.com/iNavFlight/inav/blob/master/docs/Installation.md
 
 ## Documentation, support and learning resources
-
+* [Fixed Wing Guide](docs/INAV_Fixed_Wing_Setup_Guide.pdf)
+* [Autolaunch Guide](docs/INAV_Autolaunch.pdf)
+* [Modes Guide](docs/INAV_Modes.pdf)
+* [Wing Tuning Masterclass](docs/INAV_Wing_Tuning_Masterclass.pdf)
 * [Official documentation](https://github.com/iNavFlight/inav/tree/master/docs)
 * [Official Wiki](https://github.com/iNavFlight/inav/wiki)
 * [INAV Official on Telegram](https://t.me/INAVFlight)

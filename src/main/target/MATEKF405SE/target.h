@@ -74,6 +74,10 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
+#define USE_RANGEFINDER
+#define USE_RANGEFINDER_HCSR04_I2C
+#define RANGEFINDER_I2C_BUS     BUS_I2C2
+
 #define PITOT_I2C_BUS           BUS_I2C2
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
@@ -100,7 +104,6 @@
 #define SPI3_SCK_PIN            PB3
 #define SPI3_MISO_PIN   	    PB4
 #define SPI3_MOSI_PIN   	    PB5
-#define SPI3_CLOCK_LEADING_EDGE
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
@@ -167,6 +170,9 @@
 
 #define USE_SPEKTRUM_BIND
 #define BIND_PIN                PA3 //  RX2
+
+#define USE_DSHOT
+#define USE_ESC_SENSOR
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

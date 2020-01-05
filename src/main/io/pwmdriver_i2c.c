@@ -30,7 +30,7 @@ pwmDriverDriver_t pwmDrivers[PWM_DRIVER_IMPLEMENTATION_COUNT] = {
     }
 };
 
-bool isPwmDriverEnabled() {
+bool isPwmDriverEnabled(void) {
     return driverEnabled;
 }
 

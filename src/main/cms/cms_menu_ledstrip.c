@@ -60,8 +60,7 @@ static const OSD_Entry cmsx_menuLedstripEntries[] =
     OSD_LABEL_ENTRY("-- LED STRIP --"),
     OSD_BOOL_FUNC_ENTRY("ENABLED", cmsx_FeatureLedStrip_Enabled),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 const CMS_Menu cmsx_menuLedstrip = {

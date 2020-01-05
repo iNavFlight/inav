@@ -29,15 +29,13 @@
 #include "common/utils.h"
 
 #include "drivers/bus.h"
-#include "drivers/light_led.h"
-#include "drivers/io.h"
-#include "drivers/time.h"
-#include "drivers/nvic.h"
 #include "drivers/dma.h"
-#include "drivers/vcd.h"
+#include "drivers/io.h"
+#include "drivers/light_led.h"
+#include "drivers/nvic.h"
+#include "drivers/time.h"
 
 #include "max7456.h"
-#include "max7456_symbols.h"
 
 // VM0 bits
 #define VIDEO_BUFFER_DISABLE        0x01
@@ -169,7 +167,6 @@
 // Under normal conditions, it should take 20us
 #define MAX_RESET_TIMEOUT_MS    50
 
-#define CHARS_PER_LINE          30 // XXX Should be related to VIDEO_BUFFER_CHARS_*?
 #define MAKE_CHAR_MODE_U8(c, m) ((((uint16_t)c) << 8) | m)
 #define MAKE_CHAR_MODE(c, m)    (MAKE_CHAR_MODE_U8(c, m) | (c > 255 ? CHAR_MODE_EXT : 0))
 #define CHAR_BLANK              MAKE_CHAR_MODE(0x20, 0)
@@ -179,11 +176,10 @@
 #define CHAR_MODE_EXT           (1 << 2)
 #define CHAR_MODE_IS_EXT(m)     ((m) & CHAR_MODE_EXT)
 
-// we write everything in screenBuffer and set a dirty bit
-// in screenIsDirty to upgrade only changed chars this solution
-// is faster than redrawing the whole screen on each frame
-static uint16_t screenBuffer[VIDEO_BUFFER_CHARS_PAL] ALIGNED(4);
-static BITARRAY_DECLARE(screenIsDirty, VIDEO_BUFFER_CHARS_PAL);
+// we write everything in osdCharacterGridBuffer and set a dirty bit
+// in screenIsDirty to update only changed chars. This solution
+// is faster than redrawing the whole screen on each frame.
+static BITARRAY_DECLARE(screenIsDirty, MAX7456_BUFFER_CHARS_PAL);
 
 //max chars to update in one idle
 #define MAX_CHARS2UPDATE        10
@@ -290,10 +286,10 @@ uint16_t max7456GetScreenSize(void)
     // deal with a zero returned from here.
     // TODO: Inspect all callers, make sure they can handle zero and
     // change this function to return zero before initialization.
-    if (state.isInitialized && (state.registers.vm0 & VIDEO_LINES_NTSC)) {
-        return VIDEO_BUFFER_CHARS_NTSC;
+    if (state.isInitialized && ((state.registers.vm0 & VIDEO_MODE_PAL) == 0)) {
+        return MAX7456_BUFFER_CHARS_NTSC;
     }
-    return VIDEO_BUFFER_CHARS_PAL;
+    return MAX7456_BUFFER_CHARS_PAL;
 }
 
 uint8_t max7456GetRowsCount(void)
@@ -303,19 +299,19 @@ uint8_t max7456GetRowsCount(void)
         return 0;
     }
     if (state.registers.vm0 & VIDEO_MODE_PAL) {
-        return VIDEO_LINES_PAL;
+        return MAX7456_LINES_PAL;
     }
 
-    return VIDEO_LINES_NTSC;
+    return MAX7456_LINES_NTSC;
 }
 
 //because MAX7456 need some time to detect video system etc. we need to wait for a while to initialize it at startup
-//and in case of restart we need to reinitialize chip. Note that we can't touch screenBuffer here, since
+//and in case of restart we need to reinitialize chip. Note that we can't touch osdCharacterGridBuffer here, since
 //it might already have some data by the first time this function is called.
 static void max7456ReInit(void)
 {
     uint8_t buf[2 * 2];
-    int bufPtr;
+    int bufPtr = 0;
     uint8_t statVal;
 
 
@@ -335,10 +331,13 @@ static void max7456ReInit(void)
             break;
         default:
             busRead(state.dev, MAX7456ADD_STAT, &statVal);
-            if (VIN_IS_PAL(statVal) || millis() > MAX_SYNC_WAIT_MS) {
+            if (VIN_IS_PAL(statVal)) {
                 vm0Mode = VIDEO_MODE_PAL;
             } else if (VIN_IS_NTSC_alt(statVal)) {
                 vm0Mode = VIDEO_MODE_NTSC;
+            } else if ( millis() > MAX_SYNC_WAIT_MS) {
+                // Detection timed out, default to PAL
+                vm0Mode = VIDEO_MODE_PAL;
             } else {
                 // No signal detected yet, wait for detection timeout
                 return;
@@ -365,7 +364,7 @@ static void max7456ReInit(void)
 //here we init only CS and try to init MAX for first time
 void max7456Init(const videoSystem_e videoSystem)
 {
-    uint8_t buf[(VIDEO_LINES_PAL + 1) * 2];
+    uint8_t buf[(MAX7456_LINES_PAL + 1) * 2];
     int bufPtr;
     state.dev = busDeviceInit(BUSTYPE_SPI, DEVHW_MAX7456, 0, OWNER_OSD);
 
@@ -382,9 +381,9 @@ void max7456Init(const videoSystem_e videoSystem)
     state.registers.dmm = 0;
     state.videoSystem = videoSystem;
 
-    // Set screenbuffer to all blanks
-    for (uint_fast16_t ii = 0; ii < ARRAYLEN(screenBuffer); ii++) {
-        screenBuffer[ii] = CHAR_BLANK;
+    // Set screen buffer to all blanks
+    for (uint_fast16_t ii = 0; ii < ARRAYLEN(osdCharacterGridBuffer); ii++) {
+        osdCharacterGridBuffer[ii] = CHAR_BLANK;
     }
 
     // Wait for software reset to finish
@@ -398,8 +397,8 @@ void max7456Init(const videoSystem_e videoSystem)
     // NTSC because all the brightness registers can be written
     // regardless of the video mode.
     bufPtr = 0;
-    for (int ii = 0; ii < VIDEO_LINES_PAL; ii++) {
-        bufPtr = max7456PrepareBuffer(buf, bufPtr, MAX7456ADD_RB0 + ii, BWBRIGHTNESS);
+    for (int ii = 0; ii < MAX7456_LINES_PAL; ii++) {
+        bufPtr = max7456PrepareBuffer(buf, bufPtr, MAX7456ADD_RB0 + ii, MAX7456_BWBRIGHTNESS);
     }
 
     // Set the blink duty cycle
@@ -409,9 +408,9 @@ void max7456Init(const videoSystem_e videoSystem)
 
 void max7456ClearScreen(void)
 {
-    for (uint_fast16_t ii = 0; ii < ARRAYLEN(screenBuffer); ii++) {
-        if (screenBuffer[ii] != CHAR_BLANK) {
-            screenBuffer[ii] = CHAR_BLANK;
+    for (uint_fast16_t ii = 0; ii < ARRAYLEN(osdCharacterGridBuffer); ii++) {
+        if (osdCharacterGridBuffer[ii] != CHAR_BLANK) {
+            osdCharacterGridBuffer[ii] = CHAR_BLANK;
             bitArraySet(screenIsDirty, ii);
         }
     }
@@ -419,19 +418,19 @@ void max7456ClearScreen(void)
 
 void max7456WriteChar(uint8_t x, uint8_t y, uint16_t c, uint8_t mode)
 {
-    unsigned pos = y * CHARS_PER_LINE + x;
+    unsigned pos = y * MAX7456_CHARS_PER_LINE + x;
     uint16_t val = MAKE_CHAR_MODE(c, mode);
-    if (screenBuffer[pos] != val) {
-        screenBuffer[pos] = val;
+    if (osdCharacterGridBuffer[pos] != val) {
+        osdCharacterGridBuffer[pos] = val;
         bitArraySet(screenIsDirty, pos);
     }
 }
 
 bool max7456ReadChar(uint8_t x, uint8_t y, uint16_t *c, uint8_t *mode)
 {
-    unsigned pos = y * CHARS_PER_LINE + x;
-    if (pos < ARRAYLEN(screenBuffer)) {
-        uint16_t val = screenBuffer[pos];
+    unsigned pos = y * MAX7456_CHARS_PER_LINE + x;
+    if (pos < ARRAYLEN(osdCharacterGridBuffer)) {
+        uint16_t val = osdCharacterGridBuffer[pos];
         *c = CHAR_BYTE(val);
         *mode = MODE_BYTE(val);
         if (CHAR_MODE_IS_EXT(*mode)) {
@@ -447,15 +446,15 @@ void max7456Write(uint8_t x, uint8_t y, const char *buff, uint8_t mode)
 {
     uint8_t i = 0;
     uint16_t c;
-    unsigned pos = y * CHARS_PER_LINE + x;
+    unsigned pos = y * MAX7456_CHARS_PER_LINE + x;
     for (i = 0; *buff; i++, buff++, pos++) {
         //do not write past screen's end of line
-        if (x + i >= CHARS_PER_LINE) {
+        if (x + i >= MAX7456_CHARS_PER_LINE) {
             break;
         }
         c = MAKE_CHAR_MODE_U8(*buff, mode);
-        if (screenBuffer[pos] != c) {
-            screenBuffer[pos] = c;
+        if (osdCharacterGridBuffer[pos] != c) {
+            osdCharacterGridBuffer[pos] = c;
             bitArraySet(screenIsDirty, pos);
         }
     }
@@ -482,8 +481,8 @@ static bool max7456DrawScreenPartial(void)
         uint8_t ph = pos >> 8;
         uint8_t pl = pos & 0xff;
 
-        charMode = MODE_BYTE(screenBuffer[pos]);
-        uint8_t chr = CHAR_BYTE(screenBuffer[pos]);
+        charMode = MODE_BYTE(osdCharacterGridBuffer[pos]);
+        uint8_t chr = CHAR_BYTE(osdCharacterGridBuffer[pos]);
         if (CHAR_MODE_IS_EXT(charMode)) {
             if (!DMM_IS_8BIT_MODE(state.registers.dmm)) {
                 state.registers.dmm |= DMM_8BIT_MODE;
@@ -621,8 +620,8 @@ void max7456RefreshAll(void)
 
         // Mark non-blank characters as dirty
         BITARRAY_CLR_ALL(screenIsDirty);
-        for (unsigned ii = 0; ii < ARRAYLEN(screenBuffer); ii++) {
-            if (!CHAR_IS_BLANK(screenBuffer[ii])) {
+        for (unsigned ii = 0; ii < ARRAYLEN(osdCharacterGridBuffer); ii++) {
+            if (!CHAR_IS_BLANK(osdCharacterGridBuffer[ii])) {
                 bitArraySet(screenIsDirty, ii);
             }
         }
@@ -634,7 +633,7 @@ void max7456RefreshAll(void)
     }
 }
 
-void max7456ReadNvm(uint16_t char_address, max7456Character_t *chr)
+void max7456ReadNvm(uint16_t char_address, osdCharacter_t *chr)
 {
     // Check if device is available
     if (state.dev == NULL) {
@@ -657,7 +656,7 @@ void max7456ReadNvm(uint16_t char_address, max7456Character_t *chr)
 
     max7456WaitUntilNoBusy();
 
-    for (unsigned ii = 0; ii < sizeof(chr->data); ii++) {
+    for (unsigned ii = 0; ii < OSD_CHAR_VISIBLE_BYTES; ii++) {
         busWrite(state.dev, MAX7456ADD_CMAL, ii);
         busRead(state.dev, MAX7456ADD_CMDO, &chr->data[ii]);
     }
@@ -666,7 +665,7 @@ void max7456ReadNvm(uint16_t char_address, max7456Character_t *chr)
     max7456Unlock();
 }
 
-void max7456WriteNvm(uint16_t char_address, const max7456Character_t *chr)
+void max7456WriteNvm(uint16_t char_address, const osdCharacter_t *chr)
 {
     uint8_t spiBuff[(sizeof(chr->data) * 2 + 2) * 2];
     int bufPtr = 0;
@@ -698,7 +697,7 @@ void max7456WriteNvm(uint16_t char_address, const max7456Character_t *chr)
         or_val = addr_h << 6;
     }
 
-    for (unsigned x = 0; x < sizeof(chr->data); x++) {
+    for (unsigned x = 0; x < OSD_CHAR_VISIBLE_BYTES; x++) {
         bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_CMAL, x | or_val); //set start address low
         bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_CMDI, chr->data[x]);
     }

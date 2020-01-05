@@ -105,6 +105,15 @@ $(OBJECT_DIR)/common/maths.o : \
 	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/common/maths.c -o $@
 
 
+$(OBJECT_DIR)/common/calibration.o : \
+	$(USER_DIR)/common/calibration.c \
+	$(USER_DIR)/common/calibration.h \
+	$(GTEST_HEADERS)
+
+	@mkdir -p $(dir $@)
+	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/common/calibration.c -o $@
+
+
 $(OBJECT_DIR)/common/bitarray.o : \
 	$(USER_DIR)/common/bitarray.c \
 	$(USER_DIR)/common/bitarray.h \
@@ -639,6 +648,7 @@ $(OBJECT_DIR)/sensor_gyro_unittest.o : \
 $(OBJECT_DIR)/sensor_gyro_unittest : \
 	$(OBJECT_DIR)/build/debug.o \
 	$(OBJECT_DIR)/common/maths.o \
+	$(OBJECT_DIR)/common/calibration.o \
 	$(OBJECT_DIR)/common/filter.o \
 	$(OBJECT_DIR)/drivers/accgyro/accgyro_fake.o \
 	$(OBJECT_DIR)/sensors/gyro.o \
@@ -686,7 +696,6 @@ $(OBJECT_DIR)/rcdevice_unittest : \
 	$(OBJECT_DIR)/io/rcdevice.o \
 	$(OBJECT_DIR)/io/rcdevice_cam.o \
 	$(OBJECT_DIR)/fc/rc_modes.o \
-	$(OBJECT_DIR)/rx/rx.o \
 	$(OBJECT_DIR)/common/maths.o \
 	$(OBJECT_DIR)/gtest_main.a 
 

@@ -39,6 +39,16 @@ typedef enum {
     GYRO_FAKE
 } gyroSensor_e;
 
+typedef enum {
+    DYN_NOTCH_RANGE_HIGH = 0,
+    DYN_NOTCH_RANGE_MEDIUM,
+    DYN_NOTCH_RANGE_LOW
+} dynamicFilterRange_e;
+
+#define DYN_NOTCH_RANGE_HZ_HIGH 2000
+#define DYN_NOTCH_RANGE_HZ_MEDIUM 1333
+#define DYN_NOTCH_RANGE_HZ_LOW 1000
+
 typedef struct gyro_s {
     uint32_t targetLooptime;
     float gyroADCf[XYZ_AXIS_COUNT];
@@ -49,17 +59,22 @@ extern gyro_t gyro;
 typedef struct gyroConfig_s {
     sensor_align_e gyro_align;              // gyro alignment
     uint8_t  gyroMovementCalibrationThreshold; // people keep forgetting that moving model while init results in wrong gyro offsets. and then they never reset gyro. so this is now on by default.
-    uint8_t  __deprecated_0;                // Was: gyro sync denominator
     uint8_t  gyroSync;                      // Enable interrupt based loop
     uint16_t looptime;                      // imu loop time in us
     uint8_t  gyro_lpf;                      // gyro LPF setting - values are driver specific, in case of invalid number, a reasonable default ~30-40HZ is chosen.
     uint8_t  gyro_soft_lpf_hz;
+    uint8_t  gyro_soft_lpf_type;
     uint8_t  gyro_to_use;
     uint16_t gyro_soft_notch_hz_1;
     uint16_t gyro_soft_notch_cutoff_1;
     uint16_t gyro_soft_notch_hz_2;
     uint16_t gyro_soft_notch_cutoff_2;
     uint16_t gyro_stage2_lowpass_hz;
+    uint8_t gyro_stage2_lowpass_type;
+    uint8_t dyn_notch_width_percent;
+    uint8_t dyn_notch_range;
+    uint16_t dyn_notch_q;
+    uint16_t dyn_notch_min_hz;
 } gyroConfig_t;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);
@@ -67,8 +82,8 @@ PG_DECLARE(gyroConfig_t, gyroConfig);
 bool gyroInit(void);
 void gyroInitFilters(void);
 void gyroGetMeasuredRotationRate(fpVector3_t *imuMeasuredRotationBF);
-void gyroUpdate();
-void gyroSetCalibrationCycles(uint16_t calibrationCyclesRequired);
+void gyroUpdate(void);
+void gyroStartCalibration(void);
 bool gyroIsCalibrationComplete(void);
 bool gyroReadTemperature(void);
 int16_t gyroGetTemperature(void);

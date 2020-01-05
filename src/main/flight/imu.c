@@ -30,6 +30,7 @@
 
 #include "common/axis.h"
 #include "common/filter.h"
+#include "common/log.h"
 #include "common/maths.h"
 #include "common/vector.h"
 #include "common/quaternion.h"
@@ -75,7 +76,7 @@
 
 #define SPIN_RATE_LIMIT             20
 #define MAX_ACC_SQ_NEARNESS         25      // 25% or G^2, accepted acceleration of (0.87 - 1.12G)
-#define MAX_GPS_HEADING_ERROR_DEG   60      // Amount of error between GPS CoG and estimated Yaw at witch we stop trusting GPS and fallback to MAG
+#define IMU_CENTRIFUGAL_LPF         1       // Hz
 
 FASTRAM fpVector3_t imuMeasuredAccelBF;
 FASTRAM fpVector3_t imuMeasuredRotationBF;
@@ -89,17 +90,20 @@ FASTRAM attitudeEulerAngles_t attitude;             // absolute angle inclinatio
 FASTRAM float rMat[3][3];
 
 STATIC_FASTRAM imuRuntimeConfig_t imuRuntimeConfig;
+STATIC_FASTRAM pt1Filter_t rotRateFilter;
 
 STATIC_FASTRAM bool gpsHeadingInitialized;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 2);
 
 PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
     .dcm_kp_acc = 2500,             // 0.25 * 10000
     .dcm_ki_acc = 50,               // 0.005 * 10000
     .dcm_kp_mag = 10000,            // 1.00 * 10000
     .dcm_ki_mag = 0,                // 0.00 * 10000
-    .small_angle = 25
+    .small_angle = 25,
+    .acc_ignore_rate = 0,
+    .acc_ignore_slope = 0
 );
 
 STATIC_UNIT_TESTED void imuComputeRotationMatrix(void)
@@ -156,6 +160,9 @@ void imuInit(void)
 
     quaternionInitUnit(&orientation);
     imuComputeRotationMatrix();
+
+    // Initialize rotation rate filter
+    pt1FilterReset(&rotRateFilter, 0);
 }
 
 void imuSetMagneticDeclination(float declinationDeg)
@@ -266,13 +273,13 @@ static void imuCheckAndResetOrientationQuaternion(const fpQuaternion_t * quat, c
         // Previous quaternion valid. Reset to it
         orientation = *quat;
         imuErrorEvent.errorCode = 1;
-        DEBUG_TRACE("AHRS orientation quaternion error. Reset to last known good value");
+        LOG_E(IMU, "AHRS orientation quaternion error. Reset to last known good value");
     }
     else {
         // No valid reference. Best guess from accelerometer
         imuResetOrientationQuaternion(accBF);
         imuErrorEvent.errorCode = 2;
-        DEBUG_TRACE("AHRS orientation quaternion error. Best guess from ACC");
+        LOG_E(IMU, "AHRS orientation quaternion error. Best guess from ACC");
     }
 
 #ifdef USE_BLACKBOX
@@ -282,7 +289,7 @@ static void imuCheckAndResetOrientationQuaternion(const fpQuaternion_t * quat, c
 #endif
 }
 
-static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVector3_t * accBF, const fpVector3_t * magBF, bool useCOG, float courseOverGround)
+static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVector3_t * accBF, const fpVector3_t * magBF, bool useCOG, float courseOverGround, float accWScaler, float magWScaler)
 {
     STATIC_FASTRAM fpVector3_t vGyroDriftEstimate = { 0 };
 
@@ -369,7 +376,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
         }
 
         // Calculate kP gain and apply proportional feedback
-        vectorScale(&vErr, &vErr, imuRuntimeConfig.dcm_kp_mag * imuGetPGainScaleFactor());
+        vectorScale(&vErr, &vErr, imuRuntimeConfig.dcm_kp_mag * magWScaler);
         vectorAdd(&vRotation, &vRotation, &vErr);
     }
 
@@ -399,7 +406,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
         }
 
         // Calculate kP gain and apply proportional feedback
-        vectorScale(&vErr, &vErr, imuRuntimeConfig.dcm_kp_acc * imuGetPGainScaleFactor());
+        vectorScale(&vErr, &vErr, imuRuntimeConfig.dcm_kp_acc * accWScaler);
         vectorAdd(&vRotation, &vRotation, &vErr);
     }
 
@@ -461,8 +468,9 @@ STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
     }
 }
 
-static bool imuCanUseAccelerometerForCorrection(void)
+static float imuCalculateAccelerometerWeight(const float dT)
 {
+    // If centrifugal test passed - do the usual "nearness" style check
     float accMagnitudeSq = 0;
 
     for (int axis = 0; axis < 3; axis++) {
@@ -471,8 +479,44 @@ static bool imuCanUseAccelerometerForCorrection(void)
 
     // Magnitude^2 in percent of G^2
     const float nearness = ABS(100 - (accMagnitudeSq * 100));
+    const float accWeight_Nearness = (nearness > MAX_ACC_SQ_NEARNESS) ? 0.0f : 1.0f;
 
-    return (nearness > MAX_ACC_SQ_NEARNESS) ? false : true;
+    // Experiment: if rotation rate on a FIXED_WING is higher than a threshold - centrifugal force messes up too much and we 
+    // should not use measured accel for AHRS comp
+    //      Centrifugal acceleration AccelC = Omega^2 * R = Speed^2 / R
+    //          Omega = Speed / R
+    //      For a banked turn R = Speed^2 / (G * tan(Roll))
+    //          Omega = G * tan(Roll) / Speed 
+    //      Knowing the typical airspeed is around ~20 m/s we can calculate roll angles that yield certain angular rate
+    //          1 deg   =>  0.49 deg/s
+    //          2 deg   =>  0.98 deg/s
+    //          5 deg   =>  2.45 deg/s
+    //         10 deg   =>  4.96 deg/s
+    //      Therefore for a typical plane a sustained angular rate of ~2.45 deg/s will yield a banking error of ~5 deg
+    //  Since we can't do proper centrifugal compensation at the moment we pass the magnitude of angular rate through an 
+    //  LPF with a low cutoff and if it's larger than our threshold - invalidate accelerometer
+
+    // Default - don't apply rate/ignore scaling
+    float accWeight_RateIgnore = 1.0f;
+
+    if (ARMING_FLAG(ARMED) && STATE(FIXED_WING) && imuConfig()->acc_ignore_rate) {
+        const float rotRateMagnitude = sqrtf(vectorNormSquared(&imuMeasuredRotationBF));
+        const float rotRateMagnitudeFiltered = pt1FilterApply4(&rotRateFilter, rotRateMagnitude, IMU_CENTRIFUGAL_LPF, dT);
+
+        if (imuConfig()->acc_ignore_slope) {
+            const float rateSlopeMin = DEGREES_TO_RADIANS((imuConfig()->acc_ignore_rate - imuConfig()->acc_ignore_slope));
+            const float rateSlopeMax = DEGREES_TO_RADIANS((imuConfig()->acc_ignore_rate + imuConfig()->acc_ignore_slope));
+
+            accWeight_RateIgnore = scaleRangef(constrainf(rotRateMagnitudeFiltered, rateSlopeMin, rateSlopeMax), rateSlopeMin, rateSlopeMax, 1.0f, 0.0f);
+        }
+        else {
+            if (rotRateMagnitudeFiltered > DEGREES_TO_RADIANS(imuConfig()->acc_ignore_rate)) {
+                accWeight_RateIgnore = 0.0f;
+            }
+        }
+    }
+
+    return accWeight_Nearness * accWeight_RateIgnore;
 }
 
 static void imuCalculateEstimatedAttitude(float dT)
@@ -483,8 +527,6 @@ static void imuCalculateEstimatedAttitude(float dT)
     const bool canUseMAG = false;
 #endif
 
-    const bool useAcc = imuCanUseAccelerometerForCorrection();
-
     float courseOverGround = 0;
     bool useMag = false;
     bool useCOG = false;
@@ -493,13 +535,15 @@ static void imuCalculateEstimatedAttitude(float dT)
     if (STATE(FIXED_WING)) {
         bool canUseCOG = isGPSHeadingValid();
 
-        if (canUseCOG) {
+        // Prefer compass (if available)
+        if (canUseMAG) {
+            useMag = true;
+            gpsHeadingInitialized = true;   // GPS heading initialised from MAG, continue on GPS if compass fails
+        }
+        else if (canUseCOG) {
             if (gpsHeadingInitialized) {
-                // Use GPS heading if error is acceptable or if it's the only source of heading
-                if (ABS(gpsSol.groundCourse - attitude.values.yaw) < DEGREES_TO_DECIDEGREES(MAX_GPS_HEADING_ERROR_DEG) || !canUseMAG) {
-                    courseOverGround = DECIDEGREES_TO_RADIANS(gpsSol.groundCourse);
-                    useCOG = true;
-                }
+                courseOverGround = DECIDEGREES_TO_RADIANS(gpsSol.groundCourse);
+                useCOG = true;
             }
             else {
                 // Re-initialize quaternion from known Roll, Pitch and GPS heading
@@ -509,15 +553,6 @@ static void imuCalculateEstimatedAttitude(float dT)
                 // Force reset of heading hold target
                 resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
             }
-
-            // If we can't use COG and there's MAG available - fallback
-            if (!useCOG && canUseMAG) {
-                useMag = true;
-            }
-        }
-        else if (canUseMAG) {
-            useMag = true;
-            gpsHeadingInitialized = true;   // GPS heading initialised from MAG, continue on GPS if possible
         }
     }
     else {
@@ -535,10 +570,16 @@ static void imuCalculateEstimatedAttitude(float dT)
 
     fpVector3_t measuredMagBF = { .v = { mag.magADC[X], mag.magADC[Y], mag.magADC[Z] } };
 
+    const float magWeight = imuGetPGainScaleFactor() * 1.0f;
+    const float accWeight = imuGetPGainScaleFactor() * imuCalculateAccelerometerWeight(dT);
+    const bool useAcc = (accWeight > 0.001f);
+
     imuMahonyAHRSupdate(dT, &imuMeasuredRotationBF,
                             useAcc ? &imuMeasuredAccelBF : NULL,
                             useMag ? &measuredMagBF : NULL,
-                            useCOG, courseOverGround);
+                            useCOG, courseOverGround,
+                            accWeight,
+                            magWeight);
 
     imuUpdateEulerAngles();
 }
@@ -587,9 +628,10 @@ void imuCheckVibrationLevels(void)
     DEBUG_SET(DEBUG_VIBE, 1, accVibeLevels.y * 100);
     DEBUG_SET(DEBUG_VIBE, 2, accVibeLevels.z * 100);
     DEBUG_SET(DEBUG_VIBE, 3, accClipCount);
+    // DEBUG_VIBE values 4-7 are used by NAV estimator
 }
 
-void imuUpdateAttitude(timeUs_t currentTimeUs)
+void FAST_CODE NOINLINE imuUpdateAttitude(timeUs_t currentTimeUs)
 {
     /* Calculate dT */
     static timeUs_t previousIMUUpdateTimeUs;

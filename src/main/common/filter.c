@@ -20,6 +20,8 @@
 #include <string.h>
 #include <math.h>
 
+#include "platform.h"
+
 #include "common/filter.h"
 #include "common/maths.h"
 #include "common/utils.h"
@@ -28,10 +30,17 @@
 #define BIQUAD_Q 1.0f / sqrtf(2.0f)     /* quality factor - butterworth*/
 
 // NULL filter
-
 float nullFilterApply(void *filter, float input)
 {
     UNUSED(filter);
+    return input;
+}
+
+float nullFilterApply4(void *filter, float input, float f_cut, float dt)
+{
+    UNUSED(filter);
+    UNUSED(f_cut);
+    UNUSED(dt);
     return input;
 }
 
@@ -58,7 +67,7 @@ float pt1FilterGetLastOutput(pt1Filter_t *filter) {
     return filter->state;
 }
 
-float pt1FilterApply(pt1Filter_t *filter, float input)
+float FAST_CODE NOINLINE pt1FilterApply(pt1Filter_t *filter, float input)
 {
     filter->state = filter->state + filter->dT / (filter->RC + filter->dT) * (input - filter->state);
     return filter->state;
@@ -71,7 +80,7 @@ float pt1FilterApply3(pt1Filter_t *filter, float input, float dT)
     return filter->state;
 }
 
-float pt1FilterApply4(pt1Filter_t *filter, float input, float f_cut, float dT)
+float FAST_CODE NOINLINE pt1FilterApply4(pt1Filter_t *filter, float input, float f_cut, float dT)
 {
     // Pre calculate and store RC
     if (!filter->RC) {
@@ -125,30 +134,6 @@ void biquadFilterInitLPF(biquadFilter_t *filter, uint16_t filterFreq, uint32_t s
     biquadFilterInit(filter, filterFreq, samplingIntervalUs, BIQUAD_Q, FILTER_LPF);
 }
 
-// ledvinap's proposed RC+FIR2 Biquad-- 1st order IIR, RC filter k
-void biquadRCFIR2FilterInit(biquadFilter_t *filter, uint16_t f_cut, uint32_t samplingIntervalUs)
-{
-    if (f_cut < (1000000 / samplingIntervalUs / 2)) {
-        const float dT = (float) samplingIntervalUs * 0.000001f;
-        const float RC = 1.0f / ( 2.0f * M_PIf * f_cut );
-        const float k = dT / (RC + dT);
-        filter->b0 = k / 2;
-        filter->b1 = k / 2;
-        filter->b2 = 0;
-        filter->a1 = -(1 - k);
-        filter->a2 = 0;
-    } else {
-        filter->b0 = 1.0f;
-        filter->b1 = 0.0f;
-        filter->b2 = 0.0f;
-        filter->a1 = 0.0f;
-        filter->a2 = 0.0f;
-    }
-
-    // zero initial samples
-    filter->d1 = filter->d2 = 0;
-}
-
 void biquadFilterInit(biquadFilter_t *filter, uint16_t filterFreq, uint32_t samplingIntervalUs, float Q, biquadFilterType_e filterType)
 {
     // Check for Nyquist frequency and if it's not possible to initialize filter as requested - set to no filtering at all
@@ -194,23 +179,57 @@ void biquadFilterInit(biquadFilter_t *filter, uint16_t filterFreq, uint32_t samp
     }
 
     // zero initial samples
-    filter->d1 = filter->d2 = 0;
+    filter->x1 = filter->x2 = 0;
+    filter->y1 = filter->y2 = 0;
+}
+
+FAST_CODE float biquadFilterApplyDF1(biquadFilter_t *filter, float input)
+{
+    /* compute result */
+    const float result = filter->b0 * input + filter->b1 * filter->x1 + filter->b2 * filter->x2 - filter->a1 * filter->y1 - filter->a2 * filter->y2;
+
+    /* shift x1 to x2, input to x1 */
+    filter->x2 = filter->x1;
+    filter->x1 = input;
+
+    /* shift y1 to y2, result to y1 */
+    filter->y2 = filter->y1;
+    filter->y1 = result;
+
+    return result;
 }
 
 // Computes a biquad_t filter on a sample
-float biquadFilterApply(biquadFilter_t *filter, float input)
+float FAST_CODE NOINLINE biquadFilterApply(biquadFilter_t *filter, float input)
 {
-    const float result = filter->b0 * input + filter->d1;
-    filter->d1 = filter->b1 * input - filter->a1 * result + filter->d2;
-    filter->d2 = filter->b2 * input - filter->a2 * result;
+    const float result = filter->b0 * input + filter->x1;
+    filter->x1 = filter->b1 * input - filter->a1 * result + filter->x2;
+    filter->x2 = filter->b2 * input - filter->a2 * result;
     return result;
 }
 
 float biquadFilterReset(biquadFilter_t *filter, float value)
 {
-    filter->d1 = value - (value * filter->b0);
-    filter->d2 = (filter->b2 - filter->a2) * value;
+    filter->x1 = value - (value * filter->b0);
+    filter->x2 = (filter->b2 - filter->a2) * value;
     return value;
+}
+
+FAST_CODE void biquadFilterUpdate(biquadFilter_t *filter, float filterFreq, uint32_t refreshRate, float Q, biquadFilterType_e filterType)
+{
+    // backup state
+    float x1 = filter->x1;
+    float x2 = filter->x2;
+    float y1 = filter->y1;
+    float y2 = filter->y2;
+
+    biquadFilterInit(filter, filterFreq, refreshRate, Q, filterType);
+
+    // restore state
+    filter->x1 = x1;
+    filter->x2 = x2;
+    filter->y1 = y1;
+    filter->y2 = y2;
 }
 
 /*

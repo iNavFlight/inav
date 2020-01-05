@@ -40,11 +40,13 @@
 #include "rx/rx.h"
 #include "rx/crsf.h"
 
-#define CRSF_TIME_NEEDED_PER_FRAME_US   1000
-#define CRSF_TIME_BETWEEN_FRAMES_US     4000 // a frame is sent by the transmitter every 4 milliseconds
+#include "telemetry/crsf.h"
+#define CRSF_TIME_NEEDED_PER_FRAME_US   1100 // 700 ms + 400 ms for potential ad-hoc request
+#define CRSF_TIME_BETWEEN_FRAMES_US     6667 // At fastest, frames are sent by the transmitter every 6.667 milliseconds, 150 Hz
 
 #define CRSF_DIGITAL_CHANNEL_MIN 172
 #define CRSF_DIGITAL_CHANNEL_MAX 1811
+#define CRSF_PAYLOAD_OFFSET offsetof(crsfFrameDef_t, type)
 
 STATIC_UNIT_TESTED bool crsfFrameDone = false;
 STATIC_UNIT_TESTED crsfFrame_t crsfFrame;
@@ -69,10 +71,10 @@ static uint8_t telemetryBufLen = 0;
  * 1 Stop bit
  * Big endian
  * 420000 bit/s = 46667 byte/s (including stop bit) = 21.43us per byte
- * Assume a max payload of 32 bytes (needs confirming with TBS), so max frame size of 36 bytes
- * A 36 byte frame can be transmitted in 771 microseconds.
+ * Max frame size is 64 bytes
+ * A 64 byte frame plus 1 sync byte can be transmitted in 1393 microseconds.
  *
- * CRSF_TIME_NEEDED_PER_FRAME_US is set conservatively at 1000 microseconds
+ * CRSF_TIME_NEEDED_PER_FRAME_US is set conservatively at 1500 microseconds
  *
  * Every frame has the structure:
  * <Device address> <Frame length> < Type> <Payload> < CRC>
@@ -121,6 +123,16 @@ struct crsfPayloadLinkStatistics_s {
 
 typedef struct crsfPayloadLinkStatistics_s crsfPayloadLinkStatistics_t;
 
+STATIC_UNIT_TESTED uint8_t crsfFrameCRC(void)
+{
+    // CRC includes type and payload
+    uint8_t crc = crc8_dvb_s2(0, crsfFrame.frame.type);
+    for (int ii = 0; ii < crsfFrame.frame.frameLength - CRSF_FRAME_LENGTH_TYPE_CRC; ++ii) {
+        crc = crc8_dvb_s2(crc, crsfFrame.frame.payload[ii]);
+    }
+    return crc;
+}
+
 // Receive ISR callback, called back from serial port
 STATIC_UNIT_TESTED void crsfDataReceive(uint16_t c, void *rxCallbackData)
 {
@@ -149,17 +161,30 @@ STATIC_UNIT_TESTED void crsfDataReceive(uint16_t c, void *rxCallbackData)
     if (crsfFramePosition < fullFrameLength) {
         crsfFrame.bytes[crsfFramePosition++] = (uint8_t)c;
         crsfFrameDone = crsfFramePosition < fullFrameLength ? false : true;
+        if (crsfFrameDone) {
+            crsfFramePosition = 0;
+            if (crsfFrame.frame.type != CRSF_FRAMETYPE_RC_CHANNELS_PACKED) {
+                const uint8_t crc = crsfFrameCRC();
+                if (crc == crsfFrame.bytes[fullFrameLength - 1]) {
+                    switch (crsfFrame.frame.type)
+                    {
+#if defined(USE_MSP_OVER_TELEMETRY)
+                        case CRSF_FRAMETYPE_MSP_REQ:
+                        case CRSF_FRAMETYPE_MSP_WRITE: {
+                            uint8_t *frameStart = (uint8_t *)&crsfFrame.frame.payload + CRSF_FRAME_ORIGIN_DEST_SIZE;
+                            if (bufferCrsfMspFrame(frameStart, CRSF_FRAME_RX_MSP_FRAME_SIZE)) {
+                                crsfScheduleMspResponse();
+                            }
+                            break;
+                        }
+#endif
+                        default:
+                            break;
+                    }
+                }
+            }
+        }
     }
-}
-
-STATIC_UNIT_TESTED uint8_t crsfFrameCRC(void)
-{
-    // CRC includes type and payload
-    uint8_t crc = crc8_dvb_s2(0, crsfFrame.frame.type);
-    for (int ii = 0; ii < crsfFrame.frame.frameLength - CRSF_FRAME_LENGTH_TYPE_CRC; ++ii) {
-        crc = crc8_dvb_s2(crc, crsfFrame.frame.payload[ii]);
-    }
-    return crc;
 }
 
 STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
@@ -206,7 +231,10 @@ STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 
             // Inject link quality into channel 17
             const crsfPayloadLinkStatistics_t* linkStats = (crsfPayloadLinkStatistics_t*)&crsfFrame.frame.payload;
+
             crsfChannelData[16] = scaleRange(constrain(linkStats->uplinkLQ, 0, 100), 0, 100, 191, 1791);    // will map to [1000;2000] range
+
+            lqTrackerSet(rxRuntimeConfig->lqTracker, scaleRange(constrain(linkStats->uplinkLQ, 0, 100), 0, 100, 0, RSSI_MAX_VALUE));
 
             // This is not RC channels frame, update channel value but don't indicate frame completion
             return RX_FRAME_PENDING;
@@ -261,7 +289,7 @@ bool crsfRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
     }
 
     rxRuntimeConfig->channelCount = CRSF_MAX_CHANNEL;
-    rxRuntimeConfig->rxRefreshRate = 11000; //!!TODO this needs checking
+    rxRuntimeConfig->rxRefreshRate = CRSF_TIME_BETWEEN_FRAMES_US; //!!TODO this needs checking
 
     rxRuntimeConfig->rcReadRawFn = crsfReadRawRC;
     rxRuntimeConfig->rcFrameStatusFn = crsfFrameStatus;

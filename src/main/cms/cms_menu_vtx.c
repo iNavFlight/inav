@@ -57,11 +57,11 @@ static long cmsx_Vtx_FeatureWriteback(void)
 }
 
 static const char * const vtxBandNames[] = {
-    "BOSCAM A",
-    "BOSCAM B",
-    "BOSCAM E",
-    "FATSHARK",
-    "RACEBAND",
+    "A",
+    "B",
+    "E",
+    "F",
+    "R",
 };
 
 static const OSD_TAB_t entryVtxBand = {&cmsx_vtxBand,4,&vtxBandNames[0]};
@@ -128,8 +128,7 @@ static const OSD_Entry cmsx_menuVtxEntries[] =
     OSD_BOOL_ENTRY("LOW POWER", &masterConfig.vtx_power),
 #endif // USE_RTC6705
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 const CMS_Menu cmsx_menuVtx = {

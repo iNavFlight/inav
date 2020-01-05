@@ -35,3 +35,33 @@
 #if !defined(USE_MSP_DISPLAYPORT) && (FLASH_SIZE > 128) && !defined(USE_OSD)
 #define USE_MSP_DISPLAYPORT
 #endif
+
+#if defined(USE_OSD) && (FLASH_SIZE > 256)
+#define USE_CANVAS
+#endif
+
+#ifdef USE_ESC_SENSOR
+    #define USE_RPM_FILTER
+#endif
+
+#ifdef USE_ITCM_RAM
+#define FAST_CODE                   __attribute__((section(".tcm_code")))
+#define NOINLINE                    __NOINLINE
+#else
+#define FAST_CODE
+#define NOINLINE
+#endif
+
+#ifdef STM32F3
+#undef USE_WIND_ESTIMATOR
+#undef USE_SERIALRX_SUMD
+#undef USE_SERIALRX_SUMH
+#undef USE_SERIALRX_XBUS
+#undef USE_SERIALRX_JETIEXBUS
+#undef USE_PWM_SERVO_DRIVER
+#endif
+
+#if defined(SIMULATOR_BUILD) || defined(UNIT_TEST)
+// This feature uses 'arm_math.h', which does not exist for x86.
+#undef USE_DYNAMIC_FILTERS
+#endif

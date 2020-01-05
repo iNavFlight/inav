@@ -34,7 +34,8 @@ class Compiler
         # Look for the compiler in PATH manually, since there
         # are some issues with the built-in search by spawn()
         # on Windows if PATH contains spaces.
-        dirs = (ENV["PATH"] || "").split(File::PATH_SEPARATOR)
+        #dirs = ((ENV["CPP_PATH"] || "") + File::PATH_SEPARATOR + (ENV["PATH"] || "")).split(File::PATH_SEPARATOR)
+        dirs = ((ENV["CPP_PATH"] || "") + File::PATH_SEPARATOR + (ENV["PATH"] || "")).split(File::PATH_SEPARATOR)
         bin = "arm-none-eabi-g++"
         dirs.each do |dir|
             p = File.join(dir, bin)
@@ -59,6 +60,10 @@ class Compiler
         cflags.each do |flag|
             # Don't generate temporary files
             if flag == "" || flag == "-MMD" || flag == "-MP" || flag.start_with?("-save-temps")
+                next
+            end
+            # -Wstrict-prototypes is not valid for C++
+            if flag == "-Wstrict-prototypes"
                 next
             end
             if flag.start_with? "-std="

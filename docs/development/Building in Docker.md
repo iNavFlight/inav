@@ -5,7 +5,7 @@ Building in Docker is remarkably easy.
 ## Build a container with toolchain
 
 ```
-docker build -t inav .
+docker build -t inav-build .
 ```
 
 ## Building firmware with Docker on Ubuntu
@@ -19,6 +19,6 @@ sh build.sh SPRACINGF3
 
 Path in Docker on Windows works in a _strange_ way, so you have to provide full path for `docker run` command. For example:
 
-`docker run --rm -v //c/Users/pspyc/Documents/Projects/inav:/home/src/ flyandi/docker-inav make TARGET=AIRBOTF4`
+`docker run --rm -v //c/Users/pspyc/Documents/Projects/inav:/home/src/ inav-build make TARGET=AIRBOTF4`
 
 So, `c:\Users\pspyc\Documents\Projects\inav` becomes `//c/Users/pspyc/Documents/Projects/inav`

@@ -86,8 +86,7 @@ static const OSD_Entry cmsx_menuBlackboxEntries[] =
     OSD_FUNC_CALL_ENTRY("ERASE FLASH", cmsx_EraseFlash),
 #endif // USE_FLASHFS
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 const CMS_Menu cmsx_menuBlackbox = {

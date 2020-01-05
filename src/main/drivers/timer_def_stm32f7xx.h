@@ -17,6 +17,8 @@
 
 #pragma once
 
+#define timerDMASafeType_t  uint32_t
+
 // Mappings for STDLIB defines
 // #define DEF_TIM_CHNL_CH1    TIM_CHANNEL_1
 // #define DEF_TIM_CHNL_CH1N   TIM_CHANNEL_1
