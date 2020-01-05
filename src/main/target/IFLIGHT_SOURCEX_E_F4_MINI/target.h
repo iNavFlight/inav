@@ -1,21 +1,29 @@
 /*
-*
-*/
-
+ * This is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This software is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ */
 #pragma once
 
-#define TARGET_BOARD_IDENTIFIER "SOURCEXEF4MINI"
+#define TARGET_BOARD_IDENTIFIER "SOURCEXEF4MIN"
 #define USBD_PRODUCT_STRING     "Iflight SourceX-E F4 Mini"
 
-//#define USE_ESC_SENSOR
+#define USE_ESC_SENSOR
+#define USE_DSHOT
 
 #define LED0                    PB5
 
 #define BEEPER                  PB4
 #define BEEPER_INVERTED
-
-// PC13 used as inverter select GPIO for UART2
-#define INVERTER_PIN_UART2_RX   PC13
 
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS		BUS_SPI1
@@ -27,6 +35,8 @@
 #define USE_GYRO
 #define USE_GYRO_MPU6000
 #define GYRO_MPU6000_ALIGN      CW180_DEG
+
+
 
 // MPU6000 interrupts
 #define USE_EXTI
@@ -66,6 +76,8 @@
 #define USE_UART2
 #define UART2_RX_PIN            PA3
 #define UART2_TX_PIN            PA2
+// PC13 used as inverter select GPIO for UART2
+#define INVERTER_PIN_UART2_RX   PC13
 
 #define USE_UART3
 #define UART3_RX_PIN            PB11
@@ -78,10 +90,10 @@
 //#define USE_SOFTSERIAL1
 //#define USE_SOFTSERIAL2
 
-#define SERIAL_PORT_COUNT       4 //VCP, USART1, USART2, USART3, USART6, SOFTSERIAL1, SOFTSERIAL2
+#define SERIAL_PORT_COUNT       5 //VCP, USART1, USART2, USART3, USART6, SOFTSERIAL1, SOFTSERIAL2
 
-#define USE_ESCSERIAL // XXX
-#define ESCSERIAL_TIMER_TX_PIN  PB8 // (Hardware=0, PPM)
+//#define USE_ESCSERIAL // XXX
+//#define ESCSERIAL_TIMER_TX_PIN  PB8 // (Hardware=0, PPM)
 
 #define USE_SPI
 
@@ -105,8 +117,8 @@
 
 #define USE_I2C
 #define USE_I2C_DEVICE_2
-//#define I2C2_SCL                PB10 // PB10, UART3_TX
-//#define I2C2_SDA                PB11 // PB11, UART3_RX
+#define I2C2_SCL                PB10 // PB10, UART3_TX
+#define I2C2_SDA                PB11 // PB11, UART3_RX
 //#define I2C_DEVICE              (I2CDEV_2)
 
 #define USE_MAG
@@ -147,7 +159,7 @@
 
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
-#define SERIALRX_UART           SERIAL_PORT_USART2
+#define SERIALRX_UART           SERIAL_PORT_USART6
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_VBAT | FEATURE_CURRENT_METER | FEATURE_TELEMETRY | FEATURE_OSD )
@@ -164,7 +176,5 @@
 #define TARGET_IO_PORTD BIT(2)
 
 #define MAX_PWM_OUTPUT_PORTS 4
-
-#define USABLE_TIMER_CHANNEL_COUNT 12
 
 #define PCA9685_I2C_BUS         BUS_I2C2
