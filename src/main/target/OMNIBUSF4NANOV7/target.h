@@ -34,7 +34,7 @@
 #define LED0                    PB12
 
 // Beeper
-#define BEEPER                  PC5
+#define BEEPER                  PB10
 #define BEEPER_INVERTED
 
 // I2C
@@ -123,7 +123,8 @@
 #define SPI1_MOSI_PIN           PA7
 
 #define USE_SPI_DEVICE_2
-#define SPI2_NSS_PIN            PB12
+// #define SPI2_NSS_PIN            PB12
+#define SPI2_NSS_PIN            NONE
 #define SPI2_SCK_PIN            PB13
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PB15
@@ -157,7 +158,7 @@
 #define SENSORS_SET (SENSOR_ACC | SENSOR_BARO)
 
 //#define USE_LED_STRIP
-//#define WS2811_PIN                      PB6
+//#define WS2811_PIN                      PA15
 //#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST0_HANDLER
 //#define WS2811_DMA_STREAM               DMA1_Stream0
 //#define WS2811_DMA_CHANNEL              DMA_Channel_2
