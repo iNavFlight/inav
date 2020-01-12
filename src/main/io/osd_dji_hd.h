@@ -55,6 +55,10 @@
 #define DJI_MSP_STATUS_EX               150     // INAV: Implemented     | DSI: Implemented     | For OSD ‘Fly mode', For OSD ‘Disarmed’
 #define DJI_MSP_RTC                     247     // INAV: Implemented     | DSI: Implemented     | For OSD ‘RTC date time’
 
+#define DJI_MSP_SET_FILTER_CONFIG       93
+#define DJI_MSP_SET_PID_ADVANCED        95
+#define DJI_MSP_SET_PID                 202
+#define DJI_MSP_SET_RC_TUNING           204
 
 void djiOsdSerialInit(void);
 void djiOsdSerialProcess(void);

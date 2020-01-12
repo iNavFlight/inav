@@ -41,6 +41,7 @@
 
 #include "fc/fc_core.h"
 #include "fc/config.h"
+#include "fc/controlrate_profile.h"
 #include "fc/fc_msp.h"
 #include "fc/fc_msp_box.h"
 #include "fc/runtime_config.h"
@@ -57,6 +58,9 @@
 
 #include "sensors/sensors.h"
 #include "sensors/battery.h"
+#include "sensors/rangefinder.h"
+#include "sensors/acceleration.h"
+#include "sensors/gyro.h"
 
 #include "msp/msp.h"
 #include "msp/msp_protocol.h"
@@ -364,7 +368,7 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
     UNUSED(mspPostProcessFn);
 
     sbuf_t *dst = &reply->buf;
-    //sbuf_t *src = &cmd->buf;
+    sbuf_t *src = &cmd->buf;
 
     // Start initializing the reply message
     reply->cmd = cmd->cmd;
@@ -527,10 +531,74 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
             break;
 
         case DJI_MSP_FILTER_CONFIG:
-        case DJI_MSP_PID_ADVANCED:
+            sbufWriteU8(dst, gyroConfig()->gyro_soft_lpf_hz);           // BF: gyroConfig()->gyro_lowpass_hz
+            sbufWriteU16(dst, pidProfile()->dterm_lpf_hz);              // BF: currentPidProfile->dterm_lowpass_hz
+            sbufWriteU16(dst, pidProfile()->yaw_lpf_hz);                // BF: currentPidProfile->yaw_lowpass_hz
+            sbufWriteU16(dst, gyroConfig()->gyro_soft_notch_hz_1);      // BF: gyroConfig()->gyro_soft_notch_hz_1
+            sbufWriteU16(dst, gyroConfig()->gyro_soft_notch_cutoff_1);  // BF: gyroConfig()->gyro_soft_notch_cutoff_1
+            sbufWriteU16(dst, pidProfile()->dterm_soft_notch_hz);       // BF: currentPidProfile->dterm_notch_hz
+            sbufWriteU16(dst, pidProfile()->dterm_soft_notch_cutoff);   // BF: currentPidProfile->dterm_notch_cutoff
+            sbufWriteU16(dst, gyroConfig()->gyro_soft_notch_hz_2);      // BF: gyroConfig()->gyro_soft_notch_hz_2
+            sbufWriteU16(dst, gyroConfig()->gyro_soft_notch_cutoff_2);  // BF: gyroConfig()->gyro_soft_notch_cutoff_2
+            sbufWriteU8(dst, 0);                                        // BF: currentPidProfile->dterm_filter_type
+            sbufWriteU8(dst, gyroConfig()->gyro_lpf);                   // BF: gyroConfig()->gyro_hardware_lpf);
+            sbufWriteU8(dst, 0);                                        // BF: DEPRECATED: gyro_32khz_hardware_lpf
+            sbufWriteU16(dst, gyroConfig()->gyro_soft_lpf_hz);          // BF: gyroConfig()->gyro_lowpass_hz);
+            sbufWriteU16(dst, gyroConfig()->gyro_stage2_lowpass_hz);    // BF: gyroConfig()->gyro_lowpass2_hz);
+            sbufWriteU8(dst, 0);                                        // BF: gyroConfig()->gyro_lowpass_type);
+            sbufWriteU8(dst, 0);                                        // BF: gyroConfig()->gyro_lowpass2_type);
+            sbufWriteU16(dst, 0);                                       // BF: currentPidProfile->dterm_lowpass2_hz);
+            sbufWriteU8(dst, 0);                                        // BF: currentPidProfile->dterm_filter2_type);
+            break;
+
         case DJI_MSP_RC_TUNING:
+            sbufWriteU8(dst, 100);                                      // INAV doesn't use rcRate
+            sbufWriteU8(dst, currentControlRateProfile->stabilized.rcExpo8);
+            for (int i = 0 ; i < 3; i++) {
+                // R,P,Y rates see flight_dynamics_index_t
+                sbufWriteU8(dst, currentControlRateProfile->stabilized.rates[i]);
+            }
+            sbufWriteU8(dst, currentControlRateProfile->throttle.dynPID);
+            sbufWriteU8(dst, currentControlRateProfile->throttle.rcMid8);
+            sbufWriteU8(dst, currentControlRateProfile->throttle.rcExpo8);
+            sbufWriteU16(dst, currentControlRateProfile->throttle.pa_breakpoint);
+            sbufWriteU8(dst, currentControlRateProfile->stabilized.rcYawExpo8);
+            sbufWriteU8(dst, 100);                                      // INAV doesn't use rcRate
+            sbufWriteU8(dst, 100);                                      // INAV doesn't use rcRate
+            sbufWriteU8(dst, currentControlRateProfile->stabilized.rcExpo8);
+
+            // added in 1.41
+            sbufWriteU8(dst, 0);
+            sbufWriteU8(dst, currentControlRateProfile->throttle.dynPID);
+            break;
+
         case DJI_MSP_ESC_SENSOR_DATA:
-            // TODO
+        case DJI_MSP_PID_ADVANCED:
+            reply->result = MSP_RESULT_ERROR;
+            break;
+
+        case DJI_MSP_SET_PID:
+            // Check if we have enough data for all PID coefficients
+            if ((unsigned)sbufBytesRemaining(src) >= ARRAYLEN(djiPidIndexMap) * 3) {
+                for (unsigned i = 0; i < ARRAYLEN(djiPidIndexMap); i++) {
+                    pidBankMutable()->pid[djiPidIndexMap[i]].P = sbufReadU8(src);
+                    pidBankMutable()->pid[djiPidIndexMap[i]].I = sbufReadU8(src);
+                    pidBankMutable()->pid[djiPidIndexMap[i]].D = sbufReadU8(src);
+                }
+                schedulePidGainsUpdate();
+#if defined(USE_NAV)
+                // This is currently unnecessary, DJI HD doesn't set any NAV PIDs
+                //navigationUsePIDs();
+#endif
+            }
+            else {
+                reply->result = MSP_RESULT_ERROR;
+            }
+            break;
+
+        case DJI_MSP_SET_FILTER_CONFIG:
+        case DJI_MSP_SET_PID_ADVANCED:
+        case DJI_MSP_SET_RC_TUNING:
             reply->result = MSP_RESULT_ERROR;
             break;
 
