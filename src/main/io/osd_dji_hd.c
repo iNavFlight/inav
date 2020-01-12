@@ -48,6 +48,7 @@
 
 #include "flight/imu.h"
 #include "flight/pid.h"
+#include "flight/mixer.h"
 
 #include "io/serial.h"
 #include "io/gps.h"
@@ -57,10 +58,11 @@
 #include "rx/rx.h"
 
 #include "sensors/sensors.h"
+#include "sensors/gyro.h"
 #include "sensors/battery.h"
 #include "sensors/rangefinder.h"
 #include "sensors/acceleration.h"
-#include "sensors/gyro.h"
+#include "sensors/esc_sensor.h"
 
 #include "msp/msp.h"
 #include "msp/msp_protocol.h"
@@ -521,6 +523,22 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
             }
             break;
 
+#if defined(USE_ESC_SENSOR)
+        case DJI_MSP_ESC_SENSOR_DATA:
+            if (STATE(ESC_SENSOR_ENABLED)) {
+                sbufWriteU8(dst, getMotorCount());
+                for (int i = 0; i < getMotorCount(); i++) {
+                    const escSensorData_t * escSensor = getEscTelemetry(i);
+                    sbufWriteU8(dst, escSensor->temperature);
+                    sbufWriteU16(dst, escSensor->rpm);
+                }
+            }
+            else {
+                reply->result = MSP_RESULT_ERROR;
+            }
+            break;
+#endif
+
         case DJI_MSP_OSD_CONFIG:
 #if defined(USE_OSD)
             // This involved some serious magic, better contain in a separate function for readability
@@ -572,11 +590,6 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
             sbufWriteU8(dst, currentControlRateProfile->throttle.dynPID);
             break;
 
-        case DJI_MSP_ESC_SENSOR_DATA:
-        case DJI_MSP_PID_ADVANCED:
-            reply->result = MSP_RESULT_ERROR;
-            break;
-
         case DJI_MSP_SET_PID:
             // Check if we have enough data for all PID coefficients
             if ((unsigned)sbufBytesRemaining(src) >= ARRAYLEN(djiPidIndexMap) * 3) {
@@ -596,15 +609,21 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
             }
             break;
 
+        case DJI_MSP_PID_ADVANCED:
+            // TODO
+            reply->result = MSP_RESULT_ERROR;
+            break;
+
         case DJI_MSP_SET_FILTER_CONFIG:
         case DJI_MSP_SET_PID_ADVANCED:
         case DJI_MSP_SET_RC_TUNING:
+            // TODO
             reply->result = MSP_RESULT_ERROR;
             break;
 
         default:
-            debug[1]++;
-            debug[2] = cmd->cmd;
+            // debug[1]++;
+            // debug[2] = cmd->cmd;
             reply->result = MSP_RESULT_ERROR;
             break;
     }
