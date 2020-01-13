@@ -29,6 +29,8 @@
 #include "serial_uart.h"
 #include "serial_uart_impl.h"
 
+#include "stm32f7xx_ll_usart.h"
+
 #define UART_RX_BUFFER_SIZE UART1_RX_BUFFER_SIZE
 #define UART_TX_BUFFER_SIZE UART1_TX_BUFFER_SIZE
 
@@ -315,6 +317,14 @@ void uartIrqHandler(uartPort_t *s)
     /* UART in mode Transmitter (transmission end) -----------------------------*/
     if ((__HAL_UART_GET_IT(huart, UART_IT_TC) != RESET)) {
         HAL_UART_IRQHandler(huart);
+    }
+
+    if (__HAL_UART_GET_IT(huart, UART_IT_IDLE)) {
+        if (s->port.idleCallback) {
+            s->port.idleCallback();
+        }
+
+        __HAL_UART_CLEAR_IDLEFLAG(huart);
     }
 }
 

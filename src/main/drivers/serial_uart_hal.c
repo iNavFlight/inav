@@ -104,6 +104,9 @@ static void uartReconfigure(uartPort_t *uartPort)
 
         /* Enable the UART Data Register not empty Interrupt */
         SET_BIT(uartPort->USARTx->CR1, USART_CR1_RXNEIE);
+
+        /* Enable Idle Line detection */
+        SET_BIT(uartPort->USARTx->CR1, USART_CR1_IDLEIE);
     }
 
     // Transmit IRQ

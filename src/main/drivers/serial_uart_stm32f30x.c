@@ -369,6 +369,13 @@ void usartIrqHandler(uartPort_t *s)
     {
         USART_ClearITPendingBit (s->USARTx, USART_IT_ORE);
     }
+    if (ISR & USART_FLAG_IDLE) {
+        if (s->port.idleCallback) {
+            s->port.idleCallback();
+        }
+
+        USART_ClearITPendingBit(s->USARTx, USART_IT_IDLE);
+    }
 }
 
 #ifdef USE_UART1

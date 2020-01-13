@@ -237,6 +237,16 @@ void uartIrqHandler(uartPort_t *s)
     {
         USART_ClearITPendingBit (s->USARTx, USART_IT_ORE);
     }
+
+    if (USART_GetITStatus(s->USARTx, USART_IT_IDLE) == SET) {
+        if (s->port.idleCallback) {
+            s->port.idleCallback();
+        }
+
+        // clear
+        (void) s->USARTx->SR;
+        (void) s->USARTx->DR;
+    }
 }
 
 void uartGetPortPins(UARTDevice_e device, serialPortPins_t * pins)

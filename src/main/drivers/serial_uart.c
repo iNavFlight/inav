@@ -162,6 +162,7 @@ serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr rxCallbac
     if (mode & MODE_RX) {
         USART_ClearITPendingBit(s->USARTx, USART_IT_RXNE);
         USART_ITConfig(s->USARTx, USART_IT_RXNE, ENABLE);
+        USART_ITConfig(s->USARTx, USART_IT_IDLE, ENABLE);
     }
 
     if (mode & MODE_TX) {
