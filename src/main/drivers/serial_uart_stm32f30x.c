@@ -351,6 +351,11 @@ void usartIrqHandler(uartPort_t *s)
     }
 }
 
+void uartClearIdleFlag(uartPort_t *s)
+{
+    USART_ClearITPendingBit(s->USARTx, USART_IT_IDLE);
+}
+
 #ifdef USE_UART1
 void USART1_IRQHandler(void)
 {
