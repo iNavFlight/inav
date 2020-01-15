@@ -185,9 +185,11 @@ endif
 ifneq ($(SEMIHOSTING),)
 SEMIHOSTING_CFLAGS	= -DSEMIHOSTING
 SEMIHOSTING_LDFLAGS	= --specs=rdimon.specs -lc -lrdimon
+SYSLIB			:=
 else
 SEMIHOSTING_CFLAGS	=
 SEMIHOSTING_LDFLAGS	=
+SYSLIB			:= -lnosys
 endif
 
 DEBUG_FLAGS = -ggdb3 -DDEBUG
@@ -224,7 +226,7 @@ LDFLAGS     = -lm \
               -nostartfiles \
               --specs=nano.specs \
               -lc \
-              -lnosys \
+              $(SYSLIB) \
               $(ARCH_FLAGS) \
               $(LTO_FLAGS) \
               $(DEBUG_FLAGS) \
