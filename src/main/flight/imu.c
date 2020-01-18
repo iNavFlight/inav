@@ -408,9 +408,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
 
             // Rotate ACC from BF to EF and accumulate
             quaternionRotateVectorInv(&vAccEF, accBF, &orientation);
-
-            vectorScale(&vAccEF, &vAccEF, dt); //integrate 
-
+            vectorScale(&vAccEF, &vAccEF, dt);
             vectorAdd(&vVelEF_AccIntegal, &vVelEF_AccIntegal, &vAccEF);
             vVelEF_integralTime += dt;
 
@@ -429,17 +427,21 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
                 vectorScale(&vGravityCMSS, &vGravity, GRAVITY_CMSS);
                 vectorSub(&vTmp1, &vGravityCMSS, &vTmp1);
 
-                // Now vTmp1 is what the onboard accelerometer should have measured
-                // Calculate the actual accelerometer measuremens and calculate the error vector
-                const float vTmp1Length = sqrtf(vectorNormSquared(&vTmp1));
-                if (vTmp1Length > 0.01f) {
+                if (sqrtf(vectorNormSquared(&vTmp1)) > 0.01f) {
                     // Calculate acceleration by taking a derivative of acceleration integral
                     // This effectively calculates average acceleration, but in a way that's more immune to jitter
                     vectorScale(&vTmp2, &vVelEF_AccIntegal, 1.0f / vVelEF_integralTime);
 
+                    // At this point:
+                    //   vTmp1 - average G-A vector in Earth frame as seen by the accelerometer
+                    //   vTmp2 - average G-A in Earth frame as seen by GPS
+
+                    // For computing attitude we care only about direction of actual and measured gravity so we normalize both
+                    vectorNormalize(&vTmp1, &vTmp1);
+                    vectorNormalize(&vTmp2, &vTmp2);
+
                     // Calculate cross product between accelerometer and VelEF/dT
                     vectorCrossProduct(&vVelEF_errorVector, &vTmp2, &vTmp1);
-                    vectorScale(&vVelEF_errorVector, &vVelEF_errorVector, 1.0f / vTmp1Length);
 
                     // Rotate error vector back to body frame
                     quaternionRotateVector(&vVelEF_errorVector, &vVelEF_errorVector, &orientation);

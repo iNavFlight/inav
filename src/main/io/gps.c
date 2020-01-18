@@ -314,7 +314,7 @@ static bool gpsFakeGPSUpdate(void)
         ENABLE_STATE(GPS_FIX);
         sensorsSet(SENSOR_GPS);
         gpsUpdateTime();
-        onNewGPSData();
+        gpsNotifyNewData();
 
         gpsSetProtocolTimeout(GPS_TIMEOUT);
 
