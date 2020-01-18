@@ -405,12 +405,10 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
         if (velEF && vVelEF_initialized) {
             // We have valid velocity from GPS, use that to calculate correction vector
             fpVector3_t vAccEF;
-            vectorZero(&vAccEF);
 
             // Rotate ACC from BF to EF and accumulate
             quaternionRotateVectorInv(&vAccEF, accBF, &orientation);
 
-            vectorScale(&vAccEF, &vAccEF, 1.0f/980.0f); //scale g
             vectorScale(&vAccEF, &vAccEF, dt); //integrate 
 
             vectorAdd(&vVelEF_AccIntegal, &vVelEF_AccIntegal, &vAccEF);
@@ -419,27 +417,21 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
             // Now if we got a GPS update we can calculate error vector according to
             // the paper by Bill Premerlani (Roll-Pitch Gyro Drift Compensation)
             if (velEFNew) {
-                fpVector3_t vTmp1, vTmp2;
-                vectorZero(&vTmp1);
-                vectorZero(&vTmp2);
+                fpVector3_t vTmp1, vTmp2, vGravityCMSS;
 
                 // Calculate (V2 - V1) / (T2 - T1)
                 // Here T2-T1 = vVelEF_integralTime (accumulated time between two GPS updates, also time window we used to integrate accelerometer)
-             
-                fpVector3_t velEFLocal;
-
-                vectorScale(&velEFLocal, velEF, 1.0f);
-
-                vectorScale(&velEFLocal, &velEFLocal, 1.0f / 980.0f); //scale EF to match g scale
-
-                vectorSub(&vTmp1, &vVelEF_prev, &velEFLocal);
+                vectorSub(&vTmp1, &vVelEF_prev, velEF);
                 vectorScale(&vTmp1, &vTmp1, 1.0f / vVelEF_integralTime);
 
                 // Calculate Ge - (V2 - V1) / (T2 - T1)
-                vectorSub(&vTmp1, &vGravity, &vTmp1);
+                // Scale G vector to CMSS first, to match vVelEF units
+                vectorScale(&vGravityCMSS, &vGravity, GRAVITY_CMSS);
+                vectorSub(&vTmp1, &vGravityCMSS, &vTmp1);
 
+                // Now vTmp1 is what the onboard accelerometer should have measured
+                // Calculate the actual accelerometer measuremens and calculate the error vector
                 const float vTmp1Length = sqrtf(vectorNormSquared(&vTmp1));
-
                 if (vTmp1Length > 0.01f) {
                     // Calculate acceleration by taking a derivative of acceleration integral
                     // This effectively calculates average acceleration, but in a way that's more immune to jitter
@@ -460,7 +452,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
 
                 // Get ready for next GPS update
                 vectorZero(&vVelEF_AccIntegal);
-                vVelEF_prev = velEFLocal;
+                vVelEF_prev = *velEF;
                 vVelEF_integralTime = 0;
             }
 
