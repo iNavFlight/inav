@@ -405,9 +405,14 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
         if (velEF && vVelEF_initialized) {
             // We have valid velocity from GPS, use that to calculate correction vector
             fpVector3_t vAccEF;
+            vectorZero(&vAccEF);
 
             // Rotate ACC from BF to EF and accumulate
             quaternionRotateVectorInv(&vAccEF, accBF, &orientation);
+
+            vectorScale(&vAccEF, &vAccEF, 1.0f/980.0f); //scale g
+            vectorScale(&vAccEF, &vAccEF, dt); //integrate 
+
             vectorAdd(&vVelEF_AccIntegal, &vVelEF_AccIntegal, &vAccEF);
             vVelEF_integralTime += dt;
 
@@ -415,14 +420,24 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
             // the paper by Bill Premerlani (Roll-Pitch Gyro Drift Compensation)
             if (velEFNew) {
                 fpVector3_t vTmp1, vTmp2;
+                vectorZero(&vTmp1);
+                vectorZero(&vTmp2);
 
                 // Calculate (V2 - V1) / (T2 - T1)
                 // Here T2-T1 = vVelEF_integralTime (accumulated time between two GPS updates, also time window we used to integrate accelerometer)
-                vectorSub(&vTmp1, &vVelEF_prev, velEF);
+             
+                fpVector3_t velEFLocal;
+
+                vectorScale(&velEFLocal, velEF, 1.0f);
+
+                vectorScale(&velEFLocal, &velEFLocal, 1.0f / 980.0f); //scale EF to match g scale
+
+                vectorSub(&vTmp1, &vVelEF_prev, &velEFLocal);
                 vectorScale(&vTmp1, &vTmp1, 1.0f / vVelEF_integralTime);
 
                 // Calculate Ge - (V2 - V1) / (T2 - T1)
                 vectorSub(&vTmp1, &vGravity, &vTmp1);
+
                 const float vTmp1Length = sqrtf(vectorNormSquared(&vTmp1));
 
                 if (vTmp1Length > 0.01f) {
@@ -436,6 +451,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
 
                     // Rotate error vector back to body frame
                     quaternionRotateVector(&vVelEF_errorVector, &vVelEF_errorVector, &orientation);
+                    LOG_E(PWM, "UPDATE %f", (double)vVelEF_errorVector.x); 
                 }
                 else {
                     // Free fall. No way of figuring reference vector - keep error at zero
@@ -444,7 +460,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
 
                 // Get ready for next GPS update
                 vectorZero(&vVelEF_AccIntegal);
-                vVelEF_prev = *velEF;
+                vVelEF_prev = velEFLocal;
                 vVelEF_integralTime = 0;
             }
 
@@ -650,7 +666,7 @@ static void imuCalculateEstimatedAttitude(float dT)
     }
 #endif
 
-    bool useGPSVelEF = isImuHeadingValid() && sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.flags.validVelNE && gpsSol.flags.validVelD;
+    bool useGPSVelEF = isImuHeadingValid() && sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat>8 && gpsSol.flags.validVelNE && gpsSol.flags.validVelD;
     fpVector3_t gpsVelEF = { .v = { gpsSol.velNED[X], gpsSol.velNED[Y], gpsSol.velNED[Z] } };
     fpVector3_t measuredMagBF = { .v = { mag.magADC[X], mag.magADC[Y], mag.magADC[Z] } };
 
