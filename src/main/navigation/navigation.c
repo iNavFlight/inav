@@ -1711,8 +1711,17 @@ static fpVector3_t * rthGetHomeTargetPosition(rthTargetMode_e mode)
 // Implementation of PID with back-calculation I-term anti-windup
 // Control System Design, Lecture Notes for ME 155A by Karl Johan Åström (p.228)
 // http://www.cds.caltech.edu/~murray/courses/cds101/fa02/caltech/astrom-ch6.pdf
-float navPidApply3(pidController_t *pid, const float setpoint, const float measurement, const float dt, const float outMin, const float outMax, const pidControllerFlags_e pidFlags, const float gainScaler)
-{
+float navPidApply3(
+    pidController_t *pid, 
+    const float setpoint, 
+    const float measurement, 
+    const float dt, 
+    const float outMin, 
+    const float outMax, 
+    const pidControllerFlags_e pidFlags, 
+    const float gainScaler,
+    const float dTermScaler
+) {
     float newProportional, newDerivative, newFeedForward;
     float error = setpoint - measurement;
 
@@ -1736,10 +1745,12 @@ float navPidApply3(pidController_t *pid, const float setpoint, const float measu
     }
 
     if (pid->dTermLpfHz > 0) {
-        newDerivative = pid->param.kD * pt1FilterApply4(&pid->dterm_filter_state, newDerivative, pid->dTermLpfHz, dt) * gainScaler;
+        newDerivative = pid->param.kD * pt1FilterApply4(&pid->dterm_filter_state, newDerivative, pid->dTermLpfHz, dt);
     } else {
         newDerivative = pid->param.kD * newDerivative;
     }
+
+    newDerivative = newDerivative * gainScaler * dTermScaler;
 
     if (pidFlags & PID_ZERO_INTEGRATOR) {
         pid->integrator = 0.0f;
@@ -1780,7 +1791,7 @@ float navPidApply3(pidController_t *pid, const float setpoint, const float measu
 
 float navPidApply2(pidController_t *pid, const float setpoint, const float measurement, const float dt, const float outMin, const float outMax, const pidControllerFlags_e pidFlags)
 {
-    return navPidApply3(pid, setpoint, measurement, dt, outMin, outMax, pidFlags, 1.0f);
+    return navPidApply3(pid, setpoint, measurement, dt, outMin, outMax, pidFlags, 1.0f, 1.0f);
 }
 
 void navPidReset(pidController_t *pid)

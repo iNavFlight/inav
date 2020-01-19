@@ -1203,6 +1203,18 @@ groups:
         field: navVelXyDTermLpfHz
         min: 0
         max: 100
+      - name: nav_mc_vel_xy_dterm_dyn_scale
+        field: navVelXyDtermDynScale
+        min: 0
+        max: 1
+      - name: nav_mc_vel_xy_dterm_dyn_scale_min_at
+        field: navVelXyDtermDynScaleMinAt
+        min: 0
+        max: 1
+      - name: nav_mc_vel_xy_dterm_dyn_scale_max_at
+        field: navVelXyDtermDynScaleMaxAt
+        min: 0
+        max: 1
       - name: nav_fw_pos_z_p
         field: bank_fw.pid[PID_POS_Z].P
         condition: USE_NAV

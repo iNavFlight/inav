@@ -137,7 +137,9 @@ typedef struct pidProfile_s {
 
     uint8_t     loiter_direction;               // Direction of loitering center point on right wing (clockwise - as before), or center point on left wing (counterclockwise)
     float       navVelXyDTermLpfHz;
-
+    float       navVelXyDtermDynScale;          // VEL_XY dynamic Dterm scale: Dterm will be attenuated by this value when velocity is at navVelXyDtermMaxAt and 1.0 when velocity is at navVelXyDtermMinAt   
+    float       navVelXyDtermDynScaleMinAt;     // VEL_XY dynamic Dterm scale: Dterm will be scaled down fully to navVelXyDtermDynScale when velocity in setpoint and measurement is above this value. It is a factor of max. velocity processed by the controller
+    float       navVelXyDtermDynScaleMaxAt;     // VEL_XY dynamic Dterm scale: Dterm will be not scaled when velocity in setpoint and measurement is below this value. It is a factor of max. velocity processed by the controller
     uint8_t iterm_relax_type;               // Specifies type of relax algorithm
     uint8_t iterm_relax_cutoff;             // This cutoff frequency specifies a low pass filter which predicts average response of the quad to setpoint
     uint8_t iterm_relax;                    // Enable iterm suppression during stick input
