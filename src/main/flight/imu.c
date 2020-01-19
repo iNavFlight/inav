@@ -419,7 +419,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
 
                 // Calculate (V2 - V1) / (T2 - T1)
                 // Here T2-T1 = vVelEF_integralTime (accumulated time between two GPS updates, also time window we used to integrate accelerometer)
-                vectorSub(&vTmp1, &vVelEF_prev, velEF);
+                vectorSub(&vTmp1, velEF, &vVelEF_prev);
                 vectorScale(&vTmp1, &vTmp1, 1.0f / vVelEF_integralTime);
 
                 // Calculate Ge - (V2 - V1) / (T2 - T1)
@@ -445,7 +445,6 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
 
                     // Rotate error vector back to body frame
                     quaternionRotateVector(&vVelEF_errorVector, &vVelEF_errorVector, &orientation);
-                    LOG_E(PWM, "UPDATE %f", (double)vVelEF_errorVector.x); 
                 }
                 else {
                     // Free fall. No way of figuring reference vector - keep error at zero
