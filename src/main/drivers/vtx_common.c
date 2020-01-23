@@ -23,130 +23,204 @@
 #include <string.h>
 
 #include "platform.h"
-#include "build/debug.h"
 
-#include "vtx_common.h"
+#include "common/time.h"
+#include "drivers/vtx_common.h"
+#include "drivers/vtx_table.h"
 
-static vtxDevice_t *commonVtxDevice = NULL;
+
+static vtxDevice_t *vtxDevice = NULL;
+static uint8_t selectedBand = 0;
+static uint8_t selectedChannel = 0;
 
 void vtxCommonInit(void)
 {
 }
 
-void vtxCommonSetDevice(vtxDevice_t *vtxDevice)
+void vtxCommonSetDevice(vtxDevice_t *pDevice)
 {
-    commonVtxDevice = vtxDevice;
+    vtxDevice = pDevice;
 }
 
 vtxDevice_t *vtxCommonDevice(void)
 {
-    return commonVtxDevice;
+    return vtxDevice;
 }
 
-void vtxCommonProcess(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
+vtxDevType_e vtxCommonGetDeviceType(const vtxDevice_t *vtxDevice)
 {
-    if (vtxDevice && vtxDevice->vTable->process) {
-        vtxDevice->vTable->process(vtxDevice, currentTimeUs);
-    }
-}
-
-vtxDevType_e vtxCommonGetDeviceType(vtxDevice_t *vtxDevice)
-{
-    if (!vtxDevice || !vtxDevice->vTable->getDeviceType) {
+    if (!vtxDevice) {
         return VTXDEV_UNKNOWN;
     }
-
     return vtxDevice->vTable->getDeviceType(vtxDevice);
 }
 
-bool vtxCommonDeviceIsReady(vtxDevice_t *vtxDevice)
+bool vtxCommonDeviceIsReady(const vtxDevice_t *vtxDevice)
 {
     if (vtxDevice && vtxDevice->vTable->isReady) {
         return vtxDevice->vTable->isReady(vtxDevice);
     }
+
     return false;
+}
+
+void vtxCommonProcess(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
+{
+    if (vtxDevice) {
+        vtxDevice->vTable->process(vtxDevice, currentTimeUs);
+    }
 }
 
 // band and channel are 1 origin
 void vtxCommonSetBandAndChannel(vtxDevice_t *vtxDevice, uint8_t band, uint8_t channel)
 {
-    if (!vtxDevice)
-        return;
-
-    if ((band > vtxDevice->capability.bandCount) || (channel > vtxDevice->capability.channelCount))
-        return;
-
-    if (vtxDevice->vTable->setBandAndChannel) {
-        vtxDevice->vTable->setBandAndChannel(vtxDevice, band, channel);
+    uint16_t freq = vtxCommonLookupFrequency(vtxDevice, band, channel);
+        if (freq != 0) {
+            selectedChannel = channel;
+            selectedBand = band;
+            if (vtxTableIsFactoryBand[band - 1]) {
+                vtxDevice->vTable->setBandAndChannel(vtxDevice, band, channel);
+            } else {
+                vtxDevice->vTable->setFrequency(vtxDevice, freq);
+            }
     }
 }
 
-// index is zero origin, zero = power off completely
+// index is one origin, zero = unknown power level
 void vtxCommonSetPowerByIndex(vtxDevice_t *vtxDevice, uint8_t index)
 {
-    if (!vtxDevice)
-        return;
-
-    if (index > vtxDevice->capability.powerCount)
-        return;
-
-    if (vtxDevice->vTable->setPowerByIndex) {
+    if (index <= vtxTablePowerLevels) {
         vtxDevice->vTable->setPowerByIndex(vtxDevice, index);
     }
 }
 
 // on = 1, off = 0
-void vtxCommonSetPitMode(vtxDevice_t *vtxDevice, uint8_t onoff)
+void vtxCommonSetPitMode(vtxDevice_t *vtxDevice, uint8_t onOff)
 {
-    if (vtxDevice && vtxDevice->vTable->setPitMode) {
-        vtxDevice->vTable->setPitMode(vtxDevice, onoff);
-    }
+    vtxDevice->vTable->setPitMode(vtxDevice, onOff);
 }
 
 void vtxCommonSetFrequency(vtxDevice_t *vtxDevice, uint16_t frequency)
 {
-    if (vtxDevice && vtxDevice->vTable->setFrequency) {
-        vtxDevice->vTable->setFrequency(vtxDevice, frequency);
+    selectedBand = 0;
+    selectedChannel = 0;
+    vtxDevice->vTable->setFrequency(vtxDevice, frequency);
+}
+
+bool vtxCommonGetBandAndChannel(const vtxDevice_t *vtxDevice, uint8_t *pBand, uint8_t *pChannel)
+{
+    bool result = vtxDevice->vTable->getBandAndChannel(vtxDevice, pBand, pChannel);
+    if ((!result || (*pBand == 0 && *pChannel == 0)) && selectedBand != 0 && selectedChannel != 0
+        && !vtxTableIsFactoryBand[selectedBand - 1]) {
+        uint16_t freq;
+        result = vtxCommonGetFrequency(vtxDevice, &freq);
+        if (!result || freq != vtxCommonLookupFrequency(vtxDevice, selectedBand, selectedChannel)) {
+            return false;
+        } else {
+            *pBand = selectedBand;
+            *pChannel = selectedChannel;
+            return true;
+        }
+    } else {
+        return result;
     }
 }
 
-bool vtxCommonGetBandAndChannel(vtxDevice_t *vtxDevice, uint8_t *pBand, uint8_t *pChannel)
+bool vtxCommonGetPowerIndex(const vtxDevice_t *vtxDevice, uint8_t *pIndex)
 {
-    if (vtxDevice && vtxDevice->vTable->getBandAndChannel) {
-        return vtxDevice->vTable->getBandAndChannel(vtxDevice, pBand, pChannel);
-    }
-    return false;
+    return vtxDevice->vTable->getPowerIndex(vtxDevice, pIndex);
 }
 
-bool vtxCommonGetPowerIndex(vtxDevice_t *vtxDevice, uint8_t *pIndex)
+bool vtxCommonGetPitMode(const vtxDevice_t *vtxDevice, uint8_t *pOnOff)
 {
-    if (vtxDevice && vtxDevice->vTable->getPowerIndex) {
-        return vtxDevice->vTable->getPowerIndex(vtxDevice, pIndex);
-    }
-    return false;
-}
-
-bool vtxCommonGetPitMode(vtxDevice_t *vtxDevice, uint8_t *pOnOff)
-{
-    if (vtxDevice && vtxDevice->vTable->getPitMode) {
-        return vtxDevice->vTable->getPitMode(vtxDevice, pOnOff);
-    }
-    return false;
+    return vtxDevice->vTable->getPitMode(vtxDevice, pOnOff);
 }
 
 bool vtxCommonGetFrequency(const vtxDevice_t *vtxDevice, uint16_t *pFrequency)
 {
-    if (vtxDevice && vtxDevice->vTable->getFrequency) {
-        return vtxDevice->vTable->getFrequency(vtxDevice, pFrequency);
+    return vtxDevice->vTable->getFrequency(vtxDevice, pFrequency);
+}
+
+const char *vtxCommonLookupBandName(const vtxDevice_t *vtxDevice, int band)
+{
+    if (vtxDevice && band > 0 && band <= vtxTableBandCount) {
+        return vtxTableBandNames[band];
+    } else {
+        return "?";
     }
+}
+
+char vtxCommonLookupBandLetter(const vtxDevice_t *vtxDevice, int band)
+{
+    if (vtxDevice && band > 0 && band <= vtxTableBandCount) {
+        return vtxTableBandLetters[band];
+    } else {
+        return '?';
+    }
+}
+
+const char *vtxCommonLookupChannelName(const vtxDevice_t *vtxDevice, int channel)
+{
+    if (vtxDevice && channel > 0 && channel <= vtxTableChannelCount) {
+        return vtxTableChannelNames[channel];
+    } else {
+        return "?";
+    }
+}
+
+//Converts frequency (in MHz) to band and channel values.
+bool vtxCommonLookupBandChan(const vtxDevice_t *vtxDevice, uint16_t freq, uint8_t *pBand, uint8_t *pChannel)
+{
+    if (vtxDevice) {
+        // Use reverse lookup order so that 5880Mhz
+        // get Raceband 7 instead of Fatshark 8.
+        for (int band = vtxTableBandCount - 1 ; band >= 0 ; band--) {
+            for (int channel = 0 ; channel < vtxTableChannelCount; channel++) {
+                if (vtxTableFrequency[band][channel] == freq) {
+                    *pBand = band + 1;
+                    *pChannel = channel + 1;
+                    return true;
+                }
+            }
+        }
+    }
+
+    *pBand = 0;
+    *pChannel = 0;
+
     return false;
 }
 
-bool vtxCommonGetDeviceCapability(vtxDevice_t *vtxDevice, vtxDeviceCapability_t *pDeviceCapability)
+//Converts band and channel values to a frequency (in MHz) value.
+// band:  Band value (1 to 5).
+// channel:  Channel value (1 to 8).
+// Returns frequency value (in MHz), or 0 if band/channel out of range.
+uint16_t vtxCommonLookupFrequency(const vtxDevice_t *vtxDevice, int band, int channel)
 {
     if (vtxDevice) {
-        memcpy(pDeviceCapability, &vtxDevice->capability, sizeof(vtxDeviceCapability_t));
-        return true;
+        if (band > 0 && band <= vtxTableBandCount &&
+            channel > 0 && channel <= vtxTableChannelCount) {
+            return vtxTableFrequency[band - 1][channel - 1];
+        }
     }
-    return false;
+    return 0;
+}
+
+const char *vtxCommonLookupPowerName(const vtxDevice_t *vtxDevice, int index)
+{
+    if (vtxDevice && index > 0 && index <= vtxTablePowerLevels) {
+        return vtxTablePowerLabels[index];
+    } else {
+        return "?";
+    }
+}
+
+bool vtxCommonLookupPowerValue(const vtxDevice_t *vtxDevice, int index, uint16_t *pPowerValue)
+{
+    if (vtxDevice && index > 0 && index <= vtxTablePowerLevels) {
+        *pPowerValue = vtxTablePowerValues[index - 1];
+        return true;
+    } else {
+        return false;
+    }
 }

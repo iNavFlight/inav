@@ -25,6 +25,7 @@
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
 
+#include <drivers/vtx_table.h>
 #include "drivers/vtx_common.h"
 #include "drivers/light_led.h"
 #include "drivers/system.h"
@@ -131,25 +132,24 @@ void vtxCycleBandOrChannel(const uint8_t bandStep, const uint8_t channelStep)
     }
 
     uint8_t band = 0, channel = 0;
-    vtxDeviceCapability_t capability;
 
-    bool haveAllNeededInfo = vtxCommonGetBandAndChannel(vtxDevice, &band, &channel) && vtxCommonGetDeviceCapability(vtxDevice, &capability);
+    bool haveAllNeededInfo = vtxCommonGetBandAndChannel(vtxDevice, &band, &channel);
     if (!haveAllNeededInfo) {
         return;
     }
 
     int newChannel = channel + channelStep;
-    if (newChannel > capability.channelCount) {
+    if (newChannel > vtxTableChannelCount) {
         newChannel = 1;
     } else if (newChannel < 1) {
-        newChannel = capability.channelCount;
+        newChannel = vtxTableChannelCount;
     }
 
     int newBand = band + bandStep;
-    if (newBand > capability.bandCount) {
+    if (newBand > vtxTableBandCount) {
         newBand = 1;
     } else if (newBand < 1) {
-        newBand = capability.bandCount;
+        newBand = vtxTableBandCount;
     }
 
     vtxCommonSetBandAndChannel(vtxDevice, newBand, newChannel);
@@ -164,22 +164,20 @@ void vtxCyclePower(const uint8_t powerStep)
     }
 
     uint8_t power = 0;
-    vtxDeviceCapability_t capability;
 
-    bool haveAllNeededInfo = vtxCommonGetPowerIndex(vtxDevice, &power) && vtxCommonGetDeviceCapability(vtxDevice, &capability);
+    bool haveAllNeededInfo = vtxCommonGetPowerIndex(vtxDevice, &power);
     if (!haveAllNeededInfo) {
         return;
     }
 
     int newPower = power + powerStep;
-    if (newPower >= capability.powerCount) {
+    if (newPower >= vtxTablePowerLevels) {
         newPower = 0;
     } else if (newPower < 0) {
-        newPower = capability.powerCount;
+        newPower = vtxTablePowerLevels;
     }
 
     vtxCommonSetPowerByIndex(vtxDevice, newPower);
 }
 
 #endif
-

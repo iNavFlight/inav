@@ -21,3 +21,4 @@
 #include "cms/cms_types.h"
 
 extern const CMS_Menu cmsx_menuVtxFFPV;
+void ffpvCmsUpdateStatusString(void);

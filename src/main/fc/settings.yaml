@@ -2062,20 +2062,20 @@ groups:
 
   - name: PG_VTX_SETTINGS_CONFIG
     type: vtxSettingsConfig_t
-    headers: ["drivers/vtx_common.h", "io/vtx.h"]
+    headers: ["drivers/vtx_common.h", "io/vtx.h", "drivers/vtx_table.h"]
     members:
       - name: vtx_band
         field: band
-        min: VTX_SETTINGS_NO_BAND
-        max: VTX_SETTINGS_MAX_BAND
+        min: VTX_TABLE_NO_BAND
+        max: VTX_TABLE_MAX_BANDS 
       - name: vtx_channel
         field: channel
-        min: VTX_SETTINGS_MIN_CHANNEL
-        max: VTX_SETTINGS_MAX_CHANNEL
+        min: VTX_TABLE_MIN_CHANNELS
+        max: VTX_TABLE_MAX_CHANNELS 
       - name: vtx_power
         field: power
-        min: VTX_SETTINGS_MIN_POWER
-        max: VTX_SETTINGS_MAX_POWER
+        min: VTX_TABLE_MIN_POWER_LEVELS
+        max: VTX_TABLE_MAX_POWER_LEVELS_COUNT
       - name: vtx_low_power_disarm
         field: lowPowerDisarm
         table: vtx_low_power_disarm

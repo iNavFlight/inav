@@ -26,15 +26,9 @@
 #include "platform.h"
 
 #define VTX_SMARTAUDIO_MIN_BAND 1
-#define VTX_SMARTAUDIO_MAX_BAND 5
 #define VTX_SMARTAUDIO_MIN_CHANNEL 1
-#define VTX_SMARTAUDIO_MAX_CHANNEL 8
-
-#define VTX_SMARTAUDIO_BAND_COUNT (VTX_SMARTAUDIO_MAX_BAND - VTX_SMARTAUDIO_MIN_BAND + 1)
-#define VTX_SMARTAUDIO_CHANNEL_COUNT (VTX_SMARTAUDIO_MAX_CHANNEL - VTX_SMARTAUDIO_MIN_CHANNEL + 1)
 
 #define VTX_SMARTAUDIO_POWER_COUNT 4
-#define VTX_SMARTAUDIO_DEFAULT_POWER 1
 
 #define VTX_SMARTAUDIO_MIN_FREQUENCY_MHZ 5000        //min freq in MHz
 #define VTX_SMARTAUDIO_MAX_FREQUENCY_MHZ 5999        //max freq in MHz
@@ -69,13 +63,8 @@ typedef struct smartAudioDevice_s {
     int8_t mode;
     uint16_t freq;
     uint16_t orfreq;
+    bool willBootIntoPitMode;
 } smartAudioDevice_t;
-
-typedef struct saPowerTable_s {
-    int rfpower;
-    int16_t valueV1;
-    int16_t valueV2;
-} saPowerTable_t;
 
 typedef struct smartAudioStat_s {
     uint16_t pktsent;
@@ -88,17 +77,12 @@ typedef struct smartAudioStat_s {
 } smartAudioStat_t;
 
 extern smartAudioDevice_t saDevice;
-extern saPowerTable_t saPowerTable[];
-extern const char * const saPowerNames[];
 extern smartAudioStat_t saStat;
 
 extern uint16_t sa_smartbaud;
 extern bool saDeferred;
 
-int saDacToPowerIndex(int dac);
-void saSetBandAndChannel(uint8_t band, uint8_t channel);
 void saSetMode(int mode);
-void saSetPowerByIndex(uint8_t index);
 void saSetFreq(uint16_t freq);
 void saSetPitFreq(uint16_t freq);
 bool vtxSmartAudioInit(void);

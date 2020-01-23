@@ -35,18 +35,18 @@
 
 #include "drivers/time.h"
 #include "drivers/vtx_common.h"
+#include "drivers/vtx_table.h"
 
 #include "common/maths.h"
 #include "common/utils.h"
 
 #include "scheduler/protothreads.h"
 
-//#include "cms/cms_menu_vtx_ffpv24g.h"
+#include "cms/cms_menu_vtx_ffpv.h"
 
 #include "io/vtx.h"
 #include "io/vtx_ffpv24g.h"
 #include "io/vtx_control.h"
-#include "io/vtx_string.h"
 #include "io/serial.h"
 
 
@@ -106,14 +106,13 @@ typedef struct {
     bool         pktReceived;
 } vtxProtoState_t;
 
-/*****************************************************************************/
-const char * const ffpvBandNames[VTX_FFPV_BAND_COUNT + 1] = {
-    "--------",
-    "FFPV 2.4 A",
-    "FFPV 2.4 B",
+#if defined(USE_CMS) && !defined(USE_VTX_TABLE)
+const char * ffpvBandNames[VTX_FFPV_BAND_COUNT] = {
+    "2.4_A",
+    "2.4_B",
 };
 
-const char * ffpvBandLetters = "-AB";
+const char * ffpvBandLetters = "AB";
 
 const uint16_t ffpvFrequencyTable[VTX_FFPV_BAND_COUNT][VTX_FFPV_CHANNEL_COUNT] =
 {
@@ -121,20 +120,20 @@ const uint16_t ffpvFrequencyTable[VTX_FFPV_BAND_COUNT][VTX_FFPV_CHANNEL_COUNT] =
     { 2414, 2432, 2450, 2468, 2411, 2433, 2453, 2473 }, // FFPV 2.4 A
 };
 
-const char * const ffpvChannelNames[VTX_FFPV_CHANNEL_COUNT + 1] = {
-    "-", "1", "2", "3", "4", "5", "6", "7", "8",
+const char * ffpvChannelNames[VTX_FFPV_CHANNEL_COUNT] = {
+    "1", "2", "3", "4", "5", "6", "7", "8",
 };
 
-const char * const ffpvPowerNames[VTX_FFPV_POWER_COUNT + 1] = {
-    "---", "25 ", "200", "500", "800"
+const char * ffpvPowerLabels[VTX_FFPV_POWER_COUNT] = {
+    "25 ", "200", "500", "800"
 };
 
-const unsigned ffpvPowerTable[VTX_FFPV_POWER_COUNT] = {
+const unsigned ffpvPowerValues[VTX_FFPV_POWER_COUNT] = {
     25, 200, 500, 800
 };
+#endif
 
 
-/*******************************************************************************/
 static serialPort_t * vtxSerialPort = NULL;
 static vtxProtoState_t vtxState;
 
@@ -328,6 +327,10 @@ static void impl_Process(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
     if (ptIsStopped(ptGetHandle(impl_VtxProtocolThread))) {
         ptRestart(ptGetHandle(impl_VtxProtocolThread));
     }
+
+#ifdef USE_CMS
+    ffpvCmsUpdateStatusString();
+#endif
 }
 
 static vtxDevType_e impl_GetDeviceType(const vtxDevice_t *vtxDevice)
@@ -370,7 +373,7 @@ void ffpvSetBandAndChannel(uint8_t band, uint8_t channel)
         return;
     }
 
-    if (impl_DevSetFreq(ffpvFrequencyTable[band - 1][channel - 1])) {
+    if (impl_DevSetFreq(vtxTableFrequency[band][channel])) {
         // Keep track of band/channel data
         vtxState.request.setByFrequency = false;
         vtxState.request.band = band;
@@ -385,27 +388,14 @@ static void impl_SetBandAndChannel(vtxDevice_t * vtxDevice, uint8_t band, uint8_
     ffpvSetBandAndChannel(band, channel);
 }
 
-void ffpvSetRFPowerByIndex(uint16_t index)
-{
-    // Validate index
-    if (index < 1 || index > VTX_FFPV_POWER_COUNT) {
-        return;
-    }
-
-    const unsigned power = ffpvPowerTable[index - 1];
-    if (!vtxState.ready || power < vtxState.capabilities.powerMin || power > vtxState.capabilities.powerMax) {
-        return;
-    }
-
-    vtxState.request.power = power;
-    vtxState.request.powerIndex = index;
-    vtxState.updateReqMask |= VTX_UPDATE_REQ_POWER;
-}
-
 static void impl_SetPowerByIndex(vtxDevice_t * vtxDevice, uint8_t index)
 {
-    UNUSED(vtxDevice);
-    ffpvSetRFPowerByIndex(index);
+    uint16_t powerValue = 0;
+    if (vtxCommonLookupPowerValue(vtxDevice, index, &powerValue)) {
+        vtxState.request.power = powerValue;
+        vtxState.request.powerIndex = index - 1;
+        vtxState.updateReqMask |= VTX_UPDATE_REQ_POWER;
+    }
 }
 
 static void impl_SetPitMode(vtxDevice_t *vtxDevice, uint8_t onoff)
@@ -433,7 +423,14 @@ static bool impl_GetPowerIndex(const vtxDevice_t *vtxDevice, uint8_t *pIndex)
         return false;
     }
 
-    *pIndex = vtxState.request.powerIndex;
+    if (vtxState.request.power > 0) {
+        for (int i = 0; i < vtxTablePowerLevels; i++) {
+           if (vtxState.request.power <= vtxTablePowerValues[i]) {
+               *pIndex = i + 1;
+               break;
+           }
+        }
+    }
 
     return true;
 }
@@ -475,7 +472,7 @@ vtxRunState_t * ffpvGetRuntimeState(void)
         state.pitMode = 0;
         state.band = 1;
         state.channel = 1;
-        state.frequency = ffpvFrequencyTable[0][0];
+        state.frequency = vtxTableFrequency[0][0];
         state.powerIndex = 1;
         state.powerMilliwatt = 25;
     }
@@ -498,13 +495,7 @@ static const vtxVTable_t impl_vtxVTable = {
 };
 
 static vtxDevice_t impl_vtxDevice = {
-    .vTable = &impl_vtxVTable,
-    .capability.bandCount = VTX_FFPV_BAND_COUNT,
-    .capability.channelCount = VTX_FFPV_CHANNEL_COUNT,
-    .capability.powerCount = VTX_FFPV_POWER_COUNT,
-    .bandNames = (char **)ffpvBandNames,
-    .channelNames = (char **)ffpvChannelNames,
-    .powerNames = (char **)ffpvPowerNames,
+    .vTable = &impl_vtxVTable
 };
 
 bool vtxFuriousFPVInit(void)
@@ -522,6 +513,33 @@ bool vtxFuriousFPVInit(void)
     }
 
     vtxCommonSetDevice(&impl_vtxDevice);
+
+#ifndef USE_VTX_TABLE
+    // load default settings
+    vtxTableBandCount = VTX_FFPV_BAND_COUNT;
+    vtxTableChannelCount = VTX_FFPV_CHANNEL_COUNT;
+    for (int band = 0; band < VTX_FFPV_BAND_COUNT; band++) {
+        for (int channel = 0; channel < VTX_FFPV_CHANNEL_COUNT; channel++) {
+            vtxTableFrequency = ffpvFrequencyTable[band][channel];
+        }
+        vtxTableBandNames[band + 1] = ffpvBandNames[band];
+        vtxTableBandLetters[band + 1] = ffpvBandLetters[band];
+        vtxTableIsFactoryBand[band] = true;
+    }
+
+    for (int channel = 0; channel < VTX_FFPV_CHANNEL_COUNT; channel++) {
+        vtxTableChannelNames[channel + 1] = ffpvChannelNames[channel];
+    }
+
+    vtxTablePowerLevels = VTX_FFPV_POWER_COUNT;
+    for (int level = 0; level < VTX_FFPV_POWER_COUNT; level++) {
+        vtxTablePowerValues[level] = ffpvPowerValues[level];
+        vtxTablePowerLabels[level + 1] = ffpvPowerNames[level];
+    }
+
+#endif
+
+    vtxInit();
 
     ptRestart(ptGetHandle(impl_VtxProtocolThread));
 

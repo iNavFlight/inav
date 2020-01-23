@@ -37,19 +37,19 @@
 #include "cms/cms_menu_vtx_tramp.h"
 
 #include "drivers/vtx_common.h"
+#include "drivers/vtx_table.h"
 
 #include "io/serial.h"
 #include "io/vtx_tramp.h"
 #include "io/vtx_control.h"
 #include "io/vtx.h"
-#include "io/vtx_string.h"
 
-#if defined(USE_CMS)
+#if defined(USE_CMS) && !defined(USE_VTX_TABLE)
 const uint16_t trampPowerTable[VTX_TRAMP_POWER_COUNT] = {
     25, 100, 200, 400, 600
 };
 
-const char * const trampPowerNames[VTX_TRAMP_POWER_COUNT+1] = {
+const char *trampPowerNames[VTX_TRAMP_POWER_COUNT + 1] = {
     "---", "25 ", "100", "200", "400", "600"
 };
 #endif
@@ -57,12 +57,6 @@ const char * const trampPowerNames[VTX_TRAMP_POWER_COUNT+1] = {
 static const vtxVTable_t trampVTable; // forward
 static vtxDevice_t vtxTramp = {
     .vTable = &trampVTable,
-    .capability.bandCount = VTX_TRAMP_BAND_COUNT,
-    .capability.channelCount = VTX_TRAMP_CHANNEL_COUNT,
-    .capability.powerCount = VTX_TRAMP_POWER_COUNT,
-    .bandNames = (char **)vtx58BandNames,
-    .channelNames = (char **)vtx58ChannelNames,
-    .powerNames = (char **)trampPowerNames,
 };
 
 static serialPort_t *trampSerialPort = NULL;
@@ -141,30 +135,12 @@ static void trampDevSetFreq(uint16_t freq)
 
 void trampSetFreq(uint16_t freq)
 {
-    trampData.setByFreqFlag = true;         //set freq via MHz value
     trampDevSetFreq(freq);
 }
 
 void trampSendFreq(uint16_t freq)
 {
     trampCmdU16('F', freq);
-}
-
-static bool trampValidateBandAndChannel(uint8_t band, uint8_t channel)
-{
-    return (band >= VTX_TRAMP_MIN_BAND && band <= VTX_TRAMP_MAX_BAND &&
-            channel >= VTX_TRAMP_MIN_CHANNEL && channel <= VTX_TRAMP_MAX_CHANNEL);
-}
-
-static void trampDevSetBandAndChannel(uint8_t band, uint8_t channel)
-{
-    trampDevSetFreq(vtx58_Bandchan2Freq(band, channel));
-}
-
-void trampSetBandAndChannel(uint8_t band, uint8_t channel)
-{
-    trampData.setByFreqFlag = false;        //set freq via band/channel
-    trampDevSetBandAndChannel(band, channel);
 }
 
 void trampSetRFPower(uint16_t level)
@@ -189,17 +165,6 @@ bool trampCommitChanges(void)
 
     trampStatus = TRAMP_STATUS_SET_FREQ_PW;
     return true;
-}
-
-// return false if index out of range
-static bool trampDevSetPowerByIndex(uint8_t index)
-{
-    if (index > 0 && index <= VTX_TRAMP_POWER_COUNT) {
-        trampSetRFPower(trampPowerTable[index - 1]);
-        trampCommitChanges();
-        return true;
-    }
-    return false;
 }
 
 void trampSetPitMode(uint8_t onoff)
@@ -235,11 +200,6 @@ char trampHandleResponse(void)
                 trampData.configuredPower = trampRespBuffer[4]|(trampRespBuffer[5] << 8);
                 trampData.pitMode = trampRespBuffer[7];
                 trampData.power = trampRespBuffer[8]|(trampRespBuffer[9] << 8);
-
-                // if no band/chan match then make sure set-by-freq mode is flagged
-                if (!vtx58_Freq2Bandchan(trampData.curFreq, &trampData.band, &trampData.channel)) {
-                    trampData.setByFreqFlag = true;
-                }
 
                 if (trampConfFreq == 0)  trampConfFreq  = trampData.curFreq;
                 if (trampConfPower == 0) trampConfPower = trampData.power;
@@ -474,6 +434,11 @@ static void vtxTrampProcess(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
     debug[2] = debugPowReqCounter;
     debug[3] = 0;
 #endif
+
+#ifdef USE_CMS
+    trampCmsUpdateStatusString();
+#endif
+
 }
 
 
@@ -487,22 +452,24 @@ static vtxDevType_e vtxTrampGetDeviceType(const vtxDevice_t *vtxDevice)
 
 static bool vtxTrampIsReady(const vtxDevice_t *vtxDevice)
 {
-    return vtxDevice!=NULL && trampStatus > TRAMP_STATUS_OFFLINE;
+    return vtxDevice != NULL && trampStatus > TRAMP_STATUS_OFFLINE;
 }
 
 static void vtxTrampSetBandAndChannel(vtxDevice_t *vtxDevice, uint8_t band, uint8_t channel)
 {
     UNUSED(vtxDevice);
-    if (trampValidateBandAndChannel(band, channel)) {
-        trampSetBandAndChannel(band, channel);
-        trampCommitChanges();
-    }
+    UNUSED(band);
+    UNUSED(channel);
+    //tramp does not support band/channel mode, only frequency
 }
 
 static void vtxTrampSetPowerByIndex(vtxDevice_t *vtxDevice, uint8_t index)
 {
-    UNUSED(vtxDevice);
-    trampDevSetPowerByIndex(index);
+    uint16_t powerValue = 0;
+    if (vtxCommonLookupPowerValue(vtxDevice, index, &powerValue)) {
+        trampSetRFPower(powerValue);
+        trampCommitChanges();
+    }
 }
 
 static void vtxTrampSetPitMode(vtxDevice_t *vtxDevice, uint8_t onoff)
@@ -526,9 +493,9 @@ static bool vtxTrampGetBandAndChannel(const vtxDevice_t *vtxDevice, uint8_t *pBa
         return false;
     }
 
-    // if in user-freq mode then report band as zero
-    *pBand = trampData.setByFreqFlag ? 0 : trampData.band;
-    *pChannel = trampData.channel;
+    // tramp does not support band and channel
+    *pBand = 0;
+    *pChannel = 0;
     return true;
 }
 
@@ -539,8 +506,8 @@ static bool vtxTrampGetPowerIndex(const vtxDevice_t *vtxDevice, uint8_t *pIndex)
     }
 
     if (trampData.configuredPower > 0) {
-        for (uint8_t i = 0; i < sizeof(trampPowerTable); i++) {
-            if (trampData.configuredPower <= trampPowerTable[i]) {
+        for (uint8_t i = 0; i < vtxTablePowerLevels; i++) {
+            if (trampData.configuredPower <= vtxTablePowerValues[i]) {
                 *pIndex = i + 1;
                 break;
             }
@@ -602,7 +569,22 @@ bool vtxTrampInit(void)
 
     vtxCommonSetDevice(&vtxTramp);
 
+#ifndef USE_VTX_TABLE
+    //without USE_VTX_TABLE, fill vtxTable variables with default settings (instead of loading them from PG)
+    vtxTablePowerLevels = VTX_TRAMP_POWER_COUNT;
+    for (int i = 0; i < VTX_TRAMP_POWER_COUNT + 1; i++) {
+        vtxTablePowerLabels[i] = trampPowerNames[i];
+    }
+    for (int i = 0; i < VTX_TRAMP_POWER_COUNT; i++) {
+        vtxTablePowerValues[i] = trampPowerTable[i];
+    }
+
+#endif
+
+    vtxInit();
+
     return true;
+
 }
 
 #endif // VTX_TRAMP

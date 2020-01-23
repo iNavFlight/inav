@@ -30,6 +30,7 @@ COMMON_SRC = \
             config/feature.c \
             config/parameter_group.c \
             config/general_settings.c \
+            config/vtx_table.c \
             drivers/adc.c \
             drivers/buf_writer.c \
             drivers/bus.c \
@@ -173,6 +174,7 @@ COMMON_SRC = \
             drivers/opflow/opflow_fake.c \
             drivers/opflow/opflow_virtual.c \
             drivers/vtx_common.c \
+            drivers/vtx_table.c \
             io/rangefinder_msp.c \
             io/rangefinder_benewake.c \
             io/opflow_cxof.c \
@@ -218,7 +220,6 @@ COMMON_SRC = \
             telemetry/sim.c \
             telemetry/telemetry.c \
             io/vtx.c \
-            io/vtx_string.c \
             io/vtx_smartaudio.c \
             io/vtx_tramp.c \
             io/vtx_ffpv24g.c \

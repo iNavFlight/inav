@@ -32,7 +32,7 @@
 #include "common/logic_condition.h"
 
 #include "io/vtx.h"
-#include "drivers/vtx_common.h"
+#include "drivers/vtx_table.h"
 
 #ifdef USE_GLOBAL_FUNCTIONS
 
@@ -92,10 +92,7 @@ void globalFunctionsProcess(int8_t functionId) {
                 break;
             case GLOBAL_FUNCTION_ACTION_SET_VTX_POWER_LEVEL:
                 if (conditionValue && !previousValue) {
-                    vtxDeviceCapability_t vtxDeviceCapability;
-                    if (vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
-                        vtxSettingsConfigMutable()->power = constrain(globalFunctionsStates[functionId].value, VTX_SETTINGS_MIN_POWER, vtxDeviceCapability.powerCount);
-                    }
+                    vtxSettingsConfigMutable()->power = constrain(globalFunctionsStates[functionId].value, VTX_TABLE_MIN_POWER_LEVELS, vtxTablePowerLevels);
                 }
                 break;
             case GLOBAL_FUNCTION_ACTION_INVERT_ROLL:

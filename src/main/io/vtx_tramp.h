@@ -19,27 +19,14 @@
 
 #include <stdint.h>
 
-#define VTX_TRAMP_MIN_BAND 1
-#define VTX_TRAMP_MAX_BAND 5
-#define VTX_TRAMP_MIN_CHANNEL 1
-#define VTX_TRAMP_MAX_CHANNEL 8
-
-#define VTX_TRAMP_BAND_COUNT (VTX_TRAMP_MAX_BAND - VTX_TRAMP_MIN_BAND + 1)
-#define VTX_TRAMP_CHANNEL_COUNT (VTX_TRAMP_MAX_CHANNEL - VTX_TRAMP_MIN_CHANNEL + 1)
-
 #define VTX_TRAMP_POWER_COUNT 5
 #define VTX_TRAMP_DEFAULT_POWER 1
 
 #define VTX_TRAMP_MIN_FREQUENCY_MHZ 5000             //min freq in MHz
 #define VTX_TRAMP_MAX_FREQUENCY_MHZ 5999             //max freq in MHz
 
-extern const uint16_t trampPowerTable[VTX_TRAMP_POWER_COUNT];
-extern const char * const trampPowerNames[VTX_TRAMP_POWER_COUNT+1];
-
 typedef struct trampData_s {
     bool setByFreqFlag;  //false = set via band/channel
-    uint8_t band;
-    uint8_t channel;
     uint16_t power;       // Actual transmitting power
     uint16_t curFreq;
     uint16_t configuredPower; // Configured transmitting power

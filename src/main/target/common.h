@@ -155,6 +155,7 @@
 
 //Enable VTX control
 #define USE_VTX_CONTROL
+#define USE_VTX_TABLE
 #define USE_VTX_SMARTAUDIO
 #define USE_VTX_TRAMP
 #define USE_VTX_FFPV

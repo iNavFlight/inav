@@ -34,6 +34,7 @@
 
 #include "drivers/time.h"
 #include "drivers/vtx_common.h"
+#include "drivers/vtx_table.h"
 
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
@@ -549,12 +550,7 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
             applyAdjustmentU16(ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE, &mixerConfigMutable()->fwMinThrottleDownPitchAngle, delta, 0, FW_MIN_THROTTLE_DOWN_PITCH_ANGLE_MAX);
             break;
         case ADJUSTMENT_VTX_POWER_LEVEL:
-            {
-                vtxDeviceCapability_t vtxDeviceCapability;
-                if (vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
-                    applyAdjustmentU8(ADJUSTMENT_VTX_POWER_LEVEL, &vtxSettingsConfigMutable()->power, delta, VTX_SETTINGS_MIN_POWER, vtxDeviceCapability.powerCount);
-                }
-            }
+            applyAdjustmentU8(ADJUSTMENT_VTX_POWER_LEVEL, &vtxSettingsConfigMutable()->power, delta, VTX_TABLE_MIN_POWER_LEVELS, vtxTablePowerLevels);
             break;
         default:
             break;

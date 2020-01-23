@@ -21,3 +21,5 @@
 #include "cms/cms_types.h"
 
 extern const CMS_Menu cmsx_menuVtxTramp;
+
+void trampCmsUpdateStatusString(void);

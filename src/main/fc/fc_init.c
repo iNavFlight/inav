@@ -76,11 +76,13 @@
 #include "drivers/io_pca9685.h"
 #include "drivers/vtx_rtc6705.h"
 #include "drivers/vtx_common.h"
+#include "drivers/vtx_table.h"
 #ifdef USE_USB_MSC
 #include "drivers/usb_msc.h"
 #include "msc/emfat_file.h"
 #endif
 #include "drivers/sdcard/sdcard.h"
+
 
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -639,9 +641,9 @@ void init(void)
 #endif
 
 #if defined(USE_VTX_CONTROL)
+    vtxTableInit();
     vtxControlInit();
     vtxCommonInit();
-    vtxInit();
 
 #ifdef USE_VTX_SMARTAUDIO
     vtxSmartAudioInit();

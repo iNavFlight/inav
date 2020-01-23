@@ -68,7 +68,6 @@
 #include "io/osd_common.h"
 #include "io/osd_hud.h"
 #include "io/vtx.h"
-#include "io/vtx_string.h"
 
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
@@ -1691,9 +1690,10 @@ static bool osdDrawSingleElement(uint8_t item)
             uint8_t channel = 0;
             char bandChr = '-';
             const char *channelStr = "-";
-            if (vtxCommonGetBandAndChannel(vtxCommonDevice(), &band, &channel)) {
-                bandChr = vtx58BandLetter[band];
-                channelStr = vtx58ChannelNames[channel];
+            vtxDevice_t *vtxDevice = vtxCommonDevice();
+            if (vtxCommonGetBandAndChannel(vtxDevice, &band, &channel)) {
+               bandChr = vtxCommonLookupBandLetter(vtxDevice, band);
+               channelStr = vtxCommonLookupChannelName(vtxDevice, channel);
             }
             tfp_sprintf(buff, "CH:%c%s:", bandChr, channelStr);
             displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
