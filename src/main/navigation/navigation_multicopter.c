@@ -524,6 +524,9 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     const float setpointNormalized = constrainf(scaleRangef(fabsf(setpointXY), 0, maxSpeed, 0.0f, 1.0f), 0.0f, 1.0f);
     const float measurementNormalized = constrainf(scaleRangef(fabsf(measurementXY), 0, maxSpeed, 0.0f, 1.0f), 0.0f, 1.0f);
 
+    DEBUG_SET(DEBUG_ALWAYS, 0, setpointNormalized * 100);
+    DEBUG_SET(DEBUG_ALWAYS, 1, measurementNormalized * 100);
+
     /* 
      * Map normalized speed of setpoint and measurement between 1.0f and nav_mc_vel_xy_dterm_dyn_scale
      * 1.0f means that Dterm is not attenuated
@@ -534,8 +537,12 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     const float setpointScale = constrainf(scaleRangef(setpointNormalized, pidProfile()->navVelXyDtermDynScaleMinAt, pidProfile()->navVelXyDtermDynScaleMaxAt, 1.0f, pidProfile()->navVelXyDtermDynScale), pidProfile()->navVelXyDtermDynScale, 1.0f);
     const float measurementScale = constrainf(scaleRangef(measurementNormalized, pidProfile()->navVelXyDtermDynScaleMinAt, pidProfile()->navVelXyDtermDynScaleMaxAt, 1.0f, pidProfile()->navVelXyDtermDynScale), pidProfile()->navVelXyDtermDynScale, 1.0f);
 
+    DEBUG_SET(DEBUG_ALWAYS, 2, setpointScale * 100);
+    DEBUG_SET(DEBUG_ALWAYS, 3, measurementScale * 100);
+
     //Use the higher scaling factor from the two above
     const float dtermScale = MAX(setpointScale, measurementScale);
+    DEBUG_SET(DEBUG_ALWAYS, 4, dtermScale * 100);
 
     // Apply PID with output limiting and I-term anti-windup
     // Pre-calculated accelLimit and the logic of navPidApply2 function guarantee that our newAccel won't exceed maxAccelLimit
