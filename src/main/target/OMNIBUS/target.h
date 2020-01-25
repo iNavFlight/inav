@@ -63,6 +63,7 @@
 
 // Disable certain features to save flash space
 #undef USE_GPS_PROTO_MTK
+#undef USE
 
 #define USB_CABLE_DETECTION
 #define USB_DETECT_PIN          PB5
