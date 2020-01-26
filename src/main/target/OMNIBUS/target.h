@@ -61,9 +61,12 @@
 // #define USE_MAG_LIS3MDL
 // #define USE_MAG_AK8975
 
-// Disable certain features to save flash space
+// Disable certain features to save ram and flash space
 #undef USE_GPS_PROTO_MTK
 #undef USE_VTX_TABLE
+#undef USE_PITOT
+#undef USE_PITOT_ADC
+#undef USE_TELEMETRY_FRSKY
 
 #define USB_CABLE_DETECTION
 #define USB_DETECT_PIN          PB5

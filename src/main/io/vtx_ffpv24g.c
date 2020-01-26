@@ -520,7 +520,7 @@ bool vtxFuriousFPVInit(void)
     vtxTableChannelCount = VTX_FFPV_CHANNEL_COUNT;
     for (int band = 0; band < VTX_FFPV_BAND_COUNT; band++) {
         for (int channel = 0; channel < VTX_FFPV_CHANNEL_COUNT; channel++) {
-            vtxTableFrequency = ffpvFrequencyTable[band][channel];
+            vtxTableFrequency[band][channel] = ffpvFrequencyTable[band][channel];
         }
         vtxTableBandNames[band + 1] = ffpvBandNames[band];
         vtxTableBandLetters[band + 1] = ffpvBandLetters[band];
@@ -534,7 +534,7 @@ bool vtxFuriousFPVInit(void)
     vtxTablePowerLevels = VTX_FFPV_POWER_COUNT;
     for (int level = 0; level < VTX_FFPV_POWER_COUNT; level++) {
         vtxTablePowerValues[level] = ffpvPowerValues[level];
-        vtxTablePowerLabels[level + 1] = ffpvPowerNames[level];
+        vtxTablePowerLabels[level + 1] = ffpvPowerLabels[level];
     }
 
 #endif
