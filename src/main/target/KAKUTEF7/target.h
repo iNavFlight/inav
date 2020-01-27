@@ -172,6 +172,9 @@
 #define SERIALRX_UART           SERIAL_PORT_USART6
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 
+#define USE_LED_STRIP
+#define WS2811_PIN                      PD12   //TIM4_CH1
+
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #define TARGET_IO_PORTA 0xffff
