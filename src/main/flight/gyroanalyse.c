@@ -35,6 +35,7 @@
 #include "common/maths.h"
 #include "common/time.h"
 #include "common/utils.h"
+#include "config/feature.h"
 
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/time.h"
@@ -138,12 +139,12 @@ void gyroDataAnalysePush(gyroAnalyseState_t *state, const int axis, const float 
     state->oversampledGyroAccumulator[axis] += sample;
 }
 
-static void gyroDataAnalyseUpdate(gyroAnalyseState_t *state, biquadFilter_t *notchFilterDyn, biquadFilter_t *notchFilterDyn2);
+static void gyroDataAnalyseUpdate(gyroAnalyseState_t *state);
 
 /*
  * Collect gyro data, to be analysed in gyroDataAnalyseUpdate function
  */
-void gyroDataAnalyse(gyroAnalyseState_t *state, biquadFilter_t *notchFilterDyn, biquadFilter_t *notchFilterDyn2)
+void gyroDataAnalyse(gyroAnalyseState_t *state)
 {
     // samples should have been pushed by `gyroDataAnalysePush`
     // if gyro sampling is > 1kHz, accumulate multiple samples
@@ -169,7 +170,7 @@ void gyroDataAnalyse(gyroAnalyseState_t *state, biquadFilter_t *notchFilterDyn, 
 
     // calculate FFT and update filters
     if (state->updateTicks > 0) {
-        gyroDataAnalyseUpdate(state, notchFilterDyn, notchFilterDyn2);
+        gyroDataAnalyseUpdate(state);
         --state->updateTicks;
     }
 }
@@ -183,7 +184,7 @@ void arm_bitreversal_32(uint32_t *pSrc, const uint16_t bitRevLen, const uint16_t
 /*
  * Analyse last gyro data from the last FFT_WINDOW_SIZE milliseconds
  */
-static NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state, biquadFilter_t *notchFilterDyn, biquadFilter_t *notchFilterDyn2)
+static NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
 {
     enum {
         STEP_ARM_CFFT_F32,
@@ -307,13 +308,16 @@ static NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state, biquadFilt
             // 7us
             // calculate cutoffFreq and notch Q, update notch filter  =1.8+((A2-150)*0.004)
             if (state->prevCenterFreq[state->updateAxis] != state->centerFreq[state->updateAxis]) {
-                
-                if (dualNotch) {
-                    biquadFilterUpdate(&notchFilterDyn[state->updateAxis], state->centerFreq[state->updateAxis] * dynNotch1Ctr, getLooptime(), dynNotchQ, FILTER_NOTCH);
-                    biquadFilterUpdate(&notchFilterDyn2[state->updateAxis], state->centerFreq[state->updateAxis] * dynNotch2Ctr, getLooptime(), dynNotchQ, FILTER_NOTCH);
-                } else {
-                    biquadFilterUpdate(&notchFilterDyn[state->updateAxis], state->centerFreq[state->updateAxis], getLooptime(), dynNotchQ, FILTER_NOTCH);
-                }
+                //FIXME make classic dynamic filter configurable
+                // if (dualNotch) {
+                //     biquadFilterUpdate(&state->notchFilterDyn[state->updateAxis], state->centerFreq[state->updateAxis] * dynNotch1Ctr, getLooptime(), dynNotchQ, FILTER_NOTCH);
+                //     biquadFilterUpdate(&state->notchFilterDyn2[state->updateAxis], state->centerFreq[state->updateAxis] * dynNotch2Ctr, getLooptime(), dynNotchQ, FILTER_NOTCH);
+                // } else {
+                //     biquadFilterUpdate(&state->notchFilterDyn[state->updateAxis], state->centerFreq[state->updateAxis], getLooptime(), dynNotchQ, FILTER_NOTCH);
+                // }
+                biquadFilterUpdate(&state->extendedDynamicFilter[0][state->updateAxis], state->centerFreq[state->updateAxis], getLooptime(), dynNotchQ, FILTER_NOTCH);
+                biquadFilterUpdate(&state->extendedDynamicFilter[1][state->updateAxis], state->centerFreq[state->updateAxis], getLooptime(), dynNotchQ, FILTER_NOTCH);
+                biquadFilterUpdate(&state->extendedDynamicFilter[2][state->updateAxis], state->centerFreq[state->updateAxis], getLooptime(), dynNotchQ, FILTER_NOTCH);
             }
 
             state->updateAxis = (state->updateAxis + 1) % XYZ_AXIS_COUNT;
@@ -343,6 +347,47 @@ uint16_t getMaxFFT(void) {
 
 void resetMaxFFT(void) {
     dynNotchMaxFFT = 0;
+}
+
+void dynamicFiltersInit(gyroAnalyseState_t *gyroAnalyse) {
+    gyroAnalyse->notchFilterDynApplyFn = nullFilterApply;
+    gyroAnalyse->notchFilterDynApplyFn2 = nullFilterApply;
+    gyroAnalyse->extendedDynamicFilterApplyFn = nullFilterApply;
+
+    if (feature(FEATURE_DYNAMIC_FILTERS)) {
+
+        const float notchQ = filterGetNotchQ(DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, DYNAMIC_NOTCH_DEFAULT_CUTOFF_HZ); // any defaults OK here
+        
+        //FIXME classic filters disabled by default - make it configurable
+        // gyroAnalyse->notchFilterDynApplyFn = (filterApplyFnPtr)biquadFilterApplyDF1; // must be this function, not DF2
+        // if(gyroConfig()->dyn_notch_width_percent != 0) {
+        //     gyroAnalyse->notchFilterDynApplyFn2 = (filterApplyFnPtr)biquadFilterApplyDF1; // must be this function, not DF2
+        // }
+        // for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        //     biquadFilterInit(&gyroAnalyse->notchFilterDyn[axis], DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, getLooptime(), notchQ, FILTER_NOTCH);
+        //     biquadFilterInit(&gyroAnalyse->notchFilterDyn2[axis], DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, getLooptime(), notchQ, FILTER_NOTCH);
+        // }
+
+        gyroAnalyse->extendedDynamicFilterApplyFn = (filterApplyFnPtr)biquadFilterApplyDF1;
+        for (int gyroAxis = 0; gyroAxis < XYZ_AXIS_COUNT; gyroAxis++) {
+            for (int analyzedAxis = 0; analyzedAxis < XYZ_AXIS_COUNT; analyzedAxis++) {
+                biquadFilterInit(&gyroAnalyse->extendedDynamicFilter[gyroAxis][analyzedAxis], DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, getLooptime(), notchQ, FILTER_NOTCH);
+            }
+        }
+    }
+}
+
+float dynamicFiltersApply(gyroAnalyseState_t *gyroAnalyse, uint8_t axis, float input) {
+
+    float output = input; 
+
+    // output = notchFilterDynApplyFn((filter_t *)&notchFilterDyn[axis], output);
+    // output = notchFilterDynApplyFn2((filter_t *)&notchFilterDyn2[axis], output);
+    output = gyroAnalyse->extendedDynamicFilterApplyFn((filter_t *)&gyroAnalyse->extendedDynamicFilter[axis][0], output);
+    output = gyroAnalyse->extendedDynamicFilterApplyFn((filter_t *)&gyroAnalyse->extendedDynamicFilter[axis][1], output);
+    output = gyroAnalyse->extendedDynamicFilterApplyFn((filter_t *)&gyroAnalyse->extendedDynamicFilter[axis][2], output);
+
+    return output;
 }
 
 #endif // USE_DYNAMIC_FILTERS

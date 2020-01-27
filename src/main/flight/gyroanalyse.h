@@ -28,6 +28,9 @@
 // max for F3 targets
 #define FFT_WINDOW_SIZE 32
 
+#define DYNAMIC_NOTCH_DEFAULT_CENTER_HZ 350
+#define DYNAMIC_NOTCH_DEFAULT_CUTOFF_HZ 300
+
 typedef struct gyroAnalyseState_s {
     // accumulator for oversampled data => no aliasing and less noise
     uint8_t sampleCount;
@@ -51,13 +54,36 @@ typedef struct gyroAnalyseState_s {
     biquadFilter_t detectedFrequencyFilter[XYZ_AXIS_COUNT];
     uint16_t centerFreq[XYZ_AXIS_COUNT];
     uint16_t prevCenterFreq[XYZ_AXIS_COUNT];
+
+    filterApplyFnPtr notchFilterDynApplyFn;
+    filterApplyFnPtr notchFilterDynApplyFn2;
+    biquadFilter_t notchFilterDyn[XYZ_AXIS_COUNT];
+    biquadFilter_t notchFilterDyn2[XYZ_AXIS_COUNT];
+
+    /*
+     * Extended Dynamic Filtets are 3x3 filter matrix
+     * In this approach, we assume that vibration peak on one axis
+     * can be also detected on other axises, but with lower amplitude
+     * that causes this freqency not to be attenuated.
+     * 
+     * This approach is similiar to the approach on RPM filter when motor base
+     * frequency is attenuated on every axis even tho it might not be appearing
+     * in gyro traces
+     * 
+     * extendedDynamicFilter[GYRO_AXIS][ANALYZED_AXIS]
+     * 
+     */
+    biquadFilter_t extendedDynamicFilter[XYZ_AXIS_COUNT][XYZ_AXIS_COUNT];
+    filterApplyFnPtr extendedDynamicFilterApplyFn;
 } gyroAnalyseState_t;
 
 STATIC_ASSERT(FFT_WINDOW_SIZE <= (uint8_t) -1, window_size_greater_than_underlying_type);
 
 void gyroDataAnalyseStateInit(gyroAnalyseState_t *gyroAnalyse, uint32_t targetLooptime);
 void gyroDataAnalysePush(gyroAnalyseState_t *gyroAnalyse, int axis, float sample);
-void gyroDataAnalyse(gyroAnalyseState_t *gyroAnalyse, biquadFilter_t *notchFilterDyn, biquadFilter_t *notchFilterDyn2);
+void gyroDataAnalyse(gyroAnalyseState_t *gyroAnalyse);
 uint16_t getMaxFFT(void);
 void resetMaxFFT(void);
+void dynamicFiltersInit(gyroAnalyseState_t *gyroAnalyse);
+float dynamicFiltersApply(gyroAnalyseState_t *gyroAnalyse, uint8_t axis, float input);
 #endif
