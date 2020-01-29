@@ -402,8 +402,8 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
                 int len = strlen(name);
                 if (len > 12) len = 12;
                 sbufWriteData(dst, name, len);
-           }
-	   break;
+            }
+	    break;
 
         case DJI_MSP_STATUS:
         case DJI_MSP_STATUS_EX:
