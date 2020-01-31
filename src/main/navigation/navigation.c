@@ -1367,7 +1367,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
     /* A helper function to do waypoint-specific action */
     UNUSED(previousState);
 
-    switch (posControl.waypointList[posControl.activeWaypointIndex].action) {
+    switch ((navWaypointActions_e)posControl.waypointList[posControl.activeWaypointIndex].action) {
         case NAV_WP_ACTION_WAYPOINT:
             calculateAndSetActiveWaypoint(&posControl.waypointList[posControl.activeWaypointIndex]);
             posControl.wpInitialDistance = calculateDistanceToDestination(&posControl.activeWaypoint.pos);
@@ -1375,12 +1375,13 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
             return NAV_FSM_EVENT_SUCCESS;       // will switch to NAV_STATE_WAYPOINT_IN_PROGRESS
 
         case NAV_WP_ACTION_RTH:
-        default:
             posControl.rthState.rthInitialDistance = posControl.homeDistance;
             initializeRTHSanityChecker(&navGetCurrentActualPositionAndVelocity()->pos);
             calculateAndSetActiveWaypointToLocalPosition(rthGetHomeTargetPosition(RTH_HOME_ENROUTE_INITIAL));
             return NAV_FSM_EVENT_SUCCESS;       // will switch to NAV_STATE_WAYPOINT_IN_PROGRESS
     };
+
+    UNREACHABLE();
 }
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_IN_PROGRESS(navigationFSMState_t previousState)
@@ -1389,9 +1390,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_IN_PROGRESS(na
 
     // If no position sensor available - land immediately
     if ((posControl.flags.estPosStatus >= EST_USABLE) && (posControl.flags.estHeadingStatus >= EST_USABLE)) {
-        switch (posControl.waypointList[posControl.activeWaypointIndex].action) {
+        switch ((navWaypointActions_e)posControl.waypointList[posControl.activeWaypointIndex].action) {
             case NAV_WP_ACTION_WAYPOINT:
-            default:
                 if (isWaypointReached(&posControl.activeWaypoint, false) || isWaypointMissed(&posControl.activeWaypoint)) {
                     return NAV_FSM_EVENT_SUCCESS;   // will switch to NAV_STATE_WAYPOINT_REACHED
                 }
@@ -1426,13 +1426,18 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_IN_PROGRESS(na
     else {
         return NAV_FSM_EVENT_NONE;      // will re-process state in >10ms
     }
+
+    UNREACHABLE();
 }
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_REACHED(navigationFSMState_t previousState)
 {
     UNUSED(previousState);
 
-    switch (posControl.waypointList[posControl.activeWaypointIndex].action) {
+    switch ((navWaypointActions_e)posControl.waypointList[posControl.activeWaypointIndex].action) {
+        case NAV_WP_ACTION_WAYPOINT:
+            return NAV_FSM_EVENT_SUCCESS;   // NAV_STATE_WAYPOINT_NEXT
+
         case NAV_WP_ACTION_RTH:
             if (posControl.waypointList[posControl.activeWaypointIndex].p1 != 0) {
                 return NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_RTH_LAND;
@@ -1440,10 +1445,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_REACHED(naviga
             else {
                 return NAV_FSM_EVENT_SUCCESS;   // NAV_STATE_WAYPOINT_NEXT
             }
-
-        default:
-            return NAV_FSM_EVENT_SUCCESS;   // NAV_STATE_WAYPOINT_NEXT
     }
+
+    UNREACHABLE();
 }
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_RTH_LAND(navigationFSMState_t previousState)
