@@ -327,7 +327,6 @@ void rxInit(void)
 
         default:
         case RX_TYPE_NONE:
-        case RX_TYPE_PWM:
             rxConfigMutable()->receiverType = RX_TYPE_NONE;
             rxRuntimeConfig.rcReadRawFn = nullReadRawRC;
             rxRuntimeConfig.rcFrameStatusFn = nullFrameStatus;
