@@ -8,7 +8,7 @@ This provides a simple and intuitive debugging facility. This facility is only a
 
 ## CLI settings
 
-It is necessary to set a serial port for serial logging using the function mask `FUNCTION_LOG`, 32768. For convenience this may be shared with MSP (mask 1), but no other function. 
+It is necessary to set a serial port for serial logging using the function mask `FUNCTION_LOG`, 32768. For convenience this may be shared with MSP (mask 1), but no other function.
 For example, on a VCP port.
 
 ```
@@ -44,7 +44,7 @@ These are used at both compile time and run time.
 
 At compile time, a maximum level may be defined. As of iNav 2.3, for F3 targets the maximum level is ERROR, for F4/F7 the maximum level is DEBUG.
 
-At run time, the level defines the level that will be displayed, so for a F4 or F7 target, than has compile time suport for all log levels, if the CLI sets
+At run time, the level defines the level that will be displayed, so for a F4 or F7 target that has compile time suport for all log levels, if the CLI sets
 ```
 log_level = INFO
 ```
@@ -68,7 +68,7 @@ Log levels are defined in `src/main/common/log.h`, at the time of writing:
 
 Topics are stored as masks (SYSTEM=1 ... OSD=1024) and may be used to unconditionally display log messages.
 
-If the CLI `log_topics` is non-zero, then all topics matching the mask will be displayed regardless of `log_level`. Setting `log_topics` to 4294967295 (all bits set) will display all log messages regardless of run time level (but still constrained by compile time settings, so F3 will still only display ERROR level messages.
+If the CLI `log_topics` is non-zero, then all topics matching the mask will be displayed regardless of `log_level`. Setting `log_topics` to 4294967295 (all bits set) will display all log messages regardless of run time level (but still constrained by compile time settings), so F3 will still only display ERROR level messages.
 
 ## Code usage
 
@@ -92,7 +92,7 @@ LOG_BUF_D(TEMPERATURE, &tstruct, sizeof(tstruct));
 
 ## Output Support
 
-Log messages are transmitted through the `FUNCTION_LOG` serial port as MSP messages (`MSP_DEBUGMSG`). It is possible to use any serial terminal to display these messages, however it is advisable to use an application that understands `MSP_DEBUGMSG` in order to maintain readability (in a raw serial terminal the MSP message envelope may display strange characters). `MSP_DEBUGMSG` aware applications include:
+Log messages are transmitted through the `FUNCTION_LOG` serial port as MSP messages (`MSP_DEBUGMSG`). It is possible to use any serial terminal to display these messages, however it is advisable to use an application that understands `MSP_DEBUGMSG` in order to maintain readability (in a raw serial terminal the MSP message envelope may result in the display of strange characters). `MSP_DEBUGMSG` aware applications include:
 
 * msp-tool https://github.com/fiam/msp-tool
 * mwp https://github.com/stronnag/mwptools
