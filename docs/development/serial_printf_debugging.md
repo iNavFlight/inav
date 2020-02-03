@@ -1,4 +1,4 @@
-# Serial Printf style debugging
+# Serial printf style debugging
 
 ## Overview
 
