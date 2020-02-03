@@ -96,7 +96,7 @@ Log messages are transmitted through the `FUNCTION_LOG` serial port as MSP messa
 
 * msp-tool https://github.com/fiam/msp-tool
 * mwp https://github.com/stronnag/mwptools
-* ?iNav Configurator?
+* iNav Configurator
 
 For example, with the final lines of `src/main/fc/fc_init.c` set to:
 
@@ -118,7 +118,7 @@ The output will be formatted as follows:
 ```
 # msp-tool
 [DEBUG] [     3.967] Init is complete
-# mwp
+# mwp (stderr log file)
 2020-02-02T19:09:02+0000 DEBUG:[     3.968] Init is complete
 ```
 
