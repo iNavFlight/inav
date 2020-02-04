@@ -190,7 +190,7 @@ void telemetryProcess(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs); // since not used by all the telemetry protocols
 
-    #if defined(USE_TELEMETRY_FRSKY)
+#if defined(USE_TELEMETRY_FRSKY)
     handleFrSkyTelemetry();
 #endif
 
@@ -214,7 +214,7 @@ void telemetryProcess(timeUs_t currentTimeUs)
     handleJetiExBusTelemetry();
 #endif
 
-#if defined(USE_TELEMETRY_IBUS)
+#if defined(USE_SERIALRX_IBUS) && defined(USE_TELEMETRY_IBUS)
     handleIbusTelemetry();
 #endif
 
