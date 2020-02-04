@@ -41,7 +41,7 @@ typedef enum {
     FEATURE_TX_PROF_SEL = 1 << 2,       // Profile selection by TX stick command
     FEATURE_BAT_PROFILE_AUTOSWITCH = 1 << 3,
     FEATURE_MOTOR_STOP = 1 << 4,
-    FEATURE_DYNAMIC_FILTERS = 1 << 5,   // was FEATURE_SERVO_TILT
+    FEATURE_UNUSED_1 = 1 << 5,   // was FEATURE_SERVO_TILT was FEATURE_DYNAMIC_FILTERS
     FEATURE_SOFTSERIAL = 1 << 6,
     FEATURE_GPS = 1 << 7,
     FEATURE_UNUSED_3 = 1 << 8,        // was FEATURE_FAILSAFE

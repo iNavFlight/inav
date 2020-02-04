@@ -447,7 +447,7 @@ void FAST_CODE NOINLINE gyroUpdate()
         gyroADCf = notchFilter2ApplyFn(notchFilter2[axis], gyroADCf);
 
 #ifdef USE_DYNAMIC_FILTERS
-        if (feature(FEATURE_DYNAMIC_FILTERS)) {
+        if (dynamicGyroNotchState.filterType) {
             gyroDataAnalysePush(&gyroAnalyseState, axis, gyroADCf);
             gyroADCf = dynamicGyroNotchFiltersApply(&dynamicGyroNotchState, axis, gyroADCf);
         }
@@ -456,7 +456,7 @@ void FAST_CODE NOINLINE gyroUpdate()
     }
 
 #ifdef USE_DYNAMIC_FILTERS
-    if (feature(FEATURE_DYNAMIC_FILTERS)) {
+    if (dynamicGyroNotchState.filterType) {
         gyroDataAnalyse(&gyroAnalyseState);
 
         if (gyroAnalyseState.filterUpdateExecute) {

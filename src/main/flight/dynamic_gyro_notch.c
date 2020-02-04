@@ -38,6 +38,9 @@ void dynamicGyroNotchFiltersInit(dynamicGyroNotchState_t *state) {
 
     state->dynNotchQ = gyroConfig()->dyn_notch_q / 100.0f;
     state->filterType = gyroConfig()->dynamicGyroNotchType;
+    state->dynNotch1Ctr = 1 - gyroConfig()->dyn_notch_width_percent / 100.0f;
+    state->dynNotch2Ctr = 1 + gyroConfig()->dyn_notch_width_percent / 100.0f;
+    state->looptime = getLooptime();
 
     if (state->filterType != DYNAMIC_GYRO_NOTCH_OFF) {
         const float notchQ = filterGetNotchQ(DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, DYNAMIC_NOTCH_DEFAULT_CUTOFF_HZ); // any defaults OK here
@@ -46,9 +49,9 @@ void dynamicGyroNotchFiltersInit(dynamicGyroNotchState_t *state) {
          * Step 1 - init all filters even if they will not be used further down the road
          */
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            biquadFilterInit(&state->filters[axis][0], DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, getLooptime(), notchQ, FILTER_NOTCH);
-            biquadFilterInit(&state->filters[axis][1], DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, getLooptime(), notchQ, FILTER_NOTCH);
-            biquadFilterInit(&state->filters[axis][2], DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, getLooptime(), notchQ, FILTER_NOTCH);
+            biquadFilterInit(&state->filters[axis][0], DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, state->looptime, notchQ, FILTER_NOTCH);
+            biquadFilterInit(&state->filters[axis][1], DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, state->looptime, notchQ, FILTER_NOTCH);
+            biquadFilterInit(&state->filters[axis][2], DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, state->looptime, notchQ, FILTER_NOTCH);
         }
 
         /*
@@ -73,14 +76,14 @@ void dynamicGyroNotchFiltersUpdate(dynamicGyroNotchState_t *state, int axis, uin
     state->frequency[axis] = frequency;
 
     if (state->filterType == DYNAMIC_GYRO_NOTCH_SINGLE) {
-        biquadFilterUpdate(&state->filters[axis][0], frequency, getLooptime(), state->dynNotchQ, FILTER_NOTCH);
+        biquadFilterUpdate(&state->filters[axis][0], frequency, state->looptime, state->dynNotchQ, FILTER_NOTCH);
     } else if (state->filterType == DYNAMIC_GYRO_NOTCH_DUAL) {
-        biquadFilterUpdate(&state->filters[axis][0], frequency * dynNotch1Ctr, getLooptime(), state->dynNotchQ, FILTER_NOTCH);
-        biquadFilterUpdate(&state->filters[axis][1], frequency * dynNotch2Ctr, getLooptime(), state->dynNotchQ, FILTER_NOTCH);
+        biquadFilterUpdate(&state->filters[axis][0], frequency * state->dynNotch1Ctr, state->looptime, state->dynNotchQ, FILTER_NOTCH);
+        biquadFilterUpdate(&state->filters[axis][1], frequency * state->dynNotch2Ctr, state->looptime, state->dynNotchQ, FILTER_NOTCH);
     } else if (state->filterType == DYNAMIC_GYRO_NOTCH_MATRIX) {
-        biquadFilterUpdate(&state->filters[0][axis], frequency, getLooptime(), state->dynNotchQ, FILTER_NOTCH);
-        biquadFilterUpdate(&state->filters[1][axis], frequency, getLooptime(), state->dynNotchQ, FILTER_NOTCH);
-        biquadFilterUpdate(&state->filters[2][axis], frequency, getLooptime(), state->dynNotchQ, FILTER_NOTCH);
+        biquadFilterUpdate(&state->filters[0][axis], frequency, state->looptime, state->dynNotchQ, FILTER_NOTCH);
+        biquadFilterUpdate(&state->filters[1][axis], frequency, state->looptime, state->dynNotchQ, FILTER_NOTCH);
+        biquadFilterUpdate(&state->filters[2][axis], frequency, state->looptime, state->dynNotchQ, FILTER_NOTCH);
     }
 
 }

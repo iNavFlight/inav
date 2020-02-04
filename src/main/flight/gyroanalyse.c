@@ -63,10 +63,7 @@ static float EXTENDED_FASTRAM      fftResolution;
 static uint8_t EXTENDED_FASTRAM    fftStartBin;
 static uint16_t EXTENDED_FASTRAM   dynNotchMaxCtrHz;
 static uint8_t dynamicFilterRange;
-static float EXTENDED_FASTRAM      dynNotch1Ctr;
-static float EXTENDED_FASTRAM      dynNotch2Ctr;
 static uint16_t EXTENDED_FASTRAM   dynNotchMinHz;
-static bool EXTENDED_FASTRAM dualNotch = true;
 static uint16_t EXTENDED_FASTRAM dynNotchMaxFFT;
 
 // Hanning window, see https://en.wikipedia.org/wiki/Window_function#Hann_.28Hanning.29_window
@@ -76,13 +73,7 @@ void gyroDataAnalyseInit(uint32_t targetLooptimeUs)
 {
     dynamicFilterRange = gyroConfig()->dyn_notch_range;
     fftSamplingRateHz = DYN_NOTCH_RANGE_HZ_LOW;
-    dynNotch1Ctr = 1 - gyroConfig()->dyn_notch_width_percent / 100.0f;
-    dynNotch2Ctr = 1 + gyroConfig()->dyn_notch_width_percent / 100.0f;
     dynNotchMinHz = gyroConfig()->dyn_notch_min_hz;
-
-    if (gyroConfig()->dyn_notch_width_percent == 0) {
-        dualNotch = false;
-    }
 
     if (dynamicFilterRange == DYN_NOTCH_RANGE_HIGH) {
         fftSamplingRateHz = DYN_NOTCH_RANGE_HZ_HIGH;

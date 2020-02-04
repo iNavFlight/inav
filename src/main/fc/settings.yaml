@@ -135,7 +135,7 @@ tables:
   - name: dynamicFilterRangeTable
     values: ["HIGH", "MEDIUM", "LOW"]
     enum: dynamicFilterRange_e
-  - name: dynamicGyroNotchFilterType
+  - name: dynamicGyroNotchFilterTypeTable
     values: ["OFF", "SINGLE", "DUAL", "MATRIX"]
     enum: dynamicGyroNotchType
   - name: pidTypeTable
@@ -189,6 +189,10 @@ groups:
       - name: gyro_stage2_lowpass_type
         field: gyro_stage2_lowpass_type
         table: filter_type
+      - name: dynamic_gyro_notch_type
+        field: dynamicGyroNotchType
+        condition: USE_DYNAMIC_FILTERS
+        table: dynamicGyroNotchFilterTypeTable
       - name: dyn_notch_width_percent
         field: dyn_notch_width_percent
         condition: USE_DYNAMIC_FILTERS
