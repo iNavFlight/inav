@@ -29,6 +29,7 @@
 #include <stdint.h>
 #include "dynamic_gyro_notch.h"
 #include "fc/config.h"
+#include "build/debug.h"
 #include "sensors/gyro.h"
 
 void dynamicGyroNotchFiltersInit(dynamicGyroNotchState_t *state) {
@@ -74,6 +75,8 @@ void dynamicGyroNotchFiltersInit(dynamicGyroNotchState_t *state) {
 void dynamicGyroNotchFiltersUpdate(dynamicGyroNotchState_t *state, int axis, uint16_t frequency) {
 
     state->frequency[axis] = frequency;
+
+    DEBUG_SET(DEBUG_DYNAMIC_FILTER_FREQUENCY, axis, frequency);
 
     if (state->filterType == DYNAMIC_GYRO_NOTCH_SINGLE) {
         biquadFilterUpdate(&state->filters[axis][0], frequency, state->looptime, state->dynNotchQ, FILTER_NOTCH);

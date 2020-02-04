@@ -449,7 +449,9 @@ void FAST_CODE NOINLINE gyroUpdate()
 #ifdef USE_DYNAMIC_FILTERS
         if (dynamicGyroNotchState.filterType) {
             gyroDataAnalysePush(&gyroAnalyseState, axis, gyroADCf);
+            DEBUG_SET(DEBUG_DYNAMIC_FILTER, axis, gyroADCf);
             gyroADCf = dynamicGyroNotchFiltersApply(&dynamicGyroNotchState, axis, gyroADCf);
+            DEBUG_SET(DEBUG_DYNAMIC_FILTER, axis + 3, gyroADCf);
         }
 #endif
         gyro.gyroADCf[axis] = gyroADCf;
