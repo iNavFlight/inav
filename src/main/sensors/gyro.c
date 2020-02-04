@@ -69,6 +69,7 @@
 
 #include "flight/gyroanalyse.h"
 #include "flight/rpm_filter.h"
+#include "flight/dynamic_gyro_notch.h"
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
@@ -95,9 +96,6 @@ STATIC_FASTRAM void *notchFilter2[XYZ_AXIS_COUNT];
 
 #ifdef USE_DYNAMIC_FILTERS
 
-// #define DYNAMIC_NOTCH_DEFAULT_CENTER_HZ 350
-// #define DYNAMIC_NOTCH_DEFAULT_CUTOFF_HZ 300
-
 // static EXTENDED_FASTRAM filterApplyFnPtr notchFilterDynApplyFn;
 // static EXTENDED_FASTRAM filterApplyFnPtr notchFilterDynApplyFn2;
 // static EXTENDED_FASTRAM biquadFilter_t notchFilterDyn[XYZ_AXIS_COUNT];
@@ -108,9 +106,11 @@ STATIC_FASTRAM void *notchFilter2[XYZ_AXIS_COUNT];
 // static EXTENDED_FASTRAM filterApplyFnPtr extendedDynamicFilterApplyFn;
 
 EXTENDED_FASTRAM gyroAnalyseState_t gyroAnalyseState;
+EXTENDED_FASTRAM dynamicGyroNotchState_t dynamicGyroNotchState;
+
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 7);
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 8);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_lpf = GYRO_LPF_42HZ,      // 42HZ value is defined for Invensense/TDK gyros
@@ -131,6 +131,7 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .dyn_notch_range = DYN_NOTCH_RANGE_MEDIUM,
     .dyn_notch_q = 120,
     .dyn_notch_min_hz = 150,
+    .dynamicGyroNotchType = DYNAMIC_GYRO_NOTCH_OFF
 );
 
 STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHardware)
@@ -270,13 +271,6 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     return gyroHardware;
 }
 
-#ifdef USE_DYNAMIC_FILTERS
-bool isDynamicFilterActive(void)
-{
-    return feature(FEATURE_DYNAMIC_FILTERS);
-}
-#endif
-
 bool gyroInit(void)
 {
     memset(&gyro, 0, sizeof(gyro));
@@ -307,7 +301,7 @@ bool gyroInit(void)
 
     gyroInitFilters();
 #ifdef USE_DYNAMIC_FILTERS
-    dynamicFiltersInit(&gyroAnalyseState);
+    dynamicGyroNotchFiltersInit(&dynamicGyroNotchState);
     gyroDataAnalyseStateInit(&gyroAnalyseState, getLooptime());
 #endif
     return true;
@@ -453,22 +447,25 @@ void FAST_CODE NOINLINE gyroUpdate()
         gyroADCf = notchFilter2ApplyFn(notchFilter2[axis], gyroADCf);
 
 #ifdef USE_DYNAMIC_FILTERS
-        if (isDynamicFilterActive()) {
+        if (feature(FEATURE_DYNAMIC_FILTERS)) {
             gyroDataAnalysePush(&gyroAnalyseState, axis, gyroADCf);
-            gyroADCf = dynamicFiltersApply(&gyroAnalyseState, axis, gyroADCf);
-            // gyroADCf = notchFilterDynApplyFn((filter_t *)&notchFilterDyn[axis], gyroADCf);
-            // gyroADCf = notchFilterDynApplyFn2((filter_t *)&notchFilterDyn2[axis], gyroADCf);
-            // gyroADCf = extendedDynamicFilterApplyFn((filter_t *)&extendedDynamicFilter[axis][0], gyroADCf);
-            // gyroADCf = extendedDynamicFilterApplyFn((filter_t *)&extendedDynamicFilter[axis][1], gyroADCf);
-            // gyroADCf = extendedDynamicFilterApplyFn((filter_t *)&extendedDynamicFilter[axis][2], gyroADCf);
+            gyroADCf = dynamicGyroNotchFiltersApply(&dynamicGyroNotchState, axis, gyroADCf);
         }
 #endif
         gyro.gyroADCf[axis] = gyroADCf;
     }
 
 #ifdef USE_DYNAMIC_FILTERS
-    if (isDynamicFilterActive()) {
+    if (feature(FEATURE_DYNAMIC_FILTERS)) {
         gyroDataAnalyse(&gyroAnalyseState);
+
+        if (gyroAnalyseState.filterUpdateExecute) {
+            dynamicGyroNotchFiltersUpdate(
+                &dynamicGyroNotchState, 
+                gyroAnalyseState.filterUpdateAxis, 
+                gyroAnalyseState.filterUpdateFrequency
+            );
+        }
     }
 #endif
 

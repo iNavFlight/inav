@@ -135,6 +135,9 @@ tables:
   - name: dynamicFilterRangeTable
     values: ["HIGH", "MEDIUM", "LOW"]
     enum: dynamicFilterRange_e
+  - name: dynamicGyroNotchFilterType
+    values: ["OFF", "SINGLE", "DUAL", "MATRIX"]
+    enum: dynamicGyroNotchType
   - name: pidTypeTable
     values: ["NONE", "PID", "PIFF", "AUTO"]
     enum: pidType_e

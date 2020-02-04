@@ -45,6 +45,13 @@ typedef enum {
     DYN_NOTCH_RANGE_LOW
 } dynamicFilterRange_e;
 
+typedef enum {
+    DYNAMIC_GYRO_NOTCH_OFF = 0,
+    DYNAMIC_GYRO_NOTCH_SINGLE,
+    DYNAMIC_GYRO_NOTCH_DUAL,
+    DYNAMIC_GYRO_NOTCH_MATRIX
+} dynamicGyroNotchType;
+
 #define DYN_NOTCH_RANGE_HZ_HIGH 2000
 #define DYN_NOTCH_RANGE_HZ_MEDIUM 1333
 #define DYN_NOTCH_RANGE_HZ_LOW 1000
@@ -75,6 +82,7 @@ typedef struct gyroConfig_s {
     uint8_t dyn_notch_range;
     uint16_t dyn_notch_q;
     uint16_t dyn_notch_min_hz;
+    uint8_t dynamicGyroNotchType;
 } gyroConfig_t;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);

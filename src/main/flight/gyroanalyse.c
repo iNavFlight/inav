@@ -63,7 +63,6 @@ static float EXTENDED_FASTRAM      fftResolution;
 static uint8_t EXTENDED_FASTRAM    fftStartBin;
 static uint16_t EXTENDED_FASTRAM   dynNotchMaxCtrHz;
 static uint8_t dynamicFilterRange;
-static float EXTENDED_FASTRAM      dynNotchQ;
 static float EXTENDED_FASTRAM      dynNotch1Ctr;
 static float EXTENDED_FASTRAM      dynNotch2Ctr;
 static uint16_t EXTENDED_FASTRAM   dynNotchMinHz;
@@ -79,7 +78,6 @@ void gyroDataAnalyseInit(uint32_t targetLooptimeUs)
     fftSamplingRateHz = DYN_NOTCH_RANGE_HZ_LOW;
     dynNotch1Ctr = 1 - gyroConfig()->dyn_notch_width_percent / 100.0f;
     dynNotch2Ctr = 1 + gyroConfig()->dyn_notch_width_percent / 100.0f;
-    dynNotchQ = gyroConfig()->dyn_notch_q / 100.0f;
     dynNotchMinHz = gyroConfig()->dyn_notch_min_hz;
 
     if (gyroConfig()->dyn_notch_width_percent == 0) {
@@ -146,6 +144,8 @@ static void gyroDataAnalyseUpdate(gyroAnalyseState_t *state);
  */
 void gyroDataAnalyse(gyroAnalyseState_t *state)
 {
+    state->filterUpdateExecute = false; //This will be changed to true only if new data is present
+
     // samples should have been pushed by `gyroDataAnalysePush`
     // if gyro sampling is > 1kHz, accumulate multiple samples
     state->sampleCount++;
@@ -308,16 +308,12 @@ static NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
             // 7us
             // calculate cutoffFreq and notch Q, update notch filter  =1.8+((A2-150)*0.004)
             if (state->prevCenterFreq[state->updateAxis] != state->centerFreq[state->updateAxis]) {
-                //FIXME make classic dynamic filter configurable
-                // if (dualNotch) {
-                //     biquadFilterUpdate(&state->notchFilterDyn[state->updateAxis], state->centerFreq[state->updateAxis] * dynNotch1Ctr, getLooptime(), dynNotchQ, FILTER_NOTCH);
-                //     biquadFilterUpdate(&state->notchFilterDyn2[state->updateAxis], state->centerFreq[state->updateAxis] * dynNotch2Ctr, getLooptime(), dynNotchQ, FILTER_NOTCH);
-                // } else {
-                //     biquadFilterUpdate(&state->notchFilterDyn[state->updateAxis], state->centerFreq[state->updateAxis], getLooptime(), dynNotchQ, FILTER_NOTCH);
-                // }
-                biquadFilterUpdate(&state->extendedDynamicFilter[0][state->updateAxis], state->centerFreq[state->updateAxis], getLooptime(), dynNotchQ, FILTER_NOTCH);
-                biquadFilterUpdate(&state->extendedDynamicFilter[1][state->updateAxis], state->centerFreq[state->updateAxis], getLooptime(), dynNotchQ, FILTER_NOTCH);
-                biquadFilterUpdate(&state->extendedDynamicFilter[2][state->updateAxis], state->centerFreq[state->updateAxis], getLooptime(), dynNotchQ, FILTER_NOTCH);
+                /*
+                 * Filters will be updated inside dynamicGyroNotchFiltersUpdate()
+                 */
+                state->filterUpdateExecute = true;
+                state->filterUpdateAxis = state->updateAxis;
+                state->filterUpdateFrequency = state->centerFreq[state->updateAxis];
             }
 
             state->updateAxis = (state->updateAxis + 1) % XYZ_AXIS_COUNT;
@@ -347,47 +343,6 @@ uint16_t getMaxFFT(void) {
 
 void resetMaxFFT(void) {
     dynNotchMaxFFT = 0;
-}
-
-void dynamicFiltersInit(gyroAnalyseState_t *gyroAnalyse) {
-    gyroAnalyse->notchFilterDynApplyFn = nullFilterApply;
-    gyroAnalyse->notchFilterDynApplyFn2 = nullFilterApply;
-    gyroAnalyse->extendedDynamicFilterApplyFn = nullFilterApply;
-
-    if (feature(FEATURE_DYNAMIC_FILTERS)) {
-
-        const float notchQ = filterGetNotchQ(DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, DYNAMIC_NOTCH_DEFAULT_CUTOFF_HZ); // any defaults OK here
-        
-        //FIXME classic filters disabled by default - make it configurable
-        // gyroAnalyse->notchFilterDynApplyFn = (filterApplyFnPtr)biquadFilterApplyDF1; // must be this function, not DF2
-        // if(gyroConfig()->dyn_notch_width_percent != 0) {
-        //     gyroAnalyse->notchFilterDynApplyFn2 = (filterApplyFnPtr)biquadFilterApplyDF1; // must be this function, not DF2
-        // }
-        // for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        //     biquadFilterInit(&gyroAnalyse->notchFilterDyn[axis], DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, getLooptime(), notchQ, FILTER_NOTCH);
-        //     biquadFilterInit(&gyroAnalyse->notchFilterDyn2[axis], DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, getLooptime(), notchQ, FILTER_NOTCH);
-        // }
-
-        gyroAnalyse->extendedDynamicFilterApplyFn = (filterApplyFnPtr)biquadFilterApplyDF1;
-        for (int gyroAxis = 0; gyroAxis < XYZ_AXIS_COUNT; gyroAxis++) {
-            for (int analyzedAxis = 0; analyzedAxis < XYZ_AXIS_COUNT; analyzedAxis++) {
-                biquadFilterInit(&gyroAnalyse->extendedDynamicFilter[gyroAxis][analyzedAxis], DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, getLooptime(), notchQ, FILTER_NOTCH);
-            }
-        }
-    }
-}
-
-float dynamicFiltersApply(gyroAnalyseState_t *gyroAnalyse, uint8_t axis, float input) {
-
-    float output = input; 
-
-    // output = notchFilterDynApplyFn((filter_t *)&notchFilterDyn[axis], output);
-    // output = notchFilterDynApplyFn2((filter_t *)&notchFilterDyn2[axis], output);
-    output = gyroAnalyse->extendedDynamicFilterApplyFn((filter_t *)&gyroAnalyse->extendedDynamicFilter[axis][0], output);
-    output = gyroAnalyse->extendedDynamicFilterApplyFn((filter_t *)&gyroAnalyse->extendedDynamicFilter[axis][1], output);
-    output = gyroAnalyse->extendedDynamicFilterApplyFn((filter_t *)&gyroAnalyse->extendedDynamicFilter[axis][2], output);
-
-    return output;
 }
 
 #endif // USE_DYNAMIC_FILTERS
