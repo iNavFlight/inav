@@ -31,15 +31,26 @@ const timerHardware_t timerHardware[] = {
     DEF_TIM(TIM15, CH1, PA2,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,                     0), // PWM3 [TIM2_CH3 (D1_CH1)] [TIM15_CH1  (D1_CH5)]
     DEF_TIM(TIM15, CH2, PA3,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,                     0), // PWM4 [TIM2_CH4 (D1_CH7)]
 
-#ifdef SPRACINGF3EVO_1SS
+#if defined(SPRACINGAIRBIT)
+    // SPRACINGAIRBIT uses same pins as F3EVO, but in a different order.
+    DEF_TIM(TIM3,  CH3, PB0,  TIM_USE_MC_SERVO | TIM_USE_FW_SERVO,                     0), // Silkscreen: 'SERVO1' 2.54mm pitch headers.
+    DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_MC_SERVO | TIM_USE_FW_SERVO,                     0), // Silkscreen: 'SERVO2' 2.54mm pitch headers.
+    DEF_TIM(TIM3,  CH2, PA7,  TIM_USE_MC_SERVO | TIM_USE_FW_SERVO,                     0), // Silkscreen: 'MS', for MicroServo 3-pin picoblade connection.
+    DEF_TIM(TIM16, CH1, PA6,  TIM_USE_ANY, /*TIM_USE_CAMERA_CONTROL*/                  0), // Silkscreen: 'CAM', for CAMERA connection.
+
+#else
+
+#if defined(SPRACINGF3EVO_1SS)
     DEF_TIM(TIM16, CH1, PA6,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,                     0), // PWM5
     DEF_TIM(TIM17, CH1, PA7,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,                     0), // PWM6
 #else
     DEF_TIM(TIM3,  CH1, PA6,  TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO,  0), // PWM5
     DEF_TIM(TIM3,  CH2, PA7,  TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO,  0), // PWM6
 #endif
+
     DEF_TIM(TIM3,  CH3, PB0,  TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO,  0), // PWM7
     DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO,  0), // PWM8
+#endif // !SPRACINGAIRBIT
 
     // UART3 RX/TX
     DEF_TIM(TIM2,  CH3, PB10, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,                     0), // RC_CH4 - PB10 - *TIM2_CH3, UART3_TX (AF7)

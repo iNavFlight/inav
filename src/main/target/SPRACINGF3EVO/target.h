@@ -17,7 +17,11 @@
 
 #pragma once
 
+#if defined(SPRACINGAIRBIT)
+#define TARGET_BOARD_IDENTIFIER "SPAB"
+#else
 #define TARGET_BOARD_IDENTIFIER "SPEV"
+#endif
 
 #define LED0                    PB8
 
@@ -49,8 +53,13 @@
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
+
+#ifdef SPRACINGAIRBIT
+#define USE_BARO_BMP388
+#else
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
+#endif
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
@@ -67,7 +76,6 @@
 #define USE_UART1
 #define USE_UART2
 #define USE_UART3
-#define USE_SOFTSERIAL1
 
 #define UART1_TX_PIN            PA9
 #define UART1_RX_PIN            PA10
@@ -78,19 +86,28 @@
 #define UART3_TX_PIN            PB10 // PB10 (AF7)
 #define UART3_RX_PIN            PB11 // PB11 (AF7)
 
-#ifdef SPRACINGF3EVO_1SS
-    #define SERIAL_PORT_COUNT       5
-
+#if defined(SPRACINGF3AIRBIT)
+    // no softserial
+#elif defined(SPRACINGF3EVO_1SS)
+    #define USE_SOFTSERIAL1
     #define SOFTSERIAL_1_RX_PIN     PB0
     #define SOFTSERIAL_1_TX_PIN     PB1
 #else
-    #define USE_SOFTSERIAL2
-    #define SERIAL_PORT_COUNT       6
-
+    #define USE_SOFTSERIAL1
     #define SOFTSERIAL_1_RX_PIN     PA6
     #define SOFTSERIAL_1_TX_PIN     PA7
+
+    #define USE_SOFTSERIAL2
     #define SOFTSERIAL_2_RX_PIN     PB0
     #define SOFTSERIAL_2_TX_PIN     PB1
+#endif
+
+#if defined(USE_SOFTSERIAL1) && defined (USE_SOFTSERIAL2)
+    #define SERIAL_PORT_COUNT       6
+#elif defined(USE_SOFTSERIAL1) || defined (USE_SOFTSERIAL2)
+    #define SERIAL_PORT_COUNT       5
+#else
+    #define SERIAL_PORT_COUNT       4
 #endif
 
 #define USE_I2C
@@ -126,6 +143,13 @@
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
 
+#ifdef SPRACINGAIRBIT
+// No RSSI                      (PB2 Used for BARO INT)
+#undef ADC_CHANNEL_3_PIN
+#undef RSSI_ADC_CHANNEL
+#endif
+
+
 #define USE_LED_STRIP
 #define WS2811_PIN                      PA8
 
@@ -138,8 +162,37 @@
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
+#ifdef SPRACINGAIRBIT
+// SPRacingAIRBIT is designed specifically for SERIAL_RX SPEKTRUM1024 + LTM telemetry or RX via MSP.
+#define USE_TELEMETRY
+#define USE_TELEMETRY_LTM
+#undef USE_TELEMETRY_FRSKY
+#define USE_RX_MSP
+
+#undef USE_RX_PPM
+#undef USE_RX_PWM
+#undef USE_SERIALRX_CRSF       // Team Black Sheep Crossfire protocol
+#undef USE_SERIALRX_IBUS       // FlySky and Turnigy receivers
+#undef USE_SERIALRX_SBUS       // Frsky and Futaba receivers
+#undef USE_SERIALRX_SUMD       // Graupner Hott protocol
+
+#define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
+#else
 #define DEFAULT_RX_TYPE         RX_TYPE_PPM
-#define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_TRANSPONDER | FEATURE_BLACKBOX | FEATURE_RSSI_ADC | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY)
+#endif
+
+#ifdef SPRACINGAIRBIT
+#define USE_RANGEFINDER
+#define USE_RANGEFINDER_MSP
+#define USE_OPFLOW
+#define USE_OPFLOW_MSP
+#endif
+
+#ifdef SPRACINGAIRBIT
+#define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY)
+#else
+#define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX | FEATURE_RSSI_ADC | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY)
+#endif
 
 #define USE_SPEKTRUM_BIND
 #define BIND_PIN                PB11 // UART3
