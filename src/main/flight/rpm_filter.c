@@ -43,7 +43,7 @@
 #define RPM_FILTER_RPM_LPF_HZ 150
 #define RPM_FILTER_HARMONICS 3
 
-PG_REGISTER_WITH_RESET_TEMPLATE(rpmFilterConfig_t, rpmFilterConfig, PG_RPM_FILTER_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(rpmFilterConfig_t, rpmFilterConfig, PG_RPM_FILTER_CONFIG, 1);
 
 PG_RESET_TEMPLATE(rpmFilterConfig_t, rpmFilterConfig,
                   .gyro_filter_enabled = 0,
