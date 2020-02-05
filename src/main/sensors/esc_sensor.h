@@ -29,7 +29,7 @@ typedef struct {
     int8_t temperature;
     int16_t voltage;
     int32_t current;
-    int16_t rpm;
+    uint32_t rpm;
 } escSensorData_t;
 
 typedef struct escSensorConfig_s {
