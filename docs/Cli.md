@@ -430,13 +430,10 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  gyro_stage2_lowpass_hz  | 0 | Software based second stage lowpass filter for gyro. Value is cutoff frequency (Hz) |
 |  gyro_stage2_lowpass_type  | `BIQUAD` | Defines the type of stage 2 gyro LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation. |
 | rpm_gyro_filter_enabled | `OFF`   | Enables gyro RPM filtere. Set to `ON` only when ESC telemetry is working and rotation speed of the motors is correctly reported to INAV |
-| rpm_dterm_filter_enabled | `OFF`    | RPM filter for D-term. Experimental, probably will be removed in the next release |
 | rpm_gyro_harmonics | 1 | Number of harmonic frequences to be covered by gyro RPM filter. Default value of `1` usually works just fine  |
 | rpm_gyro_min_hz | 150 | The lowest frequency for gyro RPM filtere. Default `150` is fine for 5" mini-quads. On 7-inch drones you can lower even down to `60`-`70` |
 | rpm_gyro_q | 500  | Q factor for gyro RPM filter. Lower values give softer, wider attenuation. Usually there is no need to change this setting |
 | dterm_gyro_harmonics | 1  | Number of harmonic frequences to be covered by D-term RPM filter. Default value of `1` usually works just fine |
-| rpm_dterm_min_hz | 150  | - |
-| rpm_dterm_q   | 500   | - |
 |  pidsum_limit  | 500 | A limitation to overall amount of correction Flight PID can request on each axis (Roll/Pitch). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help |
 |  pidsum_limit_yaw  | 400 | A limitation to overall amount of correction Flight PID can request on each axis (Yaw). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help |
 | `pid_type`    | Allows to set type of PID controller used in control loop. Possible values: `NONE`, `PID`, `PIFF`, `AUTO`. Change only in case of experimental platforms like VTOL, tailsitters, rovers, boats, etc. Airplanes should always use `PIFF` and multirotors `PID` |

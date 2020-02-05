@@ -1726,10 +1726,6 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("rpm_gyro_harmonics", "%d",              rpmFilterConfig()->gyro_harmonics);
         BLACKBOX_PRINT_HEADER_LINE("rpm_gyro_min_hz", "%d",                 rpmFilterConfig()->gyro_min_hz);
         BLACKBOX_PRINT_HEADER_LINE("rpm_gyro_q", "%d",                      rpmFilterConfig()->gyro_q);
-        BLACKBOX_PRINT_HEADER_LINE("rpm_dterm_filter_enabled", "%d",        rpmFilterConfig()->dterm_filter_enabled);
-        BLACKBOX_PRINT_HEADER_LINE("rpm_dterm_harmonics", "%d",             rpmFilterConfig()->dterm_harmonics);
-        BLACKBOX_PRINT_HEADER_LINE("rpm_dterm_min_hz", "%d",                rpmFilterConfig()->dterm_min_hz);
-        BLACKBOX_PRINT_HEADER_LINE("rpm_dterm_q", "%d",                     rpmFilterConfig()->dterm_q);
 #endif
         default:
             return true;
