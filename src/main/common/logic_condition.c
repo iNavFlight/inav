@@ -29,6 +29,7 @@
 #include "config/parameter_group_ids.h"
 
 #include "common/logic_condition.h"
+#include "common/global_variables.h"
 #include "common/utils.h"
 #include "rx/rx.h"
 #include "maths.h"
@@ -50,6 +51,7 @@ static int logicConditionCompute(
     int operandA,
     int operandB
 ) {
+    int temporaryValue;
     switch (operation) {
 
         case LOGIC_CONDITION_TRUE:
@@ -116,6 +118,43 @@ static int logicConditionCompute(
 
             //When both operands are not met, keep current value 
             return currentVaue;
+            break;
+
+        case LOGIC_CONDITION_GVAR_SET:
+            gvSet(operandA, operandB);
+            return operandB;
+            break;
+        
+        case LOGIC_CONDITION_GVAR_INC:
+            temporaryValue = gvGet(operandA) + operandB;
+            gvSet(operandA, temporaryValue);
+            return temporaryValue;
+            break;
+
+        case LOGIC_CONDITION_GVAR_DEC:
+            temporaryValue = gvGet(operandA) - operandB;
+            gvSet(operandA, temporaryValue);
+            return temporaryValue;
+            break;
+
+        case LOGIC_CONDITION_ADD:
+            return operandA + operandB;
+            break;
+
+        case LOGIC_CONDITION_SUB:
+            return operandA - operandB;
+            break;
+
+        case LOGIC_CONDITION_MUL:
+            return operandA * operandB;
+            break;
+
+        case LOGIC_CONDITION_DIV:
+            if (operandB != 0) {
+                return operandA / operandB;
+            } else {
+                return operandA;
+            }
             break;
 
         default:
@@ -311,6 +350,12 @@ int logicConditionGetOperandValue(logicOperandType_e type, int operand) {
         case LOGIC_CONDITION_OPERAND_TYPE_LC:
             if (operand >= 0 && operand < MAX_LOGIC_CONDITIONS) {
                 retVal = logicConditionGetValue(operand);
+            }
+            break;
+
+        case LOGIC_CONDITION_OPERAND_TYPE_GVAR:
+            if (operand >= 0 && operand < MAX_GLOBAL_VARIABLES) {
+                retVal = gvGet(operand);
             }
             break;
 

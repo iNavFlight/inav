@@ -16,6 +16,7 @@ COMMON_SRC = \
             common/log.c \
             common/logic_condition.c \
             common/global_functions.c \
+            common/global_variables.c \
             common/maths.c \
             common/memory.c \
             common/olc.c \
