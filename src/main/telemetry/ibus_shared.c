@@ -128,9 +128,9 @@ static ibusAddress_t getAddress(uint8_t ibusPacket[static IBUS_MIN_LEN]) {
     return (ibusPacket[1] & 0x0F);
 }
 
-// MANUAL, ACRO, ANGLE, HRZN, ALTHOLD, POSHOLD, RTH, WP, LAUNCH, FAILSAFE
-static uint8_t flightModeToIBusTelemetryMode1[FLM_COUNT] = { 0, 1, 3, 2, 5, 6, 7, 4, 8, 9 };
-static uint8_t flightModeToIBusTelemetryMode2[FLM_COUNT] = { 5, 1, 0, 7, 2, 8, 6, 3, 4, 9 };
+// MANUAL, ACRO, AIR, ANGLE, HRZN, ALTHOLD, POSHOLD, RTH, WP, CRUISE, LAUNCH, FAILSAFE
+static uint8_t flightModeToIBusTelemetryMode1[FLM_COUNT] = { 0, 1, 1, 3, 2, 5, 6, 7, 4, 4, 8, 9 };
+static uint8_t flightModeToIBusTelemetryMode2[FLM_COUNT] = { 5, 1, 1, 0, 7, 2, 8, 6, 3, 3, 4, 9 };
 static uint8_t dispatchMeasurementRequest(ibusAddress_t address) {
 #if defined(USE_GPS)
     uint8_t fix = 0;

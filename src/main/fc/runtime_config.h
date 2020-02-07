@@ -134,12 +134,14 @@ extern uint32_t stateFlags;
 typedef enum {
     FLM_MANUAL,
     FLM_ACRO,
+    FLM_ACRO_AIR,
     FLM_ANGLE,
     FLM_HORIZON,
     FLM_ALTITUDE_HOLD,
     FLM_POSITION_HOLD,
     FLM_RTH,
     FLM_MISSION,
+    FLM_CRUISE,
     FLM_LAUNCH,
     FLM_FAILSAFE,
     FLM_COUNT
