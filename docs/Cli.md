@@ -363,8 +363,6 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  nav_mc_vel_z_i  | 50 | I gain of velocity PID controller |
 |  nav_mc_vel_z_d  | 10 | D gain of velocity PID controller |
 |  nav_mc_pos_xy_p  | 65 | Controls how fast the drone will fly towards the target position. This is a multiplier to convert displacement to target velocity |
-|  nav_mc_pos_xy_i  | 120 | Controls deceleration time. Measured in 1/100 sec. Expected hold position is placed at a distance calculated as decelerationTime * currentVelocity |
-|  nav_mc_pos_xy_d  | 10 |  |
 |  nav_mc_vel_xy_p  | 40 | P gain of Position-Rate (Velocity to Acceleration) PID controller. Higher P means stronger response when position error occurs. Too much P might cause "nervous" behavior and oscillations |
 |  nav_mc_vel_xy_i  | 15 | I gain of Position-Rate (Velocity to Acceleration) PID controller. Used for drift compensation (caused by wind for example). Higher I means stronger response to drift. Too much I gain might cause target overshot |
 |  nav_mc_vel_xy_d  | 100 | D gain of Position-Rate (Velocity to Acceleration) PID controller. It can damp P and I. Increasing D might help when drone overshoots target. |
