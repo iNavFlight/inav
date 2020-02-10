@@ -728,18 +728,20 @@ static const char * osdArmingDisabledReasonMessage(void)
     return NULL;
 }
 
-static const char * osdFailsafePhaseMessage(void)
+static bool osdFailsafePhaseMessage(char* buffer)
 {
     // See failsafe.h for each phase explanation
     switch (failsafePhase()) {
 #ifdef USE_NAV
         case FAILSAFE_RETURN_TO_HOME:
             // XXX: Keep this in sync with OSD_FLYMODE.
-            return OSD_MESSAGE_STR("(RTH)");
+            strlcpy(buffer, "(RTH)", OSD_MESSAGE_LENGTH);
+            return true;
 #endif
         case FAILSAFE_LANDING:
             // This should be considered an emergengy landing
-            return OSD_MESSAGE_STR("(EMERGENCY LANDING)");
+            strlcpy(buffer, "(EMERGENCY LANDING)", OSD_MESSAGE_LENGTH);
+            return true;
         case FAILSAFE_RX_LOSS_MONITORING:
             // Only reachable from FAILSAFE_LANDED, which performs
             // a disarm. Since aircraft has been disarmed, we no
@@ -767,28 +769,32 @@ static const char * osdFailsafePhaseMessage(void)
             // Exiting failsafe
             break;
     }
-    return NULL;
+    return false;
 }
 
-static const char * osdFailsafeInfoMessage(void)
+static bool osdFailsafeInfoMessage(char* buffer)
 {
     if (failsafeIsReceivingRxData()) {
         // User must move sticks to exit FS mode
-        return OSD_MESSAGE_STR("!MOVE STICKS TO EXIT FS!");
+        strlcpy(buffer, OSD_MESSAGE_STR("!MOVE STICKS TO EXIT FS!"), OSD_MESSAGE_LENGTH);
+        return true;
     }
-    return OSD_MESSAGE_STR(RC_RX_LINK_LOST_MSG);
+    strlcpy(buffer, OSD_MESSAGE_STR(RC_RX_LINK_LOST_MSG), OSD_MESSAGE_LENGTH);
+    return true;
 }
 
-static const char * navigationStateMessage(void)
+static bool navigationStateMessage(char* buffer)
 {
     switch (NAV_Status.state) {
         case MW_NAV_STATE_NONE:
             break;
         case MW_NAV_STATE_RTH_START:
-            return OSD_MESSAGE_STR("STARTING RTH");
+            strlcpy(buffer, OSD_MESSAGE_STR("STARTING RTH"), OSD_MESSAGE_LENGTH);
+            return true;
         case MW_NAV_STATE_RTH_ENROUTE:
             // TODO: Break this up between climb and head home
-            return OSD_MESSAGE_STR("EN ROUTE TO HOME");
+            strlcpy(buffer, OSD_MESSAGE_STR("EN ROUTE TO HOME"), OSD_MESSAGE_LENGTH);
+            return true;
         case MW_NAV_STATE_HOLD_INFINIT:
             // Used by HOLD flight modes. No information to add.
             break;
@@ -796,10 +802,11 @@ static const char * navigationStateMessage(void)
             // Not used anymore
             break;
         case MW_NAV_STATE_WP_ENROUTE:
-            // TODO: Show WP number
-            return OSD_MESSAGE_STR("EN ROUTE TO WAYPOINT");
+            tfp_snprintf(buffer, OSD_MESSAGE_LENGTH, "EN ROUTE TO WAYPOINT %d", NAV_Status.activeWpNumber);
+            return true;
         case MW_NAV_STATE_PROCESS_NEXT:
-            return OSD_MESSAGE_STR("PREPARING FOR NEXT WAYPOINT");
+            strlcpy(buffer, OSD_MESSAGE_STR("PREPARING FOR NEXT WAYPOINT"), OSD_MESSAGE_LENGTH);
+            return true;
         case MW_NAV_STATE_DO_JUMP:
             // Not used
             break;
@@ -807,23 +814,29 @@ static const char * navigationStateMessage(void)
             // Not used
             break;
         case MW_NAV_STATE_EMERGENCY_LANDING:
-            return OSD_MESSAGE_STR("EMERGENCY LANDING");
+            strlcpy(buffer, OSD_MESSAGE_STR("EMERGENCY LANDING"), OSD_MESSAGE_LENGTH);
+            return true;
         case MW_NAV_STATE_LAND_IN_PROGRESS:
-            return OSD_MESSAGE_STR("LANDING");
+            strlcpy(buffer, OSD_MESSAGE_STR("LANDING"), OSD_MESSAGE_LENGTH);
+            return true;
         case MW_NAV_STATE_HOVER_ABOVE_HOME:
             if (STATE(FIXED_WING_LEGACY)) {
-                return OSD_MESSAGE_STR("LOITERING AROUND HOME");
+                strlcpy(buffer, OSD_MESSAGE_STR("LOITERING AROUND HOME"), OSD_MESSAGE_LENGTH);
+                return true;
             }
-            return OSD_MESSAGE_STR("HOVERING");
+            strlcpy(buffer, OSD_MESSAGE_STR("HOVERING"), OSD_MESSAGE_LENGTH);
+            return true;
         case MW_NAV_STATE_LANDED:
-            return OSD_MESSAGE_STR("LANDED");
+            strlcpy(buffer, OSD_MESSAGE_STR("LANDED"), OSD_MESSAGE_LENGTH);
+            return true;
         case MW_NAV_STATE_LAND_SETTLE:
-            return OSD_MESSAGE_STR("PREPARING TO LAND");
+            strlcpy(buffer, OSD_MESSAGE_STR("PREPARING TO LAND"), OSD_MESSAGE_LENGTH);
+            return true;
         case MW_NAV_STATE_LAND_START_DESCENT:
             // Not used
             break;
     }
-    return NULL;
+    return false;
 }
 
 static void osdFormatMessage(char *buff, size_t size, const char *message)
@@ -2074,34 +2087,33 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             const char *message = NULL;
             char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH+1)];
+            char messages[5][OSD_MESSAGE_LENGTH+1];
             if (ARMING_FLAG(ARMED)) {
                 // Aircraft is armed. We might have up to 5
                 // messages to show.
-                const char *messages[5];
                 unsigned messageCount = 0;
                 if (FLIGHT_MODE(FAILSAFE_MODE)) {
                     // In FS mode while being armed too
-                    const char *failsafePhaseMessage = osdFailsafePhaseMessage();
-                    const char *failsafeInfoMessage = osdFailsafeInfoMessage();
-                    const char *navStateFSMessage = navigationStateMessage();
-                    if (failsafePhaseMessage) {
-                        messages[messageCount++] = failsafePhaseMessage;
+                    if(osdFailsafePhaseMessage(messages[messageCount]))
+                        messageCount++;
+                    int failesaveInfoMessageId = -1;
+                    if(osdFailsafeInfoMessage(messages[messageCount]))
+                    {
+                        failesaveInfoMessageId = messageCount;
+                        messageCount++;
                     }
-                    if (failsafeInfoMessage) {
-                        messages[messageCount++] = failsafeInfoMessage;
-                    }
-                    if (navStateFSMessage) {
-                        messages[messageCount++] = navStateFSMessage;
-                    }
+                    if(navigationStateMessage(messages[messageCount]))
+                        messageCount++;
                     if (messageCount > 0) {
-                        message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
-                        if (message == failsafeInfoMessage) {
+                        int msgChoise = OSD_ALTERNATING_CHOICES(1000, messageCount);
+                        message = messages[msgChoise];
+                        if (failesaveInfoMessageId != -1 && msgChoise == failesaveInfoMessageId) {
                             // failsafeInfoMessage is not useful for recovering
                             // a lost model, but might help avoiding a crash.
                             // Blink to grab user attention.
                             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
                         }
-                        // We're shoing either failsafePhaseMessage or
+                        // We're showing either failsafePhaseMessage or
                         // navStateFSMessage. Don't BLINK here since
                         // having this text available might be crucial
                         // during a lost aircraft recovery and blinking
@@ -2109,28 +2121,26 @@ static bool osdDrawSingleElement(uint8_t item)
                     }
                 } else {
                     if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
-                        const char *navStateMessage = navigationStateMessage();
-                        if (navStateMessage) {
-                            messages[messageCount++] = navStateMessage;
-                        }
+                        if(navigationStateMessage(messages[messageCount]))
+                            messageCount++;
                     } else if (STATE(FIXED_WING_LEGACY) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
-                            messages[messageCount++] = "AUTOLAUNCH";
+                            strlcpy(messages[messageCount++], "AUTOLAUNCH", OSD_MESSAGE_LENGTH);
                     } else {
                         if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
                             // ALTHOLD might be enabled alongside ANGLE/HORIZON/ACRO
                             // when it doesn't require ANGLE mode (required only in FW
                             // right now). If if requires ANGLE, its display is handled
                             // by OSD_FLYMODE.
-                            messages[messageCount++] = "(ALTITUDE HOLD)";
+                            strlcpy(messages[messageCount++], "(ALTITUDE HOLD)", OSD_MESSAGE_LENGTH);
                         }
                         if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) {
-                            messages[messageCount++] = "(AUTOTRIM)";
+                            strlcpy(messages[messageCount++], "(AUTOTRIM)", OSD_MESSAGE_LENGTH);
                         }
                         if (IS_RC_MODE_ACTIVE(BOXAUTOTUNE)) {
-                            messages[messageCount++] = "(AUTOTUNE)";
+                            strlcpy(messages[messageCount++], "(AUTOTUNE)", OSD_MESSAGE_LENGTH);
                         }
                         if (FLIGHT_MODE(HEADFREE_MODE)) {
-                            messages[messageCount++] = "(HEADFREE)";
+                            strlcpy(messages[messageCount++], "(HEADFREE)", OSD_MESSAGE_LENGTH);
                         }
                     }
                     // Pick one of the available messages. Each message lasts
