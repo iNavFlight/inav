@@ -1,5 +1,5 @@
 F405_TARGETS  += $(TARGET)
-FEATURES    = VCP SDCARD MSC
+FEATURES    = VCP SDCARD
 
 TARGET_SRC = \
             drivers/accgyro/accgyro_mpu6500.c \
@@ -14,5 +14,5 @@ TARGET_SRC = \
             drivers/compass/compass_lis3mdl.c \
             drivers/barometer/barometer_ms56xx.c \
             drivers/light_ws2811strip.c \
-            drivers/max7456.c
+            drivers/max7456.c 
 #            drivers/vtx_rtc6705.c

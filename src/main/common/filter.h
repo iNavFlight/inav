@@ -40,7 +40,8 @@ typedef union {
 
 typedef enum {
     FILTER_PT1 = 0,
-    FILTER_BIQUAD
+    FILTER_BIQUAD,
+    FILTER_FIR,
 } filterType_e;
 
 typedef enum {
@@ -56,10 +57,8 @@ typedef struct firFilter_s {
 } firFilter_t;
 
 typedef float (*filterApplyFnPtr)(void *filter, float input);
-typedef float (*filterApply4FnPtr)(void *filter, float input, float f_cut, float dt);
 
 float nullFilterApply(void *filter, float input);
-float nullFilterApply4(void *filter, float input, float f_cut, float dt);
 
 void pt1FilterInit(pt1Filter_t *filter, float f_cut, float dT);
 void pt1FilterInitRC(pt1Filter_t *filter, float tau, float dT);
@@ -72,6 +71,8 @@ void pt1FilterReset(pt1Filter_t *filter, float input);
 
 void rateLimitFilterInit(rateLimitFilter_t *filter);
 float rateLimitFilterApply4(rateLimitFilter_t *filter, float input, float rate_limit, float dT);
+
+void biquadRCFIR2FilterInit(biquadFilter_t *filter, uint16_t f_cut, uint32_t samplingIntervalUs);
 
 void biquadFilterInitNotch(biquadFilter_t *filter, uint32_t samplingIntervalUs, uint16_t filterFreq, uint16_t cutoffHz);
 void biquadFilterInitLPF(biquadFilter_t *filter, uint16_t filterFreq, uint32_t samplingIntervalUs);

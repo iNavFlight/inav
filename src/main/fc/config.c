@@ -167,18 +167,27 @@ uint32_t getLooptime(void) {
 
 void validateAndFixConfig(void)
 {
+#ifdef USE_GYRO_NOTCH_1
     if (gyroConfig()->gyro_soft_notch_cutoff_1 >= gyroConfig()->gyro_soft_notch_hz_1) {
         gyroConfigMutable()->gyro_soft_notch_hz_1 = 0;
     }
+#endif
+#ifdef USE_GYRO_NOTCH_2
     if (gyroConfig()->gyro_soft_notch_cutoff_2 >= gyroConfig()->gyro_soft_notch_hz_2) {
         gyroConfigMutable()->gyro_soft_notch_hz_2 = 0;
     }
+#endif
+#ifdef USE_DTERM_NOTCH
     if (pidProfile()->dterm_soft_notch_cutoff >= pidProfile()->dterm_soft_notch_hz) {
         pidProfileMutable()->dterm_soft_notch_hz = 0;
     }
+#endif
+
+#ifdef USE_ACC_NOTCH
     if (accelerometerConfig()->acc_notch_cutoff >= accelerometerConfig()->acc_notch_hz) {
         accelerometerConfigMutable()->acc_notch_hz = 0;
     }
+#endif
 
     // Disable unused features
     featureClear(FEATURE_UNUSED_3 | FEATURE_UNUSED_4 | FEATURE_UNUSED_5 | FEATURE_UNUSED_6 | FEATURE_UNUSED_7 | FEATURE_UNUSED_8 | FEATURE_UNUSED_9 | FEATURE_UNUSED_10);

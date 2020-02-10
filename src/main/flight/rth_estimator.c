@@ -79,7 +79,7 @@ static int8_t RTHInitialAltitudeChangePitchAngle(float altitudeChange) {
 static float estimatePitchPower(float pitch) {
     int16_t altitudeChangeThrottle = fixedWingPitchToThrottleCorrection(DEGREES_TO_DECIDEGREES(pitch));
     altitudeChangeThrottle = constrain(altitudeChangeThrottle, navConfig()->fw.min_throttle, navConfig()->fw.max_throttle);
-    const float altitudeChangeThrToCruiseThrRatio = (float)(altitudeChangeThrottle - getThrottleIdleValue()) / (navConfig()->fw.cruise_throttle - getThrottleIdleValue());
+    const float altitudeChangeThrToCruiseThrRatio = (float)(altitudeChangeThrottle - motorConfig()->minthrottle) / (navConfig()->fw.cruise_throttle - motorConfig()->minthrottle);
     return (float)heatLossesCompensatedPower(batteryMetersConfig()->idle_power + batteryMetersConfig()->cruise_power * altitudeChangeThrToCruiseThrRatio) / 100;
 }
 

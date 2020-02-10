@@ -1,5 +1,5 @@
 F405_TARGETS   += $(TARGET)
-FEATURES       += VCP ONBOARDFLASH MSC
+FEATURES       += VCP ONBOARDFLASH
 
 TARGET_SRC = \
             drivers/accgyro/accgyro_mpu6500.c \
@@ -17,3 +17,4 @@ TARGET_SRC = \
             drivers/pitotmeter_adc.c \
             drivers/light_ws2811strip.c \
             drivers/max7456.c
+

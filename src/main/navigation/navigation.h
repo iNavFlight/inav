@@ -32,7 +32,7 @@
 
 /* GPS Home location data */
 extern gpsLocation_t        GPS_home;
-extern uint32_t             GPS_distanceToHome;        // distance to home point in meters
+extern uint32_t             GPS_distanceToHome;        // distance to home point in meters 
 extern int16_t              GPS_directionToHome;       // direction to home point in degrees
 
 extern bool autoThrottleManuallyIncreased;
@@ -171,8 +171,6 @@ typedef struct navConfig_s {
         uint16_t min_rth_distance;              // 0 Disables. Minimal distance for RTH in cm, otherwise it will just autoland
         uint16_t rth_abort_threshold;           // Initiate emergency landing if during RTH we get this much [cm] away from home
         uint16_t max_terrain_follow_altitude;   // Max altitude to be used in SURFACE TRACKING mode
-        uint16_t rth_home_offset_distance;	  // Distance offset from GPS established home to "safe" position used for RTH (cm, 0 disables)
-        uint16_t rth_home_offset_direction;	  // Direction offset from GPS established home to "safe" position used for RTH (degrees, 0=N, 90=E, 180=S, 270=W, requires non-zero offset distance)
     } general;
 
     struct {
@@ -230,9 +228,8 @@ typedef struct gpsOrigin_s {
 } gpsOrigin_t;
 
 typedef enum {
-    NAV_WP_ACTION_WAYPOINT  = 0x01,
-	NAV_WP_ACTION_HOLD_TIME = 0x03,
-    NAV_WP_ACTION_RTH       = 0x04
+    NAV_WP_ACTION_WAYPOINT = 0x01,
+    NAV_WP_ACTION_RTH      = 0x04
 } navWaypointActions_e;
 
 typedef enum {
@@ -326,7 +323,6 @@ typedef enum {
     MW_NAV_STATE_RTH_ENROUTE,             // RTH Enroute
     MW_NAV_STATE_HOLD_INFINIT,            // PosHold infinit
     MW_NAV_STATE_HOLD_TIMED,              // PosHold timed
-    MW_NAV_STATE_WP_HOLD_TIME,            // WP hold timed
     MW_NAV_STATE_WP_ENROUTE,              // WP Enroute
     MW_NAV_STATE_PROCESS_NEXT,            // Process next
     MW_NAV_STATE_DO_JUMP,                 // Jump

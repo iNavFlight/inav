@@ -113,12 +113,9 @@
 #define SPI4_MOSI_PIN           PE6
 
 #define USE_OSD
-
-#ifndef KAKUTEF7HDV
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          SPI2_NSS_PIN
-#endif
 
 #if defined(KAKUTEF7MINI)
 #define M25P16_CS_PIN           SPI1_NSS_PIN

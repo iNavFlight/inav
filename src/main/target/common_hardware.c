@@ -97,17 +97,6 @@
     #endif
 #endif
 
-#if defined(USE_BARO_BMP388)
-    #if defined(BMP388_SPI_BUS)
-    BUSDEV_REGISTER_SPI(busdev_bmp388,      DEVHW_BMP388,       BMP388_SPI_BUS,     BMP388_CS_PIN,      NONE,           DEVFLAGS_NONE);
-    #elif defined(BMP388_I2C_BUS) || defined(BARO_I2C_BUS)
-    #if !defined(BMP388_I2C_BUS)
-        #define BMP388_I2C_BUS BARO_I2C_BUS
-    #endif
-    BUSDEV_REGISTER_I2C(busdev_bmp388,      DEVHW_BMP388,       BMP388_I2C_BUS,     0x76,               NONE,           DEVFLAGS_NONE);
-    #endif
-#endif
-
 #if defined(USE_BARO_SPL06)
     #if defined(SPL06_SPI_BUS)
       BUSDEV_REGISTER_SPI(busdev_spl06,     DEVHW_SPL06,        SPL06_SPI_BUS,      SPL06_CS_PIN,       NONE,           DEVFLAGS_NONE);

@@ -29,6 +29,7 @@ doc_files=(
 	'Migrating from baseflight.md'
 	'Boards.md'
 	'Board - AlienFlight.md'
+    'Board - ChebuzzF3.md'
     'Board - ColibriRace.md'
 	'Board - Motolab.md'
     'Board - Paris Air Hero 32.md'
