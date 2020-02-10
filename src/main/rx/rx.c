@@ -195,6 +195,9 @@ bool serialRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
     case SERIALRX_SBUS:
         enabled = sbusInit(rxConfig, rxRuntimeConfig);
         break;
+    case SERIALRX_SBUS_FAST:
+        enabled = sbusInitFast(rxConfig, rxRuntimeConfig);
+        break;
 #endif
 #ifdef USE_SERIALRX_SUMD
     case SERIALRX_SUMD:
@@ -364,7 +367,7 @@ void rxUpdateRSSISource(void)
         }
     }
 
-    if (rxConfig()->rssi_source == RSSI_SOURCE_RX_PROTOCOL) {
+    if (rxConfig()->rssi_source == RSSI_SOURCE_RX_PROTOCOL || rxConfig()->rssi_source == RSSI_SOURCE_AUTO) {
         activeRssiSource = RSSI_SOURCE_RX_PROTOCOL;
         return;
     }
