@@ -230,8 +230,9 @@ typedef struct gpsOrigin_s {
 } gpsOrigin_t;
 
 typedef enum {
-    NAV_WP_ACTION_WAYPOINT = 0x01,
-    NAV_WP_ACTION_RTH      = 0x04
+    NAV_WP_ACTION_WAYPOINT  = 0x01,
+	NAV_WP_ACTION_HOLD_TIME = 0x03,
+    NAV_WP_ACTION_RTH       = 0x04
 } navWaypointActions_e;
 
 typedef enum {
@@ -325,6 +326,7 @@ typedef enum {
     MW_NAV_STATE_RTH_ENROUTE,             // RTH Enroute
     MW_NAV_STATE_HOLD_INFINIT,            // PosHold infinit
     MW_NAV_STATE_HOLD_TIMED,              // PosHold timed
+    MW_NAV_STATE_WP_HOLD_TIME,            // WP hold timed
     MW_NAV_STATE_WP_ENROUTE,              // WP Enroute
     MW_NAV_STATE_PROCESS_NEXT,            // Process next
     MW_NAV_STATE_DO_JUMP,                 // Jump

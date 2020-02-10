@@ -794,6 +794,9 @@ static const char * navigationStateMessage(void)
             break;
         case MW_NAV_STATE_HOLD_TIMED:
             // Not used anymore
+        case MW_NAV_STATE_WP_HOLD_TIME:
+            // TODO: Maybe we can display a count down
+            return OSD_MESSAGE_STR("HOLDING WAYPOINT");
             break;
         case MW_NAV_STATE_WP_ENROUTE:
             // TODO: Show WP number
