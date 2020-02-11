@@ -449,6 +449,11 @@ bool FAST_CODE NOINLINE isServoOutputEnabled(void)
     return servoOutputEnabled;
 }
 
+void NOINLINE setServoOutputEnabled(bool flag)
+{
+    servoOutputEnabled = flag;
+}
+
 bool FAST_CODE NOINLINE isMixerUsingServos(void)
 {
     return mixerUsesServos;

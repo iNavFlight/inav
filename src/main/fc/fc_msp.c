@@ -153,26 +153,74 @@ typedef enum {
     MSP_FLASHFS_BIT_SUPPORTED    = 2
 } mspFlashfsFlags_e;
 
-#ifdef USE_SERIAL_4WAY_BLHELI_INTERFACE
-#define ESC_4WAY 0xff
+typedef enum {
+    MSP_PASSTHROUGH_SERIAL_ID = 0xFD,
+    MSP_PASSTHROUGH_SERIAL_FUNCTION_ID = 0xFE,
 
-static uint8_t escMode;
-static uint8_t escPortIndex;
+    MSP_PASSTHROUGH_ESC_4WAY = 0xFF,
+ } mspPassthroughType_e;
 
-static void mspFc4waySerialCommand(sbuf_t *dst, sbuf_t *src, mspPostProcessFnPtr *mspPostProcessFn)
+static uint8_t mspPassthroughMode;
+static uint8_t mspPassthroughArgument;
+
+static serialPort_t *mspFindPassthroughSerialPort(void)
+ {
+    serialPortUsage_t *portUsage = NULL;
+
+    switch (mspPassthroughMode) {
+    case MSP_PASSTHROUGH_SERIAL_ID:
+    {
+        portUsage = findSerialPortUsageByIdentifier(mspPassthroughArgument);
+        break;
+    }
+    case MSP_PASSTHROUGH_SERIAL_FUNCTION_ID:
+    {
+        const serialPortConfig_t *portConfig = findSerialPortConfig(1 << mspPassthroughArgument);
+        if (portConfig) {
+            portUsage = findSerialPortUsageByIdentifier(portConfig->identifier);
+        }
+        break;
+    }
+    }
+    return portUsage ? portUsage->serialPort : NULL;
+}
+
+static void mspSerialPassthroughFn(serialPort_t *serialPort)
+{
+    serialPort_t *passthroughPort = mspFindPassthroughSerialPort();
+    if (passthroughPort && serialPort) {
+        serialPassthrough(passthroughPort, serialPort, NULL, NULL);
+    }
+}
+
+static void mspFcSetPassthroughCommand(sbuf_t *dst, sbuf_t *src, mspPostProcessFnPtr *mspPostProcessFn)
 {
     const unsigned int dataSize = sbufBytesRemaining(src);
 
     if (dataSize == 0) {
         // Legacy format
-        escMode = ESC_4WAY;
+        mspPassthroughMode = MSP_PASSTHROUGH_ESC_4WAY;
     } else {
-        escMode = sbufReadU8(src);
-        escPortIndex = sbufReadU8(src);
+        mspPassthroughMode = sbufReadU8(src);
+        if (!sbufReadU8Safe(&mspPassthroughArgument, src)) {
+            mspPassthroughArgument = 0;
+        }
     }
 
-    switch (escMode) {
-    case ESC_4WAY:
+    switch (mspPassthroughMode) {
+    case MSP_PASSTHROUGH_SERIAL_ID:
+    case MSP_PASSTHROUGH_SERIAL_FUNCTION_ID:
+         if (mspFindPassthroughSerialPort()) {
+             if (mspPostProcessFn) {
+                 *mspPostProcessFn = mspSerialPassthroughFn;
+             }
+             sbufWriteU8(dst, 1);
+         } else {
+             sbufWriteU8(dst, 0);
+         }
+         break;
+#ifdef USE_SERIAL_4WAY_BLHELI_INTERFACE
+    case MSP_PASSTHROUGH_ESC_4WAY:
         // get channel number
         // switch all motor lines HI
         // reply with the count of ESC found
@@ -182,13 +230,11 @@ static void mspFc4waySerialCommand(sbuf_t *dst, sbuf_t *src, mspPostProcessFnPtr
             *mspPostProcessFn = esc4wayProcess;
         }
         break;
-
+#endif
     default:
         sbufWriteU8(dst, 0);
     }
 }
-
-#endif
 
 static void mspRebootFn(serialPort_t *serialPort)
 {
@@ -702,7 +748,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP_MISC:
         sbufWriteU16(dst, PWM_RANGE_MIDDLE);
 
-        sbufWriteU16(dst, motorConfig()->minthrottle);
+        sbufWriteU16(dst, 0); // Was min_throttle
         sbufWriteU16(dst, motorConfig()->maxthrottle);
         sbufWriteU16(dst, motorConfig()->mincommand);
 
@@ -732,7 +778,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP2_INAV_MISC:
         sbufWriteU16(dst, PWM_RANGE_MIDDLE);
 
-        sbufWriteU16(dst, motorConfig()->minthrottle);
+        sbufWriteU16(dst, 0); //Was min_throttle
         sbufWriteU16(dst, motorConfig()->maxthrottle);
         sbufWriteU16(dst, motorConfig()->mincommand);
 
@@ -1101,49 +1147,25 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, gyroConfig()->gyro_soft_lpf_hz);
         sbufWriteU16(dst, pidProfile()->dterm_lpf_hz);
         sbufWriteU16(dst, pidProfile()->yaw_lpf_hz);
-#ifdef USE_GYRO_NOTCH_1
         sbufWriteU16(dst, gyroConfig()->gyro_soft_notch_hz_1); //masterConfig.gyro_soft_notch_hz_1
         sbufWriteU16(dst, gyroConfig()->gyro_soft_notch_cutoff_1); //BF: masterConfig.gyro_soft_notch_cutoff_1
-#else
-        sbufWriteU16(dst, 0); //masterConfig.gyro_soft_notch_hz_1
-        sbufWriteU16(dst, 1); //BF: masterConfig.gyro_soft_notch_cutoff_1
-#endif
 
-#ifdef USE_DTERM_NOTCH
         sbufWriteU16(dst, pidProfile()->dterm_soft_notch_hz); //BF: pidProfile()->dterm_notch_hz
         sbufWriteU16(dst, pidProfile()->dterm_soft_notch_cutoff); //pidProfile()->dterm_notch_cutoff
-#else
-        sbufWriteU16(dst, 0); //BF: pidProfile()->dterm_notch_hz
-        sbufWriteU16(dst, 1); //pidProfile()->dterm_notch_cutoff
-#endif
 
-#ifdef USE_GYRO_NOTCH_2
         sbufWriteU16(dst, gyroConfig()->gyro_soft_notch_hz_2); //BF: masterConfig.gyro_soft_notch_hz_2
         sbufWriteU16(dst, gyroConfig()->gyro_soft_notch_cutoff_2); //BF: masterConfig.gyro_soft_notch_cutoff_2
-#else
-        sbufWriteU16(dst, 0); //BF: masterConfig.gyro_soft_notch_hz_2
-        sbufWriteU16(dst, 1); //BF: masterConfig.gyro_soft_notch_cutoff_2
-#endif
 
-#ifdef USE_ACC_NOTCH
         sbufWriteU16(dst, accelerometerConfig()->acc_notch_hz);
         sbufWriteU16(dst, accelerometerConfig()->acc_notch_cutoff);
-#else
-        sbufWriteU16(dst, 0);
-        sbufWriteU16(dst, 1);
-#endif
 
-#ifdef USE_GYRO_BIQUAD_RC_FIR2
         sbufWriteU16(dst, gyroConfig()->gyro_stage2_lowpass_hz);
-#else
-        sbufWriteU16(dst, 0);
-#endif
         break;
 
     case MSP_PID_ADVANCED:
         sbufWriteU16(dst, 0); // pidProfile()->rollPitchItermIgnoreRate
         sbufWriteU16(dst, 0); // pidProfile()->yawItermIgnoreRate
-        sbufWriteU16(dst, pidProfile()->yaw_p_limit);
+        sbufWriteU16(dst, 0); //pidProfile()->yaw_p_limit
         sbufWriteU8(dst, 0); //BF: pidProfile()->deltaMethod
         sbufWriteU8(dst, 0); //BF: pidProfile()->vbatPidCompensation
         sbufWriteU8(dst, 0); //BF: pidProfile()->setpointRelaxRatio
@@ -1165,7 +1187,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, 0); //Legacy, no longer in use async processing value
         sbufWriteU8(dst, pidProfile()->heading_hold_rate_limit);
         sbufWriteU8(dst, HEADING_HOLD_ERROR_LPF_FREQ);
-        sbufWriteU16(dst, mixerConfig()->yaw_jump_prevention_limit);
+        sbufWriteU16(dst, 0);
         sbufWriteU8(dst, gyroConfig()->gyro_lpf);
         sbufWriteU8(dst, accelerometerConfig()->acc_lpf_hz);
         sbufWriteU8(dst, 0); //reserved
@@ -1398,7 +1420,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP2_INAV_MIXER:
         sbufWriteU8(dst, mixerConfig()->yaw_motor_direction);
-        sbufWriteU16(dst, mixerConfig()->yaw_jump_prevention_limit);
+        sbufWriteU16(dst, 0);
         sbufWriteU8(dst, mixerConfig()->platformType);
         sbufWriteU8(dst, mixerConfig()->hasFlaps);
         sbufWriteU16(dst, mixerConfig()->appliedMixerPreset);
@@ -1736,7 +1758,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         if (dataSize >= 22) {
         sbufReadU16(src);   // midrc
 
-        motorConfigMutable()->minthrottle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
+        sbufReadU16(src); //Was min_throttle
         motorConfigMutable()->maxthrottle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
         motorConfigMutable()->mincommand = constrain(sbufReadU16(src), 0, PWM_RANGE_MAX);
 
@@ -1777,7 +1799,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         if (dataSize == 41) {
             sbufReadU16(src);       // midrc
 
-            motorConfigMutable()->minthrottle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
+            sbufReadU16(src);   // was min_throttle
             motorConfigMutable()->maxthrottle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
             motorConfigMutable()->mincommand = constrain(sbufReadU16(src), 0, PWM_RANGE_MAX);
 
@@ -2015,45 +2037,40 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     case MSP_SET_FILTER_CONFIG :
         if (dataSize >= 5) {
             gyroConfigMutable()->gyro_soft_lpf_hz = sbufReadU8(src);
-            pidProfileMutable()->dterm_lpf_hz = constrain(sbufReadU16(src), 0, 255);
+            pidProfileMutable()->dterm_lpf_hz = constrain(sbufReadU16(src), 0, 500);
             pidProfileMutable()->yaw_lpf_hz = constrain(sbufReadU16(src), 0, 255);
-#ifdef USE_GYRO_NOTCH_1
             if (dataSize >= 9) {
                 gyroConfigMutable()->gyro_soft_notch_hz_1 = constrain(sbufReadU16(src), 0, 500);
                 gyroConfigMutable()->gyro_soft_notch_cutoff_1 = constrain(sbufReadU16(src), 1, 500);
-            } else
+            } else {
                 return MSP_RESULT_ERROR;
-#endif
-#ifdef USE_DTERM_NOTCH
+            }
             if (dataSize >= 13) {
                 pidProfileMutable()->dterm_soft_notch_hz = constrain(sbufReadU16(src), 0, 500);
                 pidProfileMutable()->dterm_soft_notch_cutoff = constrain(sbufReadU16(src), 1, 500);
                 pidInitFilters();
-            } else
+            } else {
                 return MSP_RESULT_ERROR;
-#endif
-#ifdef USE_GYRO_NOTCH_2
+            }
             if (dataSize >= 17) {
                 gyroConfigMutable()->gyro_soft_notch_hz_2 = constrain(sbufReadU16(src), 0, 500);
                 gyroConfigMutable()->gyro_soft_notch_cutoff_2 = constrain(sbufReadU16(src), 1, 500);
-            } else
+            } else {
                 return MSP_RESULT_ERROR;
-#endif
+            }
 
-#ifdef USE_ACC_NOTCH
             if (dataSize >= 21) {
                 accelerometerConfigMutable()->acc_notch_hz = constrain(sbufReadU16(src), 0, 255);
                 accelerometerConfigMutable()->acc_notch_cutoff = constrain(sbufReadU16(src), 1, 255);
-            } else
+            } else {
                 return MSP_RESULT_ERROR;
-#endif
+            }
 
-#ifdef USE_GYRO_BIQUAD_RC_FIR2
             if (dataSize >= 22) {
                 gyroConfigMutable()->gyro_stage2_lowpass_hz = constrain(sbufReadU16(src), 0, 500);
-            } else
+            } else {
                 return MSP_RESULT_ERROR;
-#endif
+            }
         } else
             return MSP_RESULT_ERROR;
         break;
@@ -2062,7 +2079,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         if (dataSize >= 17) {
             sbufReadU16(src);   // pidProfileMutable()->rollPitchItermIgnoreRate
             sbufReadU16(src);   // pidProfileMutable()->yawItermIgnoreRate
-            pidProfileMutable()->yaw_p_limit = sbufReadU16(src);
+            sbufReadU16(src); //pidProfile()->yaw_p_limit
 
             sbufReadU8(src); //BF: pidProfileMutable()->deltaMethod
             sbufReadU8(src); //BF: pidProfileMutable()->vbatPidCompensation
@@ -2088,10 +2105,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU16(src);  //Legacy, no longer in use async processing value
             pidProfileMutable()->heading_hold_rate_limit = sbufReadU8(src);
             sbufReadU8(src); //HEADING_HOLD_ERROR_LPF_FREQ
-            mixerConfigMutable()->yaw_jump_prevention_limit = sbufReadU16(src);
+            sbufReadU16(src); //Legacy yaw_jump_prevention_limit
             gyroConfigMutable()->gyro_lpf = sbufReadU8(src);
             accelerometerConfigMutable()->acc_lpf_hz = sbufReadU8(src);
-            sbufReadU8(src); //reserved
+            sbufReadU8(src); //reserved 
             sbufReadU8(src); //reserved
             sbufReadU8(src); //reserved
             sbufReadU8(src); //reserved
@@ -2733,7 +2750,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP2_INAV_SET_MIXER:
         mixerConfigMutable()->yaw_motor_direction = sbufReadU8(src);
-        mixerConfigMutable()->yaw_jump_prevention_limit = sbufReadU16(src);
+        sbufReadU16(src); // Was yaw_jump_prevention_limit
         mixerConfigMutable()->platformType = sbufReadU8(src);
         mixerConfigMutable()->hasFlaps = sbufReadU8(src);
         mixerConfigMutable()->appliedMixerPreset = sbufReadU16(src);
@@ -3206,11 +3223,9 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
         ret = mspProcessSensorCommand(cmdMSP, src);
     } else if (mspFcProcessOutCommand(cmdMSP, dst, mspPostProcessFn)) {
         ret = MSP_RESULT_ACK;
-#ifdef USE_SERIAL_4WAY_BLHELI_INTERFACE
-    } else if (cmdMSP == MSP_SET_4WAY_IF) {
-        mspFc4waySerialCommand(dst, src, mspPostProcessFn);
+    } else if (cmdMSP == MSP_SET_PASSTHROUGH) {
+        mspFcSetPassthroughCommand(dst, src, mspPostProcessFn);
         ret = MSP_RESULT_ACK;
-#endif
     } else {
         if (!mspFCProcessInOutCommand(cmdMSP, dst, src, &ret)) {
             ret = mspFcProcessInCommand(cmdMSP, src);

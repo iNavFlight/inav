@@ -162,3 +162,7 @@
 #define TARGET_IO_PORTD         (BIT(2))
 
 #define MAX_PWM_OUTPUT_PORTS       6
+
+#ifdef USE_USB_MSC
+# undef USE_USB_MSC
+#endif

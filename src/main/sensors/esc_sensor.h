@@ -29,7 +29,7 @@ typedef struct {
     int8_t temperature;
     int16_t voltage;
     int32_t current;
-    int16_t rpm;
+    uint32_t rpm;
 } escSensorData_t;
 
 typedef struct escSensorConfig_s {
@@ -40,7 +40,10 @@ PG_DECLARE(escSensorConfig_t, escSensorConfig);
 
 #define ESC_DATA_MAX_AGE    10
 #define ESC_DATA_INVALID    255
+#define ERPM_PER_LSB        100.0f
 
 bool escSensorInitialize(void);
 void escSensorUpdate(timeUs_t currentTimeUs);
 escSensorData_t * escSensorGetData(void);
+escSensorData_t * getEscTelemetry(uint8_t esc);
+uint32_t computeRpm(int16_t erpm);

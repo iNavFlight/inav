@@ -36,6 +36,14 @@ float nullFilterApply(void *filter, float input)
     return input;
 }
 
+float nullFilterApply4(void *filter, float input, float f_cut, float dt)
+{
+    UNUSED(filter);
+    UNUSED(f_cut);
+    UNUSED(dt);
+    return input;
+}
+
 // PT1 Low Pass filter
 
 // f_cut = cutoff frequency
@@ -124,31 +132,6 @@ void biquadFilterInitNotch(biquadFilter_t *filter, uint32_t samplingIntervalUs, 
 void biquadFilterInitLPF(biquadFilter_t *filter, uint16_t filterFreq, uint32_t samplingIntervalUs)
 {
     biquadFilterInit(filter, filterFreq, samplingIntervalUs, BIQUAD_Q, FILTER_LPF);
-}
-
-// ledvinap's proposed RC+FIR2 Biquad-- 1st order IIR, RC filter k
-void biquadRCFIR2FilterInit(biquadFilter_t *filter, uint16_t f_cut, uint32_t samplingIntervalUs)
-{
-    if (f_cut < (1000000 / samplingIntervalUs / 2)) {
-        const float dT = (float) samplingIntervalUs * 0.000001f;
-        const float RC = 1.0f / ( 2.0f * M_PIf * f_cut );
-        const float k = dT / (RC + dT);
-        filter->b0 = k / 2;
-        filter->b1 = k / 2;
-        filter->b2 = 0;
-        filter->a1 = -(1 - k);
-        filter->a2 = 0;
-    } else {
-        filter->b0 = 1.0f;
-        filter->b1 = 0.0f;
-        filter->b2 = 0.0f;
-        filter->a1 = 0.0f;
-        filter->a2 = 0.0f;
-    }
-
-    // zero initial samples
-    filter->x1 = filter->x2 = 0;
-    filter->y1 = filter->y2 = 0;
 }
 
 void biquadFilterInit(biquadFilter_t *filter, uint16_t filterFreq, uint32_t samplingIntervalUs, float Q, biquadFilterType_e filterType)
