@@ -682,7 +682,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .timeoutMs = 10,
         .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP,
         .mapToFlightModes = NAV_WP_MODE | NAV_ALTHOLD_MODE,
-        .mwState = MW_NAV_STATE_WP_HOLD_TIME,
+        .mwState = MW_NAV_STATE_HOLD_TIMED,
         .mwError = MW_NAV_ERROR_NONE,
         .onEvent = {
             [NAV_FSM_EVENT_TIMEOUT]                     = NAV_STATE_WAYPOINT_HOLD_TIME,     // re-process the state
@@ -2766,6 +2766,11 @@ bool isApproachingLastWaypoint(void)
     else {
         return false;
     }
+}
+
+bool isWaypointWait(void)
+{
+    return NAV_Status.state == MW_NAV_STATE_HOLD_TIMED;
 }
 
 float getActiveWaypointSpeed(void)
