@@ -6,6 +6,8 @@ iNav offers a function to use serial `printf` style debugging.
 
 This provides a simple and intuitive debugging facility. This facility is only available after the serial sub-system has been initialised, which should be adequate for all but the most hard-core debugging requirements.
 
+In order to use this feature, the source file must include `common/log.h`.
+
 ## CLI settings
 
 It is necessary to set a serial port for serial logging using the function mask `FUNCTION_LOG`, 32768. For convenience this may be shared with MSP (mask 1), but no other function.
@@ -52,7 +54,7 @@ then only `ERROR`, `WARNING` and `INFO` levels will be output.
 
 ## Log Topic
 
-Log levels are defined in `src/main/common/log.h`, at the time of writing:
+Log topics are defined in `src/main/common/log.h`, at the time of writing:
 
 * SYSTEM
 * GYRO
