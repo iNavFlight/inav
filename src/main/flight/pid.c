@@ -707,10 +707,6 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
         // Apply D-term notch
         deltaFiltered = notchFilterApplyFn(&pidState->deltaNotchFilter, deltaFiltered);
 
-#ifdef USE_RPM_FILTER
-        deltaFiltered = rpmFilterDtermApply((uint8_t)axis, deltaFiltered);
-#endif
-
         // Apply additional lowpass
         deltaFiltered = dTermLpfFilterApplyFn((filter_t *) &pidState->dtermLpfState, deltaFiltered);
         deltaFiltered = dTermLpf2FilterApplyFn((filter_t *) &pidState->dtermLpf2State, deltaFiltered);
