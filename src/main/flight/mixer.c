@@ -147,11 +147,12 @@ bool mixerIsOutputSaturated(void)
 
 void mixerUpdateStateFlags(void)
 {
-    // set flag that we're on something with wings
-    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
+    if (
+        mixerConfig()->platformType == PLATFORM_AIRPLANE || 
+        mixerConfig()->platformType == PLATFORM_BOAT ||
+        mixerConfig()->platformType == PLATFORM_ROVER
+    ) {
         ENABLE_STATE(AIRPLANE_ROVER_BOAT);
-    } else if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
-        DISABLE_STATE(AIRPLANE_ROVER_BOAT);
     } else {
         DISABLE_STATE(AIRPLANE_ROVER_BOAT);
     }
