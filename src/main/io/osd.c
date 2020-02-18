@@ -1738,7 +1738,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     if (radar_pois[i].gps.lat != 0 && radar_pois[i].gps.lon != 0 && radar_pois[i].state < 2) { // state 2 means POI has been lost and must be skipped
                         fpVector3_t poi;
                         geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &radar_pois[i].gps, GEO_ALT_RELATIVE);
-                        radar_pois[i].distance = calculateDistanceToDestination(&poi) / 100; // In meters
+                        radar_pois[i].distance = calculateDistanceToDestination2D(&poi) / 100; // In meters
 
                         if (radar_pois[i].distance >= osdConfig()->hud_radar_range_min && radar_pois[i].distance <= osdConfig()->hud_radar_range_max) {
                             radar_pois[i].direction = calculateBearingToDestination(&poi) / 100; // In °

@@ -96,6 +96,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
             .disarm_on_landing = 0,
             .rth_allow_landing = NAV_RTH_ALLOW_LANDING_ALWAYS,
             .auto_overrides_motor_stop = 1,
+            .include_waypoint_alt = 0,
         },
 
         // General navigation parameters
@@ -989,7 +990,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_2D_IN_PROGRESS(n
             || posControl.flags.isAdjustingHeading) {
         calculateFarAwayTarget(&posControl.cruise.targetPos, posControl.cruise.yaw, distance);
         DEBUG_SET(DEBUG_CRUISE, 2, 1);
-    } else if (calculateDistanceToDestination(&posControl.cruise.targetPos) <= (navConfig()->fw.loiter_radius * 1.10f)) { //10% margin
+    } else if (calculateDistanceToDestination2D(&posControl.cruise.targetPos) <= (navConfig()->fw.loiter_radius * 1.10f)) { //10% margin
         calculateNewCruiseTarget(&posControl.cruise.targetPos, posControl.cruise.yaw, distance);
         DEBUG_SET(DEBUG_CRUISE, 2, 2);
     }
@@ -1370,7 +1371,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
     switch (posControl.waypointList[posControl.activeWaypointIndex].action) {
         case NAV_WP_ACTION_WAYPOINT:
             calculateAndSetActiveWaypoint(&posControl.waypointList[posControl.activeWaypointIndex]);
-            posControl.wpInitialDistance = calculateDistanceToDestination(&posControl.activeWaypoint.pos);
+            posControl.wpInitialDistance = calculateDistanceToDestination2D(&posControl.activeWaypoint.pos);
             posControl.wpInitialAltitude = posControl.actualState.abs.pos.z;
             return NAV_FSM_EVENT_SUCCESS;       // will switch to NAV_STATE_WAYPOINT_IN_PROGRESS
 
@@ -1396,13 +1397,20 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_IN_PROGRESS(na
                     return NAV_FSM_EVENT_SUCCESS;   // will switch to NAV_STATE_WAYPOINT_REACHED
                 }
                 else {
-                    fpVector3_t tmpWaypoint;
-                    tmpWaypoint.x = posControl.activeWaypoint.pos.x;
-                    tmpWaypoint.y = posControl.activeWaypoint.pos.y;
-                    tmpWaypoint.z = scaleRangef(constrainf(posControl.wpDistance, posControl.wpInitialDistance / 10.0f, posControl.wpInitialDistance),
-                        posControl.wpInitialDistance, posControl.wpInitialDistance / 10.0f,
-                        posControl.wpInitialAltitude, posControl.activeWaypoint.pos.z);
-                    setDesiredPosition(&tmpWaypoint, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING);
+                    // If we are close to the waypoint, don't update bearing any more as this would cause the craft to
+                    // rotate around the waypoint if the altitude is not reached yet.
+                    if(posControl.wpDistance <= navConfig()->general.waypoint_radius) {
+                        setDesiredPosition(&posControl.activeWaypoint.pos, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z);
+                    }
+                    else {
+                        fpVector3_t tmpWaypoint;
+                        tmpWaypoint.x = posControl.activeWaypoint.pos.x;
+                        tmpWaypoint.y = posControl.activeWaypoint.pos.y;
+                        tmpWaypoint.z = scaleRangef(constrainf(posControl.wpDistance, posControl.wpInitialDistance / 10.0f, posControl.wpInitialDistance),
+                            posControl.wpInitialDistance, posControl.wpInitialDistance / 10.0f,
+                            posControl.wpInitialAltitude, posControl.activeWaypoint.pos.z);
+                        setDesiredPosition(&tmpWaypoint, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING);
+                    }
                     return NAV_FSM_EVENT_NONE;      // will re-process state in >10ms
                 }
                 break;
@@ -1989,11 +1997,19 @@ const navEstimatedPosVel_t * navGetCurrentActualPositionAndVelocity(void)
 }
 
 /*-----------------------------------------------------------
- * Calculates distance and bearing to destination point
+ * Calculates distance and bearing to destination point in 2D space
  *-----------------------------------------------------------*/
-static uint32_t calculateDistanceFromDelta(float deltaX, float deltaY)
+static uint32_t calculateDistanceFromDelta2D(float deltaX, float deltaY)
 {
     return sqrtf(sq(deltaX) + sq(deltaY));
+}
+
+/*-----------------------------------------------------------
+ * Calculates distance and bearing to destination point in 3D space
+ *-----------------------------------------------------------*/
+static uint32_t calculateDistanceFromDelta3D(float deltaX, float deltaY, float deltaZ)
+{
+    return sqrtf(sq(deltaX) + sq(deltaY) + sq(deltaZ));
 }
 
 static int32_t calculateBearingFromDelta(float deltaX, float deltaY)
@@ -2001,13 +2017,23 @@ static int32_t calculateBearingFromDelta(float deltaX, float deltaY)
     return wrap_36000(RADIANS_TO_CENTIDEGREES(atan2_approx(deltaY, deltaX)));
 }
 
-uint32_t calculateDistanceToDestination(const fpVector3_t * destinationPos)
+uint32_t calculateDistanceToDestination2D(const fpVector3_t * destinationPos)
 {
     const navEstimatedPosVel_t *posvel = navGetCurrentActualPositionAndVelocity();
     const float deltaX = destinationPos->x - posvel->pos.x;
     const float deltaY = destinationPos->y - posvel->pos.y;
 
-    return calculateDistanceFromDelta(deltaX, deltaY);
+    return calculateDistanceFromDelta2D(deltaX, deltaY);
+}
+
+uint32_t calculateDistanceToDestination3D(const fpVector3_t * destinationPos)
+{
+    const navEstimatedPosVel_t *posvel = navGetCurrentActualPositionAndVelocity();
+    const float deltaX = destinationPos->x - posvel->pos.x;
+    const float deltaY = destinationPos->y - posvel->pos.y;
+    const float deltaZ = destinationPos->z - posvel->pos.z;
+
+    return calculateDistanceFromDelta3D(deltaX, deltaY, deltaZ);
 }
 
 int32_t calculateBearingToDestination(const fpVector3_t * destinationPos)
@@ -2031,7 +2057,7 @@ bool navCalculatePathToDestination(navDestinationPath_t *result, const fpVector3
     const float deltaX = destinationPos->x - posvel->pos.x;
     const float deltaY = destinationPos->y - posvel->pos.y;
 
-    result->distance = calculateDistanceFromDelta(deltaX, deltaY);
+    result->distance = calculateDistanceFromDelta2D(deltaX, deltaY);
     result->bearing = calculateBearingFromDelta(deltaX, deltaY);
     return true;
 }
@@ -2044,13 +2070,20 @@ bool isWaypointMissed(const navWaypointPosition_t * waypoint)
     int32_t bearingError = calculateBearingToDestination(&waypoint->pos) - waypoint->yaw;
     bearingError = wrap_18000(bearingError);
 
-    return ABS(bearingError) > 10000; // TRUE if we passed the waypoint by 100 degrees
+    // Check if the altitude is reached
+    float deltaZ = 0.0f;
+    if(navConfig()->general.flags.include_waypoint_alt) {
+        const navEstimatedPosVel_t *posvel = navGetCurrentActualPositionAndVelocity();
+        deltaZ = fabsf(posvel->pos.z - waypoint->pos.z);
+    }
+
+    return ABS(bearingError) > 10000 && deltaZ < navConfig()->general.waypoint_radius; // TRUE if we passed the waypoint by 100 degrees
 }
 
 static bool isWaypointPositionReached(const fpVector3_t * pos, const bool isWaypointHome)
 {
     // We consider waypoint reached if within specified radius
-    posControl.wpDistance = calculateDistanceToDestination(pos);
+    posControl.wpDistance = calculateDistanceToDestination2D(pos);
 
     if (STATE(FIXED_WING) && isWaypointHome) {
         // Airplane will do a circular loiter over home and might never approach it closer than waypoint_radius - need extra check
@@ -2058,7 +2091,10 @@ static bool isWaypointPositionReached(const fpVector3_t * pos, const bool isWayp
                 || (posControl.wpDistance <= (navConfig()->fw.loiter_radius * 1.10f));  // 10% margin of desired circular loiter radius
     }
     else {
-        return (posControl.wpDistance <= navConfig()->general.waypoint_radius);
+        if(STATE(FIXED_WING) || !navConfig()->general.flags.include_waypoint_alt)
+            return (posControl.wpDistance <= navConfig()->general.waypoint_radius);
+        else
+            return (calculateDistanceToDestination3D(pos) <= navConfig()->general.waypoint_radius);
     }
 }
 
@@ -2135,7 +2171,7 @@ void initializeRTHSanityChecker(const fpVector3_t * pos)
 
     posControl.rthSanityChecker.lastCheckTime = currentTimeMs;
     posControl.rthSanityChecker.initialPosition = *pos;
-    posControl.rthSanityChecker.minimalDistanceToHome = calculateDistanceToDestination(&posControl.rthState.homePosition.pos);
+    posControl.rthSanityChecker.minimalDistanceToHome = calculateDistanceToDestination2D(&posControl.rthState.homePosition.pos);
 }
 
 bool validateRTHSanityChecker(void)
@@ -2150,7 +2186,7 @@ bool validateRTHSanityChecker(void)
 
     // Check at 10Hz rate
     if ((currentTimeMs - posControl.rthSanityChecker.lastCheckTime) > 100) {
-        const float currentDistanceToHome = calculateDistanceToDestination(&posControl.rthState.homePosition.pos);
+        const float currentDistanceToHome = calculateDistanceToDestination2D(&posControl.rthState.homePosition.pos);
 
         if (currentDistanceToHome < posControl.rthSanityChecker.minimalDistanceToHome) {
             posControl.rthSanityChecker.minimalDistanceToHome = currentDistanceToHome;
@@ -2279,7 +2315,7 @@ void updateHomePosition(void)
         // Update distance and direction to home if armed (home is not updated when armed)
         if (STATE(GPS_FIX_HOME)) {
             fpVector3_t * tmpHomePos = rthGetHomeTargetPosition(RTH_HOME_FINAL_LAND);
-            posControl.homeDistance = calculateDistanceToDestination(tmpHomePos);
+            posControl.homeDistance = calculateDistanceToDestination2D(tmpHomePos);
             posControl.homeDirection = calculateBearingToDestination(tmpHomePos);
             updateHomePositionCompatibility();
         }
@@ -3065,7 +3101,7 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
         fpVector3_t startingWaypointPos;
         mapWaypointToLocalPosition(&startingWaypointPos, &posControl.waypointList[0]);
 
-        const bool navWpMissionStartTooFar = calculateDistanceToDestination(&startingWaypointPos) > navConfig()->general.waypoint_safe_distance;
+        const bool navWpMissionStartTooFar = calculateDistanceToDestination2D(&startingWaypointPos) > navConfig()->general.waypoint_safe_distance;
 
         if (navWpMissionStartTooFar) {
             return NAV_ARMING_BLOCKER_FIRST_WAYPOINT_TOO_FAR;

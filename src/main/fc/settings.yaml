@@ -1444,6 +1444,9 @@ groups:
       - name: nav_overrides_motor_stop
         field: general.flags.auto_overrides_motor_stop
         type: bool
+      - name: nav_include_waypoint_alt
+        field: general.flags.include_waypoint_alt
+        type: bool
       - name: nav_rth_climb_first
         field: general.flags.rth_climb_first
         type: bool
