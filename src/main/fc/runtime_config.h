@@ -110,7 +110,7 @@ typedef enum {
     GPS_FIX                             = (1 << 1),
     CALIBRATE_MAG                       = (1 << 2),
     SMALL_ANGLE                         = (1 << 3),
-    FIXED_WING                          = (1 << 4),     // set when in flying_wing or airplane mode. currently used by althold selection code
+    AIRPLANE_ROVER_BOAT                 = (1 << 4),     // set when in flying_wing or airplane mode. currently used by althold selection code
     ANTI_WINDUP                         = (1 << 5),
     FLAPERON_AVAILABLE                  = (1 << 6),
     NAV_MOTOR_STOP_OR_IDLE              = (1 << 7),     // navigation requests MOTOR_STOP or motor idle regardless of throttle stick, will only activate if MOTOR_STOP feature is available

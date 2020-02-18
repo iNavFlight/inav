@@ -811,7 +811,7 @@ static const char * navigationStateMessage(void)
         case MW_NAV_STATE_LAND_IN_PROGRESS:
             return OSD_MESSAGE_STR("LANDING");
         case MW_NAV_STATE_HOVER_ABOVE_HOME:
-            if (STATE(FIXED_WING)) {
+            if (STATE(AIRPLANE_ROVER_BOAT)) {
                 return OSD_MESSAGE_STR("LOITERING AROUND HOME");
             }
             return OSD_MESSAGE_STR("HOVERING");
@@ -2113,7 +2113,7 @@ static bool osdDrawSingleElement(uint8_t item)
                         if (navStateMessage) {
                             messages[messageCount++] = navStateMessage;
                         }
-                    } else if (STATE(FIXED_WING) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
+                    } else if (STATE(AIRPLANE_ROVER_BOAT) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
                             messages[messageCount++] = "AUTOLAUNCH";
                     } else {
                         if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
