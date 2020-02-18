@@ -1068,7 +1068,11 @@ void pidInit(void)
     }
 
     if (pidProfile()->pidControllerType == PID_TYPE_AUTO) {
-        if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
+        if (
+            mixerConfig()->platformType == PLATFORM_AIRPLANE || 
+            mixerConfig()->platformType == PLATFORM_BOAT ||
+            mixerConfig()->platformType == PLATFORM_ROVER
+        ) {
             usedPidControllerType = PID_TYPE_PIFF;
         } else {
             usedPidControllerType = PID_TYPE_PID;
