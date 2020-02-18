@@ -624,14 +624,14 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
 
     case FLIGHT_LOG_FIELD_CONDITION_FIXED_WING_NAV:
 #ifdef USE_NAV
-        return STATE(AIRPLANE_ROVER_BOAT);
+        return STATE(FIXED_WING);
 #else
         return false;
 #endif
 
     case FLIGHT_LOG_FIELD_CONDITION_MC_NAV:
 #ifdef USE_NAV
-        return !STATE(AIRPLANE_ROVER_BOAT);
+        return !STATE(FIXED_WING);
 #else
         return false;
 #endif
@@ -1369,7 +1369,7 @@ static void loadMainState(timeUs_t currentTimeUs)
         blackboxCurrent->magADC[i] = mag.magADC[i];
 #endif
 #ifdef USE_NAV
-        if (!STATE(AIRPLANE_ROVER_BOAT)) {
+        if (!STATE(FIXED_WING)) {
             // log requested velocity in cm/s
             blackboxCurrent->mcPosAxisP[i] = lrintf(nav_pids->pos[i].output_constrained);
 
@@ -1384,7 +1384,7 @@ static void loadMainState(timeUs_t currentTimeUs)
     }
 
 #ifdef USE_NAV
-    if (STATE(AIRPLANE_ROVER_BOAT)) {
+    if (STATE(FIXED_WING)) {
 
         // log requested pitch in decidegrees
         blackboxCurrent->fwAltPID[0] = lrintf(nav_pids->fw_alt.proportional);

@@ -841,7 +841,7 @@ navigationFSMStateFlags_t navGetCurrentStateFlags(void)
 static bool navTerrainFollowingRequested(void)
 {
     // Terrain following not supported on FIXED WING aircraft yet
-    return !STATE(AIRPLANE_ROVER_BOAT) && IS_RC_MODE_ACTIVE(BOXSURFACE);
+    return !STATE(FIXED_WING) && IS_RC_MODE_ACTIVE(BOXSURFACE);
 }
 
 /*************************************************************************************************/
@@ -939,7 +939,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_2D_INITIALIZE(na
 {
     const navigationFSMStateFlags_t prevFlags = navGetStateFlags(previousState);
 
-    if (!STATE(AIRPLANE_ROVER_BOAT)) { return NAV_FSM_EVENT_ERROR; } // Only on FW for now
+    if (!STATE(FIXED_WING)) { return NAV_FSM_EVENT_ERROR; } // Only on FW for now
 
     DEBUG_SET(DEBUG_CRUISE, 0, 1);
     if (checkForPositionSensorTimeout()) { return NAV_FSM_EVENT_SWITCH_TO_IDLE; }  // Switch to IDLE if we do not have an healty position. Try the next iteration.
@@ -1018,7 +1018,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_2D_ADJUSTING(nav
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_3D_INITIALIZE(navigationFSMState_t previousState)
 {
-    if (!STATE(AIRPLANE_ROVER_BOAT)) { return NAV_FSM_EVENT_ERROR; } // only on FW for now
+    if (!STATE(FIXED_WING)) { return NAV_FSM_EVENT_ERROR; } // only on FW for now
 
     navOnEnteringState_NAV_STATE_ALTHOLD_INITIALIZE(previousState);
 
@@ -1049,7 +1049,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigati
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
 
-    if (STATE(AIRPLANE_ROVER_BOAT) && (posControl.homeDistance < navConfig()->general.min_rth_distance) && !posControl.flags.forcedRTHActivated) {
+    if (STATE(FIXED_WING) && (posControl.homeDistance < navConfig()->general.min_rth_distance) && !posControl.flags.forcedRTHActivated) {
         // Prevent RTH from activating on airplanes if too close to home unless it's a failsafe RTH
         return NAV_FSM_EVENT_SWITCH_TO_IDLE;
     }
@@ -1078,7 +1078,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigati
         else {
             fpVector3_t targetHoldPos;
 
-            if (STATE(AIRPLANE_ROVER_BOAT)) {
+            if (STATE(FIXED_WING)) {
                 // Airplane - climbout before turning around
                 calculateFarAwayTarget(&targetHoldPos, posControl.actualState.yaw, 100000.0f);  // 1km away
             } else {
@@ -1115,14 +1115,14 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
 
     // If we have valid pos sensor OR we are configured to ignore GPS loss
     if ((posControl.flags.estPosStatus >= EST_USABLE) || !checkForPositionSensorTimeout() || navConfig()->general.flags.rth_climb_ignore_emerg) {
-        const uint8_t rthClimbMarginPercent = STATE(AIRPLANE_ROVER_BOAT) ? FW_RTH_CLIMB_MARGIN_PERCENT : MR_RTH_CLIMB_MARGIN_PERCENT;
+        const uint8_t rthClimbMarginPercent = STATE(FIXED_WING) ? FW_RTH_CLIMB_MARGIN_PERCENT : MR_RTH_CLIMB_MARGIN_PERCENT;
         const float rthAltitudeMargin = MAX(FW_RTH_CLIMB_MARGIN_MIN_CM, (rthClimbMarginPercent/100.0) * fabsf(posControl.rthState.rthInitialAltitude - posControl.rthState.homePosition.pos.z));
 
         // If we reached desired initial RTH altitude or we don't want to climb first
         if (((navGetCurrentActualPositionAndVelocity()->pos.z - posControl.rthState.rthInitialAltitude) > -rthAltitudeMargin) || (!navConfig()->general.flags.rth_climb_first)) {
 
             // Delayed initialization for RTH sanity check on airplanes - allow to finish climb first as it can take some distance
-            if (STATE(AIRPLANE_ROVER_BOAT)) {
+            if (STATE(FIXED_WING)) {
                 initializeRTHSanityChecker(&navGetCurrentActualPositionAndVelocity()->pos);
             }
 
@@ -1130,7 +1130,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
             posControl.rthState.rthInitialDistance = posControl.homeDistance;
             fpVector3_t * tmpHomePos = rthGetHomeTargetPosition(RTH_HOME_ENROUTE_INITIAL);
 
-            if (navConfig()->general.flags.rth_tail_first && !STATE(AIRPLANE_ROVER_BOAT)) {
+            if (navConfig()->general.flags.rth_tail_first && !STATE(FIXED_WING)) {
                 setDesiredPosition(tmpHomePos, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING_TAIL_FIRST);
             }
             else {
@@ -1144,12 +1144,12 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
             fpVector3_t * tmpHomePos = rthGetHomeTargetPosition(RTH_HOME_ENROUTE_INITIAL);
 
             /* For multi-rotors execute sanity check during initial ascent as well */
-            if (!STATE(AIRPLANE_ROVER_BOAT) && !validateRTHSanityChecker()) {
+            if (!STATE(FIXED_WING) && !validateRTHSanityChecker()) {
                 return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
             }
 
             // Climb to safe altitude and turn to correct direction
-            if (STATE(AIRPLANE_ROVER_BOAT)) {
+            if (STATE(FIXED_WING)) {
                 tmpHomePos->z += FW_RTH_CLIMB_OVERSHOOT_CM;
                 setDesiredPosition(tmpHomePos, 0, NAV_POS_UPDATE_Z);
             } else {
@@ -1222,7 +1222,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HOVER_PRIOR_TO_LAND
     if ((posControl.flags.estPosStatus >= EST_USABLE) || !checkForPositionSensorTimeout()) {
 
         // Wait until target heading is reached (with 15 deg margin for error)
-        if (STATE(AIRPLANE_ROVER_BOAT)) {
+        if (STATE(FIXED_WING)) {
             resetLandingDetector();
             updateClimbRateToAltitudeController(0, ROC_TO_ALT_RESET);
             return navigationRTHAllowsLanding() ? NAV_FSM_EVENT_SUCCESS : NAV_FSM_EVENT_SWITCH_TO_RTH_HOVER_ABOVE_HOME;
@@ -1673,7 +1673,7 @@ static fpVector3_t * rthGetHomeTargetPosition(rthTargetMode_e mode)
 
         case RTH_HOME_ENROUTE_PROPORTIONAL:
             {
-                float rthTotalDistanceToTravel = posControl.rthState.rthInitialDistance - (STATE(AIRPLANE_ROVER_BOAT) ? navConfig()->fw.loiter_radius : 0);
+                float rthTotalDistanceToTravel = posControl.rthState.rthInitialDistance - (STATE(FIXED_WING) ? navConfig()->fw.loiter_radius : 0);
                 if (rthTotalDistanceToTravel >= 100) {
                     float ratioNotTravelled = constrainf(posControl.homeDistance / rthTotalDistanceToTravel, 0.0f, 1.0f);
                     posControl.rthState.homeTmpWaypoint.z = (posControl.rthState.rthInitialAltitude * ratioNotTravelled) + (posControl.rthState.rthFinalAltitude * (1.0f - ratioNotTravelled));
@@ -2052,7 +2052,7 @@ static bool isWaypointPositionReached(const fpVector3_t * pos, const bool isWayp
     // We consider waypoint reached if within specified radius
     posControl.wpDistance = calculateDistanceToDestination(pos);
 
-    if (STATE(AIRPLANE_ROVER_BOAT) && isWaypointHome) {
+    if (STATE(FIXED_WING) && isWaypointHome) {
         // Airplane will do a circular loiter over home and might never approach it closer than waypoint_radius - need extra check
         return (posControl.wpDistance <= navConfig()->general.waypoint_radius)
                 || (posControl.wpDistance <= (navConfig()->fw.loiter_radius * 1.10f));  // 10% margin of desired circular loiter radius
@@ -2311,7 +2311,7 @@ uint32_t getTotalTravelDistance(void)
  *-----------------------------------------------------------*/
 void calculateInitialHoldPosition(fpVector3_t * pos)
 {
-    if (STATE(AIRPLANE_ROVER_BOAT)) { // AIRPLANE_ROVER_BOAT
+    if (STATE(FIXED_WING)) { // FIXED_WING
         calculateFixedWingInitialHoldPosition(pos);
     }
     else {
@@ -2368,7 +2368,7 @@ void calculateNewCruiseTarget(fpVector3_t * origin, int32_t yaw, int32_t distanc
  *-----------------------------------------------------------*/
 void resetLandingDetector(void)
 {
-    if (STATE(AIRPLANE_ROVER_BOAT)) { // AIRPLANE_ROVER_BOAT
+    if (STATE(FIXED_WING)) { // FIXED_WING
         resetFixedWingLandingDetector();
     }
     else {
@@ -2380,7 +2380,7 @@ bool isLandingDetected(void)
 {
     bool landingDetected;
 
-    if (STATE(AIRPLANE_ROVER_BOAT)) { // AIRPLANE_ROVER_BOAT
+    if (STATE(FIXED_WING)) { // FIXED_WING
         landingDetected = isFixedWingLandingDetected();
     }
     else {
@@ -2406,7 +2406,7 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAlti
         posControl.desiredState.pos.z = altitudeToUse;
     }
     else {
-        if (STATE(AIRPLANE_ROVER_BOAT)) {
+        if (STATE(FIXED_WING)) {
             // Fixed wing climb rate controller is open-loop. We simply move the known altitude target
             float timeDelta = US2S(currentTimeUs - lastUpdateTimeUs);
 
@@ -2429,7 +2429,7 @@ static void resetAltitudeController(bool useTerrainFollowing)
     // Set terrain following flag
     posControl.flags.isTerrainFollowEnabled = useTerrainFollowing;
 
-    if (STATE(AIRPLANE_ROVER_BOAT)) {
+    if (STATE(FIXED_WING)) {
         resetFixedWingAltitudeController();
     }
     else {
@@ -2439,7 +2439,7 @@ static void resetAltitudeController(bool useTerrainFollowing)
 
 static void setupAltitudeController(void)
 {
-    if (STATE(AIRPLANE_ROVER_BOAT)) {
+    if (STATE(FIXED_WING)) {
         setupFixedWingAltitudeController();
     }
     else {
@@ -2449,7 +2449,7 @@ static void setupAltitudeController(void)
 
 static bool adjustAltitudeFromRCInput(void)
 {
-    if (STATE(AIRPLANE_ROVER_BOAT)) {
+    if (STATE(FIXED_WING)) {
         return adjustFixedWingAltitudeFromRCInput();
     }
     else {
@@ -2462,7 +2462,7 @@ static bool adjustAltitudeFromRCInput(void)
  *-----------------------------------------------------------*/
 static void resetHeadingController(void)
 {
-    if (STATE(AIRPLANE_ROVER_BOAT)) {
+    if (STATE(FIXED_WING)) {
         resetFixedWingHeadingController();
     }
     else {
@@ -2472,7 +2472,7 @@ static void resetHeadingController(void)
 
 static bool adjustHeadingFromRCInput(void)
 {
-    if (STATE(AIRPLANE_ROVER_BOAT)) {
+    if (STATE(FIXED_WING)) {
         return adjustFixedWingHeadingFromRCInput();
     }
     else {
@@ -2485,7 +2485,7 @@ static bool adjustHeadingFromRCInput(void)
  *-----------------------------------------------------------*/
 static void resetPositionController(void)
 {
-    if (STATE(AIRPLANE_ROVER_BOAT)) {
+    if (STATE(FIXED_WING)) {
         resetFixedWingPositionController();
     }
     else {
@@ -2498,7 +2498,7 @@ static bool adjustPositionFromRCInput(void)
 {
     bool retValue;
 
-    if (STATE(AIRPLANE_ROVER_BOAT)) {
+    if (STATE(FIXED_WING)) {
         retValue = adjustFixedWingPositionFromRCInput();
     }
     else {
@@ -2766,7 +2766,7 @@ static void processNavigationRCAdjustments(void)
             posControl.flags.isAdjustingPosition = adjustPositionFromRCInput();
         }
         else {
-            if (!STATE(AIRPLANE_ROVER_BOAT)) {
+            if (!STATE(FIXED_WING)) {
                 resetMulticopterBrakingMode();
             }
         }
@@ -2818,7 +2818,7 @@ void applyWaypointNavigationAndAltitudeHold(void)
 
     /* Process controllers */
     navigationFSMStateFlags_t navStateFlags = navGetStateFlags(posControl.navState);
-    if (STATE(AIRPLANE_ROVER_BOAT)) {
+    if (STATE(FIXED_WING)) {
         applyFixedWingNavigationController(navStateFlags, currentTimeUs);
     }
     else {
@@ -2891,7 +2891,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         bool canActivateNavigation = canActivateNavigationModes();
 
         // LAUNCH mode has priority over any other NAV mode
-        if (STATE(AIRPLANE_ROVER_BOAT)) {
+        if (STATE(FIXED_WING)) {
             if (isNavLaunchEnabled()) {     // FIXME: Only available for fixed wing aircrafts now
                 if (canActivateLaunchMode) {
                     canActivateLaunchMode = false;
@@ -2974,7 +2974,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
  *-----------------------------------------------------------*/
 bool navigationRequiresThrottleTiltCompensation(void)
 {
-    return !STATE(AIRPLANE_ROVER_BOAT) && (navGetStateFlags(posControl.navState) & NAV_REQUIRE_THRTILT);
+    return !STATE(FIXED_WING) && (navGetStateFlags(posControl.navState) & NAV_REQUIRE_THRTILT);
 }
 
 /*-----------------------------------------------------------
@@ -2983,7 +2983,7 @@ bool navigationRequiresThrottleTiltCompensation(void)
 bool navigationRequiresAngleMode(void)
 {
     const navigationFSMStateFlags_t currentState = navGetStateFlags(posControl.navState);
-    return (currentState & NAV_REQUIRE_ANGLE) || ((currentState & NAV_REQUIRE_ANGLE_FW) && STATE(AIRPLANE_ROVER_BOAT));
+    return (currentState & NAV_REQUIRE_ANGLE) || ((currentState & NAV_REQUIRE_ANGLE_FW) && STATE(FIXED_WING));
 }
 
 /*-----------------------------------------------------------
@@ -2992,7 +2992,7 @@ bool navigationRequiresAngleMode(void)
 bool navigationRequiresTurnAssistance(void)
 {
     const navigationFSMStateFlags_t currentState = navGetStateFlags(posControl.navState);
-    if (STATE(AIRPLANE_ROVER_BOAT)) {
+    if (STATE(FIXED_WING)) {
         // For airplanes turn assistant is always required when controlling position
         return (currentState & (NAV_CTL_POS | NAV_CTL_ALT));
     }
@@ -3007,7 +3007,7 @@ bool navigationRequiresTurnAssistance(void)
 int8_t navigationGetHeadingControlState(void)
 {
     // For airplanes report as manual heading control
-    if (STATE(AIRPLANE_ROVER_BOAT)) {
+    if (STATE(FIXED_WING)) {
         return NAV_HEADING_CONTROL_MANUAL;
     }
 
@@ -3032,7 +3032,7 @@ bool navigationTerrainFollowingEnabled(void)
 
 navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
 {
-    const bool navBoxModesEnabled = IS_RC_MODE_ACTIVE(BOXNAVRTH) || IS_RC_MODE_ACTIVE(BOXNAVWP) || IS_RC_MODE_ACTIVE(BOXNAVPOSHOLD) || (STATE(AIRPLANE_ROVER_BOAT) && IS_RC_MODE_ACTIVE(BOXNAVALTHOLD)) || (STATE(AIRPLANE_ROVER_BOAT) && IS_RC_MODE_ACTIVE(BOXNAVCRUISE));
+    const bool navBoxModesEnabled = IS_RC_MODE_ACTIVE(BOXNAVRTH) || IS_RC_MODE_ACTIVE(BOXNAVWP) || IS_RC_MODE_ACTIVE(BOXNAVPOSHOLD) || (STATE(FIXED_WING) && IS_RC_MODE_ACTIVE(BOXNAVALTHOLD)) || (STATE(FIXED_WING) && IS_RC_MODE_ACTIVE(BOXNAVCRUISE));
     const bool navLaunchComboModesEnabled = isNavLaunchEnabled() && (IS_RC_MODE_ACTIVE(BOXNAVRTH) || IS_RC_MODE_ACTIVE(BOXNAVWP) || IS_RC_MODE_ACTIVE(BOXNAVALTHOLD) || IS_RC_MODE_ACTIVE(BOXNAVCRUISE));
 
     if (usedBypass) {

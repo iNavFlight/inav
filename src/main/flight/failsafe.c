@@ -258,7 +258,7 @@ void failsafeApplyControlInput(void)
 {
     // Prepare FAILSAFE_CHANNEL_AUTO values for rcCommand
     int16_t autoRcCommand[4];
-    if (STATE(AIRPLANE_ROVER_BOAT)) {
+    if (STATE(FIXED_WING)) {
         autoRcCommand[ROLL] = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_roll_angle, pidProfile()->max_angle_inclination[FD_ROLL]);
         autoRcCommand[PITCH] = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_pitch_angle, pidProfile()->max_angle_inclination[FD_PITCH]);
         autoRcCommand[YAW] = -pidRateToRcCommand(failsafeConfig()->failsafe_fw_yaw_rate, currentControlRateProfile->stabilized.rates[FD_YAW]);

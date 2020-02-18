@@ -104,7 +104,7 @@ static void processAirmodeMultirotor(void) {
 
 void processAirmode(void) {
 
-    if (STATE(AIRPLANE_ROVER_BOAT)) {
+    if (STATE(FIXED_WING)) {
         processAirmodeAirplane();
     } else {
         processAirmodeMultirotor();

@@ -147,14 +147,14 @@ bool mixerIsOutputSaturated(void)
 
 void mixerUpdateStateFlags(void)
 {
-    if (
-        mixerConfig()->platformType == PLATFORM_AIRPLANE || 
-        mixerConfig()->platformType == PLATFORM_BOAT ||
-        mixerConfig()->platformType == PLATFORM_ROVER
-    ) {
-        ENABLE_STATE(AIRPLANE_ROVER_BOAT);
+    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
+        ENABLE_STATE(FIXED_WING);
+    } if (mixerConfig()->platformType == PLATFORM_ROVER) {
+        ENABLE_STATE(ROVER);
+    } if (mixerConfig()->platformType == PLATFORM_BOAT) {
+        ENABLE_STATE(BOAT);
     } else {
-        DISABLE_STATE(AIRPLANE_ROVER_BOAT);
+        DISABLE_STATE(FIXED_WING);
     }
 
     if (mixerConfig()->hasFlaps) {
@@ -302,7 +302,7 @@ void FAST_CODE NOINLINE mixTable(const float dT)
 {
     int16_t input[3];   // RPY, range [-500:+500]
     // Allow direct stick input to motors in passthrough mode on airplanes
-    if (STATE(AIRPLANE_ROVER_BOAT) && FLIGHT_MODE(MANUAL_MODE)) {
+    if (STATE(FIXED_WING) && FLIGHT_MODE(MANUAL_MODE)) {
         // Direct passthru from RX
         input[ROLL] = rcCommand[ROLL];
         input[PITCH] = rcCommand[PITCH];
@@ -439,7 +439,7 @@ motorStatus_e getMotorStatus(void)
     }
 
     if (rxGetChannelValue(THROTTLE) < rxConfig()->mincheck) {
-        if ((STATE(AIRPLANE_ROVER_BOAT) || !STATE(AIRMODE_ACTIVE)) && (!(navigationIsFlyingAutonomousMode() && navConfig()->general.flags.auto_overrides_motor_stop)) && (!failsafeIsActive())) {
+        if ((STATE(FIXED_WING) || !STATE(AIRMODE_ACTIVE)) && (!(navigationIsFlyingAutonomousMode() && navConfig()->general.flags.auto_overrides_motor_stop)) && (!failsafeIsActive())) {
             return MOTOR_STOPPED_USER;
         }
     }

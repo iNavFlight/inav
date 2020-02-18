@@ -581,7 +581,7 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
 
         return true;
     }
-    else if (STATE(AIRPLANE_ROVER_BOAT) && (ctx->newFlags & EST_GPS_Z_VALID)) {
+    else if (STATE(FIXED_WING) && (ctx->newFlags & EST_GPS_Z_VALID)) {
         // If baro is not available - use GPS Z for correction on a plane
         // Reset current estimate to GPS altitude if estimate not valid
         if (!(ctx->newFlags & EST_Z_VALID)) {
