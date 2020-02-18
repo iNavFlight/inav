@@ -96,15 +96,6 @@ STATIC_FASTRAM void *notchFilter2[XYZ_AXIS_COUNT];
 
 #ifdef USE_DYNAMIC_FILTERS
 
-// static EXTENDED_FASTRAM filterApplyFnPtr notchFilterDynApplyFn;
-// static EXTENDED_FASTRAM filterApplyFnPtr notchFilterDynApplyFn2;
-// static EXTENDED_FASTRAM biquadFilter_t notchFilterDyn[XYZ_AXIS_COUNT];
-// static EXTENDED_FASTRAM biquadFilter_t notchFilterDyn2[XYZ_AXIS_COUNT];
-
-
-// static EXTENDED_FASTRAM biquadFilter_t extendedDynamicFilter[XYZ_AXIS_COUNT][XYZ_AXIS_COUNT];
-// static EXTENDED_FASTRAM filterApplyFnPtr extendedDynamicFilterApplyFn;
-
 EXTENDED_FASTRAM gyroAnalyseState_t gyroAnalyseState;
 EXTENDED_FASTRAM dynamicGyroNotchState_t dynamicGyroNotchState;
 
@@ -302,7 +293,12 @@ bool gyroInit(void)
     gyroInitFilters();
 #ifdef USE_DYNAMIC_FILTERS
     dynamicGyroNotchFiltersInit(&dynamicGyroNotchState);
-    gyroDataAnalyseStateInit(&gyroAnalyseState, getLooptime());
+    gyroDataAnalyseStateInit(
+        &gyroAnalyseState, 
+        gyroConfig()->dyn_notch_min_hz,
+        gyroConfig()->dyn_notch_range,
+        getLooptime()
+    );
 #endif
     return true;
 }

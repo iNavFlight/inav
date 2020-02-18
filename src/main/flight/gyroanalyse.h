@@ -52,11 +52,6 @@ typedef struct gyroAnalyseState_s {
     uint16_t centerFreq[XYZ_AXIS_COUNT];
     uint16_t prevCenterFreq[XYZ_AXIS_COUNT];
 
-    filterApplyFnPtr notchFilterDynApplyFn;
-    filterApplyFnPtr notchFilterDynApplyFn2;
-    biquadFilter_t notchFilterDyn[XYZ_AXIS_COUNT];
-    biquadFilter_t notchFilterDyn2[XYZ_AXIS_COUNT];
-
     /*
      * Extended Dynamic Filters are 3x3 filter matrix
      * In this approach, we assume that vibration peak on one axis
@@ -76,13 +71,24 @@ typedef struct gyroAnalyseState_s {
     bool filterUpdateExecute;
     uint8_t filterUpdateAxis;
     uint16_t filterUpdateFrequency;
+    uint16_t fftSamplingRateHz;
+    uint8_t fftStartBin;
+    float fftResolution;
+    uint16_t minFrequency;
+    uint16_t maxFrequency;
+
+    // Hanning window, see https://en.wikipedia.org/wiki/Window_function#Hann_.28Hanning.29_window
+    float hanningWindow[FFT_WINDOW_SIZE];
 } gyroAnalyseState_t;
 
 STATIC_ASSERT(FFT_WINDOW_SIZE <= (uint8_t) -1, window_size_greater_than_underlying_type);
 
-void gyroDataAnalyseStateInit(gyroAnalyseState_t *gyroAnalyse, uint32_t targetLooptime);
+void gyroDataAnalyseStateInit(
+    gyroAnalyseState_t *state, 
+    uint16_t minFrequency,
+    uint8_t range,
+    uint32_t targetLooptimeUs
+);
 void gyroDataAnalysePush(gyroAnalyseState_t *gyroAnalyse, int axis, float sample);
 void gyroDataAnalyse(gyroAnalyseState_t *gyroAnalyse);
-uint16_t getMaxFFT(void);
-void resetMaxFFT(void);
 #endif
