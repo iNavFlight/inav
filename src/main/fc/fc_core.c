@@ -532,7 +532,7 @@ void processRx(timeUs_t currentTimeUs)
     const throttleStatus_e throttleStatus = calculateThrottleStatus();
 
     // When armed and motors aren't spinning, do beeps periodically
-    if (ARMING_FLAG(ARMED) && feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING)) {
+    if (ARMING_FLAG(ARMED) && feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING_LEGACY)) {
         static bool armedBeeperOn = false;
 
         if (throttleStatus == THROTTLE_LOW) {
@@ -633,7 +633,7 @@ void processRx(timeUs_t currentTimeUs)
 #endif
 
     // Handle passthrough mode
-    if (STATE(FIXED_WING)) {
+    if (STATE(FIXED_WING_LEGACY)) {
         if ((IS_RC_MODE_ACTIVE(BOXMANUAL) && !navigationRequiresAngleMode() && !failsafeRequiresAngleMode()) ||    // Normal activation of passthrough
             (!ARMING_FLAG(ARMED) && isCalibrating())){                                                              // Backup - if we are not armed - enforce passthrough while calibrating
             ENABLE_FLIGHT_MODE(MANUAL_MODE);
@@ -649,13 +649,13 @@ void processRx(timeUs_t currentTimeUs)
         /* In MANUAL mode we reset integrators prevent I-term wind-up (PID output is not used in MANUAL) */
         pidResetErrorAccumulators();
     }
-    else if (STATE(FIXED_WING) || rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
+    else if (STATE(FIXED_WING_LEGACY) || rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
         if (throttleStatus == THROTTLE_LOW) {
             if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive() && ARMING_FLAG(ARMED)) {
                 rollPitchStatus_e rollPitchStatus = calculateRollPitchCenterStatus();
 
                 // ANTI_WINDUP at centred stick with MOTOR_STOP is needed on MRs and not needed on FWs
-                if ((rollPitchStatus == CENTERED) || (feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING))) {
+                if ((rollPitchStatus == CENTERED) || (feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING_LEGACY))) {
                     ENABLE_STATE(ANTI_WINDUP);
                 }
                 else {
@@ -753,7 +753,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 
-    if (ARMING_FLAG(ARMED) && (!STATE(FIXED_WING) || !isNavLaunchEnabled() || (isNavLaunchEnabled() && (isFixedWingLaunchDetected() || isFixedWingLaunchFinishedOrAborted())))) {
+    if (ARMING_FLAG(ARMED) && (!STATE(FIXED_WING_LEGACY) || !isNavLaunchEnabled() || (isNavLaunchEnabled() && (isFixedWingLaunchDetected() || isFixedWingLaunchFinishedOrAborted())))) {
         flightTime += cycleTime;
         updateAccExtremes();
     }
@@ -782,7 +782,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 #endif
 
     // Apply throttle tilt compensation
-    if (!STATE(FIXED_WING)) {
+    if (!STATE(FIXED_WING_LEGACY)) {
         int16_t thrTiltCompStrength = 0;
 
         if (navigationRequiresThrottleTiltCompensation()) {

@@ -147,14 +147,36 @@ bool mixerIsOutputSaturated(void)
 
 void mixerUpdateStateFlags(void)
 {
-    // set flag that we're on something with wings
+    DISABLE_STATE(FIXED_WING_LEGACY);
+    DISABLE_STATE(MULTIROTOR);
+    DISABLE_STATE(ROVER);
+    DISABLE_STATE(BOAT);
+    DISABLE_STATE(AIRPLANE);
+    DISABLE_STATE(MOVE_FORWARD_ONLY);
+
     if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
-        ENABLE_STATE(FIXED_WING);
+        ENABLE_STATE(FIXED_WING_LEGACY);
+        ENABLE_STATE(AIRPLANE);
+        ENABLE_STATE(ALTITUDE_CONTROL);
+        ENABLE_STATE(MOVE_FORWARD_ONLY);
+    } if (mixerConfig()->platformType == PLATFORM_ROVER) {
+        ENABLE_STATE(ROVER);
+        ENABLE_STATE(FIXED_WING_LEGACY);
+        ENABLE_STATE(MOVE_FORWARD_ONLY);
+    } if (mixerConfig()->platformType == PLATFORM_BOAT) {
+        ENABLE_STATE(BOAT);
+        ENABLE_STATE(FIXED_WING_LEGACY);
+        ENABLE_STATE(MOVE_FORWARD_ONLY);
+    } else if (mixerConfig()->platformType == PLATFORM_MULTIROTOR) {
+        ENABLE_STATE(MULTIROTOR);
+        ENABLE_STATE(ALTITUDE_CONTROL);
+    } else if (mixerConfig()->platformType == PLATFORM_TRICOPTER) {
+        ENABLE_STATE(MULTIROTOR);
+        ENABLE_STATE(ALTITUDE_CONTROL);
     } else if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
-        DISABLE_STATE(FIXED_WING);
-    } else {
-        DISABLE_STATE(FIXED_WING);
-    }
+        ENABLE_STATE(MULTIROTOR);
+        ENABLE_STATE(ALTITUDE_CONTROL);
+    } 
 
     if (mixerConfig()->hasFlaps) {
         ENABLE_STATE(FLAPERON_AVAILABLE);
@@ -301,7 +323,7 @@ void FAST_CODE NOINLINE mixTable(const float dT)
 {
     int16_t input[3];   // RPY, range [-500:+500]
     // Allow direct stick input to motors in passthrough mode on airplanes
-    if (STATE(FIXED_WING) && FLIGHT_MODE(MANUAL_MODE)) {
+    if (STATE(FIXED_WING_LEGACY) && FLIGHT_MODE(MANUAL_MODE)) {
         // Direct passthru from RX
         input[ROLL] = rcCommand[ROLL];
         input[PITCH] = rcCommand[PITCH];
@@ -438,7 +460,7 @@ motorStatus_e getMotorStatus(void)
     }
 
     if (rxGetChannelValue(THROTTLE) < rxConfig()->mincheck) {
-        if ((STATE(FIXED_WING) || !STATE(AIRMODE_ACTIVE)) && (!(navigationIsFlyingAutonomousMode() && navConfig()->general.flags.auto_overrides_motor_stop)) && (!failsafeIsActive())) {
+        if ((STATE(FIXED_WING_LEGACY) || !STATE(AIRMODE_ACTIVE)) && (!(navigationIsFlyingAutonomousMode() && navConfig()->general.flags.auto_overrides_motor_stop)) && (!failsafeIsActive())) {
             return MOTOR_STOPPED_USER;
         }
     }
