@@ -515,7 +515,7 @@ void processRx(timeUs_t currentTimeUs)
     calculateRxChannelsAndUpdateFailsafe(currentTimeUs);
 
     // in 3D mode, we need to be able to disarm by switch at any time
-    if (feature(FEATURE_3D)) {
+    if (feature(FEATURE_REVERSIBLE_MOTORS)) {
         if (!IS_RC_MODE_ACTIVE(BOXARM))
             disarm(DISARM_SWITCH_3D);
     }

@@ -194,7 +194,7 @@ void applyMotorRateLimiting(const float dT)
 {
     static float motorPrevious[MAX_SUPPORTED_MOTORS] = { 0 };
 
-    if (feature(FEATURE_3D)) {
+    if (feature(FEATURE_REVERSIBLE_MOTORS)) {
         // FIXME: Don't apply rate limiting in 3D mode
         for (int i = 0; i < motorCount; i++) {
             motorPrevious[i] = motor[i];
@@ -233,7 +233,7 @@ void mixerInit(void)
     computeMotorCount();
     loadPrimaryMotorMixer();
     // in 3D mode, mixer gain has to be halved
-    if (feature(FEATURE_3D)) {
+    if (feature(FEATURE_REVERSIBLE_MOTORS)) {
         mixerScale = 0.5f;
     }
 
@@ -250,7 +250,7 @@ void mixerResetDisarmedMotors(void)
 {
     // set disarmed motor values
     for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-        motor_disarmed[i] = feature(FEATURE_3D) ? flight3DConfig()->neutral3d : motorConfig()->mincommand;
+        motor_disarmed[i] = feature(FEATURE_REVERSIBLE_MOTORS) ? flight3DConfig()->neutral3d : motorConfig()->mincommand;
     }
 }
 
@@ -263,7 +263,7 @@ void FAST_CODE NOINLINE writeMotors(void)
         // If we use DSHOT we need to convert motorValue to DSHOT ranges
         if (isMotorProtocolDigital()) {
 
-            if (feature(FEATURE_3D)) {
+            if (feature(FEATURE_REVERSIBLE_MOTORS)) {
                 if (motor[i] >= throttleIdleValue && motor[i] <= flight3DConfig()->deadband3d_low) {
                     motorValue = scaleRangef(motor[i], motorConfig()->mincommand, flight3DConfig()->deadband3d_low, DSHOT_3D_DEADBAND_LOW, DSHOT_MIN_THROTTLE);
                     motorValue = constrain(motorValue, DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW);
@@ -309,7 +309,7 @@ void writeAllMotors(int16_t mc)
 
 void stopMotors(void)
 {
-    writeAllMotors(feature(FEATURE_3D) ? flight3DConfig()->neutral3d : motorConfig()->mincommand);
+    writeAllMotors(feature(FEATURE_REVERSIBLE_MOTORS) ? flight3DConfig()->neutral3d : motorConfig()->mincommand);
 
     delay(50); // give the timers and ESCs a chance to react.
 }
@@ -364,7 +364,7 @@ void FAST_CODE NOINLINE mixTable(const float dT)
         mixerThrottleCommand = constrain(globalFunctionValues[GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE], throttleMin, throttleMax); 
     } else
 #endif
-    if (feature(FEATURE_3D)) {
+    if (feature(FEATURE_REVERSIBLE_MOTORS)) {
         if (!ARMING_FLAG(ARMED)) throttlePrevious = PWM_RANGE_MIDDLE; // When disarmed set to mid_rc. It always results in positive direction after arming.
 
         if ((rcCommand[THROTTLE] <= (PWM_RANGE_MIDDLE - rcControlsConfig()->deadband3d_throttle))) { // Out of band handling
@@ -424,7 +424,7 @@ void FAST_CODE NOINLINE mixTable(const float dT)
 
             if (failsafeIsActive()) {
                 motor[i] = constrain(motor[i], motorConfig()->mincommand, motorConfig()->maxthrottle);
-            } else if (feature(FEATURE_3D)) {
+            } else if (feature(FEATURE_REVERSIBLE_MOTORS)) {
                 if (throttlePrevious <= (PWM_RANGE_MIDDLE - rcControlsConfig()->deadband3d_throttle)) {
                     motor[i] = constrain(motor[i], throttleIdleValue, flight3DConfig()->deadband3d_low);
                 } else {
@@ -437,7 +437,7 @@ void FAST_CODE NOINLINE mixTable(const float dT)
             // Motor stop handling
             if (ARMING_FLAG(ARMED) && (getMotorStatus() != MOTOR_RUNNING)) {
                 if (feature(FEATURE_MOTOR_STOP)) {
-                    motor[i] = (feature(FEATURE_3D) ? PWM_RANGE_MIDDLE : motorConfig()->mincommand);
+                    motor[i] = (feature(FEATURE_REVERSIBLE_MOTORS) ? PWM_RANGE_MIDDLE : motorConfig()->mincommand);
                 } else {
                     motor[i] = throttleIdleValue;
                 }

@@ -102,9 +102,9 @@ bool areSticksDeflectedMoreThanPosHoldDeadband(void)
 throttleStatus_e calculateThrottleStatus(void)
 {
     const uint16_t deadband3d_throttle = rcControlsConfig()->deadband3d_throttle;
-    if (feature(FEATURE_3D) && (rxGetChannelValue(THROTTLE) > (PWM_RANGE_MIDDLE - deadband3d_throttle) && rxGetChannelValue(THROTTLE) < (PWM_RANGE_MIDDLE + deadband3d_throttle)))
+    if (feature(FEATURE_REVERSIBLE_MOTORS) && (rxGetChannelValue(THROTTLE) > (PWM_RANGE_MIDDLE - deadband3d_throttle) && rxGetChannelValue(THROTTLE) < (PWM_RANGE_MIDDLE + deadband3d_throttle)))
         return THROTTLE_LOW;
-    else if (!feature(FEATURE_3D) && (rxGetChannelValue(THROTTLE) < rxConfig()->mincheck))
+    else if (!feature(FEATURE_REVERSIBLE_MOTORS) && (rxGetChannelValue(THROTTLE) < rxConfig()->mincheck))
         return THROTTLE_LOW;
 
     return THROTTLE_HIGH;
