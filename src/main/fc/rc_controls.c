@@ -76,7 +76,7 @@ PG_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig,
     .yaw_deadband = 5,
     .pos_hold_deadband = 20,
     .alt_hold_deadband = 50,
-    .deadband3d_throttle = 50,
+    .mid_throttle_deadband = 50,
     .airmodeHandlingType = STICK_CENTER,
     .airmodeThrottleThreshold = AIRMODE_THROTTLE_THRESHOLD,
 );
@@ -101,8 +101,8 @@ bool areSticksDeflectedMoreThanPosHoldDeadband(void)
 
 throttleStatus_e calculateThrottleStatus(void)
 {
-    const uint16_t deadband3d_throttle = rcControlsConfig()->deadband3d_throttle;
-    if (feature(FEATURE_REVERSIBLE_MOTORS) && (rxGetChannelValue(THROTTLE) > (PWM_RANGE_MIDDLE - deadband3d_throttle) && rxGetChannelValue(THROTTLE) < (PWM_RANGE_MIDDLE + deadband3d_throttle)))
+    const uint16_t mid_throttle_deadband = rcControlsConfig()->mid_throttle_deadband;
+    if (feature(FEATURE_REVERSIBLE_MOTORS) && (rxGetChannelValue(THROTTLE) > (PWM_RANGE_MIDDLE - mid_throttle_deadband) && rxGetChannelValue(THROTTLE) < (PWM_RANGE_MIDDLE + mid_throttle_deadband)))
         return THROTTLE_LOW;
     else if (!feature(FEATURE_REVERSIBLE_MOTORS) && (rxGetChannelValue(THROTTLE) < rxConfig()->mincheck))
         return THROTTLE_LOW;
