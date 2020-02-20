@@ -704,19 +704,19 @@ groups:
         min: 0
         max: 450
 
-  - name: PG_MOTOR_3D_CONFIG
-    type: flight3DConfig_t
+  - name: PG_REVERSIBLE_MOTORS_CONFIG
+    type: reversibleMotorsConfig_t
     members:
       - name: 3d_deadband_low
-        field: deadband3d_low
+        field: deadband_low
         min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
       - name: 3d_deadband_high
-        field: deadband3d_high
+        field: deadband_high
         min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
       - name: 3d_neutral
-        field: neutral3d
+        field: neutral
         min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
 
@@ -940,7 +940,7 @@ groups:
         min: 10
         max: 250
       - name: 3d_deadband_throttle
-        field: deadband3d_throttle
+        field: mid_throttle_deadband
         min: 0
         max: 200
       - name: mc_airmode_type

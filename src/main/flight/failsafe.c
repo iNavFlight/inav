@@ -287,7 +287,7 @@ void failsafeApplyControlInput(void)
                         break;
 
                     case THROTTLE:
-                        rcCommand[idx] = feature(FEATURE_3D) ? PWM_RANGE_MIDDLE : getThrottleIdleValue();
+                        rcCommand[idx] = feature(FEATURE_REVERSIBLE_MOTORS) ? PWM_RANGE_MIDDLE : getThrottleIdleValue();
                         break;
                 }
                 break;
