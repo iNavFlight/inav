@@ -530,7 +530,7 @@ static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float h
     float angleTarget = pidRcCommandToAngle(rcCommand[axis], pidProfile()->max_angle_inclination[axis]);
 
     // Automatically pitch down if the throttle is manually controlled and reduced bellow cruise throttle
-    if ((axis == FD_PITCH) && STATE(FIXED_WING) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle())
+    if ((axis == FD_PITCH) && STATE(FIXED_WING_LEGACY) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle())
         angleTarget += scaleRange(MAX(0, navConfig()->fw.cruise_throttle - rcCommand[THROTTLE]), 0, navConfig()->fw.cruise_throttle - PWM_RANGE_MIN, 0, mixerConfig()->fwMinThrottleDownPitchAngle);
 
     const float angleErrorDeg = DECIDEGREES_TO_DEGREES(angleTarget - attitude.raw[axis]);
@@ -707,10 +707,6 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
         // Apply D-term notch
         deltaFiltered = notchFilterApplyFn(&pidState->deltaNotchFilter, deltaFiltered);
 
-#ifdef USE_RPM_FILTER
-        deltaFiltered = rpmFilterDtermApply((uint8_t)axis, deltaFiltered);
-#endif
-
         // Apply additional lowpass
         deltaFiltered = dTermLpfFilterApplyFn((filter_t *) &pidState->dtermLpfState, deltaFiltered);
         deltaFiltered = dTermLpf2FilterApplyFn((filter_t *) &pidState->dtermLpf2State, deltaFiltered);
@@ -861,7 +857,7 @@ static void NOINLINE pidTurnAssistant(pidState_t *pidState)
     targetRates.x = 0.0f;
     targetRates.y = 0.0f;
 
-    if (STATE(FIXED_WING)) {
+    if (STATE(FIXED_WING_LEGACY)) {
         if (calculateCosTiltAngle() >= 0.173648f) {
             // Ideal banked turn follow the equations:
             //      forward_vel^2 / radius = Gravity * tan(roll_angle)
@@ -905,7 +901,7 @@ static void NOINLINE pidTurnAssistant(pidState_t *pidState)
     pidState[PITCH].rateTarget = constrainf(pidState[PITCH].rateTarget + targetRates.y, -currentControlRateProfile->stabilized.rates[PITCH] * 10.0f, currentControlRateProfile->stabilized.rates[PITCH] * 10.0f);
 
     // Replace YAW on quads - add it in on airplanes
-    if (STATE(FIXED_WING)) {
+    if (STATE(FIXED_WING_LEGACY)) {
         pidState[YAW].rateTarget = constrainf(pidState[YAW].rateTarget + targetRates.z * pidProfile()->fixedWingCoordinatedYawGain, -currentControlRateProfile->stabilized.rates[YAW] * 10.0f, currentControlRateProfile->stabilized.rates[YAW] * 10.0f);
     }
     else {
@@ -1018,7 +1014,7 @@ pidType_e pidIndexGetType(pidIndex_e pidIndex)
     if (pidIndex == PID_ROLL || pidIndex == PID_PITCH || pidIndex == PID_YAW) {
         return usedPidControllerType;    
     }
-    if (STATE(FIXED_WING)) {
+    if (STATE(FIXED_WING_LEGACY)) {
         if (pidIndex == PID_VEL_XY || pidIndex == PID_VEL_Z) {
             return PID_TYPE_NONE;
         }
@@ -1072,7 +1068,11 @@ void pidInit(void)
     }
 
     if (pidProfile()->pidControllerType == PID_TYPE_AUTO) {
-        if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
+        if (
+            mixerConfig()->platformType == PLATFORM_AIRPLANE || 
+            mixerConfig()->platformType == PLATFORM_BOAT ||
+            mixerConfig()->platformType == PLATFORM_ROVER
+        ) {
             usedPidControllerType = PID_TYPE_PIFF;
         } else {
             usedPidControllerType = PID_TYPE_PID;
