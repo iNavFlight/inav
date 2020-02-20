@@ -112,7 +112,7 @@ static bool escSensorDecodeFrame(void)
             escSensorData[escSensorMotor].temperature   = telemetryBuffer[0];
             escSensorData[escSensorMotor].voltage       = ((uint16_t)telemetryBuffer[1]) << 8 | telemetryBuffer[2];
             escSensorData[escSensorMotor].current       = ((uint16_t)telemetryBuffer[3]) << 8 | telemetryBuffer[4];
-            escSensorData[escSensorMotor].rpm          = ((uint16_t)telemetryBuffer[7]) << 8 | telemetryBuffer[8];
+            escSensorData[escSensorMotor].rpm           = computeRpm(((uint16_t)telemetryBuffer[7]) << 8 | telemetryBuffer[8]);
             escSensorDataNeedsUpdate = true;
 
             if (escSensorMotor < 4) {
@@ -169,7 +169,7 @@ escSensorData_t * escSensorGetData(void)
         if (usedEscSensorCount) {
             escSensorDataCombined.current = (uint32_t)escSensorDataCombined.current * getMotorCount() / usedEscSensorCount + escSensorConfig()->currentOffset;
             escSensorDataCombined.voltage = (uint32_t)escSensorDataCombined.voltage / usedEscSensorCount;
-            escSensorDataCombined.rpm = computeRpm((float)escSensorDataCombined.rpm / usedEscSensorCount);
+            escSensorDataCombined.rpm = (float)escSensorDataCombined.rpm / usedEscSensorCount;
         }
         else {
             escSensorDataCombined.dataAge = ESC_DATA_INVALID;

@@ -25,7 +25,7 @@ tables:
     values: ["NONE", "PWM", "PPM", "SERIAL", "MSP", "SPI", "UIB"]
     enum: rxReceiverType_e
   - name: serial_rx
-    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT"]
+    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST"]
   - name: rx_spi_protocol
     values: ["V202_250K", "V202_1M", "SYMA_X", "SYMA_X5C", "CX10", "CX10A", "H8_3D", "INAV", "ELERES"]
     enum: rx_spi_protocol_e
@@ -478,10 +478,6 @@ groups:
     type: motorConfig_t
     headers: ["flight/mixer.h"]
     members:
-      - name: min_throttle
-        field: minthrottle
-        min: PWM_RANGE_MIN
-        max: PWM_RANGE_MAX
       - name: max_throttle
         field: maxthrottle
         min: PWM_RANGE_MIN
@@ -509,6 +505,10 @@ groups:
         field: throttleScale
         min: 0
         max: 1
+      - name: throttle_idle
+        field: throttleIdle
+        min: 4
+        max: 30
       - name: motor_poles
         field: motorPoleCount
         min: 4
@@ -704,19 +704,19 @@ groups:
         min: 0
         max: 450
 
-  - name: PG_MOTOR_3D_CONFIG
-    type: flight3DConfig_t
+  - name: PG_REVERSIBLE_MOTORS_CONFIG
+    type: reversibleMotorsConfig_t
     members:
       - name: 3d_deadband_low
-        field: deadband3d_low
+        field: deadband_low
         min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
       - name: 3d_deadband_high
-        field: deadband3d_high
+        field: deadband_high
         min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
       - name: 3d_neutral
-        field: neutral3d
+        field: neutral
         min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
 
@@ -878,9 +878,6 @@ groups:
       - name: rpm_gyro_filter_enabled
         field: gyro_filter_enabled
         type: bool
-      - name: rpm_dterm_filter_enabled
-        field: dterm_filter_enabled
-        type: bool
       - name: rpm_gyro_harmonics
         field: gyro_harmonics
         type: uint8_t
@@ -893,21 +890,6 @@ groups:
         max: 200
       - name: rpm_gyro_q
         field: gyro_q
-        type: uint16_t
-        min: 1
-        max: 3000
-      - name: dterm_gyro_harmonics
-        field: dterm_harmonics
-        type: uint8_t
-        min: 1
-        max: 3
-      - name: rpm_dterm_min_hz
-        field: dterm_min_hz
-        type: uint8_t
-        min: 50
-        max: 200
-      - name: rpm_dterm_q
-        field: dterm_q
         type: uint16_t
         min: 1
         max: 3000
@@ -958,7 +940,7 @@ groups:
         min: 10
         max: 250
       - name: 3d_deadband_throttle
-        field: deadband3d_throttle
+        field: mid_throttle_deadband
         min: 0
         max: 200
       - name: mc_airmode_type
@@ -1080,7 +1062,16 @@ groups:
         max: 900
       - name: dterm_lpf_hz
         min: 0
-        max: 200
+        max: 500
+      - name: dterm_lpf_type
+        field: dterm_lpf_type
+        table: filter_type
+      - name: dterm_lpf2_hz
+        min: 0
+        max: 500
+      - name: dterm_lpf2_type
+        field: dterm_lpf2_type
+        table: filter_type
       - name: use_dterm_fir_filter
         field: use_dterm_fir_filter
         type: bool

@@ -108,6 +108,7 @@
 #include "io/ledstrip.h"
 #include "io/pwmdriver_i2c.h"
 #include "io/osd.h"
+#include "io/osd_dji_hd.h"
 #include "io/rcdevice_cam.h"
 #include "io/serial.h"
 #include "io/displayport_msp.h"
@@ -265,6 +266,11 @@ void init(void)
     // to run after the sensors have been detected.
     mspSerialInit();
 
+#if defined(USE_DJI_HD_OSD)
+    // DJI OSD uses a special flavour of MSP (subset of Betaflight 4.1.1 MSP) - process as part of serial task
+    djiOsdSerialInit();
+#endif
+
 #if defined(USE_LOG)
     // LOG might use serial output, so we only can init it after serial port is ready
     // From this point on we can use LOG_*() to produce real-time debugging information
@@ -279,7 +285,7 @@ void init(void)
 
     // Some sanity checking
     if (motorConfig()->motorPwmProtocol == PWM_TYPE_BRUSHED) {
-        featureClear(FEATURE_3D);
+        featureClear(FEATURE_REVERSIBLE_MOTORS);
     }
 
     // Initialize motor and servo outpus

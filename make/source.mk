@@ -101,6 +101,7 @@ COMMON_SRC = \
             io/beeper.c \
             io/esc_serialshot.c \
             io/frsky_osd.c \
+            io/osd_dji_hd.c \
             io/lights.c \
             io/piniobox.c \
             io/pwmdriver_i2c.c \

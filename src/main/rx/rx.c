@@ -195,6 +195,9 @@ bool serialRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
     case SERIALRX_SBUS:
         enabled = sbusInit(rxConfig, rxRuntimeConfig);
         break;
+    case SERIALRX_SBUS_FAST:
+        enabled = sbusInitFast(rxConfig, rxRuntimeConfig);
+        break;
 #endif
 #ifdef USE_SERIALRX_SUMD
     case SERIALRX_SUMD:
@@ -259,7 +262,7 @@ void rxInit(void)
         rcChannels[i].expiresAt = nowMs + MAX_INVALID_RX_PULSE_TIME;
     }
 
-    rcChannels[THROTTLE].raw = (feature(FEATURE_3D)) ? PWM_RANGE_MIDDLE : rxConfig()->rx_min_usec;
+    rcChannels[THROTTLE].raw = (feature(FEATURE_REVERSIBLE_MOTORS)) ? PWM_RANGE_MIDDLE : rxConfig()->rx_min_usec;
     rcChannels[THROTTLE].data = rcChannels[THROTTLE].raw;
 
     // Initialize ARM switch to OFF position when arming via switch is defined

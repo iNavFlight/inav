@@ -81,7 +81,8 @@ typedef struct {
     // Rate filtering
     rateLimitFilter_t axisAccelFilter;
     pt1Filter_t ptermLpfState;
-    biquadFilter_t deltaLpfState;
+    filter_t dtermLpfState;
+    filter_t dtermLpf2State;
     // Dterm notch filtering
     biquadFilter_t deltaNotchFilter;
     float stickPosition;
@@ -145,6 +146,7 @@ static EXTENDED_FASTRAM uint8_t usedPidControllerType;
 typedef void (*pidControllerFnPtr)(pidState_t *pidState, flight_dynamics_index_t axis, float dT);
 static EXTENDED_FASTRAM pidControllerFnPtr pidControllerApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr dTermLpfFilterApplyFn;
+static EXTENDED_FASTRAM filterApplyFnPtr dTermLpf2FilterApplyFn;
 
 PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 12);
 
@@ -229,7 +231,10 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
 
         .dterm_soft_notch_hz = 0,
         .dterm_soft_notch_cutoff = 1,
+        .dterm_lpf_type = 1, //Default to BIQUAD
         .dterm_lpf_hz = 40,
+        .dterm_lpf2_type = 1, //Default to BIQUAD
+        .dterm_lpf2_hz = 0,   // Off by default
         .yaw_lpf_hz = 0,
         .dterm_setpoint_weight = 1.0f,
         .use_dterm_fir_filter = 1,
@@ -307,8 +312,25 @@ bool pidInitFilters(void)
     }
 
     // Init other filters
-    for (int axis = 0; axis < 3; ++ axis) {
-        biquadFilterInitLPF(&pidState[axis].deltaLpfState, pidProfile()->dterm_lpf_hz, refreshRate);
+    if (pidProfile()->dterm_lpf_hz) {
+        for (int axis = 0; axis < 3; ++ axis) {
+            if (pidProfile()->dterm_lpf_type == FILTER_PT1) {
+                pt1FilterInit(&pidState[axis].dtermLpfState.pt1, pidProfile()->dterm_lpf_hz, refreshRate * 1e-6f);
+            } else {
+                biquadFilterInitLPF(&pidState[axis].dtermLpfState.biquad, pidProfile()->dterm_lpf_hz, refreshRate);
+            }
+        }
+    }
+
+    // Init other filters
+    if (pidProfile()->dterm_lpf2_hz) {
+        for (int axis = 0; axis < 3; ++ axis) {
+            if (pidProfile()->dterm_lpf2_type == FILTER_PT1) {
+                pt1FilterInit(&pidState[axis].dtermLpf2State.pt1, pidProfile()->dterm_lpf2_hz, refreshRate * 1e-6f);
+            } else {
+                biquadFilterInitLPF(&pidState[axis].dtermLpf2State.biquad, pidProfile()->dterm_lpf2_hz, refreshRate);
+            }
+        }
     }
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
@@ -334,7 +356,7 @@ void pidResetTPAFilter(void)
 {
     if (usedPidControllerType == PID_TYPE_PIFF && currentControlRateProfile->throttle.fixedWingTauMs > 0) {
         pt1FilterInitRC(&fixedWingTpaFilter, currentControlRateProfile->throttle.fixedWingTauMs * 1e-3f, getLooptime() * 1e-6f);
-        pt1FilterReset(&fixedWingTpaFilter, motorConfig()->minthrottle);
+        pt1FilterReset(&fixedWingTpaFilter, getThrottleIdleValue());
     }
 }
 
@@ -382,10 +404,10 @@ static float calculateFixedWingTPAFactor(uint16_t throttle)
 
     // tpa_rate is amount of curve TPA applied to PIDs
     // tpa_breakpoint for fixed wing is cruise throttle value (value at which PIDs were tuned)
-    if (currentControlRateProfile->throttle.dynPID != 0 && currentControlRateProfile->throttle.pa_breakpoint > motorConfig()->minthrottle) {
-        if (throttle > motorConfig()->minthrottle) {
+    if (currentControlRateProfile->throttle.dynPID != 0 && currentControlRateProfile->throttle.pa_breakpoint > getThrottleIdleValue()) {
+        if (throttle > getThrottleIdleValue()) {
             // Calculate TPA according to throttle
-            tpaFactor = 0.5f + ((float)(currentControlRateProfile->throttle.pa_breakpoint - motorConfig()->minthrottle) / (throttle - motorConfig()->minthrottle) / 2.0f);
+            tpaFactor = 0.5f + ((float)(currentControlRateProfile->throttle.pa_breakpoint - getThrottleIdleValue()) / (throttle - getThrottleIdleValue()) / 2.0f);
 
             // Limit to [0.5; 2] range
             tpaFactor = constrainf(tpaFactor, 0.5f, 2.0f);
@@ -521,7 +543,7 @@ static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float h
     float angleTarget = pidRcCommandToAngle(rcCommand[axis], pidProfile()->max_angle_inclination[axis]);
 
     // Automatically pitch down if the throttle is manually controlled and reduced bellow cruise throttle
-    if ((axis == FD_PITCH) && STATE(FIXED_WING) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle())
+    if ((axis == FD_PITCH) && STATE(FIXED_WING_LEGACY) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle())
         angleTarget += scaleRange(MAX(0, navConfig()->fw.cruise_throttle - rcCommand[THROTTLE]), 0, navConfig()->fw.cruise_throttle - PWM_RANGE_MIN, 0, mixerConfig()->fwMinThrottleDownPitchAngle);
 
     const float angleErrorDeg = DECIDEGREES_TO_DEGREES(angleTarget - attitude.raw[axis]);
@@ -698,12 +720,9 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
         // Apply D-term notch
         deltaFiltered = notchFilterApplyFn(&pidState->deltaNotchFilter, deltaFiltered);
 
-#ifdef USE_RPM_FILTER
-        deltaFiltered = rpmFilterDtermApply((uint8_t)axis, deltaFiltered);
-#endif
-
         // Apply additional lowpass
-        deltaFiltered = dTermLpfFilterApplyFn(&pidState->deltaLpfState, deltaFiltered);
+        deltaFiltered = dTermLpfFilterApplyFn((filter_t *) &pidState->dtermLpfState, deltaFiltered);
+        deltaFiltered = dTermLpf2FilterApplyFn((filter_t *) &pidState->dtermLpf2State, deltaFiltered);
 
         firFilterUpdate(&pidState->gyroRateFilter, deltaFiltered);
         newDTerm = firFilterApply(&pidState->gyroRateFilter);
@@ -851,7 +870,7 @@ static void NOINLINE pidTurnAssistant(pidState_t *pidState)
     targetRates.x = 0.0f;
     targetRates.y = 0.0f;
 
-    if (STATE(FIXED_WING)) {
+    if (STATE(FIXED_WING_LEGACY)) {
         if (calculateCosTiltAngle() >= 0.173648f) {
             // Ideal banked turn follow the equations:
             //      forward_vel^2 / radius = Gravity * tan(roll_angle)
@@ -895,7 +914,7 @@ static void NOINLINE pidTurnAssistant(pidState_t *pidState)
     pidState[PITCH].rateTarget = constrainf(pidState[PITCH].rateTarget + targetRates.y, -currentControlRateProfile->stabilized.rates[PITCH] * 10.0f, currentControlRateProfile->stabilized.rates[PITCH] * 10.0f);
 
     // Replace YAW on quads - add it in on airplanes
-    if (STATE(FIXED_WING)) {
+    if (STATE(FIXED_WING_LEGACY)) {
         pidState[YAW].rateTarget = constrainf(pidState[YAW].rateTarget + targetRates.z * pidProfile()->fixedWingCoordinatedYawGain, -currentControlRateProfile->stabilized.rates[YAW] * 10.0f, currentControlRateProfile->stabilized.rates[YAW] * 10.0f);
     }
     else {
@@ -1008,7 +1027,7 @@ pidType_e pidIndexGetType(pidIndex_e pidIndex)
     if (pidIndex == PID_ROLL || pidIndex == PID_PITCH || pidIndex == PID_YAW) {
         return usedPidControllerType;    
     }
-    if (STATE(FIXED_WING)) {
+    if (STATE(FIXED_WING_LEGACY)) {
         if (pidIndex == PID_VEL_XY || pidIndex == PID_VEL_Z) {
             return PID_TYPE_NONE;
         }
@@ -1062,21 +1081,35 @@ void pidInit(void)
     }
 
     if (pidProfile()->pidControllerType == PID_TYPE_AUTO) {
-        if (mixerConfig()->platformType == PLATFORM_MULTIROTOR || 
-            mixerConfig()->platformType == PLATFORM_TRICOPTER || 
-            mixerConfig()->platformType == PLATFORM_HELICOPTER) {
-            usedPidControllerType = PID_TYPE_PID;
-        } else {
+        if (
+            mixerConfig()->platformType == PLATFORM_AIRPLANE || 
+            mixerConfig()->platformType == PLATFORM_BOAT ||
+            mixerConfig()->platformType == PLATFORM_ROVER
+        ) {
             usedPidControllerType = PID_TYPE_PIFF;
+        } else {
+            usedPidControllerType = PID_TYPE_PID;
         }
     } else {
         usedPidControllerType = pidProfile()->pidControllerType;
     }
 
+    dTermLpfFilterApplyFn = nullFilterApply;
     if (pidProfile()->dterm_lpf_hz) {
-        dTermLpfFilterApplyFn = (filterApplyFnPtr) biquadFilterApply;
-    } else {
-        dTermLpfFilterApplyFn = nullFilterApply;
+        if (pidProfile()->dterm_lpf_type == FILTER_PT1) {
+            dTermLpfFilterApplyFn = (filterApplyFnPtr) pt1FilterApply;
+        } else {
+            dTermLpfFilterApplyFn = (filterApplyFnPtr) biquadFilterApply;
+        }
+    }
+
+    dTermLpf2FilterApplyFn = nullFilterApply;
+    if (pidProfile()->dterm_lpf2_hz) {
+        if (pidProfile()->dterm_lpf2_type == FILTER_PT1) {
+            dTermLpf2FilterApplyFn = (filterApplyFnPtr) pt1FilterApply;
+        } else {
+            dTermLpf2FilterApplyFn = (filterApplyFnPtr) biquadFilterApply;
+        }
     }
 
     if (usedPidControllerType == PID_TYPE_PIFF) {

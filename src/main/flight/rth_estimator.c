@@ -79,7 +79,7 @@ static int8_t RTHInitialAltitudeChangePitchAngle(float altitudeChange) {
 static float estimatePitchPower(float pitch) {
     int16_t altitudeChangeThrottle = fixedWingPitchToThrottleCorrection(DEGREES_TO_DECIDEGREES(pitch));
     altitudeChangeThrottle = constrain(altitudeChangeThrottle, navConfig()->fw.min_throttle, navConfig()->fw.max_throttle);
-    const float altitudeChangeThrToCruiseThrRatio = (float)(altitudeChangeThrottle - motorConfig()->minthrottle) / (navConfig()->fw.cruise_throttle - motorConfig()->minthrottle);
+    const float altitudeChangeThrToCruiseThrRatio = (float)(altitudeChangeThrottle - getThrottleIdleValue()) / (navConfig()->fw.cruise_throttle - getThrottleIdleValue());
     return (float)heatLossesCompensatedPower(batteryMetersConfig()->idle_power + batteryMetersConfig()->cruise_power * altitudeChangeThrToCruiseThrRatio) / 100;
 }
 
@@ -146,10 +146,10 @@ static float estimateRTHEnergyAfterInitialClimb(float distanceToHome, float spee
 // returns Wh
 static float calculateRemainingEnergyBeforeRTH(bool takeWindIntoAccount) {
     // Fixed wing only for now
-    if (!STATE(FIXED_WING))
+    if (!STATE(FIXED_WING_LEGACY))
         return -1;
 
-    if (!(feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER) && navigationPositionEstimateIsHealthy() && (batteryMetersConfig()->cruise_power > 0) && (ARMING_FLAG(ARMED)) && ((!STATE(FIXED_WING)) || (isNavLaunchEnabled() && isFixedWingLaunchDetected())) && (navConfig()->fw.cruise_speed > 0) && (currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MWH) && (currentBatteryProfile->capacity.value > 0) && batteryWasFullWhenPluggedIn() && isImuHeadingValid()
+    if (!(feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER) && navigationPositionEstimateIsHealthy() && (batteryMetersConfig()->cruise_power > 0) && (ARMING_FLAG(ARMED)) && ((!STATE(FIXED_WING_LEGACY)) || (isNavLaunchEnabled() && isFixedWingLaunchDetected())) && (navConfig()->fw.cruise_speed > 0) && (currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MWH) && (currentBatteryProfile->capacity.value > 0) && batteryWasFullWhenPluggedIn() && isImuHeadingValid()
 #ifdef USE_WIND_ESTIMATOR
             && isEstimatedWindSpeedValid()
 #endif
