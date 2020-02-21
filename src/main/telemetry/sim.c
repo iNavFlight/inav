@@ -22,6 +22,7 @@
 #include <string.h>
 
 #include "common/printf.h"
+#include "common/olc.h"
 
 #include "drivers/time.h"
 
@@ -44,7 +45,6 @@
 #include "telemetry/sim.h"
 #include "telemetry/telemetry.h"
 
-
 #define SIM_AT_COMMAND_MAX_SIZE 255
 #define SIM_RESPONSE_BUFFER_SIZE 255
 #define SIM_CYCLE_MS 5000                       // wait between sim command cycles
@@ -52,8 +52,7 @@
 #define SIM_AT_COMMAND_DELAY_MIN_MS 500
 #define SIM_STARTUP_DELAY_MS 10000
 #define SIM_SMS_COMMAND_RTH "RTH"
-#define SIM_PIN "0000"
-#define SIM_LOW_ALT_WARNING_MODES (NAV_ALTHOLD_MODE || NAV_RTH_MODE || NAV_WP_MODE || FAILSAFE_MODE)
+#define SIM_LOW_ALT_WARNING_MODES (NAV_ALTHOLD_MODE | NAV_RTH_MODE | NAV_WP_MODE | FAILSAFE_MODE)
 
 #define SIM_RESPONSE_CODE_OK    ('O' << 24 | 'K' << 16)
 #define SIM_RESPONSE_CODE_ERROR ('E' << 24 | 'R' << 16 | 'R' << 8 | 'O')
@@ -133,7 +132,7 @@ static uint8_t simModuleState = SIM_MODULE_NOT_DETECTED;
 static int simRssi;
 static uint8_t accEvent = ACC_EVENT_NONE;
 static char* accEventDescriptions[] = { "", "HIT! ", "DROP ", "HIT " };
-static char* modeDescriptions[] = { "MAN", "ACR", "ANG", "HOR", "ALH", "POS", "RTH", "WP", "LAU", "FS" };
+static char* modeDescriptions[] = { "MAN", "ACR", "AIR", "ANG", "HOR", "ALH", "POS", "RTH", "WP", "CRS", "LAU", "FS" };
 static const char gpsFixIndicators[] = { '!', '*', ' ' };
 
 
@@ -360,34 +359,48 @@ static void sendATCommand(const char* command)
 
 static void sendSMS(void)
 {
-    int32_t lat = 0, lon = 0;
+    char pluscode_url[20];
     int16_t groundSpeed = 0;
     uint16_t vbat = getBatteryVoltage();
     int16_t amps = isAmperageConfigured() ? getAmperage() / 10 : 0; // 1 = 100 milliamps
     uint16_t avgSpeed = lrintf(10 * calculateAverageSpeed());
     uint32_t now = millis();
 
-    if (sensors(SENSOR_GPS)) {
-        lat = gpsSol.llh.lat;
-        lon = gpsSol.llh.lon;
+    memset(pluscode_url, 0, sizeof(pluscode_url));
+
+    if (sensors(SENSOR_GPS) && STATE(GPS_FIX)) {
         groundSpeed = gpsSol.groundSpeed / 100;
+
+        char buf[20];
+        olc_encode(gpsSol.llh.lat, gpsSol.llh.lon, 11, buf, sizeof(buf));
+
+        // URLencode plus code (replace plus sign with %2B)
+        for (char *in = buf, *out = pluscode_url; *in; ) {
+            if (*in == '+') {
+                in++;
+                *out++ = '%';
+                *out++ = '2';
+                *out++ = 'B';
+            }
+            else {
+                *out++ = *in++;
+            }
+        }
     }
 
-    const int32_t E7 = 10000000;
-
     // \x1a sends msg, \x1b cancels
-    uint8_t len = tfp_sprintf((char*)atCommand, "%s%d.%02dV %d.%dA ALT:%d SPD:%d/%d.%d DIS:%lu/%lu HDG:%d SAT:%d%c SIG:%d %s maps.google.com/?q=@%ld.%07ld,%ld.%07ld\x1a",
+    uint8_t len = tfp_sprintf((char*)atCommand, "%s%d.%02dV %d.%dA ALT:%d SPD:%d/%d.%d DIS:%lu/%lu HDG:%d SAT:%d%c SIG:%d %s https://maps.google.com/?q=%s\x1a",
         accEventDescriptions[accEvent],
         vbat / 100, vbat % 100,
         amps / 10, amps % 10,
         getAltitudeMeters(),
         groundSpeed, avgSpeed / 10, avgSpeed % 10,
         GPS_distanceToHome, getTotalTravelDistance() / 100,
-        attitude.values.yaw,
+        DECIDEGREES_TO_DEGREES(attitude.values.yaw),
         gpsSol.numSat, gpsFixIndicators[gpsSol.fixType],
         simRssi,
         getStateOfForcedRTH() == RTH_IDLE ? modeDescriptions[getFlightModeForTelemetry()] : "RTH",
-        lat / E7, lat % E7, lon / E7, lon % E7);
+        pluscode_url);
 
     serialWriteBuf(simPort, atCommand, len);
     t_lastMessageSent = now;
@@ -437,7 +450,9 @@ void handleSimTelemetry()
         simTelemetryState = SIM_STATE_INIT_ENTER_PIN;
         break;
         case SIM_STATE_INIT_ENTER_PIN:
-        sendATCommand("AT+CPIN=" SIM_PIN "\r");
+        sendATCommand("AT+CPIN=");
+        sendATCommand((char*)telemetryConfig()->simPin);        
+        sendATCommand("\r");
         simTelemetryState = SIM_STATE_SET_MODES;
         break;
         case SIM_STATE_SET_MODES:

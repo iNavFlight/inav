@@ -368,20 +368,25 @@ static void telemetryRX(void)
 }
 
 //because we shared SPI bus I can't read data in real IRQ, so need to probe this pin from main idle
-rx_spi_received_e eleresDataReceived(uint8_t *payload)
+rx_spi_received_e eleresDataReceived(uint8_t *payload, uint16_t *linkQuality)
 {
     UNUSED(payload);
 
     statusRegisters[0] = 0;
     statusRegisters[1] = 0;
 
+    if (linkQuality) {
+        *linkQuality = eleresRssi();
+    }
+
     if (rxSpiCheckIrq())
     {
         statusRegisters[0] = rfmSpiRead(0x03);
         statusRegisters[1] = rfmSpiRead(0x04);
         //only if RC frame received
-        if (statusRegisters[0] & RF22B_RX_PACKET_RECEIVED_INTERRUPT)
+        if (statusRegisters[0] & RF22B_RX_PACKET_RECEIVED_INTERRUPT) {
             return RX_SPI_RECEIVED_DATA;
+        }
     }
 
     eleresSetRcDataFromPayload(NULL,NULL);
@@ -724,7 +729,7 @@ uint8_t eleresBind(void)
     channelHoppingTime = 33;
     RED_LED_OFF;
     while (timeout--) {
-        eleresDataReceived(NULL);
+        eleresDataReceived(NULL, NULL);
         eleresSetRcDataFromPayload(NULL,NULL);
         if (rfRxBuffer[0]==0x42) {
             for (i=0; i<4; i++) {

@@ -271,9 +271,7 @@ void servoMixer(float dT, int16_t collectivePitch)
         input[INPUT_GIMBAL_PITCH] = 0;
         input[INPUT_GIMBAL_ROLL] = 0;
     }
-
-    input[INPUT_STABILIZED_THROTTLE] = motor[0] - 1000 - 500;  // Since it derives from rcCommand or mincommand and must be [-500:+500]
-    
+    input[INPUT_STABILIZED_THROTTLE] = mixerThrottleCommand - 1000 - 500;  // Since it derives from rcCommand or mincommand and must be [-500:+500]
     input[INPUT_FEATURE_COLLECTIVE_PITCH] = collectivePitch;
 
     // center the RC input value around the RC middle value
@@ -449,6 +447,11 @@ void processServoAutotrim(void)
 bool FAST_CODE NOINLINE isServoOutputEnabled(void)
 {
     return servoOutputEnabled;
+}
+
+void NOINLINE setServoOutputEnabled(bool flag)
+{
+    servoOutputEnabled = flag;
 }
 
 bool FAST_CODE NOINLINE isMixerUsingServos(void)

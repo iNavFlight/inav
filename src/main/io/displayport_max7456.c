@@ -28,16 +28,10 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/display.h"
+#include "drivers/display_font_metadata.h"
 #include "drivers/max7456.h"
 
 #include "io/displayport_max7456.h"
-
-// 'I', 'N', 'A', 'V', 1
-#define CHR_IS_METADATA(chr) ((chr)->data[0] == 'I' && \
-    (chr)->data[1] == 'N' && \
-    (chr)->data[2] == 'A' && \
-    (chr)->data[3] == 'V' && \
-    (chr)->data[4] == 1)
 
 displayPort_t max7456DisplayPort;
 
@@ -154,19 +148,14 @@ static bool getFontMetadata(displayFontMetadata_t *metadata, const displayPort_t
 
     osdCharacter_t chr;
 
-    max7456ReadNvm(255, &chr);
+    max7456ReadNvm(FONT_METADATA_CHR_INDEX, &chr);
 
-    if (CHR_IS_METADATA(&chr)) {
-        metadata->version = chr.data[5];
+    if (displayFontMetadataUpdateFromCharacter(metadata, &chr)) {
         // Not all MAX7456 chips support 512 characters. To detect this,
         // we place metadata in both characters 255 and 256. This way we
         // can find out how many characters the font in NVM has.
-        max7456ReadNvm(256, &chr);
-        if (CHR_IS_METADATA(&chr)) {
-            metadata->charCount = 512;
-        } else {
-            metadata->charCount = 256;
-        }
+        max7456ReadNvm(FONT_METADATA_CHR_INDEX_2ND_PAGE, &chr);
+        metadata->charCount = FONT_CHR_IS_METADATA(&chr) ? 512 : 256;
         return true;
     }
 

@@ -51,7 +51,7 @@
 #include "telemetry/sim.h"
 
 
-PG_REGISTER_WITH_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, 3);
+PG_REGISTER_WITH_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, 4);
 
 PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
     .gpsNoFixLatitude = 0,
@@ -71,6 +71,7 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
     .simTransmitInterval = SIM_DEFAULT_TRANSMIT_INTERVAL,
     .simTransmitFlags = SIM_DEFAULT_TX_FLAGS,
     .simLowAltitude = INT16_MIN,
+    .simPin = SIM_PIN,
     .accEventThresholdHigh = 0,
     .accEventThresholdLow = 0,
     .accEventThresholdNegX = 0,
@@ -189,7 +190,7 @@ void telemetryProcess(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs); // since not used by all the telemetry protocols
 
-    #if defined(USE_TELEMETRY_FRSKY)
+#if defined(USE_TELEMETRY_FRSKY)
     handleFrSkyTelemetry();
 #endif
 
@@ -213,7 +214,7 @@ void telemetryProcess(timeUs_t currentTimeUs)
     handleJetiExBusTelemetry();
 #endif
 
-#if defined(USE_TELEMETRY_IBUS)
+#if defined(USE_SERIALRX_IBUS) && defined(USE_TELEMETRY_IBUS)
     handleIbusTelemetry();
 #endif
 

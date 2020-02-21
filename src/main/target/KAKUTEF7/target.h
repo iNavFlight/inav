@@ -33,6 +33,9 @@
 #define BEEPER              PD15
 #define BEEPER_INVERTED
 
+#define USE_DSHOT
+#define USE_ESC_SENSOR
+
 #define USE_ACC
 #define USE_GYRO
 
@@ -45,9 +48,18 @@
 #define GYRO_ICM20689_ALIGN      CW270_DEG
 #define ACC_ICM20689_ALIGN       CW270_DEG
 
-#define ICM20689_EXTI_PIN            PE1
+#define GYRO_INT_EXTI            PE1
 #define ICM20689_CS_PIN          SPI4_NSS_PIN
 #define ICM20689_SPI_BUS         BUS_SPI4
+
+#define USE_GYRO_MPU6000
+#define GYRO_INT_EXTI           PE1
+#define GYRO_MPU6000_ALIGN      CW270_DEG
+#define MPU6000_CS_PIN          SPI4_NSS_PIN
+#define MPU6000_SPI_BUS         BUS_SPI4
+
+#define USE_ACC_MPU6000
+#define ACC_MPU6000_ALIGN       CW270_DEG
 
 #define USB_IO
 #define USE_VCP
@@ -101,9 +113,12 @@
 #define SPI4_MOSI_PIN           PE6
 
 #define USE_OSD
+
+#ifndef KAKUTEF7HDV
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          SPI2_NSS_PIN
+#endif
 
 #if defined(KAKUTEF7MINI)
 #define M25P16_CS_PIN           SPI1_NSS_PIN
@@ -156,6 +171,9 @@
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_UART           SERIAL_PORT_USART6
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
+
+#define USE_LED_STRIP
+#define WS2811_PIN                      PD12   //TIM4_CH1
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

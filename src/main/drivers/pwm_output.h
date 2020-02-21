@@ -20,6 +20,8 @@
 #include "drivers/io_types.h"
 #include "drivers/time.h"
 
+void pwmRequestMotorTelemetry(int motorIndex);
+
 ioTag_t pwmGetMotorPinTag(int motorIndex);
 
 void pwmWriteMotor(uint8_t index, uint16_t value);

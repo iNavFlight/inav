@@ -116,7 +116,7 @@
 #define SYM_3D_KMH                0x89 // 137 KM/H 3D
 #define SYM_3D_MPH                0x8A // 138 MPH 3D
 
-//                                0x8B // 139 -
+#define SYM_RPM                   0x8B // 139 RPM
 //                                0x8C // 140 -
 //                                0x8D // 141 -
 //                                0x8E // 142 -

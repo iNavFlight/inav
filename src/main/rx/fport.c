@@ -278,9 +278,7 @@ static uint8_t fportFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
                         reportFrameError(DEBUG_FPORT_ERROR_TYPE_SIZE);
                     } else {
                         result = sbusChannelsDecode(rxRuntimeConfig, &frame->data.controlData.channels);
-
-                        setRSSI(scaleRange(frame->data.controlData.rssi, 0, 100, 0, RSSI_MAX_VALUE), RSSI_SOURCE_RX_PROTOCOL, false);
-
+                        lqTrackerSet(rxRuntimeConfig->lqTracker, scaleRange(frame->data.controlData.rssi, 0, 100, 0, RSSI_MAX_VALUE));
                         lastRcFrameReceivedMs = millis();
                     }
 
@@ -343,12 +341,11 @@ static uint8_t fportFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 
     if ((mspPayload || hasTelemetryRequest) && cmpTimeUs(micros(), lastTelemetryFrameReceivedUs) >= FPORT_MIN_TELEMETRY_RESPONSE_DELAY_US) {
         hasTelemetryRequest = false;
-
         result = (result & ~RX_FRAME_PENDING) | RX_FRAME_PROCESSING_REQUIRED;
     }
 
     if (lastRcFrameReceivedMs && ((millis() - lastRcFrameReceivedMs) > FPORT_MAX_TELEMETRY_AGE_MS)) {
-        setRSSI(0, RSSI_SOURCE_RX_PROTOCOL, true);
+        lqTrackerSet(rxRuntimeConfig->lqTracker, 0);
         lastRcFrameReceivedMs = 0;
     }
 

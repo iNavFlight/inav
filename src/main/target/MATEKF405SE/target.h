@@ -171,6 +171,9 @@
 #define USE_SPEKTRUM_BIND
 #define BIND_PIN                PA3 //  RX2
 
+#define USE_DSHOT
+#define USE_ESC_SENSOR
+
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #define TARGET_IO_PORTA         0xffff

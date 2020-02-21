@@ -18,6 +18,7 @@
 #pragma once
 
 #include "drivers/time.h"
+#include "io/serial.h"
 #include "msp/msp.h"
 
 // Each MSP port requires state and a receive buffer, revisit this default if someone needs more than 3 MSP ports.
@@ -99,7 +100,9 @@ typedef struct mspPort_s {
 
 
 void mspSerialInit(void);
+void resetMspPort(mspPort_t *mspPortToReset, serialPort_t *serialPort);
 void mspSerialProcess(mspEvaluateNonMspData_e evaluateNonMspData, mspProcessCommandFnPtr mspProcessCommandFn);
+void mspSerialProcessOnePort(mspPort_t * const mspPort, mspEvaluateNonMspData_e evaluateNonMspData, mspProcessCommandFnPtr mspProcessCommandFn);
 void mspSerialAllocatePorts(void);
 void mspSerialReleasePortIfAllocated(struct serialPort_s *serialPort);
 int mspSerialPushPort(uint16_t cmd, const uint8_t *data, int datalen, mspPort_t *mspPort, mspVersion_e version);

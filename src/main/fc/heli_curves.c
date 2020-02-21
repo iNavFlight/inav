@@ -25,6 +25,7 @@
 #include "heli_curves.h"
 #include "rc_controls.h"
 
+#include "build/debug.h"
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
 #include "flight/mixer.h"
@@ -49,7 +50,7 @@ static uint16_t getThrottleFromCollectivePitch(int16_t cp)
 
 int16_t calculateCollectivePitchAndUpdateThrottle(void)
 {
-    uint16_t minThrottle = motorConfig()->minthrottle;
+    uint16_t minThrottle = 1000;
     uint16_t maxThrottle = motorConfig()->maxthrottle;
     uint16_t rc = rcCommand[THROTTLE];
     uint16_t rcPercent;
