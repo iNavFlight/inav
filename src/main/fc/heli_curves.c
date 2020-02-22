@@ -50,7 +50,7 @@ static uint16_t getThrottleFromCollectivePitch(int16_t cp)
 
 int16_t calculateCollectivePitchAndUpdateThrottle(void)
 {
-    uint16_t minThrottle = 1000;
+    uint16_t minThrottle = getThrottleIdleValue();
     uint16_t maxThrottle = motorConfig()->maxthrottle;
     uint16_t rc = rcCommand[THROTTLE];
     uint16_t rcPercent;
