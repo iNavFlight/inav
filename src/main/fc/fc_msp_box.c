@@ -198,7 +198,9 @@ void initActiveBoxIds(void)
     const bool navReadyOther = !STATE(MULTIROTOR) && sensors(SENSOR_ACC) && feature(FEATURE_GPS);
     const bool navFlowDeadReckoning = sensors(SENSOR_OPFLOW) && sensors(SENSOR_ACC) && positionEstimationConfig()->allow_dead_reckoning;
     if (navFlowDeadReckoning || navReadyMultirotor || navReadyOther) {
-        activeBoxIds[activeBoxIdCount++] = BOXNAVPOSHOLD;
+        if (!STATE(ROVER) && !STATE(BOAT)) {
+            activeBoxIds[activeBoxIdCount++] = BOXNAVPOSHOLD;
+        }
         if (STATE(AIRPLANE)) {
             activeBoxIds[activeBoxIdCount++] = BOXLOITERDIRCHN;
         }
