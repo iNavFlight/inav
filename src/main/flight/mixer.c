@@ -363,13 +363,14 @@ void FAST_CODE NOINLINE mixTable(const float dT)
     int16_t rpyMixRange = rpyMixMax - rpyMixMin;
     int16_t throttleRange;
     int16_t throttleMin, throttleMax;
+    int16_t throttleRangeMin, throttleRangeMax;
     static int16_t throttlePrevious = 0;   // Store the last throttle direction for deadband transitions
 
     // Find min and max throttle based on condition.
 #ifdef USE_GLOBAL_FUNCTIONS
     if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE)) {
-        throttleMin = throttleIdleValue;
-        throttleMax = motorConfig()->maxthrottle;
+        throttleRangeMin = throttleIdleValue;
+        throttleRangeMax = motorConfig()->maxthrottle;
         mixerThrottleCommand = constrain(globalFunctionValues[GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE], throttleMin, throttleMax); 
     } else
 #endif
@@ -377,24 +378,24 @@ void FAST_CODE NOINLINE mixTable(const float dT)
         if (!ARMING_FLAG(ARMED)) throttlePrevious = PWM_RANGE_MIDDLE; // When disarmed set to mid_rc. It always results in positive direction after arming.
 
         if ((rcCommand[THROTTLE] <= (PWM_RANGE_MIDDLE - rcControlsConfig()->mid_throttle_deadband))) { // Out of band handling
-            throttleMax = reversibleMotorsConfig()->deadband_low;
-            throttleMin = throttleIdleValue;
+            throttleRangeMax = reversibleMotorsConfig()->deadband_low;
+            throttleRangeMin = throttleIdleValue;
             throttlePrevious = mixerThrottleCommand = rcCommand[THROTTLE];
         } else if (rcCommand[THROTTLE] >= (PWM_RANGE_MIDDLE + rcControlsConfig()->mid_throttle_deadband)) { // Positive handling
-            throttleMax = motorConfig()->maxthrottle;
-            throttleMin = reversibleMotorsConfig()->deadband_high;
+            throttleRangeMax = motorConfig()->maxthrottle;
+            throttleRangeMin = reversibleMotorsConfig()->deadband_high;
             throttlePrevious = mixerThrottleCommand = rcCommand[THROTTLE];
         } else if ((throttlePrevious <= (PWM_RANGE_MIDDLE - rcControlsConfig()->mid_throttle_deadband)))  { // Deadband handling from negative to positive
             mixerThrottleCommand = throttleMax = reversibleMotorsConfig()->deadband_low;
-            throttleMin = throttleIdleValue;
+            throttleRangeMin = throttleIdleValue;
         } else {  // Deadband handling from positive to negative
-            throttleMax = motorConfig()->maxthrottle;
+            throttleRangeMax = motorConfig()->maxthrottle;
             mixerThrottleCommand = throttleMin = reversibleMotorsConfig()->deadband_high;
         }
     } else {
         mixerThrottleCommand = rcCommand[THROTTLE];
-        throttleMin = throttleIdleValue;
-        throttleMax = motorConfig()->maxthrottle;
+        throttleRangeMin = throttleIdleValue;
+        throttleRangeMax = motorConfig()->maxthrottle;
 
         // Throttle scaling to limit max throttle when battery is full
     #ifdef USE_GLOBAL_FUNCTIONS
@@ -407,6 +408,9 @@ void FAST_CODE NOINLINE mixTable(const float dT)
             mixerThrottleCommand = MIN(throttleMin + (mixerThrottleCommand - throttleMin) * calculateThrottleCompensationFactor(), throttleMax);
         }
     }
+
+    throttleMin = throttleRangeMin;
+    throttleMax = throttleRangeMax;
 
     throttleRange = throttleMax - throttleMin;
 
@@ -434,14 +438,8 @@ void FAST_CODE NOINLINE mixTable(const float dT)
 
             if (failsafeIsActive()) {
                 motor[i] = constrain(motor[i], motorConfig()->mincommand, motorConfig()->maxthrottle);
-            } else if (feature(FEATURE_REVERSIBLE_MOTORS)) {
-                if (throttlePrevious <= (PWM_RANGE_MIDDLE - rcControlsConfig()->mid_throttle_deadband)) {
-                    motor[i] = constrain(motor[i], throttleIdleValue, reversibleMotorsConfig()->deadband_low);
-                } else {
-                    motor[i] = constrain(motor[i], reversibleMotorsConfig()->deadband_high, motorConfig()->maxthrottle);
-                }
             } else {
-                motor[i] = constrain(motor[i], throttleIdleValue, motorConfig()->maxthrottle);
+                motor[i] = constrain(motor[i], throttleRangeMin,throttleRangeMax);
             }
 
             // Motor stop handling
