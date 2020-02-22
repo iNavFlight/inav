@@ -61,7 +61,8 @@ static float mixerScale = 1.0f;
 static EXTENDED_FASTRAM motorMixer_t currentMixer[MAX_SUPPORTED_MOTORS];
 static EXTENDED_FASTRAM uint8_t motorCount = 0;
 EXTENDED_FASTRAM int mixerThrottleCommand;
-static EXTENDED_FASTRAM int throttleIdleValue = 0; 
+static EXTENDED_FASTRAM int throttleIdleValue = 0;
+static EXTENDED_FASTRAM int motorValueWhenStopped = 0;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(reversibleMotorsConfig_t, reversibleMotorsConfig, PG_REVERSIBLE_MOTORS_CONFIG, 0);
 
@@ -248,9 +249,17 @@ void mixerInit(void)
 
 void mixerResetDisarmedMotors(void)
 {
+    const int motorZeroCommand = feature(FEATURE_REVERSIBLE_MOTORS) ? reversibleMotorsConfig()->neutral : motorConfig()->mincommand;
+
+    if (feature(FEATURE_MOTOR_STOP)) {
+        motorValueWhenStopped = motorZeroCommand;
+    } else {
+        motorValueWhenStopped = getThrottleIdleValue();
+    }
+
     // set disarmed motor values
     for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-        motor_disarmed[i] = feature(FEATURE_REVERSIBLE_MOTORS) ? reversibleMotorsConfig()->neutral : motorConfig()->mincommand;
+        motor_disarmed[i] = motorZeroCommand;
     }
 }
 
@@ -419,6 +428,7 @@ void FAST_CODE NOINLINE mixTable(const float dT)
     // Now add in the desired throttle, but keep in a range that doesn't clip adjusted
     // roll/pitch/yaw. This could move throttle down, but also up for those low throttle flips.
     if (ARMING_FLAG(ARMED)) {
+        const motorStatus_e currentMotorStatus = getMotorStatus();
         for (int i = 0; i < motorCount; i++) {
             motor[i] = rpyMix[i] + constrain(mixerThrottleCommand * currentMixer[i].throttle, throttleMin, throttleMax);
 
@@ -435,12 +445,8 @@ void FAST_CODE NOINLINE mixTable(const float dT)
             }
 
             // Motor stop handling
-            if (ARMING_FLAG(ARMED) && (getMotorStatus() != MOTOR_RUNNING)) {
-                if (feature(FEATURE_MOTOR_STOP)) {
-                    motor[i] = (feature(FEATURE_REVERSIBLE_MOTORS) ? PWM_RANGE_MIDDLE : motorConfig()->mincommand);
-                } else {
-                    motor[i] = throttleIdleValue;
-                }
+            if (currentMotorStatus != MOTOR_RUNNING) {
+                motor[i] = motorValueWhenStopped;
             }
         }
     } else {
@@ -459,7 +465,7 @@ motorStatus_e getMotorStatus(void)
         return MOTOR_STOPPED_AUTO;
     }
 
-    if (rxGetChannelValue(THROTTLE) < rxConfig()->mincheck) {
+    if (calculateThrottleStatus() == THROTTLE_LOW) {
         if ((STATE(FIXED_WING_LEGACY) || !STATE(AIRMODE_ACTIVE)) && (!(navigationIsFlyingAutonomousMode() && navConfig()->general.flags.auto_overrides_motor_stop)) && (!failsafeIsActive())) {
             return MOTOR_STOPPED_USER;
         }
