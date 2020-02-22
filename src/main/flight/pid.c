@@ -530,7 +530,7 @@ static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float h
     float angleTarget = pidRcCommandToAngle(rcCommand[axis], pidProfile()->max_angle_inclination[axis]);
 
     // Automatically pitch down if the throttle is manually controlled and reduced bellow cruise throttle
-    if ((axis == FD_PITCH) && STATE(FIXED_WING_LEGACY) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle())
+    if ((axis == FD_PITCH) && STATE(AIRPLANE) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle())
         angleTarget += scaleRange(MAX(0, navConfig()->fw.cruise_throttle - rcCommand[THROTTLE]), 0, navConfig()->fw.cruise_throttle - PWM_RANGE_MIN, 0, mixerConfig()->fwMinThrottleDownPitchAngle);
 
     const float angleErrorDeg = DECIDEGREES_TO_DEGREES(angleTarget - attitude.raw[axis]);
@@ -857,7 +857,7 @@ static void NOINLINE pidTurnAssistant(pidState_t *pidState)
     targetRates.x = 0.0f;
     targetRates.y = 0.0f;
 
-    if (STATE(FIXED_WING_LEGACY)) {
+    if (STATE(AIRPLANE)) {
         if (calculateCosTiltAngle() >= 0.173648f) {
             // Ideal banked turn follow the equations:
             //      forward_vel^2 / radius = Gravity * tan(roll_angle)
@@ -901,7 +901,7 @@ static void NOINLINE pidTurnAssistant(pidState_t *pidState)
     pidState[PITCH].rateTarget = constrainf(pidState[PITCH].rateTarget + targetRates.y, -currentControlRateProfile->stabilized.rates[PITCH] * 10.0f, currentControlRateProfile->stabilized.rates[PITCH] * 10.0f);
 
     // Replace YAW on quads - add it in on airplanes
-    if (STATE(FIXED_WING_LEGACY)) {
+    if (STATE(AIRPLANE)) {
         pidState[YAW].rateTarget = constrainf(pidState[YAW].rateTarget + targetRates.z * pidProfile()->fixedWingCoordinatedYawGain, -currentControlRateProfile->stabilized.rates[YAW] * 10.0f, currentControlRateProfile->stabilized.rates[YAW] * 10.0f);
     }
     else {
@@ -1014,7 +1014,7 @@ pidType_e pidIndexGetType(pidIndex_e pidIndex)
     if (pidIndex == PID_ROLL || pidIndex == PID_PITCH || pidIndex == PID_YAW) {
         return usedPidControllerType;    
     }
-    if (STATE(FIXED_WING_LEGACY)) {
+    if (STATE(AIRPLANE) || STATE(ROVER) || STATE(BOAT)) {
         if (pidIndex == PID_VEL_XY || pidIndex == PID_VEL_Z) {
             return PID_TYPE_NONE;
         }

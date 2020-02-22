@@ -285,7 +285,10 @@ void init(void)
 
     // Some sanity checking
     if (motorConfig()->motorPwmProtocol == PWM_TYPE_BRUSHED) {
-        featureClear(FEATURE_3D);
+        featureClear(FEATURE_REVERSIBLE_MOTORS);
+    }
+    if (!STATE(ALTITUDE_CONTROL)) {
+        featureClear(FEATURE_AIRMODE);
     }
 
     // Initialize motor and servo outpus

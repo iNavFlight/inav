@@ -1110,16 +1110,16 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_3D:
-        sbufWriteU16(dst, flight3DConfig()->deadband3d_low);
-        sbufWriteU16(dst, flight3DConfig()->deadband3d_high);
-        sbufWriteU16(dst, flight3DConfig()->neutral3d);
+        sbufWriteU16(dst, reversibleMotorsConfig()->deadband_low);
+        sbufWriteU16(dst, reversibleMotorsConfig()->deadband_high);
+        sbufWriteU16(dst, reversibleMotorsConfig()->neutral);
         break;
 
     case MSP_RC_DEADBAND:
         sbufWriteU8(dst, rcControlsConfig()->deadband);
         sbufWriteU8(dst, rcControlsConfig()->yaw_deadband);
         sbufWriteU8(dst, rcControlsConfig()->alt_hold_deadband);
-        sbufWriteU16(dst, rcControlsConfig()->deadband3d_throttle);
+        sbufWriteU16(dst, rcControlsConfig()->mid_throttle_deadband);
         break;
 
     case MSP_SENSOR_ALIGNMENT:
@@ -1982,9 +1982,9 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_3D:
         if (dataSize >= 6) {
-            flight3DConfigMutable()->deadband3d_low = sbufReadU16(src);
-            flight3DConfigMutable()->deadband3d_high = sbufReadU16(src);
-            flight3DConfigMutable()->neutral3d = sbufReadU16(src);
+            reversibleMotorsConfigMutable()->deadband_low = sbufReadU16(src);
+            reversibleMotorsConfigMutable()->deadband_high = sbufReadU16(src);
+            reversibleMotorsConfigMutable()->neutral = sbufReadU16(src);
         } else
             return MSP_RESULT_ERROR;
         break;
@@ -1994,7 +1994,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             rcControlsConfigMutable()->deadband = sbufReadU8(src);
             rcControlsConfigMutable()->yaw_deadband = sbufReadU8(src);
             rcControlsConfigMutable()->alt_hold_deadband = sbufReadU8(src);
-            rcControlsConfigMutable()->deadband3d_throttle = sbufReadU16(src);
+            rcControlsConfigMutable()->mid_throttle_deadband = sbufReadU16(src);
         } else
             return MSP_RESULT_ERROR;
         break;
