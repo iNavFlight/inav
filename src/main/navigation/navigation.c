@@ -1465,7 +1465,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_REACHED(naviga
     switch ((navWaypointActions_e)posControl.waypointList[posControl.activeWaypointIndex].action) {
         case NAV_WP_ACTION_WAYPOINT:
             return NAV_FSM_EVENT_SUCCESS;   // NAV_STATE_WAYPOINT_NEXT
-        
+
         case NAV_WP_ACTION_JUMP:   
             UNREACHABLE();
 
