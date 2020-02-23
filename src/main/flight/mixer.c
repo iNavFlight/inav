@@ -478,13 +478,14 @@ void FAST_CODE NOINLINE mixTable(const float dT)
 #endif
     if (feature(FEATURE_REVERSIBLE_MOTORS)) {
 
-        if (rcCommand[THROTTLE] >= (throttleDeadbandHigh)) {
+        if (rcCommand[THROTTLE] >= (throttleDeadbandHigh) || STATE(SET_REVERSIBLE_MOTORS_FORWARD)) {
             /*
              * Throttle is above deadband, FORWARD direction
              */
             reversibleMotorsThrottleState = MOTOR_DIRECTION_FORWARD;
             throttleRangeMax = motorConfig()->maxthrottle;
             throttleRangeMin = throttleDeadbandHigh;
+            DISABLE_STATE(SET_REVERSIBLE_MOTORS_FORWARD);
         } else if (rcCommand[THROTTLE] <= throttleDeadbandLow) {
             /*
              * Throttle is below deadband, BACKWARD direction

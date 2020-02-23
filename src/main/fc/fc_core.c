@@ -475,6 +475,8 @@ void tryArm(void)
 
         ENABLE_ARMING_FLAG(ARMED);
         ENABLE_ARMING_FLAG(WAS_EVER_ARMED);
+        //It is required to inform the mixer that arming was executed and it has to switch to the FORWARD direction
+        ENABLE_STATE(SET_REVERSIBLE_MOTORS_FORWARD);
         logicConditionReset();
         headFreeModeHold = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
 
