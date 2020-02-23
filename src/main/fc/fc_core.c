@@ -200,7 +200,7 @@ static void updateArmingStatus(void)
         /* CHECK: Throttle */
         if (!armingConfig()->fixed_wing_auto_arm) {
             // Don't want this check if fixed_wing_auto_arm is in use - machine arms on throttle > LOW
-            if (calculateThrottleStatus() != THROTTLE_LOW) {
+            if (calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC) != THROTTLE_LOW) {
                 ENABLE_ARMING_FLAG(ARMING_DISABLED_THROTTLE);
             } else {
                 DISABLE_ARMING_FLAG(ARMING_DISABLED_THROTTLE);
@@ -529,7 +529,7 @@ void processRx(timeUs_t currentTimeUs)
 
     failsafeUpdateState();
 
-    const throttleStatus_e throttleStatus = calculateThrottleStatus();
+    const throttleStatus_e throttleStatus = calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC);
 
     // When armed and motors aren't spinning, do beeps periodically
     if (ARMING_FLAG(ARMED) && feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING_LEGACY)) {

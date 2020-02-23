@@ -1552,7 +1552,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_WAIT(navigationF
 
     //allow to leave NAV_LAUNCH_MODE if it has being enabled as feature by moving sticks with low throttle.
     if (feature(FEATURE_FW_LAUNCH)) {
-        throttleStatus_e throttleStatus = calculateThrottleStatus();
+        throttleStatus_e throttleStatus = calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC);
         if ((throttleStatus == THROTTLE_LOW) && (areSticksDeflectedMoreThanPosHoldDeadband())) {
             abortFixedWingLaunch();
             return NAV_FSM_EVENT_SWITCH_TO_IDLE;
@@ -2909,7 +2909,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
             else {
                 // If we were in LAUNCH mode - force switch to IDLE only if the throttle is low
                 if (FLIGHT_MODE(NAV_LAUNCH_MODE)) {
-                    throttleStatus_e throttleStatus = calculateThrottleStatus();
+                    throttleStatus_e throttleStatus = calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC);
                     if (throttleStatus != THROTTLE_LOW)
                         return NAV_FSM_EVENT_NONE;
                     else

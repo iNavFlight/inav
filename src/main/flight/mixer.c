@@ -63,6 +63,11 @@ static EXTENDED_FASTRAM uint8_t motorCount = 0;
 EXTENDED_FASTRAM int mixerThrottleCommand;
 static EXTENDED_FASTRAM int throttleIdleValue = 0;
 static EXTENDED_FASTRAM int motorValueWhenStopped = 0;
+static reversibleMotorsThrottleState_e reversibleMotorsThrottleState = MOTOR_DIRECTION_FORWARD;
+static EXTENDED_FASTRAM int throttleDeadbandLow = 0;
+static EXTENDED_FASTRAM int throttleDeadbandHigh = 0;
+static EXTENDED_FASTRAM int throttleRangeMin = 0;
+static EXTENDED_FASTRAM int throttleRangeMax = 0;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(reversibleMotorsConfig_t, reversibleMotorsConfig, PG_REVERSIBLE_MOTORS_CONFIG, 0);
 
@@ -238,6 +243,9 @@ void mixerInit(void)
         mixerScale = 0.5f;
     }
 
+    throttleDeadbandLow = PWM_RANGE_MIDDLE - rcControlsConfig()->mid_throttle_deadband;
+    throttleDeadbandHigh = PWM_RANGE_MIDDLE + rcControlsConfig()->mid_throttle_deadband;
+
     mixerResetDisarmedMotors();
 
     if (motorConfig()->motorAccelTimeMs || motorConfig()->motorDecelTimeMs) {
@@ -249,7 +257,19 @@ void mixerInit(void)
 
 void mixerResetDisarmedMotors(void)
 {
-    const int motorZeroCommand = feature(FEATURE_REVERSIBLE_MOTORS) ? reversibleMotorsConfig()->neutral : motorConfig()->mincommand;
+    int motorZeroCommand;
+    
+    if (feature(FEATURE_REVERSIBLE_MOTORS)) {
+        motorZeroCommand = reversibleMotorsConfig()->neutral;
+        throttleRangeMin = throttleDeadbandHigh;
+        throttleRangeMax = motorConfig()->maxthrottle;
+    } else {
+        motorZeroCommand = motorConfig()->mincommand;
+        throttleRangeMin = getThrottleIdleValue();
+        throttleRangeMax = motorConfig()->maxthrottle;
+    }
+
+    reversibleMotorsThrottleState = MOTOR_DIRECTION_FORWARD;
 
     if (feature(FEATURE_MOTOR_STOP)) {
         motorValueWhenStopped = motorZeroCommand;
@@ -296,7 +316,26 @@ void FAST_CODE NOINLINE writeMotors(void)
             }
         }
         else {
-            motorValue = motor[i];
+            if (feature(FEATURE_REVERSIBLE_MOTORS)) {
+                if (reversibleMotorsThrottleState == MOTOR_DIRECTION_FORWARD) {
+                    if (motor[i] < throttleRangeMin) {
+                        motorValue = motor[i];
+                    } else {
+                        motorValue = scaleRangef(motor[i], throttleRangeMin, throttleRangeMax, reversibleMotorsConfig()->deadband_high,  motorConfig()->maxthrottle);
+                        motorValue = constrain(motorValue, reversibleMotorsConfig()->deadband_high,  motorConfig()->maxthrottle);
+                    }
+                } else {
+                     if (motor[i] > throttleRangeMax) {
+                        motorValue = motor[i];
+                    } else {
+                        motorValue = scaleRangef(motor[i], throttleRangeMin, throttleRangeMax,  motorConfig()->mincommand, reversibleMotorsConfig()->deadband_low);
+                        motorValue = constrain(motorValue, motorConfig()->mincommand,  reversibleMotorsConfig()->deadband_low);
+                    }
+                }
+            } else {
+                motorValue = motor[i];
+            }
+
         }
 #else
         // We don't define USE_DSHOT
@@ -326,6 +365,19 @@ void stopMotors(void)
 void stopPwmAllMotors(void)
 {
     pwmShutdownPulsesForAllMotors(motorCount);
+}
+
+static int getReversibleMotorsThrottleDeadband(void)
+{
+    int directionValue;
+
+    if (reversibleMotorsThrottleState == MOTOR_DIRECTION_BACKWARD) {
+        directionValue = reversibleMotorsConfig()->deadband_low;
+    } else {
+        directionValue = reversibleMotorsConfig()->deadband_high;
+    }
+
+    return feature(FEATURE_MOTOR_STOP) ? reversibleMotorsConfig()->neutral : directionValue;
 }
 
 void FAST_CODE NOINLINE mixTable(const float dT)
@@ -363,8 +415,7 @@ void FAST_CODE NOINLINE mixTable(const float dT)
     int16_t rpyMixRange = rpyMixMax - rpyMixMin;
     int16_t throttleRange;
     int16_t throttleMin, throttleMax;
-    int16_t throttleRangeMin, throttleRangeMax;
-    static int16_t throttlePrevious = 0;   // Store the last throttle direction for deadband transitions
+    // static int16_t throttlePrevious = 0;   // Store the last throttle direction for deadband transitions
 
     // Find min and max throttle based on condition.
 #ifdef USE_GLOBAL_FUNCTIONS
@@ -375,23 +426,26 @@ void FAST_CODE NOINLINE mixTable(const float dT)
     } else
 #endif
     if (feature(FEATURE_REVERSIBLE_MOTORS)) {
-        if (!ARMING_FLAG(ARMED)) throttlePrevious = PWM_RANGE_MIDDLE; // When disarmed set to mid_rc. It always results in positive direction after arming.
 
-        if ((rcCommand[THROTTLE] <= (PWM_RANGE_MIDDLE - rcControlsConfig()->mid_throttle_deadband))) { // Out of band handling
-            throttleRangeMax = reversibleMotorsConfig()->deadband_low;
-            throttleRangeMin = throttleIdleValue;
-            throttlePrevious = mixerThrottleCommand = rcCommand[THROTTLE];
-        } else if (rcCommand[THROTTLE] >= (PWM_RANGE_MIDDLE + rcControlsConfig()->mid_throttle_deadband)) { // Positive handling
+        if (rcCommand[THROTTLE] >= (throttleDeadbandHigh)) {
+            /*
+             * Throttle is above deadband, FORWARD direction
+             */
+            reversibleMotorsThrottleState = MOTOR_DIRECTION_FORWARD;
             throttleRangeMax = motorConfig()->maxthrottle;
-            throttleRangeMin = reversibleMotorsConfig()->deadband_high;
-            throttlePrevious = mixerThrottleCommand = rcCommand[THROTTLE];
-        } else if ((throttlePrevious <= (PWM_RANGE_MIDDLE - rcControlsConfig()->mid_throttle_deadband)))  { // Deadband handling from negative to positive
-            mixerThrottleCommand = throttleMax = reversibleMotorsConfig()->deadband_low;
-            throttleRangeMin = throttleIdleValue;
-        } else {  // Deadband handling from positive to negative
-            throttleRangeMax = motorConfig()->maxthrottle;
-            mixerThrottleCommand = throttleMin = reversibleMotorsConfig()->deadband_high;
+            throttleRangeMin = throttleDeadbandHigh;
+        } else if (rcCommand[THROTTLE] <= throttleDeadbandLow) {
+            /*
+             * Throttle is below deadband, BACKWARD direction
+             */
+            reversibleMotorsThrottleState = MOTOR_DIRECTION_BACKWARD;
+            throttleRangeMax = throttleDeadbandLow;
+            throttleRangeMin = motorConfig()->mincommand;
         }
+
+
+        motorValueWhenStopped = getReversibleMotorsThrottleDeadband();
+        mixerThrottleCommand = constrain(rcCommand[THROTTLE], throttleRangeMin, throttleRangeMax);
     } else {
         mixerThrottleCommand = rcCommand[THROTTLE];
         throttleRangeMin = throttleIdleValue;
@@ -439,7 +493,7 @@ void FAST_CODE NOINLINE mixTable(const float dT)
             if (failsafeIsActive()) {
                 motor[i] = constrain(motor[i], motorConfig()->mincommand, motorConfig()->maxthrottle);
             } else {
-                motor[i] = constrain(motor[i], throttleRangeMin,throttleRangeMax);
+                motor[i] = constrain(motor[i], throttleRangeMin, throttleRangeMax);
             }
 
             // Motor stop handling
@@ -463,7 +517,7 @@ motorStatus_e getMotorStatus(void)
         return MOTOR_STOPPED_AUTO;
     }
 
-    if (calculateThrottleStatus() == THROTTLE_LOW) {
+    if (calculateThrottleStatus(feature(FEATURE_REVERSIBLE_MOTORS) ? THROTTLE_STATUS_TYPE_COMMAND : THROTTLE_STATUS_TYPE_RC) == THROTTLE_LOW) {
         if ((STATE(FIXED_WING_LEGACY) || !STATE(AIRMODE_ACTIVE)) && (!(navigationIsFlyingAutonomousMode() && navConfig()->general.flags.auto_overrides_motor_stop)) && (!failsafeIsActive())) {
             return MOTOR_STOPPED_USER;
         }
