@@ -40,6 +40,9 @@
 #include "sensors/pitotmeter.h"
 #include "flight/imu.h"
 
+#include "navigation/navigation.h"
+#include "navigation/navigation_private.h"
+
 PG_REGISTER_ARRAY(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions, PG_LOGIC_CONDITIONS, 0);
 
 logicConditionState_t logicConditionStates[MAX_LOGIC_CONDITIONS];
@@ -231,6 +234,42 @@ static int logicConditionGetFlightOperandValue(int operand) {
         case LOGIC_CONDITION_OPERAND_FLIGHT_ATTITUDE_PITCH: // deg
             return constrain(attitude.values.pitch / 10, -180, 180);
             break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_IS_ARMED: // 0/1
+            return ARMING_FLAG(ARMED) ? 1 : 0;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_IS_AUTOLAUNCH: // 0/1
+            return (navGetCurrentStateFlags() & NAV_CTL_LAUNCH) ? 1 : 0;
+            break; 
+        
+        case LOGIC_CONDITION_OPERAND_FLIGHT_IS_ALTITUDE_CONTROL: // 0/1
+            return (navGetCurrentStateFlags() & NAV_CTL_ALT) ? 1 : 0;
+            break; 
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_IS_POSITION_CONTROL: // 0/1
+            return (navGetCurrentStateFlags() & NAV_CTL_POS) ? 1 : 0;
+            break; 
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_IS_EMERGENCY_LANDING: // 0/1
+            return (navGetCurrentStateFlags() & NAV_CTL_EMERG) ? 1 : 0;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_IS_RTH: // 0/1
+            return (navGetCurrentStateFlags() & NAV_AUTO_RTH) ? 1 : 0;
+            break; 
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_IS_WP: // 0/1
+            return (navGetCurrentStateFlags() & NAV_AUTO_WP) ? 1 : 0;
+            break; 
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_IS_LANDING: // 0/1
+            return (navGetCurrentStateFlags() & NAV_CTL_LAND) ? 1 : 0;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_IS_FAILSAFE: // 0/1
+            return (failsafePhase() == FAILSAFE_RX_LOSS_MONITORING) ? 1 : 0;
+            break; 
 
         default:
             return 0;
