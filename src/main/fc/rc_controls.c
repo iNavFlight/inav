@@ -99,7 +99,7 @@ bool areSticksDeflectedMoreThanPosHoldDeadband(void)
     return (ABS(rcCommand[ROLL]) > rcControlsConfig()->pos_hold_deadband) || (ABS(rcCommand[PITCH]) > rcControlsConfig()->pos_hold_deadband);
 }
 
-throttleStatus_e calculateThrottleStatus(throttleStatusType_e type)
+throttleStatus_e FAST_CODE NOINLINE calculateThrottleStatus(throttleStatusType_e type)
 {
     int value;
     if (type == THROTTLE_STATUS_TYPE_RC) {

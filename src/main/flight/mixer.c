@@ -283,6 +283,34 @@ void mixerResetDisarmedMotors(void)
     }
 }
 
+static FAST_CODE NOINLINE uint16_t handleOutputScaling(
+    int16_t input,          // Input value from the mixer
+    int16_t stopThreshold,  // Threshold value to check if motor should be rotating or not
+    int16_t onStopValue,    // Value sent to the ESC when min rotation is required - on motor_stop it is STOP command, without motor_stop it's a value that keeps rotation
+    int16_t inputScaleMin,  // Input range - min value
+    int16_t inputScaleMax,  // Input range - max value
+    int16_t outputScaleMin, // Output range - min value
+    int16_t outputScaleMax, // Output range - max value
+    bool moveForward        // If motor should be rotating FORWARD or BACKWARD
+)
+{
+    int value;
+    if (moveForward && input < stopThreshold) {
+        //Send motor stop command
+        value = onStopValue;
+    }
+    else if (!moveForward && input > stopThreshold) {
+        //Send motor stop command
+        value = onStopValue;
+    }
+    else {
+        //Scale input to protocol output values
+        value = scaleRangef(input, inputScaleMin, inputScaleMax, outputScaleMin, outputScaleMax);
+        value = constrain(value, outputScaleMin, outputScaleMax);
+    }
+    return value;
+}
+
 void FAST_CODE NOINLINE writeMotors(void)
 {
     for (int i = 0; i < motorCount; i++) {
@@ -293,44 +321,67 @@ void FAST_CODE NOINLINE writeMotors(void)
         if (isMotorProtocolDigital()) {
 
             if (feature(FEATURE_REVERSIBLE_MOTORS)) {
-                if (motor[i] >= throttleIdleValue && motor[i] <= reversibleMotorsConfig()->deadband_low) {
-                    motorValue = scaleRangef(motor[i], motorConfig()->mincommand, reversibleMotorsConfig()->deadband_low, DSHOT_3D_DEADBAND_LOW, DSHOT_MIN_THROTTLE);
-                    motorValue = constrain(motorValue, DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW);
-                }
-                else if (motor[i] >= reversibleMotorsConfig()->deadband_high && motor[i] <= motorConfig()->maxthrottle) {
-                    motorValue = scaleRangef(motor[i], reversibleMotorsConfig()->deadband_high, motorConfig()->maxthrottle, DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE);
-                    motorValue = constrain(motorValue, DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE);
-                }
-                else {
-                    motorValue = DSHOT_DISARM_COMMAND;
+                if (reversibleMotorsThrottleState == MOTOR_DIRECTION_FORWARD) {
+                    motorValue = handleOutputScaling(
+                        motor[i],
+                        throttleRangeMin,
+                        DSHOT_DISARM_COMMAND,
+                        throttleRangeMin,
+                        throttleRangeMax,
+                        DSHOT_3D_DEADBAND_HIGH,
+                        DSHOT_MAX_THROTTLE,
+                        true
+                    );
+                } else {
+                    motorValue = handleOutputScaling(
+                        motor[i],
+                        throttleRangeMax,
+                        DSHOT_DISARM_COMMAND,
+                        throttleRangeMin,
+                        throttleRangeMax,
+                        DSHOT_MIN_THROTTLE,
+                        DSHOT_3D_DEADBAND_LOW,
+                        false
+                    );
                 }
             }
             else {
-                if (motor[i] < throttleIdleValue) {    // motor disarmed
-                    motorValue = DSHOT_DISARM_COMMAND;
-                }
-                else {
-                    motorValue = scaleRangef(motor[i], motorConfig()->mincommand, motorConfig()->maxthrottle, DSHOT_MIN_THROTTLE, DSHOT_MAX_THROTTLE);
-                    motorValue = constrain(motorValue, DSHOT_MIN_THROTTLE, DSHOT_MAX_THROTTLE);
-                }
+                motorValue = handleOutputScaling(
+                    motor[i],
+                    throttleIdleValue,
+                    DSHOT_DISARM_COMMAND,
+                    motorConfig()->mincommand,
+                    motorConfig()->maxthrottle,
+                    DSHOT_MIN_THROTTLE,
+                    DSHOT_MAX_THROTTLE,
+                    true
+                );
             }
         }
         else {
             if (feature(FEATURE_REVERSIBLE_MOTORS)) {
                 if (reversibleMotorsThrottleState == MOTOR_DIRECTION_FORWARD) {
-                    if (motor[i] < throttleRangeMin) {
-                        motorValue = motor[i];
-                    } else {
-                        motorValue = scaleRangef(motor[i], throttleRangeMin, throttleRangeMax, reversibleMotorsConfig()->deadband_high,  motorConfig()->maxthrottle);
-                        motorValue = constrain(motorValue, reversibleMotorsConfig()->deadband_high,  motorConfig()->maxthrottle);
-                    }
+                    motorValue = handleOutputScaling(
+                        motor[i],
+                        throttleRangeMin,
+                        motor[i],
+                        throttleRangeMin,
+                        throttleRangeMax,
+                        reversibleMotorsConfig()->deadband_high,
+                        motorConfig()->maxthrottle,
+                        true
+                    );
                 } else {
-                     if (motor[i] > throttleRangeMax) {
-                        motorValue = motor[i];
-                    } else {
-                        motorValue = scaleRangef(motor[i], throttleRangeMin, throttleRangeMax,  motorConfig()->mincommand, reversibleMotorsConfig()->deadband_low);
-                        motorValue = constrain(motorValue, motorConfig()->mincommand,  reversibleMotorsConfig()->deadband_low);
-                    }
+                    motorValue = handleOutputScaling(
+                        motor[i],
+                        throttleRangeMax,
+                        motor[i],
+                        throttleRangeMin,
+                        throttleRangeMax,
+                        motorConfig()->mincommand,
+                        reversibleMotorsConfig()->deadband_low,
+                        false
+                    );
                 }
             } else {
                 motorValue = motor[i];
