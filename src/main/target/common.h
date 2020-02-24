@@ -125,7 +125,7 @@
 #define USE_AUTOTUNE_FIXED_WING
 #define USE_LOG
 #define USE_STATS
-#define USE_CMS
+//#define USE_CMS
 #define CMS_MENU_OSD
 #define USE_GPS_PROTO_NMEA
 #define USE_GPS_PROTO_MTK
