@@ -71,6 +71,7 @@
 #include "fc/settings.h"
 
 #include "flight/mixer.h"
+#include "flight/servos.h"
 
 // For VISIBLE*
 #include "io/osd.h"
@@ -773,6 +774,7 @@ void cmsMenuOpen(void)
 {
     if (!cmsInMenu) {
         // New open
+	setServoOutputEnabled(false);
         pCurrentDisplay = cmsDisplayPortSelectCurrent();
         if (!pCurrentDisplay)
             return;
@@ -867,6 +869,8 @@ long cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
 
     displayRelease(pDisplay);
     currentCtx.menu = NULL;
+
+    setServoOutputEnabled(true);
 
     if ((exitType == CMS_EXIT_SAVEREBOOT) || (exitType == CMS_POPUP_SAVEREBOOT)) {
         displayClearScreen(pDisplay);

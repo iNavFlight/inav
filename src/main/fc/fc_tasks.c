@@ -47,6 +47,7 @@
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/wind_estimator.h"
+#include "flight/rpm_filter.h"
 
 #include "navigation/navigation.h"
 
@@ -60,6 +61,7 @@
 #include "io/serial.h"
 #include "io/rcdevice_cam.h"
 #include "io/vtx.h"
+#include "io/osd_dji_hd.h"
 
 #include "msp/msp_serial.h"
 
@@ -96,6 +98,11 @@ void taskHandleSerial(timeUs_t currentTimeUs)
 
     // Allow MSP processing even if in CLI mode
     mspSerialProcess(ARMING_FLAG(ARMED) ? MSP_SKIP_NON_MSP_DATA : MSP_EVALUATE_NON_MSP_DATA, mspFcProcessCommand);
+
+#if defined(USE_DJI_HD_OSD)
+    // DJI OSD uses a special flavour of MSP (subset of Betaflight 4.1.1 MSP) - process as part of serial task
+    djiOsdSerialProcess();
+#endif
 }
 
 void taskUpdateBattery(timeUs_t currentTimeUs)
@@ -559,6 +566,14 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskFunc = globalFunctionsUpdateTask,
         .desiredPeriod = TASK_PERIOD_HZ(10),          // 10Hz @100msec
         .staticPriority = TASK_PRIORITY_IDLE,
+    },
+#endif
+#ifdef USE_RPM_FILTER
+    [TASK_RPM_FILTER] = {
+        .taskName = "RPM",
+        .taskFunc = rpmFilterUpdateTask,
+        .desiredPeriod = TASK_PERIOD_HZ(RPM_FILTER_UPDATE_RATE_HZ),          // 300Hz @3,33ms
+        .staticPriority = TASK_PRIORITY_LOW,
     },
 #endif
 };

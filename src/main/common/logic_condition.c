@@ -42,25 +42,6 @@
 
 PG_REGISTER_ARRAY(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions, PG_LOGIC_CONDITIONS, 0);
 
-void pgResetFn_logicConditions(logicCondition_t *instance)
-{
-    for (int i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
-        RESET_CONFIG(logicCondition_t, &instance[i],
-            .enabled = 0,
-            .operation = LOGIC_CONDITION_TRUE,
-            .operandA = {
-                .type = LOGIC_CONDITION_OPERAND_TYPE_VALUE,
-                .value = 0
-            },
-            .operandB = {
-                .type = LOGIC_CONDITION_OPERAND_TYPE_VALUE,
-                .value = 0
-            },
-            .flags = 0
-        );
-    }
-}
-
 logicConditionState_t logicConditionStates[MAX_LOGIC_CONDITIONS];
 
 static int logicConditionCompute(
