@@ -72,13 +72,13 @@ typedef struct mixerConfig_s {
 
 PG_DECLARE(mixerConfig_t, mixerConfig);
 
-typedef struct flight3DConfig_s {
-    uint16_t deadband3d_low;                // min 3d value
-    uint16_t deadband3d_high;               // max 3d value
-    uint16_t neutral3d;                     // center 3d value
-} flight3DConfig_t;
+typedef struct reversibleMotorsConfig_s {
+    uint16_t deadband_low;                // min 3d value
+    uint16_t deadband_high;               // max 3d value
+    uint16_t neutral;                     // center 3d value
+} reversibleMotorsConfig_t;
 
-PG_DECLARE(flight3DConfig_t, flight3DConfig);
+PG_DECLARE(reversibleMotorsConfig_t, reversibleMotorsConfig);
 
 typedef struct motorConfig_s {
     // PWM values, in milliseconds, common range is 1000-2000 (1ms to 2ms)
