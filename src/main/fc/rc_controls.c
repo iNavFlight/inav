@@ -183,7 +183,7 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
     bool armingSwitchIsActive = IS_RC_MODE_ACTIVE(BOXARM);
     emergencyArmingUpdate(armingSwitchIsActive);
 
-    if (STATE(FIXED_WING_LEGACY) && feature(FEATURE_MOTOR_STOP) && armingConfig()->fixed_wing_auto_arm) {
+    if (STATE(AIRPLANE) && feature(FEATURE_MOTOR_STOP) && armingConfig()->fixed_wing_auto_arm) {
         // Auto arm on throttle when using fixedwing and motorstop
         if (throttleStatus != THROTTLE_LOW) {
             tryArm();
