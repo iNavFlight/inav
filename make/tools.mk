@@ -7,8 +7,9 @@
 #
 ###############################################################
 
-GCC_REQUIRED_VERSION ?= 8.2.1
-ARM_SDK_DIR ?= $(TOOLS_DIR)/gcc-arm-none-eabi-8-2018-q4-major
+GCC_REQUIRED_VERSION ?= 9.2.1
+ARM_SDK_DIR ?= $(TOOLS_DIR)/gcc-arm-none-eabi-9-2019-q4-major
+ARM_SDK_URL_BASE  := https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major
 
 .PHONY: arm_sdk_version
 
@@ -17,11 +18,9 @@ arm_sdk_version:
 
 .PHONY: arm_sdk_install
 
-ARM_SDK_URL_BASE  := https://developer.arm.com/-/media/Files/downloads/gnu-rm/8-2018q4/gcc-arm-none-eabi-8-2018-q4-major
-
 # source: https://developer.arm.com/open-source/gnu-toolchain/gnu-rm/downloads
 ifdef LINUX
-  ARM_SDK_URL  := $(ARM_SDK_URL_BASE)-linux.tar.bz2
+  ARM_SDK_URL  := $(ARM_SDK_URL_BASE)-x86_64-linux.tar.bz2
 endif
 
 ifdef MACOSX

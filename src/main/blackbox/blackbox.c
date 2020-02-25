@@ -624,14 +624,14 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
 
     case FLIGHT_LOG_FIELD_CONDITION_FIXED_WING_NAV:
 #ifdef USE_NAV
-        return STATE(FIXED_WING);
+        return STATE(FIXED_WING_LEGACY);
 #else
         return false;
 #endif
 
     case FLIGHT_LOG_FIELD_CONDITION_MC_NAV:
 #ifdef USE_NAV
-        return !STATE(FIXED_WING);
+        return !STATE(FIXED_WING_LEGACY);
 #else
         return false;
 #endif
@@ -1369,7 +1369,7 @@ static void loadMainState(timeUs_t currentTimeUs)
         blackboxCurrent->magADC[i] = mag.magADC[i];
 #endif
 #ifdef USE_NAV
-        if (!STATE(FIXED_WING)) {
+        if (!STATE(FIXED_WING_LEGACY)) {
             // log requested velocity in cm/s
             blackboxCurrent->mcPosAxisP[i] = lrintf(nav_pids->pos[i].output_constrained);
 
@@ -1384,7 +1384,7 @@ static void loadMainState(timeUs_t currentTimeUs)
     }
 
 #ifdef USE_NAV
-    if (STATE(FIXED_WING)) {
+    if (STATE(FIXED_WING_LEGACY)) {
 
         // log requested pitch in decidegrees
         blackboxCurrent->fwAltPID[0] = lrintf(nav_pids->fw_alt.proportional);
@@ -1726,10 +1726,6 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("rpm_gyro_harmonics", "%d",              rpmFilterConfig()->gyro_harmonics);
         BLACKBOX_PRINT_HEADER_LINE("rpm_gyro_min_hz", "%d",                 rpmFilterConfig()->gyro_min_hz);
         BLACKBOX_PRINT_HEADER_LINE("rpm_gyro_q", "%d",                      rpmFilterConfig()->gyro_q);
-        BLACKBOX_PRINT_HEADER_LINE("rpm_dterm_filter_enabled", "%d",        rpmFilterConfig()->dterm_filter_enabled);
-        BLACKBOX_PRINT_HEADER_LINE("rpm_dterm_harmonics", "%d",             rpmFilterConfig()->dterm_harmonics);
-        BLACKBOX_PRINT_HEADER_LINE("rpm_dterm_min_hz", "%d",                rpmFilterConfig()->dterm_min_hz);
-        BLACKBOX_PRINT_HEADER_LINE("rpm_dterm_q", "%d",                     rpmFilterConfig()->dterm_q);
 #endif
         default:
             return true;
