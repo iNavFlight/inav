@@ -659,6 +659,8 @@ static const char * osdArmingDisabledReasonMessage(void)
                     return OSD_MESSAGE_STR("DISABLE NAVIGATION FIRST");
                 case NAV_ARMING_BLOCKER_FIRST_WAYPOINT_TOO_FAR:
                     return OSD_MESSAGE_STR("FIRST WAYPOINT IS TOO FAR");
+                case NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR:
+                    return OSD_MESSAGE_STR("JUMP WAYPOINT MISCONFIGURED");
             }
 #endif
             break;
