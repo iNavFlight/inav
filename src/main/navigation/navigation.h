@@ -231,7 +231,7 @@ typedef struct gpsOrigin_s {
 
 typedef enum {
     NAV_WP_ACTION_WAYPOINT  = 0x01,
-	NAV_WP_ACTION_HOLD_TIME = 0x03,
+    NAV_WP_ACTION_HOLD_TIME = 0x03,
     NAV_WP_ACTION_RTH       = 0x04
 } navWaypointActions_e;
 
