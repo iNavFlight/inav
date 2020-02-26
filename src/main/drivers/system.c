@@ -49,9 +49,9 @@ void registerExtiCallbackHandler(IRQn_Type irqn, extiCallbackHandlerFunc *fn)
 }
 
 // cycles per microsecond
-STATIC_UNIT_TESTED  timeUs_t usTicks = 0;
+static EXTENDED_FASTRAM  timeUs_t usTicks = 0;
 // current uptime for 1kHz systick timer. will rollover after 49 days. hopefully we won't care.
-STATIC_UNIT_TESTED volatile timeMs_t sysTickUptime = 0;
+static EXTENDED_FASTRAM volatile timeMs_t sysTickUptime = 0;
 STATIC_UNIT_TESTED volatile uint32_t sysTickValStamp = 0;
 // cached value of RCC->CSR
 uint32_t cachedRccCsrValue;
@@ -76,7 +76,7 @@ void cycleCounterInit(void)
 
 // SysTick
 
-static volatile int sysTickPending = 0;
+static EXTENDED_FASTRAM volatile int sysTickPending = 0;
 
 void SysTick_Handler(void)
 {
