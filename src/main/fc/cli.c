@@ -450,18 +450,14 @@ static bool valuePtrEqualsDefault(const setting_t *value, const void *ptr, const
     return result;
 }
 
-static void dumpPgValue(const setting_t *value, uint8_t dumpMask)
+static void dumpPgValue(uint8_t *pgBlob, const setting_t *value, uint8_t dumpMask)
 {
     char name[SETTING_MAX_NAME_LENGTH];
     const char *format = "set %s = ";
     const char *defaultFormat = "#set %s = ";
-    // During a dump, the PGs have been backed up to their "copy"
-    // regions and the actual values have been reset to its
-    // defaults. This means that settingGetValuePointer() will
-    // return the default value while settingGetCopyValuePointer()
-    // will return the actual value.
-    const void *valuePointer = settingGetCopyValuePointer(value);
-    const void *defaultValuePointer = settingGetValuePointer(value);
+    const void *valuePointer = settingGetValuePointer(value);
+    const void *defaultValuePointer = settingGetDefaultValuePointer(pgBlob, value);
+
     const bool equalsDefault = valuePtrEqualsDefault(value, valuePointer, defaultValuePointer);
     if (((dumpMask & DO_DIFF) == 0) || !equalsDefault) {
         settingGetName(value, name);
@@ -476,13 +472,13 @@ static void dumpPgValue(const setting_t *value, uint8_t dumpMask)
     }
 }
 
-static void dumpAllValues(uint16_t valueSection, uint8_t dumpMask)
+static void dumpAllValues(uint8_t *pgBlob, uint16_t valueSection, uint8_t dumpMask)
 {
     for (unsigned i = 0; i < SETTINGS_TABLE_COUNT; i++) {
         const setting_t *value = settingGet(i);
         bufWriterFlush(cliWriter);
         if (SETTING_SECTION(value) == valueSection) {
-            dumpPgValue(value, dumpMask);
+            dumpPgValue(pgBlob, value, dumpMask);
         }
     }
 }
@@ -2608,7 +2604,7 @@ static void cliProfile(char *cmdline)
     }
 }
 
-static void cliDumpProfile(uint8_t profileIndex, uint8_t dumpMask)
+static void cliDumpProfile(uint8_t *pgBlob, uint8_t profileIndex, uint8_t dumpMask)
 {
     if (profileIndex >= MAX_PROFILE_COUNT) {
         // Faulty values
@@ -2617,8 +2613,8 @@ static void cliDumpProfile(uint8_t profileIndex, uint8_t dumpMask)
     setConfigProfile(profileIndex);
     cliPrintHashLine("profile");
     cliPrintLinef("profile %d\r\n", getConfigProfile() + 1);
-    dumpAllValues(PROFILE_VALUE, dumpMask);
-    dumpAllValues(CONTROL_RATE_VALUE, dumpMask);
+    dumpAllValues(pgBlob, PROFILE_VALUE, dumpMask);
+    dumpAllValues(pgBlob, CONTROL_RATE_VALUE, dumpMask);
 }
 
 static void cliBatteryProfile(char *cmdline)
@@ -2636,7 +2632,7 @@ static void cliBatteryProfile(char *cmdline)
     }
 }
 
-static void cliDumpBatteryProfile(uint8_t profileIndex, uint8_t dumpMask)
+static void cliDumpBatteryProfile(uint8_t *pgBlob, uint8_t profileIndex, uint8_t dumpMask)
 {
     if (profileIndex >= MAX_BATTERY_PROFILE_COUNT) {
         // Faulty values
@@ -2645,7 +2641,7 @@ static void cliDumpBatteryProfile(uint8_t profileIndex, uint8_t dumpMask)
     setConfigBatteryProfile(profileIndex);
     cliPrintHashLine("battery_profile");
     cliPrintLinef("battery_profile %d\r\n", getConfigBatteryProfile() + 1);
-    dumpAllValues(BATTERY_CONFIG_VALUE, dumpMask);
+    dumpAllValues(pgBlob, BATTERY_CONFIG_VALUE, dumpMask);
 }
 
 #ifdef USE_CLI_BATCH
@@ -3064,31 +3060,10 @@ static void cliResource(char *cmdline)
 }
 #endif
 
-static void backupConfigs(void)
-{
-    // make copies of configs to do differencing
-    PG_FOREACH(pg) {
-        if (pgIsProfile(pg)) {
-            memcpy(pg->copy, pg->address, pgSize(pg) * MAX_PROFILE_COUNT);
-        } else {
-            memcpy(pg->copy, pg->address, pgSize(pg));
-        }
-    }
-}
-
-static void restoreConfigs(void)
-{
-    PG_FOREACH(pg) {
-        if (pgIsProfile(pg)) {
-            memcpy(pg->address, pg->copy, pgSize(pg) * MAX_PROFILE_COUNT);
-        } else {
-            memcpy(pg->address, pg->copy, pgSize(pg));
-        }
-    }
-}
-
 static void printConfig(const char *cmdline, bool doDiff)
 {
+    uint8_t pgBlob[PG_MAX_SIZE] __attribute__((aligned(4)));
+
     uint8_t dumpMask = DUMP_MASTER;
     const char *options;
     if ((options = checkCommand(cmdline, "master"))) {
@@ -3106,15 +3081,6 @@ static void printConfig(const char *cmdline, bool doDiff)
     if (doDiff) {
         dumpMask = dumpMask | DO_DIFF;
     }
-
-    const int currentProfileIndexSave = getConfigProfile();
-    const int currentBatteryProfileIndexSave = getConfigBatteryProfile();
-    backupConfigs();
-    // reset all configs to defaults to do differencing
-    resetConfigs();
-    // restore the profile indices, since they should not be reset for proper comparison
-    setConfigProfile(currentProfileIndexSave);
-    setConfigBatteryProfile(currentBatteryProfileIndexSave);
 
     if (checkCommand(options, "showdefaults")) {
         dumpMask = dumpMask | SHOW_DEFAULTS;   // add default values as comments for changed values
@@ -3148,64 +3114,63 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintHashLine("mixer");
         cliDumpPrintLinef(dumpMask, primaryMotorMixer(0)->throttle == 0.0f, "\r\nmmix reset\r\n");
 
-        printMotorMix(dumpMask, primaryMotorMixer_CopyArray, primaryMotorMixer(0));
+        printMotorMix(dumpMask, primaryMotorMixer(0), primaryMotorMixerDefault(pgBlob));
 
         // print custom servo mixer if exists
         cliPrintHashLine("servo mix");
         cliDumpPrintLinef(dumpMask, customServoMixers(0)->rate == 0, "smix reset\r\n");
-        printServoMix(dumpMask, customServoMixers_CopyArray, customServoMixers(0));
+        printServoMix(dumpMask, customServoMixers(0), customServoMixersDefault(pgBlob));
 
         // print servo parameters
         cliPrintHashLine("servo");
-        printServo(dumpMask, servoParams_CopyArray, servoParams(0));
+        printServo(dumpMask, servoParams(0), servoParamsDefault(pgBlob));
 
 #ifdef USE_LOGIC_CONDITIONS
         cliPrintHashLine("logic");
-        printLogic(dumpMask, logicConditions_CopyArray, logicConditions(0));
+        printLogic(dumpMask, logicConditions(0), logicConditionsDefault(pgBlob));
 #endif
 
 #ifdef USE_GLOBAL_FUNCTIONS
         cliPrintHashLine("gf");
-        printGlobalFunctions(dumpMask, globalFunctions_CopyArray, globalFunctions(0));
+        printGlobalFunctions(dumpMask, globalFunctions(0), globalFunctionsDefault(pgBlob));
 #endif
-
         cliPrintHashLine("feature");
-        printFeature(dumpMask, &featureConfig_Copy, featureConfig());
+        printFeature(dumpMask, featureConfig(), featureConfigDefault(pgBlob));
 
 #ifdef BEEPER
         cliPrintHashLine("beeper");
-        printBeeper(dumpMask, &beeperConfig_Copy, beeperConfig());
+        printBeeper(dumpMask, beeperConfig(), beeperConfigDefault(pgBlob));
 #endif
 
         cliPrintHashLine("map");
-        printMap(dumpMask, &rxConfig_Copy, rxConfig());
+        printMap(dumpMask, rxConfig(), rxConfigDefault(pgBlob));
 
         cliPrintHashLine("serial");
-        printSerial(dumpMask, &serialConfig_Copy, serialConfig());
+        printSerial(dumpMask, serialConfig(), serialConfigDefault(pgBlob));
 
 #ifdef USE_LED_STRIP
         cliPrintHashLine("led");
-        printLed(dumpMask, ledStripConfig_Copy.ledConfigs, ledStripConfig()->ledConfigs);
+        printLed(dumpMask, ledStripConfig()->ledConfigs, ledStripConfigDefault(pgBlob)->ledConfigs);
 
         cliPrintHashLine("color");
-        printColor(dumpMask, ledStripConfig_Copy.colors, ledStripConfig()->colors);
+        printColor(dumpMask, ledStripConfig()->colors, ledStripConfigDefault(pgBlob)->colors);
 
         cliPrintHashLine("mode_color");
-        printModeColor(dumpMask, &ledStripConfig_Copy, ledStripConfig());
+        printModeColor(dumpMask, ledStripConfig(), ledStripConfigDefault(pgBlob));
 #endif
 
         cliPrintHashLine("aux");
-        printAux(dumpMask, modeActivationConditions_CopyArray, modeActivationConditions(0));
+        printAux(dumpMask, modeActivationConditions(0), modeActivationConditionsDefault(pgBlob));
 
         cliPrintHashLine("adjrange");
-        printAdjustmentRange(dumpMask, adjustmentRanges_CopyArray, adjustmentRanges(0));
+        printAdjustmentRange(dumpMask, adjustmentRanges(0), adjustmentRangesDefault(pgBlob));
 
         cliPrintHashLine("rxrange");
-        printRxRange(dumpMask, rxChannelRangeConfigs_CopyArray, rxChannelRangeConfigs(0));
+        printRxRange(dumpMask, rxChannelRangeConfigs(0), rxChannelRangeConfigsDefault(pgBlob));
 
 #ifdef USE_TEMPERATURE_SENSOR
         cliPrintHashLine("temp_sensor");
-        printTempSensor(dumpMask, tempSensorConfig_CopyArray, tempSensorConfig(0));
+        printTempSensor(dumpMask, tempSensorConfig(0), tempSensorConfigDefault(pgBlob));
 #endif
 
 #if defined(USE_NAV) && defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE) && defined(NAV_NON_VOLATILE_WAYPOINT_CLI)
@@ -3215,28 +3180,24 @@ static void printConfig(const char *cmdline, bool doDiff)
 
 #ifdef USE_OSD
         cliPrintHashLine("osd_layout");
-        printOsdLayout(dumpMask, &osdConfig_Copy, osdConfig(), -1, -1);
+        printOsdLayout(dumpMask, osdConfig(), osdConfigDefault(pgBlob), -1, -1);
 #endif
 
         cliPrintHashLine("master");
-        dumpAllValues(MASTER_VALUE, dumpMask);
+        dumpAllValues(pgBlob, MASTER_VALUE, dumpMask);
 
         if (dumpMask & DUMP_ALL) {
             // dump all profiles
-            const int currentProfileIndexSave = getConfigProfile();
-            const int currentBatteryProfileIndexSave = getConfigBatteryProfile();
             for (int ii = 0; ii < MAX_PROFILE_COUNT; ++ii) {
-                cliDumpProfile(ii, dumpMask);
+                cliDumpProfile(pgBlob, ii, dumpMask);
             }
             for (int ii = 0; ii < MAX_BATTERY_PROFILE_COUNT; ++ii) {
-                cliDumpBatteryProfile(ii, dumpMask);
+                cliDumpBatteryProfile(pgBlob, ii, dumpMask);
             }
-            setConfigProfile(currentProfileIndexSave);
-            setConfigBatteryProfile(currentBatteryProfileIndexSave);
 
             cliPrintHashLine("restore original profile selection");
-            cliPrintLinef("profile %d", currentProfileIndexSave + 1);
-            cliPrintLinef("battery_profile %d", currentBatteryProfileIndexSave + 1);
+            cliPrintLinef("profile %d", getConfigProfile() + 1);
+            cliPrintLinef("battery_profile %d", getConfigBatteryProfile() + 1);
 
             cliPrintHashLine("save configuration\r\nsave");
 #ifdef USE_CLI_BATCH
@@ -3244,17 +3205,17 @@ static void printConfig(const char *cmdline, bool doDiff)
 #endif
         } else {
             // dump just the current profiles
-            cliDumpProfile(getConfigProfile(), dumpMask);
-            cliDumpBatteryProfile(getConfigBatteryProfile(), dumpMask);
+            cliDumpProfile(pgBlob, getConfigProfile(), dumpMask);
+            cliDumpBatteryProfile(pgBlob, getConfigBatteryProfile(), dumpMask);
         }
     }
 
     if (dumpMask & DUMP_PROFILE) {
-        cliDumpProfile(getConfigProfile(), dumpMask);
+        cliDumpProfile(pgBlob, getConfigProfile(), dumpMask);
     }
 
     if (dumpMask & DUMP_BATTERY_PROFILE) {
-        cliDumpBatteryProfile(getConfigBatteryProfile(), dumpMask);
+        cliDumpBatteryProfile(pgBlob, getConfigBatteryProfile(), dumpMask);
     }
 
 #ifdef USE_CLI_BATCH
@@ -3263,9 +3224,6 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintLine("batch end");
     }
 #endif
-
-    // restore configs from copies
-    restoreConfigs();
 }
 
 static void cliDump(char *cmdline)

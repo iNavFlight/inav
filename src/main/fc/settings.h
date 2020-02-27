@@ -92,11 +92,9 @@ pgn_t settingGetPgn(const setting_t *val);
 // Returns a pointer to the actual value stored by
 // the setting_t. The returned value might be modified.
 void * settingGetValuePointer(const setting_t *val);
-// Returns a pointer to the backed up copy of the value. Note that
-// this will contain random garbage unless a copy of the parameter
-// group for the value has been manually performed. Currently, this
-// is only used by cli.c during config dumps.
-const void * settingGetCopyValuePointer(const setting_t *val);
+// Returns a pointer to the default value. Note that
+// pgBlob must be at least PG_MAX_SIZE.
+const void * settingGetDefaultValuePointer(void *pgBlob, const setting_t *val);
 // Returns the minimum valid value for the given setting_t. setting_min_t
 // depends on the target and build options, but will always be a signed
 // integer (e.g. intxx_t,)
