@@ -118,11 +118,10 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_soft_notch_cutoff_2 = 1,
     .gyro_stage2_lowpass_hz = 0,
     .gyro_stage2_lowpass_type = FILTER_BIQUAD,
-    .dyn_notch_width_percent = 8,
-    .dyn_notch_range = DYN_NOTCH_RANGE_MEDIUM,
-    .dyn_notch_q = 120,
-    .dyn_notch_min_hz = 150,
-    .dynamicGyroNotchType = DYNAMIC_GYRO_NOTCH_OFF
+    .dynamicGyroNotchRange = DYN_NOTCH_RANGE_MEDIUM,
+    .dynamicGyroNotchQ = 120,
+    .dynamicGyroNotchMinHz = 150,
+    .dynamicGyroNotchEnabled = 0
 );
 
 STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHardware)
@@ -295,8 +294,8 @@ bool gyroInit(void)
     dynamicGyroNotchFiltersInit(&dynamicGyroNotchState);
     gyroDataAnalyseStateInit(
         &gyroAnalyseState, 
-        gyroConfig()->dyn_notch_min_hz,
-        gyroConfig()->dyn_notch_range,
+        gyroConfig()->dynamicGyroNotchMinHz,
+        gyroConfig()->dynamicGyroNotchRange,
         getLooptime()
     );
 #endif
@@ -443,7 +442,7 @@ void FAST_CODE NOINLINE gyroUpdate()
         gyroADCf = notchFilter2ApplyFn(notchFilter2[axis], gyroADCf);
 
 #ifdef USE_DYNAMIC_FILTERS
-        if (dynamicGyroNotchState.filterType) {
+        if (dynamicGyroNotchState.enabled) {
             gyroDataAnalysePush(&gyroAnalyseState, axis, gyroADCf);
             DEBUG_SET(DEBUG_DYNAMIC_FILTER, axis, gyroADCf);
             gyroADCf = dynamicGyroNotchFiltersApply(&dynamicGyroNotchState, axis, gyroADCf);
@@ -454,7 +453,7 @@ void FAST_CODE NOINLINE gyroUpdate()
     }
 
 #ifdef USE_DYNAMIC_FILTERS
-    if (dynamicGyroNotchState.filterType) {
+    if (dynamicGyroNotchState.enabled) {
         gyroDataAnalyse(&gyroAnalyseState);
 
         if (gyroAnalyseState.filterUpdateExecute) {

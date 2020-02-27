@@ -34,15 +34,15 @@
 typedef struct dynamicGyroNotchState_s {
     uint16_t frequency[XYZ_AXIS_COUNT];
     float dynNotchQ;
-    uint8_t filterType;
     float dynNotch1Ctr;
     float dynNotch2Ctr;
     uint32_t looptime;
+    uint8_t enabled;
     /*
      * Dynamic gyro filter can be 3x1, 3x2 or 3x3 depending on filter type
      */
     biquadFilter_t filters[XYZ_AXIS_COUNT][XYZ_AXIS_COUNT];
-    filterApplyFnPtr filtersApplyFn[XYZ_AXIS_COUNT];
+    filterApplyFnPtr filtersApplyFn;
 } dynamicGyroNotchState_t;
 
 void dynamicGyroNotchFiltersInit(dynamicGyroNotchState_t *state);

@@ -33,17 +33,13 @@
 #include "sensors/gyro.h"
 
 void dynamicGyroNotchFiltersInit(dynamicGyroNotchState_t *state) {
-    state->filtersApplyFn[0] = nullFilterApply;
-    state->filtersApplyFn[1] = nullFilterApply;
-    state->filtersApplyFn[2] = nullFilterApply;
+    state->filtersApplyFn = nullFilterApply;
 
-    state->dynNotchQ = gyroConfig()->dyn_notch_q / 100.0f;
-    state->filterType = gyroConfig()->dynamicGyroNotchType;
-    state->dynNotch1Ctr = 1 - gyroConfig()->dyn_notch_width_percent / 100.0f;
-    state->dynNotch2Ctr = 1 + gyroConfig()->dyn_notch_width_percent / 100.0f;
+    state->dynNotchQ = gyroConfig()->dynamicGyroNotchQ / 100.0f;
+    state->enabled = gyroConfig()->dynamicGyroNotchEnabled;
     state->looptime = getLooptime();
 
-    if (state->filterType != DYNAMIC_GYRO_NOTCH_OFF) {
+    if (state->enabled) {
         const float notchQ = filterGetNotchQ(DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, DYNAMIC_NOTCH_DEFAULT_CUTOFF_HZ); // any defaults OK here
 
         /*
@@ -55,20 +51,7 @@ void dynamicGyroNotchFiltersInit(dynamicGyroNotchState_t *state) {
             biquadFilterInit(&state->filters[axis][2], DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, state->looptime, notchQ, FILTER_NOTCH);
         }
 
-        /*
-         * Step 2 - configure filter apply functions depending on used filter type
-         */
-        if (state->filterType == DYNAMIC_GYRO_NOTCH_SINGLE) {
-            state->filtersApplyFn[0] = (filterApplyFnPtr)biquadFilterApplyDF1;
-        } else if (state->filterType == DYNAMIC_GYRO_NOTCH_DUAL) {
-            state->filtersApplyFn[0] = (filterApplyFnPtr)biquadFilterApplyDF1;
-            state->filtersApplyFn[1] = (filterApplyFnPtr)biquadFilterApplyDF1;
-        } else {
-            //Type MATRIX
-            state->filtersApplyFn[0] = (filterApplyFnPtr)biquadFilterApplyDF1;
-            state->filtersApplyFn[1] = (filterApplyFnPtr)biquadFilterApplyDF1;
-            state->filtersApplyFn[2] = (filterApplyFnPtr)biquadFilterApplyDF1;
-        }
+        state->filtersApplyFn = (filterApplyFnPtr)biquadFilterApplyDF1;
     }
 }
 
@@ -78,12 +61,7 @@ void dynamicGyroNotchFiltersUpdate(dynamicGyroNotchState_t *state, int axis, uin
 
     DEBUG_SET(DEBUG_DYNAMIC_FILTER_FREQUENCY, axis, frequency);
 
-    if (state->filterType == DYNAMIC_GYRO_NOTCH_SINGLE) {
-        biquadFilterUpdate(&state->filters[axis][0], frequency, state->looptime, state->dynNotchQ, FILTER_NOTCH);
-    } else if (state->filterType == DYNAMIC_GYRO_NOTCH_DUAL) {
-        biquadFilterUpdate(&state->filters[axis][0], frequency * state->dynNotch1Ctr, state->looptime, state->dynNotchQ, FILTER_NOTCH);
-        biquadFilterUpdate(&state->filters[axis][1], frequency * state->dynNotch2Ctr, state->looptime, state->dynNotchQ, FILTER_NOTCH);
-    } else if (state->filterType == DYNAMIC_GYRO_NOTCH_MATRIX) {
+    if (state->enabled) {
         biquadFilterUpdate(&state->filters[0][axis], frequency, state->looptime, state->dynNotchQ, FILTER_NOTCH);
         biquadFilterUpdate(&state->filters[1][axis], frequency, state->looptime, state->dynNotchQ, FILTER_NOTCH);
         biquadFilterUpdate(&state->filters[2][axis], frequency, state->looptime, state->dynNotchQ, FILTER_NOTCH);
@@ -97,12 +75,10 @@ float dynamicGyroNotchFiltersApply(dynamicGyroNotchState_t *state, int axis, flo
     /*
      * We always apply all filters. If a filter dimension is disabled, one of
      * the function pointers will be a null apply function
-     * 
-     * Thanks to this, there is no branching 
      */
-    output = state->filtersApplyFn[0]((filter_t *)&state->filters[axis][0], output);
-    output = state->filtersApplyFn[1]((filter_t *)&state->filters[axis][1], output);
-    output = state->filtersApplyFn[2]((filter_t *)&state->filters[axis][2], output);
+    output = state->filtersApplyFn((filter_t *)&state->filters[axis][0], output);
+    output = state->filtersApplyFn((filter_t *)&state->filters[axis][1], output);
+    output = state->filtersApplyFn((filter_t *)&state->filters[axis][2], output);
 
     return output;
 }
