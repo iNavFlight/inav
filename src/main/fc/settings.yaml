@@ -685,9 +685,9 @@ groups:
   - name: PG_MIXER_CONFIG
     type: mixerConfig_t
     members:
-      - name: yaw_motor_direction
-        min: -1
-        max: 1
+      - name: motor_direction_inverted
+        field: motorDirectionInverted
+        type: bool
       - name: platform_type
         field: platformType
         type: uint8_t
