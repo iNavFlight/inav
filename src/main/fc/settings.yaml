@@ -22,7 +22,7 @@ tables:
     values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE"]
     enum: pitotSensor_e
   - name: receiver_type
-    values: ["NONE", "PWM", "PPM", "SERIAL", "MSP", "SPI", "UIB"]
+    values: ["NONE", "PPM", "SERIAL", "MSP", "SPI", "UIB"]
     enum: rxReceiverType_e
   - name: serial_rx
     values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST"]
@@ -81,7 +81,7 @@ tables:
     values: ["NONE", "GYRO", "AGL", "FLOW_RAW",
       "FLOW", "SBUS", "FPORT", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "ITERM_RELAX",
-      "ERPM", "RPM_FILTER", "RPM_FREQ"]
+      "ERPM", "RPM_FILTER", "RPM_FREQ", "DYNAMIC_FILTER", "DYNAMIC_FILTER_FREQUENCY"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -186,22 +186,21 @@ groups:
       - name: gyro_stage2_lowpass_type
         field: gyro_stage2_lowpass_type
         table: filter_type
-      - name: dyn_notch_width_percent
-        field: dyn_notch_width_percent
+      - name: dynamic_gyro_notch_enabled
+        field: dynamicGyroNotchEnabled
         condition: USE_DYNAMIC_FILTERS
-        min: 0
-        max: 20
-      - name: dyn_notch_range
-        field: dyn_notch_range
+        type: bool
+      - name: dynamic_gyro_notch_range
+        field: dynamicGyroNotchRange
         condition: USE_DYNAMIC_FILTERS
         table: dynamicFilterRangeTable
-      - name: dyn_notch_q
-        field: dyn_notch_q
+      - name: dynamic_gyro_notch_q
+        field: dynamicGyroNotchQ
         condition: USE_DYNAMIC_FILTERS
         min: 1
         max: 1000
-      - name: dyn_notch_min_hz
-        field: dyn_notch_min_hz
+      - name: dynamic_gyro_notch_min_hz
+        field: dynamicGyroNotchMinHz
         condition: USE_DYNAMIC_FILTERS
         min: 60
         max: 1000
@@ -685,9 +684,9 @@ groups:
   - name: PG_MIXER_CONFIG
     type: mixerConfig_t
     members:
-      - name: yaw_motor_direction
-        min: -1
-        max: 1
+      - name: motor_direction_inverted
+        field: motorDirectionInverted
+        type: bool
       - name: platform_type
         field: platformType
         type: uint8_t
@@ -1673,8 +1672,8 @@ groups:
         field: hottAlarmSoundInterval
         min: 0
         max: 120
-      - name: telemetry_uart_unidir
-        field: uartUnidirectional
+      - name: telemetry_halfduplex
+        field: halfDuplex
         type: bool
       - name: smartport_fuel_unit
         field: smartportFuelUnit
