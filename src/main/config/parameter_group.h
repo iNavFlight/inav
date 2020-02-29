@@ -22,8 +22,6 @@
 
 #include "build/build_config.h"
 
-#define PG_MAX_SIZE 2048
-
 typedef uint16_t pgn_t;
 
 // parameter group registry flags
@@ -47,6 +45,7 @@ typedef struct pgRegistry_s {
     pgn_t pgn;             // The parameter group number, the top 4 bits are reserved for version
     uint16_t size;         // Size of the group in RAM, the top 4 bits are reserved for flags
     uint8_t *address;      // Address of the group in RAM.
+    uint8_t *copy;         // Address of the copy in RAM.
     uint8_t **ptr;         // The pointer to update after loading the record into ram.
     union {
         void *ptr;         // Pointer to init template
@@ -102,37 +101,22 @@ extern const uint8_t __pg_resetdata_end[];
     } while (0)                                                          \
     /**/
 
-#ifdef UNIT_TEST
-# define _PG_PROFILE_CURRENT_DECL(_type, _name)                  \
-    _type *_name ## _ProfileCurrent = &_name ## _Storage[0];
-# define _PG_DEFAULT_DECL(_type, _name)
-# define _PG_DEFAULT_I(_type, _name, _png)
-#else
-# define _PG_PROFILE_CURRENT_DECL(_type, _name)  \
-    _type *_name ## _ProfileCurrent;
-# define _PG_DEFAULT_DECL(_type, _name) \
-    _type* _name ## Default(void *blob);
-# define _PG_DEFAULT_I(_type, _name, _pgn) \
-    _type* _name ## Default(void *blob) { pgResetCopy(blob, _pgn); return (_type*)blob; }
-#endif
-
-
 // Declare system config
 #define PG_DECLARE(_type, _name)                                        \
     extern _type _name ## _System;                                      \
+    extern _type _name ## _Copy;                                        \
     static inline const _type* _name(void) { return &_name ## _System; }\
     static inline _type* _name ## Mutable(void) { return &_name ## _System; }\
-    _PG_DEFAULT_DECL(_type, _name);                                     \
     struct _dummy                                                       \
     /**/
 
 // Declare system config array
 #define PG_DECLARE_ARRAY(_type, _size, _name)                           \
     extern _type _name ## _SystemArray[_size];                          \
+    extern _type _name ## _CopyArray[_size];                            \
     static inline const _type* _name(int _index) { return &_name ## _SystemArray[_index]; } \
     static inline _type* _name ## Mutable(int _index) { return &_name ## _SystemArray[_index]; } \
     static inline _type (* _name ## _array(void))[_size] { return &_name ## _SystemArray; } \
-    _PG_DEFAULT_DECL(_type, _name);                                     \
     struct _dummy                                                       \
     /**/
 
@@ -145,20 +129,17 @@ extern const uint8_t __pg_resetdata_end[];
     /**/
 
 
-#define _PG_ASSERT_MAX_SIZE(_type, _name, _count) unsigned char __pg_ ## _name ## _too_big[sizeof(_type) * _count <= PG_MAX_SIZE ? 0 : -1]
-
-
 // Register system config
 #define PG_REGISTER_I(_type, _name, _pgn, _version, _reset)             \
     _type _name ## _System;                                             \
-    _PG_ASSERT_MAX_SIZE(_type, _name, 1);                               \
-    _PG_DEFAULT_I(_type, _name, _pgn);                                  \
+    _type _name ## _Copy;                                               \
     /* Force external linkage for g++. Catch multi registration */      \
     extern const pgRegistry_t _name ## _Registry;                       \
     const pgRegistry_t _name ##_Registry PG_REGISTER_ATTRIBUTES = {     \
         .pgn = _pgn | (_version << 12),                                 \
         .size = sizeof(_type) | PGR_SIZE_SYSTEM_FLAG,                   \
         .address = (uint8_t*)&_name ## _System,                         \
+        .copy = (uint8_t*)&_name ## _Copy,                              \
         .ptr = 0,                                                       \
         _reset,                                                         \
     }                                                                   \
@@ -181,13 +162,13 @@ extern const uint8_t __pg_resetdata_end[];
 // Register system config array
 #define PG_REGISTER_ARRAY_I(_type, _size, _name, _pgn, _version, _reset)  \
     _type _name ## _SystemArray[_size];                                 \
-    _PG_ASSERT_MAX_SIZE(_type, _name, _size);                           \
-    _PG_DEFAULT_I(_type, _name, _pgn);                                  \
+    _type _name ## _CopyArray[_size];                                   \
     extern const pgRegistry_t _name ##_Registry;                        \
     const pgRegistry_t _name ## _Registry PG_REGISTER_ATTRIBUTES = {    \
         .pgn = _pgn | (_version << 12),                                 \
         .size = (sizeof(_type) * _size) | PGR_SIZE_SYSTEM_FLAG,         \
         .address = (uint8_t*)&_name ## _SystemArray,                    \
+        .copy = (uint8_t*)&_name ## _CopyArray,                         \
         .ptr = 0,                                                       \
         _reset,                                                         \
     }                                                                   \
@@ -210,16 +191,25 @@ extern const uint8_t __pg_resetdata_end[];
     /**/
 #endif
 
+#ifdef UNIT_TEST
+# define _PG_PROFILE_CURRENT_DECL(_type, _name)                  \
+    _type *_name ## _ProfileCurrent = &_name ## _Storage[0];
+#else
+# define _PG_PROFILE_CURRENT_DECL(_type, _name)  \
+    _type *_name ## _ProfileCurrent;
+#endif
+
 // register profile config
 #define PG_REGISTER_PROFILE_I(_type, _name, _pgn, _version, _reset)     \
     STATIC_UNIT_TESTED _type _name ## _Storage[MAX_PROFILE_COUNT];      \
-    _PG_ASSERT_MAX_SIZE(_type, _name, MAX_PROFILE_COUNT);               \
+    STATIC_UNIT_TESTED _type _name ## _CopyStorage[MAX_PROFILE_COUNT];  \
     _PG_PROFILE_CURRENT_DECL(_type, _name)                              \
     extern const pgRegistry_t _name ## _Registry;                       \
     const pgRegistry_t _name ## _Registry PG_REGISTER_ATTRIBUTES = {    \
         .pgn = _pgn | (_version << 12),                                 \
         .size = sizeof(_type) | PGR_SIZE_PROFILE_FLAG,                  \
         .address = (uint8_t*)&_name ## _Storage,                        \
+        .copy = (uint8_t*)&_name ## _CopyStorage,                       \
         .ptr = (uint8_t **)&_name ## _ProfileCurrent,                   \
         _reset,                                                         \
     }                                                                   \

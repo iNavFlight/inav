@@ -247,10 +247,10 @@ void *settingGetValuePointer(const setting_t *val)
     return pg->address + getValueOffset(val);
 }
 
-const void * settingGetDefaultValuePointer(void *pgBlob, const setting_t *val)
+const void * settingGetCopyValuePointer(const setting_t *val)
 {
-	pgResetCopy(pgBlob, settingGetPgn(val));
-	return ((uint8_t *)pgBlob) + getValueOffset(val);
+    const pgRegistry_t *pg = pgFind(settingGetPgn(val));
+    return pg->copy + getValueOffset(val);
 }
 
 setting_min_t settingGetMin(const setting_t *val)
