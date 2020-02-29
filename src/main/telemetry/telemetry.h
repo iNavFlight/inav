@@ -64,7 +64,7 @@ typedef struct telemetryConfig_s {
     uint8_t frsky_pitch_roll;
     uint8_t report_cell_voltage;
     uint8_t hottAlarmSoundInterval;
-    uint8_t uartUnidirectional;
+    uint8_t halfDuplex;
     smartportFuelUnit_e smartportFuelUnit;
     uint8_t ibusTelemetryType;
     uint8_t ltmUpdateRate;

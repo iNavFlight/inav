@@ -145,7 +145,7 @@ static bool commandBatchError = false;
 // sync this with features_e
 static const char * const featureNames[] = {
     "THR_VBAT_COMP", "VBAT", "TX_PROF_SEL", "BAT_PROF_AUTOSWITCH", "MOTOR_STOP",
-    "DYNAMIC_FILTERS", "SOFTSERIAL", "GPS", "RPM_FILTERS",
+    "", "SOFTSERIAL", "GPS", "RPM_FILTERS",
     "", "TELEMETRY", "CURRENT_METER", "REVERSIBLE_MOTORS", "",
     "", "RSSI_ADC", "LED_STRIP", "DASHBOARD", "",
     "BLACKBOX", "", "TRANSPONDER", "AIRMODE",
@@ -3146,13 +3146,13 @@ static void printConfig(const char *cmdline, bool doDiff)
         //printResource(dumpMask, &defaultConfig);
 
         cliPrintHashLine("mixer");
-        cliDumpPrintLinef(dumpMask, primaryMotorMixer(0)->throttle == 0.0f, "\r\nmmix reset\r\n");
+        cliDumpPrintLinef(dumpMask, primaryMotorMixer_CopyArray[0].throttle == 0.0f, "\r\nmmix reset\r\n");
 
         printMotorMix(dumpMask, primaryMotorMixer_CopyArray, primaryMotorMixer(0));
 
         // print custom servo mixer if exists
         cliPrintHashLine("servo mix");
-        cliDumpPrintLinef(dumpMask, customServoMixers(0)->rate == 0, "smix reset\r\n");
+        cliDumpPrintLinef(dumpMask, customServoMixers_CopyArray[0].rate == 0, "smix reset\r\n");
         printServoMix(dumpMask, customServoMixers_CopyArray, customServoMixers(0));
 
         // print servo parameters

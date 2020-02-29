@@ -63,7 +63,7 @@ typedef struct motorMixer_s {
 PG_DECLARE_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer);
 
 typedef struct mixerConfig_s {
-    int8_t yaw_motor_direction;
+    int8_t motorDirectionInverted;
     uint8_t platformType;
     bool hasFlaps;
     int16_t appliedMixerPreset;
