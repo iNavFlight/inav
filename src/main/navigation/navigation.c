@@ -607,6 +607,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .mwState = MW_NAV_STATE_PROCESS_NEXT,
         .mwError = MW_NAV_ERROR_NONE,
         .onEvent = {
+            [NAV_FSM_EVENT_TIMEOUT]                     = NAV_STATE_WAYPOINT_PRE_ACTION,   // re-process the state (for JUMP)
             [NAV_FSM_EVENT_SUCCESS]                     = NAV_STATE_WAYPOINT_PRE_ACTION,
             [NAV_FSM_EVENT_ERROR]                       = NAV_STATE_IDLE,
             [NAV_FSM_EVENT_SWITCH_TO_IDLE]              = NAV_STATE_IDLE,
@@ -1373,7 +1374,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
             posControl.wpInitialDistance = calculateDistanceToDestination(&posControl.activeWaypoint.pos);
             posControl.wpInitialAltitude = posControl.actualState.abs.pos.z;
             return NAV_FSM_EVENT_SUCCESS;       // will switch to NAV_STATE_WAYPOINT_IN_PROGRESS
-        
+
         case NAV_WP_ACTION_JUMP:
             if(posControl.waypointList[posControl.activeWaypointIndex].p2 != -1){
                 if(posControl.waypointList[posControl.activeWaypointIndex].p2 == 0){
@@ -1396,7 +1397,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
             }
 
             posControl.activeWaypointIndex = posControl.waypointList[posControl.activeWaypointIndex].p1 - 1;
-            
+
             return NAV_FSM_EVENT_NONE; // re-process the state passing to the next WP
 
         case NAV_WP_ACTION_RTH:
@@ -1432,7 +1433,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_IN_PROGRESS(na
                 }
                 break;
 
-            case NAV_WP_ACTION_JUMP:   
+            case NAV_WP_ACTION_JUMP:
                  UNREACHABLE();
 
             case NAV_WP_ACTION_RTH:
@@ -1466,7 +1467,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_REACHED(naviga
         case NAV_WP_ACTION_WAYPOINT:
             return NAV_FSM_EVENT_SUCCESS;   // NAV_STATE_WAYPOINT_NEXT
 
-        case NAV_WP_ACTION_JUMP:   
+        case NAV_WP_ACTION_JUMP:
             UNREACHABLE();
 
         case NAV_WP_ACTION_RTH:
@@ -3112,9 +3113,9 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
     for (uint8_t wp = 0; wp < posControl.waypointCount ; wp++){
        if (posControl.waypointList[wp].action == NAV_WP_ACTION_JUMP){
            if((posControl.waypointList[wp].p1 > posControl.waypointCount) || (posControl.waypointList[wp].p2 < -1)){
-               return NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR;  
+               return NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR;
             }
-        }      
+        }
     }
     }
 
