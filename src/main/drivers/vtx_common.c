@@ -168,6 +168,7 @@ bool vtxCommonGetOsdInfo(vtxDevice_t *vtxDevice, vtxDeviceOsdInfo_t * pOsdInfo)
         pOsdInfo->powerIndex = 0;
         pOsdInfo->powerMilliwatt = 0;
         pOsdInfo->bandLetter = '-';
+        pOsdInfo->bandName = "-";
         pOsdInfo->channelName = "-";
         pOsdInfo->powerIndexLetter = '0';
     }

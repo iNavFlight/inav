@@ -81,6 +81,9 @@ typedef struct vtxDeviceCapability_s {
     uint8_t bandCount;
     uint8_t channelCount;
     uint8_t powerCount;
+    char **bandNames;
+    char **channelNames;
+    char **powerNames;
 } vtxDeviceCapability_t;
 
 typedef struct vtxDeviceOsdInfo_s {
@@ -90,6 +93,7 @@ typedef struct vtxDeviceOsdInfo_s {
     int powerIndex;
     int powerMilliwatt;
     char bandLetter;
+    const char * bandName;
     const char * channelName;
     char powerIndexLetter;
 } vtxDeviceOsdInfo_t;

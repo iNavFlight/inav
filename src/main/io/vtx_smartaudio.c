@@ -67,6 +67,9 @@ static vtxDevice_t vtxSmartAudio = {
     .capability.bandCount = VTX_SMARTAUDIO_BAND_COUNT,
     .capability.channelCount = VTX_SMARTAUDIO_CHANNEL_COUNT,
     .capability.powerCount = VTX_SMARTAUDIO_POWER_COUNT,
+    .capability.bandNames = (char **)vtx58BandNames,
+    .capability.channelNames = (char **)vtx58ChannelNames,
+    .capability.powerNames = (char **)saPowerNames,
 };
 
 // SmartAudio command and response codes
@@ -329,7 +332,7 @@ static void saProcessResponse(uint8_t *buf, int len)
 
     if (memcmp(&saDevice, &saDevicePrev, sizeof(smartAudioDevice_t))) {
 #ifdef USE_CMS    //if changes then trigger saCms update
-        saCmsResetOpmodel();
+        //saCmsResetOpmodel();
 #endif
     // Debug
     saPrintSettings();
@@ -338,7 +341,7 @@ static void saProcessResponse(uint8_t *buf, int len)
 
 #ifdef USE_CMS
     // Export current device status for CMS
-    saCmsUpdate();
+    //saCmsUpdate();
 #endif
 }
 
@@ -878,6 +881,7 @@ static bool vtxSAGetOsdInfo(const  vtxDevice_t *vtxDevice, vtxDeviceOsdInfo_t * 
     pOsdInfo->powerIndex = powerIndex;
     pOsdInfo->powerMilliwatt = powerMw;
     pOsdInfo->bandLetter = vtx58BandNames[band][0];
+    pOsdInfo->bandName = vtx58BandNames[band];
     pOsdInfo->channelName = vtx58ChannelNames[channel];
     pOsdInfo->powerIndexLetter = '0' + powerIndex;
     return true;

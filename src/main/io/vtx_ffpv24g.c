@@ -107,9 +107,9 @@ typedef struct {
 
 /*****************************************************************************/
 const char * const ffpvBandNames[VTX_FFPV_BAND_COUNT + 1] = {
-    "--------",
-    "FFPV 2.4 A",
-    "FFPV 2.4 B",
+    "-----",
+    "A 2.4",
+    "B 2.4",
 };
 
 const char * ffpvBandLetters = "-AB";
@@ -464,6 +464,7 @@ static bool impl_GetOsdInfo(const  vtxDevice_t *vtxDevice, vtxDeviceOsdInfo_t * 
     pOsdInfo->frequency = vtxState.request.freq;
     pOsdInfo->powerIndex = vtxState.request.powerIndex;
     pOsdInfo->powerMilliwatt = vtxState.request.power;
+    pOsdInfo->bandName = ffpvBandNames[vtxState.request.band];
     pOsdInfo->bandLetter = ffpvBandLetters[vtxState.request.band];
     pOsdInfo->channelName = ffpvChannelNames[vtxState.request.channel];
     pOsdInfo->powerIndexLetter = '0' + vtxState.request.powerIndex;
@@ -491,6 +492,9 @@ static vtxDevice_t impl_vtxDevice = {
     .capability.bandCount = VTX_FFPV_BAND_COUNT,
     .capability.channelCount = VTX_FFPV_CHANNEL_COUNT,
     .capability.powerCount = VTX_FFPV_POWER_COUNT,
+    .capability.bandNames = (char **)ffpvBandNames,
+    .capability.channelNames = (char **)ffpvChannelNames,
+    .capability.powerNames = (char **)ffpvPowerNames,
 };
 
 bool vtxFuriousFPVInit(void)

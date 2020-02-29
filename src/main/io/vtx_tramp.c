@@ -48,11 +48,9 @@ const uint16_t trampPowerTable[VTX_TRAMP_POWER_COUNT] = {
     25, 100, 200, 400, 600
 };
 
-#if defined(USE_CMS)
 const char * const trampPowerNames[VTX_TRAMP_POWER_COUNT+1] = {
     "---", "25 ", "100", "200", "400", "600"
 };
-#endif
 
 static const vtxVTable_t trampVTable; // forward
 static vtxDevice_t vtxTramp = {
@@ -60,6 +58,9 @@ static vtxDevice_t vtxTramp = {
     .capability.bandCount = VTX_TRAMP_BAND_COUNT,
     .capability.channelCount = VTX_TRAMP_CHANNEL_COUNT,
     .capability.powerCount = VTX_TRAMP_POWER_COUNT,
+    .capability.bandNames = (char **)vtx58BandNames,
+    .capability.channelNames = (char **)vtx58ChannelNames,
+    .capability.powerNames = (char **)trampPowerNames,
 };
 
 static serialPort_t *trampSerialPort = NULL;
@@ -580,6 +581,7 @@ static bool vtxTrampGetOsdInfo(const  vtxDevice_t *vtxDevice, vtxDeviceOsdInfo_t
     pOsdInfo->powerIndex = powerIndex;
     pOsdInfo->powerMilliwatt = powerMw;
     pOsdInfo->bandLetter = vtx58BandNames[pOsdInfo->band][0];
+    pOsdInfo->bandName = vtx58BandNames[pOsdInfo->band];
     pOsdInfo->channelName = vtx58ChannelNames[pOsdInfo->channel];
     pOsdInfo->powerIndexLetter = '0' + powerIndex;
     return true;
