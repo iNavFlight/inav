@@ -101,6 +101,7 @@ typedef enum {
     NAV_ARMING_BLOCKER_MISSING_GPS_FIX = 1,
     NAV_ARMING_BLOCKER_NAV_IS_ALREADY_ACTIVE = 2,
     NAV_ARMING_BLOCKER_FIRST_WAYPOINT_TOO_FAR = 3,
+    NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR = 4,
 } navArmingBlocker_e;
 
 typedef struct positionEstimationConfig_s {
@@ -232,6 +233,7 @@ typedef struct gpsOrigin_s {
 typedef enum {
     NAV_WP_ACTION_WAYPOINT  = 0x01,
     NAV_WP_ACTION_HOLD_TIME = 0x03,
+    NAV_WP_ACTION_JUMP      = 0x06, 
     NAV_WP_ACTION_RTH       = 0x04
 } navWaypointActions_e;
 

@@ -163,7 +163,7 @@ __attribute__((weak)) void targetConfiguration(void)
 
 uint32_t getLooptime(void) {
     return gyro.targetLooptime;
-} 
+}
 
 void validateAndFixConfig(void)
 {
@@ -183,28 +183,12 @@ void validateAndFixConfig(void)
     // Disable unused features
     featureClear(FEATURE_UNUSED_3 | FEATURE_UNUSED_4 | FEATURE_UNUSED_5 | FEATURE_UNUSED_6 | FEATURE_UNUSED_7 | FEATURE_UNUSED_8 | FEATURE_UNUSED_9 | FEATURE_UNUSED_10);
 
-#if defined(DISABLE_RX_PWM_FEATURE) || !defined(USE_RX_PWM)
-    if (rxConfig()->receiverType == RX_TYPE_PWM) {
-        rxConfigMutable()->receiverType = RX_TYPE_NONE;
-    }
-#endif
-
 #if !defined(USE_RX_PPM)
     if (rxConfig()->receiverType == RX_TYPE_PPM) {
         rxConfigMutable()->receiverType = RX_TYPE_NONE;
     }
 #endif
 
-
-    if (rxConfig()->receiverType == RX_TYPE_PWM) {
-#if defined(CHEBUZZ) || defined(STM32F3DISCOVERY)
-        // led strip needs the same ports
-        featureClear(FEATURE_LED_STRIP);
-#endif
-
-        // software serial needs free PWM ports
-        featureClear(FEATURE_SOFTSERIAL);
-    }
 
 #if defined(USE_LED_STRIP) && (defined(USE_SOFTSERIAL1) || defined(USE_SOFTSERIAL2))
     if (featureConfigured(FEATURE_SOFTSERIAL) && featureConfigured(FEATURE_LED_STRIP)) {

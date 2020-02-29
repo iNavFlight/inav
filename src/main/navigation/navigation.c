@@ -618,7 +618,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     [NAV_STATE_WAYPOINT_PRE_ACTION] = {
         .persistentId = NAV_PERSISTENT_ID_WAYPOINT_PRE_ACTION,
         .onEntry = navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION,
-        .timeoutMs = 0,
+        .timeoutMs = 10,
         .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP,
         .mapToFlightModes = NAV_WP_MODE | NAV_ALTHOLD_MODE,
         .mwState = MW_NAV_STATE_PROCESS_NEXT,
@@ -1397,6 +1397,31 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
             posControl.wpInitialDistance = calculateDistanceToDestination(&posControl.activeWaypoint.pos);
             posControl.wpInitialAltitude = posControl.actualState.abs.pos.z;
             return NAV_FSM_EVENT_SUCCESS;       // will switch to NAV_STATE_WAYPOINT_IN_PROGRESS
+        
+        case NAV_WP_ACTION_JUMP:
+            if(posControl.waypointList[posControl.activeWaypointIndex].p2 != -1){
+                if(posControl.waypointList[posControl.activeWaypointIndex].p2 == 0){
+                    const bool isLastWaypoint = (posControl.waypointList[posControl.activeWaypointIndex].flag == NAV_WP_FLAG_LAST) ||
+                          (posControl.activeWaypointIndex >= (posControl.waypointCount - 1));
+
+                        if (isLastWaypoint) {
+                            // JUMP is the last waypoint and we reached the last jump, switch to finish.
+                            return NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_FINISHED;
+                        } else {
+                                // Finished JUMP, move to next WP
+                            posControl.activeWaypointIndex++;
+                            return NAV_FSM_EVENT_NONE; // re-process the state passing to the next WP
+                        }
+                }
+                else
+                {
+                    posControl.waypointList[posControl.activeWaypointIndex].p2--;
+                }
+            }
+
+            posControl.activeWaypointIndex = posControl.waypointList[posControl.activeWaypointIndex].p1 - 1;
+            
+            return NAV_FSM_EVENT_NONE; // re-process the state passing to the next WP
 
         case NAV_WP_ACTION_RTH:
             posControl.rthState.rthInitialDistance = posControl.homeDistance;
@@ -1432,6 +1457,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_IN_PROGRESS(na
                 }
                 break;
 
+            case NAV_WP_ACTION_JUMP:   
+                 UNREACHABLE();
+
             case NAV_WP_ACTION_RTH:
                 if (isWaypointReached(&posControl.activeWaypoint, true) || isWaypointMissed(&posControl.activeWaypoint)) {
                     return NAV_FSM_EVENT_SUCCESS;   // will switch to NAV_STATE_WAYPOINT_REACHED
@@ -1462,6 +1490,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_REACHED(naviga
     switch ((navWaypointActions_e)posControl.waypointList[posControl.activeWaypointIndex].action) {
         case NAV_WP_ACTION_WAYPOINT:
             return NAV_FSM_EVENT_SUCCESS;   // NAV_STATE_WAYPOINT_NEXT
+
+        case NAV_WP_ACTION_JUMP:   
+            UNREACHABLE();
 
         case NAV_WP_ACTION_RTH:
             if (posControl.waypointList[posControl.activeWaypointIndex].p1 != 0) {
@@ -2644,9 +2675,9 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
 
         setDesiredPosition(&wpPos.pos, DEGREES_TO_CENTIDEGREES(wpData->p1), waypointUpdateFlags);
     }
-    // WP #1 - #15 - common waypoints - pre-programmed mission
+    // WP #1 - #NAV_MAX_WAYPOINTS - common waypoints - pre-programmed mission
     else if ((wpNumber >= 1) && (wpNumber <= NAV_MAX_WAYPOINTS) && !ARMING_FLAG(ARMED)) {
-        if (wpData->action == NAV_WP_ACTION_WAYPOINT || wpData->action == NAV_WP_ACTION_RTH || wpData->action == NAV_WP_ACTION_HOLD_TIME) {
+        if (wpData->action == NAV_WP_ACTION_WAYPOINT || wpData->action == NAV_WP_ACTION_JUMP || wpData->action == NAV_WP_ACTION_RTH || wpData->action == NAV_WP_ACTION_HOLD_TIME) {
             // Only allow upload next waypoint (continue upload mission) or first waypoint (new mission)
             if (wpNumber == (posControl.waypointCount + 1) || wpNumber == 1) {
                 posControl.waypointList[wpNumber - 1] = *wpData;
@@ -3127,6 +3158,17 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
         if (navWpMissionStartTooFar) {
             return NAV_ARMING_BLOCKER_FIRST_WAYPOINT_TOO_FAR;
         }
+    }
+
+    // Don't allow arming if any of JUMP waypoint has invalid settings
+    if (posControl.waypointCount > 0) {
+    for (uint8_t wp = 0; wp < posControl.waypointCount ; wp++){
+       if (posControl.waypointList[wp].action == NAV_WP_ACTION_JUMP){
+           if((posControl.waypointList[wp].p1 > posControl.waypointCount) || (posControl.waypointList[wp].p2 < -1)){
+               return NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR;  
+            }
+        }      
+    }
     }
 
     return NAV_ARMING_BLOCKER_NONE;
