@@ -41,8 +41,6 @@
 
 #include "scheduler/protothreads.h"
 
-//#include "cms/cms_menu_vtx_ffpv24g.h"
-
 #include "io/vtx.h"
 #include "io/vtx_ffpv24g.h"
 #include "io/vtx_control.h"

@@ -34,8 +34,6 @@
 #include "common/maths.h"
 #include "common/utils.h"
 
-#include "cms/cms_menu_vtx_tramp.h"
-
 #include "drivers/vtx_common.h"
 
 #include "io/serial.h"

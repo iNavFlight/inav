@@ -30,7 +30,7 @@
 
 #define VTX_SETTINGS_DEFAULT_BAND               4
 #define VTX_SETTINGS_DEFAULT_CHANNEL            1
-#define VTX_SETTINGS_DEFAULT_PITMODE_CHANNEL    0
+#define VTX_SETTINGS_DEFAULT_PITMODE_CHANNEL    1
 #define VTX_SETTINGS_DEFAULT_LOW_POWER_DISARM   0
 
 #define VTX_SETTINGS_MIN_FREQUENCY_MHZ 0             //min freq (in MHz) for 'vtx_freq' setting

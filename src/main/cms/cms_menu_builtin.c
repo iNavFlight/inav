@@ -50,13 +50,6 @@
 #include "cms/cms_menu_battery.h"
 #include "cms/cms_menu_misc.h"
 
-// VTX supplied menus
-
-#include "cms/cms_menu_vtx_smartaudio.h"
-#include "cms/cms_menu_vtx_tramp.h"
-#include "cms/cms_menu_vtx_ffpv.h"
-
-
 // Info
 
 static char infoGitRev[GIT_SHORT_REVISION_LENGTH + 1];

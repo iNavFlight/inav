@@ -32,7 +32,6 @@
 #include "build/debug.h"
 
 #include "cms/cms.h"
-#include "cms/cms_menu_vtx_smartaudio.h"
 
 #include "common/log.h"
 #include "common/maths.h"
