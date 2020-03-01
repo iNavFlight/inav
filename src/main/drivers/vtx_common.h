@@ -36,12 +36,6 @@
 #define VTX_SETTINGS_MIN_FREQUENCY_MHZ 0             //min freq (in MHz) for 'vtx_freq' setting
 #define VTX_SETTINGS_MAX_FREQUENCY_MHZ 5999          //max freq (in MHz) for 'vtx_freq' setting
 
-#if defined(USE_VTX_RTC6705)
-
-#include "drivers/vtx_rtc6705.h"
-
-#endif
-
 #if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP)
 
 #define VTX_SETTINGS_POWER_COUNT        5
@@ -50,14 +44,7 @@
 #define VTX_SETTINGS_MIN_USER_FREQ      5000
 #define VTX_SETTINGS_MAX_USER_FREQ      5999
 #define VTX_SETTINGS_FREQCMD
-#define VTX_SETTINGS_MAX_POWER      (VTX_SETTINGS_POWER_COUNT - VTX_SETTINGS_MIN_POWER + 1)
-
-#elif defined(USE_VTX_RTC6705)
-
-#define VTX_SETTINGS_POWER_COUNT    VTX_RTC6705_POWER_COUNT
-#define VTX_SETTINGS_DEFAULT_POWER  VTX_RTC6705_DEFAULT_POWER
-#define VTX_SETTINGS_MIN_POWER      VTX_RTC6705_MIN_POWER
-#define VTX_SETTINGS_MAX_POWER      (VTX_SETTINGS_POWER_COUNT - 1)
+#define VTX_SETTINGS_MAX_POWER          (VTX_SETTINGS_POWER_COUNT - VTX_SETTINGS_MIN_POWER + 1)
 
 #endif
 
@@ -67,7 +54,7 @@
 
 typedef enum {
     VTXDEV_UNSUPPORTED = 0, // reserved for MSP
-    VTXDEV_RTC6705    = 1,
+    VTXDEV_RTC6705    = 1,  // deprecated
     // 2 reserved
     VTXDEV_SMARTAUDIO = 3,
     VTXDEV_TRAMP      = 4,
