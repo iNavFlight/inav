@@ -47,7 +47,7 @@ static uint8_t  vtxChan = 0;
 static uint8_t  vtxPower = 0;
 static uint8_t  vtxPitMode = 0;
 
-static const char * const trampCmsPitModeNames[] = {
+static const char * const vtxCmsPitModeNames[] = {
     "---", "OFF", "ON "
 };
 
@@ -55,7 +55,7 @@ static const char * const trampCmsPitModeNames[] = {
 static OSD_TAB_t cms_Vtx_EntBand = { &vtxBand, VTX_SETTINGS_BAND_COUNT, vtx58BandNames };
 static OSD_TAB_t cms_Vtx_EntChan = { &vtxChan, VTX_SETTINGS_CHANNEL_COUNT, vtx58ChannelNames };
 static OSD_TAB_t cms_Vtx_EntPower = { &vtxPower, VTX_SETTINGS_POWER_COUNT, vtx58DefaultPowerNames };
-static const OSD_TAB_t cms_Vtx_EntPitMode = { &vtxPitMode, 2, trampCmsPitModeNames };
+static const OSD_TAB_t cms_Vtx_EntPitMode = { &vtxPitMode, 2, vtxCmsPitModeNames };
 
 static long cms_Vtx_configPitMode(displayPort_t *pDisp, const void *self)
 {
