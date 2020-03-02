@@ -530,14 +530,6 @@ static uint16_t osdConvertRSSI(void)
     return constrain(getRSSI() * 100 / RSSI_MAX_VALUE, 0, 99);
 }
 
-static void osdGetVTXPowerChar(char *buff)
-{
-    buff[0] = '-';
-    buff[1] = '\0';
-    uint8_t powerIndex = 0;
-    if (vtxCommonGetPowerIndex(vtxCommonDevice(), &powerIndex)) buff[0] = '0' + powerIndex;
-}
-
 /**
 * Displays a temperature postfixed with a symbol depending on the current unit system
 * @param label to display
@@ -659,6 +651,8 @@ static const char * osdArmingDisabledReasonMessage(void)
                     return OSD_MESSAGE_STR("DISABLE NAVIGATION FIRST");
                 case NAV_ARMING_BLOCKER_FIRST_WAYPOINT_TOO_FAR:
                     return OSD_MESSAGE_STR("FIRST WAYPOINT IS TOO FAR");
+                case NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR:
+                    return OSD_MESSAGE_STR("JUMP WAYPOINT MISCONFIGURED");
             }
 #endif
             break;
@@ -811,7 +805,7 @@ static const char * navigationStateMessage(void)
         case MW_NAV_STATE_LAND_IN_PROGRESS:
             return OSD_MESSAGE_STR("LANDING");
         case MW_NAV_STATE_HOVER_ABOVE_HOME:
-            if (STATE(FIXED_WING)) {
+            if (STATE(FIXED_WING_LEGACY)) {
                 return OSD_MESSAGE_STR("LOITERING AROUND HOME");
             }
             return OSD_MESSAGE_STR("HOVERING");
@@ -1681,34 +1675,26 @@ static bool osdDrawSingleElement(uint8_t item)
     }
 
     case OSD_VTX_CHANNEL:
-#if defined(VTX)
-        // FIXME: This doesn't actually work. It's for boards with
-        // builtin VTX.
-        tfp_sprintf(buff, "CH:%2d", current_vtx_channel % CHANNELS_PER_BAND + 1);
-#else
         {
-            uint8_t band = 0;
-            uint8_t channel = 0;
-            char bandChr = '-';
-            const char *channelStr = "-";
-            if (vtxCommonGetBandAndChannel(vtxCommonDevice(), &band, &channel)) {
-                bandChr = vtx58BandLetter[band];
-                channelStr = vtx58ChannelNames[channel];
-            }
-            tfp_sprintf(buff, "CH:%c%s:", bandChr, channelStr);
+            vtxDeviceOsdInfo_t osdInfo;
+            vtxCommonGetOsdInfo(vtxCommonDevice(), &osdInfo);
+
+            tfp_sprintf(buff, "CH:%c%s:", osdInfo.bandLetter, osdInfo.channelName);
             displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
 
-            osdGetVTXPowerChar(buff);
+            tfp_sprintf(buff, "%c", osdInfo.powerIndexLetter);
             if (isAdjustmentFunctionSelected(ADJUSTMENT_VTX_POWER_LEVEL)) TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             displayWriteWithAttr(osdDisplayPort, elemPosX + 6, elemPosY, buff, elemAttr);
             return true;
         }
-#endif
         break;
 
     case OSD_VTX_POWER:
         {
-            osdGetVTXPowerChar(buff);
+            vtxDeviceOsdInfo_t osdInfo;
+            vtxCommonGetOsdInfo(vtxCommonDevice(), &osdInfo);
+
+            tfp_sprintf(buff, "%c", osdInfo.powerIndexLetter);
             if (isAdjustmentFunctionSelected(ADJUSTMENT_VTX_POWER_LEVEL)) TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
             return true;
@@ -2113,7 +2099,7 @@ static bool osdDrawSingleElement(uint8_t item)
                         if (navStateMessage) {
                             messages[messageCount++] = navStateMessage;
                         }
-                    } else if (STATE(FIXED_WING) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
+                    } else if (STATE(FIXED_WING_LEGACY) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
                             messages[messageCount++] = "AUTOLAUNCH";
                     } else {
                         if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {

@@ -80,7 +80,7 @@ typedef struct rcControlsConfig_s {
     uint8_t yaw_deadband;                   // introduce a deadband around the stick center for yaw axis. Must be greater than zero.
     uint8_t pos_hold_deadband;              // Adds ability to adjust the Hold-position when moving the sticks (assisted mode)
     uint8_t alt_hold_deadband;              // Defines the neutral zone of throttle stick during altitude hold
-    uint16_t deadband3d_throttle;           // default throttle deadband from MIDRC
+    uint16_t mid_throttle_deadband;           // default throttle deadband from MIDRC
     uint8_t airmodeHandlingType;            // Defaults to ANTI_WINDUP triggered at sticks centered
     uint16_t airmodeThrottleThreshold;      // Throttle threshold for airmode initial activation
 } rcControlsConfig_t;

@@ -46,7 +46,7 @@
 
 #define USE_ACC
 #define USE_ACC_MPU6000
-#define ACC_MPU6500_ALIGN               CW180_DEG
+#define ACC_MPU6000_ALIGN               CW180_DEG
 
 // *************** Baro **************************
 #define USE_I2C
