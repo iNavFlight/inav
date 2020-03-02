@@ -2061,16 +2061,10 @@ groups:
         field: lowPowerDisarm
         table: vtx_low_power_disarm
         type: uint8_t
-      - name: vtx_freq
-        field: freq
-        min: VTX_SETTINGS_MIN_FREQUENCY_MHZ
-        max: VTX_SETTINGS_MAX_FREQUENCY_MHZ
-        condition: VTX_SETTINGS_FREQCMD
-      - name: vtx_pit_mode_freq
-        field: pitModeFreq
-        min: VTX_SETTINGS_MIN_FREQUENCY_MHZ
-        max: VTX_SETTINGS_MAX_FREQUENCY_MHZ
-        condition: VTX_SETTINGS_FREQCMD
+      - name: vtx_pit_mode_chan
+        field: pitModeChan
+        min: VTX_SETTINGS_MIN_CHANNEL
+        max: VTX_SETTINGS_MAX_CHANNEL
 
   - name: PG_PINIOBOX_CONFIG
     type: pinioBoxConfig_t

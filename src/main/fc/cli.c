@@ -67,6 +67,7 @@ extern uint8_t __config_end;
 #include "drivers/time.h"
 #include "drivers/timer.h"
 #include "drivers/usb_msc.h"
+#include "drivers/vtx_common.h"
 
 #include "fc/fc_core.h"
 #include "fc/cli.h"
@@ -2973,6 +2974,29 @@ static void cliStatus(char *cmdline)
     }
 #else
     cliPrintLinef("Arming disabled flags: 0x%lx", armingFlags & ARMING_DISABLED_ALL_FLAGS);
+#endif
+
+#if defined(USE_VTX_CONTROL) && !defined(CLI_MINIMAL_VERBOSITY)
+    cliPrint("VTX: ");
+
+    if (vtxCommonDeviceIsReady(vtxCommonDevice())) {
+        vtxDeviceOsdInfo_t osdInfo;
+        vtxCommonGetOsdInfo(vtxCommonDevice(), &osdInfo);
+        cliPrintf("band: %c, chan: %s, power: %c", osdInfo.bandLetter, osdInfo.channelName, osdInfo.powerIndexLetter);
+
+        if (osdInfo.powerMilliwatt) {
+            cliPrintf(" (%d mW)", osdInfo.powerMilliwatt);
+        }
+
+        if (osdInfo.frequency) {
+            cliPrintf(", freq: %d MHz", osdInfo.frequency);
+        }
+    }
+    else {
+        cliPrint("not detected");
+    }
+
+    cliPrintLinefeed();
 #endif
 
     // If we are blocked by PWM init - provide more information

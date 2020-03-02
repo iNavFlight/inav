@@ -32,7 +32,6 @@
 #include "build/debug.h"
 
 #include "cms/cms.h"
-#include "cms/cms_menu_vtx_smartaudio.h"
 
 #include "common/log.h"
 #include "common/maths.h"
@@ -67,9 +66,9 @@ static vtxDevice_t vtxSmartAudio = {
     .capability.bandCount = VTX_SMARTAUDIO_BAND_COUNT,
     .capability.channelCount = VTX_SMARTAUDIO_CHANNEL_COUNT,
     .capability.powerCount = VTX_SMARTAUDIO_POWER_COUNT,
-    .bandNames = (char **)vtx58BandNames,
-    .channelNames = (char **)vtx58ChannelNames,
-    .powerNames = (char **)saPowerNames,
+    .capability.bandNames = (char **)vtx58BandNames,
+    .capability.channelNames = (char **)vtx58ChannelNames,
+    .capability.powerNames = (char **)saPowerNames,
 };
 
 // SmartAudio command and response codes
@@ -332,7 +331,7 @@ static void saProcessResponse(uint8_t *buf, int len)
 
     if (memcmp(&saDevice, &saDevicePrev, sizeof(smartAudioDevice_t))) {
 #ifdef USE_CMS    //if changes then trigger saCms update
-        saCmsResetOpmodel();
+        //saCmsResetOpmodel();
 #endif
     // Debug
     saPrintSettings();
@@ -341,7 +340,7 @@ static void saProcessResponse(uint8_t *buf, int len)
 
 #ifdef USE_CMS
     // Export current device status for CMS
-    saCmsUpdate();
+    //saCmsUpdate();
 #endif
 }
 
@@ -540,11 +539,6 @@ static void saGetSettings(void)
     saQueueCmd(bufGetSettings, 5);
 }
 
-static bool saValidateFreq(uint16_t freq)
-{
-    return (freq >= VTX_SMARTAUDIO_MIN_FREQUENCY_MHZ && freq <= VTX_SMARTAUDIO_MAX_FREQUENCY_MHZ);
-}
-
 static void saDoDevSetFreq(uint16_t freq)
 {
     static uint8_t buf[7] = { 0xAA, 0x55, SACMD(SA_CMD_SET_FREQ), 2 };
@@ -620,7 +614,7 @@ void saSetMode(int mode)
 {
     static uint8_t buf[6] = { 0xAA, 0x55, SACMD(SA_CMD_SET_MODE), 1 };
 
-    buf[4] = (mode & 0x3f)|saLockMode;
+    buf[4] = (mode & 0x3f) | saLockMode;
     buf[5] = CRC8(buf, 5);
 
     saQueueCmd(buf, 6);
@@ -802,15 +796,6 @@ static void vtxSASetPitMode(vtxDevice_t *vtxDevice, uint8_t onoff)
     return;
 }
 
-static void vtxSASetFreq(vtxDevice_t *vtxDevice, uint16_t freq)
-{
-    UNUSED(vtxDevice);
-    if (saValidateFreq(freq)) {
-        saSetMode(0);        //need to be in FREE mode to set freq
-        saSetFreq(freq);
-    }
-}
-
 static bool vtxSAGetBandAndChannel(const vtxDevice_t *vtxDevice, uint8_t *pBand, uint8_t *pChannel)
 {
     if (!vtxSAIsReady(vtxDevice)) {
@@ -857,6 +842,50 @@ static bool vtxSAGetFreq(const vtxDevice_t *vtxDevice, uint16_t *pFreq)
     return true;
 }
 
+static bool vtxSAGetPower(const vtxDevice_t *vtxDevice, uint8_t *pIndex, uint16_t *pPowerMw)
+{
+    uint8_t powerIndex;
+
+    if (!vtxSAGetPowerIndex(vtxDevice, &powerIndex)) {
+        return false;
+    }
+
+    *pIndex = powerIndex;
+    *pPowerMw = (powerIndex > 0) ? saPowerTable[powerIndex-1].rfpower : 0;
+    return true;
+}
+
+static bool vtxSAGetOsdInfo(const  vtxDevice_t *vtxDevice, vtxDeviceOsdInfo_t * pOsdInfo)
+{
+    uint8_t powerIndex;
+    uint16_t powerMw;
+    uint16_t freq;
+    uint8_t band, channel;
+
+    if (!vtxSAGetBandAndChannel(vtxDevice, &band, &channel)) {
+        return false;
+    }
+
+    if (!vtxSAGetFreq(vtxDevice, &freq)) {
+        return false;
+    }
+
+    if (!vtxSAGetPower(vtxDevice, &powerIndex, &powerMw)) {
+        return false;
+    }
+
+    pOsdInfo->band = band;
+    pOsdInfo->channel = channel;
+    pOsdInfo->frequency = freq;
+    pOsdInfo->powerIndex = powerIndex;
+    pOsdInfo->powerMilliwatt = powerMw;
+    pOsdInfo->bandLetter = vtx58BandNames[band][0];
+    pOsdInfo->bandName = vtx58BandNames[band];
+    pOsdInfo->channelName = vtx58ChannelNames[channel];
+    pOsdInfo->powerIndexLetter = '0' + powerIndex;
+    return true;
+}
+
 static const vtxVTable_t saVTable = {
     .process = vtxSAProcess,
     .getDeviceType = vtxSAGetDeviceType,
@@ -864,11 +893,12 @@ static const vtxVTable_t saVTable = {
     .setBandAndChannel = vtxSASetBandAndChannel,
     .setPowerByIndex = vtxSASetPowerByIndex,
     .setPitMode = vtxSASetPitMode,
-    .setFrequency = vtxSASetFreq,
     .getBandAndChannel = vtxSAGetBandAndChannel,
     .getPowerIndex = vtxSAGetPowerIndex,
     .getPitMode = vtxSAGetPitMode,
     .getFrequency = vtxSAGetFreq,
+    .getPower = vtxSAGetPower,
+    .getOsdInfo = vtxSAGetOsdInfo,
 };
 
 
