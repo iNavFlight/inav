@@ -269,6 +269,11 @@ void taskUpdateOsd(timeUs_t currentTimeUs)
 }
 #endif
 
+void imuKalmanUpdateTask(timeUs_t currentTimeUs)
+{
+    imuProcessKalmanAttitude((float)getTaskDeltaTime(TASK_SELF) * 0.000001f);
+}
+
 void fcTasksInit(void)
 {
     schedulerInit();
@@ -347,6 +352,7 @@ void fcTasksInit(void)
 #ifdef USE_GLOBAL_FUNCTIONS
     setTaskEnabled(TASK_GLOBAL_FUNCTIONS, true);
 #endif
+    setTaskEnabled(TASK_IMU_KALMAN, true);
 }
 
 cfTask_t cfTasks[TASK_COUNT] = {
@@ -576,4 +582,10 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .staticPriority = TASK_PRIORITY_LOW,
     },
 #endif
+    [TASK_IMU_KALMAN] = {
+        .taskName = "ATTI_KALMAN",
+        .taskFunc = imuKalmanUpdateTask,
+        .desiredPeriod = TASK_PERIOD_HZ(100),          // 300Hz @3,33ms
+        .staticPriority = TASK_PRIORITY_MEDIUM,
+    }
 };

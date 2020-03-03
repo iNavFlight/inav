@@ -762,8 +762,6 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     imuUpdateAccelerometer();
     imuUpdateAttitude(currentTimeUs);
 
-    imuProcessKalmanAttitude(dT);
-
     annexCode();
 
     if (rxConfig()->rcFilterFrequency) {
