@@ -271,6 +271,10 @@ static const OSD_Entry menuOsdElemsEntries[] =
     OSD_ELEMENT_ENTRY("SENSOR 7 TEMP", OSD_TEMP_SENSOR_7_TEMPERATURE),
 #endif
 
+#ifdef USE_ESC_SENSOR
+    OSD_ELEMENT_ENTRY("ESC RPM", OSD_ESC_RPM),
+#endif
+
     OSD_BACK_AND_END_ENTRY,
 };
 

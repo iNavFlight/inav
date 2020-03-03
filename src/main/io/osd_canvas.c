@@ -116,7 +116,7 @@ void osdCanvasDrawDirArrow(displayPort_t *display, displayCanvas_t *canvas, cons
     displayCanvasSetFillColor(canvas, DISPLAY_CANVAS_COLOR_WHITE);
     displayCanvasSetStrokeColor(canvas, DISPLAY_CANVAS_COLOR_BLACK);
 
-    displayCanvasCtmRotate(canvas, -DEGREES_TO_RADIANS(degrees));
+    displayCanvasCtmRotate(canvas, -DEGREES_TO_RADIANS(180 + degrees));
     displayCanvasCtmTranslate(canvas, px + canvas->gridElementWidth / 2, py + canvas->gridElementHeight / 2);
     displayCanvasFillStrokeTriangle(canvas, 0, 6, 5, -6, -5, -6);
     displayCanvasSetFillColor(canvas, DISPLAY_CANVAS_COLOR_TRANSPARENT);

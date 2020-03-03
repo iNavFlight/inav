@@ -62,6 +62,7 @@
 #include "io/serial.h"
 #include "io/rcdevice_cam.h"
 #include "io/vtx.h"
+#include "io/osd_dji_hd.h"
 
 #include "msp/msp_serial.h"
 
@@ -98,6 +99,11 @@ void taskHandleSerial(timeUs_t currentTimeUs)
 
     // Allow MSP processing even if in CLI mode
     mspSerialProcess(ARMING_FLAG(ARMED) ? MSP_SKIP_NON_MSP_DATA : MSP_EVALUATE_NON_MSP_DATA, mspFcProcessCommand);
+
+#if defined(USE_DJI_HD_OSD)
+    // DJI OSD uses a special flavour of MSP (subset of Betaflight 4.1.1 MSP) - process as part of serial task
+    djiOsdSerialProcess();
+#endif
 }
 
 void taskUpdateBattery(timeUs_t currentTimeUs)
