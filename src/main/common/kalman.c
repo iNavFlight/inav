@@ -28,14 +28,13 @@
 #include "build/build_config.h"
 #include "common/kalman.h"
 #include "common/axis.h"
+#include "common/maths.h"
 #include "sensors/acceleration.h"
 #include "sensors/gyro.h"
 #include "build/debug.h"
-#include "common/maths.h"
+#include "flight/imu.h"
 
-static EXTENDED_FASTRAM kalmanState_t attitudeKalman[2];
-
-static void kalmanInit(kalmanState_t *filter, float qValue, float qRateBias, float r) {
+void kalmanInit(kalmanState_t *filter, float qValue, float qRateBias, float r) {
     filter->Q[KALMAN_COVARIANCE_VALUE] = qValue;
     filter->Q[KALMAN_COVARIANCE_RATE_BIAS] = qRateBias;
     filter->R = r;
@@ -50,7 +49,7 @@ static void kalmanInit(kalmanState_t *filter, float qValue, float qRateBias, flo
     }
 };
 
-static void kalmanUpdate(kalmanState_t *filter, float inputAngle, float inputRate, float dT) {
+void kalmanUpdate(kalmanState_t *filter, float inputAngle, float inputRate, float dT) {
     filter->rate = inputRate - filter->bias;
     filter->out += filter->rate * dT;
 
@@ -75,27 +74,4 @@ static void kalmanUpdate(kalmanState_t *filter, float inputAngle, float inputRat
     filter->P[0][1] -= kalmanGain[0] * temp01;
     filter->P[1][0] -= kalmanGain[1] * temp00;
     filter->P[1][1] -= kalmanGain[1] * temp01;
-}
-
-void processKalmanAttitude(float dT)
-{
-    static bool initialized = false;
-
-    if (!initialized) {
-        initialized = true;
-        kalmanInit(&attitudeKalman[FD_ROLL], 0.001f, 0.003f, 0.003f);
-        kalmanInit(&attitudeKalman[FD_PITCH], 0.001f, 0.003f, 0.003f);
-    }
-
-    float accRollAngle  = RADIANS_TO_DEGREES(atan2_approx(acc.accADCf[Y], acc.accADCf[Z]));
-    float accPitchAngle = RADIANS_TO_DEGREES(atan(-acc.accADCf[X] / sqrt(acc.accADCf[Y] * acc.accADCf[Y] + acc.accADCf[Z] * acc.accADCf[Z])));
-
-    DEBUG_SET(DEBUG_ALWAYS, 0, accRollAngle);
-    DEBUG_SET(DEBUG_ALWAYS, 1, accPitchAngle);
-
-    kalmanUpdate(&attitudeKalman[FD_ROLL], accRollAngle, gyro.gyroADCf[FD_ROLL], dT);
-    kalmanUpdate(&attitudeKalman[FD_PITCH], accPitchAngle, gyro.gyroADCf[FD_PITCH], dT);
-
-    DEBUG_SET(DEBUG_ALWAYS, 2, attitudeKalman[FD_ROLL].out);
-    DEBUG_SET(DEBUG_ALWAYS, 3, attitudeKalman[FD_PITCH].out);
 }

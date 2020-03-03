@@ -30,7 +30,6 @@
 #include "common/color.h"
 #include "common/utils.h"
 #include "common/filter.h"
-#include "common/kalman.h"
 #include "common/global_functions.h"
 
 #include "drivers/light_led.h"
@@ -763,7 +762,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     imuUpdateAccelerometer();
     imuUpdateAttitude(currentTimeUs);
 
-    processKalmanAttitude(dT);
+    imuProcessKalmanAttitude(dT);
 
     annexCode();
 

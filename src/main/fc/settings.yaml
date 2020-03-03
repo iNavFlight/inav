@@ -848,6 +848,18 @@ groups:
         field: acc_ignore_slope
         min: 0
         max: 5
+      - name: imu_attitude_kalman_q
+        field: attitude_kalman_q
+        min: 0
+        max: UINT16_MAX
+      - name: imu_attitude_kalman_bias
+        field: attitude_kalman_bias
+        min: 0
+        max: UINT16_MAX
+      - name: imu_attitude_kalman_r
+        field: attitude_kalman_r
+        min: 0
+        max: UINT16_MAX
 
   - name: PG_ARMING_CONFIG
     type: armingConfig_t

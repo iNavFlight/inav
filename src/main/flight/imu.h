@@ -49,6 +49,9 @@ typedef struct imuConfig_s {
     uint8_t small_angle;
     uint8_t acc_ignore_rate;
     uint8_t acc_ignore_slope;
+    uint16_t attitude_kalman_q;
+    uint16_t attitude_kalman_bias;
+    uint16_t attitude_kalman_r;
 } imuConfig_t;
 
 PG_DECLARE(imuConfig_t, imuConfig);
@@ -74,3 +77,5 @@ void imuTransformVectorBodyToEarth(fpVector3_t * v);
 void imuTransformVectorEarthToBody(fpVector3_t * v);
 
 void imuInit(void);
+
+void imuProcessKalmanAttitude(float dT);

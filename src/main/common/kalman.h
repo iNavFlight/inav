@@ -41,4 +41,5 @@ typedef struct kalmanState_s {
     float rate;
 } kalmanState_t;
 
-void processKalmanAttitude(float dT);
+void kalmanInit(kalmanState_t *filter, float qValue, float qRateBias, float r);
+void kalmanUpdate(kalmanState_t *filter, float inputAngle, float inputRate, float dT);

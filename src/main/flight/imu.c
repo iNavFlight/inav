@@ -34,6 +34,7 @@
 #include "common/maths.h"
 #include "common/vector.h"
 #include "common/quaternion.h"
+#include "common/kalman.h"
 
 #include "config/feature.h"
 #include "config/parameter_group.h"
@@ -94,7 +95,9 @@ STATIC_FASTRAM pt1Filter_t rotRateFilter;
 
 STATIC_FASTRAM bool gpsHeadingInitialized;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 2);
+static EXTENDED_FASTRAM kalmanState_t attitudeKalman[2];
+
+PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 3);
 
 PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
     .dcm_kp_acc = 2500,             // 0.25 * 10000
@@ -103,7 +106,10 @@ PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
     .dcm_ki_mag = 0,                // 0.00 * 10000
     .small_angle = 25,
     .acc_ignore_rate = 0,
-    .acc_ignore_slope = 0
+    .acc_ignore_slope = 0,
+    .attitude_kalman_q = 1000,
+    .attitude_kalman_bias = 3000,
+    .attitude_kalman_r = 3000,
 );
 
 STATIC_UNIT_TESTED void imuComputeRotationMatrix(void)
@@ -676,4 +682,34 @@ bool isImuHeadingValid(void)
 float calculateCosTiltAngle(void)
 {
     return 1.0f - 2.0f * sq(orientation.q1) - 2.0f * sq(orientation.q2);
+}
+
+void imuProcessKalmanAttitude(float dT)
+{
+    static bool initialized = false;
+
+    if (!initialized) {
+        initialized = true;
+        kalmanInit(
+            &attitudeKalman[FD_ROLL], 
+            imuConfig()->attitude_kalman_q / 1000000.0f,
+            0.003f, 
+            0.003f
+        );
+        kalmanInit(
+            &attitudeKalman[FD_PITCH], 
+            imuConfig()->attitude_kalman_q / 1000000.0f,
+            0.003f, 
+            0.003f
+        );
+    }
+
+    float accRollAngle  = RADIANS_TO_DEGREES(atan2_approx(acc.accADCf[Y], acc.accADCf[Z]));
+    float accPitchAngle = RADIANS_TO_DEGREES(atan(-acc.accADCf[X] / sqrt(acc.accADCf[Y] * acc.accADCf[Y] + acc.accADCf[Z] * acc.accADCf[Z])));
+
+    kalmanUpdate(&attitudeKalman[FD_ROLL], accRollAngle, gyro.gyroADCf[FD_ROLL], dT);
+    kalmanUpdate(&attitudeKalman[FD_PITCH], accPitchAngle, gyro.gyroADCf[FD_PITCH], dT);
+
+    DEBUG_SET(DEBUG_ALWAYS, 0, attitudeKalman[FD_ROLL].out);
+    DEBUG_SET(DEBUG_ALWAYS, 1, attitudeKalman[FD_PITCH].out);
 }
