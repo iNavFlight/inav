@@ -763,7 +763,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     imuUpdateAccelerometer();
     imuUpdateAttitude(currentTimeUs);
 
-    processKalmanAttitude();
+    processKalmanAttitude(dT);
 
     annexCode();
 

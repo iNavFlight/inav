@@ -21,10 +21,14 @@
 #include "build/build_config.h"
 #include "common/kalman.h"
 #include "common/axis.h"
+#include "sensors/acceleration.h"
+#include "sensors/gyro.h"
+#include "build/debug.h"
+#include "common/maths.h"
 
 static EXTENDED_FASTRAM kalmanState_t attitudeKalman[2];
 
-void kalmanInit(kalmanState_t *filter, float qValue, float qRateBias, float r) {
+static void kalmanInit(kalmanState_t *filter, float qValue, float qRateBias, float r) {
     filter->Q[KALMAN_COVARIANCE_VALUE] = qValue;
     filter->Q[KALMAN_COVARIANCE_RATE_BIAS] = qRateBias;
     filter->R = r;
@@ -39,7 +43,7 @@ void kalmanInit(kalmanState_t *filter, float qValue, float qRateBias, float r) {
     }
 };
 
-void kalmanUpdate(kalmanState_t *filter, float input, float inputRate, float dT) {
+static void kalmanUpdate(kalmanState_t *filter, float inputAngle, float inputRate, float dT) {
     filter->rate = inputRate - filter->bias;
     filter->out += filter->rate * dT;
 
@@ -53,7 +57,7 @@ void kalmanUpdate(kalmanState_t *filter, float input, float inputRate, float dT)
     kalmanGain[0] = filter->P[0][0] / estimateError;
     kalmanGain[1] = filter->P[1][0] / estimateError;
 
-    const float outputDelta = input - filter->out;
+    const float outputDelta = inputAngle - filter->out;
     const float temp00 = filter->P[0][0];
     const float temp01 = filter->P[0][1];
 
@@ -66,7 +70,7 @@ void kalmanUpdate(kalmanState_t *filter, float input, float inputRate, float dT)
     filter->P[1][1] -= kalmanGain[1] * temp01;
 }
 
-void processKalmanAttitude(void)
+void processKalmanAttitude(float dT)
 {
     static bool initialized = false;
 
@@ -75,5 +79,16 @@ void processKalmanAttitude(void)
         kalmanInit(&attitudeKalman[FD_ROLL], 0.001f, 0.003f, 0.003f);
         kalmanInit(&attitudeKalman[FD_PITCH], 0.001f, 0.003f, 0.003f);
     }
-    //TODO put the Kalman usage over here....
+
+    float accRollAngle  = RADIANS_TO_DEGREES(atan2_approx(acc.accADCf[Y], acc.accADCf[Z]));
+    float accPitchAngle = RADIANS_TO_DEGREES(atan(-acc.accADCf[X] / sqrt(acc.accADCf[Y] * acc.accADCf[Y] + acc.accADCf[Z] * acc.accADCf[Z])));
+
+    DEBUG_SET(DEBUG_ALWAYS, 0, accRollAngle);
+    DEBUG_SET(DEBUG_ALWAYS, 1, accPitchAngle);
+
+    kalmanUpdate(&attitudeKalman[FD_ROLL], accRollAngle, gyro.gyroADCf[FD_ROLL], dT);
+    kalmanUpdate(&attitudeKalman[FD_PITCH], accPitchAngle, gyro.gyroADCf[FD_PITCH], dT);
+
+    DEBUG_SET(DEBUG_ALWAYS, 2, attitudeKalman[FD_ROLL].out);
+    DEBUG_SET(DEBUG_ALWAYS, 3, attitudeKalman[FD_PITCH].out);
 }
