@@ -119,6 +119,11 @@ void globalFunctionsProcess(int8_t functionId) {
                     GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE);
                 }
                 break;
+             case GLOBAL_FUNCTION_ACTION_FORCE_KALMAN_AHI:
+                if (conditionValue) {
+                    GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_FORCE_KALMAN_AHI);
+                }
+                break;
         }
     }
 }

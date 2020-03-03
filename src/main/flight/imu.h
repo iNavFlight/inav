@@ -79,3 +79,4 @@ void imuTransformVectorEarthToBody(fpVector3_t * v);
 void imuInit(void);
 
 void imuProcessKalmanAttitude(float dT);
+float imuGetKalmanAttitude(uint8_t axis);

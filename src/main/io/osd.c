@@ -50,6 +50,7 @@
 #include "common/time.h"
 #include "common/typeconversion.h"
 #include "common/utils.h"
+#include "common/global_functions.h"
 
 #include "config/feature.h"
 #include "config/parameter_group.h"
@@ -1765,8 +1766,15 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_ARTIFICIAL_HORIZON:
         {
-            float rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
-            float pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
+            float rollAngle;
+            float pitchAngle;
+            if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_FORCE_KALMAN_AHI)) {
+                rollAngle = DEGREES_TO_RADIANS(imuGetKalmanAttitude(FD_ROLL));
+                pitchAngle = DEGREES_TO_RADIANS(imuGetKalmanAttitude(FD_PITCH));
+            } else {
+                rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
+                pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
+            }
 
             if (osdConfig()->ahi_reverse_roll) {
                 rollAngle = -rollAngle;

@@ -713,3 +713,8 @@ void imuProcessKalmanAttitude(float dT)
     DEBUG_SET(DEBUG_ALWAYS, 0, attitudeKalman[FD_ROLL].out);
     DEBUG_SET(DEBUG_ALWAYS, 1, attitudeKalman[FD_PITCH].out);
 }
+
+float imuGetKalmanAttitude(flight_dynamics_index_t axis)
+{
+    return attitudeKalman[axis].out;
+}
