@@ -17,4 +17,4 @@
 
 #pragma once
 
-extern const CMS_Menu cmsx_menuVtx;
+extern const CMS_Menu cmsx_menuVtxControl;

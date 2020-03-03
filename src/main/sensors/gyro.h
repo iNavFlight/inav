@@ -39,6 +39,16 @@ typedef enum {
     GYRO_FAKE
 } gyroSensor_e;
 
+typedef enum {
+    DYN_NOTCH_RANGE_HIGH = 0,
+    DYN_NOTCH_RANGE_MEDIUM,
+    DYN_NOTCH_RANGE_LOW
+} dynamicFilterRange_e;
+
+#define DYN_NOTCH_RANGE_HZ_HIGH 2000
+#define DYN_NOTCH_RANGE_HZ_MEDIUM 1333
+#define DYN_NOTCH_RANGE_HZ_LOW 1000
+
 typedef struct gyro_s {
     uint32_t targetLooptime;
     float gyroADCf[XYZ_AXIS_COUNT];
@@ -60,6 +70,11 @@ typedef struct gyroConfig_s {
     uint16_t gyro_soft_notch_hz_2;
     uint16_t gyro_soft_notch_cutoff_2;
     uint16_t gyro_stage2_lowpass_hz;
+    uint8_t gyro_stage2_lowpass_type;
+    uint8_t dynamicGyroNotchRange;
+    uint16_t dynamicGyroNotchQ;
+    uint16_t dynamicGyroNotchMinHz;
+    uint8_t dynamicGyroNotchEnabled;
 } gyroConfig_t;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);

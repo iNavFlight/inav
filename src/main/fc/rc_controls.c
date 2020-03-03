@@ -76,7 +76,7 @@ PG_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig,
     .yaw_deadband = 5,
     .pos_hold_deadband = 20,
     .alt_hold_deadband = 50,
-    .deadband3d_throttle = 50,
+    .mid_throttle_deadband = 50,
     .airmodeHandlingType = STICK_CENTER,
     .airmodeThrottleThreshold = AIRMODE_THROTTLE_THRESHOLD,
 );
@@ -101,10 +101,10 @@ bool areSticksDeflectedMoreThanPosHoldDeadband(void)
 
 throttleStatus_e calculateThrottleStatus(void)
 {
-    const uint16_t deadband3d_throttle = rcControlsConfig()->deadband3d_throttle;
-    if (feature(FEATURE_3D) && (rxGetChannelValue(THROTTLE) > (PWM_RANGE_MIDDLE - deadband3d_throttle) && rxGetChannelValue(THROTTLE) < (PWM_RANGE_MIDDLE + deadband3d_throttle)))
+    const uint16_t mid_throttle_deadband = rcControlsConfig()->mid_throttle_deadband;
+    if (feature(FEATURE_REVERSIBLE_MOTORS) && (rxGetChannelValue(THROTTLE) > (PWM_RANGE_MIDDLE - mid_throttle_deadband) && rxGetChannelValue(THROTTLE) < (PWM_RANGE_MIDDLE + mid_throttle_deadband)))
         return THROTTLE_LOW;
-    else if (!feature(FEATURE_3D) && (rxGetChannelValue(THROTTLE) < rxConfig()->mincheck))
+    else if (!feature(FEATURE_REVERSIBLE_MOTORS) && (rxGetChannelValue(THROTTLE) < rxConfig()->mincheck))
         return THROTTLE_LOW;
 
     return THROTTLE_HIGH;
@@ -173,37 +173,48 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
                 rcDelayCommand++;
             }
         }
-    } else
+    } else {
         rcDelayCommand = 0;
+    }
 
     rcSticks = stTmp;
 
     // perform actions
     bool armingSwitchIsActive = IS_RC_MODE_ACTIVE(BOXARM);
     emergencyArmingUpdate(armingSwitchIsActive);
-    if (armingSwitchIsActive) {
-        rcDisarmTimeMs = currentTimeMs;
-        tryArm();
-    } else {
-        // Disarming via ARM BOX
-        // Don't disarm via switch if failsafe is active or receiver doesn't receive data - we can't trust receiver
-        // and can't afford to risk disarming in the air
-        if (ARMING_FLAG(ARMED) && !IS_RC_MODE_ACTIVE(BOXFAILSAFE) && rxIsReceivingSignal() && !failsafeIsActive()) {
-            const timeMs_t disarmDelay = currentTimeMs - rcDisarmTimeMs;
-            if (disarmDelay > armingConfig()->switchDisarmDelayMs) {
-                if (armingConfig()->disarm_kill_switch || (throttleStatus == THROTTLE_LOW)) {
-                    disarm(DISARM_SWITCH);
-                }
-            }
-        }
-        else {
-            rcDisarmTimeMs = currentTimeMs;
+
+    if (STATE(AIRPLANE) && feature(FEATURE_MOTOR_STOP) && armingConfig()->fixed_wing_auto_arm) {
+        // Auto arm on throttle when using fixedwing and motorstop
+        if (throttleStatus != THROTTLE_LOW) {
+            tryArm();
+            return;
         }
     }
+    else {
+        if (armingSwitchIsActive) {
+            rcDisarmTimeMs = currentTimeMs;
+            tryArm();
+        } else {
+            // Disarming via ARM BOX
+            // Don't disarm via switch if failsafe is active or receiver doesn't receive data - we can't trust receiver
+            // and can't afford to risk disarming in the air
+            if (ARMING_FLAG(ARMED) && !IS_RC_MODE_ACTIVE(BOXFAILSAFE) && rxIsReceivingSignal() && !failsafeIsActive()) {
+                const timeMs_t disarmDelay = currentTimeMs - rcDisarmTimeMs;
+                if (disarmDelay > armingConfig()->switchDisarmDelayMs) {
+                    if (armingConfig()->disarm_kill_switch || (throttleStatus == THROTTLE_LOW)) {
+                        disarm(DISARM_SWITCH);
+                    }
+                }
+            }
+            else {
+                rcDisarmTimeMs = currentTimeMs;
+            }
+        }
 
-    // KILLSWITCH disarms instantly
-    if (IS_RC_MODE_ACTIVE(BOXKILLSWITCH)) {
-        disarm(DISARM_KILLSWITCH);
+        // KILLSWITCH disarms instantly
+        if (IS_RC_MODE_ACTIVE(BOXKILLSWITCH)) {
+            disarm(DISARM_KILLSWITCH);
+        }
     }
 
     if (rcDelayCommand != 20) {

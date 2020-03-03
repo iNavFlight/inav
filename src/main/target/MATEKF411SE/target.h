@@ -152,6 +152,7 @@
 #define BIND_PIN                PA3 //  RX2
 
 #define USE_DSHOT
+#define USE_ESC_SENSOR
 #define USE_SERIALSHOT
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
@@ -161,3 +162,7 @@
 #define TARGET_IO_PORTD         (BIT(2))
 
 #define MAX_PWM_OUTPUT_PORTS       6
+
+#ifdef USE_USB_MSC
+# undef USE_USB_MSC
+#endif

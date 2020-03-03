@@ -8,6 +8,7 @@ env:
   - GOAL=targets-group-5
   - GOAL=targets-group-6
   - GOAL=targets-group-7
+  - GOAL=targets-group-8
   - GOAL=targets-group-rest
 
 # use new docker environment

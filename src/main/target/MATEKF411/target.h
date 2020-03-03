@@ -164,6 +164,7 @@
 #define BIND_PIN                PA10 //  RX1
 
 #define USE_DSHOT
+#define USE_ESC_SENSOR
 
 #define USE_SERIALSHOT
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
@@ -174,3 +175,7 @@
 #define TARGET_IO_PORTD         (BIT(2))
 
 #define MAX_PWM_OUTPUT_PORTS       7
+
+#ifdef USE_USB_MSC
+# undef USE_USB_MSC
+#endif

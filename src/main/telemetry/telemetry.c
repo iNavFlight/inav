@@ -64,7 +64,7 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
     .frsky_pitch_roll = 0,
     .report_cell_voltage = 0,
     .hottAlarmSoundInterval = 5,
-    .uartUnidirectional = 0,
+    .halfDuplex = 1,
     .smartportFuelUnit = SMARTPORT_FUEL_UNIT_MAH,
     .ibusTelemetryType = 0,
     .ltmUpdateRate = LTM_RATE_NORMAL,
@@ -190,7 +190,7 @@ void telemetryProcess(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs); // since not used by all the telemetry protocols
 
-    #if defined(USE_TELEMETRY_FRSKY)
+#if defined(USE_TELEMETRY_FRSKY)
     handleFrSkyTelemetry();
 #endif
 
@@ -214,7 +214,7 @@ void telemetryProcess(timeUs_t currentTimeUs)
     handleJetiExBusTelemetry();
 #endif
 
-#if defined(USE_TELEMETRY_IBUS)
+#if defined(USE_SERIALRX_IBUS) && defined(USE_TELEMETRY_IBUS)
     handleIbusTelemetry();
 #endif
 

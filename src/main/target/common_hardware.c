@@ -97,14 +97,25 @@
     #endif
 #endif
 
-#if defined(USE_BARO_SPL006)
-    #if defined(SPL006_SPI_BUS)
-      BUSDEV_REGISTER_SPI(busdev_spl006,      DEVHW_SPL006,       SPL006_SPI_BUS,     SPL006_CS_PIN,      NONE,           DEVFLAGS_NONE);
-    #elif defined(SPL006_I2C_BUS) || defined(BARO_I2C_BUS)
-      #if !defined(SPL006_I2C_BUS)
-        #define SPL006_I2C_BUS BARO_I2C_BUS
+#if defined(USE_BARO_BMP388)
+    #if defined(BMP388_SPI_BUS)
+    BUSDEV_REGISTER_SPI(busdev_bmp388,      DEVHW_BMP388,       BMP388_SPI_BUS,     BMP388_CS_PIN,      NONE,           DEVFLAGS_NONE);
+    #elif defined(BMP388_I2C_BUS) || defined(BARO_I2C_BUS)
+    #if !defined(BMP388_I2C_BUS)
+        #define BMP388_I2C_BUS BARO_I2C_BUS
+    #endif
+    BUSDEV_REGISTER_I2C(busdev_bmp388,      DEVHW_BMP388,       BMP388_I2C_BUS,     0x76,               NONE,           DEVFLAGS_NONE);
+    #endif
+#endif
+
+#if defined(USE_BARO_SPL06)
+    #if defined(SPL06_SPI_BUS)
+      BUSDEV_REGISTER_SPI(busdev_spl06,     DEVHW_SPL06,        SPL06_SPI_BUS,      SPL06_CS_PIN,       NONE,           DEVFLAGS_NONE);
+    #elif defined(SPL06_I2C_BUS) || defined(BARO_I2C_BUS)
+      #if !defined(SPL06_I2C_BUS)
+        #define SPL06_I2C_BUS BARO_I2C_BUS
       #endif
-      BUSDEV_REGISTER_I2C(busdev_spl006,      DEVHW_SPL006,       SPL006_I2C_BUS,     0x76,               NONE,           DEVFLAGS_NONE);
+      BUSDEV_REGISTER_I2C(busdev_spl06,     DEVHW_SPL06,        SPL06_I2C_BUS,      0x76,               NONE,           DEVFLAGS_NONE);
     #endif
 #endif
 
@@ -174,7 +185,7 @@
     #if !defined(MAG3110_I2C_BUS)
         #define MAG3110_I2C_BUS MAG_I2C_BUS
     #endif
-    BUSDEV_REGISTER_I2C(busdev_mag3110,     DEVHW_MAG3110,      MAG3110_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE);
+    BUSDEV_REGISTER_I2C(busdev_mag3110,     DEVHW_MAG3110,      MAG3110_I2C_BUS,    0x0E,               NONE,           DEVFLAGS_NONE);
 #endif
 
 #if defined(USE_MAG_LIS3MDL)

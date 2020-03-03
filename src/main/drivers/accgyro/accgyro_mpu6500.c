@@ -127,6 +127,7 @@ static bool mpu6500DeviceDetect(busDevice_t * dev)
         switch (tmp) {
             case MPU6500_WHO_AM_I_CONST:
             case ICM20608G_WHO_AM_I_CONST:
+            case ICM20601_WHO_AM_I_CONST:
             case ICM20602_WHO_AM_I_CONST:
             case ICM20689_WHO_AM_I_CONST:
                 // Compatible chip detected
@@ -135,10 +136,6 @@ static bool mpu6500DeviceDetect(busDevice_t * dev)
             default:
                 // Retry detection
                 break;
-        }
-
-        if (!attemptsRemaining) {
-            return false;
         }
     } while (attemptsRemaining--);
 

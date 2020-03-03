@@ -104,7 +104,7 @@ static rcChannel_t rcChannels[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 rxRuntimeConfig_t rxRuntimeConfig;
 static uint8_t rcSampleIndex = 0;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 8);
+PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 9);
 
 #ifndef RX_SPI_DEFAULT_PROTOCOL
 #define RX_SPI_DEFAULT_PROTOCOL 0
@@ -195,6 +195,9 @@ bool serialRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
     case SERIALRX_SBUS:
         enabled = sbusInit(rxConfig, rxRuntimeConfig);
         break;
+    case SERIALRX_SBUS_FAST:
+        enabled = sbusInitFast(rxConfig, rxRuntimeConfig);
+        break;
 #endif
 #ifdef USE_SERIALRX_SUMD
     case SERIALRX_SUMD:
@@ -259,7 +262,7 @@ void rxInit(void)
         rcChannels[i].expiresAt = nowMs + MAX_INVALID_RX_PULSE_TIME;
     }
 
-    rcChannels[THROTTLE].raw = (feature(FEATURE_3D)) ? PWM_RANGE_MIDDLE : rxConfig()->rx_min_usec;
+    rcChannels[THROTTLE].raw = (feature(FEATURE_REVERSIBLE_MOTORS)) ? PWM_RANGE_MIDDLE : rxConfig()->rx_min_usec;
     rcChannels[THROTTLE].data = rcChannels[THROTTLE].raw;
 
     // Initialize ARM switch to OFF position when arming via switch is defined
@@ -324,7 +327,6 @@ void rxInit(void)
 
         default:
         case RX_TYPE_NONE:
-        case RX_TYPE_PWM:
             rxConfigMutable()->receiverType = RX_TYPE_NONE;
             rxRuntimeConfig.rcReadRawFn = nullReadRawRC;
             rxRuntimeConfig.rcFrameStatusFn = nullFrameStatus;
@@ -364,7 +366,7 @@ void rxUpdateRSSISource(void)
         }
     }
 
-    if (rxConfig()->rssi_source == RSSI_SOURCE_RX_PROTOCOL) {
+    if (rxConfig()->rssi_source == RSSI_SOURCE_RX_PROTOCOL || rxConfig()->rssi_source == RSSI_SOURCE_AUTO) {
         activeRssiSource = RSSI_SOURCE_RX_PROTOCOL;
         return;
     }

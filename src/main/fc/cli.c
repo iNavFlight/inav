@@ -43,6 +43,7 @@ extern uint8_t __config_end;
 #include "common/memory.h"
 #include "common/time.h"
 #include "common/typeconversion.h"
+#include "common/global_functions.h"
 
 #include "config/config_eeprom.h"
 #include "config/feature.h"
@@ -65,6 +66,8 @@ extern uint8_t __config_end;
 #include "drivers/system.h"
 #include "drivers/time.h"
 #include "drivers/timer.h"
+#include "drivers/usb_msc.h"
+#include "drivers/vtx_common.h"
 
 #include "fc/fc_core.h"
 #include "fc/cli.h"
@@ -143,8 +146,8 @@ static bool commandBatchError = false;
 // sync this with features_e
 static const char * const featureNames[] = {
     "THR_VBAT_COMP", "VBAT", "TX_PROF_SEL", "BAT_PROF_AUTOSWITCH", "MOTOR_STOP",
-    "", "SOFTSERIAL", "GPS", "",
-    "", "TELEMETRY", "CURRENT_METER", "3D", "",
+    "", "SOFTSERIAL", "GPS", "RPM_FILTERS",
+    "", "TELEMETRY", "CURRENT_METER", "REVERSIBLE_MOTORS", "",
     "", "RSSI_ADC", "LED_STRIP", "DASHBOARD", "",
     "BLACKBOX", "", "TRANSPONDER", "AIRMODE",
     "SUPEREXPO", "VTX", "", "", "PWM_SERVO_DRIVER", "PWM_OUTPUT_ENABLE",
@@ -1319,7 +1322,7 @@ static void cliWaypoints(char *cmdline)
     } else if (sl_strcasecmp(cmdline, "save") == 0) {
         posControl.waypointListValid = false;
         for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {
-            if (!(posControl.waypointList[i].action == NAV_WP_ACTION_WAYPOINT || posControl.waypointList[i].action == NAV_WP_ACTION_RTH)) break;
+            if (!(posControl.waypointList[i].action == NAV_WP_ACTION_WAYPOINT || posControl.waypointList[i].action == NAV_WP_ACTION_JUMP || posControl.waypointList[i].action == NAV_WP_ACTION_RTH)) break;
             if (posControl.waypointList[i].flag == NAV_WP_FLAG_LAST) {
                 posControl.waypointCount = i + 1;
                 posControl.waypointListValid = true;
@@ -1611,8 +1614,8 @@ static void cliServo(char *cmdline)
         servo = servoParamsMutable(i);
 
         if (
-            arguments[MIN] < PWM_PULSE_MIN || arguments[MIN] > PWM_PULSE_MAX ||
-            arguments[MAX] < PWM_PULSE_MIN || arguments[MAX] > PWM_PULSE_MAX ||
+            arguments[MIN] < SERVO_OUTPUT_MIN || arguments[MIN] > SERVO_OUTPUT_MAX ||
+            arguments[MAX] < SERVO_OUTPUT_MIN || arguments[MAX] > SERVO_OUTPUT_MAX ||
             arguments[MIDDLE] < arguments[MIN] || arguments[MIDDLE] > arguments[MAX] ||
             arguments[MIN] > arguments[MAX] || arguments[MAX] < arguments[MIN] ||
             arguments[RATE] < -125 || arguments[RATE] > 125
@@ -1777,7 +1780,7 @@ static void cliLogic(char *cmdline) {
     if (len == 0) {
         printLogic(DUMP_MASTER, logicConditions(0), NULL);
     } else if (sl_strncasecmp(cmdline, "reset", 5) == 0) {
-        pgResetCopy(logicConditionsMutable(0), PG_SERVO_MIXER);
+        pgResetCopy(logicConditionsMutable(0), PG_LOGIC_CONDITIONS);
     } else {
         enum {
             INDEX = 0,
@@ -1822,6 +1825,104 @@ static void cliLogic(char *cmdline) {
             logicConditionsMutable(i)->flags = args[FLAGS];
 
             cliLogic("");
+        } else {
+            cliShowParseError();
+        }
+    }
+}
+#endif
+
+#ifdef USE_GLOBAL_FUNCTIONS
+
+static void printGlobalFunctions(uint8_t dumpMask, const globalFunction_t *globalFunctions, const globalFunction_t *defaultGlobalFunctions)
+{
+    const char *format = "gf %d %d %d %d %d %d %d";
+    for (uint32_t i = 0; i < MAX_GLOBAL_FUNCTIONS; i++) {
+        const globalFunction_t gf = globalFunctions[i];
+
+        bool equalsDefault = false;
+        if (defaultGlobalFunctions) {
+            globalFunction_t defaultValue = defaultGlobalFunctions[i];
+            equalsDefault =
+                gf.enabled == defaultValue.enabled &&
+                gf.conditionId == defaultValue.conditionId &&
+                gf.action == defaultValue.action &&
+                gf.withValue.type == defaultValue.withValue.type &&
+                gf.withValue.value == defaultValue.withValue.value &&
+                gf.flags == defaultValue.flags;
+
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                i,
+                gf.enabled,
+                gf.conditionId,
+                gf.action,
+                gf.withValue.type,
+                gf.withValue.value,
+                gf.flags
+            );
+        }
+        cliDumpPrintLinef(dumpMask, equalsDefault, format,
+            i,
+            gf.enabled,
+            gf.conditionId,
+            gf.action,
+            gf.withValue.type,
+            gf.withValue.value,
+            gf.flags
+        );
+    }
+}
+
+static void cliGlobalFunctions(char *cmdline) {
+    char * saveptr;
+    int args[7], check = 0;
+    uint8_t len = strlen(cmdline);
+
+    if (len == 0) {
+        printGlobalFunctions(DUMP_MASTER, globalFunctions(0), NULL);
+    } else if (sl_strncasecmp(cmdline, "reset", 5) == 0) {
+        pgResetCopy(globalFunctionsMutable(0), PG_GLOBAL_FUNCTIONS);
+    } else {
+        enum {
+            INDEX = 0,
+            ENABLED,
+            CONDITION_ID,
+            ACTION,
+            VALUE_TYPE,
+            VALUE_VALUE,
+            FLAGS,
+            ARGS_COUNT
+            };
+        char *ptr = strtok_r(cmdline, " ", &saveptr);
+        while (ptr != NULL && check < ARGS_COUNT) {
+            args[check++] = fastA2I(ptr);
+            ptr = strtok_r(NULL, " ", &saveptr);
+        }
+
+        if (ptr != NULL || check != ARGS_COUNT) {
+            cliShowParseError();
+            return;
+        }
+
+        int32_t i = args[INDEX];
+        if (
+            i >= 0 && i < MAX_GLOBAL_FUNCTIONS &&
+            args[ENABLED] >= 0 && args[ENABLED] <= 1 &&
+            args[CONDITION_ID] >= 0 && args[CONDITION_ID] < MAX_LOGIC_CONDITIONS &&
+            args[ACTION] >= 0 && args[ACTION] < GLOBAL_FUNCTION_ACTION_LAST &&
+            args[VALUE_TYPE] >= 0 && args[VALUE_TYPE] < LOGIC_CONDITION_OPERAND_TYPE_LAST &&
+            args[VALUE_VALUE] >= -1000000 && args[VALUE_VALUE] <= 1000000 &&
+            args[FLAGS] >= 0 && args[FLAGS] <= 255
+
+        ) {
+            globalFunctionsMutable(i)->enabled = args[ENABLED];
+            globalFunctionsMutable(i)->conditionId = args[CONDITION_ID];
+            globalFunctionsMutable(i)->action = args[ACTION];
+            globalFunctionsMutable(i)->withValue.type = args[VALUE_TYPE];
+            globalFunctionsMutable(i)->withValue.value = args[VALUE_VALUE];
+            globalFunctionsMutable(i)->flags = args[FLAGS];
+
+            cliGlobalFunctions("");
         } else {
             cliShowParseError();
         }
@@ -2875,6 +2976,29 @@ static void cliStatus(char *cmdline)
     cliPrintLinef("Arming disabled flags: 0x%lx", armingFlags & ARMING_DISABLED_ALL_FLAGS);
 #endif
 
+#if defined(USE_VTX_CONTROL) && !defined(CLI_MINIMAL_VERBOSITY)
+    cliPrint("VTX: ");
+
+    if (vtxCommonDeviceIsReady(vtxCommonDevice())) {
+        vtxDeviceOsdInfo_t osdInfo;
+        vtxCommonGetOsdInfo(vtxCommonDevice(), &osdInfo);
+        cliPrintf("band: %c, chan: %s, power: %c", osdInfo.bandLetter, osdInfo.channelName, osdInfo.powerIndexLetter);
+
+        if (osdInfo.powerMilliwatt) {
+            cliPrintf(" (%d mW)", osdInfo.powerMilliwatt);
+        }
+
+        if (osdInfo.frequency) {
+            cliPrintf(", freq: %d MHz", osdInfo.frequency);
+        }
+    }
+    else {
+        cliPrint("not detected");
+    }
+
+    cliPrintLinefeed();
+#endif
+
     // If we are blocked by PWM init - provide more information
     if (getPwmInitError() != PWM_INIT_ERROR_NONE) {
         cliPrintLinef("PWM output init error: %s", getPwmInitErrorMessage());
@@ -3046,13 +3170,13 @@ static void printConfig(const char *cmdline, bool doDiff)
         //printResource(dumpMask, &defaultConfig);
 
         cliPrintHashLine("mixer");
-        cliDumpPrintLinef(dumpMask, primaryMotorMixer(0)->throttle == 0.0f, "\r\nmmix reset\r\n");
+        cliDumpPrintLinef(dumpMask, primaryMotorMixer_CopyArray[0].throttle == 0.0f, "\r\nmmix reset\r\n");
 
         printMotorMix(dumpMask, primaryMotorMixer_CopyArray, primaryMotorMixer(0));
 
         // print custom servo mixer if exists
         cliPrintHashLine("servo mix");
-        cliDumpPrintLinef(dumpMask, customServoMixers(0)->rate == 0, "smix reset\r\n");
+        cliDumpPrintLinef(dumpMask, customServoMixers_CopyArray[0].rate == 0, "smix reset\r\n");
         printServoMix(dumpMask, customServoMixers_CopyArray, customServoMixers(0));
 
         // print servo parameters
@@ -3062,6 +3186,11 @@ static void printConfig(const char *cmdline, bool doDiff)
 #ifdef USE_LOGIC_CONDITIONS
         cliPrintHashLine("logic");
         printLogic(dumpMask, logicConditions_CopyArray, logicConditions(0));
+#endif
+
+#ifdef USE_GLOBAL_FUNCTIONS
+        cliPrintHashLine("gf");
+        printGlobalFunctions(dumpMask, globalFunctions_CopyArray, globalFunctions(0));
 #endif
 
         cliPrintHashLine("feature");
@@ -3173,6 +3302,42 @@ static void cliDiff(char *cmdline)
     printConfig(cmdline, true);
 }
 
+#ifdef USE_USB_MSC
+static void cliMsc(char *cmdline)
+{
+    UNUSED(cmdline);
+
+    if (false
+#ifdef USE_SDCARD
+        || sdcard_isFunctional()
+#endif
+#ifdef USE_FLASHFS
+        || flashfsGetSize() > 0
+#endif
+    ) {
+        cliPrintHashLine("restarting in mass storage mode");
+        cliPrint("\r\nRebooting");
+        bufWriterFlush(cliWriter);
+        delay(1000);
+        waitForSerialPortToFinishTransmitting(cliPort);
+        stopPwmAllMotors();
+
+#ifdef STM32F7
+        *((__IO uint32_t*) BKPSRAM_BASE + 16) = MSC_MAGIC;
+#elif defined(STM32F4)
+        *((uint32_t *)0x2001FFF0) = MSC_MAGIC;
+#endif
+
+        __disable_irq();
+        NVIC_SystemReset();
+    } else {
+        cliPrint("\r\nStorage not present or failed to initialize!");
+        bufWriterFlush(cliWriter);
+    }
+}
+#endif
+
+
 typedef struct {
     const char *name;
 #ifndef SKIP_CLI_COMMAND_HELP
@@ -3254,6 +3419,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("memory", "view memory usage", NULL, cliMemory),
     CLI_COMMAND_DEF("mmix", "custom motor mixer", NULL, cliMotorMix),
     CLI_COMMAND_DEF("motor",  "get/set motor", "<index> [<value>]", cliMotor),
+#ifdef USE_USB_MSC
+    CLI_COMMAND_DEF("msc", "switch into msc mode", NULL, cliMsc),
+#endif
 #ifdef PLAY_SOUND
     CLI_COMMAND_DEF("play_sound", NULL, "[<index>]\r\n", cliPlaySound),
 #endif
@@ -3275,6 +3443,11 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("logic", "configure logic conditions",
         "<rule> <enabled> <operation> <operand A type> <operand A value> <operand B type> <operand B value> <flags>\r\n"
         "\treset\r\n", cliLogic),
+#endif
+#ifdef USE_GLOBAL_FUNCTIONS
+    CLI_COMMAND_DEF("gf", "configure global functions",
+        "<rule> <enabled> <logic condition> <action> <operand type> <operand value> <flags>\r\n"
+        "\treset\r\n", cliGlobalFunctions),
 #endif
     CLI_COMMAND_DEF("set", "change setting", "[<name>=<value>]", cliSet),
     CLI_COMMAND_DEF("smix", "servo mixer",

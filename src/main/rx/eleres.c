@@ -375,6 +375,10 @@ rx_spi_received_e eleresDataReceived(uint8_t *payload, uint16_t *linkQuality)
     statusRegisters[0] = 0;
     statusRegisters[1] = 0;
 
+    if (linkQuality) {
+        *linkQuality = eleresRssi();
+    }
+
     if (rxSpiCheckIrq())
     {
         statusRegisters[0] = rfmSpiRead(0x03);
@@ -383,10 +387,6 @@ rx_spi_received_e eleresDataReceived(uint8_t *payload, uint16_t *linkQuality)
         if (statusRegisters[0] & RF22B_RX_PACKET_RECEIVED_INTERRUPT) {
             return RX_SPI_RECEIVED_DATA;
         }
-    }
-
-    if (linkQuality) {
-        *linkQuality = eleresRssi();
     }
 
     eleresSetRcDataFromPayload(NULL,NULL);
