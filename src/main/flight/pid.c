@@ -220,9 +220,9 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
                     .FF = 0,
                 },
                 [PID_POS_HEADING] = {
-                    .P = 20,
-                    .I = 10,
-                    .D = 50,
+                    .P = 30,
+                    .I = 2,
+                    .D = 0,
                     .FF = 0
                 }
             }
