@@ -24,18 +24,27 @@
 
 #pragma once
 
-#include "platform.h"
-
-#include <stdbool.h>
 #include <stdint.h>
-#include <ctype.h>
-#include <string.h>
+#include "common/axis.h"
+#include "common/filter.h"
 
-#include "io/vtx.h"
-#include "io/vtx_control.h"
+#define DYNAMIC_NOTCH_DEFAULT_CENTER_HZ 350
+#define DYNAMIC_NOTCH_DEFAULT_CUTOFF_HZ 300
 
-#define VTX_FFPV_BAND_COUNT         2
-#define VTX_FFPV_CHANNEL_COUNT      8
-#define VTX_FFPV_POWER_COUNT        4
+typedef struct dynamicGyroNotchState_s {
+    uint16_t frequency[XYZ_AXIS_COUNT];
+    float dynNotchQ;
+    float dynNotch1Ctr;
+    float dynNotch2Ctr;
+    uint32_t looptime;
+    uint8_t enabled;
+    /*
+     * Dynamic gyro filter can be 3x1, 3x2 or 3x3 depending on filter type
+     */
+    biquadFilter_t filters[XYZ_AXIS_COUNT][XYZ_AXIS_COUNT];
+    filterApplyFnPtr filtersApplyFn;
+} dynamicGyroNotchState_t;
 
-bool vtxFuriousFPVInit(void);
+void dynamicGyroNotchFiltersInit(dynamicGyroNotchState_t *state);
+void dynamicGyroNotchFiltersUpdate(dynamicGyroNotchState_t *state, int axis, uint16_t frequency);
+float dynamicGyroNotchFiltersApply(dynamicGyroNotchState_t *state, int axis, float input);

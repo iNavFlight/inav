@@ -1693,10 +1693,9 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("gyro_lpf_hz", "%d",                     gyroConfig()->gyro_soft_lpf_hz);
         BLACKBOX_PRINT_HEADER_LINE("gyro_lpf_type", "%d",                   gyroConfig()->gyro_soft_lpf_type);
         BLACKBOX_PRINT_HEADER_LINE("gyro_lpf2_hz", "%d",                    gyroConfig()->gyro_stage2_lowpass_hz);
-        BLACKBOX_PRINT_HEADER_LINE("dyn_notch_width_percent", "%d",         gyroConfig()->dyn_notch_width_percent);
-        BLACKBOX_PRINT_HEADER_LINE("dyn_notch_range", "%d",                 gyroConfig()->dyn_notch_range);
-        BLACKBOX_PRINT_HEADER_LINE("dyn_notch_q", "%d",                     gyroConfig()->dyn_notch_q);
-        BLACKBOX_PRINT_HEADER_LINE("dyn_notch_min_hz", "%d",                gyroConfig()->dyn_notch_min_hz);
+        BLACKBOX_PRINT_HEADER_LINE("dynamicGyroNotchRange", "%d",           gyroConfig()->dynamicGyroNotchRange);
+        BLACKBOX_PRINT_HEADER_LINE("dynamicGyroNotchQ", "%d",               gyroConfig()->dynamicGyroNotchQ);
+        BLACKBOX_PRINT_HEADER_LINE("dynamicGyroNotchMinHz", "%d",           gyroConfig()->dynamicGyroNotchMinHz);
         BLACKBOX_PRINT_HEADER_LINE("gyro_notch_hz", "%d,%d",                gyroConfig()->gyro_soft_notch_hz_1,
                                                                             gyroConfig()->gyro_soft_notch_hz_2);
         BLACKBOX_PRINT_HEADER_LINE("gyro_notch_cutoff", "%d,%d",            gyroConfig()->gyro_soft_notch_cutoff_1,

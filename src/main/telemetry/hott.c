@@ -368,7 +368,7 @@ void configureHoTTTelemetryPort(void)
         return;
     }
 
-    portOptions_t portOptions = (telemetryConfig()->uartUnidirectional ? SERIAL_UNIDIR : SERIAL_BIDIR) | (SERIAL_NOT_INVERTED);
+    portOptions_t portOptions = (telemetryConfig()->halfDuplex ? SERIAL_BIDIR : SERIAL_UNIDIR) | (SERIAL_NOT_INVERTED);
 
     hottPort = openSerialPort(portConfig->identifier, FUNCTION_TELEMETRY_HOTT, NULL, NULL, HOTT_BAUDRATE, HOTT_INITIAL_PORT_MODE, portOptions);
 
