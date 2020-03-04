@@ -1908,7 +1908,7 @@ static void cliGlobalFunctions(char *cmdline) {
         if (
             i >= 0 && i < MAX_GLOBAL_FUNCTIONS &&
             args[ENABLED] >= 0 && args[ENABLED] <= 1 &&
-            args[CONDITION_ID] >= 0 && args[CONDITION_ID] < MAX_LOGIC_CONDITIONS &&
+            args[CONDITION_ID] >= -1 && args[CONDITION_ID] < MAX_LOGIC_CONDITIONS &&
             args[ACTION] >= 0 && args[ACTION] < GLOBAL_FUNCTION_ACTION_LAST &&
             args[VALUE_TYPE] >= 0 && args[VALUE_TYPE] < LOGIC_CONDITION_OPERAND_TYPE_LAST &&
             args[VALUE_VALUE] >= -1000000 && args[VALUE_VALUE] <= 1000000 &&
