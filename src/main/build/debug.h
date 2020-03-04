@@ -67,11 +67,8 @@ typedef enum {
     DEBUG_ERPM,
     DEBUG_RPM_FILTER,
     DEBUG_RPM_FREQ,
-<<<<<<< HEAD
     DEBUG_NAV_YAW,
-=======
     DEBUG_DYNAMIC_FILTER,
     DEBUG_DYNAMIC_FILTER_FREQUENCY,
->>>>>>> development
     DEBUG_COUNT
 } debugType_e;
