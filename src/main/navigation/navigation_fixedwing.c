@@ -213,7 +213,6 @@ void resetFixedWingPositionController(void)
     navPidReset(&posControl.pids.fw_heading);
     posControl.rcAdjustment[ROLL] = 0;
     posControl.rcAdjustment[YAW] = 0;
-    posControl.rcAdjustment[YAW] = 0;
     isRollAdjustmentValid = false;
     isYawAdjustmentValid = false;
 
