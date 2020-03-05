@@ -236,6 +236,7 @@ TARGET_SRC   := $(filter-out $(MCU_EXCLUDES), $(TARGET_SRC))
 
 ifneq ($(filter ONBOARDFLASH,$(FEATURES)),)
 TARGET_SRC += \
+            drivers/flash.c \
             drivers/flash_m25p16.c \
             io/flashfs.c \
             $(MSC_SRC)
