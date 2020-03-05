@@ -281,10 +281,10 @@ bool feature(uint32_t mask)
     return false;
 }
 
-throttleStatus_e calculateThrottleStatus(rxConfig_t *rxConfig, uint16_t deadband3d_throttle)
+throttleStatus_e calculateThrottleStatus(rxConfig_t *rxConfig, uint16_t mid_throttle_deadband)
 {
     UNUSED(*rxConfig);
-    UNUSED(deadband3d_throttle);
+    UNUSED(mid_throttle_deadband);
     return THROTTLE_HIGH;
 }
 

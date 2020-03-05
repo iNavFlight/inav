@@ -397,9 +397,12 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
             break;
 
         case DJI_MSP_NAME:
-            for (const char * name = systemConfig()->name; *name; name++) {
-                sbufWriteU8(dst, *name++);
-            }
+            {
+                const char * name = systemConfig()->name;
+                int len = strlen(name);
+                if (len > 12) len = 12;
+                   sbufWriteData(dst, name, len);
+                }
             break;
 
         case DJI_MSP_STATUS:

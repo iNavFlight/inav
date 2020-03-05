@@ -38,7 +38,7 @@
 
 #include "common/axis.h"
 
-PG_REGISTER_ARRAY(globalFunction_t, MAX_GLOBAL_FUNCTIONS, globalFunctions, PG_GLOBAL_FUNCTIONS, 0);
+PG_REGISTER_ARRAY_WITH_RESET_FN(globalFunction_t, MAX_GLOBAL_FUNCTIONS, globalFunctions, PG_GLOBAL_FUNCTIONS, 0);
 
 EXTENDED_FASTRAM uint64_t globalFunctionsFlags = 0;
 EXTENDED_FASTRAM globalFunctionState_t globalFunctionsStates[MAX_GLOBAL_FUNCTIONS];

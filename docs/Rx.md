@@ -154,10 +154,8 @@ The receiver type can be set from the configurator or CLI.
 ```
 # get receiver_type
 receiver_type = NONE
-Allowed values: NONE, PWM, PPM, SERIAL, MSP, SPI, UIB
+Allowed values: NONE, PPM, SERIAL, MSP, SPI, UIB
 ```
-
-Note that `PWM` is a synonym for `NONE`. 
 
 ### RX signal-loss detection
 

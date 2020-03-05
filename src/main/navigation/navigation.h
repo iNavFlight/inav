@@ -101,6 +101,7 @@ typedef enum {
     NAV_ARMING_BLOCKER_MISSING_GPS_FIX = 1,
     NAV_ARMING_BLOCKER_NAV_IS_ALREADY_ACTIVE = 2,
     NAV_ARMING_BLOCKER_FIRST_WAYPOINT_TOO_FAR = 3,
+    NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR = 4,
 } navArmingBlocker_e;
 
 typedef struct positionEstimationConfig_s {
@@ -216,6 +217,8 @@ typedef struct navConfig_s {
         uint8_t  launch_max_angle;           // Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg]
         uint8_t  cruise_yaw_rate;            // Max yaw rate (dps) when CRUISE MODE is enabled
         bool     allow_manual_thr_increase;
+        bool useFwNavYawControl;
+        uint8_t yawControlDeadband;
     } fw;
 } navConfig_t;
 
@@ -231,6 +234,7 @@ typedef struct gpsOrigin_s {
 
 typedef enum {
     NAV_WP_ACTION_WAYPOINT = 0x01,
+    NAV_WP_ACTION_JUMP     = 0x06, 
     NAV_WP_ACTION_RTH      = 0x04
 } navWaypointActions_e;
 
@@ -308,6 +312,7 @@ typedef struct navigationPIDControllers_s {
     /* Fixed-wing PIDs */
     pidController_t fw_alt;
     pidController_t fw_nav;
+    pidController_t fw_heading;
 } navigationPIDControllers_t;
 
 /* MultiWii-compatible params for telemetry */

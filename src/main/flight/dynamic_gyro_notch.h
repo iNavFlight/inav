@@ -24,26 +24,27 @@
 
 #pragma once
 
-typedef struct {
-    uint8_t dataAge;
-    int8_t temperature;
-    int16_t voltage;
-    int32_t current;
-    uint32_t rpm;
-} escSensorData_t;
+#include <stdint.h>
+#include "common/axis.h"
+#include "common/filter.h"
 
-typedef struct escSensorConfig_s {
-    uint16_t currentOffset;             // offset consumed by the flight controller / VTX / cam / ... in mA
-} escSensorConfig_t;
+#define DYNAMIC_NOTCH_DEFAULT_CENTER_HZ 350
+#define DYNAMIC_NOTCH_DEFAULT_CUTOFF_HZ 300
 
-PG_DECLARE(escSensorConfig_t, escSensorConfig);
+typedef struct dynamicGyroNotchState_s {
+    uint16_t frequency[XYZ_AXIS_COUNT];
+    float dynNotchQ;
+    float dynNotch1Ctr;
+    float dynNotch2Ctr;
+    uint32_t looptime;
+    uint8_t enabled;
+    /*
+     * Dynamic gyro filter can be 3x1, 3x2 or 3x3 depending on filter type
+     */
+    biquadFilter_t filters[XYZ_AXIS_COUNT][XYZ_AXIS_COUNT];
+    filterApplyFnPtr filtersApplyFn;
+} dynamicGyroNotchState_t;
 
-#define ESC_DATA_MAX_AGE    10
-#define ESC_DATA_INVALID    255
-#define ERPM_PER_LSB        100.0f
-
-bool escSensorInitialize(void);
-void escSensorUpdate(timeUs_t currentTimeUs);
-escSensorData_t * escSensorGetData(void);
-escSensorData_t * getEscTelemetry(uint8_t esc);
-uint32_t computeRpm(int16_t erpm);
+void dynamicGyroNotchFiltersInit(dynamicGyroNotchState_t *state);
+void dynamicGyroNotchFiltersUpdate(dynamicGyroNotchState_t *state, int axis, uint16_t frequency);
+float dynamicGyroNotchFiltersApply(dynamicGyroNotchState_t *state, int axis, float input);

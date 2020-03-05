@@ -75,7 +75,7 @@ void mspOverrideInit(void)
         mspRcChannels[i].expiresAt = nowMs + MAX_INVALID_RX_PULSE_TIME;
     }
 
-    mspRcChannels[THROTTLE].raw = (feature(FEATURE_3D)) ? PWM_RANGE_MIDDLE : rxConfig()->rx_min_usec;
+    mspRcChannels[THROTTLE].raw = (feature(FEATURE_REVERSIBLE_MOTORS)) ? PWM_RANGE_MIDDLE : rxConfig()->rx_min_usec;
     mspRcChannels[THROTTLE].data = mspRcChannels[THROTTLE].raw;
 
     // Initialize ARM switch to OFF position when arming via switch is defined

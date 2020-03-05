@@ -15,4 +15,3 @@ TARGET_SRC = \
             drivers/barometer/barometer_ms56xx.c \
             drivers/light_ws2811strip.c \
             drivers/max7456.c
-#            drivers/vtx_rtc6705.c
