@@ -185,6 +185,12 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
                     .I = 50,    // NAV_VEL_Z_I * 20
                     .D = 10,    // NAV_VEL_Z_D * 100
                     .FF = 0,
+                },
+                [PID_POS_HEADING] = {
+                    .P = 0,
+                    .I = 0,
+                    .D = 0,
+                    .FF = 0
                 }
             }
         },
@@ -212,6 +218,12 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
                     .I = 5,     // FW_POS_XY_I * 100
                     .D = 8,     // FW_POS_XY_D * 100
                     .FF = 0,
+                },
+                [PID_POS_HEADING] = {
+                    .P = 30,
+                    .I = 2,
+                    .D = 0,
+                    .FF = 0
                 }
             }
         },
@@ -255,6 +267,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .antigravityAccelerator = 1.0f,
         .antigravityCutoff = ANTI_GRAVITY_THROTTLE_FILTER_CUTOFF,
         .pidControllerType = PID_TYPE_AUTO,
+        .navFwPosHdgPidsumLimit = PID_SUM_LIMIT_YAW_DEFAULT,
 );
 
 bool pidInitFilters(void)

@@ -129,6 +129,7 @@ typedef enum {
     BOAT                                = (1 << 20),
     ALTITUDE_CONTROL                    = (1 << 21),    //It means it can fly
     MOVE_FORWARD_ONLY                   = (1 << 22),
+    FW_HEADING_USE_YAW                  = (1 << 23),
 } stateFlags_t;
 
 #define DISABLE_STATE(mask) (stateFlags &= ~(mask))
