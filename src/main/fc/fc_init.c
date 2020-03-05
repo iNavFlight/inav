@@ -57,6 +57,7 @@
 #include "drivers/light_led.h"
 #include "drivers/nvic.h"
 #include "drivers/osd.h"
+#include "drivers/persistent.h"
 #include "drivers/pwm_esc_detect.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
@@ -660,6 +661,9 @@ void init(void)
         setTaskEnabled(TASK_RPM_FILTER, true);
     }
 #endif
+
+    // Considering that the persistent reset reason is only used during init
+    persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_NONE);
 
     systemState |= SYSTEM_STATE_READY;
 }
