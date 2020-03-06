@@ -171,8 +171,9 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
     }
 );
 
-navigationPosControl_t  posControl;
-navSystemStatus_t       NAV_Status;
+EXTENDED_FASTRAM navigationPosControl_t  posControl;
+EXTENDED_FASTRAM navSystemStatus_t       NAV_Status;
+EXTENDED_FASTRAM multicopterPosXyCoefficients_t multicopterPosXyCoefficients;
 
 #if defined(NAV_BLACKBOX)
 int16_t navCurrentState;
@@ -3230,6 +3231,14 @@ void navigationUsePIDs(void)
                                                pidProfile()->navVelXyDTermLpfHz
         );
     }
+
+    /*
+     * Set coefficients used in MC VEL_XY
+     */
+    multicopterPosXyCoefficients.dTermAttenuation = pidProfile()->navVelXyDtermAttenuation / 100.0f;
+    multicopterPosXyCoefficients.dTermAttenuationStart = pidProfile()->navVelXyDtermAttenuationStart / 100.0f;
+    multicopterPosXyCoefficients.dTermAttenuationEnd = pidProfile()->navVelXyDtermAttenuationEnd / 100.0f;
+    multicopterPosXyCoefficients.breakingBoostFactor = (float) navConfig()->mc.braking_boost_factor / 100.0f;
 
     // Initialize altitude hold PID-controllers (pos_z, vel_z, acc_z
     navPidInit(

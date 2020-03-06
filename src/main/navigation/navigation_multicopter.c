@@ -50,7 +50,6 @@
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
 
-
 /*-----------------------------------------------------------
  * Altitude controller for multicopter aircraft
  *-----------------------------------------------------------*/
@@ -470,11 +469,9 @@ static void updatePositionVelocityController_MC(const float maxSpeed)
 }
 
 static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxAccelLimit, const float maxSpeed)
-{
-
+{    
     const float measurementX = navGetCurrentActualPositionAndVelocity()->vel.x;
     const float measurementY = navGetCurrentActualPositionAndVelocity()->vel.y;
-    const float measurementXY = sqrtf(powf(measurementX, 2)+powf(measurementY, 2));
 
     const float setpointX = posControl.desiredState.vel.x;
     const float setpointY = posControl.desiredState.vel.y;
@@ -522,26 +519,25 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     
     //Normalize the setpoint and measurement between 0.0f and 1.0f where 1.0f is currently used max speed
     const float setpointNormalized = constrainf(scaleRangef(fabsf(setpointXY), 0, maxSpeed, 0.0f, 1.0f), 0.0f, 1.0f);
-    const float measurementNormalized = constrainf(scaleRangef(fabsf(measurementXY), 0, maxSpeed, 0.0f, 1.0f), 0.0f, 1.0f);
+    const float measurementNormalized = constrainf(scaleRangef(fabsf(posControl.actualState.velXY), 0, maxSpeed, 0.0f, 1.0f), 0.0f, 1.0f);
 
     DEBUG_SET(DEBUG_ALWAYS, 0, setpointNormalized * 100);
     DEBUG_SET(DEBUG_ALWAYS, 1, measurementNormalized * 100);
 
     /* 
-     * Map normalized speed of setpoint and measurement between 1.0f and nav_mc_vel_xy_dterm_dyn_scale
-     * 1.0f means that Dterm is not attenuated
-     * navVelXyDtermDynScale means full allowed attenuation
-     * 
      * Dterm can be attenuated when both setpoint and measurement is high - UAV is moving close to desired velocity
      */
-    const float setpointScale = constrainf(scaleRangef(setpointNormalized, pidProfile()->navVelXyDtermDynScaleMinAt, pidProfile()->navVelXyDtermDynScaleMaxAt, 1.0f, pidProfile()->navVelXyDtermDynScale), pidProfile()->navVelXyDtermDynScale, 1.0f);
-    const float measurementScale = constrainf(scaleRangef(measurementNormalized, pidProfile()->navVelXyDtermDynScaleMinAt, pidProfile()->navVelXyDtermDynScaleMaxAt, 1.0f, pidProfile()->navVelXyDtermDynScale), pidProfile()->navVelXyDtermDynScale, 1.0f);
+    float setpointScale = scaleRangef(setpointNormalized, multicopterPosXyCoefficients.dTermAttenuationStart, multicopterPosXyCoefficients.dTermAttenuationEnd, 0, multicopterPosXyCoefficients.dTermAttenuation);
+    setpointScale = constrainf(setpointScale, 0, multicopterPosXyCoefficients.dTermAttenuation);
+
+    float measurementScale = scaleRangef(measurementNormalized, multicopterPosXyCoefficients.dTermAttenuationStart, multicopterPosXyCoefficients.dTermAttenuationEnd, 0, multicopterPosXyCoefficients.dTermAttenuation);
+    measurementScale = constrainf(measurementScale, 0, multicopterPosXyCoefficients.dTermAttenuation);
 
     DEBUG_SET(DEBUG_ALWAYS, 2, setpointScale * 100);
     DEBUG_SET(DEBUG_ALWAYS, 3, measurementScale * 100);
 
-    //Use the higher scaling factor from the two above
-    const float dtermScale = MAX(setpointScale, measurementScale);
+    //Choose smaller attenuation factor and convert from attenuation to scale
+    const float dtermScale = 1.0f - MIN(setpointScale, measurementScale);
     DEBUG_SET(DEBUG_ALWAYS, 4, dtermScale * 100);
 
     // Apply PID with output limiting and I-term anti-windup
@@ -574,8 +570,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
 
 #ifdef USE_MR_BRAKING_MODE
     //Boost required accelerations
-    if (STATE(NAV_CRUISE_BRAKING_BOOST) && navConfig()->mc.braking_boost_factor > 0) {
-        const float rawBoostFactor = (float)navConfig()->mc.braking_boost_factor / 100.0f;
+    if (STATE(NAV_CRUISE_BRAKING_BOOST) && multicopterPosXyCoefficients.breakingBoostFactor > 0.0f) {
 
         //Scale boost factor according to speed
         const float boostFactor = constrainf(
@@ -584,10 +579,10 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
                 navConfig()->mc.braking_boost_speed_threshold,
                 navConfig()->general.max_manual_speed,
                 0.0f,
-                rawBoostFactor
+                multicopterPosXyCoefficients.breakingBoostFactor
             ),
             0.0f,
-            rawBoostFactor
+            multicopterPosXyCoefficients.breakingBoostFactor
         );
 
         //Boost required acceleration for harder braking

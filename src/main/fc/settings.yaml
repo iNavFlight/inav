@@ -1184,18 +1184,18 @@ groups:
         field: navVelXyDTermLpfHz
         min: 0
         max: 100
-      - name: nav_mc_vel_xy_dterm_dyn_scale
-        field: navVelXyDtermDynScale
+      - name: nav_mc_vel_xy_dterm_attenuation
+        field: navVelXyDtermAttenuation
         min: 0
-        max: 1
-      - name: nav_mc_vel_xy_dterm_dyn_scale_min_at
-        field: navVelXyDtermDynScaleMinAt
+        max: 100
+      - name: nav_mc_vel_xy_dterm_attenuation_start
+        field: navVelXyDtermAttenuationStart
         min: 0
-        max: 1
-      - name: nav_mc_vel_xy_dterm_dyn_scale_max_at
-        field: navVelXyDtermDynScaleMaxAt
+        max: 100
+      - name: nav_mc_vel_xy_dterm_attenuation_end
+        field: navVelXyDtermAttenuationEnd
         min: 0
-        max: 1
+        max: 100
       - name: nav_fw_pos_z_p
         field: bank_fw.pid[PID_POS_Z].P
         condition: USE_NAV

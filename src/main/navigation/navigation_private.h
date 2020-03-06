@@ -363,11 +363,19 @@ typedef struct {
     float                       totalTripDistance;
 } navigationPosControl_t;
 
+typedef struct {
+    float dTermAttenuation;
+    float dTermAttenuationStart;
+    float dTermAttenuationEnd;
+    float breakingBoostFactor;
+} multicopterPosXyCoefficients_t;
+
 #if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE)
 PG_DECLARE_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList);
 #endif
 
 extern navigationPosControl_t posControl;
+extern multicopterPosXyCoefficients_t multicopterPosXyCoefficients;
 
 /* Internally used functions */
 const navEstimatedPosVel_t * navGetCurrentActualPositionAndVelocity(void);
