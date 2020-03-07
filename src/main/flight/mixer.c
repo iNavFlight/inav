@@ -68,6 +68,7 @@ static EXTENDED_FASTRAM int throttleDeadbandLow = 0;
 static EXTENDED_FASTRAM int throttleDeadbandHigh = 0;
 static EXTENDED_FASTRAM int throttleRangeMin = 0;
 static EXTENDED_FASTRAM int throttleRangeMax = 0;
+static EXTENDED_FASTRAM int8_t motorYawMultiplier = 1;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(reversibleMotorsConfig_t, reversibleMotorsConfig, PG_REVERSIBLE_MOTORS_CONFIG, 0);
 
@@ -77,10 +78,10 @@ PG_RESET_TEMPLATE(reversibleMotorsConfig_t, reversibleMotorsConfig,
     .neutral = 1460
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(mixerConfig_t, mixerConfig, PG_MIXER_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(mixerConfig_t, mixerConfig, PG_MIXER_CONFIG, 3);
 
 PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
-    .yaw_motor_direction = 1,
+    .motorDirectionInverted = 0,
     .platformType = PLATFORM_MULTIROTOR,
     .hasFlaps = false,
     .appliedMixerPreset = -1, //This flag is not available in CLI and used by Configurator only
@@ -252,6 +253,12 @@ void mixerInit(void)
         motorRateLimitingApplyFn = applyMotorRateLimiting;
     } else {
         motorRateLimitingApplyFn = nullMotorRateLimiting;
+    }
+
+    if (mixerConfig()->motorDirectionInverted) {
+        motorYawMultiplier = -1;
+    } else {
+        motorYawMultiplier = 1;
     }
 }
 
@@ -457,7 +464,7 @@ void FAST_CODE NOINLINE mixTable(const float dT)
         rpyMix[i] =
             (input[PITCH] * currentMixer[i].pitch +
             input[ROLL] * currentMixer[i].roll +
-            -mixerConfig()->yaw_motor_direction * input[YAW] * currentMixer[i].yaw) * mixerScale;
+            -motorYawMultiplier * input[YAW] * currentMixer[i].yaw) * mixerScale;
 
         if (rpyMix[i] > rpyMixMax) rpyMixMax = rpyMix[i];
         if (rpyMix[i] < rpyMixMin) rpyMixMin = rpyMix[i];

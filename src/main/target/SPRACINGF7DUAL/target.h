@@ -155,16 +155,6 @@
 #define SDCARD_SPI_BUS          BUS_SPI3
 #define SDCARD_CS_PIN           PC3
 
-// disabled for motor outputs 5-8:
-//#define USE_VTX_RTC6705
-//#define USE_VTX_RTC6705_SOFTSPI
-//#define VTX_RTC6705_OPTIONAL    // VTX/OSD board is OPTIONAL
-
-//#define RTC6705_SPI_MOSI_PIN                PB0  // Shared with PWM8
-//#define RTC6705_CS_PIN                      PB6  // Shared with PWM5
-//#define RTC6705_SPICLK_PIN                  PB1  // Shared with PWM7
-//#define RTC6705_POWER_PIN                   PB7  // Shared with PWM6
-
 #define GYRO_1_CS_PIN                       SPI1_NSS_PIN
 #define GYRO_1_SPI_INSTANCE                 BUS_SPI1
 #define GYRO_2_CS_PIN                       PB2

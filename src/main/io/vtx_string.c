@@ -25,8 +25,9 @@
 #include "platform.h"
 #include "build/debug.h"
 
-#define VTX_STRING_BAND_COUNT 5
-#define VTX_STRING_CHAN_COUNT 8
+#define VTX_STRING_BAND_COUNT  5
+#define VTX_STRING_CHAN_COUNT  8
+#define VTX_STRING_POWER_COUNT 5
 
 const uint16_t vtx58frequencyTable[VTX_STRING_BAND_COUNT][VTX_STRING_CHAN_COUNT] =
 {
@@ -50,6 +51,10 @@ const char vtx58BandLetter[VTX_STRING_BAND_COUNT + 1] = "-ABEFR";
 
 const char * const vtx58ChannelNames[VTX_STRING_CHAN_COUNT + 1] = {
     "-", "1", "2", "3", "4", "5", "6", "7", "8",
+};
+
+const char * const vtx58DefaultPowerNames[VTX_STRING_POWER_COUNT + 1] = {
+    "---", "PL1", "PL2", "PL3", "PL4", "PL5"
 };
 
 bool vtx58_Freq2Bandchan(uint16_t freq, uint8_t *pBand, uint8_t *pChannel)

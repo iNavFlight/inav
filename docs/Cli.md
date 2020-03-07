@@ -421,10 +421,10 @@ A shorter form is also supported to enable and disable functions using `serial <
 | dterm_lpf2_hz | 0   | Cutoff frequency for stage 2 D-term low pass filter |
 | dterm_lpf2_type | `BIQUAD` | Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation.  |
 |  yaw_lpf_hz  | 30 | Yaw low pass filter cutoff frequency. Should be disabled (set to `0`) on small multirotors (7 inches and below) |
-| dyn_notch_width_percent | 8   | Distance in % of the attenuated frequency for double dynamic filter notched. When set to `0` single dynamic notch filter is used |
-| dyn_notch_range   |   MEDIUM  | Dynamic gyro filter range. Possible values `LOW` `MEDIUM` `HIGH`. `MEDIUM` should work best for 5-6" multirotors. `LOW` should work best with 7" and bigger. `HIGH` should work with everything below 4" |
-| dyn_notch_q       | 120       | Q factor for dynamic notches |
-| dyn_notch_min_hz  | 150       | Minimum frequency for dynamic notches. Default value of `150` works best with 5" multirors. Should be lowered with increased size of propellers. Values around `100` work fine on 7" drones. 10" can go down to `60` - `70` |
+| dynamic_gyro_notch_enabled | `OFF`    | Enable/disable dynamic gyro notch also known as Matrix Filter |
+| dynamic_gyro_notch_range | `MEDIUM`   | Range for dynamic gyro notches. `MEDIUM` for 5", `HIGH` for 3" and `MEDIUM`/`LOW` for 7" and bigger propellers |
+| dynamic_gyro_notch_q | 120       | Q factor for dynamic notches |
+| dynamic_gyro_notch_min_hz  | 150       | Minimum frequency for dynamic notches. Default value of `150` works best with 5" multirors. Should be lowered with increased size of propellers. Values around `100` work fine on 7" drones. 10" can go down to `60` - `70` |
 |  gyro_stage2_lowpass_hz  | 0 | Software based second stage lowpass filter for gyro. Value is cutoff frequency (Hz) |
 |  gyro_stage2_lowpass_type  | `BIQUAD` | Defines the type of stage 2 gyro LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation. |
 | rpm_gyro_filter_enabled | `OFF`   | Enables gyro RPM filtere. Set to `ON` only when ESC telemetry is working and rotation speed of the motors is correctly reported to INAV |

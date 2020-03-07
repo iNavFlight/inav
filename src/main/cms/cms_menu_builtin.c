@@ -50,13 +50,6 @@
 #include "cms/cms_menu_battery.h"
 #include "cms/cms_menu_misc.h"
 
-// VTX supplied menus
-
-#include "cms/cms_menu_vtx_smartaudio.h"
-#include "cms/cms_menu_vtx_tramp.h"
-#include "cms/cms_menu_vtx_ffpv.h"
-
-
 // Info
 
 static char infoGitRev[GIT_SHORT_REVISION_LENGTH + 1];
@@ -111,19 +104,8 @@ static const OSD_Entry menuFeaturesEntries[] =
 #if defined(USE_NAV)
     OSD_SUBMENU_ENTRY("NAVIGATION", &cmsx_menuNavigation),
 #endif
-#if defined(VTX) || defined(USE_RTC6705)
-    OSD_SUBMENU_ENTRY("VTX", &cmsx_menuVtx),
-#endif // VTX || USE_RTC6705
 #if defined(USE_VTX_CONTROL)
-#if defined(USE_VTX_SMARTAUDIO)
-    OSD_SUBMENU_ENTRY("VTX SA", &cmsx_menuVtxSmartAudio),
-#endif
-#if defined(USE_VTX_TRAMP)
-    OSD_SUBMENU_ENTRY("VTX TR", &cmsx_menuVtxTramp),
-#endif
-#if defined(USE_VTX_FFPV)
-    OSD_SUBMENU_ENTRY("VTX FFPV", &cmsx_menuVtxFFPV),
-#endif
+    OSD_SUBMENU_ENTRY("VTX", &cmsx_menuVtxControl),
 #endif // VTX_CONTROL
 #ifdef USE_LED_STRIP
     OSD_SUBMENU_ENTRY("LED STRIP", &cmsx_menuLedstrip),
