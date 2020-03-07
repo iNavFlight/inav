@@ -669,6 +669,7 @@ void brainFpvRadarMap(void)
     }
 
     //===========================================================================================
+    // Draw Radar POI's
     for (uint8_t i = 0; i < RADAR_MAX_POIS; i++) {
         if (radar_pois[i].gps.lat == 0 || radar_pois[i].gps.lon == 0 || radar_pois[i].state >= 2) {
             // skip
@@ -711,6 +712,39 @@ void brainFpvRadarMap(void)
             draw_polygon_simple(x, y, direction, UAV_SYM, 4, 1);
         }
     }
+
+    //===========================================================================================
+    // Draw waypoints
+    for (uint8_t i = 1; i <= getWaypointCount(); i++) {
+    	navWaypoint_t wpData;
+        gpsLocation_t wpLLH;
+        fpVector3_t poi;
+
+        getWaypoint(i, &wpData);
+
+        wpLLH.lat = wpData.lat;
+        wpLLH.lon = wpData.lon;
+        wpLLH.alt = wpData.alt;
+
+        geoConvertGeodeticToLocalOrigin(&poi, &wpLLH, GEO_ALT_ABSOLUTE);
+
+        distance = calculateDistanceToDestination(&poi) / 100.f; // In meters
+
+        if (distance > (float)bfOsdConfig()->radar_max_dist_m) {
+            distance = bfOsdConfig()->radar_max_dist_m;
+        }
+
+        int16_t direction = CENTIDEGREES_TO_DEGREES(calculateBearingToDestination(&poi)) - DECIDEGREES_TO_DEGREES(attitude.values.yaw);
+        distance_px = MAP_MAX_DIST_PX * distance / (float)bfOsdConfig()->radar_max_dist_m;
+
+        x = GRAPHICS_X_MIDDLE + roundf(distance_px * sin_approx(DEGREES_TO_RADIANS(direction)));
+        y = GRAPHICS_Y_MIDDLE - roundf(distance_px * cos_approx(DEGREES_TO_RADIANS(direction)));
+
+        char buff[10];
+        tfp_sprintf(buff, "%d", i);
+        write_string(buff, x, y - 3, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
+    }
+
 }
 
 
