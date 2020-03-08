@@ -46,6 +46,11 @@ typedef enum {
 } throttleStatus_e;
 
 typedef enum {
+    THROTTLE_STATUS_TYPE_RC = 0,
+    THROTTLE_STATUS_TYPE_COMMAND
+} throttleStatusType_e;
+
+typedef enum {
     NOT_CENTERED = 0,
     CENTERED
 } rollPitchStatus_e;
@@ -100,7 +105,7 @@ bool checkStickPosition(stickPositions_e stickPos);
 
 bool areSticksInApModePosition(uint16_t ap_mode);
 bool areSticksDeflectedMoreThanPosHoldDeadband(void);
-throttleStatus_e calculateThrottleStatus(void);
+throttleStatus_e calculateThrottleStatus(throttleStatusType_e type);
 rollPitchStatus_e calculateRollPitchCenterStatus(void);
 void processRcStickPositions(throttleStatus_e throttleStatus);
 
