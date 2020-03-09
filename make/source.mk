@@ -277,3 +277,9 @@ endif
 
 # Search path and source files for the ST stdperiph library
 VPATH        := $(VPATH):$(STDPERIPH_DIR)/src
+
+NORMAL_OPTIMISED_SRC := ""
+NORMAL_OPTIMISED_SRC := $(NORMAL_OPTIMISED_SRC) \
+            ./src/main/common/filter.c \
+            ./src/main/sensors/gyro.c \
+            ./src/main/common/maths.c \
