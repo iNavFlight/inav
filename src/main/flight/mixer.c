@@ -138,7 +138,7 @@ static void computeMotorCount(void)
     }
 }
 
-uint8_t FAST_CODE NOINLINE getMotorCount(void) {
+uint8_t getMotorCount(void) {
     return motorCount;
 }
 

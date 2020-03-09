@@ -159,7 +159,7 @@ int constrain(int amt, int low, int high)
         return amt;
 }
 
-float FAST_CODE NOINLINE constrainf(float amt, float low, float high)
+float constrainf(float amt, float low, float high)
 {
     if (amt < low)
         return low;
