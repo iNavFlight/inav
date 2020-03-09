@@ -470,6 +470,7 @@ void updatePIDCoefficients()
 #ifdef USE_ANTIGRAVITY
     if (usedPidControllerType == PID_TYPE_PID) {
         antigravityThrottleHpf = rcCommand[THROTTLE] - pt1FilterApply(&antigravityThrottleLpf, rcCommand[THROTTLE]);
+        iTermAntigravityGain = scaleRangef(fabsf(antigravityThrottleHpf) * antigravityAccelerator, 0.0f, 1000.0f, 1.0f, antigravityGain);    
     }
 #endif
 
@@ -1008,10 +1009,6 @@ void FAST_CODE NOINLINE pidController(float dT)
 
     // Prevent strong Iterm accumulation during stick inputs
     antiWindupScaler = constrainf((1.0f - getMotorMixRange()) / motorItermWindupPoint, 0.0f, 1.0f);
-
-#ifdef USE_ANTIGRAVITY
-    iTermAntigravityGain = scaleRangef(fabsf(antigravityThrottleHpf) * antigravityAccelerator, 0.0f, 1000.0f, 1.0f, antigravityGain);    
-#endif
 
     for (int axis = 0; axis < 3; axis++) {
         // Apply setpoint rate of change limits
