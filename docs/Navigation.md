@@ -66,7 +66,9 @@ Parameters:
   
   * `<alt>` - Altitude in cm.
   
-  * `<p1>` - For a "RTH waypoint" p1 > 0 alow landing. For a normal waypoint it means speed to this waypoint, it is taken into account only for multicopters and when > 50 and < nav_auto_speed.
+  * `<p1>` - For a "RTH waypoint" p1 > 0 alow landing. For a normal waypoint it means speed to this waypoint, it is taken into account only for multicopters and when > 50 and < nav_auto_speed. For POSHOLD TIME waypoint it is time time to wait in seconds.
+  
+  * `<p2>` - For a POSHOLD TIME it means speed to this waypoint, it is taken into account only for multicopters and when > 50 and < nav_auto_speed.
   
   * `<flag>` - Last waypoint must have set `flag` to 165 (0xA5), otherwise 0.
   
