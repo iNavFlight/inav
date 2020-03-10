@@ -106,7 +106,7 @@ void resetFixedWingLaunchController(timeUs_t currentTimeUs)
     launchState.motorControlAllowed = false;
 }
 
-bool FAST_CODE isFixedWingLaunchDetected(void)
+bool isFixedWingLaunchDetected(void)
 {
     return launchState.launchDetected;
 }
@@ -117,7 +117,7 @@ void enableFixedWingLaunchController(timeUs_t currentTimeUs)
     launchState.motorControlAllowed = true;
 }
 
-bool FAST_CODE isFixedWingLaunchFinishedOrAborted(void)
+bool isFixedWingLaunchFinishedOrAborted(void)
 {
     return launchState.launchFinished;
 }
