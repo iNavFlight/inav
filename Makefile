@@ -301,14 +301,18 @@ $(TARGET_ELF): $(TARGET_OBJS)
 	$(V0) $(SIZE) $(TARGET_ELF)
 
 define compile_file
-	echo "%% ($(1)) $<" "$(STDOUT)" && \
+	echo "%% $(1) $<" "$(STDOUT)" && \
 	$(CROSS_CC) -c -o $@ $(CFLAGS) $(2) $<
 endef
 
 ifneq ($(TARGET),$(filter $(TARGET),$(F3_TARGETS)))
-
+	OPTIMIZE_FLAG_SPEED = -Ofast
+	OPTIMIZE_FLAG_SIZE = -Os
+	OPTIMIZE_FLAG_NORMAL = -O2
 else
-
+	OPTIMIZE_FLAG_SPEED = -Os
+	OPTIMIZE_FLAG_SIZE = -Os
+	OPTIMIZE_FLAG_NORMAL = -Os
 endif
 
 # Compile
@@ -316,12 +320,12 @@ $(TARGET_OBJ_DIR)/%.o: %.c
 	$(V1) mkdir -p $(dir $@)
 
 	$(V1) $(if $(findstring $<,$(SIZE_OPTIMISED_SRC)), \
-		$(call compile_file,(size),$(CC_NO_OPTIMISATION)) \
+		$(call compile_file,(size),$(OPTIMIZE_FLAG_SIZE)) \
 	, \
-		$(if $(findstring $(subst ./src/main/,,$<),$(SPEED_OPTIMISED_SRC)), \
-			$(call compile_file,(speed)),$(CC_SPEED_OPTIMISATION)) \
+		$(if $(findstring $<,$(SPEED_OPTIMISED_SRC)), \
+			$(call compile_file,(speed),$(OPTIMIZE_FLAG_SPEED)) \
 		, \
-			$(call compile_file,,$(CC_SIZE_OPTIMISATION)) \
+			$(call compile_file,,$(OPTIMIZE_FLAG_NORMAL)) \
 		) \
 	)
 ifeq ($(GENERATE_ASM), 1)

@@ -281,9 +281,9 @@ SIZE_OPTIMISED_SRC := ""
 SPEED_OPTIMISED_SRC := ""
 ifneq ($(TARGET),$(filter $(TARGET),$(F3_TARGETS)))
 # SIZE_OPTIMISED_SRC := $(SIZE_OPTIMISED_SRC) \
-#             ./src/main/common/filter.c \
+            # ./src/main/common/filter.c \
 
 # SPEED_OPTIMISED_SRC := $(SPEED_OPTIMISED_SRC) \
-#             ./src/main/common/filter.c \
+            # ./src/main/common/maths.c \
 
 endif #!F3
