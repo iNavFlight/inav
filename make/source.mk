@@ -268,7 +268,6 @@ TARGET_SRC += $(DSP_LIB)/Source/TransformFunctions/arm_cfft_f32.c
 TARGET_SRC += $(DSP_LIB)/Source/TransformFunctions/arm_rfft_fast_init_f32.c
 TARGET_SRC += $(DSP_LIB)/Source/TransformFunctions/arm_cfft_radix8_f32.c
 TARGET_SRC += $(DSP_LIB)/Source/CommonTables/arm_common_tables.c
-
 TARGET_SRC += $(DSP_LIB)/Source/ComplexMathFunctions/arm_cmplx_mag_f32.c
 TARGET_SRC += $(DSP_LIB)/Source/StatisticsFunctions/arm_max_f32.c
 
@@ -278,11 +277,13 @@ endif
 # Search path and source files for the ST stdperiph library
 VPATH        := $(VPATH):$(STDPERIPH_DIR)/src
 
-NORMAL_OPTIMISED_SRC := ""
+SIZE_OPTIMISED_SRC := ""
+SPEED_OPTIMISED_SRC := ""
 ifneq ($(TARGET),$(filter $(TARGET),$(F3_TARGETS)))
-# NORMAL_OPTIMISED_SRC := $(NORMAL_OPTIMISED_SRC) \
+# SIZE_OPTIMISED_SRC := $(SIZE_OPTIMISED_SRC) \
 #             ./src/main/common/filter.c \
-#             ./src/main/sensors/gyro.c \
-#             ./src/main/common/maths.c \
+
+# SPEED_OPTIMISED_SRC := $(SPEED_OPTIMISED_SRC) \
+#             ./src/main/common/filter.c \
 
 endif #!F3
