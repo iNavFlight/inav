@@ -202,7 +202,7 @@ groups:
       - name: dynamic_gyro_notch_min_hz
         field: dynamicGyroNotchMinHz
         condition: USE_DYNAMIC_FILTERS
-        min: 60
+        min: 30
         max: 1000
       - name: gyro_to_use
         condition: USE_DUAL_GYRO
@@ -885,7 +885,7 @@ groups:
       - name: rpm_gyro_min_hz
         field: gyro_min_hz
         type: uint8_t
-        min: 50
+        min: 30
         max: 200
       - name: rpm_gyro_q
         field: gyro_q
