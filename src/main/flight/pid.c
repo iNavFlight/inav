@@ -574,7 +574,7 @@ static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float h
 }
 
 /* Apply angular acceleration limit to rate target to limit extreme stick inputs to respect physical capabilities of the machine */
-static void FAST_CODE pidApplySetpointRateLimiting(pidState_t *pidState, flight_dynamics_index_t axis, float dT)
+static void pidApplySetpointRateLimiting(pidState_t *pidState, flight_dynamics_index_t axis, float dT)
 {
     const uint32_t axisAccelLimit = (axis == FD_YAW) ? pidProfile()->axisAccelerationLimitYaw : pidProfile()->axisAccelerationLimitRollPitch;
 
@@ -596,7 +596,7 @@ bool isFixedWingItermLimitActive(float stickPosition)
     return fabsf(stickPosition) > pidProfile()->fixedWingItermLimitOnStickPosition;
 }
 
-static FAST_CODE NOINLINE float pTermProcess(pidState_t *pidState, float rateError, float dT) {
+static float pTermProcess(pidState_t *pidState, float rateError, float dT) {
     float newPTerm = rateError * pidState->kP;
 
     return pidState->ptermFilterApplyFn(&pidState->ptermLpfState, newPTerm, yawLpfHz, dT);
@@ -940,7 +940,7 @@ static void pidApplyFpvCameraAngleMix(pidState_t *pidState, uint8_t fpvCameraAng
     pidState[YAW].rateTarget = constrainf(yawRate * cosCameraAngle + rollRate * sinCameraAngle, -GYRO_SATURATION_LIMIT, GYRO_SATURATION_LIMIT);
 }
 
-void FAST_CODE checkItermLimitingActive(pidState_t *pidState)
+void checkItermLimitingActive(pidState_t *pidState)
 {
     bool shouldActivate;
     if (usedPidControllerType == PID_TYPE_PIFF) {
@@ -953,7 +953,7 @@ void FAST_CODE checkItermLimitingActive(pidState_t *pidState)
     pidState->itermLimitActive = STATE(ANTI_WINDUP) || shouldActivate; 
 }
 
-void FAST_CODE NOINLINE pidController(float dT)
+void FAST_CODE pidController(float dT)
 {
     if (!pidFiltersConfigured) {
         return;
@@ -1119,9 +1119,9 @@ void pidInit(void)
     }
 }
 
-const pidBank_t FAST_CODE NOINLINE * pidBank(void) { 
+const pidBank_t * pidBank(void) { 
     return usedPidControllerType == PID_TYPE_PIFF ? &pidProfile()->bank_fw : &pidProfile()->bank_mc; 
 }
-pidBank_t FAST_CODE NOINLINE * pidBankMutable(void) { 
+pidBank_t * pidBankMutable(void) { 
     return usedPidControllerType == PID_TYPE_PIFF ? &pidProfileMutable()->bank_fw : &pidProfileMutable()->bank_mc;
 }

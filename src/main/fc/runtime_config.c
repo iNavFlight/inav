@@ -80,7 +80,7 @@ uint32_t disableFlightMode(flightModeFlags_e mask)
     return flightModeFlags;
 }
 
-bool FAST_CODE NOINLINE sensors(uint32_t mask)
+bool sensors(uint32_t mask)
 {
     return enabledSensors & mask;
 }
