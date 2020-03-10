@@ -953,7 +953,7 @@ void checkItermLimitingActive(pidState_t *pidState)
     pidState->itermLimitActive = STATE(ANTI_WINDUP) || shouldActivate; 
 }
 
-void pidController(float dT)
+void FAST_CODE pidController(float dT)
 {
     if (!pidFiltersConfigured) {
         return;
