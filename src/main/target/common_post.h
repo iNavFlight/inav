@@ -63,19 +63,13 @@
 
 //Defines for compiler optimizations
 #ifndef STM32F3
-#define OPTIMIZE_SPEED "-Ofast"
-#define OPTIMIZE_NORMAL "-O2"
-#define OPTIMIZE_SIZE "-Os"
-#define FUNCTION_COMPILE_FOR_SIZE __attribute__((optimize(OPTIMIZE_SIZE)))
-#define FUNCTION_COMPILE_NORMAL __attribute__((optimize(OPTIMIZE_NORMAL)))
-#define FUNCTION_COMPILE_FOR_SIZE __attribute__((optimize(OPTIMIZE_SPEED)))
+#define FUNCTION_COMPILE_FOR_SIZE __attribute__((optimize("-Os")))
+#define FUNCTION_COMPILE_NORMAL __attribute__((optimize("-O2")))
+#define FUNCTION_COMPILE_FOR_SIZE __attribute__((optimize("-Ofast")))
 #define FILE_COMPILE_FOR_SIZE _Pragma("GCC optimize(\"Os\")")
 #define FILE_COMPILE_NORMAL _Pragma("GCC optimize(\"O2\")")
 #define FILE_COMPILE_FOR_SPEED _Pragma("GCC optimize(\"Ofast\")")
 #else
-#define OPTIMIZE_SIZE
-#define OPTIMIZE_NORMAL
-#define OPTIMIZE_SPEED
 #define FUNCTION_COMPILE_FOR_SIZE
 #define FUNCTION_COMPILE_NORMAL
 #define FUNCTION_COMPILE_FOR_SIZE
