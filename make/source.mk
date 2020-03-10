@@ -279,7 +279,10 @@ endif
 VPATH        := $(VPATH):$(STDPERIPH_DIR)/src
 
 NORMAL_OPTIMISED_SRC := ""
-NORMAL_OPTIMISED_SRC := $(NORMAL_OPTIMISED_SRC) \
-            ./src/main/common/filter.c \
-            ./src/main/sensors/gyro.c \
-            ./src/main/common/maths.c \
+ifneq ($(TARGET),$(filter $(TARGET),$(F3_TARGETS)))
+# NORMAL_OPTIMISED_SRC := $(NORMAL_OPTIMISED_SRC) \
+#             ./src/main/common/filter.c \
+#             ./src/main/sensors/gyro.c \
+#             ./src/main/common/maths.c \
+
+endif #!F3
