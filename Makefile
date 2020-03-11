@@ -178,8 +178,7 @@ ifeq ($(DEBUG),GDB)
 OPTIMIZE    = -O0
 LTO_FLAGS   = $(OPTIMIZE)
 else
-OPTIMIZE    = -Os
-LTO_FLAGS   = -flto -fuse-linker-plugin $(OPTIMIZE)
+LTO_FLAGS   = -flto -fuse-linker-plugin
 endif
 
 ifneq ($(SEMIHOSTING),)
@@ -301,15 +300,37 @@ $(TARGET_ELF): $(TARGET_OBJS)
 	$(V1) $(CROSS_CC) -o $@ $(filter %.o, $^) $(LDFLAGS)
 	$(V0) $(SIZE) $(TARGET_ELF)
 
+define compile_file
+	echo "%% $(1) $<" "$(STDOUT)" && \
+	$(CROSS_CC) -c -o $@ $(CFLAGS) $(2) $<
+endef
+
+ifneq ($(TARGET),$(filter $(TARGET),$(F3_TARGETS)))
+	OPTIMIZE_FLAG_SPEED = -Ofast
+	OPTIMIZE_FLAG_SIZE = -Os
+	OPTIMIZE_FLAG_NORMAL = -O2
+else
+	OPTIMIZE_FLAG_SPEED = -Os
+	OPTIMIZE_FLAG_SIZE = -Os
+	OPTIMIZE_FLAG_NORMAL = -Os
+endif
+
 # Compile
 $(TARGET_OBJ_DIR)/%.o: %.c
 	$(V1) mkdir -p $(dir $@)
-	$(V1) echo %% $(notdir $<) "$(STDOUT)"
-	$(V1) $(CROSS_CC) -c -o $@ $(CFLAGS) $<
+
+	$(V1) $(if $(findstring $<,$(SIZE_OPTIMISED_SRC)), \
+		$(call compile_file,(size),$(OPTIMIZE_FLAG_SIZE)) \
+	, \
+		$(if $(findstring $<,$(SPEED_OPTIMISED_SRC)), \
+			$(call compile_file,(speed),$(OPTIMIZE_FLAG_SPEED)) \
+		, \
+			$(call compile_file,,$(OPTIMIZE_FLAG_NORMAL)) \
+		) \
+	)
 ifeq ($(GENERATE_ASM), 1)
 	$(V1) $(CROSS_CC) -S -fverbose-asm -Wa,-aslh -o $(patsubst %.o,%.txt.S,$@) -g $(ASM_CFLAGS) $<
 endif
-
 
 # Assemble
 $(TARGET_OBJ_DIR)/%.o: %.s
