@@ -1279,7 +1279,7 @@ static void cliTempSensor(char *cmdline)
 static void printWaypoints(uint8_t dumpMask, const navWaypoint_t *navWaypoint, const navWaypoint_t *defaultNavWaypoint)
 {
     cliPrintLinef("#wp %d %svalid", posControl.waypointCount, posControl.waypointListValid ? "" : "in"); //int8_t bool
-    const char *format = "wp %u %u %d %d %d %d %u"; //uint8_t action; int32_t lat; int32_t lon; int32_t alt; int16_t p1; uint8_t flag
+    const char *format = "wp %u %u %d %d %d %d %d %d %u"; //uint8_t action; int32_t lat; int32_t lon; int32_t alt; int16_t p1 int16_t p2 int16_t p3; uint8_t flag
     for (uint8_t i = 0; i < NAV_MAX_WAYPOINTS; i++) {
         bool equalsDefault = false;
         if (defaultNavWaypoint) {
@@ -1288,6 +1288,8 @@ static void printWaypoints(uint8_t dumpMask, const navWaypoint_t *navWaypoint, c
                 && navWaypoint[i].lon == defaultNavWaypoint[i].lon
                 && navWaypoint[i].alt == defaultNavWaypoint[i].alt
                 && navWaypoint[i].p1 == defaultNavWaypoint[i].p1
+                && navWaypoint[i].p2 == defaultNavWaypoint[i].p2
+                && navWaypoint[i].p3 == defaultNavWaypoint[i].p3
                 && navWaypoint[i].flag == defaultNavWaypoint[i].flag;
             cliDefaultPrintLinef(dumpMask, equalsDefault, format,
                 i,
@@ -1296,6 +1298,8 @@ static void printWaypoints(uint8_t dumpMask, const navWaypoint_t *navWaypoint, c
                 defaultNavWaypoint[i].lon,
                 defaultNavWaypoint[i].alt,
                 defaultNavWaypoint[i].p1,
+                defaultNavWaypoint[i].p2,
+                defaultNavWaypoint[i].p3,
                 defaultNavWaypoint[i].flag
             );
         }
@@ -1306,6 +1310,8 @@ static void printWaypoints(uint8_t dumpMask, const navWaypoint_t *navWaypoint, c
             navWaypoint[i].lon,
             navWaypoint[i].alt,
             navWaypoint[i].p1,
+            navWaypoint[i].p2,
+            navWaypoint[i].p3,
             navWaypoint[i].flag
         );
     }
@@ -1322,7 +1328,7 @@ static void cliWaypoints(char *cmdline)
     } else if (sl_strcasecmp(cmdline, "save") == 0) {
         posControl.waypointListValid = false;
         for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {
-            if (!(posControl.waypointList[i].action == NAV_WP_ACTION_WAYPOINT || posControl.waypointList[i].action == NAV_WP_ACTION_JUMP || posControl.waypointList[i].action == NAV_WP_ACTION_RTH || posControl.waypointList[i].action == NAV_WP_ACTION_HOLD_TIME)) break;
+            if (!(posControl.waypointList[i].action == NAV_WP_ACTION_WAYPOINT || posControl.waypointList[i].action == NAV_WP_ACTION_JUMP || posControl.waypointList[i].action == NAV_WP_ACTION_RTH || posControl.waypointList[i].action == NAV_WP_ACTION_HOLD_TIME/*||posControl.waypointList[i].action == NAV_WP_ACTION_LAND*/)) break;
             if (posControl.waypointList[i].flag == NAV_WP_FLAG_LAST) {
                 posControl.waypointCount = i + 1;
                 posControl.waypointListValid = true;
@@ -1335,7 +1341,7 @@ static void cliWaypoints(char *cmdline)
             cliShowParseError();
         }
     } else {
-        int16_t i, p1;
+        int16_t i, p1,p2=0,p3=0,tmp;
         uint8_t action, flag;
         int32_t lat, lon, alt;
         uint8_t validArgumentCount = 0;
@@ -1369,12 +1375,29 @@ static void cliWaypoints(char *cmdline)
             }
             ptr = nextArg(ptr);
             if (ptr) {
-                flag = fastA2I(ptr);
+                tmp = fastA2I(ptr);
                 validArgumentCount++;
             }
-            if (validArgumentCount < 4) {
+                /* We support pre-2.5 6 values (... p1,flags) or
+                 *  2.5 and later, 8 values (... p1,p2,p3,flags)
+                 */
+            ptr = nextArg(ptr);
+            if (ptr) {
+                p2 = tmp;
+                p3 = fastA2I(ptr);
+                validArgumentCount++;
+                ptr = nextArg(ptr);
+                 if (ptr) {
+                    flag = fastA2I(ptr);
+                    validArgumentCount++;
+                }
+            } else {
+                flag = tmp;
+            }
+
+            if (!(validArgumentCount == 6 || validArgumentCount == 8)) {
                 cliShowParseError();
-            } else if (!(action == 0 || action == NAV_WP_ACTION_WAYPOINT || action == NAV_WP_ACTION_RTH || action == NAV_WP_ACTION_HOLD_TIME) || (p1 < 0) || !(flag == 0 || flag == NAV_WP_FLAG_LAST)) {
+            } else if (!(action == 0 || action == NAV_WP_ACTION_WAYPOINT || action == NAV_WP_ACTION_RTH || action == NAV_WP_ACTION_HOLD_TIME || action == NAV_WP_ACTION_JUMP /*|| action == NAV_WP_ACTION_LAND*/) || (p1 < 0) || !(flag == 0 || flag == NAV_WP_FLAG_LAST)) {
                 cliShowParseError();
             } else {
                 posControl.waypointList[i].action = action;
@@ -1382,6 +1405,8 @@ static void cliWaypoints(char *cmdline)
                 posControl.waypointList[i].lon = lon;
                 posControl.waypointList[i].alt = alt;
                 posControl.waypointList[i].p1 = p1;
+                posControl.waypointList[i].p2 = p2;
+                posControl.waypointList[i].p3 = p3;
                 posControl.waypointList[i].flag = flag;
             }
         } else {
