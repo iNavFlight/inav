@@ -197,6 +197,10 @@ static void setupAltitudeController(void);
 static void resetHeadingController(void);
 void resetGCSFlags(void);
 
+static void setupJumpCounters(void);
+static void resetJumpCounter(void);
+static void clearJumpCounters(void);
+
 static void calculateAndSetActiveWaypoint(const navWaypoint_t * waypoint);
 static void calculateAndSetActiveWaypointToLocalPosition(const fpVector3_t * pos);
 void calculateInitialHoldPosition(fpVector3_t * pos);
@@ -1364,7 +1368,6 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_FINISHED(navigation
 
     // Prevent I-terms growing when already landed
     pidResetErrorAccumulators();
-
     return NAV_FSM_EVENT_NONE;
 }
 
@@ -1382,7 +1385,11 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_INITIALIZE(nav
         // Make sure surface tracking is not enabled - RTH uses global altitude, not AGL
         resetAltitudeController(false);
         setupAltitudeController();
-
+/*
+  Use p3 as the volatile jump counter, allowing embedded, rearmed jumps
+  Using p3 minimises the risk of saving an invalid counter if a mission is aborted.
+*/
+        setupJumpCounters();
         posControl.activeWaypointIndex = 0;
         return NAV_FSM_EVENT_SUCCESS;   // will switch to NAV_STATE_WAYPOINT_PRE_ACTION
     }
@@ -1401,9 +1408,11 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
             posControl.wpInitialAltitude = posControl.actualState.abs.pos.z;
             return NAV_FSM_EVENT_SUCCESS;       // will switch to NAV_STATE_WAYPOINT_IN_PROGRESS
 
+                // We use p3 as the volatile jump counter (p2 is the static value)
         case NAV_WP_ACTION_JUMP:
-            if(posControl.waypointList[posControl.activeWaypointIndex].p2 != -1){
-                if(posControl.waypointList[posControl.activeWaypointIndex].p2 == 0){
+            if(posControl.waypointList[posControl.activeWaypointIndex].p3 != -1){
+                if(posControl.waypointList[posControl.activeWaypointIndex].p3 == 0){
+                    resetJumpCounter();
                     const bool isLastWaypoint = (posControl.waypointList[posControl.activeWaypointIndex].flag == NAV_WP_FLAG_LAST) ||
                           (posControl.activeWaypointIndex >= (posControl.waypointCount - 1));
 
@@ -1418,7 +1427,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
                 }
                 else
                 {
-                    posControl.waypointList[posControl.activeWaypointIndex].p2--;
+                    posControl.waypointList[posControl.activeWaypointIndex].p3--;
                 }
             }
 
@@ -1565,6 +1574,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_FINISHED(navig
 {
     UNUSED(previousState);
 
+    clearJumpCounters();
     // If no position sensor available - land immediately
     if ((posControl.flags.estPosStatus >= EST_USABLE) && (posControl.flags.estHeadingStatus >= EST_USABLE)) {
         return NAV_FSM_EVENT_NONE;
@@ -2545,6 +2555,36 @@ static bool adjustAltitudeFromRCInput(void)
 }
 
 /*-----------------------------------------------------------
+ * Jump Counter support functions
+ *-----------------------------------------------------------*/
+static void setupJumpCounters(void)
+{
+    for (uint8_t wp = 0; wp < posControl.waypointCount ; wp++) {
+        if (posControl.waypointList[wp].action == NAV_WP_ACTION_JUMP){
+            posControl.waypointList[wp].p3 = posControl.waypointList[wp].p2;
+        }
+    }
+}
+
+static void resetJumpCounter(void)
+{
+        // reset the volatile counter from the set / static value
+    posControl.waypointList[posControl.activeWaypointIndex].p3 =
+        posControl.waypointList[posControl.activeWaypointIndex].p2;
+}
+
+static void clearJumpCounters(void)
+{
+    for (uint8_t wp = 0; wp < posControl.waypointCount ; wp++) {
+        if (posControl.waypointList[wp].action == NAV_WP_ACTION_JUMP) {
+            posControl.waypointList[wp].p3 = 0;
+        }
+    }
+}
+
+
+
+/*-----------------------------------------------------------
  * Heading controller (pass-through to MAG mode)
  *-----------------------------------------------------------*/
 static void resetHeadingController(void)
@@ -3170,13 +3210,13 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
 
     // Don't allow arming if any of JUMP waypoint has invalid settings
     if (posControl.waypointCount > 0) {
-    for (uint8_t wp = 0; wp < posControl.waypointCount ; wp++){
-       if (posControl.waypointList[wp].action == NAV_WP_ACTION_JUMP){
-           if((posControl.waypointList[wp].p1 > posControl.waypointCount) || (posControl.waypointList[wp].p2 < -1)){
-               return NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR;
+        for (uint8_t wp = 0; wp < posControl.waypointCount ; wp++){
+            if (posControl.waypointList[wp].action == NAV_WP_ACTION_JUMP){
+                if((posControl.waypointList[wp].p1 > posControl.waypointCount) || (posControl.waypointList[wp].p2 < -1)){
+                    return NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR;
+                }
             }
         }
-    }
     }
 
     return NAV_ARMING_BLOCKER_NONE;
@@ -3313,7 +3353,7 @@ void navigationUsePIDs(void)
                                         0.0f,
                                         NAV_DTERM_CUT_HZ
     );
-    
+
     navPidInit(&posControl.pids.fw_heading, (float)pidProfile()->bank_fw.pid[PID_POS_HEADING].P / 10.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_HEADING].I / 10.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_HEADING].D / 100.0f,
