@@ -655,10 +655,10 @@ void init(void)
 
 #ifdef USE_RPM_FILTER
     disableRpmFilters();
-    // if (STATE(ESC_SENSOR_ENABLED) && (rpmFilterConfig()->gyro_filter_enabled || rpmFilterConfig()->dterm_filter_enabled)) {
+    if (STATE(ESC_SENSOR_ENABLED) && (rpmFilterConfig()->gyro_filter_enabled || rpmFilterConfig()->dterm_filter_enabled)) {
         rpmFiltersInit();
         setTaskEnabled(TASK_RPM_FILTER, true);
-    // }
+    }
 #endif
 
     systemState |= SYSTEM_STATE_READY;
