@@ -85,7 +85,7 @@ void updateBoardAlignment(int16_t roll, int16_t pitch)
     initBoardAlignment();
 }
 
-void FAST_CODE applyBoardAlignment(int32_t *vec)
+void applyBoardAlignment(int32_t *vec)
 {
     if (standardBoardAlignment) {
         return;
