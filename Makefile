@@ -175,8 +175,7 @@ SIZE        = $(ARM_SDK_PREFIX)size
 #
 
 ifeq ($(DEBUG),GDB)
-OPTIMIZE    = -O0
-LTO_FLAGS   = $(OPTIMIZE)
+LTO_FLAGS   = 
 else
 LTO_FLAGS   = -flto -fuse-linker-plugin
 endif
@@ -300,20 +299,20 @@ $(TARGET_ELF): $(TARGET_OBJS)
 	$(V1) $(CROSS_CC) -o $@ $(filter %.o, $^) $(LDFLAGS)
 	$(V0) $(SIZE) $(TARGET_ELF)
 
+OPTIMIZE_FLAG_SPEED := "-Os"
+OPTIMIZE_FLAG_SIZE := "-Os"
+OPTIMIZE_FLAG_NORMAL := "-Os"
+
+ifneq ($(TARGET_MCU_GROUP), STM32F3)
+	OPTIMIZE_FLAG_SPEED := "-Ofast"
+	OPTIMIZE_FLAG_SIZE := "-Os"
+	OPTIMIZE_FLAG_NORMAL := "-O2"
+endif
+
 define compile_file
-	echo "%% $(1) $<" "$(STDOUT)" && \
+	echo "%% $(1) $(2) $<" "$(STDOUT)" && \
 	$(CROSS_CC) -c -o $@ $(CFLAGS) $(2) $<
 endef
-
-ifneq ($(TARGET),$(filter $(TARGET),$(F3_TARGETS)))
-	OPTIMIZE_FLAG_SPEED = -Ofast
-	OPTIMIZE_FLAG_SIZE = -Os
-	OPTIMIZE_FLAG_NORMAL = -O2
-else
-	OPTIMIZE_FLAG_SPEED = -Os
-	OPTIMIZE_FLAG_SIZE = -Os
-	OPTIMIZE_FLAG_NORMAL = -Os
-endif
 
 # Compile
 $(TARGET_OBJ_DIR)/%.o: %.c
@@ -325,7 +324,7 @@ $(TARGET_OBJ_DIR)/%.o: %.c
 		$(if $(findstring $<,$(SPEED_OPTIMISED_SRC)), \
 			$(call compile_file,(speed),$(OPTIMIZE_FLAG_SPEED)) \
 		, \
-			$(call compile_file,,$(OPTIMIZE_FLAG_NORMAL)) \
+			$(call compile_file,(normal),$(OPTIMIZE_FLAG_NORMAL)) \
 		) \
 	)
 ifeq ($(GENERATE_ASM), 1)
