@@ -74,7 +74,7 @@ PG_REGISTER_WITH_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig, PG_RC_CONT
 PG_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig,
     .deadband = 5,
     .yaw_deadband = 5,
-    .pos_hold_deadband = 20,
+    .pos_hold_deadband = 10,
     .alt_hold_deadband = 50,
     .mid_throttle_deadband = 50,
     .airmodeHandlingType = STICK_CENTER,

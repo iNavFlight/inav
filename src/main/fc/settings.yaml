@@ -933,7 +933,7 @@ groups:
         min: 0
         max: 100
       - name: pos_hold_deadband
-        min: 10
+        min: 2
         max: 250
       - name: alt_hold_deadband
         min: 10
