@@ -23,6 +23,8 @@
 
 #include "platform.h"
 
+FILE_COMPILE_FOR_SPEED
+
 #include "blackbox/blackbox.h"
 
 #include "build/build_config.h"
@@ -631,7 +633,7 @@ void imuCheckVibrationLevels(void)
     // DEBUG_VIBE values 4-7 are used by NAV estimator
 }
 
-void FAST_CODE NOINLINE imuUpdateAttitude(timeUs_t currentTimeUs)
+void imuUpdateAttitude(timeUs_t currentTimeUs)
 {
     /* Calculate dT */
     static timeUs_t previousIMUUpdateTimeUs;

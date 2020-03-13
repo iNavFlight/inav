@@ -21,6 +21,8 @@
 
 #include "platform.h"
 
+FILE_COMPILE_FOR_SPEED
+
 #include "build/debug.h"
 
 #include "common/axis.h"
@@ -290,7 +292,7 @@ void mixerResetDisarmedMotors(void)
     }
 }
 
-static FAST_CODE NOINLINE uint16_t handleOutputScaling(
+static uint16_t handleOutputScaling(
     int16_t input,          // Input value from the mixer
     int16_t stopThreshold,  // Threshold value to check if motor should be rotating or not
     int16_t onStopValue,    // Value sent to the ESC when min rotation is required - on motor_stop it is STOP command, without motor_stop it's a value that keeps rotation
@@ -318,7 +320,7 @@ static FAST_CODE NOINLINE uint16_t handleOutputScaling(
     return value;
 }
 
-void FAST_CODE NOINLINE writeMotors(void)
+void FAST_CODE writeMotors(void)
 {
     for (int i = 0; i < motorCount; i++) {
         uint16_t motorValue;
@@ -438,7 +440,7 @@ static int getReversibleMotorsThrottleDeadband(void)
     return feature(FEATURE_MOTOR_STOP) ? reversibleMotorsConfig()->neutral : directionValue;
 }
 
-void FAST_CODE NOINLINE mixTable(const float dT)
+void FAST_CODE mixTable(const float dT)
 {
     int16_t input[3];   // RPY, range [-500:+500]
     // Allow direct stick input to motors in passthrough mode on airplanes
