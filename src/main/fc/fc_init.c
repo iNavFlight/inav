@@ -536,13 +536,6 @@ void init(void)
     }
 #endif
 
-#if defined(USE_MSP_DISPLAYPORT) && defined(USE_CMS)
-    // If OSD is not active, then register MSP_DISPLAYPORT as a CMS device.
-    if (!osdDisplayPort) {
-        cmsDisplayPortRegister(displayPortMspInit());
-    }
-#endif
-
 #ifdef USE_UAV_INTERCONNECT
     uavInterconnectBusInit();
 #endif
