@@ -139,9 +139,11 @@ typedef enum {
 
     NAV_FSM_EVENT_STATE_SPECIFIC_1,             // State-specific event
     NAV_FSM_EVENT_STATE_SPECIFIC_2,             // State-specific event
+    NAV_FSM_EVENT_STATE_SPECIFIC_3,             // State-specific event
     NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING = NAV_FSM_EVENT_STATE_SPECIFIC_1,
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_RTH_LAND = NAV_FSM_EVENT_STATE_SPECIFIC_1,
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_FINISHED = NAV_FSM_EVENT_STATE_SPECIFIC_2,
+    NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_HOLD_TIME = NAV_FSM_EVENT_STATE_SPECIFIC_3,
 
     NAV_FSM_EVENT_SWITCH_TO_CRUISE_2D,
     NAV_FSM_EVENT_SWITCH_TO_CRUISE_3D,
@@ -200,6 +202,8 @@ typedef enum {
     NAV_PERSISTENT_ID_CRUISE_3D_INITIALIZE                      = 32,
     NAV_PERSISTENT_ID_CRUISE_3D_IN_PROGRESS                     = 33,
     NAV_PERSISTENT_ID_CRUISE_3D_ADJUSTING                       = 34,
+
+    NAV_PERSISTENT_ID_WAYPOINT_HOLD_TIME                        = 35,
 } navigationPersistentId_e;
 
 typedef enum {
@@ -228,6 +232,7 @@ typedef enum {
     NAV_STATE_WAYPOINT_IN_PROGRESS,
     NAV_STATE_WAYPOINT_WAIT,
     NAV_STATE_WAYPOINT_REACHED,
+    NAV_STATE_WAYPOINT_HOLD_TIME,
     NAV_STATE_WAYPOINT_NEXT,
     NAV_STATE_WAYPOINT_FINISHED,
     NAV_STATE_WAYPOINT_RTH_LAND,
@@ -362,6 +367,7 @@ typedef struct {
     float                       wpInitialAltitude; // Altitude at start of WP
     float                       wpInitialDistance; // Distance when starting flight to WP
     float                       wpDistance;        // Distance to active WP
+    timeMs_t                    wpReachedTime;     // Time the waypoint was reached
 
     /* Internals & statistics */
     int16_t                     rcAdjustment[4];

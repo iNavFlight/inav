@@ -153,26 +153,74 @@ typedef enum {
     MSP_FLASHFS_BIT_SUPPORTED    = 2
 } mspFlashfsFlags_e;
 
-#ifdef USE_SERIAL_4WAY_BLHELI_INTERFACE
-#define ESC_4WAY 0xff
+typedef enum {
+    MSP_PASSTHROUGH_SERIAL_ID = 0xFD,
+    MSP_PASSTHROUGH_SERIAL_FUNCTION_ID = 0xFE,
 
-static uint8_t escMode;
-static uint8_t escPortIndex;
+    MSP_PASSTHROUGH_ESC_4WAY = 0xFF,
+ } mspPassthroughType_e;
 
-static void mspFc4waySerialCommand(sbuf_t *dst, sbuf_t *src, mspPostProcessFnPtr *mspPostProcessFn)
+static uint8_t mspPassthroughMode;
+static uint8_t mspPassthroughArgument;
+
+static serialPort_t *mspFindPassthroughSerialPort(void)
+ {
+    serialPortUsage_t *portUsage = NULL;
+
+    switch (mspPassthroughMode) {
+    case MSP_PASSTHROUGH_SERIAL_ID:
+    {
+        portUsage = findSerialPortUsageByIdentifier(mspPassthroughArgument);
+        break;
+    }
+    case MSP_PASSTHROUGH_SERIAL_FUNCTION_ID:
+    {
+        const serialPortConfig_t *portConfig = findSerialPortConfig(1 << mspPassthroughArgument);
+        if (portConfig) {
+            portUsage = findSerialPortUsageByIdentifier(portConfig->identifier);
+        }
+        break;
+    }
+    }
+    return portUsage ? portUsage->serialPort : NULL;
+}
+
+static void mspSerialPassthroughFn(serialPort_t *serialPort)
+{
+    serialPort_t *passthroughPort = mspFindPassthroughSerialPort();
+    if (passthroughPort && serialPort) {
+        serialPassthrough(passthroughPort, serialPort, NULL, NULL);
+    }
+}
+
+static void mspFcSetPassthroughCommand(sbuf_t *dst, sbuf_t *src, mspPostProcessFnPtr *mspPostProcessFn)
 {
     const unsigned int dataSize = sbufBytesRemaining(src);
 
     if (dataSize == 0) {
         // Legacy format
-        escMode = ESC_4WAY;
+        mspPassthroughMode = MSP_PASSTHROUGH_ESC_4WAY;
     } else {
-        escMode = sbufReadU8(src);
-        escPortIndex = sbufReadU8(src);
+        mspPassthroughMode = sbufReadU8(src);
+        if (!sbufReadU8Safe(&mspPassthroughArgument, src)) {
+            mspPassthroughArgument = 0;
+        }
     }
 
-    switch (escMode) {
-    case ESC_4WAY:
+    switch (mspPassthroughMode) {
+    case MSP_PASSTHROUGH_SERIAL_ID:
+    case MSP_PASSTHROUGH_SERIAL_FUNCTION_ID:
+         if (mspFindPassthroughSerialPort()) {
+             if (mspPostProcessFn) {
+                 *mspPostProcessFn = mspSerialPassthroughFn;
+             }
+             sbufWriteU8(dst, 1);
+         } else {
+             sbufWriteU8(dst, 0);
+         }
+         break;
+#ifdef USE_SERIAL_4WAY_BLHELI_INTERFACE
+    case MSP_PASSTHROUGH_ESC_4WAY:
         // get channel number
         // switch all motor lines HI
         // reply with the count of ESC found
@@ -182,13 +230,11 @@ static void mspFc4waySerialCommand(sbuf_t *dst, sbuf_t *src, mspPostProcessFnPtr
             *mspPostProcessFn = esc4wayProcess;
         }
         break;
-
+#endif
     default:
         sbufWriteU8(dst, 0);
     }
 }
-
-#endif
 
 static void mspRebootFn(serialPort_t *serialPort)
 {
@@ -702,7 +748,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP_MISC:
         sbufWriteU16(dst, PWM_RANGE_MIDDLE);
 
-        sbufWriteU16(dst, motorConfig()->minthrottle);
+        sbufWriteU16(dst, 0); // Was min_throttle
         sbufWriteU16(dst, motorConfig()->maxthrottle);
         sbufWriteU16(dst, motorConfig()->mincommand);
 
@@ -732,7 +778,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP2_INAV_MISC:
         sbufWriteU16(dst, PWM_RANGE_MIDDLE);
 
-        sbufWriteU16(dst, motorConfig()->minthrottle);
+        sbufWriteU16(dst, 0); //Was min_throttle
         sbufWriteU16(dst, motorConfig()->maxthrottle);
         sbufWriteU16(dst, motorConfig()->mincommand);
 
@@ -1064,16 +1110,16 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_3D:
-        sbufWriteU16(dst, flight3DConfig()->deadband3d_low);
-        sbufWriteU16(dst, flight3DConfig()->deadband3d_high);
-        sbufWriteU16(dst, flight3DConfig()->neutral3d);
+        sbufWriteU16(dst, reversibleMotorsConfig()->deadband_low);
+        sbufWriteU16(dst, reversibleMotorsConfig()->deadband_high);
+        sbufWriteU16(dst, reversibleMotorsConfig()->neutral);
         break;
 
     case MSP_RC_DEADBAND:
         sbufWriteU8(dst, rcControlsConfig()->deadband);
         sbufWriteU8(dst, rcControlsConfig()->yaw_deadband);
         sbufWriteU8(dst, rcControlsConfig()->alt_hold_deadband);
-        sbufWriteU16(dst, rcControlsConfig()->deadband3d_throttle);
+        sbufWriteU16(dst, rcControlsConfig()->mid_throttle_deadband);
         break;
 
     case MSP_SENSOR_ALIGNMENT:
@@ -1119,7 +1165,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP_PID_ADVANCED:
         sbufWriteU16(dst, 0); // pidProfile()->rollPitchItermIgnoreRate
         sbufWriteU16(dst, 0); // pidProfile()->yawItermIgnoreRate
-        sbufWriteU16(dst, pidProfile()->yaw_p_limit);
+        sbufWriteU16(dst, 0); //pidProfile()->yaw_p_limit
         sbufWriteU8(dst, 0); //BF: pidProfile()->deltaMethod
         sbufWriteU8(dst, 0); //BF: pidProfile()->vbatPidCompensation
         sbufWriteU8(dst, 0); //BF: pidProfile()->setpointRelaxRatio
@@ -1141,7 +1187,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, 0); //Legacy, no longer in use async processing value
         sbufWriteU8(dst, pidProfile()->heading_hold_rate_limit);
         sbufWriteU8(dst, HEADING_HOLD_ERROR_LPF_FREQ);
-        sbufWriteU16(dst, mixerConfig()->yaw_jump_prevention_limit);
+        sbufWriteU16(dst, 0);
         sbufWriteU8(dst, gyroConfig()->gyro_lpf);
         sbufWriteU8(dst, accelerometerConfig()->acc_lpf_hz);
         sbufWriteU8(dst, 0); //reserved
@@ -1373,8 +1419,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP2_INAV_MIXER:
-        sbufWriteU8(dst, mixerConfig()->yaw_motor_direction);
-        sbufWriteU16(dst, mixerConfig()->yaw_jump_prevention_limit);
+        sbufWriteU8(dst, mixerConfig()->motorDirectionInverted);
+        sbufWriteU16(dst, 0);
         sbufWriteU8(dst, mixerConfig()->platformType);
         sbufWriteU8(dst, mixerConfig()->hasFlaps);
         sbufWriteU16(dst, mixerConfig()->appliedMixerPreset);
@@ -1712,7 +1758,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         if (dataSize >= 22) {
         sbufReadU16(src);   // midrc
 
-        motorConfigMutable()->minthrottle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
+        sbufReadU16(src); //Was min_throttle
         motorConfigMutable()->maxthrottle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
         motorConfigMutable()->mincommand = constrain(sbufReadU16(src), 0, PWM_RANGE_MAX);
 
@@ -1753,7 +1799,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         if (dataSize == 41) {
             sbufReadU16(src);       // midrc
 
-            motorConfigMutable()->minthrottle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
+            sbufReadU16(src);   // was min_throttle
             motorConfigMutable()->maxthrottle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
             motorConfigMutable()->mincommand = constrain(sbufReadU16(src), 0, PWM_RANGE_MAX);
 
@@ -1936,9 +1982,9 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_3D:
         if (dataSize >= 6) {
-            flight3DConfigMutable()->deadband3d_low = sbufReadU16(src);
-            flight3DConfigMutable()->deadband3d_high = sbufReadU16(src);
-            flight3DConfigMutable()->neutral3d = sbufReadU16(src);
+            reversibleMotorsConfigMutable()->deadband_low = sbufReadU16(src);
+            reversibleMotorsConfigMutable()->deadband_high = sbufReadU16(src);
+            reversibleMotorsConfigMutable()->neutral = sbufReadU16(src);
         } else
             return MSP_RESULT_ERROR;
         break;
@@ -1948,7 +1994,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             rcControlsConfigMutable()->deadband = sbufReadU8(src);
             rcControlsConfigMutable()->yaw_deadband = sbufReadU8(src);
             rcControlsConfigMutable()->alt_hold_deadband = sbufReadU8(src);
-            rcControlsConfigMutable()->deadband3d_throttle = sbufReadU16(src);
+            rcControlsConfigMutable()->mid_throttle_deadband = sbufReadU16(src);
         } else
             return MSP_RESULT_ERROR;
         break;
@@ -1991,7 +2037,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     case MSP_SET_FILTER_CONFIG :
         if (dataSize >= 5) {
             gyroConfigMutable()->gyro_soft_lpf_hz = sbufReadU8(src);
-            pidProfileMutable()->dterm_lpf_hz = constrain(sbufReadU16(src), 0, 255);
+            pidProfileMutable()->dterm_lpf_hz = constrain(sbufReadU16(src), 0, 500);
             pidProfileMutable()->yaw_lpf_hz = constrain(sbufReadU16(src), 0, 255);
             if (dataSize >= 9) {
                 gyroConfigMutable()->gyro_soft_notch_hz_1 = constrain(sbufReadU16(src), 0, 500);
@@ -2033,7 +2079,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         if (dataSize >= 17) {
             sbufReadU16(src);   // pidProfileMutable()->rollPitchItermIgnoreRate
             sbufReadU16(src);   // pidProfileMutable()->yawItermIgnoreRate
-            pidProfileMutable()->yaw_p_limit = sbufReadU16(src);
+            sbufReadU16(src); //pidProfile()->yaw_p_limit
 
             sbufReadU8(src); //BF: pidProfileMutable()->deltaMethod
             sbufReadU8(src); //BF: pidProfileMutable()->vbatPidCompensation
@@ -2059,10 +2105,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU16(src);  //Legacy, no longer in use async processing value
             pidProfileMutable()->heading_hold_rate_limit = sbufReadU8(src);
             sbufReadU8(src); //HEADING_HOLD_ERROR_LPF_FREQ
-            mixerConfigMutable()->yaw_jump_prevention_limit = sbufReadU16(src);
+            sbufReadU16(src); //Legacy yaw_jump_prevention_limit
             gyroConfigMutable()->gyro_lpf = sbufReadU8(src);
             accelerometerConfigMutable()->acc_lpf_hz = sbufReadU8(src);
-            sbufReadU8(src); //reserved
+            sbufReadU8(src); //reserved 
             sbufReadU8(src); //reserved
             sbufReadU8(src); //reserved
             sbufReadU8(src); //reserved
@@ -2331,11 +2377,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                         const uint8_t newChannel = (newFrequency % 8) + 1;
                         vtxSettingsConfigMutable()->band = newBand;
                         vtxSettingsConfigMutable()->channel = newChannel;
-                        vtxSettingsConfigMutable()->freq = vtx58_Bandchan2Freq(newBand, newChannel);
-                    } else if (newFrequency <= VTX_SETTINGS_MAX_FREQUENCY_MHZ) {  //value is frequency in MHz. Ignore it if it's invalid
-                        vtxSettingsConfigMutable()->band = 0;
-                        vtxSettingsConfigMutable()->channel = 0;
-                        vtxSettingsConfigMutable()->freq = newFrequency;
                     }
 
                     if (sbufBytesRemaining(src) > 1) {
@@ -2703,8 +2744,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP2_INAV_SET_MIXER:
-        mixerConfigMutable()->yaw_motor_direction = sbufReadU8(src);
-        mixerConfigMutable()->yaw_jump_prevention_limit = sbufReadU16(src);
+        mixerConfigMutable()->motorDirectionInverted = sbufReadU8(src);
+        sbufReadU16(src); // Was yaw_jump_prevention_limit
         mixerConfigMutable()->platformType = sbufReadU8(src);
         mixerConfigMutable()->hasFlaps = sbufReadU8(src);
         mixerConfigMutable()->appliedMixerPreset = sbufReadU16(src);
@@ -3177,11 +3218,9 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
         ret = mspProcessSensorCommand(cmdMSP, src);
     } else if (mspFcProcessOutCommand(cmdMSP, dst, mspPostProcessFn)) {
         ret = MSP_RESULT_ACK;
-#ifdef USE_SERIAL_4WAY_BLHELI_INTERFACE
-    } else if (cmdMSP == MSP_SET_4WAY_IF) {
-        mspFc4waySerialCommand(dst, src, mspPostProcessFn);
+    } else if (cmdMSP == MSP_SET_PASSTHROUGH) {
+        mspFcSetPassthroughCommand(dst, src, mspPostProcessFn);
         ret = MSP_RESULT_ACK;
-#endif
     } else {
         if (!mspFCProcessInOutCommand(cmdMSP, dst, src, &ret)) {
             ret = mspFcProcessInCommand(cmdMSP, src);

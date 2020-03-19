@@ -25,6 +25,8 @@
 #include "quaternion.h"
 #include "platform.h"
 
+FILE_COMPILE_FOR_SPEED
+
 // http://lolengine.net/blog/2011/12/21/better-function-approximations
 // Chebyshev http://stackoverflow.com/questions/345085/how-do-trigonometric-functions-work/345117#345117
 // Thanks for ledvinap for making such accuracy possible! See: https://github.com/cleanflight/cleanflight/issues/940#issuecomment-110323384
@@ -159,7 +161,7 @@ int constrain(int amt, int low, int high)
         return amt;
 }
 
-float FAST_CODE NOINLINE constrainf(float amt, float low, float high)
+float constrainf(float amt, float low, float high)
 {
     if (amt < low)
         return low;

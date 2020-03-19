@@ -13,11 +13,13 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Author: jflyper (https://github.com/jflyper)
+ *
  */
 
 #pragma once
 
-#include "cms/cms.h"
-#include "cms/cms_types.h"
+#include "emfat.h"
 
-extern const CMS_Menu cmsx_menuVtxTramp;
+extern emfat_t emfat;

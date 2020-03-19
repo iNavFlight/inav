@@ -35,6 +35,9 @@
 
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
+#define ICM20689_CS_PIN         PA4
+#define ICM20689_SPI_BUS        BUS_SPI1
+
 
 #define USE_ACC
 #define USE_ACC_MPU6000
@@ -43,6 +46,12 @@
 #define USE_GYRO
 #define USE_GYRO_MPU6000
 #define GYRO_MPU6000_ALIGN      CW90_DEG
+
+#define USE_ACC_ICM20689
+#define ACC_ICM20689_ALIGN       CW90_DEG
+
+#define USE_GYRO_ICM20689
+#define GYRO_ICM20689_ALIGN      CW90_DEG
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2

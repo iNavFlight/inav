@@ -20,13 +20,11 @@
 #include "config/parameter_group.h"
 #include "fc/runtime_config.h"
 
-#define GYRO_SATURATION_LIMIT   1800        // 1800dps
-#define PID_SUM_LIMIT_MIN       100
-#define PID_SUM_LIMIT_MAX       1000
-#define PID_SUM_LIMIT_DEFAULT   500
-#define YAW_P_LIMIT_MIN 100                 // Maximum value for yaw P limiter
-#define YAW_P_LIMIT_MAX 500                 // Maximum value for yaw P limiter
-#define YAW_P_LIMIT_DEFAULT 500             // Default value for yaw P limiter
+#define GYRO_SATURATION_LIMIT       1800        // 1800dps
+#define PID_SUM_LIMIT_MIN           100
+#define PID_SUM_LIMIT_MAX           1000
+#define PID_SUM_LIMIT_DEFAULT       500
+#define PID_SUM_LIMIT_YAW_DEFAULT   350
 
 #define HEADING_HOLD_RATE_LIMIT_MIN 10
 #define HEADING_HOLD_RATE_LIMIT_MAX 250
@@ -67,6 +65,7 @@ typedef enum {
     PID_LEVEL,      //   +       +
     PID_HEADING,    //   +       +
     PID_VEL_Z,      //   +       n/a
+    PID_POS_HEADING,//   n/a     +
     PID_ITEM_COUNT
 } pidIndex_e;
 
@@ -107,11 +106,16 @@ typedef struct pidProfile_s {
 
     uint16_t dterm_soft_notch_hz;           // Dterm Notch frequency
     uint16_t dterm_soft_notch_cutoff;       // Dterm Notch Cutoff frequency
-    uint8_t dterm_lpf_hz;                   // (default 17Hz, Range 1-50Hz) Used for PT1 element in PID1, PID2 and PID5
+    
+    uint8_t dterm_lpf_type;                 // Dterm LPF type: PT1, BIQUAD
+    uint16_t dterm_lpf_hz;                  
+    
+    uint8_t dterm_lpf2_type;                // Dterm LPF type: PT1, BIQUAD
+    uint16_t dterm_lpf2_hz;                 
+    
     uint8_t use_dterm_fir_filter;           // Use classical INAV FIR differentiator. Very noise robust, can be quite slowish
 
     uint8_t yaw_lpf_hz;
-    uint16_t yaw_p_limit;
 
     uint8_t heading_hold_rate_limit;        // Maximum rotation rate HEADING_HOLD mode can feed to yaw rate PID controller
 
@@ -124,6 +128,7 @@ typedef struct pidProfile_s {
 
     float dterm_setpoint_weight;
     uint16_t pidSumLimit;
+    uint16_t pidSumLimitYaw;
 
     // Airplane-specific parameters
     uint16_t    fixedWingItermThrowLimit;
@@ -144,6 +149,8 @@ typedef struct pidProfile_s {
     float antigravityGain;
     float antigravityAccelerator;
     uint8_t antigravityCutoff;
+
+    int navFwPosHdgPidsumLimit;
 } pidProfile_t;
 
 typedef struct pidAutotuneConfig_s {

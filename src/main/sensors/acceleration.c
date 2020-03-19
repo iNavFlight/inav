@@ -21,6 +21,9 @@
 #include <math.h>
 
 #include "platform.h"
+
+FILE_COMPILE_FOR_SPEED
+
 #include "build/debug.h"
 
 #include "common/axis.h"
@@ -78,11 +81,11 @@ STATIC_FASTRAM filter_t accFilter[XYZ_AXIS_COUNT];
 STATIC_FASTRAM filterApplyFnPtr accSoftLpfFilterApplyFn;
 STATIC_FASTRAM void *accSoftLpfFilter[XYZ_AXIS_COUNT];
 
-STATIC_FASTRAM pt1Filter_t accVibeFloorFilter[XYZ_AXIS_COUNT];
-STATIC_FASTRAM pt1Filter_t accVibeFilter[XYZ_AXIS_COUNT];
+static EXTENDED_FASTRAM pt1Filter_t accVibeFloorFilter[XYZ_AXIS_COUNT];
+static EXTENDED_FASTRAM pt1Filter_t accVibeFilter[XYZ_AXIS_COUNT];
 
-STATIC_FASTRAM filterApplyFnPtr accNotchFilterApplyFn;
-STATIC_FASTRAM void *accNotchFilter[XYZ_AXIS_COUNT];
+static EXTENDED_FASTRAM filterApplyFnPtr accNotchFilterApplyFn;
+static EXTENDED_FASTRAM void *accNotchFilter[XYZ_AXIS_COUNT];
 
 PG_REGISTER_WITH_RESET_FN(accelerometerConfig_t, accelerometerConfig, PG_ACCELEROMETER_CONFIG, 3);
 

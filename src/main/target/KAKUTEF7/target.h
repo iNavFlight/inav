@@ -113,9 +113,12 @@
 #define SPI4_MOSI_PIN           PE6
 
 #define USE_OSD
+
+#ifndef KAKUTEF7HDV
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          SPI2_NSS_PIN
+#endif
 
 #if defined(KAKUTEF7MINI)
 #define M25P16_CS_PIN           SPI1_NSS_PIN
@@ -168,6 +171,9 @@
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_UART           SERIAL_PORT_USART6
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
+
+#define USE_LED_STRIP
+#define WS2811_PIN                      PD12   //TIM4_CH1
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

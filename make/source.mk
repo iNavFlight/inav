@@ -98,9 +98,11 @@ COMMON_SRC = \
             flight/wind_estimator.c \
             flight/gyroanalyse.c \
             flight/rpm_filter.c \
+            flight/dynamic_gyro_notch.c \
             io/beeper.c \
             io/esc_serialshot.c \
             io/frsky_osd.c \
+            io/osd_dji_hd.c \
             io/lights.c \
             io/piniobox.c \
             io/pwmdriver_i2c.c \
@@ -160,9 +162,7 @@ COMMON_SRC = \
             cms/cms_menu_navigation.c \
             cms/cms_menu_osd.c \
             cms/cms_menu_saveexit.c \
-            cms/cms_menu_vtx_smartaudio.c \
-            cms/cms_menu_vtx_tramp.c \
-            cms/cms_menu_vtx_ffpv.c \
+            cms/cms_menu_vtx.c \
             drivers/display_ug2864hsweg01.c \
             drivers/rangefinder/rangefinder_hcsr04.c \
             drivers/rangefinder/rangefinder_hcsr04_i2c.c \
@@ -235,7 +235,8 @@ TARGET_SRC   := $(filter-out $(MCU_EXCLUDES), $(TARGET_SRC))
 ifneq ($(filter ONBOARDFLASH,$(FEATURES)),)
 TARGET_SRC += \
             drivers/flash_m25p16.c \
-            io/flashfs.c
+            io/flashfs.c \
+            $(MSC_SRC)
 endif
 
 ifneq ($(filter SDCARD,$(FEATURES)),)
@@ -245,11 +246,16 @@ TARGET_SRC += \
             drivers/sdcard/sdcard_sdio.c \
             drivers/sdcard/sdcard_standard.c \
             io/asyncfatfs/asyncfatfs.c \
-            io/asyncfatfs/fat_standard.c
+            io/asyncfatfs/fat_standard.c \
+            $(MSC_SRC)
 endif
 
 ifneq ($(filter VCP,$(FEATURES)),)
 TARGET_SRC += $(VCP_SRC)
+endif
+
+ifneq ($(filter MSC,$(FEATURES)),)
+TARGET_SRC += $(MSC_SRC)
 endif
 
 ifneq ($(DSP_LIB),)
@@ -262,7 +268,6 @@ TARGET_SRC += $(DSP_LIB)/Source/TransformFunctions/arm_cfft_f32.c
 TARGET_SRC += $(DSP_LIB)/Source/TransformFunctions/arm_rfft_fast_init_f32.c
 TARGET_SRC += $(DSP_LIB)/Source/TransformFunctions/arm_cfft_radix8_f32.c
 TARGET_SRC += $(DSP_LIB)/Source/CommonTables/arm_common_tables.c
-
 TARGET_SRC += $(DSP_LIB)/Source/ComplexMathFunctions/arm_cmplx_mag_f32.c
 TARGET_SRC += $(DSP_LIB)/Source/StatisticsFunctions/arm_max_f32.c
 
@@ -271,3 +276,14 @@ endif
 
 # Search path and source files for the ST stdperiph library
 VPATH        := $(VPATH):$(STDPERIPH_DIR)/src
+
+SIZE_OPTIMISED_SRC := ""
+SPEED_OPTIMISED_SRC := ""
+ifneq ($(TARGET),$(filter $(TARGET),$(F3_TARGETS)))
+# SIZE_OPTIMISED_SRC := $(SIZE_OPTIMISED_SRC) \
+            # ./src/main/common/filter.c \
+
+# SPEED_OPTIMISED_SRC := $(SPEED_OPTIMISED_SRC) \
+            # ./src/main/common/maths.c \
+
+endif #!F3

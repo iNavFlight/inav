@@ -20,10 +20,4 @@
 
 #pragma once
 
-#include "cms/cms.h"
-#include "cms/cms_types.h"
-
-extern CMS_Menu cmsx_menuVtxSmartAudio;
-
-void saCmsUpdate(void);
-void saCmsResetOpmodel(void);
+void emfat_init_files(void);

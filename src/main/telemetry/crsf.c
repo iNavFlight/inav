@@ -20,6 +20,7 @@
 #include <string.h>
 
 #include "platform.h"
+FILE_COMPILE_FOR_SPEED
 
 #if defined(USE_TELEMETRY) && defined(USE_SERIALRX_CRSF) && defined(USE_TELEMETRY_CRSF)
 
@@ -490,7 +491,7 @@ void initCrsfTelemetry(void)
     }
 #endif
 #if defined(USE_BARO) || defined(USE_GPS)
-    if (sensors(SENSOR_BARO) || (STATE(FIXED_WING) && feature(FEATURE_GPS))) {
+    if (sensors(SENSOR_BARO) || (STATE(FIXED_WING_LEGACY) && feature(FEATURE_GPS))) {
         crsfSchedule[index++] = BV(CRSF_FRAME_VARIO_SENSOR_INDEX);
     }
 #endif

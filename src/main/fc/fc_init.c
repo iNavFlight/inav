@@ -74,8 +74,11 @@
 #include "drivers/io.h"
 #include "drivers/exti.h"
 #include "drivers/io_pca9685.h"
-#include "drivers/vtx_rtc6705.h"
 #include "drivers/vtx_common.h"
+#ifdef USE_USB_MSC
+#include "drivers/usb_msc.h"
+#include "msc/emfat_file.h"
+#endif
 #include "drivers/sdcard/sdcard.h"
 
 #include "fc/cli.h"
@@ -104,6 +107,7 @@
 #include "io/ledstrip.h"
 #include "io/pwmdriver_i2c.h"
 #include "io/osd.h"
+#include "io/osd_dji_hd.h"
 #include "io/rcdevice_cam.h"
 #include "io/serial.h"
 #include "io/displayport_msp.h"
@@ -218,7 +222,7 @@ void init(void)
 
     // Latch active features to be used for feature() in the remainder of init().
     latchActiveFeatures();
-    
+
     ledInit(false);
 
 #ifdef USE_EXTI
@@ -248,10 +252,10 @@ void init(void)
 
 #if defined(AVOID_UART2_FOR_PWM_PPM)
     serialInit(feature(FEATURE_SOFTSERIAL),
-            (rxConfig()->receiverType == RX_TYPE_PWM) || (rxConfig()->receiverType == RX_TYPE_PPM) ? SERIAL_PORT_USART2 : SERIAL_PORT_NONE);
+            (rxConfig()->receiverType == RX_TYPE_PPM) ? SERIAL_PORT_USART2 : SERIAL_PORT_NONE);
 #elif defined(AVOID_UART3_FOR_PWM_PPM)
     serialInit(feature(FEATURE_SOFTSERIAL),
-            (rxConfig()->receiverType == RX_TYPE_PWM) || (rxConfig()->receiverType == RX_TYPE_PPM) ? SERIAL_PORT_USART3 : SERIAL_PORT_NONE);
+            (rxConfig()->receiverType == RX_TYPE_PPM) ? SERIAL_PORT_USART3 : SERIAL_PORT_NONE);
 #else
     serialInit(feature(FEATURE_SOFTSERIAL), SERIAL_PORT_NONE);
 #endif
@@ -260,6 +264,11 @@ void init(void)
     // XXX: Don't call mspFcInit() yet, since it initializes the boxes and needs
     // to run after the sensors have been detected.
     mspSerialInit();
+
+#if defined(USE_DJI_HD_OSD)
+    // DJI OSD uses a special flavour of MSP (subset of Betaflight 4.1.1 MSP) - process as part of serial task
+    djiOsdSerialInit();
+#endif
 
 #if defined(USE_LOG)
     // LOG might use serial output, so we only can init it after serial port is ready
@@ -275,7 +284,10 @@ void init(void)
 
     // Some sanity checking
     if (motorConfig()->motorPwmProtocol == PWM_TYPE_BRUSHED) {
-        featureClear(FEATURE_3D);
+        featureClear(FEATURE_REVERSIBLE_MOTORS);
+    }
+    if (!STATE(ALTITUDE_CONTROL)) {
+        featureClear(FEATURE_AIRMODE);
     }
 
     // Initialize motor and servo outpus
@@ -285,37 +297,6 @@ void init(void)
     else {
         ENABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
     }
-
-    /*
-    drv_pwm_config_t pwm_params;
-    memset(&pwm_params, 0, sizeof(pwm_params));
-
-    // when using airplane/wing mixer, servo/motor outputs are remapped
-    pwm_params.flyingPlatformType = mixerConfig()->platformType;
-
-    pwm_params.useParallelPWM = (rxConfig()->receiverType == RX_TYPE_PWM);
-    pwm_params.usePPM = (rxConfig()->receiverType == RX_TYPE_PPM);
-    pwm_params.useSerialRx = (rxConfig()->receiverType == RX_TYPE_SERIAL);
-
-    pwm_params.useServoOutputs = isMixerUsingServos();
-    pwm_params.servoCenterPulse = servoConfig()->servoCenterPulse;
-    pwm_params.servoPwmRate = servoConfig()->servoPwmRate;
-
-
-    pwm_params.enablePWMOutput = feature(FEATURE_PWM_OUTPUT_ENABLE);
-
-#if defined(USE_RX_PWM) || defined(USE_RX_PPM)
-    pwmRxInit(systemConfig()->pwmRxInputFilteringMode);
-#endif
-
-#ifdef USE_PWM_SERVO_DRIVER
-    // If external PWM driver is enabled, for example PCA9685, disable internal
-    // servo handling mechanism, since external device will do that
-    if (feature(FEATURE_PWM_SERVO_DRIVER)) {
-        pwm_params.useServoOutputs = false;
-    }
-#endif
-    */
 
     systemState |= SYSTEM_STATE_MOTORS_READY;
 
@@ -359,6 +340,33 @@ void init(void)
 #if defined(USE_RANGEFINDER_HCSR04) && defined(USE_SOFTSERIAL2) && defined(SPRACINGF3)
     if ((rangefinderConfig()->rangefinder_hardware == RANGEFINDER_HCSR04) && feature(FEATURE_SOFTSERIAL)) {
         serialRemovePort(SERIAL_PORT_SOFTSERIAL2);
+    }
+#endif
+
+#ifdef USE_USB_MSC
+    /* MSC mode will start after init, but will not allow scheduler to run,
+     * so there is no bottleneck in reading and writing data
+     */
+    mscInit();
+#if defined(USE_FLASHFS)
+        // If the blackbox device is onboard flash, then initialize and scan
+        // it to identify the log files *before* starting the USB device to
+        // prevent timeouts of the mass storage device.
+        if (blackboxConfig()->device == BLACKBOX_DEVICE_FLASH) {
+#ifdef USE_FLASH_M25P16
+            // Must initialise the device to read _anything_
+            m25p16_init(0);
+#endif
+            emfat_init_files();
+        }
+#endif
+
+    if (mscCheckBoot() || mscCheckButton()) {
+        if (mscStart() == 0) {
+             mscWaitForButton();
+        } else {
+             NVIC_SystemReset();
+        }
     }
 #endif
 

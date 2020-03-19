@@ -80,7 +80,7 @@ uint32_t disableFlightMode(flightModeFlags_e mask)
     return flightModeFlags;
 }
 
-bool FAST_CODE NOINLINE sensors(uint32_t mask)
+bool sensors(uint32_t mask)
 {
     return enabledSensors & mask;
 }
@@ -102,17 +102,20 @@ uint32_t sensorsMask(void)
 
 flightModeForTelemetry_e getFlightModeForTelemetry(void)
 {
-    if (FLIGHT_MODE(MANUAL_MODE))
-        return FLM_MANUAL;
-
     if (FLIGHT_MODE(FAILSAFE_MODE))
         return FLM_FAILSAFE;
+
+    if (FLIGHT_MODE(MANUAL_MODE))
+        return FLM_MANUAL;
 
     if (FLIGHT_MODE(NAV_RTH_MODE))
         return FLM_RTH;
 
     if (FLIGHT_MODE(NAV_POSHOLD_MODE))
         return FLM_POSITION_HOLD;
+
+    if (FLIGHT_MODE(NAV_CRUISE_MODE))
+        return FLM_CRUISE;
 
     if (FLIGHT_MODE(NAV_WP_MODE))
         return FLM_MISSION;
@@ -129,5 +132,5 @@ flightModeForTelemetry_e getFlightModeForTelemetry(void)
     if (FLIGHT_MODE(NAV_LAUNCH_MODE))
         return FLM_LAUNCH;
 
-    return FLM_ACRO;
+    return STATE(AIRMODE_ACTIVE) ? FLM_ACRO_AIR : FLM_ACRO;
 }

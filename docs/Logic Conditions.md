@@ -70,6 +70,15 @@ Logic conditions can be edited using INAV Configurator user interface, of via CL
 | 14            | TROTTLE_POS   | in `%`                                |
 | 15            | ATTITUDE_ROLL | in `degrees`                          |
 | 16            | ATTITUDE_PITCH | in `degrees`                         |
+| 17            | IS_ARMED              | boolean `0`/`1`               |
+| 18            | IS_AUTOLAUNCH         | boolean `0`/`1`               |
+| 19            | IS_ALTITUDE_CONTROL   | boolean `0`/`1`               |
+| 20            | IS_POSITION_CONTROL   | boolean `0`/`1`               |
+| 21            | IS_EMERGENCY_LANDING  | boolean `0`/`1`               |
+| 22            | IS_RTH                | boolean `0`/`1`               |
+| 23            | IS_WP                 | boolean `0`/`1`               |
+| 24            | IS_LANDING            | boolean `0`/`1`               |
+| 25            | IS_FAILSAFE           | boolean `0`/`1`               |
 
 #### FLIGHT_MODE
 

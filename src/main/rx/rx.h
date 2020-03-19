@@ -59,12 +59,11 @@ typedef enum {
 
 typedef enum {
     RX_TYPE_NONE        = 0,
-    RX_TYPE_PWM         = 1,
-    RX_TYPE_PPM         = 2,
-    RX_TYPE_SERIAL      = 3,
-    RX_TYPE_MSP         = 4,
-    RX_TYPE_SPI         = 5,
-    RX_TYPE_UIB         = 6
+    RX_TYPE_PPM         = 1,
+    RX_TYPE_SERIAL      = 2,
+    RX_TYPE_MSP         = 3,
+    RX_TYPE_SPI         = 4,
+    RX_TYPE_UIB         = 5
 } rxReceiverType_e;
 
 typedef enum {
@@ -79,6 +78,7 @@ typedef enum {
     SERIALRX_JETIEXBUS = 8,
     SERIALRX_CRSF = 9,
     SERIALRX_FPORT = 10,
+    SERIALRX_SBUS_FAST = 11,
 } rxSerialReceiverType_e;
 
 #define MAX_SUPPORTED_RC_PPM_CHANNEL_COUNT          16
@@ -152,7 +152,7 @@ typedef struct rxRuntimeConfig_s {
     rcReadRawDataFnPtr rcReadRawFn;
     rcFrameStatusFnPtr rcFrameStatusFn;
     rcProcessFrameFnPtr rcProcessFrameFn;
-    rxLinkQualityTracker_e * lqTracker;     // Pointer to a 
+    rxLinkQualityTracker_e * lqTracker;     // Pointer to a
     uint16_t *channelData;
     void *frameData;
 } rxRuntimeConfig_t;

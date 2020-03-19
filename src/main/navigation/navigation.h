@@ -32,7 +32,7 @@
 
 /* GPS Home location data */
 extern gpsLocation_t        GPS_home;
-extern uint32_t             GPS_distanceToHome;        // distance to home point in meters 
+extern uint32_t             GPS_distanceToHome;        // distance to home point in meters
 extern int16_t              GPS_directionToHome;       // direction to home point in degrees
 
 extern bool autoThrottleManuallyIncreased;
@@ -101,6 +101,7 @@ typedef enum {
     NAV_ARMING_BLOCKER_MISSING_GPS_FIX = 1,
     NAV_ARMING_BLOCKER_NAV_IS_ALREADY_ACTIVE = 2,
     NAV_ARMING_BLOCKER_FIRST_WAYPOINT_TOO_FAR = 3,
+    NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR = 4,
 } navArmingBlocker_e;
 
 typedef struct positionEstimationConfig_s {
@@ -172,6 +173,8 @@ typedef struct navConfig_s {
         uint16_t min_rth_distance;              // 0 Disables. Minimal distance for RTH in cm, otherwise it will just autoland
         uint16_t rth_abort_threshold;           // Initiate emergency landing if during RTH we get this much [cm] away from home
         uint16_t max_terrain_follow_altitude;   // Max altitude to be used in SURFACE TRACKING mode
+        uint16_t rth_home_offset_distance;	  // Distance offset from GPS established home to "safe" position used for RTH (cm, 0 disables)
+        uint16_t rth_home_offset_direction;	  // Direction offset from GPS established home to "safe" position used for RTH (degrees, 0=N, 90=E, 180=S, 270=W, requires non-zero offset distance)
     } general;
 
     struct {
@@ -215,6 +218,8 @@ typedef struct navConfig_s {
         uint8_t  launch_max_angle;           // Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg]
         uint8_t  cruise_yaw_rate;            // Max yaw rate (dps) when CRUISE MODE is enabled
         bool     allow_manual_thr_increase;
+        bool useFwNavYawControl;
+        uint8_t yawControlDeadband;
     } fw;
 } navConfig_t;
 
@@ -229,8 +234,10 @@ typedef struct gpsOrigin_s {
 } gpsOrigin_t;
 
 typedef enum {
-    NAV_WP_ACTION_WAYPOINT = 0x01,
-    NAV_WP_ACTION_RTH      = 0x04
+    NAV_WP_ACTION_WAYPOINT  = 0x01,
+    NAV_WP_ACTION_HOLD_TIME = 0x03,
+    NAV_WP_ACTION_JUMP      = 0x06, 
+    NAV_WP_ACTION_RTH       = 0x04
 } navWaypointActions_e;
 
 typedef enum {
@@ -307,6 +314,7 @@ typedef struct navigationPIDControllers_s {
     /* Fixed-wing PIDs */
     pidController_t fw_alt;
     pidController_t fw_nav;
+    pidController_t fw_heading;
 } navigationPIDControllers_t;
 
 /* MultiWii-compatible params for telemetry */

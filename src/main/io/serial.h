@@ -52,6 +52,7 @@ typedef enum {
     FUNCTION_ESCSERIAL           = (1 << 18), // 262144: this is used for both SERIALSHOT and ESC_SENSOR telemetry
     FUNCTION_TELEMETRY_SIM       = (1 << 19), // 524288
     FUNCTION_FRSKY_OSD           = (1 << 20), // 1048576
+    FUNCTION_DJI_HD_OSD          = (1 << 21), // 2097152
 } serialPortFunction_e;
 
 typedef enum {

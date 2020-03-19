@@ -110,7 +110,7 @@ typedef enum {
     GPS_FIX                             = (1 << 1),
     CALIBRATE_MAG                       = (1 << 2),
     SMALL_ANGLE                         = (1 << 3),
-    FIXED_WING                          = (1 << 4),     // set when in flying_wing or airplane mode. currently used by althold selection code
+    FIXED_WING_LEGACY                   = (1 << 4),     // No new code should use this state. Use AIRPLANE, MULTIROTOR, ROVER, BOAT, ALTITUDE_CONTROL and MOVE_FORWARD_ONLY states
     ANTI_WINDUP                         = (1 << 5),
     FLAPERON_AVAILABLE                  = (1 << 6),
     NAV_MOTOR_STOP_OR_IDLE              = (1 << 7),     // navigation requests MOTOR_STOP or motor idle regardless of throttle stick, will only activate if MOTOR_STOP feature is available
@@ -123,6 +123,14 @@ typedef enum {
     NAV_EXTRA_ARMING_SAFETY_BYPASSED    = (1 << 14),    // nav_extra_arming_safey was bypassed. Keep it until power cycle.
     AIRMODE_ACTIVE                      = (1 << 15),
     ESC_SENSOR_ENABLED                  = (1 << 16),
+    AIRPLANE                            = (1 << 17),
+    MULTIROTOR                          = (1 << 18),
+    ROVER                               = (1 << 19),
+    BOAT                                = (1 << 20),
+    ALTITUDE_CONTROL                    = (1 << 21),    //It means it can fly
+    MOVE_FORWARD_ONLY                   = (1 << 22),
+    SET_REVERSIBLE_MOTORS_FORWARD       = (1 << 23),
+    FW_HEADING_USE_YAW                  = (1 << 24),
 } stateFlags_t;
 
 #define DISABLE_STATE(mask) (stateFlags &= ~(mask))
@@ -134,12 +142,14 @@ extern uint32_t stateFlags;
 typedef enum {
     FLM_MANUAL,
     FLM_ACRO,
+    FLM_ACRO_AIR,
     FLM_ANGLE,
     FLM_HORIZON,
     FLM_ALTITUDE_HOLD,
     FLM_POSITION_HOLD,
     FLM_RTH,
     FLM_MISSION,
+    FLM_CRUISE,
     FLM_LAUNCH,
     FLM_FAILSAFE,
     FLM_COUNT
