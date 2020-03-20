@@ -99,6 +99,7 @@ COMMON_SRC = \
             flight/gyroanalyse.c \
             flight/rpm_filter.c \
             flight/dynamic_gyro_notch.c \
+            flight/kalman.c \
             io/beeper.c \
             io/esc_serialshot.c \
             io/frsky_osd.c \
