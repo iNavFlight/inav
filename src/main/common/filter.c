@@ -22,6 +22,8 @@
 
 #include "platform.h"
 
+FILE_COMPILE_FOR_SPEED
+
 #include "common/filter.h"
 #include "common/maths.h"
 #include "common/utils.h"

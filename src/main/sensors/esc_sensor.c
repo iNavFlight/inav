@@ -130,7 +130,7 @@ static bool escSensorDecodeFrame(void)
     return ESC_SENSOR_FRAME_PENDING;
 }
 
-uint32_t FAST_CODE computeRpm(int16_t erpm) {
+uint32_t computeRpm(int16_t erpm) {
     return lrintf((float)erpm * ERPM_PER_LSB / (motorConfig()->motorPoleCount / 2));
 }
 
