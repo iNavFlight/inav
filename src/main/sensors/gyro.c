@@ -72,6 +72,7 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/gyroanalyse.h"
 #include "flight/rpm_filter.h"
 #include "flight/dynamic_gyro_notch.h"
+#include "flight/kalman.h"
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
@@ -292,6 +293,9 @@ bool gyroInit(void)
     }
 
     gyroInitFilters();
+#ifdef USE_GYRO_KALMAN
+    gyroKalmanInitialize();
+#endif
 #ifdef USE_DYNAMIC_FILTERS
     dynamicGyroNotchFiltersInit(&dynamicGyroNotchState);
     gyroDataAnalyseStateInit(
@@ -453,6 +457,21 @@ void gyroUpdate()
 #endif
         gyro.gyroADCf[axis] = gyroADCf;
     }
+
+#ifdef USE_GYRO_KALMAN
+    float input[XYZ_AXIS_COUNT];
+    float output[XYZ_AXIS_COUNT];
+
+    input[X] = gyro.gyroADCf[X];
+    input[Y] = gyro.gyroADCf[Y];
+    input[Z] = gyro.gyroADCf[Z];
+
+    gyroKalmanUpdate(input, output);
+
+    gyro.gyroADCf[X] = output[X];
+    gyro.gyroADCf[Y] = output[Y];
+    gyro.gyroADCf[Z] = output[Z];
+#endif
 
 #ifdef USE_DYNAMIC_FILTERS
     if (dynamicGyroNotchState.enabled) {
