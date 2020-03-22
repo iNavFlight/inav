@@ -1235,7 +1235,7 @@ groups:
         min: 0
         max: 255
       - name: nav_fw_pos_hdg_pidsum_limit
-        field: pidSumLimitYaw
+        field: navFwPosHdgPidsumLimit
         min: PID_SUM_LIMIT_MIN
         max: PID_SUM_LIMIT_MAX
       - name: mc_iterm_relax_type
