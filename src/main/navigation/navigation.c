@@ -1863,11 +1863,6 @@ float navPidApply3(pidController_t *pid, const float setpoint, const float measu
         }
     }
 
-    /*
-     * Limit both output and Iterm to limit windup
-     */
-    pid->integrator = constrain(pid->integrator, outMin, outMax);
-
     return outValConstrained;
 }
 
