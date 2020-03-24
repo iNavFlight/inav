@@ -20,12 +20,13 @@
 
 #include "platform.h"
 
-#include "drivers/light_led.h"
-#include "sound_beeper.h"
-#include "drivers/nvic.h"
 #include "build/atomic.h"
 #include "build/build_config.h"
 
+#include "drivers/light_led.h"
+#include "drivers/nvic.h"
+#include "drivers/persistent.h"
+#include "drivers/sound_beeper.h"
 #include "drivers/system.h"
 #include "drivers/time.h"
 
@@ -73,6 +74,56 @@ void cycleCounterInit(void)
     DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 }
 #endif // UNIT_TEST
+
+static inline void systemDisableAllIRQs(void)
+{
+    // We access CMSIS NVIC registers directly here
+    for (int x = 0; x < 8; x++) {
+        // Mask all IRQs controlled by a ICERx
+        NVIC->ICER[x] = 0xFFFFFFFF;
+        // Clear all pending IRQs controlled by a ICPRx
+        NVIC->ICPR[x] = 0xFFFFFFFF;
+    }
+}
+
+void systemReset(void)
+{
+    __disable_irq();
+    systemDisableAllIRQs();
+    NVIC_SystemReset();
+}
+
+void systemResetToBootloader(void)
+{
+    persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_BOOTLOADER_REQUEST_ROM);
+    systemReset();
+}
+
+typedef void resetHandler_t(void);
+
+typedef struct isrVector_s {
+    __I uint32_t    stackEnd;
+    resetHandler_t *resetHandler;
+} isrVector_t;
+
+#pragma GCC push_options
+#pragma GCC optimize ("O0")
+void checkForBootLoaderRequest(void)
+{
+    uint32_t bootloaderRequest = persistentObjectRead(PERSISTENT_OBJECT_RESET_REASON);
+
+    if (bootloaderRequest != RESET_BOOTLOADER_REQUEST_ROM) {
+            return;
+        }
+    persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_NONE);
+
+    extern isrVector_t system_isr_vector_table_base;
+
+    __set_MSP(system_isr_vector_table_base.stackEnd);
+    system_isr_vector_table_base.resetHandler();
+    while (1);
+}
+#pragma GCC pop_options
 
 // SysTick
 
