@@ -15,7 +15,7 @@
 **
 **  Environment : Atollic TrueSTUDIO(R)
 **
-**  Distribution: The file is distributed “as is,” without any warranty
+**  Distribution: The file is distributed as is, without any warranty
 **                of any kind.
 **
 **  (c)Copyright Atollic AB.
@@ -47,6 +47,8 @@ MEMORY
 {
     FLASH (rx)        : ORIGIN = 0x08000000, LENGTH = 896K
     FLASH_CONFIG (r)  : ORIGIN = 0x080E0000, LENGTH = 128K
+
+    SYSTEM_MEMORY (rx): ORIGIN = 0x1FFF0000, LENGTH = 29K
 
     RAM (rwx)         : ORIGIN = 0x20000000, LENGTH = 128K
     CCM (rwx)         : ORIGIN = 0x10000000, LENGTH = 64K
