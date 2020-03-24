@@ -67,15 +67,6 @@ SECTIONS
     __exidx_end = .;
   } >FLASH
 
-  /* System memory (read-only bootloader) interrupt vector */
-  .system_isr_vector (NOLOAD) :
-  {
-    . = ALIGN(4);
-    PROVIDE (system_isr_vector_table_base = .);
-    KEEP(*(.system_isr_vector)) /* Bootloader code */
-    . = ALIGN(4);
-  } >SYSTEM_MEMORY
-
   .busdev_registry :
   {
     PROVIDE_HIDDEN (__busdev_registry_start = .);

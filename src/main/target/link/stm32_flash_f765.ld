@@ -38,8 +38,6 @@ MEMORY
     AXIM_FLASH_CFG (r)      : ORIGIN = 0x08008000, LENGTH = 32K
     AXIM_FLASH1 (rx)        : ORIGIN = 0x08010000, LENGTH = 1984K
 
-    SYSTEM_MEMORY (rx)      : ORIGIN = 0x1FF00000, LENGTH = 59K
-
     DTCM_RAM (rwx)          : ORIGIN = 0x20000000, LENGTH = 128K
     SRAM1 (rwx)             : ORIGIN = 0x20020000, LENGTH = 368K
     SRAM2 (rwx)             : ORIGIN = 0x2007C000, LENGTH = 16K

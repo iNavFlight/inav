@@ -138,6 +138,11 @@ bool isMPUSoftReset(void)
         return false;
 }
 
+uint32_t systemBootloaderAddress(void)
+{
+    return 0x1FFF0000;
+}
+
 void systemClockSetup(uint8_t cpuUnderclock)
 {
     (void)cpuUnderclock;

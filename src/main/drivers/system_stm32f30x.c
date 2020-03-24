@@ -61,6 +61,11 @@ bool isMPUSoftReset(void)
         return false;
 }
 
+uint32_t systemBootloaderAddress(void)
+{
+    return 0x1FFFD800;
+}
+
 static void systemTimekeepingSetup(void)
 {
     RCC_ClocksTypeDef clocks;

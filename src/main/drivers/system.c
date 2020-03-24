@@ -102,28 +102,25 @@ void systemResetToBootloader(void)
 typedef void resetHandler_t(void);
 
 typedef struct isrVector_s {
-    __I uint32_t    stackEnd;
+    uint32_t    stackEnd;
     resetHandler_t *resetHandler;
 } isrVector_t;
 
-#pragma GCC push_options
-#pragma GCC optimize ("O0")
+
 void checkForBootLoaderRequest(void)
 {
     uint32_t bootloaderRequest = persistentObjectRead(PERSISTENT_OBJECT_RESET_REASON);
 
     if (bootloaderRequest != RESET_BOOTLOADER_REQUEST_ROM) {
-            return;
-        }
+        return;
+    }
     persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_NONE);
 
-    extern isrVector_t system_isr_vector_table_base;
-
-    __set_MSP(system_isr_vector_table_base.stackEnd);
-    system_isr_vector_table_base.resetHandler();
+    volatile isrVector_t *bootloaderVector = (isrVector_t *)systemBootloaderAddress();
+    __set_MSP(bootloaderVector->stackEnd);
+    bootloaderVector->resetHandler();
     while (1);
 }
-#pragma GCC pop_options
 
 // SysTick
 
