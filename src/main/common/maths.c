@@ -475,7 +475,19 @@ static void sensorCalibration_SolveLGS(float A[4][4], float x[4], float b[4]) {
     sensorCalibration_BackwardSubstitution(A, x, y);
 }
 
-void sensorCalibrationSolveForOffset(sensorCalibrationState_t * state, float result[3])
+bool sensorCalibrationValidateResult(const float result[3])
+{
+    // Validate that result is not INF and not NAN
+    for (int i = 0; i < 3; i++) {
+        if (isnan(result[i]) && isinf(result[i])) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool sensorCalibrationSolveForOffset(sensorCalibrationState_t * state, float result[3])
 {
     float beta[4];
     sensorCalibration_SolveLGS(state->XtX, beta, state->XtY);
@@ -483,9 +495,11 @@ void sensorCalibrationSolveForOffset(sensorCalibrationState_t * state, float res
     for (int i = 0; i < 3; i++) {
         result[i] = beta[i] / 2;
     }
+
+    return sensorCalibrationValidateResult(result);
 }
 
-void sensorCalibrationSolveForScale(sensorCalibrationState_t * state, float result[3])
+bool sensorCalibrationSolveForScale(sensorCalibrationState_t * state, float result[3])
 {
     float beta[4];
     sensorCalibration_SolveLGS(state->XtX, beta, state->XtY);
@@ -493,6 +507,8 @@ void sensorCalibrationSolveForScale(sensorCalibrationState_t * state, float resu
     for (int i = 0; i < 3; i++) {
         result[i] = sqrtf(beta[i]);
     }
+
+    return sensorCalibrationValidateResult(result);
 }
 
 float bellCurve(const float x, const float curveWidth)
