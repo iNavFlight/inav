@@ -18,6 +18,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifndef sq
 #define sq(x) ((x)*(x))
@@ -122,8 +123,8 @@ typedef struct {
 void sensorCalibrationResetState(sensorCalibrationState_t * state);
 void sensorCalibrationPushSampleForOffsetCalculation(sensorCalibrationState_t * state, int32_t sample[3]);
 void sensorCalibrationPushSampleForScaleCalculation(sensorCalibrationState_t * state, int axis, int32_t sample[3], int target);
-void sensorCalibrationSolveForOffset(sensorCalibrationState_t * state, float result[3]);
-void sensorCalibrationSolveForScale(sensorCalibrationState_t * state, float result[3]);
+bool sensorCalibrationSolveForOffset(sensorCalibrationState_t * state, float result[3]);
+bool sensorCalibrationSolveForScale(sensorCalibrationState_t * state, float result[3]);
 
 int gcd(int num, int denom);
 int32_t applyDeadband(int32_t value, int32_t deadband);
