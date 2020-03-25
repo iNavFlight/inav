@@ -132,7 +132,9 @@ timeUs_t microsISR(void)
         pending = sysTickPending;
     }
 
-    return ((timeUs_t)(ms + pending) * 1000LL) + (usTicks * 1000LL - (timeUs_t)cycle_cnt) / usTicks;
+    // XXX: Be careful to not trigger 64 bit division
+    uint32_t partial = (((uint32_t)usTicks) * 1000U - cycle_cnt) / ((uint32_t)usTicks);
+    return ((timeUs_t)(ms + pending) * 1000LL) + partial;
 }
 
 timeUs_t micros(void)
@@ -152,7 +154,9 @@ timeUs_t micros(void)
         cycle_cnt = SysTick->VAL;
     } while (ms != sysTickUptime || cycle_cnt > sysTickValStamp);
 
-    return ((timeUs_t)ms * 1000LL) + (usTicks * 1000LL - (timeUs_t)cycle_cnt) / usTicks;
+    // XXX: Be careful to not trigger 64 bit division
+    uint32_t partial = (((uint32_t)usTicks) * 1000U - cycle_cnt) / ((uint32_t)usTicks);
+    return ((timeUs_t)ms * 1000U) + partial;
 }
 
 // Return system uptime in milliseconds (rollover in 49 days)
