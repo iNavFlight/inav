@@ -174,6 +174,11 @@ SIZE        = $(ARM_SDK_PREFIX)size
 # Tool options.
 #
 
+# Save original CFLAGS before modifying them, so we don't
+# add them twice when calling this Makefile recursively
+# for each target
+SAVED_CFLAGS	:= $(CFLAGS)
+
 ifeq ($(DEBUG),GDB)
 LTO_FLAGS   = 
 else
@@ -360,7 +365,7 @@ release: $(RELEASE_TARGETS)
 $(VALID_TARGETS):
 	$(V0) echo "" && \
 	echo "Building $@" && \
-	$(MAKE) -j 8 TARGET=$@ && \
+	CFLAGS=$(SAVED_CFLAGS) $(MAKE) -j 8 TARGET=$@ && \
 	echo "Building $@ succeeded."
 
 ## clean             : clean up all temporary / machine-generated files
