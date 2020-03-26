@@ -48,8 +48,8 @@ void registerExtiCallbackHandler(IRQn_Type irqn, extiCallbackHandlerFunc *fn)
     failureMode(FAILURE_DEVELOPER); // EXTI_CALLBACK_HANDLER_COUNT is too low for the amount of handlers required.
 }
 
-// cycles per microsecond
-STATIC_UNIT_TESTED  timeUs_t usTicks = 0;
+// cycles per microsecond, this is deliberately uint32_t to avoid type conversions
+STATIC_UNIT_TESTED  uint32_t usTicks = 0;
 // current uptime for 1kHz systick timer. will rollover after 49 days. hopefully we won't care.
 STATIC_UNIT_TESTED volatile timeMs_t sysTickUptime = 0;
 STATIC_UNIT_TESTED volatile uint32_t sysTickValStamp = 0;
@@ -133,8 +133,8 @@ timeUs_t microsISR(void)
     }
 
     // XXX: Be careful to not trigger 64 bit division
-    uint32_t partial = (((uint32_t)usTicks) * 1000U - cycle_cnt) / ((uint32_t)usTicks);
-    return ((timeUs_t)(ms + pending) * 1000LL) + partial;
+    const uint32_t partial = (usTicks * 1000U - cycle_cnt) / usTicks;
+    return ((timeUs_t)(ms + pending) * 1000LL) + ((timeUs_t)partial);
 }
 
 timeUs_t micros(void)
@@ -155,8 +155,8 @@ timeUs_t micros(void)
     } while (ms != sysTickUptime || cycle_cnt > sysTickValStamp);
 
     // XXX: Be careful to not trigger 64 bit division
-    uint32_t partial = (((uint32_t)usTicks) * 1000U - cycle_cnt) / ((uint32_t)usTicks);
-    return ((timeUs_t)ms * 1000U) + partial;
+    const uint32_t partial = (usTicks * 1000U - cycle_cnt) / usTicks;
+    return ((timeUs_t)ms * 1000LL) + ((timeUs_t)partial);
 }
 
 // Return system uptime in milliseconds (rollover in 49 days)
