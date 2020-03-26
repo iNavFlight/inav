@@ -56,7 +56,6 @@ typedef enum {
     VTX_PARAM_POWER = 0,
     VTX_PARAM_BANDCHAN,
     VTX_PARAM_PITMODE,
-    VTX_PARAM_CONFIRM,
     VTX_PARAM_COUNT
 } vtxScheduleParams_e;
 
@@ -91,7 +90,7 @@ static bool vtxProcessBandAndChannel(vtxDevice_t *vtxDevice, const vtxSettingsCo
         return false;
     }
 
-    if(!ARMING_FLAG(ARMED)) {
+    if(!ARMING_FLAG(ARMED) && runtimeSettings->band) {
         uint8_t vtxBand;
         uint8_t vtxChan;
         if (!vtxCommonGetBandAndChannel(vtxDevice, &vtxBand, &vtxChan)) {
@@ -149,20 +148,6 @@ static bool vtxProcessPitMode(vtxDevice_t *vtxDevice, const vtxSettingsConfig_t 
     return false;
 }
 
-static bool vtxProcessCheckParameters(vtxDevice_t *vtxDevice, const vtxSettingsConfig_t * runtimeSettings)
-{
-    uint8_t vtxBand;
-    uint8_t vtxChan;
-    uint8_t vtxPower;
-
-    vtxCommonGetPowerIndex(vtxDevice, &vtxPower);
-    vtxCommonGetBandAndChannel(vtxDevice, &vtxBand, &vtxChan);
-
-    return (runtimeSettings->band && runtimeSettings->band != vtxBand) ||
-           (runtimeSettings->channel != vtxChan) ||
-           (runtimeSettings->power != vtxPower);
-}
-
 void vtxUpdate(timeUs_t currentTimeUs)
 {
     static uint8_t currentSchedule = 0;
@@ -190,9 +175,6 @@ void vtxUpdate(timeUs_t currentTimeUs)
                 break;
             case VTX_PARAM_PITMODE:
                 vtxUpdatePending = vtxProcessPitMode(vtxDevice, runtimeSettings);
-                break;
-            case VTX_PARAM_CONFIRM:
-                vtxUpdatePending = vtxProcessCheckParameters(vtxDevice, runtimeSettings);
                 break;
             default:
                 break;
