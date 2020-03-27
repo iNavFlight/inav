@@ -292,6 +292,7 @@ void mixerResetDisarmedMotors(void)
     }
 }
 
+#ifdef USE_DSHOT
 static uint16_t handleOutputScaling(
     int16_t input,          // Input value from the mixer
     int16_t stopThreshold,  // Threshold value to check if motor should be rotating or not
@@ -319,6 +320,7 @@ static uint16_t handleOutputScaling(
     }
     return value;
 }
+#endif
 
 void FAST_CODE writeMotors(void)
 {

@@ -25,6 +25,7 @@
 
 #include "common/maths.h"
 #include "common/time.h"
+#include "common/utils.h"
 
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
@@ -121,6 +122,8 @@ static bool vtxProcessPower(vtxDevice_t *vtxDevice, const vtxSettingsConfig_t * 
 
 static bool vtxProcessPitMode(vtxDevice_t *vtxDevice, const vtxSettingsConfig_t * runtimeSettings)
 {
+    UNUSED(runtimeSettings);
+
     uint8_t pitOnOff;
 
     bool        currPmSwitchState = false;
