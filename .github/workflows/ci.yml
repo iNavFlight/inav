@@ -1,5 +1,10 @@
 name: Build firmware
-on: [push]
+on:
+  push:
+    branches-ignore:
+      - master
+      - development
+  pull_request:
 
 jobs:
   # This downloads the GNU toolchain from ARM once, then
