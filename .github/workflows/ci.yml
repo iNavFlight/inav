@@ -69,7 +69,7 @@ jobs:
             path: ./obj/*.hex
 
   test:
-    needs: download-toolchain
+    needs: [download-toolchain, build]
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
