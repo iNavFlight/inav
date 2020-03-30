@@ -64,6 +64,13 @@ static inline uint8_t __basepriSetRetVal(uint8_t prio)
     return 1;
 }
 
+// The CMSIS provides the function __set_BASEPRI(priority) for changing the value of the BASEPRI register.
+// The function uses the hardware convention for the ‘priority’ argument, which means that the priority must
+// be shifted left by the number of unimplemented bits (8 – __NVIC_PRIO_BITS).
+//
+// NOTE: The priority numbering convention used in __set_BASEPRI(priority) is thus different than in the
+// NVIC_SetPriority(priority) function, which expects the “priority” argument not shifted.
+
 // Run block with elevated BASEPRI (using BASEPRI_MAX), restoring BASEPRI on exit. All exit paths are handled
 // Full memory barrier is placed at start and exit of block
 #ifdef UNIT_TEST
@@ -71,7 +78,7 @@ static inline uint8_t __basepriSetRetVal(uint8_t prio)
 #define ATOMIC_BLOCK_NB(prio) {}
 #else
 #define ATOMIC_BLOCK(prio) for ( uint8_t __basepri_save __attribute__((__cleanup__(__basepriRestoreMem))) = __get_BASEPRI(), \
-                                     __ToDo = __basepriSetMemRetVal(prio); __ToDo ; __ToDo = 0 )
+                                     __ToDo = __basepriSetMemRetVal((prio) << (8U - __NVIC_PRIO_BITS)); __ToDo ; __ToDo = 0 )
 
 // Run block with elevated BASEPRI (using BASEPRI_MAX), but do not create any (explicit) memory barrier.
 // Be careful when using this, you must use some method to prevent optimizer form breaking things
@@ -80,7 +87,7 @@ static inline uint8_t __basepriSetRetVal(uint8_t prio)
 // - gcc 4.8.4 does write all values in registers to memory before 'asm volatile', so this optimization does not help much
 //    but that can change in future versions
 #define ATOMIC_BLOCK_NB(prio) for ( uint8_t __basepri_save __attribute__((__cleanup__(__basepriRestore))) = __get_BASEPRI(), \
-                                    __ToDo = __basepriSetRetVal(prio); __ToDo ; __ToDo = 0 ) \
+                                    __ToDo = __basepriSetRetVal((prio) << (8U - __NVIC_PRIO_BITS)); __ToDo ; __ToDo = 0 ) \
 
 #endif // UNIT_TEST
 

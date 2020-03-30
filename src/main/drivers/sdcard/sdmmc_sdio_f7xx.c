@@ -1329,10 +1329,8 @@ bool SD_Initialize_LL(DMA_Stream_TypeDef * dmaRef)
     IOInit(cmd, OWNER_SDCARD, RESOURCE_NONE, 0);
     IOConfigGPIOAF(cmd, SDMMC_CMD, GPIO_AF12_SDMMC1);
 
-    uint32_t PriorityGroup = NVIC_GetPriorityGrouping();
-
     // NVIC configuration for SDIO interrupts
-    NVIC_SetPriority(SDMMC1_IRQn, NVIC_EncodePriority(PriorityGroup, 1, 0));
+    NVIC_SetPriority(SDMMC1_IRQn, NVIC_PRIO_SDIO);
     NVIC_EnableIRQ(SDMMC1_IRQn);
 
     dma_stream = dmaRef;

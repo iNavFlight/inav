@@ -110,7 +110,7 @@ void dmaSetHandler(DMA_t dma, dmaCallbackHandlerFuncPtr callback, uint32_t prior
     dma->irqHandlerCallback = callback;
     dma->userParam = userParam;
 
-    HAL_NVIC_SetPriority(dma->irqNumber, NVIC_PRIORITY_BASE(priority), NVIC_PRIORITY_SUB(priority));
+    HAL_NVIC_SetPriority(dma->irqNumber, priority, 0);
     HAL_NVIC_EnableIRQ(dma->irqNumber);
 }
 
