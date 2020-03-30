@@ -1,10 +1,8 @@
 name: Build firmware
-on:
-  push:
-    branches-ignore:
-      - master
-      - development
-  pull_request:
+# Don't enable CI on push, just on PR. If you
+# are working on the main repo and want to trigger
+# a CI build submit a draft PR.
+on: pull_request
 
 jobs:
   # This downloads the GNU toolchain from ARM once, then
@@ -38,8 +36,18 @@ jobs:
         - uses: actions/checkout@v2
         - name: Setup environment
           run: |
+            # This is the hash of the commit for the PR
+            # when the action is triggered by PR, empty otherwise
+            COMMIT_ID=${{ github.event.pull_request.head.sha }}
+            # This is the hash of the commit when triggered by push
+            # but the hash of refs/pull/<n>/merge, which is different
+            # from the hash of the latest commit in the PR, that's
+            # why we try github.event.pull_request.head.sha first
+            COMMIT_ID=${COMMIT_ID:-${{ github.sha }}}
+            BUILD_SUFFIX=ci-$(date '+%Y%m%d')-$(git rev-parse --short ${COMMIT_ID})
             echo "::set-env name=TARGETS::$(./src/utils/build-targets.sh -n -s ${{ matrix.start }} -c ${{ matrix.count }})"
-            echo "::set-env name=BUILD_SUFFIX::ci-$(git rev-parse --short ${{ github.ref }})"
+            echo "::set-env name=BUILD_SUFFIX::${BUILD_SUFFIX}"
+            echo "::set-env name=BUILD_NAME::inav-$(make print_version)-${BUILD_SUFFIX}"
             echo "::set-env name=IS_LAST_JOB::$([ $(expr ${{ strategy.job-index }} + 1) = ${{ strategy.job-total }} ] && echo yes)"
         - name: Ensure all targets will be tested
           if: ${{ env.IS_LAST_JOB }}
@@ -70,7 +78,7 @@ jobs:
           if: ${{ env.TARGETS }}
           uses: actions/upload-artifact@v2-preview
           with:
-            name: inav-${{ env.BUILD_SUFFIX }}.zip
+            name: ${{ env.BUILD_NAME }}.zip
             path: ./obj/*.hex
 
   test:
