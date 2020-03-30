@@ -22,7 +22,7 @@
 #define OMNIBUSF4PRO
 #endif
 //Same target as OMNIBUSF4V3 with softserial in M5 and M6
-#if defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)
+#if defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS) || defined(OMNIBUSF4V3_LED_SS)
 #define OMNIBUSF4V3
 #endif
 
@@ -162,7 +162,7 @@
   #define INVERTER_PIN_UART6_TX PC9
 #endif
 
-#if defined(OMNIBUSF4V3) && !(defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS))
+#if defined(OMNIBUSF4V3) && !(defined(OMNIBUSF4V3_S6_SS)) && !(defined(OMNIBUSF4V3_LED_SS)) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)
 #define USE_SOFTSERIAL1
 #define SOFTSERIAL_1_RX_PIN     PC6     // shared with UART6 TX
 #define SOFTSERIAL_1_TX_PIN     PC6     // shared with UART6 TX
@@ -193,6 +193,17 @@
 #define SOFTSERIAL_2_TX_PIN     PA8     // S6 output
 
 #define SERIAL_PORT_COUNT       6       // VCP, USART1, USART3, USART6, SOFTSERIAL1, SOFTSERIAL2
+
+#elif defined(OMNIBUSF4V3_LED_SS)        // two softserials, one on UART6 and one on LEDSTRIP
+#define USE_SOFTSERIAL1
+#define SOFTSERIAL_1_RX_PIN     PC6     // shared with UART6 TX
+#define SOFTSERIAL_1_TX_PIN     PC6     // shared with UART6 TX
+
+#define USE_SOFTSERIAL2
+#define SOFTSERIAL_2_RX_PIN     PB6     // LEDSTRIP OUTPUT
+#define SOFTSERIAL_2_TX_PIN     PB6     // LEDSTRIP OUTPUT
+
+#define SERIAL_PORT_COUNT       6       // VCP, USART1, USART3, USART6, SOFTSERIAL1
 
 #else                                   // One softserial on versions other than OMNIBUSF4V3
 #define USE_SOFTSERIAL1
