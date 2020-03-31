@@ -5,27 +5,7 @@ name: Build firmware
 on: pull_request
 
 jobs:
-  # This downloads the GNU toolchain from ARM once, then
-  # saves it as an artifact for the remaining jobs, making
-  # the download way faster.
-  download-toolchain:
-    runs-on: ubuntu-18.04
-    steps:
-      - uses: actions/checkout@v2
-      - name: Prepare ARM toolchain environment
-        run: |
-          echo "::set-env name=ARM_SDK_FILENAME::$(make arm_sdk_print_filename)"
-          echo "::set-env name=ARM_SDK_DOWNLOAD_PATH::$(make arm_sdk_print_download_path)"
-      - name: Download ARM toolchain
-        run: make arm_sdk_download
-      - name: Save toolchain as artifact
-        uses: actions/upload-artifact@v2-preview
-        with:
-          name: ${{ env.ARM_SDK_FILENAME }}
-          path: ${{ env.ARM_SDK_DOWNLOAD_PATH }}
-
   build:
-    needs: download-toolchain
     runs-on: ubuntu-18.04
     strategy:
         matrix:
@@ -33,68 +13,55 @@ jobs:
           count: [10]
 
     steps:
-        - uses: actions/checkout@v2
-        - name: Setup environment
-          run: |
-            # This is the hash of the commit for the PR
-            # when the action is triggered by PR, empty otherwise
-            COMMIT_ID=${{ github.event.pull_request.head.sha }}
-            # This is the hash of the commit when triggered by push
-            # but the hash of refs/pull/<n>/merge, which is different
-            # from the hash of the latest commit in the PR, that's
-            # why we try github.event.pull_request.head.sha first
-            COMMIT_ID=${COMMIT_ID:-${{ github.sha }}}
-            BUILD_SUFFIX=ci-$(date '+%Y%m%d')-$(git rev-parse --short ${COMMIT_ID})
-            echo "::set-env name=TARGETS::$(./src/utils/build-targets.sh -n -s ${{ matrix.start }} -c ${{ matrix.count }})"
-            echo "::set-env name=BUILD_SUFFIX::${BUILD_SUFFIX}"
-            echo "::set-env name=BUILD_NAME::inav-$(make print_version)-${BUILD_SUFFIX}"
-            echo "::set-env name=IS_LAST_JOB::$([ $(expr ${{ strategy.job-index }} + 1) = ${{ strategy.job-total }} ] && echo yes)"
-        - name: Ensure all targets will be tested
-          if: ${{ env.IS_LAST_JOB }}
-          run: |
-            UNTESTED=$(./src/utils/build-targets.sh -n -s $(expr ${{ matrix.start }} + ${{ matrix.count }}) -c 10000)
-            if ! [ -z "${UNTESTED}" ]; then
-              echo "Untested targets: ${UNTESTED}" >&2
-              exit 1
-            fi
-        - name: Prepare ARM toolchain environment
-          if: ${{ env.TARGETS }}
-          run: |
-            echo "::set-env name=ARM_SDK_FILENAME::$(make arm_sdk_print_filename)"
-            echo "::set-env name=ARM_SDK_DOWNLOAD_DIR::$(dirname $(make arm_sdk_print_download_path))"
-        - name: Download ARM toolchain
-          if: ${{ env.TARGETS }}
-          uses: actions/download-artifact@v1
-          with:
-            name: ${{ env.ARM_SDK_FILENAME }}
-            path: ${{ env.ARM_SDK_DOWNLOAD_DIR }}
-        - name: Install ARM toolchain
-          if: ${{ env.TARGETS }}
-          run: make arm_sdk_install
-        - name: Build targets (${{ matrix.start }})
-          if: ${{ env.TARGETS }}
-          run: ./src/utils/build-targets.sh -s ${{ matrix.start }} -c ${{ matrix.count }} -S ${{ env.BUILD_SUFFIX }}
-        - name: Upload artifacts
-          if: ${{ env.TARGETS }}
-          uses: actions/upload-artifact@v2-preview
-          with:
-            name: ${{ env.BUILD_NAME }}.zip
-            path: ./obj/*.hex
+      - uses: actions/checkout@v2
+      - name: Setup environment
+        run: |
+          # This is the hash of the commit for the PR
+          # when the action is triggered by PR, empty otherwise
+          COMMIT_ID=${{ github.event.pull_request.head.sha }}
+          # This is the hash of the commit when triggered by push
+          # but the hash of refs/pull/<n>/merge, which is different
+          # from the hash of the latest commit in the PR, that's
+          # why we try github.event.pull_request.head.sha first
+          COMMIT_ID=${COMMIT_ID:-${{ github.sha }}}
+          BUILD_SUFFIX=ci-$(date '+%Y%m%d')-$(git rev-parse --short ${COMMIT_ID})
+          echo "::set-env name=TARGETS::$(./src/utils/build-targets.sh -n -s ${{ matrix.start }} -c ${{ matrix.count }})"
+          echo "::set-env name=BUILD_SUFFIX::${BUILD_SUFFIX}"
+          echo "::set-env name=BUILD_NAME::inav-$(make print_version)-${BUILD_SUFFIX}"
+          echo "::set-env name=IS_LAST_JOB::$([ $(expr ${{ strategy.job-index }} + 1) = ${{ strategy.job-total }} ] && echo yes)"
+      - name: Ensure all targets will be tested
+        if: ${{ env.IS_LAST_JOB }}
+        run: |
+          UNTESTED=$(./src/utils/build-targets.sh -n -s $(expr ${{ matrix.start }} + ${{ matrix.count }}) -c 10000)
+          if ! [ -z "${UNTESTED}" ]; then
+            echo "Untested targets: ${UNTESTED}" >&2
+            exit 1
+          fi
+      - uses: actions/cache@v1
+        with:
+          path: downloads
+          key: ${{ runner.os }}-downloads-${{ hashFiles('Makefile') }}-${{ hashFiles('**/make/*.mk')}}
+      - name: Install ARM toolchain
+        run: make arm_sdk_install
+      - name: Build targets (${{ matrix.start }})
+        if: ${{ env.TARGETS }}
+        run: ./src/utils/build-targets.sh -s ${{ matrix.start }} -c ${{ matrix.count }} -S ${{ env.BUILD_SUFFIX }}
+      - name: Upload artifacts
+        if: ${{ env.TARGETS }}
+        uses: actions/upload-artifact@v2-preview
+        with:
+          name: ${{ env.BUILD_NAME }}.zip
+          path: ./obj/*.hex
 
   test:
-    needs: [download-toolchain, build]
+    needs: [build]
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
-      - name: Prepare ARM toolchain environment
-        run: |
-          echo "::set-env name=ARM_SDK_FILENAME::$(make arm_sdk_print_filename)"
-          echo "::set-env name=ARM_SDK_DOWNLOAD_DIR::$(dirname $(make arm_sdk_print_download_path))"
-      - name: Download ARM toolchain
-        uses: actions/download-artifact@v1
+      - uses: actions/cache@v1
         with:
-          name: ${{ env.ARM_SDK_FILENAME }}
-          path: ${{ env.ARM_SDK_DOWNLOAD_DIR }}
+          path: downloads
+          key: ${{ runner.os }}-downloads-${{ hashFiles('Makefile') }}-${{ hashFiles('**/make/*.mk')}}
       - name: Install ARM toolchain
         run: make arm_sdk_install
       - name: Run Tests
