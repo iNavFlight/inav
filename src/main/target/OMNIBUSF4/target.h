@@ -217,7 +217,7 @@
 
 #define USE_SPI_DEVICE_1
 
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_LED_SS)
   #define USE_SPI_DEVICE_2
   #define SPI2_NSS_PIN          PB12
   #define SPI2_SCK_PIN          PB13
@@ -226,7 +226,7 @@
 #endif
 
 #define USE_SPI_DEVICE_3
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_LED_SS)
   #define SPI3_NSS_PIN          PA15
 #else
   #define SPI3_NSS_PIN          PB3
@@ -240,7 +240,7 @@
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PA15
 
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_LED_SS)
   #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
   #define USE_SDCARD
   #define USE_SDCARD_SPI
