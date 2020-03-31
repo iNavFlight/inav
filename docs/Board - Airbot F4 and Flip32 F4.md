@@ -24,7 +24,7 @@
 
 ## Radio Receivers
 
-This board does not support Parallel PWM receiver connection. Only SerialRX, PPM and MSP receivers are supported.
+SerialRX, PPM and MSP receivers are supported.
 
 SerialRX and PPM receivers should be connected to dedicated _PPM SBUS_ connector above _Motor 1_. MSP receivers should be connected to one of UARTs configured as MSP.
 
@@ -77,7 +77,7 @@ LED strip is enabled on Motor 5 pin (PA1)
 
 ## SoftwareSerial
 
-This board allows for single **SoftwareSerial** port on small soldering pads located next to UART3 pins. 
+This board allows for single **SoftwareSerial** port on small soldering pads located next to UART3 pins.
 
 | Pad   | SoftwareSerial Role   |
 | ----  | ----                  |

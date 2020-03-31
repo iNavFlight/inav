@@ -27,6 +27,7 @@
 
 #if defined(USE_CMS) && defined(USE_VTX_SMARTAUDIO)
 
+#include "common/log.h"
 #include "common/printf.h"
 #include "common/utils.h"
 
@@ -287,7 +288,7 @@ static long saCmsConfigPitFModeByGvar(displayPort_t *pDisp, const void *self)
         return 0;
     }
 
-    dprintf(("saCmsConfigPitFmodeByGbar: saCmsPitFMode %d\r\n", saCmsPitFMode));
+    LOG_D(VTX, "saCmsConfigPitFmodeByGbar: saCmsPitFMode %d", saCmsPitFMode);
 
     if (saCmsPitFMode == 0) {
         // Bounce back
@@ -319,7 +320,7 @@ static long saCmsConfigOpmodelByGvar(displayPort_t *pDisp, const void *self)
 
     uint8_t opmodel = saCmsOpmodel;
 
-    dprintf(("saCmsConfigOpmodelByGvar: opmodel %d\r\n", opmodel));
+    LOG_D(VTX, "saCmsConfigOpmodelByGvar: opmodel %d", opmodel);
 
     if (opmodel == SACMS_OPMODEL_FREE) {
         // VTX should power up transmitting.

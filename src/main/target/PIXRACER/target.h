@@ -82,17 +82,11 @@
 #define MS5611_CS_PIN           PD7
 #define MS5611_SPI_BUS          BUS_SPI2
 
-/*
 #define USE_SDCARD
-
-#define SDCARD_SPI_INSTANCE                 SPI3
-#define SDCARD_SPI_CS_PIN                   PD2
-
-#define SDCARD_DMA_CHANNEL_TX               DMA1_Stream5
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF5
-#define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA1
-#define SDCARD_DMA_CHANNEL                  DMA_Channel_0
-*/
+#define USE_SDCARD_SDIO
+#define SDCARD_SDIO_DMA         DMA_TAG(2,3,4)
+#define SDCARD_SDIO_4BIT
+#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
 // MPU9250 interrupt
 #define USE_MPU_DATA_READY_SIGNAL

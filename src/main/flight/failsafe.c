@@ -216,7 +216,7 @@ bool failsafeRequiresMotorStop(void)
 {
     return failsafeState.active &&
            failsafeState.activeProcedure == FAILSAFE_PROCEDURE_AUTO_LANDING &&
-           failsafeConfig()->failsafe_throttle < motorConfig()->minthrottle;
+           failsafeConfig()->failsafe_throttle < getThrottleIdleValue();
 }
 
 void failsafeStartMonitoring(void)
@@ -287,7 +287,7 @@ void failsafeApplyControlInput(void)
                         break;
 
                     case THROTTLE:
-                        rcCommand[idx] = feature(FEATURE_3D) ? PWM_RANGE_MIDDLE : motorConfig()->minthrottle;
+                        rcCommand[idx] = feature(FEATURE_3D) ? PWM_RANGE_MIDDLE : getThrottleIdleValue();
                         break;
                 }
                 break;

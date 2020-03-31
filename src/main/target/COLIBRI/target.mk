@@ -1,5 +1,5 @@
 F405_TARGETS   += $(TARGET)
-FEATURES       += VCP ONBOARDFLASH
+FEATURES       += VCP ONBOARDFLASH MSC
 HSE_VALUE       = 16000000
 
 TARGET_SRC = \
@@ -11,4 +11,3 @@ TARGET_SRC = \
             drivers/compass/compass_ist8308.c \
             drivers/compass/compass_mag3110.c \
             drivers/compass/compass_lis3mdl.c
-

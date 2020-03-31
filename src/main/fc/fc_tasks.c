@@ -27,6 +27,7 @@
 #include "common/color.h"
 #include "common/utils.h"
 #include "common/logic_condition.h"
+#include "common/global_functions.h"
 
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/compass/compass.h"
@@ -46,6 +47,7 @@
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/wind_estimator.h"
+#include "flight/rpm_filter.h"
 
 #include "navigation/navigation.h"
 
@@ -59,6 +61,7 @@
 #include "io/serial.h"
 #include "io/rcdevice_cam.h"
 #include "io/vtx.h"
+#include "io/osd_dji_hd.h"
 
 #include "msp/msp_serial.h"
 
@@ -95,6 +98,11 @@ void taskHandleSerial(timeUs_t currentTimeUs)
 
     // Allow MSP processing even if in CLI mode
     mspSerialProcess(ARMING_FLAG(ARMED) ? MSP_SKIP_NON_MSP_DATA : MSP_EVALUATE_NON_MSP_DATA, mspFcProcessCommand);
+
+#if defined(USE_DJI_HD_OSD)
+    // DJI OSD uses a special flavour of MSP (subset of Betaflight 4.1.1 MSP) - process as part of serial task
+    djiOsdSerialProcess();
+#endif
 }
 
 void taskUpdateBattery(timeUs_t currentTimeUs)
@@ -312,9 +320,6 @@ void fcTasksInit(void)
 #ifdef USE_PWM_SERVO_DRIVER
     setTaskEnabled(TASK_PWMDRIVER, feature(FEATURE_PWM_SERVO_DRIVER));
 #endif
-#ifdef USE_OSD
-    setTaskEnabled(TASK_OSD, feature(FEATURE_OSD));
-#endif
 #ifdef USE_CMS
 #ifdef USE_MSP_DISPLAYPORT
     setTaskEnabled(TASK_CMS, true);
@@ -338,6 +343,9 @@ void fcTasksInit(void)
 #endif
 #ifdef USE_LOGIC_CONDITIONS
     setTaskEnabled(TASK_LOGIC_CONDITIONS, true);
+#endif
+#ifdef USE_GLOBAL_FUNCTIONS
+    setTaskEnabled(TASK_GLOBAL_FUNCTIONS, true);
 #endif
 }
 
@@ -550,6 +558,22 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskFunc = logicConditionUpdateTask,
         .desiredPeriod = TASK_PERIOD_HZ(10),          // 10Hz @100msec
         .staticPriority = TASK_PRIORITY_IDLE,
+    },
+#endif
+#ifdef USE_GLOBAL_FUNCTIONS
+    [TASK_GLOBAL_FUNCTIONS] = {
+        .taskName = "G_FNK",
+        .taskFunc = globalFunctionsUpdateTask,
+        .desiredPeriod = TASK_PERIOD_HZ(10),          // 10Hz @100msec
+        .staticPriority = TASK_PRIORITY_IDLE,
+    },
+#endif
+#ifdef USE_RPM_FILTER
+    [TASK_RPM_FILTER] = {
+        .taskName = "RPM",
+        .taskFunc = rpmFilterUpdateTask,
+        .desiredPeriod = TASK_PERIOD_HZ(RPM_FILTER_UPDATE_RATE_HZ),          // 300Hz @3,33ms
+        .staticPriority = TASK_PRIORITY_LOW,
     },
 #endif
 };

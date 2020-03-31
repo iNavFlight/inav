@@ -56,7 +56,8 @@
 
 #define SBUS_FRAME_BEGIN_BYTE 0x0F
 
-#define SBUS_BAUDRATE 100000
+#define SBUS_BAUDRATE       100000
+#define SBUS_BAUDRATE_FAST  200000
 
 #if !defined(SBUS_PORT_OPTIONS)
 #define SBUS_PORT_OPTIONS (SERIAL_STOPBITS_2 | SERIAL_PARITY_EVEN)
@@ -64,6 +65,7 @@
 
 #define SBUS_DIGITAL_CHANNEL_MIN 173
 #define SBUS_DIGITAL_CHANNEL_MAX 1812
+
 
 enum {
     DEBUG_SBUS_INTERFRAME_TIME = 0,
@@ -171,6 +173,7 @@ static void sbusDataReceive(uint16_t c, void *data)
 static uint8_t sbusFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 {
     sbusFrameData_t *sbusFrameData = rxRuntimeConfig->frameData;
+
     if (!sbusFrameData->frameDone) {
         return RX_FRAME_PENDING;
     }
@@ -181,16 +184,22 @@ static uint8_t sbusFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
     // Reset the frameDone flag - tell ISR that we're ready to receive next frame
     sbusFrameData->frameDone = false;
 
+    // Calculate "virtual link quality based on packet loss metric"
+    if (retValue & RX_FRAME_COMPLETE) {
+        lqTrackerAccumulate(rxRuntimeConfig->lqTracker, ((retValue & RX_FRAME_DROPPED) || (retValue & RX_FRAME_FAILSAFE)) ? 0 : RSSI_MAX_VALUE);
+    }
+
     return retValue;
 }
 
-bool sbusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
+static bool sbusInitEx(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, uint32_t sbusBaudRate)
 {
     static uint16_t sbusChannelData[SBUS_MAX_CHANNEL];
     static sbusFrameData_t sbusFrameData;
 
     rxRuntimeConfig->channelData = sbusChannelData;
     rxRuntimeConfig->frameData = &sbusFrameData;
+
     sbusChannelsInit(rxRuntimeConfig);
 
     rxRuntimeConfig->channelCount = SBUS_MAX_CHANNEL;
@@ -213,7 +222,7 @@ bool sbusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
         FUNCTION_RX_SERIAL,
         sbusDataReceive,
         &sbusFrameData,
-        SBUS_BAUDRATE,
+        sbusBaudRate,
         portShared ? MODE_RXTX : MODE_RX,
         SBUS_PORT_OPTIONS | (rxConfig->serialrx_inverted ? 0 : SERIAL_INVERTED) | (rxConfig->halfDuplex ? SERIAL_BIDIR : 0)
         );
@@ -225,5 +234,15 @@ bool sbusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
 #endif
 
     return sBusPort != NULL;
+}
+
+bool sbusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
+{
+    return sbusInitEx(rxConfig, rxRuntimeConfig, SBUS_BAUDRATE);
+}
+
+bool sbusInitFast(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
+{
+    return sbusInitEx(rxConfig, rxRuntimeConfig, SBUS_BAUDRATE_FAST);
 }
 #endif

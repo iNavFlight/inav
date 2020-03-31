@@ -2,11 +2,12 @@ F7X5XG_TARGETS += $(TARGET)
 ifeq ($(TARGET), KAKUTEF7MINI)
 FEATURES       += VCP ONBOARDFLASH
 else
-FEATURES       += SDCARD VCP
+FEATURES       += SDCARD VCP MSC
 endif
 
 TARGET_SRC = \
             drivers/accgyro/accgyro_icm20689.c \
+            drivers/accgyro/accgyro_mpu6000.c \
             drivers/barometer/barometer_bmp280.c \
             drivers/compass/compass_ak8963.c \
             drivers/compass/compass_hmc5883l.c \

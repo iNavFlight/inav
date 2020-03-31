@@ -21,6 +21,7 @@
 #define SIM_DEFAULT_TRANSMIT_INTERVAL 60
 #define SIM_N_TX_FLAGS 5
 #define SIM_DEFAULT_TX_FLAGS "f"
+#define SIM_PIN "0000"
 
 
 void handleSimTelemetry(void);

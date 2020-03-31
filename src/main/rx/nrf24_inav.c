@@ -361,7 +361,7 @@ static void writeBindAckPayload(uint8_t *payload)
  * This is called periodically by the scheduler.
  * Returns RX_SPI_RECEIVED_DATA if a data packet was received.
  */
-rx_spi_received_e inavNrf24DataReceived(uint8_t *payload)
+rx_spi_received_e inavNrf24DataReceived(uint8_t *payload, uint16_t *linkQuality)
 {
     rx_spi_received_e ret = RX_SPI_RECEIVED_NONE;
     timeUs_t timeNowUs;
