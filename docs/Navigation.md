@@ -59,12 +59,12 @@ When deciding what altitude to maintain, RTH has 4 different modes of operation 
 Parameters:
 
   * `<action>` - The action to be taken at the WP. The following are enumerations are available in inav 2.5 and later:
-        0 - Unused / Unassigned
-        1 - WAYPOINT
-        3 - POSHOLD_TIME
-        4 - RTH
-        6 - JUMP
-        8 - LAND
+      *  0 - Unused / Unassigned
+      *  1 - WAYPOINT
+      *  3 - POSHOLD_TIME
+      *  4 - RTH
+      *  6 - JUMP
+      *  8 - LAND
 
   * `<lat>` - Latitude (WGS84), in degrees * 1E7 (for example 123456789 means 12.3456789).
 
