@@ -54,7 +54,7 @@ When deciding what altitude to maintain, RTH has 4 different modes of operation 
 
 `wp load` - Load list of waypoints from EEPROM to FC.
 
-`wp <n> <action> <lat> <lon> <alt> <p1> <p2> <p3> <flag>` - Set parameters of waypoint with index `<n>`. Note that prior to inav 2.5, the `p2` and `p3` parameters where not required. From 2.5, inav will accept either version but always saves and lists the later version.
+`wp <n> <action> <lat> <lon> <alt> <p1> <p2> <p3> <flag>` - Set parameters of waypoint with index `<n>`. Note that prior to inav 2.5, the `p2` and `p3` parameters were not required. From 2.5, inav will accept either version but always saves and lists the later full version.
 
 Parameters:
 
@@ -83,3 +83,26 @@ Parameters:
 `wp save` - Checks list of waypoints and save from FC to EEPROM (warning: it also saves all unsaved CLI settings like normal `save`).
 
 `wp reset` - Resets the list, sets the waypoints number to 0 and mark it as invalid (but doesn't delete the waypoints).
+
+### `wp` example
+
+```
+# wp load
+
+# wp
+#wp 11 valid
+wp 0 1 543533193 -45179273 3500 0 0 0 0
+wp 1 1 543535723 -45193913 3500 0 0 0 0
+wp 2 1 543544541 -45196617 5000 0 0 0 0
+wp 3 1 543546578 -45186895 5000 0 0 0 0
+wp 4 6 0 0 0 2 2 0 0
+wp 5 1 543546688 -45176009 3500 0 0 0 0
+wp 6 1 543541225 -45172673 3500 0 0 0 0
+wp 7 6 0 0 0 1 1 0 0
+wp 8 3 543531383 -45190405 3500 45 0 0 0
+wp 9 1 543548470 -45182104 3500 0 0 0 0
+wp 10 8 543540521 -45178091 6000 0 0 0 165
+wp 11 0 0 0 0 0 0 0 0
+...
+wp 59 0 0 0 0 0 0 0 0
+```
