@@ -3218,10 +3218,11 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
     }
 
     // Don't allow arming if any of JUMP waypoint has invalid settings
+    // Note JUMP only goes to previous WPs, which must be 2 indices back
     if (posControl.waypointCount > 0) {
         for (uint8_t wp = 0; wp < posControl.waypointCount ; wp++){
             if (posControl.waypointList[wp].action == NAV_WP_ACTION_JUMP){
-                if((posControl.waypointList[wp].p1 >= wp) || (posControl.waypointList[wp].p2 < -1)){
+                if((wp < 2) || (posControl.waypointList[wp].p1 > (wp-2)) || (posControl.waypointList[wp].p2 < -1)) {
                     return NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR;
                 }
             }
