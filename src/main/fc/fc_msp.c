@@ -1958,7 +1958,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #ifdef USE_GLOBAL_FUNCTIONS
     case MSP2_INAV_SET_GLOBAL_FUNCTIONS:
         sbufReadU8Safe(&tmp_u8, src);
-        if ((dataSize == 9) && (tmp_u8 < MAX_GLOBAL_FUNCTIONS)) {
+        if ((dataSize == 10) && (tmp_u8 < MAX_GLOBAL_FUNCTIONS)) {
             globalFunctionsMutable(tmp_u8)->enabled = sbufReadU8(src);
             globalFunctionsMutable(tmp_u8)->conditionId = sbufReadU8(src);
             globalFunctionsMutable(tmp_u8)->action = sbufReadU8(src);
