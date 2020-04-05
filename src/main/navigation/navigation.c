@@ -1432,7 +1432,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
                 }
             }
 
-            posControl.activeWaypointIndex = posControl.waypointList[posControl.activeWaypointIndex].p1 - 1;
+            posControl.activeWaypointIndex = posControl.waypointList[posControl.activeWaypointIndex].p1;
 
             return NAV_FSM_EVENT_NONE; // re-process the state passing to the next WP
 
@@ -2679,10 +2679,14 @@ void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData)
         wpData->lon = wpLLH.lon;
         wpData->alt = wpLLH.alt;
     }
-    // WP #1 - #15 - common waypoints - pre-programmed mission
+    // WP #1 - #60 - common waypoints - pre-programmed mission
     else if ((wpNumber >= 1) && (wpNumber <= NAV_MAX_WAYPOINTS)) {
         if (wpNumber <= posControl.waypointCount) {
             *wpData = posControl.waypointList[wpNumber - 1];
+            if(wpData->action == NAV_WP_ACTION_JUMP) {
+                wpData->p1 += 1; // make WP # (vice index)
+            }
+
         }
     }
 }
@@ -2730,6 +2734,9 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
             // Only allow upload next waypoint (continue upload mission) or first waypoint (new mission)
             if (wpNumber == (posControl.waypointCount + 1) || wpNumber == 1) {
                 posControl.waypointList[wpNumber - 1] = *wpData;
+                if(wpData->action == NAV_WP_ACTION_JUMP) {
+                    posControl.waypointList[wpNumber - 1].p1 -= 1; // make index (vice WP #)
+                }
                 posControl.waypointCount = wpNumber;
                 posControl.waypointListValid = (wpData->flag == NAV_WP_FLAG_LAST);
             }
