@@ -72,7 +72,7 @@ Parameters:
 
   * `<alt>` - Altitude in cm.
 
-  * `<p1>` - For a RTH waypoint, p1 > 0 enables landing. For a normal waypoint it is the speed to this waypoint (cm/s), it is taken into account only for multicopters and when > 50 and < nav_auto_speed. For POSHOLD TIME waypoint it is time to loiter in seconds. For JUMP it is the target WP.
+  * `<p1>` - For a RTH waypoint, p1 > 0 enables landing. For a normal waypoint it is the speed to this waypoint (cm/s), it is taken into account only for multicopters and when > 50 and < nav_auto_speed. For POSHOLD TIME waypoint it is time to loiter in seconds. For JUMP it is the target WP **number** (not the index in the CLI wp command).
 
   * `<p2>` - For a POSHOLD TIME it is the speed to this waypoint (cm/s), it is taken into account only for multicopters and when > 50 and < nav_auto_speed. For JUMP it is the number of iterations of the JUMP.
 
@@ -82,7 +82,7 @@ Parameters:
 
 `wp save` - Checks list of waypoints and save from FC to EEPROM (warning: it also saves all unsaved CLI settings like normal `save`).
 
-`wp reset` - Resets the list, sets the waypoints number to 0 and mark it as invalid (but doesn't delete the waypoints).
+`wp reset` - Resets the list, sets the number of waypoints to 0 and marks the list as invalid (but doesn't delete the waypoint definitions).
 
 ### `wp` example
 
@@ -106,3 +106,5 @@ wp 11 0 0 0 0 0 0 0 0
 ...
 wp 59 0 0 0 0 0 0 0 0
 ```
+
+In particular, note that WP #5 (index 4, action=6, JUMP) jumps to WP #2 (wp list index 1), and WP #8 (index 7, action=6, JUMP) jumps to WP #1 (wp list index 0).
