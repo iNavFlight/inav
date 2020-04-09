@@ -136,7 +136,9 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
 
     // PID controller to translate energy balance error [J] into pitch angle [decideg]
     float targetPitchAngle = navPidApply3(&posControl.pids.fw_alt, demSEB, estSEB, US2S(deltaMicros), minDiveDeciDeg, maxClimbDeciDeg, 0, pitchGainInv);
-    targetPitchAngle = pt1FilterApply4(&velzFilterState, targetPitchAngle, NAV_FW_PITCH_CUTOFF_FREQENCY_HZ, US2S(deltaMicros));
+
+    const float cutoff_freq = constrain((10.f - navConfig()->fw.control_smoothness) / 5.0, 0.5, 2.0); // Pitch cutoff set to 1/5 the roll cutoff
+    targetPitchAngle = pt1FilterApply4(&velzFilterState, targetPitchAngle, cutoff_freq, US2S(deltaMicros));
 
     // Reconstrain pitch angle ( >0 - climb, <0 - dive)
     targetPitchAngle = constrainf(targetPitchAngle, minDiveDeciDeg, maxClimbDeciDeg);
@@ -367,7 +369,8 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
                                         pidFlags);
 
     // Apply low-pass filter to prevent rapid correction
-    rollAdjustment = pt1FilterApply4(&fwPosControllerCorrectionFilterState, rollAdjustment, NAV_FW_ROLL_CUTOFF_FREQUENCY_HZ, US2S(deltaMicros));
+    uint8_t cutoff_freq = constrain(10 - navConfig()->fw.control_smoothness, 1, 10);
+    rollAdjustment = pt1FilterApply4(&fwPosControllerCorrectionFilterState, rollAdjustment, cutoff_freq, US2S(deltaMicros));
 
     // Convert rollAdjustment to decidegrees (rcAdjustment holds decidegrees)
     posControl.rcAdjustment[ROLL] = CENTIDEGREES_TO_DECIDEGREES(rollAdjustment);
