@@ -1596,6 +1596,10 @@ groups:
         field: fw.cruise_speed
         min: 0
         max: 65535
+      - name: nav_fw_control_smoothness 
+        field: fw.control_smoothness
+        min: 0
+        max: 9
 
       - name: nav_fw_land_dive_angle
         field: fw.land_dive_angle

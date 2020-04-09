@@ -143,6 +143,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .max_dive_angle = 15,                   // degrees
         .cruise_throttle = 1400,
         .cruise_speed = 0,                      // cm/s
+        .control_smoothness = 0,
         .max_throttle = 1700,
         .min_throttle = 1200,
         .pitch_to_throttle = 10,                // pwm units per degree of pitch (10pwm units ~ 1% throttle)
