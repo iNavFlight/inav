@@ -152,7 +152,7 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  switch_disarm_delay | 250 | Delay before disarming when requested by switch (ms) [0-1000] |
 |  small_angle  | 25 | If the aircraft tilt angle exceed this value the copter will refuse to arm.  |
 |  reboot_character  | 82 | Special character used to trigger reboot |
-|  gps_provider  | UBLOX | Which GPS protocol to be used |
+|  gps_provider  | UBLOX | Which GPS protocol to be used, note that UBLOX is 5Hz and UBLOX7 is 10Hz (M8N). |
 |  gps_sbas_mode  | NONE | Which SBAS mode to be used |
 |  gps_dyn_model  | AIR_1G | GPS navigation model: Pedestrian, Air_1g, Air_4g. Default is AIR_1G. Use pedestrian with caution, can cause flyaways with fast flying. |
 |  gps_auto_config  | ON | Enable automatic configuration of UBlox GPS receivers. |
