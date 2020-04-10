@@ -141,20 +141,20 @@ static int logicConditionCompute(
             break;
 
         case LOGIC_CONDITION_ADD:
-            return operandA + operandB;
+            return constrain(operandA + operandB, INT16_MIN, INT16_MAX);
             break;
 
         case LOGIC_CONDITION_SUB:
-            return operandA - operandB;
+            return constrain(operandA - operandB, INT16_MIN, INT16_MAX);
             break;
 
         case LOGIC_CONDITION_MUL:
-            return operandA * operandB;
+            return constrain(operandA * operandB, INT16_MIN, INT16_MAX);
             break;
 
         case LOGIC_CONDITION_DIV:
             if (operandB != 0) {
-                return operandA / operandB;
+                return constrain(operandA / operandB, INT16_MIN, INT16_MAX);
             } else {
                 return operandA;
             }
@@ -203,15 +203,15 @@ static int logicConditionGetFlightOperandValue(int operand) {
     switch (operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_ARM_TIMER: // in s
-            return constrain((uint32_t)getFlightTime(), 0, 32767);
+            return constrain((uint32_t)getFlightTime(), 0, INT16_MAX);
             break;
         
         case LOGIC_CONDITION_OPERAND_FLIGHT_HOME_DISTANCE: //in m
-            return constrain(GPS_distanceToHome, 0, 32767);
+            return constrain(GPS_distanceToHome, 0, INT16_MAX);
             break;
         
         case LOGIC_CONDITION_OPERAND_FLIGHT_TRIP_DISTANCE: //in m
-            return constrain(getTotalTravelDistance() / 100, 0, 32767);
+            return constrain(getTotalTravelDistance() / 100, 0, INT16_MAX);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_RSSI:
@@ -248,18 +248,18 @@ static int logicConditionGetFlightOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_AIR_SPEED: // cm/s
         #ifdef USE_PITOT
-            return constrain(pitot.airSpeed, 0, 32767);
+            return constrain(pitot.airSpeed, 0, INT16_MAX);
         #else
             return false;
         #endif
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_ALTITUDE: // cm
-            return constrain(getEstimatedActualPosition(Z), -32678, 32767);
+            return constrain(getEstimatedActualPosition(Z), INT16_MIN, INT16_MAX);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_VERTICAL_SPEED: // cm/s
-            return constrain(getEstimatedActualVelocity(Z), 0, 32767);
+            return constrain(getEstimatedActualVelocity(Z), 0, INT16_MAX);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_TROTTLE_POS: // %

@@ -49,7 +49,7 @@ typedef enum {
     LOGIC_CONDITION_DIV,            // 17
     LOGIC_CONDITION_GVAR_SET,       // 18
     LOGIC_CONDITION_GVAR_INC,       // 19
-    LOGIC_CONDITION_GVAR_DEC,       // 21
+    LOGIC_CONDITION_GVAR_DEC,       // 20
     LOGIC_CONDITION_LAST
 } logicOperation_e;
 
