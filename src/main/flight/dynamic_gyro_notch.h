@@ -24,29 +24,27 @@
 
 #pragma once
 
-#include "config/parameter_group.h"
-#include "common/time.h"
+#include <stdint.h>
+#include "common/axis.h"
+#include "common/filter.h"
 
-typedef struct rpmFilterConfig_s {
-    uint8_t gyro_filter_enabled;
-    uint8_t dterm_filter_enabled;
+#define DYNAMIC_NOTCH_DEFAULT_CENTER_HZ 350
+#define DYNAMIC_NOTCH_DEFAULT_CUTOFF_HZ 300
 
-    uint8_t  gyro_harmonics;
-    uint8_t  gyro_min_hz;
-    uint16_t gyro_q;
+typedef struct dynamicGyroNotchState_s {
+    uint16_t frequency[XYZ_AXIS_COUNT];
+    float dynNotchQ;
+    float dynNotch1Ctr;
+    float dynNotch2Ctr;
+    uint32_t looptime;
+    uint8_t enabled;
+    /*
+     * Dynamic gyro filter can be 3x1, 3x2 or 3x3 depending on filter type
+     */
+    biquadFilter_t filters[XYZ_AXIS_COUNT][XYZ_AXIS_COUNT];
+    filterApplyFnPtr filtersApplyFn;
+} dynamicGyroNotchState_t;
 
-    uint8_t  dterm_harmonics;
-    uint8_t  dterm_min_hz;
-    uint16_t dterm_q;
-
-} rpmFilterConfig_t;
-
-PG_DECLARE(rpmFilterConfig_t, rpmFilterConfig);
-
-#define RPM_FILTER_UPDATE_RATE_HZ 500
-#define RPM_FILTER_UPDATE_RATE_US (1000000.0f / RPM_FILTER_UPDATE_RATE_HZ)
-
-void disableRpmFilters(void);
-void rpmFiltersInit(void);
-void rpmFilterUpdateTask(timeUs_t currentTimeUs);
-float rpmFilterGyroApply(uint8_t axis, float input);
+void dynamicGyroNotchFiltersInit(dynamicGyroNotchState_t *state);
+void dynamicGyroNotchFiltersUpdate(dynamicGyroNotchState_t *state, int axis, uint16_t frequency);
+float dynamicGyroNotchFiltersApply(dynamicGyroNotchState_t *state, int axis, float input);

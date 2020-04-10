@@ -1116,16 +1116,16 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_3D:
-        sbufWriteU16(dst, flight3DConfig()->deadband3d_low);
-        sbufWriteU16(dst, flight3DConfig()->deadband3d_high);
-        sbufWriteU16(dst, flight3DConfig()->neutral3d);
+        sbufWriteU16(dst, reversibleMotorsConfig()->deadband_low);
+        sbufWriteU16(dst, reversibleMotorsConfig()->deadband_high);
+        sbufWriteU16(dst, reversibleMotorsConfig()->neutral);
         break;
 
     case MSP_RC_DEADBAND:
         sbufWriteU8(dst, rcControlsConfig()->deadband);
         sbufWriteU8(dst, rcControlsConfig()->yaw_deadband);
         sbufWriteU8(dst, rcControlsConfig()->alt_hold_deadband);
-        sbufWriteU16(dst, rcControlsConfig()->deadband3d_throttle);
+        sbufWriteU16(dst, rcControlsConfig()->mid_throttle_deadband);
         break;
 
     case MSP_SENSOR_ALIGNMENT:
@@ -1425,7 +1425,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP2_INAV_MIXER:
-        sbufWriteU8(dst, mixerConfig()->yaw_motor_direction);
+        sbufWriteU8(dst, mixerConfig()->motorDirectionInverted);
         sbufWriteU16(dst, 0);
         sbufWriteU8(dst, mixerConfig()->platformType);
         sbufWriteU8(dst, mixerConfig()->hasFlaps);
@@ -1964,7 +1964,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #ifdef USE_GLOBAL_FUNCTIONS
     case MSP2_INAV_SET_GLOBAL_FUNCTIONS:
         sbufReadU8Safe(&tmp_u8, src);
-        if ((dataSize == 14) && (tmp_u8 < MAX_GLOBAL_FUNCTIONS)) {
+        if ((dataSize == 10) && (tmp_u8 < MAX_GLOBAL_FUNCTIONS)) {
             globalFunctionsMutable(tmp_u8)->enabled = sbufReadU8(src);
             globalFunctionsMutable(tmp_u8)->conditionId = sbufReadU8(src);
             globalFunctionsMutable(tmp_u8)->action = sbufReadU8(src);
@@ -1988,9 +1988,9 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_3D:
         if (dataSize >= 6) {
-            flight3DConfigMutable()->deadband3d_low = sbufReadU16(src);
-            flight3DConfigMutable()->deadband3d_high = sbufReadU16(src);
-            flight3DConfigMutable()->neutral3d = sbufReadU16(src);
+            reversibleMotorsConfigMutable()->deadband_low = sbufReadU16(src);
+            reversibleMotorsConfigMutable()->deadband_high = sbufReadU16(src);
+            reversibleMotorsConfigMutable()->neutral = sbufReadU16(src);
         } else
             return MSP_RESULT_ERROR;
         break;
@@ -2000,7 +2000,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             rcControlsConfigMutable()->deadband = sbufReadU8(src);
             rcControlsConfigMutable()->yaw_deadband = sbufReadU8(src);
             rcControlsConfigMutable()->alt_hold_deadband = sbufReadU8(src);
-            rcControlsConfigMutable()->deadband3d_throttle = sbufReadU16(src);
+            rcControlsConfigMutable()->mid_throttle_deadband = sbufReadU16(src);
         } else
             return MSP_RESULT_ERROR;
         break;
@@ -2383,11 +2383,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                         const uint8_t newChannel = (newFrequency % 8) + 1;
                         vtxSettingsConfigMutable()->band = newBand;
                         vtxSettingsConfigMutable()->channel = newChannel;
-                        vtxSettingsConfigMutable()->freq = vtx58_Bandchan2Freq(newBand, newChannel);
-                    } else if (newFrequency <= VTX_SETTINGS_MAX_FREQUENCY_MHZ) {  //value is frequency in MHz. Ignore it if it's invalid
-                        vtxSettingsConfigMutable()->band = 0;
-                        vtxSettingsConfigMutable()->channel = 0;
-                        vtxSettingsConfigMutable()->freq = newFrequency;
                     }
 
                     if (sbufBytesRemaining(src) > 1) {
@@ -2755,7 +2750,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP2_INAV_SET_MIXER:
-        mixerConfigMutable()->yaw_motor_direction = sbufReadU8(src);
+        mixerConfigMutable()->motorDirectionInverted = sbufReadU8(src);
         sbufReadU16(src); // Was yaw_jump_prevention_limit
         mixerConfigMutable()->platformType = sbufReadU8(src);
         mixerConfigMutable()->hasFlaps = sbufReadU8(src);

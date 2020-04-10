@@ -258,6 +258,7 @@ static uint32_t djiPackArmingDisabledFlags(void)
     return isArmingDisabled() ? (1 << 24) : 0;
 }
 
+#if defined(USE_OSD)
 static uint32_t djiEncodeOSDEnabledWarnings(void)
 {
     // TODO:
@@ -364,6 +365,7 @@ static void djiSerializeOSDConfigReply(sbuf_t *dst)
     //sbufWriteU8(dst, DJI_OSD_SCREEN_WIDTH); // osdConfig()->camera_frame_width
     //sbufWriteU8(dst, DJI_OSD_SCREEN_HEIGHT); // osdConfig()->camera_frame_height
 }
+#endif
 
 static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn)
 {

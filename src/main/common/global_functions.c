@@ -142,7 +142,7 @@ float NOINLINE getThrottleScale(float globalThrottleScale) {
     }
 }
 
-int16_t FAST_CODE getRcCommandOverride(int16_t command[], uint8_t axis) {
+int16_t getRcCommandOverride(int16_t command[], uint8_t axis) {
     int16_t outputValue = command[axis];
 
     if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_SWAP_ROLL_YAW) && axis == FD_ROLL) {

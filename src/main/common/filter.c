@@ -22,6 +22,8 @@
 
 #include "platform.h"
 
+FILE_COMPILE_FOR_SPEED
+
 #include "common/filter.h"
 #include "common/maths.h"
 #include "common/utils.h"
@@ -116,10 +118,9 @@ float rateLimitFilterApply4(rateLimitFilter_t *filter, float input, float rate_l
     return filter->state;
 }
 
-float filterGetNotchQ(uint16_t centerFreq, uint16_t cutoff)
+float filterGetNotchQ(uint16_t centerFrequencyHz, uint16_t cutoffFrequencyHz)
 {
-    const float octaves = log2f((float)centerFreq  / (float)cutoff) * 2;
-    return sqrtf(powf(2, octaves)) / (powf(2, octaves) - 1);
+    return centerFrequencyHz * cutoffFrequencyHz / (centerFrequencyHz * centerFrequencyHz - cutoffFrequencyHz * cutoffFrequencyHz);
 }
 
 void biquadFilterInitNotch(biquadFilter_t *filter, uint32_t samplingIntervalUs, uint16_t filterFreq, uint16_t cutoffHz)

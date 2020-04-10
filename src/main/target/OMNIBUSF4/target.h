@@ -140,7 +140,9 @@
 #define VBUS_SENSING_PIN        PC5
 #define VBUS_SENSING_ENABLED
 
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
 #define USE_UART_INVERTER
+#endif
 
 #define USE_UART1
 #define UART1_RX_PIN            PA10

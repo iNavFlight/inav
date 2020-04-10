@@ -194,23 +194,11 @@ void Leave_LowPowerMode(void)
  *******************************************************************************/
 void USB_Interrupts_Config(void)
 {
-    NVIC_InitTypeDef NVIC_InitStructure;
+    NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, NVIC_PRIO_USB);
+    NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
 
-    /* 2 bit for pre-emption priority, 2 bits for subpriority */
-    NVIC_PriorityGroupConfig(NVIC_PRIORITY_GROUPING);     // is this really neccesary?
-
-    /* Enable the USB interrupt */
-    NVIC_InitStructure.NVIC_IRQChannel = USB_LP_CAN1_RX0_IRQn;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = NVIC_PRIORITY_BASE(NVIC_PRIO_USB);
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = NVIC_PRIORITY_SUB(NVIC_PRIO_USB);
-    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&NVIC_InitStructure);
-
-    /* Enable the USB Wake-up interrupt */
-    NVIC_InitStructure.NVIC_IRQChannel = USBWakeUp_IRQn;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = NVIC_PRIORITY_BASE(NVIC_PRIO_USB_WUP);
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = NVIC_PRIORITY_SUB(NVIC_PRIO_USB_WUP);
-    NVIC_Init(&NVIC_InitStructure);
+    NVIC_SetPriority(USBWakeUp_IRQn, NVIC_PRIO_USB);
+    NVIC_EnableIRQ(USBWakeUp_IRQn);
 }
 
 /*******************************************************************************
