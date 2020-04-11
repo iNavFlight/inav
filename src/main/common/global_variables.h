@@ -31,8 +31,10 @@
 typedef struct globalVariableConfig_s {
     int32_t min;
     int32_t max;
+    int32_t defaultValue;
 } globalVariableConfig_t;
 PG_DECLARE_ARRAY(globalVariableConfig_t, MAX_GLOBAL_VARIABLES, globalVariableConfigs);
 
 int32_t gvGet(uint8_t index);
 void gvSet(uint8_t index, int32_t value);
+void gvInit(void);

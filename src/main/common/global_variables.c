@@ -24,6 +24,8 @@
 
 #include "platform.h"
 
+FILE_COMPILE_FOR_SIZE
+
 #ifdef USE_LOGIC_CONDITIONS
 
 #include <stdint.h>
@@ -40,10 +42,10 @@ PG_REGISTER_ARRAY_WITH_RESET_FN(globalVariableConfig_t, MAX_GLOBAL_VARIABLES, gl
 
 void pgResetFn_globalVariableConfigs(globalVariableConfig_t *globalVariableConfigs)
 {
-    // set default calibration to full range and 1:1 mapping
     for (int i = 0; i < MAX_GLOBAL_VARIABLES; i++) {
         globalVariableConfigs[i].min = INT16_MIN;
         globalVariableConfigs[i].max = INT16_MAX;
+        globalVariableConfigs[i].defaultValue = 0;
     }
 }
 
@@ -58,6 +60,12 @@ int32_t gvGet(uint8_t index) {
 void gvSet(uint8_t index, int32_t value) {
     if (index < MAX_GLOBAL_VARIABLES) {
         globalVariableState[index] = constrain(value, globalVariableConfigs(index)->min, globalVariableConfigs(index)->max);
+    }
+}
+
+void gvInit(void) {
+    for (int i = 0; i < MAX_GLOBAL_VARIABLES; i++) {
+        globalVariableState[i] = globalVariableConfigs(i)->defaultValue;
     }
 }
 

@@ -1859,7 +1859,7 @@ static void cliLogic(char *cmdline) {
 
 static void printGvar(uint8_t dumpMask, const globalVariableConfig_t *gvars, const globalVariableConfig_t *defaultGvars)
 {
-    const char *format = "gvar %d %d %d";
+    const char *format = "gvar %d %d %d %d";
     for (uint32_t i = 0; i < MAX_GLOBAL_VARIABLES; i++) {
         const globalVariableConfig_t gvar = gvars[i];
 
@@ -1867,17 +1867,20 @@ static void printGvar(uint8_t dumpMask, const globalVariableConfig_t *gvars, con
         if (defaultGvars) {
             globalVariableConfig_t defaultValue = defaultGvars[i];
             equalsDefault =
+                gvar.defaultValue == defaultValue.defaultValue &&
                 gvar.min == defaultValue.min &&
                 gvar.max == defaultValue.max;
 
             cliDefaultPrintLinef(dumpMask, equalsDefault, format,
                 i,
+                gvar.defaultValue,
                 gvar.min,
                 gvar.max
             );
         }
         cliDumpPrintLinef(dumpMask, equalsDefault, format,
             i,
+            gvar.defaultValue,
             gvar.min,
             gvar.max
         );
@@ -1886,7 +1889,7 @@ static void printGvar(uint8_t dumpMask, const globalVariableConfig_t *gvars, con
 
 static void cliGvar(char *cmdline) {
     char * saveptr;
-    int args[3], check = 0;
+    int args[4], check = 0;
     uint8_t len = strlen(cmdline);
 
     if (len == 0) {
@@ -1896,6 +1899,7 @@ static void cliGvar(char *cmdline) {
     } else {
         enum {
             INDEX = 0,
+            DEFAULT,
             MIN,
             MAX,
             ARGS_COUNT
@@ -1914,9 +1918,11 @@ static void cliGvar(char *cmdline) {
         int32_t i = args[INDEX];
         if (
             i >= 0 && i < MAX_GLOBAL_VARIABLES &&
+            args[DEFAULT] >= INT32_MIN && args[DEFAULT] <= INT32_MAX &&  
             args[MIN] >= INT32_MIN && args[MIN] <= INT32_MAX &&  
             args[MAX] >= INT32_MIN && args[MAX] <= INT32_MAX  
         ) {
+            globalVariableConfigsMutable(i)->defaultValue = args[DEFAULT];
             globalVariableConfigsMutable(i)->min = args[MIN];
             globalVariableConfigsMutable(i)->max = args[MAX];
 
@@ -3545,7 +3551,7 @@ const clicmd_t cmdTable[] = {
         "\treset\r\n", cliLogic),
 
     CLI_COMMAND_DEF("gvar", "configure global variables",
-        "<gvar> <min> <max>\r\n"
+        "<gvar> <default> <min> <max>\r\n"
         "\treset\r\n", cliGvar),
 #endif
 #ifdef USE_GLOBAL_FUNCTIONS
