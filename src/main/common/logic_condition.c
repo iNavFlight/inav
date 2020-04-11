@@ -44,7 +44,27 @@
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
 
-PG_REGISTER_ARRAY(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions, PG_LOGIC_CONDITIONS, 0);
+PG_REGISTER_ARRAY_WITH_RESET_FN(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions, PG_LOGIC_CONDITIONS, 1);
+
+void pgResetFn_logicConditions(logicCondition_t *instance)
+{
+    for (int i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
+        RESET_CONFIG(logicCondition_t, &instance[i],
+            .enabled = 0,
+            .activatorId = -1,
+            .operation = 0,
+            .operandA = {
+                .type = LOGIC_CONDITION_OPERAND_TYPE_VALUE,
+                .value = 0
+            },
+            .operandB = {
+                .type = LOGIC_CONDITION_OPERAND_TYPE_VALUE,
+                .value = 0
+            },
+            .flags = 0
+        );
+    }
+}
 
 logicConditionState_t logicConditionStates[MAX_LOGIC_CONDITIONS];
 
