@@ -34,7 +34,7 @@
 #include "common/maths.h"
 #include "build/build_config.h"
  
-static EXTENDED_FASTRAM int globalVariableState[MAX_GLOBAL_VARIABLES];
+static EXTENDED_FASTRAM int32_t globalVariableState[MAX_GLOBAL_VARIABLES];
 
 PG_REGISTER_ARRAY_WITH_RESET_FN(globalVariableConfig_t, MAX_GLOBAL_VARIABLES, globalVariableConfigs, PG_GLOBAL_VARIABLE_CONFIG, 0);
 
@@ -42,12 +42,12 @@ void pgResetFn_globalVariableConfigs(globalVariableConfig_t *globalVariableConfi
 {
     // set default calibration to full range and 1:1 mapping
     for (int i = 0; i < MAX_GLOBAL_VARIABLES; i++) {
-        globalVariableConfigs[i].min = INT32_MIN;
-        globalVariableConfigs[i].max = INT32_MAX;
+        globalVariableConfigs[i].min = INT16_MIN;
+        globalVariableConfigs[i].max = INT16_MAX;
     }
 }
 
-int gvGet(uint8_t index) {
+int32_t gvGet(uint8_t index) {
     if (index < MAX_GLOBAL_VARIABLES) {
         return globalVariableState[index];
     } else {
@@ -55,7 +55,7 @@ int gvGet(uint8_t index) {
     }
 }
 
-void gvSet(uint8_t index, int value) {
+void gvSet(uint8_t index, int32_t value) {
     if (index < MAX_GLOBAL_VARIABLES) {
         globalVariableState[index] = constrain(value, globalVariableConfigs(index)->min, globalVariableConfigs(index)->max);
     }

@@ -29,10 +29,10 @@
 #define MAX_GLOBAL_VARIABLES 4
 
 typedef struct globalVariableConfig_s {
-    int min;
-    int max;
+    int32_t min;
+    int32_t max;
 } globalVariableConfig_t;
 PG_DECLARE_ARRAY(globalVariableConfig_t, MAX_GLOBAL_VARIABLES, globalVariableConfigs);
 
-int gvGet(uint8_t index);
-void gvSet(uint8_t index, int value);
+int32_t gvGet(uint8_t index);
+void gvSet(uint8_t index, int32_t value);
