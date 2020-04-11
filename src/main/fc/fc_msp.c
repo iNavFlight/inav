@@ -36,6 +36,7 @@
 #include "common/time.h"
 #include "common/utils.h"
 #include "common/global_functions.h"
+#include "common/global_variables.h"
 
 #include "config/parameter_group_ids.h"
 
@@ -540,6 +541,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP2_INAV_LOGIC_CONDITIONS_STATUS:
         for (int i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
             sbufWriteU32(dst, logicConditionGetValue(i));
+        }
+        break;
+    case MSP2_INAV_GVAR_STATUS:
+        for (int i = 0; i < MAX_GLOBAL_VARIABLES; i++) {
+            sbufWriteU32(dst, gvGet(i));
         }
         break;
 #endif

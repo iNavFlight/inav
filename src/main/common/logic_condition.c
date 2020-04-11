@@ -29,6 +29,7 @@
 #include "config/parameter_group_ids.h"
 
 #include "common/logic_condition.h"
+#include "common/global_variables.h"
 #include "common/utils.h"
 #include "rx/rx.h"
 #include "maths.h"
@@ -53,6 +54,7 @@ static int logicConditionCompute(
     int operandA,
     int operandB
 ) {
+    int temporaryValue;
     switch (operation) {
 
         case LOGIC_CONDITION_TRUE:
@@ -121,6 +123,43 @@ static int logicConditionCompute(
             return currentVaue;
             break;
 
+        case LOGIC_CONDITION_GVAR_SET:
+            gvSet(operandA, operandB);
+            return operandB;
+            break;
+        
+        case LOGIC_CONDITION_GVAR_INC:
+            temporaryValue = gvGet(operandA) + operandB;
+            gvSet(operandA, temporaryValue);
+            return temporaryValue;
+            break;
+
+        case LOGIC_CONDITION_GVAR_DEC:
+            temporaryValue = gvGet(operandA) - operandB;
+            gvSet(operandA, temporaryValue);
+            return temporaryValue;
+            break;
+
+        case LOGIC_CONDITION_ADD:
+            return constrain(operandA + operandB, INT16_MIN, INT16_MAX);
+            break;
+
+        case LOGIC_CONDITION_SUB:
+            return constrain(operandA - operandB, INT16_MIN, INT16_MAX);
+            break;
+
+        case LOGIC_CONDITION_MUL:
+            return constrain(operandA * operandB, INT16_MIN, INT16_MAX);
+            break;
+
+        case LOGIC_CONDITION_DIV:
+            if (operandB != 0) {
+                return constrain(operandA / operandB, INT16_MIN, INT16_MAX);
+            } else {
+                return operandA;
+            }
+            break;
+
         default:
             return false;
             break; 
@@ -164,15 +203,15 @@ static int logicConditionGetFlightOperandValue(int operand) {
     switch (operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_ARM_TIMER: // in s
-            return constrain((uint32_t)getFlightTime(), 0, 32767);
+            return constrain((uint32_t)getFlightTime(), 0, INT16_MAX);
             break;
         
         case LOGIC_CONDITION_OPERAND_FLIGHT_HOME_DISTANCE: //in m
-            return constrain(GPS_distanceToHome, 0, 32767);
+            return constrain(GPS_distanceToHome, 0, INT16_MAX);
             break;
         
         case LOGIC_CONDITION_OPERAND_FLIGHT_TRIP_DISTANCE: //in m
-            return constrain(getTotalTravelDistance() / 100, 0, 32767);
+            return constrain(getTotalTravelDistance() / 100, 0, INT16_MAX);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_RSSI:
@@ -209,18 +248,18 @@ static int logicConditionGetFlightOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_AIR_SPEED: // cm/s
         #ifdef USE_PITOT
-            return constrain(pitot.airSpeed, 0, 32767);
+            return constrain(pitot.airSpeed, 0, INT16_MAX);
         #else
             return false;
         #endif
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_ALTITUDE: // cm
-            return constrain(getEstimatedActualPosition(Z), -32678, 32767);
+            return constrain(getEstimatedActualPosition(Z), INT16_MIN, INT16_MAX);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_VERTICAL_SPEED: // cm/s
-            return constrain(getEstimatedActualVelocity(Z), 0, 32767);
+            return constrain(getEstimatedActualVelocity(Z), 0, INT16_MAX);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_TROTTLE_POS: // %
@@ -350,6 +389,12 @@ int logicConditionGetOperandValue(logicOperandType_e type, int operand) {
         case LOGIC_CONDITION_OPERAND_TYPE_LC:
             if (operand >= 0 && operand < MAX_LOGIC_CONDITIONS) {
                 retVal = logicConditionGetValue(operand);
+            }
+            break;
+
+        case LOGIC_CONDITION_OPERAND_TYPE_GVAR:
+            if (operand >= 0 && operand < MAX_GLOBAL_VARIABLES) {
+                retVal = gvGet(operand);
             }
             break;
 

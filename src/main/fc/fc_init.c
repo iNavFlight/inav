@@ -35,6 +35,7 @@
 #include "common/maths.h"
 #include "common/memory.h"
 #include "common/printf.h"
+#include "common/global_variables.h"
 
 #include "config/config_eeprom.h"
 #include "config/feature.h"
@@ -274,6 +275,10 @@ void init(void)
     // LOG might use serial output, so we only can init it after serial port is ready
     // From this point on we can use LOG_*() to produce real-time debugging information
     logInit();
+#endif
+
+#ifdef USE_LOGIC_CONDITIONS
+    gvInit();
 #endif
 
     // Initialize servo and motor mixers

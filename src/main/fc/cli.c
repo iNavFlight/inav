@@ -44,6 +44,7 @@ extern uint8_t __config_end;
 #include "common/time.h"
 #include "common/typeconversion.h"
 #include "common/global_functions.h"
+#include "common/global_variables.h"
 
 #include "config/config_eeprom.h"
 #include "config/feature.h"
@@ -1855,6 +1856,83 @@ static void cliLogic(char *cmdline) {
         }
     }
 }
+
+static void printGvar(uint8_t dumpMask, const globalVariableConfig_t *gvars, const globalVariableConfig_t *defaultGvars)
+{
+    const char *format = "gvar %d %d %d %d";
+    for (uint32_t i = 0; i < MAX_GLOBAL_VARIABLES; i++) {
+        const globalVariableConfig_t gvar = gvars[i];
+
+        bool equalsDefault = false;
+        if (defaultGvars) {
+            globalVariableConfig_t defaultValue = defaultGvars[i];
+            equalsDefault =
+                gvar.defaultValue == defaultValue.defaultValue &&
+                gvar.min == defaultValue.min &&
+                gvar.max == defaultValue.max;
+
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                i,
+                gvar.defaultValue,
+                gvar.min,
+                gvar.max
+            );
+        }
+        cliDumpPrintLinef(dumpMask, equalsDefault, format,
+            i,
+            gvar.defaultValue,
+            gvar.min,
+            gvar.max
+        );
+    }
+}
+
+static void cliGvar(char *cmdline) {
+    char * saveptr;
+    int args[4], check = 0;
+    uint8_t len = strlen(cmdline);
+
+    if (len == 0) {
+        printGvar(DUMP_MASTER, globalVariableConfigs(0), NULL);
+    } else if (sl_strncasecmp(cmdline, "reset", 5) == 0) {
+        pgResetCopy(globalVariableConfigsMutable(0), PG_GLOBAL_VARIABLE_CONFIG);
+    } else {
+        enum {
+            INDEX = 0,
+            DEFAULT,
+            MIN,
+            MAX,
+            ARGS_COUNT
+            };
+        char *ptr = strtok_r(cmdline, " ", &saveptr);
+        while (ptr != NULL && check < ARGS_COUNT) {
+            args[check++] = fastA2I(ptr);
+            ptr = strtok_r(NULL, " ", &saveptr);
+        }
+
+        if (ptr != NULL || check != ARGS_COUNT) {
+            cliShowParseError();
+            return;
+        }
+
+        int32_t i = args[INDEX];
+        if (
+            i >= 0 && i < MAX_GLOBAL_VARIABLES &&
+            args[DEFAULT] >= INT32_MIN && args[DEFAULT] <= INT32_MAX &&  
+            args[MIN] >= INT32_MIN && args[MIN] <= INT32_MAX &&  
+            args[MAX] >= INT32_MIN && args[MAX] <= INT32_MAX  
+        ) {
+            globalVariableConfigsMutable(i)->defaultValue = args[DEFAULT];
+            globalVariableConfigsMutable(i)->min = args[MIN];
+            globalVariableConfigsMutable(i)->max = args[MAX];
+
+            cliGvar("");
+        } else {
+            cliShowParseError();
+        }
+    }
+}
+
 #endif
 
 #ifdef USE_GLOBAL_FUNCTIONS
@@ -3211,6 +3289,9 @@ static void printConfig(const char *cmdline, bool doDiff)
 #ifdef USE_LOGIC_CONDITIONS
         cliPrintHashLine("logic");
         printLogic(dumpMask, logicConditions_CopyArray, logicConditions(0));
+
+        cliPrintHashLine("gvar");
+        printGvar(dumpMask, globalVariableConfigs_CopyArray, globalVariableConfigs(0));
 #endif
 
 #ifdef USE_GLOBAL_FUNCTIONS
@@ -3468,6 +3549,10 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("logic", "configure logic conditions",
         "<rule> <enabled> <operation> <operand A type> <operand A value> <operand B type> <operand B value> <flags>\r\n"
         "\treset\r\n", cliLogic),
+
+    CLI_COMMAND_DEF("gvar", "configure global variables",
+        "<gvar> <default> <min> <max>\r\n"
+        "\treset\r\n", cliGvar),
 #endif
 #ifdef USE_GLOBAL_FUNCTIONS
     CLI_COMMAND_DEF("gf", "configure global functions",

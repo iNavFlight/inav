@@ -43,6 +43,13 @@ typedef enum {
     LOGIC_CONDITION_NOR,            // 11
     LOGIC_CONDITION_NOT,            // 12
     LOGIC_CONDITION_STICKY,         // 13
+    LOGIC_CONDITION_ADD,            // 14
+    LOGIC_CONDITION_SUB,            // 15
+    LOGIC_CONDITION_MUL,            // 16
+    LOGIC_CONDITION_DIV,            // 17
+    LOGIC_CONDITION_GVAR_SET,       // 18
+    LOGIC_CONDITION_GVAR_INC,       // 19
+    LOGIC_CONDITION_GVAR_DEC,       // 20
     LOGIC_CONDITION_LAST
 } logicOperation_e;
 
@@ -52,6 +59,7 @@ typedef enum logicOperandType_s {
     LOGIC_CONDITION_OPERAND_TYPE_FLIGHT,
     LOGIC_CONDITION_OPERAND_TYPE_FLIGHT_MODE,
     LOGIC_CONDITION_OPERAND_TYPE_LC,    // Result of different LC and LC operand
+    LOGIC_CONDITION_OPERAND_TYPE_GVAR,  // Value from a global variable
     LOGIC_CONDITION_OPERAND_TYPE_LAST
 } logicOperandType_e;
 

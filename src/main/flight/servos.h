@@ -54,6 +54,10 @@ typedef enum {
     INPUT_STABILIZED_YAW_PLUS       = 27,
     INPUT_STABILIZED_YAW_MINUS      = 28,
     INPUT_LOGIC_ONE                 = 29,
+    INPUT_GVAR_0                    = 30,
+    INPUT_GVAR_1                    = 31,
+    INPUT_GVAR_2                    = 32,
+    INPUT_GVAR_3                    = 33,
 
     INPUT_SOURCE_COUNT
 } inputSource_e;
