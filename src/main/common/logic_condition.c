@@ -188,7 +188,9 @@ static int logicConditionCompute(
 
 void logicConditionProcess(uint8_t i) {
 
-    if (logicConditions(i)->enabled) {
+    const int activatorValue = logicConditionGetValue(logicConditions(i)->activatorId);
+
+    if (logicConditions(i)->enabled && activatorValue) {
         
         /*
          * Process condition only when latch flag is not set
