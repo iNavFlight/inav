@@ -1143,6 +1143,11 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
 
+    if (!STATE(ALTITUDE_CONTROL)) {
+        //If altitude control is not a thing, switch to RTH in progress instead
+        return NAV_FSM_EVENT_SUCCESS; //Will cause NAV_STATE_RTH_HEAD_HOME
+    }
+
     // If we have valid pos sensor OR we are configured to ignore GPS loss
     if ((posControl.flags.estPosStatus >= EST_USABLE) || !checkForPositionSensorTimeout() || navConfig()->general.flags.rth_climb_ignore_emerg) {
         const uint8_t rthClimbMarginPercent = STATE(FIXED_WING_LEGACY) ? FW_RTH_CLIMB_MARGIN_PERCENT : MR_RTH_CLIMB_MARGIN_PERCENT;
@@ -1248,6 +1253,11 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HOVER_PRIOR_TO_LAND
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
 
+    //On ROVER and BOAT we immediately switch to the next event
+    if (!STATE(ALTITUDE_CONTROL)) {
+        return NAV_FSM_EVENT_SUCCESS;
+    }
+
     // If position ok OR within valid timeout - continue
     if ((posControl.flags.estPosStatus >= EST_USABLE) || !checkForPositionSensorTimeout()) {
 
@@ -1310,6 +1320,11 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
 {
     UNUSED(previousState);
 
+    //On ROVER and BOAT we immediately switch to the next event
+    if (!STATE(ALTITUDE_CONTROL)) {
+        return NAV_FSM_EVENT_SUCCESS;
+    }
+
     if (!ARMING_FLAG(ARMED)) {
         return NAV_FSM_EVENT_SUCCESS;
     }
@@ -1353,7 +1368,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_FINISHING(navigatio
 {
     UNUSED(previousState);
 
-    if (navConfig()->general.flags.disarm_on_landing) {
+    //On ROVER and BOAT disarm immediately
+    if (!STATE(ALTITUDE_CONTROL) || navConfig()->general.flags.disarm_on_landing) {
         disarm(DISARM_NAVIGATION);
     }
 
@@ -1364,8 +1380,11 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_FINISHED(navigation
 {
     // Stay in this state
     UNUSED(previousState);
-    updateClimbRateToAltitudeController(-0.3f * navConfig()->general.land_descent_rate, ROC_TO_ALT_NORMAL);  // FIXME
 
+    if (STATE(ALTITUDE_CONTROL)) {
+        updateClimbRateToAltitudeController(-0.3f * navConfig()->general.land_descent_rate, ROC_TO_ALT_NORMAL);  // FIXME
+    }
+    
     // Prevent I-terms growing when already landed
     pidResetErrorAccumulators();
     return NAV_FSM_EVENT_NONE;
