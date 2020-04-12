@@ -1384,7 +1384,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_FINISHED(navigation
     if (STATE(ALTITUDE_CONTROL)) {
         updateClimbRateToAltitudeController(-0.3f * navConfig()->general.land_descent_rate, ROC_TO_ALT_NORMAL);  // FIXME
     }
-    
+
     // Prevent I-terms growing when already landed
     pidResetErrorAccumulators();
     return NAV_FSM_EVENT_NONE;
@@ -3236,12 +3236,16 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
         }
     }
 
-    // Don't allow arming if any of JUMP waypoint has invalid settings
-    // Note JUMP only goes to previous WPs, which must be 2 indices back
+        /*
+         * Don't allow arming if any of JUMP waypoint has invalid settings
+         * First WP can't be JUMP
+         * Can't jump to immediately adjacent WPs (pointless)
+         * Can't jump beyond WP list
+         */
     if (posControl.waypointCount > 0) {
         for (uint8_t wp = 0; wp < posControl.waypointCount ; wp++){
             if (posControl.waypointList[wp].action == NAV_WP_ACTION_JUMP){
-                if((wp < 2) || (posControl.waypointList[wp].p1 > (wp-2)) || (posControl.waypointList[wp].p2 < -1)) {
+                if((wp == 0) || ((posControl.waypointList[wp].p1 > (wp-2)) && (posControl.waypointList[wp].p1 < (wp+2)) ) || (posControl.waypointList[wp].p1 >=  posControl.waypointCount) || (posControl.waypointList[wp].p2 < -1)) {
                     return NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR;
                 }
             }
