@@ -203,6 +203,9 @@ bool adjustFixedWingHeadingFromRCInput(void)
 static fpVector3_t virtualDesiredPosition;
 static pt1Filter_t fwPosControllerCorrectionFilterState;
 
+/*
+ * TODO Currently this function resets both FixedWing and Rover & Boat position controller 
+ */
 void resetFixedWingPositionController(void)
 {
     virtualDesiredPosition.x = 0;

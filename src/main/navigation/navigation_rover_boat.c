@@ -35,6 +35,57 @@ FILE_COMPILE_FOR_SIZE
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
 
+static bool isYawAdjustmentValid = false;
+
+void applyRoverBoatPositionController(timeUs_t currentTimeUs)
+{
+    static timeUs_t previousTimePositionUpdate;         // Occurs @ GPS update rate
+    static timeUs_t previousTimeUpdate;                 // Occurs @ looptime rate
+
+    const timeDelta_t deltaMicros = currentTimeUs - previousTimeUpdate;
+    previousTimeUpdate = currentTimeUs;
+
+    // If last position update was too long in the past - ignore it (likely restarting altitude controller)
+    if (deltaMicros > HZ2US(MIN_POSITION_UPDATE_RATE_HZ)) {
+        previousTimeUpdate = currentTimeUs;
+        previousTimePositionUpdate = currentTimeUs;
+        resetFixedWingPositionController();
+        return;
+    }
+
+    // Apply controller only if position source is valid. In absence of valid pos sensor (GPS loss), we'd stick in forced ANGLE mode
+    if ((posControl.flags.estPosStatus >= EST_USABLE)) {
+        // If we have new position - update velocity and acceleration controllers
+        if (posControl.flags.horizontalPositionDataNew) {
+            const timeDelta_t deltaMicrosPositionUpdate = currentTimeUs - previousTimePositionUpdate;
+            previousTimePositionUpdate = currentTimeUs;
+
+            if (deltaMicrosPositionUpdate < HZ2US(MIN_POSITION_UPDATE_RATE_HZ)) {
+                // Calculate virtual position target at a distance of forwardVelocity * HZ2S(POSITION_TARGET_UPDATE_RATE_HZ)
+                // Account for pilot's roll input (move position target left/right at max of max_manual_speed)
+                // POSITION_TARGET_UPDATE_RATE_HZ should be chosen keeping in mind that position target shouldn't be reached until next pos update occurs
+                // FIXME: verify the above
+                // calculateVirtualPositionTarget_FW(HZ2S(MIN_POSITION_UPDATE_RATE_HZ) * 2);
+
+                // updatePositionHeadingController_FW(currentTimeUs, deltaMicrosPositionUpdate);
+
+                //FIXME build a simple 2D position controller 
+            }
+            else {
+                resetFixedWingPositionController();
+            }
+
+            // Indicate that information is no longer usable
+            posControl.flags.horizontalPositionDataConsumed = 1;
+        }
+
+        isYawAdjustmentValid = true;
+    }
+    else {
+        isYawAdjustmentValid = false;
+    }
+}
+
 void applyRoverBoatPitchRollThrottleController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
@@ -43,9 +94,9 @@ void applyRoverBoatPitchRollThrottleController(navigationFSMStateFlags_t navStat
 
     if (navStateFlags & NAV_CTL_POS) {
 
-        // if (isYawAdjustmentValid) {
-        rcCommand[YAW] = posControl.rcAdjustment[YAW];
-        // }
+        if (isYawAdjustmentValid) {
+            rcCommand[YAW] = posControl.rcAdjustment[YAW];
+        }
 
         // const uint16_t correctedThrottleValue = constrain(navConfig()->fw.cruise_throttle, navConfig()->fw.min_throttle, navConfig()->fw.max_throttle);
         rcCommand[THROTTLE] = constrain(navConfig()->fw.cruise_throttle, motorConfig()->mincommand, motorConfig()->maxthrottle);
