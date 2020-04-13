@@ -201,6 +201,7 @@ COMMON_SRC = \
             navigation/navigation_pos_estimator.c \
             navigation/navigation_pos_estimator_agl.c \
             navigation/navigation_pos_estimator_flow.c \
+            navigation/navigation_rover_boat.c \
             sensors/barometer.c \
             sensors/pitotmeter.c \
             sensors/rangefinder.c \

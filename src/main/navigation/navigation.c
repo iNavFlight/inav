@@ -2982,7 +2982,9 @@ void applyWaypointNavigationAndAltitudeHold(void)
 
     /* Process controllers */
     navigationFSMStateFlags_t navStateFlags = navGetStateFlags(posControl.navState);
-    if (STATE(FIXED_WING_LEGACY)) {
+    if (STATE(ROVER) || STATE(BOAT)) {
+        applyRoverBoatNavigationController(navStateFlags, currentTimeUs);
+    } else if (STATE(FIXED_WING_LEGACY)) {
         applyFixedWingNavigationController(navStateFlags, currentTimeUs);
     }
     else {

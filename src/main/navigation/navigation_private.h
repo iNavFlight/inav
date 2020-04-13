@@ -444,6 +444,8 @@ bool adjustFixedWingAltitudeFromRCInput(void);
 bool adjustFixedWingHeadingFromRCInput(void);
 bool adjustFixedWingPositionFromRCInput(void);
 
+void applyFixedWingPositionController(timeUs_t currentTimeUs);
+
 void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
 
 void calculateFixedWingInitialHoldPosition(fpVector3_t * pos);
@@ -455,5 +457,10 @@ void enableFixedWingLaunchController(timeUs_t currentTimeUs);
 bool isFixedWingLaunchFinishedOrAborted(void);
 void abortFixedWingLaunch(void);
 void applyFixedWingLaunchController(timeUs_t currentTimeUs);
+
+/*
+ * Rover specific functions
+ */
+void applyRoverBoatNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
 
 #endif
