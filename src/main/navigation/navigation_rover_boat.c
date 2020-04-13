@@ -28,6 +28,7 @@ FILE_COMPILE_FOR_SIZE
 
 #ifdef USE_NAV
 
+#include "build/debug.h"
 #include "common/utils.h"
 #include "fc/rc_controls.h"
 #include "flight/mixer.h"
@@ -36,6 +37,34 @@ FILE_COMPILE_FOR_SIZE
 #include "navigation/navigation_private.h"
 
 static bool isYawAdjustmentValid = false;
+static int32_t navHeadingError;
+
+static void update2DPositionHeadingController(timeUs_t currentTimeUs, timeDelta_t deltaMicros)
+{
+    static timeUs_t previousTimeMonitoringUpdate;
+    static int32_t previousHeadingError;
+    static bool errorIsDecreasing;
+
+    int32_t targetBearing = calculateBearingToDestination(&posControl.desiredState.pos);
+
+    /*
+     * Calculate NAV heading error
+     * Units are centidegrees
+     */
+    navHeadingError = wrap_18000(targetBearing - posControl.actualState.yaw);
+
+    // Slow error monitoring (2Hz rate)
+    if ((currentTimeUs - previousTimeMonitoringUpdate) >= HZ2US(NAV_FW_CONTROL_MONITORING_RATE)) {
+        // Check if error is decreasing over time
+        errorIsDecreasing = (ABS(previousHeadingError) > ABS(navHeadingError));
+
+        // Save values for next iteration
+        previousHeadingError = navHeadingError;
+        previousTimeMonitoringUpdate = currentTimeUs;
+    }
+
+    posControl.rcAdjustment[YAW] = processHeadingYawController(deltaMicros, navHeadingError, errorIsDecreasing);
+}
 
 void applyRoverBoatPositionController(timeUs_t currentTimeUs)
 {
@@ -61,17 +90,8 @@ void applyRoverBoatPositionController(timeUs_t currentTimeUs)
             previousTimePositionUpdate = currentTimeUs;
 
             if (deltaMicrosPositionUpdate < HZ2US(MIN_POSITION_UPDATE_RATE_HZ)) {
-                // Calculate virtual position target at a distance of forwardVelocity * HZ2S(POSITION_TARGET_UPDATE_RATE_HZ)
-                // Account for pilot's roll input (move position target left/right at max of max_manual_speed)
-                // POSITION_TARGET_UPDATE_RATE_HZ should be chosen keeping in mind that position target shouldn't be reached until next pos update occurs
-                // FIXME: verify the above
-                // calculateVirtualPositionTarget_FW(HZ2S(MIN_POSITION_UPDATE_RATE_HZ) * 2);
-
-                // updatePositionHeadingController_FW(currentTimeUs, deltaMicrosPositionUpdate);
-
-                //FIXME build a simple 2D position controller 
-            }
-            else {
+                update2DPositionHeadingController(currentTimeUs, deltaMicrosPositionUpdate);
+            } else {
                 resetFixedWingPositionController();
             }
 
@@ -98,7 +118,6 @@ void applyRoverBoatPitchRollThrottleController(navigationFSMStateFlags_t navStat
             rcCommand[YAW] = posControl.rcAdjustment[YAW];
         }
 
-        // const uint16_t correctedThrottleValue = constrain(navConfig()->fw.cruise_throttle, navConfig()->fw.min_throttle, navConfig()->fw.max_throttle);
         rcCommand[THROTTLE] = constrain(navConfig()->fw.cruise_throttle, motorConfig()->mincommand, motorConfig()->maxthrottle);
     }
 }
@@ -111,7 +130,7 @@ void applyRoverBoatNavigationController(navigationFSMStateFlags_t navStateFlags,
         rcCommand[YAW] = 0;
         rcCommand[THROTTLE] = failsafeConfig()->failsafe_throttle;
     } else if (navStateFlags & NAV_CTL_POS) {
-        applyFixedWingPositionController(currentTimeUs);
+        applyRoverBoatPositionController(currentTimeUs);
         applyRoverBoatPitchRollThrottleController(navStateFlags, currentTimeUs);
     }
 }

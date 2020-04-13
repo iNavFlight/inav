@@ -289,6 +289,34 @@ bool adjustFixedWingPositionFromRCInput(void)
     return (rcRollAdjustment);
 }
 
+float processHeadingYawController(timeDelta_t deltaMicros, int32_t navHeadingError, bool errorIsDecreasing) {
+    static float limit = 0.0f;
+
+    if (limit == 0.0f) {
+        limit = pidProfile()->navFwPosHdgPidsumLimit * 100.0f;
+    }
+
+    const pidControllerFlags_e yawPidFlags = errorIsDecreasing ? PID_SHRINK_INTEGRATOR : 0;
+
+    const float yawAdjustment = navPidApply2(
+        &posControl.pids.fw_heading, 
+        0, 
+        applyDeadband(navHeadingError, navConfig()->fw.yawControlDeadband * 100), 
+        US2S(deltaMicros),
+        -limit,
+        limit,
+        yawPidFlags
+        ) / 100.0f;
+
+    DEBUG_SET(DEBUG_NAV_YAW, 0, posControl.pids.fw_heading.proportional);
+    DEBUG_SET(DEBUG_NAV_YAW, 1, posControl.pids.fw_heading.integral);
+    DEBUG_SET(DEBUG_NAV_YAW, 2, posControl.pids.fw_heading.derivative);
+    DEBUG_SET(DEBUG_NAV_YAW, 3, navHeadingError);
+    DEBUG_SET(DEBUG_NAV_YAW, 4, posControl.pids.fw_heading.output_constrained);
+
+    return yawAdjustment;
+}
+
 static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta_t deltaMicros)
 {
     static timeUs_t previousTimeMonitoringUpdate;
@@ -349,32 +377,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
      * It is working in relative mode and we aim to keep error at zero
      */
     if (STATE(FW_HEADING_USE_YAW)) {
-
-        static float limit = 0.0f;
-
-        if (limit == 0.0f) {
-            limit = pidProfile()->navFwPosHdgPidsumLimit * 100.0f;
-        }
-
-        const pidControllerFlags_e yawPidFlags = errorIsDecreasing ? PID_SHRINK_INTEGRATOR : 0;
-
-        float yawAdjustment = navPidApply2(
-            &posControl.pids.fw_heading, 
-            0, 
-            applyDeadband(navHeadingError, navConfig()->fw.yawControlDeadband * 100), 
-            US2S(deltaMicros),
-            -limit,
-            limit,
-            yawPidFlags
-            ) / 100.0f;
-
-        DEBUG_SET(DEBUG_NAV_YAW, 0, posControl.pids.fw_heading.proportional);
-        DEBUG_SET(DEBUG_NAV_YAW, 1, posControl.pids.fw_heading.integral);
-        DEBUG_SET(DEBUG_NAV_YAW, 2, posControl.pids.fw_heading.derivative);
-        DEBUG_SET(DEBUG_NAV_YAW, 3, navHeadingError);
-        DEBUG_SET(DEBUG_NAV_YAW, 4, posControl.pids.fw_heading.output_constrained);
-
-        posControl.rcAdjustment[YAW] = yawAdjustment;
+        posControl.rcAdjustment[YAW] = processHeadingYawController(deltaMicros, navHeadingError, errorIsDecreasing);
     } else {
         posControl.rcAdjustment[YAW] = 0;
     }

@@ -445,7 +445,7 @@ bool adjustFixedWingHeadingFromRCInput(void);
 bool adjustFixedWingPositionFromRCInput(void);
 
 void applyFixedWingPositionController(timeUs_t currentTimeUs);
-
+float processHeadingYawController(timeDelta_t deltaMicros, int32_t navHeadingError, bool errorIsDecreasing);
 void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
 
 void calculateFixedWingInitialHoldPosition(fpVector3_t * pos);
