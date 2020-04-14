@@ -115,6 +115,7 @@ typedef struct logicOperand_s {
 
 typedef struct logicCondition_s {
     uint8_t enabled;
+    int8_t activatorId;
     logicOperation_e operation;
     logicOperand_t operandA;
     logicOperand_t operandB;

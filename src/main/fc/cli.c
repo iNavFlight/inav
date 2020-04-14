@@ -1758,7 +1758,7 @@ static void cliServoMix(char *cmdline)
 
 static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions, const logicCondition_t *defaultLogicConditions)
 {
-    const char *format = "logic %d %d %d %d %d %d %d %d";
+    const char *format = "logic %d %d %d %d %d %d %d %d %d";
     for (uint32_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
         const logicCondition_t logic = logicConditions[i];
 
@@ -1767,6 +1767,7 @@ static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions
             logicCondition_t defaultValue = defaultLogicConditions[i];
             equalsDefault =
                 logic.enabled == defaultValue.enabled &&
+                logic.activatorId == defaultValue.activatorId &&
                 logic.operation == defaultValue.operation &&
                 logic.operandA.type == defaultValue.operandA.type &&
                 logic.operandA.value == defaultValue.operandA.value &&
@@ -1777,6 +1778,7 @@ static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions
             cliDefaultPrintLinef(dumpMask, equalsDefault, format,
                 i,
                 logic.enabled,
+                logic.activatorId,
                 logic.operation,
                 logic.operandA.type,
                 logic.operandA.value,
@@ -1788,6 +1790,7 @@ static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions
         cliDumpPrintLinef(dumpMask, equalsDefault, format,
             i,
             logic.enabled,
+            logic.activatorId,
             logic.operation,
             logic.operandA.type,
             logic.operandA.value,
@@ -1800,7 +1803,7 @@ static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions
 
 static void cliLogic(char *cmdline) {
     char * saveptr;
-    int args[8], check = 0;
+    int args[9], check = 0;
     uint8_t len = strlen(cmdline);
 
     if (len == 0) {
@@ -1811,6 +1814,7 @@ static void cliLogic(char *cmdline) {
         enum {
             INDEX = 0,
             ENABLED,
+            ACTIVATOR_ID,
             OPERATION,
             OPERAND_A_TYPE,
             OPERAND_A_VALUE,
@@ -1834,6 +1838,7 @@ static void cliLogic(char *cmdline) {
         if (
             i >= 0 && i < MAX_LOGIC_CONDITIONS &&
             args[ENABLED] >= 0 && args[ENABLED] <= 1 &&
+            args[ACTIVATOR_ID] >= -1 && args[ACTIVATOR_ID] < MAX_LOGIC_CONDITIONS &&
             args[OPERATION] >= 0 && args[OPERATION] < LOGIC_CONDITION_LAST &&
             args[OPERAND_A_TYPE] >= 0 && args[OPERAND_A_TYPE] < LOGIC_CONDITION_OPERAND_TYPE_LAST &&
             args[OPERAND_A_VALUE] >= -1000000 && args[OPERAND_A_VALUE] <= 1000000 &&
@@ -1843,6 +1848,7 @@ static void cliLogic(char *cmdline) {
 
         ) {
             logicConditionsMutable(i)->enabled = args[ENABLED];
+            logicConditionsMutable(i)->activatorId = args[ACTIVATOR_ID];
             logicConditionsMutable(i)->operation = args[OPERATION];
             logicConditionsMutable(i)->operandA.type = args[OPERAND_A_TYPE];
             logicConditionsMutable(i)->operandA.value = args[OPERAND_A_VALUE];
@@ -3547,7 +3553,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("servo", "configure servos", NULL, cliServo),
 #ifdef USE_LOGIC_CONDITIONS
     CLI_COMMAND_DEF("logic", "configure logic conditions",
-        "<rule> <enabled> <operation> <operand A type> <operand A value> <operand B type> <operand B value> <flags>\r\n"
+        "<rule> <enabled> <activatorId> <operation> <operand A type> <operand A value> <operand B type> <operand B value> <flags>\r\n"
         "\treset\r\n", cliLogic),
 
     CLI_COMMAND_DEF("gvar", "configure global variables",
