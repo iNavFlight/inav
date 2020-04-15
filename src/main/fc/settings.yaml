@@ -138,6 +138,9 @@ tables:
   - name: pidTypeTable
     values: ["NONE", "PID", "PIFF", "AUTO"]
     enum: pidType_e
+  - name: osd_ahi_style
+    values: ["DEFAULT", "LINE"]
+    enum: osd_ahi_style_e
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -1998,6 +2001,9 @@ groups:
         field: plus_code_digits
         min: 10
         max: 13
+
+      - name: osd_ahi_style
+        table: osd_ahi_style
 
   - name: PG_SYSTEM_CONFIG
     type: systemConfig_t
