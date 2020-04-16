@@ -151,6 +151,7 @@ typedef enum {
     OSD_RC_SOURCE,
     OSD_VTX_POWER,
     OSD_ESC_RPM,
+    OSD_ESC_TEMPERATURE,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -205,6 +206,8 @@ typedef struct osdConfig_s {
     uint8_t current_alarm; // current consumption in A
     int16_t imu_temp_alarm_min;
     int16_t imu_temp_alarm_max;
+    int16_t esc_temp_alarm_min;
+    int16_t esc_temp_alarm_max;
     float gforce_alarm;
     float gforce_axis_alarm_min;
     float gforce_axis_alarm_max;
