@@ -31,8 +31,8 @@ FILE_COMPILE_FOR_SIZE
 #include "build/debug.h"
 #include "common/utils.h"
 #include "fc/rc_controls.h"
+#include "fc/config.h"
 #include "flight/mixer.h"
-
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
 
@@ -114,11 +114,19 @@ void applyRoverBoatPitchRollThrottleController(navigationFSMStateFlags_t navStat
 
     if (navStateFlags & NAV_CTL_POS) {
 
-        if (isYawAdjustmentValid) {
-            rcCommand[YAW] = posControl.rcAdjustment[YAW];
-        }
+        if (navStateFlags & NAV_AUTO_WP_DONE) {
+            /*
+             * When WP mission is done, stop the motors
+             */
+            rcCommand[YAW] = 0;
+            rcCommand[THROTTLE] = feature(FEATURE_REVERSIBLE_MOTORS) ? reversibleMotorsConfig()->neutral : motorConfig()->mincommand;
+        } else {
+            if (isYawAdjustmentValid) {
+                rcCommand[YAW] = posControl.rcAdjustment[YAW];
+            }
 
-        rcCommand[THROTTLE] = constrain(navConfig()->fw.cruise_throttle, motorConfig()->mincommand, motorConfig()->maxthrottle);
+            rcCommand[THROTTLE] = constrain(navConfig()->fw.cruise_throttle, motorConfig()->mincommand, motorConfig()->maxthrottle);
+        }
     }
 }
 
