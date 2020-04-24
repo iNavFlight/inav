@@ -1892,6 +1892,14 @@ groups:
         field: imu_temp_alarm_max
         min: -550
         max: 1250
+      - name: osd_esc_temp_alarm_max
+        field: esc_temp_alarm_max
+        min: -550
+        max: 1500
+      - name: osd_esc_temp_alarm_min
+        field: esc_temp_alarm_min
+        min: -550
+        max: 1500
       - name: osd_baro_temp_alarm_min
         field: baro_temp_alarm_min
         condition: USE_BARO

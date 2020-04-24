@@ -339,6 +339,8 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  osd_gforce_axis_alarm_max | 5  | Value above which the OSD axis g force indicators will blink (g) |
 |  osd_imu_temp_alarm_min | -200 | Temperature under which the IMU temperature OSD element will start blinking (decidegrees centigrade) |
 |  osd_imu_temp_alarm_max | 600 | Temperature above which the IMU temperature OSD element will start blinking (decidegrees centigrade) |
+|  osd_esc_temp_alarm_min | -200 | Temperature under which the IMU temperature OSD element will start blinking (decidegrees centigrade) |
+|  osd_esc_temp_alarm_max | 900 | Temperature above which the IMU temperature OSD element will start blinking (decidegrees centigrade) |
 |  osd_baro_temp_alarm_min | -200 | Temperature under which the baro temperature OSD element will start blinking (decidegrees centigrade) |
 |  osd_baro_temp_alarm_max | 600 | Temperature above which the baro temperature OSD element will start blinking (decidegrees centigrade) |
 |  osd_current_alarm | 0 | Value above which the OSD current consumption element will start blinking. Measured in full Amperes. |
