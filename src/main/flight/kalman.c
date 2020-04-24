@@ -115,6 +115,7 @@ static void update_kalman_covariance(float *gyroRateData)
 
 float kalman_process(kalman_t *kalmanState, float input, float target)
 {
+    float targetAbs = fabsf(target);
     //project the state ahead using acceleration
     kalmanState->x += (kalmanState->x - kalmanState->lastX);
 
@@ -123,23 +124,16 @@ float kalman_process(kalman_t *kalmanState, float input, float target)
     //update last state
     kalmanState->lastX = kalmanState->x;
 
-    // calculate the error
-    // float errorMultiplier = fabsf(target - kalmanState->x) * kalmanState->s;
+    if (kalmanState->lastX != 0.0f)
+    {
+        // calculate the error and add multiply sharpness boost
+        float errorMultiplier = fabsf(target - kalmanState->x) * kalmanState->s;
 
-    // // give a boost to the setpoint, used to caluclate the filter cutoff, based on the error and setpoint/gyrodata
+        // give a boost to the setpoint, used to caluclate the kalman q, based on the error and setpoint/gyrodata
+        errorMultiplier = constrainf(errorMultiplier * fabsf(1.0f - (target / kalmanState->lastX)) + 1.0f, 1.0f, 50.0f);
 
-    // errorMultiplier = constrainf(errorMultiplier * fabsf(1.0f - (target / kalmanState->lastX)) + 1.0f, 1.0f, 50.0f);
-
-    // if (target != 0.0f)
-    // {
-    //     kalmanState->e = fabsf(1.0f - ((target * errorMultiplier) / kalmanState->lastX));
-    // }
-    // else
-    // {
-    //     kalmanState->e = 1.0f;
-    // }
-
-    kalmanState->e = ABS((target - input) * 3) + ABS(input/4);
+        kalmanState->e = fabsf(1.0f - (((targetAbs + 1.0f) * errorMultiplier) / fabsf(kalmanState->lastX)));
+    }
 
     //prediction update
     kalmanState->p = kalmanState->p + (kalmanState->q * kalmanState->e);
@@ -160,8 +154,8 @@ void gyroKalmanUpdate(float *input, float *output)
 
     DEBUG_SET(DEBUG_KALMAN, 0, input[X]); //Gyro input
     DEBUG_SET(DEBUG_KALMAN, 1, setPoint[X]);
-    DEBUG_SET(DEBUG_KALMAN, 2, kalmanFilterStateRate[X].k * 1000.0f);     //Kalman gain
-    DEBUG_SET(DEBUG_KALMAN, 3, output[X]); //Kalman output
+    DEBUG_SET(DEBUG_KALMAN, 2, kalmanFilterStateRate[X].k * 1000.0f); //Kalman gain
+    DEBUG_SET(DEBUG_KALMAN, 3, output[X]);                            //Kalman output
     DEBUG_SET(DEBUG_KALMAN, 4, input[X] - output[X]);
 }
 
