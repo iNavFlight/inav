@@ -317,9 +317,10 @@ void i2cInit(I2CDevice device)
     /* Enable the Analog I2C Filter */
     HAL_I2CEx_ConfigAnalogFilter(&i2cHandle[device].Handle,I2C_ANALOGFILTER_ENABLE);
 
-    HAL_NVIC_SetPriority(i2cHardwareMap[device].er_irq, NVIC_PRIORITY_BASE(NVIC_PRIO_I2C_ER), NVIC_PRIORITY_SUB(NVIC_PRIO_I2C_ER));
+    HAL_NVIC_SetPriority(i2cHardwareMap[device].er_irq, NVIC_PRIO_I2C_ER, 0);
     HAL_NVIC_EnableIRQ(i2cHardwareMap[device].er_irq);
-    HAL_NVIC_SetPriority(i2cHardwareMap[device].ev_irq, NVIC_PRIORITY_BASE(NVIC_PRIO_I2C_EV), NVIC_PRIORITY_SUB(NVIC_PRIO_I2C_EV));
+
+    HAL_NVIC_SetPriority(i2cHardwareMap[device].ev_irq, NVIC_PRIO_I2C_EV, 0);
     HAL_NVIC_EnableIRQ(i2cHardwareMap[device].ev_irq);
     state->initialised = true;
 }

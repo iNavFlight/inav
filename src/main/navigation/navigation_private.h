@@ -276,6 +276,7 @@ typedef enum {
 
     /* Additional flags */
     NAV_CTL_LAND            = (1 << 14),
+    NAV_AUTO_WP_DONE        = (1 << 15),    //Waypoint mission reached the last waypoint and is idling
 } navigationFSMStateFlags_t;
 
 typedef struct {
@@ -444,6 +445,8 @@ bool adjustFixedWingAltitudeFromRCInput(void);
 bool adjustFixedWingHeadingFromRCInput(void);
 bool adjustFixedWingPositionFromRCInput(void);
 
+void applyFixedWingPositionController(timeUs_t currentTimeUs);
+float processHeadingYawController(timeDelta_t deltaMicros, int32_t navHeadingError, bool errorIsDecreasing);
 void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
 
 void calculateFixedWingInitialHoldPosition(fpVector3_t * pos);
@@ -455,5 +458,10 @@ void enableFixedWingLaunchController(timeUs_t currentTimeUs);
 bool isFixedWingLaunchFinishedOrAborted(void);
 void abortFixedWingLaunch(void);
 void applyFixedWingLaunchController(timeUs_t currentTimeUs);
+
+/*
+ * Rover specific functions
+ */
+void applyRoverBoatNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
 
 #endif

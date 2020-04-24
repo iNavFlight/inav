@@ -35,6 +35,7 @@
 #include "common/maths.h"
 #include "common/memory.h"
 #include "common/printf.h"
+#include "common/global_variables.h"
 
 #include "config/config_eeprom.h"
 #include "config/feature.h"
@@ -210,7 +211,9 @@ void init(void)
     // Re-initialize system clock to their final values (if necessary)
     systemClockSetup(systemConfig()->cpuUnderclock);
 
+#ifdef USE_I2C
     i2cSetSpeed(systemConfig()->i2c_speed);
+#endif
 
 #ifdef USE_HARDWARE_PREBOOT_SETUP
     initialisePreBootHardware();
@@ -274,6 +277,10 @@ void init(void)
     // LOG might use serial output, so we only can init it after serial port is ready
     // From this point on we can use LOG_*() to produce real-time debugging information
     logInit();
+#endif
+
+#ifdef USE_LOGIC_CONDITIONS
+    gvInit();
 #endif
 
     // Initialize servo and motor mixers
@@ -509,7 +516,7 @@ void init(void)
 
     rxInit();
 
-#if (defined(USE_OSD) || (defined(USE_MSP_DISPLAYPORT) && defined(USE_CMS)))
+#if defined(USE_OSD)
     displayPort_t *osdDisplayPort = NULL;
 #endif
 

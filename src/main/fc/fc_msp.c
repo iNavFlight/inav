@@ -36,6 +36,7 @@
 #include "common/time.h"
 #include "common/utils.h"
 #include "common/global_functions.h"
+#include "common/global_variables.h"
 
 #include "config/parameter_group_ids.h"
 
@@ -529,6 +530,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP2_INAV_LOGIC_CONDITIONS:
         for (int i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
             sbufWriteU8(dst, logicConditions(i)->enabled);
+            sbufWriteU8(dst, logicConditions(i)->activatorId);
             sbufWriteU8(dst, logicConditions(i)->operation);
             sbufWriteU8(dst, logicConditions(i)->operandA.type);
             sbufWriteU32(dst, logicConditions(i)->operandA.value);
@@ -540,6 +542,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP2_INAV_LOGIC_CONDITIONS_STATUS:
         for (int i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
             sbufWriteU32(dst, logicConditionGetValue(i));
+        }
+        break;
+    case MSP2_INAV_GVAR_STATUS:
+        for (int i = 0; i < MAX_GLOBAL_VARIABLES; i++) {
+            sbufWriteU32(dst, gvGet(i));
         }
         break;
 #endif
@@ -1943,8 +1950,9 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #ifdef USE_LOGIC_CONDITIONS
     case MSP2_INAV_SET_LOGIC_CONDITIONS:
         sbufReadU8Safe(&tmp_u8, src);
-        if ((dataSize == 14) && (tmp_u8 < MAX_LOGIC_CONDITIONS)) {
+        if ((dataSize == 15) && (tmp_u8 < MAX_LOGIC_CONDITIONS)) {
             logicConditionsMutable(tmp_u8)->enabled = sbufReadU8(src);
+            logicConditionsMutable(tmp_u8)->activatorId = sbufReadU8(src);
             logicConditionsMutable(tmp_u8)->operation = sbufReadU8(src);
             logicConditionsMutable(tmp_u8)->operandA.type = sbufReadU8(src);
             logicConditionsMutable(tmp_u8)->operandA.value = sbufReadU32(src);
@@ -1958,7 +1966,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #ifdef USE_GLOBAL_FUNCTIONS
     case MSP2_INAV_SET_GLOBAL_FUNCTIONS:
         sbufReadU8Safe(&tmp_u8, src);
-        if ((dataSize == 14) && (tmp_u8 < MAX_GLOBAL_FUNCTIONS)) {
+        if ((dataSize == 10) && (tmp_u8 < MAX_GLOBAL_FUNCTIONS)) {
             globalFunctionsMutable(tmp_u8)->enabled = sbufReadU8(src);
             globalFunctionsMutable(tmp_u8)->conditionId = sbufReadU8(src);
             globalFunctionsMutable(tmp_u8)->action = sbufReadU8(src);

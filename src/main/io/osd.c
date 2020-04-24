@@ -198,7 +198,7 @@ static bool osdDisplayHasCanvas;
 #define AH_SIDEBAR_WIDTH_POS 7
 #define AH_SIDEBAR_HEIGHT_POS 3
 
-PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 10);
+PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 11);
 
 static int digitCount(int32_t value)
 {
@@ -2936,6 +2936,7 @@ static void osdShowStats(void)
     const uint8_t statValuesX = 20;
     char buff[10];
 
+    displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
     displayClearScreen(osdDisplayPort);
     if (IS_DISPLAY_PAL)
         displayWrite(osdDisplayPort, statNameX, top++, "  --- STATS ---");
@@ -3031,6 +3032,7 @@ static void osdShowStats(void)
 
     displayWrite(osdDisplayPort, statNameX, top, "DISARMED BY      :");
     displayWrite(osdDisplayPort, statValuesX, top++, disarmReasonStr[getDisarmReason()]);
+    displayCommitTransaction(osdDisplayPort);
 }
 
 // called when motors armed

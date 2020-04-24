@@ -119,7 +119,7 @@ bool handleCrsfMspFrameBuffer(uint8_t payloadSize, mspResponseFnPtr responseFn)
             requestHandled |= sendMspReply(payloadSize, responseFn);
         }
         pos += CRSF_MSP_LENGTH_OFFSET + mspFrameLength;
-        ATOMIC_BLOCK(NVIC_PRIO_SERIALUART1) {
+        ATOMIC_BLOCK(NVIC_PRIO_SERIALUART) {
             if (pos >= mspRxBuffer.len) {
                 mspRxBuffer.len = 0;
                 return requestHandled;

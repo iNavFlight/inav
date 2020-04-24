@@ -16,6 +16,7 @@ COMMON_SRC = \
             common/log.c \
             common/logic_condition.c \
             common/global_functions.c \
+            common/global_variables.c \
             common/maths.c \
             common/memory.c \
             common/olc.c \
@@ -201,6 +202,7 @@ COMMON_SRC = \
             navigation/navigation_pos_estimator.c \
             navigation/navigation_pos_estimator_agl.c \
             navigation/navigation_pos_estimator_flow.c \
+            navigation/navigation_rover_boat.c \
             sensors/barometer.c \
             sensors/pitotmeter.c \
             sensors/rangefinder.c \

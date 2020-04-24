@@ -112,7 +112,7 @@ uint8_t mscStart(void)
 
     // NVIC configuration for SYSTick
     NVIC_DisableIRQ(SysTick_IRQn);
-    NVIC_SetPriority(SysTick_IRQn, NVIC_BUILD_PRIORITY(0, 0));
+    NVIC_SetPriority(SysTick_IRQn, 0);
     NVIC_EnableIRQ(SysTick_IRQn);
 
     return 0;

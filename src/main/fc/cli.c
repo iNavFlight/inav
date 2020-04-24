@@ -44,6 +44,7 @@ extern uint8_t __config_end;
 #include "common/time.h"
 #include "common/typeconversion.h"
 #include "common/global_functions.h"
+#include "common/global_variables.h"
 
 #include "config/config_eeprom.h"
 #include "config/feature.h"
@@ -1279,7 +1280,7 @@ static void cliTempSensor(char *cmdline)
 static void printWaypoints(uint8_t dumpMask, const navWaypoint_t *navWaypoint, const navWaypoint_t *defaultNavWaypoint)
 {
     cliPrintLinef("#wp %d %svalid", posControl.waypointCount, posControl.waypointListValid ? "" : "in"); //int8_t bool
-    const char *format = "wp %u %u %d %d %d %d %u"; //uint8_t action; int32_t lat; int32_t lon; int32_t alt; int16_t p1; uint8_t flag
+    const char *format = "wp %u %u %d %d %d %d %d %d %u"; //uint8_t action; int32_t lat; int32_t lon; int32_t alt; int16_t p1 int16_t p2 int16_t p3; uint8_t flag
     for (uint8_t i = 0; i < NAV_MAX_WAYPOINTS; i++) {
         bool equalsDefault = false;
         if (defaultNavWaypoint) {
@@ -1288,6 +1289,8 @@ static void printWaypoints(uint8_t dumpMask, const navWaypoint_t *navWaypoint, c
                 && navWaypoint[i].lon == defaultNavWaypoint[i].lon
                 && navWaypoint[i].alt == defaultNavWaypoint[i].alt
                 && navWaypoint[i].p1 == defaultNavWaypoint[i].p1
+                && navWaypoint[i].p2 == defaultNavWaypoint[i].p2
+                && navWaypoint[i].p3 == defaultNavWaypoint[i].p3
                 && navWaypoint[i].flag == defaultNavWaypoint[i].flag;
             cliDefaultPrintLinef(dumpMask, equalsDefault, format,
                 i,
@@ -1296,6 +1299,8 @@ static void printWaypoints(uint8_t dumpMask, const navWaypoint_t *navWaypoint, c
                 defaultNavWaypoint[i].lon,
                 defaultNavWaypoint[i].alt,
                 defaultNavWaypoint[i].p1,
+                defaultNavWaypoint[i].p2,
+                defaultNavWaypoint[i].p3,
                 defaultNavWaypoint[i].flag
             );
         }
@@ -1306,6 +1311,8 @@ static void printWaypoints(uint8_t dumpMask, const navWaypoint_t *navWaypoint, c
             navWaypoint[i].lon,
             navWaypoint[i].alt,
             navWaypoint[i].p1,
+            navWaypoint[i].p2,
+            navWaypoint[i].p3,
             navWaypoint[i].flag
         );
     }
@@ -1322,7 +1329,7 @@ static void cliWaypoints(char *cmdline)
     } else if (sl_strcasecmp(cmdline, "save") == 0) {
         posControl.waypointListValid = false;
         for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {
-            if (!(posControl.waypointList[i].action == NAV_WP_ACTION_WAYPOINT || posControl.waypointList[i].action == NAV_WP_ACTION_JUMP || posControl.waypointList[i].action == NAV_WP_ACTION_RTH || posControl.waypointList[i].action == NAV_WP_ACTION_HOLD_TIME)) break;
+            if (!(posControl.waypointList[i].action == NAV_WP_ACTION_WAYPOINT || posControl.waypointList[i].action == NAV_WP_ACTION_JUMP || posControl.waypointList[i].action == NAV_WP_ACTION_RTH || posControl.waypointList[i].action == NAV_WP_ACTION_HOLD_TIME || posControl.waypointList[i].action == NAV_WP_ACTION_LAND)) break;
             if (posControl.waypointList[i].flag == NAV_WP_FLAG_LAST) {
                 posControl.waypointCount = i + 1;
                 posControl.waypointListValid = true;
@@ -1335,7 +1342,7 @@ static void cliWaypoints(char *cmdline)
             cliShowParseError();
         }
     } else {
-        int16_t i, p1;
+        int16_t i, p1,p2=0,p3=0,tmp;
         uint8_t action, flag;
         int32_t lat, lon, alt;
         uint8_t validArgumentCount = 0;
@@ -1369,12 +1376,29 @@ static void cliWaypoints(char *cmdline)
             }
             ptr = nextArg(ptr);
             if (ptr) {
-                flag = fastA2I(ptr);
+                tmp = fastA2I(ptr);
                 validArgumentCount++;
             }
-            if (validArgumentCount < 4) {
+                /* We support pre-2.5 6 values (... p1,flags) or
+                 *  2.5 and later, 8 values (... p1,p2,p3,flags)
+                 */
+            ptr = nextArg(ptr);
+            if (ptr) {
+                p2 = tmp;
+                p3 = fastA2I(ptr);
+                validArgumentCount++;
+                ptr = nextArg(ptr);
+                 if (ptr) {
+                    flag = fastA2I(ptr);
+                    validArgumentCount++;
+                }
+            } else {
+                flag = tmp;
+            }
+
+            if (!(validArgumentCount == 6 || validArgumentCount == 8)) {
                 cliShowParseError();
-            } else if (!(action == 0 || action == NAV_WP_ACTION_WAYPOINT || action == NAV_WP_ACTION_RTH || action == NAV_WP_ACTION_HOLD_TIME) || (p1 < 0) || !(flag == 0 || flag == NAV_WP_FLAG_LAST)) {
+            } else if (!(action == 0 || action == NAV_WP_ACTION_WAYPOINT || action == NAV_WP_ACTION_RTH || action == NAV_WP_ACTION_JUMP || action == NAV_WP_ACTION_HOLD_TIME || action == NAV_WP_ACTION_LAND) || (p1 < 0) || !(flag == 0 || flag == NAV_WP_FLAG_LAST)) {
                 cliShowParseError();
             } else {
                 posControl.waypointList[i].action = action;
@@ -1382,6 +1406,8 @@ static void cliWaypoints(char *cmdline)
                 posControl.waypointList[i].lon = lon;
                 posControl.waypointList[i].alt = alt;
                 posControl.waypointList[i].p1 = p1;
+                posControl.waypointList[i].p2 = p2;
+                posControl.waypointList[i].p3 = p3;
                 posControl.waypointList[i].flag = flag;
             }
         } else {
@@ -1732,7 +1758,7 @@ static void cliServoMix(char *cmdline)
 
 static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions, const logicCondition_t *defaultLogicConditions)
 {
-    const char *format = "logic %d %d %d %d %d %d %d %d";
+    const char *format = "logic %d %d %d %d %d %d %d %d %d";
     for (uint32_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
         const logicCondition_t logic = logicConditions[i];
 
@@ -1741,6 +1767,7 @@ static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions
             logicCondition_t defaultValue = defaultLogicConditions[i];
             equalsDefault =
                 logic.enabled == defaultValue.enabled &&
+                logic.activatorId == defaultValue.activatorId &&
                 logic.operation == defaultValue.operation &&
                 logic.operandA.type == defaultValue.operandA.type &&
                 logic.operandA.value == defaultValue.operandA.value &&
@@ -1751,6 +1778,7 @@ static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions
             cliDefaultPrintLinef(dumpMask, equalsDefault, format,
                 i,
                 logic.enabled,
+                logic.activatorId,
                 logic.operation,
                 logic.operandA.type,
                 logic.operandA.value,
@@ -1762,6 +1790,7 @@ static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions
         cliDumpPrintLinef(dumpMask, equalsDefault, format,
             i,
             logic.enabled,
+            logic.activatorId,
             logic.operation,
             logic.operandA.type,
             logic.operandA.value,
@@ -1774,7 +1803,7 @@ static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions
 
 static void cliLogic(char *cmdline) {
     char * saveptr;
-    int args[8], check = 0;
+    int args[9], check = 0;
     uint8_t len = strlen(cmdline);
 
     if (len == 0) {
@@ -1785,6 +1814,7 @@ static void cliLogic(char *cmdline) {
         enum {
             INDEX = 0,
             ENABLED,
+            ACTIVATOR_ID,
             OPERATION,
             OPERAND_A_TYPE,
             OPERAND_A_VALUE,
@@ -1808,6 +1838,7 @@ static void cliLogic(char *cmdline) {
         if (
             i >= 0 && i < MAX_LOGIC_CONDITIONS &&
             args[ENABLED] >= 0 && args[ENABLED] <= 1 &&
+            args[ACTIVATOR_ID] >= -1 && args[ACTIVATOR_ID] < MAX_LOGIC_CONDITIONS &&
             args[OPERATION] >= 0 && args[OPERATION] < LOGIC_CONDITION_LAST &&
             args[OPERAND_A_TYPE] >= 0 && args[OPERAND_A_TYPE] < LOGIC_CONDITION_OPERAND_TYPE_LAST &&
             args[OPERAND_A_VALUE] >= -1000000 && args[OPERAND_A_VALUE] <= 1000000 &&
@@ -1817,6 +1848,7 @@ static void cliLogic(char *cmdline) {
 
         ) {
             logicConditionsMutable(i)->enabled = args[ENABLED];
+            logicConditionsMutable(i)->activatorId = args[ACTIVATOR_ID];
             logicConditionsMutable(i)->operation = args[OPERATION];
             logicConditionsMutable(i)->operandA.type = args[OPERAND_A_TYPE];
             logicConditionsMutable(i)->operandA.value = args[OPERAND_A_VALUE];
@@ -1830,6 +1862,83 @@ static void cliLogic(char *cmdline) {
         }
     }
 }
+
+static void printGvar(uint8_t dumpMask, const globalVariableConfig_t *gvars, const globalVariableConfig_t *defaultGvars)
+{
+    const char *format = "gvar %d %d %d %d";
+    for (uint32_t i = 0; i < MAX_GLOBAL_VARIABLES; i++) {
+        const globalVariableConfig_t gvar = gvars[i];
+
+        bool equalsDefault = false;
+        if (defaultGvars) {
+            globalVariableConfig_t defaultValue = defaultGvars[i];
+            equalsDefault =
+                gvar.defaultValue == defaultValue.defaultValue &&
+                gvar.min == defaultValue.min &&
+                gvar.max == defaultValue.max;
+
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                i,
+                gvar.defaultValue,
+                gvar.min,
+                gvar.max
+            );
+        }
+        cliDumpPrintLinef(dumpMask, equalsDefault, format,
+            i,
+            gvar.defaultValue,
+            gvar.min,
+            gvar.max
+        );
+    }
+}
+
+static void cliGvar(char *cmdline) {
+    char * saveptr;
+    int args[4], check = 0;
+    uint8_t len = strlen(cmdline);
+
+    if (len == 0) {
+        printGvar(DUMP_MASTER, globalVariableConfigs(0), NULL);
+    } else if (sl_strncasecmp(cmdline, "reset", 5) == 0) {
+        pgResetCopy(globalVariableConfigsMutable(0), PG_GLOBAL_VARIABLE_CONFIG);
+    } else {
+        enum {
+            INDEX = 0,
+            DEFAULT,
+            MIN,
+            MAX,
+            ARGS_COUNT
+            };
+        char *ptr = strtok_r(cmdline, " ", &saveptr);
+        while (ptr != NULL && check < ARGS_COUNT) {
+            args[check++] = fastA2I(ptr);
+            ptr = strtok_r(NULL, " ", &saveptr);
+        }
+
+        if (ptr != NULL || check != ARGS_COUNT) {
+            cliShowParseError();
+            return;
+        }
+
+        int32_t i = args[INDEX];
+        if (
+            i >= 0 && i < MAX_GLOBAL_VARIABLES &&
+            args[DEFAULT] >= INT32_MIN && args[DEFAULT] <= INT32_MAX &&  
+            args[MIN] >= INT32_MIN && args[MIN] <= INT32_MAX &&  
+            args[MAX] >= INT32_MIN && args[MAX] <= INT32_MAX  
+        ) {
+            globalVariableConfigsMutable(i)->defaultValue = args[DEFAULT];
+            globalVariableConfigsMutable(i)->min = args[MIN];
+            globalVariableConfigsMutable(i)->max = args[MAX];
+
+            cliGvar("");
+        } else {
+            cliShowParseError();
+        }
+    }
+}
+
 #endif
 
 #ifdef USE_GLOBAL_FUNCTIONS
@@ -3186,6 +3295,9 @@ static void printConfig(const char *cmdline, bool doDiff)
 #ifdef USE_LOGIC_CONDITIONS
         cliPrintHashLine("logic");
         printLogic(dumpMask, logicConditions_CopyArray, logicConditions(0));
+
+        cliPrintHashLine("gvar");
+        printGvar(dumpMask, globalVariableConfigs_CopyArray, globalVariableConfigs(0));
 #endif
 
 #ifdef USE_GLOBAL_FUNCTIONS
@@ -3441,8 +3553,12 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("servo", "configure servos", NULL, cliServo),
 #ifdef USE_LOGIC_CONDITIONS
     CLI_COMMAND_DEF("logic", "configure logic conditions",
-        "<rule> <enabled> <operation> <operand A type> <operand A value> <operand B type> <operand B value> <flags>\r\n"
+        "<rule> <enabled> <activatorId> <operation> <operand A type> <operand A value> <operand B type> <operand B value> <flags>\r\n"
         "\treset\r\n", cliLogic),
+
+    CLI_COMMAND_DEF("gvar", "configure global variables",
+        "<gvar> <default> <min> <max>\r\n"
+        "\treset\r\n", cliGvar),
 #endif
 #ifdef USE_GLOBAL_FUNCTIONS
     CLI_COMMAND_DEF("gf", "configure global functions",

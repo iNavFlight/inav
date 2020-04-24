@@ -64,8 +64,6 @@ endif
 # Things that need to be maintained as the source changes
 #
 
-FORKNAME      = inav
-
 # Working directories
 SRC_DIR         := $(ROOT)/src/main
 OBJECT_DIR      := $(ROOT)/obj/main
@@ -85,16 +83,8 @@ MHZ_VALUE      ?=
 # used for turning on features like VCP and SDCARD
 FEATURES        =
 
+include $(ROOT)/make/version.mk
 include $(ROOT)/make/targets.mk
-
-REVISION = $(shell git rev-parse --short HEAD)
-
-FC_VER_MAJOR := $(shell grep " FC_VERSION_MAJOR" src/main/build/version.h | awk '{print $$3}' )
-FC_VER_MINOR := $(shell grep " FC_VERSION_MINOR" src/main/build/version.h | awk '{print $$3}' )
-FC_VER_PATCH := $(shell grep " FC_VERSION_PATCH" src/main/build/version.h | awk '{print $$3}' )
-
-FC_VER := $(FC_VER_MAJOR).$(FC_VER_MINOR).$(FC_VER_PATCH)
-FC_VER_SUFFIX ?=
 
 BUILD_DATE = $(shell date +%Y%m%d)
 
@@ -174,6 +164,11 @@ SIZE        = $(ARM_SDK_PREFIX)size
 # Tool options.
 #
 
+# Save original CFLAGS before modifying them, so we don't
+# add them twice when calling this Makefile recursively
+# for each target
+SAVED_CFLAGS	:= $(CFLAGS)
+
 ifeq ($(DEBUG),GDB)
 LTO_FLAGS   = 
 else
@@ -250,9 +245,6 @@ CPPCHECK        = cppcheck $(CSOURCES) --enable=all --platform=unix64 \
 # Things we will build
 #
 TARGET_BIN	:= $(BIN_DIR)/$(FORKNAME)_$(FC_VER)
-ifneq ($(FC_VER_SUFFIX),)
-    TARGET_BIN	:= $(TARGET_BIN)-$(FC_VER_SUFFIX)
-endif
 TARGET_BIN	:= $(TARGET_BIN)_$(TARGET)
 ifneq ($(BUILD_SUFFIX),)
     TARGET_BIN	:= $(TARGET_BIN)_$(BUILD_SUFFIX)
@@ -360,7 +352,7 @@ release: $(RELEASE_TARGETS)
 $(VALID_TARGETS):
 	$(V0) echo "" && \
 	echo "Building $@" && \
-	$(MAKE) -j 8 TARGET=$@ && \
+	CFLAGS=$(SAVED_CFLAGS) $(MAKE) -j 8 TARGET=$@ && \
 	echo "Building $@ succeeded."
 
 ## clean             : clean up all temporary / machine-generated files
