@@ -98,3 +98,11 @@ Later, you can get the changes from the INAV repo into your `development` branch
 
 
 You can also perform the git commands using the git client inside Eclipse.  Refer to the Eclipse git manual.
+
+## Using gitpod online IDE 
+
+Gitpod provides a development environment directly integrated with GitHub.
+
+.gitpod.yml defines dependencies that are installed automatcially when lauching the environment.
+
+[![Gitpod Ready-to-Code](https://img.shields.io/badge/Gitpod-Ready--to--Code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/iNavFlight/inav) 
