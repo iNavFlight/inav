@@ -364,7 +364,7 @@ bool gyroIsCalibrationComplete(void)
     return zeroCalibrationIsCompleteV(&gyroCalibration[0]) && zeroCalibrationIsSuccessfulV(&gyroCalibration[0]);
 }
 
-STATIC_UNIT_TESTED void performgyroCalibration(gyroDev_t *dev, zeroCalibrationVector_t *gyroCalibration)
+STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVector_t *gyroCalibration)
 {
     fpVector3_t v;
 
@@ -425,7 +425,7 @@ static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroC
 
             return true;
         } else {
-            performgyroCalibration(gyroDev, gyroCal);
+            performGyroCalibration(gyroDev, gyroCal);
 
             // Reset gyro values to zero to prevent other code from using uncalibrated data
             gyroADCf[X] = 0.0f;
