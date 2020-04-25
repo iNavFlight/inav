@@ -1,3 +1,2 @@
 tasks:
   - init: make arm_sdk_install
-  - command: make
