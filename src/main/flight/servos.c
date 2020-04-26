@@ -263,7 +263,7 @@ void servoMixer(float dT)
 
     input[INPUT_FEATURE_FLAPS] = FLIGHT_MODE(FLAPERON) ? servoConfig()->flaperon_throw_offset : 0;
 
-    input[INPUT_LOGIC_ONE] = 500;
+    input[INPUT_MAX] = 500;
 #ifdef USE_LOGIC_CONDITIONS
     input[INPUT_GVAR_0] = constrain(gvGet(0), -1000, 1000);
     input[INPUT_GVAR_1] = constrain(gvGet(1), -1000, 1000);
