@@ -55,12 +55,16 @@ END_IDX=$(expr ${START} + ${COUNT})
 SELECTED_TARGETS=$(echo ${ALL_TARGETS} | cut -d ' ' -f ${START_IDX}-${END_IDX})
 
 if [ -z "${DRY_RUN}" ]; then
-    # make without arguments builds the default
-    # target, so make sure ${SELECTED_TARGETS} is
-    # not empty
-    if [ -n "${SELECTED_TARGETS}" ]; then
-        BUILD_SUFFIX=${BUILD_SUFFIX} V=0 CFLAGS=-Werror make ${SELECTED_TARGETS}
-    fi
+    for target in ${SELECTED_TARGETS}; do
+        BUILD_SUFFIX=${BUILD_SUFFIX} V=0 CFLAGS=-Werror make ${target}
+        # Cleanup intermediate files after building each target.
+        # Otherwise we run out of space on GH CI.
+        # XXX: Make sure we save the .hex file for artifact
+        # generation
+        mkdir -p obj/dist
+        mv obj/*.hex obj/dist
+        V=0 make clean_${target}
+    done
 else
     echo "${SELECTED_TARGETS}"
 fi
