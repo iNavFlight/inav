@@ -33,16 +33,18 @@
 
 #include "io/vtx.h"
 #include "drivers/vtx_common.h"
+#include "rx/rx.h"
 
 #ifdef USE_GLOBAL_FUNCTIONS
 
 #include "common/axis.h"
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(globalFunction_t, MAX_GLOBAL_FUNCTIONS, globalFunctions, PG_GLOBAL_FUNCTIONS, 0);
+PG_REGISTER_ARRAY_WITH_RESET_FN(globalFunction_t, MAX_GLOBAL_FUNCTIONS, globalFunctions, PG_GLOBAL_FUNCTIONS, 1);
 
 EXTENDED_FASTRAM uint64_t globalFunctionsFlags = 0;
 EXTENDED_FASTRAM globalFunctionState_t globalFunctionsStates[MAX_GLOBAL_FUNCTIONS];
 EXTENDED_FASTRAM int globalFunctionValues[GLOBAL_FUNCTION_ACTION_LAST];
+EXTENDED_FASTRAM rcChannelOverride_t channelOverrides[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 
 void pgResetFn_globalFunctions(globalFunction_t *instance)
 {
@@ -51,7 +53,11 @@ void pgResetFn_globalFunctions(globalFunction_t *instance)
             .enabled = 0,
             .conditionId = -1,
             .action = 0,
-            .withValue = {
+            .withValueA = {
+                .type = LOGIC_CONDITION_OPERAND_TYPE_VALUE,
+                .value = 0
+            },
+            .withValueB = {
                 .type = LOGIC_CONDITION_OPERAND_TYPE_VALUE,
                 .value = 0
             },
@@ -68,9 +74,13 @@ void globalFunctionsProcess(int8_t functionId) {
         const int previousValue = globalFunctionsStates[functionId].active;
 
         globalFunctionsStates[functionId].active = (bool) conditionValue;
-        globalFunctionsStates[functionId].value = logicConditionGetOperandValue(
-            globalFunctions(functionId)->withValue.type,
-            globalFunctions(functionId)->withValue.value
+        globalFunctionsStates[functionId].valueA = logicConditionGetOperandValue(
+            globalFunctions(functionId)->withValueA.type,
+            globalFunctions(functionId)->withValueA.value
+        );
+        globalFunctionsStates[functionId].valueB = logicConditionGetOperandValue(
+            globalFunctions(functionId)->withValueB.type,
+            globalFunctions(functionId)->withValueB.value
         );
 
         switch (globalFunctions(functionId)->action) {
@@ -81,7 +91,7 @@ void globalFunctionsProcess(int8_t functionId) {
                 break;
             case GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE_SCALE:
                 if (conditionValue) {
-                    globalFunctionValues[GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE_SCALE] = globalFunctionsStates[functionId].value;
+                    globalFunctionValues[GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE_SCALE] = globalFunctionsStates[functionId].valueA;
                     GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE_SCALE);
                 }
                 break;
@@ -94,7 +104,7 @@ void globalFunctionsProcess(int8_t functionId) {
                 if (conditionValue && !previousValue) {
                     vtxDeviceCapability_t vtxDeviceCapability;
                     if (vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
-                        vtxSettingsConfigMutable()->power = constrain(globalFunctionsStates[functionId].value, VTX_SETTINGS_MIN_POWER, vtxDeviceCapability.powerCount);
+                        vtxSettingsConfigMutable()->power = constrain(globalFunctionsStates[functionId].valueA, VTX_SETTINGS_MIN_POWER, vtxDeviceCapability.powerCount);
                     }
                 }
                 break;
@@ -102,7 +112,7 @@ void globalFunctionsProcess(int8_t functionId) {
                 if (conditionValue && !previousValue) {
                     vtxDeviceCapability_t vtxDeviceCapability;
                     if (vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
-                        vtxSettingsConfigMutable()->band = constrain(globalFunctionsStates[functionId].value, VTX_SETTINGS_MIN_BAND, VTX_SETTINGS_MAX_BAND);
+                        vtxSettingsConfigMutable()->band = constrain(globalFunctionsStates[functionId].valueA, VTX_SETTINGS_MIN_BAND, VTX_SETTINGS_MAX_BAND);
                     }
                 }
                 break;
@@ -110,7 +120,7 @@ void globalFunctionsProcess(int8_t functionId) {
                 if (conditionValue && !previousValue) {
                     vtxDeviceCapability_t vtxDeviceCapability;
                     if (vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
-                        vtxSettingsConfigMutable()->channel = constrain(globalFunctionsStates[functionId].value, VTX_SETTINGS_MIN_CHANNEL, VTX_SETTINGS_MAX_CHANNEL);
+                        vtxSettingsConfigMutable()->channel = constrain(globalFunctionsStates[functionId].valueA, VTX_SETTINGS_MIN_CHANNEL, VTX_SETTINGS_MAX_CHANNEL);
                     }
                 }
                 break;
@@ -131,8 +141,17 @@ void globalFunctionsProcess(int8_t functionId) {
                 break;
             case GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE:
                 if (conditionValue) {
-                    globalFunctionValues[GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE] = globalFunctionsStates[functionId].value;
+                    globalFunctionValues[GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE] = globalFunctionsStates[functionId].valueA;
                     GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE);
+                }
+                break;
+            case GLOBAL_FUNCTION_ACTION_OVERRIDE_RC_CHANNEL:
+                if (conditionValue) {
+                    // globalFunctionValues[GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE] = globalFunctionsStates[functionId].valueA;
+                    const uint8_t channel = constrain(globalFunctionsStates[functionId].valueA, 0, MAX_SUPPORTED_RC_CHANNEL_COUNT - 1);
+                    channelOverrides[channel].active = true;
+                    channelOverrides[channel].value = constrain(globalFunctionsStates[functionId].valueB, PWM_RANGE_MIN, PWM_RANGE_MAX);
+                    GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_RC_CHANNEL);
                 }
                 break;
         }
@@ -145,8 +164,20 @@ void NOINLINE globalFunctionsUpdateTask(timeUs_t currentTimeUs) {
     //Disable all flags
     globalFunctionsFlags = 0;
 
+    for (uint8_t i = 0; i < MAX_SUPPORTED_RC_CHANNEL_COUNT; i++) {
+        channelOverrides[i].active = false;
+    } 
+
     for (uint8_t i = 0; i < MAX_GLOBAL_FUNCTIONS; i++) {
         globalFunctionsProcess(i);
+    }
+}
+
+int16_t getRcChannelOverride(uint8_t channel, int16_t originalValue) {
+    if (channelOverrides[channel].active) {
+        return channelOverrides[channel].value;
+    } else {
+        return originalValue;
     }
 }
 

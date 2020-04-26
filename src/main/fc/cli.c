@@ -1945,7 +1945,7 @@ static void cliGvar(char *cmdline) {
 
 static void printGlobalFunctions(uint8_t dumpMask, const globalFunction_t *globalFunctions, const globalFunction_t *defaultGlobalFunctions)
 {
-    const char *format = "gf %d %d %d %d %d %d %d";
+    const char *format = "gf %d %d %d %d %d %d %d %d %d";
     for (uint32_t i = 0; i < MAX_GLOBAL_FUNCTIONS; i++) {
         const globalFunction_t gf = globalFunctions[i];
 
@@ -1956,8 +1956,10 @@ static void printGlobalFunctions(uint8_t dumpMask, const globalFunction_t *globa
                 gf.enabled == defaultValue.enabled &&
                 gf.conditionId == defaultValue.conditionId &&
                 gf.action == defaultValue.action &&
-                gf.withValue.type == defaultValue.withValue.type &&
-                gf.withValue.value == defaultValue.withValue.value &&
+                gf.withValueA.type == defaultValue.withValueA.type &&
+                gf.withValueA.value == defaultValue.withValueA.value &&
+                gf.withValueB.type == defaultValue.withValueB.type &&
+                gf.withValueB.value == defaultValue.withValueB.value &&
                 gf.flags == defaultValue.flags;
 
             cliDefaultPrintLinef(dumpMask, equalsDefault, format,
@@ -1965,8 +1967,10 @@ static void printGlobalFunctions(uint8_t dumpMask, const globalFunction_t *globa
                 gf.enabled,
                 gf.conditionId,
                 gf.action,
-                gf.withValue.type,
-                gf.withValue.value,
+                gf.withValueA.type,
+                gf.withValueA.value,
+                gf.withValueB.type,
+                gf.withValueB.value,
                 gf.flags
             );
         }
@@ -1975,8 +1979,10 @@ static void printGlobalFunctions(uint8_t dumpMask, const globalFunction_t *globa
             gf.enabled,
             gf.conditionId,
             gf.action,
-            gf.withValue.type,
-            gf.withValue.value,
+            gf.withValueA.type,
+            gf.withValueA.value,
+            gf.withValueB.type,
+            gf.withValueB.value,
             gf.flags
         );
     }
@@ -1984,7 +1990,7 @@ static void printGlobalFunctions(uint8_t dumpMask, const globalFunction_t *globa
 
 static void cliGlobalFunctions(char *cmdline) {
     char * saveptr;
-    int args[7], check = 0;
+    int args[9], check = 0;
     uint8_t len = strlen(cmdline);
 
     if (len == 0) {
@@ -1997,8 +2003,10 @@ static void cliGlobalFunctions(char *cmdline) {
             ENABLED,
             CONDITION_ID,
             ACTION,
-            VALUE_TYPE,
-            VALUE_VALUE,
+            VALUE_TYPE_A,
+            VALUE_VALUE_A,
+            VALUE_TYPE_B,
+            VALUE_VALUE_B,
             FLAGS,
             ARGS_COUNT
             };
@@ -2019,16 +2027,20 @@ static void cliGlobalFunctions(char *cmdline) {
             args[ENABLED] >= 0 && args[ENABLED] <= 1 &&
             args[CONDITION_ID] >= -1 && args[CONDITION_ID] < MAX_LOGIC_CONDITIONS &&
             args[ACTION] >= 0 && args[ACTION] < GLOBAL_FUNCTION_ACTION_LAST &&
-            args[VALUE_TYPE] >= 0 && args[VALUE_TYPE] < LOGIC_CONDITION_OPERAND_TYPE_LAST &&
-            args[VALUE_VALUE] >= -1000000 && args[VALUE_VALUE] <= 1000000 &&
+            args[VALUE_TYPE_A] >= 0 && args[VALUE_TYPE_A] < LOGIC_CONDITION_OPERAND_TYPE_LAST &&
+            args[VALUE_VALUE_A] >= -1000000 && args[VALUE_VALUE_A] <= 1000000 &&
+            args[VALUE_TYPE_B] >= 0 && args[VALUE_TYPE_B] < LOGIC_CONDITION_OPERAND_TYPE_LAST &&
+            args[VALUE_VALUE_B] >= -1000000 && args[VALUE_VALUE_B] <= 1000000 &&
             args[FLAGS] >= 0 && args[FLAGS] <= 255
 
         ) {
             globalFunctionsMutable(i)->enabled = args[ENABLED];
             globalFunctionsMutable(i)->conditionId = args[CONDITION_ID];
             globalFunctionsMutable(i)->action = args[ACTION];
-            globalFunctionsMutable(i)->withValue.type = args[VALUE_TYPE];
-            globalFunctionsMutable(i)->withValue.value = args[VALUE_VALUE];
+            globalFunctionsMutable(i)->withValueA.type = args[VALUE_TYPE_A];
+            globalFunctionsMutable(i)->withValueA.value = args[VALUE_VALUE_A];
+            globalFunctionsMutable(i)->withValueB.type = args[VALUE_TYPE_B];
+            globalFunctionsMutable(i)->withValueB.value = args[VALUE_VALUE_B];
             globalFunctionsMutable(i)->flags = args[FLAGS];
 
             cliGlobalFunctions("");
@@ -3562,7 +3574,7 @@ const clicmd_t cmdTable[] = {
 #endif
 #ifdef USE_GLOBAL_FUNCTIONS
     CLI_COMMAND_DEF("gf", "configure global functions",
-        "<rule> <enabled> <logic condition> <action> <operand type> <operand value> <flags>\r\n"
+        "<rule> <enabled> <logic condition> <action> <operand A type> <operand A value> <operand B type> <operand B value> <flags>\r\n"
         "\treset\r\n", cliGlobalFunctions),
 #endif
     CLI_COMMAND_DEF("set", "change setting", "[<name>=<value>]", cliSet),

@@ -39,6 +39,7 @@ typedef enum {
     GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE,               // 7
     GLOBAL_FUNCTION_ACTION_SET_VTX_BAND,                    // 8
     GLOBAL_FUNCTION_ACTION_SET_VTX_CHANNEL,                 // 9
+    GLOBAL_FUNCTION_ACTION_OVERRIDE_RC_CHANNEL,             // 10
     GLOBAL_FUNCTION_ACTION_LAST
 } globalFunctionActions_e;
 
@@ -50,21 +51,29 @@ typedef enum {
     GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_PITCH = (1 << 4),
     GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_YAW = (1 << 5),
     GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE = (1 << 6),
+    GLOBAL_FUNCTION_FLAG_OVERRIDE_RC_CHANNEL = (1 << 7),
 } globalFunctionFlags_t;
 
 typedef struct globalFunction_s {
     uint8_t enabled;
     int8_t conditionId;
     uint8_t action;
-    logicOperand_t withValue;
+    logicOperand_t withValueA;
+    logicOperand_t withValueB;
     uint8_t flags;
 } globalFunction_t;
 
 typedef struct globalFunctionState_s {
     uint8_t active;
-    int value;
+    int valueA;
+    int valueB;
     uint8_t flags;
 } globalFunctionState_t;
+
+typedef struct rcChannelOverride_s {
+    uint8_t active;
+    int value;
+} rcChannelOverride_t;
 
 extern uint64_t globalFunctionsFlags;
 
@@ -78,3 +87,4 @@ extern int globalFunctionValues[GLOBAL_FUNCTION_ACTION_LAST];
 void globalFunctionsUpdateTask(timeUs_t currentTimeUs);
 float getThrottleScale(float globalThrottleScale);
 int16_t getRcCommandOverride(int16_t command[], uint8_t axis);
+int16_t getRcChannelOverride(uint8_t channel, int16_t originalValue);
