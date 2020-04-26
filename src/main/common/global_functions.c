@@ -98,6 +98,22 @@ void globalFunctionsProcess(int8_t functionId) {
                     }
                 }
                 break;
+            case GLOBAL_FUNCTION_ACTION_SET_VTX_BAND:
+                if (conditionValue && !previousValue) {
+                    vtxDeviceCapability_t vtxDeviceCapability;
+                    if (vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
+                        vtxSettingsConfigMutable()->band = constrain(globalFunctionsStates[functionId].value, VTX_SETTINGS_MIN_BAND, VTX_SETTINGS_MAX_BAND);
+                    }
+                }
+                break;
+            case GLOBAL_FUNCTION_ACTION_SET_VTX_CHANNEL:
+                if (conditionValue && !previousValue) {
+                    vtxDeviceCapability_t vtxDeviceCapability;
+                    if (vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
+                        vtxSettingsConfigMutable()->channel = constrain(globalFunctionsStates[functionId].value, VTX_SETTINGS_MIN_CHANNEL, VTX_SETTINGS_MAX_CHANNEL);
+                    }
+                }
+                break;
             case GLOBAL_FUNCTION_ACTION_INVERT_ROLL:
                 if (conditionValue) {
                     GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_ROLL);
