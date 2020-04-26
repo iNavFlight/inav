@@ -90,6 +90,9 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_IS_WP, // 0/1                            // 23
     LOGIC_CONDITION_OPERAND_FLIGHT_IS_LANDING, // 0/1                       // 24
     LOGIC_CONDITION_OPERAND_FLIGHT_IS_FAILSAFE, // 0/1                      // 25
+    LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_ROLL,                         // 26
+    LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_PITCH,                        // 27
+    LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_YAW,                          // 28
 } logicFlightOperands_e;
 
 typedef enum {
