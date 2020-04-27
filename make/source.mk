@@ -64,6 +64,7 @@ COMMON_SRC = \
             drivers/sound_beeper.c \
             drivers/stack_check.c \
             drivers/system.c \
+            drivers/time.c \
             drivers/timer.c \
             drivers/usb_msc.c \
             drivers/lights_io.c \
