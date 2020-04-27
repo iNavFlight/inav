@@ -137,7 +137,10 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
     // PID controller to translate energy balance error [J] into pitch angle [decideg]
     float targetPitchAngle = navPidApply3(&posControl.pids.fw_alt, demSEB, estSEB, US2S(deltaMicros), minDiveDeciDeg, maxClimbDeciDeg, 0, pitchGainInv);
 
-    const float cutoff_freq = constrain((10.f - navConfig()->fw.control_smoothness) / 5.0, 0.5, 2.0); // Pitch cutoff set to 1/5 the roll cutoff
+    // Apply low-pass filter to prevent rapid correction cutoff_freq = 0.002 * (10.0-x)^3 + epsilon 
+    // Pitch cutoff set to 1/5 the roll cutoff
+    uint16_t smoothness = 10 - navConfig()->fw.control_smoothness;
+    float cutoff_freq = 0.002f * (float)(smoothness*smoothness*smoothness) + 0.1f;
     targetPitchAngle = pt1FilterApply4(&velzFilterState, targetPitchAngle, cutoff_freq, US2S(deltaMicros));
 
     // Reconstrain pitch angle ( >0 - climb, <0 - dive)
@@ -368,8 +371,9 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
                                         DEGREES_TO_CENTIDEGREES(navConfig()->fw.max_bank_angle),
                                         pidFlags);
 
-    // Apply low-pass filter to prevent rapid correction
-    uint8_t cutoff_freq = constrain(10 - navConfig()->fw.control_smoothness, 1, 10);
+    // Apply low-pass filter to prevent rapid correction cutoff_freq = 0.01 * (10.0-x)^3 + epsilon
+    uint16_t smoothness = 10 - navConfig()->fw.control_smoothness;
+    float cutoff_freq = 0.01f * (float)(smoothness*smoothness*smoothness) + 0.1f;
     rollAdjustment = pt1FilterApply4(&fwPosControllerCorrectionFilterState, rollAdjustment, cutoff_freq, US2S(deltaMicros));
 
     // Convert rollAdjustment to decidegrees (rcAdjustment holds decidegrees)
