@@ -150,7 +150,7 @@ const flashGeometry_t *flashGetGeometry(void)
  * XXX This restriction can and will be fixed by creating a set of flash operation functions that take partition as an additional parameter.
  */
 
-static void createPartition(flashPartitionType_e type, uint32_t size, flashSector_t *endSector)
+static __attribute__((unused)) void createPartition(flashPartitionType_e type, uint32_t size, flashSector_t *endSector)
 {
     const flashGeometry_t *flashGeometry = flashGetGeometry();
     flashSector_t partitionSectors = (size / flashGeometry->sectorSize);
