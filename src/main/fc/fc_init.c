@@ -184,7 +184,9 @@ void flashLedsAndBeep(void)
 
 void init(void)
 {
+#if defined(USE_FLASHFS) && defined(USE_FLASH_M25P16)
     bool flashDeviceInitialized = false;
+#endif
 
 #ifdef USE_HAL_DRIVER
     HAL_Init();
