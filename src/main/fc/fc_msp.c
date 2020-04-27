@@ -44,6 +44,7 @@
 #include "drivers/bus_i2c.h"
 #include "drivers/compass/compass.h"
 #include "drivers/display.h"
+#include "drivers/flash.h"
 #include "drivers/osd.h"
 #include "drivers/osd_symbols.h"
 #include "drivers/pwm_mapping.h"
@@ -293,8 +294,8 @@ static void serializeSDCardSummaryReply(sbuf_t *dst)
 static void serializeDataflashSummaryReply(sbuf_t *dst)
 {
 #ifdef USE_FLASHFS
-    const flashGeometry_t *geometry = flashfsGetGeometry();
-    sbufWriteU8(dst, flashfsIsReady() ? 1 : 0);
+    const flashGeometry_t *geometry = flashGetGeometry();
+    sbufWriteU8(dst, flashIsReady() ? 1 : 0);
     sbufWriteU32(dst, geometry->sectors);
     sbufWriteU32(dst, geometry->totalSize);
     sbufWriteU32(dst, flashfsGetOffset()); // Effectively the current number of bytes stored on the volume

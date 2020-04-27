@@ -36,6 +36,7 @@
 
 #include "config/feature.h"
 
+#include "drivers/flash.h"
 #include "drivers/time.h"
 
 #include "fc/config.h"
@@ -53,7 +54,7 @@ static long cmsx_EraseFlash(displayPort_t *pDisplay, const void *ptr)
     displayResync(pDisplay); // Was max7456RefreshAll(); Why at this timing?
 
     flashfsEraseCompletely();
-    while (!flashfsIsReady()) {
+    while (!flashIsReady()) {
         delay(100);
     }
 

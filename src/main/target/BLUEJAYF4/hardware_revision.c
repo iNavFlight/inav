@@ -93,7 +93,7 @@ void updateHardwareRevision(void)
     }
 
     /* if flash exists on PB3 (busDevice m25p16_bjf3_rev1) then Rev1 */
-    if (m25p16_init(1)) {
+    if (flashInit()) {
         hardwareRevision = BJF4_REV1;
     } else {
         IOInit(IOGetByTag(IO_TAG(PB3)), OWNER_FREE, RESOURCE_NONE, 0);

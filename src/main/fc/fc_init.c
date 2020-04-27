@@ -54,6 +54,7 @@
 #include "drivers/flash_m25p16.h"
 #include "drivers/io.h"
 #include "drivers/io_pca9685.h"
+#include "drivers/flash.h"
 #include "drivers/light_led.h"
 #include "drivers/nvic.h"
 #include "drivers/osd.h"
@@ -183,6 +184,10 @@ void flashLedsAndBeep(void)
 
 void init(void)
 {
+#if defined(USE_FLASHFS) && defined(USE_FLASH_M25P16)
+    bool flashDeviceInitialized = false;
+#endif
+
 #ifdef USE_HAL_DRIVER
     HAL_Init();
 #endif
@@ -362,7 +367,10 @@ void init(void)
         if (blackboxConfig()->device == BLACKBOX_DEVICE_FLASH) {
 #ifdef USE_FLASH_M25P16
             // Must initialise the device to read _anything_
-            m25p16_init(0);
+            /*m25p16_init(0);*/
+            if (!flashDeviceInitialized) {
+                flashDeviceInitialized = flashInit();
+            }
 #endif
             emfat_init_files();
         }
@@ -579,7 +587,9 @@ void init(void)
 #ifdef USE_FLASHFS
         case BLACKBOX_DEVICE_FLASH:
 #ifdef USE_FLASH_M25P16
-            m25p16_init(0);
+            if (!flashDeviceInitialized) {
+                flashDeviceInitialized = flashInit();
+            }
 #endif
             flashfsInit();
             break;
