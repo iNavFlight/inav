@@ -46,6 +46,7 @@ COMMON_SRC = \
             drivers/io_pca9685.c \
             drivers/light_led.c \
             drivers/osd.c \
+            drivers/persistent.c \
             drivers/resource.c \
             drivers/rx_nrf24l01.c \
             drivers/rx_spi.c \
@@ -63,7 +64,9 @@ COMMON_SRC = \
             drivers/sound_beeper.c \
             drivers/stack_check.c \
             drivers/system.c \
+            drivers/time.c \
             drivers/timer.c \
+            drivers/usb_msc.c \
             drivers/lights_io.c \
             drivers/1-wire.c \
             drivers/1-wire/ds_crc.c \

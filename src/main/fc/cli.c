@@ -60,6 +60,7 @@ extern uint8_t __config_end;
 #include "drivers/io.h"
 #include "drivers/io_impl.h"
 #include "drivers/osd_symbols.h"
+#include "drivers/persistent.h"
 #include "drivers/rx_pwm.h"
 #include "drivers/sdcard/sdcard.h"
 #include "drivers/sensor.h"
@@ -3455,11 +3456,7 @@ static void cliMsc(char *cmdline)
         waitForSerialPortToFinishTransmitting(cliPort);
         stopPwmAllMotors();
 
-#ifdef STM32F7
-        *((__IO uint32_t*) BKPSRAM_BASE + 16) = MSC_MAGIC;
-#elif defined(STM32F4)
-        *((uint32_t *)0x2001FFF0) = MSC_MAGIC;
-#endif
+        persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_MSC_REQUEST);
 
         __disable_irq();
         NVIC_SystemReset();
