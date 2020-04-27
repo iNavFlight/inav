@@ -21,3 +21,6 @@ RUN mkdir -p /opt && \
 	chmod -R -w "/opt/gcc-arm-none-eabi-$TOOLCHAIN_VERSION_LONG"
 
 ENV PATH="/opt/gcc-arm-none-eabi-$TOOLCHAIN_VERSION_LONG/bin:$PATH"
+
+RUN useradd inav
+USER inav
