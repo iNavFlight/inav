@@ -29,36 +29,7 @@
 #include "drivers/exti.h"
 
 
-#define AIRCR_VECTKEY_MASK    ((uint32_t)0x05FA0000)
 void SetSysClock(void);
-
-inline static void NVIC_DisableAllIRQs(void)
-{
-    // We access CMSIS NVIC registers directly here
-    for (int x = 0; x < 8; x++) {
-        // Mask all IRQs controlled by a ICERx
-        NVIC->ICER[x] = 0xFFFFFFFF;
-        // Clear all pending IRQs controlled by a ICPRx
-        NVIC->ICPR[x] = 0xFFFFFFFF;
-    }
-}
-
-void systemReset(void)
-{
-    __disable_irq();
-    NVIC_DisableAllIRQs();
-    NVIC_SystemReset();
-}
-
-void systemResetToBootloader(void)
-{
-    __disable_irq();
-    NVIC_DisableAllIRQs();
-
-    *((uint32_t *)0x2001FFFC) = 0xDEADBEEF; // 128KB SRAM STM32F4XX
-
-    NVIC_SystemReset();
-}
 
 void enableGPIOPowerUsageAndNoiseReductions(void)
 {
@@ -165,6 +136,11 @@ bool isMPUSoftReset(void)
         return true;
     else
         return false;
+}
+
+uint32_t systemBootloaderAddress(void)
+{
+    return 0x1FFF0000;
 }
 
 void systemClockSetup(uint8_t cpuUnderclock)

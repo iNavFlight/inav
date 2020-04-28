@@ -51,7 +51,7 @@ jobs:
         uses: actions/upload-artifact@v2-preview
         with:
           name: ${{ env.BUILD_NAME }}.zip
-          path: ./obj/*.hex
+          path: ./obj/dist/*.hex
 
   test:
     needs: [build]
