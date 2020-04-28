@@ -30,7 +30,11 @@ extern uint8_t detectedSensors[SENSOR_INDEX_COUNT];
 
 hardwareSensorStatus_e getHwGyroStatus(void)
 {
-    // Gyro is assumed to be always healthy
+    // Gyro is assumed to be always healthy, but it must be present
+    if (detectedSensors[SENSOR_INDEX_GYRO] == GYRO_NONE) {
+        return HW_SENSOR_UNAVAILABLE;
+    }
+
     return HW_SENSOR_OK;
 }
 
