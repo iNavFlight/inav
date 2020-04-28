@@ -89,15 +89,18 @@ typedef struct {
     biquadFilter_t deltaNotchFilter;
     float stickPosition;
 
-#ifdef USE_D_BOOST
     float previousRateTarget;
     float previousRateGyro;
+
+#ifdef USE_D_BOOST
     pt1Filter_t dBoostLpf;
     biquadFilter_t dBoostGyroLpf;
 #endif
     uint16_t pidSumLimit;
     filterApply4FnPtr ptermFilterApplyFn;
     bool itermLimitActive;
+
+    biquadFilter_t rateTargetFilter;
 } pidState_t;
 
 STATIC_FASTRAM filterApplyFnPtr notchFilterApplyFn;
@@ -148,15 +151,16 @@ typedef void (*pidControllerFnPtr)(pidState_t *pidState, flight_dynamics_index_t
 static EXTENDED_FASTRAM pidControllerFnPtr pidControllerApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr dTermLpfFilterApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr dTermLpf2FilterApplyFn;
+static EXTENDED_FASTRAM filterApplyFnPtr feedForwardLpfApplyFn;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 12);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 13);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
             .pid = {
-                [PID_ROLL] =    { 40, 30, 23, 0 },
-                [PID_PITCH] =   { 40, 30, 23, 0 },
-                [PID_YAW] =     { 85, 45, 0, 0 },
+                [PID_ROLL] =    { 40, 30, 23, 60 },
+                [PID_PITCH] =   { 40, 30, 23, 60 },
+                [PID_YAW] =     { 85, 45, 0, 60 },
                 [PID_LEVEL] = {
                     .P = 20,    // Self-level strength
                     .I = 15,    // Self-leveing low-pass frequency (0 - disabled)
@@ -270,6 +274,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .antigravityCutoff = ANTI_GRAVITY_THROTTLE_FILTER_CUTOFF,
         .pidControllerType = PID_TYPE_AUTO,
         .navFwPosHdgPidsumLimit = PID_SUM_LIMIT_YAW_DEFAULT,
+        .feedForwardLpfHz = 30,
 );
 
 bool pidInitFilters(void)
@@ -347,6 +352,14 @@ bool pidInitFilters(void)
         biquadFilterInitLPF(&pidState[axis].dBoostGyroLpf, pidProfile()->dBoostGyroDeltaLpfHz, getLooptime());
     }
 #endif
+
+    feedForwardLpfApplyFn = nullFilterApply;
+    if (pidProfile()->feedForwardLpfHz) {
+        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            biquadFilterInitLPF(&pidState[axis].rateTargetFilter, pidProfile()->feedForwardLpfHz, getLooptime());
+        }
+        feedForwardLpfApplyFn = (filterApplyFnPtr)biquadFilterApply;
+    }
 
     pidFiltersConfigured = true;
 
@@ -503,7 +516,7 @@ void FAST_CODE NOINLINE updatePIDCoefficients(float dT)
             pidState[axis].kP  = pidBank()->pid[axis].P / FP_PID_RATE_P_MULTIPLIER * axisTPA;
             pidState[axis].kI  = pidBank()->pid[axis].I / FP_PID_RATE_I_MULTIPLIER;
             pidState[axis].kD  = pidBank()->pid[axis].D / FP_PID_RATE_D_MULTIPLIER * axisTPA;
-            pidState[axis].kFF = 0.0f;
+            pidState[axis].kFF = pidBank()->pid[axis].FF / FP_PID_RATE_D_FF_MULTIPLIER * axisTPA;
 
             // Tracking anti-windup requires P/I/D to be all defined which is only true for MC
             if ((pidBank()->pid[axis].P != 0) && (pidBank()->pid[axis].I != 0)) {
@@ -689,9 +702,6 @@ static float FAST_CODE applyDBoost(pidState_t *pidState, float dT) {
         dBoost = scaleRangef(acceleration, 0.0f, dBoostMaxAtAlleceleration, 1.0f, dBoostFactor);
         dBoost = pt1FilterApply4(&pidState->dBoostLpf, dBoost, D_BOOST_LPF_HZ, dT);
         dBoost = constrainf(dBoost, 1.0f, dBoostFactor);
-
-        pidState->previousRateTarget = pidState->rateTarget;
-        pidState->previousRateGyro = pidState->gyroRate;
     } 
 
     return dBoost;
@@ -708,6 +718,12 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
 {
     const float rateError = pidState->rateTarget - pidState->gyroRate;
     const float newPTerm = pTermProcess(pidState, rateError, dT);
+
+    const float rateTargetDelta = pidState->rateTarget - pidState->previousRateTarget;
+    const float rateTargetDeltaFiltered = biquadFilterApply(&pidState->rateTargetFilter, rateTargetDelta);
+
+    float newFFTerm = rateTargetDeltaFiltered * (pidState->kFF / dT);
+    DEBUG_SET(DEBUG_FF, axis, newFFTerm);
 
     // Calculate new D-term
     float newDTerm;
@@ -760,6 +776,9 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
     axisPID_D[axis] = newDTerm;
     axisPID_Setpoint[axis] = pidState->rateTarget;
 #endif
+
+    pidState->previousRateTarget = pidState->rateTarget;
+    pidState->previousRateGyro = pidState->gyroRate;
 }
 
 void updateHeadingHoldTarget(int16_t heading)
