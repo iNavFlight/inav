@@ -716,17 +716,17 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
         newDTerm = 0;
     } else {
         // Calculate delta for Dterm calculation. Apply filters before derivative to minimize effects of dterm kick
-        float deltaFiltered = pidProfile()->dterm_setpoint_weight * pidState->rateTarget - pidState->gyroRate;
-
-        // Apply D-term notch
-        deltaFiltered = notchFilterApplyFn(&pidState->deltaNotchFilter, deltaFiltered);
-
-        // Apply additional lowpass
-        deltaFiltered = dTermLpfFilterApplyFn((filter_t *) &pidState->dtermLpfState, deltaFiltered);
-        deltaFiltered = dTermLpf2FilterApplyFn((filter_t *) &pidState->dtermLpf2State, deltaFiltered);
+        const float deltaFiltered = pidProfile()->dterm_setpoint_weight * pidState->rateTarget - pidState->gyroRate;
 
         firFilterUpdate(&pidState->gyroRateFilter, deltaFiltered);
         newDTerm = firFilterApply(&pidState->gyroRateFilter);
+
+        // Apply D-term notch
+        newDTerm = notchFilterApplyFn(&pidState->deltaNotchFilter, newDTerm);
+
+        // Apply additional lowpass
+        newDTerm = dTermLpfFilterApplyFn((filter_t *) &pidState->dtermLpfState, newDTerm);
+        newDTerm = dTermLpf2FilterApplyFn((filter_t *) &pidState->dtermLpf2State, newDTerm);
 
         // Calculate derivative
         newDTerm =  newDTerm * (pidState->kD / dT) * applyDBoost(pidState, dT);
