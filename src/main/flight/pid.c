@@ -85,8 +85,7 @@ typedef struct {
     pt1Filter_t ptermLpfState;
     filter_t dtermLpfState;
     filter_t dtermLpf2State;
-    // Dterm notch filtering
-    biquadFilter_t deltaNotchFilter;
+
     float stickPosition;
 
     float previousRateTarget;
@@ -103,7 +102,6 @@ typedef struct {
     biquadFilter_t rateTargetFilter;
 } pidState_t;
 
-STATIC_FASTRAM filterApplyFnPtr notchFilterApplyFn;
 STATIC_FASTRAM bool pidFiltersConfigured = false;
 static EXTENDED_FASTRAM float headingHoldCosZLimit;
 static EXTENDED_FASTRAM int16_t headingHoldTarget;
@@ -234,15 +232,11 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
             }
         },
 
-        .dterm_soft_notch_hz = 0,
-        .dterm_soft_notch_cutoff = 1,
         .dterm_lpf_type = 1, //Default to BIQUAD
         .dterm_lpf_hz = 40,
         .dterm_lpf2_type = 1, //Default to BIQUAD
         .dterm_lpf2_hz = 0,   // Off by default
         .yaw_lpf_hz = 0,
-        .dterm_setpoint_weight = 1.0f,
-        .use_dterm_fir_filter = 1,
 
         .itermWindupPointPercent = 50,       // Percent
 
@@ -283,38 +277,6 @@ bool pidInitFilters(void)
 
     if (refreshRate == 0) {
         return false;
-    }
-
-    static float dtermCoeffs[PID_GYRO_RATE_BUF_LENGTH];
-
-    if (pidProfile()->use_dterm_fir_filter) {
-        // Calculate derivative using 5-point noise-robust differentiators without time delay (one-sided or forward filters)
-        // by Pavel Holoborodko, see http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/
-        // h[0] = 5/8, h[-1] = 1/4, h[-2] = -1, h[-3] = -1/4, h[-4] = 3/8
-        dtermCoeffs[0] = 5.0f/8;
-        dtermCoeffs[1] = 2.0f/8;
-        dtermCoeffs[2] = -8.0f/8;
-        dtermCoeffs[3] = -2.0f/8;
-        dtermCoeffs[4] = 3.0f/8;
-    } else {
-        //simple d(t) - d(t-1) differentiator 
-        dtermCoeffs[0] = 1.0f;
-        dtermCoeffs[1] = -1.0f;
-        dtermCoeffs[2] = 0.0f;
-        dtermCoeffs[3] = 0.0f;
-        dtermCoeffs[4] = 0.0f;
-    }
-
-    for (int axis = 0; axis < 3; ++ axis) {
-        firFilterInit(&pidState[axis].gyroRateFilter, pidState[axis].gyroRateBuf, PID_GYRO_RATE_BUF_LENGTH, dtermCoeffs);
-    }
-
-    notchFilterApplyFn = nullFilterApply;
-    if (pidProfile()->dterm_soft_notch_hz != 0) {
-        notchFilterApplyFn = (filterApplyFnPtr)biquadFilterApply;
-        for (int axis = 0; axis < 3; ++ axis) {
-            biquadFilterInitNotch(&pidState[axis].deltaNotchFilter, refreshRate, pidProfile()->dterm_soft_notch_hz, pidProfile()->dterm_soft_notch_cutoff);
-        }
     }
 
     // Init other filters
@@ -731,24 +693,13 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
         // optimisation for when D8 is zero, often used by YAW axis
         newDTerm = 0;
     } else {
-        // Calculate delta for Dterm calculation. Apply filters before derivative to minimize effects of dterm kick
-        float deltaFiltered = pidProfile()->dterm_setpoint_weight * pidState->rateTarget - pidState->gyroRate;
+        float delta = pidState->previousRateGyro - pidState->gyroRate;
 
-        // Apply D-term notch
-        deltaFiltered = notchFilterApplyFn(&pidState->deltaNotchFilter, deltaFiltered);
-
-        // Apply additional lowpass
-        deltaFiltered = dTermLpfFilterApplyFn((filter_t *) &pidState->dtermLpfState, deltaFiltered);
-        deltaFiltered = dTermLpf2FilterApplyFn((filter_t *) &pidState->dtermLpf2State, deltaFiltered);
-
-        firFilterUpdate(&pidState->gyroRateFilter, deltaFiltered);
-        newDTerm = firFilterApply(&pidState->gyroRateFilter);
+        delta = dTermLpfFilterApplyFn((filter_t *) &pidState->dtermLpfState, delta);
+        delta = dTermLpf2FilterApplyFn((filter_t *) &pidState->dtermLpf2State, delta);
 
         // Calculate derivative
-        newDTerm =  newDTerm * (pidState->kD / dT) * applyDBoost(pidState, dT);
-
-        // Additionally constrain D
-        newDTerm = constrainf(newDTerm, -300.0f, 300.0f);
+        newDTerm =  delta * (pidState->kD / dT) * applyDBoost(pidState, dT);
     }
 
     // TODO: Get feedback from mixer on available correction range for each axis
