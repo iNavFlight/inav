@@ -163,7 +163,7 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  inav_gravity_cal_tolerance  | 5 | Unarmed gravity calibration tolerance level. Won't finish the calibration until estimated gravity error falls below this value. |
 |  inav_use_gps_velned  | ON | Defined if iNav should use velocity data provided by GPS module for doing position and speed estimation. If set to OFF iNav will fallback to calculating velocity from GPS coordinates. Using native velocity data may improve performance on some GPS modules. Some GPS modules introduce significant delay and using native velocity may actually result in much worse performance. |
 |  inav_reset_altitude | FIRST_ARM | Defines when relative estimated altitude is reset to zero. Variants - `NEVER` (once reference is acquired it's used regardless); `FIRST_ARM` (keep altitude at zero until firstly armed), `EACH_ARM` (altitude is reset to zero on each arming) |
-|  inav_reset_home | EACH_ARM | Allows to chose when the home position is reset. Can help prevent resetting home position after accidental mid-air disarm. Possible values are: NEVER, FIRST_ARM and EACH_ARM |
+|  inav_reset_home | FIRST_ARM | Allows to chose when the home position is reset. Can help prevent resetting home position after accidental mid-air disarm. Possible values are: NEVER, FIRST_ARM and EACH_ARM |
 |  inav_max_surface_altitude  | 200 | Max allowed altitude for surface following mode. [cm] |
 |  inav_w_z_baro_p  | 0.350 | Weight of barometer measurements in estimated altitude and climb rate |
 |  inav_w_z_gps_p  | 0.200 | Weight of GPS altitude measurements in estimated altitude. Setting is used only of airplanes |
