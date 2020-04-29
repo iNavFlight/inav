@@ -150,7 +150,7 @@ typedef void (*pidControllerFnPtr)(pidState_t *pidState, flight_dynamics_index_t
 static EXTENDED_FASTRAM pidControllerFnPtr pidControllerApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr dTermLpfFilterApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr dTermLpf2FilterApplyFn;
-static EXTENDED_FASTRAM filterApplyFnPtr feedForwardLpfApplyFn;
+static EXTENDED_FASTRAM bool levelingEnabled = false;
 
 PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 13);
 
@@ -316,12 +316,10 @@ bool pidInitFilters(void)
     }
 #endif
 
-    feedForwardLpfApplyFn = nullFilterApply;
     if (pidProfile()->feedForwardLpfHz) {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             biquadFilterInitLPF(&pidState[axis].rateTargetFilter, pidProfile()->feedForwardLpfHz, getLooptime());
         }
-        feedForwardLpfApplyFn = (filterApplyFnPtr)biquadFilterApply;
     }
 
     pidFiltersConfigured = true;
@@ -569,7 +567,7 @@ bool isFixedWingItermLimitActive(float stickPosition)
      * Iterm anti windup whould be active only when pilot controls the rotation
      * velocity directly, not when ANGLE or HORIZON are used
      */
-    if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE)) {
+    if (levelingEnabled) {
         return false;
     }
 
@@ -687,8 +685,16 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
     const float rateTargetDelta = pidState->rateTarget - pidState->previousRateTarget;
     const float rateTargetDeltaFiltered = biquadFilterApply(&pidState->rateTargetFilter, rateTargetDelta);
 
-    //Compute Control Derivative
-    float newCDTerm = rateTargetDeltaFiltered * (pidState->kCD / dT);
+    /*
+     * Compute Control Derivative
+     * CD is enabled only when ANGLE and HORIZON modes are not enabled!
+     */
+    float newCDTerm;
+    if (levelingEnabled) {
+        newCDTerm = 0.0F;
+    } else {
+        newCDTerm = rateTargetDeltaFiltered * (pidState->kCD / dT);
+    }
     DEBUG_SET(DEBUG_CD, axis, newCDTerm);
 
     // Calculate new D-term
@@ -707,7 +713,7 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
     }
 
     // TODO: Get feedback from mixer on available correction range for each axis
-    const float newOutput = newPTerm + newDTerm + pidState->errorGyroIf;
+    const float newOutput = newPTerm + newDTerm + pidState->errorGyroIf + newCDTerm;
     const float newOutputLimited = constrainf(newOutput, -pidState->pidSumLimit, +pidState->pidSumLimit);
 
     float itermErrorRate = rateError;
@@ -969,6 +975,9 @@ void FAST_CODE pidController(float dT)
         pidLevel(&pidState[FD_ROLL], FD_ROLL, horizonRateMagnitude, dT);
         pidLevel(&pidState[FD_PITCH], FD_PITCH, horizonRateMagnitude, dT);
         canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with ANGLE/HORIZON
+        levelingEnabled = true;
+    } else {
+        levelingEnabled = false;
     }
 
     if (FLIGHT_MODE(TURN_ASSISTANT) || navigationRequiresTurnAssistance()) {
