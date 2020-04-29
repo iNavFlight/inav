@@ -63,6 +63,7 @@ typedef struct {
     float kI;   // Integral gain
     float kD;   // Derivative gain
     float kFF;  // Feed-forward gain
+    float kCD;  // Control Derivative
     float kT;   // Back-calculation tracking gain
 
     float gyroRate;
@@ -471,6 +472,7 @@ void FAST_CODE NOINLINE updatePIDCoefficients(float dT)
             pidState[axis].kI  = pidBank()->pid[axis].I / FP_PID_RATE_I_MULTIPLIER  * tpaFactor;
             pidState[axis].kD  = 0.0f;
             pidState[axis].kFF = pidBank()->pid[axis].FF / FP_PID_RATE_FF_MULTIPLIER * tpaFactor;
+            pidState[axis].kCD = 0.0f;
             pidState[axis].kT  = 0.0f;
         }
         else {
@@ -478,7 +480,8 @@ void FAST_CODE NOINLINE updatePIDCoefficients(float dT)
             pidState[axis].kP  = pidBank()->pid[axis].P / FP_PID_RATE_P_MULTIPLIER * axisTPA;
             pidState[axis].kI  = pidBank()->pid[axis].I / FP_PID_RATE_I_MULTIPLIER;
             pidState[axis].kD  = pidBank()->pid[axis].D / FP_PID_RATE_D_MULTIPLIER * axisTPA;
-            pidState[axis].kFF = pidBank()->pid[axis].FF / FP_PID_RATE_D_FF_MULTIPLIER * axisTPA;
+            pidState[axis].kCD = pidBank()->pid[axis].FF / FP_PID_RATE_D_FF_MULTIPLIER * axisTPA;
+            pidState[axis].kFF = 0.0f;
 
             // Tracking anti-windup requires P/I/D to be all defined which is only true for MC
             if ((pidBank()->pid[axis].P != 0) && (pidBank()->pid[axis].I != 0)) {
@@ -684,8 +687,9 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
     const float rateTargetDelta = pidState->rateTarget - pidState->previousRateTarget;
     const float rateTargetDeltaFiltered = biquadFilterApply(&pidState->rateTargetFilter, rateTargetDelta);
 
-    float newFFTerm = rateTargetDeltaFiltered * (pidState->kFF / dT);
-    DEBUG_SET(DEBUG_FF, axis, newFFTerm);
+    //Compute Control Derivative
+    float newCDTerm = rateTargetDeltaFiltered * (pidState->kCD / dT);
+    DEBUG_SET(DEBUG_CD, axis, newCDTerm);
 
     // Calculate new D-term
     float newDTerm;
