@@ -131,6 +131,7 @@ COMMON_SRC = \
             rx/nrf24_syma.c \
             rx/nrf24_v202.c \
             rx/pwm.c \
+            rx/frsky_crc.c \
             rx/rx.c \
             rx/rx_spi.c \
             rx/sbus.c \
