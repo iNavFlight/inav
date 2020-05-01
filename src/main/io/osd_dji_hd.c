@@ -104,64 +104,69 @@ const uint8_t djiPidIndexMap[] = {
     PID_HEADING // DJI: PID_MAG
 };
 
-const int djiOSDItemIndexMap[] = {
-    OSD_RSSI_VALUE,             // DJI: OSD_RSSI_VALUE
-    OSD_MAIN_BATT_VOLTAGE,      // DJI: OSD_MAIN_BATT_VOLTAGE
-    OSD_CROSSHAIRS,             // DJI: OSD_CROSSHAIRS
-    OSD_ARTIFICIAL_HORIZON,     // DJI: OSD_ARTIFICIAL_HORIZON
-    OSD_HORIZON_SIDEBARS,       // DJI: OSD_HORIZON_SIDEBARS
-    OSD_ONTIME,                 // DJI: OSD_ITEM_TIMER_1
-    OSD_FLYTIME,                // DJI: OSD_ITEM_TIMER_2
-    OSD_FLYMODE,                // DJI: OSD_FLYMODE
-    OSD_CRAFT_NAME,             // DJI: OSD_CRAFT_NAME
-    OSD_THROTTLE_POS,           // DJI: OSD_THROTTLE_POS
-    OSD_VTX_CHANNEL,            // DJI: OSD_VTX_CHANNEL
-    OSD_CURRENT_DRAW,           // DJI: OSD_CURRENT_DRAW
-    OSD_MAH_DRAWN,              // DJI: OSD_MAH_DRAWN
-    OSD_GPS_SPEED,              // DJI: OSD_GPS_SPEED
-    OSD_GPS_SATS,               // DJI: OSD_GPS_SATS
-    OSD_ALTITUDE,               // DJI: OSD_ALTITUDE
-    OSD_ROLL_PIDS,              // DJI: OSD_ROLL_PIDS
-    OSD_PITCH_PIDS,             // DJI: OSD_PITCH_PIDS
-    OSD_YAW_PIDS,               // DJI: OSD_YAW_PIDS
-    OSD_POWER,                  // DJI: OSD_POWER
-    -1,                         // DJI: OSD_PIDRATE_PROFILE
-    -1,                         // DJI: OSD_WARNINGS
-    OSD_MAIN_BATT_CELL_VOLTAGE, // DJI: OSD_AVG_CELL_VOLTAGE
-    OSD_GPS_LON,                // DJI: OSD_GPS_LON
-    OSD_GPS_LAT,                // DJI: OSD_GPS_LAT
-    OSD_DEBUG,                  // DJI: OSD_DEBUG
-    OSD_ATTITUDE_PITCH,         // DJI: OSD_PITCH_ANGLE
-    OSD_ATTITUDE_ROLL,          // DJI: OSD_ROLL_ANGLE
-    -1,                         // DJI: OSD_MAIN_BATT_USAGE
-    -1,                         // DJI: OSD_DISARMED
-    OSD_HOME_DIR,               // DJI: OSD_HOME_DIR
-    OSD_HOME_DIST,              // DJI: OSD_HOME_DIST
-    OSD_HEADING,                // DJI: OSD_NUMERICAL_HEADING
-    OSD_VARIO_NUM,              // DJI: OSD_NUMERICAL_VARIO
-    -1,                         // DJI: OSD_COMPASS_BAR
-    -1,                         // DJI: OSD_ESC_TMP
-    OSD_ESC_RPM,                // DJI: OSD_ESC_RPM
-    OSD_REMAINING_FLIGHT_TIME_BEFORE_RTH,   // DJI: OSD_REMAINING_TIME_ESTIMATE
-    OSD_RTC_TIME,               // DJI: OSD_RTC_DATETIME
-    -1,                         // DJI: OSD_ADJUSTMENT_RANGE
-    -1,                         // DJI: OSD_CORE_TEMPERATURE
-    -1,                         // DJI: OSD_ANTI_GRAVITY
-    -1,                         // DJI: OSD_G_FORCE
-    -1,                         // DJI: OSD_MOTOR_DIAG
-    -1,                         // DJI: OSD_LOG_STATUS
-    -1,                         // DJI: OSD_FLIP_ARROW
-    -1,                         // DJI: OSD_LINK_QUALITY
-    OSD_TRIP_DIST,              // DJI: OSD_FLIGHT_DIST
-    -1,                         // DJI: OSD_STICK_OVERLAY_LEFT
-    -1,                         // DJI: OSD_STICK_OVERLAY_RIGHT
-    -1,                         // DJI: OSD_DISPLAY_NAME
-    -1,                         // DJI: OSD_ESC_RPM_FREQ
-    -1,                         // DJI: OSD_RATE_PROFILE_NAME
-    -1,                         // DJI: OSD_PID_PROFILE_NAME
-    -1,                         // DJI: OSD_PROFILE_NAME
-    -1,                         // DJI: OSD_RSSI_DBM_VALUE
-    -1,                         // DJI: OSD_RC_CHANNELS
+typedef struct {
+    int         itemIndex;      // INAV OSD item
+    features_e  depFeature;     // INAV feature that item is dependent on
+} djiOsdMapping_t;
+
+const djiOsdMapping_t djiOSDItemIndexMap[] = {
+    { OSD_RSSI_VALUE,                         0 }, // DJI: OSD_RSSI_VALUE
+    { OSD_MAIN_BATT_VOLTAGE,                  FEATURE_VBAT }, // DJI: OSD_MAIN_BATT_VOLTAGE
+    { OSD_CROSSHAIRS,                         0 }, // DJI: OSD_CROSSHAIRS
+    { OSD_ARTIFICIAL_HORIZON,                 0 }, // DJI: OSD_ARTIFICIAL_HORIZON
+    { OSD_HORIZON_SIDEBARS,                   0 }, // DJI: OSD_HORIZON_SIDEBARS
+    { OSD_ONTIME,                             0 }, // DJI: OSD_ITEM_TIMER_1
+    { OSD_FLYTIME,                            0 }, // DJI: OSD_ITEM_TIMER_2
+    { OSD_FLYMODE,                            0 }, // DJI: OSD_FLYMODE
+    { OSD_CRAFT_NAME,                         0 }, // DJI: OSD_CRAFT_NAME
+    { OSD_THROTTLE_POS,                       0 }, // DJI: OSD_THROTTLE_POS
+    { OSD_VTX_CHANNEL,                        0 }, // DJI: OSD_VTX_CHANNEL
+    { OSD_CURRENT_DRAW,                       FEATURE_CURRENT_METER }, // DJI: OSD_CURRENT_DRAW
+    { OSD_MAH_DRAWN,                          FEATURE_CURRENT_METER }, // DJI: OSD_MAH_DRAWN
+    { OSD_GPS_SPEED,                          FEATURE_GPS }, // DJI: OSD_GPS_SPEED
+    { OSD_GPS_SATS,                           FEATURE_GPS }, // DJI: OSD_GPS_SATS
+    { OSD_ALTITUDE,                           0 }, // DJI: OSD_ALTITUDE
+    { OSD_ROLL_PIDS,                          0 }, // DJI: OSD_ROLL_PIDS
+    { OSD_PITCH_PIDS,                         0 }, // DJI: OSD_PITCH_PIDS
+    { OSD_YAW_PIDS,                           0 }, // DJI: OSD_YAW_PIDS
+    { OSD_POWER,                              0 }, // DJI: OSD_POWER
+    { -1,                                     0 }, // DJI: OSD_PIDRATE_PROFILE
+    { -1,                                     0 }, // DJI: OSD_WARNINGS
+    { OSD_MAIN_BATT_CELL_VOLTAGE,             0 }, // DJI: OSD_AVG_CELL_VOLTAGE
+    { OSD_GPS_LON,                            FEATURE_GPS }, // DJI: OSD_GPS_LON
+    { OSD_GPS_LAT,                            FEATURE_GPS }, // DJI: OSD_GPS_LAT
+    { OSD_DEBUG,                              0 }, // DJI: OSD_DEBUG
+    { OSD_ATTITUDE_PITCH,                     0 }, // DJI: OSD_PITCH_ANGLE
+    { OSD_ATTITUDE_ROLL,                      0 }, // DJI: OSD_ROLL_ANGLE
+    { -1,                                     0 }, // DJI: OSD_MAIN_BATT_USAGE
+    { -1,                                     0 }, // DJI: OSD_DISARMED
+    { OSD_HOME_DIR,                           FEATURE_GPS }, // DJI: OSD_HOME_DIR
+    { OSD_HOME_DIST,                          FEATURE_GPS }, // DJI: OSD_HOME_DIST
+    { OSD_HEADING,                            0 }, // DJI: OSD_NUMERICAL_HEADING
+    { OSD_VARIO_NUM,                          0 }, // DJI: OSD_NUMERICAL_VARIO
+    { -1,                                     0 }, // DJI: OSD_COMPASS_BAR
+    { -1,                                     0 }, // DJI: OSD_ESC_TMP
+    { OSD_ESC_RPM,                            0 }, // DJI: OSD_ESC_RPM
+    { OSD_REMAINING_FLIGHT_TIME_BEFORE_RTH,   FEATURE_CURRENT_METER }, // DJI: OSD_REMAINING_TIME_ESTIMATE
+    { OSD_RTC_TIME,                           0 }, // DJI: OSD_RTC_DATETIME
+    { -1,                                     0 }, // DJI: OSD_ADJUSTMENT_RANGE
+    { -1,                                     0 }, // DJI: OSD_CORE_TEMPERATURE
+    { -1,                                     0 }, // DJI: OSD_ANTI_GRAVITY
+    { -1,                                     0 }, // DJI: OSD_G_FORCE
+    { -1,                                     0 }, // DJI: OSD_MOTOR_DIAG
+    { -1,                                     0 }, // DJI: OSD_LOG_STATUS
+    { -1,                                     0 }, // DJI: OSD_FLIP_ARROW
+    { -1,                                     0 }, // DJI: OSD_LINK_QUALITY
+    { OSD_TRIP_DIST,                          FEATURE_GPS }, // DJI: OSD_FLIGHT_DIST
+    { -1,                                     0 }, // DJI: OSD_STICK_OVERLAY_LEFT
+    { -1,                                     0 }, // DJI: OSD_STICK_OVERLAY_RIGHT
+    { -1,                                     0 }, // DJI: OSD_DISPLAY_NAME
+    { -1,                                     0 }, // DJI: OSD_ESC_RPM_FREQ
+    { -1,                                     0 }, // DJI: OSD_RATE_PROFILE_NAME
+    { -1,                                     0 }, // DJI: OSD_PID_PROFILE_NAME
+    { -1,                                     0 }, // DJI: OSD_PROFILE_NAME
+    { -1,                                     0 }, // DJI: OSD_RSSI_DBM_VALUE
+    { -1,                                     0 }, // DJI: OSD_RC_CHANNELS
 };
 
 const int djiOSDStatisticsMap[] = {
@@ -289,8 +294,12 @@ static void djiSerializeOSDConfigReply(sbuf_t *dst)
 
     // OSD element position and visibility
     for (unsigned i = 0; i < ARRAYLEN(djiOSDItemIndexMap); i++) {
-        int inavOSDIdx = djiOSDItemIndexMap[i];
-        if (inavOSDIdx >= 0) {
+        const int inavOSDIdx = djiOSDItemIndexMap[i].itemIndex;
+
+        // We call OSD item supported if it doesn't have dependencies or all feature-dependencies are satistied
+        const bool itemIsSupported = ((djiOSDItemIndexMap[i].depFeature == 0) || feature(djiOSDItemIndexMap[i].depFeature));
+
+        if (inavOSDIdx >= 0 && itemIsSupported) {
             // Position & visibility encoded in 16 bits. Position encoding is the same between BF/DJI and INAV
             // However visibility is different. INAV has 3 layouts, while BF only has visibility profiles
             // Here we use only one OSD layout mapped to first OSD BF profile
