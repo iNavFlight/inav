@@ -33,6 +33,8 @@ tables:
     values: ["SERIAL", "SPIFLASH", "SDCARD"]
   - name: motor_pwm_protocol
     values: ["STANDARD", "ONESHOT125", "ONESHOT42", "MULTISHOT", "BRUSHED", "DSHOT150", "DSHOT300", "DSHOT600", "DSHOT1200", "SERIALSHOT"]
+  - name: servo_protocol
+    values: ["PWM", "SERVO_DRIVER", "SBUS"]
   - name: failsafe_procedure
     values: ["SET-THR", "DROP", "RTH", "NONE"]
   - name: current_sensor
@@ -726,6 +728,9 @@ groups:
     type: servoConfig_t
     headers: ["flight/servos.h"]
     members:
+      - name: servo_protocol
+        field: servo_protocol
+        table: servo_protocol
       - name: servo_center_pulse
         field: servoCenterPulse
         min: PWM_RANGE_MIN

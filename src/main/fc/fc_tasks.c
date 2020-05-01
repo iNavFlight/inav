@@ -34,6 +34,7 @@
 #include "drivers/sensor.h"
 #include "drivers/serial.h"
 #include "drivers/stack_check.h"
+#include "drivers/pwm_mapping.h"
 
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -48,6 +49,7 @@
 #include "flight/pid.h"
 #include "flight/wind_estimator.h"
 #include "flight/rpm_filter.h"
+#include "flight/servos.h"
 
 #include "navigation/navigation.h"
 
@@ -62,6 +64,7 @@
 #include "io/rcdevice_cam.h"
 #include "io/vtx.h"
 #include "io/osd_dji_hd.h"
+#include "io/servo_sbus.h"
 
 #include "msp/msp_serial.h"
 
@@ -249,16 +252,18 @@ void taskLedStrip(timeUs_t currentTimeUs)
 }
 #endif
 
-#ifdef USE_PWM_SERVO_DRIVER
-void taskSyncPwmDriver(timeUs_t currentTimeUs)
+void taskSyncServoDriver(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
 
-    if (feature(FEATURE_PWM_SERVO_DRIVER)) {
-        pwmDriverSync();
-    }
-}
+#if defined(USE_SERVO_SBUS)
+    sbusServoSendUpdate();
 #endif
+
+#ifdef USE_PWM_SERVO_DRIVER
+    pwmDriverSync();
+#endif
+}
 
 #ifdef USE_OSD
 void taskUpdateOsd(timeUs_t currentTimeUs)
@@ -317,8 +322,8 @@ void fcTasksInit(void)
 #ifdef STACK_CHECK
     setTaskEnabled(TASK_STACK_CHECK, true);
 #endif
-#ifdef USE_PWM_SERVO_DRIVER
-    setTaskEnabled(TASK_PWMDRIVER, feature(FEATURE_PWM_SERVO_DRIVER));
+#if defined(USE_PWM_SERVO_DRIVER) || defined(USE_SERVO_SBUS)
+    setTaskEnabled(TASK_PWMDRIVER, (servoConfig()->servo_protocol == SERVO_TYPE_SERVO_DRIVER) || (servoConfig()->servo_protocol == SERVO_TYPE_SBUS));
 #endif
 #ifdef USE_CMS
 #ifdef USE_MSP_DISPLAYPORT
@@ -481,10 +486,10 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef USE_PWM_SERVO_DRIVER
+#if defined(USE_PWM_SERVO_DRIVER) || defined(USE_SERVO_SBUS)
     [TASK_PWMDRIVER] = {
-        .taskName = "PWMDRIVER",
-        .taskFunc = taskSyncPwmDriver,
+        .taskName = "SERVOS",
+        .taskFunc = taskSyncServoDriver,
         .desiredPeriod = TASK_PERIOD_HZ(200),         // 200 Hz
         .staticPriority = TASK_PRIORITY_HIGH,
     },
