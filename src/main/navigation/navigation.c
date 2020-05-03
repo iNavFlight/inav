@@ -3243,11 +3243,17 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
          * First WP can't be JUMP
          * Can't jump to immediately adjacent WPs (pointless)
          * Can't jump beyond WP list
+         * Only jump to geo-referenced WP types
          */
     if (posControl.waypointCount > 0) {
         for (uint8_t wp = 0; wp < posControl.waypointCount ; wp++){
             if (posControl.waypointList[wp].action == NAV_WP_ACTION_JUMP){
                 if((wp == 0) || ((posControl.waypointList[wp].p1 > (wp-2)) && (posControl.waypointList[wp].p1 < (wp+2)) ) || (posControl.waypointList[wp].p1 >=  posControl.waypointCount) || (posControl.waypointList[wp].p2 < -1)) {
+                    return NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR;
+                }
+                    /* check for target geo-ref sanity */
+                uint16_t target = posControl.waypointList[wp].p1;
+                if(!(posControl.waypointList[target].action == NAV_WP_ACTION_WAYPOINT || posControl.waypointList[target].action == NAV_WP_ACTION_HOLD_TIME || posControl.waypointList[target].action == NAV_WP_ACTION_LAND)) {
                     return NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR;
                 }
             }
