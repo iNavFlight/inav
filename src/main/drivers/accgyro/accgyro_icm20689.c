@@ -82,6 +82,7 @@ bool icm20689AccDetect(accDev_t *acc)
 
     acc->initFn = icm20689AccInit;
     acc->readFn = mpuAccReadScratchpad;
+    acc->accAlign = acc->busDev->param;
 
     return true;
 }
@@ -142,6 +143,7 @@ bool icm20689GyroDetect(gyroDev_t *gyro)
     gyro->intStatusFn = gyroCheckDataReady;
     gyro->temperatureFn = mpuTemperatureReadScratchpad;
     gyro->scale = 1.0f / 16.4f;     // 16.4 dps/lsb scalefactor
+    gyro->gyroAlign = gyro->busDev->param;
 
     return true;
 }

@@ -127,6 +127,7 @@ bool mpu6050AccDetect(accDev_t *acc)
     if (ctx->chipMagicNumber == 0x6850 || ctx->chipMagicNumber == 0x6050) {
         acc->initFn = mpu6050AccInit;
         acc->readFn = mpuAccReadScratchpad;
+        acc->accAlign = acc->busDev->param;
         return true;
     }
 
@@ -213,6 +214,7 @@ bool mpu6050GyroDetect(gyroDev_t *gyro)
     gyro->intStatusFn = gyroCheckDataReady;
     gyro->temperatureFn = mpuTemperatureReadScratchpad;
     gyro->scale = 1.0f / 16.4f;     // 16.4 dps/lsb scalefactor
+    gyro->gyroAlign = gyro->busDev->param;
 
     return true;
 }

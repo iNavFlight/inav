@@ -131,6 +131,7 @@ bool mpu3050Detect(gyroDev_t *gyro)
     gyro->readFn = mpu3050GyroRead;
     gyro->intStatusFn = gyroCheckDataReady;
     gyro->scale = 1.0f / 16.4f;     // 16.4 dps/lsb scalefactor
+    gyro->gyroAlign = gyro->busDev->param;
 
     return true;
 }

@@ -138,9 +138,6 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     case GYRO_MPU6050:
         if (mpu6050GyroDetect(dev)) {
             gyroHardware = GYRO_MPU6050;
-#ifdef GYRO_MPU6050_ALIGN
-            dev->gyroAlign = GYRO_MPU6050_ALIGN;
-#endif
             break;
         }
         FALLTHROUGH;
@@ -150,9 +147,6 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     case GYRO_L3G4200D:
         if (l3g4200dDetect(dev)) {
             gyroHardware = GYRO_L3G4200D;
-#ifdef GYRO_L3G4200D_ALIGN
-            dev->gyroAlign = GYRO_L3G4200D_ALIGN;
-#endif
             break;
         }
         FALLTHROUGH;
@@ -162,9 +156,6 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     case GYRO_MPU3050:
         if (mpu3050Detect(dev)) {
             gyroHardware = GYRO_MPU3050;
-#ifdef GYRO_MPU3050_ALIGN
-            dev->gyroAlign = GYRO_MPU3050_ALIGN;
-#endif
             break;
         }
         FALLTHROUGH;
@@ -174,9 +165,6 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     case GYRO_L3GD20:
         if (l3gd20Detect(dev)) {
             gyroHardware = GYRO_L3GD20;
-#ifdef GYRO_L3GD20_ALIGN
-            dev->gyroAlign = GYRO_L3GD20_ALIGN;
-#endif
             break;
         }
         FALLTHROUGH;
@@ -186,9 +174,6 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     case GYRO_MPU6000:
         if (mpu6000GyroDetect(dev)) {
             gyroHardware = GYRO_MPU6000;
-#ifdef GYRO_MPU6000_ALIGN
-            dev->gyroAlign = GYRO_MPU6000_ALIGN;
-#endif
             break;
         }
         FALLTHROUGH;
@@ -198,9 +183,6 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     case GYRO_MPU6500:
         if (mpu6500GyroDetect(dev)) {
             gyroHardware = GYRO_MPU6500;
-#ifdef GYRO_MPU6500_ALIGN
-            dev->gyroAlign = GYRO_MPU6500_ALIGN;
-#endif
             break;
         }
         FALLTHROUGH;
@@ -210,9 +192,6 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     case GYRO_MPU9250:
         if (mpu9250GyroDetect(dev)) {
             gyroHardware = GYRO_MPU9250;
-#ifdef GYRO_MPU9250_ALIGN
-            dev->gyroAlign = GYRO_MPU9250_ALIGN;
-#endif
             break;
         }
         FALLTHROUGH;
@@ -222,9 +201,6 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     case GYRO_BMI160:
         if (bmi160GyroDetect(dev)) {
             gyroHardware = GYRO_BMI160;
-#ifdef GYRO_BMI160_ALIGN
-            dev->gyroAlign = GYRO_BMI160_ALIGN;
-#endif
             break;
         }
         FALLTHROUGH;
@@ -234,9 +210,6 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     case GYRO_ICM20689:
         if (icm20689GyroDetect(dev)) {
             gyroHardware = GYRO_ICM20689;
-#ifdef GYRO_ICM20689_ALIGN
-            dev->gyroAlign = GYRO_ICM20689_ALIGN;
-#endif
             break;
         }
         FALLTHROUGH;
@@ -342,6 +315,8 @@ bool gyroInit(void)
     // initFn will initialize sampleRateIntervalUs to actual gyro sampling rate (if driver supports it). Calculate target looptime using that value
     gyro.targetLooptime = gyroConfig()->gyroSync ? gyroDev[0].sampleRateIntervalUs : gyroConfig()->looptime;
 
+    // At this poinrt gyroDev[0].gyroAlign was set up by the driver from the busDev record
+    // If configuration says different - override
     if (gyroConfig()->gyro_align != ALIGN_DEFAULT) {
         gyroDev[0].gyroAlign = gyroConfig()->gyro_align;
     }

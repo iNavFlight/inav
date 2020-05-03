@@ -163,6 +163,7 @@ bool lsm303dlhcAccDetect(accDev_t *acc)
 
     acc->initFn = lsm303dlhcAccInit;
     acc->readFn = lsm303dlhcAccRead;
+    acc->accAlign = acc->busDev->param;
     return true;
 }
 

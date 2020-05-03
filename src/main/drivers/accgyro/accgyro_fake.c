@@ -71,6 +71,7 @@ bool fakeGyroDetect(gyroDev_t *gyro)
     gyro->readFn = fakeGyroRead;
     gyro->temperatureFn = fakeGyroReadTemperature;
     gyro->scale = 1.0f / 16.4f;
+    gyro->gyroAlign = 0;
     return true;
 }
 #endif // USE_FAKE_GYRO
@@ -104,6 +105,7 @@ bool fakeAccDetect(accDev_t *acc)
 {
     acc->initFn = fakeAccInit;
     acc->readFn = fakeAccRead;
+    acc->accAlign = 0;
     return true;
 }
 #endif // USE_FAKE_ACC

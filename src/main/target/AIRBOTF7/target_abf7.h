@@ -50,10 +50,6 @@
 #define GYRO_1_EXTI_PIN         NONE
 #define GYRO_1_ALIGN            CW0_DEG     // This doesn't work yet, requires BUS refactoring
 
-// TODO: Remove this once per-gyro alignment is supported correctly
-#define GYRO_MPU6500_ALIGN      CW90_DEG
-#define ACC_MPU6500_ALIGN       CW90_DEG
-
 // *************** FLASH **************************
 #define USE_FLASHFS
 #define USE_FLASH_M25P16

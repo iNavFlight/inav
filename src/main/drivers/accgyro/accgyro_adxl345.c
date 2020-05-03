@@ -110,6 +110,7 @@ bool adxl345Detect(accDev_t *acc)
 
     acc->initFn = adxl345Init;
     acc->readFn = adxl345Read;
+    acc->accAlign = acc->busDev->param;
     return true;
 }
 

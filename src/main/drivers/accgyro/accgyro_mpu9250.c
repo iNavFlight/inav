@@ -60,6 +60,7 @@ bool mpu9250AccDetect(accDev_t *acc)
 
     acc->initFn = mpu9250AccInit;
     acc->readFn = mpuAccReadScratchpad;
+    acc->accAlign = acc->busDev->param;
 
     return true;
 }
@@ -163,6 +164,7 @@ bool mpu9250GyroDetect(gyroDev_t *gyro)
     gyro->intStatusFn = gyroCheckDataReady;
     gyro->temperatureFn = mpuTemperatureReadScratchpad;
     gyro->scale = 1.0f / 16.4f;     // 16.4 dps/lsb scalefactor
+    gyro->gyroAlign = gyro->busDev->param;
 
     return true;
 }

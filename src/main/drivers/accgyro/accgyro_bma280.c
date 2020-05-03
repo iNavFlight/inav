@@ -86,6 +86,7 @@ bool bma280Detect(accDev_t *acc)
 
     acc->initFn = bma280Init;
     acc->readFn = bma280Read;
+    acc->accAlign = acc->busDev->param;
     return true;
 }
 
