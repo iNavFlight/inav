@@ -42,7 +42,7 @@
 #if defined(USE_SERVO_SBUS)
 
 #define SERVO_SBUS_UART_BAUD            100000
-#define SERVO_SBUS_OPTIONS              (SERIAL_INVERTED | SERIAL_UNIDIR)
+#define SERVO_SBUS_OPTIONS              (SBUS_PORT_OPTIONS | SERIAL_INVERTED | SERIAL_UNIDIR)
 
 static serialPort_t * servoSbusPort = NULL;
 static sbusFrame_t sbusFrame;
