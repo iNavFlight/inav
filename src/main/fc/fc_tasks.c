@@ -78,6 +78,7 @@
 #include "sensors/battery.h"
 #include "sensors/compass.h"
 #include "sensors/gyro.h"
+#include "sensors/irlock.h"
 #include "sensors/pitotmeter.h"
 #include "sensors/rangefinder.h"
 #include "sensors/opflow.h"
@@ -206,6 +207,14 @@ void taskUpdateRangefinder(timeUs_t currentTimeUs)
     if (rangefinderProcess(calculateCosTiltAngle())) {
         updatePositionEstimator_SurfaceTopic(currentTimeUs, rangefinderGetLatestAltitude());
     }
+}
+#endif
+
+#if defined(USE_NAV) && defined(USE_IRLOCK)
+void taskUpdateIrlock(timeUs_t currentTimeUs)
+{
+    UNUSED(currentTimeUs);
+    irlockUpdate();
 }
 #endif
 
@@ -347,6 +356,9 @@ void fcTasksInit(void)
 #ifdef USE_GLOBAL_FUNCTIONS
     setTaskEnabled(TASK_GLOBAL_FUNCTIONS, true);
 #endif
+#ifdef USE_IRLOCK
+    setTaskEnabled(TASK_IRLOCK, irlockHasBeenDetected());
+#endif
 }
 
 cfTask_t cfTasks[TASK_COUNT] = {
@@ -450,6 +462,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskName = "RANGEFINDER",
         .taskFunc = taskUpdateRangefinder,
         .desiredPeriod = TASK_PERIOD_MS(70),
+        .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
+#ifdef USE_IRLOCK
+    [TASK_IRLOCK] = {
+        .taskName = "IRLOCK",
+        .taskFunc = taskUpdateIrlock,
+        .desiredPeriod = TASK_PERIOD_HZ(100),
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif

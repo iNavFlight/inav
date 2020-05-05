@@ -326,4 +326,13 @@
     #endif
 #endif
 
+#if defined(USE_IRLOCK) && defined(USE_I2C)
+    #if !defined(IRLOCK_I2C_BUS) && defined(EXTERNAL_I2C_BUS)
+        #define IRLOCK_I2C_BUS EXTERNAL_I2C_BUS
+    #else
+        #define IRLOCK_I2C_BUS BUS_I2C1
+    #endif
+    BUSDEV_REGISTER_I2C(busdev_irlock,      DEVHW_IRLOCK,       IRLOCK_I2C_BUS,     0x54,               NONE,           DEVFLAGS_USE_RAW_REGISTERS);
+#endif
+
 #endif  // USE_TARGET_HARDWARE_DESCRIPTORS
