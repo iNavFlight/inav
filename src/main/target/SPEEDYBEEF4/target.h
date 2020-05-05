@@ -27,8 +27,6 @@
 
 /*** IMU sensors ***/
 #define USE_EXTI							
-#define USE_GYRO							
-#define USE_ACC								
 
 #define GYRO_INT_EXTI            PC4		
 #define USE_MPU_DATA_READY_SIGNAL			

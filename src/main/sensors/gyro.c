@@ -215,7 +215,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
         FALLTHROUGH;
 #endif
 
-#ifdef USE_FAKE_GYRO
+#ifdef USE_IMU_FAKE
     case GYRO_FAKE:
         if (fakeGyroDetect(dev)) {
             gyroHardware = GYRO_FAKE;
