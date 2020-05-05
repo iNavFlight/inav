@@ -50,6 +50,7 @@ FILE_COMPILE_FOR_SPEED
 #include "sensors/battery.h"
 #include "sensors/rangefinder.h"
 #include "sensors/opflow.h"
+#include "sensors/esc_sensor.h"
 
 #include "fc/fc_core.h"
 #include "fc/cli.h"
@@ -855,6 +856,10 @@ void taskRunRealtimeCallbacks(timeUs_t currentTimeUs)
 
 #ifdef USE_DSHOT
     pwmCompleteMotorUpdate();
+#endif
+
+#ifdef USE_ESC_SENSOR
+    escSensorUpdate(currentTimeUs);
 #endif
 }
 
