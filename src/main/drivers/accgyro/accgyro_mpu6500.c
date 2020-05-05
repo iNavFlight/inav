@@ -33,7 +33,7 @@
 #include "drivers/accgyro/accgyro_mpu.h"
 #include "drivers/accgyro/accgyro_mpu6500.h"
 
-#if defined(USE_GYRO_MPU6500) || defined(USE_ACC_MPU6500)
+#if defined(USE_IMU_MPU6500)
 
 #define MPU6500_BIT_RESET                   (0x80)
 #define MPU6500_BIT_INT_ANYRD_2CLEAR        (1 << 4)

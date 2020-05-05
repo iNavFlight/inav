@@ -27,7 +27,7 @@
 #include "drivers/accgyro/accgyro_fake.h"
 
 
-#ifdef USE_FAKE_GYRO
+#ifdef USE_IMU_FAKE
 
 static int16_t fakeGyroADC[XYZ_AXIS_COUNT];
 

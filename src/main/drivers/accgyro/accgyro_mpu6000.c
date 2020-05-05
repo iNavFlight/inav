@@ -42,7 +42,7 @@
 #include "drivers/accgyro/accgyro_mpu.h"
 #include "drivers/accgyro/accgyro_mpu6000.h"
 
-#if (defined(USE_GYRO_MPU6000) || defined(USE_ACC_MPU6000))
+#if defined(USE_IMU_MPU6000)
 
 // Bits
 #define BIT_H_RESET                 0x80

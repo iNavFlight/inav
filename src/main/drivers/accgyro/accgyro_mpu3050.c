@@ -33,7 +33,7 @@
 #include "drivers/accgyro/accgyro_mpu.h"
 #include "drivers/accgyro/accgyro_mpu3050.h"
 
-#ifdef USE_GYRO_MPU3050
+#ifdef USE_IMU_MPU3050
 
 // MPU3050, Standard address 0x68
 #define MPU3050_ADDRESS         0x68

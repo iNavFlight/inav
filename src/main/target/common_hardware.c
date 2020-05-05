@@ -32,7 +32,7 @@
     #define MPU_ADDRESS 0x68
     #endif
 
-    #if defined(USE_GYRO_L3GD20)
+    #if defined(USE_IMU_L3GD20)
         #if defined(GYRO_L3GD20_ALIGN)
             #define GYRO_0_ALIGN    GYRO_L3GD20_ALIGN
         #else
@@ -41,19 +41,19 @@
         BUSDEV_REGISTER_SPI(busdev_l3gd20,      DEVHW_L3GD20,       L3GD20_SPI_BUS,     L3GD20_CS_PIN,      NONE,           DEVFLAGS_NONE,  IMU_L3GD20_ALIGN);
     #endif
 
-    #if defined(USE_ACC_LSM303DLHC)
+    #if defined(USE_IMU_LSM303DLHC)
         BUSDEV_REGISTER_I2C(busdev_lsm303,      DEVHW_LSM303DLHC,   LSM303DLHC_I2C_BUS, 0x19,               NONE,           DEVFLAGS_NONE,  IMU_LSM303DLHC_ALIGN);
     #endif
 
-    #if defined(USE_GYRO_MPU6000)
+    #if defined(USE_IMU_MPU6000)
         BUSDEV_REGISTER_SPI(busdev_mpu6000,     DEVHW_MPU6000,      MPU6000_SPI_BUS,    MPU6000_CS_PIN,     GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_MPU6000_ALIGN);
     #endif
 
-    #if defined(USE_GYRO_MPU6050)
+    #if defined(USE_IMU_MPU6050)
         BUSDEV_REGISTER_I2C(busdev_mpu6050,     DEVHW_MPU6050,      MPU6050_I2C_BUS,    MPU_ADDRESS,        GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_MPU6050_ALIGN);
     #endif
 
-    #if defined(USE_GYRO_MPU6500)
+    #if defined(USE_IMU_MPU6500)
         #if defined(MPU6500_SPI_BUS)
         BUSDEV_REGISTER_SPI(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_SPI_BUS,    MPU6500_CS_PIN,     GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_MPU6500_ALIGN);
         #elif defined(MPU6500_I2C_BUS)
@@ -61,7 +61,7 @@
         #endif
     #endif
 
-    #if defined(USE_GYRO_MPU9250)
+    #if defined(USE_IMU_MPU9250)
         #if defined(MPU9250_SPI_BUS)
         BUSDEV_REGISTER_SPI(busdev_mpu9250,     DEVHW_MPU9250,      MPU9250_SPI_BUS,    MPU9250_CS_PIN,     GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_MPU9250_ALIGN);
         #elif defined(MPU9250_I2C_BUS)
@@ -69,11 +69,11 @@
         #endif
     #endif
 
-    #if defined(USE_GYRO_ICM20689)
+    #if defined(USE_IMU_ICM20689)
         BUSDEV_REGISTER_SPI(busdev_icm20689,    DEVHW_ICM20689,     ICM20689_SPI_BUS,   ICM20689_CS_PIN,    GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_ICM20689_ALIGN);
     #endif
 
-    #if defined(USE_GYRO_BMI160)
+    #if defined(USE_IMU_BMI160)
         #if defined(BMI160_SPI_BUS)
         BUSDEV_REGISTER_SPI(busdev_bmi160,      DEVHW_BMI160,       BMI160_SPI_BUS,     BMI160_CS_PIN,      GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_BMI160_ALIGN);
         #elif defined(BMI160_I2C_BUS)

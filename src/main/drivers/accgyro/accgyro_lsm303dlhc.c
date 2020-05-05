@@ -20,7 +20,7 @@
 
 #include "platform.h"
 
-#ifdef USE_ACC_LSM303DLHC
+#ifdef USE_IMU_LSM303DLHC
 
 #include "build/debug.h"
 

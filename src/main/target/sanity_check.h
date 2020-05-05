@@ -24,6 +24,31 @@
 
 #pragma once
 
+// Deprecated USE_GYRO/ACC defines
+#if defined (USE_GYRO) || defined (USE_ACC)
+#error "Unnecessary USE_ACC and/or USE_GYRO"
+#endif
+
+#if defined (USE_GYRO_MPU6000) || defined (USE_ACC_MPU6000) || defined (USE_GYRO_MPU6050) || defined (USE_ACC_MPU6050)
+#error "Replace USE_GYRO_xxx and USE_ACC_xxx with USE_IMU_xxx"
+#endif
+
+#if defined (USE_GYRO_MPU6500) || defined (USE_ACC_MPU6500) || defined (USE_GYRO_MPU9250) || defined (USE_ACC_MPU9250)
+#error "Replace USE_GYRO_xxx and USE_ACC_xxx with USE_IMU_xxx"
+#endif
+
+#if defined (USE_GYRO_ICM20689) || defined (USE_ACC_ICM20689)
+#error "Replace USE_GYRO_xxx and USE_ACC_xxx with USE_IMU_xxx"
+#endif
+
+#if defined (USE_FAKE_GYRO) || defined (USE_FAKE_ACC)
+#error "Replace USE_GYRO_xxx and USE_ACC_xxx with USE_IMU_xxx"
+#endif
+
+#if defined (USE_ACC_ADXL345) || defined (USE_ACC_LSM303DLHC) || defined (USE_ACC_MMA8452) || defined (USE_ACC_BMA280) || defined (USE_ACC_BMI160)
+#error "Replace USE_GYRO_xxx and USE_ACC_xxx with USE_IMU_xxx"
+#endif
+
 // Make sure IMU alignments are migrated to IMU_xxx_ALIGN
 #if defined (GYRO_MPU6050_ALIGN) || defined (ACC_MPU6050_ALIGN)
 #error "Replace GYRO_MPU6050_ALIGN and ACC_MPU6050_ALIGN with IMU_MPU6050_ALIGN"
@@ -67,5 +92,13 @@
 
 #if defined (ACC_MMA8452_ALIGN)
 #error "Replace ACC_MMA8452_ALIGN with IMU_MMA8452_ALIGN"
+#endif
+
+#if defined (ACC_ADXL345_ALIGN)
+#error "Replace ACC_ADXL345_ALIGN with IMU_ADXL345_ALIGN"
+#endif
+
+#if defined (ACC_LSM303DLHC_ALIGN)
+#error "Replace ACC_LSM303DLHC_ALIGN with IMU_LSM303DLHC_ALIGN"
 #endif
 

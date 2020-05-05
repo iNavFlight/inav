@@ -42,7 +42,7 @@
 #include "drivers/accgyro/accgyro_mpu.h"
 #include "drivers/accgyro/accgyro_mpu6050.h"
 
-#if defined(USE_GYRO_MPU6050) || defined(USE_ACC_MPU6050)
+#if defined(USE_IMU_MPU6050)
 
 #define BIT_H_RESET                 0x80
 #define MPU_CLK_SEL_PLLGYROZ        0x03

@@ -33,7 +33,7 @@
 #include "drivers/accgyro/accgyro_mpu.h"
 #include "drivers/accgyro/accgyro_mpu9250.h"
 
-#if defined(USE_GYRO_MPU9250) || defined(USE_ACC_MPU9250)
+#if defined(USE_IMU_MPU9250)
 
 #define MPU9250_BIT_RESET                   (0x80)
 #define MPU9250_BIT_INT_ANYRD_2CLEAR        (1 << 4)

@@ -28,7 +28,7 @@
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_adxl345.h"
 
-#ifdef USE_ACC_ADXL345
+#ifdef USE_IMU_ADXL345
 
 // ADXL345, Alternative address mode 0x53
 #define ADXL345_ADDRESS     0x53

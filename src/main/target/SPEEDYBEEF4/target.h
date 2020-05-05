@@ -36,13 +36,10 @@
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
 /*** MPU6000 ***/
-#define USE_GYRO_MPU6000					
-#define USE_ACC_MPU6000						
-
-#define MPU6000_CS_PIN          PB11		
-#define MPU6000_SPI_BUS         BUS_SPI1	
-#define GYRO_MPU6000_ALIGN      CW0_DEG
-#define ACC_MPU6000_ALIGN       CW0_DEG
+#define USE_IMU_MPU6000
+#define MPU6000_CS_PIN          PB11
+#define MPU6000_SPI_BUS         BUS_SPI1
+#define IMU_MPU6000_ALIGN       CW0_DEG
 
 /*** SPI/I2C bus ***/
 #define USE_SPI								

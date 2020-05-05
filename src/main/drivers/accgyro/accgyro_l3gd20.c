@@ -32,7 +32,7 @@
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_l3gd20.h"
 
-#ifdef USE_GYRO_L3GD20
+#ifdef USE_IMU_L3GD20
 
 #define READ_CMD               ((uint8_t)0x80)
 #define MULTIPLEBYTE_CMD       ((uint8_t)0x40)

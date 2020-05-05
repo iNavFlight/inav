@@ -38,7 +38,7 @@
 #include "drivers/accgyro/accgyro_mpu.h"
 #include "drivers/accgyro/accgyro_icm20689.h"
 
-#if (defined(USE_GYRO_ICM20689) || defined(USE_ACC_ICM20689))
+#if defined(USE_IMU_ICM20689)
 
 static uint8_t icm20689DeviceDetect(const busDevice_t *busDev)
 {

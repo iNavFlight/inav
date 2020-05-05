@@ -134,7 +134,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     case GYRO_AUTODETECT:
         FALLTHROUGH;
 
-#ifdef USE_GYRO_MPU6050
+#ifdef USE_IMU_MPU6050
     case GYRO_MPU6050:
         if (mpu6050GyroDetect(dev)) {
             gyroHardware = GYRO_MPU6050;
@@ -143,7 +143,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
         FALLTHROUGH;
 #endif
 
-#ifdef USE_GYRO_L3G4200D
+#ifdef USE_IMU_L3G4200D
     case GYRO_L3G4200D:
         if (l3g4200dDetect(dev)) {
             gyroHardware = GYRO_L3G4200D;
@@ -152,7 +152,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
         FALLTHROUGH;
 #endif
 
-#ifdef USE_GYRO_MPU3050
+#ifdef USE_IMU_MPU3050
     case GYRO_MPU3050:
         if (mpu3050Detect(dev)) {
             gyroHardware = GYRO_MPU3050;
@@ -161,7 +161,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
         FALLTHROUGH;
 #endif
 
-#ifdef USE_GYRO_L3GD20
+#ifdef USE_IMU_L3GD20
     case GYRO_L3GD20:
         if (l3gd20Detect(dev)) {
             gyroHardware = GYRO_L3GD20;
@@ -170,7 +170,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
         FALLTHROUGH;
 #endif
 
-#ifdef USE_GYRO_MPU6000
+#ifdef USE_IMU_MPU6000
     case GYRO_MPU6000:
         if (mpu6000GyroDetect(dev)) {
             gyroHardware = GYRO_MPU6000;
@@ -179,7 +179,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
         FALLTHROUGH;
 #endif
 
-#if defined(USE_GYRO_MPU6500)
+#if defined(USE_IMU_MPU6500)
     case GYRO_MPU6500:
         if (mpu6500GyroDetect(dev)) {
             gyroHardware = GYRO_MPU6500;
@@ -188,7 +188,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
         FALLTHROUGH;
 #endif
 
-#ifdef USE_GYRO_MPU9250
+#ifdef USE_IMU_MPU9250
     case GYRO_MPU9250:
         if (mpu9250GyroDetect(dev)) {
             gyroHardware = GYRO_MPU9250;
@@ -197,7 +197,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
         FALLTHROUGH;
 #endif
 
-#ifdef USE_GYRO_BMI160
+#ifdef USE_IMU_BMI160
     case GYRO_BMI160:
         if (bmi160GyroDetect(dev)) {
             gyroHardware = GYRO_BMI160;
@@ -206,7 +206,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
         FALLTHROUGH;
 #endif
 
-#ifdef USE_GYRO_ICM20689
+#ifdef USE_IMU_ICM20689
     case GYRO_ICM20689:
         if (icm20689GyroDetect(dev)) {
             gyroHardware = GYRO_ICM20689;
