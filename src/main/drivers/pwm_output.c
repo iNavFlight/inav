@@ -387,6 +387,15 @@ void pwmCompleteMotorUpdate(void)
     }
 #endif
 }
+
+#else // digital motor protocol
+
+// This stub is needed to avoid ESC_SENSOR dependency on DSHOT
+void pwmRequestMotorTelemetry(int motorIndex)
+{
+    UNUSED(motorIndex);
+}
+
 #endif
 
 void pwmMotorPreconfigure(void)
