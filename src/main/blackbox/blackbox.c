@@ -77,6 +77,7 @@
 #include "sensors/pitotmeter.h"
 #include "sensors/rangefinder.h"
 #include "sensors/sensors.h"
+#include "sensors/esc_sensor.h"
 #include "flight/wind_estimator.h"
 #include "sensors/temperature.h"
 
@@ -390,6 +391,10 @@ static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
     {"sens6Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
     {"sens7Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
 #endif
+#ifdef USE_ESC_SENSOR
+    {"escRPM",                -1, UNSIGNED, PREDICT(0),             ENCODING(UNSIGNED_VB)},
+    {"escTemperature",        -1, SIGNED,   PREDICT(PREVIOUS),      ENCODING(SIGNED_VB)},
+#endif
 };
 
 typedef enum BlackboxState {
@@ -497,6 +502,10 @@ typedef struct blackboxSlowState_s {
 #endif
 #ifdef USE_TEMPERATURE_SENSOR
     int16_t tempSensorTemperature[MAX_TEMP_SENSORS];
+#endif
+#ifdef USE_ESC_SENSOR
+    uint32_t escRPM;
+    int8_t escTemperature;
 #endif
 } __attribute__((__packed__)) blackboxSlowState_t; // We pack this struct so that padding doesn't interfere with memcmp()
 
@@ -1104,6 +1113,10 @@ static void writeSlowFrame(void)
     blackboxWriteSigned16VBArray(slowHistory.tempSensorTemperature, MAX_TEMP_SENSORS);
 #endif
 
+#ifdef USE_ESC_SENSOR
+    blackboxWriteUnsignedVB(slowHistory.escRPM);
+    blackboxWriteSignedVB(slowHistory.escTemperature);
+#endif
     blackboxSlowFrameIterationTimer = 0;
 }
 
@@ -1156,6 +1169,11 @@ static void loadSlowState(blackboxSlowState_t *slow)
     }
 #endif
 
+#ifdef USE_ESC_SENSOR
+    escSensorData_t * escSensor = escSensorGetData(); 
+    slow->escRPM = escSensor->rpm;
+    slow->escTemperature = escSensor->temperature;
+#endif
 }
 
 /**

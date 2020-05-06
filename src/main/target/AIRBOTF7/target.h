@@ -24,9 +24,6 @@
 
 #pragma once
 
-#define TARGET_BOARD_IDENTIFIER "ABF7"
-#define USBD_PRODUCT_STRING     "Airbot F7"
-
 // ************** Beeper and LED ******************
 #define LED0                    PB12
 #define BEEPER                  PB0
@@ -55,44 +52,17 @@
 #define I2C1_SCL                PB8
 #define I2C1_SDA                PB9 
 
-// *************** Gyro & ACC **********************
-#define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
-#define USE_DUAL_GYRO
-
-#define USE_ACC
-#define USE_GYRO
-
-#define USE_ACC_MPU6000
-#define USE_ACC_MPU6500
-#define USE_GYRO_MPU6000
-#define USE_GYRO_MPU6500
-
-#define GYRO_0_CS_PIN           PD2
-#define GYRO_0_SPI_BUS          BUS_SPI3
-#define GYRO_0_EXTI_PIN         NONE
-#define GYRO_0_ALIGN            CW90_DEG    // This doesn't work yet, requires BUS refactoring
-
-#define GYRO_1_CS_PIN           PC4
-#define GYRO_1_SPI_BUS          BUS_SPI1
-#define GYRO_1_EXTI_PIN         NONE
-#define GYRO_1_ALIGN            CW0_DEG     // This doesn't work yet, requires BUS refactoring
-
-// TODO: Remove this once per-gyro alignment is supported correctly
-#define GYRO_MPU6500_ALIGN      CW90_DEG
-#define ACC_MPU6500_ALIGN       CW90_DEG
+#ifdef OMNIBUSF7NANOV7
+#   include "target_o7v7.h"
+#else
+#   include "target_abf7.h"
+#endif
 
 // *************** OSD *****************************
 #define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          PC15
-
-// *************** FLASH **************************
-#define USE_FLASHFS
-#define USE_FLASH_M25P16
-#define M25P16_CS_PIN           PA3
-#define M25P16_SPI_BUS          BUS_SPI1
-#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
 // *************** I2C defvices **********************
 #define USE_BARO
@@ -147,17 +117,6 @@
 #define SOFTSERIAL_1_RX_PIN     PA5
 
 #define SERIAL_PORT_COUNT       8
-
-// *************** ADC *****************************
-#define USE_ADC
-#define ADC_INSTANCE                ADC1
-#define ADC_CHANNEL_1_PIN           PC0
-#define ADC_CHANNEL_2_PIN           PC2
-#define ADC_CHANNEL_3_PIN           PC1
-
-#define VBAT_ADC_CHANNEL            ADC_CHN_1
-#define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
-#define RSSI_ADC_CHANNEL            ADC_CHN_3
 
 // ************** Other features *******************
 #define USE_LED_STRIP

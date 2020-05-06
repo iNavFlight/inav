@@ -44,6 +44,7 @@ COMMON_SRC = \
             drivers/exti.c \
             drivers/io.c \
             drivers/io_pca9685.c \
+            drivers/irlock.c \
             drivers/light_led.c \
             drivers/osd.c \
             drivers/persistent.c \
@@ -132,6 +133,7 @@ COMMON_SRC = \
             rx/nrf24_syma.c \
             rx/nrf24_v202.c \
             rx/pwm.c \
+            rx/frsky_crc.c \
             rx/rx.c \
             rx/rx_spi.c \
             rx/sbus.c \
@@ -144,13 +146,14 @@ COMMON_SRC = \
             scheduler/scheduler.c \
             sensors/acceleration.c \
             sensors/battery.c \
-            sensors/temperature.c \
             sensors/boardalignment.c \
             sensors/compass.c \
             sensors/diagnostics.c \
             sensors/gyro.c \
             sensors/initialisation.c \
             sensors/esc_sensor.c \
+            sensors/irlock.c \
+            sensors/temperature.c \
             uav_interconnect/uav_interconnect_bus.c \
             uav_interconnect/uav_interconnect_rangefinder.c \
             blackbox/blackbox.c \

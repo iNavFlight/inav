@@ -62,6 +62,7 @@
 
 #include "target/common.h"
 #include "target.h"
+#include "target/sanity_check.h"
 #include "target/common_post.h"
 
 // Remove the unaligned packed structure member pointer access warning

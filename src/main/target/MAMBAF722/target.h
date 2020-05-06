@@ -33,20 +33,14 @@
 
 // ******* GYRO and ACC ********
 #define USE_EXTI
-#define USE_GYRO_EXTI
 #define GYRO_INT_EXTI                   PC4
 #define USE_MPU_DATA_READY_SIGNAL
 
 #define MPU6000_CS_PIN                  SPI1_NSS_PIN
 #define MPU6000_SPI_BUS                 BUS_SPI1
 
-#define USE_GYRO
-#define USE_GYRO_MPU6000
-#define GYRO_MPU6000_ALIGN              CW180_DEG
-
-#define USE_ACC
-#define USE_ACC_MPU6000
-#define ACC_MPU6000_ALIGN               CW180_DEG
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN               CW180_DEG
 
 // *************** Baro **************************
 #define USE_I2C

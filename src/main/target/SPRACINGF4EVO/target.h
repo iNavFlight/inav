@@ -37,19 +37,11 @@
 #define USE_MAG_DATA_READY_SIGNAL
 #define ENSURE_MAG_DATA_READY_IS_HIGH
 
-#define USE_GYRO
-#define USE_GYRO_MPU6500
-#define USE_GYRO_MPU9250
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW0_DEG
 
-#define USE_ACC
-#define USE_ACC_MPU6500
-#define USE_ACC_MPU9250
-
-#define ACC_MPU6500_ALIGN       CW0_DEG
-#define GYRO_MPU6500_ALIGN      CW0_DEG
-
-#define ACC_MPU9250_ALIGN       CW0_DEG
-#define GYRO_MPU9250_ALIGN      CW0_DEG
+#define USE_IMU_MPU9250
+#define IMU_MPU9250_ALIGN       CW0_DEG
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
