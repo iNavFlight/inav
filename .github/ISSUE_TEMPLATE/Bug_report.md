@@ -7,14 +7,15 @@ assignees: ''
 
 ---
 
-**IF YOU DON'T REMOVE AND UNDERSTAND THE NEXT FEW LINES, THEN YOUR REPORT WILL BE CLOSED**
+**PLEASE MAKE SURE YOU READ AND UNDERSTAND THE SOCIAL MEDIA SUPPORT CHANNELS. QUESTIONS ABOUT FLASHING, CONFIGURING, PILOTING MAY BE CLOSED WITHOUT FURTHER INTERACTION.**
 
-Questions and user problems should be directed at our social media accounts:
 * [Telegram channel](https://t.me/INAVFlight)
 * [Facebook group](https://www.facebook.com/groups/INAVOfficial)
 * [RC Groups thread](https://www.rcgroups.com/forums/showthread.php?2495732-Cleanflight-iNav-%28navigation-rewrite%29-project)
 
-**Please be very sure you have found a bug and no others have already reported it, when opening this issue**
+**Please double-check that nobody reported the issue before by using search in this bug tracker.**
+
+**PLEASE DELETE THE TEXT ABOVE AFTER READING AND UNDERSTANDING IT**
 
 ****
 
