@@ -143,6 +143,7 @@ typedef enum {
     DEVHW_M25P16,       // SPI NOR flash
     DEVHW_UG2864,       // I2C OLED display
     DEVHW_SDCARD,       // Generic SD-Card
+    DEVHW_IRLOCK,       // IR-Lock visual positioning hardware
 } devHardwareType_e;
 
 typedef enum {
