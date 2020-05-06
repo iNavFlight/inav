@@ -208,6 +208,21 @@ groups:
         condition: USE_DYNAMIC_FILTERS
         min: 30
         max: 1000
+      - name: gyro_kalman_q
+        field: kalman_q
+        condition: USE_GYRO_KALMAN
+        min: 1000
+        max: 16000
+      - name: gyro_kalman_w
+        field: kalman_w
+        condition: USE_GYRO_KALMAN
+        min: 4
+        max: 512
+      - name: gyro_kalman_sharpness
+        field: kalman_sharpness
+        condition: USE_GYRO_KALMAN
+        min: 1
+        max: 16000
       - name: gyro_to_use
         condition: USE_DUAL_GYRO
         min: 0
