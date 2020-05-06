@@ -34,19 +34,13 @@
 #define USE_SPI
 #define USE_SPI_DEVICE_2
 
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW0_DEG
 #define MPU6500_SPI_BUS         BUS_SPI2
 #define MPU6500_CS_PIN          PB12
 
 #define BMP280_SPI_BUS          BUS_SPI2
 #define BMP280_CS_PIN           PB5
-
-#define USE_GYRO
-#define USE_GYRO_MPU6500
-#define GYRO_MPU6500_ALIGN      CW0_DEG
-
-#define USE_ACC
-#define USE_ACC_MPU6500
-#define ACC_MPU6500_ALIGN       CW0_DEG
 
 #define USE_BARO
 #define USE_BARO_BMP280

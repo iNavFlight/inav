@@ -29,10 +29,11 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
 #include "drivers/bus.h"
+#include "drivers/sensor.h"
 
 // Board hardware definitions
-BUSDEV_REGISTER_SPI_TAG(busdev_mpu6000,     DEVHW_MPU6000,      MPU6000_SPI_BUS,    MPU6000_CS_PIN,     NONE,       0,  DEVFLAGS_NONE);
-BUSDEV_REGISTER_SPI_TAG(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_SPI_BUS,    MPU6500_CS_PIN,     NONE,       1,  DEVFLAGS_NONE);
+BUSDEV_REGISTER_SPI_TAG(busdev_mpu6000,     DEVHW_MPU6000,      MPU6000_SPI_BUS,    MPU6000_CS_PIN,     NONE,       0,  DEVFLAGS_NONE,  IMU_MPU6000_ALIGN);
+BUSDEV_REGISTER_SPI_TAG(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_SPI_BUS,    MPU6500_CS_PIN,     NONE,       1,  DEVFLAGS_NONE,  IMU_MPU6500_ALIGN);
 
 const timerHardware_t timerHardware[] = {
     DEF_TIM(TIM4, CH2, PB7, TIM_USE_PPM,                            0, 0), // PPM / UART1_RX

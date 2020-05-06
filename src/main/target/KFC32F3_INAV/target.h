@@ -36,16 +36,11 @@
 
 #define BUS_SPI_SPEED_MAX BUS_SPEED_SLOW
 
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW90_DEG
 #define MPU6000_CS_PIN          PB5
 #define MPU6000_SPI_BUS         BUS_SPI2
 
-#define USE_GYRO
-#define USE_GYRO_MPU6000
-#define GYRO_MPU6000_ALIGN CW90_DEG
-
-#define USE_ACC
-#define USE_ACC_MPU6000
-#define ACC_MPU6000_ALIGN CW90_DEG
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
