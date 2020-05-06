@@ -40,7 +40,7 @@ static void gyroKalmanInitAxis(kalman_t *filter, float q)
     filter->p = 30.0f;      //seeding P at 30.0f
     filter->e = 1.0f;
     //FIXME hardcoded config
-    filter->s = 2500 / 250.0f; //adding the new sharpness :) time to overfilter :O
+    filter->s = gyroConfig()->kalman_sharpness / 250.0f; //adding the new sharpness :) time to overfilter :O
 }
 
 void gyroKalmanSetSetpoint(uint8_t axis, float rate)
@@ -52,12 +52,12 @@ void gyroKalmanInitialize(void)
 {
     memset(&varStruct, 0, sizeof(varStruct));
     //FIXME values hardcoded for now
-    gyroKalmanInitAxis(&kalmanFilterStateRate[X], 3000);
-    gyroKalmanInitAxis(&kalmanFilterStateRate[Y], 3000);
-    gyroKalmanInitAxis(&kalmanFilterStateRate[Z], 3000);
+    gyroKalmanInitAxis(&kalmanFilterStateRate[X], gyroConfig()->kalman_q);
+    gyroKalmanInitAxis(&kalmanFilterStateRate[Y], gyroConfig()->kalman_q);
+    gyroKalmanInitAxis(&kalmanFilterStateRate[Z], gyroConfig()->kalman_q);
 
     //FIXME values hardcoded for now
-    varStruct.w = 32;
+    varStruct.w = gyroConfig()->kalman_w;
     varStruct.inverseN = 1.0f / (float)(varStruct.w);
 }
 
