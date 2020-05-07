@@ -2151,5 +2151,14 @@ groups:
           table: log_level
         - name: log_topics
           field: topics
-          min: 0,
+          min: 0
           max: UINT32_MAX
+
+  - name: PG_ESC_SENSOR_CONFIG
+    type: escSensorConfig_t
+    headers: ["sensors/esc_sensor.h"]
+    condition: USE_ESC_SENSOR
+    members:
+        - name: esc_sensor_listen_only
+          field: listenOnly
+          type: bool

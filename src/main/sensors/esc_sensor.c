@@ -75,14 +75,30 @@ static escSensorData_t  escSensorData[MAX_SUPPORTED_MOTORS];
 static escSensorData_t  escSensorDataCombined;
 static bool             escSensorDataNeedsUpdate;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(escSensorConfig_t, escSensorConfig, PG_ESC_SENSOR_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(escSensorConfig_t, escSensorConfig, PG_ESC_SENSOR_CONFIG, 1);
 PG_RESET_TEMPLATE(escSensorConfig_t, escSensorConfig,
-    .currentOffset = 0,
+    .currentOffset = 0, // UNUSED
+    .listenOnly = 0,
 );
+
+static int getTelemetryMotorCount(void)
+{
+    if (escSensorConfig()->listenOnly) {
+        return 1;
+    }
+    else {
+        return getMotorCount();
+    }
+}
 
 static void escSensorSelectNextMotor(void)
 {
-    escSensorMotor = (escSensorMotor + 1) % getMotorCount();
+    if (escSensorConfig()->listenOnly) {
+        escSensorMotor = 0;
+    }
+    else {
+        escSensorMotor = (escSensorMotor + 1) % getTelemetryMotorCount();
+    }
 }
 
 static void escSensorIncreaseDataAge(void)
@@ -154,7 +170,7 @@ escSensorData_t * escSensorGetData(void)
 
         // Combine data only from active sensors, ignore stale sensors
         int usedEscSensorCount = 0;
-        for (int i = 0; i < getMotorCount(); i++) {
+        for (int i = 0; i < getTelemetryMotorCount(); i++) {
             if (escSensorData[i].dataAge < ESC_DATA_INVALID) {
                 usedEscSensorCount++;
                 escSensorDataCombined.dataAge = MAX(escSensorDataCombined.dataAge, escSensorData[i].dataAge);
@@ -167,7 +183,7 @@ escSensorData_t * escSensorGetData(void)
 
         // Make sure we calculate our sensor values only from non-stale values
         if (usedEscSensorCount) {
-            escSensorDataCombined.current = (uint32_t)escSensorDataCombined.current * getMotorCount() / usedEscSensorCount + escSensorConfig()->currentOffset;
+            escSensorDataCombined.current = (uint32_t)escSensorDataCombined.current * getTelemetryMotorCount() / usedEscSensorCount + escSensorConfig()->currentOffset;
             escSensorDataCombined.voltage = (uint32_t)escSensorDataCombined.voltage / usedEscSensorCount;
             escSensorDataCombined.rpm = (float)escSensorDataCombined.rpm / usedEscSensorCount;
         }
@@ -229,7 +245,9 @@ void escSensorUpdate(timeUs_t currentTimeUs)
             break;
 
         case ESC_SENSOR_READY:
-            pwmRequestMotorTelemetry(escSensorMotor);
+            if (!escSensorConfig()->listenOnly) {
+                pwmRequestMotorTelemetry(escSensorMotor);
+            }
             bufferPosition = 0;
             escTriggerTimeMs = currentTimeMs;
             escSensorState = ESC_SENSOR_WAITING;
@@ -238,6 +256,7 @@ void escSensorUpdate(timeUs_t currentTimeUs)
         case ESC_SENSOR_WAITING:
             if ((currentTimeMs - escTriggerTimeMs) >= ESC_REQUEST_TIMEOUT_MS) {
                 // Timed out. Select next motor and move on
+                escSensorIncreaseDataAge();
                 escSensorSelectNextMotor();
                 escSensorState = ESC_SENSOR_READY;
             }

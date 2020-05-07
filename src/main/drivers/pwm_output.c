@@ -327,6 +327,10 @@ bool isMotorProtocolDigital(void)
 
 void pwmRequestMotorTelemetry(int motorIndex)
 {
+    if (!isMotorProtocolDigital()) {
+        return;
+    }
+
     const int motorCount = getMotorCount();
     for (int index = 0; index < motorCount; index++) {
         if (motors[index].pwmPort && motors[index].pwmPort->configured && index == motorIndex) {
@@ -344,10 +348,6 @@ void pwmCompleteMotorUpdate(void)
 
     int motorCount = getMotorCount();
     timeUs_t currentTimeUs = micros();
-
-#ifdef USE_ESC_SENSOR
-    escSensorUpdate(currentTimeUs);
-#endif
 
     // Enforce motor update rate
     if ((digitalMotorUpdateIntervalUs == 0) || ((currentTimeUs - digitalMotorLastUpdateUs) <= digitalMotorUpdateIntervalUs)) {
@@ -387,6 +387,15 @@ void pwmCompleteMotorUpdate(void)
     }
 #endif
 }
+
+#else // digital motor protocol
+
+// This stub is needed to avoid ESC_SENSOR dependency on DSHOT
+void pwmRequestMotorTelemetry(int motorIndex)
+{
+    UNUSED(motorIndex);
+}
+
 #endif
 
 void pwmMotorPreconfigure(void)
@@ -417,10 +426,6 @@ void pwmMotorPreconfigure(void)
         case PWM_TYPE_DSHOT600:
         case PWM_TYPE_DSHOT300:
         case PWM_TYPE_DSHOT150:
-#ifdef USE_ESC_SENSOR
-            // DSHOT supports a dedicated wire ESC telemetry. Kick off the ESC-sensor receiver initialization
-            escSensorInitialize();
-#endif
             motorConfigDigitalUpdateInterval(motorConfig()->motorPwmRate);
             motorWritePtr = pwmWriteDigital;
             break;

@@ -34,6 +34,7 @@ typedef struct {
 
 typedef struct escSensorConfig_s {
     uint16_t currentOffset;             // offset consumed by the flight controller / VTX / cam / ... in mA
+    uint8_t  listenOnly;
 } escSensorConfig_t;
 
 PG_DECLARE(escSensorConfig_t, escSensorConfig);
