@@ -155,7 +155,7 @@ static const char * const featureNames[] = {
     "", "TELEMETRY", "CURRENT_METER", "REVERSIBLE_MOTORS", "",
     "", "RSSI_ADC", "LED_STRIP", "DASHBOARD", "",
     "BLACKBOX", "", "TRANSPONDER", "AIRMODE",
-    "SUPEREXPO", "VTX", "", "", "PWM_SERVO_DRIVER", "PWM_OUTPUT_ENABLE",
+    "SUPEREXPO", "VTX", "", "", "", "PWM_OUTPUT_ENABLE",
     "OSD", "FW_LAUNCH", NULL
 };
 

@@ -37,6 +37,7 @@ FILE_COMPILE_FOR_SPEED
 
 #include "io/pwmdriver_i2c.h"
 #include "io/esc_serialshot.h"
+#include "io/servo_sbus.h"
 #include "sensors/esc_sensor.h"
 
 #include "config/feature.h"
@@ -512,14 +513,27 @@ static void pwmServoWriteExternalDriver(uint8_t index, uint16_t value)
 
 void pwmServoPreconfigure(void)
 {
-    servoWritePtr = pwmServoWriteStandard;
+    // Protocol-specific configuration
+    switch (servoConfig()->servo_protocol) {
+        default:
+        case SERVO_TYPE_PWM:
+            servoWritePtr = pwmServoWriteStandard;
+            break;
 
 #ifdef USE_PWM_SERVO_DRIVER
-    // If PCA9685 is enabled - switch the servo write function to external
-    if (feature(FEATURE_PWM_SERVO_DRIVER)) {
-        servoWritePtr = pwmServoWriteExternalDriver;
-    }
+        case SERVO_TYPE_SERVO_DRIVER:
+            pwmDriverInitialize();
+            servoWritePtr = pwmServoWriteExternalDriver;
+            break;
 #endif
+
+#ifdef USE_SERVO_SBUS
+        case SERVO_TYPE_SBUS:
+            sbusServoInitialize();
+            servoWritePtr = sbusServoUpdate;
+            break;
+#endif
+    }
 }
 
 bool pwmServoConfig(const timerHardware_t *timerHardware, uint8_t servoIndex, uint16_t servoPwmRate, uint16_t servoCenterPulse, bool enableOutput)

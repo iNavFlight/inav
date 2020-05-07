@@ -106,6 +106,7 @@ COMMON_SRC = \
             flight/dynamic_gyro_notch.c \
             io/beeper.c \
             io/esc_serialshot.c \
+            io/servo_sbus.c \
             io/frsky_osd.c \
             io/osd_dji_hd.c \
             io/lights.c \
