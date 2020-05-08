@@ -32,27 +32,18 @@
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 #define USE_DUAL_GYRO
 
-#define USE_ACC
-#define USE_GYRO
-
-#define USE_ACC_MPU6000
-#define USE_ACC_MPU6500
-#define USE_GYRO_MPU6000
-#define USE_GYRO_MPU6500
+#define USE_IMU_MPU6000
+#define USE_IMU_MPU6500
 
 #define GYRO_0_CS_PIN           PD2
 #define GYRO_0_SPI_BUS          BUS_SPI3
 #define GYRO_0_EXTI_PIN         NONE
-#define GYRO_0_ALIGN            CW90_DEG    // This doesn't work yet, requires BUS refactoring
+#define GYRO_0_ALIGN            CW90_DEG
 
 #define GYRO_1_CS_PIN           PC4
 #define GYRO_1_SPI_BUS          BUS_SPI1
 #define GYRO_1_EXTI_PIN         NONE
-#define GYRO_1_ALIGN            CW0_DEG     // This doesn't work yet, requires BUS refactoring
-
-// TODO: Remove this once per-gyro alignment is supported correctly
-#define GYRO_MPU6500_ALIGN      CW90_DEG
-#define ACC_MPU6500_ALIGN       CW90_DEG
+#define GYRO_1_ALIGN            CW0_DEG
 
 // *************** FLASH **************************
 #define USE_FLASHFS

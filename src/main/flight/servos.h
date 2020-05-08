@@ -132,7 +132,7 @@ typedef struct servoConfig_s {
     uint16_t servoPwmRate;                  // The update rate of servo outputs (50-498Hz)
     int16_t servo_lowpass_freq;             // lowpass servo filter frequency selection; 1/1000ths of loop freq
     uint16_t flaperon_throw_offset;
-    uint8_t __reserved;
+    uint8_t servo_protocol;                 // See servoProtocolType_e
     uint8_t tri_unarmed_servo;              // send tail servo correction pulses even when unarmed
 } servoConfig_t;
 

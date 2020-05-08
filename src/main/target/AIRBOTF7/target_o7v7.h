@@ -31,21 +31,13 @@
 // *************** Gyro & ACC **********************
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 
-#define USE_ACC
-#define USE_GYRO
-
-#define USE_ACC_MPU6000
-#define USE_ACC_MPU6500
-#define USE_GYRO_MPU6000
-#define USE_GYRO_MPU6500
+#define USE_IMU_MPU6000
+#define USE_IMU_MPU6500
 
 #define GYRO_0_CS_PIN           PD2
 #define GYRO_0_SPI_BUS          BUS_SPI3
 #define GYRO_0_EXTI_PIN         NONE
-
 #define GYRO_0_ALIGN            CW0_DEG
-#define GYRO_MPU6500_ALIGN      CW0_DEG
-#define ACC_MPU6500_ALIGN       CW0_DEG
 
 // *************** FLASH **************************
 #define USE_FLASHFS

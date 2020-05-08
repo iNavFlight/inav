@@ -60,6 +60,8 @@
 #define CENTIMETERS_TO_FEET(cm)                 (cm * (328 / 10000.0))
 #define CENTIMETERS_TO_METERS(cm)               (cm / 100)
 
+#define METERS_TO_CENTIMETERS(m)                (m * 100)
+
 // copied from https://code.google.com/p/cxutil/source/browse/include/cxutil/utility.h#70
 #define _CHOOSE2(binoper, lexpr, lvar, rexpr, rvar)         \
     ( __extension__ ({                                      \

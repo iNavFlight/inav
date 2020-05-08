@@ -34,19 +34,15 @@
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PA7
 
-#define USE_ACC
-#define USE_GYRO
 #define USE_EXTI
 #define USE_MPU_DATA_READY_SIGNAL
 
-#define USE_ACC_MPU6000
-#define USE_GYRO_MPU6000
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW180_DEG_FLIP
 #define MPU6000_CS_PIN          PB2
 #define MPU6000_SPI_BUS         BUS_SPI1
 #define MPU6000_EXTI_PIN        PC4
 
-#define GYRO_MPU6000_ALIGN      CW180_DEG_FLIP
-#define ACC_MPU6000_ALIGN       CW180_DEG_FLIP
 
 // *************** I2C /Baro/Mag *********************
 #define USE_I2C
