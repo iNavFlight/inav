@@ -33,6 +33,8 @@ tables:
     values: ["SERIAL", "SPIFLASH", "SDCARD"]
   - name: motor_pwm_protocol
     values: ["STANDARD", "ONESHOT125", "ONESHOT42", "MULTISHOT", "BRUSHED", "DSHOT150", "DSHOT300", "DSHOT600", "DSHOT1200", "SERIALSHOT"]
+  - name: servo_protocol
+    values: ["PWM", "SERVO_DRIVER", "SBUS"]
   - name: failsafe_procedure
     values: ["SET-THR", "DROP", "RTH", "NONE"]
   - name: current_sensor
@@ -742,6 +744,9 @@ groups:
     type: servoConfig_t
     headers: ["flight/servos.h"]
     members:
+      - name: servo_protocol
+        field: servo_protocol
+        table: servo_protocol
       - name: servo_center_pulse
         field: servoCenterPulse
         min: PWM_RANGE_MIN
@@ -2166,5 +2171,14 @@ groups:
           table: log_level
         - name: log_topics
           field: topics
-          min: 0,
+          min: 0
           max: UINT32_MAX
+
+  - name: PG_ESC_SENSOR_CONFIG
+    type: escSensorConfig_t
+    headers: ["sensors/esc_sensor.h"]
+    condition: USE_ESC_SENSOR
+    members:
+        - name: esc_sensor_listen_only
+          field: listenOnly
+          type: bool

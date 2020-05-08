@@ -24,27 +24,6 @@
 
 #pragma once
 
-typedef struct {
-    uint8_t dataAge;
-    int8_t temperature;
-    int16_t voltage;
-    int32_t current;
-    uint32_t rpm;
-} escSensorData_t;
-
-typedef struct escSensorConfig_s {
-    uint16_t currentOffset;             // offset consumed by the flight controller / VTX / cam / ... in mA
-    uint8_t  listenOnly;
-} escSensorConfig_t;
-
-PG_DECLARE(escSensorConfig_t, escSensorConfig);
-
-#define ESC_DATA_MAX_AGE    10
-#define ESC_DATA_INVALID    255
-#define ERPM_PER_LSB        100.0f
-
-bool escSensorInitialize(void);
-void escSensorUpdate(timeUs_t currentTimeUs);
-escSensorData_t * escSensorGetData(void);
-escSensorData_t * getEscTelemetry(uint8_t esc);
-uint32_t computeRpm(int16_t erpm);
+bool sbusServoInitialize(void);
+void sbusServoUpdate(uint8_t index, uint16_t value);
+void sbusServoSendUpdate(void);

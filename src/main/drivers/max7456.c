@@ -22,8 +22,6 @@
 
 #include "platform.h"
 
-FILE_COMPILE_FOR_SPEED
-
 #ifdef USE_MAX7456
 
 #include "common/bitarray.h"
