@@ -79,6 +79,7 @@ typedef struct gyroConfig_s {
     uint16_t kalman_q;
     uint16_t kalman_w;
     uint16_t kalman_sharpness;
+    uint8_t kalmanEnabled;
 } gyroConfig_t;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);

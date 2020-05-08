@@ -128,6 +128,7 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .kalman_q = 3000,
     .kalman_w = 32,
     .kalman_sharpness = 2500,
+    .kalmanEnabled = 0,
 );
 
 STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHardware)
@@ -327,7 +328,9 @@ bool gyroInit(void)
 
     gyroInitFilters();
 #ifdef USE_GYRO_KALMAN
-    gyroKalmanInitialize();
+    if (gyroConfig()->kalmanEnabled) {
+        gyroKalmanInitialize();
+    }
 #endif
 #ifdef USE_DYNAMIC_FILTERS
     dynamicGyroNotchFiltersInit(&dynamicGyroNotchState);
@@ -474,18 +477,20 @@ void FAST_CODE NOINLINE gyroUpdate()
     }
 
 #ifdef USE_GYRO_KALMAN
-    float input[XYZ_AXIS_COUNT];
-    float output[XYZ_AXIS_COUNT];
+    if (gyroConfig()->kalmanEnabled) {
+        float input[XYZ_AXIS_COUNT];
+        float output[XYZ_AXIS_COUNT];
 
-    input[X] = gyro.gyroADCf[X];
-    input[Y] = gyro.gyroADCf[Y];
-    input[Z] = gyro.gyroADCf[Z];
+        input[X] = gyro.gyroADCf[X];
+        input[Y] = gyro.gyroADCf[Y];
+        input[Z] = gyro.gyroADCf[Z];
 
-    gyroKalmanUpdate(input, output);
+        gyroKalmanUpdate(input, output);
 
-    gyro.gyroADCf[X] = output[X];
-    gyro.gyroADCf[Y] = output[Y];
-    gyro.gyroADCf[Z] = output[Z];
+        gyro.gyroADCf[X] = output[X];
+        gyro.gyroADCf[Y] = output[Y];
+        gyro.gyroADCf[Z] = output[Z];
+    }
 #endif
 
 #ifdef USE_DYNAMIC_FILTERS

@@ -210,6 +210,10 @@ groups:
         condition: USE_DYNAMIC_FILTERS
         min: 30
         max: 1000
+      - name: gyro_kalman_enabled
+        condition: USE_GYRO_KALMAN
+        field: kalmanEnabled
+        type: bool
       - name: gyro_kalman_q
         field: kalman_q
         condition: USE_GYRO_KALMAN
