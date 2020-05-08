@@ -177,6 +177,7 @@ COMMON_SRC = \
             drivers/rangefinder/rangefinder_srf10.c \
             drivers/rangefinder/rangefinder_vl53l0x.c \
             drivers/rangefinder/rangefinder_virtual.c \
+            drivers/rangefinder/rangefinder_us42.c \
             drivers/opflow/opflow_fake.c \
             drivers/opflow/opflow_virtual.c \
             drivers/vtx_common.c \
