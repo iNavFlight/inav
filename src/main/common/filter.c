@@ -118,7 +118,7 @@ float rateLimitFilterApply4(rateLimitFilter_t *filter, float input, float rate_l
     return filter->state;
 }
 
-float filterGetNotchQ(uint16_t centerFrequencyHz, uint16_t cutoffFrequencyHz)
+float filterGetNotchQ(float centerFrequencyHz, float cutoffFrequencyHz)
 {
     return centerFrequencyHz * cutoffFrequencyHz / (centerFrequencyHz * centerFrequencyHz - cutoffFrequencyHz * cutoffFrequencyHz);
 }
