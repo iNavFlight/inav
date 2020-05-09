@@ -64,10 +64,10 @@ bool flashIsReady(void)
     return false;
 }
 
-bool flashWaitForReady(void)
+bool flashWaitForReady(uint32_t timeoutMillis)
 {
 #ifdef USE_FLASH_M25P16
-    return m25p16_waitForReady(10);
+    return m25p16_waitForReady(timeoutMillis);
 #endif
     return false;
 }
@@ -281,8 +281,12 @@ uint32_t flashPartitionSize(flashPartition_t *partition)
 
 void flashPartitionErase(flashPartition_t *partition)
 {
-    for (uint16_t sector = partition->startSector; sector <= partition->endSector; ++sector) {
-        flashEraseSector(sector);
+    const flashGeometry_t * const geometry = flashGetGeometry();
+
+    for (unsigned i = partition->startSector; i <= partition->endSector; i++) {
+        uint32_t flashAddress = geometry->sectorSize * i;
+        flashEraseSector(flashAddress);
+        flashWaitForReady(0);
     }
 }
 #endif // USE_FLASH_CHIP
