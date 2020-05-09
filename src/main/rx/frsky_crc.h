@@ -18,8 +18,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define FRSKY_CHECKSUM_GOOD_VALUE 0xFF
-
-bool frskyChecksumIsGood(uint8_t *data, uint8_t length);
+uint8_t frskyCheckSum(uint8_t *data, uint8_t length);
+bool frskyCheckSumIsGood(uint8_t *data, uint8_t length);
 void frskyCheckSumStep(uint16_t *checksum, uint8_t byte);   // Add byte to checksum
 void frskyCheckSumFini(uint16_t *checksum);                 // Finalize checksum
