@@ -28,7 +28,6 @@
 
 #include "platform.h"
 
-// Todo: Comment in before commit!
 #if defined(USE_VTX_SMARTAUDIO) && defined(USE_VTX_CONTROL)
 
 #include "build/debug.h"
