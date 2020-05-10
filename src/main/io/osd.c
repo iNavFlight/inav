@@ -31,6 +31,8 @@
 
 #include "platform.h"
 
+FILE_COMPILE_FOR_SPEED
+
 #ifdef USE_OSD
 
 #include "build/debug.h"
@@ -196,7 +198,7 @@ static bool osdDisplayHasCanvas;
 #define AH_SIDEBAR_WIDTH_POS 7
 #define AH_SIDEBAR_HEIGHT_POS 3
 
-PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 9);
+PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 12);
 
 static int digitCount(int32_t value)
 {
@@ -787,11 +789,12 @@ static const char * navigationStateMessage(void)
             // Used by HOLD flight modes. No information to add.
             break;
         case MW_NAV_STATE_HOLD_TIMED:
-            // Not used anymore
+            // TODO: Maybe we can display a count down
+            return OSD_MESSAGE_STR("HOLDING WAYPOINT");
             break;
         case MW_NAV_STATE_WP_ENROUTE:
             // TODO: Show WP number
-            return OSD_MESSAGE_STR("EN ROUTE TO WAYPOINT");
+            return OSD_MESSAGE_STR("TO WP");
         case MW_NAV_STATE_PROCESS_NEXT:
             return OSD_MESSAGE_STR("PREPARING FOR NEXT WAYPOINT");
         case MW_NAV_STATE_DO_JUMP:
@@ -1638,13 +1641,14 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "3CRS";
             else if (FLIGHT_MODE(NAV_CRUISE_MODE))
                 p = "CRS ";
+            else if (FLIGHT_MODE(NAV_WP_MODE))
+                p = " WP ";
             else if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && navigationRequiresAngleMode()) {
                 // If navigationRequiresAngleMode() returns false when ALTHOLD is active,
                 // it means it can be combined with ANGLE, HORIZON, ACRO, etc...
                 // and its display is handled by OSD_MESSAGES rather than OSD_FLYMODE.
                 p = " AH ";
-            } else if (FLIGHT_MODE(NAV_WP_MODE))
-                p = " WP ";
+            }
             else if (FLIGHT_MODE(ANGLE_MODE))
                 p = "ANGL";
             else if (FLIGHT_MODE(HORIZON_MODE))
@@ -1711,13 +1715,17 @@ static bool osdDrawSingleElement(uint8_t item)
 
         if (STATE(GPS_FIX) && isImuHeadingValid()) {
 
-            if (osdConfig()->hud_homepoint || osdConfig()->hud_radar_disp > 0) {
+            if (osdConfig()->hud_homepoint || osdConfig()->hud_radar_disp > 0 || osdConfig()->hud_wp_disp > 0) {
                     osdHudClear();
             }
 
+            // -------- POI : Home point
+
             if (osdConfig()->hud_homepoint) { // Display the home point (H)
-                osdHudDrawPoi(GPS_distanceToHome, GPS_directionToHome, -osdGetAltitude() / 100, 0, 5, SYM_HOME);
+                osdHudDrawPoi(GPS_distanceToHome, GPS_directionToHome, -osdGetAltitude() / 100, 0, SYM_HOME, 0 , 0);
             }
+
+            // -------- POI : Nearby aircrafts from ESP32 radar
 
             if (osdConfig()->hud_radar_disp > 0) { // Display the POI from the radar
                 for (uint8_t i = 0; i < osdConfig()->hud_radar_disp; i++) {
@@ -1729,7 +1737,7 @@ static bool osdDrawSingleElement(uint8_t item)
                         if (radar_pois[i].distance >= osdConfig()->hud_radar_range_min && radar_pois[i].distance <= osdConfig()->hud_radar_range_max) {
                             radar_pois[i].direction = calculateBearingToDestination(&poi) / 100; // In °
                             radar_pois[i].altitude = (radar_pois[i].gps.alt - osdGetAltitudeMsl()) / 100;
-                            osdHudDrawPoi(radar_pois[i].distance, osdGetHeadingAngle(radar_pois[i].direction), radar_pois[i].altitude, radar_pois[i].heading, radar_pois[i].lq, 65 + i);
+                            osdHudDrawPoi(radar_pois[i].distance, osdGetHeadingAngle(radar_pois[i].direction), radar_pois[i].altitude, 1, 65 + i, radar_pois[i].heading, radar_pois[i].lq);
                         }
                     }
                 }
@@ -1738,6 +1746,29 @@ static bool osdDrawSingleElement(uint8_t item)
                     int poi_id = radarGetNearestPOI();
                     if (poi_id >= 0 && radar_pois[poi_id].distance <= osdConfig()->hud_radar_nearest) {
                         osdHudDrawExtras(poi_id);
+                    }
+                }
+            }
+
+            // -------- POI : Next waypoints from navigation
+
+            if (osdConfig()->hud_wp_disp > 0 && posControl.waypointListValid && posControl.waypointCount > 0) { // Display the next waypoints
+                gpsLocation_t wp2;
+                int j;
+
+                tfp_sprintf(buff, "W%u/%u", posControl.activeWaypointIndex, posControl.waypointCount);
+                displayWrite(osdGetDisplayPort(), 13, osdConfig()->hud_margin_v - 1, buff);
+
+                for (int i = osdConfig()->hud_wp_disp - 1; i >= 0 ; i--) { // Display in reverse order so the next WP is always written on top
+                    j = posControl.activeWaypointIndex + i;
+                    if (posControl.waypointList[j].lat != 0 && posControl.waypointList[j].lon != 0 && j <= posControl.waypointCount) {
+                        wp2.lat = posControl.waypointList[j].lat;
+                        wp2.lon = posControl.waypointList[j].lon;
+                        wp2.alt = posControl.waypointList[j].alt;
+                        fpVector3_t poi;
+                        geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &wp2, GEO_ALT_RELATIVE);
+                        while (j > 9) j -= 10; // Only the last digit displayed if WP>=10, no room for more
+                        osdHudDrawPoi(calculateDistanceToDestination(&poi) / 100, osdGetHeadingAngle(calculateBearingToDestination(&poi) / 100), (posControl.waypointList[j].alt - osdGetAltitude())/ 100, 2, SYM_WAYPOINT, 49 + j, i);
                     }
                 }
             }
@@ -2449,6 +2480,13 @@ static bool osdDrawSingleElement(uint8_t item)
             }
             break;
         }
+    case OSD_ESC_TEMPERATURE:
+        {
+            escSensorData_t * escSensor = escSensorGetData();
+            bool escTemperatureValid = escSensor && escSensor->dataAge <= ESC_DATA_MAX_AGE;
+            osdDisplayTemperature(elemPosX, elemPosY, SYM_ESC_TEMP, NULL, escTemperatureValid, (escSensor->temperature)*10, osdConfig()->esc_temp_alarm_min, osdConfig()->esc_temp_alarm_max);
+            return true;
+        }
 #endif
 
     default:
@@ -2664,6 +2702,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
 
 #if defined(USE_ESC_SENSOR)
     osdConfig->item_pos[0][OSD_ESC_RPM] = OSD_POS(1, 2);
+    osdConfig->item_pos[0][OSD_ESC_TEMPERATURE] = OSD_POS(1, 3);
 #endif
 
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
@@ -2687,6 +2726,8 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->current_alarm = 0;
     osdConfig->imu_temp_alarm_min = -200;
     osdConfig->imu_temp_alarm_max = 600;
+    osdConfig->esc_temp_alarm_min = -200;
+    osdConfig->esc_temp_alarm_max = 900;
     osdConfig->gforce_alarm = 5;
     osdConfig->gforce_axis_alarm_min = -5;
     osdConfig->gforce_axis_alarm_max = 5;
@@ -2713,9 +2754,10 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->hud_homing = 0;
     osdConfig->hud_homepoint = 0;
     osdConfig->hud_radar_disp = 0;
-    osdConfig->hud_radar_range_min = 10;
+    osdConfig->hud_radar_range_min = 3;
     osdConfig->hud_radar_range_max = 4000;
     osdConfig->hud_radar_nearest = 0;
+    osdConfig->hud_wp_disp = 0;
     osdConfig->left_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
     osdConfig->right_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
     osdConfig->sidebar_scroll_arrows = 0;
@@ -2904,6 +2946,7 @@ static void osdShowStats(void)
     const uint8_t statValuesX = 20;
     char buff[10];
 
+    displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
     displayClearScreen(osdDisplayPort);
     if (IS_DISPLAY_PAL)
         displayWrite(osdDisplayPort, statNameX, top++, "  --- STATS ---");
@@ -2999,6 +3042,7 @@ static void osdShowStats(void)
 
     displayWrite(osdDisplayPort, statNameX, top, "DISARMED BY      :");
     displayWrite(osdDisplayPort, statValuesX, top++, disarmReasonStr[getDisarmReason()]);
+    displayCommitTransaction(osdDisplayPort);
 }
 
 // called when motors armed

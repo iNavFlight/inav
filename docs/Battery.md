@@ -26,7 +26,7 @@ On the first battery connection is always advisable to use a current limiter dev
 
 ### Sparky
 
-See the [Sparky board chapter](Board - Sparky.md).
+See the [Sparky board chapter](Board%20-%20Sparky.md).
 
 ## Voltage measurement
 

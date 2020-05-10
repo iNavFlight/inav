@@ -62,8 +62,8 @@ typedef enum {
     FEATURE_SUPEREXPO_RATES = 1 << 23,
     FEATURE_VTX = 1 << 24,
     FEATURE_UNUSED_8 = 1 << 25,         // RX_SPI
-    FEATURE_UNUSED_9 = 1 << 26,         //SOFTSPI
-    FEATURE_PWM_SERVO_DRIVER = 1 << 27,
+    FEATURE_UNUSED_9 = 1 << 26,         // SOFTSPI
+    FEATURE_UNUSED_11 = 1 << 27,        // FEATURE_PWM_SERVO_DRIVER
     FEATURE_PWM_OUTPUT_ENABLE = 1 << 28,
     FEATURE_OSD = 1 << 29,
     FEATURE_FW_LAUNCH = 1 << 30,

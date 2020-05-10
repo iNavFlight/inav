@@ -19,8 +19,6 @@
 
 #define TARGET_BOARD_IDENTIFIER "OMNI" // https://en.wikipedia.org/wiki/Omnibus
 
-#define CONFIG_FASTLOOP_PREFERRED_ACC ACC_NONE
-
 #define BEEPER                  PC15
 #define BEEPER_INVERTED
 
@@ -34,17 +32,13 @@
 
 #define USE_EXTI
 
-#define USE_GYRO
-#define USE_GYRO_MPU6000
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW90_DEG
 #define MPU6000_SPI_BUS         BUS_SPI1
 #define MPU6000_CS_PIN          PA4
 #define GYRO_INT_EXTI            PC13
 #define USE_MPU_DATA_READY_SIGNAL
-#define GYRO_MPU6000_ALIGN      CW90_DEG
 
-#define USE_ACC
-#define USE_ACC_MPU6000
-#define ACC_MPU6000_ALIGN       CW90_DEG
 
 #define USE_BARO
 #define USE_BARO_BMP280

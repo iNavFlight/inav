@@ -21,6 +21,8 @@
 
 #include <platform.h>
 
+FILE_COMPILE_FOR_SPEED
+
 #include "build/build_config.h"
 #include "build/debug.h"
 
@@ -185,6 +187,12 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
                     .I = 50,    // NAV_VEL_Z_I * 20
                     .D = 10,    // NAV_VEL_Z_D * 100
                     .FF = 0,
+                },
+                [PID_POS_HEADING] = {
+                    .P = 0,
+                    .I = 0,
+                    .D = 0,
+                    .FF = 0
                 }
             }
         },
@@ -212,6 +220,12 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
                     .I = 5,     // FW_POS_XY_I * 100
                     .D = 8,     // FW_POS_XY_D * 100
                     .FF = 0,
+                },
+                [PID_POS_HEADING] = {
+                    .P = 30,
+                    .I = 2,
+                    .D = 0,
+                    .FF = 0
                 }
             }
         },
@@ -255,6 +269,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .antigravityAccelerator = 1.0f,
         .antigravityCutoff = ANTI_GRAVITY_THROTTLE_FILTER_CUTOFF,
         .pidControllerType = PID_TYPE_AUTO,
+        .navFwPosHdgPidsumLimit = PID_SUM_LIMIT_YAW_DEFAULT,
 );
 
 bool pidInitFilters(void)
@@ -561,7 +576,7 @@ static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float h
 }
 
 /* Apply angular acceleration limit to rate target to limit extreme stick inputs to respect physical capabilities of the machine */
-static void FAST_CODE pidApplySetpointRateLimiting(pidState_t *pidState, flight_dynamics_index_t axis, float dT)
+static void pidApplySetpointRateLimiting(pidState_t *pidState, flight_dynamics_index_t axis, float dT)
 {
     const uint32_t axisAccelLimit = (axis == FD_YAW) ? pidProfile()->axisAccelerationLimitYaw : pidProfile()->axisAccelerationLimitRollPitch;
 
@@ -583,7 +598,7 @@ bool isFixedWingItermLimitActive(float stickPosition)
     return fabsf(stickPosition) > pidProfile()->fixedWingItermLimitOnStickPosition;
 }
 
-static FAST_CODE NOINLINE float pTermProcess(pidState_t *pidState, float rateError, float dT) {
+static float pTermProcess(pidState_t *pidState, float rateError, float dT) {
     float newPTerm = rateError * pidState->kP;
 
     return pidState->ptermFilterApplyFn(&pidState->ptermLpfState, newPTerm, yawLpfHz, dT);
@@ -701,17 +716,17 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
         newDTerm = 0;
     } else {
         // Calculate delta for Dterm calculation. Apply filters before derivative to minimize effects of dterm kick
-        float deltaFiltered = pidProfile()->dterm_setpoint_weight * pidState->rateTarget - pidState->gyroRate;
-
-        // Apply D-term notch
-        deltaFiltered = notchFilterApplyFn(&pidState->deltaNotchFilter, deltaFiltered);
-
-        // Apply additional lowpass
-        deltaFiltered = dTermLpfFilterApplyFn((filter_t *) &pidState->dtermLpfState, deltaFiltered);
-        deltaFiltered = dTermLpf2FilterApplyFn((filter_t *) &pidState->dtermLpf2State, deltaFiltered);
+        const float deltaFiltered = pidProfile()->dterm_setpoint_weight * pidState->rateTarget - pidState->gyroRate;
 
         firFilterUpdate(&pidState->gyroRateFilter, deltaFiltered);
         newDTerm = firFilterApply(&pidState->gyroRateFilter);
+
+        // Apply D-term notch
+        newDTerm = notchFilterApplyFn(&pidState->deltaNotchFilter, newDTerm);
+
+        // Apply additional lowpass
+        newDTerm = dTermLpfFilterApplyFn((filter_t *) &pidState->dtermLpfState, newDTerm);
+        newDTerm = dTermLpf2FilterApplyFn((filter_t *) &pidState->dtermLpf2State, newDTerm);
 
         // Calculate derivative
         newDTerm =  newDTerm * (pidState->kD / dT) * applyDBoost(pidState, dT);
@@ -927,7 +942,7 @@ static void pidApplyFpvCameraAngleMix(pidState_t *pidState, uint8_t fpvCameraAng
     pidState[YAW].rateTarget = constrainf(yawRate * cosCameraAngle + rollRate * sinCameraAngle, -GYRO_SATURATION_LIMIT, GYRO_SATURATION_LIMIT);
 }
 
-void FAST_CODE checkItermLimitingActive(pidState_t *pidState)
+void checkItermLimitingActive(pidState_t *pidState)
 {
     bool shouldActivate;
     if (usedPidControllerType == PID_TYPE_PIFF) {
@@ -940,7 +955,7 @@ void FAST_CODE checkItermLimitingActive(pidState_t *pidState)
     pidState->itermLimitActive = STATE(ANTI_WINDUP) || shouldActivate; 
 }
 
-void FAST_CODE NOINLINE pidController(float dT)
+void FAST_CODE pidController(float dT)
 {
     if (!pidFiltersConfigured) {
         return;
@@ -1106,9 +1121,9 @@ void pidInit(void)
     }
 }
 
-const pidBank_t FAST_CODE NOINLINE * pidBank(void) { 
+const pidBank_t * pidBank(void) { 
     return usedPidControllerType == PID_TYPE_PIFF ? &pidProfile()->bank_fw : &pidProfile()->bank_mc; 
 }
-pidBank_t FAST_CODE NOINLINE * pidBankMutable(void) { 
+pidBank_t * pidBankMutable(void) { 
     return usedPidControllerType == PID_TYPE_PIFF ? &pidProfileMutable()->bank_fw : &pidProfileMutable()->bank_mc;
 }

@@ -152,7 +152,7 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  switch_disarm_delay | 250 | Delay before disarming when requested by switch (ms) [0-1000] |
 |  small_angle  | 25 | If the aircraft tilt angle exceed this value the copter will refuse to arm.  |
 |  reboot_character  | 82 | Special character used to trigger reboot |
-|  gps_provider  | UBLOX | Which GPS protocol to be used |
+|  gps_provider  | UBLOX | Which GPS protocol to be used, note that UBLOX is 5Hz and UBLOX7 is 10Hz (M8N). |
 |  gps_sbas_mode  | NONE | Which SBAS mode to be used |
 |  gps_dyn_model  | AIR_1G | GPS navigation model: Pedestrian, Air_1g, Air_4g. Default is AIR_1G. Use pedestrian with caution, can cause flyaways with fast flying. |
 |  gps_auto_config  | ON | Enable automatic configuration of UBlox GPS receivers. |
@@ -163,7 +163,7 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  inav_gravity_cal_tolerance  | 5 | Unarmed gravity calibration tolerance level. Won't finish the calibration until estimated gravity error falls below this value. |
 |  inav_use_gps_velned  | ON | Defined if iNav should use velocity data provided by GPS module for doing position and speed estimation. If set to OFF iNav will fallback to calculating velocity from GPS coordinates. Using native velocity data may improve performance on some GPS modules. Some GPS modules introduce significant delay and using native velocity may actually result in much worse performance. |
 |  inav_reset_altitude | FIRST_ARM | Defines when relative estimated altitude is reset to zero. Variants - `NEVER` (once reference is acquired it's used regardless); `FIRST_ARM` (keep altitude at zero until firstly armed), `EACH_ARM` (altitude is reset to zero on each arming) |
-|  inav_reset_home | EACH_ARM | Allows to chose when the home position is reset. Can help prevent resetting home position after accidental mid-air disarm. Possible values are: NEVER, FIRST_ARM and EACH_ARM |
+|  inav_reset_home | FIRST_ARM | Allows to chose when the home position is reset. Can help prevent resetting home position after accidental mid-air disarm. Possible values are: NEVER, FIRST_ARM and EACH_ARM |
 |  inav_max_surface_altitude  | 200 | Max allowed altitude for surface following mode. [cm] |
 |  inav_w_z_baro_p  | 0.350 | Weight of barometer measurements in estimated altitude and climb rate |
 |  inav_w_z_gps_p  | 0.200 | Weight of GPS altitude measurements in estimated altitude. Setting is used only of airplanes |
@@ -215,6 +215,7 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  nav_fw_climb_angle  | 20 | Max pitch angle when climbing in GPS assisted modes, is also restrained by global max_angle_inclination_pit |
 |  nav_fw_dive_angle  | 15 | Max negative pitch angle when diving in GPS assisted modes, is also restrained by global max_angle_inclination_pit |
 |  nav_fw_pitch2thr  | 10 | Amount of throttle applied related to pitch attitude in GPS assisted modes. Throttle = nav_fw_cruise_throttle - (nav_fw_pitch2thr * pitch_angle). (notice that pitch_angle is in degrees and is negative when climbing and positive when diving, and throttle value is constrained between nav_fw_min_thr and nav_fw_max_thr) |
+|  nav_fw_control_smoothness | 0 | How smoothly the autopilot controls the airplane to correct the navigation error |
 |  nav_fw_loiter_radius  | 5000 | PosHold radius. 3000 to 7500 is a good value (30-75m) [cm] |
 |  nav_fw_launch_velocity  | 300 | Forward velocity threshold for swing-launch detection [cm/s] |
 |  nav_fw_launch_accel  | 1863 | Forward acceleration threshold for bungee launch of throw launch [cm/s/s], 1G = 981 cm/s/s |
@@ -291,6 +292,7 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  alt_hold_deadband  | 50 | Defines the deadband of throttle during alt_hold [r/c points] |
 |  yaw_motor_direction  | 1 | Use if you need to inverse yaw motor direction. |
 |  tri_unarmed_servo  | ON | On tricopter mix only, if this is set to ON, servo will always be correcting regardless of armed state. to disable this, set it to OFF. |
+|  servo_protocol  | PWM | An option to chose the protocol/option that would be used to output servo data. Possible options `PWM` (FC servo outputs), `SERVO_DRIVER` (I2C PCA9685 peripheral), `SBUS` (S.Bus protocol output via a configured serial port) |
 |  servo_lpf_hz  | 20 | Selects the servo PWM output cutoff frequency. Value is in [Hz] |
 |  servo_center_pulse  | 1500 | Servo midpoint |
 |  servo_pwm_rate  | 50 | Output frequency (in Hz) servo pins. When using tricopters or gimbal with digital servo, this rate can be increased. Max of 498Hz (for 500Hz pwm period), and min of 50Hz. Most digital servos will support for example 330Hz. |
@@ -339,6 +341,8 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  osd_gforce_axis_alarm_max | 5  | Value above which the OSD axis g force indicators will blink (g) |
 |  osd_imu_temp_alarm_min | -200 | Temperature under which the IMU temperature OSD element will start blinking (decidegrees centigrade) |
 |  osd_imu_temp_alarm_max | 600 | Temperature above which the IMU temperature OSD element will start blinking (decidegrees centigrade) |
+|  osd_esc_temp_alarm_min | -200 | Temperature under which the IMU temperature OSD element will start blinking (decidegrees centigrade) |
+|  osd_esc_temp_alarm_max | 900 | Temperature above which the IMU temperature OSD element will start blinking (decidegrees centigrade) |
 |  osd_baro_temp_alarm_min | -200 | Temperature under which the baro temperature OSD element will start blinking (decidegrees centigrade) |
 |  osd_baro_temp_alarm_max | 600 | Temperature above which the baro temperature OSD element will start blinking (decidegrees centigrade) |
 |  osd_current_alarm | 0 | Value above which the OSD current consumption element will start blinking. Measured in full Amperes. |

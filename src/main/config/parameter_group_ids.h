@@ -110,7 +110,8 @@
 #define PG_GLOBAL_FUNCTIONS 1020
 #define PG_ESC_SENSOR_CONFIG 1021
 #define PG_RPM_FILTER_CONFIG 1022
-#define PG_INAV_END 1022
+#define PG_GLOBAL_VARIABLE_CONFIG 1023
+#define PG_INAV_END 1023
 
 // OSD configuration (subject to change)
 //#define PG_OSD_FONT_CONFIG 2047
