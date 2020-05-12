@@ -144,6 +144,9 @@ tables:
   - name: osd_ahi_style
     values: ["DEFAULT", "LINE"]
     enum: osd_ahi_style_e
+  - name: gyro_to_use_t
+    values: ["FIRST", "SECOND", "BOTH"]
+    enum: gyro_to_use_e
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -157,6 +160,10 @@ groups:
         type: bool
       - name: align_gyro
         field: gyro_align
+        type: uint8_t
+        table: alignment
+      - name: align_gyro2
+        field: gyro2_align
         type: uint8_t
         table: alignment
       - name: gyro_hardware_lpf
@@ -211,9 +218,11 @@ groups:
         min: 30
         max: 1000
       - name: gyro_to_use
+        type: uint8_t
+        table: gyro_to_use_t
+        field: gyro_to_use
         condition: USE_DUAL_GYRO
-        min: 0
-        max: 1
+
 
   - name: PG_ADC_CHANNEL_CONFIG
     type: adcChannelConfig_t
@@ -249,6 +258,10 @@ groups:
         max: 255
       - name: align_acc
         field: acc_align
+        type: uint8_t
+        table: alignment
+      - name: align_acc2
+        field: acc2_align
         type: uint8_t
         table: alignment
       - name: acc_hardware

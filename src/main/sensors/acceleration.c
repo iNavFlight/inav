@@ -286,9 +286,14 @@ bool accInit(uint32_t targetLooptime)
 {
     memset(&acc, 0, sizeof(acc));
 
-    // Set inertial sensor tag (for dual-gyro selection)
+
+// Set inertial sensor tag (for dual-gyro selection)
 #ifdef USE_DUAL_GYRO
-    acc.dev.imuSensorToUse = gyroConfig()->gyro_to_use;     // Use the same selection from gyroConfig()
+    acc.dev.imuSensorToUse = gyroConfig()->gyro_to_use;
+#ifdef USE_MULTI_GYRO //TODO: Fixme to
+    if(gyroConfig()->gyro_to_use == BOTH )
+        acc.dev.imuSensorToUse = 0;
+#endif
 #else
     acc.dev.imuSensorToUse = 0;
 #endif
@@ -310,8 +315,23 @@ bool accInit(uint32_t targetLooptime)
 
     // At this poinrt acc.dev.accAlign was set up by the driver from the busDev record
     // If configuration says different - override
-    if (accelerometerConfig()->acc_align != ALIGN_DEFAULT) {
-        acc.dev.accAlign = accelerometerConfig()->acc_align;
+    switch(gyroConfig()->gyro_to_use ){
+        case FIRST:
+        default:
+#ifdef USE_MULTI_GYRO
+        case BOTH:
+#endif
+            if (accelerometerConfig()->acc_align != ALIGN_DEFAULT) {
+                acc.dev.accAlign = accelerometerConfig()->acc_align;
+            }
+            break;
+#ifdef USE_DUAL_GYRO
+        case SECOND:
+            if (accelerometerConfig()->acc2_align != ALIGN_DEFAULT) {
+                acc.dev.accAlign = accelerometerConfig()->acc2_align;
+            }
+            break;
+#endif
     }
     return true;
 }

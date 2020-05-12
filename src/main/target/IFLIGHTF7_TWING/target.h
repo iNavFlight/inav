@@ -36,7 +36,7 @@
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PA7
 
-#define USE_DUAL_GYRO
+#define USE_MULTI_GYRO
 
 #define USE_IMU_MPU6500
 #define IMU_0_ALIGN       CW90_DEG
