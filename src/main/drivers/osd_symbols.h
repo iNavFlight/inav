@@ -117,7 +117,7 @@
 #define SYM_3D_MPH                0x8A // 138 MPH 3D
 
 #define SYM_RPM                   0x8B // 139 RPM
-#define SYM_WAYPOINT              0x8C // 140 Waypoint
+//                                0x8C // 140 -
 //                                0x8D // 141 -
 //                                0x8E // 142 -
 //                                0x8F // 143 -
