@@ -1931,8 +1931,8 @@ groups:
         max: 4
       - name: osd_hud_margin_v
         field: hud_margin_v
-        min: 1
-        max: 3
+        min: 0
+        max: 4
       - name: osd_hud_homing
         field: hud_homing
         type: bool
@@ -1955,10 +1955,6 @@ groups:
         field: hud_radar_nearest
         min: 0
         max: 4000
-      - name: osd_hud_wp_disp
-        field: hud_wp_disp
-        min: 0
-        max: 3
       - name: osd_left_sidebar_scroll
         field: left_sidebar_scroll
         table: osd_sidebar_scroll

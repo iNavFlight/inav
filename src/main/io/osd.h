@@ -231,7 +231,6 @@ typedef struct osdConfig_s {
     uint16_t hud_radar_range_min;
     uint16_t hud_radar_range_max;
     uint16_t hud_radar_nearest;
-    uint8_t hud_wp_disp;
     
     uint8_t left_sidebar_scroll; // from osd_sidebar_scroll_e
     uint8_t right_sidebar_scroll; // from osd_sidebar_scroll_e
