@@ -45,6 +45,12 @@ typedef enum {
     DYN_NOTCH_RANGE_LOW
 } dynamicFilterRange_e;
 
+typedef enum {
+    FIRST = 0,
+    SECOND = 1,
+    BOTH = 2
+} gyro_to_use_e;
+
 #define DYN_NOTCH_RANGE_HZ_HIGH 2000
 #define DYN_NOTCH_RANGE_HZ_MEDIUM 1333
 #define DYN_NOTCH_RANGE_HZ_LOW 1000
@@ -53,12 +59,16 @@ typedef struct gyro_s {
     bool initialized;
     uint32_t targetLooptime;
     float gyroADCf[XYZ_AXIS_COUNT];
+#ifdef USE_MULTI_GYRO
+    float gyro2ADCf[XYZ_AXIS_COUNT];
+#endif
 } gyro_t;
 
 extern gyro_t gyro;
 
 typedef struct gyroConfig_s {
     sensor_align_e gyro_align;              // gyro alignment
+    sensor_align_e gyro2_align;              // second gyro alignment
     uint8_t  gyroMovementCalibrationThreshold; // people keep forgetting that moving model while init results in wrong gyro offsets. and then they never reset gyro. so this is now on by default.
     uint8_t  gyroSync;                      // Enable interrupt based loop
     uint16_t looptime;                      // imu loop time in us

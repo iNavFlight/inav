@@ -78,8 +78,12 @@ FILE_COMPILE_FOR_SPEED
 #endif
 
 FASTRAM gyro_t gyro; // gyro sensor object
-
+#ifdef USE_MULTI_GYRO
+#define MAX_GYRO_COUNT          2
+#else
 #define MAX_GYRO_COUNT          1
+#endif
+
 
 STATIC_UNIT_TESTED gyroDev_t gyroDev[MAX_GYRO_COUNT];  // Not in FASTRAM since it may hold DMA buffers
 STATIC_FASTRAM int16_t gyroTemperature[MAX_GYRO_COUNT];
@@ -111,7 +115,7 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyroMovementCalibrationThreshold = 32,
     .looptime = 1000,
     .gyroSync = 1,
-    .gyro_to_use = 0,
+    .gyro_to_use = FIRST,
     .gyro_notch_hz = 0,
     .gyro_notch_cutoff = 1,
     .gyro_stage2_lowpass_hz = 0,
@@ -272,23 +276,52 @@ bool gyroInit(void)
     memset(&gyro, 0, sizeof(gyro));
 
     // Set inertial sensor tag (for dual-gyro selection)
-#ifdef USE_DUAL_GYRO
-    gyroDev[0].imuSensorToUse = gyroConfig()->gyro_to_use;
-#else
-    gyroDev[0].imuSensorToUse = 0;
+    gyroSensor_e gyro0Hardware;
+#ifdef USE_MULTI_GYRO
+    gyroSensor_e gyro1Hardware;
 #endif
 
-    // Detecting gyro0
-    gyroSensor_e gyroHardware = gyroDetect(&gyroDev[0], GYRO_AUTODETECT);
-    if (gyroHardware == GYRO_NONE) {
-        gyro.initialized = false;
-        detectedSensors[SENSOR_INDEX_GYRO] = GYRO_NONE;
-        return true;
-    }
+    switch (gyroConfig()->gyro_to_use){
+        case FIRST:
+        case SECOND:
+#ifdef USE_DUAL_GYRO
+            gyroDev[0].imuSensorToUse = gyroConfig()->gyro_to_use;
+#else
+            gyroDev[0].imuSensorToUse = 0;
+#endif
 
-    // Gyro is initialized
+            // Detecting gyro0
+            gyro0Hardware = gyroDetect(&gyroDev[0], GYRO_AUTODETECT);
+            if (gyro0Hardware == GYRO_NONE) {
+                gyro.initialized = false;
+                detectedSensors[SENSOR_INDEX_GYRO] = GYRO_NONE;
+                return true;
+            }
+            break;
+
+#ifdef USE_MULTI_GYRO
+        case BOTH:
+            gyroDev[0].imuSensorToUse = FIRST;
+            gyroDev[1].imuSensorToUse = SECOND;
+            gyro0Hardware = gyroDetect(&gyroDev[0], GYRO_AUTODETECT);
+            gyro1Hardware = gyroDetect(&gyroDev[1], GYRO_AUTODETECT);
+
+            if (gyro0Hardware == GYRO_NONE || gyro1Hardware == GYRO_NONE)  {
+                gyro.initialized = false;
+                detectedSensors[SENSOR_INDEX_GYRO] = GYRO_NONE;
+                return true;
+            }
+            break;
+
+#endif
+        default:
+            return false;
+    };
+
     gyro.initialized = true;
-    detectedSensors[SENSOR_INDEX_GYRO] = gyroHardware;
+
+    // FIXME: We need to record both gyros here
+    detectedSensors[SENSOR_INDEX_GYRO] = gyro0Hardware;
     sensorsSet(SENSOR_GYRO);
 
     // Driver initialisation
@@ -298,15 +331,47 @@ bool gyroInit(void)
     gyroDev[0].initFn(&gyroDev[0]);
 
     // initFn will initialize sampleRateIntervalUs to actual gyro sampling rate (if driver supports it). Calculate target looptime using that value
-    gyro.targetLooptime = gyroConfig()->gyroSync ? gyroDev[0].sampleRateIntervalUs : gyroConfig()->looptime;
+    gyro.targetLooptime = (gyroConfig()->gyroSync ? gyroDev[0].sampleRateIntervalUs : gyroConfig()->looptime);
 
-    // At this poinrt gyroDev[0].gyroAlign was set up by the driver from the busDev record
-    // If configuration says different - override
-    if (gyroConfig()->gyro_align != ALIGN_DEFAULT) {
-        gyroDev[0].gyroAlign = gyroConfig()->gyro_align;
+#ifdef USE_MULTI_GYRO
+    if (gyroConfig()->gyro_to_use == BOTH) {
+        gyroDev[1].lpf = gyroConfig()->gyro_lpf;
+        gyroDev[1].requestedSampleIntervalUs = gyroConfig()->looptime;
+        gyroDev[1].sampleRateIntervalUs = gyroConfig()->looptime;
+        gyroDev[1].initFn(&gyroDev[1]);
+        gyro.targetLooptime = (gyroConfig()->gyroSync ? MAX(gyroDev[0].sampleRateIntervalUs, gyroDev[1].sampleRateIntervalUs) : gyroConfig()->looptime);
+    }
+#endif
+
+    
+    switch (gyroConfig()->gyro_to_use){
+    case FIRST:
+    default:
+        if (gyroConfig()->gyro_align != ALIGN_DEFAULT) {
+            gyroDev[0].gyroAlign = gyroConfig()->gyro_align;
+        }
+        break;
+#ifdef USE_DUAL_GYRO
+    case SECOND:
+        if (gyroConfig()->gyro2_align != ALIGN_DEFAULT) {
+            gyroDev[0].gyroAlign = gyroConfig()->gyro2_align;
+        }
+        break;
+#endif
+#ifdef USE_MULTI_GYRO
+    case BOTH:
+        if (gyroConfig()->gyro_align != ALIGN_DEFAULT) {
+            gyroDev[0].gyroAlign = gyroConfig()->gyro_align;
+        }
+        if (gyroConfig()->gyro2_align != ALIGN_DEFAULT) {
+            gyroDev[1].gyroAlign = gyroConfig()->gyro2_align;
+        }
+        break;
+#endif
     }
 
     gyroInitFilters();
+
 #ifdef USE_DYNAMIC_FILTERS
     dynamicGyroNotchFiltersInit(&dynamicGyroNotchState);
     gyroDataAnalyseStateInit(
@@ -326,6 +391,11 @@ void gyroStartCalibration(void)
     }
 
     zeroCalibrationStartV(&gyroCalibration[0], CALIBRATING_GYRO_TIME_MS, gyroConfig()->gyroMovementCalibrationThreshold, false);
+#ifdef USE_MULTI_GYRO
+    if(gyroConfig()->gyro_to_use == BOTH) {
+        zeroCalibrationStartV(&gyroCalibration[1], CALIBRATING_GYRO_TIME_MS, gyroConfig()->gyroMovementCalibrationThreshold, false);
+    }
+#endif
 }
 
 bool gyroIsCalibrationComplete(void)
@@ -333,6 +403,11 @@ bool gyroIsCalibrationComplete(void)
     if (!gyro.initialized) {
         return true;
     }
+#ifdef USE_MULTI_GYRO
+    if (gyroConfig()->gyro_to_use == BOTH)
+        return zeroCalibrationIsCompleteV(&gyroCalibration[0]) && zeroCalibrationIsSuccessfulV(&gyroCalibration[0]) &&
+               zeroCalibrationIsCompleteV(&gyroCalibration[1]) && zeroCalibrationIsSuccessfulV(&gyroCalibration[1]);
+#endif
 
     return zeroCalibrationIsCompleteV(&gyroCalibration[0]) && zeroCalibrationIsSuccessfulV(&gyroCalibration[0]);
 }
@@ -422,6 +497,15 @@ void FAST_CODE NOINLINE gyroUpdate()
     if (!gyroUpdateAndCalibrate(&gyroDev[0], &gyroCalibration[0], gyro.gyroADCf)) {
         return;
     }
+#ifdef USE_MULTI_GYRO
+    if (gyroConfig()->gyro_to_use == BOTH ) {
+        if(!gyroUpdateAndCalibrate(&gyroDev[1], &gyroCalibration[1], gyro.gyro2ADCf))
+            return;
+        gyro.gyroADCf[X] = (gyro.gyroADCf[X] + gyro.gyro2ADCf[X]) / 2.0f;
+        gyro.gyroADCf[Y] = (gyro.gyroADCf[Y] + gyro.gyro2ADCf[Y]) / 2.0f;
+        gyro.gyroADCf[Z] = (gyro.gyroADCf[Z] + gyro.gyro2ADCf[Z]) / 2.0f;
+    }
+#endif
 
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         // At this point gyro.gyroADCf contains unfiltered gyro value [deg/s]
@@ -473,6 +557,13 @@ bool gyroReadTemperature(void)
     }
 
     // Read gyro sensor temperature. temperatureFn returns temperature in [degC * 10]
+    // TODO: [degC * 10] is a bug in Finland. Negative temperature...
+#ifdef USE_MULTI_GYRO
+    if (gyroConfig()->gyro_to_use == BOTH && gyroDev[0].temperatureFn && gyroDev[1].temperatureFn)
+        return MAX(gyroDev[0].temperatureFn(&gyroDev[0], &gyroTemperature[0]), gyroDev[1].temperatureFn(&gyroDev[1], &gyroTemperature[1]));
+    else if (gyroConfig()->gyro_to_use == BOTH)
+        return false;
+#endif
     if (gyroDev[0].temperatureFn) {
         return gyroDev[0].temperatureFn(&gyroDev[0], &gyroTemperature[0]);
     }
@@ -485,7 +576,10 @@ int16_t gyroGetTemperature(void)
     if (!gyro.initialized) {
         return 0;
     }
-
+#ifdef USE_MULTI_GYRO
+    if (gyroConfig()->gyro_to_use == BOTH)
+        return MAX(gyroTemperature[0], gyroTemperature[1]);
+#endif
     return gyroTemperature[0];
 }
 
@@ -508,5 +602,12 @@ bool gyroSyncCheckUpdate(void)
         return false;
     }
 
+#ifdef USE_MULTI_GYRO
+    if(gyroConfig()->gyro_to_use == BOTH) {
+        if (!gyroDev[1].intStatusFn)
+            return false;
+        return gyroDev[0].intStatusFn(&gyroDev[0]) && gyroDev[1].intStatusFn(&gyroDev[1]);
+    }
+#endif
     return gyroDev[0].intStatusFn(&gyroDev[0]);
 }
