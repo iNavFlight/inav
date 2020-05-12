@@ -41,6 +41,7 @@
 #include "drivers/io.h"
 #include "drivers/light_led.h"
 #include "drivers/nvic.h"
+#include "drivers/persistent.h"
 #include "drivers/sdmmc_sdio.h"
 #include "drivers/time.h"
 #include "drivers/usb_msc.h"
@@ -110,20 +111,14 @@ uint8_t mscStart(void)
 
     USBD_Init(&USB_OTG_dev, USB_OTG_FS_CORE_ID, &MSC_desc, &USBD_MSC_cb, &USR_cb);
 
+    persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_NONE);
+
     // NVIC configuration for SYSTick
     NVIC_DisableIRQ(SysTick_IRQn);
-    NVIC_SetPriority(SysTick_IRQn, NVIC_BUILD_PRIORITY(0, 0));
+    NVIC_SetPriority(SysTick_IRQn, 0);
     NVIC_EnableIRQ(SysTick_IRQn);
 
     return 0;
-}
-
-bool mscCheckBoot(void)
-{
-    if (*((uint32_t *)0x2001FFF0) == MSC_MAGIC) {
-        return true;
-    }
-    return false;
 }
 
 bool mscCheckButton(void)
@@ -150,7 +145,6 @@ void mscWaitForButton(void)
     while (true) {
         asm("NOP");
         if (mscCheckButton()) {
-            *((uint32_t *)0x2001FFF0) = 0xFFFFFFFF;
             delay(1);
             NVIC_SystemReset();
         }

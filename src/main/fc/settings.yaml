@@ -22,7 +22,7 @@ tables:
     values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE"]
     enum: pitotSensor_e
   - name: receiver_type
-    values: ["NONE", "PWM", "PPM", "SERIAL", "MSP", "SPI", "UIB"]
+    values: ["NONE", "PPM", "SERIAL", "MSP", "SPI", "UIB"]
     enum: rxReceiverType_e
   - name: serial_rx
     values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST"]
@@ -33,6 +33,8 @@ tables:
     values: ["SERIAL", "SPIFLASH", "SDCARD"]
   - name: motor_pwm_protocol
     values: ["STANDARD", "ONESHOT125", "ONESHOT42", "MULTISHOT", "BRUSHED", "DSHOT150", "DSHOT300", "DSHOT600", "DSHOT1200", "SERIALSHOT"]
+  - name: servo_protocol
+    values: ["PWM", "SERVO_DRIVER", "SBUS"]
   - name: failsafe_procedure
     values: ["SET-THR", "DROP", "RTH", "NONE"]
   - name: current_sensor
@@ -81,7 +83,8 @@ tables:
     values: ["NONE", "GYRO", "AGL", "FLOW_RAW",
       "FLOW", "SBUS", "FPORT", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "ITERM_RELAX",
-      "ERPM", "RPM_FILTER", "RPM_FREQ"]
+      "ERPM", "RPM_FILTER", "RPM_FREQ", "NAV_YAW", "DYNAMIC_FILTER", "DYNAMIC_FILTER_FREQUENCY",
+      "IRLOCK"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -138,6 +141,9 @@ tables:
   - name: pidTypeTable
     values: ["NONE", "PID", "PIFF", "AUTO"]
     enum: pidType_e
+  - name: osd_ahi_style
+    values: ["DEFAULT", "LINE"]
+    enum: osd_ahi_style_e
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -186,24 +192,23 @@ groups:
       - name: gyro_stage2_lowpass_type
         field: gyro_stage2_lowpass_type
         table: filter_type
-      - name: dyn_notch_width_percent
-        field: dyn_notch_width_percent
+      - name: dynamic_gyro_notch_enabled
+        field: dynamicGyroNotchEnabled
         condition: USE_DYNAMIC_FILTERS
-        min: 0
-        max: 20
-      - name: dyn_notch_range
-        field: dyn_notch_range
+        type: bool
+      - name: dynamic_gyro_notch_range
+        field: dynamicGyroNotchRange
         condition: USE_DYNAMIC_FILTERS
         table: dynamicFilterRangeTable
-      - name: dyn_notch_q
-        field: dyn_notch_q
+      - name: dynamic_gyro_notch_q
+        field: dynamicGyroNotchQ
         condition: USE_DYNAMIC_FILTERS
         min: 1
         max: 1000
-      - name: dyn_notch_min_hz
-        field: dyn_notch_min_hz
+      - name: dynamic_gyro_notch_min_hz
+        field: dynamicGyroNotchMinHz
         condition: USE_DYNAMIC_FILTERS
-        min: 60
+        min: 30
         max: 1000
       - name: gyro_to_use
         condition: USE_DUAL_GYRO
@@ -685,9 +690,9 @@ groups:
   - name: PG_MIXER_CONFIG
     type: mixerConfig_t
     members:
-      - name: yaw_motor_direction
-        min: -1
-        max: 1
+      - name: motor_direction_inverted
+        field: motorDirectionInverted
+        type: bool
       - name: platform_type
         field: platformType
         type: uint8_t
@@ -704,19 +709,19 @@ groups:
         min: 0
         max: 450
 
-  - name: PG_MOTOR_3D_CONFIG
-    type: flight3DConfig_t
+  - name: PG_REVERSIBLE_MOTORS_CONFIG
+    type: reversibleMotorsConfig_t
     members:
       - name: 3d_deadband_low
-        field: deadband3d_low
+        field: deadband_low
         min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
       - name: 3d_deadband_high
-        field: deadband3d_high
+        field: deadband_high
         min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
       - name: 3d_neutral
-        field: neutral3d
+        field: neutral
         min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
 
@@ -724,6 +729,9 @@ groups:
     type: servoConfig_t
     headers: ["flight/servos.h"]
     members:
+      - name: servo_protocol
+        field: servo_protocol
+        table: servo_protocol
       - name: servo_center_pulse
         field: servoCenterPulse
         min: PWM_RANGE_MIN
@@ -878,9 +886,6 @@ groups:
       - name: rpm_gyro_filter_enabled
         field: gyro_filter_enabled
         type: bool
-      - name: rpm_dterm_filter_enabled
-        field: dterm_filter_enabled
-        type: bool
       - name: rpm_gyro_harmonics
         field: gyro_harmonics
         type: uint8_t
@@ -889,25 +894,10 @@ groups:
       - name: rpm_gyro_min_hz
         field: gyro_min_hz
         type: uint8_t
-        min: 50
+        min: 30
         max: 200
       - name: rpm_gyro_q
         field: gyro_q
-        type: uint16_t
-        min: 1
-        max: 3000
-      - name: dterm_gyro_harmonics
-        field: dterm_harmonics
-        type: uint8_t
-        min: 1
-        max: 3
-      - name: rpm_dterm_min_hz
-        field: dterm_min_hz
-        type: uint8_t
-        min: 50
-        max: 200
-      - name: rpm_dterm_q
-        field: dterm_q
         type: uint16_t
         min: 1
         max: 3000
@@ -952,13 +942,13 @@ groups:
         min: 0
         max: 100
       - name: pos_hold_deadband
-        min: 10
+        min: 2
         max: 250
       - name: alt_hold_deadband
         min: 10
         max: 250
       - name: 3d_deadband_throttle
-        field: deadband3d_throttle
+        field: mid_throttle_deadband
         min: 0
         max: 200
       - name: mc_airmode_type
@@ -1238,6 +1228,25 @@ groups:
         condition: USE_NAV
         min: 0
         max: 255
+      - name: nav_fw_pos_hdg_p
+        field: bank_fw.pid[PID_POS_HEADING].P
+        condition: USE_NAV
+        min: 0
+        max: 255
+      - name: nav_fw_pos_hdg_i
+        field: bank_fw.pid[PID_POS_HEADING].I
+        condition: USE_NAV
+        min: 0
+        max: 255
+      - name: nav_fw_pos_hdg_d
+        field: bank_fw.pid[PID_POS_HEADING].D
+        condition: USE_NAV
+        min: 0
+        max: 255
+      - name: nav_fw_pos_hdg_pidsum_limit
+        field: navFwPosHdgPidsumLimit
+        min: PID_SUM_LIMIT_MIN
+        max: PID_SUM_LIMIT_MAX
       - name: mc_iterm_relax_type
         field: iterm_relax_type
         table: iterm_relax_type
@@ -1593,6 +1602,10 @@ groups:
         field: fw.cruise_speed
         min: 0
         max: 65535
+      - name: nav_fw_control_smoothness 
+        field: fw.control_smoothness
+        min: 0
+        max: 9
 
       - name: nav_fw_land_dive_angle
         field: fw.land_dive_angle
@@ -1654,6 +1667,13 @@ groups:
       - name: nav_fw_allow_manual_thr_increase
         field: fw.allow_manual_thr_increase
         type: bool
+      - name: nav_use_fw_yaw_control
+        field: fw.useFwNavYawControl
+        type: bool
+      - name: nav_fw_yaw_deadband
+        field: fw.yawControlDeadband
+        min: 0
+        max: 90
 
   - name: PG_TELEMETRY_CONFIG
     type: telemetryConfig_t
@@ -1691,8 +1711,8 @@ groups:
         field: hottAlarmSoundInterval
         min: 0
         max: 120
-      - name: telemetry_uart_unidir
-        field: uartUnidirectional
+      - name: telemetry_halfduplex
+        field: halfDuplex
         type: bool
       - name: smartport_fuel_unit
         field: smartportFuelUnit
@@ -1882,6 +1902,14 @@ groups:
         field: imu_temp_alarm_max
         min: -550
         max: 1250
+      - name: osd_esc_temp_alarm_max
+        field: esc_temp_alarm_max
+        min: -550
+        max: 1500
+      - name: osd_esc_temp_alarm_min
+        field: esc_temp_alarm_min
+        min: -550
+        max: 1500
       - name: osd_baro_temp_alarm_min
         field: baro_temp_alarm_min
         condition: USE_BARO
@@ -1992,6 +2020,9 @@ groups:
         min: 10
         max: 13
 
+      - name: osd_ahi_style
+        table: osd_ahi_style
+
   - name: PG_SYSTEM_CONFIG
     type: systemConfig_t
     headers: ["fc/config.h"]
@@ -2084,16 +2115,10 @@ groups:
         field: lowPowerDisarm
         table: vtx_low_power_disarm
         type: uint8_t
-      - name: vtx_freq
-        field: freq
-        min: VTX_SETTINGS_MIN_FREQUENCY_MHZ
-        max: VTX_SETTINGS_MAX_FREQUENCY_MHZ
-        condition: VTX_SETTINGS_FREQCMD
-      - name: vtx_pit_mode_freq
-        field: pitModeFreq
-        min: VTX_SETTINGS_MIN_FREQUENCY_MHZ
-        max: VTX_SETTINGS_MAX_FREQUENCY_MHZ
-        condition: VTX_SETTINGS_FREQCMD
+      - name: vtx_pit_mode_chan
+        field: pitModeChan
+        min: VTX_SETTINGS_MIN_CHANNEL
+        max: VTX_SETTINGS_MAX_CHANNEL
 
   - name: PG_PINIOBOX_CONFIG
     type: pinioBoxConfig_t
@@ -2131,5 +2156,14 @@ groups:
           table: log_level
         - name: log_topics
           field: topics
-          min: 0,
+          min: 0
           max: UINT32_MAX
+
+  - name: PG_ESC_SENSOR_CONFIG
+    type: escSensorConfig_t
+    headers: ["sensors/esc_sensor.h"]
+    condition: USE_ESC_SENSOR
+    members:
+        - name: esc_sensor_listen_only
+          field: listenOnly
+          type: bool

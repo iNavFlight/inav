@@ -27,8 +27,6 @@
 
 /*** IMU sensors ***/
 #define USE_EXTI
-#define USE_ACC
-#define USE_GYRO
 
 // We use dual IMU sensors, they have to be described in the target file
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
@@ -36,24 +34,18 @@
 #define USE_DUAL_GYRO
 
 // MPU6000
-#define USE_GYRO_MPU6000
-#define USE_ACC_MPU6000
-
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_CS_PIN          PB2
 #define MPU6000_SPI_BUS         BUS_SPI1
 #define MPU6000_EXTI_PIN        PC4
-#define GYRO_MPU6000_ALIGN      CW270_DEG
-#define ACC_MPU6000_ALIGN       CW270_DEG
 
 // ICM20602 - handled by MPU6500 driver
-#define USE_GYRO_MPU6500
-#define USE_ACC_MPU6500
-
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW180_DEG
 #define MPU6500_CS_PIN          PB1
 #define MPU6500_SPI_BUS         BUS_SPI1
 #define MPU6500_EXTI_PIN        PB0
-#define GYRO_MPU6500_ALIGN      CW180_DEG
-#define ACC_MPU6500_ALIGN       CW180_DEG
 
 /*** SPI/I2C bus ***/
 #define USE_SPI

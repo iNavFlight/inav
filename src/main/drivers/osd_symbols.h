@@ -205,6 +205,7 @@
 #define SYM_BARO_TEMP             0xF0 // 240
 #define SYM_IMU_TEMP              0xF1 // 241
 #define SYM_TEMP                  0xF2 // 242
+#define SYM_ESC_TEMP              0xF3 // 243
 
 #define SYM_TEMP_SENSOR_FIRST     0xF2 // 242
 #define SYM_TEMP_SENSOR_LAST      0xF7 // 247

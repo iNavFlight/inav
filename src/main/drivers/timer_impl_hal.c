@@ -62,12 +62,12 @@ void impl_timerInitContext(timHardwareContext_t * timCtx)
 void impl_timerNVICConfigure(TCH_t * tch, int irqPriority)
 {
     if (tch->timCtx->timDef->irq) {
-        HAL_NVIC_SetPriority(tch->timCtx->timDef->irq, NVIC_PRIORITY_BASE(irqPriority), NVIC_PRIORITY_SUB(irqPriority));
+        HAL_NVIC_SetPriority(tch->timCtx->timDef->irq, irqPriority, 0);
         HAL_NVIC_EnableIRQ(tch->timCtx->timDef->irq);
     }
 
     if (tch->timCtx->timDef->secondIrq) {
-        HAL_NVIC_SetPriority(tch->timCtx->timDef->secondIrq, NVIC_PRIORITY_BASE(irqPriority), NVIC_PRIORITY_SUB(irqPriority));
+        HAL_NVIC_SetPriority(tch->timCtx->timDef->secondIrq, irqPriority, 0);
         HAL_NVIC_EnableIRQ(tch->timCtx->timDef->secondIrq);
     }
 }
@@ -380,7 +380,7 @@ bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint8_t dmaBuf
     init.PeriphBurst = LL_DMA_PBURST_SINGLE;
 
     dmaInit(tch->dma, OWNER_TIMER, 0);
-    dmaSetHandler(tch->dma, impl_timerDMA_IRQHandler, NVIC_PRIO_WS2811_DMA, (uint32_t)tch);
+    dmaSetHandler(tch->dma, impl_timerDMA_IRQHandler, NVIC_PRIO_TIMER_DMA, (uint32_t)tch);
 
     LL_DMA_Init(tch->dma->dma, streamLL, &init);
 

@@ -581,7 +581,7 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
 
         return true;
     }
-    else if (STATE(FIXED_WING) && (ctx->newFlags & EST_GPS_Z_VALID)) {
+    else if (STATE(FIXED_WING_LEGACY) && (ctx->newFlags & EST_GPS_Z_VALID)) {
         // If baro is not available - use GPS Z for correction on a plane
         // Reset current estimate to GPS altitude if estimate not valid
         if (!(ctx->newFlags & EST_Z_VALID)) {
@@ -823,7 +823,7 @@ void initializePositionEstimator(void)
  * Update estimator
  *  Update rate: loop rate (>100Hz)
  */
-void FAST_CODE NOINLINE updatePositionEstimator(void)
+void updatePositionEstimator(void)
 {
     static bool isInitialized = false;
 
