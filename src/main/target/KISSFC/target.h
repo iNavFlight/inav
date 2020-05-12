@@ -29,14 +29,9 @@
 #define BEEPER              PB13
 #define BEEPER_INVERTED
 
-#define USE_ACC
-#define USE_ACC_MPU6050
-#define ACC_MPU6050_ALIGN       CW180_DEG
+#define USE_IMU_MPU6050
+#define IMU_MPU6050_ALIGN       CW180_DEG
 #define MPU6050_I2C_BUS         BUS_I2C1
-
-#define USE_GYRO
-#define USE_GYRO_MPU6050
-#define GYRO_MPU6050_ALIGN      CW180_DEG
 
 #define USE_EXTI
 #define MPU_INT_EXTI            PB2

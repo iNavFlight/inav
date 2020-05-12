@@ -83,6 +83,22 @@ The bug prevents use of all 16 channels.  Upgrade to the latest OpenTX version t
 without the fix you are limited to 8 channels regardless of the CH1-16/D16 settings.
 
 
+### F.Port
+
+F.Port is a protocol running on async serial allowing 16 controls channels and telemetry on a single UART.
+
+Supported receivers include FrSky R-XSR, X4R, X4R-SB, XSR, XSR-M, R9M Slim, R9M Slim+, R9 Mini. For ACCST receivers you need to flash the corresponding firmware for it to output F.Port. For ACCESS receivers the protocol output from the receiver can be switched between S.Bus and F.Port from the model's setup page in the RX options.
+
+#### Connection
+
+Just connect the S.Port wire from the receiver to the TX pad of a free UART on your flight controller
+
+#### Configuration
+
+```
+set serialrx_inverted = true
+set serialrx_halfduplex = true
+```
 
 ### XBUS
 
@@ -154,10 +170,8 @@ The receiver type can be set from the configurator or CLI.
 ```
 # get receiver_type
 receiver_type = NONE
-Allowed values: NONE, PWM, PPM, SERIAL, MSP, SPI, UIB
+Allowed values: NONE, PPM, SERIAL, MSP, SPI, UIB
 ```
-
-Note that `PWM` is a synonym for `NONE`. 
 
 ### RX signal-loss detection
 

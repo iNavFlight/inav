@@ -20,7 +20,7 @@
 
 #include "platform.h"
 
-#ifdef USE_ACC_LSM303DLHC
+#ifdef USE_IMU_LSM303DLHC
 
 #include "build/debug.h"
 
@@ -163,6 +163,7 @@ bool lsm303dlhcAccDetect(accDev_t *acc)
 
     acc->initFn = lsm303dlhcAccInit;
     acc->readFn = lsm303dlhcAccRead;
+    acc->accAlign = acc->busDev->param;
     return true;
 }
 

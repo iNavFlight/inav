@@ -42,27 +42,20 @@
 #define SPI3_MISO_PIN           PB4
 #define SPI3_MOSI_PIN           PB5
 
-#define USE_ACC
-#define USE_GYRO
 #define USE_DUAL_GYRO
 
-#define USE_ACC_MPU6000
-#define USE_GYRO_MPU6000
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW90_DEG_FLIP
 #define MPU6000_SPI_BUS         BUS_SPI1
 #define MPU6000_CS_PIN          PC4
 #define MPU6000_EXTI_PIN        PB2
 
-#define USE_ACC_MPU6500
-#define USE_GYRO_MPU6500
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW270_DEG_FLIP
 #define MPU6500_SPI_BUS         BUS_SPI3
 #define MPU6500_CS_PIN          PD7
 #define MPU6500_EXTI_PIN        PD4
 
-#define GYRO_MPU6000_ALIGN      CW90_DEG_FLIP
-#define ACC_MPU6000_ALIGN       CW90_DEG_FLIP
-
-#define GYRO_MPU6500_ALIGN      CW270_DEG_FLIP
-#define ACC_MPU6500_ALIGN       CW270_DEG_FLIP
 
 #define USE_EXTI
 #define USE_MPU_DATA_READY_SIGNAL

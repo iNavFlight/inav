@@ -74,9 +74,9 @@ PG_REGISTER_WITH_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig, PG_RC_CONT
 PG_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig,
     .deadband = 5,
     .yaw_deadband = 5,
-    .pos_hold_deadband = 20,
+    .pos_hold_deadband = 10,
     .alt_hold_deadband = 50,
-    .deadband3d_throttle = 50,
+    .mid_throttle_deadband = 50,
     .airmodeHandlingType = STICK_CENTER,
     .airmodeThrottleThreshold = AIRMODE_THROTTLE_THRESHOLD,
 );
@@ -99,12 +99,19 @@ bool areSticksDeflectedMoreThanPosHoldDeadband(void)
     return (ABS(rcCommand[ROLL]) > rcControlsConfig()->pos_hold_deadband) || (ABS(rcCommand[PITCH]) > rcControlsConfig()->pos_hold_deadband);
 }
 
-throttleStatus_e calculateThrottleStatus(void)
+throttleStatus_e FAST_CODE NOINLINE calculateThrottleStatus(throttleStatusType_e type)
 {
-    const uint16_t deadband3d_throttle = rcControlsConfig()->deadband3d_throttle;
-    if (feature(FEATURE_3D) && (rxGetChannelValue(THROTTLE) > (PWM_RANGE_MIDDLE - deadband3d_throttle) && rxGetChannelValue(THROTTLE) < (PWM_RANGE_MIDDLE + deadband3d_throttle)))
+    int value;
+    if (type == THROTTLE_STATUS_TYPE_RC) {
+        value = rxGetChannelValue(THROTTLE);
+    } else {
+        value = rcCommand[THROTTLE];
+    }
+
+    const uint16_t mid_throttle_deadband = rcControlsConfig()->mid_throttle_deadband;
+    if (feature(FEATURE_REVERSIBLE_MOTORS) && (value > (PWM_RANGE_MIDDLE - mid_throttle_deadband) && value < (PWM_RANGE_MIDDLE + mid_throttle_deadband)))
         return THROTTLE_LOW;
-    else if (!feature(FEATURE_3D) && (rxGetChannelValue(THROTTLE) < rxConfig()->mincheck))
+    else if (!feature(FEATURE_REVERSIBLE_MOTORS) && (value < rxConfig()->mincheck))
         return THROTTLE_LOW;
 
     return THROTTLE_HIGH;
@@ -183,7 +190,7 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
     bool armingSwitchIsActive = IS_RC_MODE_ACTIVE(BOXARM);
     emergencyArmingUpdate(armingSwitchIsActive);
 
-    if (STATE(FIXED_WING) && feature(FEATURE_MOTOR_STOP) && armingConfig()->fixed_wing_auto_arm) {
+    if (STATE(AIRPLANE) && feature(FEATURE_MOTOR_STOP) && armingConfig()->fixed_wing_auto_arm) {
         // Auto arm on throttle when using fixedwing and motorstop
         if (throttleStatus != THROTTLE_LOW) {
             tryArm();
