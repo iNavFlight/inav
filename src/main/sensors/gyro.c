@@ -556,10 +556,17 @@ bool gyroReadTemperature(void)
     }
 
     // Read gyro sensor temperature. temperatureFn returns temperature in [degC * 10]
+    // TODO: [degC * 10] is a bug in Finland. Negative temperature...
+#ifdef USE_MULTI_GYRO
+    if (gyroConfig->gyro_to_use = BOTH && gyroDev[0].temperatureFn && gyroDev[1].temperatureFn)
+        return MAX(gyroDev[0].temperatureFn(&gyroDev[0], &gyroTemperature[0], gyroDev[1].temperatureFn(&gyroDev[1], &gyroTemperature[1]);
+    else if (gyroConfig->gyro_to_use = BOTH)
+        return false;
+#else
     if (gyroDev[0].temperatureFn) {
         return gyroDev[0].temperatureFn(&gyroDev[0], &gyroTemperature[0]);
     }
-//TODO: FOR multi gyro
+#endif
     return false;
 }
 
@@ -568,8 +575,12 @@ int16_t gyroGetTemperature(void)
     if (!gyro.initialized) {
         return 0;
     }
-//TODO: FOR multi gyro
+#ifdef USE_MULTI_GYRO
+    if (gyroConfig->gyro_to_use = BOTH)
+        return MAX(gyroTemperature[0], gyroTemperature[1]);
+#else
     return gyroTemperature[0];
+#endif
 }
 
 int16_t gyroRateDps(int axis)
