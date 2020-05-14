@@ -255,7 +255,7 @@ static uint8_t fportFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
         if (frameLength != bufferLength - 2) {
             reportFrameError(DEBUG_FPORT_ERROR_SIZE);
         } else {
-            if (!frskyChecksumIsGood(&rxBuffer[rxBufferReadIndex].data[0], bufferLength)) {
+            if (!frskyCheckSumIsGood(&rxBuffer[rxBufferReadIndex].data[0], bufferLength)) {
                 reportFrameError(DEBUG_FPORT_ERROR_CHECKSUM);
             } else {
                 fportFrame_t *frame = (fportFrame_t *)&rxBuffer[rxBufferReadIndex].data[1];
