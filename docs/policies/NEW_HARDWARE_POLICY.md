@@ -46,4 +46,8 @@ If one of the core developers has the hardware in possession they may opt in and
 
 5. It's advised to provide more than one sample to avoid issues with damaged or dead on arrival hardware.
 
+# Guidelines on contacting the team
 
+1. Manufacturers are advised to open a feature request to add support for certain hardware to INAV by following [this link](https://github.com/iNavFlight/inav/issues/new/choose)
+
+2. After opening a feature request, author of the feature request is advised to contact the core development team by [email](mailto:coredev@inavflight.com) mentioning the open feature request and communicate with developer team via email to arrange hardware and specsifications delivery.
