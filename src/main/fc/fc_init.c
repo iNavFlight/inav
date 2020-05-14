@@ -90,6 +90,7 @@
 #include "fc/fc_tasks.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
+#include "fc/firmware_update.h"
 
 #include "flight/failsafe.h"
 #include "flight/imu.h"
@@ -199,6 +200,8 @@ void init(void)
 
     // Initialize system and CPU clocks to their initial values
     systemInit();
+
+    __enable_irq();
 
     // initialize IO (needed for all IO operations)
     IOInitGlobal();

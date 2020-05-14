@@ -5,6 +5,10 @@ VALID_TARGETS  := $(subst /,, $(subst ./src/main/target/,, $(VALID_TARGETS)))
 VALID_TARGETS  := $(VALID_TARGETS) $(ALT_TARGETS)
 VALID_TARGETS  := $(sort $(VALID_TARGETS))
 
+VALID_BL_TARGETS := $(addsuffix _bl,$(VALID_TARGETS))
+VALID_TARGETS_FOR_BL := $(addsuffix _for_bl,$(VALID_TARGETS))
+VALID_TARGETS_WITH_BL := $(addsuffix _with_bl,$(VALID_TARGETS))
+
 CLEAN_TARGETS   = $(addprefix clean_,$(VALID_TARGETS) )
 TARGETS_CLEAN   = $(addsuffix _clean,$(VALID_TARGETS) )
 STFLASH_TARGETS = $(addprefix st-flash_,$(VALID_TARGETS) )
