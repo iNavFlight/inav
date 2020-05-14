@@ -604,9 +604,9 @@ bool gyroSyncCheckUpdate(void)
 
 #ifdef USE_MULTI_GYRO
     if(gyroConfig()->gyro_to_use == BOTH) {
-    if (!gyroDev[1].intStatusFn)
-        return false;
-    return gyroDev[0].intStatusFn(&gyroDev[0]) && gyroDev[1].intStatusFn(&gyroDev[1]);
+        if (!gyroDev[1].intStatusFn)
+            return false;
+        return gyroDev[0].intStatusFn(&gyroDev[0]) && gyroDev[1].intStatusFn(&gyroDev[1]);
     }
 #endif
     return gyroDev[0].intStatusFn(&gyroDev[0]);
