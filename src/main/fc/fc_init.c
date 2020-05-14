@@ -114,6 +114,7 @@
 #include "io/rcdevice_cam.h"
 #include "io/serial.h"
 #include "io/displayport_msp.h"
+#include "io/smartport_master.h"
 #include "io/vtx.h"
 #include "io/vtx_control.h"
 #include "io/vtx_smartaudio.h"
@@ -278,6 +279,10 @@ void init(void)
 #if defined(USE_DJI_HD_OSD)
     // DJI OSD uses a special flavour of MSP (subset of Betaflight 4.1.1 MSP) - process as part of serial task
     djiOsdSerialInit();
+#endif
+
+#if defined(USE_SMARTPORT_MASTER)
+    smartportMasterInit();
 #endif
 
 #if defined(USE_LOG)
