@@ -144,7 +144,7 @@ TARGET_FLASH   := 2048
 else ifeq ($(TARGET),$(filter $(TARGET),$(F7X2RE_TARGETS)))
 DEVICE_FLAGS   += -DSTM32F722xx
 ifndef LD_SCRIPT
-LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_F722.ld
+LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_F7x2.ld
 endif
 STARTUP_SRC     = startup_stm32f722xx.s
 TARGET_FLASH   := 512
