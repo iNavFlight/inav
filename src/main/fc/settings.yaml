@@ -1184,6 +1184,7 @@ groups:
         max: 1000
 
   - name: PG_GENERAL_SETTINGS
+    headers: ["config/general_settings.h"]
     type: generalSettings_t
     members:
       - name: applied_defaults
@@ -1195,6 +1196,7 @@ groups:
         max: 3
 
   - name: PG_RPM_FILTER_CONFIG
+    headers: ["flight/rpm_filter.h"]
     condition: USE_RPM_FILTER
     type: rpmFilterConfig_t
     members:
