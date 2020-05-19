@@ -78,12 +78,12 @@ FILE_COMPILE_FOR_SPEED
 #endif
 
 FASTRAM gyro_t gyro; // gyro sensor object
-
 #ifdef USE_MULTI_GYRO
-#define MAX_GYRO_COUNT          1
-#else
 #define MAX_GYRO_COUNT          2
+#else
+#define MAX_GYRO_COUNT          1
 #endif
+
 
 STATIC_UNIT_TESTED gyroDev_t gyroDev[MAX_GYRO_COUNT];  // Not in FASTRAM since it may hold DMA buffers
 STATIC_FASTRAM int16_t gyroTemperature[MAX_GYRO_COUNT];
@@ -117,7 +117,7 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyroMovementCalibrationThreshold = 32,
     .looptime = 1000,
     .gyroSync = 1,
-    .gyro_to_use =FIRST,
+    .gyro_to_use = FIRST,
     .gyro_soft_notch_hz_1 = 0,
     .gyro_soft_notch_cutoff_1 = 1,
     .gyro_soft_notch_hz_2 = 0,
@@ -289,7 +289,8 @@ static void gyroInitFilters(void)
 bool gyroInit(void)
 {
     memset(&gyro, 0, sizeof(gyro));
-
+    memset(&gyroDev[0], 0, sizeof(gyroDev[0]));
+    memset(&gyroDev[1], 0, sizeof(gyroDev[1]));
     // Set inertial sensor tag (for dual-gyro selection)
     gyroSensor_e gyroHardware;
 #ifdef USE_MULTI_GYRO
@@ -298,7 +299,6 @@ bool gyroInit(void)
     switch (gyroConfig()->gyro_to_use){
         case FIRST:
         case SECOND:
-        default:
 #ifdef USE_DUAL_GYRO
             gyroDev[0].imuSensorToUse = gyroConfig()->gyro_to_use;
 #else
@@ -316,18 +316,21 @@ bool gyroInit(void)
 
 #ifdef USE_MULTI_GYRO
         case BOTH:
-            gyroDev[0].imuSensorToUse = 0;
-            gyroDev[1].imuSensorToUse = 1;
+            gyroDev[0].imuSensorToUse = FIRST;
+            gyroDev[1].imuSensorToUse = SECOND;
             gyroHardware = gyroDetect(&gyroDev[0], GYRO_AUTODETECT);
             gyro2Hardware = gyroDetect(&gyroDev[1], GYRO_AUTODETECT);
 
-            if (gyroHardware == GYRO_NONE || gyro2Hardware == GYRO_NONE || gyroHardware != gyro2Hardware)  {
+            if (gyroHardware == GYRO_NONE || gyro2Hardware == GYRO_NONE)  {
                 gyro.initialized = false;
                     detectedSensors[SENSOR_INDEX_GYRO] = GYRO_NONE;
                 return true;
             }
             break;
+
 #endif
+        default:
+            return false;
     };
     gyro.initialized = true;
         detectedSensors[SENSOR_INDEX_GYRO] = gyroHardware;
@@ -564,11 +567,11 @@ bool gyroReadTemperature(void)
         return MAX(gyroDev[0].temperatureFn(&gyroDev[0], &gyroTemperature[0]), gyroDev[1].temperatureFn(&gyroDev[1], &gyroTemperature[1]));
     else if (gyroConfig()->gyro_to_use == BOTH)
         return false;
-#else
+#endif
     if (gyroDev[0].temperatureFn) {
         return gyroDev[0].temperatureFn(&gyroDev[0], &gyroTemperature[0]);
     }
-#endif
+
     return false;
 }
 
@@ -582,7 +585,6 @@ int16_t gyroGetTemperature(void)
         return MAX(gyroTemperature[0], gyroTemperature[1]);
 #endif
     return gyroTemperature[0];
-
 }
 
 int16_t gyroRateDps(int axis)
@@ -605,7 +607,7 @@ bool gyroSyncCheckUpdate(void)
     }
 
 #ifdef USE_MULTI_GYRO
-    if(gyroConfig()->gyro_to_use ==     BOTH) {
+    if(gyroConfig()->gyro_to_use == BOTH) {
         if (!gyroDev[1].intStatusFn)
             return false;
         return gyroDev[0].intStatusFn(&gyroDev[0]) && gyroDev[1].intStatusFn(&gyroDev[1]);

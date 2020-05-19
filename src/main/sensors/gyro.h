@@ -47,8 +47,8 @@ typedef enum {
 
 typedef enum {
     FIRST = 0,
-    SECOND,
-    BOTH
+    SECOND = 1,
+    BOTH = 2
 } gyro_to_use_e;
 
 #define DYN_NOTCH_RANGE_HZ_HIGH 2000
@@ -68,14 +68,16 @@ extern gyro_t gyro;
 
 typedef struct gyroConfig_s {
     sensor_align_e gyro_align;              // gyro alignment
-    sensor_align_e gyro2_align;              // gyro alignment
+#ifdef USE_MULTI_GYRO
+    sensor_align_e gyro2_align;              // second gyro alignment
+#endif
     uint8_t  gyroMovementCalibrationThreshold; // people keep forgetting that moving model while init results in wrong gyro offsets. and then they never reset gyro. so this is now on by default.
     uint8_t  gyroSync;                      // Enable interrupt based loop
     uint16_t looptime;                      // imu loop time in us
     uint8_t  gyro_lpf;                      // gyro LPF setting - values are driver specific, in case of invalid number, a reasonable default ~30-40HZ is chosen.
     uint8_t  gyro_soft_lpf_hz;
     uint8_t  gyro_soft_lpf_type;
-    gyro_to_use_e  gyro_to_use;
+    uint8_t  gyro_to_use;
     uint16_t gyro_soft_notch_hz_1;
     uint16_t gyro_soft_notch_cutoff_1;
     uint16_t gyro_soft_notch_hz_2;

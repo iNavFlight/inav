@@ -1134,6 +1134,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, gyroConfig()->gyro_align);
         sbufWriteU8(dst, gyroConfig()->gyro2_align);
         sbufWriteU8(dst, accelerometerConfig()->acc_align);
+        sbufWriteU8(dst, accelerometerConfig()->acc2_align);
         sbufWriteU8(dst, compassConfig()->mag_align);
 #ifdef USE_OPFLOW
         sbufWriteU8(dst, opticalFlowConfig()->opflow_align);
@@ -2008,6 +2009,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             gyroConfigMutable()->gyro_align = sbufReadU8(src);
             gyroConfigMutable()->gyro2_align = sbufReadU8(src);
             accelerometerConfigMutable()->acc_align = sbufReadU8(src);
+            accelerometerConfigMutable()->acc2_align = sbufReadU8(src);
 #ifdef USE_MAG
             compassConfigMutable()->mag_align = sbufReadU8(src);
 #else

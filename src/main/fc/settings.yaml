@@ -218,7 +218,6 @@ groups:
         min: 30
         max: 1000
       - name: gyro_to_use
-        type: uint8_t
         table: gyro_to_use_t
         field: gyro_to_use
         condition: USE_DUAL_GYRO
