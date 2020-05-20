@@ -148,6 +148,8 @@
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
 
+#define RANGEFINDER_I2C_BUS     BUS_I2C1
+
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN           PC2
 #define ADC_CHANNEL_2_PIN           PC3

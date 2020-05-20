@@ -84,11 +84,6 @@
 #define M25P16_CS_PIN           PB12
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
-#define USE_SDCARD
-#define USE_SDCARD_SPI
-#define SDCARD_SPI_BUS          BUS_SPI2
-#define SDCARD_CS_PIN           PC15
-
 // *************** UART *****************************
 #define USE_VCP
 #define USB_DETECT_PIN          PC14
@@ -120,7 +115,7 @@
      
 #define USE_SOFTSERIAL1
 #define SOFTSERIAL_1_TX_PIN      PA2 //TX2 pad
-#define SOFTSERIAL_1_RX_PIN      PA2
+#define SOFTSERIAL_1_RX_PIN      NONE
 
 #define SERIAL_PORT_COUNT       8
 
@@ -169,5 +164,3 @@
 #define USE_SERIALSHOT
 #define USE_ESC_SENSOR
 
-//#define USE_CAMERA_CONTROL
-//#define CAMERA_CONTROL_PIN         	PB15
