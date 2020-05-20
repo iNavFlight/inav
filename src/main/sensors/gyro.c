@@ -289,8 +289,6 @@ static void gyroInitFilters(void)
 bool gyroInit(void)
 {
     memset(&gyro, 0, sizeof(gyro));
-    memset(&gyroDev[0], 0, sizeof(gyroDev[0]));
-    memset(&gyroDev[1], 0, sizeof(gyroDev[1]));
     // Set inertial sensor tag (for dual-gyro selection)
     gyroSensor_e gyroHardware;
 #ifdef USE_MULTI_GYRO

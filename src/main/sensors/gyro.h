@@ -68,9 +68,7 @@ extern gyro_t gyro;
 
 typedef struct gyroConfig_s {
     sensor_align_e gyro_align;              // gyro alignment
-#ifdef USE_MULTI_GYRO
     sensor_align_e gyro2_align;              // second gyro alignment
-#endif
     uint8_t  gyroMovementCalibrationThreshold; // people keep forgetting that moving model while init results in wrong gyro offsets. and then they never reset gyro. so this is now on by default.
     uint8_t  gyroSync;                      // Enable interrupt based loop
     uint16_t looptime;                      // imu loop time in us
