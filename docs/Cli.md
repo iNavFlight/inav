@@ -349,6 +349,7 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  osd_estimations_wind_compensation  | ON | Use wind estimation for remaining flight time/distance estimation |
 |  osd_failsafe_switch_layout  | OFF | If enabled the OSD automatically switches to the first layout during failsafe |
 |  osd_temp_label_align | LEFT | Allows to chose between left and right alignment for the OSD temperature sensor labels. Valid values are `LEFT` and `RIGHT` |
+|  osd_ahi_style | DEFAULT | Sets OSD Artificial Horizon style "DEFAULT" or "LINE" for the FrSky Graphical OSD. |
 |  display_force_sw_blink  | OFF | OFF = OSD hardware blink / ON = OSD software blink. If OSD warning text/values are invisible, try setting this to ON |
 |  magzero_x  | 0 | Magnetometer calibration X offset. If its 0 none offset has been applied and calibration is failed. |
 |  magzero_y  | 0 | Magnetometer calibration Y offset. If its 0 none offset has been applied and calibration is failed. |
@@ -373,6 +374,9 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  nav_fw_pos_xy_p  | 75 | P gain of 2D trajectory PID controller. Play with this to get a straight line between waypoints or a straight RTH |
 |  nav_fw_pos_xy_i  | 5 | I gain of 2D trajectory PID controller. Too high and there will be overshoot in trajectory. Better start tuning with zero |
 |  nav_fw_pos_xy_d  | 8 | D gain of 2D trajectory PID controller. Too high and there will be overshoot in trajectory. Better start tuning with zero |
+|  nav_fw_pos_hdg_p  | 60 | P gain of heading PID controller. (Fixedwing) |
+|  nav_fw_pos_hdg_i  | 0 | I gain of heading trajectory PID controller. (Fixedwing) |
+|  nav_fw_pos_hdg_d  | 0 | D gain of heading trajectory PID controller. (Fixedwing) |
 |  nav_mc_heading_p  | 60 | P gain of Heading Hold controller (Multirotor) |
 |  nav_fw_heading_p  | 60 | P gain of Heading Hold controller (Fixedwing) |
 |  deadband  | 5 | These are values (in us) by how much RC input can be different before it's considered valid. For transmitters with jitter on outputs, this value can be increased. Defaults are zero, but can be increased up to 10 or so if rc inputs twitch while idle. |
