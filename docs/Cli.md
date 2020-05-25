@@ -232,6 +232,7 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  nav_fw_launch_max_altitude | 0 | Altitude (centimeters) at which LAUNCH mode will be turned off and regular flight mode will take over [0-60000]. |
 |  nav_fw_land_dive_angle  | 2 | Dive angle that airplane will use during final landing phase. During dive phase, motor is stopped or IDLE and roll control is locked to 0 degrees |
 |  nav_fw_cruise_yaw_rate  | 20 | Max YAW rate when NAV CRUISE mode is enabled (0=disable control via yaw stick) [dps]|
+| nav_use_fw_yaw_control | OFF | Enables or Disables the use of the heading PID controller on fixed wing |
 |  serialrx_provider  | SPEK1024 | When feature SERIALRX is enabled, this allows connection to several receivers which output data via digital interface resembling serial. See RX section. |
 |  serialrx_halfduplex  | OFF | Allow serial receiver to operate on UART TX pin. With some receivers will allow control and telemetry over a single wire |
 |  serialrx_inverted     | OFF | Reverse the serial inversion of the  serial RX protocol. When this value is OFF, each protocol will use its default signal (e.g. SBUS will use an inverted signal). Some OpenLRS receivers produce a non-inverted SBUS signal. This setting supports this type of receivers (including modified FrSKY). |
