@@ -83,3 +83,14 @@ TEST(BitArrayTest, TestSetClrAll)
         EXPECT_EQ(ii, BITARRAY_FIND_FIRST_SET(p, ii));
     }
 }
+
+TEST(BitArrayTest, TestOutOfBounds)
+{
+    const int bits = 32 * 4;
+
+    BITARRAY_DECLARE(p, bits);
+    BITARRAY_CLR_ALL(p);
+    EXPECT_EQ(-1, BITARRAY_FIND_FIRST_SET(p, 0));
+    EXPECT_EQ(-1, BITARRAY_FIND_FIRST_SET(p, bits));
+    EXPECT_EQ(-1, BITARRAY_FIND_FIRST_SET(p, bits + 1));
+}

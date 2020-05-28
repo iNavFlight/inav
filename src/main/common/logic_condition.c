@@ -40,6 +40,7 @@
 #include "sensors/battery.h"
 #include "sensors/pitotmeter.h"
 #include "flight/imu.h"
+#include "flight/pid.h"
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
@@ -330,7 +331,19 @@ static int logicConditionGetFlightOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_IS_FAILSAFE: // 0/1
             return (failsafePhase() == FAILSAFE_RX_LOSS_MONITORING) ? 1 : 0;
-            break; 
+            break;
+        
+        case LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_YAW: // 
+            return axisPID[YAW];
+            break;
+        
+        case LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_ROLL: // 
+            return axisPID[ROLL];
+            break;
+        
+        case LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_PITCH: // 
+            return axisPID[PITCH];
+            break;
 
         default:
             return 0;

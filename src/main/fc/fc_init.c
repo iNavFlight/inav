@@ -54,9 +54,11 @@
 #include "drivers/flash_m25p16.h"
 #include "drivers/io.h"
 #include "drivers/io_pca9685.h"
+#include "drivers/flash.h"
 #include "drivers/light_led.h"
 #include "drivers/nvic.h"
 #include "drivers/osd.h"
+#include "drivers/persistent.h"
 #include "drivers/pwm_esc_detect.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
@@ -136,6 +138,7 @@
 #include "sensors/pitotmeter.h"
 #include "sensors/rangefinder.h"
 #include "sensors/sensors.h"
+#include "sensors/esc_sensor.h"
 
 #include "scheduler/scheduler.h"
 
@@ -183,6 +186,10 @@ void flashLedsAndBeep(void)
 
 void init(void)
 {
+#if defined(USE_FLASHFS) && defined(USE_FLASH_M25P16)
+    bool flashDeviceInitialized = false;
+#endif
+
 #ifdef USE_HAL_DRIVER
     HAL_Init();
 #endif
@@ -267,6 +274,12 @@ void init(void)
     // XXX: Don't call mspFcInit() yet, since it initializes the boxes and needs
     // to run after the sensors have been detected.
     mspSerialInit();
+
+#ifdef USE_ESC_SENSOR
+    // DSHOT supports a dedicated wire ESC telemetry. Kick off the ESC-sensor receiver initialization
+    // We may, however, do listen_only, so need to init this anyway
+    escSensorInitialize();
+#endif
 
 #if defined(USE_DJI_HD_OSD)
     // DJI OSD uses a special flavour of MSP (subset of Betaflight 4.1.1 MSP) - process as part of serial task
@@ -362,7 +375,10 @@ void init(void)
         if (blackboxConfig()->device == BLACKBOX_DEVICE_FLASH) {
 #ifdef USE_FLASH_M25P16
             // Must initialise the device to read _anything_
-            m25p16_init(0);
+            /*m25p16_init(0);*/
+            if (!flashDeviceInitialized) {
+                flashDeviceInitialized = flashInit();
+            }
 #endif
             emfat_init_files();
         }
@@ -579,7 +595,9 @@ void init(void)
 #ifdef USE_FLASHFS
         case BLACKBOX_DEVICE_FLASH:
 #ifdef USE_FLASH_M25P16
-            m25p16_init(0);
+            if (!flashDeviceInitialized) {
+                flashDeviceInitialized = flashInit();
+            }
 #endif
             flashfsInit();
             break;
@@ -632,12 +650,6 @@ void init(void)
     if (feature(FEATURE_VBAT | FEATURE_CURRENT_METER))
         batteryInit();
 
-#ifdef USE_PWM_SERVO_DRIVER
-    if (feature(FEATURE_PWM_SERVO_DRIVER)) {
-        pwmDriverInitialize();
-    }
-#endif
-
 #ifdef USE_RCDEVICE
     rcdeviceInit();
 #endif // USE_RCDEVICE
@@ -660,6 +672,9 @@ void init(void)
         setTaskEnabled(TASK_RPM_FILTER, true);
     }
 #endif
+
+    // Considering that the persistent reset reason is only used during init
+    persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_NONE);
 
     systemState |= SYSTEM_STATE_READY;
 }

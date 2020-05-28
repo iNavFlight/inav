@@ -53,7 +53,7 @@ typedef enum {
     INPUT_STABILIZED_PITCH_MINUS    = 26,
     INPUT_STABILIZED_YAW_PLUS       = 27,
     INPUT_STABILIZED_YAW_MINUS      = 28,
-    INPUT_LOGIC_ONE                 = 29,
+    INPUT_MAX                       = 29,
     INPUT_GVAR_0                    = 30,
     INPUT_GVAR_1                    = 31,
     INPUT_GVAR_2                    = 32,
@@ -132,7 +132,7 @@ typedef struct servoConfig_s {
     uint16_t servoPwmRate;                  // The update rate of servo outputs (50-498Hz)
     int16_t servo_lowpass_freq;             // lowpass servo filter frequency selection; 1/1000ths of loop freq
     uint16_t flaperon_throw_offset;
-    uint8_t __reserved;
+    uint8_t servo_protocol;                 // See servoProtocolType_e
     uint8_t tri_unarmed_servo;              // send tail servo correction pulses even when unarmed
 } servoConfig_t;
 

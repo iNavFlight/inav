@@ -80,7 +80,7 @@ radar_pois_t radar_pois[RADAR_MAX_POIS];
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 0);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 6);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 7);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -143,6 +143,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .max_dive_angle = 15,                   // degrees
         .cruise_throttle = 1400,
         .cruise_speed = 0,                      // cm/s
+        .control_smoothness = 0,
         .max_throttle = 1700,
         .min_throttle = 1200,
         .pitch_to_throttle = 10,                // pwm units per degree of pitch (10pwm units ~ 1% throttle)
@@ -743,7 +744,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_WAYPOINT_FINISHED,
         .onEntry = navOnEnteringState_NAV_STATE_WAYPOINT_FINISHED,
         .timeoutMs = 0,
-        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP | NAV_AUTO_WP_DONE,
         .mapToFlightModes = NAV_WP_MODE | NAV_ALTHOLD_MODE,
         .mwState = MW_NAV_STATE_WP_ENROUTE,
         .mwError = MW_NAV_ERROR_FINISH,
@@ -1498,7 +1499,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_IN_PROGRESS(na
                     return NAV_FSM_EVENT_SUCCESS;   // will switch to NAV_STATE_WAYPOINT_REACHED
                 }
                 else {
-                    setDesiredPosition(&posControl.activeWaypoint.pos, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_BEARING);
+                    if(navConfig()->general.flags.rth_tail_first && !STATE(FIXED_WING_LEGACY))
+                        setDesiredPosition(&posControl.activeWaypoint.pos, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_BEARING_TAIL_FIRST);
+                    else
+                        setDesiredPosition(&posControl.activeWaypoint.pos, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_BEARING);
                     setDesiredPosition(rthGetHomeTargetPosition(RTH_HOME_ENROUTE_PROPORTIONAL), 0, NAV_POS_UPDATE_Z);
                     return NAV_FSM_EVENT_NONE;      // will re-process state in >10ms
                 }
@@ -3243,11 +3247,17 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
          * First WP can't be JUMP
          * Can't jump to immediately adjacent WPs (pointless)
          * Can't jump beyond WP list
+         * Only jump to geo-referenced WP types
          */
     if (posControl.waypointCount > 0) {
         for (uint8_t wp = 0; wp < posControl.waypointCount ; wp++){
             if (posControl.waypointList[wp].action == NAV_WP_ACTION_JUMP){
                 if((wp == 0) || ((posControl.waypointList[wp].p1 > (wp-2)) && (posControl.waypointList[wp].p1 < (wp+2)) ) || (posControl.waypointList[wp].p1 >=  posControl.waypointCount) || (posControl.waypointList[wp].p2 < -1)) {
+                    return NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR;
+                }
+                    /* check for target geo-ref sanity */
+                uint16_t target = posControl.waypointList[wp].p1;
+                if(!(posControl.waypointList[target].action == NAV_WP_ACTION_WAYPOINT || posControl.waypointList[target].action == NAV_WP_ACTION_HOLD_TIME || posControl.waypointList[target].action == NAV_WP_ACTION_LAND)) {
                     return NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR;
                 }
             }

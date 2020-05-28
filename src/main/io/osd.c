@@ -198,7 +198,7 @@ static bool osdDisplayHasCanvas;
 #define AH_SIDEBAR_WIDTH_POS 7
 #define AH_SIDEBAR_HEIGHT_POS 3
 
-PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 11);
+PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 12);
 
 static int digitCount(int32_t value)
 {
@@ -2480,6 +2480,13 @@ static bool osdDrawSingleElement(uint8_t item)
             }
             break;
         }
+    case OSD_ESC_TEMPERATURE:
+        {
+            escSensorData_t * escSensor = escSensorGetData();
+            bool escTemperatureValid = escSensor && escSensor->dataAge <= ESC_DATA_MAX_AGE;
+            osdDisplayTemperature(elemPosX, elemPosY, SYM_ESC_TEMP, NULL, escTemperatureValid, (escSensor->temperature)*10, osdConfig()->esc_temp_alarm_min, osdConfig()->esc_temp_alarm_max);
+            return true;
+        }
 #endif
 
     default:
@@ -2695,6 +2702,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
 
 #if defined(USE_ESC_SENSOR)
     osdConfig->item_pos[0][OSD_ESC_RPM] = OSD_POS(1, 2);
+    osdConfig->item_pos[0][OSD_ESC_TEMPERATURE] = OSD_POS(1, 3);
 #endif
 
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
@@ -2718,6 +2726,8 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->current_alarm = 0;
     osdConfig->imu_temp_alarm_min = -200;
     osdConfig->imu_temp_alarm_max = 600;
+    osdConfig->esc_temp_alarm_min = -200;
+    osdConfig->esc_temp_alarm_max = 900;
     osdConfig->gforce_alarm = 5;
     osdConfig->gforce_axis_alarm_min = -5;
     osdConfig->gforce_axis_alarm_max = 5;
@@ -2936,6 +2946,7 @@ static void osdShowStats(void)
     const uint8_t statValuesX = 20;
     char buff[10];
 
+    displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
     displayClearScreen(osdDisplayPort);
     if (IS_DISPLAY_PAL)
         displayWrite(osdDisplayPort, statNameX, top++, "  --- STATS ---");
@@ -3031,6 +3042,7 @@ static void osdShowStats(void)
 
     displayWrite(osdDisplayPort, statNameX, top, "DISARMED BY      :");
     displayWrite(osdDisplayPort, statValuesX, top++, disarmReasonStr[getDisarmReason()]);
+    displayCommitTransaction(osdDisplayPort);
 }
 
 // called when motors armed

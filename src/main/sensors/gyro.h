@@ -50,6 +50,7 @@ typedef enum {
 #define DYN_NOTCH_RANGE_HZ_LOW 1000
 
 typedef struct gyro_s {
+    bool initialized;
     uint32_t targetLooptime;
     float gyroADCf[XYZ_AXIS_COUNT];
 } gyro_t;
@@ -80,7 +81,6 @@ typedef struct gyroConfig_s {
 PG_DECLARE(gyroConfig_t, gyroConfig);
 
 bool gyroInit(void);
-void gyroInitFilters(void);
 void gyroGetMeasuredRotationRate(fpVector3_t *imuMeasuredRotationBF);
 void gyroUpdate(void);
 void gyroStartCalibration(void);

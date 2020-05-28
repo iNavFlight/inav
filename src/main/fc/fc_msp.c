@@ -44,6 +44,7 @@
 #include "drivers/bus_i2c.h"
 #include "drivers/compass/compass.h"
 #include "drivers/display.h"
+#include "drivers/flash.h"
 #include "drivers/osd.h"
 #include "drivers/osd_symbols.h"
 #include "drivers/pwm_mapping.h"
@@ -293,8 +294,8 @@ static void serializeSDCardSummaryReply(sbuf_t *dst)
 static void serializeDataflashSummaryReply(sbuf_t *dst)
 {
 #ifdef USE_FLASHFS
-    const flashGeometry_t *geometry = flashfsGetGeometry();
-    sbufWriteU8(dst, flashfsIsReady() ? 1 : 0);
+    const flashGeometry_t *geometry = flashGetGeometry();
+    sbufWriteU8(dst, flashIsReady() ? 1 : 0);
     sbufWriteU32(dst, geometry->sectors);
     sbufWriteU32(dst, geometry->totalSize);
     sbufWriteU32(dst, flashfsGetOffset()); // Effectively the current number of bytes stored on the volume
@@ -1272,7 +1273,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
 
     case MSP_CALIBRATION_DATA:
-    #ifdef USE_ACC
         sbufWriteU8(dst, accGetCalibrationAxisFlags());
         sbufWriteU16(dst, accelerometerConfig()->accZero.raw[X]);
         sbufWriteU16(dst, accelerometerConfig()->accZero.raw[Y]);
@@ -1280,15 +1280,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, accelerometerConfig()->accGain.raw[X]);
         sbufWriteU16(dst, accelerometerConfig()->accGain.raw[Y]);
         sbufWriteU16(dst, accelerometerConfig()->accGain.raw[Z]);
-    #else
-        sbufWriteU8(dst, 0);
-        sbufWriteU16(dst, 0);
-        sbufWriteU16(dst, 0);
-        sbufWriteU16(dst, 0);
-        sbufWriteU16(dst, 0);
-        sbufWriteU16(dst, 0);
-        sbufWriteU16(dst, 0);
-    #endif
 
     #ifdef USE_MAG
         sbufWriteU16(dst, compassConfig()->magZero.raw[X]);
@@ -2206,21 +2197,12 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_CALIBRATION_DATA:
         if (dataSize >= 18) {
-#ifdef USE_ACC
             accelerometerConfigMutable()->accZero.raw[X] = sbufReadU16(src);
             accelerometerConfigMutable()->accZero.raw[Y] = sbufReadU16(src);
             accelerometerConfigMutable()->accZero.raw[Z] = sbufReadU16(src);
             accelerometerConfigMutable()->accGain.raw[X] = sbufReadU16(src);
             accelerometerConfigMutable()->accGain.raw[Y] = sbufReadU16(src);
             accelerometerConfigMutable()->accGain.raw[Z] = sbufReadU16(src);
-#else
-            sbufReadU16(src);
-            sbufReadU16(src);
-            sbufReadU16(src);
-            sbufReadU16(src);
-            sbufReadU16(src);
-            sbufReadU16(src);
-#endif
 
 #ifdef USE_MAG
             compassConfigMutable()->magZero.raw[X] = sbufReadU16(src);

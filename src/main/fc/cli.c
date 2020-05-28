@@ -56,9 +56,11 @@ extern uint8_t __config_end;
 #include "drivers/buf_writer.h"
 #include "drivers/bus_i2c.h"
 #include "drivers/compass/compass.h"
+#include "drivers/flash.h"
 #include "drivers/io.h"
 #include "drivers/io_impl.h"
 #include "drivers/osd_symbols.h"
+#include "drivers/persistent.h"
 #include "drivers/rx_pwm.h"
 #include "drivers/sdcard/sdcard.h"
 #include "drivers/sensor.h"
@@ -93,6 +95,8 @@ extern uint8_t __config_end;
 #include "io/ledstrip.h"
 #include "io/osd.h"
 #include "io/serial.h"
+
+#include "fc/fc_msp_box.h"
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
@@ -151,7 +155,7 @@ static const char * const featureNames[] = {
     "", "TELEMETRY", "CURRENT_METER", "REVERSIBLE_MOTORS", "",
     "", "RSSI_ADC", "LED_STRIP", "DASHBOARD", "",
     "BLACKBOX", "", "TRANSPONDER", "AIRMODE",
-    "SUPEREXPO", "VTX", "", "", "PWM_SERVO_DRIVER", "PWM_OUTPUT_ENABLE",
+    "SUPEREXPO", "VTX", "", "", "", "PWM_OUTPUT_ENABLE",
     "OSD", "FW_LAUNCH", NULL
 };
 
@@ -646,17 +650,19 @@ static void printAux(uint8_t dumpMask, const modeActivationCondition_t *modeActi
                 && mac->auxChannelIndex == macDefault->auxChannelIndex
                 && mac->range.startStep == macDefault->range.startStep
                 && mac->range.endStep == macDefault->range.endStep;
+            const box_t *box = findBoxByActiveBoxId(macDefault->modeId);
             cliDefaultPrintLinef(dumpMask, equalsDefault, format,
                 i,
-                macDefault->modeId,
+                box->permanentId,
                 macDefault->auxChannelIndex,
                 MODE_STEP_TO_CHANNEL_VALUE(macDefault->range.startStep),
                 MODE_STEP_TO_CHANNEL_VALUE(macDefault->range.endStep)
             );
         }
+        const box_t *box = findBoxByActiveBoxId(mac->modeId);
         cliDumpPrintLinef(dumpMask, equalsDefault, format,
             i,
-            mac->modeId,
+            box->permanentId,
             mac->auxChannelIndex,
             MODE_STEP_TO_CHANNEL_VALUE(mac->range.startStep),
             MODE_STEP_TO_CHANNEL_VALUE(mac->range.endStep)
@@ -680,9 +686,12 @@ static void cliAux(char *cmdline)
             ptr = nextArg(ptr);
             if (ptr) {
                 val = fastA2I(ptr);
-                if (val >= 0 && val < CHECKBOX_ITEM_COUNT) {
-                    mac->modeId = val;
-                    validArgumentCount++;
+                if (val >= 0) {
+                    const box_t *box = findBoxByPermanentId(val);
+                    if (box != NULL) {
+                        mac->modeId = box->boxId;
+                        validArgumentCount++;
+                    }
                 }
             }
             ptr = nextArg(ptr);
@@ -2115,12 +2124,32 @@ static void cliSdInfo(char *cmdline)
 
 static void cliFlashInfo(char *cmdline)
 {
-    const flashGeometry_t *layout = flashfsGetGeometry();
-
     UNUSED(cmdline);
 
-    cliPrintLinef("Flash sectors=%u, sectorSize=%u, pagesPerSector=%u, pageSize=%u, totalSize=%u, usedSize=%u",
-            layout->sectors, layout->sectorSize, layout->pagesPerSector, layout->pageSize, layout->totalSize, flashfsGetOffset());
+    const flashGeometry_t *layout = flashGetGeometry();
+
+    cliPrintLinef("Flash sectors=%u, sectorSize=%u, pagesPerSector=%u, pageSize=%u, totalSize=%u",
+            layout->sectors, layout->sectorSize, layout->pagesPerSector, layout->pageSize, layout->totalSize);
+
+    for (uint8_t index = 0; index < FLASH_MAX_PARTITIONS; index++) {
+        const flashPartition_t *partition;
+        if (index == 0) {
+            cliPrintLine("Paritions:");
+        }
+        partition = flashPartitionFindByIndex(index);
+        if (!partition) {
+            break;
+        }
+        cliPrintLinef("  %d: %s %u %u", index, flashPartitionGetTypeName(partition->type), partition->startSector, partition->endSector);
+    }
+#ifdef USE_FLASHFS
+    const flashPartition_t *flashPartition = flashPartitionFindByType(FLASH_PARTITION_TYPE_FLASHFS);
+
+    cliPrintLinef("FlashFS size=%u, usedSize=%u",
+            FLASH_PARTITION_SECTOR_COUNT(flashPartition) * layout->sectorSize,
+            flashfsGetOffset()
+    );
+#endif
 }
 
 static void cliFlashErase(char *cmdline)
@@ -2130,7 +2159,7 @@ static void cliFlashErase(char *cmdline)
     cliPrintLine("Erasing...");
     flashfsEraseCompletely();
 
-    while (!flashfsIsReady()) {
+    while (!flashIsReady()) {
         delay(100);
     }
 
@@ -3434,11 +3463,7 @@ static void cliMsc(char *cmdline)
         waitForSerialPortToFinishTransmitting(cliPort);
         stopPwmAllMotors();
 
-#ifdef STM32F7
-        *((__IO uint32_t*) BKPSRAM_BASE + 16) = MSC_MAGIC;
-#elif defined(STM32F4)
-        *((uint32_t *)0x2001FFF0) = MSC_MAGIC;
-#endif
+        persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_MSC_REQUEST);
 
         __disable_irq();
         NVIC_SystemReset();

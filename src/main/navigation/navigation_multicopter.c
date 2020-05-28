@@ -31,6 +31,7 @@
 #include "common/axis.h"
 #include "common/maths.h"
 #include "common/filter.h"
+#include "common/utils.h"
 
 #include "sensors/sensors.h"
 #include "sensors/acceleration.h"

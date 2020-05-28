@@ -53,6 +53,7 @@ typedef enum {
     FUNCTION_TELEMETRY_SIM       = (1 << 19), // 524288
     FUNCTION_FRSKY_OSD           = (1 << 20), // 1048576
     FUNCTION_DJI_HD_OSD          = (1 << 21), // 2097152
+    FUNCTION_SERVO_SERIAL        = (1 << 22), // 4194304
 } serialPortFunction_e;
 
 typedef enum {

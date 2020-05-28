@@ -36,13 +36,8 @@
 #define USE_MPU_DATA_READY_SIGNAL
 #define GYRO_INT_EXTI            PA4
 
-#define USE_GYRO
-#define USE_GYRO_MPU6000
-#define GYRO_MPU6000_ALIGN      CW90_DEG_FLIP
-
-#define USE_ACC
-#define USE_ACC_MPU6000
-#define ACC_MPU6000_ALIGN       CW90_DEG_FLIP
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW90_DEG_FLIP
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1

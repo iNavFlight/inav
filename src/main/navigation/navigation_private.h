@@ -30,8 +30,6 @@
 #define MIN_POSITION_UPDATE_RATE_HZ         5       // Minimum position update rate at which XYZ controllers would be applied
 #define NAV_THROTTLE_CUTOFF_FREQENCY_HZ     4       // low-pass filter on throttle output
 #define NAV_FW_CONTROL_MONITORING_RATE      2
-#define NAV_FW_PITCH_CUTOFF_FREQENCY_HZ     2       // low-pass filter on Z (pitch angle) for fixed wing
-#define NAV_FW_ROLL_CUTOFF_FREQUENCY_HZ     10      // low-pass filter on roll correction for fixed wing
 #define NAV_DTERM_CUT_HZ                    10.0f
 #define NAV_ACCELERATION_XY_MAX             980.0f  // cm/s/s       // approx 45 deg lean angle
 
@@ -276,6 +274,7 @@ typedef enum {
 
     /* Additional flags */
     NAV_CTL_LAND            = (1 << 14),
+    NAV_AUTO_WP_DONE        = (1 << 15),    //Waypoint mission reached the last waypoint and is idling
 } navigationFSMStateFlags_t;
 
 typedef struct {

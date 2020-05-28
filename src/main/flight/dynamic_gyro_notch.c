@@ -40,15 +40,14 @@ void dynamicGyroNotchFiltersInit(dynamicGyroNotchState_t *state) {
     state->looptime = getLooptime();
 
     if (state->enabled) {
-        const float notchQ = filterGetNotchQ(DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, DYNAMIC_NOTCH_DEFAULT_CUTOFF_HZ); // any defaults OK here
-
         /*
          * Step 1 - init all filters even if they will not be used further down the road
          */
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            biquadFilterInit(&state->filters[axis][0], DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, state->looptime, notchQ, FILTER_NOTCH);
-            biquadFilterInit(&state->filters[axis][1], DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, state->looptime, notchQ, FILTER_NOTCH);
-            biquadFilterInit(&state->filters[axis][2], DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, state->looptime, notchQ, FILTER_NOTCH);
+            //Any initial notch Q is valid sice it will be updated immediately after
+            biquadFilterInit(&state->filters[axis][0], DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, state->looptime, 1.0f, FILTER_NOTCH);
+            biquadFilterInit(&state->filters[axis][1], DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, state->looptime, 1.0f, FILTER_NOTCH);
+            biquadFilterInit(&state->filters[axis][2], DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, state->looptime, 1.0f, FILTER_NOTCH);
         }
 
         state->filtersApplyFn = (filterApplyFnPtr)biquadFilterApplyDF1;

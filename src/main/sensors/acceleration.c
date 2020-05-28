@@ -115,9 +115,6 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
 {
     accelerationSensor_e accHardware = ACC_NONE;
 
-#ifdef USE_ACC_ADXL345
-#endif
-
     dev->accAlign = ALIGN_DEFAULT;
 
     requestedSensors[SENSOR_INDEX_ACC] = accHardwareToUse;
@@ -125,12 +122,9 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
     switch (accHardwareToUse) {
     case ACC_AUTODETECT:
         FALLTHROUGH;
-#ifdef USE_ACC_ADXL345
+#ifdef USE_IMU_ADXL345
     case ACC_ADXL345: {
         if (adxl345Detect(dev)) {
-#ifdef ACC_ADXL345_ALIGN
-            dev->accAlign = ACC_ADXL345_ALIGN;
-#endif
             accHardware = ACC_ADXL345;
             break;
         }
@@ -142,12 +136,9 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
     FALLTHROUGH;
 #endif
 
-#ifdef USE_ACC_LSM303DLHC
+#ifdef USE_IMU_LSM303DLHC
     case ACC_LSM303DLHC:
         if (lsm303dlhcAccDetect(dev)) {
-#ifdef ACC_LSM303DLHC_ALIGN
-            dev->accAlign = ACC_LSM303DLHC_ALIGN;
-#endif
             accHardware = ACC_LSM303DLHC;
             break;
         }
@@ -158,12 +149,9 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         FALLTHROUGH;
 #endif
 
-#ifdef USE_ACC_MPU6050
+#ifdef USE_IMU_MPU6050
     case ACC_MPU6050: // MPU6050
         if (mpu6050AccDetect(dev)) {
-#ifdef ACC_MPU6050_ALIGN
-            dev->accAlign = ACC_MPU6050_ALIGN;
-#endif
             accHardware = ACC_MPU6050;
             break;
         }
@@ -174,13 +162,9 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         FALLTHROUGH;
 #endif
 
-#ifdef USE_ACC_MMA8452
+#ifdef USE_IMU_MMA8452
     case ACC_MMA8452: // MMA8452
-
         if (mma8452Detect(dev)) {
-#ifdef ACC_MMA8452_ALIGN
-            dev->accAlign = ACC_MMA8452_ALIGN;
-#endif
             accHardware = ACC_MMA8452;
             break;
         }
@@ -191,12 +175,9 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         FALLTHROUGH;
 #endif
 
-#ifdef USE_ACC_BMA280
+#ifdef USE_IMU_BMA280
     case ACC_BMA280: // BMA280
         if (bma280Detect(dev)) {
-#ifdef ACC_BMA280_ALIGN
-            dev->accAlign = ACC_BMA280_ALIGN;
-#endif
             accHardware = ACC_BMA280;
             break;
         }
@@ -207,12 +188,9 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         FALLTHROUGH;
 #endif
 
-#ifdef USE_ACC_MPU6000
+#ifdef USE_IMU_MPU6000
     case ACC_MPU6000:
         if (mpu6000AccDetect(dev)) {
-#ifdef ACC_MPU6000_ALIGN
-            dev->accAlign = ACC_MPU6000_ALIGN;
-#endif
             accHardware = ACC_MPU6000;
             break;
         }
@@ -223,12 +201,9 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         FALLTHROUGH;
 #endif
 
-#if defined(USE_ACC_MPU6500)
+#if defined(USE_IMU_MPU6500)
     case ACC_MPU6500:
         if (mpu6500AccDetect(dev)) {
-#ifdef ACC_MPU6500_ALIGN
-            dev->accAlign = ACC_MPU6500_ALIGN;
-#endif
             accHardware = ACC_MPU6500;
             break;
         }
@@ -239,12 +214,9 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         FALLTHROUGH;
 #endif
 
-#if defined(USE_ACC_MPU9250)
+#if defined(USE_IMU_MPU9250)
     case ACC_MPU9250:
         if (mpu9250AccDetect(dev)) {
-#ifdef ACC_MPU9250_ALIGN
-            dev->accAlign = ACC_MPU9250_ALIGN;
-#endif
             accHardware = ACC_MPU9250;
             break;
         }
@@ -255,12 +227,9 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         FALLTHROUGH;
 #endif
 
-#if defined(USE_ACC_BMI160)
+#if defined(USE_IMU_BMI160)
     case ACC_BMI160:
         if (bmi160AccDetect(dev)) {
-#ifdef ACC_BMI160_ALIGN
-            dev->accAlign = ACC_BMI160_ALIGN;
-#endif
             accHardware = ACC_BMI160;
             break;
         }
@@ -271,12 +240,9 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         FALLTHROUGH;
 #endif
 
-#ifdef USE_ACC_ICM20689
+#ifdef USE_IMU_ICM20689
     case ACC_ICM20689:
         if (icm20689AccDetect(dev)) {
-#ifdef ACC_ICM20689_ALIGN
-            dev->accAlign = ACC_ICM20689_ALIGN;
-#endif
             accHardware = ACC_ICM20689;
             break;
         }
@@ -288,7 +254,7 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
 #endif
 
 
-#ifdef USE_FAKE_ACC
+#ifdef USE_IMU_FAKE
     case ACC_FAKE:
         if (fakeAccDetect(dev)) {
             accHardware = ACC_FAKE;
@@ -342,6 +308,8 @@ bool accInit(uint32_t targetLooptime)
         acc.extremes[axis].max = -100;
     }
 
+    // At this poinrt acc.dev.accAlign was set up by the driver from the busDev record
+    // If configuration says different - override
     if (accelerometerConfig()->acc_align != ALIGN_DEFAULT) {
         acc.dev.accAlign = accelerometerConfig()->acc_align;
     }
