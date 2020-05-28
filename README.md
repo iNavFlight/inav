@@ -16,7 +16,7 @@
 * Fully configurable mixer that allows to run any hardware you want: multirotor, fixed wing, rovers, boats and other experimental devices
 * Multiple sensor support: GPS, Pitot tube, sonar, lidar, temperature, ESC with BlHeli_32 telemetry
 * SmartAudio and IRC Tramp VTX support
-* DHOST and Multishot ESCs
+* DSHOT and Multishot ESCs
 * Blackbox flight recorder logging
 * On Screen Display (OSD) - both character and pixel style
 * Telemetry: SmartPort, FPort, MAVlink, LTM
