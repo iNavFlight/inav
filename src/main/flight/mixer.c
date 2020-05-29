@@ -477,14 +477,13 @@ void FAST_CODE mixTable(const float dT)
     int16_t rpyMixRange = rpyMixMax - rpyMixMin;
     int16_t throttleRange;
     int16_t throttleMin, throttleMax;
-    // static int16_t throttlePrevious = 0;   // Store the last throttle direction for deadband transitions
 
     // Find min and max throttle based on condition.
 #ifdef USE_GLOBAL_FUNCTIONS
     if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE)) {
         throttleRangeMin = throttleIdleValue;
         throttleRangeMax = motorConfig()->maxthrottle;
-        mixerThrottleCommand = constrain(globalFunctionValues[GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE], throttleMin, throttleMax); 
+        mixerThrottleCommand = constrain(globalFunctionValues[GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE], throttleRangeMin, throttleRangeMax); 
     } else
 #endif
     if (feature(FEATURE_REVERSIBLE_MOTORS)) {
@@ -516,13 +515,13 @@ void FAST_CODE mixTable(const float dT)
 
         // Throttle scaling to limit max throttle when battery is full
     #ifdef USE_GLOBAL_FUNCTIONS
-        mixerThrottleCommand = ((mixerThrottleCommand - throttleMin) * getThrottleScale(motorConfig()->throttleScale)) + throttleMin;
+        mixerThrottleCommand = ((mixerThrottleCommand - throttleRangeMin) * getThrottleScale(motorConfig()->throttleScale)) + throttleRangeMin;
     #else
-        mixerThrottleCommand = ((mixerThrottleCommand - throttleMin) * motorConfig()->throttleScale) + throttleMin;
+        mixerThrottleCommand = ((mixerThrottleCommand - throttleRangeMin) * motorConfig()->throttleScale) + throttleRangeMin;
     #endif
         // Throttle compensation based on battery voltage
         if (feature(FEATURE_THR_VBAT_COMP) && isAmperageConfigured() && feature(FEATURE_VBAT)) {                
-            mixerThrottleCommand = MIN(throttleMin + (mixerThrottleCommand - throttleMin) * calculateThrottleCompensationFactor(), throttleMax);
+            mixerThrottleCommand = MIN(throttleRangeMin + (mixerThrottleCommand - throttleRangeMin) * calculateThrottleCompensationFactor(), throttleRangeMax);
         }
     }
 
