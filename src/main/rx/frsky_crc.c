@@ -49,6 +49,5 @@ uint8_t frskyCheckSum(uint8_t *data, uint8_t length)
 
 bool frskyCheckSumIsGood(uint8_t *data, uint8_t length)
 {
-    uint16_t checksum = frskyCheckSum(data, length);
-    return checksum == 0xFF;
+    return !frskyCheckSum(data, length);
 }

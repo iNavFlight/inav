@@ -36,13 +36,12 @@
 
 #define USE_EXTI
 #define USE_MPU_DATA_READY_SIGNAL
+#define GYRO_INT_EXTI           PC4
 
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW180_DEG_FLIP
 #define MPU6000_CS_PIN          PB2
 #define MPU6000_SPI_BUS         BUS_SPI1
-#define MPU6000_EXTI_PIN        PC4
-
 
 // *************** I2C /Baro/Mag *********************
 #define USE_I2C
@@ -84,11 +83,6 @@
 #define M25P16_CS_PIN           PB12
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
-#define USE_SDCARD
-#define USE_SDCARD_SPI
-#define SDCARD_SPI_BUS          BUS_SPI2
-#define SDCARD_CS_PIN           PC15
-
 // *************** UART *****************************
 #define USE_VCP
 #define USB_DETECT_PIN          PC14
@@ -120,7 +114,7 @@
      
 #define USE_SOFTSERIAL1
 #define SOFTSERIAL_1_TX_PIN      PA2 //TX2 pad
-#define SOFTSERIAL_1_RX_PIN      PA2
+#define SOFTSERIAL_1_RX_PIN      NONE
 
 #define SERIAL_PORT_COUNT       8
 
@@ -169,5 +163,3 @@
 #define USE_SERIALSHOT
 #define USE_ESC_SENSOR
 
-//#define USE_CAMERA_CONTROL
-//#define CAMERA_CONTROL_PIN         	PB15
