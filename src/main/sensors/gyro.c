@@ -125,9 +125,9 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .dynamicGyroNotchQ = 120,
     .dynamicGyroNotchMinHz = 150,
     .dynamicGyroNotchEnabled = 0,
-    .kalman_q = 3000,
-    .kalman_w = 32,
-    .kalman_sharpness = 2500,
+    .kalman_q = 100,
+    .kalman_w = 4,
+    .kalman_sharpness = 100,
     .kalmanEnabled = 0,
 );
 
