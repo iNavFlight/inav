@@ -217,13 +217,13 @@ groups:
       - name: gyro_kalman_q
         field: kalman_q
         condition: USE_GYRO_KALMAN
-        min: 1000
+        min: 1
         max: 16000
       - name: gyro_kalman_w
         field: kalman_w
         condition: USE_GYRO_KALMAN
-        min: 4
-        max: 512
+        min: 1
+        max: 40
       - name: gyro_kalman_sharpness
         field: kalman_sharpness
         condition: USE_GYRO_KALMAN
