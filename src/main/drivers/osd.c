@@ -56,12 +56,12 @@ static void osdGridBufferConstrainRect(int *x, int *y, int *w, int *h, int total
         *y = 0;
     }
     int maxX = *x + *w;
-    int extraWidth = maxX - totalWidth;
+    int extraWidth = maxX - totalWidth + 1;
     if (extraWidth > 0) {
         *w -= extraWidth;
     }
     int maxY = *y + *h;
-    int extraHeight = maxY - totalHeight;
+    int extraHeight = maxY - totalHeight + 1;
     if (extraHeight > 0) {
         *h -= extraHeight;
     }

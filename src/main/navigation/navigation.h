@@ -198,6 +198,7 @@ typedef struct navConfig_s {
         uint8_t  max_dive_angle;             // Fixed wing max banking angle (deg)
         uint16_t cruise_throttle;            // Cruise throttle
         uint16_t cruise_speed;               // Speed at cruise throttle (cm/s), used for time/distance left before RTH
+        uint8_t control_smoothness;          // The amount of smoothing to apply to controls for navigation
         uint16_t min_throttle;               // Minimum allowed throttle in auto mode
         uint16_t max_throttle;               // Maximum allowed throttle in auto mode
         uint8_t  pitch_to_throttle;          // Pitch angle (in deg) to throttle gain (in 1/1000's of throttle) (*10)
@@ -233,9 +234,11 @@ typedef struct gpsOrigin_s {
 } gpsOrigin_t;
 
 typedef enum {
-    NAV_WP_ACTION_WAYPOINT = 0x01,
-    NAV_WP_ACTION_JUMP     = 0x06, 
-    NAV_WP_ACTION_RTH      = 0x04
+    NAV_WP_ACTION_WAYPOINT  = 0x01,
+    NAV_WP_ACTION_HOLD_TIME = 0x03,
+    NAV_WP_ACTION_RTH       = 0x04,
+    NAV_WP_ACTION_JUMP      = 0x06,
+    NAV_WP_ACTION_LAND      = 0x08
 } navWaypointActions_e;
 
 typedef enum {

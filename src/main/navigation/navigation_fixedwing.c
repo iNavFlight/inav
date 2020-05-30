@@ -51,6 +51,9 @@
 
 #include "rx/rx.h"
 
+// Base frequencies for smoothing pitch and roll 
+#define NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ     2.0f      
+#define NAV_FW_BASE_ROLL_CUTOFF_FREQUENCY_HZ     10.0f
 
 // If we are going slower than NAV_FW_MIN_VEL_SPEED_BOOST - boost throttle to fight against the wind
 #define NAV_FW_THROTTLE_SPEED_BOOST_GAIN        1.5f
@@ -67,6 +70,14 @@ static bool isAutoThrottleManuallyIncreased = false;
 static int32_t navHeadingError;
 static int8_t loiterDirYaw = 1;
 
+// Calculates the cutoff frequency for smoothing out roll/pitch commands 
+// control_smoothness valid range from 0 to 9
+// resulting cutoff_freq ranging from baseFreq downwards to ~0.11Hz 
+static float getSmoothnessCutoffFreq(float baseFreq)
+{
+    uint16_t smoothness = 10 - navConfig()->fw.control_smoothness;
+    return 0.001f * baseFreq * (float)(smoothness*smoothness*smoothness) + 0.1f;
+}
 
 /*-----------------------------------------------------------
  * Altitude controller
@@ -136,7 +147,9 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
 
     // PID controller to translate energy balance error [J] into pitch angle [decideg]
     float targetPitchAngle = navPidApply3(&posControl.pids.fw_alt, demSEB, estSEB, US2S(deltaMicros), minDiveDeciDeg, maxClimbDeciDeg, 0, pitchGainInv, 1.0f);
-    targetPitchAngle = pt1FilterApply4(&velzFilterState, targetPitchAngle, NAV_FW_PITCH_CUTOFF_FREQENCY_HZ, US2S(deltaMicros));
+
+    // Apply low-pass filter to prevent rapid correction
+    targetPitchAngle = pt1FilterApply4(&velzFilterState, targetPitchAngle, getSmoothnessCutoffFreq(NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ), US2S(deltaMicros));
 
     // Reconstrain pitch angle ( >0 - climb, <0 - dive)
     targetPitchAngle = constrainf(targetPitchAngle, minDiveDeciDeg, maxClimbDeciDeg);
@@ -203,6 +216,9 @@ bool adjustFixedWingHeadingFromRCInput(void)
 static fpVector3_t virtualDesiredPosition;
 static pt1Filter_t fwPosControllerCorrectionFilterState;
 
+/*
+ * TODO Currently this function resets both FixedWing and Rover & Boat position controller 
+ */
 void resetFixedWingPositionController(void)
 {
     virtualDesiredPosition.x = 0;
@@ -243,7 +259,7 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
 
     // If angular visibility of a waypoint is less than 30deg, don't calculate circular loiter, go straight to the target
     #define TAN_15DEG    0.26795f
-    bool needToCalculateCircularLoiter = isApproachingLastWaypoint()
+    bool needToCalculateCircularLoiter = (isApproachingLastWaypoint() || isWaypointWait())
                                             && (distanceToActualTarget <= (navConfig()->fw.loiter_radius / TAN_15DEG))
                                             && (distanceToActualTarget > 50.0f)
                                             && !FLIGHT_MODE(NAV_CRUISE_MODE);
@@ -284,6 +300,34 @@ bool adjustFixedWingPositionFromRCInput(void)
 {
     int16_t rcRollAdjustment = applyDeadband(rcCommand[ROLL], rcControlsConfig()->pos_hold_deadband);
     return (rcRollAdjustment);
+}
+
+float processHeadingYawController(timeDelta_t deltaMicros, int32_t navHeadingError, bool errorIsDecreasing) {
+    static float limit = 0.0f;
+
+    if (limit == 0.0f) {
+        limit = pidProfile()->navFwPosHdgPidsumLimit * 100.0f;
+    }
+
+    const pidControllerFlags_e yawPidFlags = errorIsDecreasing ? PID_SHRINK_INTEGRATOR : 0;
+
+    const float yawAdjustment = navPidApply2(
+        &posControl.pids.fw_heading, 
+        0, 
+        applyDeadband(navHeadingError, navConfig()->fw.yawControlDeadband * 100), 
+        US2S(deltaMicros),
+        -limit,
+        limit,
+        yawPidFlags
+        ) / 100.0f;
+
+    DEBUG_SET(DEBUG_NAV_YAW, 0, posControl.pids.fw_heading.proportional);
+    DEBUG_SET(DEBUG_NAV_YAW, 1, posControl.pids.fw_heading.integral);
+    DEBUG_SET(DEBUG_NAV_YAW, 2, posControl.pids.fw_heading.derivative);
+    DEBUG_SET(DEBUG_NAV_YAW, 3, navHeadingError);
+    DEBUG_SET(DEBUG_NAV_YAW, 4, posControl.pids.fw_heading.output_constrained);
+
+    return yawAdjustment;
 }
 
 static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta_t deltaMicros)
@@ -336,7 +380,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
                                         pidFlags);
 
     // Apply low-pass filter to prevent rapid correction
-    rollAdjustment = pt1FilterApply4(&fwPosControllerCorrectionFilterState, rollAdjustment, NAV_FW_ROLL_CUTOFF_FREQUENCY_HZ, US2S(deltaMicros));
+    rollAdjustment = pt1FilterApply4(&fwPosControllerCorrectionFilterState, rollAdjustment, getSmoothnessCutoffFreq(NAV_FW_BASE_ROLL_CUTOFF_FREQUENCY_HZ), US2S(deltaMicros));
 
     // Convert rollAdjustment to decidegrees (rcAdjustment holds decidegrees)
     posControl.rcAdjustment[ROLL] = CENTIDEGREES_TO_DECIDEGREES(rollAdjustment);
@@ -346,32 +390,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
      * It is working in relative mode and we aim to keep error at zero
      */
     if (STATE(FW_HEADING_USE_YAW)) {
-
-        static float limit = 0.0f;
-
-        if (limit == 0.0f) {
-            limit = pidProfile()->navFwPosHdgPidsumLimit * 100.0f;
-        }
-
-        const pidControllerFlags_e yawPidFlags = errorIsDecreasing ? PID_SHRINK_INTEGRATOR : 0;
-
-        float yawAdjustment = navPidApply2(
-            &posControl.pids.fw_heading, 
-            0, 
-            applyDeadband(navHeadingError, navConfig()->fw.yawControlDeadband * 100), 
-            US2S(deltaMicros),
-            -limit,
-            limit,
-            yawPidFlags
-            ) / 100.0f;
-
-        DEBUG_SET(DEBUG_NAV_YAW, 0, posControl.pids.fw_heading.proportional);
-        DEBUG_SET(DEBUG_NAV_YAW, 1, posControl.pids.fw_heading.integral);
-        DEBUG_SET(DEBUG_NAV_YAW, 2, posControl.pids.fw_heading.derivative);
-        DEBUG_SET(DEBUG_NAV_YAW, 3, navHeadingError);
-        DEBUG_SET(DEBUG_NAV_YAW, 4, posControl.pids.fw_heading.output_constrained);
-
-        posControl.rcAdjustment[YAW] = yawAdjustment;
+        posControl.rcAdjustment[YAW] = processHeadingYawController(deltaMicros, navHeadingError, errorIsDecreasing);
     } else {
         posControl.rcAdjustment[YAW] = 0;
     }

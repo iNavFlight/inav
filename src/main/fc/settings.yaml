@@ -33,6 +33,8 @@ tables:
     values: ["SERIAL", "SPIFLASH", "SDCARD"]
   - name: motor_pwm_protocol
     values: ["STANDARD", "ONESHOT125", "ONESHOT42", "MULTISHOT", "BRUSHED", "DSHOT150", "DSHOT300", "DSHOT600", "DSHOT1200", "SERIALSHOT"]
+  - name: servo_protocol
+    values: ["PWM", "SERVO_DRIVER", "SBUS"]
   - name: failsafe_procedure
     values: ["SET-THR", "DROP", "RTH", "NONE"]
   - name: current_sensor
@@ -81,7 +83,8 @@ tables:
     values: ["NONE", "GYRO", "AGL", "FLOW_RAW",
       "FLOW", "SBUS", "FPORT", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "ITERM_RELAX",
-      "ERPM", "RPM_FILTER", "RPM_FREQ", "NAV_YAW", "DYNAMIC_FILTER", "DYNAMIC_FILTER_FREQUENCY"]
+      "ERPM", "RPM_FILTER", "RPM_FREQ", "NAV_YAW", "DYNAMIC_FILTER", "DYNAMIC_FILTER_FREQUENCY",
+      "IRLOCK"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -138,6 +141,9 @@ tables:
   - name: pidTypeTable
     values: ["NONE", "PID", "PIFF", "AUTO"]
     enum: pidType_e
+  - name: osd_ahi_style
+    values: ["DEFAULT", "LINE"]
+    enum: osd_ahi_style_e
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -202,7 +208,7 @@ groups:
       - name: dynamic_gyro_notch_min_hz
         field: dynamicGyroNotchMinHz
         condition: USE_DYNAMIC_FILTERS
-        min: 60
+        min: 30
         max: 1000
       - name: gyro_to_use
         condition: USE_DUAL_GYRO
@@ -723,6 +729,9 @@ groups:
     type: servoConfig_t
     headers: ["flight/servos.h"]
     members:
+      - name: servo_protocol
+        field: servo_protocol
+        table: servo_protocol
       - name: servo_center_pulse
         field: servoCenterPulse
         min: PWM_RANGE_MIN
@@ -885,7 +894,7 @@ groups:
       - name: rpm_gyro_min_hz
         field: gyro_min_hz
         type: uint8_t
-        min: 50
+        min: 30
         max: 200
       - name: rpm_gyro_q
         field: gyro_q
@@ -933,7 +942,7 @@ groups:
         min: 0
         max: 100
       - name: pos_hold_deadband
-        min: 10
+        min: 2
         max: 250
       - name: alt_hold_deadband
         min: 10
@@ -1247,7 +1256,7 @@ groups:
         min: 0
         max: 255
       - name: nav_fw_pos_hdg_pidsum_limit
-        field: pidSumLimitYaw
+        field: navFwPosHdgPidsumLimit
         min: PID_SUM_LIMIT_MIN
         max: PID_SUM_LIMIT_MAX
       - name: mc_iterm_relax_type
@@ -1605,6 +1614,10 @@ groups:
         field: fw.cruise_speed
         min: 0
         max: 65535
+      - name: nav_fw_control_smoothness 
+        field: fw.control_smoothness
+        min: 0
+        max: 9
 
       - name: nav_fw_land_dive_angle
         field: fw.land_dive_angle
@@ -1901,6 +1914,14 @@ groups:
         field: imu_temp_alarm_max
         min: -550
         max: 1250
+      - name: osd_esc_temp_alarm_max
+        field: esc_temp_alarm_max
+        min: -550
+        max: 1500
+      - name: osd_esc_temp_alarm_min
+        field: esc_temp_alarm_min
+        min: -550
+        max: 1500
       - name: osd_baro_temp_alarm_min
         field: baro_temp_alarm_min
         condition: USE_BARO
@@ -1950,8 +1971,8 @@ groups:
         max: 4
       - name: osd_hud_margin_v
         field: hud_margin_v
-        min: 0
-        max: 4
+        min: 1
+        max: 3
       - name: osd_hud_homing
         field: hud_homing
         type: bool
@@ -1974,6 +1995,10 @@ groups:
         field: hud_radar_nearest
         min: 0
         max: 4000
+      - name: osd_hud_wp_disp
+        field: hud_wp_disp
+        min: 0
+        max: 3
       - name: osd_left_sidebar_scroll
         field: left_sidebar_scroll
         table: osd_sidebar_scroll
@@ -2006,6 +2031,9 @@ groups:
         field: plus_code_digits
         min: 10
         max: 13
+
+      - name: osd_ahi_style
+        table: osd_ahi_style
 
   - name: PG_SYSTEM_CONFIG
     type: systemConfig_t
@@ -2140,5 +2168,14 @@ groups:
           table: log_level
         - name: log_topics
           field: topics
-          min: 0,
+          min: 0
           max: UINT32_MAX
+
+  - name: PG_ESC_SENSOR_CONFIG
+    type: escSensorConfig_t
+    headers: ["sensors/esc_sensor.h"]
+    condition: USE_ESC_SENSOR
+    members:
+        - name: esc_sensor_listen_only
+          field: listenOnly
+          type: bool
