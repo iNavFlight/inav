@@ -87,7 +87,7 @@ float kalman_process(kalman_t *kalmanState, float input, float target)
     return kalmanState->x;
 }
 
-static void updateAxisVariance(uint8_t axis, kalman_t *kalmanState, float rate)
+static void updateAxisVariance(kalman_t *kalmanState, float rate)
 {
     kalmanState->axisWindow[kalmanState->windex] = rate;
 
@@ -116,9 +116,9 @@ static void updateAxisVariance(uint8_t axis, kalman_t *kalmanState, float rate)
 
 void gyroKalmanUpdate(float *input, float *output)
 {
-    updateAxisVariance(X, &kalmanFilterStateRate[X], input[X]);
-    updateAxisVariance(Y, &kalmanFilterStateRate[Y], input[Y]);
-    updateAxisVariance(Z, &kalmanFilterStateRate[Z], input[Z]);
+    updateAxisVariance(&kalmanFilterStateRate[X], input[X]);
+    updateAxisVariance(&kalmanFilterStateRate[Y], input[Y]);
+    updateAxisVariance(&kalmanFilterStateRate[Z], input[Z]);
 
     output[X] = kalman_process(&kalmanFilterStateRate[X], input[X], setPoint[X]);
     output[Y] = kalman_process(&kalmanFilterStateRate[Y], input[Y], setPoint[Y]);
