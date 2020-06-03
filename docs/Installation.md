@@ -28,3 +28,5 @@ When upgrading be sure to backup / dump your existing settings.  Some firmware r
 ## Backup/Restore process
 
 See the CLI section of the docs for details on how to backup and restore your configuration via the CLI.
+
+For terminal alternative see [async_msp_cli](https://github.com/msp-rs/async_msp_cli.rs) to dump and upload diff, please follow the documentation in the tool readme

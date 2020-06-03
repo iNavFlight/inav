@@ -33,6 +33,10 @@ For a list of features, changes and some discussion please review consult the re
 
 Official tool for INAV can be downloaded [here](https://github.com/iNavFlight/inav-configurator/releases). It can be run on Windows, MacOS and Linux machines and standalone application.  
 
+### Asyn Msp Cli
+
+CLI Alternative for INav configurator, you can get it [here](https://github.com/msp-rs/async_msp_cli.rs). It can run Linux machines only.  
+
 ### INAV Blackbox Explorer
 
 Tool for Blackbox logs analysis is available [here](https://github.com/iNavFlight/blackbox-log-viewer/releases)
