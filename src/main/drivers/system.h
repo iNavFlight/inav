@@ -39,6 +39,7 @@ void failureMode(failureMode_e mode);
 // bootloader/IAP
 void systemReset(void);
 void systemResetToBootloader(void);
+uint32_t systemBootloaderAddress(void);
 bool isMPUSoftReset(void);
 void cycleCounterInit(void);
 void checkForBootLoaderRequest(void);

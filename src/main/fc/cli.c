@@ -44,6 +44,7 @@ extern uint8_t __config_end;
 #include "common/time.h"
 #include "common/typeconversion.h"
 #include "common/global_functions.h"
+#include "common/global_variables.h"
 
 #include "config/config_eeprom.h"
 #include "config/feature.h"
@@ -55,9 +56,11 @@ extern uint8_t __config_end;
 #include "drivers/buf_writer.h"
 #include "drivers/bus_i2c.h"
 #include "drivers/compass/compass.h"
+#include "drivers/flash.h"
 #include "drivers/io.h"
 #include "drivers/io_impl.h"
 #include "drivers/osd_symbols.h"
+#include "drivers/persistent.h"
 #include "drivers/rx_pwm.h"
 #include "drivers/sdcard/sdcard.h"
 #include "drivers/sensor.h"
@@ -67,6 +70,7 @@ extern uint8_t __config_end;
 #include "drivers/time.h"
 #include "drivers/timer.h"
 #include "drivers/usb_msc.h"
+#include "drivers/vtx_common.h"
 
 #include "fc/fc_core.h"
 #include "fc/cli.h"
@@ -91,6 +95,8 @@ extern uint8_t __config_end;
 #include "io/ledstrip.h"
 #include "io/osd.h"
 #include "io/serial.h"
+
+#include "fc/fc_msp_box.h"
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
@@ -145,11 +151,11 @@ static bool commandBatchError = false;
 // sync this with features_e
 static const char * const featureNames[] = {
     "THR_VBAT_COMP", "VBAT", "TX_PROF_SEL", "BAT_PROF_AUTOSWITCH", "MOTOR_STOP",
-    "DYNAMIC_FILTERS", "SOFTSERIAL", "GPS", "RPM_FILTERS",
-    "", "TELEMETRY", "CURRENT_METER", "3D", "",
+    "", "SOFTSERIAL", "GPS", "RPM_FILTERS",
+    "", "TELEMETRY", "CURRENT_METER", "REVERSIBLE_MOTORS", "",
     "", "RSSI_ADC", "LED_STRIP", "DASHBOARD", "",
     "BLACKBOX", "", "TRANSPONDER", "AIRMODE",
-    "SUPEREXPO", "VTX", "", "", "PWM_SERVO_DRIVER", "PWM_OUTPUT_ENABLE",
+    "SUPEREXPO", "VTX", "", "", "", "PWM_OUTPUT_ENABLE",
     "OSD", "FW_LAUNCH", NULL
 };
 
@@ -644,17 +650,19 @@ static void printAux(uint8_t dumpMask, const modeActivationCondition_t *modeActi
                 && mac->auxChannelIndex == macDefault->auxChannelIndex
                 && mac->range.startStep == macDefault->range.startStep
                 && mac->range.endStep == macDefault->range.endStep;
+            const box_t *box = findBoxByActiveBoxId(macDefault->modeId);
             cliDefaultPrintLinef(dumpMask, equalsDefault, format,
                 i,
-                macDefault->modeId,
+                box->permanentId,
                 macDefault->auxChannelIndex,
                 MODE_STEP_TO_CHANNEL_VALUE(macDefault->range.startStep),
                 MODE_STEP_TO_CHANNEL_VALUE(macDefault->range.endStep)
             );
         }
+        const box_t *box = findBoxByActiveBoxId(mac->modeId);
         cliDumpPrintLinef(dumpMask, equalsDefault, format,
             i,
-            mac->modeId,
+            box->permanentId,
             mac->auxChannelIndex,
             MODE_STEP_TO_CHANNEL_VALUE(mac->range.startStep),
             MODE_STEP_TO_CHANNEL_VALUE(mac->range.endStep)
@@ -678,9 +686,12 @@ static void cliAux(char *cmdline)
             ptr = nextArg(ptr);
             if (ptr) {
                 val = fastA2I(ptr);
-                if (val >= 0 && val < CHECKBOX_ITEM_COUNT) {
-                    mac->modeId = val;
-                    validArgumentCount++;
+                if (val >= 0) {
+                    const box_t *box = findBoxByPermanentId(val);
+                    if (box != NULL) {
+                        mac->modeId = box->boxId;
+                        validArgumentCount++;
+                    }
                 }
             }
             ptr = nextArg(ptr);
@@ -1278,7 +1289,7 @@ static void cliTempSensor(char *cmdline)
 static void printWaypoints(uint8_t dumpMask, const navWaypoint_t *navWaypoint, const navWaypoint_t *defaultNavWaypoint)
 {
     cliPrintLinef("#wp %d %svalid", posControl.waypointCount, posControl.waypointListValid ? "" : "in"); //int8_t bool
-    const char *format = "wp %u %u %d %d %d %d %u"; //uint8_t action; int32_t lat; int32_t lon; int32_t alt; int16_t p1; uint8_t flag
+    const char *format = "wp %u %u %d %d %d %d %d %d %u"; //uint8_t action; int32_t lat; int32_t lon; int32_t alt; int16_t p1 int16_t p2 int16_t p3; uint8_t flag
     for (uint8_t i = 0; i < NAV_MAX_WAYPOINTS; i++) {
         bool equalsDefault = false;
         if (defaultNavWaypoint) {
@@ -1287,6 +1298,8 @@ static void printWaypoints(uint8_t dumpMask, const navWaypoint_t *navWaypoint, c
                 && navWaypoint[i].lon == defaultNavWaypoint[i].lon
                 && navWaypoint[i].alt == defaultNavWaypoint[i].alt
                 && navWaypoint[i].p1 == defaultNavWaypoint[i].p1
+                && navWaypoint[i].p2 == defaultNavWaypoint[i].p2
+                && navWaypoint[i].p3 == defaultNavWaypoint[i].p3
                 && navWaypoint[i].flag == defaultNavWaypoint[i].flag;
             cliDefaultPrintLinef(dumpMask, equalsDefault, format,
                 i,
@@ -1295,6 +1308,8 @@ static void printWaypoints(uint8_t dumpMask, const navWaypoint_t *navWaypoint, c
                 defaultNavWaypoint[i].lon,
                 defaultNavWaypoint[i].alt,
                 defaultNavWaypoint[i].p1,
+                defaultNavWaypoint[i].p2,
+                defaultNavWaypoint[i].p3,
                 defaultNavWaypoint[i].flag
             );
         }
@@ -1305,6 +1320,8 @@ static void printWaypoints(uint8_t dumpMask, const navWaypoint_t *navWaypoint, c
             navWaypoint[i].lon,
             navWaypoint[i].alt,
             navWaypoint[i].p1,
+            navWaypoint[i].p2,
+            navWaypoint[i].p3,
             navWaypoint[i].flag
         );
     }
@@ -1321,7 +1338,7 @@ static void cliWaypoints(char *cmdline)
     } else if (sl_strcasecmp(cmdline, "save") == 0) {
         posControl.waypointListValid = false;
         for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {
-            if (!(posControl.waypointList[i].action == NAV_WP_ACTION_WAYPOINT || posControl.waypointList[i].action == NAV_WP_ACTION_RTH)) break;
+            if (!(posControl.waypointList[i].action == NAV_WP_ACTION_WAYPOINT || posControl.waypointList[i].action == NAV_WP_ACTION_JUMP || posControl.waypointList[i].action == NAV_WP_ACTION_RTH || posControl.waypointList[i].action == NAV_WP_ACTION_HOLD_TIME || posControl.waypointList[i].action == NAV_WP_ACTION_LAND)) break;
             if (posControl.waypointList[i].flag == NAV_WP_FLAG_LAST) {
                 posControl.waypointCount = i + 1;
                 posControl.waypointListValid = true;
@@ -1334,7 +1351,7 @@ static void cliWaypoints(char *cmdline)
             cliShowParseError();
         }
     } else {
-        int16_t i, p1;
+        int16_t i, p1,p2=0,p3=0,tmp;
         uint8_t action, flag;
         int32_t lat, lon, alt;
         uint8_t validArgumentCount = 0;
@@ -1368,12 +1385,29 @@ static void cliWaypoints(char *cmdline)
             }
             ptr = nextArg(ptr);
             if (ptr) {
-                flag = fastA2I(ptr);
+                tmp = fastA2I(ptr);
                 validArgumentCount++;
             }
-            if (validArgumentCount < 4) {
+                /* We support pre-2.5 6 values (... p1,flags) or
+                 *  2.5 and later, 8 values (... p1,p2,p3,flags)
+                 */
+            ptr = nextArg(ptr);
+            if (ptr) {
+                p2 = tmp;
+                p3 = fastA2I(ptr);
+                validArgumentCount++;
+                ptr = nextArg(ptr);
+                 if (ptr) {
+                    flag = fastA2I(ptr);
+                    validArgumentCount++;
+                }
+            } else {
+                flag = tmp;
+            }
+
+            if (!(validArgumentCount == 6 || validArgumentCount == 8)) {
                 cliShowParseError();
-            } else if (!(action == 0 || action == NAV_WP_ACTION_WAYPOINT || action == NAV_WP_ACTION_RTH) || (p1 < 0) || !(flag == 0 || flag == NAV_WP_FLAG_LAST)) {
+            } else if (!(action == 0 || action == NAV_WP_ACTION_WAYPOINT || action == NAV_WP_ACTION_RTH || action == NAV_WP_ACTION_JUMP || action == NAV_WP_ACTION_HOLD_TIME || action == NAV_WP_ACTION_LAND) || (p1 < 0) || !(flag == 0 || flag == NAV_WP_FLAG_LAST)) {
                 cliShowParseError();
             } else {
                 posControl.waypointList[i].action = action;
@@ -1381,6 +1415,8 @@ static void cliWaypoints(char *cmdline)
                 posControl.waypointList[i].lon = lon;
                 posControl.waypointList[i].alt = alt;
                 posControl.waypointList[i].p1 = p1;
+                posControl.waypointList[i].p2 = p2;
+                posControl.waypointList[i].p3 = p3;
                 posControl.waypointList[i].flag = flag;
             }
         } else {
@@ -1731,7 +1767,7 @@ static void cliServoMix(char *cmdline)
 
 static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions, const logicCondition_t *defaultLogicConditions)
 {
-    const char *format = "logic %d %d %d %d %d %d %d %d";
+    const char *format = "logic %d %d %d %d %d %d %d %d %d";
     for (uint32_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
         const logicCondition_t logic = logicConditions[i];
 
@@ -1740,6 +1776,7 @@ static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions
             logicCondition_t defaultValue = defaultLogicConditions[i];
             equalsDefault =
                 logic.enabled == defaultValue.enabled &&
+                logic.activatorId == defaultValue.activatorId &&
                 logic.operation == defaultValue.operation &&
                 logic.operandA.type == defaultValue.operandA.type &&
                 logic.operandA.value == defaultValue.operandA.value &&
@@ -1750,6 +1787,7 @@ static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions
             cliDefaultPrintLinef(dumpMask, equalsDefault, format,
                 i,
                 logic.enabled,
+                logic.activatorId,
                 logic.operation,
                 logic.operandA.type,
                 logic.operandA.value,
@@ -1761,6 +1799,7 @@ static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions
         cliDumpPrintLinef(dumpMask, equalsDefault, format,
             i,
             logic.enabled,
+            logic.activatorId,
             logic.operation,
             logic.operandA.type,
             logic.operandA.value,
@@ -1773,7 +1812,7 @@ static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions
 
 static void cliLogic(char *cmdline) {
     char * saveptr;
-    int args[8], check = 0;
+    int args[9], check = 0;
     uint8_t len = strlen(cmdline);
 
     if (len == 0) {
@@ -1784,6 +1823,7 @@ static void cliLogic(char *cmdline) {
         enum {
             INDEX = 0,
             ENABLED,
+            ACTIVATOR_ID,
             OPERATION,
             OPERAND_A_TYPE,
             OPERAND_A_VALUE,
@@ -1807,6 +1847,7 @@ static void cliLogic(char *cmdline) {
         if (
             i >= 0 && i < MAX_LOGIC_CONDITIONS &&
             args[ENABLED] >= 0 && args[ENABLED] <= 1 &&
+            args[ACTIVATOR_ID] >= -1 && args[ACTIVATOR_ID] < MAX_LOGIC_CONDITIONS &&
             args[OPERATION] >= 0 && args[OPERATION] < LOGIC_CONDITION_LAST &&
             args[OPERAND_A_TYPE] >= 0 && args[OPERAND_A_TYPE] < LOGIC_CONDITION_OPERAND_TYPE_LAST &&
             args[OPERAND_A_VALUE] >= -1000000 && args[OPERAND_A_VALUE] <= 1000000 &&
@@ -1816,6 +1857,7 @@ static void cliLogic(char *cmdline) {
 
         ) {
             logicConditionsMutable(i)->enabled = args[ENABLED];
+            logicConditionsMutable(i)->activatorId = args[ACTIVATOR_ID];
             logicConditionsMutable(i)->operation = args[OPERATION];
             logicConditionsMutable(i)->operandA.type = args[OPERAND_A_TYPE];
             logicConditionsMutable(i)->operandA.value = args[OPERAND_A_VALUE];
@@ -1829,6 +1871,83 @@ static void cliLogic(char *cmdline) {
         }
     }
 }
+
+static void printGvar(uint8_t dumpMask, const globalVariableConfig_t *gvars, const globalVariableConfig_t *defaultGvars)
+{
+    const char *format = "gvar %d %d %d %d";
+    for (uint32_t i = 0; i < MAX_GLOBAL_VARIABLES; i++) {
+        const globalVariableConfig_t gvar = gvars[i];
+
+        bool equalsDefault = false;
+        if (defaultGvars) {
+            globalVariableConfig_t defaultValue = defaultGvars[i];
+            equalsDefault =
+                gvar.defaultValue == defaultValue.defaultValue &&
+                gvar.min == defaultValue.min &&
+                gvar.max == defaultValue.max;
+
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                i,
+                gvar.defaultValue,
+                gvar.min,
+                gvar.max
+            );
+        }
+        cliDumpPrintLinef(dumpMask, equalsDefault, format,
+            i,
+            gvar.defaultValue,
+            gvar.min,
+            gvar.max
+        );
+    }
+}
+
+static void cliGvar(char *cmdline) {
+    char * saveptr;
+    int args[4], check = 0;
+    uint8_t len = strlen(cmdline);
+
+    if (len == 0) {
+        printGvar(DUMP_MASTER, globalVariableConfigs(0), NULL);
+    } else if (sl_strncasecmp(cmdline, "reset", 5) == 0) {
+        pgResetCopy(globalVariableConfigsMutable(0), PG_GLOBAL_VARIABLE_CONFIG);
+    } else {
+        enum {
+            INDEX = 0,
+            DEFAULT,
+            MIN,
+            MAX,
+            ARGS_COUNT
+            };
+        char *ptr = strtok_r(cmdline, " ", &saveptr);
+        while (ptr != NULL && check < ARGS_COUNT) {
+            args[check++] = fastA2I(ptr);
+            ptr = strtok_r(NULL, " ", &saveptr);
+        }
+
+        if (ptr != NULL || check != ARGS_COUNT) {
+            cliShowParseError();
+            return;
+        }
+
+        int32_t i = args[INDEX];
+        if (
+            i >= 0 && i < MAX_GLOBAL_VARIABLES &&
+            args[DEFAULT] >= INT32_MIN && args[DEFAULT] <= INT32_MAX &&  
+            args[MIN] >= INT32_MIN && args[MIN] <= INT32_MAX &&  
+            args[MAX] >= INT32_MIN && args[MAX] <= INT32_MAX  
+        ) {
+            globalVariableConfigsMutable(i)->defaultValue = args[DEFAULT];
+            globalVariableConfigsMutable(i)->min = args[MIN];
+            globalVariableConfigsMutable(i)->max = args[MAX];
+
+            cliGvar("");
+        } else {
+            cliShowParseError();
+        }
+    }
+}
+
 #endif
 
 #ifdef USE_GLOBAL_FUNCTIONS
@@ -1907,7 +2026,7 @@ static void cliGlobalFunctions(char *cmdline) {
         if (
             i >= 0 && i < MAX_GLOBAL_FUNCTIONS &&
             args[ENABLED] >= 0 && args[ENABLED] <= 1 &&
-            args[CONDITION_ID] >= 0 && args[CONDITION_ID] < MAX_LOGIC_CONDITIONS &&
+            args[CONDITION_ID] >= -1 && args[CONDITION_ID] < MAX_LOGIC_CONDITIONS &&
             args[ACTION] >= 0 && args[ACTION] < GLOBAL_FUNCTION_ACTION_LAST &&
             args[VALUE_TYPE] >= 0 && args[VALUE_TYPE] < LOGIC_CONDITION_OPERAND_TYPE_LAST &&
             args[VALUE_VALUE] >= -1000000 && args[VALUE_VALUE] <= 1000000 &&
@@ -2005,12 +2124,32 @@ static void cliSdInfo(char *cmdline)
 
 static void cliFlashInfo(char *cmdline)
 {
-    const flashGeometry_t *layout = flashfsGetGeometry();
-
     UNUSED(cmdline);
 
-    cliPrintLinef("Flash sectors=%u, sectorSize=%u, pagesPerSector=%u, pageSize=%u, totalSize=%u, usedSize=%u",
-            layout->sectors, layout->sectorSize, layout->pagesPerSector, layout->pageSize, layout->totalSize, flashfsGetOffset());
+    const flashGeometry_t *layout = flashGetGeometry();
+
+    cliPrintLinef("Flash sectors=%u, sectorSize=%u, pagesPerSector=%u, pageSize=%u, totalSize=%u",
+            layout->sectors, layout->sectorSize, layout->pagesPerSector, layout->pageSize, layout->totalSize);
+
+    for (uint8_t index = 0; index < FLASH_MAX_PARTITIONS; index++) {
+        const flashPartition_t *partition;
+        if (index == 0) {
+            cliPrintLine("Paritions:");
+        }
+        partition = flashPartitionFindByIndex(index);
+        if (!partition) {
+            break;
+        }
+        cliPrintLinef("  %d: %s %u %u", index, flashPartitionGetTypeName(partition->type), partition->startSector, partition->endSector);
+    }
+#ifdef USE_FLASHFS
+    const flashPartition_t *flashPartition = flashPartitionFindByType(FLASH_PARTITION_TYPE_FLASHFS);
+
+    cliPrintLinef("FlashFS size=%u, usedSize=%u",
+            FLASH_PARTITION_SECTOR_COUNT(flashPartition) * layout->sectorSize,
+            flashfsGetOffset()
+    );
+#endif
 }
 
 static void cliFlashErase(char *cmdline)
@@ -2020,7 +2159,7 @@ static void cliFlashErase(char *cmdline)
     cliPrintLine("Erasing...");
     flashfsEraseCompletely();
 
-    while (!flashfsIsReady()) {
+    while (!flashIsReady()) {
         delay(100);
     }
 
@@ -2975,6 +3114,29 @@ static void cliStatus(char *cmdline)
     cliPrintLinef("Arming disabled flags: 0x%lx", armingFlags & ARMING_DISABLED_ALL_FLAGS);
 #endif
 
+#if defined(USE_VTX_CONTROL) && !defined(CLI_MINIMAL_VERBOSITY)
+    cliPrint("VTX: ");
+
+    if (vtxCommonDeviceIsReady(vtxCommonDevice())) {
+        vtxDeviceOsdInfo_t osdInfo;
+        vtxCommonGetOsdInfo(vtxCommonDevice(), &osdInfo);
+        cliPrintf("band: %c, chan: %s, power: %c", osdInfo.bandLetter, osdInfo.channelName, osdInfo.powerIndexLetter);
+
+        if (osdInfo.powerMilliwatt) {
+            cliPrintf(" (%d mW)", osdInfo.powerMilliwatt);
+        }
+
+        if (osdInfo.frequency) {
+            cliPrintf(", freq: %d MHz", osdInfo.frequency);
+        }
+    }
+    else {
+        cliPrint("not detected");
+    }
+
+    cliPrintLinefeed();
+#endif
+
     // If we are blocked by PWM init - provide more information
     if (getPwmInitError() != PWM_INIT_ERROR_NONE) {
         cliPrintLinef("PWM output init error: %s", getPwmInitErrorMessage());
@@ -3146,13 +3308,13 @@ static void printConfig(const char *cmdline, bool doDiff)
         //printResource(dumpMask, &defaultConfig);
 
         cliPrintHashLine("mixer");
-        cliDumpPrintLinef(dumpMask, primaryMotorMixer(0)->throttle == 0.0f, "\r\nmmix reset\r\n");
+        cliDumpPrintLinef(dumpMask, primaryMotorMixer_CopyArray[0].throttle == 0.0f, "\r\nmmix reset\r\n");
 
         printMotorMix(dumpMask, primaryMotorMixer_CopyArray, primaryMotorMixer(0));
 
         // print custom servo mixer if exists
         cliPrintHashLine("servo mix");
-        cliDumpPrintLinef(dumpMask, customServoMixers(0)->rate == 0, "smix reset\r\n");
+        cliDumpPrintLinef(dumpMask, customServoMixers_CopyArray[0].rate == 0, "smix reset\r\n");
         printServoMix(dumpMask, customServoMixers_CopyArray, customServoMixers(0));
 
         // print servo parameters
@@ -3162,6 +3324,9 @@ static void printConfig(const char *cmdline, bool doDiff)
 #ifdef USE_LOGIC_CONDITIONS
         cliPrintHashLine("logic");
         printLogic(dumpMask, logicConditions_CopyArray, logicConditions(0));
+
+        cliPrintHashLine("gvar");
+        printGvar(dumpMask, globalVariableConfigs_CopyArray, globalVariableConfigs(0));
 #endif
 
 #ifdef USE_GLOBAL_FUNCTIONS
@@ -3298,11 +3463,7 @@ static void cliMsc(char *cmdline)
         waitForSerialPortToFinishTransmitting(cliPort);
         stopPwmAllMotors();
 
-#ifdef STM32F7
-        *((__IO uint32_t*) BKPSRAM_BASE + 16) = MSC_MAGIC;
-#elif defined(STM32F4)
-        *((uint32_t *)0x2001FFF0) = MSC_MAGIC;
-#endif
+        persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_MSC_REQUEST);
 
         __disable_irq();
         NVIC_SystemReset();
@@ -3417,8 +3578,12 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("servo", "configure servos", NULL, cliServo),
 #ifdef USE_LOGIC_CONDITIONS
     CLI_COMMAND_DEF("logic", "configure logic conditions",
-        "<rule> <enabled> <operation> <operand A type> <operand A value> <operand B type> <operand B value> <flags>\r\n"
+        "<rule> <enabled> <activatorId> <operation> <operand A type> <operand A value> <operand B type> <operand B value> <flags>\r\n"
         "\treset\r\n", cliLogic),
+
+    CLI_COMMAND_DEF("gvar", "configure global variables",
+        "<gvar> <default> <min> <max>\r\n"
+        "\treset\r\n", cliGvar),
 #endif
 #ifdef USE_GLOBAL_FUNCTIONS
     CLI_COMMAND_DEF("gf", "configure global functions",

@@ -766,7 +766,7 @@ void cmsMenuOpen(void)
 {
     if (!cmsInMenu) {
         // New open
-	setServoOutputEnabled(false);
+        setServoOutputEnabled(false);
         pCurrentDisplay = cmsDisplayPortSelectCurrent();
         if (!pCurrentDisplay)
             return;

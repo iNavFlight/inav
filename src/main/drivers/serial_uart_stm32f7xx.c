@@ -64,7 +64,7 @@ static uartDevice_t uart1 =
 #endif
     .rcc_apb2 = RCC_APB2(USART1),
     .irq = USART1_IRQn,
-    .irqPriority = NVIC_PRIO_SERIALUART1
+    .irqPriority = NVIC_PRIO_SERIALUART
 };
 #endif
 
@@ -84,7 +84,7 @@ static uartDevice_t uart2 =
 #endif
     .rcc_apb1 = RCC_APB1(USART2),
     .irq = USART2_IRQn,
-    .irqPriority = NVIC_PRIO_SERIALUART2
+    .irqPriority = NVIC_PRIO_SERIALUART
 };
 #endif
 
@@ -104,7 +104,7 @@ static uartDevice_t uart3 =
 #endif
     .rcc_apb1 = RCC_APB1(USART3),
     .irq = USART3_IRQn,
-    .irqPriority = NVIC_PRIO_SERIALUART3
+    .irqPriority = NVIC_PRIO_SERIALUART
 };
 #endif
 
@@ -124,7 +124,7 @@ static uartDevice_t uart4 =
 #endif
     .rcc_apb1 = RCC_APB1(UART4),
     .irq = UART4_IRQn,
-    .irqPriority = NVIC_PRIO_SERIALUART4
+    .irqPriority = NVIC_PRIO_SERIALUART
 };
 #endif
 
@@ -144,7 +144,7 @@ static uartDevice_t uart5 =
 #endif
     .rcc_apb1 = RCC_APB1(UART5),
     .irq = UART5_IRQn,
-    .irqPriority = NVIC_PRIO_SERIALUART5
+    .irqPriority = NVIC_PRIO_SERIALUART
 };
 #endif
 
@@ -164,7 +164,7 @@ static uartDevice_t uart6 =
 #endif
     .rcc_apb2 = RCC_APB2(USART6),
     .irq = USART6_IRQn,
-    .irqPriority = NVIC_PRIO_SERIALUART6
+    .irqPriority = NVIC_PRIO_SERIALUART
 };
 #endif
 
@@ -184,7 +184,7 @@ static uartDevice_t uart7 =
 #endif
     .rcc_apb1 = RCC_APB1(UART7),
     .irq = UART7_IRQn,
-    .irqPriority = NVIC_PRIO_SERIALUART7
+    .irqPriority = NVIC_PRIO_SERIALUART
 };
 #endif
 #ifdef USE_UART8
@@ -203,7 +203,7 @@ static uartDevice_t uart8 =
 #endif
     .rcc_apb1 = RCC_APB1(UART8),
     .irq = UART8_IRQn,
-    .irqPriority = NVIC_PRIO_SERIALUART8
+    .irqPriority = NVIC_PRIO_SERIALUART
 };
 #endif
 
@@ -372,7 +372,7 @@ uartPort_t *serialUART(UARTDevice_e device, uint32_t baudRate, portMode_t mode, 
         }
     }
 
-    HAL_NVIC_SetPriority(uart->irq, NVIC_PRIORITY_BASE(uart->irqPriority), NVIC_PRIORITY_SUB(uart->irqPriority));
+    HAL_NVIC_SetPriority(uart->irq, uart->irqPriority, 0);
     HAL_NVIC_EnableIRQ(uart->irq);
 
     return s;
