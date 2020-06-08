@@ -1268,6 +1268,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, navConfig()->fw.max_climb_angle);
         sbufWriteU8(dst, navConfig()->fw.max_dive_angle);
         sbufWriteU8(dst, navConfig()->fw.pitch_to_throttle);
+        sbufWriteU16(dst, navConfig()->fw.loiter_radius);
         //launch
         sbufWriteU16(dst, navConfig()->fw.launch_velocity_thresh);
         sbufWriteU16(dst, navConfig()->fw.launch_accel_thresh);
