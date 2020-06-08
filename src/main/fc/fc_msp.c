@@ -1268,7 +1268,19 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, navConfig()->fw.max_climb_angle);
         sbufWriteU8(dst, navConfig()->fw.max_dive_angle);
         sbufWriteU8(dst, navConfig()->fw.pitch_to_throttle);
-        sbufWriteU16(dst, navConfig()->fw.loiter_radius);
+        //launch
+        sbufWriteU16(dst, navConfig()->fw.launch_velocity_thresh);
+        sbufWriteU16(dst, navConfig()->fw.launch_accel_thresh);
+        sbufWriteU16(dst, navConfig()->fw.launch_max_angle);
+        sbufWriteU16(dst, navConfig()->fw.launch_time_thresh);
+        sbufWriteU16(dst, navConfig()->fw.launch_throttle);
+        sbufWriteU16(dst, navConfig()->fw.launch_idle_throttle);
+        sbufWriteU16(dst, navConfig()->fw.launch_motor_timer);
+        sbufWriteU16(dst, navConfig()->fw.launch_motor_spinup_time);
+        sbufWriteU16(dst, navConfig()->fw.launch_min_time);
+        sbufWriteU16(dst, navConfig()->fw.launch_timeout);
+        sbufWriteU16(dst, navConfig()->fw.launch_max_altitude);
+        sbufWriteU16(dst, navConfig()->fw.launch_climb_angle);
         break;
 #endif
 
