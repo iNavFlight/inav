@@ -20,6 +20,8 @@
 #define TARGET_BOARD_IDENTIFIER "KFCi"
 #define USE_HARDWARE_PREBOOT_SETUP
 
+#define USE_DJI_HD_OSD
+
 #define LED0                    PC13
 #define LED0_INVERTED
 
