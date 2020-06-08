@@ -114,6 +114,8 @@ typedef enum
     // MAX7456 emulation commands
     OSD_CMD_DRAW_GRID_CHR = 110,
     OSD_CMD_DRAW_GRID_STR = 111,
+    OSD_CMD_DRAW_GRID_CHR_2 = 112,                                  // API2
+    OSD_CMD_DRAW_GRID_STR_2 = 113,                                  // API2
 } osdCommand_e;
 
 typedef enum {
@@ -159,8 +161,17 @@ typedef struct frskyOSDDrawGridStrHeaderCmd_s {
     uint8_t gx;
     uint8_t gy;
     uint8_t opts;
-    // uvarint with size and blob folow
+    // uvarint with size and blob follow
+    // string IS null-terminated
 } __attribute__((packed)) frskyOSDDrawGridStrHeaderCmd_t;
+
+typedef struct frskyOSDDrawGridStrV2HeaderCmd_s {
+    uint8_t gx : 5;   // +5 = 5
+    uint8_t gy : 4;   // +4 = 9
+    uint8_t opts : 7; // +7 = 16 = 2 bytes
+    // uvarint with size and blob folow
+    // string IS NOT null terminated
+} __attribute__((packed)) frskyOSDDrawGridStrV2HeaderCmd_t;
 
 typedef struct frskyOSDPoint_s {
     int x : 12;
@@ -212,6 +223,15 @@ typedef struct frskyOSDDrawStrMaskCommandHeaderCmd_s {
     // uvarint with size and blob follow
 } __attribute__((packed)) frskyOSDDrawStrMaskCommandHeaderCmd_t;
 
+typedef struct frskyOSDDrawGridChrV2Cmd_s
+{
+    uint8_t gx : 5;       // +5 = 5
+    uint8_t gy : 4;       // +4 = 9
+    uint16_t chr : 9;     // +9 = 18
+    uint8_t opts : 4;     // +4 = 22 from osd_bitmap_opt_t
+    uint8_t reserved : 2; // +2 = 24 = 3 bytes
+} __attribute__((packed)) frskyOSDDrawGridChrV2Cmd_t;
+
 
 typedef struct frskyOSDState_s {
     struct {
@@ -253,6 +273,11 @@ static frskyOSDState_t state;
 static uint8_t frskyOSDChecksum(uint8_t crc, uint8_t c)
 {
     return crc8_dvb_s2(crc, c);
+}
+
+static bool frskyOSDSpeaksV2(void)
+{
+    return state.info.major >= 2 || (state.info.major == 1 && state.info.minor >= 99);
 }
 
 static void frskyOSDResetReceiveBuffer(void)
@@ -675,7 +700,18 @@ unsigned frskyOSDGetPixelHeight(void)
     return state.info.viewport.height;
 }
 
-static void frskyOSDSendCharInGrid(unsigned x, unsigned y, uint16_t chr, textAttributes_t attr)
+static void frskyOSDSendAsyncBlobCommand(uint8_t cmd, const void *header, size_t headerSize, const void *blob, size_t blobSize)
+{
+    uint8_t payload[128];
+
+    memcpy(payload, header, headerSize);
+
+    int uvarintSize = uvarintEncode(blobSize, &payload[headerSize], sizeof(payload) - headerSize);
+    memcpy(&payload[headerSize + uvarintSize], blob, blobSize);
+    frskyOSDSendAsyncCommand(cmd, payload,  headerSize + uvarintSize + blobSize);
+}
+
+static void frskyOSDSendCharInGrid_V1(unsigned x, unsigned y, uint16_t chr, textAttributes_t attr)
 {
     uint8_t payload[] = {
         x,
@@ -687,15 +723,53 @@ static void frskyOSDSendCharInGrid(unsigned x, unsigned y, uint16_t chr, textAtt
     frskyOSDSendAsyncCommand(OSD_CMD_DRAW_GRID_CHR, payload, sizeof(payload));
 }
 
-static void frskyOSDSendAsyncBlobCommand(uint8_t cmd, const void *header, size_t headerSize, const void *blob, size_t blobSize)
+static void frskyOSDSendCharInGrid_V2(unsigned x, unsigned y, uint16_t chr, textAttributes_t attr)
 {
-    uint8_t payload[128];
+    frskyOSDDrawGridChrV2Cmd_t payload = {
+        .gx = x,
+        .gy = y,
+        .chr = chr,
+        .opts = frskyOSDEncodeAttr(attr),
+    };
+    frskyOSDSendAsyncCommand(OSD_CMD_DRAW_GRID_CHR_2, &payload, sizeof(payload));
+}
 
-    memcpy(payload, header, headerSize);
+static void frskyOSDSendCharInGrid(unsigned x, unsigned y, uint16_t chr, textAttributes_t attr)
+{
+    if (frskyOSDSpeaksV2()) {
+        frskyOSDSendCharInGrid_V2(x, y, chr, attr);
+    } else {
+        frskyOSDSendCharInGrid_V1(x, y, chr, attr);
+    }
+}
 
-    int uvarintSize = uvarintEncode(blobSize, &payload[headerSize], sizeof(payload) - headerSize);
-    memcpy(&payload[headerSize + uvarintSize], blob, blobSize);
-    frskyOSDSendAsyncCommand(cmd, payload,  headerSize + uvarintSize + blobSize);
+static void frskyOSDSendCharSendStringInGrid_V1(unsigned x, unsigned y, const char *buff, textAttributes_t attr)
+{
+    frskyOSDDrawGridStrHeaderCmd_t cmd = {
+        .gx = x,
+        .gy = y,
+        .opts = frskyOSDEncodeAttr(attr),
+    };
+    frskyOSDSendAsyncBlobCommand(OSD_CMD_DRAW_GRID_STR, &cmd, sizeof(cmd), buff, strlen(buff) + 1);
+}
+
+static void frskyOSDSendCharSendStringInGrid_V2(unsigned x, unsigned y, const char *buff, textAttributes_t attr)
+{
+    frskyOSDDrawGridStrV2HeaderCmd_t cmd = {
+        .gx = x,
+        .gy = y,
+        .opts = frskyOSDEncodeAttr(attr),
+    };
+    frskyOSDSendAsyncBlobCommand(OSD_CMD_DRAW_GRID_STR_2, &cmd, sizeof(cmd), buff, strlen(buff));
+}
+
+static void frskyOSDSendCharSendStringInGrid(unsigned x, unsigned y, const char *buff, textAttributes_t attr)
+{
+    if (frskyOSDSpeaksV2()) {
+        frskyOSDSendCharSendStringInGrid_V2(x, y, buff, attr);
+    } else {
+        frskyOSDSendCharSendStringInGrid_V1(x, y, buff, attr);
+    }
 }
 
 void frskyOSDDrawStringInGrid(unsigned x, unsigned y, const char *buff, textAttributes_t attr)
@@ -726,12 +800,7 @@ void frskyOSDDrawStringInGrid(unsigned x, unsigned y, const char *buff, textAttr
         return;
     }
 
-    frskyOSDDrawGridStrHeaderCmd_t cmd;
-    cmd.gx = x;
-    cmd.gy = y;
-    cmd.opts = frskyOSDEncodeAttr(attr);
-
-    frskyOSDSendAsyncBlobCommand(OSD_CMD_DRAW_GRID_STR, &cmd, sizeof(cmd), buff, strlen(buff) + 1);
+    frskyOSDSendCharSendStringInGrid(x, y, buff, attr);
 }
 
 void frskyOSDDrawCharInGrid(unsigned x, unsigned y, uint16_t chr, textAttributes_t attr)
