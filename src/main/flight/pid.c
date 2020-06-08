@@ -268,7 +268,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .antigravityCutoff = ANTI_GRAVITY_THROTTLE_FILTER_CUTOFF,
         .pidControllerType = PID_TYPE_AUTO,
         .navFwPosHdgPidsumLimit = PID_SUM_LIMIT_YAW_DEFAULT,
-        .feedForwardLpfHz = 30,
+        .controlDerivativeLpfHz = 30,
 );
 
 bool pidInitFilters(void)
@@ -315,9 +315,9 @@ bool pidInitFilters(void)
     }
 #endif
 
-    if (pidProfile()->feedForwardLpfHz) {
+    if (pidProfile()->controlDerivativeLpfHz) {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            biquadFilterInitLPF(&pidState[axis].rateTargetFilter, pidProfile()->feedForwardLpfHz, getLooptime());
+            biquadFilterInitLPF(&pidState[axis].rateTargetFilter, pidProfile()->controlDerivativeLpfHz, getLooptime());
         }
     }
 

@@ -1288,8 +1288,8 @@ groups:
       - name: pid_type
         field: pidControllerType
         table: pidTypeTable
-      - name: mc_ff_lpf_hz
-        field: feedForwardLpfHz
+      - name: mc_cd_lpf_hz
+        field: controlDerivativeLpfHz
         min: 0
         max: 200
 

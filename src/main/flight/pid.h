@@ -146,7 +146,7 @@ typedef struct pidProfile_s {
     uint8_t antigravityCutoff;
 
     uint16_t navFwPosHdgPidsumLimit;
-    uint8_t feedForwardLpfHz;
+    uint8_t controlDerivativeLpfHz;
 } pidProfile_t;
 
 typedef struct pidAutotuneConfig_s {
