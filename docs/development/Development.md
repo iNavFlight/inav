@@ -98,3 +98,13 @@ Later, you can get the changes from the INAV repo into your `master` branch by a
 
 
 You can also perform the git commands using the git client inside Eclipse.  Refer to the Eclipse git manual.
+
+## Branching and release workflow
+
+Normally, all development occurs on the `master` branch. Every release will have it's own branch named `release_x.y.z`.
+
+During release candidate cycle we will follow the process outlined below:
+
+1. Create a release branch `release_x.y.z`
+2. All bug fixes found in the release candidates will be merged into `release_x.y.z` branch and not into the `master`.
+3. After final release is made, the branch `release_x.y.z` is locked, and merged into `master` bringing all of the bug fixes into the development branch. Merge conflicts that may arise at this stage are resolved manually.
