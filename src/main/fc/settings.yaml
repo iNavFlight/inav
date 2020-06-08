@@ -171,18 +171,11 @@ groups:
       - name: moron_threshold
         field: gyroMovementCalibrationThreshold
         max: 128
-      - name: gyro_notch1_hz
-        field: gyro_soft_notch_hz_1
+      - name: gyro_notch_hz
+        field: gyro_notch_hz
         max: 500
-      - name: gyro_notch1_cutoff
-        field: gyro_soft_notch_cutoff_1
-        min: 1
-        max: 500
-      - name: gyro_notch2_hz
-        field: gyro_soft_notch_hz_2
-        max: 500
-      - name: gyro_notch2_cutoff
-        field: gyro_soft_notch_cutoff_2
+      - name: gyro_notch_cutoff
+        field: gyro_notch_cutoff
         min: 1
         max: 500
       - name: gyro_stage2_lowpass_hz
