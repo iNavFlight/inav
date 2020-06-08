@@ -401,6 +401,8 @@ main_sources(COMMON_SRC
     rx/sbus_channels.h
     rx/spektrum.c
     rx/spektrum.h
+    rx/srxl2.c
+    rx/srxl2.h
     rx/sumd.c
     rx/sumd.h
     rx/sumh.c
@@ -486,6 +488,8 @@ main_sources(COMMON_SRC
     io/displayport_msp.h
     io/displayport_oled.c
     io/displayport_oled.h
+    io/displayport_srxl.c
+    io/displayport_srxl.h
     io/displayport_hott.c
     io/displayport_hott.h
     io/flashfs.c
@@ -547,6 +551,8 @@ main_sources(COMMON_SRC
 
     telemetry/crsf.c
     telemetry/crsf.h
+    telemetry/srxl.c
+    telemetry/srxl.h
     telemetry/frsky.c
     telemetry/frsky.h
     telemetry/frsky_d.c

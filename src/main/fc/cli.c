@@ -103,6 +103,7 @@ extern uint8_t __config_end;
 #include "rx/rx.h"
 #include "rx/spektrum.h"
 #include "rx/eleres.h"
+#include "rx/srxl2.h"
 
 #include "scheduler/scheduler.h"
 
@@ -2578,6 +2579,35 @@ static void cliEleresBind(char *cmdline)
 }
 #endif // USE_RX_ELERES
 
+#if defined(USE_RX_SPI) || defined (USE_SERIALRX_SRXL2)
+void cliRxBind(char *cmdline){
+    UNUSED(cmdline);
+    if (rxConfig()->receiverType == RX_TYPE_SERIAL) {
+        switch (rxConfig()->serialrx_provider) {
+        default:
+            cliPrint("Not supported.");
+            break;
+#if defined(USE_SERIALRX_SRXL2)
+        case SERIALRX_SRXL2:
+            srxl2Bind();
+            cliPrint("Binding SRXL2 receiver...");
+            break;
+#endif
+        }
+    } 
+#if defined(USE_RX_SPI)
+    else if (rxConfig()->receiverType == RX_TYPE_SPI) {
+        switch (rxConfig()->rx_spi_protocol) {
+        default:
+            cliPrint("Not supported.");
+            break;
+        }
+    
+    }
+#endif
+}
+#endif
+
 static void cliExit(char *cmdline)
 {
     UNUSED(cmdline);
@@ -3464,6 +3494,9 @@ const clicmd_t cmdTable[] = {
 #ifdef BEEPER
     CLI_COMMAND_DEF("beeper", "turn on/off beeper", "list\r\n"
             "\t<+|->[name]", cliBeeper),
+#endif
+#if defined(USE_RX_SPI) || defined (USE_SERIALRX_SRXL2)
+    CLI_COMMAND_DEF("bind_rx", "initiate binding for RX SPI or SRXL2", NULL, cliRxBind),
 #endif
 #if defined(USE_BOOTLOG)
     CLI_COMMAND_DEF("bootlog", "show boot events", NULL, cliBootlog),

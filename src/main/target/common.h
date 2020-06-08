@@ -124,6 +124,14 @@
 
 #define USE_I2C_IO_EXPANDER
 
+#define USE_SERIALRX_SRXL2     // Spektrum SRXL2 protocol
+#define USE_TELEMETRY_SRXL
+#define USE_SPEKTRUM_CMS_TELEMETRY
+//#define USE_SPEKTRUM_VTX_CONTROL //Some functions from betaflight still not implemented
+#define USE_SPEKTRUM_VTX_TELEMETRY
+
+#define USE_VTX_COMMON
+
 #else // FLASH_SIZE < 256
 #define LOG_LEVEL_MAXIMUM LOG_LEVEL_ERROR
 #endif

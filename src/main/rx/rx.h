@@ -82,6 +82,7 @@ typedef enum {
     SERIALRX_FPORT = 10,
     SERIALRX_SBUS_FAST = 11,
     SERIALRX_FPORT2 = 12,
+    SERIALRX_SRXL2 = 13,
 } rxSerialReceiverType_e;
 
 #define MAX_SUPPORTED_RC_PPM_CHANNEL_COUNT          16
@@ -128,6 +129,8 @@ typedef struct rxConfig_s {
     uint8_t rcFilterFrequency;              // RC filter cutoff frequency (smoothness vs response sharpness)
     uint16_t mspOverrideChannels;           // Channels to override with MSP RC when BOXMSPRCOVERRIDE is active
     uint8_t rssi_source;
+    uint8_t srxl2_unit_id;
+    uint8_t srxl2_baud_fast;
 } rxConfig_t;
 
 PG_DECLARE(rxConfig_t, rxConfig);
