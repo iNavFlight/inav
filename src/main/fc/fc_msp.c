@@ -1155,14 +1155,13 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, gyroConfig()->gyro_soft_lpf_hz);
         sbufWriteU16(dst, pidProfile()->dterm_lpf_hz);
         sbufWriteU16(dst, pidProfile()->yaw_lpf_hz);
-        sbufWriteU16(dst, gyroConfig()->gyro_soft_notch_hz_1); //masterConfig.gyro_soft_notch_hz_1
-        sbufWriteU16(dst, gyroConfig()->gyro_soft_notch_cutoff_1); //BF: masterConfig.gyro_soft_notch_cutoff_1
-
+        sbufWriteU16(dst, gyroConfig()->gyro_notch_hz);
+        sbufWriteU16(dst, gyroConfig()->gyro_notch_cutoff);
         sbufWriteU16(dst, 0); //BF: pidProfile()->dterm_notch_hz
-        sbufWriteU16(dst, 0); //pidProfile()->dterm_notch_cutoff
+        sbufWriteU16(dst, 1); //pidProfile()->dterm_notch_cutoff
 
-        sbufWriteU16(dst, gyroConfig()->gyro_soft_notch_hz_2); //BF: masterConfig.gyro_soft_notch_hz_2
-        sbufWriteU16(dst, gyroConfig()->gyro_soft_notch_cutoff_2); //BF: masterConfig.gyro_soft_notch_cutoff_2
+        sbufWriteU16(dst, 0); //BF: masterConfig.gyro_soft_notch_hz_2
+        sbufWriteU16(dst, 1); //BF: masterConfig.gyro_soft_notch_cutoff_2
 
         sbufWriteU16(dst, accelerometerConfig()->acc_notch_hz);
         sbufWriteU16(dst, accelerometerConfig()->acc_notch_cutoff);
@@ -2039,8 +2038,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             pidProfileMutable()->dterm_lpf_hz = constrain(sbufReadU16(src), 0, 500);
             pidProfileMutable()->yaw_lpf_hz = constrain(sbufReadU16(src), 0, 255);
             if (dataSize >= 9) {
-                gyroConfigMutable()->gyro_soft_notch_hz_1 = constrain(sbufReadU16(src), 0, 500);
-                gyroConfigMutable()->gyro_soft_notch_cutoff_1 = constrain(sbufReadU16(src), 1, 500);
+                gyroConfigMutable()->gyro_notch_hz = constrain(sbufReadU16(src), 0, 500);
+                gyroConfigMutable()->gyro_notch_cutoff = constrain(sbufReadU16(src), 1, 500);
             } else {
                 return MSP_RESULT_ERROR;
             }
@@ -2052,8 +2051,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 return MSP_RESULT_ERROR;
             }
             if (dataSize >= 17) {
-                gyroConfigMutable()->gyro_soft_notch_hz_2 = constrain(sbufReadU16(src), 0, 500);
-                gyroConfigMutable()->gyro_soft_notch_cutoff_2 = constrain(sbufReadU16(src), 1, 500);
+                sbufReadU16(src); // Was gyroConfigMutable()->gyro_soft_notch_hz_2
+                sbufReadU16(src); // Was gyroConfigMutable()->gyro_soft_notch_cutoff_2
             } else {
                 return MSP_RESULT_ERROR;
             }
