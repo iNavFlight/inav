@@ -35,6 +35,7 @@
 #include "common/maths.h"
 #include "common/crc.h"
 
+#include "config/feature.h"
 #include "config/config_reset.h"
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
@@ -43,6 +44,7 @@
 #include "drivers/pwm_output.h"
 #include "sensors/esc_sensor.h"
 #include "io/serial.h"
+#include "fc/config.h"
 #include "fc/runtime_config.h"
 
 
@@ -206,6 +208,12 @@ escSensorData_t * escSensorGetData(void)
 bool escSensorInitialize(void)
 {
     escSensorDataNeedsUpdate = true;
+    escSensorPort = NULL;
+
+    // Fail immediately if motor output are disabled or motor outputs are not configured
+    if (!feature(FEATURE_PWM_OUTPUT_ENABLE) || getMotorCount() == 0) {
+        return false;
+    }
 
     // FUNCTION_ESCSERIAL is shared between SERIALSHOT and ESC_SENSOR telemetry
     // They are mutually exclusive

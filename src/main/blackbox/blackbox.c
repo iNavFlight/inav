@@ -875,7 +875,7 @@ static void writeIntraframe(void)
     blackboxLoggedAnyFrames = true;
 }
 
-static void blackboxWriteMainStateArrayUsingAveragePredictor(int arrOffsetInHistory, int count)
+static void blackboxWriteArrayUsingAveragePredictor16(int arrOffsetInHistory, int count)
 {
     int16_t *curr  = (int16_t*) ((char*) (blackboxHistory[0]) + arrOffsetInHistory);
     int16_t *prev1 = (int16_t*) ((char*) (blackboxHistory[1]) + arrOffsetInHistory);
@@ -884,6 +884,20 @@ static void blackboxWriteMainStateArrayUsingAveragePredictor(int arrOffsetInHist
     for (int i = 0; i < count; i++) {
         // Predictor is the average of the previous two history states
         int32_t predictor = (prev1[i] + prev2[i]) / 2;
+
+        blackboxWriteSignedVB(curr[i] - predictor);
+    }
+}
+
+static void blackboxWriteArrayUsingAveragePredictor32(int arrOffsetInHistory, int count)
+{
+    int32_t *curr  = (int32_t*) ((char*) (blackboxHistory[0]) + arrOffsetInHistory);
+    int32_t *prev1 = (int32_t*) ((char*) (blackboxHistory[1]) + arrOffsetInHistory);
+    int32_t *prev2 = (int32_t*) ((char*) (blackboxHistory[2]) + arrOffsetInHistory);
+
+    for (int i = 0; i < count; i++) {
+        // Predictor is the average of the previous two history states
+        int32_t predictor = ((int64_t)prev1[i] + (int64_t)prev2[i]) / 2;
 
         blackboxWriteSignedVB(curr[i] - predictor);
     }
@@ -1023,16 +1037,16 @@ static void writeInterframe(void)
     blackboxWriteTag8_8SVB(deltas, optionalFieldCount);
 
     //Since gyros, accs and motors are noisy, base their predictions on the average of the history:
-    blackboxWriteMainStateArrayUsingAveragePredictor(offsetof(blackboxMainState_t, gyroADC),   XYZ_AXIS_COUNT);
-    blackboxWriteMainStateArrayUsingAveragePredictor(offsetof(blackboxMainState_t, accADC), XYZ_AXIS_COUNT);
-    blackboxWriteMainStateArrayUsingAveragePredictor(offsetof(blackboxMainState_t, attitude), XYZ_AXIS_COUNT);
+    blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, gyroADC),   XYZ_AXIS_COUNT);
+    blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, accADC), XYZ_AXIS_COUNT);
+    blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, attitude), XYZ_AXIS_COUNT);
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_DEBUG)) {
-        blackboxWriteMainStateArrayUsingAveragePredictor(offsetof(blackboxMainState_t, debug), DEBUG32_VALUE_COUNT);
+        blackboxWriteArrayUsingAveragePredictor32(offsetof(blackboxMainState_t, debug), DEBUG32_VALUE_COUNT);
     }
-    blackboxWriteMainStateArrayUsingAveragePredictor(offsetof(blackboxMainState_t, motor),     getMotorCount());
+    blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, motor),     getMotorCount());
 
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_SERVOS)) {
-        blackboxWriteMainStateArrayUsingAveragePredictor(offsetof(blackboxMainState_t, servo),     MAX_SUPPORTED_SERVOS);
+        blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, servo),     MAX_SUPPORTED_SERVOS);
     }
 
 #ifdef NAV_BLACKBOX

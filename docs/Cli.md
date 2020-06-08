@@ -232,6 +232,7 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  nav_fw_launch_max_altitude | 0 | Altitude (centimeters) at which LAUNCH mode will be turned off and regular flight mode will take over [0-60000]. |
 |  nav_fw_land_dive_angle  | 2 | Dive angle that airplane will use during final landing phase. During dive phase, motor is stopped or IDLE and roll control is locked to 0 degrees |
 |  nav_fw_cruise_yaw_rate  | 20 | Max YAW rate when NAV CRUISE mode is enabled (0=disable control via yaw stick) [dps]|
+| nav_use_fw_yaw_control | OFF | Enables or Disables the use of the heading PID controller on fixed wing. Heading PID controller is always enabled for rovers and boats |
 |  serialrx_provider  | SPEK1024 | When feature SERIALRX is enabled, this allows connection to several receivers which output data via digital interface resembling serial. See RX section. |
 |  serialrx_halfduplex  | OFF | Allow serial receiver to operate on UART TX pin. With some receivers will allow control and telemetry over a single wire |
 |  serialrx_inverted     | OFF | Reverse the serial inversion of the  serial RX protocol. When this value is OFF, each protocol will use its default signal (e.g. SBUS will use an inverted signal). Some OpenLRS receivers produce a non-inverted SBUS signal. This setting supports this type of receivers (including modified FrSKY). |
@@ -245,7 +246,7 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  frsky_vfas_precision  | 0 | D-Series telemetry only: Set to 1 to send raw VBat value in 0.1V resolution for receivers that can handle it, or 0 (default) to use the standard method |
 |  frsky_pitch_roll  | OFF | S.Port and D-Series telemetry: Send pitch and roll degrees*10 instead of raw accelerometer data |
 |  smartport_fuel_unit  | MAH | S.Port telemetry only: Unit of the value sent with the `FUEL` ID (FrSky D-Series always sends precent). [PERCENT/MAH/MWH] |
-|  telemetry_uart_unidir  | OFF | S.Port telemetry only: Turn UART into UNIDIR for usage on F1 and F4 target. See Telemetry.md for details |
+|  telemetry_halfduplex  | OFF | S.Port telemetry only: Turn UART into UNIDIR for usage on F1 and F4 target. See Telemetry.md for details |
 |  report_cell_voltage  | OFF | S.Port, D-Series, and IBUS telemetry: Send the average cell voltage if set to ON |
 |  hott_alarm_sound_interval  | 5 | Battery alarm delay in seconds for Hott telemetry |
 |  smartport_fuel_unit  | MAH | S.Port and D-Series telemetry: Unit of the value sent with the `FUEL` ID. [PERCENT/MAH/MWH] |
@@ -290,7 +291,7 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  imu_acc_ignore_slope | 0 | Half-width of the interval to gradually reduce accelerometer weight. Centered at `imu_acc_ignore_rate` (exactly 50% weight) |
 |  pos_hold_deadband  | 20 | Stick deadband in [r/c points], applied after r/c deadband and expo |
 |  alt_hold_deadband  | 50 | Defines the deadband of throttle during alt_hold [r/c points] |
-|  yaw_motor_direction  | 1 | Use if you need to inverse yaw motor direction. |
+|  motor_direction_inverted  | OFF | Use if you need to inverse yaw motor direction. |
 |  tri_unarmed_servo  | ON | On tricopter mix only, if this is set to ON, servo will always be correcting regardless of armed state. to disable this, set it to OFF. |
 |  servo_protocol  | PWM | An option to chose the protocol/option that would be used to output servo data. Possible options `PWM` (FC servo outputs), `SERVO_DRIVER` (I2C PCA9685 peripheral), `SBUS` (S.Bus protocol output via a configured serial port) |
 |  servo_lpf_hz  | 20 | Selects the servo PWM output cutoff frequency. Value is in [Hz] |
@@ -349,6 +350,8 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  osd_estimations_wind_compensation  | ON | Use wind estimation for remaining flight time/distance estimation |
 |  osd_failsafe_switch_layout  | OFF | If enabled the OSD automatically switches to the first layout during failsafe |
 |  osd_temp_label_align | LEFT | Allows to chose between left and right alignment for the OSD temperature sensor labels. Valid values are `LEFT` and `RIGHT` |
+|  osd_hud_wp_disp | OFF | Controls display of the next waypoints in the HUD.|
+|  osd_ahi_style | DEFAULT | Sets OSD Artificial Horizon style "DEFAULT" or "LINE" for the FrSky Graphical OSD. |
 |  display_force_sw_blink  | OFF | OFF = OSD hardware blink / ON = OSD software blink. If OSD warning text/values are invisible, try setting this to ON |
 |  magzero_x  | 0 | Magnetometer calibration X offset. If its 0 none offset has been applied and calibration is failed. |
 |  magzero_y  | 0 | Magnetometer calibration Y offset. If its 0 none offset has been applied and calibration is failed. |
@@ -373,6 +376,11 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  nav_fw_pos_xy_p  | 75 | P gain of 2D trajectory PID controller. Play with this to get a straight line between waypoints or a straight RTH |
 |  nav_fw_pos_xy_i  | 5 | I gain of 2D trajectory PID controller. Too high and there will be overshoot in trajectory. Better start tuning with zero |
 |  nav_fw_pos_xy_d  | 8 | D gain of 2D trajectory PID controller. Too high and there will be overshoot in trajectory. Better start tuning with zero |
+|  nav_fw_pos_hdg_p  | 60 | P gain of heading PID controller. (Fixedwing, rovers, boats) |
+|  nav_fw_pos_hdg_i  | 0 | I gain of heading trajectory PID controller. (Fixedwing, rovers, boats) |
+|  nav_fw_pos_hdg_d  | 0 | D gain of heading trajectory PID controller. (Fixedwing, rovers, boats) |
+|  nav_fw_pos_hdg_pidsum_limit | 350 | Output limit for heading trajectory PID controller. (Fixedwing, rovers, boats) |
+| nav_fw_yaw_deadband   | 0 | Deadband for heading trajectory PID controller. When heading error is below the deadband, controller assumes that vehicle is on course |
 |  nav_mc_heading_p  | 60 | P gain of Heading Hold controller (Multirotor) |
 |  nav_fw_heading_p  | 60 | P gain of Heading Hold controller (Fixedwing) |
 |  deadband  | 5 | These are values (in us) by how much RC input can be different before it's considered valid. For transmitters with jitter on outputs, this value can be increased. Defaults are zero, but can be increased up to 10 or so if rc inputs twitch while idle. |
