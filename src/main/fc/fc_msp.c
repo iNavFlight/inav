@@ -2203,6 +2203,19 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             navConfigMutable()->fw.max_dive_angle = sbufReadU8(src);
             navConfigMutable()->fw.pitch_to_throttle = sbufReadU8(src);
             navConfigMutable()->fw.loiter_radius = sbufReadU16(src);
+            //launch
+            navConfigMutable()->fw.launch_velocity_thresh = sbufReadU16(src);
+            navConfigMutable()->fw.launch_accel_thresh = sbufReadU16(src);
+            navConfigMutable()->fw.launch_max_angle = sbufReadU16(src);
+            navConfigMutable()->fw.launch_time_thresh = sbufReadU16(src);
+            navConfigMutable()->fw.launch_throttle = sbufReadU16(src);
+            navConfigMutable()->fw.launch_idle_throttle = sbufReadU16(src);
+            navConfigMutable()->fw.launch_motor_timer = sbufReadU16(src);
+            navConfigMutable()->fw.launch_motor_spinup_time = sbufReadU16(src);
+            navConfigMutable()->fw.launch_min_time = sbufReadU16(src);
+            navConfigMutable()->fw.launch_timeout = sbufReadU16(src);
+            navConfigMutable()->fw.launch_max_altitude = sbufReadU16(src);
+            navConfigMutable()->fw.launch_climb_angle = sbufReadU16(src);
         } else
             return MSP_RESULT_ERROR;
         break;
