@@ -1,5 +1,5 @@
 #
-# F7 Make file include
+# H7 Make file include
 #
 
 #CMSIS
@@ -128,7 +128,7 @@ INCLUDE_DIRS    := $(INCLUDE_DIRS) \
                    $(USBHIDCDC_DIR)/Inc \
                    $(USBMSC_DIR)/Inc \
                    $(CMSIS_DIR)/Core/Include \
-                   $(ROOT)/lib/main/STM32F7/Drivers/CMSIS/Device/ST/STM32H7xx/Include \
+                   $(ROOT)/lib/main/STM32H7/Drivers/CMSIS/Device/ST/STM32H7xx/Include \
                    $(ROOT)/src/main/vcp_hal
 
 ifneq ($(filter SDCARD,$(FEATURES)),)
