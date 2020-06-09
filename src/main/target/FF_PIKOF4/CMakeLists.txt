@@ -1,0 +1,2 @@
+target_stm32f405(FF_PIKOF4)
+target_stm32f405(FF_PIKOF4OSD)

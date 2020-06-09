@@ -1,0 +1,2 @@
+target_stm32f405(FF_F35_LIGHTNING)
+target_stm32f405(WINGFC)

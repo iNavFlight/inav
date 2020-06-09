@@ -16,13 +16,6 @@ set(STM32_STDPERIPH_USB_INCLUDE_DIRS
     "${STM32_STDPERIPH_USBFS_DIR}/inc"
 )
 
-SET(STM32_STDPERIPH_USBOTG_SRC_EXCLUDES
-    usb_bsp_template.c
-    usb_conf_template.c
-    usb_hcd_int.c
-    usb_hcd.c
-    usb_otg.c
-)
 set(STM32_STDPERIPH_USBOTG_SRC
     usb_core.c
     usb_dcd.c

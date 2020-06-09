@@ -1,0 +1,3 @@
+target_stm32f405(MATEKF405)
+target_stm32f405(MATEKF405_SERVOS6)
+target_stm32f405(MATEKF405OSD)

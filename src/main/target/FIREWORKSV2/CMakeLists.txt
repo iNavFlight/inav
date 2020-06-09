@@ -1,0 +1,2 @@
+target_stm32f405(FIREWORKSV2)
+target_stm32f405(OMNIBUSF4V6)

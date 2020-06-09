@@ -35,50 +35,143 @@ set(COMMON_SRC
     config/parameter_group.c
     config/general_settings.c
 
+    drivers/1-wire.c
+    drivers/1-wire/ds_crc.c
+    drivers/1-wire/ds2482.c
+
+    drivers/accgyro/accgyro.c
+    drivers/accgyro/accgyro.h
+    drivers/accgyro/accgyro_adxl345.c
+    drivers/accgyro/accgyro_adxl345.h
+    drivers/accgyro/accgyro_bma280.c
+    drivers/accgyro/accgyro_bma280.h
+    drivers/accgyro/accgyro_bmi160.c
+    drivers/accgyro/accgyro_bmi160.h
+    drivers/accgyro/accgyro_fake.c
+    drivers/accgyro/accgyro_fake.h
+    drivers/accgyro/accgyro_icm20689.c
+    drivers/accgyro/accgyro_icm20689.h
+    drivers/accgyro/accgyro_l3g4200d.c
+    drivers/accgyro/accgyro_l3g4200d.h
+    drivers/accgyro/accgyro_l3gd20.c
+    drivers/accgyro/accgyro_l3gd20.h
+    drivers/accgyro/accgyro_lsm303dlhc.c
+    drivers/accgyro/accgyro_lsm303dlhc.h
+    drivers/accgyro/accgyro_mma845x.c
+    drivers/accgyro/accgyro_mma845x.h
+    drivers/accgyro/accgyro_mpu.c
+    drivers/accgyro/accgyro_mpu.h
+    drivers/accgyro/accgyro_mpu3050.c
+    drivers/accgyro/accgyro_mpu3050.h
+    drivers/accgyro/accgyro_mpu6000.c
+    drivers/accgyro/accgyro_mpu6000.h
+    drivers/accgyro/accgyro_mpu6050.c
+    drivers/accgyro/accgyro_mpu6050.h
+    drivers/accgyro/accgyro_mpu6500.c
+    drivers/accgyro/accgyro_mpu6500.h
+    drivers/accgyro/accgyro_mpu9250.c
+    drivers/accgyro/accgyro_mpu9250.h
+
     drivers/adc.c
+
+    drivers/barometer/barometer.h
+    drivers/barometer/barometer_bmp085.c
+    drivers/barometer/barometer_bmp085.h
+    drivers/barometer/barometer_bmp280.c
+    drivers/barometer/barometer_bmp280.h
+    drivers/barometer/barometer_bmp388.c
+    drivers/barometer/barometer_bmp388.h
+    drivers/barometer/barometer_fake.c
+    drivers/barometer/barometer_fake.h
+    drivers/barometer/barometer_lps25h.c
+    drivers/barometer/barometer_lps25h.h
+    drivers/barometer/barometer_ms56xx.c
+    drivers/barometer/barometer_ms56xx.h
+    drivers/barometer/barometer_spl06.c
+    drivers/barometer/barometer_spl06.h
+
     drivers/buf_writer.c
     drivers/bus.c
     drivers/bus_busdev_i2c.c
     drivers/bus_busdev_spi.c
     drivers/bus_i2c_soft.c
     drivers/bus_spi.c
+
+    drivers/compass/compass.h
+    drivers/compass/compass_ak8963.c
+    drivers/compass/compass_ak8963.h
+    drivers/compass/compass_ak8975.c
+    drivers/compass/compass_ak8975.h
+    drivers/compass/compass_fake.c
+    drivers/compass/compass_fake.h
+    drivers/compass/compass_hmc5883l.c
+    drivers/compass/compass_hmc5883l.h
+    drivers/compass/compass_ist8308.c
+    drivers/compass/compass_ist8308.h
+    drivers/compass/compass_ist8310.c
+    drivers/compass/compass_ist8310.h
+    drivers/compass/compass_lis3mdl.c
+    drivers/compass/compass_lis3mdl.h
+    drivers/compass/compass_mag3110.c
+    drivers/compass/compass_mag3110.h
+    drivers/compass/compass_mpu9250.c
+    drivers/compass/compass_mpu9250.h
+    drivers/compass/compass_qmc5883l.c
+    drivers/compass/compass_qmc5883l.h
+
     drivers/display.c
     drivers/display_canvas.c
     drivers/display_font_metadata.c
+    drivers/display_ug2864hsweg01.c
     drivers/exti.c
+    drivers/flash.c
+    drivers/flash_m25p16.c
     drivers/io.c
     drivers/io_pca9685.c
     drivers/irlock.c
     drivers/light_led.c
+    drivers/light_ws2811strip.c
+    drivers/lights_io.c
+    drivers/max7456.c
+
+    drivers/opflow/opflow_fake.c
+    drivers/opflow/opflow_virtual.c
+
     drivers/osd.c
     drivers/persistent.c
-    drivers/resource.c
-    drivers/rx_nrf24l01.c
-    drivers/rx_spi.c
-    drivers/rx_xn297.c
     drivers/pitotmeter_adc.c
+    drivers/pitotmeter_ms4525.c
     drivers/pitotmeter_virtual.c
     drivers/pwm_esc_detect.c
     drivers/pwm_mapping.c
     drivers/pwm_output.c
     drivers/pinio.c
+
+    drivers/rangefinder/rangefinder_hcsr04.c
+    drivers/rangefinder/rangefinder_hcsr04_i2c.c
+    drivers/rangefinder/rangefinder_srf10.c
+    drivers/rangefinder/rangefinder_vl53l0x.c
+    drivers/rangefinder/rangefinder_virtual.c
+
+    drivers/resource.c
     drivers/rcc.c
+    drivers/rx_nrf24l01.c
     drivers/rx_pwm.c
+    drivers/rx_spi.c
+    drivers/rx_xn297.c
     drivers/serial.c
     drivers/serial_uart.c
     drivers/sound_beeper.c
     drivers/stack_check.c
     drivers/system.c
+
+    drivers/temperature/ds18b20.c
+    drivers/temperature/lm75.c
+
     drivers/time.c
     drivers/timer.c
     drivers/usb_msc.c
-    drivers/lights_io.c
-    drivers/1-wire.c
-    drivers/1-wire/ds_crc.c
-    drivers/1-wire/ds2482.c
-    drivers/temperature/ds18b20.c
-    drivers/temperature/lm75.c
-    drivers/pitotmeter_ms4525.c
+    drivers/vtx_common.c
 
     fc/cli.c
     fc/config.c
@@ -185,33 +278,6 @@ set(COMMON_SRC
     cms/cms_menu_osd.c
     cms/cms_menu_saveexit.c
     cms/cms_menu_vtx.c
-
-    drivers/accgyro/accgyro_mpu6000.c
-    drivers/accgyro/accgyro_mpu6500.c
-    drivers/barometer/barometer_bmp085.c
-    drivers/barometer/barometer_bmp280.c
-    drivers/barometer/barometer_ms56xx.c
-    drivers/compass/compass_ak8975.c
-    drivers/compass/compass_hmc5883l.c
-    drivers/compass/compass_mag3110.c
-    drivers/compass/compass_qmc5883l.c
-    drivers/compass/compass_ist8308.c
-    drivers/compass/compass_ist8310.c
-    drivers/compass/compass_lis3mdl.c
-    drivers/display_ug2864hsweg01.c
-    drivers/flash.c
-    drivers/flash_m25p16.c
-    drivers/light_ws2811strip.c
-    drivers/max7456.c
-    drivers/rangefinder/rangefinder_hcsr04.c
-    drivers/rangefinder/rangefinder_hcsr04_i2c.c
-    drivers/rangefinder/rangefinder_srf10.c
-    drivers/rangefinder/rangefinder_vl53l0x.c
-    drivers/rangefinder/rangefinder_virtual.c
-    drivers/opflow/opflow_fake.c
-    drivers/opflow/opflow_virtual.c
-    drivers/pitotmeter_adc.c
-    drivers/vtx_common.c
 
     io/rangefinder_msp.c
     io/rangefinder_benewake.c

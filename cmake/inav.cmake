@@ -4,11 +4,9 @@ set(INAV_INCLUDE_DIRS
     "${INAV_LIB_DIR}/main/MAVLink"
 )
 
-# TODO: We need a way to override HSE_VALUE
 set(INAV_DEFINITIONS
     __FORKNAME__=inav
     __REVISION__="${GIT_SHORT_HASH}"
-    HSE_VALUE=8000000
 )
 
 set(INAV_COMPILE_OPTIONS
@@ -43,7 +41,7 @@ endmacro()
 function(setup_firmware_target name)
     target_compile_options(${name} PRIVATE ${INAV_COMPILE_OPTIONS})
     target_include_directories(${name} PRIVATE ${INAV_INCLUDE_DIRS})
-    target_compile_definitions(${name} PRIVATE ${INAV_DEFINITIONS} __TARGET__="${name}")
+    target_compile_definitions(${name} PRIVATE ${INAV_DEFINITIONS} __TARGET__="${name}" ${name})
     enable_settings(${name})
     # XXX: Don't make SETTINGS_GENERATED_C part of the build,
     # since it's compiled via #include in settings.c. This will
@@ -59,7 +57,11 @@ endfunction()
 function(collect_targets)
     get_property(targets GLOBAL PROPERTY VALID_TARGETS)
     list(SORT targets)
-    add_custom_target("targets"
+    set(list_target_name "targets")
+    add_custom_target(${list_target_name}
         COMMAND cmake -E echo "Valid targets: ${targets}")
-    set_property(TARGET "targets" PROPERTY TARGET_MESSAGES OFF)
+    set_property(TARGET ${list_target_name} PROPERTY
+        TARGET_MESSAGES OFF
+        EXCLUDE_FROM_ALL 1
+        EXCLUDE_FROM_DEFAULT_BUILD 1)
 endfunction()
