@@ -1717,8 +1717,6 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("dterm_lpf_type", "%d",                  pidProfile()->dterm_lpf_type);
         BLACKBOX_PRINT_HEADER_LINE("dterm_lpf2_hz", "%d",                   pidProfile()->dterm_lpf2_hz);
         BLACKBOX_PRINT_HEADER_LINE("dterm_lpf2_type", "%d",                 pidProfile()->dterm_lpf2_type);
-        BLACKBOX_PRINT_HEADER_LINE("dterm_notch_hz", "%d",                  pidProfile()->dterm_soft_notch_hz);
-        BLACKBOX_PRINT_HEADER_LINE("dterm_notch_cutoff", "%d",              pidProfile()->dterm_soft_notch_cutoff);
         BLACKBOX_PRINT_HEADER_LINE("deadband", "%d",                        rcControlsConfig()->deadband);
         BLACKBOX_PRINT_HEADER_LINE("yaw_deadband", "%d",                    rcControlsConfig()->yaw_deadband);
         BLACKBOX_PRINT_HEADER_LINE("gyro_lpf", "%d",                        gyroConfig()->gyro_lpf);
@@ -1747,7 +1745,6 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("acc_notch_hz", "%d",                    accelerometerConfig()->acc_notch_hz);
         BLACKBOX_PRINT_HEADER_LINE("acc_notch_cutoff", "%d",                accelerometerConfig()->acc_notch_cutoff);
         BLACKBOX_PRINT_HEADER_LINE("gyro_stage2_lowpass_hz", "%d",          gyroConfig()->gyro_stage2_lowpass_hz);
-        BLACKBOX_PRINT_HEADER_LINE("dterm_setpoint_weight", "%f",           (double)pidProfile()->dterm_setpoint_weight);
         BLACKBOX_PRINT_HEADER_LINE("pidSumLimit", "%d",                     pidProfile()->pidSumLimit);
         BLACKBOX_PRINT_HEADER_LINE("pidSumLimitYaw", "%d",                  pidProfile()->pidSumLimitYaw);
         BLACKBOX_PRINT_HEADER_LINE("axisAccelerationLimitYaw", "%d",        pidProfile()->axisAccelerationLimitYaw);

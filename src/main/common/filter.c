@@ -232,39 +232,3 @@ FAST_CODE void biquadFilterUpdate(biquadFilter_t *filter, float filterFreq, uint
     filter->y1 = y1;
     filter->y2 = y2;
 }
-
-/*
- * FIR filter
- */
-void firFilterInit2(firFilter_t *filter, float *buf, uint8_t bufLength, const float *coeffs, uint8_t coeffsLength)
-{
-    filter->buf = buf;
-    filter->bufLength = bufLength;
-    filter->coeffs = coeffs;
-    filter->coeffsLength = coeffsLength;
-    memset(filter->buf, 0, sizeof(float) * filter->bufLength);
-}
-
-/*
- * FIR filter initialisation
- * If FIR filter is just used for averaging, coeffs can be set to NULL
- */
-void firFilterInit(firFilter_t *filter, float *buf, uint8_t bufLength, const float *coeffs)
-{
-    firFilterInit2(filter, buf, bufLength, coeffs, bufLength);
-}
-
-void firFilterUpdate(firFilter_t *filter, float input)
-{
-    memmove(&filter->buf[1], &filter->buf[0], (filter->bufLength-1) * sizeof(float));
-    filter->buf[0] = input;
-}
-
-float firFilterApply(const firFilter_t *filter)
-{
-    float ret = 0.0f;
-    for (int ii = 0; ii < filter->coeffsLength; ++ii) {
-        ret += filter->coeffs[ii] * filter->buf[ii];
-    }
-    return ret;
-}

@@ -71,5 +71,6 @@ typedef enum {
     DEBUG_DYNAMIC_FILTER,
     DEBUG_DYNAMIC_FILTER_FREQUENCY,
     DEBUG_IRLOCK,
+    DEBUG_CD,
     DEBUG_COUNT
 } debugType_e;

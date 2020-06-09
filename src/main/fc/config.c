@@ -170,9 +170,6 @@ void validateAndFixConfig(void)
     if (gyroConfig()->gyro_notch_cutoff >= gyroConfig()->gyro_notch_hz) {
         gyroConfigMutable()->gyro_notch_hz = 0;
     }
-    if (pidProfile()->dterm_soft_notch_cutoff >= pidProfile()->dterm_soft_notch_hz) {
-        pidProfileMutable()->dterm_soft_notch_hz = 0;
-    }
     if (accelerometerConfig()->acc_notch_cutoff >= accelerometerConfig()->acc_notch_hz) {
         accelerometerConfigMutable()->acc_notch_hz = 0;
     }

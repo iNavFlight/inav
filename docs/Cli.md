@@ -399,12 +399,15 @@ A shorter form is also supported to enable and disable functions using `serial <
 | mc_p_pitch | 40 | Multicopter rate stabilisation P-gain for PITCH               |
 | mc_i_pitch | 30 | Multicopter rate stabilisation I-gain for PITCH               |
 | mc_d_pitch | 23 | Multicopter rate stabilisation D-gain for PITCH               |
+| mc_cd_pitch | 60 | Multicopter Control Derivative gain for PITCH                |
 | mc_p_roll  | 40 | Multicopter rate stabilisation P-gain for ROLL                |
 | mc_i_roll  | 30 | Multicopter rate stabilisation I-gain for ROLL                |
 | mc_d_roll  | 23 | Multicopter rate stabilisation D-gain for ROLL                |
+| mc_cd_roll | 60 | Multicopter Control Derivative gain for ROLL                |
 | mc_p_yaw   | 85 | Multicopter rate stabilisation P-gain for YAW                 |
 | mc_i_yaw   | 45 | Multicopter rate stabilisation I-gain for YAW                 |
 | mc_d_yaw   | 0  | Multicopter rate stabilisation D-gain for YAW                 |
+| mc_cd_yaw | 60 | Multicopter Control Derivative gain for YAW                  |
 | mc_p_level | 20 | Multicopter attitude stabilisation P-gain                     |
 | mc_i_level | 15 | Multicopter attitude stabilisation low-pass filter cutoff     |
 | mc_d_level | 75 | Multicopter attitude stabilisation HORIZON transition point   |
@@ -505,7 +508,6 @@ A shorter form is also supported to enable and disable functions using `serial <
 | baro_cal_tolerance | 150 | Baro calibration tolerance in cm. The default  should allow the noisiest baro to complete calibration [cm]. |
 | mc_airmode_type | STICK_CENTER | Defines the Airmode state handling type for Multirotors. Default **STICK_CENTER** is the classical approach in which Airmode is always active if enabled, but when the throttle is low and ROLL/PITCH/YAW sticks are centered, Iterms is not allowed to grow (ANTI_WINDUP). **THROTTLE_THRESHOLD** is the Airmode behavior known from Betaflight. In this mode, Airmode is active as soon THROTTLE position is above `mc_airmode_threshold` and stays active until disarm. ANTI_WINDUP is never triggered. For small Multirotors (up to 7-inch propellers) it is suggested to switch to **THROTTLE_THRESHOLD** since it keeps full stabilization no matter what pilot does with the sticks. Fixed Wings always use **STICK_CENTER** mode. |
 | mc_airmode_threshold | 1300 | Defines airmode THROTTLE activation threshold when `mc_airmode_type` **THROTTLE_THRESHOLD** is used |
-| use_dterm_fir_filter | ON | Setting to **OFF** disabled extra filter on Dterm. **OFF** offers faster Dterm and better inflight performance with a cost of being more sensitive to gyro noise. Small and relatively clean multirotors (7 inches and below) are suggested to use **OFF** setting. If motors are getting too hot, switch back to **ON** |
 | sim_ground_station_number | Empty string | Number of phone that is used to communicate with SIM module. Messages / calls from other numbers are ignored. If undefined, can be set by calling or sending a message to the module. |
 | sim_pin | Empty string | PIN code for the SIM module |
 | sim_transmit_interval | 60 | Text message transmission interval in seconds for SIM module. Minimum value: 10 |
@@ -521,3 +523,4 @@ A shorter form is also supported to enable and disable functions using `serial <
 | antigravity_accelerator | 1   | |
 | antigravity_cutoff_lpf_hz | 15    | Antigravity cutoff frequenct for Throtte filter. Antigravity is based on the difference between actual and filtered throttle input. The bigger is the difference, the bigger Antigravity gain |
 | sim_pin   |   | PIN for GSM card module |
+| mc_cd_lpf_hz | 30 | Cutoff frequency for Control Derivative. Lower value smoother reaction on fast stick movements. With higher values, response will be more aggressive, jerky |

@@ -1157,8 +1157,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, pidProfile()->yaw_lpf_hz);
         sbufWriteU16(dst, gyroConfig()->gyro_notch_hz);
         sbufWriteU16(dst, gyroConfig()->gyro_notch_cutoff);
-        sbufWriteU16(dst, pidProfile()->dterm_soft_notch_hz); //BF: pidProfile()->dterm_notch_hz
-        sbufWriteU16(dst, pidProfile()->dterm_soft_notch_cutoff); //pidProfile()->dterm_notch_cutoff
+        sbufWriteU16(dst, 0); //BF: pidProfile()->dterm_notch_hz
+        sbufWriteU16(dst, 1); //pidProfile()->dterm_notch_cutoff
 
         sbufWriteU16(dst, 0); //BF: masterConfig.gyro_soft_notch_hz_2
         sbufWriteU16(dst, 1); //BF: masterConfig.gyro_soft_notch_cutoff_2
@@ -1176,7 +1176,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, 0); //BF: pidProfile()->deltaMethod
         sbufWriteU8(dst, 0); //BF: pidProfile()->vbatPidCompensation
         sbufWriteU8(dst, 0); //BF: pidProfile()->setpointRelaxRatio
-        sbufWriteU8(dst, constrain(pidProfile()->dterm_setpoint_weight * 100, 0, 255));
+        sbufWriteU8(dst, 0);
         sbufWriteU16(dst, pidProfile()->pidSumLimit);
         sbufWriteU8(dst, 0); //BF: pidProfile()->itermThrottleGain
 
@@ -2044,8 +2044,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 return MSP_RESULT_ERROR;
             }
             if (dataSize >= 13) {
-                pidProfileMutable()->dterm_soft_notch_hz = constrain(sbufReadU16(src), 0, 500);
-                pidProfileMutable()->dterm_soft_notch_cutoff = constrain(sbufReadU16(src), 1, 500);
+                sbufReadU16(src);
+                sbufReadU16(src);
                 pidInitFilters();
             } else {
                 return MSP_RESULT_ERROR;
@@ -2082,7 +2082,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU8(src); //BF: pidProfileMutable()->deltaMethod
             sbufReadU8(src); //BF: pidProfileMutable()->vbatPidCompensation
             sbufReadU8(src); //BF: pidProfileMutable()->setpointRelaxRatio
-            pidProfileMutable()->dterm_setpoint_weight = constrainf(sbufReadU8(src) / 100.0f, 0.0f, 2.0f);
+            sbufReadU8(src);
             pidProfileMutable()->pidSumLimit = sbufReadU16(src);
             sbufReadU8(src); //BF: pidProfileMutable()->itermThrottleGain
 

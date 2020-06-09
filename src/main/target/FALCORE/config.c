@@ -167,9 +167,6 @@ void targetConfiguration(void)
     pidProfileMutable()->max_angle_inclination[FD_PITCH] = 300;
     pidProfileMutable()->dterm_lpf_hz = 70;
     pidProfileMutable()->yaw_lpf_hz = 35;
-    pidProfileMutable()->dterm_setpoint_weight = 0;
-    pidProfileMutable()->dterm_soft_notch_hz = 0;
-    pidProfileMutable()->dterm_soft_notch_cutoff = 1;
     pidProfileMutable()->pidSumLimit = 500;
     pidProfileMutable()->axisAccelerationLimitRollPitch = 0;
     pidProfileMutable()->axisAccelerationLimitYaw = 10000;
