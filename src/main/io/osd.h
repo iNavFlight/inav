@@ -259,6 +259,11 @@ typedef struct osdConfig_s {
     bool osd_failsafe_switch_layout;
     uint8_t plus_code_digits; // Number of digits to use in OSD_PLUS_CODE
     uint8_t osd_ahi_style;
+    uint8_t ahi_bordered;           // Only used by the AHI widget
+    uint8_t ahi_width;              // In pixels, only used by the AHI widget
+    uint8_t ahi_height;             // In pixels, only used by the AHI widget
+    int8_t  ahi_vertical_offset;    // Offset from center in pixels. Positive moves the AHI down. Widget only.
+
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);

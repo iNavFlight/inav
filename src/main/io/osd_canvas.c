@@ -314,10 +314,16 @@ static bool osdCanvasDrawArtificialHorizonWidget(displayPort_t *display, display
     if (displayCanvasGetWidgets(&widgets, canvas) &&
         displayWidgetsSupportedInstances(&widgets, DISPLAY_WIDGET_TYPE_AHI) >= instance) {
 
-        int ahiWidth = OSD_AHI_WIDTH * canvas->gridElementWidth;
+        int ahiWidth = osdConfig()->ahi_width;
         int ahiX = (canvas->width - ahiWidth) / 2;
-        int ahiHeight = OSD_AHI_HEIGHT * canvas->gridElementHeight;
-        int ahiY = (canvas->height - ahiHeight) / 2;
+        int ahiHeight = osdConfig()->ahi_height;
+        int ahiY = ((canvas->height - ahiHeight) / 2) + osdConfig()->ahi_vertical_offset;
+        if (ahiY < 0) {
+            ahiY = 0;
+        }
+        if (ahiY + ahiHeight >= canvas->height) {
+            ahiY = canvas->height - ahiHeight - 1;
+        }
         if (!configured) {
             widgetAHIStyle_e ahiStyle = 0;
             switch ((osd_ahi_style_e)osdConfig()->osd_ahi_style) {
@@ -334,7 +340,7 @@ static bool osdCanvasDrawArtificialHorizonWidget(displayPort_t *display, display
                 .rect.w = ahiWidth,
                 .rect.h = ahiHeight,
                 .style = ahiStyle,
-                .options = 0,
+                .options = osdConfig()->ahi_bordered ? DISPLAY_WIDGET_AHI_OPTION_SHOW_CORNERS : 0,
                 .crosshairMargin = AHI_CROSSHAIR_MARGIN,
                 .strokeWidth = 1,
             };

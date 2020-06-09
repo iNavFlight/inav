@@ -2658,6 +2658,10 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .osd_failsafe_switch_layout = false,
 
     .plus_code_digits = 11,
+
+    .ahi_width = OSD_AHI_WIDTH * OSD_CHAR_WIDTH,
+    .ahi_height = OSD_AHI_HEIGHT * OSD_CHAR_HEIGHT,
+    .ahi_vertical_offset = -OSD_CHAR_HEIGHT,
 );
 
 void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
