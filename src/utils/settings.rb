@@ -925,7 +925,7 @@ class Generator
             buf << "static_assert(V == 42 && 0 == 1, \"FAIL\");\n"
             buf << "public:\n"
             buf << "Fail() {};\n"
-            buf << "int64_t v = V\n"
+            buf << "int64_t v = V;\n"
             buf << "};\n"
             ii  = 0
             s.each do |c|
