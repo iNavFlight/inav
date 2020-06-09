@@ -194,10 +194,14 @@ typedef enum {
     OSD_AHI_STYLE_LINE,
 } osd_ahi_style_e;
 
-typedef struct osdConfig_s {
+typedef struct osdLayoutsConfig_s {
     // Layouts
     uint16_t item_pos[OSD_LAYOUT_COUNT][OSD_ITEM_COUNT];
+} osdLayoutsConfig_t;
 
+PG_DECLARE(osdLayoutsConfig_t, osdLayoutsConfig);
+
+typedef struct osdConfig_s {
     // Alarms
     uint8_t rssi_alarm; // rssi %
     uint16_t time_alarm; // fly minutes
