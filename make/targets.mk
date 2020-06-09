@@ -21,13 +21,14 @@ endif
 
 F4_TARGETS      = $(F405_TARGETS) $(F411_TARGETS) $(F427_TARGETS) $(F446_TARGETS)
 F7_TARGETS      = $(F7X2RE_TARGETS) $(F7X5XE_TARGETS) $(F7X5XG_TARGETS) $(F7X5XI_TARGETS) $(F7X6XG_TARGETS)
+H7_TARGETS      = $(H743xI_TARGETS) $(H750xB_TARGETS)
 
 ifeq ($(filter $(TARGET),$(VALID_TARGETS)),)
 $(error Target '$(TARGET)' is not valid, must be one of $(VALID_TARGETS). Have you prepared a valid target.mk?)
 endif
 
-ifeq ($(filter $(TARGET),$(F3_TARGETS) $(F4_TARGETS) $(F7_TARGETS)),)
-$(error Target '$(TARGET)' has not specified a valid STM group, must be one of F3, F405, F411, F427 or F7x. Have you prepared a valid target.mk?)
+ifeq ($(filter $(TARGET),$(F3_TARGETS) $(F4_TARGETS) $(F7_TARGETS) $(H7_TARGETS)),)
+$(error Target '$(TARGET)' has not specified a valid STM group, must be one of F3, F405, F411, F427 or F7x, H7xx. Have you prepared a valid target.mk?)
 endif
 
 ifeq ($(TARGET),$(filter $(TARGET),$(F3_TARGETS)))
@@ -60,6 +61,12 @@ TARGET_MCU_GROUP 	:= STM32F7
 else ifeq ($(TARGET),$(filter $(TARGET), $(F7X6XG_TARGETS)))
 TARGET_MCU			:= STM32F7X6XG
 TARGET_MCU_GROUP 	:= STM32F7
+else ifeq ($(TARGET),$(filter $(TARGET), $(H743xI_TARGETS)))
+TARGET_MCU			:= STM32H743
+TARGET_MCU_GROUP 	:= STM32H7
+else ifeq ($(TARGET),$(filter $(TARGET), $(H750xB_TARGETS)))
+TARGET_MCU			:= STM32H750
+TARGET_MCU_GROUP 	:= STM32H7
 else
 $(error Unknown target MCU specified.)
 endif
