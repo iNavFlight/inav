@@ -116,6 +116,10 @@ typedef enum
     OSD_CMD_DRAW_GRID_STR = 111,
     OSD_CMD_DRAW_GRID_CHR_2 = 112,                                  // API2
     OSD_CMD_DRAW_GRID_STR_2 = 113,                                  // API2
+
+    OSD_CMD_WIDGET_SET_CONFIG = 115,                                // API2
+    OSD_CMD_WIDGET_DRAW = 116,                                      // API2
+    OSD_CMD_WIDGET_ERASE = 117,                                     // API2
 } osdCommand_e;
 
 typedef enum {
@@ -166,27 +170,12 @@ typedef struct frskyOSDDrawGridStrHeaderCmd_s {
 } __attribute__((packed)) frskyOSDDrawGridStrHeaderCmd_t;
 
 typedef struct frskyOSDDrawGridStrV2HeaderCmd_s {
-    uint8_t gx : 5;   // +5 = 5
-    uint8_t gy : 4;   // +4 = 9
-    uint8_t opts : 7; // +7 = 16 = 2 bytes
+    unsigned gx : 5;    // +5 = 5
+    unsigned gy : 4;    // +4 = 9
+    unsigned opts : 7;  // +7 = 16 = 2 bytes
     // uvarint with size and blob folow
     // string IS NOT null terminated
 } __attribute__((packed)) frskyOSDDrawGridStrV2HeaderCmd_t;
-
-typedef struct frskyOSDPoint_s {
-    int x : 12;
-    int y : 12;
-} __attribute__((packed)) frskyOSDPoint_t;
-
-typedef struct frskyOSDSize_s {
-    int w : 12;
-    int h : 12;
-} __attribute__((packed)) frskyOSDSize_t;
-
-typedef struct frskyOSDRect_s {
-    frskyOSDPoint_t origin;
-    frskyOSDSize_t size;
-} __attribute__((packed)) frskyOSDRect_t;
 
 typedef struct frskyOSDTriangle_s {
     frskyOSDPoint_t p1;
@@ -225,12 +214,17 @@ typedef struct frskyOSDDrawStrMaskCommandHeaderCmd_s {
 
 typedef struct frskyOSDDrawGridChrV2Cmd_s
 {
-    uint8_t gx : 5;       // +5 = 5
-    uint8_t gy : 4;       // +4 = 9
-    uint16_t chr : 9;     // +9 = 18
-    uint8_t opts : 4;     // +4 = 22 from osd_bitmap_opt_t
-    uint8_t reserved : 2; // +2 = 24 = 3 bytes
+    unsigned gx : 5;        // +5 = 5
+    unsigned gy : 4;        // +4 = 9
+    unsigned chr : 9;       // +9 = 18
+    unsigned opts : 4;      // +4 = 22 from osd_bitmap_opt_t
+    unsigned reserved : 2;  // +2 = 24 = 3 bytes
 } __attribute__((packed)) frskyOSDDrawGridChrV2Cmd_t;
+
+typedef struct frskyOSDError_s {
+    uint8_t command;
+    int8_t code;
+} frskyOSDError_t;
 
 
 typedef struct frskyOSDState_s {
@@ -265,6 +259,7 @@ typedef struct frskyOSDState_s {
     } recvOsdCharacter;
     serialPort_t *port;
     bool initialized;
+    frskyOSDError_t error;
     timeMs_t nextInfoRequest;
 } frskyOSDState_t;
 
@@ -398,10 +393,15 @@ static bool frskyOSDHandleCommand(osdCommand_e cmd, const void *payload, size_t 
 {
     const uint8_t *ptr = payload;
 
+    state.error.command = 0;
+    state.error.code = 0;
+
     switch (cmd) {
         case OSD_CMD_RESPONSE_ERROR:
         {
             if (size >= 2) {
+                state.error.command = *ptr;
+                state.error.code = *(ptr + 1);
                 FRSKY_OSD_ERROR("Received an error %02x in response to command %u", *(ptr + 1), *ptr);
                 return true;
             }
@@ -454,6 +454,10 @@ static bool frskyOSDHandleCommand(osdCommand_e cmd, const void *payload, size_t 
         case OSD_CMD_WRITE_FONT:
         {
             // We only wait for the confirmation, we're not interested in the data
+            return true;
+        }
+        case OSD_CMD_WIDGET_SET_CONFIG:
+        {
             return true;
         }
         default:
@@ -1056,5 +1060,45 @@ void frskyOSDContextPop(void)
     frskyOSDSendAsyncCommand(OSD_CMD_CONTEXT_POP, NULL, 0);
 }
 
+bool frskyOSDSupportsWidgets(void)
+{
+    return frskyOSDSpeaksV2();
+}
+
+bool frskyOSDSetWidgetConfig(frskyOSDWidgetID_e widget, const void *config, size_t configSize)
+{
+    if (!frskyOSDSupportsWidgets()) {
+        return false;
+    }
+
+    uint8_t buffer[configSize + 1];
+    buffer[0] = widget;
+    memcpy(buffer + 1, config, configSize);
+    bool ok = frskyOSDSendSyncCommand(OSD_CMD_WIDGET_SET_CONFIG, buffer, sizeof(buffer), 500);
+    return ok && state.error.code == 0;
+}
+
+bool frskyOSDDrawWidget(frskyOSDWidgetID_e widget, const void *data, size_t dataSize)
+{
+    if (!frskyOSDSupportsWidgets()) {
+        return false;
+    }
+
+    uint8_t buffer[dataSize + 1];
+    buffer[0] = widget;
+    memcpy(buffer + 1, data, dataSize);
+    frskyOSDSendAsyncCommand(OSD_CMD_WIDGET_DRAW, buffer, sizeof(buffer));
+    return true;
+}
+
+uint32_t frskyOSDQuantize(float val, float min, float max, int bits)
+{
+    if (val < min) {
+        val = max - (min - val);
+    } else if (val > max) {
+        val = min + (val - max);
+    }
+    return (val * (1 << bits)) / max;
+}
 
 #endif

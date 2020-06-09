@@ -41,6 +41,7 @@
 
 #include "drivers/display.h"
 #include "drivers/display_canvas.h"
+#include "drivers/display_widgets.h"
 #include "drivers/osd.h"
 #include "drivers/osd_symbols.h"
 #include "drivers/time.h"
@@ -300,6 +301,63 @@ void osdDrawArtificialHorizonLine(displayCanvas_t *canvas, float pitchAngle, flo
     displayCanvasContextPop(canvas);
 }
 
+static bool osdCanvasDrawArtificialHorizonWidget(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float pitchAngle, float rollAngle)
+{
+    UNUSED(display);
+    UNUSED(p);
+
+    const int instance = 0;
+    static int iterations = 0;
+    static bool configured = false;
+
+    displayWidgets_t widgets;
+    if (displayCanvasGetWidgets(&widgets, canvas) &&
+        displayWidgetsSupportedInstances(&widgets, DISPLAY_WIDGET_TYPE_AHI) >= instance) {
+
+        int ahiWidth = OSD_AHI_WIDTH * canvas->gridElementWidth;
+        int ahiX = (canvas->width - ahiWidth) / 2;
+        int ahiHeight = OSD_AHI_HEIGHT * canvas->gridElementHeight;
+        int ahiY = (canvas->height - ahiHeight) / 2;
+        if (!configured) {
+            widgetAHIStyle_e ahiStyle = 0;
+            switch ((osd_ahi_style_e)osdConfig()->osd_ahi_style) {
+                case OSD_AHI_STYLE_DEFAULT:
+                    ahiStyle = DISPLAY_WIDGET_AHI_STYLE_STAIRCASE;
+                    break;
+                case OSD_AHI_STYLE_LINE:
+                    ahiStyle = DISPLAY_WIDGET_AHI_STYLE_LINE;
+                    break;
+            }
+            widgetAHIConfiguration_t config = {
+                .rect.x = ahiX,
+                .rect.y = ahiY,
+                .rect.w = ahiWidth,
+                .rect.h = ahiHeight,
+                .style = ahiStyle,
+                .options = 0,
+                .crosshairMargin = AHI_CROSSHAIR_MARGIN,
+                .strokeWidth = 1,
+            };
+            if (!displayWidgetsConfigureAHI(&widgets, instance, &config)) {
+                return false;
+            }
+            configured = true;
+        }
+        widgetAHIData_t data = {
+            .pitch = pitchAngle,
+            .roll = rollAngle,
+        };
+        if (displayWidgetsDrawAHI(&widgets, instance, &data)) {
+            if (++iterations == 10) {
+                iterations = 0;
+                osdGridBufferClearPixelRect(canvas, ahiX, ahiY, ahiWidth, ahiHeight);
+            }
+            return true;
+        }
+    }
+    return false;
+}
+
 void osdCanvasDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float pitchAngle, float rollAngle)
 {
     UNUSED(display);
@@ -314,20 +372,24 @@ void osdCanvasDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *can
 
     float totalError = fabsf(prevPitchAngle - pitchAngle) + fabsf(prevRollAngle - rollAngle);
     if ((now > nextDrawMinMs && totalError > 0.05f)|| now > nextDrawMaxMs) {
-        switch ((osd_ahi_style_e)osdConfig()->osd_ahi_style) {
-            case OSD_AHI_STYLE_DEFAULT:
-            {
-                int x, y, w, h;
-                osdArtificialHorizonRect(canvas, &x, &y, &w, &h);
-                displayCanvasClearRect(canvas, x, y, w, h);
-                osdDrawArtificialHorizonShapes(canvas, pitchAngle, rollAngle);
-                break;
+
+        if (!osdCanvasDrawArtificialHorizonWidget(display, canvas, p, pitchAngle, rollAngle)) {
+            switch ((osd_ahi_style_e)osdConfig()->osd_ahi_style) {
+                case OSD_AHI_STYLE_DEFAULT:
+                {
+                    int x, y, w, h;
+                    osdArtificialHorizonRect(canvas, &x, &y, &w, &h);
+                    displayCanvasClearRect(canvas, x, y, w, h);
+                    osdDrawArtificialHorizonShapes(canvas, pitchAngle, rollAngle);
+                    break;
+                }
+                case OSD_AHI_STYLE_LINE:
+                    osdDrawArtificialHorizonLine(canvas, prevPitchAngle, prevRollAngle, true);
+                    osdDrawArtificialHorizonLine(canvas, pitchAngle, rollAngle, false);
+                    break;
             }
-            case OSD_AHI_STYLE_LINE:
-                osdDrawArtificialHorizonLine(canvas, prevPitchAngle, prevRollAngle, true);
-                osdDrawArtificialHorizonLine(canvas, pitchAngle, rollAngle, false);
-                break;
         }
+
         prevPitchAngle = pitchAngle;
         prevRollAngle = rollAngle;
         nextDrawMinMs = now + AHI_MIN_DRAW_INTERVAL_MS;
