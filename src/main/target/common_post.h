@@ -27,11 +27,11 @@
 
 // Enable MSP_DISPLAYPORT for F3 targets without builtin OSD,
 // since it's used to display CMS on MWOSD
-#if !defined(USE_MSP_DISPLAYPORT) && (FLASH_SIZE > 128) && !defined(USE_OSD)
+#if !defined(USE_MSP_DISPLAYPORT) && (TARGET_FLASH_SIZE > 128) && !defined(USE_OSD)
 #define USE_MSP_DISPLAYPORT
 #endif
 
-#if defined(USE_OSD) && (FLASH_SIZE > 256)
+#if defined(USE_OSD) && (TARGET_FLASH_SIZE > 256)
 #define USE_CANVAS
 #endif
 

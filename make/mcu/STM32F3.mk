@@ -3,10 +3,10 @@
 #
 
 ifeq ($(OPBL),yes)
-LD_SCRIPT = $(LINKER_DIR)/stm32_flash_f303_$(FLASH_SIZE)k_opbl.ld
+LD_SCRIPT = $(LINKER_DIR)/stm32_flash_f303_$(TARGET_FLASH_SIZE)k_opbl.ld
 endif
 
-TARGET_FLASH   := 256
+MCU_FLASH_SIZE   := 256
 MCU_COMMON_SRC  = startup_stm32f30x_md_gcc.S
 
 STDPERIPH_DIR   = $(ROOT)/lib/main/STM32F3/Drivers/STM32F30x_StdPeriph_Driver
@@ -47,7 +47,7 @@ INCLUDE_DIRS    := $(INCLUDE_DIRS) \
 VPATH           := $(VPATH):$(FATFS_DIR)
 endif
 
-LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f303_$(FLASH_SIZE)k.ld
+LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f303_$(MCU_FLASH_SIZE)k.ld
 
 ARCH_FLAGS      = -mthumb -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 -fsingle-precision-constant -Wdouble-promotion
 DEVICE_FLAGS    = -DSTM32F303xC -DSTM32F303

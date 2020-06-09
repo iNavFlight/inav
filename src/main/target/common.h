@@ -95,7 +95,7 @@
 #define SCHEDULER_DELAY_LIMIT           100
 #endif
 
-#if (FLASH_SIZE > 256)
+#if (TARGET_FLASH_SIZE > 256)
 #define USE_MR_BRAKING_MODE
 #define USE_PITOT
 #define USE_PITOT_ADC
@@ -150,11 +150,11 @@
 #define USE_D_BOOST
 #define USE_ANTIGRAVITY
 
-#else // FLASH_SIZE < 256
+#else // TARGET_FLASH_SIZE < 256
 #define LOG_LEVEL_MAXIMUM LOG_LEVEL_ERROR
 #endif
 
-#if (FLASH_SIZE > 128)
+#if (TARGET_FLASH_SIZE > 128)
 #define NAV_FIXED_WING_LANDING
 #define USE_AUTOTUNE_FIXED_WING
 #define USE_LOG
@@ -201,7 +201,7 @@
 // Wind estimator
 #define USE_WIND_ESTIMATOR
 
-#else // FLASH_SIZE < 128
+#else // TARGET_FLASH_SIZE < 128
 
 #define SKIP_TASK_STATISTICS
 

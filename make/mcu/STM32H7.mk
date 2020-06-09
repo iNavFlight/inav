@@ -148,15 +148,21 @@ ARCH_FLAGS      = -mthumb -mcpu=cortex-m7 -mfloat-abi=hard -mfpu=fpv5-sp-d16 -fs
 DEVICE_FLAGS    = -DUSE_HAL_DRIVER -DUSE_FULL_LL_DRIVER
 
 ifeq ($(TARGET),$(filter $(TARGET),$(H743xI_TARGETS)))
-DEVICE_FLAGS   += -DSTM32H743xx
+DEVICE_FLAGS       += -DSTM32H743xx
 DEFAULT_LD_SCRIPT   = $(LINKER_DIR)/stm32_flash_h743.ld
 STARTUP_SRC         = startup_stm32h743xx.s
-TARGET_FLASH   := 2048
+MCU_FLASH_SIZE      := 2048
 else ifeq ($(TARGET),$(filter $(TARGET),$(H750xB_TARGETS)))
 DEVICE_FLAGS       += -DSTM32H750xx
 DEFAULT_LD_SCRIPT   = $(LINKER_DIR)/stm32_flash_h750_128k.ld
-STARTUP_SRC         = startup_stm32h743xx.s
-TARGET_FLASH       := 128
+STARTUP_SRC          = startup_stm32h743xx.s
+DEFAULT_MCU_FLASH_SIZE := 128
+
+ifeq ($(MCU_FLASH_SIZE),)
+MCU_FLASH_SIZE := $(DEFAULT_MCU_FLASH_SIZE) 
+endif
+
+
 else
 $(error Unknown MCU for H7 target)
 endif
