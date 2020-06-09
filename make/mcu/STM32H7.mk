@@ -149,11 +149,20 @@ DEVICE_FLAGS    = -DUSE_HAL_DRIVER -DUSE_FULL_LL_DRIVER
 
 ifeq ($(TARGET),$(filter $(TARGET),$(H743xI_TARGETS)))
 DEVICE_FLAGS   += -DSTM32H743xx
-LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_h743.ld
-STARTUP_SRC     = startup_stm32f743xx.s
+DEFAULT_LD_SCRIPT   = $(LINKER_DIR)/stm32_flash_h743.ld
+STARTUP_SRC         = startup_stm32h743xx.s
 TARGET_FLASH   := 2048
+else ifeq ($(TARGET),$(filter $(TARGET),$(H750xB_TARGETS)))
+DEVICE_FLAGS       += -DSTM32H750xx
+DEFAULT_LD_SCRIPT   = $(LINKER_DIR)/stm32_flash_h750_128k.ld
+STARTUP_SRC         = startup_stm32h743xx.s
+TARGET_FLASH       := 128
 else
-$(error Unknown MCU for F7 target)
+$(error Unknown MCU for H7 target)
+endif
+
+ifeq ($(LD_SCRIPT),)
+LD_SCRIPT = $(DEFAULT_LD_SCRIPT)
 endif
 
 DEVICE_FLAGS    += -DHSE_VALUE=$(HSE_VALUE)
