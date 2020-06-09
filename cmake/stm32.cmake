@@ -106,7 +106,7 @@ set(STM32_LINK_OPTIONS
     -nostartfiles
     --specs=nano.specs
     -static
-    -Wl,-gc-sections,-Map,target.map
+    -Wl,-gc-sections
     -Wl,-L${STM32_LINKER_DIR}
     -Wl,--cref
     -Wl,--no-wchar-size-warning
@@ -155,6 +155,7 @@ function(target_stm32 name startup ldscript)
     target_sources(${name} PRIVATE ${target_c_sources} ${target_h_sources})
     target_sources(${name} PRIVATE "${STM32_STARTUP_DIR}/${startup}")
     target_link_options(${name} PRIVATE "-T${STM32_LINKER_DIR}/${ldscript}")
+    target_link_options(${name} PRIVATE "-Wl,-Map,$<TARGET_FILE:${name}>.map")
     target_include_directories(${name} PRIVATE . ${STM32_INCLUDE_DIRS})
     target_link_libraries(${name} PRIVATE ${STM32_LINK_LIBRARIES})
     target_link_options(${name} PRIVATE ${STM32_LINK_OPTIONS})
@@ -182,16 +183,21 @@ function(target_stm32 name startup ldscript)
         endif()
     endif()
     # Generate .hex
+    # XXX: Generator expressions are not supported for add_custom_command()
+    # OUTPUT nor BYPRODUCTS, so we can't rely of them. Instead, build the filename
+    # for the .hex from the target name
     set(hexdir "${CMAKE_BINARY_DIR}/hex")
-    set(hex "${hexdir}/$<TARGET_FILE_PREFIX:${name}>.hex")
+    set(hex "${hexdir}/${PROJECT_NAME}_${name}_${FIRMWARE_VERSION}.hex")
     add_custom_command(TARGET ${name} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${hexdir}"
-        COMMAND ${CMAKE_OBJCOPY} -Oihex $<TARGET_FILE:${name}> "${hex}")
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${hexdir}
+        COMMAND ${CMAKE_OBJCOPY} -Oihex $<TARGET_FILE:${name}> ${hex}
+        BYPRODUCTS ${hex}
+    )
     # clean_<target>
     set(clean_target "clean_${name}")
     add_custom_target(${clean_target}
         COMMAND cmake -E rm -r "${CMAKE_CURRENT_BINARY_DIR}"
-        COMMENT "Removeng intermediate files for ${name}")
+        COMMENT "Removing intermediate files for ${name}")
     set_property(TARGET ${clean_target} PROPERTY
         TARGET_MESSAGES OFF
         EXCLUDE_FROM_ALL 1
