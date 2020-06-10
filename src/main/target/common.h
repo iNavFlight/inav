@@ -79,6 +79,8 @@
 #define USE_SERVO_SBUS
 #endif
 
+#define USE_TIMER
+#define USE_PWM_OUTPUT
 #define USE_ADC_AVERAGING
 #define USE_64BIT_TIME
 #define USE_BLACKBOX

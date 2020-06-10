@@ -19,6 +19,8 @@
 
 #include "drivers/dma.h"
 
+#ifdef USE_TIMER
+
 // Macros expand to keep DMA descriptor table compatible with Betaflight
 #define DEF_TIM_DMAMAP(variant, timch) CONCAT(DEF_TIM_DMAMAP__, PP_CALL(CONCAT(DEF_TIM_DMAMAP_VARIANT__, variant), CONCAT(DEF_TIM_DMA__, DEF_TIM_TCH2BTCH(timch)), DMA_VARIANT_MISSING, DMA_VARIANT_MISSING))
 #define DEF_TIM_DMAMAP_VARIANT__0(_0, ...)         _0
@@ -73,3 +75,5 @@
     #error "Unknown CPU defined"
 #endif
 
+
+#endif // USE_TIMER
