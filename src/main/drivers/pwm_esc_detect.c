@@ -22,6 +22,8 @@
 
 #include "platform.h"
 
+#ifdef USE_BRUSHED_ESC_AUTODETECT
+
 #include "build/build_config.h"
 
 #include "time.h"
@@ -31,7 +33,6 @@
 #include "pwm_mapping.h"
 #include "timer.h"
 
-#ifdef BRUSHED_ESC_AUTODETECT
 uint8_t hardwareMotorType = MOTOR_UNKNOWN;
 
 void detectBrushedESC(void)

@@ -21,6 +21,8 @@
 
 #include "platform.h"
 
+#ifdef USE_PWM_OUTPUT
+
 #include "build/debug.h"
 #include "common/log.h"
 #include "common/memory.h"
@@ -369,3 +371,5 @@ bool pwmMotorAndServoInit(void)
 
     return (pwmInitError == PWM_INIT_ERROR_NONE);
 }
+
+#endif // USE_PWM_OUTPUT

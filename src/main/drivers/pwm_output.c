@@ -22,6 +22,8 @@
 
 #include "platform.h"
 
+#ifdef USE_PWM_OUTPUT
+
 FILE_COMPILE_FOR_SPEED
 
 #include "build/debug.h"
@@ -588,3 +590,5 @@ void beeperPwmInit(ioTag_t tag, uint16_t frequency)
     }
 }
 #endif
+
+#endif // USE_PWM_OUTPUT
