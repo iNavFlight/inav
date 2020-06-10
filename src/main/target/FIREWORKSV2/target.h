@@ -75,13 +75,13 @@
 #   define IMU_2_SPI_BUS           BUS_SPI1
 #   define IMU_2_ALIGN             CW0_DEG
 #else
-    // FIREWORKS V2
-#   define IMU_1_CS_PIN            PD2
-#   define IMU_1_SPI_BUS           BUS_SPI3
-#   define IMU_1_ALIGN             CW180_DEG
-#   define IMU_2_CS_PIN            PA4
-#   define IMU_2_SPI_BUS           BUS_SPI1
-#   define IMU_2_ALIGN             CW0_DEG_FLIP
+    // FIREWORKS V2 - only for OMNIBUS F4 Nano V6
+#   define IMU_1_CS_PIN            PA4			// OmnibusF4 Nano v6 and OmnibusF4 V6 has a MPU6000
+#   define IMU_1_SPI_BUS           BUS_SPI1		// OmnibusF4 Nano v6 and OmnibusF4 V6 has a MPU6000
+#   define IMU_1_ALIGN             CW180_DEG	// OmnibusF4 Nano v6 and OmnibusF4 V6 has a MPU6000
+#   define IMU_2_CS_PIN            PC14  		// replaced from OMNIBUSF4V6, does not interfere with work, tested flashing OMNIBUSF4V6  
+#   define IMU_2_SPI_BUS           BUS_SPI1		// replaced from OMNIBUSF4V6, does not interfere with work, tested flashing OMNIBUSF4V6  
+#   define IMU_2_ALIGN             CW0_DEG		// replaced from OMNIBUSF4V6, does not interfere with work, tested flashing OMNIBUSF4V6  
 #endif
 
 #define USE_MAG
