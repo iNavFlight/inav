@@ -180,3 +180,7 @@
 #ifdef STM32F7
 #define USE_ITCM_RAM
 #endif
+
+#ifdef STM32H7
+#define USE_ITCM_RAM
+#endif
