@@ -164,3 +164,30 @@ void failureMode(failureMode_e mode)
 #endif
 #endif //UNIT_TEST
 }
+
+void initialiseMemorySections(void)
+{
+#ifdef USE_ITCM_RAM
+    /* Load functions into ITCM RAM */
+    extern uint8_t tcm_code_start;
+    extern uint8_t tcm_code_end;
+    extern uint8_t tcm_code;
+    memcpy(&tcm_code_start, &tcm_code, (size_t) (&tcm_code_end - &tcm_code_start));
+#endif
+
+#ifdef USE_CCM_CODE
+    /* Load functions into RAM */
+    extern uint8_t ccm_code_start;
+    extern uint8_t ccm_code_end;
+    extern uint8_t ccm_code;
+    memcpy(&ccm_code_start, &ccm_code, (size_t) (&ccm_code_end - &ccm_code_start));
+#endif
+
+#ifdef USE_FAST_RAM
+    /* Load FAST_RAM variable intializers into DTCM RAM */
+    extern uint8_t _sfastram_data;
+    extern uint8_t _efastram_data;
+    extern uint8_t _sfastram_idata;
+    memcpy(&_sfastram_data, &_sfastram_idata, (size_t) (&_efastram_data - &_sfastram_data));
+#endif
+}
