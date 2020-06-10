@@ -68,7 +68,6 @@ extern uint8_t __config_end;
 #include "drivers/stack_check.h"
 #include "drivers/system.h"
 #include "drivers/time.h"
-#include "drivers/timer.h"
 #include "drivers/usb_msc.h"
 #include "drivers/vtx_common.h"
 
