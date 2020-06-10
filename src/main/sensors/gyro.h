@@ -45,6 +45,12 @@ typedef enum {
     DYN_NOTCH_RANGE_LOW
 } dynamicFilterRange_e;
 
+typedef enum {
+    IMU_TO_USE_FIRST = 0,
+    IMU_TO_USE_SECOND = 1,
+    IMU_TO_USE_BOTH = 2
+} imuToUse_e;
+
 #define DYN_NOTCH_RANGE_HZ_HIGH 2000
 #define DYN_NOTCH_RANGE_HZ_MEDIUM 1333
 #define DYN_NOTCH_RANGE_HZ_LOW 1000
@@ -58,11 +64,11 @@ typedef struct gyro_s {
 extern gyro_t gyro;
 
 typedef struct gyroConfig_s {
-    sensor_align_e gyro_align;              // gyro alignment
-    uint8_t  gyroMovementCalibrationThreshold; // people keep forgetting that moving model while init results in wrong gyro offsets. and then they never reset gyro. so this is now on by default.
-    uint8_t  gyroSync;                      // Enable interrupt based loop
-    uint16_t looptime;                      // imu loop time in us
-    uint8_t  gyro_lpf;                      // gyro LPF setting - values are driver specific, in case of invalid number, a reasonable default ~30-40HZ is chosen.
+    sensor_align_e gyro_align[2];               // gyro alignment
+    uint8_t  gyroMovementCalibrationThreshold;  // people keep forgetting that moving model while init results in wrong gyro offsets. and then they never reset gyro. so this is now on by default.
+    uint8_t  gyroSync;                          // Enable interrupt based loop
+    uint16_t looptime;                          // imu loop time in us
+    uint8_t  gyro_lpf;                          // gyro LPF setting - values are driver specific, in case of invalid number, a reasonable default ~30-40HZ is chosen.
     uint8_t  gyro_soft_lpf_hz;
     uint8_t  gyro_soft_lpf_type;
     uint8_t  gyro_to_use;

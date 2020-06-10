@@ -39,6 +39,10 @@
     #define USE_RPM_FILTER
 #endif
 
+#ifdef USE_MULTI_GYRO
+    #define USE_DUAL_GYRO
+#endif
+
 #ifdef USE_ITCM_RAM
 #define FAST_CODE                   __attribute__((section(".tcm_code")))
 #define NOINLINE                    __NOINLINE
