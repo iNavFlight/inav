@@ -31,7 +31,7 @@
 #include "usb_core.h"
 #include "usbd_cdc_vcp.h"
 #include "usb_io.h"
-#elif defined(STM32F7)
+#elif defined(STM32F7) || defined(STM32H7)
 #include "vcp_hal/usbd_cdc_interface.h"
 #include "usb_io.h"
 USBD_HandleTypeDef USBD_Device;
