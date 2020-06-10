@@ -25,6 +25,7 @@
 #include "build/build_config.h"
 
 #include "common/crc.h"
+#include "common/utils.h"
 
 #include "config/config_eeprom.h"
 #include "config/config_streamer.h"
@@ -33,9 +34,6 @@
 #include "drivers/system.h"
 
 #include "fc/config.h"
-
-extern uint8_t __config_start;   // configured via linker script when building binaries.
-extern uint8_t __config_end;
 
 static uint16_t eepromConfigSize;
 

@@ -23,8 +23,17 @@
 
 #include "config/config_streamer.h"
 
-extern uint8_t __config_start;   // configured via linker script when building binaries.
-extern uint8_t __config_end;
+#if !defined(CONFIG_IN_FLASH)
+#if defined(CONFIG_IN_RAM) && defined(PERSISTENT)
+PERSISTENT uint8_t eepromData[EEPROM_SIZE];
+#else
+uint8_t eepromData[EEPROM_SIZE];
+#endif
+#endif
+
+#if defined(STM32H750xx) && !(defined(CONFIG_IN_EXTERNAL_FLASH) || defined(CONFIG_IN_RAM) || defined(CONFIG_IN_SDCARD))
+#error "STM32750xx only has one flash page which contains the bootloader, no spare flash pages available, use external storage for persistent config or ram for target testing"
+#endif
 
 #if !defined(FLASH_PAGE_SIZE)
 // F1
@@ -61,18 +70,25 @@ void config_streamer_init(config_streamer_t *c)
 
 void config_streamer_start(config_streamer_t *c, uintptr_t base, int size)
 {
-    // base must start at FLASH_PAGE_SIZE boundary
+    // base must start at FLASH_PAGE_SIZE boundary when using embedded flash.
     c->address = base;
     c->size = size;
     if (!c->unlocked) {
+#if defined(CONFIG_IN_RAM)
+        // NOP
+#elif defined(CONFIG_IN_FLASH)
 #if defined(STM32F7)
         HAL_FLASH_Unlock();
 #else
         FLASH_Unlock();
 #endif
+#endif
         c->unlocked = true;
     }
 
+#if defined(CONFIG_IN_RAM)
+    // NOP
+#elif defined(CONFIG_IN_FLASH)
 #if defined(STM32F303)
     FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_PGERR | FLASH_FLAG_WRPERR);
 #elif defined(STM32F4)
@@ -84,8 +100,12 @@ void config_streamer_start(config_streamer_t *c, uintptr_t base, int size)
 #else
 # error "Unsupported CPU"
 #endif
+#endif
     c->err = 0;
 }
+
+#if defined(CONFIG_IN_RAM)
+// No flash sector method required.
 
 #if defined(STM32F745xx) || defined(STM32F746xx) || defined(STM32F765xx)
 /*
@@ -210,12 +230,29 @@ static uint32_t getFLASHSectorForEEPROM(void)
     }
 }
 #endif
+#endif // CONFIG_IN_FLASH
 
-static int write_word(config_streamer_t *c, uint32_t value)
+static int write_word(config_streamer_t *c, config_streamer_buffer_align_type_t *buffer)
 {
     if (c->err != 0) {
         return c->err;
     }
+#if defined(CONFIG_IN_RAM)
+     if (c->address == (uintptr_t)&eepromData[0]) {
+        memset(eepromData, 0, sizeof(eepromData));
+    }
+
+    uint64_t *dest_addr = (uint64_t *)c->address;
+    uint64_t *src_addr = (uint64_t*)buffer;
+    uint8_t row_index = 4;
+    /* copy the 256 bits flash word */
+    do
+    {
+      *dest_addr++ = *src_addr++;
+    } while (--row_index != 0);
+    
+#elif defined(CONFIG_IN_FLASH)
+
 #if defined(STM32F7)
     if (c->address % FLASH_PAGE_SIZE == 0) {
         FLASH_EraseInitTypeDef EraseInitStruct = {
@@ -230,7 +267,10 @@ static int write_word(config_streamer_t *c, uint32_t value)
             return -1;
         }
     }
-    const HAL_StatusTypeDef status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, c->address, value);
+
+    // For F7
+    // HAL_StatusTypeDef HAL_FLASH_Program(uint32_t TypeProgram, uint32_t Address, uint64_t Data);
+    const HAL_StatusTypeDef status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, c->address, (uint64_t)*buffer);
     if (status != HAL_OK) {
         return -2;
     }
@@ -245,12 +285,13 @@ static int write_word(config_streamer_t *c, uint32_t value)
             return -1;
         }
     }
-    const FLASH_Status status = FLASH_ProgramWord(c->address, value);
+    const FLASH_Status status = FLASH_ProgramWord(c->address, *buffer);
     if (status != FLASH_COMPLETE) {
         return -2;
     }
 #endif
-    c->address += sizeof(value);
+#endif
+    c->address += CONFIG_STREAMER_BUFFER_SIZE;
     return 0;
 }
 
@@ -260,7 +301,7 @@ int config_streamer_write(config_streamer_t *c, const uint8_t *p, uint32_t size)
         c->buffer.b[c->at++] = *pat;
 
         if (c->at == sizeof(c->buffer)) {
-            c->err = write_word(c, c->buffer.w);
+            c->err = write_word(c, &c->buffer.w);
             c->at = 0;
         }
     }
@@ -276,7 +317,7 @@ int config_streamer_flush(config_streamer_t *c)
 {
     if (c->at != 0) {
         memset(c->buffer.b + c->at, 0, sizeof(c->buffer) - c->at);
-        c->err = write_word(c, c->buffer.w);
+        c->err = write_word(c, &c->buffer.w);
         c->at = 0;
     }
     return c-> err;
@@ -285,10 +326,14 @@ int config_streamer_flush(config_streamer_t *c)
 int config_streamer_finish(config_streamer_t *c)
 {
     if (c->unlocked) {
+#if defined(CONFIG_IN_RAM)
+        // NOP
+#elif defined(CONFIG_IN_FLASH)
 #if defined(STM32F7)
         HAL_FLASH_Lock();
 #else
         FLASH_Lock();
+#endif
 #endif
         c->unlocked = false;
     }

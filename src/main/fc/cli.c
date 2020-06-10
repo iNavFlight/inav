@@ -26,8 +26,6 @@
 #include "platform.h"
 
 uint8_t cliMode = 0;
-extern uint8_t __config_start;   // configured via linker script when building binaries.
-extern uint8_t __config_end;
 
 #include "blackbox/blackbox.h"
 
