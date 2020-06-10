@@ -123,12 +123,10 @@ uint32_t IO_EXTI_Line(IO_t io)
     if (!io) {
         return 0;
     }
-#if defined(STM32F3)
+#if defined(STM32F1) || defined(STM32F4) || defined(STM32F7) || defined(STM32H7)
+    return 1 << IO_GPIOPinIdx(io);
+#elif defined(STM32F3)
     return IO_GPIOPinIdx(io);
-#elif defined(STM32F4)
-    return 1 << IO_GPIOPinIdx(io);
-#elif defined(STM32F7)
-    return 1 << IO_GPIOPinIdx(io);
 #else
 # error "Unknown target type"
 #endif
