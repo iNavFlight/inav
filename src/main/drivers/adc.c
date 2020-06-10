@@ -21,6 +21,8 @@
 
 #include "platform.h"
 
+#ifdef USE_ADC
+
 #include "build/build_config.h"
 #include "build/debug.h"
 
@@ -205,4 +207,12 @@ uint16_t adcGetChannel(uint8_t channel)
     return 0;
 }
 
+#endif
+
+#else // USE_ADC
+uint16_t adcGetChannel(uint8_t channel)
+{
+    UNUSED(channel);
+    return 0;
+}
 #endif
