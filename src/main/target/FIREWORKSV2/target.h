@@ -141,7 +141,7 @@
 #define UART3_TX_PIN            PB10
 
 #define USE_UART4
-#define UART4_RX_PIN            PA1
+#define UART4_RX_PIN            NONE
 #define UART4_TX_PIN            NONE
 
 #define USE_UART6
@@ -186,7 +186,7 @@
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
 #define USE_ADC
-#define ADC_CHANNEL_1_PIN               PC1
+#define ADC_CHANNEL_1_PIN               PA1
 #define ADC_CHANNEL_2_PIN               PC2
 #define ADC_CHANNEL_3_PIN               PA0
 
