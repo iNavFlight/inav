@@ -17,6 +17,36 @@
 
 #pragma once
 
+#ifdef STM32F7
+#define USE_ITCM_RAM
+#endif
+
+#ifdef STM32H7
+#define USE_ITCM_RAM
+#endif
+
+#ifdef USE_ITCM_RAM
+#define FAST_CODE                   __attribute__((section(".tcm_code")))
+#define NOINLINE                    __attribute__((noinline))
+#else
+#define FAST_CODE
+#define NOINLINE
+#endif
+
+#ifdef USE_CCM_CODE
+#define CCM_CODE                    __attribute__((section(".ccm_code")))
+#else
+#define CCM_CODE
+#endif
+
+#ifdef USE_FAST_RAM
+#define FAST_RAM_ZERO_INIT          __attribute__ ((section(".fastram_bss"), aligned(4)))
+#define FAST_RAM                    __attribute__ ((section(".fastram_data"), aligned(4)))
+#else
+#define FAST_RAM_ZERO_INIT
+#define FAST_RAM
+#endif // USE_FAST_RAM
+
 #if defined(STM32F3)
 #define DYNAMIC_HEAP_SIZE   1024
 #else
@@ -175,12 +205,4 @@
 
 #define SKIP_TASK_STATISTICS
 
-#endif
-
-#ifdef STM32F7
-#define USE_ITCM_RAM
-#endif
-
-#ifdef STM32H7
-#define USE_ITCM_RAM
 #endif

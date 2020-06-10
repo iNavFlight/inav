@@ -39,14 +39,6 @@
     #define USE_RPM_FILTER
 #endif
 
-#ifdef USE_ITCM_RAM
-#define FAST_CODE                   __attribute__((section(".tcm_code")))
-#define NOINLINE                    __NOINLINE
-#else
-#define FAST_CODE
-#define NOINLINE
-#endif
-
 #ifdef STM32F3
 #undef USE_WIND_ESTIMATOR
 #undef USE_SERIALRX_SUMD
