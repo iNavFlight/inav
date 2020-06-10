@@ -57,8 +57,6 @@
 #include "usbd_cdc_interface.h"
 
 #include "platform.h"
-#include "pg/pg.h"
-#include "pg/usb.h"
 
 #ifdef USE_USB_MSC
 #include "drivers/usb_msc.h"
