@@ -46,6 +46,9 @@ extern uint8_t __config_end;
 #  define FLASH_PAGE_SIZE                 ((uint32_t)0x8000)
 # elif defined(UNIT_TEST)
 #  define FLASH_PAGE_SIZE                 (0x400)
+// H7
+# elif defined(STM32H743xx) || defined(STM32H750xx)
+#  define FLASH_PAGE_SIZE                 ((uint32_t)0x20000) // 128K sectors
 # else
 #  error "Flash page size not defined for target."
 # endif
