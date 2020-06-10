@@ -22,6 +22,8 @@
 
 #include "platform.h"
 
+#ifdef USE_TIMER
+
 #include "build/atomic.h"
 
 #include "common/log.h"
@@ -267,3 +269,4 @@ bool timerPWMDMAInProgress(TCH_t * tch)
 {
     return tch->dmaState != TCH_DMA_IDLE;
 }
+#endif // USE_TIMER
