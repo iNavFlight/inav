@@ -169,21 +169,22 @@ VCP_SRC = \
 
 MCU_COMMON_SRC = \
             target/system_stm32h7xx.c \
-            drivers/accgyro/accgyro.c \
-            drivers/accgyro/accgyro_mpu.c \
-            drivers/adc_stm32h7xx.c \
-            drivers/bus_i2c_hal.c \
-            drivers/dma_stm32h7xx.c \
-            drivers/bus_spi_hal.c \
-            drivers/timer.c \
-            drivers/timer_impl_hal.c \
-            drivers/timer_stm32h7xx.c \
-            drivers/uart_inverter.c \
-            drivers/system_stm32h7xx.c \
-            drivers/serial_uart_stm32h7xx.c \
-            drivers/serial_softserial.c \
-            drivers/serial_uart_hal.c \
-            drivers/sdcard/sdmmc_sdio_h7xx.c
+            
+#            drivers/accgyro/accgyro.c \
+#            drivers/accgyro/accgyro_mpu.c \
+#            drivers/adc_stm32h7xx.c \
+#            drivers/bus_i2c_hal.c \
+#            drivers/dma_stm32h7xx.c \
+#            drivers/bus_spi_hal.c \
+#            drivers/timer.c \
+#            drivers/timer_impl_hal.c \
+#            drivers/timer_stm32h7xx.c \
+#            drivers/uart_inverter.c \
+#            drivers/system_stm32h7xx.c \
+#            drivers/serial_uart_stm32h7xx.c \
+#            drivers/serial_softserial.c \
+#            drivers/serial_uart_hal.c \
+#            drivers/sdcard/sdmmc_sdio_h7xx.c
 
 MCU_EXCLUDES = \
             drivers/bus_spi.c \
