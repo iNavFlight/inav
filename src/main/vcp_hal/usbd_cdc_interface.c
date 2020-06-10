@@ -46,7 +46,8 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f7xx_hal.h"
+#include "platform.h"
+
 #include "usbd_core.h"
 #include "usbd_desc.h"
 #include "usbd_cdc.h"
