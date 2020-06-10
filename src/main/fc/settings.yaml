@@ -158,12 +158,12 @@ groups:
       - name: gyro_sync
         field: gyroSync
         type: bool
-      - name: align_gyro
-        field: gyro_align
+      - name: align_gyro1
+        field: gyro_align[0]
         type: uint8_t
         table: alignment
       - name: align_gyro2
-        field: gyro2_align
+        field: gyro_align[1]
         type: uint8_t
         table: alignment
       - name: gyro_hardware_lpf

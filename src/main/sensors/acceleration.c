@@ -290,12 +290,14 @@ bool accInit(uint32_t targetLooptime)
 // Set inertial sensor tag (for dual-gyro selection)
 #ifdef USE_DUAL_GYRO
     acc.dev.imuSensorToUse = gyroConfig()->gyro_to_use;
-#ifdef USE_MULTI_GYRO //TODO: Fixme to
-    if(gyroConfig()->gyro_to_use == BOTH )
-        acc.dev.imuSensorToUse = 0;
+#ifdef USE_MULTI_GYRO
+    // FIXME: Dual acc support
+    if (gyroConfig()->gyro_to_use == IMU_TO_USE_BOTH) {
+        acc.dev.imuSensorToUse = IMU_TO_USE_FIRST;
+    }
 #endif
 #else
-    acc.dev.imuSensorToUse = 0;
+    acc.dev.imuSensorToUse = IMU_TO_USE_FIRST;
 #endif
 
     if (!accDetect(&acc.dev, accelerometerConfig()->acc_hardware)) {

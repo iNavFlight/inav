@@ -77,17 +77,23 @@ FILE_COMPILE_FOR_SPEED
 #include "hardware_revision.h"
 #endif
 
-FASTRAM gyro_t gyro; // gyro sensor object
 #ifdef USE_MULTI_GYRO
-#define MAX_GYRO_COUNT          2
+#   define MAX_GYRO_COUNT   2
 #else
-#define MAX_GYRO_COUNT          1
+#   define MAX_GYRO_COUNT   1
 #endif
 
+typedef struct {
+    bool                    available;
+    bool                    syncUpdate;
+    gyroDev_t               gyroDev;
+    zeroCalibrationVector_t gyroCal;
+    int16_t                 gyroTemp;
+} gyroDevInstance_t;
 
-STATIC_UNIT_TESTED gyroDev_t gyroDev[MAX_GYRO_COUNT];  // Not in FASTRAM since it may hold DMA buffers
-STATIC_FASTRAM int16_t gyroTemperature[MAX_GYRO_COUNT];
-STATIC_FASTRAM_UNIT_TESTED zeroCalibrationVector_t gyroCalibration[MAX_GYRO_COUNT];
+FASTRAM gyro_t gyro; // gyro sensor object
+
+STATIC_FASTRAM_UNIT_TESTED gyroDevInstance_t gyroInstance[MAX_GYRO_COUNT];
 
 STATIC_FASTRAM filterApplyFnPtr gyroLpfApplyFn;
 STATIC_FASTRAM filter_t gyroLpfState[XYZ_AXIS_COUNT];
@@ -99,10 +105,8 @@ STATIC_FASTRAM filterApplyFnPtr notchFilter1ApplyFn;
 STATIC_FASTRAM void *notchFilter1[XYZ_AXIS_COUNT];
 
 #ifdef USE_DYNAMIC_FILTERS
-
 EXTENDED_FASTRAM gyroAnalyseState_t gyroAnalyseState;
 EXTENDED_FASTRAM dynamicGyroNotchState_t dynamicGyroNotchState;
-
 #endif
 
 PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 9);
@@ -111,7 +115,8 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_lpf = GYRO_LPF_42HZ,      // 42HZ value is defined for Invensense/TDK gyros
     .gyro_soft_lpf_hz = 60,
     .gyro_soft_lpf_type = FILTER_BIQUAD,
-    .gyro_align = ALIGN_DEFAULT,
+    .gyro_align[0] = ALIGN_DEFAULT,
+    .gyro_align[1] = ALIGN_DEFAULT,
     .gyroMovementCalibrationThreshold = 32,
     .looptime = 1000,
     .gyroSync = 1,
@@ -258,7 +263,7 @@ static void gyroInitFilters(void)
 {
     STATIC_FASTRAM biquadFilter_t gyroFilterNotch_1[XYZ_AXIS_COUNT];
     notchFilter1ApplyFn = nullFilterApply;
-    
+
     initGyroFilter(&gyroLpf2ApplyFn, gyroLpf2State, gyroConfig()->gyro_stage2_lowpass_type, gyroConfig()->gyro_stage2_lowpass_hz);
     initGyroFilter(&gyroLpfApplyFn, gyroLpfState, gyroConfig()->gyro_soft_lpf_type, gyroConfig()->gyro_soft_lpf_hz);
 
@@ -271,104 +276,86 @@ static void gyroInitFilters(void)
     }
 }
 
+gyroSensor_e gyroInitInstance(gyroDevInstance_t * instance, int imuTag, sensor_align_e gyroAlign)
+{
+    // Start with unavailable sensor
+    instance->gyroDev.imuSensorToUse = imuTag;
+
+    gyroSensor_e gyroHardware = gyroDetect(&instance->gyroDev, GYRO_AUTODETECT);
+
+    // Fail early if not detected
+    if (gyroHardware == GYRO_NONE) {
+        return GYRO_NONE;
+    }
+
+    instance->gyroDev.lpf = gyroConfig()->gyro_lpf;
+    instance->gyroDev.requestedSampleIntervalUs = gyroConfig()->looptime;
+    instance->gyroDev.sampleRateIntervalUs = gyroConfig()->looptime;
+    instance->gyroDev.initFn(&instance->gyroDev);
+
+    // Override default alignment
+    if (gyroAlign != ALIGN_DEFAULT) {
+        instance->gyroDev.gyroAlign = gyroAlign;
+    }
+
+    instance->available = true;
+
+    return gyroHardware;
+}
+
 bool gyroInit(void)
 {
     memset(&gyro, 0, sizeof(gyro));
+    memset(&gyroInstance, 0, sizeof(gyroInstance));
 
-    // Set inertial sensor tag (for dual-gyro selection)
-    gyroSensor_e gyro0Hardware;
-#ifdef USE_MULTI_GYRO
-    gyroSensor_e gyro1Hardware;
-#endif
+    // Prepare failure scenario
+    detectedSensors[SENSOR_INDEX_GYRO] = GYRO_NONE;
+    gyro.initialized = false;
 
-    switch (gyroConfig()->gyro_to_use){
-        case FIRST:
-        case SECOND:
-#ifdef USE_DUAL_GYRO
-            gyroDev[0].imuSensorToUse = gyroConfig()->gyro_to_use;
-#else
-            gyroDev[0].imuSensorToUse = 0;
-#endif
+    // Initialize gyroscopes
+    switch (gyroConfig()->gyro_to_use) {
+        case IMU_TO_USE_FIRST:
+        case IMU_TO_USE_SECOND:
+            {
+                sensor_align_e gyroAlign = gyroConfig()->gyro_align[gyroConfig()->gyro_to_use];
+                gyroSensor_e gyroHardware = gyroInitInstance(&gyroInstance[0], imuTag, gyroAlign);
 
-            // Detecting gyro0
-            gyro0Hardware = gyroDetect(&gyroDev[0], GYRO_AUTODETECT);
-            if (gyro0Hardware == GYRO_NONE) {
-                gyro.initialized = false;
-                detectedSensors[SENSOR_INDEX_GYRO] = GYRO_NONE;
-                return true;
+                if (gyroHardware != GYRO_NONE) {
+                    gyro.initialized = true;
+                    gyro.targetLooptime = (gyroConfig()->gyroSync ? gyroInstance[0].gyroDev.sampleRateIntervalUs : gyroConfig()->looptime);
+                    detectedSensors[SENSOR_INDEX_GYRO] = gyroHardware;
+                }
             }
             break;
 
+        case IMU_TO_USE_BOTH:
 #ifdef USE_MULTI_GYRO
-        case BOTH:
-            gyroDev[0].imuSensorToUse = FIRST;
-            gyroDev[1].imuSensorToUse = SECOND;
-            gyro0Hardware = gyroDetect(&gyroDev[0], GYRO_AUTODETECT);
-            gyro1Hardware = gyroDetect(&gyroDev[1], GYRO_AUTODETECT);
+            {
+                gyroSensor_e gyroHardware0 = gyroInitInstance(&gyroInstance[0], 0, gyroConfig()->gyro_align[0]);
+                gyroSensor_e gyroHardware1 = gyroInitInstance(&gyroInstance[1], 1, gyroConfig()->gyro_align[1]);
 
-            if (gyro0Hardware == GYRO_NONE || gyro1Hardware == GYRO_NONE)  {
-                gyro.initialized = false;
-                detectedSensors[SENSOR_INDEX_GYRO] = GYRO_NONE;
-                return true;
+                if (gyroHardware0 != GYRO_NONE && gyroHardware1 != GYRO_NONE) {
+                    gyro.initialized = true;
+
+                    timeUs_t gyroSampleInterval0 = gyroInstance[0].gyroDev.sampleRateIntervalUs;
+                    timeUs_t gyroSampleInterval1 = gyroInstance[1].gyroDev.sampleRateIntervalUs;
+
+                    gyro.targetLooptime = (gyroConfig()->gyroSync ? MAX(gyroSampleInterval0, gyroSampleInterval1) : gyroConfig()->looptime);
+                    detectedSensors[SENSOR_INDEX_GYRO] = gyroHardware0;
+                    //detectedSensors[SENSOR_INDEX_GYRO] = gyroHardware1;
+                    // FIXME: Record second gyro data
+                }
             }
-            break;
-
 #endif
-        default:
-            return false;
-    };
+            break;
+    }
 
-    gyro.initialized = true;
+    // Fail early
+    if (!gyro.initialized) {
+        return true;
+    }
 
-    // FIXME: We need to record both gyros here
-    detectedSensors[SENSOR_INDEX_GYRO] = gyro0Hardware;
     sensorsSet(SENSOR_GYRO);
-
-    // Driver initialisation
-    gyroDev[0].lpf = gyroConfig()->gyro_lpf;
-    gyroDev[0].requestedSampleIntervalUs = gyroConfig()->looptime;
-    gyroDev[0].sampleRateIntervalUs = gyroConfig()->looptime;
-    gyroDev[0].initFn(&gyroDev[0]);
-
-    // initFn will initialize sampleRateIntervalUs to actual gyro sampling rate (if driver supports it). Calculate target looptime using that value
-    gyro.targetLooptime = (gyroConfig()->gyroSync ? gyroDev[0].sampleRateIntervalUs : gyroConfig()->looptime);
-
-#ifdef USE_MULTI_GYRO
-    if (gyroConfig()->gyro_to_use == BOTH) {
-        gyroDev[1].lpf = gyroConfig()->gyro_lpf;
-        gyroDev[1].requestedSampleIntervalUs = gyroConfig()->looptime;
-        gyroDev[1].sampleRateIntervalUs = gyroConfig()->looptime;
-        gyroDev[1].initFn(&gyroDev[1]);
-        gyro.targetLooptime = (gyroConfig()->gyroSync ? MAX(gyroDev[0].sampleRateIntervalUs, gyroDev[1].sampleRateIntervalUs) : gyroConfig()->looptime);
-    }
-#endif
-
-    
-    switch (gyroConfig()->gyro_to_use){
-    case FIRST:
-    default:
-        if (gyroConfig()->gyro_align != ALIGN_DEFAULT) {
-            gyroDev[0].gyroAlign = gyroConfig()->gyro_align;
-        }
-        break;
-#ifdef USE_DUAL_GYRO
-    case SECOND:
-        if (gyroConfig()->gyro2_align != ALIGN_DEFAULT) {
-            gyroDev[0].gyroAlign = gyroConfig()->gyro2_align;
-        }
-        break;
-#endif
-#ifdef USE_MULTI_GYRO
-    case BOTH:
-        if (gyroConfig()->gyro_align != ALIGN_DEFAULT) {
-            gyroDev[0].gyroAlign = gyroConfig()->gyro_align;
-        }
-        if (gyroConfig()->gyro2_align != ALIGN_DEFAULT) {
-            gyroDev[1].gyroAlign = gyroConfig()->gyro2_align;
-        }
-        break;
-#endif
-    }
 
     gyroInitFilters();
 
@@ -390,12 +377,13 @@ void gyroStartCalibration(void)
         return;
     }
 
-    zeroCalibrationStartV(&gyroCalibration[0], CALIBRATING_GYRO_TIME_MS, gyroConfig()->gyroMovementCalibrationThreshold, false);
-#ifdef USE_MULTI_GYRO
-    if(gyroConfig()->gyro_to_use == BOTH) {
-        zeroCalibrationStartV(&gyroCalibration[1], CALIBRATING_GYRO_TIME_MS, gyroConfig()->gyroMovementCalibrationThreshold, false);
+    for (int i = 0; i < MAX_GYRO_COUNT; i++) {
+        if (!gyroInstance[i].available) {
+            continue;
+        }
+
+        zeroCalibrationStartV(&gyroInstance[i].gyroCal, CALIBRATING_GYRO_TIME_MS, gyroConfig()->gyroMovementCalibrationThreshold, false);
     }
-#endif
 }
 
 bool gyroIsCalibrationComplete(void)
@@ -403,13 +391,19 @@ bool gyroIsCalibrationComplete(void)
     if (!gyro.initialized) {
         return true;
     }
-#ifdef USE_MULTI_GYRO
-    if (gyroConfig()->gyro_to_use == BOTH)
-        return zeroCalibrationIsCompleteV(&gyroCalibration[0]) && zeroCalibrationIsSuccessfulV(&gyroCalibration[0]) &&
-               zeroCalibrationIsCompleteV(&gyroCalibration[1]) && zeroCalibrationIsSuccessfulV(&gyroCalibration[1]);
-#endif
 
-    return zeroCalibrationIsCompleteV(&gyroCalibration[0]) && zeroCalibrationIsSuccessfulV(&gyroCalibration[0]);
+    for (int i = 0; i < MAX_GYRO_COUNT; i++) {
+        if (!gyroInstance[i].available) {
+            continue;
+        }
+
+        const bool isDone = zeroCalibrationIsCompleteV(&gyroInstance[i].gyroCal) && zeroCalibrationIsSuccessfulV(&gyroInstance[i].gyroCal);
+        if (!isDone) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVector_t *gyroCalibration)
@@ -494,18 +488,37 @@ void FAST_CODE NOINLINE gyroUpdate()
         return;
     }
 
-    if (!gyroUpdateAndCalibrate(&gyroDev[0], &gyroCalibration[0], gyro.gyroADCf)) {
+    // Update and calibrate all gyros
+    int activeGyros = 0;
+    gyro.gyroADCf[X] = 0;
+    gyro.gyroADCf[Y] = 0;
+    gyro.gyroADCf[Z] = 0;
+
+    for (int i = 0; i < MAX_GYRO_COUNT; i++) {
+        float gyroADCTmpf[XYZ_AXIS_COUNT];
+
+        if (!gyroInstance[i].available) {
+            continue;
+        }
+
+        gyroUpdateAndCalibrate(&gyroInstance[i].gyroDev, &gyroInstance[i].gyroCal, gyroADCTmpf);
+
+        gyro.gyroADCf[X] += gyroADCTmpf[X];
+        gyro.gyroADCf[Y] += gyroADCTmpf[Y];
+        gyro.gyroADCf[Z] += gyroADCTmpf[Z];
+        activeGyros++;
+    }
+
+    // Fail early
+    if (activeGyros == 0) {
         return;
     }
-#ifdef USE_MULTI_GYRO
-    if (gyroConfig()->gyro_to_use == BOTH ) {
-        if(!gyroUpdateAndCalibrate(&gyroDev[1], &gyroCalibration[1], gyro.gyro2ADCf))
-            return;
-        gyro.gyroADCf[X] = (gyro.gyroADCf[X] + gyro.gyro2ADCf[X]) / 2.0f;
-        gyro.gyroADCf[Y] = (gyro.gyroADCf[Y] + gyro.gyro2ADCf[Y]) / 2.0f;
-        gyro.gyroADCf[Z] = (gyro.gyroADCf[Z] + gyro.gyro2ADCf[Z]) / 2.0f;
-    }
-#endif
+
+    // Average all active gyros
+    gyro.gyroADCf[X] /= activeGyros;
+    gyro.gyroADCf[Y] /= activeGyros;
+    gyro.gyroADCf[Z] /= activeGyros;
+
 
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         // At this point gyro.gyroADCf contains unfiltered gyro value [deg/s]
@@ -558,17 +571,22 @@ bool gyroReadTemperature(void)
 
     // Read gyro sensor temperature. temperatureFn returns temperature in [degC * 10]
     // TODO: [degC * 10] is a bug in Finland. Negative temperature...
-#ifdef USE_MULTI_GYRO
-    if (gyroConfig()->gyro_to_use == BOTH && gyroDev[0].temperatureFn && gyroDev[1].temperatureFn)
-        return MAX(gyroDev[0].temperatureFn(&gyroDev[0], &gyroTemperature[0]), gyroDev[1].temperatureFn(&gyroDev[1], &gyroTemperature[1]));
-    else if (gyroConfig()->gyro_to_use == BOTH)
-        return false;
-#endif
-    if (gyroDev[0].temperatureFn) {
-        return gyroDev[0].temperatureFn(&gyroDev[0], &gyroTemperature[0]);
+
+    for (int i = 0; i < MAX_GYRO_COUNT; i++) {
+        if (!gyroInstance[i].available) {
+            continue;
+        }
+
+        if (!gyroInstance[i].gyroDev.temperatureFn) {
+            return false;
+        }
+
+        if (!gyroInstance[i].gyroDev.temperatureFn(&gyroInstance[i].gyroDev, &gyroInstance[i].gyroTemp)) {
+            return false;
+        }
     }
 
-    return false;
+    return true;
 }
 
 int16_t gyroGetTemperature(void)
@@ -576,11 +594,17 @@ int16_t gyroGetTemperature(void)
     if (!gyro.initialized) {
         return 0;
     }
-#ifdef USE_MULTI_GYRO
-    if (gyroConfig()->gyro_to_use == BOTH)
-        return MAX(gyroTemperature[0], gyroTemperature[1]);
-#endif
-    return gyroTemperature[0];
+
+    int16_t maxTemp = -32768;
+    for (int i = 0; i < MAX_GYRO_COUNT; i++) {
+        if (!gyroInstance[i].available) {
+            continue;
+        }
+
+        maxTemp = MAX(maxTemp, gyroInstance[i].gyroTemp);
+    }
+
+    return maxTemp;
 }
 
 int16_t gyroRateDps(int axis)
@@ -598,16 +622,35 @@ bool gyroSyncCheckUpdate(void)
         return false;
     }
 
-    if (!gyroDev[0].intStatusFn) {
-        return false;
+    // This is tricky. A call to intStatusFn will reset the flag. We need to make a flag sticky locally
+
+    // Pass one - poll and cache gyroDev
+    for (int i = 0; i < MAX_GYRO_COUNT; i++) {
+        if (!gyroInstance[i].available) {
+            continue;
+        }
+
+        // If one of the gyros is incapable of gyro sync - fail early
+        if (!gyroInstance[i].gyroDev.intStatusFn) {
+            return false;
+        }
+
+        if (gyroInstance[i].gyroDev.intStatusFn(&gyroInstance[i].gyroDev)) {
+            gyroInstance[i].syncUpdate = true;
+        }
     }
 
-#ifdef USE_MULTI_GYRO
-    if(gyroConfig()->gyro_to_use == BOTH) {
-        if (!gyroDev[1].intStatusFn)
+    // Pass two - succeed only if all available gyros are synced
+    for (int i = 0; i < MAX_GYRO_COUNT; i++) {
+        if (gyroInstance[i].available && !gyroInstance[i].syncUpdate) {
             return false;
-        return gyroDev[0].intStatusFn(&gyroDev[0]) && gyroDev[1].intStatusFn(&gyroDev[1]);
+        }
     }
-#endif
-    return gyroDev[0].intStatusFn(&gyroDev[0]);
+
+    // Pass three - at this point all gyros are synced. Reset flags
+    for (int i = 0; i < MAX_GYRO_COUNT; i++) {
+        gyroInstance[i].syncUpdate = false;
+    }
+
+    return true;
 }
