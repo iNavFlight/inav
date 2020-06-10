@@ -152,11 +152,14 @@ DEVICE_FLAGS       += -DSTM32H743xx
 DEFAULT_LD_SCRIPT   = $(LINKER_DIR)/stm32_flash_h743.ld
 STARTUP_SRC         = startup_stm32h743xx.s
 MCU_FLASH_SIZE      := 2048
+DEVICE_FLAGS       += -DMAX_MPU_REGIONS=16
+
 else ifeq ($(TARGET),$(filter $(TARGET),$(H750xB_TARGETS)))
 DEVICE_FLAGS       += -DSTM32H750xx
 DEFAULT_LD_SCRIPT   = $(LINKER_DIR)/stm32_flash_h750_128k.ld
 STARTUP_SRC          = startup_stm32h743xx.s
 DEFAULT_MCU_FLASH_SIZE := 128
+DEVICE_FLAGS       += -DMAX_MPU_REGIONS=16
 
 ifeq ($(MCU_FLASH_SIZE),)
 MCU_FLASH_SIZE := $(DEFAULT_MCU_FLASH_SIZE) 
@@ -184,7 +187,9 @@ VCP_SRC = \
 
 MCU_COMMON_SRC = \
             target/system_stm32h7xx.c \
-            
+            drivers/memprot_hal.c \
+            drivers/memprot_stm32h7xx.c \
+
 #            drivers/accgyro/accgyro.c \
 #            drivers/accgyro/accgyro_mpu.c \
 #            drivers/adc_stm32h7xx.c \
