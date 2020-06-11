@@ -24,16 +24,22 @@ In addition to a cross-compiler, it is necessary to install some other tools:
 
 ### Ubuntu / Debian
 ```
+$ # make sure the system is updated first
+$ sudo apt update && sudo apt upgrade
 $ sudo apt install gcc git make ruby curl
 ```
 
 ### Fedora
 ```
+$ # make sure the system is updated first
+$ sudo dnf -y update
 $ sudo dnf install gcc git make ruby curl
 ```
 
 ### Arch
 ```
+$ # make sure the system is updated first
+$ sudo pacman -Syu
 $ sudo pacman -S gcc git make ruby curl
 ```
 
