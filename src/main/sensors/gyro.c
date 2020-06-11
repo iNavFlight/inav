@@ -478,18 +478,9 @@ void FAST_CODE NOINLINE gyroUpdate()
 
 #ifdef USE_GYRO_KALMAN
     if (gyroConfig()->kalmanEnabled) {
-        float input[XYZ_AXIS_COUNT];
-        float output[XYZ_AXIS_COUNT];
-
-        input[X] = gyro.gyroADCf[X];
-        input[Y] = gyro.gyroADCf[Y];
-        input[Z] = gyro.gyroADCf[Z];
-
-        gyroKalmanUpdate(input, output);
-
-        gyro.gyroADCf[X] = output[X];
-        gyro.gyroADCf[Y] = output[Y];
-        gyro.gyroADCf[Z] = output[Z];
+        gyro.gyroADCf[X] = gyroKalmanUpdate(X, gyro.gyroADCf[X]);
+        gyro.gyroADCf[Y] = gyroKalmanUpdate(Y, gyro.gyroADCf[Y]);
+        gyro.gyroADCf[Z] = gyroKalmanUpdate(Z, gyro.gyroADCf[Z]);
     }
 #endif
 

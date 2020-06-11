@@ -50,5 +50,5 @@ typedef struct kalman
 } kalman_t;
 
 void gyroKalmanInitialize(void);
-void gyroKalmanUpdate(float* input, float* output);
+float gyroKalmanUpdate(uint8_t axis, float input);
 void gyroKalmanSetSetpoint(uint8_t axis, float rate);

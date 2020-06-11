@@ -114,21 +114,13 @@ static void updateAxisVariance(kalman_t *kalmanState, float rate)
     kalmanState->r = squirt * VARIANCE_SCALE;
 }
 
-void gyroKalmanUpdate(float *input, float *output)
+float gyroKalmanUpdate(uint8_t axis, float input)
 {
-    updateAxisVariance(&kalmanFilterStateRate[X], input[X]);
-    updateAxisVariance(&kalmanFilterStateRate[Y], input[Y]);
-    updateAxisVariance(&kalmanFilterStateRate[Z], input[Z]);
+    updateAxisVariance(&kalmanFilterStateRate[axis], input);
 
-    output[X] = kalman_process(&kalmanFilterStateRate[X], input[X], setPoint[X]);
-    output[Y] = kalman_process(&kalmanFilterStateRate[Y], input[Y], setPoint[Y]);
-    output[Z] = kalman_process(&kalmanFilterStateRate[Z], input[Z], setPoint[Z]);
+    DEBUG_SET(DEBUG_KALMAN, axis, kalmanFilterStateRate[axis].k * 1000.0f); //Kalman gain
 
-    DEBUG_SET(DEBUG_KALMAN, 0, input[X]); //Gyro input
-    DEBUG_SET(DEBUG_KALMAN, 1, setPoint[X]);
-    DEBUG_SET(DEBUG_KALMAN, 2, kalmanFilterStateRate[X].k * 1000.0f); //Kalman gain
-    DEBUG_SET(DEBUG_KALMAN, 3, output[X]);                            //Kalman output
-    DEBUG_SET(DEBUG_KALMAN, 4, input[X] - output[X]);
+    return kalman_process(&kalmanFilterStateRate[axis], input, setPoint[axis]);
 }
 
 #endif
