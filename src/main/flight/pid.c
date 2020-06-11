@@ -44,6 +44,7 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/rpm_filter.h"
+#include "flight/kalman.h"
 
 #include "io/gps.h"
 
@@ -966,6 +967,9 @@ void FAST_CODE pidController(float dT)
 
         // Limit desired rate to something gyro can measure reliably
         pidState[axis].rateTarget = constrainf(rateTarget, -GYRO_SATURATION_LIMIT, +GYRO_SATURATION_LIMIT);
+#ifdef USE_GYRO_KALMAN
+        gyroKalmanSetSetpoint(axis, pidState[axis].rateTarget);
+#endif
     }
 
     // Step 3: Run control for ANGLE_MODE, HORIZON_MODE, and HEADING_LOCK
