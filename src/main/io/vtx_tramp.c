@@ -228,9 +228,17 @@ static vtxProtoResponseType_e vtxProtoProcessResponse(void)
             vtxState.capabilities.freqMin = vtxState.recvPkt[2] | (vtxState.recvPkt[3] << 8);
             vtxState.capabilities.freqMax = vtxState.recvPkt[4] | (vtxState.recvPkt[5] << 8);
             vtxState.capabilities.powerMax = vtxState.recvPkt[6] | (vtxState.recvPkt[7] << 8);
+
             if (vtxState.capabilities.freqMin != 0 && vtxState.capabilities.freqMin < vtxState.capabilities.freqMax) {
-                // Update max power metadata so OSD settings would match VTX capabiolities
+                // Some TRAMP VTXes may report max power incorrectly (i.e. 200mW for a 600mW VTX)
+                // Make use of vtxSettingsConfig()->maxPowerOverride to override
+                if (vtxSettingsConfig()->maxPowerOverride != 0) {
+                    vtxState.capabilities.powerMax = vtxSettingsConfig()->maxPowerOverride;
+                }
+
+                // Update max power metadata so OSD settings would match VTX capabilities
                 vtxProtoUpdatePowerMetadata(vtxState.capabilities.powerMax);
+
                 return VTX_RESPONSE_TYPE_CAPABILITIES;
             }
             break;
