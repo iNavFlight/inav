@@ -64,6 +64,7 @@ typedef struct {
 } uartPort_t;
 
 void uartGetPortPins(UARTDevice_e device, serialPortPins_t * pins);
+void uartClearIdleFlag(uartPort_t *s);
 serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr rxCallback, void *rxCallbackData, uint32_t baudRate, portMode_t mode, portOptions_t options);
 
 // serialPort API

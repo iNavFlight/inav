@@ -232,7 +232,7 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  nav_fw_launch_max_altitude | 0 | Altitude (centimeters) at which LAUNCH mode will be turned off and regular flight mode will take over [0-60000]. |
 |  nav_fw_land_dive_angle  | 2 | Dive angle that airplane will use during final landing phase. During dive phase, motor is stopped or IDLE and roll control is locked to 0 degrees |
 |  nav_fw_cruise_yaw_rate  | 20 | Max YAW rate when NAV CRUISE mode is enabled (0=disable control via yaw stick) [dps]|
-| nav_use_fw_yaw_control | OFF | Enables or Disables the use of the heading PID controller on fixed wing |
+| nav_use_fw_yaw_control | OFF | Enables or Disables the use of the heading PID controller on fixed wing. Heading PID controller is always enabled for rovers and boats |
 |  serialrx_provider  | SPEK1024 | When feature SERIALRX is enabled, this allows connection to several receivers which output data via digital interface resembling serial. See RX section. |
 |  serialrx_halfduplex  | OFF | Allow serial receiver to operate on UART TX pin. With some receivers will allow control and telemetry over a single wire |
 |  serialrx_inverted     | OFF | Reverse the serial inversion of the  serial RX protocol. When this value is OFF, each protocol will use its default signal (e.g. SBUS will use an inverted signal). Some OpenLRS receivers produce a non-inverted SBUS signal. This setting supports this type of receivers (including modified FrSKY). |
@@ -246,7 +246,7 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  frsky_vfas_precision  | 0 | D-Series telemetry only: Set to 1 to send raw VBat value in 0.1V resolution for receivers that can handle it, or 0 (default) to use the standard method |
 |  frsky_pitch_roll  | OFF | S.Port and D-Series telemetry: Send pitch and roll degrees*10 instead of raw accelerometer data |
 |  smartport_fuel_unit  | MAH | S.Port telemetry only: Unit of the value sent with the `FUEL` ID (FrSky D-Series always sends precent). [PERCENT/MAH/MWH] |
-|  telemetry_uart_unidir  | OFF | S.Port telemetry only: Turn UART into UNIDIR for usage on F1 and F4 target. See Telemetry.md for details |
+|  telemetry_halfduplex  | OFF | S.Port telemetry only: Turn UART into UNIDIR for usage on F1 and F4 target. See Telemetry.md for details |
 |  report_cell_voltage  | OFF | S.Port, D-Series, and IBUS telemetry: Send the average cell voltage if set to ON |
 |  hott_alarm_sound_interval  | 5 | Battery alarm delay in seconds for Hott telemetry |
 |  smartport_fuel_unit  | MAH | S.Port and D-Series telemetry: Unit of the value sent with the `FUEL` ID. [PERCENT/MAH/MWH] |
@@ -291,7 +291,7 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  imu_acc_ignore_slope | 0 | Half-width of the interval to gradually reduce accelerometer weight. Centered at `imu_acc_ignore_rate` (exactly 50% weight) |
 |  pos_hold_deadband  | 20 | Stick deadband in [r/c points], applied after r/c deadband and expo |
 |  alt_hold_deadband  | 50 | Defines the deadband of throttle during alt_hold [r/c points] |
-|  yaw_motor_direction  | 1 | Use if you need to inverse yaw motor direction. |
+|  motor_direction_inverted  | OFF | Use if you need to inverse yaw motor direction. |
 |  tri_unarmed_servo  | ON | On tricopter mix only, if this is set to ON, servo will always be correcting regardless of armed state. to disable this, set it to OFF. |
 |  servo_protocol  | PWM | An option to chose the protocol/option that would be used to output servo data. Possible options `PWM` (FC servo outputs), `SERVO_DRIVER` (I2C PCA9685 peripheral), `SBUS` (S.Bus protocol output via a configured serial port) |
 |  servo_lpf_hz  | 20 | Selects the servo PWM output cutoff frequency. Value is in [Hz] |
@@ -350,6 +350,7 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  osd_estimations_wind_compensation  | ON | Use wind estimation for remaining flight time/distance estimation |
 |  osd_failsafe_switch_layout  | OFF | If enabled the OSD automatically switches to the first layout during failsafe |
 |  osd_temp_label_align | LEFT | Allows to chose between left and right alignment for the OSD temperature sensor labels. Valid values are `LEFT` and `RIGHT` |
+|  osd_hud_wp_disp | OFF | Controls display of the next waypoints in the HUD.|
 |  osd_ahi_style | DEFAULT | Sets OSD Artificial Horizon style "DEFAULT" or "LINE" for the FrSky Graphical OSD. |
 |  display_force_sw_blink  | OFF | OFF = OSD hardware blink / ON = OSD software blink. If OSD warning text/values are invisible, try setting this to ON |
 |  magzero_x  | 0 | Magnetometer calibration X offset. If its 0 none offset has been applied and calibration is failed. |
@@ -375,9 +376,11 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  nav_fw_pos_xy_p  | 75 | P gain of 2D trajectory PID controller. Play with this to get a straight line between waypoints or a straight RTH |
 |  nav_fw_pos_xy_i  | 5 | I gain of 2D trajectory PID controller. Too high and there will be overshoot in trajectory. Better start tuning with zero |
 |  nav_fw_pos_xy_d  | 8 | D gain of 2D trajectory PID controller. Too high and there will be overshoot in trajectory. Better start tuning with zero |
-|  nav_fw_pos_hdg_p  | 60 | P gain of heading PID controller. (Fixedwing) |
-|  nav_fw_pos_hdg_i  | 0 | I gain of heading trajectory PID controller. (Fixedwing) |
-|  nav_fw_pos_hdg_d  | 0 | D gain of heading trajectory PID controller. (Fixedwing) |
+|  nav_fw_pos_hdg_p  | 60 | P gain of heading PID controller. (Fixedwing, rovers, boats) |
+|  nav_fw_pos_hdg_i  | 0 | I gain of heading trajectory PID controller. (Fixedwing, rovers, boats) |
+|  nav_fw_pos_hdg_d  | 0 | D gain of heading trajectory PID controller. (Fixedwing, rovers, boats) |
+|  nav_fw_pos_hdg_pidsum_limit | 350 | Output limit for heading trajectory PID controller. (Fixedwing, rovers, boats) |
+| nav_fw_yaw_deadband   | 0 | Deadband for heading trajectory PID controller. When heading error is below the deadband, controller assumes that vehicle is on course |
 |  nav_mc_heading_p  | 60 | P gain of Heading Hold controller (Multirotor) |
 |  nav_fw_heading_p  | 60 | P gain of Heading Hold controller (Fixedwing) |
 |  deadband  | 5 | These are values (in us) by how much RC input can be different before it's considered valid. For transmitters with jitter on outputs, this value can be increased. Defaults are zero, but can be increased up to 10 or so if rc inputs twitch while idle. |
@@ -396,12 +399,15 @@ A shorter form is also supported to enable and disable functions using `serial <
 | mc_p_pitch | 40 | Multicopter rate stabilisation P-gain for PITCH               |
 | mc_i_pitch | 30 | Multicopter rate stabilisation I-gain for PITCH               |
 | mc_d_pitch | 23 | Multicopter rate stabilisation D-gain for PITCH               |
+| mc_cd_pitch | 60 | Multicopter Control Derivative gain for PITCH                |
 | mc_p_roll  | 40 | Multicopter rate stabilisation P-gain for ROLL                |
 | mc_i_roll  | 30 | Multicopter rate stabilisation I-gain for ROLL                |
 | mc_d_roll  | 23 | Multicopter rate stabilisation D-gain for ROLL                |
+| mc_cd_roll | 60 | Multicopter Control Derivative gain for ROLL                |
 | mc_p_yaw   | 85 | Multicopter rate stabilisation P-gain for YAW                 |
 | mc_i_yaw   | 45 | Multicopter rate stabilisation I-gain for YAW                 |
 | mc_d_yaw   | 0  | Multicopter rate stabilisation D-gain for YAW                 |
+| mc_cd_yaw | 60 | Multicopter Control Derivative gain for YAW                  |
 | mc_p_level | 20 | Multicopter attitude stabilisation P-gain                     |
 | mc_i_level | 15 | Multicopter attitude stabilisation low-pass filter cutoff     |
 | mc_d_level | 75 | Multicopter attitude stabilisation HORIZON transition point   |
@@ -502,7 +508,6 @@ A shorter form is also supported to enable and disable functions using `serial <
 | baro_cal_tolerance | 150 | Baro calibration tolerance in cm. The default  should allow the noisiest baro to complete calibration [cm]. |
 | mc_airmode_type | STICK_CENTER | Defines the Airmode state handling type for Multirotors. Default **STICK_CENTER** is the classical approach in which Airmode is always active if enabled, but when the throttle is low and ROLL/PITCH/YAW sticks are centered, Iterms is not allowed to grow (ANTI_WINDUP). **THROTTLE_THRESHOLD** is the Airmode behavior known from Betaflight. In this mode, Airmode is active as soon THROTTLE position is above `mc_airmode_threshold` and stays active until disarm. ANTI_WINDUP is never triggered. For small Multirotors (up to 7-inch propellers) it is suggested to switch to **THROTTLE_THRESHOLD** since it keeps full stabilization no matter what pilot does with the sticks. Fixed Wings always use **STICK_CENTER** mode. |
 | mc_airmode_threshold | 1300 | Defines airmode THROTTLE activation threshold when `mc_airmode_type` **THROTTLE_THRESHOLD** is used |
-| use_dterm_fir_filter | ON | Setting to **OFF** disabled extra filter on Dterm. **OFF** offers faster Dterm and better inflight performance with a cost of being more sensitive to gyro noise. Small and relatively clean multirotors (7 inches and below) are suggested to use **OFF** setting. If motors are getting too hot, switch back to **ON** |
 | sim_ground_station_number | Empty string | Number of phone that is used to communicate with SIM module. Messages / calls from other numbers are ignored. If undefined, can be set by calling or sending a message to the module. |
 | sim_pin | Empty string | PIN code for the SIM module |
 | sim_transmit_interval | 60 | Text message transmission interval in seconds for SIM module. Minimum value: 10 |
@@ -518,3 +523,4 @@ A shorter form is also supported to enable and disable functions using `serial <
 | antigravity_accelerator | 1   | |
 | antigravity_cutoff_lpf_hz | 15    | Antigravity cutoff frequenct for Throtte filter. Antigravity is based on the difference between actual and filtered throttle input. The bigger is the difference, the bigger Antigravity gain |
 | sim_pin   |   | PIN for GSM card module |
+| mc_cd_lpf_hz | 30 | Cutoff frequency for Control Derivative. Lower value smoother reaction on fast stick movements. With higher values, response will be more aggressive, jerky |

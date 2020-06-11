@@ -253,6 +253,12 @@ void uartGetPortPins(UARTDevice_e device, serialPortPins_t * pins)
     }
 }
 
+void uartClearIdleFlag(uartPort_t *s)
+{
+    (void) s->USARTx->SR;
+    (void) s->USARTx->DR;
+}
+
 uartPort_t *serialUART(UARTDevice_e device, uint32_t baudRate, portMode_t mode, portOptions_t options)
 {
     uartPort_t *s;
