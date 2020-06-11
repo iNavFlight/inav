@@ -43,7 +43,7 @@
 #include "io/vtx_string.h"
 #include "io/vtx_control.h"
 
-PG_REGISTER_WITH_RESET_TEMPLATE(vtxSettingsConfig_t, vtxSettingsConfig, PG_VTX_SETTINGS_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(vtxSettingsConfig_t, vtxSettingsConfig, PG_VTX_SETTINGS_CONFIG, 2);
 
 PG_RESET_TEMPLATE(vtxSettingsConfig_t, vtxSettingsConfig,
     .band = VTX_SETTINGS_DEFAULT_BAND,
@@ -51,6 +51,7 @@ PG_RESET_TEMPLATE(vtxSettingsConfig_t, vtxSettingsConfig,
     .power = VTX_SETTINGS_DEFAULT_POWER,
     .pitModeChan = VTX_SETTINGS_DEFAULT_PITMODE_CHANNEL,
     .lowPowerDisarm = VTX_LOW_POWER_DISARM_OFF,
+    .maxPowerOverride = 0,
 );
 
 typedef enum {
