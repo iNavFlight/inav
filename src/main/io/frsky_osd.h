@@ -74,7 +74,7 @@ typedef struct frskyOSDWidgetAHIData_s
     uint16_t roll : 12;
 } __attribute__((packed)) frskyOSDWidgetAHIData_t;
 
-typedef struct frskyOSDWidgetAHIConfigData_s
+typedef struct frskyOSDWidgetAHIConfig_s
 {
     frskyOSDRect_t rect;
     uint8_t style;
@@ -82,6 +82,20 @@ typedef struct frskyOSDWidgetAHIConfigData_s
     uint8_t crosshairMargin;
     uint8_t strokeWidth;
 } __attribute__((packed)) frskyOSDWidgetAHIConfig_t;
+
+typedef struct frskyOSDWidgetSidebarData_s
+{
+    int32_t value : 24;
+} __attribute__((packed)) frskyOSDWidgetSidebarData_t;
+
+typedef struct frskyOSDWidgetSidebarConfig_s
+{
+    frskyOSDRect_t rect;
+    uint8_t options;
+    uint8_t divisions;
+    uint16_t counts_per_step;
+    osdUnit_t unit;
+} __attribute__((packed)) frskyOSDWidgetSidebarConfig_t;
 
 bool frskyOSDInit(videoSystem_e videoSystem);
 bool frskyOSDIsReady(void);

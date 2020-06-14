@@ -41,6 +41,9 @@
 #define OSD_HEADING_GRAPH_WIDTH 9
 #define OSD_HEADING_GRAPH_DECIDEGREES_PER_CHAR 225
 
+#define OSD_AH_SIDEBAR_WIDTH_POS 7
+#define OSD_AH_SIDEBAR_HEIGHT_POS 3
+
 typedef struct displayPort_s displayPort_t;
 typedef struct displayCanvas_s displayCanvas_t;
 
@@ -78,3 +81,4 @@ void osdDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *canvas, c
 // Draws a heading graph with heading given as 0.1 degree steps i.e. [0, 3600). It uses 9 horizontal
 // grid slots.
 void osdDrawHeadingGraph(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, int heading);
+void osdDrawSidebars(displayPort_t *display, displayCanvas_t *canvas);

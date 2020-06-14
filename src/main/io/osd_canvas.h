@@ -36,3 +36,4 @@ void osdCanvasDrawVario(displayPort_t *display, displayCanvas_t *canvas, const o
 void osdCanvasDrawDirArrow(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float degrees, bool eraseBefore);
 void osdCanvasDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float pitchAngle, float rollAngle);
 void osdCanvasDrawHeadingGraph(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, int heading);
+bool osdCanvasDrawSidebars(displayPort_t *display, displayCanvas_t *canvas);

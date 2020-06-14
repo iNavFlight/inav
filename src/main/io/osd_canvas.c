@@ -34,6 +34,11 @@
 #define AHI_MAX_DRAW_INTERVAL_MS 1000
 #define AHI_CROSSHAIR_MARGIN 6
 
+#define SIDEBAR_REDRAW_INTERVAL_MS 100
+#define WIDGET_SIDEBAR_LEFT_INSTANCE 0
+#define WIDGET_SIDEBAR_RIGHT_INSTANCE 1
+
+#include "common/constants.h"
 #include "common/log.h"
 #include "common/maths.h"
 #include "common/typeconversion.h"
@@ -48,6 +53,8 @@
 
 #include "io/osd_common.h"
 #include "io/osd.h"
+
+#include "navigation/navigation.h"
 
 void osdCanvasDrawVarioShape(displayCanvas_t *canvas, unsigned ex, unsigned ey, float zvel, bool erase)
 {
@@ -460,6 +467,199 @@ void osdCanvasDrawHeadingGraph(displayPort_t *display, displayCanvas_t *canvas, 
     displayCanvasSetFillColor(canvas, DISPLAY_CANVAS_COLOR_WHITE);
     int rmx = px + rw / 2;
     displayCanvasFillStrokeTriangle(canvas, rmx - 2, py - 1, rmx + 2, py - 1, rmx, py + 1);
+}
+
+static int32_t osdCanvasSidebarGetValue(osd_sidebar_scroll_e scroll)
+{
+    switch (scroll) {
+        case OSD_SIDEBAR_SCROLL_NONE:
+            break;
+        case OSD_SIDEBAR_SCROLL_ALTITUDE:
+            switch ((osd_unit_e)osdConfig()->units) {
+                case OSD_UNIT_IMPERIAL:
+                    return CENTIMETERS_TO_CENTIFEET(osdGetAltitude());
+                case OSD_UNIT_UK:
+                    FALLTHROUGH;
+                case OSD_UNIT_METRIC:
+                    return osdGetAltitude();
+            }
+            break;
+        case OSD_SIDEBAR_SCROLL_GROUND_SPEED:
+#if defined(USE_GPS)
+            switch ((osd_unit_e)osdConfig()->units) {
+                case OSD_UNIT_UK:
+                    FALLTHROUGH;
+                case OSD_UNIT_IMPERIAL:
+                    return CENTIMETERS_TO_CENTIFEET(gpsSol.groundSpeed);
+                case OSD_UNIT_METRIC:
+                    return gpsSol.groundSpeed;
+            }
+#endif
+            break;
+        case OSD_SIDEBAR_SCROLL_HOME_DISTANCE:
+#if defined(USE_GPS)
+            switch ((osd_unit_e)osdConfig()->units) {
+                case OSD_UNIT_IMPERIAL:
+                    return CENTIMETERS_TO_CENTIFEET(GPS_distanceToHome * 100);
+                case OSD_UNIT_UK:
+                    FALLTHROUGH;
+                case OSD_UNIT_METRIC:
+                    return GPS_distanceToHome * 100;
+#endif
+            }
+            break;
+    }
+    return 0;
+}
+
+static uint8_t osdCanvasSidebarGetOptions(int *width, osd_sidebar_scroll_e scroll)
+{
+    switch (scroll) {
+        case OSD_SIDEBAR_SCROLL_NONE:
+            break;
+        case OSD_SIDEBAR_SCROLL_ALTITUDE:
+            FALLTHROUGH;
+        case OSD_SIDEBAR_SCROLL_GROUND_SPEED:
+            FALLTHROUGH;
+        case OSD_SIDEBAR_SCROLL_HOME_DISTANCE:
+            *width = OSD_CHAR_WIDTH * 5; // 4 numbers + unit
+            return 0;
+    }
+    *width = OSD_CHAR_WIDTH;
+    return DISPLAY_WIDGET_SIDEBAR_OPTION_STATIC | DISPLAY_WIDGET_SIDEBAR_OPTION_UNLABELED;
+}
+
+static void osdCanvasSidebarGetUnit(osdUnit_t *unit, osd_sidebar_scroll_e scroll)
+{
+    // We always count in 1/100 units, converting to
+    // "centifeet" when displaying imperial units
+    unit->scale = 100;
+
+    switch (scroll) {
+        case OSD_SIDEBAR_SCROLL_NONE:
+            unit->symbol = 0;
+            unit->divisor = 0;
+            unit->divided_symbol = 0;
+            break;
+        case OSD_SIDEBAR_SCROLL_ALTITUDE:
+            switch ((osd_unit_e)osdConfig()->units) {
+                case OSD_UNIT_IMPERIAL:
+                    unit->symbol = SYM_ALT_FT;
+                    unit->divisor = FEET_PER_KILOFEET;
+                    unit->divided_symbol = SYM_ALT_KFT;
+                    break;
+                case OSD_UNIT_UK:
+                    FALLTHROUGH;
+                case OSD_UNIT_METRIC:
+                    unit->symbol = SYM_ALT_M;
+                    unit->divisor = METERS_PER_KILOMETER;
+                    unit->divided_symbol = SYM_ALT_KM;
+                    break;
+            }
+            break;
+        case OSD_SIDEBAR_SCROLL_GROUND_SPEED:
+            switch ((osd_unit_e)osdConfig()->units) {
+                case OSD_UNIT_UK:
+                    FALLTHROUGH;
+                case OSD_UNIT_IMPERIAL:
+                    unit->symbol = SYM_MPH;
+                    unit->divisor = 0;
+                    unit->divided_symbol = 0;
+                    break;
+                case OSD_UNIT_METRIC:
+                    unit->symbol = SYM_KMH;
+                    unit->divisor = 0;
+                    unit->divided_symbol = 0;
+                    break;
+            }
+            break;
+        case OSD_SIDEBAR_SCROLL_HOME_DISTANCE:
+            switch ((osd_unit_e)osdConfig()->units) {
+                case OSD_UNIT_IMPERIAL:
+                    unit->symbol = SYM_FT;
+                    unit->divisor = FEET_PER_MILE;
+                    unit->divided_symbol = SYM_MI;
+                    break;
+                case OSD_UNIT_UK:
+                    FALLTHROUGH;
+                case OSD_UNIT_METRIC:
+                    unit->symbol = SYM_M;
+                    unit->divisor = METERS_PER_KILOMETER;
+                    unit->divided_symbol = SYM_KM;
+                    break;
+            }
+            break;
+    }
+}
+
+static bool osdCanvasDrawSidebar(uint8_t *configured, displayWidgets_t *widgets,
+                                int instance, osd_sidebar_scroll_e scroll)
+{
+    // Configuration
+    uint8_t configuration = scroll << 4 | osdConfig()->units;
+    if (configuration != *configured) {
+        int width;
+        uint8_t options = osdCanvasSidebarGetOptions(&width, scroll);
+        uint8_t ex;
+        uint8_t ey;
+        osdCrosshairPosition(&ex, &ey);
+        const int height = 2 * OSD_AH_SIDEBAR_HEIGHT_POS * OSD_CHAR_HEIGHT;
+        const int y = (ey - OSD_AH_SIDEBAR_HEIGHT_POS) * OSD_CHAR_HEIGHT;
+
+        widgetSidebarConfiguration_t config = {
+            .rect.y = y,
+            .rect.w = width,
+            .rect.h = height,
+            .options = options,
+            .divisions = OSD_AH_SIDEBAR_HEIGHT_POS * 2,
+        };
+        osdCanvasSidebarGetUnit(&config.unit, scroll);
+        config.counts_per_step = config.unit.scale * 100;
+
+        if (instance == WIDGET_SIDEBAR_LEFT_INSTANCE) {
+            config.rect.x = ((ex - OSD_AH_SIDEBAR_WIDTH_POS) * OSD_CHAR_WIDTH) - width;
+            config.options |= DISPLAY_WIDGET_SIDEBAR_OPTION_LEFT;
+        } else {
+            config.rect.x = ((ex + OSD_AH_SIDEBAR_WIDTH_POS) * OSD_CHAR_WIDTH);
+        }
+
+        if (!displayWidgetsConfigureSidebar(widgets, instance, &config)) {
+            return false;
+        }
+
+        *configured = configuration;
+    }
+    // Actual drawing
+    int32_t data = osdCanvasSidebarGetValue(scroll);
+    return displayWidgetsDrawSidebar(widgets, instance, data);
+}
+
+bool osdCanvasDrawSidebars(displayPort_t *display, displayCanvas_t *canvas)
+{
+    UNUSED(display);
+
+    static uint8_t leftConfigured = 0xFF;
+    static uint8_t rightConfigured = 0xFF;
+    static timeMs_t nextRedraw = 0;
+
+    timeMs_t now = millis();
+
+    if (now < nextRedraw) {
+        return true;
+    }
+
+    displayWidgets_t widgets;
+    if (displayCanvasGetWidgets(&widgets, canvas)) {
+        if (!osdCanvasDrawSidebar(&leftConfigured, &widgets, WIDGET_SIDEBAR_LEFT_INSTANCE, osdConfig()->left_sidebar_scroll)) {
+            return false;
+        }
+        if (!osdCanvasDrawSidebar(&rightConfigured, &widgets, WIDGET_SIDEBAR_RIGHT_INSTANCE, osdConfig()->right_sidebar_scroll)) {
+            return false;
+        }
+        nextRedraw = now + SIDEBAR_REDRAW_INTERVAL_MS;
+        return true;
+    }
+    return false;
 }
 
 #endif

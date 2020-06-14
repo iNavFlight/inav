@@ -139,3 +139,15 @@ void osdDrawHeadingGraph(displayPort_t *display, displayCanvas_t *canvas, const 
     }
 #endif
 }
+
+void osdDrawSidebars(displayPort_t *display, displayCanvas_t *canvas)
+{
+#if defined(USE_CANVAS)
+    if (osdCanvasDrawSidebars(display, canvas))  {
+        return;
+    }
+#else
+    UNUSED(canvas);
+#endif
+    osdGridDrawSidebars(display);
+}

@@ -20,4 +20,14 @@ bool displayWidgetsDrawAHI(displayWidgets_t *widgets, unsigned instance, const w
     return widgets->vTable->drawAHI ? widgets->vTable->drawAHI(widgets, instance, data) : false;
 }
 
+bool displayWidgetsConfigureSidebar(displayWidgets_t *widgets, unsigned instance, const widgetSidebarConfiguration_t *config)
+{
+    return widgets->vTable->configureSidebar ? widgets->vTable->configureSidebar(widgets, instance, config) : false;
+}
+
+bool displayWidgetsDrawSidebar(displayWidgets_t *widgets, unsigned instance, int32_t data)
+{
+    return widgets->vTable->drawSidebar ? widgets->vTable->drawSidebar(widgets, instance, data) : false;
+}
+
 #endif

@@ -495,10 +495,51 @@ static bool drawAHI(displayWidgets_t *widgets, unsigned instance, const widgetAH
     return false;
 }
 
+static bool configureSidebar(displayWidgets_t *widgets, unsigned instance, const widgetSidebarConfiguration_t *config)
+{
+    UNUSED(widgets);
+
+    if (frskyOSDSupportsWidgets()) {
+        frskyOSDWidgetID_e id = FRSKY_OSD_WIDGET_ID_SIDEBAR_FIRST + instance;
+        if (id <= FRSKY_OSD_WIDGET_ID_SIDEBAR_LAST) {
+            frskyOSDWidgetSidebarConfig_t cfg = {
+                .rect.origin.x = config->rect.x,
+                .rect.origin.y = config->rect.y,
+                .rect.size.w = config->rect.w,
+                .rect.size.h = config->rect.h,
+                .options = config->options,
+                .divisions = config->divisions,
+                .counts_per_step = config->counts_per_step,
+                .unit = config->unit,
+            };
+            return frskyOSDSetWidgetConfig(id, &cfg, sizeof(cfg));
+        }
+    }
+    return false;
+}
+
+static bool drawSidebar(displayWidgets_t *widgets, unsigned instance, int32_t data)
+{
+    UNUSED(widgets);
+
+    if (frskyOSDSupportsWidgets()) {
+        frskyOSDWidgetID_e id = FRSKY_OSD_WIDGET_ID_SIDEBAR_FIRST + instance;
+        if (id <= FRSKY_OSD_WIDGET_ID_SIDEBAR_LAST) {
+            frskyOSDWidgetSidebarData_t sidebarData = {
+                .value = data,
+            };
+            return frskyOSDDrawWidget(id, &sidebarData, sizeof(sidebarData));
+        }
+    }
+    return false;
+}
+
 static const displayWidgetsVTable_t frskyOSDWidgetsVTable = {
     .supportedInstances = supportedInstances,
     .configureAHI = configureAHI,
     .drawAHI = drawAHI,
+    .configureSidebar = configureSidebar,
+    .drawSidebar = drawSidebar,
 };
 
 static bool getWidgets(displayWidgets_t *widgets, const displayCanvas_t *displayCanvas)
