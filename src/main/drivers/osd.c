@@ -23,8 +23,11 @@
  *
  */
 
+#include "platform.h"
+
 #include "drivers/display_canvas.h"
 #include "drivers/osd.h"
+#include "drivers/osd_symbols.h"
 
 uint16_t osdCharacterGridBuffer[OSD_CHARACTER_GRID_BUFFER_SIZE] ALIGNED(4);
 
@@ -32,8 +35,9 @@ void osdCharacterGridBufferClear(void)
 {
     uint32_t *ptr = (uint32_t *)osdCharacterGridBuffer;
     uint32_t *end = (uint32_t *)(ARRAYEND(osdCharacterGridBuffer));
+    uint32_t blank32 = SYM_BLANK << 24 | SYM_BLANK << 16 | SYM_BLANK << 8 | SYM_BLANK;
     for (; ptr < end; ptr++) {
-        *ptr = 0;
+        *ptr = blank32;
     }
 }
 
@@ -74,7 +78,7 @@ void osdGridBufferClearGridRect(int x, int y, int w, int h)
     int maxY = y + h;
     for (int ii = x; ii <= maxX; ii++) {
         for (int jj = y; jj <= maxY; jj++) {
-            *osdCharacterGridBufferGetEntryPtr(ii, jj) = 0;
+            *osdCharacterGridBufferGetEntryPtr(ii, jj) = SYM_BLANK;
         }
     }
 }

@@ -75,8 +75,9 @@ typedef struct osdUnit_t
 
 extern uint16_t osdCharacterGridBuffer[OSD_CHARACTER_GRID_BUFFER_SIZE] ALIGNED(4);
 
-// Sets all buffer entries to 0
+// Sets all buffer entries to SYM_BLANK
 void osdCharacterGridBufferClear(void);
 void osdGridBufferClearGridRect(int x, int y, int w, int h);
 void osdGridBufferClearPixelRect(displayCanvas_t *canvas, int x, int y, int w, int h);
+
 uint16_t *osdCharacterGridBufferGetEntryPtr(unsigned x, unsigned y);
