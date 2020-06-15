@@ -811,27 +811,19 @@ static void cliSerial(char *cmdline)
 
         switch (i) {
         case 0:
-            if (baudRateIndex < BAUD_1200 || baudRateIndex > BAUD_2470000) {
-                continue;
-            }
+            baudRateIndex = constrain(baudRateIndex, BAUD_MIN, BAUD_MAX);
             portConfig.msp_baudrateIndex = baudRateIndex;
             break;
         case 1:
-            if (baudRateIndex < BAUD_9600 || baudRateIndex > BAUD_115200) {
-                continue;
-            }
+            baudRateIndex = constrain(baudRateIndex, BAUD_MIN, BAUD_MAX);
             portConfig.gps_baudrateIndex = baudRateIndex;
             break;
         case 2:
-            if (baudRateIndex != BAUD_AUTO && baudRateIndex > BAUD_115200) {
-                continue;
-            }
+            baudRateIndex = constrain(baudRateIndex, BAUD_MIN, BAUD_MAX);
             portConfig.telemetry_baudrateIndex = baudRateIndex;
             break;
         case 3:
-            if (baudRateIndex < BAUD_19200 || baudRateIndex > BAUD_250000) {
-                continue;
-            }
+            baudRateIndex = constrain(baudRateIndex, BAUD_MIN, BAUD_MAX);
             portConfig.peripheral_baudrateIndex = baudRateIndex;
             break;
         }
