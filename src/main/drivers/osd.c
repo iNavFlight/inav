@@ -25,6 +25,8 @@
 
 #include "platform.h"
 
+#if defined(USE_OSD)
+
 #include "drivers/display_canvas.h"
 #include "drivers/osd.h"
 #include "drivers/osd_symbols.h"
@@ -106,3 +108,5 @@ uint16_t *osdCharacterGridBufferGetEntryPtr(unsigned x, unsigned y)
     unsigned pos = y * OSD_CHARACTER_GRID_MAX_WIDTH + x;
     return &osdCharacterGridBuffer[pos];
 }
+
+#endif
