@@ -18,8 +18,8 @@
 #include "io/frsky_osd.h"
 #include "io/serial.h"
 
-#define FRSKY_OSD_BAUDRATE 115200
-#define FRSKY_OSD_SUPPORTED_API_VERSION 1
+#define FRSKY_OSD_DEFAULT_BAUDRATE_INDEX BAUD_115200
+#define FRSKY_OSD_SUPPORTED_API_VERSION 2
 
 #define FRSKY_OSD_PREAMBLE_BYTE_0 '$'
 #define FRSKY_OSD_PREAMBLE_BYTE_1 'A'
@@ -40,7 +40,8 @@
 
 #define FRSKY_OSD_CMD_RESPONSE_ERROR 0
 
-#define FRSKY_OSD_INFO_INTERVAL_MS 1000
+#define FRSKY_OSD_INFO_INTERVAL_MS 100
+#define FRSKY_OSD_INFO_READY_INTERVAL_MS 5000
 
 #define FRSKY_OSD_TRACE(fmt, ...)
 #define FRSKY_OSD_DEBUG(fmt, ...) LOG_D(OSD, "FrSky OSD: " fmt,  ##__VA_ARGS__)
@@ -120,6 +121,8 @@ typedef enum
     OSD_CMD_WIDGET_SET_CONFIG = 115,                                // API2
     OSD_CMD_WIDGET_DRAW = 116,                                      // API2
     OSD_CMD_WIDGET_ERASE = 117,                                     // API2
+
+    OSD_CMD_SET_DATA_RATE = 122,
 } osdCommand_e;
 
 typedef enum {
@@ -170,10 +173,12 @@ typedef struct frskyOSDDrawGridStrHeaderCmd_s {
 } __attribute__((packed)) frskyOSDDrawGridStrHeaderCmd_t;
 
 typedef struct frskyOSDDrawGridStrV2HeaderCmd_s {
-    unsigned gx : 5;    // +5 = 5
-    unsigned gy : 4;    // +4 = 9
-    unsigned opts : 7;  // +7 = 16 = 2 bytes
-    // uvarint with size and blob folow
+    unsigned gx : 5;   // +5 = 5
+    unsigned gy : 4;   // +4 = 9
+    unsigned opts : 3; // +3 = 12
+    unsigned size : 4; // +4 = 16 = 2 bytes
+    // if size == 0, uvarint with size follows
+    // blob with the given size follows
     // string IS NOT null terminated
 } __attribute__((packed)) frskyOSDDrawGridStrV2HeaderCmd_t;
 
@@ -217,8 +222,9 @@ typedef struct frskyOSDDrawGridChrV2Cmd_s
     unsigned gx : 5;        // +5 = 5
     unsigned gy : 4;        // +4 = 9
     unsigned chr : 9;       // +9 = 18
-    unsigned opts : 4;      // +4 = 22 from osd_bitmap_opt_t
-    unsigned reserved : 2;  // +2 = 24 = 3 bytes
+    unsigned opts : 3;      // +3 = 21, from osd_bitmap_opt_t
+    unsigned as_mask : 1;   // +1 = 22
+    unsigned color : 2;     // +2 = 24 = 3 bytes, only used when drawn as as_mask = 1
 } __attribute__((packed)) frskyOSDDrawGridChrV2Cmd_t;
 
 typedef struct frskyOSDError_s {
@@ -258,12 +264,16 @@ typedef struct frskyOSDState_s {
         osdCharacter_t *chr;
     } recvOsdCharacter;
     serialPort_t *port;
+    baudRate_e baudrate;
+    bool keepBaudrate;
     bool initialized;
     frskyOSDError_t error;
     timeMs_t nextInfoRequest;
 } frskyOSDState_t;
 
 static frskyOSDState_t state;
+
+static bool frskyOSDDispatchResponse(void);
 
 static uint8_t frskyOSDChecksum(uint8_t crc, uint8_t c)
 {
@@ -314,7 +324,7 @@ static void frskyOSDSendCommand(uint8_t cmd, const void *payload, size_t size)
     }
 }
 
-static void frskyOSDStateReset(serialPort_t *port)
+static void frskyOSDStateReset(serialPort_t *port, baudRate_e baudrate)
 {
     frskyOSDResetReceiveBuffer();
     frskyOSDResetSendBuffer();
@@ -324,6 +334,8 @@ static void frskyOSDStateReset(serialPort_t *port)
     state.info.viewport.height = 0;
 
     state.port = port;
+    state.baudrate = baudrate;
+    state.keepBaudrate = false;
     state.initialized = false;
 }
 
@@ -389,6 +401,42 @@ static bool frskyOSDIsResponseAvailable(void)
     return state.recvBuffer.state == RECV_STATE_DONE;
 }
 
+static void frskyOSDClearReceiveBuffer(void)
+{
+    frskyOSDUpdateReceiveBuffer();
+
+    if (frskyOSDIsResponseAvailable()) {
+        frskyOSDDispatchResponse();
+    } else if (state.recvBuffer.pos > 0) {
+        FRSKY_OSD_DEBUG("Discarding receive buffer with %u bytes", state.recvBuffer.pos);
+        frskyOSDResetReceiveBuffer();
+    }
+}
+
+static void frskyOSDSendAsyncCommand(uint8_t cmd, const void *data, size_t size)
+{
+    FRSKY_OSD_TRACE("Send async cmd %u", cmd);
+    frskyOSDSendCommand(cmd, data, size);
+}
+
+static bool frskyOSDSendSyncCommand(uint8_t cmd, const void *data, size_t size, timeMs_t timeout)
+{
+    FRSKY_OSD_TRACE("Send sync cmd %u", cmd);
+    frskyOSDClearReceiveBuffer();
+    frskyOSDSendCommand(cmd, data, size);
+    frskyOSDFlushSendBuffer();
+    timeMs_t end = millis() + timeout;
+    while (millis() < end) {
+        frskyOSDUpdateReceiveBuffer();
+        if (frskyOSDIsResponseAvailable() && frskyOSDDispatchResponse()) {
+            FRSKY_OSD_TRACE("Got sync response");
+            return true;
+        }
+    }
+    FRSKY_OSD_DEBUG("Sync response failed");
+    return false;
+}
+
 static bool frskyOSDHandleCommand(osdCommand_e cmd, const void *payload, size_t size)
 {
     const uint8_t *ptr = payload;
@@ -417,6 +465,21 @@ static bool frskyOSDHandleCommand(osdCommand_e cmd, const void *payload, size_t 
                 FRSKY_OSD_ERROR("invalid magic number %x %x %x, expecting AGH",
                     resp->magic[0], resp->magic[1], resp->magic[2]);
                 return false;
+            }
+            FRSKY_OSD_TRACE("received OSD_CMD_INFO at %u", (unsigned)baudRates[state.baudrate]);
+            if (!state.keepBaudrate) {
+                const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_FRSKY_OSD);
+                if (portConfig && portConfig->peripheral_baudrateIndex > FRSKY_OSD_DEFAULT_BAUDRATE_INDEX &&
+                    portConfig->peripheral_baudrateIndex != state.baudrate) {
+
+                    // Try switching baudrates
+                    uint32_t portBaudrate = baudRates[portConfig->peripheral_baudrateIndex];
+                    FRSKY_OSD_TRACE("requesting baudrate switch from %u to %u",
+                        (unsigned)baudRates[state.baudrate], (unsigned)portBaudrate);
+                    frskyOSDSendAsyncCommand(OSD_CMD_SET_DATA_RATE, &portBaudrate, sizeof(portBaudrate));
+                    frskyOSDFlushSendBuffer();
+                    return true;
+                }
             }
             state.info.major = resp->versionMajor;
             state.info.minor = resp->versionMinor;
@@ -460,6 +523,35 @@ static bool frskyOSDHandleCommand(osdCommand_e cmd, const void *payload, size_t 
         {
             return true;
         }
+        case OSD_CMD_SET_DATA_RATE:
+        {
+            if (size < sizeof(uint32_t)) {
+                break;
+            }
+            const uint32_t *newBaudrate = payload;
+            if (*newBaudrate && *newBaudrate != baudRates[state.baudrate]) {
+                FRSKY_OSD_TRACE("changed baudrate from %u to %u", (unsigned)baudRates[state.baudrate],
+                                (unsigned)*newBaudrate);
+                serialSetBaudRate(state.port, *newBaudrate);
+                // OSD might have returned a different baudrate from our
+                // predefined ones. Be ready to handle that
+                state.baudrate = 0;
+                for (baudRate_e ii = 0; ii <= BAUD_MAX; ii++) {
+                    if (baudRates[ii] == *newBaudrate) {
+                        state.baudrate = ii;
+                        break;
+                    }
+                }
+            } else {
+                FRSKY_OSD_TRACE("baudrate refused, returned %u", (unsigned)*newBaudrate);
+            }
+            // Make sure we request OSD_CMD_INFO again as soon
+            // as possible and don't try to change the baudrate
+            // anymore.
+            state.nextInfoRequest = 0;
+            state.keepBaudrate = true;
+            return true;
+        }
         default:
             break;
     }
@@ -487,42 +579,6 @@ static bool frskyOSDDispatchResponse(void)
     return ok;
 }
 
-static void frskyOSDClearReceiveBuffer(void)
-{
-    frskyOSDUpdateReceiveBuffer();
-
-    if (frskyOSDIsResponseAvailable()) {
-        frskyOSDDispatchResponse();
-    } else if (state.recvBuffer.pos > 0) {
-        FRSKY_OSD_DEBUG("Discarding receive buffer with %u bytes", state.recvBuffer.pos);
-        frskyOSDResetReceiveBuffer();
-    }
-}
-
-static void frskyOSDSendAsyncCommand(uint8_t cmd, const void *data, size_t size)
-{
-    FRSKY_OSD_TRACE("Send async cmd %u", cmd);
-    frskyOSDSendCommand(cmd, data, size);
-}
-
-static bool frskyOSDSendSyncCommand(uint8_t cmd, const void *data, size_t size, timeMs_t timeout)
-{
-    FRSKY_OSD_TRACE("Send sync cmd %u", cmd);
-    frskyOSDClearReceiveBuffer();
-    frskyOSDSendCommand(cmd, data, size);
-    frskyOSDFlushSendBuffer();
-    timeMs_t end = millis() + timeout;
-    while (millis() < end) {
-        frskyOSDUpdateReceiveBuffer();
-        if (frskyOSDIsResponseAvailable() && frskyOSDDispatchResponse()) {
-            FRSKY_OSD_DEBUG("Got sync response");
-            return true;
-        }
-    }
-    FRSKY_OSD_DEBUG("Sync response failed");
-    return false;
-}
-
 static bool frskyOSDShouldRequestInfo(void)
 {
     return !frskyOSDIsReady() || millis() > state.nextInfoRequest;
@@ -532,11 +588,50 @@ static void frskyOSDRequestInfo(void)
 {
     timeMs_t now = millis();
     if (state.info.nextRequest < now) {
+        timeMs_t interval;
+        if (frskyOSDIsReady()) {
+            // We already contacted the OSD, so we're just
+            // polling it to see if the video changed.
+            interval = FRSKY_OSD_INFO_READY_INTERVAL_MS;
+        } else {
+            // We haven't yet heard from the OSD. If this is not
+            // the first request, switch to the next baudrate.
+            if (state.info.nextRequest > 0 && !state.keepBaudrate) {
+                if (state.baudrate == BAUD_MAX) {
+                    state.baudrate = FRSKY_OSD_DEFAULT_BAUDRATE_INDEX;
+                } else {
+                    state.baudrate++;
+                }
+                serialSetBaudRate(state.port, baudRates[state.baudrate]);
+            }
+            interval = FRSKY_OSD_INFO_INTERVAL_MS;
+        }
+        state.info.nextRequest = now + interval;
+
         uint8_t version = FRSKY_OSD_SUPPORTED_API_VERSION;
+        FRSKY_OSD_TRACE("request OSD_CMD_INFO at %u", (unsigned)baudRates[state.baudrate]);
         frskyOSDSendAsyncCommand(OSD_CMD_INFO, &version, sizeof(version));
         frskyOSDFlushSendBuffer();
-        state.info.nextRequest = now + FRSKY_OSD_INFO_INTERVAL_MS;
     }
+}
+
+static bool frskyOSDOpenPort(baudRate_e baudrate)
+{
+    const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_FRSKY_OSD);
+    if (portConfig) {
+        FRSKY_OSD_TRACE("configured, trying to connect...");
+        portOptions_t portOptions = SERIAL_STOPBITS_1 | SERIAL_PARITY_NO;
+        serialPort_t *port = openSerialPort(portConfig->identifier,
+            FUNCTION_FRSKY_OSD, NULL, NULL, baudRates[baudrate],
+            MODE_RXTX, portOptions);
+
+        if (port) {
+            frskyOSDStateReset(port, baudrate);
+            frskyOSDRequestInfo();
+            return true;
+        }
+    }
+    return false;
 }
 
 static uint8_t frskyOSDEncodeAttr(textAttributes_t attr)
@@ -554,23 +649,8 @@ static uint8_t frskyOSDEncodeAttr(textAttributes_t attr)
 bool frskyOSDInit(videoSystem_e videoSystem)
 {
     UNUSED(videoSystem);
-    // TODO: Use videoSystem to set the signal standard when
-    // no input is detected.
-    const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_FRSKY_OSD);
-    if (portConfig) {
-        FRSKY_OSD_TRACE("configured, trying to connect...");
-        portOptions_t portOptions = 0;
-        serialPort_t *port = openSerialPort(portConfig->identifier,
-            FUNCTION_FRSKY_OSD, NULL, NULL, FRSKY_OSD_BAUDRATE,
-            MODE_RXTX, portOptions);
 
-        if (port) {
-            frskyOSDStateReset(port);
-            frskyOSDRequestInfo();
-            return true;
-        }
-    }
-    return false;
+    return frskyOSDOpenPort(FRSKY_OSD_DEFAULT_BAUDRATE_INDEX);
 }
 
 bool frskyOSDIsReady(void)
@@ -704,15 +784,30 @@ unsigned frskyOSDGetPixelHeight(void)
     return state.info.viewport.height;
 }
 
-static void frskyOSDSendAsyncBlobCommand(uint8_t cmd, const void *header, size_t headerSize, const void *blob, size_t blobSize)
+static void frskyOSDSendAsyncBlobCommand(uint8_t cmd, const void *header, size_t headerSize, const void *blob, size_t blobSize, bool explicitBlobSize)
 {
     uint8_t payload[128];
 
     memcpy(payload, header, headerSize);
 
-    int uvarintSize = uvarintEncode(blobSize, &payload[headerSize], sizeof(payload) - headerSize);
+    int uvarintSize;
+    if (explicitBlobSize) {
+        uvarintSize = uvarintEncode(blobSize, &payload[headerSize], sizeof(payload) - headerSize);
+    } else {
+        uvarintSize = 0;
+    }
     memcpy(&payload[headerSize + uvarintSize], blob, blobSize);
     frskyOSDSendAsyncCommand(cmd, payload,  headerSize + uvarintSize + blobSize);
+}
+
+static void frskyOSDSendAsyncBlobWithExplicitSizeCommand(uint8_t cmd, const void *header, size_t headerSize, const void *blob, size_t blobSize)
+{
+    frskyOSDSendAsyncBlobCommand(cmd, header, headerSize, blob, blobSize, true);
+}
+
+static void frskyOSDSendAsyncBlobWithoutExplicitSizeCommand(uint8_t cmd, const void *header, size_t headerSize, const void *blob, size_t blobSize)
+{
+    frskyOSDSendAsyncBlobCommand(cmd, header, headerSize, blob, blobSize, false);
 }
 
 static void frskyOSDSendCharInGrid_V1(unsigned x, unsigned y, uint16_t chr, textAttributes_t attr)
@@ -754,7 +849,7 @@ static void frskyOSDSendCharSendStringInGrid_V1(unsigned x, unsigned y, const ch
         .gy = y,
         .opts = frskyOSDEncodeAttr(attr),
     };
-    frskyOSDSendAsyncBlobCommand(OSD_CMD_DRAW_GRID_STR, &cmd, sizeof(cmd), buff, strlen(buff) + 1);
+    frskyOSDSendAsyncBlobWithExplicitSizeCommand(OSD_CMD_DRAW_GRID_STR, &cmd, sizeof(cmd), buff, strlen(buff) + 1);
 }
 
 static void frskyOSDSendCharSendStringInGrid_V2(unsigned x, unsigned y, const char *buff, textAttributes_t attr)
@@ -764,7 +859,13 @@ static void frskyOSDSendCharSendStringInGrid_V2(unsigned x, unsigned y, const ch
         .gy = y,
         .opts = frskyOSDEncodeAttr(attr),
     };
-    frskyOSDSendAsyncBlobCommand(OSD_CMD_DRAW_GRID_STR_2, &cmd, sizeof(cmd), buff, strlen(buff));
+    size_t len = strlen(buff);
+    if (len <= 15) {
+        cmd.size = len;
+        frskyOSDSendAsyncBlobWithoutExplicitSizeCommand(OSD_CMD_DRAW_GRID_STR_2, &cmd, sizeof(cmd), buff, len);
+    } else {
+        frskyOSDSendAsyncBlobWithExplicitSizeCommand(OSD_CMD_DRAW_GRID_STR_2, &cmd, sizeof(cmd), buff, len);
+    }
 }
 
 static void frskyOSDSendCharSendStringInGrid(unsigned x, unsigned y, const char *buff, textAttributes_t attr)
@@ -932,7 +1033,7 @@ void frskyOSDDrawString(int x, int y, const char *s, uint8_t opts)
     cmd.p.y = y;
     cmd.opts = opts;
 
-    frskyOSDSendAsyncBlobCommand(OSD_CMD_DRAWING_DRAW_STRING, &cmd, sizeof(cmd), s, strlen(s) + 1);
+    frskyOSDSendAsyncBlobWithExplicitSizeCommand(OSD_CMD_DRAWING_DRAW_STRING, &cmd, sizeof(cmd), s, strlen(s) + 1);
 }
 
 void frskyOSDDrawStringMask(int x, int y, const char *s, frskyOSDColor_e color, uint8_t opts)
@@ -943,7 +1044,7 @@ void frskyOSDDrawStringMask(int x, int y, const char *s, frskyOSDColor_e color, 
     cmd.opts = opts;
     cmd.maskColor = color;
 
-    frskyOSDSendAsyncBlobCommand(OSD_CMD_DRAWING_DRAW_STRING_MASK, &cmd, sizeof(cmd), s, strlen(s) + 1);
+    frskyOSDSendAsyncBlobWithExplicitSizeCommand(OSD_CMD_DRAWING_DRAW_STRING_MASK, &cmd, sizeof(cmd), s, strlen(s) + 1);
 }
 
 void frskyOSDMoveToPoint(int x, int y)
