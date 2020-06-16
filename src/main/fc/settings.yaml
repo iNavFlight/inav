@@ -2133,6 +2133,10 @@ groups:
         field: pitModeChan
         min: VTX_SETTINGS_MIN_CHANNEL
         max: VTX_SETTINGS_MAX_CHANNEL
+      - name: vtx_max_power_override
+        field: maxPowerOverride
+        min: 0
+        max: 10000
 
   - name: PG_PINIOBOX_CONFIG
     type: pinioBoxConfig_t

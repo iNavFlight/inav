@@ -275,12 +275,6 @@ void init(void)
     // to run after the sensors have been detected.
     mspSerialInit();
 
-#ifdef USE_ESC_SENSOR
-    // DSHOT supports a dedicated wire ESC telemetry. Kick off the ESC-sensor receiver initialization
-    // We may, however, do listen_only, so need to init this anyway
-    escSensorInitialize();
-#endif
-
 #if defined(USE_DJI_HD_OSD)
     // DJI OSD uses a special flavour of MSP (subset of Betaflight 4.1.1 MSP) - process as part of serial task
     djiOsdSerialInit();
@@ -319,6 +313,13 @@ void init(void)
     }
 
     systemState |= SYSTEM_STATE_MOTORS_READY;
+
+#ifdef USE_ESC_SENSOR
+    // DSHOT supports a dedicated wire ESC telemetry. Kick off the ESC-sensor receiver initialization
+    // We may, however, do listen_only, so need to init this anyway
+    // Initialize escSensor after having done it with outputs
+    escSensorInitialize();
+#endif
 
 #ifdef BEEPER
     beeperDevConfig_t beeperDevConfig = {
