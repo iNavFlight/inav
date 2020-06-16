@@ -84,7 +84,7 @@ tables:
       "FLOW", "SBUS", "FPORT", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "ITERM_RELAX",
       "ERPM", "RPM_FILTER", "RPM_FREQ", "NAV_YAW", "DYNAMIC_FILTER", "DYNAMIC_FILTER_FREQUENCY",
-      "IRLOCK"]
+      "IRLOCK", "CD", "KALMAN"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -171,18 +171,11 @@ groups:
       - name: moron_threshold
         field: gyroMovementCalibrationThreshold
         max: 128
-      - name: gyro_notch1_hz
-        field: gyro_soft_notch_hz_1
+      - name: gyro_notch_hz
+        field: gyro_notch_hz
         max: 500
-      - name: gyro_notch1_cutoff
-        field: gyro_soft_notch_cutoff_1
-        min: 1
-        max: 500
-      - name: gyro_notch2_hz
-        field: gyro_soft_notch_hz_2
-        max: 500
-      - name: gyro_notch2_cutoff
-        field: gyro_soft_notch_cutoff_2
+      - name: gyro_notch_cutoff
+        field: gyro_notch_cutoff
         min: 1
         max: 500
       - name: gyro_stage2_lowpass_hz
@@ -210,6 +203,25 @@ groups:
         condition: USE_DYNAMIC_FILTERS
         min: 30
         max: 1000
+      - name: gyro_kalman_enabled
+        condition: USE_GYRO_KALMAN
+        field: kalmanEnabled
+        type: bool
+      - name: gyro_kalman_q
+        field: kalman_q
+        condition: USE_GYRO_KALMAN
+        min: 1
+        max: 16000
+      - name: gyro_kalman_w
+        field: kalman_w
+        condition: USE_GYRO_KALMAN
+        min: 1
+        max: 40
+      - name: gyro_kalman_sharpness
+        field: kalman_sharpness
+        condition: USE_GYRO_KALMAN
+        min: 1
+        max: 16000
       - name: gyro_to_use
         condition: USE_DUAL_GYRO
         min: 0
@@ -976,6 +988,10 @@ groups:
         field: bank_mc.pid[PID_PITCH].D
         min: 0
         max: 200
+      - name: mc_cd_pitch
+        field: bank_mc.pid[PID_PITCH].FF
+        min: 0
+        max: 200
       - name: mc_p_roll
         field: bank_mc.pid[PID_ROLL].P
         min: 0
@@ -988,6 +1004,10 @@ groups:
         field: bank_mc.pid[PID_ROLL].D
         min: 0
         max: 200
+      - name: mc_cd_roll
+        field: bank_mc.pid[PID_ROLL].FF
+        min: 0
+        max: 200
       - name: mc_p_yaw
         field: bank_mc.pid[PID_YAW].P
         min: 0
@@ -998,6 +1018,10 @@ groups:
         max: 200
       - name: mc_d_yaw
         field: bank_mc.pid[PID_YAW].D
+        min: 0
+        max: 200
+      - name: mc_cd_yaw
+        field: bank_mc.pid[PID_YAW].FF
         min: 0
         max: 200
       - name: mc_p_level
@@ -1080,15 +1104,9 @@ groups:
       - name: dterm_lpf2_type
         field: dterm_lpf2_type
         table: filter_type
-      - name: use_dterm_fir_filter
-        field: use_dterm_fir_filter
-        type: bool
       - name: yaw_lpf_hz
         min: 0
         max: 200
-      - name: dterm_setpoint_weight
-        min: 0
-        max: 2
       - name: fw_iterm_throw_limit
         field: fixedWingItermThrowLimit
         min: FW_ITERM_THROW_LIMIT_MIN
@@ -1109,14 +1127,6 @@ groups:
         field: fixedWingItermLimitOnStickPosition
         min: 0
         max: 1
-      - name: dterm_notch_hz
-        field: dterm_soft_notch_hz
-        min: 0
-        max: 500
-      - name: dterm_notch_cutoff
-        field: dterm_soft_notch_cutoff
-        min: 1
-        max: 500
       - name: pidsum_limit
         field: pidSumLimit
         min: PID_SUM_LIMIT_MIN
@@ -1290,6 +1300,10 @@ groups:
       - name: pid_type
         field: pidControllerType
         table: pidTypeTable
+      - name: mc_cd_lpf_hz
+        field: controlDerivativeLpfHz
+        min: 0
+        max: 200
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t
