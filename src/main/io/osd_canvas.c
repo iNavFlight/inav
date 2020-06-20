@@ -592,11 +592,14 @@ static void osdCanvasSidebarGetUnit(osdUnit_t *unit, osd_sidebar_scroll_e scroll
     }
 }
 
-static bool osdCanvasDrawSidebar(uint8_t *configured, displayWidgets_t *widgets,
+static bool osdCanvasDrawSidebar(uint16_t *configured, displayWidgets_t *widgets,
+                                displayCanvas_t *canvas,
                                 int instance, osd_sidebar_scroll_e scroll)
 {
+    STATIC_ASSERT(OSD_SIDEBAR_SCROLL_MAX <= 3, adjust_scroll_shift);
+    STATIC_ASSERT(OSD_UNIT_MAX <= 3, adjust_units_shift);
     // Configuration
-    uint8_t configuration = scroll << 4 | osdConfig()->units;
+    uint16_t configuration = osdConfig()->sidebar_horizontal_offset << 8 | scroll << 6 | osdConfig()->units << 4;
     if (configuration != *configured) {
         int width;
         uint8_t options = osdCanvasSidebarGetOptions(&width, scroll);
@@ -616,11 +619,13 @@ static bool osdCanvasDrawSidebar(uint8_t *configured, displayWidgets_t *widgets,
         osdCanvasSidebarGetUnit(&config.unit, scroll);
         config.counts_per_step = config.unit.scale * 100;
 
+        int center = ex * OSD_CHAR_WIDTH;
+        int horizontalOffset = osdConfig()->sidebar_horizontal_offset;
         if (instance == WIDGET_SIDEBAR_LEFT_INSTANCE) {
-            config.rect.x = ((ex - OSD_AH_SIDEBAR_WIDTH_POS) * OSD_CHAR_WIDTH) - width;
+            config.rect.x = MAX(center - horizontalOffset - width, 0);
             config.options |= DISPLAY_WIDGET_SIDEBAR_OPTION_LEFT;
         } else {
-            config.rect.x = ((ex + OSD_AH_SIDEBAR_WIDTH_POS) * OSD_CHAR_WIDTH);
+            config.rect.x = MIN(center + horizontalOffset, canvas->width - width - 1);
         }
 
         if (!displayWidgetsConfigureSidebar(widgets, instance, &config)) {
@@ -638,8 +643,8 @@ bool osdCanvasDrawSidebars(displayPort_t *display, displayCanvas_t *canvas)
 {
     UNUSED(display);
 
-    static uint8_t leftConfigured = 0xFF;
-    static uint8_t rightConfigured = 0xFF;
+    static uint16_t leftConfigured = UINT16_MAX;
+    static uint16_t rightConfigured = UINT16_MAX;
     static timeMs_t nextRedraw = 0;
 
     timeMs_t now = millis();
@@ -650,10 +655,10 @@ bool osdCanvasDrawSidebars(displayPort_t *display, displayCanvas_t *canvas)
 
     displayWidgets_t widgets;
     if (displayCanvasGetWidgets(&widgets, canvas)) {
-        if (!osdCanvasDrawSidebar(&leftConfigured, &widgets, WIDGET_SIDEBAR_LEFT_INSTANCE, osdConfig()->left_sidebar_scroll)) {
+        if (!osdCanvasDrawSidebar(&leftConfigured, &widgets, canvas, WIDGET_SIDEBAR_LEFT_INSTANCE, osdConfig()->left_sidebar_scroll)) {
             return false;
         }
-        if (!osdCanvasDrawSidebar(&rightConfigured, &widgets, WIDGET_SIDEBAR_RIGHT_INSTANCE, osdConfig()->right_sidebar_scroll)) {
+        if (!osdCanvasDrawSidebar(&rightConfigured, &widgets, canvas, WIDGET_SIDEBAR_RIGHT_INSTANCE, osdConfig()->right_sidebar_scroll)) {
             return false;
         }
         nextRedraw = now + SIDEBAR_REDRAW_INTERVAL_MS;

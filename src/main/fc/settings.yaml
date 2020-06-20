@@ -2861,6 +2861,14 @@ groups:
         description: AHI vertical offset from center (pixel OSD only)
         default_value: 0
 
+      - name: osd_sidebar_horizontal_offset
+        field: sidebar_horizontal_offset
+        min: -128
+        max: 127
+        default_value: 0
+        description: Sidebar horizontal offset from default position. Positive values move the sidebars closer to the edges.
+
+
   - name: PG_SYSTEM_CONFIG
     type: systemConfig_t
     headers: ["fc/config.h"]

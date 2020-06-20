@@ -160,6 +160,8 @@ typedef enum {
     OSD_UNIT_IMPERIAL,
     OSD_UNIT_METRIC,
     OSD_UNIT_UK, // Show speed in mp/h, other values in metric
+
+    OSD_UNIT_MAX = OSD_UNIT_UK,
 } osd_unit_e;
 
 typedef enum {
@@ -182,6 +184,8 @@ typedef enum {
     OSD_SIDEBAR_SCROLL_ALTITUDE,
     OSD_SIDEBAR_SCROLL_GROUND_SPEED,
     OSD_SIDEBAR_SCROLL_HOME_DISTANCE,
+
+    OSD_SIDEBAR_SCROLL_MAX = OSD_SIDEBAR_SCROLL_HOME_DISTANCE,
 } osd_sidebar_scroll_e;
 
 typedef enum {
@@ -259,10 +263,11 @@ typedef struct osdConfig_s {
     bool osd_failsafe_switch_layout;
     uint8_t plus_code_digits; // Number of digits to use in OSD_PLUS_CODE
     uint8_t osd_ahi_style;
-    uint8_t ahi_bordered;           // Only used by the AHI widget
-    uint8_t ahi_width;              // In pixels, only used by the AHI widget
-    uint8_t ahi_height;             // In pixels, only used by the AHI widget
-    int8_t  ahi_vertical_offset;    // Offset from center in pixels. Positive moves the AHI down. Widget only.
+    uint8_t ahi_bordered;               // Only used by the AHI widget
+    uint8_t ahi_width;                  // In pixels, only used by the AHI widget
+    uint8_t ahi_height;                 // In pixels, only used by the AHI widget
+    int8_t  ahi_vertical_offset;        // Offset from center in pixels. Positive moves the AHI down. Widget only.
+    int8_t sidebar_horizontal_offset;   // Horizontal offset from default position. Units are grid slots for grid OSDs, pixels for pixel based OSDs. Positive values move sidebars closer to the edges.
 
 } osdConfig_t;
 
