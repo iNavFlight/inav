@@ -2868,6 +2868,18 @@ groups:
         default_value: 0
         description: Sidebar horizontal offset from default position. Positive values move the sidebars closer to the edges.
 
+      - name: osd_left_sidebar_scroll_step
+        field: left_sidebar_scroll_step
+        max: 255
+        default_value: 0
+        description: How many units each sidebar step represents. 0 means the default value for the scroll type.
+
+      - name: osd_right_sidebar_scroll_step
+        field: right_sidebar_scroll_step
+        max: 255
+        default_value: 0
+        description: Same as left_sidebar_scroll_step, but for the right sidebar
+
 
   - name: PG_SYSTEM_CONFIG
     type: systemConfig_t

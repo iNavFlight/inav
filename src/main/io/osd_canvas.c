@@ -529,7 +529,7 @@ static uint8_t osdCanvasSidebarGetOptions(int *width, osd_sidebar_scroll_e scrol
     return DISPLAY_WIDGET_SIDEBAR_OPTION_STATIC | DISPLAY_WIDGET_SIDEBAR_OPTION_UNLABELED;
 }
 
-static void osdCanvasSidebarGetUnit(osdUnit_t *unit, osd_sidebar_scroll_e scroll)
+static void osdCanvasSidebarGetUnit(osdUnit_t *unit, uint16_t *countsPerStep, osd_sidebar_scroll_e scroll)
 {
     // We always count in 1/100 units, converting to
     // "centifeet" when displaying imperial units
@@ -540,6 +540,7 @@ static void osdCanvasSidebarGetUnit(osdUnit_t *unit, osd_sidebar_scroll_e scroll
             unit->symbol = 0;
             unit->divisor = 0;
             unit->divided_symbol = 0;
+            *countsPerStep = 1;
             break;
         case OSD_SIDEBAR_SCROLL_ALTITUDE:
             switch ((osd_unit_e)osdConfig()->units) {
@@ -547,6 +548,7 @@ static void osdCanvasSidebarGetUnit(osdUnit_t *unit, osd_sidebar_scroll_e scroll
                     unit->symbol = SYM_ALT_FT;
                     unit->divisor = FEET_PER_KILOFEET;
                     unit->divided_symbol = SYM_ALT_KFT;
+                    *countsPerStep = 50;
                     break;
                 case OSD_UNIT_UK:
                     FALLTHROUGH;
@@ -554,6 +556,7 @@ static void osdCanvasSidebarGetUnit(osdUnit_t *unit, osd_sidebar_scroll_e scroll
                     unit->symbol = SYM_ALT_M;
                     unit->divisor = METERS_PER_KILOMETER;
                     unit->divided_symbol = SYM_ALT_KM;
+                    *countsPerStep = 20;
                     break;
             }
             break;
@@ -565,11 +568,13 @@ static void osdCanvasSidebarGetUnit(osdUnit_t *unit, osd_sidebar_scroll_e scroll
                     unit->symbol = SYM_MPH;
                     unit->divisor = 0;
                     unit->divided_symbol = 0;
+                    *countsPerStep = 5;
                     break;
                 case OSD_UNIT_METRIC:
                     unit->symbol = SYM_KMH;
                     unit->divisor = 0;
                     unit->divided_symbol = 0;
+                    *countsPerStep = 10;
                     break;
             }
             break;
@@ -579,6 +584,7 @@ static void osdCanvasSidebarGetUnit(osdUnit_t *unit, osd_sidebar_scroll_e scroll
                     unit->symbol = SYM_FT;
                     unit->divisor = FEET_PER_MILE;
                     unit->divided_symbol = SYM_MI;
+                    *countsPerStep = 300;
                     break;
                 case OSD_UNIT_UK:
                     FALLTHROUGH;
@@ -586,20 +592,22 @@ static void osdCanvasSidebarGetUnit(osdUnit_t *unit, osd_sidebar_scroll_e scroll
                     unit->symbol = SYM_M;
                     unit->divisor = METERS_PER_KILOMETER;
                     unit->divided_symbol = SYM_KM;
+                    *countsPerStep = 100;
                     break;
             }
             break;
     }
 }
 
-static bool osdCanvasDrawSidebar(uint16_t *configured, displayWidgets_t *widgets,
+static bool osdCanvasDrawSidebar(uint32_t *configured, displayWidgets_t *widgets,
                                 displayCanvas_t *canvas,
-                                int instance, osd_sidebar_scroll_e scroll)
+                                int instance,
+                                osd_sidebar_scroll_e scroll, unsigned scrollStep)
 {
     STATIC_ASSERT(OSD_SIDEBAR_SCROLL_MAX <= 3, adjust_scroll_shift);
     STATIC_ASSERT(OSD_UNIT_MAX <= 3, adjust_units_shift);
     // Configuration
-    uint16_t configuration = osdConfig()->sidebar_horizontal_offset << 8 | scroll << 6 | osdConfig()->units << 4;
+    uint32_t configuration = scrollStep << 16 | (unsigned)osdConfig()->sidebar_horizontal_offset << 8 | scroll << 6 | osdConfig()->units << 4;
     if (configuration != *configured) {
         int width;
         uint8_t options = osdCanvasSidebarGetOptions(&width, scroll);
@@ -616,17 +624,22 @@ static bool osdCanvasDrawSidebar(uint16_t *configured, displayWidgets_t *widgets
             .options = options,
             .divisions = OSD_AH_SIDEBAR_HEIGHT_POS * 2,
         };
-        osdCanvasSidebarGetUnit(&config.unit, scroll);
-        config.counts_per_step = config.unit.scale * 100;
+        uint16_t countsPerStep;
+        osdCanvasSidebarGetUnit(&config.unit, &countsPerStep, scroll);
 
         int center = ex * OSD_CHAR_WIDTH;
-        int horizontalOffset = osdConfig()->sidebar_horizontal_offset;
+        int horizontalOffset = OSD_AH_SIDEBAR_WIDTH_POS * OSD_CHAR_WIDTH + osdConfig()->sidebar_horizontal_offset;
         if (instance == WIDGET_SIDEBAR_LEFT_INSTANCE) {
             config.rect.x = MAX(center - horizontalOffset - width, 0);
             config.options |= DISPLAY_WIDGET_SIDEBAR_OPTION_LEFT;
         } else {
             config.rect.x = MIN(center + horizontalOffset, canvas->width - width - 1);
         }
+
+        if (scrollStep > 0) {
+            countsPerStep = scrollStep;
+        }
+        config.counts_per_step = config.unit.scale * countsPerStep;
 
         if (!displayWidgetsConfigureSidebar(widgets, instance, &config)) {
             return false;
@@ -643,8 +656,8 @@ bool osdCanvasDrawSidebars(displayPort_t *display, displayCanvas_t *canvas)
 {
     UNUSED(display);
 
-    static uint16_t leftConfigured = UINT16_MAX;
-    static uint16_t rightConfigured = UINT16_MAX;
+    static uint32_t leftConfigured = UINT32_MAX;
+    static uint32_t rightConfigured = UINT32_MAX;
     static timeMs_t nextRedraw = 0;
 
     timeMs_t now = millis();
@@ -655,10 +668,16 @@ bool osdCanvasDrawSidebars(displayPort_t *display, displayCanvas_t *canvas)
 
     displayWidgets_t widgets;
     if (displayCanvasGetWidgets(&widgets, canvas)) {
-        if (!osdCanvasDrawSidebar(&leftConfigured, &widgets, canvas, WIDGET_SIDEBAR_LEFT_INSTANCE, osdConfig()->left_sidebar_scroll)) {
+        if (!osdCanvasDrawSidebar(&leftConfigured, &widgets, canvas,
+            WIDGET_SIDEBAR_LEFT_INSTANCE,
+            osdConfig()->left_sidebar_scroll,
+            osdConfig()->left_sidebar_scroll_step)) {
             return false;
         }
-        if (!osdCanvasDrawSidebar(&rightConfigured, &widgets, canvas, WIDGET_SIDEBAR_RIGHT_INSTANCE, osdConfig()->right_sidebar_scroll)) {
+        if (!osdCanvasDrawSidebar(&rightConfigured, &widgets, canvas,
+            WIDGET_SIDEBAR_RIGHT_INSTANCE,
+            osdConfig()->right_sidebar_scroll,
+            osdConfig()->right_sidebar_scroll_step)) {
             return false;
         }
         nextRedraw = now + SIDEBAR_REDRAW_INTERVAL_MS;
