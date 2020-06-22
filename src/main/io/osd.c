@@ -1628,7 +1628,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_CROSSHAIRS: // Hud is a sub-element of the crosshair
 
         osdCrosshairPosition(&elemPosX, &elemPosY);
-        osdHudDrawCrosshair(elemPosX, elemPosY);
+        osdHudDrawCrosshair(osdGetDisplayPortCanvas(), elemPosX, elemPosY);
 
         if (osdConfig()->hud_homing && STATE(GPS_FIX) && STATE(GPS_FIX_HOME) && isImuHeadingValid()) {
             osdHudDrawHoming(elemPosX, elemPosY);
