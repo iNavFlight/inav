@@ -276,5 +276,5 @@ void displayCanvasContextPop(displayCanvas_t *displayCanvas)
 
 bool displayCanvasGetWidgets(displayWidgets_t *widgets, const displayCanvas_t *displayCanvas)
 {
-    return displayCanvas->vTable->getWidgets ? displayCanvas->vTable->getWidgets(widgets, displayCanvas) : false;
+    return displayCanvas && displayCanvas->vTable->getWidgets ? displayCanvas->vTable->getWidgets(widgets, displayCanvas) : false;
 }
