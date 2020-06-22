@@ -56,36 +56,19 @@
 
 #include "navigation/navigation.h"
 
-void osdCanvasDrawVarioShape(displayCanvas_t *canvas, unsigned ex, unsigned ey, float zvel, bool erase)
+#define OSD_CANVAS_VARIO_ARROWS_PER_SLOT 2.0f
+
+static void osdCanvasVarioRect(int *y, int *h, displayCanvas_t *canvas, int midY, float zvel)
 {
-    char sym;
-    float ratio = zvel / (OSD_VARIO_CM_S_PER_ARROW * 2);
-    int height = -ratio * canvas->gridElementHeight;
-    int step;
-    int x = ex * canvas->gridElementWidth;
-    int start;
-    int dstart;
-    if (zvel > 0) {
-        sym = SYM_VARIO_UP_2A;
-        start = ceilf(OSD_VARIO_HEIGHT_ROWS / 2.0f);
-        dstart = start - 1;
-        step = -canvas->gridElementHeight;
+    int maxHeight = ceilf(OSD_VARIO_HEIGHT_ROWS /OSD_CANVAS_VARIO_ARROWS_PER_SLOT) * canvas->gridElementHeight;
+    // We use font characters with 2 arrows per slot
+    int height = MIN(fabsf(zvel) / (OSD_VARIO_CM_S_PER_ARROW * OSD_CANVAS_VARIO_ARROWS_PER_SLOT) * canvas->gridElementHeight, maxHeight);
+    if (zvel >= 0) {
+        *y = midY - height;
     } else {
-        sym = SYM_VARIO_DOWN_2A;
-        start = floorf(OSD_VARIO_HEIGHT_ROWS / 2.0f);
-        dstart = start;
-        step = canvas->gridElementHeight;
+        *y = midY;
     }
-    int y = (start + ey) * canvas->gridElementHeight;
-    displayCanvasClipToRect(canvas, x, y, canvas->gridElementWidth, height);
-    int dy = (dstart + ey) * canvas->gridElementHeight;
-    for (int ii = 0, yy = dy; ii < (OSD_VARIO_HEIGHT_ROWS + 1) / 2; ii++, yy += step) {
-        if (erase) {
-            displayCanvasDrawCharacterMask(canvas, x, yy, sym, DISPLAY_CANVAS_COLOR_TRANSPARENT, 0);
-        } else {
-            displayCanvasDrawCharacter(canvas, x, yy, sym, 0);
-        }
-    }
+    *h = height;
 }
 
 void osdCanvasDrawVario(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float zvel)
@@ -94,17 +77,46 @@ void osdCanvasDrawVario(displayPort_t *display, displayCanvas_t *canvas, const o
 
     static float prev = 0;
 
-    if (fabsf(prev - zvel) < (OSD_VARIO_CM_S_PER_ARROW / 20.0f)) {
+    if (fabsf(prev - zvel) < (OSD_VARIO_CM_S_PER_ARROW / (OSD_CANVAS_VARIO_ARROWS_PER_SLOT * 10))) {
         return;
     }
 
-    uint8_t ex;
-    uint8_t ey;
+    // Make sure we clear the grid buffer
+    uint8_t gx;
+    uint8_t gy;
+    osdDrawPointGetGrid(&gx, &gy, display, canvas, p);
+    osdGridBufferClearGridRect(gx, gy, 1, OSD_VARIO_HEIGHT_ROWS);
 
-    osdDrawPointGetGrid(&ex, &ey, display, canvas, p);
+    int midY = gy * canvas->gridElementHeight + (OSD_VARIO_HEIGHT_ROWS * canvas->gridElementHeight) / 2;
+    // Make sure we're aligned with the center-ish of the grid based variant
+    midY -= canvas->gridElementHeight;
 
-    osdCanvasDrawVarioShape(canvas, ex, ey, prev, true);
-    osdCanvasDrawVarioShape(canvas, ex, ey, zvel, false);
+    int x = gx * canvas->gridElementWidth;
+    int w = canvas->gridElementWidth;
+    int y;
+    int h;
+
+    osdCanvasVarioRect(&y, &h, canvas, midY, zvel);
+
+    if (signbit(prev) != signbit(zvel) || fabsf(prev) > fabsf(zvel)) {
+        // New rectangle doesn't overwrite the old one, we need to erase
+        int py;
+        int ph;
+        osdCanvasVarioRect(&py, &ph, canvas, midY, prev);
+        if (ph != h) {
+            displayCanvasClearRect(canvas, x, py, w, ph);
+        }
+    }
+    displayCanvasClipToRect(canvas, x, y, w, h);
+    if (zvel > 0) {
+        for (int yy = midY - canvas->gridElementHeight; yy > midY - h - canvas->gridElementHeight; yy -= canvas->gridElementHeight) {
+            displayCanvasDrawCharacter(canvas, x, yy, SYM_VARIO_UP_2A, DISPLAY_CANVAS_BITMAP_OPT_ERASE_TRANSPARENT);
+        }
+    } else {
+        for (int yy = midY; yy < midY + h; yy += canvas->gridElementHeight) {
+            displayCanvasDrawCharacter(canvas, x, yy, SYM_VARIO_DOWN_2A, DISPLAY_CANVAS_BITMAP_OPT_ERASE_TRANSPARENT);
+        }
+    }
     prev = zvel;
 }
 
