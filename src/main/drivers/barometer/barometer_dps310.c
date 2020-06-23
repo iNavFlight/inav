@@ -126,13 +126,14 @@ static void registerSetBits(busDevice_t * busDev, uint8_t reg, uint8_t setbits)
     }
 }
 
-static int32_t getTwosComplement(int32_t raw, uint8_t length)
+static int32_t getTwosComplement(uint32_t raw, uint8_t length)
 {
     if (raw & ((int)1 << (length - 1))) {
-        raw -= (int)1 << length;
+        return ((int32_t)raw) - ((int32_t)1 << length);
     }
-
-    return raw;
+    else {
+        return raw;
+    }
 }
 
 static bool deviceConfigure(busDevice_t * busDev)
@@ -221,7 +222,7 @@ static bool deviceReadMeasurement(baroDev_t *baro)
     // 3. Read the pressure and temperature result from the registers
     // Read PSR_B2, PSR_B1, PSR_B0, TMP_B2, TMP_B1, TMP_B0
     uint8_t buf[6];
-    if (busReadBuf(baro->busDev, DPS310_REG_PSR_B2, buf, 6)) {
+    if (!busReadBuf(baro->busDev, DPS310_REG_PSR_B2, buf, 6)) {
         return false;
     }
 
@@ -277,7 +278,7 @@ static bool deviceDetect(busDevice_t * busDev)
 
         bool ack = busReadBuf(busDev, DPS310_REG_ID, chipId, 1);
 
-        if (ack && chipId[1] == DPS310_ID_REV_AND_PROD_ID) {
+        if (ack && chipId[0] == DPS310_ID_REV_AND_PROD_ID) {
             return true;
         }
     };
@@ -302,11 +303,13 @@ bool baroDPS310Detect(baroDev_t *baro)
         return false;
     }
 
+    const uint32_t baroDelay = 1000000 / 32 / 2;      // twice the sample rate to capture all new data
+
     baro->ut_delay = 0;
     baro->start_ut = NULL;
     baro->get_ut = NULL;
 
-    baro->up_delay = 1000000 / 32 / 2;      // twice the sample rate to capture all new data
+    baro->up_delay = baroDelay;
     baro->start_up = NULL;
     baro->get_up = deviceReadMeasurement;
 
