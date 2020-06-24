@@ -135,6 +135,12 @@ void globalFunctionsProcess(int8_t functionId) {
                     GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE);
                 }
                 break;
+            case GLOBAL_FUNCTION_ACTION_SET_VTOL_PITCH:
+                if (conditionValue) {
+                    globalFunctionValues[GLOBAL_FUNCTION_ACTION_SET_VTOL_PITCH] =  globalFunctionsStates[functionId].value;
+                    GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_SET_VTOL_PITCH);
+                }
+                break;
         }
     }
 }

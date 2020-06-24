@@ -26,7 +26,7 @@
 #include "config/parameter_group.h"
 #include "common/logic_condition.h"
 
-#define MAX_GLOBAL_FUNCTIONS 8
+#define MAX_GLOBAL_FUNCTIONS 9
 
 typedef enum {
     GLOBAL_FUNCTION_ACTION_OVERRIDE_ARMING_SAFETY = 0,      // 0
@@ -39,6 +39,7 @@ typedef enum {
     GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE,               // 7
     GLOBAL_FUNCTION_ACTION_SET_VTX_BAND,                    // 8
     GLOBAL_FUNCTION_ACTION_SET_VTX_CHANNEL,                 // 9
+    GLOBAL_FUNCTION_ACTION_SET_VTOL_PITCH,                  // 10
     GLOBAL_FUNCTION_ACTION_LAST
 } globalFunctionActions_e;
 
@@ -50,6 +51,7 @@ typedef enum {
     GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_PITCH = (1 << 4),
     GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_YAW = (1 << 5),
     GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE = (1 << 6),
+    GLOBAL_FUNCTION_FLAG_SET_VTOL_PITCH = (1 << 7),
 } globalFunctionFlags_t;
 
 typedef struct globalFunction_s {

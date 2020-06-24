@@ -517,7 +517,10 @@ static float calcHorizonRateMagnitude(void)
 static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float horizonRateMagnitude, float dT)
 {
     // This is ROLL/PITCH, run ANGLE/HORIZON controllers
-    float angleTarget = pidRcCommandToAngle(rcCommand[axis], pidProfile()->max_angle_inclination[axis]);
+    float angleTarget = pidRcCommandToAngle(rcCommand[axis], pidProfile()->max_angle_inclination[axis]) - globalFunctionValues[GLOBAL_FUNCTION_ACTION_SET_VTOL_PITCH];
+    if(axis == FD_PITCH){
+        angleTarget += 90;
+    }
 
     // Automatically pitch down if the throttle is manually controlled and reduced bellow cruise throttle
     if ((axis == FD_PITCH) && STATE(AIRPLANE) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle())
@@ -975,7 +978,11 @@ void FAST_CODE pidController(float dT)
     // Step 3: Run control for ANGLE_MODE, HORIZON_MODE, and HEADING_LOCK
     if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE)) {
         const float horizonRateMagnitude = calcHorizonRateMagnitude();
-        pidLevel(&pidState[FD_ROLL], FD_ROLL, horizonRateMagnitude, dT);
+        if(globalFunctionValues[GLOBAL_FUNCTION_ACTION_SET_VTOL_PITCH] != 0){
+            pidLevel(&pidState[FD_YAW], FD_YAW, horizonRateMagnitude, dT);
+        } else{
+            pidLevel(&pidState[FD_ROLL], FD_ROLL, horizonRateMagnitude, dT);
+        }
         pidLevel(&pidState[FD_PITCH], FD_PITCH, horizonRateMagnitude, dT);
         canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with ANGLE/HORIZON
         levelingEnabled = true;
