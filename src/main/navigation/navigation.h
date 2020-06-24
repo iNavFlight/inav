@@ -136,6 +136,8 @@ typedef struct positionEstimationConfig_s {
 
     float max_eph_epv;  // Max estimated position error acceptable for estimation (cm)
     float baro_epv;     // Baro position error
+
+    uint8_t use_gps_no_baro;
 } positionEstimationConfig_t;
 
 PG_DECLARE(positionEstimationConfig_t, positionEstimationConfig);

@@ -1858,6 +1858,9 @@ groups:
         default_value: "ON"
         field: use_gps_velned
         type: bool
+      - name: inav_use_gps_no_baro
+        field: use_gps_no_baro
+        type: bool
       - name: inav_allow_dead_reckoning
         description: "Defines if inav will dead-reckon over short GPS outages. May also be useful for indoors OPFLOW navigation"
         default_value: "OFF"
