@@ -2137,6 +2137,29 @@ groups:
         field: maxPowerOverride
         min: 0
         max: 10000
+      - name: vtx_auto_power_enabled
+        field: autoPowerEnabled
+        type: bool
+      - name: vtx_auto_power_distance_one
+        field: distance_one
+        type: uint32_t
+        min: 0
+        max: 50000
+      - name: vtx_auto_power_distance_two
+        field: distance_two
+        type: uint32_t
+        min: 0
+        max: 50000
+      - name: vtx_auto_power_distance_three
+        field: distance_three
+        type: uint32_t
+        min: 0
+        max: 50000
+      - name: vtx_auto_power_distance_four
+        field: distance_four
+        type: uint32_t
+        min: 0
+        max: 50000
 
   - name: PG_PINIOBOX_CONFIG
     type: pinioBoxConfig_t

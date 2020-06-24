@@ -27,6 +27,9 @@
 #include "common/time.h"
 
 #include "config/parameter_group.h"
+#include "config/feature.h"
+
+#define DISTANCES_SIZE 3
 
 typedef enum {
     VTX_LOW_POWER_DISARM_OFF = 0,
@@ -41,6 +44,11 @@ typedef struct vtxSettingsConfig_s {
     uint16_t pitModeChan;       // sets out-of-range pitmode frequency
     uint8_t lowPowerDisarm;     // min power while disarmed, from vtxLowerPowerDisarm_e
     uint16_t maxPowerOverride;  // for VTX drivers that are polling VTX capabilities - override what VTX is reporting
+    uint8_t autoPowerEnabled;   // if true, vtx power level change according to the distance
+    uint32_t distance_one;      // max distance for power level 1
+    uint32_t distance_two;      // max distance for power level 2
+    uint32_t distance_three;    // max distance for power level 3
+    uint32_t distance_four;     // max distance for power level 4
 } vtxSettingsConfig_t;
 
 PG_DECLARE(vtxSettingsConfig_t, vtxSettingsConfig);
