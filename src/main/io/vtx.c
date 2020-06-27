@@ -43,8 +43,6 @@
 #include "io/vtx_string.h"
 #include "io/vtx_control.h"
 
-#include "navigation/navigation.h"
-
 PG_REGISTER_WITH_RESET_TEMPLATE(vtxSettingsConfig_t, vtxSettingsConfig, PG_VTX_SETTINGS_CONFIG, 2);
 
 PG_RESET_TEMPLATE(vtxSettingsConfig_t, vtxSettingsConfig,
@@ -54,10 +52,6 @@ PG_RESET_TEMPLATE(vtxSettingsConfig_t, vtxSettingsConfig,
     .pitModeChan = VTX_SETTINGS_DEFAULT_PITMODE_CHANNEL,
     .lowPowerDisarm = VTX_LOW_POWER_DISARM_OFF,
     .maxPowerOverride = 0,
-    .autoPowerEnabled = false,
-    .distance_one = 250,
-    .distance_two = 500,
-    .distance_three = 1000,
 );
 
 typedef enum {
@@ -71,36 +65,6 @@ void vtxInit(void)
 {
 }
 
-static uint8_t getPowerAccordingToDistance(uint32_t distance){
-    /*
-        Range for power level:
-        power   min             max
-        1       0               distance_one
-        2       distance_one    distance_two
-        3       distance_two    distance_three
-        4       distance_three  distance_four
-        5       distance_four
-    */
-
-    if(distance < vtxSettingsConfig()->distance_one){
-        return 1;
-    }
-    else if(distance > vtxSettingsConfig()->distance_one && distance < vtxSettingsConfig()->distance_two){
-        return 2;
-    }
-    else if(distance > vtxSettingsConfig()->distance_two && distance < vtxSettingsConfig()->distance_three){
-        return 3;
-    }
-    else if(distance > vtxSettingsConfig()->distance_three 
-        && (vtxSettingsConfig()->distance_four == 0 || distance < vtxSettingsConfig()->distance_four)){
-        //Some VTX not supports 5 power level, so, if the last distance is setted to 0, the max power level will be 4. 
-        return 4;
-    }
-    else {
-        return 5;
-    }
-}
-
 static vtxSettingsConfig_t * vtxGetRuntimeSettings(void)
 {
     static vtxSettingsConfig_t settings;
@@ -110,11 +74,6 @@ static vtxSettingsConfig_t * vtxGetRuntimeSettings(void)
     settings.power = vtxSettingsConfig()->power;
     settings.pitModeChan = vtxSettingsConfig()->pitModeChan;
     settings.lowPowerDisarm = vtxSettingsConfig()->lowPowerDisarm;
-    settings.autoPowerEnabled = vtxSettingsConfig()->autoPowerEnabled;
-
-    if(feature(FEATURE_GPS) && STATE(GPS_FIX) && vtxSettingsConfig()->autoPowerEnabled){
-        settings.power = getPowerAccordingToDistance(GPS_distanceToHome);
-    }
 
     if (!ARMING_FLAG(ARMED) && !failsafeIsActive() &&
         ((settings.lowPowerDisarm == VTX_LOW_POWER_DISARM_ALWAYS) ||
