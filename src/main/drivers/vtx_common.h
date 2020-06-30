@@ -18,6 +18,7 @@
 /* Created by jflyper */
 
 #include "common/time.h"
+#include "config/parameter_group_ids.h"
 
 #define VTX_SETTINGS_NO_BAND        0 // used for custom frequency selection mode
 #define VTX_SETTINGS_MIN_BAND       1
@@ -46,6 +47,14 @@
 #define VTX_SETTINGS_FREQCMD
 #define VTX_SETTINGS_MAX_POWER          (VTX_SETTINGS_POWER_COUNT - VTX_SETTINGS_MIN_POWER + 1)
 
+#define VTX_DEFAULT_POWER_LEVEL 0
+typedef struct vtxPowerLevels_s
+{
+    int16_t powerTableMw[VTX_SETTINGS_POWER_COUNT];
+    bool usePowerTable;
+} vtxPowerLevels_t;
+
+PG_DECLARE(vtxPowerLevels_t, vtxPowerLevels);
 #endif
 
 // check value for MSP_SET_VTX_CONFIG to determine if value is encoded
@@ -126,6 +135,8 @@ typedef struct vtxVTable_s {
 void vtxCommonInit(void);
 void vtxCommonSetDevice(vtxDevice_t *vtxDevice);
 vtxDevice_t *vtxCommonDevice(void);
+bool vtxCommonHasCustomPowerLevels(void);
+int vtxCommonCustomPowerLevelsCount(void);
 
 // VTable functions
 void vtxCommonProcess(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs);

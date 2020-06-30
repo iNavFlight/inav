@@ -2138,6 +2138,33 @@ groups:
         min: 0
         max: 10000
 
+  - name: PG_VTX_POWER_LEVELS
+    type: vtxPowerLevels_t
+    members:
+      - name: vtx_use_power_table
+        field: usePowerTable
+        type: bool
+      - name: vtx_power_level_one
+        field: powerTableMw[0]
+        min: 0
+        max: 10000
+      - name: vtx_power_level_two
+        field: powerTableMw[1]
+        min: 0
+        max: 10000
+      - name: vtx_power_level_three
+        field: powerTableMw[2]
+        min: 0
+        max: 10000
+      - name: vtx_power_level_four
+        field: powerTableMw[3]
+        min: 0
+        max: 10000
+      - name: vtx_power_level_five
+        field: powerTableMw[4]
+        min: 0
+        max: 10000
+
   - name: PG_PINIOBOX_CONFIG
     type: pinioBoxConfig_t
     headers: ["io/piniobox.h"]

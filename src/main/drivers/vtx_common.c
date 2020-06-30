@@ -25,9 +25,25 @@
 #include "platform.h"
 #include "build/debug.h"
 
+#include "common/typeconversion.h"
+#include "common/log.h"
+
 #include "vtx_common.h"
 
 static vtxDevice_t *commonVtxDevice = NULL;
+
+char powerNames[VTX_SETTINGS_POWER_COUNT][5];
+
+PG_REGISTER_WITH_RESET_TEMPLATE(vtxPowerLevels_t, vtxPowerLevels, PG_VTX_POWER_LEVELS, 2);
+
+PG_RESET_TEMPLATE(vtxPowerLevels_t, vtxPowerLevels,
+    .powerTableMw[0] = VTX_DEFAULT_POWER_LEVEL,
+    .powerTableMw[1] = VTX_DEFAULT_POWER_LEVEL,
+    .powerTableMw[2] = VTX_DEFAULT_POWER_LEVEL,
+    .powerTableMw[3] = VTX_DEFAULT_POWER_LEVEL,
+    .powerTableMw[4] = VTX_DEFAULT_POWER_LEVEL,
+);
+
 
 void vtxCommonInit(void)
 {
@@ -87,6 +103,9 @@ void vtxCommonSetPowerByIndex(vtxDevice_t *vtxDevice, uint8_t index)
     if (!vtxDevice)
         return;
 
+    if(vtxCommonHasCustomPowerLevels() && index > vtxCommonCustomPowerLevelsCount())
+        return;
+    
     if (index > vtxDevice->capability.powerCount)
         return;
 
@@ -135,10 +154,51 @@ bool vtxCommonGetFrequency(const vtxDevice_t *vtxDevice, uint16_t *pFrequency)
     return false;
 }
 
+inline bool vtxCommonHasCustomPowerLevels(void){
+    return vtxPowerLevels()->usePowerTable;
+}
+
+int vtxCommonCustomPowerLevelsCount(void){
+    int ris = 0;
+    for(uint8_t i = 0; i<VTX_SETTINGS_POWER_COUNT; i++)
+        if(vtxPowerLevels()->powerTableMw[i] != VTX_DEFAULT_POWER_LEVEL)
+            ris++;
+        else break;
+
+    return ris;
+}
+
+bool vtxCommonOverridePowerNames(vtxDeviceCapability_t * deviceCapability){
+    if(deviceCapability){
+
+        bool forceEmptyString = false;
+        //Used when in the power table there is a value with VTX_DEFAULT_POWER_LEVEL, so the next values will be an empty string
+        
+        for(uint8_t i = 0; i < VTX_SETTINGS_POWER_COUNT; i++){
+            char buff[5];
+            if(forceEmptyString || vtxPowerLevels()->powerTableMw[i]==VTX_DEFAULT_POWER_LEVEL){
+                strcpy(buff,"");
+                forceEmptyString = true;
+            }
+            else{
+                itoa(vtxPowerLevels()->powerTableMw[i], buff, 10);
+                strcpy(powerNames[i], buff);
+            }
+
+            if(i+1 < deviceCapability->powerCount)
+                deviceCapability->powerNames[i+1] = powerNames[i];          
+        }
+        return true;
+    }
+    return false;
+}
+
 bool vtxCommonGetDeviceCapability(vtxDevice_t *vtxDevice, vtxDeviceCapability_t *pDeviceCapability)
 {
-    if (vtxDevice) {
-        memcpy(pDeviceCapability, &vtxDevice->capability, sizeof(vtxDeviceCapability_t));
+    if (vtxDevice) {  
+        if(vtxCommonHasCustomPowerLevels())
+            vtxCommonOverridePowerNames(&vtxDevice->capability);
+        memcpy(pDeviceCapability, &vtxDevice->capability, sizeof(vtxDeviceCapability_t));      
         return true;
     }
     return false;
@@ -147,7 +207,12 @@ bool vtxCommonGetDeviceCapability(vtxDevice_t *vtxDevice, vtxDeviceCapability_t 
 bool vtxCommonGetPower(const vtxDevice_t *vtxDevice, uint8_t *pIndex, uint16_t *pPowerMw)
 {
     if (vtxDevice && vtxDevice->vTable->getPower) {
-        return vtxDevice->vTable->getPower(vtxDevice, pIndex, pPowerMw);
+        bool returnValue = vtxDevice->vTable->getPower(vtxDevice, pIndex, pPowerMw);
+
+        if(*pIndex < VTX_SETTINGS_POWER_COUNT && vtxCommonHasCustomPowerLevels())
+            *pPowerMw = vtxPowerLevels()->powerTableMw[*pIndex];
+
+        return returnValue;
     }
     return false;
 }
@@ -158,6 +223,10 @@ bool vtxCommonGetOsdInfo(vtxDevice_t *vtxDevice, vtxDeviceOsdInfo_t * pOsdInfo)
 
     if (vtxDevice && vtxDevice->vTable->getOsdInfo) {
         ret = vtxDevice->vTable->getOsdInfo(vtxDevice, pOsdInfo);
+    }
+
+    if(pOsdInfo->powerIndex < VTX_SETTINGS_POWER_COUNT && pOsdInfo->powerIndex > 0 && vtxCommonHasCustomPowerLevels()){
+        pOsdInfo->powerMilliwatt = vtxPowerLevels()->powerTableMw[pOsdInfo->powerIndex - 1];
     }
 
     // Make sure we provide sane results even in case API fails
