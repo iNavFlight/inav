@@ -152,6 +152,7 @@ typedef enum {
     OSD_VTX_POWER,
     OSD_ESC_RPM,
     OSD_ESC_TEMPERATURE,
+    OSD_VTX_POWER_MW,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 

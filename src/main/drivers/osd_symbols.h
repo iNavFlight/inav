@@ -30,8 +30,8 @@
 #define SYM_AH_DECORATION_UP      0x05 // 005 Arrow up AHI
 #define SYM_VOLT                  0x06 // 006 V
 #define SYM_MAH                   0x07 // 007 MAH
+#define SYM_MW                    0x08 // 008 MW
 
-//                                0x08 // 008 -
 //                                0x09 // 009 -
 //                                0x0A // 010 -
 //                                0x0B // 011 -

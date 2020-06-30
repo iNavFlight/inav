@@ -1703,6 +1703,19 @@ static bool osdDrawSingleElement(uint8_t item)
             displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
             return true;
         }
+    
+    case OSD_VTX_POWER_MW:
+        {
+            vtxDeviceOsdInfo_t osdInfo;
+            vtxCommonGetOsdInfo(vtxCommonDevice(), &osdInfo);
+
+            tfp_sprintf(buff, "%4d", osdInfo.powerMilliwatt);
+            buff[4] = SYM_MW;
+            buff[5] = '\0';
+            if (isAdjustmentFunctionSelected(ADJUSTMENT_VTX_POWER_LEVEL)) TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
+            return true;  
+        }      
 
     case OSD_CROSSHAIRS: // Hud is a sub-element of the crosshair
 
