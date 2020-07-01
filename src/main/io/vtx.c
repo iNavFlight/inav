@@ -20,6 +20,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "platform.h"
 
@@ -43,6 +44,9 @@
 #include "io/vtx_string.h"
 #include "io/vtx_control.h"
 
+#include "navigation/navigation.h"
+#include "common/log.h"
+
 PG_REGISTER_WITH_RESET_TEMPLATE(vtxSettingsConfig_t, vtxSettingsConfig, PG_VTX_SETTINGS_CONFIG, 2);
 
 PG_RESET_TEMPLATE(vtxSettingsConfig_t, vtxSettingsConfig,
@@ -52,6 +56,8 @@ PG_RESET_TEMPLATE(vtxSettingsConfig_t, vtxSettingsConfig,
     .pitModeChan = VTX_SETTINGS_DEFAULT_PITMODE_CHANNEL,
     .lowPowerDisarm = VTX_LOW_POWER_DISARM_OFF,
     .maxPowerOverride = 0,
+    .useAutoPowerLevel = false,
+    .maxDistanceReachableAt25 = 130,
 );
 
 typedef enum {
@@ -60,6 +66,65 @@ typedef enum {
     VTX_PARAM_PITMODE,
     VTX_PARAM_COUNT
 } vtxScheduleParams_e;
+
+vtxAutoPowerState_t autoPowerState = {
+    .validUntill = 0,
+    .validFrom = 0
+};
+
+int vtxAutoPowerValidaUntill(int maxDistanceReachableAt25, uint16_t currentPowerMw){
+    const float sqrt2 = sqrt(2.0);
+    const float exp = log2(((float)currentPowerMw)/25.0);
+    return maxDistanceReachableAt25 * pow(sqrt2,exp);
+}
+
+int vtxAutoGetPower(vtxDevice_t *vtxDevice){
+
+    if(feature(FEATURE_GPS) && STATE(GPS_FIX) 
+    && vtxSettingsConfig()->useAutoPowerLevel) {
+        
+        uint8_t powerLevel;
+        char * error;
+        vtxCommonGetPowerIndex(vtxDevice,&powerLevel);
+
+        if(powerLevel > vtxDevice->capability.powerCount)
+            return vtxDevice->powerIndex;
+
+        if(powerLevel < vtxDevice->capability.powerCount && GPS_distanceToHome > autoPowerState.validUntill)
+            powerLevel++;
+        else if (powerLevel > 1 && GPS_distanceToHome < autoPowerState.validFrom)
+            powerLevel--;
+
+        //Update validFrom
+        if(powerLevel <= 1){
+                autoPowerState.validFrom = 0;
+        }
+        else {
+            char * prevPowerLevel = vtxDevice->capability.powerNames[powerLevel - 1];
+            uint16_t num = (uint16_t)strtol(prevPowerLevel, &error, 10);
+            if(*error!='\0'){
+                return vtxDevice->powerIndex;
+            }
+            autoPowerState.validFrom = vtxAutoPowerValidaUntill(vtxSettingsConfig()->maxDistanceReachableAt25,num);
+        }
+
+        //Update validUntill
+        if(powerLevel == vtxDevice->capability.powerCount)
+            autoPowerState.validUntill = UINT32_MAX;
+         else 
+        {
+            char * currentPowerLevel = vtxDevice->capability.powerNames[powerLevel];            
+            uint16_t num = (uint16_t)strtol(currentPowerLevel, &error, 10);
+            if(*error!='\0') {
+                return vtxDevice->powerIndex;
+            }
+            autoPowerState.validUntill = vtxAutoPowerValidaUntill(vtxSettingsConfig()->maxDistanceReachableAt25,num);  
+        } 
+
+        return powerLevel;
+    }
+    return vtxDevice->powerIndex;
+}
 
 void vtxInit(void)
 {
@@ -71,9 +136,13 @@ static vtxSettingsConfig_t * vtxGetRuntimeSettings(void)
 
     settings.band = vtxSettingsConfig()->band;
     settings.channel = vtxSettingsConfig()->channel;
-    settings.power = vtxSettingsConfig()->power;
     settings.pitModeChan = vtxSettingsConfig()->pitModeChan;
     settings.lowPowerDisarm = vtxSettingsConfig()->lowPowerDisarm;
+
+    if(vtxSettingsConfig()->useAutoPowerLevel)
+        settings.power = vtxAutoGetPower(vtxCommonDevice());
+    else 
+        settings.power = vtxSettingsConfig()->power;
 
     if (!ARMING_FLAG(ARMED) && !failsafeIsActive() &&
         ((settings.lowPowerDisarm == VTX_LOW_POWER_DISARM_ALWAYS) ||

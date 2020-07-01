@@ -2137,6 +2137,13 @@ groups:
         field: maxPowerOverride
         min: 0
         max: 10000
+      - name: vtx_auto_power
+        field: useAutoPowerLevel
+        type: bool
+      - name: vtx_auto_max_distance_25
+        field: maxDistanceReachableAt25
+        min: 0
+        max: 10000
 
   - name: PG_VTX_POWER_LEVELS
     type: vtxPowerLevels_t
