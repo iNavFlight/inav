@@ -19,8 +19,6 @@
 
 #define TARGET_BOARD_IDENTIFIER "OMNI" // https://en.wikipedia.org/wiki/Omnibus
 
-#define CONFIG_FASTLOOP_PREFERRED_ACC ACC_NONE
-
 #define BEEPER                  PC15
 #define BEEPER_INVERTED
 
@@ -32,19 +30,17 @@
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PA7
 
+#undef USE_VTX_SMARTAUDIO       // Disabled due to flash size
+
 #define USE_EXTI
 
-#define USE_GYRO
-#define USE_GYRO_MPU6000
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW90_DEG
 #define MPU6000_SPI_BUS         BUS_SPI1
 #define MPU6000_CS_PIN          PA4
 #define GYRO_INT_EXTI            PC13
 #define USE_MPU_DATA_READY_SIGNAL
-#define GYRO_MPU6000_ALIGN      CW90_DEG
 
-#define USE_ACC
-#define USE_ACC_MPU6000
-#define ACC_MPU6000_ALIGN       CW90_DEG
 
 #define USE_BARO
 #define USE_BARO_BMP280
@@ -87,7 +83,6 @@
 #define USE_I2C_DEVICE_1 // PB6/SCL(PWM8), PB7/SDA(PWM7)
 #define USE_I2C_PULLUP
 
-#define USE_PITOT_MS4525
 #define PITOT_I2C_BUS           BUS_I2C1
 
 #define USE_SPI
@@ -103,20 +98,11 @@
 #define RX_NSS_PIN PB3
 
 #define USE_SDCARD
-#define USE_SDCARD_SPI2
-
+#define USE_SDCARD_SPI
 #define SDCARD_DETECT_INVERTED
-
-#define SDCARD_DETECT_PIN                   PC14
-#define SDCARD_SPI_INSTANCE                 SPI2
-#define SDCARD_SPI_CS_PIN                   SPI2_NSS_PIN
-
-// Note, this is the same DMA channel as UART1_RX. Luckily we don't use DMA for USART Rx.
-#define SDCARD_DMA_CHANNEL_TX               DMA1_Channel5
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA1_FLAG_TC5
-
-// Performance logging for SD card operations:
-// #define AFATFS_USE_INTROSPECTIVE_LOGGING
+#define SDCARD_DETECT_PIN       PC14
+#define SDCARD_SPI_BUS          BUS_SPI2
+#define SDCARD_CS_PIN           SPI2_NSS_PIN
 
 #define USE_OSD
 #define USE_MAX7456
@@ -136,8 +122,6 @@
 
 #define USE_LED_STRIP
 #define WS2811_PIN                      PA8
-#define WS2811_DMA_STREAM               DMA1_Channel2
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH2_HANDLER
 
 //#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 

@@ -50,14 +50,16 @@ extern navigationPosEstimator_t posEstimator;
  */
 void updatePositionEstimator_SurfaceTopic(timeUs_t currentTimeUs, float newSurfaceAlt)
 {
-    const float dt = US2S(currentTimeUs - posEstimator.surface.lastUpdateTime);
+    const float surfaceDtUs = currentTimeUs - posEstimator.surface.lastUpdateTime;
     float newReliabilityMeasurement = 0;
+    bool surfaceMeasurementWithinRange = false;
 
     posEstimator.surface.lastUpdateTime = currentTimeUs;
 
     if (newSurfaceAlt >= 0) {
         if (newSurfaceAlt <= positionEstimationConfig()->max_surface_altitude) {
             newReliabilityMeasurement = 1.0f;
+            surfaceMeasurementWithinRange = true;
             posEstimator.surface.alt = newSurfaceAlt;
         }
         else {
@@ -70,12 +72,18 @@ void updatePositionEstimator_SurfaceTopic(timeUs_t currentTimeUs, float newSurfa
     }
 
     /* Reliability is a measure of confidence of rangefinder measurement. It's increased with each valid sample and decreased with each invalid sample */
-    if (dt > 0.5f) {
+    if (surfaceDtUs > MS2US(INAV_SURFACE_TIMEOUT_MS)) {
         posEstimator.surface.reliability = 0.0f;
     }
     else {
-        const float relAlpha = dt / (dt + RANGEFINDER_RELIABILITY_RC_CONSTANT);
+        const float surfaceDt = US2S(surfaceDtUs);
+        const float relAlpha = surfaceDt / (surfaceDt + RANGEFINDER_RELIABILITY_RC_CONSTANT);
         posEstimator.surface.reliability = posEstimator.surface.reliability * (1.0f - relAlpha) + newReliabilityMeasurement * relAlpha;
+
+        // Update average sonar altitude if range is good
+        if (surfaceMeasurementWithinRange) {
+            pt1FilterApply3(&posEstimator.surface.avgFilter, newSurfaceAlt, surfaceDt);
+        }
     }
 }
 #endif
@@ -128,7 +136,8 @@ void estimationCalculateAGL(estimationContext_t * ctx)
         posEstimator.est.aglQual = newAglQuality;
 
         if (resetSurfaceEstimate) {
-            posEstimator.est.aglAlt = posEstimator.surface.alt;
+            posEstimator.est.aglAlt = pt1FilterGetLastOutput(&posEstimator.surface.avgFilter);
+            // If we have acceptable average estimate
             if (posEstimator.est.epv < positionEstimationConfig()->max_eph_epv) {
                 posEstimator.est.aglVel = posEstimator.est.vel.z;
                 posEstimator.est.aglOffset = posEstimator.est.pos.z - posEstimator.surface.alt;
@@ -140,9 +149,10 @@ void estimationCalculateAGL(estimationContext_t * ctx)
         }
 
         // Update estimate
-        posEstimator.est.aglAlt = posEstimator.est.aglAlt + posEstimator.est.aglVel * ctx->dt;
-        posEstimator.est.aglAlt = posEstimator.imu.accelNEU.z * sq(ctx->dt) * 0.5f;
-        posEstimator.est.aglVel = posEstimator.est.aglVel + posEstimator.imu.accelNEU.z * ctx->dt;
+        const float accWeight = navGetAccelerometerWeight();
+        posEstimator.est.aglAlt += posEstimator.est.aglVel * ctx->dt;
+        posEstimator.est.aglAlt += posEstimator.imu.accelNEU.z * sq(ctx->dt) / 2.0f * accWeight;
+        posEstimator.est.aglVel += posEstimator.imu.accelNEU.z * ctx->dt * sq(accWeight);
 
         // Apply correction
         if (posEstimator.est.aglQual == SURFACE_QUAL_HIGH) {
@@ -155,7 +165,7 @@ void estimationCalculateAGL(estimationContext_t * ctx)
 
             // Update estimate offset
             if ((posEstimator.est.aglQual == SURFACE_QUAL_HIGH) && (posEstimator.est.epv < positionEstimationConfig()->max_eph_epv)) {
-                posEstimator.est.aglOffset = posEstimator.est.pos.z - posEstimator.surface.alt;
+                posEstimator.est.aglOffset = posEstimator.est.pos.z - pt1FilterGetLastOutput(&posEstimator.surface.avgFilter);
             }
         }
         else if (posEstimator.est.aglQual == SURFACE_QUAL_MID) {

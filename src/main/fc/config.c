@@ -38,6 +38,7 @@
 
 #include "drivers/system.h"
 #include "drivers/rx_spi.h"
+#include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
 #include "drivers/serial.h"
 #include "drivers/timer.h"
@@ -106,7 +107,7 @@ PG_RESET_TEMPLATE(featureConfig_t, featureConfig,
     .enabledFeatures = DEFAULT_FEATURES | COMMON_DEFAULT_FEATURES
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 3);
 
 PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .current_profile_index = 0,
@@ -114,11 +115,7 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .debug_mode = DEBUG_NONE,
     .i2c_speed = I2C_SPEED_400KHZ,
     .cpuUnderclock = 0,
-    .accTaskFrequency = ACC_TASK_FREQUENCY_DEFAULT,
-    .attitudeTaskFrequency = ATTITUDE_TASK_FREQUENCY_DEFAULT,
-    .asyncMode = ASYNC_MODE_NONE,
     .throttle_tilt_compensation_strength = 0,      // 0-100, 0 - disabled
-    .pwmRxInputFilteringMode = INPUT_FILTERING_DISABLED,
     .name = { 0 }
 );
 
@@ -144,6 +141,18 @@ void validateNavConfig(void)
 #endif
 
 
+// Stubs to handle target-specific configs
+__attribute__((weak)) void validateAndFixTargetConfig(void)
+{
+    __NOP();
+}
+
+__attribute__((weak)) void targetConfiguration(void)
+{
+    __NOP();
+}
+
+
 #ifdef SWAP_SERIAL_PORT_0_AND_1_DEFAULTS
 #define FIRST_PORT_INDEX 1
 #define SECOND_PORT_INDEX 0
@@ -152,85 +161,21 @@ void validateNavConfig(void)
 #define SECOND_PORT_INDEX 1
 #endif
 
-uint32_t getPidUpdateRate(void)
-{
-#ifdef USE_ASYNC_GYRO_PROCESSING
-    if (systemConfig()->asyncMode == ASYNC_MODE_NONE) {
-        return getGyroUpdateRate();
-    } else {
-        return gyroConfig()->looptime;
-    }
-#else
-    return gyro.targetLooptime;
-#endif
-}
-
-timeDelta_t getGyroUpdateRate(void)
-{
+uint32_t getLooptime(void) {
     return gyro.targetLooptime;
 }
-
-uint16_t getAccUpdateRate(void)
-{
-#ifdef USE_ASYNC_GYRO_PROCESSING
-    // ACC will be updated at its own rate
-    if (systemConfig()->asyncMode == ASYNC_MODE_ALL) {
-        return 1000000 / systemConfig()->accTaskFrequency;
-    } else {
-        return getPidUpdateRate();
-    }
-#else
-    // ACC updated at same frequency in taskMainPidLoop in mw.c
-    return gyro.targetLooptime;
-#endif
-}
-
-#ifdef USE_ASYNC_GYRO_PROCESSING
-uint16_t getAttitudeUpdateRate(void) {
-    if (systemConfig()->asyncMode == ASYNC_MODE_ALL) {
-        return 1000000 / systemConfig()->attitudeTaskFrequency;
-    } else {
-        return getPidUpdateRate();
-    }
-}
-
-uint8_t getAsyncMode(void) {
-    return systemConfig()->asyncMode;
-}
-#endif
 
 void validateAndFixConfig(void)
 {
-#ifdef USE_GYRO_NOTCH_1
-    if (gyroConfig()->gyro_soft_notch_cutoff_1 >= gyroConfig()->gyro_soft_notch_hz_1) {
-        gyroConfigMutable()->gyro_soft_notch_hz_1 = 0;
+    if (gyroConfig()->gyro_notch_cutoff >= gyroConfig()->gyro_notch_hz) {
+        gyroConfigMutable()->gyro_notch_hz = 0;
     }
-#endif
-#ifdef USE_GYRO_NOTCH_2
-    if (gyroConfig()->gyro_soft_notch_cutoff_2 >= gyroConfig()->gyro_soft_notch_hz_2) {
-        gyroConfigMutable()->gyro_soft_notch_hz_2 = 0;
-    }
-#endif
-#ifdef USE_DTERM_NOTCH
-    if (pidProfile()->dterm_soft_notch_cutoff >= pidProfile()->dterm_soft_notch_hz) {
-        pidProfileMutable()->dterm_soft_notch_hz = 0;
-    }
-#endif
-
-#ifdef USE_ACC_NOTCH
     if (accelerometerConfig()->acc_notch_cutoff >= accelerometerConfig()->acc_notch_hz) {
         accelerometerConfigMutable()->acc_notch_hz = 0;
     }
-#endif
 
     // Disable unused features
-    featureClear(FEATURE_UNUSED_3 | FEATURE_UNUSED_4 | FEATURE_UNUSED_5 | FEATURE_UNUSED_6 | FEATURE_UNUSED_7 | FEATURE_UNUSED_8 | FEATURE_UNUSED_9 );
-
-#if defined(DISABLE_RX_PWM_FEATURE) || !defined(USE_RX_PWM)
-    if (rxConfig()->receiverType == RX_TYPE_PWM) {
-        rxConfigMutable()->receiverType = RX_TYPE_NONE;
-    }
-#endif
+    featureClear(FEATURE_UNUSED_1 | FEATURE_UNUSED_3 | FEATURE_UNUSED_4 | FEATURE_UNUSED_5 | FEATURE_UNUSED_6 | FEATURE_UNUSED_7 | FEATURE_UNUSED_8 | FEATURE_UNUSED_9 | FEATURE_UNUSED_10);
 
 #if !defined(USE_RX_PPM)
     if (rxConfig()->receiverType == RX_TYPE_PPM) {
@@ -238,25 +183,6 @@ void validateAndFixConfig(void)
     }
 #endif
 
-
-    if (rxConfig()->receiverType == RX_TYPE_PWM) {
-#if defined(CHEBUZZ) || defined(STM32F3DISCOVERY)
-        // led strip needs the same ports
-        featureClear(FEATURE_LED_STRIP);
-#endif
-
-        // software serial needs free PWM ports
-        featureClear(FEATURE_SOFTSERIAL);
-    }
-
-#ifdef USE_ASYNC_GYRO_PROCESSING
-    /*
-     * When async processing mode is enabled, gyroSync has to be forced to "ON"
-     */
-    if (getAsyncMode() != ASYNC_MODE_NONE) {
-        gyroConfigMutable()->gyroSync = 1;
-    }
-#endif
 
 #if defined(USE_LED_STRIP) && (defined(USE_SOFTSERIAL1) || defined(USE_SOFTSERIAL2))
     if (featureConfigured(FEATURE_SOFTSERIAL) && featureConfigured(FEATURE_LED_STRIP)) {
@@ -285,7 +211,15 @@ void validateAndFixConfig(void)
 #endif
 
 #ifndef USE_PWM_SERVO_DRIVER
-    featureClear(FEATURE_PWM_SERVO_DRIVER);
+    if (servoConfig()->servo_protocol == SERVO_TYPE_SERVO_DRIVER) {
+        servoConfigMutable()->servo_protocol = SERVO_TYPE_PWM;
+    }
+#endif
+
+#ifndef USE_SERVO_SBUS
+    if (servoConfig()->servo_protocol == SERVO_TYPE_SBUS) {
+        servoConfigMutable()->servo_protocol = SERVO_TYPE_PWM;
+    }
 #endif
 
     if (!isSerialConfigValid(serialConfigMutable())) {
@@ -298,10 +232,17 @@ void validateAndFixConfig(void)
 #endif
 
     // Limitations of different protocols
+#if !defined(USE_DSHOT)
+    if (motorConfig()->motorPwmProtocol > PWM_TYPE_BRUSHED) {
+        motorConfigMutable()->motorPwmProtocol = PWM_TYPE_STANDARD;
+    }
+#endif
+
 #ifdef BRUSHED_MOTORS
     motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 500, 32000);
 #else
     switch (motorConfig()->motorPwmProtocol) {
+    default:
     case PWM_TYPE_STANDARD: // Limited to 490 Hz
         motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 490);
         break;
@@ -317,13 +258,37 @@ void validateAndFixConfig(void)
     case PWM_TYPE_BRUSHED:      // 500Hz - 32kHz
         motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 500, 32000);
         break;
+#ifdef USE_DSHOT
+    // One DSHOT packet takes 16 bits x 19 ticks + 2uS = 304 timer ticks + 2uS
+    case PWM_TYPE_DSHOT150:
+        motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 4000);
+        break;
+    case PWM_TYPE_DSHOT300:
+        motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 8000);
+        break;
+    // Although DSHOT 600+ support >16kHz update rate it's not practical because of increased CPU load
+    // It's more reasonable to use slower-speed DSHOT at higher rate for better reliability
+    case PWM_TYPE_DSHOT600:
+        motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 16000);
+        break;
+    case PWM_TYPE_DSHOT1200:
+        motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 32000);
+        break;
+#endif
+#ifdef USE_SERIALSHOT
+    case PWM_TYPE_SERIALSHOT:   // 2-4 kHz
+        motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 2000, 4000);
+        break;
+#endif
     }
 #endif
 
 #if !defined(USE_MPU_DATA_READY_SIGNAL)
     gyroConfigMutable()->gyroSync = false;
-    systemConfigMutable()->asyncMode = ASYNC_MODE_NONE;
 #endif
+
+    // Call target-specific validation function
+    validateAndFixTargetConfig();
 
     if (settingsValidate(NULL)) {
         DISABLE_ARMING_FLAG(ARMING_DISABLED_INVALID_SETTING);
@@ -354,9 +319,9 @@ void createDefaultConfig(void)
 #endif
 #endif
 
-#if defined(TARGET_CONFIG)
+    featureSet(FEATURE_AIRMODE);
+
     targetConfiguration();
-#endif
 }
 
 void resetConfigs(void)

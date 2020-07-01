@@ -30,7 +30,7 @@ pwmDriverDriver_t pwmDrivers[PWM_DRIVER_IMPLEMENTATION_COUNT] = {
     }
 };
 
-bool isPwmDriverEnabled() {
+bool isPwmDriverEnabled(void) {
     return driverEnabled;
 }
 
@@ -50,6 +50,10 @@ void pwmDriverInitialize(void) {
 }
 
 void pwmDriverSync(void) {
+    if (!STATE(PWM_DRIVER_AVAILABLE)) {
+        return;
+    }
+
     static uint8_t cycle = 0;
 
     (pwmDrivers[driverImplementationIndex].syncFunction)(cycle);

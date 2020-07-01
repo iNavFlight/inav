@@ -37,12 +37,11 @@
 #include "io/vtx_control.h"
 
 
-#if defined(USE_VTX_CONTROL) && defined(USE_VTX_COMMON)
+#if defined(USE_VTX_CONTROL)
 
 PG_REGISTER_WITH_RESET_TEMPLATE(vtxConfig_t, vtxConfig, PG_VTX_CONFIG, 2);
 
 PG_RESET_TEMPLATE(vtxConfig_t, vtxConfig,
-//    .vtxChannelActivationConditions = { 0 },
       .halfDuplex = true,
 );
 

@@ -21,6 +21,8 @@
 
 #include "platform.h"
 
+FILE_COMPILE_FOR_SPEED
+
 #include "scheduler.h"
 
 #include "build/build_config.h"
@@ -212,7 +214,7 @@ void schedulerInit(void)
     queueAdd(&cfTasks[TASK_SYSTEM]);
 }
 
-void scheduler(void)
+void FAST_CODE NOINLINE scheduler(void)
 {
     // Cache currentTime
     const timeUs_t currentTimeUs = micros();
@@ -306,7 +308,20 @@ void scheduler(void)
 #endif
 #if defined(SCHEDULER_DEBUG)
         DEBUG_SET(DEBUG_SCHEDULER, 2, micros() - currentTimeUs - taskExecutionTime); // time spent in scheduler
+#endif
     } else {
+        // Execute system real-time callbacks and account for them to SYSTEM account
+        const timeUs_t currentTimeBeforeTaskCall = micros();
+        taskRunRealtimeCallbacks(currentTimeBeforeTaskCall);
+
+#ifndef SKIP_TASK_STATISTICS
+        selectedTask = &cfTasks[TASK_SYSTEM];
+        const timeUs_t taskExecutionTime = micros() - currentTimeBeforeTaskCall;
+        selectedTask->movingSumExecutionTime += taskExecutionTime - selectedTask->movingSumExecutionTime / TASK_MOVING_SUM_COUNT;
+        selectedTask->totalExecutionTime += taskExecutionTime;   // time consumed by scheduler + task
+        selectedTask->maxExecutionTime = MAX(selectedTask->maxExecutionTime, taskExecutionTime);
+#endif
+#if defined(SCHEDULER_DEBUG)
         DEBUG_SET(DEBUG_SCHEDULER, 2, micros() - currentTimeUs);
 #endif
     }

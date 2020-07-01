@@ -30,14 +30,8 @@
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS		BUS_SPI1
 
-#define USE_ACC
-#define USE_ACC_MPU6000
-#define ACC_MPU6000_ALIGN       CW180_DEG
-
-#define USE_GYRO
-#define USE_GYRO_MPU6000
-#define GYRO_MPU6000_ALIGN      CW180_DEG
-
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW180_DEG
 
 
 // MPU6000 interrupts
@@ -135,6 +129,8 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
+#define TEMPERATURE_I2C_BUS     BUS_I2C2
+
 #define USE_BARO
 #define BARO_I2C_BUS             BUS_I2C2
 #define USE_BARO_BMP085
@@ -142,7 +138,6 @@
 #define USE_BARO_MS5611
 
 #define USE_PITOT_ADC
-#define USE_PITOT_MS4525
 #define PITOT_I2C_BUS           BUS_I2C2
 
 #define USE_RANGEFINDER
@@ -157,9 +152,6 @@
 
 #define USE_LED_STRIP
 #define WS2811_PIN                      PB6
-#define WS2811_DMA_STREAM               DMA1_Stream0
-#define WS2811_DMA_CHANNEL              DMA_Channel_2
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST0_HANDLER
 
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
@@ -182,3 +174,6 @@
 #define MAX_PWM_OUTPUT_PORTS 4
 
 #define PCA9685_I2C_BUS         BUS_I2C2
+
+#define USE_DSHOT
+#define USE_ESC_SENSOR

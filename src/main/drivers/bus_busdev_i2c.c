@@ -28,21 +28,25 @@
 
 bool i2cBusWriteBuffer(const busDevice_t * dev, uint8_t reg, const uint8_t * data, uint8_t length)
 {
-    return i2cWriteBuffer(dev->busdev.i2c.i2cBus, dev->busdev.i2c.address, reg, length, data);
+    const bool allowRawAccess = (dev->flags & DEVFLAGS_USE_RAW_REGISTERS);
+    return i2cWriteBuffer(dev->busdev.i2c.i2cBus, dev->busdev.i2c.address, reg, length, data, allowRawAccess);
 }
 
 bool i2cBusWriteRegister(const busDevice_t * dev, uint8_t reg, uint8_t data)
 {
-    return i2cWrite(dev->busdev.i2c.i2cBus, dev->busdev.i2c.address, reg, data);
+    const bool allowRawAccess = (dev->flags & DEVFLAGS_USE_RAW_REGISTERS);
+    return i2cWrite(dev->busdev.i2c.i2cBus, dev->busdev.i2c.address, reg, data, allowRawAccess);
 }
 
 bool i2cBusReadBuffer(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t length)
 {
-    return i2cRead(dev->busdev.i2c.i2cBus, dev->busdev.i2c.address, reg, length, data);
+    const bool allowRawAccess = (dev->flags & DEVFLAGS_USE_RAW_REGISTERS);
+    return i2cRead(dev->busdev.i2c.i2cBus, dev->busdev.i2c.address, reg, length, data, allowRawAccess);
 }
 
 bool i2cBusReadRegister(const busDevice_t * dev, uint8_t reg, uint8_t * data)
 {
-    return i2cRead(dev->busdev.i2c.i2cBus, dev->busdev.i2c.address, reg, 1, data);
+    const bool allowRawAccess = (dev->flags & DEVFLAGS_USE_RAW_REGISTERS);
+    return i2cRead(dev->busdev.i2c.i2cBus, dev->busdev.i2c.address, reg, 1, data, allowRawAccess);
 }
 #endif

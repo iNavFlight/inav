@@ -74,8 +74,9 @@ typedef enum {
     ADJUSTMENT_VEL_Z_I                  = 46,
     ADJUSTMENT_VEL_Z_D                  = 47,
     ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE = 48,
+    ADJUSTMENT_VTX_POWER_LEVEL = 49,
 #ifdef USE_INFLIGHT_PROFILE_ADJUSTMENT
-    ADJUSTMENT_PROFILE                  = 49,
+    ADJUSTMENT_PROFILE                  = 50,
 #endif
     ADJUSTMENT_FUNCTION_COUNT // must be last
 } adjustmentFunction_e;

@@ -56,8 +56,8 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
-#define APP_RX_DATA_SIZE  2048
-#define APP_TX_DATA_SIZE  2048
+#define APP_RX_DATA_SIZE  4096
+#define APP_TX_DATA_SIZE  4096
 
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
@@ -284,6 +284,12 @@ static int8_t CDC_Itf_Receive(uint8_t* Buf, uint32_t *Len)
 {
     rxAvailable = *Len;
     rxBuffPtr = Buf;
+    if (!rxAvailable) {
+        // Received an empty packet, trigger receiving the next packet.
+        // This will happen after a packet that's exactly 64 bytes is received.
+        // The USB protocol requires that an empty (0 byte) packet immediately follow.
+        USBD_CDC_ReceivePacket(&USBD_Device);
+    }
     return (USBD_OK);
 }
 

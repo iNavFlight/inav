@@ -1,5 +1,5 @@
 F7X5XG_TARGETS += $(TARGET)
-FEATURES       += SDCARD VCP
+FEATURES       += SDCARD VCP MSC
 
 TARGET_SRC = \
             drivers/accgyro/accgyro_mpu6000.c \
@@ -14,7 +14,4 @@ TARGET_SRC = \
             drivers/compass/compass_mag3110.c \
             drivers/compass/compass_lis3mdl.c \
             drivers/light_ws2811strip.c \
-            drivers/light_ws2811strip_hal.c \
-            drivers/pitotmeter_ms4525.c \
             drivers/max7456.c
-

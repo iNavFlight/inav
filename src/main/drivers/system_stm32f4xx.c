@@ -29,21 +29,7 @@
 #include "drivers/exti.h"
 
 
-#define AIRCR_VECTKEY_MASK    ((uint32_t)0x05FA0000)
 void SetSysClock(void);
-
-void systemReset(void)
-{
-    __disable_irq();
-    NVIC_SystemReset();
-}
-
-void systemResetToBootloader(void)
-{
-    *((uint32_t *)0x2001FFFC) = 0xDEADBEEF; // 128KB SRAM STM32F4XX
-    __disable_irq();
-    NVIC_SystemReset();
-}
 
 void enableGPIOPowerUsageAndNoiseReductions(void)
 {
@@ -150,6 +136,11 @@ bool isMPUSoftReset(void)
         return true;
     else
         return false;
+}
+
+uint32_t systemBootloaderAddress(void)
+{
+    return 0x1FFF0000;
 }
 
 void systemClockSetup(uint8_t cpuUnderclock)

@@ -18,7 +18,6 @@
 #pragma once
 #define TARGET_BOARD_IDENTIFIER "FORT"
 #define USBD_PRODUCT_STRING     "FortiniF4"
-#define TARGET_CONFIG
 #define USE_HARDWARE_REVISION_DETECTION
 #define HW_PIN                  PC14
 /*--------------LED----------------*/
@@ -46,13 +45,8 @@
 #define MPU6500_CS_PIN          PA8
 #define MPU6500_SPI_BUS         BUS_SPI1
 
-#define USE_GYRO
-#define USE_GYRO_MPU6500
-#define GYRO_MPU6500_ALIGN      CW180_DEG
-
-#define USE_ACC
-#define USE_ACC_MPU6500
-#define ACC_MPU6500_ALIGN       CW180_DEG
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW180_DEG
 /*---------------------------------*/
 
 /*------------FLASH----------------*/

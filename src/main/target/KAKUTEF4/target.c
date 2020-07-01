@@ -29,20 +29,20 @@
 #include "drivers/timer.h"
 
 const timerHardware_t timerHardware[] = {
-    { TIM8,  IO_TAG(PC7),  TIM_Channel_2, 0, IOCFG_AF_PP_PD, GPIO_AF_TIM8, TIM_USE_PPM }, // PPM
+    DEF_TIM(TIM8, CH2, PC7, TIM_USE_PPM,   0, 0), // PPM IN
 
-    { TIM3,  IO_TAG(PB0),  TIM_Channel_3, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM3, TIM_USE_MC_MOTOR                    | TIM_USE_FW_MOTOR }, // MOTOR_1
-    { TIM3,  IO_TAG(PB1),  TIM_Channel_4, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM3, TIM_USE_MC_MOTOR                    | TIM_USE_FW_MOTOR }, // MOTOR_2
-    { TIM2,  IO_TAG(PA3),  TIM_Channel_4, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM2, TIM_USE_MC_MOTOR                    | TIM_USE_FW_SERVO }, // MOTOR_3
-    { TIM2,  IO_TAG(PA2),  TIM_Channel_3, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM2, TIM_USE_MC_MOTOR                    | TIM_USE_FW_SERVO }, // MOTOR_4
+    DEF_TIM(TIM3, CH3, PB0, TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR, 0, 0), // S1_OUT - DMA1_ST7
+    DEF_TIM(TIM3, CH4, PB1, TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR, 0, 0), // S2_OUT - DMA1_ST2
+    DEF_TIM(TIM2, CH4, PA3, TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO, 0, 1), // S3_OUT - DMA1_ST6
+    DEF_TIM(TIM5, CH3, PA2, TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO, 0, 0), // S4_OUT - DMA1_ST1
 
-    #if defined(KAKUTEF4V2)
-    { TIM8,  IO_TAG(PC8),  TIM_Channel_3, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM8, TIM_USE_LED }
-    #else
-    { TIM5,  IO_TAG(PA0),  TIM_Channel_1, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM5, TIM_USE_MC_MOTOR                    | TIM_USE_FW_SERVO }, // MOTOR_5
-    { TIM8,  IO_TAG(PC8),  TIM_Channel_3, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM8, TIM_USE_MC_MOTOR                    | TIM_USE_FW_SERVO }, // MOTOR_6
-    { TIM5,  IO_TAG(PA1),  TIM_Channel_2, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM5, TIM_USE_LED }
-    #endif
+#if defined(KAKUTEF4V2)
+    DEF_TIM(TIM8, CH3, PC8, TIM_USE_LED,   0, 0), // LED_STRIP - DMA2_ST2
+#else
+    DEF_TIM(TIM5, CH1, PA0, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0), // S5_OUT - DMA1_ST2
+    DEF_TIM(TIM8, CH3, PC8, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 1), // S6_OUT - DMA2_ST4
+    DEF_TIM(TIM5, CH2, PA1, TIM_USE_LED,                         0, 0), // LED_STRIP - DMA1_ST4
+#endif
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

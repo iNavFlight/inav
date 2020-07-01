@@ -33,7 +33,7 @@
 const controlRateConfig_t *currentControlRateProfile;
 
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(controlRateConfig_t, MAX_CONTROL_RATE_PROFILE_COUNT, controlRateProfiles, PG_CONTROL_RATE_PROFILES, 2);
+PG_REGISTER_ARRAY_WITH_RESET_FN(controlRateConfig_t, MAX_CONTROL_RATE_PROFILE_COUNT, controlRateProfiles, PG_CONTROL_RATE_PROFILES, 3);
 
 void pgResetFn_controlRateProfiles(controlRateConfig_t *instance)
 {
@@ -61,6 +61,10 @@ void pgResetFn_controlRateProfiles(controlRateConfig_t *instance)
                 .rates[FD_ROLL] = 100,
                 .rates[FD_PITCH] = 100,
                 .rates[FD_YAW] = 100
+            },
+
+            .misc = {
+                .fpvCamAngleDegrees = 0
             }
         );
     }

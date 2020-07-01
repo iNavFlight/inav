@@ -70,13 +70,13 @@ typedef struct FixedWingLaunchState_s {
     bool motorControlAllowed;
 } FixedWingLaunchState_t;
 
-static FixedWingLaunchState_t   launchState;
+static EXTENDED_FASTRAM FixedWingLaunchState_t   launchState;
 
 #define COS_MAX_LAUNCH_ANGLE                0.70710678f                 // cos(45), just to be safe
 #define SWING_LAUNCH_MIN_ROTATION_RATE      DEGREES_TO_RADIANS(100)     // expect minimum 100dps rotation rate
 static void updateFixedWingLaunchDetector(timeUs_t currentTimeUs)
 {
-    const float swingVelocity = (ABS(imuMeasuredRotationBF.z) > SWING_LAUNCH_MIN_ROTATION_RATE) ? (imuMeasuredAccelBF.y / imuMeasuredRotationBF.z) : 0;
+    const float swingVelocity = (fabsf(imuMeasuredRotationBF.z) > SWING_LAUNCH_MIN_ROTATION_RATE) ? (imuMeasuredAccelBF.y / imuMeasuredRotationBF.z) : 0;
     const bool isForwardAccelerationHigh = (imuMeasuredAccelBF.x > navConfig()->fw.launch_accel_thresh);
     const bool isAircraftAlmostLevel = (calculateCosTiltAngle() >= cos_approx(DEGREES_TO_RADIANS(navConfig()->fw.launch_max_angle)));
 
@@ -122,6 +122,13 @@ bool isFixedWingLaunchFinishedOrAborted(void)
     return launchState.launchFinished;
 }
 
+void abortFixedWingLaunch(void)
+{
+    launchState.launchFinished = true;
+}
+
+#define LAUNCH_MOTOR_IDLE_SPINUP_TIME 1500 //ms
+
 static void applyFixedWingLaunchIdleLogic(void)
 {
     // Until motors are started don't use PID I-term
@@ -131,12 +138,25 @@ static void applyFixedWingLaunchIdleLogic(void)
     pidResetTPAFilter();
 
     // Throttle control logic
-    if (navConfig()->fw.launch_idle_throttle <= motorConfig()->minthrottle) {
-        ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);                       // If MOTOR_STOP is enabled mixer will keep motor stopped
-        rcCommand[THROTTLE] = motorConfig()->minthrottle;  // If MOTOR_STOP is disabled, motors will spin at minthrottle
+    if (navConfig()->fw.launch_idle_throttle <= getThrottleIdleValue())
+    {
+        ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);             // If MOTOR_STOP is enabled mixer will keep motor stopped
+        rcCommand[THROTTLE] = getThrottleIdleValue(); // If MOTOR_STOP is disabled, motors will spin at minthrottle
     }
-    else {
-        rcCommand[THROTTLE] = navConfig()->fw.launch_idle_throttle;
+    else
+    {
+        static float timeThrottleRaisedMs;
+        if (calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC) == THROTTLE_LOW)
+        {
+            timeThrottleRaisedMs = millis();
+        }
+        else
+        {
+            const float timeSinceMotorStartMs = MIN(millis() - timeThrottleRaisedMs, LAUNCH_MOTOR_IDLE_SPINUP_TIME);
+            rcCommand[THROTTLE] = scaleRangef(timeSinceMotorStartMs,
+                                                0.0f, LAUNCH_MOTOR_IDLE_SPINUP_TIME,
+                                                getThrottleIdleValue(), navConfig()->fw.launch_idle_throttle);
+        }
     }
 }
 
@@ -180,7 +200,7 @@ void applyFixedWingLaunchController(timeUs_t currentTimeUs)
                 // Increase throttle gradually over `launch_motor_spinup_time` milliseconds
                 if (navConfig()->fw.launch_motor_spinup_time > 0) {
                     const float timeSinceMotorStartMs = constrainf(timeElapsedSinceLaunchMs - navConfig()->fw.launch_motor_timer, 0.0f, navConfig()->fw.launch_motor_spinup_time);
-                    const uint16_t minIdleThrottle = MAX(motorConfig()->minthrottle, navConfig()->fw.launch_idle_throttle);
+                    const uint16_t minIdleThrottle = MAX(getThrottleIdleValue(), navConfig()->fw.launch_idle_throttle);
                     rcCommand[THROTTLE] = scaleRangef(timeSinceMotorStartMs,
                                                       0.0f, navConfig()->fw.launch_motor_spinup_time,
                                                       minIdleThrottle, navConfig()->fw.launch_throttle);

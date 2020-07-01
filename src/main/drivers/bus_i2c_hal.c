@@ -82,7 +82,11 @@ static i2cDevice_t i2cHardwareMap[] = {
 
 static volatile uint16_t i2cErrorCount = 0;
 
-#define I2C_DEFAULT_TIMEOUT     10000
+// Note that I2C_TIMEOUT is in us, while the HAL
+// functions expect the timeout to be in ticks.
+// Since we're setting up the ticks a 1khz, each
+// tick equals 1ms.
+#define I2C_DEFAULT_TIMEOUT     (I2C_TIMEOUT / 1000)
 
 typedef struct i2cState_s {
     volatile bool initialised;
@@ -170,7 +174,7 @@ static bool i2cHandleHardwareFailure(I2CDevice device)
     return false;
 }
 
-bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_, const uint8_t *data)
+bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_, const uint8_t *data, bool allowRawAccess)
 {
     if (device == I2CINVALID)
         return false;
@@ -183,10 +187,12 @@ bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_,
 
     HAL_StatusTypeDef status;
 
-    if (reg_ == 0xFF)
+    if (reg_ == 0xFF && allowRawAccess) {
         status = HAL_I2C_Master_Transmit(&i2cHandle[device].Handle, addr_ << 1, (uint8_t *)data, len_, I2C_DEFAULT_TIMEOUT);
-    else
+    }
+    else {
         status = HAL_I2C_Mem_Write(&i2cHandle[device].Handle,addr_ << 1, reg_, I2C_MEMADD_SIZE_8BIT, (uint8_t *)data, len_, I2C_DEFAULT_TIMEOUT);
+    }
 
     if (status != HAL_OK)
         return i2cHandleHardwareFailure(device);
@@ -194,12 +200,12 @@ bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_,
     return true;
 }
 
-bool i2cWrite(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t data)
+bool i2cWrite(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t data, bool allowRawAccess)
 {
-    return i2cWriteBuffer(device, addr_, reg_, 1, &data);
+    return i2cWriteBuffer(device, addr_, reg_, 1, &data, allowRawAccess);
 }
 
-bool i2cRead(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len, uint8_t* buf)
+bool i2cRead(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len, uint8_t* buf, bool allowRawAccess)
 {
     if (device == I2CINVALID)
         return false;
@@ -212,10 +218,12 @@ bool i2cRead(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len, uint8_t
 
     HAL_StatusTypeDef status;
 
-    if (reg_ == 0xFF)
+    if (reg_ == 0xFF && allowRawAccess) {
         status = HAL_I2C_Master_Receive(&i2cHandle[device].Handle,addr_ << 1,buf, len, I2C_DEFAULT_TIMEOUT);
-    else
+    }
+    else {
         status = HAL_I2C_Mem_Read(&i2cHandle[device].Handle,addr_ << 1, reg_, I2C_MEMADD_SIZE_8BIT,buf, len, I2C_DEFAULT_TIMEOUT);
+    }
 
     if (status != HAL_OK)
         return i2cHandleHardwareFailure(device);
@@ -309,9 +317,10 @@ void i2cInit(I2CDevice device)
     /* Enable the Analog I2C Filter */
     HAL_I2CEx_ConfigAnalogFilter(&i2cHandle[device].Handle,I2C_ANALOGFILTER_ENABLE);
 
-    HAL_NVIC_SetPriority(i2cHardwareMap[device].er_irq, NVIC_PRIORITY_BASE(NVIC_PRIO_I2C_ER), NVIC_PRIORITY_SUB(NVIC_PRIO_I2C_ER));
+    HAL_NVIC_SetPriority(i2cHardwareMap[device].er_irq, NVIC_PRIO_I2C_ER, 0);
     HAL_NVIC_EnableIRQ(i2cHardwareMap[device].er_irq);
-    HAL_NVIC_SetPriority(i2cHardwareMap[device].ev_irq, NVIC_PRIORITY_BASE(NVIC_PRIO_I2C_EV), NVIC_PRIORITY_SUB(NVIC_PRIO_I2C_EV));
+
+    HAL_NVIC_SetPriority(i2cHardwareMap[device].ev_irq, NVIC_PRIO_I2C_EV, 0);
     HAL_NVIC_EnableIRQ(i2cHardwareMap[device].ev_irq);
     state->initialised = true;
 }

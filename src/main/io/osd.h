@@ -18,9 +18,10 @@
 #pragma once
 
 #include "common/time.h"
+
 #include "config/parameter_group.h"
 
-#include "drivers/vcd.h"
+#include "drivers/osd.h"
 
 #ifndef OSD_ALTERNATE_LAYOUT_COUNT
 #define OSD_ALTERNATE_LAYOUT_COUNT 3
@@ -34,6 +35,13 @@
 #define OSD_Y(x)            (((x) >> 5) & 0x001F)
 #define OSD_POS_MAX         0x3FF
 #define OSD_POS_MAX_CLI     (OSD_POS_MAX | OSD_VISIBLE_FLAG)
+
+#define OSD_HOMING_LIM_H1 6
+#define OSD_HOMING_LIM_H2 16
+#define OSD_HOMING_LIM_H3 38
+#define OSD_HOMING_LIM_V1 5
+#define OSD_HOMING_LIM_V2 10
+#define OSD_HOMING_LIM_V3 15
 
 typedef enum {
     OSD_RSSI_VALUE,
@@ -121,6 +129,29 @@ typedef enum {
     OSD_MC_VEL_Y_PID_OUTPUTS,
     OSD_MC_VEL_Z_PID_OUTPUTS,
     OSD_MC_POS_XYZ_P_OUTPUTS,
+    OSD_3D_SPEED,
+    OSD_IMU_TEMPERATURE,
+    OSD_BARO_TEMPERATURE,
+    OSD_TEMP_SENSOR_0_TEMPERATURE,
+    OSD_TEMP_SENSOR_1_TEMPERATURE,
+    OSD_TEMP_SENSOR_2_TEMPERATURE,
+    OSD_TEMP_SENSOR_3_TEMPERATURE,
+    OSD_TEMP_SENSOR_4_TEMPERATURE,
+    OSD_TEMP_SENSOR_5_TEMPERATURE,
+    OSD_TEMP_SENSOR_6_TEMPERATURE,
+    OSD_TEMP_SENSOR_7_TEMPERATURE,
+    OSD_ALTITUDE_MSL,
+    OSD_PLUS_CODE,
+    OSD_MAP_SCALE,
+    OSD_MAP_REFERENCE,
+    OSD_GFORCE,
+    OSD_GFORCE_X,
+    OSD_GFORCE_Y,
+    OSD_GFORCE_Z,
+    OSD_RC_SOURCE,
+    OSD_VTX_POWER,
+    OSD_ESC_RPM,
+    OSD_ESC_TEMPERATURE,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -138,6 +169,11 @@ typedef enum {
 typedef enum {
     OSD_CROSSHAIRS_STYLE_DEFAULT,
     OSD_CROSSHAIRS_STYLE_AIRCRAFT,
+    OSD_CROSSHAIRS_STYLE_TYPE3,
+    OSD_CROSSHAIRS_STYLE_TYPE4,
+    OSD_CROSSHAIRS_STYLE_TYPE5,
+    OSD_CROSSHAIRS_STYLE_TYPE6,
+    OSD_CROSSHAIRS_STYLE_TYPE7,
 } osd_crosshairs_style_e;
 
 typedef enum {
@@ -146,6 +182,16 @@ typedef enum {
     OSD_SIDEBAR_SCROLL_GROUND_SPEED,
     OSD_SIDEBAR_SCROLL_HOME_DISTANCE,
 } osd_sidebar_scroll_e;
+
+typedef enum {
+    OSD_ALIGN_LEFT,
+    OSD_ALIGN_RIGHT
+} osd_alignment_e;
+
+typedef enum {
+    OSD_AHI_STYLE_DEFAULT,
+    OSD_AHI_STYLE_LINE,
+} osd_ahi_style_e;
 
 typedef struct osdConfig_s {
     // Layouts
@@ -157,6 +203,21 @@ typedef struct osdConfig_s {
     uint16_t alt_alarm; // positive altitude in m
     uint16_t dist_alarm; // home distance in m
     uint16_t neg_alt_alarm; // abs(negative altitude) in m
+    uint8_t current_alarm; // current consumption in A
+    int16_t imu_temp_alarm_min;
+    int16_t imu_temp_alarm_max;
+    int16_t esc_temp_alarm_min;
+    int16_t esc_temp_alarm_max;
+    float gforce_alarm;
+    float gforce_axis_alarm_min;
+    float gforce_axis_alarm_max;
+#ifdef USE_BARO
+    int16_t baro_temp_alarm_min;
+    int16_t baro_temp_alarm_max;
+#endif
+#ifdef USE_TEMPERATURE_SENSOR
+    osd_alignment_e temp_label_align;
+#endif
 
     videoSystem_e video_system;
     uint8_t row_shiftdown;
@@ -164,7 +225,22 @@ typedef struct osdConfig_s {
     // Preferences
     uint8_t main_voltage_decimals;
     uint8_t ahi_reverse_roll;
+    uint8_t ahi_max_pitch;
     uint8_t crosshairs_style; // from osd_crosshairs_style_e
+    int8_t horizon_offset;
+    int8_t camera_uptilt;
+    uint8_t camera_fov_h;
+    uint8_t camera_fov_v;
+    uint8_t hud_margin_h;
+    uint8_t hud_margin_v;
+    bool hud_homing;
+    bool hud_homepoint;
+    uint8_t hud_radar_disp;
+    uint16_t hud_radar_range_min;
+    uint16_t hud_radar_range_max;
+    uint16_t hud_radar_nearest;
+    uint8_t hud_wp_disp;
+    
     uint8_t left_sidebar_scroll; // from osd_sidebar_scroll_e
     uint8_t right_sidebar_scroll; // from osd_sidebar_scroll_e
     uint8_t sidebar_scroll_arrows;
@@ -174,15 +250,40 @@ typedef struct osdConfig_s {
 
     bool    estimations_wind_compensation; // use wind compensation for estimated remaining flight/distance
     uint8_t coordinate_digits;
+
+    bool osd_failsafe_switch_layout;
+    uint8_t plus_code_digits; // Number of digits to use in OSD_PLUS_CODE
+    uint8_t osd_ahi_style;
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);
 
-struct displayPort_s;
-void osdInit(struct displayPort_s *osdDisplayPort);
+typedef struct displayPort_s displayPort_t;
+typedef struct displayCanvas_s displayCanvas_t;
+
+void osdInit(displayPort_t *osdDisplayPort);
 void osdUpdate(timeUs_t currentTimeUs);
 void osdStartFullRedraw(void);
 // Sets a fixed OSD layout ignoring the RC input. Set it
-// to -1 to disable the override.
-void osdOverrideLayout(int layout);
+// to -1 to disable the override. If layout is >= 0 and
+// duration is > 0, the override is automatically cleared by
+// the OSD after the given duration. Otherwise, the caller must
+// explicitely remove it.
+void osdOverrideLayout(int layout, timeMs_t duration);
+// Returns the current current layout as well as wether its
+// set by the user configuration (modes, etc..) or by overriding it.
+int osdGetActiveLayout(bool *overridden);
 bool osdItemIsFixed(osd_items_e item);
+
+displayPort_t *osdGetDisplayPort(void);
+displayCanvas_t *osdGetDisplayPortCanvas(void);
+
+int16_t osdGetHeading(void);
+int32_t osdGetAltitude(void);
+
+void osdCrosshairPosition(uint8_t *x, uint8_t *y);
+bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length);
+void osdFormatAltitudeSymbol(char *buff, int32_t alt);
+void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D);
+// Returns a heading angle in degrees normalized to [0, 360).
+int osdGetHeadingAngle(int angle);

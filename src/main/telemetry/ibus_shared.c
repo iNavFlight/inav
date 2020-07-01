@@ -36,6 +36,7 @@
 #include "io/serial.h"
 
 #include "sensors/barometer.h"
+#include "sensors/temperature.h"
 #include "sensors/acceleration.h"
 #include "sensors/battery.h"
 #include "sensors/sensors.h"
@@ -127,9 +128,9 @@ static ibusAddress_t getAddress(uint8_t ibusPacket[static IBUS_MIN_LEN]) {
     return (ibusPacket[1] & 0x0F);
 }
 
-// MANUAL, ACRO, ANGLE, HRZN, ALTHOLD, POSHOLD, RTH, WP, LAUNCH, FAILSAFE
-static uint8_t flightModeToIBusTelemetryMode1[FLM_COUNT] = { 0, 1, 3, 2, 5, 6, 7, 4, 8, 9 };
-static uint8_t flightModeToIBusTelemetryMode2[FLM_COUNT] = { 5, 1, 0, 7, 2, 8, 6, 3, 4, 9 };
+// MANUAL, ACRO, AIR, ANGLE, HRZN, ALTHOLD, POSHOLD, RTH, WP, CRUISE, LAUNCH, FAILSAFE
+static uint8_t flightModeToIBusTelemetryMode1[FLM_COUNT] = { 0, 1, 1, 3, 2, 5, 6, 7, 4, 4, 8, 9 };
+static uint8_t flightModeToIBusTelemetryMode2[FLM_COUNT] = { 5, 1, 1, 0, 7, 2, 8, 6, 3, 3, 4, 9 };
 static uint8_t dispatchMeasurementRequest(ibusAddress_t address) {
 #if defined(USE_GPS)
     uint8_t fix = 0;
@@ -140,15 +141,10 @@ static uint8_t dispatchMeasurementRequest(ibusAddress_t address) {
     }
 #endif
     if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_TEMPERATURE) { //BARO_TEMP\GYRO_TEMP
-        if (sensors(SENSOR_BARO)) return sendIbusMeasurement2(address, (uint16_t) ((baro.baroTemperature + 50) / 10  + IBUS_TEMPERATURE_OFFSET)); //int32_t
-        else {
-          /*
-           * There is no temperature data
-           * assuming (baro.baroTemperature + 50) / 10
-           * 0 degrees (no sensor) equals 50 / 10 = 5
-           */
-          return sendIbusMeasurement2(address, (uint16_t) (5 + IBUS_TEMPERATURE_OFFSET)); //int16_t
-        }
+        int16_t temperature;
+        const bool temp_valid = sensors(SENSOR_BARO) ? getBaroTemperature(&temperature) : getIMUTemperature(&temperature);
+        if (!temp_valid || (temperature < -400)) temperature = -400; // Minimum reported temperature is -40°C
+        return sendIbusMeasurement2(address, (uint16_t)(temperature  + IBUS_TEMPERATURE_OFFSET));
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_RPM) {
         return sendIbusMeasurement2(address, (uint16_t) (rcCommand[THROTTLE]));
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_EXTERNAL_VOLTAGE) { //VBAT

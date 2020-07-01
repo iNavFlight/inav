@@ -23,16 +23,21 @@
 #include "drivers/timer.h"
 
 const timerHardware_t timerHardware[] = {
-    { TIM3, IO_TAG(PB4),    TIM_Channel_1, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM3, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR },  //S1
-    { TIM3, IO_TAG(PB5),    TIM_Channel_2, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM3, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR },  //S2
-    { TIM4, IO_TAG(PB6),    TIM_Channel_1, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM4, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO },  //S3
-    { TIM4, IO_TAG(PB7),    TIM_Channel_2, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM4, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO },  //S4
-    { TIM2, IO_TAG(PB3),    TIM_Channel_2, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM2, TIM_USE_MC_SERVO | TIM_USE_FW_SERVO },  //S5
-    { TIM2, IO_TAG(PB10),   TIM_Channel_3, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM2, TIM_USE_MC_SERVO | TIM_USE_FW_SERVO },  //S6
-    { TIM2, IO_TAG(PA15),   TIM_Channel_1, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM2, TIM_USE_MC_CHNFW | TIM_USE_FW_SERVO },  //S7
+    // DEF_TIM(TIM9, CH2, PA3,   TIM_USE_PPM,   0, 0), // PPM IN
 
-    { TIM1, IO_TAG(PA8),    TIM_Channel_1, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM1, TIM_USE_LED},   //2812LED
-    { TIM5, IO_TAG(PA0),    TIM_Channel_1, 0, IOCFG_AF_PP_PD, GPIO_AF_TIM5, TIM_USE_PPM },  //use rssi pad for PPM/softserial_tx1
+    DEF_TIM(TIM3, CH1, PB4,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,  0, 0), // S1  D(1,4,5)
+    DEF_TIM(TIM3, CH2, PB5,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,  0, 0), // S2  D(1,5,5)
+    DEF_TIM(TIM4, CH1, PB6,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,  0, 0), // S3  D(1,0,2)
+    DEF_TIM(TIM4, CH2, PB7,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,  0, 0), // S4  D(1,3,2)
+
+    DEF_TIM(TIM2, CH2, PB3,  TIM_USE_MC_SERVO | TIM_USE_FW_SERVO, 0, 0), // S5  D(1,6,3)
+    DEF_TIM(TIM2, CH3, PB10, TIM_USE_MC_SERVO | TIM_USE_FW_SERVO, 0, 0), // S6  D(1,1,3)
+    DEF_TIM(TIM2, CH1, PA15, TIM_USE_MC_SERVO | TIM_USE_FW_SERVO, 0, 0), // S7  D(1,5,3) - clash with S2
+
+    DEF_TIM(TIM1, CH1, PA8,  TIM_USE_ANY,   0, 0), //softserial_tx2 - 2812LED TIM_USE_LED   D(2,1,6)
+    DEF_TIM(TIM5, CH1, PA0,  TIM_USE_PPM,   0, 0), //use rssi pad for PPM/softserial_tx1
+
+    //DEF_TIM(TIM5, CH3, PA2,  TIM_USE_ANY,   0, 0), // TX2
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

@@ -2,16 +2,10 @@
 
 A receiver is used to receive radio control signals from your transmitter and convert them into signals that the flight controller can understand.
 
-There are 3 basic types of receivers:
+There are 2 basic types of receivers:
 
-1. Parallel PWM Receivers
-2. PPM Receivers
-3. Serial Receivers
-
-## Parallel PWM Receivers
-
-8 channel support, 1 channel per input pin.  On some platforms using parallel input will disable the use of serial ports
-and SoftSerial making it hard to use telemetry or GPS features.
+1. PPM Receivers
+2. Serial Receivers
 
 ## PPM Receivers
 
@@ -35,6 +29,8 @@ http://www.frsky-rc.com/product/pro.php?pro_id=21
 
 ## Serial Receivers
 
+*Connect the receivers to UARTs and not to Software Serial ports. Using software serial for RX input can cause unexpected behaviours beacause the port cannot handle reliably the bit rate needed by the most common protocols*
+
 ### Spektrum
 
 8 channels via serial currently supported.
@@ -47,7 +43,7 @@ http://www.lemon-rx.com/shop/index.php?route=product/product&product_id=118
 
 #### Spektrum pesudo RSSI
 
-As of iNav 1.6, a pseudo RSSI, based on satellite fade count is supported and reported as normal iNav RSSI (0-1023 range). In order to use this feature, the following is necessary:
+As of iNav 1.6, a pseudo RSSI, based on satellite fade count is supported and reported as normal iNav RSSI (0-1023 range). In order to use this feature, the following is necessary:obj/inav_2.2.2_SPRACINGF3EVO.hex
 
 * Bind the satellite receiver using a physical RX; the bind function provided by the flight controller is not sufficient.
 * The CLI variable `rssi_channel` is set to channel 9:
@@ -61,7 +57,7 @@ This pseudo-RSSI should work on all makes of Spektrum satellite RX; it is tested
 16 channels via serial currently supported.  See below how to set up your transmitter.
 
 * You probably need an inverter between the receiver output and the flight controller. However, some flight controllers have this built in and doesn't need one.
-* Some OpenLRS receivers produce a non-inverted SBUS signal. It is possible to switch SBUS inversion off using CLI command `set sbus_inversion = OFF` when using an F3 based flight controller.
+* Some OpenLRS receivers produce obj/inav_2.2.2_SPRACINGF3EVO.hexa non-inverted SBUS signal. It is possible to switch SBUS inversion off using CLI command `set sbus_inversion = OFF` when using an F3 based flight controller.
 * Softserial ports cannot be used with SBUS because it runs at too high of a bitrate (1Mbps).  Refer to the chapter specific to your board to determine which port(s) may be used.
 * You will need to configure the channel mapping in the GUI (Receiver tab) or CLI (`map` command). Note that channels above 8 are mapped "straight", with no remapping.
 
@@ -87,6 +83,22 @@ The bug prevents use of all 16 channels.  Upgrade to the latest OpenTX version t
 without the fix you are limited to 8 channels regardless of the CH1-16/D16 settings.
 
 
+### F.Port
+
+F.Port is a protocol running on async serial allowing 16 controls channels and telemetry on a single UART.
+
+Supported receivers include FrSky R-XSR, X4R, X4R-SB, XSR, XSR-M, R9M Slim, R9M Slim+, R9 Mini. For ACCST receivers you need to flash the corresponding firmware for it to output F.Port. For ACCESS receivers the protocol output from the receiver can be switched between S.Bus and F.Port from the model's setup page in the RX options.
+
+#### Connection
+
+Just connect the S.Port wire from the receiver to the TX pad of a free UART on your flight controller
+
+#### Configuration
+
+```
+set serialrx_inverted = true
+set serialrx_halfduplex = true
+```
 
 ### XBUS
 
@@ -126,7 +138,7 @@ SUMH is a legacy Graupner protocol.  Graupner have issued a firmware updates for
 
 10 channels via serial currently supported.
 
-IBUS is the FlySky digital serial protocol and is available with the FS-IA6B, FS-X6B and FS-IA10 receivers. 
+IBUS is the FlySky digital serial protocol and is available with the FS-IA6B, FS-X6B and FS-IA10 receivers.
 The Turnigy TGY-IA6B and TGY-IA10 are the same devices with a different label, therefore they also work.
 
 IBUS can provide up to 120Hz refresh rate, more than double compared to standard 50Hz of PPM.
@@ -145,7 +157,7 @@ The flash is avaliable here: https://github.com/benb0jangles/FlySky-i6-Mod-
 ```
 After flash "10ch Timer Mod i6 Updater", it is passible to get RSSI signal on selected Aux channel from FS-i6 Err sensor.
 
-It is possible to use IBUS RX and IBUS telemetry on only one port of the hardware UART. More information in Telemetry.md.
+It is possible to use IBUS RX and IBUS telemetry on only one port of the hardware UART. More information in Telemetry.md.obj/inav_2.2.2_SPRACINGF3EVO.hex
 
 ## MultiWii serial protocol (MSP)
 
@@ -153,22 +165,19 @@ Allows you to use MSP commands as the RC input.  Only 8 channel support to maint
 
 ## Configuration
 
-There are 3 features that control receiver mode:
+The receiver type can be set from the configurator or CLI.
 
 ```
-RX_PPM
-RX_SERIAL
-RX_PARALLEL_PWM
-RX_MSP
+# get receiver_type
+receiver_type = NONE
+Allowed values: NONE, PPM, SERIAL, MSP, SPI, UIB
 ```
-
-Only one receiver feature can be enabled at a time.
 
 ### RX signal-loss detection
 
 The software has signal loss detection which is always enabled.  Signal loss detection is used for safety and failsafe reasons.
 
-The `rx_min_usec` and `rx_max_usec` settings helps detect when your RX stops sending any data, enters failsafe mode or when the RX looses signal.
+The `rx_min_usec` and `rx_max_usec` settings helps detect when your RX stops sending any data, enters failsafe mode or when the RX loses signal.
 
 By default, when the signal loss is detected the FC will set pitch/roll/yaw to the value configured for `mid_rc`. The throttle will be set to the value configured for `rx_min_usec` or `mid_rc` if using 3D feature.
 
@@ -177,49 +186,6 @@ Signal loss can be detected when:
 1. no rx data is received (due to radio reception, recevier configuration or cabling issues).
 2. using Serial RX and receiver indicates failsafe condition.
 3. using any of the first 4 stick channels do not have a value in the range specified by `rx_min_usec` and `rx_max_usec`.
-
-### RX loss configuration
-
-The `rxfail` cli command is used to configure per-channel rx-loss behaviour.
-You can use the `rxfail` command to change this behaviour.
-A flight channel can either be AUTOMATIC or HOLD, an AUX channel can either be SET or HOLD.  
-
-* AUTOMATIC - Flight channels are set to safe values (low throttle, mid position for yaw/pitch/roll).
-* HOLD - Channel holds the last value.
-* SET - Channel is set to a specific configured value.
-
-The default mode is AUTOMATIC for flight channels and HOLD for AUX channels.
-
-The rxfail command can be used in conjunction with mode ranges to trigger various actions.
-
-The `rxfail` command takes 2 or 3 arguments.
-* Index of channel (See below)
-* Mode ('a' = AUTOMATIC, 'h' = HOLD, 's' = SET)
-* A value to use when in SET mode.
-
-Channels are always specified in the same order, regardless of your channel mapping.
-
-* Roll is 0
-* Pitch is 1
-* Yaw is 2
-* Throttle is 3.
-* Aux channels are 4 onwards.
-
-Examples:
-
-To make Throttle channel have an automatic value when RX loss is detected:
-
-`rxfail 3 a`
-
-To make AUX4 have a value of 2000 when RX loss is detected:
-
-`rxfail 7 s 2000`
-
-To make AUX8 hold it's value when RX loss is detected:
-
-`rxfail 11 h`
-
-WARNING: Always make sure you test the behavior is as expected after configuring rxfail settings!
 
 #### `rx_min_usec`
 

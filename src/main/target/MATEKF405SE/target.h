@@ -19,7 +19,6 @@
 
 #define TARGET_BOARD_IDENTIFIER "MF4S"
 #define USBD_PRODUCT_STRING  "Matek_F405SE"
-#define TARGET_CONFIG
 
 #define LED0                    PA14  //Blue
 #define LED1                    PA13  //Green
@@ -34,6 +33,8 @@
 #define SPI1_MISO_PIN   	    PA6
 #define SPI1_MOSI_PIN   	    PA7
 
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
@@ -41,13 +42,6 @@
 #define GYRO_INT_EXTI            PC4
 #define USE_MPU_DATA_READY_SIGNAL
 
-#define USE_GYRO
-#define USE_GYRO_MPU6000
-#define GYRO_MPU6000_ALIGN      CW270_DEG
-
-#define USE_ACC
-#define USE_ACC_MPU6000
-#define ACC_MPU6000_ALIGN       CW270_DEG
 
 // *************** I2C /Baro/Mag *********************
 #define USE_I2C
@@ -64,6 +58,7 @@
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 #define USE_BARO_BMP085
+#define USE_BARO_DPS310
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
@@ -75,8 +70,14 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
-#define USE_PITOT_MS4525
+#define USE_RANGEFINDER
+#define USE_RANGEFINDER_HCSR04_I2C
+#define RANGEFINDER_I2C_BUS     BUS_I2C2
+
 #define PITOT_I2C_BUS           BUS_I2C2
+
+#define TEMPERATURE_I2C_BUS     BUS_I2C2
+
 
 // *************** SPI2 OSD ***************************
 #define USE_SPI_DEVICE_2
@@ -90,20 +91,17 @@
 #define MAX7456_SPI_BUS         BUS_SPI2
 
 // *************** SPI3 SD Card  ********************
+#define USE_SDCARD
+#define USE_SDCARD_SPI
+#define SDCARD_SPI_BUS          BUS_SPI3
+#define SDCARD_CS_PIN           PC14
+
 #define USE_SPI_DEVICE_3
 #define SPI3_SCK_PIN            PB3
 #define SPI3_MISO_PIN   	    PB4
 #define SPI3_MOSI_PIN   	    PB5
 
-#define USE_SDCARD
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
-#define SDCARD_SPI_INSTANCE     SPI3
-#define SDCARD_SPI_CS_PIN       PC14
-
-#define SDCARD_DMA_CHANNEL_TX               	DMA1_Stream7
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG 	DMA_FLAG_TCIF7
-#define SDCARD_DMA_CLK                      	RCC_AHB1Periph_DMA1
-#define SDCARD_DMA_CHANNEL                  	DMA_Channel_0
 
 // *************** UART *****************************
 #define USE_VCP
@@ -168,6 +166,9 @@
 
 #define USE_SPEKTRUM_BIND
 #define BIND_PIN                PA3 //  RX2
+
+#define USE_DSHOT
+#define USE_ESC_SENSOR
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

@@ -46,7 +46,14 @@ typedef enum {
     FUNCTION_VTX_TRAMP           = (1 << 12), // 4096
     FUNCTION_UAV_INTERCONNECT    = (1 << 13), // 8192
     FUNCTION_OPTICAL_FLOW        = (1 << 14), // 16384
-    FUNCTION_DEBUG_TRACE         = (1 << 15), // 32768
+    FUNCTION_LOG                 = (1 << 15), // 32768
+    FUNCTION_RANGEFINDER         = (1 << 16), // 65536
+    FUNCTION_VTX_FFPV            = (1 << 17), // 131072
+    FUNCTION_ESCSERIAL           = (1 << 18), // 262144: this is used for both SERIALSHOT and ESC_SENSOR telemetry
+    FUNCTION_TELEMETRY_SIM       = (1 << 19), // 524288
+    FUNCTION_FRSKY_OSD           = (1 << 20), // 1048576
+    FUNCTION_DJI_HD_OSD          = (1 << 21), // 2097152
+    FUNCTION_SERVO_SERIAL        = (1 << 22), // 4194304
 } serialPortFunction_e;
 
 typedef enum {
@@ -99,14 +106,14 @@ typedef struct serialPortUsage_s {
     serialPortFunction_e function;
 } serialPortUsage_t;
 
-serialPort_t *findSharedSerialPort(uint16_t functionMask, serialPortFunction_e sharedWithFunction);
-serialPort_t *findNextSharedSerialPort(uint16_t functionMask, serialPortFunction_e sharedWithFunction);
+serialPort_t *findSharedSerialPort(uint32_t functionMask, serialPortFunction_e sharedWithFunction);
+serialPort_t *findNextSharedSerialPort(uint32_t functionMask, serialPortFunction_e sharedWithFunction);
 
 //
 // configuration
 //
 typedef struct serialPortConfig_s {
-    uint16_t functionMask;
+    uint32_t functionMask;
     serialPortIdentifier_e identifier;
     uint8_t msp_baudrateIndex;
     uint8_t gps_baudrateIndex;
@@ -137,7 +144,7 @@ serialPortConfig_t *findSerialPortConfig(serialPortFunction_e function);
 serialPortConfig_t *findNextSerialPortConfig(serialPortFunction_e function);
 
 portSharing_e determinePortSharing(const serialPortConfig_t *portConfig, serialPortFunction_e function);
-bool isSerialPortShared(const serialPortConfig_t *portConfig, uint16_t functionMask, serialPortFunction_e sharedWithFunction);
+bool isSerialPortShared(const serialPortConfig_t *portConfig, uint32_t functionMask, serialPortFunction_e sharedWithFunction);
 
 serialPortUsage_t *findSerialPortUsageByIdentifier(serialPortIdentifier_e identifier);
 int findSerialPortIndexByIdentifier(serialPortIdentifier_e identifier);

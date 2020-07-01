@@ -37,8 +37,6 @@ EXCLUDES        = stm32f7xx_hal_can.c \
                   stm32f7xx_hal_nor.c \
                   stm32f7xx_hal_qspi.c \
                   stm32f7xx_hal_rng.c \
-                  stm32f7xx_hal_rtc.c \
-                  stm32f7xx_hal_rtc_ex.c \
                   stm32f7xx_hal_sai.c \
                   stm32f7xx_hal_sai_ex.c \
                   stm32f7xx_hal_sd.c \
@@ -78,12 +76,25 @@ USBCDC_SRC = $(notdir $(wildcard $(USBCDC_DIR)/Src/*.c))
 EXCLUDES   = usbd_cdc_if_template.c
 USBCDC_SRC := $(filter-out ${EXCLUDES}, $(USBCDC_SRC))
 
-VPATH := $(VPATH):$(USBCDC_DIR)/Src:$(USBCORE_DIR)/Src:$(USBHID_DIR)/Src
+USBHID_DIR = $(ROOT)/lib/main/STM32F7/Middlewares/ST/STM32_USB_Device_Library/Class/HID
+USBHID_SRC = $(notdir $(wildcard $(USBHID_DIR)/Src/*.c))
+
+USBHIDCDC_DIR = $(ROOT)/lib/main/STM32F7/Middlewares/ST/STM32_USB_Device_Library/Class/CDC_HID
+USBHIDCDC_SRC = $(notdir $(wildcard $(USBHIDCDC_DIR)/Src/*.c))
+
+USBMSC_DIR = $(ROOT)/lib/main/STM32F7/Middlewares/ST/STM32_USB_Device_Library/Class/MSC
+USBMSC_SRC = $(notdir $(wildcard $(USBMSC_DIR)/Src/*.c))
+EXCLUDES   = usbd_msc_storage_template.c
+USBMSC_SRC := $(filter-out ${EXCLUDES}, $(USBMSC_SRC))
+
+VPATH := $(VPATH):$(USBCDC_DIR)/Src:$(USBCORE_DIR)/Src:$(USBHID_DIR)/Src:$(USBHIDCDC_DIR)/Src:$(USBMSC_DIR)/Src
 
 DEVICE_STDPERIPH_SRC := $(STDPERIPH_SRC) \
                         $(USBCORE_SRC) \
                         $(USBCDC_SRC) \
-                        $(USBHID_SRC)
+                        $(USBHID_SRC) \
+                        $(USBHIDCDC_SRC) \
+                        $(USBMSC_SRC)
 
 #CMSIS
 VPATH           := $(VPATH):$(CMSIS_DIR)/Include:$(CMSIS_DIR)/Device/ST/STM32F7xx
@@ -94,6 +105,8 @@ INCLUDE_DIRS    := $(INCLUDE_DIRS) \
                    $(USBCORE_DIR)/Inc \
                    $(USBCDC_DIR)/Inc \
                    $(USBHID_DIR)/Inc \
+                   $(USBHIDCDC_DIR)/Inc \
+                   $(USBMSC_DIR)/Inc \
                    $(CMSIS_DIR)/Core/Include \
                    $(ROOT)/lib/main/STM32F7/Drivers/CMSIS/Device/ST/STM32F7xx/Include \
                    $(ROOT)/src/main/vcp_hal
@@ -108,7 +121,12 @@ endif
 ARCH_FLAGS      = -mthumb -mcpu=cortex-m7 -mfloat-abi=hard -mfpu=fpv5-sp-d16 -fsingle-precision-constant -Wdouble-promotion
 
 DEVICE_FLAGS    = -DUSE_HAL_DRIVER -DUSE_FULL_LL_DRIVER
-ifeq ($(TARGET),$(filter $(TARGET),$(F7X5XG_TARGETS)))
+ifeq ($(TARGET),$(filter $(TARGET),$(F7X5XI_TARGETS)))
+DEVICE_FLAGS   += -DSTM32F765xx
+LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f765.ld
+STARTUP_SRC     = startup_stm32f765xx.s
+TARGET_FLASH   := 2048
+else ifeq ($(TARGET),$(filter $(TARGET),$(F7X5XG_TARGETS)))
 DEVICE_FLAGS   += -DSTM32F745xx
 LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f745.ld
 STARTUP_SRC     = startup_stm32f745xx.s
@@ -154,12 +172,36 @@ MCU_COMMON_SRC = \
             drivers/system_stm32f7xx.c \
             drivers/serial_uart_stm32f7xx.c \
             drivers/serial_softserial.c \
-            drivers/serial_uart_hal.c
+            drivers/serial_uart_hal.c \
+            drivers/sdcard/sdmmc_sdio_f7xx.c
 
 MCU_EXCLUDES = \
             drivers/bus_spi.c \
             drivers/bus_i2c.c \
             drivers/serial_uart.c
+
+MSC_SRC = \
+            drivers/usb_msc_f7xx.c \
+            msc/usbd_storage.c
+
+ifneq ($(filter SDIO,$(FEATURES)),)
+MCU_COMMON_SRC += \
+            drivers/sdio_f7xx.c
+MSC_SRC += \
+            msc/usbd_storage_sdio.c
+endif
+
+ifneq ($(filter SDCARD,$(FEATURES)),)
+MSC_SRC += \
+            msc/usbd_storage_sd_spi.c
+endif
+
+ifneq ($(filter ONBOARDFLASH,$(FEATURES)),)
+MSC_SRC += \
+            msc/usbd_storage_emfat.c \
+            msc/emfat.c \
+            msc/emfat_file.c
+endif
 
 DSP_LIB := $(ROOT)/lib/main/CMSIS/DSP
 DEVICE_FLAGS += -DARM_MATH_MATRIX_CHECK -DARM_MATH_ROUNDING -D__FPU_PRESENT=1 -DUNALIGNED_SUPPORT_DISABLE -DARM_MATH_CM7

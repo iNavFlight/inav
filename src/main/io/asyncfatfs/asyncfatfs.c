@@ -30,7 +30,7 @@
 #include "asyncfatfs.h"
 
 #include "fat_standard.h"
-#include "drivers/sdcard.h"
+#include "drivers/sdcard/sdcard.h"
 
 #ifdef AFATFS_DEBUG
     #define ONLY_EXPOSE_FOR_TESTING
@@ -418,11 +418,6 @@ typedef enum {
     AFATFS_INITIALIZATION_FREEFILE_LAST = AFATFS_INITIALIZATION_FREEFILE_SAVE_DIR_ENTRY,
 #endif
 
-#ifdef AFATFS_USE_INTROSPECTIVE_LOGGING
-    AFATFS_INITIALIZATION_INTROSPEC_LOG_CREATE,
-    AFATFS_INITIALIZATION_INTROSPEC_LOG_CREATING,
-#endif
-
     AFATFS_INITIALIZATION_DONE
 } afatfsInitializationPhase_e;
 
@@ -451,10 +446,6 @@ typedef struct afatfs_t {
 
 #ifdef AFATFS_USE_FREEFILE
     afatfsFile_t freeFile;
-#endif
-
-#ifdef AFATFS_USE_INTROSPECTIVE_LOGGING
-    afatfsFile_t introSpecLog;
 #endif
 
     afatfsError_e lastError;
@@ -3225,10 +3216,6 @@ static void afatfs_fileOperationsPoll(void)
 {
     afatfs_fileOperationContinue(&afatfs.currentDirectory);
 
-#ifdef AFATFS_USE_INTROSPECTIVE_LOGGING
-    afatfs_fileOperationContinue(&afatfs.introSpecLog);
-#endif
-
     for (int i = 0; i < AFATFS_MAX_OPEN_FILES; i++) {
         afatfs_fileOperationContinue(&afatfs.openFiles[i]);
     }
@@ -3357,20 +3344,6 @@ static void afatfs_freeFileCreated(afatfsFile_t *file)
 
 #endif
 
-#ifdef AFATFS_USE_INTROSPECTIVE_LOGGING
-
-static void afatfs_introspecLogCreated(afatfsFile_t *file)
-{
-    if (file) {
-        afatfs.initPhase++;
-    } else {
-        afatfs.lastError = AFATFS_ERROR_GENERIC;
-        afatfs.filesystemState = AFATFS_FILESYSTEM_STATE_FATAL;
-    }
-}
-
-#endif
-
 static void afatfs_initContinue(void)
 {
 #ifdef AFATFS_USE_FREEFILE
@@ -3479,18 +3452,6 @@ static void afatfs_initContinue(void)
         break;
 #endif
 
-#ifdef AFATFS_USE_INTROSPECTIVE_LOGGING
-        case AFATFS_INITIALIZATION_INTROSPEC_LOG_CREATE:
-            afatfs.initPhase = AFATFS_INITIALIZATION_INTROSPEC_LOG_CREATING;
-
-            afatfs_createFile(&afatfs.introSpecLog, AFATFS_INTROSPEC_LOG_FILENAME, FAT_FILE_ATTRIBUTE_ARCHIVE,
-                AFATFS_FILE_MODE_CREATE | AFATFS_FILE_MODE_APPEND, afatfs_introspecLogCreated);
-        break;
-        case AFATFS_INITIALIZATION_INTROSPEC_LOG_CREATING:
-            afatfs_fileOperationContinue(&afatfs.introSpecLog);
-        break;
-#endif
-
         case AFATFS_INITIALIZATION_DONE:
             afatfs.filesystemState = AFATFS_FILESYSTEM_STATE_READY;
         break;
@@ -3520,50 +3481,6 @@ void afatfs_poll(void)
     }
 }
 
-#ifdef AFATFS_USE_INTROSPECTIVE_LOGGING
-
-void afatfs_sdcardProfilerCallback(sdcardBlockOperation_e operation, uint32_t blockIndex, uint32_t duration)
-{
-    // Make sure the log file has actually been opened before we try to log to it:
-    if (afatfs.introSpecLog.type == AFATFS_FILE_TYPE_NONE) {
-        return;
-    }
-
-    enum {
-        LOG_ENTRY_SIZE = 16 // Log entry size should be a power of two to avoid partial fwrites()
-    };
-
-    uint8_t buffer[LOG_ENTRY_SIZE];
-
-    buffer[0] = operation;
-
-    // Padding/reserved:
-    buffer[1] = 0;
-    buffer[2] = 0;
-    buffer[3] = 0;
-
-    buffer[4] = blockIndex & 0xFF;
-    buffer[5] = (blockIndex >> 8) & 0xFF;
-    buffer[6] = (blockIndex >> 16) & 0xFF;
-    buffer[7] = (blockIndex >> 24) & 0xFF;
-
-    buffer[8] = duration & 0xFF;
-    buffer[9] = (duration >> 8) & 0xFF;
-    buffer[10] = (duration >> 16) & 0xFF;
-    buffer[11] = (duration >> 24) & 0xFF;
-
-    // Padding/reserved:
-    buffer[12] = 0;
-    buffer[13] = 0;
-    buffer[14] = 0;
-    buffer[15] = 0;
-
-    // Ignore write failures
-    afatfs_fwrite(&afatfs.introSpecLog, buffer, LOG_ENTRY_SIZE);
-}
-
-#endif
-
 afatfsFilesystemState_e afatfs_getFilesystemState(void)
 {
     return afatfs.filesystemState;
@@ -3579,10 +3496,6 @@ void afatfs_init(void)
     afatfs.filesystemState = AFATFS_FILESYSTEM_STATE_INITIALIZATION;
     afatfs.initPhase = AFATFS_INITIALIZATION_READ_MBR;
     afatfs.lastClusterAllocated = FAT_SMALLEST_LEGAL_CLUSTER_NUMBER;
-
-#ifdef AFATFS_USE_INTROSPECTIVE_LOGGING
-    sdcard_setProfilerCallback(afatfs_sdcardProfilerCallback);
-#endif
 }
 
 /**
@@ -3603,13 +3516,6 @@ bool afatfs_destroy(bool dirty)
                 openFileCount++;
             }
         }
-
-#ifdef AFATFS_USE_INTROSPECTIVE_LOGGING
-        if (afatfs.introSpecLog.type != AFATFS_FILE_TYPE_NONE) {
-            afatfs_fclose(&afatfs.introSpecLog, NULL);
-            openFileCount++;
-        }
-#endif
 
 #ifdef AFATFS_USE_FREEFILE
         if (afatfs.freeFile.type != AFATFS_FILE_TYPE_NONE) {

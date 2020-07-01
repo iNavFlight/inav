@@ -18,22 +18,25 @@
 #pragma once
 
 #include <stdbool.h>
-#include "drivers/vcd.h"
 
-#ifndef WHITEBRIGHTNESS
-  #define WHITEBRIGHTNESS 0x01
+#include "drivers/osd.h"
+
+#ifndef MAX7456_WHITEBRIGHTNESS
+  #define MAX7456_WHITEBRIGHTNESS 0x01
 #endif
-#ifndef BLACKBRIGHTNESS
-  #define BLACKBRIGHTNESS 0x00
+#ifndef MAX7456_BLACKBRIGHTNESS
+  #define MAX7456_BLACKBRIGHTNESS 0x00
 #endif
 
-#define BWBRIGHTNESS ((BLACKBRIGHTNESS << 2) | WHITEBRIGHTNESS)
+#define MAX7456_BWBRIGHTNESS ((MAX7456_BLACKBRIGHTNESS << 2) | MAX7456_WHITEBRIGHTNESS)
+
+#define MAX7456_CHARS_PER_LINE          30
 
 /** PAL or NTSC, value is number of chars total */
-#define VIDEO_BUFFER_CHARS_NTSC   390
-#define VIDEO_BUFFER_CHARS_PAL    480
-#define VIDEO_LINES_NTSC          13
-#define VIDEO_LINES_PAL           16
+#define MAX7456_LINES_NTSC          13
+#define MAX7456_LINES_PAL           16
+#define MAX7456_BUFFER_CHARS_NTSC   (MAX7456_LINES_NTSC * MAX7456_CHARS_PER_LINE)
+#define MAX7456_BUFFER_CHARS_PAL    (MAX7456_LINES_PAL * MAX7456_CHARS_PER_LINE)
 
 enum VIDEO_TYPES { AUTO = 0, PAL, NTSC };
 
@@ -41,16 +44,15 @@ enum VIDEO_TYPES { AUTO = 0, PAL, NTSC };
 #define MAX7456_MODE_BLINK    (1 << 4)
 #define MAX7456_MODE_SOLID_BG (1 << 5)
 
-extern uint16_t maxScreenSize;
-
-struct vcdProfile_s;
-void    max7456Init(const videoSystem_e videoSystem);
-void    max7456DrawScreenPartial(void);
-void    max7456WriteNvm(uint8_t char_address, const uint8_t *font_data);
+void max7456Init(const videoSystem_e videoSystem);
+void max7456Update(void);
+void max7456ReadNvm(uint16_t char_address, osdCharacter_t *chr);
+void max7456WriteNvm(uint16_t char_address, const osdCharacter_t *chr);
+uint16_t max7456GetScreenSize(void);
 uint8_t max7456GetRowsCount(void);
-void    max7456Write(uint8_t x, uint8_t y, const char *buff, uint8_t mode);
-void    max7456WriteChar(uint8_t x, uint8_t y, uint8_t c, uint8_t mode);
-bool    max7456ReadChar(uint8_t x, uint8_t y, uint8_t *c, uint8_t *mode);
-void    max7456ClearScreen(void);
-void    max7456RefreshAll(void);
+void max7456Write(uint8_t x, uint8_t y, const char *buff, uint8_t mode);
+void max7456WriteChar(uint8_t x, uint8_t y, uint16_t c, uint8_t mode);
+bool max7456ReadChar(uint8_t x, uint8_t y, uint16_t *c, uint8_t *mode);
+void max7456ClearScreen(void);
+void max7456RefreshAll(void);
 uint8_t* max7456GetScreenBuffer(void);

@@ -31,47 +31,36 @@
 #define BEEPER   PD15
 #define BEEPER_INVERTED
 
-#define USE_ACC
-#define USE_GYRO
 #define USE_DUAL_GYRO
 
 // ICM-20608-G
-#define USE_ACC_MPU6500
-#define USE_GYRO_MPU6500
 
 // MPU6000
-#define USE_ACC_MPU6000
-#define USE_GYRO_MPU6000
 
 #ifdef OMNIBUSF7V2
+#   define USE_IMU_MPU6000
+#   define IMU_MPU6000_ALIGN        CW0_DEG
 #   define MPU6000_CS_PIN           SPI1_NSS_PIN
 #   define MPU6000_SPI_BUS          BUS_SPI1
 #   define MPU6000_EXTI_PIN         PE8
 
+#   define USE_IMU_MPU6500
+#   define IMU_MPU6500_ALIGN        CW90_DEG
 #   define MPU6500_CS_PIN           SPI3_NSS_PIN
 #   define MPU6500_SPI_BUS          BUS_SPI3
 #   define MPU6500_EXTI_PIN         PD0
-// #   define GYRO_1_CS_PIN           MPU6500_CS_PIN
-// #   define GYRO_0_CS_PIN           MPU6000_CS_PIN
-// #   define GYRO_1_INT_EXTI         PD0
-// #   define GYRO_0_INT_EXTI         PE8
-#   define GYRO_MPU6500_ALIGN       CW90_DEG
-#   define ACC_MPU6500_ALIGN        CW90_DEG
 #else
+#   define USE_IMU_MPU6000
+#   define IMU_MPU6000_ALIGN        CW0_DEG
 #   define MPU6000_CS_PIN           SPI3_NSS_PIN
 #   define MPU6000_SPI_BUS          BUS_SPI3
 #   define MPU6000_EXTI_PIN         PD0
 
+#   define USE_IMU_MPU6500
+#   define IMU_MPU6500_ALIGN        CW0_DEG
 #   define MPU6500_CS_PIN           SPI1_NSS_PIN
 #   define MPU6500_SPI_BUS          BUS_SPI1
 #   define MPU6500_EXTI_PIN         PE8
-
-// #   define GYRO_0_CS_PIN           MPU6000_CS_PIN
-// #   define GYRO_1_CS_PIN           MPU6500_CS_PIN
-// #   define GYRO_0_INT_EXTI         PD0
-// #   define GYRO_1_INT_EXTI         PE8
-#   define GYRO_MPU6000_ALIGN      CW0_DEG
-#   define ACC_MPU6000_ALIGN       CW0_DEG
 #endif
 
 #define USE_EXTI
@@ -137,27 +126,17 @@
 #define SPI4_MISO_PIN           PE5
 #define SPI4_MOSI_PIN           PE6
 
-
 #define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          SPI2_NSS_PIN
 
 #define USE_SDCARD
+#define USE_SDCARD_SPI
 #define SDCARD_DETECT_INVERTED
-#define SDCARD_DETECT_PIN                   PE3
-#define SDCARD_DETECT_EXTI_LINE             EXTI_Line3
-#define SDCARD_DETECT_EXTI_PIN_SOURCE       EXTI_PinSource3
-#define SDCARD_DETECT_EXTI_PORT_SOURCE      EXTI_PortSourceGPIOE
-#define SDCARD_DETECT_EXTI_IRQn             EXTI3_IRQn
-
-#define SDCARD_SPI_INSTANCE                 SPI4
-#define SDCARD_SPI_CS_PIN                   SPI4_NSS_PIN
-
-#define SDCARD_DMA_CHANNEL_TX               DMA2_Stream1
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF1_5
-#define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA2
-#define SDCARD_DMA_CHANNEL                  DMA_CHANNEL_4
+#define SDCARD_DETECT_PIN       PE3
+#define SDCARD_SPI_BUS          BUS_SPI4
+#define SDCARD_CS_PIN           SPI4_NSS_PIN
 
 #define USE_I2C
 #define USE_I2C_DEVICE_2
@@ -178,6 +157,8 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
+#define TEMPERATURE_I2C_BUS     BUS_I2C2
+
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_HCSR04_I2C
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
@@ -197,13 +178,6 @@
 //Following configuration needs to be reviewed, when LED is enabled, VCP stops to work
 //Until someone with deeper knowledge od DMA fixes it, LED are disabled in target
 #define WS2811_PIN                      PD12
-#define WS2811_TIMER                    TIM4
-#define WS2811_TIMER_CHANNEL            TIM_CHANNEL_1
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA2_ST4_HANDLER
-#define WS2811_DMA_STREAM               DMA2_Stream4
-#define WS2811_DMA_IT                   DMA_IT_TCIF2
-#define WS2811_DMA_CHANNEL              DMA_CHANNEL_6
-#define WS2811_TIMER_GPIO_AF            GPIO_AF2_TIM4
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
@@ -217,6 +191,8 @@
 // Number of available PWM outputs
 #define MAX_PWM_OUTPUT_PORTS    4
 #define TARGET_MOTOR_COUNT      4
+#define USE_DSHOT
+#define USE_ESC_SENSOR
 
 #define TARGET_IO_PORTA 0xffff
 #define TARGET_IO_PORTB 0xffff

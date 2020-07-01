@@ -35,14 +35,15 @@
 
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
+#define ICM20689_CS_PIN         PA4
+#define ICM20689_SPI_BUS        BUS_SPI1
 
-#define USE_ACC
-#define USE_ACC_MPU6000
-#define ACC_MPU6000_ALIGN       CW90_DEG
 
-#define USE_GYRO
-#define USE_GYRO_MPU6000
-#define GYRO_MPU6000_ALIGN      CW90_DEG
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW90_DEG
+
+#define USE_IMU_ICM20689
+#define IMU_ICM20689_ALIGN       CW90_DEG
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
@@ -54,20 +55,17 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
+#define TEMPERATURE_I2C_BUS     BUS_I2C2
+
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C2
 #define USE_BARO_MS5611
 
 
 #define USE_SDCARD
-
-#define SDCARD_SPI_INSTANCE     SPI2
-#define SDCARD_SPI_CS_PIN       PE15
-
-#define SDCARD_DMA_CHANNEL_TX               DMA1_Stream3
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF3
-#define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA1
-#define SDCARD_DMA_CHANNEL                  DMA_Channel_0
+#define USE_SDCARD_SPI
+#define SDCARD_SPI_BUS          BUS_SPI2
+#define SDCARD_CS_PIN           PE15
 
 #define USE_VCP
 #define VBUS_SENSING_PIN        PA9

@@ -33,22 +33,25 @@
 #ifdef USE_LED_STRIP
 
 #include "build/build_config.h"
+#include "build/debug.h"
 
 #include "common/color.h"
 #include "common/colorconversion.h"
-#include "dma.h"
+
+#include "drivers/dma.h"
 #include "drivers/io.h"
-#include "light_ws2811strip.h"
+#include "drivers/timer.h"
+#include "drivers/light_ws2811strip.h"
 
-#if defined(STM32F4) || defined(STM32F7)
-uint32_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
-#else
-uint8_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
-#endif
-volatile uint8_t ws2811LedDataTransferInProgress = 0;
+#define WS2811_PERIOD (WS2811_TIMER_HZ / WS2811_CARRIER_HZ)
+#define WS2811_BIT_COMPARE_1 ((WS2811_PERIOD * 2) / 3)
+#define WS2811_BIT_COMPARE_0 (WS2811_PERIOD / 3)
 
-uint16_t BIT_COMPARE_1 = 0;
-uint16_t BIT_COMPARE_0 = 0;
+static timerDMASafeType_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
+
+static IO_t ws2811IO = IO_NONE;
+static TCH_t * ws2811TCH = NULL;
+static bool ws2811Initialised = false;
 
 static hsvColor_t ledColorBuffer[WS2811_LED_STRIP_LENGTH];
 
@@ -90,49 +93,56 @@ void setStripColors(const hsvColor_t *colors)
 
 void ws2811LedStripInit(void)
 {
+    const timerHardware_t * timHw = timerGetByTag(IO_TAG(WS2811_PIN), TIM_USE_ANY);
+
+    if (timHw == NULL) {
+        return;
+    }
+
+    ws2811TCH = timerGetTCH(timHw);
+    if (ws2811TCH == NULL) {
+        return;
+    }
+
+    /* Compute the prescaler value */
+    uint8_t period = WS2811_TIMER_HZ / WS2811_CARRIER_HZ;
+
+    ws2811IO = IOGetByTag(IO_TAG(WS2811_PIN));
+    IOInit(ws2811IO, OWNER_LED_STRIP, RESOURCE_OUTPUT, 0);
+    IOConfigGPIOAF(ws2811IO, IOCFG_AF_PP_FAST, timHw->alternateFunction);
+
+    timerConfigBase(ws2811TCH, period, WS2811_TIMER_HZ);
+    timerPWMConfigChannel(ws2811TCH, 0);
+
+    // If DMA failed - abort
+    if (!timerPWMConfigChannelDMA(ws2811TCH, ledStripDMABuffer, sizeof(ledStripDMABuffer[0]), WS2811_DMA_BUFFER_SIZE)) {
+        ws2811Initialised = false;
+        return;
+    }
+
+    // Zero out DMA buffer
     memset(&ledStripDMABuffer, 0, sizeof(ledStripDMABuffer));
-    ws2811LedStripHardwareInit();
+    ws2811Initialised = true;
+
     ws2811UpdateStrip();
 }
 
 bool isWS2811LedStripReady(void)
 {
-    return !ws2811LedDataTransferInProgress;
+    return !timerPWMDMAInProgress(ws2811TCH);
 }
 
 STATIC_UNIT_TESTED uint16_t dmaBufferOffset;
 static int16_t ledIndex;
-
-#define USE_FAST_DMA_BUFFER_IMPL
-#ifdef USE_FAST_DMA_BUFFER_IMPL
 
 STATIC_UNIT_TESTED void fastUpdateLEDDMABuffer(rgbColor24bpp_t *color)
 {
     uint32_t grb = (color->rgb.g << 16) | (color->rgb.r << 8) | (color->rgb.b);
 
     for (int8_t index = 23; index >= 0; index--) {
-        ledStripDMABuffer[dmaBufferOffset++] = (grb & (1 << index)) ? BIT_COMPARE_1 : BIT_COMPARE_0;
+        ledStripDMABuffer[dmaBufferOffset++] = (grb & (1 << index)) ? WS2811_BIT_COMPARE_1 : WS2811_BIT_COMPARE_0;
     }
 }
-#else
-STATIC_UNIT_TESTED void updateLEDDMABuffer(uint8_t componentValue)
-{
-    uint8_t bitIndex;
-
-    for (bitIndex = 0; bitIndex < 8; bitIndex++)
-    {
-        if ((componentValue << bitIndex) & 0x80 )    // data sent MSB first, j = 0 is MSB j = 7 is LSB
-        {
-            ledStripDMABuffer[dmaBufferOffset] = BIT_COMPARE_1;
-        }
-        else
-        {
-            ledStripDMABuffer[dmaBufferOffset] = BIT_COMPARE_0;   // compare value for logical 0
-        }
-        dmaBufferOffset++;
-    }
-}
-#endif
 
 /*
  * This method is non-blocking unless an existing LED update is in progress.
@@ -143,7 +153,7 @@ void ws2811UpdateStrip(void)
     static rgbColor24bpp_t *rgb24;
 
     // don't wait - risk of infinite block, just get an update next time round
-    if (ws2811LedDataTransferInProgress) {
+    if (timerPWMDMAInProgress(ws2811TCH)) {
         return;
     }
 
@@ -155,20 +165,17 @@ void ws2811UpdateStrip(void)
     while (ledIndex < WS2811_LED_STRIP_LENGTH)
     {
         rgb24 = hsvToRgb24(&ledColorBuffer[ledIndex]);
-
-#ifdef USE_FAST_DMA_BUFFER_IMPL
         fastUpdateLEDDMABuffer(rgb24);
-#else
-        updateLEDDMABuffer(rgb24->rgb.g);
-        updateLEDDMABuffer(rgb24->rgb.r);
-        updateLEDDMABuffer(rgb24->rgb.b);
-#endif
-
         ledIndex++;
     }
 
-    ws2811LedDataTransferInProgress = 1;
-    ws2811LedStripDMAEnable();
+    // Initiate hardware transfer
+    if (!ws2811Initialised || !ws2811TCH) {
+        return;
+    }
+
+    timerPWMPrepareDMA(ws2811TCH, WS2811_DMA_BUFFER_SIZE);
+    timerPWMStartDMA(ws2811TCH);
 }
 
 #endif

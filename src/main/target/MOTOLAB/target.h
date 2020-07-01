@@ -30,18 +30,11 @@
 #define GYRO_INT_EXTI            PA15
 #define USE_MPU_DATA_READY_SIGNAL
 
-#define USE_GYRO
-#define USE_GYRO_MPU6050
-#define GYRO_MPU6050_ALIGN      CW180_DEG
+#define USE_IMU_MPU6050
+#define IMU_MPU6050_ALIGN       CW180_DEG
 
-#define USE_ACC
-#define USE_ACC_MPU6050
-#define ACC_MPU6050_ALIGN       CW180_DEG
-
-#define USE_GYRO_MPU6000
-#define GYRO_MPU6000_ALIGN      CW180_DEG
-#define USE_ACC_MPU6000
-#define ACC_MPU6000_ALIGN       CW180_DEG
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW180_DEG
 
 #define MPU6050_I2C_BUS         BUS_I2C2
 #define MPU6000_CS_PIN          PB12
@@ -102,11 +95,6 @@
 
 #define USE_LED_STRIP_ON_DMA1_CHANNEL3
 #define WS2811_PIN                      PB8 // TIM16_CH1
-#define WS2811_TIMER                    TIM16
-#define WS2811_DMA_STREAM               DMA1_Channel3
-#define WS2811_IRQ                      DMA1_Channel3_IRQn
-#define WS2811_DMA_TC_FLAG              DMA1_FLAG_TC3
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH3_HANDLER
 
 
 #define USE_SPEKTRUM_BIND

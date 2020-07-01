@@ -18,7 +18,6 @@
 #pragma once
 
 #define TARGET_BOARD_IDENTIFIER "FRF3"
-#define TARGET_CONFIG
 
 #define LED0_PIN                PB3
 #define BEEPER                  PC15
@@ -29,16 +28,10 @@
 #define USE_MPU_DATA_READY_SIGNAL
 #define MPU_ADDRESS             0x69
 
-#define USE_GYRO
-#define USE_ACC
-
 #define MPU6050_I2C_BUS         BUS_I2C1
 
-#define USE_GYRO_MPU6050
-#define GYRO_MPU6050_ALIGN      CW270_DEG
-
-#define USE_ACC_MPU6050
-#define ACC_MPU6050_ALIGN       CW270_DEG
+#define USE_IMU_MPU6050
+#define IMU_MPU6050_ALIGN       CW270_DEG
 
 #define USE_VCP
 #define USE_UART1
@@ -85,11 +78,11 @@
 #define SPI1_MOSI_PIN           PA7
 
 #define USE_SDCARD
-
+#define USE_SDCARD_SPI
 #define SDCARD_DETECT_INVERTED
-#define SDCARD_DETECT_PIN                   PB5
-#define SDCARD_SPI_INSTANCE                 SPI1
-#define SDCARD_SPI_CS_PIN                   SPI1_NSS_PIN
+#define SDCARD_DETECT_PIN       PB5
+#define SDCARD_SPI_BUS          BUS_SPI1
+#define SDCARD_CS_PIN           SPI1_NSS_PIN
 
 #define USE_ADC
 #define ADC_INSTANCE                ADC2

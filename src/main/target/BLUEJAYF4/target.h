@@ -17,7 +17,6 @@
 
 #pragma once
 #define TARGET_BOARD_IDENTIFIER "BJF4"
-#define TARGET_CONFIG
 
 #define USBD_PRODUCT_STRING     "BlueJayF4"
 
@@ -41,13 +40,8 @@
 #define MPU6500_CS_PIN          PC4
 #define MPU6500_SPI_BUS         BUS_SPI1
 
-#define USE_ACC
-#define USE_ACC_MPU6500
-#define ACC_MPU6500_ALIGN       CW0_DEG
-
-#define USE_GYRO
-#define USE_GYRO_MPU6500
-#define GYRO_MPU6500_ALIGN      CW0_DEG
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW0_DEG
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
@@ -58,6 +52,8 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
+#define TEMPERATURE_I2C_BUS     BUS_I2C1
+
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_BMP085
@@ -65,20 +61,11 @@
 #define USE_BARO_MS5611
 
 #define USE_SDCARD
-
+#define USE_SDCARD_SPI
 #define SDCARD_DETECT_INVERTED
-
-#define SDCARD_DETECT_PIN                   PD2
-#define SDCARD_SPI_INSTANCE                 SPI3
-#define SDCARD_SPI_CS_PIN                   PA15
-
-#define SDCARD_DMA_CHANNEL_TX               DMA1_Stream5
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF5
-#define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA1
-#define SDCARD_DMA_CHANNEL                  DMA_Channel_0
-
-// Performance logging for SD card operations:
-// #define AFATFS_USE_INTROSPECTIVE_LOGGING
+#define SDCARD_DETECT_PIN       PD2
+#define SDCARD_SPI_BUS          BUS_SPI3
+#define SDCARD_CS_PIN           PA15
 
 #define M25P16_CS_PIN           PB7
 #define M25P16_SPI_BUS          BUS_SPI3
@@ -139,17 +126,7 @@
 #define VBAT_ADC_CHANNEL                ADC_CHN_1
 
 #define USE_LED_STRIP
-// LED Strip can run off Pin 6 (PB1) of the ESC outputs.
 #define WS2811_PIN                      PB1
-#define WS2811_TIMER                    TIM3
-#define WS2811_TIMER_CHANNEL            TIM_Channel_4
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST2_HANDLER
-#define WS2811_DMA_STREAM               DMA1_Stream2
-#define WS2811_DMA_FLAG                 DMA_FLAG_TCIF2
-#define WS2811_DMA_IT                   DMA_IT_TCIF2
-#define WS2811_DMA_CHANNEL              DMA_Channel_5
-#define WS2811_DMA_IRQ                  DMA1_Stream2_IRQn
-
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 

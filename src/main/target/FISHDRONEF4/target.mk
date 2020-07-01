@@ -1,5 +1,5 @@
 F405_TARGETS    += $(TARGET)
-FEATURES        += SDCARD VCP ONBOARDFLASH
+FEATURES        += SDCARD VCP ONBOARDFLASH MSC
 
 TARGET_SRC = \
 				drivers/accgyro/accgyro_mpu6500.c \
@@ -14,5 +14,4 @@ TARGET_SRC = \
                 drivers/compass/compass_mag3110.c \
                 drivers/compass/compass_lis3mdl.c \
 				drivers/light_ws2811strip.c \
-				drivers/light_ws2811strip_stdperiph.c\
 				drivers/max7456.c

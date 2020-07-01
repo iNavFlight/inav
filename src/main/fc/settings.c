@@ -8,12 +8,58 @@
 
 #include "fc/settings.h"
 
+#include "config/general_settings.h"
+#include "flight/rpm_filter.h"
 #include "settings_generated.c"
+
+static bool settingGetWord(char *buf, int idx)
+{
+	if (idx == 0) {
+		return false;
+	}
+	const uint8_t *ptr = settingNamesWords;
+	char *bufPtr = buf;
+	int used_bits = 0;
+	int word = 1;
+	for(;;) {
+		int shift = 8 - SETTINGS_WORDS_BITS_PER_CHAR - used_bits;
+		char chr;
+		if (shift > 0) {
+			chr = (*ptr >> shift) & (0xff >> (8 - SETTINGS_WORDS_BITS_PER_CHAR));
+		} else {
+			chr = (*ptr & (0xff >> (8 - (SETTINGS_WORDS_BITS_PER_CHAR + shift)))) << -shift;
+			ptr++;
+			chr |= (*ptr) >> (8 + shift);
+		}
+		if (word == idx) {
+			if (chr == 0) {
+				// Finished copying the word
+				*bufPtr++ = '\0';
+				break;
+			}
+			char c;
+			if (chr < 27) {
+				c = 'a' + (chr - 1);
+			} else {
+				c = wordSymbols[chr - 27];
+			}
+			*bufPtr++ = c;
+		} else {
+			if (chr == 0) {
+				// Word end
+				word++;
+			}
+		}
+		used_bits = (used_bits + SETTINGS_WORDS_BITS_PER_CHAR) % 8;
+	}
+	return true;
+}
 
 void settingGetName(const setting_t *val, char *buf)
 {
 	uint8_t bpos = 0;
 	uint16_t n = 0;
+	char word[SETTING_MAX_WORD_LENGTH];
 #ifndef SETTING_ENCODED_NAME_USES_BYTE_INDEXING
 	uint8_t shift = 0;
 #endif
@@ -32,8 +78,7 @@ void settingGetName(const setting_t *val, char *buf)
 		// Final byte
 		n |= b << shift;
 #endif
-		const char *word = settingNamesWords[n];
-		if (!word) {
+		if (!settingGetWord(word, n)) {
 			// No more words
 			break;
 		}
@@ -239,6 +284,18 @@ const char * settingLookupValueName(const setting_t *val, unsigned v)
 		return table->values[v];
 	}
 	return NULL;
+}
+
+size_t settingGetValueNameMaxSize(const setting_t *val)
+{
+	size_t maxSize = 0;
+	const lookupTableEntry_t *table = settingLookupTable(val);
+	if (table) {
+		for (unsigned ii = 0; ii < table->valueCount; ii++) {
+			maxSize = MAX(maxSize, strlen(table->values[ii]));
+		}
+	}
+	return maxSize;
 }
 
 const char * settingGetString(const setting_t *val)

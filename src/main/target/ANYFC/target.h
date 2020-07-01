@@ -30,13 +30,8 @@
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
-#define USE_GYRO
-#define USE_GYRO_MPU6000
-#define GYRO_MPU6000_ALIGN      CW270_DEG
-
-#define USE_ACC
-#define USE_ACC_MPU6000
-#define ACC_MPU6000_ALIGN       CW270_DEG
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW270_DEG
 
 // MPU6000 interrupts
 #define USE_EXTI
@@ -54,15 +49,15 @@
 #define USE_MAG_LIS3MDL
 #define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
 
+#define TEMPERATURE_I2C_BUS     BUS_I2C2
+
 #define USE_RANGEFINDER
-#define USE_RANGEFINDER_VL53L0X
-#define VL53L0X_I2C_BUS         BUS_I2C2
+#define RANGEFINDER_I2C_BUS     BUS_I2C2
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_MS5611
 
-#define USE_PITOT_MS4525
 #define PITOT_I2C_BUS           BUS_I2C2
 
 #define USE_VCP
@@ -119,16 +114,7 @@
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
 
 #define USE_LED_STRIP
-// LED Strip can run off Pin 6 (PA0) of the ESC outputs.
 #define WS2811_PIN                      PA0
-#define WS2811_TIMER                    TIM5
-#define WS2811_TIMER_CHANNEL            TIM_Channel_1
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST2_HANDLER
-#define WS2811_DMA_STREAM               DMA1_Stream2
-#define WS2811_DMA_FLAG                 DMA_FLAG_TCIF2
-#define WS2811_DMA_IT                   DMA_IT_TCIF2
-#define WS2811_DMA_CHANNEL              DMA_Channel_6
-#define WS2811_DMA_IRQ                  DMA1_Stream2_IRQn
 
 #define SENSORS_SET             (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
@@ -145,3 +131,7 @@
 #define TARGET_IO_PORTD 0xffff
 
 #define PCA9685_I2C_BUS         BUS_I2C2
+
+#ifdef USE_USB_MSC
+# undef USE_USB_MSC
+#endif

@@ -36,22 +36,15 @@
 #define GYRO_INT_EXTI            PC4
 #define USE_MPU_DATA_READY_SIGNAL
 
-#define USE_GYRO
-#define USE_ACC
-
 #define MPU6500_CS_PIN          PA4
 #define MPU6500_SPI_BUS         BUS_SPI1
-#define USE_GYRO_MPU6500
-#define GYRO_MPU6500_ALIGN      CW90_DEG
-#define USE_ACC_MPU6500
-#define ACC_MPU6500_ALIGN       CW90_DEG
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW90_DEG
 
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
-#define USE_GYRO_MPU6000
-#define GYRO_MPU6000_ALIGN      CW90_DEG
-#define USE_ACC_MPU6000
-#define ACC_MPU6000_ALIGN       CW90_DEG
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW90_DEG
 
 
 //FLASH
@@ -102,11 +95,12 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
+#define TEMPERATURE_I2C_BUS     BUS_I2C1
+
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_HCSR04_I2C
 #define RANGEFINDER_I2C_BUS     DEFAULT_I2C_BUS
 
-#define USE_PITOT_MS4525
 #define PITOT_I2C_BUS           DEFAULT_I2C_BUS
 
 //USART
@@ -133,9 +127,7 @@
 //LED_STRIP
 #define USE_LED_STRIP
 #define WS2811_PIN                      PB6
-#define WS2811_DMA_STREAM               DMA1_Stream0
-#define WS2811_DMA_CHANNEL              DMA_Channel_2
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST0_HANDLER
+
 //ADC
 #define USE_ADC
 #define ADC_INSTANCE                ADC1

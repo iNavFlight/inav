@@ -34,7 +34,6 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/io.h"
-#include "drivers/logging.h"
 #include "drivers/time.h"
 #include "drivers/rangefinder/rangefinder.h"
 #include "drivers/rangefinder/rangefinder_hcsr04.h"
@@ -152,12 +151,19 @@ static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwar
 #endif
             break;
 
+        case RANGEFINDER_BENEWAKE:
+#if defined(USE_RANGEFINDER_BENEWAKE)
+            if (virtualRangefinderDetect(dev, &rangefinderBenewakeVtable)) {
+                rangefinderHardware = RANGEFINDER_BENEWAKE;
+                rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_VIRTUAL_TASK_PERIOD_MS));
+            }
+#endif
+            break;
+
         case RANGEFINDER_NONE:
             rangefinderHardware = RANGEFINDER_NONE;
             break;
     }
-
-    addBootlogEvent6(BOOT_EVENT_RANGEFINDER_DETECTION, BOOT_EVENT_FLAGS_NONE, rangefinderHardware, 0, 0, 0);
 
     if (rangefinderHardware == RANGEFINDER_NONE) {
         sensorsClear(SENSOR_RANGEFINDER);

@@ -20,6 +20,8 @@
 #define TARGET_BOARD_IDENTIFIER "KFCi"
 #define USE_HARDWARE_PREBOOT_SETUP
 
+#define USE_DJI_HD_OSD
+
 #define LED0                    PC13
 #define LED0_INVERTED
 
@@ -36,16 +38,11 @@
 
 #define BUS_SPI_SPEED_MAX BUS_SPEED_SLOW
 
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW90_DEG
 #define MPU6000_CS_PIN          PB5
 #define MPU6000_SPI_BUS         BUS_SPI2
 
-#define USE_GYRO
-#define USE_GYRO_MPU6000
-#define GYRO_MPU6000_ALIGN CW90_DEG
-
-#define USE_ACC
-#define USE_ACC_MPU6000
-#define ACC_MPU6000_ALIGN CW90_DEG
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
@@ -127,10 +124,10 @@
 #define RSSI_ADC_CHANNEL                ADC_CHN_2
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_3
 
-#define USE_LED_STRIP
-#define WS2811_PIN                      PA8
-#define WS2811_DMA_STREAM               DMA1_Channel2
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH2_HANDLER
+//#define USE_LED_STRIP
+//#define WS2811_PIN                      PA8
+//#define WS2811_DMA_STREAM               DMA1_Channel2
+//#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH2_HANDLER
 
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX | FEATURE_OSD | FEATURE_VBAT)
 #define DEFAULT_RX_TYPE         RX_TYPE_PPM

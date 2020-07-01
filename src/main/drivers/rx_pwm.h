@@ -17,15 +17,10 @@
 
 #pragma once
 
-typedef enum {
-    INPUT_FILTERING_DISABLED = 0,
-    INPUT_FILTERING_ENABLED
-} inputFilteringMode_e;
-
 #define PPM_RCVR_TIMEOUT            0
 
 struct timerHardware_s;
-void ppmInConfig(const struct timerHardware_s *timerHardwarePtr, uint8_t motorPwmProtocol);
+bool ppmInConfig(const struct timerHardware_s *timerHardwarePtr);
 
 void pwmInConfig(const struct timerHardware_s *timerHardwarePtr, uint8_t channel);
 uint16_t pwmRead(uint8_t channel);
@@ -33,7 +28,5 @@ uint16_t ppmRead(uint8_t channel);
 
 bool isPPMDataBeingReceived(void);
 void resetPPMDataReceivedState(void);
-
-void pwmRxInit(inputFilteringMode_e inputFilteringMode);
 
 bool isPWMDataBeingReceived(void);

@@ -29,6 +29,7 @@
 #include "fc/config.h"
 #include "fc/fc_msp_box.h"
 #include "fc/runtime_config.h"
+#include "flight/mixer.h"
 
 #include "io/osd.h"
 
@@ -66,6 +67,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXAIRMODE, "AIR MODE", 29 },
     { BOXHOMERESET, "HOME RESET", 30 },
     { BOXGCSNAV, "GCS NAV", 31 },
+    { BOXFPVANGLEMIX, "FPV ANGLE MIX", 32 },
     { BOXSURFACE, "SURFACE", 33 },
     { BOXFLAPERON, "FLAPERON", 34 },
     { BOXTURNASSIST, "TURN ASSIST", 35 },
@@ -79,6 +81,11 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXOSDALT2, "OSD ALT 2", 43 },
     { BOXOSDALT3, "OSD ALT 3", 44 },
     { BOXNAVCRUISE, "NAV CRUISE", 45 },
+    { BOXBRAKING, "MC BRAKING", 46 },
+    { BOXUSER1, "USER1", 47 },
+    { BOXUSER2, "USER2", 48 },
+    { BOXLOITERDIRCHN, "LOITER CHANGE", 49 },
+    { BOXMSPRCOVERRIDE, "MSP RC OVERRIDE", 50 },
     { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
@@ -157,13 +164,13 @@ void initActiveBoxIds(void)
     activeBoxIdCount = 0;
     activeBoxIds[activeBoxIdCount++] = BOXARM;
 
-    if (sensors(SENSOR_ACC)) {
+    if (sensors(SENSOR_ACC) && STATE(ALTITUDE_CONTROL)) {
         activeBoxIds[activeBoxIdCount++] = BOXANGLE;
         activeBoxIds[activeBoxIdCount++] = BOXHORIZON;
         activeBoxIds[activeBoxIdCount++] = BOXTURNASSIST;
     }
 
-    if (!feature(FEATURE_AIRMODE)) {
+    if (!feature(FEATURE_AIRMODE) && STATE(ALTITUDE_CONTROL)) {
         activeBoxIds[activeBoxIdCount++] = BOXAIRMODE;
     }
 
@@ -174,38 +181,57 @@ void initActiveBoxIds(void)
         activeBoxIds[activeBoxIdCount++] = BOXHEADADJ;
     }
 
+    if (STATE(ALTITUDE_CONTROL)) {
+        activeBoxIds[activeBoxIdCount++] = BOXFPVANGLEMIX;
+    }
+
     //Camstab mode is enabled always
     activeBoxIds[activeBoxIdCount++] = BOXCAMSTAB;
 
 #ifdef USE_GPS
-    if (sensors(SENSOR_BARO) || (STATE(FIXED_WING) && feature(FEATURE_GPS))) {
+    if (STATE(ALTITUDE_CONTROL) && (sensors(SENSOR_BARO) || (STATE(AIRPLANE) && feature(FEATURE_GPS)))) {
         activeBoxIds[activeBoxIdCount++] = BOXNAVALTHOLD;
         activeBoxIds[activeBoxIdCount++] = BOXSURFACE;
     }
 
-    const bool navReadyQuads = !STATE(FIXED_WING) && (getHwCompassStatus() != HW_SENSOR_NONE) && sensors(SENSOR_ACC) && feature(FEATURE_GPS);
-    const bool navReadyPlanes = STATE(FIXED_WING) && sensors(SENSOR_ACC) && feature(FEATURE_GPS);
+    const bool navReadyMultirotor = STATE(MULTIROTOR) && (getHwCompassStatus() != HW_SENSOR_NONE) && sensors(SENSOR_ACC) && feature(FEATURE_GPS);
+    const bool navReadyOther = !STATE(MULTIROTOR) && sensors(SENSOR_ACC) && feature(FEATURE_GPS);
     const bool navFlowDeadReckoning = sensors(SENSOR_OPFLOW) && sensors(SENSOR_ACC) && positionEstimationConfig()->allow_dead_reckoning;
-    if (navFlowDeadReckoning || navReadyQuads || navReadyPlanes) {
-        activeBoxIds[activeBoxIdCount++] = BOXNAVPOSHOLD;
+    if (navFlowDeadReckoning || navReadyMultirotor || navReadyOther) {
+        if (!STATE(ROVER) && !STATE(BOAT)) {
+            activeBoxIds[activeBoxIdCount++] = BOXNAVPOSHOLD;
+        }
+        if (STATE(AIRPLANE)) {
+            activeBoxIds[activeBoxIdCount++] = BOXLOITERDIRCHN;
+        }
     }
 
-    if (navReadyQuads || navReadyPlanes) {
+    if (navReadyMultirotor || navReadyOther) {
         activeBoxIds[activeBoxIdCount++] = BOXNAVRTH;
         activeBoxIds[activeBoxIdCount++] = BOXNAVWP;
         activeBoxIds[activeBoxIdCount++] = BOXHOMERESET;
 
         if (feature(FEATURE_GPS)) {
             activeBoxIds[activeBoxIdCount++] = BOXGCSNAV;
-            if (STATE(FIXED_WING)) {
+            if (STATE(AIRPLANE)) {
                 activeBoxIds[activeBoxIdCount++] = BOXNAVCRUISE;
             }
         }
     }
+
+#ifdef USE_MR_BRAKING_MODE
+    if (mixerConfig()->platformType == PLATFORM_MULTIROTOR) {
+        activeBoxIds[activeBoxIdCount++] = BOXBRAKING;
+    }
 #endif
 
-    if (STATE(FIXED_WING)) {
+#endif
+
+    if (STATE(AIRPLANE) || STATE(ROVER) || STATE(BOAT)) {
         activeBoxIds[activeBoxIdCount++] = BOXMANUAL;
+    }
+
+    if (STATE(AIRPLANE)) {
         if (!feature(FEATURE_FW_LAUNCH)) {
            activeBoxIds[activeBoxIdCount++] = BOXNAVLAUNCH;
         }
@@ -257,6 +283,12 @@ void initActiveBoxIds(void)
     activeBoxIds[activeBoxIdCount++] = BOXCAMERA3;
 #endif
 
+#ifdef USE_PINIOBOX
+    // USER modes are only used for PINIO at the moment
+    activeBoxIds[activeBoxIdCount++] = BOXUSER1;
+    activeBoxIds[activeBoxIdCount++] = BOXUSER2;
+#endif
+
 #if defined(USE_OSD) && defined(OSD_LAYOUT_COUNT)
 #if OSD_LAYOUT_COUNT > 0
     activeBoxIds[activeBoxIdCount++] = BOXOSDALT1;
@@ -267,6 +299,10 @@ void initActiveBoxIds(void)
 #endif
 #endif
 #endif
+#endif
+
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    activeBoxIds[activeBoxIdCount++] = BOXMSPRCOVERRIDE;
 #endif
 }
 
@@ -281,44 +317,52 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     // Serialize the flags in the order we delivered them, ignoring BOXNAMES and BOXINDEXES
     // Requires new Multiwii protocol version to fix
     // It would be preferable to setting the enabled bits based on BOXINDEX.
-    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(ANGLE_MODE)),           BOXANGLE);
-    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(HORIZON_MODE)),         BOXHORIZON);
-    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(HEADING_MODE)),         BOXHEADINGHOLD);
-    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(HEADFREE_MODE)),        BOXHEADFREE);
-    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXHEADADJ)),     BOXHEADADJ);
-    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCAMSTAB)),     BOXCAMSTAB);
-    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(MANUAL_MODE)),          BOXMANUAL);
-    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXBEEPERON)),    BOXBEEPERON);
-    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXLEDLOW)),      BOXLEDLOW);
-    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXLIGHTS)),      BOXLIGHTS);
-    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXOSD)),         BOXOSD);
-    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXTELEMETRY)),   BOXTELEMETRY);
-    CHECK_ACTIVE_BOX(IS_ENABLED(ARMING_FLAG(ARMED)),                BOXARM);
-    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXBLACKBOX)),    BOXBLACKBOX);
-    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(FAILSAFE_MODE)),        BOXFAILSAFE);
-    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_ALTHOLD_MODE)),     BOXNAVALTHOLD);
-    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_POSHOLD_MODE)),     BOXNAVPOSHOLD);
-    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_CRUISE_MODE)),      BOXNAVCRUISE);
-    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_RTH_MODE)),         BOXNAVRTH);
-    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_WP_MODE)),          BOXNAVWP);
-    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXAIRMODE)),     BOXAIRMODE);
-    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXGCSNAV)),      BOXGCSNAV);
+    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(ANGLE_MODE)),               BOXANGLE);
+    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(HORIZON_MODE)),             BOXHORIZON);
+    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(HEADING_MODE)),             BOXHEADINGHOLD);
+    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(HEADFREE_MODE)),            BOXHEADFREE);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXHEADADJ)),         BOXHEADADJ);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCAMSTAB)),         BOXCAMSTAB);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXFPVANGLEMIX)),     BOXFPVANGLEMIX);
+    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(MANUAL_MODE)),              BOXMANUAL);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXBEEPERON)),        BOXBEEPERON);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXLEDLOW)),          BOXLEDLOW);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXLIGHTS)),          BOXLIGHTS);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXOSD)),             BOXOSD);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXTELEMETRY)),       BOXTELEMETRY);
+    CHECK_ACTIVE_BOX(IS_ENABLED(ARMING_FLAG(ARMED)),                    BOXARM);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXBLACKBOX)),        BOXBLACKBOX);
+    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(FAILSAFE_MODE)),            BOXFAILSAFE);
+    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_ALTHOLD_MODE)),         BOXNAVALTHOLD);
+    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_POSHOLD_MODE)),         BOXNAVPOSHOLD);
+    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_CRUISE_MODE)),          BOXNAVCRUISE);
+    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_RTH_MODE)),             BOXNAVRTH);
+    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_WP_MODE)),              BOXNAVWP);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXAIRMODE)),         BOXAIRMODE);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXGCSNAV)),          BOXGCSNAV);
 #ifdef USE_FLM_FLAPERON
-    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(FLAPERON)),             BOXFLAPERON);
+    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(FLAPERON)),                 BOXFLAPERON);
 #endif
-    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(TURN_ASSISTANT)),       BOXTURNASSIST);
-    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_LAUNCH_MODE)),      BOXNAVLAUNCH);
-    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(AUTO_TUNE)),            BOXAUTOTUNE);
-    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXAUTOTRIM)),    BOXAUTOTRIM);
-    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXKILLSWITCH)),  BOXKILLSWITCH);
-    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXHOMERESET)),   BOXHOMERESET);
-    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCAMERA1)),     BOXCAMERA1);
-    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCAMERA2)),     BOXCAMERA2);
-    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCAMERA3)),     BOXCAMERA3);
-    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXOSDALT1)),     BOXOSDALT1);
-    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXOSDALT2)),     BOXOSDALT2);
-    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXOSDALT3)),     BOXOSDALT3);
+    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(TURN_ASSISTANT)),           BOXTURNASSIST);
+    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_LAUNCH_MODE)),          BOXNAVLAUNCH);
+    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(AUTO_TUNE)),                BOXAUTOTUNE);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXAUTOTRIM)),        BOXAUTOTRIM);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXKILLSWITCH)),      BOXKILLSWITCH);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXHOMERESET)),       BOXHOMERESET);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCAMERA1)),         BOXCAMERA1);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCAMERA2)),         BOXCAMERA2);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCAMERA3)),         BOXCAMERA3);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXOSDALT1)),         BOXOSDALT1);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXOSDALT2)),         BOXOSDALT2);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXOSDALT3)),         BOXOSDALT3);
     CHECK_ACTIVE_BOX(IS_ENABLED(navigationTerrainFollowingEnabled()),   BOXSURFACE);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXBRAKING)),         BOXBRAKING);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXUSER1)),           BOXUSER1);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXUSER2)),           BOXUSER2);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXLOITERDIRCHN)),    BOXLOITERDIRCHN);
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE)),   BOXMSPRCOVERRIDE);
+#endif
 
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
     for (uint32_t i = 0; i < activeBoxIdCount; i++) {
@@ -338,7 +382,8 @@ uint16_t packSensorStatus(void)
             IS_ENABLED(sensors(SENSOR_GPS))     << 3 |
             IS_ENABLED(sensors(SENSOR_RANGEFINDER))   << 4 |
             IS_ENABLED(sensors(SENSOR_OPFLOW))  << 5 |
-            IS_ENABLED(sensors(SENSOR_PITOT))   << 6;
+            IS_ENABLED(sensors(SENSOR_PITOT))   << 6 |
+            IS_ENABLED(sensors(SENSOR_TEMP))   << 7;
 
     // Hardware failure indication bit
     if (!isHardwareHealthy()) {

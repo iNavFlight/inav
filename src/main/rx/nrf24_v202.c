@@ -217,7 +217,7 @@ static rx_spi_received_e readrx(uint8_t *packet)
  * This is called periodically by the scheduler.
  * Returns RX_SPI_RECEIVED_DATA if a data packet was received.
  */
-rx_spi_received_e v202Nrf24DataReceived(uint8_t *packet)
+rx_spi_received_e v202Nrf24DataReceived(uint8_t *packet, uint16_t *linkQuality)
 {
     return readrx(packet);
 }

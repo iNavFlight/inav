@@ -30,13 +30,8 @@
 #define MPU6000_CS_PIN        PA4
 #define MPU6000_SPI_BUS       BUS_SPI1
 
-#define USE_ACC
-#define USE_ACC_MPU6000
-#define ACC_MPU6000_ALIGN CW270_DEG
-
-#define USE_GYRO
-#define USE_GYRO_MPU6000
-#define GYRO_MPU6000_ALIGN CW270_DEG
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN CW270_DEG
 
 // MPU6000 interrupts
 #define USE_MPU_DATA_READY_SIGNAL
@@ -53,6 +48,8 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
+#define TEMPERATURE_I2C_BUS     BUS_I2C2
+
 #define USE_BARO
 
 #ifdef ANYFCF7_EXTERNAL_BARO
@@ -65,7 +62,6 @@
     #define USE_BARO_MS5611
 #endif
 
-#define USE_PITOT_MS4525
 #define PITOT_I2C_BUS           BUS_I2C2
 
 #define USE_RANGEFINDER
@@ -135,37 +131,21 @@
 #define MAX7456_CS_PIN          SPI3_NSS_PIN
 
 #define USE_SDCARD
-
-// This is needed for BangGood board that used wrong sdcard socket!!!
+#define USE_SDCARD_SPI
 #define SDCARD_DETECT_INVERTED
-
-#define SDCARD_DETECT_PIN                   PD3
-#define SDCARD_DETECT_EXTI_LINE             EXTI_Line3
-#define SDCARD_DETECT_EXTI_PIN_SOURCE       EXTI_PinSource3
-#define SDCARD_DETECT_EXTI_PORT_SOURCE      EXTI_PortSourceGPIOD
-#define SDCARD_DETECT_EXTI_IRQn             EXTI3_IRQn
-
-#define SDCARD_SPI_INSTANCE                 SPI4
-#define SDCARD_SPI_CS_PIN                   SPI4_NSS_PIN
-
-#define SDCARD_DMA_CHANNEL_TX               DMA2_Stream1
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF1_5
-#define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA2
-#define SDCARD_DMA_CHANNEL                  DMA_CHANNEL_4
+#define SDCARD_DETECT_PIN       PD3
+#define SDCARD_SPI_BUS          BUS_SPI4
+#define SDCARD_CS_PIN           SPI4_NSS_PIN
 
 #define USE_I2C
 #define USE_I2C_DEVICE_4
 #define USE_I2C_DEVICE_2
-//#define USE_I2C_PULLUP
-
-//#define HIL
 
 #define MAG_GPS_ALIGN           CW180_DEG_FLIP
 
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
 #define USE_NAV
-#define NAV_AUTO_MAG_DECLINATION
 #define NAV_GPS_GLITCH_DETECTION
 
 #define USE_ADC
@@ -177,18 +157,7 @@
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
 
 #define USE_LED_STRIP
-
-// LED Strip can run off Pin 6 (PA0) of the ESC outputs.
 #define WS2811_PIN                      PA1
-#define WS2811_TIMER                    TIM5
-#define WS2811_TIMER_CHANNEL            TIM_CHANNEL_2
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST4_HANDLER
-#define WS2811_DMA_STREAM               DMA1_Stream4
-#define WS2811_DMA_FLAG                 DMA_FLAG_TCIF4
-#define WS2811_DMA_IT                   DMA_IT_TCIF4
-#define WS2811_DMA_CHANNEL              DMA_CHANNEL_6
-#define WS2811_DMA_IRQ                  DMA1_Stream4_IRQn
-#define WS2811_TIMER_GPIO_AF            GPIO_AF2_TIM5
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 

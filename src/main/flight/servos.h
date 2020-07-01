@@ -18,34 +18,46 @@
 #pragma once
 
 #include "config/parameter_group.h"
+#include "common/logic_condition.h"
 
-#define MAX_SUPPORTED_SERVOS 8
+#define MAX_SUPPORTED_SERVOS 16
 
-// These must be consecutive, see 'reversedSources'
-enum {
-    INPUT_STABILIZED_ROLL       = 0,
-    INPUT_STABILIZED_PITCH      = 1,
-    INPUT_STABILIZED_YAW        = 2,
-    INPUT_STABILIZED_THROTTLE   = 3,
-    INPUT_RC_ROLL               = 4,
-    INPUT_RC_PITCH              = 5,
-    INPUT_RC_YAW                = 6,
-    INPUT_RC_THROTTLE           = 7,
-    INPUT_RC_CH5                = 8,
-    INPUT_RC_CH6                = 9,
-    INPUT_RC_CH7                = 10,
-    INPUT_RC_CH8                = 11,
-    INPUT_GIMBAL_PITCH          = 12,
-    INPUT_GIMBAL_ROLL           = 13,
-    INPUT_FEATURE_FLAPS         = 14,
-    INPUT_RC_CH9                = 15,
-    INPUT_RC_CH10               = 16,
-    INPUT_RC_CH11               = 17,
-    INPUT_RC_CH12               = 18,
-    INPUT_RC_CH13               = 19,
-    INPUT_RC_CH14               = 20,
-    INPUT_RC_CH15               = 21,
-    INPUT_RC_CH16               = 22,
+// These must be consecutive
+typedef enum {
+    INPUT_STABILIZED_ROLL           = 0,
+    INPUT_STABILIZED_PITCH          = 1,
+    INPUT_STABILIZED_YAW            = 2,
+    INPUT_STABILIZED_THROTTLE       = 3,
+    INPUT_RC_ROLL                   = 4,
+    INPUT_RC_PITCH                  = 5,
+    INPUT_RC_YAW                    = 6,
+    INPUT_RC_THROTTLE               = 7,
+    INPUT_RC_CH5                    = 8,
+    INPUT_RC_CH6                    = 9,
+    INPUT_RC_CH7                    = 10,
+    INPUT_RC_CH8                    = 11,
+    INPUT_GIMBAL_PITCH              = 12,
+    INPUT_GIMBAL_ROLL               = 13,
+    INPUT_FEATURE_FLAPS             = 14,
+    INPUT_RC_CH9                    = 15,
+    INPUT_RC_CH10                   = 16,
+    INPUT_RC_CH11                   = 17,
+    INPUT_RC_CH12                   = 18,
+    INPUT_RC_CH13                   = 19,
+    INPUT_RC_CH14                   = 20,
+    INPUT_RC_CH15                   = 21,
+    INPUT_RC_CH16                   = 22,
+    INPUT_STABILIZED_ROLL_PLUS      = 23,
+    INPUT_STABILIZED_ROLL_MINUS     = 24,
+    INPUT_STABILIZED_PITCH_PLUS     = 25,
+    INPUT_STABILIZED_PITCH_MINUS    = 26,
+    INPUT_STABILIZED_YAW_PLUS       = 27,
+    INPUT_STABILIZED_YAW_MINUS      = 28,
+    INPUT_MAX                       = 29,
+    INPUT_GVAR_0                    = 30,
+    INPUT_GVAR_1                    = 31,
+    INPUT_GVAR_2                    = 32,
+    INPUT_GVAR_3                    = 33,
 
     INPUT_SOURCE_COUNT
 } inputSource_e;
@@ -91,20 +103,21 @@ typedef enum {
 typedef struct servoMixer_s {
     uint8_t targetChannel;                  // servo that receives the output of the rule
     uint8_t inputSource;                    // input channel for this rule
-    int8_t rate;                            // range [-125;+125] ; can be used to adjust a rate 0-125% and a direction
+    int16_t rate;                           // range [-1000;+1000] ; can be used to adjust a rate 0-1000% and a direction
     uint8_t speed;                          // reduces the speed of the rule, 0=unlimited speed
+#ifdef USE_LOGIC_CONDITIONS
+    int8_t conditionId;
+#endif
 } servoMixer_t;
 
 #define MAX_SERVO_RULES (2 * MAX_SUPPORTED_SERVOS)
 #define MAX_SERVO_SPEED UINT8_MAX
-#define MAX_SERVO_BOXES 3
-
-#define SERVO_MIXER_INPUT_WIDTH 1000
+#define SERVO_OUTPUT_MAX 2500
+#define SERVO_OUTPUT_MIN 500
 
 PG_DECLARE_ARRAY(servoMixer_t, MAX_SERVO_RULES, customServoMixers);
 
 typedef struct servoParam_s {
-    uint32_t reversedSources;               // the direction of servo movement for each input source of the servo mixer, bit set=inverted
     int16_t min;                            // servo min
     int16_t max;                            // servo max
     int16_t middle;                         // servo middle
@@ -119,7 +132,7 @@ typedef struct servoConfig_s {
     uint16_t servoPwmRate;                  // The update rate of servo outputs (50-498Hz)
     int16_t servo_lowpass_freq;             // lowpass servo filter frequency selection; 1/1000ths of loop freq
     uint16_t flaperon_throw_offset;
-    uint8_t __reserved;
+    uint8_t servo_protocol;                 // See servoProtocolType_e
     uint8_t tri_unarmed_servo;              // send tail servo correction pulses even when unarmed
 } servoConfig_t;
 
@@ -133,10 +146,11 @@ typedef struct servoMetadata_s {
 extern int16_t servo[MAX_SUPPORTED_SERVOS];
 
 bool isServoOutputEnabled(void);
+void setServoOutputEnabled(bool flag);
 bool isMixerUsingServos(void);
 void writeServos(void);
 void loadCustomServoMixer(void);
-int servoDirection(int servoIndex, int fromChannel);
 void servoMixer(float dT);
 void servoComputeScalingFactors(uint8_t servoIndex);
 void servosInit(void);
+int getServoCount(void);

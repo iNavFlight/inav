@@ -135,7 +135,7 @@ uint8_t receivedPowerSnapshot;
 #define RX_TX_ADDR_LEN 5
 // set rxTxAddr to the bind address
 STATIC_UNIT_TESTED uint8_t rxTxAddr[RX_TX_ADDR_LEN] = {0x4b,0x5c,0x6d,0x7e,0x8f};
-uint32_t *rxSpiIdPtr;
+static uint32_t *rxSpiIdPtr;
 #define RX_TX_ADDR_4 0xD2 // rxTxAddr[4] always set to this value
 
 // radio channels for frequency hopping
@@ -361,7 +361,7 @@ static void writeBindAckPayload(uint8_t *payload)
  * This is called periodically by the scheduler.
  * Returns RX_SPI_RECEIVED_DATA if a data packet was received.
  */
-rx_spi_received_e inavNrf24DataReceived(uint8_t *payload)
+rx_spi_received_e inavNrf24DataReceived(uint8_t *payload, uint16_t *linkQuality)
 {
     rx_spi_received_e ret = RX_SPI_RECEIVED_NONE;
     timeUs_t timeNowUs;

@@ -24,24 +24,7 @@
 #include "drivers/nvic.h"
 #include "drivers/system.h"
 
-#define AIRCR_VECTKEY_MASK    ((uint32_t)0x05FA0000)
 void SetSysClock(uint8_t underclock);
-
-void systemReset(void)
-{
-    // Generate system reset
-    SCB->AIRCR = AIRCR_VECTKEY_MASK | (uint32_t)0x04;
-}
-
-void systemResetToBootloader(void)
-{
-    // 1FFFF000 -> 20000200 -> SP
-    // 1FFFF004 -> 1FFFF021 -> PC
-
-    *((uint32_t *)0x20009FFC) = 0xDEADBEEF; // 40KB SRAM STM32F30X
-    systemReset();
-}
-
 
 void enableGPIOPowerUsageAndNoiseReductions(void)
 {
@@ -76,6 +59,11 @@ bool isMPUSoftReset(void)
         return true;
     else
         return false;
+}
+
+uint32_t systemBootloaderAddress(void)
+{
+    return 0x1FFFD800;
 }
 
 static void systemTimekeepingSetup(void)
@@ -115,8 +103,4 @@ void systemInit(void)
 
     // Pre-setup SysTick and system time - final setup is done in systemClockSetup
     systemTimekeepingSetup();
-}
-
-void checkForBootLoaderRequest(void)
-{
 }

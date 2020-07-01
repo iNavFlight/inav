@@ -87,7 +87,7 @@ STATIC_UNIT_TESTED uint8_t payloadSize;
 STATIC_UNIT_TESTED uint8_t rxTxAddrXN297[RX_TX_ADDR_LEN] = {0x41, 0xbd, 0x42, 0xd4, 0xc2}; // converted XN297 address
 #define TX_ID_LEN 4
 STATIC_UNIT_TESTED uint8_t txId[TX_ID_LEN];
-uint32_t *rxSpiIdPtr;
+static uint32_t *rxSpiIdPtr;
 
 // radio channels for frequency hopping
 #define H8_3D_RF_CHANNEL_COUNT 4
@@ -218,7 +218,7 @@ static bool h8_3dCrcOK(uint16_t crc, const uint8_t *payload)
  * This is called periodically by the scheduler.
  * Returns NRF24L01_RECEIVED_DATA if a data packet was received.
  */
-rx_spi_received_e h8_3dNrf24DataReceived(uint8_t *payload)
+rx_spi_received_e h8_3dNrf24DataReceived(uint8_t *payload, uint16_t *linkQuality)
 {
     rx_spi_received_e ret = RX_SPI_RECEIVED_NONE;
     bool payloadReceived = false;

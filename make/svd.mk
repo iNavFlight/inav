@@ -1,0 +1,32 @@
+
+SVDFILE 		:= $(TARGET_OBJ_DIR)/svd.svd
+CLEAN_ARTIFACTS	+= $(SVDFILE)
+
+.PHONY: $(SVDFILE)
+
+ifeq ($(TARGET_MCU),STM32F303)
+SVD := STM32F303
+else ifeq ($(TARGET_MCU),STM32F405)
+SVD := STM32F405
+else ifeq ($(TARGET_MCU),STM32F411)
+SVD := STM32F411
+else ifeq ($(TARGET_MCU),STM32F427)
+SVD := STM32F427
+else ifeq ($(TARGET_MCU),STM32F446)
+SVD := STM32F446
+else ifeq ($(TARGET_MCU),STM32F7X2RE)
+SVD := STM32F7x2
+else ifeq ($(TARGET_MCU),STM32F7X5XE)
+SVD := STM32F7x5
+else ifeq ($(TARGET_MCU),STM32F7X5XG)
+SVD := STM32F7x5
+else ifeq ($(TARGET_MCU),STM32F7X5XI)
+SVD := STM32F7x5
+else ifeq ($(TARGET_MCU),STM32F7X6XG)
+SVD := STM32F7x6
+endif
+
+svd: .FORCE $(SVDFILE)
+$(SVDFILE): $(ROOT)/dev/svd/$(SVD).svd
+	$(V1) mkdir -p $(dir $@)
+	$(V1) cat $< > $@

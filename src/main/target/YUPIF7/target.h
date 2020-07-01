@@ -19,7 +19,6 @@
 #pragma once
 #define TARGET_BOARD_IDENTIFIER "YPF7"
 #define USBD_PRODUCT_STRING     "YUPIF7"
-#define TARGET_CONFIG
 
 #define LED0                    PB4
 
@@ -41,24 +40,16 @@
 #define MPU6500_CS_PIN          SPI1_NSS_PIN
 #define MPU6500_SPI_BUS         BUS_SPI1
 
-#define USE_GYRO_MPU6500
-#define USE_ACC_MPU6500
-#define ICM20689_CS_PIN         SPI1_NSS_PIN
-#define ICM20689_EXTI_PIN       PC4
-
-#define USE_ACC
-#define USE_ACC_SPI_MPU6500
-#define ACC_MPU6500_ALIGN       CW90_DEG
-
-#define USE_GYRO
-#define USE_GYRO_SPI_MPU6500
-#define GYRO_MPU6500_ALIGN      CW90_DEG
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW90_DEG
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_HMC5883
 #define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
 #define USE_MAG_QMC5883
+
+#define TEMPERATURE_I2C_BUS     BUS_I2C1
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
@@ -93,6 +84,14 @@
 
 #define USE_ESCSERIAL
 #define ESCSERIAL_TIMER_TX_HARDWARE 0
+
+#define UG2864_I2C_BUS          BUS_I2C1
+#define USE_DASHBOARD
+#define USE_OLED_UG2864
+#define DASHBOARD_ARMED_BITMAP
+
+#define USE_PITOT
+#define PITOT_I2C_BUS           BUS_I2C1
 
 //SPI ports
 #define USE_SPI
@@ -142,12 +141,10 @@
 // LED Strip can run off Pin 5 (PB1) of the motor outputs
 #define USE_LED_STRIP
 #define WS2811_PIN                      PB1
-#define WS2811_TIMER                    TIM8
-#define WS2811_TIMER_CHANNEL            TIM_CHANNEL_3
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST2_HANDLER
-#define WS2811_DMA_STREAM               DMA1_Stream2
-#define WS2811_DMA_CHANNEL              DMA_CHANNEL_5
-#define WS2811_TIMER_GPIO_AF            GPIO_AF3_TIM8
+
+// DSHOT
+#define USE_DSHOT
+#define USE_ESC_SENSOR
 
 // Default configuration
 #define SERIALRX_PROVIDER       SERIALRX_SBUS

@@ -63,6 +63,7 @@
   * @{
   */
 
+#include <string.h>
 #include "stm32f7xx.h"
 
 #if !defined  (HSE_VALUE)
@@ -73,10 +74,22 @@
   #define HSI_VALUE    ((uint32_t)16000000) /*!< Value of the Internal oscillator in Hz*/
 #endif /* HSI_VALUE */
 
+#if !defined(MHZ_VALUE)
+  #define MHZ_VALUE     216
+#endif
+
+#if MHZ_VALUE == 216
+  #define PLL_N     432
+  #define PLL_Q     9
+#elif MHZ_VALUE == 168
+  #define PLL_N     336
+  #define PLL_Q     7
+#else
+  #error "Unsupported MHZ_VALUE!"
+#endif
+
 #define PLL_M     8
-#define PLL_N     432
 #define PLL_P     RCC_PLLP_DIV2 /* 2 */
-#define PLL_Q     9
 
 #define PLL_SAIN  384
 #define PLL_SAIQ  7
@@ -240,6 +253,15 @@
   * @{
   */
 
+void CopyFastCode(void)
+{
+    /* Load functions into ITCM RAM */
+    extern uint8_t tcm_code_start;
+    extern uint8_t tcm_code_end;
+    extern uint8_t tcm_code;
+    memcpy(&tcm_code_start, &tcm_code, (size_t) (&tcm_code_end - &tcm_code_start));
+}
+
 /**
   * @brief  Setup the microcontroller system
   *         Initialize the Embedded Flash Interface, the PLL and update the
@@ -288,7 +310,7 @@ void SystemInit(void)
   /* Configure the system clock to 216 MHz */
   SystemClock_Config();
 
-  if (SystemCoreClock != 216000000)
+  if (SystemCoreClock != MHZ_VALUE * 1000000)
   {
       while (1)
       {

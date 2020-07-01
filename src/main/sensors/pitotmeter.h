@@ -18,6 +18,8 @@
 #pragma once
 
 #include "config/parameter_group.h"
+#include "common/filter.h"
+#include "common/calibration.h"
 
 #include "drivers/pitotmeter.h"
 
@@ -35,8 +37,7 @@ typedef enum {
 
 typedef struct pitotmeterConfig_s {
     uint8_t pitot_hardware;                 // Pitotmeter hardware to use
-    uint8_t use_median_filtering;           // Use 3-point median filtering
-    float pitot_noise_lpf;                  // additional LPF to reduce pitot noise
+    uint16_t pitot_lpf_milli_hz;            // additional LPF to reduce pitot noise in [0.001Hz]
     float pitot_scale;                      // scale value
 } pitotmeterConfig_t;
 
@@ -44,17 +45,28 @@ PG_DECLARE(pitotmeterConfig_t, pitotmeterConfig);
 
 typedef struct pito_s {
     pitotDev_t dev;
-    int32_t airSpeed;
+    float airSpeed;
+
+    zeroCalibrationScalar_t zeroCalibration;
+    pt1Filter_t lpfState;
+    timeUs_t lastMeasurementUs;
+    timeMs_t lastSeenHealthyMs;
+
+    float pressureZero;
+    float pressure;
 } pitot_t;
 
 #ifdef USE_PITOT
+
+#define AIR_DENSITY_SEA_LEVEL_15C   1.225f      // Air density at sea level and 15 degrees Celsius
+#define P0                          101325.0f   // standard pressure [Pa]
 
 extern pitot_t pitot;
 
 bool pitotInit(void);
 bool pitotIsCalibrationComplete(void);
 void pitotStartCalibration(void);
-uint32_t pitotUpdate(void);
+void pitotUpdate(void);
 int32_t pitotCalculateAirSpeed(void);
 bool pitotIsHealthy(void);
 

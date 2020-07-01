@@ -10,5 +10,4 @@ TARGET_SRC = \
             drivers/barometer/barometer_bmp280.c \
             drivers/compass/compass_mpu9250.c \
             drivers/light_ws2811strip.c \
-            drivers/light_ws2811strip_stdperiph.c \
             drivers/max7456.c

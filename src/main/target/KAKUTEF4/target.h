@@ -31,8 +31,6 @@
 #   define USBD_PRODUCT_STRING "KakuteF4-V1"
 #endif
 
-#define USE_TARGET_CONFIG
-
 #define LED0                    PB5
 #define LED1                    PB4
 #define LED2                    PB6
@@ -44,16 +42,11 @@
 #define GYRO_INT_EXTI            PC5
 #define USE_MPU_DATA_READY_SIGNAL
 
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW270_DEG
 #define MPU6500_CS_PIN          PC4
 #define MPU6500_SPI_BUS         BUS_SPI1
 
-#define USE_GYRO
-#define USE_GYRO_MPU6500
-#define GYRO_MPU6500_ALIGN      CW270_DEG
-
-#define USE_ACC
-#define USE_ACC_MPU6500
-#define ACC_MPU6500_ALIGN       CW270_DEG
 
 #ifdef KAKUTEF4V2
 #   define USE_I2C
@@ -70,6 +63,8 @@
 #   define USE_MAG_IST8310
 #   define USE_MAG_IST8308
 #   define USE_MAG_LIS3MDL
+
+#   define TEMPERATURE_I2C_BUS     BUS_I2C1
 
 #   define USE_BARO
 #   define BARO_I2C_BUS            BUS_I2C1
@@ -169,7 +164,9 @@
 #define TARGET_IO_PORTC 0xffff
 #define TARGET_IO_PORTD        (BIT(2))
 
-
+#define USE_DSHOT
+#define USE_SERIALSHOT
+#define USE_ESC_SENSOR
 
 #ifdef KAKUTEF4V2
 #   define MAX_PWM_OUTPUT_PORTS       4

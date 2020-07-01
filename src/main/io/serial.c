@@ -101,7 +101,7 @@ const uint32_t baudRates[] = { 0, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 1
 
 #define BAUD_RATE_COUNT (sizeof(baudRates) / sizeof(baudRates[0]))
 
-PG_REGISTER_WITH_RESET_FN(serialConfig_t, serialConfig, PG_SERIAL_CONFIG, 0);
+PG_REGISTER_WITH_RESET_FN(serialConfig_t, serialConfig, PG_SERIAL_CONFIG, 1);
 
 void pgResetFn_serialConfig(serialConfig_t *serialConfig)
 {
@@ -110,7 +110,7 @@ void pgResetFn_serialConfig(serialConfig_t *serialConfig)
     for (int i = 0; i < SERIAL_PORT_COUNT; i++) {
         serialConfig->portConfigs[i].identifier = serialPortIdentifiers[i];
         serialConfig->portConfigs[i].msp_baudrateIndex = BAUD_115200;
-        serialConfig->portConfigs[i].gps_baudrateIndex = BAUD_38400;
+        serialConfig->portConfigs[i].gps_baudrateIndex = BAUD_115200;
         serialConfig->portConfigs[i].telemetry_baudrateIndex = BAUD_AUTO;
         serialConfig->portConfigs[i].peripheral_baudrateIndex = BAUD_115200;
     }
@@ -232,21 +232,21 @@ portSharing_e determinePortSharing(const serialPortConfig_t *portConfig, serialP
     return portConfig->functionMask == function ? PORTSHARING_NOT_SHARED : PORTSHARING_SHARED;
 }
 
-bool isSerialPortShared(const serialPortConfig_t *portConfig, uint16_t functionMask, serialPortFunction_e sharedWithFunction)
+bool isSerialPortShared(const serialPortConfig_t *portConfig, uint32_t functionMask, serialPortFunction_e sharedWithFunction)
 {
     return (portConfig) && (portConfig->functionMask & sharedWithFunction) && (portConfig->functionMask & functionMask);
 }
 
 static findSharedSerialPortState_t findSharedSerialPortState;
 
-serialPort_t *findSharedSerialPort(uint16_t functionMask, serialPortFunction_e sharedWithFunction)
+serialPort_t *findSharedSerialPort(uint32_t functionMask, serialPortFunction_e sharedWithFunction)
 {
     memset(&findSharedSerialPortState, 0, sizeof(findSharedSerialPortState));
 
     return findNextSharedSerialPort(functionMask, sharedWithFunction);
 }
 
-serialPort_t *findNextSharedSerialPort(uint16_t functionMask, serialPortFunction_e sharedWithFunction)
+serialPort_t *findNextSharedSerialPort(uint32_t functionMask, serialPortFunction_e sharedWithFunction)
 {
     while (findSharedSerialPortState.lastIndex < SERIAL_PORT_COUNT) {
         const serialPortConfig_t *candidate = &serialConfig()->portConfigs[findSharedSerialPortState.lastIndex++];
@@ -263,7 +263,7 @@ serialPort_t *findNextSharedSerialPort(uint16_t functionMask, serialPortFunction
 }
 
 #define ALL_TELEMETRY_FUNCTIONS_MASK (FUNCTION_TELEMETRY_FRSKY | FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)
-#define ALL_FUNCTIONS_SHARABLE_WITH_MSP (FUNCTION_BLACKBOX | ALL_TELEMETRY_FUNCTIONS_MASK | FUNCTION_DEBUG_TRACE)
+#define ALL_FUNCTIONS_SHARABLE_WITH_MSP (FUNCTION_BLACKBOX | ALL_TELEMETRY_FUNCTIONS_MASK | FUNCTION_LOG)
 
 bool isSerialConfigValid(const serialConfig_t *serialConfigToCheck)
 {

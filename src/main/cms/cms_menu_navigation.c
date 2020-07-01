@@ -52,8 +52,7 @@ static const OSD_Entry cmsx_menuNavSettingsEntries[] =
     OSD_SETTING_ENTRY("MID THR FOR AH", SETTING_NAV_USE_MIDTHR_FOR_ALTHOLD),
     OSD_SETTING_ENTRY("MC HOVER THR", SETTING_NAV_MC_HOVER_THR),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
  };
 
 static const CMS_Menu cmsx_menuNavSettings = {
@@ -83,8 +82,7 @@ static const CMS_Menu cmsx_menuNavSettings = {
     OSD_SETTING_ENTRY("RTH ABORT THRES", SETTING_NAV_RTH_ABORT_THRESHOLD),
     OSD_SETTING_ENTRY("EMERG LANDING SPEED", SETTING_NAV_EMERG_LANDING_SPEED),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
  };
 
 static const CMS_Menu cmsx_menuRTH = {
@@ -110,9 +108,9 @@ static const OSD_Entry cmsx_menuFixedWingEntries[] =
     OSD_SETTING_ENTRY("MAX DIVE ANGLE", SETTING_NAV_FW_DIVE_ANGLE),
     OSD_SETTING_ENTRY("PITCH TO THR RATIO", SETTING_NAV_FW_PITCH2THR),
     OSD_SETTING_ENTRY("LOITER RADIUS", SETTING_NAV_FW_LOITER_RADIUS),
+    OSD_SETTING_ENTRY("CONTROL SMOOTHNESS", SETTING_NAV_FW_CONTROL_SMOOTHNESS),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const CMS_Menu cmsx_menuFixedWing = {
@@ -134,8 +132,7 @@ static const OSD_Entry cmsx_menuNavigationEntries[] =
     OSD_SUBMENU_ENTRY("RTH", &cmsx_menuRTH),
     OSD_SUBMENU_ENTRY("FIXED WING", &cmsx_menuFixedWing),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 const CMS_Menu cmsx_menuNavigation = {

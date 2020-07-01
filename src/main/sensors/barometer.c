@@ -21,8 +21,8 @@
 
 #include "platform.h"
 
-#include "build/debug.h"
-
+#include "common/calibration.h"
+#include "common/log.h"
 #include "common/maths.h"
 #include "common/time.h"
 #include "common/utils.h"
@@ -33,10 +33,12 @@
 #include "drivers/barometer/barometer.h"
 #include "drivers/barometer/barometer_bmp085.h"
 #include "drivers/barometer/barometer_bmp280.h"
+#include "drivers/barometer/barometer_bmp388.h"
 #include "drivers/barometer/barometer_lps25h.h"
 #include "drivers/barometer/barometer_fake.h"
 #include "drivers/barometer/barometer_ms56xx.h"
-#include "drivers/logging.h"
+#include "drivers/barometer/barometer_spl06.h"
+#include "drivers/barometer/barometer_dps310.h"
 #include "drivers/time.h"
 
 #include "fc/runtime_config.h"
@@ -52,7 +54,7 @@
 
 baro_t baro;                        // barometer access functions
 
-PG_REGISTER_WITH_RESET_TEMPLATE(barometerConfig_t, barometerConfig, PG_BAROMETER_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(barometerConfig_t, barometerConfig, PG_BAROMETER_CONFIG, 1);
 
 #ifdef USE_BARO
 #define BARO_HARDWARE_DEFAULT    BARO_AUTODETECT
@@ -61,13 +63,13 @@ PG_REGISTER_WITH_RESET_TEMPLATE(barometerConfig_t, barometerConfig, PG_BAROMETER
 #endif
 PG_RESET_TEMPLATE(barometerConfig_t, barometerConfig,
     .baro_hardware = BARO_HARDWARE_DEFAULT,
-    .use_median_filtering = 1
+    .use_median_filtering = 1,
+    .baro_calibration_tolerance = 150
 );
 
 #ifdef USE_BARO
 
-static timeMs_t baroCalibrationTimeout = 0;
-static bool baroCalibrationFinished = false;
+static zeroCalibrationScalar_t zeroCalibration;
 static float baroGroundAltitude = 0;
 static float baroGroundPressure = 101325.0f; // 101325 pascal, 1 standard atmosphere
 
@@ -132,10 +134,49 @@ bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
         }
         FALLTHROUGH;
 
+    case BARO_BMP388:
+#if defined(USE_BARO_BMP388) || defined(USE_BARO_SPI_BMP388)
+        if (bmp388Detect(dev)) {
+            baroHardware = BARO_BMP388;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (baroHardwareToUse != BARO_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
+    case BARO_SPL06:
+#if defined(USE_BARO_SPL06) || defined(USE_BARO_SPI_SPL06)
+        if (spl06Detect(dev)) {
+            baroHardware = BARO_SPL06;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (baroHardwareToUse != BARO_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
     case BARO_LPS25H:
 #if defined(USE_BARO_LPS25H)
         if (lps25hDetect(dev)) {
             baroHardware = BARO_LPS25H;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (baroHardwareToUse != BARO_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
+    case BARO_DPS310:
+#if defined(USE_BARO_DPS310)
+        if (baroDPS310Detect(dev)) {
+            baroHardware = BARO_DPS310;
             break;
         }
 #endif
@@ -163,8 +204,6 @@ bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
         break;
     }
 
-    addBootlogEvent6(BOOT_EVENT_BARO_DETECTION, BOOT_EVENT_FLAGS_NONE, baroHardware, 0, 0, 0);
-
     if (baroHardware == BARO_NONE) {
         sensorsClear(SENSOR_BARO);
         return false;
@@ -181,17 +220,6 @@ bool baroInit(void)
         return false;
     }
     return true;
-}
-
-bool baroIsCalibrationComplete(void)
-{
-    return baroCalibrationFinished;
-}
-
-void baroStartCalibration(void)
-{
-    baroCalibrationTimeout = millis();
-    baroCalibrationFinished = false;
 }
 
 #define PRESSURE_SAMPLES_MEDIAN 3
@@ -251,15 +279,23 @@ uint32_t baroUpdate(void)
     switch (state) {
         default:
         case BAROMETER_NEEDS_SAMPLES:
-            baro.dev.get_ut(&baro.dev);
-            baro.dev.start_up(&baro.dev);
+            if (baro.dev.get_ut) {
+                baro.dev.get_ut(&baro.dev);
+            }
+            if (baro.dev.start_up) {
+                baro.dev.start_up(&baro.dev);
+            }
             state = BAROMETER_NEEDS_CALCULATION;
             return baro.dev.up_delay;
         break;
 
         case BAROMETER_NEEDS_CALCULATION:
-            baro.dev.get_up(&baro.dev);
-            baro.dev.start_ut(&baro.dev);
+            if (baro.dev.get_up) {
+                baro.dev.get_up(&baro.dev);
+            }
+            if (baro.dev.start_ut) {
+                baro.dev.start_ut(&baro.dev);
+            }
             baro.dev.calculate(&baro.dev, &baro.baroPressure, &baro.baroTemperature);
             if (barometerConfig()->use_median_filtering) {
                 baro.baroPressure = applyBarometerMedianFilter(baro.baroPressure);
@@ -275,27 +311,33 @@ static float pressureToAltitude(const float pressure)
     return (1.0f - powf(pressure / 101325.0f, 0.190295f)) * 4433000.0f;
 }
 
-static void performBaroCalibrationCycle(void)
+static float altitudeToPressure(const float altCm)
 {
-    const float baroGroundPressureError = baro.baroPressure - baroGroundPressure;
-    baroGroundPressure += baroGroundPressureError * 0.15f;
+    return powf(1.0f - (altCm / 4433000.0f), 5.254999) * 101325.0f;
+}
 
-    if (ABS(baroGroundPressureError) < (baroGroundPressure * 0.00005f)) {    // 0.005% calibration error (should give c. 10cm calibration error)
-        if ((millis() - baroCalibrationTimeout) > 250) {
-            baroGroundAltitude = pressureToAltitude(baroGroundPressure);
-            baroCalibrationFinished = true;
-            DEBUG_TRACE_SYNC("Barometer calibration complete (%d)", lrintf(baroGroundAltitude));
-        }
-    }
-    else {
-        baroCalibrationTimeout = millis();
-    }
+bool baroIsCalibrationComplete(void)
+{
+    return zeroCalibrationIsCompleteS(&zeroCalibration) && zeroCalibrationIsSuccessfulS(&zeroCalibration);
+}
+
+void baroStartCalibration(void)
+{
+    const float acceptedPressureVariance = (101325.0f - altitudeToPressure(barometerConfig()->baro_calibration_tolerance)); // max 30cm deviation during calibration (at sea level)
+    zeroCalibrationStartS(&zeroCalibration, CALIBRATING_BARO_TIME_MS, acceptedPressureVariance, false);
 }
 
 int32_t baroCalculateAltitude(void)
 {
     if (!baroIsCalibrationComplete()) {
-        performBaroCalibrationCycle();
+        zeroCalibrationAddValueS(&zeroCalibration, baro.baroPressure);
+
+        if (zeroCalibrationIsCompleteS(&zeroCalibration)) {
+            zeroCalibrationGetZeroS(&zeroCalibration, &baroGroundPressure);
+            baroGroundAltitude = pressureToAltitude(baroGroundPressure);
+            LOG_D(BARO, "Barometer calibration complete (%d)", (int)lrintf(baroGroundAltitude));
+        }
+
         baro.BaroAlt = 0;
     }
     else {
@@ -315,6 +357,11 @@ int32_t baroCalculateAltitude(void)
 int32_t baroGetLatestAltitude(void)
 {
     return baro.BaroAlt;
+}
+
+int16_t baroGetTemperature(void)
+{   
+    return CENTIDEGREES_TO_DECIDEGREES(baro.baroTemperature);
 }
 
 bool baroIsHealthy(void)

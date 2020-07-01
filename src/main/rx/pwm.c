@@ -23,12 +23,14 @@
 
 #include "platform.h"
 
-#if defined(USE_RX_PWM) || defined(USE_RX_PPM)
+#if defined(USE_RX_PPM)
 
+#include "build/debug.h"
 #include "common/utils.h"
 
 #include "config/feature.h"
 
+#include "drivers/timer.h"
 #include "drivers/rx_pwm.h"
 #include "drivers/time.h"
 
@@ -39,43 +41,12 @@
 
 #define RC_PWM_50HZ_UPDATE          (20 * 1000)     // 50Hz update rate period
 
-#if MAX_SUPPORTED_RC_PARALLEL_PWM_CHANNEL_COUNT > MAX_SUPPORTED_RC_PPM_CHANNEL_COUNT
-    #define PWM_RX_CHANNEL_COUNT    MAX_SUPPORTED_RC_PARALLEL_PWM_CHANNEL_COUNT
-#else
-    #define PWM_RX_CHANNEL_COUNT    MAX_SUPPORTED_RC_PPM_CHANNEL_COUNT
-#endif
-
-static uint16_t channelData[PWM_RX_CHANNEL_COUNT];
-static timeUs_t lastReceivedFrameUs;
+static uint16_t channelData[MAX_SUPPORTED_RC_PPM_CHANNEL_COUNT];
 
 static uint16_t readRawRC(const rxRuntimeConfig_t *rxRuntimeConfig, uint8_t channel)
 {
     UNUSED(rxRuntimeConfig);
     return channelData[channel];
-}
-
-static uint8_t pwmFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
-{
-    UNUSED(rxRuntimeConfig);
-
-    timeUs_t currentTimeUs = micros();
-
-    // PWM doesn't indicate individual updates, if low level code indicates that we have valid signal
-    // we mimic the update at 50Hz rate
-
-    if (isPWMDataBeingReceived()) {
-        if ((currentTimeUs - lastReceivedFrameUs) >= RC_PWM_50HZ_UPDATE) {
-            lastReceivedFrameUs = currentTimeUs;
-
-            for (int channel = 0; channel < MAX_SUPPORTED_RC_PARALLEL_PWM_CHANNEL_COUNT; channel++) {
-                channelData[channel] = pwmRead(channel);
-            }
-
-            return RX_FRAME_COMPLETE;
-        }
-    }
-
-    return RX_FRAME_PENDING;
 }
 
 static uint8_t ppmFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
@@ -95,21 +66,25 @@ static uint8_t ppmFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
     return RX_FRAME_PENDING;
 }
 
-void rxPwmInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
+bool rxPpmInit(rxRuntimeConfig_t *rxRuntimeConfig)
 {
+    const timerHardware_t * timHw = timerGetByUsageFlag(TIM_USE_PPM);
+
+    if (timHw == NULL) {
+        return false;
+    }
+
+    if (!ppmInConfig(timHw)) {
+        return false;
+    }
+
     rxRuntimeConfig->rxRefreshRate = RC_PWM_50HZ_UPDATE;
     rxRuntimeConfig->requireFiltering = true;
+    rxRuntimeConfig->channelCount = MAX_SUPPORTED_RC_PPM_CHANNEL_COUNT;
+    rxRuntimeConfig->rcReadRawFn = readRawRC;
+    rxRuntimeConfig->rcFrameStatusFn = ppmFrameStatus;
 
-    // configure PWM/CPPM read function and max number of channels. serial rx below will override both of these, if enabled
-    if (rxConfig->receiverType == RX_TYPE_PWM) {
-        rxRuntimeConfig->channelCount = MAX_SUPPORTED_RC_PARALLEL_PWM_CHANNEL_COUNT;
-        rxRuntimeConfig->rcReadRawFn = readRawRC;
-        rxRuntimeConfig->rcFrameStatusFn = pwmFrameStatus;
-    } else if (rxConfig->receiverType == RX_TYPE_PPM) {
-        rxRuntimeConfig->channelCount = MAX_SUPPORTED_RC_PPM_CHANNEL_COUNT;
-        rxRuntimeConfig->rcReadRawFn = readRawRC;
-        rxRuntimeConfig->rcFrameStatusFn = ppmFrameStatus;
-    }
+    return true;
 }
 #endif
 

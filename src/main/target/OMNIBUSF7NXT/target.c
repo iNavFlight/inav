@@ -29,46 +29,28 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
 #include "drivers/bus.h"
-
-#define DEF_TIM_CHNL_CH1    TIM_CHANNEL_1
-#define DEF_TIM_CHNL_CH2    TIM_CHANNEL_2
-#define DEF_TIM_CHNL_CH3    TIM_CHANNEL_3
-#define DEF_TIM_CHNL_CH4    TIM_CHANNEL_4
-
-#define GPIO_AF_PA9_TIM1    GPIO_AF1_TIM1
-#define GPIO_AF_PB0_TIM3    GPIO_AF2_TIM3
-#define GPIO_AF_PB1_TIM3    GPIO_AF2_TIM3
-#define GPIO_AF_PB4_TIM3    GPIO_AF2_TIM3
-#define GPIO_AF_PB5_TIM3    GPIO_AF2_TIM3
-#define GPIO_AF_PB6_TIM4    GPIO_AF2_TIM4
-#define GPIO_AF_PC8_TIM8    GPIO_AF3_TIM8
-#define GPIO_AF_PC9_TIM8    GPIO_AF3_TIM8
-
-#define DEF_TIM(_tim, _ch, _pin, _usage, _flags) \
-    { _tim, IO_TAG(_pin), DEF_TIM_CHNL_##_ch, _flags, IOCFG_AF_PP, GPIO_AF_##_pin##_##_tim, _usage }
+#include "drivers/sensor.h"
 
 // Board hardware definitions
-BUSDEV_REGISTER_SPI_TAG(busdev_mpu6000,     DEVHW_MPU6000,      MPU6000_SPI_BUS,    MPU6000_CS_PIN,     NONE,       0,  DEVFLAGS_NONE);
-BUSDEV_REGISTER_SPI_TAG(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_SPI_BUS,    MPU6500_CS_PIN,     NONE,       1,  DEVFLAGS_NONE);
-
-//BUSDEV_REGISTER_SPI(busdev_lps25h,      DEVHW_LPS25H,       LPS25H_SPI_BUS,     LPS25H_CS_PIN,      NONE,           DEVFLAGS_NONE);
+BUSDEV_REGISTER_SPI_TAG(busdev_mpu6000,     DEVHW_MPU6000,      MPU6000_SPI_BUS,    MPU6000_CS_PIN,     NONE,       0,  DEVFLAGS_NONE,  IMU_MPU6000_ALIGN);
+BUSDEV_REGISTER_SPI_TAG(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_SPI_BUS,    MPU6500_CS_PIN,     NONE,       1,  DEVFLAGS_NONE,  IMU_MPU6500_ALIGN);
 
 const timerHardware_t timerHardware[] = {
-    // DEF_TIM(TIM10, CH1, PB8, TIM_USE_PPM,       0), // PPM
+    DEF_TIM(TIM4, CH2, PB7, TIM_USE_PPM,                            0, 0), // PPM / UART1_RX
 
     // OUTPUT 1-4
-    DEF_TIM(TIM3, CH2, PB5, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,   1),
-    DEF_TIM(TIM3, CH1, PB4, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,   1),
-    DEF_TIM(TIM3, CH3, PB0, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,   1),
-    DEF_TIM(TIM3, CH4, PB1, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,   1),
+    DEF_TIM(TIM3, CH2, PB5, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,    1, 0),  // D(1, 5, 5)
+    DEF_TIM(TIM3, CH1, PB4, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,    1, 0),  // D(1, 4, 5)
+    DEF_TIM(TIM3, CH3, PB0, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,    1, 0),  // D(1, 7, 5)
+    DEF_TIM(TIM3, CH4, PB1, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,    1, 0),  // D(1, 2, 5)
 
     // OUTPUT 5-6
-    DEF_TIM(TIM8, CH3, PC9, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,   1),
-    DEF_TIM(TIM8, CH4, PC8, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,   1),
+    DEF_TIM(TIM8, CH4, PC9, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,    1, 0),  // D(2, 7, 7)
+    DEF_TIM(TIM8, CH3, PC8, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,    1, 1),  // D(2, 2, 0)
 
     // AUXILARY pins
-    DEF_TIM(TIM1, CH2, PA9, TIM_USE_LED,        1),     // LED
-    DEF_TIM(TIM4, CH1, PB6, TIM_USE_ANY,        0)      // SS1 TX
+    DEF_TIM(TIM1, CH2, PA9, TIM_USE_LED,                            1, 0),  // LED
+    DEF_TIM(TIM4, CH1, PB6, TIM_USE_ANY,                            0, 0)   // SS1 TX / UART1_TX
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

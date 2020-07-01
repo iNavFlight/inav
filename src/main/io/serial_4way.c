@@ -72,7 +72,7 @@
 // *** change to adapt Revision
 #define SERIAL_4WAY_VER_MAIN 20
 #define SERIAL_4WAY_VER_SUB_1 (uint8_t) 0
-#define SERIAL_4WAY_VER_SUB_2 (uint8_t) 02
+#define SERIAL_4WAY_VER_SUB_2 (uint8_t) 03
 
 #define SERIAL_4WAY_PROTOCOL_VER 107
 // *** end
@@ -136,17 +136,17 @@ uint8_t esc4wayInit(void)
     pwmDisableMotors();
     escCount = 0;
     memset(&escHardware, 0, sizeof(escHardware));
-    pwmIOConfiguration_t *pwmIOConfiguration = pwmGetOutputConfiguration();
-    for (volatile uint8_t i = 0; i < pwmIOConfiguration->ioCount; i++) {
-        if ((pwmIOConfiguration->ioConfigurations[i].flags & PWM_PF_MOTOR) == PWM_PF_MOTOR) {
-            if (motor[pwmIOConfiguration->ioConfigurations[i].index] > 0) {
-                escHardware[escCount].io = IOGetByTag(pwmIOConfiguration->ioConfigurations[i].timerHardware->tag);
-                setEscInput(escCount);
-                setEscHi(escCount);
-                escCount++;
-            }
+
+    for (int idx = 0; idx < getMotorCount(); idx++) {
+        ioTag_t tag = pwmGetMotorPinTag(idx);
+        if (tag != IOTAG_NONE) {
+            escHardware[escCount].io = IOGetByTag(tag);
+            setEscInput(escCount);
+            setEscHi(escCount);
+            escCount++;
         }
     }
+
     return escCount;
 }
 
@@ -332,7 +332,8 @@ uint16_t _crc_xmodem_update (uint16_t crc, uint8_t data) {
         (pDeviceInfo->words[0] == 0xE8B2))
 
 #define ARM_DEVICE_MATCH ((pDeviceInfo->words[0] == 0x1F06) || \
-        (pDeviceInfo->words[0] == 0x3306) || (pDeviceInfo->words[0] == 0x3406) || (pDeviceInfo->words[0] == 0x3506))
+        (pDeviceInfo->words[0] == 0x3306) || (pDeviceInfo->words[0] == 0x3406) || (pDeviceInfo->words[0] == 0x3506) || \
+        (pDeviceInfo->words[0] == 0x2B06) || (pDeviceInfo->words[0] == 0x4706))
 
 static uint8_t CurrentInterfaceMode;
 

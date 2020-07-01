@@ -26,6 +26,11 @@
 #include "io/rcdevice.h"
 #include "fc/rc_modes.h"
 
+#define FIVE_KEY_CABLE_JOYSTICK_MIN 1080
+#define FIVE_KEY_CABLE_JOYSTICK_MAX 1920
+#define FIVE_KEY_CABLE_JOYSTICK_MID_START 1350
+#define FIVE_KEY_CABLE_JOYSTICK_MID_END 1650
+
 typedef struct rcdeviceSwitchState_s {
     bool isActivated;
 } rcdeviceSwitchState_t;
@@ -33,10 +38,9 @@ typedef struct rcdeviceSwitchState_s {
 extern runcamDevice_t *camDevice;
 extern bool rcdeviceInMenu;
 
-bool rcdeviceInit(void);
+void rcdeviceInit(void);
 void rcdeviceUpdate(timeUs_t currentTimeUs);
 
 bool rcdeviceIsEnabled(void);
 
-// used for unit test
-rcdeviceSwitchState_t switchStates[BOXCAMERA3 - BOXCAMERA1 + 1];
+void rcdeviceSend5KeyOSDCableSimualtionEvent(rcdeviceCamSimulationKeyEvent_e key);

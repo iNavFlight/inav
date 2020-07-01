@@ -34,23 +34,15 @@
 #define GYRO_INT_EXTI            PC4
 #define USE_MPU_DATA_READY_SIGNAL
 
-#define USE_GYRO
-#define USE_GYRO_MPU6000
-#define GYRO_MPU6000_ALIGN      CW270_DEG
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
-#define USE_GYRO_MPU6500
-#define GYRO_MPU6500_ALIGN      CW270_DEG
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW270_DEG
 #define MPU6500_CS_PIN          PA4
 #define MPU6500_SPI_BUS         BUS_SPI1
-
-#define USE_ACC
-#define USE_ACC_MPU6000
-#define ACC_MPU6000_ALIGN       CW270_DEG
-
-#define USE_ACC_MPU6500
-#define ACC_MPU6500_ALIGN       CW270_DEG
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
@@ -71,8 +63,9 @@
 #define USE_BARO_MS5611
 
 #define USE_PITOT_ADC
-#define USE_PITOT_MS4525
 #define PITOT_I2C_BUS           BUS_I2C2
+
+#define TEMPERATURE_I2C_BUS     BUS_I2C2
 
 #define M25P16_CS_PIN           PB3
 #define M25P16_SPI_BUS          BUS_SPI3
@@ -131,12 +124,7 @@
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
 #define USE_LED_STRIP
-// LED Strip can run off Pin 5 (PA1) of the MOTOR outputs.
-#define WS2811_GPIO_AF                  GPIO_AF_TIM5
 #define WS2811_PIN                      PA1
-#define WS2811_DMA_STREAM               DMA1_Stream4
-#define WS2811_DMA_CHANNEL              DMA_Channel_6
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST4_HANDLER
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
@@ -161,3 +149,6 @@
 #define TARGET_IO_PORTD         0xffff
 
 #define PCA9685_I2C_BUS         BUS_I2C2
+
+#define USE_DSHOT
+#define USE_ESC_SENSOR
