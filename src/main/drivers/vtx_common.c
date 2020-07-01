@@ -52,6 +52,11 @@ void vtxCommonInit(void)
 void vtxCommonSetDevice(vtxDevice_t *vtxDevice)
 {
     commonVtxDevice = vtxDevice;
+
+    if(vtxCommonHasCustomPowerLevels()){
+        vtxCommonOverridePowerNames(&vtxDevice->capability);
+        vtxDevice->capability.powerCount = vtxCommonCustomPowerLevelsCount();
+    }
 }
 
 vtxDevice_t *vtxCommonDevice(void)
@@ -195,9 +200,7 @@ bool vtxCommonOverridePowerNames(vtxDeviceCapability_t * deviceCapability){
 
 bool vtxCommonGetDeviceCapability(vtxDevice_t *vtxDevice, vtxDeviceCapability_t *pDeviceCapability)
 {
-    if (vtxDevice) {  
-        if(vtxCommonHasCustomPowerLevels())
-            vtxCommonOverridePowerNames(&vtxDevice->capability);
+    if (vtxDevice) {
         memcpy(pDeviceCapability, &vtxDevice->capability, sizeof(vtxDeviceCapability_t));      
         return true;
     }

@@ -137,6 +137,7 @@ void vtxCommonSetDevice(vtxDevice_t *vtxDevice);
 vtxDevice_t *vtxCommonDevice(void);
 bool vtxCommonHasCustomPowerLevels(void);
 int vtxCommonCustomPowerLevelsCount(void);
+bool vtxCommonOverridePowerNames(vtxDeviceCapability_t * deviceCapability);
 
 // VTable functions
 void vtxCommonProcess(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs);
