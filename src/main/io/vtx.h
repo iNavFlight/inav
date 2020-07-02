@@ -41,10 +41,9 @@ typedef struct vtxSettingsConfig_s {
     uint16_t pitModeChan;       // sets out-of-range pitmode frequency
     uint8_t lowPowerDisarm;     // min power while disarmed, from vtxLowerPowerDisarm_e
     uint16_t maxPowerOverride;  // for VTX drivers that are polling VTX capabilities - override what VTX is reporting
-    bool useAutoPowerLevel;
-    uint16_t maxDistanceReachableAt25;
+    bool useAutoPowerLevel;     //Enable o disable auto vtx power (Require GPS)
+    uint16_t maxDistanceReachableAt25;  //Max distance reachable at 25 mw
 } vtxSettingsConfig_t;
-
 
 typedef struct vtxAutoPowerState_s {
     uint32_t validUntill;

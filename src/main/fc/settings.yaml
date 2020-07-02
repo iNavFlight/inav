@@ -2140,7 +2140,7 @@ groups:
       - name: vtx_auto_power
         field: useAutoPowerLevel
         type: bool
-      - name: vtx_auto_max_distance_25
+      - name: vtx_auto_max_distance_at_min_power
         field: maxDistanceReachableAt25
         min: 0
         max: 10000

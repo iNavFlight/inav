@@ -45,7 +45,6 @@
 #include "io/vtx_control.h"
 
 #include "navigation/navigation.h"
-#include "common/log.h"
 
 PG_REGISTER_WITH_RESET_TEMPLATE(vtxSettingsConfig_t, vtxSettingsConfig, PG_VTX_SETTINGS_CONFIG, 2);
 
