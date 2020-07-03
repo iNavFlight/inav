@@ -34,10 +34,10 @@
 #define SPI1_MISO_PIN   	PA6
 #define SPI1_MOSI_PIN   	PA7
 
-#define USE_SPI_DEVICE_3
-#define SPI3_SCK_PIN            PB13
-#define SPI3_MISO_PIN  		PB14
-#define SPI3_MOSI_PIN  		PB15
+#define USE_SPI_DEVICE_2
+#define SPI2_SCK_PIN            PB13
+#define SPI2_MISO_PIN  		PB14
+#define SPI2_MOSI_PIN  		PB15
 
 
 // *************** SPI Gyro & ACC **********************
@@ -80,14 +80,14 @@
 // *************** SPI OSD *****************************
 #define USE_OSD
 #define USE_MAX7456
-#define MAX7456_SPI_BUS         BUS_SPI3
+#define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          PB12
 
 // *************** SPI FLASH **************************
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 #define M25P16_CS_PIN           PB2
-#define M25P16_SPI_BUS          BUS_SPI3
+#define M25P16_SPI_BUS          BUS_SPI2
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
 // *************** UART *****************************
