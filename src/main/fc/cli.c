@@ -1338,7 +1338,7 @@ static void cliWaypoints(char *cmdline)
     } else if (sl_strcasecmp(cmdline, "save") == 0) {
         posControl.waypointListValid = false;
         for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {
-            if (!(posControl.waypointList[i].action == NAV_WP_ACTION_WAYPOINT || posControl.waypointList[i].action == NAV_WP_ACTION_JUMP || posControl.waypointList[i].action == NAV_WP_ACTION_RTH || posControl.waypointList[i].action == NAV_WP_ACTION_HOLD_TIME || posControl.waypointList[i].action == NAV_WP_ACTION_LAND)) break;
+            if (!(posControl.waypointList[i].action == NAV_WP_ACTION_WAYPOINT || posControl.waypointList[i].action == NAV_WP_ACTION_JUMP || posControl.waypointList[i].action == NAV_WP_ACTION_RTH || posControl.waypointList[i].action == NAV_WP_ACTION_HOLD_TIME || posControl.waypointList[i].action == NAV_WP_ACTION_LAND || posControl.waypointList[i].action == NAV_WP_ACTION_SET_POI || posControl.waypointList[i].action == NAV_WP_ACTION_SET_HEAD)) break;
             if (posControl.waypointList[i].flag == NAV_WP_FLAG_LAST) {
                 posControl.waypointCount = i + 1;
                 posControl.waypointListValid = true;
@@ -1933,9 +1933,9 @@ static void cliGvar(char *cmdline) {
         int32_t i = args[INDEX];
         if (
             i >= 0 && i < MAX_GLOBAL_VARIABLES &&
-            args[DEFAULT] >= INT32_MIN && args[DEFAULT] <= INT32_MAX &&  
-            args[MIN] >= INT32_MIN && args[MIN] <= INT32_MAX &&  
-            args[MAX] >= INT32_MIN && args[MAX] <= INT32_MAX  
+            args[DEFAULT] >= INT32_MIN && args[DEFAULT] <= INT32_MAX &&
+            args[MIN] >= INT32_MIN && args[MIN] <= INT32_MAX &&
+            args[MAX] >= INT32_MIN && args[MAX] <= INT32_MAX
         ) {
             globalVariableConfigsMutable(i)->defaultValue = args[DEFAULT];
             globalVariableConfigsMutable(i)->min = args[MIN];

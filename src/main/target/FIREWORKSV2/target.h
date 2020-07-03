@@ -75,13 +75,14 @@
 #   define IMU_2_SPI_BUS           BUS_SPI1
 #   define IMU_2_ALIGN             CW0_DEG
 #else
-    // FIREWORKS V2
-#   define IMU_1_CS_PIN            PD2
-#   define IMU_1_SPI_BUS           BUS_SPI3
-#   define IMU_1_ALIGN             CW180_DEG
-#   define IMU_2_CS_PIN            PA4
-#   define IMU_2_SPI_BUS           BUS_SPI1
-#   define IMU_2_ALIGN             CW0_DEG_FLIP
+    // IMU_1 is verified to work on OBF4V6 and Omnibus Fireworks board
+#   define IMU_1_CS_PIN            PA4
+#   define IMU_1_SPI_BUS           BUS_SPI1
+#   define IMU_1_ALIGN             CW0_DEG_FLIP
+    // IMU_2 is sketchy and was not verified on actual hardware
+#   define IMU_2_CS_PIN            PD2
+#   define IMU_2_SPI_BUS           BUS_SPI3
+#   define IMU_2_ALIGN             CW180_DEG
 #endif
 
 #define USE_MAG

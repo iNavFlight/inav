@@ -237,9 +237,17 @@ typedef enum {
     NAV_WP_ACTION_WAYPOINT  = 0x01,
     NAV_WP_ACTION_HOLD_TIME = 0x03,
     NAV_WP_ACTION_RTH       = 0x04,
+    NAV_WP_ACTION_SET_POI   = 0x05,
     NAV_WP_ACTION_JUMP      = 0x06,
+    NAV_WP_ACTION_SET_HEAD  = 0x07,
     NAV_WP_ACTION_LAND      = 0x08
 } navWaypointActions_e;
+
+typedef enum {
+    NAV_WP_HEAD_MODE_NONE  = 0,
+    NAV_WP_HEAD_MODE_POI   = 1,
+    NAV_WP_HEAD_MODE_FIXED = 2
+} navWaypointHeadings_e;
 
 typedef enum {
     NAV_WP_FLAG_LAST = 0xA5
@@ -253,6 +261,12 @@ typedef struct {
     int16_t p1, p2, p3;
     uint8_t flag;
 } navWaypoint_t;
+
+typedef struct {
+    navWaypointHeadings_e  mode;
+    uint32_t heading; // fixed heading * 100 (SET_HEAD)
+    fpVector3_t poi_pos; // POI location in local coordinates (SET_POI)
+} navWapointHeading_t;
 
 typedef struct radar_pois_s {
     gpsLocation_t gps;
