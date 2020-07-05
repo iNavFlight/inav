@@ -129,7 +129,7 @@
 
 // *************** LED2812 ************************
 #define USE_LED_STRIP
-#define WS2811_PIN                      PB11
+#define WS2811_PIN                      PA15
 #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST6_HANDLER
 #define WS2811_DMA_STREAM               DMA1_Stream6
 #define WS2811_DMA_CHANNEL              DMA_Channel_6
