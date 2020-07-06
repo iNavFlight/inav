@@ -1,0 +1,127 @@
+<html>
+<head>
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+	<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+	<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>	
+	<title>box2perm utility</title>
+</head>
+<body>
+	<div class="container">
+		<h1>box2perm utility</h1>
+	
+		<p>Just paste your pre 2.5 INAV <strong>aux</strong> CLI lines and click "convert" to get a permanent ID aux lines</p>
+		
+		<div class="form-group">
+			<label for="inputText">Input aux CLI lines</label>
+			<textarea id="inputText" cols="40" rows="12" class="form-control"></textarea>
+		</div>
+
+		<input type="button" id="btnConvert" value="Convert" class="btn btn-primary">
+
+		<div class="form-group">
+			<label for="outputText">Output result</label>
+			<textarea id="outputText" cols="40" rows="12" class="form-control"></textarea>
+		</div>
+	
+	</div>
+	
+	<script>
+		var objBoxTable = [
+			{ boxid: 0, permid: 0, name: "ARM"},		// 0
+			{ boxid: 1, permid: 1, name: "ANGLE"},		// 1
+			{ boxid: 2, permid: 2, name: "HORIZON"},		// 2
+			{ boxid: 3, permid: 3, name: "NAV ALTHOLD"},		// 3
+			{ boxid: 4, permid: 5, name: "HEADING HOLD"},		// 4
+			{ boxid: 5, permid: 6, name: "HEADFREE"},		// 5
+			{ boxid: 6, permid: 7, name: "HEADADJ"},		// 6
+			{ boxid: 7, permid: 8, name: "CAMSTAB"},		// 7
+			{ boxid: 8, permid: 10, name: "NAV RTH"},		// 8
+			{ boxid: 9, permid: 11, name: "NAV POSHOLD"},		// 9
+			{ boxid: 10, permid: 12, name: "MANUAL"},		// 10
+			{ boxid: 11, permid: 13, name: "BEEPER"},		// 11
+			{ boxid: 12, permid: 15, name: "LEDLOW"},		// 12
+			{ boxid: 13, permid: 16, name: "LIGHTS"},		// 13
+			{ boxid: 14, permid: 36, name: "NAV LAUNCH"},		// 14
+			{ boxid: 15, permid: 19, name: "OSD SW"},		// 15
+			{ boxid: 16, permid: 20, name: "TELEMETRY"},		// 16
+			{ boxid: 17, permid: 26, name: "BLACKBOX"},		// 17
+			{ boxid: 18, permid: 27, name: "FAILSAFE"},		// 18
+			{ boxid: 19, permid: 28, name: "NAV WP"},		// 19
+			{ boxid: 20, permid: 29, name: "AIR MODE"},		// 20
+			{ boxid: 21, permid: 30, name: "HOME RESET"},		// 21
+			{ boxid: 22, permid: 31, name: "GCS NAV"},		// 22
+			{ boxid: 23, permid: 38, name: "KILLSWITCH"},		// 23
+			{ boxid: 24, permid: 33, name: "SURFACE"},		// 24
+			{ boxid: 25, permid: 34, name: "FLAPERON"},		// 25
+			{ boxid: 26, permid: 35, name: "TURN ASSIST"},		// 26
+			{ boxid: 27, permid: 37, name: "SERVO AUTOTRIM"},		// 27
+			{ boxid: 28, permid: 21, name: "AUTO TUNE"},		// 28
+			{ boxid: 29, permid: 39, name: "CAMERA CONTROL 1"},		// 29
+			{ boxid: 30, permid: 40, name: "CAMERA CONTROL 2"},		// 30
+			{ boxid: 31, permid: 41, name: "CAMERA CONTROL 3"},		// 31
+			{ boxid: 32, permid: 42, name: "OSD ALT 1"},		// 32
+			{ boxid: 33, permid: 43, name: "OSD ALT 2"},		// 33
+			{ boxid: 34, permid: 44, name: "OSD ALT 3"},		// 34
+			{ boxid: 35, permid: 45, name: "NAV CRUISE"},		// 35
+			{ boxid: 36, permid: 46, name: "MC BRAKING"},		// 36
+			{ boxid: 37, permid: 47, name: "USER1"},		// 37
+			{ boxid: 38, permid: 48, name: "USER2"},		// 38
+			{ boxid: 39, permid: 32, name: "FPV ANGLE MIX"},		// 39
+			{ boxid: 40, permid: 49, name: "LOITER CHANGE"},		// 40
+			{ boxid: 41, permid: 50, name: "MSP RC OVERRIDE"},		// 41
+		];
+	
+		function convert_box2perm() {
+			var inputText = $('#inputText').val();
+			var outputText = '';
+			// Break input text into lines and iterate them
+			var lines = inputText.split('\n');
+			for(var i = 0;i < lines.length;i++){
+				var line = lines[i];
+				
+				if(line.startsWith('aux ')) {
+					var arrLine = line.split(' ');
+					if(arrLine.length===6) {
+						// It's an old format aux line. Convert now.
+						var boxRow = findByBoxId(arrLine[2]);
+						if(boxRow===undefined) {
+							outputText = outputText + line + ' # Error parsing this line!\n';
+						} else { 
+							var convertedLine = arrLine[0] + ' '
+											+ arrLine[1] + ' '
+											+ boxRow.permid + ' '
+											+ arrLine[3] + ' '
+											+ arrLine[4] + ' '
+											+ arrLine[5] + ' # '
+											+ boxRow.boxid + ' => '
+											+ boxRow.permid + ' ('
+											+ boxRow.name + ')'
+							outputText = outputText + convertedLine + '\n';
+						}
+					} else {
+						outputText = outputText + line + '\n';
+					}
+				} else {
+					outputText = outputText + line + '\n';
+				}
+				
+			}
+			$('#outputText').val(outputText);
+		}
+		
+		function findByBoxId(boxId) {
+			for(var i = 0;i < objBoxTable.length;i++){
+				if(objBoxTable[i].boxid == boxId) {
+					return objBoxTable[i];
+				}
+			}
+		}
+		
+		$('#btnConvert').click(function () {
+			convert_box2perm();
+		});
+	</script>
+	
+</body>
+</html>
