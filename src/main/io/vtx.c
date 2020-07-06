@@ -84,26 +84,15 @@ int vtxAutoGetPower(vtxDevice_t *vtxDevice){
         
         uint8_t powerLevel;
         char * error;
-        const uint8_t histeresisDeadband = 2;   //Histeresis deadband in meter, 
-        uint8_t histeresisDeadbandHalf = histeresisDeadband/2;
-
-        if(autoPowerState.validFrom < histeresisDeadbandHalf){
-            //If UAV is on the first range step, disable histeresis
-            histeresisDeadbandHalf = 0;
-        }
-
         vtxCommonGetPowerIndex(vtxDevice,&powerLevel);
 
         if(powerLevel > vtxDevice->capability.powerCount)
             return vtxDevice->powerIndex;
 
-        if(powerLevel < vtxDevice->capability.powerCount && GPS_distanceToHome > autoPowerState.validUntill + histeresisDeadbandHalf){
+        if(powerLevel < vtxDevice->capability.powerCount && GPS_distanceToHome > autoPowerState.validUntill)
             powerLevel++;
-        }
-        else if (powerLevel > 1 && GPS_distanceToHome < autoPowerState.validFrom - histeresisDeadbandHalf)
-        {
+        else if (powerLevel > 1 && GPS_distanceToHome < autoPowerState.validFrom)
             powerLevel--;
-        }
 
         //Update validFrom
         if(powerLevel <= 1){

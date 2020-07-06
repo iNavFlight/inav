@@ -9,7 +9,7 @@ Logic conditions can be edited using INAV Configurator user interface, of via CL
 
 ## CLI
 
-`logic <rule> <enabled> <activatorId> <operation> <operand A type> <operand A value> <operand B type> <operand B value> <flags>`
+`logic <rule> <enabled> <operation> <operand A type> <operand A value> <operand B type> <operand B value> <flags>`
 
 * `<rule>` - ID of Logic Condition rule
 * `<enabled>` - `0` evaluates as disabled, `1` evaluates as enabled

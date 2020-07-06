@@ -149,18 +149,6 @@
     #endif
 #endif
 
-#if defined(USE_BARO_DPS310)
-    #if defined(DPS310_SPI_BUS)
-    BUSDEV_REGISTER_SPI(busdev_dps310,      DEVHW_DPS310,       DPS310_SPI_BUS,     DPS310_CS_PIN,      NONE,           DEVFLAGS_NONE, 0);
-    #elif defined(DPS310_I2C_BUS) || defined(BARO_I2C_BUS)
-    #if !defined(DPS310_I2C_BUS)
-        #define DPS310_I2C_BUS BARO_I2C_BUS
-    #endif
-    BUSDEV_REGISTER_I2C(busdev_dps310,      DEVHW_DPS310,       DPS310_I2C_BUS,     0x76,               NONE,           DEVFLAGS_NONE, 0);
-    #endif
-#endif
-
-
 /** COMPASS SENSORS **/
 #if !defined(USE_TARGET_MAG_HARDWARE_DESCRIPTORS)
 #if defined(USE_MAG_HMC5883)
