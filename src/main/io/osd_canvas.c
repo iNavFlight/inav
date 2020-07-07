@@ -511,9 +511,11 @@ static int32_t osdCanvasSidebarGetValue(osd_sidebar_scroll_e scroll)
                 case OSD_UNIT_UK:
                     FALLTHROUGH;
                 case OSD_UNIT_IMPERIAL:
-                    return CENTIMETERS_TO_CENTIFEET(gpsSol.groundSpeed);
+                    // cms/s to (mi/h) * 100
+                    return gpsSol.groundSpeed * 224 / 100;
                 case OSD_UNIT_METRIC:
-                    return gpsSol.groundSpeed;
+                    // cm/s to (km/h) * 100
+                    return gpsSol.groundSpeed * 36 / 10;
             }
 #endif
             break;
