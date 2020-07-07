@@ -2353,29 +2353,29 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             uint16_t osdCrsfTxPower = crsfLinkData.txPower;
             tfp_sprintf(buff, "%d mW", osdCrsfTxPower);
+            return true;
         }
-        break;
     case OSD_CRSF_LINK_QUALITY:
         {
             uint8_t osdCrsfLinkQuality = crsfLinkData.linkQuality;
             buff[0] = SYM_RSSI;
             tfp_sprintf(buff + 1, "%d", osdCrsfLinkQuality);
+            return true;
         }
-        break;
     case OSD_CRSF_SNR:
         {
             uint8_t osdCrsfSNR = crsfLinkData.snr;
             buff[0] = SYM_RSSI;
             tfp_sprintf(buff + 1, "%d", osdCrsfSNR);
+            return true;
         }
-        break;
     case OSD_CRSF_RSSI:
         {
             uint8_t osdCrsfRssi = crsfLinkData.rssi;
             buff[0] = SYM_RSSI;
             tfp_sprintf(buff + 1, "%d", osdCrsfRssi);
+            return true;
         }
-        break;
 #endif
 
     case OSD_WIND_SPEED_HORIZONTAL:
