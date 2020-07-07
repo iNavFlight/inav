@@ -2403,6 +2403,28 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_AZIMUTH:
+        {
+
+            buff[0] = SYM_AZIMUTH;
+            if (osdIsHeadingValid()) {
+                int16_t h = GPS_directionToHome;
+                if (h < 0) {
+                    h += 360;
+                }
+                if(h >= 180)
+                    h = h - 180;
+                else
+                    h = h + 180;
+
+                tfp_sprintf(&buff[1], "%3d", h);
+            } else {
+                buff[1] = buff[2] = buff[3] = '-';
+            }
+            buff[4] = '\0';
+            break;
+        }
+
     case OSD_MAP_SCALE:
         {
             float scaleToUnit;
@@ -2641,6 +2663,8 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_PLUS_CODE] = OSD_POS(0, 12);
     osdConfig->item_pos[0][OSD_FLYMODE] = OSD_POS(13, 12) | OSD_VISIBLE_FLAG;
     osdConfig->item_pos[0][OSD_GPS_LON] = OSD_POS(18, 12);
+
+    osdConfig->item_pos[0][OSD_AZIMUTH] = OSD_POS(2, 12);
 
     osdConfig->item_pos[0][OSD_ROLL_PIDS] = OSD_POS(2, 10);
     osdConfig->item_pos[0][OSD_PITCH_PIDS] = OSD_POS(2, 11);
