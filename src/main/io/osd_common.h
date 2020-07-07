@@ -76,7 +76,7 @@ void osdDrawVario(displayPort_t *display, displayCanvas_t *canvas, const osdDraw
 // Draws an arrow at the given point, where 0 degrees points to the top of the viewport and
 // positive angles result in clockwise rotation. If eraseBefore is true, the rect surrouing
 // the arrow will be erased first (need for e.g. the home arrow, since it uses multiple symbols)
-void osdDrawDirArrow(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float degrees, bool eraseBefore);
+void osdDrawDirArrow(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float degrees);
 void osdDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float rollAngle, float pitchAngle);
 // Draws a heading graph with heading given as 0.1 degree steps i.e. [0, 3600). It uses 9 horizontal
 // grid slots.

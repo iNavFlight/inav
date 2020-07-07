@@ -1310,7 +1310,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 else
                 {
                     int homeDirection = GPS_directionToHome - DECIDEGREES_TO_DEGREES(osdGetHeading());
-                    osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX, elemPosY), homeDirection, true);
+                    osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX, elemPosY), homeDirection);
                 }
             } else {
                 // No home or no fix or unknown heading, blink.

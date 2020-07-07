@@ -120,32 +120,41 @@ void osdCanvasDrawVario(displayPort_t *display, displayCanvas_t *canvas, const o
     prev = zvel;
 }
 
-void osdCanvasDrawDirArrow(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float degrees, bool eraseBefore)
+void osdCanvasDrawDirArrow(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float degrees)
 {
     UNUSED(display);
+
+    const int top = 6;
+    const int topInset = -2;
+    const int bottom = -6;
+    const int width = 5;
+    // Since grid slots are not square, when we rotate the arrow
+    // it overflows horizontally a bit. Making a square-ish arrow
+    // doesn't look good, so it's better to overstep the grid slot
+    // boundaries a bit and then clean after ourselves.
+    const int overflow = 3;
 
     int px;
     int py;
     osdDrawPointGetPixels(&px, &py, display, canvas, p);
 
-    displayCanvasClipToRect(canvas, px, py, canvas->gridElementWidth, canvas->gridElementHeight);
-
-    if (eraseBefore) {
-        displayCanvasSetFillColor(canvas, DISPLAY_CANVAS_COLOR_TRANSPARENT);
-        displayCanvasFillRect(canvas, px, py, canvas->gridElementWidth, canvas->gridElementHeight);
-    }
+    displayCanvasClearRect(canvas, px - overflow, py, canvas->gridElementWidth + overflow * 2, canvas->gridElementHeight);
 
     displayCanvasSetFillColor(canvas, DISPLAY_CANVAS_COLOR_WHITE);
     displayCanvasSetStrokeColor(canvas, DISPLAY_CANVAS_COLOR_BLACK);
 
     displayCanvasCtmRotate(canvas, -DEGREES_TO_RADIANS(180 + degrees));
     displayCanvasCtmTranslate(canvas, px + canvas->gridElementWidth / 2, py + canvas->gridElementHeight / 2);
-    displayCanvasFillStrokeTriangle(canvas, 0, 6, 5, -6, -5, -6);
+
+    // Main triangle
+    displayCanvasFillStrokeTriangle(canvas, 0, top, width, bottom, -width, bottom);
+    // Inset triangle
     displayCanvasSetFillColor(canvas, DISPLAY_CANVAS_COLOR_TRANSPARENT);
-    displayCanvasFillStrokeTriangle(canvas, 0, -2, 6, -7, -6, -7);
-    displayCanvasMoveToPoint(canvas, 6, -7);
-    displayCanvasSetStrokeColor(canvas, DISPLAY_CANVAS_COLOR_TRANSPARENT);
-    displayCanvasStrokeLineToPoint(canvas, -6, -7);
+    displayCanvasFillTriangle(canvas, 0, topInset, width + 1, bottom - 1, -width, bottom - 1);
+    // Draw bottom strokes of the triangle
+    displayCanvasMoveToPoint(canvas, -width, bottom - 1);
+    displayCanvasStrokeLineToPoint(canvas, 0, topInset);
+    displayCanvasStrokeLineToPoint(canvas, width, bottom - 1);
 }
 
 static void osdDrawArtificialHorizonLevelLine(displayCanvas_t *canvas, int width, int pos, int margin)
