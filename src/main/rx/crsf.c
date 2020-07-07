@@ -57,6 +57,7 @@ static serialPort_t *serialPort;
 static timeUs_t crsfFrameStartAt = 0;
 static uint8_t telemetryBuf[CRSF_FRAME_SIZE_MAX];
 static uint8_t telemetryBufLen = 0;
+crsfLinkData_t crsfLinkData;
 
 
 /*
@@ -229,12 +230,63 @@ STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
             }
             crsfFrame.frame.frameLength = CRSF_FRAME_LINK_STATISTICS_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC;
 
-            // Inject link quality into channel 17
+            // Get Crossfire Link data
             const crsfPayloadLinkStatistics_t* linkStats = (crsfPayloadLinkStatistics_t*)&crsfFrame.frame.payload;
 
             crsfChannelData[16] = scaleRange(constrain(linkStats->uplinkLQ, 0, 100), 0, 100, 191, 1791);    // will map to [1000;2000] range
 
             lqTrackerSet(rxRuntimeConfig->lqTracker, scaleRange(constrain(linkStats->uplinkLQ, 0, 100), 0, 100, 0, RSSI_MAX_VALUE));
+
+            // Link Quality
+            crsfLinkData.linkQuality = linkStats->uplinkLQ;
+
+            // RF Mode
+            crsfLinkData.rfMode = linkStats->rfMode;
+            
+            // RSSI
+            if(linkStats->uplinkRSSIAnt1 == 0) {
+                crsfLinkData.rssi = linkStats->uplinkRSSIAnt2;
+            } 
+            else if(linkStats->uplinkRSSIAnt2 == 0) {
+                crsfLinkData.rssi = linkStats->uplinkRSSIAnt1;
+            } 
+            else {
+                crsfLinkData.rssi = MIN(linkStats->uplinkRSSIAnt1, linkStats->uplinkRSSIAnt2);
+            }
+
+            // SNR
+            crsfLinkData.snr = linkStats->uplinkSNR;
+
+            // TX Power
+            switch(linkStats->uplinkTXPower) {
+                case 0:
+                    crsfLinkData.txPower = 0;
+                    break;
+                case 1:
+                    crsfLinkData.txPower = 10;
+                    break;
+                case 2:
+                    crsfLinkData.txPower = 25;
+                    break;
+                case 3:
+                    crsfLinkData.txPower = 100;
+                    break;
+                case 4:
+                    crsfLinkData.txPower = 500;
+                    break;
+                case 5:
+                    crsfLinkData.txPower = 1000;
+                    break;
+                case 6:
+                    crsfLinkData.txPower = 2000;
+                    break;
+                case 7:
+                    crsfLinkData.txPower = 250;
+                    break;
+                default:
+                    crsfLinkData.txPower = 0;
+                    break;
+            }
 
             // This is not RC channels frame, update channel value but don't indicate frame completion
             return RX_FRAME_PENDING;

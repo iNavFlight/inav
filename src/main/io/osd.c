@@ -93,6 +93,10 @@ FILE_COMPILE_FOR_SPEED
 
 #include "rx/rx.h"
 #include "rx/msp_override.h"
+#ifdef USE_SERIALRX_CRSF
+#include "rx/crsf.h"
+#endif
+
 
 #include "sensors/acceleration.h"
 #include "sensors/battery.h"
@@ -192,6 +196,10 @@ static displayCanvas_t osdCanvas;
 static bool osdDisplayHasCanvas;
 #else
 #define osdDisplayHasCanvas false
+#endif
+
+#ifdef USE_SERIALRX_CRSF
+extern crsfLinkData_t crsfLinkData;
 #endif
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
@@ -2340,6 +2348,36 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 #endif /* ifdef USE_TEMPERATURE_SENSOR */
 
+#ifdef USE_SERIALRX_CRSF
+    case OSD_CRSF_TX_POWER:
+        {
+            uint16_t osdCrsfTxPower = crsfLinkData.txPower;
+            tfp_sprintf(buff, "%d mW", osdCrsfTxPower);
+        }
+        break;
+    case OSD_CRSF_LINK_QUALITY:
+        {
+            uint8_t osdCrsfLinkQuality = crsfLinkData.linkQuality;
+            buff[0] = SYM_RSSI;
+            tfp_sprintf(buff + 1, "%d", osdCrsfLinkQuality);
+        }
+        break;
+    case OSD_CRSF_SNR:
+        {
+            uint8_t osdCrsfSNR = crsfLinkData.snr;
+            buff[0] = SYM_RSSI;
+            tfp_sprintf(buff + 1, "%d", osdCrsfSNR);
+        }
+        break;
+    case OSD_CRSF_RSSI:
+        {
+            uint8_t osdCrsfRssi = crsfLinkData.rssi;
+            buff[0] = SYM_RSSI;
+            tfp_sprintf(buff + 1, "%d", osdCrsfRssi);
+        }
+        break;
+#endif
+
     case OSD_WIND_SPEED_HORIZONTAL:
 #ifdef USE_WIND_ESTIMATOR
         {
@@ -2725,6 +2763,13 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
 #if defined(USE_ESC_SENSOR)
     osdConfig->item_pos[0][OSD_ESC_RPM] = OSD_POS(1, 2);
     osdConfig->item_pos[0][OSD_ESC_TEMPERATURE] = OSD_POS(1, 3);
+#endif
+
+#if defined(USE_SERIALRX_CRSF)
+    osdConfig->item_pos[0][OSD_CRSF_TX_POWER] = OSD_POS(1, 2);
+    osdConfig->item_pos[0][OSD_CRSF_LINK_QUALITY] = OSD_POS(1, 3);
+    osdConfig->item_pos[0][OSD_CRSF_SNR] = OSD_POS(1, 4);
+    osdConfig->item_pos[0][OSD_CRSF_RSSI] = OSD_POS(1, 5);
 #endif
 
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)

@@ -116,6 +116,13 @@ typedef union crsfFrame_u {
     crsfFrameDef_t frame;
 } crsfFrame_t;
 
+typedef struct crsfLinkData_s {
+    uint16_t txPower;
+    uint8_t linkQuality;
+    uint8_t rfMode;
+    uint8_t rssi;
+    uint8_t snr;
+} crsfLinkData_t;
 
 void crsfRxWriteTelemetryData(const void *data, int len);
 void crsfRxSendTelemetryData(void);
