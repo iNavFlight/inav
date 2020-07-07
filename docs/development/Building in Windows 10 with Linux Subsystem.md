@@ -12,7 +12,7 @@ reboot
 
 Install Ubuntu:
 1.  Go to Microsoft store https://www.microsoft.com/en-gb/store/b/home
-1.  Search and install most recent Ubunto LTS version
+1.  Search and install most recent Ubuntu LTS version
 1.  When download completed, select `Launch Ubuntu`
 1.  When prompted enter a user name and password which you will need to remember
 1.  When complete, the linux command prompt will be displayed
@@ -41,7 +41,7 @@ You now have a folder called inav in the root of C drive that you can edit in wi
 ## Building (example):
 
 Launch Ubuntu:
-Click Windows Start button then scroll and lauch "Ubunto"
+Click Windows Start button then scroll and lauch "Ubuntu"
 
 Building from Ubunto command line
 `cd /mnt/c/inav`
