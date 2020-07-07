@@ -15,6 +15,7 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -22,7 +23,15 @@
 
 #include "platform.h"
 
+FILE_COMPILE_FOR_SPEED
+
 #ifdef USE_MAX7456
+
+#if defined(MAX7456_USE_BOUNDS_CHECKS)
+#define BOUNDS_CHECK_FAILED() __asm("BKPT #0")
+#else
+#define BOUNDS_CHECK_FAILED() do {} while(0)
+#endif
 
 #include "common/bitarray.h"
 #include "common/printf.h"
@@ -167,7 +176,6 @@
 // Under normal conditions, it should take 20us
 #define MAX_RESET_TIMEOUT_MS    50
 
-#define CHARS_PER_LINE          30 // XXX Should be related to VIDEO_BUFFER_CHARS_*?
 #define MAKE_CHAR_MODE_U8(c, m) ((((uint16_t)c) << 8) | m)
 #define MAKE_CHAR_MODE(c, m)    (MAKE_CHAR_MODE_U8(c, m) | (c > 255 ? CHAR_MODE_EXT : 0))
 #define CHAR_BLANK              MAKE_CHAR_MODE(0x20, 0)
@@ -177,11 +185,10 @@
 #define CHAR_MODE_EXT           (1 << 2)
 #define CHAR_MODE_IS_EXT(m)     ((m) & CHAR_MODE_EXT)
 
-// we write everything in screenBuffer and set a dirty bit
-// in screenIsDirty to upgrade only changed chars this solution
-// is faster than redrawing the whole screen on each frame
-static uint16_t screenBuffer[VIDEO_BUFFER_CHARS_PAL] ALIGNED(4);
-static BITARRAY_DECLARE(screenIsDirty, VIDEO_BUFFER_CHARS_PAL);
+// we write everything in osdCharacterGridBuffer and set a dirty bit
+// in screenIsDirty to update only changed chars. This solution
+// is faster than redrawing the whole screen on each frame.
+static BITARRAY_DECLARE(screenIsDirty, MAX7456_BUFFER_CHARS_PAL);
 
 //max chars to update in one idle
 #define MAX_CHARS2UPDATE        10
@@ -274,8 +281,13 @@ static bool max7456TryLock(void)
     return false;
 }
 
-static int max7456PrepareBuffer(uint8_t * buf, int bufPtr, uint8_t add, uint8_t data)
+static int max7456PrepareBuffer(uint8_t * buf, size_t bufsize, int bufPtr, uint8_t add, uint8_t data)
 {
+    if ((size_t)bufPtr + 2 > bufsize) {
+        BOUNDS_CHECK_FAILED();
+        // Force a crash ASAP
+        return INT_MAX;
+    }
     buf[bufPtr++] = add;
     buf[bufPtr++] = data;
     return bufPtr;
@@ -289,9 +301,9 @@ uint16_t max7456GetScreenSize(void)
     // TODO: Inspect all callers, make sure they can handle zero and
     // change this function to return zero before initialization.
     if (state.isInitialized && ((state.registers.vm0 & VIDEO_MODE_PAL) == 0)) {
-        return VIDEO_BUFFER_CHARS_NTSC;
+        return MAX7456_BUFFER_CHARS_NTSC;
     }
-    return VIDEO_BUFFER_CHARS_PAL;
+    return MAX7456_BUFFER_CHARS_PAL;
 }
 
 uint8_t max7456GetRowsCount(void)
@@ -301,14 +313,14 @@ uint8_t max7456GetRowsCount(void)
         return 0;
     }
     if (state.registers.vm0 & VIDEO_MODE_PAL) {
-        return VIDEO_LINES_PAL;
+        return MAX7456_LINES_PAL;
     }
 
-    return VIDEO_LINES_NTSC;
+    return MAX7456_LINES_NTSC;
 }
 
 //because MAX7456 need some time to detect video system etc. we need to wait for a while to initialize it at startup
-//and in case of restart we need to reinitialize chip. Note that we can't touch screenBuffer here, since
+//and in case of restart we need to reinitialize chip. Note that we can't touch osdCharacterGridBuffer here, since
 //it might already have some data by the first time this function is called.
 static void max7456ReInit(void)
 {
@@ -349,8 +361,8 @@ static void max7456ReInit(void)
     state.registers.vm0 = vm0Mode | OSD_ENABLE;
 
     // Enable OSD drawing and clear the display
-    bufPtr = max7456PrepareBuffer(buf, bufPtr, MAX7456ADD_VM0, state.registers.vm0);
-    bufPtr = max7456PrepareBuffer(buf, bufPtr, MAX7456ADD_DMM, DMM_CLEAR_DISPLAY);
+    bufPtr = max7456PrepareBuffer(buf, sizeof(buf), bufPtr, MAX7456ADD_VM0, state.registers.vm0);
+    bufPtr = max7456PrepareBuffer(buf, sizeof(buf), bufPtr, MAX7456ADD_DMM, DMM_CLEAR_DISPLAY);
 
     // Transfer data to SPI
     busTransfer(state.dev, NULL, buf, bufPtr);
@@ -366,7 +378,7 @@ static void max7456ReInit(void)
 //here we init only CS and try to init MAX for first time
 void max7456Init(const videoSystem_e videoSystem)
 {
-    uint8_t buf[(VIDEO_LINES_PAL + 1) * 2];
+    uint8_t buf[(MAX7456_LINES_PAL + 1) * 2];
     int bufPtr;
     state.dev = busDeviceInit(BUSTYPE_SPI, DEVHW_MAX7456, 0, OWNER_OSD);
 
@@ -383,9 +395,9 @@ void max7456Init(const videoSystem_e videoSystem)
     state.registers.dmm = 0;
     state.videoSystem = videoSystem;
 
-    // Set screenbuffer to all blanks
-    for (uint_fast16_t ii = 0; ii < ARRAYLEN(screenBuffer); ii++) {
-        screenBuffer[ii] = CHAR_BLANK;
+    // Set screen buffer to all blanks
+    for (uint_fast16_t ii = 0; ii < ARRAYLEN(osdCharacterGridBuffer); ii++) {
+        osdCharacterGridBuffer[ii] = CHAR_BLANK;
     }
 
     // Wait for software reset to finish
@@ -399,20 +411,20 @@ void max7456Init(const videoSystem_e videoSystem)
     // NTSC because all the brightness registers can be written
     // regardless of the video mode.
     bufPtr = 0;
-    for (int ii = 0; ii < VIDEO_LINES_PAL; ii++) {
-        bufPtr = max7456PrepareBuffer(buf, bufPtr, MAX7456ADD_RB0 + ii, BWBRIGHTNESS);
+    for (int ii = 0; ii < MAX7456_LINES_PAL; ii++) {
+        bufPtr = max7456PrepareBuffer(buf, sizeof(buf), bufPtr, MAX7456ADD_RB0 + ii, MAX7456_BWBRIGHTNESS);
     }
 
     // Set the blink duty cycle
-    bufPtr = max7456PrepareBuffer(buf, bufPtr, MAX7456ADD_VM1, BLINK_DUTY_CYCLE_50_50 | BLINK_TIME_3 | BACKGROUND_BRIGHTNESS_28);
+    bufPtr = max7456PrepareBuffer(buf, sizeof(buf), bufPtr, MAX7456ADD_VM1, BLINK_DUTY_CYCLE_50_50 | BLINK_TIME_3 | BACKGROUND_BRIGHTNESS_28);
     busTransfer(state.dev, NULL, buf, bufPtr);
 }
 
 void max7456ClearScreen(void)
 {
-    for (uint_fast16_t ii = 0; ii < ARRAYLEN(screenBuffer); ii++) {
-        if (screenBuffer[ii] != CHAR_BLANK) {
-            screenBuffer[ii] = CHAR_BLANK;
+    for (uint_fast16_t ii = 0; ii < ARRAYLEN(osdCharacterGridBuffer); ii++) {
+        if (osdCharacterGridBuffer[ii] != CHAR_BLANK) {
+            osdCharacterGridBuffer[ii] = CHAR_BLANK;
             bitArraySet(screenIsDirty, ii);
         }
     }
@@ -420,19 +432,23 @@ void max7456ClearScreen(void)
 
 void max7456WriteChar(uint8_t x, uint8_t y, uint16_t c, uint8_t mode)
 {
-    unsigned pos = y * CHARS_PER_LINE + x;
+    unsigned pos = y * MAX7456_CHARS_PER_LINE + x;
     uint16_t val = MAKE_CHAR_MODE(c, mode);
-    if (screenBuffer[pos] != val) {
-        screenBuffer[pos] = val;
-        bitArraySet(screenIsDirty, pos);
+    if (pos < ARRAYLEN(osdCharacterGridBuffer)) {
+        if (osdCharacterGridBuffer[pos] != val) {
+            osdCharacterGridBuffer[pos] = val;
+            bitArraySet(screenIsDirty, pos);
+        }
+    } else {
+        BOUNDS_CHECK_FAILED();
     }
 }
 
 bool max7456ReadChar(uint8_t x, uint8_t y, uint16_t *c, uint8_t *mode)
 {
-    unsigned pos = y * CHARS_PER_LINE + x;
-    if (pos < ARRAYLEN(screenBuffer)) {
-        uint16_t val = screenBuffer[pos];
+    unsigned pos = y * MAX7456_CHARS_PER_LINE + x;
+    if (pos < ARRAYLEN(osdCharacterGridBuffer)) {
+        uint16_t val = osdCharacterGridBuffer[pos];
         *c = CHAR_BYTE(val);
         *mode = MODE_BYTE(val);
         if (CHAR_MODE_IS_EXT(*mode)) {
@@ -441,6 +457,7 @@ bool max7456ReadChar(uint8_t x, uint8_t y, uint16_t *c, uint8_t *mode)
         }
         return true;
     }
+    BOUNDS_CHECK_FAILED();
     return false;
 }
 
@@ -448,16 +465,20 @@ void max7456Write(uint8_t x, uint8_t y, const char *buff, uint8_t mode)
 {
     uint8_t i = 0;
     uint16_t c;
-    unsigned pos = y * CHARS_PER_LINE + x;
+    unsigned pos = y * MAX7456_CHARS_PER_LINE + x;
     for (i = 0; *buff; i++, buff++, pos++) {
         //do not write past screen's end of line
-        if (x + i >= CHARS_PER_LINE) {
+        if (x + i >= MAX7456_CHARS_PER_LINE) {
             break;
         }
         c = MAKE_CHAR_MODE_U8(*buff, mode);
-        if (screenBuffer[pos] != c) {
-            screenBuffer[pos] = c;
-            bitArraySet(screenIsDirty, pos);
+        if (pos < ARRAYLEN(osdCharacterGridBuffer)) {
+            if (osdCharacterGridBuffer[pos] != c) {
+                osdCharacterGridBuffer[pos] = c;
+                bitArraySet(screenIsDirty, pos);
+            }
+        } else {
+            BOUNDS_CHECK_FAILED();
         }
     }
 }
@@ -468,41 +489,46 @@ static bool max7456DrawScreenPartial(void)
 {
     uint8_t spiBuff[MAX_CHARS2UPDATE * BYTES_PER_CHAR2UPDATE];
     int bufPtr = 0;
-    int pos;
+    size_t pos;
     uint_fast16_t updatedCharCount;
     uint8_t charMode;
+    int next;
 
-    for (pos = 0, updatedCharCount = 0;;) {
-        pos = BITARRAY_FIND_FIRST_SET(screenIsDirty, pos);
-        if (pos < 0) {
+    for (pos = 0, updatedCharCount = 0; pos < ARRAYLEN(osdCharacterGridBuffer);) {
+        next = BITARRAY_FIND_FIRST_SET(screenIsDirty, pos);
+        if (next < 0) {
             // No more dirty chars.
             break;
+        }
+        pos = next;
+        if (pos >= ARRAYLEN(osdCharacterGridBuffer)) {
+            BOUNDS_CHECK_FAILED();
         }
 
         // Found one dirty character to send
         uint8_t ph = pos >> 8;
         uint8_t pl = pos & 0xff;
 
-        charMode = MODE_BYTE(screenBuffer[pos]);
-        uint8_t chr = CHAR_BYTE(screenBuffer[pos]);
+        charMode = MODE_BYTE(osdCharacterGridBuffer[pos]);
+        uint8_t chr = CHAR_BYTE(osdCharacterGridBuffer[pos]);
         if (CHAR_MODE_IS_EXT(charMode)) {
             if (!DMM_IS_8BIT_MODE(state.registers.dmm)) {
                 state.registers.dmm |= DMM_8BIT_MODE;
-                bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_DMM, state.registers.dmm);
+                bufPtr = max7456PrepareBuffer(spiBuff, sizeof(spiBuff), bufPtr, MAX7456ADD_DMM, state.registers.dmm);
             }
 
-            bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_DMAH, ph | DMAH_8_BIT_DMDI_IS_CHAR_ATTR);
-            bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_DMAL, pl);
+            bufPtr = max7456PrepareBuffer(spiBuff, sizeof(spiBuff), bufPtr, MAX7456ADD_DMAH, ph | DMAH_8_BIT_DMDI_IS_CHAR_ATTR);
+            bufPtr = max7456PrepareBuffer(spiBuff, sizeof(spiBuff), bufPtr, MAX7456ADD_DMAL, pl);
             // Attribute bit positions on DMDI are 2 bits up relative to DMM.
             // DMM uses [5:3] while DMDI uses [7:4] - one bit more for referencing
             // characters in the [256, 511] range (which is not possible via DMM).
             // Since we write mostly to DMM, the internal representation uses
             // the format of the former and we shift it up here.
-            bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_DMDI, charMode << 2);
+            bufPtr = max7456PrepareBuffer(spiBuff, sizeof(spiBuff), bufPtr, MAX7456ADD_DMDI, charMode << 2);
 
-            bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_DMAH, ph);
-            bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_DMAL, pl);
-            bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_DMDI, chr);
+            bufPtr = max7456PrepareBuffer(spiBuff, sizeof(spiBuff), bufPtr, MAX7456ADD_DMAH, ph);
+            bufPtr = max7456PrepareBuffer(spiBuff, sizeof(spiBuff), bufPtr, MAX7456ADD_DMAL, pl);
+            bufPtr = max7456PrepareBuffer(spiBuff, sizeof(spiBuff), bufPtr, MAX7456ADD_DMDI, chr);
 
         } else {
             if (DMM_IS_8BIT_MODE(state.registers.dmm) || (DMM_CHAR_MODE_MASK & state.registers.dmm) != charMode) {
@@ -511,12 +537,12 @@ static bool max7456DrawScreenPartial(void)
                 // Send the attributes for the character run. They
                 // will be applied to all characters until we change
                 // the DMM register.
-                bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_DMM, state.registers.dmm);
+                bufPtr = max7456PrepareBuffer(spiBuff, sizeof(spiBuff), bufPtr, MAX7456ADD_DMM, state.registers.dmm);
             }
 
-            bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_DMAH, ph);
-            bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_DMAL, pl);
-            bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_DMDI, chr);
+            bufPtr = max7456PrepareBuffer(spiBuff, sizeof(spiBuff), bufPtr, MAX7456ADD_DMAH, ph);
+            bufPtr = max7456PrepareBuffer(spiBuff, sizeof(spiBuff), bufPtr, MAX7456ADD_DMAL, pl);
+            bufPtr = max7456PrepareBuffer(spiBuff, sizeof(spiBuff), bufPtr, MAX7456ADD_DMDI, chr);
         }
 
         bitArrayClr(screenIsDirty, pos);
@@ -622,8 +648,8 @@ void max7456RefreshAll(void)
 
         // Mark non-blank characters as dirty
         BITARRAY_CLR_ALL(screenIsDirty);
-        for (unsigned ii = 0; ii < ARRAYLEN(screenBuffer); ii++) {
-            if (!CHAR_IS_BLANK(screenBuffer[ii])) {
+        for (unsigned ii = 0; ii < ARRAYLEN(osdCharacterGridBuffer); ii++) {
+            if (!CHAR_IS_BLANK(osdCharacterGridBuffer[ii])) {
                 bitArraySet(screenIsDirty, ii);
             }
         }
@@ -681,7 +707,7 @@ void max7456WriteNvm(uint16_t char_address, const osdCharacter_t *chr)
     // OSD must be disabled to read or write to NVM
     max7456OSDSetEnabled(false);
 
-    bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_CMAH, char_address & 0xFF); // set start address high
+    bufPtr = max7456PrepareBuffer(spiBuff, sizeof(spiBuff), bufPtr, MAX7456ADD_CMAH, char_address & 0xFF); // set start address high
 
     uint8_t or_val = 0;
     if (char_address > 255) {
@@ -700,12 +726,12 @@ void max7456WriteNvm(uint16_t char_address, const osdCharacter_t *chr)
     }
 
     for (unsigned x = 0; x < OSD_CHAR_VISIBLE_BYTES; x++) {
-        bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_CMAL, x | or_val); //set start address low
-        bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_CMDI, chr->data[x]);
+        bufPtr = max7456PrepareBuffer(spiBuff, sizeof(spiBuff), bufPtr, MAX7456ADD_CMAL, x | or_val); //set start address low
+        bufPtr = max7456PrepareBuffer(spiBuff, sizeof(spiBuff), bufPtr, MAX7456ADD_CMDI, chr->data[x]);
     }
 
     // transfer 54 bytes from shadow ram to NVM
-    bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_CMM, WRITE_NVR);
+    bufPtr = max7456PrepareBuffer(spiBuff, sizeof(spiBuff), bufPtr, MAX7456ADD_CMM, WRITE_NVR);
 
     busTransfer(state.dev, NULL, spiBuff, bufPtr);
 

@@ -29,24 +29,31 @@
 #include "config/parameter_group_ids.h"
 
 #include "common/logic_condition.h"
+#include "common/global_variables.h"
 #include "common/utils.h"
 #include "rx/rx.h"
 #include "maths.h"
 #include "fc/fc_core.h"
 #include "fc/rc_controls.h"
+#include "fc/runtime_config.h"
 #include "navigation/navigation.h"
 #include "sensors/battery.h"
 #include "sensors/pitotmeter.h"
 #include "flight/imu.h"
+#include "flight/pid.h"
 
-PG_REGISTER_ARRAY(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions, PG_LOGIC_CONDITIONS, 0);
+#include "navigation/navigation.h"
+#include "navigation/navigation_private.h"
+
+PG_REGISTER_ARRAY_WITH_RESET_FN(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions, PG_LOGIC_CONDITIONS, 1);
 
 void pgResetFn_logicConditions(logicCondition_t *instance)
 {
     for (int i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
         RESET_CONFIG(logicCondition_t, &instance[i],
             .enabled = 0,
-            .operation = LOGIC_CONDITION_TRUE,
+            .activatorId = -1,
+            .operation = 0,
             .operandA = {
                 .type = LOGIC_CONDITION_OPERAND_TYPE_VALUE,
                 .value = 0
@@ -62,22 +69,13 @@ void pgResetFn_logicConditions(logicCondition_t *instance)
 
 logicConditionState_t logicConditionStates[MAX_LOGIC_CONDITIONS];
 
-void logicConditionProcess(uint8_t i) {
-
-    if (logicConditions(i)->enabled) {
-        const int operandAValue = logicConditionGetOperandValue(logicConditions(i)->operandA.type, logicConditions(i)->operandA.value);
-        const int operandBValue = logicConditionGetOperandValue(logicConditions(i)->operandB.type, logicConditions(i)->operandB.value);
-        logicConditionStates[i].value = logicConditionCompute(logicConditions(i)->operation, operandAValue, operandBValue);
-    } else {
-        logicConditionStates[i].value = false;
-    }
-}
-
-int logicConditionCompute(
+static int logicConditionCompute(
+    int currentVaue,
     logicOperation_e operation,
     int operandA,
     int operandB
 ) {
+    int temporaryValue;
     switch (operation) {
 
         case LOGIC_CONDITION_TRUE:
@@ -132,9 +130,94 @@ int logicConditionCompute(
             return !operandA;
             break;
 
+        case LOGIC_CONDITION_STICKY:
+            // Operand A is activation operator
+            if (operandA) {
+                return true;
+            }
+            //Operand B is deactivation operator
+            if (operandB) {
+                return false;
+            }
+
+            //When both operands are not met, keep current value 
+            return currentVaue;
+            break;
+
+        case LOGIC_CONDITION_GVAR_SET:
+            gvSet(operandA, operandB);
+            return operandB;
+            break;
+        
+        case LOGIC_CONDITION_GVAR_INC:
+            temporaryValue = gvGet(operandA) + operandB;
+            gvSet(operandA, temporaryValue);
+            return temporaryValue;
+            break;
+
+        case LOGIC_CONDITION_GVAR_DEC:
+            temporaryValue = gvGet(operandA) - operandB;
+            gvSet(operandA, temporaryValue);
+            return temporaryValue;
+            break;
+
+        case LOGIC_CONDITION_ADD:
+            return constrain(operandA + operandB, INT16_MIN, INT16_MAX);
+            break;
+
+        case LOGIC_CONDITION_SUB:
+            return constrain(operandA - operandB, INT16_MIN, INT16_MAX);
+            break;
+
+        case LOGIC_CONDITION_MUL:
+            return constrain(operandA * operandB, INT16_MIN, INT16_MAX);
+            break;
+
+        case LOGIC_CONDITION_DIV:
+            if (operandB != 0) {
+                return constrain(operandA / operandB, INT16_MIN, INT16_MAX);
+            } else {
+                return operandA;
+            }
+            break;
+
         default:
             return false;
             break; 
+    }
+}
+
+void logicConditionProcess(uint8_t i) {
+
+    const int activatorValue = logicConditionGetValue(logicConditions(i)->activatorId);
+
+    if (logicConditions(i)->enabled && activatorValue) {
+        
+        /*
+         * Process condition only when latch flag is not set
+         * Latched LCs can only go from OFF to ON, not the other way
+         */
+        if (!(logicConditionStates[i].flags & LOGIC_CONDITION_FLAG_LATCH)) {
+            const int operandAValue = logicConditionGetOperandValue(logicConditions(i)->operandA.type, logicConditions(i)->operandA.value);
+            const int operandBValue = logicConditionGetOperandValue(logicConditions(i)->operandB.type, logicConditions(i)->operandB.value);
+            const int newValue = logicConditionCompute(
+                logicConditionStates[i].value, 
+                logicConditions(i)->operation, 
+                operandAValue, 
+                operandBValue
+            );
+        
+            logicConditionStates[i].value = newValue;
+
+            /*
+             * if value evaluates as true, put a latch on logic condition
+             */
+            if (logicConditions(i)->flags & LOGIC_CONDITION_FLAG_LATCH && newValue) {
+                logicConditionStates[i].flags |= LOGIC_CONDITION_FLAG_LATCH;
+            }
+        }
+    } else {
+        logicConditionStates[i].value = false;
     }
 }
 
@@ -143,15 +226,15 @@ static int logicConditionGetFlightOperandValue(int operand) {
     switch (operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_ARM_TIMER: // in s
-            return constrain((uint32_t)getFlightTime(), 0, 32767);
+            return constrain((uint32_t)getFlightTime(), 0, INT16_MAX);
             break;
         
         case LOGIC_CONDITION_OPERAND_FLIGHT_HOME_DISTANCE: //in m
-            return constrain(GPS_distanceToHome, 0, 32767);
+            return constrain(GPS_distanceToHome, 0, INT16_MAX);
             break;
         
         case LOGIC_CONDITION_OPERAND_FLIGHT_TRIP_DISTANCE: //in m
-            return constrain(getTotalTravelDistance() / 100, 0, 32767);
+            return constrain(getTotalTravelDistance() / 100, 0, INT16_MAX);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_RSSI:
@@ -188,18 +271,18 @@ static int logicConditionGetFlightOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_AIR_SPEED: // cm/s
         #ifdef USE_PITOT
-            return constrain(pitot.airSpeed, 0, 32767);
+            return constrain(pitot.airSpeed, 0, INT16_MAX);
         #else
             return false;
         #endif
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_ALTITUDE: // cm
-            return constrain(getEstimatedActualPosition(Z), -32678, 32767);
+            return constrain(getEstimatedActualPosition(Z), INT16_MIN, INT16_MAX);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_VERTICAL_SPEED: // cm/s
-            return constrain(getEstimatedActualVelocity(Z), 0, 32767);
+            return constrain(getEstimatedActualVelocity(Z), 0, INT16_MAX);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_TROTTLE_POS: // %
@@ -212,6 +295,100 @@ static int logicConditionGetFlightOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_ATTITUDE_PITCH: // deg
             return constrain(attitude.values.pitch / 10, -180, 180);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_IS_ARMED: // 0/1
+            return ARMING_FLAG(ARMED) ? 1 : 0;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_IS_AUTOLAUNCH: // 0/1
+            return (navGetCurrentStateFlags() & NAV_CTL_LAUNCH) ? 1 : 0;
+            break; 
+        
+        case LOGIC_CONDITION_OPERAND_FLIGHT_IS_ALTITUDE_CONTROL: // 0/1
+            return (navGetCurrentStateFlags() & NAV_CTL_ALT) ? 1 : 0;
+            break; 
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_IS_POSITION_CONTROL: // 0/1
+            return (navGetCurrentStateFlags() & NAV_CTL_POS) ? 1 : 0;
+            break; 
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_IS_EMERGENCY_LANDING: // 0/1
+            return (navGetCurrentStateFlags() & NAV_CTL_EMERG) ? 1 : 0;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_IS_RTH: // 0/1
+            return (navGetCurrentStateFlags() & NAV_AUTO_RTH) ? 1 : 0;
+            break; 
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_IS_WP: // 0/1
+            return (navGetCurrentStateFlags() & NAV_AUTO_WP) ? 1 : 0;
+            break; 
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_IS_LANDING: // 0/1
+            return (navGetCurrentStateFlags() & NAV_CTL_LAND) ? 1 : 0;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_IS_FAILSAFE: // 0/1
+            return (failsafePhase() == FAILSAFE_RX_LOSS_MONITORING) ? 1 : 0;
+            break;
+        
+        case LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_YAW: // 
+            return axisPID[YAW];
+            break;
+        
+        case LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_ROLL: // 
+            return axisPID[ROLL];
+            break;
+        
+        case LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_PITCH: // 
+            return axisPID[PITCH];
+            break;
+
+        default:
+            return 0;
+            break;
+    }
+}
+
+static int logicConditionGetFlightModeOperandValue(int operand) {
+
+    switch (operand) {
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_FAILSAFE:
+            return (bool) FLIGHT_MODE(FAILSAFE_MODE);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_MANUAL:
+            return (bool) FLIGHT_MODE(MANUAL_MODE);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_RTH:
+            return (bool) FLIGHT_MODE(NAV_RTH_MODE);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_POSHOLD:
+            return (bool) FLIGHT_MODE(NAV_POSHOLD_MODE);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_CRUISE:
+            return (bool) FLIGHT_MODE(NAV_CRUISE_MODE);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_ALTHOLD:
+            return (bool) FLIGHT_MODE(NAV_ALTHOLD_MODE);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_ANGLE:
+            return (bool) FLIGHT_MODE(ANGLE_MODE);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_HORIZON:
+            return (bool) FLIGHT_MODE(HORIZON_MODE);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_AIR:
+            return (bool) FLIGHT_MODE(AIRMODE_ACTIVE);
             break;
 
         default:
@@ -240,9 +417,19 @@ int logicConditionGetOperandValue(logicOperandType_e type, int operand) {
             retVal = logicConditionGetFlightOperandValue(operand);
             break;
 
+        case LOGIC_CONDITION_OPERAND_TYPE_FLIGHT_MODE:
+            retVal = logicConditionGetFlightModeOperandValue(operand);
+            break;
+
         case LOGIC_CONDITION_OPERAND_TYPE_LC:
             if (operand >= 0 && operand < MAX_LOGIC_CONDITIONS) {
                 retVal = logicConditionGetValue(operand);
+            }
+            break;
+
+        case LOGIC_CONDITION_OPERAND_TYPE_GVAR:
+            if (operand >= 0 && operand < MAX_GLOBAL_VARIABLES) {
+                retVal = gvGet(operand);
             }
             break;
 
@@ -268,5 +455,12 @@ void logicConditionUpdateTask(timeUs_t currentTimeUs) {
     UNUSED(currentTimeUs);
     for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
         logicConditionProcess(i);
+    }
+}
+
+void logicConditionReset(void) {
+    for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
+        logicConditionStates[i].value = 0;
+        logicConditionStates[i].flags = 0;
     }
 }

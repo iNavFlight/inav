@@ -15,18 +15,22 @@ COMMON_SRC = \
             common/gps_conversion.c \
             common/log.c \
             common/logic_condition.c \
+            common/global_functions.c \
+            common/global_variables.c \
             common/maths.c \
             common/memory.c \
             common/olc.c \
             common/printf.c \
             common/streambuf.c \
+            common/string_light.c \
             common/time.c \
             common/typeconversion.c \
-            common/string_light.c \
+            common/uvarint.c \
             config/config_eeprom.c \
             config/config_streamer.c \
             config/feature.c \
             config/parameter_group.c \
+            config/general_settings.c \
             drivers/adc.c \
             drivers/buf_writer.c \
             drivers/bus.c \
@@ -35,10 +39,15 @@ COMMON_SRC = \
             drivers/bus_i2c_soft.c \
             drivers/bus_spi.c \
             drivers/display.c \
+            drivers/display_canvas.c \
+            drivers/display_font_metadata.c \
             drivers/exti.c \
             drivers/io.c \
             drivers/io_pca9685.c \
+            drivers/irlock.c \
             drivers/light_led.c \
+            drivers/osd.c \
+            drivers/persistent.c \
             drivers/resource.c \
             drivers/rx_nrf24l01.c \
             drivers/rx_spi.c \
@@ -56,7 +65,9 @@ COMMON_SRC = \
             drivers/sound_beeper.c \
             drivers/stack_check.c \
             drivers/system.c \
+            drivers/time.c \
             drivers/timer.c \
+            drivers/usb_msc.c \
             drivers/lights_io.c \
             drivers/1-wire.c \
             drivers/1-wire/ds_crc.c \
@@ -90,11 +101,18 @@ COMMON_SRC = \
             flight/rth_estimator.c \
             flight/servos.c \
             flight/wind_estimator.c \
+            flight/gyroanalyse.c \
+            flight/rpm_filter.c \
+            flight/dynamic_gyro_notch.c \
+            flight/kalman.c \
             io/beeper.c \
-            io/lights.c \
-            io/pwmdriver_i2c.c \
             io/esc_serialshot.c \
+            io/servo_sbus.c \
+            io/frsky_osd.c \
+            io/osd_dji_hd.c \
+            io/lights.c \
             io/piniobox.c \
+            io/pwmdriver_i2c.c \
             io/serial.c \
             io/serial_4way.c \
             io/serial_4way_avrootloader.c \
@@ -116,6 +134,7 @@ COMMON_SRC = \
             rx/nrf24_syma.c \
             rx/nrf24_v202.c \
             rx/pwm.c \
+            rx/frsky_crc.c \
             rx/rx.c \
             rx/rx_spi.c \
             rx/sbus.c \
@@ -128,12 +147,14 @@ COMMON_SRC = \
             scheduler/scheduler.c \
             sensors/acceleration.c \
             sensors/battery.c \
-            sensors/temperature.c \
             sensors/boardalignment.c \
             sensors/compass.c \
             sensors/diagnostics.c \
             sensors/gyro.c \
             sensors/initialisation.c \
+            sensors/esc_sensor.c \
+            sensors/irlock.c \
+            sensors/temperature.c \
             uav_interconnect/uav_interconnect_bus.c \
             uav_interconnect/uav_interconnect_rangefinder.c \
             blackbox/blackbox.c \
@@ -150,9 +171,7 @@ COMMON_SRC = \
             cms/cms_menu_navigation.c \
             cms/cms_menu_osd.c \
             cms/cms_menu_saveexit.c \
-            cms/cms_menu_vtx_smartaudio.c \
-            cms/cms_menu_vtx_tramp.c \
-            cms/cms_menu_vtx_ffpv.c \
+            cms/cms_menu_vtx.c \
             drivers/display_ug2864hsweg01.c \
             drivers/rangefinder/rangefinder_hcsr04.c \
             drivers/rangefinder/rangefinder_hcsr04_i2c.c \
@@ -167,6 +186,7 @@ COMMON_SRC = \
             io/opflow_cxof.c \
             io/opflow_msp.c \
             io/dashboard.c \
+            io/displayport_frsky_osd.c \
             io/displayport_max7456.c \
             io/displayport_msp.c \
             io/displayport_oled.c \
@@ -176,8 +196,11 @@ COMMON_SRC = \
             io/gps_nmea.c \
             io/gps_naza.c \
             io/ledstrip.c \
-            io/osd_hud.c \
             io/osd.c \
+            io/osd_canvas.c \
+            io/osd_common.c \
+            io/osd_grid.c \
+            io/osd_hud.c \
             navigation/navigation.c \
             navigation/navigation_fixedwing.c \
             navigation/navigation_fw_launch.c \
@@ -186,6 +209,7 @@ COMMON_SRC = \
             navigation/navigation_pos_estimator.c \
             navigation/navigation_pos_estimator_agl.c \
             navigation/navigation_pos_estimator_flow.c \
+            navigation/navigation_rover_boat.c \
             sensors/barometer.c \
             sensors/pitotmeter.c \
             sensors/rangefinder.c \
@@ -220,22 +244,57 @@ TARGET_SRC   := $(filter-out $(MCU_EXCLUDES), $(TARGET_SRC))
 
 ifneq ($(filter ONBOARDFLASH,$(FEATURES)),)
 TARGET_SRC += \
+            drivers/flash.c \
             drivers/flash_m25p16.c \
-            io/flashfs.c
+            io/flashfs.c \
+            $(MSC_SRC)
 endif
 
 ifneq ($(filter SDCARD,$(FEATURES)),)
 TARGET_SRC += \
-            drivers/sdcard.c \
-            drivers/sdcard_spi.c \
-            drivers/sdcard_standard.c \
+            drivers/sdcard/sdcard.c \
+            drivers/sdcard/sdcard_spi.c \
+            drivers/sdcard/sdcard_sdio.c \
+            drivers/sdcard/sdcard_standard.c \
             io/asyncfatfs/asyncfatfs.c \
-            io/asyncfatfs/fat_standard.c
+            io/asyncfatfs/fat_standard.c \
+            $(MSC_SRC)
 endif
 
 ifneq ($(filter VCP,$(FEATURES)),)
 TARGET_SRC += $(VCP_SRC)
 endif
 
+ifneq ($(filter MSC,$(FEATURES)),)
+TARGET_SRC += $(MSC_SRC)
+endif
+
+ifneq ($(DSP_LIB),)
+
+INCLUDE_DIRS += $(DSP_LIB)/Include
+
+TARGET_SRC += $(DSP_LIB)/Source/BasicMathFunctions/arm_mult_f32.c
+TARGET_SRC += $(DSP_LIB)/Source/TransformFunctions/arm_rfft_fast_f32.c
+TARGET_SRC += $(DSP_LIB)/Source/TransformFunctions/arm_cfft_f32.c
+TARGET_SRC += $(DSP_LIB)/Source/TransformFunctions/arm_rfft_fast_init_f32.c
+TARGET_SRC += $(DSP_LIB)/Source/TransformFunctions/arm_cfft_radix8_f32.c
+TARGET_SRC += $(DSP_LIB)/Source/CommonTables/arm_common_tables.c
+TARGET_SRC += $(DSP_LIB)/Source/ComplexMathFunctions/arm_cmplx_mag_f32.c
+TARGET_SRC += $(DSP_LIB)/Source/StatisticsFunctions/arm_max_f32.c
+
+TARGET_SRC += $(wildcard $(DSP_LIB)/Source/*/*.S)
+endif
+
 # Search path and source files for the ST stdperiph library
 VPATH        := $(VPATH):$(STDPERIPH_DIR)/src
+
+SIZE_OPTIMISED_SRC := ""
+SPEED_OPTIMISED_SRC := ""
+ifneq ($(TARGET),$(filter $(TARGET),$(F3_TARGETS)))
+# SIZE_OPTIMISED_SRC := $(SIZE_OPTIMISED_SRC) \
+            # ./src/main/common/filter.c \
+
+# SPEED_OPTIMISED_SRC := $(SPEED_OPTIMISED_SRC) \
+            # ./src/main/common/maths.c \
+
+endif #!F3

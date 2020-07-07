@@ -86,20 +86,20 @@ void Set_System(void)
 #endif /* STM32L1XX_XD */
 
     /*Pull down PA12 to create USB Disconnect Pulse*/     // HJI
-#if defined(STM32F303xC)                                    // HJI
+#if defined(STM32F303xC)                                  // HJI
     RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);   // HJI
 
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;          // HJI
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;            // HJI
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;     // HJI
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;        // HJI
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;         // HJI
     GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;        // HJI
-    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;     // HJI
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;      // HJI
 #else
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE); // HJI
 
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;// HJI
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;// HJI
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;// HJI
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;            // HJI
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;     // HJI
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;      // HJI
 #endif
 
     GPIO_Init(GPIOA, &GPIO_InitStructure);                // HJI
@@ -194,23 +194,11 @@ void Leave_LowPowerMode(void)
  *******************************************************************************/
 void USB_Interrupts_Config(void)
 {
-    NVIC_InitTypeDef NVIC_InitStructure;
+    NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, NVIC_PRIO_USB);
+    NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
 
-    /* 2 bit for pre-emption priority, 2 bits for subpriority */
-    NVIC_PriorityGroupConfig(NVIC_PRIORITY_GROUPING);     // is this really neccesary?
-
-    /* Enable the USB interrupt */
-    NVIC_InitStructure.NVIC_IRQChannel = USB_LP_CAN1_RX0_IRQn;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = NVIC_PRIORITY_BASE(NVIC_PRIO_USB);
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = NVIC_PRIORITY_SUB(NVIC_PRIO_USB);
-    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&NVIC_InitStructure);
-
-    /* Enable the USB Wake-up interrupt */
-    NVIC_InitStructure.NVIC_IRQChannel = USBWakeUp_IRQn;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = NVIC_PRIORITY_BASE(NVIC_PRIO_USB_WUP);
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = NVIC_PRIORITY_SUB(NVIC_PRIO_USB_WUP);
-    NVIC_Init(&NVIC_InitStructure);
+    NVIC_SetPriority(USBWakeUp_IRQn, NVIC_PRIO_USB);
+    NVIC_EnableIRQ(USBWakeUp_IRQn);
 }
 
 /*******************************************************************************

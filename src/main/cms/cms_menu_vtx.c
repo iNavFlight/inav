@@ -15,132 +15,246 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <ctype.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <ctype.h>
+#include <string.h>
 
 #include "platform.h"
 
 #include "build/version.h"
 
+#if defined(USE_CMS) && defined(USE_VTX_CONTROL)
+
+#include "common/printf.h"
+#include "common/utils.h"
+
 #include "cms/cms.h"
 #include "cms/cms_types.h"
 #include "cms/cms_menu_vtx.h"
 
-#include "config/feature.h"
+#include "drivers/vtx_common.h"
 
-#ifdef USE_CMS
+#include "fc/config.h"
 
-#if defined(VTX) || defined(USE_RTC6705)
+#include "io/vtx_string.h"
+#include "io/vtx.h"
 
-static bool featureRead = false;
-static uint8_t cmsx_featureVtx = 0, cmsx_vtxBand, cmsx_vtxChannel;
 
-static long cmsx_Vtx_FeatureRead(void)
-{
-    if (!featureRead) {
-        cmsx_featureVtx = feature(FEATURE_VTX) ? 1 : 0;
-        featureRead = true;
-    }
+// Config-time settings
+static uint8_t  vtxBand = 0;
+static uint8_t  vtxChan = 0;
+static uint8_t  vtxPower = 0;
+static uint8_t  vtxPitMode = 0;
 
-    return 0;
-}
-
-static long cmsx_Vtx_FeatureWriteback(void)
-{
-    if (cmsx_featureVtx)
-        featureSet(FEATURE_VTX);
-    else
-        featureClear(FEATURE_VTX);
-
-    return 0;
-}
-
-static const char * const vtxBandNames[] = {
-    "BOSCAM A",
-    "BOSCAM B",
-    "BOSCAM E",
-    "FATSHARK",
-    "RACEBAND",
+static const char * const vtxCmsPitModeNames[] = {
+    "---", "OFF", "ON "
 };
 
-static const OSD_TAB_t entryVtxBand = {&cmsx_vtxBand,4,&vtxBandNames[0]};
-static const OSD_UINT8_t entryVtxChannel =  {&cmsx_vtxChannel, 1, 8, 1};
+// Menus (these are not const because we update them at run-time )
+static OSD_TAB_t cms_Vtx_EntBand = { &vtxBand, VTX_SETTINGS_BAND_COUNT, vtx58BandNames };
+static OSD_TAB_t cms_Vtx_EntChan = { &vtxChan, VTX_SETTINGS_CHANNEL_COUNT, vtx58ChannelNames };
+static OSD_TAB_t cms_Vtx_EntPower = { &vtxPower, VTX_SETTINGS_POWER_COUNT, vtx58DefaultPowerNames };
+static const OSD_TAB_t cms_Vtx_EntPitMode = { &vtxPitMode, 2, vtxCmsPitModeNames };
 
-static void cmsx_Vtx_ConfigRead(void)
+static long cms_Vtx_configPitMode(displayPort_t *pDisp, const void *self)
 {
-#ifdef VTX
-    cmsx_vtxBand = masterConfig.vtx_band;
-    cmsx_vtxChannel = masterConfig.vtx_channel + 1;
-#endif // VTX
-
-#ifdef USE_RTC6705
-    cmsx_vtxBand = masterConfig.vtx_channel / 8;
-    cmsx_vtxChannel = masterConfig.vtx_channel % 8 + 1;
-#endif // USE_RTC6705
-}
-
-static void cmsx_Vtx_ConfigWriteback(void)
-{
-#ifdef VTX
-    masterConfig.vtx_band = cmsx_vtxBand;
-    masterConfig.vtx_channel = cmsx_vtxChannel - 1;
-#endif // VTX
-
-#ifdef USE_RTC6705
-    masterConfig.vtx_channel = cmsx_vtxBand * 8 + cmsx_vtxChannel - 1;
-#endif // USE_RTC6705
-}
-
-static long cmsx_Vtx_onEnter(void)
-{
-    cmsx_Vtx_FeatureRead();
-    cmsx_Vtx_ConfigRead();
-
-    return 0;
-}
-
-static long cmsx_Vtx_onExit(const OSD_Entry *self)
-{
+    UNUSED(pDisp);
     UNUSED(self);
 
-    cmsx_Vtx_ConfigWriteback();
+    if (vtxPitMode == 0) {
+        vtxPitMode = 1;
+    }
+
+    // Pit mode changes are immediate, without saving
+    vtxCommonSetPitMode(vtxCommonDevice(), vtxPitMode >= 2 ? 1 : 0);
 
     return 0;
 }
 
-#ifdef VTX
-static const OSD_UINT8_t entryVtxMode =  {&masterConfig.vtx_mode, 0, 2, 1};
-static const OSD_UINT16_t entryVtxMhz =  {&masterConfig.vtx_mhz, 5600, 5950, 1};
-#endif // VTX
-
-static const OSD_Entry cmsx_menuVtxEntries[] =
+static long cms_Vtx_configBand(displayPort_t *pDisp, const void *self)
 {
-    OSD_LABEL_ENTRY("--- VTX ---"),
-    OSD_BOOL_ENTRY("ENABLED", &cmsx_featureVtx),
-#ifdef VTX
-    OSD_UINT8_ENTRY("VTX MODE", &entryVtxMode),
-    OSD_UINT16_ENTRY("VTX MHZ", &entryVtxMhz),
-#endif // VTX
-    OSD_TAB_ENTRY("BAND", &entryVtxBand),
-    OSD_UINT8_ENTRY("CHANNEL", &entryVtxChannel),
-#ifdef USE_RTC6705
-    OSD_BOOL_ENTRY("LOW POWER", &masterConfig.vtx_power),
-#endif // USE_RTC6705
+    UNUSED(pDisp);
+    UNUSED(self);
+
+    if (vtxBand == 0) {
+        vtxBand = 1;
+    }
+    return 0;
+}
+
+static long cms_Vtx_configChan(displayPort_t *pDisp, const void *self)
+{
+    UNUSED(pDisp);
+    UNUSED(self);
+
+    if (vtxChan == 0) {
+        vtxChan = 1;
+    }
+    return 0;
+}
+
+static long cms_Vtx_configPower(displayPort_t *pDisp, const void *self)
+{
+    UNUSED(pDisp);
+    UNUSED(self);
+
+    if (vtxPower == 0) {
+        vtxPower = 1;
+    }
+    return 0;
+}
+
+static void cms_Vtx_initSettings(void)
+{
+    vtxDevice_t * vtxDevice = vtxCommonDevice();
+    vtxDeviceCapability_t vtxDeviceCapability;
+
+    if (vtxCommonGetDeviceCapability(vtxDevice, &vtxDeviceCapability)) {
+        cms_Vtx_EntBand.max = vtxDeviceCapability.bandCount;
+        cms_Vtx_EntBand.names = (const char * const *)vtxDeviceCapability.bandNames;
+
+        cms_Vtx_EntChan.max = vtxDeviceCapability.channelCount;
+        cms_Vtx_EntChan.names = (const char * const *)vtxDeviceCapability.channelNames;
+
+        cms_Vtx_EntPower.max = vtxDeviceCapability.powerCount;
+        cms_Vtx_EntPower.names = (const char * const *)vtxDeviceCapability.powerNames;
+    }
+    else {
+        cms_Vtx_EntBand.max = VTX_SETTINGS_BAND_COUNT;
+        cms_Vtx_EntBand.names = vtx58BandNames;
+
+        cms_Vtx_EntChan.max = VTX_SETTINGS_CHANNEL_COUNT;
+        cms_Vtx_EntChan.names = vtx58ChannelNames;
+
+        cms_Vtx_EntPower.max = VTX_SETTINGS_POWER_COUNT;
+        cms_Vtx_EntPower.names = vtx58DefaultPowerNames;
+    }
+
+    vtxBand = vtxSettingsConfig()->band;
+    vtxChan = vtxSettingsConfig()->channel;
+    vtxPower = vtxSettingsConfig()->power;
+
+    // If device is ready - read actual PIT mode
+    if (vtxCommonDeviceIsReady(vtxDevice)) {
+        uint8_t onoff;
+        vtxCommonGetPitMode(vtxDevice, &onoff);
+        vtxPitMode = onoff ? 2 : 1;
+    }
+    else {
+        vtxPitMode = 0;
+    }
+}
+
+static long cms_Vtx_onEnter(const OSD_Entry *self)
+{
+    UNUSED(self);
+    cms_Vtx_initSettings();
+    return 0;
+}
+
+static long cms_Vtx_Commence(displayPort_t *pDisp, const void *self)
+{
+    UNUSED(pDisp);
+    UNUSED(self);
+
+    vtxCommonSetBandAndChannel(vtxCommonDevice(), vtxBand, vtxChan);
+    vtxCommonSetPowerByIndex(vtxCommonDevice(), vtxPower);
+    vtxCommonSetPitMode(vtxCommonDevice(), vtxPitMode == 2 ? 1 : 0);
+
+    vtxSettingsConfigMutable()->band = vtxBand;
+    vtxSettingsConfigMutable()->channel = vtxChan;
+    vtxSettingsConfigMutable()->power = vtxPower;
+
+    saveConfigAndNotify();
+
+    return MENU_CHAIN_BACK;
+}
+
+static bool cms_Vtx_drawStatusString(char *buf, unsigned bufsize)
+{
+    const char *defaultString = "-- ---- ----";
+//                               bc ffff pppp
+//                               012345678901
+
+    if (bufsize < strlen(defaultString) + 1) {
+        return false;
+    }
+
+    strcpy(buf, defaultString);
+
+    vtxDevice_t * vtxDevice = vtxCommonDevice();
+    vtxDeviceOsdInfo_t osdInfo;
+
+    if (!vtxDevice || !vtxCommonGetOsdInfo(vtxDevice, &osdInfo) || !vtxCommonDeviceIsReady(vtxDevice)) {
+        return true;
+    }
+
+    buf[0] = osdInfo.bandLetter;
+    buf[1] = osdInfo.channelName[0];
+    buf[2] = ' ';
+
+    if (osdInfo.frequency)
+        tfp_sprintf(&buf[3], "%4d", osdInfo.frequency);
+    else
+        tfp_sprintf(&buf[3], "----");
+
+    if (osdInfo.powerIndex) {
+        // If OSD driver provides power in milliwatt - display MW, otherwise - power level
+        if (osdInfo.powerMilliwatt) {
+            tfp_sprintf(&buf[7], " %4d", osdInfo.powerMilliwatt);
+        }
+        else {
+            tfp_sprintf(&buf[7], " PL=%c", osdInfo.powerIndex);
+        }
+    } else {
+        tfp_sprintf(&buf[7], " ----");
+    }
+
+    return true;
+}
+
+static const OSD_Entry cms_menuCommenceEntries[] =
+{
+    OSD_LABEL_ENTRY("CONFIRM"),
+    OSD_FUNC_CALL_ENTRY("YES", cms_Vtx_Commence),
 
     OSD_BACK_AND_END_ENTRY,
 };
 
-const CMS_Menu cmsx_menuVtx = {
+static const CMS_Menu cms_menuCommence = {
+#ifdef CMS_MENU_DEBUG
+    .GUARD_text = "XVTXTRC",
+    .GUARD_type = OME_MENU,
+#endif
+    .onEnter = NULL,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = cms_menuCommenceEntries,
+};
+
+static const OSD_Entry cms_menuVtxEntries[] =
+{
+    OSD_LABEL_ENTRY("--- VTX ---"),
+    OSD_LABEL_FUNC_DYN_ENTRY("", cms_Vtx_drawStatusString),
+    OSD_TAB_CALLBACK_ENTRY("PIT",   cms_Vtx_configPitMode, &cms_Vtx_EntPitMode),
+    OSD_TAB_CALLBACK_ENTRY("BAND",  cms_Vtx_configBand,    &cms_Vtx_EntBand),
+    OSD_TAB_CALLBACK_ENTRY("CHAN",  cms_Vtx_configChan,    &cms_Vtx_EntChan),
+    OSD_TAB_CALLBACK_ENTRY("POWER", cms_Vtx_configPower,   &cms_Vtx_EntPower),
+
+    OSD_SUBMENU_ENTRY("SET", &cms_menuCommence),
+    OSD_BACK_AND_END_ENTRY,
+};
+
+const CMS_Menu cmsx_menuVtxControl = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUVTX",
     .GUARD_type = OME_MENU,
 #endif
-    .onEnter = cmsx_Vtx_onEnter,
-    .onExit= cmsx_Vtx_onExit,
-    .onGlobalExit = cmsx_Vtx_FeatureWriteback,
-    .entries = cmsx_menuVtxEntries
+    .onEnter = cms_Vtx_onEnter,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = cms_menuVtxEntries
 };
 
-#endif // VTX || USE_RTC6705
 #endif // CMS

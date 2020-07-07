@@ -28,6 +28,5 @@
 void targetConfiguration(void)
 {
     rxConfigMutable()->halfDuplex = false;
-    telemetryConfigMutable()->uartUnidirectional = true;
     batteryMetersConfigMutable()->current.scale = CURRENTSCALE;
 }

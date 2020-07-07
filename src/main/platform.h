@@ -20,6 +20,7 @@
 #if defined(STM32F7)
 #include "stm32f7xx.h"
 #include "stm32f7xx_hal.h"
+#include "stm32f7xx_hal_rtc.h"
 #include "stm32f7xx_ll_spi.h"
 #include "stm32f7xx_ll_gpio.h"
 #include "stm32f7xx_ll_dma.h"
@@ -61,6 +62,7 @@
 
 #include "target/common.h"
 #include "target.h"
+#include "target/sanity_check.h"
 #include "target/common_post.h"
 
 // Remove the unaligned packed structure member pointer access warning

@@ -33,9 +33,12 @@
 #include "drivers/barometer/barometer.h"
 #include "drivers/barometer/barometer_bmp085.h"
 #include "drivers/barometer/barometer_bmp280.h"
+#include "drivers/barometer/barometer_bmp388.h"
 #include "drivers/barometer/barometer_lps25h.h"
 #include "drivers/barometer/barometer_fake.h"
 #include "drivers/barometer/barometer_ms56xx.h"
+#include "drivers/barometer/barometer_spl06.h"
+#include "drivers/barometer/barometer_dps310.h"
 #include "drivers/time.h"
 
 #include "fc/runtime_config.h"
@@ -131,10 +134,49 @@ bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
         }
         FALLTHROUGH;
 
+    case BARO_BMP388:
+#if defined(USE_BARO_BMP388) || defined(USE_BARO_SPI_BMP388)
+        if (bmp388Detect(dev)) {
+            baroHardware = BARO_BMP388;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (baroHardwareToUse != BARO_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
+    case BARO_SPL06:
+#if defined(USE_BARO_SPL06) || defined(USE_BARO_SPI_SPL06)
+        if (spl06Detect(dev)) {
+            baroHardware = BARO_SPL06;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (baroHardwareToUse != BARO_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
     case BARO_LPS25H:
 #if defined(USE_BARO_LPS25H)
         if (lps25hDetect(dev)) {
             baroHardware = BARO_LPS25H;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (baroHardwareToUse != BARO_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
+    case BARO_DPS310:
+#if defined(USE_BARO_DPS310)
+        if (baroDPS310Detect(dev)) {
+            baroHardware = BARO_DPS310;
             break;
         }
 #endif
@@ -237,15 +279,23 @@ uint32_t baroUpdate(void)
     switch (state) {
         default:
         case BAROMETER_NEEDS_SAMPLES:
-            baro.dev.get_ut(&baro.dev);
-            baro.dev.start_up(&baro.dev);
+            if (baro.dev.get_ut) {
+                baro.dev.get_ut(&baro.dev);
+            }
+            if (baro.dev.start_up) {
+                baro.dev.start_up(&baro.dev);
+            }
             state = BAROMETER_NEEDS_CALCULATION;
             return baro.dev.up_delay;
         break;
 
         case BAROMETER_NEEDS_CALCULATION:
-            baro.dev.get_up(&baro.dev);
-            baro.dev.start_ut(&baro.dev);
+            if (baro.dev.get_up) {
+                baro.dev.get_up(&baro.dev);
+            }
+            if (baro.dev.start_ut) {
+                baro.dev.start_ut(&baro.dev);
+            }
             baro.dev.calculate(&baro.dev, &baro.baroPressure, &baro.baroTemperature);
             if (barometerConfig()->use_median_filtering) {
                 baro.baroPressure = applyBarometerMedianFilter(baro.baroPressure);

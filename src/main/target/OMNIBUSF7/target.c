@@ -20,18 +20,19 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
 #include "drivers/bus.h"
+#include "drivers/sensor.h"
 
 /* GYRO */
-BUSDEV_REGISTER_SPI_TAG(busdev_mpu6000,     DEVHW_MPU6000,      MPU6000_SPI_BUS,    MPU6000_CS_PIN,     MPU6000_EXTI_PIN,       0,  DEVFLAGS_NONE);
-BUSDEV_REGISTER_SPI_TAG(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_SPI_BUS,    MPU6500_CS_PIN,     MPU6500_EXTI_PIN,       1,  DEVFLAGS_NONE);
+BUSDEV_REGISTER_SPI_TAG(busdev_mpu6000, DEVHW_MPU6000,  MPU6000_SPI_BUS,    MPU6000_CS_PIN, MPU6000_EXTI_PIN,   0,  DEVFLAGS_NONE,  IMU_MPU6000_ALIGN);
+BUSDEV_REGISTER_SPI_TAG(busdev_mpu6500, DEVHW_MPU6500,  MPU6500_SPI_BUS,    MPU6500_CS_PIN, MPU6500_EXTI_PIN,   1,  DEVFLAGS_NONE,  IMU_MPU6500_ALIGN);
 
-BUSDEV_REGISTER_SPI(    busdev_bmp280,      DEVHW_BMP280,       BMP280_SPI_BUS,     BMP280_CS_PIN,      NONE,                       DEVFLAGS_NONE);
+BUSDEV_REGISTER_SPI(    busdev_bmp280,  DEVHW_BMP280,   BMP280_SPI_BUS,     BMP280_CS_PIN,  NONE,                   DEVFLAGS_NONE,  0);
 
-BUSDEV_REGISTER_I2C(    busdev_hmc5883,     DEVHW_HMC5883,      MAG_I2C_BUS,        0x1E,               NONE,                       DEVFLAGS_NONE);
-BUSDEV_REGISTER_I2C(    busdev_qmc5883,     DEVHW_QMC5883,      MAG_I2C_BUS,        0x0D,               NONE,                       DEVFLAGS_NONE);
-BUSDEV_REGISTER_I2C(    busdev_mag3110,     DEVHW_MAG3110,      MAG_I2C_BUS,        0x0E,               NONE,                       DEVFLAGS_NONE);
+BUSDEV_REGISTER_I2C(    busdev_hmc5883, DEVHW_HMC5883,  MAG_I2C_BUS,        0x1E,           NONE,                   DEVFLAGS_NONE,  0);
+BUSDEV_REGISTER_I2C(    busdev_qmc5883, DEVHW_QMC5883,  MAG_I2C_BUS,        0x0D,           NONE,                   DEVFLAGS_NONE,  0);
+BUSDEV_REGISTER_I2C(    busdev_mag3110, DEVHW_MAG3110,  MAG_I2C_BUS,        0x0E,           NONE,                   DEVFLAGS_NONE,  0);
 
-BUSDEV_REGISTER_SPI(    busdev_max7456,     DEVHW_MAX7456,      MAX7456_SPI_BUS,    MAX7456_CS_PIN,     NONE,                       DEVFLAGS_USE_RAW_REGISTERS);
+BUSDEV_REGISTER_SPI(    busdev_max7456, DEVHW_MAX7456,  MAX7456_SPI_BUS,    MAX7456_CS_PIN, NONE,                   DEVFLAGS_USE_RAW_REGISTERS,  0);
 
 const timerHardware_t timerHardware[] = {
 

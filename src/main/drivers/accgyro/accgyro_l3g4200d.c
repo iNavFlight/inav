@@ -139,6 +139,7 @@ bool l3g4200dDetect(gyroDev_t *gyro)
     gyro->initFn = l3g4200dInit;
     gyro->readFn = l3g4200dRead;
     gyro->scale = 1.0f / 14.2857f;      // 14.2857dps/lsb scalefactor
+    gyro->gyroAlign = gyro->busDev->param;
 
     return true;
 }

@@ -24,6 +24,7 @@
 #include "common/utils.h"
 #include "drivers/nvic.h"
 #include "drivers/dma.h"
+#include "drivers/rcc.h"
 
 /*
  * DMA descriptors.
@@ -82,13 +83,12 @@ DMA_t dmaGetByTag(dmaTag_t tag)
 
 void dmaEnableClock(DMA_t dma)
 {
-    do {
-        __IO uint32_t tmpreg;
-        SET_BIT(RCC->AHB1ENR, dma->rcc);
-        /* Delay after an RCC peripheral clock enabling */
-        tmpreg = READ_BIT(RCC->AHB1ENR, dma->rcc);
-        UNUSED(tmpreg);
-    } while (0);
+    if (dma->dma == DMA1) {
+        RCC_ClockCmd(RCC_AHB1(DMA1), ENABLE);
+    }
+    else {
+        RCC_ClockCmd(RCC_AHB1(DMA2), ENABLE);
+    }
 }
 
 resourceOwner_e dmaGetOwner(DMA_t dma)
@@ -110,7 +110,7 @@ void dmaSetHandler(DMA_t dma, dmaCallbackHandlerFuncPtr callback, uint32_t prior
     dma->irqHandlerCallback = callback;
     dma->userParam = userParam;
 
-    HAL_NVIC_SetPriority(dma->irqNumber, NVIC_PRIORITY_BASE(priority), NVIC_PRIORITY_SUB(priority));
+    HAL_NVIC_SetPriority(dma->irqNumber, priority, 0);
     HAL_NVIC_EnableIRQ(dma->irqNumber);
 }
 
@@ -118,4 +118,15 @@ uint32_t dmaGetChannelByTag(dmaTag_t tag)
 {
     static const uint32_t dmaChannel[8] = { DMA_CHANNEL_0, DMA_CHANNEL_1, DMA_CHANNEL_2, DMA_CHANNEL_3, DMA_CHANNEL_4, DMA_CHANNEL_5, DMA_CHANNEL_6, DMA_CHANNEL_7 };
     return dmaChannel[DMATAG_GET_CHANNEL(tag)];
+}
+
+DMA_t dmaGetByRef(const DMA_Stream_TypeDef* ref)
+{
+    for (unsigned i = 0; i < (sizeof(dmaDescriptors) / sizeof(dmaDescriptors[0])); i++) {
+        if (ref == dmaDescriptors[i].ref) {
+            return &dmaDescriptors[i];
+        }
+    }
+
+    return NULL;
 }

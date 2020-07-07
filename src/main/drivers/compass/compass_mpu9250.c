@@ -40,7 +40,7 @@
 #include "drivers/compass/compass.h"
 #include "drivers/compass/compass_mpu9250.h"
 
-#if defined(USE_MAG_MPU9250) && defined(USE_GYRO_MPU9250)
+#if defined(USE_MAG_MPU9250) && defined(USE_IMU_MPU9250)
 
 // No separate hardware descriptor needed. Hardware descriptor initialization is handled by GYRO driver
 

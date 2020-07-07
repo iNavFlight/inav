@@ -30,18 +30,11 @@
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
-#define USE_GYRO
-#define USE_GYRO_MPU6500
-#define USE_GYRO_MPU9250
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW0_DEG
 
-#define USE_ACC
-#define USE_ACC_MPU6500
-#define USE_ACC_MPU9250
-
-#define ACC_MPU6500_ALIGN       CW0_DEG
-#define GYRO_MPU6500_ALIGN      CW0_DEG
-#define ACC_MPU9250_ALIGN       CW0_DEG
-#define GYRO_MPU9250_ALIGN      CW0_DEG
+#define USE_IMU_MPU9250
+#define IMU_MPU9250_ALIGN       CW0_DEG
 
 #define MPU6500_CS_PIN          SPI1_NSS_PIN
 #define MPU6500_SPI_BUS         BUS_SPI1
@@ -107,29 +100,16 @@
 #define SPI3_MISO_PIN           PB4
 #define SPI3_MOSI_PIN           PB5
 
-#define USE_VTX_RTC6705
-#define VTX_RTC6705_OPTIONAL    // VTX/OSD board is OPTIONAL
-
 #undef USE_VTX_FFPV
 #undef USE_VTX_SMARTAUDIO           // Disabled due to flash size
 #undef USE_VTX_TRAMP                // Disabled due to flash size
-#undef USE_PWM_SERVO_DRIVER         // Disabled due to RAM size
 
 #undef USE_PITOT                    // Disabled due to RAM size
 #undef USE_PITOT_ADC                // Disabled due to RAM size
 
-#define RTC6705_CS_PIN          PF4
-#define RTC6705_SPI_INSTANCE    SPI3
-#define RTC6705_POWER_PIN       PC3
-
-#define USE_RTC6705_CLK_HACK
-#define RTC6705_CLK_PIN         SPI3_SCK_PIN
-
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PA15
-
-#define SPI_SHARED_MAX7456_AND_RTC6705
 
 #define USE_SDCARD
 #define USE_SDCARD_SPI

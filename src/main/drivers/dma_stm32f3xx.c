@@ -25,6 +25,7 @@
 #include "common/utils.h"
 #include "drivers/nvic.h"
 #include "drivers/dma.h"
+#include "drivers/rcc.h"
 
 /*
  * DMA descriptors.
@@ -75,7 +76,12 @@ DMA_t dmaGetByTag(dmaTag_t tag)
 
 void dmaEnableClock(DMA_t dma)
 {
-    RCC_AHBPeriphClockCmd(dma->rcc, ENABLE);
+    if (dma->dma == DMA1) {
+        RCC_ClockCmd(RCC_AHB(DMA1), ENABLE);
+    }
+    else {
+        RCC_ClockCmd(RCC_AHB(DMA2), ENABLE);
+    }
 }
 
 resourceOwner_e dmaGetOwner(DMA_t dma)
@@ -92,24 +98,19 @@ void dmaInit(DMA_t dma, resourceOwner_e owner, uint8_t resourceIndex)
 
 void dmaSetHandler(DMA_t dma, dmaCallbackHandlerFuncPtr callback, uint32_t priority, uint32_t userParam)
 {
-    NVIC_InitTypeDef NVIC_InitStructure;
-
     dmaEnableClock(dma);
 
     dma->irqHandlerCallback = callback;
     dma->userParam = userParam;
 
-    NVIC_InitStructure.NVIC_IRQChannel = dma->irqNumber;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = NVIC_PRIORITY_BASE(priority);
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = NVIC_PRIORITY_SUB(priority);
-    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&NVIC_InitStructure);
+    NVIC_SetPriority(dma->irqNumber, priority);
+    NVIC_EnableIRQ(dma->irqNumber);
 }
 
-DMA_t dmaFindHandlerIdentifier(DMA_Channel_TypeDef* channel)
+DMA_t dmaGetByRef(const DMA_Channel_TypeDef * ref)
 {
     for (unsigned i = 0; i < (sizeof(dmaDescriptors) / sizeof(dmaDescriptors[0])); i++) {
-        if (channel == dmaDescriptors[i].ref) {
+        if (ref == dmaDescriptors[i].ref) {
             return &dmaDescriptors[i];
         }
     }

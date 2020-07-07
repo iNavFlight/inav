@@ -50,14 +50,13 @@ void targetConfiguration(void)
 {
     // alternative defaults settings for ALIENFLIGHTF1 and ALIENFLIGHTF3 targets
     serialConfigMutable()->portConfigs[2].functionMask = FUNCTION_RX_SERIAL;
-    batteryMetersConfigMutable()->voltage_scale = 200;
+    batteryMetersConfigMutable()->voltage.scale = 200;
     rxConfigMutable()->spektrum_sat_bind = 5;
     rxConfigMutable()->spektrum_sat_bind_autoreset = 1;
 
     if (hardwareMotorType == MOTOR_BRUSHED) {
         motorConfigMutable()->motorPwmProtocol = PWM_TYPE_BRUSHED;
         motorConfigMutable()->motorPwmRate = BRUSHED_MOTORS_PWM_RATE;
-        motorConfigMutable()->minthrottle = 1000;
     }
 
     pidProfileMutable()->bank_mc.pid[ROLL].P = 36;

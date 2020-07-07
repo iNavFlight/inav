@@ -247,6 +247,17 @@ void uartWrite(serialPort_t *instance, uint8_t ch)
     USART_ITConfig(s->USARTx, USART_IT_TXE, ENABLE);
 }
 
+bool isUartIdle(serialPort_t *instance)
+{
+    uartPort_t *s = (uartPort_t *)instance;
+    if(USART_GetFlagStatus(s->USARTx, USART_FLAG_IDLE)) {
+        uartClearIdleFlag(s);
+        return true;
+    } else {
+        return false;
+    }
+}
+
 const struct serialPortVTable uartVTable[] = {
     {
         .serialWrite = uartWrite,
@@ -260,5 +271,6 @@ const struct serialPortVTable uartVTable[] = {
         .writeBuf = NULL,
         .beginWrite = NULL,
         .endWrite = NULL,
+        .isIdle = isUartIdle,
     }
 };

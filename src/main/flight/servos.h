@@ -20,7 +20,7 @@
 #include "config/parameter_group.h"
 #include "common/logic_condition.h"
 
-#define MAX_SUPPORTED_SERVOS 8
+#define MAX_SUPPORTED_SERVOS 16
 
 // These must be consecutive
 typedef enum {
@@ -53,7 +53,11 @@ typedef enum {
     INPUT_STABILIZED_PITCH_MINUS    = 26,
     INPUT_STABILIZED_YAW_PLUS       = 27,
     INPUT_STABILIZED_YAW_MINUS      = 28,
-    INPUT_LOGIC_ONE                 = 29,
+    INPUT_MAX                       = 29,
+    INPUT_GVAR_0                    = 30,
+    INPUT_GVAR_1                    = 31,
+    INPUT_GVAR_2                    = 32,
+    INPUT_GVAR_3                    = 33,
 
     INPUT_SOURCE_COUNT
 } inputSource_e;
@@ -108,9 +112,8 @@ typedef struct servoMixer_s {
 
 #define MAX_SERVO_RULES (2 * MAX_SUPPORTED_SERVOS)
 #define MAX_SERVO_SPEED UINT8_MAX
-#define MAX_SERVO_BOXES 3
-
-#define SERVO_MIXER_INPUT_WIDTH 1000
+#define SERVO_OUTPUT_MAX 2500
+#define SERVO_OUTPUT_MIN 500
 
 PG_DECLARE_ARRAY(servoMixer_t, MAX_SERVO_RULES, customServoMixers);
 
@@ -129,7 +132,7 @@ typedef struct servoConfig_s {
     uint16_t servoPwmRate;                  // The update rate of servo outputs (50-498Hz)
     int16_t servo_lowpass_freq;             // lowpass servo filter frequency selection; 1/1000ths of loop freq
     uint16_t flaperon_throw_offset;
-    uint8_t __reserved;
+    uint8_t servo_protocol;                 // See servoProtocolType_e
     uint8_t tri_unarmed_servo;              // send tail servo correction pulses even when unarmed
 } servoConfig_t;
 
@@ -143,6 +146,7 @@ typedef struct servoMetadata_s {
 extern int16_t servo[MAX_SUPPORTED_SERVOS];
 
 bool isServoOutputEnabled(void);
+void setServoOutputEnabled(bool flag);
 bool isMixerUsingServos(void);
 void writeServos(void);
 void loadCustomServoMixer(void);

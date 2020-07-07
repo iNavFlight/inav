@@ -26,13 +26,8 @@
 #define MPU6000_CS_PIN          PA15
 #define MPU6000_SPI_BUS    BUS_SPI1
 
-#define USE_GYRO
-#define USE_GYRO_MPU6000
-#define GYRO_MPU6000_ALIGN      CW180_DEG
-
-#define USE_ACC
-#define USE_ACC_MPU6000
-#define ACC_MPU6000_ALIGN       CW180_DEG
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW180_DEG
 
 // MPU6000 interrupts
 #define USE_MPU_DATA_READY_SIGNAL

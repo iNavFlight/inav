@@ -38,7 +38,7 @@
 #endif
 
 #if defined(YUPIF4MINI)
-#define BEEPER_INVERTED
+// #define BEEPER_INVERTED
 #else
 #define BEEPER_PWM
 #define BEEPER_INVERTED
@@ -53,19 +53,8 @@
 #define MPU6500_CS_PIN          SPI1_NSS_PIN
 #define MPU6500_SPI_BUS         BUS_SPI1
 
-#define USE_GYRO_MPU6500
-#define USE_ACC_MPU6500
-#define ICM20689_CS_PIN         SPI1_NSS_PIN
-#define ICM20689_EXTI_PIN       PC4
-
-#define USE_ACC
-#define USE_ACC_SPI_MPU6500
-#define ACC_MPU6500_ALIGN       CW90_DEG
-
-#define USE_GYRO
-#define USE_GYRO_SPI_MPU6500
-#define GYRO_MPU6500_ALIGN      CW90_DEG
-
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW90_DEG
 
 #define USE_I2C
 #define USE_I2C_DEVICE_2

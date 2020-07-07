@@ -1,5 +1,5 @@
 F7X2RE_TARGETS += $(TARGET)
-FEATURES    = VCP SDCARD
+FEATURES    = VCP SDCARD MSC
 
 TARGET_SRC = \
             drivers/accgyro/accgyro_fake.c \
@@ -15,7 +15,4 @@ TARGET_SRC = \
             drivers/compass/compass_mag3110.c \
             drivers/compass/compass_lis3mdl.c \
             drivers/light_ws2811strip.c \
-            drivers/max7456.c \
-            drivers/vtx_rtc6705_soft_spi.c
-
-
+            drivers/max7456.c
