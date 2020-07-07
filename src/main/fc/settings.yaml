@@ -2678,59 +2678,86 @@ groups:
         min: 10
         max: 90
       - name: osd_crosshairs_style
+        description: "To set the visual type for the crosshair"
+        default_value: "DEFAULT"        
         field: crosshairs_style
         table: osd_crosshairs_style
         type: uint8_t
       - name: osd_horizon_offset
+        description: "To vertically adjust the whole OSD and AHI and scrolling bars"
+        default_value: "0"        
         field: horizon_offset
         min: -2
         max: 2
       - name: osd_camera_uptilt
+        description: "Set the camera uptilt for the FPV camera in degres, positive is up, negative is down, relative to the horizontal"
+        default_value: "0" 
         field: camera_uptilt
         min: -40
         max: 80
       - name: osd_camera_fov_h
+        description: "Horizontal field of view for the camera in degres"
+        default_value: "135"         
         field: camera_fov_h
         min: 60
         max: 150
       - name: osd_camera_fov_v
+        description: "Vertical field of view for the camera in degres"
+        default_value: "85"
         field: camera_fov_v
         min: 30
         max: 120
       - name: osd_hud_margin_h
+        description: "Left and right margins for the hud area"
+        default_value: "3"
         field: hud_margin_h
         min: 0
         max: 4
       - name: osd_hud_margin_v
+        description: "Top and bottom margins for the hud area"
+        default_value: "3"
         field: hud_margin_v
         min: 1
         max: 3
       - name: osd_hud_homing
+        description: "To display little arrows around the crossair showing where the home point is in the hud"
+        default_value: "0"
         field: hud_homing
         type: bool
       - name: osd_hud_homepoint
+        description: "To 3D-display the home point location in the hud"
+        default_value: "0"
         field: hud_homepoint
         type: bool
       - name: osd_hud_radar_disp
+        description: "Maximum count of nearby aircrafts or points of interest to display in the hud, as sent from an ESP32 LoRa module. Set to 0 to disable (show nothing). The nearby aircrafts will appear as markers A, B, C, etc"
+        default_value: "0"
         field: hud_radar_disp
         min: 0
         max: 4
       - name: osd_hud_radar_range_min
+        description: "In meters, radar aircrafts closer than this will not be displayed in the hud"
+        default_value: "3"
         field: hud_radar_range_min
         min: 1
         max: 30
       - name: osd_hud_radar_range_max
+        description: "In meters, radar aircrafts further away than this will not be displayed in the hud"
+        default_value: 4000"
         field: hud_radar_range_max
         min: 100
         max: 9990
       - name: osd_hud_radar_nearest
+        description: "To display an extra bar of informations at the bottom of the hud area for the closest radar aircraft found, if closest than the set value, in meters. Shows relative altitude (meters or feet, with an up or down arrow to indicate if above or below), speed (in m/s or f/s), and absolute heading (in °, 0 is north, 90 is east, 180 is south, 270 is west). Set to 0 (zero) to disable."
+        default_value: "0"
         field: hud_radar_nearest
         min: 0
         max: 4000
       - name: osd_hud_wp_disp
-        description: "Controls display of the next waypoints in the HUD."
-        default_value: "OFF"
+        description: "How many navigation waypoints are displayed, set to 0 (zero) to disable. As sample, if set to 2, and you just passed the 3rd waypoint of the mission, you'll see markers for the 4th waypoint (marked 1) and the 5th waypoint (marked 2)"
+        default_value: "0"
         field: hud_wp_disp
+
         min: 0
         max: 3
       - name: osd_left_sidebar_scroll
