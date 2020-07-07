@@ -2836,6 +2836,12 @@ groups:
         default_value: "DEFAULT"
         table: osd_ahi_style
 
+      - name: osd_force_grid
+        field: force_grid
+        type: bool
+        default_value: "OFF"
+        description: Force OSD to work in grid mode even if the OSD device supports pixel level access (mainly used for development)
+
       - name: osd_ahi_bordered
         field: ahi_bordered
         type: bool

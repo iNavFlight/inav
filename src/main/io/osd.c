@@ -2707,7 +2707,11 @@ static void osdCompleteAsyncInitialization(void)
     osdDisplayIsReady = true;
 
 #if defined(USE_CANVAS)
-    osdDisplayHasCanvas = displayGetCanvas(&osdCanvas, osdDisplayPort);
+    if (osdConfig()->force_grid) {
+        osdDisplayHasCanvas = false;
+    } else {
+        osdDisplayHasCanvas = displayGetCanvas(&osdCanvas, osdDisplayPort);
+    }
 #endif
 
     displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
