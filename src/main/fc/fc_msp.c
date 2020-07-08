@@ -35,8 +35,8 @@
 #include "common/bitarray.h"
 #include "common/time.h"
 #include "common/utils.h"
-#include "common/global_functions.h"
-#include "common/global_variables.h"
+#include "programming/global_functions.h"
+#include "programming/global_variables.h"
 
 #include "config/parameter_group_ids.h"
 
@@ -520,14 +520,14 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, customServoMixers(i)->inputSource);
             sbufWriteU16(dst, customServoMixers(i)->rate);
             sbufWriteU8(dst, customServoMixers(i)->speed);
-        #ifdef USE_LOGIC_CONDITIONS
+        #ifdef USE_PROGRAMMING_FRAMEWORK
             sbufWriteU8(dst, customServoMixers(i)->conditionId);
         #else
             sbufWriteU8(dst, -1);
         #endif
         }
         break;
-#ifdef USE_LOGIC_CONDITIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
     case MSP2_INAV_LOGIC_CONDITIONS:
         for (int i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
             sbufWriteU8(dst, logicConditions(i)->enabled);
@@ -551,7 +551,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 #endif
-#ifdef USE_GLOBAL_FUNCTIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
     case MSP2_INAV_GLOBAL_FUNCTIONS:
         for (int i = 0; i < MAX_GLOBAL_FUNCTIONS; i++) {
             sbufWriteU8(dst, globalFunctions(i)->enabled);
@@ -1928,7 +1928,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             customServoMixersMutable(tmp_u8)->inputSource = sbufReadU8(src);
             customServoMixersMutable(tmp_u8)->rate = sbufReadU16(src);
             customServoMixersMutable(tmp_u8)->speed = sbufReadU8(src);
-        #ifdef USE_LOGIC_CONDITIONS
+        #ifdef USE_PROGRAMMING_FRAMEWORK
             customServoMixersMutable(tmp_u8)->conditionId = sbufReadU8(src);
         #else
             sbufReadU8(src);
@@ -1937,7 +1937,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         } else
             return MSP_RESULT_ERROR;
         break;
-#ifdef USE_LOGIC_CONDITIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
     case MSP2_INAV_SET_LOGIC_CONDITIONS:
         sbufReadU8Safe(&tmp_u8, src);
         if ((dataSize == 15) && (tmp_u8 < MAX_LOGIC_CONDITIONS)) {
@@ -1953,7 +1953,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         break;
 #endif
-#ifdef USE_GLOBAL_FUNCTIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
     case MSP2_INAV_SET_GLOBAL_FUNCTIONS:
         sbufReadU8Safe(&tmp_u8, src);
         if ((dataSize == 10) && (tmp_u8 < MAX_GLOBAL_FUNCTIONS)) {

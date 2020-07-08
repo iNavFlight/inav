@@ -26,13 +26,13 @@
 
 FILE_COMPILE_FOR_SIZE
 
-#ifdef USE_LOGIC_CONDITIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
 
 #include <stdint.h>
 #include "config/config_reset.h"
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
-#include "common/global_variables.h"
+#include "programming/global_variables.h"
 #include "common/maths.h"
 #include "build/build_config.h"
  
