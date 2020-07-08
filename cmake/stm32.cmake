@@ -1,6 +1,6 @@
 include(arm-none-eabi)
+include(stm32f3)
 include(stm32f4)
-include(stm32-usb)
 
 include(CMakeParseArguments)
 
@@ -137,10 +137,10 @@ function(target_stm32 name startup ldscript)
     # Parse keyword arguments
     cmake_parse_arguments(
         PARSED_ARGS
-        ""          # No boolean arguments
-        "HSE_MHZ"   # Single value arguments
-        ""          # No multi-value arguments
-        ${ARGN}     # Start parsing after the known arguments
+        "DISABLE_MSC"   # Boolean arguments
+        "HSE_MHZ"       # Single value arguments
+        "DEFINITIONS"   # Multi-value arguments
+        ${ARGN}         # Start parsing after the known arguments
     )
     if (PARSED_ARGS_HSE_MHZ)
         set(hse_mhz ${PARSED_ARGS_HSE_MHZ})
@@ -163,6 +163,9 @@ function(target_stm32 name startup ldscript)
     set(target_definitions ${STM32_DEFINITIONS})
     math(EXPR hse_value "${hse_mhz} * 1000000")
     list(APPEND target_definitions "HSE_VALUE=${hse_value}")
+    if(PARSED_ARGS_DEFINITIONS)
+        list(APPEND target_definitions ${PARSED_ARGS_DEFINITIONS})
+    endif()
     target_compile_definitions(${name} PRIVATE ${target_definitions})
 
     get_stm32_target_features(features "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -173,7 +176,7 @@ function(target_stm32 name startup ldscript)
     if(SDCARD IN_LIST features)
         target_sources(${name} PRIVATE ${STM32_SDCARD_SRC} ${STM32_ASYNCFATFS_SRC})
     endif()
-    if(MSC IN_LIST features)
+    if(NOT PARSED_ARGS_DISABLE_MSC AND MSC IN_LIST features)
         target_sources(${name} PRIVATE ${STM32_MSC_SRC})
         if (FLASHFS IN_LIST features)
             target_sources(${name} PRIVATE ${STM32_MSC_FLASH_SRC})

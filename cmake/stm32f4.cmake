@@ -1,3 +1,6 @@
+include(cortex-m4f)
+include(stm32f4-usb)
+
 set(STM32F4_STDPERIPH_DIR "${INAV_LIB_DIR}/main/STM32F4/Drivers/STM32F4xx_StdPeriph_Driver")
 set(STM32F4_CMSIS_DEVICE_DIR "${INAV_LIB_DIR}/main/STM32F4/Drivers/CMSIS/Device/ST/STM32F4xx")
 set(STM32F4_CMSIS_DRIVERS_DIR "${INAV_LIB_DIR}/main/STM32F4/Drivers/CMSIS")
@@ -69,44 +72,26 @@ set(STM32F4_INCLUDE_DIRS
 )
 
 set(STM32F4_DEFINITIONS
+    ${CORTEX_M4F_DEFINITIONS}
     STM32F4
     USE_STDPERIPH_DRIVER
-    ARM_MATH_MATRIX_CHECK
-    ARM_MATH_ROUNDING
-    __FPU_PRESENT=1
-    UNALIGNED_SUPPORT_DISABLE
-    ARM_MATH_CM4
-)
-
-set(STM32F4_COMMON_OPTIONS
-    -mthumb
-    -mcpu=cortex-m4
-    -march=armv7e-m
-    -mfloat-abi=hard
-    -mfpu=fpv4-sp-d16
-    -fsingle-precision-constant
-)
-
-set(STM32F4_COMPILE_OPTIONS
-)
-
-set(SETM32F4_LINK_OPTIONS
 )
 
 function(target_stm32f4xx name startup ldscript)
     target_stm32(${name} ${startup} ${ldscript} ${ARGN})
     target_sources(${name} PRIVATE ${STM32F4_SRC})
-    target_compile_options(${name} PRIVATE ${STM32F4_COMMON_OPTIONS} ${STM32F4_COMPILE_OPTIONS})
-    target_include_directories(${name} PRIVATE ${STM32_STDPERIPH_USB_INCLUDE_DIRS} ${STM32F4_INCLUDE_DIRS})
+    target_compile_options(${name} PRIVATE ${CORTEX_M4F_COMMON_OPTIONS} ${CORTEX_M4F_COMPILE_OPTIONS})
+    target_include_directories(${name} PRIVATE ${STM32F4_INCLUDE_DIRS})
     target_compile_definitions(${name} PRIVATE ${STM32F4_DEFINITIONS})
-    target_link_options(${name} PRIVATE ${STM32F4_COMMON_OPTIONS} ${STM32F4_LINK_OPTIONS})
+    target_link_options(${name} PRIVATE ${CORTEX_M4F_COMMON_OPTIONS} ${CORTEX_M4F_LINK_OPTIONS})
 
     get_property(features TARGET ${name} PROPERTY FEATURES)
     if(VCP IN_LIST features)
-        target_sources(${name} PRIVATE ${STM32_STDPERIPH_USB_SRC} ${STM32F4_VCP_SRC})
+        target_include_directories(${name} PRIVATE ${STM32F4_USB_INCLUDE_DIRS})
+        target_sources(${name} PRIVATE ${STM32F4_USB_SRC} ${STM32F4_VCP_SRC})
     endif()
     if(MSC IN_LIST features)
-        target_sources(${name} PRIVATE ${STM32F4_MSC_SRC})
+        target_sources(${name} PRIVATE ${STM32F4_USBMSC_SRC} ${STM32F4_MSC_SRC})
     endif()
 endfunction()
 

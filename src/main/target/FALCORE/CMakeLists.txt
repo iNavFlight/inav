@@ -1,0 +1,1 @@
+target_stm32f303(FALCORE HSE_MHZ 12)

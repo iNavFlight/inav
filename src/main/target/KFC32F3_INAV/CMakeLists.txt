@@ -1,0 +1,1 @@
+target_stm32f303(KFC32F3_INAV)

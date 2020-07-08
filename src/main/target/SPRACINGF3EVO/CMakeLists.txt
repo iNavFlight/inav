@@ -1,0 +1,2 @@
+target_stm32f303(SPRACINGF3EVO)
+target_stm32f303(SPRACINGF3EVO_1SS)

@@ -47,7 +47,7 @@ set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Build Type" FORCE)
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${CMAKE_CONFIGURATION_TYPES})
 
 set(arm_none_eabi_debug "-Og -g")
-set(arm_none_eabi_release "-O2 -DNDEBUG -flto -fuse-linker-plugin")
+set(arm_none_eabi_release "-Os -DNDEBUG -flto -fuse-linker-plugin")
 set(arm_none_eabi_relwithdebinfo "-ggdb3 ${arm_none_eabi_release}")
 
 SET(CMAKE_C_FLAGS_DEBUG ${arm_none_eabi_debug} CACHE INTERNAL "c compiler flags debug")

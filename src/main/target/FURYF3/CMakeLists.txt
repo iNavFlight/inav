@@ -1,0 +1,2 @@
+target_stm32f303(FURYF3)
+target_stm32f303(FURYF3_SPIFLASH)
