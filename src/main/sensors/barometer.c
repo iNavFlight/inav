@@ -20,6 +20,7 @@
 #include <math.h>
 
 #include "platform.h"
+#include "build/debug.h"
 
 #include "common/calibration.h"
 #include "common/log.h"
