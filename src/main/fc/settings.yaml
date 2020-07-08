@@ -2222,7 +2222,7 @@ groups:
         field: fw.cruise_speed
         min: 0
         max: 65535
-      - name: nav_fw_control_smoothness 
+      - name: nav_fw_control_smoothness
         description: "How smoothly the autopilot controls the airplane to correct the navigation error"
         default_value: "0"
         field: fw.control_smoothness
@@ -2679,25 +2679,25 @@ groups:
         max: 90
       - name: osd_crosshairs_style
         description: "To set the visual type for the crosshair"
-        default_value: "DEFAULT"        
+        default_value: "DEFAULT"
         field: crosshairs_style
         table: osd_crosshairs_style
         type: uint8_t
       - name: osd_horizon_offset
         description: "To vertically adjust the whole OSD and AHI and scrolling bars"
-        default_value: "0"        
+        default_value: "0"
         field: horizon_offset
         min: -2
         max: 2
       - name: osd_camera_uptilt
         description: "Set the camera uptilt for the FPV camera in degres, positive is up, negative is down, relative to the horizontal"
-        default_value: "0" 
+        default_value: "0"
         field: camera_uptilt
         min: -40
         max: 80
       - name: osd_camera_fov_h
         description: "Horizontal field of view for the camera in degres"
-        default_value: "135"         
+        default_value: "135"
         field: camera_fov_h
         min: 60
         max: 150
@@ -2971,11 +2971,14 @@ groups:
         - name: log_level
           field: level
           table: log_level
+          description: "Defines serial debugging log level. See `docs/development/serial_printf_debugging.md` for usage."
+          default_value: "`ERROR`"
         - name: log_topics
           field: topics
           min: 0
           max: UINT32_MAX
-
+          description: "Defines serial debugging log topic. See `docs/development/serial_printf_debugging.md` for usage."
+          default_value: "0"
   - name: PG_ESC_SENSOR_CONFIG
     type: escSensorConfig_t
     headers: ["sensors/esc_sensor.h"]
