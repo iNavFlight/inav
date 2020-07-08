@@ -973,6 +973,7 @@ void FAST_CODE pidController(float dT)
             pidState[axis].gyroRate = gyroKalmanUpdate(axis, pidState[axis].gyroRate, pidState[axis].rateTarget);
         }
 #endif
+        DEBUG_SET(DEBUG_PID_MEASUREMENT, axis, pidState[axis].gyroRate);
     }
 
     // Step 3: Run control for ANGLE_MODE, HORIZON_MODE, and HEADING_LOCK

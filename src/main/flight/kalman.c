@@ -112,7 +112,7 @@ float gyroKalmanUpdate(uint8_t axis, float input, float setpoint)
 {
     updateAxisVariance(&kalmanFilterStateRate[axis], input);
 
-    DEBUG_SET(DEBUG_KALMAN, axis, kalmanFilterStateRate[axis].k * 1000.0f); //Kalman gain
+    DEBUG_SET(DEBUG_KALMAN_GAIN, axis, kalmanFilterStateRate[axis].k * 1000.0f); //Kalman gain
 
     return kalman_process(&kalmanFilterStateRate[axis], input, setpoint);
 }
