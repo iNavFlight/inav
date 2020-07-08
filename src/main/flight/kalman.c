@@ -29,7 +29,6 @@ FILE_COMPILE_FOR_SPEED
 #include "build/debug.h"
 
 kalman_t kalmanFilterStateRate[XYZ_AXIS_COUNT];
-float setPoint[XYZ_AXIS_COUNT];
 
 static void gyroKalmanInitAxis(kalman_t *filter)
 {
@@ -41,11 +40,6 @@ static void gyroKalmanInitAxis(kalman_t *filter)
     filter->s = gyroConfig()->kalman_sharpness / 10.0f;
     filter->w = gyroConfig()->kalman_w * 8;
     filter->inverseN = 1.0f / (float)(filter->w);
-}
-
-void gyroKalmanSetSetpoint(uint8_t axis, float rate)
-{
-    setPoint[axis] = rate;
 }
 
 void gyroKalmanInitialize(void)
@@ -114,13 +108,13 @@ static void updateAxisVariance(kalman_t *kalmanState, float rate)
     kalmanState->r = squirt * VARIANCE_SCALE;
 }
 
-float gyroKalmanUpdate(uint8_t axis, float input)
+float gyroKalmanUpdate(uint8_t axis, float input, float setpoint)
 {
     updateAxisVariance(&kalmanFilterStateRate[axis], input);
 
     DEBUG_SET(DEBUG_KALMAN, axis, kalmanFilterStateRate[axis].k * 1000.0f); //Kalman gain
 
-    return kalman_process(&kalmanFilterStateRate[axis], input, setPoint[axis]);
+    return kalman_process(&kalmanFilterStateRate[axis], input, setpoint);
 }
 
 #endif

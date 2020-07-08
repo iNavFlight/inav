@@ -967,8 +967,11 @@ void FAST_CODE pidController(float dT)
 
         // Limit desired rate to something gyro can measure reliably
         pidState[axis].rateTarget = constrainf(rateTarget, -GYRO_SATURATION_LIMIT, +GYRO_SATURATION_LIMIT);
+
 #ifdef USE_GYRO_KALMAN
-        gyroKalmanSetSetpoint(axis, pidState[axis].rateTarget);
+        if (gyroConfig()->kalmanEnabled) {
+            pidState[axis].gyroRate = gyroKalmanUpdate(axis, pidState[axis].gyroRate, pidState[axis].rateTarget);
+        }
 #endif
     }
 
@@ -1105,6 +1108,12 @@ void pidInit(void)
     } else {
         pidControllerApplyFn = nullRateController;
     }
+
+#ifdef USE_GYRO_KALMAN
+    if (gyroConfig()->kalmanEnabled) {
+        gyroKalmanInitialize();
+    }
+#endif
 }
 
 const pidBank_t * pidBank(void) { 
