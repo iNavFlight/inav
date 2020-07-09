@@ -357,6 +357,8 @@ groups:
     members:
       - name: rangefinder_hardware
         table: rangefinder_hardware
+        description: "Selection of rangefinder hardware."
+        default_value: "NONE"
       - name: rangefinder_median_filter
         description: "3-point median filtering for rangefinder readouts"
         default_value: "OFF"
@@ -369,6 +371,8 @@ groups:
     condition: USE_OPFLOW
     members:
       - name: opflow_hardware
+        description: "Selection of OPFLOW hardware."
+        default: "NONE"
         table: opflow_hardware
       - name: opflow_scale
         min: 0
@@ -475,6 +479,8 @@ groups:
     condition: USE_PITOT
     members:
       - name: pitot_hardware
+        description: "Selection of pitot hardware."
+        default_value: "NONE"
         table: pitot_hardware
       - name: pitot_lpf_milli_hz
         min: 0
@@ -488,6 +494,8 @@ groups:
     headers: ["rx/rx.h", "rx/spektrum.h"]
     members:
       - name: receiver_type
+        description: "Selection of receiver (RX) type. Additional configuration of a `serialrx_provider` and a UART will be needed for `SERIAL`"
+        default_value: "`TARGET dependent`"
         field: receiverType
         table: receiver_type
       - name: min_check
@@ -576,6 +584,8 @@ groups:
         field: halfDuplex
         type: bool
       - name: msp_override_channels
+        description: "Mask of RX channels that may be overridden by MSP `SET_RAW_RC`. Note that this requires custom firmware with `USE_RX_MSP` and `USE_MSP_RC_OVERRIDE` compile options and the `MSP RC Override` flight mode."
+        default_value: "0"
         field: mspOverrideChannels
         condition: USE_MSP_RC_OVERRIDE
         min: 0
@@ -1177,6 +1187,8 @@ groups:
     type: generalSettings_t
     members:
       - name: applied_defaults
+        description: "Internal (configurator) hint. Should not be changed manually"
+        default_value: "0"
         field: appliedDefaults
         type: uint8_t
         min: 0
@@ -1827,6 +1839,8 @@ groups:
         field: use_gps_velned
         type: bool
       - name: inav_allow_dead_reckoning
+        description: "Defines if inav will dead-reckon over short GPS outages. May also be useful for indoors OPFLOW navigation"
+        default_value: "OFF"
         field: allow_dead_reckoning
         type: bool
       - name: inav_reset_altitude
@@ -2093,7 +2107,7 @@ groups:
         min: 1000
         max: 2000
       - name: nav_mc_auto_disarm_delay
-        description: ""
+        description: "Delay before multi-rotor disarms when `nav_disarm_on_landing` is set (m/s)"
         default_value: "2000"
         field: mc.auto_disarm_delay
         min: 100
@@ -2820,6 +2834,8 @@ groups:
         condition: USE_UNDERCLOCK
         type: bool
       - name: debug_mode
+        description: "Defines debug values exposed in debug variables (developer / debugging setting)"
+        default_value: "NONE"
         table: debug_modes
       - name: throttle_tilt_comp_str
         description: "Can be used in ANGLE and HORIZON mode and will automatically boost throttle when banking. Setting is in percentage, 0=disabled."
