@@ -2949,6 +2949,8 @@ groups:
         min: VTX_SETTINGS_MIN_CHANNEL
         max: VTX_SETTINGS_MAX_CHANNEL
       - name: vtx_max_power_override
+        description:  "Some VTXes may report max power incorrectly (i.e. 200mW for a 600mW VTX). Use this to override max supported power. 0 to disable and use whatever VTX reports as its capabilities"
+        default_value: "0"
         field: maxPowerOverride
         min: 0
         max: 10000
