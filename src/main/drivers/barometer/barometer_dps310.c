@@ -68,7 +68,11 @@
 #define DPS310_MEAS_CFG_SENSOR_RDY      (1 << 6)
 #define DPS310_MEAS_CFG_TMP_RDY         (1 << 5)
 #define DPS310_MEAS_CFG_PRS_RDY         (1 << 4)
+
+#define DPS310_MEAS_CFG_MEAS_CTRL_MASK  (0x7)
 #define DPS310_MEAS_CFG_MEAS_CTRL_CONT  (0x7)
+#define DPS310_MEAS_CFG_MEAS_TEMP_SING  (0x2)
+#define DPS310_MEAS_CFG_MEAS_IDLE       (0x0)
 
 #define DPS310_PRS_CFG_BIT_PM_RATE_32HZ (0x50)      //  101 - 32 measurements pr. sec.
 #define DPS310_PRS_CFG_BIT_PM_PRC_16    (0x04)      // 0100 - 16 times (Standard).
@@ -116,14 +120,19 @@ static void registerWrite(busDevice_t * busDev, uint8_t reg, uint8_t value)
     busWrite(busDev, reg, value);
 }
 
-static void registerSetBits(busDevice_t * busDev, uint8_t reg, uint8_t setbits)
+static void registerWriteBits(busDevice_t * busDev, uint8_t reg, uint8_t mask, uint8_t bits)
 {
     uint8_t val = registerRead(busDev, reg);
 
-    if ((val & setbits) != setbits) {
-        val |= setbits;
+    if ((val & mask) != bits) {
+        val = (val & (~mask)) | bits;
         registerWrite(busDev, reg, val);
     }
+}
+
+static void registerSetBits(busDevice_t * busDev, uint8_t reg, uint8_t setbits)
+{
+    registerWriteBits(busDev, reg, setbits, setbits);
 }
 
 static int32_t getTwosComplement(uint32_t raw, uint8_t length)
@@ -190,6 +199,21 @@ static bool deviceConfigure(busDevice_t * busDev)
     // 0x20 c30 [15:8] + 0x21 c30 [7:0]
     baroState.calib.c30 = getTwosComplement(((uint32_t)coef[16] << 8) | (uint32_t)coef[17], 16);
 
+    // MEAS_CFG: Make sure the device is in IDLE mode
+    registerWriteBits(busDev, DPS310_REG_MEAS_CFG, DPS310_MEAS_CFG_MEAS_CTRL_MASK, DPS310_MEAS_CFG_MEAS_IDLE);
+
+    // Fix IC with a fuse bit problem, which lead to a wrong temperature
+    // Should not affect ICs without this problem
+    registerWrite(busDev, 0x0E, 0xA5);
+    registerWrite(busDev, 0x0F, 0x96);
+    registerWrite(busDev, 0x62, 0x02);
+    registerWrite(busDev, 0x0E, 0x00);
+    registerWrite(busDev, 0x0F, 0x00);
+
+    // Make ONE temperature measurement and flush it
+    registerWriteBits(busDev, DPS310_REG_MEAS_CFG, DPS310_MEAS_CFG_MEAS_CTRL_MASK, DPS310_MEAS_CFG_MEAS_TEMP_SING);
+    delay(40);
+
     // PRS_CFG: pressure measurement rate (32 Hz) and oversampling (16 time standard)
     registerSetBits(busDev, DPS310_REG_PRS_CFG, DPS310_PRS_CFG_BIT_PM_RATE_32HZ | DPS310_PRS_CFG_BIT_PM_PRC_16);
 
@@ -201,7 +225,7 @@ static bool deviceConfigure(busDevice_t * busDev)
     registerSetBits(busDev, DPS310_REG_CFG_REG, DPS310_CFG_REG_BIT_T_SHIFT | DPS310_CFG_REG_BIT_P_SHIFT);
 
     // MEAS_CFG: Continuous pressure and temperature measurement
-    registerSetBits(busDev, DPS310_REG_MEAS_CFG, DPS310_MEAS_CFG_MEAS_CTRL_CONT);
+    registerWriteBits(busDev, DPS310_REG_MEAS_CFG, DPS310_MEAS_CFG_MEAS_CTRL_MASK, DPS310_MEAS_CFG_MEAS_CTRL_CONT);
 
     return true;
 }
