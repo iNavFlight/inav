@@ -39,6 +39,7 @@ typedef enum {
     GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE,               // 7
     GLOBAL_FUNCTION_ACTION_SET_VTX_BAND,                    // 8
     GLOBAL_FUNCTION_ACTION_SET_VTX_CHANNEL,                 // 9
+    GLOBAL_FUNCTION_ACTION_SET_OSD_LAYOUT,                  // 10    
     GLOBAL_FUNCTION_ACTION_LAST
 } globalFunctionActions_e;
 
@@ -50,6 +51,7 @@ typedef enum {
     GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_PITCH = (1 << 4),
     GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_YAW = (1 << 5),
     GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE = (1 << 6),
+    GLOBAL_FUNCTION_FLAG_OVERRIDE_OSD_LAYOUT = (1 << 7),
 } globalFunctionFlags_t;
 
 typedef struct globalFunction_s {
