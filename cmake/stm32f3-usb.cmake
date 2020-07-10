@@ -1,4 +1,4 @@
-set(STM32_USBFS_DIR "${INAV_LIB_DIR}/main/STM32_USB-FS-Device_Driver")
+set(STM32_USBFS_DIR "${MAIN_LIB_DIR}/main/STM32_USB-FS-Device_Driver")
 
 set(STM32_USBFS_SRC
     usb_core.c

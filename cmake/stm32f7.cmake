@@ -1,7 +1,7 @@
 include(cortex-m7)
 include(stm32f7-usb)
 
-set(STM32F7_HAL_DIR "${INAV_LIB_DIR}/main/STM32F7/Drivers/STM32F7xx_HAL_Driver")
+set(STM32F7_HAL_DIR "${MAIN_LIB_DIR}/main/STM32F7/Drivers/STM32F7xx_HAL_Driver")
 
 set(STM32F7_HAL_SRC
     stm32f7xx_hal.c
@@ -41,9 +41,9 @@ set(STM32F7_HAL_SRC
 )
 list(TRANSFORM STM32F7_HAL_SRC PREPEND "${STM32F7_HAL_DIR}/src/")
 
-set(STM32F7_CMSIS_DEVICE_DIR "${INAV_LIB_DIR}/main/STM32F7/Drivers/CMSIS/Device/ST/STM32F7xx")
+set(STM32F7_CMSIS_DEVICE_DIR "${MAIN_LIB_DIR}/main/STM32F7/Drivers/CMSIS/Device/ST/STM32F7xx")
 
-set(STM32F7_VCP_DIR "${INAV_MAIN_SRC_DIR}/vcp_hal")
+set(STM32F7_VCP_DIR "${MAIN_SRC_DIR}/vcp_hal")
 
 set(STM32F7_VCP_SRC
     usbd_desc.c
@@ -57,7 +57,7 @@ set(STM32F7_INCLUDE_DIRS
     ${STM32F7_CMSIS_DEVICE_DIR}/Include
 )
 
-set(STM32F7_SRC
+main_sources(STM32F7_SRC
     target/system_stm32f7xx.c
     drivers/adc_stm32f7xx.c
     drivers/bus_i2c_hal.c
@@ -71,12 +71,10 @@ set(STM32F7_SRC
     drivers/serial_uart_hal.c
     drivers/sdcard/sdmmc_sdio_f7xx.c
 )
-main_sources(STM32F7_SRC)
 
-set(STM32F7_MSC_SRC
+main_sources(STM32F7_MSC_SRC
     drivers/usb_msc_f7xx.c
 )
-main_sources(STM32F7_MSC_SRC)
 
 set(STM32F7_DEFINITIONS
     ${CORTEX_M7_DEFINITIONS}

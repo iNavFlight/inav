@@ -1,4 +1,4 @@
-set(COMMON_SRC
+main_sources(COMMON_SRC
     main.c
 
     target/common_hardware.c
@@ -335,7 +335,5 @@ set(COMMON_SRC
     io/vtx_ffpv24g.c
     io/vtx_control.c
 )
-
-main_sources(COMMON_SRC)
 
 add_subdirectory(target)

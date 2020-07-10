@@ -33,17 +33,17 @@ if (NO_GIT_HASH)
     message(FATAL_ERROR "Could not find git revision. Is git installed?")
 endif()
 
-set(INAV_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-set(INAV_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib")
-set(INAV_UTILS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/utils")
-set(INAV_MAIN_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/main")
+set(MAIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+set(MAIN_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib")
+set(MAIN_UTILS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/utils")
+set(MAIN_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/main")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 set(FIRMWARE_VERSION ${PROJECT_VERSION})
 
 include(settings)
-include(inav)
+include(main)
 include(stm32)
 
 add_subdirectory(src)

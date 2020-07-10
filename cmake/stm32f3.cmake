@@ -2,10 +2,10 @@ include(cortex-m4f)
 include(stm32-stdperiph)
 include(stm32f3-usb)
 
-set(STM32F3_STDPERIPH_DIR "${INAV_LIB_DIR}/main/STM32F3/Drivers/STM32F30x_StdPeriph_Driver")
-set(STM32F3_CMSIS_DEVICE_DIR "${INAV_LIB_DIR}/main/STM32F3/Drivers/CMSIS/Device/ST/STM32F30x")
-set(STM32F3_CMSIS_DRIVERS_DIR "${INAV_LIB_DIR}/main/STM32F3/Drivers/CMSIS")
-set(STM32F3_VCP_DIR "${INAV_MAIN_SRC_DIR}/vcp")
+set(STM32F3_STDPERIPH_DIR "${MAIN_LIB_DIR}/main/STM32F3/Drivers/STM32F30x_StdPeriph_Driver")
+set(STM32F3_CMSIS_DEVICE_DIR "${MAIN_LIB_DIR}/main/STM32F3/Drivers/CMSIS/Device/ST/STM32F30x")
+set(STM32F3_CMSIS_DRIVERS_DIR "${MAIN_LIB_DIR}/main/STM32F3/Drivers/CMSIS")
+set(STM32F3_VCP_DIR "${MAIN_SRC_DIR}/vcp")
 
 set(STM32F3_STDPERIPH_SRC_EXCLUDES
     stm32f30x_crc.c
@@ -15,7 +15,7 @@ set(STM32F3_STDPERIPH_SRC_DIR "${STM32F3_STDPERIPH_DIR}/Src")
 glob_except(STM32F3_STDPERIPH_SRC "${STM32F3_STDPERIPH_SRC_DIR}/*.c" STM32F3_STDPERIPH_SRC_EXCLUDES)
 
 
-set(STM32F3_SRC
+main_sources(STM32F3_SRC
     target/system_stm32f30x.c
     drivers/adc_stm32f30x.c
     drivers/bus_i2c_stm32f30x.c
@@ -25,7 +25,6 @@ set(STM32F3_SRC
     drivers/timer_impl_stdperiph.c
     drivers/timer_stm32f30x.c
 )
-main_sources(STM32F3_SRC)
 
 set(STM32F3_VCP_SRC
     hw_config.c

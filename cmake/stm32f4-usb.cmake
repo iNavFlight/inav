@@ -1,9 +1,9 @@
-set(STM32_USBOTG_DIR "${INAV_LIB_DIR}/main/STM32_USB_OTG_Driver")
-set(STM32_USBCORE_DIR "${INAV_LIB_DIR}/main/STM32_USB_Device_Library/Core")
-set(STM32_USBCDC_DIR "${INAV_LIB_DIR}/main/STM32_USB_Device_Library/Class/cdc")
-set(STM32_USBHID_DIR "${INAV_LIB_DIR}/main/STM32_USB_Device_Library/Class/hid")
-set(STM32_USBWRAPPER_DIR "${INAV_LIB_DIR}/main/STM32_USB_Device_Library/Class/hid_cdc_wrapper")
-set(STM32_USBMSC_DIR "${INAV_LIB_DIR}/main/STM32_USB_Device_Library/Class/msc")
+set(STM32_USBOTG_DIR "${MAIN_LIB_DIR}/main/STM32_USB_OTG_Driver")
+set(STM32_USBCORE_DIR "${MAIN_LIB_DIR}/main/STM32_USB_Device_Library/Core")
+set(STM32_USBCDC_DIR "${MAIN_LIB_DIR}/main/STM32_USB_Device_Library/Class/cdc")
+set(STM32_USBHID_DIR "${MAIN_LIB_DIR}/main/STM32_USB_Device_Library/Class/hid")
+set(STM32_USBWRAPPER_DIR "${MAIN_LIB_DIR}/main/STM32_USB_Device_Library/Class/hid_cdc_wrapper")
+set(STM32_USBMSC_DIR "${MAIN_LIB_DIR}/main/STM32_USB_Device_Library/Class/msc")
 
 set(STM32F4_USB_INCLUDE_DIRS
     "${STM32_USBOTG_DIR}/inc"

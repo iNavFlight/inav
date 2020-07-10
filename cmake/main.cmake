@@ -1,15 +1,15 @@
-set(INAV_INCLUDE_DIRS
-    "${INAV_LIB_DIR}"
-    "${INAV_MAIN_SRC_DIR}"
-    "${INAV_LIB_DIR}/main/MAVLink"
+set(MAIN_INCLUDE_DIRS
+    "${MAIN_LIB_DIR}"
+    "${MAIN_SRC_DIR}"
+    "${MAIN_LIB_DIR}/main/MAVLink"
 )
 
-set(INAV_DEFINITIONS
+set(MAIN_DEFINITIONS
     __FORKNAME__=inav
     __REVISION__="${GIT_SHORT_HASH}"
 )
 
-set(INAV_COMPILE_OPTIONS
+set(MAIN_COMPILE_OPTIONS
     -Wall
     -Wextra
     -Wunsafe-loop-optimizations
@@ -18,8 +18,9 @@ set(INAV_COMPILE_OPTIONS
     -Werror=switch
 )
 
-macro(main_sources) # list-var
-    list(TRANSFORM ${ARGV0} PREPEND "${INAV_MAIN_SRC_DIR}/")
+macro(main_sources var) # list-var src-1...src-n
+    set(${var} ${ARGN})
+    list(TRANSFORM ${var} PREPEND "${MAIN_SRC_DIR}/")
 endmacro()
 
 macro(exclude_basenames) # list-var excludes-var
@@ -39,9 +40,9 @@ macro(glob_except) # var-name pattern excludes-var
 endmacro()
 
 function(setup_firmware_target name)
-    target_compile_options(${name} PRIVATE ${INAV_COMPILE_OPTIONS})
-    target_include_directories(${name} PRIVATE ${INAV_INCLUDE_DIRS})
-    target_compile_definitions(${name} PRIVATE ${INAV_DEFINITIONS} __TARGET__="${name}" ${name})
+    target_compile_options(${name} PRIVATE ${MAIN_COMPILE_OPTIONS})
+    target_include_directories(${name} PRIVATE ${MAIN_INCLUDE_DIRS})
+    target_compile_definitions(${name} PRIVATE ${MAIN_DEFINITIONS} __TARGET__="${name}" ${name})
     enable_settings(${name})
     # XXX: Don't make SETTINGS_GENERATED_C part of the build,
     # since it's compiled via #include in settings.c. This will

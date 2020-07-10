@@ -2,10 +2,10 @@ include(cortex-m4f)
 include(stm32-stdperiph)
 include(stm32f4-usb)
 
-set(STM32F4_STDPERIPH_DIR "${INAV_LIB_DIR}/main/STM32F4/Drivers/STM32F4xx_StdPeriph_Driver")
-set(STM32F4_CMSIS_DEVICE_DIR "${INAV_LIB_DIR}/main/STM32F4/Drivers/CMSIS/Device/ST/STM32F4xx")
-set(STM32F4_CMSIS_DRIVERS_DIR "${INAV_LIB_DIR}/main/STM32F4/Drivers/CMSIS")
-set(STM32F4_VCP_DIR "${INAV_MAIN_SRC_DIR}/vcpf4")
+set(STM32F4_STDPERIPH_DIR "${MAIN_LIB_DIR}/main/STM32F4/Drivers/STM32F4xx_StdPeriph_Driver")
+set(STM32F4_CMSIS_DEVICE_DIR "${MAIN_LIB_DIR}/main/STM32F4/Drivers/CMSIS/Device/ST/STM32F4xx")
+set(STM32F4_CMSIS_DRIVERS_DIR "${MAIN_LIB_DIR}/main/STM32F4/Drivers/CMSIS")
+set(STM32F4_VCP_DIR "${MAIN_SRC_DIR}/vcpf4")
 
 set(STM32F4_STDPERIPH_SRC_EXCLUDES
     stm32f4xx_can.c
@@ -32,7 +32,7 @@ set(STM32F4_STDPERIPH_SRC_EXCLUDES
 set(STM32F4_STDPERIPH_SRC_DIR "${STM32F4_STDPERIPH_DIR}/Src")
 glob_except(STM32F4_STDPERIPH_SRC "${STM32F4_STDPERIPH_SRC_DIR}/*.c" STM32F4_STDPERIPH_SRC_EXCLUDES)
 
-set(STM32F4_SRC
+main_sources(STM32F4_SRC
     target/system_stm32f4xx.c
     drivers/adc_stm32f4xx.c
     drivers/adc_stm32f4xx.c
@@ -46,7 +46,6 @@ set(STM32F4_SRC
     drivers/dma_stm32f4xx.c
     drivers/sdcard/sdmmc_sdio_f4xx.c
 )
-main_sources(STM32F4_SRC)
 
 set(STM32F4_VCP_SRC
     stm32f4xx_it.c
@@ -57,10 +56,9 @@ set(STM32F4_VCP_SRC
 )
 list(TRANSFORM STM32F4_VCP_SRC PREPEND "${STM32F4_VCP_DIR}/")
 
-set(STM32F4_MSC_SRC
+main_sources(STM32F4_MSC_SRC
     drivers/usb_msc_f4xx.c
 )
-main_sources(STM32F4_MSC_SRC)
 
 set(STM32F4_INCLUDE_DIRS
     "${CMSIS_INCLUDE_DIR}"

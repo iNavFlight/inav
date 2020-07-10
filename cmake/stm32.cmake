@@ -5,9 +5,9 @@ include(stm32f7)
 
 include(CMakeParseArguments)
 
-set(CMSIS_DIR "${INAV_LIB_DIR}/main/CMSIS")
+set(CMSIS_DIR "${MAIN_LIB_DIR}/main/CMSIS")
 set(CMSIS_INCLUDE_DIR "${CMSIS_DIR}/Core/Include")
-set(CMSIS_DSP_DIR "${INAV_LIB_DIR}/main/CMSIS/DSP")
+set(CMSIS_DSP_DIR "${MAIN_LIB_DIR}/main/CMSIS/DSP")
 set(CMSIS_DSP_INCLUDE_DIR "${CMSIS_DSP_DIR}/Include")
 
 set(CMSIS_DSP_SRC
@@ -23,56 +23,49 @@ set(CMSIS_DSP_SRC
 )
 list(TRANSFORM CMSIS_DSP_SRC PREPEND "${CMSIS_DSP_DIR}/Source/")
 
-set(STM32_STARTUP_DIR "${INAV_MAIN_SRC_DIR}/startup")
+set(STM32_STARTUP_DIR "${MAIN_SRC_DIR}/startup")
 
-set(STM32_VCP_SRC
+main_sources(STM32_VCP_SRC
     drivers/serial_usb_vcp.c
     drivers/usb_io.c
 )
-main_sources(STM32_VCP_SRC)
 
-set(STM32_SDCARD_SRC
+main_sources(STM32_SDCARD_SRC
     drivers/sdcard/sdcard.c
     drivers/sdcard/sdcard_spi.c
     drivers/sdcard/sdcard_sdio.c
     drivers/sdcard/sdcard_standard.c
 )
-main_sources(STM32_SDCARD_SRC)
 
 # XXX: This code is not STM32 specific
-set(STM32_ASYNCFATFS_SRC
+main_sources(STM32_ASYNCFATFS_SRC
     io/asyncfatfs/asyncfatfs.c
     io/asyncfatfs/fat_standard.c
 )
-main_sources(STM32_ASYNCFATFS_SRC)
 
-set(STM32_MSC_SRC
+main_sources(STM32_MSC_SRC
     msc/usbd_msc_desc.c
     msc/usbd_storage.c
 )
-main_sources(STM32_MSC_SRC)
 
-set(STM32_MSC_FLASH_SRC
+main_sources(STM32_MSC_FLASH_SRC
     msc/usbd_storage_emfat.c
     msc/emfat.c
     msc/emfat_file.c
 )
-main_sources(STM32_MSC_FLASH_SRC)
 
-set(STM32_MSC_SDCARD_SPI_SRC
+main_sources(STM32_MSC_SDCARD_SPI_SRC
     msc/usbd_storage_sd_spi.c
 )
-main_sources(STM32_MSC_SDCARD_SPI_SRC)
 
-set(STM32_MSC_SDCARD_SDIO_SRC
+main_sources(STM32_MSC_SDCARD_SDIO_SRC
     msc/usbd_storage_sdio.c
 )
-main_sources(STM32_MSC_SDCARD_SDIO_SRC)
 
 set(STM32_INCLUDE_DIRS
     "${CMSIS_INCLUDE_DIR}"
     "${CMSIS_DSP_INCLUDE_DIR}"
-    "${INAV_MAIN_SRC_DIR}/target"
+    "${MAIN_SRC_DIR}/target"
 )
 
 set(STM32_DEFINITIONS
@@ -80,7 +73,7 @@ set(STM32_DEFINITIONS
 
 set(STM32_DEFAULT_HSE_MHZ 8)
 
-set(STM32_LINKER_DIR "${INAV_MAIN_SRC_DIR}/target/link")
+set(STM32_LINKER_DIR "${MAIN_SRC_DIR}/target/link")
 
 set(STM32_LIBS lnosys)
 #if(SEMIHOSTING)
