@@ -1,6 +1,7 @@
 include(arm-none-eabi)
 include(stm32f3)
 include(stm32f4)
+include(stm32f7)
 
 include(CMakeParseArguments)
 
@@ -58,10 +59,15 @@ set(STM32_MSC_FLASH_SRC
 )
 main_sources(STM32_MSC_FLASH_SRC)
 
-set(STM32_MSC_SDCARD_SRC
+set(STM32_MSC_SDCARD_SPI_SRC
     msc/usbd_storage_sd_spi.c
 )
-main_sources(STM32_MSC_SDCARD_SRC)
+main_sources(STM32_MSC_SDCARD_SPI_SRC)
+
+set(STM32_MSC_SDCARD_SDIO_SRC
+    msc/usbd_storage_sdio.c
+)
+main_sources(STM32_MSC_SDCARD_SDIO_SRC)
 
 set(STM32_INCLUDE_DIRS
     "${CMSIS_INCLUDE_DIR}"
@@ -76,7 +82,7 @@ set(STM32_DEFAULT_HSE_MHZ 8)
 
 set(STM32_LINKER_DIR "${INAV_MAIN_SRC_DIR}/target/link")
 
-
+set(STM32_LIBS lnosys)
 #if(SEMIHOSTING)
 #    set(SEMIHOSTING_DEFINITIONS "SEMIHOSTING")
 #    set(SEMIHOSTING_LDFLAGS
@@ -102,6 +108,14 @@ set(STM32_LINK_LIBRARIES
     -lc
 )
 
+if(SEMIHOSTING)
+    # TODO: Is -lc needed again here due to library order or can it be deleted?
+    list(APPEND STM32_LINK_LIBRARIES --specs=rdimon.specs -lc -lrdimon)
+    list(APPEND STM32_DEFINITIONS SEMIHOSTING)
+else()
+    list(APPEND STM32_LINK_LIBRARIES -lnosys)
+endif()
+
 set(STM32_LINK_OPTIONS
     -nostartfiles
     --specs=nano.specs
@@ -113,8 +127,17 @@ set(STM32_LINK_OPTIONS
     -Wl,--print-memory-usage
 )
 
-macro(get_stm32_target_features) # out-var dir
-    file(READ "${ARGV1}/target.h" _contents)
+macro(get_stm32_target_features output_var dir target_name)
+    execute_process(COMMAND "${CMAKE_C_COMPILER}" -E -dD -D${ARGV2} "${ARGV1}/target.h"
+        ERROR_VARIABLE _errors
+        RESULT_VARIABLE _result
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        OUTPUT_VARIABLE _contents)
+
+    if(NOT _result EQUAL 0)
+        message(FATAL_ERROR "error extracting features for stm32 target ${ARGV2}: ${_errors}")
+    endif()
+
     string(REGEX MATCH "#define[\t ]+USE_VCP" HAS_VCP ${_contents})
     if(HAS_VCP)
         list(APPEND ${ARGV0} VCP)
@@ -126,6 +149,10 @@ macro(get_stm32_target_features) # out-var dir
     string(REGEX MATCH "define[\t ]+USE_SDCARD" HAS_SDCARD ${_contents})
     if (HAS_SDCARD)
         list(APPEND ${ARGV0} SDCARD)
+        string(REGEX MATCH "define[\t ]+USE_SDCARD_SDIO" HAS_SDIO ${_contents})
+        if (HAS_SDIO)
+            list(APPEND ${ARGV0} SDIO)
+        endif()
     endif()
     if(HAS_FLASHFS OR HAS_SDCARD)
         list(APPEND ${ARGV0} MSC)
@@ -168,7 +195,7 @@ function(target_stm32 name startup ldscript)
     endif()
     target_compile_definitions(${name} PRIVATE ${target_definitions})
 
-    get_stm32_target_features(features "${CMAKE_CURRENT_SOURCE_DIR}")
+    get_stm32_target_features(features "${CMAKE_CURRENT_SOURCE_DIR}" ${name})
     set_property(TARGET ${name} PROPERTY FEATURES ${features})
     if(VCP IN_LIST features)
         target_sources(${name} PRIVATE ${STM32_VCP_SRC})
@@ -178,11 +205,16 @@ function(target_stm32 name startup ldscript)
     endif()
     if(NOT PARSED_ARGS_DISABLE_MSC AND MSC IN_LIST features)
         target_sources(${name} PRIVATE ${STM32_MSC_SRC})
+        target_compile_definitions(${name} PRIVATE USE_USB_MSC)
         if (FLASHFS IN_LIST features)
             target_sources(${name} PRIVATE ${STM32_MSC_FLASH_SRC})
         endif()
         if (SDCARD IN_LIST features)
-            target_sources(${name} PRIVATE ${STM32_MSC_SDCARD_SRC})
+            if (SDIO IN_LIST features)
+                target_sources(${name} PRIVATE ${STM32_MSC_SDCARD_SDIO_SRC})
+            else()
+                target_sources(${name} PRIVATE ${STM32_MSC_SDCARD_SPI_SRC})
+            endif()
         endif()
     endif()
     # Generate .hex

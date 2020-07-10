@@ -1,0 +1,1 @@
+target_stm32f722(IFLIGHTF7_TWING)

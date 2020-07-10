@@ -1,0 +1,2 @@
+target_stm32f722(AIRBOTF7)
+target_stm32f722(OMNIBUSF7NANOV7)

@@ -1,4 +1,5 @@
 include(cortex-m4f)
+include(stm32-stdperiph)
 include(stm32f3-usb)
 
 set(STM32F3_STDPERIPH_DIR "${INAV_LIB_DIR}/main/STM32F3/Drivers/STM32F30x_StdPeriph_Driver")
@@ -61,7 +62,7 @@ set(STM32F303_DEFINITIONS
 function(target_stm32f3xx name startup ldscript)
     # F3 targets don't support MSC
     target_stm32(${name} ${startup} ${ldscript} DISABLE_MSC ${ARGN})
-    target_sources(${name} PRIVATE ${STM32F3_STDPERIPH_SRC} ${STM32F3_SRC})
+    target_sources(${name} PRIVATE ${STM32_STDPERIPH_SRC} ${STM32F3_STDPERIPH_SRC} ${STM32F3_SRC})
     target_compile_options(${name} PRIVATE ${CORTEX_M4F_COMMON_OPTIONS} ${CORTEX_M4F_COMPILE_OPTIONS})
     target_include_directories(${name} PRIVATE ${STM32F3_INCLUDE_DIRS})
     target_compile_definitions(${name} PRIVATE ${STM32F3_DEFINITIONS})

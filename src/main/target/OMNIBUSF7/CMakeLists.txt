@@ -1,0 +1,2 @@
+target_stm32f745(OMNIBUSF7)
+target_stm32f745(OMNIBUSF7V2)

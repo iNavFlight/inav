@@ -1,4 +1,5 @@
 include(cortex-m4f)
+include(stm32-stdperiph)
 include(stm32f4-usb)
 
 set(STM32F4_STDPERIPH_DIR "${INAV_LIB_DIR}/main/STM32F4/Drivers/STM32F4xx_StdPeriph_Driver")
@@ -36,7 +37,6 @@ set(STM32F4_SRC
     drivers/adc_stm32f4xx.c
     drivers/adc_stm32f4xx.c
     drivers/bus_i2c_stm32f40x.c
-    drivers/serial_softserial.c
     drivers/serial_uart_stm32f4xx.c
     drivers/system_stm32f4xx.c
     drivers/timer.c
@@ -79,7 +79,7 @@ set(STM32F4_DEFINITIONS
 
 function(target_stm32f4xx name startup ldscript)
     target_stm32(${name} ${startup} ${ldscript} ${ARGN})
-    target_sources(${name} PRIVATE ${STM32F4_SRC})
+    target_sources(${name} PRIVATE ${STM32_STDPERIPH_SRC} ${STM32F4_SRC})
     target_compile_options(${name} PRIVATE ${CORTEX_M4F_COMMON_OPTIONS} ${CORTEX_M4F_COMPILE_OPTIONS})
     target_include_directories(${name} PRIVATE ${STM32F4_INCLUDE_DIRS})
     target_compile_definitions(${name} PRIVATE ${STM32F4_DEFINITIONS})

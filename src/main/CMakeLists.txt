@@ -95,7 +95,6 @@ set(COMMON_SRC
     drivers/bus_busdev_i2c.c
     drivers/bus_busdev_spi.c
     drivers/bus_i2c_soft.c
-    drivers/bus_spi.c
 
     drivers/compass/compass.h
     drivers/compass/compass_ak8963.c
@@ -133,6 +132,7 @@ set(COMMON_SRC
     drivers/light_ws2811strip.c
     drivers/lights_io.c
     drivers/max7456.c
+    drivers/serial_softserial.c
 
     drivers/opflow/opflow_fake.c
     drivers/opflow/opflow_virtual.c
@@ -160,7 +160,6 @@ set(COMMON_SRC
     drivers/rx_spi.c
     drivers/rx_xn297.c
     drivers/serial.c
-    drivers/serial_uart.c
     drivers/sound_beeper.c
     drivers/stack_check.c
     drivers/system.c

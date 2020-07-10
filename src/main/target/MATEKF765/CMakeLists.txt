@@ -1,0 +1,1 @@
+target_stm32f765(MATEKF765)
