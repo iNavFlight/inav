@@ -52,6 +52,7 @@ FILE_COMPILE_FOR_SPEED
 #include "common/time.h"
 #include "common/typeconversion.h"
 #include "common/utils.h"
+#include "programming/global_functions.h"
 
 #include "config/feature.h"
 #include "config/parameter_group.h"
@@ -3241,6 +3242,11 @@ void osdUpdate(timeUs_t currentTimeUs)
         if (IS_RC_MODE_ACTIVE(BOXOSDALT1))
             activeLayout = 1;
         else
+#ifdef USE_PROGRAMMING_FRAMEWORK
+        if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_OSD_LAYOUT))
+            activeLayout = constrain(globalFunctionValues[GLOBAL_FUNCTION_ACTION_SET_OSD_LAYOUT], 0, OSD_ALTERNATE_LAYOUT_COUNT); 
+        else
+#endif
             activeLayout = 0;
     }
     if (currentLayout != activeLayout) {

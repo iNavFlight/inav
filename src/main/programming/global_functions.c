@@ -135,6 +135,12 @@ void globalFunctionsProcess(int8_t functionId) {
                     GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE);
                 }
                 break;
+            case GLOBAL_FUNCTION_ACTION_SET_OSD_LAYOUT:
+                if(conditionValue){
+                    globalFunctionValues[GLOBAL_FUNCTION_ACTION_SET_OSD_LAYOUT] = globalFunctionsStates[functionId].value;
+                    GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_OSD_LAYOUT);
+                }
+                break;
         }
     }
 }
