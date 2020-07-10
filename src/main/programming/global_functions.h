@@ -24,7 +24,7 @@
 #pragma once
 
 #include "config/parameter_group.h"
-#include "common/logic_condition.h"
+#include "programming/logic_condition.h"
 
 #define MAX_GLOBAL_FUNCTIONS 8
 

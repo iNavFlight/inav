@@ -43,8 +43,8 @@ extern uint8_t __config_end;
 #include "common/memory.h"
 #include "common/time.h"
 #include "common/typeconversion.h"
-#include "common/global_functions.h"
-#include "common/global_variables.h"
+#include "programming/global_functions.h"
+#include "programming/global_variables.h"
 
 #include "config/config_eeprom.h"
 #include "config/feature.h"
@@ -1682,7 +1682,7 @@ static void printServoMix(uint8_t dumpMask, const servoMixer_t *customServoMixer
                 && customServoMixer.inputSource == customServoMixerDefault.inputSource
                 && customServoMixer.rate == customServoMixerDefault.rate
                 && customServoMixer.speed == customServoMixerDefault.speed
-            #ifdef USE_LOGIC_CONDITIONS
+            #ifdef USE_PROGRAMMING_FRAMEWORK
                 && customServoMixer.conditionId == customServoMixerDefault.conditionId
             #endif
             ;
@@ -1693,7 +1693,7 @@ static void printServoMix(uint8_t dumpMask, const servoMixer_t *customServoMixer
                 customServoMixerDefault.inputSource,
                 customServoMixerDefault.rate,
                 customServoMixerDefault.speed,
-            #ifdef USE_LOGIC_CONDITIONS
+            #ifdef USE_PROGRAMMING_FRAMEWORK
                 customServoMixer.conditionId
             #else
                 0
@@ -1706,7 +1706,7 @@ static void printServoMix(uint8_t dumpMask, const servoMixer_t *customServoMixer
             customServoMixer.inputSource,
             customServoMixer.rate,
             customServoMixer.speed,
-        #ifdef USE_LOGIC_CONDITIONS
+        #ifdef USE_PROGRAMMING_FRAMEWORK
             customServoMixer.conditionId
         #else
             0
@@ -1753,7 +1753,7 @@ static void cliServoMix(char *cmdline)
             customServoMixersMutable(i)->inputSource = args[INPUT];
             customServoMixersMutable(i)->rate = args[RATE];
             customServoMixersMutable(i)->speed = args[SPEED];
-        #ifdef USE_LOGIC_CONDITIONS
+        #ifdef USE_PROGRAMMING_FRAMEWORK
             customServoMixersMutable(i)->conditionId = args[CONDITION];
         #endif
             cliServoMix("");
@@ -1763,7 +1763,7 @@ static void cliServoMix(char *cmdline)
     }
 }
 
-#ifdef USE_LOGIC_CONDITIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
 
 static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions, const logicCondition_t *defaultLogicConditions)
 {
@@ -1950,7 +1950,7 @@ static void cliGvar(char *cmdline) {
 
 #endif
 
-#ifdef USE_GLOBAL_FUNCTIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
 
 static void printGlobalFunctions(uint8_t dumpMask, const globalFunction_t *globalFunctions, const globalFunction_t *defaultGlobalFunctions)
 {
@@ -3321,7 +3321,7 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintHashLine("servo");
         printServo(dumpMask, servoParams_CopyArray, servoParams(0));
 
-#ifdef USE_LOGIC_CONDITIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
         cliPrintHashLine("logic");
         printLogic(dumpMask, logicConditions_CopyArray, logicConditions(0));
 
@@ -3329,7 +3329,7 @@ static void printConfig(const char *cmdline, bool doDiff)
         printGvar(dumpMask, globalVariableConfigs_CopyArray, globalVariableConfigs(0));
 #endif
 
-#ifdef USE_GLOBAL_FUNCTIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
         cliPrintHashLine("gf");
         printGlobalFunctions(dumpMask, globalFunctions_CopyArray, globalFunctions(0));
 #endif
@@ -3576,7 +3576,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("serialpassthrough", "passthrough serial data to port", "<id> [baud] [mode] : passthrough to serial", cliSerialPassthrough),
 #endif
     CLI_COMMAND_DEF("servo", "configure servos", NULL, cliServo),
-#ifdef USE_LOGIC_CONDITIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
     CLI_COMMAND_DEF("logic", "configure logic conditions",
         "<rule> <enabled> <activatorId> <operation> <operand A type> <operand A value> <operand B type> <operand B value> <flags>\r\n"
         "\treset\r\n", cliLogic),
@@ -3585,7 +3585,7 @@ const clicmd_t cmdTable[] = {
         "<gvar> <default> <min> <max>\r\n"
         "\treset\r\n", cliGvar),
 #endif
-#ifdef USE_GLOBAL_FUNCTIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
     CLI_COMMAND_DEF("gf", "configure global functions",
         "<rule> <enabled> <logic condition> <action> <operand type> <operand value> <flags>\r\n"
         "\treset\r\n", cliGlobalFunctions),

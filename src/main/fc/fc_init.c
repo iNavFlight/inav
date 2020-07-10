@@ -35,7 +35,7 @@
 #include "common/maths.h"
 #include "common/memory.h"
 #include "common/printf.h"
-#include "common/global_variables.h"
+#include "programming/global_variables.h"
 
 #include "config/config_eeprom.h"
 #include "config/feature.h"
@@ -286,7 +286,7 @@ void init(void)
     logInit();
 #endif
 
-#ifdef USE_LOGIC_CONDITIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
     gvInit();
 #endif
 

@@ -14,9 +14,6 @@ COMMON_SRC = \
             common/filter.c \
             common/gps_conversion.c \
             common/log.c \
-            common/logic_condition.c \
-            common/global_functions.c \
-            common/global_variables.c \
             common/maths.c \
             common/memory.c \
             common/olc.c \
@@ -26,6 +23,10 @@ COMMON_SRC = \
             common/time.c \
             common/typeconversion.c \
             common/uvarint.c \
+            programming/logic_condition.c \
+            programming/global_functions.c \
+            programming/global_variables.c \
+            programming/programming_task.c \
             config/config_eeprom.c \
             config/config_streamer.c \
             config/feature.c \

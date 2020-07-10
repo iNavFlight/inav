@@ -162,8 +162,7 @@
 #define USE_VTX_FFPV
 
 #ifndef STM32F3 //F3 series does not have enoug RAM to support logic conditions
-#define USE_LOGIC_CONDITIONS
-#define USE_GLOBAL_FUNCTIONS
+#define USE_PROGRAMMING_FRAMEWORK
 #define USE_CLI_BATCH
 #endif
 
