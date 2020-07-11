@@ -77,6 +77,10 @@ set(STM32F4_DEFINITIONS
 
 function(target_stm32f4xx name startup ldscript)
     target_stm32(${name} ${startup} ${ldscript} ${ARGN})
+    if (IS_RELEASE_BUILD)
+        target_compile_options(${name} PRIVATE "-O2")
+        target_link_options(${name} PRIVATE "-O2")
+    endif()
     target_sources(${name} PRIVATE ${STM32_STDPERIPH_SRC} ${STM32F4_SRC})
     target_compile_options(${name} PRIVATE ${CORTEX_M4F_COMMON_OPTIONS} ${CORTEX_M4F_COMPILE_OPTIONS})
     target_include_directories(${name} PRIVATE ${STM32F4_INCLUDE_DIRS})

@@ -61,6 +61,11 @@ set(STM32F303_DEFINITIONS
 function(target_stm32f3xx name startup ldscript)
     # F3 targets don't support MSC
     target_stm32(${name} ${startup} ${ldscript} DISABLE_MSC ${ARGN})
+    # F3 targets don't use -O2 to save size
+    if (IS_RELEASE_BUILD)
+        target_compile_options(${name} PRIVATE "-Os")
+        target_link_options(${name} PRIVATE "-Os")
+    endif()
     target_sources(${name} PRIVATE ${STM32_STDPERIPH_SRC} ${STM32F3_STDPERIPH_SRC} ${STM32F3_SRC})
     target_compile_options(${name} PRIVATE ${CORTEX_M4F_COMMON_OPTIONS} ${CORTEX_M4F_COMPILE_OPTIONS})
     target_include_directories(${name} PRIVATE ${STM32F3_INCLUDE_DIRS})

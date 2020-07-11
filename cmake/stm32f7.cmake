@@ -84,6 +84,10 @@ set(STM32F7_DEFINITIONS
 
 function(target_stm32f7xx name startup ldscript)
     target_stm32(${name} ${startup} ${ldscript} ${ARGN})
+    if (IS_RELEASE_BUILD)
+        target_compile_options(${name} PRIVATE "-O2")
+        target_link_options(${name} PRIVATE "-O2")
+    endif()
     target_sources(${name} PRIVATE ${STM32F7_HAL_SRC} ${STM32F7_SRC})
     target_compile_options(${name} PRIVATE ${CORTEX_M7_COMMON_OPTIONS} ${CORTEX_M7_COMPILE_OPTIONS})
     target_include_directories(${name} PRIVATE ${STM32F7_INCLUDE_DIRS})
