@@ -469,6 +469,25 @@ static void updatePositionVelocityController_MC(const float maxSpeed)
 #endif
 }
 
+static float computeNormalizedVelocity(const float value, const float maxValue)
+{
+    return constrainf(scaleRangef(fabsf(value), 0, maxValue, 0.0f, 1.0f), 0.0f, 1.0f);
+}
+
+static float computeVelocityScale(
+    const float value, 
+    const float maxValue, 
+    const float attenuationFactor,
+    const float attenuationStart,
+    const float attenuationEnd
+)
+{
+    const float normalized = computeNormalizedVelocity(value, maxValue);
+
+    float scale = scaleRangef(normalized, attenuationStart, attenuationEnd, 0, attenuationFactor);
+    return constrainf(scale, 0, attenuationFactor);
+}
+
 static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxAccelLimit, const float maxSpeed)
 {    
     const float measurementX = navGetCurrentActualPositionAndVelocity()->vel.x;
@@ -517,29 +536,23 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
      * acceleration and deceleration
      * Scale down dTerm with 2D speed
      */
-    
-    //Normalize the setpoint and measurement between 0.0f and 1.0f where 1.0f is currently used max speed
-    const float setpointNormalized = constrainf(scaleRangef(fabsf(setpointXY), 0, maxSpeed, 0.0f, 1.0f), 0.0f, 1.0f);
-    const float measurementNormalized = constrainf(scaleRangef(fabsf(posControl.actualState.velXY), 0, maxSpeed, 0.0f, 1.0f), 0.0f, 1.0f);
-
-    DEBUG_SET(DEBUG_ALWAYS, 0, setpointNormalized * 100);
-    DEBUG_SET(DEBUG_ALWAYS, 1, measurementNormalized * 100);
-
-    /* 
-     * Dterm can be attenuated when both setpoint and measurement is high - UAV is moving close to desired velocity
-     */
-    float setpointScale = scaleRangef(setpointNormalized, multicopterPosXyCoefficients.dTermAttenuationStart, multicopterPosXyCoefficients.dTermAttenuationEnd, 0, multicopterPosXyCoefficients.dTermAttenuation);
-    setpointScale = constrainf(setpointScale, 0, multicopterPosXyCoefficients.dTermAttenuation);
-
-    float measurementScale = scaleRangef(measurementNormalized, multicopterPosXyCoefficients.dTermAttenuationStart, multicopterPosXyCoefficients.dTermAttenuationEnd, 0, multicopterPosXyCoefficients.dTermAttenuation);
-    measurementScale = constrainf(measurementScale, 0, multicopterPosXyCoefficients.dTermAttenuation);
-
-    DEBUG_SET(DEBUG_ALWAYS, 2, setpointScale * 100);
-    DEBUG_SET(DEBUG_ALWAYS, 3, measurementScale * 100);
+    const float setpointScale = computeVelocityScale(
+        setpointXY, 
+        maxSpeed, 
+        multicopterPosXyCoefficients.dTermAttenuation,
+        multicopterPosXyCoefficients.dTermAttenuationStart,
+        multicopterPosXyCoefficients.dTermAttenuationEnd
+    );
+    const float measurementScale = computeVelocityScale(
+        posControl.actualState.velXY, 
+        maxSpeed, 
+        multicopterPosXyCoefficients.dTermAttenuation,
+        multicopterPosXyCoefficients.dTermAttenuationStart,
+        multicopterPosXyCoefficients.dTermAttenuationEnd
+    );
 
     //Choose smaller attenuation factor and convert from attenuation to scale
     const float dtermScale = 1.0f - MIN(setpointScale, measurementScale);
-    DEBUG_SET(DEBUG_ALWAYS, 4, dtermScale * 100);
 
     // Apply PID with output limiting and I-term anti-windup
     // Pre-calculated accelLimit and the logic of navPidApply2 function guarantee that our newAccel won't exceed maxAccelLimit
