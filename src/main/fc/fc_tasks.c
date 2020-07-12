@@ -26,8 +26,7 @@
 #include "common/axis.h"
 #include "common/color.h"
 #include "common/utils.h"
-#include "common/logic_condition.h"
-#include "common/global_functions.h"
+#include "programming/programming_task.h"
 
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/compass/compass.h"
@@ -355,11 +354,8 @@ void fcTasksInit(void)
 #ifdef USE_RCDEVICE
     setTaskEnabled(TASK_RCDEVICE, rcdeviceIsEnabled());
 #endif
-#ifdef USE_LOGIC_CONDITIONS
-    setTaskEnabled(TASK_LOGIC_CONDITIONS, true);
-#endif
-#ifdef USE_GLOBAL_FUNCTIONS
-    setTaskEnabled(TASK_GLOBAL_FUNCTIONS, true);
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    setTaskEnabled(TASK_PROGRAMMING_FRAMEWORK, true);
 #endif
 #ifdef USE_IRLOCK
     setTaskEnabled(TASK_IRLOCK, irlockHasBeenDetected());
@@ -578,18 +574,10 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .staticPriority = TASK_PRIORITY_IDLE,
     },
 #endif
-#ifdef USE_LOGIC_CONDITIONS
-    [TASK_LOGIC_CONDITIONS] = {
-        .taskName = "LOGIC",
-        .taskFunc = logicConditionUpdateTask,
-        .desiredPeriod = TASK_PERIOD_HZ(10),          // 10Hz @100msec
-        .staticPriority = TASK_PRIORITY_IDLE,
-    },
-#endif
-#ifdef USE_GLOBAL_FUNCTIONS
-    [TASK_GLOBAL_FUNCTIONS] = {
-        .taskName = "G_FNK",
-        .taskFunc = globalFunctionsUpdateTask,
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    [TASK_PROGRAMMING_FRAMEWORK] = {
+        .taskName = "PROGRAMMING",
+        .taskFunc = programmingFrameworkUpdateTask,
         .desiredPeriod = TASK_PERIOD_HZ(10),          // 10Hz @100msec
         .staticPriority = TASK_PRIORITY_IDLE,
     },

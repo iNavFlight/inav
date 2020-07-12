@@ -28,13 +28,13 @@
 
 #include "common/utils.h"
 #include "common/maths.h"
-#include "common/global_functions.h"
-#include "common/logic_condition.h"
+#include "programming/global_functions.h"
+#include "programming/logic_condition.h"
 
 #include "io/vtx.h"
 #include "drivers/vtx_common.h"
 
-#ifdef USE_GLOBAL_FUNCTIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
 
 #include "common/axis.h"
 
