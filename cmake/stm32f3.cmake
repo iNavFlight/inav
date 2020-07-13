@@ -80,7 +80,7 @@ function(target_stm32f3xx name startup ldscript)
 endfunction()
 
 function(target_stm32f303 name)
-    target_stm32f3xx(${name} startup_stm32f30x_md_gcc.S stm32_flash_f303_256k.ld ${ARGN})
+    target_stm32f3xx(${name} startup_stm32f30x_md_gcc.S stm32_flash_f303_256k.ld SVD STM32F303 ${ARGN})
     target_compile_definitions(${name} PRIVATE ${STM32F303_DEFINITIONS})
     setup_firmware_target(${name})
 endfunction()

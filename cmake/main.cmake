@@ -54,6 +54,7 @@ function(setup_firmware_target name)
     get_property(targets GLOBAL PROPERTY VALID_TARGETS)
     set_property(GLOBAL PROPERTY VALID_TARGETS "${targets} ${name}")
     setup_openocd(${name})
+    setup_svd(${name})
 endfunction()
 
 function(exclude_from_all target)

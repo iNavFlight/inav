@@ -41,6 +41,7 @@ set(MAIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 set(MAIN_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib")
 set(MAIN_UTILS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/utils")
 set(MAIN_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/main")
+set(SVD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/dev/svd")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -48,6 +49,7 @@ set(FIRMWARE_VERSION ${PROJECT_VERSION})
 
 include(settings)
 include(openocd)
+include(svd)
 include(main)
 include(stm32)
 

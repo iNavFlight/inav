@@ -104,7 +104,7 @@ set(STM32F405_COMPILE_DEFINITIONS
 )
 
 function(target_stm32f405 name)
-    target_stm32f4xx(${name} startup_stm32f40xx.s stm32_flash_f405.ld ${ARGN})
+    target_stm32f4xx(${name} startup_stm32f40xx.s stm32_flash_f405.ld SVD STM32F405 ${ARGN})
     target_sources(${name} PRIVATE ${STM32F4_STDPERIPH_SRC})
     target_compile_definitions(${name} PRIVATE ${STM32F405_COMPILE_DEFINITIONS})
     setup_firmware_target(${name})
@@ -120,7 +120,7 @@ set(STM32F411_COMPILE_DEFINITIONS
 )
 
 function(target_stm32f411 name)
-    target_stm32f4xx(${name} startup_stm32f411xe.s stm32_flash_f411.ld)
+    target_stm32f4xx(${name} startup_stm32f411xe.s stm32_flash_f411.ld SVD STM32F411 ${ARGN})
     target_sources(${name} PRIVATE ${STM32F411_OR_F427_STDPERIPH_SRC})
     target_compile_definitions(${name} PRIVATE ${STM32F411_COMPILE_DEFINITIONS})
     setup_firmware_target(${name})
@@ -131,7 +131,7 @@ set(STM32F427_COMPILE_DEFINITIONS
     FLASH_SIZE=1024
 )
 function(target_stm32f427 name)
-    target_stm32f4xx(${name} startup_stm32f427xx.s stm32_flash_f427.ld ${ARGN})
+    target_stm32f4xx(${name} startup_stm32f427xx.s stm32_flash_f427.ld SVD STM32F427 ${ARGN})
     target_sources(${name} PRIVATE ${STM32F411_OR_F427_STDPERIPH_SRC})
     target_compile_definitions(${name} PRIVATE ${STM32F427_COMPILE_DEFINITIONS})
     setup_firmware_target(${name})

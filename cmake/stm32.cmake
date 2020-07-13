@@ -158,7 +158,7 @@ function(target_stm32 name startup ldscript)
     cmake_parse_arguments(
         PARSED_ARGS
         "DISABLE_MSC"                   # Boolean arguments
-        "HSE_MHZ;OPENOCD_TARGET"        # Single value arguments
+        "HSE_MHZ;OPENOCD_TARGET;SVD"    # Single value arguments
         "DEFINITIONS"                   # Multi-value arguments
         ${ARGN}                         # Start parsing after the known arguments
     )
@@ -213,6 +213,7 @@ function(target_stm32 name startup ldscript)
     endif()
     set_property(TARGET ${name} PROPERTY OPENOCD_TARGET ${PARSED_ARGS_OPENOCD_TARGET})
     set_property(TARGET ${name} PROPERTY OPENOCD_DEFAULT_INTERFACE stlink)
+    set_property(TARGET ${name} PROPERTY SVD ${PARSED_ARGS_SVD})
     # Generate .hex
     # XXX: Generator expressions are not supported for add_custom_command()
     # OUTPUT nor BYPRODUCTS, so we can't rely of them. Instead, build the filename
