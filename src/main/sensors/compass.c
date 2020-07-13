@@ -380,7 +380,7 @@ void compassUpdate(timeUs_t currentTimeUs)
                 diffMag += (mag.magADC[axis] - magPrev[axis]) * (mag.magADC[axis] - magPrev[axis]);
                 avgMag += (mag.magADC[axis] + magPrev[axis]) * (mag.magADC[axis] + magPrev[axis]) / 4.0f;
 
-                int32_t sample = ABS(mag.magADC[axis]);
+                const int32_t sample = ABS(mag.magADC[axis]);
                 if (sample > magGain[axis]) {
                     magGain[axis] = sample;
                 }
