@@ -53,6 +53,14 @@ function(setup_firmware_target name)
     )
     get_property(targets GLOBAL PROPERTY VALID_TARGETS)
     set_property(GLOBAL PROPERTY VALID_TARGETS "${targets} ${name}")
+    setup_openocd(${name})
+endfunction()
+
+function(exclude_from_all target)
+    set_property(TARGET ${target} PROPERTY
+        TARGET_MESSAGES OFF
+        EXCLUDE_FROM_ALL 1
+        EXCLUDE_FROM_DEFAULT_BUILD 1)
 endfunction()
 
 function(collect_targets)
@@ -61,8 +69,5 @@ function(collect_targets)
     set(list_target_name "targets")
     add_custom_target(${list_target_name}
         COMMAND cmake -E echo "Valid targets: ${targets}")
-    set_property(TARGET ${list_target_name} PROPERTY
-        TARGET_MESSAGES OFF
-        EXCLUDE_FROM_ALL 1
-        EXCLUDE_FROM_DEFAULT_BUILD 1)
+    exclude_from_all(${list_target_name})
 endfunction()

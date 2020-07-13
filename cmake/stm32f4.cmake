@@ -76,7 +76,7 @@ set(STM32F4_DEFINITIONS
 )
 
 function(target_stm32f4xx name startup ldscript)
-    target_stm32(${name} ${startup} ${ldscript} ${ARGN})
+    target_stm32(${name} ${startup} ${ldscript} OPENOCD_TARGET stm32f4x ${ARGN})
     if (IS_RELEASE_BUILD)
         target_compile_options(${name} PRIVATE "-O2")
         target_link_options(${name} PRIVATE "-O2")

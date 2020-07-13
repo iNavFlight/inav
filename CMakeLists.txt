@@ -47,6 +47,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(FIRMWARE_VERSION ${PROJECT_VERSION})
 
 include(settings)
+include(openocd)
 include(main)
 include(stm32)
 

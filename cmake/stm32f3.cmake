@@ -60,7 +60,7 @@ set(STM32F303_DEFINITIONS
 
 function(target_stm32f3xx name startup ldscript)
     # F3 targets don't support MSC
-    target_stm32(${name} ${startup} ${ldscript} DISABLE_MSC ${ARGN})
+    target_stm32(${name} ${startup} ${ldscript} DISABLE_MSC OPENOCD_TARGET stm32f3x ${ARGN})
     # F3 targets don't use -O2 to save size
     if (IS_RELEASE_BUILD)
         target_compile_options(${name} PRIVATE "-Os")
