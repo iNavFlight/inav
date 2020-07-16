@@ -55,10 +55,7 @@
 #endif
 
 // VTX supplied menus
-
-#include "cms/cms_menu_vtx_smartaudio.h"
-#include "cms/cms_menu_vtx_tramp.h"
-#include "cms/cms_menu_vtx_ffpv.h"
+#include "cms/cms_menu_vtx.h"
 
 
 // Info
