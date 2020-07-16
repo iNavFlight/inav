@@ -13,6 +13,7 @@ Logic conditions can be edited using INAV Configurator user interface, of via CL
 
 * `<rule>` - ID of Logic Condition rule
 * `<enabled>` - `0` evaluates as disabled, `1` evaluates as enabled
+* `<activatorId>` - the ID of _LogicCondition_ used to activate this _Condition_. _Logic Condition_ will be evaluated only then Activator evaluates as `true`. `-1` evaluates as `true`
 * `<operation>` - See `Operations` paragraph
 * `<operand A type>` - See `Operands` paragraph
 * `<operand A value>` - See `Operands` paragraph
@@ -70,6 +71,15 @@ Logic conditions can be edited using INAV Configurator user interface, of via CL
 | 14            | TROTTLE_POS   | in `%`                                |
 | 15            | ATTITUDE_ROLL | in `degrees`                          |
 | 16            | ATTITUDE_PITCH | in `degrees`                         |
+| 17            | IS_ARMED              | boolean `0`/`1`               |
+| 18            | IS_AUTOLAUNCH         | boolean `0`/`1`               |
+| 19            | IS_ALTITUDE_CONTROL   | boolean `0`/`1`               |
+| 20            | IS_POSITION_CONTROL   | boolean `0`/`1`               |
+| 21            | IS_EMERGENCY_LANDING  | boolean `0`/`1`               |
+| 22            | IS_RTH                | boolean `0`/`1`               |
+| 23            | IS_WP                 | boolean `0`/`1`               |
+| 24            | IS_LANDING            | boolean `0`/`1`               |
+| 25            | IS_FAILSAFE           | boolean `0`/`1`               |
 
 #### FLIGHT_MODE
 

@@ -1,5 +1,5 @@
 F7X2RE_TARGETS += $(TARGET)
-FEATURES       += SDCARD VCP ONBOARDFLASH MSC
+FEATURES       += VCP ONBOARDFLASH MSC
 
 TARGET_SRC = \
             drivers/accgyro/accgyro_mpu6000.c \

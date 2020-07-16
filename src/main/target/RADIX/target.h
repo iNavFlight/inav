@@ -73,8 +73,12 @@
 #define USE_BRAINFPV_SPECTROGRAPH
 
 #define USE_EXTI
-#define USE_GYRO
-#define USE_ACC
+#define BMI160_SPI_BUS          BUS_SPI3
+#define BMI160_CS_PIN           PB4
+#define GYRO_EXTI_PIN           PC13
+
+#define USE_IMU_BMI160
+#define IMU_BMI160_ALIGN        CW0_DEG
 
 #define USE_ACCGYRO_BMI160
 #define USE_GYRO_BMI160

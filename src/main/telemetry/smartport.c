@@ -9,6 +9,7 @@
 #include <math.h>
 
 #include "platform.h"
+FILE_COMPILE_FOR_SPEED
 
 #if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_SMARTPORT)
 
@@ -42,6 +43,8 @@
 #include "io/serial.h"
 
 #include "navigation/navigation.h"
+
+#include "rx/frsky_crc.h"
 
 #include "sensors/boardalignment.h"
 #include "sensors/sensors.h"
@@ -232,7 +235,7 @@ void smartPortSendByte(uint8_t c, uint16_t *checksum, serialPort_t *port)
     }
 
     if (checksum != NULL) {
-        *checksum += c;
+        frskyCheckSumStep(checksum, c);
     }
 }
 
@@ -247,8 +250,8 @@ void smartPortWriteFrameSerial(const smartPortPayload_t *payload, serialPort_t *
     for (unsigned i = 0; i < sizeof(smartPortPayload_t); i++) {
         smartPortSendByte(*data++, &checksum, port);
     }
-    checksum = 0xff - ((checksum & 0xff) + (checksum >> 8));
-    smartPortSendByte((uint8_t)checksum, NULL, port);
+    frskyCheckSumFini(&checksum);
+    smartPortSendByte(checksum, NULL, port);
 }
 
 static void smartPortWriteFrameInternal(const smartPortPayload_t *payload)
@@ -306,7 +309,7 @@ static void freeSmartPortTelemetryPort(void)
 static void configureSmartPortTelemetryPort(void)
 {
     if (portConfig) {
-        portOptions_t portOptions = (telemetryConfig()->uartUnidirectional ? SERIAL_UNIDIR : SERIAL_BIDIR) | (telemetryConfig()->telemetry_inverted ? SERIAL_NOT_INVERTED : SERIAL_INVERTED);
+        portOptions_t portOptions = (telemetryConfig()->halfDuplex ? SERIAL_BIDIR : SERIAL_UNIDIR) | (telemetryConfig()->telemetry_inverted ? SERIAL_NOT_INVERTED : SERIAL_INVERTED);
 
         smartPortSerialPort = openSerialPort(portConfig->identifier, FUNCTION_TELEMETRY_SMARTPORT, NULL, NULL, SMARTPORT_BAUD, SMARTPORT_UART_MODE, portOptions);
     }

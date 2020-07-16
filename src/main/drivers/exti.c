@@ -90,7 +90,7 @@ void EXTIConfig(IO_t io, extiCallbackRec_t *cb, int irqPriority, ioConfig_t conf
 
     if (extiGroupPriority[group] > irqPriority) {
         extiGroupPriority[group] = irqPriority;
-        HAL_NVIC_SetPriority(extiGroupIRQn[group], NVIC_PRIORITY_BASE(irqPriority), NVIC_PRIORITY_SUB(irqPriority));
+        HAL_NVIC_SetPriority(extiGroupIRQn[group], irqPriority, 0);
         HAL_NVIC_EnableIRQ(extiGroupIRQn[group]);
     }
 }
@@ -131,12 +131,8 @@ void EXTIConfig(IO_t io, extiCallbackRec_t *cb, int irqPriority, EXTITrigger_Typ
     if (extiGroupPriority[group] > irqPriority) {
         extiGroupPriority[group] = irqPriority;
 
-        NVIC_InitTypeDef NVIC_InitStructure;
-        NVIC_InitStructure.NVIC_IRQChannel = extiGroupIRQn[group];
-        NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = NVIC_PRIORITY_BASE(irqPriority);
-        NVIC_InitStructure.NVIC_IRQChannelSubPriority = NVIC_PRIORITY_SUB(irqPriority);
-        NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-        NVIC_Init(&NVIC_InitStructure);
+        NVIC_SetPriority(extiGroupIRQn[group], irqPriority);
+        NVIC_EnableIRQ(extiGroupIRQn[group]);
     }
 }
 #endif

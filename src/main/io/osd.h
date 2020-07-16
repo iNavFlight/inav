@@ -151,6 +151,7 @@ typedef enum {
     OSD_RC_SOURCE,
     OSD_VTX_POWER,
     OSD_ESC_RPM,
+    OSD_ESC_TEMPERATURE,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -187,6 +188,11 @@ typedef enum {
     OSD_ALIGN_RIGHT
 } osd_alignment_e;
 
+typedef enum {
+    OSD_AHI_STYLE_DEFAULT,
+    OSD_AHI_STYLE_LINE,
+} osd_ahi_style_e;
+
 typedef struct osdConfig_s {
     // Layouts
     uint16_t item_pos[OSD_LAYOUT_COUNT][OSD_ITEM_COUNT];
@@ -200,6 +206,8 @@ typedef struct osdConfig_s {
     uint8_t current_alarm; // current consumption in A
     int16_t imu_temp_alarm_min;
     int16_t imu_temp_alarm_max;
+    int16_t esc_temp_alarm_min;
+    int16_t esc_temp_alarm_max;
     float gforce_alarm;
     float gforce_axis_alarm_min;
     float gforce_axis_alarm_max;
@@ -231,6 +239,7 @@ typedef struct osdConfig_s {
     uint16_t hud_radar_range_min;
     uint16_t hud_radar_range_max;
     uint16_t hud_radar_nearest;
+    uint8_t hud_wp_disp;
     
     uint8_t left_sidebar_scroll; // from osd_sidebar_scroll_e
     uint8_t right_sidebar_scroll; // from osd_sidebar_scroll_e
@@ -244,6 +253,7 @@ typedef struct osdConfig_s {
 
     bool osd_failsafe_switch_layout;
     uint8_t plus_code_digits; // Number of digits to use in OSD_PLUS_CODE
+    uint8_t osd_ahi_style;
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);

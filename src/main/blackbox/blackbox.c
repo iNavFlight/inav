@@ -77,6 +77,7 @@
 #include "sensors/pitotmeter.h"
 #include "sensors/rangefinder.h"
 #include "sensors/sensors.h"
+#include "sensors/esc_sensor.h"
 #include "flight/wind_estimator.h"
 #include "sensors/temperature.h"
 
@@ -390,6 +391,10 @@ static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
     {"sens6Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
     {"sens7Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
 #endif
+#ifdef USE_ESC_SENSOR
+    {"escRPM",                -1, UNSIGNED, PREDICT(0),             ENCODING(UNSIGNED_VB)},
+    {"escTemperature",        -1, SIGNED,   PREDICT(PREVIOUS),      ENCODING(SIGNED_VB)},
+#endif
 };
 
 typedef enum BlackboxState {
@@ -497,6 +502,10 @@ typedef struct blackboxSlowState_s {
 #endif
 #ifdef USE_TEMPERATURE_SENSOR
     int16_t tempSensorTemperature[MAX_TEMP_SENSORS];
+#endif
+#ifdef USE_ESC_SENSOR
+    uint32_t escRPM;
+    int8_t escTemperature;
 #endif
 } __attribute__((__packed__)) blackboxSlowState_t; // We pack this struct so that padding doesn't interfere with memcmp()
 
@@ -624,14 +633,14 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
 
     case FLIGHT_LOG_FIELD_CONDITION_FIXED_WING_NAV:
 #ifdef USE_NAV
-        return STATE(FIXED_WING);
+        return STATE(FIXED_WING_LEGACY);
 #else
         return false;
 #endif
 
     case FLIGHT_LOG_FIELD_CONDITION_MC_NAV:
 #ifdef USE_NAV
-        return !STATE(FIXED_WING);
+        return !STATE(FIXED_WING_LEGACY);
 #else
         return false;
 #endif
@@ -866,7 +875,7 @@ static void writeIntraframe(void)
     blackboxLoggedAnyFrames = true;
 }
 
-static void blackboxWriteMainStateArrayUsingAveragePredictor(int arrOffsetInHistory, int count)
+static void blackboxWriteArrayUsingAveragePredictor16(int arrOffsetInHistory, int count)
 {
     int16_t *curr  = (int16_t*) ((char*) (blackboxHistory[0]) + arrOffsetInHistory);
     int16_t *prev1 = (int16_t*) ((char*) (blackboxHistory[1]) + arrOffsetInHistory);
@@ -875,6 +884,20 @@ static void blackboxWriteMainStateArrayUsingAveragePredictor(int arrOffsetInHist
     for (int i = 0; i < count; i++) {
         // Predictor is the average of the previous two history states
         int32_t predictor = (prev1[i] + prev2[i]) / 2;
+
+        blackboxWriteSignedVB(curr[i] - predictor);
+    }
+}
+
+static void blackboxWriteArrayUsingAveragePredictor32(int arrOffsetInHistory, int count)
+{
+    int32_t *curr  = (int32_t*) ((char*) (blackboxHistory[0]) + arrOffsetInHistory);
+    int32_t *prev1 = (int32_t*) ((char*) (blackboxHistory[1]) + arrOffsetInHistory);
+    int32_t *prev2 = (int32_t*) ((char*) (blackboxHistory[2]) + arrOffsetInHistory);
+
+    for (int i = 0; i < count; i++) {
+        // Predictor is the average of the previous two history states
+        int32_t predictor = ((int64_t)prev1[i] + (int64_t)prev2[i]) / 2;
 
         blackboxWriteSignedVB(curr[i] - predictor);
     }
@@ -1014,16 +1037,16 @@ static void writeInterframe(void)
     blackboxWriteTag8_8SVB(deltas, optionalFieldCount);
 
     //Since gyros, accs and motors are noisy, base their predictions on the average of the history:
-    blackboxWriteMainStateArrayUsingAveragePredictor(offsetof(blackboxMainState_t, gyroADC),   XYZ_AXIS_COUNT);
-    blackboxWriteMainStateArrayUsingAveragePredictor(offsetof(blackboxMainState_t, accADC), XYZ_AXIS_COUNT);
-    blackboxWriteMainStateArrayUsingAveragePredictor(offsetof(blackboxMainState_t, attitude), XYZ_AXIS_COUNT);
+    blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, gyroADC),   XYZ_AXIS_COUNT);
+    blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, accADC), XYZ_AXIS_COUNT);
+    blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, attitude), XYZ_AXIS_COUNT);
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_DEBUG)) {
-        blackboxWriteMainStateArrayUsingAveragePredictor(offsetof(blackboxMainState_t, debug), DEBUG32_VALUE_COUNT);
+        blackboxWriteArrayUsingAveragePredictor32(offsetof(blackboxMainState_t, debug), DEBUG32_VALUE_COUNT);
     }
-    blackboxWriteMainStateArrayUsingAveragePredictor(offsetof(blackboxMainState_t, motor),     getMotorCount());
+    blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, motor),     getMotorCount());
 
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_SERVOS)) {
-        blackboxWriteMainStateArrayUsingAveragePredictor(offsetof(blackboxMainState_t, servo),     MAX_SUPPORTED_SERVOS);
+        blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, servo),     MAX_SUPPORTED_SERVOS);
     }
 
 #ifdef NAV_BLACKBOX
@@ -1104,6 +1127,10 @@ static void writeSlowFrame(void)
     blackboxWriteSigned16VBArray(slowHistory.tempSensorTemperature, MAX_TEMP_SENSORS);
 #endif
 
+#ifdef USE_ESC_SENSOR
+    blackboxWriteUnsignedVB(slowHistory.escRPM);
+    blackboxWriteSignedVB(slowHistory.escTemperature);
+#endif
     blackboxSlowFrameIterationTimer = 0;
 }
 
@@ -1156,6 +1183,11 @@ static void loadSlowState(blackboxSlowState_t *slow)
     }
 #endif
 
+#ifdef USE_ESC_SENSOR
+    escSensorData_t * escSensor = escSensorGetData(); 
+    slow->escRPM = escSensor->rpm;
+    slow->escTemperature = escSensor->temperature;
+#endif
 }
 
 /**
@@ -1369,7 +1401,7 @@ static void loadMainState(timeUs_t currentTimeUs)
         blackboxCurrent->magADC[i] = mag.magADC[i];
 #endif
 #ifdef USE_NAV
-        if (!STATE(FIXED_WING)) {
+        if (!STATE(FIXED_WING_LEGACY)) {
             // log requested velocity in cm/s
             blackboxCurrent->mcPosAxisP[i] = lrintf(nav_pids->pos[i].output_constrained);
 
@@ -1384,7 +1416,7 @@ static void loadMainState(timeUs_t currentTimeUs)
     }
 
 #ifdef USE_NAV
-    if (STATE(FIXED_WING)) {
+    if (STATE(FIXED_WING_LEGACY)) {
 
         // log requested pitch in decidegrees
         blackboxCurrent->fwAltPID[0] = lrintf(nav_pids->fw_alt.proportional);
@@ -1693,10 +1725,9 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("gyro_lpf_hz", "%d",                     gyroConfig()->gyro_soft_lpf_hz);
         BLACKBOX_PRINT_HEADER_LINE("gyro_lpf_type", "%d",                   gyroConfig()->gyro_soft_lpf_type);
         BLACKBOX_PRINT_HEADER_LINE("gyro_lpf2_hz", "%d",                    gyroConfig()->gyro_stage2_lowpass_hz);
-        BLACKBOX_PRINT_HEADER_LINE("dyn_notch_width_percent", "%d",         gyroConfig()->dyn_notch_width_percent);
-        BLACKBOX_PRINT_HEADER_LINE("dyn_notch_range", "%d",                 gyroConfig()->dyn_notch_range);
-        BLACKBOX_PRINT_HEADER_LINE("dyn_notch_q", "%d",                     gyroConfig()->dyn_notch_q);
-        BLACKBOX_PRINT_HEADER_LINE("dyn_notch_min_hz", "%d",                gyroConfig()->dyn_notch_min_hz);
+        BLACKBOX_PRINT_HEADER_LINE("dynamicGyroNotchRange", "%d",           gyroConfig()->dynamicGyroNotchRange);
+        BLACKBOX_PRINT_HEADER_LINE("dynamicGyroNotchQ", "%d",               gyroConfig()->dynamicGyroNotchQ);
+        BLACKBOX_PRINT_HEADER_LINE("dynamicGyroNotchMinHz", "%d",           gyroConfig()->dynamicGyroNotchMinHz);
         BLACKBOX_PRINT_HEADER_LINE("gyro_notch_hz", "%d,%d",                gyroConfig()->gyro_soft_notch_hz_1,
                                                                             gyroConfig()->gyro_soft_notch_hz_2);
         BLACKBOX_PRINT_HEADER_LINE("gyro_notch_cutoff", "%d,%d",            gyroConfig()->gyro_soft_notch_cutoff_1,
@@ -1726,10 +1757,6 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("rpm_gyro_harmonics", "%d",              rpmFilterConfig()->gyro_harmonics);
         BLACKBOX_PRINT_HEADER_LINE("rpm_gyro_min_hz", "%d",                 rpmFilterConfig()->gyro_min_hz);
         BLACKBOX_PRINT_HEADER_LINE("rpm_gyro_q", "%d",                      rpmFilterConfig()->gyro_q);
-        BLACKBOX_PRINT_HEADER_LINE("rpm_dterm_filter_enabled", "%d",        rpmFilterConfig()->dterm_filter_enabled);
-        BLACKBOX_PRINT_HEADER_LINE("rpm_dterm_harmonics", "%d",             rpmFilterConfig()->dterm_harmonics);
-        BLACKBOX_PRINT_HEADER_LINE("rpm_dterm_min_hz", "%d",                rpmFilterConfig()->dterm_min_hz);
-        BLACKBOX_PRINT_HEADER_LINE("rpm_dterm_q", "%d",                     rpmFilterConfig()->dterm_q);
 #endif
         default:
             return true;

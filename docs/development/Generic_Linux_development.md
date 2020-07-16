@@ -3,7 +3,7 @@
 
 This article endeavours to provide a generic guide for compiling iNav on Linux for iNav after iNav 2.2.1.
 
-iNav requires a reasonably modern `gcc-arm-none-eabi` cross-compiler. Different Linux distros will provide different versions of the cross-compiler. This will range from obsolete versions (e.g. Debian, Ubuntu LTS) to the latest stable release (Arch Linux). 
+iNav requires a reasonably modern `gcc-arm-none-eabi` cross-compiler. Different Linux distros will provide different versions of the cross-compiler. This will range from obsolete versions (e.g. Debian, Ubuntu LTS) to the latest stable release (Arch Linux).
 
 In order to provide a uniform and reasonably modern cross compiler, after release iNav 2.2.1, iNav provides for the installation of a "known good / working" cross compiler, as well as a mechanism to override this if your distro provides a more modern option (e.g Arch Linux). In general, from a security perspective, Linux distros discourage the installation of software from sources other than the official distribution repositories and  'approved' sources (Ubuntu PPA, Arch AUR). The iNav approach of providing a recommended compiler is however both sound and justified:
 
@@ -24,17 +24,17 @@ In addition to a cross-compiler, it is necessary to install some other tools:
 
 ### Ubuntu / Debian
 ```
-$ sudo apt install gcc git make ruby
+$ sudo apt install gcc git make ruby curl
 ```
 
 ### Fedora
 ```
-$ sudo dnf install gcc git make ruby
+$ sudo dnf install gcc git make ruby curl
 ```
 
 ### Arch
 ```
-$ sudo pacman -S gcc git make ruby  
+$ sudo pacman -S gcc git make ruby curl
 ```
 
 Once these prerequisites are installed, we can clone the repository to provide a local instance of the iNav source code.
@@ -42,7 +42,7 @@ Once these prerequisites are installed, we can clone the repository to provide a
 ## Cloning the repository
 ```
 $ git clone https://github.com/iNavFlight/inav.git
-``` 
+```
 
 Note: If you have a Github account with registered ssh key you can replace the `git clone` command with  `git clone git@github.com:iNavFlight/inav.git` instead of the https link.
 
@@ -66,7 +66,7 @@ In the iNav directory, issue the command `make arm_sdk_install`. The output will
 $ make arm_sdk_install
 mkdir -p tools
 mkdir -p downloads
-Warning: Illegal date format for -z, --time-cond (and not a file name). 
+Warning: Illegal date format for -z, --time-cond (and not a file name).
 Warning: Disabling time condition. See curl_getdate(3) for valid date syntax.
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
@@ -140,4 +140,3 @@ $ make TARGET=<TARGET>
 ## Advanced Usage
 
 For more advanced development information and `git` usage, please refer to the [development guide](https://github.com/iNavFlight/inav/blob/master/docs/development/Development.md).
-

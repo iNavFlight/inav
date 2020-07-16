@@ -60,6 +60,7 @@
 #define MSP2_INAV_GLOBAL_FUNCTIONS              0x2024
 #define MSP2_INAV_SET_GLOBAL_FUNCTIONS          0x2025
 #define MSP2_INAV_LOGIC_CONDITIONS_STATUS       0x2026
+#define MSP2_INAV_GVAR_STATUS                   0x2027
 
 #define MSP2_PID                                0x2030
 #define MSP2_SET_PID                            0x2031

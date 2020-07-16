@@ -21,6 +21,8 @@
 
 #include "platform.h"
 
+FILE_COMPILE_FOR_SPEED
+
 #include "scheduler.h"
 
 #include "build/build_config.h"
@@ -205,7 +207,7 @@ void setTaskEnabled(cfTaskId_e taskId, bool enabled)
     }
 }
 
-timeDelta_t FAST_CODE NOINLINE getTaskDeltaTime(cfTaskId_e taskId)
+timeDelta_t getTaskDeltaTime(cfTaskId_e taskId)
 {
     if (taskId == TASK_SELF) {
         return currentTask->taskLatestDeltaTime;
