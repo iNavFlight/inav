@@ -1602,7 +1602,7 @@ groups:
         field: fw.cruise_speed
         min: 0
         max: 65535
-      - name: nav_fw_control_smoothness 
+      - name: nav_fw_control_smoothness
         field: fw.control_smoothness
         min: 0
         max: 9
@@ -1645,6 +1645,10 @@ groups:
         field: fw.launch_motor_spinup_time
         min: 0
         max: 1000
+      - name: nav_fw_launch_end_time
+        field: fw.launch_end_time
+        min: 0
+        max: 5000
       - name: nav_fw_launch_min_time
         field: fw.launch_min_time
         min: 0
