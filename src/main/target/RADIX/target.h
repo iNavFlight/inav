@@ -80,11 +80,6 @@
 #define USE_IMU_BMI160
 #define IMU_BMI160_ALIGN        CW0_DEG
 
-#define USE_ACCGYRO_BMI160
-#define USE_GYRO_BMI160
-#define USE_ACC_BMI160
-#define GYRO_BMI160_ALIGN    CW0_DEG
-#define ACC_BMI160_ALIGN     CW0_DEG
 #define BMI160_SPI_BUS       BUS_SPI3
 #define BUS_SPEED_BMI160     BUS_SPEED_STANDARD
 #define BMI160_CS_PIN        PB4
@@ -191,3 +186,23 @@ extern bool brainfpv_settings_updated_from_cms;
 void brainFPVUpdateSettings(void);
 bool brainfpv_is_radixli(void);
 
+// Remove unused sensors etc to reduce flash requirements
+
+#undef USE_RANGEFINDER_BENEWAKE
+#undef USE_RANGEFINDER_VL53L0X
+#undef USE_RANGEFINDER_HCSR04_I2C
+#undef USE_OPFLOW_CXOF
+#undef USE_OPFLOW_MSP
+#undef USE_PITOT_MS4525
+#undef USE_1WIRE
+#undef USE_1WIRE_DS2482
+#undef USE_TEMPERATURE_LM75
+#undef USE_TEMPERATURE_DS18B20
+#undef USE_DASHBOARD
+#undef DASHBOARD_ARMED_BITMAP
+#undef USE_OLED_UG2864
+#undef USE_PWM_DRIVER_PCA9685
+#undef USE_FRSKYOSD
+#undef USE_USB_MSC
+#undef USE_SERVO_SBUS
+#undef USE_TELEMETRY_LTM
