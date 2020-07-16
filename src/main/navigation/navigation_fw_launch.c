@@ -133,15 +133,12 @@ static void fixedWingLaunchResetPids(void)
     }
 }
 
-static void updateFixedWingLaunchAbortTriggers(timeUs_t currentTimeUs)
+static void updateFixedWingLaunchFinishingTriggers(timeUs_t currentTimeUs)
 {
-    if (launchState.state < FW_LAUNCH_STATE_MOTOR_DELAY) {
+    if (launchState.state < FW_LAUNCH_STATE_MOTOR_DELAY || launchState.state > FW_LAUNCH_STATE_IN_PROGRESS) {
         return;
     }
-    if (areSticksDeflectedMoreThanPosHoldDeadband() && isLaunchModeMinTimeElapsed(currentTimeUs)) {
-        setLaunchState(FW_LAUNCH_STATE_FINISHED, currentTimeUs);
-    }
-    else if (launchState.state == FW_LAUNCH_STATE_IN_PROGRESS && isFixedWingLaunchMaxAltitudeReached()) {
+    if (isFixedWingLaunchMaxAltitudeReached() || (areSticksDeflectedMoreThanPosHoldDeadband() && isLaunchModeMinTimeElapsed(currentTimeUs))) {
         setLaunchState(FW_LAUNCH_STATE_FINISHING, currentTimeUs);
     }
 }
@@ -178,20 +175,18 @@ static void updateFixedWingLaunchDetector(timeUs_t currentTimeUs)
 
 static void updateFixedWingLaunchThrottleIdle(timeMs_t currentTimeUs)
 {
-    const int throttleIdleVale = getThrottleIdleValue();
-
-    updateFixedWingLaunchDetector(currentTimeUs); // if the launch is detected, the throttle idle will be skipped and jump to FW_LAUNCH_STATE_DETECTED
+    const int throttleIdleValue = getThrottleIdleValue();
 
     // Throttle control logic
-    if (navConfig()->fw.launch_idle_throttle <= throttleIdleVale) {
-        ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);                             // If MOTOR_STOP is enabled mixer will keep motor stopped
-        rcCommand[THROTTLE] = throttleIdleVale;                           // If MOTOR_STOP is disabled, motors will spin at minthrottle
+    if (navConfig()->fw.launch_idle_throttle <= throttleIdleValue) {
+        ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);                              // If MOTOR_STOP is enabled mixer will keep motor stopped
+        rcCommand[THROTTLE] = throttleIdleValue;                           // If MOTOR_STOP is disabled, motors will spin at minthrottle
         setLaunchState(FW_LAUNCH_STATE_WAIT_DETECTION, currentTimeUs);
         lockLaunchPitchAngle();
     }
     else {
         timeMs_t elapsedTimeMs = elapsedTimeMs = getElapsedMsAndSetNextState(LAUNCH_MOTOR_IDLE_SPINUP_TIME, currentTimeUs, FW_LAUNCH_STATE_WAIT_DETECTION);
-        rcCommand[THROTTLE] = scaleRangef(elapsedTimeMs, 0.0f, LAUNCH_MOTOR_IDLE_SPINUP_TIME, throttleIdleVale, navConfig()->fw.launch_idle_throttle);
+        rcCommand[THROTTLE] = scaleRangef(elapsedTimeMs, 0.0f, LAUNCH_MOTOR_IDLE_SPINUP_TIME, throttleIdleValue, navConfig()->fw.launch_idle_throttle);
         updateFixedWingLaunchPitchAngle(scaleRangef(elapsedTimeMs, 0.0f, LAUNCH_MOTOR_IDLE_SPINUP_TIME, 0, navConfig()->fw.launch_climb_angle));
     }
 }
@@ -225,7 +220,7 @@ static void updateFixedWingLaunchFinishing(timeUs_t currentTimeUs)
     const timeMs_t elapsedTimeMs = getElapsedMsAndSetNextState(endTimeMs, currentTimeUs, FW_LAUNCH_STATE_FINISHED);
 
     rcCommand[THROTTLE] = scaleRangef(elapsedTimeMs, 0.0f, endTimeMs,  navConfig()->fw.launch_throttle, rcCommand[THROTTLE]);
-    updateFixedWingLaunchPitchAngle(scaleRangef(elapsedTimeMs, 0.0f, endTimeMs, navConfig()->fw.launch_climb_angle, 0));
+    updateFixedWingLaunchPitchAngle(scaleRangef(elapsedTimeMs, 0.0f, endTimeMs, navConfig()->fw.launch_climb_angle, rcCommand[PITCH]));
 }
 
 // Public methods ---------------------------------------------------------------
@@ -234,8 +229,8 @@ void applyFixedWingLaunchController(timeUs_t currentTimeUs)
 {
     // Called at PID rate
 
+    updateFixedWingLaunchFinishingTriggers(currentTimeUs);
     fixedWingLaunchResetPids();
-    updateFixedWingLaunchAbortTriggers(currentTimeUs);
 
     switch (launchState.state) {
         case FW_LAUNCH_STATE_WAIT_THROTTLE:
@@ -243,6 +238,7 @@ void applyFixedWingLaunchController(timeUs_t currentTimeUs)
             break;
 
         case FW_LAUNCH_STATE_MOTOR_IDLE:
+            updateFixedWingLaunchDetector(currentTimeUs); // if the launch is detected, the throttle idle will be skipped and jump to FW_LAUNCH_STATE_DETECTED
             updateFixedWingLaunchThrottleIdle(currentTimeUs);
             break;
 
