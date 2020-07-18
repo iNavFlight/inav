@@ -17,7 +17,7 @@
             ],
             "preLaunchCommands": ["monitor arm semihosting enable"],
             "preLaunchTask": "openocd-debug-prepare",
-            "svdFile": "./obj/main/${config:TARGET}/svd.svd",
+            "svdFile": "./obj/main/${config:TARGET}/svd.svd"
         }
     ]
 }

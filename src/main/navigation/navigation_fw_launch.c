@@ -74,6 +74,7 @@ typedef enum {
     FW_LAUNCH_STATE_COUNT
 } fixedWingLaunchState_t;
 
+static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IDLE(timeUs_t currentTimeUs);
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_INIT(timeUs_t currentTimeUs);
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_THROTTLE(timeUs_t currentTimeUs);
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_MOTOR_IDLE(timeUs_t currentTimeUs);
@@ -391,6 +392,18 @@ bool isFixedWingLaunchFinishedOrAborted(void) {
 
 void abortFixedWingLaunch(void) {
     setCurrentState(FW_LAUNCH_STATE_IDLE, 0);
+}
+
+const char * fwLaunchStateMessage(void) {
+    if (fwState < FW_LAUNCH_STATE_WAIT_DETECTION) {
+        return "RAISE THE THROTTLE";
+    } else if (fwState == FW_LAUNCH_STATE_WAIT_DETECTION) {
+        return "READY";
+    } else if (fwState > FW_LAUNCH_STATE_DETECTED) {
+        return "MOVE STICKS TO TAKE CONTROL"; // conforming to OSD_MESSAGE_LENGTH = 28 from osd.c
+    } else {
+        return NULL;
+    }
 }
 
 #endif

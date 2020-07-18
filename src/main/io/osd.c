@@ -2131,7 +2131,11 @@ static bool osdDrawSingleElement(uint8_t item)
                             messages[messageCount++] = navStateMessage;
                         }
                     } else if (STATE(FIXED_WING_LEGACY) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
-                            messages[messageCount++] = "AUTOLAUNCH";
+                        messages[messageCount++] = "AUTOLAUNCH";
+                        const char *launchStateMessage = fwLaunchStateMessage();
+                        if (launchStateMessage) {
+                            messages[messageCount++] = launchStateMessage;
+                        }
                     } else {
                         if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
                             // ALTHOLD might be enabled alongside ANGLE/HORIZON/ACRO
