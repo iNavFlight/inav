@@ -2132,7 +2132,7 @@ static bool osdDrawSingleElement(uint8_t item)
                         }
                     } else if (STATE(FIXED_WING_LEGACY) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
                         messages[messageCount++] = "AUTOLAUNCH";
-                        const char *launchStateMessage = fwLaunchStateMessage();
+                        const char *launchStateMessage = fixedWingLaunchStateMessage();
                         if (launchStateMessage) {
                             messages[messageCount++] = launchStateMessage;
                         }
