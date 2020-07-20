@@ -5,6 +5,10 @@ VALID_TARGETS  := $(subst /,, $(subst ./src/main/target/,, $(VALID_TARGETS)))
 VALID_TARGETS  := $(VALID_TARGETS) $(ALT_TARGETS)
 VALID_TARGETS  := $(sort $(VALID_TARGETS))
 
+VALID_BL_TARGETS := $(addsuffix _bl,$(VALID_TARGETS))
+VALID_TARGETS_FOR_BL := $(addsuffix _for_bl,$(VALID_TARGETS))
+VALID_TARGETS_WITH_BL := $(addsuffix _with_bl,$(VALID_TARGETS))
+
 CLEAN_TARGETS   = $(addprefix clean_,$(VALID_TARGETS) )
 TARGETS_CLEAN   = $(addsuffix _clean,$(VALID_TARGETS) )
 STFLASH_TARGETS = $(addprefix st-flash_,$(VALID_TARGETS) )
@@ -20,7 +24,7 @@ endif
 -include $(ROOT)/src/main/target/$(BASE_TARGET)/target.mk
 
 F4_TARGETS      = $(F405_TARGETS) $(F411_TARGETS) $(F427_TARGETS) $(F446_TARGETS)
-F7_TARGETS      = $(F7X2RE_TARGETS) $(F7X5XE_TARGETS) $(F7X5XG_TARGETS) $(F7X5XI_TARGETS) $(F7X6XG_TARGETS)
+F7_TARGETS      = $(F7X2RE_TARGETS) $(F7X5XE_TARGETS) $(F745XG_TARGETS) $(F765XG_TARGETS) $(F765XI_TARGETS) $(F7X6XG_TARGETS)
 
 ifeq ($(filter $(TARGET),$(VALID_TARGETS)),)
 $(error Target '$(TARGET)' is not valid, must be one of $(VALID_TARGETS). Have you prepared a valid target.mk?)
@@ -31,34 +35,37 @@ $(error Target '$(TARGET)' has not specified a valid STM group, must be one of F
 endif
 
 ifeq ($(TARGET),$(filter $(TARGET),$(F3_TARGETS)))
-TARGET_MCU 			:= STM32F303
+TARGET_MCU 		:= STM32F303
 TARGET_MCU_GROUP 	:= STM32F3
 else ifeq ($(TARGET),$(filter $(TARGET), $(F405_TARGETS)))
-TARGET_MCU			:= STM32F405
+TARGET_MCU		:= STM32F405
 TARGET_MCU_GROUP 	:= STM32F4
 else ifeq ($(TARGET),$(filter $(TARGET), $(F411_TARGETS)))
-TARGET_MCU			:= STM32F411
+TARGET_MCU		:= STM32F411
 TARGET_MCU_GROUP 	:= STM32F4
 else ifeq ($(TARGET),$(filter $(TARGET), $(F427_TARGETS)))
-TARGET_MCU			:= STM32F427
+TARGET_MCU		:= STM32F427
 TARGET_MCU_GROUP 	:= STM32F4
 else ifeq ($(TARGET),$(filter $(TARGET), $(F446_TARGETS)))
-TARGET_MCU			:= STM32F446
+TARGET_MCU		:= STM32F446
 TARGET_MCU_GROUP 	:= STM32F4
 else ifeq ($(TARGET),$(filter $(TARGET), $(F7X2RE_TARGETS)))
-TARGET_MCU			:= STM32F7X2RE
+TARGET_MCU		:= STM32F7X2RE
 TARGET_MCU_GROUP 	:= STM32F7
 else ifeq ($(TARGET),$(filter $(TARGET), $(F7X5XE_TARGETS)))
-TARGET_MCU			:= STM32F7X5XE
+TARGET_MCU		:= STM32F7X5XE
 TARGET_MCU_GROUP 	:= STM32F7
-else ifeq ($(TARGET),$(filter $(TARGET), $(F7X5XG_TARGETS)))
-TARGET_MCU			:= STM32F7X5XG
+else ifeq ($(TARGET),$(filter $(TARGET), $(F745XG_TARGETS)))
+TARGET_MCU		:= STM32F745XG
 TARGET_MCU_GROUP 	:= STM32F7
-else ifeq ($(TARGET),$(filter $(TARGET), $(F7X5XI_TARGETS)))
-TARGET_MCU			:= STM32F7X5XI
+else ifeq ($(TARGET),$(filter $(TARGET), $(F765XG_TARGETS)))
+TARGET_MCU		:= STM32F765XG
+TARGET_MCU_GROUP 	:= STM32F7
+else ifeq ($(TARGET),$(filter $(TARGET), $(F765XI_TARGETS)))
+TARGET_MCU		:= STM32F765XI
 TARGET_MCU_GROUP 	:= STM32F7
 else ifeq ($(TARGET),$(filter $(TARGET), $(F7X6XG_TARGETS)))
-TARGET_MCU			:= STM32F7X6XG
+TARGET_MCU		:= STM32F7X6XG
 TARGET_MCU_GROUP 	:= STM32F7
 else
 $(error Unknown target MCU specified.)
