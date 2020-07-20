@@ -198,6 +198,7 @@ typedef struct navConfig_s {
         uint8_t  max_dive_angle;             // Fixed wing max banking angle (deg)
         uint16_t cruise_throttle;            // Cruise throttle
         uint16_t cruise_speed;               // Speed at cruise throttle (cm/s), used for time/distance left before RTH
+        uint8_t control_smoothness;          // The amount of smoothing to apply to controls for navigation
         uint16_t min_throttle;               // Minimum allowed throttle in auto mode
         uint16_t max_throttle;               // Maximum allowed throttle in auto mode
         uint8_t  pitch_to_throttle;          // Pitch angle (in deg) to throttle gain (in 1/1000's of throttle) (*10)
@@ -235,9 +236,18 @@ typedef struct gpsOrigin_s {
 typedef enum {
     NAV_WP_ACTION_WAYPOINT  = 0x01,
     NAV_WP_ACTION_HOLD_TIME = 0x03,
-    NAV_WP_ACTION_JUMP      = 0x06, 
-    NAV_WP_ACTION_RTH       = 0x04
+    NAV_WP_ACTION_RTH       = 0x04,
+    NAV_WP_ACTION_SET_POI   = 0x05,
+    NAV_WP_ACTION_JUMP      = 0x06,
+    NAV_WP_ACTION_SET_HEAD  = 0x07,
+    NAV_WP_ACTION_LAND      = 0x08
 } navWaypointActions_e;
+
+typedef enum {
+    NAV_WP_HEAD_MODE_NONE  = 0,
+    NAV_WP_HEAD_MODE_POI   = 1,
+    NAV_WP_HEAD_MODE_FIXED = 2
+} navWaypointHeadings_e;
 
 typedef enum {
     NAV_WP_FLAG_LAST = 0xA5
@@ -251,6 +261,12 @@ typedef struct {
     int16_t p1, p2, p3;
     uint8_t flag;
 } navWaypoint_t;
+
+typedef struct {
+    navWaypointHeadings_e  mode;
+    uint32_t heading; // fixed heading * 100 (SET_HEAD)
+    fpVector3_t poi_pos; // POI location in local coordinates (SET_POI)
+} navWapointHeading_t;
 
 typedef struct radar_pois_s {
     gpsLocation_t gps;

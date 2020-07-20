@@ -39,15 +39,11 @@
 
 #define INVERTER_PIN_UART       PC13
 
-#define USE_GYRO_MPU6500
-#define USE_ACC_MPU6500
-#define USE_GYRO_MPU9250
-#define USE_ACC_MPU9250
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW180_DEG_FLIP
 
-#define GYRO_MPU6500_ALIGN      CW180_DEG_FLIP
-#define ACC_MPU6500_ALIGN       CW180_DEG_FLIP
-#define GYRO_MPU9250_ALIGN      CW180_DEG_FLIP
-#define ACC_MPU9250_ALIGN       CW180_DEG_FLIP
+#define USE_IMU_MPU9250
+#define IMU_MPU9250_ALIGN       CW180_DEG_FLIP
 #define MAG_MPU9250_ALIGN       CW90_DEG
 
 #define USE_DUAL_GYRO
@@ -61,9 +57,6 @@
 #define MPU9250_CS_PIN          PC2
 #define MPU9250_EXTI_PIN        PD15
 #define MPU9250_SPI_BUS         BUS_SPI1
-
-#define USE_ACC
-#define USE_GYRO
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1

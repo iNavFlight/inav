@@ -22,6 +22,8 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
+#include "platform.h"
+
 #include "flight/rpm_filter.h"
 
 #include "config/parameter_group.h"
@@ -82,7 +84,7 @@ void nullRpmFilterUpdate(rpmFilterBank_t *filterBank, uint8_t motor, float baseF
     UNUSED(baseFrequency);
 }
 
-float FAST_CODE rpmFilterApply(rpmFilterBank_t *filterBank, uint8_t axis, float input)
+float rpmFilterApply(rpmFilterBank_t *filterBank, uint8_t axis, float input)
 {
     float output = input;
 
@@ -136,7 +138,7 @@ void disableRpmFilters(void) {
     rpmGyroApplyFn = (rpmFilterApplyFnPtr)nullRpmFilterApply;
 }
 
-void FAST_CODE NOINLINE rpmFilterUpdate(rpmFilterBank_t *filterBank, uint8_t motor, float baseFrequency)
+void rpmFilterUpdate(rpmFilterBank_t *filterBank, uint8_t motor, float baseFrequency)
 {
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++)
     {
@@ -177,7 +179,7 @@ void rpmFiltersInit(void)
     }
 }
 
-void FAST_CODE NOINLINE rpmFilterUpdateTask(timeUs_t currentTimeUs)
+void rpmFilterUpdateTask(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
 
@@ -198,7 +200,7 @@ void FAST_CODE NOINLINE rpmFilterUpdateTask(timeUs_t currentTimeUs)
     }
 }
 
-float FAST_CODE rpmFilterGyroApply(uint8_t axis, float input)
+float rpmFilterGyroApply(uint8_t axis, float input)
 {
     return rpmGyroApplyFn(&gyroRpmFilters, axis, input);
 }

@@ -35,7 +35,8 @@
 #include "common/bitarray.h"
 #include "common/time.h"
 #include "common/utils.h"
-#include "common/global_functions.h"
+#include "programming/global_functions.h"
+#include "programming/global_variables.h"
 
 #include "config/parameter_group_ids.h"
 
@@ -43,6 +44,7 @@
 #include "drivers/bus_i2c.h"
 #include "drivers/compass/compass.h"
 #include "drivers/display.h"
+#include "drivers/flash.h"
 #include "drivers/osd.h"
 #include "drivers/osd_symbols.h"
 #include "drivers/pwm_mapping.h"
@@ -292,8 +294,8 @@ static void serializeSDCardSummaryReply(sbuf_t *dst)
 static void serializeDataflashSummaryReply(sbuf_t *dst)
 {
 #ifdef USE_FLASHFS
-    const flashGeometry_t *geometry = flashfsGetGeometry();
-    sbufWriteU8(dst, flashfsIsReady() ? 1 : 0);
+    const flashGeometry_t *geometry = flashGetGeometry();
+    sbufWriteU8(dst, flashIsReady() ? 1 : 0);
     sbufWriteU32(dst, geometry->sectors);
     sbufWriteU32(dst, geometry->totalSize);
     sbufWriteU32(dst, flashfsGetOffset()); // Effectively the current number of bytes stored on the volume
@@ -518,17 +520,18 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, customServoMixers(i)->inputSource);
             sbufWriteU16(dst, customServoMixers(i)->rate);
             sbufWriteU8(dst, customServoMixers(i)->speed);
-        #ifdef USE_LOGIC_CONDITIONS
+        #ifdef USE_PROGRAMMING_FRAMEWORK
             sbufWriteU8(dst, customServoMixers(i)->conditionId);
         #else
             sbufWriteU8(dst, -1);
         #endif
         }
         break;
-#ifdef USE_LOGIC_CONDITIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
     case MSP2_INAV_LOGIC_CONDITIONS:
         for (int i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
             sbufWriteU8(dst, logicConditions(i)->enabled);
+            sbufWriteU8(dst, logicConditions(i)->activatorId);
             sbufWriteU8(dst, logicConditions(i)->operation);
             sbufWriteU8(dst, logicConditions(i)->operandA.type);
             sbufWriteU32(dst, logicConditions(i)->operandA.value);
@@ -542,8 +545,13 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU32(dst, logicConditionGetValue(i));
         }
         break;
+    case MSP2_INAV_GVAR_STATUS:
+        for (int i = 0; i < MAX_GLOBAL_VARIABLES; i++) {
+            sbufWriteU32(dst, gvGet(i));
+        }
+        break;
 #endif
-#ifdef USE_GLOBAL_FUNCTIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
     case MSP2_INAV_GLOBAL_FUNCTIONS:
         for (int i = 0; i < MAX_GLOBAL_FUNCTIONS; i++) {
             sbufWriteU8(dst, globalFunctions(i)->enabled);
@@ -1147,14 +1155,13 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, gyroConfig()->gyro_soft_lpf_hz);
         sbufWriteU16(dst, pidProfile()->dterm_lpf_hz);
         sbufWriteU16(dst, pidProfile()->yaw_lpf_hz);
-        sbufWriteU16(dst, gyroConfig()->gyro_soft_notch_hz_1); //masterConfig.gyro_soft_notch_hz_1
-        sbufWriteU16(dst, gyroConfig()->gyro_soft_notch_cutoff_1); //BF: masterConfig.gyro_soft_notch_cutoff_1
+        sbufWriteU16(dst, gyroConfig()->gyro_notch_hz);
+        sbufWriteU16(dst, gyroConfig()->gyro_notch_cutoff);
+        sbufWriteU16(dst, 0); //BF: pidProfile()->dterm_notch_hz
+        sbufWriteU16(dst, 1); //pidProfile()->dterm_notch_cutoff
 
-        sbufWriteU16(dst, pidProfile()->dterm_soft_notch_hz); //BF: pidProfile()->dterm_notch_hz
-        sbufWriteU16(dst, pidProfile()->dterm_soft_notch_cutoff); //pidProfile()->dterm_notch_cutoff
-
-        sbufWriteU16(dst, gyroConfig()->gyro_soft_notch_hz_2); //BF: masterConfig.gyro_soft_notch_hz_2
-        sbufWriteU16(dst, gyroConfig()->gyro_soft_notch_cutoff_2); //BF: masterConfig.gyro_soft_notch_cutoff_2
+        sbufWriteU16(dst, 0); //BF: masterConfig.gyro_soft_notch_hz_2
+        sbufWriteU16(dst, 1); //BF: masterConfig.gyro_soft_notch_cutoff_2
 
         sbufWriteU16(dst, accelerometerConfig()->acc_notch_hz);
         sbufWriteU16(dst, accelerometerConfig()->acc_notch_cutoff);
@@ -1169,7 +1176,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, 0); //BF: pidProfile()->deltaMethod
         sbufWriteU8(dst, 0); //BF: pidProfile()->vbatPidCompensation
         sbufWriteU8(dst, 0); //BF: pidProfile()->setpointRelaxRatio
-        sbufWriteU8(dst, constrain(pidProfile()->dterm_setpoint_weight * 100, 0, 255));
+        sbufWriteU8(dst, 0);
         sbufWriteU16(dst, pidProfile()->pidSumLimit);
         sbufWriteU8(dst, 0); //BF: pidProfile()->itermThrottleGain
 
@@ -1265,7 +1272,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
 
     case MSP_CALIBRATION_DATA:
-    #ifdef USE_ACC
         sbufWriteU8(dst, accGetCalibrationAxisFlags());
         sbufWriteU16(dst, accelerometerConfig()->accZero.raw[X]);
         sbufWriteU16(dst, accelerometerConfig()->accZero.raw[Y]);
@@ -1273,15 +1279,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, accelerometerConfig()->accGain.raw[X]);
         sbufWriteU16(dst, accelerometerConfig()->accGain.raw[Y]);
         sbufWriteU16(dst, accelerometerConfig()->accGain.raw[Z]);
-    #else
-        sbufWriteU8(dst, 0);
-        sbufWriteU16(dst, 0);
-        sbufWriteU16(dst, 0);
-        sbufWriteU16(dst, 0);
-        sbufWriteU16(dst, 0);
-        sbufWriteU16(dst, 0);
-        sbufWriteU16(dst, 0);
-    #endif
 
     #ifdef USE_MAG
         sbufWriteU16(dst, compassConfig()->magZero.raw[X]);
@@ -1931,7 +1928,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             customServoMixersMutable(tmp_u8)->inputSource = sbufReadU8(src);
             customServoMixersMutable(tmp_u8)->rate = sbufReadU16(src);
             customServoMixersMutable(tmp_u8)->speed = sbufReadU8(src);
-        #ifdef USE_LOGIC_CONDITIONS
+        #ifdef USE_PROGRAMMING_FRAMEWORK
             customServoMixersMutable(tmp_u8)->conditionId = sbufReadU8(src);
         #else
             sbufReadU8(src);
@@ -1940,11 +1937,12 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         } else
             return MSP_RESULT_ERROR;
         break;
-#ifdef USE_LOGIC_CONDITIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
     case MSP2_INAV_SET_LOGIC_CONDITIONS:
         sbufReadU8Safe(&tmp_u8, src);
-        if ((dataSize == 14) && (tmp_u8 < MAX_LOGIC_CONDITIONS)) {
+        if ((dataSize == 15) && (tmp_u8 < MAX_LOGIC_CONDITIONS)) {
             logicConditionsMutable(tmp_u8)->enabled = sbufReadU8(src);
+            logicConditionsMutable(tmp_u8)->activatorId = sbufReadU8(src);
             logicConditionsMutable(tmp_u8)->operation = sbufReadU8(src);
             logicConditionsMutable(tmp_u8)->operandA.type = sbufReadU8(src);
             logicConditionsMutable(tmp_u8)->operandA.value = sbufReadU32(src);
@@ -1955,10 +1953,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         break;
 #endif
-#ifdef USE_GLOBAL_FUNCTIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
     case MSP2_INAV_SET_GLOBAL_FUNCTIONS:
         sbufReadU8Safe(&tmp_u8, src);
-        if ((dataSize == 14) && (tmp_u8 < MAX_GLOBAL_FUNCTIONS)) {
+        if ((dataSize == 10) && (tmp_u8 < MAX_GLOBAL_FUNCTIONS)) {
             globalFunctionsMutable(tmp_u8)->enabled = sbufReadU8(src);
             globalFunctionsMutable(tmp_u8)->conditionId = sbufReadU8(src);
             globalFunctionsMutable(tmp_u8)->action = sbufReadU8(src);
@@ -2040,21 +2038,21 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             pidProfileMutable()->dterm_lpf_hz = constrain(sbufReadU16(src), 0, 500);
             pidProfileMutable()->yaw_lpf_hz = constrain(sbufReadU16(src), 0, 255);
             if (dataSize >= 9) {
-                gyroConfigMutable()->gyro_soft_notch_hz_1 = constrain(sbufReadU16(src), 0, 500);
-                gyroConfigMutable()->gyro_soft_notch_cutoff_1 = constrain(sbufReadU16(src), 1, 500);
+                gyroConfigMutable()->gyro_notch_hz = constrain(sbufReadU16(src), 0, 500);
+                gyroConfigMutable()->gyro_notch_cutoff = constrain(sbufReadU16(src), 1, 500);
             } else {
                 return MSP_RESULT_ERROR;
             }
             if (dataSize >= 13) {
-                pidProfileMutable()->dterm_soft_notch_hz = constrain(sbufReadU16(src), 0, 500);
-                pidProfileMutable()->dterm_soft_notch_cutoff = constrain(sbufReadU16(src), 1, 500);
+                sbufReadU16(src);
+                sbufReadU16(src);
                 pidInitFilters();
             } else {
                 return MSP_RESULT_ERROR;
             }
             if (dataSize >= 17) {
-                gyroConfigMutable()->gyro_soft_notch_hz_2 = constrain(sbufReadU16(src), 0, 500);
-                gyroConfigMutable()->gyro_soft_notch_cutoff_2 = constrain(sbufReadU16(src), 1, 500);
+                sbufReadU16(src); // Was gyroConfigMutable()->gyro_soft_notch_hz_2
+                sbufReadU16(src); // Was gyroConfigMutable()->gyro_soft_notch_cutoff_2
             } else {
                 return MSP_RESULT_ERROR;
             }
@@ -2084,7 +2082,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU8(src); //BF: pidProfileMutable()->deltaMethod
             sbufReadU8(src); //BF: pidProfileMutable()->vbatPidCompensation
             sbufReadU8(src); //BF: pidProfileMutable()->setpointRelaxRatio
-            pidProfileMutable()->dterm_setpoint_weight = constrainf(sbufReadU8(src) / 100.0f, 0.0f, 2.0f);
+            sbufReadU8(src);
             pidProfileMutable()->pidSumLimit = sbufReadU16(src);
             sbufReadU8(src); //BF: pidProfileMutable()->itermThrottleGain
 
@@ -2198,21 +2196,12 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_CALIBRATION_DATA:
         if (dataSize >= 18) {
-#ifdef USE_ACC
             accelerometerConfigMutable()->accZero.raw[X] = sbufReadU16(src);
             accelerometerConfigMutable()->accZero.raw[Y] = sbufReadU16(src);
             accelerometerConfigMutable()->accZero.raw[Z] = sbufReadU16(src);
             accelerometerConfigMutable()->accGain.raw[X] = sbufReadU16(src);
             accelerometerConfigMutable()->accGain.raw[Y] = sbufReadU16(src);
             accelerometerConfigMutable()->accGain.raw[Z] = sbufReadU16(src);
-#else
-            sbufReadU16(src);
-            sbufReadU16(src);
-            sbufReadU16(src);
-            sbufReadU16(src);
-            sbufReadU16(src);
-            sbufReadU16(src);
-#endif
 
 #ifdef USE_MAG
             compassConfigMutable()->magZero.raw[X] = sbufReadU16(src);

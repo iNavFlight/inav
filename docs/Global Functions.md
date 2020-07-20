@@ -26,6 +26,9 @@ _Global Functions_ (abbr. GF) are a mechanism allowing to override certain fligh
 | 5             | INVERT_PITCH                  | Inverts PITCH axis input for PID/PIFF controller  |
 | 6             | INVERT_YAW                    | Inverts YAW axis input for PID/PIFF controller |
 | 7             | OVERRIDE_THROTTLE             | Override throttle value that is fed to the motors by mixer. Operand is scaled in us. `1000` means throttle cut, `1500` means half throttle |
+| 8             | SET_VTX_BAND                  | Sets VTX band. Accepted values are `1-5` |
+| 9             | SET_VTX_CHANNEL               | Sets VTX channel. Accepted values are `1-8` |
+| 10            | SET_OSD_LAYOUT                | Sets OSD layout. Accepted values are `0-3` |
 
 ## Flags
 

@@ -37,8 +37,6 @@ EXCLUDES        = stm32f7xx_hal_can.c \
                   stm32f7xx_hal_nor.c \
                   stm32f7xx_hal_qspi.c \
                   stm32f7xx_hal_rng.c \
-                  stm32f7xx_hal_rtc.c \
-                  stm32f7xx_hal_rtc_ex.c \
                   stm32f7xx_hal_sai.c \
                   stm32f7xx_hal_sai_ex.c \
                   stm32f7xx_hal_sd.c \

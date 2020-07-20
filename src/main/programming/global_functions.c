@@ -28,13 +28,13 @@
 
 #include "common/utils.h"
 #include "common/maths.h"
-#include "common/global_functions.h"
-#include "common/logic_condition.h"
+#include "programming/global_functions.h"
+#include "programming/logic_condition.h"
 
 #include "io/vtx.h"
 #include "drivers/vtx_common.h"
 
-#ifdef USE_GLOBAL_FUNCTIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
 
 #include "common/axis.h"
 
@@ -98,6 +98,22 @@ void globalFunctionsProcess(int8_t functionId) {
                     }
                 }
                 break;
+            case GLOBAL_FUNCTION_ACTION_SET_VTX_BAND:
+                if (conditionValue && !previousValue) {
+                    vtxDeviceCapability_t vtxDeviceCapability;
+                    if (vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
+                        vtxSettingsConfigMutable()->band = constrain(globalFunctionsStates[functionId].value, VTX_SETTINGS_MIN_BAND, VTX_SETTINGS_MAX_BAND);
+                    }
+                }
+                break;
+            case GLOBAL_FUNCTION_ACTION_SET_VTX_CHANNEL:
+                if (conditionValue && !previousValue) {
+                    vtxDeviceCapability_t vtxDeviceCapability;
+                    if (vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
+                        vtxSettingsConfigMutable()->channel = constrain(globalFunctionsStates[functionId].value, VTX_SETTINGS_MIN_CHANNEL, VTX_SETTINGS_MAX_CHANNEL);
+                    }
+                }
+                break;
             case GLOBAL_FUNCTION_ACTION_INVERT_ROLL:
                 if (conditionValue) {
                     GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_ROLL);
@@ -117,6 +133,12 @@ void globalFunctionsProcess(int8_t functionId) {
                 if (conditionValue) {
                     globalFunctionValues[GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE] = globalFunctionsStates[functionId].value;
                     GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE);
+                }
+                break;
+            case GLOBAL_FUNCTION_ACTION_SET_OSD_LAYOUT:
+                if(conditionValue){
+                    globalFunctionValues[GLOBAL_FUNCTION_ACTION_SET_OSD_LAYOUT] = globalFunctionsStates[functionId].value;
+                    GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_OSD_LAYOUT);
                 }
                 break;
         }
@@ -142,7 +164,7 @@ float NOINLINE getThrottleScale(float globalThrottleScale) {
     }
 }
 
-int16_t FAST_CODE getRcCommandOverride(int16_t command[], uint8_t axis) {
+int16_t getRcCommandOverride(int16_t command[], uint8_t axis) {
     int16_t outputValue = command[axis];
 
     if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_SWAP_ROLL_YAW) && axis == FD_ROLL) {

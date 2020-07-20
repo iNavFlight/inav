@@ -21,6 +21,8 @@
 
 #include "platform.h"
 
+FILE_COMPILE_FOR_SPEED
+
 #include "blackbox/blackbox.h"
 
 #include "build/debug.h"
@@ -30,7 +32,7 @@
 #include "common/color.h"
 #include "common/utils.h"
 #include "common/filter.h"
-#include "common/global_functions.h"
+#include "programming/global_functions.h"
 
 #include "drivers/light_led.h"
 #include "drivers/serial.h"
@@ -48,6 +50,7 @@
 #include "sensors/battery.h"
 #include "sensors/rangefinder.h"
 #include "sensors/opflow.h"
+#include "sensors/esc_sensor.h"
 
 #include "fc/fc_core.h"
 #include "fc/cli.h"
@@ -443,7 +446,7 @@ void releaseSharedTelemetryPorts(void) {
 void tryArm(void)
 {
     updateArmingStatus();
-#ifdef USE_GLOBAL_FUNCTIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
     if (
         !isArmingDisabled() || 
         emergencyArmingIsEnabled() || 
@@ -850,6 +853,10 @@ void taskRunRealtimeCallbacks(timeUs_t currentTimeUs)
 
 #ifdef USE_DSHOT
     pwmCompleteMotorUpdate();
+#endif
+
+#ifdef USE_ESC_SENSOR
+    escSensorUpdate(currentTimeUs);
 #endif
 }
 

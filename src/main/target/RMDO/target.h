@@ -28,15 +28,10 @@
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
-#define USE_GYRO
-#define USE_ACC
-
-#define USE_GYRO_MPU6050
-#define USE_ACC_MPU6050
+#define USE_IMU_MPU6050
+#define IMU_MPU6050_ALIGN       CW270_DEG
 #define MPU6050_I2C_BUS         BUS_I2C1
 
-#define GYRO_MPU6050_ALIGN      CW270_DEG
-#define ACC_MPU6050_ALIGN       CW270_DEG
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1

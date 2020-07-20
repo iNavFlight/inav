@@ -18,6 +18,13 @@ ifeq ($(UNAME), Linux)
   LINUX := 1
 endif
 
+# FreeBSD
+ifeq ($(UNAME), FreeBSD)
+  OSFAMILY := linux
+  LINUX := 1
+endif
+
+
 # Mac OSX
 ifeq ($(UNAME), Darwin)
   OSFAMILY := macosx

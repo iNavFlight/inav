@@ -14,8 +14,6 @@ COMMON_SRC = \
             common/filter.c \
             common/gps_conversion.c \
             common/log.c \
-            common/logic_condition.c \
-            common/global_functions.c \
             common/maths.c \
             common/memory.c \
             common/olc.c \
@@ -25,6 +23,10 @@ COMMON_SRC = \
             common/time.c \
             common/typeconversion.c \
             common/uvarint.c \
+            programming/logic_condition.c \
+            programming/global_functions.c \
+            programming/global_variables.c \
+            programming/programming_task.c \
             config/config_eeprom.c \
             config/config_streamer.c \
             config/feature.c \
@@ -43,8 +45,10 @@ COMMON_SRC = \
             drivers/exti.c \
             drivers/io.c \
             drivers/io_pca9685.c \
+            drivers/irlock.c \
             drivers/light_led.c \
             drivers/osd.c \
+            drivers/persistent.c \
             drivers/resource.c \
             drivers/rx_nrf24l01.c \
             drivers/rx_spi.c \
@@ -62,7 +66,9 @@ COMMON_SRC = \
             drivers/sound_beeper.c \
             drivers/stack_check.c \
             drivers/system.c \
+            drivers/time.c \
             drivers/timer.c \
+            drivers/usb_msc.c \
             drivers/lights_io.c \
             drivers/1-wire.c \
             drivers/1-wire/ds_crc.c \
@@ -99,8 +105,10 @@ COMMON_SRC = \
             flight/gyroanalyse.c \
             flight/rpm_filter.c \
             flight/dynamic_gyro_notch.c \
+            flight/kalman.c \
             io/beeper.c \
             io/esc_serialshot.c \
+            io/servo_sbus.c \
             io/frsky_osd.c \
             io/osd_dji_hd.c \
             io/lights.c \
@@ -127,6 +135,7 @@ COMMON_SRC = \
             rx/nrf24_syma.c \
             rx/nrf24_v202.c \
             rx/pwm.c \
+            rx/frsky_crc.c \
             rx/rx.c \
             rx/rx_spi.c \
             rx/sbus.c \
@@ -139,13 +148,14 @@ COMMON_SRC = \
             scheduler/scheduler.c \
             sensors/acceleration.c \
             sensors/battery.c \
-            sensors/temperature.c \
             sensors/boardalignment.c \
             sensors/compass.c \
             sensors/diagnostics.c \
             sensors/gyro.c \
             sensors/initialisation.c \
             sensors/esc_sensor.c \
+            sensors/irlock.c \
+            sensors/temperature.c \
             uav_interconnect/uav_interconnect_bus.c \
             uav_interconnect/uav_interconnect_rangefinder.c \
             blackbox/blackbox.c \
@@ -192,6 +202,7 @@ COMMON_SRC = \
             io/osd_common.c \
             io/osd_grid.c \
             io/osd_hud.c \
+            io/smartport_master.c \
             navigation/navigation.c \
             navigation/navigation_fixedwing.c \
             navigation/navigation_fw_launch.c \
@@ -200,6 +211,7 @@ COMMON_SRC = \
             navigation/navigation_pos_estimator.c \
             navigation/navigation_pos_estimator_agl.c \
             navigation/navigation_pos_estimator_flow.c \
+            navigation/navigation_rover_boat.c \
             sensors/barometer.c \
             sensors/pitotmeter.c \
             sensors/rangefinder.c \
@@ -234,6 +246,7 @@ TARGET_SRC   := $(filter-out $(MCU_EXCLUDES), $(TARGET_SRC))
 
 ifneq ($(filter ONBOARDFLASH,$(FEATURES)),)
 TARGET_SRC += \
+            drivers/flash.c \
             drivers/flash_m25p16.c \
             io/flashfs.c \
             $(MSC_SRC)
@@ -268,7 +281,6 @@ TARGET_SRC += $(DSP_LIB)/Source/TransformFunctions/arm_cfft_f32.c
 TARGET_SRC += $(DSP_LIB)/Source/TransformFunctions/arm_rfft_fast_init_f32.c
 TARGET_SRC += $(DSP_LIB)/Source/TransformFunctions/arm_cfft_radix8_f32.c
 TARGET_SRC += $(DSP_LIB)/Source/CommonTables/arm_common_tables.c
-
 TARGET_SRC += $(DSP_LIB)/Source/ComplexMathFunctions/arm_cmplx_mag_f32.c
 TARGET_SRC += $(DSP_LIB)/Source/StatisticsFunctions/arm_max_f32.c
 
@@ -277,3 +289,14 @@ endif
 
 # Search path and source files for the ST stdperiph library
 VPATH        := $(VPATH):$(STDPERIPH_DIR)/src
+
+SIZE_OPTIMISED_SRC := ""
+SPEED_OPTIMISED_SRC := ""
+ifneq ($(TARGET),$(filter $(TARGET),$(F3_TARGETS)))
+# SIZE_OPTIMISED_SRC := $(SIZE_OPTIMISED_SRC) \
+            # ./src/main/common/filter.c \
+
+# SPEED_OPTIMISED_SRC := $(SPEED_OPTIMISED_SRC) \
+            # ./src/main/common/maths.c \
+
+endif #!F3

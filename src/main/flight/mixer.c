@@ -21,13 +21,15 @@
 
 #include "platform.h"
 
+FILE_COMPILE_FOR_SPEED
+
 #include "build/debug.h"
 
 #include "common/axis.h"
 #include "common/filter.h"
 #include "common/maths.h"
 #include "common/utils.h"
-#include "common/global_functions.h"
+#include "programming/global_functions.h"
 
 #include "config/feature.h"
 #include "config/parameter_group.h"
@@ -138,7 +140,7 @@ static void computeMotorCount(void)
     }
 }
 
-uint8_t FAST_CODE NOINLINE getMotorCount(void) {
+uint8_t getMotorCount(void) {
     return motorCount;
 }
 
@@ -290,7 +292,8 @@ void mixerResetDisarmedMotors(void)
     }
 }
 
-static FAST_CODE NOINLINE uint16_t handleOutputScaling(
+#ifdef USE_DSHOT
+static uint16_t handleOutputScaling(
     int16_t input,          // Input value from the mixer
     int16_t stopThreshold,  // Threshold value to check if motor should be rotating or not
     int16_t onStopValue,    // Value sent to the ESC when min rotation is required - on motor_stop it is STOP command, without motor_stop it's a value that keeps rotation
@@ -317,8 +320,9 @@ static FAST_CODE NOINLINE uint16_t handleOutputScaling(
     }
     return value;
 }
+#endif
 
-void FAST_CODE NOINLINE writeMotors(void)
+void FAST_CODE writeMotors(void)
 {
     for (int i = 0; i < motorCount; i++) {
         uint16_t motorValue;
@@ -438,7 +442,7 @@ static int getReversibleMotorsThrottleDeadband(void)
     return feature(FEATURE_MOTOR_STOP) ? reversibleMotorsConfig()->neutral : directionValue;
 }
 
-void FAST_CODE NOINLINE mixTable(const float dT)
+void FAST_CODE mixTable(const float dT)
 {
     int16_t input[3];   // RPY, range [-500:+500]
     // Allow direct stick input to motors in passthrough mode on airplanes
@@ -473,14 +477,13 @@ void FAST_CODE NOINLINE mixTable(const float dT)
     int16_t rpyMixRange = rpyMixMax - rpyMixMin;
     int16_t throttleRange;
     int16_t throttleMin, throttleMax;
-    // static int16_t throttlePrevious = 0;   // Store the last throttle direction for deadband transitions
 
     // Find min and max throttle based on condition.
-#ifdef USE_GLOBAL_FUNCTIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
     if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE)) {
         throttleRangeMin = throttleIdleValue;
         throttleRangeMax = motorConfig()->maxthrottle;
-        mixerThrottleCommand = constrain(globalFunctionValues[GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE], throttleMin, throttleMax); 
+        mixerThrottleCommand = constrain(globalFunctionValues[GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE], throttleRangeMin, throttleRangeMax); 
     } else
 #endif
     if (feature(FEATURE_REVERSIBLE_MOTORS)) {
@@ -511,14 +514,14 @@ void FAST_CODE NOINLINE mixTable(const float dT)
         throttleRangeMax = motorConfig()->maxthrottle;
 
         // Throttle scaling to limit max throttle when battery is full
-    #ifdef USE_GLOBAL_FUNCTIONS
-        mixerThrottleCommand = ((mixerThrottleCommand - throttleMin) * getThrottleScale(motorConfig()->throttleScale)) + throttleMin;
+    #ifdef USE_PROGRAMMING_FRAMEWORK
+        mixerThrottleCommand = ((mixerThrottleCommand - throttleRangeMin) * getThrottleScale(motorConfig()->throttleScale)) + throttleRangeMin;
     #else
-        mixerThrottleCommand = ((mixerThrottleCommand - throttleMin) * motorConfig()->throttleScale) + throttleMin;
+        mixerThrottleCommand = ((mixerThrottleCommand - throttleRangeMin) * motorConfig()->throttleScale) + throttleRangeMin;
     #endif
         // Throttle compensation based on battery voltage
         if (feature(FEATURE_THR_VBAT_COMP) && isAmperageConfigured() && feature(FEATURE_VBAT)) {                
-            mixerThrottleCommand = MIN(throttleMin + (mixerThrottleCommand - throttleMin) * calculateThrottleCompensationFactor(), throttleMax);
+            mixerThrottleCommand = MIN(throttleRangeMin + (mixerThrottleCommand - throttleRangeMin) * calculateThrottleCompensationFactor(), throttleRangeMax);
         }
     }
 

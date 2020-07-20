@@ -50,6 +50,7 @@ typedef enum {
 #define DYN_NOTCH_RANGE_HZ_LOW 1000
 
 typedef struct gyro_s {
+    bool initialized;
     uint32_t targetLooptime;
     float gyroADCf[XYZ_AXIS_COUNT];
 } gyro_t;
@@ -65,22 +66,23 @@ typedef struct gyroConfig_s {
     uint8_t  gyro_soft_lpf_hz;
     uint8_t  gyro_soft_lpf_type;
     uint8_t  gyro_to_use;
-    uint16_t gyro_soft_notch_hz_1;
-    uint16_t gyro_soft_notch_cutoff_1;
-    uint16_t gyro_soft_notch_hz_2;
-    uint16_t gyro_soft_notch_cutoff_2;
+    uint16_t gyro_notch_hz;
+    uint16_t gyro_notch_cutoff;
     uint16_t gyro_stage2_lowpass_hz;
     uint8_t gyro_stage2_lowpass_type;
     uint8_t dynamicGyroNotchRange;
     uint16_t dynamicGyroNotchQ;
     uint16_t dynamicGyroNotchMinHz;
     uint8_t dynamicGyroNotchEnabled;
+    uint16_t kalman_q;
+    uint16_t kalman_w;
+    uint16_t kalman_sharpness;
+    uint8_t kalmanEnabled;
 } gyroConfig_t;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);
 
 bool gyroInit(void);
-void gyroInitFilters(void);
 void gyroGetMeasuredRotationRate(fpVector3_t *imuMeasuredRotationBF);
 void gyroUpdate(void);
 void gyroStartCalibration(void);

@@ -32,8 +32,19 @@ ifdef WINDOWS
 endif
 
 ARM_SDK_FILE := $(notdir $(ARM_SDK_URL))
+ARM_SDK_DOWNLOAD_PATH := $(DL_DIR)/$(ARM_SDK_FILE)
 
 SDK_INSTALL_MARKER := $(ARM_SDK_DIR)/bin/arm-none-eabi-gcc-$(GCC_REQUIRED_VERSION)
+
+.PHONY: arm_sdk_print_filename
+
+arm_sdk_print_filename:
+	@echo $(ARM_SDK_FILE)
+
+.PHONY: arm_sdk_print_download_path
+
+arm_sdk_print_download_path:
+	@echo $(ARM_SDK_DOWNLOAD_PATH)
 
 arm_sdk_install: | $(TOOLS_DIR)
 
@@ -42,17 +53,17 @@ arm_sdk_install: arm_sdk_download $(SDK_INSTALL_MARKER)
 $(SDK_INSTALL_MARKER):
 ifneq ($(OSFAMILY), windows)
     # binary only release so just extract it
-	$(V1) tar -C $(TOOLS_DIR) -xjf "$(DL_DIR)/$(ARM_SDK_FILE)"
+	$(V1) tar -C $(TOOLS_DIR) -xjf "$(ARM_SDK_DOWNLOAD_PATH)"
 else
-	$(V1) unzip -q -d $(ARM_SDK_DIR) "$(DL_DIR)/$(ARM_SDK_FILE)"
+	$(V1) unzip -q -d $(ARM_SDK_DIR) "$(ARM_SDK_DOWNLOAD_PATH)"
 endif
 
 .PHONY: arm_sdk_download
 arm_sdk_download: | $(DL_DIR)
-arm_sdk_download: $(DL_DIR)/$(ARM_SDK_FILE)
-$(DL_DIR)/$(ARM_SDK_FILE):
+arm_sdk_download: $(ARM_SDK_DOWNLOAD_PATH)
+$(ARM_SDK_DOWNLOAD_PATH):
     # download the source only if it's newer than what we already have
-	$(V1) curl -L -k -o "$(DL_DIR)/$(ARM_SDK_FILE)" -z "$(DL_DIR)/$(ARM_SDK_FILE)" "$(ARM_SDK_URL)"
+	$(V1) curl -L -k -o "$(ARM_SDK_DOWNLOAD_PATH)" -z "$(ARM_SDK_DOWNLOAD_PATH)" "$(ARM_SDK_URL)"
 
 
 ## arm_sdk_clean     : Uninstall Arm SDK
@@ -69,7 +80,7 @@ arm_sdk_clean:
 
 ifeq ($(shell [ -d "$(ARM_SDK_DIR)" ] && echo "exists"), exists)
   ARM_SDK_PREFIX := $(ARM_SDK_DIR)/bin/arm-none-eabi-
-else ifeq (,$(findstring _install,$(MAKECMDGOALS)))
+else ifeq (,$(findstring print_,$(MAKECMDGOALS))$(filter targets,$(MAKECMDGOALS))$(findstring arm_sdk,$(MAKECMDGOALS)))
   GCC_VERSION = $(shell arm-none-eabi-gcc -dumpversion)
   ifeq ($(GCC_VERSION),)
     $(error **ERROR** arm-none-eabi-gcc not in the PATH. Run 'make arm_sdk_install' to install automatically in the tools folder of this repo)

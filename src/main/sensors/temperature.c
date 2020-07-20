@@ -210,13 +210,13 @@ PROTOTHREAD(temperatureUpdate)
         } else
             mpuBaroTempValid &= ~(1 << MPU_TEMP_VALID_BIT);
 
-        #ifdef USE_BARO
+#ifdef USE_BARO
         if (sensors(SENSOR_BARO)) {
             baroTemperature = baroGetTemperature();
             mpuBaroTempValid |= (1 << BARO_TEMP_VALID_BIT);
         } else
             mpuBaroTempValid &= ~(1 << BARO_TEMP_VALID_BIT);
-        #endif
+#endif
 
 #ifdef USE_TEMPERATURE_SENSOR
 
