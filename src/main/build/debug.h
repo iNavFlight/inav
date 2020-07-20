@@ -73,5 +73,6 @@ typedef enum {
     DEBUG_IRLOCK,
     DEBUG_CD,
     DEBUG_KALMAN,
+    DEBUG_PCF8574,
     DEBUG_COUNT
 } debugType_e;

@@ -83,6 +83,7 @@
 #include "msc/emfat_file.h"
 #endif
 #include "drivers/sdcard/sdcard.h"
+#include "drivers/io_pcf8574.h"
 
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -672,6 +673,11 @@ void init(void)
         rpmFiltersInit();
         setTaskEnabled(TASK_RPM_FILTER, true);
     }
+#endif
+
+#ifdef USE_PCF8574
+    bool pcfActive = pcf8574Init();
+    DEBUG_SET(DEBUG_PCF8574, 1, pcfActive);
 #endif
 
     // Considering that the persistent reset reason is only used during init
