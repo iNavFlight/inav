@@ -29,27 +29,28 @@
 #define MAX_LOGIC_CONDITIONS 16
 
 typedef enum {
-    LOGIC_CONDITION_TRUE = 0,       // 0
-    LOGIC_CONDITION_EQUAL,          // 1
-    LOGIC_CONDITION_GREATER_THAN,   // 2
-    LOGIC_CONDITION_LOWER_THAN,     // 3
-    LOGIC_CONDITION_LOW,            // 4
-    LOGIC_CONDITION_MID,            // 5
-    LOGIC_CONDITION_HIGH,           // 6
-    LOGIC_CONDITION_AND,            // 7
-    LOGIC_CONDITION_OR,             // 8
-    LOGIC_CONDITION_XOR,            // 9
-    LOGIC_CONDITION_NAND,           // 10
-    LOGIC_CONDITION_NOR,            // 11
-    LOGIC_CONDITION_NOT,            // 12
-    LOGIC_CONDITION_STICKY,         // 13
-    LOGIC_CONDITION_ADD,            // 14
-    LOGIC_CONDITION_SUB,            // 15
-    LOGIC_CONDITION_MUL,            // 16
-    LOGIC_CONDITION_DIV,            // 17
-    LOGIC_CONDITION_GVAR_SET,       // 18
-    LOGIC_CONDITION_GVAR_INC,       // 19
-    LOGIC_CONDITION_GVAR_DEC,       // 20
+    LOGIC_CONDITION_TRUE            = 0,
+    LOGIC_CONDITION_EQUAL           = 1,
+    LOGIC_CONDITION_GREATER_THAN    = 2,
+    LOGIC_CONDITION_LOWER_THAN      = 3,
+    LOGIC_CONDITION_LOW             = 4,
+    LOGIC_CONDITION_MID             = 5,
+    LOGIC_CONDITION_HIGH            = 6,
+    LOGIC_CONDITION_AND             = 7,
+    LOGIC_CONDITION_OR              = 8,
+    LOGIC_CONDITION_XOR             = 9,
+    LOGIC_CONDITION_NAND            = 10,
+    LOGIC_CONDITION_NOR             = 11,
+    LOGIC_CONDITION_NOT             = 12,
+    LOGIC_CONDITION_STICKY          = 13,
+    LOGIC_CONDITION_ADD             = 14,
+    LOGIC_CONDITION_SUB             = 15,
+    LOGIC_CONDITION_MUL             = 16,
+    LOGIC_CONDITION_DIV             = 17,
+    LOGIC_CONDITION_GVAR_SET        = 18,
+    LOGIC_CONDITION_GVAR_INC        = 19,
+    LOGIC_CONDITION_GVAR_DEC        = 20,
+    LOGIC_CONDITION_PORT_SET        = 128,
     LOGIC_CONDITION_LAST
 } logicOperation_e;
 

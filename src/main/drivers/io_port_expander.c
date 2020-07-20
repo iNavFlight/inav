@@ -23,62 +23,45 @@
  */
 
 #include <stdbool.h>
-#include <stdint.h>
-#include "drivers/bus.h"
+#include "platform.h"
+#include "drivers/io_port_expander.h"
 #include "drivers/io_pcf8574.h"
-#include "drivers/time.h"
-#include "build/debug.h"
 
-#define PCF8574_WRITE_ADDRESS 0x40
-#define PCF8574_READ_ADDRESS 0x41
+#ifdef USE_I2C_IO_EXPANDER
 
-static busDevice_t *busDev;
+static ioPortExpanderState_t ioPortExpanderState;
 
-static bool deviceDetect(busDevice_t *busDev)
+void ioPortExpanderInit(void)
 {
-    for (int retry = 0; retry < 5; retry++)
-    {
-        uint8_t sig;
 
-        delay(150);
+    ioPortExpanderState.active = pcf8574Init();
 
-        bool ack = busRead(busDev, 0x00, &sig);
-        if (ack)
-        {
-            return true;
-        }
-    };
-
-    return false;
-}
-
-bool pcf8574Init(void)
-{
-    busDev = busDeviceInit(BUSTYPE_I2C, DEVHW_PCF8574, 0, 0);
-    if (busDev == NULL)
-    {
-        DEBUG_SET(DEBUG_PCF8574, 0, 1);
-        return false;
+    if (ioPortExpanderState.active) {
+        ioPortExpanderState.state = 0x00;
+        pcf8574Write(ioPortExpanderState.state); //Set all ports to OFF
     }
 
-    if (!deviceDetect(busDev))
-    {
-        DEBUG_SET(DEBUG_PCF8574, 0, 2);
-        busDeviceDeInit(busDev);
-        return false;
+}
+
+void ioPortExpanderSet(uint8_t pin, uint8_t value)
+{
+    if (pin > 7) {
+        return;
     }
 
-    return true;
+    //Cast to 0/1
+    value = (bool) value;
+
+    ioPortExpanderState.state ^= (-value ^ ioPortExpanderState.state) & (1UL << pin);
+    ioPortExpanderState.shouldSync = true;
 }
 
-void pcf8574Write(uint8_t data)
+void ioPortExpanderSync(void)
 {
-    busWrite(busDev, PCF8574_WRITE_ADDRESS, data);
+    if (ioPortExpanderState.active && ioPortExpanderState.shouldSync) {
+        pcf8574Write(ioPortExpanderState.state);
+        ioPortExpanderState.shouldSync = false;;
+    }
 }
 
-uint8_t pcf8574Read(void)
-{
-    uint8_t data;
-    busRead(busDev, PCF8574_READ_ADDRESS, &data);
-    return data;
-}
+#endif

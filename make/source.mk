@@ -46,6 +46,7 @@ COMMON_SRC = \
             drivers/io.c \
             drivers/io_pca9685.c \
             drivers/io_pcf8574.c \
+            drivers/io_port_expander.c \
             drivers/irlock.c \
             drivers/light_led.c \
             drivers/osd.c \
