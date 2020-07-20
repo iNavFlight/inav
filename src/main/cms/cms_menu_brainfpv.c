@@ -75,6 +75,7 @@ OSD_Entry cmsx_menuBrainFPVOsdEntries[] =
     OSD_UINT8_ENTRY("OSD SYNC TH", (&(const OSD_UINT8_t){ &bfOsdConfigCms.sync_threshold, BRAINFPV_OSD_SYNC_TH_MIN, BRAINFPV_OSD_SYNC_TH_MAX, 1 })),
     OSD_INT8_ENTRY("OSD X OFF", (&(const OSD_INT8_t){ &bfOsdConfigCms.x_offset, -8, 7, 1 })),
     OSD_UINT8_ENTRY("OSD X SC", (&(const OSD_UINT8_t){ &bfOsdConfigCms.x_scale, 0, 15, 1 })),
+    OSD_INT8_ENTRY("OSD Y OFF", (&(const OSD_INT8_t){ &bfOsdConfigCms.center_mark_offset, -100, 100, 1 })),
     OSD_BOOL_ENTRY("3D MODE",  &bfOsdConfigCms.sbs_3d_enabled),
     OSD_UINT8_ENTRY("3D R SHIFT", (&(const OSD_UINT8_t){ &bfOsdConfigCms.sbs_3d_right_eye_offset, 10, 40, 1 })),
 

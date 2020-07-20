@@ -131,7 +131,8 @@ PG_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig,
   .crsf_link_stats_power = 1,
   .crsf_link_stats_rssi = CRSF_LQ_LOW,
   .crsf_link_stats_snr = CRSF_SNR_LOW,
-  .crsf_link_stats_snr_threshold = -2
+  .crsf_link_stats_snr_threshold = -2,
+  .center_mark_offset = 0,
 );
 
 const char * const gitTag = __GIT_TAG__;
@@ -431,8 +432,10 @@ void brainFpvOsdMain(void) {
 
 void brainFpvOsdArtificialHorizon(void)
 {
+	uint16_t y_pos = GRAPHICS_Y_MIDDLE + bfOsdConfig()->center_mark_offset;
+
     simple_artificial_horizon(attitude.values.roll, -1 * attitude.values.pitch,
-                              GRAPHICS_X_MIDDLE, GRAPHICS_Y_MIDDLE,
+                              GRAPHICS_X_MIDDLE, y_pos,
                               GRAPHICS_RIGHT * 0.8f, GRAPHICS_BOTTOM, 30,
                               bfOsdConfig()->ahi_steps);
 }
@@ -443,12 +446,14 @@ void brainFpvOsdArtificialHorizon(void)
 #define PITCH_STEP       10
 void brainFpvOsdCenterMark(void)
 {
-    write_line_outlined(GRAPHICS_X_MIDDLE - CENTER_WING - CENTER_BODY, GRAPHICS_Y_MIDDLE ,
-            GRAPHICS_X_MIDDLE - CENTER_BODY, GRAPHICS_Y_MIDDLE, 2, 0, 0, 1);
-    write_line_outlined(GRAPHICS_X_MIDDLE + 1 + CENTER_BODY, GRAPHICS_Y_MIDDLE,
-            GRAPHICS_X_MIDDLE + 1 + CENTER_BODY + CENTER_WING, GRAPHICS_Y_MIDDLE, 0, 2, 0, 1);
-    write_line_outlined(GRAPHICS_X_MIDDLE, GRAPHICS_Y_MIDDLE - CENTER_RUDDER - CENTER_BODY, GRAPHICS_X_MIDDLE,
-            GRAPHICS_Y_MIDDLE - CENTER_BODY, 2, 0, 0, 1);
+	uint16_t y_pos = GRAPHICS_Y_MIDDLE + bfOsdConfig()->center_mark_offset;
+
+    write_line_outlined(GRAPHICS_X_MIDDLE - CENTER_WING - CENTER_BODY, y_pos ,
+            GRAPHICS_X_MIDDLE - CENTER_BODY, y_pos, 2, 0, 0, 1);
+    write_line_outlined(GRAPHICS_X_MIDDLE + 1 + CENTER_BODY, y_pos,
+            GRAPHICS_X_MIDDLE + 1 + CENTER_BODY + CENTER_WING, y_pos, 0, 2, 0, 1);
+    write_line_outlined(GRAPHICS_X_MIDDLE, y_pos - CENTER_RUDDER - CENTER_BODY, GRAPHICS_X_MIDDLE,
+            y_pos - CENTER_BODY, 2, 0, 0, 1);
 }
 
 
@@ -644,6 +649,7 @@ const point_t UAV_SYM[] = {
 void brainFpvRadarMap(void)
 {
     uint16_t x, y;
+	uint16_t y_pos = GRAPHICS_Y_MIDDLE + bfOsdConfig()->center_mark_offset;
 
     //===========================================================================================
     // Draw Home location on map
@@ -662,7 +668,7 @@ void brainFpvRadarMap(void)
         int16_t home_dir = GPS_directionToHome - DECIDEGREES_TO_DEGREES(attitude.values.yaw);
 
         x = GRAPHICS_X_MIDDLE + roundf(distance_px * sin_approx(DEGREES_TO_RADIANS(home_dir)));
-        y = GRAPHICS_Y_MIDDLE - roundf(distance_px * cos_approx(DEGREES_TO_RADIANS(home_dir)));
+        y = y_pos - roundf(distance_px * cos_approx(DEGREES_TO_RADIANS(home_dir)));
 
         // draw H to indicate home
         write_string("H", x + 1, y - 3, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
@@ -689,7 +695,7 @@ void brainFpvRadarMap(void)
         distance_px = MAP_MAX_DIST_PX * distance / (float)bfOsdConfig()->radar_max_dist_m;
 
         x = GRAPHICS_X_MIDDLE + roundf(distance_px * sin_approx(DEGREES_TO_RADIANS(direction)));
-        y = GRAPHICS_Y_MIDDLE - roundf(distance_px * cos_approx(DEGREES_TO_RADIANS(direction)));
+        y = y_pos - roundf(distance_px * cos_approx(DEGREES_TO_RADIANS(direction)));
 
         // Toggle between showing UAV with heading and name / alt difference
         if ((osd_draw_time_ms / 1000) % 2 == 0) {
@@ -738,7 +744,7 @@ void brainFpvRadarMap(void)
         distance_px = MAP_MAX_DIST_PX * distance / (float)bfOsdConfig()->radar_max_dist_m;
 
         x = GRAPHICS_X_MIDDLE + roundf(distance_px * sin_approx(DEGREES_TO_RADIANS(direction)));
-        y = GRAPHICS_Y_MIDDLE - roundf(distance_px * cos_approx(DEGREES_TO_RADIANS(direction)));
+        y = y_pos - roundf(distance_px * cos_approx(DEGREES_TO_RADIANS(direction)));
 
         char buff[10];
         tfp_sprintf(buff, "%d", i);

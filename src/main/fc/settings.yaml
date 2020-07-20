@@ -2177,6 +2177,10 @@ groups:
         field: crsf_link_stats_snr_threshold
         min: -10
         max: 10
+      - name: brainfpv_center_mark_offset
+        field: center_mark_offset
+        min: -100
+        max: 100
 
   - name: PG_VTX_CONFIG
     type: vtxConfig_t

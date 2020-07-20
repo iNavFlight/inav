@@ -31,6 +31,7 @@ typedef struct bfOsdConfig_s {
     uint8_t crsf_link_stats_rssi;
     uint8_t crsf_link_stats_snr;
     int8_t crsf_link_stats_snr_threshold;
+    int8_t center_mark_offset;
 } bfOsdConfig_t;
 
 typedef enum {
