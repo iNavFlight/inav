@@ -204,6 +204,7 @@ COMMON_SRC = \
             io/osd_common.c \
             io/osd_grid.c \
             io/osd_hud.c \
+            io/smartport_master.c \
             navigation/navigation.c \
             navigation/navigation_fixedwing.c \
             navigation/navigation_fw_launch.c \
