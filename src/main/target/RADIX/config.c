@@ -32,6 +32,8 @@ void targetConfiguration(void)
     //blackboxConfigMutable()->p_denom = 128;
     osdConfigMutable()->rssi_alarm = 70; // for CRSF
 
+    systemConfigMutable()->i2c_speed = I2C_SPEED_800KHZ;
+
     if (brainfpv_is_radixli()) {
         // value for RADIX LI wPB
         batteryMetersConfigMutable()->current.scale = 500;
