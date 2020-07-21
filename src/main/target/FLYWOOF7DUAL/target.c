@@ -15,6 +15,7 @@
  * along with INAV.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdint.h>
 #include <stdbool.h>
 #include <platform.h>
 #include "drivers/io.h"
@@ -22,6 +23,7 @@
 #include "drivers/timer.h"
 #include "drivers/sensor.h"
 #include "drivers/pwm_mapping.h"
+#include "io/piniobox.h"
 
 // IMU 1
 BUSDEV_REGISTER_SPI_TAG(busdev_mpu6000_1,   DEVHW_MPU6000,  GYRO_1_SPI_BUS, GYRO_1_CS_PIN,  GYRO_1_EXTI_PIN,    0,  DEVFLAGS_NONE,  GYRO_1_ALIGN);
@@ -45,3 +47,9 @@ const timerHardware_t timerHardware[] = {
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
+
+void targetConfiguration(void)
+{
+    pinioBoxConfigMutable()->permanentId[0] = 47;
+    pinioBoxConfigMutable()->permanentId[1] = 48;
+}

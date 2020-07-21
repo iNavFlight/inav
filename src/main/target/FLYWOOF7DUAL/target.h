@@ -133,12 +133,10 @@
 
 
 /*** PINIO ***/
-/*
 #define USE_PINIO
-#define PINIO1_PIN              PB0 // VTX power switcher
-#define PINIO2_PIN              PB9 // 2xCamera switcher
 #define USE_PINIOBOX
-*/
+#define PINIO1_PIN                      PB0
+#define PINIO2_PIN                      PB9
 
 /*** LED STRIP ***/
 #define USE_LED_STRIP
