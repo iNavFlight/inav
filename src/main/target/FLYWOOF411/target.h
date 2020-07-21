@@ -17,9 +17,8 @@
 
 #pragma once
 
-
-#define TARGET_BOARD_IDENTIFIER "FLYWOOF411"
-#define USBD_PRODUCT_STRING  "FlywooF411"
+#define TARGET_BOARD_IDENTIFIER "FW41"
+#define USBD_PRODUCT_STRING     "FLYWOOF411"
 
 #define LED0                    PC13
 
@@ -30,14 +29,14 @@
 // *************** SPI **********************
 #define USE_SPI
 #define USE_SPI_DEVICE_1
-#define SPI1_SCK_PIN            PA5
-#define SPI1_MISO_PIN   	PA6
-#define SPI1_MOSI_PIN   	PA7
+#define SPI1_SCK_PIN           PA5
+#define SPI1_MISO_PIN   	   PA6
+#define SPI1_MOSI_PIN   	   PA7
 
 #define USE_SPI_DEVICE_2
-#define SPI2_SCK_PIN            PB13
-#define SPI2_MISO_PIN  		PB14
-#define SPI2_MOSI_PIN  		PB15
+#define SPI2_SCK_PIN           PB13
+#define SPI2_MISO_PIN  		   PB14
+#define SPI2_MOSI_PIN  		   PB15
 
 
 // *************** SPI Gyro & ACC **********************
@@ -64,7 +63,7 @@
 #define I2C1_SDA                PB9
 
 #define USE_BARO
-#define BARO_I2C_BUS		BUS_I2C1
+#define BARO_I2C_BUS		    BUS_I2C1
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 
@@ -91,8 +90,6 @@
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
 // *************** UART *****************************
-//#define USE_UART_INVERTER
-
 #define USE_VCP
 
 #define USE_UART1
@@ -100,17 +97,14 @@
 #define UART1_RX_PIN            PB7
 
 #define USE_UART2
-#define UART2_TX_PIN            PA2
+#define UART2_TX_PIN            NONE    //PA2
 #define UART2_RX_PIN            PA3
 
-// #define INVERTER_PIN_UART2      PC14
-//#define INVERTER_PIN_UART2_RX   PC14 // PC14 used as inverter select GPIO
-
 #define USE_SOFTSERIAL1
-#define SOFTSERIAL_1_TX_PIN      PA2 // Workaround for softserial not initializing with only RX
-#define SOFTSERIAL_1_RX_PIN      PA2 // Backdoor timer on UART2_TX, used for ESC telemetry
+#define SOFTSERIAL_1_TX_PIN     PA2     // Clash with TX2, possible to use as S.Port or VTX control
+#define SOFTSERIAL_1_RX_PIN     PA2
 
-#define SERIAL_PORT_COUNT       4 //VCP, USART1, USART2, SOFTSERIAL1
+#define SERIAL_PORT_COUNT       4       // VCP, USART1, USART2, SS1
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
@@ -118,24 +112,21 @@
 
 // *************** ADC *****************************
 #define USE_ADC
-#define ADC_INSTANCE                         ADC1
+#define ADC_INSTANCE                    ADC1
 #define ADC_CHANNEL_1_PIN               PA1
 #define ADC_CHANNEL_2_PIN               PA0
 #define ADC_CHANNEL_3_PIN               PB1
 
-#define CURRENT_METER_ADC_CHANNEL        ADC_CHN_1
-#define VBAT_ADC_CHANNEL                 ADC_CHN_2
-#define RSSI_ADC_CHANNEL                   ADC_CHN_3
+#define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
+#define VBAT_ADC_CHANNEL                ADC_CHN_2
+#define RSSI_ADC_CHANNEL                ADC_CHN_3
 
 // *************** LED2812 ************************
 #define USE_LED_STRIP
 #define WS2811_PIN                      PA15
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST6_HANDLER
-#define WS2811_DMA_STREAM               DMA1_Stream6
-#define WS2811_DMA_CHANNEL              DMA_Channel_6
 
 // ***************  OTHERS *************************
-#define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_OSD | FEATURE_VBAT | FEATURE_TELEMETRY | FEATURE_SOFTSERIAL)
+#define DEFAULT_FEATURES                (FEATURE_TX_PROF_SEL | FEATURE_OSD | FEATURE_VBAT | FEATURE_TELEMETRY | FEATURE_SOFTSERIAL)
 
 #define USE_DSHOT
 #define USE_ESC_SENSOR
@@ -148,5 +139,3 @@
 #define TARGET_IO_PORTD        (BIT(2))
 
 #define MAX_PWM_OUTPUT_PORTS       4
-
-
