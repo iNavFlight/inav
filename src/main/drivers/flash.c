@@ -287,6 +287,13 @@ void flashPartitionErase(flashPartition_t *partition)
 {
     const flashGeometry_t * const geometry = flashGetGeometry();
 
+    // if there's a single FLASHFS partition and it uses the entire flash then do a full erase
+    const bool doFullErase = (flashPartitionCount() == 1) && (FLASH_PARTITION_SECTOR_COUNT(partition) == geometry->sectors);
+    if (doFullErase) {
+        flashEraseCompletely();
+        return;
+    }
+
     for (unsigned i = partition->startSector; i <= partition->endSector; i++) {
         uint32_t flashAddress = geometry->sectorSize * i;
         flashEraseSector(flashAddress);
