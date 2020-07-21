@@ -186,6 +186,9 @@ extern bool brainfpv_settings_updated_from_cms;
 void brainFPVUpdateSettings(void);
 bool brainfpv_is_radixli(void);
 
+// Enable to suppress warning
+#define USE_I2C
+
 // Remove unused sensors etc to reduce flash requirements
 
 #undef USE_RANGEFINDER_BENEWAKE
