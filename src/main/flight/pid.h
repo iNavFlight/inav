@@ -54,6 +54,8 @@ FP-PID has been rescaled to match LuxFloat (and MWRewrite) from Cleanflight 1.13
 
 #define ANTI_GRAVITY_THROTTLE_FILTER_CUTOFF 15  // The anti gravity throttle highpass filter cutoff
 
+#define TASK_AUX_RATE_HZ   100 //In Hz
+
 typedef enum {
     /* PID              MC      FW  */
     PID_ROLL,       //   +       +
@@ -176,7 +178,7 @@ struct motorConfig_s;
 struct rxConfig_s;
 
 void schedulePidGainsUpdate(void);
-void updatePIDCoefficients(float dT);
+void updatePIDCoefficients(void);
 void pidController(float dT);
 
 float pidRateToRcCommand(float rateDPS, uint8_t rate);

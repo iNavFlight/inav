@@ -290,12 +290,19 @@ void taskUpdateOsd(timeUs_t currentTimeUs)
 }
 #endif
 
+void taskUpdateAux(timeUs_t currentTimeUs)
+{
+    UNUSED(currentTimeUs);
+    updatePIDCoefficients();
+}
+
 void fcTasksInit(void)
 {
     schedulerInit();
 
     rescheduleTask(TASK_GYROPID, getLooptime());
     setTaskEnabled(TASK_GYROPID, true);
+    setTaskEnabled(TASK_AUX, true);
 
     setTaskEnabled(TASK_SERIAL, true);
 #ifdef BEEPER
@@ -610,4 +617,10 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .staticPriority = TASK_PRIORITY_LOW,
     },
 #endif
+    [TASK_AUX] = {
+        .taskName = "AUX",
+        .taskFunc = taskUpdateAux,
+        .desiredPeriod = TASK_PERIOD_HZ(TASK_AUX_RATE_HZ),          // 300Hz @3,33ms
+        .staticPriority = TASK_PRIORITY_HIGH,
+    },
 };

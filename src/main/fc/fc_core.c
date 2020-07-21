@@ -808,9 +808,6 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         // FIXME: throttle pitch comp for FW
     }
 
-    // Update PID coefficients
-    updatePIDCoefficients(dT);
-
     // Calculate stabilisation
     pidController(dT);
 
