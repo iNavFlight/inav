@@ -106,6 +106,8 @@ int main(void)
 
     st_lld_init();
 
+    persistentObjectInit();
+
     chThdCreateStatic(waInavThread, sizeof(waInavThread), HIGHPRIO, InavThread, NULL);
 
 #if defined(USE_BRAINFPV_OSD)
