@@ -39,6 +39,14 @@ Logic conditions can be edited using INAV Configurator user interface, of via CL
 | 11            | NOR           |                                   |
 | 12            | NOT           |                                   |         
 | 13            | STICKY        | `Operand A` is activation operator, `Operand B` is deactivation operator. After activation, operator will return `true` until Operand B is evaluated as `true`|         
+| 14            | ADD           | Add `Operand A` to `Operand B` and returns the result |
+| 15            | SUB           | Substract `Operand B` from `Operand A` and returns the result |
+| 16            | MUL           | Multiply `Operand A` by `Operand B` and returns the result |
+| 17            | DIV           | Divide `Operand A` by `Operand B` and returns the result |
+| 18            | GVAR SET      | Store value from `Operand B` into the Global Variable addressed by `Operand B`. Bear in mind, that operand `Global Variable` means: Value stored in Global Variable of an index! To store in GVAR 1 use `Value 1` not `Global Variable 1` |
+| 19            | GVAR INC      | Increase the GVAR indexed by `Operand A` with value from `Operand B`  |
+| 20            | GVAR DEC      | Decrease the GVAR indexed by `Operand A` with value from `Operand B`  |
+| 128           | IO PORT SET   | Set I2C IO Expander pin `Operand A` to value of `Operand B`. `Operand A` accepts values `0-7` and `Operand B` accepts `0` and `1` |
 
 ### Operands
 
@@ -49,6 +57,7 @@ Logic conditions can be edited using INAV Configurator user interface, of via CL
 | 2             | FLIGHT        | `value` points to flight parameter table              |
 | 3             | FLIGHT_MODE   | `value` points to flight modes table                  |
 | 4             | LC            | `value` points to other logic condition ID            |
+| 5             | GVAR          | Value stored in Global Variable indexed by `value`. `GVAR 1` means: value in GVAR 1 |
 
 #### FLIGHT
 

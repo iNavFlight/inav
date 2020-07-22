@@ -121,6 +121,8 @@
 #define USE_D_BOOST
 #define USE_ANTIGRAVITY
 
+#define USE_I2C_IO_EXPANDER
+
 #else // FLASH_SIZE < 256
 #define LOG_LEVEL_MAXIMUM LOG_LEVEL_ERROR
 #endif
