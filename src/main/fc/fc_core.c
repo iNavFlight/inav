@@ -450,7 +450,7 @@ void tryArm(void)
     if (
         !isArmingDisabled() || 
         emergencyArmingIsEnabled() || 
-        GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_ARMING_SAFETY)
+        LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_ARMING_SAFETY)
     ) {
 #else 
     if (

@@ -480,10 +480,10 @@ void FAST_CODE mixTable(const float dT)
 
     // Find min and max throttle based on condition.
 #ifdef USE_PROGRAMMING_FRAMEWORK
-    if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE)) {
+    if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_THROTTLE)) {
         throttleRangeMin = throttleIdleValue;
         throttleRangeMax = motorConfig()->maxthrottle;
-        mixerThrottleCommand = constrain(globalFunctionValues[GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE], throttleRangeMin, throttleRangeMax); 
+        mixerThrottleCommand = constrain(logicConditionValuesByType[LOGIC_CONDITION_OVERRIDE_THROTTLE], throttleRangeMin, throttleRangeMax); 
     } else
 #endif
     if (feature(FEATURE_REVERSIBLE_MOTORS)) {

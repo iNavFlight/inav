@@ -45,7 +45,13 @@
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
 
+#include "io/vtx.h"
+#include "drivers/vtx_common.h"
+
 PG_REGISTER_ARRAY_WITH_RESET_FN(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions, PG_LOGIC_CONDITIONS, 1);
+
+EXTENDED_FASTRAM uint64_t logicConditionsGlobalFlags;
+EXTENDED_FASTRAM int logicConditionValuesByType[LOGIC_CONDITION_LAST];
 
 void pgResetFn_logicConditions(logicCondition_t *instance)
 {
@@ -76,6 +82,8 @@ static int logicConditionCompute(
     int operandB
 ) {
     int temporaryValue;
+    vtxDeviceCapability_t vtxDeviceCapability;
+
     switch (operation) {
 
         case LOGIC_CONDITION_TRUE:
@@ -179,6 +187,87 @@ static int logicConditionCompute(
             } else {
                 return operandA;
             }
+            break;
+        
+        case LOGIC_CONDITION_OVERRIDE_ARMING_SAFETY:
+            LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_ARMING_SAFETY);
+            return true;
+            break;
+
+        case LOGIC_CONDITION_OVERRIDE_THROTTLE_SCALE:
+            logicConditionValuesByType[LOGIC_CONDITION_OVERRIDE_THROTTLE_SCALE] = operandA;
+            LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_THROTTLE_SCALE);
+            return true;
+            break;
+
+        case LOGIC_CONDITION_SWAP_ROLL_YAW:
+            LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_SWAP_ROLL_YAW);
+            return true;
+            break;
+
+        case LOGIC_CONDITION_SET_VTX_POWER_LEVEL:
+            if (
+                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL] != operandA && 
+                vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)
+            ) {
+                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL] = constrain(operandA, VTX_SETTINGS_MIN_POWER, vtxDeviceCapability.powerCount);
+                vtxSettingsConfigMutable()->power = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL];
+                return logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL];
+            } else {
+                return false;
+            }
+            break;
+
+        case LOGIC_CONDITION_SET_VTX_BAND:
+            if (
+                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND] != operandA &&
+                vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)
+            ) {
+                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND] = constrain(operandA, VTX_SETTINGS_MIN_BAND, VTX_SETTINGS_MAX_BAND);
+                vtxSettingsConfigMutable()->band = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND];
+                return logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND];
+            } else {
+                return false;
+            }
+            break;
+        case LOGIC_CONDITION_SET_VTX_CHANNEL:
+            if (
+                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL] != operandA &&
+                vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)
+            ) {
+                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL] = constrain(operandA, VTX_SETTINGS_MIN_CHANNEL, VTX_SETTINGS_MAX_CHANNEL);
+                vtxSettingsConfigMutable()->channel = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL];
+                return logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL];
+            } else {
+                return false;
+            }
+            break;
+        
+        case LOGIC_CONDITION_INVERT_ROLL:
+            LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_ROLL);
+            return true;
+            break;
+
+        case LOGIC_CONDITION_INVERT_PITCH:
+            LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_PITCH);
+            return true;
+            break;
+        
+        case LOGIC_CONDITION_INVERT_YAW:
+            LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_YAW);
+            return true;
+            break;
+        
+        case LOGIC_CONDITION_OVERRIDE_THROTTLE:
+            logicConditionValuesByType[LOGIC_CONDITION_OVERRIDE_THROTTLE] = operandA;
+            LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_THROTTLE);
+            return operandA;
+            break;
+        
+        case LOGIC_CONDITION_SET_OSD_LAYOUT:
+            logicConditionValuesByType[LOGIC_CONDITION_SET_OSD_LAYOUT] = operandA;
+            LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_OSD_LAYOUT);
+            return operandA;
             break;
 
         default:
@@ -453,6 +542,10 @@ int logicConditionGetValue(int8_t conditionId) {
 
 void logicConditionUpdateTask(timeUs_t currentTimeUs) {
     UNUSED(currentTimeUs);
+
+    //Disable all flags
+    logicConditionsGlobalFlags = 0;
+
     for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
         logicConditionProcess(i);
     }
@@ -463,4 +556,34 @@ void logicConditionReset(void) {
         logicConditionStates[i].value = 0;
         logicConditionStates[i].flags = 0;
     }
+}
+
+float NOINLINE getThrottleScale(float globalThrottleScale) {
+    if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_THROTTLE_SCALE)) {
+        return constrainf(logicConditionValuesByType[LOGIC_CONDITION_OVERRIDE_THROTTLE_SCALE] / 100.0f, 0.0f, 1.0f);
+    } else {
+        return globalThrottleScale;
+    }
+}
+
+int16_t getRcCommandOverride(int16_t command[], uint8_t axis) {
+    int16_t outputValue = command[axis];
+
+    if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_SWAP_ROLL_YAW) && axis == FD_ROLL) {
+        outputValue = command[FD_YAW];
+    } else if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_SWAP_ROLL_YAW) && axis == FD_YAW) {
+        outputValue = command[FD_ROLL];
+    }
+
+    if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_ROLL) && axis == FD_ROLL) {
+        outputValue *= -1;
+    }
+    if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_PITCH) && axis == FD_PITCH) {
+        outputValue *= -1;
+    }
+    if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_YAW) && axis == FD_YAW) {
+        outputValue *= -1;
+    }
+
+    return outputValue;
 }

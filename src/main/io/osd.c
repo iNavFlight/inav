@@ -3243,8 +3243,8 @@ void osdUpdate(timeUs_t currentTimeUs)
             activeLayout = 1;
         else
 #ifdef USE_PROGRAMMING_FRAMEWORK
-        if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_OSD_LAYOUT))
-            activeLayout = constrain(globalFunctionValues[GLOBAL_FUNCTION_ACTION_SET_OSD_LAYOUT], 0, OSD_ALTERNATE_LAYOUT_COUNT); 
+        if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_OSD_LAYOUT))
+            activeLayout = constrain(logicConditionValuesByType[LOGIC_CONDITION_SET_OSD_LAYOUT], 0, OSD_ALTERNATE_LAYOUT_COUNT); 
         else
 #endif
             activeLayout = 0;

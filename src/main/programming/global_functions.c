@@ -40,9 +40,9 @@
 
 PG_REGISTER_ARRAY_WITH_RESET_FN(globalFunction_t, MAX_GLOBAL_FUNCTIONS, globalFunctions, PG_GLOBAL_FUNCTIONS, 0);
 
-EXTENDED_FASTRAM uint64_t globalFunctionsFlags = 0;
-EXTENDED_FASTRAM globalFunctionState_t globalFunctionsStates[MAX_GLOBAL_FUNCTIONS];
-EXTENDED_FASTRAM int globalFunctionValues[GLOBAL_FUNCTION_ACTION_LAST];
+// EXTENDED_FASTRAM uint64_t globalFunctionsFlags = 0;
+// EXTENDED_FASTRAM globalFunctionState_t globalFunctionsStates[MAX_GLOBAL_FUNCTIONS];
+// EXTENDED_FASTRAM int globalFunctionValues[GLOBAL_FUNCTION_ACTION_LAST];
 
 void pgResetFn_globalFunctions(globalFunction_t *instance)
 {
@@ -64,126 +64,118 @@ void globalFunctionsProcess(int8_t functionId) {
     //Process only activated functions
     if (globalFunctions(functionId)->enabled) {
 
-        const int conditionValue = logicConditionGetValue(globalFunctions(functionId)->conditionId);
-        const int previousValue = globalFunctionsStates[functionId].active;
+        // const int conditionValue = logicConditionGetValue(globalFunctions(functionId)->conditionId);
+        // const int previousValue = globalFunctionsStates[functionId].active;
 
-        globalFunctionsStates[functionId].active = (bool) conditionValue;
-        globalFunctionsStates[functionId].value = logicConditionGetOperandValue(
-            globalFunctions(functionId)->withValue.type,
-            globalFunctions(functionId)->withValue.value
-        );
+        // globalFunctionsStates[functionId].active = (bool) conditionValue;
+        // globalFunctionsStates[functionId].value = logicConditionGetOperandValue(
+        //     globalFunctions(functionId)->withValue.type,
+        //     globalFunctions(functionId)->withValue.value
+        // );
 
-        switch (globalFunctions(functionId)->action) {
-            case GLOBAL_FUNCTION_ACTION_OVERRIDE_ARMING_SAFETY:
-                if (conditionValue) {
-                    GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_ARMING_SAFETY);
-                }
-                break;
-            case GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE_SCALE:
-                if (conditionValue) {
-                    globalFunctionValues[GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE_SCALE] = globalFunctionsStates[functionId].value;
-                    GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE_SCALE);
-                }
-                break;
-            case GLOBAL_FUNCTION_ACTION_SWAP_ROLL_YAW:
-                if (conditionValue) {
-                    GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_SWAP_ROLL_YAW);
-                }
-                break;
-            case GLOBAL_FUNCTION_ACTION_SET_VTX_POWER_LEVEL:
-                if (conditionValue && !previousValue) {
-                    vtxDeviceCapability_t vtxDeviceCapability;
-                    if (vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
-                        vtxSettingsConfigMutable()->power = constrain(globalFunctionsStates[functionId].value, VTX_SETTINGS_MIN_POWER, vtxDeviceCapability.powerCount);
-                    }
-                }
-                break;
-            case GLOBAL_FUNCTION_ACTION_SET_VTX_BAND:
-                if (conditionValue && !previousValue) {
-                    vtxDeviceCapability_t vtxDeviceCapability;
-                    if (vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
-                        vtxSettingsConfigMutable()->band = constrain(globalFunctionsStates[functionId].value, VTX_SETTINGS_MIN_BAND, VTX_SETTINGS_MAX_BAND);
-                    }
-                }
-                break;
-            case GLOBAL_FUNCTION_ACTION_SET_VTX_CHANNEL:
-                if (conditionValue && !previousValue) {
-                    vtxDeviceCapability_t vtxDeviceCapability;
-                    if (vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
-                        vtxSettingsConfigMutable()->channel = constrain(globalFunctionsStates[functionId].value, VTX_SETTINGS_MIN_CHANNEL, VTX_SETTINGS_MAX_CHANNEL);
-                    }
-                }
-                break;
-            case GLOBAL_FUNCTION_ACTION_INVERT_ROLL:
-                if (conditionValue) {
-                    GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_ROLL);
-                }
-                break;
-            case GLOBAL_FUNCTION_ACTION_INVERT_PITCH:
-                if (conditionValue) {
-                    GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_PITCH);
-                }
-                break;
-            case GLOBAL_FUNCTION_ACTION_INVERT_YAW:
-                if (conditionValue) {
-                    GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_YAW);
-                }
-                break;
-            case GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE:
-                if (conditionValue) {
-                    globalFunctionValues[GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE] = globalFunctionsStates[functionId].value;
-                    GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE);
-                }
-                break;
-            case GLOBAL_FUNCTION_ACTION_SET_OSD_LAYOUT:
-                if(conditionValue){
-                    globalFunctionValues[GLOBAL_FUNCTION_ACTION_SET_OSD_LAYOUT] = globalFunctionsStates[functionId].value;
-                    GLOBAL_FUNCTION_FLAG_ENABLE(GLOBAL_FUNCTION_FLAG_OVERRIDE_OSD_LAYOUT);
-                }
-                break;
-        }
+        // switch (globalFunctions(functionId)->action) {
+        //     case GLOBAL_FUNCTION_ACTION_OVERRIDE_ARMING_SAFETY:
+        //         if (conditionValue) {
+        //             LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_ARMING_SAFETY);
+        //         }
+        //         break;
+        //     case GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE_SCALE:
+        //         if (conditionValue) {
+        //             globalFunctionValues[GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE_SCALE] = globalFunctionsStates[functionId].value;
+        //             LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_THROTTLE_SCALE);
+        //         }
+        //         break;
+        //     case GLOBAL_FUNCTION_ACTION_SWAP_ROLL_YAW:
+        //         if (conditionValue) {
+        //             LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_SWAP_ROLL_YAW);
+        //         }
+        //         break;
+        //     case GLOBAL_FUNCTION_ACTION_SET_VTX_POWER_LEVEL:
+        //         if (conditionValue && !previousValue) {
+        //             vtxDeviceCapability_t vtxDeviceCapability;
+        //             if (vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
+        //                 vtxSettingsConfigMutable()->power = constrain(globalFunctionsStates[functionId].value, VTX_SETTINGS_MIN_POWER, vtxDeviceCapability.powerCount);
+        //             }
+        //         }
+        //         break;
+        //     case GLOBAL_FUNCTION_ACTION_SET_VTX_BAND:
+        //         if (conditionValue && !previousValue) {
+        //             vtxDeviceCapability_t vtxDeviceCapability;
+        //             if (vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
+        //                 vtxSettingsConfigMutable()->band = constrain(globalFunctionsStates[functionId].value, VTX_SETTINGS_MIN_BAND, VTX_SETTINGS_MAX_BAND);
+        //             }
+        //         }
+        //         break;
+        //     case GLOBAL_FUNCTION_ACTION_SET_VTX_CHANNEL:
+        //         if (conditionValue && !previousValue) {
+        //             vtxDeviceCapability_t vtxDeviceCapability;
+        //             if (vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
+        //                 vtxSettingsConfigMutable()->channel = constrain(globalFunctionsStates[functionId].value, VTX_SETTINGS_MIN_CHANNEL, VTX_SETTINGS_MAX_CHANNEL);
+        //             }
+        //         }
+        //         break;
+        //     case GLOBAL_FUNCTION_ACTION_INVERT_ROLL:
+        //         if (conditionValue) {
+        //             LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_ROLL);
+        //         }
+        //         break;
+        //     case GLOBAL_FUNCTION_ACTION_INVERT_PITCH:
+        //         if (conditionValue) {
+        //             LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_PITCH);
+        //         }
+        //         break;
+        //     case GLOBAL_FUNCTION_ACTION_INVERT_YAW:
+        //         if (conditionValue) {
+        //             LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_YAW);
+        //         }
+        //         break;
+        //     case GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE:
+        //         if (conditionValue) {
+        //             globalFunctionValues[GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE] = globalFunctionsStates[functionId].value;
+        //             LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_THROTTLE);
+        //         }
+        //         break;
+        //     case GLOBAL_FUNCTION_ACTION_SET_OSD_LAYOUT:
+        //         if(conditionValue){
+        //             globalFunctionValues[GLOBAL_FUNCTION_ACTION_SET_OSD_LAYOUT] = globalFunctionsStates[functionId].value;
+        //             LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_OSD_LAYOUT);
+        //         }
+        //         break;
+        // }
     }
 }
 
-void NOINLINE globalFunctionsUpdateTask(timeUs_t currentTimeUs) {
-    UNUSED(currentTimeUs);
+// void NOINLINE globalFunctionsUpdateTask(timeUs_t currentTimeUs) {
+//     UNUSED(currentTimeUs);
 
-    //Disable all flags
-    globalFunctionsFlags = 0;
+//     //Disable all flags
+//     globalFunctionsFlags = 0;
 
-    for (uint8_t i = 0; i < MAX_GLOBAL_FUNCTIONS; i++) {
-        globalFunctionsProcess(i);
-    }
-}
+//     for (uint8_t i = 0; i < MAX_GLOBAL_FUNCTIONS; i++) {
+//         globalFunctionsProcess(i);
+//     }
+// }
 
-float NOINLINE getThrottleScale(float globalThrottleScale) {
-    if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE_SCALE)) {
-        return constrainf(globalFunctionValues[GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE_SCALE] / 100.0f, 0.0f, 1.0f);
-    } else {
-        return globalThrottleScale;
-    }
-}
+// int16_t getRcCommandOverride(int16_t command[], uint8_t axis) {
+//     int16_t outputValue = command[axis];
 
-int16_t getRcCommandOverride(int16_t command[], uint8_t axis) {
-    int16_t outputValue = command[axis];
+//     if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_SWAP_ROLL_YAW) && axis == FD_ROLL) {
+//         outputValue = command[FD_YAW];
+//     } else if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_SWAP_ROLL_YAW) && axis == FD_YAW) {
+//         outputValue = command[FD_ROLL];
+//     }
 
-    if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_SWAP_ROLL_YAW) && axis == FD_ROLL) {
-        outputValue = command[FD_YAW];
-    } else if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_SWAP_ROLL_YAW) && axis == FD_YAW) {
-        outputValue = command[FD_ROLL];
-    }
+//     if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_ROLL) && axis == FD_ROLL) {
+//         outputValue *= -1;
+//     }
+//     if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_PITCH) && axis == FD_PITCH) {
+//         outputValue *= -1;
+//     }
+//     if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_YAW) && axis == FD_YAW) {
+//         outputValue *= -1;
+//     }
 
-    if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_ROLL) && axis == FD_ROLL) {
-        outputValue *= -1;
-    }
-    if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_PITCH) && axis == FD_PITCH) {
-        outputValue *= -1;
-    }
-    if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_INVERT_YAW) && axis == FD_YAW) {
-        outputValue *= -1;
-    }
-
-    return outputValue;
-}
+//     return outputValue;
+// }
 
 #endif

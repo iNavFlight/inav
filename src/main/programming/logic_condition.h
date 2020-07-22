@@ -50,6 +50,17 @@ typedef enum {
     LOGIC_CONDITION_GVAR_SET,       // 18
     LOGIC_CONDITION_GVAR_INC,       // 19
     LOGIC_CONDITION_GVAR_DEC,       // 20
+    LOGIC_CONDITION_OVERRIDE_ARMING_SAFETY      = 129,
+    LOGIC_CONDITION_OVERRIDE_THROTTLE_SCALE     = 130,
+    LOGIC_CONDITION_SWAP_ROLL_YAW               = 131,
+    LOGIC_CONDITION_SET_VTX_POWER_LEVEL         = 132,
+    LOGIC_CONDITION_INVERT_ROLL                 = 133,
+    LOGIC_CONDITION_INVERT_PITCH                = 134,
+    LOGIC_CONDITION_INVERT_YAW                  = 135,
+    LOGIC_CONDITION_OVERRIDE_THROTTLE           = 136,
+    LOGIC_CONDITION_SET_VTX_BAND                = 137,
+    LOGIC_CONDITION_SET_VTX_CHANNEL             = 138,
+    LOGIC_CONDITION_SET_OSD_LAYOUT              = 139,
     LOGIC_CONDITION_LAST
 } logicOperation_e;
 
@@ -108,6 +119,17 @@ typedef enum {
 } logicFlightModeOperands_e;
 
 typedef enum {
+    LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_ARMING_SAFETY = (1 << 0),
+    LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_THROTTLE_SCALE = (1 << 1),
+    LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_SWAP_ROLL_YAW = (1 << 2),
+    LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_ROLL = (1 << 3),
+    LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_PITCH = (1 << 4),
+    LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_YAW = (1 << 5),
+    LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_THROTTLE = (1 << 6),
+    LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_OSD_LAYOUT = (1 << 7),
+} logicConditionsGlobalFlags_t;
+
+typedef enum {
     LOGIC_CONDITION_FLAG_LATCH      = 1 << 0,
 } logicConditionFlags_e;
 
@@ -132,6 +154,13 @@ typedef struct logicConditionState_s {
     uint8_t flags;
 } logicConditionState_t;
 
+extern int logicConditionValuesByType[LOGIC_CONDITION_LAST];
+extern uint64_t logicConditionsGlobalFlags;
+
+#define LOGIC_CONDITION_GLOBAL_FLAG_DISABLE(mask) (logicConditionsGlobalFlags &= ~(mask))
+#define LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(mask) (logicConditionsGlobalFlags |= (mask))
+#define LOGIC_CONDITION_GLOBAL_FLAG(mask) (logicConditionsGlobalFlags & (mask))
+
 void logicConditionProcess(uint8_t i);
 
 int logicConditionGetOperandValue(logicOperandType_e type, int operand);
@@ -139,3 +168,6 @@ int logicConditionGetOperandValue(logicOperandType_e type, int operand);
 int logicConditionGetValue(int8_t conditionId);
 void logicConditionUpdateTask(timeUs_t currentTimeUs);
 void logicConditionReset(void);
+
+float getThrottleScale(float globalThrottleScale);
+int16_t getRcCommandOverride(int16_t command[], uint8_t axis);

@@ -31,5 +31,4 @@ FILE_COMPILE_FOR_SIZE
 
 void programmingFrameworkUpdateTask(timeUs_t currentTimeUs) {
     logicConditionUpdateTask(currentTimeUs);
-    globalFunctionsUpdateTask(currentTimeUs);
 }
