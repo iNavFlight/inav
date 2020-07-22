@@ -3462,11 +3462,7 @@ static void cliMsc(char *cmdline)
         delay(1000);
         waitForSerialPortToFinishTransmitting(cliPort);
         stopPwmAllMotors();
-
-        persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_MSC_REQUEST);
-
-        __disable_irq();
-        NVIC_SystemReset();
+        systemResetRequest(RESET_MSC_REQUEST);
     } else {
         cliPrint("\r\nStorage not present or failed to initialize!");
         bufWriterFlush(cliWriter);

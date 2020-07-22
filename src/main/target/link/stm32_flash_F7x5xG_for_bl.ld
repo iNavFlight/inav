@@ -27,22 +27,24 @@ ENTRY(Reset_Handler)
 /* Specify the memory areas */
 MEMORY
 {
-    ITCM_RAM (rx)			: ORIGIN = 0x00000000, LENGTH = 16K
-    ITCM_FLASH (rx)        	: ORIGIN = 0x00200000, LENGTH = 32K
+    ITCM_RAM (rx)               : ORIGIN = 0x00000000, LENGTH = 16K
+    ITCM_FLASH (rx)             : ORIGIN = 0x00200000, LENGTH = 32K
     /* config occupies the entire flash sector 1 for the ease of erasure, 32K on F74x */
-    ITCM_FLASH_CONFIG (r)  	: ORIGIN = 0x00208000, LENGTH = 32K
-    ITCM_FLASH1 (rx)       	: ORIGIN = 0x00210000, LENGTH = 960K
+    ITCM_FLASH_CONFIG (r)       : ORIGIN = 0x00208000, LENGTH = 32K
+    ITCM_FLASH1 (rx)            : ORIGIN = 0x00210000, LENGTH = 960K
 
-    FLASH (rx)        : ORIGIN = 0x08000000, LENGTH = 32K
-    FLASH_CONFIG (r)  : ORIGIN = 0x08008000, LENGTH = 32K
-    FLASH1 (rx)       : ORIGIN = 0x08010000, LENGTH = 960K
+    FLASH (rx)                  : ORIGIN = 0x08008000, LENGTH = 32K
+    FLASH_CONFIG (r)            : ORIGIN = 0x08010000, LENGTH = 32K
+    FLASH1 (rx)                 : ORIGIN = 0x08018000, LENGTH = 928K
 
-    TCM (rwx)         : ORIGIN = 0x20000000, LENGTH = 64K
-    RAM (rwx)         : ORIGIN = 0x20010000, LENGTH = 256K
-    MEMORY_B1 (rx)    : ORIGIN = 0x60000000, LENGTH = 0K
+    TCM (rwx)                   : ORIGIN = 0x20000000, LENGTH = 64K
+    RAM (rwx)                   : ORIGIN = 0x20010000, LENGTH = 256K
+    MEMORY_B1 (rx)              : ORIGIN = 0x60000000, LENGTH = 0K
 }
 /* note CCM could be used for stack */
 REGION_ALIAS("STACKRAM", TCM)
 REGION_ALIAS("FASTRAM", TCM)
 
-INCLUDE "stm32_flash_f7_split.ld"
+__firmware_start = ORIGIN(FLASH);
+
+INCLUDE "stm32_flash_F7_split.ld"

@@ -1650,6 +1650,24 @@ groups:
         field: navVelXyDTermLpfHz
         min: 0
         max: 100
+      - name: nav_mc_vel_xy_dterm_attenuation
+        description: "Maximum D-term attenution percentage for horizontal velocity PID controller (Multirotor). It allows to smooth the PosHold CRUISE, WP and RTH when Multirotor is traveling at full speed. Dterm is not attenuated at low speeds, breaking and accelerating."
+        default_value: "90"
+        field: navVelXyDtermAttenuation
+        min: 0
+        max: 100
+      - name: nav_mc_vel_xy_dterm_attenuation_start
+        description: "A point (in percent of both target and current horizontal velocity) where nav_mc_vel_xy_dterm_attenuation begins"
+        default_value: 10"
+        field: navVelXyDtermAttenuationStart
+        min: 0
+        max: 100
+      - name: nav_mc_vel_xy_dterm_attenuation_end
+        description: "A point (in percent of both target and current horizontal velocity) where nav_mc_vel_xy_dterm_attenuation reaches maximum"
+        default_value: "60"  
+        field: navVelXyDtermAttenuationEnd
+        min: 0
+        max: 100
       - name: nav_fw_pos_z_p
         description: "P gain of altitude PID controller (Fixedwing)"
         default_value: "50"

@@ -3,7 +3,7 @@
 #
 
 ifeq ($(OPBL),yes)
-LD_SCRIPT = $(LINKER_DIR)/stm32_flash_f303_$(FLASH_SIZE)k_opbl.ld
+LD_SCRIPT = $(LINKER_DIR)/stm32_flash_F303_$(FLASH_SIZE)k_opbl.ld
 endif
 
 TARGET_FLASH   := 256
@@ -47,7 +47,7 @@ INCLUDE_DIRS    := $(INCLUDE_DIRS) \
 VPATH           := $(VPATH):$(FATFS_DIR)
 endif
 
-LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f303_$(FLASH_SIZE)k.ld
+LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_F303_$(FLASH_SIZE)k.ld
 
 ARCH_FLAGS      = -mthumb -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 -fsingle-precision-constant -Wdouble-promotion
 DEVICE_FLAGS    = -DSTM32F303xC -DSTM32F303
@@ -74,7 +74,9 @@ MCU_COMMON_SRC = \
             drivers/serial_uart_stm32f30x.c \
             drivers/system_stm32f30x.c \
             drivers/timer_impl_stdperiph.c \
-            drivers/timer_stm32f30x.c
+            drivers/timer_stm32f30x.c \
+	    src/main/drivers/bus_spi.c
+
 
 DSP_LIB := $(ROOT)/lib/main/CMSIS/DSP
 DEVICE_FLAGS += -DARM_MATH_MATRIX_CHECK -DARM_MATH_ROUNDING -D__FPU_PRESENT=1 -DUNALIGNED_SUPPORT_DISABLE -DARM_MATH_CM4

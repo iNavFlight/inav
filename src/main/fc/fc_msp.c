@@ -60,6 +60,7 @@
 #include "fc/controlrate_profile.h"
 #include "fc/fc_msp.h"
 #include "fc/fc_msp_box.h"
+#include "fc/firmware_update.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
@@ -2835,9 +2836,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP2_INAV_SELECT_BATTERY_PROFILE:
-        if (!ARMING_FLAG(ARMED)) {
-            if (sbufReadU8Safe(&tmp_u8, src))
+        if (!ARMING_FLAG(ARMED) && sbufReadU8Safe(&tmp_u8, src)) {
                 setConfigBatteryProfileAndWriteEEPROM(tmp_u8);
+        } else {
+            return MSP_RESULT_ERROR;
         }
         break;
 
@@ -2858,6 +2860,32 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             }
         } else
             return MSP_RESULT_ERROR;
+        break;
+#endif
+
+#ifdef MSP_FIRMWARE_UPDATE
+    case MSP2_INAV_FWUPDT_PREPARE:
+        if (!firmwareUpdatePrepare(sbufReadU32(src))) {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+    case MSP2_INAV_FWUPDT_STORE:
+        if (!firmwareUpdateStore(sbufPtr(src), sbufBytesRemaining(src))) {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+    case MSP2_INAV_FWUPDT_EXEC:
+        firmwareUpdateExec(sbufReadU8(src));
+        return MSP_RESULT_ERROR; // will only be reached if the update is not ready
+        break;
+    case MSP2_INAV_FWUPDT_ROLLBACK_PREPARE:
+        if (!firmwareUpdateRollbackPrepare()) {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+    case MSP2_INAV_FWUPDT_ROLLBACK_EXEC:
+        firmwareUpdateRollbackExec();
+        return MSP_RESULT_ERROR; // will only be reached if the rollback is not ready
         break;
 #endif
 
