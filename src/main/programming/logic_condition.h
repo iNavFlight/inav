@@ -29,39 +29,40 @@
 #define MAX_LOGIC_CONDITIONS 16
 
 typedef enum {
-    LOGIC_CONDITION_TRUE = 0,       // 0
-    LOGIC_CONDITION_EQUAL,          // 1
-    LOGIC_CONDITION_GREATER_THAN,   // 2
-    LOGIC_CONDITION_LOWER_THAN,     // 3
-    LOGIC_CONDITION_LOW,            // 4
-    LOGIC_CONDITION_MID,            // 5
-    LOGIC_CONDITION_HIGH,           // 6
-    LOGIC_CONDITION_AND,            // 7
-    LOGIC_CONDITION_OR,             // 8
-    LOGIC_CONDITION_XOR,            // 9
-    LOGIC_CONDITION_NAND,           // 10
-    LOGIC_CONDITION_NOR,            // 11
-    LOGIC_CONDITION_NOT,            // 12
-    LOGIC_CONDITION_STICKY,         // 13
-    LOGIC_CONDITION_ADD,            // 14
-    LOGIC_CONDITION_SUB,            // 15
-    LOGIC_CONDITION_MUL,            // 16
-    LOGIC_CONDITION_DIV,            // 17
-    LOGIC_CONDITION_GVAR_SET,       // 18
-    LOGIC_CONDITION_GVAR_INC,       // 19
-    LOGIC_CONDITION_GVAR_DEC,       // 20
-    LOGIC_CONDITION_OVERRIDE_ARMING_SAFETY      = 129,
-    LOGIC_CONDITION_OVERRIDE_THROTTLE_SCALE     = 130,
-    LOGIC_CONDITION_SWAP_ROLL_YAW               = 131,
-    LOGIC_CONDITION_SET_VTX_POWER_LEVEL         = 132,
-    LOGIC_CONDITION_INVERT_ROLL                 = 133,
-    LOGIC_CONDITION_INVERT_PITCH                = 134,
-    LOGIC_CONDITION_INVERT_YAW                  = 135,
-    LOGIC_CONDITION_OVERRIDE_THROTTLE           = 136,
-    LOGIC_CONDITION_SET_VTX_BAND                = 137,
-    LOGIC_CONDITION_SET_VTX_CHANNEL             = 138,
-    LOGIC_CONDITION_SET_OSD_LAYOUT              = 139,
-    LOGIC_CONDITION_LAST
+    LOGIC_CONDITION_TRUE                        = 0,
+    LOGIC_CONDITION_EQUAL                       = 1,
+    LOGIC_CONDITION_GREATER_THAN                = 2,
+    LOGIC_CONDITION_LOWER_THAN                  = 3,
+    LOGIC_CONDITION_LOW                         = 4,
+    LOGIC_CONDITION_MID                         = 5,
+    LOGIC_CONDITION_HIGH                        = 6,
+    LOGIC_CONDITION_AND                         = 7,
+    LOGIC_CONDITION_OR                          = 8,
+    LOGIC_CONDITION_XOR                         = 9,
+    LOGIC_CONDITION_NAND                        = 10,
+    LOGIC_CONDITION_NOR                         = 11,
+    LOGIC_CONDITION_NOT                         = 12,
+    LOGIC_CONDITION_STICKY                      = 13,
+    LOGIC_CONDITION_ADD                         = 14,
+    LOGIC_CONDITION_SUB                         = 15,
+    LOGIC_CONDITION_MUL                         = 16,
+    LOGIC_CONDITION_DIV                         = 17,
+    LOGIC_CONDITION_GVAR_SET                    = 18,
+    LOGIC_CONDITION_GVAR_INC                    = 19,
+    LOGIC_CONDITION_GVAR_DEC                    = 20,
+    LOGIC_CONDITION_PORT_SET                    = 21,
+    LOGIC_CONDITION_OVERRIDE_ARMING_SAFETY      = 22,
+    LOGIC_CONDITION_OVERRIDE_THROTTLE_SCALE     = 23,
+    LOGIC_CONDITION_SWAP_ROLL_YAW               = 24,
+    LOGIC_CONDITION_SET_VTX_POWER_LEVEL         = 25,
+    LOGIC_CONDITION_INVERT_ROLL                 = 26,
+    LOGIC_CONDITION_INVERT_PITCH                = 27,
+    LOGIC_CONDITION_INVERT_YAW                  = 28,
+    LOGIC_CONDITION_OVERRIDE_THROTTLE           = 29,
+    LOGIC_CONDITION_SET_VTX_BAND                = 30,
+    LOGIC_CONDITION_SET_VTX_CHANNEL             = 31,
+    LOGIC_CONDITION_SET_OSD_LAYOUT              = 32,
+    LOGIC_CONDITION_LAST                        = 33,
 } logicOperation_e;
 
 typedef enum logicOperandType_s {

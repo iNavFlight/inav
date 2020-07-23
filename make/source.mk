@@ -53,6 +53,8 @@ MAIN_SRC = \
             drivers/display_font_metadata.c \
             drivers/exti.c \
             drivers/io_pca9685.c \
+            drivers/io_pcf8574.c \
+            drivers/io_port_expander.c \
             drivers/osd.c \
             drivers/resource.c \
             drivers/rx_nrf24l01.c \

@@ -83,6 +83,7 @@
 #include "msc/emfat_file.h"
 #endif
 #include "drivers/sdcard/sdcard.h"
+#include "drivers/io_port_expander.h"
 
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -680,6 +681,10 @@ void init(void)
         rpmFiltersInit();
         setTaskEnabled(TASK_RPM_FILTER, true);
     }
+#endif
+
+#ifdef USE_I2C_IO_EXPANDER
+    ioPortExpanderInit();
 #endif
 
     // Considering that the persistent reset reason is only used during init

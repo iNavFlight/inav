@@ -41,6 +41,7 @@
 #include "sensors/pitotmeter.h"
 #include "flight/imu.h"
 #include "flight/pid.h"
+#include "drivers/io_port_expander.h"
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
@@ -270,6 +271,12 @@ static int logicConditionCompute(
             return operandA;
             break;
 
+#ifdef USE_I2C_IO_EXPANDER
+        case LOGIC_CONDITION_PORT_SET:
+            ioPortExpanderSet((uint8_t)operandA, (uint8_t)operandB);
+            return operandB;
+            break;
+#endif
         default:
             return false;
             break; 
@@ -549,6 +556,9 @@ void logicConditionUpdateTask(timeUs_t currentTimeUs) {
     for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
         logicConditionProcess(i);
     }
+#ifdef USE_I2C_IO_EXPANDER
+    ioPortExpanderSync();
+#endif
 }
 
 void logicConditionReset(void) {
