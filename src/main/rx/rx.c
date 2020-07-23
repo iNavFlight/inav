@@ -54,6 +54,7 @@
 #include "rx/ibus.h"
 #include "rx/jetiexbus.h"
 #include "rx/fport.h"
+#include "rx/fport2.h"
 #include "rx/msp.h"
 #include "rx/msp_override.h"
 #include "rx/pwm.h"
@@ -233,6 +234,11 @@ bool serialRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
 #ifdef USE_SERIALRX_FPORT
     case SERIALRX_FPORT:
         enabled = fportRxInit(rxConfig, rxRuntimeConfig);
+        break;
+#endif
+#ifdef USE_SERIALRX_FPORT2
+    case SERIALRX_FPORT2:
+        enabled = fport2RxInit(rxConfig, rxRuntimeConfig);
         break;
 #endif
     default:
