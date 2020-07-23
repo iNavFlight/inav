@@ -57,7 +57,10 @@ FILE_COMPILE_FOR_SPEED
 #include "sensors/acceleration.h"
 #include "sensors/compass.h"
 #include "sensors/pitotmeter.h"
-#include "common/global_functions.h"
+
+#include "scheduler/scheduler.h"
+
+#include "programming/logic_condition.h"
 
 typedef struct {
     float kP;   // Proportional gain
@@ -258,6 +261,9 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
 
         .loiter_direction = NAV_LOITER_RIGHT,
         .navVelXyDTermLpfHz = NAV_ACCEL_CUTOFF_FREQUENCY_HZ,
+        .navVelXyDtermAttenuation = 90,
+        .navVelXyDtermAttenuationStart = 10,
+        .navVelXyDtermAttenuationEnd = 60,
         .iterm_relax_type = ITERM_RELAX_SETPOINT,
         .iterm_relax_cutoff = MC_ITERM_RELAX_CUTOFF_DEFAULT,
         .iterm_relax = ITERM_RELAX_RP,
@@ -307,7 +313,7 @@ bool pidInitFilters(void)
     }
 
 #ifdef USE_ANTIGRAVITY
-    pt1FilterInit(&antigravityThrottleLpf, pidProfile()->antigravityCutoff, refreshRate * 1e-6f);
+    pt1FilterInit(&antigravityThrottleLpf, pidProfile()->antigravityCutoff, TASK_PERIOD_HZ(TASK_AUX_RATE_HZ) * 1e-6f);
 #endif
 
 #ifdef USE_D_BOOST
@@ -330,7 +336,7 @@ bool pidInitFilters(void)
 void pidResetTPAFilter(void)
 {
     if (usedPidControllerType == PID_TYPE_PIFF && currentControlRateProfile->throttle.fixedWingTauMs > 0) {
-        pt1FilterInitRC(&fixedWingTpaFilter, currentControlRateProfile->throttle.fixedWingTauMs * 1e-3f, getLooptime() * 1e-6f);
+        pt1FilterInitRC(&fixedWingTpaFilter, currentControlRateProfile->throttle.fixedWingTauMs * 1e-3f, TASK_PERIOD_HZ(TASK_AUX_RATE_HZ) * 1e-6f);
         pt1FilterReset(&fixedWingTpaFilter, getThrottleIdleValue());
     }
 }
@@ -422,13 +428,13 @@ void schedulePidGainsUpdate(void)
     pidGainsUpdateRequired = true;
 }
 
-void FAST_CODE NOINLINE updatePIDCoefficients(float dT)
+void updatePIDCoefficients()
 {
     STATIC_FASTRAM uint16_t prevThrottle = 0;
 
     // Check if throttle changed. Different logic for fixed wing vs multirotor
     if (usedPidControllerType == PID_TYPE_PIFF && (currentControlRateProfile->throttle.fixedWingTauMs > 0)) {
-        uint16_t filteredThrottle = pt1FilterApply3(&fixedWingTpaFilter, rcCommand[THROTTLE], dT);
+        uint16_t filteredThrottle = pt1FilterApply(&fixedWingTpaFilter, rcCommand[THROTTLE]);
         if (filteredThrottle != prevThrottle) {
             prevThrottle = filteredThrottle;
             pidGainsUpdateRequired = true;
@@ -444,6 +450,7 @@ void FAST_CODE NOINLINE updatePIDCoefficients(float dT)
 #ifdef USE_ANTIGRAVITY
     if (usedPidControllerType == PID_TYPE_PID) {
         antigravityThrottleHpf = rcCommand[THROTTLE] - pt1FilterApply(&antigravityThrottleLpf, rcCommand[THROTTLE]);
+        iTermAntigravityGain = scaleRangef(fabsf(antigravityThrottleHpf) * antigravityAccelerator, 0.0f, 1000.0f, 1.0f, antigravityGain);    
     }
 #endif
 
@@ -958,7 +965,7 @@ void FAST_CODE pidController(float dT)
         if (axis == FD_YAW && headingHoldState == HEADING_HOLD_ENABLED) {
             rateTarget = pidHeadingHold(dT);
         } else {
-#ifdef USE_GLOBAL_FUNCTIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
             rateTarget = pidRcCommandToRate(getRcCommandOverride(rcCommand, axis), currentControlRateProfile->stabilized.rates[axis]);
 #else 
             rateTarget = pidRcCommandToRate(rcCommand[axis], currentControlRateProfile->stabilized.rates[axis]);
@@ -995,10 +1002,6 @@ void FAST_CODE pidController(float dT)
     // Prevent strong Iterm accumulation during stick inputs
     antiWindupScaler = constrainf((1.0f - getMotorMixRange()) / motorItermWindupPoint, 0.0f, 1.0f);
 
-#ifdef USE_ANTIGRAVITY
-    iTermAntigravityGain = scaleRangef(fabsf(antigravityThrottleHpf) * antigravityAccelerator, 0.0f, 1000.0f, 1.0f, antigravityGain);    
-#endif
-
     for (int axis = 0; axis < 3; axis++) {
         // Apply setpoint rate of change limits
         pidApplySetpointRateLimiting(&pidState[axis], axis, dT);
@@ -1028,8 +1031,6 @@ pidType_e pidIndexGetType(pidIndex_e pidIndex)
 
 void pidInit(void)
 {
-    pidResetTPAFilter();
-
     // Calculate max overall tilt (max pitch + max roll combined) as a limit to heading hold
     headingHoldCosZLimit = cos_approx(DECIDEGREES_TO_RADIANS(pidProfile()->max_angle_inclination[FD_ROLL])) *
                            cos_approx(DECIDEGREES_TO_RADIANS(pidProfile()->max_angle_inclination[FD_PITCH]));
@@ -1105,6 +1106,8 @@ void pidInit(void)
     } else {
         pidControllerApplyFn = nullRateController;
     }
+
+    pidResetTPAFilter();
 }
 
 const pidBank_t * pidBank(void) { 

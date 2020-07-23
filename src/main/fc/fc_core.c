@@ -32,7 +32,6 @@ FILE_COMPILE_FOR_SPEED
 #include "common/color.h"
 #include "common/utils.h"
 #include "common/filter.h"
-#include "common/global_functions.h"
 
 #include "drivers/light_led.h"
 #include "drivers/serial.h"
@@ -446,11 +445,11 @@ void releaseSharedTelemetryPorts(void) {
 void tryArm(void)
 {
     updateArmingStatus();
-#ifdef USE_GLOBAL_FUNCTIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
     if (
         !isArmingDisabled() || 
         emergencyArmingIsEnabled() || 
-        GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_ARMING_SAFETY)
+        LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_ARMING_SAFETY)
     ) {
 #else 
     if (
@@ -807,9 +806,6 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     else {
         // FIXME: throttle pitch comp for FW
     }
-
-    // Update PID coefficients
-    updatePIDCoefficients(dT);
 
     // Calculate stabilisation
     pidController(dT);

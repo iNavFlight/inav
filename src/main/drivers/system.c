@@ -85,10 +85,15 @@ void systemReset(void)
     NVIC_SystemReset();
 }
 
+void systemResetRequest(uint32_t requestId)
+{
+    persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, requestId);
+    systemReset();
+}
+
 void systemResetToBootloader(void)
 {
-    persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_BOOTLOADER_REQUEST_ROM);
-    systemReset();
+    systemResetRequest(RESET_BOOTLOADER_REQUEST_ROM);
 }
 
 typedef void resetHandler_t(void);

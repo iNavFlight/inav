@@ -52,4 +52,4 @@ REGION_ALIAS("STACKRAM", DTCM_RAM)
 REGION_ALIAS("FASTRAM",  DTCM_RAM)
 REGION_ALIAS("RAM",      SRAM1)
 
-INCLUDE "stm32_flash_f7_split.ld"
+INCLUDE "stm32_flash_F7_split.ld"

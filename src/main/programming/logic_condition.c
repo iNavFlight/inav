@@ -28,11 +28,11 @@
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
 
-#include "common/logic_condition.h"
-#include "common/global_variables.h"
+#include "programming/logic_condition.h"
+#include "programming/global_variables.h"
 #include "common/utils.h"
 #include "rx/rx.h"
-#include "maths.h"
+#include "common/maths.h"
 #include "fc/fc_core.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
@@ -41,11 +41,18 @@
 #include "sensors/pitotmeter.h"
 #include "flight/imu.h"
 #include "flight/pid.h"
+#include "drivers/io_port_expander.h"
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
 
+#include "io/vtx.h"
+#include "drivers/vtx_common.h"
+
 PG_REGISTER_ARRAY_WITH_RESET_FN(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions, PG_LOGIC_CONDITIONS, 1);
+
+EXTENDED_FASTRAM uint64_t logicConditionsGlobalFlags;
+EXTENDED_FASTRAM int logicConditionValuesByType[LOGIC_CONDITION_LAST];
 
 void pgResetFn_logicConditions(logicCondition_t *instance)
 {
@@ -76,6 +83,8 @@ static int logicConditionCompute(
     int operandB
 ) {
     int temporaryValue;
+    vtxDeviceCapability_t vtxDeviceCapability;
+
     switch (operation) {
 
         case LOGIC_CONDITION_TRUE:
@@ -180,7 +189,94 @@ static int logicConditionCompute(
                 return operandA;
             }
             break;
+        
+        case LOGIC_CONDITION_OVERRIDE_ARMING_SAFETY:
+            LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_ARMING_SAFETY);
+            return true;
+            break;
 
+        case LOGIC_CONDITION_OVERRIDE_THROTTLE_SCALE:
+            logicConditionValuesByType[LOGIC_CONDITION_OVERRIDE_THROTTLE_SCALE] = operandA;
+            LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_THROTTLE_SCALE);
+            return true;
+            break;
+
+        case LOGIC_CONDITION_SWAP_ROLL_YAW:
+            LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_SWAP_ROLL_YAW);
+            return true;
+            break;
+
+        case LOGIC_CONDITION_SET_VTX_POWER_LEVEL:
+            if (
+                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL] != operandA && 
+                vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)
+            ) {
+                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL] = constrain(operandA, VTX_SETTINGS_MIN_POWER, vtxDeviceCapability.powerCount);
+                vtxSettingsConfigMutable()->power = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL];
+                return logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL];
+            } else {
+                return false;
+            }
+            break;
+
+        case LOGIC_CONDITION_SET_VTX_BAND:
+            if (
+                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND] != operandA &&
+                vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)
+            ) {
+                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND] = constrain(operandA, VTX_SETTINGS_MIN_BAND, VTX_SETTINGS_MAX_BAND);
+                vtxSettingsConfigMutable()->band = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND];
+                return logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND];
+            } else {
+                return false;
+            }
+            break;
+        case LOGIC_CONDITION_SET_VTX_CHANNEL:
+            if (
+                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL] != operandA &&
+                vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)
+            ) {
+                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL] = constrain(operandA, VTX_SETTINGS_MIN_CHANNEL, VTX_SETTINGS_MAX_CHANNEL);
+                vtxSettingsConfigMutable()->channel = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL];
+                return logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL];
+            } else {
+                return false;
+            }
+            break;
+        
+        case LOGIC_CONDITION_INVERT_ROLL:
+            LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_ROLL);
+            return true;
+            break;
+
+        case LOGIC_CONDITION_INVERT_PITCH:
+            LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_PITCH);
+            return true;
+            break;
+        
+        case LOGIC_CONDITION_INVERT_YAW:
+            LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_YAW);
+            return true;
+            break;
+        
+        case LOGIC_CONDITION_OVERRIDE_THROTTLE:
+            logicConditionValuesByType[LOGIC_CONDITION_OVERRIDE_THROTTLE] = operandA;
+            LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_THROTTLE);
+            return operandA;
+            break;
+        
+        case LOGIC_CONDITION_SET_OSD_LAYOUT:
+            logicConditionValuesByType[LOGIC_CONDITION_SET_OSD_LAYOUT] = operandA;
+            LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_OSD_LAYOUT);
+            return operandA;
+            break;
+
+#ifdef USE_I2C_IO_EXPANDER
+        case LOGIC_CONDITION_PORT_SET:
+            ioPortExpanderSet((uint8_t)operandA, (uint8_t)operandB);
+            return operandB;
+            break;
+#endif
         default:
             return false;
             break; 
@@ -453,9 +549,16 @@ int logicConditionGetValue(int8_t conditionId) {
 
 void logicConditionUpdateTask(timeUs_t currentTimeUs) {
     UNUSED(currentTimeUs);
+
+    //Disable all flags
+    logicConditionsGlobalFlags = 0;
+
     for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
         logicConditionProcess(i);
     }
+#ifdef USE_I2C_IO_EXPANDER
+    ioPortExpanderSync();
+#endif
 }
 
 void logicConditionReset(void) {
@@ -463,4 +566,34 @@ void logicConditionReset(void) {
         logicConditionStates[i].value = 0;
         logicConditionStates[i].flags = 0;
     }
+}
+
+float NOINLINE getThrottleScale(float globalThrottleScale) {
+    if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_THROTTLE_SCALE)) {
+        return constrainf(logicConditionValuesByType[LOGIC_CONDITION_OVERRIDE_THROTTLE_SCALE] / 100.0f, 0.0f, 1.0f);
+    } else {
+        return globalThrottleScale;
+    }
+}
+
+int16_t getRcCommandOverride(int16_t command[], uint8_t axis) {
+    int16_t outputValue = command[axis];
+
+    if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_SWAP_ROLL_YAW) && axis == FD_ROLL) {
+        outputValue = command[FD_YAW];
+    } else if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_SWAP_ROLL_YAW) && axis == FD_YAW) {
+        outputValue = command[FD_ROLL];
+    }
+
+    if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_ROLL) && axis == FD_ROLL) {
+        outputValue *= -1;
+    }
+    if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_PITCH) && axis == FD_PITCH) {
+        outputValue *= -1;
+    }
+    if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_YAW) && axis == FD_YAW) {
+        outputValue *= -1;
+    }
+
+    return outputValue;
 }

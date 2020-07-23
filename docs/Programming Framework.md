@@ -1,11 +1,16 @@
-# Logic Conditions
+# INAV Programming Framework
 
-Logic Conditions (abbr. LC) is a mechanism that allows to evaluate cenrtain flight parameters (RC channels, switches, altitude, distance, timers, other logic conditions) and use the value of evaluated expression in different places of INAV. Currently, the result of LCs can be used in:
+INAV Programming Framework (abbr. IPF) is a mechanism that allows to evaluate cenrtain flight parameters (RC channels, switches, altitude, distance, timers, other logic conditions) and use the value of evaluated expression in different places of INAV. Currently, the result of LCs can be used in:
 
 * [Servo mixer](Mixer.md) to activate/deactivate certain servo mix rulers
-* [Global functions](Global%20Functions.md) to activate/deactivate system overrides
+* To activate/deactivate system overrides
 
-Logic conditions can be edited using INAV Configurator user interface, of via CLI
+INAV Programming Framework coinsists of:
+
+* Logic Conditions - each Logic Condition can be understood as a single command, a single line of code
+* Global Variables - variables that can store values from and for LogiC Conditions and servo mixer
+
+IPF can be edited using INAV Configurator user interface, of via CLI
 
 ## CLI
 
@@ -39,6 +44,26 @@ Logic conditions can be edited using INAV Configurator user interface, of via CL
 | 11            | NOR           |                                   |
 | 12            | NOT           |                                   |         
 | 13            | STICKY        | `Operand A` is activation operator, `Operand B` is deactivation operator. After activation, operator will return `true` until Operand B is evaluated as `true`|         
+| 14            | ADD           | Add `Operand A` to `Operand B` and returns the result |
+| 15            | SUB           | Substract `Operand B` from `Operand A` and returns the result |
+| 16            | MUL           | Multiply `Operand A` by `Operand B` and returns the result |
+| 17            | DIV           | Divide `Operand A` by `Operand B` and returns the result |
+| 18            | GVAR SET      | Store value from `Operand B` into the Global Variable addressed by `Operand B`. Bear in mind, that operand `Global Variable` means: Value stored in Global Variable of an index! To store in GVAR 1 use `Value 1` not `Global Variable 1` |
+| 19            | GVAR INC      | Increase the GVAR indexed by `Operand A` with value from `Operand B`  |
+| 20            | GVAR DEC      | Decrease the GVAR indexed by `Operand A` with value from `Operand B`  |
+| 21            | IO PORT SET   | Set I2C IO Expander pin `Operand A` to value of `Operand B`. `Operand A` accepts values `0-7` and `Operand B` accepts `0` and `1` |
+| 22             | OVERRIDE_ARMING_SAFETY        | Allows to arm on any angle even without GPS fix              |
+| 23             | OVERRIDE_THROTTLE_SCALE       | Override throttle scale to the value defined by operand. Operand type `0` and value `50` means throttle will be scaled by 50%. |
+| 24             | SWAP_ROLL_YAW                 | basically, when activated, yaw stick will control roll and roll stick will control yaw. Required for tail-sitters VTOL during vertical-horizonral transition when body frame changes |
+| 25             | SET_VTX_POWER_LEVEL           | Sets VTX power level. Accepted values are `0-3` for SmartAudio and `0-4` for Tramp protocol |
+| 26             | INVERT_ROLL                   | Inverts ROLL axis input for PID/PIFF controller |
+| 27             | INVERT_PITCH                  | Inverts PITCH axis input for PID/PIFF controller  |
+| 28             | INVERT_YAW                    | Inverts YAW axis input for PID/PIFF controller |
+| 29             | OVERRIDE_THROTTLE             | Override throttle value that is fed to the motors by mixer. Operand is scaled in us. `1000` means throttle cut, `1500` means half throttle |
+| 30             | SET_VTX_BAND                  | Sets VTX band. Accepted values are `1-5` |
+| 31             | SET_VTX_CHANNEL               | Sets VTX channel. Accepted values are `1-8` |
+| 32            | SET_OSD_LAYOUT                | Sets OSD layout. Accepted values are `0-3` |
+
 
 ### Operands
 
@@ -49,6 +74,7 @@ Logic conditions can be edited using INAV Configurator user interface, of via CL
 | 2             | FLIGHT        | `value` points to flight parameter table              |
 | 3             | FLIGHT_MODE   | `value` points to flight modes table                  |
 | 4             | LC            | `value` points to other logic condition ID            |
+| 5             | GVAR          | Value stored in Global Variable indexed by `value`. `GVAR 1` means: value in GVAR 1 |
 
 #### FLIGHT
 
@@ -103,3 +129,47 @@ All flags are reseted on ARM and DISARM event.
 | bit   | Decimal   | Function              |
 |----   |----       |----                   |
 | 0     | 1         | Latch - after activation LC will stay active until LATCH flag is reseted |
+
+## Examples
+
+### Dynamic THROTTLE scale
+
+`logic 0 1 0 23 0 50 0 0 0`
+
+Limits the THROTTLE output to 50% when Logic Condition `0` evaluates as `true`
+
+### Set VTX power level via Smart Audio
+
+`logic 0 1 0 25 0 3 0 0 0`
+
+Sets VTX power level to `3` when Logic Condition `0` evaluates as `true`
+
+### Invert ROLL and PITCH when rear facing camera FPV is used
+
+Solves the problem from [https://github.com/iNavFlight/inav/issues/4439](https://github.com/iNavFlight/inav/issues/4439)
+
+```
+logic 0 1 0 26 0 0 0 0 0
+logic 1 1 0 27 0 0 0 0 0
+```
+
+Inverts ROLL and PITCH input when Logic Condition `0` evaluates as `true`. Moving Pitch stick up will cause pitch down (up for rear facing camera). Moving Roll stick right will cause roll left of a quad (right in rear facing camera)
+
+### Cut motors but keep other throttle bindings active
+
+`logic 0 1 0 29 0 1000 0 0 0`
+
+Sets Thhrottle output to `0%` when Logic Condition `0` evaluates as `true`
+
+### Set throttle to 50% and keep other throttle bindings active
+
+`logic 0 1 0 29 0 1500 0 0 0`
+
+Sets Thhrottle output to about `50%` when Logic Condition `0` evaluates as `true`
+
+### Set throttle control to different RC channel
+
+`logic 0 1 0 29 1 7 0 0 0`
+
+If Logic Condition `0` evaluates as `true`, motor throttle control is bound to RC channel 7 instead of throttle channel
+

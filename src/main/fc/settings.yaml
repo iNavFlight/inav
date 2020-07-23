@@ -25,7 +25,7 @@ tables:
     values: ["NONE", "PPM", "SERIAL", "MSP", "SPI", "UIB"]
     enum: rxReceiverType_e
   - name: serial_rx
-    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST"]
+    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "FPORT2", "SBUS_FAST"]
   - name: rx_spi_protocol
     values: ["V202_250K", "V202_1M", "SYMA_X", "SYMA_X5C", "CX10", "CX10A", "H8_3D", "INAV", "ELERES"]
     enum: rx_spi_protocol_e
@@ -84,7 +84,7 @@ tables:
       "FLOW", "SBUS", "FPORT", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "ITERM_RELAX",
       "ERPM", "RPM_FILTER", "RPM_FREQ", "NAV_YAW", "DYNAMIC_FILTER", "DYNAMIC_FILTER_FREQUENCY",
-      "IRLOCK", "CD", "KALMAN"]
+      "IRLOCK", "CD", "KALMAN", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -357,6 +357,8 @@ groups:
     members:
       - name: rangefinder_hardware
         table: rangefinder_hardware
+        description: "Selection of rangefinder hardware."
+        default_value: "NONE"
       - name: rangefinder_median_filter
         description: "3-point median filtering for rangefinder readouts"
         default_value: "OFF"
@@ -369,6 +371,8 @@ groups:
     condition: USE_OPFLOW
     members:
       - name: opflow_hardware
+        description: "Selection of OPFLOW hardware."
+        default: "NONE"
         table: opflow_hardware
       - name: opflow_scale
         min: 0
@@ -493,6 +497,8 @@ groups:
     condition: USE_PITOT
     members:
       - name: pitot_hardware
+        description: "Selection of pitot hardware."
+        default_value: "NONE"
         table: pitot_hardware
       - name: pitot_lpf_milli_hz
         min: 0
@@ -506,6 +512,8 @@ groups:
     headers: ["rx/rx.h", "rx/spektrum.h"]
     members:
       - name: receiver_type
+        description: "Selection of receiver (RX) type. Additional configuration of a `serialrx_provider` and a UART will be needed for `SERIAL`"
+        default_value: "`TARGET dependent`"
         field: receiverType
         table: receiver_type
       - name: min_check
@@ -594,6 +602,8 @@ groups:
         field: halfDuplex
         type: bool
       - name: msp_override_channels
+        description: "Mask of RX channels that may be overridden by MSP `SET_RAW_RC`. Note that this requires custom firmware with `USE_RX_MSP` and `USE_MSP_RC_OVERRIDE` compile options and the `MSP RC Override` flight mode."
+        default_value: "0"
         field: mspOverrideChannels
         condition: USE_MSP_RC_OVERRIDE
         min: 0
@@ -1195,6 +1205,8 @@ groups:
     type: generalSettings_t
     members:
       - name: applied_defaults
+        description: "Internal (configurator) hint. Should not be changed manually"
+        default_value: "0"
         field: appliedDefaults
         type: uint8_t
         min: 0
@@ -1656,6 +1668,24 @@ groups:
         field: navVelXyDTermLpfHz
         min: 0
         max: 100
+      - name: nav_mc_vel_xy_dterm_attenuation
+        description: "Maximum D-term attenution percentage for horizontal velocity PID controller (Multirotor). It allows to smooth the PosHold CRUISE, WP and RTH when Multirotor is traveling at full speed. Dterm is not attenuated at low speeds, breaking and accelerating."
+        default_value: "90"
+        field: navVelXyDtermAttenuation
+        min: 0
+        max: 100
+      - name: nav_mc_vel_xy_dterm_attenuation_start
+        description: "A point (in percent of both target and current horizontal velocity) where nav_mc_vel_xy_dterm_attenuation begins"
+        default_value: 10"
+        field: navVelXyDtermAttenuationStart
+        min: 0
+        max: 100
+      - name: nav_mc_vel_xy_dterm_attenuation_end
+        description: "A point (in percent of both target and current horizontal velocity) where nav_mc_vel_xy_dterm_attenuation reaches maximum"
+        default_value: "60"  
+        field: navVelXyDtermAttenuationEnd
+        min: 0
+        max: 100
       - name: nav_fw_pos_z_p
         description: "P gain of altitude PID controller (Fixedwing)"
         default_value: "50"
@@ -1845,6 +1875,8 @@ groups:
         field: use_gps_velned
         type: bool
       - name: inav_allow_dead_reckoning
+        description: "Defines if inav will dead-reckon over short GPS outages. May also be useful for indoors OPFLOW navigation"
+        default_value: "OFF"
         field: allow_dead_reckoning
         type: bool
       - name: inav_reset_altitude
@@ -2111,7 +2143,7 @@ groups:
         min: 1000
         max: 2000
       - name: nav_mc_auto_disarm_delay
-        description: ""
+        description: "Delay before multi-rotor disarms when `nav_disarm_on_landing` is set (m/s)"
         default_value: "2000"
         field: mc.auto_disarm_delay
         min: 100
@@ -2240,7 +2272,7 @@ groups:
         field: fw.cruise_speed
         min: 0
         max: 65535
-      - name: nav_fw_control_smoothness 
+      - name: nav_fw_control_smoothness
         description: "How smoothly the autopilot controls the airplane to correct the navigation error"
         default_value: "0"
         field: fw.control_smoothness
@@ -2696,59 +2728,86 @@ groups:
         min: 10
         max: 90
       - name: osd_crosshairs_style
+        description: "To set the visual type for the crosshair"
+        default_value: "DEFAULT"
         field: crosshairs_style
         table: osd_crosshairs_style
         type: uint8_t
       - name: osd_horizon_offset
+        description: "To vertically adjust the whole OSD and AHI and scrolling bars"
+        default_value: "0"
         field: horizon_offset
         min: -2
         max: 2
       - name: osd_camera_uptilt
+        description: "Set the camera uptilt for the FPV camera in degres, positive is up, negative is down, relative to the horizontal"
+        default_value: "0"
         field: camera_uptilt
         min: -40
         max: 80
       - name: osd_camera_fov_h
+        description: "Horizontal field of view for the camera in degres"
+        default_value: "135"
         field: camera_fov_h
         min: 60
         max: 150
       - name: osd_camera_fov_v
+        description: "Vertical field of view for the camera in degres"
+        default_value: "85"
         field: camera_fov_v
         min: 30
         max: 120
       - name: osd_hud_margin_h
+        description: "Left and right margins for the hud area"
+        default_value: "3"
         field: hud_margin_h
         min: 0
         max: 4
       - name: osd_hud_margin_v
+        description: "Top and bottom margins for the hud area"
+        default_value: "3"
         field: hud_margin_v
         min: 1
         max: 3
       - name: osd_hud_homing
+        description: "To display little arrows around the crossair showing where the home point is in the hud"
+        default_value: "0"
         field: hud_homing
         type: bool
       - name: osd_hud_homepoint
+        description: "To 3D-display the home point location in the hud"
+        default_value: "0"
         field: hud_homepoint
         type: bool
       - name: osd_hud_radar_disp
+        description: "Maximum count of nearby aircrafts or points of interest to display in the hud, as sent from an ESP32 LoRa module. Set to 0 to disable (show nothing). The nearby aircrafts will appear as markers A, B, C, etc"
+        default_value: "0"
         field: hud_radar_disp
         min: 0
         max: 4
       - name: osd_hud_radar_range_min
+        description: "In meters, radar aircrafts closer than this will not be displayed in the hud"
+        default_value: "3"
         field: hud_radar_range_min
         min: 1
         max: 30
       - name: osd_hud_radar_range_max
+        description: "In meters, radar aircrafts further away than this will not be displayed in the hud"
+        default_value: 4000"
         field: hud_radar_range_max
         min: 100
         max: 9990
       - name: osd_hud_radar_nearest
+        description: "To display an extra bar of informations at the bottom of the hud area for the closest radar aircraft found, if closest than the set value, in meters. Shows relative altitude (meters or feet, with an up or down arrow to indicate if above or below), speed (in m/s or f/s), and absolute heading (in °, 0 is north, 90 is east, 180 is south, 270 is west). Set to 0 (zero) to disable."
+        default_value: "0"
         field: hud_radar_nearest
         min: 0
         max: 4000
       - name: osd_hud_wp_disp
-        description: "Controls display of the next waypoints in the HUD."
-        default_value: "OFF"
+        description: "How many navigation waypoints are displayed, set to 0 (zero) to disable. As sample, if set to 2, and you just passed the 3rd waypoint of the mission, you'll see markers for the 4th waypoint (marked 1) and the 5th waypoint (marked 2)"
+        default_value: "0"
         field: hud_wp_disp
+
         min: 0
         max: 3
       - name: osd_left_sidebar_scroll
@@ -2811,6 +2870,8 @@ groups:
         condition: USE_UNDERCLOCK
         type: bool
       - name: debug_mode
+        description: "Defines debug values exposed in debug variables (developer / debugging setting)"
+        default_value: "NONE"
         table: debug_modes
       - name: throttle_tilt_comp_str
         description: "Can be used in ANGLE and HORIZON mode and will automatically boost throttle when banking. Setting is in percentage, 0=disabled."
@@ -2924,6 +2985,8 @@ groups:
         min: VTX_SETTINGS_MIN_CHANNEL
         max: VTX_SETTINGS_MAX_CHANNEL
       - name: vtx_max_power_override
+        description:  "Some VTXes may report max power incorrectly (i.e. 200mW for a 600mW VTX). Use this to override max supported power. 0 to disable and use whatever VTX reports as its capabilities"
+        default_value: "0"
         field: maxPowerOverride
         min: 0
         max: 10000
@@ -2962,11 +3025,14 @@ groups:
         - name: log_level
           field: level
           table: log_level
+          description: "Defines serial debugging log level. See `docs/development/serial_printf_debugging.md` for usage."
+          default_value: "`ERROR`"
         - name: log_topics
           field: topics
           min: 0
           max: UINT32_MAX
-
+          description: "Defines serial debugging log topic. See `docs/development/serial_printf_debugging.md` for usage."
+          default_value: "0"
   - name: PG_ESC_SENSOR_CONFIG
     type: escSensorConfig_t
     headers: ["sensors/esc_sensor.h"]
@@ -2975,3 +3041,15 @@ groups:
         - name: esc_sensor_listen_only
           field: listenOnly
           type: bool
+
+  - name: PG_SMARTPORT_MASTER_CONFIG
+    type: smartportMasterConfig_t
+    headers: ["io/smartport_master.h"]
+    condition: USE_SMARTPORT_MASTER
+    members:
+      - name: smartport_master_halfduplex
+        field: halfDuplex
+        type: bool
+      - name: smartport_master_inverted
+        field: inverted
+        type: bool

@@ -29,28 +29,40 @@
 #define MAX_LOGIC_CONDITIONS 16
 
 typedef enum {
-    LOGIC_CONDITION_TRUE = 0,       // 0
-    LOGIC_CONDITION_EQUAL,          // 1
-    LOGIC_CONDITION_GREATER_THAN,   // 2
-    LOGIC_CONDITION_LOWER_THAN,     // 3
-    LOGIC_CONDITION_LOW,            // 4
-    LOGIC_CONDITION_MID,            // 5
-    LOGIC_CONDITION_HIGH,           // 6
-    LOGIC_CONDITION_AND,            // 7
-    LOGIC_CONDITION_OR,             // 8
-    LOGIC_CONDITION_XOR,            // 9
-    LOGIC_CONDITION_NAND,           // 10
-    LOGIC_CONDITION_NOR,            // 11
-    LOGIC_CONDITION_NOT,            // 12
-    LOGIC_CONDITION_STICKY,         // 13
-    LOGIC_CONDITION_ADD,            // 14
-    LOGIC_CONDITION_SUB,            // 15
-    LOGIC_CONDITION_MUL,            // 16
-    LOGIC_CONDITION_DIV,            // 17
-    LOGIC_CONDITION_GVAR_SET,       // 18
-    LOGIC_CONDITION_GVAR_INC,       // 19
-    LOGIC_CONDITION_GVAR_DEC,       // 20
-    LOGIC_CONDITION_LAST
+    LOGIC_CONDITION_TRUE                        = 0,
+    LOGIC_CONDITION_EQUAL                       = 1,
+    LOGIC_CONDITION_GREATER_THAN                = 2,
+    LOGIC_CONDITION_LOWER_THAN                  = 3,
+    LOGIC_CONDITION_LOW                         = 4,
+    LOGIC_CONDITION_MID                         = 5,
+    LOGIC_CONDITION_HIGH                        = 6,
+    LOGIC_CONDITION_AND                         = 7,
+    LOGIC_CONDITION_OR                          = 8,
+    LOGIC_CONDITION_XOR                         = 9,
+    LOGIC_CONDITION_NAND                        = 10,
+    LOGIC_CONDITION_NOR                         = 11,
+    LOGIC_CONDITION_NOT                         = 12,
+    LOGIC_CONDITION_STICKY                      = 13,
+    LOGIC_CONDITION_ADD                         = 14,
+    LOGIC_CONDITION_SUB                         = 15,
+    LOGIC_CONDITION_MUL                         = 16,
+    LOGIC_CONDITION_DIV                         = 17,
+    LOGIC_CONDITION_GVAR_SET                    = 18,
+    LOGIC_CONDITION_GVAR_INC                    = 19,
+    LOGIC_CONDITION_GVAR_DEC                    = 20,
+    LOGIC_CONDITION_PORT_SET                    = 21,
+    LOGIC_CONDITION_OVERRIDE_ARMING_SAFETY      = 22,
+    LOGIC_CONDITION_OVERRIDE_THROTTLE_SCALE     = 23,
+    LOGIC_CONDITION_SWAP_ROLL_YAW               = 24,
+    LOGIC_CONDITION_SET_VTX_POWER_LEVEL         = 25,
+    LOGIC_CONDITION_INVERT_ROLL                 = 26,
+    LOGIC_CONDITION_INVERT_PITCH                = 27,
+    LOGIC_CONDITION_INVERT_YAW                  = 28,
+    LOGIC_CONDITION_OVERRIDE_THROTTLE           = 29,
+    LOGIC_CONDITION_SET_VTX_BAND                = 30,
+    LOGIC_CONDITION_SET_VTX_CHANNEL             = 31,
+    LOGIC_CONDITION_SET_OSD_LAYOUT              = 32,
+    LOGIC_CONDITION_LAST                        = 33,
 } logicOperation_e;
 
 typedef enum logicOperandType_s {
@@ -108,6 +120,17 @@ typedef enum {
 } logicFlightModeOperands_e;
 
 typedef enum {
+    LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_ARMING_SAFETY = (1 << 0),
+    LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_THROTTLE_SCALE = (1 << 1),
+    LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_SWAP_ROLL_YAW = (1 << 2),
+    LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_ROLL = (1 << 3),
+    LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_PITCH = (1 << 4),
+    LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_YAW = (1 << 5),
+    LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_THROTTLE = (1 << 6),
+    LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_OSD_LAYOUT = (1 << 7),
+} logicConditionsGlobalFlags_t;
+
+typedef enum {
     LOGIC_CONDITION_FLAG_LATCH      = 1 << 0,
 } logicConditionFlags_e;
 
@@ -132,6 +155,13 @@ typedef struct logicConditionState_s {
     uint8_t flags;
 } logicConditionState_t;
 
+extern int logicConditionValuesByType[LOGIC_CONDITION_LAST];
+extern uint64_t logicConditionsGlobalFlags;
+
+#define LOGIC_CONDITION_GLOBAL_FLAG_DISABLE(mask) (logicConditionsGlobalFlags &= ~(mask))
+#define LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(mask) (logicConditionsGlobalFlags |= (mask))
+#define LOGIC_CONDITION_GLOBAL_FLAG(mask) (logicConditionsGlobalFlags & (mask))
+
 void logicConditionProcess(uint8_t i);
 
 int logicConditionGetOperandValue(logicOperandType_e type, int operand);
@@ -139,3 +169,6 @@ int logicConditionGetOperandValue(logicOperandType_e type, int operand);
 int logicConditionGetValue(int8_t conditionId);
 void logicConditionUpdateTask(timeUs_t currentTimeUs);
 void logicConditionReset(void);
+
+float getThrottleScale(float globalThrottleScale);
+int16_t getRcCommandOverride(int16_t command[], uint8_t axis);

@@ -35,8 +35,12 @@ typedef enum {
 
 // Values for PERSISTENT_OBJECT_RESET_REASON
 #define RESET_NONE                                      0
-#define RESET_BOOTLOADER_REQUEST_ROM                    1
+#define RESET_BOOTLOADER_REQUEST_ROM                    1  // DFU request
 #define RESET_MSC_REQUEST                               2  // MSC invocation was requested
+#define RESET_BOOTLOADER_FIRMWARE_UPDATE                3  // Bootloader request to flash stored firmware update
+#define RESET_BOOTLOADER_FIRMWARE_ROLLBACK              4  // Bootloader request to rollback to stored firmware and config backup
+#define RESET_BOOTLOADER_FIRMWARE_UPDATE_SUCCESS        5
+#define RESET_BOOTLOADER_FIRMWARE_UPDATE_FAILED         6
 
 void persistentObjectInit(void);
 uint32_t persistentObjectRead(persistentObjectId_e id);
