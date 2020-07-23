@@ -52,7 +52,6 @@ FILE_COMPILE_FOR_SPEED
 #include "common/time.h"
 #include "common/typeconversion.h"
 #include "common/utils.h"
-#include "programming/global_functions.h"
 
 #include "config/feature.h"
 #include "config/parameter_group.h"
@@ -103,6 +102,8 @@ FILE_COMPILE_FOR_SPEED
 #include "sensors/pitotmeter.h"
 #include "sensors/temperature.h"
 #include "sensors/esc_sensor.h"
+
+#include "programming/logic_condition.h"
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"

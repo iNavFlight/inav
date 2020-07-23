@@ -43,7 +43,6 @@ extern uint8_t __config_end;
 #include "common/memory.h"
 #include "common/time.h"
 #include "common/typeconversion.h"
-#include "programming/global_functions.h"
 #include "programming/global_variables.h"
 
 #include "config/config_eeprom.h"
@@ -1950,104 +1949,6 @@ static void cliGvar(char *cmdline) {
 
 #endif
 
-#ifdef USE_PROGRAMMING_FRAMEWORK
-
-static void printGlobalFunctions(uint8_t dumpMask, const globalFunction_t *globalFunctions, const globalFunction_t *defaultGlobalFunctions)
-{
-    const char *format = "gf %d %d %d %d %d %d %d";
-    for (uint32_t i = 0; i < MAX_GLOBAL_FUNCTIONS; i++) {
-        const globalFunction_t gf = globalFunctions[i];
-
-        bool equalsDefault = false;
-        if (defaultGlobalFunctions) {
-            globalFunction_t defaultValue = defaultGlobalFunctions[i];
-            equalsDefault =
-                gf.enabled == defaultValue.enabled &&
-                gf.conditionId == defaultValue.conditionId &&
-                gf.action == defaultValue.action &&
-                gf.withValue.type == defaultValue.withValue.type &&
-                gf.withValue.value == defaultValue.withValue.value &&
-                gf.flags == defaultValue.flags;
-
-            cliDefaultPrintLinef(dumpMask, equalsDefault, format,
-                i,
-                gf.enabled,
-                gf.conditionId,
-                gf.action,
-                gf.withValue.type,
-                gf.withValue.value,
-                gf.flags
-            );
-        }
-        cliDumpPrintLinef(dumpMask, equalsDefault, format,
-            i,
-            gf.enabled,
-            gf.conditionId,
-            gf.action,
-            gf.withValue.type,
-            gf.withValue.value,
-            gf.flags
-        );
-    }
-}
-
-static void cliGlobalFunctions(char *cmdline) {
-    char * saveptr;
-    int args[7], check = 0;
-    uint8_t len = strlen(cmdline);
-
-    if (len == 0) {
-        printGlobalFunctions(DUMP_MASTER, globalFunctions(0), NULL);
-    } else if (sl_strncasecmp(cmdline, "reset", 5) == 0) {
-        pgResetCopy(globalFunctionsMutable(0), PG_GLOBAL_FUNCTIONS);
-    } else {
-        enum {
-            INDEX = 0,
-            ENABLED,
-            CONDITION_ID,
-            ACTION,
-            VALUE_TYPE,
-            VALUE_VALUE,
-            FLAGS,
-            ARGS_COUNT
-            };
-        char *ptr = strtok_r(cmdline, " ", &saveptr);
-        while (ptr != NULL && check < ARGS_COUNT) {
-            args[check++] = fastA2I(ptr);
-            ptr = strtok_r(NULL, " ", &saveptr);
-        }
-
-        if (ptr != NULL || check != ARGS_COUNT) {
-            cliShowParseError();
-            return;
-        }
-
-        int32_t i = args[INDEX];
-        if (
-            i >= 0 && i < MAX_GLOBAL_FUNCTIONS &&
-            args[ENABLED] >= 0 && args[ENABLED] <= 1 &&
-            args[CONDITION_ID] >= -1 && args[CONDITION_ID] < MAX_LOGIC_CONDITIONS &&
-            args[ACTION] >= 0 && args[ACTION] < GLOBAL_FUNCTION_ACTION_LAST &&
-            args[VALUE_TYPE] >= 0 && args[VALUE_TYPE] < LOGIC_CONDITION_OPERAND_TYPE_LAST &&
-            args[VALUE_VALUE] >= -1000000 && args[VALUE_VALUE] <= 1000000 &&
-            args[FLAGS] >= 0 && args[FLAGS] <= 255
-
-        ) {
-            globalFunctionsMutable(i)->enabled = args[ENABLED];
-            globalFunctionsMutable(i)->conditionId = args[CONDITION_ID];
-            globalFunctionsMutable(i)->action = args[ACTION];
-            globalFunctionsMutable(i)->withValue.type = args[VALUE_TYPE];
-            globalFunctionsMutable(i)->withValue.value = args[VALUE_VALUE];
-            globalFunctionsMutable(i)->flags = args[FLAGS];
-
-            cliGlobalFunctions("");
-        } else {
-            cliShowParseError();
-        }
-    }
-}
-#endif
-
 #ifdef USE_SDCARD
 
 static void cliWriteBytes(const uint8_t *buffer, int count)
@@ -3329,11 +3230,6 @@ static void printConfig(const char *cmdline, bool doDiff)
         printGvar(dumpMask, globalVariableConfigs_CopyArray, globalVariableConfigs(0));
 #endif
 
-#ifdef USE_PROGRAMMING_FRAMEWORK
-        cliPrintHashLine("gf");
-        printGlobalFunctions(dumpMask, globalFunctions_CopyArray, globalFunctions(0));
-#endif
-
         cliPrintHashLine("feature");
         printFeature(dumpMask, &featureConfig_Copy, featureConfig());
 
@@ -3580,11 +3476,6 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("gvar", "configure global variables",
         "<gvar> <default> <min> <max>\r\n"
         "\treset\r\n", cliGvar),
-#endif
-#ifdef USE_PROGRAMMING_FRAMEWORK
-    CLI_COMMAND_DEF("gf", "configure global functions",
-        "<rule> <enabled> <logic condition> <action> <operand type> <operand value> <flags>\r\n"
-        "\treset\r\n", cliGlobalFunctions),
 #endif
     CLI_COMMAND_DEF("set", "change setting", "[<name>=<value>]", cliSet),
     CLI_COMMAND_DEF("smix", "servo mixer",

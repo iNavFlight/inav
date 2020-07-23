@@ -29,7 +29,6 @@ FILE_COMPILE_FOR_SPEED
 #include "common/filter.h"
 #include "common/maths.h"
 #include "common/utils.h"
-#include "programming/global_functions.h"
 
 #include "config/feature.h"
 #include "config/parameter_group.h"
