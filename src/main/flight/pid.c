@@ -57,9 +57,10 @@ FILE_COMPILE_FOR_SPEED
 #include "sensors/acceleration.h"
 #include "sensors/compass.h"
 #include "sensors/pitotmeter.h"
-#include "programming/global_functions.h"
 
 #include "scheduler/scheduler.h"
+
+#include "programming/logic_condition.h"
 
 typedef struct {
     float kP;   // Proportional gain

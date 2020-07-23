@@ -27,9 +27,7 @@
 FILE_COMPILE_FOR_SIZE
 
 #include "programming/logic_condition.h"
-#include "programming/global_functions.h"
 
 void programmingFrameworkUpdateTask(timeUs_t currentTimeUs) {
     logicConditionUpdateTask(currentTimeUs);
-    globalFunctionsUpdateTask(currentTimeUs);
 }

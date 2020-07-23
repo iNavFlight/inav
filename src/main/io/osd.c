@@ -52,7 +52,6 @@ FILE_COMPILE_FOR_SPEED
 #include "common/time.h"
 #include "common/typeconversion.h"
 #include "common/utils.h"
-#include "programming/global_functions.h"
 
 #include "config/feature.h"
 #include "config/parameter_group.h"
@@ -103,6 +102,8 @@ FILE_COMPILE_FOR_SPEED
 #include "sensors/pitotmeter.h"
 #include "sensors/temperature.h"
 #include "sensors/esc_sensor.h"
+
+#include "programming/logic_condition.h"
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
@@ -3243,8 +3244,8 @@ void osdUpdate(timeUs_t currentTimeUs)
             activeLayout = 1;
         else
 #ifdef USE_PROGRAMMING_FRAMEWORK
-        if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_OSD_LAYOUT))
-            activeLayout = constrain(globalFunctionValues[GLOBAL_FUNCTION_ACTION_SET_OSD_LAYOUT], 0, OSD_ALTERNATE_LAYOUT_COUNT); 
+        if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_OSD_LAYOUT))
+            activeLayout = constrain(logicConditionValuesByType[LOGIC_CONDITION_SET_OSD_LAYOUT], 0, OSD_ALTERNATE_LAYOUT_COUNT); 
         else
 #endif
             activeLayout = 0;

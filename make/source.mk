@@ -38,7 +38,6 @@ MAIN_SRC = \
             common/time.c \
             common/uvarint.c \
             programming/logic_condition.c \
-            programming/global_functions.c \
             programming/global_variables.c \
             programming/programming_task.c \
             config/config_eeprom.c \
