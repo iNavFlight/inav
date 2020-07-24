@@ -337,7 +337,10 @@ void compassUpdate(timeUs_t currentTimeUs)
     static int magGain[XYZ_AXIS_COUNT] = {-4096, -4096, -4096};
 
     // Check magZero
-    if ((compassConfig()->magZero.raw[X] == 0) && (compassConfig()->magZero.raw[Y] == 0) && (compassConfig()->magZero.raw[Z] == 0)) {
+    if (
+        (compassConfig()->magZero.raw[X] == 0 && compassConfig()->magZero.raw[Y] == 0 && compassConfig()->magZero.raw[Z] == 0) || 
+        compassConfig()->magGain[X] == 0 || compassConfig()->magGain[Y] == 0 || compassConfig()->magGain[Z] == 0  
+    ) {
         DISABLE_STATE(COMPASS_CALIBRATED);
     }
     else {
