@@ -363,6 +363,7 @@ void compassUpdate(timeUs_t currentTimeUs)
 
         for (int axis = 0; axis < 3; axis++) {
             compassConfigMutable()->magZero.raw[axis] = 0;
+            compassConfigMutable()->magGain[axis] = 0;
             magPrev[axis] = 0;
         }
 
