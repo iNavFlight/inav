@@ -314,6 +314,7 @@ TEST(RCDeviceTest, TestWifiModeChangeWithDeviceUnready)
     rcData[modeActivationConditions(1)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 900;
     rcData[modeActivationConditions(2)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 900;
 
+    updateUsedModeActivationConditionFlags();
     updateActivatedModes();
 
     // runn process loop
@@ -375,6 +376,7 @@ TEST(RCDeviceTest, TestWifiModeChangeWithDeviceReady)
     rcData[modeActivationConditions(1)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 2000;
     rcData[modeActivationConditions(2)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1700;
 
+    updateUsedModeActivationConditionFlags();
     updateActivatedModes();
 
     // runn process loop
@@ -435,6 +437,8 @@ TEST(RCDeviceTest, TestWifiModeChangeCombine)
     rcData[modeActivationConditions(0)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1700;
     rcData[modeActivationConditions(1)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 2000;
     rcData[modeActivationConditions(2)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1700;
+
+    updateUsedModeActivationConditionFlags();
     updateActivatedModes();
 
     // runn process loop
