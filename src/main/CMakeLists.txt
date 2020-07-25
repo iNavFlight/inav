@@ -16,9 +16,6 @@ main_sources(COMMON_SRC
     common/filter.c
     common/gps_conversion.c
     common/log.c
-    common/logic_condition.c
-    common/global_functions.c
-    common/global_variables.c
     common/maths.c
     common/memory.c
     common/olc.c
@@ -81,6 +78,8 @@ main_sources(COMMON_SRC
     drivers/barometer/barometer_bmp280.h
     drivers/barometer/barometer_bmp388.c
     drivers/barometer/barometer_bmp388.h
+    drivers/barometer/barometer_dps310.c
+    drivers/barometer/barometer_dps310.h
     drivers/barometer/barometer_fake.c
     drivers/barometer/barometer_fake.h
     drivers/barometer/barometer_lps25h.c
@@ -121,12 +120,15 @@ main_sources(COMMON_SRC
     drivers/display.c
     drivers/display_canvas.c
     drivers/display_font_metadata.c
+    drivers/display_widgets.c
     drivers/display_ug2864hsweg01.c
     drivers/exti.c
     drivers/flash.c
     drivers/flash_m25p16.c
     drivers/io.c
     drivers/io_pca9685.c
+    drivers/io_pcf8574.c
+    drivers/io_port_expander.c
     drivers/irlock.c
     drivers/light_led.c
     drivers/light_ws2811strip.c
@@ -193,6 +195,7 @@ main_sources(COMMON_SRC
     flight/failsafe.c
     flight/hil.c
     flight/imu.c
+    flight/kalman.c
     flight/mixer.c
     flight/pid.c
     flight/pid_autotune.c
@@ -220,6 +223,10 @@ main_sources(COMMON_SRC
     io/rcdevice_cam.c
 
     msp/msp_serial.c
+
+    programming/logic_condition.c
+    programming/global_variables.c
+    programming/programming_task.c
 
     rx/crsf.c
     rx/eleres.c
