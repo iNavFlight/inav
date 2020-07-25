@@ -303,7 +303,7 @@ static void djiSerializeOSDConfigReply(sbuf_t *dst)
             // Position & visibility encoded in 16 bits. Position encoding is the same between BF/DJI and INAV
             // However visibility is different. INAV has 3 layouts, while BF only has visibility profiles
             // Here we use only one OSD layout mapped to first OSD BF profile
-            uint16_t itemPos = osdConfig()->item_pos[0][inavOSDIdx];
+            uint16_t itemPos = osdLayoutsConfig()->item_pos[0][inavOSDIdx];
 
             // Workarounds for certain OSD element positions
             // INAV calculates these dynamically, while DJI expects the config to have defined coordinates

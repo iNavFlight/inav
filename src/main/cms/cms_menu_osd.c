@@ -75,7 +75,7 @@ static long cmsx_osdElementOnChange(displayPort_t *displayPort, const void *ptr)
 {
     UNUSED(ptr);
 
-    uint16_t *pos = &osdConfigMutable()->item_pos[osdCurrentLayout][osdCurrentItem];
+    uint16_t *pos = &osdLayoutsConfigMutable()->item_pos[osdCurrentLayout][osdCurrentItem];
     *pos = OSD_POS(osdCurrentElementColumn, osdCurrentElementRow);
     if (osdCurrentElementVisible) {
         *pos |= OSD_VISIBLE_FLAG;
@@ -125,7 +125,7 @@ static CMS_Menu cmsx_menuOsdElementActions = {
 static long osdElemActionsOnEnter(const OSD_Entry *from)
 {
     osdCurrentItem = from->itemId;
-    uint16_t pos = osdConfig()->item_pos[osdCurrentLayout][osdCurrentItem];
+    uint16_t pos = osdLayoutsConfig()->item_pos[osdCurrentLayout][osdCurrentItem];
     osdCurrentElementColumn = OSD_X(pos);
     osdCurrentElementRow = OSD_Y(pos);
     osdCurrentElementVisible = OSD_VISIBLE(pos) ? 1 : 0;

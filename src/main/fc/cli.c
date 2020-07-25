@@ -810,27 +810,19 @@ static void cliSerial(char *cmdline)
 
         switch (i) {
         case 0:
-            if (baudRateIndex < BAUD_1200 || baudRateIndex > BAUD_2470000) {
-                continue;
-            }
+            baudRateIndex = constrain(baudRateIndex, BAUD_MIN, BAUD_MAX);
             portConfig.msp_baudrateIndex = baudRateIndex;
             break;
         case 1:
-            if (baudRateIndex < BAUD_9600 || baudRateIndex > BAUD_115200) {
-                continue;
-            }
+            baudRateIndex = constrain(baudRateIndex, BAUD_MIN, BAUD_MAX);
             portConfig.gps_baudrateIndex = baudRateIndex;
             break;
         case 2:
-            if (baudRateIndex != BAUD_AUTO && baudRateIndex > BAUD_115200) {
-                continue;
-            }
+            baudRateIndex = constrain(baudRateIndex, BAUD_MIN, BAUD_MAX);
             portConfig.telemetry_baudrateIndex = baudRateIndex;
             break;
         case 3:
-            if (baudRateIndex < BAUD_19200 || baudRateIndex > BAUD_250000) {
-                continue;
-            }
+            baudRateIndex = constrain(baudRateIndex, BAUD_MIN, BAUD_MAX);
             portConfig.peripheral_baudrateIndex = baudRateIndex;
             break;
         }
@@ -2122,7 +2114,7 @@ static void cliFlashRead(char *cmdline)
 #endif
 
 #ifdef USE_OSD
-static void printOsdLayout(uint8_t dumpMask, const osdConfig_t *osdConfig, const osdConfig_t *osdConfigDefault, int layout, int item)
+static void printOsdLayout(uint8_t dumpMask, const osdLayoutsConfig_t *config, const osdLayoutsConfig_t *configDefault, int layout, int item)
 {
     // "<layout> <item> <col> <row> <visible>"
     const char *format = "osd_layout %d %d %d %d %c";
@@ -2130,8 +2122,8 @@ static void printOsdLayout(uint8_t dumpMask, const osdConfig_t *osdConfig, const
         if (layout >= 0 && layout != ii) {
             continue;
         }
-        const uint16_t *layoutItems = osdConfig->item_pos[ii];
-        const uint16_t *defaultLayoutItems = osdConfigDefault->item_pos[ii];
+        const uint16_t *layoutItems = config->item_pos[ii];
+        const uint16_t *defaultLayoutItems = configDefault->item_pos[ii];
         for (int jj = 0; jj < OSD_ITEM_COUNT; jj++) {
             if (item >= 0 && item != jj) {
                 continue;
@@ -2223,15 +2215,15 @@ static void cliOsdLayout(char *cmdline)
             // No args, or just layout or layout and item. If any of them not provided,
             // it will be the -1 that we used during initialization, so printOsdLayout()
             // won't use them for filtering.
-            printOsdLayout(DUMP_MASTER, osdConfig(), osdConfig(), layout, item);
+            printOsdLayout(DUMP_MASTER, osdLayoutsConfig(), osdLayoutsConfig(), layout, item);
             break;
         case 4:
             // No visibility provided. Keep the previous one.
-            visible = OSD_VISIBLE(osdConfig()->item_pos[layout][item]);
+            visible = OSD_VISIBLE(osdLayoutsConfig()->item_pos[layout][item]);
             FALLTHROUGH;
         case 5:
             // Layout, item, pos and visibility. Set the item.
-            osdConfigMutable()->item_pos[layout][item] = OSD_POS(col, row) | (visible ? OSD_VISIBLE_FLAG : 0);
+            osdLayoutsConfigMutable()->item_pos[layout][item] = OSD_POS(col, row) | (visible ? OSD_VISIBLE_FLAG : 0);
             break;
         default:
             // Unhandled
@@ -3276,7 +3268,7 @@ static void printConfig(const char *cmdline, bool doDiff)
 
 #ifdef USE_OSD
         cliPrintHashLine("osd_layout");
-        printOsdLayout(dumpMask, &osdConfig_Copy, osdConfig(), -1, -1);
+        printOsdLayout(dumpMask, &osdLayoutsConfig_Copy, osdLayoutsConfig(), -1, -1);
 #endif
 
         cliPrintHashLine("master");

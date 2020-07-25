@@ -1092,7 +1092,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, osdConfig()->dist_alarm);
         sbufWriteU16(dst, osdConfig()->neg_alt_alarm);
         for (int i = 0; i < OSD_ITEM_COUNT; i++) {
-            sbufWriteU16(dst, osdConfig()->item_pos[0][i]);
+            sbufWriteU16(dst, osdLayoutsConfig()->item_pos[0][i]);
         }
 #else
         sbufWriteU8(dst, OSD_DRIVER_NONE); // OSD not supported
@@ -2281,7 +2281,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         } else {
             // set a position setting
             if ((dataSize >= 3) && (tmp_u8 < OSD_ITEM_COUNT)) // tmp_u8 == addr
-                osdConfigMutable()->item_pos[0][tmp_u8] = sbufReadU16(src);
+                osdLayoutsConfigMutable()->item_pos[0][tmp_u8] = sbufReadU16(src);
             else
                 return MSP_RESULT_ERROR;
         }
@@ -2575,10 +2575,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
                 portConfig->identifier = identifier;
                 portConfig->functionMask = sbufReadU16(src);
-                portConfig->msp_baudrateIndex = sbufReadU8(src);
-                portConfig->gps_baudrateIndex = sbufReadU8(src);
-                portConfig->telemetry_baudrateIndex = sbufReadU8(src);
-                portConfig->peripheral_baudrateIndex = sbufReadU8(src);
+                portConfig->msp_baudrateIndex = constrain(sbufReadU8(src), BAUD_MIN, BAUD_MAX);
+                portConfig->gps_baudrateIndex = constrain(sbufReadU8(src), BAUD_MIN, BAUD_MAX);
+                portConfig->telemetry_baudrateIndex = constrain(sbufReadU8(src), BAUD_MIN, BAUD_MAX);
+                portConfig->peripheral_baudrateIndex = constrain(sbufReadU8(src), BAUD_MIN, BAUD_MAX);
             }
         }
         break;
@@ -2603,10 +2603,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
                 portConfig->identifier = identifier;
                 portConfig->functionMask = sbufReadU32(src);
-                portConfig->msp_baudrateIndex = sbufReadU8(src);
-                portConfig->gps_baudrateIndex = sbufReadU8(src);
-                portConfig->telemetry_baudrateIndex = sbufReadU8(src);
-                portConfig->peripheral_baudrateIndex = sbufReadU8(src);
+                portConfig->msp_baudrateIndex = constrain(sbufReadU8(src), BAUD_MIN, BAUD_MAX);
+                portConfig->gps_baudrateIndex = constrain(sbufReadU8(src), BAUD_MIN, BAUD_MAX);
+                portConfig->telemetry_baudrateIndex = constrain(sbufReadU8(src), BAUD_MIN, BAUD_MAX);
+                portConfig->peripheral_baudrateIndex = constrain(sbufReadU8(src), BAUD_MIN, BAUD_MAX);
             }
         }
         break;
@@ -2728,7 +2728,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             if (!sbufReadU8Safe(&item, src)) {
                 return MSP_RESULT_ERROR;
             }
-            if (!sbufReadU16Safe(&osdConfigMutable()->item_pos[layout][item], src)) {
+            if (!sbufReadU16Safe(&osdLayoutsConfigMutable()->item_pos[layout][item], src)) {
                 return MSP_RESULT_ERROR;
             }
             // If the layout is not already overriden and it's different
@@ -3148,11 +3148,11 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
                     *ret = MSP_RESULT_ERROR;
                     break;
                 }
-                sbufWriteU16(dst, osdConfig()->item_pos[layout][item]);
+                sbufWriteU16(dst, osdLayoutsConfig()->item_pos[layout][item]);
             } else {
                 // Asking for an specific layout
                 for (unsigned ii = 0; ii < OSD_ITEM_COUNT; ii++) {
-                    sbufWriteU16(dst, osdConfig()->item_pos[layout][ii]);
+                    sbufWriteU16(dst, osdLayoutsConfig()->item_pos[layout][ii]);
                 }
             }
         } else {
