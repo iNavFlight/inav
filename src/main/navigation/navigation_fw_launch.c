@@ -246,15 +246,15 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IDLE(timeUs_t curren
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_THROTTLE(timeUs_t currentTimeUs) {
     UNUSED(currentTimeUs);
 
-    fwLaunch.pitchAngle = 0;
-
     if (!isThrottleLow()) {
         if (isThrottleIdleEnabled()) {
             return FW_LAUNCH_EVENT_SUCCESS;
         } else {
+            fwLaunch.pitchAngle = navConfig()->fw.launch_climb_angle;
             return FW_LAUNCH_EVENT_GOTO_DETECTION;
         }
     }
+    fwLaunch.pitchAngle = 0;
 
     return FW_LAUNCH_EVENT_NONE;
 }
