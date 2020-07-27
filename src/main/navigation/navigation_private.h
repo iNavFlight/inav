@@ -368,17 +368,35 @@ typedef struct {
     float                       totalTripDistance;
 } navigationPosControl_t;
 
+typedef struct {
+    float dTermAttenuation;
+    float dTermAttenuationStart;
+    float dTermAttenuationEnd;
+    float breakingBoostFactor;
+} multicopterPosXyCoefficients_t;
+
 #if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE)
 PG_DECLARE_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList);
 #endif
 
 extern navigationPosControl_t posControl;
+extern multicopterPosXyCoefficients_t multicopterPosXyCoefficients;
 
 /* Internally used functions */
 const navEstimatedPosVel_t * navGetCurrentActualPositionAndVelocity(void);
 
 float navPidApply2(pidController_t *pid, const float setpoint, const float measurement, const float dt, const float outMin, const float outMax, const pidControllerFlags_e pidFlags);
-float navPidApply3(pidController_t *pid, const float setpoint, const float measurement, const float dt, const float outMin, const float outMax, const pidControllerFlags_e pidFlags, const float gainScaler);
+float navPidApply3(
+    pidController_t *pid, 
+    const float setpoint, 
+    const float measurement, 
+    const float dt, 
+    const float outMin, 
+    const float outMax, 
+    const pidControllerFlags_e pidFlags, 
+    const float gainScaler,
+    const float dTermScaler
+);
 void navPidReset(pidController_t *pid);
 void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD, float _kFF, float _dTermLpfHz);
 

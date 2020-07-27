@@ -104,6 +104,7 @@ typedef enum {
     DEVHW_LPS25H,
     DEVHW_SPL06,
     DEVHW_BMP388,
+    DEVHW_DPS310,
 
     /* Compass chips */
     DEVHW_HMC5883,
@@ -144,6 +145,7 @@ typedef enum {
     DEVHW_UG2864,       // I2C OLED display
     DEVHW_SDCARD,       // Generic SD-Card
     DEVHW_IRLOCK,       // IR-Lock visual positioning hardware
+    DEVHW_PCF8574,      // 8-bit I/O expander
 } devHardwareType_e;
 
 typedef enum {

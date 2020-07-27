@@ -1,4 +1,4 @@
-F7X5XI_TARGETS += $(TARGET)
+F765XI_TARGETS += $(TARGET)
 FEATURES       += SDCARD VCP MSC
 
 TARGET_SRC = \
@@ -7,6 +7,7 @@ TARGET_SRC = \
             drivers/barometer/barometer_bmp085.c \
             drivers/barometer/barometer_bmp280.c \
             drivers/barometer/barometer_ms56xx.c \
+            drivers/barometer/barometer_dps310.c \
             drivers/compass/compass_hmc5883l.c \
             drivers/compass/compass_qmc5883l.c \
             drivers/compass/compass_ist8310.c \

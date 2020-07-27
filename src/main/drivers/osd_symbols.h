@@ -118,7 +118,7 @@
 
 #define SYM_RPM                   0x8B // 139 RPM
 #define SYM_WAYPOINT              0x8C // 140 Waypoint
-//                                0x8D // 141 -
+#define SYM_AZIMUTH               0x8D // 141 Azimuth
 //                                0x8E // 142 -
 //                                0x8F // 143 -
 

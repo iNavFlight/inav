@@ -30,12 +30,16 @@
 
 #include "flash.h"
 #include "flash_m25p16.h"
+
+#include "common/time.h"
+
 #include "drivers/bus_spi.h"
 #include "drivers/io.h"
 #include "drivers/time.h"
 
 static flashPartitionTable_t flashPartitionTable;
 static int flashPartitions = 0;
+
 
 #ifdef USE_SPI
 static bool flashSpiInit(void)
@@ -64,7 +68,7 @@ bool flashIsReady(void)
     return false;
 }
 
-bool flashWaitForReady(uint32_t timeoutMillis)
+bool flashWaitForReady(timeMs_t timeoutMillis)
 {
 #ifdef USE_FLASH_M25P16
     return m25p16_waitForReady(timeoutMillis);

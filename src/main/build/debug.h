@@ -71,5 +71,11 @@ typedef enum {
     DEBUG_DYNAMIC_FILTER,
     DEBUG_DYNAMIC_FILTER_FREQUENCY,
     DEBUG_IRLOCK,
+    DEBUG_CD,
+    DEBUG_KALMAN,
+    DEBUG_SPM_CELLS,    // Smartport master FLVSS
+    DEBUG_SPM_VS600,    // Smartport master VS600 VTX
+    DEBUG_SPM_VARIO,    // Smartport master variometer
+    DEBUG_PCF8574,
     DEBUG_COUNT
 } debugType_e;

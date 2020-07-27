@@ -173,8 +173,10 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
     }
 );
 
+static navWapointHeading_t wpHeadingControl;
 navigationPosControl_t  posControl;
 navSystemStatus_t       NAV_Status;
+EXTENDED_FASTRAM multicopterPosXyCoefficients_t multicopterPosXyCoefficients;
 
 #if defined(NAV_BLACKBOX)
 int16_t navCurrentState;
@@ -209,6 +211,8 @@ void calculateInitialHoldPosition(fpVector3_t * pos);
 void calculateFarAwayTarget(fpVector3_t * farAwayPos, int32_t yaw, int32_t distance);
 void calculateNewCruiseTarget(fpVector3_t * origin, int32_t yaw, int32_t distance);
 static bool isWaypointPositionReached(const fpVector3_t * pos, const bool isWaypointHome);
+static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint_t * waypoint);
+static navigationFSMEvent_t nextForNonGeoStates(void);
 
 void initializeRTHSanityChecker(const fpVector3_t * pos);
 bool validateRTHSanityChecker(void);
@@ -1416,6 +1420,21 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_INITIALIZE(nav
     }
 }
 
+static navigationFSMEvent_t nextForNonGeoStates(void)
+{
+        /* simple helper for non-geographical states that just set other data */
+    const bool isLastWaypoint = (posControl.waypointList[posControl.activeWaypointIndex].flag == NAV_WP_FLAG_LAST) || (posControl.activeWaypointIndex >= (posControl.waypointCount - 1));
+
+    if (isLastWaypoint) {
+            // non-geo state is the last waypoint, switch to finish.
+        return NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_FINISHED;
+    } else {
+            // Finished non-geo,  move to next WP
+        posControl.activeWaypointIndex++;
+        return NAV_FSM_EVENT_NONE; // re-process the state passing to the next WP
+    }
+}
+
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(navigationFSMState_t previousState)
 {
     /* A helper function to do waypoint-specific action */
@@ -1435,27 +1454,35 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
             if(posControl.waypointList[posControl.activeWaypointIndex].p3 != -1){
                 if(posControl.waypointList[posControl.activeWaypointIndex].p3 == 0){
                     resetJumpCounter();
-                    const bool isLastWaypoint = (posControl.waypointList[posControl.activeWaypointIndex].flag == NAV_WP_FLAG_LAST) ||
-                          (posControl.activeWaypointIndex >= (posControl.waypointCount - 1));
-
-                        if (isLastWaypoint) {
-                            // JUMP is the last waypoint and we reached the last jump, switch to finish.
-                            return NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_FINISHED;
-                        } else {
-                                // Finished JUMP, move to next WP
-                            posControl.activeWaypointIndex++;
-                            return NAV_FSM_EVENT_NONE; // re-process the state passing to the next WP
-                        }
+                    return nextForNonGeoStates();
                 }
                 else
                 {
                     posControl.waypointList[posControl.activeWaypointIndex].p3--;
                 }
             }
-
             posControl.activeWaypointIndex = posControl.waypointList[posControl.activeWaypointIndex].p1;
-
             return NAV_FSM_EVENT_NONE; // re-process the state passing to the next WP
+
+        case NAV_WP_ACTION_SET_POI:
+            if (STATE(MULTIROTOR)) {
+                wpHeadingControl.mode = NAV_WP_HEAD_MODE_POI;
+                mapWaypointToLocalPosition(&wpHeadingControl.poi_pos,
+                                           &posControl.waypointList[posControl.activeWaypointIndex]);
+            }
+            return nextForNonGeoStates();
+
+        case NAV_WP_ACTION_SET_HEAD:
+            if (STATE(MULTIROTOR)) {
+                if (posControl.waypointList[posControl.activeWaypointIndex].p1 < 0 ||
+                    posControl.waypointList[posControl.activeWaypointIndex].p1 > 359) {
+                    wpHeadingControl.mode = NAV_WP_HEAD_MODE_NONE;
+                } else {
+                    wpHeadingControl.mode = NAV_WP_HEAD_MODE_FIXED;
+                    wpHeadingControl.heading = DEGREES_TO_CENTIDEGREES(posControl.waypointList[posControl.activeWaypointIndex].p1);
+                }
+            }
+            return nextForNonGeoStates();
 
         case NAV_WP_ACTION_RTH:
             posControl.rthState.rthInitialDistance = posControl.homeDistance;
@@ -1488,11 +1515,25 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_IN_PROGRESS(na
                         posControl.wpInitialDistance, posControl.wpInitialDistance / 10.0f,
                         posControl.wpInitialAltitude, posControl.activeWaypoint.pos.z);
                     setDesiredPosition(&tmpWaypoint, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING);
+                    if(STATE(MULTIROTOR)) {
+                        switch (wpHeadingControl.mode) {
+                            case NAV_WP_HEAD_MODE_NONE:
+                                break;
+                            case NAV_WP_HEAD_MODE_FIXED:
+                                setDesiredPosition(NULL, wpHeadingControl.heading, NAV_POS_UPDATE_HEADING);
+                                break;
+                            case NAV_WP_HEAD_MODE_POI:
+                                setDesiredPosition(&wpHeadingControl.poi_pos, 0, NAV_POS_UPDATE_BEARING);
+                                break;
+                        }
+                    }
                     return NAV_FSM_EVENT_NONE;      // will re-process state in >10ms
                 }
                 break;
 
             case NAV_WP_ACTION_JUMP:
+            case NAV_WP_ACTION_SET_HEAD:
+            case NAV_WP_ACTION_SET_POI:
                  UNREACHABLE();
 
             case NAV_WP_ACTION_RTH:
@@ -1530,6 +1571,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_REACHED(naviga
             return NAV_FSM_EVENT_SUCCESS;   // NAV_STATE_WAYPOINT_NEXT
 
         case NAV_WP_ACTION_JUMP:
+        case NAV_WP_ACTION_SET_HEAD:
+        case NAV_WP_ACTION_SET_POI:
             UNREACHABLE();
 
         case NAV_WP_ACTION_RTH:
@@ -1833,8 +1876,17 @@ static fpVector3_t * rthGetHomeTargetPosition(rthTargetMode_e mode)
 // Implementation of PID with back-calculation I-term anti-windup
 // Control System Design, Lecture Notes for ME 155A by Karl Johan Åström (p.228)
 // http://www.cds.caltech.edu/~murray/courses/cds101/fa02/caltech/astrom-ch6.pdf
-float navPidApply3(pidController_t *pid, const float setpoint, const float measurement, const float dt, const float outMin, const float outMax, const pidControllerFlags_e pidFlags, const float gainScaler)
-{
+float navPidApply3(
+    pidController_t *pid, 
+    const float setpoint, 
+    const float measurement, 
+    const float dt, 
+    const float outMin, 
+    const float outMax, 
+    const pidControllerFlags_e pidFlags, 
+    const float gainScaler,
+    const float dTermScaler
+) {
     float newProportional, newDerivative, newFeedForward;
     float error = setpoint - measurement;
 
@@ -1858,10 +1910,12 @@ float navPidApply3(pidController_t *pid, const float setpoint, const float measu
     }
 
     if (pid->dTermLpfHz > 0) {
-        newDerivative = pid->param.kD * pt1FilterApply4(&pid->dterm_filter_state, newDerivative, pid->dTermLpfHz, dt) * gainScaler;
+        newDerivative = pid->param.kD * pt1FilterApply4(&pid->dterm_filter_state, newDerivative, pid->dTermLpfHz, dt);
     } else {
         newDerivative = pid->param.kD * newDerivative;
     }
+
+    newDerivative = newDerivative * gainScaler * dTermScaler;
 
     if (pidFlags & PID_ZERO_INTEGRATOR) {
         pid->integrator = 0.0f;
@@ -1902,7 +1956,7 @@ float navPidApply3(pidController_t *pid, const float setpoint, const float measu
 
 float navPidApply2(pidController_t *pid, const float setpoint, const float measurement, const float dt, const float outMin, const float outMax, const pidControllerFlags_e pidFlags)
 {
-    return navPidApply3(pid, setpoint, measurement, dt, outMin, outMax, pidFlags, 1.0f);
+    return navPidApply3(pid, setpoint, measurement, dt, outMin, outMax, pidFlags, 1.0f, 1.0f);
 }
 
 void navPidReset(pidController_t *pid)
@@ -2754,7 +2808,7 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
     }
     // WP #1 - #NAV_MAX_WAYPOINTS - common waypoints - pre-programmed mission
     else if ((wpNumber >= 1) && (wpNumber <= NAV_MAX_WAYPOINTS) && !ARMING_FLAG(ARMED)) {
-        if (wpData->action == NAV_WP_ACTION_WAYPOINT || wpData->action == NAV_WP_ACTION_JUMP || wpData->action == NAV_WP_ACTION_RTH || wpData->action == NAV_WP_ACTION_HOLD_TIME || wpData->action == NAV_WP_ACTION_LAND) {
+        if (wpData->action == NAV_WP_ACTION_WAYPOINT || wpData->action == NAV_WP_ACTION_JUMP || wpData->action == NAV_WP_ACTION_RTH || wpData->action == NAV_WP_ACTION_HOLD_TIME || wpData->action == NAV_WP_ACTION_LAND || wpData->action == NAV_WP_ACTION_SET_POI || wpData->action == NAV_WP_ACTION_SET_HEAD ) {
             // Only allow upload next waypoint (continue upload mission) or first waypoint (new mission)
             if (wpNumber == (posControl.waypointCount + 1) || wpNumber == 1) {
                 posControl.waypointList[wpNumber - 1] = *wpData;
@@ -3358,6 +3412,14 @@ void navigationUsePIDs(void)
                                                pidProfile()->navVelXyDTermLpfHz
         );
     }
+
+    /*
+     * Set coefficients used in MC VEL_XY
+     */
+    multicopterPosXyCoefficients.dTermAttenuation = pidProfile()->navVelXyDtermAttenuation / 100.0f;
+    multicopterPosXyCoefficients.dTermAttenuationStart = pidProfile()->navVelXyDtermAttenuationStart / 100.0f;
+    multicopterPosXyCoefficients.dTermAttenuationEnd = pidProfile()->navVelXyDtermAttenuationEnd / 100.0f;
+    multicopterPosXyCoefficients.breakingBoostFactor = (float) navConfig()->mc.braking_boost_factor / 100.0f;
 
     // Initialize altitude hold PID-controllers (pos_z, vel_z, acc_z
     navPidInit(

@@ -121,25 +121,30 @@ endif
 ARCH_FLAGS      = -mthumb -mcpu=cortex-m7 -mfloat-abi=hard -mfpu=fpv5-sp-d16 -fsingle-precision-constant -Wdouble-promotion
 
 DEVICE_FLAGS    = -DUSE_HAL_DRIVER -DUSE_FULL_LL_DRIVER
-ifeq ($(TARGET),$(filter $(TARGET),$(F7X5XI_TARGETS)))
-DEVICE_FLAGS   += -DSTM32F765xx
-LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f765.ld
+ifeq ($(TARGET),$(filter $(TARGET),$(F765XI_TARGETS)))
+DEVICE_FLAGS   += -DSTM32F765xx -DSTM32F765xI
+LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_F765xI.ld
 STARTUP_SRC     = startup_stm32f765xx.s
 TARGET_FLASH   := 2048
-else ifeq ($(TARGET),$(filter $(TARGET),$(F7X5XG_TARGETS)))
-DEVICE_FLAGS   += -DSTM32F745xx
-LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f745.ld
+else ifeq ($(TARGET),$(filter $(TARGET),$(F765XG_TARGETS)))
+DEVICE_FLAGS   += -DSTM32F765xx -DSTM32F765xG
+LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_F7x5xG.ld
+STARTUP_SRC     = startup_stm32f765xx.s
+TARGET_FLASH   := 1024
+else ifeq ($(TARGET),$(filter $(TARGET),$(F745XG_TARGETS)))
+DEVICE_FLAGS   += -DSTM32F745xx -DSTM32F745xG
+LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_F7x5xG.ld
 STARTUP_SRC     = startup_stm32f745xx.s
-TARGET_FLASH   := 2048
+TARGET_FLASH   := 1024
 else ifeq ($(TARGET),$(filter $(TARGET),$(F7X6XG_TARGETS)))
 DEVICE_FLAGS   += -DSTM32F746xx
-LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f746.ld
+LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_F746.ld
 STARTUP_SRC     = startup_stm32f746xx.s
 TARGET_FLASH   := 2048
 else ifeq ($(TARGET),$(filter $(TARGET),$(F7X2RE_TARGETS)))
 DEVICE_FLAGS   += -DSTM32F722xx
 ifndef LD_SCRIPT
-LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f722.ld
+LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_F7x2.ld
 endif
 STARTUP_SRC     = startup_stm32f722xx.s
 TARGET_FLASH   := 512
