@@ -223,6 +223,7 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  nav_fw_launch_detect_time  | 40 | Time for which thresholds have to breached to consider launch happened [ms] |
 |  nav_fw_launch_thr  | 1700 | Launch throttle - throttle to be set during launch sequence (pwm units) |
 |  nav_fw_launch_idle_thr       | 1000  | Launch idle throttle - throttle to be set before launch sequence is initiated. If set below minimum throttle it will force motor stop or at idle throttle (depending if the MOTOR_STOP is enabled). If set above minimum throttle it will force throttle to this value (if MOTOR_STOP is enabled it will be handled according to throttle stick position)	|
+|  nav_fw_launch_end_time  | 3000 | Time for the transition of throttle and pitch angle, between the launch state and the subsequent flight mode [ms] |
 |  nav_fw_launch_motor_delay    | 500 | Delay between detected launch and launch sequence start and throttling up (ms) |
 |  nav_fw_launch_spinup_time    | 100 | Time to bring power from minimum throttle to nav_fw_launch_thr - to avoid big stress on ESC and large torque from propeller |
 |  nav_fw_launch_timeout  | 5000 | Maximum time for launch sequence to be executed. After this time LAUNCH mode will be turned off and regular flight mode will take over (ms) |
