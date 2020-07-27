@@ -47,6 +47,9 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 set(FIRMWARE_VERSION ${PROJECT_VERSION})
 
+option(WARNINGS_AS_ERRORS "Make all warnings into errors")
+message("-- toolchain: ${TOOLCHAIN}, WARNINGS_AS_ERRORS: ${WARNINGS_AS_ERRORS}")
+
 include(settings)
 include(openocd)
 include(svd)

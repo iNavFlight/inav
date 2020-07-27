@@ -5,6 +5,11 @@ include(stm32f7)
 
 include(CMakeParseArguments)
 
+option(DEBUG_HARDFAULTS "Enable debugging of hard faults via custom handler")
+option(SEMIHOSTING "Enable semihosting")
+
+message("-- DEBUG_HARDFAULTS: ${DEBUG_HARDFAULTS}, SEMIHOSTING: ${SEMIHOSTING}")
+
 set(CMSIS_DIR "${MAIN_LIB_DIR}/main/CMSIS")
 set(CMSIS_INCLUDE_DIR "${CMSIS_DIR}/Core/Include")
 set(CMSIS_DSP_DIR "${MAIN_LIB_DIR}/main/CMSIS/DSP")
@@ -70,12 +75,14 @@ set(STM32_INCLUDE_DIRS
 
 set(STM32_DEFINITIONS
 )
-
 set(STM32_DEFAULT_HSE_MHZ 8)
-
 set(STM32_LINKER_DIR "${MAIN_SRC_DIR}/target/link")
+set(STM32_COMPILE_OPTIONS
+    -ffunction-sections
+    -fdata-sections
+    -fno-common
+)
 
-set(STM32_LIBS lnosys)
 #if(SEMIHOSTING)
 #    set(SEMIHOSTING_DEFINITIONS "SEMIHOSTING")
 #    set(SEMIHOSTING_LDFLAGS
@@ -170,22 +177,29 @@ function(target_stm32 name startup ldscript)
     endif()
 
     # Main .elf target
-    add_executable(${name} ${COMMON_SRC} ${CMSIS_DSP_SRC})
+    add_executable(${name})
+    target_sources(${name} PRIVATE "${STM32_STARTUP_DIR}/${startup}" ${COMMON_SRC} ${CMSIS_DSP_SRC})
     file(GLOB target_c_sources "${CMAKE_CURRENT_SOURCE_DIR}/*.c")
     file(GLOB target_h_sources "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
     target_sources(${name} PRIVATE ${target_c_sources} ${target_h_sources})
-    target_sources(${name} PRIVATE "${STM32_STARTUP_DIR}/${startup}")
-    target_link_options(${name} PRIVATE "-T${STM32_LINKER_DIR}/${ldscript}")
-    target_link_options(${name} PRIVATE "-Wl,-Map,$<TARGET_FILE:${name}>.map")
     target_include_directories(${name} PRIVATE . ${STM32_INCLUDE_DIRS})
+    target_compile_options(${name} PRIVATE ${STM32_COMPILE_OPTIONS})
+    if(WARNINGS_AS_ERRORS)
+        target_compile_options(${name} PRIVATE -Werror)
+    endif()
     target_link_libraries(${name} PRIVATE ${STM32_LINK_LIBRARIES})
     target_link_options(${name} PRIVATE ${STM32_LINK_OPTIONS})
+    target_link_options(${name} PRIVATE "-T${STM32_LINKER_DIR}/${ldscript}")
+    target_link_options(${name} PRIVATE "-Wl,-Map,$<TARGET_FILE:${name}>.map")
 
     set(target_definitions ${STM32_DEFINITIONS})
     math(EXPR hse_value "${hse_mhz} * 1000000")
     list(APPEND target_definitions "HSE_VALUE=${hse_value}")
     if(PARSED_ARGS_DEFINITIONS)
         list(APPEND target_definitions ${PARSED_ARGS_DEFINITIONS})
+    endif()
+    if(DEBUG_HARDFAULTS)
+        list(APPEND target_definitions DEBUG_HARDFAULTS)
     endif()
     target_compile_definitions(${name} PRIVATE ${target_definitions})
 
