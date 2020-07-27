@@ -51,6 +51,18 @@
 #define SWING_LAUNCH_MIN_ROTATION_RATE      DEGREES_TO_RADIANS(100)     // expect minimum 100dps rotation rate
 #define LAUNCH_MOTOR_IDLE_SPINUP_TIME 1500                              // ms
 #define UNUSED(x) ((void)(x))
+#define FW_LAUNCH_MESSAGE_TEXT_WAIT_THROTTLE "RAISE THE THROTTLE"
+#define FW_LAUNCH_MESSAGE_TEXT_WAIT_DETECTION "READY"
+#define FW_LAUNCH_MESSAGE_TEXT_IN_PROGRESS "MOVE THE STICKS TO ABORT"
+#define FW_LAUNCH_MESSAGE_TEXT_FINISHING "FINISHING"
+
+typedef enum {
+    FW_LAUNCH_MESSAGE_TYPE_NONE = 0,
+    FW_LAUNCH_MESSAGE_TYPE_WAIT_THROTTLE,
+    FW_LAUNCH_MESSAGE_TYPE_WAIT_DETECTION,
+    FW_LAUNCH_MESSAGE_TYPE_IN_PROGRESS,
+    FW_LAUNCH_MESSAGE_TYPE_FINISHING
+} fixedWingLaunchMessage_t;
 
 typedef enum {
     FW_LAUNCH_EVENT_NONE = 0,
@@ -87,6 +99,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_FINISH(timeUs_t curr
 typedef struct fixedWingLaunchStateDescriptor_s {
     fixedWingLaunchEvent_t (*onEntry)(timeUs_t currentTimeUs);
     fixedWingLaunchState_t onEvent[FW_LAUNCH_EVENT_COUNT];
+    fixedWingLaunchMessage_t messageType;
 } fixedWingLaunchStateDescriptor_t;
 
 typedef struct fixedWingLaunchData_s {
@@ -103,60 +116,69 @@ static const fixedWingLaunchStateDescriptor_t launchStateMachine[FW_LAUNCH_STATE
         .onEntry                                    = fwLaunchState_FW_LAUNCH_STATE_IDLE,
         .onEvent = {
 
-        }
+        },
+        .messageType                                = FW_LAUNCH_MESSAGE_TYPE_NONE
     },
     [FW_LAUNCH_STATE_WAIT_THROTTLE] = {
         .onEntry                                    = fwLaunchState_FW_LAUNCH_STATE_WAIT_THROTTLE,
         .onEvent = {
             [FW_LAUNCH_EVENT_SUCCESS]               = FW_LAUNCH_STATE_MOTOR_IDLE,
             [FW_LAUNCH_EVENT_GOTO_DETECTION]        = FW_LAUNCH_STATE_WAIT_DETECTION
-        }
+        },
+        .messageType                                = FW_LAUNCH_MESSAGE_TYPE_WAIT_THROTTLE
     },
     [FW_LAUNCH_STATE_MOTOR_IDLE] = {
         .onEntry                                    = fwLaunchState_FW_LAUNCH_STATE_MOTOR_IDLE,
         .onEvent = {
             [FW_LAUNCH_EVENT_SUCCESS]               = FW_LAUNCH_STATE_WAIT_DETECTION,
             [FW_LAUNCH_EVENT_THROTTLE_LOW]          = FW_LAUNCH_STATE_WAIT_THROTTLE
-        }
+        },
+        .messageType                                = FW_LAUNCH_MESSAGE_TYPE_WAIT_THROTTLE
     },
     [FW_LAUNCH_STATE_WAIT_DETECTION] = {
         .onEntry                                    = fwLaunchState_FW_LAUNCH_STATE_WAIT_DETECTION,
         .onEvent = {
             [FW_LAUNCH_EVENT_SUCCESS]               = FW_LAUNCH_STATE_DETECTED,
             [FW_LAUNCH_EVENT_THROTTLE_LOW]          = FW_LAUNCH_STATE_WAIT_THROTTLE
-        }
+        },
+        .messageType                                = FW_LAUNCH_MESSAGE_TYPE_WAIT_DETECTION
     },
     [FW_LAUNCH_STATE_DETECTED] = {
         .onEntry                                    = fwLaunchState_FW_LAUNCH_STATE_DETECTED,
         .onEvent = {
             // waiting for the navigation to move on the next state FW_LAUNCH_STATE_MOTOR_DELAY
-        }
+        },
+        .messageType                                = FW_LAUNCH_MESSAGE_TYPE_WAIT_DETECTION
     },
     [FW_LAUNCH_STATE_MOTOR_DELAY] = {
         .onEntry                                    = fwLaunchState_FW_LAUNCH_STATE_MOTOR_DELAY,
         .onEvent = {
             [FW_LAUNCH_EVENT_SUCCESS]               = FW_LAUNCH_STATE_MOTOR_SPINUP,
             [FW_LAUNCH_EVENT_ABORT]                 = FW_LAUNCH_STATE_IDLE
-        }
+        },
+        .messageType                                = FW_LAUNCH_MESSAGE_TYPE_IN_PROGRESS
     },
     [FW_LAUNCH_STATE_MOTOR_SPINUP] = {
         .onEntry                                    = fwLaunchState_FW_LAUNCH_STATE_MOTOR_SPINUP,
         .onEvent = {
             [FW_LAUNCH_EVENT_SUCCESS]               = FW_LAUNCH_STATE_IN_PROGRESS,
             [FW_LAUNCH_EVENT_ABORT]                 = FW_LAUNCH_STATE_IDLE
-        }
+        },
+        .messageType                                = FW_LAUNCH_MESSAGE_TYPE_IN_PROGRESS
     },
     [FW_LAUNCH_STATE_IN_PROGRESS] = {
         .onEntry                                    = fwLaunchState_FW_LAUNCH_STATE_IN_PROGRESS,
         .onEvent = {
             [FW_LAUNCH_EVENT_SUCCESS]               = FW_LAUNCH_STATE_FINISH,
-        }
+        },
+        .messageType                                = FW_LAUNCH_MESSAGE_TYPE_IN_PROGRESS
     },
     [FW_LAUNCH_STATE_FINISH] = {
         .onEntry                                    = fwLaunchState_FW_LAUNCH_STATE_FINISH,
         .onEvent = {
             [FW_LAUNCH_EVENT_SUCCESS]               = FW_LAUNCH_STATE_IDLE
-        }
+        },
+        .messageType                                = FW_LAUNCH_MESSAGE_TYPE_FINISHING
     }
 };
 
@@ -392,15 +414,17 @@ void abortFixedWingLaunch(void) {
 }
 
 const char * fixedWingLaunchStateMessage(void) {
-    switch (fwLaunch.currentState) {
-    case FW_LAUNCH_STATE_WAIT_DETECTION:
-        return "READY";
-    case FW_LAUNCH_STATE_FINISH:
-        return "FINISHING";
-    case FW_LAUNCH_STATE_WAIT_THROTTLE:
-        return "RAISE THE THROTTLE";
-    default:
-        return "MOVE THE STICKS TO ABORT"; // conforming to OSD_MESSAGE_LENGTH = 28 from osd.c
+    switch (launchStateMachine[fwLaunch.currentState].messageType) {
+        case FW_LAUNCH_MESSAGE_TYPE_WAIT_THROTTLE:
+            return FW_LAUNCH_MESSAGE_TEXT_WAIT_THROTTLE;
+        case FW_LAUNCH_MESSAGE_TYPE_WAIT_DETECTION:
+            return FW_LAUNCH_MESSAGE_TEXT_WAIT_DETECTION;
+        case FW_LAUNCH_MESSAGE_TYPE_IN_PROGRESS:
+            return FW_LAUNCH_MESSAGE_TEXT_IN_PROGRESS;
+        case FW_LAUNCH_MESSAGE_TYPE_FINISHING:
+            return FW_LAUNCH_MESSAGE_TEXT_FINISHING;
+        default:
+            return NULL;
     }
 }
 
