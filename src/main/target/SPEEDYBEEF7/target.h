@@ -54,13 +54,11 @@
 #define USE_SPI
 #define USE_SPI_DEVICE_1
 
-#define USE_ACC
-#define USE_GYRO
 #define USE_MPU_DATA_READY_SIGNAL
 #define USE_EXTI
 
-#define USE_ACC_ICM20689
-#define USE_GYRO_ICM20689
+#define USE_IMU_ICM20689
+#define IMU_ICM20689_ALIGN          CW180_DEG
 
 #define GYRO_INT_EXTI               PC4
 #define ICM20689_CS_PIN             PA4
