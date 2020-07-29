@@ -2924,6 +2924,8 @@ bool saveNonVolatileWaypointList(void)
 
     return true;
 }
+#endif
+
 #if defined(USE_SAFE_HOME)
 
 void resetSafeHomes(void) 
