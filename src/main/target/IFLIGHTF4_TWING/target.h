@@ -34,12 +34,11 @@
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PA7
 
-#define USE_ACC
-#define USE_GYRO 
 #define USE_DUAL_GYRO
 
-#define USE_ACC_MPU6500
-#define USE_GYRO_MPU6500
+#define USE_IMU_MPU6500
+#define IMU_0_ALIGN             CW0_DEG
+#define IMU_1_ALIGN             CW0_DEG
 
 #define MPU6500_0_CS_PIN        PA4
 #define MPU6500_0_SPI_BUS       BUS_SPI1
@@ -48,9 +47,6 @@
 #define MPU6500_1_CS_PIN        PC3
 #define MPU6500_1_SPI_BUS       BUS_SPI1
 #define MPU6500_1_EXTI_PIN      PA8
-
-#define GYRO_MPU6500_ALIGN      CW0_DEG
-#define ACC_MPU6500_ALIGN       CW0_DEG
 
 #define USE_EXTI
 #define USE_MPU_DATA_READY_SIGNAL
@@ -64,6 +60,7 @@
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_BMP280
+#define USE_BARO_DPS310
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1

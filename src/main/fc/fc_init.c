@@ -35,6 +35,7 @@
 #include "common/maths.h"
 #include "common/memory.h"
 #include "common/printf.h"
+#include "programming/global_variables.h"
 
 #include "config/config_eeprom.h"
 #include "config/feature.h"
@@ -53,9 +54,11 @@
 #include "drivers/flash_m25p16.h"
 #include "drivers/io.h"
 #include "drivers/io_pca9685.h"
+#include "drivers/flash.h"
 #include "drivers/light_led.h"
 #include "drivers/nvic.h"
 #include "drivers/osd.h"
+#include "drivers/persistent.h"
 #include "drivers/pwm_esc_detect.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
@@ -74,13 +77,13 @@
 #include "drivers/io.h"
 #include "drivers/exti.h"
 #include "drivers/io_pca9685.h"
-#include "drivers/vtx_rtc6705.h"
 #include "drivers/vtx_common.h"
 #ifdef USE_USB_MSC
 #include "drivers/usb_msc.h"
 #include "msc/emfat_file.h"
 #endif
 #include "drivers/sdcard/sdcard.h"
+#include "drivers/io_port_expander.h"
 
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -88,6 +91,7 @@
 #include "fc/fc_tasks.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
+#include "fc/firmware_update.h"
 
 #include "flight/failsafe.h"
 #include "flight/imu.h"
@@ -112,6 +116,7 @@
 #include "io/rcdevice_cam.h"
 #include "io/serial.h"
 #include "io/displayport_msp.h"
+#include "io/smartport_master.h"
 #include "io/vtx.h"
 #include "io/vtx_control.h"
 #include "io/vtx_smartaudio.h"
@@ -136,6 +141,7 @@
 #include "sensors/pitotmeter.h"
 #include "sensors/rangefinder.h"
 #include "sensors/sensors.h"
+#include "sensors/esc_sensor.h"
 
 #include "scheduler/scheduler.h"
 
@@ -183,6 +189,10 @@ void flashLedsAndBeep(void)
 
 void init(void)
 {
+#if defined(USE_FLASHFS) && defined(USE_FLASH_M25P16)
+    bool flashDeviceInitialized = false;
+#endif
+
 #ifdef USE_HAL_DRIVER
     HAL_Init();
 #endif
@@ -192,6 +202,8 @@ void init(void)
 
     // Initialize system and CPU clocks to their initial values
     systemInit();
+
+    __enable_irq();
 
     // initialize IO (needed for all IO operations)
     IOInitGlobal();
@@ -211,7 +223,9 @@ void init(void)
     // Re-initialize system clock to their final values (if necessary)
     systemClockSetup(systemConfig()->cpuUnderclock);
 
+#ifdef USE_I2C
     i2cSetSpeed(systemConfig()->i2c_speed);
+#endif
 
 #ifdef USE_HARDWARE_PREBOOT_SETUP
     initialisePreBootHardware();
@@ -253,10 +267,10 @@ void init(void)
 
 #if defined(AVOID_UART2_FOR_PWM_PPM)
     serialInit(feature(FEATURE_SOFTSERIAL),
-            (rxConfig()->receiverType == RX_TYPE_PWM) || (rxConfig()->receiverType == RX_TYPE_PPM) ? SERIAL_PORT_USART2 : SERIAL_PORT_NONE);
+            (rxConfig()->receiverType == RX_TYPE_PPM) ? SERIAL_PORT_USART2 : SERIAL_PORT_NONE);
 #elif defined(AVOID_UART3_FOR_PWM_PPM)
     serialInit(feature(FEATURE_SOFTSERIAL),
-            (rxConfig()->receiverType == RX_TYPE_PWM) || (rxConfig()->receiverType == RX_TYPE_PPM) ? SERIAL_PORT_USART3 : SERIAL_PORT_NONE);
+            (rxConfig()->receiverType == RX_TYPE_PPM) ? SERIAL_PORT_USART3 : SERIAL_PORT_NONE);
 #else
     serialInit(feature(FEATURE_SOFTSERIAL), SERIAL_PORT_NONE);
 #endif
@@ -271,10 +285,18 @@ void init(void)
     djiOsdSerialInit();
 #endif
 
+#if defined(USE_SMARTPORT_MASTER)
+    smartportMasterInit();
+#endif
+
 #if defined(USE_LOG)
     // LOG might use serial output, so we only can init it after serial port is ready
     // From this point on we can use LOG_*() to produce real-time debugging information
     logInit();
+#endif
+
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    gvInit();
 #endif
 
     // Initialize servo and motor mixers
@@ -285,7 +307,10 @@ void init(void)
 
     // Some sanity checking
     if (motorConfig()->motorPwmProtocol == PWM_TYPE_BRUSHED) {
-        featureClear(FEATURE_3D);
+        featureClear(FEATURE_REVERSIBLE_MOTORS);
+    }
+    if (!STATE(ALTITUDE_CONTROL)) {
+        featureClear(FEATURE_AIRMODE);
     }
 
     // Initialize motor and servo outpus
@@ -296,38 +321,14 @@ void init(void)
         ENABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
     }
 
-    /*
-    drv_pwm_config_t pwm_params;
-    memset(&pwm_params, 0, sizeof(pwm_params));
-
-    // when using airplane/wing mixer, servo/motor outputs are remapped
-    pwm_params.flyingPlatformType = mixerConfig()->platformType;
-
-    pwm_params.useParallelPWM = (rxConfig()->receiverType == RX_TYPE_PWM);
-    pwm_params.usePPM = (rxConfig()->receiverType == RX_TYPE_PPM);
-    pwm_params.useSerialRx = (rxConfig()->receiverType == RX_TYPE_SERIAL);
-
-    pwm_params.useServoOutputs = isMixerUsingServos();
-    pwm_params.servoCenterPulse = servoConfig()->servoCenterPulse;
-    pwm_params.servoPwmRate = servoConfig()->servoPwmRate;
-
-
-    pwm_params.enablePWMOutput = feature(FEATURE_PWM_OUTPUT_ENABLE);
-
-#if defined(USE_RX_PWM) || defined(USE_RX_PPM)
-    pwmRxInit(systemConfig()->pwmRxInputFilteringMode);
-#endif
-
-#ifdef USE_PWM_SERVO_DRIVER
-    // If external PWM driver is enabled, for example PCA9685, disable internal
-    // servo handling mechanism, since external device will do that
-    if (feature(FEATURE_PWM_SERVO_DRIVER)) {
-        pwm_params.useServoOutputs = false;
-    }
-#endif
-    */
-
     systemState |= SYSTEM_STATE_MOTORS_READY;
+
+#ifdef USE_ESC_SENSOR
+    // DSHOT supports a dedicated wire ESC telemetry. Kick off the ESC-sensor receiver initialization
+    // We may, however, do listen_only, so need to init this anyway
+    // Initialize escSensor after having done it with outputs
+    escSensorInitialize();
+#endif
 
 #ifdef BEEPER
     beeperDevConfig_t beeperDevConfig = {
@@ -384,7 +385,10 @@ void init(void)
         if (blackboxConfig()->device == BLACKBOX_DEVICE_FLASH) {
 #ifdef USE_FLASH_M25P16
             // Must initialise the device to read _anything_
-            m25p16_init(0);
+            /*m25p16_init(0);*/
+            if (!flashDeviceInitialized) {
+                flashDeviceInitialized = flashInit();
+            }
 #endif
             emfat_init_files();
         }
@@ -538,7 +542,7 @@ void init(void)
 
     rxInit();
 
-#if (defined(USE_OSD) || (defined(USE_MSP_DISPLAYPORT) && defined(USE_CMS)))
+#if defined(USE_OSD)
     displayPort_t *osdDisplayPort = NULL;
 #endif
 
@@ -562,13 +566,6 @@ void init(void)
 #endif
         // osdInit  will register with CMS by itself.
         osdInit(osdDisplayPort);
-    }
-#endif
-
-#if defined(USE_MSP_DISPLAYPORT) && defined(USE_CMS)
-    // If OSD is not active, then register MSP_DISPLAYPORT as a CMS device.
-    if (!osdDisplayPort) {
-        cmsDisplayPortRegister(displayPortMspInit());
     }
 #endif
 
@@ -608,7 +605,9 @@ void init(void)
 #ifdef USE_FLASHFS
         case BLACKBOX_DEVICE_FLASH:
 #ifdef USE_FLASH_M25P16
-            m25p16_init(0);
+            if (!flashDeviceInitialized) {
+                flashDeviceInitialized = flashInit();
+            }
 #endif
             flashfsInit();
             break;
@@ -661,12 +660,6 @@ void init(void)
     if (feature(FEATURE_VBAT | FEATURE_CURRENT_METER))
         batteryInit();
 
-#ifdef USE_PWM_SERVO_DRIVER
-    if (feature(FEATURE_PWM_SERVO_DRIVER)) {
-        pwmDriverInitialize();
-    }
-#endif
-
 #ifdef USE_RCDEVICE
     rcdeviceInit();
 #endif // USE_RCDEVICE
@@ -689,6 +682,13 @@ void init(void)
         setTaskEnabled(TASK_RPM_FILTER, true);
     }
 #endif
+
+#ifdef USE_I2C_IO_EXPANDER
+    ioPortExpanderInit();
+#endif
+
+    // Considering that the persistent reset reason is only used during init
+    persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_NONE);
 
     systemState |= SYSTEM_STATE_READY;
 }

@@ -45,6 +45,7 @@ FP-PID has been rescaled to match LuxFloat (and MWRewrite) from Cleanflight 1.13
 #define FP_PID_RATE_P_MULTIPLIER    31.0f
 #define FP_PID_RATE_I_MULTIPLIER    4.0f
 #define FP_PID_RATE_D_MULTIPLIER    1905.0f
+#define FP_PID_RATE_D_FF_MULTIPLIER   7270.0f
 #define FP_PID_LEVEL_P_MULTIPLIER   6.56f       // Level P gain units is [1/sec] and angle error is [deg] => [deg/s]
 #define FP_PID_YAWHOLD_P_MULTIPLIER 80.0f
 
@@ -52,6 +53,8 @@ FP-PID has been rescaled to match LuxFloat (and MWRewrite) from Cleanflight 1.13
 #define MC_ITERM_RELAX_CUTOFF_DEFAULT 15
 
 #define ANTI_GRAVITY_THROTTLE_FILTER_CUTOFF 15  // The anti gravity throttle highpass filter cutoff
+
+#define TASK_AUX_RATE_HZ   100 //In Hz
 
 typedef enum {
     /* PID              MC      FW  */
@@ -65,6 +68,7 @@ typedef enum {
     PID_LEVEL,      //   +       +
     PID_HEADING,    //   +       +
     PID_VEL_Z,      //   +       n/a
+    PID_POS_HEADING,//   n/a     +
     PID_ITEM_COUNT
 } pidIndex_e;
 
@@ -103,17 +107,12 @@ typedef struct pidProfile_s {
     pidBank_t bank_fw;
     pidBank_t bank_mc;
 
-    uint16_t dterm_soft_notch_hz;           // Dterm Notch frequency
-    uint16_t dterm_soft_notch_cutoff;       // Dterm Notch Cutoff frequency
-    
     uint8_t dterm_lpf_type;                 // Dterm LPF type: PT1, BIQUAD
     uint16_t dterm_lpf_hz;                  
     
     uint8_t dterm_lpf2_type;                // Dterm LPF type: PT1, BIQUAD
     uint16_t dterm_lpf2_hz;                 
     
-    uint8_t use_dterm_fir_filter;           // Use classical INAV FIR differentiator. Very noise robust, can be quite slowish
-
     uint8_t yaw_lpf_hz;
 
     uint8_t heading_hold_rate_limit;        // Maximum rotation rate HEADING_HOLD mode can feed to yaw rate PID controller
@@ -125,7 +124,6 @@ typedef struct pidProfile_s {
 
     int16_t max_angle_inclination[ANGLE_INDEX_COUNT];       // Max possible inclination (roll and pitch axis separately
 
-    float dterm_setpoint_weight;
     uint16_t pidSumLimit;
     uint16_t pidSumLimitYaw;
 
@@ -137,7 +135,9 @@ typedef struct pidProfile_s {
 
     uint8_t     loiter_direction;               // Direction of loitering center point on right wing (clockwise - as before), or center point on left wing (counterclockwise)
     float       navVelXyDTermLpfHz;
-
+    uint8_t navVelXyDtermAttenuation;       // VEL_XY dynamic Dterm scale: Dterm will be attenuatedby this value (in percent) when UAV is traveling with more than navVelXyDtermAttenuationStart percents of max velocity
+    uint8_t navVelXyDtermAttenuationStart;  // VEL_XY dynamic Dterm scale: Dterm attenuation will begin at this percent of max velocity
+    uint8_t navVelXyDtermAttenuationEnd;    // VEL_XY dynamic Dterm scale: Dterm will be fully attenuated at this percent of max velocity
     uint8_t iterm_relax_type;               // Specifies type of relax algorithm
     uint8_t iterm_relax_cutoff;             // This cutoff frequency specifies a low pass filter which predicts average response of the quad to setpoint
     uint8_t iterm_relax;                    // Enable iterm suppression during stick input
@@ -148,6 +148,9 @@ typedef struct pidProfile_s {
     float antigravityGain;
     float antigravityAccelerator;
     uint8_t antigravityCutoff;
+
+    uint16_t navFwPosHdgPidsumLimit;
+    uint8_t controlDerivativeLpfHz;
 } pidProfile_t;
 
 typedef struct pidAutotuneConfig_s {
@@ -177,7 +180,7 @@ struct motorConfig_s;
 struct rxConfig_s;
 
 void schedulePidGainsUpdate(void);
-void updatePIDCoefficients(float dT);
+void updatePIDCoefficients(void);
 void pidController(float dT);
 
 float pidRateToRcCommand(float rateDPS, uint8_t rate);

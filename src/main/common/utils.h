@@ -52,6 +52,7 @@
 #define BUILD_BUG_ON(condition) ((void)sizeof(char[1 - 2*!!(condition)]))
 
 #define BIT(x) (1 << (x))
+#define GET_BIT(value, bit) ((value >> bit) & 1)
 
 #define STATIC_ASSERT(condition, name) \
     typedef char assert_failed_ ## name [(condition) ? 1 : -1 ] __attribute__((unused))
@@ -109,4 +110,8 @@ void * memcpy_fn ( void * destination, const void * source, size_t num ) asm("me
 #define FALLTHROUGH do {} while(0)
 #endif
 
+#define UNREACHABLE() __builtin_unreachable()
+
 #define ALIGNED(x) __attribute__ ((aligned(x)))
+
+#define PACKED __attribute__((packed))

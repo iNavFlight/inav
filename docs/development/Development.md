@@ -77,24 +77,34 @@ The main flow for a contributing is as follows:
 1. Login to github, go to the INAV repository and press `fork`.
 2. Then using the command line/terminal on your computer: `git clone <url to YOUR fork>`
 3. `cd inav`
-4. `git checkout development`
+4. `git checkout master`
 5. `git checkout -b my-new-code`
 6. Make changes
 7. `git add <files that have changed>`
 8. `git commit`
 9. `git push origin my-new-code`
-10. Create pull request using github UI to merge your changes from your new branch into `inav/development`
+10. Create pull request using github UI to merge your changes from your new branch into `inav/master`
 11. Repeat from step 4 for new other changes.
 
-The primary thing to remember is that separate pull requests should be created for separate branches.  Never create a pull request from your `development` branch.
+The primary thing to remember is that separate pull requests should be created for separate branches.  Never create a pull request from your `master` branch.
 
-Later, you can get the changes from the INAV repo into your `development` branch by adding INAV as a git remote and merging from it as follows:
+Later, you can get the changes from the INAV repo into your `master` branch by adding INAV as a git remote and merging from it as follows:
 
 1. `git remote add upstream https://github.com/iNavFlight/inav.git`
-2. `git checkout development`
+2. `git checkout master`
 3. `git fetch upstream`
-4. `git merge upstream/development`
-5. `git push origin development` is an optional step that will update your fork on github
+4. `git merge upstream/master`
+5. `git push origin master` is an optional step that will update your fork on github
 
 
 You can also perform the git commands using the git client inside Eclipse.  Refer to the Eclipse git manual.
+
+## Branching and release workflow
+
+Normally, all development occurs on the `master` branch. Every release will have it's own branch named `release_x.y.z`.
+
+During release candidate cycle we will follow the process outlined below:
+
+1. Create a release branch `release_x.y.z`
+2. All bug fixes found in the release candidates will be merged into `release_x.y.z` branch and not into the `master`.
+3. After final release is made, the branch `release_x.y.z` is locked, and merged into `master` bringing all of the bug fixes into the development branch. Merge conflicts that may arise at this stage are resolved manually.

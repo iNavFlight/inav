@@ -45,17 +45,11 @@
 #define MPU9250_CS_PIN          SPI1_NSS_PIN
 #define MPU9250_SPI_BUS         BUS_SPI1
 
-#define USE_ACC
-#define USE_ACC_MPU6500
-#define ACC_MPU6500_ALIGN       CW270_DEG
-#define USE_ACC_MPU9250
-#define ACC_MPU9250_ALIGN       CW270_DEG
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW270_DEG
+#define USE_IMU_MPU9250
+#define IMU_MPU9250_ALIGN       CW270_DEG
 
-#define USE_GYRO
-#define USE_GYRO_MPU6500
-#define GYRO_MPU6500_ALIGN      CW270_DEG
-#define USE_GYRO_MPU9250
-#define GYRO_MPU9250_ALIGN      CW270_DEG
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1

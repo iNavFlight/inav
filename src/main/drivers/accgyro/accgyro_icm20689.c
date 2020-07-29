@@ -38,7 +38,7 @@
 #include "drivers/accgyro/accgyro_mpu.h"
 #include "drivers/accgyro/accgyro_icm20689.h"
 
-#if (defined(USE_GYRO_ICM20689) || defined(USE_ACC_ICM20689))
+#if defined(USE_IMU_ICM20689)
 
 static uint8_t icm20689DeviceDetect(const busDevice_t *busDev)
 {
@@ -82,6 +82,7 @@ bool icm20689AccDetect(accDev_t *acc)
 
     acc->initFn = icm20689AccInit;
     acc->readFn = mpuAccReadScratchpad;
+    acc->accAlign = acc->busDev->param;
 
     return true;
 }
@@ -142,6 +143,7 @@ bool icm20689GyroDetect(gyroDev_t *gyro)
     gyro->intStatusFn = gyroCheckDataReady;
     gyro->temperatureFn = mpuTemperatureReadScratchpad;
     gyro->scale = 1.0f / 16.4f;     // 16.4 dps/lsb scalefactor
+    gyro->gyroAlign = gyro->busDev->param;
 
     return true;
 }

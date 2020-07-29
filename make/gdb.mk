@@ -12,3 +12,6 @@ endif
 
 gdb-openocd: $(TARGET_ELF)
 	$(GDB) $< -ex "target remote $(GDB_REMOTE)" $(GDB_OPENOCD_INIT_CMDS)
+
+gdb-openocd-bl: $(TARGET_BL_ELF)
+	$(GDB) $< -ex "target remote $(GDB_REMOTE)" $(GDB_OPENOCD_INIT_CMDS)
