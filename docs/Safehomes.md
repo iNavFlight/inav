@@ -10,19 +10,6 @@ For airplanes, the landing procedure is explained very well by Pawel Spychalski 
 
 One potential risk when landing is that there might be buildings, trees and other obstacles in the way as the airplance circles lower toward the ground at the arming point.  Most people don't go the middle of the field when arming their airplanes.
 
-There are two existing settings that can be used change the home landing point:
-
-setting | explanation
-------- | -----------
-nav_rth_home_offset_distance  | Distance offset from GPS established home to "safe" position used for RTH (cm, 0 disables)
-nav_rth_home_offset_direction | Direction offset from GPS established home to "safe" position used for RTH (degrees, 0=N, 90=E, 180=S, 270=W, 
-
-However, these settings will likely work in one place.  If you fly at a different field or the same field, but a different location (because of wind, sun, other pilots), the point identified by the distance and direction, might not be safe.
-
-## Home Offset and Home Direction
-
-If `nav_rth_home_offset_distance` is not zero, this takes precedence over the safehome approach.  Safehomes are ignored when this is the case.
-
 ## Safehome
 
 Safehomes are a list of GPS coordinates that identify safe landing points.  When the flight controller is armed, it checks the list of safehomes.  The first one that is enabled and within 200m of the current position will be selected.  Otherwise, it reverts to the old behaviour of using your current GPS position as home.  
