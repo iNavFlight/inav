@@ -39,6 +39,26 @@ extern bool autoThrottleManuallyIncreased;
 
 /* Navigation system updates */
 void onNewGPSData(void);
+#if defined(USE_SAFE_HOME)
+
+#define MAX_SAFE_HOMES 8
+
+typedef struct {
+    uint8_t enabled;
+    int32_t lat;
+    int32_t lon;
+} navSafeHome_t;
+
+PG_DECLARE_ARRAY(navSafeHome_t, MAX_SAFE_HOMES, safeHomeConfig);
+
+extern int8_t safehome_used;                     // -1 if no safehome, 0 to MAX_SAFEHOMES -1 otherwise
+extern uint32_t safehome_distance;               // distance to the selected safehome
+
+void resetSafeHomes(void);                       // remove all safehomes
+bool isSafeHomeInUse(void);                      // Are we using a safehome instead of the arming point?
+bool foundNearbySafeHome(void);                  // Did we find a safehome nearby?
+
+#endif // defined(USE_SAFE_HOME)
 
 #if defined(USE_NAV)
 #if defined(USE_BLACKBOX)

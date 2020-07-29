@@ -1276,6 +1276,67 @@ static void cliTempSensor(char *cmdline)
 }
 #endif
 
+#if defined(USE_SAFE_HOME)
+static void printSafeHomes(uint8_t dumpMask, const navSafeHome_t *navSafeHome, const navSafeHome_t *defaultSafeHome)
+{
+    const char *format = "safehome %u %u %d %d"; // uint8_t enabled, int32_t lat; int32_t lon
+    for (uint8_t i = 0; i < MAX_SAFE_HOMES; i++) {
+        bool equalsDefault = false;
+        if (defaultSafeHome) {
+            equalsDefault = navSafeHome[i].enabled == defaultSafeHome[i].enabled
+               && navSafeHome[i].lat == defaultSafeHome[i].lat
+               && navSafeHome[i].lon == defaultSafeHome[i].lon;
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format, i,
+                defaultSafeHome[i].enabled, defaultSafeHome[i].lat, defaultSafeHome[i].lon);
+        }
+        cliDumpPrintLinef(dumpMask, equalsDefault, format, i,
+            navSafeHome[i].enabled, navSafeHome[i].lat, navSafeHome[i].lon);
+    }
+}
+
+static void cliSafeHomes(char *cmdline)
+{
+    if (isEmpty(cmdline)) {
+        printSafeHomes(DUMP_MASTER, safeHomeConfig(0), NULL);
+    } else if (sl_strcasecmp(cmdline, "reset") == 0) {
+        resetSafeHomes();
+    } else {
+        int32_t lat, lon;
+        bool enabled;
+        uint8_t validArgumentCount = 0;
+        const char *ptr = cmdline;
+        int8_t i = fastA2I(ptr);
+        if (i < 0 || i >= MAX_SAFE_HOMES) {
+             cliShowArgumentRangeError("safehome index", 0, MAX_SAFE_HOMES - 1);
+        } else {
+            if ((ptr = nextArg(ptr))) {
+                enabled = fastA2I(ptr);
+                validArgumentCount++;
+            }
+            if ((ptr = nextArg(ptr))) {
+                lat = fastA2I(ptr);
+                validArgumentCount++;
+            }
+            if ((ptr = nextArg(ptr))) {
+                lon = fastA2I(ptr);
+                validArgumentCount++;
+            }
+            if ((ptr = nextArg(ptr))) {
+                // check for too many arguments
+                validArgumentCount++;
+            }
+            if (validArgumentCount != 3) {
+                cliShowParseError();
+            } else {
+                safeHomeConfigMutable(i)->enabled = enabled;
+                safeHomeConfigMutable(i)->lat = lat;
+                safeHomeConfigMutable(i)->lon = lon;
+            }
+        }
+    }
+}
+
+#endif 
 #if defined(USE_NAV) && defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE) && defined(NAV_NON_VOLATILE_WAYPOINT_CLI)
 static void printWaypoints(uint8_t dumpMask, const navWaypoint_t *navWaypoint, const navWaypoint_t *defaultNavWaypoint)
 {
@@ -3214,6 +3275,10 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintHashLine("servo");
         printServo(dumpMask, servoParams_CopyArray, servoParams(0));
 
+#if defined(USE_SAFE_HOME)
+        cliPrintHashLine("safehome");
+        printSafeHomes(dumpMask, safeHomeConfig_CopyArray, safeHomeConfig(0)); 
+#endif
 #ifdef USE_PROGRAMMING_FRAMEWORK
         cliPrintHashLine("logic");
         printLogic(dumpMask, logicConditions_CopyArray, logicConditions(0));
@@ -3454,6 +3519,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("resource", "view currently used resources", NULL, cliResource),
 #endif
     CLI_COMMAND_DEF("rxrange", "configure rx channel ranges", NULL, cliRxRange),
+#if defined(USE_SAFE_HOME)
+    CLI_COMMAND_DEF("safehome", "safe home list", NULL, cliSafeHomes),
+#endif
     CLI_COMMAND_DEF("save", "save and reboot", NULL, cliSave),
     CLI_COMMAND_DEF("serial", "configure serial ports", NULL, cliSerial),
 #ifdef USE_SERIAL_PASSTHROUGH
