@@ -603,6 +603,19 @@ static void osdFormatCoordinate(char *buff, char sym, int32_t val)
     buff[coordinateLength] = '\0';
 }
 
+static void osdFormatCraftName(char *buff)
+{
+    if (strlen(systemConfig()->name) == 0)
+            strcpy(buff, "CRAFT_NAME");
+    else {
+        for (int i = 0; i < MAX_NAME_LENGTH; i++) {
+            buff[i] = sl_toupper((unsigned char)systemConfig()->name[i]);
+            if (systemConfig()->name[i] == 0)
+                break;
+        }
+    }
+}
+
 // Used twice, make sure it's exactly the same string
 // to save some memory
 #define RC_RX_LINK_LOST_MSG "!RC RX LINK LOST!"
@@ -1583,15 +1596,7 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 
     case OSD_CRAFT_NAME:
-        if (strlen(systemConfig()->name) == 0)
-            strcpy(buff, "CRAFT_NAME");
-        else {
-            for (int i = 0; i < MAX_NAME_LENGTH; i++) {
-                buff[i] = sl_toupper((unsigned char)systemConfig()->name[i]);
-                if (systemConfig()->name[i] == 0)
-                    break;
-            }
-        }
+        osdFormatCraftName(buff);
         break;
 
     case OSD_THROTTLE_POS:
@@ -2971,14 +2976,21 @@ static void osdShowArmed(void)
 {
     dateTime_t dt;
     char buf[MAX(32, FORMATTED_DATE_TIME_BUFSIZE)];
+    char craftNameBuf[MAX_NAME_LENGTH];
     char *date;
     char *time;
-    // We need 7 visible rows
-    uint8_t y = MIN((osdDisplayPort->rows / 2) - 1, osdDisplayPort->rows - 7 - 1);
+    // We need 10 visible rows
+    uint8_t y = MIN((osdDisplayPort->rows / 2) - 1, osdDisplayPort->rows - 10 - 1);
 
     displayClearScreen(osdDisplayPort);
     displayWrite(osdDisplayPort, 12, y, "ARMED");
     y += 2;
+
+    if (strlen(systemConfig()->name) > 0) {
+        osdFormatCraftName(craftNameBuf);
+        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(systemConfig() -> name)) / 2, y, craftNameBuf );
+        y += 2;
+    }
 
 #if defined(USE_GPS)
     if (feature(FEATURE_GPS)) {
