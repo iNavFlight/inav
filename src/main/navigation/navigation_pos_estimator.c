@@ -54,7 +54,7 @@
 
 navigationPosEstimator_t posEstimator;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig, PG_POSITION_ESTIMATION_CONFIG, 4);
+PG_REGISTER_WITH_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig, PG_POSITION_ESTIMATION_CONFIG, 5);
 
 PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
         // Inertial position estimator parameters
@@ -62,7 +62,8 @@ PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
         .reset_altitude_type = NAV_RESET_ON_FIRST_ARM,
         .reset_home_type = NAV_RESET_ON_FIRST_ARM,
         .gravity_calibration_tolerance = 5,     // 5 cm/s/s calibration error accepted (0.5% of gravity)
-        .use_gps_velned = 1,         // "Disabled" is mandatory with gps_dyn_model = Pedestrian
+        .use_gps_velned = 1,                    // "Disabled" is mandatory with gps_dyn_model = Pedestrian
+        .use_gps_no_baro = 0,                   // Use GPS altitude if no baro is available on all aircrafts
         .allow_dead_reckoning = 0,
 
         .max_surface_altitude = 200,
@@ -581,7 +582,7 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
 
         return true;
     }
-    else if (STATE(FIXED_WING_LEGACY) && (ctx->newFlags & EST_GPS_Z_VALID)) {
+    else if ((STATE(FIXED_WING_LEGACY) || positionEstimationConfig()->use_gps_no_baro) && (ctx->newFlags & EST_GPS_Z_VALID)) {
         // If baro is not available - use GPS Z for correction on a plane
         // Reset current estimate to GPS altitude if estimate not valid
         if (!(ctx->newFlags & EST_Z_VALID)) {

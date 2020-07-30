@@ -25,7 +25,7 @@ tables:
     values: ["NONE", "PPM", "SERIAL", "MSP", "SPI", "UIB"]
     enum: rxReceiverType_e
   - name: serial_rx
-    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST"]
+    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "FPORT2", "SBUS_FAST"]
   - name: rx_spi_protocol
     values: ["V202_250K", "V202_1M", "SYMA_X", "SYMA_X5C", "CX10", "CX10A", "H8_3D", "INAV", "ELERES"]
     enum: rx_spi_protocol_e
@@ -84,7 +84,7 @@ tables:
       "FLOW", "SBUS", "FPORT", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "ITERM_RELAX",
       "ERPM", "RPM_FILTER", "RPM_FREQ", "NAV_YAW", "DYNAMIC_FILTER", "DYNAMIC_FILTER_FREQUENCY",
-      "IRLOCK", "CD", "KALMAN_GAIN", "PID_MEASUREMENT"]
+      "IRLOCK", "CD", "KALMAN_GAIN", "PID_MEASUREMENT", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -357,6 +357,8 @@ groups:
     members:
       - name: rangefinder_hardware
         table: rangefinder_hardware
+        description: "Selection of rangefinder hardware."
+        default_value: "NONE"
       - name: rangefinder_median_filter
         description: "3-point median filtering for rangefinder readouts"
         default_value: "OFF"
@@ -369,6 +371,8 @@ groups:
     condition: USE_OPFLOW
     members:
       - name: opflow_hardware
+        description: "Selection of OPFLOW hardware."
+        default: "NONE"
         table: opflow_hardware
       - name: opflow_scale
         min: 0
@@ -475,6 +479,8 @@ groups:
     condition: USE_PITOT
     members:
       - name: pitot_hardware
+        description: "Selection of pitot hardware."
+        default_value: "NONE"
         table: pitot_hardware
       - name: pitot_lpf_milli_hz
         min: 0
@@ -488,6 +494,8 @@ groups:
     headers: ["rx/rx.h", "rx/spektrum.h"]
     members:
       - name: receiver_type
+        description: "Selection of receiver (RX) type. Additional configuration of a `serialrx_provider` and a UART will be needed for `SERIAL`"
+        default_value: "`TARGET dependent`"
         field: receiverType
         table: receiver_type
       - name: min_check
@@ -576,6 +584,8 @@ groups:
         field: halfDuplex
         type: bool
       - name: msp_override_channels
+        description: "Mask of RX channels that may be overridden by MSP `SET_RAW_RC`. Note that this requires custom firmware with `USE_RX_MSP` and `USE_MSP_RC_OVERRIDE` compile options and the `MSP RC Override` flight mode."
+        default_value: "0"
         field: mspOverrideChannels
         condition: USE_MSP_RC_OVERRIDE
         min: 0
@@ -1174,15 +1184,19 @@ groups:
         max: 1000
 
   - name: PG_GENERAL_SETTINGS
+    headers: ["config/general_settings.h"]
     type: generalSettings_t
     members:
       - name: applied_defaults
+        description: "Internal (configurator) hint. Should not be changed manually"
+        default_value: "0"
         field: appliedDefaults
         type: uint8_t
         min: 0
         max: 3
 
   - name: PG_RPM_FILTER_CONFIG
+    headers: ["flight/rpm_filter.h"]
     condition: USE_RPM_FILTER
     type: rpmFilterConfig_t
     members:
@@ -1638,6 +1652,24 @@ groups:
         field: navVelXyDTermLpfHz
         min: 0
         max: 100
+      - name: nav_mc_vel_xy_dterm_attenuation
+        description: "Maximum D-term attenution percentage for horizontal velocity PID controller (Multirotor). It allows to smooth the PosHold CRUISE, WP and RTH when Multirotor is traveling at full speed. Dterm is not attenuated at low speeds, breaking and accelerating."
+        default_value: "90"
+        field: navVelXyDtermAttenuation
+        min: 0
+        max: 100
+      - name: nav_mc_vel_xy_dterm_attenuation_start
+        description: "A point (in percent of both target and current horizontal velocity) where nav_mc_vel_xy_dterm_attenuation begins"
+        default_value: 10"
+        field: navVelXyDtermAttenuationStart
+        min: 0
+        max: 100
+      - name: nav_mc_vel_xy_dterm_attenuation_end
+        description: "A point (in percent of both target and current horizontal velocity) where nav_mc_vel_xy_dterm_attenuation reaches maximum"
+        default_value: "60"  
+        field: navVelXyDtermAttenuationEnd
+        min: 0
+        max: 100
       - name: nav_fw_pos_z_p
         description: "P gain of altitude PID controller (Fixedwing)"
         default_value: "50"
@@ -1826,7 +1858,12 @@ groups:
         default_value: "ON"
         field: use_gps_velned
         type: bool
+      - name: inav_use_gps_no_baro
+        field: use_gps_no_baro
+        type: bool
       - name: inav_allow_dead_reckoning
+        description: "Defines if inav will dead-reckon over short GPS outages. May also be useful for indoors OPFLOW navigation"
+        default_value: "OFF"
         field: allow_dead_reckoning
         type: bool
       - name: inav_reset_altitude
@@ -2093,7 +2130,7 @@ groups:
         min: 1000
         max: 2000
       - name: nav_mc_auto_disarm_delay
-        description: ""
+        description: "Delay before multi-rotor disarms when `nav_disarm_on_landing` is set (m/s)"
         default_value: "2000"
         field: mc.auto_disarm_delay
         min: 100
@@ -2804,6 +2841,57 @@ groups:
         default_value: "DEFAULT"
         table: osd_ahi_style
 
+      - name: osd_force_grid
+        field: force_grid
+        type: bool
+        default_value: "OFF"
+        description: Force OSD to work in grid mode even if the OSD device supports pixel level access (mainly used for development)
+
+      - name: osd_ahi_bordered
+        field: ahi_bordered
+        type: bool
+        description: Shows a border/corners around the AHI region (pixel OSD only)
+        default_value: "OFF"
+
+      - name: osd_ahi_width
+        field: ahi_width
+        max: 255
+        description: AHI width in pixels (pixel OSD only)
+        default_value: 132
+
+      - name: osd_ahi_height
+        field: ahi_height
+        max: 255
+        description: AHI height in pixels (pixel OSD only)
+        default_value: 162
+
+      - name: osd_ahi_vertical_offset
+        field: ahi_vertical_offset
+        min: -128
+        max: 127
+        description: AHI vertical offset from center (pixel OSD only)
+        default_value: 0
+
+      - name: osd_sidebar_horizontal_offset
+        field: sidebar_horizontal_offset
+        min: -128
+        max: 127
+        default_value: 0
+        description: Sidebar horizontal offset from default position. Positive values move the sidebars closer to the edges.
+
+      - name: osd_left_sidebar_scroll_step
+        field: left_sidebar_scroll_step
+        max: 255
+        default_value: 0
+        description: How many units each sidebar step represents. 0 means the default value for the scroll type.
+
+      - name: osd_right_sidebar_scroll_step
+        field: right_sidebar_scroll_step
+        max: 255
+        default_value: 0
+        description: Same as left_sidebar_scroll_step, but for the right sidebar
+
+
   - name: PG_SYSTEM_CONFIG
     type: systemConfig_t
     headers: ["fc/config.h"]
@@ -2820,6 +2908,8 @@ groups:
         condition: USE_UNDERCLOCK
         type: bool
       - name: debug_mode
+        description: "Defines debug values exposed in debug variables (developer / debugging setting)"
+        default_value: "NONE"
         table: debug_modes
       - name: throttle_tilt_comp_str
         description: "Can be used in ANGLE and HORIZON mode and will automatically boost throttle when banking. Setting is in percentage, 0=disabled."
@@ -2933,6 +3023,8 @@ groups:
         min: VTX_SETTINGS_MIN_CHANNEL
         max: VTX_SETTINGS_MAX_CHANNEL
       - name: vtx_max_power_override
+        description:  "Some VTXes may report max power incorrectly (i.e. 200mW for a 600mW VTX). Use this to override max supported power. 0 to disable and use whatever VTX reports as its capabilities"
+        default_value: "0"
         field: maxPowerOverride
         min: 0
         max: 10000
@@ -2987,3 +3079,15 @@ groups:
         - name: esc_sensor_listen_only
           field: listenOnly
           type: bool
+
+  - name: PG_SMARTPORT_MASTER_CONFIG
+    type: smartportMasterConfig_t
+    headers: ["io/smartport_master.h"]
+    condition: USE_SMARTPORT_MASTER
+    members:
+      - name: smartport_master_halfduplex
+        field: halfDuplex
+        type: bool
+      - name: smartport_master_inverted
+        field: inverted
+        type: bool

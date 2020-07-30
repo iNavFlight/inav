@@ -1,7 +1,25 @@
 COMMON_SRC = \
+            common/log.c \
+            common/printf.c \
+            common/string_light.c \
+            common/typeconversion.c \
+            drivers/bus.c \
+            drivers/bus_busdev_i2c.c \
+            drivers/bus_busdev_spi.c \
+            drivers/bus_i2c_soft.c \
+            drivers/io.c \
+            drivers/persistent.c \
+            drivers/light_led.c \
+            drivers/rcc.c \
+            drivers/serial.c \
+            drivers/system.c \
+            drivers/time.c \
+            fc/firmware_update_common.c \
+            target/common_hardware.c
+
+MAIN_SRC = \
             $(TARGET_DIR_SRC) \
             main.c \
-            target/common_hardware.c \
             build/assert.c \
             build/build_config.c \
             build/debug.c \
@@ -13,19 +31,15 @@ COMMON_SRC = \
             common/encoding.c \
             common/filter.c \
             common/gps_conversion.c \
-            common/log.c \
-            common/logic_condition.c \
-            common/global_functions.c \
-            common/global_variables.c \
             common/maths.c \
             common/memory.c \
             common/olc.c \
-            common/printf.c \
             common/streambuf.c \
-            common/string_light.c \
             common/time.c \
-            common/typeconversion.c \
             common/uvarint.c \
+            programming/logic_condition.c \
+            programming/global_variables.c \
+            programming/programming_task.c \
             config/config_eeprom.c \
             config/config_streamer.c \
             config/feature.c \
@@ -33,21 +47,15 @@ COMMON_SRC = \
             config/general_settings.c \
             drivers/adc.c \
             drivers/buf_writer.c \
-            drivers/bus.c \
-            drivers/bus_busdev_i2c.c \
-            drivers/bus_busdev_spi.c \
-            drivers/bus_i2c_soft.c \
-            drivers/bus_spi.c \
             drivers/display.c \
             drivers/display_canvas.c \
             drivers/display_font_metadata.c \
+            drivers/display_widgets.c \
             drivers/exti.c \
-            drivers/io.c \
             drivers/io_pca9685.c \
-            drivers/irlock.c \
-            drivers/light_led.c \
+            drivers/io_pcf8574.c \
+            drivers/io_port_expander.c \
             drivers/osd.c \
-            drivers/persistent.c \
             drivers/resource.c \
             drivers/rx_nrf24l01.c \
             drivers/rx_spi.c \
@@ -58,14 +66,10 @@ COMMON_SRC = \
             drivers/pwm_mapping.c \
             drivers/pwm_output.c \
             drivers/pinio.c \
-            drivers/rcc.c \
             drivers/rx_pwm.c \
-            drivers/serial.c \
             drivers/serial_uart.c \
             drivers/sound_beeper.c \
             drivers/stack_check.c \
-            drivers/system.c \
-            drivers/time.c \
             drivers/timer.c \
             drivers/usb_msc.c \
             drivers/lights_io.c \
@@ -84,6 +88,7 @@ COMMON_SRC = \
             fc/fc_hardfaults.c \
             fc/fc_msp.c \
             fc/fc_msp_box.c \
+            fc/firmware_update.c \
             fc/rc_smoothing.c \
             fc/rc_adjustments.c \
             fc/rc_controls.c \
@@ -201,6 +206,7 @@ COMMON_SRC = \
             io/osd_common.c \
             io/osd_grid.c \
             io/osd_hud.c \
+            io/smartport_master.c \
             navigation/navigation.c \
             navigation/navigation_fixedwing.c \
             navigation/navigation_fw_launch.c \
@@ -233,25 +239,31 @@ COMMON_SRC = \
             io/vtx_ffpv24g.c \
             io/vtx_control.c
 
+BL_SRC = \
+	    bl_main.c
+
 COMMON_DEVICE_SRC = \
             $(CMSIS_SRC) \
             $(DEVICE_STDPERIPH_SRC)
 
-TARGET_SRC := $(STARTUP_SRC) $(COMMON_DEVICE_SRC) $(COMMON_SRC) $(MCU_COMMON_SRC) $(TARGET_SRC)
+TARGET_SRC := $(STARTUP_SRC) $(COMMON_DEVICE_SRC) $(MAIN_SRC) $(COMMON_SRC) $(MCU_COMMON_SRC) $(TARGET_SRC)
+TARGET_BL_SRC := $(STARTUP_SRC) $(COMMON_DEVICE_SRC) $(BL_SRC) $(COMMON_SRC) $(MCU_COMMON_SRC)
 
 #excludes
 TARGET_SRC   := $(filter-out $(MCU_EXCLUDES), $(TARGET_SRC))
 
 ifneq ($(filter ONBOARDFLASH,$(FEATURES)),)
-TARGET_SRC += \
+FLASH_SRC += \
             drivers/flash.c \
             drivers/flash_m25p16.c \
             io/flashfs.c \
             $(MSC_SRC)
+TARGET_SRC += $(FLASH_SRC)
+TARGET_BL_SRC += $(FLASH_SRC)
 endif
 
 ifneq ($(filter SDCARD,$(FEATURES)),)
-TARGET_SRC += \
+SDCARD_SRC += \
             drivers/sdcard/sdcard.c \
             drivers/sdcard/sdcard_spi.c \
             drivers/sdcard/sdcard_sdio.c \
@@ -259,6 +271,8 @@ TARGET_SRC += \
             io/asyncfatfs/asyncfatfs.c \
             io/asyncfatfs/fat_standard.c \
             $(MSC_SRC)
+TARGET_SRC += $(SDCARD_SRC)
+TARGET_BL_SRC += $(SDCARD_SRC)
 endif
 
 ifneq ($(filter VCP,$(FEATURES)),)

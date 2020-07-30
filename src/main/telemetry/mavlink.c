@@ -82,6 +82,60 @@
 #define TELEMETRY_MAVLINK_MAXRATE       50
 #define TELEMETRY_MAVLINK_DELAY         ((1000 * 1000) / TELEMETRY_MAVLINK_MAXRATE)
 
+
+/** @brief A mapping of plane flight modes for custom_mode field of heartbeat. */
+typedef enum APM_PLANE_MODE
+{
+   PLANE_MODE_MANUAL=0,
+   PLANE_MODE_CIRCLE=1,
+   PLANE_MODE_STABILIZE=2,
+   PLANE_MODE_TRAINING=3,
+   PLANE_MODE_ACRO=4,
+   PLANE_MODE_FLY_BY_WIRE_A=5,
+   PLANE_MODE_FLY_BY_WIRE_B=6,
+   PLANE_MODE_CRUISE=7,
+   PLANE_MODE_AUTOTUNE=8,
+   PLANE_MODE_AUTO=10,
+   PLANE_MODE_RTL=11,
+   PLANE_MODE_LOITER=12,
+   PLANE_MODE_TAKEOFF=13,
+   PLANE_MODE_AVOID_ADSB=14,
+   PLANE_MODE_GUIDED=15,
+   PLANE_MODE_INITIALIZING=16,
+   PLANE_MODE_QSTABILIZE=17,
+   PLANE_MODE_QHOVER=18,
+   PLANE_MODE_QLOITER=19,
+   PLANE_MODE_QLAND=20,
+   PLANE_MODE_QRTL=21,
+   PLANE_MODE_QAUTOTUNE=22,
+   PLANE_MODE_ENUM_END=23,
+} APM_PLANE_MODE;
+
+/** @brief A mapping of copter flight modes for custom_mode field of heartbeat. */
+typedef enum APM_COPTER_MODE
+{
+   COPTER_MODE_STABILIZE=0,
+   COPTER_MODE_ACRO=1,
+   COPTER_MODE_ALT_HOLD=2,
+   COPTER_MODE_AUTO=3,
+   COPTER_MODE_GUIDED=4,
+   COPTER_MODE_LOITER=5,
+   COPTER_MODE_RTL=6,
+   COPTER_MODE_CIRCLE=7,
+   COPTER_MODE_LAND=9,
+   COPTER_MODE_DRIFT=11,
+   COPTER_MODE_SPORT=13,
+   COPTER_MODE_FLIP=14,
+   COPTER_MODE_AUTOTUNE=15,
+   COPTER_MODE_POSHOLD=16,
+   COPTER_MODE_BRAKE=17,
+   COPTER_MODE_THROW=18,
+   COPTER_MODE_AVOID_ADSB=19,
+   COPTER_MODE_GUIDED_NOGPS=20,
+   COPTER_MODE_SMART_RTL=21,
+   COPTER_MODE_ENUM_END=22,
+} APM_COPTER_MODE;
+
 static serialPort_t *mavlinkPort = NULL;
 static serialPortConfig_t *portConfig;
 
@@ -108,9 +162,45 @@ static mavlink_status_t mavRecvStatus;
 static uint8_t mavSystemId = 1;
 static uint8_t mavComponentId = MAV_COMP_ID_SYSTEM_CONTROL;
 
-// MANUAL, ACRO, ANGLE, HRZN, ALTHOLD, POSHOLD, RTH, WP, LAUNCH, FAILSAFE
-static uint8_t inavToArduCopterMap[FLM_COUNT] = { 1,  1,  0,  0,  2, 16,  6,  3, 18,  0 };
-static uint8_t inavToArduPlaneMap[FLM_COUNT]  = { 0,  4,  2,  2,  5,  1, 11, 10, 15,  2 };
+APM_COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
+{
+    switch (flightMode)
+    {
+        case FLM_ACRO:          return COPTER_MODE_ACRO;
+        case FLM_ACRO_AIR:      return COPTER_MODE_ACRO;
+        case FLM_ANGLE:         return COPTER_MODE_STABILIZE;
+        case FLM_HORIZON:       return COPTER_MODE_STABILIZE;
+        case FLM_ALTITUDE_HOLD: return COPTER_MODE_ALT_HOLD;
+        case FLM_POSITION_HOLD: return COPTER_MODE_POSHOLD;
+        case FLM_RTH:           return COPTER_MODE_RTL;
+        case FLM_MISSION:       return COPTER_MODE_AUTO;
+        case FLM_LAUNCH:        return COPTER_MODE_THROW;
+        case FLM_FAILSAFE:      return COPTER_MODE_RTL;
+        default:                return COPTER_MODE_ENUM_END;
+    }
+}
+
+APM_PLANE_MODE inavToArduPlaneMap(flightModeForTelemetry_e flightMode)
+{
+    switch (flightMode)
+    {
+        case FLM_MANUAL:        return PLANE_MODE_MANUAL;
+        case FLM_ACRO:          return PLANE_MODE_ACRO;
+        case FLM_ACRO_AIR:      return PLANE_MODE_ACRO;
+        case FLM_ANGLE:         return PLANE_MODE_FLY_BY_WIRE_A;
+        case FLM_HORIZON:       return PLANE_MODE_STABILIZE;
+        case FLM_ALTITUDE_HOLD: return PLANE_MODE_FLY_BY_WIRE_B;
+        case FLM_POSITION_HOLD: return PLANE_MODE_LOITER;
+        case FLM_RTH:           return PLANE_MODE_RTL;
+        case FLM_MISSION:       return PLANE_MODE_AUTO;
+        case FLM_CRUISE:        return PLANE_MODE_CRUISE;
+        case FLM_LAUNCH:        return PLANE_MODE_TAKEOFF;
+        case FLM_FAILSAFE:      return PLANE_MODE_RTL;
+        default:                return PLANE_MODE_ENUM_END;
+    }
+}
+
+
 
 static int mavlinkStreamTrigger(enum MAV_DATA_STREAM streamNum)
 {
@@ -468,10 +558,10 @@ void mavlinkSendHUDAndHeartbeat(void)
     uint8_t mavCustomMode;
 
     if (STATE(FIXED_WING_LEGACY)) {
-        mavCustomMode = inavToArduPlaneMap[flm];
+        mavCustomMode = (uint8_t)inavToArduPlaneMap(flm);
     }
     else {
-        mavCustomMode = inavToArduCopterMap[flm];
+        mavCustomMode = (uint8_t)inavToArduCopterMap(flm);
     }
 
     if (flm != FLM_MANUAL) {

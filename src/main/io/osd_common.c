@@ -88,17 +88,14 @@ void osdDrawVario(displayPort_t *display, displayCanvas_t *canvas, const osdDraw
 #endif
 }
 
-void osdDrawDirArrow(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float degrees, bool eraseBefore)
+void osdDrawDirArrow(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float degrees)
 {
-#if !defined(USE_CANVAS)
-    UNUSED(eraseBefore);
-#endif
     uint8_t gx;
     uint8_t gy;
 
 #if defined(USE_CANVAS)
     if (canvas) {
-        osdCanvasDrawDirArrow(display, canvas, p, degrees, eraseBefore);
+        osdCanvasDrawDirArrow(display, canvas, p, degrees);
     } else {
 #endif
         osdDrawPointGetGrid(&gx, &gy, display, canvas, p);
@@ -138,4 +135,16 @@ void osdDrawHeadingGraph(displayPort_t *display, displayCanvas_t *canvas, const 
 #if defined(USE_CANVAS)
     }
 #endif
+}
+
+void osdDrawSidebars(displayPort_t *display, displayCanvas_t *canvas)
+{
+#if defined(USE_CANVAS)
+    if (osdCanvasDrawSidebars(display, canvas))  {
+        return;
+    }
+#else
+    UNUSED(canvas);
+#endif
+    osdGridDrawSidebars(display);
 }

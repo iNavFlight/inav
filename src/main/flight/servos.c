@@ -28,7 +28,7 @@
 #include "common/axis.h"
 #include "common/filter.h"
 #include "common/maths.h"
-#include "common/global_variables.h"
+#include "programming/global_variables.h"
 
 #include "config/config_reset.h"
 #include "config/feature.h"
@@ -75,7 +75,7 @@ void pgResetFn_customServoMixers(servoMixer_t *instance)
             .inputSource = 0,
             .rate = 0,
             .speed = 0
-#ifdef USE_LOGIC_CONDITIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
             ,.conditionId = -1
 #endif
         );
@@ -266,7 +266,7 @@ void servoMixer(float dT)
     input[INPUT_FEATURE_FLAPS] = FLIGHT_MODE(FLAPERON) ? servoConfig()->flaperon_throw_offset : 0;
 
     input[INPUT_MAX] = 500;
-#ifdef USE_LOGIC_CONDITIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
     input[INPUT_GVAR_0] = constrain(gvGet(0), -1000, 1000);
     input[INPUT_GVAR_1] = constrain(gvGet(1), -1000, 1000);
     input[INPUT_GVAR_2] = constrain(gvGet(2), -1000, 1000);
@@ -318,7 +318,7 @@ void servoMixer(float dT)
         /*
          * Check if conditions for a rule are met, not all conditions apply all the time
          */
-    #ifdef USE_LOGIC_CONDITIONS
+    #ifdef USE_PROGRAMMING_FRAMEWORK
         if (!logicConditionGetValue(currentServoMixer[i].conditionId)) {
             continue; 
         }
