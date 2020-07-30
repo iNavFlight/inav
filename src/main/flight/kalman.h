@@ -49,5 +49,5 @@ typedef struct kalman
     uint16_t w;
 } kalman_t;
 
-void gyroKalmanInitialize(void);
+void gyroKalmanInitialize(uint16_t q, uint16_t w, uint16_t sharpness);
 float gyroKalmanUpdate(uint8_t axis, float input, float setpoint);

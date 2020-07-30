@@ -155,7 +155,7 @@ static EXTENDED_FASTRAM filterApplyFnPtr dTermLpfFilterApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr dTermLpf2FilterApplyFn;
 static EXTENDED_FASTRAM bool levelingEnabled = false;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 13);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 14);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -276,6 +276,10 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .pidControllerType = PID_TYPE_AUTO,
         .navFwPosHdgPidsumLimit = PID_SUM_LIMIT_YAW_DEFAULT,
         .controlDerivativeLpfHz = 30,
+        .kalman_q = 100,
+        .kalman_w = 4,
+        .kalman_sharpness = 100,
+        .kalmanEnabled = 0,
 );
 
 bool pidInitFilters(void)
@@ -976,7 +980,7 @@ void FAST_CODE pidController(float dT)
         pidState[axis].rateTarget = constrainf(rateTarget, -GYRO_SATURATION_LIMIT, +GYRO_SATURATION_LIMIT);
 
 #ifdef USE_GYRO_KALMAN
-        if (gyroConfig()->kalmanEnabled) {
+        if (pidProfile()->kalmanEnabled) {
             pidState[axis].gyroRate = gyroKalmanUpdate(axis, pidState[axis].gyroRate, pidState[axis].rateTarget);
         }
 #endif
@@ -1113,8 +1117,8 @@ void pidInit(void)
 
     pidResetTPAFilter();
 #ifdef USE_GYRO_KALMAN
-    if (gyroConfig()->kalmanEnabled) {
-        gyroKalmanInitialize();
+    if (pidProfile()->kalmanEnabled) {
+        gyroKalmanInitialize(pidProfile()->kalman_q, pidProfile()->kalman_w, pidProfile()->kalman_sharpness);
     }
 #endif
 }

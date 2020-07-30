@@ -30,23 +30,23 @@ FILE_COMPILE_FOR_SPEED
 
 kalman_t kalmanFilterStateRate[XYZ_AXIS_COUNT];
 
-static void gyroKalmanInitAxis(kalman_t *filter)
+static void gyroKalmanInitAxis(kalman_t *filter, uint16_t q, uint16_t w, uint16_t sharpness)
 {
     memset(filter, 0, sizeof(kalman_t));
-    filter->q = gyroConfig()->kalman_q * 0.03f; //add multiplier to make tuning easier
+    filter->q = q * 0.03f; //add multiplier to make tuning easier
     filter->r = 88.0f;      //seeding R at 88.0f
     filter->p = 30.0f;      //seeding P at 30.0f
     filter->e = 1.0f;
-    filter->s = gyroConfig()->kalman_sharpness / 10.0f;
-    filter->w = gyroConfig()->kalman_w * 8;
+    filter->s = sharpness / 10.0f;
+    filter->w = w * 8;
     filter->inverseN = 1.0f / (float)(filter->w);
 }
 
-void gyroKalmanInitialize(void)
+void gyroKalmanInitialize(uint16_t q, uint16_t w, uint16_t sharpness)
 {
-    gyroKalmanInitAxis(&kalmanFilterStateRate[X]);
-    gyroKalmanInitAxis(&kalmanFilterStateRate[Y]);
-    gyroKalmanInitAxis(&kalmanFilterStateRate[Z]);
+    gyroKalmanInitAxis(&kalmanFilterStateRate[X], q, w, sharpness);
+    gyroKalmanInitAxis(&kalmanFilterStateRate[Y], q, w, sharpness);
+    gyroKalmanInitAxis(&kalmanFilterStateRate[Z], q, w, sharpness);
 }
 
 float kalman_process(kalman_t *kalmanState, float input, float target)

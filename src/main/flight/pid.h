@@ -151,6 +151,10 @@ typedef struct pidProfile_s {
 
     uint16_t navFwPosHdgPidsumLimit;
     uint8_t controlDerivativeLpfHz;
+    uint16_t kalman_q;
+    uint16_t kalman_w;
+    uint16_t kalman_sharpness;
+    uint8_t kalmanEnabled;
 } pidProfile_t;
 
 typedef struct pidAutotuneConfig_s {

@@ -101,7 +101,7 @@ EXTENDED_FASTRAM dynamicGyroNotchState_t dynamicGyroNotchState;
 
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 9);
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 10);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_lpf = GYRO_LPF_42HZ,      // 42HZ value is defined for Invensense/TDK gyros
@@ -120,10 +120,6 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .dynamicGyroNotchQ = 120,
     .dynamicGyroNotchMinHz = 150,
     .dynamicGyroNotchEnabled = 0,
-    .kalman_q = 100,
-    .kalman_w = 4,
-    .kalman_sharpness = 100,
-    .kalmanEnabled = 0,
 );
 
 STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHardware)
