@@ -84,7 +84,7 @@ tables:
       "FLOW", "SBUS", "FPORT", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "ITERM_RELAX",
       "ERPM", "RPM_FILTER", "RPM_FREQ", "NAV_YAW", "DYNAMIC_FILTER", "DYNAMIC_FILTER_FREQUENCY",
-      "IRLOCK", "CD", "KALMAN", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574"]
+      "IRLOCK", "CD", "KALMAN_GAIN", "PID_MEASUREMENT", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -229,25 +229,6 @@ groups:
         condition: USE_DYNAMIC_FILTERS
         min: 30
         max: 1000
-      - name: gyro_kalman_enabled
-        condition: USE_GYRO_KALMAN
-        field: kalmanEnabled
-        type: bool
-      - name: gyro_kalman_q
-        field: kalman_q
-        condition: USE_GYRO_KALMAN
-        min: 1
-        max: 16000
-      - name: gyro_kalman_w
-        field: kalman_w
-        condition: USE_GYRO_KALMAN
-        min: 1
-        max: 40
-      - name: gyro_kalman_sharpness
-        field: kalman_sharpness
-        condition: USE_GYRO_KALMAN
-        min: 1
-        max: 16000
       - name: gyro_to_use
         condition: USE_DUAL_GYRO
         min: 0
@@ -1802,6 +1783,33 @@ groups:
         field: controlDerivativeLpfHz
         min: 0
         max: 200
+      - name: setpoint_kalman_enabled
+        description: "Enable Kalman filter on the PID controller setpoint"
+        default_value: "OFF"
+        condition: USE_GYRO_KALMAN
+        field: kalmanEnabled
+        type: bool
+      - name: setpoint_kalman_q
+        description: "Quality factor of the setpoint Kalman filter. Higher values means less filtering and lower phase delay. On 3-7 inch multirotors can be usually increased to 200-300 or even higher of clean builds"
+        default_value: "100"
+        field: kalman_q
+        condition: USE_GYRO_KALMAN
+        min: 1
+        max: 16000
+      - name: setpoint_kalman_w
+        description: "Window size for the setpoint Kalman filter. Wider the window, more samples are used to compute variance. In general, wider window results in smoother filter response"
+        default_value: "4"
+        field: kalman_w
+        condition: USE_GYRO_KALMAN
+        min: 1
+        max: 40
+      - name: setpoint_kalman_sharpness
+        description: "Dynamic factor for the setpoint Kalman filter. In general, the higher the value, the more dynamic Kalman filter gets"
+        default_value: "100"
+        field: kalman_sharpness
+        condition: USE_GYRO_KALMAN
+        min: 1
+        max: 16000
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t

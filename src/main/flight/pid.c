@@ -155,7 +155,7 @@ static EXTENDED_FASTRAM filterApplyFnPtr dTermLpfFilterApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr dTermLpf2FilterApplyFn;
 static EXTENDED_FASTRAM bool levelingEnabled = false;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 13);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 14);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -276,6 +276,10 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .pidControllerType = PID_TYPE_AUTO,
         .navFwPosHdgPidsumLimit = PID_SUM_LIMIT_YAW_DEFAULT,
         .controlDerivativeLpfHz = 30,
+        .kalman_q = 100,
+        .kalman_w = 4,
+        .kalman_sharpness = 100,
+        .kalmanEnabled = 0,
 );
 
 bool pidInitFilters(void)
@@ -974,9 +978,13 @@ void FAST_CODE pidController(float dT)
 
         // Limit desired rate to something gyro can measure reliably
         pidState[axis].rateTarget = constrainf(rateTarget, -GYRO_SATURATION_LIMIT, +GYRO_SATURATION_LIMIT);
+
 #ifdef USE_GYRO_KALMAN
-        gyroKalmanSetSetpoint(axis, pidState[axis].rateTarget);
+        if (pidProfile()->kalmanEnabled) {
+            pidState[axis].gyroRate = gyroKalmanUpdate(axis, pidState[axis].gyroRate, pidState[axis].rateTarget);
+        }
 #endif
+        DEBUG_SET(DEBUG_PID_MEASUREMENT, axis, pidState[axis].gyroRate);
     }
 
     // Step 3: Run control for ANGLE_MODE, HORIZON_MODE, and HEADING_LOCK
@@ -1108,6 +1116,11 @@ void pidInit(void)
     }
 
     pidResetTPAFilter();
+#ifdef USE_GYRO_KALMAN
+    if (pidProfile()->kalmanEnabled) {
+        gyroKalmanInitialize(pidProfile()->kalman_q, pidProfile()->kalman_w, pidProfile()->kalman_sharpness);
+    }
+#endif
 }
 
 const pidBank_t * pidBank(void) { 

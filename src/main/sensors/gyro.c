@@ -72,7 +72,6 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/gyroanalyse.h"
 #include "flight/rpm_filter.h"
 #include "flight/dynamic_gyro_notch.h"
-#include "flight/kalman.h"
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
@@ -102,7 +101,7 @@ EXTENDED_FASTRAM dynamicGyroNotchState_t dynamicGyroNotchState;
 
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 9);
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 10);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_lpf = GYRO_LPF_42HZ,      // 42HZ value is defined for Invensense/TDK gyros
@@ -121,10 +120,6 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .dynamicGyroNotchQ = 120,
     .dynamicGyroNotchMinHz = 150,
     .dynamicGyroNotchEnabled = 0,
-    .kalman_q = 100,
-    .kalman_w = 4,
-    .kalman_sharpness = 100,
-    .kalmanEnabled = 0,
 );
 
 STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHardware)
@@ -312,11 +307,6 @@ bool gyroInit(void)
     }
 
     gyroInitFilters();
-#ifdef USE_GYRO_KALMAN
-    if (gyroConfig()->kalmanEnabled) {
-        gyroKalmanInitialize();
-    }
-#endif
 #ifdef USE_DYNAMIC_FILTERS
     dynamicGyroNotchFiltersInit(&dynamicGyroNotchState);
     gyroDataAnalyseStateInit(
@@ -459,14 +449,6 @@ void FAST_CODE NOINLINE gyroUpdate()
 #endif
         gyro.gyroADCf[axis] = gyroADCf;
     }
-
-#ifdef USE_GYRO_KALMAN
-    if (gyroConfig()->kalmanEnabled) {
-        gyro.gyroADCf[X] = gyroKalmanUpdate(X, gyro.gyroADCf[X]);
-        gyro.gyroADCf[Y] = gyroKalmanUpdate(Y, gyro.gyroADCf[Y]);
-        gyro.gyroADCf[Z] = gyroKalmanUpdate(Z, gyro.gyroADCf[Z]);
-    }
-#endif
 
 #ifdef USE_DYNAMIC_FILTERS
     if (dynamicGyroNotchState.enabled) {
