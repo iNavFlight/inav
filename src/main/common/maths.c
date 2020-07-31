@@ -142,15 +142,6 @@ int32_t applyDeadband(int32_t value, int32_t deadband)
     return value;
 }
 
-float fapplyDeadbandf(float value, float deadband)
-{
-    if (fabsf(value) < deadband) {
-        return 0;
-    }
-
-    return value >= 0 ? value - deadband : value + deadband;
-}
-
 int constrain(int amt, int low, int high)
 {
     if (amt < low)

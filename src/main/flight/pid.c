@@ -124,7 +124,6 @@ int32_t axisPID_P[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_I[FLIGHT_DYNAMICS_INDEX_
 static EXTENDED_FASTRAM pidState_t pidState[FLIGHT_DYNAMICS_INDEX_COUNT];
 static EXTENDED_FASTRAM pt1Filter_t windupLpf[XYZ_AXIS_COUNT];
 static EXTENDED_FASTRAM uint8_t itermRelax;
-static EXTENDED_FASTRAM uint8_t itermRelaxType;
 
 #ifdef USE_ANTIGRAVITY
 static EXTENDED_FASTRAM pt1Filter_t antigravityThrottleLpf;
@@ -155,7 +154,7 @@ static EXTENDED_FASTRAM filterApplyFnPtr dTermLpfFilterApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr dTermLpf2FilterApplyFn;
 static EXTENDED_FASTRAM bool levelingEnabled = false;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 14);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 15);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -264,7 +263,6 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .navVelXyDtermAttenuation = 90,
         .navVelXyDtermAttenuationStart = 10,
         .navVelXyDtermAttenuationEnd = 60,
-        .iterm_relax_type = ITERM_RELAX_SETPOINT,
         .iterm_relax_cutoff = MC_ITERM_RELAX_CUTOFF_DEFAULT,
         .iterm_relax = ITERM_RELAX_RP,
         .dBoostFactor = 1.25f,
@@ -636,31 +634,20 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
 #endif
 }
 
-static void FAST_CODE applyItermRelax(const int axis, const float gyroRate, float currentPidSetpoint, float *itermErrorRate)
+static float FAST_CODE applyItermRelax(const int axis, float currentPidSetpoint, float itermErrorRate)
 {
-    const float setpointLpf = pt1FilterApply(&windupLpf[axis], currentPidSetpoint);
-    const float setpointHpf = fabsf(currentPidSetpoint - setpointLpf);
-
     if (itermRelax) {
         if (axis < FD_YAW || itermRelax == ITERM_RELAX_RPY) {
 
+            const float setpointLpf = pt1FilterApply(&windupLpf[axis], currentPidSetpoint);
+            const float setpointHpf = fabsf(currentPidSetpoint - setpointLpf);
+            
             const float itermRelaxFactor = MAX(0, 1 - setpointHpf / MC_ITERM_RELAX_SETPOINT_THRESHOLD);
-
-            if (itermRelaxType == ITERM_RELAX_SETPOINT) {
-                *itermErrorRate *= itermRelaxFactor;
-            } else if (itermRelaxType == ITERM_RELAX_GYRO ) {
-                *itermErrorRate = fapplyDeadbandf(setpointLpf - gyroRate, setpointHpf);
-            } else {
-                *itermErrorRate = 0.0f;
-            }
-
-            if (axis == FD_ROLL) {
-                DEBUG_SET(DEBUG_ITERM_RELAX, 0, lrintf(setpointHpf));
-                DEBUG_SET(DEBUG_ITERM_RELAX, 1, lrintf(itermRelaxFactor * 100.0f));
-                DEBUG_SET(DEBUG_ITERM_RELAX, 2, lrintf(*itermErrorRate));
-            }
+            return itermErrorRate * itermRelaxFactor;
         }
     }
+
+    return itermErrorRate;
 }
 #ifdef USE_D_BOOST
 static float FAST_CODE applyDBoost(pidState_t *pidState, float dT) {
@@ -727,8 +714,7 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
     const float newOutput = newPTerm + newDTerm + pidState->errorGyroIf + newCDTerm;
     const float newOutputLimited = constrainf(newOutput, -pidState->pidSumLimit, +pidState->pidSumLimit);
 
-    float itermErrorRate = rateError;
-    applyItermRelax(axis, pidState->gyroRate, pidState->rateTarget, &itermErrorRate);
+    float itermErrorRate = applyItermRelax(axis, pidState->rateTarget, rateError);
 
 #ifdef USE_ANTIGRAVITY
     itermErrorRate *= iTermAntigravityGain;
@@ -1046,7 +1032,6 @@ void pidInit(void)
     pidGainsUpdateRequired = false;
 
     itermRelax = pidProfile()->iterm_relax;
-    itermRelaxType = pidProfile()->iterm_relax_type;
 
     yawLpfHz = pidProfile()->yaw_lpf_hz;
     motorItermWindupPoint = 1.0f - (pidProfile()->itermWindupPointPercent / 100.0f);
