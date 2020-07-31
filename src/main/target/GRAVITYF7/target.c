@@ -27,7 +27,7 @@
 #include "drivers/bus.h"
 #include "drivers/sensor.h"
 
-BUSDEV_REGISTER_I2C_TAG( busdev_bmp280, DEVHW_BMP280, BMP280_I2C_BUS, 0x77, NONE, 0, DEVFLAGS_NONE, 0 );
+BUSDEV_REGISTER_I2C( busdev_bmp280_2, DEVHW_BMP280, BARO_I2C_BUS, 0x77, NONE, DEVFLAGS_NONE, 0 );
 
 const timerHardware_t timerHardware[] = {
     DEF_TIM(TIM4, CH2, PB7,  TIM_USE_PPM,   0, 0),       // PPM&SBUS
