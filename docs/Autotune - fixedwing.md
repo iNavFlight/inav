@@ -30,7 +30,7 @@ For most hobby-sized airplanes roll/pitch rate limits should be in range 70-120 
 
 Other things to check:
 
-* It's highly recommended that you fly in PASTHROUGH and trim your servo midpoints for stable flight
+* It's highly recommended that you fly in MANUAL and trim your servo midpoints for stable flight
 * Make sure you have center of gravity according to manual to your aircraft
 * Check that your failsafe activates correctly (test on the ground with propeller off for safety)
 
@@ -54,6 +54,6 @@ The more you fly the better it will get. Let autotune analyze how your airplane 
 
 ## Completing the tune
 
-Once you have tuned reasonable PIFF parameters with AUTOTUNE you should complete the tune by switching out of AUTOTUNE to ANGLE or PASTHROUGH and landing the airplane.
+Once you have tuned reasonable PIFF parameters with AUTOTUNE you should complete the tune by switching out of AUTOTUNE to ANGLE or MANUAL and landing the airplane.
 
 Note that AUTOTUNE mode doesn't automatically save parameters to EEPROM. You need to disarm and issue a [stick command](Controls.md) to save configuration parameters.

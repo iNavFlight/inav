@@ -19,11 +19,6 @@
 
 #pragma once
 
-// Targets with built-in vtx do not need external vtx
-#if defined(VTX) || defined(USE_RTC6705)
-# undef USE_VTX_CONTROL
-#endif
-
 // Backward compatibility for I2C OLED display
 #if !defined(USE_I2C)
 # undef USE_DASHBOARD
@@ -64,4 +59,21 @@
 #if defined(SIMULATOR_BUILD) || defined(UNIT_TEST)
 // This feature uses 'arm_math.h', which does not exist for x86.
 #undef USE_DYNAMIC_FILTERS
+#endif
+
+//Defines for compiler optimizations
+#ifndef STM32F3
+#define FUNCTION_COMPILE_FOR_SIZE __attribute__((optimize("-Os")))
+#define FUNCTION_COMPILE_NORMAL __attribute__((optimize("-O2")))
+#define FUNCTION_COMPILE_FOR_SPEED __attribute__((optimize("-Ofast")))
+#define FILE_COMPILE_FOR_SIZE _Pragma("GCC optimize(\"Os\")")
+#define FILE_COMPILE_NORMAL _Pragma("GCC optimize(\"O2\")")
+#define FILE_COMPILE_FOR_SPEED _Pragma("GCC optimize(\"Ofast\")")
+#else
+#define FUNCTION_COMPILE_FOR_SIZE
+#define FUNCTION_COMPILE_NORMAL
+#define FUNCTION_COMPILE_FOR_SPEED
+#define FILE_COMPILE_FOR_SIZE
+#define FILE_COMPILE_NORMAL
+#define FILE_COMPILE_FOR_SPEED
 #endif

@@ -75,7 +75,7 @@ static long cmsx_osdElementOnChange(displayPort_t *displayPort, const void *ptr)
 {
     UNUSED(ptr);
 
-    uint16_t *pos = &osdConfigMutable()->item_pos[osdCurrentLayout][osdCurrentItem];
+    uint16_t *pos = &osdLayoutsConfigMutable()->item_pos[osdCurrentLayout][osdCurrentItem];
     *pos = OSD_POS(osdCurrentElementColumn, osdCurrentElementRow);
     if (osdCurrentElementVisible) {
         *pos |= OSD_VISIBLE_FLAG;
@@ -125,7 +125,7 @@ static CMS_Menu cmsx_menuOsdElementActions = {
 static long osdElemActionsOnEnter(const OSD_Entry *from)
 {
     osdCurrentItem = from->itemId;
-    uint16_t pos = osdConfig()->item_pos[osdCurrentLayout][osdCurrentItem];
+    uint16_t pos = osdLayoutsConfig()->item_pos[osdCurrentLayout][osdCurrentItem];
     osdCurrentElementColumn = OSD_X(pos);
     osdCurrentElementRow = OSD_Y(pos);
     osdCurrentElementVisible = OSD_VISIBLE(pos) ? 1 : 0;
@@ -184,6 +184,7 @@ static const OSD_Entry menuOsdElemsEntries[] =
     OSD_ELEMENT_ENTRY("GPS HDOP", OSD_GPS_HDOP),
     OSD_ELEMENT_ENTRY("3D SPEED", OSD_3D_SPEED),
     OSD_ELEMENT_ENTRY("PLUS CODE", OSD_PLUS_CODE),
+    OSD_ELEMENT_ENTRY("AZIMUTH", OSD_AZIMUTH),
 #endif // GPS
     OSD_ELEMENT_ENTRY("HEADING", OSD_HEADING),
     OSD_ELEMENT_ENTRY("HEADING GR.", OSD_HEADING_GRAPH),
@@ -273,6 +274,7 @@ static const OSD_Entry menuOsdElemsEntries[] =
 
 #ifdef USE_ESC_SENSOR
     OSD_ELEMENT_ENTRY("ESC RPM", OSD_ESC_RPM),
+    OSD_ELEMENT_ENTRY("ESC TEMPERATURE", OSD_ESC_TEMPERATURE),
 #endif
 
     OSD_BACK_AND_END_ENTRY,
@@ -378,6 +380,7 @@ static const OSD_Entry menuOsdHud2Entries[] = {
     OSD_SETTING_ENTRY("RADAR MIN RANGE", SETTING_OSD_HUD_RADAR_RANGE_MIN),
     OSD_SETTING_ENTRY("RADAR MAX RANGE", SETTING_OSD_HUD_RADAR_RANGE_MAX),
     OSD_SETTING_ENTRY("RADAR DET. NEAREST", SETTING_OSD_HUD_RADAR_NEAREST),
+    OSD_SETTING_ENTRY("NEXT WAYPOINTS", SETTING_OSD_HUD_WP_DISP),
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
 };

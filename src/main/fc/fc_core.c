@@ -21,6 +21,8 @@
 
 #include "platform.h"
 
+FILE_COMPILE_FOR_SPEED
+
 #include "blackbox/blackbox.h"
 
 #include "build/debug.h"
@@ -30,7 +32,6 @@
 #include "common/color.h"
 #include "common/utils.h"
 #include "common/filter.h"
-#include "common/global_functions.h"
 
 #include "drivers/light_led.h"
 #include "drivers/serial.h"
@@ -48,6 +49,7 @@
 #include "sensors/battery.h"
 #include "sensors/rangefinder.h"
 #include "sensors/opflow.h"
+#include "sensors/esc_sensor.h"
 
 #include "fc/fc_core.h"
 #include "fc/cli.h"
@@ -200,7 +202,7 @@ static void updateArmingStatus(void)
         /* CHECK: Throttle */
         if (!armingConfig()->fixed_wing_auto_arm) {
             // Don't want this check if fixed_wing_auto_arm is in use - machine arms on throttle > LOW
-            if (calculateThrottleStatus() != THROTTLE_LOW) {
+            if (calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC) != THROTTLE_LOW) {
                 ENABLE_ARMING_FLAG(ARMING_DISABLED_THROTTLE);
             } else {
                 DISABLE_ARMING_FLAG(ARMING_DISABLED_THROTTLE);
@@ -443,11 +445,11 @@ void releaseSharedTelemetryPorts(void) {
 void tryArm(void)
 {
     updateArmingStatus();
-#ifdef USE_GLOBAL_FUNCTIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
     if (
         !isArmingDisabled() || 
         emergencyArmingIsEnabled() || 
-        GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_ARMING_SAFETY)
+        LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_ARMING_SAFETY)
     ) {
 #else 
     if (
@@ -475,6 +477,8 @@ void tryArm(void)
 
         ENABLE_ARMING_FLAG(ARMED);
         ENABLE_ARMING_FLAG(WAS_EVER_ARMED);
+        //It is required to inform the mixer that arming was executed and it has to switch to the FORWARD direction
+        ENABLE_STATE(SET_REVERSIBLE_MOTORS_FORWARD);
         logicConditionReset();
         headFreeModeHold = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
 
@@ -515,7 +519,7 @@ void processRx(timeUs_t currentTimeUs)
     calculateRxChannelsAndUpdateFailsafe(currentTimeUs);
 
     // in 3D mode, we need to be able to disarm by switch at any time
-    if (feature(FEATURE_3D)) {
+    if (feature(FEATURE_REVERSIBLE_MOTORS)) {
         if (!IS_RC_MODE_ACTIVE(BOXARM))
             disarm(DISARM_SWITCH_3D);
     }
@@ -529,10 +533,10 @@ void processRx(timeUs_t currentTimeUs)
 
     failsafeUpdateState();
 
-    const throttleStatus_e throttleStatus = calculateThrottleStatus();
+    const throttleStatus_e throttleStatus = calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC);
 
     // When armed and motors aren't spinning, do beeps periodically
-    if (ARMING_FLAG(ARMED) && feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING)) {
+    if (ARMING_FLAG(ARMED) && feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING_LEGACY)) {
         static bool armedBeeperOn = false;
 
         if (throttleStatus == THROTTLE_LOW) {
@@ -633,7 +637,7 @@ void processRx(timeUs_t currentTimeUs)
 #endif
 
     // Handle passthrough mode
-    if (STATE(FIXED_WING)) {
+    if (STATE(FIXED_WING_LEGACY)) {
         if ((IS_RC_MODE_ACTIVE(BOXMANUAL) && !navigationRequiresAngleMode() && !failsafeRequiresAngleMode()) ||    // Normal activation of passthrough
             (!ARMING_FLAG(ARMED) && isCalibrating())){                                                              // Backup - if we are not armed - enforce passthrough while calibrating
             ENABLE_FLIGHT_MODE(MANUAL_MODE);
@@ -649,13 +653,13 @@ void processRx(timeUs_t currentTimeUs)
         /* In MANUAL mode we reset integrators prevent I-term wind-up (PID output is not used in MANUAL) */
         pidResetErrorAccumulators();
     }
-    else if (STATE(FIXED_WING) || rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
+    else if (STATE(FIXED_WING_LEGACY) || rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
         if (throttleStatus == THROTTLE_LOW) {
             if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive() && ARMING_FLAG(ARMED)) {
                 rollPitchStatus_e rollPitchStatus = calculateRollPitchCenterStatus();
 
                 // ANTI_WINDUP at centred stick with MOTOR_STOP is needed on MRs and not needed on FWs
-                if ((rollPitchStatus == CENTERED) || (feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING))) {
+                if ((rollPitchStatus == CENTERED) || (feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING_LEGACY))) {
                     ENABLE_STATE(ANTI_WINDUP);
                 }
                 else {
@@ -753,7 +757,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 
-    if (ARMING_FLAG(ARMED) && (!STATE(FIXED_WING) || !isNavLaunchEnabled() || (isNavLaunchEnabled() && (isFixedWingLaunchDetected() || isFixedWingLaunchFinishedOrAborted())))) {
+    if (ARMING_FLAG(ARMED) && (!STATE(FIXED_WING_LEGACY) || !isNavLaunchEnabled() || (isNavLaunchEnabled() && (isFixedWingLaunchDetected() || isFixedWingLaunchFinishedOrAborted())))) {
         flightTime += cycleTime;
         updateAccExtremes();
     }
@@ -782,7 +786,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 #endif
 
     // Apply throttle tilt compensation
-    if (!STATE(FIXED_WING)) {
+    if (!STATE(FIXED_WING_LEGACY)) {
         int16_t thrTiltCompStrength = 0;
 
         if (navigationRequiresThrottleTiltCompensation()) {
@@ -802,9 +806,6 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     else {
         // FIXME: throttle pitch comp for FW
     }
-
-    // Update PID coefficients
-    updatePIDCoefficients(dT);
 
     // Calculate stabilisation
     pidController(dT);
@@ -851,6 +852,10 @@ void taskRunRealtimeCallbacks(timeUs_t currentTimeUs)
 
 #ifdef USE_DSHOT
     pwmCompleteMotorUpdate();
+#endif
+
+#ifdef USE_ESC_SENSOR
+    escSensorUpdate(currentTimeUs);
 #endif
 }
 

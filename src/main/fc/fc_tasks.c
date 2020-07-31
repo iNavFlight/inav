@@ -26,14 +26,14 @@
 #include "common/axis.h"
 #include "common/color.h"
 #include "common/utils.h"
-#include "common/logic_condition.h"
-#include "common/global_functions.h"
+#include "programming/programming_task.h"
 
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/compass/compass.h"
 #include "drivers/sensor.h"
 #include "drivers/serial.h"
 #include "drivers/stack_check.h"
+#include "drivers/pwm_mapping.h"
 
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -48,6 +48,7 @@
 #include "flight/pid.h"
 #include "flight/wind_estimator.h"
 #include "flight/rpm_filter.h"
+#include "flight/servos.h"
 
 #include "navigation/navigation.h"
 
@@ -60,8 +61,10 @@
 #include "io/pwmdriver_i2c.h"
 #include "io/serial.h"
 #include "io/rcdevice_cam.h"
+#include "io/smartport_master.h"
 #include "io/vtx.h"
 #include "io/osd_dji_hd.h"
+#include "io/servo_sbus.h"
 
 #include "msp/msp_serial.h"
 
@@ -78,6 +81,7 @@
 #include "sensors/battery.h"
 #include "sensors/compass.h"
 #include "sensors/gyro.h"
+#include "sensors/irlock.h"
 #include "sensors/pitotmeter.h"
 #include "sensors/rangefinder.h"
 #include "sensors/opflow.h"
@@ -209,6 +213,14 @@ void taskUpdateRangefinder(timeUs_t currentTimeUs)
 }
 #endif
 
+#if defined(USE_NAV) && defined(USE_IRLOCK)
+void taskUpdateIrlock(timeUs_t currentTimeUs)
+{
+    UNUSED(currentTimeUs);
+    irlockUpdate();
+}
+#endif
+
 #ifdef USE_OPFLOW
 void taskUpdateOpticalFlow(timeUs_t currentTimeUs)
 {
@@ -240,6 +252,13 @@ void taskTelemetry(timeUs_t currentTimeUs)
 }
 #endif
 
+#if defined(USE_SMARTPORT_MASTER)
+void taskSmartportMaster(timeUs_t currentTimeUs)
+{
+    smartportMasterHandle(currentTimeUs);
+}
+#endif
+
 #ifdef USE_LED_STRIP
 void taskLedStrip(timeUs_t currentTimeUs)
 {
@@ -249,16 +268,18 @@ void taskLedStrip(timeUs_t currentTimeUs)
 }
 #endif
 
-#ifdef USE_PWM_SERVO_DRIVER
-void taskSyncPwmDriver(timeUs_t currentTimeUs)
+void taskSyncServoDriver(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
 
-    if (feature(FEATURE_PWM_SERVO_DRIVER)) {
-        pwmDriverSync();
-    }
-}
+#if defined(USE_SERVO_SBUS)
+    sbusServoSendUpdate();
 #endif
+
+#ifdef USE_PWM_SERVO_DRIVER
+    pwmDriverSync();
+#endif
+}
 
 #ifdef USE_OSD
 void taskUpdateOsd(timeUs_t currentTimeUs)
@@ -269,12 +290,19 @@ void taskUpdateOsd(timeUs_t currentTimeUs)
 }
 #endif
 
+void taskUpdateAux(timeUs_t currentTimeUs)
+{
+    UNUSED(currentTimeUs);
+    updatePIDCoefficients();
+}
+
 void fcTasksInit(void)
 {
     schedulerInit();
 
     rescheduleTask(TASK_GYROPID, getLooptime());
     setTaskEnabled(TASK_GYROPID, true);
+    setTaskEnabled(TASK_AUX, true);
 
     setTaskEnabled(TASK_SERIAL, true);
 #ifdef BEEPER
@@ -317,8 +345,8 @@ void fcTasksInit(void)
 #ifdef STACK_CHECK
     setTaskEnabled(TASK_STACK_CHECK, true);
 #endif
-#ifdef USE_PWM_SERVO_DRIVER
-    setTaskEnabled(TASK_PWMDRIVER, feature(FEATURE_PWM_SERVO_DRIVER));
+#if defined(USE_PWM_SERVO_DRIVER) || defined(USE_SERVO_SBUS)
+    setTaskEnabled(TASK_PWMDRIVER, (servoConfig()->servo_protocol == SERVO_TYPE_SERVO_DRIVER) || (servoConfig()->servo_protocol == SERVO_TYPE_SBUS));
 #endif
 #ifdef USE_CMS
 #ifdef USE_MSP_DISPLAYPORT
@@ -341,11 +369,14 @@ void fcTasksInit(void)
 #ifdef USE_RCDEVICE
     setTaskEnabled(TASK_RCDEVICE, rcdeviceIsEnabled());
 #endif
-#ifdef USE_LOGIC_CONDITIONS
-    setTaskEnabled(TASK_LOGIC_CONDITIONS, true);
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    setTaskEnabled(TASK_PROGRAMMING_FRAMEWORK, true);
 #endif
-#ifdef USE_GLOBAL_FUNCTIONS
-    setTaskEnabled(TASK_GLOBAL_FUNCTIONS, true);
+#ifdef USE_IRLOCK
+    setTaskEnabled(TASK_IRLOCK, irlockHasBeenDetected());
+#endif
+#if defined(USE_SMARTPORT_MASTER)
+    setTaskEnabled(TASK_SMARTPORT_MASTER, true);
 #endif
 }
 
@@ -454,6 +485,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
+#ifdef USE_IRLOCK
+    [TASK_IRLOCK] = {
+        .taskName = "IRLOCK",
+        .taskFunc = taskUpdateIrlock,
+        .desiredPeriod = TASK_PERIOD_HZ(100),
+        .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
 #ifdef USE_DASHBOARD
     [TASK_DASHBOARD] = {
         .taskName = "DASHBOARD",
@@ -472,6 +512,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
+#if defined(USE_SMARTPORT_MASTER)
+    [TASK_SMARTPORT_MASTER] = {
+        .taskName = "SPORT MASTER",
+        .taskFunc = taskSmartportMaster,
+        .desiredPeriod = TASK_PERIOD_HZ(500),         // 500 Hz
+        .staticPriority = TASK_PRIORITY_IDLE,
+    },
+#endif
+
 #ifdef USE_LED_STRIP
     [TASK_LEDSTRIP] = {
         .taskName = "LEDSTRIP",
@@ -481,10 +530,10 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef USE_PWM_SERVO_DRIVER
+#if defined(USE_PWM_SERVO_DRIVER) || defined(USE_SERVO_SBUS)
     [TASK_PWMDRIVER] = {
-        .taskName = "PWMDRIVER",
-        .taskFunc = taskSyncPwmDriver,
+        .taskName = "SERVOS",
+        .taskFunc = taskSyncServoDriver,
         .desiredPeriod = TASK_PERIOD_HZ(200),         // 200 Hz
         .staticPriority = TASK_PRIORITY_HIGH,
     },
@@ -552,18 +601,10 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .staticPriority = TASK_PRIORITY_IDLE,
     },
 #endif
-#ifdef USE_LOGIC_CONDITIONS
-    [TASK_LOGIC_CONDITIONS] = {
-        .taskName = "LOGIC",
-        .taskFunc = logicConditionUpdateTask,
-        .desiredPeriod = TASK_PERIOD_HZ(10),          // 10Hz @100msec
-        .staticPriority = TASK_PRIORITY_IDLE,
-    },
-#endif
-#ifdef USE_GLOBAL_FUNCTIONS
-    [TASK_GLOBAL_FUNCTIONS] = {
-        .taskName = "G_FNK",
-        .taskFunc = globalFunctionsUpdateTask,
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    [TASK_PROGRAMMING_FRAMEWORK] = {
+        .taskName = "PROGRAMMING",
+        .taskFunc = programmingFrameworkUpdateTask,
         .desiredPeriod = TASK_PERIOD_HZ(10),          // 10Hz @100msec
         .staticPriority = TASK_PRIORITY_IDLE,
     },
@@ -576,4 +617,10 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .staticPriority = TASK_PRIORITY_LOW,
     },
 #endif
+    [TASK_AUX] = {
+        .taskName = "AUX",
+        .taskFunc = taskUpdateAux,
+        .desiredPeriod = TASK_PERIOD_HZ(TASK_AUX_RATE_HZ),          // 300Hz @3,33ms
+        .staticPriority = TASK_PRIORITY_HIGH,
+    },
 };

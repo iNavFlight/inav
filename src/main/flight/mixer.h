@@ -63,7 +63,7 @@ typedef struct motorMixer_s {
 PG_DECLARE_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer);
 
 typedef struct mixerConfig_s {
-    int8_t yaw_motor_direction;
+    int8_t motorDirectionInverted;
     uint8_t platformType;
     bool hasFlaps;
     int16_t appliedMixerPreset;
@@ -72,13 +72,13 @@ typedef struct mixerConfig_s {
 
 PG_DECLARE(mixerConfig_t, mixerConfig);
 
-typedef struct flight3DConfig_s {
-    uint16_t deadband3d_low;                // min 3d value
-    uint16_t deadband3d_high;               // max 3d value
-    uint16_t neutral3d;                     // center 3d value
-} flight3DConfig_t;
+typedef struct reversibleMotorsConfig_s {
+    uint16_t deadband_low;                // min 3d value
+    uint16_t deadband_high;               // max 3d value
+    uint16_t neutral;                     // center 3d value
+} reversibleMotorsConfig_t;
 
-PG_DECLARE(flight3DConfig_t, flight3DConfig);
+PG_DECLARE(reversibleMotorsConfig_t, reversibleMotorsConfig);
 
 typedef struct motorConfig_s {
     // PWM values, in milliseconds, common range is 1000-2000 (1ms to 2ms)
@@ -101,6 +101,12 @@ typedef enum {
     MOTOR_STOPPED_AUTO,
     MOTOR_RUNNING
 } motorStatus_e;
+
+typedef enum {
+    MOTOR_DIRECTION_FORWARD,
+    MOTOR_DIRECTION_BACKWARD,
+    MOTOR_DIRECTION_DEADBAND
+} reversibleMotorsThrottleState_e;
 
 extern int16_t motor[MAX_SUPPORTED_MOTORS];
 extern int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];

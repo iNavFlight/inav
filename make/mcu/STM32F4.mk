@@ -29,7 +29,6 @@ EXCLUDES        = stm32f4xx_crc.c \
                   stm32f4xx_cryp_aes.c \
                   stm32f4xx_hash_md5.c \
                   stm32f4xx_cryp_des.c \
-                  stm32f4xx_rtc.c \
                   stm32f4xx_hash.c \
                   stm32f4xx_dbgmcu.c \
                   stm32f4xx_cryp_tdes.c \
@@ -142,23 +141,23 @@ endif
 ARCH_FLAGS      = -mthumb -mcpu=cortex-m4 -march=armv7e-m -mfloat-abi=hard -mfpu=fpv4-sp-d16 -fsingle-precision-constant -Wdouble-promotion
 
 ifeq ($(TARGET),$(filter $(TARGET),$(F411_TARGETS)))
-DEVICE_FLAGS    = -DSTM32F411xE
-LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f411.ld
-STARTUP_SRC     = startup_stm32f411xe.s
+    DEVICE_FLAGS    := -DSTM32F411xE
+    LD_SCRIPT       := $(LINKER_DIR)/stm32_flash_F411.ld
+    STARTUP_SRC     := startup_stm32f411xe.s
 else ifeq ($(TARGET),$(filter $(TARGET),$(F405_TARGETS)))
-DEVICE_FLAGS    = -DSTM32F40_41xxx -DSTM32F405xx
-LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f405.ld
-STARTUP_SRC     = startup_stm32f40xx.s
+    DEVICE_FLAGS    := -DSTM32F40_41xxx -DSTM32F405xx
+    LD_SCRIPT       := $(LINKER_DIR)/stm32_flash_F405.ld
+    STARTUP_SRC     := startup_stm32f40xx.s
 else ifeq ($(TARGET),$(filter $(TARGET),$(F446_TARGETS)))
-DEVICE_FLAGS    = -DSTM32F446xx
-LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f446.ld
-STARTUP_SRC     = startup_stm32f446xx.s
+    DEVICE_FLAGS    := -DSTM32F446xx
+    LD_SCRIPT       := $(LINKER_DIR)/stm32_flash_F446.ld
+    STARTUP_SRC     := startup_stm32f446xx.s
 else ifeq ($(TARGET),$(filter $(TARGET),$(F427_TARGETS)))
-DEVICE_FLAGS    = -DSTM32F427_437xx
-LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f427.ld
-STARTUP_SRC     = startup_stm32f427xx.s
+    DEVICE_FLAGS    := -DSTM32F427_437xx
+    LD_SCRIPT       := $(LINKER_DIR)/stm32_flash_F427.ld
+    STARTUP_SRC     := startup_stm32f427xx.s
 else
-$(error Unknown MCU for F4 target)
+    $(error Unknown MCU for F4 target)
 endif
 
 DEVICE_FLAGS    += -DHSE_VALUE=$(HSE_VALUE)
@@ -170,6 +169,7 @@ MCU_COMMON_SRC = \
             drivers/adc_stm32f4xx.c \
             drivers/adc_stm32f4xx.c \
             drivers/bus_i2c_stm32f40x.c \
+            drivers/bus_spi.c \
             drivers/serial_softserial.c \
             drivers/serial_uart_stm32f4xx.c \
             drivers/system_stm32f4xx.c \

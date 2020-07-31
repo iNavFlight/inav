@@ -22,6 +22,8 @@
 
 #include "platform.h"
 
+FILE_COMPILE_FOR_SPEED
+
 #include "common/filter.h"
 #include "common/maths.h"
 #include "common/utils.h"
@@ -116,10 +118,9 @@ float rateLimitFilterApply4(rateLimitFilter_t *filter, float input, float rate_l
     return filter->state;
 }
 
-float filterGetNotchQ(uint16_t centerFreq, uint16_t cutoff)
+float filterGetNotchQ(float centerFrequencyHz, float cutoffFrequencyHz)
 {
-    const float octaves = log2f((float)centerFreq  / (float)cutoff) * 2;
-    return sqrtf(powf(2, octaves)) / (powf(2, octaves) - 1);
+    return centerFrequencyHz * cutoffFrequencyHz / (centerFrequencyHz * centerFrequencyHz - cutoffFrequencyHz * cutoffFrequencyHz);
 }
 
 void biquadFilterInitNotch(biquadFilter_t *filter, uint32_t samplingIntervalUs, uint16_t filterFreq, uint16_t cutoffHz)
@@ -230,40 +231,4 @@ FAST_CODE void biquadFilterUpdate(biquadFilter_t *filter, float filterFreq, uint
     filter->x2 = x2;
     filter->y1 = y1;
     filter->y2 = y2;
-}
-
-/*
- * FIR filter
- */
-void firFilterInit2(firFilter_t *filter, float *buf, uint8_t bufLength, const float *coeffs, uint8_t coeffsLength)
-{
-    filter->buf = buf;
-    filter->bufLength = bufLength;
-    filter->coeffs = coeffs;
-    filter->coeffsLength = coeffsLength;
-    memset(filter->buf, 0, sizeof(float) * filter->bufLength);
-}
-
-/*
- * FIR filter initialisation
- * If FIR filter is just used for averaging, coeffs can be set to NULL
- */
-void firFilterInit(firFilter_t *filter, float *buf, uint8_t bufLength, const float *coeffs)
-{
-    firFilterInit2(filter, buf, bufLength, coeffs, bufLength);
-}
-
-void firFilterUpdate(firFilter_t *filter, float input)
-{
-    memmove(&filter->buf[1], &filter->buf[0], (filter->bufLength-1) * sizeof(float));
-    filter->buf[0] = input;
-}
-
-float firFilterApply(const firFilter_t *filter)
-{
-    float ret = 0.0f;
-    for (int ii = 0; ii < filter->coeffsLength; ++ii) {
-        ret += filter->coeffs[ii] * filter->buf[ii];
-    }
-    return ret;
 }

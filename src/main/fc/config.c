@@ -163,31 +163,19 @@ __attribute__((weak)) void targetConfiguration(void)
 
 uint32_t getLooptime(void) {
     return gyro.targetLooptime;
-} 
+}
 
 void validateAndFixConfig(void)
 {
-    if (gyroConfig()->gyro_soft_notch_cutoff_1 >= gyroConfig()->gyro_soft_notch_hz_1) {
-        gyroConfigMutable()->gyro_soft_notch_hz_1 = 0;
-    }
-    if (gyroConfig()->gyro_soft_notch_cutoff_2 >= gyroConfig()->gyro_soft_notch_hz_2) {
-        gyroConfigMutable()->gyro_soft_notch_hz_2 = 0;
-    }
-    if (pidProfile()->dterm_soft_notch_cutoff >= pidProfile()->dterm_soft_notch_hz) {
-        pidProfileMutable()->dterm_soft_notch_hz = 0;
+    if (gyroConfig()->gyro_notch_cutoff >= gyroConfig()->gyro_notch_hz) {
+        gyroConfigMutable()->gyro_notch_hz = 0;
     }
     if (accelerometerConfig()->acc_notch_cutoff >= accelerometerConfig()->acc_notch_hz) {
         accelerometerConfigMutable()->acc_notch_hz = 0;
     }
 
     // Disable unused features
-    featureClear(FEATURE_UNUSED_3 | FEATURE_UNUSED_4 | FEATURE_UNUSED_5 | FEATURE_UNUSED_6 | FEATURE_UNUSED_7 | FEATURE_UNUSED_8 | FEATURE_UNUSED_9 | FEATURE_UNUSED_10);
-
-#if defined(DISABLE_RX_PWM_FEATURE) || !defined(USE_RX_PWM)
-    if (rxConfig()->receiverType == RX_TYPE_PWM) {
-        rxConfigMutable()->receiverType = RX_TYPE_NONE;
-    }
-#endif
+    featureClear(FEATURE_UNUSED_1 | FEATURE_UNUSED_3 | FEATURE_UNUSED_4 | FEATURE_UNUSED_5 | FEATURE_UNUSED_6 | FEATURE_UNUSED_7 | FEATURE_UNUSED_8 | FEATURE_UNUSED_9 | FEATURE_UNUSED_10);
 
 #if !defined(USE_RX_PPM)
     if (rxConfig()->receiverType == RX_TYPE_PPM) {
@@ -195,16 +183,6 @@ void validateAndFixConfig(void)
     }
 #endif
 
-
-    if (rxConfig()->receiverType == RX_TYPE_PWM) {
-#if defined(CHEBUZZ) || defined(STM32F3DISCOVERY)
-        // led strip needs the same ports
-        featureClear(FEATURE_LED_STRIP);
-#endif
-
-        // software serial needs free PWM ports
-        featureClear(FEATURE_SOFTSERIAL);
-    }
 
 #if defined(USE_LED_STRIP) && (defined(USE_SOFTSERIAL1) || defined(USE_SOFTSERIAL2))
     if (featureConfigured(FEATURE_SOFTSERIAL) && featureConfigured(FEATURE_LED_STRIP)) {
@@ -233,7 +211,15 @@ void validateAndFixConfig(void)
 #endif
 
 #ifndef USE_PWM_SERVO_DRIVER
-    featureClear(FEATURE_PWM_SERVO_DRIVER);
+    if (servoConfig()->servo_protocol == SERVO_TYPE_SERVO_DRIVER) {
+        servoConfigMutable()->servo_protocol = SERVO_TYPE_PWM;
+    }
+#endif
+
+#ifndef USE_SERVO_SBUS
+    if (servoConfig()->servo_protocol == SERVO_TYPE_SBUS) {
+        servoConfigMutable()->servo_protocol = SERVO_TYPE_PWM;
+    }
 #endif
 
     if (!isSerialConfigValid(serialConfigMutable())) {
