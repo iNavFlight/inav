@@ -3003,6 +3003,16 @@ static void osdShowArmed(void)
             olc_encode(GPS_home.lat, GPS_home.lon, digits, buf, sizeof(buf));
             displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y + 2, buf);
             y += 4;
+#if defined (USE_SAFE_HOME)
+            if (isSafeHomeInUse()) {
+                textAttributes_t elemAttr = _TEXT_ATTRIBUTES_BLINK_BIT;
+                char buf2[12]; // format the distance first
+                osdFormatDistanceStr(buf2, safehome_distance);
+                tfp_sprintf(buf, "%c - %s -> SAFEHOME %u", SYM_HOME, buf2, safehome_used);
+                // write this message above the ARMED message to make it obvious
+                displayWriteWithAttr(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y - 8, buf, elemAttr);
+            }
+#endif
         } else {
             strcpy(buf, "!NO HOME POSITION!");
             displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y, buf);
@@ -3062,7 +3072,12 @@ static void osdRefresh(timeUs_t currentTimeUs)
         if (ARMING_FLAG(ARMED)) {
             osdResetStats();
             osdShowArmed(); // reset statistic etc
-            osdSetNextRefreshIn(ARMED_SCREEN_DISPLAY_TIME);
+            uint32_t delay = ARMED_SCREEN_DISPLAY_TIME;
+#if defined(USE_SAFE_HOME)
+            if (isSafeHomeInUse())
+                delay *= 3;
+#endif
+            osdSetNextRefreshIn(delay);
         } else {
             osdShowStats(); // show statistic
             osdSetNextRefreshIn(STATS_SCREEN_DISPLAY_TIME);

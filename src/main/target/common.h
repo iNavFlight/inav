@@ -129,6 +129,7 @@
 
 #if (FLASH_SIZE > 128)
 #define NAV_FIXED_WING_LANDING
+#define USE_SAFE_HOME
 #define USE_AUTOTUNE_FIXED_WING
 #define USE_LOG
 #define USE_STATS

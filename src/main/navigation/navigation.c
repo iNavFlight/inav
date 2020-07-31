@@ -18,7 +18,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <math.h>
-
+#include <string.h>
 
 #include "platform.h"
 
@@ -74,6 +74,13 @@ uint32_t      GPS_distanceToHome;        // distance to home point in meters
 int16_t       GPS_directionToHome;       // direction to home point in degrees
 
 radar_pois_t radar_pois[RADAR_MAX_POIS];
+#if defined(USE_SAFE_HOME)
+int8_t safehome_used;                     // -1 if no safehome, 0 to MAX_SAFEHOMES -1 otherwise
+uint32_t safehome_distance;               // distance to the selected safehome
+
+PG_REGISTER_ARRAY(navSafeHome_t, MAX_SAFE_HOMES, safeHomeConfig, PG_SAFE_HOME_CONFIG , 0);
+
+#endif
 
 #if defined(USE_NAV)
 #if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE)
@@ -115,8 +122,6 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .rth_home_altitude = 0,                 // altitude in centimeters
         .rth_abort_threshold = 50000,           // centimeters - 500m should be safe for all aircraft
         .max_terrain_follow_altitude = 100,     // max altitude in centimeters in terrain following mode
-        .rth_home_offset_distance = 0,          // Distance offset from GPS established home to "safe" position used for RTH (cm, 0 disables)
-        .rth_home_offset_direction = 0,         // Direction offset from GPS established home to "safe" position used for RTH (degrees, 0=N, 90=E, 180=S, 270=W, requires non-zero offset distance)
         },
 
     // MC-specific
@@ -2403,6 +2408,42 @@ static navigationHomeFlags_t navigationActualStateHomeValidity(void)
     return flags;
 }
 
+#if defined(USE_SAFE_HOME)
+
+/*******************************************************
+ * Is a safehome being used instead of the arming point?
+ *******************************************************/
+bool isSafeHomeInUse(void) 
+{
+    return (safehome_used > -1 && safehome_used < MAX_SAFE_HOMES);
+}
+
+/***********************************************************
+ *  See if there are any safehomes near where we are arming.
+ *  If so, use it instead of the arming point for home.
+ **********************************************************/
+bool foundNearbySafeHome(void)
+{
+    safehome_used = -1; 
+    fpVector3_t safeHome;
+    gpsLocation_t shLLH;
+    shLLH.alt = 0;
+    for (uint8_t i = 0; i < MAX_SAFE_HOMES; i++) {
+        shLLH.lat = safeHomeConfig(i)->lat;
+        shLLH.lon = safeHomeConfig(i)->lon;
+        geoConvertGeodeticToLocal(&safeHome, &posControl.gpsOrigin, &shLLH, GEO_ALT_RELATIVE);
+        safehome_distance = calculateDistanceToDestination(&safeHome); 
+        if (safehome_distance < 20000) { // 200 m
+             safehome_used = i;
+             setHomePosition(&safeHome, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
+             return true;
+        }
+    }
+    safehome_distance = 0;
+    return false;
+}
+#endif
+
 /*-----------------------------------------------------------
  * Update home position, calculate distance and bearing to home
  *-----------------------------------------------------------*/
@@ -2424,15 +2465,10 @@ void updateHomePosition(void)
                     break;
             }
             if (setHome) {
-                if (navConfig()->general.rth_home_offset_distance != 0) { // apply user defined offset
-                    fpVector3_t offsetHome;
-                    offsetHome.x = posControl.actualState.abs.pos.x + navConfig()->general.rth_home_offset_distance * cos_approx(DEGREES_TO_RADIANS(navConfig()->general.rth_home_offset_direction));
-                    offsetHome.y = posControl.actualState.abs.pos.y + navConfig()->general.rth_home_offset_distance * sin_approx(DEGREES_TO_RADIANS(navConfig()->general.rth_home_offset_direction));
-                    offsetHome.z = posControl.actualState.abs.pos.z;
-                    setHomePosition(&offsetHome, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
-                } else {
+#if defined(USE_SAFE_HOME)
+                if (!foundNearbySafeHome())
+#endif
                     setHomePosition(&posControl.actualState.abs.pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
-                }
             }
         }
     }
@@ -2877,6 +2913,14 @@ bool saveNonVolatileWaypointList(void)
     saveConfigAndNotify();
 
     return true;
+}
+#endif
+
+#if defined(USE_SAFE_HOME)
+
+void resetSafeHomes(void) 
+{
+    memset(safeHomeConfigMutable(0), 0, sizeof(navSafeHome_t) * MAX_SAFE_HOMES);
 }
 #endif
 
