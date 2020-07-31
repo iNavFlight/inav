@@ -26,7 +26,7 @@
 
 #include "config/parameter_group.h"
 
-#define MAX_GLOBAL_VARIABLES 4
+#define MAX_GLOBAL_VARIABLES 8
 
 typedef struct globalVariableConfig_s {
     int32_t min;
