@@ -152,7 +152,15 @@ typedef enum {
     OSD_VTX_POWER,
     OSD_ESC_RPM,
     OSD_ESC_TEMPERATURE,
+<<<<<<< HEAD
     OSD_AZIMUTH,
+=======
+    OSD_RX_RSSI_DBM,
+    OSD_RX_LQ,
+    OSD_RX_SNR_DB,
+    OSD_TX_MODE,
+    OSD_TX_POWER,
+>>>>>>> b8920077b... Atomiclama and my mods
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -220,6 +228,9 @@ typedef struct osdConfig_s {
     float gforce_alarm;
     float gforce_axis_alarm_min;
     float gforce_axis_alarm_max;
+#ifdef USE_SERIALRX_CRSF
+    int16_t snr_alarm; //CRSF SNR alarm in dB
+#endif
 #ifdef USE_BARO
     int16_t baro_temp_alarm_min;
     int16_t baro_temp_alarm_max;
@@ -249,7 +260,7 @@ typedef struct osdConfig_s {
     uint16_t hud_radar_range_max;
     uint16_t hud_radar_nearest;
     uint8_t hud_wp_disp;
-    
+
     uint8_t left_sidebar_scroll; // from osd_sidebar_scroll_e
     uint8_t right_sidebar_scroll; // from osd_sidebar_scroll_e
     uint8_t sidebar_scroll_arrows;

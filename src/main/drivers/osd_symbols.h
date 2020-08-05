@@ -240,6 +240,12 @@
 #define SYM_HUD_ARROWS_D2         0x1AC // 428 2 arrows down
 #define SYM_HUD_ARROWS_D3         0x1AD // 429 3 arrows down
 
+#define SYM_2RSS                  0xEA  // RSSI 2
+#define SYM_DB                    0xEB  // dB
+#define SYM_DBM                   0xEC  // dBm
+#define SYM_SRN                   0xEE  // SNR
+#define SYM_MW                    0xED  // mW
+
 #else
 
 #define TEMP_SENSOR_SYM_COUNT 0
