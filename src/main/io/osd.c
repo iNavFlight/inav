@@ -1270,7 +1270,7 @@ static bool osdDrawSingleElement(uint8_t item)
     uint8_t elemPosX = OSD_X(pos);
     uint8_t elemPosY = OSD_Y(pos);
     textAttributes_t elemAttr = TEXT_ATTRIBUTES_NONE;
-    char buff[32];
+    char buff[32] = {0};
 
     switch (item) {
     case OSD_RSSI_VALUE:
@@ -1703,6 +1703,63 @@ static bool osdDrawSingleElement(uint8_t item)
             displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
             return true;
         }
+
+        case OSD_RX_RSSI_DBM:
+                if (rxLinkStatistics.activeAnt == 0) {
+                  buff[0] = SYM_RSSI;
+                  tfp_sprintf(buff + 1, "%4d%c", rxLinkStatistics.uplinkRSSI, SYM_DBM);
+                  if (FLIGHT_MODE(FAILSAFE_MODE)){
+                      TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+                  }
+                } else {
+                  buff[0] = SYM_2RSS;
+                  tfp_sprintf(buff + 1, "%4d%c", rxLinkStatistics.uplinkRSSI, SYM_DBM);
+                  if (FLIGHT_MODE(FAILSAFE_MODE)){
+                      TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+                  }
+                }
+                break;
+
+    case OSD_RX_LQ:
+        buff[0] = SYM_BLANK;
+        tfp_sprintf(buff + 1, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
+        break;
+
+    case OSD_RX_SNR_DB: {
+        const char* strn = "     ";
+        int16_t osdSNR_Alarm = rxLinkStatistics.uplinkSNR;
+        if (osdSNR_Alarm <= osdConfig()->snr_alarm) {
+          buff[0] = SYM_SRN;
+          tfp_sprintf(buff + 1, "%3d%c", rxLinkStatistics.uplinkSNR, SYM_DB);
+        }
+        else if (osdSNR_Alarm > osdConfig()->snr_alarm) {
+          buff[0] = SYM_BLANK;
+          tfp_sprintf(buff + 1, "%s", strn);
+        }
+        break;
+      }
+
+    case OSD_TX_MODE: { // This is not really needed but... LOW=4Hz, HIGH=150Hz, NORM=50Hz RFMode
+        const char* str;
+        switch (rxLinkStatistics.rfMode) {
+            case 0:
+                str = "LOW";
+                break;
+            case 2:
+                str = "HIGH";
+                break;
+            default:
+                str = "NORM";
+                break;
+        }
+        tfp_sprintf(buff, str);
+        break;
+    }
+
+    case OSD_TX_POWER: {
+        tfp_sprintf(buff, "%4d%c", rxLinkStatistics.uplinkTXPower, SYM_MW);
+        break;
+    }
 
     case OSD_CROSSHAIRS: // Hud is a sub-element of the crosshair
 
@@ -2627,6 +2684,14 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_CRAFT_NAME] = OSD_POS(20, 2);
     osdConfig->item_pos[0][OSD_VTX_CHANNEL] = OSD_POS(8, 6);
 
+#ifdef USE_SERIALRX_CRSF
+    osdConfig->item_pos[0][OSD_RX_RSSI_DBM] = OSD_POS(23, 12);
+    osdConfig->item_pos[0][OSD_RX_LQ] = OSD_POS(22, 11);
+    osdConfig->item_pos[0][OSD_RX_SNR_DB] = OSD_POS(24, 9);
+    osdConfig->item_pos[0][OSD_TX_MODE] = OSD_POS(25, 0);
+    osdConfig->item_pos[0][OSD_TX_POWER] = OSD_POS(24, 10);
+#endif
+
     osdConfig->item_pos[0][OSD_ONTIME] = OSD_POS(23, 8);
     osdConfig->item_pos[0][OSD_FLYTIME] = OSD_POS(23, 9);
     osdConfig->item_pos[0][OSD_ONTIME_FLYTIME] = OSD_POS(23, 11) | OSD_VISIBLE_FLAG;
@@ -2731,6 +2796,9 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->gforce_alarm = 5;
     osdConfig->gforce_axis_alarm_min = -5;
     osdConfig->gforce_axis_alarm_max = 5;
+#ifdef USE_SERIALRX_CRSF
+    osdConfig->snr_alarm = 8;
+#endif
 #ifdef USE_BARO
     osdConfig->baro_temp_alarm_min = -200;
     osdConfig->baro_temp_alarm_max = 600;
