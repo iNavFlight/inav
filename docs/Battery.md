@@ -304,6 +304,7 @@ To use this feature the following conditions need to be met:
 - The average power draw at zero throttle needs to be specified (`idle_power` setting in 0.01W unit)
 - The average power draw at cruise throttle needs to be specified (`cruise_power` setting in 0.01W unit)
 - The battery needs to be full when plugged in (voltage >= (`vbat_max_cell_voltage` - 100mV) * cells)
+- Nav Launch Mode used
 
 It is advised to set `nav_fw_cruise_speed` a bit lower than the real speed and `cruise_power` 10% higher than the power at cruise throttle to ensure variations in throttle during cruise won't cause the aircraft to draw more energy than estimated.
 
