@@ -79,7 +79,7 @@
 #define MPU6500_EXTI_PIN        PE8
 #define MPU6500_SPI_BUS         BUS_SPI3
 #define MPU6500_CS_PIN          SPI3_NSS_PIN
-#define IMU_MPU6500_ALIGN       CW270_DEG_FLIP // XXX check
+#define IMU_MPU6500_ALIGN       CW0_DEG_FLIP
 
 //#elif defined(USE_BOX_IMU)
 #define MPU6000_EXTI_PIN        NONE
