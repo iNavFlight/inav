@@ -21,8 +21,8 @@
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 #define USE_TARGET_CONFIG
 
-#define TARGET_BOARD_IDENTIFIER "R9P"
-#define USBD_PRODUCT_STRING     "R9PILOT"
+#define TARGET_BOARD_IDENTIFIER "FRP"
+#define USBD_PRODUCT_STRING     "FrSkyPilot"
 
 #define LED0                    PA3
 #define LED1                    PC5
