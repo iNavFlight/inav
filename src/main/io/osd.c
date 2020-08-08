@@ -1739,7 +1739,7 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
       }
 
-    case OSD_TX_MODE: { // This is not really needed but... LOW=4Hz, HIGH=150Hz, NORM=50Hz RFMode
+    case OSD_RF_MODE: { // This is not really needed but... LOW=4Hz, HIGH=150Hz, NORM=50Hz RFMode
         const char* str;
         switch (rxLinkStatistics.rfMode) {
             case 0:
@@ -2688,7 +2688,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_RX_RSSI_DBM] = OSD_POS(23, 12);
     osdConfig->item_pos[0][OSD_RX_LQ] = OSD_POS(22, 11);
     osdConfig->item_pos[0][OSD_RX_SNR_DB] = OSD_POS(24, 9);
-    osdConfig->item_pos[0][OSD_TX_MODE] = OSD_POS(25, 0);
+    osdConfig->item_pos[0][OSD_RF_MODE] = OSD_POS(25, 0);
     osdConfig->item_pos[0][OSD_TX_POWER] = OSD_POS(24, 10);
 #endif
 
