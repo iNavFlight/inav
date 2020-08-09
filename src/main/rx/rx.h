@@ -176,11 +176,10 @@ typedef enum {
 } rssiSource_e;
 
 typedef struct rxLinkStatistics_s {
-    int16_t     uplinkRSSI;     // RSSI value dBm of 1RSS
-    int16_t     uplinkRSS2;     // RSSI value dBm of 2RSS
+    int16_t     uplinkRSSI;     // RSSI value in dBm
     uint8_t     uplinkLQ;       // A protocol specific measure of the link quality in [0..100]
     int8_t      uplinkSNR;      // The SNR of the uplink in dB
-    uint8_t     rfMode;         // A protocol specific measure of the transmission bandwidth in [0..2]
+    uint8_t     rfMode;         // A protocol specific measure of the transmission bandwidth [2 = 150Hz, 1 = 50Hz, 0 = 4Hz]
     uint16_t    uplinkTXPower;  // power in mW
     uint8_t     activeAnt;
 } rxLinkStatistics_t;
