@@ -1,1 +1,1 @@
-target_stm32f303(FRSKYF3)
+target_stm32f303xc(FRSKYF3)

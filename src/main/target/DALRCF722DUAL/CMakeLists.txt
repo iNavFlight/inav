@@ -1,1 +1,1 @@
-target_stm32f722(DALRCF722DUAL)
+target_stm32f722xe(DALRCF722DUAL)

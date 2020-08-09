@@ -39,23 +39,32 @@ macro(glob_except) # var-name pattern excludes-var
     exclude_basenames(${ARGV0} ${ARGV2})
 endmacro()
 
-function(setup_firmware_target name)
-    target_compile_options(${name} PRIVATE ${MAIN_COMPILE_OPTIONS})
-    target_include_directories(${name} PRIVATE ${MAIN_INCLUDE_DIRS})
-    target_compile_definitions(${name} PRIVATE ${MAIN_DEFINITIONS} __TARGET__="${name}" ${name})
-    enable_settings(${name})
+function(get_generated_files_dir output target_name)
+    set(${output} ${CMAKE_CURRENT_BINARY_DIR}/${target_name} PARENT_SCOPE)
+endfunction()
+
+function(setup_executable exe name)
+    get_generated_files_dir(generated_dir ${name})
+    target_compile_options(${exe} PRIVATE ${MAIN_COMPILE_OPTIONS})
+    target_include_directories(${exe} PRIVATE ${generated_dir} ${MAIN_INCLUDE_DIRS})
+    target_compile_definitions(${exe} PRIVATE ${MAIN_DEFINITIONS} __TARGET__="${name}" ${name})
     # XXX: Don't make SETTINGS_GENERATED_C part of the build,
     # since it's compiled via #include in settings.c. This will
     # change once we move off PGs
-    target_sources(${name} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/${name}/${SETTINGS_GENERATED_H}")
-    set_target_properties(${name} PROPERTIES
+    target_sources(${exe} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/${name}/${SETTINGS_GENERATED_H}")
+    set_target_properties(${exe} PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     )
+endfunction()
+
+function(setup_firmware_target exe name)
+    setup_executable(${exe} ${name})
+    enable_settings(${exe} ${name})
     get_property(targets GLOBAL PROPERTY VALID_TARGETS)
     list(APPEND targets ${name})
     set_property(GLOBAL PROPERTY VALID_TARGETS "${targets}")
-    setup_openocd(${name})
-    setup_svd(${name})
+    setup_openocd(${exe} ${name})
+    setup_svd(${exe} ${name})
 endfunction()
 
 function(exclude_from_all target)

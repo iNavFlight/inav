@@ -1,1 +1,1 @@
-target_stm32f405(MAMBAF405US)
+target_stm32f405xg(MAMBAF405US)

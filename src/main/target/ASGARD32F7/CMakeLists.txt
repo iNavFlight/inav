@@ -1,1 +1,1 @@
-target_stm32f722(ASGARD32F7)
+target_stm32f722xe(ASGARD32F7)

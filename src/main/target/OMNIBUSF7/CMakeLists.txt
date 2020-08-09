@@ -1,2 +1,2 @@
-target_stm32f745(OMNIBUSF7)
-target_stm32f745(OMNIBUSF7V2)
+target_stm32f745xg(OMNIBUSF7)
+target_stm32f745xg(OMNIBUSF7V2)

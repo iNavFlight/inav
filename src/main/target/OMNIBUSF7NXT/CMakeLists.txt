@@ -1,1 +1,1 @@
-target_stm32f722(OMNIBUSF7NXT)
+target_stm32f722xe(OMNIBUSF7NXT)

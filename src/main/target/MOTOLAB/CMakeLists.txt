@@ -1,1 +1,1 @@
-target_stm32f303(MOTOLAB)
+target_stm32f303xc(MOTOLAB)

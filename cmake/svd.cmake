@@ -1,5 +1,5 @@
-function(setup_svd target_name)
-    get_property(svd_name TARGET ${target_name} PROPERTY SVD)
+function(setup_svd target_exe target_name)
+    get_property(svd_name TARGET ${target_exe} PROPERTY SVD)
     set(svd_target_name "svd_${target_name}")
     if (svd_name AND NOT svd_name STREQUAL "")
         add_custom_target(${svd_target_name}

@@ -1,1 +1,1 @@
-target_stm32f405(DALRCF405)
+target_stm32f405xg(DALRCF405)

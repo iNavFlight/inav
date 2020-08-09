@@ -1,1 +1,1 @@
-target_stm32f405(FF_FORTINIF4)
+target_stm32f405xg(FF_FORTINIF4)

@@ -1,2 +1,2 @@
-target_stm32f303(FURYF3)
-target_stm32f303(FURYF3_SPIFLASH)
+target_stm32f303xc(FURYF3)
+target_stm32f303xc(FURYF3_SPIFLASH)

@@ -1,1 +1,1 @@
-target_stm32f722(ZEEZF7)
+target_stm32f722xe(ZEEZF7)

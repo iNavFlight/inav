@@ -1,1 +1,1 @@
-target_stm32f722(MAMBAF722)
+target_stm32f722xe(MAMBAF722)

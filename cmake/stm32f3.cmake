@@ -52,35 +52,41 @@ set(STM32F3_DEFINITIONS
     USE_STDPERIPH_DRIVER
 )
 
-set(STM32F303_DEFINITIONS
+set(STM32F303CC_DEFINITIONS
     STM32F303
     STM32F303xC
     FLASH_SIZE=256
 )
 
-function(target_stm32f3xx name startup ldscript)
-    # F3 targets don't support MSC
-    target_stm32(${name} ${startup} ${ldscript} DISABLE_MSC OPENOCD_TARGET stm32f3x ${ARGN})
-    # F3 targets don't use -O2 to save size
-    if (IS_RELEASE_BUILD)
-        target_compile_options(${name} PRIVATE "-Os")
-        target_link_options(${name} PRIVATE "-Os")
-    endif()
-    target_sources(${name} PRIVATE ${STM32_STDPERIPH_SRC} ${STM32F3_STDPERIPH_SRC} ${STM32F3_SRC})
-    target_compile_options(${name} PRIVATE ${CORTEX_M4F_COMMON_OPTIONS} ${CORTEX_M4F_COMPILE_OPTIONS})
-    target_include_directories(${name} PRIVATE ${STM32F3_INCLUDE_DIRS})
-    target_compile_definitions(${name} PRIVATE ${STM32F3_DEFINITIONS})
-    target_link_options(${name} PRIVATE ${CORTEX_M4F_COMMON_OPTIONS} ${CORTEX_M4F_LINK_OPTIONS})
+function(target_stm32f3xx)
+    # F3 targets don't support MSC and use -Os instead of -O2 to save size
+    target_stm32(
+        SOURCES ${STM32_STDPERIPH_SRC} ${STM32F3_STDPERIPH_SRC} ${STM32F3_SRC}
+        COMPILE_DEFINITIONS ${STM32F3_DEFINITIONS}
+        COMPILE_OPTIONS ${CORTEX_M4F_COMMON_OPTIONS} ${CORTEX_M4F_COMPILE_OPTIONS}
+        INCLUDE_DIRECTORIES ${STM32F3_INCLUDE_DIRS}
+        LINK_OPTIONS ${CORTEX_M4F_COMMON_OPTIONS} ${CORTEX_M4F_LINK_OPTIONS}
 
-    get_property(features TARGET ${name} PROPERTY FEATURES)
-    if(VCP IN_LIST features)
-        target_include_directories(${name} PRIVATE ${STM32F3_USB_INCLUDE_DIRS})
-        target_sources(${name} PRIVATE ${STM32F3_USB_SRC} ${STM32F3_VCP_SRC})
-    endif()
+        VCP_SOURCES ${STM32F3_USB_SRC} ${STM32F3_VCP_SRC}
+        VCP_INCLUDE_DIRECTORIES ${STM32F3_USB_INCLUDE_DIRS}
+
+        DISABLE_MSC
+
+        OPTIMIZATION -Os
+
+        OPENOCD_TARGET stm32f3x
+
+        ${ARGN}
+    )
 endfunction()
 
-function(target_stm32f303 name)
-    target_stm32f3xx(${name} startup_stm32f30x_md_gcc.S stm32_flash_f303_256k.ld SVD STM32F303 ${ARGN})
-    target_compile_definitions(${name} PRIVATE ${STM32F303_DEFINITIONS})
-    setup_firmware_target(${name})
+function(target_stm32f303xc name)
+    target_stm32f3xx(
+        NAME ${name}
+        STARTUP startup_stm32f30x_md_gcc.S
+        COMPILE_DEFINITIONS ${STM32F303CC_DEFINITIONS}
+        LINKER_SCRIPT stm32_flash_f303xc
+        SVD STM32F303
+        ${ARGN}
+    )
 endfunction()

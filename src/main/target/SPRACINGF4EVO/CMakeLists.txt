@@ -1,1 +1,1 @@
-target_stm32f405(SPRACINGF4EVO)
+target_stm32f405xg(SPRACINGF4EVO)

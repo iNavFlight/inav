@@ -82,42 +82,50 @@ set(STM32F7_DEFINITIONS
     USE_FULL_LL_DRIVER
 )
 
-function(target_stm32f7xx name startup ldscript)
-    target_stm32(${name} ${startup} ${ldscript} OPENOCD_TARGET stm32f7x ${ARGN})
-    if (IS_RELEASE_BUILD)
-        target_compile_options(${name} PRIVATE "-O2")
-        target_link_options(${name} PRIVATE "-O2")
-    endif()
-    target_sources(${name} PRIVATE ${STM32F7_HAL_SRC} ${STM32F7_SRC})
-    target_compile_options(${name} PRIVATE ${CORTEX_M7_COMMON_OPTIONS} ${CORTEX_M7_COMPILE_OPTIONS})
-    target_include_directories(${name} PRIVATE ${STM32F7_INCLUDE_DIRS})
-    target_compile_definitions(${name} PRIVATE ${STM32F7_DEFINITIONS})
-    target_link_options(${name} PRIVATE ${CORTEX_M7_COMMON_OPTIONS} ${CORTEX_M7_LINK_OPTIONS})
+function(target_stm32f7xx)
+    target_stm32(
+        SOURCES ${STM32F7_HAL_SRC} ${STM32F7_SRC}
+        COMPILE_DEFINITIONS ${STM32F7_DEFINITIONS}
+        COMPILE_OPTIONS ${CORTEX_M7_COMMON_OPTIONS} ${CORTEX_M7_COMPILE_OPTIONS}
+        INCLUDE_DIRECTORIES ${STM32F7_INCLUDE_DIRS}
+        LINK_OPTIONS ${CORTEX_M7_COMMON_OPTIONS} ${CORTEX_M7_LINK_OPTIONS}
 
-    get_property(features TARGET ${name} PROPERTY FEATURES)
-    if(VCP IN_LIST features)
-        target_include_directories(${name} PRIVATE ${STM32F7_USB_INCLUDE_DIRS} ${STM32F7_VCP_DIR})
-        target_sources(${name} PRIVATE ${STM32F7_USB_SRC} ${STM32F7_VCP_SRC})
-    endif()
-    if(MSC IN_LIST features)
-        target_sources(${name} PRIVATE ${STM32F7_USBMSC_SRC} ${STM32F7_MSC_SRC})
-    endif()
+        MSC_SOURCES ${STM32F7_USBMSC_SRC} ${STM32F7_MSC_SRC}
+        VCP_SOURCES ${STM32F7_USB_SRC} ${STM32F7_VCP_SRC}
+        VCP_INCLUDE_DIRECTORIES ${STM32F7_USB_INCLUDE_DIRS} ${STM32F7_VCP_DIR}
+
+        OPTIMIZATION -O2
+
+        OPENOCD_TARGET stm32f7x
+
+        BOOTLOADER
+
+        ${ARGN}
+    )
 endfunction()
 
-macro(define_target_stm32f7 suffix flash_size)
-    function(target_stm32f7${suffix} name)
-        target_stm32f7xx(${name} startup_stm32f7${suffix}xx.s stm32_flash_f7${suffix}.ld ${ARGN})
+macro(define_target_stm32f7 subfamily size)
+    function(target_stm32f7${subfamily}x${size} name)
+        string(TOUPPER ${size} upper_size)
+        get_stm32_flash_size(flash_size ${size})
         set(definitions
             STM32F7
-            STM32F7${suffix}xx
+            STM32F7${subfamily}xx
+            STM32F7${subfamily}x${upper_size}
             FLASH_SIZE=${flash_size}
         )
-        target_compile_definitions(${name} PRIVATE ${definitions})
-        setup_firmware_target(${name})
+        target_stm32f7xx(
+            NAME ${name}
+            STARTUP startup_stm32f7${subfamily}xx.s
+            COMPILE_DEFINITIONS ${definitions}
+            LINKER_SCRIPT stm32_flash_f7${subfamily}x${size}
+            ${ARGN}
+        )
     endfunction()
 endmacro()
 
-define_target_stm32f7("22" 512)
-define_target_stm32f7("45" 2048)
-define_target_stm32f7("46" 2048)
-define_target_stm32f7("65" 2048)
+define_target_stm32f7(22 e)
+define_target_stm32f7(45 g)
+define_target_stm32f7(46 g)
+define_target_stm32f7(65 g)
+define_target_stm32f7(65 i)

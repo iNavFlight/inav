@@ -1,1 +1,1 @@
-target_stm32f405(MATEKF405SE)
+target_stm32f405xg(MATEKF405SE)

@@ -1,1 +1,1 @@
-target_stm32f405(FOXEERF405)
+target_stm32f405xg(FOXEERF405)

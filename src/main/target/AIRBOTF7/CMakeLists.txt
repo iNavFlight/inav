@@ -1,2 +1,2 @@
-target_stm32f722(AIRBOTF7)
-target_stm32f722(OMNIBUSF7NANOV7)
+target_stm32f722xe(AIRBOTF7)
+target_stm32f722xe(OMNIBUSF7NANOV7)

@@ -1,1 +1,1 @@
-target_stm32f303(RCEXPLORERF3)
+target_stm32f303xc(RCEXPLORERF3)

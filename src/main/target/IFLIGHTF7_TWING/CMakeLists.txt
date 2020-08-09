@@ -1,1 +1,1 @@
-target_stm32f722(IFLIGHTF7_TWING)
+target_stm32f722xe(IFLIGHTF7_TWING)

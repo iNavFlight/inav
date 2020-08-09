@@ -1,1 +1,1 @@
-target_stm32f303(LUX_RACE)
+target_stm32f303xc(LUX_RACE)

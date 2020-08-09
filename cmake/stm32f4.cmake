@@ -75,26 +75,24 @@ set(STM32F4_DEFINITIONS
     USE_STDPERIPH_DRIVER
 )
 
-function(target_stm32f4xx name startup ldscript)
-    target_stm32(${name} ${startup} ${ldscript} OPENOCD_TARGET stm32f4x ${ARGN})
-    if (IS_RELEASE_BUILD)
-        target_compile_options(${name} PRIVATE "-O2")
-        target_link_options(${name} PRIVATE "-O2")
-    endif()
-    target_sources(${name} PRIVATE ${STM32_STDPERIPH_SRC} ${STM32F4_SRC})
-    target_compile_options(${name} PRIVATE ${CORTEX_M4F_COMMON_OPTIONS} ${CORTEX_M4F_COMPILE_OPTIONS})
-    target_include_directories(${name} PRIVATE ${STM32F4_INCLUDE_DIRS})
-    target_compile_definitions(${name} PRIVATE ${STM32F4_DEFINITIONS})
-    target_link_options(${name} PRIVATE ${CORTEX_M4F_COMMON_OPTIONS} ${CORTEX_M4F_LINK_OPTIONS})
+function(target_stm32f4xx)
+    target_stm32(
+        SOURCES ${STM32_STDPERIPH_SRC} ${STM32F4_SRC}
+        COMPILE_DEFINITIONS ${STM32F4_DEFINITIONS}
+        COMPILE_OPTIONS ${CORTEX_M4F_COMMON_OPTIONS} ${CORTEX_M4F_COMPILE_OPTIONS}
+        INCLUDE_DIRECTORIES ${STM32F4_INCLUDE_DIRS}
+        LINK_OPTIONS ${CORTEX_M4F_COMMON_OPTIONS} ${CORTEX_M4F_LINK_OPTIONS}
 
-    get_property(features TARGET ${name} PROPERTY FEATURES)
-    if(VCP IN_LIST features)
-        target_include_directories(${name} PRIVATE ${STM32F4_USB_INCLUDE_DIRS})
-        target_sources(${name} PRIVATE ${STM32F4_USB_SRC} ${STM32F4_VCP_SRC})
-    endif()
-    if(MSC IN_LIST features)
-        target_sources(${name} PRIVATE ${STM32F4_USBMSC_SRC} ${STM32F4_MSC_SRC})
-    endif()
+        MSC_SOURCES ${STM32F4_USBMSC_SRC} ${STM32F4_MSC_SRC}
+        VCP_SOURCES ${STM32F4_USB_SRC} ${STM32F4_VCP_SRC}
+        VCP_INCLUDE_DIRECTORIES ${STM32F4_USB_INCLUDE_DIRS}
+
+        OPTIMIZATION -O2
+
+        OPENOCD_TARGET stm32f4x
+
+        ${ARGN}
+    )
 endfunction()
 
 set(STM32F405_COMPILE_DEFINITIONS
@@ -103,11 +101,17 @@ set(STM32F405_COMPILE_DEFINITIONS
     FLASH_SIZE=1024
 )
 
-function(target_stm32f405 name)
-    target_stm32f4xx(${name} startup_stm32f40xx.s stm32_flash_f405.ld SVD STM32F405 ${ARGN})
-    target_sources(${name} PRIVATE ${STM32F4_STDPERIPH_SRC})
-    target_compile_definitions(${name} PRIVATE ${STM32F405_COMPILE_DEFINITIONS})
-    setup_firmware_target(${name})
+function(target_stm32f405xg name)
+    target_stm32f4xx(
+        NAME ${name}
+        STARTUP startup_stm32f40xx.s
+        SOURCES ${STM32F4_STDPERIPH_SRC}
+        COMPILE_DEFINITIONS ${STM32F405_COMPILE_DEFINITIONS}
+        LINKER_SCRIPT stm32_flash_f405xg
+        SVD STM32F405
+        BOOTLOADER
+        ${ARGN}
+    )
 endfunction()
 
 set(STM32F411_OR_F427_STDPERIPH_SRC ${STM32F4_STDPERIPH_SRC})
@@ -119,20 +123,30 @@ set(STM32F411_COMPILE_DEFINITIONS
     FLASH_SIZE=512
 )
 
-function(target_stm32f411 name)
-    target_stm32f4xx(${name} startup_stm32f411xe.s stm32_flash_f411.ld SVD STM32F411 ${ARGN})
-    target_sources(${name} PRIVATE ${STM32F411_OR_F427_STDPERIPH_SRC})
-    target_compile_definitions(${name} PRIVATE ${STM32F411_COMPILE_DEFINITIONS})
-    setup_firmware_target(${name})
+function(target_stm32f411xe name)
+    target_stm32f4xx(
+        NAME ${name}
+        STARTUP startup_stm32f411xe.s
+        SOURCES ${STM32F411_OR_F427_STDPERIPH_SRC}
+        COMPILE_DEFINITIONS ${STM32F411_COMPILE_DEFINITIONS}
+        LINKER_SCRIPT stm32_flash_f411xe
+        SVD STM32F411
+        ${ARGN}
+    )
 endfunction()
 
 set(STM32F427_COMPILE_DEFINITIONS
     STM32F427_437xx
     FLASH_SIZE=1024
 )
-function(target_stm32f427 name)
-    target_stm32f4xx(${name} startup_stm32f427xx.s stm32_flash_f427.ld SVD STM32F427 ${ARGN})
-    target_sources(${name} PRIVATE ${STM32F411_OR_F427_STDPERIPH_SRC})
-    target_compile_definitions(${name} PRIVATE ${STM32F427_COMPILE_DEFINITIONS})
-    setup_firmware_target(${name})
+function(target_stm32f427xg name)
+    target_stm32f4xx(
+        NAME ${name}
+        STARTUP startup_stm32f427xx.s
+        SOURCES ${STM32F411_OR_F427_STDPERIPH_SRC}
+        COMPILE_DEFINITIONS ${STM32F427_COMPILE_DEFINITIONS}
+        LINKER_SCRIPT stm32_flash_f427xg
+        SVD STM32F411
+        ${ARGN}
+    )
 endfunction()

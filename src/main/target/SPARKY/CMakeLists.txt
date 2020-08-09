@@ -1,1 +1,1 @@
-target_stm32f303(SPARKY)
+target_stm32f303xc(SPARKY)

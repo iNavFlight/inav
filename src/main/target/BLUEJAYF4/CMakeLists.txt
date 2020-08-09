@@ -1,1 +1,1 @@
-target_stm32f405(BLUEJAYF4)
+target_stm32f405xg(BLUEJAYF4)

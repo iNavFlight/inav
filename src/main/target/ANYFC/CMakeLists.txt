@@ -1,1 +1,1 @@
-target_stm32f405(ANYFC)
+target_stm32f405xg(ANYFC)

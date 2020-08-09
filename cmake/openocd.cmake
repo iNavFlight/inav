@@ -34,13 +34,13 @@ if(OPENOCD_PATH)
     )
 endif()
 
-function(setup_openocd target_name)
+function(setup_openocd target_exe target_name)
     if(OPENOCD_INTERFACE)
         set(openocd_interface ${OPENOCD_INTERFACE})
     else()
-        get_property(openocd_interface TARGET ${target_name} PROPERTY OPENOCD_DEFAULT_INTERFACE)
+        get_property(openocd_interface TARGET ${target_exe} PROPERTY OPENOCD_DEFAULT_INTERFACE)
     endif()
-    get_property(openocd_target TARGET ${target_name} PROPERTY OPENOCD_TARGET)
+    get_property(openocd_target TARGET ${target_exe} PROPERTY OPENOCD_TARGET)
     if(OPENOCD_CFG OR (openocd_target AND openocd_interface))
         set(openocd_run_target "openocd_${target_name}")
         if (OPENOCD_CFG AND NOT OPENOCD_CFG STREQUAL "")
@@ -74,10 +74,10 @@ function(setup_openocd target_name)
         add_custom_target(${openocd_flash_target} ${CMAKE_COMMAND} -E env
             OPENOCD_CMD=${OPENOCD_PATH}
             ${MAIN_UTILS_DIR}/openocd_flash.py -f
-            ${openocd_cfg_path} $<TARGET_FILE:${target_name}>
+            ${openocd_cfg_path} $<TARGET_FILE:${target_exe}>
 
             COMMENT "Flashing ${target_name} with openocd"
-            DEPENDS ${openocd_cfg_path} ${target_name}
+            DEPENDS ${openocd_cfg_path} ${target_exe}
         )
         exclude_from_all(${openocd_flash_target})
     endif()

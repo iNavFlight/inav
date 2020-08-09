@@ -1,1 +1,1 @@
-target_stm32f405(F4BY)
+target_stm32f405xg(F4BY)

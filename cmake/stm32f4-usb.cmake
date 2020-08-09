@@ -46,7 +46,11 @@ set(STM32F4_USBMSC_SRC
     usbd_msc_data.c
     usbd_msc_scsi.c
 )
+main_sources(STM32F4_MSC_SRC
+    msc/usbd_msc_desc.c
+)
 list(TRANSFORM STM32F4_USBMSC_SRC PREPEND "${STM32_USBMSC_DIR}/src/")
+list(APPEND STM32F4_USBMSC_SRC ${STM32F4_MSC_SRC})
 
 list(APPEND STM32F4_USB_SRC ${STM32_USBOTG_SRC})
 list(APPEND STM32F4_USB_SRC ${STM32_USBCORE_SRC})

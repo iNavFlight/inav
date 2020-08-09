@@ -1,1 +1,1 @@
-target_stm32f303(OMNIBUS)
+target_stm32f303xc(OMNIBUS)

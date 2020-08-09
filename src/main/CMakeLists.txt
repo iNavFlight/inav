@@ -273,6 +273,10 @@ main_sources(COMMON_SRC
     fc/fc_msp.h
     fc/fc_msp_box.c
     fc/fc_msp_box.h
+    fc/firmware_update.c
+    fc/firmware_update.h
+    fc/firmware_update_common.c
+    fc/firmware_update_common.h
     fc/rc_smoothing.c
     fc/rc_smoothing.h
     fc/rc_adjustments.c

@@ -1,1 +1,1 @@
-target_stm32f427(PIXRACER HSE_MHZ 24)
+target_stm32f427xg(PIXRACER HSE_MHZ 24)

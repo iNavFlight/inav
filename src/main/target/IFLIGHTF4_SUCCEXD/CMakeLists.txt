@@ -1,1 +1,1 @@
-target_stm32f411(IFLIGHTF4_SUCCEXD)
+target_stm32f411xe(IFLIGHTF4_SUCCEXD)

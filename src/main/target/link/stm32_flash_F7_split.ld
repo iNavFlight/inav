@@ -1,9 +1,9 @@
 /*
 *****************************************************************************
 **
-**  File        : stm32_flash_split.ld
+**  File        : stm32_flash_f7_split.ld
 **
-**  Abstract    : Common linker script for STM32 devices.
+**  Abstract    : Common linker script for STM32F7 devices.
 **
 *****************************************************************************
 */

@@ -1,1 +1,1 @@
-target_stm32f405(FRSKYF4)
+target_stm32f405xg(FRSKYF4)

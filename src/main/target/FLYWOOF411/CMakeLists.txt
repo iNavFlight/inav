@@ -1,1 +1,1 @@
-target_stm32f411(FLYWOOF411)
+target_stm32f411xe(FLYWOOF411)

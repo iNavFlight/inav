@@ -51,17 +51,17 @@ set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${CMAKE_CONFIGURATION_TYPES
 
 set(arm_none_eabi_debug "-Og -g")
 # We set -Os or -O2 depending on the MCU family
-set(arm_none_eabi_release "-DNDEBUG -flto -fuse-linker-plugin")
+set(arm_none_eabi_release "-DNDEBUG")
 set(arm_none_eabi_relwithdebinfo "-ggdb3 ${arm_none_eabi_release}")
 
-SET(CMAKE_C_FLAGS_DEBUG ${arm_none_eabi_debug} CACHE INTERNAL "c compiler flags debug")
-SET(CMAKE_CXX_FLAGS_DEBUG ${arm_none_eabi_debug} CACHE INTERNAL "c++ compiler flags debug")
-SET(CMAKE_ASM_FLAGS_DEBUG ${arm_none_eabi_debug} CACHE INTERNAL "asm compiler flags debug")
+set(CMAKE_C_FLAGS_DEBUG ${arm_none_eabi_debug} CACHE INTERNAL "c compiler flags debug")
+set(CMAKE_CXX_FLAGS_DEBUG ${arm_none_eabi_debug} CACHE INTERNAL "c++ compiler flags debug")
+set(CMAKE_ASM_FLAGS_DEBUG ${arm_none_eabi_debug} CACHE INTERNAL "asm compiler flags debug")
 
-SET(CMAKE_C_FLAGS_RELEASE ${arm_none_eabi_release} CACHE INTERNAL "c compiler flags release")
-SET(CMAKE_CXX_FLAGS_RELEASE ${arm_none_eabi_release} CACHE INTERNAL "cxx compiler flags release")
-SET(CMAKE_ASM_FLAGS_RELEASE ${arm_none_eabi_release} CACHE INTERNAL "asm compiler flags release")
+set(CMAKE_C_FLAGS_RELEASE ${arm_none_eabi_release} CACHE INTERNAL "c compiler flags release")
+set(CMAKE_CXX_FLAGS_RELEASE ${arm_none_eabi_release} CACHE INTERNAL "cxx compiler flags release")
+set(CMAKE_ASM_FLAGS_RELEASE ${arm_none_eabi_release} CACHE INTERNAL "asm compiler flags release")
 
-SET(CMAKE_C_FLAGS_RELWITHDEBINFO ${arm_none_eabi_relwithdebinfo} CACHE INTERNAL "c compiler flags release")
-SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO ${arm_none_eabi_relwithdebinfo} CACHE INTERNAL "cxx compiler flags release")
-SET(CMAKE_ASM_FLAGS_RELWITHDEBINFO ${arm_none_eabi_relwithdebinfo} CACHE INTERNAL "asm compiler flags release")
+set(CMAKE_C_FLAGS_RELWITHDEBINFO ${arm_none_eabi_relwithdebinfo} CACHE INTERNAL "c compiler flags release")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO ${arm_none_eabi_relwithdebinfo} CACHE INTERNAL "cxx compiler flags release")
+set(CMAKE_ASM_FLAGS_RELWITHDEBINFO ${arm_none_eabi_relwithdebinfo} CACHE INTERNAL "asm compiler flags release")

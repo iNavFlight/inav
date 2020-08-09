@@ -1,2 +1,2 @@
-target_stm32f405(KAKUTEF4)
-target_stm32f405(KAKUTEF4V2)
+target_stm32f405xg(KAKUTEF4)
+target_stm32f405xg(KAKUTEF4V2)

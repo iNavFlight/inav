@@ -1,1 +1,1 @@
-target_stm32f722(FLYWOOF7DUAL)
+target_stm32f722xe(FLYWOOF7DUAL)

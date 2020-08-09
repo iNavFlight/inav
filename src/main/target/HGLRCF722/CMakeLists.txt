@@ -1,1 +1,1 @@
-target_stm32f722(HGLRCF722)
+target_stm32f722xe(HGLRCF722)

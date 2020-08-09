@@ -1,2 +1,2 @@
-target_stm32f405(FIREWORKSV2)
-target_stm32f405(OMNIBUSF4V6)
+target_stm32f405xg(FIREWORKSV2)
+target_stm32f405xg(OMNIBUSF4V6)

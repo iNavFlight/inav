@@ -1,2 +1,2 @@
-target_stm32f722(MATEKF722SE)
-target_stm32f722(MATEKF722MINI)
+target_stm32f722xe(MATEKF722SE)
+target_stm32f722xe(MATEKF722MINI)
