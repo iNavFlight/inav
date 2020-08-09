@@ -1657,15 +1657,13 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_RX_SNR_DB: {
-        const char* strn = "     ";
         int16_t osdSNR_Alarm = rxLinkStatistics.uplinkSNR;
         if (osdSNR_Alarm <= osdConfig()->snr_alarm) {
           buff[0] = SYM_SRN;
           tfp_sprintf(buff + 1, "%3d%c", rxLinkStatistics.uplinkSNR, SYM_DB);
         }
         else if (osdSNR_Alarm > osdConfig()->snr_alarm) {
-          buff[0] = SYM_BLANK;
-          tfp_sprintf(buff + 1, "%s", strn);
+          displayWrite(osdDisplayPort, elemPosX, elemPosY, "     ");
         }
         break;
       }
