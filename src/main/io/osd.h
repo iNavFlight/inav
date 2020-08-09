@@ -153,6 +153,7 @@ typedef enum {
     OSD_ESC_RPM,
     OSD_ESC_TEMPERATURE,
     OSD_AZIMUTH,
+    OSD_TPA,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
