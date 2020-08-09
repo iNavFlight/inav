@@ -647,7 +647,7 @@ groups:
         description: "The percentage of the throttle range (`max_throttle` - `min_command`) above `min_command` used for minimum / idle throttle."
         default_value: "15"
         field: throttleIdle
-        min: 4
+        min: 0
         max: 30
       - name: motor_poles
         field: motorPoleCount
