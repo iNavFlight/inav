@@ -1708,13 +1708,13 @@ static bool osdDrawSingleElement(uint8_t item)
                 if (rxLinkStatistics.activeAnt == 0) {
                   buff[0] = SYM_RSSI;
                   tfp_sprintf(buff + 1, "%4d%c", rxLinkStatistics.uplinkRSSI, SYM_DBM);
-                  if (FLIGHT_MODE(FAILSAFE_MODE)){
+                  if (!failsafeIsReceivingRxData()){
                       TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
                   }
                 } else {
                   buff[0] = SYM_2RSS;
                   tfp_sprintf(buff + 1, "%4d%c", rxLinkStatistics.uplinkRSSI, SYM_DBM);
-                  if (FLIGHT_MODE(FAILSAFE_MODE)){
+                  if (!failsafeIsReceivingRxData()){
                       TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
                   }
                 }
