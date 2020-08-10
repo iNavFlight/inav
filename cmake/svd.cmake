@@ -9,8 +9,8 @@ function(setup_svd target_exe target_name)
         )
     else()
         add_custom_target(${svd_target_name}
-            cmake -E echo "target ${target_name} does not declare an SVD filename"
-            COMMAND cmake -E false)
+            ${CMAKE_COMMAND} -E echo "target ${target_name} does not declare an SVD filename"
+            COMMAND ${CMAKE_COMMAND} -E false)
     endif()
     exclude_from_all(${svd_target_name})
 endfunction()

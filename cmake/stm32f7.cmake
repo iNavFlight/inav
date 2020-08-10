@@ -106,6 +106,7 @@ endfunction()
 
 macro(define_target_stm32f7 subfamily size)
     function(target_stm32f7${subfamily}x${size} name)
+        set(func_ARGV ARGV)
         string(TOUPPER ${size} upper_size)
         get_stm32_flash_size(flash_size ${size})
         set(definitions
@@ -119,7 +120,7 @@ macro(define_target_stm32f7 subfamily size)
             STARTUP startup_stm32f7${subfamily}xx.s
             COMPILE_DEFINITIONS ${definitions}
             LINKER_SCRIPT stm32_flash_f7${subfamily}x${size}
-            ${ARGN}
+            ${${func_ARGV}}
         )
     endfunction()
 endmacro()

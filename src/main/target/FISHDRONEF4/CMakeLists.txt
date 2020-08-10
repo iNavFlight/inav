@@ -1,1 +1,1 @@
-target_stm32f405xg(FISHDRONEF4)
+target_stm32f405xg(FISHDRONEF4 SKIP_RELEASES)

@@ -1,1 +1,1 @@
-target_stm32f303xc(OMNIBUS)
+target_stm32f303xc(OMNIBUS SKIP_RELEASES)

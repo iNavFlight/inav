@@ -378,7 +378,7 @@ function(target_stm32)
     set_property(TARGET ${main_target_name} PROPERTY OPENOCD_DEFAULT_INTERFACE stlink)
     set_property(TARGET ${main_target_name} PROPERTY SVD ${args_SVD})
 
-    setup_firmware_target(${main_target_name} ${name})
+    setup_firmware_target(${main_target_name} ${name} ${ARGN})
 
     if(args_BOOTLOADER)
         # Bootloader for the target

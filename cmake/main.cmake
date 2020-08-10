@@ -65,6 +65,11 @@ function(setup_firmware_target exe name)
     set_property(GLOBAL PROPERTY VALID_TARGETS "${targets}")
     setup_openocd(${exe} ${name})
     setup_svd(${exe} ${name})
+
+    cmake_parse_arguments(args "SKIP_RELEASES" "" "" ${ARGN})
+    if(args_SKIP_RELEASES)
+        set_target_properties(${exe} ${name} PROPERTIES SKIP_RELEASES ON)
+    endif()
 endfunction()
 
 function(exclude_from_all target)
@@ -77,11 +82,28 @@ endfunction()
 function(collect_targets)
     get_property(targets GLOBAL PROPERTY VALID_TARGETS)
     list(SORT targets)
+    set(release_targets)
+    foreach(target ${targets})
+        get_target_property(skip_releases ${target} SKIP_RELEASES)
+        if(NOT skip_releases)
+            list(APPEND release_targets ${target})
+        endif()
+    endforeach()
+
     list(JOIN targets " " target_names)
+    list(JOIN release_targets " " release_targets_names)
+
     set(list_target_name "targets")
     add_custom_target(${list_target_name}
-        COMMAND cmake -E echo "Valid targets: ${target_names}")
+        COMMAND ${CMAKE_COMMAND} -E echo "Valid targets: ${target_names}"
+        COMMAND ${CMAKE_COMMAND} -E echo "Release targets: ${release_targets_names}"
+    )
     exclude_from_all(${list_target_name})
+    set(release_target_name "release")
+    add_custom_target(${release_target_name}
+        ${CMAKE_COMMAND} -E true
+        DEPENDS ${release_targets}
+    )
     list(LENGTH targets target_count)
     message("-- ${target_count} targets found for toolchain ${TOOLCHAIN}")
 endfunction()
