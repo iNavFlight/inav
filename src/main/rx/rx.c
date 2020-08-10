@@ -121,7 +121,7 @@ PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 9);
 PG_RESET_TEMPLATE(rxConfig_t, rxConfig,
     .receiverType = DEFAULT_RX_TYPE,
     .rcmap = {0, 1, 3, 2},      // Default to AETR map
-    .halfDuplex = 0,
+    .halfDuplex = TRISTATE_AUTO,
     .serialrx_provider = SERIALRX_PROVIDER,
     .rx_spi_protocol = RX_SPI_DEFAULT_PROTOCOL,
     .spektrum_sat_bind = 0,

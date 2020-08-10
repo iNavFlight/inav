@@ -33,6 +33,7 @@
 | antigravity_accelerator | 1 |  |
 | antigravity_cutoff_lpf_hz | 15 | Antigravity cutoff frequenct for Throtte filter. Antigravity is based on the difference between actual and filtered throttle input. The bigger is the difference, the bigger Antigravity gain |
 | antigravity_gain | 1 | Max Antigravity gain. `1` means Antigravity is disabled, `2` means Iterm is allowed to double during rapid throttle movements |
+| applied_defaults | 0 | Internal (configurator) hint. Should not be changed manually |
 | baro_cal_tolerance | 150 | Baro calibration tolerance in cm. The default should allow the noisiest baro to complete calibration [cm]. |
 | baro_hardware | AUTO | Selection of baro hardware. See Wiki Sensor auto detect and hardware failure detection for more info |
 | baro_median_filter | ON | 3-point median filtering for barometer readouts. No reason to change this setting |
@@ -52,6 +53,7 @@
 | current_meter_scale | 400 | This sets the output voltage to current scaling for the current sensor in 0.1 mV/A steps. 400 is 40mV/A such as the ACS756 sensor outputs. 183 is the setting for the uberdistro with a 0.25mOhm shunt. |
 | current_meter_type | ADC | ADC , VIRTUAL, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position. |
 | deadband | 5 | These are values (in us) by how much RC input can be different before it's considered valid. For transmitters with jitter on outputs, this value can be increased. Defaults are zero, but can be increased up to 10 or so if rc inputs twitch while idle. |
+| debug_mode | NONE | Defines debug values exposed in debug variables (developer / debugging setting) |
 | disarm_kill_switch | ON | Disarms the motors independently of throttle value. Setting to OFF reverts to the old behaviour of disarming only when the throttle is low. Only applies when arming and disarming with an AUX channel. |
 | display_force_sw_blink | OFF | OFF = OSD hardware blink / ON = OSD software blink. If OSD warning text/values are invisible, try setting this to ON |
 | dterm_lpf2_hz | 0 | Cutoff frequency for stage 2 D-term low pass filter |
@@ -135,6 +137,7 @@
 | imu_dcm_ki_mag | 0 | Inertial Measurement Unit KI Gain for compass measurements |
 | imu_dcm_kp | 2500 | Inertial Measurement Unit KP Gain for accelerometer measurements |
 | imu_dcm_kp_mag | 10000 | Inertial Measurement Unit KP Gain for compass measurements |
+| inav_allow_dead_reckoning | OFF | Defines if inav will dead-reckon over short GPS outages. May also be useful for indoors OPFLOW navigation |
 | inav_auto_mag_decl | ON | Automatic setting of magnetic declination based on GPS position. When used manual magnetic declination is ignored. |
 | inav_baro_epv | 100.000 | Uncertainty value for barometric sensor [cm] |
 | inav_gravity_cal_tolerance | 5 | Unarmed gravity calibration tolerance level. Won't finish the calibration until estimated gravity error falls below this value. |
@@ -153,6 +156,8 @@
 | inav_w_z_res_v | 0.500 | Decay coefficient for estimated climb rate when baro/GPS reference for altitude is lost |
 | iterm_windup | 50 | Used to prevent Iterm accumulation on during maneuvers. Iterm will be dampened when motors are reaching it's limit (when requested motor correction range is above percentage specified by this parameter) |
 | ledstrip_visual_beeper | OFF |  |
+| log_level | `ERROR` | Defines serial debugging log level. See `docs/development/serial_printf_debugging.md` for usage. |
+| log_topics | 0 | Defines serial debugging log topic. See `docs/development/serial_printf_debugging.md` for usage. |
 | looptime | 1000 | This is the main loop time (in us). Changing this affects PID effect with some PID controllers (see PID section for details). A very conservative value of 3500us/285Hz should work for everyone. Setting it to zero does not limit loop time, so it will go as fast as possible. |
 | ltm_update_rate | NORMAL | Defines the LTM update rate (use of bandwidth [NORMAL/MEDIUM/SLOW]). See Telemetry.md, LTM section for details. |
 | mag_calibration_time | 30 | Adjust how long time the Calibration of mag will last. |
@@ -199,6 +204,7 @@
 | motor_direction_inverted | OFF | Use if you need to inverse yaw motor direction. |
 | motor_pwm_protocol | STANDARD | Protocol that is used to send motor updates to ESCs. Possible values - STANDARD, ONESHOT125, ONESHOT42, MULTISHOT, DSHOT150, DSHOT300, DSHOT600, DSHOT1200, BRUSHED |
 | motor_pwm_rate | 400 | Output frequency (in Hz) for motor pins. Default is 400Hz for motor with motor_pwm_protocol set to STANDARD. For *SHOT (e.g. ONESHOT125) values of 1000 and 2000 have been tested by the development team and are supported. It may be possible to use higher values. For BRUSHED values of 8000 and above should be used. Setting to 8000 will use brushed mode at 8kHz switching frequency. Up to 32kHz is supported for brushed. Default is 16000 for boards with brushed motors. Note, that in brushed mode, minthrottle is offset to zero. For brushed mode, set max_throttle to 2000. |
+| msp_override_channels | 0 | Mask of RX channels that may be overridden by MSP `SET_RAW_RC`. Note that this requires custom firmware with `USE_RX_MSP` and `USE_MSP_RC_OVERRIDE` compile options and the `MSP RC Override` flight mode. |
 | name | Empty string | Craft name |
 | nav_auto_climb_rate | 500 | Maximum climb/descent rate that UAV is allowed to reach during navigation modes. [cm/s] |
 | nav_auto_speed | 300 | Maximum velocity firmware is allowed in full auto modes (RTH, WP) [cm/s] [Multirotor only] |
@@ -247,7 +253,7 @@
 | nav_landing_speed | 200 | Vertical descent velocity during the RTH landing phase. [cm/s] |
 | nav_manual_climb_rate | 200 | Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s] |
 | nav_manual_speed | 500 | Maximum velocity firmware is allowed when processing pilot input for POSHOLD/CRUISE control mode [cm/s] [Multirotor only] |
-| nav_mc_auto_disarm_delay | 2000 |  |
+| nav_mc_auto_disarm_delay | 2000 | Delay before multi-rotor disarms when `nav_disarm_on_landing` is set (m/s) |
 | nav_mc_bank_angle | 30 | Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude |
 | nav_mc_braking_bank_angle | 40 | max angle that MR is allowed to bank in BOOST mode |
 | nav_mc_braking_boost_disengage_speed | 100 | BOOST will be disabled when speed goes below this value |
@@ -264,6 +270,9 @@
 | nav_mc_pos_xy_p | 65 | Controls how fast the drone will fly towards the target position. This is a multiplier to convert displacement to target velocity |
 | nav_mc_pos_z_p | 50 | P gain of altitude PID controller (Multirotor) |
 | nav_mc_vel_xy_d | 100 | D gain of Position-Rate (Velocity to Acceleration) PID controller. It can damp P and I. Increasing D might help when drone overshoots target. |
+| nav_mc_vel_xy_dterm_attenuation | 90 | Maximum D-term attenution percentage for horizontal velocity PID controller (Multirotor). It allows to smooth the PosHold CRUISE, WP and RTH when Multirotor is traveling at full speed. Dterm is not attenuated at low speeds, breaking and accelerating. |
+| nav_mc_vel_xy_dterm_attenuation_end | 60 | A point (in percent of both target and current horizontal velocity) where nav_mc_vel_xy_dterm_attenuation reaches maximum |
+| nav_mc_vel_xy_dterm_attenuation_start | 10" | A point (in percent of both target and current horizontal velocity) where nav_mc_vel_xy_dterm_attenuation begins |
 | nav_mc_vel_xy_i | 15 | I gain of Position-Rate (Velocity to Acceleration) PID controller. Used for drift compensation (caused by wind for example). Higher I means stronger response to drift. Too much I gain might cause target overshot |
 | nav_mc_vel_xy_p | 40 | P gain of Position-Rate (Velocity to Acceleration) PID controller. Higher P means stronger response when position error occurs. Too much P might cause "nervous" behavior and oscillations |
 | nav_mc_vel_z_d | 10 | D gain of velocity PID controller |
@@ -279,35 +288,55 @@
 | nav_rth_climb_first | ON | If set to ON drone will climb to nav_rth_altitude first and head home afterwards. If set to OFF drone will head home instantly and climb on the way. |
 | nav_rth_climb_ignore_emerg | OFF | If set to ON, aircraft will execute initial climb regardless of position sensor (GPS) status. |
 | nav_rth_home_altitude | 0 | Aircraft will climb/descend to this altitude after reaching home if landing is not enabled. Set to 0 to stay at `nav_rth_altitude` (default) [cm] |
-| nav_rth_home_offset_direction | 0 | Direction offset from GPS established home to "safe" position used for RTH (degrees, 0=N, 90=E, 180=S, 270=W, requires non-zero offset distance) |
-| nav_rth_home_offset_distance | 0 | Distance offset from GPS established home to "safe" position used for RTH (cm, 0 disables) |
 | nav_rth_tail_first | OFF | If set to ON drone will return tail-first. Obviously meaningless for airplanes. |
 | nav_use_fw_yaw_control | OFF | Enables or Disables the use of the heading PID controller on fixed wing. Heading PID controller is always enabled for rovers and boats |
 | nav_use_midthr_for_althold | OFF | If set to OFF, the FC remembers your throttle stick position when enabling ALTHOLD and treats it as a neutral midpoint for holding altitude |
 | nav_user_control_mode | ATTI | Defines how Pitch/Roll input from RC receiver affects flight in POSHOLD mode: ATTI - pitch/roll controls attitude like in ANGLE mode; CRUISE - pitch/roll controls velocity in forward and right direction. |
 | nav_wp_radius | 100 | Waypoint radius [cm]. Waypoint would be considered reached if machine is within this radius |
 | nav_wp_safe_distance | 10000 | First waypoint in the mission should be closer than this value [cm]. A value of 0 disables this check. |
+| opflow_hardware |  | Selection of OPFLOW hardware. |
+| osd_ahi_bordered | OFF | Shows a border/corners around the AHI region (pixel OSD only) |
+| osd_ahi_height | 162 | AHI height in pixels (pixel OSD only) |
 | osd_ahi_style | DEFAULT | Sets OSD Artificial Horizon style "DEFAULT" or "LINE" for the FrSky Graphical OSD. |
+| osd_ahi_vertical_offset | 0 | AHI vertical offset from center (pixel OSD only) |
+| osd_ahi_width | 132 | AHI width in pixels (pixel OSD only) |
 | osd_alt_alarm | 100 | Value above which to make the OSD relative altitude indicator blink (meters) |
 | osd_artificial_horizon_max_pitch | 20 | Max pitch, in degrees, for OSD artificial horizon |
 | osd_baro_temp_alarm_max | 600 | Temperature above which the baro temperature OSD element will start blinking (decidegrees centigrade) |
 | osd_baro_temp_alarm_min | -200 | Temperature under which the baro temperature OSD element will start blinking (decidegrees centigrade) |
+| osd_camera_fov_h | 135 | Horizontal field of view for the camera in degres |
+| osd_camera_fov_v | 85 | Vertical field of view for the camera in degres |
+| osd_camera_uptilt | 0 | Set the camera uptilt for the FPV camera in degres, positive is up, negative is down, relative to the horizontal |
+| osd_crosshairs_style | DEFAULT | To set the visual type for the crosshair |
 | osd_current_alarm | 0 | Value above which the OSD current consumption element will start blinking. Measured in full Amperes. |
 | osd_dist_alarm | 1000 | Value above which to make the OSD distance from home indicator blink (meters) |
 | osd_esc_temp_alarm_max | 900 | Temperature above which the IMU temperature OSD element will start blinking (decidegrees centigrade) |
 | osd_esc_temp_alarm_min | -200 | Temperature under which the IMU temperature OSD element will start blinking (decidegrees centigrade) |
 | osd_estimations_wind_compensation | ON | Use wind estimation for remaining flight time/distance estimation |
 | osd_failsafe_switch_layout | OFF | If enabled the OSD automatically switches to the first layout during failsafe |
+| osd_force_grid | OFF | Force OSD to work in grid mode even if the OSD device supports pixel level access (mainly used for development) |
 | osd_gforce_alarm | 5 | Value above which the OSD g force indicator will blink (g) |
 | osd_gforce_axis_alarm_max | 5 | Value above which the OSD axis g force indicators will blink (g) |
 | osd_gforce_axis_alarm_min | -5 | Value under which the OSD axis g force indicators will blink (g) |
-| osd_hud_wp_disp | OFF | Controls display of the next waypoints in the HUD. |
+| osd_horizon_offset | 0 | To vertically adjust the whole OSD and AHI and scrolling bars |
+| osd_hud_homepoint | 0 | To 3D-display the home point location in the hud |
+| osd_hud_homing | 0 | To display little arrows around the crossair showing where the home point is in the hud |
+| osd_hud_margin_h | 3 | Left and right margins for the hud area |
+| osd_hud_margin_v | 3 | Top and bottom margins for the hud area |
+| osd_hud_radar_disp | 0 | Maximum count of nearby aircrafts or points of interest to display in the hud, as sent from an ESP32 LoRa module. Set to 0 to disable (show nothing). The nearby aircrafts will appear as markers A, B, C, etc |
+| osd_hud_radar_nearest | 0 | To display an extra bar of informations at the bottom of the hud area for the closest radar aircraft found, if closest than the set value, in meters. Shows relative altitude (meters or feet, with an up or down arrow to indicate if above or below), speed (in m/s or f/s), and absolute heading (in °, 0 is north, 90 is east, 180 is south, 270 is west). Set to 0 (zero) to disable. |
+| osd_hud_radar_range_max | 4000" | In meters, radar aircrafts further away than this will not be displayed in the hud |
+| osd_hud_radar_range_min | 3 | In meters, radar aircrafts closer than this will not be displayed in the hud |
+| osd_hud_wp_disp | 0 | How many navigation waypoints are displayed, set to 0 (zero) to disable. As sample, if set to 2, and you just passed the 3rd waypoint of the mission, you'll see markers for the 4th waypoint (marked 1) and the 5th waypoint (marked 2) |
 | osd_imu_temp_alarm_max | 600 | Temperature above which the IMU temperature OSD element will start blinking (decidegrees centigrade) |
 | osd_imu_temp_alarm_min | -200 | Temperature under which the IMU temperature OSD element will start blinking (decidegrees centigrade) |
+| osd_left_sidebar_scroll_step | 0 | How many units each sidebar step represents. 0 means the default value for the scroll type. |
 | osd_main_voltage_decimals | 1 | Number of decimals for the battery voltages displayed in the OSD [1-2]. |
 | osd_neg_alt_alarm | 5 | Value bellow which (negative altitude) to make the OSD relative altitude indicator blink (meters) |
+| osd_right_sidebar_scroll_step | 0 | Same as left_sidebar_scroll_step, but for the right sidebar |
 | osd_row_shiftdown | 0 | Number of rows to shift the OSD display (increase if top rows are cut off) |
 | osd_rssi_alarm | 20 | Value bellow which to make the OSD RSSI indicator blink |
+| osd_sidebar_horizontal_offset | 0 | Sidebar horizontal offset from default position. Positive values move the sidebars closer to the edges. |
 | osd_stats_energy_unit | MAH | Unit used for the drawn energy in the OSD stats [MAH/WH] (milliAmpere hour/ Watt hour) |
 | osd_temp_label_align | LEFT | Allows to chose between left and right alignment for the OSD temperature sensor labels. Valid values are `LEFT` and `RIGHT` |
 | osd_time_alarm | 10 | Value above which to make the OSD flight time indicator blink (minutes) |
@@ -317,8 +346,10 @@
 | pidsum_limit | 500 | A limitation to overall amount of correction Flight PID can request on each axis (Roll/Pitch). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help |
 | pidsum_limit_yaw | 400 | A limitation to overall amount of correction Flight PID can request on each axis (Yaw). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help |
 | pitch_rate | 20 | Defines rotation rate on PITCH axis that UAV will try to archive on max. stick deflection. Rates are defined in tens of degrees (deca-degrees) per second [rate = dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure. |
+| pitot_hardware | NONE | Selection of pitot hardware. |
 | platform_type | "MULTIROTOR" | Defines UAV platform type. Allowed values: "MULTIROTOR", "AIRPLANE", "HELICOPTER", "TRICOPTER", "ROVER", "BOAT". Currently only MULTIROTOR, AIRPLANE and TRICOPTER types are implemented |
 | pos_hold_deadband | 20 | Stick deadband in [r/c points], applied after r/c deadband and expo |
+| rangefinder_hardware | NONE | Selection of rangefinder hardware. |
 | rangefinder_median_filter | OFF | 3-point median filtering for rangefinder readouts |
 | rate_accel_limit_roll_pitch | 0 | Limits acceleration of ROLL/PITCH rotation speed that can be requested by stick input. In degrees-per-second-squared. Small and powerful UAV flies great with high acceleration limit ( > 5000 dps^2 and even > 10000 dps^2). Big and heavy multirotors will benefit from low acceleration limit (~ 360 dps^2). When set correctly, it greatly improves stopping performance. Value of 0 disables limiting. |
 | rate_accel_limit_yaw | 10000 | Limits acceleration of YAW rotation speed that can be requested by stick input. In degrees-per-second-squared. Small and powerful UAV flies great with high acceleration limit ( > 10000 dps^2). Big and heavy multirotors will benefit from low acceleration limit (~ 180 dps^2). When set correctly, it greatly improves stopping performance and general stability during yaw turns. Value of 0 disables limiting. |
@@ -326,6 +357,7 @@
 | rc_filter_frequency | 50 | RC data biquad filter cutoff frequency. Lower cutoff frequencies result in smoother response at expense of command control delay. Practical values are 20-50. Set to zero to disable entirely and use unsmoothed RC stick values |
 | rc_yaw_expo | 20 | Exposition value used for the YAW axis by all the stabilized flights modes (all but `MANUAL`) |
 | reboot_character | 82 | Special character used to trigger reboot |
+| receiver_type | `TARGET dependent` | Selection of receiver (RX) type. Additional configuration of a `serialrx_provider` and a UART will be needed for `SERIAL` |
 | report_cell_voltage | OFF | S.Port, D-Series, and IBUS telemetry: Send the average cell voltage if set to ON |
 | roll_rate | 20 | Defines rotation rate on ROLL axis that UAV will try to archive on max. stick deflection. Rates are defined in tens of degrees (deca-degrees) per second [rate = dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure. |
 | rpm_gyro_filter_enabled | `OFF` | Enables gyro RPM filtere. Set to `ON` only when ESC telemetry is working and rotation speed of the motors is correctly reported to INAV |
@@ -341,13 +373,17 @@
 | rx_max_usec | 2115 | Defines the longest pulse width value used when ensuring the channel value is valid. If the receiver gives a pulse value higher than this value then the channel will be marked as bad and will default to the value of mid_rc. |
 | rx_min_usec | 885 | Defines the shortest pulse width value used when ensuring the channel value is valid. If the receiver gives a pulse value lower than this value then the channel will be marked as bad and will default to the value of mid_rc. |
 | sdcard_detect_inverted | `TARGET dependent` | This setting drives the way SD card is detected in card slot. On some targets (AnyFC F7 clone) different card slot was used and depending of hardware revision ON or OFF setting might be required. If card is not detected, change this value. |
-| serialrx_halfduplex | OFF | Allow serial receiver to operate on UART TX pin. With some receivers will allow control and telemetry over a single wire |
+| serialrx_halfduplex | AUTO | Allow serial receiver to operate on UART TX pin. With some receivers will allow control and telemetry over a single wire |
 | serialrx_inverted | OFF | Reverse the serial inversion of the serial RX protocol. When this value is OFF, each protocol will use its default signal (e.g. SBUS will use an inverted signal). Some OpenLRS receivers produce a non-inverted SBUS signal. This setting supports this type of receivers (including modified FrSKY). |
 | serialrx_provider | SPEK1024 | When feature SERIALRX is enabled, this allows connection to several receivers which output data via digital interface resembling serial. See RX section. |
 | servo_center_pulse | 1500 | Servo midpoint |
 | servo_lpf_hz | 20 | Selects the servo PWM output cutoff frequency. Value is in [Hz] |
 | servo_protocol | PWM | An option to chose the protocol/option that would be used to output servo data. Possible options `PWM` (FC servo outputs), `SERVO_DRIVER` (I2C PCA9685 peripheral), `SBUS` (S.Bus protocol output via a configured serial port) |
 | servo_pwm_rate | 50 | Output frequency (in Hz) servo pins. When using tricopters or gimbal with digital servo, this rate can be increased. Max of 498Hz (for 500Hz pwm period), and min of 50Hz. Most digital servos will support for example 330Hz. |
+| setpoint_kalman_enabled | OFF | Enable Kalman filter on the PID controller setpoint |
+| setpoint_kalman_q | 100 | Quality factor of the setpoint Kalman filter. Higher values means less filtering and lower phase delay. On 3-7 inch multirotors can be usually increased to 200-300 or even higher of clean builds |
+| setpoint_kalman_sharpness | 100 | Dynamic factor for the setpoint Kalman filter. In general, the higher the value, the more dynamic Kalman filter gets |
+| setpoint_kalman_w | 4 | Window size for the setpoint Kalman filter. Wider the window, more samples are used to compute variance. In general, wider window results in smoother filter response |
 | sim_ground_station_number | Empty string | Number of phone that is used to communicate with SIM module. Messages / calls from other numbers are ignored. If undefined, can be set by calling or sending a message to the module. |
 | sim_low_altitude | 0 | Threshold for low altitude warning messages sent by SIM module when the 'L' transmit flag is set in `sim_transmit_flags`. |
 | sim_pin | Empty string | PIN code for the SIM module |
@@ -385,6 +421,7 @@
 | vtx_channel | 1 | Channel to use within the configured `vtx_band`. Valid values are [1, 8]. |
 | vtx_halfduplex | ON | Use half duplex UART to communicate with the VTX, using only a TX pin in the FC. |
 | vtx_low_power_disarm | OFF | When the craft is disarmed, set the VTX to its lowest power. `ON` will set the power to its minimum value on startup, increase it to `vtx_power` when arming and change it back to its lowest setting after disarming. `UNTIL_FIRST_ARM` will start with minimum power, but once the craft is armed it will increase to `vtx_power` and it will never decrease until the craft is power cycled. |
+| vtx_max_power_override | 0 | Some VTXes may report max power incorrectly (i.e. 200mW for a 600mW VTX). Use this to override max supported power. 0 to disable and use whatever VTX reports as its capabilities |
 | vtx_power | 1 | VTX RF power level to use. The exact number of mw depends on the VTX hardware. |
 | yaw_deadband | 5 | These are values (in us) by how much RC input can be different before it's considered valid. For transmitters with jitter on outputs, this value can be increased. Defaults are zero, but can be increased up to 10 or so if rc inputs twitch while idle. |
 | yaw_lpf_hz | 30 | Yaw low pass filter cutoff frequency. Should be disabled (set to `0`) on small multirotors (7 inches and below) |
