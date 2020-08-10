@@ -21,9 +21,12 @@
 #include <platform.h>
 
 #include "io/serial.h"
+#include "rx/rx.h"
 
 void targetConfiguration(void)
 {
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART1)].functionMask = FUNCTION_TELEMETRY_SMARTPORT_MASTER;
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART5)].functionMask = FUNCTION_FRSKY_OSD;
+
+    rxConfigMutable()->serialrx_inverted = 1;
 }
