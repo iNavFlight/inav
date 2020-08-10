@@ -58,7 +58,7 @@
 #define USE_EXTI
 
 #define USE_IMU_ICM20689
-#define IMU_ICM20689_ALIGN          CW180_DEG
+#define IMU_ICM20689_ALIGN          CW0_DEG
 
 #define GYRO_INT_EXTI               PC4
 #define ICM20689_CS_PIN             PA4
@@ -132,6 +132,12 @@
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
+
+// PINIO to disable BT
+#define USE_PINIO
+#define USE_PINIOBOX
+#define PINIO1_PIN                  PA15
+#define PINIO1_FLAGS                PINIO_FLAGS_INVERTED
 
 // FC Default Config
 #define DEFAULT_FEATURES            (FEATURE_TX_PROF_SEL | FEATURE_CURRENT_METER | FEATURE_TELEMETRY | FEATURE_VBAT | FEATURE_OSD | FEATURE_BLACKBOX)

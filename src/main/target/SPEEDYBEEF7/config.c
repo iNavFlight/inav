@@ -18,33 +18,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include <platform.h>
+#include "platform.h"
 
-#include "common/axis.h"
+#include "fc/fc_msp_box.h"
 
-#include "config/config_master.h"
-#include "config/feature.h"
-
-#include "drivers/sensor.h"
-#include "drivers/pwm_esc_detect.h"
-#include "drivers/pwm_output.h"
-#include "drivers/serial.h"
-
-#include "fc/rc_controls.h"
-
-#include "flight/failsafe.h"
-#include "flight/mixer.h"
-#include "flight/pid.h"
-
-#include "rx/rx.h"
-
+#include "io/piniobox.h"
 #include "io/serial.h"
-
-#include "sensors/battery.h"
-#include "sensors/sensors.h"
-
-#include "telemetry/telemetry.h"
-
 
 #define BLUETOOTH_MSP_BAUDRATE      BAUD_19200
 
@@ -52,4 +31,6 @@ void targetConfiguration(void)
 {
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART3)].functionMask = FUNCTION_MSP;
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART3)].msp_baudrateIndex = BLUETOOTH_MSP_BAUDRATE;
+
+    pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
 }
