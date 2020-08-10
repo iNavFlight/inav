@@ -83,34 +83,13 @@ set(STM32_COMPILE_OPTIONS
     -fno-common
 )
 
-#if(SEMIHOSTING)
-#    set(SEMIHOSTING_DEFINITIONS "SEMIHOSTING")
-#    set(SEMIHOSTING_LDFLAGS
-#        --specs=rdimon.specs
-#        -lc
-#        -lrdimon
-#    )
-#else()
-#    set(SYS)
-#endif()
-#ifneq ($(SEMIHOSTING),)
-#SEMIHOSTING_CFLAGS	= -DSEMIHOSTING
-#SEMIHOSTING_LDFLAGS	= --specs=rdimon.specs -lc -lrdimon
-#SYSLIB			:=
-#else
-#SEMIHOSTING_LDFLAGS	=
-#SEMIHOSTING_CFLAGS	=
-#SYSLIB			:= -lnosys
-#endif
-
 set(STM32_LINK_LIBRARIES
     -lm
     -lc
 )
 
 if(SEMIHOSTING)
-    # TODO: Is -lc needed again here due to library order or can it be deleted?
-    list(APPEND STM32_LINK_LIBRARIES --specs=rdimon.specs -lc -lrdimon)
+    list(APPEND STM32_LINK_LIBRARIES --specs=rdimon.specs -lrdimon)
     list(APPEND STM32_DEFINITIONS SEMIHOSTING)
 else()
     list(APPEND STM32_LINK_LIBRARIES -lnosys)
