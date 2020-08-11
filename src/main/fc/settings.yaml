@@ -141,6 +141,9 @@ tables:
   - name: osd_ahi_style
     values: ["DEFAULT", "LINE"]
     enum: osd_ahi_style_e
+  - name: tristate
+    enum: tristate_e
+    values: ["AUTO", "ON", "OFF"]
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -557,10 +560,10 @@ groups:
         min: PWM_PULSE_MIN
         max: PWM_PULSE_MAX
       - name: serialrx_halfduplex
-        description: "Allow serial receiver to operate on UART TX pin. With some receivers will allow control and telemetry over a single wire"
-        default_value: "OFF"
+        description: "Allow serial receiver to operate on UART TX pin. With some receivers will allow control and telemetry over a single wire."
+        default_value: "AUTO"
         field: halfDuplex
-        type: bool
+        table: tristate
       - name: msp_override_channels
         description: "Mask of RX channels that may be overridden by MSP `SET_RAW_RC`. Note that this requires custom firmware with `USE_RX_MSP` and `USE_MSP_RC_OVERRIDE` compile options and the `MSP RC Override` flight mode."
         default_value: "0"
