@@ -483,7 +483,7 @@ void max7456Write(uint8_t x, uint8_t y, const char *buff, uint8_t mode)
     }
 }
 
-// Must be called with the lock held. Returns wether any new characters
+// Must be called with the lock held. Returns whether any new characters
 // were drawn.
 static bool max7456DrawScreenPartial(void)
 {
