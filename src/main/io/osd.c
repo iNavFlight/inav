@@ -110,7 +110,6 @@ FILE_COMPILE_FOR_SPEED
 #endif
 
 #define VIDEO_BUFFER_CHARS_PAL    480
-#define IS_DISPLAY_PAL (displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_PAL)
 
 #define GFORCE_FILTER_TC 0.2
 
@@ -199,6 +198,11 @@ static int digitCount(int32_t value)
         digits++;
     }
     return digits;
+}
+
+bool osdDisplayIsPAL(void)
+{
+    return displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_PAL;
 }
 
 /**
@@ -2874,7 +2878,7 @@ static void osdShowStats(void)
 
     displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
     displayClearScreen(osdDisplayPort);
-    if (IS_DISPLAY_PAL)
+    if (osdDisplayIsPAL())
         displayWrite(osdDisplayPort, statNameX, top++, "  --- STATS ---");
 
     if (STATE(GPS_FIX)) {
