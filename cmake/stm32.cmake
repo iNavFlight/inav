@@ -1,4 +1,3 @@
-include(arm-none-eabi)
 include(stm32-bootloader)
 include(stm32f3)
 include(stm32f4)
@@ -267,6 +266,9 @@ function(add_stm32_executable)
 endfunction()
 
 function(target_stm32)
+    if(NOT arm-none-eabi STREQUAL TOOLCHAIN)
+        return()
+    endif()
     # Parse keyword arguments
     cmake_parse_arguments(
         args

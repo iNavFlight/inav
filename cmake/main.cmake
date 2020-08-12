@@ -55,6 +55,11 @@ function(setup_executable exe name)
     set_target_properties(${exe} PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     )
+    if(IS_RELEASE_BUILD)
+        set_target_properties(${exe} PROPERTIES
+            INTERPROCEDURAL_OPTIMIZATION ON
+        )
+    endif()
 endfunction()
 
 function(setup_firmware_target exe name)

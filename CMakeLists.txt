@@ -1,17 +1,23 @@
 cmake_minimum_required(VERSION 3.17)
 
-set(TOOLCHAIN_OPTIONS "arm-none-eabi")
+set(TOOLCHAIN_OPTIONS none arm-none-eabi)
 set(TOOLCHAIN "arm-none-eabi" CACHE STRING "Toolchain to use. Available: ${TOOLCHAIN_OPTIONS}")
 set_property(CACHE TOOLCHAIN PROPERTY STRINGS ${TOOLCHAIN_OPTIONS})
+if("" STREQUAL TOOLCHAIN)
+    set(TOOLCHAIN none)
+endif()
 if (NOT ${TOOLCHAIN} IN_LIST TOOLCHAIN_OPTIONS)
-    message(FATAL_ERROR "Invalid toolchain ${TOOLCHAIN}")
+    message(FATAL_ERROR "Invalid toolchain ${TOOLCHAIN}. Valid options are: ${TOOLCHAIN_OPTIONS}")
 endif()
 
-set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/${TOOLCHAIN}.cmake")
+if(TOOLCHAIN STREQUAL none)
+    add_subdirectory(src/test)
+else()
+    set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/${TOOLCHAIN}.cmake")
+endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     set(IS_RELEASE_BUILD ON)
-    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 endif()
 
 project(INAV VERSION 2.5.0)
