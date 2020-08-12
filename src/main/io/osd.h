@@ -280,6 +280,7 @@ typedef struct displayPort_s displayPort_t;
 typedef struct displayCanvas_s displayCanvas_t;
 
 void osdInit(displayPort_t *osdDisplayPort);
+bool osdDisplayIsPAL(void);
 void osdUpdate(timeUs_t currentTimeUs);
 void osdStartFullRedraw(void);
 // Sets a fixed OSD layout ignoring the RC input. Set it
