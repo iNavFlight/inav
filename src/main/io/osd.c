@@ -2557,7 +2557,6 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .ahi_width = OSD_AHI_WIDTH * OSD_CHAR_WIDTH,
     .ahi_height = OSD_AHI_HEIGHT * OSD_CHAR_HEIGHT,
     .ahi_vertical_offset = -OSD_CHAR_HEIGHT,
-    .sidebar_horizontal_offset = OSD_AH_SIDEBAR_WIDTH_POS * OSD_CHAR_WIDTH,
 );
 
 void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
