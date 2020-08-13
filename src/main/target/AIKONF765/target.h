@@ -27,6 +27,9 @@
 #define LED0                    PE3
 #define LED1                    PE2
 
+#define BEEPER                  PE13
+#define BEEPER_INVERTED
+
 // *************** SPI1 Gyro & ACC *******************
 #define USE_SPI
 
@@ -173,9 +176,15 @@
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
 #define AIRSPEED_ADC_CHANNEL        ADC_CHN_4
 
+// *************** PINIO ***************************
+#define USE_PINIO
+#define USE_PINIOBOX
+#define PINIO1_PIN                  PE9  // VTX power switcher
+#define PINIO2_PIN                  PE15 // 2xCamera switcher
+
 // *************** LEDSTRIP ************************
 #define USE_LED_STRIP
-#define WS2811_PIN                  PE9
+#define WS2811_PIN                  PE14
 
 // **************** MISC ***************************
 
