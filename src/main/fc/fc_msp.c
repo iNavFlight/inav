@@ -1283,6 +1283,17 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     #else
         sbufWriteU16(dst, 0);
     #endif
+
+    #ifdef USE_MAG
+        sbufWriteU16(dst, compassConfig()->magGain[X]);
+        sbufWriteU16(dst, compassConfig()->magGain[Y]);
+        sbufWriteU16(dst, compassConfig()->magGain[Z]);
+    #else
+        sbufWriteU16(dst, 0);
+        sbufWriteU16(dst, 0);
+        sbufWriteU16(dst, 0);
+    #endif
+
         break;
 
     case MSP_POSITION_ESTIMATION_CONFIG:
@@ -2189,6 +2200,19 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #ifdef USE_OPFLOW
             if (dataSize >= 20) {
                 opticalFlowConfigMutable()->opflow_scale = sbufReadU16(src) / 256.0f;
+            }
+#endif
+#ifdef USE_MAG
+            if (dataSize >= 22) {
+                compassConfigMutable()->magGain[X] = sbufReadU16(src);
+                compassConfigMutable()->magGain[Y] = sbufReadU16(src);
+                compassConfigMutable()->magGain[Z] = sbufReadU16(src);
+            }
+#else
+            if (dataSize >= 22) {
+                sbufReadU16(src);
+                sbufReadU16(src);
+                sbufReadU16(src);
             }
 #endif
         } else

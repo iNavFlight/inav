@@ -403,6 +403,24 @@ groups:
         field: magZero.raw[Z]
         min: INT16_MIN
         max: INT16_MAX
+      - name: maggain_x
+        description: "Magnetometer calibration X gain. If 0, no calibration or calibration failed"
+        default_value: "0"
+        field: magGain[X]
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: maggain_y
+        description: "Magnetometer calibration Y gain. If 0, no calibration or calibration failed"
+        default_value: "0"
+        field: magGain[Y]
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: maggain_z
+        description: "Magnetometer calibration Z gain. If 0, no calibration or calibration failed"
+        default_value: "0"
+        field: magGain[Z]
+        min: INT16_MIN
+        max: INT16_MAX
       - name: mag_calibration_time
         description: "Adjust how long time the Calibration of mag will last."
         default_value: "30"

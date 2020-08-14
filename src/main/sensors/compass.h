@@ -58,6 +58,7 @@ typedef struct compassConfig_s {
     sensor_align_e mag_align;               // on-board mag alignment. Ignored if externally aligned via *DeciDegrees.
     uint8_t mag_hardware;                   // Which mag hardware to use on boards with more than one device
     flightDynamicsTrims_t magZero;
+    int16_t magGain[XYZ_AXIS_COUNT];
     uint8_t mag_to_use;
     uint8_t magCalibrationTimeLimit;        // Time for compass calibration (seconds)
     int16_t rollDeciDegrees;                // Alignment for external mag on the roll (X) axis (0.1deg)
