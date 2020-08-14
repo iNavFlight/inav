@@ -54,6 +54,7 @@
 #include "rx/ibus.h"
 #include "rx/jetiexbus.h"
 #include "rx/fport.h"
+#include "rx/fport2.h"
 #include "rx/msp.h"
 #include "rx/msp_override.h"
 #include "rx/pwm.h"
@@ -121,7 +122,7 @@ PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 9);
 PG_RESET_TEMPLATE(rxConfig_t, rxConfig,
     .receiverType = DEFAULT_RX_TYPE,
     .rcmap = {0, 1, 3, 2},      // Default to AETR map
-    .halfDuplex = 0,
+    .halfDuplex = TRISTATE_AUTO,
     .serialrx_provider = SERIALRX_PROVIDER,
     .rx_spi_protocol = RX_SPI_DEFAULT_PROTOCOL,
     .spektrum_sat_bind = 0,
@@ -233,6 +234,11 @@ bool serialRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
 #ifdef USE_SERIALRX_FPORT
     case SERIALRX_FPORT:
         enabled = fportRxInit(rxConfig, rxRuntimeConfig);
+        break;
+#endif
+#ifdef USE_SERIALRX_FPORT2
+    case SERIALRX_FPORT2:
+        enabled = fport2RxInit(rxConfig, rxRuntimeConfig);
         break;
 #endif
     default:

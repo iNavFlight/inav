@@ -465,7 +465,7 @@ clean:
 
 ## clean_test        : clean up all temporary / machine-generated files (tests)
 clean_test:
-	$(V0) cd src/test && $(MAKE) clean
+	$(V0) $(RM) -r src/test/build
 
 ## clean_<TARGET>    : clean up one specific target
 $(CLEAN_TARGETS) :
@@ -533,7 +533,7 @@ help: Makefile
 
 ## test              : run the cleanflight test suite
 test:
-	$(V0) cd src/test && $(MAKE) test
+	$(V0) mkdir -p src/test/build && cd src/test/build && cmake .. && $(MAKE) check
 
 # rebuild everything when makefile changes
 # Make the generated files and the build stamp order only prerequisites,

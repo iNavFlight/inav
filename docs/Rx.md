@@ -95,9 +95,20 @@ Just connect the S.Port wire from the receiver to the TX pad of a free UART on y
 
 #### Configuration
 
+For INAV 2.6 and newer versions, the default configuration should just work. However, if you're
+upgrading from a previous version you might need to set the following settings to their
+default values:
+
 ```
-set serialrx_inverted = true
-set serialrx_halfduplex = true
+set serialrx_inverted = OFF
+set serialrx_halfduplex = AUTO
+```
+
+For INAV versions prior to 2.6, you need to change the following settings:
+
+```
+set serialrx_inverted = ON
+set serialrx_halfduplex = ON
 ```
 
 ### XBUS

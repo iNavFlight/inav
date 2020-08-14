@@ -33,6 +33,7 @@
 #define USE_SERIALRX_SBUS       // Very common protocol
 #define USE_SERIALRX_IBUS       // Cheap FlySky & Turnigy receivers
 #define USE_SERIALRX_FPORT
+#define USE_SERIALRX_FPORT2
 
 #define COMMON_DEFAULT_FEATURES (FEATURE_TX_PROF_SEL)
 
@@ -113,6 +114,7 @@
 #define USE_TELEMETRY_SIM
 #define USE_FRSKYOSD
 #define USE_DJI_HD_OSD
+#define USE_SMARTPORT_MASTER
 
 #define NAV_NON_VOLATILE_WAYPOINT_CLI
 
@@ -129,6 +131,7 @@
 
 #if (FLASH_SIZE > 128)
 #define NAV_FIXED_WING_LANDING
+#define USE_SAFE_HOME
 #define USE_AUTOTUNE_FIXED_WING
 #define USE_LOG
 #define USE_STATS

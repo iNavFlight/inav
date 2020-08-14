@@ -810,27 +810,19 @@ static void cliSerial(char *cmdline)
 
         switch (i) {
         case 0:
-            if (baudRateIndex < BAUD_1200 || baudRateIndex > BAUD_2470000) {
-                continue;
-            }
+            baudRateIndex = constrain(baudRateIndex, BAUD_MIN, BAUD_MAX);
             portConfig.msp_baudrateIndex = baudRateIndex;
             break;
         case 1:
-            if (baudRateIndex < BAUD_9600 || baudRateIndex > BAUD_115200) {
-                continue;
-            }
+            baudRateIndex = constrain(baudRateIndex, BAUD_MIN, BAUD_MAX);
             portConfig.gps_baudrateIndex = baudRateIndex;
             break;
         case 2:
-            if (baudRateIndex != BAUD_AUTO && baudRateIndex > BAUD_115200) {
-                continue;
-            }
+            baudRateIndex = constrain(baudRateIndex, BAUD_MIN, BAUD_MAX);
             portConfig.telemetry_baudrateIndex = baudRateIndex;
             break;
         case 3:
-            if (baudRateIndex < BAUD_19200 || baudRateIndex > BAUD_250000) {
-                continue;
-            }
+            baudRateIndex = constrain(baudRateIndex, BAUD_MIN, BAUD_MAX);
             portConfig.peripheral_baudrateIndex = baudRateIndex;
             break;
         }
@@ -1284,6 +1276,67 @@ static void cliTempSensor(char *cmdline)
 }
 #endif
 
+#if defined(USE_SAFE_HOME)
+static void printSafeHomes(uint8_t dumpMask, const navSafeHome_t *navSafeHome, const navSafeHome_t *defaultSafeHome)
+{
+    const char *format = "safehome %u %u %d %d"; // uint8_t enabled, int32_t lat; int32_t lon
+    for (uint8_t i = 0; i < MAX_SAFE_HOMES; i++) {
+        bool equalsDefault = false;
+        if (defaultSafeHome) {
+            equalsDefault = navSafeHome[i].enabled == defaultSafeHome[i].enabled
+               && navSafeHome[i].lat == defaultSafeHome[i].lat
+               && navSafeHome[i].lon == defaultSafeHome[i].lon;
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format, i,
+                defaultSafeHome[i].enabled, defaultSafeHome[i].lat, defaultSafeHome[i].lon);
+        }
+        cliDumpPrintLinef(dumpMask, equalsDefault, format, i,
+            navSafeHome[i].enabled, navSafeHome[i].lat, navSafeHome[i].lon);
+    }
+}
+
+static void cliSafeHomes(char *cmdline)
+{
+    if (isEmpty(cmdline)) {
+        printSafeHomes(DUMP_MASTER, safeHomeConfig(0), NULL);
+    } else if (sl_strcasecmp(cmdline, "reset") == 0) {
+        resetSafeHomes();
+    } else {
+        int32_t lat, lon;
+        bool enabled;
+        uint8_t validArgumentCount = 0;
+        const char *ptr = cmdline;
+        int8_t i = fastA2I(ptr);
+        if (i < 0 || i >= MAX_SAFE_HOMES) {
+             cliShowArgumentRangeError("safehome index", 0, MAX_SAFE_HOMES - 1);
+        } else {
+            if ((ptr = nextArg(ptr))) {
+                enabled = fastA2I(ptr);
+                validArgumentCount++;
+            }
+            if ((ptr = nextArg(ptr))) {
+                lat = fastA2I(ptr);
+                validArgumentCount++;
+            }
+            if ((ptr = nextArg(ptr))) {
+                lon = fastA2I(ptr);
+                validArgumentCount++;
+            }
+            if ((ptr = nextArg(ptr))) {
+                // check for too many arguments
+                validArgumentCount++;
+            }
+            if (validArgumentCount != 3) {
+                cliShowParseError();
+            } else {
+                safeHomeConfigMutable(i)->enabled = enabled;
+                safeHomeConfigMutable(i)->lat = lat;
+                safeHomeConfigMutable(i)->lon = lon;
+            }
+        }
+    }
+}
+
+#endif 
 #if defined(USE_NAV) && defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE) && defined(NAV_NON_VOLATILE_WAYPOINT_CLI)
 static void printWaypoints(uint8_t dumpMask, const navWaypoint_t *navWaypoint, const navWaypoint_t *defaultNavWaypoint)
 {
@@ -2122,7 +2175,7 @@ static void cliFlashRead(char *cmdline)
 #endif
 
 #ifdef USE_OSD
-static void printOsdLayout(uint8_t dumpMask, const osdConfig_t *osdConfig, const osdConfig_t *osdConfigDefault, int layout, int item)
+static void printOsdLayout(uint8_t dumpMask, const osdLayoutsConfig_t *config, const osdLayoutsConfig_t *configDefault, int layout, int item)
 {
     // "<layout> <item> <col> <row> <visible>"
     const char *format = "osd_layout %d %d %d %d %c";
@@ -2130,8 +2183,8 @@ static void printOsdLayout(uint8_t dumpMask, const osdConfig_t *osdConfig, const
         if (layout >= 0 && layout != ii) {
             continue;
         }
-        const uint16_t *layoutItems = osdConfig->item_pos[ii];
-        const uint16_t *defaultLayoutItems = osdConfigDefault->item_pos[ii];
+        const uint16_t *layoutItems = config->item_pos[ii];
+        const uint16_t *defaultLayoutItems = configDefault->item_pos[ii];
         for (int jj = 0; jj < OSD_ITEM_COUNT; jj++) {
             if (item >= 0 && item != jj) {
                 continue;
@@ -2223,15 +2276,15 @@ static void cliOsdLayout(char *cmdline)
             // No args, or just layout or layout and item. If any of them not provided,
             // it will be the -1 that we used during initialization, so printOsdLayout()
             // won't use them for filtering.
-            printOsdLayout(DUMP_MASTER, osdConfig(), osdConfig(), layout, item);
+            printOsdLayout(DUMP_MASTER, osdLayoutsConfig(), osdLayoutsConfig(), layout, item);
             break;
         case 4:
             // No visibility provided. Keep the previous one.
-            visible = OSD_VISIBLE(osdConfig()->item_pos[layout][item]);
+            visible = OSD_VISIBLE(osdLayoutsConfig()->item_pos[layout][item]);
             FALLTHROUGH;
         case 5:
             // Layout, item, pos and visibility. Set the item.
-            osdConfigMutable()->item_pos[layout][item] = OSD_POS(col, row) | (visible ? OSD_VISIBLE_FLAG : 0);
+            osdLayoutsConfigMutable()->item_pos[layout][item] = OSD_POS(col, row) | (visible ? OSD_VISIBLE_FLAG : 0);
             break;
         default:
             // Unhandled
@@ -3222,6 +3275,10 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintHashLine("servo");
         printServo(dumpMask, servoParams_CopyArray, servoParams(0));
 
+#if defined(USE_SAFE_HOME)
+        cliPrintHashLine("safehome");
+        printSafeHomes(dumpMask, safeHomeConfig_CopyArray, safeHomeConfig(0)); 
+#endif
 #ifdef USE_PROGRAMMING_FRAMEWORK
         cliPrintHashLine("logic");
         printLogic(dumpMask, logicConditions_CopyArray, logicConditions(0));
@@ -3276,7 +3333,7 @@ static void printConfig(const char *cmdline, bool doDiff)
 
 #ifdef USE_OSD
         cliPrintHashLine("osd_layout");
-        printOsdLayout(dumpMask, &osdConfig_Copy, osdConfig(), -1, -1);
+        printOsdLayout(dumpMask, &osdLayoutsConfig_Copy, osdLayoutsConfig(), -1, -1);
 #endif
 
         cliPrintHashLine("master");
@@ -3462,6 +3519,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("resource", "view currently used resources", NULL, cliResource),
 #endif
     CLI_COMMAND_DEF("rxrange", "configure rx channel ranges", NULL, cliRxRange),
+#if defined(USE_SAFE_HOME)
+    CLI_COMMAND_DEF("safehome", "safe home list", NULL, cliSafeHomes),
+#endif
     CLI_COMMAND_DEF("save", "save and reboot", NULL, cliSave),
     CLI_COMMAND_DEF("serial", "configure serial ports", NULL, cliSerial),
 #ifdef USE_SERIAL_PASSTHROUGH

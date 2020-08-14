@@ -25,7 +25,7 @@ tables:
     values: ["NONE", "PPM", "SERIAL", "MSP", "SPI", "UIB"]
     enum: rxReceiverType_e
   - name: serial_rx
-    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "FPORT2", "SBUS_FAST"]
+    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2"]
   - name: rx_spi_protocol
     values: ["V202_250K", "V202_1M", "SYMA_X", "SYMA_X5C", "CX10", "CX10A", "H8_3D", "INAV", "ELERES"]
     enum: rx_spi_protocol_e
@@ -82,9 +82,9 @@ tables:
   - name: debug_modes
     values: ["NONE", "GYRO", "AGL", "FLOW_RAW",
       "FLOW", "SBUS", "FPORT", "ALWAYS", "SAG_COMP_VOLTAGE",
-      "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "ITERM_RELAX",
+      "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "ERPM", "RPM_FILTER", "RPM_FREQ", "NAV_YAW", "DYNAMIC_FILTER", "DYNAMIC_FILTER_FREQUENCY",
-      "IRLOCK", "CD", "KALMAN", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574"]
+      "IRLOCK", "CD", "KALMAN_GAIN", "PID_MEASUREMENT", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -124,9 +124,6 @@ tables:
   - name: iterm_relax
     values: ["OFF", "RP", "RPY"]
     enum: itermRelax_e
-  - name: iterm_relax_type
-    values: ["GYRO", "SETPOINT"]
-    enum: itermRelaxType_e
   - name: airmodeHandlingType
     values: ["STICK_CENTER", "THROTTLE_THRESHOLD"]
   - name: nav_extra_arming_safety
@@ -144,6 +141,9 @@ tables:
   - name: osd_ahi_style
     values: ["DEFAULT", "LINE"]
     enum: osd_ahi_style_e
+  - name: tristate
+    enum: tristate_e
+    values: ["AUTO", "ON", "OFF"]
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -229,25 +229,6 @@ groups:
         condition: USE_DYNAMIC_FILTERS
         min: 30
         max: 1000
-      - name: gyro_kalman_enabled
-        condition: USE_GYRO_KALMAN
-        field: kalmanEnabled
-        type: bool
-      - name: gyro_kalman_q
-        field: kalman_q
-        condition: USE_GYRO_KALMAN
-        min: 1
-        max: 16000
-      - name: gyro_kalman_w
-        field: kalman_w
-        condition: USE_GYRO_KALMAN
-        min: 1
-        max: 40
-      - name: gyro_kalman_sharpness
-        field: kalman_sharpness
-        condition: USE_GYRO_KALMAN
-        min: 1
-        max: 16000
       - name: gyro_to_use
         condition: USE_DUAL_GYRO
         min: 0
@@ -597,10 +578,10 @@ groups:
         min: PWM_PULSE_MIN
         max: PWM_PULSE_MAX
       - name: serialrx_halfduplex
-        description: "Allow serial receiver to operate on UART TX pin. With some receivers will allow control and telemetry over a single wire"
-        default_value: "OFF"
+        description: "Allow serial receiver to operate on UART TX pin. With some receivers will allow control and telemetry over a single wire."
+        default_value: "AUTO"
         field: halfDuplex
-        type: bool
+        table: tristate
       - name: msp_override_channels
         description: "Mask of RX channels that may be overridden by MSP `SET_RAW_RC`. Note that this requires custom firmware with `USE_RX_MSP` and `USE_MSP_RC_OVERRIDE` compile options and the `MSP RC Override` flight mode."
         default_value: "0"
@@ -687,7 +668,7 @@ groups:
         description: "The percentage of the throttle range (`max_throttle` - `min_command`) above `min_command` used for minimum / idle throttle."
         default_value: "15"
         field: throttleIdle
-        min: 4
+        min: 0
         max: 30
       - name: motor_poles
         field: motorPoleCount
@@ -1202,6 +1183,7 @@ groups:
         max: 1000
 
   - name: PG_GENERAL_SETTINGS
+    headers: ["config/general_settings.h"]
     type: generalSettings_t
     members:
       - name: applied_defaults
@@ -1213,6 +1195,7 @@ groups:
         max: 3
 
   - name: PG_RPM_FILTER_CONFIG
+    headers: ["flight/rpm_filter.h"]
     condition: USE_RPM_FILTER
     type: rpmFilterConfig_t
     members:
@@ -1762,9 +1745,6 @@ groups:
         field: navFwPosHdgPidsumLimit
         min: PID_SUM_LIMIT_MIN
         max: PID_SUM_LIMIT_MAX
-      - name: mc_iterm_relax_type
-        field: iterm_relax_type
-        table: iterm_relax_type
       - name: mc_iterm_relax
         field: iterm_relax
         table: iterm_relax
@@ -1818,6 +1798,33 @@ groups:
         field: controlDerivativeLpfHz
         min: 0
         max: 200
+      - name: setpoint_kalman_enabled
+        description: "Enable Kalman filter on the PID controller setpoint"
+        default_value: "OFF"
+        condition: USE_GYRO_KALMAN
+        field: kalmanEnabled
+        type: bool
+      - name: setpoint_kalman_q
+        description: "Quality factor of the setpoint Kalman filter. Higher values means less filtering and lower phase delay. On 3-7 inch multirotors can be usually increased to 200-300 or even higher of clean builds"
+        default_value: "100"
+        field: kalman_q
+        condition: USE_GYRO_KALMAN
+        min: 1
+        max: 16000
+      - name: setpoint_kalman_w
+        description: "Window size for the setpoint Kalman filter. Wider the window, more samples are used to compute variance. In general, wider window results in smoother filter response"
+        default_value: "4"
+        field: kalman_w
+        condition: USE_GYRO_KALMAN
+        min: 1
+        max: 40
+      - name: setpoint_kalman_sharpness
+        description: "Dynamic factor for the setpoint Kalman filter. In general, the higher the value, the more dynamic Kalman filter gets"
+        default_value: "100"
+        field: kalman_sharpness
+        condition: USE_GYRO_KALMAN
+        min: 1
+        max: 16000
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t
@@ -1873,6 +1880,9 @@ groups:
         description: "Defined if iNav should use velocity data provided by GPS module for doing position and speed estimation. If set to OFF iNav will fallback to calculating velocity from GPS coordinates. Using native velocity data may improve performance on some GPS modules. Some GPS modules introduce significant delay and using native velocity may actually result in much worse performance."
         default_value: "ON"
         field: use_gps_velned
+        type: bool
+      - name: inav_use_gps_no_baro
+        field: use_gps_no_baro
         type: bool
       - name: inav_allow_dead_reckoning
         description: "Defines if inav will dead-reckon over short GPS outages. May also be useful for indoors OPFLOW navigation"
@@ -2120,16 +2130,6 @@ groups:
         default_value: "0"
         field: general.rth_home_altitude
         max: 65000
-      - name: nav_rth_home_offset_distance
-        description: "Distance offset from GPS established home to \"safe\" position used for RTH (cm, 0 disables)"
-        default_value: "0"
-        field: general.rth_home_offset_distance
-        max: 65000
-      - name: nav_rth_home_offset_direction
-        description: "Direction offset from GPS established home to \"safe\" position used for RTH (degrees, 0=N, 90=E, 180=S, 270=W, requires non-zero offset distance)"
-        default_value: "0"
-        field: general.rth_home_offset_direction
-        max: 359
       - name: nav_mc_bank_angle
         description: "Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude"
         default_value: "30"
@@ -2853,6 +2853,57 @@ groups:
         description: "Sets OSD Artificial Horizon style \"DEFAULT\" or \"LINE\" for the FrSky Graphical OSD."
         default_value: "DEFAULT"
         table: osd_ahi_style
+
+      - name: osd_force_grid
+        field: force_grid
+        type: bool
+        default_value: "OFF"
+        description: Force OSD to work in grid mode even if the OSD device supports pixel level access (mainly used for development)
+
+      - name: osd_ahi_bordered
+        field: ahi_bordered
+        type: bool
+        description: Shows a border/corners around the AHI region (pixel OSD only)
+        default_value: "OFF"
+
+      - name: osd_ahi_width
+        field: ahi_width
+        max: 255
+        description: AHI width in pixels (pixel OSD only)
+        default_value: 132
+
+      - name: osd_ahi_height
+        field: ahi_height
+        max: 255
+        description: AHI height in pixels (pixel OSD only)
+        default_value: 162
+
+      - name: osd_ahi_vertical_offset
+        field: ahi_vertical_offset
+        min: -128
+        max: 127
+        description: AHI vertical offset from center (pixel OSD only)
+        default_value: 0
+
+      - name: osd_sidebar_horizontal_offset
+        field: sidebar_horizontal_offset
+        min: -128
+        max: 127
+        default_value: 0
+        description: Sidebar horizontal offset from default position. Positive values move the sidebars closer to the edges.
+
+      - name: osd_left_sidebar_scroll_step
+        field: left_sidebar_scroll_step
+        max: 255
+        default_value: 0
+        description: How many units each sidebar step represents. 0 means the default value for the scroll type.
+
+      - name: osd_right_sidebar_scroll_step
+        field: right_sidebar_scroll_step
+        max: 255
+        default_value: 0
+        description: Same as left_sidebar_scroll_step, but for the right sidebar
+
 
   - name: PG_SYSTEM_CONFIG
     type: systemConfig_t

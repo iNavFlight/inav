@@ -30,8 +30,13 @@
 #include <stdbool.h>
 #include <string.h>
 
+#include "platform.h"
+
+#if defined(USE_FLASHFS)
+
 #include "drivers/flash.h"
-#include "flashfs.h"
+
+#include "io/flashfs.h"
 
 static flashPartition_t *flashPartition;
 
@@ -559,3 +564,5 @@ void flashfsInit(void)
         flashfsSeekAbs(flashfsIdentifyStartOfFreeSpace());
     }
 }
+
+#endif

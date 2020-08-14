@@ -271,6 +271,10 @@ void servoMixer(float dT)
     input[INPUT_GVAR_1] = constrain(gvGet(1), -1000, 1000);
     input[INPUT_GVAR_2] = constrain(gvGet(2), -1000, 1000);
     input[INPUT_GVAR_3] = constrain(gvGet(3), -1000, 1000);
+    input[INPUT_GVAR_4] = constrain(gvGet(4), -1000, 1000);
+    input[INPUT_GVAR_5] = constrain(gvGet(5), -1000, 1000);
+    input[INPUT_GVAR_6] = constrain(gvGet(6), -1000, 1000);
+    input[INPUT_GVAR_7] = constrain(gvGet(7), -1000, 1000);
 #endif
 
     if (IS_RC_MODE_ACTIVE(BOXCAMSTAB)) {

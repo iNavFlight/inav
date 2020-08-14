@@ -123,6 +123,17 @@ A shorter form is also supported to enable and disable functions using `serial <
 
 `serial` can also be used without any argument to print the current configuration of all the serial ports.
 
+## Flash chip management
+
+For targets that have a flash data chip, typically used for blackbox logs, the following additional comamnds are provided.
+
+| Command | Effect |
+| ------- | ------ |
+| `flash_erase` | Erases the  flash chip |
+| `flash_info` | Displays flash chip information (used, free etc.) |
+| `flash_read <length> <address>` | Reads `length` bytes from `address` |
+| `flash_write <address> <data>` | Writes `data` to `address` |
+
 ## CLI Variable Reference
 
 See [Settings.md](Settings.md).
