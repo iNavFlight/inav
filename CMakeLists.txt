@@ -22,7 +22,7 @@ endif()
 
 project(INAV VERSION 2.5.0)
 
-ENABLE_LANGUAGE(ASM)
+enable_language(ASM)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_EXTENSIONS ON)
@@ -36,13 +36,6 @@ if (NOT RUBY_EXECUTABLE)
     message(FATAL_ERROR "Could not find ruby")
 endif()
 
-execute_process(COMMAND git rev-parse --short HEAD
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    RESULT_VARIABLE NO_GIT_HASH
-    OUTPUT_VARIABLE GIT_SHORT_HASH)
-if (NO_GIT_HASH)
-    message(FATAL_ERROR "Could not find git revision. Is git installed?")
-endif()
 
 set(MAIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 set(MAIN_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib")
@@ -51,6 +44,10 @@ set(MAIN_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/main")
 set(SVD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/dev/svd")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+include(GetGitRevisionDescription)
+get_git_head_revision(GIT_REFSPEC GIT_SHA1)
+string(SUBSTRING ${GIT_SHA1} 0 8 GIT_REV)
 
 set(FIRMWARE_VERSION ${PROJECT_VERSION})
 
