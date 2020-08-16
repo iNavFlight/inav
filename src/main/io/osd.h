@@ -158,7 +158,6 @@ typedef enum {
     OSD_RX_RSSI_DBM,
     OSD_RX_LQ,
     OSD_RX_SNR_DB,
-    OSD_RF_MODE,
     OSD_TX_POWER,
 >>>>>>> b8920077b... Atomiclama and my mods
     OSD_ITEM_COUNT // MUST BE LAST

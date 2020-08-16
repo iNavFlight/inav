@@ -2649,7 +2649,6 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdConfig->item_pos[0][OSD_RX_RSSI_DBM] = OSD_POS(23, 12);
     osdConfig->item_pos[0][OSD_RX_LQ] = OSD_POS(22, 11);
     osdConfig->item_pos[0][OSD_RX_SNR_DB] = OSD_POS(24, 9);
-    osdConfig->item_pos[0][OSD_RF_MODE] = OSD_POS(25, 0);
     osdConfig->item_pos[0][OSD_TX_POWER] = OSD_POS(24, 10);
 #endif
 
