@@ -1657,33 +1657,19 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_RX_SNR_DB: {
+        char const strn = "    ";
         int16_t osdSNR_Alarm = rxLinkStatistics.uplinkSNR;
         if (osdSNR_Alarm <= osdConfig()->snr_alarm) {
           buff[0] = SYM_SRN;
           tfp_sprintf(buff + 1, "%3d%c", rxLinkStatistics.uplinkSNR, SYM_DB);
         }
         else if (osdSNR_Alarm > osdConfig()->snr_alarm) {
-          displayWrite(osdDisplayPort, elemPosX, elemPosY, "     ");
+          //displayWrite(osdDisplayPort, elemPosX, elemPosY, "     ");
+          buff[0] = SYM_SRN;
+          tfp_sprintf(buff + 1, "%s%c", strn, SYM_DB);
         }
         break;
       }
-
-    case OSD_RF_MODE: { // This is not really needed but... LOW=4Hz, HIGH=150Hz, NORM=50Hz RFMode
-        const char* str;
-        switch (rxLinkStatistics.rfMode) {
-            case 0:
-                str = "LOW";
-                break;
-            case 2:
-                str = "HIGH";
-                break;
-            default:
-                str = "NORM";
-                break;
-        }
-        tfp_sprintf(buff, str);
-        break;
-    }
 
     case OSD_TX_POWER: {
         tfp_sprintf(buff, "%4d%c", rxLinkStatistics.uplinkTXPower, SYM_MW);
