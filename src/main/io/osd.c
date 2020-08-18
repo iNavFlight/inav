@@ -1704,21 +1704,21 @@ static bool osdDrawSingleElement(uint8_t item)
             return true;
         }
 
-        case OSD_RX_RSSI_DBM:
-                if (rxLinkStatistics.activeAnt == 0) {
-                  buff[0] = SYM_RSSI;
-                  tfp_sprintf(buff + 1, "%4d%c", rxLinkStatistics.uplinkRSSI, SYM_DBM);
-                  if (!failsafeIsReceivingRxData()){
-                      TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-                  }
-                } else {
-                  buff[0] = SYM_2RSS;
-                  tfp_sprintf(buff + 1, "%4d%c", rxLinkStatistics.uplinkRSSI, SYM_DBM);
-                  if (!failsafeIsReceivingRxData()){
-                      TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-                  }
-                }
-                break;
+    case OSD_RX_RSSI_DBM:
+            if (rxLinkStatistics.activeAnt == 0) {
+              buff[0] = SYM_RSSI;
+              tfp_sprintf(buff + 1, "%4d%c", rxLinkStatistics.uplinkRSSI, SYM_DBM);
+              if (!failsafeIsReceivingRxData()){
+                  TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+              }
+            } else {
+              buff[0] = SYM_2RSS;
+              tfp_sprintf(buff + 1, "%4d%c", rxLinkStatistics.uplinkRSSI, SYM_DBM);
+              if (!failsafeIsReceivingRxData()){
+                  TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+              }
+            }
+            break;
 
     case OSD_RX_LQ:
         buff[0] = SYM_BLANK;
