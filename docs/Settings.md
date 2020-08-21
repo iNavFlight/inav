@@ -164,6 +164,9 @@
 | mag_declination | 0 | Current location magnetic declination in format. For example, -6deg 37min = -637 for Japan. Leading zero in ddd not required. Get your local magnetic declination here: http://magnetic-declination.com/ . Not in use if inav_auto_mag_decl is turned on and you acquire valid GPS fix. |
 | mag_hardware | AUTO | Selection of mag hardware. See Wiki Sensor auto detect and hardware failure detection for more info |
 | mag_to_use |  | Allow to chose between built-in and external compass sensor if they are connected to separate buses. Currently only for REVO target |
+| maggain_x | 0 | Magnetometer calibration X gain. If 0, no calibration or calibration failed |
+| maggain_y | 0 | Magnetometer calibration Y gain. If 0, no calibration or calibration failed |
+| maggain_z | 0 | Magnetometer calibration Z gain. If 0, no calibration or calibration failed |
 | magzero_x | 0 | Magnetometer calibration X offset. If its 0 none offset has been applied and calibration is failed. |
 | magzero_y | 0 | Magnetometer calibration Y offset. If its 0 none offset has been applied and calibration is failed. |
 | magzero_z | 0 | Magnetometer calibration Z offset. If its 0 none offset has been applied and calibration is failed. |
@@ -373,7 +376,7 @@
 | rx_max_usec | 2115 | Defines the longest pulse width value used when ensuring the channel value is valid. If the receiver gives a pulse value higher than this value then the channel will be marked as bad and will default to the value of mid_rc. |
 | rx_min_usec | 885 | Defines the shortest pulse width value used when ensuring the channel value is valid. If the receiver gives a pulse value lower than this value then the channel will be marked as bad and will default to the value of mid_rc. |
 | sdcard_detect_inverted | `TARGET dependent` | This setting drives the way SD card is detected in card slot. On some targets (AnyFC F7 clone) different card slot was used and depending of hardware revision ON or OFF setting might be required. If card is not detected, change this value. |
-| serialrx_halfduplex | AUTO | Allow serial receiver to operate on UART TX pin. With some receivers will allow control and telemetry over a single wire |
+| serialrx_halfduplex | AUTO | Allow serial receiver to operate on UART TX pin. With some receivers will allow control and telemetry over a single wire. |
 | serialrx_inverted | OFF | Reverse the serial inversion of the serial RX protocol. When this value is OFF, each protocol will use its default signal (e.g. SBUS will use an inverted signal). Some OpenLRS receivers produce a non-inverted SBUS signal. This setting supports this type of receivers (including modified FrSKY). |
 | serialrx_provider | SPEK1024 | When feature SERIALRX is enabled, this allows connection to several receivers which output data via digital interface resembling serial. See RX section. |
 | servo_center_pulse | 1500 | Servo midpoint |
