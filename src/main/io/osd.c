@@ -1635,7 +1635,7 @@ static bool osdDrawSingleElement(uint8_t item)
             return true;
         }
 
-    case OSD_RX_RSSI_DBM:
+    case OSD_CRSF_RSSI_DBM:
             if (rxLinkStatistics.activeAnt == 0) {
               buff[0] = SYM_RSSI;
               tfp_sprintf(buff + 1, "%4d%c", rxLinkStatistics.uplinkRSSI, SYM_DBM);
@@ -1651,12 +1651,12 @@ static bool osdDrawSingleElement(uint8_t item)
             }
             break;
 
-    case OSD_RX_LQ:
+    case OSD_CRSF_LQ:
         buff[0] = SYM_BLANK;
         tfp_sprintf(buff + 1, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
         break;
 
-    case OSD_RX_SNR_DB: {
+    case OSD_CRSF_SNR_DB: {
         const char* strn = "    ";
         int16_t osdSNR_Alarm = rxLinkStatistics.uplinkSNR;
         if (osdSNR_Alarm <= osdConfig()->snr_alarm) {
@@ -1671,7 +1671,7 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
       }
 
-    case OSD_TX_POWER: {
+    case OSD_CRSF_TX_POWER: {
         tfp_sprintf(buff, "%4d%c", rxLinkStatistics.uplinkTXPower, SYM_MW);
         break;
     }
@@ -2646,10 +2646,10 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_VTX_CHANNEL] = OSD_POS(8, 6);
 
 #ifdef USE_SERIALRX_CRSF
-    osdConfig->item_pos[0][OSD_RX_RSSI_DBM] = OSD_POS(23, 12);
-    osdConfig->item_pos[0][OSD_RX_LQ] = OSD_POS(22, 11);
-    osdConfig->item_pos[0][OSD_RX_SNR_DB] = OSD_POS(23, 9);
-    osdConfig->item_pos[0][OSD_TX_POWER] = OSD_POS(24, 10);
+    osdConfig->item_pos[0][OSD_CRSF_RSSI_DBM] = OSD_POS(23, 12);
+    osdConfig->item_pos[0][OSD_CRSF_LQ] = OSD_POS(22, 11);
+    osdConfig->item_pos[0][OSD_CRSF_SNR_DB] = OSD_POS(23, 9);
+    osdConfig->item_pos[0][OSD_CRSF_TX_POWER] = OSD_POS(24, 10);
 #endif
 
     osdConfig->item_pos[0][OSD_ONTIME] = OSD_POS(23, 8);
