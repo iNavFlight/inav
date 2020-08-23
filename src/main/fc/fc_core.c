@@ -513,6 +513,68 @@ void tryArm(void)
     }
 }
 
+static void handlePIDAntiWindup(throttleStatus_e throttleStatus)
+{
+    static bool antiWindupWasActivatedOnce = false;
+
+    // Track if ANTI_WINDUP was activated
+    if (!ARMING_FLAG(ARMED)) {
+        antiWindupWasActivatedOnce = false;
+    }
+    // In MANUAL mode we reset integrators prevent I-term wind-up (PID output is not used in MANUAL) 
+    if (FLIGHT_MODE(MANUAL_MODE) || !ARMING_FLAG(ARMED)) {
+        DISABLE_STATE(ANTI_WINDUP);
+        pidResetErrorAccumulators();
+        return;
+    }
+
+    // At non-zero throttle - always disable ANTI_WINDUP
+    if (throttleStatus != THROTTLE_LOW) {
+        DISABLE_STATE(ANTI_WINDUP);
+        return;
+    }
+
+    // This case applies only to MR when Airmode management is throttle threshold activated
+    if (rcControlsConfig()->airmodeHandlingType == THROTTLE_THRESHOLD) {
+        DISABLE_STATE(ANTI_WINDUP);
+        if (throttleStatus == THROTTLE_LOW && !STATE(AIRMODE_ACTIVE)) {
+            pidResetErrorAccumulators();
+        }
+        return;
+    }
+
+    rollPitchStatus_e rollPitchStatus = calculateRollPitchCenterStatus();
+
+    if (STATE(FIXED_WING_LEGACY)) {
+        if (STATE(AIRMODE_ACTIVE)) {
+            // On airplanes only activate ANTI_WINDUP if throttle = low, roll/pitch = center and ANTI_WINDUP was never activated this flight
+            if ((rollPitchStatus == CENTERED) && !antiWindupWasActivatedOnce) {
+                ENABLE_STATE(ANTI_WINDUP);
+                antiWindupWasActivatedOnce = true;
+            }
+            else {
+                DISABLE_STATE(ANTI_WINDUP);
+            }
+        }
+        else {
+            DISABLE_STATE(ANTI_WINDUP);
+        }
+    }
+    else {  // MULTI_ROTOR
+        if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
+            if ((rollPitchStatus == CENTERED) || feature(FEATURE_MOTOR_STOP)) {
+                ENABLE_STATE(ANTI_WINDUP);
+            }
+            else {
+                DISABLE_STATE(ANTI_WINDUP);
+            }
+        }
+        else {
+            DISABLE_STATE(ANTI_WINDUP);
+        }
+    }
+}
+
 void processRx(timeUs_t currentTimeUs)
 {
     // Calculate RPY channel data
@@ -649,38 +711,7 @@ void processRx(timeUs_t currentTimeUs)
     /* In airmode Iterm should be prevented to grow when Low thottle and Roll + Pitch Centered.
        This is needed to prevent Iterm winding on the ground, but keep full stabilisation on 0 throttle while in air
        Low Throttle + roll and Pitch centered is assuming the copter is on the ground. Done to prevent complex air/ground detections */
-    if (FLIGHT_MODE(MANUAL_MODE) || !ARMING_FLAG(ARMED)) {
-        /* In MANUAL mode we reset integrators prevent I-term wind-up (PID output is not used in MANUAL) */
-        pidResetErrorAccumulators();
-    }
-    else if (STATE(FIXED_WING_LEGACY) || rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
-        if (throttleStatus == THROTTLE_LOW) {
-            if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive() && ARMING_FLAG(ARMED)) {
-                rollPitchStatus_e rollPitchStatus = calculateRollPitchCenterStatus();
-
-                // ANTI_WINDUP at centred stick with MOTOR_STOP is needed on MRs and not needed on FWs
-                if ((rollPitchStatus == CENTERED) || (feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING_LEGACY))) {
-                    ENABLE_STATE(ANTI_WINDUP);
-                }
-                else {
-                    DISABLE_STATE(ANTI_WINDUP);
-                }
-            }
-            else {
-                DISABLE_STATE(ANTI_WINDUP);
-                pidResetErrorAccumulators();
-            }
-        }
-        else {
-            DISABLE_STATE(ANTI_WINDUP);
-        }
-    } else if (rcControlsConfig()->airmodeHandlingType == THROTTLE_THRESHOLD) {
-        DISABLE_STATE(ANTI_WINDUP);
-        //This case applies only to MR when Airmode management is throttle threshold activated
-        if (throttleStatus == THROTTLE_LOW && !STATE(AIRMODE_ACTIVE)) {
-            pidResetErrorAccumulators();
-        }
-    }
+    handlePIDAntiWindup(throttleStatus);
 
     if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
         DISABLE_FLIGHT_MODE(HEADFREE_MODE);
