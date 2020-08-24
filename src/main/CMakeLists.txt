@@ -367,6 +367,8 @@ main_sources(COMMON_SRC
     rx/eleres.h
     rx/fport.c
     rx/fport.h
+    rx/fport2.c
+    rx/fport2.h
     rx/ibus.c
     rx/ibus.h
     rx/jetiexbus.c
@@ -506,6 +508,8 @@ main_sources(COMMON_SRC
     io/osd_grid.h
     io/osd_hud.c
     io/osd_hud.h
+    io/smartport_master.c
+    io/smartport_master.h
     io/vtx.c
     io/vtx.h
     io/vtx_string.c

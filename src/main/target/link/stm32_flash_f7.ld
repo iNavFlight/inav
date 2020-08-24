@@ -49,15 +49,15 @@ SECTIONS
     _etext = .;        /* define a global symbols at end of code */
   } >FLASH
 
-  tcm_code = LOADADDR(.tcm_code); 
+  tcm_code = LOADADDR(.tcm_code);
   .tcm_code (NOLOAD) :
   {
     . = ALIGN(4);
-    tcm_code_start = .; 
+    tcm_code_start = .;
     *(.tcm_code)
     *(.tcm_code*)
     . = ALIGN(4);
-    tcm_code_end = .; 
+    tcm_code_end = .;
   } >ITCM_RAM AT >FLASH
 
    .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >FLASH
@@ -138,7 +138,7 @@ SECTIONS
     _ebss = .;         /* define a global symbol at bss end */
     __bss_end__ = _ebss;
   } >RAM
-  
+
   .fastram_bss (NOLOAD) :
   {
     __fastram_bss_start__ = .;

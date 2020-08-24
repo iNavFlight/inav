@@ -123,7 +123,7 @@ ARCH_FLAGS      = -mthumb -mcpu=cortex-m7 -mfloat-abi=hard -mfpu=fpv5-sp-d16 -fs
 DEVICE_FLAGS    = -DUSE_HAL_DRIVER -DUSE_FULL_LL_DRIVER
 ifeq ($(TARGET),$(filter $(TARGET),$(F765XI_TARGETS)))
 DEVICE_FLAGS   += -DSTM32F765xx -DSTM32F765xI
-LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_F765xI.ld
+LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f765xi.ld
 STARTUP_SRC     = startup_stm32f765xx.s
 TARGET_FLASH   := 2048
 else ifeq ($(TARGET),$(filter $(TARGET),$(F765XG_TARGETS)))

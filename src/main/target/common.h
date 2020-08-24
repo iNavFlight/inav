@@ -46,7 +46,6 @@
 #endif
 
 #if defined(STM32F4) || defined(STM32F7)
-#define USE_USB_MSC
 #define USE_SERVO_SBUS
 #endif
 

@@ -23,21 +23,26 @@ macro(main_sources var) # list-var src-1...src-n
     list(TRANSFORM ${var} PREPEND "${MAIN_SRC_DIR}/")
 endmacro()
 
-macro(exclude_basenames) # list-var excludes-var
-    set(_filtered "")
-    foreach(item ${${ARGV0}})
+function(exclude_basenames var excludes)
+    set(filtered "")
+    foreach(item ${${var}})
         get_filename_component(basename ${item} NAME)
-        if (NOT ${basename} IN_LIST ${ARGV1})
-            list(APPEND _filtered ${item})
+        if (NOT ${basename} IN_LIST excludes)
+            list(APPEND filtered ${item})
         endif()
     endforeach()
-    set(${ARGV0} ${_filtered})
-endmacro()
+    set(${var} ${filtered} PARENT_SCOPE)
+endfunction()
 
-macro(glob_except) # var-name pattern excludes-var
-    file(GLOB ${ARGV0} ${ARGV1})
-    exclude_basenames(${ARGV0} ${ARGV2})
-endmacro()
+function(glob_except var pattern excludes)
+    file(GLOB results ${pattern})
+    list(LENGTH results count)
+    if(count EQUAL 0)
+        message(FATAL_ERROR "glob with pattern '${pattern}' returned no results")
+    endif()
+    exclude_basenames(results "${excludes}")
+    set(${var} ${results} PARENT_SCOPE)
+endfunction()
 
 function(get_generated_files_dir output target_name)
     set(${output} ${CMAKE_CURRENT_BINARY_DIR}/${target_name} PARENT_SCOPE)
@@ -97,6 +102,7 @@ function(collect_targets)
 
     list(JOIN targets " " target_names)
     list(JOIN release_targets " " release_targets_names)
+    set_property(GLOBAL PROPERTY RELEASE_TARGETS ${release_targets})
 
     set(list_target_name "targets")
     add_custom_target(${list_target_name}
@@ -110,5 +116,6 @@ function(collect_targets)
         DEPENDS ${release_targets}
     )
     list(LENGTH targets target_count)
-    message("-- ${target_count} targets found for toolchain ${TOOLCHAIN}")
+    list(LENGTH release_targets release_target_count)
+    message("-- ${target_count} targets (${release_target_count} for release) found for toolchain ${TOOLCHAIN}")
 endfunction()

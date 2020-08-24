@@ -58,12 +58,8 @@ main_sources(STM32_MSC_FLASH_SRC
     msc/emfat_file.c
 )
 
-main_sources(STM32_MSC_SDCARD_SPI_SRC
+main_sources(STM32_MSC_SDCARD_SRC
     msc/usbd_storage_sd_spi.c
-)
-
-main_sources(STM32_MSC_SDCARD_SDIO_SRC
-    msc/usbd_storage_sdio.c
 )
 
 set(STM32_INCLUDE_DIRS
@@ -321,11 +317,7 @@ function(target_stm32)
             list(APPEND msc_sources ${STM32_MSC_FLASH_SRC})
         endif()
         if (SDCARD IN_LIST features)
-            if (SDIO IN_LIST features)
-                list(APPEND msc_sources ${STM32_MSC_SDCARD_SDIO_SRC})
-            else()
-                list(APPEND msc_sources ${STM32_MSC_SDCARD_SPI_SRC})
-            endif()
+            list(APPEND msc_sources ${STM32_MSC_SDCARD_SRC})
         endif()
     endif()
 
@@ -340,6 +332,9 @@ function(target_stm32)
 
     string(TOLOWER ${PROJECT_NAME} lowercase_project_name)
     set(binary_name ${lowercase_project_name}_${FIRMWARE_VERSION}_${name})
+    if(DEFINED BUILD_SUFFIX AND NOT "" STREQUAL "${BUILD_SUFFIX}")
+        set(binary_name "${binary_name}_${BUILD_SUFFIX}")
+    endif()
 
     # Main firmware
     add_stm32_executable(

@@ -20,15 +20,13 @@ if (NOT ${TOOLCHAIN} IN_LIST TOOLCHAIN_OPTIONS)
     message(FATAL_ERROR "Invalid toolchain ${TOOLCHAIN}. Valid options are: ${TOOLCHAIN_OPTIONS}")
 endif()
 
+option(COMPILER_VERSION_CHECK "Ensure the compiler matches the expected version" ON)
+
 if(TOOLCHAIN STREQUAL none)
     add_subdirectory(src/test)
 else()
     set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/${TOOLCHAIN}.cmake")
     include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/${TOOLCHAIN}-checks.cmake")
-endif()
-
-if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-    set(IS_RELEASE_BUILD ON)
 endif()
 
 project(INAV VERSION 2.5.0)
@@ -47,7 +45,9 @@ if (NOT RUBY_EXECUTABLE)
     message(FATAL_ERROR "Could not find ruby")
 endif()
 
-
+if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    set(IS_RELEASE_BUILD ON)
+endif()
 
 include(GetGitRevisionDescription)
 get_git_head_revision(GIT_REFSPEC GIT_SHA1)
@@ -69,3 +69,4 @@ add_subdirectory(src)
 collect_targets()
 
 message("-- Build type: ${CMAKE_BUILD_TYPE}")
+include(ci)

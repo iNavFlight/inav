@@ -47,4 +47,4 @@ REGION_ALIAS("FASTRAM", TCM)
 
 __firmware_start = ORIGIN(FIRMWARE);
 
-INCLUDE "stm32_flash_F7.ld"
+INCLUDE "stm32_flash_f7.ld"
