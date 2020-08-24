@@ -18,7 +18,7 @@ function(enable_settings exe name)
     add_custom_command(
         OUTPUT ${dir}/${SETTINGS_GENERATED_H} ${dir}/${SETTINGS_GENERATED_C}
         COMMAND
-            ${CMAKE_COMMAND} -E env CFLAGS="${cflags}" TARGET=${name}
+            ${CMAKE_COMMAND} -E env CFLAGS="${cflags}" TARGET=${name} PATH=$ENV{PATH}
             ${RUBY_EXECUTABLE} ${SETTINGS_GENERATOR} ${MAIN_DIR} ${SETTINGS_FILE} -o "${dir}"
         DEPENDS ${SETTINGS_GENERATOR} ${SETTINGS_FILE}
     )

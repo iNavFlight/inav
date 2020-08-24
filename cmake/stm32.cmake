@@ -192,13 +192,15 @@ endfunction()
 
 function(add_hex_target name exe hex)
     add_custom_target(${name} ALL
+        cmake -E env PATH=$ENV{PATH}
         ${CMAKE_OBJCOPY} -Oihex $<TARGET_FILE:${exe}> ${hex}
         BYPRODUCTS ${hex}
     )
 endfunction()
 
 function(add_bin_target name exe bin)
-    add_custom_target(${name} ALL
+    add_custom_target(${name}
+        cmake -E env PATH=$ENV{PATH}
         ${CMAKE_OBJCOPY} -Obinary $<TARGET_FILE:${exe}> ${bin}
         BYPRODUCTS ${bin}
     )

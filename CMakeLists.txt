@@ -1,5 +1,15 @@
 cmake_minimum_required(VERSION 3.17)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+set(MAIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+set(MAIN_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib")
+set(MAIN_UTILS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/utils")
+set(MAIN_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/main")
+set(SVD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/dev/svd")
+set(DOWNLOADS_DIR "${MAIN_DIR}/downloads")
+set(TOOLS_DIR "${MAIN_DIR}/tools")
+
 set(TOOLCHAIN_OPTIONS none arm-none-eabi)
 set(TOOLCHAIN "arm-none-eabi" CACHE STRING "Toolchain to use. Available: ${TOOLCHAIN_OPTIONS}")
 set_property(CACHE TOOLCHAIN PROPERTY STRINGS ${TOOLCHAIN_OPTIONS})
@@ -14,6 +24,7 @@ if(TOOLCHAIN STREQUAL none)
     add_subdirectory(src/test)
 else()
     set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/${TOOLCHAIN}.cmake")
+    include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/${TOOLCHAIN}-checks.cmake")
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
@@ -37,13 +48,6 @@ if (NOT RUBY_EXECUTABLE)
 endif()
 
 
-set(MAIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-set(MAIN_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib")
-set(MAIN_UTILS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/utils")
-set(MAIN_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/main")
-set(SVD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/dev/svd")
-
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(GetGitRevisionDescription)
 get_git_head_revision(GIT_REFSPEC GIT_SHA1)
