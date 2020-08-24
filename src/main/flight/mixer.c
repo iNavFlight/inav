@@ -579,7 +579,9 @@ motorStatus_e getMotorStatus(void)
     }
 
     if (calculateThrottleStatus(feature(FEATURE_REVERSIBLE_MOTORS) ? THROTTLE_STATUS_TYPE_COMMAND : THROTTLE_STATUS_TYPE_RC) == THROTTLE_LOW) {
-        if ((STATE(FIXED_WING_LEGACY) || !STATE(AIRMODE_ACTIVE)) && (!(navigationIsFlyingAutonomousMode() && navConfig()->general.flags.auto_overrides_motor_stop)) && (!failsafeIsActive())) {
+        navOverridesMotorStop_e motorStopOverride = navConfig()->general.flags.nav_overrides_motor_stop;
+        if (!failsafeIsActive() && (STATE(FIXED_WING_LEGACY) || !STATE(AIRMODE_ACTIVE)) &&
+            ((motorStopOverride == NOMS_OFF) || ((motorStopOverride == NOMS_ALL_NAV) && !navigationIsControllingThrottle()) || ((motorStopOverride == NOMS_AUTO_ONLY) && !navigationIsFlyingAutonomousMode()))) {
             return MOTOR_STOPPED_USER;
         }
     }
