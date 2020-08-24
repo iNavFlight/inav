@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import optparse
 import yaml  # pyyaml / python-yaml
 
 SETTINGS_MD_PATH = "docs/Settings.md"
@@ -18,11 +19,12 @@ def generate_md_table_from_yaml(settings_yaml):
     # Extract description and default value of each setting from the YAML specs (if present)
     for group in settings_yaml['groups']:
         for member in group['members']:
-            if any(key in member for key in ["description", "default_value"]):
-                params[member['name']] = {
-                        "description": member["description"] if "description" in member else "",
-                        "default": member["default_value"] if "default_value" in member else ""
-                    }
+            if not any(key in member for key in ["description", "default_value"]) and not options.quiet:
+                print("Setting \"{}\" has no description or default value specified".format(member['name']))
+            params[member['name']] = {
+                    "description": member["description"] if "description" in member else "",
+                    "default": member["default_value"] if "default_value" in member else ""
+                }
     
     # MD table header
     md_table_lines = [
@@ -44,6 +46,11 @@ def write_settings_md(lines):
         settings_md.writelines(lines)
 
 if __name__ == "__main__":
+    global options, args
+    parser = optparse.OptionParser()
+    parser.add_option('-q', '--quiet', action="store_true", default=False, help="do not write anything to stdout")
+    options, args = parser.parse_args()
+
     settings_yaml = parse_settings_yaml()
     md_table_lines = generate_md_table_from_yaml(settings_yaml)
     settings_md_lines = \
