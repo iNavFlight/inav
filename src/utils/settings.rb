@@ -532,6 +532,7 @@ class Generator
         table_names.each do |name|
             buf << "const char * const #{table_variable_name(name)}[] = {\n"
             tbl = @tables[name]
+            raise "values not found for table #{name}" unless tbl.has_key? 'values'
             tbl["values"].each do |v|
                 buf << "\t#{v.inspect},\n"
             end
