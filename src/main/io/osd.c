@@ -1657,7 +1657,7 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_CRSF_SNR_DB: {
-        const char* strn = "    ";
+        const char* hidesnr = "    ";
         int16_t osdSNR_Alarm = rxLinkStatistics.uplinkSNR;
         if (osdSNR_Alarm <= osdConfig()->snr_alarm) {
           buff[0] = SYM_SRN;
@@ -1666,7 +1666,7 @@ static bool osdDrawSingleElement(uint8_t item)
         else if (osdSNR_Alarm > osdConfig()->snr_alarm) {
           //displayWrite(osdDisplayPort, elemPosX, elemPosY, "     ");
           buff[0] = SYM_SRN;
-          tfp_sprintf(buff + 1, "%s%c", strn, SYM_DB);
+          tfp_sprintf(buff + 1, "%s%c", hidesnr, SYM_DB);
         }
         break;
       }
