@@ -34,7 +34,7 @@ jobs:
           path: downloads
           key: ${{ runner.os }}-downloads-${{ hashFiles('CMakeLists.txt') }}-${{ hashFiles('**/cmake/*')}}
       - name: Build targets (${{ matrix.id }})
-        run: mkdir -p build && cd build && cmake -DCI_JOB_INDEX=${{ matrix.id }} -DCI_JOB_COUNT=${{ strategy.job-total }} -DBUILD_SUFFIX=${{ env.BUILD_SUFFIX }} -G Ninja .. && ninja ci
+        run: mkdir -p build && cd build && cmake -DWARNINGS_AS_ERRORS=ON -DCI_JOB_INDEX=${{ matrix.id }} -DCI_JOB_COUNT=${{ strategy.job-total }} -DBUILD_SUFFIX=${{ env.BUILD_SUFFIX }} -G Ninja .. && ninja ci
       - name: Upload artifacts
         uses: actions/upload-artifact@v2-preview
         with:
