@@ -1723,6 +1723,9 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_CRSF_LQ:
         buff[0] = SYM_BLANK;
         tfp_sprintf(buff + 1, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
+            if (!failsafeIsReceivingRxData()){
+                displayWrite(osdDisplayPort, elemPosX, elemPosY, "      ");
+            }
         break;
 
     case OSD_CRSF_SNR_DB: {
