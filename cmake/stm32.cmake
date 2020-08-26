@@ -413,12 +413,24 @@ function(target_stm32)
 
     # clean_<target>
     set(clean_target "clean_${name}")
+    if(CMAKE_VERSION VERSION_LESS 3.17)
+        if(CMAKE_HOST_SYSTEM MATCHES ".*Windows.*")
+            set(rm del /s /q)
+            set(rmdir rmdir /s /q)
+        else()
+            set(rm rm -fr)
+            set(rmdir ${rm})
+        endif()
+    else()
+        set(rm ${CMAKE_COMMAND} -E rm -fr)
+        set(rmdir ${rm})
+    endif()
     add_custom_target(${clean_target}
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        COMMAND ${CMAKE_COMMAND} -E rm -r "${CMAKE_CURRENT_BINARY_DIR}"
-        COMMAND ${CMAKE_COMMAND} -E rm ${main_hex_filename}
-        COMMAND ${CMAKE_COMMAND} -E rm ${bl_hex_filename}
-        COMMAND ${CMAKE_COMMAND} -E rm ${main_hex_filename}
+        COMMAND ${rmdir} "${CMAKE_CURRENT_BINARY_DIR}"
+        COMMAND ${rm} ${main_hex_filename}
+        COMMAND ${rm} ${bl_hex_filename}
+        COMMAND ${rm} ${main_hex_filename}
         COMMENT "Removing intermediate files for ${name}")
     set_property(TARGET ${clean_target} PROPERTY
         TARGET_MESSAGES OFF
