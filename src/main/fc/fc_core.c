@@ -521,15 +521,15 @@ static void handlePIDAntiWindup(throttleStatus_e throttleStatus)
     if (!ARMING_FLAG(ARMED)) {
         antiWindupWasDeactivatedOnce = false;
     }
-    // In MANUAL mode we reset integrators prevent I-term wind-up (PID output is not used in MANUAL) 
+    // In MANUAL mode we reset integrators prevent I-term wind-up (PID output is not used in MANUAL)
     if (FLIGHT_MODE(MANUAL_MODE) || !ARMING_FLAG(ARMED)) {
         DISABLE_STATE(ANTI_WINDUP);
         pidResetErrorAccumulators();
         return;
     }
-    
+
     rollPitchStatus_e rollPitchStatus = calculateRollPitchCenterStatus();
-   
+
     // Set antiWindupWasDeactivatedOnce to prevent anti windup from being activated again
     if ((throttleStatus != THROTTLE_LOW) && (rollPitchStatus != CENTERED)) {
         antiWindupWasDeactivatedOnce = true;
