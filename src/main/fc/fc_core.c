@@ -515,6 +515,10 @@ void tryArm(void)
 
 static void handlePIDAntiWindup(throttleStatus_e throttleStatus)
 {
+    /* In airmode Iterm should be prevented to grow when Low thottle and Roll + Pitch Centered.
+       This is needed to prevent Iterm winding on the ground, but keep full stabilisation on 0 throttle while in air
+       Low Throttle + roll and Pitch centered is assuming the copter is on the ground. Done to prevent complex air/ground detections */
+
     static bool antiWindupWasDeactivatedOnce = false;
 
     // Track if ANTI_WINDUP was activated
@@ -534,13 +538,11 @@ static void handlePIDAntiWindup(throttleStatus_e throttleStatus)
     if ((throttleStatus != THROTTLE_LOW) && (rollPitchStatus != CENTERED)) {
         antiWindupWasDeactivatedOnce = true;
     }
-
     // At non-zero throttle - always disable ANTI_WINDUP
     if (throttleStatus != THROTTLE_LOW) {
         DISABLE_STATE(ANTI_WINDUP);
         return;
     }
-
     // This case applies only to MR when Airmode management is throttle threshold activated
     if (rcControlsConfig()->airmodeHandlingType == THROTTLE_THRESHOLD) {
         DISABLE_STATE(ANTI_WINDUP);
@@ -549,7 +551,6 @@ static void handlePIDAntiWindup(throttleStatus_e throttleStatus)
         }
         return;
     }
-
     if (STATE(AIRPLANE)) {
         if (STATE(AIRMODE_ACTIVE)) {
             // On airplanes only activate ANTI_WINDUP if throttle = low, roll/pitch = center and ANTI_WINDUP was never activated this flight
@@ -712,9 +713,6 @@ void processRx(timeUs_t currentTimeUs)
         }
     }
 
-    /* In airmode Iterm should be prevented to grow when Low thottle and Roll + Pitch Centered.
-       This is needed to prevent Iterm winding on the ground, but keep full stabilisation on 0 throttle while in air
-       Low Throttle + roll and Pitch centered is assuming the copter is on the ground. Done to prevent complex air/ground detections */
     handlePIDAntiWindup(throttleStatus);
 
     if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
