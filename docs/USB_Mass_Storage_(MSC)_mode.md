@@ -83,5 +83,5 @@ Data rate  496Hz  35806 bytes/s     358100 baud
 ```
 ## Developer Notes
 
-Providing MSC is automatically enabled for all F4 and up a targets that support
+Providing MSC is automatically enabled for all F4 and up targets that support
 `ONBOARDFLASH` and /or `SDCARD`.
