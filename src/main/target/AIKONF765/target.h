@@ -114,6 +114,7 @@
 #define USE_UART5
 #define UART5_TX_PIN            PB9
 #define UART5_RX_PIN            PB8
+#define UART5_AF                7
 
 #define USE_UART6
 #define UART6_TX_PIN            PC6
