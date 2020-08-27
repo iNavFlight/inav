@@ -1654,13 +1654,13 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_CRSF_LQ:
         buff[0] = SYM_BLANK;
         tfp_sprintf(buff + 1, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
-            if (!failsafeIsReceivingRxData()){
-                displayWrite(osdDisplayPort, elemPosX, elemPosY, "      ");
-            }
+        if (!failsafeIsReceivingRxData()){
+            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+        }
         break;
 
     case OSD_CRSF_SNR_DB: {
-        const char* hidesnr = "    ";
+        const char* hidesnr = "     ";
         int16_t osdSNR_Alarm = rxLinkStatistics.uplinkSNR;
         if (osdSNR_Alarm <= osdConfig()->snr_alarm) {
           buff[0] = SYM_SRN;
