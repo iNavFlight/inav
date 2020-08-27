@@ -515,17 +515,24 @@ void tryArm(void)
 
 static void handlePIDAntiWindup(throttleStatus_e throttleStatus)
 {
-    static bool antiWindupWasActivatedOnce = false;
+    static bool antiWindupWasDeactivatedOnce = false;
 
     // Track if ANTI_WINDUP was activated
     if (!ARMING_FLAG(ARMED)) {
-        antiWindupWasActivatedOnce = false;
+        antiWindupWasDeactivatedOnce = false;
     }
     // In MANUAL mode we reset integrators prevent I-term wind-up (PID output is not used in MANUAL) 
     if (FLIGHT_MODE(MANUAL_MODE) || !ARMING_FLAG(ARMED)) {
         DISABLE_STATE(ANTI_WINDUP);
         pidResetErrorAccumulators();
         return;
+    }
+    
+    rollPitchStatus_e rollPitchStatus = calculateRollPitchCenterStatus();
+   
+    // Set antiWindupWasDeactivatedOnce to prevent anti windup from being activated again
+    if ((throttleStatus != THROTTLE_LOW) && (rollPitchStatus != CENTERED)) {
+        antiWindupWasDeactivatedOnce = true;
     }
 
     // At non-zero throttle - always disable ANTI_WINDUP
@@ -543,14 +550,11 @@ static void handlePIDAntiWindup(throttleStatus_e throttleStatus)
         return;
     }
 
-    rollPitchStatus_e rollPitchStatus = calculateRollPitchCenterStatus();
-
-    if (STATE(FIXED_WING_LEGACY)) {
+    if (STATE(AIRPLANE)) {
         if (STATE(AIRMODE_ACTIVE)) {
             // On airplanes only activate ANTI_WINDUP if throttle = low, roll/pitch = center and ANTI_WINDUP was never activated this flight
-            if ((rollPitchStatus == CENTERED) && !antiWindupWasActivatedOnce) {
+            if ((rollPitchStatus == CENTERED) && !antiWindupWasDeactivatedOnce) {
                 ENABLE_STATE(ANTI_WINDUP);
-                antiWindupWasActivatedOnce = true;
             }
             else {
                 DISABLE_STATE(ANTI_WINDUP);
