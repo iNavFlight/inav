@@ -92,12 +92,6 @@
 #define TELEMETRY_MAVLINK_MAXRATE       50
 #define TELEMETRY_MAVLINK_DELAY         ((1000 * 1000) / TELEMETRY_MAVLINK_MAXRATE)
 
-// according to __mavlink_battery_status_t.voltages
-#define MAVLINK_MSG_ID_BATTERY_STATUS_MAX_CELLS 10
-
-// according to mavlink_msg_statustext
-#define MAVLINK_STATUS_TEXT_LENGTH 50
-
 
 /** @brief A mapping of plane flight modes for custom_mode field of heartbeat. */
 typedef enum APM_PLANE_MODE
@@ -179,7 +173,7 @@ static mavlink_status_t mavRecvStatus;
 static uint8_t mavSystemId = 1;
 static uint8_t mavComponentId = MAV_COMP_ID_SYSTEM_CONTROL;
 
-APM_COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
+static APM_COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
 {
     switch (flightMode)
     {
@@ -207,7 +201,7 @@ APM_COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
     }
 }
 
-APM_PLANE_MODE inavToArduPlaneMap(flightModeForTelemetry_e flightMode)
+static APM_PLANE_MODE inavToArduPlaneMap(flightModeForTelemetry_e flightMode)
 {
     switch (flightMode)
     {
@@ -475,8 +469,8 @@ void mavlinkSendPosition(timeUs_t currentTimeUs)
         0,
         // Ground Z Speed (Altitude), expressed as m/s * 100
         0,
-        // heading Current heading in degrees, in compass units (0..360, 0=north)
-        DECIDEGREES_TO_DEGREES(attitude.values.yaw)
+        // [cdeg] Vehicle heading (yaw angle) (0.0..359.99 degrees, 0=north)
+        DECIDEGREES_TO_CENTIDEGREES(attitude.values.yaw)
     );
 
     mavlinkSendMessage();
@@ -647,12 +641,12 @@ void mavlinkSendHUDAndHeartbeat(void)
 
 void mavlinkSendBatteryTemperatureStatusText(void)
 {
-    uint16_t batteryVoltages[MAVLINK_MSG_ID_BATTERY_STATUS_MAX_CELLS];
+    uint16_t batteryVoltages[MAVLINK_MSG_BATTERY_STATUS_FIELD_VOLTAGES_LEN];
     memset(batteryVoltages, UINT16_MAX, sizeof(batteryVoltages));
     if (feature(FEATURE_VBAT)) {
         uint8_t batteryCellCount = getBatteryCellCount();
         if (batteryCellCount > 0) {
-            for (int cell=0; (cell < batteryCellCount) && (cell < MAVLINK_MSG_ID_BATTERY_STATUS_MAX_CELLS); cell++) {
+            for (int cell=0; (cell < batteryCellCount) && (cell < MAVLINK_MSG_BATTERY_STATUS_FIELD_VOLTAGES_LEN); cell++) {
                 batteryVoltages[cell] = getBatteryAverageCellVoltage() * 10;
             }
         }
@@ -697,16 +691,17 @@ void mavlinkSendBatteryTemperatureStatusText(void)
 
     mavlinkSendMessage();
 
-    char buff[MAVLINK_STATUS_TEXT_LENGTH] = {""};
-    textAttributes_t elemAttr = osdGetSystemMessage(buff, sizeof(buff), false);
-    MAV_SEVERITY severity = MAV_SEVERITY_INFO;
-    if (TEXT_ATTRIBUTES_HAVE_BLINK(elemAttr)) {
-        severity = MAV_SEVERITY_CRITICAL;
-    } else if TEXT_ATTRIBUTES_HAVE_INVERTED(elemAttr) {
-        severity = MAV_SEVERITY_WARNING;
-    }
 
+    char buff[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN] = {""};
+    textAttributes_t elemAttr = osdGetSystemMessage(buff, sizeof(buff), false);
     if (buff[0] != '\0') {
+        MAV_SEVERITY severity = MAV_SEVERITY_NOTICE;
+        if (TEXT_ATTRIBUTES_HAVE_BLINK(elemAttr)) {
+            severity = MAV_SEVERITY_CRITICAL;
+        } else if TEXT_ATTRIBUTES_HAVE_INVERTED(elemAttr) {
+            severity = MAV_SEVERITY_WARNING;
+        }
+
         mavlink_msg_statustext_pack(mavSystemId, mavComponentId, &mavSendMsg,
             (uint8_t)severity,
             buff);
