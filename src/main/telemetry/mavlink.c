@@ -192,7 +192,17 @@ APM_COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
         case FLM_RTH:           return COPTER_MODE_RTL;
         case FLM_MISSION:       return COPTER_MODE_AUTO;
         case FLM_LAUNCH:        return COPTER_MODE_THROW;
-        case FLM_FAILSAFE:      return COPTER_MODE_RTL;
+        case FLM_FAILSAFE:
+            {
+                if (failsafePhase() == FAILSAFE_RETURN_TO_HOME) {
+                    return COPTER_MODE_RTL;
+                } else if (failsafePhase() == FAILSAFE_LANDING) {
+                    return COPTER_MODE_LAND;
+                } else {
+                    // There is no valid mapping to ArduCopter
+                    return COPTER_MODE_ENUM_END;
+                }
+            }
         default:                return COPTER_MODE_ENUM_END;
     }
 }
@@ -212,7 +222,19 @@ APM_PLANE_MODE inavToArduPlaneMap(flightModeForTelemetry_e flightMode)
         case FLM_MISSION:       return PLANE_MODE_AUTO;
         case FLM_CRUISE:        return PLANE_MODE_CRUISE;
         case FLM_LAUNCH:        return PLANE_MODE_TAKEOFF;
-        case FLM_FAILSAFE:      return PLANE_MODE_RTL;
+        case FLM_FAILSAFE:
+            {
+                if (failsafePhase() == FAILSAFE_RETURN_TO_HOME) {
+                    return PLANE_MODE_RTL;
+                }
+                else if (failsafePhase() == FAILSAFE_LANDING) {
+                    return PLANE_MODE_AUTO;
+                }
+                else {
+                    // There is no valid mapping to ArduPlane
+                    return PLANE_MODE_ENUM_END;
+                }
+            }
         default:                return PLANE_MODE_ENUM_END;
     }
 }
