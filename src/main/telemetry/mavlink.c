@@ -42,7 +42,7 @@
 
 #include "drivers/serial.h"
 #include "drivers/time.h"
-#include "drivers/osd_symbols.h"
+#include "drivers/display.h"
 
 #include "fc/config.h"
 #include "fc/fc_core.h"
@@ -60,6 +60,7 @@
 #include "io/gps.h"
 #include "io/ledstrip.h"
 #include "io/serial.h"
+#include "io/osd.h"
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
@@ -94,15 +95,8 @@
 // according to __mavlink_battery_status_t.voltages
 #define MAVLINK_MSG_ID_BATTERY_STATUS_MAX_CELLS 10
 
-#define STATUS_TEXT_LENGTH 50
-#define STATUS_TEXT_ALTERNATING_CHOICES(ms, num_choices) ((millis() / ms) % num_choices)
-#define _CONST_STR_SIZE(s) ((sizeof(s)/sizeof(s[0]))-1) // -1 to avoid counting final '\0'
-// Wrap all string constants intenteded for display as messages with
-// this macro to ensure compile time length validation.
-#define STATUS_TEXT_STR(x) ({ \
-    STATIC_ASSERT(_CONST_STR_SIZE(x) <= STATUS_TEXT_LENGTH, message_string_ ## __COUNTER__ ## _too_long); \
-    x; \
-})
+// according to mavlink_msg_statustext
+#define MAVLINK_STATUS_TEXT_LENGTH 50
 
 
 /** @brief A mapping of plane flight modes for custom_mode field of heartbeat. */
@@ -222,313 +216,6 @@ APM_PLANE_MODE inavToArduPlaneMap(flightModeForTelemetry_e flightMode)
         default:                return PLANE_MODE_ENUM_END;
     }
 }
-
-// Used twice, make sure it's exactly the same string
-// to save some memory
-#define RC_RX_LINK_LOST_MSG "!RC RX LINK LOST!"
-
-static const char * mavlinkArmingDisabledReasonMessage(void)
-{
-    switch (isArmingDisabledReason()) {
-        case ARMING_DISABLED_FAILSAFE_SYSTEM:
-            // See handling of FAILSAFE_RX_LOSS_MONITORING in failsafe.c
-            if (failsafePhase() == FAILSAFE_RX_LOSS_MONITORING) {
-                if (failsafeIsReceivingRxData()) {
-                    // If we're not using sticks, it means the ARM switch
-                    // hasn't been off since entering FAILSAFE_RX_LOSS_MONITORING
-                    // yet
-                    return STATUS_TEXT_STR("TURN ARM SWITCH OFF");
-                }
-                // Not receiving RX data
-                return STATUS_TEXT_STR(RC_RX_LINK_LOST_MSG);
-            }
-            return STATUS_TEXT_STR("DISABLED BY FAILSAFE");
-        case ARMING_DISABLED_NOT_LEVEL:
-            return STATUS_TEXT_STR("AIRCRAFT IS NOT LEVEL");
-        case ARMING_DISABLED_SENSORS_CALIBRATING:
-            return STATUS_TEXT_STR("SENSORS CALIBRATING");
-        case ARMING_DISABLED_SYSTEM_OVERLOADED:
-            return STATUS_TEXT_STR("SYSTEM OVERLOADED");
-        case ARMING_DISABLED_NAVIGATION_UNSAFE:
-#if defined(USE_NAV)
-            // Check the exact reason
-            switch (navigationIsBlockingArming(NULL)) {
-                case NAV_ARMING_BLOCKER_NONE:
-                    break;
-                case NAV_ARMING_BLOCKER_MISSING_GPS_FIX:
-                    return STATUS_TEXT_STR("WAITING FOR GPS FIX");
-                case NAV_ARMING_BLOCKER_NAV_IS_ALREADY_ACTIVE:
-                    return STATUS_TEXT_STR("DISABLE NAVIGATION FIRST");
-                case NAV_ARMING_BLOCKER_FIRST_WAYPOINT_TOO_FAR:
-                    return STATUS_TEXT_STR("FIRST WAYPOINT IS TOO FAR");
-                case NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR:
-                    return STATUS_TEXT_STR("JUMP WAYPOINT MISCONFIGURED");
-            }
-#endif
-            break;
-        case ARMING_DISABLED_COMPASS_NOT_CALIBRATED:
-            return STATUS_TEXT_STR("COMPASS NOT CALIBRATED");
-        case ARMING_DISABLED_ACCELEROMETER_NOT_CALIBRATED:
-            return STATUS_TEXT_STR("ACCELEROMETER NOT CALIBRATED");
-        case ARMING_DISABLED_ARM_SWITCH:
-            return STATUS_TEXT_STR("DISABLE ARM SWITCH FIRST");
-        case ARMING_DISABLED_HARDWARE_FAILURE:
-            {
-                if (!HW_SENSOR_IS_HEALTHY(getHwGyroStatus())) {
-                    return STATUS_TEXT_STR("GYRO FAILURE");
-                }
-                if (!HW_SENSOR_IS_HEALTHY(getHwAccelerometerStatus())) {
-                    return STATUS_TEXT_STR("ACCELEROMETER FAILURE");
-                }
-                if (!HW_SENSOR_IS_HEALTHY(getHwCompassStatus())) {
-                    return STATUS_TEXT_STR("COMPASS FAILURE");
-                }
-                if (!HW_SENSOR_IS_HEALTHY(getHwBarometerStatus())) {
-                    return STATUS_TEXT_STR("BAROMETER FAILURE");
-                }
-                if (!HW_SENSOR_IS_HEALTHY(getHwGPSStatus())) {
-                    return STATUS_TEXT_STR("GPS FAILURE");
-                }
-                if (!HW_SENSOR_IS_HEALTHY(getHwRangefinderStatus())) {
-                    return STATUS_TEXT_STR("RANGE FINDER FAILURE");
-                }
-                if (!HW_SENSOR_IS_HEALTHY(getHwPitotmeterStatus())) {
-                    return STATUS_TEXT_STR("PITOT METER FAILURE");
-                }
-            }
-            return STATUS_TEXT_STR("HARDWARE FAILURE");
-        case ARMING_DISABLED_BOXFAILSAFE:
-            return STATUS_TEXT_STR("FAILSAFE MODE ENABLED");
-        case ARMING_DISABLED_BOXKILLSWITCH:
-            return STATUS_TEXT_STR("KILLSWITCH MODE ENABLED");
-        case ARMING_DISABLED_RC_LINK:
-            return STATUS_TEXT_STR("NO RC LINK");
-        case ARMING_DISABLED_THROTTLE:
-            return STATUS_TEXT_STR("THROTTLE IS NOT LOW");
-        case ARMING_DISABLED_ROLLPITCH_NOT_CENTERED:
-            return STATUS_TEXT_STR("ROLLPITCH NOT CENTERED");
-        case ARMING_DISABLED_SERVO_AUTOTRIM:
-            return STATUS_TEXT_STR("AUTOTRIM IS ACTIVE");
-        case ARMING_DISABLED_OOM:
-            return STATUS_TEXT_STR("NOT ENOUGH MEMORY");
-        case ARMING_DISABLED_INVALID_SETTING:
-            return STATUS_TEXT_STR("INVALID SETTING");
-        case ARMING_DISABLED_CLI:
-            return STATUS_TEXT_STR("CLI IS ACTIVE");
-        case ARMING_DISABLED_PWM_OUTPUT_ERROR:
-            return STATUS_TEXT_STR("PWM INIT ERROR");
-            // Cases without message
-        case ARMING_DISABLED_CMS_MENU:
-            FALLTHROUGH;
-        case ARMING_DISABLED_OSD_MENU:
-            FALLTHROUGH;
-        case ARMING_DISABLED_ALL_FLAGS:
-            FALLTHROUGH;
-        case ARMED:
-            FALLTHROUGH;
-        case WAS_EVER_ARMED:
-            break;
-    }
-    return NULL;
-}
-
-static const char * mavlinkFailsafePhaseMessage(void)
-{
-    // See failsafe.h for each phase explanation
-    switch (failsafePhase()) {
-#ifdef USE_NAV
-        case FAILSAFE_RETURN_TO_HOME:
-            // XXX: Keep this in sync with OSD_FLYMODE.
-            return STATUS_TEXT_STR("(RTH)");
-#endif
-        case FAILSAFE_LANDING:
-            // This should be considered an emergengy landing
-            return STATUS_TEXT_STR("(EMERGENCY LANDING)");
-        case FAILSAFE_RX_LOSS_MONITORING:
-            // Only reachable from FAILSAFE_LANDED, which performs
-            // a disarm. Since aircraft has been disarmed, we no
-            // longer show failsafe details.
-            FALLTHROUGH;
-        case FAILSAFE_LANDED:
-            // Very brief, disarms and transitions into
-            // FAILSAFE_RX_LOSS_MONITORING. Note that it prevents
-            // further rearming via ARMING_DISABLED_FAILSAFE_SYSTEM,
-            // so we'll show the user how to re-arm in when
-            // that flag is the reason to prevent arming.
-            FALLTHROUGH;
-        case FAILSAFE_RX_LOSS_IDLE:
-            // This only happens when user has chosen NONE as FS
-            // procedure. The recovery messages should be enough.
-            FALLTHROUGH;
-        case FAILSAFE_IDLE:
-            // Failsafe not active
-            FALLTHROUGH;
-        case FAILSAFE_RX_LOSS_DETECTED:
-            // Very brief, changes to FAILSAFE_RX_LOSS_RECOVERED
-            // or the FS procedure immediately.
-            FALLTHROUGH;
-        case FAILSAFE_RX_LOSS_RECOVERED:
-            // Exiting failsafe
-            break;
-    }
-    return NULL;
-}
-
-static const char * mavlinkFailsafeInfoMessage(void)
-{
-    if (failsafeIsReceivingRxData()) {
-        // User must move sticks to exit FS mode
-        return STATUS_TEXT_STR("!MOVE STICKS TO EXIT FS!");
-    }
-    return STATUS_TEXT_STR(RC_RX_LINK_LOST_MSG);
-}
-
-static const char * mavlinkNavigationStateMessage(void)
-{
-    switch (NAV_Status.state) {
-        case MW_NAV_STATE_NONE:
-            break;
-        case MW_NAV_STATE_RTH_START:
-            return STATUS_TEXT_STR("STARTING RTH");
-        case MW_NAV_STATE_RTH_ENROUTE:
-            // TODO: Break this up between climb and head home
-            return STATUS_TEXT_STR("EN ROUTE TO HOME");
-        case MW_NAV_STATE_HOLD_INFINIT:
-            // Used by HOLD flight modes. No information to add.
-            break;
-        case MW_NAV_STATE_HOLD_TIMED:
-            // TODO: Maybe we can display a count down
-            return STATUS_TEXT_STR("HOLDING WAYPOINT");
-            break;
-        case MW_NAV_STATE_WP_ENROUTE:
-            // TODO: Show WP number
-            return STATUS_TEXT_STR("TO WP");
-        case MW_NAV_STATE_PROCESS_NEXT:
-            return STATUS_TEXT_STR("PREPARING FOR NEXT WAYPOINT");
-        case MW_NAV_STATE_DO_JUMP:
-            // Not used
-            break;
-        case MW_NAV_STATE_LAND_START:
-            // Not used
-            break;
-        case MW_NAV_STATE_EMERGENCY_LANDING:
-            return STATUS_TEXT_STR("EMERGENCY LANDING");
-        case MW_NAV_STATE_LAND_IN_PROGRESS:
-            return STATUS_TEXT_STR("LANDING");
-        case MW_NAV_STATE_HOVER_ABOVE_HOME:
-            if (STATE(FIXED_WING_LEGACY)) {
-                return STATUS_TEXT_STR("LOITERING AROUND HOME");
-            }
-            return STATUS_TEXT_STR("HOVERING");
-        case MW_NAV_STATE_LANDED:
-            return STATUS_TEXT_STR("LANDED");
-        case MW_NAV_STATE_LAND_SETTLE:
-            return STATUS_TEXT_STR("PREPARING TO LAND");
-        case MW_NAV_STATE_LAND_START_DESCENT:
-            // Not used
-            break;
-    }
-    return NULL;
-}
-
-static MAV_SEVERITY getMAVLinkSystemMsg(char* buff)
-{
-    MAV_SEVERITY severityLevel = MAV_SEVERITY_INFO;
-    const char *message = NULL;
-    char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, STATUS_TEXT_LENGTH+1)];
-    if (ARMING_FLAG(ARMED)) {
-        // Aircraft is armed. We might have up to 5
-        // messages to show.
-        const char *messages[5];
-        unsigned messageCount = 0;
-        if (FLIGHT_MODE(FAILSAFE_MODE)) {
-            // In FS mode while being armed too
-            const char *failsafePhaseMessage = mavlinkFailsafePhaseMessage();
-            const char *failsafeInfoMessage = mavlinkFailsafeInfoMessage();
-            const char *navStateFSMessage = mavlinkNavigationStateMessage();
-            if (failsafePhaseMessage) {
-                messages[messageCount++] = failsafePhaseMessage;
-            }
-            if (failsafeInfoMessage) {
-                messages[messageCount++] = failsafeInfoMessage;
-            }
-            if (navStateFSMessage) {
-                messages[messageCount++] = navStateFSMessage;
-            }
-            if (messageCount > 0) {
-                message = messages[STATUS_TEXT_ALTERNATING_CHOICES(1000, messageCount)];
-                if (message == failsafeInfoMessage) {
-                    severityLevel = MAV_SEVERITY_CRITICAL;
-                }
-            }
-        } else {
-            if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
-                const char *navStateMessage = mavlinkNavigationStateMessage();
-                if (navStateMessage) {
-                    messages[messageCount++] = navStateMessage;
-                }
-            } else if (STATE(FIXED_WING_LEGACY) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
-                    messages[messageCount++] = "AUTOLAUNCH";
-            } else {
-                if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
-                    // ALTHOLD might be enabled alongside ANGLE/HORIZON/ACRO
-                    // when it doesn't require ANGLE mode (required only in FW
-                    // right now). If if requires ANGLE, its display is handled
-                    // by OSD_FLYMODE.
-                    messages[messageCount++] = "(ALTITUDE HOLD)";
-                }
-                if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) {
-                    messages[messageCount++] = "(AUTOTRIM)";
-                }
-                if (IS_RC_MODE_ACTIVE(BOXAUTOTUNE)) {
-                    messages[messageCount++] = "(AUTOTUNE)";
-                }
-                if (FLIGHT_MODE(HEADFREE_MODE)) {
-                    messages[messageCount++] = "(HEADFREE)";
-                }
-            }
-            // Pick one of the available messages. Each message lasts
-            // a second.
-            if (messageCount > 0) {
-                message = messages[STATUS_TEXT_ALTERNATING_CHOICES(1000, messageCount)];
-            }
-        }
-    } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
-        unsigned invalidIndex;
-        // Check if we're unable to arm for some reason
-        if (ARMING_FLAG(ARMING_DISABLED_INVALID_SETTING) && !settingsValidate(&invalidIndex)) {
-            if (STATUS_TEXT_ALTERNATING_CHOICES(1000, 2) == 0) {
-                const setting_t *setting = settingGet(invalidIndex);
-                settingGetName(setting, messageBuf);
-                for (int ii = 0; messageBuf[ii]; ii++) {
-                    messageBuf[ii] = sl_toupper(messageBuf[ii]);
-                }
-                message = messageBuf;
-            } else {
-                message = "INVALID SETTING";
-                severityLevel = MAV_SEVERITY_WARNING;
-            }
-        } else {
-            if (STATUS_TEXT_ALTERNATING_CHOICES(1000, 2) == 0) {
-                message = "UNABLE TO ARM";
-                severityLevel = MAV_SEVERITY_WARNING;
-            } else {
-                // Show the reason for not arming
-                message = mavlinkArmingDisabledReasonMessage();
-            }
-        }
-    }
-
-    if (message) {
-        int messageLength = strlen(message);
-        strncpy(buff, message, STATUS_TEXT_LENGTH);
-        // Ensure buff is zero terminated
-        buff[messageLength] = '\0';
-    }
-
-    return severityLevel;
-}
-
 
 static int mavlinkStreamTrigger(enum MAV_DATA_STREAM streamNum)
 {
@@ -988,9 +675,16 @@ void mavlinkSendBatteryTemperatureStatusText(void)
 
     mavlinkSendMessage();
 
-    char buff[STATUS_TEXT_LENGTH] = {" "};
-    MAV_SEVERITY severity = getMAVLinkSystemMsg(buff);
-    if (buff[0] != ' ') {
+    char buff[MAVLINK_STATUS_TEXT_LENGTH] = {""};
+    textAttributes_t elemAttr = osdGetSystemMessage(buff, sizeof(buff), false);
+    MAV_SEVERITY severity = MAV_SEVERITY_INFO;
+    if (TEXT_ATTRIBUTES_HAVE_BLINK(elemAttr)) {
+        severity = MAV_SEVERITY_CRITICAL;
+    } else if TEXT_ATTRIBUTES_HAVE_INVERTED(elemAttr) {
+        severity = MAV_SEVERITY_WARNING;
+    }
+
+    if (buff[0] != '\0') {
         mavlink_msg_statustext_pack(mavSystemId, mavComponentId, &mavSendMsg,
             (uint8_t)severity,
             buff);
