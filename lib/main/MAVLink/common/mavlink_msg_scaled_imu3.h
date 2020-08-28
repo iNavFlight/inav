@@ -3,19 +3,19 @@
 
 #define MAVLINK_MSG_ID_SCALED_IMU3 129
 
-MAVPACKED(
+
 typedef struct __mavlink_scaled_imu3_t {
- uint32_t time_boot_ms; /*< Timestamp (milliseconds since system boot)*/
- int16_t xacc; /*< X acceleration (mg)*/
- int16_t yacc; /*< Y acceleration (mg)*/
- int16_t zacc; /*< Z acceleration (mg)*/
- int16_t xgyro; /*< Angular speed around X axis (millirad /sec)*/
- int16_t ygyro; /*< Angular speed around Y axis (millirad /sec)*/
- int16_t zgyro; /*< Angular speed around Z axis (millirad /sec)*/
- int16_t xmag; /*< X Magnetic field (milli tesla)*/
- int16_t ymag; /*< Y Magnetic field (milli tesla)*/
- int16_t zmag; /*< Z Magnetic field (milli tesla)*/
-}) mavlink_scaled_imu3_t;
+ uint32_t time_boot_ms; /*< [ms] Timestamp (time since system boot).*/
+ int16_t xacc; /*< [mG] X acceleration*/
+ int16_t yacc; /*< [mG] Y acceleration*/
+ int16_t zacc; /*< [mG] Z acceleration*/
+ int16_t xgyro; /*< [mrad/s] Angular speed around X axis*/
+ int16_t ygyro; /*< [mrad/s] Angular speed around Y axis*/
+ int16_t zgyro; /*< [mrad/s] Angular speed around Z axis*/
+ int16_t xmag; /*< [mgauss] X Magnetic field*/
+ int16_t ymag; /*< [mgauss] Y Magnetic field*/
+ int16_t zmag; /*< [mgauss] Z Magnetic field*/
+} mavlink_scaled_imu3_t;
 
 #define MAVLINK_MSG_ID_SCALED_IMU3_LEN 22
 #define MAVLINK_MSG_ID_SCALED_IMU3_MIN_LEN 22
@@ -68,16 +68,16 @@ typedef struct __mavlink_scaled_imu3_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param time_boot_ms Timestamp (milliseconds since system boot)
- * @param xacc X acceleration (mg)
- * @param yacc Y acceleration (mg)
- * @param zacc Z acceleration (mg)
- * @param xgyro Angular speed around X axis (millirad /sec)
- * @param ygyro Angular speed around Y axis (millirad /sec)
- * @param zgyro Angular speed around Z axis (millirad /sec)
- * @param xmag X Magnetic field (milli tesla)
- * @param ymag Y Magnetic field (milli tesla)
- * @param zmag Z Magnetic field (milli tesla)
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param xacc [mG] X acceleration
+ * @param yacc [mG] Y acceleration
+ * @param zacc [mG] Z acceleration
+ * @param xgyro [mrad/s] Angular speed around X axis
+ * @param ygyro [mrad/s] Angular speed around Y axis
+ * @param zgyro [mrad/s] Angular speed around Z axis
+ * @param xmag [mgauss] X Magnetic field
+ * @param ymag [mgauss] Y Magnetic field
+ * @param zmag [mgauss] Z Magnetic field
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_scaled_imu3_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -123,16 +123,16 @@ static inline uint16_t mavlink_msg_scaled_imu3_pack(uint8_t system_id, uint8_t c
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param time_boot_ms Timestamp (milliseconds since system boot)
- * @param xacc X acceleration (mg)
- * @param yacc Y acceleration (mg)
- * @param zacc Z acceleration (mg)
- * @param xgyro Angular speed around X axis (millirad /sec)
- * @param ygyro Angular speed around Y axis (millirad /sec)
- * @param zgyro Angular speed around Z axis (millirad /sec)
- * @param xmag X Magnetic field (milli tesla)
- * @param ymag Y Magnetic field (milli tesla)
- * @param zmag Z Magnetic field (milli tesla)
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param xacc [mG] X acceleration
+ * @param yacc [mG] Y acceleration
+ * @param zacc [mG] Z acceleration
+ * @param xgyro [mrad/s] Angular speed around X axis
+ * @param ygyro [mrad/s] Angular speed around Y axis
+ * @param zgyro [mrad/s] Angular speed around Z axis
+ * @param xmag [mgauss] X Magnetic field
+ * @param ymag [mgauss] Y Magnetic field
+ * @param zmag [mgauss] Z Magnetic field
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_scaled_imu3_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -204,16 +204,16 @@ static inline uint16_t mavlink_msg_scaled_imu3_encode_chan(uint8_t system_id, ui
  * @brief Send a scaled_imu3 message
  * @param chan MAVLink channel to send the message
  *
- * @param time_boot_ms Timestamp (milliseconds since system boot)
- * @param xacc X acceleration (mg)
- * @param yacc Y acceleration (mg)
- * @param zacc Z acceleration (mg)
- * @param xgyro Angular speed around X axis (millirad /sec)
- * @param ygyro Angular speed around Y axis (millirad /sec)
- * @param zgyro Angular speed around Z axis (millirad /sec)
- * @param xmag X Magnetic field (milli tesla)
- * @param ymag Y Magnetic field (milli tesla)
- * @param zmag Z Magnetic field (milli tesla)
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param xacc [mG] X acceleration
+ * @param yacc [mG] Y acceleration
+ * @param zacc [mG] Z acceleration
+ * @param xgyro [mrad/s] Angular speed around X axis
+ * @param ygyro [mrad/s] Angular speed around Y axis
+ * @param zgyro [mrad/s] Angular speed around Z axis
+ * @param xmag [mgauss] X Magnetic field
+ * @param ymag [mgauss] Y Magnetic field
+ * @param zmag [mgauss] Z Magnetic field
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -314,7 +314,7 @@ static inline void mavlink_msg_scaled_imu3_send_buf(mavlink_message_t *msgbuf, m
 /**
  * @brief Get field time_boot_ms from scaled_imu3 message
  *
- * @return Timestamp (milliseconds since system boot)
+ * @return [ms] Timestamp (time since system boot).
  */
 static inline uint32_t mavlink_msg_scaled_imu3_get_time_boot_ms(const mavlink_message_t* msg)
 {
@@ -324,7 +324,7 @@ static inline uint32_t mavlink_msg_scaled_imu3_get_time_boot_ms(const mavlink_me
 /**
  * @brief Get field xacc from scaled_imu3 message
  *
- * @return X acceleration (mg)
+ * @return [mG] X acceleration
  */
 static inline int16_t mavlink_msg_scaled_imu3_get_xacc(const mavlink_message_t* msg)
 {
@@ -334,7 +334,7 @@ static inline int16_t mavlink_msg_scaled_imu3_get_xacc(const mavlink_message_t* 
 /**
  * @brief Get field yacc from scaled_imu3 message
  *
- * @return Y acceleration (mg)
+ * @return [mG] Y acceleration
  */
 static inline int16_t mavlink_msg_scaled_imu3_get_yacc(const mavlink_message_t* msg)
 {
@@ -344,7 +344,7 @@ static inline int16_t mavlink_msg_scaled_imu3_get_yacc(const mavlink_message_t* 
 /**
  * @brief Get field zacc from scaled_imu3 message
  *
- * @return Z acceleration (mg)
+ * @return [mG] Z acceleration
  */
 static inline int16_t mavlink_msg_scaled_imu3_get_zacc(const mavlink_message_t* msg)
 {
@@ -354,7 +354,7 @@ static inline int16_t mavlink_msg_scaled_imu3_get_zacc(const mavlink_message_t* 
 /**
  * @brief Get field xgyro from scaled_imu3 message
  *
- * @return Angular speed around X axis (millirad /sec)
+ * @return [mrad/s] Angular speed around X axis
  */
 static inline int16_t mavlink_msg_scaled_imu3_get_xgyro(const mavlink_message_t* msg)
 {
@@ -364,7 +364,7 @@ static inline int16_t mavlink_msg_scaled_imu3_get_xgyro(const mavlink_message_t*
 /**
  * @brief Get field ygyro from scaled_imu3 message
  *
- * @return Angular speed around Y axis (millirad /sec)
+ * @return [mrad/s] Angular speed around Y axis
  */
 static inline int16_t mavlink_msg_scaled_imu3_get_ygyro(const mavlink_message_t* msg)
 {
@@ -374,7 +374,7 @@ static inline int16_t mavlink_msg_scaled_imu3_get_ygyro(const mavlink_message_t*
 /**
  * @brief Get field zgyro from scaled_imu3 message
  *
- * @return Angular speed around Z axis (millirad /sec)
+ * @return [mrad/s] Angular speed around Z axis
  */
 static inline int16_t mavlink_msg_scaled_imu3_get_zgyro(const mavlink_message_t* msg)
 {
@@ -384,7 +384,7 @@ static inline int16_t mavlink_msg_scaled_imu3_get_zgyro(const mavlink_message_t*
 /**
  * @brief Get field xmag from scaled_imu3 message
  *
- * @return X Magnetic field (milli tesla)
+ * @return [mgauss] X Magnetic field
  */
 static inline int16_t mavlink_msg_scaled_imu3_get_xmag(const mavlink_message_t* msg)
 {
@@ -394,7 +394,7 @@ static inline int16_t mavlink_msg_scaled_imu3_get_xmag(const mavlink_message_t* 
 /**
  * @brief Get field ymag from scaled_imu3 message
  *
- * @return Y Magnetic field (milli tesla)
+ * @return [mgauss] Y Magnetic field
  */
 static inline int16_t mavlink_msg_scaled_imu3_get_ymag(const mavlink_message_t* msg)
 {
@@ -404,7 +404,7 @@ static inline int16_t mavlink_msg_scaled_imu3_get_ymag(const mavlink_message_t* 
 /**
  * @brief Get field zmag from scaled_imu3 message
  *
- * @return Z Magnetic field (milli tesla)
+ * @return [mgauss] Z Magnetic field
  */
 static inline int16_t mavlink_msg_scaled_imu3_get_zmag(const mavlink_message_t* msg)
 {

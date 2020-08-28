@@ -3,11 +3,11 @@
 
 #define MAVLINK_MSG_ID_MESSAGE_INTERVAL 244
 
-MAVPACKED(
+
 typedef struct __mavlink_message_interval_t {
- int32_t interval_us; /*< The interval between two messages, in microseconds. A value of -1 indicates this stream is disabled, 0 indicates it is not available, > 0 indicates the interval at which it is sent.*/
- uint16_t message_id; /*< The ID of the requested MAVLink message. v1.0 is limited to 254 messages.*/
-}) mavlink_message_interval_t;
+ int32_t interval_us; /*< [us] The interval between two messages. A value of -1 indicates this stream is disabled, 0 indicates it is not available, > 0 indicates the interval at which it is sent.*/
+ uint16_t message_id; /*<  The ID of the requested MAVLink message. v1.0 is limited to 254 messages.*/
+} mavlink_message_interval_t;
 
 #define MAVLINK_MSG_ID_MESSAGE_INTERVAL_LEN 6
 #define MAVLINK_MSG_ID_MESSAGE_INTERVAL_MIN_LEN 6
@@ -24,16 +24,16 @@ typedef struct __mavlink_message_interval_t {
     244, \
     "MESSAGE_INTERVAL", \
     2, \
-    {  { "interval_us", NULL, MAVLINK_TYPE_INT32_T, 0, 0, offsetof(mavlink_message_interval_t, interval_us) }, \
-         { "message_id", NULL, MAVLINK_TYPE_UINT16_T, 0, 4, offsetof(mavlink_message_interval_t, message_id) }, \
+    {  { "message_id", NULL, MAVLINK_TYPE_UINT16_T, 0, 4, offsetof(mavlink_message_interval_t, message_id) }, \
+         { "interval_us", NULL, MAVLINK_TYPE_INT32_T, 0, 0, offsetof(mavlink_message_interval_t, interval_us) }, \
          } \
 }
 #else
 #define MAVLINK_MESSAGE_INFO_MESSAGE_INTERVAL { \
     "MESSAGE_INTERVAL", \
     2, \
-    {  { "interval_us", NULL, MAVLINK_TYPE_INT32_T, 0, 0, offsetof(mavlink_message_interval_t, interval_us) }, \
-         { "message_id", NULL, MAVLINK_TYPE_UINT16_T, 0, 4, offsetof(mavlink_message_interval_t, message_id) }, \
+    {  { "message_id", NULL, MAVLINK_TYPE_UINT16_T, 0, 4, offsetof(mavlink_message_interval_t, message_id) }, \
+         { "interval_us", NULL, MAVLINK_TYPE_INT32_T, 0, 0, offsetof(mavlink_message_interval_t, interval_us) }, \
          } \
 }
 #endif
@@ -44,8 +44,8 @@ typedef struct __mavlink_message_interval_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param message_id The ID of the requested MAVLink message. v1.0 is limited to 254 messages.
- * @param interval_us The interval between two messages, in microseconds. A value of -1 indicates this stream is disabled, 0 indicates it is not available, > 0 indicates the interval at which it is sent.
+ * @param message_id  The ID of the requested MAVLink message. v1.0 is limited to 254 messages.
+ * @param interval_us [us] The interval between two messages. A value of -1 indicates this stream is disabled, 0 indicates it is not available, > 0 indicates the interval at which it is sent.
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_message_interval_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -75,8 +75,8 @@ static inline uint16_t mavlink_msg_message_interval_pack(uint8_t system_id, uint
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param message_id The ID of the requested MAVLink message. v1.0 is limited to 254 messages.
- * @param interval_us The interval between two messages, in microseconds. A value of -1 indicates this stream is disabled, 0 indicates it is not available, > 0 indicates the interval at which it is sent.
+ * @param message_id  The ID of the requested MAVLink message. v1.0 is limited to 254 messages.
+ * @param interval_us [us] The interval between two messages. A value of -1 indicates this stream is disabled, 0 indicates it is not available, > 0 indicates the interval at which it is sent.
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_message_interval_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -132,8 +132,8 @@ static inline uint16_t mavlink_msg_message_interval_encode_chan(uint8_t system_i
  * @brief Send a message_interval message
  * @param chan MAVLink channel to send the message
  *
- * @param message_id The ID of the requested MAVLink message. v1.0 is limited to 254 messages.
- * @param interval_us The interval between two messages, in microseconds. A value of -1 indicates this stream is disabled, 0 indicates it is not available, > 0 indicates the interval at which it is sent.
+ * @param message_id  The ID of the requested MAVLink message. v1.0 is limited to 254 messages.
+ * @param interval_us [us] The interval between two messages. A value of -1 indicates this stream is disabled, 0 indicates it is not available, > 0 indicates the interval at which it is sent.
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -202,7 +202,7 @@ static inline void mavlink_msg_message_interval_send_buf(mavlink_message_t *msgb
 /**
  * @brief Get field message_id from message_interval message
  *
- * @return The ID of the requested MAVLink message. v1.0 is limited to 254 messages.
+ * @return  The ID of the requested MAVLink message. v1.0 is limited to 254 messages.
  */
 static inline uint16_t mavlink_msg_message_interval_get_message_id(const mavlink_message_t* msg)
 {
@@ -212,7 +212,7 @@ static inline uint16_t mavlink_msg_message_interval_get_message_id(const mavlink
 /**
  * @brief Get field interval_us from message_interval message
  *
- * @return The interval between two messages, in microseconds. A value of -1 indicates this stream is disabled, 0 indicates it is not available, > 0 indicates the interval at which it is sent.
+ * @return [us] The interval between two messages. A value of -1 indicates this stream is disabled, 0 indicates it is not available, > 0 indicates the interval at which it is sent.
  */
 static inline int32_t mavlink_msg_message_interval_get_interval_us(const mavlink_message_t* msg)
 {
