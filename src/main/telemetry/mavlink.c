@@ -692,6 +692,8 @@ void mavlinkSendBatteryTemperatureStatusText(void)
     mavlinkSendMessage();
 
 
+// FIXME - Status text is limited to boards with USE_OSD
+#ifdef USE_OSD
     char buff[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN] = {""};
     textAttributes_t elemAttr = osdGetSystemMessage(buff, sizeof(buff), false);
     if (buff[0] != '\0') {
@@ -708,6 +710,7 @@ void mavlinkSendBatteryTemperatureStatusText(void)
 
         mavlinkSendMessage();
     }
+#endif
 
 
 }
