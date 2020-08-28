@@ -34,21 +34,21 @@ Note also that Ubuntu 18.04 LTS does NOT provide a modern enough `cmake`; it is 
 ```
 # make sure the system is updated first
 sudo apt update && sudo apt upgrade
-sudo apt install gcc git make ruby curl cmake
+sudo apt install gcc git make ruby cmake
 ```
 
 ### Fedora
 ```
 # make sure the system is updated first
 sudo dnf -y update
-sudo dnf install gcc git make ruby curl cmake
+sudo dnf install gcc git make ruby cmake
 ```
 
 ### Arch
 ```
 # make sure the system is updated first
 sudo pacman -Syu
-sudo pacman -S gcc git make ruby curl cmake
+sudo pacman -S gcc git make ruby cmake
 ```
 
 Once these prerequisites are installed, we can clone the repository to provide a local instance of the inav source code.
