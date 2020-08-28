@@ -404,20 +404,20 @@ groups:
         min: INT16_MIN
         max: INT16_MAX
       - name: maggain_x
-        description: "Magnetometer calibration X gain. If 0, no calibration or calibration failed"
-        default_value: "0"
+        description: "Magnetometer calibration X gain. If 1024, no calibration or calibration failed"
+        default_value: "1024"
         field: magGain[X]
         min: INT16_MIN
         max: INT16_MAX
       - name: maggain_y
-        description: "Magnetometer calibration Y gain. If 0, no calibration or calibration failed"
-        default_value: "0"
+        description: "Magnetometer calibration Y gain. If 1024, no calibration or calibration failed"
+        default_value: "1024"
         field: magGain[Y]
         min: INT16_MIN
         max: INT16_MAX
       - name: maggain_z
-        description: "Magnetometer calibration Z gain. If 0, no calibration or calibration failed"
-        default_value: "0"
+        description: "Magnetometer calibration Z gain. If 1024, no calibration or calibration failed"
+        default_value: "1024"
         field: magGain[Z]
         min: INT16_MIN
         max: INT16_MAX
