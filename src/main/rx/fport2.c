@@ -656,7 +656,7 @@ bool fport2RxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
         NULL,
         FPORT2_BAUDRATE,
         MODE_RXTX,
-        FPORT2_PORT_OPTIONS | (rxConfig->serialrx_inverted ? 0 : SERIAL_INVERTED) | (rxConfig->halfDuplex ? SERIAL_BIDIR : 0)
+        FPORT2_PORT_OPTIONS | (rxConfig->serialrx_inverted ? 0 : SERIAL_INVERTED) | (tristateWithDefaultOnIsActive(rxConfig->halfDuplex) ? SERIAL_BIDIR : 0)
     );
 
     if (fportPort) {
