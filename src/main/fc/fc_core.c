@@ -659,7 +659,7 @@ void processRx(timeUs_t currentTimeUs)
         DISABLE_STATE(ANTI_WINDUP);
         pidResetErrorAccumulators();
     }
-    else if (rcControlsConfig->airmodeHandlingType == STICK_CENTER) {
+    else if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
         if (throttleStatus == THROTTLE_LOW) {
              if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
                  rollPitchStatus_e rollPitchStatus = calculateRollPitchCenterStatus();
@@ -679,7 +679,7 @@ void processRx(timeUs_t currentTimeUs)
              DISABLE_STATE(ANTI_WINDUP);
          }
     }
-    else if (rcControlsConfig->airmodeHandlingType == STICK_CENTER_ONCE) {
+    else if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER_ONCE) {
         rollPitchStatus_e rollPitchStatus = calculateRollPitchCenterStatus();
         if (throttleStatus == THROTTLE_LOW) {
              if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
@@ -697,9 +697,9 @@ void processRx(timeUs_t currentTimeUs)
          }
          else {
              DISABLE_STATE(ANTI_WINDUP);
-	     if (rollPitchStatus != CENTERED) {
+             if (rollPitchStatus != CENTERED) {
                  ENABLE_STATE(ANTI_WINDUP_DEACTIVATED);
-	     }
+             }
          }
     }
     else if (rcControlsConfig()->airmodeHandlingType == THROTTLE_THRESHOLD) {
