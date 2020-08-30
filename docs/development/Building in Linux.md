@@ -29,6 +29,8 @@ Note that inav requires `cmake` version 3.13 or later; any distro that provides 
 
 Note also that Ubuntu 18.04 LTS does NOT provide a modern enough `cmake`; it is recommended that you upgrade to Ubuntu 20.04 LTS which does.
 
+If you wish to run the units tests, it is necessary to install a host C/C++ compiler (`gcc` or `clang`). This guide does not cover building and running the units tests.
+
 ### Ubuntu / Debian
 ```
 # make sure the system is updated first
