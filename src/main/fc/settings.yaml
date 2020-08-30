@@ -128,7 +128,7 @@ tables:
     values: ["GYRO", "SETPOINT"]
     enum: itermRelaxType_e
   - name: airmodeHandlingType
-    values: ["STICK_CENTER", "THROTTLE_THRESHOLD"]
+    values: ["STICK_CENTER", "THROTTLE_THRESHOLD", "STICK_CENTER_ONCE"]
   - name: nav_extra_arming_safety
     values: ["OFF", "ON", "ALLOW_BYPASS"]
     enum: navExtraArmingSafety_e
