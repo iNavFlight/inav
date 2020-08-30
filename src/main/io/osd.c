@@ -1660,7 +1660,7 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_CRSF_SNR_DB: {
-        const char* hidesnr = "     ";
+        const char* hidesnr = "    ";
         int16_t osdSNR_Alarm = rxLinkStatistics.uplinkSNR;
         if (osdSNR_Alarm <= osdConfig()->snr_alarm) {
           buff[0] = SYM_SRN;
