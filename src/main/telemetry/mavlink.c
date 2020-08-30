@@ -43,6 +43,7 @@
 #include "drivers/serial.h"
 #include "drivers/time.h"
 #include "drivers/display.h"
+#include "drivers/osd_symbols.h"
 
 #include "fc/config.h"
 #include "fc/fc_core.h"
@@ -80,6 +81,10 @@
 
 #include "telemetry/mavlink.h"
 #include "telemetry/telemetry.h"
+
+#include "blackbox/blackbox_io.h"
+
+#include "scheduler/scheduler.h"
 
 // mavlink library uses unnames unions that's causes GCC to complain if -Wpedantic is used
 // until this is resolved in mavlink library - ignore -Wpedantic for mavlink code
@@ -326,35 +331,126 @@ static void mavlinkSendMessage(void)
 
 void mavlinkSendSystemStatus(void)
 {
-    uint32_t onboardControlAndSensors = 35843;
+    // Receiver is assumed to be always present
+    uint32_t onboard_control_sensors_present    = (MAV_SYS_STATUS_SENSOR_RC_RECEIVER);
+    // GYRO and RC are assumed as minimium requirements
+    uint32_t onboard_control_sensors_enabled    = (MAV_SYS_STATUS_SENSOR_3D_GYRO | MAV_SYS_STATUS_SENSOR_RC_RECEIVER);
+    uint32_t onboard_control_sensors_health     = 0;
 
-    /*
-    onboard_control_sensors_present Bitmask
-    fedcba9876543210
-    1000110000000011    For all   = 35843
-    0001000000000100    With Mag  = 4100
-    0010000000001000    With Baro = 8200
-    0100000000100000    With GPS  = 16416
-    0000001111111111
-    */
+    if (getHwGyroStatus() == HW_SENSOR_OK) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_3D_GYRO;
+        // Missing presence will report as sensor unhealthy
+        onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_3D_GYRO;
+    }
 
-    if (sensors(SENSOR_MAG))  onboardControlAndSensors |=  4100;
-    if (sensors(SENSOR_BARO)) onboardControlAndSensors |=  8200;
-    if (sensors(SENSOR_GPS))  onboardControlAndSensors |= 16416;
+    hardwareSensorStatus_e accStatus = getHwAccelerometerStatus();
+    if (accStatus == HW_SENSOR_OK) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_3D_ACCEL;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_3D_ACCEL;
+        onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_3D_ACCEL;
+    } else if (accStatus == HW_SENSOR_UNHEALTHY) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_3D_ACCEL;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_3D_ACCEL;
+    } else if (accStatus == HW_SENSOR_UNAVAILABLE) {
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_3D_ACCEL;
+    }
+
+    hardwareSensorStatus_e compassStatus = getHwCompassStatus();
+    if (compassStatus == HW_SENSOR_OK) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_3D_MAG;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_3D_MAG;
+        onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_3D_MAG;
+    } else if (compassStatus == HW_SENSOR_UNHEALTHY) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_3D_MAG;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_3D_MAG;
+    } else if (compassStatus == HW_SENSOR_UNAVAILABLE) {
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_3D_MAG;
+    }
+
+    hardwareSensorStatus_e baroStatus = getHwBarometerStatus();
+    if (baroStatus == HW_SENSOR_OK) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE;
+        onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE;
+    } else if (baroStatus == HW_SENSOR_UNHEALTHY) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE;
+    } else if (baroStatus == HW_SENSOR_UNAVAILABLE) {
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE;
+    }
+
+    hardwareSensorStatus_e pitotStatus = getHwPitotmeterStatus();
+    if (pitotStatus == HW_SENSOR_OK) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE;
+        onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE;
+    } else if (pitotStatus == HW_SENSOR_UNHEALTHY) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE;
+    } else if (pitotStatus == HW_SENSOR_UNAVAILABLE) {
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE;
+    }
+
+    hardwareSensorStatus_e gpsStatus = getHwGPSStatus();
+    if (gpsStatus == HW_SENSOR_OK) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_GPS;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_GPS;
+        onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_GPS;
+    } else if (gpsStatus == HW_SENSOR_UNHEALTHY) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_GPS;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_GPS;
+    } else if (gpsStatus == HW_SENSOR_UNAVAILABLE) {
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_GPS;
+    }
+
+    hardwareSensorStatus_e opFlowStatus = getHwOpticalFlowStatus();
+    if (opFlowStatus == HW_SENSOR_OK) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_OPTICAL_FLOW;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_OPTICAL_FLOW;
+        onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_OPTICAL_FLOW;
+    } else if (opFlowStatus == HW_SENSOR_UNHEALTHY) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_OPTICAL_FLOW;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_OPTICAL_FLOW;
+    } else if (opFlowStatus == HW_SENSOR_UNAVAILABLE) {
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_OPTICAL_FLOW;
+    }
+
+    hardwareSensorStatus_e rangefinderStatus = getHwRangefinderStatus();
+    if (rangefinderStatus == HW_SENSOR_OK) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_LASER_POSITION;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_LASER_POSITION;
+        onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_LASER_POSITION;
+    } else if (rangefinderStatus == HW_SENSOR_UNHEALTHY) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_LASER_POSITION;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_LASER_POSITION;
+    } else if (rangefinderStatus == HW_SENSOR_UNAVAILABLE) {
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_LASER_POSITION;
+    }
+
+    if (rxIsReceivingSignal() && rxAreFlightChannelsValid()) {
+        onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_RC_RECEIVER;
+    }
+
+#ifdef USE_BLACKBOX
+    // BLACKBOX is assumed enabled and present for boards with capability
+    onboard_control_sensors_present |= MAV_SYS_STATUS_LOGGING;
+    onboard_control_sensors_enabled |= MAV_SYS_STATUS_LOGGING;
+    // Unhealthy only for cases with not enough space to record
+    if (!isBlackboxDeviceFull()) {
+        onboard_control_sensors_health |= MAV_SYS_STATUS_LOGGING;
+    }
+#endif
 
     mavlink_msg_sys_status_pack(mavSystemId, mavComponentId, &mavSendMsg,
         // onboard_control_sensors_present Bitmask showing which onboard controllers and sensors are present.
-        //Value of 0: not present. Value of 1: present. Indices: 0: 3D gyro, 1: 3D acc, 2: 3D mag, 3: absolute pressure,
-        // 4: differential pressure, 5: GPS, 6: optical flow, 7: computer vision position, 8: laser based position,
-        // 9: external ground-truth (Vicon or Leica). Controllers: 10: 3D angular rate control 11: attitude stabilization,
-        // 12: yaw position, 13: z/altitude control, 14: x/y position control, 15: motor outputs / control
-        onboardControlAndSensors,
+        //Value of 0: not present. Value of 1: present. Indices according MAV_SYS_STATUS_SENSOR
+        onboard_control_sensors_present,
         // onboard_control_sensors_enabled Bitmask showing which onboard controllers and sensors are enabled
-        onboardControlAndSensors,
+        onboard_control_sensors_enabled,
         // onboard_control_sensors_health Bitmask showing which onboard controllers and sensors are operational or have an error.
-        onboardControlAndSensors & 1023,
+        onboard_control_sensors_health,
         // load Maximum usage in percent of the mainloop time, (0%: 0, 100%: 1000) should be always below 1000
-        0,
+        constrain(averageSystemLoadPercent*10, 0, 1000),
         // voltage_battery Battery voltage, in millivolts (1 = 1 millivolt)
         feature(FEATURE_VBAT) ? getBatteryVoltage() * 10 : 0,
         // current_battery Battery current, in 10*milliamperes (1 = 10 milliampere), -1: autopilot does not measure the current
@@ -463,12 +559,12 @@ void mavlinkSendPosition(timeUs_t currentTimeUs)
 #else
         gpsSol.llh.alt * 10,
 #endif
-        // Ground X Speed (Latitude), expressed as m/s * 100
-        0,
-        // Ground Y Speed (Longitude), expressed as m/s * 100
-        0,
-        // Ground Z Speed (Altitude), expressed as m/s * 100
-        0,
+        // [cm/s] Ground X Speed (Latitude, positive north)
+        getEstimatedActualVelocity(X),
+        // [cm/s] Ground Y Speed (Longitude, positive east)
+        getEstimatedActualVelocity(Y),
+        // [cm/s] Ground Z Speed (Altitude, positive down)
+        getEstimatedActualVelocity(Z),
         // [cdeg] Vehicle heading (yaw angle) (0.0..359.99 degrees, 0=north)
         DECIDEGREES_TO_CENTIDEGREES(attitude.values.yaw)
     );
@@ -694,9 +790,9 @@ void mavlinkSendBatteryTemperatureStatusText(void)
 
 // FIXME - Status text is limited to boards with USE_OSD
 #ifdef USE_OSD
-    char buff[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN] = {""};
+    char buff[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN] = {" "};
     textAttributes_t elemAttr = osdGetSystemMessage(buff, sizeof(buff), false);
-    if (buff[0] != '\0') {
+    if (buff[0] != SYM_BLANK) {
         MAV_SEVERITY severity = MAV_SEVERITY_NOTICE;
         if (TEXT_ATTRIBUTES_HAVE_BLINK(elemAttr)) {
             severity = MAV_SEVERITY_CRITICAL;
