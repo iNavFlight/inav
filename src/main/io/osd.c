@@ -1211,7 +1211,7 @@ static bool osdDrawSingleElement(uint8_t item)
     uint8_t elemPosX = OSD_X(pos);
     uint8_t elemPosY = OSD_Y(pos);
     textAttributes_t elemAttr = TEXT_ATTRIBUTES_NONE;
-    char buff[32];
+    char buff[32] = {0};
 
     switch (item) {
     case OSD_RSSI_VALUE:
@@ -1634,6 +1634,50 @@ static bool osdDrawSingleElement(uint8_t item)
             displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
             return true;
         }
+
+    case OSD_CRSF_RSSI_DBM:
+            if (rxLinkStatistics.activeAnt == 0) {
+              buff[0] = SYM_RSSI;
+              tfp_sprintf(buff + 1, "%4d%c", rxLinkStatistics.uplinkRSSI, SYM_DBM);
+              if (!failsafeIsReceivingRxData()){
+                  TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+              }
+            } else {
+              buff[0] = SYM_2RSS;
+              tfp_sprintf(buff + 1, "%4d%c", rxLinkStatistics.uplinkRSSI, SYM_DBM);
+              if (!failsafeIsReceivingRxData()){
+                  TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+              }
+            }
+            break;
+
+    case OSD_CRSF_LQ:
+        buff[0] = SYM_BLANK;
+        tfp_sprintf(buff + 1, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
+        if (!failsafeIsReceivingRxData()){
+            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+        }
+        break;
+
+    case OSD_CRSF_SNR_DB: {
+        const char* hidesnr = "    ";
+        int16_t osdSNR_Alarm = rxLinkStatistics.uplinkSNR;
+        if (osdSNR_Alarm <= osdConfig()->snr_alarm) {
+          buff[0] = SYM_SRN;
+          tfp_sprintf(buff + 1, "%4d%c", rxLinkStatistics.uplinkSNR, SYM_DB);
+        }
+        else if (osdSNR_Alarm > osdConfig()->snr_alarm) {
+          //displayWrite(osdDisplayPort, elemPosX, elemPosY, "     ");
+          buff[0] = SYM_SRN;
+          tfp_sprintf(buff + 1, "%s%c", hidesnr, SYM_DB);
+        }
+        break;
+      }
+
+    case OSD_CRSF_TX_POWER: {
+        tfp_sprintf(buff, "%4d%c", rxLinkStatistics.uplinkTXPower, SYM_MW);
+        break;
+    }
 
     case OSD_CROSSHAIRS: // Hud is a sub-element of the crosshair
 
@@ -2604,6 +2648,13 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_CRAFT_NAME] = OSD_POS(20, 2);
     osdLayoutsConfig->item_pos[0][OSD_VTX_CHANNEL] = OSD_POS(8, 6);
 
+#ifdef USE_SERIALRX_CRSF
+    osdLayoutsConfig->item_pos[0][OSD_CRSF_RSSI_DBM] = OSD_POS(23, 12);
+    osdLayoutsConfig->item_pos[0][OSD_CRSF_LQ] = OSD_POS(22, 11);
+    osdLayoutsConfig->item_pos[0][OSD_CRSF_SNR_DB] = OSD_POS(23, 9);
+    osdLayoutsConfig->item_pos[0][OSD_CRSF_TX_POWER] = OSD_POS(24, 10);
+#endif
+
     osdLayoutsConfig->item_pos[0][OSD_ONTIME] = OSD_POS(23, 8);
     osdLayoutsConfig->item_pos[0][OSD_FLYTIME] = OSD_POS(23, 9);
     osdLayoutsConfig->item_pos[0][OSD_ONTIME_FLYTIME] = OSD_POS(23, 11) | OSD_VISIBLE_FLAG;
@@ -2693,7 +2744,7 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
 
     for (unsigned ii = 1; ii < OSD_LAYOUT_COUNT; ii++) {
         for (unsigned jj = 0; jj < ARRAYLEN(osdLayoutsConfig->item_pos[0]); jj++) {
-             osdLayoutsConfig->item_pos[ii][jj] = osdLayoutsConfig->item_pos[0][jj] & ~OSD_VISIBLE_FLAG;
+            osdLayoutsConfig->item_pos[ii][jj] = osdLayoutsConfig->item_pos[0][jj] & ~OSD_VISIBLE_FLAG;
         }
     }
 }
