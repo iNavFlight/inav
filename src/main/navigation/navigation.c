@@ -2782,20 +2782,27 @@ void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData)
             wpData->alt = GPS_home.alt;
         }
     }
-    // WP #255 - special waypoint - get desiredPosition that was set by ground control station if in GCS assisted mode, otherwise return current position
+    // WP #255 - special waypoint - directly get actualPosition
     else if (wpNumber == 255) {
         gpsLocation_t wpLLH;
 
-        if ((posControl.gpsOrigin.valid) && (posControl.flags.isGCSAssistedNavigationEnabled) && (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS)) {
-            geoConvertLocalToGeodetic(&wpLLH, &posControl.gpsOrigin, &posControl.desiredState.pos);
-        }
-        else {
-            geoConvertLocalToGeodetic(&wpLLH, &posControl.gpsOrigin, &navGetCurrentActualPositionAndVelocity()->pos);
-        }
+        geoConvertLocalToGeodetic(&wpLLH, &posControl.gpsOrigin, &navGetCurrentActualPositionAndVelocity()->pos);
 
         wpData->lat = wpLLH.lat;
         wpData->lon = wpLLH.lon;
         wpData->alt = wpLLH.alt;
+    }
+    // WP #254 - special waypoint - get desiredPosition that was set by ground control station if in GCS assisted mode
+    else if (wpNumber == 254) {
+        if ((posControl.gpsOrigin.valid) && (posControl.flags.isGCSAssistedNavigationEnabled) && (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS)) {
+            gpsLocation_t wpLLH;
+
+            geoConvertLocalToGeodetic(&wpLLH, &posControl.gpsOrigin, &posControl.desiredState.pos);
+            
+            wpData->lat = wpLLH.lat;
+            wpData->lon = wpLLH.lon;
+            wpData->alt = wpLLH.alt;
+        }
     }
     // WP #1 - #60 - common waypoints - pre-programmed mission
     else if ((wpNumber >= 1) && (wpNumber <= NAV_MAX_WAYPOINTS)) {
