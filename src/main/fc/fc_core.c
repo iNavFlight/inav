@@ -654,6 +654,8 @@ void processRx(timeUs_t currentTimeUs)
         DISABLE_STATE(ANTI_WINDUP_DEACTIVATED);
     }
 
+    const rollPitchStatus_e rollPitchStatus = calculateRollPitchCenterStatus();
+
     // In MANUAL mode we reset integrators prevent I-term wind-up (PID output is not used in MANUAL)
     if (FLIGHT_MODE(MANUAL_MODE) || !ARMING_FLAG(ARMED)) {
         DISABLE_STATE(ANTI_WINDUP);
@@ -662,7 +664,6 @@ void processRx(timeUs_t currentTimeUs)
     else if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
         if (throttleStatus == THROTTLE_LOW) {
              if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
-                 rollPitchStatus_e rollPitchStatus = calculateRollPitchCenterStatus();
                  if ((rollPitchStatus == CENTERED) || (feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING_LEGACY))) {
                      ENABLE_STATE(ANTI_WINDUP);
                  }
@@ -680,7 +681,6 @@ void processRx(timeUs_t currentTimeUs)
          }
     }
     else if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER_ONCE) {
-        rollPitchStatus_e rollPitchStatus = calculateRollPitchCenterStatus();
         if (throttleStatus == THROTTLE_LOW) {
              if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
                  if ((rollPitchStatus == CENTERED) && !STATE(ANTI_WINDUP_DEACTIVATED)) {
