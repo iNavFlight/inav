@@ -34,7 +34,7 @@ tables:
   - name: motor_pwm_protocol
     values: ["STANDARD", "ONESHOT125", "ONESHOT42", "MULTISHOT", "BRUSHED", "DSHOT150", "DSHOT300", "DSHOT600", "DSHOT1200", "SERIALSHOT"]
   - name: servo_protocol
-    values: ["PWM", "SERVO_DRIVER", "SBUS"]
+    values: ["PWM", "SERVO_DRIVER", "SBUS", "SBUS_PWM"]
   - name: failsafe_procedure
     values: ["SET-THR", "DROP", "RTH", "NONE"]
   - name: current_sensor
