@@ -2796,9 +2796,11 @@ void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData)
         wpData->lon = wpLLH.lon;
         wpData->alt = wpLLH.alt;
     }
-    // WP #254 - special waypoint - get desiredPosition that was set by ground control station if in GCS assisted mode
+    // WP #254 - special waypoint - get desiredPosition that was set by ground control station if in 3D-guided mode 
     else if (wpNumber == 254) {
-        if ((posControl.gpsOrigin.valid) && (posControl.flags.isGCSAssistedNavigationEnabled) && (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS)) {
+        navigationFSMStateFlags_t navStateFlags = navGetStateFlags(posControl.navState);
+
+        if ((posControl.gpsOrigin.valid) && (navStateFlags & NAV_CTL_ALT) && (navStateFlags & NAV_CTL_POS)) {
             gpsLocation_t wpLLH;
 
             geoConvertLocalToGeodetic(&wpLLH, &posControl.gpsOrigin, &posControl.desiredState.pos);
