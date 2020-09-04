@@ -1,4 +1,4 @@
-# Building in windows light
+# Building in windows light [Deprecated]
 no cygwin and no path changes
 
 ## Install Git for windows
