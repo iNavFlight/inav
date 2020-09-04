@@ -47,6 +47,8 @@
 #include "scheduler/protothreads.h"
 
 typedef struct __attribute__((packed)) {
+    uint8_t  instance;                  // sensor instance number to support multi-sensor setups
+    uint16_t gpsWeek;                   // GPS week, 0xFFFF if not available
     uint32_t msTOW;
     uint8_t  fixType;
     uint8_t  satellitesInView;
