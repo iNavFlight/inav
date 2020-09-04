@@ -3215,6 +3215,24 @@ static mspResult_e mspProcessSensorCommand(uint16_t cmdMSP, sbuf_t *src)
             mspOpflowReceiveNewData(sbufPtr(src));
             break;
 #endif
+
+#if defined(USE_GPS_PROTO_MSP)
+        case MSP2_SENSOR_GPS:
+            mspGPSReceiveNewData(sbufPtr(src));
+            break;
+#endif
+
+#if defined(USE_COMPASS_MSP)
+        case MSP2_SENSOR_COMPASS:
+            mspCompassReceiveNewData(sbufPtr(src));
+            break;
+#endif
+
+#if defined(USE_BARO_MSP)
+        case MSP2_SENSOR_BAROMETER:
+            mspBaroReceiveNewData(sbufPtr(src));
+            break;
+#endif
     }
 
     return MSP_RESULT_NO_REPLY;
