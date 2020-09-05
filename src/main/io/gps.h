@@ -165,4 +165,4 @@ bool isGPSHealthy(void);
 bool isGPSHeadingValid(void);
 struct serialPort_s;
 void gpsEnablePassthrough(struct serialPort_s *gpsPassthroughPort);
-void mspGPSReceiveNewData(uint8_t * bufferPtr);
+void mspGPSReceiveNewData(const uint8_t * bufferPtr);

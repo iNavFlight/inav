@@ -40,8 +40,10 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/accgyro/accgyro.h"
-#include "drivers/bus_i2c.h"
 #include "drivers/compass/compass.h"
+#include "drivers/compass/compass_msp.h"
+#include "drivers/barometer/barometer_msp.h"
+#include "drivers/bus_i2c.h"
 #include "drivers/display.h"
 #include "drivers/flash.h"
 #include "drivers/osd.h"
@@ -3222,9 +3224,9 @@ static mspResult_e mspProcessSensorCommand(uint16_t cmdMSP, sbuf_t *src)
             break;
 #endif
 
-#if defined(USE_COMPASS_MSP)
+#if defined(USE_MAG_MSP)
         case MSP2_SENSOR_COMPASS:
-            mspCompassReceiveNewData(sbufPtr(src));
+            mspMagReceiveNewData(sbufPtr(src));
             break;
 #endif
 

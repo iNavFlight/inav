@@ -24,67 +24,69 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <ctype.h>
-#include <math.h>
 
 #include "platform.h"
 
+#if defined(USE_MAG_MSP)
+
 #include "build/build_config.h"
-#include "build/debug.h"
 
-#include "common/maths.h"
+#include "common/axis.h"
+#include "common/utils.h"
+#include "common/time.h"
 
-#include "io/serial.h"
-
-#if defined(USE_RANGEFINDER_MSP)
-
-#include "drivers/rangefinder/rangefinder_virtual.h"
 #include "drivers/time.h"
-#include "io/rangefinder.h"
+#include "drivers/compass/compass.h"
+#include "drivers/compass/compass_msp.h"
+
 #include "msp/msp_protocol_v2_sensor_msg.h"
 
+#define MSP_MAG_TIMEOUT_MS      250     // Less than 4Hz updates is considered a failure
 
-static bool hasNewData = false;
-static int32_t sensorData = RANGEFINDER_NO_NEW_DATA;
+static int16_t mspMagData[XYZ_AXIS_COUNT];
+static timeMs_t mspMagLastUpdateMs;
 
-static bool mspRangefinderDetect(void)
+static bool mspMagInit(magDev_t *magDev)
 {
-    // Always detectable
+    UNUSED(magDev);
+    mspMagData[X] = 0;
+    mspMagData[Y] = 0;
+    mspMagData[Z] = 0;
+    mspMagLastUpdateMs = 0;
     return true;
 }
 
-static void mspRangefinderInit(void)
+void mspMagReceiveNewData(uint8_t * bufferPtr)
 {
+    const mspSensorCompassDataMessage_t * pkt = (const mspSensorCompassDataMessage_t *)bufferPtr;
+
+    mspMagData[X] = pkt->magX;
+    mspMagData[Y] = pkt->magY;
+    mspMagData[Z] = pkt->magZ;
+
+    mspMagLastUpdateMs = millis();
 }
 
-static void mspRangefinderUpdate(void)
+static bool mspMagRead(magDev_t *magDev)
 {
-}
+    UNUSED(magDev);
 
-static int32_t mspRangefinderGetDistance(void)
-{
-    if (hasNewData) {
-        hasNewData = false;
-        return (sensorData > 0) ? sensorData : RANGEFINDER_OUT_OF_RANGE;
+    if ((millis() - mspMagLastUpdateMs) > MSP_MAG_TIMEOUT_MS) {
+        return false;
     }
-    else {
-        return RANGEFINDER_NO_NEW_DATA;
-    }
+
+    magDev->magADCRaw[X] = mspMagData[X];
+    magDev->magADCRaw[Y] = mspMagData[Y];
+    magDev->magADCRaw[Z] = mspMagData[Z];
+
+    return true;
 }
 
-void mspRangefinderReceiveNewData(uint8_t * bufferPtr)
+bool mspMagDetect(magDev_t *mag)
 {
-    const mspSensorRangefinderDataMessage_t * pkt = (const mspSensorRangefinderDataMessage_t *)bufferPtr;
-
-    sensorData = pkt->distanceMm / 10;
-    hasNewData = true;
+    mag->init = mspMagInit;
+    mag->read = mspMagRead;
+    return true;
 }
-
-virtualRangefinderVTable_t rangefinderMSPVtable = {
-    .detect = mspRangefinderDetect,
-    .init = mspRangefinderInit,
-    .update = mspRangefinderUpdate,
-    .read = mspRangefinderGetDistance
-};
 
 #endif

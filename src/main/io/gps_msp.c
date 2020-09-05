@@ -44,33 +44,7 @@
 #include "io/gps_private.h"
 #include "io/serial.h"
 
-#include "scheduler/protothreads.h"
-
-typedef struct __attribute__((packed)) {
-    uint8_t  instance;                  // sensor instance number to support multi-sensor setups
-    uint16_t gpsWeek;                   // GPS week, 0xFFFF if not available
-    uint32_t msTOW;
-    uint8_t  fixType;
-    uint8_t  satellitesInView;
-    uint16_t horizontalPosAccuracy;     // [cm]
-    uint16_t verticalPosAccuracy;       // [cm]
-    uint16_t horizontalVelAccuracy;     // [cm/s]
-    uint16_t hdop;
-    int32_t  longitude;
-    int32_t  latitude;
-    int32_t  mslAltitude;       // cm
-    int32_t  nedVelNorth;       // cm/s
-    int32_t  nedVelEast;
-    int32_t  nedVelDown;
-    int16_t  groundCourse;      // deg * 100
-    int16_t  trueYaw;           // deg * 100, values of 0..36000 are valid. 65535 = no data available
-    uint16_t year;
-    uint8_t  month;
-    uint8_t  day;
-    uint8_t  hour;
-    uint8_t  min;
-    uint8_t  sec;
-} mspGpsDataMessage_t;
+#include "msp/msp_protocol_v2_sensor_msg.h"
 
 static bool newDataReady;
 
@@ -96,9 +70,9 @@ static uint8_t gpsMapFixType(uint8_t mspFixType)
     return GPS_NO_FIX;
 }
 
-void mspGPSReceiveNewData(uint8_t * bufferPtr)
+void mspGPSReceiveNewData(const uint8_t * bufferPtr)
 {
-    mspGpsDataMessage_t * pkt = (mspGpsDataMessage_t *)bufferPtr;
+    const mspSensorGpsDataMessage_t * pkt = (const mspSensorGpsDataMessage_t *)bufferPtr;
 
     gpsSol.fixType   = gpsMapFixType(pkt->fixType);
     gpsSol.numSat    = pkt->satellitesInView;

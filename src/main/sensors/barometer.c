@@ -40,6 +40,7 @@
 #include "drivers/barometer/barometer_ms56xx.h"
 #include "drivers/barometer/barometer_spl06.h"
 #include "drivers/barometer/barometer_dps310.h"
+#include "drivers/barometer/barometer_msp.h"
 #include "drivers/time.h"
 
 #include "fc/runtime_config.h"
@@ -178,6 +179,19 @@ bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
 #if defined(USE_BARO_DPS310)
         if (baroDPS310Detect(dev)) {
             baroHardware = BARO_DPS310;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (baroHardwareToUse != BARO_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
+    case BARO_MSP:
+#ifdef USE_BARO_MSP
+        if (mspBaroDetect(dev)) {
+            baroHardware = BARO_MSP;
             break;
         }
 #endif
