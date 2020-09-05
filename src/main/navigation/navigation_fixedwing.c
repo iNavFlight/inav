@@ -463,7 +463,20 @@ int16_t applyFixedWingMinSpeedController(timeUs_t currentTimeUs)
 
 int16_t fixedWingPitchToThrottleCorrection(int16_t pitch)
 {
-    return DECIDEGREES_TO_DEGREES(pitch) * navConfig()->fw.pitch_to_throttle;
+    const int16_t pitch_to_throttle_deadband = 30;
+
+    if (pitch > pitch_to_throttle_deadband) {
+        // Above positive pitch deadband
+        return DECIDEGREES_TO_DEGREES(pitch - pitch_to_throttle_deadband) * navConfig()->fw.pitch_to_throttle;
+    }
+    else if (pitch < -pitch_to_throttle_deadband) {
+        // Below negative pitch deadband
+        return DECIDEGREES_TO_DEGREES(pitch + pitch_to_throttle_deadband) * navConfig()->fw.pitch_to_throttle;
+    }
+    else {   
+        // Inside deadband
+        return 0;
+    }
 }
 
 void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs)
