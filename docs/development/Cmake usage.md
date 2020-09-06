@@ -18,9 +18,9 @@ For example:
 target_stm32f405xg(QUARKVISION HSE_MHZ 16)
 ```
 
-* The hardware is `stm32f405xg`, a standard F405
+* The hardware is `stm32f405xg`, a F405 with a 1MiB flash
 * The name is `QUARKVISION` (a board that never reached production)
-* The optional parameter is `HSE_MHZ 16` defining the non-standard high-speed external (HSE) oscillator clock.
+* The optional parameter is `HSE_MHZ 16` defining the non-default high-speed external (HSE) oscillator clock.
 
 ## Hardware names
 
@@ -35,15 +35,17 @@ As of inav 2.6, the following target hardware platforms are recognised:
 * stm32f765xg
 * stm32f765xi
 
+The device characteristics for these names may be found at [stm32-base.org](https://stm32-base.org/cheatsheets/linker-memory-regions/).
+
 ## Optional Parameters
 
 The following optional parameters are recognised:
 
 | Paramater | Usage |
 | --------- | ----- |
-| `SKIP_RELEASES` | The target is disabled |
-| `COMPILE_DEFINITIONS "VAR=[value]"` | Sets a preprocessor define. |
-| `HSE_MZ value` | The target uses an non-standard non-standard high-speed external (HSE) oscillator clock. The `value` is the desired clock, for example `HSE_MHZ 24` |
+| `SKIP_RELEASES` | The target is disabled for releases and CI. It still may be possible to build the target directly. |
+| `COMPILE_DEFINITIONS "VAR[=value]"` | Sets a preprocessor define. |
+| `HSE_MZ value` | The target uses a high-speed external crystal (HSE) oscillator clock with a frequency different from the 8MHz default. The `value` is the desired clock, for example `HSE_MHZ 24` |
 
 Multiple optional parameters may be specified, for example `HSE_MHZ 16 SKIP_RELEASES`.
 
