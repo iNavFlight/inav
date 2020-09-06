@@ -463,18 +463,16 @@ int16_t applyFixedWingMinSpeedController(timeUs_t currentTimeUs)
 
 int16_t fixedWingPitchToThrottleCorrection(int16_t pitch)
 {
-    const int16_t pitch_to_throttle_deadband = 30;
-
-    if (pitch > pitch_to_throttle_deadband) {
-        // Above positive pitch deadband
-        return DECIDEGREES_TO_DEGREES(pitch - pitch_to_throttle_deadband) * navConfig()->fw.pitch_to_throttle;
+    if (pitch > navConfig()->fw.pitch_to_throttle_thresh) {
+        // Positive pitch above threshold
+        return DECIDEGREES_TO_DEGREES(pitch - navConfig()->fw.pitch_to_throttle_thresh) * navConfig()->fw.pitch_to_throttle;
     }
-    else if (pitch < -pitch_to_throttle_deadband) {
-        // Below negative pitch deadband
-        return DECIDEGREES_TO_DEGREES(pitch + pitch_to_throttle_deadband) * navConfig()->fw.pitch_to_throttle;
+    else if (pitch < -navConfig()->fw.pitch_to_throttle_thresh) {
+        // Negative pitch below threshold
+        return DECIDEGREES_TO_DEGREES(pitch + navConfig()->fw.pitch_to_throttle_thresh) * navConfig()->fw.pitch_to_throttle;
     }
-    else {   
-        // Inside deadband
+    else {
+        // Inside pitch_to_throttle_thresh deadband. Make no throttle correction.
         return 0;
     }
 }
