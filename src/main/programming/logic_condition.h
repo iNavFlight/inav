@@ -62,7 +62,12 @@ typedef enum {
     LOGIC_CONDITION_SET_VTX_BAND                = 30,
     LOGIC_CONDITION_SET_VTX_CHANNEL             = 31,
     LOGIC_CONDITION_SET_OSD_LAYOUT              = 32,
-    LOGIC_CONDITION_LAST                        = 33,
+    LOGIC_CONDITION_SIN                         = 33,
+    LOGIC_CONDITION_COS                         = 34,
+    LOGIC_CONDITION_TAN                         = 35,
+    LOGIC_CONDITION_MAP_INPUT                   = 36,
+    LOGIC_CONDITION_MAP_OUTPUT                  = 37,
+    LOGIC_CONDITION_LAST                        = 38,
 } logicOperation_e;
 
 typedef enum logicOperandType_s {
