@@ -154,7 +154,7 @@ static EXTENDED_FASTRAM filterApplyFnPtr dTermLpfFilterApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr dTermLpf2FilterApplyFn;
 static EXTENDED_FASTRAM bool levelingEnabled = false;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 1);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 0);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -257,7 +257,6 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .fixedWingReferenceAirspeed = 1000,
         .fixedWingCoordinatedYawGain = 1.0f,
         .fixedWingCoordinatedPitchGain = 1.0f,
-        .fixedWingCoordinatedRollGain = 1.0f,
         .fixedWingItermLimitOnStickPosition = 0.5f,
 
         .loiter_direction = NAV_LOITER_RIGHT,
@@ -890,7 +889,7 @@ static void NOINLINE pidTurnAssistant(pidState_t *pidState)
     imuTransformVectorEarthToBody(&targetRates);
 
     // Add in roll and pitch
-    pidState[ROLL].rateTarget = constrainf(pidState[ROLL].rateTarget + targetRates.x * pidProfile()->fixedWingCoordinatedRollGain, -currentControlRateProfile->stabilized.rates[ROLL] * 10.0f, currentControlRateProfile->stabilized.rates[ROLL] * 10.0f);
+    pidState[ROLL].rateTarget = constrainf(pidState[ROLL].rateTarget + targetRates.x, -currentControlRateProfile->stabilized.rates[ROLL] * 10.0f, currentControlRateProfile->stabilized.rates[ROLL] * 10.0f);
     pidState[PITCH].rateTarget = constrainf(pidState[PITCH].rateTarget + targetRates.y * pidProfile()->fixedWingCoordinatedPitchGain, -currentControlRateProfile->stabilized.rates[PITCH] * 10.0f, currentControlRateProfile->stabilized.rates[PITCH] * 10.0f);
 
     // Replace YAW on quads - add it in on airplanes

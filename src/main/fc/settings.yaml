@@ -1545,12 +1545,6 @@ groups:
         field: fixedWingCoordinatedPitchGain
         min: 0
         max: 2
-      - name: fw_turn_assist_roll_gain
-        description: "Gain required to ??? (in TURN_ASSIST mode). Value significantly different from 1.0 indicates a problem with the airspeed calibration (if present) or value of `fw_reference_airspeed` parameter"
-        default_value: "1"
-        field: fixedWingCoordinatedRollGain
-        min: 0
-        max: 2
       - name: fw_iterm_limit_stick_position
         description: "Iterm is not allowed to grow when stick position is above threshold. This solves the problem of bounceback or followthrough when full stick deflection is applied on poorely tuned fixed wings. In other words, stabilization is partialy disabled when pilot is actively controlling the aircraft and active when sticks are not touched. `0` mean stick is in center position, `1` means it is fully deflected to either side"
         default_value: "0.5"
