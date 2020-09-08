@@ -30,6 +30,7 @@
 #if defined(USE_BARO_MSP)
 
 #include "build/build_config.h"
+#include "build/debug.h"
 
 #include "common/utils.h"
 #include "common/time.h"
@@ -75,7 +76,6 @@ void mspBaroReceiveNewData(uint8_t * bufferPtr)
 
     mspBaroPressure = pkt->pressurePa;
     mspBaroTemperature = pkt->temp;
-
     mspBaroLastUpdateMs = millis();
 }
 

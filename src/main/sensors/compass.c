@@ -252,7 +252,8 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 
     case MAG_MSP:
 #ifdef USE_MAG_MSP
-        if (mspMagDetect(dev)) {
+        // Skip autodetection for MSP mag
+        if (magHardwareToUse != MAG_AUTODETECT && mspMagDetect(dev)) {
             magHardware = MAG_MSP;
             break;
         }

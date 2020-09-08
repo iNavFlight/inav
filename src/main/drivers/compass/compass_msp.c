@@ -39,11 +39,13 @@
 #include "drivers/compass/compass.h"
 #include "drivers/compass/compass_msp.h"
 
+#include "sensors/boardalignment.h"
+
 #include "msp/msp_protocol_v2_sensor_msg.h"
 
 #define MSP_MAG_TIMEOUT_MS      250     // Less than 4Hz updates is considered a failure
 
-static int16_t mspMagData[XYZ_AXIS_COUNT];
+static int32_t mspMagData[XYZ_AXIS_COUNT];
 static timeMs_t mspMagLastUpdateMs;
 
 static bool mspMagInit(magDev_t *magDev)
@@ -63,6 +65,8 @@ void mspMagReceiveNewData(uint8_t * bufferPtr)
     mspMagData[X] = pkt->magX;
     mspMagData[Y] = pkt->magY;
     mspMagData[Z] = pkt->magZ;
+
+    applySensorAlignment(mspMagData, mspMagData, CW90_DEG_FLIP);
 
     mspMagLastUpdateMs = millis();
 }
