@@ -78,11 +78,18 @@
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PC3
 
+//F722-PX,F722-HD
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 #define M25P16_SPI_BUS          BUS_SPI2
 #define M25P16_CS_PIN           PB12
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+
+//F722-WPX
+#define USE_SDCARD
+#define USE_SDCARD_SPI
+#define SDCARD_SPI_BUS          BUS_SPI2
+#define SDCARD_CS_PIN           PC15
 
 // *************** UART *****************************
 #define USE_VCP
