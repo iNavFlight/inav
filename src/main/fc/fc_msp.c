@@ -1404,6 +1404,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP2_COMMON_TZ:
         sbufWriteU16(dst, (uint16_t)timeConfig()->tz_offset);
+        sbufWriteU8(dst, (uint8_t)timeConfig()->tz_automatic_dst);
         break;
 
     case MSP2_INAV_AIR_SPEED:
@@ -2724,9 +2725,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP2_COMMON_SET_TZ:
-        if (dataSize == 2)
+        if (dataSize == 3) {
             timeConfigMutable()->tz_offset = (int16_t)sbufReadU16(src);
-        else
+            timeConfigMutable()->tz_automatic_dst = (uint8_t)sbufReadU8(src);
+        } else
             return MSP_RESULT_ERROR;
         break;
 
