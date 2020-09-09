@@ -1660,16 +1660,21 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_CRSF_SNR_DB: {
-        const char* hidesnr = "    ";
+        const char* showsnr = " -12";
+        const char* hidesnr = "     ";
         int16_t osdSNR_Alarm = rxLinkStatistics.uplinkSNR;
         if (osdSNR_Alarm <= osdConfig()->snr_alarm) {
           buff[0] = SYM_SRN;
           tfp_sprintf(buff + 1, "%4d%c", rxLinkStatistics.uplinkSNR, SYM_DB);
         }
         else if (osdSNR_Alarm > osdConfig()->snr_alarm) {
-          //displayWrite(osdDisplayPort, elemPosX, elemPosY, "     ");
-          buff[0] = SYM_SRN;
-          tfp_sprintf(buff + 1, "%s%c", hidesnr, SYM_DB);
+            if (cmsInMenu) {
+                buff[0] = SYM_SRN;
+                tfp_sprintf(buff + 1, "%s%c", showsnr, SYM_DB);
+            } else {
+                buff[0] = SYM_BLANK;
+                tfp_sprintf(buff + 1, "%s%c", hidesnr);
+            }
         }
         break;
       }
@@ -3223,7 +3228,7 @@ void osdUpdate(timeUs_t currentTimeUs)
         else
 #ifdef USE_PROGRAMMING_FRAMEWORK
         if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_OSD_LAYOUT))
-            activeLayout = constrain(logicConditionValuesByType[LOGIC_CONDITION_SET_OSD_LAYOUT], 0, OSD_ALTERNATE_LAYOUT_COUNT); 
+            activeLayout = constrain(logicConditionValuesByType[LOGIC_CONDITION_SET_OSD_LAYOUT], 0, OSD_ALTERNATE_LAYOUT_COUNT);
         else
 #endif
             activeLayout = 0;
