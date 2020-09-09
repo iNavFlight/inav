@@ -2725,7 +2725,9 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP2_COMMON_SET_TZ:
-        if (dataSize == 3) {
+        if (dataSize == 2)
+            timeConfigMutable()->tz_offset = (int16_t)sbufReadU16(src);
+        else if (dataSize == 3) {
             timeConfigMutable()->tz_offset = (int16_t)sbufReadU16(src);
             timeConfigMutable()->tz_automatic_dst = (uint8_t)sbufReadU8(src);
         } else
