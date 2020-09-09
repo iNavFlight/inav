@@ -1656,7 +1656,9 @@ static bool osdDrawSingleElement(uint8_t item)
         tfp_sprintf(buff + 1, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
         if (!failsafeIsReceivingRxData()){
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-        }
+        } else if (rxLinkStatistics.uplinkLQ < osdConfig()->rssi_alarm) {
+            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+        } 
         break;
 
     case OSD_CRSF_SNR_DB: {
@@ -1673,7 +1675,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 tfp_sprintf(buff + 1, "%s%c", showsnr, SYM_DB);
             } else {
                 buff[0] = SYM_BLANK;
-                tfp_sprintf(buff + 1, "%s%c", hidesnr);
+                tfp_sprintf(buff + 1, "%s%c", hidesnr, SYM_BLANK);
             }
         }
         break;
