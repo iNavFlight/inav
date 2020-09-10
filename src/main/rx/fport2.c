@@ -53,9 +53,10 @@
 #include "rx/fport2.h"
 
 
-#define FPORT2_MAX_TELEMETRY_RESPONSE_DELAY_US 3000
 #define FPORT2_MIN_TELEMETRY_RESPONSE_DELAY_US 500
-#define FPORT2_MIN_OTA_RESPONSE_DELAY_US 50
+#define FPORT2_MAX_TELEMETRY_RESPONSE_DELAY_US 3000
+#define FPORT2_OTA_MAX_RESPONSE_TIME_US_DEFAULT 200
+#define FPORT2_OTA_MIN_RESPONSE_DELAY_US_DEFAULT 50
 #define FPORT2_MAX_TELEMETRY_AGE_MS 500
 #define FPORT2_FC_COMMON_ID 0x1B
 #define FPORT2_FC_MSP_ID 0x0D
@@ -180,6 +181,8 @@ static const smartPortPayload_t emptySmartPortFrame = { .frameId = 0, .valueId =
 static smartPortPayload_t *otaResponsePayload = NULL;
 static bool otaMode = false;
 static bool otaDataNeedsProcessing = false;
+static uint16_t otaMinResponseDelay = FPORT2_OTA_MIN_RESPONSE_DELAY_US_DEFAULT;
+static uint16_t otaMaxResponseTime = FPORT2_OTA_MAX_RESPONSE_TIME_US_DEFAULT;
 static uint32_t otaDataAddress;
 static uint8_t otaDataBuffer[FPORT2_OTA_DATA_FRAME_BYTES];
 static timeUs_t otaFrameEndTimestamp = 0;
@@ -380,9 +383,24 @@ static uint8_t frameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
                             break;
 
 #if defined(USE_TELEMETRY_SMARTPORT)
-                        case CFT_OTA_START:
+                        case CFT_OTA_START: {
+                            uint8_t otaMinResponseDelayByte = frame->control.ota[0];
+                            if ((otaMinResponseDelayByte > 0) && (otaMinResponseDelayByte <= 4)) {
+                                otaMinResponseDelay = otaMinResponseDelayByte * 100;
+                            } else {
+                                otaMinResponseDelay = FPORT2_OTA_MIN_RESPONSE_DELAY_US_DEFAULT;
+                            }
+
+                            uint8_t otaMaxResponseTimeByte = frame->control.ota[1];
+                            if (otaMaxResponseTimeByte > 0) {
+                                otaMaxResponseTime = otaMaxResponseTimeByte * 100;
+                            } else {
+                                otaMaxResponseTime = FPORT2_OTA_MAX_RESPONSE_TIME_US_DEFAULT;
+                            }
+
                             otaMode = true;
                             break;
+                        }
 
                         case CFT_OTA_DATA:
                             if (otaMode) {
@@ -506,7 +524,7 @@ static uint8_t frameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 
 #if defined(USE_TELEMETRY_SMARTPORT)
     if (((mspPayload || hasTelemetryRequest) && cmpTimeUs(currentTimeUs, lastTelemetryFrameReceivedUs) >= FPORT2_MIN_TELEMETRY_RESPONSE_DELAY_US)
-           || (otaResponsePayload && cmpTimeUs(currentTimeUs, lastTelemetryFrameReceivedUs) >= FPORT2_MIN_OTA_RESPONSE_DELAY_US)) {
+           || (otaResponsePayload && cmpTimeUs(currentTimeUs, lastTelemetryFrameReceivedUs) >= otaMinResponseDelay)) {
         hasTelemetryRequest = false;
         clearToSend = true;
         result |= RX_FRAME_PROCESSING_REQUIRED;
@@ -576,7 +594,7 @@ static bool processFrame(const rxRuntimeConfig_t *rxRuntimeConfig)
             }
 
             timeUs_t otaResponseTime = cmpTimeUs(micros(), otaFrameEndTimestamp);
-            if (!firmwareUpdateError && (otaResponseTime < 400)) { // We can answer in time (firmwareUpdateStore can take time because it might need to erase flash)
+            if (!firmwareUpdateError && (otaResponseTime <= otaMaxResponseTime)) { // We can answer in time (firmwareUpdateStore can take time because it might need to erase flash)
                 writeUplinkFramePhyID(downlinkPhyID, otaResponsePayload);
                 DEBUG_SET(DEBUG_FPORT, DEBUG_FPORT2_OTA_FRAME_RESPONSE_TIME, otaResponseTime);
             }
