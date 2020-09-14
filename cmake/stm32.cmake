@@ -404,11 +404,12 @@ function(target_stm32)
         # Combined with bootloader and main firmware
         set(with_bl_suffix _with_bl)
         set(combined_hex ${CMAKE_BINARY_DIR}/${binary_name}${with_bl_suffix}.hex)
-        add_custom_target(${name}${with_bl_suffix}
+        set(with_bl_target ${name}${with_bl_suffix})
+        add_custom_target(${with_bl_target}
             ${CMAKE_SOURCE_DIR}/src/utils/combine_tool ${bl_bin_filename} ${for_bl_bin_filename} ${combined_hex}
-            DEPENDS ${bl_bin_filename} ${for_bl_bin_filename}
             BYPRODUCTS ${combined_hex}
         )
+        add_dependencies(${with_bl_target} ${bl_target_name} ${for_bl_target_name})
     endif()
 
     # clean_<target>
