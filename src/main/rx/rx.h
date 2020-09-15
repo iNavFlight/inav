@@ -175,8 +175,17 @@ typedef enum {
     RSSI_SOURCE_MSP,
 } rssiSource_e;
 
-extern rxRuntimeConfig_t rxRuntimeConfig; //!!TODO remove this extern, only needed once for channelCount
+typedef struct rxLinkStatistics_s {
+    int16_t     uplinkRSSI;     // RSSI value in dBm
+    uint8_t     uplinkLQ;       // A protocol specific measure of the link quality in [0..100]
+    int8_t      uplinkSNR;      // The SNR of the uplink in dB
+    uint8_t     rfMode;         // A protocol specific measure of the transmission bandwidth [2 = 150Hz, 1 = 50Hz, 0 = 4Hz]
+    uint16_t    uplinkTXPower;  // power in mW
+    uint8_t     activeAnt;
+} rxLinkStatistics_t;
 
+extern rxRuntimeConfig_t rxRuntimeConfig; //!!TODO remove this extern, only needed once for channelCount
+extern rxLinkStatistics_t rxLinkStatistics;
 void lqTrackerReset(rxLinkQualityTracker_e * lqTracker);
 void lqTrackerAccumulate(rxLinkQualityTracker_e * lqTracker, uint16_t rawValue);
 void lqTrackerSet(rxLinkQualityTracker_e * lqTracker, uint16_t rawValue);

@@ -131,6 +131,7 @@ typedef enum {
     MOVE_FORWARD_ONLY                   = (1 << 22),
     SET_REVERSIBLE_MOTORS_FORWARD       = (1 << 23),
     FW_HEADING_USE_YAW                  = (1 << 24),
+    ANTI_WINDUP_DEACTIVATED             = (1 << 25),
 } stateFlags_t;
 
 #define DISABLE_STATE(mask) (stateFlags &= ~(mask))
