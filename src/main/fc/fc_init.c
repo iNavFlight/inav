@@ -599,6 +599,15 @@ void init(void)
 #endif
 
 #ifdef USE_BLACKBOX
+
+    //Do not allow blackbox to be run faster that 1kHz. It can cause UAV to drop dead when digital ESC protocol is used
+    const uint32_t blackboxLooptime =  getLooptime() * blackboxConfig()->rate_denom / blackboxConfig()->rate_num;
+
+    if (blackboxLooptime < 1000) {
+        blackboxConfigMutable()->rate_num = 1;
+        blackboxConfigMutable()->rate_denom = ceil(1000 / getLooptime());
+    }
+
     // SDCARD and FLASHFS are used only for blackbox
     // Make sure we only init what's necessary for blackbox
     switch (blackboxConfig()->device) {
