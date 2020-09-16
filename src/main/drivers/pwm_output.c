@@ -501,11 +501,13 @@ static void pwmServoWriteStandard(uint8_t index, uint16_t value)
     }
 }
 
+#ifdef USE_SERVO_SBUS
 static void sbusPwmWriteStandard(uint8_t index, uint16_t value)
 {
     pwmServoWriteStandard(index, value);
     sbusServoUpdate(index, value);
 }
+#endif
 
 #ifdef USE_PWM_SERVO_DRIVER
 static void pwmServoWriteExternalDriver(uint8_t index, uint16_t value)
