@@ -170,7 +170,7 @@
 #define SERIAL_PORT_COUNT       8
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
-#define SERIALRX_PROVIDER       SERIALRX_SBUS
+#define SERIALRX_PROVIDER       SERIALRX_FPORT2
 #define SERIALRX_UART           SERIAL_PORT_USART8
 
 // *************** ADC *****************************

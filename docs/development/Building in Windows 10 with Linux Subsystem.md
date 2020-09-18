@@ -1,4 +1,4 @@
-# Building in Windows 10 with Linux subsystem
+# Building in Windows 10 with Linux subsystem [Recommended]
 
 Linux subsystem for Windows 10 is probably the simplest way of building INAV under Windows 10.
 

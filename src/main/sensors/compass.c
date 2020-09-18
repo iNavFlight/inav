@@ -73,6 +73,7 @@ PG_RESET_TEMPLATE(compassConfig_t, compassConfig,
     .rollDeciDegrees = 0,
     .pitchDeciDegrees = 0,
     .yawDeciDegrees = 0,
+    .magGain = {1024, 1024, 1024},
 );
 
 #ifdef USE_MAG
@@ -338,8 +339,8 @@ void compassUpdate(timeUs_t currentTimeUs)
 
     // Check magZero
     if (
-        (compassConfig()->magZero.raw[X] == 0 && compassConfig()->magZero.raw[Y] == 0 && compassConfig()->magZero.raw[Z] == 0) || 
-        compassConfig()->magGain[X] == 0 || compassConfig()->magGain[Y] == 0 || compassConfig()->magGain[Z] == 0  
+        compassConfig()->magZero.raw[X] == 0 && compassConfig()->magZero.raw[Y] == 0 && compassConfig()->magZero.raw[Z] == 0 &&
+        compassConfig()->magGain[X] == 1024 && compassConfig()->magGain[Y] == 1024 && compassConfig()->magGain[Z] == 1024  
     ) {
         DISABLE_STATE(COMPASS_CALIBRATED);
     }
@@ -363,7 +364,7 @@ void compassUpdate(timeUs_t currentTimeUs)
 
         for (int axis = 0; axis < 3; axis++) {
             compassConfigMutable()->magZero.raw[axis] = 0;
-            compassConfigMutable()->magGain[axis] = 0;
+            compassConfigMutable()->magGain[axis] = 1024;
             magPrev[axis] = 0;
         }
 
