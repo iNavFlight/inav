@@ -1,0 +1,1 @@
+target_stm32f405xg(ASGARD32F4)

@@ -24,7 +24,9 @@
 #include "drivers/pwm_mapping.h"
 
 BUSDEV_REGISTER_SPI_TAG(busdev_mpu6000,     DEVHW_MPU6000,      MPU6000_SPI_BUS,    MPU6000_CS_PIN,     MPU6000_EXTI_PIN,       0,  DEVFLAGS_NONE,  IMU_MPU6000_ALIGN);
+#if defined(FOXEERF722DUAL)
 BUSDEV_REGISTER_SPI_TAG(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_SPI_BUS,    MPU6500_CS_PIN,     MPU6500_EXTI_PIN,       1,  DEVFLAGS_NONE,  IMU_MPU6500_ALIGN);
+#endif
 
 const timerHardware_t timerHardware[] = {
     DEF_TIM(TIM4,  CH2, PB7,  TIM_USE_PPM,                          0, 0),  // PPM&SBUS  

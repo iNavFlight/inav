@@ -13,5 +13,4 @@ include(cmake/gtest.cmake)
 
 enable_testing()
 include(GoogleTest)
-#add_subdirectory(googletest)
 add_subdirectory(unit)

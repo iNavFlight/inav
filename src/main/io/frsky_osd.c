@@ -4,7 +4,7 @@
 
 #include "platform.h"
 
-#if defined(USE_FRSKYOSD)
+#if defined(USE_OSD) && defined(USE_FRSKYOSD)
 
 #include "common/crc.h"
 #include "common/log.h"

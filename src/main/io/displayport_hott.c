@@ -60,7 +60,7 @@ static int hottClearScreen(displayPort_t *displayPort)
 {
     for (int row = 0; row < displayPort->rows; row++) {
         for (int col= 0; col < displayPort->cols; col++) {
-            hottWriteChar(displayPort, col, row, ' ', NULL);
+            hottWriteChar(displayPort, col, row, ' ', 0);
          }
     }
     return 0;

@@ -36,6 +36,8 @@
 #include "io/osd_common.h"
 #include "io/osd_grid.h"
 
+#if defined(USE_OSD)
+
 #define CANVAS_DEFAULT_GRID_ELEMENT_WIDTH OSD_CHAR_WIDTH
 #define CANVAS_DEFAULT_GRID_ELEMENT_HEIGHT OSD_CHAR_HEIGHT
 
@@ -148,3 +150,5 @@ void osdDrawSidebars(displayPort_t *display, displayCanvas_t *canvas)
 #endif
     osdGridDrawSidebars(display);
 }
+
+#endif
