@@ -413,28 +413,20 @@ function(target_stm32)
     endif()
 
     # clean_<target>
-    set(clean_target "clean_${name}")
-    if(CMAKE_VERSION VERSION_LESS 3.17)
-        if(CMAKE_HOST_SYSTEM MATCHES ".*Windows.*")
-            set(rm del /s /q)
-            set(rmdir rmdir /s /q)
-        else()
-            set(rm rm -fr)
-            set(rmdir ${rm})
-        endif()
-    else()
-        set(rm ${CMAKE_COMMAND} -E rm -fr)
-        set(rmdir ${rm})
+    set(generator_cmd "")
+    if (CMAKE_GENERATOR STREQUAL "Unix Makefiles")
+        set(generator_cmd "make")
+    elseif(CMAKE_GENERATOR STREQUAL "Ninja")
+        set(generator_cmd "ninja")
     endif()
-    add_custom_target(${clean_target}
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        COMMAND ${rmdir} "${CMAKE_CURRENT_BINARY_DIR}"
-        COMMAND ${rm} ${main_hex_filename}
-        COMMAND ${rm} ${bl_hex_filename}
-        COMMAND ${rm} ${main_hex_filename}
-        COMMENT "Removing intermediate files for ${name}")
-    set_property(TARGET ${clean_target} PROPERTY
-        TARGET_MESSAGES OFF
-        EXCLUDE_FROM_ALL 1
-        EXCLUDE_FROM_DEFAULT_BUILD 1)
+    if (NOT generator_cmd STREQUAL "")
+        set(clean_target "clean_${name}")
+        add_custom_target(${clean_target}
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            COMMAND ${generator_cmd} clean
+            COMMENT "Removing intermediate files for ${name}")
+        set_property(TARGET ${clean_target} PROPERTY
+            EXCLUDE_FROM_ALL 1
+            EXCLUDE_FROM_DEFAULT_BUILD 1)
+    endif()
 endfunction()
