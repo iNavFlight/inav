@@ -466,6 +466,14 @@ static int logicConditionGetFlightOperandValue(int operand) {
             return axisPID[PITCH];
             break;
 
+        case LOGIC_CONDITION_OPERAND_FLIGHT_WAYPOINT_INDEX:
+            return NAV_Status.activeWpNumber;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_WAYPOINT_ACTION:
+            return NAV_Status.activeWpAction;
+            break;
+
         default:
             return 0;
             break;
