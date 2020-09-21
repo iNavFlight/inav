@@ -189,7 +189,11 @@ endfunction()
 function(add_hex_target name exe hex)
     add_custom_target(${name} ALL
         cmake -E env PATH=$ENV{PATH}
-        ${CMAKE_OBJCOPY} -Oihex $<TARGET_FILE:${exe}> ${hex}
+        # TODO: Overriding the start address with --set-start 0x08000000
+        # seems to be required due to some incorrect assumptions about .hex
+        # files in the configurator. Verify wether that's the case and fix
+        # the bug in configurator or delete this comment.
+        ${CMAKE_OBJCOPY} -Oihex --set-start 0x08000000 $<TARGET_FILE:${exe}> ${hex}
         BYPRODUCTS ${hex}
     )
 endfunction()
