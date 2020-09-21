@@ -111,6 +111,24 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 23            | IS_WP                 | boolean `0`/`1`               |
 | 24            | IS_LANDING            | boolean `0`/`1`               |
 | 25            | IS_FAILSAFE           | boolean `0`/`1`               |
+| 26            | STABILIZED_ROLL       | Roll PID controller output `[-500:500]`   |
+| 27            | STABILIZED_PITCH      | Pitch PID controller output `[-500:500]`  |
+| 28            | STABILIZED_YAW        | Yaw PID controller output `[-500:500]`    |
+| 29            | ACTIVE_WAYPOINT_INDEX | Indexed from `1`. To verify WP is in progress, use `IS_WP` |
+| 30            | ACTIVE_WAYPOINT_ACTION | See ACTIVE_WAYPOINT_ACTION paragraph |
+
+##### ACTIVE_WAYPOINT_ACTION
+
+| Action        |  Value   |
+|----           |----      |
+| WAYPOINT      | 1      |
+| HOLD_TIME     | 3      |
+| RTH           | 4      |
+| SET_POI       | 5      |
+| JUMP          | 6      |
+| SET_HEAD      | 7      |
+| LAND          | 8      |
+
 
 #### FLIGHT_MODE
 

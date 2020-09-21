@@ -110,6 +110,8 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_ROLL,                         // 26
     LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_PITCH,                        // 27
     LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_YAW,                          // 28
+    LOGIC_CONDITION_OPERAND_FLIGHT_WAYPOINT_INDEX,                          // 29
+    LOGIC_CONDITION_OPERAND_FLIGHT_WAYPOINT_ACTION,                         // 30
 } logicFlightOperands_e;
 
 typedef enum {
