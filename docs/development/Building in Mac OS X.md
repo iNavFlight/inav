@@ -3,7 +3,7 @@
 Building in Mac OS X can be accomplished in just a few steps:
 
 * Install general development tools (clang, make, git)
-* Install ARM GCC 7.2 series compiler or higher
+* Install cmake
 * Checkout INAV sourcecode through git
 * Build the code
 
@@ -35,41 +35,24 @@ installation, open up XCode and enter its preferences menu. Go to the "downloads
 
 [from the App Store]: https://itunes.apple.com/us/app/xcode/id497799835
 
-## Install ARM GCC 7.2 series or higher compiler
+## Install cmake
 
-INAV is built using series 7.2 or above GCC compiler provided by the [GNU Tools for ARM Embedded Processors project][].
+The easiest way to install cmake's command line executable is via
+[Homebrew](https://brew.sh) (a package manager for macOS). Go to their site
+and follow their installation instructions.
 
-Grab the Mac installation tarball for the latest version in the 7.2 series or above (e.g. gcc-arm-none-eabi-7-2017-q4-major-mac.tar.bz2). Move it somewhere useful
-such as a `~/development` folder (in your home directory) and double click it to unpack it. You should end up with a
-folder with a name similar to `~/development/gcc-arm-none-eabi-7-2017-q4-major/`.
+Once Homebrew is installed, type `brew install cmake` in a terminal to install
+cmake.
 
-Now you just need to add the `bin/` directory from inside the GCC directory to your system's path. Run `nano ~/.profile`. Add a
-new line at the end of the file which adds the path for the `bin/` folder to your path, like so:
+Alternatively, cmake binaries for macOS are available from
+[cmake.org](https://cmake.org/download/). If you prefer installing it this way,
+you'd have to manually add cmake's command line binary to your `$PATH`. Assuming
+`CMake.app` has been copied to `/Applications`, adding the following line to
+`~/.zshrc` would make the cmake command available.
 
+```sh
+export PATH=$PATH:/Applications/CMake.app/Contents/bin
 ```
-export PATH=$PATH:~/development/gcc-arm-none-eabi-7-2017-q4-major/bin
-```
-
-Press CTRL+X to exit nano, and answer "y" when prompted to save your changes.
-
-Now *close this terminal window* and open a new one. Try running:
-
-```
-arm-none-eabi-gcc --version
-```
-
-You should get output similar to (in this example compiler series 7.2.1 is used):
-
-```
-arm-none-eabi-gcc (GNU Tools for Arm Embedded Processors 7-2017-q4-major) 7.2.1 20170904 (release) [ARM/embedded-7-branch revision 255204]
-Copyright (C) 2017 Free Software Foundation, Inc.
-This is free software; see the source for copying conditions.  There is NO
-warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-```
-
-If `arm-none-eabi-gcc` couldn't be found, go back and check that you entered the correct path in your `~/.profile` file.
-
-[GNU Tools for ARM Embedded Processors project]: https://developer.arm.com/open-source/gnu-toolchain/gnu-rm/downloads
 
 ## Ruby
 
@@ -90,9 +73,48 @@ This will download the entire INAV repository for you into a new folder called "
 
 ## Build the code
 
-Enter the inav directory and run `make TARGET=SPRACINGF3` to build firmware for the SPRacing F3. When the build completes,
-the .hex firmware should be available as `obj/inav_x.x.x_SPRACINGF3.hex` for you to flash using the INAV
-Configurator.
+Assuming you've just cloned the source code, you can switch your current
+directory to inav's source try by typing:
+
+```sh
+cd inav
+```
+
+Inside the inav directory, create a new directory to store the built files. This
+helps keeping everything nice and tidy, separating source code from artifacts. By
+convention this directory is usually called `build`, but any name would work. Enter
+the following command to create it and switch your working directory to it:
+
+```sh
+mkdir -p build && cd build
+```
+
+Now we need to configure the build by using the following command:
+
+```sh
+cmake ..
+```
+
+This will automatically download the required compiler for inav, so it
+might take a few minutes. Once it's finished without errors, you can
+build the target that you want by typing `make target-name`. e.g.:
+
+```sh
+make -j8 MATEKF722 # Will build MATEKF722 target
+```
+
+A list of all the available targets can be displayed with:
+
+```sh
+make targets
+```
+
+Once the build completes, the correspondent `.hex` file will be found
+in current directory (e.g. `build`) and it will be named as
+`inav_x.y.z_TARGET.hex`. `x.y.z` corresponds to the INAV version number
+while `TARGET` will be the target name you've just built. e.g.
+`inav_2.6.0_MATEKF722.hex`. This is the file that can be flashed using
+INAV Configurator.
 
 ## Updating to the latest source
 
@@ -100,10 +122,9 @@ If you want to erase your local changes and update to the latest version of the 
 inav directory and run these commands to first erase your local changes, fetch and merge the latest
 changes from the repository, then rebuild the firmware:
 
-```
+```sh
 git reset --hard
 git pull
 
-make clean TARGET=SPRACINGF3
-make TARGET=SPRACINGF3
+make target-name # e.g. make MATEKF722
 ```

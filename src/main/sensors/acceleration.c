@@ -462,7 +462,7 @@ static void performAcclerationCalibration(void)
         if (!sensorCalibrationSolveForOffset(&calState, accTmp)) {
             accTmp[0] = 0.0f;
             accTmp[1] = 0.0f;
-            accTmp[1] = 0.0f;
+            accTmp[2] = 0.0f;
             calFailed = true;
         }
 
@@ -486,7 +486,7 @@ static void performAcclerationCalibration(void)
         if (!sensorCalibrationSolveForScale(&calState, accTmp)) {
             accTmp[0] = 1.0f;
             accTmp[1] = 1.0f;
-            accTmp[1] = 1.0f;
+            accTmp[2] = 1.0f;
             calFailed = true;
         }
 

@@ -1,0 +1,2 @@
+target_stm32f405xg(KAKUTEF4)
+target_stm32f405xg(KAKUTEF4V2)

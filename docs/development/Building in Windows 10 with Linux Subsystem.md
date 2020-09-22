@@ -25,8 +25,12 @@ Update the repo packages:
 Install Git, Make, gcc and Ruby
 1.  `sudo apt-get install git`
 1.  `sudo apt-get install make`
-1.  `sudo apt-get install gcc-arm-none-eabi`
+1.  `sudo apt-get install cmake`
 1.  `sudo apt-get install ruby`
+
+### CMAKE and Ubuntu 18_04
+
+To run  `cmake` in the latest version you will need to update from Ubuntu `18_04` to `20_04`. The fastest way to do it is to uninstall current version and install `20_04` for Microsoft Store [https://www.microsoft.com/store/productId/9N6SVWS3RX71](https://www.microsoft.com/store/productId/9N6SVWS3RX71) 
 
 ## Downloading the iNav repository (example):
 
@@ -40,15 +44,28 @@ You now have a folder called inav in the root of C drive that you can edit in wi
 
 ## Building (example):
 
+For detailed build instrusctions see [Building in Linux](Building%20in%20Linux.md)
+
 Launch Ubuntu:
 Click Windows Start button then scroll and lauch "Ubuntu"
 
-Building from Ubunto command line
-`cd /mnt/c/inav`
-`make clean TARGET=OMNIBUSF4PRO` (as an example)
-`make TARGET=MATEKF405`  (as an example)
+Building from Ubuntu command line
 
+`cd /mnt/c/inav`
+
+Do it onece to prepare build environment
+```
+mkdir build
+cd build
+cmake ..
+```
+
+Then to build
+```
+cd build
+make MATEKF722
+```
 
 ## Flashing:
 Launch windows configurator GUI and from within the firmware flasher select `Load firmware[Local]`
-Hex files can be found in the folder `c:\inav\obj`
+Hex files can be found in the folder `c:\inav\build`

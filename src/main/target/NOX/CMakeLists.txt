@@ -1,1 +1,1 @@
-target_stm32f411(NOX)
+target_stm32f411xe(NOX)
