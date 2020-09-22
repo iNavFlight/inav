@@ -110,6 +110,15 @@ void temperatureInit(void)
     }
 #endif
 
+
+#ifdef USE_TEMPERATURE_HTU21D
+    memset(htu21dDev, 0, sizeof(htu21dDev));
+    for (uint8_t htu21dAddr = 0; htu21dAddr < 8; ++htu21dAddr) {
+        if (htu21dDetect(htu21dDev + htu21dAddr, htu21dAddr))
+            newSensorCheckAndEnter(TEMP_SENSOR_HTU21D, htu21dAddr);
+    }
+#endif
+
 #ifdef DS18B20_DRIVER_AVAILABLE
     owDev = getOwDev();
     if (owDev) {

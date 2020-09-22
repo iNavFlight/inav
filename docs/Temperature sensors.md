@@ -11,6 +11,16 @@ Up to 8 can be connected to the flight controller.
 * Supply: 2.7 to 5.5V
 * Temperature range: -55 to +125°C
 
+## HTU21D
+
+Up to 8 can be connected to the flight controller.
+
+* Package: SOP-8, breakout boards can be found easily
+* Interface: I²C
+* Supply: 2.7 to 5.5V
+* Temperature range: -40 to +125°C
+* Humidity range: 0-100%RH
+
 ## DS18B20
 
 * Package: TO-92, SO-8, µSOP-8

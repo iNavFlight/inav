@@ -127,6 +127,9 @@ typedef enum {
     DEVHW_LM75_6,
     DEVHW_LM75_7,
 
+    /* Humidity sensor chip */
+    DEVHW_HTU21D_0,
+
     /* 1-wire interface chips */
     DEVHW_DS2482,
 

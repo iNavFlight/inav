@@ -27,7 +27,8 @@
 typedef enum {
     TEMP_SENSOR_NONE = 0,
     TEMP_SENSOR_LM75,
-    TEMP_SENSOR_DS18B20
+    TEMP_SENSOR_DS18B20,
+    TEMP_SENSOR_HTU21D
 } tempSensorType_e;
 
 typedef struct {
