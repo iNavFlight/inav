@@ -131,6 +131,7 @@ typedef struct positionEstimationConfig_s {
     uint8_t gravity_calibration_tolerance;    // Tolerance of gravity calibration (cm/s/s)
     uint8_t use_gps_velned;
     uint8_t allow_dead_reckoning;
+    uint8_t avoid_accel_clipping;
 
     uint16_t max_surface_altitude;
 
@@ -531,6 +532,14 @@ bool isAdjustingHeading(void);
  * are in the [0, 360 * 100) interval.
  */
 int32_t navigationGetHomeHeading(void);
+
+/* Notify navigation system that accelerometer is not healthy (navigation modes may misbehave) */
+uint32_t navGetPositionEstimatorWarnings(void);
+
+typedef enum {
+    NAV_WARNING_ACCELEROMETER_HEALTH    = (1 << 0),
+    NAV_WARNING_HEADING_UNKNOWN         = (1 << 1),
+} navGetPositionEstimatorWarnings_e;
 
 /* Compatibility data */
 extern navSystemStatus_t    NAV_Status;

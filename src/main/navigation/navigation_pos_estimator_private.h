@@ -52,6 +52,7 @@
 #define INAV_SURFACE_AVERAGE_HZ             1.0f
 
 #define INAV_ACC_CLIPPING_RC_CONSTANT           (0.010f)    // Reduce acc weight for ~10ms after clipping
+#define INAV_ACC_CLIPPING_WARNING_TIMEOUT_MS    500
 
 #define RANGEFINDER_RELIABILITY_RC_CONSTANT     (0.47802f)
 #define RANGEFINDER_RELIABILITY_LIGHT_THRESHOLD (0.15f)
@@ -128,7 +129,8 @@ typedef struct {
 } navPositionEstimatorESTIMATE_t;
 
 typedef struct {
-     timeUs_t               lastUpdateTime;
+    timeUs_t                lastUpdateTime;
+    timeMs_t                lastClippingTimeMs;
     fpVector3_t             accelNEU;
     fpVector3_t             accelBias;
     float                   calibratedGravityCMSS;

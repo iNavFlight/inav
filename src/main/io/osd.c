@@ -2042,7 +2042,18 @@ static bool osdDrawSingleElement(uint8_t item)
                 // messages to show.
                 const char *messages[5];
                 unsigned messageCount = 0;
-                if (FLIGHT_MODE(FAILSAFE_MODE)) {
+                if (isUsingNavigationModes() || failsafeMayRequireNavigationMode()) {
+                    // If we configure any navigation modes - show navigation-related warnings
+                    uint32_t navWarn = navGetPositionEstimatorWarnings();
+
+                    if (navWarn & NAV_WARNING_ACCELEROMETER_HEALTH) {
+                        messages[messageCount++] = "(ACCEL UNHEALTHY)";
+                    }
+
+                    if (navWarn & NAV_WARNING_HEADING_UNKNOWN) {
+                        messages[messageCount++] = "(HEADING UNHEALTHY)";
+                    }
+                } else if (FLIGHT_MODE(FAILSAFE_MODE)) {
                     // In FS mode while being armed too
                     const char *failsafePhaseMessage = osdFailsafePhaseMessage();
                     const char *failsafeInfoMessage = osdFailsafeInfoMessage();

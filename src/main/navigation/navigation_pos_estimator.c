@@ -65,6 +65,7 @@ PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
         .use_gps_velned = 1,                    // "Disabled" is mandatory with gps_dyn_model = Pedestrian
         .use_gps_no_baro = 0,                   // Use GPS altitude if no baro is available on all aircrafts
         .allow_dead_reckoning = 0,
+        .avoid_accel_clipping = 1,
 
         .max_surface_altitude = 200,
 
@@ -363,6 +364,7 @@ static void updateIMUEstimationWeight(const float dt)
     // and gradually restore weight back to 1.0 over time
     if (isAccClipped) {
         posEstimator.imu.accWeightFactor = 0.0f;
+        posEstimator.imu.lastClippingTimeMs = millis();
     }
     else {
         const float relAlpha = dt / (dt + INAV_ACC_CLIPPING_RC_CONSTANT);
@@ -375,10 +377,14 @@ static void updateIMUEstimationWeight(const float dt)
 
 float navGetAccelerometerWeight(void)
 {
-    const float accWeightScaled = posEstimator.imu.accWeightFactor * positionEstimationConfig()->w_xyz_acc_p;
-    DEBUG_SET(DEBUG_VIBE, 5, accWeightScaled * 1000);
-
-    return accWeightScaled;
+    if (positionEstimationConfig()->avoid_accel_clipping) {
+        const float accWeightScaled = posEstimator.imu.accWeightFactor * positionEstimationConfig()->w_xyz_acc_p;
+        DEBUG_SET(DEBUG_VIBE, 5, accWeightScaled * 1000);
+        return accWeightScaled;
+    }
+    else {
+        return positionEstimationConfig()->w_xyz_acc_p;
+    }
 }
 
 static void updateIMUTopic(timeUs_t currentTimeUs)
@@ -807,6 +813,7 @@ void initializePositionEstimator(void)
     posEstimator.est.flowCoordinates[Y] = 0;
 
     posEstimator.imu.accWeightFactor = 0;
+    posEstimator.imu.lastClippingTimeMs = 0;
 
     restartGravityCalibration();
 
@@ -848,6 +855,21 @@ void updatePositionEstimator(void)
 bool navIsCalibrationComplete(void)
 {
     return gravityCalibrationComplete();
+}
+
+uint32_t navGetPositionEstimatorWarnings(void)
+{
+    uint32_t warningBits = 0;
+
+    if (!navIsAccelerationUsable() || (millis() - posEstimator.imu.lastClippingTimeMs < INAV_ACC_CLIPPING_WARNING_TIMEOUT_MS)) {
+        warningBits |= NAV_WARNING_ACCELEROMETER_HEALTH;
+    }
+
+    if (!navIsHeadingUsable()) {
+        warningBits |= NAV_WARNING_HEADING_UNKNOWN;
+    }
+
+    return warningBits;
 }
 
 #endif
