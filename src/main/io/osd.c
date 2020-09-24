@@ -2568,7 +2568,9 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .baro_temp_alarm_min = -200,
     .baro_temp_alarm_max = 600,
 #endif
-
+#ifdef USE_SERIALRX_CRSF
+    .snr_alarm = 5,
+#endif
 #ifdef USE_TEMPERATURE_SENSOR
     .temp_label_align = OSD_ALIGN_LEFT,
 #endif
