@@ -69,3 +69,27 @@ make MATEKF722
 ## Flashing:
 Launch windows configurator GUI and from within the firmware flasher select `Load firmware[Local]`
 Hex files can be found in the folder `c:\inav\build`
+
+## Troubleshooting
+
+### Syntax error: "(" unexpected
+
+```
+dzikuvx@BerlinAtHome:/mnt/c/Users/pspyc/Documents/Projects/inav/build$ make MATEKF722SE
+Generating MATEKF722SE/settings_generated.h, MATEKF722SE/settings_generated.c
+/bin/sh: 1: Syntax error: "(" unexpected
+make[3]: *** [src/main/target/MATEKF722SE/CMakeFiles/MATEKF722SE.elf.dir/build.make:63: src/main/target/MATEKF722SE/MATEKF722SE/settings_generated.h] Error 2
+make[2]: *** [CMakeFiles/Makefile2:33607: src/main/target/MATEKF722SE/CMakeFiles/MATEKF722SE.elf.dir/all] Error 2
+make[1]: *** [CMakeFiles/Makefile2:33290: src/main/target/MATEKF722SE/CMakeFiles/MATEKF722SE.dir/rule] Error 2
+make: *** [Makefile:13703: MATEKF722SE] Error 2
+```
+
+This error can be triggered by a Windows PATHs included in the Linux Subsystem. The solution is to:
+
+1. Open Windows RegEdit tool
+1. Find `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Lxss\{GUID}\Flags`
+1. Change `Flags` from `7` to `5`
+1. Restart WSL and Windows preferably
+1. `cd build`
+1. `cmake ..`
+1. `make {TARGET}` should be working again 
