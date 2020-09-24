@@ -131,13 +131,18 @@
 #define AIRSPEED_ADC_CHANNEL        ADC_CHN_4
 
 // *************** LED2812 ************************
+#ifndef MATEKF411SE_PINIO
 #define USE_LED_STRIP
 #define WS2811_PIN                  PB10
+#endif
 
 // *************** PINIO ***************************
 #define USE_PINIO
 #define USE_PINIOBOX
 #define PINIO1_PIN                  PA13 // Camera switcher
+#ifdef MATEKF411SE_PINIO
+#define PINIO2_PIN                  PB10 // External PINIO (LED pad)
+#endif
 
 // ***************  OTHERS *************************
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_OSD | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY | FEATURE_SOFTSERIAL )
