@@ -221,6 +221,10 @@ static navigationFSMEvent_t nextForNonGeoStates(void);
 void initializeRTHSanityChecker(const fpVector3_t * pos);
 bool validateRTHSanityChecker(void);
 
+//AWH xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+bool RTHAltHoldOverRideFlag = false;
+//xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
 /*************************************************************************************************/
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_IDLE(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_ALTHOLD_INITIALIZE(navigationFSMState_t previousState);
@@ -1081,6 +1085,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_3D_ADJUSTING(nav
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigationFSMState_t previousState)
 {
+    //AWH xxxxxxxxxxxxxxxxxxxxx
+    RTHAltHoldOverRideFlag = false;
+    //xxxxxxxxxxxxxxxxxxxxx
+
     navigationFSMStateFlags_t prevFlags = navGetStateFlags(previousState);
 
     if ((posControl.flags.estHeadingStatus == EST_NONE) || (posControl.flags.estAltStatus == EST_NONE) || (posControl.flags.estPosStatus != EST_TRUSTED) || !STATE(GPS_FIX_HOME)) {
@@ -1147,6 +1155,19 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigati
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(navigationFSMState_t previousState)
 {
+    //AWH xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx    
+    if (!IS_RC_MODE_ACTIVE(BOXNAVALTHOLD)) {
+        RTHAltHoldOverRideFlag = true;
+    }
+    else {
+        if (RTHAltHoldOverRideFlag && !posControl.flags.forcedRTHActivated) {
+            posControl.rthState.rthInitialAltitude = posControl.actualState.abs.pos.z;
+            posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;
+            RTHAltHoldOverRideFlag = false;
+        }
+    }
+    //xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
     UNUSED(previousState);
 
     if ((posControl.flags.estHeadingStatus == EST_NONE)) {
