@@ -82,19 +82,36 @@ Edit `./.vscode/tasks.json` to enable Building with `Ctrl + Shift + B` keyboard 
         {
             "label": "Build Matek F722-SE",
             "type": "shell",
-            "command": "make TARGET=MATEKF722SE",
+            "command": "make MATEKF722SE",
             "group": "build",
-            "problemMatcher": []
+            "problemMatcher": [],
+            "options": {
+                "cwd": "${workspaceFolder}/build"
+            }
         },
         {
             "label": "Build Matek F722",
             "type": "shell",
-            "command": "make TARGET=MATEKF722",
+            "command": "make MATEKF722",
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
-            "problemMatcher": []
+            "problemMatcher": [],
+            "options": {
+                "cwd": "${workspaceFolder}/build"
+            }
+        }
+        ,
+        {
+            "label": "CMAKE Update",
+            "type": "shell",
+            "command": "cmake ..",
+            "group": "build",
+            "problemMatcher": [],
+            "options": {
+                "cwd": "${workspaceFolder}/build"
+            }
         }
     ]
 }
