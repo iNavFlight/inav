@@ -63,14 +63,19 @@ typedef void (*afatfsCallback_t)(void);
 bool afatfs_fopen(const char *filename, const char *mode, afatfsFileCallback_t complete);
 bool afatfs_ftruncate(afatfsFilePtr_t file, afatfsFileCallback_t callback);
 bool afatfs_fclose(afatfsFilePtr_t file, afatfsCallback_t callback);
+void afatfs_fcloseSync(afatfsFilePtr_t file);
 bool afatfs_funlink(afatfsFilePtr_t file, afatfsCallback_t callback);
 
 bool afatfs_feof(afatfsFilePtr_t file);
 void afatfs_fputc(afatfsFilePtr_t file, uint8_t c);
 uint32_t afatfs_fwrite(afatfsFilePtr_t file, const uint8_t *buffer, uint32_t len);
+uint32_t afatfs_fwriteSync(afatfsFilePtr_t file, uint8_t *data, uint32_t length);
 uint32_t afatfs_fread(afatfsFilePtr_t file, uint8_t *buffer, uint32_t len);
+uint32_t afatfs_freadSync(afatfsFilePtr_t file, uint8_t *buffer, uint32_t length);
 afatfsOperationStatus_e afatfs_fseek(afatfsFilePtr_t file, int32_t offset, afatfsSeek_e whence);
+afatfsOperationStatus_e afatfs_fseekSync(afatfsFilePtr_t file, int32_t offset, afatfsSeek_e whence);
 bool afatfs_ftell(afatfsFilePtr_t file, uint32_t *position);
+uint32_t afatfs_fileSize(afatfsFilePtr_t file);
 
 bool afatfs_mkdir(const char *filename, afatfsFileCallback_t complete);
 bool afatfs_chdir(afatfsFilePtr_t dirHandle);

@@ -1,0 +1,2 @@
+target_stm32f405xg(COLIBRI HSE_MHZ 16)
+target_stm32f405xg(QUANTON HSE_MHZ 16)

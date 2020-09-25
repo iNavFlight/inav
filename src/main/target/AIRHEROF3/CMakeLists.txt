@@ -1,0 +1,2 @@
+target_stm32f303xc(AIRHEROF3 HSE_MHZ 12)
+target_stm32f303xc(AIRHEROF3_QUAD HSE_MHZ 12)

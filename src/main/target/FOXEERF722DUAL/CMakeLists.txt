@@ -1,0 +1,2 @@
+target_stm32f722xe(FOXEERF722DUAL)
+target_stm32f722xe(FOXEERF722V2)

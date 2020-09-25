@@ -303,7 +303,7 @@ static void djiSerializeOSDConfigReply(sbuf_t *dst)
             // Position & visibility encoded in 16 bits. Position encoding is the same between BF/DJI and INAV
             // However visibility is different. INAV has 3 layouts, while BF only has visibility profiles
             // Here we use only one OSD layout mapped to first OSD BF profile
-            uint16_t itemPos = osdConfig()->item_pos[0][inavOSDIdx];
+            uint16_t itemPos = osdLayoutsConfig()->item_pos[0][inavOSDIdx];
 
             // Workarounds for certain OSD element positions
             // INAV calculates these dynamically, while DJI expects the config to have defined coordinates
@@ -566,12 +566,12 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
             sbufWriteU8(dst, gyroConfig()->gyro_soft_lpf_hz);           // BF: gyroConfig()->gyro_lowpass_hz
             sbufWriteU16(dst, pidProfile()->dterm_lpf_hz);              // BF: currentPidProfile->dterm_lowpass_hz
             sbufWriteU16(dst, pidProfile()->yaw_lpf_hz);                // BF: currentPidProfile->yaw_lowpass_hz
-            sbufWriteU16(dst, gyroConfig()->gyro_soft_notch_hz_1);      // BF: gyroConfig()->gyro_soft_notch_hz_1
-            sbufWriteU16(dst, gyroConfig()->gyro_soft_notch_cutoff_1);  // BF: gyroConfig()->gyro_soft_notch_cutoff_1
-            sbufWriteU16(dst, pidProfile()->dterm_soft_notch_hz);       // BF: currentPidProfile->dterm_notch_hz
-            sbufWriteU16(dst, pidProfile()->dterm_soft_notch_cutoff);   // BF: currentPidProfile->dterm_notch_cutoff
-            sbufWriteU16(dst, gyroConfig()->gyro_soft_notch_hz_2);      // BF: gyroConfig()->gyro_soft_notch_hz_2
-            sbufWriteU16(dst, gyroConfig()->gyro_soft_notch_cutoff_2);  // BF: gyroConfig()->gyro_soft_notch_cutoff_2
+            sbufWriteU16(dst, gyroConfig()->gyro_notch_hz);             // BF: gyroConfig()->gyro_soft_notch_hz_1
+            sbufWriteU16(dst, gyroConfig()->gyro_notch_cutoff);         // BF: gyroConfig()->gyro_soft_notch_cutoff_1
+            sbufWriteU16(dst, 0);                                       // BF: currentPidProfile->dterm_notch_hz
+            sbufWriteU16(dst, 1);                                       // BF: currentPidProfile->dterm_notch_cutoff
+            sbufWriteU16(dst, 0);                                       // BF: gyroConfig()->gyro_soft_notch_hz_2
+            sbufWriteU16(dst, 1);                                       // BF: gyroConfig()->gyro_soft_notch_cutoff_2
             sbufWriteU8(dst, 0);                                        // BF: currentPidProfile->dterm_filter_type
             sbufWriteU8(dst, gyroConfig()->gyro_lpf);                   // BF: gyroConfig()->gyro_hardware_lpf);
             sbufWriteU8(dst, 0);                                        // BF: DEPRECATED: gyro_32khz_hardware_lpf

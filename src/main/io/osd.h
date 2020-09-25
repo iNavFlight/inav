@@ -152,6 +152,11 @@ typedef enum {
     OSD_VTX_POWER,
     OSD_ESC_RPM,
     OSD_ESC_TEMPERATURE,
+    OSD_AZIMUTH,
+    OSD_CRSF_RSSI_DBM,
+    OSD_CRSF_LQ,
+    OSD_CRSF_SNR_DB,
+    OSD_CRSF_TX_POWER,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -159,6 +164,8 @@ typedef enum {
     OSD_UNIT_IMPERIAL,
     OSD_UNIT_METRIC,
     OSD_UNIT_UK, // Show speed in mp/h, other values in metric
+
+    OSD_UNIT_MAX = OSD_UNIT_UK,
 } osd_unit_e;
 
 typedef enum {
@@ -181,6 +188,8 @@ typedef enum {
     OSD_SIDEBAR_SCROLL_ALTITUDE,
     OSD_SIDEBAR_SCROLL_GROUND_SPEED,
     OSD_SIDEBAR_SCROLL_HOME_DISTANCE,
+
+    OSD_SIDEBAR_SCROLL_MAX = OSD_SIDEBAR_SCROLL_HOME_DISTANCE,
 } osd_sidebar_scroll_e;
 
 typedef enum {
@@ -193,10 +202,14 @@ typedef enum {
     OSD_AHI_STYLE_LINE,
 } osd_ahi_style_e;
 
-typedef struct osdConfig_s {
+typedef struct osdLayoutsConfig_s {
     // Layouts
     uint16_t item_pos[OSD_LAYOUT_COUNT][OSD_ITEM_COUNT];
+} osdLayoutsConfig_t;
 
+PG_DECLARE(osdLayoutsConfig_t, osdLayoutsConfig);
+
+typedef struct osdConfig_s {
     // Alarms
     uint8_t rssi_alarm; // rssi %
     uint16_t time_alarm; // fly minutes
@@ -211,6 +224,9 @@ typedef struct osdConfig_s {
     float gforce_alarm;
     float gforce_axis_alarm_min;
     float gforce_axis_alarm_max;
+#ifdef USE_SERIALRX_CRSF
+    int16_t snr_alarm; //CRSF SNR alarm in dB
+#endif
 #ifdef USE_BARO
     int16_t baro_temp_alarm_min;
     int16_t baro_temp_alarm_max;
@@ -240,7 +256,7 @@ typedef struct osdConfig_s {
     uint16_t hud_radar_range_max;
     uint16_t hud_radar_nearest;
     uint8_t hud_wp_disp;
-    
+
     uint8_t left_sidebar_scroll; // from osd_sidebar_scroll_e
     uint8_t right_sidebar_scroll; // from osd_sidebar_scroll_e
     uint8_t sidebar_scroll_arrows;
@@ -254,6 +270,15 @@ typedef struct osdConfig_s {
     bool osd_failsafe_switch_layout;
     uint8_t plus_code_digits; // Number of digits to use in OSD_PLUS_CODE
     uint8_t osd_ahi_style;
+    uint8_t force_grid;                 // Force a pixel based OSD to use grid mode.
+    uint8_t ahi_bordered;               // Only used by the AHI widget
+    uint8_t ahi_width;                  // In pixels, only used by the AHI widget
+    uint8_t ahi_height;                 // In pixels, only used by the AHI widget
+    int8_t  ahi_vertical_offset;        // Offset from center in pixels. Positive moves the AHI down. Widget only.
+    int8_t sidebar_horizontal_offset;   // Horizontal offset from default position. Units are grid slots for grid OSDs, pixels for pixel based OSDs. Positive values move sidebars closer to the edges.
+    uint8_t left_sidebar_scroll_step;   // How many units each sidebar step represents. 0 means the default value for the scroll type.
+    uint8_t right_sidebar_scroll_step;  // Same as left_sidebar_scroll_step, but for the right sidebar.
+
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);
@@ -262,6 +287,7 @@ typedef struct displayPort_s displayPort_t;
 typedef struct displayCanvas_s displayCanvas_t;
 
 void osdInit(displayPort_t *osdDisplayPort);
+bool osdDisplayIsPAL(void);
 void osdUpdate(timeUs_t currentTimeUs);
 void osdStartFullRedraw(void);
 // Sets a fixed OSD layout ignoring the RC input. Set it

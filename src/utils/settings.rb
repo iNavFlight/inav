@@ -532,6 +532,7 @@ class Generator
         table_names.each do |name|
             buf << "const char * const #{table_variable_name(name)}[] = {\n"
             tbl = @tables[name]
+            raise "values not found for table #{name}" unless tbl.has_key? 'values'
             tbl["values"].each do |v|
                 buf << "\t#{v.inspect},\n"
             end
@@ -718,7 +719,7 @@ class Generator
     def compile_test_file(prog)
         buf = StringIO.new
         # cstddef for offsetof()
-        headers = ["platform.h", "target.h", "cstddef"]
+        headers = ["platform.h", "cstddef"]
         @data["groups"].each do |group|
             gh = group["headers"]
             if gh
@@ -925,7 +926,7 @@ class Generator
             buf << "static_assert(V == 42 && 0 == 1, \"FAIL\");\n"
             buf << "public:\n"
             buf << "Fail() {};\n"
-            buf << "int64_t v = V\n"
+            buf << "int64_t v = V;\n"
             buf << "};\n"
             ii  = 0
             s.each do |c|

@@ -19,9 +19,11 @@
 
 #include <stdint.h>
 
+typedef struct displayCanvas_s displayCanvas_t;
+
 
 void osdHudClear(void);
-void osdHudDrawCrosshair(uint8_t px, uint8_t py);
+void osdHudDrawCrosshair(displayCanvas_t *canvas, uint8_t px, uint8_t py);
 void osdHudDrawHoming(uint8_t px, uint8_t py);
 void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitude, uint8_t poiType, uint16_t poiSymbol, int16_t poiP1, int16_t poiP2);
 void osdHudDrawExtras(uint8_t poi_id);

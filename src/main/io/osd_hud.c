@@ -28,6 +28,7 @@
 #include "io/osd_hud.h"
 
 #include "drivers/display.h"
+#include "drivers/display_canvas.h"
 #include "drivers/osd.h"
 #include "drivers/osd_symbols.h"
 #include "drivers/time.h"
@@ -215,7 +216,7 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
 /*
  * Draw the crosshair
  */
-void osdHudDrawCrosshair(uint8_t px, uint8_t py)
+void osdHudDrawCrosshair(displayCanvas_t *canvas, uint8_t px, uint8_t py)
 {
     static const uint16_t crh_style_all[] = {
         SYM_AH_CH_LEFT, SYM_AH_CH_CENTER, SYM_AH_CH_RIGHT,
@@ -227,11 +228,21 @@ void osdHudDrawCrosshair(uint8_t px, uint8_t py)
         SYM_AH_CH_TYPE7, SYM_AH_CH_TYPE7 + 1, SYM_AH_CH_TYPE7 + 2,
     };
 
+    // Center on the screen
+    if (canvas) {
+        displayCanvasContextPush(canvas);
+        displayCanvasCtmTranslate(canvas, -canvas->gridElementWidth / 2, -canvas->gridElementHeight / 2);
+    }
+
     uint8_t crh_crosshair = (osd_crosshairs_style_e)osdConfig()->crosshairs_style;
 
     displayWriteChar(osdGetDisplayPort(), px - 1, py,crh_style_all[crh_crosshair * 3]);
     displayWriteChar(osdGetDisplayPort(), px, py, crh_style_all[crh_crosshair * 3 + 1]);
     displayWriteChar(osdGetDisplayPort(), px + 1, py, crh_style_all[crh_crosshair * 3 + 2]);
+
+    if (canvas) {
+        displayCanvasContextPop(canvas);
+    }
 }
 
 

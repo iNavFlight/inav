@@ -83,11 +83,5 @@ Data rate  496Hz  35806 bytes/s     358100 baud
 ```
 ## Developer Notes
 
-Providing MSC for a target requires that the `.mk` file includes in `FEATURES` the key `MSC` and at least one of `ONBOARDFLASH` and /or `SDCARD`.
-
-For F4 and F7 targets, `USE_USB_MSC` is set unconditionally in `common.h`; if your target does not support blackbox logging to either SD card or internal flash, you should over-ride this in `target.h`
-```
-#ifdef USE_USB_MSC
-# undef USE_USB_MSC
-#endif
-```
+Providing MSC is automatically enabled for all F4 and up targets that support
+`ONBOARDFLASH` and /or `SDCARD`.

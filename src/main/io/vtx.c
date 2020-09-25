@@ -43,7 +43,7 @@
 #include "io/vtx_string.h"
 #include "io/vtx_control.h"
 
-PG_REGISTER_WITH_RESET_TEMPLATE(vtxSettingsConfig_t, vtxSettingsConfig, PG_VTX_SETTINGS_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(vtxSettingsConfig_t, vtxSettingsConfig, PG_VTX_SETTINGS_CONFIG, 2);
 
 PG_RESET_TEMPLATE(vtxSettingsConfig_t, vtxSettingsConfig,
     .band = VTX_SETTINGS_DEFAULT_BAND,
@@ -51,6 +51,7 @@ PG_RESET_TEMPLATE(vtxSettingsConfig_t, vtxSettingsConfig,
     .power = VTX_SETTINGS_DEFAULT_POWER,
     .pitModeChan = VTX_SETTINGS_DEFAULT_PITMODE_CHANNEL,
     .lowPowerDisarm = VTX_LOW_POWER_DISARM_OFF,
+    .maxPowerOverride = 0,
 );
 
 typedef enum {
@@ -86,29 +87,30 @@ static vtxSettingsConfig_t * vtxGetRuntimeSettings(void)
 
 static bool vtxProcessBandAndChannel(vtxDevice_t *vtxDevice, const vtxSettingsConfig_t * runtimeSettings)
 {
+    uint8_t vtxBand;
+    uint8_t vtxChan;
+
     // Shortcut for undefined band
     if (!runtimeSettings->band) {
         return false;
     }
 
-    if(!ARMING_FLAG(ARMED) && runtimeSettings->band) {
-        uint8_t vtxBand;
-        uint8_t vtxChan;
-        if (!vtxCommonGetBandAndChannel(vtxDevice, &vtxBand, &vtxChan)) {
-            return false;
-        }
-
-        if (vtxBand != runtimeSettings->band || vtxChan != runtimeSettings->channel) {
-            vtxCommonSetBandAndChannel(vtxDevice, runtimeSettings->band, runtimeSettings->channel);
-            return true;
-        }
+    if (!vtxCommonGetBandAndChannel(vtxDevice, &vtxBand, &vtxChan)) {
+        return false;
     }
+
+    if (vtxBand != runtimeSettings->band || vtxChan != runtimeSettings->channel) {
+        vtxCommonSetBandAndChannel(vtxDevice, runtimeSettings->band, runtimeSettings->channel);
+        return true;
+    }
+
     return false;
 }
 
 static bool vtxProcessPower(vtxDevice_t *vtxDevice, const vtxSettingsConfig_t * runtimeSettings)
 {
     uint8_t vtxPower;
+
     if (!vtxCommonGetPowerIndex(vtxDevice, &vtxPower)) {
         return false;
     }
@@ -117,6 +119,7 @@ static bool vtxProcessPower(vtxDevice_t *vtxDevice, const vtxSettingsConfig_t * 
         vtxCommonSetPowerByIndex(vtxDevice, runtimeSettings->power);
         return true;
     }
+
     return false;
 }
 
@@ -129,25 +132,28 @@ static bool vtxProcessPitMode(vtxDevice_t *vtxDevice, const vtxSettingsConfig_t 
     bool        currPmSwitchState = false;
     static bool prevPmSwitchState = false;
 
-    if (!ARMING_FLAG(ARMED) && vtxCommonGetPitMode(vtxDevice, &pitOnOff)) {
-        if (currPmSwitchState != prevPmSwitchState) {
-            prevPmSwitchState = currPmSwitchState;
+    if (!vtxCommonGetPitMode(vtxDevice, &pitOnOff)) {
+        return false;
+    }
 
-            if (currPmSwitchState) {
-                if (0) {
-                    if (!pitOnOff) {
-                        vtxCommonSetPitMode(vtxDevice, true);
-                        return true;
-                    }
-                }
-            } else {
-                if (pitOnOff) {
-                    vtxCommonSetPitMode(vtxDevice, false);
+    if (currPmSwitchState != prevPmSwitchState) {
+        prevPmSwitchState = currPmSwitchState;
+
+        if (currPmSwitchState) {
+            if (0) {
+                if (!pitOnOff) {
+                    vtxCommonSetPitMode(vtxDevice, true);
                     return true;
                 }
             }
+        } else {
+            if (pitOnOff) {
+                vtxCommonSetPitMode(vtxDevice, false);
+                return true;
+            }
         }
     }
+
     return false;
 }
 
@@ -167,25 +173,21 @@ void vtxUpdate(timeUs_t currentTimeUs)
         // Build runtime settings
         const vtxSettingsConfig_t * runtimeSettings = vtxGetRuntimeSettings();
 
-        bool vtxUpdatePending = false;
-
         switch (currentSchedule) {
             case VTX_PARAM_POWER:
-                vtxUpdatePending = vtxProcessPower(vtxDevice, runtimeSettings);
+                vtxProcessPower(vtxDevice, runtimeSettings);
                 break;
             case VTX_PARAM_BANDCHAN:
-                vtxUpdatePending = vtxProcessBandAndChannel(vtxDevice, runtimeSettings);
+                vtxProcessBandAndChannel(vtxDevice, runtimeSettings);
                 break;
             case VTX_PARAM_PITMODE:
-                vtxUpdatePending = vtxProcessPitMode(vtxDevice, runtimeSettings);
+                vtxProcessPitMode(vtxDevice, runtimeSettings);
                 break;
             default:
                 break;
         }
 
-        if (!ARMING_FLAG(ARMED) || vtxUpdatePending) {
-            vtxCommonProcess(vtxDevice, currentTimeUs);
-        }
+        vtxCommonProcess(vtxDevice, currentTimeUs);
 
         currentSchedule = (currentSchedule + 1) % VTX_PARAM_COUNT;
     }

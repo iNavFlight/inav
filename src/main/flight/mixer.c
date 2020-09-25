@@ -29,7 +29,6 @@ FILE_COMPILE_FOR_SPEED
 #include "common/filter.h"
 #include "common/maths.h"
 #include "common/utils.h"
-#include "common/global_functions.h"
 
 #include "config/feature.h"
 #include "config/parameter_group.h"
@@ -94,13 +93,13 @@ PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
 #define DEFAULT_PWM_PROTOCOL    PWM_TYPE_BRUSHED
 #define DEFAULT_PWM_RATE        16000
 #else
-#define DEFAULT_PWM_PROTOCOL    PWM_TYPE_STANDARD
+#define DEFAULT_PWM_PROTOCOL    PWM_TYPE_ONESHOT125
 #define DEFAULT_PWM_RATE        400
 #endif
 
 #define DEFAULT_MAX_THROTTLE    1850
 
-PG_REGISTER_WITH_RESET_TEMPLATE(motorConfig_t, motorConfig, PG_MOTOR_CONFIG, 5);
+PG_REGISTER_WITH_RESET_TEMPLATE(motorConfig_t, motorConfig, PG_MOTOR_CONFIG, 6);
 
 PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .motorPwmProtocol = DEFAULT_PWM_PROTOCOL,
@@ -479,11 +478,11 @@ void FAST_CODE mixTable(const float dT)
     int16_t throttleMin, throttleMax;
 
     // Find min and max throttle based on condition.
-#ifdef USE_GLOBAL_FUNCTIONS
-    if (GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_THROTTLE)) {
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_THROTTLE)) {
         throttleRangeMin = throttleIdleValue;
         throttleRangeMax = motorConfig()->maxthrottle;
-        mixerThrottleCommand = constrain(globalFunctionValues[GLOBAL_FUNCTION_ACTION_OVERRIDE_THROTTLE], throttleRangeMin, throttleRangeMax); 
+        mixerThrottleCommand = constrain(logicConditionValuesByType[LOGIC_CONDITION_OVERRIDE_THROTTLE], throttleRangeMin, throttleRangeMax); 
     } else
 #endif
     if (feature(FEATURE_REVERSIBLE_MOTORS)) {
@@ -514,7 +513,7 @@ void FAST_CODE mixTable(const float dT)
         throttleRangeMax = motorConfig()->maxthrottle;
 
         // Throttle scaling to limit max throttle when battery is full
-    #ifdef USE_GLOBAL_FUNCTIONS
+    #ifdef USE_PROGRAMMING_FRAMEWORK
         mixerThrottleCommand = ((mixerThrottleCommand - throttleRangeMin) * getThrottleScale(motorConfig()->throttleScale)) + throttleRangeMin;
     #else
         mixerThrottleCommand = ((mixerThrottleCommand - throttleRangeMin) * motorConfig()->throttleScale) + throttleRangeMin;

@@ -273,3 +273,8 @@ void displayCanvasContextPop(displayCanvas_t *displayCanvas)
         displayCanvas->vTable->contextPop(displayCanvas);
     }
 }
+
+bool displayCanvasGetWidgets(displayWidgets_t *widgets, const displayCanvas_t *displayCanvas)
+{
+    return displayCanvas && displayCanvas->vTable->getWidgets ? displayCanvas->vTable->getWidgets(widgets, displayCanvas) : false;
+}
