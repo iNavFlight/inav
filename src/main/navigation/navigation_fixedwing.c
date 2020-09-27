@@ -51,8 +51,8 @@
 
 #include "rx/rx.h"
 
-// Base frequencies for smoothing pitch and roll 
-#define NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ     2.0f      
+// Base frequencies for smoothing pitch and roll
+#define NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ     2.0f
 #define NAV_FW_BASE_ROLL_CUTOFF_FREQUENCY_HZ     10.0f
 
 // If we are going slower than NAV_FW_MIN_VEL_SPEED_BOOST - boost throttle to fight against the wind
@@ -70,9 +70,9 @@ static bool isAutoThrottleManuallyIncreased = false;
 static int32_t navHeadingError;
 static int8_t loiterDirYaw = 1;
 
-// Calculates the cutoff frequency for smoothing out roll/pitch commands 
+// Calculates the cutoff frequency for smoothing out roll/pitch commands
 // control_smoothness valid range from 0 to 9
-// resulting cutoff_freq ranging from baseFreq downwards to ~0.11Hz 
+// resulting cutoff_freq ranging from baseFreq downwards to ~0.11Hz
 static float getSmoothnessCutoffFreq(float baseFreq)
 {
     uint16_t smoothness = 10 - navConfig()->fw.control_smoothness;
@@ -205,7 +205,7 @@ static fpVector3_t virtualDesiredPosition;
 static pt1Filter_t fwPosControllerCorrectionFilterState;
 
 /*
- * TODO Currently this function resets both FixedWing and Rover & Boat position controller 
+ * TODO Currently this function resets both FixedWing and Rover & Boat position controller
  */
 void resetFixedWingPositionController(void)
 {
@@ -300,9 +300,9 @@ float processHeadingYawController(timeDelta_t deltaMicros, int32_t navHeadingErr
     const pidControllerFlags_e yawPidFlags = errorIsDecreasing ? PID_SHRINK_INTEGRATOR : 0;
 
     const float yawAdjustment = navPidApply2(
-        &posControl.pids.fw_heading, 
-        0, 
-        applyDeadband(navHeadingError, navConfig()->fw.yawControlDeadband * 100), 
+        &posControl.pids.fw_heading,
+        0,
+        applyDeadband(navHeadingError, navConfig()->fw.yawControlDeadband * 100),
         US2S(deltaMicros),
         -limit,
         limit,
@@ -463,17 +463,20 @@ int16_t applyFixedWingMinSpeedController(timeUs_t currentTimeUs)
 
 int16_t fixedWingPitchToThrottleCorrection(int16_t pitch)
 {
-    if (pitch > navConfig()->fw.pitch_to_throttle_thresh) {
-        // Positive pitch above threshold
-        return DECIDEGREES_TO_DEGREES(pitch - navConfig()->fw.pitch_to_throttle_thresh) * navConfig()->fw.pitch_to_throttle;
+    // Calculate base throttle correction from pitch moving average
+    const int16_t movingAverageCycles = 128; //Number of main loop cycles for average calculation
+    static int16_t averagePitch = (averagePitch * movingAverageCycles + pitch - averagePitch) / movingAverageCycles;
+    const int16_t baseThrottleCorrection = DECIDEGREES_TO_DEGREES(averagePitch) * navConfig()->fw.pitch_to_throttle;
+
+    // Calculate final throttle correction
+    if (pitch > (averagePitch + navConfig()->fw.pitch_to_throttle_thresh)) {
+        return baseThrottleCorrection + DECIDEGREES_TO_DEGREES(pitch - averagePitch - navConfig()->fw.pitch_to_throttle_thresh) * navConfig()->fw.pitch_to_throttle;
     }
-    else if (pitch < -navConfig()->fw.pitch_to_throttle_thresh) {
-        // Negative pitch below threshold
-        return DECIDEGREES_TO_DEGREES(pitch + navConfig()->fw.pitch_to_throttle_thresh) * navConfig()->fw.pitch_to_throttle;
+    else if (pitch < (averagePitch - navConfig()->fw.pitch_to_throttle_thresh)) {
+        return baseThrottleCorrection + DECIDEGREES_TO_DEGREES(pitch - averagePitch + navConfig()->fw.pitch_to_throttle_thresh) * navConfig()->fw.pitch_to_throttle;
     }
     else {
-        // Inside pitch_to_throttle_thresh deadband. Make no throttle correction.
-        return 0;
+        return baseThrottleCorrection;
     }
 }
 
