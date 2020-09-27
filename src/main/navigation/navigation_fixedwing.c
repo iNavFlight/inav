@@ -465,7 +465,9 @@ int16_t fixedWingPitchToThrottleCorrection(int16_t pitch)
 {
     // Calculate base throttle correction from pitch moving average
     const int16_t movingAverageCycles = 128; //Number of main loop cycles for average calculation
-    static int16_t averagePitch = (averagePitch * movingAverageCycles + pitch - averagePitch) / movingAverageCycles;
+    static int16_t averagePitch = 0;
+
+    averagePitch = (averagePitch * movingAverageCycles + pitch - averagePitch) / movingAverageCycles;
     const int16_t baseThrottleCorrection = DECIDEGREES_TO_DEGREES(averagePitch) * navConfig()->fw.pitch_to_throttle;
 
     // Calculate final throttle correction
