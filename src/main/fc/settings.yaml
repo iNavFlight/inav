@@ -2261,7 +2261,7 @@ groups:
         min: 0
         max: 100
       - name: nav_fw_pitch2thr_smoothing
-        description: "Threshold from zero pitch before pitch_to_throttle is applied [centidegrees]"
+        description: "Number of fixedWingPitchToThrottleCorrection cycles used to calculate a moving average pitch"
         default_value: "1"
         field: fw.pitch_to_throttle_smooth
         min: 1
