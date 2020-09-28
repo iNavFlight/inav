@@ -464,7 +464,7 @@ int16_t applyFixedWingMinSpeedController(timeUs_t currentTimeUs)
 int16_t fixedWingPitchToThrottleCorrection(int16_t pitch)
 {
     // Calculate base throttle correction from pitch moving average
-    const int16_t movingAverageCycles = 128; //Number of main loop cycles for average calculation
+    const int16_t movingAverageCycles = navConfig()->fw.pitch_to_throttle_smooth;
     static int16_t averagePitch = 0;
 
     averagePitch = (averagePitch * movingAverageCycles + pitch - averagePitch) / movingAverageCycles;
