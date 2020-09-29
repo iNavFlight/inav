@@ -867,20 +867,17 @@ void osdCrosshairPosition(uint8_t *x, uint8_t *y)
 }
 
 /**
- * Formats throttle position prefixed by its symbol. If autoThr
- * is true and the navigation system is controlling THR, it
- * uses the THR value applied by the system rather than the
- * input value received by the sticks.
+ * Formats throttle position prefixed by its symbol.
+ * Shows output to motor, not stick position
  **/
 static void osdFormatThrottlePosition(char *buff, bool autoThr, textAttributes_t *elemAttr)
 {
     buff[0] = SYM_BLANK;
     buff[1] = SYM_THR;
-    int16_t thr = rxGetChannelValue(THROTTLE);
+    int16_t thr = rcCommand[THROTTLE];
     if (autoThr && navigationIsControllingThrottle()) {
         buff[0] = SYM_AUTO_THR0;
         buff[1] = SYM_AUTO_THR1;
-        thr = rcCommand[THROTTLE];
         if (isFixedWingAutoThrottleManuallyIncreased())
             TEXT_ATTRIBUTES_ADD_BLINK(*elemAttr);
     }
