@@ -222,9 +222,7 @@ static navigationFSMEvent_t nextForNonGeoStates(void);
 void initializeRTHSanityChecker(const fpVector3_t * pos);
 bool validateRTHSanityChecker(void);
 
-//AWH xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-bool RTHAltHoldOverRideFlag = false;
-//xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+static void OverRideRTHAtitudePreset(void);
 
 /*************************************************************************************************/
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_IDLE(navigationFSMState_t previousState);
