@@ -222,7 +222,7 @@ static navigationFSMEvent_t nextForNonGeoStates(void);
 void initializeRTHSanityChecker(const fpVector3_t * pos);
 bool validateRTHSanityChecker(void);
 
-static void OverRideRTHAtitudePreset(void);
+static void overrideRTHAtitudePreset(void);
 
 /*************************************************************************************************/
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_IDLE(navigationFSMState_t previousState);
@@ -1086,7 +1086,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigati
 {
     navigationFSMStateFlags_t prevFlags = navGetStateFlags(previousState);
     
-    posControl.flags.CanOverRideRTHAlt = false;   //prevent unwanted override if AltHold selected at RTH initialize
+    posControl.flags.canOverrideRTHAlt = false;   //prevent unwanted override if AltHold selected at RTH initialize
 
     if ((posControl.flags.estHeadingStatus == EST_NONE) || (posControl.flags.estAltStatus == EST_NONE) || (posControl.flags.estPosStatus != EST_TRUSTED) || !STATE(GPS_FIX_HOME)) {
         // Heading sensor, altitude sensor and HOME fix are mandatory for RTH. If not satisfied - switch to emergency landing
@@ -1150,20 +1150,20 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigati
     }
 }
 
-static void OverRideRTHAtitudePreset(void)
+static void overrideRTHAtitudePreset(void)
 {
     if (!navConfig()->general.flags.rth_alt_control_override) {
         return;
     }
 
     if (!IS_RC_MODE_ACTIVE(BOXNAVALTHOLD)) {
-        posControl.flags.CanOverRideRTHAlt = true;        
+        posControl.flags.canOverrideRTHAlt = true;        
     }
     else {
-        if (posControl.flags.CanOverRideRTHAlt && !posControl.flags.forcedRTHActivated) {          
+        if (posControl.flags.canOverrideRTHAlt && !posControl.flags.forcedRTHActivated) {          
             posControl.rthState.rthInitialAltitude = posControl.actualState.abs.pos.z;                        
             posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;            
-            posControl.flags.CanOverRideRTHAlt = false;
+            posControl.flags.canOverrideRTHAlt = false;
         }
     }
 }
@@ -1172,7 +1172,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
 {
     UNUSED(previousState);
     
-    OverRideRTHAtitudePreset();
+    overrideRTHAtitudePreset();
 
     if ((posControl.flags.estHeadingStatus == EST_NONE)) {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
@@ -1248,7 +1248,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigatio
 {
     UNUSED(previousState);
     
-    OverRideRTHAtitudePreset();
+    overrideRTHAtitudePreset();
 
     if ((posControl.flags.estHeadingStatus == EST_NONE)) {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
