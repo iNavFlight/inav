@@ -1661,6 +1661,7 @@ static bool osdDrawSingleElement(uint8_t item)
         }
         break;
 
+#if defined(USE_SERIALRX_CRSF)
     case OSD_CRSF_SNR_DB: {
         const char* showsnr = "-12";
         const char* hidesnr = "     ";
@@ -1680,6 +1681,7 @@ static bool osdDrawSingleElement(uint8_t item)
         }
         break;
       }
+#endif
 
     case OSD_CRSF_TX_POWER: {
         tfp_sprintf(buff, "%4d%c", rxLinkStatistics.uplinkTXPower, SYM_MW);
