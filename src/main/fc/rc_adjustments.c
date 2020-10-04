@@ -548,6 +548,7 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
         case ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE:
             applyAdjustmentU16(ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE, &mixerConfigMutable()->fwMinThrottleDownPitchAngle, delta, 0, FW_MIN_THROTTLE_DOWN_PITCH_ANGLE_MAX);
             break;
+#if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP)
         case ADJUSTMENT_VTX_POWER_LEVEL:
             {
                 vtxDeviceCapability_t vtxDeviceCapability;
@@ -556,6 +557,7 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
                 }
             }
             break;
+#endif
         default:
             break;
     };
