@@ -400,13 +400,21 @@ static const CMS_Menu cmsx_menuProfileOther = {
 //
 static const OSD_Entry cmsx_menuFilterPerProfileEntries[] =
 {
-    OSD_LABEL_DATA_ENTRY("-- FILTER PP  --", profileIndexString),
+    OSD_LABEL_DATA_ENTRY("-- FILTERING  --", profileIndexString),
 
+    OSD_SETTING_ENTRY("GYRO LPF", SETTING_GYRO_LPF_HZ),
+    OSD_SETTING_ENTRY("GYRO LPF2", SETTING_GYRO_STAGE2_LOWPASS_HZ),
     OSD_SETTING_ENTRY("DTERM LPF", SETTING_DTERM_LPF_HZ),
-    OSD_SETTING_ENTRY("GYRO SLPF", SETTING_GYRO_LPF_HZ),
-    OSD_SETTING_ENTRY("YAW SUM LIM", SETTING_PIDSUM_LIMIT_YAW),
-    OSD_SETTING_ENTRY("YAW LPF", SETTING_YAW_LPF_HZ),
-
+    OSD_SETTING_ENTRY("DTERM LPF2", SETTING_DTERM_LPF2_HZ),
+#ifdef USE_DYNAMIC_FILTERS
+    OSD_SETTING_ENTRY("MATRIX FILTER", SETTING_DYNAMIC_GYRO_NOTCH_ENABLED),
+    OSD_SETTING_ENTRY("MATRIX MIN HZ", SETTING_DYNAMIC_GYRO_NOTCH_MIN_HZ),  //dynamic_gyro_notch_min_hz
+    OSD_SETTING_ENTRY("MATRIX Q", SETTING_DYNAMIC_GYRO_NOTCH_Q),            //dynamic_gyro_notch_q
+#endif
+#ifdef USE_GYRO_KALMAN
+    OSD_SETTING_ENTRY("UNICORN FILTER", SETTING_SETPOINT_KALMAN_ENABLED),   //setpoint_kalman_enabled
+    OSD_SETTING_ENTRY("UNICORN Q", SETTING_SETPOINT_KALMAN_Q),              //setpoint_kalman_q
+#endif
     OSD_BACK_AND_END_ENTRY,
 };
 
@@ -451,7 +459,7 @@ static const OSD_Entry cmsx_menuImuEntries[] =
     OSD_SUBMENU_ENTRY("PID", &cmsx_menuPid),
     OSD_SUBMENU_ENTRY("PID ALTMAG", &cmsx_menuPidAltMag),
     OSD_SUBMENU_ENTRY("PID GPSNAV", &cmsx_menuPidGpsnav),
-    OSD_SUBMENU_ENTRY("FILT PP", &cmsx_menuFilterPerProfile),
+    OSD_SUBMENU_ENTRY("FILTERING", &cmsx_menuFilterPerProfile),
 
     // Rate profile dependent
     OSD_UINT8_CALLBACK_ENTRY("RATE PROF", cmsx_profileIndexOnChange, (&(const OSD_UINT8_t){ &tmpProfileIndex, 1, MAX_CONTROL_RATE_PROFILE_COUNT, 1})),
