@@ -317,6 +317,7 @@
 #include "stm32f4xx.h"
 #include "system.h"
 #include "system_stm32f4xx.h"
+#include "platform.h"
 
 uint32_t hse_value = HSE_VALUE;
 
@@ -370,6 +371,9 @@ uint32_t hse_value = HSE_VALUE;
 /******************************************************************************/
 
 /************************* PLL Parameters *************************************/
+
+#if !defined(CUSTOM_CLOCK_TREE)
+
 #if defined(STM32F40_41xxx) || defined(STM32F427_437xx) || defined(STM32F429_439xx) || defined(STM32F401xx) || defined(STM32F469_479xx) || defined (STM32F446xx) || defined (STM32F410xx) || defined (STM32F411xE)
     #if HSE_VALUE == 24000000
         #define PLL_M   24
@@ -420,6 +424,8 @@ uint32_t hse_value = HSE_VALUE;
 /* USB OTG FS, SDIO and RNG Clock =  PLL_VCO / PLLQ */
 #define PLL_Q      4
 #endif /* STM32F410xx || STM32F411xE */
+
+#endif
 
 /******************************************************************************/
 
