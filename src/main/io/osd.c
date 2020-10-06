@@ -1655,9 +1655,9 @@ static bool osdDrawSingleElement(uint8_t item)
         buff[0] = SYM_BLANK;
         int16_t scaledLQ = scaleRange(constrain(rxLinkStatistics.uplinkLQ, 0, 100), 0, 100, 170, 300);
             if (rxLinkStatistics.rfMode == 2) {
-                tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, scaledLQ, "%");
+                tfp_sprintf(buff, "%3d%s", scaledLQ, "%");
             } else {
-                tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
+                tfp_sprintf(buff, "%3d%s", rxLinkStatistics.uplinkLQ, "%");
             }
             if (!failsafeIsReceivingRxData()){
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
