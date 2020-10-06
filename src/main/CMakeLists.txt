@@ -320,6 +320,8 @@ main_sources(COMMON_SRC
     flight/dynamic_gyro_notch.c
     flight/dynamic_gyro_notch.h
 
+    io/adsb.c
+    io/adsb.h
     io/beeper.c
     io/beeper.h
     io/esc_serialshot.c
