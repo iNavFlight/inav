@@ -1651,15 +1651,21 @@ static bool osdDrawSingleElement(uint8_t item)
             }
             break;
 
-    case OSD_CRSF_LQ:
+        case OSD_CRSF_LQ: {
         buff[0] = SYM_BLANK;
-        tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
-        if (!failsafeIsReceivingRxData()){
-            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-        } else if (rxLinkStatistics.uplinkLQ < osdConfig()->rssi_alarm) {
-            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+        int16_t scaledLQ = scaleRange(constrain(rxLinkStatistics.uplinkLQ, 0, 100), 0, 100, 170, 300);
+            if (rxLinkStatistics.rfMode == 2) {
+                tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, scaledLQ, "%");
+            } else {
+                tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
+            }
+            if (!failsafeIsReceivingRxData()){
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            } else if (rxLinkStatistics.uplinkLQ < osdConfig()->rssi_alarm) {
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            }
+            break;
         }
-        break;
 
 #if defined(USE_SERIALRX_CRSF)
     case OSD_CRSF_SNR_DB: {
