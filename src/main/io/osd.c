@@ -1653,7 +1653,8 @@ static bool osdDrawSingleElement(uint8_t item)
 
         case OSD_CRSF_LQ: {
         buff[0] = SYM_BLANK;
-        int16_t scaledLQ = scaleRange(constrain(rxLinkStatistics.uplinkLQ, 0, 100), 0, 100, 170, 300);
+        int16_t statsLQ = rxLinkStatistics.uplinkLQ;
+        int16_t scaledLQ = scaleRange(constrain(statsLQ, 0, 100), 0, 100, 170, 300);
             if (rxLinkStatistics.rfMode == 2) {
                 tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, scaledLQ, "%");
             } else {
