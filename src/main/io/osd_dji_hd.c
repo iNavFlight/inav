@@ -69,7 +69,7 @@
 #include "msp/msp_protocol.h"
 #include "msp/msp_serial.h"
 
-
+#include "common/string_light.h"
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
 #include "common/constants.h"
