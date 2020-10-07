@@ -929,6 +929,20 @@ static inline int32_t osdGetAltitudeMsl(void)
 #endif
 }
 
+static inline int32_t osdGetHome3DDist(void)
+{
+#if defined(USE_NAV)
+    float x = getEstimatedActualPosition(X),
+        y = getEstimatedActualPosition(Y),
+        z = getEstimatedActualPosition(Z);
+    float twodist = sqrtf(x*x+y*y); // 2D
+    float threedist = sqrtf(twodist*twodist + z*z); // 3D
+    return threedist;
+#else
+    return 0;
+#endif
+}
+
 static bool osdIsHeadingValid(void)
 {
     return isImuHeadingValid();
@@ -1366,6 +1380,13 @@ static bool osdDrawSingleElement(uint8_t item)
             if (dist_alarm > 0 && GPS_distanceToHome > dist_alarm) {
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             }
+        }
+        break;
+    
+    case OSD_HOME_3D_DIST:
+        {
+            buff[0] = SYM_HOME;
+            osdFormatDistanceSymbol(&buff[1], osdGetHome3DDist() * 100);
         }
         break;
 
