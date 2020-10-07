@@ -889,22 +889,10 @@ static void osdFormatThrottlePosition(char *buff, bool autoThr, textAttributes_t
 }
 
 /**
- * Formats gvars prefixed by its number (1-indexed). If autoThr
+ * Formats gvars prefixed by its number (0-indexed). If autoThr
  **/
 static void osdFormatGVar(char *buff, uint8_t index)
 {
-    /*buff[0] = SYM_BLANK;
-    buff[1] = SYM_THR;
-    int16_t thr = rxGetChannelValue(THROTTLE);
-    if (autoThr && navigationIsControllingThrottle()) {
-        buff[0] = SYM_AUTO_THR0;
-        buff[1] = SYM_AUTO_THR1;
-        thr = rcCommand[THROTTLE];
-        if (isFixedWingAutoThrottleManuallyIncreased())
-            TEXT_ATTRIBUTES_ADD_BLINK(*elemAttr);
-    }
-    */
-    //tfp_sprintf(buff, "G%i:%li", index, gvGet(index));
     buff[0] = 'G';
     buff[1] = '0'+index;
     buff[2] = ':';
