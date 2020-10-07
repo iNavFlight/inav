@@ -896,7 +896,9 @@ static void osdFormatGVar(char *buff, uint8_t index)
     buff[0] = 'G';
     buff[1] = '0'+index;
     buff[2] = ':';
+    #ifdef USE_PROGRAMMING_FRAMEWORK
     osdFormatCentiNumber(buff + 3, (int32_t)gvGet(index)*(int32_t)100, 1, 0, 0, 5);
+    #endif
 }
 
 #if defined(USE_ESC_SENSOR)
