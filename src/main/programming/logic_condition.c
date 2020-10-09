@@ -455,7 +455,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_IS_FAILSAFE: // 0/1
-            return (failsafePhase() == FAILSAFE_RX_LOSS_MONITORING) ? 1 : 0;
+            return (failsafePhase() != FAILSAFE_IDLE) ? 1 : 0;
             break;
         
         case LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_YAW: // 
