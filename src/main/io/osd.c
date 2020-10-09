@@ -104,6 +104,7 @@ FILE_COMPILE_FOR_SPEED
 #include "sensors/esc_sensor.h"
 
 #include "programming/logic_condition.h"
+#include "programming/global_variables.h"
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
@@ -885,6 +886,19 @@ static void osdFormatThrottlePosition(char *buff, bool autoThr, textAttributes_t
             TEXT_ATTRIBUTES_ADD_BLINK(*elemAttr);
     }
     tfp_sprintf(buff + 2, "%3d", (constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN));
+}
+
+/**
+ * Formats gvars prefixed by its number (0-indexed). If autoThr
+ **/
+static void osdFormatGVar(char *buff, uint8_t index)
+{
+    buff[0] = 'G';
+    buff[1] = '0'+index;
+    buff[2] = ':';
+    #ifdef USE_PROGRAMMING_FRAMEWORK
+    osdFormatCentiNumber(buff + 3, (int32_t)gvGet(index)*(int32_t)100, 1, 0, 0, 5);
+    #endif
 }
 
 #if defined(USE_ESC_SENSOR)
@@ -2427,6 +2441,27 @@ static bool osdDrawSingleElement(uint8_t item)
             displayWriteChar(osdDisplayPort, elemPosX, elemPosY + 1, referenceSymbol);
             return true;
         }
+    
+    case OSD_GVAR_0:
+    {
+        osdFormatGVar(buff, 0);
+        break;
+    }
+    case OSD_GVAR_1:
+    {
+        osdFormatGVar(buff, 1);
+        break;
+    }
+    case OSD_GVAR_2:
+    {
+        osdFormatGVar(buff, 2);
+        break;
+    }
+    case OSD_GVAR_3:
+    {
+        osdFormatGVar(buff, 3);
+        break;
+    }
 
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     case OSD_RC_SOURCE:
@@ -2740,6 +2775,11 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_GFORCE_Z] = OSD_POS(12, 7);
 
     osdLayoutsConfig->item_pos[0][OSD_VTX_POWER] = OSD_POS(3, 5);
+
+    osdLayoutsConfig->item_pos[0][OSD_GVAR_0] = OSD_POS(1, 1);
+    osdLayoutsConfig->item_pos[0][OSD_GVAR_1] = OSD_POS(1, 2);
+    osdLayoutsConfig->item_pos[0][OSD_GVAR_2] = OSD_POS(1, 3);
+    osdLayoutsConfig->item_pos[0][OSD_GVAR_3] = OSD_POS(1, 4);
 
 #if defined(USE_ESC_SENSOR)
     osdLayoutsConfig->item_pos[0][OSD_ESC_RPM] = OSD_POS(1, 2);

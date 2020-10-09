@@ -157,6 +157,10 @@ typedef enum {
     OSD_CRSF_LQ,
     OSD_CRSF_SNR_DB,
     OSD_CRSF_TX_POWER,
+    OSD_GVAR_0,
+    OSD_GVAR_1,
+    OSD_GVAR_2,
+    OSD_GVAR_3,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
