@@ -550,7 +550,7 @@ static void imuCalculateEstimatedAttitude(float dT)
             }
             else {
                 // Re-initialize quaternion from known Roll, Pitch and GPS heading
-                 (attitude.values.roll, attitude.values.pitch, gpsSol.groundCourse);
+                imuComputeQuaternionFromRPY(attitude.values.roll, attitude.values.pitch, gpsSol.groundCourse);
                 gpsHeadingInitialized = true;
 
                 // Force reset of heading hold target
