@@ -2547,6 +2547,11 @@ groups:
         type: uint8_t
         min: 0
         max: 255
+      - name: mavlink_extra3_rate
+        field: mavlink.extra3_rate
+        type: uint8_t
+        min: 0
+        max: 255
   - name: PG_ELERES_CONFIG
     type: eleresConfig_t
     headers: ["rx/eleres.h"]

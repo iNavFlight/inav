@@ -3,14 +3,14 @@
 
 #define MAVLINK_MSG_ID_REQUEST_DATA_STREAM 66
 
-MAVPACKED(
+
 typedef struct __mavlink_request_data_stream_t {
- uint16_t req_message_rate; /*< The requested message rate*/
- uint8_t target_system; /*< The target requested to send the message stream.*/
- uint8_t target_component; /*< The target requested to send the message stream.*/
- uint8_t req_stream_id; /*< The ID of the requested data stream*/
- uint8_t start_stop; /*< 1 to start sending, 0 to stop sending.*/
-}) mavlink_request_data_stream_t;
+ uint16_t req_message_rate; /*< [Hz] The requested message rate*/
+ uint8_t target_system; /*<  The target requested to send the message stream.*/
+ uint8_t target_component; /*<  The target requested to send the message stream.*/
+ uint8_t req_stream_id; /*<  The ID of the requested data stream*/
+ uint8_t start_stop; /*<  1 to start sending, 0 to stop sending.*/
+} mavlink_request_data_stream_t;
 
 #define MAVLINK_MSG_ID_REQUEST_DATA_STREAM_LEN 6
 #define MAVLINK_MSG_ID_REQUEST_DATA_STREAM_MIN_LEN 6
@@ -27,10 +27,10 @@ typedef struct __mavlink_request_data_stream_t {
     66, \
     "REQUEST_DATA_STREAM", \
     5, \
-    {  { "req_message_rate", NULL, MAVLINK_TYPE_UINT16_T, 0, 0, offsetof(mavlink_request_data_stream_t, req_message_rate) }, \
-         { "target_system", NULL, MAVLINK_TYPE_UINT8_T, 0, 2, offsetof(mavlink_request_data_stream_t, target_system) }, \
+    {  { "target_system", NULL, MAVLINK_TYPE_UINT8_T, 0, 2, offsetof(mavlink_request_data_stream_t, target_system) }, \
          { "target_component", NULL, MAVLINK_TYPE_UINT8_T, 0, 3, offsetof(mavlink_request_data_stream_t, target_component) }, \
          { "req_stream_id", NULL, MAVLINK_TYPE_UINT8_T, 0, 4, offsetof(mavlink_request_data_stream_t, req_stream_id) }, \
+         { "req_message_rate", NULL, MAVLINK_TYPE_UINT16_T, 0, 0, offsetof(mavlink_request_data_stream_t, req_message_rate) }, \
          { "start_stop", NULL, MAVLINK_TYPE_UINT8_T, 0, 5, offsetof(mavlink_request_data_stream_t, start_stop) }, \
          } \
 }
@@ -38,10 +38,10 @@ typedef struct __mavlink_request_data_stream_t {
 #define MAVLINK_MESSAGE_INFO_REQUEST_DATA_STREAM { \
     "REQUEST_DATA_STREAM", \
     5, \
-    {  { "req_message_rate", NULL, MAVLINK_TYPE_UINT16_T, 0, 0, offsetof(mavlink_request_data_stream_t, req_message_rate) }, \
-         { "target_system", NULL, MAVLINK_TYPE_UINT8_T, 0, 2, offsetof(mavlink_request_data_stream_t, target_system) }, \
+    {  { "target_system", NULL, MAVLINK_TYPE_UINT8_T, 0, 2, offsetof(mavlink_request_data_stream_t, target_system) }, \
          { "target_component", NULL, MAVLINK_TYPE_UINT8_T, 0, 3, offsetof(mavlink_request_data_stream_t, target_component) }, \
          { "req_stream_id", NULL, MAVLINK_TYPE_UINT8_T, 0, 4, offsetof(mavlink_request_data_stream_t, req_stream_id) }, \
+         { "req_message_rate", NULL, MAVLINK_TYPE_UINT16_T, 0, 0, offsetof(mavlink_request_data_stream_t, req_message_rate) }, \
          { "start_stop", NULL, MAVLINK_TYPE_UINT8_T, 0, 5, offsetof(mavlink_request_data_stream_t, start_stop) }, \
          } \
 }
@@ -53,11 +53,11 @@ typedef struct __mavlink_request_data_stream_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param target_system The target requested to send the message stream.
- * @param target_component The target requested to send the message stream.
- * @param req_stream_id The ID of the requested data stream
- * @param req_message_rate The requested message rate
- * @param start_stop 1 to start sending, 0 to stop sending.
+ * @param target_system  The target requested to send the message stream.
+ * @param target_component  The target requested to send the message stream.
+ * @param req_stream_id  The ID of the requested data stream
+ * @param req_message_rate [Hz] The requested message rate
+ * @param start_stop  1 to start sending, 0 to stop sending.
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_request_data_stream_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -93,11 +93,11 @@ static inline uint16_t mavlink_msg_request_data_stream_pack(uint8_t system_id, u
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param target_system The target requested to send the message stream.
- * @param target_component The target requested to send the message stream.
- * @param req_stream_id The ID of the requested data stream
- * @param req_message_rate The requested message rate
- * @param start_stop 1 to start sending, 0 to stop sending.
+ * @param target_system  The target requested to send the message stream.
+ * @param target_component  The target requested to send the message stream.
+ * @param req_stream_id  The ID of the requested data stream
+ * @param req_message_rate [Hz] The requested message rate
+ * @param start_stop  1 to start sending, 0 to stop sending.
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_request_data_stream_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -159,11 +159,11 @@ static inline uint16_t mavlink_msg_request_data_stream_encode_chan(uint8_t syste
  * @brief Send a request_data_stream message
  * @param chan MAVLink channel to send the message
  *
- * @param target_system The target requested to send the message stream.
- * @param target_component The target requested to send the message stream.
- * @param req_stream_id The ID of the requested data stream
- * @param req_message_rate The requested message rate
- * @param start_stop 1 to start sending, 0 to stop sending.
+ * @param target_system  The target requested to send the message stream.
+ * @param target_component  The target requested to send the message stream.
+ * @param req_stream_id  The ID of the requested data stream
+ * @param req_message_rate [Hz] The requested message rate
+ * @param start_stop  1 to start sending, 0 to stop sending.
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -244,7 +244,7 @@ static inline void mavlink_msg_request_data_stream_send_buf(mavlink_message_t *m
 /**
  * @brief Get field target_system from request_data_stream message
  *
- * @return The target requested to send the message stream.
+ * @return  The target requested to send the message stream.
  */
 static inline uint8_t mavlink_msg_request_data_stream_get_target_system(const mavlink_message_t* msg)
 {
@@ -254,7 +254,7 @@ static inline uint8_t mavlink_msg_request_data_stream_get_target_system(const ma
 /**
  * @brief Get field target_component from request_data_stream message
  *
- * @return The target requested to send the message stream.
+ * @return  The target requested to send the message stream.
  */
 static inline uint8_t mavlink_msg_request_data_stream_get_target_component(const mavlink_message_t* msg)
 {
@@ -264,7 +264,7 @@ static inline uint8_t mavlink_msg_request_data_stream_get_target_component(const
 /**
  * @brief Get field req_stream_id from request_data_stream message
  *
- * @return The ID of the requested data stream
+ * @return  The ID of the requested data stream
  */
 static inline uint8_t mavlink_msg_request_data_stream_get_req_stream_id(const mavlink_message_t* msg)
 {
@@ -274,7 +274,7 @@ static inline uint8_t mavlink_msg_request_data_stream_get_req_stream_id(const ma
 /**
  * @brief Get field req_message_rate from request_data_stream message
  *
- * @return The requested message rate
+ * @return [Hz] The requested message rate
  */
 static inline uint16_t mavlink_msg_request_data_stream_get_req_message_rate(const mavlink_message_t* msg)
 {
@@ -284,7 +284,7 @@ static inline uint16_t mavlink_msg_request_data_stream_get_req_message_rate(cons
 /**
  * @brief Get field start_stop from request_data_stream message
  *
- * @return 1 to start sending, 0 to stop sending.
+ * @return  1 to start sending, 0 to stop sending.
  */
 static inline uint8_t mavlink_msg_request_data_stream_get_start_stop(const mavlink_message_t* msg)
 {

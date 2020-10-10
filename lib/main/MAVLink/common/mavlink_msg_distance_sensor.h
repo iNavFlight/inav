@@ -3,17 +3,17 @@
 
 #define MAVLINK_MSG_ID_DISTANCE_SENSOR 132
 
-MAVPACKED(
+
 typedef struct __mavlink_distance_sensor_t {
- uint32_t time_boot_ms; /*< Time since system boot*/
- uint16_t min_distance; /*< Minimum distance the sensor can measure in centimeters*/
- uint16_t max_distance; /*< Maximum distance the sensor can measure in centimeters*/
- uint16_t current_distance; /*< Current distance reading*/
- uint8_t type; /*< Type from MAV_DISTANCE_SENSOR enum.*/
- uint8_t id; /*< Onboard ID of the sensor*/
- uint8_t orientation; /*< Direction the sensor faces from MAV_SENSOR_ORIENTATION enum.*/
- uint8_t covariance; /*< Measurement covariance in centimeters, 0 for unknown / invalid readings*/
-}) mavlink_distance_sensor_t;
+ uint32_t time_boot_ms; /*< [ms] Timestamp (time since system boot).*/
+ uint16_t min_distance; /*< [cm] Minimum distance the sensor can measure*/
+ uint16_t max_distance; /*< [cm] Maximum distance the sensor can measure*/
+ uint16_t current_distance; /*< [cm] Current distance reading*/
+ uint8_t type; /*<  Type of distance sensor.*/
+ uint8_t id; /*<  Onboard ID of the sensor*/
+ uint8_t orientation; /*<  Direction the sensor faces. downward-facing: ROTATION_PITCH_270, upward-facing: ROTATION_PITCH_90, backward-facing: ROTATION_PITCH_180, forward-facing: ROTATION_NONE, left-facing: ROTATION_YAW_90, right-facing: ROTATION_YAW_270*/
+ uint8_t covariance; /*< [cm^2] Measurement variance. Max standard deviation is 6cm. 255 if unknown.*/
+} mavlink_distance_sensor_t;
 
 #define MAVLINK_MSG_ID_DISTANCE_SENSOR_LEN 14
 #define MAVLINK_MSG_ID_DISTANCE_SENSOR_MIN_LEN 14
@@ -62,14 +62,14 @@ typedef struct __mavlink_distance_sensor_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param time_boot_ms Time since system boot
- * @param min_distance Minimum distance the sensor can measure in centimeters
- * @param max_distance Maximum distance the sensor can measure in centimeters
- * @param current_distance Current distance reading
- * @param type Type from MAV_DISTANCE_SENSOR enum.
- * @param id Onboard ID of the sensor
- * @param orientation Direction the sensor faces from MAV_SENSOR_ORIENTATION enum.
- * @param covariance Measurement covariance in centimeters, 0 for unknown / invalid readings
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param min_distance [cm] Minimum distance the sensor can measure
+ * @param max_distance [cm] Maximum distance the sensor can measure
+ * @param current_distance [cm] Current distance reading
+ * @param type  Type of distance sensor.
+ * @param id  Onboard ID of the sensor
+ * @param orientation  Direction the sensor faces. downward-facing: ROTATION_PITCH_270, upward-facing: ROTATION_PITCH_90, backward-facing: ROTATION_PITCH_180, forward-facing: ROTATION_NONE, left-facing: ROTATION_YAW_90, right-facing: ROTATION_YAW_270
+ * @param covariance [cm^2] Measurement variance. Max standard deviation is 6cm. 255 if unknown.
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_distance_sensor_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -111,14 +111,14 @@ static inline uint16_t mavlink_msg_distance_sensor_pack(uint8_t system_id, uint8
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param time_boot_ms Time since system boot
- * @param min_distance Minimum distance the sensor can measure in centimeters
- * @param max_distance Maximum distance the sensor can measure in centimeters
- * @param current_distance Current distance reading
- * @param type Type from MAV_DISTANCE_SENSOR enum.
- * @param id Onboard ID of the sensor
- * @param orientation Direction the sensor faces from MAV_SENSOR_ORIENTATION enum.
- * @param covariance Measurement covariance in centimeters, 0 for unknown / invalid readings
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param min_distance [cm] Minimum distance the sensor can measure
+ * @param max_distance [cm] Maximum distance the sensor can measure
+ * @param current_distance [cm] Current distance reading
+ * @param type  Type of distance sensor.
+ * @param id  Onboard ID of the sensor
+ * @param orientation  Direction the sensor faces. downward-facing: ROTATION_PITCH_270, upward-facing: ROTATION_PITCH_90, backward-facing: ROTATION_PITCH_180, forward-facing: ROTATION_NONE, left-facing: ROTATION_YAW_90, right-facing: ROTATION_YAW_270
+ * @param covariance [cm^2] Measurement variance. Max standard deviation is 6cm. 255 if unknown.
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_distance_sensor_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -186,14 +186,14 @@ static inline uint16_t mavlink_msg_distance_sensor_encode_chan(uint8_t system_id
  * @brief Send a distance_sensor message
  * @param chan MAVLink channel to send the message
  *
- * @param time_boot_ms Time since system boot
- * @param min_distance Minimum distance the sensor can measure in centimeters
- * @param max_distance Maximum distance the sensor can measure in centimeters
- * @param current_distance Current distance reading
- * @param type Type from MAV_DISTANCE_SENSOR enum.
- * @param id Onboard ID of the sensor
- * @param orientation Direction the sensor faces from MAV_SENSOR_ORIENTATION enum.
- * @param covariance Measurement covariance in centimeters, 0 for unknown / invalid readings
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param min_distance [cm] Minimum distance the sensor can measure
+ * @param max_distance [cm] Maximum distance the sensor can measure
+ * @param current_distance [cm] Current distance reading
+ * @param type  Type of distance sensor.
+ * @param id  Onboard ID of the sensor
+ * @param orientation  Direction the sensor faces. downward-facing: ROTATION_PITCH_270, upward-facing: ROTATION_PITCH_90, backward-facing: ROTATION_PITCH_180, forward-facing: ROTATION_NONE, left-facing: ROTATION_YAW_90, right-facing: ROTATION_YAW_270
+ * @param covariance [cm^2] Measurement variance. Max standard deviation is 6cm. 255 if unknown.
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -286,7 +286,7 @@ static inline void mavlink_msg_distance_sensor_send_buf(mavlink_message_t *msgbu
 /**
  * @brief Get field time_boot_ms from distance_sensor message
  *
- * @return Time since system boot
+ * @return [ms] Timestamp (time since system boot).
  */
 static inline uint32_t mavlink_msg_distance_sensor_get_time_boot_ms(const mavlink_message_t* msg)
 {
@@ -296,7 +296,7 @@ static inline uint32_t mavlink_msg_distance_sensor_get_time_boot_ms(const mavlin
 /**
  * @brief Get field min_distance from distance_sensor message
  *
- * @return Minimum distance the sensor can measure in centimeters
+ * @return [cm] Minimum distance the sensor can measure
  */
 static inline uint16_t mavlink_msg_distance_sensor_get_min_distance(const mavlink_message_t* msg)
 {
@@ -306,7 +306,7 @@ static inline uint16_t mavlink_msg_distance_sensor_get_min_distance(const mavlin
 /**
  * @brief Get field max_distance from distance_sensor message
  *
- * @return Maximum distance the sensor can measure in centimeters
+ * @return [cm] Maximum distance the sensor can measure
  */
 static inline uint16_t mavlink_msg_distance_sensor_get_max_distance(const mavlink_message_t* msg)
 {
@@ -316,7 +316,7 @@ static inline uint16_t mavlink_msg_distance_sensor_get_max_distance(const mavlin
 /**
  * @brief Get field current_distance from distance_sensor message
  *
- * @return Current distance reading
+ * @return [cm] Current distance reading
  */
 static inline uint16_t mavlink_msg_distance_sensor_get_current_distance(const mavlink_message_t* msg)
 {
@@ -326,7 +326,7 @@ static inline uint16_t mavlink_msg_distance_sensor_get_current_distance(const ma
 /**
  * @brief Get field type from distance_sensor message
  *
- * @return Type from MAV_DISTANCE_SENSOR enum.
+ * @return  Type of distance sensor.
  */
 static inline uint8_t mavlink_msg_distance_sensor_get_type(const mavlink_message_t* msg)
 {
@@ -336,7 +336,7 @@ static inline uint8_t mavlink_msg_distance_sensor_get_type(const mavlink_message
 /**
  * @brief Get field id from distance_sensor message
  *
- * @return Onboard ID of the sensor
+ * @return  Onboard ID of the sensor
  */
 static inline uint8_t mavlink_msg_distance_sensor_get_id(const mavlink_message_t* msg)
 {
@@ -346,7 +346,7 @@ static inline uint8_t mavlink_msg_distance_sensor_get_id(const mavlink_message_t
 /**
  * @brief Get field orientation from distance_sensor message
  *
- * @return Direction the sensor faces from MAV_SENSOR_ORIENTATION enum.
+ * @return  Direction the sensor faces. downward-facing: ROTATION_PITCH_270, upward-facing: ROTATION_PITCH_90, backward-facing: ROTATION_PITCH_180, forward-facing: ROTATION_NONE, left-facing: ROTATION_YAW_90, right-facing: ROTATION_YAW_270
  */
 static inline uint8_t mavlink_msg_distance_sensor_get_orientation(const mavlink_message_t* msg)
 {
@@ -356,7 +356,7 @@ static inline uint8_t mavlink_msg_distance_sensor_get_orientation(const mavlink_
 /**
  * @brief Get field covariance from distance_sensor message
  *
- * @return Measurement covariance in centimeters, 0 for unknown / invalid readings
+ * @return [cm^2] Measurement variance. Max standard deviation is 6cm. 255 if unknown.
  */
 static inline uint8_t mavlink_msg_distance_sensor_get_covariance(const mavlink_message_t* msg)
 {

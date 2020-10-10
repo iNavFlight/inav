@@ -3,11 +3,11 @@
 
 #define MAVLINK_MSG_ID_ENCAPSULATED_DATA 131
 
-MAVPACKED(
+
 typedef struct __mavlink_encapsulated_data_t {
- uint16_t seqnr; /*< sequence number (starting with 0 on every transmission)*/
- uint8_t data[253]; /*< image data bytes*/
-}) mavlink_encapsulated_data_t;
+ uint16_t seqnr; /*<  sequence number (starting with 0 on every transmission)*/
+ uint8_t data[253]; /*<  image data bytes*/
+} mavlink_encapsulated_data_t;
 
 #define MAVLINK_MSG_ID_ENCAPSULATED_DATA_LEN 255
 #define MAVLINK_MSG_ID_ENCAPSULATED_DATA_MIN_LEN 255
@@ -44,8 +44,8 @@ typedef struct __mavlink_encapsulated_data_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param seqnr sequence number (starting with 0 on every transmission)
- * @param data image data bytes
+ * @param seqnr  sequence number (starting with 0 on every transmission)
+ * @param data  image data bytes
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_encapsulated_data_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -73,8 +73,8 @@ static inline uint16_t mavlink_msg_encapsulated_data_pack(uint8_t system_id, uin
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param seqnr sequence number (starting with 0 on every transmission)
- * @param data image data bytes
+ * @param seqnr  sequence number (starting with 0 on every transmission)
+ * @param data  image data bytes
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_encapsulated_data_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -128,8 +128,8 @@ static inline uint16_t mavlink_msg_encapsulated_data_encode_chan(uint8_t system_
  * @brief Send a encapsulated_data message
  * @param chan MAVLink channel to send the message
  *
- * @param seqnr sequence number (starting with 0 on every transmission)
- * @param data image data bytes
+ * @param seqnr  sequence number (starting with 0 on every transmission)
+ * @param data  image data bytes
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -194,7 +194,7 @@ static inline void mavlink_msg_encapsulated_data_send_buf(mavlink_message_t *msg
 /**
  * @brief Get field seqnr from encapsulated_data message
  *
- * @return sequence number (starting with 0 on every transmission)
+ * @return  sequence number (starting with 0 on every transmission)
  */
 static inline uint16_t mavlink_msg_encapsulated_data_get_seqnr(const mavlink_message_t* msg)
 {
@@ -204,7 +204,7 @@ static inline uint16_t mavlink_msg_encapsulated_data_get_seqnr(const mavlink_mes
 /**
  * @brief Get field data from encapsulated_data message
  *
- * @return image data bytes
+ * @return  image data bytes
  */
 static inline uint16_t mavlink_msg_encapsulated_data_get_data(const mavlink_message_t* msg, uint8_t *data)
 {

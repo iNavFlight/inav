@@ -3,16 +3,16 @@
 
 #define MAVLINK_MSG_ID_ATTITUDE 30
 
-MAVPACKED(
+
 typedef struct __mavlink_attitude_t {
- uint32_t time_boot_ms; /*< Timestamp (milliseconds since system boot)*/
- float roll; /*< Roll angle (rad, -pi..+pi)*/
- float pitch; /*< Pitch angle (rad, -pi..+pi)*/
- float yaw; /*< Yaw angle (rad, -pi..+pi)*/
- float rollspeed; /*< Roll angular speed (rad/s)*/
- float pitchspeed; /*< Pitch angular speed (rad/s)*/
- float yawspeed; /*< Yaw angular speed (rad/s)*/
-}) mavlink_attitude_t;
+ uint32_t time_boot_ms; /*< [ms] Timestamp (time since system boot).*/
+ float roll; /*< [rad] Roll angle (-pi..+pi)*/
+ float pitch; /*< [rad] Pitch angle (-pi..+pi)*/
+ float yaw; /*< [rad] Yaw angle (-pi..+pi)*/
+ float rollspeed; /*< [rad/s] Roll angular speed*/
+ float pitchspeed; /*< [rad/s] Pitch angular speed*/
+ float yawspeed; /*< [rad/s] Yaw angular speed*/
+} mavlink_attitude_t;
 
 #define MAVLINK_MSG_ID_ATTITUDE_LEN 28
 #define MAVLINK_MSG_ID_ATTITUDE_MIN_LEN 28
@@ -59,13 +59,13 @@ typedef struct __mavlink_attitude_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param time_boot_ms Timestamp (milliseconds since system boot)
- * @param roll Roll angle (rad, -pi..+pi)
- * @param pitch Pitch angle (rad, -pi..+pi)
- * @param yaw Yaw angle (rad, -pi..+pi)
- * @param rollspeed Roll angular speed (rad/s)
- * @param pitchspeed Pitch angular speed (rad/s)
- * @param yawspeed Yaw angular speed (rad/s)
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param roll [rad] Roll angle (-pi..+pi)
+ * @param pitch [rad] Pitch angle (-pi..+pi)
+ * @param yaw [rad] Yaw angle (-pi..+pi)
+ * @param rollspeed [rad/s] Roll angular speed
+ * @param pitchspeed [rad/s] Pitch angular speed
+ * @param yawspeed [rad/s] Yaw angular speed
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_attitude_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -105,13 +105,13 @@ static inline uint16_t mavlink_msg_attitude_pack(uint8_t system_id, uint8_t comp
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param time_boot_ms Timestamp (milliseconds since system boot)
- * @param roll Roll angle (rad, -pi..+pi)
- * @param pitch Pitch angle (rad, -pi..+pi)
- * @param yaw Yaw angle (rad, -pi..+pi)
- * @param rollspeed Roll angular speed (rad/s)
- * @param pitchspeed Pitch angular speed (rad/s)
- * @param yawspeed Yaw angular speed (rad/s)
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param roll [rad] Roll angle (-pi..+pi)
+ * @param pitch [rad] Pitch angle (-pi..+pi)
+ * @param yaw [rad] Yaw angle (-pi..+pi)
+ * @param rollspeed [rad/s] Roll angular speed
+ * @param pitchspeed [rad/s] Pitch angular speed
+ * @param yawspeed [rad/s] Yaw angular speed
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_attitude_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -177,13 +177,13 @@ static inline uint16_t mavlink_msg_attitude_encode_chan(uint8_t system_id, uint8
  * @brief Send a attitude message
  * @param chan MAVLink channel to send the message
  *
- * @param time_boot_ms Timestamp (milliseconds since system boot)
- * @param roll Roll angle (rad, -pi..+pi)
- * @param pitch Pitch angle (rad, -pi..+pi)
- * @param yaw Yaw angle (rad, -pi..+pi)
- * @param rollspeed Roll angular speed (rad/s)
- * @param pitchspeed Pitch angular speed (rad/s)
- * @param yawspeed Yaw angular speed (rad/s)
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param roll [rad] Roll angle (-pi..+pi)
+ * @param pitch [rad] Pitch angle (-pi..+pi)
+ * @param yaw [rad] Yaw angle (-pi..+pi)
+ * @param rollspeed [rad/s] Roll angular speed
+ * @param pitchspeed [rad/s] Pitch angular speed
+ * @param yawspeed [rad/s] Yaw angular speed
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -272,7 +272,7 @@ static inline void mavlink_msg_attitude_send_buf(mavlink_message_t *msgbuf, mavl
 /**
  * @brief Get field time_boot_ms from attitude message
  *
- * @return Timestamp (milliseconds since system boot)
+ * @return [ms] Timestamp (time since system boot).
  */
 static inline uint32_t mavlink_msg_attitude_get_time_boot_ms(const mavlink_message_t* msg)
 {
@@ -282,7 +282,7 @@ static inline uint32_t mavlink_msg_attitude_get_time_boot_ms(const mavlink_messa
 /**
  * @brief Get field roll from attitude message
  *
- * @return Roll angle (rad, -pi..+pi)
+ * @return [rad] Roll angle (-pi..+pi)
  */
 static inline float mavlink_msg_attitude_get_roll(const mavlink_message_t* msg)
 {
@@ -292,7 +292,7 @@ static inline float mavlink_msg_attitude_get_roll(const mavlink_message_t* msg)
 /**
  * @brief Get field pitch from attitude message
  *
- * @return Pitch angle (rad, -pi..+pi)
+ * @return [rad] Pitch angle (-pi..+pi)
  */
 static inline float mavlink_msg_attitude_get_pitch(const mavlink_message_t* msg)
 {
@@ -302,7 +302,7 @@ static inline float mavlink_msg_attitude_get_pitch(const mavlink_message_t* msg)
 /**
  * @brief Get field yaw from attitude message
  *
- * @return Yaw angle (rad, -pi..+pi)
+ * @return [rad] Yaw angle (-pi..+pi)
  */
 static inline float mavlink_msg_attitude_get_yaw(const mavlink_message_t* msg)
 {
@@ -312,7 +312,7 @@ static inline float mavlink_msg_attitude_get_yaw(const mavlink_message_t* msg)
 /**
  * @brief Get field rollspeed from attitude message
  *
- * @return Roll angular speed (rad/s)
+ * @return [rad/s] Roll angular speed
  */
 static inline float mavlink_msg_attitude_get_rollspeed(const mavlink_message_t* msg)
 {
@@ -322,7 +322,7 @@ static inline float mavlink_msg_attitude_get_rollspeed(const mavlink_message_t* 
 /**
  * @brief Get field pitchspeed from attitude message
  *
- * @return Pitch angular speed (rad/s)
+ * @return [rad/s] Pitch angular speed
  */
 static inline float mavlink_msg_attitude_get_pitchspeed(const mavlink_message_t* msg)
 {
@@ -332,7 +332,7 @@ static inline float mavlink_msg_attitude_get_pitchspeed(const mavlink_message_t*
 /**
  * @brief Get field yawspeed from attitude message
  *
- * @return Yaw angular speed (rad/s)
+ * @return [rad/s] Yaw angular speed
  */
 static inline float mavlink_msg_attitude_get_yawspeed(const mavlink_message_t* msg)
 {

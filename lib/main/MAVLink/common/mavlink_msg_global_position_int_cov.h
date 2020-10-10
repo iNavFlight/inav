@@ -3,19 +3,19 @@
 
 #define MAVLINK_MSG_ID_GLOBAL_POSITION_INT_COV 63
 
-MAVPACKED(
+
 typedef struct __mavlink_global_position_int_cov_t {
- uint64_t time_usec; /*< Timestamp (microseconds since system boot or since UNIX epoch)*/
- int32_t lat; /*< Latitude, expressed as degrees * 1E7*/
- int32_t lon; /*< Longitude, expressed as degrees * 1E7*/
- int32_t alt; /*< Altitude in meters, expressed as * 1000 (millimeters), above MSL*/
- int32_t relative_alt; /*< Altitude above ground in meters, expressed as * 1000 (millimeters)*/
- float vx; /*< Ground X Speed (Latitude), expressed as m/s*/
- float vy; /*< Ground Y Speed (Longitude), expressed as m/s*/
- float vz; /*< Ground Z Speed (Altitude), expressed as m/s*/
- float covariance[36]; /*< Covariance matrix (first six entries are the first ROW, next six entries are the second row, etc.)*/
- uint8_t estimator_type; /*< Class id of the estimator this estimate originated from.*/
-}) mavlink_global_position_int_cov_t;
+ uint64_t time_usec; /*< [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.*/
+ int32_t lat; /*< [degE7] Latitude*/
+ int32_t lon; /*< [degE7] Longitude*/
+ int32_t alt; /*< [mm] Altitude in meters above MSL*/
+ int32_t relative_alt; /*< [mm] Altitude above ground*/
+ float vx; /*< [m/s] Ground X Speed (Latitude)*/
+ float vy; /*< [m/s] Ground Y Speed (Longitude)*/
+ float vz; /*< [m/s] Ground Z Speed (Altitude)*/
+ float covariance[36]; /*<  Row-major representation of a 6x6 position and velocity 6x6 cross-covariance matrix (states: lat, lon, alt, vx, vy, vz; first six entries are the first ROW, next six entries are the second row, etc.). If unknown, assign NaN value to first element in the array.*/
+ uint8_t estimator_type; /*<  Class id of the estimator this estimate originated from.*/
+} mavlink_global_position_int_cov_t;
 
 #define MAVLINK_MSG_ID_GLOBAL_POSITION_INT_COV_LEN 181
 #define MAVLINK_MSG_ID_GLOBAL_POSITION_INT_COV_MIN_LEN 181
@@ -33,6 +33,7 @@ typedef struct __mavlink_global_position_int_cov_t {
     "GLOBAL_POSITION_INT_COV", \
     10, \
     {  { "time_usec", NULL, MAVLINK_TYPE_UINT64_T, 0, 0, offsetof(mavlink_global_position_int_cov_t, time_usec) }, \
+         { "estimator_type", NULL, MAVLINK_TYPE_UINT8_T, 0, 180, offsetof(mavlink_global_position_int_cov_t, estimator_type) }, \
          { "lat", NULL, MAVLINK_TYPE_INT32_T, 0, 8, offsetof(mavlink_global_position_int_cov_t, lat) }, \
          { "lon", NULL, MAVLINK_TYPE_INT32_T, 0, 12, offsetof(mavlink_global_position_int_cov_t, lon) }, \
          { "alt", NULL, MAVLINK_TYPE_INT32_T, 0, 16, offsetof(mavlink_global_position_int_cov_t, alt) }, \
@@ -41,7 +42,6 @@ typedef struct __mavlink_global_position_int_cov_t {
          { "vy", NULL, MAVLINK_TYPE_FLOAT, 0, 28, offsetof(mavlink_global_position_int_cov_t, vy) }, \
          { "vz", NULL, MAVLINK_TYPE_FLOAT, 0, 32, offsetof(mavlink_global_position_int_cov_t, vz) }, \
          { "covariance", NULL, MAVLINK_TYPE_FLOAT, 36, 36, offsetof(mavlink_global_position_int_cov_t, covariance) }, \
-         { "estimator_type", NULL, MAVLINK_TYPE_UINT8_T, 0, 180, offsetof(mavlink_global_position_int_cov_t, estimator_type) }, \
          } \
 }
 #else
@@ -49,6 +49,7 @@ typedef struct __mavlink_global_position_int_cov_t {
     "GLOBAL_POSITION_INT_COV", \
     10, \
     {  { "time_usec", NULL, MAVLINK_TYPE_UINT64_T, 0, 0, offsetof(mavlink_global_position_int_cov_t, time_usec) }, \
+         { "estimator_type", NULL, MAVLINK_TYPE_UINT8_T, 0, 180, offsetof(mavlink_global_position_int_cov_t, estimator_type) }, \
          { "lat", NULL, MAVLINK_TYPE_INT32_T, 0, 8, offsetof(mavlink_global_position_int_cov_t, lat) }, \
          { "lon", NULL, MAVLINK_TYPE_INT32_T, 0, 12, offsetof(mavlink_global_position_int_cov_t, lon) }, \
          { "alt", NULL, MAVLINK_TYPE_INT32_T, 0, 16, offsetof(mavlink_global_position_int_cov_t, alt) }, \
@@ -57,7 +58,6 @@ typedef struct __mavlink_global_position_int_cov_t {
          { "vy", NULL, MAVLINK_TYPE_FLOAT, 0, 28, offsetof(mavlink_global_position_int_cov_t, vy) }, \
          { "vz", NULL, MAVLINK_TYPE_FLOAT, 0, 32, offsetof(mavlink_global_position_int_cov_t, vz) }, \
          { "covariance", NULL, MAVLINK_TYPE_FLOAT, 36, 36, offsetof(mavlink_global_position_int_cov_t, covariance) }, \
-         { "estimator_type", NULL, MAVLINK_TYPE_UINT8_T, 0, 180, offsetof(mavlink_global_position_int_cov_t, estimator_type) }, \
          } \
 }
 #endif
@@ -68,16 +68,16 @@ typedef struct __mavlink_global_position_int_cov_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param time_usec Timestamp (microseconds since system boot or since UNIX epoch)
- * @param estimator_type Class id of the estimator this estimate originated from.
- * @param lat Latitude, expressed as degrees * 1E7
- * @param lon Longitude, expressed as degrees * 1E7
- * @param alt Altitude in meters, expressed as * 1000 (millimeters), above MSL
- * @param relative_alt Altitude above ground in meters, expressed as * 1000 (millimeters)
- * @param vx Ground X Speed (Latitude), expressed as m/s
- * @param vy Ground Y Speed (Longitude), expressed as m/s
- * @param vz Ground Z Speed (Altitude), expressed as m/s
- * @param covariance Covariance matrix (first six entries are the first ROW, next six entries are the second row, etc.)
+ * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
+ * @param estimator_type  Class id of the estimator this estimate originated from.
+ * @param lat [degE7] Latitude
+ * @param lon [degE7] Longitude
+ * @param alt [mm] Altitude in meters above MSL
+ * @param relative_alt [mm] Altitude above ground
+ * @param vx [m/s] Ground X Speed (Latitude)
+ * @param vy [m/s] Ground Y Speed (Longitude)
+ * @param vz [m/s] Ground Z Speed (Altitude)
+ * @param covariance  Row-major representation of a 6x6 position and velocity 6x6 cross-covariance matrix (states: lat, lon, alt, vx, vy, vz; first six entries are the first ROW, next six entries are the second row, etc.). If unknown, assign NaN value to first element in the array.
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_global_position_int_cov_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -121,16 +121,16 @@ static inline uint16_t mavlink_msg_global_position_int_cov_pack(uint8_t system_i
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param time_usec Timestamp (microseconds since system boot or since UNIX epoch)
- * @param estimator_type Class id of the estimator this estimate originated from.
- * @param lat Latitude, expressed as degrees * 1E7
- * @param lon Longitude, expressed as degrees * 1E7
- * @param alt Altitude in meters, expressed as * 1000 (millimeters), above MSL
- * @param relative_alt Altitude above ground in meters, expressed as * 1000 (millimeters)
- * @param vx Ground X Speed (Latitude), expressed as m/s
- * @param vy Ground Y Speed (Longitude), expressed as m/s
- * @param vz Ground Z Speed (Altitude), expressed as m/s
- * @param covariance Covariance matrix (first six entries are the first ROW, next six entries are the second row, etc.)
+ * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
+ * @param estimator_type  Class id of the estimator this estimate originated from.
+ * @param lat [degE7] Latitude
+ * @param lon [degE7] Longitude
+ * @param alt [mm] Altitude in meters above MSL
+ * @param relative_alt [mm] Altitude above ground
+ * @param vx [m/s] Ground X Speed (Latitude)
+ * @param vy [m/s] Ground Y Speed (Longitude)
+ * @param vz [m/s] Ground Z Speed (Altitude)
+ * @param covariance  Row-major representation of a 6x6 position and velocity 6x6 cross-covariance matrix (states: lat, lon, alt, vx, vy, vz; first six entries are the first ROW, next six entries are the second row, etc.). If unknown, assign NaN value to first element in the array.
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_global_position_int_cov_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -200,16 +200,16 @@ static inline uint16_t mavlink_msg_global_position_int_cov_encode_chan(uint8_t s
  * @brief Send a global_position_int_cov message
  * @param chan MAVLink channel to send the message
  *
- * @param time_usec Timestamp (microseconds since system boot or since UNIX epoch)
- * @param estimator_type Class id of the estimator this estimate originated from.
- * @param lat Latitude, expressed as degrees * 1E7
- * @param lon Longitude, expressed as degrees * 1E7
- * @param alt Altitude in meters, expressed as * 1000 (millimeters), above MSL
- * @param relative_alt Altitude above ground in meters, expressed as * 1000 (millimeters)
- * @param vx Ground X Speed (Latitude), expressed as m/s
- * @param vy Ground Y Speed (Longitude), expressed as m/s
- * @param vz Ground Z Speed (Altitude), expressed as m/s
- * @param covariance Covariance matrix (first six entries are the first ROW, next six entries are the second row, etc.)
+ * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
+ * @param estimator_type  Class id of the estimator this estimate originated from.
+ * @param lat [degE7] Latitude
+ * @param lon [degE7] Longitude
+ * @param alt [mm] Altitude in meters above MSL
+ * @param relative_alt [mm] Altitude above ground
+ * @param vx [m/s] Ground X Speed (Latitude)
+ * @param vy [m/s] Ground Y Speed (Longitude)
+ * @param vz [m/s] Ground Z Speed (Altitude)
+ * @param covariance  Row-major representation of a 6x6 position and velocity 6x6 cross-covariance matrix (states: lat, lon, alt, vx, vy, vz; first six entries are the first ROW, next six entries are the second row, etc.). If unknown, assign NaN value to first element in the array.
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -306,7 +306,7 @@ static inline void mavlink_msg_global_position_int_cov_send_buf(mavlink_message_
 /**
  * @brief Get field time_usec from global_position_int_cov message
  *
- * @return Timestamp (microseconds since system boot or since UNIX epoch)
+ * @return [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
  */
 static inline uint64_t mavlink_msg_global_position_int_cov_get_time_usec(const mavlink_message_t* msg)
 {
@@ -316,7 +316,7 @@ static inline uint64_t mavlink_msg_global_position_int_cov_get_time_usec(const m
 /**
  * @brief Get field estimator_type from global_position_int_cov message
  *
- * @return Class id of the estimator this estimate originated from.
+ * @return  Class id of the estimator this estimate originated from.
  */
 static inline uint8_t mavlink_msg_global_position_int_cov_get_estimator_type(const mavlink_message_t* msg)
 {
@@ -326,7 +326,7 @@ static inline uint8_t mavlink_msg_global_position_int_cov_get_estimator_type(con
 /**
  * @brief Get field lat from global_position_int_cov message
  *
- * @return Latitude, expressed as degrees * 1E7
+ * @return [degE7] Latitude
  */
 static inline int32_t mavlink_msg_global_position_int_cov_get_lat(const mavlink_message_t* msg)
 {
@@ -336,7 +336,7 @@ static inline int32_t mavlink_msg_global_position_int_cov_get_lat(const mavlink_
 /**
  * @brief Get field lon from global_position_int_cov message
  *
- * @return Longitude, expressed as degrees * 1E7
+ * @return [degE7] Longitude
  */
 static inline int32_t mavlink_msg_global_position_int_cov_get_lon(const mavlink_message_t* msg)
 {
@@ -346,7 +346,7 @@ static inline int32_t mavlink_msg_global_position_int_cov_get_lon(const mavlink_
 /**
  * @brief Get field alt from global_position_int_cov message
  *
- * @return Altitude in meters, expressed as * 1000 (millimeters), above MSL
+ * @return [mm] Altitude in meters above MSL
  */
 static inline int32_t mavlink_msg_global_position_int_cov_get_alt(const mavlink_message_t* msg)
 {
@@ -356,7 +356,7 @@ static inline int32_t mavlink_msg_global_position_int_cov_get_alt(const mavlink_
 /**
  * @brief Get field relative_alt from global_position_int_cov message
  *
- * @return Altitude above ground in meters, expressed as * 1000 (millimeters)
+ * @return [mm] Altitude above ground
  */
 static inline int32_t mavlink_msg_global_position_int_cov_get_relative_alt(const mavlink_message_t* msg)
 {
@@ -366,7 +366,7 @@ static inline int32_t mavlink_msg_global_position_int_cov_get_relative_alt(const
 /**
  * @brief Get field vx from global_position_int_cov message
  *
- * @return Ground X Speed (Latitude), expressed as m/s
+ * @return [m/s] Ground X Speed (Latitude)
  */
 static inline float mavlink_msg_global_position_int_cov_get_vx(const mavlink_message_t* msg)
 {
@@ -376,7 +376,7 @@ static inline float mavlink_msg_global_position_int_cov_get_vx(const mavlink_mes
 /**
  * @brief Get field vy from global_position_int_cov message
  *
- * @return Ground Y Speed (Longitude), expressed as m/s
+ * @return [m/s] Ground Y Speed (Longitude)
  */
 static inline float mavlink_msg_global_position_int_cov_get_vy(const mavlink_message_t* msg)
 {
@@ -386,7 +386,7 @@ static inline float mavlink_msg_global_position_int_cov_get_vy(const mavlink_mes
 /**
  * @brief Get field vz from global_position_int_cov message
  *
- * @return Ground Z Speed (Altitude), expressed as m/s
+ * @return [m/s] Ground Z Speed (Altitude)
  */
 static inline float mavlink_msg_global_position_int_cov_get_vz(const mavlink_message_t* msg)
 {
@@ -396,7 +396,7 @@ static inline float mavlink_msg_global_position_int_cov_get_vz(const mavlink_mes
 /**
  * @brief Get field covariance from global_position_int_cov message
  *
- * @return Covariance matrix (first six entries are the first ROW, next six entries are the second row, etc.)
+ * @return  Row-major representation of a 6x6 position and velocity 6x6 cross-covariance matrix (states: lat, lon, alt, vx, vy, vz; first six entries are the first ROW, next six entries are the second row, etc.). If unknown, assign NaN value to first element in the array.
  */
 static inline uint16_t mavlink_msg_global_position_int_cov_get_covariance(const mavlink_message_t* msg, float *covariance)
 {
