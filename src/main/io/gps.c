@@ -115,7 +115,7 @@ static gpsProviderDescriptor_t  gpsProviders[GPS_PROVIDER_COUNT] = {
 
 };
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gpsConfig_t, gpsConfig, PG_GPS_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(gpsConfig_t, gpsConfig, PG_GPS_CONFIG, 1);
 
 PG_RESET_TEMPLATE(gpsConfig_t, gpsConfig,
     .provider = GPS_UBLOX,
@@ -124,7 +124,8 @@ PG_RESET_TEMPLATE(gpsConfig_t, gpsConfig,
     .autoBaud = GPS_AUTOBAUD_ON,
     .dynModel = GPS_DYNMODEL_AIR_1G,
     .gpsMinSats = 6,
-    .ubloxUseGalileo = false
+    .ubloxUseGalileo = false,
+    .cogMinVelocity = 300,
 );
 
 void gpsSetState(gpsState_e state)
@@ -471,7 +472,7 @@ bool isGPSHealthy(void)
 
 bool isGPSHeadingValid(void)
 {
-    return sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6 && gpsSol.groundSpeed >= 300;
+    return sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= gpsConfig()->gpsMinSats && gpsSol.groundSpeed >= gpsConfig()->cogMinVelocity;
 }
 
 #endif

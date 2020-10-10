@@ -534,8 +534,9 @@ static void imuCalculateEstimatedAttitude(float dT)
     bool useCOG = false;
 
 #if defined(USE_GPS)
+    const bool canUseCOG = isGPSHeadingValid();
+
     if (STATE(FIXED_WING_LEGACY)) {
-        bool canUseCOG = isGPSHeadingValid();
 
         // Prefer compass (if available)
         if (canUseMAG) {
@@ -549,7 +550,7 @@ static void imuCalculateEstimatedAttitude(float dT)
             }
             else {
                 // Re-initialize quaternion from known Roll, Pitch and GPS heading
-                imuComputeQuaternionFromRPY(attitude.values.roll, attitude.values.pitch, gpsSol.groundCourse);
+                 (attitude.values.roll, attitude.values.pitch, gpsSol.groundCourse);
                 gpsHeadingInitialized = true;
 
                 // Force reset of heading hold target
@@ -558,9 +559,15 @@ static void imuCalculateEstimatedAttitude(float dT)
         }
     }
     else {
-        // Multicopters don't use GPS heading
+        //Prefer COG if available
         if (canUseMAG) {
-            useMag = true;
+            if (canUseCOG) {
+                courseOverGround = DECIDEGREES_TO_RADIANS(gpsSol.groundCourse);
+                useCOG = true;
+            } else {
+                useMag = true;
+            }
+
         }
     }
 #else
