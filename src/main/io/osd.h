@@ -202,6 +202,11 @@ typedef enum {
     OSD_AHI_STYLE_LINE,
 } osd_ahi_style_e;
 
+typedef enum {
+    OSD_CRSF_LQ_TBS,
+    OSD_CRSF_LQ_OTX,
+} osd_crsf_lq_format_e;
+
 typedef struct osdLayoutsConfig_s {
     // Layouts
     uint16_t item_pos[OSD_LAYOUT_COUNT][OSD_ITEM_COUNT];
@@ -278,6 +283,8 @@ typedef struct osdConfig_s {
     int8_t sidebar_horizontal_offset;   // Horizontal offset from default position. Units are grid slots for grid OSDs, pixels for pixel based OSDs. Positive values move sidebars closer to the edges.
     uint8_t left_sidebar_scroll_step;   // How many units each sidebar step represents. 0 means the default value for the scroll type.
     uint8_t right_sidebar_scroll_step;  // Same as left_sidebar_scroll_step, but for the right sidebar.
+
+    uint8_t crsf_lq_format;
 
 } osdConfig_t;
 

@@ -144,6 +144,9 @@ tables:
   - name: tristate
     enum: tristate_e
     values: ["AUTO", "ON", "OFF"]
+  - name: osd_crsf_lq_format
+    enum: osd_crsf_lq_format_e
+    values: ["TBS", "TYPE2"]
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -2738,6 +2741,12 @@ groups:
         default_value: "DEFAULT"
         field: crosshairs_style
         table: osd_crosshairs_style
+        type: uint8_t
+      - name: osd_crsf_lq_format
+        description: "To select LQ format"
+        default_value: "TBS"
+        field: crsf_lq_format
+        table: osd_crsf_lq_format
         type: uint8_t
       - name: osd_horizon_offset
         description: "To vertically adjust the whole OSD and AHI and scrolling bars"
