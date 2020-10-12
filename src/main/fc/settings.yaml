@@ -146,7 +146,7 @@ tables:
     values: ["AUTO", "ON", "OFF"]
   - name: osd_crsf_lq_format
     enum: osd_crsf_lq_format_e
-    values: ["TBS", "TYPE2"]
+    values: ["TYPE1", "TYPE2"]
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -2744,7 +2744,7 @@ groups:
         type: uint8_t
       - name: osd_crsf_lq_format
         description: "To select LQ format"
-        default_value: "TBS"
+        default_value: "TYPE1"
         field: crsf_lq_format
         table: osd_crsf_lq_format
         type: uint8_t
