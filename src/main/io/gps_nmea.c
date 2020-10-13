@@ -293,7 +293,8 @@ static const char * mtkBaudInitData[GPS_BAUDRATE_COUNT] = {
     "$PMTK251,57600*2C\r\n",      // GPS_BAUDRATE_57600
     "$PMTK251,38400*27\r\n",      // GPS_BAUDRATE_38400
     "$PMTK251,19200*22\r\n",      // GPS_BAUDRATE_19200
-    "$PMTK251,9600*17\r\n"        // GPS_BAUDRATE_9600
+    "$PMTK251,9600*17\r\n",       // GPS_BAUDRATE_9600
+    "$PMTK251,230400*1D\r\n",     // GPS_BAUDRATE_230400
 };
 
 STATIC_PROTOTHREAD(gpsProtocolStateThreadMTK)

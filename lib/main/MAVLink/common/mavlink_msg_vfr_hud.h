@@ -3,15 +3,15 @@
 
 #define MAVLINK_MSG_ID_VFR_HUD 74
 
-MAVPACKED(
+
 typedef struct __mavlink_vfr_hud_t {
- float airspeed; /*< Current airspeed in m/s*/
- float groundspeed; /*< Current ground speed in m/s*/
- float alt; /*< Current altitude (MSL), in meters*/
- float climb; /*< Current climb rate in meters/second*/
- int16_t heading; /*< Current heading in degrees, in compass units (0..360, 0=north)*/
- uint16_t throttle; /*< Current throttle setting in integer percent, 0 to 100*/
-}) mavlink_vfr_hud_t;
+ float airspeed; /*< [m/s] Vehicle speed in form appropriate for vehicle type. For standard aircraft this is typically calibrated airspeed (CAS) or indicated airspeed (IAS) - either of which can be used by a pilot to estimate stall speed.*/
+ float groundspeed; /*< [m/s] Current ground speed.*/
+ float alt; /*< [m] Current altitude (MSL).*/
+ float climb; /*< [m/s] Current climb rate.*/
+ int16_t heading; /*< [deg] Current heading in compass units (0-360, 0=north).*/
+ uint16_t throttle; /*< [%] Current throttle setting (0 to 100).*/
+} mavlink_vfr_hud_t;
 
 #define MAVLINK_MSG_ID_VFR_HUD_LEN 20
 #define MAVLINK_MSG_ID_VFR_HUD_MIN_LEN 20
@@ -30,10 +30,10 @@ typedef struct __mavlink_vfr_hud_t {
     6, \
     {  { "airspeed", NULL, MAVLINK_TYPE_FLOAT, 0, 0, offsetof(mavlink_vfr_hud_t, airspeed) }, \
          { "groundspeed", NULL, MAVLINK_TYPE_FLOAT, 0, 4, offsetof(mavlink_vfr_hud_t, groundspeed) }, \
-         { "alt", NULL, MAVLINK_TYPE_FLOAT, 0, 8, offsetof(mavlink_vfr_hud_t, alt) }, \
-         { "climb", NULL, MAVLINK_TYPE_FLOAT, 0, 12, offsetof(mavlink_vfr_hud_t, climb) }, \
          { "heading", NULL, MAVLINK_TYPE_INT16_T, 0, 16, offsetof(mavlink_vfr_hud_t, heading) }, \
          { "throttle", NULL, MAVLINK_TYPE_UINT16_T, 0, 18, offsetof(mavlink_vfr_hud_t, throttle) }, \
+         { "alt", NULL, MAVLINK_TYPE_FLOAT, 0, 8, offsetof(mavlink_vfr_hud_t, alt) }, \
+         { "climb", NULL, MAVLINK_TYPE_FLOAT, 0, 12, offsetof(mavlink_vfr_hud_t, climb) }, \
          } \
 }
 #else
@@ -42,10 +42,10 @@ typedef struct __mavlink_vfr_hud_t {
     6, \
     {  { "airspeed", NULL, MAVLINK_TYPE_FLOAT, 0, 0, offsetof(mavlink_vfr_hud_t, airspeed) }, \
          { "groundspeed", NULL, MAVLINK_TYPE_FLOAT, 0, 4, offsetof(mavlink_vfr_hud_t, groundspeed) }, \
-         { "alt", NULL, MAVLINK_TYPE_FLOAT, 0, 8, offsetof(mavlink_vfr_hud_t, alt) }, \
-         { "climb", NULL, MAVLINK_TYPE_FLOAT, 0, 12, offsetof(mavlink_vfr_hud_t, climb) }, \
          { "heading", NULL, MAVLINK_TYPE_INT16_T, 0, 16, offsetof(mavlink_vfr_hud_t, heading) }, \
          { "throttle", NULL, MAVLINK_TYPE_UINT16_T, 0, 18, offsetof(mavlink_vfr_hud_t, throttle) }, \
+         { "alt", NULL, MAVLINK_TYPE_FLOAT, 0, 8, offsetof(mavlink_vfr_hud_t, alt) }, \
+         { "climb", NULL, MAVLINK_TYPE_FLOAT, 0, 12, offsetof(mavlink_vfr_hud_t, climb) }, \
          } \
 }
 #endif
@@ -56,12 +56,12 @@ typedef struct __mavlink_vfr_hud_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param airspeed Current airspeed in m/s
- * @param groundspeed Current ground speed in m/s
- * @param heading Current heading in degrees, in compass units (0..360, 0=north)
- * @param throttle Current throttle setting in integer percent, 0 to 100
- * @param alt Current altitude (MSL), in meters
- * @param climb Current climb rate in meters/second
+ * @param airspeed [m/s] Vehicle speed in form appropriate for vehicle type. For standard aircraft this is typically calibrated airspeed (CAS) or indicated airspeed (IAS) - either of which can be used by a pilot to estimate stall speed.
+ * @param groundspeed [m/s] Current ground speed.
+ * @param heading [deg] Current heading in compass units (0-360, 0=north).
+ * @param throttle [%] Current throttle setting (0 to 100).
+ * @param alt [m] Current altitude (MSL).
+ * @param climb [m/s] Current climb rate.
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_vfr_hud_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -99,12 +99,12 @@ static inline uint16_t mavlink_msg_vfr_hud_pack(uint8_t system_id, uint8_t compo
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param airspeed Current airspeed in m/s
- * @param groundspeed Current ground speed in m/s
- * @param heading Current heading in degrees, in compass units (0..360, 0=north)
- * @param throttle Current throttle setting in integer percent, 0 to 100
- * @param alt Current altitude (MSL), in meters
- * @param climb Current climb rate in meters/second
+ * @param airspeed [m/s] Vehicle speed in form appropriate for vehicle type. For standard aircraft this is typically calibrated airspeed (CAS) or indicated airspeed (IAS) - either of which can be used by a pilot to estimate stall speed.
+ * @param groundspeed [m/s] Current ground speed.
+ * @param heading [deg] Current heading in compass units (0-360, 0=north).
+ * @param throttle [%] Current throttle setting (0 to 100).
+ * @param alt [m] Current altitude (MSL).
+ * @param climb [m/s] Current climb rate.
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_vfr_hud_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -168,12 +168,12 @@ static inline uint16_t mavlink_msg_vfr_hud_encode_chan(uint8_t system_id, uint8_
  * @brief Send a vfr_hud message
  * @param chan MAVLink channel to send the message
  *
- * @param airspeed Current airspeed in m/s
- * @param groundspeed Current ground speed in m/s
- * @param heading Current heading in degrees, in compass units (0..360, 0=north)
- * @param throttle Current throttle setting in integer percent, 0 to 100
- * @param alt Current altitude (MSL), in meters
- * @param climb Current climb rate in meters/second
+ * @param airspeed [m/s] Vehicle speed in form appropriate for vehicle type. For standard aircraft this is typically calibrated airspeed (CAS) or indicated airspeed (IAS) - either of which can be used by a pilot to estimate stall speed.
+ * @param groundspeed [m/s] Current ground speed.
+ * @param heading [deg] Current heading in compass units (0-360, 0=north).
+ * @param throttle [%] Current throttle setting (0 to 100).
+ * @param alt [m] Current altitude (MSL).
+ * @param climb [m/s] Current climb rate.
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -258,7 +258,7 @@ static inline void mavlink_msg_vfr_hud_send_buf(mavlink_message_t *msgbuf, mavli
 /**
  * @brief Get field airspeed from vfr_hud message
  *
- * @return Current airspeed in m/s
+ * @return [m/s] Vehicle speed in form appropriate for vehicle type. For standard aircraft this is typically calibrated airspeed (CAS) or indicated airspeed (IAS) - either of which can be used by a pilot to estimate stall speed.
  */
 static inline float mavlink_msg_vfr_hud_get_airspeed(const mavlink_message_t* msg)
 {
@@ -268,7 +268,7 @@ static inline float mavlink_msg_vfr_hud_get_airspeed(const mavlink_message_t* ms
 /**
  * @brief Get field groundspeed from vfr_hud message
  *
- * @return Current ground speed in m/s
+ * @return [m/s] Current ground speed.
  */
 static inline float mavlink_msg_vfr_hud_get_groundspeed(const mavlink_message_t* msg)
 {
@@ -278,7 +278,7 @@ static inline float mavlink_msg_vfr_hud_get_groundspeed(const mavlink_message_t*
 /**
  * @brief Get field heading from vfr_hud message
  *
- * @return Current heading in degrees, in compass units (0..360, 0=north)
+ * @return [deg] Current heading in compass units (0-360, 0=north).
  */
 static inline int16_t mavlink_msg_vfr_hud_get_heading(const mavlink_message_t* msg)
 {
@@ -288,7 +288,7 @@ static inline int16_t mavlink_msg_vfr_hud_get_heading(const mavlink_message_t* m
 /**
  * @brief Get field throttle from vfr_hud message
  *
- * @return Current throttle setting in integer percent, 0 to 100
+ * @return [%] Current throttle setting (0 to 100).
  */
 static inline uint16_t mavlink_msg_vfr_hud_get_throttle(const mavlink_message_t* msg)
 {
@@ -298,7 +298,7 @@ static inline uint16_t mavlink_msg_vfr_hud_get_throttle(const mavlink_message_t*
 /**
  * @brief Get field alt from vfr_hud message
  *
- * @return Current altitude (MSL), in meters
+ * @return [m] Current altitude (MSL).
  */
 static inline float mavlink_msg_vfr_hud_get_alt(const mavlink_message_t* msg)
 {
@@ -308,7 +308,7 @@ static inline float mavlink_msg_vfr_hud_get_alt(const mavlink_message_t* msg)
 /**
  * @brief Get field climb from vfr_hud message
  *
- * @return Current climb rate in meters/second
+ * @return [m/s] Current climb rate.
  */
 static inline float mavlink_msg_vfr_hud_get_climb(const mavlink_message_t* msg)
 {

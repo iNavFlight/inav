@@ -3,27 +3,27 @@
 
 #define MAVLINK_MSG_ID_GPS_INPUT 232
 
-MAVPACKED(
+
 typedef struct __mavlink_gps_input_t {
- uint64_t time_usec; /*< Timestamp (micros since boot or Unix epoch)*/
- uint32_t time_week_ms; /*< GPS time (milliseconds from start of GPS week)*/
- int32_t lat; /*< Latitude (WGS84), in degrees * 1E7*/
- int32_t lon; /*< Longitude (WGS84), in degrees * 1E7*/
- float alt; /*< Altitude (AMSL, not WGS84), in m (positive for up)*/
- float hdop; /*< GPS HDOP horizontal dilution of position in m*/
- float vdop; /*< GPS VDOP vertical dilution of position in m*/
- float vn; /*< GPS velocity in m/s in NORTH direction in earth-fixed NED frame*/
- float ve; /*< GPS velocity in m/s in EAST direction in earth-fixed NED frame*/
- float vd; /*< GPS velocity in m/s in DOWN direction in earth-fixed NED frame*/
- float speed_accuracy; /*< GPS speed accuracy in m/s*/
- float horiz_accuracy; /*< GPS horizontal accuracy in m*/
- float vert_accuracy; /*< GPS vertical accuracy in m*/
- uint16_t ignore_flags; /*< Flags indicating which fields to ignore (see GPS_INPUT_IGNORE_FLAGS enum).  All other fields must be provided.*/
- uint16_t time_week; /*< GPS week number*/
- uint8_t gps_id; /*< ID of the GPS for multiple GPS inputs*/
- uint8_t fix_type; /*< 0-1: no fix, 2: 2D fix, 3: 3D fix. 4: 3D with DGPS. 5: 3D with RTK*/
- uint8_t satellites_visible; /*< Number of satellites visible.*/
-}) mavlink_gps_input_t;
+ uint64_t time_usec; /*< [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.*/
+ uint32_t time_week_ms; /*< [ms] GPS time (from start of GPS week)*/
+ int32_t lat; /*< [degE7] Latitude (WGS84)*/
+ int32_t lon; /*< [degE7] Longitude (WGS84)*/
+ float alt; /*< [m] Altitude (MSL). Positive for up.*/
+ float hdop; /*< [m] GPS HDOP horizontal dilution of position*/
+ float vdop; /*< [m] GPS VDOP vertical dilution of position*/
+ float vn; /*< [m/s] GPS velocity in north direction in earth-fixed NED frame*/
+ float ve; /*< [m/s] GPS velocity in east direction in earth-fixed NED frame*/
+ float vd; /*< [m/s] GPS velocity in down direction in earth-fixed NED frame*/
+ float speed_accuracy; /*< [m/s] GPS speed accuracy*/
+ float horiz_accuracy; /*< [m] GPS horizontal accuracy*/
+ float vert_accuracy; /*< [m] GPS vertical accuracy*/
+ uint16_t ignore_flags; /*<  Bitmap indicating which GPS input flags fields to ignore.  All other fields must be provided.*/
+ uint16_t time_week; /*<  GPS week number*/
+ uint8_t gps_id; /*<  ID of the GPS for multiple GPS inputs*/
+ uint8_t fix_type; /*<  0-1: no fix, 2: 2D fix, 3: 3D fix. 4: 3D with DGPS. 5: 3D with RTK*/
+ uint8_t satellites_visible; /*<  Number of satellites visible.*/
+} mavlink_gps_input_t;
 
 #define MAVLINK_MSG_ID_GPS_INPUT_LEN 63
 #define MAVLINK_MSG_ID_GPS_INPUT_MIN_LEN 63
@@ -41,7 +41,11 @@ typedef struct __mavlink_gps_input_t {
     "GPS_INPUT", \
     18, \
     {  { "time_usec", NULL, MAVLINK_TYPE_UINT64_T, 0, 0, offsetof(mavlink_gps_input_t, time_usec) }, \
+         { "gps_id", NULL, MAVLINK_TYPE_UINT8_T, 0, 60, offsetof(mavlink_gps_input_t, gps_id) }, \
+         { "ignore_flags", NULL, MAVLINK_TYPE_UINT16_T, 0, 56, offsetof(mavlink_gps_input_t, ignore_flags) }, \
          { "time_week_ms", NULL, MAVLINK_TYPE_UINT32_T, 0, 8, offsetof(mavlink_gps_input_t, time_week_ms) }, \
+         { "time_week", NULL, MAVLINK_TYPE_UINT16_T, 0, 58, offsetof(mavlink_gps_input_t, time_week) }, \
+         { "fix_type", NULL, MAVLINK_TYPE_UINT8_T, 0, 61, offsetof(mavlink_gps_input_t, fix_type) }, \
          { "lat", NULL, MAVLINK_TYPE_INT32_T, 0, 12, offsetof(mavlink_gps_input_t, lat) }, \
          { "lon", NULL, MAVLINK_TYPE_INT32_T, 0, 16, offsetof(mavlink_gps_input_t, lon) }, \
          { "alt", NULL, MAVLINK_TYPE_FLOAT, 0, 20, offsetof(mavlink_gps_input_t, alt) }, \
@@ -53,10 +57,6 @@ typedef struct __mavlink_gps_input_t {
          { "speed_accuracy", NULL, MAVLINK_TYPE_FLOAT, 0, 44, offsetof(mavlink_gps_input_t, speed_accuracy) }, \
          { "horiz_accuracy", NULL, MAVLINK_TYPE_FLOAT, 0, 48, offsetof(mavlink_gps_input_t, horiz_accuracy) }, \
          { "vert_accuracy", NULL, MAVLINK_TYPE_FLOAT, 0, 52, offsetof(mavlink_gps_input_t, vert_accuracy) }, \
-         { "ignore_flags", NULL, MAVLINK_TYPE_UINT16_T, 0, 56, offsetof(mavlink_gps_input_t, ignore_flags) }, \
-         { "time_week", NULL, MAVLINK_TYPE_UINT16_T, 0, 58, offsetof(mavlink_gps_input_t, time_week) }, \
-         { "gps_id", NULL, MAVLINK_TYPE_UINT8_T, 0, 60, offsetof(mavlink_gps_input_t, gps_id) }, \
-         { "fix_type", NULL, MAVLINK_TYPE_UINT8_T, 0, 61, offsetof(mavlink_gps_input_t, fix_type) }, \
          { "satellites_visible", NULL, MAVLINK_TYPE_UINT8_T, 0, 62, offsetof(mavlink_gps_input_t, satellites_visible) }, \
          } \
 }
@@ -65,7 +65,11 @@ typedef struct __mavlink_gps_input_t {
     "GPS_INPUT", \
     18, \
     {  { "time_usec", NULL, MAVLINK_TYPE_UINT64_T, 0, 0, offsetof(mavlink_gps_input_t, time_usec) }, \
+         { "gps_id", NULL, MAVLINK_TYPE_UINT8_T, 0, 60, offsetof(mavlink_gps_input_t, gps_id) }, \
+         { "ignore_flags", NULL, MAVLINK_TYPE_UINT16_T, 0, 56, offsetof(mavlink_gps_input_t, ignore_flags) }, \
          { "time_week_ms", NULL, MAVLINK_TYPE_UINT32_T, 0, 8, offsetof(mavlink_gps_input_t, time_week_ms) }, \
+         { "time_week", NULL, MAVLINK_TYPE_UINT16_T, 0, 58, offsetof(mavlink_gps_input_t, time_week) }, \
+         { "fix_type", NULL, MAVLINK_TYPE_UINT8_T, 0, 61, offsetof(mavlink_gps_input_t, fix_type) }, \
          { "lat", NULL, MAVLINK_TYPE_INT32_T, 0, 12, offsetof(mavlink_gps_input_t, lat) }, \
          { "lon", NULL, MAVLINK_TYPE_INT32_T, 0, 16, offsetof(mavlink_gps_input_t, lon) }, \
          { "alt", NULL, MAVLINK_TYPE_FLOAT, 0, 20, offsetof(mavlink_gps_input_t, alt) }, \
@@ -77,10 +81,6 @@ typedef struct __mavlink_gps_input_t {
          { "speed_accuracy", NULL, MAVLINK_TYPE_FLOAT, 0, 44, offsetof(mavlink_gps_input_t, speed_accuracy) }, \
          { "horiz_accuracy", NULL, MAVLINK_TYPE_FLOAT, 0, 48, offsetof(mavlink_gps_input_t, horiz_accuracy) }, \
          { "vert_accuracy", NULL, MAVLINK_TYPE_FLOAT, 0, 52, offsetof(mavlink_gps_input_t, vert_accuracy) }, \
-         { "ignore_flags", NULL, MAVLINK_TYPE_UINT16_T, 0, 56, offsetof(mavlink_gps_input_t, ignore_flags) }, \
-         { "time_week", NULL, MAVLINK_TYPE_UINT16_T, 0, 58, offsetof(mavlink_gps_input_t, time_week) }, \
-         { "gps_id", NULL, MAVLINK_TYPE_UINT8_T, 0, 60, offsetof(mavlink_gps_input_t, gps_id) }, \
-         { "fix_type", NULL, MAVLINK_TYPE_UINT8_T, 0, 61, offsetof(mavlink_gps_input_t, fix_type) }, \
          { "satellites_visible", NULL, MAVLINK_TYPE_UINT8_T, 0, 62, offsetof(mavlink_gps_input_t, satellites_visible) }, \
          } \
 }
@@ -92,24 +92,24 @@ typedef struct __mavlink_gps_input_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param time_usec Timestamp (micros since boot or Unix epoch)
- * @param gps_id ID of the GPS for multiple GPS inputs
- * @param ignore_flags Flags indicating which fields to ignore (see GPS_INPUT_IGNORE_FLAGS enum).  All other fields must be provided.
- * @param time_week_ms GPS time (milliseconds from start of GPS week)
- * @param time_week GPS week number
- * @param fix_type 0-1: no fix, 2: 2D fix, 3: 3D fix. 4: 3D with DGPS. 5: 3D with RTK
- * @param lat Latitude (WGS84), in degrees * 1E7
- * @param lon Longitude (WGS84), in degrees * 1E7
- * @param alt Altitude (AMSL, not WGS84), in m (positive for up)
- * @param hdop GPS HDOP horizontal dilution of position in m
- * @param vdop GPS VDOP vertical dilution of position in m
- * @param vn GPS velocity in m/s in NORTH direction in earth-fixed NED frame
- * @param ve GPS velocity in m/s in EAST direction in earth-fixed NED frame
- * @param vd GPS velocity in m/s in DOWN direction in earth-fixed NED frame
- * @param speed_accuracy GPS speed accuracy in m/s
- * @param horiz_accuracy GPS horizontal accuracy in m
- * @param vert_accuracy GPS vertical accuracy in m
- * @param satellites_visible Number of satellites visible.
+ * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
+ * @param gps_id  ID of the GPS for multiple GPS inputs
+ * @param ignore_flags  Bitmap indicating which GPS input flags fields to ignore.  All other fields must be provided.
+ * @param time_week_ms [ms] GPS time (from start of GPS week)
+ * @param time_week  GPS week number
+ * @param fix_type  0-1: no fix, 2: 2D fix, 3: 3D fix. 4: 3D with DGPS. 5: 3D with RTK
+ * @param lat [degE7] Latitude (WGS84)
+ * @param lon [degE7] Longitude (WGS84)
+ * @param alt [m] Altitude (MSL). Positive for up.
+ * @param hdop [m] GPS HDOP horizontal dilution of position
+ * @param vdop [m] GPS VDOP vertical dilution of position
+ * @param vn [m/s] GPS velocity in north direction in earth-fixed NED frame
+ * @param ve [m/s] GPS velocity in east direction in earth-fixed NED frame
+ * @param vd [m/s] GPS velocity in down direction in earth-fixed NED frame
+ * @param speed_accuracy [m/s] GPS speed accuracy
+ * @param horiz_accuracy [m] GPS horizontal accuracy
+ * @param vert_accuracy [m] GPS vertical accuracy
+ * @param satellites_visible  Number of satellites visible.
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_gps_input_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -171,24 +171,24 @@ static inline uint16_t mavlink_msg_gps_input_pack(uint8_t system_id, uint8_t com
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param time_usec Timestamp (micros since boot or Unix epoch)
- * @param gps_id ID of the GPS for multiple GPS inputs
- * @param ignore_flags Flags indicating which fields to ignore (see GPS_INPUT_IGNORE_FLAGS enum).  All other fields must be provided.
- * @param time_week_ms GPS time (milliseconds from start of GPS week)
- * @param time_week GPS week number
- * @param fix_type 0-1: no fix, 2: 2D fix, 3: 3D fix. 4: 3D with DGPS. 5: 3D with RTK
- * @param lat Latitude (WGS84), in degrees * 1E7
- * @param lon Longitude (WGS84), in degrees * 1E7
- * @param alt Altitude (AMSL, not WGS84), in m (positive for up)
- * @param hdop GPS HDOP horizontal dilution of position in m
- * @param vdop GPS VDOP vertical dilution of position in m
- * @param vn GPS velocity in m/s in NORTH direction in earth-fixed NED frame
- * @param ve GPS velocity in m/s in EAST direction in earth-fixed NED frame
- * @param vd GPS velocity in m/s in DOWN direction in earth-fixed NED frame
- * @param speed_accuracy GPS speed accuracy in m/s
- * @param horiz_accuracy GPS horizontal accuracy in m
- * @param vert_accuracy GPS vertical accuracy in m
- * @param satellites_visible Number of satellites visible.
+ * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
+ * @param gps_id  ID of the GPS for multiple GPS inputs
+ * @param ignore_flags  Bitmap indicating which GPS input flags fields to ignore.  All other fields must be provided.
+ * @param time_week_ms [ms] GPS time (from start of GPS week)
+ * @param time_week  GPS week number
+ * @param fix_type  0-1: no fix, 2: 2D fix, 3: 3D fix. 4: 3D with DGPS. 5: 3D with RTK
+ * @param lat [degE7] Latitude (WGS84)
+ * @param lon [degE7] Longitude (WGS84)
+ * @param alt [m] Altitude (MSL). Positive for up.
+ * @param hdop [m] GPS HDOP horizontal dilution of position
+ * @param vdop [m] GPS VDOP vertical dilution of position
+ * @param vn [m/s] GPS velocity in north direction in earth-fixed NED frame
+ * @param ve [m/s] GPS velocity in east direction in earth-fixed NED frame
+ * @param vd [m/s] GPS velocity in down direction in earth-fixed NED frame
+ * @param speed_accuracy [m/s] GPS speed accuracy
+ * @param horiz_accuracy [m] GPS horizontal accuracy
+ * @param vert_accuracy [m] GPS vertical accuracy
+ * @param satellites_visible  Number of satellites visible.
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_gps_input_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -276,24 +276,24 @@ static inline uint16_t mavlink_msg_gps_input_encode_chan(uint8_t system_id, uint
  * @brief Send a gps_input message
  * @param chan MAVLink channel to send the message
  *
- * @param time_usec Timestamp (micros since boot or Unix epoch)
- * @param gps_id ID of the GPS for multiple GPS inputs
- * @param ignore_flags Flags indicating which fields to ignore (see GPS_INPUT_IGNORE_FLAGS enum).  All other fields must be provided.
- * @param time_week_ms GPS time (milliseconds from start of GPS week)
- * @param time_week GPS week number
- * @param fix_type 0-1: no fix, 2: 2D fix, 3: 3D fix. 4: 3D with DGPS. 5: 3D with RTK
- * @param lat Latitude (WGS84), in degrees * 1E7
- * @param lon Longitude (WGS84), in degrees * 1E7
- * @param alt Altitude (AMSL, not WGS84), in m (positive for up)
- * @param hdop GPS HDOP horizontal dilution of position in m
- * @param vdop GPS VDOP vertical dilution of position in m
- * @param vn GPS velocity in m/s in NORTH direction in earth-fixed NED frame
- * @param ve GPS velocity in m/s in EAST direction in earth-fixed NED frame
- * @param vd GPS velocity in m/s in DOWN direction in earth-fixed NED frame
- * @param speed_accuracy GPS speed accuracy in m/s
- * @param horiz_accuracy GPS horizontal accuracy in m
- * @param vert_accuracy GPS vertical accuracy in m
- * @param satellites_visible Number of satellites visible.
+ * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
+ * @param gps_id  ID of the GPS for multiple GPS inputs
+ * @param ignore_flags  Bitmap indicating which GPS input flags fields to ignore.  All other fields must be provided.
+ * @param time_week_ms [ms] GPS time (from start of GPS week)
+ * @param time_week  GPS week number
+ * @param fix_type  0-1: no fix, 2: 2D fix, 3: 3D fix. 4: 3D with DGPS. 5: 3D with RTK
+ * @param lat [degE7] Latitude (WGS84)
+ * @param lon [degE7] Longitude (WGS84)
+ * @param alt [m] Altitude (MSL). Positive for up.
+ * @param hdop [m] GPS HDOP horizontal dilution of position
+ * @param vdop [m] GPS VDOP vertical dilution of position
+ * @param vn [m/s] GPS velocity in north direction in earth-fixed NED frame
+ * @param ve [m/s] GPS velocity in east direction in earth-fixed NED frame
+ * @param vd [m/s] GPS velocity in down direction in earth-fixed NED frame
+ * @param speed_accuracy [m/s] GPS speed accuracy
+ * @param horiz_accuracy [m] GPS horizontal accuracy
+ * @param vert_accuracy [m] GPS vertical accuracy
+ * @param satellites_visible  Number of satellites visible.
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -426,7 +426,7 @@ static inline void mavlink_msg_gps_input_send_buf(mavlink_message_t *msgbuf, mav
 /**
  * @brief Get field time_usec from gps_input message
  *
- * @return Timestamp (micros since boot or Unix epoch)
+ * @return [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
  */
 static inline uint64_t mavlink_msg_gps_input_get_time_usec(const mavlink_message_t* msg)
 {
@@ -436,7 +436,7 @@ static inline uint64_t mavlink_msg_gps_input_get_time_usec(const mavlink_message
 /**
  * @brief Get field gps_id from gps_input message
  *
- * @return ID of the GPS for multiple GPS inputs
+ * @return  ID of the GPS for multiple GPS inputs
  */
 static inline uint8_t mavlink_msg_gps_input_get_gps_id(const mavlink_message_t* msg)
 {
@@ -446,7 +446,7 @@ static inline uint8_t mavlink_msg_gps_input_get_gps_id(const mavlink_message_t* 
 /**
  * @brief Get field ignore_flags from gps_input message
  *
- * @return Flags indicating which fields to ignore (see GPS_INPUT_IGNORE_FLAGS enum).  All other fields must be provided.
+ * @return  Bitmap indicating which GPS input flags fields to ignore.  All other fields must be provided.
  */
 static inline uint16_t mavlink_msg_gps_input_get_ignore_flags(const mavlink_message_t* msg)
 {
@@ -456,7 +456,7 @@ static inline uint16_t mavlink_msg_gps_input_get_ignore_flags(const mavlink_mess
 /**
  * @brief Get field time_week_ms from gps_input message
  *
- * @return GPS time (milliseconds from start of GPS week)
+ * @return [ms] GPS time (from start of GPS week)
  */
 static inline uint32_t mavlink_msg_gps_input_get_time_week_ms(const mavlink_message_t* msg)
 {
@@ -466,7 +466,7 @@ static inline uint32_t mavlink_msg_gps_input_get_time_week_ms(const mavlink_mess
 /**
  * @brief Get field time_week from gps_input message
  *
- * @return GPS week number
+ * @return  GPS week number
  */
 static inline uint16_t mavlink_msg_gps_input_get_time_week(const mavlink_message_t* msg)
 {
@@ -476,7 +476,7 @@ static inline uint16_t mavlink_msg_gps_input_get_time_week(const mavlink_message
 /**
  * @brief Get field fix_type from gps_input message
  *
- * @return 0-1: no fix, 2: 2D fix, 3: 3D fix. 4: 3D with DGPS. 5: 3D with RTK
+ * @return  0-1: no fix, 2: 2D fix, 3: 3D fix. 4: 3D with DGPS. 5: 3D with RTK
  */
 static inline uint8_t mavlink_msg_gps_input_get_fix_type(const mavlink_message_t* msg)
 {
@@ -486,7 +486,7 @@ static inline uint8_t mavlink_msg_gps_input_get_fix_type(const mavlink_message_t
 /**
  * @brief Get field lat from gps_input message
  *
- * @return Latitude (WGS84), in degrees * 1E7
+ * @return [degE7] Latitude (WGS84)
  */
 static inline int32_t mavlink_msg_gps_input_get_lat(const mavlink_message_t* msg)
 {
@@ -496,7 +496,7 @@ static inline int32_t mavlink_msg_gps_input_get_lat(const mavlink_message_t* msg
 /**
  * @brief Get field lon from gps_input message
  *
- * @return Longitude (WGS84), in degrees * 1E7
+ * @return [degE7] Longitude (WGS84)
  */
 static inline int32_t mavlink_msg_gps_input_get_lon(const mavlink_message_t* msg)
 {
@@ -506,7 +506,7 @@ static inline int32_t mavlink_msg_gps_input_get_lon(const mavlink_message_t* msg
 /**
  * @brief Get field alt from gps_input message
  *
- * @return Altitude (AMSL, not WGS84), in m (positive for up)
+ * @return [m] Altitude (MSL). Positive for up.
  */
 static inline float mavlink_msg_gps_input_get_alt(const mavlink_message_t* msg)
 {
@@ -516,7 +516,7 @@ static inline float mavlink_msg_gps_input_get_alt(const mavlink_message_t* msg)
 /**
  * @brief Get field hdop from gps_input message
  *
- * @return GPS HDOP horizontal dilution of position in m
+ * @return [m] GPS HDOP horizontal dilution of position
  */
 static inline float mavlink_msg_gps_input_get_hdop(const mavlink_message_t* msg)
 {
@@ -526,7 +526,7 @@ static inline float mavlink_msg_gps_input_get_hdop(const mavlink_message_t* msg)
 /**
  * @brief Get field vdop from gps_input message
  *
- * @return GPS VDOP vertical dilution of position in m
+ * @return [m] GPS VDOP vertical dilution of position
  */
 static inline float mavlink_msg_gps_input_get_vdop(const mavlink_message_t* msg)
 {
@@ -536,7 +536,7 @@ static inline float mavlink_msg_gps_input_get_vdop(const mavlink_message_t* msg)
 /**
  * @brief Get field vn from gps_input message
  *
- * @return GPS velocity in m/s in NORTH direction in earth-fixed NED frame
+ * @return [m/s] GPS velocity in north direction in earth-fixed NED frame
  */
 static inline float mavlink_msg_gps_input_get_vn(const mavlink_message_t* msg)
 {
@@ -546,7 +546,7 @@ static inline float mavlink_msg_gps_input_get_vn(const mavlink_message_t* msg)
 /**
  * @brief Get field ve from gps_input message
  *
- * @return GPS velocity in m/s in EAST direction in earth-fixed NED frame
+ * @return [m/s] GPS velocity in east direction in earth-fixed NED frame
  */
 static inline float mavlink_msg_gps_input_get_ve(const mavlink_message_t* msg)
 {
@@ -556,7 +556,7 @@ static inline float mavlink_msg_gps_input_get_ve(const mavlink_message_t* msg)
 /**
  * @brief Get field vd from gps_input message
  *
- * @return GPS velocity in m/s in DOWN direction in earth-fixed NED frame
+ * @return [m/s] GPS velocity in down direction in earth-fixed NED frame
  */
 static inline float mavlink_msg_gps_input_get_vd(const mavlink_message_t* msg)
 {
@@ -566,7 +566,7 @@ static inline float mavlink_msg_gps_input_get_vd(const mavlink_message_t* msg)
 /**
  * @brief Get field speed_accuracy from gps_input message
  *
- * @return GPS speed accuracy in m/s
+ * @return [m/s] GPS speed accuracy
  */
 static inline float mavlink_msg_gps_input_get_speed_accuracy(const mavlink_message_t* msg)
 {
@@ -576,7 +576,7 @@ static inline float mavlink_msg_gps_input_get_speed_accuracy(const mavlink_messa
 /**
  * @brief Get field horiz_accuracy from gps_input message
  *
- * @return GPS horizontal accuracy in m
+ * @return [m] GPS horizontal accuracy
  */
 static inline float mavlink_msg_gps_input_get_horiz_accuracy(const mavlink_message_t* msg)
 {
@@ -586,7 +586,7 @@ static inline float mavlink_msg_gps_input_get_horiz_accuracy(const mavlink_messa
 /**
  * @brief Get field vert_accuracy from gps_input message
  *
- * @return GPS vertical accuracy in m
+ * @return [m] GPS vertical accuracy
  */
 static inline float mavlink_msg_gps_input_get_vert_accuracy(const mavlink_message_t* msg)
 {
@@ -596,7 +596,7 @@ static inline float mavlink_msg_gps_input_get_vert_accuracy(const mavlink_messag
 /**
  * @brief Get field satellites_visible from gps_input message
  *
- * @return Number of satellites visible.
+ * @return  Number of satellites visible.
  */
 static inline uint8_t mavlink_msg_gps_input_get_satellites_visible(const mavlink_message_t* msg)
 {

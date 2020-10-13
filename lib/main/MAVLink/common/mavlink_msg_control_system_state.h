@@ -3,26 +3,26 @@
 
 #define MAVLINK_MSG_ID_CONTROL_SYSTEM_STATE 146
 
-MAVPACKED(
+
 typedef struct __mavlink_control_system_state_t {
- uint64_t time_usec; /*< Timestamp (micros since boot or Unix epoch)*/
- float x_acc; /*< X acceleration in body frame*/
- float y_acc; /*< Y acceleration in body frame*/
- float z_acc; /*< Z acceleration in body frame*/
- float x_vel; /*< X velocity in body frame*/
- float y_vel; /*< Y velocity in body frame*/
- float z_vel; /*< Z velocity in body frame*/
- float x_pos; /*< X position in local frame*/
- float y_pos; /*< Y position in local frame*/
- float z_pos; /*< Z position in local frame*/
- float airspeed; /*< Airspeed, set to -1 if unknown*/
- float vel_variance[3]; /*< Variance of body velocity estimate*/
- float pos_variance[3]; /*< Variance in local position*/
- float q[4]; /*< The attitude, represented as Quaternion*/
- float roll_rate; /*< Angular rate in roll axis*/
- float pitch_rate; /*< Angular rate in pitch axis*/
- float yaw_rate; /*< Angular rate in yaw axis*/
-}) mavlink_control_system_state_t;
+ uint64_t time_usec; /*< [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.*/
+ float x_acc; /*< [m/s/s] X acceleration in body frame*/
+ float y_acc; /*< [m/s/s] Y acceleration in body frame*/
+ float z_acc; /*< [m/s/s] Z acceleration in body frame*/
+ float x_vel; /*< [m/s] X velocity in body frame*/
+ float y_vel; /*< [m/s] Y velocity in body frame*/
+ float z_vel; /*< [m/s] Z velocity in body frame*/
+ float x_pos; /*< [m] X position in local frame*/
+ float y_pos; /*< [m] Y position in local frame*/
+ float z_pos; /*< [m] Z position in local frame*/
+ float airspeed; /*< [m/s] Airspeed, set to -1 if unknown*/
+ float vel_variance[3]; /*<  Variance of body velocity estimate*/
+ float pos_variance[3]; /*<  Variance in local position*/
+ float q[4]; /*<  The attitude, represented as Quaternion*/
+ float roll_rate; /*< [rad/s] Angular rate in roll axis*/
+ float pitch_rate; /*< [rad/s] Angular rate in pitch axis*/
+ float yaw_rate; /*< [rad/s] Angular rate in yaw axis*/
+} mavlink_control_system_state_t;
 
 #define MAVLINK_MSG_ID_CONTROL_SYSTEM_STATE_LEN 100
 #define MAVLINK_MSG_ID_CONTROL_SYSTEM_STATE_MIN_LEN 100
@@ -91,23 +91,23 @@ typedef struct __mavlink_control_system_state_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param time_usec Timestamp (micros since boot or Unix epoch)
- * @param x_acc X acceleration in body frame
- * @param y_acc Y acceleration in body frame
- * @param z_acc Z acceleration in body frame
- * @param x_vel X velocity in body frame
- * @param y_vel Y velocity in body frame
- * @param z_vel Z velocity in body frame
- * @param x_pos X position in local frame
- * @param y_pos Y position in local frame
- * @param z_pos Z position in local frame
- * @param airspeed Airspeed, set to -1 if unknown
- * @param vel_variance Variance of body velocity estimate
- * @param pos_variance Variance in local position
- * @param q The attitude, represented as Quaternion
- * @param roll_rate Angular rate in roll axis
- * @param pitch_rate Angular rate in pitch axis
- * @param yaw_rate Angular rate in yaw axis
+ * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
+ * @param x_acc [m/s/s] X acceleration in body frame
+ * @param y_acc [m/s/s] Y acceleration in body frame
+ * @param z_acc [m/s/s] Z acceleration in body frame
+ * @param x_vel [m/s] X velocity in body frame
+ * @param y_vel [m/s] Y velocity in body frame
+ * @param z_vel [m/s] Z velocity in body frame
+ * @param x_pos [m] X position in local frame
+ * @param y_pos [m] Y position in local frame
+ * @param z_pos [m] Z position in local frame
+ * @param airspeed [m/s] Airspeed, set to -1 if unknown
+ * @param vel_variance  Variance of body velocity estimate
+ * @param pos_variance  Variance in local position
+ * @param q  The attitude, represented as Quaternion
+ * @param roll_rate [rad/s] Angular rate in roll axis
+ * @param pitch_rate [rad/s] Angular rate in pitch axis
+ * @param yaw_rate [rad/s] Angular rate in yaw axis
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_control_system_state_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -165,23 +165,23 @@ static inline uint16_t mavlink_msg_control_system_state_pack(uint8_t system_id, 
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param time_usec Timestamp (micros since boot or Unix epoch)
- * @param x_acc X acceleration in body frame
- * @param y_acc Y acceleration in body frame
- * @param z_acc Z acceleration in body frame
- * @param x_vel X velocity in body frame
- * @param y_vel Y velocity in body frame
- * @param z_vel Z velocity in body frame
- * @param x_pos X position in local frame
- * @param y_pos Y position in local frame
- * @param z_pos Z position in local frame
- * @param airspeed Airspeed, set to -1 if unknown
- * @param vel_variance Variance of body velocity estimate
- * @param pos_variance Variance in local position
- * @param q The attitude, represented as Quaternion
- * @param roll_rate Angular rate in roll axis
- * @param pitch_rate Angular rate in pitch axis
- * @param yaw_rate Angular rate in yaw axis
+ * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
+ * @param x_acc [m/s/s] X acceleration in body frame
+ * @param y_acc [m/s/s] Y acceleration in body frame
+ * @param z_acc [m/s/s] Z acceleration in body frame
+ * @param x_vel [m/s] X velocity in body frame
+ * @param y_vel [m/s] Y velocity in body frame
+ * @param z_vel [m/s] Z velocity in body frame
+ * @param x_pos [m] X position in local frame
+ * @param y_pos [m] Y position in local frame
+ * @param z_pos [m] Z position in local frame
+ * @param airspeed [m/s] Airspeed, set to -1 if unknown
+ * @param vel_variance  Variance of body velocity estimate
+ * @param pos_variance  Variance in local position
+ * @param q  The attitude, represented as Quaternion
+ * @param roll_rate [rad/s] Angular rate in roll axis
+ * @param pitch_rate [rad/s] Angular rate in pitch axis
+ * @param yaw_rate [rad/s] Angular rate in yaw axis
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_control_system_state_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -265,23 +265,23 @@ static inline uint16_t mavlink_msg_control_system_state_encode_chan(uint8_t syst
  * @brief Send a control_system_state message
  * @param chan MAVLink channel to send the message
  *
- * @param time_usec Timestamp (micros since boot or Unix epoch)
- * @param x_acc X acceleration in body frame
- * @param y_acc Y acceleration in body frame
- * @param z_acc Z acceleration in body frame
- * @param x_vel X velocity in body frame
- * @param y_vel Y velocity in body frame
- * @param z_vel Z velocity in body frame
- * @param x_pos X position in local frame
- * @param y_pos Y position in local frame
- * @param z_pos Z position in local frame
- * @param airspeed Airspeed, set to -1 if unknown
- * @param vel_variance Variance of body velocity estimate
- * @param pos_variance Variance in local position
- * @param q The attitude, represented as Quaternion
- * @param roll_rate Angular rate in roll axis
- * @param pitch_rate Angular rate in pitch axis
- * @param yaw_rate Angular rate in yaw axis
+ * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
+ * @param x_acc [m/s/s] X acceleration in body frame
+ * @param y_acc [m/s/s] Y acceleration in body frame
+ * @param z_acc [m/s/s] Z acceleration in body frame
+ * @param x_vel [m/s] X velocity in body frame
+ * @param y_vel [m/s] Y velocity in body frame
+ * @param z_vel [m/s] Z velocity in body frame
+ * @param x_pos [m] X position in local frame
+ * @param y_pos [m] Y position in local frame
+ * @param z_pos [m] Z position in local frame
+ * @param airspeed [m/s] Airspeed, set to -1 if unknown
+ * @param vel_variance  Variance of body velocity estimate
+ * @param pos_variance  Variance in local position
+ * @param q  The attitude, represented as Quaternion
+ * @param roll_rate [rad/s] Angular rate in roll axis
+ * @param pitch_rate [rad/s] Angular rate in pitch axis
+ * @param yaw_rate [rad/s] Angular rate in yaw axis
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -406,7 +406,7 @@ static inline void mavlink_msg_control_system_state_send_buf(mavlink_message_t *
 /**
  * @brief Get field time_usec from control_system_state message
  *
- * @return Timestamp (micros since boot or Unix epoch)
+ * @return [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
  */
 static inline uint64_t mavlink_msg_control_system_state_get_time_usec(const mavlink_message_t* msg)
 {
@@ -416,7 +416,7 @@ static inline uint64_t mavlink_msg_control_system_state_get_time_usec(const mavl
 /**
  * @brief Get field x_acc from control_system_state message
  *
- * @return X acceleration in body frame
+ * @return [m/s/s] X acceleration in body frame
  */
 static inline float mavlink_msg_control_system_state_get_x_acc(const mavlink_message_t* msg)
 {
@@ -426,7 +426,7 @@ static inline float mavlink_msg_control_system_state_get_x_acc(const mavlink_mes
 /**
  * @brief Get field y_acc from control_system_state message
  *
- * @return Y acceleration in body frame
+ * @return [m/s/s] Y acceleration in body frame
  */
 static inline float mavlink_msg_control_system_state_get_y_acc(const mavlink_message_t* msg)
 {
@@ -436,7 +436,7 @@ static inline float mavlink_msg_control_system_state_get_y_acc(const mavlink_mes
 /**
  * @brief Get field z_acc from control_system_state message
  *
- * @return Z acceleration in body frame
+ * @return [m/s/s] Z acceleration in body frame
  */
 static inline float mavlink_msg_control_system_state_get_z_acc(const mavlink_message_t* msg)
 {
@@ -446,7 +446,7 @@ static inline float mavlink_msg_control_system_state_get_z_acc(const mavlink_mes
 /**
  * @brief Get field x_vel from control_system_state message
  *
- * @return X velocity in body frame
+ * @return [m/s] X velocity in body frame
  */
 static inline float mavlink_msg_control_system_state_get_x_vel(const mavlink_message_t* msg)
 {
@@ -456,7 +456,7 @@ static inline float mavlink_msg_control_system_state_get_x_vel(const mavlink_mes
 /**
  * @brief Get field y_vel from control_system_state message
  *
- * @return Y velocity in body frame
+ * @return [m/s] Y velocity in body frame
  */
 static inline float mavlink_msg_control_system_state_get_y_vel(const mavlink_message_t* msg)
 {
@@ -466,7 +466,7 @@ static inline float mavlink_msg_control_system_state_get_y_vel(const mavlink_mes
 /**
  * @brief Get field z_vel from control_system_state message
  *
- * @return Z velocity in body frame
+ * @return [m/s] Z velocity in body frame
  */
 static inline float mavlink_msg_control_system_state_get_z_vel(const mavlink_message_t* msg)
 {
@@ -476,7 +476,7 @@ static inline float mavlink_msg_control_system_state_get_z_vel(const mavlink_mes
 /**
  * @brief Get field x_pos from control_system_state message
  *
- * @return X position in local frame
+ * @return [m] X position in local frame
  */
 static inline float mavlink_msg_control_system_state_get_x_pos(const mavlink_message_t* msg)
 {
@@ -486,7 +486,7 @@ static inline float mavlink_msg_control_system_state_get_x_pos(const mavlink_mes
 /**
  * @brief Get field y_pos from control_system_state message
  *
- * @return Y position in local frame
+ * @return [m] Y position in local frame
  */
 static inline float mavlink_msg_control_system_state_get_y_pos(const mavlink_message_t* msg)
 {
@@ -496,7 +496,7 @@ static inline float mavlink_msg_control_system_state_get_y_pos(const mavlink_mes
 /**
  * @brief Get field z_pos from control_system_state message
  *
- * @return Z position in local frame
+ * @return [m] Z position in local frame
  */
 static inline float mavlink_msg_control_system_state_get_z_pos(const mavlink_message_t* msg)
 {
@@ -506,7 +506,7 @@ static inline float mavlink_msg_control_system_state_get_z_pos(const mavlink_mes
 /**
  * @brief Get field airspeed from control_system_state message
  *
- * @return Airspeed, set to -1 if unknown
+ * @return [m/s] Airspeed, set to -1 if unknown
  */
 static inline float mavlink_msg_control_system_state_get_airspeed(const mavlink_message_t* msg)
 {
@@ -516,7 +516,7 @@ static inline float mavlink_msg_control_system_state_get_airspeed(const mavlink_
 /**
  * @brief Get field vel_variance from control_system_state message
  *
- * @return Variance of body velocity estimate
+ * @return  Variance of body velocity estimate
  */
 static inline uint16_t mavlink_msg_control_system_state_get_vel_variance(const mavlink_message_t* msg, float *vel_variance)
 {
@@ -526,7 +526,7 @@ static inline uint16_t mavlink_msg_control_system_state_get_vel_variance(const m
 /**
  * @brief Get field pos_variance from control_system_state message
  *
- * @return Variance in local position
+ * @return  Variance in local position
  */
 static inline uint16_t mavlink_msg_control_system_state_get_pos_variance(const mavlink_message_t* msg, float *pos_variance)
 {
@@ -536,7 +536,7 @@ static inline uint16_t mavlink_msg_control_system_state_get_pos_variance(const m
 /**
  * @brief Get field q from control_system_state message
  *
- * @return The attitude, represented as Quaternion
+ * @return  The attitude, represented as Quaternion
  */
 static inline uint16_t mavlink_msg_control_system_state_get_q(const mavlink_message_t* msg, float *q)
 {
@@ -546,7 +546,7 @@ static inline uint16_t mavlink_msg_control_system_state_get_q(const mavlink_mess
 /**
  * @brief Get field roll_rate from control_system_state message
  *
- * @return Angular rate in roll axis
+ * @return [rad/s] Angular rate in roll axis
  */
 static inline float mavlink_msg_control_system_state_get_roll_rate(const mavlink_message_t* msg)
 {
@@ -556,7 +556,7 @@ static inline float mavlink_msg_control_system_state_get_roll_rate(const mavlink
 /**
  * @brief Get field pitch_rate from control_system_state message
  *
- * @return Angular rate in pitch axis
+ * @return [rad/s] Angular rate in pitch axis
  */
 static inline float mavlink_msg_control_system_state_get_pitch_rate(const mavlink_message_t* msg)
 {
@@ -566,7 +566,7 @@ static inline float mavlink_msg_control_system_state_get_pitch_rate(const mavlin
 /**
  * @brief Get field yaw_rate from control_system_state message
  *
- * @return Angular rate in yaw axis
+ * @return [rad/s] Angular rate in yaw axis
  */
 static inline float mavlink_msg_control_system_state_get_yaw_rate(const mavlink_message_t* msg)
 {
