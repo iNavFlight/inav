@@ -1657,16 +1657,16 @@ static bool osdDrawSingleElement(uint8_t item)
         int16_t statsLQ = rxLinkStatistics.uplinkLQ;
         int16_t scaledLQ = scaleRange(constrain(statsLQ, 0, 100), 0, 100, 170, 300);
             if (rxLinkStatistics.rfMode == 2) {
-                if (osdConfig()->crsf_lq_format == OSD_CRSF_LQ_TBS) {
+                if (osdConfig()->crsf_lq_format == OSD_CRSF_LQ_TYPE1) {
                     tfp_sprintf(buff, "%5d%s", scaledLQ, "%");
                 } else {
                     tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
                 }
             } else {
-                if (osdConfig()->crsf_lq_format == OSD_CRSF_LQ_TBS) {
-                tfp_sprintf(buff, "%5d%s", rxLinkStatistics.uplinkLQ, "%");
+                if (osdConfig()->crsf_lq_format == OSD_CRSF_LQ_TYPE1) {
+                    tfp_sprintf(buff, "%5d%s", rxLinkStatistics.uplinkLQ, "%");
             } else {
-                tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
+                    tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
             }
             }
             if (!failsafeIsReceivingRxData()){
@@ -2587,7 +2587,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
 #endif
 #ifdef USE_SERIALRX_CRSF
     .snr_alarm = 4,
-    .crsf_lq_format = OSD_CRSF_LQ_TBS,
+    .crsf_lq_format = OSD_CRSF_LQ_TYPE1,
 #endif
 #ifdef USE_TEMPERATURE_SENSOR
     .temp_label_align = OSD_ALIGN_LEFT,
