@@ -76,6 +76,9 @@
 #include "scheduler/scheduler.h"
 #include "common/printf.h"
 #include <stdlib.h>
+#include "rx/rx.h"          // for osd throttle
+#include "fc/rc_controls.h" // for osd THROTTLE
+
 
 
 #if defined(USE_DJI_HD_OSD)
@@ -641,118 +644,173 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
 
        case DJI_MSP_NAME:
             {
-            const char *message;
+                const char * name = systemConfig()->name;
+                int len = strlen(name);
+            
+                if(len != 5){       // fixme, isdigit or something? match only 1 & 0
+                    if (len > 12) len = 12;
+                    sbufWriteData(dst, name, len);
+                    break;
+                }else{              // we got a five 
 
-            // add the travel distance as default osd element
-            // todo: implement osdFormatDistanceStr
-            char buff[10];
-            int32_t dist = getTotalTravelDistance();
+                    // 11111
+                    // |||||
+                    // |||||
+                    // ||||-> mah/km        4
+                    // |||-> 3D Speed       3
+                    // ||-> throttle        2
+                    // |-> tripdist         1
+                    // -> warning           0
+                    const char *message;
+                    const char *customMessages[5];
+                    unsigned customMessageCount = 0;
 
-            if (abs(dist) < METERS_PER_KILOMETER * 100) {
-                // Show meters when dist < 1km
-                tfp_sprintf(buff, "%d%s", (int)(dist / 100), "m");
-            } else {
-                // Show kilometers when dist >= 1km
-                tfp_sprintf(buff,"%d.%02d%s", (int)(dist / (100*METERS_PER_KILOMETER)),
-                    (abs(dist) % (100 * METERS_PER_KILOMETER)) / METERS_PER_KILOMETER, "km");
-            }
-            message = buff;
+// this is stupid but I cant get it to work if those declarations are inside the if conditions
+char speed[32];
+char throttle[32];
+char tripdis[32];
 
-            char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH+1)];
-            if (ARMING_FLAG(ARMED)) {
-                // Aircraft is armed. We might have up to 5
-                // messages to show.
-                const char *messages[5];
-                unsigned messageCount = 0;
-                if (FLIGHT_MODE(FAILSAFE_MODE)) {
-                    // In FS mode while being armed too
-                    const char *failsafePhaseMessage = osdFailsafePhaseMessage();
-                    const char *failsafeInfoMessage = osdFailsafeInfoMessage();
-                    const char *navStateFSMessage = navigationStateMessage();
-                    if (failsafePhaseMessage) {
-                        messages[messageCount++] = failsafePhaseMessage;
+                    if (name[4] == '1' ){   // mah/km
+                        //fixme; todo
                     }
-                    if (failsafeInfoMessage) {
-                        messages[messageCount++] = failsafeInfoMessage;
+
+                    if (name[3] == '1' ){   // 3DSpeed
+                        int16_t vert_speed = getEstimatedActualVelocity(Z);
+                        int16_t hor_speed = gpsSol.groundSpeed;
+                        tfp_sprintf(speed, "%3d%s", (int16_t)sqrtf(sq(hor_speed) + sq(vert_speed)), "km/h");
+                        customMessages[customMessageCount++] = speed;
+
                     }
-                    if (navStateFSMessage) {
-                        messages[messageCount++] = navStateFSMessage;
-                    }
-                    if (messageCount > 0) {
-                        message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
-                        if (message == failsafeInfoMessage) {
-                            // failsafeInfoMessage is not useful for recovering
-                            // a lost model, but might help avoiding a crash.
-                            // Blink to grab user attention.
-                          //doesnt work   TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+                    
+                    if (name[2] == '1' ){ // Throttle
+                        int16_t thr = rxGetChannelValue(THROTTLE);
+                        if (navigationIsControllingThrottle()) {
+                            thr = rcCommand[THROTTLE];
                         }
-                        // We're shoing either failsafePhaseMessage or
-                        // navStateFSMessage. Don't BLINK here since
-                        // having this text available might be crucial
-                        // during a lost aircraft recovery and blinking
-                        // will cause it to be missing from some frames.
+                        tfp_sprintf(throttle, "%3d%s", (constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN), "%Thr");
+                        customMessages[customMessageCount++] = throttle;
                     }
-                } else {
-                    if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
-                        const char *navStateMessage = navigationStateMessage();
-                        if (navStateMessage) {
-                            messages[messageCount++] = navStateMessage;
+
+                    if (name[1] == '1' ){ // tripDistance
+                        // todo: implement osdFormatDistanceStr, add miles/feet here
+                        int32_t dist = getTotalTravelDistance();
+                        if (abs(dist) < METERS_PER_KILOMETER * 100) {
+                            // Show meters when dist < 1km
+                            tfp_sprintf(tripdis, "%d%s", (int)(dist / 100), "m");
+                            
+                        } else {
+                            // Show kilometers when dist >= 1km
+                            tfp_sprintf(tripdis,"%d.%02d%s", (int)(dist / (100*METERS_PER_KILOMETER)),
+                                (abs(dist) % (100 * METERS_PER_KILOMETER)) / METERS_PER_KILOMETER, "km");
                         }
-                    } else if (STATE(FIXED_WING_LEGACY) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
-                            messages[messageCount++] = "AUTOLAUNCH";
-                    } else {
-                        if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
-                            // ALTHOLD might be enabled alongside ANGLE/HORIZON/ACRO
-                            // when it doesn't require ANGLE mode (required only in FW
-                            // right now). If if requires ANGLE, its display is handled
-                            // by OSD_FLYMODE.
-                            messages[messageCount++] = "(ALT HOLD)";
-                        }
-                        if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) {
-                            messages[messageCount++] = "(AUTOTRIM)";
-                        }
-                        if (IS_RC_MODE_ACTIVE(BOXAUTOTUNE)) {
-                            messages[messageCount++] = "(AUTOTUNE)";
-                        }
-                        if (FLIGHT_MODE(HEADFREE_MODE)) {
-                            messages[messageCount++] = "(HEADFREE)";
-                        }
+                        customMessages[customMessageCount++] = tripdis;
                     }
-                    // Pick one of the available messages. Each message lasts
-                    // a second.
-                    if (messageCount > 0) {
-                        message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
+
+                    if (customMessageCount > 0) {
+                        // message = customMessageCount; //lets see how many messages we got
+                        message = customMessages[OSD_ALTERNATING_CHOICES(3000, customMessageCount)];
+                    }else{
+                        message = customMessages[0];
                     }
-                }
-            } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
-                unsigned invalidIndex;
-                // Check if we're unable to arm for some reason
-                if (ARMING_FLAG(ARMING_DISABLED_INVALID_SETTING) && !settingsValidate(&invalidIndex)) {
-                    if (OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
-                        const setting_t *setting = settingGet(invalidIndex);
-                        settingGetName(setting, messageBuf);
-                        for (int ii = 0; messageBuf[ii]; ii++) {
-                            messageBuf[ii] = sl_toupper(messageBuf[ii]);
+            
+                    if (name[0] == '1' ){
+                        char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH+1)];
+                        if (ARMING_FLAG(ARMED)) {
+                            // Aircraft is armed. We might have up to 5
+                            // messages to show.
+                            const char *messages[5];
+                            unsigned messageCount = 0;
+                            if (FLIGHT_MODE(FAILSAFE_MODE)) {
+                                // In FS mode while being armed too
+                                const char *failsafePhaseMessage = osdFailsafePhaseMessage();
+                                const char *failsafeInfoMessage = osdFailsafeInfoMessage();
+                                const char *navStateFSMessage = navigationStateMessage();
+                                if (failsafePhaseMessage) {
+                                    messages[messageCount++] = failsafePhaseMessage;
+                                }
+                                if (failsafeInfoMessage) {
+                                    messages[messageCount++] = failsafeInfoMessage;
+                                }
+                                if (navStateFSMessage) {
+                                    messages[messageCount++] = navStateFSMessage;
+                                }
+                                if (messageCount > 0) {
+                                    message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
+                                    if (message == failsafeInfoMessage) {
+                                        // failsafeInfoMessage is not useful for recovering
+                                        // a lost model, but might help avoiding a crash.
+                                        // Blink to grab user attention.
+                                    //doesnt work   TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+                                    }
+                                    // We're shoing either failsafePhaseMessage or
+                                    // navStateFSMessage. Don't BLINK here since
+                                    // having this text available might be crucial
+                                    // during a lost aircraft recovery and blinking
+                                    // will cause it to be missing from some frames.
+                                }
+                            } else {
+                                if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
+                                    const char *navStateMessage = navigationStateMessage();
+                                    if (navStateMessage) {
+                                        messages[messageCount++] = navStateMessage;
+                                    }
+                                } else if (STATE(FIXED_WING_LEGACY) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
+                                        messages[messageCount++] = "AUTOLAUNCH";
+                                } else {
+                                    if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
+                                        // ALTHOLD might be enabled alongside ANGLE/HORIZON/ACRO
+                                        // when it doesn't require ANGLE mode (required only in FW
+                                        // right now). If if requires ANGLE, its display is handled
+                                        // by OSD_FLYMODE.
+                                        messages[messageCount++] = "(ALT HOLD)";
+                                    }
+                                    if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) {
+                                        messages[messageCount++] = "(AUTOTRIM)";
+                                    }
+                                    if (IS_RC_MODE_ACTIVE(BOXAUTOTUNE)) {
+                                        messages[messageCount++] = "(AUTOTUNE)";
+                                    }
+                                    if (FLIGHT_MODE(HEADFREE_MODE)) {
+                                        messages[messageCount++] = "(HEADFREE)";
+                                    }
+                                }
+                                // Pick one of the available messages. Each message lasts
+                                // a second.
+                                if (messageCount > 0) {
+                                    message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
+                                }
+                            }
+                        } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
+                            unsigned invalidIndex;
+                            // Check if we're unable to arm for some reason
+                            if (ARMING_FLAG(ARMING_DISABLED_INVALID_SETTING) && !settingsValidate(&invalidIndex)) {
+                                if (OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
+                                    const setting_t *setting = settingGet(invalidIndex);
+                                    settingGetName(setting, messageBuf);
+                                    for (int ii = 0; messageBuf[ii]; ii++) {
+                                        messageBuf[ii] = sl_toupper(messageBuf[ii]);
+                                    }
+                                    message = messageBuf;
+                                } else {
+                                    message = "ERR SETTING";
+                                    // TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
+                                }
+                            } else {
+                                if (OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
+                                    message = "CANT ARM";
+                                    // TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
+                                } else {
+                                    // Show the reason for not arming
+                                    message = osdArmingDisabledReasonMessage();
+                                }
+                            }
                         }
-                        message = messageBuf;
-                    } else {
-                        message = "ERR SETTING";
-                        // TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
-                    }
-                } else {
-                    if (OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
-                        message = "CANT ARM";
-                        // TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
-                    } else {
-                        // Show the reason for not arming
-                        message = osdArmingDisabledReasonMessage();
-                    }
-                }
-            }
+                    }//end if name[0] == 1
          
-            sbufWriteData(dst, message, strlen(message));
-            break;
-        }
+                    sbufWriteData(dst, message, strlen(message));
+                    break;
+                }   // end of if len != 5
+            }
 
 
 
