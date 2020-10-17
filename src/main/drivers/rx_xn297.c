@@ -25,6 +25,7 @@
 #include "rx_nrf24l01.h"
 #include "common/crc.h"
 
+#if defined(USE_RX_NRF24)
 
 static const uint8_t xn297_data_scramble[30] = {
     0xbc, 0xe5, 0x66, 0x0d, 0xae, 0x8c, 0x88, 0x12,
@@ -88,3 +89,4 @@ uint8_t XN297_WritePayload(uint8_t *data, int len, const uint8_t *rxAddr)
     return NRF24L01_WritePayload(packet, RX_TX_ADDR_LEN + len + 2);
 }
 
+#endif

@@ -18,11 +18,15 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <platform.h>
+
 #include "drivers/io.h"
 #include "drivers/bus.h"
 #include "drivers/timer.h"
 #include "drivers/sensor.h"
 #include "drivers/pwm_mapping.h"
+
+#include "fc/fc_msp_box.h"
+
 #include "io/piniobox.h"
 
 // IMU 1
@@ -50,6 +54,6 @@ const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
 
 void targetConfiguration(void)
 {
-    pinioBoxConfigMutable()->permanentId[0] = 47;
-    pinioBoxConfigMutable()->permanentId[1] = 48;
+    pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
+    pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
 }

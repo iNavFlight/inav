@@ -97,11 +97,6 @@ typedef enum {
     ITERM_RELAX_RPY
 } itermRelax_e;
 
-typedef enum {
-    ITERM_RELAX_GYRO = 0,
-    ITERM_RELAX_SETPOINT
-} itermRelaxType_e;
-
 typedef struct pidProfile_s {
     uint8_t pidControllerType;
     pidBank_t bank_fw;
@@ -138,7 +133,6 @@ typedef struct pidProfile_s {
     uint8_t navVelXyDtermAttenuation;       // VEL_XY dynamic Dterm scale: Dterm will be attenuatedby this value (in percent) when UAV is traveling with more than navVelXyDtermAttenuationStart percents of max velocity
     uint8_t navVelXyDtermAttenuationStart;  // VEL_XY dynamic Dterm scale: Dterm attenuation will begin at this percent of max velocity
     uint8_t navVelXyDtermAttenuationEnd;    // VEL_XY dynamic Dterm scale: Dterm will be fully attenuated at this percent of max velocity
-    uint8_t iterm_relax_type;               // Specifies type of relax algorithm
     uint8_t iterm_relax_cutoff;             // This cutoff frequency specifies a low pass filter which predicts average response of the quad to setpoint
     uint8_t iterm_relax;                    // Enable iterm suppression during stick input
 
@@ -151,6 +145,10 @@ typedef struct pidProfile_s {
 
     uint16_t navFwPosHdgPidsumLimit;
     uint8_t controlDerivativeLpfHz;
+    uint16_t kalman_q;
+    uint16_t kalman_w;
+    uint16_t kalman_sharpness;
+    uint8_t kalmanEnabled;
 } pidProfile_t;
 
 typedef struct pidAutotuneConfig_s {
@@ -200,3 +198,4 @@ void autotuneUpdateState(void);
 void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRateDps, float reachedRateDps, float pidOutput);
 
 pidType_e pidIndexGetType(pidIndex_e pidIndex);
+uint8_t * getD_FFRefByBank(pidBank_t *pidBank, pidIndex_e pidIndex);

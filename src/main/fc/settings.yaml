@@ -25,7 +25,7 @@ tables:
     values: ["NONE", "PPM", "SERIAL", "MSP", "SPI", "UIB"]
     enum: rxReceiverType_e
   - name: serial_rx
-    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "FPORT2", "SBUS_FAST"]
+    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2"]
   - name: rx_spi_protocol
     values: ["V202_250K", "V202_1M", "SYMA_X", "SYMA_X5C", "CX10", "CX10A", "H8_3D", "INAV", "ELERES"]
     enum: rx_spi_protocol_e
@@ -82,9 +82,9 @@ tables:
   - name: debug_modes
     values: ["NONE", "GYRO", "AGL", "FLOW_RAW",
       "FLOW", "SBUS", "FPORT", "ALWAYS", "SAG_COMP_VOLTAGE",
-      "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "ITERM_RELAX",
+      "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "ERPM", "RPM_FILTER", "RPM_FREQ", "NAV_YAW", "DYNAMIC_FILTER", "DYNAMIC_FILTER_FREQUENCY",
-      "IRLOCK", "CD", "KALMAN", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574"]
+      "IRLOCK", "CD", "KALMAN_GAIN", "PID_MEASUREMENT", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -124,11 +124,8 @@ tables:
   - name: iterm_relax
     values: ["OFF", "RP", "RPY"]
     enum: itermRelax_e
-  - name: iterm_relax_type
-    values: ["GYRO", "SETPOINT"]
-    enum: itermRelaxType_e
   - name: airmodeHandlingType
-    values: ["STICK_CENTER", "THROTTLE_THRESHOLD"]
+    values: ["STICK_CENTER", "THROTTLE_THRESHOLD", "STICK_CENTER_ONCE"]
   - name: nav_extra_arming_safety
     values: ["OFF", "ON", "ALLOW_BYPASS"]
     enum: navExtraArmingSafety_e
@@ -144,6 +141,9 @@ tables:
   - name: osd_ahi_style
     values: ["DEFAULT", "LINE"]
     enum: osd_ahi_style_e
+  - name: tristate
+    enum: tristate_e
+    values: ["AUTO", "ON", "OFF"]
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -229,25 +229,6 @@ groups:
         condition: USE_DYNAMIC_FILTERS
         min: 30
         max: 1000
-      - name: gyro_kalman_enabled
-        condition: USE_GYRO_KALMAN
-        field: kalmanEnabled
-        type: bool
-      - name: gyro_kalman_q
-        field: kalman_q
-        condition: USE_GYRO_KALMAN
-        min: 1
-        max: 16000
-      - name: gyro_kalman_w
-        field: kalman_w
-        condition: USE_GYRO_KALMAN
-        min: 1
-        max: 40
-      - name: gyro_kalman_sharpness
-        field: kalman_sharpness
-        condition: USE_GYRO_KALMAN
-        min: 1
-        max: 16000
       - name: gyro_to_use
         condition: USE_DUAL_GYRO
         min: 0
@@ -422,6 +403,24 @@ groups:
         field: magZero.raw[Z]
         min: INT16_MIN
         max: INT16_MAX
+      - name: maggain_x
+        description: "Magnetometer calibration X gain. If 1024, no calibration or calibration failed"
+        default_value: "1024"
+        field: magGain[X]
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: maggain_y
+        description: "Magnetometer calibration Y gain. If 1024, no calibration or calibration failed"
+        default_value: "1024"
+        field: magGain[Y]
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: maggain_z
+        description: "Magnetometer calibration Z gain. If 1024, no calibration or calibration failed"
+        default_value: "1024"
+        field: magGain[Z]
+        min: INT16_MIN
+        max: INT16_MAX
       - name: mag_calibration_time
         description: "Adjust how long time the Calibration of mag will last."
         default_value: "30"
@@ -579,10 +578,10 @@ groups:
         min: PWM_PULSE_MIN
         max: PWM_PULSE_MAX
       - name: serialrx_halfduplex
-        description: "Allow serial receiver to operate on UART TX pin. With some receivers will allow control and telemetry over a single wire"
-        default_value: "OFF"
+        description: "Allow serial receiver to operate on UART TX pin. With some receivers will allow control and telemetry over a single wire."
+        default_value: "AUTO"
         field: halfDuplex
-        type: bool
+        table: tristate
       - name: msp_override_channels
         description: "Mask of RX channels that may be overridden by MSP `SET_RAW_RC`. Note that this requires custom firmware with `USE_RX_MSP` and `USE_MSP_RC_OVERRIDE` compile options and the `MSP RC Override` flight mode."
         default_value: "0"
@@ -669,7 +668,7 @@ groups:
         description: "The percentage of the throttle range (`max_throttle` - `min_command`) above `min_command` used for minimum / idle throttle."
         default_value: "15"
         field: throttleIdle
-        min: 4
+        min: 0
         max: 30
       - name: motor_poles
         field: motorPoleCount
@@ -1666,7 +1665,7 @@ groups:
         max: 100
       - name: nav_mc_vel_xy_dterm_attenuation_end
         description: "A point (in percent of both target and current horizontal velocity) where nav_mc_vel_xy_dterm_attenuation reaches maximum"
-        default_value: "60"  
+        default_value: "60"
         field: navVelXyDtermAttenuationEnd
         min: 0
         max: 100
@@ -1746,9 +1745,6 @@ groups:
         field: navFwPosHdgPidsumLimit
         min: PID_SUM_LIMIT_MIN
         max: PID_SUM_LIMIT_MAX
-      - name: mc_iterm_relax_type
-        field: iterm_relax_type
-        table: iterm_relax_type
       - name: mc_iterm_relax
         field: iterm_relax
         table: iterm_relax
@@ -1802,6 +1798,33 @@ groups:
         field: controlDerivativeLpfHz
         min: 0
         max: 200
+      - name: setpoint_kalman_enabled
+        description: "Enable Kalman filter on the PID controller setpoint"
+        default_value: "OFF"
+        condition: USE_GYRO_KALMAN
+        field: kalmanEnabled
+        type: bool
+      - name: setpoint_kalman_q
+        description: "Quality factor of the setpoint Kalman filter. Higher values means less filtering and lower phase delay. On 3-7 inch multirotors can be usually increased to 200-300 or even higher of clean builds"
+        default_value: "100"
+        field: kalman_q
+        condition: USE_GYRO_KALMAN
+        min: 1
+        max: 16000
+      - name: setpoint_kalman_w
+        description: "Window size for the setpoint Kalman filter. Wider the window, more samples are used to compute variance. In general, wider window results in smoother filter response"
+        default_value: "4"
+        field: kalman_w
+        condition: USE_GYRO_KALMAN
+        min: 1
+        max: 40
+      - name: setpoint_kalman_sharpness
+        description: "Dynamic factor for the setpoint Kalman filter. In general, the higher the value, the more dynamic Kalman filter gets"
+        default_value: "100"
+        field: kalman_sharpness
+        condition: USE_GYRO_KALMAN
+        min: 1
+        max: 16000
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t
@@ -2107,16 +2130,6 @@ groups:
         default_value: "0"
         field: general.rth_home_altitude
         max: 65000
-      - name: nav_rth_home_offset_distance
-        description: "Distance offset from GPS established home to \"safe\" position used for RTH (cm, 0 disables)"
-        default_value: "0"
-        field: general.rth_home_offset_distance
-        max: 65000
-      - name: nav_rth_home_offset_direction
-        description: "Direction offset from GPS established home to \"safe\" position used for RTH (degrees, 0=N, 90=E, 180=S, 270=W, requires non-zero offset distance)"
-        default_value: "0"
-        field: general.rth_home_offset_direction
-        max: 359
       - name: nav_mc_bank_angle
         description: "Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude"
         default_value: "30"
@@ -2540,6 +2553,11 @@ groups:
         type: uint8_t
         min: 0
         max: 255
+      - name: mavlink_extra3_rate
+        field: mavlink.extra3_rate
+        type: uint8_t
+        min: 0
+        max: 255
   - name: PG_ELERES_CONFIG
     type: eleresConfig_t
     headers: ["rx/eleres.h"]
@@ -2703,6 +2721,12 @@ groups:
         condition: USE_BARO
         min: -550
         max: 1250
+      - name: osd_snr_alarm
+        description: "Value below which Crossfire SNR Alarm pops-up. (dB)"
+        default_value: "5"
+        field: snr_alarm
+        min: -12
+        max: 8
       - name: osd_temp_label_align
         description: "Allows to chose between left and right alignment for the OSD temperature sensor labels. Valid values are `LEFT` and `RIGHT`"
         default_value: "LEFT"
@@ -2999,6 +3023,7 @@ groups:
   - name: PG_VTX_SETTINGS_CONFIG
     type: vtxSettingsConfig_t
     headers: ["drivers/vtx_common.h", "io/vtx.h"]
+    condition: USE_VTX_SMARTAUDIO || USE_VTX_TRAMP
     members:
       - name: vtx_band
         description: "Configure the VTX band. Set to zero to use `vtx_freq`. Bands: 1: A, 2: B, 3: E, 4: F, 5: Race."

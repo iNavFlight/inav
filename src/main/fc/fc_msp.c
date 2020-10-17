@@ -1283,6 +1283,17 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     #else
         sbufWriteU16(dst, 0);
     #endif
+
+    #ifdef USE_MAG
+        sbufWriteU16(dst, compassConfig()->magGain[X]);
+        sbufWriteU16(dst, compassConfig()->magGain[Y]);
+        sbufWriteU16(dst, compassConfig()->magGain[Z]);
+    #else
+        sbufWriteU16(dst, 0);
+        sbufWriteU16(dst, 0);
+        sbufWriteU16(dst, 0);
+    #endif
+
         break;
 
     case MSP_POSITION_ESTIMATION_CONFIG:
@@ -1393,6 +1404,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP2_COMMON_TZ:
         sbufWriteU16(dst, (uint16_t)timeConfig()->tz_offset);
+        sbufWriteU8(dst, (uint8_t)timeConfig()->tz_automatic_dst);
         break;
 
     case MSP2_INAV_AIR_SPEED:
@@ -2191,6 +2203,19 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 opticalFlowConfigMutable()->opflow_scale = sbufReadU16(src) / 256.0f;
             }
 #endif
+#ifdef USE_MAG
+            if (dataSize >= 22) {
+                compassConfigMutable()->magGain[X] = sbufReadU16(src);
+                compassConfigMutable()->magGain[Y] = sbufReadU16(src);
+                compassConfigMutable()->magGain[Z] = sbufReadU16(src);
+            }
+#else
+            if (dataSize >= 22) {
+                sbufReadU16(src);
+                sbufReadU16(src);
+                sbufReadU16(src);
+            }
+#endif
         } else
             return MSP_RESULT_ERROR;
         break;
@@ -2702,7 +2727,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     case MSP2_COMMON_SET_TZ:
         if (dataSize == 2)
             timeConfigMutable()->tz_offset = (int16_t)sbufReadU16(src);
-        else
+        else if (dataSize == 3) {
+            timeConfigMutable()->tz_offset = (int16_t)sbufReadU16(src);
+            timeConfigMutable()->tz_automatic_dst = (uint8_t)sbufReadU8(src);
+        } else
             return MSP_RESULT_ERROR;
         break;
 

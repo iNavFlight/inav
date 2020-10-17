@@ -3,20 +3,20 @@
 
 #define MAVLINK_MSG_ID_RC_CHANNELS_SCALED 34
 
-MAVPACKED(
+
 typedef struct __mavlink_rc_channels_scaled_t {
- uint32_t time_boot_ms; /*< Timestamp (milliseconds since system boot)*/
- int16_t chan1_scaled; /*< RC channel 1 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.*/
- int16_t chan2_scaled; /*< RC channel 2 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.*/
- int16_t chan3_scaled; /*< RC channel 3 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.*/
- int16_t chan4_scaled; /*< RC channel 4 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.*/
- int16_t chan5_scaled; /*< RC channel 5 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.*/
- int16_t chan6_scaled; /*< RC channel 6 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.*/
- int16_t chan7_scaled; /*< RC channel 7 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.*/
- int16_t chan8_scaled; /*< RC channel 8 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.*/
- uint8_t port; /*< Servo output port (set of 8 outputs = 1 port). Most MAVs will just use one, but this allows for more than 8 servos.*/
- uint8_t rssi; /*< Receive signal strength indicator, 0: 0%, 100: 100%, 255: invalid/unknown.*/
-}) mavlink_rc_channels_scaled_t;
+ uint32_t time_boot_ms; /*< [ms] Timestamp (time since system boot).*/
+ int16_t chan1_scaled; /*<  RC channel 1 value scaled.*/
+ int16_t chan2_scaled; /*<  RC channel 2 value scaled.*/
+ int16_t chan3_scaled; /*<  RC channel 3 value scaled.*/
+ int16_t chan4_scaled; /*<  RC channel 4 value scaled.*/
+ int16_t chan5_scaled; /*<  RC channel 5 value scaled.*/
+ int16_t chan6_scaled; /*<  RC channel 6 value scaled.*/
+ int16_t chan7_scaled; /*<  RC channel 7 value scaled.*/
+ int16_t chan8_scaled; /*<  RC channel 8 value scaled.*/
+ uint8_t port; /*<  Servo output port (set of 8 outputs = 1 port). Flight stacks running on Pixhawk should use: 0 = MAIN, 1 = AUX.*/
+ uint8_t rssi; /*<  Receive signal strength indicator in device-dependent units/scale. Values: [0-254], 255: invalid/unknown.*/
+} mavlink_rc_channels_scaled_t;
 
 #define MAVLINK_MSG_ID_RC_CHANNELS_SCALED_LEN 22
 #define MAVLINK_MSG_ID_RC_CHANNELS_SCALED_MIN_LEN 22
@@ -34,6 +34,7 @@ typedef struct __mavlink_rc_channels_scaled_t {
     "RC_CHANNELS_SCALED", \
     11, \
     {  { "time_boot_ms", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_rc_channels_scaled_t, time_boot_ms) }, \
+         { "port", NULL, MAVLINK_TYPE_UINT8_T, 0, 20, offsetof(mavlink_rc_channels_scaled_t, port) }, \
          { "chan1_scaled", NULL, MAVLINK_TYPE_INT16_T, 0, 4, offsetof(mavlink_rc_channels_scaled_t, chan1_scaled) }, \
          { "chan2_scaled", NULL, MAVLINK_TYPE_INT16_T, 0, 6, offsetof(mavlink_rc_channels_scaled_t, chan2_scaled) }, \
          { "chan3_scaled", NULL, MAVLINK_TYPE_INT16_T, 0, 8, offsetof(mavlink_rc_channels_scaled_t, chan3_scaled) }, \
@@ -42,7 +43,6 @@ typedef struct __mavlink_rc_channels_scaled_t {
          { "chan6_scaled", NULL, MAVLINK_TYPE_INT16_T, 0, 14, offsetof(mavlink_rc_channels_scaled_t, chan6_scaled) }, \
          { "chan7_scaled", NULL, MAVLINK_TYPE_INT16_T, 0, 16, offsetof(mavlink_rc_channels_scaled_t, chan7_scaled) }, \
          { "chan8_scaled", NULL, MAVLINK_TYPE_INT16_T, 0, 18, offsetof(mavlink_rc_channels_scaled_t, chan8_scaled) }, \
-         { "port", NULL, MAVLINK_TYPE_UINT8_T, 0, 20, offsetof(mavlink_rc_channels_scaled_t, port) }, \
          { "rssi", NULL, MAVLINK_TYPE_UINT8_T, 0, 21, offsetof(mavlink_rc_channels_scaled_t, rssi) }, \
          } \
 }
@@ -51,6 +51,7 @@ typedef struct __mavlink_rc_channels_scaled_t {
     "RC_CHANNELS_SCALED", \
     11, \
     {  { "time_boot_ms", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_rc_channels_scaled_t, time_boot_ms) }, \
+         { "port", NULL, MAVLINK_TYPE_UINT8_T, 0, 20, offsetof(mavlink_rc_channels_scaled_t, port) }, \
          { "chan1_scaled", NULL, MAVLINK_TYPE_INT16_T, 0, 4, offsetof(mavlink_rc_channels_scaled_t, chan1_scaled) }, \
          { "chan2_scaled", NULL, MAVLINK_TYPE_INT16_T, 0, 6, offsetof(mavlink_rc_channels_scaled_t, chan2_scaled) }, \
          { "chan3_scaled", NULL, MAVLINK_TYPE_INT16_T, 0, 8, offsetof(mavlink_rc_channels_scaled_t, chan3_scaled) }, \
@@ -59,7 +60,6 @@ typedef struct __mavlink_rc_channels_scaled_t {
          { "chan6_scaled", NULL, MAVLINK_TYPE_INT16_T, 0, 14, offsetof(mavlink_rc_channels_scaled_t, chan6_scaled) }, \
          { "chan7_scaled", NULL, MAVLINK_TYPE_INT16_T, 0, 16, offsetof(mavlink_rc_channels_scaled_t, chan7_scaled) }, \
          { "chan8_scaled", NULL, MAVLINK_TYPE_INT16_T, 0, 18, offsetof(mavlink_rc_channels_scaled_t, chan8_scaled) }, \
-         { "port", NULL, MAVLINK_TYPE_UINT8_T, 0, 20, offsetof(mavlink_rc_channels_scaled_t, port) }, \
          { "rssi", NULL, MAVLINK_TYPE_UINT8_T, 0, 21, offsetof(mavlink_rc_channels_scaled_t, rssi) }, \
          } \
 }
@@ -71,17 +71,17 @@ typedef struct __mavlink_rc_channels_scaled_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param time_boot_ms Timestamp (milliseconds since system boot)
- * @param port Servo output port (set of 8 outputs = 1 port). Most MAVs will just use one, but this allows for more than 8 servos.
- * @param chan1_scaled RC channel 1 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
- * @param chan2_scaled RC channel 2 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
- * @param chan3_scaled RC channel 3 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
- * @param chan4_scaled RC channel 4 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
- * @param chan5_scaled RC channel 5 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
- * @param chan6_scaled RC channel 6 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
- * @param chan7_scaled RC channel 7 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
- * @param chan8_scaled RC channel 8 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
- * @param rssi Receive signal strength indicator, 0: 0%, 100: 100%, 255: invalid/unknown.
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param port  Servo output port (set of 8 outputs = 1 port). Flight stacks running on Pixhawk should use: 0 = MAIN, 1 = AUX.
+ * @param chan1_scaled  RC channel 1 value scaled.
+ * @param chan2_scaled  RC channel 2 value scaled.
+ * @param chan3_scaled  RC channel 3 value scaled.
+ * @param chan4_scaled  RC channel 4 value scaled.
+ * @param chan5_scaled  RC channel 5 value scaled.
+ * @param chan6_scaled  RC channel 6 value scaled.
+ * @param chan7_scaled  RC channel 7 value scaled.
+ * @param chan8_scaled  RC channel 8 value scaled.
+ * @param rssi  Receive signal strength indicator in device-dependent units/scale. Values: [0-254], 255: invalid/unknown.
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_rc_channels_scaled_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -129,17 +129,17 @@ static inline uint16_t mavlink_msg_rc_channels_scaled_pack(uint8_t system_id, ui
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param time_boot_ms Timestamp (milliseconds since system boot)
- * @param port Servo output port (set of 8 outputs = 1 port). Most MAVs will just use one, but this allows for more than 8 servos.
- * @param chan1_scaled RC channel 1 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
- * @param chan2_scaled RC channel 2 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
- * @param chan3_scaled RC channel 3 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
- * @param chan4_scaled RC channel 4 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
- * @param chan5_scaled RC channel 5 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
- * @param chan6_scaled RC channel 6 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
- * @param chan7_scaled RC channel 7 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
- * @param chan8_scaled RC channel 8 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
- * @param rssi Receive signal strength indicator, 0: 0%, 100: 100%, 255: invalid/unknown.
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param port  Servo output port (set of 8 outputs = 1 port). Flight stacks running on Pixhawk should use: 0 = MAIN, 1 = AUX.
+ * @param chan1_scaled  RC channel 1 value scaled.
+ * @param chan2_scaled  RC channel 2 value scaled.
+ * @param chan3_scaled  RC channel 3 value scaled.
+ * @param chan4_scaled  RC channel 4 value scaled.
+ * @param chan5_scaled  RC channel 5 value scaled.
+ * @param chan6_scaled  RC channel 6 value scaled.
+ * @param chan7_scaled  RC channel 7 value scaled.
+ * @param chan8_scaled  RC channel 8 value scaled.
+ * @param rssi  Receive signal strength indicator in device-dependent units/scale. Values: [0-254], 255: invalid/unknown.
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_rc_channels_scaled_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -213,17 +213,17 @@ static inline uint16_t mavlink_msg_rc_channels_scaled_encode_chan(uint8_t system
  * @brief Send a rc_channels_scaled message
  * @param chan MAVLink channel to send the message
  *
- * @param time_boot_ms Timestamp (milliseconds since system boot)
- * @param port Servo output port (set of 8 outputs = 1 port). Most MAVs will just use one, but this allows for more than 8 servos.
- * @param chan1_scaled RC channel 1 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
- * @param chan2_scaled RC channel 2 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
- * @param chan3_scaled RC channel 3 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
- * @param chan4_scaled RC channel 4 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
- * @param chan5_scaled RC channel 5 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
- * @param chan6_scaled RC channel 6 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
- * @param chan7_scaled RC channel 7 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
- * @param chan8_scaled RC channel 8 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
- * @param rssi Receive signal strength indicator, 0: 0%, 100: 100%, 255: invalid/unknown.
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param port  Servo output port (set of 8 outputs = 1 port). Flight stacks running on Pixhawk should use: 0 = MAIN, 1 = AUX.
+ * @param chan1_scaled  RC channel 1 value scaled.
+ * @param chan2_scaled  RC channel 2 value scaled.
+ * @param chan3_scaled  RC channel 3 value scaled.
+ * @param chan4_scaled  RC channel 4 value scaled.
+ * @param chan5_scaled  RC channel 5 value scaled.
+ * @param chan6_scaled  RC channel 6 value scaled.
+ * @param chan7_scaled  RC channel 7 value scaled.
+ * @param chan8_scaled  RC channel 8 value scaled.
+ * @param rssi  Receive signal strength indicator in device-dependent units/scale. Values: [0-254], 255: invalid/unknown.
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -328,7 +328,7 @@ static inline void mavlink_msg_rc_channels_scaled_send_buf(mavlink_message_t *ms
 /**
  * @brief Get field time_boot_ms from rc_channels_scaled message
  *
- * @return Timestamp (milliseconds since system boot)
+ * @return [ms] Timestamp (time since system boot).
  */
 static inline uint32_t mavlink_msg_rc_channels_scaled_get_time_boot_ms(const mavlink_message_t* msg)
 {
@@ -338,7 +338,7 @@ static inline uint32_t mavlink_msg_rc_channels_scaled_get_time_boot_ms(const mav
 /**
  * @brief Get field port from rc_channels_scaled message
  *
- * @return Servo output port (set of 8 outputs = 1 port). Most MAVs will just use one, but this allows for more than 8 servos.
+ * @return  Servo output port (set of 8 outputs = 1 port). Flight stacks running on Pixhawk should use: 0 = MAIN, 1 = AUX.
  */
 static inline uint8_t mavlink_msg_rc_channels_scaled_get_port(const mavlink_message_t* msg)
 {
@@ -348,7 +348,7 @@ static inline uint8_t mavlink_msg_rc_channels_scaled_get_port(const mavlink_mess
 /**
  * @brief Get field chan1_scaled from rc_channels_scaled message
  *
- * @return RC channel 1 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
+ * @return  RC channel 1 value scaled.
  */
 static inline int16_t mavlink_msg_rc_channels_scaled_get_chan1_scaled(const mavlink_message_t* msg)
 {
@@ -358,7 +358,7 @@ static inline int16_t mavlink_msg_rc_channels_scaled_get_chan1_scaled(const mavl
 /**
  * @brief Get field chan2_scaled from rc_channels_scaled message
  *
- * @return RC channel 2 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
+ * @return  RC channel 2 value scaled.
  */
 static inline int16_t mavlink_msg_rc_channels_scaled_get_chan2_scaled(const mavlink_message_t* msg)
 {
@@ -368,7 +368,7 @@ static inline int16_t mavlink_msg_rc_channels_scaled_get_chan2_scaled(const mavl
 /**
  * @brief Get field chan3_scaled from rc_channels_scaled message
  *
- * @return RC channel 3 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
+ * @return  RC channel 3 value scaled.
  */
 static inline int16_t mavlink_msg_rc_channels_scaled_get_chan3_scaled(const mavlink_message_t* msg)
 {
@@ -378,7 +378,7 @@ static inline int16_t mavlink_msg_rc_channels_scaled_get_chan3_scaled(const mavl
 /**
  * @brief Get field chan4_scaled from rc_channels_scaled message
  *
- * @return RC channel 4 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
+ * @return  RC channel 4 value scaled.
  */
 static inline int16_t mavlink_msg_rc_channels_scaled_get_chan4_scaled(const mavlink_message_t* msg)
 {
@@ -388,7 +388,7 @@ static inline int16_t mavlink_msg_rc_channels_scaled_get_chan4_scaled(const mavl
 /**
  * @brief Get field chan5_scaled from rc_channels_scaled message
  *
- * @return RC channel 5 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
+ * @return  RC channel 5 value scaled.
  */
 static inline int16_t mavlink_msg_rc_channels_scaled_get_chan5_scaled(const mavlink_message_t* msg)
 {
@@ -398,7 +398,7 @@ static inline int16_t mavlink_msg_rc_channels_scaled_get_chan5_scaled(const mavl
 /**
  * @brief Get field chan6_scaled from rc_channels_scaled message
  *
- * @return RC channel 6 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
+ * @return  RC channel 6 value scaled.
  */
 static inline int16_t mavlink_msg_rc_channels_scaled_get_chan6_scaled(const mavlink_message_t* msg)
 {
@@ -408,7 +408,7 @@ static inline int16_t mavlink_msg_rc_channels_scaled_get_chan6_scaled(const mavl
 /**
  * @brief Get field chan7_scaled from rc_channels_scaled message
  *
- * @return RC channel 7 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
+ * @return  RC channel 7 value scaled.
  */
 static inline int16_t mavlink_msg_rc_channels_scaled_get_chan7_scaled(const mavlink_message_t* msg)
 {
@@ -418,7 +418,7 @@ static inline int16_t mavlink_msg_rc_channels_scaled_get_chan7_scaled(const mavl
 /**
  * @brief Get field chan8_scaled from rc_channels_scaled message
  *
- * @return RC channel 8 value scaled, (-100%) -10000, (0%) 0, (100%) 10000, (invalid) INT16_MAX.
+ * @return  RC channel 8 value scaled.
  */
 static inline int16_t mavlink_msg_rc_channels_scaled_get_chan8_scaled(const mavlink_message_t* msg)
 {
@@ -428,7 +428,7 @@ static inline int16_t mavlink_msg_rc_channels_scaled_get_chan8_scaled(const mavl
 /**
  * @brief Get field rssi from rc_channels_scaled message
  *
- * @return Receive signal strength indicator, 0: 0%, 100: 100%, 255: invalid/unknown.
+ * @return  Receive signal strength indicator in device-dependent units/scale. Values: [0-254], 255: invalid/unknown.
  */
 static inline uint8_t mavlink_msg_rc_channels_scaled_get_rssi(const mavlink_message_t* msg)
 {

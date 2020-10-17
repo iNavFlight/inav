@@ -3,11 +3,11 @@
 
 #define MAVLINK_MSG_ID_MISSION_REQUEST_LIST 43
 
-MAVPACKED(
+
 typedef struct __mavlink_mission_request_list_t {
- uint8_t target_system; /*< System ID*/
- uint8_t target_component; /*< Component ID*/
-}) mavlink_mission_request_list_t;
+ uint8_t target_system; /*<  System ID*/
+ uint8_t target_component; /*<  Component ID*/
+} mavlink_mission_request_list_t;
 
 #define MAVLINK_MSG_ID_MISSION_REQUEST_LIST_LEN 2
 #define MAVLINK_MSG_ID_MISSION_REQUEST_LIST_MIN_LEN 2
@@ -44,8 +44,8 @@ typedef struct __mavlink_mission_request_list_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param target_system System ID
- * @param target_component Component ID
+ * @param target_system  System ID
+ * @param target_component  Component ID
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_mission_request_list_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -75,8 +75,8 @@ static inline uint16_t mavlink_msg_mission_request_list_pack(uint8_t system_id, 
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param target_system System ID
- * @param target_component Component ID
+ * @param target_system  System ID
+ * @param target_component  Component ID
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_mission_request_list_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -132,8 +132,8 @@ static inline uint16_t mavlink_msg_mission_request_list_encode_chan(uint8_t syst
  * @brief Send a mission_request_list message
  * @param chan MAVLink channel to send the message
  *
- * @param target_system System ID
- * @param target_component Component ID
+ * @param target_system  System ID
+ * @param target_component  Component ID
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -202,7 +202,7 @@ static inline void mavlink_msg_mission_request_list_send_buf(mavlink_message_t *
 /**
  * @brief Get field target_system from mission_request_list message
  *
- * @return System ID
+ * @return  System ID
  */
 static inline uint8_t mavlink_msg_mission_request_list_get_target_system(const mavlink_message_t* msg)
 {
@@ -212,7 +212,7 @@ static inline uint8_t mavlink_msg_mission_request_list_get_target_system(const m
 /**
  * @brief Get field target_component from mission_request_list message
  *
- * @return Component ID
+ * @return  Component ID
  */
 static inline uint8_t mavlink_msg_mission_request_list_get_target_component(const mavlink_message_t* msg)
 {

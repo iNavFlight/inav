@@ -3,23 +3,23 @@
 
 #define MAVLINK_MSG_ID_HIL_RC_INPUTS_RAW 92
 
-MAVPACKED(
+
 typedef struct __mavlink_hil_rc_inputs_raw_t {
- uint64_t time_usec; /*< Timestamp (microseconds since UNIX epoch or microseconds since system boot)*/
- uint16_t chan1_raw; /*< RC channel 1 value, in microseconds*/
- uint16_t chan2_raw; /*< RC channel 2 value, in microseconds*/
- uint16_t chan3_raw; /*< RC channel 3 value, in microseconds*/
- uint16_t chan4_raw; /*< RC channel 4 value, in microseconds*/
- uint16_t chan5_raw; /*< RC channel 5 value, in microseconds*/
- uint16_t chan6_raw; /*< RC channel 6 value, in microseconds*/
- uint16_t chan7_raw; /*< RC channel 7 value, in microseconds*/
- uint16_t chan8_raw; /*< RC channel 8 value, in microseconds*/
- uint16_t chan9_raw; /*< RC channel 9 value, in microseconds*/
- uint16_t chan10_raw; /*< RC channel 10 value, in microseconds*/
- uint16_t chan11_raw; /*< RC channel 11 value, in microseconds*/
- uint16_t chan12_raw; /*< RC channel 12 value, in microseconds*/
- uint8_t rssi; /*< Receive signal strength indicator, 0: 0%, 255: 100%*/
-}) mavlink_hil_rc_inputs_raw_t;
+ uint64_t time_usec; /*< [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.*/
+ uint16_t chan1_raw; /*< [us] RC channel 1 value*/
+ uint16_t chan2_raw; /*< [us] RC channel 2 value*/
+ uint16_t chan3_raw; /*< [us] RC channel 3 value*/
+ uint16_t chan4_raw; /*< [us] RC channel 4 value*/
+ uint16_t chan5_raw; /*< [us] RC channel 5 value*/
+ uint16_t chan6_raw; /*< [us] RC channel 6 value*/
+ uint16_t chan7_raw; /*< [us] RC channel 7 value*/
+ uint16_t chan8_raw; /*< [us] RC channel 8 value*/
+ uint16_t chan9_raw; /*< [us] RC channel 9 value*/
+ uint16_t chan10_raw; /*< [us] RC channel 10 value*/
+ uint16_t chan11_raw; /*< [us] RC channel 11 value*/
+ uint16_t chan12_raw; /*< [us] RC channel 12 value*/
+ uint8_t rssi; /*<  Receive signal strength indicator in device-dependent units/scale. Values: [0-254], 255: invalid/unknown.*/
+} mavlink_hil_rc_inputs_raw_t;
 
 #define MAVLINK_MSG_ID_HIL_RC_INPUTS_RAW_LEN 33
 #define MAVLINK_MSG_ID_HIL_RC_INPUTS_RAW_MIN_LEN 33
@@ -80,20 +80,20 @@ typedef struct __mavlink_hil_rc_inputs_raw_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param time_usec Timestamp (microseconds since UNIX epoch or microseconds since system boot)
- * @param chan1_raw RC channel 1 value, in microseconds
- * @param chan2_raw RC channel 2 value, in microseconds
- * @param chan3_raw RC channel 3 value, in microseconds
- * @param chan4_raw RC channel 4 value, in microseconds
- * @param chan5_raw RC channel 5 value, in microseconds
- * @param chan6_raw RC channel 6 value, in microseconds
- * @param chan7_raw RC channel 7 value, in microseconds
- * @param chan8_raw RC channel 8 value, in microseconds
- * @param chan9_raw RC channel 9 value, in microseconds
- * @param chan10_raw RC channel 10 value, in microseconds
- * @param chan11_raw RC channel 11 value, in microseconds
- * @param chan12_raw RC channel 12 value, in microseconds
- * @param rssi Receive signal strength indicator, 0: 0%, 255: 100%
+ * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
+ * @param chan1_raw [us] RC channel 1 value
+ * @param chan2_raw [us] RC channel 2 value
+ * @param chan3_raw [us] RC channel 3 value
+ * @param chan4_raw [us] RC channel 4 value
+ * @param chan5_raw [us] RC channel 5 value
+ * @param chan6_raw [us] RC channel 6 value
+ * @param chan7_raw [us] RC channel 7 value
+ * @param chan8_raw [us] RC channel 8 value
+ * @param chan9_raw [us] RC channel 9 value
+ * @param chan10_raw [us] RC channel 10 value
+ * @param chan11_raw [us] RC channel 11 value
+ * @param chan12_raw [us] RC channel 12 value
+ * @param rssi  Receive signal strength indicator in device-dependent units/scale. Values: [0-254], 255: invalid/unknown.
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_hil_rc_inputs_raw_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -147,20 +147,20 @@ static inline uint16_t mavlink_msg_hil_rc_inputs_raw_pack(uint8_t system_id, uin
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param time_usec Timestamp (microseconds since UNIX epoch or microseconds since system boot)
- * @param chan1_raw RC channel 1 value, in microseconds
- * @param chan2_raw RC channel 2 value, in microseconds
- * @param chan3_raw RC channel 3 value, in microseconds
- * @param chan4_raw RC channel 4 value, in microseconds
- * @param chan5_raw RC channel 5 value, in microseconds
- * @param chan6_raw RC channel 6 value, in microseconds
- * @param chan7_raw RC channel 7 value, in microseconds
- * @param chan8_raw RC channel 8 value, in microseconds
- * @param chan9_raw RC channel 9 value, in microseconds
- * @param chan10_raw RC channel 10 value, in microseconds
- * @param chan11_raw RC channel 11 value, in microseconds
- * @param chan12_raw RC channel 12 value, in microseconds
- * @param rssi Receive signal strength indicator, 0: 0%, 255: 100%
+ * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
+ * @param chan1_raw [us] RC channel 1 value
+ * @param chan2_raw [us] RC channel 2 value
+ * @param chan3_raw [us] RC channel 3 value
+ * @param chan4_raw [us] RC channel 4 value
+ * @param chan5_raw [us] RC channel 5 value
+ * @param chan6_raw [us] RC channel 6 value
+ * @param chan7_raw [us] RC channel 7 value
+ * @param chan8_raw [us] RC channel 8 value
+ * @param chan9_raw [us] RC channel 9 value
+ * @param chan10_raw [us] RC channel 10 value
+ * @param chan11_raw [us] RC channel 11 value
+ * @param chan12_raw [us] RC channel 12 value
+ * @param rssi  Receive signal strength indicator in device-dependent units/scale. Values: [0-254], 255: invalid/unknown.
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_hil_rc_inputs_raw_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -240,20 +240,20 @@ static inline uint16_t mavlink_msg_hil_rc_inputs_raw_encode_chan(uint8_t system_
  * @brief Send a hil_rc_inputs_raw message
  * @param chan MAVLink channel to send the message
  *
- * @param time_usec Timestamp (microseconds since UNIX epoch or microseconds since system boot)
- * @param chan1_raw RC channel 1 value, in microseconds
- * @param chan2_raw RC channel 2 value, in microseconds
- * @param chan3_raw RC channel 3 value, in microseconds
- * @param chan4_raw RC channel 4 value, in microseconds
- * @param chan5_raw RC channel 5 value, in microseconds
- * @param chan6_raw RC channel 6 value, in microseconds
- * @param chan7_raw RC channel 7 value, in microseconds
- * @param chan8_raw RC channel 8 value, in microseconds
- * @param chan9_raw RC channel 9 value, in microseconds
- * @param chan10_raw RC channel 10 value, in microseconds
- * @param chan11_raw RC channel 11 value, in microseconds
- * @param chan12_raw RC channel 12 value, in microseconds
- * @param rssi Receive signal strength indicator, 0: 0%, 255: 100%
+ * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
+ * @param chan1_raw [us] RC channel 1 value
+ * @param chan2_raw [us] RC channel 2 value
+ * @param chan3_raw [us] RC channel 3 value
+ * @param chan4_raw [us] RC channel 4 value
+ * @param chan5_raw [us] RC channel 5 value
+ * @param chan6_raw [us] RC channel 6 value
+ * @param chan7_raw [us] RC channel 7 value
+ * @param chan8_raw [us] RC channel 8 value
+ * @param chan9_raw [us] RC channel 9 value
+ * @param chan10_raw [us] RC channel 10 value
+ * @param chan11_raw [us] RC channel 11 value
+ * @param chan12_raw [us] RC channel 12 value
+ * @param rssi  Receive signal strength indicator in device-dependent units/scale. Values: [0-254], 255: invalid/unknown.
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -370,7 +370,7 @@ static inline void mavlink_msg_hil_rc_inputs_raw_send_buf(mavlink_message_t *msg
 /**
  * @brief Get field time_usec from hil_rc_inputs_raw message
  *
- * @return Timestamp (microseconds since UNIX epoch or microseconds since system boot)
+ * @return [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
  */
 static inline uint64_t mavlink_msg_hil_rc_inputs_raw_get_time_usec(const mavlink_message_t* msg)
 {
@@ -380,7 +380,7 @@ static inline uint64_t mavlink_msg_hil_rc_inputs_raw_get_time_usec(const mavlink
 /**
  * @brief Get field chan1_raw from hil_rc_inputs_raw message
  *
- * @return RC channel 1 value, in microseconds
+ * @return [us] RC channel 1 value
  */
 static inline uint16_t mavlink_msg_hil_rc_inputs_raw_get_chan1_raw(const mavlink_message_t* msg)
 {
@@ -390,7 +390,7 @@ static inline uint16_t mavlink_msg_hil_rc_inputs_raw_get_chan1_raw(const mavlink
 /**
  * @brief Get field chan2_raw from hil_rc_inputs_raw message
  *
- * @return RC channel 2 value, in microseconds
+ * @return [us] RC channel 2 value
  */
 static inline uint16_t mavlink_msg_hil_rc_inputs_raw_get_chan2_raw(const mavlink_message_t* msg)
 {
@@ -400,7 +400,7 @@ static inline uint16_t mavlink_msg_hil_rc_inputs_raw_get_chan2_raw(const mavlink
 /**
  * @brief Get field chan3_raw from hil_rc_inputs_raw message
  *
- * @return RC channel 3 value, in microseconds
+ * @return [us] RC channel 3 value
  */
 static inline uint16_t mavlink_msg_hil_rc_inputs_raw_get_chan3_raw(const mavlink_message_t* msg)
 {
@@ -410,7 +410,7 @@ static inline uint16_t mavlink_msg_hil_rc_inputs_raw_get_chan3_raw(const mavlink
 /**
  * @brief Get field chan4_raw from hil_rc_inputs_raw message
  *
- * @return RC channel 4 value, in microseconds
+ * @return [us] RC channel 4 value
  */
 static inline uint16_t mavlink_msg_hil_rc_inputs_raw_get_chan4_raw(const mavlink_message_t* msg)
 {
@@ -420,7 +420,7 @@ static inline uint16_t mavlink_msg_hil_rc_inputs_raw_get_chan4_raw(const mavlink
 /**
  * @brief Get field chan5_raw from hil_rc_inputs_raw message
  *
- * @return RC channel 5 value, in microseconds
+ * @return [us] RC channel 5 value
  */
 static inline uint16_t mavlink_msg_hil_rc_inputs_raw_get_chan5_raw(const mavlink_message_t* msg)
 {
@@ -430,7 +430,7 @@ static inline uint16_t mavlink_msg_hil_rc_inputs_raw_get_chan5_raw(const mavlink
 /**
  * @brief Get field chan6_raw from hil_rc_inputs_raw message
  *
- * @return RC channel 6 value, in microseconds
+ * @return [us] RC channel 6 value
  */
 static inline uint16_t mavlink_msg_hil_rc_inputs_raw_get_chan6_raw(const mavlink_message_t* msg)
 {
@@ -440,7 +440,7 @@ static inline uint16_t mavlink_msg_hil_rc_inputs_raw_get_chan6_raw(const mavlink
 /**
  * @brief Get field chan7_raw from hil_rc_inputs_raw message
  *
- * @return RC channel 7 value, in microseconds
+ * @return [us] RC channel 7 value
  */
 static inline uint16_t mavlink_msg_hil_rc_inputs_raw_get_chan7_raw(const mavlink_message_t* msg)
 {
@@ -450,7 +450,7 @@ static inline uint16_t mavlink_msg_hil_rc_inputs_raw_get_chan7_raw(const mavlink
 /**
  * @brief Get field chan8_raw from hil_rc_inputs_raw message
  *
- * @return RC channel 8 value, in microseconds
+ * @return [us] RC channel 8 value
  */
 static inline uint16_t mavlink_msg_hil_rc_inputs_raw_get_chan8_raw(const mavlink_message_t* msg)
 {
@@ -460,7 +460,7 @@ static inline uint16_t mavlink_msg_hil_rc_inputs_raw_get_chan8_raw(const mavlink
 /**
  * @brief Get field chan9_raw from hil_rc_inputs_raw message
  *
- * @return RC channel 9 value, in microseconds
+ * @return [us] RC channel 9 value
  */
 static inline uint16_t mavlink_msg_hil_rc_inputs_raw_get_chan9_raw(const mavlink_message_t* msg)
 {
@@ -470,7 +470,7 @@ static inline uint16_t mavlink_msg_hil_rc_inputs_raw_get_chan9_raw(const mavlink
 /**
  * @brief Get field chan10_raw from hil_rc_inputs_raw message
  *
- * @return RC channel 10 value, in microseconds
+ * @return [us] RC channel 10 value
  */
 static inline uint16_t mavlink_msg_hil_rc_inputs_raw_get_chan10_raw(const mavlink_message_t* msg)
 {
@@ -480,7 +480,7 @@ static inline uint16_t mavlink_msg_hil_rc_inputs_raw_get_chan10_raw(const mavlin
 /**
  * @brief Get field chan11_raw from hil_rc_inputs_raw message
  *
- * @return RC channel 11 value, in microseconds
+ * @return [us] RC channel 11 value
  */
 static inline uint16_t mavlink_msg_hil_rc_inputs_raw_get_chan11_raw(const mavlink_message_t* msg)
 {
@@ -490,7 +490,7 @@ static inline uint16_t mavlink_msg_hil_rc_inputs_raw_get_chan11_raw(const mavlin
 /**
  * @brief Get field chan12_raw from hil_rc_inputs_raw message
  *
- * @return RC channel 12 value, in microseconds
+ * @return [us] RC channel 12 value
  */
 static inline uint16_t mavlink_msg_hil_rc_inputs_raw_get_chan12_raw(const mavlink_message_t* msg)
 {
@@ -500,7 +500,7 @@ static inline uint16_t mavlink_msg_hil_rc_inputs_raw_get_chan12_raw(const mavlin
 /**
  * @brief Get field rssi from hil_rc_inputs_raw message
  *
- * @return Receive signal strength indicator, 0: 0%, 255: 100%
+ * @return  Receive signal strength indicator in device-dependent units/scale. Values: [0-254], 255: invalid/unknown.
  */
 static inline uint8_t mavlink_msg_hil_rc_inputs_raw_get_rssi(const mavlink_message_t* msg)
 {

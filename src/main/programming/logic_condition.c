@@ -49,7 +49,7 @@
 #include "io/vtx.h"
 #include "drivers/vtx_common.h"
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions, PG_LOGIC_CONDITIONS, 1);
+PG_REGISTER_ARRAY_WITH_RESET_FN(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions, PG_LOGIC_CONDITIONS, 2);
 
 EXTENDED_FASTRAM uint64_t logicConditionsGlobalFlags;
 EXTENDED_FASTRAM int logicConditionValuesByType[LOGIC_CONDITION_LAST];
@@ -207,6 +207,7 @@ static int logicConditionCompute(
             break;
 
         case LOGIC_CONDITION_SET_VTX_POWER_LEVEL:
+#if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP)
             if (
                 logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL] != operandA && 
                 vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)
@@ -218,6 +219,9 @@ static int logicConditionCompute(
                 return false;
             }
             break;
+#else
+            return false;
+#endif
 
         case LOGIC_CONDITION_SET_VTX_BAND:
             if (
@@ -277,6 +281,31 @@ static int logicConditionCompute(
             return operandB;
             break;
 #endif
+
+        case LOGIC_CONDITION_SIN:
+            temporaryValue = (operandB == 0) ? 500 : operandB;
+            return sin_approx(DEGREES_TO_RADIANS(operandA)) * temporaryValue; 
+            break;
+    
+        case LOGIC_CONDITION_COS:
+            temporaryValue = (operandB == 0) ? 500 : operandB;
+            return cos_approx(DEGREES_TO_RADIANS(operandA)) * temporaryValue; 
+            break;
+        break;
+    
+        case LOGIC_CONDITION_TAN:
+            temporaryValue = (operandB == 0) ? 500 : operandB;
+            return tan_approx(DEGREES_TO_RADIANS(operandA)) * temporaryValue; 
+        break;
+    
+        case LOGIC_CONDITION_MAP_INPUT:
+            return scaleRange(constrain(operandA, 0, operandB), 0, operandB, 0, 1000);
+        break;
+    
+        case LOGIC_CONDITION_MAP_OUTPUT:
+            return scaleRange(constrain(operandA, 0, 1000), 0, 1000, 0, operandB);
+        break;
+
         default:
             return false;
             break; 
@@ -426,7 +455,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_IS_FAILSAFE: // 0/1
-            return (failsafePhase() == FAILSAFE_RX_LOSS_MONITORING) ? 1 : 0;
+            return (failsafePhase() != FAILSAFE_IDLE) ? 1 : 0;
             break;
         
         case LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_YAW: // 
@@ -439,6 +468,14 @@ static int logicConditionGetFlightOperandValue(int operand) {
         
         case LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_PITCH: // 
             return axisPID[PITCH];
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_WAYPOINT_INDEX:
+            return NAV_Status.activeWpNumber;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_WAYPOINT_ACTION:
+            return NAV_Status.activeWpAction;
             break;
 
         default:

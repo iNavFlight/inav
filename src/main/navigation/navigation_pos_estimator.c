@@ -618,7 +618,7 @@ static bool estimationCalculateCorrection_XY_GPS(estimationContext_t * ctx)
             ctx->estPosCorr.y += posEstimator.gps.pos.y - posEstimator.est.pos.y;
             ctx->estVelCorr.x += posEstimator.gps.vel.x - posEstimator.est.vel.x;
             ctx->estVelCorr.y += posEstimator.gps.vel.y - posEstimator.est.vel.y;
-            ctx->newEPH = posEstimator.gps.epv;
+            ctx->newEPH = posEstimator.gps.eph;
         }
         else {
             const float gpsPosXResidual = posEstimator.gps.pos.x - posEstimator.est.pos.x;

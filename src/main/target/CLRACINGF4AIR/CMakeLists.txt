@@ -1,0 +1,3 @@
+target_stm32f405xg(CLRACINGF4AIR)
+target_stm32f405xg(CLRACINGF4AIRV2)
+target_stm32f405xg(CLRACINGF4AIRV3)

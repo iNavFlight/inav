@@ -26,7 +26,7 @@
 #include "config/parameter_group.h"
 #include "common/time.h"
 
-#define MAX_LOGIC_CONDITIONS 16
+#define MAX_LOGIC_CONDITIONS 32
 
 typedef enum {
     LOGIC_CONDITION_TRUE                        = 0,
@@ -62,7 +62,12 @@ typedef enum {
     LOGIC_CONDITION_SET_VTX_BAND                = 30,
     LOGIC_CONDITION_SET_VTX_CHANNEL             = 31,
     LOGIC_CONDITION_SET_OSD_LAYOUT              = 32,
-    LOGIC_CONDITION_LAST                        = 33,
+    LOGIC_CONDITION_SIN                         = 33,
+    LOGIC_CONDITION_COS                         = 34,
+    LOGIC_CONDITION_TAN                         = 35,
+    LOGIC_CONDITION_MAP_INPUT                   = 36,
+    LOGIC_CONDITION_MAP_OUTPUT                  = 37,
+    LOGIC_CONDITION_LAST                        = 38,
 } logicOperation_e;
 
 typedef enum logicOperandType_s {
@@ -105,6 +110,8 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_ROLL,                         // 26
     LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_PITCH,                        // 27
     LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_YAW,                          // 28
+    LOGIC_CONDITION_OPERAND_FLIGHT_WAYPOINT_INDEX,                          // 29
+    LOGIC_CONDITION_OPERAND_FLIGHT_WAYPOINT_ACTION,                         // 30
 } logicFlightOperands_e;
 
 typedef enum {

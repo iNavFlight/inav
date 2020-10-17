@@ -95,31 +95,41 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 
 ### serial
 
-The syntax of the `serial` command is `serial <id>  <functions> <msp-baudrate> <gps-baudrate> <telemetry-baudate> <peripheral-baudrate>`.
+The syntax of the `serial` command is `serial <id>  <function_value> <msp-baudrate> <gps-baudrate> <telemetry-baudate> <peripheral-baudrate>`.
 
-A shorter form is also supported to enable and disable functions using `serial <id> +n` and
-`serial <id> -n`, where n is the a serial function identifier. The following values are available:
+A shorter form is also supported to enable and disable a single function using `serial <id> +n` and `serial <id> -n`, where n is the a serial function identifier. The following values are available:
 
-| Function              | Identifier    |
-|-----------------------|---------------|
-| MSP                   | 0             |
-| GPS                   | 1             |
-| TELEMETRY_FRSKY       | 2             |
-| TELEMETRY_HOTT        | 3             |
-| TELEMETRY_LTM         | 4             |
-| TELEMETRY_SMARTPORT   | 5             |
-| RX_SERIAL             | 6             |
-| BLACKBOX              | 7             |
-| TELEMETRY_MAVLINK     | 8             |
-| TELEMETRY_IBUS        | 9             |
-| RCDEVICE              | 10            |
-| VTX_SMARTAUDIO        | 11            |
-| VTX_TRAMP             | 12            |
-| UAV_INTERCONNECT      | 13            |
-| OPTICAL_FLOW          | 14            |
-| LOG                   | 15            |
-| RANGEFINDER           | 16            |
-| VTX_FFPV              | 17            |
+| Function              | Bit Identifier | Numeric value |
+|-----------------------|---------------|----------------|
+| MSP                   | 0             | 1 |
+| GPS                   | 1             | 2 |
+| TELEMETRY_FRSKY       | 2             | 4 |
+| TELEMETRY_HOTT        | 3             | 8 |
+| TELEMETRY_LTM         | 4             | 16 |
+| TELEMETRY_SMARTPORT   | 5             | 32 |
+| RX_SERIAL             | 6             | 64 |
+| BLACKBOX              | 7             | 128 |
+| TELEMETRY_MAVLINK     | 8             | 256 |
+| TELEMETRY_IBUS        | 9             | 512 |
+| RCDEVICE              | 10            | 1024 |
+| VTX_SMARTAUDIO        | 11            | 2048 |
+| VTX_TRAMP             | 12            | 4096 |
+| UAV_INTERCONNECT      | 13            | 8192 |
+| OPTICAL_FLOW          | 14            | 16384 |
+| LOG                   | 15            | 32768 |
+| RANGEFINDER           | 16            | 65536 |
+| VTX_FFPV              | 17            | 131072 |
+
+Thus, to enable MSP and LTM on a port, one would use the function **value** of 17 (1 << 0)+(1<<4), aka 1+16, aka 17.
+
+```
+serial 0 17 57600 57600 57600 57600
+```
+but to remove LTM using the +/- shorthand, use the **bit Id** (4, TELEMETRY_LTM):
+
+```
+serial 0 -4
+```
 
 `serial` can also be used without any argument to print the current configuration of all the serial ports.
 
