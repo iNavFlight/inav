@@ -22,6 +22,7 @@
 #include "config/parameter_group.h"
 
 #include "drivers/osd.h"
+#include "drivers/display.h"
 
 #ifndef OSD_ALTERNATE_LAYOUT_COUNT
 #define OSD_ALTERNATE_LAYOUT_COUNT 3
@@ -42,6 +43,59 @@
 #define OSD_HOMING_LIM_V1 5
 #define OSD_HOMING_LIM_V2 10
 #define OSD_HOMING_LIM_V3 15
+
+// Message defines to be use in OSD and/or telemetry exports
+#define OSD_MSG_RC_RX_LINK_LOST     "!RC RX LINK LOST!"
+#define OSD_MSG_TURN_ARM_SW_OFF     "TURN ARM SWITCH OFF"
+#define OSD_MSG_DISABLED_BY_FS      "DISABLED BY FAILSAFE"
+#define OSD_MSG_AIRCRAFT_UNLEVEL    "AIRCRAFT IS NOT LEVEL"
+#define OSD_MSG_SENSORS_CAL         "SENSORS CALIBRATING"
+#define OSD_MSG_SYS_OVERLOADED      "SYSTEM OVERLOADED"
+#define OSD_MSG_WAITING_GPS_FIX     "WAITING FOR GPS FIX"
+#define OSD_MSG_DISABLE_NAV_FIRST   "DISABLE NAVIGATION FIRST"
+#define OSD_MSG_1ST_WP_TOO_FAR      "FIRST WAYPOINT IS TOO FAR"
+#define OSD_MSG_JUMP_WP_MISCONFIG   "JUMP WAYPOINT MISCONFIGURED"
+#define OSD_MSG_MAG_NOT_CAL         "COMPASS NOT CALIBRATED"
+#define OSD_MSG_ACC_NOT_CAL         "ACCELEROMETER NOT CALIBRATED"
+#define OSD_MSG_DISARM_1ST          "DISABLE ARM SWITCH FIRST"
+#define OSD_MSG_GYRO_FAILURE        "GYRO FAILURE"
+#define OSD_MSG_ACC_FAIL            "ACCELEROMETER FAILURE"
+#define OSD_MSG_MAG_FAIL            "COMPASS FAILURE"
+#define OSD_MSG_BARO_FAIL           "BAROMETER FAILURE"
+#define OSD_MSG_GPS_FAIL            "GPS FAILURE"
+#define OSD_MSG_RANGEFINDER_FAIL    "RANGE FINDER FAILURE"
+#define OSD_MSG_PITOT_FAIL          "PITOT METER FAILURE"
+#define OSD_MSG_HW_FAIL             "HARDWARE FAILURE"
+#define OSD_MSG_FS_EN               "FAILSAFE MODE ENABLED"
+#define OSD_MSG_KILL_SW_EN          "KILLSWITCH MODE ENABLED"
+#define OSD_MSG_NO_RC_LINK          "NO RC LINK"
+#define OSD_MSG_THROTTLE_NOT_LOW    "THROTTLE IS NOT LOW"
+#define OSD_MSG_ROLLPITCH_OFFCENTER "ROLLPITCH NOT CENTERED"
+#define OSD_MSG_AUTOTRIM_ACTIVE     "AUTOTRIM IS ACTIVE"
+#define OSD_MSG_NOT_ENOUGH_MEMORY   "NOT ENOUGH MEMORY"
+#define OSD_MSG_INVALID_SETTING     "INVALID SETTING"
+#define OSD_MSG_CLI_ACTIVE          "CLI IS ACTIVE"
+#define OSD_MSG_PWM_INIT_ERROR      "PWM INIT ERROR"
+#define OSD_MSG_RTH_FS              "(RTH)"
+#define OSD_MSG_EMERG_LANDING_FS    "(EMERGENCY LANDING)"
+#define OSD_MSG_MOVE_EXIT_FS        "!MOVE STICKS TO EXIT FS!"
+#define OSD_MSG_STARTING_RTH        "STARTING RTH"
+#define OSD_MSG_HEADING_HOME        "EN ROUTE TO HOME"
+#define OSD_MSG_HOLDING_WAYPOINT    "HOLDING WAYPOINT"
+#define OSD_MSG_TO_WP               "TO WP"
+#define OSD_MSG_PREPARE_NEXT_WP     "PREPARING FOR NEXT WAYPOINT"
+#define OSD_MSG_EMERG_LANDING       "EMERGENCY LANDING"
+#define OSD_MSG_LANDING             "LANDING"
+#define OSD_MSG_LOITERING_HOME      "LOITERING AROUND HOME"
+#define OSD_MSG_HOVERING            "HOVERING"
+#define OSD_MSG_LANDED              "LANDED"
+#define OSD_MSG_PREPARING_LAND      "PREPARING TO LAND"
+#define OSD_MSG_AUTOLAUNCH          "AUTOLAUNCH"
+#define OSD_MSG_ALTITUDE_HOLD       "(ALTITUDE HOLD)"
+#define OSD_MSG_AUTOTRIM            "(AUTOTRIM)"
+#define OSD_MSG_AUTOTUNE            "(AUTOTUNE)"
+#define OSD_MSG_HEADFREE            "(HEADFREE)"
+#define OSD_MSG_UNABLE_ARM          "UNABLE TO ARM"
 
 typedef enum {
     OSD_RSSI_VALUE,
@@ -157,6 +211,10 @@ typedef enum {
     OSD_CRSF_LQ,
     OSD_CRSF_SNR_DB,
     OSD_CRSF_TX_POWER,
+    OSD_GVAR_0,
+    OSD_GVAR_1,
+    OSD_GVAR_2,
+    OSD_GVAR_3,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -313,3 +371,12 @@ void osdFormatAltitudeSymbol(char *buff, int32_t alt);
 void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D);
 // Returns a heading angle in degrees normalized to [0, 360).
 int osdGetHeadingAngle(int angle);
+
+/**
+ * @brief Get the OSD system message
+ * @param buff pointer to the message buffer
+ * @param buff_size size of the buffer array
+ * @param isCenteredText if true, centered text based on buff_size
+ * @return osd text attributes (Blink, Inverted, Solid)
+ */
+textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenteredText);

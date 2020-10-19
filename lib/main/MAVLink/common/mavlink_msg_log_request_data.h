@@ -3,14 +3,14 @@
 
 #define MAVLINK_MSG_ID_LOG_REQUEST_DATA 119
 
-MAVPACKED(
+
 typedef struct __mavlink_log_request_data_t {
- uint32_t ofs; /*< Offset into the log*/
- uint32_t count; /*< Number of bytes*/
- uint16_t id; /*< Log id (from LOG_ENTRY reply)*/
- uint8_t target_system; /*< System ID*/
- uint8_t target_component; /*< Component ID*/
-}) mavlink_log_request_data_t;
+ uint32_t ofs; /*<  Offset into the log*/
+ uint32_t count; /*< [bytes] Number of bytes*/
+ uint16_t id; /*<  Log id (from LOG_ENTRY reply)*/
+ uint8_t target_system; /*<  System ID*/
+ uint8_t target_component; /*<  Component ID*/
+} mavlink_log_request_data_t;
 
 #define MAVLINK_MSG_ID_LOG_REQUEST_DATA_LEN 12
 #define MAVLINK_MSG_ID_LOG_REQUEST_DATA_MIN_LEN 12
@@ -27,22 +27,22 @@ typedef struct __mavlink_log_request_data_t {
     119, \
     "LOG_REQUEST_DATA", \
     5, \
-    {  { "ofs", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_log_request_data_t, ofs) }, \
-         { "count", NULL, MAVLINK_TYPE_UINT32_T, 0, 4, offsetof(mavlink_log_request_data_t, count) }, \
-         { "id", NULL, MAVLINK_TYPE_UINT16_T, 0, 8, offsetof(mavlink_log_request_data_t, id) }, \
-         { "target_system", NULL, MAVLINK_TYPE_UINT8_T, 0, 10, offsetof(mavlink_log_request_data_t, target_system) }, \
+    {  { "target_system", NULL, MAVLINK_TYPE_UINT8_T, 0, 10, offsetof(mavlink_log_request_data_t, target_system) }, \
          { "target_component", NULL, MAVLINK_TYPE_UINT8_T, 0, 11, offsetof(mavlink_log_request_data_t, target_component) }, \
+         { "id", NULL, MAVLINK_TYPE_UINT16_T, 0, 8, offsetof(mavlink_log_request_data_t, id) }, \
+         { "ofs", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_log_request_data_t, ofs) }, \
+         { "count", NULL, MAVLINK_TYPE_UINT32_T, 0, 4, offsetof(mavlink_log_request_data_t, count) }, \
          } \
 }
 #else
 #define MAVLINK_MESSAGE_INFO_LOG_REQUEST_DATA { \
     "LOG_REQUEST_DATA", \
     5, \
-    {  { "ofs", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_log_request_data_t, ofs) }, \
-         { "count", NULL, MAVLINK_TYPE_UINT32_T, 0, 4, offsetof(mavlink_log_request_data_t, count) }, \
-         { "id", NULL, MAVLINK_TYPE_UINT16_T, 0, 8, offsetof(mavlink_log_request_data_t, id) }, \
-         { "target_system", NULL, MAVLINK_TYPE_UINT8_T, 0, 10, offsetof(mavlink_log_request_data_t, target_system) }, \
+    {  { "target_system", NULL, MAVLINK_TYPE_UINT8_T, 0, 10, offsetof(mavlink_log_request_data_t, target_system) }, \
          { "target_component", NULL, MAVLINK_TYPE_UINT8_T, 0, 11, offsetof(mavlink_log_request_data_t, target_component) }, \
+         { "id", NULL, MAVLINK_TYPE_UINT16_T, 0, 8, offsetof(mavlink_log_request_data_t, id) }, \
+         { "ofs", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_log_request_data_t, ofs) }, \
+         { "count", NULL, MAVLINK_TYPE_UINT32_T, 0, 4, offsetof(mavlink_log_request_data_t, count) }, \
          } \
 }
 #endif
@@ -53,11 +53,11 @@ typedef struct __mavlink_log_request_data_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param target_system System ID
- * @param target_component Component ID
- * @param id Log id (from LOG_ENTRY reply)
- * @param ofs Offset into the log
- * @param count Number of bytes
+ * @param target_system  System ID
+ * @param target_component  Component ID
+ * @param id  Log id (from LOG_ENTRY reply)
+ * @param ofs  Offset into the log
+ * @param count [bytes] Number of bytes
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_log_request_data_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -93,11 +93,11 @@ static inline uint16_t mavlink_msg_log_request_data_pack(uint8_t system_id, uint
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param target_system System ID
- * @param target_component Component ID
- * @param id Log id (from LOG_ENTRY reply)
- * @param ofs Offset into the log
- * @param count Number of bytes
+ * @param target_system  System ID
+ * @param target_component  Component ID
+ * @param id  Log id (from LOG_ENTRY reply)
+ * @param ofs  Offset into the log
+ * @param count [bytes] Number of bytes
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_log_request_data_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -159,11 +159,11 @@ static inline uint16_t mavlink_msg_log_request_data_encode_chan(uint8_t system_i
  * @brief Send a log_request_data message
  * @param chan MAVLink channel to send the message
  *
- * @param target_system System ID
- * @param target_component Component ID
- * @param id Log id (from LOG_ENTRY reply)
- * @param ofs Offset into the log
- * @param count Number of bytes
+ * @param target_system  System ID
+ * @param target_component  Component ID
+ * @param id  Log id (from LOG_ENTRY reply)
+ * @param ofs  Offset into the log
+ * @param count [bytes] Number of bytes
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -244,7 +244,7 @@ static inline void mavlink_msg_log_request_data_send_buf(mavlink_message_t *msgb
 /**
  * @brief Get field target_system from log_request_data message
  *
- * @return System ID
+ * @return  System ID
  */
 static inline uint8_t mavlink_msg_log_request_data_get_target_system(const mavlink_message_t* msg)
 {
@@ -254,7 +254,7 @@ static inline uint8_t mavlink_msg_log_request_data_get_target_system(const mavli
 /**
  * @brief Get field target_component from log_request_data message
  *
- * @return Component ID
+ * @return  Component ID
  */
 static inline uint8_t mavlink_msg_log_request_data_get_target_component(const mavlink_message_t* msg)
 {
@@ -264,7 +264,7 @@ static inline uint8_t mavlink_msg_log_request_data_get_target_component(const ma
 /**
  * @brief Get field id from log_request_data message
  *
- * @return Log id (from LOG_ENTRY reply)
+ * @return  Log id (from LOG_ENTRY reply)
  */
 static inline uint16_t mavlink_msg_log_request_data_get_id(const mavlink_message_t* msg)
 {
@@ -274,7 +274,7 @@ static inline uint16_t mavlink_msg_log_request_data_get_id(const mavlink_message
 /**
  * @brief Get field ofs from log_request_data message
  *
- * @return Offset into the log
+ * @return  Offset into the log
  */
 static inline uint32_t mavlink_msg_log_request_data_get_ofs(const mavlink_message_t* msg)
 {
@@ -284,7 +284,7 @@ static inline uint32_t mavlink_msg_log_request_data_get_ofs(const mavlink_messag
 /**
  * @brief Get field count from log_request_data message
  *
- * @return Number of bytes
+ * @return [bytes] Number of bytes
  */
 static inline uint32_t mavlink_msg_log_request_data_get_count(const mavlink_message_t* msg)
 {

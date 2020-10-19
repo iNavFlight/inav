@@ -2547,6 +2547,11 @@ groups:
         type: uint8_t
         min: 0
         max: 255
+      - name: mavlink_extra3_rate
+        field: mavlink.extra3_rate
+        type: uint8_t
+        min: 0
+        max: 255
   - name: PG_ELERES_CONFIG
     type: eleresConfig_t
     headers: ["rx/eleres.h"]
@@ -3012,6 +3017,7 @@ groups:
   - name: PG_VTX_SETTINGS_CONFIG
     type: vtxSettingsConfig_t
     headers: ["drivers/vtx_common.h", "io/vtx.h"]
+    condition: USE_VTX_SMARTAUDIO || USE_VTX_TRAMP
     members:
       - name: vtx_band
         description: "Configure the VTX band. Set to zero to use `vtx_freq`. Bands: 1: A, 2: B, 3: E, 4: F, 5: Race."

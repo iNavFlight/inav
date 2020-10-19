@@ -207,6 +207,7 @@ static int logicConditionCompute(
             break;
 
         case LOGIC_CONDITION_SET_VTX_POWER_LEVEL:
+#if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP)
             if (
                 logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL] != operandA && 
                 vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)
@@ -218,6 +219,9 @@ static int logicConditionCompute(
                 return false;
             }
             break;
+#else
+            return false;
+#endif
 
         case LOGIC_CONDITION_SET_VTX_BAND:
             if (
@@ -451,7 +455,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_IS_FAILSAFE: // 0/1
-            return (failsafePhase() == FAILSAFE_RX_LOSS_MONITORING) ? 1 : 0;
+            return (failsafePhase() != FAILSAFE_IDLE) ? 1 : 0;
             break;
         
         case LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_YAW: // 

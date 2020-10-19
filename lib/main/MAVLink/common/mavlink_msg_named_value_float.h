@@ -3,12 +3,12 @@
 
 #define MAVLINK_MSG_ID_NAMED_VALUE_FLOAT 251
 
-MAVPACKED(
+
 typedef struct __mavlink_named_value_float_t {
- uint32_t time_boot_ms; /*< Timestamp (milliseconds since system boot)*/
- float value; /*< Floating point value*/
- char name[10]; /*< Name of the debug variable*/
-}) mavlink_named_value_float_t;
+ uint32_t time_boot_ms; /*< [ms] Timestamp (time since system boot).*/
+ float value; /*<  Floating point value*/
+ char name[10]; /*<  Name of the debug variable*/
+} mavlink_named_value_float_t;
 
 #define MAVLINK_MSG_ID_NAMED_VALUE_FLOAT_LEN 18
 #define MAVLINK_MSG_ID_NAMED_VALUE_FLOAT_MIN_LEN 18
@@ -26,8 +26,8 @@ typedef struct __mavlink_named_value_float_t {
     "NAMED_VALUE_FLOAT", \
     3, \
     {  { "time_boot_ms", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_named_value_float_t, time_boot_ms) }, \
-         { "value", NULL, MAVLINK_TYPE_FLOAT, 0, 4, offsetof(mavlink_named_value_float_t, value) }, \
          { "name", NULL, MAVLINK_TYPE_CHAR, 10, 8, offsetof(mavlink_named_value_float_t, name) }, \
+         { "value", NULL, MAVLINK_TYPE_FLOAT, 0, 4, offsetof(mavlink_named_value_float_t, value) }, \
          } \
 }
 #else
@@ -35,8 +35,8 @@ typedef struct __mavlink_named_value_float_t {
     "NAMED_VALUE_FLOAT", \
     3, \
     {  { "time_boot_ms", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_named_value_float_t, time_boot_ms) }, \
-         { "value", NULL, MAVLINK_TYPE_FLOAT, 0, 4, offsetof(mavlink_named_value_float_t, value) }, \
          { "name", NULL, MAVLINK_TYPE_CHAR, 10, 8, offsetof(mavlink_named_value_float_t, name) }, \
+         { "value", NULL, MAVLINK_TYPE_FLOAT, 0, 4, offsetof(mavlink_named_value_float_t, value) }, \
          } \
 }
 #endif
@@ -47,9 +47,9 @@ typedef struct __mavlink_named_value_float_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param time_boot_ms Timestamp (milliseconds since system boot)
- * @param name Name of the debug variable
- * @param value Floating point value
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param name  Name of the debug variable
+ * @param value  Floating point value
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_named_value_float_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -79,9 +79,9 @@ static inline uint16_t mavlink_msg_named_value_float_pack(uint8_t system_id, uin
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param time_boot_ms Timestamp (milliseconds since system boot)
- * @param name Name of the debug variable
- * @param value Floating point value
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param name  Name of the debug variable
+ * @param value  Floating point value
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_named_value_float_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -137,9 +137,9 @@ static inline uint16_t mavlink_msg_named_value_float_encode_chan(uint8_t system_
  * @brief Send a named_value_float message
  * @param chan MAVLink channel to send the message
  *
- * @param time_boot_ms Timestamp (milliseconds since system boot)
- * @param name Name of the debug variable
- * @param value Floating point value
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param name  Name of the debug variable
+ * @param value  Floating point value
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -208,7 +208,7 @@ static inline void mavlink_msg_named_value_float_send_buf(mavlink_message_t *msg
 /**
  * @brief Get field time_boot_ms from named_value_float message
  *
- * @return Timestamp (milliseconds since system boot)
+ * @return [ms] Timestamp (time since system boot).
  */
 static inline uint32_t mavlink_msg_named_value_float_get_time_boot_ms(const mavlink_message_t* msg)
 {
@@ -218,7 +218,7 @@ static inline uint32_t mavlink_msg_named_value_float_get_time_boot_ms(const mavl
 /**
  * @brief Get field name from named_value_float message
  *
- * @return Name of the debug variable
+ * @return  Name of the debug variable
  */
 static inline uint16_t mavlink_msg_named_value_float_get_name(const mavlink_message_t* msg, char *name)
 {
@@ -228,7 +228,7 @@ static inline uint16_t mavlink_msg_named_value_float_get_name(const mavlink_mess
 /**
  * @brief Get field value from named_value_float message
  *
- * @return Floating point value
+ * @return  Floating point value
  */
 static inline float mavlink_msg_named_value_float_get_value(const mavlink_message_t* msg)
 {

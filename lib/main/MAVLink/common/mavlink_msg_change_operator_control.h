@@ -3,13 +3,13 @@
 
 #define MAVLINK_MSG_ID_CHANGE_OPERATOR_CONTROL 5
 
-MAVPACKED(
+
 typedef struct __mavlink_change_operator_control_t {
- uint8_t target_system; /*< System the GCS requests control for*/
- uint8_t control_request; /*< 0: request control of this MAV, 1: Release control of this MAV*/
- uint8_t version; /*< 0: key as plaintext, 1-255: future, different hashing/encryption variants. The GCS should in general use the safest mode possible initially and then gradually move down the encryption level if it gets a NACK message indicating an encryption mismatch.*/
- char passkey[25]; /*< Password / Key, depending on version plaintext or encrypted. 25 or less characters, NULL terminated. The characters may involve A-Z, a-z, 0-9, and "!?,.-"*/
-}) mavlink_change_operator_control_t;
+ uint8_t target_system; /*<  System the GCS requests control for*/
+ uint8_t control_request; /*<  0: request control of this MAV, 1: Release control of this MAV*/
+ uint8_t version; /*< [rad] 0: key as plaintext, 1-255: future, different hashing/encryption variants. The GCS should in general use the safest mode possible initially and then gradually move down the encryption level if it gets a NACK message indicating an encryption mismatch.*/
+ char passkey[25]; /*<  Password / Key, depending on version plaintext or encrypted. 25 or less characters, NULL terminated. The characters may involve A-Z, a-z, 0-9, and "!?,.-"*/
+} mavlink_change_operator_control_t;
 
 #define MAVLINK_MSG_ID_CHANGE_OPERATOR_CONTROL_LEN 28
 #define MAVLINK_MSG_ID_CHANGE_OPERATOR_CONTROL_MIN_LEN 28
@@ -50,10 +50,10 @@ typedef struct __mavlink_change_operator_control_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param target_system System the GCS requests control for
- * @param control_request 0: request control of this MAV, 1: Release control of this MAV
- * @param version 0: key as plaintext, 1-255: future, different hashing/encryption variants. The GCS should in general use the safest mode possible initially and then gradually move down the encryption level if it gets a NACK message indicating an encryption mismatch.
- * @param passkey Password / Key, depending on version plaintext or encrypted. 25 or less characters, NULL terminated. The characters may involve A-Z, a-z, 0-9, and "!?,.-"
+ * @param target_system  System the GCS requests control for
+ * @param control_request  0: request control of this MAV, 1: Release control of this MAV
+ * @param version [rad] 0: key as plaintext, 1-255: future, different hashing/encryption variants. The GCS should in general use the safest mode possible initially and then gradually move down the encryption level if it gets a NACK message indicating an encryption mismatch.
+ * @param passkey  Password / Key, depending on version plaintext or encrypted. 25 or less characters, NULL terminated. The characters may involve A-Z, a-z, 0-9, and "!?,.-"
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_change_operator_control_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -85,10 +85,10 @@ static inline uint16_t mavlink_msg_change_operator_control_pack(uint8_t system_i
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param target_system System the GCS requests control for
- * @param control_request 0: request control of this MAV, 1: Release control of this MAV
- * @param version 0: key as plaintext, 1-255: future, different hashing/encryption variants. The GCS should in general use the safest mode possible initially and then gradually move down the encryption level if it gets a NACK message indicating an encryption mismatch.
- * @param passkey Password / Key, depending on version plaintext or encrypted. 25 or less characters, NULL terminated. The characters may involve A-Z, a-z, 0-9, and "!?,.-"
+ * @param target_system  System the GCS requests control for
+ * @param control_request  0: request control of this MAV, 1: Release control of this MAV
+ * @param version [rad] 0: key as plaintext, 1-255: future, different hashing/encryption variants. The GCS should in general use the safest mode possible initially and then gradually move down the encryption level if it gets a NACK message indicating an encryption mismatch.
+ * @param passkey  Password / Key, depending on version plaintext or encrypted. 25 or less characters, NULL terminated. The characters may involve A-Z, a-z, 0-9, and "!?,.-"
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_change_operator_control_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -146,10 +146,10 @@ static inline uint16_t mavlink_msg_change_operator_control_encode_chan(uint8_t s
  * @brief Send a change_operator_control message
  * @param chan MAVLink channel to send the message
  *
- * @param target_system System the GCS requests control for
- * @param control_request 0: request control of this MAV, 1: Release control of this MAV
- * @param version 0: key as plaintext, 1-255: future, different hashing/encryption variants. The GCS should in general use the safest mode possible initially and then gradually move down the encryption level if it gets a NACK message indicating an encryption mismatch.
- * @param passkey Password / Key, depending on version plaintext or encrypted. 25 or less characters, NULL terminated. The characters may involve A-Z, a-z, 0-9, and "!?,.-"
+ * @param target_system  System the GCS requests control for
+ * @param control_request  0: request control of this MAV, 1: Release control of this MAV
+ * @param version [rad] 0: key as plaintext, 1-255: future, different hashing/encryption variants. The GCS should in general use the safest mode possible initially and then gradually move down the encryption level if it gets a NACK message indicating an encryption mismatch.
+ * @param passkey  Password / Key, depending on version plaintext or encrypted. 25 or less characters, NULL terminated. The characters may involve A-Z, a-z, 0-9, and "!?,.-"
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -222,7 +222,7 @@ static inline void mavlink_msg_change_operator_control_send_buf(mavlink_message_
 /**
  * @brief Get field target_system from change_operator_control message
  *
- * @return System the GCS requests control for
+ * @return  System the GCS requests control for
  */
 static inline uint8_t mavlink_msg_change_operator_control_get_target_system(const mavlink_message_t* msg)
 {
@@ -232,7 +232,7 @@ static inline uint8_t mavlink_msg_change_operator_control_get_target_system(cons
 /**
  * @brief Get field control_request from change_operator_control message
  *
- * @return 0: request control of this MAV, 1: Release control of this MAV
+ * @return  0: request control of this MAV, 1: Release control of this MAV
  */
 static inline uint8_t mavlink_msg_change_operator_control_get_control_request(const mavlink_message_t* msg)
 {
@@ -242,7 +242,7 @@ static inline uint8_t mavlink_msg_change_operator_control_get_control_request(co
 /**
  * @brief Get field version from change_operator_control message
  *
- * @return 0: key as plaintext, 1-255: future, different hashing/encryption variants. The GCS should in general use the safest mode possible initially and then gradually move down the encryption level if it gets a NACK message indicating an encryption mismatch.
+ * @return [rad] 0: key as plaintext, 1-255: future, different hashing/encryption variants. The GCS should in general use the safest mode possible initially and then gradually move down the encryption level if it gets a NACK message indicating an encryption mismatch.
  */
 static inline uint8_t mavlink_msg_change_operator_control_get_version(const mavlink_message_t* msg)
 {
@@ -252,7 +252,7 @@ static inline uint8_t mavlink_msg_change_operator_control_get_version(const mavl
 /**
  * @brief Get field passkey from change_operator_control message
  *
- * @return Password / Key, depending on version plaintext or encrypted. 25 or less characters, NULL terminated. The characters may involve A-Z, a-z, 0-9, and "!?,.-"
+ * @return  Password / Key, depending on version plaintext or encrypted. 25 or less characters, NULL terminated. The characters may involve A-Z, a-z, 0-9, and "!?,.-"
  */
 static inline uint16_t mavlink_msg_change_operator_control_get_passkey(const mavlink_message_t* msg, char *passkey)
 {

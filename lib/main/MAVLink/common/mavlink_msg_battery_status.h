@@ -3,18 +3,18 @@
 
 #define MAVLINK_MSG_ID_BATTERY_STATUS 147
 
-MAVPACKED(
+
 typedef struct __mavlink_battery_status_t {
- int32_t current_consumed; /*< Consumed charge, in milliampere hours (1 = 1 mAh), -1: autopilot does not provide mAh consumption estimate*/
- int32_t energy_consumed; /*< Consumed energy, in 100*Joules (intergrated U*I*dt)  (1 = 100 Joule), -1: autopilot does not provide energy consumption estimate*/
- int16_t temperature; /*< Temperature of the battery in centi-degrees celsius. INT16_MAX for unknown temperature.*/
- uint16_t voltages[10]; /*< Battery voltage of cells, in millivolts (1 = 1 millivolt). Cells above the valid cell count for this battery should have the UINT16_MAX value.*/
- int16_t current_battery; /*< Battery current, in 10*milliamperes (1 = 10 milliampere), -1: autopilot does not measure the current*/
- uint8_t id; /*< Battery ID*/
- uint8_t battery_function; /*< Function of the battery*/
- uint8_t type; /*< Type (chemistry) of the battery*/
- int8_t battery_remaining; /*< Remaining battery energy: (0%: 0, 100%: 100), -1: autopilot does not estimate the remaining battery*/
-}) mavlink_battery_status_t;
+ int32_t current_consumed; /*< [mAh] Consumed charge, -1: autopilot does not provide consumption estimate*/
+ int32_t energy_consumed; /*< [hJ] Consumed energy, -1: autopilot does not provide energy consumption estimate*/
+ int16_t temperature; /*< [cdegC] Temperature of the battery. INT16_MAX for unknown temperature.*/
+ uint16_t voltages[10]; /*< [mV] Battery voltage of cells 1 to 10 (see voltages_ext for cells 11-14). Cells in this field above the valid cell count for this battery should have the UINT16_MAX value. If individual cell voltages are unknown or not measured for this battery, then the overall battery voltage should be filled in cell 0, with all others set to UINT16_MAX. If the voltage of the battery is greater than (UINT16_MAX - 1), then cell 0 should be set to (UINT16_MAX - 1), and cell 1 to the remaining voltage. This can be extended to multiple cells if the total voltage is greater than 2 * (UINT16_MAX - 1).*/
+ int16_t current_battery; /*< [cA] Battery current, -1: autopilot does not measure the current*/
+ uint8_t id; /*<  Battery ID*/
+ uint8_t battery_function; /*<  Function of the battery*/
+ uint8_t type; /*<  Type (chemistry) of the battery*/
+ int8_t battery_remaining; /*< [%] Remaining battery energy. Values: [0-100], -1: autopilot does not estimate the remaining battery.*/
+} mavlink_battery_status_t;
 
 #define MAVLINK_MSG_ID_BATTERY_STATUS_LEN 36
 #define MAVLINK_MSG_ID_BATTERY_STATUS_MIN_LEN 36
@@ -31,14 +31,14 @@ typedef struct __mavlink_battery_status_t {
     147, \
     "BATTERY_STATUS", \
     9, \
-    {  { "current_consumed", NULL, MAVLINK_TYPE_INT32_T, 0, 0, offsetof(mavlink_battery_status_t, current_consumed) }, \
-         { "energy_consumed", NULL, MAVLINK_TYPE_INT32_T, 0, 4, offsetof(mavlink_battery_status_t, energy_consumed) }, \
+    {  { "id", NULL, MAVLINK_TYPE_UINT8_T, 0, 32, offsetof(mavlink_battery_status_t, id) }, \
+         { "battery_function", NULL, MAVLINK_TYPE_UINT8_T, 0, 33, offsetof(mavlink_battery_status_t, battery_function) }, \
+         { "type", NULL, MAVLINK_TYPE_UINT8_T, 0, 34, offsetof(mavlink_battery_status_t, type) }, \
          { "temperature", NULL, MAVLINK_TYPE_INT16_T, 0, 8, offsetof(mavlink_battery_status_t, temperature) }, \
          { "voltages", NULL, MAVLINK_TYPE_UINT16_T, 10, 10, offsetof(mavlink_battery_status_t, voltages) }, \
          { "current_battery", NULL, MAVLINK_TYPE_INT16_T, 0, 30, offsetof(mavlink_battery_status_t, current_battery) }, \
-         { "id", NULL, MAVLINK_TYPE_UINT8_T, 0, 32, offsetof(mavlink_battery_status_t, id) }, \
-         { "battery_function", NULL, MAVLINK_TYPE_UINT8_T, 0, 33, offsetof(mavlink_battery_status_t, battery_function) }, \
-         { "type", NULL, MAVLINK_TYPE_UINT8_T, 0, 34, offsetof(mavlink_battery_status_t, type) }, \
+         { "current_consumed", NULL, MAVLINK_TYPE_INT32_T, 0, 0, offsetof(mavlink_battery_status_t, current_consumed) }, \
+         { "energy_consumed", NULL, MAVLINK_TYPE_INT32_T, 0, 4, offsetof(mavlink_battery_status_t, energy_consumed) }, \
          { "battery_remaining", NULL, MAVLINK_TYPE_INT8_T, 0, 35, offsetof(mavlink_battery_status_t, battery_remaining) }, \
          } \
 }
@@ -46,14 +46,14 @@ typedef struct __mavlink_battery_status_t {
 #define MAVLINK_MESSAGE_INFO_BATTERY_STATUS { \
     "BATTERY_STATUS", \
     9, \
-    {  { "current_consumed", NULL, MAVLINK_TYPE_INT32_T, 0, 0, offsetof(mavlink_battery_status_t, current_consumed) }, \
-         { "energy_consumed", NULL, MAVLINK_TYPE_INT32_T, 0, 4, offsetof(mavlink_battery_status_t, energy_consumed) }, \
+    {  { "id", NULL, MAVLINK_TYPE_UINT8_T, 0, 32, offsetof(mavlink_battery_status_t, id) }, \
+         { "battery_function", NULL, MAVLINK_TYPE_UINT8_T, 0, 33, offsetof(mavlink_battery_status_t, battery_function) }, \
+         { "type", NULL, MAVLINK_TYPE_UINT8_T, 0, 34, offsetof(mavlink_battery_status_t, type) }, \
          { "temperature", NULL, MAVLINK_TYPE_INT16_T, 0, 8, offsetof(mavlink_battery_status_t, temperature) }, \
          { "voltages", NULL, MAVLINK_TYPE_UINT16_T, 10, 10, offsetof(mavlink_battery_status_t, voltages) }, \
          { "current_battery", NULL, MAVLINK_TYPE_INT16_T, 0, 30, offsetof(mavlink_battery_status_t, current_battery) }, \
-         { "id", NULL, MAVLINK_TYPE_UINT8_T, 0, 32, offsetof(mavlink_battery_status_t, id) }, \
-         { "battery_function", NULL, MAVLINK_TYPE_UINT8_T, 0, 33, offsetof(mavlink_battery_status_t, battery_function) }, \
-         { "type", NULL, MAVLINK_TYPE_UINT8_T, 0, 34, offsetof(mavlink_battery_status_t, type) }, \
+         { "current_consumed", NULL, MAVLINK_TYPE_INT32_T, 0, 0, offsetof(mavlink_battery_status_t, current_consumed) }, \
+         { "energy_consumed", NULL, MAVLINK_TYPE_INT32_T, 0, 4, offsetof(mavlink_battery_status_t, energy_consumed) }, \
          { "battery_remaining", NULL, MAVLINK_TYPE_INT8_T, 0, 35, offsetof(mavlink_battery_status_t, battery_remaining) }, \
          } \
 }
@@ -65,15 +65,15 @@ typedef struct __mavlink_battery_status_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param id Battery ID
- * @param battery_function Function of the battery
- * @param type Type (chemistry) of the battery
- * @param temperature Temperature of the battery in centi-degrees celsius. INT16_MAX for unknown temperature.
- * @param voltages Battery voltage of cells, in millivolts (1 = 1 millivolt). Cells above the valid cell count for this battery should have the UINT16_MAX value.
- * @param current_battery Battery current, in 10*milliamperes (1 = 10 milliampere), -1: autopilot does not measure the current
- * @param current_consumed Consumed charge, in milliampere hours (1 = 1 mAh), -1: autopilot does not provide mAh consumption estimate
- * @param energy_consumed Consumed energy, in 100*Joules (intergrated U*I*dt)  (1 = 100 Joule), -1: autopilot does not provide energy consumption estimate
- * @param battery_remaining Remaining battery energy: (0%: 0, 100%: 100), -1: autopilot does not estimate the remaining battery
+ * @param id  Battery ID
+ * @param battery_function  Function of the battery
+ * @param type  Type (chemistry) of the battery
+ * @param temperature [cdegC] Temperature of the battery. INT16_MAX for unknown temperature.
+ * @param voltages [mV] Battery voltage of cells 1 to 10 (see voltages_ext for cells 11-14). Cells in this field above the valid cell count for this battery should have the UINT16_MAX value. If individual cell voltages are unknown or not measured for this battery, then the overall battery voltage should be filled in cell 0, with all others set to UINT16_MAX. If the voltage of the battery is greater than (UINT16_MAX - 1), then cell 0 should be set to (UINT16_MAX - 1), and cell 1 to the remaining voltage. This can be extended to multiple cells if the total voltage is greater than 2 * (UINT16_MAX - 1).
+ * @param current_battery [cA] Battery current, -1: autopilot does not measure the current
+ * @param current_consumed [mAh] Consumed charge, -1: autopilot does not provide consumption estimate
+ * @param energy_consumed [hJ] Consumed energy, -1: autopilot does not provide energy consumption estimate
+ * @param battery_remaining [%] Remaining battery energy. Values: [0-100], -1: autopilot does not estimate the remaining battery.
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_battery_status_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -115,15 +115,15 @@ static inline uint16_t mavlink_msg_battery_status_pack(uint8_t system_id, uint8_
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param id Battery ID
- * @param battery_function Function of the battery
- * @param type Type (chemistry) of the battery
- * @param temperature Temperature of the battery in centi-degrees celsius. INT16_MAX for unknown temperature.
- * @param voltages Battery voltage of cells, in millivolts (1 = 1 millivolt). Cells above the valid cell count for this battery should have the UINT16_MAX value.
- * @param current_battery Battery current, in 10*milliamperes (1 = 10 milliampere), -1: autopilot does not measure the current
- * @param current_consumed Consumed charge, in milliampere hours (1 = 1 mAh), -1: autopilot does not provide mAh consumption estimate
- * @param energy_consumed Consumed energy, in 100*Joules (intergrated U*I*dt)  (1 = 100 Joule), -1: autopilot does not provide energy consumption estimate
- * @param battery_remaining Remaining battery energy: (0%: 0, 100%: 100), -1: autopilot does not estimate the remaining battery
+ * @param id  Battery ID
+ * @param battery_function  Function of the battery
+ * @param type  Type (chemistry) of the battery
+ * @param temperature [cdegC] Temperature of the battery. INT16_MAX for unknown temperature.
+ * @param voltages [mV] Battery voltage of cells 1 to 10 (see voltages_ext for cells 11-14). Cells in this field above the valid cell count for this battery should have the UINT16_MAX value. If individual cell voltages are unknown or not measured for this battery, then the overall battery voltage should be filled in cell 0, with all others set to UINT16_MAX. If the voltage of the battery is greater than (UINT16_MAX - 1), then cell 0 should be set to (UINT16_MAX - 1), and cell 1 to the remaining voltage. This can be extended to multiple cells if the total voltage is greater than 2 * (UINT16_MAX - 1).
+ * @param current_battery [cA] Battery current, -1: autopilot does not measure the current
+ * @param current_consumed [mAh] Consumed charge, -1: autopilot does not provide consumption estimate
+ * @param energy_consumed [hJ] Consumed energy, -1: autopilot does not provide energy consumption estimate
+ * @param battery_remaining [%] Remaining battery energy. Values: [0-100], -1: autopilot does not estimate the remaining battery.
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_battery_status_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -191,15 +191,15 @@ static inline uint16_t mavlink_msg_battery_status_encode_chan(uint8_t system_id,
  * @brief Send a battery_status message
  * @param chan MAVLink channel to send the message
  *
- * @param id Battery ID
- * @param battery_function Function of the battery
- * @param type Type (chemistry) of the battery
- * @param temperature Temperature of the battery in centi-degrees celsius. INT16_MAX for unknown temperature.
- * @param voltages Battery voltage of cells, in millivolts (1 = 1 millivolt). Cells above the valid cell count for this battery should have the UINT16_MAX value.
- * @param current_battery Battery current, in 10*milliamperes (1 = 10 milliampere), -1: autopilot does not measure the current
- * @param current_consumed Consumed charge, in milliampere hours (1 = 1 mAh), -1: autopilot does not provide mAh consumption estimate
- * @param energy_consumed Consumed energy, in 100*Joules (intergrated U*I*dt)  (1 = 100 Joule), -1: autopilot does not provide energy consumption estimate
- * @param battery_remaining Remaining battery energy: (0%: 0, 100%: 100), -1: autopilot does not estimate the remaining battery
+ * @param id  Battery ID
+ * @param battery_function  Function of the battery
+ * @param type  Type (chemistry) of the battery
+ * @param temperature [cdegC] Temperature of the battery. INT16_MAX for unknown temperature.
+ * @param voltages [mV] Battery voltage of cells 1 to 10 (see voltages_ext for cells 11-14). Cells in this field above the valid cell count for this battery should have the UINT16_MAX value. If individual cell voltages are unknown or not measured for this battery, then the overall battery voltage should be filled in cell 0, with all others set to UINT16_MAX. If the voltage of the battery is greater than (UINT16_MAX - 1), then cell 0 should be set to (UINT16_MAX - 1), and cell 1 to the remaining voltage. This can be extended to multiple cells if the total voltage is greater than 2 * (UINT16_MAX - 1).
+ * @param current_battery [cA] Battery current, -1: autopilot does not measure the current
+ * @param current_consumed [mAh] Consumed charge, -1: autopilot does not provide consumption estimate
+ * @param energy_consumed [hJ] Consumed energy, -1: autopilot does not provide energy consumption estimate
+ * @param battery_remaining [%] Remaining battery energy. Values: [0-100], -1: autopilot does not estimate the remaining battery.
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -292,7 +292,7 @@ static inline void mavlink_msg_battery_status_send_buf(mavlink_message_t *msgbuf
 /**
  * @brief Get field id from battery_status message
  *
- * @return Battery ID
+ * @return  Battery ID
  */
 static inline uint8_t mavlink_msg_battery_status_get_id(const mavlink_message_t* msg)
 {
@@ -302,7 +302,7 @@ static inline uint8_t mavlink_msg_battery_status_get_id(const mavlink_message_t*
 /**
  * @brief Get field battery_function from battery_status message
  *
- * @return Function of the battery
+ * @return  Function of the battery
  */
 static inline uint8_t mavlink_msg_battery_status_get_battery_function(const mavlink_message_t* msg)
 {
@@ -312,7 +312,7 @@ static inline uint8_t mavlink_msg_battery_status_get_battery_function(const mavl
 /**
  * @brief Get field type from battery_status message
  *
- * @return Type (chemistry) of the battery
+ * @return  Type (chemistry) of the battery
  */
 static inline uint8_t mavlink_msg_battery_status_get_type(const mavlink_message_t* msg)
 {
@@ -322,7 +322,7 @@ static inline uint8_t mavlink_msg_battery_status_get_type(const mavlink_message_
 /**
  * @brief Get field temperature from battery_status message
  *
- * @return Temperature of the battery in centi-degrees celsius. INT16_MAX for unknown temperature.
+ * @return [cdegC] Temperature of the battery. INT16_MAX for unknown temperature.
  */
 static inline int16_t mavlink_msg_battery_status_get_temperature(const mavlink_message_t* msg)
 {
@@ -332,7 +332,7 @@ static inline int16_t mavlink_msg_battery_status_get_temperature(const mavlink_m
 /**
  * @brief Get field voltages from battery_status message
  *
- * @return Battery voltage of cells, in millivolts (1 = 1 millivolt). Cells above the valid cell count for this battery should have the UINT16_MAX value.
+ * @return [mV] Battery voltage of cells 1 to 10 (see voltages_ext for cells 11-14). Cells in this field above the valid cell count for this battery should have the UINT16_MAX value. If individual cell voltages are unknown or not measured for this battery, then the overall battery voltage should be filled in cell 0, with all others set to UINT16_MAX. If the voltage of the battery is greater than (UINT16_MAX - 1), then cell 0 should be set to (UINT16_MAX - 1), and cell 1 to the remaining voltage. This can be extended to multiple cells if the total voltage is greater than 2 * (UINT16_MAX - 1).
  */
 static inline uint16_t mavlink_msg_battery_status_get_voltages(const mavlink_message_t* msg, uint16_t *voltages)
 {
@@ -342,7 +342,7 @@ static inline uint16_t mavlink_msg_battery_status_get_voltages(const mavlink_mes
 /**
  * @brief Get field current_battery from battery_status message
  *
- * @return Battery current, in 10*milliamperes (1 = 10 milliampere), -1: autopilot does not measure the current
+ * @return [cA] Battery current, -1: autopilot does not measure the current
  */
 static inline int16_t mavlink_msg_battery_status_get_current_battery(const mavlink_message_t* msg)
 {
@@ -352,7 +352,7 @@ static inline int16_t mavlink_msg_battery_status_get_current_battery(const mavli
 /**
  * @brief Get field current_consumed from battery_status message
  *
- * @return Consumed charge, in milliampere hours (1 = 1 mAh), -1: autopilot does not provide mAh consumption estimate
+ * @return [mAh] Consumed charge, -1: autopilot does not provide consumption estimate
  */
 static inline int32_t mavlink_msg_battery_status_get_current_consumed(const mavlink_message_t* msg)
 {
@@ -362,7 +362,7 @@ static inline int32_t mavlink_msg_battery_status_get_current_consumed(const mavl
 /**
  * @brief Get field energy_consumed from battery_status message
  *
- * @return Consumed energy, in 100*Joules (intergrated U*I*dt)  (1 = 100 Joule), -1: autopilot does not provide energy consumption estimate
+ * @return [hJ] Consumed energy, -1: autopilot does not provide energy consumption estimate
  */
 static inline int32_t mavlink_msg_battery_status_get_energy_consumed(const mavlink_message_t* msg)
 {
@@ -372,7 +372,7 @@ static inline int32_t mavlink_msg_battery_status_get_energy_consumed(const mavli
 /**
  * @brief Get field battery_remaining from battery_status message
  *
- * @return Remaining battery energy: (0%: 0, 100%: 100), -1: autopilot does not estimate the remaining battery
+ * @return [%] Remaining battery energy. Values: [0-100], -1: autopilot does not estimate the remaining battery.
  */
 static inline int8_t mavlink_msg_battery_status_get_battery_remaining(const mavlink_message_t* msg)
 {

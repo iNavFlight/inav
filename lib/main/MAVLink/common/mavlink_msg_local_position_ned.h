@@ -3,16 +3,16 @@
 
 #define MAVLINK_MSG_ID_LOCAL_POSITION_NED 32
 
-MAVPACKED(
+
 typedef struct __mavlink_local_position_ned_t {
- uint32_t time_boot_ms; /*< Timestamp (milliseconds since system boot)*/
- float x; /*< X Position*/
- float y; /*< Y Position*/
- float z; /*< Z Position*/
- float vx; /*< X Speed*/
- float vy; /*< Y Speed*/
- float vz; /*< Z Speed*/
-}) mavlink_local_position_ned_t;
+ uint32_t time_boot_ms; /*< [ms] Timestamp (time since system boot).*/
+ float x; /*< [m] X Position*/
+ float y; /*< [m] Y Position*/
+ float z; /*< [m] Z Position*/
+ float vx; /*< [m/s] X Speed*/
+ float vy; /*< [m/s] Y Speed*/
+ float vz; /*< [m/s] Z Speed*/
+} mavlink_local_position_ned_t;
 
 #define MAVLINK_MSG_ID_LOCAL_POSITION_NED_LEN 28
 #define MAVLINK_MSG_ID_LOCAL_POSITION_NED_MIN_LEN 28
@@ -59,13 +59,13 @@ typedef struct __mavlink_local_position_ned_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param time_boot_ms Timestamp (milliseconds since system boot)
- * @param x X Position
- * @param y Y Position
- * @param z Z Position
- * @param vx X Speed
- * @param vy Y Speed
- * @param vz Z Speed
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param x [m] X Position
+ * @param y [m] Y Position
+ * @param z [m] Z Position
+ * @param vx [m/s] X Speed
+ * @param vy [m/s] Y Speed
+ * @param vz [m/s] Z Speed
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_local_position_ned_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -105,13 +105,13 @@ static inline uint16_t mavlink_msg_local_position_ned_pack(uint8_t system_id, ui
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param time_boot_ms Timestamp (milliseconds since system boot)
- * @param x X Position
- * @param y Y Position
- * @param z Z Position
- * @param vx X Speed
- * @param vy Y Speed
- * @param vz Z Speed
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param x [m] X Position
+ * @param y [m] Y Position
+ * @param z [m] Z Position
+ * @param vx [m/s] X Speed
+ * @param vy [m/s] Y Speed
+ * @param vz [m/s] Z Speed
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_local_position_ned_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -177,13 +177,13 @@ static inline uint16_t mavlink_msg_local_position_ned_encode_chan(uint8_t system
  * @brief Send a local_position_ned message
  * @param chan MAVLink channel to send the message
  *
- * @param time_boot_ms Timestamp (milliseconds since system boot)
- * @param x X Position
- * @param y Y Position
- * @param z Z Position
- * @param vx X Speed
- * @param vy Y Speed
- * @param vz Z Speed
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param x [m] X Position
+ * @param y [m] Y Position
+ * @param z [m] Z Position
+ * @param vx [m/s] X Speed
+ * @param vy [m/s] Y Speed
+ * @param vz [m/s] Z Speed
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -272,7 +272,7 @@ static inline void mavlink_msg_local_position_ned_send_buf(mavlink_message_t *ms
 /**
  * @brief Get field time_boot_ms from local_position_ned message
  *
- * @return Timestamp (milliseconds since system boot)
+ * @return [ms] Timestamp (time since system boot).
  */
 static inline uint32_t mavlink_msg_local_position_ned_get_time_boot_ms(const mavlink_message_t* msg)
 {
@@ -282,7 +282,7 @@ static inline uint32_t mavlink_msg_local_position_ned_get_time_boot_ms(const mav
 /**
  * @brief Get field x from local_position_ned message
  *
- * @return X Position
+ * @return [m] X Position
  */
 static inline float mavlink_msg_local_position_ned_get_x(const mavlink_message_t* msg)
 {
@@ -292,7 +292,7 @@ static inline float mavlink_msg_local_position_ned_get_x(const mavlink_message_t
 /**
  * @brief Get field y from local_position_ned message
  *
- * @return Y Position
+ * @return [m] Y Position
  */
 static inline float mavlink_msg_local_position_ned_get_y(const mavlink_message_t* msg)
 {
@@ -302,7 +302,7 @@ static inline float mavlink_msg_local_position_ned_get_y(const mavlink_message_t
 /**
  * @brief Get field z from local_position_ned message
  *
- * @return Z Position
+ * @return [m] Z Position
  */
 static inline float mavlink_msg_local_position_ned_get_z(const mavlink_message_t* msg)
 {
@@ -312,7 +312,7 @@ static inline float mavlink_msg_local_position_ned_get_z(const mavlink_message_t
 /**
  * @brief Get field vx from local_position_ned message
  *
- * @return X Speed
+ * @return [m/s] X Speed
  */
 static inline float mavlink_msg_local_position_ned_get_vx(const mavlink_message_t* msg)
 {
@@ -322,7 +322,7 @@ static inline float mavlink_msg_local_position_ned_get_vx(const mavlink_message_
 /**
  * @brief Get field vy from local_position_ned message
  *
- * @return Y Speed
+ * @return [m/s] Y Speed
  */
 static inline float mavlink_msg_local_position_ned_get_vy(const mavlink_message_t* msg)
 {
@@ -332,7 +332,7 @@ static inline float mavlink_msg_local_position_ned_get_vy(const mavlink_message_
 /**
  * @brief Get field vz from local_position_ned message
  *
- * @return Z Speed
+ * @return [m/s] Z Speed
  */
 static inline float mavlink_msg_local_position_ned_get_vz(const mavlink_message_t* msg)
 {
