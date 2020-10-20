@@ -767,7 +767,6 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
                     //  Warnings
                     const char *message = " ";
                     const char *enabledElements = name + 1;
-
                     char djibuf[24];
                     // clear name from chars : and leading W
                     if(enabledElements[0] == 'W')
