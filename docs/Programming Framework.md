@@ -116,6 +116,7 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 28            | STABILIZED_YAW        | Yaw PID controller output `[-500:500]`    |
 | 29            | ACTIVE_WAYPOINT_INDEX | Indexed from `1`. To verify WP is in progress, use `IS_WP` |
 | 30            | ACTIVE_WAYPOINT_ACTION | See ACTIVE_WAYPOINT_ACTION paragraph |
+| 31            | 3D HOME_DISTANCE      | in `meters`, calculated from HOME_DISTANCE and ALTITUDE using Pythagorean theorem |
 
 ##### ACTIVE_WAYPOINT_ACTION
 

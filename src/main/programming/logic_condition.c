@@ -478,6 +478,10 @@ static int logicConditionGetFlightOperandValue(int operand) {
             return NAV_Status.activeWpAction;
             break;
 
+        case LOGIC_CONDITION_OPERAND_FLIGHT_3D_HOME_DISTANCE: //in m
+            return constrain(sqrtf(sq(GPS_distanceToHome) + sq(getEstimatedActualPosition(Z)/100)), 0, INT16_MAX);
+            break;
+
         default:
             return 0;
             break;
