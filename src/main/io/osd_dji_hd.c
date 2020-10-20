@@ -90,6 +90,9 @@
 #define DJI_OSD_TIMER_COUNT                 2
 #define DJI_OSD_FLAGS_OSD_FEATURE           (1 << 0)
 
+#define EFFICIENCY_UPDATE_INTERVAL (5 * 1000)
+
+
 /* 
  * DJI HD goggles use MSPv1 compatible with Betaflight 4.1.0
  * DJI uses a subset of messages and assume fixed bit positions for flight modes
@@ -609,7 +612,120 @@ static const char * navigationStateMessage(void)
 
 
 // end cat
+// new features here
 
+/**
+ * Converts velocity based on the current unit system (kmh or mph).
+ * @param alt Raw velocity (i.e. as taken from gpsSol.groundSpeed in centimeters/second)
+ */
+static int32_t osdConvertVelocityToUnit(int32_t vel)
+{
+    switch ((osd_unit_e)osdConfig()->units) {
+    case OSD_UNIT_UK:
+        FALLTHROUGH;
+    case OSD_UNIT_IMPERIAL:
+        return (vel * 224) / 10000; // Convert to mph
+    case OSD_UNIT_METRIC:
+        return (vel * 36) / 1000;   // Convert to kmh
+    }
+    // Unreachable
+    return -1;
+}
+static int16_t osdDJIGet3DSpeed(void)
+{
+    int16_t vert_speed = getEstimatedActualVelocity(Z);
+    int16_t hor_speed = gpsSol.groundSpeed;
+    return (int16_t)sqrtf(sq(hor_speed) + sq(vert_speed));
+}
+/**
+ * Converts velocity into a string based on the current unit system.
+ * @param alt Raw velocity (i.e. as taken from gpsSol.groundSpeed in centimeters/seconds)
+ */
+void osdDJIFormatVelocityStr(char* buff, int32_t vel )
+{
+    switch ((osd_unit_e)osdConfig()->units) {
+    case OSD_UNIT_UK:
+        FALLTHROUGH;
+    case OSD_UNIT_IMPERIAL:
+        tfp_sprintf(buff, "%3d%s", (int)osdConvertVelocityToUnit(vel), "MPH");
+        break;
+    case OSD_UNIT_METRIC:
+        tfp_sprintf(buff, "%3d%s", (int)osdConvertVelocityToUnit(vel), "KMH");
+        break;
+    }
+}
+static void osdDJIFormatThrottlePosition(char *buff, bool autoThr )
+{
+    
+    int16_t thr = rxGetChannelValue(THROTTLE);
+    if (autoThr && navigationIsControllingThrottle()) {
+        thr = rcCommand[THROTTLE];
+    }
+    tfp_sprintf(buff, "%3d%s", (constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN), "%THR");
+}
+
+/**
+ * Converts distance into a string based on the current unit system.
+ * @param dist Distance in centimeters
+ */
+static void osdDJIFormatDistanceStr(char *buff, int32_t dist)
+{
+ int32_t centifeet;
+ switch ((osd_unit_e)osdConfig()->units) {
+ case OSD_UNIT_IMPERIAL:
+    centifeet = CENTIMETERS_TO_CENTIFEET(dist);
+    if (abs(centifeet) < FEET_PER_MILE * 100 / 2) {
+        // Show feet when dist < 0.5mi
+        tfp_sprintf(buff, "%d%s", (int)(centifeet / 100), "FT");
+    } else {
+        // Show miles when dist >= 0.5mi
+        tfp_sprintf(buff, "%d.%02d%s", (int)(centifeet / (100*FEET_PER_MILE)),
+        (abs(centifeet) % (100 * FEET_PER_MILE)) / FEET_PER_MILE, "Mi");
+    }
+    break;
+ case OSD_UNIT_UK:
+     FALLTHROUGH;
+ case OSD_UNIT_METRIC:
+    if (abs(dist) < METERS_PER_KILOMETER * 100) {
+        // Show meters when dist < 1km
+        tfp_sprintf(buff, "%d%s", (int)(dist / 100), "M");
+    } else {
+        // Show kilometers when dist >= 1km
+        tfp_sprintf(buff, "%d.%02d%s", (int)(dist / (100*METERS_PER_KILOMETER)),
+            (abs(dist) % (100 * METERS_PER_KILOMETER)) / METERS_PER_KILOMETER, "KM");
+     }
+     break;
+ }
+}
+
+static void osdDJIEfficiencyMahPerKM (char *buff)
+{
+    // amperage is in centi amps, speed is in cms/s. We want
+    // mah/km. Values over 999 are considered useless and
+    // displayed as "---""
+    static pt1Filter_t eFilterState;
+    static timeUs_t efficiencyUpdated = 0;
+    int32_t value = 0;
+    timeUs_t currentTimeUs = micros();
+    timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
+    if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
+        if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
+            value = pt1FilterApply4(&eFilterState, ((float)getAmperage() / gpsSol.groundSpeed) / 0.0036f,
+                1, efficiencyTimeDelta * 1e-6f);
+
+            efficiencyUpdated = currentTimeUs;
+        } else {
+            value = eFilterState.state;
+        }
+    }
+    if (value > 0 && value <= 999) {
+        tfp_sprintf(buff, "%3d%s", (int)value, "mAhKM");
+    } else {
+        tfp_sprintf(buff, "%s", "---mAhKM");
+    }
+}
+
+// end of new features
 
 static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn)
 {
@@ -647,73 +763,54 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
                 const char * name = systemConfig()->name;
                 int len = strlen(name);
             
-                if(len != 5){       // fixme, isdigit or something? match only 1 & 0
+                if(name[0] != ':'){
                     if (len > 12) len = 12;
                     sbufWriteData(dst, name, len);
                     break;
-                }else{              // we got a five 
+                }else{            
+                    // :W T S E D
+                    //  | | | | Distance Trip
+                    //  | | | Efficiency mA/KM
+                    //  | | S 3dSpeed
+                    //  | Throttle
+                    //  Warnings
+                    const char *message = " ";
+                    const char *enabledElements = name + 1;
 
-                    // 11111
-                    // |||||
-                    // |||||
-                    // ||||-> mah/km        4
-                    // |||-> 3D Speed       3
-                    // ||-> throttle        2
-                    // |-> tripdist         1
-                    // -> warning           0
-                    const char *message;
-                    const char *customMessages[5];
-                    unsigned customMessageCount = 0;
-
-// this is stupid but I cant get it to work if those declarations are inside the if conditions
-char speed[32];
-char throttle[32];
-char tripdis[32];
-
-                    if (name[4] == '1' ){   // mah/km
-                        //fixme; todo
-                    }
-
-                    if (name[3] == '1' ){   // 3DSpeed
-                        int16_t vert_speed = getEstimatedActualVelocity(Z);
-                        int16_t hor_speed = gpsSol.groundSpeed;
-                        tfp_sprintf(speed, "%3d%s", (int16_t)sqrtf(sq(hor_speed) + sq(vert_speed)), "km/h");
-                        customMessages[customMessageCount++] = speed;
-
-                    }
+                    char djibuf[24];
+                    // clear name from chars : and leading W
+                    if(enabledElements[0] == 'W')
+                        enabledElements += 1;
                     
-                    if (name[2] == '1' ){ // Throttle
-                        int16_t thr = rxGetChannelValue(THROTTLE);
-                        if (navigationIsControllingThrottle()) {
-                            thr = rcCommand[THROTTLE];
-                        }
-                        tfp_sprintf(throttle, "%3d%s", (constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN), "%Thr");
-                        customMessages[customMessageCount++] = throttle;
-                    }
+                    int elemLen = strlen(enabledElements);
 
-                    if (name[1] == '1' ){ // tripDistance
-                        // todo: implement osdFormatDistanceStr, add miles/feet here
-                        int32_t dist = getTotalTravelDistance();
-                        if (abs(dist) < METERS_PER_KILOMETER * 100) {
-                            // Show meters when dist < 1km
-                            tfp_sprintf(tripdis, "%d%s", (int)(dist / 100), "m");
-                            
-                        } else {
-                            // Show kilometers when dist >= 1km
-                            tfp_sprintf(tripdis,"%d.%02d%s", (int)(dist / (100*METERS_PER_KILOMETER)),
-                                (abs(dist) % (100 * METERS_PER_KILOMETER)) / METERS_PER_KILOMETER, "km");
+                    if(elemLen > 0){
+                        switch ( enabledElements[OSD_ALTERNATING_CHOICES(3000, elemLen )] ){
+                            case 'T':
+                                osdDJIFormatThrottlePosition(djibuf,true);
+                                break;
+                            case 'S':
+                                osdDJIFormatVelocityStr(djibuf, osdDJIGet3DSpeed() );
+                                break;
+                            case 'E':
+                                osdDJIEfficiencyMahPerKM(djibuf);
+                                break;
+                            case 'D':
+                                osdDJIFormatDistanceStr( djibuf, getTotalTravelDistance());
+                                break;
+                            case 'W':
+                                tfp_sprintf(djibuf, "%s", "MAKE_W_FIRST");
+                                break;
+                            default:
+                                tfp_sprintf(djibuf, "%s", "UNKOWN_ELEM");
+                                break;
                         }
-                        customMessages[customMessageCount++] = tripdis;
-                    }
 
-                    if (customMessageCount > 0) {
-                        // message = customMessageCount; //lets see how many messages we got
-                        message = customMessages[OSD_ALTERNATING_CHOICES(3000, customMessageCount)];
-                    }else{
-                        message = customMessages[0];
+                        if(djibuf[0] != '\0')
+                            message = djibuf;
                     }
             
-                    if (name[0] == '1' ){
+                    if (name[1] == 'W' ){
                         char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH+1)];
                         if (ARMING_FLAG(ARMED)) {
                             // Aircraft is armed. We might have up to 5
@@ -805,11 +902,13 @@ char tripdis[32];
                                 }
                             }
                         }
-                    }//end if name[0] == 1
-         
-                    sbufWriteData(dst, message, strlen(message));
+                    }
+
+                    if(message[0] != '\0')
+                        sbufWriteData(dst, message, strlen(message));
+
                     break;
-                }   // end of if len != 5
+                }
             }
 
 
