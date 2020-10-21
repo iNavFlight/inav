@@ -613,14 +613,14 @@ static const char * navigationStateMessage(void)
  */
 static int32_t osdConvertVelocityToUnit(int32_t vel)
 {
-    switch ((osd_unit_e)osdConfig()->units) {
-    case OSD_UNIT_UK:
-        FALLTHROUGH;
-    case OSD_UNIT_IMPERIAL:
-        return (vel * 224) / 10000; // Convert to mph
-    case OSD_UNIT_METRIC:
+//debug-CI--local-build-works    switch ((osd_unit_e)osdConfig()->units) {
+//debug-CI--local-build-works    case OSD_UNIT_UK:
+//debug-CI--local-build-works        FALLTHROUGH;
+//debug-CI--local-build-works    case OSD_UNIT_IMPERIAL:
+//debug-CI--local-build-works        return (vel * 224) / 10000; // Convert to mph
+//debug-CI--local-build-works    case OSD_UNIT_METRIC:
         return (vel * 36) / 1000;   // Convert to kmh
-    }
+//debug-CI--local-build-works    }
     // Unreachable
     return -1;
 }
@@ -636,16 +636,16 @@ static int16_t osdDJIGet3DSpeed(void)
  */
 void osdDJIFormatVelocityStr(char* buff, int32_t vel )
 {
-    switch ((osd_unit_e)osdConfig()->units) {
-    case OSD_UNIT_UK:
-        FALLTHROUGH;
-    case OSD_UNIT_IMPERIAL:
-        tfp_sprintf(buff, "%3d%s", (int)osdConvertVelocityToUnit(vel), "MPH");
-        break;
-    case OSD_UNIT_METRIC:
+//debug-CI--local-build-works    switch ((osd_unit_e)osdConfig()->units) {
+//debug-CI--local-build-works    case OSD_UNIT_UK:
+//debug-CI--local-build-works        FALLTHROUGH;
+//debug-CI--local-build-works    case OSD_UNIT_IMPERIAL:
+//debug-CI--local-build-works        tfp_sprintf(buff, "%3d%s", (int)osdConvertVelocityToUnit(vel), "MPH");
+//debug-CI--local-build-works        break;
+//debug-CI--local-build-works    case OSD_UNIT_METRIC:
         tfp_sprintf(buff, "%3d%s", (int)osdConvertVelocityToUnit(vel), "KMH");
-        break;
-    }
+//debug-CI--local-build-works        break;
+//debug-CI--local-build-works    }
 }
 static void osdDJIFormatThrottlePosition(char *buff, bool autoThr )
 {
@@ -663,22 +663,22 @@ static void osdDJIFormatThrottlePosition(char *buff, bool autoThr )
  */
 static void osdDJIFormatDistanceStr(char *buff, int32_t dist)
 {
- int32_t centifeet;
- switch ((osd_unit_e)osdConfig()->units) {
- case OSD_UNIT_IMPERIAL:
-    centifeet = CENTIMETERS_TO_CENTIFEET(dist);
-    if (abs(centifeet) < FEET_PER_MILE * 100 / 2) {
-        // Show feet when dist < 0.5mi
-        tfp_sprintf(buff, "%d%s", (int)(centifeet / 100), "FT");
-    } else {
-        // Show miles when dist >= 0.5mi
-        tfp_sprintf(buff, "%d.%02d%s", (int)(centifeet / (100*FEET_PER_MILE)),
-        (abs(centifeet) % (100 * FEET_PER_MILE)) / FEET_PER_MILE, "Mi");
-    }
-    break;
- case OSD_UNIT_UK:
-     FALLTHROUGH;
- case OSD_UNIT_METRIC:
+//debug-CI--local-build-works int32_t centifeet;
+//debug-CI--local-build-works switch ((osd_unit_e)osdConfig()->units) {
+//debug-CI--local-build-works case OSD_UNIT_IMPERIAL:
+//debug-CI--local-build-works    centifeet = CENTIMETERS_TO_CENTIFEET(dist);
+//debug-CI--local-build-works    if (abs(centifeet) < FEET_PER_MILE * 100 / 2) {
+//debug-CI--local-build-works        // Show feet when dist < 0.5mi
+//debug-CI--local-build-works        tfp_sprintf(buff, "%d%s", (int)(centifeet / 100), "FT");
+//debug-CI--local-build-works    } else {
+//debug-CI--local-build-works        // Show miles when dist >= 0.5mi
+//debug-CI--local-build-works        tfp_sprintf(buff, "%d.%02d%s", (int)(centifeet / (100*FEET_PER_MILE)),
+//debug-CI--local-build-works        (abs(centifeet) % (100 * FEET_PER_MILE)) / FEET_PER_MILE, "Mi");
+//debug-CI--local-build-works    }
+//debug-CI--local-build-works    break;
+//debug-CI--local-build-works case OSD_UNIT_UK:
+//debug-CI--local-build-works     FALLTHROUGH;
+//debug-CI--local-build-works case OSD_UNIT_METRIC:
     if (abs(dist) < METERS_PER_KILOMETER * 100) {
         // Show meters when dist < 1km
         tfp_sprintf(buff, "%d%s", (int)(dist / 100), "M");
@@ -687,8 +687,8 @@ static void osdDJIFormatDistanceStr(char *buff, int32_t dist)
         tfp_sprintf(buff, "%d.%02d%s", (int)(dist / (100*METERS_PER_KILOMETER)),
             (abs(dist) % (100 * METERS_PER_KILOMETER)) / METERS_PER_KILOMETER, "KM");
      }
-     break;
- }
+//debug-CI--local-build-works     break;
+//debug-CI--local-build-works }
 }
 
 static void osdDJIEfficiencyMahPerKM (char *buff)
@@ -769,8 +769,9 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
                     const char *enabledElements = name + 1;
                     char djibuf[24];
                     // clear name from chars : and leading W
-                    if(enabledElements[0] == 'W')
+                    if(enabledElements[0] == 'W'){
                         enabledElements += 1;
+                    }
                     
                     int elemLen = strlen(enabledElements);
 
@@ -796,8 +797,9 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
                                 break;
                         }
 
-                        if(djibuf[0] != '\0')
+                        if(djibuf[0] != '\0'){
                             message = djibuf;
+                        }
                     }
             
                     if (name[1] == 'W' ){
@@ -894,12 +896,12 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
                         }
                     }
 
-                    if(message[0] != '\0')
+                    if(message[0] != '\0'){
                         sbufWriteData(dst, message, strlen(message));
-
-                    break;
+                    }
                 }
             }
+            break;
 
         case DJI_MSP_STATUS:
         case DJI_MSP_STATUS_EX:
