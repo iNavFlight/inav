@@ -398,6 +398,7 @@ static void djiSerializeOSDConfigReply(sbuf_t *dst)
 }
 #endif
 
+#if defined(USE_OSD) //testme
 static const char * osdArmingDisabledReasonMessage(void)
 {
     switch (isArmingDisabledReason()) {
@@ -604,9 +605,6 @@ static const char * navigationStateMessage(void)
 }
 
 
-// end cat
-// new features here
-
 /**
  * Converts velocity based on the current unit system (kmh or mph).
  * @param alt Raw velocity (i.e. as taken from gpsSol.groundSpeed in centimeters/second)
@@ -717,6 +715,7 @@ static void osdDJIEfficiencyMahPerKM (char *buff)
         tfp_sprintf(buff, "%s", "---mAhKM");
     }
 }
+#endif
 
 static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn)
 {
@@ -758,7 +757,8 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
                     if (len > 12) len = 12;
                     sbufWriteData(dst, name, len);
                     break;
-                }else{            
+                }else{
+#if defined(USE_OSD)                    
                     // :W T S E D
                     //  | | | | Distance Trip
                     //  | | | Efficiency mA/KM
@@ -899,6 +899,7 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
                     if(message[0] != '\0'){
                         sbufWriteData(dst, message, strlen(message));
                     }
+#endif                    
                 }
             }
             break;
