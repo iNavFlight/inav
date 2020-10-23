@@ -3,14 +3,14 @@
 
 #define MAVLINK_MSG_ID_RESOURCE_REQUEST 142
 
-MAVPACKED(
+
 typedef struct __mavlink_resource_request_t {
- uint8_t request_id; /*< Request ID. This ID should be re-used when sending back URI contents*/
- uint8_t uri_type; /*< The type of requested URI. 0 = a file via URL. 1 = a UAVCAN binary*/
- uint8_t uri[120]; /*< The requested unique resource identifier (URI). It is not necessarily a straight domain name (depends on the URI type enum)*/
- uint8_t transfer_type; /*< The way the autopilot wants to receive the URI. 0 = MAVLink FTP. 1 = binary stream.*/
- uint8_t storage[120]; /*< The storage path the autopilot wants the URI to be stored in. Will only be valid if the transfer_type has a storage associated (e.g. MAVLink FTP).*/
-}) mavlink_resource_request_t;
+ uint8_t request_id; /*<  Request ID. This ID should be re-used when sending back URI contents*/
+ uint8_t uri_type; /*<  The type of requested URI. 0 = a file via URL. 1 = a UAVCAN binary*/
+ uint8_t uri[120]; /*<  The requested unique resource identifier (URI). It is not necessarily a straight domain name (depends on the URI type enum)*/
+ uint8_t transfer_type; /*<  The way the autopilot wants to receive the URI. 0 = MAVLink FTP. 1 = binary stream.*/
+ uint8_t storage[120]; /*<  The storage path the autopilot wants the URI to be stored in. Will only be valid if the transfer_type has a storage associated (e.g. MAVLink FTP).*/
+} mavlink_resource_request_t;
 
 #define MAVLINK_MSG_ID_RESOURCE_REQUEST_LEN 243
 #define MAVLINK_MSG_ID_RESOURCE_REQUEST_MIN_LEN 243
@@ -54,11 +54,11 @@ typedef struct __mavlink_resource_request_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param request_id Request ID. This ID should be re-used when sending back URI contents
- * @param uri_type The type of requested URI. 0 = a file via URL. 1 = a UAVCAN binary
- * @param uri The requested unique resource identifier (URI). It is not necessarily a straight domain name (depends on the URI type enum)
- * @param transfer_type The way the autopilot wants to receive the URI. 0 = MAVLink FTP. 1 = binary stream.
- * @param storage The storage path the autopilot wants the URI to be stored in. Will only be valid if the transfer_type has a storage associated (e.g. MAVLink FTP).
+ * @param request_id  Request ID. This ID should be re-used when sending back URI contents
+ * @param uri_type  The type of requested URI. 0 = a file via URL. 1 = a UAVCAN binary
+ * @param uri  The requested unique resource identifier (URI). It is not necessarily a straight domain name (depends on the URI type enum)
+ * @param transfer_type  The way the autopilot wants to receive the URI. 0 = MAVLink FTP. 1 = binary stream.
+ * @param storage  The storage path the autopilot wants the URI to be stored in. Will only be valid if the transfer_type has a storage associated (e.g. MAVLink FTP).
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_resource_request_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -92,11 +92,11 @@ static inline uint16_t mavlink_msg_resource_request_pack(uint8_t system_id, uint
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param request_id Request ID. This ID should be re-used when sending back URI contents
- * @param uri_type The type of requested URI. 0 = a file via URL. 1 = a UAVCAN binary
- * @param uri The requested unique resource identifier (URI). It is not necessarily a straight domain name (depends on the URI type enum)
- * @param transfer_type The way the autopilot wants to receive the URI. 0 = MAVLink FTP. 1 = binary stream.
- * @param storage The storage path the autopilot wants the URI to be stored in. Will only be valid if the transfer_type has a storage associated (e.g. MAVLink FTP).
+ * @param request_id  Request ID. This ID should be re-used when sending back URI contents
+ * @param uri_type  The type of requested URI. 0 = a file via URL. 1 = a UAVCAN binary
+ * @param uri  The requested unique resource identifier (URI). It is not necessarily a straight domain name (depends on the URI type enum)
+ * @param transfer_type  The way the autopilot wants to receive the URI. 0 = MAVLink FTP. 1 = binary stream.
+ * @param storage  The storage path the autopilot wants the URI to be stored in. Will only be valid if the transfer_type has a storage associated (e.g. MAVLink FTP).
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_resource_request_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -156,11 +156,11 @@ static inline uint16_t mavlink_msg_resource_request_encode_chan(uint8_t system_i
  * @brief Send a resource_request message
  * @param chan MAVLink channel to send the message
  *
- * @param request_id Request ID. This ID should be re-used when sending back URI contents
- * @param uri_type The type of requested URI. 0 = a file via URL. 1 = a UAVCAN binary
- * @param uri The requested unique resource identifier (URI). It is not necessarily a straight domain name (depends on the URI type enum)
- * @param transfer_type The way the autopilot wants to receive the URI. 0 = MAVLink FTP. 1 = binary stream.
- * @param storage The storage path the autopilot wants the URI to be stored in. Will only be valid if the transfer_type has a storage associated (e.g. MAVLink FTP).
+ * @param request_id  Request ID. This ID should be re-used when sending back URI contents
+ * @param uri_type  The type of requested URI. 0 = a file via URL. 1 = a UAVCAN binary
+ * @param uri  The requested unique resource identifier (URI). It is not necessarily a straight domain name (depends on the URI type enum)
+ * @param transfer_type  The way the autopilot wants to receive the URI. 0 = MAVLink FTP. 1 = binary stream.
+ * @param storage  The storage path the autopilot wants the URI to be stored in. Will only be valid if the transfer_type has a storage associated (e.g. MAVLink FTP).
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -237,7 +237,7 @@ static inline void mavlink_msg_resource_request_send_buf(mavlink_message_t *msgb
 /**
  * @brief Get field request_id from resource_request message
  *
- * @return Request ID. This ID should be re-used when sending back URI contents
+ * @return  Request ID. This ID should be re-used when sending back URI contents
  */
 static inline uint8_t mavlink_msg_resource_request_get_request_id(const mavlink_message_t* msg)
 {
@@ -247,7 +247,7 @@ static inline uint8_t mavlink_msg_resource_request_get_request_id(const mavlink_
 /**
  * @brief Get field uri_type from resource_request message
  *
- * @return The type of requested URI. 0 = a file via URL. 1 = a UAVCAN binary
+ * @return  The type of requested URI. 0 = a file via URL. 1 = a UAVCAN binary
  */
 static inline uint8_t mavlink_msg_resource_request_get_uri_type(const mavlink_message_t* msg)
 {
@@ -257,7 +257,7 @@ static inline uint8_t mavlink_msg_resource_request_get_uri_type(const mavlink_me
 /**
  * @brief Get field uri from resource_request message
  *
- * @return The requested unique resource identifier (URI). It is not necessarily a straight domain name (depends on the URI type enum)
+ * @return  The requested unique resource identifier (URI). It is not necessarily a straight domain name (depends on the URI type enum)
  */
 static inline uint16_t mavlink_msg_resource_request_get_uri(const mavlink_message_t* msg, uint8_t *uri)
 {
@@ -267,7 +267,7 @@ static inline uint16_t mavlink_msg_resource_request_get_uri(const mavlink_messag
 /**
  * @brief Get field transfer_type from resource_request message
  *
- * @return The way the autopilot wants to receive the URI. 0 = MAVLink FTP. 1 = binary stream.
+ * @return  The way the autopilot wants to receive the URI. 0 = MAVLink FTP. 1 = binary stream.
  */
 static inline uint8_t mavlink_msg_resource_request_get_transfer_type(const mavlink_message_t* msg)
 {
@@ -277,7 +277,7 @@ static inline uint8_t mavlink_msg_resource_request_get_transfer_type(const mavli
 /**
  * @brief Get field storage from resource_request message
  *
- * @return The storage path the autopilot wants the URI to be stored in. Will only be valid if the transfer_type has a storage associated (e.g. MAVLink FTP).
+ * @return  The storage path the autopilot wants the URI to be stored in. Will only be valid if the transfer_type has a storage associated (e.g. MAVLink FTP).
  */
 static inline uint16_t mavlink_msg_resource_request_get_storage(const mavlink_message_t* msg, uint8_t *storage)
 {

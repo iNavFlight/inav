@@ -58,6 +58,7 @@ typedef enum {
     GPS_BAUDRATE_38400,
     GPS_BAUDRATE_19200,
     GPS_BAUDRATE_9600,
+    GPS_BAUDRATE_230400,
     GPS_BAUDRATE_COUNT
 } gpsBaudRate_e;
 

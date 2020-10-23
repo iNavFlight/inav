@@ -112,6 +112,7 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_YAW,                          // 28
     LOGIC_CONDITION_OPERAND_FLIGHT_WAYPOINT_INDEX,                          // 29
     LOGIC_CONDITION_OPERAND_FLIGHT_WAYPOINT_ACTION,                         // 30
+    LOGIC_CONDITION_OPERAND_FLIGHT_3D_HOME_DISTANCE,                        // 31
 } logicFlightOperands_e;
 
 typedef enum {

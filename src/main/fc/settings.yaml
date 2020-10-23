@@ -25,7 +25,7 @@ tables:
     values: ["NONE", "PPM", "SERIAL", "MSP", "SPI", "UIB"]
     enum: rxReceiverType_e
   - name: serial_rx
-    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2"]
+    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2"]
   - name: rx_spi_protocol
     values: ["V202_250K", "V202_1M", "SYMA_X", "SYMA_X5C", "CX10", "CX10A", "H8_3D", "INAV", "ELERES"]
     enum: rx_spi_protocol_e
@@ -147,6 +147,8 @@ tables:
   - name: osd_crsf_lq_format
     enum: osd_crsf_lq_format_e
     values: ["TYPE1", "TYPE2"]
+  - name: off_on
+    values: ["OFF", "ON"]
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -570,6 +572,13 @@ groups:
         condition: USE_SPEKTRUM_BIND
         min: SPEKTRUM_SAT_BIND_DISABLED
         max: SPEKTRUM_SAT_BIND_MAX
+      - name: srxl2_unit_id
+        condition: USE_SERIALRX_SRXL2
+        min: 0
+        max: 15
+      - name: srxl2_baud_fast
+        condition: USE_SERIALRX_SRXL2
+        table: off_on
       - name: rx_min_usec
         description: "Defines the shortest pulse width value used when ensuring the channel value is valid. If the receiver gives a pulse value lower than this value then the channel will be marked as bad and will default to the value of mid_rc."
         default_value: "885"
@@ -2547,6 +2556,11 @@ groups:
         max: 255
       - name: mavlink_extra2_rate
         field: mavlink.extra2_rate
+        type: uint8_t
+        min: 0
+        max: 255
+      - name: mavlink_extra3_rate
+        field: mavlink.extra3_rate
         type: uint8_t
         min: 0
         max: 255
