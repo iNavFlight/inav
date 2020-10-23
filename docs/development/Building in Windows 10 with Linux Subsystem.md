@@ -41,6 +41,18 @@ Mount MS windows C drive and clone iNav
 You are ready!
 You now have a folder called inav in the root of C drive that you can edit in windows
 
+### If you get a cloning error
+
+On some installations, you may see the following error:
+```
+Cloning into 'inav'...
+error: chmod on /mnt/c/inav/.git/config.lock failed: Operation not permitted
+fatal: could not set 'core.filemode' to 'false'
+```
+
+You can fix this with by remounting the drive using the following commands
+1. `sudo umount /mnt/c`
+2. `sudo mount -t drvfs C: /mnt/c -o metadata`
 
 ## Building (example):
 
