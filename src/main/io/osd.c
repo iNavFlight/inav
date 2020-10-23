@@ -1660,17 +1660,32 @@ static bool osdDrawSingleElement(uint8_t item)
             }
             break;
 
-    case OSD_CRSF_LQ:
-        buff[0] = SYM_BLANK;
-        tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
-        if (!failsafeIsReceivingRxData()){
-            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-        } else if (rxLinkStatistics.uplinkLQ < osdConfig()->rssi_alarm) {
-            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-        }
-        break;
-
 #if defined(USE_SERIALRX_CRSF)
+        case OSD_CRSF_LQ: {
+        buff[0] = SYM_BLANK;
+        int16_t statsLQ = rxLinkStatistics.uplinkLQ;
+        int16_t scaledLQ = scaleRange(constrain(statsLQ, 0, 100), 0, 100, 170, 300);
+            if (rxLinkStatistics.rfMode == 2) {
+                if (osdConfig()->crsf_lq_format == OSD_CRSF_LQ_TYPE1) {
+                    tfp_sprintf(buff, "%5d%s", scaledLQ, "%");
+                } else {
+                    tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
+                }
+            } else {
+                if (osdConfig()->crsf_lq_format == OSD_CRSF_LQ_TYPE1) {
+                    tfp_sprintf(buff, "%5d%s", rxLinkStatistics.uplinkLQ, "%");
+            } else {
+                    tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
+            }
+            }
+            if (!failsafeIsReceivingRxData()){
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            } else if (rxLinkStatistics.uplinkLQ < osdConfig()->rssi_alarm) {
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            }
+            break;
+        }
+
     case OSD_CRSF_SNR_DB: {
         const char* showsnr = "-12";
         const char* hidesnr = "     ";
@@ -2509,7 +2524,8 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .baro_temp_alarm_max = 600,
 #endif
 #ifdef USE_SERIALRX_CRSF
-    .snr_alarm = 5,
+    .snr_alarm = 4,
+    .crsf_lq_format = OSD_CRSF_LQ_TYPE1,
 #endif
 #ifdef USE_TEMPERATURE_SENSOR
     .temp_label_align = OSD_ALIGN_LEFT,
@@ -2598,10 +2614,10 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_VTX_CHANNEL] = OSD_POS(8, 6);
 
 #ifdef USE_SERIALRX_CRSF
-    osdLayoutsConfig->item_pos[0][OSD_CRSF_RSSI_DBM] = OSD_POS(23, 12);
-    osdLayoutsConfig->item_pos[0][OSD_CRSF_LQ] = OSD_POS(22, 11);
-    osdLayoutsConfig->item_pos[0][OSD_CRSF_SNR_DB] = OSD_POS(23, 9);
-    osdLayoutsConfig->item_pos[0][OSD_CRSF_TX_POWER] = OSD_POS(24, 10);
+    osdLayoutsConfig->item_pos[0][OSD_CRSF_RSSI_DBM] = OSD_POS(24, 12);
+    osdLayoutsConfig->item_pos[0][OSD_CRSF_LQ] = OSD_POS(24, 11);
+    osdLayoutsConfig->item_pos[0][OSD_CRSF_SNR_DB] = OSD_POS(25, 9);
+    osdLayoutsConfig->item_pos[0][OSD_CRSF_TX_POWER] = OSD_POS(25, 10);
 #endif
 
     osdLayoutsConfig->item_pos[0][OSD_ONTIME] = OSD_POS(23, 8);

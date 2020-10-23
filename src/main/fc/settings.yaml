@@ -144,6 +144,9 @@ tables:
   - name: tristate
     enum: tristate_e
     values: ["AUTO", "ON", "OFF"]
+  - name: osd_crsf_lq_format
+    enum: osd_crsf_lq_format_e
+    values: ["TYPE1", "TYPE2"]
   - name: off_on
     values: ["OFF", "ON"]
 
@@ -2726,7 +2729,7 @@ groups:
         max: 1250
       - name: osd_snr_alarm
         description: "Value below which Crossfire SNR Alarm pops-up. (dB)"
-        default_value: "5"
+        default_value: "4"
         field: snr_alarm
         min: -12
         max: 8
@@ -2752,6 +2755,12 @@ groups:
         default_value: "DEFAULT"
         field: crosshairs_style
         table: osd_crosshairs_style
+        type: uint8_t
+      - name: osd_crsf_lq_format
+        description: "To select LQ format"
+        default_value: "TYPE1"
+        field: crsf_lq_format
+        table: osd_crsf_lq_format
         type: uint8_t
       - name: osd_horizon_offset
         description: "To vertically adjust the whole OSD and AHI and scrolling bars"
