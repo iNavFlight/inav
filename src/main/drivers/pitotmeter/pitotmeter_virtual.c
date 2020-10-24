@@ -42,8 +42,8 @@
 
 #include "sensors/pitotmeter.h"
 
-#include "pitotmeter.h"
-#include "pitotmeter_virtual.h"
+#include "drivers/pitotmeter/pitotmeter.h"
+#include "drivers/pitotmeter/pitotmeter_virtual.h"
 
 #if defined(USE_WIND_ESTIMATOR) && defined(USE_PITOT_VIRTUAL) 
 

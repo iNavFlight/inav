@@ -29,10 +29,11 @@
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
 
-#include "drivers/pitotmeter.h"
-#include "drivers/pitotmeter_ms4525.h"
-#include "drivers/pitotmeter_adc.h"
-#include "drivers/pitotmeter_virtual.h"
+#include "drivers/pitotmeter/pitotmeter.h"
+#include "drivers/pitotmeter/pitotmeter_ms4525.h"
+#include "drivers/pitotmeter/pitotmeter_adc.h"
+#include "drivers/pitotmeter/pitotmeter_msp.h"
+#include "drivers/pitotmeter/pitotmeter_virtual.h"
 #include "drivers/time.h"
 
 #include "fc/config.h"
@@ -99,6 +100,20 @@ bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
 #if defined(USE_WIND_ESTIMATOR) && defined(USE_PITOT_VIRTUAL) 
             if ((pitotHardwareToUse != PITOT_AUTODETECT) && virtualPitotDetect(dev)) {
                 pitotHardware = PITOT_VIRTUAL;
+                break;
+            }
+#endif
+            /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+            if (pitotHardwareToUse != PITOT_AUTODETECT) {
+                break;
+            }
+            FALLTHROUGH;
+
+        case PITOT_MSP:
+#ifdef USE_PITOT_MSP
+            // Skip autodetection for MSP baro, only allow manual config
+            if (pitotHardwareToUse != PITOT_AUTODETECT && mspPitotmeterDetect(dev)) {
+                pitotHardware = PITOT_MSP;
                 break;
             }
 #endif

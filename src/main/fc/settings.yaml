@@ -19,7 +19,7 @@ tables:
     values: ["NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "LPS25H", "SPL06", "BMP388", "DPS310", "MSP", "FAKE"]
     enum: baroSensor_e
   - name: pitot_hardware
-    values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE"]
+    values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE", "MSP"]
     enum: pitotSensor_e
   - name: receiver_type
     values: ["NONE", "PPM", "SERIAL", "MSP", "SPI", "UIB"]

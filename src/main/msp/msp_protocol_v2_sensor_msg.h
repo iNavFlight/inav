@@ -71,6 +71,13 @@ typedef struct __attribute__((packed)) {
 typedef struct __attribute__((packed)) {
     uint8_t  instance;
     uint32_t timeMs;
+    float    diffPressurePa;
+    int16_t  temp;              // centi-degrees C
+} mspSensorAirspeedDataMessage_t;
+
+typedef struct __attribute__((packed)) {
+    uint8_t  instance;
+    uint32_t timeMs;
     int16_t  magX; // mGauss, front
     int16_t  magY; // mGauss, right
     int16_t  magZ; // mGauss, down

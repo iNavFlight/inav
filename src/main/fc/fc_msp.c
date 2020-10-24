@@ -43,6 +43,7 @@
 #include "drivers/compass/compass.h"
 #include "drivers/compass/compass_msp.h"
 #include "drivers/barometer/barometer_msp.h"
+#include "drivers/pitotmeter/pitotmeter_msp.h"
 #include "drivers/bus_i2c.h"
 #include "drivers/display.h"
 #include "drivers/flash.h"
@@ -3233,6 +3234,12 @@ static mspResult_e mspProcessSensorCommand(uint16_t cmdMSP, sbuf_t *src)
 #if defined(USE_BARO_MSP)
         case MSP2_SENSOR_BAROMETER:
             mspBaroReceiveNewData(sbufPtr(src));
+            break;
+#endif
+
+#if defined(USE_PITOT_MSP)
+        case MSP2_SENSOR_AIRSPEED:
+            mspPitotmeterReceiveNewData(sbufPtr(src));
             break;
 #endif
     }

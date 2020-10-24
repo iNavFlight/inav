@@ -24,9 +24,9 @@
 
 #include "common/utils.h"
 
-#include "pitotmeter.h"
-#include "pitotmeter_adc.h"
-#include "adc.h"
+#include "drivers/pitotmeter/pitotmeter.h"
+#include "drivers/pitotmeter/pitotmeter_adc.h"
+#include "drivers/adc.h"
 
 #if defined(USE_ADC) && defined(USE_PITOT_ADC)
 
