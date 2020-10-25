@@ -277,6 +277,31 @@ static int logicConditionCompute(
             return operandB;
             break;
 #endif
+
+        case LOGIC_CONDITION_SIN:
+            temporaryValue = (operandB == 0) ? 500 : operandB;
+            return sin_approx(DEGREES_TO_RADIANS(operandA)) * temporaryValue; 
+            break;
+    
+        case LOGIC_CONDITION_COS:
+            temporaryValue = (operandB == 0) ? 500 : operandB;
+            return cos_approx(DEGREES_TO_RADIANS(operandA)) * temporaryValue; 
+            break;
+        break;
+    
+        case LOGIC_CONDITION_TAN:
+            temporaryValue = (operandB == 0) ? 500 : operandB;
+            return tan_approx(DEGREES_TO_RADIANS(operandA)) * temporaryValue; 
+        break;
+    
+        case LOGIC_CONDITION_MAP_INPUT:
+            return scaleRange(constrain(operandA, 0, operandB), 0, operandB, 0, 1000);
+        break;
+    
+        case LOGIC_CONDITION_MAP_OUTPUT:
+            return scaleRange(constrain(operandA, 0, 1000), 0, 1000, 0, operandB);
+        break;
+
         default:
             return false;
             break; 
@@ -439,6 +464,14 @@ static int logicConditionGetFlightOperandValue(int operand) {
         
         case LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_PITCH: // 
             return axisPID[PITCH];
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_WAYPOINT_INDEX:
+            return NAV_Status.activeWpNumber;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_WAYPOINT_ACTION:
+            return NAV_Status.activeWpAction;
             break;
 
         default:

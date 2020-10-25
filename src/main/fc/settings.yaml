@@ -1665,7 +1665,7 @@ groups:
         max: 100
       - name: nav_mc_vel_xy_dterm_attenuation_end
         description: "A point (in percent of both target and current horizontal velocity) where nav_mc_vel_xy_dterm_attenuation reaches maximum"
-        default_value: "60"  
+        default_value: "60"
         field: navVelXyDtermAttenuationEnd
         min: 0
         max: 100
@@ -2724,7 +2724,7 @@ groups:
         max: 1250
       - name: osd_snr_alarm
         description: "Value below which Crossfire SNR Alarm pops-up. (dB)"
-        default_value: "8"
+        default_value: "5"
         field: snr_alarm
         min: -12
         max: 8

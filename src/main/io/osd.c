@@ -1185,7 +1185,7 @@ static void osdDisplayPIDValues(uint8_t elemPosX, uint8_t elemPosY, const char *
 
     elemAttr = TEXT_ATTRIBUTES_NONE;
     tfp_sprintf(buff, "%3d", pidType == PID_TYPE_PIFF ? pid->FF : pid->D);
-    if ((isAdjustmentFunctionSelected(adjFuncD)) || (((adjFuncD == ADJUSTMENT_ROLL_D) || (adjFuncD == ADJUSTMENT_PITCH_D)) && (isAdjustmentFunctionSelected(ADJUSTMENT_PITCH_ROLL_D))))
+    if ((isAdjustmentFunctionSelected(adjFuncD)) || (((adjFuncD == ADJUSTMENT_ROLL_D_FF) || (adjFuncD == ADJUSTMENT_PITCH_D_FF)) && (isAdjustmentFunctionSelected(ADJUSTMENT_PITCH_ROLL_D_FF))))
         TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
     displayWriteWithAttr(osdDisplayPort, elemPosX + 12, elemPosY, buff, elemAttr);
 }
@@ -1653,23 +1653,30 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_CRSF_LQ:
         buff[0] = SYM_BLANK;
-        tfp_sprintf(buff + 1, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
+        tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
         if (!failsafeIsReceivingRxData()){
+            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+        } else if (rxLinkStatistics.uplinkLQ < osdConfig()->rssi_alarm) {
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         }
         break;
 
     case OSD_CRSF_SNR_DB: {
-        const char* hidesnr = "    ";
+        const char* showsnr = "-12";
+        const char* hidesnr = "     ";
         int16_t osdSNR_Alarm = rxLinkStatistics.uplinkSNR;
         if (osdSNR_Alarm <= osdConfig()->snr_alarm) {
           buff[0] = SYM_SRN;
-          tfp_sprintf(buff + 1, "%4d%c", rxLinkStatistics.uplinkSNR, SYM_DB);
+          tfp_sprintf(buff + 1, "%3d%c", rxLinkStatistics.uplinkSNR, SYM_DB);
         }
         else if (osdSNR_Alarm > osdConfig()->snr_alarm) {
-          //displayWrite(osdDisplayPort, elemPosX, elemPosY, "     ");
-          buff[0] = SYM_SRN;
-          tfp_sprintf(buff + 1, "%s%c", hidesnr, SYM_DB);
+            if (cmsInMenu) {
+                buff[0] = SYM_SRN;
+                tfp_sprintf(buff + 1, "%s%c", showsnr, SYM_DB);
+            } else {
+                buff[0] = SYM_BLANK;
+                tfp_sprintf(buff + 1, "%s%c", hidesnr, SYM_BLANK);
+            }
         }
         break;
       }
@@ -1825,15 +1832,15 @@ static bool osdDrawSingleElement(uint8_t item)
 #endif
 
     case OSD_ROLL_PIDS:
-        osdDisplayPIDValues(elemPosX, elemPosY, "ROL", PID_ROLL, ADJUSTMENT_ROLL_P, ADJUSTMENT_ROLL_I, ADJUSTMENT_ROLL_D);
+        osdDisplayPIDValues(elemPosX, elemPosY, "ROL", PID_ROLL, ADJUSTMENT_ROLL_P, ADJUSTMENT_ROLL_I, ADJUSTMENT_ROLL_D_FF);
         return true;
 
     case OSD_PITCH_PIDS:
-        osdDisplayPIDValues(elemPosX, elemPosY, "PIT", PID_PITCH, ADJUSTMENT_PITCH_P, ADJUSTMENT_PITCH_I, ADJUSTMENT_PITCH_D);
+        osdDisplayPIDValues(elemPosX, elemPosY, "PIT", PID_PITCH, ADJUSTMENT_PITCH_P, ADJUSTMENT_PITCH_I, ADJUSTMENT_PITCH_D_FF);
         return true;
 
     case OSD_YAW_PIDS:
-        osdDisplayPIDValues(elemPosX, elemPosY, "YAW", PID_YAW, ADJUSTMENT_YAW_P, ADJUSTMENT_YAW_I, ADJUSTMENT_YAW_D);
+        osdDisplayPIDValues(elemPosX, elemPosY, "YAW", PID_YAW, ADJUSTMENT_YAW_P, ADJUSTMENT_YAW_I, ADJUSTMENT_YAW_D_FF);
         return true;
 
     case OSD_LEVEL_PIDS:
@@ -2561,7 +2568,9 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .baro_temp_alarm_min = -200,
     .baro_temp_alarm_max = 600,
 #endif
-
+#ifdef USE_SERIALRX_CRSF
+    .snr_alarm = 5,
+#endif
 #ifdef USE_TEMPERATURE_SENSOR
     .temp_label_align = OSD_ALIGN_LEFT,
 #endif
@@ -3223,7 +3232,7 @@ void osdUpdate(timeUs_t currentTimeUs)
         else
 #ifdef USE_PROGRAMMING_FRAMEWORK
         if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_OSD_LAYOUT))
-            activeLayout = constrain(logicConditionValuesByType[LOGIC_CONDITION_SET_OSD_LAYOUT], 0, OSD_ALTERNATE_LAYOUT_COUNT); 
+            activeLayout = constrain(logicConditionValuesByType[LOGIC_CONDITION_SET_OSD_LAYOUT], 0, OSD_ALTERNATE_LAYOUT_COUNT);
         else
 #endif
             activeLayout = 0;

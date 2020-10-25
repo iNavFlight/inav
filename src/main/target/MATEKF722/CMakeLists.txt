@@ -1,0 +1,2 @@
+target_stm32f722xe(MATEKF722)
+target_stm32f722xe(MATEKF722_HEXSERVO)

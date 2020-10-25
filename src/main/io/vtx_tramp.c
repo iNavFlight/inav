@@ -276,7 +276,7 @@ static void impl_Process(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
     UNUSED(currentTimeUs);
 
     if (!vtxState.port) {
-        return false;
+        return;
     }
 
     switch((int)vtxState.protoState) {
@@ -411,7 +411,7 @@ static void impl_SetBandAndChannel(vtxDevice_t * vtxDevice, uint8_t band, uint8_
     uint16_t newFreqMhz  = vtx58_Bandchan2Freq(band, channel);
 
     if (newFreqMhz < vtxState.capabilities.freqMin || newFreqMhz > vtxState.capabilities.freqMax) {
-        return false;
+        return;
     }
 
     // Cache band and channel

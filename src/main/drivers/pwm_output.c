@@ -578,7 +578,7 @@ void beeperPwmInit(ioTag_t tag, uint16_t frequency)
         // Attempt to allocate TCH
         TCH_t * tch = timerGetTCH(timHw);
         if (tch == NULL) {
-            return NULL;
+            return;
         }
 
         beeperPwm = &beeperPwmPort;

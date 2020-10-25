@@ -1,0 +1,1 @@
+target_stm32f722xe(ASGARD32F7)
