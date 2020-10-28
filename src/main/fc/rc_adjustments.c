@@ -268,6 +268,14 @@ static const adjustmentConfig_t defaultAdjustmentConfigs[ADJUSTMENT_FUNCTION_COU
         .adjustmentFunction = ADJUSTMENT_VTX_POWER_LEVEL,
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_TPA,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_TPA_BREAKPOINT,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 5 }}
 #ifdef USE_INFLIGHT_PROFILE_ADJUSTMENT
     }, {
         .adjustmentFunction = ADJUSTMENT_PROFILE,
@@ -558,6 +566,12 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
             }
             break;
 #endif
+        case ADJUSTMENT_TPA:
+            applyAdjustmentU8(ADJUSTMENT_TPA, &controlRateConfig->throttle.dynPID, delta, 0, CONTROL_RATE_CONFIG_TPA_MAX);
+            break;
+        case ADJUSTMENT_TPA_BREAKPOINT:
+            applyAdjustmentU16(ADJUSTMENT_TPA_BREAKPOINT, &controlRateConfig->throttle.pa_breakpoint, delta, PWM_RANGE_MIN, PWM_RANGE_MAX);
+            break;
         default:
             break;
     };
