@@ -27,7 +27,7 @@
 
 #include "platform.h"
 
-#if defined(USE_BARO_MSP)
+#if defined(USE_PITOT_MSP)
 
 #include "build/build_config.h"
 #include "build/debug.h"
