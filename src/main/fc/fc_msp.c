@@ -1245,6 +1245,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, navConfig()->general.land_slowdown_minalt);
         sbufWriteU16(dst, navConfig()->general.land_slowdown_maxalt);
         sbufWriteU16(dst, navConfig()->general.emerg_descent_rate);
+        sbufWriteU16(dst, navConfig()->general.rth_home_altitude);
         break;
 
     case MSP_FW_CONFIG:
@@ -2161,6 +2162,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             navConfigMutable()->general.land_slowdown_minalt = sbufReadU16(src);
             navConfigMutable()->general.land_slowdown_maxalt = sbufReadU16(src);
             navConfigMutable()->general.emerg_descent_rate = sbufReadU16(src);
+            navConfigMutable()->general.rth_home_altitude = sbufReadU16(src);
         } else
             return MSP_RESULT_ERROR;
         break;
