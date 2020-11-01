@@ -89,6 +89,20 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
+// This array defines the order that the modes are displayed in the configurator modes page
+static const uint8_t configuratorBoxOrder[CHECKBOX_ITEM_COUNT] = {
+	BOXARM, BOXANGLE, BOXHORIZON, BOXMANUAL, 
+    BOXNAVRTH, BOXNAVPOSHOLD, BOXNAVCRUISE, 
+    BOXNAVALTHOLD, BOXHEADINGHOLD, BOXAIRMODE, 
+    BOXNAVWP, BOXGCSNAV, BOXHOMERESET, 
+    BOXAUTOTRIM, BOXAUTOTUNE, BOXNAVLAUNCH, BOXLOITERDIRCHN, BOXFLAPERON,
+    BOXFPVANGLEMIX, BOXTURNASSIST, BOXBRAKING, BOXSURFACE, BOXHEADFREE, BOXHEADADJ, 
+    BOXBEEPERON, BOXLEDLOW, BOXLIGHTS, 
+    BOXOSD, BOXOSDALT1, BOXOSDALT2, BOXOSDALT3, 
+    BOXCAMSTAB, BOXCAMERA1, BOXCAMERA2, BOXCAMERA3, BOXUSER1, BOXUSER2, 
+    BOXBLACKBOX, BOXFAILSAFE, BOXKILLSWITCH, BOXTELEMETRY, BOXMSPRCOVERRIDE
+};
+
 // this is calculated at startup based on enabled features.
 static uint8_t activeBoxIds[CHECKBOX_ITEM_COUNT];
 // this is the number of filled indexes in above array
@@ -304,6 +318,23 @@ void initActiveBoxIds(void)
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     activeBoxIds[activeBoxIdCount++] = BOXMSPRCOVERRIDE;
 #endif
+    
+    // Sort the modes here for configurator
+    uint8_t tmpActiveBoxIDs[sizeof(activeBoxIds)];
+    memset(tmpActiveBoxIDs, 0xFF, sizeof(tmpActiveBoxIDs));
+    for (uint8_t i=0; i < sizeof(activeBoxIds); i++) {
+        tmpActiveBoxIDs[i] = activeBoxIds[i];
+    }
+
+    uint8_t sortedID = 0;
+    for (uint8_t i=0; i < sizeof(configuratorBoxOrder); i++) {
+        for(uint8_t j=0; j<sizeof(tmpActiveBoxIDs); j++) {
+            if (configuratorBoxOrder[i] == tmpActiveBoxIDs[j]) {
+                activeBoxIds[sortedID++] = tmpActiveBoxIDs[j];
+                break;
+            }
+        }
+    }
 }
 
 #define IS_ENABLED(mask) (mask == 0 ? 0 : 1)
