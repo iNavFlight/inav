@@ -91,16 +91,17 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
 
 // This array defines the order that the modes are displayed in the configurator modes page
 static const uint8_t configuratorBoxOrder[CHECKBOX_ITEM_COUNT] = {
-	BOXARM, BOXANGLE, BOXHORIZON, BOXMANUAL, 
-    BOXNAVRTH, BOXNAVPOSHOLD, BOXNAVCRUISE, 
-    BOXNAVALTHOLD, BOXHEADINGHOLD, BOXAIRMODE, 
-    BOXNAVWP, BOXGCSNAV, BOXHOMERESET, 
-    BOXAUTOTRIM, BOXAUTOTUNE, BOXNAVLAUNCH, BOXLOITERDIRCHN, BOXFLAPERON,
-    BOXFPVANGLEMIX, BOXTURNASSIST, BOXBRAKING, BOXSURFACE, BOXHEADFREE, BOXHEADADJ, 
-    BOXBEEPERON, BOXLEDLOW, BOXLIGHTS, 
-    BOXOSD, BOXOSDALT1, BOXOSDALT2, BOXOSDALT3, 
-    BOXCAMSTAB, BOXCAMERA1, BOXCAMERA2, BOXCAMERA3, BOXUSER1, BOXUSER2, 
-    BOXBLACKBOX, BOXFAILSAFE, BOXKILLSWITCH, BOXTELEMETRY, BOXMSPRCOVERRIDE
+    BOXARM,                                                                             // Arming
+    BOXANGLE, BOXHORIZON, BOXMANUAL,                                                    // Flight Modes
+    BOXNAVRTH, BOXNAVPOSHOLD, BOXNAVCRUISE,                                             // Navigation Modes
+    BOXNAVALTHOLD, BOXHEADINGHOLD, BOXAIRMODE,                                          // Flight mode modifiers
+    BOXNAVWP, BOXGCSNAV, BOXHOMERESET,                                                  // Navigation
+    BOXAUTOTRIM, BOXAUTOTUNE, BOXNAVLAUNCH, BOXLOITERDIRCHN, BOXFLAPERON,               // Fixed Wing specific
+    BOXFPVANGLEMIX, BOXTURNASSIST, BOXBRAKING, BOXSURFACE, BOXHEADFREE, BOXHEADADJ,     // Multi-rotor specific
+    BOXBEEPERON, BOXLEDLOW, BOXLIGHTS,                                                  // Feedback (buzzer/LEDs etc)
+    BOXOSD, BOXOSDALT1, BOXOSDALT2, BOXOSDALT3,                                         // OSD
+    BOXCAMSTAB, BOXCAMERA1, BOXCAMERA2, BOXCAMERA3, BOXUSER1, BOXUSER2,                 // Camera/FPV
+    BOXBLACKBOX, BOXFAILSAFE, BOXKILLSWITCH, BOXTELEMETRY, BOXMSPRCOVERRIDE             // Misc
 };
 
 // this is calculated at startup based on enabled features.
