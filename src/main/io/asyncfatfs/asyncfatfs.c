@@ -1694,6 +1694,8 @@ static afatfsOperationStatus_e afatfs_appendSuperclusterContinue(afatfsFile_t *f
             // Update the fileSize/firstCluster in the directory entry for the file
             status = afatfs_saveDirectoryEntry(file, AFATFS_SAVE_DIRECTORY_NORMAL);
         break;
+        default:
+            status = AFATFS_OPERATION_FAILURE;
     }
 
     if ((status == AFATFS_OPERATION_FAILURE || status == AFATFS_OPERATION_SUCCESS) && file->operation.operation == AFATFS_FILE_OPERATION_APPEND_SUPERCLUSTER) {
@@ -2487,6 +2489,8 @@ static afatfsOperationStatus_e afatfs_ftruncateContinue(afatfsFilePtr_t file, bo
 
             return AFATFS_OPERATION_SUCCESS;
         break;
+        default:
+            status = AFATFS_OPERATION_FAILURE;
     }
 
     if (status == AFATFS_OPERATION_FAILURE && file->operation.operation == AFATFS_FILE_OPERATION_TRUNCATE) {

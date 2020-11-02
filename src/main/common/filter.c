@@ -148,16 +148,18 @@ void biquadFilterInit(biquadFilter_t *filter, uint16_t filterFreq, uint32_t samp
 
         float b0, b1, b2;
         switch (filterType) {
-        case FILTER_LPF:
-            b0 = (1 - cs) / 2;
-            b1 = 1 - cs;
-            b2 = (1 - cs) / 2;
-            break;
-        case FILTER_NOTCH:
-            b0 =  1;
-            b1 = -2 * cs;
-            b2 =  1;
-            break;
+            case FILTER_LPF:
+                b0 = (1 - cs) / 2;
+                b1 = 1 - cs;
+                b2 = (1 - cs) / 2;
+                break;
+            case FILTER_NOTCH:
+                b0 = 1;
+                b1 = -2 * cs;
+                b2 = 1;
+                break;
+            default:
+                goto initError;
         }
         const float a0 =  1 + alpha;
         const float a1 = -2 * cs;
@@ -172,16 +174,23 @@ void biquadFilterInit(biquadFilter_t *filter, uint16_t filterFreq, uint32_t samp
     }
     else {
         // Not possible to filter frequencies above Nyquist frequency - passthrough
-        filter->b0 = 1.0f;
-        filter->b1 = 0.0f;
-        filter->b2 = 0.0f;
-        filter->a1 = 0.0f;
-        filter->a2 = 0.0f;
+        goto initError;
     }
 
     // zero initial samples
     filter->x1 = filter->x2 = 0;
     filter->y1 = filter->y2 = 0;
+
+    return;
+
+    initError:
+
+    // passthrough
+    filter->b0 = 1.0f;
+    filter->b1 = 0.0f;
+    filter->b2 = 0.0f;
+    filter->a1 = 0.0f;
+    filter->a2 = 0.0f;
 }
 
 FAST_CODE float biquadFilterApplyDF1(biquadFilter_t *filter, float input)

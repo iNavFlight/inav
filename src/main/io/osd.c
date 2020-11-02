@@ -417,6 +417,7 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
             centivalue = (ws * 224) / 100;
             suffix = SYM_MPH;
             break;
+        default:
         case OSD_UNIT_METRIC:
             centivalue = (ws * 36) / 10;
             suffix = SYM_KMH;
@@ -1011,6 +1012,7 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
             break;
         case OSD_UNIT_UK:
             FALLTHROUGH;
+        default:
         case OSD_UNIT_METRIC:
             initialScale = 10; // 10m as initial scale
             break;
@@ -1844,6 +1846,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     value = CENTIMETERS_TO_CENTIFEET(value);
                     sym = SYM_FTS;
                     break;
+                default:
                 case OSD_UNIT_METRIC:
                     // Already in cm/s
                     sym = SYM_MS;
@@ -2325,6 +2328,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 break;
             case OSD_UNIT_UK:
                 FALLTHROUGH;
+            default:
             case OSD_UNIT_METRIC:
                 scaleToUnit = 100; // scale to cm for osdFormatCentiNumber()
                 scaleUnitDivisor = 1000; // Convert to km when scale gets bigger than 999m

@@ -225,7 +225,7 @@ static uint8_t osdUpdateSidebar(osd_sidebar_scroll_e scroll, osd_sidebar_t *side
     // Scroll between SYM_AH_DECORATION_MIN and SYM_AH_DECORATION_MAX.
     // Zero scrolling should draw SYM_AH_DECORATION.
     uint8_t decoration = SYM_AH_DECORATION;
-    int offset;
+    int offset = 0;
     int steps;
     switch (scroll) {
         case OSD_SIDEBAR_SCROLL_NONE:
@@ -240,8 +240,6 @@ static uint8_t osdUpdateSidebar(osd_sidebar_scroll_e scroll, osd_sidebar_t *side
         case OSD_SIDEBAR_SCROLL_GROUND_SPEED:
 #if defined(USE_GPS)
             offset = gpsSol.groundSpeed;
-#else
-            offset = 0;
 #endif
             // Move 1 char for every 20 cm/s
             steps = offset / 20;
@@ -249,8 +247,6 @@ static uint8_t osdUpdateSidebar(osd_sidebar_scroll_e scroll, osd_sidebar_t *side
         case OSD_SIDEBAR_SCROLL_HOME_DISTANCE:
 #if defined(USE_GPS)
             offset = GPS_distanceToHome;
-#else
-            offset = 0;
 #endif
             // Move 1 char for every 5m
             steps = offset / 5;
