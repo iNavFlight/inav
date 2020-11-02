@@ -1122,7 +1122,7 @@ static void printRxRange(uint8_t dumpMask, const rxChannelRangeConfig_t *channel
 
 static void cliRxRange(char *cmdline)
 {
-    int i, validArgumentCount = 0;
+    int i;
     const char *ptr;
 
     if (isEmpty(cmdline)) {
@@ -1136,20 +1136,14 @@ static void cliRxRange(char *cmdline)
             int rangeMin, rangeMax;
 
             ptr = nextArg(ptr);
-            if (ptr) {
-                rangeMin = fastA2I(ptr);
-                validArgumentCount++;
-            }
+            if (!ptr) goto argumentError;
+            rangeMin = fastA2I(ptr);
 
             ptr = nextArg(ptr);
-            if (ptr) {
-                rangeMax = fastA2I(ptr);
-                validArgumentCount++;
-            }
+            if (!ptr) goto argumentError;
+            rangeMax = fastA2I(ptr);
 
-            if (validArgumentCount != 2) {
-                cliShowParseError();
-            } else if (rangeMin < PWM_PULSE_MIN || rangeMin > PWM_PULSE_MAX || rangeMax < PWM_PULSE_MIN || rangeMax > PWM_PULSE_MAX) {
+            if (rangeMin < PWM_PULSE_MIN || rangeMin > PWM_PULSE_MAX || rangeMax < PWM_PULSE_MIN || rangeMax > PWM_PULSE_MAX) {
                 cliShowParseError();
             } else {
                 rxChannelRangeConfig_t *channelRangeConfig = rxChannelRangeConfigsMutable(i);
@@ -1160,6 +1154,11 @@ static void cliRxRange(char *cmdline)
             cliShowArgumentRangeError("channel", 0, NON_AUX_CHANNEL_COUNT - 1);
         }
     }
+
+    return;
+
+    argumentError:
+        cliShowParseError();
 }
 
 #ifdef USE_TEMPERATURE_SENSOR
@@ -1213,51 +1212,35 @@ static void cliTempSensor(char *cmdline)
         int16_t type, alarm_min, alarm_max;
         bool addressValid = false;
         uint64_t address;
-        int8_t osdSymbol;
-        uint8_t validArgumentCount = 0;
+        int8_t osdSymbol = 0;
         i = fastA2I(ptr);
         if (i >= 0 && i < MAX_TEMP_SENSORS) {
 
-            ptr = nextArg(ptr);
-            if (ptr) {
-                type = fastA2I(ptr);
-                validArgumentCount++;
-            }
+            if (!(ptr = nextArg(ptr))) goto argumentError;
+            type = fastA2I(ptr);
 
-            ptr = nextArg(ptr);
-            if (ptr) {
-                addressValid = tempSensorStringToAddress(ptr, &address);
-                validArgumentCount++;
-            }
+            if (!(ptr = nextArg(ptr))) goto argumentError;
+            addressValid = tempSensorStringToAddress(ptr, &address);
 
-            ptr = nextArg(ptr);
-            if (ptr) {
-                alarm_min = fastA2I(ptr);
-                validArgumentCount++;
-            }
+            if (!(ptr = nextArg(ptr))) goto argumentError;
+            alarm_min = fastA2I(ptr);
 
-            ptr = nextArg(ptr);
-            if (ptr) {
-                alarm_max = fastA2I(ptr);
-                validArgumentCount++;
-            }
+            if (!(ptr = nextArg(ptr))) goto argumentError;
+            alarm_max = fastA2I(ptr);
 
-            ptr = nextArg(ptr);
-            if (ptr) {
+            if ((ptr = nextArg(ptr))) {
                 osdSymbol = fastA2I(ptr);
-                validArgumentCount++;
             }
 
-            label = nextArg(ptr);
-            if (label)
-                ++validArgumentCount;
-            else
+            if (!(label = nextArg(ptr))) {
                 label = "";
+            }
 
-            if (validArgumentCount < 4) {
-                cliShowParseError();
-            } else if (type < 0 || type > TEMP_SENSOR_DS18B20 || alarm_min < -550 || alarm_min > 1250 || alarm_max < -550 || alarm_max > 1250 || osdSymbol < 0 || osdSymbol > TEMP_SENSOR_SYM_COUNT || strlen(label) > TEMPERATURE_LABEL_LEN || !addressValid) {
-                cliShowParseError();
+            // check for too many arguments
+            if ((ptr = nextArg(ptr))) goto argumentError;
+
+            if (type < 0 || type > TEMP_SENSOR_DS18B20 || alarm_min < -550 || alarm_min > 1250 || alarm_max < -550 || alarm_max > 1250 || osdSymbol < 0 || osdSymbol > TEMP_SENSOR_SYM_COUNT || strlen(label) > TEMPERATURE_LABEL_LEN || !addressValid) {
+                goto argumentError;
             } else {
                 tempSensorConfig_t *sensorConfig = tempSensorConfigMutable(i);
                 sensorConfig->type = type;
@@ -1274,6 +1257,11 @@ static void cliTempSensor(char *cmdline)
             cliShowArgumentRangeError("sensor index", 0, MAX_TEMP_SENSORS - 1);
         }
     }
+
+    return;
+    
+    argumentError:
+        cliShowParseError();
 }
 #endif
 
@@ -1304,37 +1292,34 @@ static void cliSafeHomes(char *cmdline)
     } else {
         int32_t lat, lon;
         bool enabled;
-        uint8_t validArgumentCount = 0;
         const char *ptr = cmdline;
         int8_t i = fastA2I(ptr);
         if (i < 0 || i >= MAX_SAFE_HOMES) {
              cliShowArgumentRangeError("safehome index", 0, MAX_SAFE_HOMES - 1);
         } else {
-            if ((ptr = nextArg(ptr))) {
-                enabled = fastA2I(ptr);
-                validArgumentCount++;
-            }
-            if ((ptr = nextArg(ptr))) {
-                lat = fastA2I(ptr);
-                validArgumentCount++;
-            }
-            if ((ptr = nextArg(ptr))) {
-                lon = fastA2I(ptr);
-                validArgumentCount++;
-            }
-            if ((ptr = nextArg(ptr))) {
-                // check for too many arguments
-                validArgumentCount++;
-            }
-            if (validArgumentCount != 3) {
-                cliShowParseError();
-            } else {
-                safeHomeConfigMutable(i)->enabled = enabled;
-                safeHomeConfigMutable(i)->lat = lat;
-                safeHomeConfigMutable(i)->lon = lon;
-            }
+
+            if (!(ptr = nextArg(ptr))) goto argumentError;
+            enabled = fastA2I(ptr);
+
+            if (!(ptr = nextArg(ptr))) goto argumentError;
+            lat = fastA2I(ptr);
+
+            if (!(ptr = nextArg(ptr))) goto argumentError;
+            lon = fastA2I(ptr);
+
+            // check for too many arguments
+            if ((ptr = nextArg(ptr))) goto argumentError;
+
+            safeHomeConfigMutable(i)->enabled = enabled;
+            safeHomeConfigMutable(i)->lat = lat;
+            safeHomeConfigMutable(i)->lon = lon;
         }
     }
+
+    return;
+
+    argumentError:
+        cliShowParseError();
 }
 
 #endif 
@@ -1404,64 +1389,48 @@ static void cliWaypoints(char *cmdline)
             cliShowParseError();
         }
     } else {
-        int16_t i, p1,p2=0,p3=0,tmp;
+        int16_t i, p1, p2=0, p3=0, tmp;
         uint8_t action, flag;
         int32_t lat, lon, alt;
-        uint8_t validArgumentCount = 0;
         const char *ptr = cmdline;
         i = fastA2I(ptr);
         if (i >= 0 && i < NAV_MAX_WAYPOINTS) {
-            ptr = nextArg(ptr);
-            if (ptr) {
-                action = fastA2I(ptr);
-                validArgumentCount++;
-            }
-            ptr = nextArg(ptr);
-            if (ptr) {
-                lat = fastA2I(ptr);
-                validArgumentCount++;
-            }
-            ptr = nextArg(ptr);
-            if (ptr) {
-                lon = fastA2I(ptr);
-                validArgumentCount++;
-            }
-            ptr = nextArg(ptr);
-            if (ptr) {
-                alt = fastA2I(ptr);
-                validArgumentCount++;
-            }
-            ptr = nextArg(ptr);
-            if (ptr) {
-                p1 = fastA2I(ptr);
-                validArgumentCount++;
-            }
-            ptr = nextArg(ptr);
-            if (ptr) {
-                tmp = fastA2I(ptr);
-                validArgumentCount++;
-            }
-                /* We support pre-2.5 6 values (... p1,flags) or
-                 *  2.5 and later, 8 values (... p1,p2,p3,flags)
-                 */
+
+            if (!(ptr = nextArg(ptr))) goto argumentError;
+            action = fastA2I(ptr);
+
+            if (!(ptr = nextArg(ptr))) goto argumentError;
+            lat = fastA2I(ptr);
+
+            if (!(ptr = nextArg(ptr))) goto argumentError;
+            lon = fastA2I(ptr);
+
+            if (!(ptr = nextArg(ptr))) goto argumentError;
+            alt = fastA2I(ptr);
+
+            if (!(ptr = nextArg(ptr))) goto argumentError;
+            p1 = fastA2I(ptr);
+
+            if (!(ptr = nextArg(ptr))) goto argumentError;
+            tmp = fastA2I(ptr);
+
+            /* We support pre-2.5 6 values (... p1,flags) or
+             *  2.5 and later, 8 values (... p1,p2,p3,flags) */
             ptr = nextArg(ptr);
             if (ptr) {
                 p2 = tmp;
                 p3 = fastA2I(ptr);
-                validArgumentCount++;
-                ptr = nextArg(ptr);
-                 if (ptr) {
-                    flag = fastA2I(ptr);
-                    validArgumentCount++;
-                }
+                if (!(ptr = nextArg(ptr))) goto argumentError;
+                flag = fastA2I(ptr);
             } else {
                 flag = tmp;
             }
 
-            if (!(validArgumentCount == 6 || validArgumentCount == 8)) {
-                cliShowParseError();
-            } else if (!(action == 0 || action == NAV_WP_ACTION_WAYPOINT || action == NAV_WP_ACTION_RTH || action == NAV_WP_ACTION_JUMP || action == NAV_WP_ACTION_HOLD_TIME || action == NAV_WP_ACTION_LAND) || (p1 < 0) || !(flag == 0 || flag == NAV_WP_FLAG_LAST)) {
-                cliShowParseError();
+            // check for too many arguments
+            if ((ptr = nextArg(ptr))) goto argumentError;
+
+            if (!(action == 0 || action == NAV_WP_ACTION_WAYPOINT || action == NAV_WP_ACTION_RTH || action == NAV_WP_ACTION_JUMP || action == NAV_WP_ACTION_HOLD_TIME || action == NAV_WP_ACTION_LAND) || (p1 < 0) || !(flag == 0 || flag == NAV_WP_FLAG_LAST)) {
+                goto argumentError;
             } else {
                 posControl.waypointList[i].action = action;
                 posControl.waypointList[i].lat = lat;
@@ -1476,6 +1445,11 @@ static void cliWaypoints(char *cmdline)
             cliShowArgumentRangeError("wp index", 0, NAV_MAX_WAYPOINTS - 1);
         }
     }
+
+    return;
+
+    argumentError:
+        cliShowParseError();
 }
 
 #endif
