@@ -1,0 +1,1 @@
+target_stm32f745xg(IFLIGHT_F745_AIO)
