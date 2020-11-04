@@ -227,6 +227,8 @@ main_sources(COMMON_SRC
     drivers/rcc.h
     drivers/rx_nrf24l01.c
     drivers/rx_nrf24l01.h
+	drivers/rx_cc2500.c
+	drivers/rx_cc2500.h
     drivers/rx_pwm.c
     drivers/rx_pwm.h
     drivers/rx_spi.c
@@ -377,6 +379,15 @@ main_sources(COMMON_SRC
     rx/msp.h
     rx/msp_override.c
     rx/msp_override.h
+	rx/cc2500_common.c
+	rx/cc2500_common.h
+	rx/cc2500_frsky_common.h
+	rx/cc2500_frsky_shared.c
+	rx/cc2500_frsky_shared.h
+	rx/cc2500_frsky_d.c
+	rx/cc2500_frsky_d.h
+	rx/cc2500_frsky_x.c
+	rx/cc2500_frsky_x.h
     rx/nrf24_cx10.c
     rx/nrf24_cx10.h
     rx/nrf24_inav.c
@@ -395,6 +406,8 @@ main_sources(COMMON_SRC
     rx/rx.h
     rx/rx_spi.c
     rx/rx_spi.h
+	rx/rx_spi_common.c
+	rx/rx_spi_common.h
     rx/sbus.c
     rx/sbus.h
     rx/sbus_channels.c

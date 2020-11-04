@@ -133,6 +133,9 @@ typedef enum {
     /* OSD chips */
     DEVHW_MAX7456,
 
+    /*SPI receiver*/
+    DEVHW_RX_SPI,
+
     /* Rangefinder modules */
     DEVHW_SRF10,
     DEVHW_HCSR04_I2C,   // DIY-style adapter

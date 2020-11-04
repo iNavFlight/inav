@@ -61,6 +61,25 @@
 #undef USE_DYNAMIC_FILTERS
 #endif
 
+#if defined(USE_RX_FRSKY_SPI_D) || defined(USE_RX_FRSKY_SPI_X)
+#define USE_RX_CC2500
+#define USE_RX_FRSKY_SPI
+#endif
+
+#if !defined(USE_RX_CC2500)
+#undef USE_RX_CC2500_SPI_PA_LNA
+#endif
+
+#if !defined(USE_RX_CC2500_SPI_PA_LNA)
+#undef USE_RX_CC2500_SPI_DIVERSITY
+#endif
+
+#if defined(RX_CC2500_SPI_DISABLE_CHIP_DETECTION)
+#define CC2500_SPI_CHIP_DETECTION false
+#else
+#define CC2500_SPI_CHIP_DETECTION true
+#endif
+
 //Defines for compiler optimizations
 #ifndef STM32F3
 #define FUNCTION_COMPILE_FOR_SIZE __attribute__((optimize("-Os")))

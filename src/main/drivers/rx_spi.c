@@ -30,120 +30,141 @@
 
 #include "drivers/time.h"
 #include "drivers/io.h"
+#include "drivers/bus.h"
+#include "drivers/exti.h"
+
 #include "io_impl.h"
 #include "rcc.h"
 #include "rx_spi.h"
 
 #include "drivers/bus_spi.h"
+#include "common/log.h"
 
-#define DISABLE_RX()    {IOHi(IOGetByTag(IO_TAG(RX_NSS_PIN)));}
-#define ENABLE_RX()     {IOLo(IOGetByTag(IO_TAG(RX_NSS_PIN)));}
-#ifdef RX_CE_PIN
-#define RX_CE_HI()       {IOHi(IOGetByTag(IO_TAG(RX_CE_PIN)));}
-#define RX_CE_LO()       {IOLo(IOGetByTag(IO_TAG(RX_CE_PIN)));}
-#endif
+// 10 MHz max SPI frequency
+#define RX_MAX_SPI_CLK_HZ 10000000
 
+#define ENABLE_RX() IOLo(busdev->busdev.spi.csnPin)
+#define DISABLE_RX() IOHi(busdev->busdev.spi.csnPin)
 
-#ifdef RX_IRQ_PIN
-static IO_t rxIrqPin = IO_NONE;
-#endif
+static busDevice_t rxSpiDevice;
+static busDevice_t *busdev = &rxSpiDevice;
 
-void rxSpiDeviceInit()
+static IO_t extiPin = IO_NONE;
+static extiCallbackRec_t rxSpiExtiCallbackRec;
+static bool extiLevel = true;
+
+static volatile bool extiHasOccurred = false;
+static volatile timeUs_t lastExtiTimeUs = 0;
+
+bool rxSpiDeviceInit(void)
 {
-    static bool hardwareInitialised = false;
+    busdev = busDeviceInit(BUSTYPE_SPI, DEVHW_RX_SPI, 0, OWNER_RX_SPI);
 
-    if (hardwareInitialised) {
-        return;
+    if (!busdev) {
+        return false;
     }
+	
+	busSetSpeed(busdev, BUS_SPEED_FAST);
 
-    const SPIDevice rxSPIDevice = spiDeviceByInstance(RX_SPI_INSTANCE);
-    IOInit(IOGetByTag(IO_TAG(RX_NSS_PIN)), OWNER_SPI, RESOURCE_SPI_CS, rxSPIDevice + 1);
+    const IO_t rxCsPin = IOGetByTag(IO_TAG(RX_NSS_PIN));
+    IOInit(rxCsPin, OWNER_RX_SPI_CE, RESOURCE_RX_SPI, 0);
+    IOConfigGPIO(rxCsPin, SPI_IO_CS_CFG);
+	busdev->busdev.spi.csnPin = rxCsPin;
 
-#ifdef RX_IRQ_PIN
-    rxIrqPin = IOGetByTag(IO_TAG(RX_IRQ_PIN));
-    IOInit(rxIrqPin, OWNER_RX, RESOURCE_NONE, 0);
-    IOConfigGPIO(rxIrqPin, IOCFG_IN_FLOATING);
-#endif
-
-#ifdef RX_CE_PIN
-    // CE as OUTPUT
-    IOInit(IOGetByTag(IO_TAG(RX_CE_PIN)), OWNER_RX_SPI, RESOURCE_RX_CE, rxSPIDevice + 1);
-#if defined(STM32F3) || defined(STM32F4)
-    IOConfigGPIOAF(IOGetByTag(IO_TAG(RX_CE_PIN)), SPI_IO_CS_CFG, 0);
-#endif
-    RX_CE_LO();
-#endif // RX_CE_PIN
     DISABLE_RX();
 
-#ifdef RX_SPI_INSTANCE
-    spiSetSpeed(RX_SPI_INSTANCE, SPI_CLOCK_STANDARD);
-#endif
-    hardwareInitialised = true;
+    extiPin = IOGetByTag(IO_TAG(RX_SPI_EXTI_PIN));
+	if (extiPin) {
+        IOInit(extiPin, OWNER_RX_SPI_EXTI, RESOURCE_IO, 0);
+    }
+
+    LOG_D(RX_SPI, "rxSpiDeviceInit complete. extiPin (%d)", (int)extiPin);
+	
+	return true;
+}
+
+void rxSpiExtiHandler(extiCallbackRec_t* callback)
+{
+    UNUSED(callback);
+
+    const timeUs_t extiTimeUs = microsISR();
+
+    if (IORead(extiPin) == extiLevel) {
+        lastExtiTimeUs = extiTimeUs;
+        extiHasOccurred = true;
+    }
+}
+
+void rxSpiExtiInit(void)
+{
+    if (extiPin) {
+		extiLevel = false;
+        EXTIHandlerInit(&rxSpiExtiCallbackRec, rxSpiExtiHandler);
+        EXTIConfig(extiPin, &rxSpiExtiCallbackRec, 4, EXTI_Trigger_Rising);
+        EXTIEnable(extiPin, true);
+    }
 }
 
 uint8_t rxSpiTransferByte(uint8_t data)
 {
-#ifdef RX_SPI_INSTANCE
-    return spiTransferByte(RX_SPI_INSTANCE, data);
-#else
-    return 0;
-#endif
+	uint8_t response;
+    spiBusTransfer(busdev, &response, &data, 1);
+	return response;
 }
 
-uint8_t rxSpiWriteByte(uint8_t data)
+void rxSpiWriteByte(uint8_t data)
 {
-    ENABLE_RX();
-    const uint8_t ret = rxSpiTransferByte(data);
-    DISABLE_RX();
-    return ret;
+    spiBusTransfer(busdev, NULL, &data, 1);
 }
 
-uint8_t rxSpiWriteCommand(uint8_t command, uint8_t data)
+void rxSpiWriteCommand(uint8_t command, uint8_t data)
 {
-    ENABLE_RX();
-    const uint8_t ret = rxSpiTransferByte(command);
-    rxSpiTransferByte(data);
-    DISABLE_RX();
-    return ret;
+    spiBusWriteRegister(busdev, command, data);
 }
 
-uint8_t rxSpiWriteCommandMulti(uint8_t command, const uint8_t *data, uint8_t length)
+void rxSpiWriteCommandMulti(uint8_t command, const uint8_t *data, uint8_t length)
 {
-    ENABLE_RX();
-    const uint8_t ret = rxSpiTransferByte(command);
-    for (uint8_t i = 0; i < length; i++) {
-        rxSpiTransferByte(data[i]);
-    }
-    DISABLE_RX();
-    return ret;
+    spiBusWriteBuffer(busdev, command, data, length);
 }
 
 uint8_t rxSpiReadCommand(uint8_t command, uint8_t data)
 {
-    ENABLE_RX();
-    rxSpiTransferByte(command);
-    const uint8_t ret = rxSpiTransferByte(data);
-    DISABLE_RX();
-    return ret;
+    UNUSED(data);
+	uint8_t response;
+    spiBusReadRegister(busdev, command, &response);
+    return response;
 }
 
-uint8_t rxSpiReadCommandMulti(uint8_t command, uint8_t commandData, uint8_t *retData, uint8_t length)
+void rxSpiReadCommandMulti(uint8_t command, uint8_t commandData, uint8_t *retData, uint8_t length)
 {
-    ENABLE_RX();
-    const uint8_t ret = rxSpiTransferByte(command);
-    for (uint8_t i = 0; i < length; i++) {
-        retData[i] = rxSpiTransferByte(commandData);
-    }
-    DISABLE_RX();
-    return ret;
+	UNUSED(commandData);
+    spiBusReadBuffer(busdev, command, retData, length);
 }
 
-#ifdef RX_IRQ_PIN
+bool rxSpiExtiConfigured(void)
+{
+    return extiPin != IO_NONE;
+}
+
+bool rxSpiGetExtiState(void)
+{
+    return IORead(extiPin);
+}
+
+bool rxSpiPollExti(void)
+{
+    return extiHasOccurred;
+}
+
+void rxSpiResetExti(void)
+{
+    extiHasOccurred = false;
+}
+
 bool rxSpiCheckIrq(void)
 {
-    return !IORead(rxIrqPin);
+    return !IORead(extiPin);
 }
-#endif
 
 #endif
 

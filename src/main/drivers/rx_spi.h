@@ -18,14 +18,21 @@
 
 #include <stdint.h>
 
-#define RX_SPI_MAX_PAYLOAD_SIZE 32
+#define RX_SPI_MAX_PAYLOAD_SIZE 35
 
-void rxSpiDeviceInit(void);
+bool rxSpiDeviceInit(void);
 uint8_t rxSpiTransferByte(uint8_t data);
-uint8_t rxSpiWriteByte(uint8_t data);
-uint8_t rxSpiWriteCommand(uint8_t command, uint8_t data);
-uint8_t rxSpiWriteCommandMulti(uint8_t command, const uint8_t *data, uint8_t length);
+void rxSpiWriteByte(uint8_t data);
+void rxSpiWriteCommand(uint8_t command, uint8_t data);
+void rxSpiWriteCommandMulti(uint8_t command, const uint8_t *data, uint8_t length);
 uint8_t rxSpiReadCommand(uint8_t command, uint8_t commandData);
-uint8_t rxSpiReadCommandMulti(uint8_t command, uint8_t commandData, uint8_t *retData, uint8_t length);
-bool    rxSpiCheckIrq(void);
+void rxSpiReadCommandMulti(uint8_t command, uint8_t commandData, uint8_t *retData, uint8_t length);
+
+void rxSpiExtiInit(void);
+bool rxSpiExtiConfigured(void);
+bool rxSpiGetExtiState(void);
+bool rxSpiPollExti(void);
+void rxSpiResetExti(void);
+
+bool rxSpiCheckIrq(void);
 

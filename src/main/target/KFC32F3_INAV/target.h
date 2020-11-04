@@ -92,7 +92,7 @@
 #define RX_MOSI_PIN                 PB15
 #define RX_MISO_PIN                 PB14
 #define RX_SPI_INSTANCE             SPI2
-#define RX_IRQ_PIN                  PB3
+#define RX_SPI_EXTI_PIN             PB3
 
 #define USE_VCP
 #define USE_UART1

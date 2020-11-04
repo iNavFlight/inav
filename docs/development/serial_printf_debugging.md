@@ -67,6 +67,7 @@ Log topics are defined in `src/main/common/log.h`, at the time of writing:
 * POS_ESTIMATOR
 * VTX
 * OSD
+* RX_SPI
 
 Topics are stored as masks (SYSTEM=1 ... OSD=1024) and may be used to unconditionally display log messages.
 

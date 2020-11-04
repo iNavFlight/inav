@@ -22,9 +22,12 @@ typedef enum {
     FRSKY_VFAS_PRECISION_HIGH
 } frskyVFasPrecision_e;
 
+typedef void frSkyWriteByteFn(const char data);
+
 void handleFrSkyTelemetry(void);
 void checkFrSkyTelemetryState(void);
 
 void initFrSkyTelemetry(void);
+void initFrSkyTelemetryExternal(frSkyWriteByteFn* _extern);
 void configureFrSkyTelemetryPort(void);
 void freeFrSkyTelemetryPort(void);

@@ -70,6 +70,8 @@ static serialPortConfig_t *portConfig;
 static bool frskyTelemetryEnabled =  false;
 static portSharing_e frskyPortSharing;
 
+static frSkyWriteByteFn *frSkyWriteByte = NULL;
+
 #define CYCLETIME             125
 
 #define PROTOCOL_HEADER       0x5E
@@ -124,28 +126,34 @@ static portSharing_e frskyPortSharing;
 
 static uint32_t lastCycleTime = 0;
 static uint8_t cycleNum = 0;
+
+static void frSkyWriteByteInternal(const char data)
+{
+   serialWrite(frskyPort, data);
+}
+
 static void sendDataHead(uint8_t id)
 {
-    serialWrite(frskyPort, PROTOCOL_HEADER);
-    serialWrite(frskyPort, id);
+    frSkyWriteByte(PROTOCOL_HEADER);
+    frSkyWriteByte(id);
 }
 
 static void sendTelemetryTail(void)
 {
-    serialWrite(frskyPort, PROTOCOL_TAIL);
+    frSkyWriteByte(PROTOCOL_TAIL);
 }
 
 static void serializeFrsky(uint8_t data)
 {
     // take care of byte stuffing
     if (data == 0x5e) {
-        serialWrite(frskyPort, 0x5d);
-        serialWrite(frskyPort, 0x3e);
+        frSkyWriteByte(0x5d);
+        frSkyWriteByte(0x3e);
     } else if (data == 0x5d) {
-        serialWrite(frskyPort, 0x5d);
-        serialWrite(frskyPort, 0x3d);
+        frSkyWriteByte(0x5d);
+        frSkyWriteByte(0x3d);
     } else
-        serialWrite(frskyPort, data);
+        frSkyWriteByte(data);
 }
 
 static void serialize16(int16_t a)
@@ -450,26 +458,45 @@ static void sendRoll(void)
 
 void initFrSkyTelemetry(void)
 {
+    frSkyWriteByte = frSkyWriteByteInternal;
     portConfig = findSerialPortConfig(FUNCTION_TELEMETRY_FRSKY);
     frskyPortSharing = determinePortSharing(portConfig, FUNCTION_TELEMETRY_FRSKY);
+
+    frskyTelemetryEnabled = false;
+}
+
+void initFrSkyTelemetryExternal(frSkyWriteByteFn* _extern)
+{
+    frSkyWriteByte = _extern;
+    if(frskyPort != NULL) {
+        closeSerialPort(frskyPort);
+        frskyPort = NULL;
+    }
+    portConfig = NULL;
+    frskyTelemetryEnabled = true;
 }
 
 void freeFrSkyTelemetryPort(void)
 {
-    closeSerialPort(frskyPort);
-    frskyPort = NULL;
+    if(frskyPort != NULL) {
+        closeSerialPort(frskyPort);
+        frskyPort = NULL;
+    }
     frskyTelemetryEnabled = false;
 }
 
 void configureFrSkyTelemetryPort(void)
 {
-    if (!portConfig) {
-        return;
-    }
+    if(frSkyWriteByte != frSkyWriteByteInternal)
+    {
+        if (!portConfig) {
+            return;
+        }
 
-    frskyPort = openSerialPort(portConfig->identifier, FUNCTION_TELEMETRY_FRSKY, NULL, NULL, FRSKY_BAUDRATE, FRSKY_INITIAL_PORT_MODE, telemetryConfig()->telemetry_inverted ? SERIAL_NOT_INVERTED : SERIAL_INVERTED);
-    if (!frskyPort) {
-        return;
+        frskyPort = openSerialPort(portConfig->identifier, FUNCTION_TELEMETRY_FRSKY, NULL, NULL, FRSKY_BAUDRATE, FRSKY_INITIAL_PORT_MODE, telemetryConfig()->telemetry_inverted ? SERIAL_NOT_INVERTED : SERIAL_INVERTED);
+        if (!frskyPort) {
+            return;
+        }
     }
 
     frskyTelemetryEnabled = true;
@@ -482,6 +509,9 @@ bool hasEnoughTimeLapsedSinceLastTelemetryTransmission(uint32_t currentMillis)
 
 void checkFrSkyTelemetryState(void)
 {
+    if(frSkyWriteByte == frSkyWriteByteInternal)
+        return;
+
     if (portConfig && telemetryCheckRxPortShared(portConfig)) {
         if (!frskyTelemetryEnabled && telemetrySharedPort != NULL) {
             frskyPort = telemetrySharedPort;

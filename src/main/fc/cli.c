@@ -104,6 +104,7 @@ extern uint8_t __config_end;
 #include "rx/spektrum.h"
 #include "rx/eleres.h"
 #include "rx/srxl2.h"
+#include "rx/rx_spi_common.h"
 
 #include "scheduler/scheduler.h"
 
@@ -2559,26 +2560,6 @@ static void cliDfu(char *cmdline)
     cliRebootEx(true);
 }
 
-#ifdef USE_RX_ELERES
-static void cliEleresBind(char *cmdline)
-{
-    UNUSED(cmdline);
-
-    if (!(rxConfig()->receiverType == RX_TYPE_SPI && rxConfig()->rx_spi_protocol == RFM22_ELERES)) {
-        cliPrintLine("Eleres not active. Please enable feature ELERES and restart IMU");
-        return;
-    }
-
-    cliPrintLine("Waiting for correct bind signature....");
-    bufWriterFlush(cliWriter);
-    if (eleresBind()) {
-        cliPrintLine("Bind timeout!");
-    } else {
-        cliPrintLine("Bind OK!\r\nPlease restart your transmitter.");
-    }
-}
-#endif // USE_RX_ELERES
-
 #if defined(USE_RX_SPI) || defined (USE_SERIALRX_SRXL2)
 void cliRxBind(char *cmdline){
     UNUSED(cmdline);
@@ -2598,6 +2579,27 @@ void cliRxBind(char *cmdline){
 #if defined(USE_RX_SPI)
     else if (rxConfig()->receiverType == RX_TYPE_SPI) {
         switch (rxConfig()->rx_spi_protocol) {
+#ifdef ELERES
+        case RFM22_ELERES:
+            cliPrintLine("Waiting for correct bind signature....");
+            bufWriterFlush(cliWriter);
+            if (eleresBind()) {
+                cliPrintLine("Bind timeout!");
+            } else {
+                cliPrintLine("Bind OK!\r\nPlease restart your transmitter.");
+            }
+            braek;
+#endif
+#if defined(USE_RX_FRSKY_SPI)
+#if defined(USE_RX_FRSKY_SPI_D)
+        case RX_SPI_FRSKY_D:
+#endif
+#if defined(USE_RX_FRSKY_SPI_X)
+        case RX_SPI_FRSKY_X:
+#endif
+            rxSpiBind();
+        break;
+#endif
         default:
             cliPrint("Not supported.");
             break;
@@ -3511,9 +3513,6 @@ const clicmd_t cmdTable[] = {
         "[master|battery_profile|profile|rates|all] {showdefaults}", cliDiff),
     CLI_COMMAND_DEF("dump", "dump configuration",
         "[master|battery_profile|profile|rates|all] {showdefaults}", cliDump),
-#ifdef USE_RX_ELERES
-    CLI_COMMAND_DEF("eleres_bind", NULL, NULL, cliEleresBind),
-#endif // USE_RX_ELERES
     CLI_COMMAND_DEF("exit", NULL, NULL, cliExit),
     CLI_COMMAND_DEF("feature", "configure features",
         "list\r\n"
