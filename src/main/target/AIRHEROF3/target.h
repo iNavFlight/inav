@@ -76,6 +76,10 @@
 #define VBAT_ADC_CHANNEL                ADC_CHN_1
 #define AIRSPEED_ADC_CHANNEL            ADC_CHN_2
 
+#define USE_DJI_HD_OSD
+#define USE_OSD
+#undef USE_CMS
+#undef CMS_MENU_OSD
 
 /*
 #define USE_LED_STRIP
