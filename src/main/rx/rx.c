@@ -127,7 +127,6 @@ PG_RESET_TEMPLATE(rxConfig_t, rxConfig,
     .rcmap = {0, 1, 3, 2},      // Default to AETR map
     .halfDuplex = TRISTATE_AUTO,
     .serialrx_provider = SERIALRX_PROVIDER,
-    .rx_spi_protocol = RX_SPI_DEFAULT_PROTOCOL,
     .spektrum_sat_bind = 0,
     .serialrx_inverted = 0,
     .mincheck = 1100,

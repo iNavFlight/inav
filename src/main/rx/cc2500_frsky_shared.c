@@ -58,7 +58,7 @@ static uint8_t calData[255][3];
 static timeMs_t timeTunedMs;
 uint8_t listLength;
 static uint16_t bindState;
-static int8_t bindOffset = 0, bindOffset_min, bindOffset_max;
+static int8_t bindOffset, bindOffset_min, bindOffset_max;
 
 typedef uint8_t handlePacketFn(uint8_t * const packet, uint8_t * const protocolState, uint16_t *linkQuality);
 typedef rx_spi_received_e processFrameFn(uint8_t * const packet);
@@ -67,15 +67,6 @@ typedef void setRcDataFn(uint16_t *rcData, const uint8_t *payload);
 static handlePacketFn *handlePacket;
 static processFrameFn *processFrame;
 static setRcDataFn *setRcData;
-
-//#DeXmas #TODO
-uint8_t rxNum = 0;
-bool autoBind = false;
-uint8_t bindTxId[3] = {0, 0, 0};
-uint8_t bindHopData[50] =   {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 const cc2500RegisterConfigElement_t cc2500FrskyBaseConfig[] =
 {
@@ -174,6 +165,20 @@ static void initialise(void) {
         cc2500ApplyRegisterConfig(cc2500FrskyXConfig, sizeof(cc2500FrskyXConfig));
 
         break;
+    case RX_SPI_FRSKY_X_LBT:
+        cc2500ApplyRegisterConfig(cc2500FrskyXLbtConfig, sizeof(cc2500FrskyXLbtConfig));
+
+        break;
+    case RX_SPI_FRSKY_X_V2:
+        cc2500ApplyRegisterConfig(cc2500FrskyXConfig, sizeof(cc2500FrskyXConfig));
+        cc2500ApplyRegisterConfig(cc2500FrskyXV2Config, sizeof(cc2500FrskyXV2Config));
+
+        break;
+    case RX_SPI_FRSKY_X_LBT_V2:
+        cc2500ApplyRegisterConfig(cc2500FrskyXLbtConfig, sizeof(cc2500FrskyXLbtConfig));
+        cc2500ApplyRegisterConfig(cc2500FrskyXLbtV2Config, sizeof(cc2500FrskyXLbtV2Config));
+
+        break;
     default:
         break;
     }
@@ -192,11 +197,9 @@ static void initialise(void) {
 
 void initialiseData(bool inBindState)
 {
-    LOG_D(RX_SPI, "initialiseData.");
-    
-    cc2500WriteReg(CC2500_0C_FSCTRL0, bindOffset);
+    cc2500WriteReg(CC2500_0C_FSCTRL0, rxSpiConfig()->bind_offset);
     cc2500WriteReg(CC2500_18_MCSM0, 0x8);
-    cc2500WriteReg(CC2500_09_ADDR, inBindState ? 0x03 : bindTxId[0]);
+    cc2500WriteReg(CC2500_09_ADDR, inBindState ? 0x03 : rxSpiConfig()->bind_tx_id[0]);
     cc2500WriteReg(CC2500_07_PKTCTRL1, 0x0D);
     cc2500WriteReg(CC2500_19_FOCCFG, 0x16);
     if (!inBindState) {
@@ -225,7 +228,7 @@ static void initTuneRx(void)
 
 static bool isValidBindPacket(uint8_t *packet)
 {
-    if (spiProtocol == RX_SPI_FRSKY_D) {
+    if (spiProtocol == RX_SPI_FRSKY_D || spiProtocol == RX_SPI_FRSKY_X_V2 || spiProtocol == RX_SPI_FRSKY_X_LBT_V2) {
         if (!(packet[packetLength - 1] & 0x80)) {
             return false;
         }
@@ -247,10 +250,12 @@ static bool tuneRx(uint8_t *packet, int8_t inc)
     }
     if (rxSpiGetExtiState()) {
         uint8_t ccLen = cc2500ReadReg(CC2500_3B_RXBYTES | CC2500_READ_BURST) & 0x7F;
-        if (ccLen >= packetLength) {
+        if ((spiProtocol == RX_SPI_FRSKY_D && ccLen) || ccLen >= packetLength) {
+            if(spiProtocol == RX_SPI_FRSKY_D) {
+                packetLength = ccLen;
+            }
             cc2500ReadFifo(packet, packetLength);
             if (isValidBindPacket(packet)) {
-                LOG_D(RX_SPI, "tuneRx. responce valid.");
                 return true;
             }
         }
@@ -261,8 +266,6 @@ static bool tuneRx(uint8_t *packet, int8_t inc)
 
 static void initGetBind(void)
 {
-    LOG_D(RX_SPI, "initGetBind.");
-
     cc2500Strobe(CC2500_SIDLE);
     cc2500WriteReg(CC2500_23_FSCAL3, calData[0][0]);
     cc2500WriteReg(CC2500_24_FSCAL2, calData[0][1]);
@@ -276,30 +279,75 @@ static void initGetBind(void)
     bindState = 0;
 }
 
+static void generateV2HopData(uint16_t id)
+{
+    uint8_t inc = (id % 46) + 1;                                // Increment
+    if (inc == 12 || inc == 35) inc++;                          // Exception list from dumps
+    uint8_t offset = id % 5;                                    // Start offset
+
+    uint8_t channel;
+    for (uint8_t i = 0; i < 47; i++) {
+        channel = 5 * ((uint16_t)(inc * i) % 47) + offset;      // Exception list from dumps
+        if (spiProtocol == RX_SPI_FRSKY_X_LBT_V2) {             // LBT or FCC
+            // LBT
+            if (channel <=1 || channel == 43 || channel == 44 || channel == 87 || channel == 88 || channel == 129 || channel == 130 || channel == 173 || channel == 174) {
+                channel += 2;
+            }
+            else if (channel == 216 || channel == 217 || channel == 218) {
+                channel += 3;
+            }
+        } else {
+            // FCC
+            if (channel == 3 || channel == 4 || channel == 46 || channel == 47 || channel == 90 || channel == 91  || channel == 133 || channel == 134 || channel == 176 || channel == 177 || channel == 220 || channel == 221) {
+                channel += 2;
+            }
+        }
+        rxSpiConfigMutable()->bind_hop_data[i] = channel;   // Store
+    }
+    rxSpiConfigMutable()->bind_hop_data[47] = 0;            //Bind freq
+    rxSpiConfigMutable()->bind_hop_data[48] = 0;
+    rxSpiConfigMutable()->bind_hop_data[49] = 0;
+}
+
 static bool getBind(uint8_t *packet)
 {
     // len|bind |tx
     // id|03|01|idx|h0|h1|h2|h3|h4|00|00|00|00|00|00|00|00|00|00|00|00|00|00|00|CHK1|CHK2|RSSI|LQI/CRC|
     if (rxSpiGetExtiState()) {
         uint8_t ccLen = cc2500ReadReg(CC2500_3B_RXBYTES | CC2500_READ_BURST) & 0x7F;
-        if (ccLen >= packetLength) {
+        if ((spiProtocol == RX_SPI_FRSKY_D && ccLen) || ccLen >= packetLength) {
+            if(spiProtocol == RX_SPI_FRSKY_D) {
+                packetLength = ccLen;
+            }
             cc2500ReadFifo(packet, packetLength);
             if (isValidBindPacket(packet)) {
-                LOG_D(RX_SPI, "getBind. packet valid.");
-                if (packet[5] == 0x00) {
-                    bindTxId[0] = packet[3];
-                    bindTxId[1] = packet[4];
-                    bindTxId[2] = packet[11];
-                    rxNum = packet[12];
+                if (spiProtocol == RX_SPI_FRSKY_X_V2 || spiProtocol == RX_SPI_FRSKY_X_LBT_V2) {
+                    for (uint8_t i = 3; i < packetLength - 4; i++) {
+                        packet[i] ^= 0xA7;
+                    }
+                    rxSpiConfigMutable()->bind_tx_id[0] = packet[3];
+                    rxSpiConfigMutable()->bind_tx_id[1] = packet[4];
+                    rxSpiConfigMutable()->bind_tx_id[2] = packet[5];
+                    rxSpiConfigMutable()->rx_spi_id = packet[6];
+                    generateV2HopData((packet[4] << 8) + packet[3]);
+                    listLength = 47;
+
+                    return true;
+                } else {
+                    if (packet[5] == 0x00) {
+                        rxSpiConfigMutable()->bind_tx_id[0] = packet[3];
+                        rxSpiConfigMutable()->bind_tx_id[1] = packet[4];
+                        rxSpiConfigMutable()->bind_tx_id[2] = packet[11];
+                        rxSpiConfigMutable()->rx_spi_id = packet[12];
                 }
                 for (uint8_t n = 0; n < 5; n++) {
-                        bindHopData[packet[5] + n] = (packet[5] + n) >= 47 ? 0 : packet[6 + n];
+                        rxSpiConfigMutable()->bind_hop_data[packet[5] + n] = (packet[5] + n) >= 47 ? 0 : packet[6 + n];
                 }
                 bindState |= 1 << (packet[5] / 5);
                 if (bindState == 0x3FF) {
                     listLength = 47;
-                    LOG_D(RX_SPI, "getBind. bindState valid.");
                     return true;
+                    }
                 }
             }
         }
@@ -316,19 +364,16 @@ rx_spi_received_e frSkySpiDataReceived(uint8_t *payload, uint16_t *linkQuality)
     case STATE_INIT:
         if ((millis() - start_time) > 10) {
             initialise();
-            LOG_D(RX_SPI, "frSkySpiDataReceived. goto STATE_BIND");
             protocolState = STATE_BIND;
         }
 
         break;
     case STATE_BIND:
-        if (rxSpiCheckBindRequested(true) || autoBind) {
+        if (rxSpiCheckBindRequested(true) || rxSpiConfig()->auto_bind) {
             rxSpiLedOn();
             initTuneRx();
-            LOG_D(RX_SPI, "frSkySpiDataReceived. goto STATE_BIND_TUNING_LOW");
             protocolState = STATE_BIND_TUNING_LOW;
         } else {
-            LOG_D(RX_SPI, "frSkySpiDataReceived. goto STATE_STARTING");
             protocolState = STATE_STARTING;
         }
 
@@ -337,7 +382,6 @@ rx_spi_received_e frSkySpiDataReceived(uint8_t *payload, uint16_t *linkQuality)
        if (tuneRx(payload, 2)) {
             bindOffset_min = bindOffset;
             bindOffset = 126;
-            LOG_D(RX_SPI, "frSkySpiDataReceived. goto STATE_BIND_TUNING_HIGH");
             protocolState = STATE_BIND_TUNING_HIGH;
         }
 
@@ -346,15 +390,13 @@ rx_spi_received_e frSkySpiDataReceived(uint8_t *payload, uint16_t *linkQuality)
         if (tuneRx(payload, -2)) {
             bindOffset_max = bindOffset;
             bindOffset = ((int16_t)bindOffset_max + (int16_t)bindOffset_min) / 2;
-            bindOffset = bindOffset;
+            rxSpiConfigMutable()->bind_offset = bindOffset;
             initGetBind();
             initialiseData(true);
 
             if(bindOffset_min < bindOffset_max) {
-                LOG_D(RX_SPI, "frSkySpiDataReceived. goto STATE_BIND_BINDING");
                 protocolState = STATE_BIND_BINDING;
             } else {
-                LOG_D(RX_SPI, "frSkySpiDataReceived. goto STATE_BIND");
                 protocolState = STATE_BIND;
             }
         }
@@ -363,13 +405,12 @@ rx_spi_received_e frSkySpiDataReceived(uint8_t *payload, uint16_t *linkQuality)
     case STATE_BIND_BINDING:
         if (getBind(payload)) {
             cc2500Strobe(CC2500_SIDLE);
-            LOG_D(RX_SPI, "frSkySpiDataReceived. goto STATE_BIND_COMPLETE");
             protocolState = STATE_BIND_COMPLETE;
         }
 
         break;
     case STATE_BIND_COMPLETE:
-        if (!autoBind) {
+        if (!rxSpiConfig()->auto_bind) {
             writeEEPROM();
         } else {
             uint8_t ctr = 80;
@@ -381,7 +422,6 @@ rx_spi_received_e frSkySpiDataReceived(uint8_t *payload, uint16_t *linkQuality)
 
         ret = RX_SPI_RECEIVED_BIND;
 
-        LOG_D(RX_SPI, "frSkySpiDataReceived. goto STATE_STARTING");
         protocolState = STATE_STARTING;
 
         break;
@@ -417,28 +457,25 @@ void nextChannel(uint8_t skip)
         channr -= listLength;
     }
     cc2500Strobe(CC2500_SIDLE);
-    cc2500WriteReg(CC2500_23_FSCAL3,
-                    calData[bindHopData[channr]][0]);
-    cc2500WriteReg(CC2500_24_FSCAL2,
-                    calData[bindHopData[channr]][1]);
-    cc2500WriteReg(CC2500_25_FSCAL1,
-                    calData[bindHopData[channr]][2]);
-    cc2500WriteReg(CC2500_0A_CHANNR, bindHopData[channr]);
+    cc2500WriteReg(CC2500_23_FSCAL3, calData[rxSpiConfig()->bind_hop_data[channr]][0]);
+    cc2500WriteReg(CC2500_24_FSCAL2, calData[rxSpiConfig()->bind_hop_data[channr]][1]);
+    cc2500WriteReg(CC2500_25_FSCAL1, calData[rxSpiConfig()->bind_hop_data[channr]][2]);
+    cc2500WriteReg(CC2500_0A_CHANNR, rxSpiConfig()->bind_hop_data[channr]);
     if (spiProtocol == RX_SPI_FRSKY_D) {
         cc2500Strobe(CC2500_SFRX);
     }
 }
 
-void frSkySpiInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
+void frSkySpiInit(rxRuntimeConfig_t *rxRuntimeConfig)
 {
-    LOG_D(RX_SPI, "frSkySpiInit started");
-    rxSpiCommonIOInit(rxConfig);
+    UNUSED(rxConfig);
+
+    rxSpiCommonIOInit();
     if (!cc2500SpiInit()) {
-        LOG_D(RX_SPI, "frSkySpiInit failed. (cc2500SpiInit failed)");
         return;
     }
 
-    spiProtocol = rxConfig->rx_spi_protocol;
+    spiProtocol = rxSpiConfig()->rx_spi_protocol;
 
     switch (spiProtocol) {
     case RX_SPI_FRSKY_D:
@@ -450,6 +487,9 @@ void frSkySpiInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
 
         break;
     case RX_SPI_FRSKY_X:
+	case RX_SPI_FRSKY_X_LBT:
+    case RX_SPI_FRSKY_X_V2:
+    case RX_SPI_FRSKY_X_LBT_V2:
         rxRuntimeConfig->channelCount = RC_CHANNEL_COUNT_FRSKY_X;
 
         handlePacket = frSkyXHandlePacket;
@@ -470,7 +510,5 @@ void frSkySpiInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
 
     start_time = millis();
     protocolState = STATE_INIT;
-
-    LOG_D(RX_SPI, "frSkySpiInit finished. spiProtocol: %d", spiProtocol);
 }
 #endif

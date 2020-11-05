@@ -32,6 +32,9 @@ typedef enum {
     RFM22_ELERES,
 	RX_SPI_FRSKY_D,
 	RX_SPI_FRSKY_X,
+    RX_SPI_FRSKY_X_LBT,
+    RX_SPI_FRSKY_X_V2,
+    RX_SPI_FRSKY_X_LBT_V2,
     NRF24RX_PROTOCOL_COUNT
 } rx_spi_protocol_e;
 
@@ -71,5 +74,18 @@ typedef enum {
 #define RC_CHANNEL_VIDEO       RC_SPI_AUX4
 #define RC_CHANNEL_HEADLESS    RC_SPI_AUX5
 #define RC_CHANNEL_RTH         RC_SPI_AUX6 // return to home
+
+typedef struct rxSpiConfig_s {
+    uint8_t rx_spi_protocol;                // type of SPI receiver protocol (rx_spi_protocol_e enum). Only used if receiverType is RX_TYPE_SPI
+    uint32_t rx_spi_id;
+    uint8_t rx_spi_rf_channel_count;
+
+    bool auto_bind;
+    int8_t  bind_offset;
+    uint8_t bind_tx_id[3];
+    uint8_t bind_hop_data[50];
+} rxSpiConfig_t;
+
+PG_DECLARE(rxSpiConfig_t, rxSpiConfig);
 
 bool rxSpiInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig);

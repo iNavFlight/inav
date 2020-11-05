@@ -54,9 +54,6 @@
 
 #include "rx/cc2500_frsky_d.h"
 
-//#DeXmas #TODO
-extern uint8_t bindTxId[3];
-
 #if defined(USE_RX_FRSKY_SPI_TELEMETRY)
 static uint8_t frame[20];
 static uint8_t telemetryId;
@@ -132,8 +129,8 @@ static void buildTelemetryFrame(uint8_t *packet)
     const uint8_t a2Value = (adcGetChannel(ADC_RSSI)) >> 4;
     telemetryId = packet[4];
     frame[0] = 0x11; // length
-    frame[1] = bindTxId[0]; //#DeXmas #TODO
-    frame[2] = bindTxId[1];
+    frame[1] = rxSpiConfig()->bind_tx_id[0];
+    frame[2] = rxSpiConfig()->bind_tx_id[1];
     frame[3] = a1Value;
     frame[4] = a2Value;
     frame[5] = (uint8_t)cc2500getRssiDbm();
@@ -228,8 +225,8 @@ rx_spi_received_e frSkyDHandlePacket(uint8_t * const packet, uint8_t * const pro
                     missingPackets = 0;
                     timeoutUs = 1;
                     if (packet[0] == 0x11) {
-                        if ((packet[1] == bindTxId[0]) &&
-                            (packet[2] == bindTxId[1])) {
+                        if ((packet[1] == rxSpiConfig()->bind_tx_id[0]) &&
+                            (packet[2] == rxSpiConfig()->bind_tx_id[1])) {
                             rxSpiLedOn();
                             nextChannel(1);
                             cc2500setRssiDbm(packet[18], linkQuality);

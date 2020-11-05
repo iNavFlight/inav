@@ -26,7 +26,7 @@
 #define INTERVAL_RX_LOSS_MS 1000
 #define INTERVAL_RX_BIND_MS 250
 
-void rxSpiCommonIOInit(const rxConfig_t *rxConfig);
+void rxSpiCommonIOInit(void);
 
 void rxSpiLedOn(void);
 void rxSpiLedOff(void);

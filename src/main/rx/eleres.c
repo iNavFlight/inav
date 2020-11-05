@@ -766,10 +766,10 @@ static void bindChannels(const uint8_t* RF_HEAD, uint8_t* hop_lst)
     }
 }
 
-void eleresInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
+void eleresInit(rxRuntimeConfig_t *rxRuntimeConfig)
 {
     UNUSED(rxConfig);
-    rxConfigMutable()->rx_spi_protocol = RFM22_ELERES;
+    rxSpiConfigMutable()->rx_spi_protocol = RFM22_ELERES;
     rxRuntimeConfig->channelCount = RC_CHANS;
 
     rfmSpiWrite(0x07, 0x80);

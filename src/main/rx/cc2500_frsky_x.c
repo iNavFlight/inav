@@ -54,10 +54,6 @@
 
 #include "rx/cc2500_frsky_x.h"
 
-//#DeXmas #TODO
-extern uint8_t bindTxId[3];
-extern uint8_t rxNum;
-
 const uint16_t crcTable_Short[] = {
         0x0000,0x1189,0x2312,0x329b,0x4624,0x57ad,0x6536,0x74bf,
         0x8c48,0x9dc1,0xaf5a,0xbed3,0xca6c,0xdbe5,0xe97e,0xf8f7,
@@ -173,11 +169,10 @@ static void buildTelemetryFrame(uint8_t *packet)
 
     static bool evenRun = false;
 
-    //#DeXmas #TODO
     frame[0] = 0x0E;//length
-    frame[1] = bindTxId[0];
-    frame[2] = bindTxId[1];
-    frame[3] = bindTxId[2];
+    frame[1] = rxSpiConfig()->bind_tx_id[0];
+    frame[2] = rxSpiConfig()->bind_tx_id[1];
+    frame[3] = rxSpiConfig()->bind_tx_id[2];
 
     if (evenRun) {
         frame[4] = (uint8_t)cc2500getRssiDbm() | 0x80;
@@ -293,13 +288,18 @@ void frSkyXSetRcData(uint16_t *rcData, const uint8_t *packet)
 
 bool isValidPacket(const uint8_t *packet)
 {
+    if (spiProtocol == RX_SPI_FRSKY_X_V2 || spiProtocol == RX_SPI_FRSKY_X_LBT_V2) {
+        if (!(packet[packetLength - 1] & 0x80)) {
+            return false;
+        }
+    }
     uint16_t lcrc = calculateCrc(&packet[3], (packetLength - 7));
     if ((lcrc >> 8) == packet[packetLength - 4] && (lcrc & 0x00FF) == packet[packetLength - 3] &&
         (packet[0] == packetLength - 3) &&
-        (packet[1] == bindTxId[0]) &&
-        (packet[2] == bindTxId[1]) &&
-        (packet[3] == bindTxId[2]) &&
-        (rxNum == 0 || packet[6] == 0 || packet[6] == rxNum)) {
+        (packet[1] == rxSpiConfig()->bind_tx_id[0]) &&
+        (packet[2] == rxSpiConfig()->bind_tx_id[1]) &&
+        (packet[3] == rxSpiConfig()->bind_tx_id[2]) &&
+        (rxSpiConfigMutable()->rx_spi_id == 0 || packet[6] == 0 || packet[6] == rxSpiConfigMutable()->rx_spi_id)) {
         return true;
     }
     return false;
@@ -547,6 +547,18 @@ uint8_t frSkyXInit(void)
     case RX_SPI_FRSKY_X:
         packetLength = FRSKY_RX_D16FCC_LENGTH;
         telemetryDelayUs = 400;
+        break;
+    case RX_SPI_FRSKY_X_LBT:
+        packetLength = FRSKY_RX_D16LBT_LENGTH;
+        telemetryDelayUs = 1400;
+        break;
+    case RX_SPI_FRSKY_X_V2:
+        packetLength = FRSKY_RX_D16v2_LENGTH;
+        telemetryDelayUs = 400;
+        break;
+    case RX_SPI_FRSKY_X_LBT_V2:
+        packetLength = FRSKY_RX_D16v2_LENGTH;
+        telemetryDelayUs = 1500;
         break;
     default:
         break;

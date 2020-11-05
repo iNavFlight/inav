@@ -37,14 +37,13 @@ static IO_t bindPin;
 static bool bindRequested;
 static bool lastBindPinStatus;
 
-void rxSpiCommonIOInit(const rxConfig_t *rxConfig)
+void rxSpiCommonIOInit(void)
 {
-    UNUSED(rxConfig);
 #ifdef RX_SPI_LED_PIN
     ledPin = IOGetByTag(IO_TAG(RX_SPI_LED_PIN));
     IOInit(ledPin, OWNER_LED, RESOURCE_OUTPUT, 0);
     IOConfigGPIO(ledPin, IOCFG_OUT_PP);
-    //#DeXmas #TODO
+
 #ifdef RX_SPI_LED_INVERTED
     ledInversion = true;
 #else
@@ -57,7 +56,7 @@ void rxSpiCommonIOInit(const rxConfig_t *rxConfig)
 
 #ifdef RX_SPI_BIND_PIN
     bindPin = IOGetByTag(IO_TAG(RX_SPI_BIND_PIN));
-    IOInit(bindPin, OWNER_RX_SPI_BIND, RESOURCE_OUTPUT, 0);
+    IOInit(bindPin, OWNER_RX_SPI, RESOURCE_OUTPUT, 0);
     IOConfigGPIO(bindPin, IOCFG_IPU);
     lastBindPinStatus = IORead(bindPin);
 #else

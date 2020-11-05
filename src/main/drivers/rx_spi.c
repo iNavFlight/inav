@@ -67,7 +67,7 @@ bool rxSpiDeviceInit(void)
 	busSetSpeed(busdev, BUS_SPEED_FAST);
 
     const IO_t rxCsPin = IOGetByTag(IO_TAG(RX_NSS_PIN));
-    IOInit(rxCsPin, OWNER_RX_SPI_CE, RESOURCE_RX_SPI, 0);
+    IOInit(rxCsPin, OWNER_RX_SPI, RESOURCE_RX_SPI, 0);
     IOConfigGPIO(rxCsPin, SPI_IO_CS_CFG);
 	busdev->busdev.spi.csnPin = rxCsPin;
 
@@ -75,11 +75,9 @@ bool rxSpiDeviceInit(void)
 
     extiPin = IOGetByTag(IO_TAG(RX_SPI_EXTI_PIN));
 	if (extiPin) {
-        IOInit(extiPin, OWNER_RX_SPI_EXTI, RESOURCE_IO, 0);
+        IOInit(extiPin, OWNER_RX_SPI, RESOURCE_RX_SPI, 0);
     }
 
-    LOG_D(RX_SPI, "rxSpiDeviceInit complete. extiPin (%d)", (int)extiPin);
-	
 	return true;
 }
 

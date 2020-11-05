@@ -96,6 +96,7 @@
 
 #include "rx/rx.h"
 #include "rx/msp.h"
+#include "rx/rx_spi.h"
 
 #include "scheduler/scheduler.h"
 
@@ -942,9 +943,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, 0); // for compatibility with betaflight (rcInterpolation)
         sbufWriteU8(dst, 0); // for compatibility with betaflight (rcInterpolationInterval)
         sbufWriteU16(dst, 0); // for compatibility with betaflight (airModeActivateThreshold)
-        sbufWriteU8(dst, rxConfig()->rx_spi_protocol);
-        sbufWriteU32(dst, rxConfig()->rx_spi_id);
-        sbufWriteU8(dst, rxConfig()->rx_spi_rf_channel_count);
+        sbufWriteU8(dst, rxSpiConfig()->rx_spi_protocol);
+        sbufWriteU32(dst, rxSpiConfig()->rx_spi_id);
+        sbufWriteU8(dst, rxSpiConfig()->rx_spi_rf_channel_count);
         sbufWriteU8(dst, 0); // for compatibility with betaflight (fpvCamAngleDegrees)
         sbufWriteU8(dst, rxConfig()->receiverType);
         break;
@@ -2513,9 +2514,9 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU8(src); // for compatibility with betaflight (rcInterpolation)
             sbufReadU8(src); // for compatibility with betaflight (rcInterpolationInterval)
             sbufReadU16(src); // for compatibility with betaflight (airModeActivateThreshold)
-            rxConfigMutable()->rx_spi_protocol = sbufReadU8(src);
-            rxConfigMutable()->rx_spi_id = sbufReadU32(src);
-            rxConfigMutable()->rx_spi_rf_channel_count = sbufReadU8(src);
+            rxSpiConfigMutable()->rx_spi_protocol = sbufReadU8(src);
+            rxSpiConfigMutable()->rx_spi_id = sbufReadU32(src);
+            rxSpiConfigMutable()->rx_spi_rf_channel_count = sbufReadU8(src);
             sbufReadU8(src); // for compatibility with betaflight (fpvCamAngleDegrees)
             rxConfigMutable()->receiverType = sbufReadU8(src);              // Won't be modified if buffer is not large enough
         } else

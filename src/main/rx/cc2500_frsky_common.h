@@ -22,7 +22,7 @@
 
 #include "rx/rx_spi.h"
 
-void frSkySpiInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
+void frSkySpiInit(rxRuntimeConfig_t *rxRuntimeConfig);
 rx_spi_received_e frSkySpiDataReceived(uint8_t *payload, uint16_t *linkQuality);
 rx_spi_received_e frSkySpiProcessFrame(uint8_t *packet);
 void frSkySpiSetRcData(uint16_t *rcData, const uint8_t *payload);

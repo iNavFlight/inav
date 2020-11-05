@@ -2578,7 +2578,7 @@ void cliRxBind(char *cmdline){
     } 
 #if defined(USE_RX_SPI)
     else if (rxConfig()->receiverType == RX_TYPE_SPI) {
-        switch (rxConfig()->rx_spi_protocol) {
+        switch (rxSpiConfig()->rx_spi_protocol) {
 #ifdef ELERES
         case RFM22_ELERES:
             cliPrintLine("Waiting for correct bind signature....");
@@ -2596,6 +2596,9 @@ void cliRxBind(char *cmdline){
 #endif
 #if defined(USE_RX_FRSKY_SPI_X)
         case RX_SPI_FRSKY_X:
+        case RX_SPI_FRSKY_X_LBT:
+        case RX_SPI_FRSKY_X_V2:
+        case RX_SPI_FRSKY_X_LBT_V2:
 #endif
             rxSpiBind();
         break;
