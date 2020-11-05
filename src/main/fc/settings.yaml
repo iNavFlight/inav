@@ -2267,7 +2267,7 @@ groups:
         min: 1
         max: 4096
       - name: nav_fw_pitch2thr_threshold
-        description: "Threshold from zero pitch before pitch_to_throttle is applied [centidegrees]"
+        description: "Threshold from zero pitch before pitch_to_throttle is applied [decidegrees]"
         default_value: "0"
         field: fw.pitch_to_throttle_thresh
         min: 0

@@ -153,7 +153,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .min_throttle = 1200,
         .pitch_to_throttle = 10,                // pwm units per degree of pitch (10pwm units ~ 1% throttle)
         .pitch_to_throttle_smooth = 1,          // Number of fixedWingPitchToThrottleCorrection cycles used to calculate a moving average pitch
-        .pitch_to_throttle_thresh = 0,          // Threshold from average pitch before pitch_to_throttle is applied [centidegrees]
+        .pitch_to_throttle_thresh = 0,          // Threshold from average pitch before pitch_to_throttle is applied [decidegrees]
         .loiter_radius = 5000,                  // 50m
 
         //Fixed wing landing
