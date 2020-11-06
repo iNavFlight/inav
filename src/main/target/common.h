@@ -132,7 +132,6 @@
 
 #define USE_VTX_COMMON
 
-
 #else // FLASH_SIZE < 256
 #define LOG_LEVEL_MAXIMUM LOG_LEVEL_ERROR
 #endif
