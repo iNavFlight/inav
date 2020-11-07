@@ -2642,7 +2642,7 @@ groups:
         type: uint8_t
 
       - name: osd_rssi_alarm
-        description: "Value bellow which to make the OSD RSSI indicator blink"
+        description: "Value below which to make the OSD RSSI indicator blink"
         default_value: "20"
         field: rssi_alarm
         min: 0
@@ -2666,7 +2666,7 @@ groups:
         min: 0
         max: 50000
       - name: osd_neg_alt_alarm
-        description: "Value bellow which (negative altitude) to make the OSD relative altitude indicator blink (meters)"
+        description: "Value below which (negative altitude) to make the OSD relative altitude indicator blink (meters)"
         default_value: "5"
         field: neg_alt_alarm
         min: 0
@@ -2739,6 +2739,12 @@ groups:
         field: snr_alarm
         min: -12
         max: 8
+      - name: osd_link_quality_alarm
+        description: "LQ % indicator blinks below this value. For Crossfire use 70%, for Tracer use 50%"
+        default_value: "70"
+        field: link_quality_alarm
+        min: 0
+        max: 100
       - name: osd_temp_label_align
         description: "Allows to chose between left and right alignment for the OSD temperature sensor labels. Valid values are `LEFT` and `RIGHT`"
         default_value: "LEFT"
