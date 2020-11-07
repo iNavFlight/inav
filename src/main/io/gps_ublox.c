@@ -35,6 +35,7 @@
 #include "common/gps_conversion.h"
 #include "common/maths.h"
 #include "common/utils.h"
+#include "common/log.h"
 
 #include "drivers/serial.h"
 #include "drivers/time.h"
@@ -275,7 +276,7 @@ enum {
     MSG_TIMEUTC = 0x21,
     MSG_SVINFO = 0x30,
     MSG_NAV_SAT = 0x35,
-    MSG_NAV_SIG = 0x35,
+    MSG_NAV_SIG = 0x43,
     MSG_CFG_PRT = 0x00,
     MSG_CFG_RATE = 0x08,
     MSG_CFG_SET_RATE = 0x01,
@@ -703,6 +704,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
     gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
 
     // Set dynamic model
+    LOG_D(GPS, "UBLOX: Configuring NAV5");
     switch (gpsState.gpsConfig->dynModel) {
         case GPS_DYNMODEL_PEDESTRIAN:
             configureNAV5(UBX_DYNMODEL_PEDESTRIAN, UBX_FIXMODE_AUTO);
@@ -719,6 +721,8 @@ STATIC_PROTOTHREAD(gpsConfigure)
 
     // Disable NMEA messages
     gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
+
+    LOG_D(GPS, "UBLOX: Disable NMEA messages");
 
     configureMSG(MSG_CLASS_NMEA, MSG_NMEA_GGA, 0);
     ptWait(_ack_state == UBX_ACK_GOT_ACK);
@@ -744,6 +748,8 @@ STATIC_PROTOTHREAD(gpsConfigure)
     // u-Blox 9 
     // M9N does not support some of the UBX 6/7/8 messages, so we have to configure it using special sequence
     if (gpsState.hwVersion >= 190000) {
+        LOG_D(GPS, "UBLOX: Configuring UBX-9 messages");
+
         configureMSG(MSG_CLASS_UBX, MSG_POSLLH, 0);
         ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
@@ -774,6 +780,8 @@ STATIC_PROTOTHREAD(gpsConfigure)
         // u-Blox 6/7/8
         // u-Blox 6 doesn't support PVT, use legacy config
         if ((gpsState.gpsConfig->provider == GPS_UBLOX) || (gpsState.hwVersion < 70000)) {
+            LOG_D(GPS, "UBLOX: Configuring UBX-6 messages");
+
             configureMSG(MSG_CLASS_UBX, MSG_POSLLH, 1);
             ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
@@ -802,6 +810,8 @@ STATIC_PROTOTHREAD(gpsConfigure)
         }
         // u-Blox 7-8 support PVT
         else {
+            LOG_D(GPS, "UBLOX: Configuring UBX-7 messages");
+
             configureMSG(MSG_CLASS_UBX, MSG_POSLLH, 0);
             ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
@@ -945,6 +955,14 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
             gpsState.autoConfigStep++;
             ptWaitTimeout((gpsState.hwVersion != 0), GPS_CFG_CMD_TIMEOUT_MS);
         } while(gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && gpsState.hwVersion == 0);
+
+        if (gpsState.hwVersion == 0) {
+            LOG_E(GPS, "UBLOX: version detection timeout");
+        }
+        else {
+            LOG_I(GPS, "UBLOX: detected HW: %u", (unsigned)gpsState.hwVersion);
+        }
+
 
         // Configure GPS
         ptSpawn(gpsConfigure);
