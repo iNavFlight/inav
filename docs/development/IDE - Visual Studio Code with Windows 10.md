@@ -104,13 +104,13 @@ Edit `./.vscode/tasks.json` to enable Building with `Ctrl + Shift + B` keyboard 
         }
         ,
         {
-            "label": "CMAKE Update",
+            "label": "Install/Update CMAKE",
             "type": "shell",
-            "command": "cmake ..",
+            "command": "mkdir -p build && cd build && cmake ..",
             "group": "build",
             "problemMatcher": [],
             "options": {
-                "cwd": "${workspaceFolder}/build"
+                "cwd": "${workspaceFolder}"
             }
         }
     ]
