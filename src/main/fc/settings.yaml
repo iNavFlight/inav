@@ -1846,7 +1846,7 @@ groups:
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t
-    condition: USE_NAV && USE_AUTOTUNE_FIXED_WING
+    condition: USE_AUTOTUNE_FIXED_WING
     members:
       - name: fw_autotune_overshoot_time
         description: "Time [ms] to detect sustained overshoot"
@@ -2734,12 +2734,14 @@ groups:
         min: -550
         max: 1250
       - name: osd_snr_alarm
+        condition: USE_SERIALRX_CRSF
         description: "Value below which Crossfire SNR Alarm pops-up. (dB)"
         default_value: "4"
         field: snr_alarm
         min: -12
         max: 8
       - name: osd_link_quality_alarm
+        condition: USE_SERIALRX_CRSF
         description: "LQ % indicator blinks below this value. For Crossfire use 70%, for Tracer use 50%"
         default_value: "70"
         field: link_quality_alarm

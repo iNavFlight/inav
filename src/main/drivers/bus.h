@@ -216,6 +216,7 @@ extern const busDeviceDescriptor_t __busdev_registry_end[];
 #define BUSDEV_REGISTER_ATTRIBUTES __attribute__ ((section(".busdev_registry"), used, aligned(4)))
 #endif
 
+#ifdef USE_SPI
 #define BUSDEV_REGISTER_SPI_F(_name, _devHw, _spiBus, _csnPin, _irqPin, _tag, _flags, _param)   \
     extern const busDeviceDescriptor_t _name ## _registry;                                      \
     static busDevice_t _name ## _memory;                                                        \
@@ -235,6 +236,17 @@ extern const busDeviceDescriptor_t __busdev_registry_end[];
     struct _dummy                                                                               \
     /**/
 
+#define BUSDEV_REGISTER_SPI(_name, _devHw, _spiBus, _csnPin, _irqPin, _flags, _param)           \
+    BUSDEV_REGISTER_SPI_F(_name, _devHw, _spiBus, _csnPin, _irqPin, 0, _flags, _param)
+
+#define BUSDEV_REGISTER_SPI_TAG(_name, _devHw, _spiBus, _csnPin, _irqPin, _tag, _flags, _param) \
+    BUSDEV_REGISTER_SPI_F(_name, _devHw, _spiBus, _csnPin, _irqPin, _tag, _flags, _param)
+#else
+#define BUSDEV_REGISTER_SPI(_name, _devHw, _spiBus, _csnPin, _irqPin, _flags, _param)               // NO-OP
+#define BUSDEV_REGISTER_SPI_TAG(_name, _devHw, _spiBus, _csnPin, _irqPin, _tag, _flags, _param)     // NO-OP
+#endif
+
+#ifdef USE_I2C
 #define BUSDEV_REGISTER_I2C_F(_name, _devHw, _i2cBus, _devAddr, _irqPin, _tag, _flags, _param)  \
     extern const busDeviceDescriptor_t _name ## _registry;                                      \
     static busDevice_t _name ## _memory;                                                        \
@@ -254,18 +266,15 @@ extern const busDeviceDescriptor_t __busdev_registry_end[];
     struct _dummy                                                                               \
     /**/
 
-#define BUSDEV_REGISTER_SPI(_name, _devHw, _spiBus, _csnPin, _irqPin, _flags, _param)           \
-    BUSDEV_REGISTER_SPI_F(_name, _devHw, _spiBus, _csnPin, _irqPin, 0, _flags, _param)
-
-#define BUSDEV_REGISTER_SPI_TAG(_name, _devHw, _spiBus, _csnPin, _irqPin, _tag, _flags, _param) \
-    BUSDEV_REGISTER_SPI_F(_name, _devHw, _spiBus, _csnPin, _irqPin, _tag, _flags, _param)
-
 #define BUSDEV_REGISTER_I2C(_name, _devHw, _i2cBus, _devAddr, _irqPin, _flags, _param)          \
     BUSDEV_REGISTER_I2C_F(_name, _devHw, _i2cBus, _devAddr, _irqPin, 0, _flags, _param)
 
 #define BUSDEV_REGISTER_I2C_TAG(_name, _devHw, _i2cBus, _devAddr, _irqPin, _tag, _flags, _param)\
     BUSDEV_REGISTER_I2C_F(_name, _devHw, _i2cBus, _devAddr, _irqPin, _tag, _flags, _param)
-
+#else
+#define BUSDEV_REGISTER_I2C(_name, _devHw, _i2cBus, _devAddr, _irqPin, _flags, _param)              // NO-OP
+#define BUSDEV_REGISTER_I2C_TAG(_name, _devHw, _i2cBus, _devAddr, _irqPin, _tag, _flags, _param)    // NO-OP
+#endif
 
 // busTransfer and busTransferMultiple are supported only on full-duplex SPI bus
 typedef struct busTransferDescriptor_s {
