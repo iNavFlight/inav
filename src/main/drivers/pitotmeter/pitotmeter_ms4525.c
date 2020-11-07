@@ -24,8 +24,8 @@
 #include "common/utils.h"
 #include "common/maths.h"
 #include "drivers/bus_i2c.h"
-#include "drivers/pitotmeter.h"
 #include "drivers/time.h"
+#include "drivers/pitotmeter/pitotmeter.h"
 
 // MS4525, Standard address 0x28
 #define MS4525_ADDR                 0x28

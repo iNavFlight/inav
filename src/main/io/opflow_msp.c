@@ -37,15 +37,13 @@
 #include "io/serial.h"
 
 #if defined(USE_OPFLOW_MSP)
+
 #include "drivers/opflow/opflow_virtual.h"
 #include "drivers/time.h"
 #include "io/opflow.h"
 
-typedef struct __attribute__((packed)) {
-    uint8_t quality;    // [0;255]
-    int32_t motionX;
-    int32_t motionY;
-} mspOpflowSensor_t;
+#include "msp/msp_protocol_v2_sensor_msg.h"
+
 
 static bool hasNewData = false;
 static timeUs_t updatedTimeUs = 0;
@@ -76,7 +74,7 @@ static bool mspOpflowUpdate(opflowData_t * data)
 void mspOpflowReceiveNewData(uint8_t * bufferPtr)
 {
     const timeUs_t currentTimeUs = micros();
-    const mspOpflowSensor_t * pkt = (const mspOpflowSensor_t *)bufferPtr;
+    const mspSensorOpflowDataMessage_t * pkt = (const mspSensorOpflowDataMessage_t *)bufferPtr;
 
     sensorData.deltaTime = currentTimeUs - updatedTimeUs;
     sensorData.flowRateRaw[0] = pkt->motionX;

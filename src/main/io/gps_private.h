@@ -78,4 +78,7 @@ extern void gpsHandleMTK(void);
 extern void gpsRestartNAZA(void);
 extern void gpsHandleNAZA(void);
 
+extern void gpsRestartMSP(void);
+extern void gpsHandleMSP(void);
+
 #endif

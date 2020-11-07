@@ -40,6 +40,7 @@
 #include "drivers/compass/compass_qmc5883l.h"
 #include "drivers/compass/compass_mpu9250.h"
 #include "drivers/compass/compass_lis3mdl.h"
+#include "drivers/compass/compass_msp.h"
 #include "drivers/io.h"
 #include "drivers/light_led.h"
 #include "drivers/time.h"
@@ -243,6 +244,20 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         }
 #endif
 
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (magHardwareToUse != MAG_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
+    case MAG_MSP:
+#ifdef USE_MAG_MSP
+        // Skip autodetection for MSP mag
+        if (magHardwareToUse != MAG_AUTODETECT && mspMagDetect(dev)) {
+            magHardware = MAG_MSP;
+            break;
+        }
+#endif
         /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
         if (magHardwareToUse != MAG_AUTODETECT) {
             break;

@@ -54,6 +54,7 @@
 #define USE_BLACKBOX
 #define USE_GPS
 #define USE_GPS_PROTO_UBLOX
+#define USE_GPS_PROTO_MSP
 #define USE_NAV
 #define USE_TELEMETRY
 #define USE_TELEMETRY_LTM
@@ -93,8 +94,10 @@
 #define USE_OPFLOW_CXOF
 #define USE_OPFLOW_MSP
 
+// Allow default airspeed sensors
 #define USE_PITOT
 #define USE_PITOT_MS4525
+#define USE_PITOT_MSP
 
 #define USE_1WIRE
 #define USE_1WIRE_DS2482

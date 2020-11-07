@@ -35,6 +35,15 @@
 #define USE_CANVAS
 #endif
 
+// Enable MSP BARO & MAG drivers if BARO and MAG sensors are compiled in
+#if defined(USE_MAG)
+#define USE_MAG_MSP
+#endif
+
+#if defined(USE_BARO)
+#define USE_BARO_MSP
+#endif
+
 #ifdef USE_ESC_SENSOR
     #define USE_RPM_FILTER
 #endif
