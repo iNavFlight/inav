@@ -274,6 +274,8 @@ enum {
     MSG_VELNED = 0x12,
     MSG_TIMEUTC = 0x21,
     MSG_SVINFO = 0x30,
+    MSG_NAV_SAT = 0x35,
+    MSG_NAV_SIG = 0x35,
     MSG_CFG_PRT = 0x00,
     MSG_CFG_RATE = 0x08,
     MSG_CFG_SET_RATE = 0x01,
@@ -739,34 +741,13 @@ STATIC_PROTOTHREAD(gpsConfigure)
     // Configure UBX binary messages
     gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
 
-    if ((gpsState.gpsConfig->provider == GPS_UBLOX) || (gpsState.hwVersion < 70000)) {
-        configureMSG(MSG_CLASS_UBX, MSG_POSLLH, 1);
-        ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-        configureMSG(MSG_CLASS_UBX, MSG_STATUS, 1);
-        ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-        configureMSG(MSG_CLASS_UBX, MSG_SOL, 1);
-        ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-        configureMSG(MSG_CLASS_UBX, MSG_VELNED, 1);
-        ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-        configureMSG(MSG_CLASS_UBX, MSG_TIMEUTC, 10);
-        ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-        // This may fail on old UBLOX units, advance forward on both ACK and NAK
-        configureMSG(MSG_CLASS_UBX, MSG_PVT, 0);
-        ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
-    }
-    else {
+    // u-Blox 9 
+    // M9N does not support some of the UBX 6/7/8 messages, so we have to configure it using special sequence
+    if (gpsState.hwVersion >= 190000) {
         configureMSG(MSG_CLASS_UBX, MSG_POSLLH, 0);
         ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
         configureMSG(MSG_CLASS_UBX, MSG_STATUS, 0);
-        ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-        configureMSG(MSG_CLASS_UBX, MSG_SOL, 0);
         ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
         configureMSG(MSG_CLASS_UBX, MSG_VELNED, 0);
@@ -777,20 +758,80 @@ STATIC_PROTOTHREAD(gpsConfigure)
 
         configureMSG(MSG_CLASS_UBX, MSG_PVT, 1);
         ptWait(_ack_state == UBX_ACK_GOT_ACK);
-    }
 
-    configureMSG(MSG_CLASS_UBX, MSG_SVINFO, 0);
-    ptWait(_ack_state == UBX_ACK_GOT_ACK);
+        configureMSG(MSG_CLASS_UBX, MSG_NAV_SAT, 0);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
-    // Configure data rate
-    gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
-    if ((gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) && (gpsState.hwVersion >= 70000)) {
-        configureRATE(100); // 10Hz
+        configureMSG(MSG_CLASS_UBX, MSG_NAV_SIG, 0);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+        // u-Blox 9 receivers such as M9N can do 10Hz as well, but the number of used satellites will be restricted to 16.
+        // Not mentioned in the datasheet
+        configureRATE(200);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
     }
     else {
-        configureRATE(200); // 5Hz
+        // u-Blox 6/7/8
+        // u-Blox 6 doesn't support PVT, use legacy config
+        if ((gpsState.gpsConfig->provider == GPS_UBLOX) || (gpsState.hwVersion < 70000)) {
+            configureMSG(MSG_CLASS_UBX, MSG_POSLLH, 1);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+            configureMSG(MSG_CLASS_UBX, MSG_STATUS, 1);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+            configureMSG(MSG_CLASS_UBX, MSG_SOL, 1);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+            configureMSG(MSG_CLASS_UBX, MSG_VELNED, 1);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+            configureMSG(MSG_CLASS_UBX, MSG_TIMEUTC, 10);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+            // This may fail on old UBLOX units, advance forward on both ACK and NAK
+            configureMSG(MSG_CLASS_UBX, MSG_PVT, 0);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
+
+            configureMSG(MSG_CLASS_UBX, MSG_SVINFO, 0);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+            // Configure data rate to 5HZ
+            configureRATE(200);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+        }
+        // u-Blox 7-8 support PVT
+        else {
+            configureMSG(MSG_CLASS_UBX, MSG_POSLLH, 0);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+            configureMSG(MSG_CLASS_UBX, MSG_STATUS, 0);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+            configureMSG(MSG_CLASS_UBX, MSG_SOL, 1);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+            configureMSG(MSG_CLASS_UBX, MSG_VELNED, 0);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+            configureMSG(MSG_CLASS_UBX, MSG_TIMEUTC, 0);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+            configureMSG(MSG_CLASS_UBX, MSG_PVT, 1);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+            configureMSG(MSG_CLASS_UBX, MSG_SVINFO, 0);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+            if ((gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) && (gpsState.hwVersion >= 70000)) {
+                configureRATE(100); // 10Hz
+            }
+            else {
+                configureRATE(200); // 5Hz
+            }
+            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+        }
     }
-    ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
     // Configure SBAS
     // If particular SBAS setting is not supported by the hardware we'll get a NAK,
