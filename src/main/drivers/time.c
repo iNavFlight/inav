@@ -36,7 +36,6 @@
 // cycles per microsecond, this is deliberately uint32_t to avoid type conversions
 // This is not static so system.c can set it up for us.
 uint32_t usTicks = 0;
-uint32_t nsTicks = 0;
 
 // current uptime for 1kHz systick timer. will rollover after 49 days. hopefully we won't care.
 STATIC_UNIT_TESTED volatile timeMs_t sysTickUptime = 0;
@@ -71,25 +70,15 @@ uint32_t ticks(void)
 #ifdef UNIT_TEST
     return 0;
 #else
-    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
     return DWT->CYCCNT;
 #endif
-}
-
-timeDelta_t ticks_diff_us(uint32_t begin, uint32_t end)
-{
-    return (end - begin) / usTicks;
-}
-
-timeDelta_t ticks_diff_ns(uint32_t begin, uint32_t end)
-{
-    return (end - begin) / nsTicks;
 }
 
 void delayNanos(timeDelta_t ns)
 {
     const uint32_t startTicks = ticks();
-    while (ticks_diff_ns(startTicks, ticks()) < ns);
+    const uint32_t ticksToWait = (ns * usTicks) / 1000;
+    while (ticks() - startTicks <= ticksToWait);
 }
 
 // Return system uptime in microseconds

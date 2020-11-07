@@ -29,35 +29,37 @@
 #include "drivers/system.h"
 #include "drivers/time.h"
 
+#if defined(STM32F3) || defined(STM32F4) || defined(STM32F7) || defined(STM32H7)
+// See "RM CoreSight Architecture Specification"
+// B2.3.10  "LSR and LAR, Software Lock Status Register and Software Lock Access Register"
+// "E1.2.11  LAR, Lock Access Register"
+#define DWT_LAR_UNLOCK_VALUE 0xC5ACCE55
+#endif
+
 // cached value of RCC->CSR
 uint32_t cachedRccCsrValue;
 
 void cycleCounterInit(void)
 {
     extern uint32_t usTicks; // From drivers/time.h
+
 #if defined(USE_HAL_DRIVER)
     // We assume that SystemCoreClock is already set to a correct value by init code
     usTicks = SystemCoreClock / 1000000;
-    nsTicks = SystemCoreClock / 1000;
 #else
     RCC_ClocksTypeDef clocks;
     RCC_GetClocksFreq(&clocks);
     usTicks = clocks.SYSCLK_Frequency / 1000000;
-    nsTicks = clocks.SYSCLK_Frequency / 1000;
 #endif
 
     // Enable DWT for precision time measurement
     CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
 
-#if defined(DWT_LAR_UNLOCK_VALUE)
 #if defined(STM32F7) || defined(STM32H7)
     DWT->LAR = DWT_LAR_UNLOCK_VALUE;
 #elif defined(STM32F3) || defined(STM32F4)
-    // Note: DWT_Type does not contain LAR member.
-#define DWT_LAR
-    __O uint32_t *DWTLAR = (uint32_t *)(DWT_BASE + 0x0FB0);
+    volatile uint32_t *DWTLAR = (uint32_t *)(DWT_BASE + 0x0FB0);
     *(DWTLAR) = DWT_LAR_UNLOCK_VALUE;
-#endif
 #endif
 
     DWT->CYCCNT = 0;
