@@ -1680,7 +1680,7 @@ static bool osdDrawSingleElement(uint8_t item)
             }
             if (!failsafeIsReceivingRxData()){
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-            } else if (rxLinkStatistics.uplinkLQ < osdConfig()->rssi_alarm) {
+            } else if (rxLinkStatistics.uplinkLQ < osdConfig()->link_quality_alarm) {
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             }
             break;
@@ -2359,7 +2359,7 @@ static bool osdDrawSingleElement(uint8_t item)
             displayWriteChar(osdDisplayPort, elemPosX, elemPosY + 1, referenceSymbol);
             return true;
         }
-    
+
     case OSD_GVAR_0:
     {
         osdFormatGVar(buff, 0);
@@ -2526,6 +2526,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
 #ifdef USE_SERIALRX_CRSF
     .snr_alarm = 4,
     .crsf_lq_format = OSD_CRSF_LQ_TYPE1,
+    .link_quality_alarm = 70,
 #endif
 #ifdef USE_TEMPERATURE_SENSOR
     .temp_label_align = OSD_ALIGN_LEFT,

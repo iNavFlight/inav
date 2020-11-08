@@ -10,16 +10,16 @@ tables:
     values: ["NONE", "HCSR04", "SRF10", "INAV_I2C", "VL53L0X", "MSP", "UIB", "BENEWAKE"]
     enum: rangefinderType_e
   - name: mag_hardware
-    values: ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "FAKE"]
+    values: ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "MSP", "FAKE"]
     enum: magSensor_e
   - name: opflow_hardware
     values: ["NONE", "PMW3901", "CXOF", "MSP", "FAKE"]
     enum: opticalFlowSensor_e
   - name: baro_hardware
-    values: ["NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "LPS25H", "SPL06", "BMP388", "DPS310", "FAKE"]
+    values: ["NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "LPS25H", "SPL06", "BMP388", "DPS310", "MSP", "FAKE"]
     enum: baroSensor_e
   - name: pitot_hardware
-    values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE"]
+    values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE", "MSP"]
     enum: pitotSensor_e
   - name: receiver_type
     values: ["NONE", "PPM", "SERIAL", "MSP", "SPI", "UIB"]
@@ -44,7 +44,7 @@ tables:
     values: ["NONE", "ADC", "ESC"]
     enum: voltageSensor_e
   - name: gps_provider
-    values: ["NMEA", "UBLOX", "UNUSED", "NAZA", "UBLOX7", "MTK"]
+    values: ["NMEA", "UBLOX", "UNUSED", "NAZA", "UBLOX7", "MTK", "MSP"]
     enum: gpsProvider_e
   - name: gps_sbas_mode
     values: ["AUTO", "EGNOS", "WAAS", "MSAS", "GAGAN", "NONE"]
@@ -2642,7 +2642,7 @@ groups:
         type: uint8_t
 
       - name: osd_rssi_alarm
-        description: "Value bellow which to make the OSD RSSI indicator blink"
+        description: "Value below which to make the OSD RSSI indicator blink"
         default_value: "20"
         field: rssi_alarm
         min: 0
@@ -2666,7 +2666,7 @@ groups:
         min: 0
         max: 50000
       - name: osd_neg_alt_alarm
-        description: "Value bellow which (negative altitude) to make the OSD relative altitude indicator blink (meters)"
+        description: "Value below which (negative altitude) to make the OSD relative altitude indicator blink (meters)"
         default_value: "5"
         field: neg_alt_alarm
         min: 0
@@ -2739,6 +2739,12 @@ groups:
         field: snr_alarm
         min: -12
         max: 8
+      - name: osd_link_quality_alarm
+        description: "LQ % indicator blinks below this value. For Crossfire use 70%, for Tracer use 50%"
+        default_value: "70"
+        field: link_quality_alarm
+        min: 0
+        max: 100
       - name: osd_temp_label_align
         description: "Allows to chose between left and right alignment for the OSD temperature sensor labels. Valid values are `LEFT` and `RIGHT`"
         default_value: "LEFT"

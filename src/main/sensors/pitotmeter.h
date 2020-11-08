@@ -21,7 +21,7 @@
 #include "common/filter.h"
 #include "common/calibration.h"
 
-#include "drivers/pitotmeter.h"
+#include "drivers/pitotmeter/pitotmeter.h"
 
 typedef enum {
     PITOT_NONE = 0,
@@ -30,6 +30,7 @@ typedef enum {
     PITOT_ADC = 3,
     PITOT_VIRTUAL = 4,
     PITOT_FAKE = 5,
+    PITOT_MSP = 6,
 } pitotSensor_e;
 
 #define PITOT_MAX  PITOT_FAKE
