@@ -117,6 +117,8 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 29            | ACTIVE_WAYPOINT_INDEX | Indexed from `1`. To verify WP is in progress, use `IS_WP` |
 | 30            | ACTIVE_WAYPOINT_ACTION | See ACTIVE_WAYPOINT_ACTION paragraph |
 | 31            | 3D HOME_DISTANCE      | in `meters`, calculated from HOME_DISTANCE and ALTITUDE using Pythagorean theorem |
+| 32            | CROSSFIRE LQ          | Crossfire Link quality as returned by the CRSF protocol   | 
+| 33            | CROSSFIRE SNR          | Crossfire SNR as returned by the CRSF protocol   | 
 
 ##### ACTIVE_WAYPOINT_ACTION
 
@@ -144,6 +146,8 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 6             | ANGLE         |                                       |
 | 7             | HORIZON       |                                       |
 | 8             | AIR           |                                       |
+| 9             | USER1         |                                       |
+| 10            | USER2         |                                       |
 
     
 ### Flags
