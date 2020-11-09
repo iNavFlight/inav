@@ -60,6 +60,7 @@
 #include "fc/runtime_config.h"
 
 typedef struct {
+    bool                isDriverBased;
     portMode_t          portMode;           // Port mode RX/TX (only for serial based)
     bool                hasCompass;         // Has a compass (NAZA)
     void                (*restart)(void);   // Restart protocol driver thread
@@ -77,42 +78,48 @@ baudRate_e gpsToSerialBaudRate[GPS_BAUDRATE_COUNT] = { BAUD_115200, BAUD_57600, 
 static gpsProviderDescriptor_t  gpsProviders[GPS_PROVIDER_COUNT] = {
     /* NMEA GPS */
 #ifdef USE_GPS_PROTO_NMEA
-    { MODE_RX, false, &gpsRestartNMEA_MTK, &gpsHandleNMEA },
+    { false, MODE_RX, false, &gpsRestartNMEA_MTK, &gpsHandleNMEA },
 #else
-    { 0, false,  NULL, NULL },
+    { false, 0, false,  NULL, NULL },
 #endif
 
     /* UBLOX binary */
 #ifdef USE_GPS_PROTO_UBLOX
-    { MODE_RXTX, false, &gpsRestartUBLOX, &gpsHandleUBLOX },
+    { false, MODE_RXTX, false, &gpsRestartUBLOX, &gpsHandleUBLOX },
 #else
-    { 0, false,  NULL, NULL },
+    { false, 0, false,  NULL, NULL },
 #endif
 
     /* Stub */
-    { 0, false,  NULL, NULL },
+    { false, 0, false,  NULL, NULL },
 
     /* NAZA GPS module */
 #ifdef USE_GPS_PROTO_NAZA
-    { MODE_RX, true, &gpsRestartNAZA, &gpsHandleNAZA },
+    { false, MODE_RX, true, &gpsRestartNAZA, &gpsHandleNAZA },
 #else
-    { 0, false,  NULL, NULL },
+    { false, 0, false,  NULL, NULL },
 #endif
 
     /* UBLOX7PLUS binary */
 #ifdef USE_GPS_PROTO_UBLOX
-    { MODE_RXTX, false, &gpsRestartUBLOX, &gpsHandleUBLOX },
+    { false, MODE_RXTX, false, &gpsRestartUBLOX, &gpsHandleUBLOX },
 #else
-    { 0, false,  NULL, NULL },
+    { false, 0, false,  NULL, NULL },
 #endif
 
     /* MTK GPS */
 #ifdef USE_GPS_PROTO_MTK
-    { MODE_RXTX, false, &gpsRestartNMEA_MTK, &gpsHandleMTK },
+    { false, MODE_RXTX, false, &gpsRestartNMEA_MTK, &gpsHandleMTK },
 #else
-    { 0, false,  NULL, NULL },
+    { false, 0, false,  NULL, NULL },
 #endif
 
+    /* MSP GPS */
+#ifdef USE_GPS_PROTO_MSP
+    { true, 0, false, &gpsRestartMSP, &gpsHandleMSP },
+#else
+    { false, 0, false,  NULL, NULL },
+#endif
 };
 
 PG_REGISTER_WITH_RESET_TEMPLATE(gpsConfig_t, gpsConfig, PG_GPS_CONFIG, 0);
@@ -135,7 +142,7 @@ void gpsSetState(gpsState_e state)
 
 static void gpsUpdateTime(void)
 {
-    if (!rtcHasTime() && gpsSol.flags.validTime) {
+    if (!rtcHasTime() && gpsSol.flags.validTime && gpsSol.time.year != 0) {
         rtcSetDateTime(&gpsSol.time);
     }
 }
@@ -217,6 +224,12 @@ void gpsInit(void)
     // If given GPS provider has protocol() function not defined - we can't use it
     if (!gpsProviders[gpsState.gpsConfig->provider].protocol) {
         featureClear(FEATURE_GPS);
+        return;
+    }
+
+    // Shortcut for driver-based GPS (MSP)
+    if (gpsProviders[gpsState.gpsConfig->provider].isDriverBased) {
+        gpsSetState(GPS_INITIALIZING);
         return;
     }
 

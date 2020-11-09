@@ -118,6 +118,8 @@ main_sources(COMMON_SRC
     drivers/barometer/barometer_ms56xx.h
     drivers/barometer/barometer_spl06.c
     drivers/barometer/barometer_spl06.h
+    drivers/barometer/barometer_msp.c
+    drivers/barometer/barometer_msp.h
 
     drivers/buf_writer.c
     drivers/buf_writer.h
@@ -148,6 +150,8 @@ main_sources(COMMON_SRC
     drivers/compass/compass_mpu9250.h
     drivers/compass/compass_qmc5883l.c
     drivers/compass/compass_qmc5883l.h
+    drivers/compass/compass_msp.c
+    drivers/compass/compass_msp.h
 
     drivers/display.c
     drivers/display.h
@@ -195,12 +199,14 @@ main_sources(COMMON_SRC
     drivers/osd.h
     drivers/persistent.c
     drivers/persistent.h
-    drivers/pitotmeter_adc.c
-    drivers/pitotmeter_adc.h
-    drivers/pitotmeter_ms4525.c
-    drivers/pitotmeter_ms4525.h
-    drivers/pitotmeter_virtual.c
-    drivers/pitotmeter_virtual.h
+    drivers/pitotmeter/pitotmeter_adc.c
+    drivers/pitotmeter/pitotmeter_adc.h
+    drivers/pitotmeter/pitotmeter_ms4525.c
+    drivers/pitotmeter/pitotmeter_ms4525.h
+    drivers/pitotmeter/pitotmeter_msp.c
+    drivers/pitotmeter/pitotmeter_msp.h
+    drivers/pitotmeter/pitotmeter_virtual.c
+    drivers/pitotmeter/pitotmeter_virtual.h
     drivers/pwm_esc_detect.c
     drivers/pwm_esc_detect.h
     drivers/pwm_mapping.c
@@ -512,6 +518,7 @@ main_sources(COMMON_SRC
     io/gps_ublox.c
     io/gps_nmea.c
     io/gps_naza.c
+    io/gps_msp.c
     io/gps_private.h
     io/ledstrip.c
     io/ledstrip.h

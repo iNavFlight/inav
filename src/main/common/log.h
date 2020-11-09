@@ -31,6 +31,7 @@ typedef enum {
     LOG_TOPIC_VTX,              // 9, mask = 512
     LOG_TOPIC_OSD,              // 10, mask = 1024
     LOG_TOPIC_RX_SPI,           // 11, mask = 2048
+    LOG_TOPIC_GPS,              // 12, mask = 4096
     LOG_TOPIC_COUNT,
 } logTopic_e;
 

@@ -2,9 +2,9 @@
 
 ## Arming
 
-When armed, the aircraft is ready to fly and the motors will spin when throttle is applied.  The motors will spin at a slow speed when armed (this feature may be disabled by setting MOTOR_STOP, but for safety reasons, that is not recommended).
+When armed, the aircraft is ready to fly and the motors will spin when throttle is applied.  With multirotors, the motors will spin at a slow speed when armed (this feature may be disabled by setting MOTOR_STOP, but for safety reasons, that is not recommended).
 
-By default, arming and disarming is done using stick positions.  (NOTE: this feature is disabled when using a switch to arm.)
+Arming and disarming is done using a switch, set up on the modes page.  (NOTE: Stick arming was removed in iNav 2.2)
 
 ## Stick Positions
 
