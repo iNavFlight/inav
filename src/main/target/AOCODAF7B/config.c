@@ -20,15 +20,14 @@
 
 #include "platform.h"
 #include "fc/fc_msp_box.h"
-#include "io/piniobox.h"
 #include "io/serial.h"
+#include "drivers/pinio.h"
+#include "io/piniobox.h"
 
-#define BLUETOOTH_MSP_BAUDRATE      BAUD_19200
 
 void targetConfiguration(void)
 {
+    // Built-in bluetooth on SERIAL5
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART5)].functionMask = FUNCTION_MSP;
-    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART5)].msp_baudrateIndex = BLUETOOTH_MSP_BAUDRATE;
-
-    //pinioBoxConfigMutable()->permanentId[0] = 47;
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART5)].msp_baudrateIndex = BAUD_19200;
 }

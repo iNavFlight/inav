@@ -152,8 +152,8 @@
 // *************** PINIO ***************************
 #define USE_PINIO
 #define USE_PINIOBOX
-#define PINIO1_PIN                  PA15
-#define PINIO1_FLAGS                PINIO_FLAGS_INVERTED
+//#define PINIO1_PIN                  PA15
+//#define PINIO1_FLAGS                PINIO_FLAGS_INVERTED
 // *************** LEDSTRIP ************************
 #define USE_LED_STRIP
 #define WS2811_PIN                  PB7
@@ -168,7 +168,7 @@
 #define TARGET_IO_PORTC 0xffff
 #define TARGET_IO_PORTD 0xffff
 
-#define MAX_PWM_OUTPUT_PORTS        7
+#define MAX_PWM_OUTPUT_PORTS        6
 #define USE_DSHOT
 #define USE_SERIALSHOT
 #define USE_ESC_SENSOR
