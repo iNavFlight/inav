@@ -2261,13 +2261,13 @@ groups:
         min: 0
         max: 100
       - name: nav_fw_pitch2thr_smoothing
-        description: "Number of fixedWingPitchToThrottleCorrection cycles used to calculate a moving average pitch"
-        default_value: "1"
+        description:  "How smoothly the autopilot makes pitch to throttle correction inside a deadband defined by pitch_to_throttle_thresh."
+        default_value: "0"
         field: fw.pitch_to_throttle_smooth
-        min: 1
-        max: 4096
+        min: 0
+        max: 9
       - name: nav_fw_pitch2thr_threshold
-        description: "Threshold from zero pitch before pitch_to_throttle is applied [decidegrees]"
+        description: "Threshold from average pitch where momentary pitch_to_throttle correction kicks in. [decidegrees]"
         default_value: "0"
         field: fw.pitch_to_throttle_thresh
         min: 0

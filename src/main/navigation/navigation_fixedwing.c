@@ -79,6 +79,15 @@ static float getSmoothnessCutoffFreq(float baseFreq)
     return 0.001f * baseFreq * (float)(smoothness*smoothness*smoothness) + 0.1f;
 }
 
+// Calculates the cutoff frequency for smoothing out pitchToThrottleCorrection
+// pitch_to_throttle_smooth valid range from 0 to 9
+// resulting cutoff_freq ranging from baseFreq downwards to ~0.11Hz
+static float getPitchToThrottleSmoothnessCutoffFreq(float baseFreq)
+{
+    uint16_t smoothness = 10 - navConfig()->fw.pitch_to_throttle_smooth;
+    return 0.001f * baseFreq * (float)(smoothness*smoothness*smoothness) + 0.1f;
+}
+
 /*-----------------------------------------------------------
  * Altitude controller
  *-----------------------------------------------------------*/
@@ -461,20 +470,24 @@ int16_t applyFixedWingMinSpeedController(timeUs_t currentTimeUs)
     return throttleSpeedAdjustment;
 }
 
-int16_t fixedWingPitchToThrottleCorrection(int16_t pitch)
+int16_t fixedWingPitchToThrottleCorrection(int16_t pitch, timeUs_t currentTimeUs)
 {
-    const int16_t movingAverageCycles = navConfig()->fw.pitch_to_throttle_smooth;
-    static int16_t averagePitch = 0;
+    static timeUs_t previousTimePitchToThrCorr = 0;
+    const timeDelta_t deltaMicrosPitchToThrCorr = currentTimeUs -  previousTimePitchToThrCorr;
+    previousTimePitchToThrCorr = currentTimeUs;
 
-    averagePitch = (averagePitch * movingAverageCycles + pitch - averagePitch) / movingAverageCycles;
+    static pt1Filter_t pitchToThrFilterState;
 
-    if (pitch > (averagePitch + navConfig()->fw.pitch_to_throttle_thresh) || pitch < (averagePitch - navConfig()->fw.pitch_to_throttle_thresh)) {
+    // Apply low-pass filter to pitch angle to smooth throttle correction
+    filteredPitch = pt1FilterApply4(&pitchToThrFilterState, pitch, getPitchToThrottleSmoothnessCutoffFreq(NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ), US2S(deltaMicrosPitchToThrCorr));
+
+    if (abs(pitch - filteredPitch) > navConfig()->fw.pitch_to_throttle_thresh) {
         // Unfiltered throttle correction outside of pitch deadband
         return DECIDEGREES_TO_DEGREES(pitch) * navConfig()->fw.pitch_to_throttle;
     }
     else {
         // Filtered throttle correction inside of pitch deadband
-        return DECIDEGREES_TO_DEGREES(averagePitch) * navConfig()->fw.pitch_to_throttle;
+        return DECIDEGREES_TO_DEGREES(filteredPitch) * navConfig()->fw.pitch_to_throttle;
     }
 }
 
@@ -497,7 +510,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         // PITCH >0 dive, <0 climb
         int16_t pitchCorrection = constrain(posControl.rcAdjustment[PITCH], -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_dive_angle), DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle));
         rcCommand[PITCH] = -pidAngleToRcCommand(pitchCorrection, pidProfile()->max_angle_inclination[FD_PITCH]);
-        int16_t throttleCorrection = fixedWingPitchToThrottleCorrection(pitchCorrection);
+        int16_t throttleCorrection = fixedWingPitchToThrottleCorrection(pitchCorrection, currentTimeUs);
 
 #ifdef NAV_FIXED_WING_LANDING
         if (navStateFlags & NAV_CTL_LAND) {
