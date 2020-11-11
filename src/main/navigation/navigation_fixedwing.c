@@ -463,22 +463,18 @@ int16_t applyFixedWingMinSpeedController(timeUs_t currentTimeUs)
 
 int16_t fixedWingPitchToThrottleCorrection(int16_t pitch)
 {
-    // Calculate base throttle correction from pitch moving average
     const int16_t movingAverageCycles = navConfig()->fw.pitch_to_throttle_smooth;
     static int16_t averagePitch = 0;
 
     averagePitch = (averagePitch * movingAverageCycles + pitch - averagePitch) / movingAverageCycles;
-    const int16_t baseThrottleCorrection = DECIDEGREES_TO_DEGREES(averagePitch) * navConfig()->fw.pitch_to_throttle;
 
-    // Calculate final throttle correction
-    if (pitch > (averagePitch + navConfig()->fw.pitch_to_throttle_thresh)) {
-        return baseThrottleCorrection + DECIDEGREES_TO_DEGREES(pitch - averagePitch - navConfig()->fw.pitch_to_throttle_thresh) * navConfig()->fw.pitch_to_throttle;
-    }
-    else if (pitch < (averagePitch - navConfig()->fw.pitch_to_throttle_thresh)) {
-        return baseThrottleCorrection + DECIDEGREES_TO_DEGREES(pitch - averagePitch + navConfig()->fw.pitch_to_throttle_thresh) * navConfig()->fw.pitch_to_throttle;
+    if (pitch > (averagePitch + navConfig()->fw.pitch_to_throttle_thresh) || pitch < (averagePitch - navConfig()->fw.pitch_to_throttle_thresh)) {
+        // Unfiltered throttle correction outside of pitch deadband
+        return DECIDEGREES_TO_DEGREES(pitch) * navConfig()->fw.pitch_to_throttle;
     }
     else {
-        return baseThrottleCorrection;
+        // Filtered throttle correction inside of pitch deadband
+        return DECIDEGREES_TO_DEGREES(averagePitch) * navConfig()->fw.pitch_to_throttle;
     }
 }
 
