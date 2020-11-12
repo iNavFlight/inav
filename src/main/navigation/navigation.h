@@ -463,7 +463,7 @@ bool loadNonVolatileWaypointList(void);
 bool saveNonVolatileWaypointList(void);
 
 float getFinalRTHAltitude(void);
-int16_t fixedWingPitchToThrottleCorrection(int16_t pitch);
+int16_t fixedWingPitchToThrottleCorrection(int16_t pitch, timeUs_t currentTimeUs);
 
 /* Geodetic functions */
 typedef enum {

@@ -479,9 +479,9 @@ int16_t fixedWingPitchToThrottleCorrection(int16_t pitch, timeUs_t currentTimeUs
     static pt1Filter_t pitchToThrFilterState;
 
     // Apply low-pass filter to pitch angle to smooth throttle correction
-    filteredPitch = pt1FilterApply4(&pitchToThrFilterState, pitch, getPitchToThrottleSmoothnessCutoffFreq(NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ), US2S(deltaMicrosPitchToThrCorr));
+    int16_t filteredPitch = (int16_t)pt1FilterApply4(&pitchToThrFilterState, pitch, getPitchToThrottleSmoothnessCutoffFreq(NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ), US2S(deltaMicrosPitchToThrCorr));
 
-    if (abs(pitch - filteredPitch) > navConfig()->fw.pitch_to_throttle_thresh) {
+    if (ABS(pitch - filteredPitch) > navConfig()->fw.pitch_to_throttle_thresh) {
         // Unfiltered throttle correction outside of pitch deadband
         return DECIDEGREES_TO_DEGREES(pitch) * navConfig()->fw.pitch_to_throttle;
     }
