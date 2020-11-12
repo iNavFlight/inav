@@ -18,8 +18,8 @@
 
 #pragma once
 
-#   define TARGET_BOARD_IDENTIFIER "AOF7"
-#   define USBD_PRODUCT_STRING  "AocodaF7_Ble"
+#   define TARGET_BOARD_IDENTIFIER "AO7B"
+#   define USBD_PRODUCT_STRING  "AocodaRCF7Ble"
 
 
 #define LED0                    PC14  //Blue
