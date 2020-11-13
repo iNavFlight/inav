@@ -226,7 +226,11 @@ void applyFixedWingLaunchController(timeUs_t currentTimeUs)
 
     // Control beeper
     if (!launchState.launchFinished) {
-        beeper(BEEPER_LAUNCH_MODE_ENABLED);
+        if (calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC) != THROTTLE_LOW) {
+            beeper(BEEPER_LAUNCH_MODE_ENABLED);
+        } else {
+            beeper(BEEPER_LAUNCH_MODE_LOW_THROTTLE);
+        }
     }
 
     // Lock out controls
