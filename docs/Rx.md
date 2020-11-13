@@ -178,7 +178,7 @@ SRXL2 is a newer Spektrum protocol that provides a bidirectional link between th
 
 #### Wiring
 
-Signal pin on receiver (labeled "S") must be wired to a **UART TX** pin on the FC. Voltage can be 3.3V (4.0V for SPM4651T) to 8.4V. You are advised not to use a hardware inverted UART.
+Signal pin on receiver (labeled "S") must be wired to a **UART TX** pin on the FC. Voltage can be 3.3V (4.0V for SPM4651T) to 8.4V. On some F4 FCs, the TX pin may have a signal inverter (such as for S.Port). Make sure this isn't the case for the pin you intend to use.
 
 #### Configuration
 
