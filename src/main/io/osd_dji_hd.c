@@ -410,7 +410,6 @@ static void djiSerializeOSDConfigReply(sbuf_t *dst)
     //sbufWriteU8(dst, DJI_OSD_SCREEN_WIDTH); // osdConfig()->camera_frame_width
     //sbufWriteU8(dst, DJI_OSD_SCREEN_HEIGHT); // osdConfig()->camera_frame_height
 }
-#endif
 
 static const char * osdArmingDisabledReasonMessage(void)
 {
@@ -895,6 +894,7 @@ static void djiSerializeCraftNameOverride(sbuf_t *dst, const char * name)
         sbufWriteData(dst, message, strlen(message));
     }
 }
+#endif
 
 
 static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn)
@@ -932,10 +932,20 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
             {
                 const char * name = systemConfig()->name;
 
-                if (djiOsdConfig()->use_name_for_messages && name[0] == ':')  {
-                    djiSerializeCraftNameOverride(dst, name);
+#if defined(USE_OSD)
+                if (djiOsdConfig()->use_name_for_messages)  {
+                    if (name[0] == ':') {
+                        // If craft name starts with a semicolon - use it as a template for what we want to show
+                        djiSerializeCraftNameOverride(dst, name);
+                    }
+                    else {
+                        // Otherwise fall back to just warnings
+                        djiSerializeCraftNameOverride(dst, ":W");
+                    }
                 }
-                else {
+                else
+#endif
+                {
                     int len = strlen(name);
                     sbufWriteData(dst, name, MAX(len, 12));
                     break;
