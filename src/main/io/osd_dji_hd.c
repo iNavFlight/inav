@@ -91,14 +91,17 @@
 #define DJI_OSD_WARNING_COUNT               16
 #define DJI_OSD_TIMER_COUNT                 2
 #define DJI_OSD_FLAGS_OSD_FEATURE           (1 << 0)
-#define EFFICIENCY_UPDATE_INTERVAL (5 * 1000)
+#define EFFICIENCY_UPDATE_INTERVAL          (5 * 1000)
 
 #define RC_RX_LINK_LOST_MSG "!RC RX LINK LOST!"
+
 // Adjust OSD_MESSAGE's default position when
 // changing OSD_MESSAGE_LENGTH
 #define OSD_MESSAGE_LENGTH 28
+
 #define OSD_ALTERNATING_CHOICES(ms, num_choices) ((millis() / ms) % num_choices)
 #define _CONST_STR_SIZE(s) ((sizeof(s)/sizeof(s[0]))-1) // -1 to avoid counting final '\0'
+
 // Wrap all string constants intenteded for display as messages with
 // this macro to ensure compile time length validation.
 #define OSD_MESSAGE_STR(x) ({ \
@@ -409,7 +412,6 @@ static void djiSerializeOSDConfigReply(sbuf_t *dst)
 }
 #endif
 
-#if defined(USE_OSD) //testme
 static const char * osdArmingDisabledReasonMessage(void)
 {
     switch (isArmingDisabledReason()) {
@@ -433,7 +435,6 @@ static const char * osdArmingDisabledReasonMessage(void)
         case ARMING_DISABLED_SYSTEM_OVERLOADED:
             return OSD_MESSAGE_STR("OVERLOAD");
         case ARMING_DISABLED_NAVIGATION_UNSAFE:
-#if defined(USE_NAV)
             // Check the exact reason
             switch (navigationIsBlockingArming(NULL)) {
                 case NAV_ARMING_BLOCKER_NONE:
@@ -447,7 +448,6 @@ static const char * osdArmingDisabledReasonMessage(void)
                 case NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR:
                     return OSD_MESSAGE_STR("WYP MISCONFIGURED");
             }
-#endif
             break;
         case ARMING_DISABLED_COMPASS_NOT_CALIBRATED:
             return OSD_MESSAGE_STR("COMPS CALIB");
@@ -513,6 +513,7 @@ static const char * osdArmingDisabledReasonMessage(void)
         case WAS_EVER_ARMED:
             break;
     }
+
     return NULL;
 }
 
@@ -520,11 +521,9 @@ static const char * osdFailsafePhaseMessage(void)
 {
     // See failsafe.h for each phase explanation
     switch (failsafePhase()) {
-#ifdef USE_NAV
         case FAILSAFE_RETURN_TO_HOME:
             // XXX: Keep this in sync with OSD_FLYMODE.
             return OSD_MESSAGE_STR("(RTH)");
-#endif
         case FAILSAFE_LANDING:
             // This should be considered an emergengy landing
             return OSD_MESSAGE_STR("(EMRGY LANDING)");
@@ -555,6 +554,7 @@ static const char * osdFailsafePhaseMessage(void)
             // Exiting failsafe
             break;
     }
+
     return NULL;
 }
 
@@ -564,6 +564,7 @@ static const char * osdFailsafeInfoMessage(void)
         // User must move sticks to exit FS mode
         return OSD_MESSAGE_STR("!MOVE STICKS TO EXIT FS!");
     }
+
     return OSD_MESSAGE_STR(RC_RX_LINK_LOST_MSG);
 }
 
@@ -623,22 +624,27 @@ static const char * navigationStateMessage(void)
 static int32_t osdConvertVelocityToUnit(int32_t vel)
 {
     switch (osdConfig()->units) {
-    case OSD_UNIT_UK:
-        FALLTHROUGH;
-    case OSD_UNIT_IMPERIAL:
-        return (vel * 224) / 10000; // Convert to mph
-    case OSD_UNIT_METRIC:
-        return (vel * 36) / 1000;   // Convert to kmh
+        case OSD_UNIT_UK:
+            FALLTHROUGH;
+
+        case OSD_UNIT_IMPERIAL:
+            return (vel * 224) / 10000; // Convert to mph
+
+        case OSD_UNIT_METRIC:
+            return (vel * 36) / 1000;   // Convert to kmh
     }
+
     // Unreachable
     return -1;
 }
+
 static int16_t osdDJIGet3DSpeed(void)
 {
     int16_t vert_speed = getEstimatedActualVelocity(Z);
     int16_t hor_speed = gpsSol.groundSpeed;
     return (int16_t)sqrtf(sq(hor_speed) + sq(vert_speed));
 }
+
 /**
  * Converts velocity into a string based on the current unit system.
  * @param alt Raw velocity (i.e. as taken from gpsSol.groundSpeed in centimeters/seconds)
@@ -646,23 +652,23 @@ static int16_t osdDJIGet3DSpeed(void)
 void osdDJIFormatVelocityStr(char* buff, int32_t vel )
 {
     switch (osdConfig()->units) {
-    case OSD_UNIT_UK:
-        FALLTHROUGH;
-    case OSD_UNIT_IMPERIAL:
-        tfp_sprintf(buff, "%3d%s", (int)osdConvertVelocityToUnit(vel), "MPH");
-        break;
-    case OSD_UNIT_METRIC:
-        tfp_sprintf(buff, "%3d%s", (int)osdConvertVelocityToUnit(vel), "KMH");
-        break;
+        case OSD_UNIT_UK:
+            FALLTHROUGH;
+        case OSD_UNIT_IMPERIAL:
+            tfp_sprintf(buff, "%3d%s", (int)osdConvertVelocityToUnit(vel), "MPH");
+            break;
+        case OSD_UNIT_METRIC:
+            tfp_sprintf(buff, "%3d%s", (int)osdConvertVelocityToUnit(vel), "KMH");
+            break;
     }
 }
 static void osdDJIFormatThrottlePosition(char *buff, bool autoThr )
 {
-    
     int16_t thr = rxGetChannelValue(THROTTLE);
     if (autoThr && navigationIsControllingThrottle()) {
         thr = rcCommand[THROTTLE];
     }
+
     tfp_sprintf(buff, "%3d%s", (constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN), "%THR");
 }
 
@@ -672,35 +678,38 @@ static void osdDJIFormatThrottlePosition(char *buff, bool autoThr )
  */
 static void osdDJIFormatDistanceStr(char *buff, int32_t dist)
 {
- int32_t centifeet;
- switch (osdConfig()->units) {
- case OSD_UNIT_IMPERIAL:
-    centifeet = CENTIMETERS_TO_CENTIFEET(dist);
-    if (abs(centifeet) < FEET_PER_MILE * 100 / 2) {
-        // Show feet when dist < 0.5mi
-        tfp_sprintf(buff, "%d%s", (int)(centifeet / 100), "FT");
-    } else {
-        // Show miles when dist >= 0.5mi
-        tfp_sprintf(buff, "%d.%02d%s", (int)(centifeet / (100*FEET_PER_MILE)),
-        (abs(centifeet) % (100 * FEET_PER_MILE)) / FEET_PER_MILE, "Mi");
+    int32_t centifeet;
+
+    switch (osdConfig()->units) {
+        case OSD_UNIT_IMPERIAL:
+            centifeet = CENTIMETERS_TO_CENTIFEET(dist);
+            if (abs(centifeet) < FEET_PER_MILE * 100 / 2) {
+                // Show feet when dist < 0.5mi
+                tfp_sprintf(buff, "%d%s", (int)(centifeet / 100), "FT");
+            } 
+            else {
+                // Show miles when dist >= 0.5mi
+                tfp_sprintf(buff, "%d.%02d%s", (int)(centifeet / (100*FEET_PER_MILE)),
+                (abs(centifeet) % (100 * FEET_PER_MILE)) / FEET_PER_MILE, "Mi");
+            }
+            break;
+        case OSD_UNIT_UK:
+            FALLTHROUGH;
+        case OSD_UNIT_METRIC:
+            if (abs(dist) < METERS_PER_KILOMETER * 100) {
+                // Show meters when dist < 1km
+                tfp_sprintf(buff, "%d%s", (int)(dist / 100), "M");
+            }
+            else {
+                // Show kilometers when dist >= 1km
+                tfp_sprintf(buff, "%d.%02d%s", (int)(dist / (100*METERS_PER_KILOMETER)),
+                    (abs(dist) % (100 * METERS_PER_KILOMETER)) / METERS_PER_KILOMETER, "KM");
+            }
+            break;
     }
-    break;
- case OSD_UNIT_UK:
-     FALLTHROUGH;
- case OSD_UNIT_METRIC:
-    if (abs(dist) < METERS_PER_KILOMETER * 100) {
-        // Show meters when dist < 1km
-        tfp_sprintf(buff, "%d%s", (int)(dist / 100), "M");
-    } else {
-        // Show kilometers when dist >= 1km
-        tfp_sprintf(buff, "%d.%02d%s", (int)(dist / (100*METERS_PER_KILOMETER)),
-            (abs(dist) % (100 * METERS_PER_KILOMETER)) / METERS_PER_KILOMETER, "KM");
-     }
-     break;
- }
 }
 
-static void osdDJIEfficiencyMahPerKM (char *buff)
+static void osdDJIEfficiencyMahPerKM(char *buff)
 {
     // amperage is in centi amps, speed is in cms/s. We want
     // mah/km. Values over 999 are considered useless and
@@ -710,23 +719,183 @@ static void osdDJIEfficiencyMahPerKM (char *buff)
     int32_t value = 0;
     timeUs_t currentTimeUs = micros();
     timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
+
     if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
         if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
             value = pt1FilterApply4(&eFilterState, ((float)getAmperage() / gpsSol.groundSpeed) / 0.0036f,
                 1, efficiencyTimeDelta * 1e-6f);
 
             efficiencyUpdated = currentTimeUs;
-        } else {
+        }
+        else {
             value = eFilterState.state;
         }
     }
+
     if (value > 0 && value <= 999) {
         tfp_sprintf(buff, "%3d%s", (int)value, "mAhKM");
-    } else {
+    }
+    else {
         tfp_sprintf(buff, "%s", "---mAhKM");
     }
 }
-#endif
+
+static void djiSerializeCraftNameOverride(sbuf_t *dst, const char * name)
+{
+    // :W T S E D
+    //  | | | | Distance Trip
+    //  | | | Efficiency mA/KM
+    //  | | S 3dSpeed
+    //  | Throttle
+    //  Warnings
+    const char *message = " ";
+    const char *enabledElements = name + 1;
+    char djibuf[24];
+
+    // clear name from chars : and leading W
+    if (enabledElements[0] == 'W') {
+        enabledElements += 1;
+    }
+    
+    int elemLen = strlen(enabledElements);
+
+    if (elemLen > 0) {
+        switch (enabledElements[OSD_ALTERNATING_CHOICES(3000, elemLen)]){
+            case 'T':
+                osdDJIFormatThrottlePosition(djibuf,true);
+                break;
+            case 'S':
+                osdDJIFormatVelocityStr(djibuf, osdDJIGet3DSpeed());
+                break;
+            case 'E':
+                osdDJIEfficiencyMahPerKM(djibuf);
+                break;
+            case 'D':
+                osdDJIFormatDistanceStr(djibuf, getTotalTravelDistance());
+                break;
+            case 'W':
+                tfp_sprintf(djibuf, "%s", "MAKE_W_FIRST");
+                break;
+            default:
+                tfp_sprintf(djibuf, "%s", "UNKOWN_ELEM");
+                break;
+        }
+
+        if (djibuf[0] != '\0') {
+            message = djibuf;
+        }
+    }
+
+    if (name[1] == 'W') {
+        char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH+1)];
+        if (ARMING_FLAG(ARMED)) {
+            // Aircraft is armed. We might have up to 5
+            // messages to show.
+            const char *messages[5];
+            unsigned messageCount = 0;
+
+            if (FLIGHT_MODE(FAILSAFE_MODE)) {
+                // In FS mode while being armed too
+                const char *failsafePhaseMessage = osdFailsafePhaseMessage();
+                const char *failsafeInfoMessage = osdFailsafeInfoMessage();
+                const char *navStateFSMessage = navigationStateMessage();
+
+                if (failsafePhaseMessage) {
+                    messages[messageCount++] = failsafePhaseMessage;
+                }
+
+                if (failsafeInfoMessage) {
+                    messages[messageCount++] = failsafeInfoMessage;
+                }
+
+                if (navStateFSMessage) {
+                    messages[messageCount++] = navStateFSMessage;
+                }
+
+                if (messageCount > 0) {
+                    message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
+                    if (message == failsafeInfoMessage) {
+                        // failsafeInfoMessage is not useful for recovering
+                        // a lost model, but might help avoiding a crash.
+                        // Blink to grab user attention.
+                    //doesnt work   TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+                    }
+                    // We're shoing either failsafePhaseMessage or
+                    // navStateFSMessage. Don't BLINK here since
+                    // having this text available might be crucial
+                    // during a lost aircraft recovery and blinking
+                    // will cause it to be missing from some frames.
+                }
+            } 
+            else {
+                if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
+                    const char *navStateMessage = navigationStateMessage();
+                    if (navStateMessage) {
+                        messages[messageCount++] = navStateMessage;
+                    }
+                } 
+                else if (STATE(FIXED_WING_LEGACY) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
+                    messages[messageCount++] = "AUTOLAUNCH";
+                }
+                else {
+                    if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
+                        // ALTHOLD might be enabled alongside ANGLE/HORIZON/ACRO
+                        // when it doesn't require ANGLE mode (required only in FW
+                        // right now). If if requires ANGLE, its display is handled
+                        // by OSD_FLYMODE.
+                        messages[messageCount++] = "(ALT HOLD)";
+                    }
+                    if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) {
+                        messages[messageCount++] = "(AUTOTRIM)";
+                    }
+                    if (IS_RC_MODE_ACTIVE(BOXAUTOTUNE)) {
+                        messages[messageCount++] = "(AUTOTUNE)";
+                    }
+                    if (FLIGHT_MODE(HEADFREE_MODE)) {
+                        messages[messageCount++] = "(HEADFREE)";
+                    }
+                }
+                // Pick one of the available messages. Each message lasts
+                // a second.
+                if (messageCount > 0) {
+                    message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
+                }
+            }
+        }
+        else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
+            unsigned invalidIndex;
+            // Check if we're unable to arm for some reason
+            if (ARMING_FLAG(ARMING_DISABLED_INVALID_SETTING) && !settingsValidate(&invalidIndex)) {
+                if (OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
+                    const setting_t *setting = settingGet(invalidIndex);
+                    settingGetName(setting, messageBuf);
+                    for (int ii = 0; messageBuf[ii]; ii++) {
+                        messageBuf[ii] = sl_toupper(messageBuf[ii]);
+                    }
+                    message = messageBuf;
+                }
+                else {
+                    message = "ERR SETTING";
+                    // TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
+                }
+            }
+            else {
+                if (OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
+                    message = "CANT ARM";
+                    // TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
+                } else {
+                    // Show the reason for not arming
+                    message = osdArmingDisabledReasonMessage();
+                }
+            }
+        }
+    }
+
+    if (message[0] != '\0') {
+        sbufWriteData(dst, message, strlen(message));
+    }
+}
+
 
 static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn)
 {
@@ -762,155 +931,14 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
         case DJI_MSP_NAME:
             {
                 const char * name = systemConfig()->name;
-                int len = strlen(name);
-            
-                if(name[0] != ':'){
-                    if (len > 12) len = 12;
-                    sbufWriteData(dst, name, len);
+
+                if (djiOsdConfig()->use_name_for_messages && name[0] == ':')  {
+                    djiSerializeCraftNameOverride(dst, name);
+                }
+                else {
+                    int len = strlen(name);
+                    sbufWriteData(dst, name, MAX(len, 12));
                     break;
-                }else{
-#if defined(USE_OSD)                    
-                    // :W T S E D
-                    //  | | | | Distance Trip
-                    //  | | | Efficiency mA/KM
-                    //  | | S 3dSpeed
-                    //  | Throttle
-                    //  Warnings
-                    const char *message = " ";
-                    const char *enabledElements = name + 1;
-                    char djibuf[24];
-                    // clear name from chars : and leading W
-                    if(enabledElements[0] == 'W'){
-                        enabledElements += 1;
-                    }
-                    
-                    int elemLen = strlen(enabledElements);
-
-                    if(elemLen > 0){
-                        switch ( enabledElements[OSD_ALTERNATING_CHOICES(3000, elemLen )] ){
-                            case 'T':
-                                osdDJIFormatThrottlePosition(djibuf,true);
-                                break;
-                            case 'S':
-                                osdDJIFormatVelocityStr(djibuf, osdDJIGet3DSpeed() );
-                                break;
-                            case 'E':
-                                osdDJIEfficiencyMahPerKM(djibuf);
-                                break;
-                            case 'D':
-                                osdDJIFormatDistanceStr( djibuf, getTotalTravelDistance());
-                                break;
-                            case 'W':
-                                tfp_sprintf(djibuf, "%s", "MAKE_W_FIRST");
-                                break;
-                            default:
-                                tfp_sprintf(djibuf, "%s", "UNKOWN_ELEM");
-                                break;
-                        }
-
-                        if(djibuf[0] != '\0'){
-                            message = djibuf;
-                        }
-                    }
-            
-                    if (name[1] == 'W' ){
-                        char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH+1)];
-                        if (ARMING_FLAG(ARMED)) {
-                            // Aircraft is armed. We might have up to 5
-                            // messages to show.
-                            const char *messages[5];
-                            unsigned messageCount = 0;
-                            if (FLIGHT_MODE(FAILSAFE_MODE)) {
-                                // In FS mode while being armed too
-                                const char *failsafePhaseMessage = osdFailsafePhaseMessage();
-                                const char *failsafeInfoMessage = osdFailsafeInfoMessage();
-                                const char *navStateFSMessage = navigationStateMessage();
-                                if (failsafePhaseMessage) {
-                                    messages[messageCount++] = failsafePhaseMessage;
-                                }
-                                if (failsafeInfoMessage) {
-                                    messages[messageCount++] = failsafeInfoMessage;
-                                }
-                                if (navStateFSMessage) {
-                                    messages[messageCount++] = navStateFSMessage;
-                                }
-                                if (messageCount > 0) {
-                                    message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
-                                    if (message == failsafeInfoMessage) {
-                                        // failsafeInfoMessage is not useful for recovering
-                                        // a lost model, but might help avoiding a crash.
-                                        // Blink to grab user attention.
-                                    //doesnt work   TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-                                    }
-                                    // We're shoing either failsafePhaseMessage or
-                                    // navStateFSMessage. Don't BLINK here since
-                                    // having this text available might be crucial
-                                    // during a lost aircraft recovery and blinking
-                                    // will cause it to be missing from some frames.
-                                }
-                            } else {
-                                if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
-                                    const char *navStateMessage = navigationStateMessage();
-                                    if (navStateMessage) {
-                                        messages[messageCount++] = navStateMessage;
-                                    }
-                                } else if (STATE(FIXED_WING_LEGACY) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
-                                        messages[messageCount++] = "AUTOLAUNCH";
-                                } else {
-                                    if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
-                                        // ALTHOLD might be enabled alongside ANGLE/HORIZON/ACRO
-                                        // when it doesn't require ANGLE mode (required only in FW
-                                        // right now). If if requires ANGLE, its display is handled
-                                        // by OSD_FLYMODE.
-                                        messages[messageCount++] = "(ALT HOLD)";
-                                    }
-                                    if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) {
-                                        messages[messageCount++] = "(AUTOTRIM)";
-                                    }
-                                    if (IS_RC_MODE_ACTIVE(BOXAUTOTUNE)) {
-                                        messages[messageCount++] = "(AUTOTUNE)";
-                                    }
-                                    if (FLIGHT_MODE(HEADFREE_MODE)) {
-                                        messages[messageCount++] = "(HEADFREE)";
-                                    }
-                                }
-                                // Pick one of the available messages. Each message lasts
-                                // a second.
-                                if (messageCount > 0) {
-                                    message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
-                                }
-                            }
-                        } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
-                            unsigned invalidIndex;
-                            // Check if we're unable to arm for some reason
-                            if (ARMING_FLAG(ARMING_DISABLED_INVALID_SETTING) && !settingsValidate(&invalidIndex)) {
-                                if (OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
-                                    const setting_t *setting = settingGet(invalidIndex);
-                                    settingGetName(setting, messageBuf);
-                                    for (int ii = 0; messageBuf[ii]; ii++) {
-                                        messageBuf[ii] = sl_toupper(messageBuf[ii]);
-                                    }
-                                    message = messageBuf;
-                                } else {
-                                    message = "ERR SETTING";
-                                    // TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
-                                }
-                            } else {
-                                if (OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
-                                    message = "CANT ARM";
-                                    // TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
-                                } else {
-                                    // Show the reason for not arming
-                                    message = osdArmingDisabledReasonMessage();
-                                }
-                            }
-                        }
-                    }
-
-                    if(message[0] != '\0'){
-                        sbufWriteData(dst, message, strlen(message));
-                    }
-#endif                    
                 }
             }
             break;
