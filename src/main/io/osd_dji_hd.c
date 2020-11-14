@@ -39,6 +39,9 @@
 #include "common/time.h"
 #include "common/crc.h"
 
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+
 #include "fc/fc_core.h"
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
@@ -64,6 +67,7 @@
 #include "sensors/rangefinder.h"
 #include "sensors/acceleration.h"
 #include "sensors/esc_sensor.h"
+#include "sensors/temperature.h"
 
 #include "msp/msp.h"
 #include "msp/msp_protocol.h"
@@ -110,6 +114,13 @@
  * To avoid compatibility issues we maintain a separate MSP command processor
  * but reuse the packet decoder to minimize code duplication
  */
+
+PG_REGISTER_WITH_RESET_TEMPLATE(djiOsdConfig_t, djiOsdConfig, PG_DJI_OSD_CONFIG, 1);
+PG_RESET_TEMPLATE(djiOsdConfig_t, djiOsdConfig,
+    .use_name_for_messages  = true,
+    .esc_temperature_source = DJI_OSD_TEMP_ESC,
+    .proto_workarounds = DJI_OSD_USE_NON_STANDARD_MSP_ESC_SENSOR_DATA,
+);
 
 // External dependency on looptime
 extern timeDelta_t cycleTime;
@@ -167,7 +178,7 @@ const djiOsdMapping_t djiOSDItemIndexMap[] = {
     { OSD_HEADING,                            0 }, // DJI: OSD_NUMERICAL_HEADING
     { OSD_VARIO_NUM,                          0 }, // DJI: OSD_NUMERICAL_VARIO
     { -1,                                     0 }, // DJI: OSD_COMPASS_BAR
-    { -1,                                     0 }, // DJI: OSD_ESC_TMP
+    { OSD_ESC_TEMPERATURE,                    0 }, // DJI: OSD_ESC_TEMPERATURE
     { OSD_ESC_RPM,                            0 }, // DJI: OSD_ESC_RPM
     { OSD_REMAINING_FLIGHT_TIME_BEFORE_RTH,   FEATURE_CURRENT_METER }, // DJI: OSD_REMAINING_TIME_ESTIMATE
     { OSD_RTC_TIME,                           0 }, // DJI: OSD_RTC_DATETIME
@@ -1025,21 +1036,93 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
             }
             break;
 
-#if defined(USE_ESC_SENSOR)
         case DJI_MSP_ESC_SENSOR_DATA:
-            if (STATE(ESC_SENSOR_ENABLED)) {
-                sbufWriteU8(dst, getMotorCount());
-                for (int i = 0; i < getMotorCount(); i++) {
-                    const escSensorData_t * escSensor = getEscTelemetry(i);
-                    sbufWriteU8(dst, escSensor->temperature);
-                    sbufWriteU16(dst, escSensor->rpm);
+            if (djiOsdConfig()->proto_workarounds & DJI_OSD_USE_NON_STANDARD_MSP_ESC_SENSOR_DATA) {
+                // Version 1.00.06 of DJI firmware is not using the standard MSP_ESC_SENSOR_DATA
+                uint16_t protoRpm = 0;
+                int16_t protoTemp = 0;
+
+#if defined(USE_ESC_SENSOR)
+                if (STATE(ESC_SENSOR_ENABLED) && getMotorCount() > 0) {
+                    uint32_t motorRpmAcc = 0;
+                    int32_t motorTempAcc = 0;
+
+                    for (int i = 0; i < getMotorCount(); i++) {
+                        const escSensorData_t * escSensor = getEscTelemetry(i);
+                        motorRpmAcc += escSensor->rpm;
+                        motorTempAcc += escSensor->temperature;
+                    }
+
+                    protoRpm = motorRpmAcc / getMotorCount();
+                    protoTemp = motorTempAcc / getMotorCount();
                 }
+#endif
+
+                switch (djiOsdConfig()->esc_temperature_source) {
+                    // This is ESC temperature (as intended)
+                    case DJI_OSD_TEMP_ESC:
+                        // No-op, temperature is already set to ESC
+                        break;
+
+                    // Re-purpose the field for core temperature
+                    case DJI_OSD_TEMP_CORE:
+                        getIMUTemperature(&protoTemp);
+                        protoTemp = protoTemp / 10;
+                        break;
+
+                    // Re-purpose the field for baro temperature
+                    case DJI_OSD_TEMP_BARO:
+                        getBaroTemperature(&protoTemp);
+                        protoTemp = protoTemp / 10;
+                        break;
+                }
+
+                // No motor count, just raw temp and RPM data
+                sbufWriteU8(dst, protoTemp);
+                sbufWriteU16(dst, protoRpm);
             }
             else {
-                reply->result = MSP_RESULT_ERROR;
+                // Use standard MSP_ESC_SENSOR_DATA message
+                sbufWriteU8(dst, getMotorCount());
+                for (int i = 0; i < getMotorCount(); i++) {
+                    uint16_t motorRpm = 0;
+                    int16_t motorTemp = 0;
+
+                    // If ESC_SENSOR is enabled, pull the telemetry data and get motor RPM
+#if defined(USE_ESC_SENSOR)
+                    if (STATE(ESC_SENSOR_ENABLED)) {
+                        const escSensorData_t * escSensor = getEscTelemetry(i);
+                        motorRpm = escSensor->rpm;
+                        motorTemp = escSensor->temperature;
+                    }
+#endif
+
+                    // Now populate temperature field (which we may override for different purposes)
+                    switch (djiOsdConfig()->esc_temperature_source) {
+                        // This is ESC temperature (as intended)
+                        case DJI_OSD_TEMP_ESC:
+                            // No-op, temperature is already set to ESC
+                            break;
+
+                        // Re-purpose the field for core temperature
+                        case DJI_OSD_TEMP_CORE:
+                            getIMUTemperature(&motorTemp);
+                            motorTemp = motorTemp / 10;
+                            break;
+
+                        // Re-purpose the field for baro temperature
+                        case DJI_OSD_TEMP_BARO:
+                            getBaroTemperature(&motorTemp);
+                            motorTemp = motorTemp / 10;
+                            break;
+                    }
+
+                    // Add data for this motor to the packet
+                    sbufWriteU8(dst, motorTemp);
+                    sbufWriteU16(dst, motorRpm);
+                }
             }
             break;
-#endif
 
         case DJI_MSP_OSD_CONFIG:
 #if defined(USE_OSD)
