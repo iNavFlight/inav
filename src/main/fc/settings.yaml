@@ -152,6 +152,9 @@ tables:
   - name: djiOsdTempSource
     values: ["ESC", "IMU", "BARO"]
     enum: djiOsdTempSource_e
+  - name: nav_overrides_motor_stop
+    enum: navOverridesMotorStop_e
+    values: ["OFF", "AUTO_ONLY", "ALL_NAV"]
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -2104,10 +2107,10 @@ groups:
         min: 0
         max: 5000
       - name: nav_overrides_motor_stop
-        description: "Setting to OFF combined with MOTOR_STOP feature will allow user to stop motor when in autonomous modes. On most places this setting is likely to cause a stall."
-        default_value: "ON"
-        field: general.flags.auto_overrides_motor_stop
-        type: bool
+        description: "When set OFF the navigation system will not take over the control of the motor if the throttle is low (motor will stop). When set to AUTO_ONLY the navigation system will only take over the control of the throttle in autonomous navigation modes (NAV WP and NAV RTH). When set to ALL_NAV (default) the navigation system will take over the control of the motor completely and never allow the motor to stop even when the throttle is low. This setting only has an effect combined with MOTOR_STOP and is likely to cause a stall if fw_min_throttle_down_pitch isn't set correctly or the pitch estimation is wrong for fixed wing models when not set to ALL_NAV"
+        default_value: "NOMS_ALL_NAV"
+        field: general.flags.nav_overrides_motor_stop
+        table: nav_overrides_motor_stop
       - name: nav_rth_climb_first
         description: "If set to ON drone will climb to nav_rth_altitude first and head home afterwards. If set to OFF drone will head home instantly and climb on the way."
         default_value: "ON"
