@@ -83,11 +83,15 @@ PG_REGISTER_ARRAY(navSafeHome_t, MAX_SAFE_HOMES, safeHomeConfig, PG_SAFE_HOME_CO
 #endif
 
 #if defined(USE_NAV)
+
+// waypoint 254, 255 are special waypoints
+STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_range);
+
 #if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE)
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 0);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 7);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 8);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -102,7 +106,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
             .rth_tail_first = 0,
             .disarm_on_landing = 0,
             .rth_allow_landing = NAV_RTH_ALLOW_LANDING_ALWAYS,
-            .auto_overrides_motor_stop = 1,
+            .nav_overrides_motor_stop = NOMS_ALL_NAV,
         },
 
         // General navigation parameters
@@ -2792,6 +2796,20 @@ void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData)
         wpData->lat = wpLLH.lat;
         wpData->lon = wpLLH.lon;
         wpData->alt = wpLLH.alt;
+    }
+    // WP #254 - special waypoint - get desiredPosition that was set by ground control station if in 3D-guided mode 
+    else if (wpNumber == 254) {
+        navigationFSMStateFlags_t navStateFlags = navGetStateFlags(posControl.navState);
+
+        if ((posControl.gpsOrigin.valid) && (navStateFlags & NAV_CTL_ALT) && (navStateFlags & NAV_CTL_POS)) {
+            gpsLocation_t wpLLH;
+
+            geoConvertLocalToGeodetic(&wpLLH, &posControl.gpsOrigin, &posControl.desiredState.pos);
+            
+            wpData->lat = wpLLH.lat;
+            wpData->lon = wpLLH.lon;
+            wpData->alt = wpLLH.alt;
+        }
     }
     // WP #1 - #60 - common waypoints - pre-programmed mission
     else if ((wpNumber >= 1) && (wpNumber <= NAV_MAX_WAYPOINTS)) {

@@ -29,6 +29,8 @@
 #include "msp/msp.h"
 #include "msp/msp_serial.h"
 
+#include "config/parameter_group.h"
+
 #if defined(USE_DJI_HD_OSD)
 
 #define DJI_API_VERSION_MAJOR           1
@@ -59,6 +61,24 @@
 #define DJI_MSP_SET_PID_ADVANCED        95
 #define DJI_MSP_SET_PID                 202
 #define DJI_MSP_SET_RC_TUNING           204
+
+enum djiOsdTempSource_e {
+    DJI_OSD_TEMP_ESC    = 0,
+    DJI_OSD_TEMP_CORE   = 1,
+    DJI_OSD_TEMP_BARO   = 2
+};
+
+enum djiOsdProtoWorkarounds_e {
+    DJI_OSD_USE_NON_STANDARD_MSP_ESC_SENSOR_DATA    = 1 << 0,
+};
+
+typedef struct djiOsdConfig_s {
+    uint8_t use_name_for_messages;
+    uint8_t esc_temperature_source;
+    uint8_t proto_workarounds;
+} djiOsdConfig_t;
+
+PG_DECLARE(djiOsdConfig_t, djiOsdConfig);
 
 void djiOsdSerialInit(void);
 void djiOsdSerialProcess(void);

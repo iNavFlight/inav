@@ -135,6 +135,17 @@ void biquadFilterInitLPF(biquadFilter_t *filter, uint16_t filterFreq, uint32_t s
     biquadFilterInit(filter, filterFreq, samplingIntervalUs, BIQUAD_Q, FILTER_LPF);
 }
 
+
+static void biquadFilterSetupPassthrough(biquadFilter_t *filter)
+{
+    // By default set as passthrough
+    filter->b0 = 1.0f;
+    filter->b1 = 0.0f;
+    filter->b2 = 0.0f;
+    filter->a1 = 0.0f;
+    filter->a2 = 0.0f;
+}
+
 void biquadFilterInit(biquadFilter_t *filter, uint16_t filterFreq, uint32_t samplingIntervalUs, float Q, biquadFilterType_e filterType)
 {
     // Check for Nyquist frequency and if it's not possible to initialize filter as requested - set to no filtering at all
@@ -148,16 +159,19 @@ void biquadFilterInit(biquadFilter_t *filter, uint16_t filterFreq, uint32_t samp
 
         float b0, b1, b2;
         switch (filterType) {
-        case FILTER_LPF:
-            b0 = (1 - cs) / 2;
-            b1 = 1 - cs;
-            b2 = (1 - cs) / 2;
-            break;
-        case FILTER_NOTCH:
-            b0 =  1;
-            b1 = -2 * cs;
-            b2 =  1;
-            break;
+            case FILTER_LPF:
+                b0 = (1 - cs) / 2;
+                b1 = 1 - cs;
+                b2 = (1 - cs) / 2;
+                break;
+            case FILTER_NOTCH:
+                b0 = 1;
+                b1 = -2 * cs;
+                b2 = 1;
+                break;
+            default:
+                biquadFilterSetupPassthrough(filter);
+                return;
         }
         const float a0 =  1 + alpha;
         const float a1 = -2 * cs;
@@ -169,14 +183,8 @@ void biquadFilterInit(biquadFilter_t *filter, uint16_t filterFreq, uint32_t samp
         filter->b2 = b2 / a0;
         filter->a1 = a1 / a0;
         filter->a2 = a2 / a0;
-    }
-    else {
-        // Not possible to filter frequencies above Nyquist frequency - passthrough
-        filter->b0 = 1.0f;
-        filter->b1 = 0.0f;
-        filter->b2 = 0.0f;
-        filter->a1 = 0.0f;
-        filter->a2 = 0.0f;
+    } else {
+        biquadFilterSetupPassthrough(filter);
     }
 
     // zero initial samples

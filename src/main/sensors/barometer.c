@@ -40,6 +40,7 @@
 #include "drivers/barometer/barometer_ms56xx.h"
 #include "drivers/barometer/barometer_spl06.h"
 #include "drivers/barometer/barometer_dps310.h"
+#include "drivers/barometer/barometer_msp.h"
 #include "drivers/time.h"
 
 #include "fc/runtime_config.h"
@@ -55,7 +56,7 @@
 
 baro_t baro;                        // barometer access functions
 
-PG_REGISTER_WITH_RESET_TEMPLATE(barometerConfig_t, barometerConfig, PG_BAROMETER_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(barometerConfig_t, barometerConfig, PG_BAROMETER_CONFIG, 2);
 
 #ifdef USE_BARO
 #define BARO_HARDWARE_DEFAULT    BARO_AUTODETECT
@@ -64,7 +65,7 @@ PG_REGISTER_WITH_RESET_TEMPLATE(barometerConfig_t, barometerConfig, PG_BAROMETER
 #endif
 PG_RESET_TEMPLATE(barometerConfig_t, barometerConfig,
     .baro_hardware = BARO_HARDWARE_DEFAULT,
-    .use_median_filtering = 1,
+    .use_median_filtering = 0,
     .baro_calibration_tolerance = 150
 );
 
@@ -178,6 +179,20 @@ bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
 #if defined(USE_BARO_DPS310)
         if (baroDPS310Detect(dev)) {
             baroHardware = BARO_DPS310;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (baroHardwareToUse != BARO_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
+    case BARO_MSP:
+#ifdef USE_BARO_MSP
+        // Skip autodetection for MSP baro, only allow manual config
+        if (baroHardwareToUse != BARO_AUTODETECT && mspBaroDetect(dev)) {
+            baroHardware = BARO_MSP;
             break;
         }
 #endif
@@ -350,7 +365,7 @@ int32_t baroCalculateAltitude(void)
 #endif
         // calculates height from ground via baro readings
         baro.BaroAlt = pressureToAltitude(baro.baroPressure) - baroGroundAltitude;
-    }
+   }
 
     return baro.BaroAlt;
 }

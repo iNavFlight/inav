@@ -189,11 +189,11 @@ typedef struct beeperTableEntry_s {
     { BEEPER_ENTRY(BEEPER_USB,                      18, NULL,                           "ON_USB") },
     { BEEPER_ENTRY(BEEPER_LAUNCH_MODE_ENABLED,      19, beep_launchModeBeep,            "LAUNCH_MODE") },
     { BEEPER_ENTRY(BEEPER_LAUNCH_MODE_LOW_THROTTLE, 20, beep_launchModeLowThrottleBeep, "LAUNCH_MODE_LOW_THROTTLE") },
-    { BEEPER_ENTRY(BEEPER_CAM_CONNECTION_OPEN,      20, beep_camOpenBeep,               "CAM_CONNECTION_OPEN") },
-    { BEEPER_ENTRY(BEEPER_CAM_CONNECTION_CLOSE,     21, beep_camCloseBeep,              "CAM_CONNECTION_CLOSED") },
+    { BEEPER_ENTRY(BEEPER_CAM_CONNECTION_OPEN,      21, beep_camOpenBeep,               "CAM_CONNECTION_OPEN") },
+    { BEEPER_ENTRY(BEEPER_CAM_CONNECTION_CLOSE,     22, beep_camCloseBeep,              "CAM_CONNECTION_CLOSED") },
 
-    { BEEPER_ENTRY(BEEPER_ALL,                      22, NULL,                           "ALL") },
-    { BEEPER_ENTRY(BEEPER_PREFERENCE,               23, NULL,                           "PREFERED") },
+    { BEEPER_ENTRY(BEEPER_ALL,                      23, NULL,                           "ALL") },
+    { BEEPER_ENTRY(BEEPER_PREFERENCE,               24, NULL,                           "PREFERED") },
 };
 
 static const beeperTableEntry_t *currentBeeperEntry = NULL;
