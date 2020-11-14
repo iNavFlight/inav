@@ -2337,7 +2337,7 @@ groups:
         max: 1000
       - name: nav_fw_launch_end_time
         description: "Time for the transition of throttle and pitch angle, between the launch state and the subsequent flight mode [ms]"
-        default_value: "3000"
+        default_value: "2000"
         field: fw.launch_end_time
         min: 0
         max: 5000

@@ -390,7 +390,11 @@ void applyFixedWingLaunchController(timeUs_t currentTimeUs) {
     updateRcCommand();
 
     // Control beeper
-    beeper(BEEPER_LAUNCH_MODE_ENABLED);
+    if (fwLaunch.currentState == FW_LAUNCH_STATE_WAIT_THROTTLE) {
+        beeper(BEEPER_LAUNCH_MODE_LOW_THROTTLE);
+    } else {
+        beeper(BEEPER_LAUNCH_MODE_ENABLED);
+    }
 }
 
 void resetFixedWingLaunchController(timeUs_t currentTimeUs) {
