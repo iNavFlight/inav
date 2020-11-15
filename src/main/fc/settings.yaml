@@ -2271,7 +2271,7 @@ groups:
         default_value: "0"
         field: fw.pitch_to_throttle_thresh
         min: 0
-        max: 100
+        max: 900
       - name: nav_fw_loiter_radius
         description: "PosHold radius. 3000 to 7500 is a good value (30-75m) [cm]"
         default_value: "5000"
