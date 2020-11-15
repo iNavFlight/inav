@@ -65,7 +65,8 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 | `1wire <esc>`    | passthrough 1wire to the specified esc         |
 | `adjrange`       | show/set adjustment ranges settings            |
 | `aux`            | show/set aux settings                          |
-| `beeper`         | show/set beeper (buzzer) usage (see docs/Buzzer.md) |
+| `beeper`         | show/set beeper (buzzer) [usage](Buzzer.md)    |
+| `bind_rx`        | Initiate binding for RX_SPI or SRXL2 receivers |
 | `mmix`           | design custom motor mixer                      |
 | `smix`           | design custom servo mixer                      |
 | `color`          | configure colors                               |
@@ -80,18 +81,19 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 | `led`            | configure leds                                 |
 | `map`            | mapping of rc channel order                    |
 | `motor`          | get/set motor output value                     |
-| `msc`            | Enter USB Mass storage mode. See docs/USB_Mass_Storage_(MSC)_mode.md for usage information.|
+| `msc`            | Enter USB Mass storage mode. See [USB MSC documentation](USB_Mass_Storage_(MSC)_mode.md) for usage information.|
 | `play_sound`     | index, or none for next                        |
 | `profile`        | index (0 to 2)                                 |
 | `rxrange`        | configure rx channel ranges (end-points) |
+| `safehome`      | Define safe home locations. See the [safehome documentation](Safehomes.md) for usage information. |
 | `save`           | save and reboot                                |
 | `serial`         | Configure serial ports                         |
 | `serialpassthrough <id> <baud> <mode>`| where `id` is the zero based port index, `baud` is a standard baud rate, and mode is `rx`, `tx`, or both (`rxtx`) |
 | `set`            | name=value or blank or * for list              |
 | `status`         | show system status                             |
-| `temp_sensor`    | list or configure temperature sensor(s). See docs/Temperature sensors.md |
-| `wp`             | list or configure waypoints. See more in docs/Navigation.md section NAV WP |
-| `version`        |                                                |
+| `temp_sensor`    | list or configure temperature sensor(s). See [temperature sensors documentation](Temperature sensors.md) for more information. |
+| `wp`             | list or configure waypoints. See more in the [navigation documentation](Navigation.md#cli-command-wp-to-manage-waypoints). |
+| `version`        | Displays version information,                  |
 
 ### serial
 
