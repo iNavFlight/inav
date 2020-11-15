@@ -264,6 +264,7 @@
 | nav_fw_launch_min_time | 0 | Allow launch mode to execute at least this time (ms) and ignore stick movements [0-60000]. |
 | nav_fw_launch_motor_delay | 500 | Delay between detected launch and launch sequence start and throttling up (ms) |
 | nav_fw_launch_spinup_time | 100 | Time to bring power from minimum throttle to nav_fw_launch_thr - to avoid big stress on ESC and large torque from propeller |
+| nav_fw_launch_end_time | 3000 | Time for the transition of throttle and pitch angle, between the launch state and the subsequent flight mode [ms] |
 | nav_fw_launch_thr | 1700 | Launch throttle - throttle to be set during launch sequence (pwm units) |
 | nav_fw_launch_timeout | 5000 | Maximum time for launch sequence to be executed. After this time LAUNCH mode will be turned off and regular flight mode will take over (ms) |
 | nav_fw_launch_velocity | 300 | Forward velocity threshold for swing-launch detection [cm/s] |

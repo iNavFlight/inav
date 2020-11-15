@@ -2359,6 +2359,12 @@ groups:
         field: fw.launch_motor_spinup_time
         min: 0
         max: 1000
+      - name: nav_fw_launch_end_time
+        description: "Time for the transition of throttle and pitch angle, between the launch state and the subsequent flight mode [ms]"
+        default_value: "2000"
+        field: fw.launch_end_time
+        min: 0
+        max: 5000
       - name: nav_fw_launch_min_time
         description: "Allow launch mode to execute at least this time (ms) and ignore stick movements [0-60000]."
         default_value: "0"
