@@ -107,7 +107,6 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
             .disarm_on_landing = 0,
             .rth_allow_landing = NAV_RTH_ALLOW_LANDING_ALWAYS,
             .rth_alt_control_override = 0,      //set using nav_rth_alt_control_override
-            .auto_overrides_motor_stop = 1,
             .nav_overrides_motor_stop = NOMS_ALL_NAV,
         },
 
