@@ -12,6 +12,10 @@ This assigns the device to the plugdev group(a standard group in Ubuntu). To che
 ```
 sudo usermod -a -G plugdev <username>
 ```
+On Arch and its derivatives the group would be uucp and the command:
+```
+sudo usermod -a -G uucp <username>
+```
 
 ## Platform Specific: Windows
 Chrome can have problems accessing USB devices on Windows. A driver should be automatically installed by Windows for the ST Device in DFU Mode but this doesn't always allow access for Chrome. The solution is to replace the ST driver with a libusb driver. The easiest way to do that is to download [Zadig](http://zadig.akeo.ie/). 

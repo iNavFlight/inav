@@ -28,7 +28,7 @@ You'll have to manually execute the same steps that the build script does:
 
 1. `docker build -t inav-build .`
    + This step is only needed the first time.
-2. `docker run --rm -v <PATH_TO_REPO>:/home/src/ inav-build make TARGET=<TARGET>`
+2. `docker run --rm -it -v <PATH_TO_REPO>:/src inav-build <TARGET>`
    + Where `<PATH_TO_REPO>` must be replaced with the absolute path of where you cloned this repo (see above), and `<TARGET>` with the name of the target that you want to build.
 
 Refer to the [Linux](#Linux) instructions or the [build script](/build.sh) for more details.

@@ -104,6 +104,7 @@ FILE_COMPILE_FOR_SPEED
 #include "sensors/esc_sensor.h"
 
 #include "programming/logic_condition.h"
+#include "programming/global_variables.h"
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
@@ -416,6 +417,7 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
             centivalue = (ws * 224) / 100;
             suffix = SYM_MPH;
             break;
+        default:
         case OSD_UNIT_METRIC:
             centivalue = (ws * 36) / 10;
             suffix = SYM_KMH;
@@ -620,10 +622,6 @@ static void osdFormatCraftName(char *buff)
     }
 }
 
-// Used twice, make sure it's exactly the same string
-// to save some memory
-#define RC_RX_LINK_LOST_MSG "!RC RX LINK LOST!"
-
 static const char * osdArmingDisabledReasonMessage(void)
 {
     switch (isArmingDisabledReason()) {
@@ -634,18 +632,18 @@ static const char * osdArmingDisabledReasonMessage(void)
                     // If we're not using sticks, it means the ARM switch
                     // hasn't been off since entering FAILSAFE_RX_LOSS_MONITORING
                     // yet
-                    return OSD_MESSAGE_STR("TURN ARM SWITCH OFF");
+                    return OSD_MESSAGE_STR(OSD_MSG_TURN_ARM_SW_OFF);
                 }
                 // Not receiving RX data
-                return OSD_MESSAGE_STR(RC_RX_LINK_LOST_MSG);
+                return OSD_MESSAGE_STR(OSD_MSG_RC_RX_LINK_LOST);
             }
-            return OSD_MESSAGE_STR("DISABLED BY FAILSAFE");
+            return OSD_MESSAGE_STR(OSD_MSG_DISABLED_BY_FS);
         case ARMING_DISABLED_NOT_LEVEL:
-            return OSD_MESSAGE_STR("AIRCRAFT IS NOT LEVEL");
+            return OSD_MESSAGE_STR(OSD_MSG_AIRCRAFT_UNLEVEL);
         case ARMING_DISABLED_SENSORS_CALIBRATING:
-            return OSD_MESSAGE_STR("SENSORS CALIBRATING");
+            return OSD_MESSAGE_STR(OSD_MSG_SENSORS_CAL);
         case ARMING_DISABLED_SYSTEM_OVERLOADED:
-            return OSD_MESSAGE_STR("SYSTEM OVERLOADED");
+            return OSD_MESSAGE_STR(OSD_MSG_SYS_OVERLOADED);
         case ARMING_DISABLED_NAVIGATION_UNSAFE:
 #if defined(USE_NAV)
             // Check the exact reason
@@ -653,67 +651,67 @@ static const char * osdArmingDisabledReasonMessage(void)
                 case NAV_ARMING_BLOCKER_NONE:
                     break;
                 case NAV_ARMING_BLOCKER_MISSING_GPS_FIX:
-                    return OSD_MESSAGE_STR("WAITING FOR GPS FIX");
+                    return OSD_MESSAGE_STR(OSD_MSG_WAITING_GPS_FIX);
                 case NAV_ARMING_BLOCKER_NAV_IS_ALREADY_ACTIVE:
-                    return OSD_MESSAGE_STR("DISABLE NAVIGATION FIRST");
+                    return OSD_MESSAGE_STR(OSD_MSG_DISABLE_NAV_FIRST);
                 case NAV_ARMING_BLOCKER_FIRST_WAYPOINT_TOO_FAR:
-                    return OSD_MESSAGE_STR("FIRST WAYPOINT IS TOO FAR");
+                    return OSD_MESSAGE_STR(OSD_MSG_1ST_WP_TOO_FAR);
                 case NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR:
-                    return OSD_MESSAGE_STR("JUMP WAYPOINT MISCONFIGURED");
+                    return OSD_MESSAGE_STR(OSD_MSG_JUMP_WP_MISCONFIG);
             }
 #endif
             break;
         case ARMING_DISABLED_COMPASS_NOT_CALIBRATED:
-            return OSD_MESSAGE_STR("COMPASS NOT CALIBRATED");
+            return OSD_MESSAGE_STR(OSD_MSG_MAG_NOT_CAL);
         case ARMING_DISABLED_ACCELEROMETER_NOT_CALIBRATED:
-            return OSD_MESSAGE_STR("ACCELEROMETER NOT CALIBRATED");
+            return OSD_MESSAGE_STR(OSD_MSG_ACC_NOT_CAL);
         case ARMING_DISABLED_ARM_SWITCH:
-            return OSD_MESSAGE_STR("DISABLE ARM SWITCH FIRST");
+            return OSD_MESSAGE_STR(OSD_MSG_DISARM_1ST);
         case ARMING_DISABLED_HARDWARE_FAILURE:
             {
                 if (!HW_SENSOR_IS_HEALTHY(getHwGyroStatus())) {
-                    return OSD_MESSAGE_STR("GYRO FAILURE");
+                    return OSD_MESSAGE_STR(OSD_MSG_GYRO_FAILURE);
                 }
                 if (!HW_SENSOR_IS_HEALTHY(getHwAccelerometerStatus())) {
-                    return OSD_MESSAGE_STR("ACCELEROMETER FAILURE");
+                    return OSD_MESSAGE_STR(OSD_MSG_ACC_FAIL);
                 }
                 if (!HW_SENSOR_IS_HEALTHY(getHwCompassStatus())) {
-                    return OSD_MESSAGE_STR("COMPASS FAILURE");
+                    return OSD_MESSAGE_STR(OSD_MSG_MAG_FAIL);
                 }
                 if (!HW_SENSOR_IS_HEALTHY(getHwBarometerStatus())) {
-                    return OSD_MESSAGE_STR("BAROMETER FAILURE");
+                    return OSD_MESSAGE_STR(OSD_MSG_BARO_FAIL);
                 }
                 if (!HW_SENSOR_IS_HEALTHY(getHwGPSStatus())) {
-                    return OSD_MESSAGE_STR("GPS FAILURE");
+                    return OSD_MESSAGE_STR(OSD_MSG_GPS_FAIL);
                 }
                 if (!HW_SENSOR_IS_HEALTHY(getHwRangefinderStatus())) {
-                    return OSD_MESSAGE_STR("RANGE FINDER FAILURE");
+                    return OSD_MESSAGE_STR(OSD_MSG_RANGEFINDER_FAIL);
                 }
                 if (!HW_SENSOR_IS_HEALTHY(getHwPitotmeterStatus())) {
-                    return OSD_MESSAGE_STR("PITOT METER FAILURE");
+                    return OSD_MESSAGE_STR(OSD_MSG_PITOT_FAIL);
                 }
             }
-            return OSD_MESSAGE_STR("HARDWARE FAILURE");
+            return OSD_MESSAGE_STR(OSD_MSG_HW_FAIL);
         case ARMING_DISABLED_BOXFAILSAFE:
-            return OSD_MESSAGE_STR("FAILSAFE MODE ENABLED");
+            return OSD_MESSAGE_STR(OSD_MSG_FS_EN);
         case ARMING_DISABLED_BOXKILLSWITCH:
-            return OSD_MESSAGE_STR("KILLSWITCH MODE ENABLED");
+            return OSD_MESSAGE_STR(OSD_MSG_KILL_SW_EN);
         case ARMING_DISABLED_RC_LINK:
-            return OSD_MESSAGE_STR("NO RC LINK");
+            return OSD_MESSAGE_STR(OSD_MSG_NO_RC_LINK);
         case ARMING_DISABLED_THROTTLE:
-            return OSD_MESSAGE_STR("THROTTLE IS NOT LOW");
+            return OSD_MESSAGE_STR(OSD_MSG_THROTTLE_NOT_LOW);
         case ARMING_DISABLED_ROLLPITCH_NOT_CENTERED:
-            return OSD_MESSAGE_STR("ROLLPITCH NOT CENTERED");
+            return OSD_MESSAGE_STR(OSD_MSG_ROLLPITCH_OFFCENTER);
         case ARMING_DISABLED_SERVO_AUTOTRIM:
-            return OSD_MESSAGE_STR("AUTOTRIM IS ACTIVE");
+            return OSD_MESSAGE_STR(OSD_MSG_AUTOTRIM_ACTIVE);
         case ARMING_DISABLED_OOM:
-            return OSD_MESSAGE_STR("NOT ENOUGH MEMORY");
+            return OSD_MESSAGE_STR(OSD_MSG_NOT_ENOUGH_MEMORY);
         case ARMING_DISABLED_INVALID_SETTING:
-            return OSD_MESSAGE_STR("INVALID SETTING");
+            return OSD_MESSAGE_STR(OSD_MSG_INVALID_SETTING);
         case ARMING_DISABLED_CLI:
-            return OSD_MESSAGE_STR("CLI IS ACTIVE");
+            return OSD_MESSAGE_STR(OSD_MSG_CLI_ACTIVE);
         case ARMING_DISABLED_PWM_OUTPUT_ERROR:
-            return OSD_MESSAGE_STR("PWM INIT ERROR");
+            return OSD_MESSAGE_STR(OSD_MSG_PWM_INIT_ERROR);
             // Cases without message
         case ARMING_DISABLED_CMS_MENU:
             FALLTHROUGH;
@@ -736,11 +734,11 @@ static const char * osdFailsafePhaseMessage(void)
 #ifdef USE_NAV
         case FAILSAFE_RETURN_TO_HOME:
             // XXX: Keep this in sync with OSD_FLYMODE.
-            return OSD_MESSAGE_STR("(RTH)");
+            return OSD_MESSAGE_STR(OSD_MSG_RTH_FS);
 #endif
         case FAILSAFE_LANDING:
             // This should be considered an emergengy landing
-            return OSD_MESSAGE_STR("(EMERGENCY LANDING)");
+            return OSD_MESSAGE_STR(OSD_MSG_EMERG_LANDING_FS);
         case FAILSAFE_RX_LOSS_MONITORING:
             // Only reachable from FAILSAFE_LANDED, which performs
             // a disarm. Since aircraft has been disarmed, we no
@@ -775,9 +773,9 @@ static const char * osdFailsafeInfoMessage(void)
 {
     if (failsafeIsReceivingRxData()) {
         // User must move sticks to exit FS mode
-        return OSD_MESSAGE_STR("!MOVE STICKS TO EXIT FS!");
+        return OSD_MESSAGE_STR(OSD_MSG_MOVE_EXIT_FS);
     }
-    return OSD_MESSAGE_STR(RC_RX_LINK_LOST_MSG);
+    return OSD_MESSAGE_STR(OSD_MSG_RC_RX_LINK_LOST);
 }
 
 static const char * navigationStateMessage(void)
@@ -786,22 +784,22 @@ static const char * navigationStateMessage(void)
         case MW_NAV_STATE_NONE:
             break;
         case MW_NAV_STATE_RTH_START:
-            return OSD_MESSAGE_STR("STARTING RTH");
+            return OSD_MESSAGE_STR(OSD_MSG_STARTING_RTH);
         case MW_NAV_STATE_RTH_ENROUTE:
             // TODO: Break this up between climb and head home
-            return OSD_MESSAGE_STR("EN ROUTE TO HOME");
+            return OSD_MESSAGE_STR(OSD_MSG_HEADING_HOME);
         case MW_NAV_STATE_HOLD_INFINIT:
             // Used by HOLD flight modes. No information to add.
             break;
         case MW_NAV_STATE_HOLD_TIMED:
             // TODO: Maybe we can display a count down
-            return OSD_MESSAGE_STR("HOLDING WAYPOINT");
+            return OSD_MESSAGE_STR(OSD_MSG_HOLDING_WAYPOINT);
             break;
         case MW_NAV_STATE_WP_ENROUTE:
             // TODO: Show WP number
-            return OSD_MESSAGE_STR("TO WP");
+            return OSD_MESSAGE_STR(OSD_MSG_TO_WP);
         case MW_NAV_STATE_PROCESS_NEXT:
-            return OSD_MESSAGE_STR("PREPARING FOR NEXT WAYPOINT");
+            return OSD_MESSAGE_STR(OSD_MSG_PREPARE_NEXT_WP);
         case MW_NAV_STATE_DO_JUMP:
             // Not used
             break;
@@ -809,18 +807,18 @@ static const char * navigationStateMessage(void)
             // Not used
             break;
         case MW_NAV_STATE_EMERGENCY_LANDING:
-            return OSD_MESSAGE_STR("EMERGENCY LANDING");
+            return OSD_MESSAGE_STR(OSD_MSG_EMERG_LANDING);
         case MW_NAV_STATE_LAND_IN_PROGRESS:
-            return OSD_MESSAGE_STR("LANDING");
+            return OSD_MESSAGE_STR(OSD_MSG_LANDING);
         case MW_NAV_STATE_HOVER_ABOVE_HOME:
             if (STATE(FIXED_WING_LEGACY)) {
-                return OSD_MESSAGE_STR("LOITERING AROUND HOME");
+                return OSD_MESSAGE_STR(OSD_MSG_LOITERING_HOME);
             }
-            return OSD_MESSAGE_STR("HOVERING");
+            return OSD_MESSAGE_STR(OSD_MSG_HOVERING);
         case MW_NAV_STATE_LANDED:
-            return OSD_MESSAGE_STR("LANDED");
+            return OSD_MESSAGE_STR(OSD_MSG_LANDED);
         case MW_NAV_STATE_LAND_SETTLE:
-            return OSD_MESSAGE_STR("PREPARING TO LAND");
+            return OSD_MESSAGE_STR(OSD_MSG_PREPARING_LAND);
         case MW_NAV_STATE_LAND_START_DESCENT:
             // Not used
             break;
@@ -828,15 +826,14 @@ static const char * navigationStateMessage(void)
     return NULL;
 }
 
-static void osdFormatMessage(char *buff, size_t size, const char *message)
+static void osdFormatMessage(char *buff, size_t size, const char *message, bool isCenteredText)
 {
+    // String is always filled with Blanks
     memset(buff, SYM_BLANK, size);
     if (message) {
-        int messageLength = strlen(message);
-        int rem = MAX(0, OSD_MESSAGE_LENGTH - (int)messageLength);
-        // Don't finish the string at the end of the message,
-        // write the rest of the blanks.
-        strncpy(buff + rem / 2, message, MIN(OSD_MESSAGE_LENGTH - rem / 2, messageLength));
+        size_t messageLength = strlen(message);
+        int rem = isCenteredText ? MAX(0, (int)size - (int)messageLength) : 0;
+        strncpy(buff + rem / 2, message, MIN((int)size - rem / 2, (int)messageLength));
     }
     // Ensure buff is zero terminated
     buff[size - 1] = '\0';
@@ -885,6 +882,19 @@ static void osdFormatThrottlePosition(char *buff, bool autoThr, textAttributes_t
             TEXT_ATTRIBUTES_ADD_BLINK(*elemAttr);
     }
     tfp_sprintf(buff + 2, "%3d", (constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN));
+}
+
+/**
+ * Formats gvars prefixed by its number (0-indexed). If autoThr
+ **/
+static void osdFormatGVar(char *buff, uint8_t index)
+{
+    buff[0] = 'G';
+    buff[1] = '0'+index;
+    buff[2] = ':';
+    #ifdef USE_PROGRAMMING_FRAMEWORK
+    osdFormatCentiNumber(buff + 3, (int32_t)gvGet(index)*(int32_t)100, 1, 0, 0, 5);
+    #endif
 }
 
 #if defined(USE_ESC_SENSOR)
@@ -1002,6 +1012,7 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
             break;
         case OSD_UNIT_UK:
             FALLTHROUGH;
+        default:
         case OSD_UNIT_METRIC:
             initialScale = 10; // 10m as initial scale
             break;
@@ -1651,15 +1662,31 @@ static bool osdDrawSingleElement(uint8_t item)
             }
             break;
 
-    case OSD_CRSF_LQ:
+#if defined(USE_SERIALRX_CRSF)
+        case OSD_CRSF_LQ: {
         buff[0] = SYM_BLANK;
-        tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
-        if (!failsafeIsReceivingRxData()){
-            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-        } else if (rxLinkStatistics.uplinkLQ < osdConfig()->rssi_alarm) {
-            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+        int16_t statsLQ = rxLinkStatistics.uplinkLQ;
+        int16_t scaledLQ = scaleRange(constrain(statsLQ, 0, 100), 0, 100, 170, 300);
+            if (rxLinkStatistics.rfMode == 2) {
+                if (osdConfig()->crsf_lq_format == OSD_CRSF_LQ_TYPE1) {
+                    tfp_sprintf(buff, "%5d%s", scaledLQ, "%");
+                } else {
+                    tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
+                }
+            } else {
+                if (osdConfig()->crsf_lq_format == OSD_CRSF_LQ_TYPE1) {
+                    tfp_sprintf(buff, "%5d%s", rxLinkStatistics.uplinkLQ, "%");
+            } else {
+                    tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
+            }
+            }
+            if (!failsafeIsReceivingRxData()){
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            } else if (rxLinkStatistics.uplinkLQ < osdConfig()->link_quality_alarm) {
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            }
+            break;
         }
-        break;
 
     case OSD_CRSF_SNR_DB: {
         const char* showsnr = "-12";
@@ -1680,6 +1707,7 @@ static bool osdDrawSingleElement(uint8_t item)
         }
         break;
       }
+#endif
 
     case OSD_CRSF_TX_POWER: {
         tfp_sprintf(buff, "%4d%c", rxLinkStatistics.uplinkTXPower, SYM_MW);
@@ -1818,6 +1846,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     value = CENTIMETERS_TO_CENTIFEET(value);
                     sym = SYM_FTS;
                     break;
+                default:
                 case OSD_UNIT_METRIC:
                     // Already in cm/s
                     sym = SYM_MS;
@@ -2035,99 +2064,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_MESSAGES:
         {
-            const char *message = NULL;
-            char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH+1)];
-            if (ARMING_FLAG(ARMED)) {
-                // Aircraft is armed. We might have up to 5
-                // messages to show.
-                const char *messages[5];
-                unsigned messageCount = 0;
-                if (FLIGHT_MODE(FAILSAFE_MODE)) {
-                    // In FS mode while being armed too
-                    const char *failsafePhaseMessage = osdFailsafePhaseMessage();
-                    const char *failsafeInfoMessage = osdFailsafeInfoMessage();
-                    const char *navStateFSMessage = navigationStateMessage();
-                    if (failsafePhaseMessage) {
-                        messages[messageCount++] = failsafePhaseMessage;
-                    }
-                    if (failsafeInfoMessage) {
-                        messages[messageCount++] = failsafeInfoMessage;
-                    }
-                    if (navStateFSMessage) {
-                        messages[messageCount++] = navStateFSMessage;
-                    }
-                    if (messageCount > 0) {
-                        message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
-                        if (message == failsafeInfoMessage) {
-                            // failsafeInfoMessage is not useful for recovering
-                            // a lost model, but might help avoiding a crash.
-                            // Blink to grab user attention.
-                            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-                        }
-                        // We're shoing either failsafePhaseMessage or
-                        // navStateFSMessage. Don't BLINK here since
-                        // having this text available might be crucial
-                        // during a lost aircraft recovery and blinking
-                        // will cause it to be missing from some frames.
-                    }
-                } else {
-                    if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
-                        const char *navStateMessage = navigationStateMessage();
-                        if (navStateMessage) {
-                            messages[messageCount++] = navStateMessage;
-                        }
-                    } else if (STATE(FIXED_WING_LEGACY) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
-                            messages[messageCount++] = "AUTOLAUNCH";
-                    } else {
-                        if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
-                            // ALTHOLD might be enabled alongside ANGLE/HORIZON/ACRO
-                            // when it doesn't require ANGLE mode (required only in FW
-                            // right now). If if requires ANGLE, its display is handled
-                            // by OSD_FLYMODE.
-                            messages[messageCount++] = "(ALTITUDE HOLD)";
-                        }
-                        if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) {
-                            messages[messageCount++] = "(AUTOTRIM)";
-                        }
-                        if (IS_RC_MODE_ACTIVE(BOXAUTOTUNE)) {
-                            messages[messageCount++] = "(AUTOTUNE)";
-                        }
-                        if (FLIGHT_MODE(HEADFREE_MODE)) {
-                            messages[messageCount++] = "(HEADFREE)";
-                        }
-                    }
-                    // Pick one of the available messages. Each message lasts
-                    // a second.
-                    if (messageCount > 0) {
-                        message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
-                    }
-                }
-            } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
-                unsigned invalidIndex;
-                // Check if we're unable to arm for some reason
-                if (ARMING_FLAG(ARMING_DISABLED_INVALID_SETTING) && !settingsValidate(&invalidIndex)) {
-                    if (OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
-                        const setting_t *setting = settingGet(invalidIndex);
-                        settingGetName(setting, messageBuf);
-                        for (int ii = 0; messageBuf[ii]; ii++) {
-                            messageBuf[ii] = sl_toupper(messageBuf[ii]);
-                        }
-                        message = messageBuf;
-                    } else {
-                        message = "INVALID SETTING";
-                        TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
-                    }
-                } else {
-                    if (OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
-                        message = "UNABLE TO ARM";
-                        TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
-                    } else {
-                        // Show the reason for not arming
-                        message = osdArmingDisabledReasonMessage();
-                    }
-                }
-            }
-            osdFormatMessage(buff, sizeof(buff), message);
+            elemAttr = osdGetSystemMessage(buff, OSD_MESSAGE_LENGTH, true);
             break;
         }
 
@@ -2391,6 +2328,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 break;
             case OSD_UNIT_UK:
                 FALLTHROUGH;
+            default:
             case OSD_UNIT_METRIC:
                 scaleToUnit = 100; // scale to cm for osdFormatCentiNumber()
                 scaleUnitDivisor = 1000; // Convert to km when scale gets bigger than 999m
@@ -2425,6 +2363,27 @@ static bool osdDrawSingleElement(uint8_t item)
             displayWriteChar(osdDisplayPort, elemPosX, elemPosY + 1, referenceSymbol);
             return true;
         }
+
+    case OSD_GVAR_0:
+    {
+        osdFormatGVar(buff, 0);
+        break;
+    }
+    case OSD_GVAR_1:
+    {
+        osdFormatGVar(buff, 1);
+        break;
+    }
+    case OSD_GVAR_2:
+    {
+        osdFormatGVar(buff, 2);
+        break;
+    }
+    case OSD_GVAR_3:
+    {
+        osdFormatGVar(buff, 3);
+        break;
+    }
 
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     case OSD_RC_SOURCE:
@@ -2569,7 +2528,9 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .baro_temp_alarm_max = 600,
 #endif
 #ifdef USE_SERIALRX_CRSF
-    .snr_alarm = 5,
+    .snr_alarm = 4,
+    .crsf_lq_format = OSD_CRSF_LQ_TYPE1,
+    .link_quality_alarm = 70,
 #endif
 #ifdef USE_TEMPERATURE_SENSOR
     .temp_label_align = OSD_ALIGN_LEFT,
@@ -2658,10 +2619,10 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_VTX_CHANNEL] = OSD_POS(8, 6);
 
 #ifdef USE_SERIALRX_CRSF
-    osdLayoutsConfig->item_pos[0][OSD_CRSF_RSSI_DBM] = OSD_POS(23, 12);
-    osdLayoutsConfig->item_pos[0][OSD_CRSF_LQ] = OSD_POS(22, 11);
-    osdLayoutsConfig->item_pos[0][OSD_CRSF_SNR_DB] = OSD_POS(23, 9);
-    osdLayoutsConfig->item_pos[0][OSD_CRSF_TX_POWER] = OSD_POS(24, 10);
+    osdLayoutsConfig->item_pos[0][OSD_CRSF_RSSI_DBM] = OSD_POS(24, 12);
+    osdLayoutsConfig->item_pos[0][OSD_CRSF_LQ] = OSD_POS(24, 11);
+    osdLayoutsConfig->item_pos[0][OSD_CRSF_SNR_DB] = OSD_POS(25, 9);
+    osdLayoutsConfig->item_pos[0][OSD_CRSF_TX_POWER] = OSD_POS(25, 10);
 #endif
 
     osdLayoutsConfig->item_pos[0][OSD_ONTIME] = OSD_POS(23, 8);
@@ -2738,6 +2699,11 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_GFORCE_Z] = OSD_POS(12, 7);
 
     osdLayoutsConfig->item_pos[0][OSD_VTX_POWER] = OSD_POS(3, 5);
+
+    osdLayoutsConfig->item_pos[0][OSD_GVAR_0] = OSD_POS(1, 1);
+    osdLayoutsConfig->item_pos[0][OSD_GVAR_1] = OSD_POS(1, 2);
+    osdLayoutsConfig->item_pos[0][OSD_GVAR_2] = OSD_POS(1, 3);
+    osdLayoutsConfig->item_pos[0][OSD_GVAR_3] = OSD_POS(1, 4);
 
 #if defined(USE_ESC_SENSOR)
     osdLayoutsConfig->item_pos[0][OSD_ESC_RPM] = OSD_POS(1, 2);
@@ -3312,6 +3278,112 @@ displayCanvas_t *osdGetDisplayPortCanvas(void)
     }
 #endif
     return NULL;
+}
+
+textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenteredText)
+{
+    textAttributes_t elemAttr = TEXT_ATTRIBUTES_NONE;
+
+    if (buff != NULL) {
+        const char *message = NULL;
+        char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH+1)];
+        if (ARMING_FLAG(ARMED)) {
+            // Aircraft is armed. We might have up to 5
+            // messages to show.
+            const char *messages[5];
+            unsigned messageCount = 0;
+            if (FLIGHT_MODE(FAILSAFE_MODE)) {
+                // In FS mode while being armed too
+                const char *failsafePhaseMessage = osdFailsafePhaseMessage();
+                const char *failsafeInfoMessage = osdFailsafeInfoMessage();
+                const char *navStateFSMessage = navigationStateMessage();
+                if (failsafePhaseMessage) {
+                    messages[messageCount++] = failsafePhaseMessage;
+                }
+                if (failsafeInfoMessage) {
+                    messages[messageCount++] = failsafeInfoMessage;
+                }
+                if (navStateFSMessage) {
+                    messages[messageCount++] = navStateFSMessage;
+                }
+                if (messageCount > 0) {
+                    message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
+                    if (message == failsafeInfoMessage) {
+                        // failsafeInfoMessage is not useful for recovering
+                        // a lost model, but might help avoiding a crash.
+                        // Blink to grab user attention.
+                        TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+                    }
+                    // We're shoing either failsafePhaseMessage or
+                    // navStateFSMessage. Don't BLINK here since
+                    // having this text available might be crucial
+                    // during a lost aircraft recovery and blinking
+                    // will cause it to be missing from some frames.
+                }
+            } else {
+                if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
+                    const char *navStateMessage = navigationStateMessage();
+                    if (navStateMessage) {
+                        messages[messageCount++] = navStateMessage;
+                    }
+                } else if (STATE(FIXED_WING_LEGACY) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
+                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_AUTOLAUNCH);
+                        const char *launchStateMessage = fixedWingLaunchStateMessage();
+                        if (launchStateMessage) {
+                            messages[messageCount++] = launchStateMessage;
+                        }
+                } else {
+                    if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
+                        // ALTHOLD might be enabled alongside ANGLE/HORIZON/ACRO
+                        // when it doesn't require ANGLE mode (required only in FW
+                        // right now). If if requires ANGLE, its display is handled
+                        // by OSD_FLYMODE.
+                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ALTITUDE_HOLD);
+                    }
+                    if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) {
+                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_AUTOTRIM);
+                    }
+                    if (IS_RC_MODE_ACTIVE(BOXAUTOTUNE)) {
+                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_AUTOTUNE);
+                    }
+                    if (FLIGHT_MODE(HEADFREE_MODE)) {
+                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_HEADFREE);
+                    }
+                }
+                // Pick one of the available messages. Each message lasts
+                // a second.
+                if (messageCount > 0) {
+                    message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
+                }
+            }
+        } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
+            unsigned invalidIndex;
+            // Check if we're unable to arm for some reason
+            if (ARMING_FLAG(ARMING_DISABLED_INVALID_SETTING) && !settingsValidate(&invalidIndex)) {
+                if (OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
+                    const setting_t *setting = settingGet(invalidIndex);
+                    settingGetName(setting, messageBuf);
+                    for (int ii = 0; messageBuf[ii]; ii++) {
+                        messageBuf[ii] = sl_toupper(messageBuf[ii]);
+                    }
+                    message = messageBuf;
+                } else {
+                    message = OSD_MESSAGE_STR(OSD_MSG_INVALID_SETTING);
+                    TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
+                }
+            } else {
+                if (OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
+                    message = OSD_MESSAGE_STR(OSD_MSG_UNABLE_ARM);
+                    TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
+                } else {
+                    // Show the reason for not arming
+                    message = osdArmingDisabledReasonMessage();
+                }
+            }
+        }
+        osdFormatMessage(buff, buff_size, message, isCenteredText);
+    }
+    return elemAttr;
 }
 
 #endif // OSD

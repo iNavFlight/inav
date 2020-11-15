@@ -36,6 +36,7 @@
 #include "fc/fc_core.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
+#include "fc/rc_modes.h"
 #include "navigation/navigation.h"
 #include "sensors/battery.h"
 #include "sensors/pitotmeter.h"
@@ -207,6 +208,7 @@ static int logicConditionCompute(
             break;
 
         case LOGIC_CONDITION_SET_VTX_POWER_LEVEL:
+#if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP)
             if (
                 logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL] != operandA && 
                 vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)
@@ -218,6 +220,9 @@ static int logicConditionCompute(
                 return false;
             }
             break;
+#else
+            return false;
+#endif
 
         case LOGIC_CONDITION_SET_VTX_BAND:
             if (
@@ -451,7 +456,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_IS_FAILSAFE: // 0/1
-            return (failsafePhase() == FAILSAFE_RX_LOSS_MONITORING) ? 1 : 0;
+            return (failsafePhase() != FAILSAFE_IDLE) ? 1 : 0;
             break;
         
         case LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_YAW: // 
@@ -472,6 +477,26 @@ static int logicConditionGetFlightOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_WAYPOINT_ACTION:
             return NAV_Status.activeWpAction;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_3D_HOME_DISTANCE: //in m
+            return constrain(sqrtf(sq(GPS_distanceToHome) + sq(getEstimatedActualPosition(Z)/100)), 0, INT16_MAX);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_LQ:
+        #ifdef USE_SERIALRX_CRSF
+            return rxLinkStatistics.uplinkLQ;
+        #else
+            return 0;
+        #endif
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_SNR:
+        #ifdef USE_SERIALRX_CRSF
+            return rxLinkStatistics.uplinkSNR;
+        #else
+            return 0;
+        #endif
             break;
 
         default:
@@ -518,6 +543,14 @@ static int logicConditionGetFlightModeOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_AIR:
             return (bool) FLIGHT_MODE(AIRMODE_ACTIVE);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER1:
+            return IS_RC_MODE_ACTIVE(BOXUSER1);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER2:
+            return IS_RC_MODE_ACTIVE(BOXUSER2);
             break;
 
         default:

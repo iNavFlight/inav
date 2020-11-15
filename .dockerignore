@@ -1,2 +1,7 @@
+.git/
 .vagrant/
-obj/
+.vscode/
+/build/
+/obj/
+/tools/
+/downloads/

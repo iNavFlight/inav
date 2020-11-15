@@ -24,32 +24,31 @@ In addition to a cross-compiler, it is necessary to install some other tools:
 * `cmake` : generate the build environment
 * `make` : run the firmware compilation
 * `ruby` : build some generated source files from JSON definitions
+* `gcc` : native compiler used to generate settings and run tests
 
 Note that inav requires `cmake` version 3.13 or later; any distro that provides `cmake` 3.13 will also provide adequate versions of the other tools.
 
 Note also that Ubuntu 18.04 LTS does NOT provide a modern enough `cmake`; it is recommended that you upgrade to Ubuntu 20.04 LTS which does.
 
-If you wish to run the units tests, it is necessary to install a host C/C++ compiler (`gcc` or `clang`). This guide does not cover building and running the units tests.
-
 ### Ubuntu / Debian
 ```
 # make sure the system is updated first
 sudo apt update && sudo apt upgrade
-sudo apt install git make ruby cmake
+sudo apt install git make ruby cmake gcc
 ```
 
 ### Fedora
 ```
 # make sure the system is updated first
 sudo dnf -y update
-sudo dnf install git make ruby cmake
+sudo dnf install git make ruby cmake gcc
 ```
 
 ### Arch
 ```
 # make sure the system is updated first
 sudo pacman -Syu
-sudo pacman -S git make ruby cmake
+sudo pacman -S git make ruby cmake gcc
 ```
 
 Once these prerequisites are installed, we can clone the repository to provide a local instance of the inav source code.
