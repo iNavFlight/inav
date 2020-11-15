@@ -3180,6 +3180,8 @@ groups:
         - name: dji_workarounds
           description: "Enables workarounds for different versions of MSP protocol used"
           field: proto_workarounds
+          min: 0
+          max: UINT8_MAX
         - name: dji_use_name_for_messages
           description: "Re-purpose the craft name field for messages. Replace craft name with :WTSED for Warnings|Throttle|Speed|Efficiency|Trip distance"
           default_value: "ON"
