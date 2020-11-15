@@ -156,6 +156,8 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .max_throttle = 1700,
         .min_throttle = 1200,
         .pitch_to_throttle = 10,                // pwm units per degree of pitch (10pwm units ~ 1% throttle)
+        .pitch_to_throttle_smooth = 0,
+        .pitch_to_throttle_thresh = 0,
         .loiter_radius = 5000,                  // 50m
 
         //Fixed wing landing
@@ -1886,13 +1888,13 @@ static fpVector3_t * rthGetHomeTargetPosition(rthTargetMode_e mode)
 // Control System Design, Lecture Notes for ME 155A by Karl Johan Åström (p.228)
 // http://www.cds.caltech.edu/~murray/courses/cds101/fa02/caltech/astrom-ch6.pdf
 float navPidApply3(
-    pidController_t *pid, 
-    const float setpoint, 
-    const float measurement, 
-    const float dt, 
-    const float outMin, 
-    const float outMax, 
-    const pidControllerFlags_e pidFlags, 
+    pidController_t *pid,
+    const float setpoint,
+    const float measurement,
+    const float dt,
+    const float outMin,
+    const float outMax,
+    const pidControllerFlags_e pidFlags,
     const float gainScaler,
     const float dTermScaler
 ) {
@@ -2418,7 +2420,7 @@ static navigationHomeFlags_t navigationActualStateHomeValidity(void)
 /*******************************************************
  * Is a safehome being used instead of the arming point?
  *******************************************************/
-bool isSafeHomeInUse(void) 
+bool isSafeHomeInUse(void)
 {
     return (safehome_used > -1 && safehome_used < MAX_SAFE_HOMES);
 }
@@ -2429,7 +2431,7 @@ bool isSafeHomeInUse(void)
  **********************************************************/
 bool foundNearbySafeHome(void)
 {
-    safehome_used = -1; 
+    safehome_used = -1;
     fpVector3_t safeHome;
     gpsLocation_t shLLH;
     shLLH.alt = 0;
@@ -2437,7 +2439,7 @@ bool foundNearbySafeHome(void)
         shLLH.lat = safeHomeConfig(i)->lat;
         shLLH.lon = safeHomeConfig(i)->lon;
         geoConvertGeodeticToLocal(&safeHome, &posControl.gpsOrigin, &shLLH, GEO_ALT_RELATIVE);
-        safehome_distance = calculateDistanceToDestination(&safeHome); 
+        safehome_distance = calculateDistanceToDestination(&safeHome);
         if (safehome_distance < 20000) { // 200 m
              safehome_used = i;
              setHomePosition(&safeHome, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
@@ -2937,7 +2939,7 @@ bool saveNonVolatileWaypointList(void)
 
 #if defined(USE_SAFE_HOME)
 
-void resetSafeHomes(void) 
+void resetSafeHomes(void)
 {
     memset(safeHomeConfigMutable(0), 0, sizeof(navSafeHome_t) * MAX_SAFE_HOMES);
 }
@@ -3237,7 +3239,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
             return NAV_FSM_EVENT_SWITCH_TO_IDLE;
         }
 
-        // Pilot-activated waypoint mission. Fall-back to RTH in case of no mission loaded 
+        // Pilot-activated waypoint mission. Fall-back to RTH in case of no mission loaded
         if (IS_RC_MODE_ACTIVE(BOXNAVWP)) {
             if (FLIGHT_MODE(NAV_WP_MODE) || (canActivateWaypoint && canActivatePosHold && canActivateNavigation && canActivateAltHold && STATE(GPS_FIX_HOME)))
                 return NAV_FSM_EVENT_SWITCH_TO_WAYPOINT;

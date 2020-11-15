@@ -272,6 +272,8 @@
 | nav_fw_max_thr | 1700 | Maximum throttle for flying wing in GPS assisted modes |
 | nav_fw_min_thr | 1200 | Minimum throttle for flying wing in GPS assisted modes |
 | nav_fw_pitch2thr | 10 | Amount of throttle applied related to pitch attitude in GPS assisted modes. Throttle = nav_fw_cruise_throttle - (nav_fw_pitch2thr * pitch_angle). (notice that pitch_angle is in degrees and is negative when climbing and positive when diving, and throttle value is constrained between nav_fw_min_thr and nav_fw_max_thr) |
+| nav_fw_pitch2thr_smoothing | 0 | How smoothly the autopilot makes pitch to throttle correction inside a deadband defined by nav_fw_pitch2thr_threshold |
+| nav_fw_pitch2thr_threshold | 0 | Threshold from average pitch where momentary pitch_to_throttle correction kicks in. [decidegrees] |
 | nav_fw_pos_hdg_d | 0 | D gain of heading trajectory PID controller. (Fixedwing, rovers, boats) |
 | nav_fw_pos_hdg_i | 0 | I gain of heading trajectory PID controller. (Fixedwing, rovers, boats) |
 | nav_fw_pos_hdg_p | 60 | P gain of heading PID controller. (Fixedwing, rovers, boats) |
