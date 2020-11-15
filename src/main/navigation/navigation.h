@@ -124,6 +124,12 @@ typedef enum {
     NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR = 4,
 } navArmingBlocker_e;
 
+typedef enum {
+    NOMS_OFF,
+    NOMS_AUTO_ONLY,
+    NOMS_ALL_NAV
+} navOverridesMotorStop_e;
+
 typedef struct positionEstimationConfig_s {
     uint8_t automatic_mag_declination;
     uint8_t reset_altitude_type; // from nav_reset_type_e
@@ -175,7 +181,7 @@ typedef struct navConfig_s {
             uint8_t disarm_on_landing;          //
             uint8_t rth_allow_landing;          // Enable landing as last stage of RTH. Use constants in navRTHAllowLanding_e.
             uint8_t rth_climb_ignore_emerg;     // Option to ignore GPS loss on initial climb stage of RTH
-            uint8_t auto_overrides_motor_stop;  // Autonomous modes override motor_stop setting and user command to stop motor
+            uint8_t nav_overrides_motor_stop;  // Autonomous modes override motor_stop setting and user command to stop motor
         } flags;
 
         uint8_t  pos_failure_timeout;           // Time to wait before switching to emergency landing (0 - disable)
@@ -222,6 +228,8 @@ typedef struct navConfig_s {
         uint16_t min_throttle;               // Minimum allowed throttle in auto mode
         uint16_t max_throttle;               // Maximum allowed throttle in auto mode
         uint8_t  pitch_to_throttle;          // Pitch angle (in deg) to throttle gain (in 1/1000's of throttle) (*10)
+        uint16_t pitch_to_throttle_smooth;    // How smoothly the autopilot makes pitch to throttle correction inside a deadband defined by pitch_to_throttle_thresh.
+        uint8_t  pitch_to_throttle_thresh;   // Threshold from average pitch where momentary pitch_to_throttle correction kicks in. [decidegrees]
         uint16_t loiter_radius;              // Loiter radius when executing PH on a fixed wing
         int8_t land_dive_angle;
         uint16_t launch_velocity_thresh;     // Velocity threshold for swing launch detection
@@ -231,7 +239,8 @@ typedef struct navConfig_s {
         uint16_t launch_throttle;            // Launch throttle
         uint16_t launch_motor_timer;         // Time to wait before setting launch_throttle (ms)
         uint16_t launch_motor_spinup_time;   // Time to speed-up motors from idle to launch_throttle (ESC desync prevention)
-        uint16_t launch_min_time;	     // Minimum time in launch mode to prevent possible bump of the sticks from leaving launch mode early
+        uint16_t launch_end_time;            // Time to make the transition from launch angle to leveled and throttle transition from launch throttle to the stick position
+        uint16_t launch_min_time;	           // Minimum time in launch mode to prevent possible bump of the sticks from leaving launch mode early
         uint16_t launch_timeout;             // Launch timeout to disable launch mode and swith to normal flight (ms)
         uint16_t launch_max_altitude;        // cm, altitude where to consider launch ended
         uint8_t  launch_climb_angle;         // Target climb angle for launch (deg)
@@ -461,7 +470,7 @@ bool loadNonVolatileWaypointList(void);
 bool saveNonVolatileWaypointList(void);
 
 float getFinalRTHAltitude(void);
-int16_t fixedWingPitchToThrottleCorrection(int16_t pitch);
+int16_t fixedWingPitchToThrottleCorrection(int16_t pitch, timeUs_t currentTimeUs);
 
 /* Geodetic functions */
 typedef enum {
@@ -516,6 +525,7 @@ bool navigationRTHAllowsLanding(void);
 bool isNavLaunchEnabled(void);
 bool isFixedWingLaunchDetected(void);
 bool isFixedWingLaunchFinishedOrAborted(void);
+const char * fixedWingLaunchStateMessage(void);
 
 float calculateAverageSpeed(void);
 

@@ -417,6 +417,7 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
             centivalue = (ws * 224) / 100;
             suffix = SYM_MPH;
             break;
+        default:
         case OSD_UNIT_METRIC:
             centivalue = (ws * 36) / 10;
             suffix = SYM_KMH;
@@ -1011,6 +1012,7 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
             break;
         case OSD_UNIT_UK:
             FALLTHROUGH;
+        default:
         case OSD_UNIT_METRIC:
             initialScale = 10; // 10m as initial scale
             break;
@@ -1660,17 +1662,32 @@ static bool osdDrawSingleElement(uint8_t item)
             }
             break;
 
-    case OSD_CRSF_LQ:
-        buff[0] = SYM_BLANK;
-        tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
-        if (!failsafeIsReceivingRxData()){
-            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-        } else if (rxLinkStatistics.uplinkLQ < osdConfig()->rssi_alarm) {
-            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-        }
-        break;
-
 #if defined(USE_SERIALRX_CRSF)
+        case OSD_CRSF_LQ: {
+        buff[0] = SYM_BLANK;
+        int16_t statsLQ = rxLinkStatistics.uplinkLQ;
+        int16_t scaledLQ = scaleRange(constrain(statsLQ, 0, 100), 0, 100, 170, 300);
+            if (rxLinkStatistics.rfMode == 2) {
+                if (osdConfig()->crsf_lq_format == OSD_CRSF_LQ_TYPE1) {
+                    tfp_sprintf(buff, "%5d%s", scaledLQ, "%");
+                } else {
+                    tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
+                }
+            } else {
+                if (osdConfig()->crsf_lq_format == OSD_CRSF_LQ_TYPE1) {
+                    tfp_sprintf(buff, "%5d%s", rxLinkStatistics.uplinkLQ, "%");
+            } else {
+                    tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
+            }
+            }
+            if (!failsafeIsReceivingRxData()){
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            } else if (rxLinkStatistics.uplinkLQ < osdConfig()->link_quality_alarm) {
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            }
+            break;
+        }
+
     case OSD_CRSF_SNR_DB: {
         const char* showsnr = "-12";
         const char* hidesnr = "     ";
@@ -1829,6 +1846,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     value = CENTIMETERS_TO_CENTIFEET(value);
                     sym = SYM_FTS;
                     break;
+                default:
                 case OSD_UNIT_METRIC:
                     // Already in cm/s
                     sym = SYM_MS;
@@ -2310,6 +2328,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 break;
             case OSD_UNIT_UK:
                 FALLTHROUGH;
+            default:
             case OSD_UNIT_METRIC:
                 scaleToUnit = 100; // scale to cm for osdFormatCentiNumber()
                 scaleUnitDivisor = 1000; // Convert to km when scale gets bigger than 999m
@@ -2344,7 +2363,7 @@ static bool osdDrawSingleElement(uint8_t item)
             displayWriteChar(osdDisplayPort, elemPosX, elemPosY + 1, referenceSymbol);
             return true;
         }
-    
+
     case OSD_GVAR_0:
     {
         osdFormatGVar(buff, 0);
@@ -2509,7 +2528,9 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .baro_temp_alarm_max = 600,
 #endif
 #ifdef USE_SERIALRX_CRSF
-    .snr_alarm = 5,
+    .snr_alarm = 4,
+    .crsf_lq_format = OSD_CRSF_LQ_TYPE1,
+    .link_quality_alarm = 70,
 #endif
 #ifdef USE_TEMPERATURE_SENSOR
     .temp_label_align = OSD_ALIGN_LEFT,
@@ -2598,10 +2619,10 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_VTX_CHANNEL] = OSD_POS(8, 6);
 
 #ifdef USE_SERIALRX_CRSF
-    osdLayoutsConfig->item_pos[0][OSD_CRSF_RSSI_DBM] = OSD_POS(23, 12);
-    osdLayoutsConfig->item_pos[0][OSD_CRSF_LQ] = OSD_POS(22, 11);
-    osdLayoutsConfig->item_pos[0][OSD_CRSF_SNR_DB] = OSD_POS(23, 9);
-    osdLayoutsConfig->item_pos[0][OSD_CRSF_TX_POWER] = OSD_POS(24, 10);
+    osdLayoutsConfig->item_pos[0][OSD_CRSF_RSSI_DBM] = OSD_POS(24, 12);
+    osdLayoutsConfig->item_pos[0][OSD_CRSF_LQ] = OSD_POS(24, 11);
+    osdLayoutsConfig->item_pos[0][OSD_CRSF_SNR_DB] = OSD_POS(25, 9);
+    osdLayoutsConfig->item_pos[0][OSD_CRSF_TX_POWER] = OSD_POS(25, 10);
 #endif
 
     osdLayoutsConfig->item_pos[0][OSD_ONTIME] = OSD_POS(23, 8);
@@ -3307,6 +3328,10 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     }
                 } else if (STATE(FIXED_WING_LEGACY) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_AUTOLAUNCH);
+                        const char *launchStateMessage = fixedWingLaunchStateMessage();
+                        if (launchStateMessage) {
+                            messages[messageCount++] = launchStateMessage;
+                        }
                 } else {
                     if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
                         // ALTHOLD might be enabled alongside ANGLE/HORIZON/ACRO

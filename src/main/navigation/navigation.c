@@ -83,11 +83,15 @@ PG_REGISTER_ARRAY(navSafeHome_t, MAX_SAFE_HOMES, safeHomeConfig, PG_SAFE_HOME_CO
 #endif
 
 #if defined(USE_NAV)
+
+// waypoint 254, 255 are special waypoints
+STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_range);
+
 #if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE)
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 0);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 7);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 8);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -102,7 +106,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
             .rth_tail_first = 0,
             .disarm_on_landing = 0,
             .rth_allow_landing = NAV_RTH_ALLOW_LANDING_ALWAYS,
-            .auto_overrides_motor_stop = 1,
+            .nav_overrides_motor_stop = NOMS_ALL_NAV,
         },
 
         // General navigation parameters
@@ -152,6 +156,8 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .max_throttle = 1700,
         .min_throttle = 1200,
         .pitch_to_throttle = 10,                // pwm units per degree of pitch (10pwm units ~ 1% throttle)
+        .pitch_to_throttle_smooth = 0,
+        .pitch_to_throttle_thresh = 0,
         .loiter_radius = 5000,                  // 50m
 
         //Fixed wing landing
@@ -165,6 +171,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .launch_idle_throttle = 1000,           // Motor idle or MOTOR_STOP
         .launch_motor_timer = 500,              // ms
         .launch_motor_spinup_time = 100,        // ms, time to gredually increase throttle from idle to launch
+        .launch_end_time = 3000,                // ms, time to gradually decrease/increase throttle and decrease pitch angle from launch to the current flight mode
         .launch_min_time = 0,                   // ms, min time in launch mode
         .launch_timeout = 5000,                 // ms, timeout for launch procedure
         .launch_max_altitude = 0,               // cm, altitude where to consider launch ended
@@ -1881,13 +1888,13 @@ static fpVector3_t * rthGetHomeTargetPosition(rthTargetMode_e mode)
 // Control System Design, Lecture Notes for ME 155A by Karl Johan Åström (p.228)
 // http://www.cds.caltech.edu/~murray/courses/cds101/fa02/caltech/astrom-ch6.pdf
 float navPidApply3(
-    pidController_t *pid, 
-    const float setpoint, 
-    const float measurement, 
-    const float dt, 
-    const float outMin, 
-    const float outMax, 
-    const pidControllerFlags_e pidFlags, 
+    pidController_t *pid,
+    const float setpoint,
+    const float measurement,
+    const float dt,
+    const float outMin,
+    const float outMax,
+    const pidControllerFlags_e pidFlags,
     const float gainScaler,
     const float dTermScaler
 ) {
@@ -2413,7 +2420,7 @@ static navigationHomeFlags_t navigationActualStateHomeValidity(void)
 /*******************************************************
  * Is a safehome being used instead of the arming point?
  *******************************************************/
-bool isSafeHomeInUse(void) 
+bool isSafeHomeInUse(void)
 {
     return (safehome_used > -1 && safehome_used < MAX_SAFE_HOMES);
 }
@@ -2424,7 +2431,7 @@ bool isSafeHomeInUse(void)
  **********************************************************/
 bool foundNearbySafeHome(void)
 {
-    safehome_used = -1; 
+    safehome_used = -1;
     fpVector3_t safeHome;
     gpsLocation_t shLLH;
     shLLH.alt = 0;
@@ -2432,7 +2439,7 @@ bool foundNearbySafeHome(void)
         shLLH.lat = safeHomeConfig(i)->lat;
         shLLH.lon = safeHomeConfig(i)->lon;
         geoConvertGeodeticToLocal(&safeHome, &posControl.gpsOrigin, &shLLH, GEO_ALT_RELATIVE);
-        safehome_distance = calculateDistanceToDestination(&safeHome); 
+        safehome_distance = calculateDistanceToDestination(&safeHome);
         if (safehome_distance < 20000) { // 200 m
              safehome_used = i;
              setHomePosition(&safeHome, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
@@ -2792,6 +2799,20 @@ void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData)
         wpData->lon = wpLLH.lon;
         wpData->alt = wpLLH.alt;
     }
+    // WP #254 - special waypoint - get desiredPosition that was set by ground control station if in 3D-guided mode 
+    else if (wpNumber == 254) {
+        navigationFSMStateFlags_t navStateFlags = navGetStateFlags(posControl.navState);
+
+        if ((posControl.gpsOrigin.valid) && (navStateFlags & NAV_CTL_ALT) && (navStateFlags & NAV_CTL_POS)) {
+            gpsLocation_t wpLLH;
+
+            geoConvertLocalToGeodetic(&wpLLH, &posControl.gpsOrigin, &posControl.desiredState.pos);
+            
+            wpData->lat = wpLLH.lat;
+            wpData->lon = wpLLH.lon;
+            wpData->alt = wpLLH.alt;
+        }
+    }
     // WP #1 - #60 - common waypoints - pre-programmed mission
     else if ((wpNumber >= 1) && (wpNumber <= NAV_MAX_WAYPOINTS)) {
         if (wpNumber <= posControl.waypointCount) {
@@ -2918,7 +2939,7 @@ bool saveNonVolatileWaypointList(void)
 
 #if defined(USE_SAFE_HOME)
 
-void resetSafeHomes(void) 
+void resetSafeHomes(void)
 {
     memset(safeHomeConfigMutable(0), 0, sizeof(navSafeHome_t) * MAX_SAFE_HOMES);
 }
@@ -3218,7 +3239,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
             return NAV_FSM_EVENT_SWITCH_TO_IDLE;
         }
 
-        // Pilot-activated waypoint mission. Fall-back to RTH in case of no mission loaded 
+        // Pilot-activated waypoint mission. Fall-back to RTH in case of no mission loaded
         if (IS_RC_MODE_ACTIVE(BOXNAVWP)) {
             if (FLIGHT_MODE(NAV_WP_MODE) || (canActivateWaypoint && canActivatePosHold && canActivateNavigation && canActivateAltHold && STATE(GPS_FIX_HOME)))
                 return NAV_FSM_EVENT_SWITCH_TO_WAYPOINT;
