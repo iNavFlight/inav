@@ -239,7 +239,8 @@ typedef struct navConfig_s {
         uint16_t launch_throttle;            // Launch throttle
         uint16_t launch_motor_timer;         // Time to wait before setting launch_throttle (ms)
         uint16_t launch_motor_spinup_time;   // Time to speed-up motors from idle to launch_throttle (ESC desync prevention)
-        uint16_t launch_min_time;	     // Minimum time in launch mode to prevent possible bump of the sticks from leaving launch mode early
+        uint16_t launch_end_time;            // Time to make the transition from launch angle to leveled and throttle transition from launch throttle to the stick position
+        uint16_t launch_min_time;	           // Minimum time in launch mode to prevent possible bump of the sticks from leaving launch mode early
         uint16_t launch_timeout;             // Launch timeout to disable launch mode and swith to normal flight (ms)
         uint16_t launch_max_altitude;        // cm, altitude where to consider launch ended
         uint8_t  launch_climb_angle;         // Target climb angle for launch (deg)
@@ -524,6 +525,7 @@ bool navigationRTHAllowsLanding(void);
 bool isNavLaunchEnabled(void);
 bool isFixedWingLaunchDetected(void);
 bool isFixedWingLaunchFinishedOrAborted(void);
+const char * fixedWingLaunchStateMessage(void);
 
 float calculateAverageSpeed(void);
 
