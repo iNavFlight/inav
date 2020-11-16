@@ -513,6 +513,7 @@ void abortForcedRTH(void);
 rthState_e getStateOfForcedRTH(void);
 
 /* Getter functions which return data about the state of the navigation system */
+bool navigationInAutomaticThrottleMode(void);
 bool navigationIsControllingThrottle(void);
 bool isFixedWingAutoThrottleManuallyIncreased(void);
 bool navigationIsFlyingAutonomousMode(void);
