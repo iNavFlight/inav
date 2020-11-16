@@ -147,4 +147,5 @@ For targets that have a flash data chip, typically used for blackbox logs, the f
 | `flash_write <address> <data>` | Writes `data` to `address` |
 
 ## CLI Variable Reference
+
 See [Settings.md](Settings.md).
