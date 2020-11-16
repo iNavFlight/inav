@@ -61,7 +61,7 @@ typedef enum {
     BOXOSDALT1       = 32,
     BOXOSDALT2       = 33,
     BOXOSDALT3       = 34,
-    BOXNAVCRUISE     = 35,
+    BOXNAVCOURSEHOLD = 35,
     BOXBRAKING       = 36,
     BOXUSER1         = 37,
     BOXUSER2         = 38,

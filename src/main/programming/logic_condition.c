@@ -560,7 +560,7 @@ static int logicConditionGetFlightModeOperandValue(int operand) {
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_CRUISE:
-            return (bool) FLIGHT_MODE(NAV_CRUISE_MODE);
+            return (bool) FLIGHT_MODE(NAV_COURSE_HOLD_MODE);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_ALTHOLD:
