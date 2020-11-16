@@ -2108,7 +2108,7 @@ groups:
         max: 5000
       - name: nav_overrides_motor_stop
         description: "When set OFF the navigation system will not take over the control of the motor if the throttle is low (motor will stop). When set to AUTO_ONLY the navigation system will only take over the control of the throttle in autonomous navigation modes (NAV WP and NAV RTH). When set to ALL_NAV (default) the navigation system will take over the control of the motor completely and never allow the motor to stop even when the throttle is low. This setting only has an effect combined with MOTOR_STOP and is likely to cause a stall if fw_min_throttle_down_pitch isn't set correctly or the pitch estimation is wrong for fixed wing models when not set to ALL_NAV"
-        default_value: "NOMS_ALL_NAV"
+        default_value: "ALL_NAV"
         field: general.flags.nav_overrides_motor_stop
         table: nav_overrides_motor_stop
       - name: nav_rth_climb_first
