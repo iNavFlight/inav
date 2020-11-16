@@ -27,8 +27,8 @@ jobs:
           COMMIT_ID=${COMMIT_ID:-${{ github.sha }}}
           BUILD_SUFFIX=ci-$(date '+%Y%m%d')-$(git rev-parse --short ${COMMIT_ID})
           VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/^[ \t]+|[ \t\)]+$/, "", $2); print $2 }')
-          echo "::set-env name=BUILD_SUFFIX::${BUILD_SUFFIX}"
-          echo "::set-env name=BUILD_NAME::inav-${VERSION}-${BUILD_SUFFIX}"
+          echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
+          echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
       - uses: actions/cache@v1
         with:
           path: downloads
