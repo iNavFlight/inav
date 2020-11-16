@@ -263,7 +263,6 @@
 | nav_fw_launch_accel | 1863 | Forward acceleration threshold for bungee launch of throw launch [cm/s/s], 1G = 981 cm/s/s |
 | nav_fw_launch_climb_angle | 18 | Climb angle for launch sequence (degrees), is also restrained by global max_angle_inclination_pit |
 | nav_fw_launch_detect_time | 40 | Time for which thresholds have to breached to consider launch happened [ms] |
-| nav_fw_launch_end_time | 2000 | Time for the transition of throttle and pitch angle, between the launch state and the subsequent flight mode [ms] |
 | nav_fw_launch_idle_thr | 1000 | Launch idle throttle - throttle to be set before launch sequence is initiated. If set below minimum throttle it will force motor stop or at idle throttle (depending if the MOTOR_STOP is enabled). If set above minimum throttle it will force throttle to this value (if MOTOR_STOP is enabled it will be handled according to throttle stick position) |
 | nav_fw_launch_max_altitude | 0 | Altitude (centimeters) at which LAUNCH mode will be turned off and regular flight mode will take over [0-60000]. |
 | nav_fw_launch_max_angle | 45 | Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg] |
