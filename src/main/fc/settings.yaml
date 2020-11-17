@@ -2137,7 +2137,7 @@ groups:
         field: general.flags.rth_alt_control_mode
         table: nav_rth_alt_mode        
       - name: nav_rth_alt_control_override
-        description: "If set to ON RTH climb will stop and maintain altitude acheived when AltHold mode is switched ON, overriding preset climb altitude"
+        description: "If set to ON the preset RTH altitude can be overridden during the climb phase, resetting to the current altitude, by holding the pitch stick in the full pitch down position for longer than 1 second"
         default_value: "OFF"
         field: general.flags.rth_alt_control_override   
         type: bool        

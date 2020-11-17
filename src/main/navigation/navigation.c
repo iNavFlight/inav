@@ -1092,8 +1092,6 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_3D_ADJUSTING(nav
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigationFSMState_t previousState)
 {
     navigationFSMStateFlags_t prevFlags = navGetStateFlags(previousState);
-    
-    posControl.flags.canOverrideRTHAlt = false;   //prevent unwanted override if AltHold selected at RTH initialize
 
     if ((posControl.flags.estHeadingStatus == EST_NONE) || (posControl.flags.estAltStatus == EST_NONE) || (posControl.flags.estPosStatus != EST_TRUSTED) || !STATE(GPS_FIX_HOME)) {
         // Heading sensor, altitude sensor and HOME fix are mandatory for RTH. If not satisfied - switch to emergency landing
@@ -1154,24 +1152,6 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigati
     /* No valid POS sensor but still within valid timeout - wait */
     else {
         return NAV_FSM_EVENT_NONE;
-    }
-}
-
-static void overrideRTHAtitudePreset(void)
-{
-    if (!navConfig()->general.flags.rth_alt_control_override) {
-        return;
-    }
-
-    if (!IS_RC_MODE_ACTIVE(BOXNAVALTHOLD)) {
-        posControl.flags.canOverrideRTHAlt = true;        
-    }
-    else {
-        if (posControl.flags.canOverrideRTHAlt && !posControl.flags.forcedRTHActivated) {          
-            posControl.rthState.rthInitialAltitude = posControl.actualState.abs.pos.z;                        
-            posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;            
-            posControl.flags.canOverrideRTHAlt = false;
-        }
     }
 }
 
@@ -2529,6 +2509,33 @@ void updateHomePosition(void)
             updateHomePositionCompatibility();
         }
     }
+}
+
+/* -----------------------------------------------------------
+ * Override preset RTH altitude to current altitude
+ *-----------------------------------------------------------*/
+static void overrideRTHAtitudePreset(void)
+{
+    if (!navConfig()->general.flags.rth_alt_control_override) {
+        return;
+    }
+
+	static timeMs_t PitchStickHoldStartTime;
+	
+	if (rxGetChannelValue(PITCH) > 1900) {
+		if (!PitchStickHoldStartTime) {
+			PitchStickHoldStartTime = millis();
+		} else {
+			timeMs_t currentTime = millis();
+			if (currentTime - PitchStickHoldStartTime > 1000 && !posControl.flags.forcedRTHActivated) {
+				posControl.rthState.rthInitialAltitude = posControl.actualState.abs.pos.z;
+				posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;
+			}
+		}
+	} else {
+		PitchStickHoldStartTime = 0;
+	}
+	DEBUG_SET(DEBUG_CRUISE, 1, PitchStickHoldStartTime);
 }
 
 /*-----------------------------------------------------------
