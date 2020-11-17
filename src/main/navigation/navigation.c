@@ -106,7 +106,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
             .rth_tail_first = 0,
             .disarm_on_landing = 0,
             .rth_allow_landing = NAV_RTH_ALLOW_LANDING_ALWAYS,
-            .rth_alt_control_override = 0,      //set using nav_rth_alt_control_override
+            .rth_alt_control_override = 0,      //Override the preset RTH altitude to the current altitude
             .nav_overrides_motor_stop = NOMS_ALL_NAV,
         },
 
@@ -2520,22 +2520,22 @@ static void overrideRTHAtitudePreset(void)
         return;
     }
 
-	static timeMs_t PitchStickHoldStartTime;
-	
-	if (rxGetChannelValue(PITCH) > 1900) {
-		if (!PitchStickHoldStartTime) {
-			PitchStickHoldStartTime = millis();
-		} else {
-			timeMs_t currentTime = millis();
-			if (currentTime - PitchStickHoldStartTime > 1000 && !posControl.flags.forcedRTHActivated) {
-				posControl.rthState.rthInitialAltitude = posControl.actualState.abs.pos.z;
-				posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;
-			}
-		}
-	} else {
-		PitchStickHoldStartTime = 0;
-	}
-	DEBUG_SET(DEBUG_CRUISE, 1, PitchStickHoldStartTime);
+    static timeMs_t PitchStickHoldStartTime;
+
+    if (rxGetChannelValue(PITCH) > 1900) {
+        if (!PitchStickHoldStartTime) {
+            PitchStickHoldStartTime = millis();
+        } else {
+            timeMs_t currentTime = millis();
+            if (currentTime - PitchStickHoldStartTime > 1000 && !posControl.flags.forcedRTHActivated) {
+                posControl.rthState.rthInitialAltitude = posControl.actualState.abs.pos.z;
+                posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;
+            }
+        }
+    } else {
+        PitchStickHoldStartTime = 0;
+    }
+    DEBUG_SET(DEBUG_CRUISE, 1, PitchStickHoldStartTime);
 }
 
 /*-----------------------------------------------------------
