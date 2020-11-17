@@ -276,12 +276,6 @@ static const adjustmentConfig_t defaultAdjustmentConfigs[ADJUSTMENT_FUNCTION_COU
         .adjustmentFunction = ADJUSTMENT_TPA_BREAKPOINT,
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 5 }}
-#ifdef USE_INFLIGHT_PROFILE_ADJUSTMENT
-    }, {
-        .adjustmentFunction = ADJUSTMENT_PROFILE,
-        .mode = ADJUSTMENT_MODE_SELECT,
-        .data = { .selectConfig = { .switchPositions = 3 }}
-#endif
     }
 };
 
