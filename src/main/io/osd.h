@@ -216,6 +216,7 @@ typedef enum {
     OSD_GVAR_1,
     OSD_GVAR_2,
     OSD_GVAR_3,
+    OSD_TPA,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -261,6 +262,11 @@ typedef enum {
     OSD_AHI_STYLE_LINE,
 } osd_ahi_style_e;
 
+typedef enum {
+    OSD_CRSF_LQ_TYPE1,
+    OSD_CRSF_LQ_TYPE2,
+} osd_crsf_lq_format_e;
+
 typedef struct osdLayoutsConfig_s {
     // Layouts
     uint16_t item_pos[OSD_LAYOUT_COUNT][OSD_ITEM_COUNT];
@@ -285,6 +291,7 @@ typedef struct osdConfig_s {
     float gforce_axis_alarm_max;
 #ifdef USE_SERIALRX_CRSF
     int16_t snr_alarm; //CRSF SNR alarm in dB
+    int8_t link_quality_alarm;
 #endif
 #ifdef USE_BARO
     int16_t baro_temp_alarm_min;
@@ -337,6 +344,8 @@ typedef struct osdConfig_s {
     int8_t sidebar_horizontal_offset;   // Horizontal offset from default position. Units are grid slots for grid OSDs, pixels for pixel based OSDs. Positive values move sidebars closer to the edges.
     uint8_t left_sidebar_scroll_step;   // How many units each sidebar step represents. 0 means the default value for the scroll type.
     uint8_t right_sidebar_scroll_step;  // Same as left_sidebar_scroll_step, but for the right sidebar.
+
+    uint8_t crsf_lq_format;
 
 } osdConfig_t;
 

@@ -54,6 +54,7 @@
 #define USE_BLACKBOX
 #define USE_GPS
 #define USE_GPS_PROTO_UBLOX
+#define USE_GPS_PROTO_MSP
 #define USE_NAV
 #define USE_TELEMETRY
 #define USE_TELEMETRY_LTM
@@ -93,8 +94,10 @@
 #define USE_OPFLOW_CXOF
 #define USE_OPFLOW_MSP
 
+// Allow default airspeed sensors
 #define USE_PITOT
 #define USE_PITOT_MS4525
+#define USE_PITOT_MSP
 
 #define USE_1WIRE
 #define USE_1WIRE_DS2482
@@ -123,6 +126,14 @@
 #define USE_ANTIGRAVITY
 
 #define USE_I2C_IO_EXPANDER
+
+#define USE_SERIALRX_SRXL2     // Spektrum SRXL2 protocol
+#define USE_TELEMETRY_SRXL
+#define USE_SPEKTRUM_CMS_TELEMETRY
+//#define USE_SPEKTRUM_VTX_CONTROL //Some functions from betaflight still not implemented
+#define USE_SPEKTRUM_VTX_TELEMETRY
+
+#define USE_VTX_COMMON
 
 #else // FLASH_SIZE < 256
 #define LOG_LEVEL_MAXIMUM LOG_LEVEL_ERROR

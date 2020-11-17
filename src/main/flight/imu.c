@@ -77,7 +77,7 @@ FILE_COMPILE_FOR_SPEED
 // http://gentlenav.googlecode.com/files/fastRotations.pdf
 
 #define SPIN_RATE_LIMIT             20
-#define MAX_ACC_SQ_NEARNESS         25      // 25% or G^2, accepted acceleration of (0.87 - 1.12G)
+#define MAX_ACC_NEARNESS            0.33    // 33% or G error soft-accepted (0.67-1.33G)
 #define IMU_CENTRIFUGAL_LPF         1       // Hz
 
 FASTRAM fpVector3_t imuMeasuredAccelBF;
@@ -472,16 +472,12 @@ STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
 
 static float imuCalculateAccelerometerWeight(const float dT)
 {
-    // If centrifugal test passed - do the usual "nearness" style check
     float accMagnitudeSq = 0;
-
     for (int axis = 0; axis < 3; axis++) {
         accMagnitudeSq += acc.accADCf[axis] * acc.accADCf[axis];
     }
 
-    // Magnitude^2 in percent of G^2
-    const float nearness = ABS(100 - (accMagnitudeSq * 100));
-    const float accWeight_Nearness = (nearness > MAX_ACC_SQ_NEARNESS) ? 0.0f : 1.0f;
+    const float accWeight_Nearness = bellCurve(sqrtf(accMagnitudeSq) - 1.0f, MAX_ACC_NEARNESS);
 
     // Experiment: if rotation rate on a FIXED_WING_LEGACY is higher than a threshold - centrifugal force messes up too much and we 
     // should not use measured accel for AHRS comp
