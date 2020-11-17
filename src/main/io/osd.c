@@ -864,24 +864,23 @@ void osdCrosshairPosition(uint8_t *x, uint8_t *y)
 }
 
 /**
- * Formats throttle position prefixed by its symbol. If autoThr
- * is true and the navigation system is controlling THR, it
- * uses the THR value applied by the system rather than the
- * input value received by the sticks.
+ * Formats throttle position prefixed by its symbol.
+ * Shows output to motor, not stick position
  **/
 static void osdFormatThrottlePosition(char *buff, bool autoThr, textAttributes_t *elemAttr)
 {
+    const int minThrottle = getThrottleIdleValue();
     buff[0] = SYM_BLANK;
     buff[1] = SYM_THR;
-    int16_t thr = rxGetChannelValue(THROTTLE);
+    int16_t thr = (constrain(rcCommand[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX ) - minThrottle) * 100 / (motorConfig()->maxthrottle - minThrottle);
     if (autoThr && navigationIsControllingThrottle()) {
         buff[0] = SYM_AUTO_THR0;
         buff[1] = SYM_AUTO_THR1;
-        thr = rcCommand[THROTTLE];
+        thr = (constrain(rcCommand[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN);
         if (isFixedWingAutoThrottleManuallyIncreased())
             TEXT_ATTRIBUTES_ADD_BLINK(*elemAttr);
     }
-    tfp_sprintf(buff + 2, "%3d", (constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN));
+    tfp_sprintf(buff + 2, "%3d", thr);
 }
 
 /**
@@ -2415,7 +2414,29 @@ static bool osdDrawSingleElement(uint8_t item)
             return true;
         }
 #endif
+    case OSD_TPA:
+        {
+            char buff[4];
+            textAttributes_t attr;
 
+            displayWrite(osdDisplayPort, elemPosX, elemPosY, "TPA BP");
+
+            attr = TEXT_ATTRIBUTES_NONE;
+            tfp_sprintf(buff, "TPA  %3d", currentControlRateProfile->throttle.dynPID);
+            if (isAdjustmentFunctionSelected(ADJUSTMENT_TPA)) {
+                TEXT_ATTRIBUTES_ADD_BLINK(attr);
+            }
+            displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, attr);
+
+            attr = TEXT_ATTRIBUTES_NONE;
+            tfp_sprintf(buff, "BP  %4d", currentControlRateProfile->throttle.pa_breakpoint);
+            if (isAdjustmentFunctionSelected(ADJUSTMENT_TPA_BREAKPOINT)) {
+                TEXT_ATTRIBUTES_ADD_BLINK(attr);
+            }
+            displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY + 1, buff, attr);
+
+            return true;
+        }
     default:
         return false;
     }

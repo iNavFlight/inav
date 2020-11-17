@@ -3649,10 +3649,16 @@ bool navigationIsExecutingAnEmergencyLanding(void)
     return navGetCurrentStateFlags() & NAV_CTL_EMERG;
 }
 
-bool navigationIsControllingThrottle(void)
+bool navigationInAutomaticThrottleMode(void)
 {
     navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
-    return ((stateFlags & (NAV_CTL_ALT | NAV_CTL_EMERG | NAV_CTL_LAUNCH | NAV_CTL_LAND)) && (getMotorStatus() != MOTOR_STOPPED_USER));
+    return (stateFlags & (NAV_CTL_ALT | NAV_CTL_EMERG | NAV_CTL_LAUNCH | NAV_CTL_LAND));
+}
+
+bool navigationIsControllingThrottle(void)
+{
+    // Note that this makes a detour into mixer code to evaluate actual motor status
+    return navigationInAutomaticThrottleMode() && (getMotorStatus() != MOTOR_STOPPED_USER);
 }
 
 bool navigationIsFlyingAutonomousMode(void)

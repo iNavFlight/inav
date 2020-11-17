@@ -61,6 +61,9 @@
 | debug_mode | NONE | Defines debug values exposed in debug variables (developer / debugging setting) |
 | disarm_kill_switch | ON | Disarms the motors independently of throttle value. Setting to OFF reverts to the old behaviour of disarming only when the throttle is low. Only applies when arming and disarming with an AUX channel. |
 | display_force_sw_blink | OFF | OFF = OSD hardware blink / ON = OSD software blink. If OSD warning text/values are invisible, try setting this to ON |
+| dji_esc_temp_source | ESC | Re-purpose the ESC temperature field for IMU/BARO temperature |
+| dji_use_name_for_messages | ON | Re-purpose the craft name field for messages. Replace craft name with :WTSED for Warnings|Throttle|Speed|Efficiency|Trip distance |
+| dji_workarounds |  | Enables workarounds for different versions of MSP protocol used |
 | dterm_lpf2_hz | 0 | Cutoff frequency for stage 2 D-term low pass filter |
 | dterm_lpf2_type | `BIQUAD` | Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation. |
 | dterm_lpf_hz | 40 | Dterm low pass filter cutoff frequency. Default setting is very conservative and small multirotors should use higher value between 80 and 100Hz. 80 seems like a gold spot for 7-inch builds while 100 should work best with 5-inch machines. If motors are getting too hot, lower the value |
@@ -125,6 +128,7 @@
 | fw_p_yaw | 6 | Fixed-wing rate stabilisation P-gain for YAW |
 | fw_reference_airspeed | 1000 | Reference airspeed. Set this to airspeed at which PIDs were tuned. Usually should be set to cruise airspeed. Also used for coordinated turn calculation if airspeed sensor is not present. |
 | fw_tpa_time_constant | 0 | TPA smoothing and delay time constant to reflect non-instant speed/throttle response of the plane. Planes with low thrust/weight ratio generally need higher time constant. Default is zero for compatibility with old setups |
+| fw_turn_assist_pitch_gain | 1 | Gain required to keep constant pitch angle during coordinated turns (in TURN_ASSIST mode). Value significantly different from 1.0 indicates a problem with the airspeed calibration (if present) or value of `fw_reference_airspeed` parameter |
 | fw_turn_assist_yaw_gain | 1 | Gain required to keep the yaw rate consistent with the turn rate for a coordinated turn (in TURN_ASSIST mode). Value significantly different from 1.0 indicates a problem with the airspeed calibration (if present) or value of `fw_reference_airspeed` parameter |
 | gps_auto_baud | ON | Automatic configuration of GPS baudrate(The specified baudrate in configured in ports will be used) when used with UBLOX GPS. When used with NAZA/DJI it will automatic detect GPS baudrate and change to it, ignoring the selected baudrate set in ports |
 | gps_auto_config | ON | Enable automatic configuration of UBlox GPS receivers. |
@@ -187,9 +191,9 @@
 | mag_declination | 0 | Current location magnetic declination in format. For example, -6deg 37min = -637 for Japan. Leading zero in ddd not required. Get your local magnetic declination here: http://magnetic-declination.com/ . Not in use if inav_auto_mag_decl is turned on and you acquire valid GPS fix. |
 | mag_hardware | AUTO | Selection of mag hardware. See Wiki Sensor auto detect and hardware failure detection for more info |
 | mag_to_use |  | Allow to chose between built-in and external compass sensor if they are connected to separate buses. Currently only for REVO target |
-| maggain_x | 0 | Magnetometer calibration X gain. If 0, no calibration or calibration failed |
-| maggain_y | 0 | Magnetometer calibration Y gain. If 0, no calibration or calibration failed |
-| maggain_z | 0 | Magnetometer calibration Z gain. If 0, no calibration or calibration failed |
+| maggain_x | 1024 | Magnetometer calibration X gain. If 1024, no calibration or calibration failed |
+| maggain_y | 1024 | Magnetometer calibration Y gain. If 1024, no calibration or calibration failed |
+| maggain_z | 1024 | Magnetometer calibration Z gain. If 1024, no calibration or calibration failed |
 | magzero_x | 0 | Magnetometer calibration X offset. If its 0 none offset has been applied and calibration is failed. |
 | magzero_y | 0 | Magnetometer calibration Y offset. If its 0 none offset has been applied and calibration is failed. |
 | magzero_z | 0 | Magnetometer calibration Z offset. If its 0 none offset has been applied and calibration is failed. |
@@ -201,6 +205,7 @@
 | mavlink_ext_status_rate |  |  |
 | mavlink_extra1_rate |  |  |
 | mavlink_extra2_rate |  |  |
+| mavlink_extra3_rate |  |  |
 | mavlink_pos_rate |  |  |
 | mavlink_rc_chan_rate |  |  |
 | max_angle_inclination_pit | 300 | Maximum inclination in level (angle) mode (PITCH axis). 100=10° |
@@ -258,13 +263,13 @@
 | nav_fw_launch_accel | 1863 | Forward acceleration threshold for bungee launch of throw launch [cm/s/s], 1G = 981 cm/s/s |
 | nav_fw_launch_climb_angle | 18 | Climb angle for launch sequence (degrees), is also restrained by global max_angle_inclination_pit |
 | nav_fw_launch_detect_time | 40 | Time for which thresholds have to breached to consider launch happened [ms] |
+| nav_fw_launch_end_time | 2000 | Time for the transition of throttle and pitch angle, between the launch state and the subsequent flight mode [ms] |
 | nav_fw_launch_idle_thr | 1000 | Launch idle throttle - throttle to be set before launch sequence is initiated. If set below minimum throttle it will force motor stop or at idle throttle (depending if the MOTOR_STOP is enabled). If set above minimum throttle it will force throttle to this value (if MOTOR_STOP is enabled it will be handled according to throttle stick position) |
 | nav_fw_launch_max_altitude | 0 | Altitude (centimeters) at which LAUNCH mode will be turned off and regular flight mode will take over [0-60000]. |
 | nav_fw_launch_max_angle | 45 | Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg] |
 | nav_fw_launch_min_time | 0 | Allow launch mode to execute at least this time (ms) and ignore stick movements [0-60000]. |
 | nav_fw_launch_motor_delay | 500 | Delay between detected launch and launch sequence start and throttling up (ms) |
 | nav_fw_launch_spinup_time | 100 | Time to bring power from minimum throttle to nav_fw_launch_thr - to avoid big stress on ESC and large torque from propeller |
-| nav_fw_launch_end_time | 3000 | Time for the transition of throttle and pitch angle, between the launch state and the subsequent flight mode [ms] |
 | nav_fw_launch_thr | 1700 | Launch throttle - throttle to be set during launch sequence (pwm units) |
 | nav_fw_launch_timeout | 5000 | Maximum time for launch sequence to be executed. After this time LAUNCH mode will be turned off and regular flight mode will take over (ms) |
 | nav_fw_launch_velocity | 300 | Forward velocity threshold for swing-launch detection [cm/s] |
@@ -272,7 +277,7 @@
 | nav_fw_max_thr | 1700 | Maximum throttle for flying wing in GPS assisted modes |
 | nav_fw_min_thr | 1200 | Minimum throttle for flying wing in GPS assisted modes |
 | nav_fw_pitch2thr | 10 | Amount of throttle applied related to pitch attitude in GPS assisted modes. Throttle = nav_fw_cruise_throttle - (nav_fw_pitch2thr * pitch_angle). (notice that pitch_angle is in degrees and is negative when climbing and positive when diving, and throttle value is constrained between nav_fw_min_thr and nav_fw_max_thr) |
-| nav_fw_pitch2thr_smoothing | 0 | How smoothly the autopilot makes pitch to throttle correction inside a deadband defined by nav_fw_pitch2thr_threshold |
+| nav_fw_pitch2thr_smoothing | 0 | How smoothly the autopilot makes pitch to throttle correction inside a deadband defined by pitch_to_throttle_thresh. |
 | nav_fw_pitch2thr_threshold | 0 | Threshold from average pitch where momentary pitch_to_throttle correction kicks in. [decidegrees] |
 | nav_fw_pos_hdg_d | 0 | D gain of heading trajectory PID controller. (Fixedwing, rovers, boats) |
 | nav_fw_pos_hdg_i | 0 | I gain of heading trajectory PID controller. (Fixedwing, rovers, boats) |
@@ -319,7 +324,7 @@
 | nav_mc_vel_z_i | 50 | I gain of velocity PID controller |
 | nav_mc_vel_z_p | 100 | P gain of velocity PID controller |
 | nav_min_rth_distance | 500 | Minimum distance from homepoint when RTH full procedure will be activated [cm]. Below this distance, the mode will activate at the current location and the final phase is executed (loiter / land). Above this distance, the full procedure is activated, which may include initial climb and flying directly to the homepoint before entering the loiter / land phase. |
-| nav_overrides_motor_stop | ON | Setting to OFF combined with MOTOR_STOP feature will allow user to stop motor when in autonomous modes. On most places this setting is likely to cause a stall. |
+| nav_overrides_motor_stop | ALL_NAV | When set OFF the navigation system will not take over the control of the motor if the throttle is low (motor will stop). When set to AUTO_ONLY the navigation system will only take over the control of the throttle in autonomous navigation modes (NAV WP and NAV RTH). When set to ALL_NAV (default) the navigation system will take over the control of the motor completely and never allow the motor to stop even when the throttle is low. This setting only has an effect combined with MOTOR_STOP and is likely to cause a stall if fw_min_throttle_down_pitch isn't set correctly or the pitch estimation is wrong for fixed wing models when not set to ALL_NAV |
 | nav_position_timeout | 5 | If GPS fails wait for this much seconds before switching to emergency landing mode (0 - disable) |
 | nav_rth_abort_threshold | 50000 | RTH sanity checking feature will notice if distance to home is increasing during RTH and once amount of increase exceeds the threshold defined by this parameter, instead of continuing RTH machine will enter emergency landing, self-level and go down safely. Default is 500m which is safe enough for both multirotor machines and airplanes. [cm] |
 | nav_rth_allow_landing | ALWAYS | If set to ON drone will land as a last phase of RTH. |
@@ -351,6 +356,7 @@
 | osd_camera_uptilt | 0 | Set the camera uptilt for the FPV camera in degres, positive is up, negative is down, relative to the horizontal |
 | osd_coordinate_digits |  |  |
 | osd_crosshairs_style | DEFAULT | To set the visual type for the crosshair |
+| osd_crsf_lq_format | TYPE1 | To select LQ format |
 | osd_current_alarm | 0 | Value above which the OSD current consumption element will start blinking. Measured in full Amperes. |
 | osd_dist_alarm | 1000 | Value above which to make the OSD distance from home indicator blink (meters) |
 | osd_esc_temp_alarm_max | 900 | Temperature above which the IMU temperature OSD element will start blinking (decidegrees centigrade) |
@@ -375,15 +381,17 @@
 | osd_imu_temp_alarm_min | -200 | Temperature under which the IMU temperature OSD element will start blinking (decidegrees centigrade) |
 | osd_left_sidebar_scroll |  |  |
 | osd_left_sidebar_scroll_step | 0 | How many units each sidebar step represents. 0 means the default value for the scroll type. |
+| osd_link_quality_alarm | 70 | LQ % indicator blinks below this value. For Crossfire use 70%, for Tracer use 50% |
 | osd_main_voltage_decimals | 1 | Number of decimals for the battery voltages displayed in the OSD [1-2]. |
-| osd_neg_alt_alarm | 5 | Value bellow which (negative altitude) to make the OSD relative altitude indicator blink (meters) |
+| osd_neg_alt_alarm | 5 | Value below which (negative altitude) to make the OSD relative altitude indicator blink (meters) |
 | osd_plus_code_digits |  |  |
 | osd_right_sidebar_scroll |  |  |
 | osd_right_sidebar_scroll_step | 0 | Same as left_sidebar_scroll_step, but for the right sidebar |
 | osd_row_shiftdown | 0 | Number of rows to shift the OSD display (increase if top rows are cut off) |
-| osd_rssi_alarm | 20 | Value bellow which to make the OSD RSSI indicator blink |
+| osd_rssi_alarm | 20 | Value below which to make the OSD RSSI indicator blink |
 | osd_sidebar_horizontal_offset | 0 | Sidebar horizontal offset from default position. Positive values move the sidebars closer to the edges. |
 | osd_sidebar_scroll_arrows |  |  |
+| osd_snr_alarm | 4 | Value below which Crossfire SNR Alarm pops-up. (dB) |
 | osd_stats_energy_unit | MAH | Unit used for the drawn energy in the OSD stats [MAH/WH] (milliAmpere hour/ Watt hour) |
 | osd_temp_label_align | LEFT | Allows to chose between left and right alignment for the OSD temperature sensor labels. Valid values are `LEFT` and `RIGHT` |
 | osd_time_alarm | 10 | Value above which to make the OSD flight time indicator blink (minutes) |
@@ -451,6 +459,8 @@
 | smartport_master_halfduplex |  |  |
 | smartport_master_inverted |  |  |
 | spektrum_sat_bind | 0 | 0 = disabled. Used to bind the spektrum satellite to RX |
+| srxl2_baud_fast |  |  |
+| srxl2_unit_id |  |  |
 | stats | OFF | General switch of the statistics recording feature (a.k.a. odometer) |
 | stats_total_dist | 0 | Total flight distance [in meters]. The value is updated on every disarm when "stats" are enabled. |
 | stats_total_energy |  |  |
