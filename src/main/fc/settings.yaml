@@ -149,6 +149,12 @@ tables:
     values: ["TYPE1", "TYPE2"]
   - name: off_on
     values: ["OFF", "ON"]
+  - name: djiOsdTempSource
+    values: ["ESC", "IMU", "BARO"]
+    enum: djiOsdTempSource_e
+  - name: nav_overrides_motor_stop
+    enum: navOverridesMotorStop_e
+    values: ["OFF", "AUTO_ONLY", "ALL_NAV"]
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -2101,10 +2107,10 @@ groups:
         min: 0
         max: 5000
       - name: nav_overrides_motor_stop
-        description: "Setting to OFF combined with MOTOR_STOP feature will allow user to stop motor when in autonomous modes. On most places this setting is likely to cause a stall."
-        default_value: "ON"
-        field: general.flags.auto_overrides_motor_stop
-        type: bool
+        description: "When set OFF the navigation system will not take over the control of the motor if the throttle is low (motor will stop). When set to AUTO_ONLY the navigation system will only take over the control of the throttle in autonomous navigation modes (NAV WP and NAV RTH). When set to ALL_NAV (default) the navigation system will take over the control of the motor completely and never allow the motor to stop even when the throttle is low. This setting only has an effect combined with MOTOR_STOP and is likely to cause a stall if fw_min_throttle_down_pitch isn't set correctly or the pitch estimation is wrong for fixed wing models when not set to ALL_NAV"
+        default_value: "ALL_NAV"
+        field: general.flags.nav_overrides_motor_stop
+        table: nav_overrides_motor_stop
       - name: nav_rth_climb_first
         description: "If set to ON drone will climb to nav_rth_altitude first and head home afterwards. If set to OFF drone will head home instantly and climb on the way."
         default_value: "ON"
@@ -2278,6 +2284,18 @@ groups:
         field: fw.pitch_to_throttle
         min: 0
         max: 100
+      - name: nav_fw_pitch2thr_smoothing
+        description:  "How smoothly the autopilot makes pitch to throttle correction inside a deadband defined by pitch_to_throttle_thresh."
+        default_value: "0"
+        field: fw.pitch_to_throttle_smooth
+        min: 0
+        max: 9
+      - name: nav_fw_pitch2thr_threshold
+        description: "Threshold from average pitch where momentary pitch_to_throttle correction kicks in. [decidegrees]"
+        default_value: "0"
+        field: fw.pitch_to_throttle_thresh
+        min: 0
+        max: 900
       - name: nav_fw_loiter_radius
         description: "PosHold radius. 3000 to 7500 is a good value (30-75m) [cm]"
         default_value: "5000"
@@ -2353,6 +2371,12 @@ groups:
         field: fw.launch_motor_spinup_time
         min: 0
         max: 1000
+      - name: nav_fw_launch_end_time
+        description: "Time for the transition of throttle and pitch angle, between the launch state and the subsequent flight mode [ms]"
+        default_value: "2000"
+        field: fw.launch_end_time
+        min: 0
+        max: 5000
       - name: nav_fw_launch_min_time
         description: "Allow launch mode to execute at least this time (ms) and ignore stick movements [0-60000]."
         default_value: "0"
@@ -3126,6 +3150,7 @@ groups:
           max: UINT32_MAX
           description: "Defines serial debugging log topic. See `docs/development/serial_printf_debugging.md` for usage."
           default_value: "0"
+
   - name: PG_ESC_SENSOR_CONFIG
     type: escSensorConfig_t
     headers: ["sensors/esc_sensor.h"]
@@ -3146,3 +3171,25 @@ groups:
       - name: smartport_master_inverted
         field: inverted
         type: bool
+
+  - name: PG_DJI_OSD_CONFIG
+    type: djiOsdConfig_t
+    headers: ["io/osd_dji_hd.h"]
+    condition: USE_DJI_HD_OSD
+    members:
+        - name: dji_workarounds
+          description: "Enables workarounds for different versions of MSP protocol used"
+          field: proto_workarounds
+          min: 0
+          max: UINT8_MAX
+        - name: dji_use_name_for_messages
+          description: "Re-purpose the craft name field for messages. Replace craft name with :WTSED for Warnings|Throttle|Speed|Efficiency|Trip distance"
+          default_value: "ON"
+          field: use_name_for_messages
+          type: bool
+        - name: dji_esc_temp_source
+          description: "Re-purpose the ESC temperature field for IMU/BARO temperature"
+          default_value: "ESC"
+          field: esc_temperature_source
+          table: djiOsdTempSource
+          type: uint8_t

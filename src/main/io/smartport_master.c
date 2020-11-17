@@ -300,6 +300,9 @@ static void smartportMasterPoll(void)
                 break;
             }
 
+            default: // should not happen
+                return;
+
         }
 
     }
