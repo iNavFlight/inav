@@ -2414,7 +2414,29 @@ static bool osdDrawSingleElement(uint8_t item)
             return true;
         }
 #endif
+    case OSD_TPA:
+        {
+            char buff[4];
+            textAttributes_t attr;
 
+            displayWrite(osdDisplayPort, elemPosX, elemPosY, "TPA BP");
+
+            attr = TEXT_ATTRIBUTES_NONE;
+            tfp_sprintf(buff, "TPA  %3d", currentControlRateProfile->throttle.dynPID);
+            if (isAdjustmentFunctionSelected(ADJUSTMENT_TPA)) {
+                TEXT_ATTRIBUTES_ADD_BLINK(attr);
+            }
+            displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, attr);
+
+            attr = TEXT_ATTRIBUTES_NONE;
+            tfp_sprintf(buff, "BP  %4d", currentControlRateProfile->throttle.pa_breakpoint);
+            if (isAdjustmentFunctionSelected(ADJUSTMENT_TPA_BREAKPOINT)) {
+                TEXT_ATTRIBUTES_ADD_BLINK(attr);
+            }
+            displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY + 1, buff, attr);
+
+            return true;
+        }
     default:
         return false;
     }
