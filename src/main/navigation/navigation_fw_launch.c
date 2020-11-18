@@ -199,12 +199,16 @@ static bool isThrottleIdleEnabled(void) {
     return navConfig()->fw.launch_idle_throttle > getThrottleIdleValue();
 }
 
+static void forceMotorsToStop(void) {
+    ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);                              // If MOTOR_STOP is enabled mixer will keep motor stopped
+    rcCommand[THROTTLE] = getThrottleIdleValue();                      // If MOTOR_STOP is disabled, motors will spin at minthrottle
+}
+
 static void applyThrottleIdle(void) {
     if (isThrottleIdleEnabled()) {
         rcCommand[THROTTLE] = navConfig()->fw.launch_idle_throttle;
     } else {
-      ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);                              // If MOTOR_STOP is enabled mixer will keep motor stopped
-      rcCommand[THROTTLE] = getThrottleIdleValue();                      // If MOTOR_STOP is disabled, motors will spin at minthrottle
+        forceMotorsToStop();
     }
 }
 
@@ -246,6 +250,8 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IDLE(timeUs_t curren
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_THROTTLE(timeUs_t currentTimeUs) {
     UNUSED(currentTimeUs);
 
+    forceMotorsToStop();
+    
     if (!isThrottleLow()) {
         if (isThrottleIdleEnabled()) {
             return FW_LAUNCH_EVENT_SUCCESS;
