@@ -196,12 +196,12 @@ static void setCurrentState(fixedWingLaunchState_t nextState, timeUs_t currentTi
 /* Wing control Helpers */
 
 static bool isThrottleIdleEnabled(void) {
-    return navConfig()->fw.launch_idle_throttle > getThrottleIdleValue();
+    return navConfig()->fw.launch_idle_throttle > motorConfig()->mincommand;
 }
 
 static void forceMotorsToStop(void) {
     ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);                              // If MOTOR_STOP is enabled mixer will keep motor stopped
-    rcCommand[THROTTLE] = getThrottleIdleValue();                      // If MOTOR_STOP is disabled, motors will spin at minthrottle
+    rcCommand[THROTTLE] = motorConfig()->mincommand;                   // If MOTOR_STOP is disabled, motors will not spin at all
 }
 
 static void applyThrottleIdle(void) {
@@ -274,7 +274,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_MOTOR_IDLE(timeUs_t 
         applyThrottleIdle();
         return FW_LAUNCH_EVENT_SUCCESS;
     } else {
-        rcCommand[THROTTLE] = scaleRangef(elapsedTimeMs, 0.0f, LAUNCH_MOTOR_IDLE_SPINUP_TIME, getThrottleIdleValue(), navConfig()->fw.launch_idle_throttle);
+        rcCommand[THROTTLE] = scaleRangef(elapsedTimeMs, 0.0f, LAUNCH_MOTOR_IDLE_SPINUP_TIME, motorConfig()->mincommand, navConfig()->fw.launch_idle_throttle);
         fwLaunch.pitchAngle = scaleRangef(elapsedTimeMs, 0.0f, LAUNCH_MOTOR_IDLE_SPINUP_TIME, 0, navConfig()->fw.launch_climb_angle);
     }
 
@@ -340,8 +340,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_MOTOR_SPINUP(timeUs_
         rcCommand[THROTTLE] = launchThrottle;
         return FW_LAUNCH_EVENT_SUCCESS;
     } else {
-        const uint16_t minIdleThrottle = MAX(getThrottleIdleValue(), navConfig()->fw.launch_idle_throttle);
-        rcCommand[THROTTLE] = scaleRangef(elapsedTimeMs, 0.0f, motorSpinUpMs,  minIdleThrottle, launchThrottle);
+        rcCommand[THROTTLE] = scaleRangef(elapsedTimeMs, 0.0f, motorSpinUpMs,  navConfig()->fw.launch_idle_throttle, launchThrottle);
     }
 
     return FW_LAUNCH_EVENT_NONE;
