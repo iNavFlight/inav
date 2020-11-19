@@ -170,13 +170,15 @@ static const fixedWingLaunchStateDescriptor_t launchStateMachine[FW_LAUNCH_STATE
         .onEntry                                    = fwLaunchState_FW_LAUNCH_STATE_IN_PROGRESS,
         .onEvent = {
             [FW_LAUNCH_EVENT_SUCCESS]               = FW_LAUNCH_STATE_FINISH,
+            [FW_LAUNCH_EVENT_ABORT]                 = FW_LAUNCH_STATE_IDLE
         },
         .messageType                                = FW_LAUNCH_MESSAGE_TYPE_IN_PROGRESS
     },
     [FW_LAUNCH_STATE_FINISH] = {
         .onEntry                                    = fwLaunchState_FW_LAUNCH_STATE_FINISH,
         .onEvent = {
-            [FW_LAUNCH_EVENT_SUCCESS]               = FW_LAUNCH_STATE_IDLE
+            [FW_LAUNCH_EVENT_SUCCESS]               = FW_LAUNCH_STATE_IDLE,
+            [FW_LAUNCH_EVENT_ABORT]                 = FW_LAUNCH_STATE_IDLE
         },
         .messageType                                = FW_LAUNCH_MESSAGE_TYPE_FINISHING
     }
@@ -344,10 +346,10 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_MOTOR_SPINUP(timeUs_
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IN_PROGRESS(timeUs_t currentTimeUs) {
     rcCommand[THROTTLE] = navConfig()->fw.launch_throttle;
 
-    if (isLaunchMaxAltitudeReached()) {
-        return FW_LAUNCH_EVENT_SUCCESS; // cancel the launch and do the FW_LAUNCH_STATE_FINISH state
-    }
     if (areSticksMoved(navConfig()->fw.launch_motor_timer + navConfig()->fw.launch_motor_spinup_time, currentTimeUs)) {
+        return FW_LAUNCH_EVENT_ABORT; // cancel the launch and do the FW_LAUNCH_STATE_IDLE state
+    }
+    if (isLaunchMaxAltitudeReached()) {
         return FW_LAUNCH_EVENT_SUCCESS; // cancel the launch and do the FW_LAUNCH_STATE_FINISH state
     }
     if (currentStateElapsedMs(currentTimeUs) > navConfig()->fw.launch_timeout) {
@@ -361,6 +363,9 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_FINISH(timeUs_t curr
     const timeMs_t elapsedTimeMs = currentStateElapsedMs(currentTimeUs);
     const timeMs_t endTimeMs = navConfig()->fw.launch_end_time;
 
+    if (areSticksDeflectedMoreThanPosHoldDeadband()) {
+        return FW_LAUNCH_EVENT_ABORT; // cancel the launch and do the FW_LAUNCH_STATE_IDLE state
+    }
     if (elapsedTimeMs > endTimeMs) {
         return FW_LAUNCH_EVENT_SUCCESS;
     } else {
