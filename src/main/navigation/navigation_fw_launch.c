@@ -212,19 +212,14 @@ static bool isThrottleIdleEnabled(void)
     return navConfig()->fw.launch_idle_throttle > getThrottleIdleValue();
 }
 
-static void forceMotorStopOrIdle(void)
+static void applyThrottleIdleLogic(bool forceMixerIdle)
 {
-    ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);                              // If MOTOR_STOP is enabled mixer will keep motor stopped
-    rcCommand[THROTTLE] = getThrottleIdleValue();                      // If MOTOR_STOP is disabled, motors will spin at minthrottle
-}
-
-static void applyThrottleIdleLogic(void)
-{
-    if (isThrottleIdleEnabled()) {
+    if (isThrottleIdleEnabled() && !forceMixerIdle) {
         rcCommand[THROTTLE] = navConfig()->fw.launch_idle_throttle;
     }
     else {
-        forceMotorStopOrIdle();
+        ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);           // If MOTOR_STOP is enabled mixer will keep motor stopped
+        rcCommand[THROTTLE] = getThrottleIdleValue();   // If MOTOR_STOP is disabled, motors will spin given throttle value
     }
 }
 
@@ -282,7 +277,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_THROTTLE(timeUs
         }
     }
     else {
-        forceMotorStopOrIdle();
+        applyThrottleIdleLogic(true);   // Stick low, force mixer idle (motor stop or low rpm)
     }
 
     fwLaunch.pitchAngle = 0;
@@ -298,7 +293,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_MOTOR_IDLE(timeUs_t 
 
     const timeMs_t elapsedTimeMs = currentStateElapsedMs(currentTimeUs);
     if (elapsedTimeMs > LAUNCH_MOTOR_IDLE_SPINUP_TIME) {
-        applyThrottleIdleLogic();
+        applyThrottleIdleLogic(false);
         return FW_LAUNCH_EVENT_SUCCESS;
     }
     else {
@@ -322,7 +317,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_DETECTION(timeU
     const bool isBungeeLaunched = isForwardAccelerationHigh && isAircraftAlmostLevel;
     const bool isSwingLaunched = (swingVelocity > navConfig()->fw.launch_velocity_thresh) && (imuMeasuredAccelBF.x > 0);
 
-    applyThrottleIdleLogic();
+    applyThrottleIdleLogic(false);
 
     if (isBungeeLaunched || isSwingLaunched) {
         if (currentStateElapsedMs(currentTimeUs) > navConfig()->fw.launch_time_thresh) {
@@ -339,14 +334,14 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_DETECTED(timeUs_t cu
 {
     UNUSED(currentTimeUs);
     // waiting for the navigation to move it to next step FW_LAUNCH_STATE_MOTOR_DELAY
-    applyThrottleIdleLogic();
+    applyThrottleIdleLogic(false);
 
     return FW_LAUNCH_EVENT_NONE;
 }
 
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_MOTOR_DELAY(timeUs_t currentTimeUs)
 {
-    applyThrottleIdleLogic();
+    applyThrottleIdleLogic(false);
 
     if (areSticksMoved(0, currentTimeUs)) {
         return FW_LAUNCH_EVENT_ABORT; // jump to FW_LAUNCH_STATE_IDLE
