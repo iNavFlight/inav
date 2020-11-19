@@ -214,6 +214,29 @@ groups:
         default_value: "`BIQUAD`"
         field: gyro_stage2_lowpass_type
         table: filter_type
+      - name: gyro_use_dyn_lpf
+        description: "Use Dynamic LPF instead of static gyro stage1 LPF."
+        default_value: "OFF"
+        field: useDynamicLpf
+        type: bool
+      - name: gyro_dyn_lpf_min_hz
+        description: "Minimum frequency of the gyro Dynamic LPF"
+        default_value: "200"
+        field: gyroDynamicLpfMinHz
+        min: 40
+        max: 400
+      - name: gyro_dyn_lpf_max_hz
+        description: "Maximum frequency of the gyro Dynamic LPF"
+        default_value: "500"
+        field: gyroDynamicLpfMaxHz
+        min: 40
+        max: 1000
+      - name: gyro_dyn_lpf_curve_expo
+        description: "Expo value for the throttle-to-frequency mapping for Dynamic LPF"
+        default_value: "5"
+        field: gyroDynamicLpFCurveExpo
+        min: 0
+        max: 10
       - name: dynamic_gyro_notch_enabled
         description: "Enable/disable dynamic gyro notch also known as Matrix Filter"
         default_value: "`OFF`"
