@@ -66,6 +66,7 @@
 #include "rx/sumh.h"
 #include "rx/uib_rx.h"
 #include "rx/xbus.h"
+#include "rx/ghst.h"
 
 
 //#define DEBUG_RX_SIGNAL_LOSS
@@ -249,6 +250,11 @@ bool serialRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
 #ifdef USE_SERIALRX_FPORT2
     case SERIALRX_FPORT2:
         enabled = fport2RxInit(rxConfig, rxRuntimeConfig);
+        break;
+#endif
+#ifdef USE_SERIALRX_GHST
+    case SERIALRX_GHST:
+        enabled = ghstRxInit(rxConfig, rxRuntimeConfig);
         break;
 #endif
     default:
