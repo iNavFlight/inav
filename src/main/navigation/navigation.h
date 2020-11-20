@@ -386,6 +386,7 @@ typedef enum {
     MW_NAV_STATE_LAND_START_DESCENT,      // Start descent
     MW_NAV_STATE_HOVER_ABOVE_HOME,        // Hover/Loitering above home
     MW_NAV_STATE_EMERGENCY_LANDING,       // Emergency landing
+    MW_NAV_STATE_RTH_CLIMB,               // RTH Climb safe altitude    
 } navSystemStatus_State_e;
 
 typedef enum {
