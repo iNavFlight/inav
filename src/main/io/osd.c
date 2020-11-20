@@ -2437,6 +2437,24 @@ static bool osdDrawSingleElement(uint8_t item)
 
             return true;
         }
+    case OSD_VTX_MW:
+        {
+            vtxDeviceOsdInfo_t osdInfo;
+            vtxCommonGetOsdInfo(vtxCommonDevice(), &osdInfo);
+
+            if (osdInfo.powerMilliwatt) {
+                tfp_sprintf(buff, "%4d", osdInfo.powerMilliwatt);
+            } else {
+                tfp_sprintf(buff, "%c", osdInfo.powerIndex);
+            }
+
+            if (isAdjustmentFunctionSelected(ADJUSTMENT_VTX_POWER_LEVEL)) {
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            }
+
+            displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
+            return true;
+        }
     default:
         return false;
     }
