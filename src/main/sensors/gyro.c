@@ -543,7 +543,6 @@ void gyroUpdateDynamicLpf(void) {
     }
 
     if (gyroConfig()->gyro_soft_lpf_type == FILTER_PT1) {
-        const float gyroDt = getLooptime() * 1e-6f;
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             pt1FilterUpdateCutoff(&gyroLpfState[axis].pt1, cutoffFreq);
         }
