@@ -91,3 +91,4 @@ bool gyroReadTemperature(void);
 int16_t gyroGetTemperature(void);
 int16_t gyroRateDps(int axis);
 bool gyroSyncCheckUpdate(void);
+void gyroUpdateDynamicLpf(void);

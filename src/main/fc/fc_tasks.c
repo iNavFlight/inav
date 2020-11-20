@@ -294,6 +294,7 @@ void taskUpdateAux(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
     updatePIDCoefficients();
+    gyroUpdateDynamicLpf();
 }
 
 void fcTasksInit(void)
@@ -620,7 +621,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_AUX] = {
         .taskName = "AUX",
         .taskFunc = taskUpdateAux,
-        .desiredPeriod = TASK_PERIOD_HZ(TASK_AUX_RATE_HZ),          // 300Hz @3,33ms
+        .desiredPeriod = TASK_PERIOD_HZ(TASK_AUX_RATE_HZ),          // 100Hz @10ms
         .staticPriority = TASK_PRIORITY_HIGH,
     },
 };

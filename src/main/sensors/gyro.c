@@ -59,6 +59,7 @@ FILE_COMPILE_FOR_SPEED
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
+#include "fc/rc_controls.h"
 
 #include "io/beeper.h"
 #include "io/statusindicator.h"
@@ -72,6 +73,7 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/gyroanalyse.h"
 #include "flight/rpm_filter.h"
 #include "flight/dynamic_gyro_notch.h"
+#include "flight/mixer.h"
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
@@ -513,4 +515,41 @@ bool gyroSyncCheckUpdate(void)
     }
 
     return gyroDev[0].intStatusFn(&gyroDev[0]);
+}
+
+static float dynLpfCutoffFreq(float throttle, uint16_t dynLpfMin, uint16_t dynLpfMax, uint8_t expo) {
+    const float expof = expo / 10.0f;
+    static float curve;
+    curve = throttle * (1 - throttle) * expof + throttle;
+    return (dynLpfMax - dynLpfMin) * curve + dynLpfMin;
+}
+
+static float dynThrottle(float throttle) {
+    return throttle * (1 - (throttle * throttle) / 3.0f) * 1.5f;
+}
+
+void gyroUpdateDynamicLpf(void) {
+    if (!gyroConfig()->useDynamicLpf) {
+        return;
+    }
+
+    const float throttle = scaleRangef((float) rcCommand[THROTTLE], getThrottleIdleValue(), motorConfig()->maxthrottle, 0.0f, 1.0f);
+
+    uint16_t cutoffFreq;
+    if (gyroConfig()->gyroDynamicLpFCurveExpo > 0) {
+        cutoffFreq = dynLpfCutoffFreq(throttle, gyroConfig()->gyroDynamicLpfMinHz, gyroConfig()->gyroDynamicLpfMaxHz, gyroConfig()->gyroDynamicLpFCurveExpo);
+    } else {
+        cutoffFreq = fmax(dynThrottle(throttle) * gyroConfig()->gyroDynamicLpfMaxHz, gyroConfig()->gyroDynamicLpfMinHz);
+    }
+
+    if (gyroConfig()->gyro_soft_lpf_type == FILTER_PT1) {
+        const float gyroDt = getLooptime() * 1e-6f;
+        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            pt1FilterUpdateCutoff(&gyroLpfState[axis].pt1, cutoffFreq);
+        }
+    } else if (gyroConfig()->gyro_soft_lpf_type == FILTER_BIQUAD) {
+        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            biquadFilterUpdate(&gyroLpfState[axis].biquad, cutoffFreq, getLooptime(), BIQUAD_Q, FILTER_LPF);
+        }
+    }
 }

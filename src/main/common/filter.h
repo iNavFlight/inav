@@ -59,6 +59,9 @@ typedef struct firFilter_s {
 typedef float (*filterApplyFnPtr)(void *filter, float input);
 typedef float (*filterApply4FnPtr)(void *filter, float input, float f_cut, float dt);
 
+#define BIQUAD_BANDWIDTH 1.9f     /* bandwidth in octaves */
+#define BIQUAD_Q 1.0f / sqrtf(2.0f)     /* quality factor - butterworth*/
+
 float nullFilterApply(void *filter, float input);
 float nullFilterApply4(void *filter, float input, float f_cut, float dt);
 
