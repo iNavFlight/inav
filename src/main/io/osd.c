@@ -2438,8 +2438,8 @@ static bool osdDrawSingleElement(uint8_t item)
             return true;
         }
     case OSD_NAV_FW_CONTROL_SMOOTHNESS:
-            osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "CTL S", 0, navConfig()->fw.control_smoothness, 1, 0, ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS);
-            return true;
+        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "CTL S", 0, navConfig()->fw.control_smoothness, 1, 0, ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS);
+        return true;
     case OSD_VTX_MW:
         {
             vtxDeviceOsdInfo_t osdInfo;
