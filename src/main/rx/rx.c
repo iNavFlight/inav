@@ -439,10 +439,13 @@ bool rxUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime)
     }
 
     const uint8_t frameStatus = rxRuntimeConfig.rcFrameStatusFn(&rxRuntimeConfig);
-    if (frameStatus & RX_FRAME_COMPLETE) {
-        rxDataProcessingRequired = true;
+    if (frameStatus & RX_FRAME_FAILSAFE) {
         rxIsInFailsafeMode = (frameStatus & RX_FRAME_FAILSAFE) != 0;
         rxSignalReceived = !rxIsInFailsafeMode;
+    }
+
+    if (frameStatus & RX_FRAME_COMPLETE) {
+        rxDataProcessingRequired = true;
         needRxSignalBefore = currentTimeUs + rxRuntimeConfig.rxSignalTimeout;
     }
 
