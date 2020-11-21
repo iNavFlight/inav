@@ -61,8 +61,8 @@
 // At max frame rate 222Hz we should expect to see each of 3 RC frames at least every 13.5ms
 // Set the individual frame timeout high-enough to tolerate 2 on-wire frames being lost + some jitter
 // As a recovery condition we would expect at least 3 packets arriving on time
-#define GHST_RC_FRAME_TIMEOUT_MS        45
-#define GHST_RC_FRAME_COUNT_THRESHOLD   4       // should correspond to ~50-60ms in the best case
+#define GHST_RC_FRAME_TIMEOUT_MS        300
+#define GHST_RC_FRAME_COUNT_THRESHOLD   2       // should correspond to ~50-60ms in the best case
 
 #define GHST_PAYLOAD_OFFSET offsetof(ghstFrameDef_t, type)
 
@@ -74,7 +74,6 @@ STATIC_UNIT_TESTED ghstFrame_t ghstIncomingFrame;   // incoming frame, raw, not 
 STATIC_UNIT_TESTED ghstFrame_t ghstValidatedFrame;  // validated frame, CRC is ok, destination address is ok, ready for decode
 
 STATIC_UNIT_TESTED uint32_t ghstChannelData[GHST_MAX_NUM_CHANNELS];
-
 
 typedef struct ghstFailsafeTracker_s {
     unsigned onTimePacketCounter;
