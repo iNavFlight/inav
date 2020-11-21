@@ -60,7 +60,9 @@
 
 // At max frame rate 222Hz we should expect to see each of 3 RC frames at least every 13.5ms
 // Set the individual frame timeout high-enough to tolerate 2 on-wire frames being lost + some jitter
+// As a recovery condition we would expect at least 3 packets arriving on time
 #define GHST_RC_FRAME_TIMEOUT_MS        45
+#define GHST_RC_FRAME_COUNT_THRESHOLD   4       // should correspond to ~50-60ms in the best case
 
 #define GHST_PAYLOAD_OFFSET offsetof(ghstFrameDef_t, type)
 
@@ -75,7 +77,7 @@ STATIC_UNIT_TESTED uint32_t ghstChannelData[GHST_MAX_NUM_CHANNELS];
 
 
 typedef struct ghstFailsafeTracker_s {
-    bool     wasEverSeen;
+    unsigned onTimePacketCounter;
     timeMs_t lastSeenMs;
 } ghstFailsafeTracker_t;
 
@@ -191,10 +193,12 @@ static void ghstIdle(void)
 static void ghstUpdateFailsafe(unsigned pktIdx)
 {
     // pktIdx is an offset of RC channel packet, 
-    // as we expect RC frame types 0x10 - 0x1f, we can have up to 16 possible packets arriving periodically
     // We'll track arrival time of each of the frame types we ever saw arriving from this receiver
     if (pktIdx < GHST_UL_RC_CHANS_FRAME_COUNT) {
-        ghstFsTracker[pktIdx].wasEverSeen = true;
+        if (ghstFsTracker[pktIdx].onTimePacketCounter < GHST_RC_FRAME_COUNT_THRESHOLD) {
+            ghstFsTracker[pktIdx].onTimePacketCounter++;
+        }
+
         ghstFsTracker[pktIdx].lastSeenMs = millis();    // don't need microsecond resolution here
     }
 }
@@ -211,11 +215,16 @@ static bool ghstDetectFailsafe(void)
     // as a failsafe condition
 
     for (pktIdx = 0; pktIdx < GHST_UL_RC_CHANS_FRAME_COUNT; pktIdx++) {
-        if (!ghstFsTracker[pktIdx].wasEverSeen) {
-            continue;
+        // Packet timeout. We didn't receive the packet containing the channel data within GHST_RC_FRAME_TIMEOUT_MS
+        // This is a consistent signal loss, reset the recovery packet counter and report signal loss condition
+        if ((currentTimeMs - ghstFsTracker[pktIdx].lastSeenMs) >= GHST_RC_FRAME_TIMEOUT_MS) {
+            ghstFsTracker[pktIdx].onTimePacketCounter = 0;
+            return true;
         }
 
-        if ((currentTimeMs - ghstFsTracker[pktIdx].lastSeenMs) >= GHST_RC_FRAME_TIMEOUT_MS) {
+        // Not having at least GHST_RC_FRAME_COUNT_THRESHOLD packets without timeouts is likely caused by intermittent signal
+        // Stick to reporting signal loss
+        if (ghstFsTracker[pktIdx].onTimePacketCounter < GHST_RC_FRAME_COUNT_THRESHOLD) {
             return true;
         }
     }
