@@ -58,6 +58,12 @@
 #define GHST_RX_TO_TELEMETRY_MIN_US     1000
 #define GHST_RX_TO_TELEMETRY_MAX_US     2000
 
+// At max frame rate 222Hz we should expect to see each of 3 RC frames at least every 13.5ms
+// Set the individual frame timeout high-enough to tolerate 2 on-wire frames being lost + some jitter
+// As a recovery condition we would expect at least 3 packets arriving on time
+#define GHST_RC_FRAME_TIMEOUT_MS        300     // To accommodate the LR mode (12Hz)
+#define GHST_RC_FRAME_COUNT_THRESHOLD   4       // should correspond to ~50-60ms in the best case
+
 #define GHST_PAYLOAD_OFFSET offsetof(ghstFrameDef_t, type)
 
 STATIC_UNIT_TESTED volatile bool ghstFrameAvailable = false;
@@ -69,11 +75,17 @@ STATIC_UNIT_TESTED ghstFrame_t ghstValidatedFrame;  // validated frame, CRC is o
 
 STATIC_UNIT_TESTED uint32_t ghstChannelData[GHST_MAX_NUM_CHANNELS];
 
+typedef struct ghstFailsafeTracker_s {
+    unsigned onTimePacketCounter;
+    timeMs_t lastSeenMs;
+} ghstFailsafeTracker_t;
+
 static serialPort_t *serialPort;
 static timeUs_t ghstRxFrameStartAtUs = 0;
 static timeUs_t ghstRxFrameEndAtUs = 0;
 static uint8_t telemetryBuf[GHST_FRAME_SIZE_MAX];
 static uint8_t telemetryBufLen = 0;
+static ghstFailsafeTracker_t ghstFsTracker[GHST_UL_RC_CHANS_FRAME_COUNT];
 
 /* GHST Protocol
  * Ghost uses 420k baud single-wire, half duplex connection, connected to a FC UART 'Tx' pin
@@ -177,6 +189,54 @@ static void ghstIdle(void)
     }
 }
 
+static void ghstUpdateFailsafe(unsigned pktIdx)
+{
+    // pktIdx is an offset of RC channel packet, 
+    // We'll track arrival time of each of the frame types we ever saw arriving from this receiver
+    if (pktIdx < GHST_UL_RC_CHANS_FRAME_COUNT) {
+        if (ghstFsTracker[pktIdx].onTimePacketCounter < GHST_RC_FRAME_COUNT_THRESHOLD) {
+            ghstFsTracker[pktIdx].onTimePacketCounter++;
+        }
+
+        ghstFsTracker[pktIdx].lastSeenMs = millis();    // don't need microsecond resolution here
+    }
+}
+
+static bool ghstDetectFailsafe(void)
+{
+    const timeMs_t currentTimeMs = millis();
+    int pktIdx;
+
+
+    // Inspect all of the frame types we ever saw arriving. If any of them times out - assume signal loss
+    // We should track all frame types because we care about all channels, not only AETR. Losing AUX may
+    // prevent the pilot from switching flight mode or disarming which is unsafe and should also be treated
+    // as a failsafe condition
+
+    for (pktIdx = 0; pktIdx < GHST_UL_RC_CHANS_FRAME_COUNT; pktIdx++) {
+
+        // If a frame was not seen at least once, it's not sent and we should not detaect failsafe based on that
+        if (ghstFsTracker[pktIdx].lastSeenMs == 0) {
+            continue;
+        }
+
+        // Packet timeout. We didn't receive the packet containing the channel data within GHST_RC_FRAME_TIMEOUT_MS
+        // This is a consistent signal loss, reset the recovery packet counter and report signal loss condition
+        if ((currentTimeMs - ghstFsTracker[pktIdx].lastSeenMs) >= GHST_RC_FRAME_TIMEOUT_MS) {
+            ghstFsTracker[pktIdx].onTimePacketCounter = 0;
+            return true;
+        }
+
+        // Not having at least GHST_RC_FRAME_COUNT_THRESHOLD packets without timeouts is likely caused by intermittent signal
+        // Stick to reporting signal loss
+        if (ghstFsTracker[pktIdx].onTimePacketCounter < GHST_RC_FRAME_COUNT_THRESHOLD) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 uint8_t ghstFrameStatus(rxRuntimeConfig_t *rxRuntimeState)
 {
     UNUSED(rxRuntimeState);
@@ -185,6 +245,8 @@ uint8_t ghstFrameStatus(rxRuntimeConfig_t *rxRuntimeState)
         ghstIdle();
     }
 
+    uint8_t ghstFailsafeFlag = ghstDetectFailsafe() ? RX_FRAME_FAILSAFE : 0;
+
     if (ghstFrameAvailable) {
         ghstFrameAvailable = false;
 
@@ -192,17 +254,17 @@ uint8_t ghstFrameStatus(rxRuntimeConfig_t *rxRuntimeState)
         const int fullFrameLength = ghstValidatedFrame.frame.len + GHST_FRAME_LENGTH_ADDRESS + GHST_FRAME_LENGTH_FRAMELENGTH;
         if (crc == ghstValidatedFrame.bytes[fullFrameLength - 1] && ghstValidatedFrame.frame.addr == GHST_ADDR_FC) {
             ghstValidatedFrameAvailable = true;
-            return RX_FRAME_COMPLETE | RX_FRAME_PROCESSING_REQUIRED;            // request callback through ghstProcessFrame to do the decoding  work
+            return ghstFailsafeFlag | RX_FRAME_COMPLETE | RX_FRAME_PROCESSING_REQUIRED;            // request callback through ghstProcessFrame to do the decoding  work
         }
 
-        return RX_FRAME_DROPPED;                            // frame was invalid
+        return ghstFailsafeFlag | RX_FRAME_DROPPED;                            // frame was invalid
     }
 
     if (shouldSendTelemetryFrame()) {
-        return RX_FRAME_PROCESSING_REQUIRED;
+        return ghstFailsafeFlag | RX_FRAME_PROCESSING_REQUIRED;
     }
 
-    return RX_FRAME_PENDING;
+    return ghstFailsafeFlag | RX_FRAME_PENDING;
 }
 
 static bool ghstProcessFrame(const rxRuntimeConfig_t *rxRuntimeConfig)
@@ -224,6 +286,9 @@ static bool ghstProcessFrame(const rxRuntimeConfig_t *rxRuntimeConfig)
             ghstValidatedFrame.frame.type <= GHST_UL_RC_CHANS_HS4_LAST
         ) {
             const ghstPayloadPulses_t* const rcChannels = (ghstPayloadPulses_t*)&ghstValidatedFrame.frame.payload;
+
+            // notify GHST failsafe detection that we received a channel packet
+            ghstUpdateFailsafe(ghstValidatedFrame.frame.type - GHST_UL_RC_CHANS_HS4_FIRST);
 
             // all uplink frames contain CH1..4 data (12 bit)
             ghstChannelData[0] = rcChannels->ch1to4.ch1 >> 1;
