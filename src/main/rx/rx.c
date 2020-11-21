@@ -92,7 +92,6 @@ static bool mspOverrideDataProcessingRequired = false;
 
 static bool rxSignalReceived = false;
 static bool rxFlightChannelsValid = false;
-static bool rxIsInFailsafeMode = true;
 static uint8_t rxChannelCount;
 
 static timeUs_t rxNextUpdateAtUs = 0;
@@ -439,14 +438,16 @@ bool rxUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime)
     }
 
     const uint8_t frameStatus = rxRuntimeConfig.rcFrameStatusFn(&rxRuntimeConfig);
-    if (frameStatus & RX_FRAME_FAILSAFE) {
-        rxIsInFailsafeMode = (frameStatus & RX_FRAME_FAILSAFE) != 0;
-        rxSignalReceived = !rxIsInFailsafeMode;
-    }
 
     if (frameStatus & RX_FRAME_COMPLETE) {
-        rxDataProcessingRequired = true;
+        // RX_FRAME_COMPLETE updated the failsafe status regardless
+        rxSignalReceived = (frameStatus & RX_FRAME_FAILSAFE) == 0;
         needRxSignalBefore = currentTimeUs + rxRuntimeConfig.rxSignalTimeout;
+        rxDataProcessingRequired = true;
+    }
+    else if ((frameStatus & RX_FRAME_FAILSAFE) && rxSignalReceived) {
+        // All other receiver statuses are allowed to report failsafe, but not allowed to leave it
+        rxSignalReceived = false;
     }
 
     if (frameStatus & RX_FRAME_PROCESSING_REQUIRED) {
