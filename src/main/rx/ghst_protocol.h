@@ -56,7 +56,9 @@ typedef enum {
     GHST_UL_RC_CHANS_HS4_LAST   = 0x1f      // Last frame type including 4 primary channels
 } ghstUl_e;
 
-#define GHST_UL_RC_CHANS_SIZE       12      // 1 (type) + 10 (data) + 1 (crc)
+#define GHST_UL_RC_CHANS_FRAME_COUNT    (GHST_UL_RC_CHANS_HS4_13TO16 - GHST_UL_RC_CHANS_HS4_5TO8 + 1)   // CH1-16
+#define GHST_UL_RC_TOTAL_FRAME_COUNT    (GHST_UL_RC_CHANS_HS4_LAST - GHST_UL_RC_CHANS_HS4_FIRST + 1)    // Include service frames - RSSI etc
+#define GHST_UL_RC_CHANS_SIZE           12      // 1 (type) + 10 (data) + 1 (crc)
 
 typedef enum {
     GHST_DL_OPENTX_SYNC         = 0x20,
