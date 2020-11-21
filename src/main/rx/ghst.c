@@ -215,6 +215,12 @@ static bool ghstDetectFailsafe(void)
     // as a failsafe condition
 
     for (pktIdx = 0; pktIdx < GHST_UL_RC_CHANS_FRAME_COUNT; pktIdx++) {
+
+        // If a frame was not seen at least once, it's not sent and we should not detaect failsafe based on that
+        if (ghstFsTracker[pktIdx].lastSeenMs == 0) {
+            continue;
+        }
+
         // Packet timeout. We didn't receive the packet containing the channel data within GHST_RC_FRAME_TIMEOUT_MS
         // This is a consistent signal loss, reset the recovery packet counter and report signal loss condition
         if ((currentTimeMs - ghstFsTracker[pktIdx].lastSeenMs) >= GHST_RC_FRAME_TIMEOUT_MS) {
