@@ -126,7 +126,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .rth_home_altitude = 0,                 // altitude in centimeters
         .rth_abort_threshold = 50000,           // centimeters - 500m should be safe for all aircraft
         .max_terrain_follow_altitude = 100,     // max altitude in centimeters in terrain following mode
-        .safehome_max_distance = 200,           // Max distance that a safehome is from the arming point
+        .safehome_max_distance = 20000,         // Max distance that a safehome is from the arming point
         },
 
     // MC-specific
