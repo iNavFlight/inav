@@ -2526,12 +2526,14 @@ static void rthAltControlStickOverrideCheck(unsigned axis)
     }
 
     static timeMs_t rthOverrideStickHoldStartTime[2];
-    timeMs_t currentTime = millis();
 
     if (rxGetChannelValue(axis) > rxConfig()->maxcheck) {
+        
+        timeDelta_t holdTime = millis() - rthOverrideStickHoldStartTime[axis];
+        
         if (!rthOverrideStickHoldStartTime[axis]) {
             rthOverrideStickHoldStartTime[axis] = millis();
-        } else if (ABS(2500 - (currentTime - rthOverrideStickHoldStartTime[axis])) < 500) {
+        } else if (ABS(2500 - holdTime) < 500) {    
             if (axis == PITCH) {    // pitch down to override preset altitude reset to current altitude
                 posControl.rthState.rthInitialAltitude = posControl.actualState.abs.pos.z;
                 posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;
