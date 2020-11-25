@@ -69,7 +69,6 @@
 #include "rx/uib_rx.h"
 #include "rx/xbus.h"
 
-
 //#define DEBUG_RX_SIGNAL_LOSS
 
 const char rcChannelLetters[] = "AERT";

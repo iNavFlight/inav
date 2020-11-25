@@ -628,13 +628,13 @@ void logicConditionUpdateTask(timeUs_t currentTimeUs) {
     //Disable all flags
     logicConditionsGlobalFlags = 0;
 
+    for (uint8_t i = 0; i < MAX_SUPPORTED_RC_CHANNEL_COUNT; i++) {
+        rcChannelOverrides[i].active = false;
+    }
+
     for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
         logicConditionProcess(i);
     }
-
-    for (uint8_t i = 0; i < MAX_SUPPORTED_RC_CHANNEL_COUNT; i++) {
-        rcChannelOverrides[i].active = false;
-    } 
 
 #ifdef USE_I2C_IO_EXPANDER
     ioPortExpanderSync();
