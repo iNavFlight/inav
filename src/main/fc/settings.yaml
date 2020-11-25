@@ -2137,7 +2137,7 @@ groups:
         field: general.flags.rth_alt_control_mode
         table: nav_rth_alt_mode        
       - name: nav_rth_alt_control_override
-        description: "If set to ON the preset RTH altitude can be overridden during the climb phase, resetting to the current altitude, by holding the pitch stick in the full pitch down position for longer than 1 second"
+        description: "If set to ON RTH altitude and CLIMB FIRST settings can be overridden during the RTH climb phase using full pitch or roll stick held for > 2 seconds. RTH altitude is reset to the current altitude using pitch down stick. RTH CLIMB FIRST is overridden using right roll stick so craft turns and heads directly to home."
         default_value: "OFF"
         field: general.flags.rth_alt_control_override   
         type: bool        
