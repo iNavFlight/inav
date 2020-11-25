@@ -29,6 +29,8 @@
 #include "common/maths.h"
 #include "common/utils.h"
 
+#include "programming/logic_condition.h"
+
 #include "config/feature.h"
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
@@ -713,7 +715,11 @@ uint16_t rxGetRefreshRate(void)
 
 int16_t rxGetChannelValue(unsigned channelNumber)
 {
-    return rcChannels[channelNumber].data;
+    if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_RC_CHANNEL)) {
+        return getRcChannelOverride(channelNumber, rcChannels[channelNumber].data);
+    } else {
+        return rcChannels[channelNumber].data;
+    }
 }
 
 int16_t rxGetRawChannelValue(unsigned channelNumber)

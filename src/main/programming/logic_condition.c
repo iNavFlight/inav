@@ -54,6 +54,7 @@ PG_REGISTER_ARRAY_WITH_RESET_FN(logicCondition_t, MAX_LOGIC_CONDITIONS, logicCon
 
 EXTENDED_FASTRAM uint64_t logicConditionsGlobalFlags;
 EXTENDED_FASTRAM int logicConditionValuesByType[LOGIC_CONDITION_LAST];
+EXTENDED_FASTRAM rcChannelOverride_t rcChannelOverrides[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 
 void pgResetFn_logicConditions(logicCondition_t *instance)
 {
@@ -305,6 +306,14 @@ static int logicConditionCompute(
     
         case LOGIC_CONDITION_MAP_OUTPUT:
             return scaleRange(constrain(operandA, 0, 1000), 0, 1000, 0, operandB);
+        break;
+
+        case LOGIC_CONDITION_RC_CHANNEL_OVERRIDE:
+            temporaryValue = constrain(operandA - 1, 0, MAX_SUPPORTED_RC_CHANNEL_COUNT - 1);
+            rcChannelOverrides[temporaryValue].active = true;
+            rcChannelOverrides[temporaryValue].value = constrain(operandB, PWM_RANGE_MIN, PWM_RANGE_MAX);
+            LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_RC_CHANNEL);
+            return true;
         break;
 
         default:
@@ -622,6 +631,11 @@ void logicConditionUpdateTask(timeUs_t currentTimeUs) {
     for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
         logicConditionProcess(i);
     }
+
+    for (uint8_t i = 0; i < MAX_SUPPORTED_RC_CHANNEL_COUNT; i++) {
+        rcChannelOverrides[i].active = false;
+    } 
+
 #ifdef USE_I2C_IO_EXPANDER
     ioPortExpanderSync();
 #endif
@@ -662,4 +676,12 @@ int16_t getRcCommandOverride(int16_t command[], uint8_t axis) {
     }
 
     return outputValue;
+}
+
+int16_t getRcChannelOverride(uint8_t channel, int16_t originalValue) {
+    if (rcChannelOverrides[channel].active) {
+        return rcChannelOverrides[channel].value;
+    } else {
+        return originalValue;
+    }
 }
