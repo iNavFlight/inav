@@ -26,10 +26,13 @@
 
 FILE_COMPILE_FOR_SIZE
 
-#include "programming/logic_condition.h"
+#ifdef USE_PROGRAMMING_FRAMEWORK
+
 #include "programming/pid.h"
 
-void programmingFrameworkUpdateTask(timeUs_t currentTimeUs) {
-    programmingPidUpdateTask(currentTimeUs);
-    logicConditionUpdateTask(currentTimeUs);
+void programmingPidUpdateTask(timeUs_t currentTimeUs)
+{
+    //Dummy
 }
+
+#endif
