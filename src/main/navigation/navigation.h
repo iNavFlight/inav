@@ -181,7 +181,8 @@ typedef struct navConfig_s {
             uint8_t disarm_on_landing;          //
             uint8_t rth_allow_landing;          // Enable landing as last stage of RTH. Use constants in navRTHAllowLanding_e.
             uint8_t rth_climb_ignore_emerg;     // Option to ignore GPS loss on initial climb stage of RTH
-            uint8_t nav_overrides_motor_stop;  // Autonomous modes override motor_stop setting and user command to stop motor
+            uint8_t nav_overrides_motor_stop;   // Autonomous modes override motor_stop setting and user command to stop motor
+            uint8_t nav_overrides_motor_stop_on_fs; // When false the motor status will never be overriden during FS. Meaning the motor will not start if FS is triggered while the throttle was low and nav_overrides_motor_stop = OFF
         } flags;
 
         uint8_t  pos_failure_timeout;           // Time to wait before switching to emergency landing (0 - disable)

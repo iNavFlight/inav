@@ -2111,6 +2111,11 @@ groups:
         default_value: "ALL_NAV"
         field: general.flags.nav_overrides_motor_stop
         table: nav_overrides_motor_stop
+      - name: nav_overrides_motor_stop_on_fs
+        description: "When OFF the motor status will never be overriden during FS. Meaning the motor will not start if FS is triggered while the throttle was low and nav_overrides_motor_stop = OFF"
+        default_value: "ON"
+        field: general.flags.nav_overrides_motor_stop_on_fs
+        type: bool
       - name: nav_rth_climb_first
         description: "If set to ON drone will climb to nav_rth_altitude first and head home afterwards. If set to OFF drone will head home instantly and climb on the way."
         default_value: "ON"
