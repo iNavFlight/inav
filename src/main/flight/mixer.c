@@ -588,8 +588,8 @@ motorStatus_e getMotorStatus(void)
 
     if (throttleStickLow && fixedWingOrAirmodeNotActive) {
 
-        if (!navConfig()->general.flags.nav_overrides_motor_stop_on_fs && failsafeIsActive()) {
-            // If we are in failsafe and user was holding stick low before it was triggered and nav_overrides_motor_stop_on_fs
+        if ((navConfig()->general.flags.nav_overrides_motor_stop == NOMS_OFF_ALWAYS) && failsafeIsActive()) {
+            // If we are in failsafe and user was holding stick low before it was triggered and nav_overrides_motor_stop is set to OFF_ALWAYS
             // and either on a plane or on a quad with inactive airmode - stop motor
             return MOTOR_STOPPED_USER;
 
