@@ -586,7 +586,7 @@ motorStatus_e getMotorStatus(void)
     const bool throttleStickLow =
         (calculateThrottleStatus(feature(FEATURE_REVERSIBLE_MOTORS) ? THROTTLE_STATUS_TYPE_COMMAND : THROTTLE_STATUS_TYPE_RC) == THROTTLE_LOW);
 
-    if (throttleStickLow && fixedWingOrAirmodeNotActive && !failsafeIsActive()) {
+    if (throttleStickLow && fixedWingOrAirmodeNotActive && !failsafeIsActive() && !launchAllowedWithThrottleLow()) {
         // If user is holding stick low, we are not in failsafe and either on a plane or on a quad with inactive
         // airmode - we need to check if we are allowing navigation to override MOTOR_STOP
 

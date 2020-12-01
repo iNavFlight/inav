@@ -261,6 +261,7 @@
 | nav_fw_heading_p | 60 | P gain of Heading Hold controller (Fixedwing) |
 | nav_fw_land_dive_angle | 2 | Dive angle that airplane will use during final landing phase. During dive phase, motor is stopped or IDLE and roll control is locked to 0 degrees |
 | nav_fw_launch_accel | 1863 | Forward acceleration threshold for bungee launch of throw launch [cm/s/s], 1G = 981 cm/s/s |
+| nav_fw_launch_allow_throttle_low | OFF | Allow launch sequence with throttle maintained low thoughout. Defaults to cruise throttle at end until sticks moved/throttle raised or switches to RTH/WP Nav modes if preselected |
 | nav_fw_launch_climb_angle | 18 | Climb angle for launch sequence (degrees), is also restrained by global max_angle_inclination_pit |
 | nav_fw_launch_detect_time | 40 | Time for which thresholds have to breached to consider launch happened [ms] |
 | nav_fw_launch_end_time | 2000 | Time for the transition of throttle and pitch angle, between the launch state and the subsequent flight mode [ms] |

@@ -177,6 +177,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .launch_max_altitude = 0,               // cm, altitude where to consider launch ended
         .launch_climb_angle = 18,               // 18 degrees
         .launch_max_angle = 45,                 // 45 deg
+        .launch_allow_throttle_low = 0,         // allow launch with throttle low
         .cruise_yaw_rate  = 20,                 // 20dps
         .allow_manual_thr_increase = false,
         .useFwNavYawControl = 0,
@@ -1723,7 +1724,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_WAIT(navigationF
     }
 
     //allow to leave NAV_LAUNCH_MODE if it has being enabled as feature by moving sticks with low throttle.
-    if (feature(FEATURE_FW_LAUNCH)) {
+    if (feature(FEATURE_FW_LAUNCH) || (navConfig()->fw.launch_allow_throttle_low && IS_RC_MODE_ACTIVE(BOXNAVLAUNCH))) {
         throttleStatus_e throttleStatus = calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC);
         if ((throttleStatus == THROTTLE_LOW) && (areSticksDeflectedMoreThanPosHoldDeadband())) {
             abortFixedWingLaunch();
@@ -3653,6 +3654,12 @@ bool navigationInAutomaticThrottleMode(void)
 {
     navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
     return (stateFlags & (NAV_CTL_ALT | NAV_CTL_EMERG | NAV_CTL_LAUNCH | NAV_CTL_LAND));
+}
+
+bool launchAllowedWithThrottleLow(void)
+{
+    navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
+    return (stateFlags & NAV_CTL_LAUNCH) && navConfig()->fw.launch_allow_throttle_low;
 }
 
 bool navigationIsControllingThrottle(void)
