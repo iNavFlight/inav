@@ -27,4 +27,26 @@
 #include "config/parameter_group.h"
 #include "common/time.h"
 
+#include "programming/logic_condition.h"
+#include "common/axis.h"
+#include "flight/pid.h"
+#include "navigation/navigation.h"
+
+#define MAX_PROGRAMMING_PID_COUNT 2
+
+typedef struct programmingPid_s {
+    uint8_t enabled;
+    logicOperand_t setpoint;
+    logicOperand_t measurement;
+    pid8_t gains;
+} programmingPid_t;
+
+PG_DECLARE_ARRAY(programmingPid_t, MAX_PROGRAMMING_PID_COUNT, programmingPids);
+
+typedef struct programmingPidState_s {
+    pidController_t controller;
+    logicOperand_t setpoint;
+} programmingPidState_t;
+
 void programmingPidUpdateTask(timeUs_t currentTimeUs);
+void programmingPidInit(void);

@@ -28,11 +28,52 @@ FILE_COMPILE_FOR_SIZE
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
 
+#include "config/config_reset.h"
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+
 #include "programming/pid.h"
+
+EXTENDED_FASTRAM programmingPidState_t programmingPidState[MAX_PROGRAMMING_PID_COUNT];
+
+PG_REGISTER_ARRAY_WITH_RESET_FN(programmingPid_t, MAX_PROGRAMMING_PID_COUNT, programmingPids, PG_PROGRAMMING_PID, 1);
+
+void pgResetFn_programmingPids(programmingPid_t *instance)
+{
+    for (int i = 0; i < MAX_PROGRAMMING_PID_COUNT; i++) {
+        RESET_CONFIG(programmingPid_t, &instance[i],
+            .enabled = 0,
+            .setpoint = {
+                .type = LOGIC_CONDITION_OPERAND_TYPE_VALUE,
+                .value = 0
+            },
+            .measurement = {
+                .type = LOGIC_CONDITION_OPERAND_TYPE_VALUE,
+                .value = 0
+            },
+            .gains = {
+                .P = 0,
+                .I = 0,
+                .D = 0,
+                .FF = 0,
+            }
+        );
+    }
+}
 
 void programmingPidUpdateTask(timeUs_t currentTimeUs)
 {
+    UNUSED(currentTimeUs);
     //Dummy
+}
+
+void programmingPidInit(void)
+{
+    for (uint8_t i = 0; i < MAX_PROGRAMMING_PID_COUNT; i++) {
+        navPidInit(
+
+        );
+    }
 }
 
 #endif
