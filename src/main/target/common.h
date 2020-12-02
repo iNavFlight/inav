@@ -70,7 +70,6 @@
 #define USE_MR_BRAKING_MODE
 #define USE_PITOT
 #define USE_PITOT_ADC
-#define USE_PITOT_VIRTUAL
 
 #define USE_DYNAMIC_FILTERS
 #define USE_GYRO_KALMAN
@@ -111,8 +110,6 @@
 #define DASHBOARD_ARMED_BITMAP
 #define USE_OLED_UG2864
 
-#define USE_PWM_DRIVER_PCA9685
-
 #define USE_TELEMETRY_SIM
 #define USE_FRSKYOSD
 #define USE_DJI_HD_OSD
@@ -151,7 +148,7 @@
 #define USE_GPS_PROTO_MTK
 #define NAV_GPS_GLITCH_DETECTION
 #define NAV_NON_VOLATILE_WAYPOINT_STORAGE
-#define USE_TELEMETRY_HOTT
+
 #define USE_TELEMETRY_IBUS
 #define USE_TELEMETRY_MAVLINK
 #define USE_TELEMETRY_SMARTPORT
@@ -160,10 +157,7 @@
 // These are rather exotic serial protocols
 #define USE_RX_MSP
 //#define USE_MSP_RC_OVERRIDE
-#define USE_SERIALRX_SUMD
-#define USE_SERIALRX_SUMH
-#define USE_SERIALRX_XBUS
-#define USE_SERIALRX_JETIEXBUS
+
 #define USE_SERIALRX_CRSF
 #define USE_PWM_SERVO_DRIVER
 #define USE_SERIAL_PASSTHROUGH
@@ -174,7 +168,6 @@
 #define USE_VTX_CONTROL
 #define USE_VTX_SMARTAUDIO
 #define USE_VTX_TRAMP
-#define USE_VTX_FFPV
 
 #ifndef STM32F3 //F3 series does not have enoug RAM to support logic conditions
 #define USE_PROGRAMMING_FRAMEWORK
@@ -183,12 +176,29 @@
 
 //Enable DST calculations
 #define RTC_AUTOMATIC_DST
-// Wind estimator
-#define USE_WIND_ESTIMATOR
+
 
 #else // FLASH_SIZE < 128
 
 #define SKIP_TASK_STATISTICS
+
+#endif
+
+#if (FLASH_SIZE > 512) 
+
+// Wind estimator
+#define USE_WIND_ESTIMATOR
+#define USE_VTX_FFPV
+
+#define USE_SERIALRX_SUMD
+#define USE_SERIALRX_SUMH
+#define USE_SERIALRX_XBUS
+#define USE_SERIALRX_JETIEXBUS
+#define USE_TELEMETRY_HOTT
+
+#define USE_PWM_DRIVER_PCA9685
+
+#define USE_PITOT_VIRTUAL
 
 #endif
 
