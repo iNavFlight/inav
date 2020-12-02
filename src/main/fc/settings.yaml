@@ -27,7 +27,7 @@ tables:
   - name: serial_rx
     values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2"]
   - name: rx_spi_protocol
-    values: ["V202_250K", "V202_1M", "SYMA_X", "SYMA_X5C", "CX10", "CX10A", "H8_3D", "INAV", "ELERES"]
+    values: ["ELERES"]
     enum: rx_spi_protocol_e
   - name: blackbox_device
     values: ["SERIAL", "SPIFLASH", "SDCARD"]
