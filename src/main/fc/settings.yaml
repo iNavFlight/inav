@@ -2286,13 +2286,13 @@ groups:
         max: 100
       - name: nav_fw_pitch2thr_smoothing
         description:  "How smoothly the autopilot makes pitch to throttle correction inside a deadband defined by pitch_to_throttle_thresh."
-        default_value: "0"
+        default_value: "6"
         field: fw.pitch_to_throttle_smooth
         min: 0
         max: 9
       - name: nav_fw_pitch2thr_threshold
         description: "Threshold from average pitch where momentary pitch_to_throttle correction kicks in. [decidegrees]"
-        default_value: "0"
+        default_value: "50"
         field: fw.pitch_to_throttle_thresh
         min: 0
         max: 900
