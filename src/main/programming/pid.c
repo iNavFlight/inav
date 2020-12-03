@@ -28,6 +28,7 @@ FILE_COMPILE_FOR_SIZE
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
 
+#include "common/utils.h"
 #include "config/config_reset.h"
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"

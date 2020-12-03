@@ -2001,6 +2001,111 @@ static void cliGvar(char *cmdline) {
     }
 }
 
+static void printPid(uint8_t dumpMask, const logicCondition_t *logicConditions, const logicCondition_t *defaultLogicConditions)
+{
+    const char *format = "pid %d %d %d %d %d %d %d %d %d %d";
+    for (uint32_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
+        const logicCondition_t logic = logicConditions[i];
+
+        bool equalsDefault = false;
+        if (defaultLogicConditions) {
+            logicCondition_t defaultValue = defaultLogicConditions[i];
+            equalsDefault =
+                logic.enabled == defaultValue.enabled &&
+                logic.activatorId == defaultValue.activatorId &&
+                logic.operation == defaultValue.operation &&
+                logic.operandA.type == defaultValue.operandA.type &&
+                logic.operandA.value == defaultValue.operandA.value &&
+                logic.operandB.type == defaultValue.operandB.type &&
+                logic.operandB.value == defaultValue.operandB.value &&
+                logic.flags == defaultValue.flags;
+
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                i,
+                logic.enabled,
+                logic.activatorId,
+                logic.operation,
+                logic.operandA.type,
+                logic.operandA.value,
+                logic.operandB.type,
+                logic.operandB.value,
+                logic.flags
+            );
+        }
+        cliDumpPrintLinef(dumpMask, equalsDefault, format,
+            i,
+            logic.enabled,
+            logic.activatorId,
+            logic.operation,
+            logic.operandA.type,
+            logic.operandA.value,
+            logic.operandB.type,
+            logic.operandB.value,
+            logic.flags
+        );
+    }
+}
+
+static void cliPid(char *cmdline) {
+    char * saveptr;
+    int args[10], check = 0;
+    uint8_t len = strlen(cmdline);
+
+    if (len == 0) {
+        printLogic(DUMP_MASTER, programmingPids(0), NULL);
+    } else if (sl_strncasecmp(cmdline, "reset", 5) == 0) {
+        pgResetCopy(programmingPidsMutable(0), PG_LOGIC_CONDITIONS);
+    } else {
+        enum {
+            INDEX = 0,
+            ENABLED,
+            SETPOINT_TYPE,
+            SETPOINT_VALUE,
+            MEASUREMENT_TYPE,
+            MEASUREMENT_VALUE,
+            P_GAIN,
+            I_GAIN,
+            D_GAIN,
+            FF_GAIN,
+            ARGS_COUNT
+            };
+        char *ptr = strtok_r(cmdline, " ", &saveptr);
+        while (ptr != NULL && check < ARGS_COUNT) {
+            args[check++] = fastA2I(ptr);
+            ptr = strtok_r(NULL, " ", &saveptr);
+        }
+
+        if (ptr != NULL || check != ARGS_COUNT) {
+            cliShowParseError();
+            return;
+        }
+
+        int32_t i = args[INDEX];
+        if (
+            i >= 0 && i < MAX_LOGIC_CONDITIONS &&
+            args[ENABLED] >= 0 && args[ENABLED] <= 1 &&
+            args[ACTIVATOR_ID] >= -1 && args[ACTIVATOR_ID] < MAX_LOGIC_CONDITIONS &&
+            args[OPERATION] >= 0 && args[OPERATION] < LOGIC_CONDITION_LAST &&
+            args[OPERAND_A_TYPE] >= 0 && args[OPERAND_A_TYPE] < LOGIC_CONDITION_OPERAND_TYPE_LAST &&
+            args[OPERAND_A_VALUE] >= -1000000 && args[OPERAND_A_VALUE] <= 1000000 &&
+            args[OPERAND_B_TYPE] >= 0 && args[OPERAND_B_TYPE] < LOGIC_CONDITION_OPERAND_TYPE_LAST &&
+            args[OPERAND_B_VALUE] >= -1000000 && args[OPERAND_B_VALUE] <= 1000000 &&
+            args[FLAGS] >= 0 && args[FLAGS] <= 255
+
+        ) {
+            programmingPidsMutable(i)->enabled = args[ENABLED];
+            logicConditionsMutable(i)->setpoint.type = args[OPERAND_A_TYPE];
+            logicConditionsMutable(i)->setpoint.value = args[OPERAND_A_VALUE];
+            logicConditionsMutable(i)->measurement.type = args[OPERAND_B_TYPE];
+            logicConditionsMutable(i)->measurement.value = args[OPERAND_B_VALUE];
+
+            cliLogic("");
+        } else {
+            cliShowParseError();
+        }
+    }
+}
+
 #endif
 
 #ifdef USE_SDCARD
@@ -3315,6 +3420,9 @@ static void printConfig(const char *cmdline, bool doDiff)
 
         cliPrintHashLine("gvar");
         printGvar(dumpMask, globalVariableConfigs_CopyArray, globalVariableConfigs(0));
+
+        cliPrintHashLine("pid");
+        printLogic(dumpMask, programmingPids_CopyArray, programmingPids(0));
 #endif
 
         cliPrintHashLine("feature");
@@ -3569,6 +3677,10 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("gvar", "configure global variables",
         "<gvar> <default> <min> <max>\r\n"
         "\treset\r\n", cliGvar),
+
+    CLI_COMMAND_DEF("pid", "configurable PID controllers",
+        "<#> <enabled> <setpoint type> <setpoint value> <measurement type> <measurement value> <P gain> <I gain> <D gain> <FF gain>\r\n"
+        "\treset\r\n", cliPid),
 #endif
     CLI_COMMAND_DEF("set", "change setting", "[<name>=<value>]", cliSet),
     CLI_COMMAND_DEF("smix", "servo mixer",
