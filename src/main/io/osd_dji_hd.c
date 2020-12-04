@@ -574,6 +574,8 @@ static const char * navigationStateMessage(void)
             break;
         case MW_NAV_STATE_RTH_START:
             return OSD_MESSAGE_STR("STARTING RTH");
+        case MW_NAV_STATE_RTH_CLIMB:
+            return OSD_MESSAGE_STR("ADJUSTING RTH ALTITUDE");
         case MW_NAV_STATE_RTH_ENROUTE:
             // TODO: Break this up between climb and head home
             return OSD_MESSAGE_STR("EN ROUTE TO HOME");
@@ -992,7 +994,7 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
         case DJI_MSP_RC:
             // Only send sticks (first 4 channels)
             for (int i = 0; i < STICK_CHANNEL_COUNT; i++) {
-                sbufWriteU16(dst, rxGetRawChannelValue(i));
+                sbufWriteU16(dst, rxGetChannelValue(i));
             }
             break;            
 

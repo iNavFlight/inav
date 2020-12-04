@@ -26,8 +26,6 @@
 #include "platform.h"
 
 uint8_t cliMode = 0;
-extern uint8_t __config_start;   // configured via linker script when building binaries.
-extern uint8_t __config_end;
 
 #include "blackbox/blackbox.h"
 
@@ -67,7 +65,6 @@ extern uint8_t __config_end;
 #include "drivers/stack_check.h"
 #include "drivers/system.h"
 #include "drivers/time.h"
-#include "drivers/timer.h"
 #include "drivers/usb_msc.h"
 #include "drivers/vtx_common.h"
 
@@ -124,7 +121,7 @@ extern uint8_t __config_end;
 #include "telemetry/telemetry.h"
 #include "build/debug.h"
 
-#if FLASH_SIZE > 128
+#if MCU_FLASH_SIZE > 128
 #define PLAY_SOUND
 #endif
 

@@ -1,1 +1,1 @@
-target_stm32f303xc(MOTOLAB)
+target_stm32f303xc(MOTOLAB SKIP_RELEASES)
