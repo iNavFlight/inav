@@ -220,10 +220,5 @@ uint16_t rxGetRefreshRate(void);
 
 // Processed RC channel value. These values might include
 // filtering and some extra processing like value holding
-// during failsafe. Most callers should use this instead
-// of rxGetRawChannelValue()
+// during failsafe. 
 int16_t rxGetChannelValue(unsigned channelNumber);
-
-// Raw RC channel data as received by the RX. Should only
-// be used by very low level subsystems, like blackbox.
-int16_t rxGetRawChannelValue(unsigned channelNumber);
