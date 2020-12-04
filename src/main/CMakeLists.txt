@@ -375,6 +375,9 @@ main_sources(COMMON_SRC
     rx/fport.h
     rx/fport2.c
     rx/fport2.h
+    rx/ghst_protocol.h
+    rx/ghst.c
+    rx/ghst.h
     rx/ibus.c
     rx/ibus.h
     rx/jetiexbus.c
@@ -564,6 +567,8 @@ main_sources(COMMON_SRC
     telemetry/frsky.h
     telemetry/frsky_d.c
     telemetry/frsky_d.h
+    telemetry/ghst.c
+    telemetry/ghst.h
     telemetry/hott.c
     telemetry/hott.h
     telemetry/ibus_shared.c

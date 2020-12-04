@@ -83,6 +83,7 @@ typedef enum {
     SERIALRX_SBUS_FAST = 11,
     SERIALRX_FPORT2 = 12,
     SERIALRX_SRXL2 = 13,
+    SERIALRX_GHST = 14,
 } rxSerialReceiverType_e;
 
 #define MAX_SUPPORTED_RC_PPM_CHANNEL_COUNT          16
