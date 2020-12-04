@@ -35,6 +35,7 @@ FILE_COMPILE_FOR_SIZE
 #include "navigation/navigation_private.h"
 
 #include "programming/pid.h"
+#include "programming/logic_condition.h"
 
 EXTENDED_FASTRAM programmingPidState_t programmingPidState[MAX_PROGRAMMING_PID_COUNT];
 static bool pidsInitiated = false;
@@ -66,13 +67,31 @@ void pgResetFn_programmingPids(programmingPid_t *instance)
 
 void programmingPidUpdateTask(timeUs_t currentTimeUs)
 {
-    UNUSED(currentTimeUs);
+    static timeUs_t previousUpdateTimeUs;
+    const float dT = US2S(currentTimeUs - previousUpdateTimeUs);
     
     if (!pidsInitiated) {
         programmingPidInit();
         pidsInitiated = true;
     }
 
+    for (uint8_t i = 0; i < MAX_PROGRAMMING_PID_COUNT; i++) {
+        if (programmingPids(i)->enabled) {
+            const int setpoint = logicConditionGetOperandValue(programmingPids(i)->setpoint.type, programmingPids(i)->setpoint.value);
+            const int measurement = logicConditionGetOperandValue(programmingPids(i)->measurement.type, programmingPids(i)->measurement.value);
+
+            programmingPidState[i].output = navPidApply2(
+                &programmingPidState[i].controller,
+                setpoint,
+                measurement,
+                dT,
+                -1000,
+                1000,
+                PID_LIMIT_INTEGRATOR
+            );
+
+        }
+    }
 }
 
 void programmingPidInit(void)
@@ -80,12 +99,23 @@ void programmingPidInit(void)
     for (uint8_t i = 0; i < MAX_PROGRAMMING_PID_COUNT; i++) {
         navPidInit(
             &programmingPidState[i].controller,
-            programmingPids(i)->gains.P / 100.0f,
-            programmingPids(i)->gains.I / 100.0f,
-            programmingPids(i)->gains.D / 100.0f,
-            programmingPids(i)->gains.FF / 100.0f,
+            programmingPids(i)->gains.P / 1000.0f,
+            programmingPids(i)->gains.I / 1000.0f,
+            programmingPids(i)->gains.D / 1000.0f,
+            programmingPids(i)->gains.FF / 1000.0f,
             5.0f
         );
+    }
+}
+
+int programmingPidGetOutput(uint8_t i) {
+    return programmingPidState[constrain(i, 0, MAX_PROGRAMMING_PID_COUNT)].output;
+}
+
+void programmingPidReset(void)
+{
+    for (uint8_t i = 0; i < MAX_PROGRAMMING_PID_COUNT; i++) {
+        navPidReset(&programmingPidState[i].controller);
     }
 }
 

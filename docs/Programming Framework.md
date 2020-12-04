@@ -80,6 +80,7 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 3             | FLIGHT_MODE   | `value` points to flight modes table                  |
 | 4             | LC            | `value` points to other logic condition ID            |
 | 5             | GVAR          | Value stored in Global Variable indexed by `value`. `GVAR 1` means: value in GVAR 1 |
+| 5             | PID          | Output of a Programming PID indexed by `value`. `PID 1` means: value in PID 1 |
 
 #### FLIGHT
 

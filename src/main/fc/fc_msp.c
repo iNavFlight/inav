@@ -686,18 +686,18 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP_PID:
         for (int i = 0; i < PID_ITEM_COUNT; i++) {
-            sbufWriteU8(dst, pidBank()->pid[i].P);
-            sbufWriteU8(dst, pidBank()->pid[i].I);
-            sbufWriteU8(dst, pidBank()->pid[i].D);
+            sbufWriteU8(dst, constrain(pidBank()->pid[i].P, 0, 255));
+            sbufWriteU8(dst, constrain(pidBank()->pid[i].I, 0, 255));
+            sbufWriteU8(dst, constrain(pidBank()->pid[i].D, 0, 255));
         }
         break;
 
     case MSP2_PID:
         for (int i = 0; i < PID_ITEM_COUNT; i++) {
-            sbufWriteU8(dst, pidBank()->pid[i].P);
-            sbufWriteU8(dst, pidBank()->pid[i].I);
-            sbufWriteU8(dst, pidBank()->pid[i].D);
-            sbufWriteU8(dst, pidBank()->pid[i].FF);
+            sbufWriteU8(dst, constrain(pidBank()->pid[i].P, 0, 255));
+            sbufWriteU8(dst, constrain(pidBank()->pid[i].I, 0, 255));
+            sbufWriteU8(dst, constrain(pidBank()->pid[i].D, 0, 255));
+            sbufWriteU8(dst, constrain(pidBank()->pid[i].FF, 0, 255));
         }
         break;
 

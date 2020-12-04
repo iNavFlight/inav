@@ -32,7 +32,7 @@
 #include "flight/pid.h"
 #include "navigation/navigation.h"
 
-#define MAX_PROGRAMMING_PID_COUNT 2
+#define MAX_PROGRAMMING_PID_COUNT 4
 
 typedef struct programmingPid_s {
     uint8_t enabled;
@@ -45,8 +45,10 @@ PG_DECLARE_ARRAY(programmingPid_t, MAX_PROGRAMMING_PID_COUNT, programmingPids);
 
 typedef struct programmingPidState_s {
     pidController_t controller;
-    logicOperand_t setpoint;
+    float output;
 } programmingPidState_t;
 
 void programmingPidUpdateTask(timeUs_t currentTimeUs);
 void programmingPidInit(void);
+void programmingPidReset(void);
+int programmingPidGetOutput(uint8_t i);

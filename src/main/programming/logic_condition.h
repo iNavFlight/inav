@@ -77,6 +77,7 @@ typedef enum logicOperandType_s {
     LOGIC_CONDITION_OPERAND_TYPE_FLIGHT_MODE,
     LOGIC_CONDITION_OPERAND_TYPE_LC,    // Result of different LC and LC operand
     LOGIC_CONDITION_OPERAND_TYPE_GVAR,  // Value from a global variable
+    LOGIC_CONDITION_OPERAND_TYPE_PID,  // Value from a Programming PID
     LOGIC_CONDITION_OPERAND_TYPE_LAST
 } logicOperandType_e;
 
