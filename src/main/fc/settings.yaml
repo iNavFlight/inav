@@ -2401,7 +2401,7 @@ groups:
         min: 5
         max: 45
       - name: nav_fw_launch_allow_throttle_low
-        description: "Allow launch sequence with throttle maintained low thoughout. Defaults to cruise throttle at end until sticks moved/throttle raised or switches to RTH/WP Nav modes if preselected"
+        description: "Allow launch sequence with throttle maintained low throughout. Defaults to cruise throttle at end until sticks moved/throttle raised or switches to Nav modes if preselected"
         default_value: "OFF"
         field: fw.launch_allow_throttle_low
         type: bool

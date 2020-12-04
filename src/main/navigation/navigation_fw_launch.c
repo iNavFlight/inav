@@ -107,6 +107,7 @@ typedef struct fixedWingLaunchData_s {
     timeUs_t currentStateTimeUs;
     fixedWingLaunchState_t currentState;
     uint8_t pitchAngle; // used to smooth the transition of the pitch angle
+    bool finishedThrottleLow;   // flags finish with throttle low
 } fixedWingLaunchData_t;
 
 static EXTENDED_FASTRAM fixedWingLaunchData_t fwLaunch;
@@ -417,19 +418,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_FINISH(timeUs_t curr
     
     if (elapsedTimeMs > endTimeMs) {
         if (navConfig()->fw.launch_allow_throttle_low && isThrottleLow()) {
-            rcCommand[THROTTLE] = navConfig()->fw.cruise_throttle;
-// #ifdef USE_NAV
-            const bool canActivateNavigation = (posControl.flags.estHeadingStatus >= EST_USABLE) && (posControl.flags.estAltStatus >= EST_USABLE) && (posControl.flags.estPosStatus == EST_TRUSTED) && STATE(GPS_FIX_HOME);
-            const bool canActivateWP = posControl.waypointListValid && (posControl.waypointCount > 0);
-
-            if (canActivateNavigation) {
-                if (IS_RC_MODE_ACTIVE(BOXNAVRTH)) {
-                    return FW_LAUNCH_EVENT_SUCCESS;
-                } else if (IS_RC_MODE_ACTIVE(BOXNAVWP) && canActivateWP) {
-                    return FW_LAUNCH_EVENT_SUCCESS;
-                }
-            }
-// #endif
+            fwLaunch.finishedThrottleLow = true;
         } else {
             return FW_LAUNCH_EVENT_SUCCESS;
         }
@@ -472,6 +461,7 @@ void applyFixedWingLaunchController(timeUs_t currentTimeUs)
 
 void resetFixedWingLaunchController(timeUs_t currentTimeUs)
 {
+    fwLaunch.finishedThrottleLow = false;
     setCurrentState(FW_LAUNCH_STATE_WAIT_THROTTLE, currentTimeUs);
 }
 
@@ -487,7 +477,7 @@ void enableFixedWingLaunchController(timeUs_t currentTimeUs)
 
 bool isFixedWingLaunchFinishedOrAborted(void)
 {
-    return fwLaunch.currentState == FW_LAUNCH_STATE_IDLE;
+    return fwLaunch.currentState == FW_LAUNCH_STATE_IDLE || fwLaunch.finishedThrottleLow;
 }
 
 void abortFixedWingLaunch(void)
