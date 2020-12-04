@@ -21,26 +21,26 @@
 
 struct dmaChannelDescriptor_s;
 
-typedef uint16_t dmaTag_t;                          // Packed DMA adapter/channel/stream
+typedef uint32_t dmaTag_t;                          // Packed DMA adapter/channel/stream
 typedef struct dmaChannelDescriptor_s * DMA_t;
 
 #if defined(UNIT_TEST)
 typedef uint32_t DMA_TypeDef;
 #endif
 
-#define DMA_TAG(dma, stream, channel)   ( (((dma) & 0x03) << 7) | (((stream) & 0x07) << 4) | (((channel) & 0x0F) << 0) )
+#define DMA_TAG(dma, stream, channel)   ( (((dma) & 0x03) << 12) | (((stream) & 0x0F) << 8) | (((channel) & 0xFF) << 0) )
 #define DMA_NONE                        (0)
 
-#define DMATAG_GET_DMA(x)               ( ((x) >> 7) & 0x03 )
-#define DMATAG_GET_STREAM(x)            ( ((x) >> 4) & 0x07 )
-#define DMATAG_GET_CHANNEL(x)           ( ((x) >> 0) & 0x0F )
+#define DMATAG_GET_DMA(x)               ( ((x) >> 12) & 0x03 )
+#define DMATAG_GET_STREAM(x)            ( ((x) >> 8)  & 0x0F )
+#define DMATAG_GET_CHANNEL(x)           ( ((x) >> 0)  & 0xFF )
 
 typedef void (*dmaCallbackHandlerFuncPtr)(DMA_t channelDescriptor);
 
 typedef struct dmaChannelDescriptor_s {
     dmaTag_t                    tag;
     DMA_TypeDef*                dma;
-#if defined(STM32F4) || defined(STM32F7)
+#if defined(STM32F4) || defined(STM32F7) || defined(STM32H7)
     DMA_Stream_TypeDef*         ref;
 #else
     DMA_Channel_TypeDef*        ref;
@@ -53,7 +53,7 @@ typedef struct dmaChannelDescriptor_s {
     uint8_t                     resourceIndex;
 } dmaChannelDescriptor_t;
 
-#if defined(STM32F4) || defined(STM32F7)
+#if defined(STM32F4) || defined(STM32F7) || defined(STM32H7)
 
 #define DEFINE_DMA_CHANNEL(d, s, f) { \
                                         .tag = DMA_TAG(d, s, 0), \

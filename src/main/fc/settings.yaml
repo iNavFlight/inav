@@ -154,7 +154,7 @@ tables:
     enum: djiOsdTempSource_e
   - name: nav_overrides_motor_stop
     enum: navOverridesMotorStop_e
-    values: ["OFF", "AUTO_ONLY", "ALL_NAV"]
+    values: ["OFF_ALWAYS", "OFF", "AUTO_ONLY", "ALL_NAV"]
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -673,7 +673,7 @@ groups:
         max: 1000
       - name: motor_pwm_protocol
         description: "Protocol that is used to send motor updates to ESCs. Possible values - STANDARD, ONESHOT125, ONESHOT42, MULTISHOT, DSHOT150, DSHOT300, DSHOT600, DSHOT1200, BRUSHED"
-        default_value: "STANDARD"
+        default_value: "ONESHOT125"
         field: motorPwmProtocol
         table: motor_pwm_protocol
       - name: throttle_scale
@@ -1852,7 +1852,7 @@ groups:
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t
-    condition: USE_NAV && USE_AUTOTUNE_FIXED_WING
+    condition: USE_AUTOTUNE_FIXED_WING
     members:
       - name: fw_autotune_overshoot_time
         description: "Time [ms] to detect sustained overshoot"
@@ -2107,7 +2107,7 @@ groups:
         min: 0
         max: 5000
       - name: nav_overrides_motor_stop
-        description: "When set OFF the navigation system will not take over the control of the motor if the throttle is low (motor will stop). When set to AUTO_ONLY the navigation system will only take over the control of the throttle in autonomous navigation modes (NAV WP and NAV RTH). When set to ALL_NAV (default) the navigation system will take over the control of the motor completely and never allow the motor to stop even when the throttle is low. This setting only has an effect combined with MOTOR_STOP and is likely to cause a stall if fw_min_throttle_down_pitch isn't set correctly or the pitch estimation is wrong for fixed wing models when not set to ALL_NAV"
+        description: "When set OFF_ALWAYS the navigation system will not take over the control of the motor if the throttle is low (motor will stop). When set to OFF always the navigation system will not take over the control of the motor if the throttle was low even when failsafe is triggered. When set to AUTO_ONLY the navigation system will only take over the control of the throttle in autonomous navigation modes (NAV WP and NAV RTH). When set to ALL_NAV (default) the navigation system will take over the control of the motor completely and never allow the motor to stop even when the throttle is low. This setting only has an effect combined with MOTOR_STOP and is likely to cause a stall if fw_min_throttle_down_pitch isn't set correctly or the pitch estimation is wrong for fixed wing models when not set to ALL_NAV"
         default_value: "ALL_NAV"
         field: general.flags.nav_overrides_motor_stop
         table: nav_overrides_motor_stop
@@ -2758,12 +2758,14 @@ groups:
         min: -550
         max: 1250
       - name: osd_snr_alarm
+        condition: USE_SERIALRX_CRSF
         description: "Value below which Crossfire SNR Alarm pops-up. (dB)"
         default_value: "4"
         field: snr_alarm
         min: -12
         max: 8
       - name: osd_link_quality_alarm
+        condition: USE_SERIALRX_CRSF
         description: "LQ % indicator blinks below this value. For Crossfire use 70%, for Tracer use 50%"
         default_value: "70"
         field: link_quality_alarm

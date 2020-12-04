@@ -213,12 +213,12 @@ void init(void)
     detectHardwareRevision();
 #endif
 
-#ifdef BRUSHED_ESC_AUTODETECT
+#ifdef USE_BRUSHED_ESC_AUTODETECT
     detectBrushedESC();
 #endif
 
     initEEPROM();
-    ensureEEPROMContainsValidData();
+    //ensureEEPROMContainsValidData();
     readEEPROM();
 
     // Re-initialize system clock to their final values (if necessary)
