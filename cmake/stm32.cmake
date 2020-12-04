@@ -304,7 +304,7 @@ function(target_stm32)
 
     set(target_include_directories ${args_INCLUDE_DIRECTORIES})
 
-    set(target_definitions ${STM32_DEFINITIONS})
+    set(target_definitions ${STM32_DEFINITIONS} ${COMMON_COMPILE_DEFINITIONS})
 
     get_stm32_target_features(features "${CMAKE_CURRENT_SOURCE_DIR}" ${name})
     set_property(TARGET ${elf_target} PROPERTY FEATURES ${features})
