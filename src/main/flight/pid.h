@@ -199,4 +199,4 @@ void autotuneUpdateState(void);
 void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRateDps, float reachedRateDps, float pidOutput);
 
 pidType_e pidIndexGetType(pidIndex_e pidIndex);
-uint8_t * getD_FFRefByBank(pidBank_t *pidBank, pidIndex_e pidIndex);
+uint16_t * getD_FFRefByBank(pidBank_t *pidBank, pidIndex_e pidIndex);
