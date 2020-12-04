@@ -169,7 +169,6 @@ typedef enum {
     NAV_PERSISTENT_ID_RTH_CLIMB_TO_SAFE_ALT                     = 9,
     NAV_PERSISTENT_ID_RTH_HEAD_HOME                             = 10,
     NAV_PERSISTENT_ID_RTH_HOVER_PRIOR_TO_LANDING                = 11,
-    NAV_PERSISTENT_ID_RTH_HOVER_ABOVE_HOME                      = 29,
     NAV_PERSISTENT_ID_RTH_LANDING                               = 12,
     NAV_PERSISTENT_ID_RTH_FINISHING                             = 13,
     NAV_PERSISTENT_ID_RTH_FINISHED                              = 14,
@@ -200,6 +199,7 @@ typedef enum {
     NAV_PERSISTENT_ID_CRUISE_3D_ADJUSTING                       = 34,
 
     NAV_PERSISTENT_ID_WAYPOINT_HOLD_TIME                        = 35,
+    NAV_PERSISTENT_ID_RTH_HOVER_ABOVE_HOME                      = 36,
 } navigationPersistentId_e;
 
 typedef enum {
@@ -387,13 +387,13 @@ const navEstimatedPosVel_t * navGetCurrentActualPositionAndVelocity(void);
 
 float navPidApply2(pidController_t *pid, const float setpoint, const float measurement, const float dt, const float outMin, const float outMax, const pidControllerFlags_e pidFlags);
 float navPidApply3(
-    pidController_t *pid, 
-    const float setpoint, 
-    const float measurement, 
-    const float dt, 
-    const float outMin, 
-    const float outMax, 
-    const pidControllerFlags_e pidFlags, 
+    pidController_t *pid,
+    const float setpoint,
+    const float measurement,
+    const float dt,
+    const float outMin,
+    const float outMax,
+    const pidControllerFlags_e pidFlags,
     const float gainScaler,
     const float dTermScaler
 );
