@@ -91,7 +91,7 @@ STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_rang
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 0);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 8);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 9);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -126,6 +126,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .rth_home_altitude = 0,                 // altitude in centimeters
         .rth_abort_threshold = 50000,           // centimeters - 500m should be safe for all aircraft
         .max_terrain_follow_altitude = 100,     // max altitude in centimeters in terrain following mode
+        .safehome_max_distance = 20000,         // Max distance that a safehome is from the arming point
         },
 
     // MC-specific
@@ -256,6 +257,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_HOLD_TIME(navi
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_NEXT(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_FINISHED(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_RTH_LAND(navigationFSMState_t previousState);
+static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_HOVER_ABOVE_HOME(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_EMERGENCY_LANDING_INITIALIZE(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_EMERGENCY_LANDING_IN_PROGRESS(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_EMERGENCY_LANDING_FINISHED(navigationFSMState_t previousState);
@@ -498,7 +500,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .timeoutMs = 10,
         .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH | NAV_RC_POS | NAV_RC_YAW,     // allow pos adjustment while climbind to safe alt
         .mapToFlightModes = NAV_RTH_MODE | NAV_ALTHOLD_MODE,
-        .mwState = MW_NAV_STATE_RTH_ENROUTE,
+        .mwState = MW_NAV_STATE_RTH_CLIMB,
         .mwError = MW_NAV_ERROR_WAIT_FOR_RTH_ALT,
         .onEvent = {
             [NAV_FSM_EVENT_TIMEOUT]                     = NAV_STATE_RTH_CLIMB_TO_SAFE_ALT,   // re-process the state
@@ -690,6 +692,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_HOLD_TIME] = NAV_STATE_WAYPOINT_HOLD_TIME,
             [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_FINISHED] = NAV_STATE_WAYPOINT_FINISHED,
             [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_RTH_LAND] = NAV_STATE_WAYPOINT_RTH_LAND,
+            [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_HOVER_ABOVE_HOME] = NAV_STATE_WAYPOINT_HOVER_ABOVE_HOME,
             [NAV_FSM_EVENT_SWITCH_TO_IDLE]              = NAV_STATE_IDLE,
             [NAV_FSM_EVENT_SWITCH_TO_ALTHOLD]           = NAV_STATE_ALTHOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D]        = NAV_STATE_POSHOLD_3D_INITIALIZE,
@@ -765,6 +768,27 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .mwState = MW_NAV_STATE_WP_ENROUTE,
         .mwError = MW_NAV_ERROR_FINISH,
         .onEvent = {
+            [NAV_FSM_EVENT_SWITCH_TO_IDLE]              = NAV_STATE_IDLE,
+            [NAV_FSM_EVENT_SWITCH_TO_ALTHOLD]           = NAV_STATE_ALTHOLD_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D]        = NAV_STATE_POSHOLD_3D_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_RTH]               = NAV_STATE_RTH_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING] = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_CRUISE_2D]         = NAV_STATE_CRUISE_2D_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_CRUISE_3D]         = NAV_STATE_CRUISE_3D_INITIALIZE,
+        }
+    },
+
+    [NAV_STATE_WAYPOINT_HOVER_ABOVE_HOME] = {
+        .persistentId = NAV_PERSISTENT_ID_WAYPOINT_HOVER_ABOVE_HOME,
+        .onEntry = navOnEnteringState_NAV_STATE_WAYPOINT_HOVER_ABOVE_HOME,
+        .timeoutMs = 10,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_CTL_LAND | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP,
+        .mapToFlightModes = NAV_WP_MODE | NAV_ALTHOLD_MODE,
+        .mwState = MW_NAV_STATE_HOVER_ABOVE_HOME,
+        .mwError = MW_NAV_ERROR_NONE,
+        .onEvent = {
+            [NAV_FSM_EVENT_TIMEOUT]                     = NAV_STATE_WAYPOINT_HOVER_ABOVE_HOME,   // re-process state
+            [NAV_FSM_EVENT_SUCCESS]                     = NAV_STATE_WAYPOINT_FINISHED,
             [NAV_FSM_EVENT_SWITCH_TO_IDLE]              = NAV_STATE_IDLE,
             [NAV_FSM_EVENT_SWITCH_TO_ALTHOLD]           = NAV_STATE_ALTHOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D]        = NAV_STATE_POSHOLD_3D_INITIALIZE,
@@ -1591,7 +1615,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_REACHED(naviga
                 return NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_RTH_LAND;
             }
             else {
-                return NAV_FSM_EVENT_SUCCESS;   // NAV_STATE_WAYPOINT_NEXT
+                return NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_HOVER_ABOVE_HOME;
             }
 
         case NAV_WP_ACTION_LAND:
@@ -1670,6 +1694,14 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_FINISHED(navig
     else {
         return NAV_FSM_EVENT_NONE;      // will re-process state in >10ms
     }
+}
+
+static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_HOVER_ABOVE_HOME(navigationFSMState_t previousState)
+{
+    UNUSED(previousState);
+
+    const navigationFSMEvent_t hoverEvent = navOnEnteringState_NAV_STATE_RTH_HOVER_ABOVE_HOME(previousState);
+    return hoverEvent;
 }
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_EMERGENCY_LANDING_INITIALIZE(navigationFSMState_t previousState)
@@ -2428,23 +2460,38 @@ bool isSafeHomeInUse(void)
 /***********************************************************
  *  See if there are any safehomes near where we are arming.
  *  If so, use it instead of the arming point for home.
+ *  Select the nearest safehome
  **********************************************************/
 bool foundNearbySafeHome(void)
 {
     safehome_used = -1;
-    fpVector3_t safeHome;
+    uint32_t nearest_safehome_distance = navConfig()->general.safehome_max_distance + 1;
+    uint32_t distance_to_current;
+    fpVector3_t currentSafeHome;
+    fpVector3_t nearestSafeHome;
     gpsLocation_t shLLH;
     shLLH.alt = 0;
     for (uint8_t i = 0; i < MAX_SAFE_HOMES; i++) {
+		if (!safeHomeConfig(i)->enabled)
+		    continue;
+
         shLLH.lat = safeHomeConfig(i)->lat;
         shLLH.lon = safeHomeConfig(i)->lon;
-        geoConvertGeodeticToLocal(&safeHome, &posControl.gpsOrigin, &shLLH, GEO_ALT_RELATIVE);
-        safehome_distance = calculateDistanceToDestination(&safeHome);
-        if (safehome_distance < 20000) { // 200 m
+        geoConvertGeodeticToLocal(&currentSafeHome, &posControl.gpsOrigin, &shLLH, GEO_ALT_RELATIVE);
+        distance_to_current = calculateDistanceToDestination(&currentSafeHome);
+        if (distance_to_current < nearest_safehome_distance) {
+             // this safehome is the nearest so far - keep track of it.
              safehome_used = i;
-             setHomePosition(&safeHome, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
-             return true;
+             nearest_safehome_distance = distance_to_current;
+             nearestSafeHome.x = currentSafeHome.x;
+             nearestSafeHome.y = currentSafeHome.y;
+             nearestSafeHome.z = currentSafeHome.z;
         }
+    }
+    if (safehome_used >= 0) {
+		safehome_distance = nearest_safehome_distance;
+        setHomePosition(&nearestSafeHome, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
+        return true;
     }
     safehome_distance = 0;
     return false;
@@ -2799,7 +2846,7 @@ void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData)
         wpData->lon = wpLLH.lon;
         wpData->alt = wpLLH.alt;
     }
-    // WP #254 - special waypoint - get desiredPosition that was set by ground control station if in 3D-guided mode 
+    // WP #254 - special waypoint - get desiredPosition that was set by ground control station if in 3D-guided mode
     else if (wpNumber == 254) {
         navigationFSMStateFlags_t navStateFlags = navGetStateFlags(posControl.navState);
 
@@ -2807,7 +2854,7 @@ void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData)
             gpsLocation_t wpLLH;
 
             geoConvertLocalToGeodetic(&wpLLH, &posControl.gpsOrigin, &posControl.desiredState.pos);
-            
+
             wpData->lat = wpLLH.lat;
             wpData->lon = wpLLH.lon;
             wpData->alt = wpLLH.alt;

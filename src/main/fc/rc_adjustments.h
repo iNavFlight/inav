@@ -77,6 +77,7 @@ typedef enum {
     ADJUSTMENT_VTX_POWER_LEVEL = 49,
     ADJUSTMENT_TPA                      = 50,
     ADJUSTMENT_TPA_BREAKPOINT           = 51,
+    ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS = 52,
     ADJUSTMENT_FUNCTION_COUNT // must be last
 } adjustmentFunction_e;
 
