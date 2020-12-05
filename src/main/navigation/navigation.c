@@ -126,6 +126,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .rth_home_altitude = 0,                 // altitude in centimeters
         .rth_abort_threshold = 50000,           // centimeters - 500m should be safe for all aircraft
         .max_terrain_follow_altitude = 100,     // max altitude in centimeters in terrain following mode
+        .safehome_max_distance = 20000,         // Max distance that a safehome is from the arming point
         },
 
     // MC-specific
@@ -2428,23 +2429,38 @@ bool isSafeHomeInUse(void)
 /***********************************************************
  *  See if there are any safehomes near where we are arming.
  *  If so, use it instead of the arming point for home.
+ *  Select the nearest safehome
  **********************************************************/
 bool foundNearbySafeHome(void)
 {
     safehome_used = -1;
-    fpVector3_t safeHome;
+    uint32_t nearest_safehome_distance = navConfig()->general.safehome_max_distance + 1;
+    uint32_t distance_to_current;
+    fpVector3_t currentSafeHome;
+    fpVector3_t nearestSafeHome;
     gpsLocation_t shLLH;
     shLLH.alt = 0;
     for (uint8_t i = 0; i < MAX_SAFE_HOMES; i++) {
+		if (!safeHomeConfig(i)->enabled)
+		    continue;
+
         shLLH.lat = safeHomeConfig(i)->lat;
         shLLH.lon = safeHomeConfig(i)->lon;
-        geoConvertGeodeticToLocal(&safeHome, &posControl.gpsOrigin, &shLLH, GEO_ALT_RELATIVE);
-        safehome_distance = calculateDistanceToDestination(&safeHome);
-        if (safehome_distance < 20000) { // 200 m
+        geoConvertGeodeticToLocal(&currentSafeHome, &posControl.gpsOrigin, &shLLH, GEO_ALT_RELATIVE);
+        distance_to_current = calculateDistanceToDestination(&currentSafeHome);
+        if (distance_to_current < nearest_safehome_distance) {
+             // this safehome is the nearest so far - keep track of it.
              safehome_used = i;
-             setHomePosition(&safeHome, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
-             return true;
+             nearest_safehome_distance = distance_to_current;
+             nearestSafeHome.x = currentSafeHome.x;
+             nearestSafeHome.y = currentSafeHome.y;
+             nearestSafeHome.z = currentSafeHome.z;
         }
+    }
+    if (safehome_used >= 0) {
+		safehome_distance = nearest_safehome_distance;
+        setHomePosition(&nearestSafeHome, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
+        return true;
     }
     safehome_distance = 0;
     return false;
@@ -2799,7 +2815,7 @@ void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData)
         wpData->lon = wpLLH.lon;
         wpData->alt = wpLLH.alt;
     }
-    // WP #254 - special waypoint - get desiredPosition that was set by ground control station if in 3D-guided mode 
+    // WP #254 - special waypoint - get desiredPosition that was set by ground control station if in 3D-guided mode
     else if (wpNumber == 254) {
         navigationFSMStateFlags_t navStateFlags = navGetStateFlags(posControl.navState);
 
@@ -2807,7 +2823,7 @@ void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData)
             gpsLocation_t wpLLH;
 
             geoConvertLocalToGeodetic(&wpLLH, &posControl.gpsOrigin, &posControl.desiredState.pos);
-            
+
             wpData->lat = wpLLH.lat;
             wpData->lon = wpLLH.lon;
             wpData->alt = wpLLH.alt;
