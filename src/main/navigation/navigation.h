@@ -530,6 +530,7 @@ bool navigationRTHAllowsLanding(void);
 bool isNavLaunchEnabled(void);
 bool isFixedWingLaunchDetected(void);
 bool isFixedWingLaunchFinishedOrAborted(void);
+bool isFixedWingLaunchFinishedThrottleLow(void);
 const char * fixedWingLaunchStateMessage(void);
 
 float calculateAverageSpeed(void);

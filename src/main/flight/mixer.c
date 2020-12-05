@@ -610,7 +610,6 @@ motorStatus_e getMotorStatus(void)
                     return MOTOR_STOPPED_USER;
             }
         }
-
     }
 
     return MOTOR_RUNNING;

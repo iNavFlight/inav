@@ -43,7 +43,6 @@
 
 #include "fc/config.h"
 #include "fc/rc_controls.h"
-#include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 
 #include "navigation/navigation.h"
@@ -477,7 +476,12 @@ void enableFixedWingLaunchController(timeUs_t currentTimeUs)
 
 bool isFixedWingLaunchFinishedOrAborted(void)
 {
-    return fwLaunch.currentState == FW_LAUNCH_STATE_IDLE || fwLaunch.finishedThrottleLow;
+    return fwLaunch.currentState == FW_LAUNCH_STATE_IDLE;
+}
+
+bool isFixedWingLaunchFinishedThrottleLow(void)
+{
+    return fwLaunch.finishedThrottleLow;
 }
 
 void abortFixedWingLaunch(void)

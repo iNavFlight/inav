@@ -853,12 +853,6 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SUCCESS]                     = NAV_STATE_LAUNCH_IN_PROGRESS,
             [NAV_FSM_EVENT_ERROR]                       = NAV_STATE_IDLE,
             [NAV_FSM_EVENT_SWITCH_TO_IDLE]              = NAV_STATE_IDLE,
-            [NAV_FSM_EVENT_SWITCH_TO_ALTHOLD]           = NAV_STATE_ALTHOLD_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D]        = NAV_STATE_POSHOLD_3D_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_RTH]               = NAV_STATE_RTH_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT]          = NAV_STATE_WAYPOINT_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_CRUISE_2D]         = NAV_STATE_CRUISE_2D_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_CRUISE_3D]         = NAV_STATE_CRUISE_3D_INITIALIZE,
         }
     },
 
@@ -875,6 +869,12 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SUCCESS]                     = NAV_STATE_IDLE,
             [NAV_FSM_EVENT_ERROR]                       = NAV_STATE_IDLE,
             [NAV_FSM_EVENT_SWITCH_TO_IDLE]              = NAV_STATE_IDLE,
+            [NAV_FSM_EVENT_SWITCH_TO_ALTHOLD]           = NAV_STATE_ALTHOLD_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D]        = NAV_STATE_POSHOLD_3D_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_RTH]               = NAV_STATE_RTH_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT]          = NAV_STATE_WAYPOINT_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_CRUISE_2D]         = NAV_STATE_CRUISE_2D_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_CRUISE_3D]         = NAV_STATE_CRUISE_3D_INITIALIZE,
         }
     },
 };
@@ -1732,6 +1732,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_WAIT(navigationF
     }
 
     //allow to leave NAV_LAUNCH_MODE if it has being enabled as feature by moving sticks with low throttle.
+    // also allow switched launch mode to be cancelled by moving sticks if launch allowed with throttle low
     if (feature(FEATURE_FW_LAUNCH) || (navConfig()->fw.launch_allow_throttle_low && IS_RC_MODE_ACTIVE(BOXNAVLAUNCH))) {
         throttleStatus_e throttleStatus = calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC);
         if ((throttleStatus == THROTTLE_LOW) && (areSticksDeflectedMoreThanPosHoldDeadband())) {
@@ -1748,18 +1749,15 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_IN_PROGRESS(navi
     UNUSED(previousState);
 
     if (isFixedWingLaunchFinishedOrAborted()) {
-        if (navConfig()->fw.launch_allow_throttle_low && calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC) == THROTTLE_LOW) {
+        return NAV_FSM_EVENT_SUCCESS;
+    }
+
+    if (isFixedWingLaunchFinishedThrottleLow()) {
+        // check if launch finish can switch to other preselected Nav mode and select if true 
+        navigationFSMEvent_t isNavModeSelected = selectNavEventFromBoxModeInput(true);
             
-            navigationFSMEvent_t isNavModeSelected = selectNavEventFromBoxModeInput(true);            
-            if (isNavModeSelected != NAV_FSM_EVENT_SWITCH_TO_IDLE) {
-                return isNavModeSelected;
-            }
-            
-            if (areSticksDeflectedMoreThanPosHoldDeadband()) {
-                return NAV_FSM_EVENT_SUCCESS;   // end the launch and return to NAV_STATE_IDLE
-            }
-        } else {
-            return NAV_FSM_EVENT_SUCCESS;
+        if (isNavModeSelected != NAV_FSM_EVENT_SWITCH_TO_IDLE) {
+            return isNavModeSelected;
         }
     }
 
@@ -3219,6 +3217,8 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(bool launchBypass)
                     canActivateLaunchMode = false;
                     return NAV_FSM_EVENT_SWITCH_TO_LAUNCH;
                 }
+                // allow launch priority bypass at launch finish with throttle low
+                // to check if possible to switch to other preselected Nav mode                
                 else if FLIGHT_MODE(NAV_LAUNCH_MODE && !launchBypass) {
                     // Make sure we don't bail out to IDLE
                     return NAV_FSM_EVENT_NONE;
