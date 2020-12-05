@@ -57,6 +57,18 @@ const struct ioPortDef_s ioPortDefs[] = {
     { RCC_AHB1(GPIOE) },
     { RCC_AHB1(GPIOF) },
 };
+#elif defined(STM32H7)
+const struct ioPortDef_s ioPortDefs[] = {
+    { RCC_AHB4(GPIOA) },
+    { RCC_AHB4(GPIOB) },
+    { RCC_AHB4(GPIOC) },
+    { RCC_AHB4(GPIOD) },
+    { RCC_AHB4(GPIOE) },
+    { RCC_AHB4(GPIOF) },
+    { RCC_AHB4(GPIOG) },
+    { RCC_AHB4(GPIOH) },
+    { RCC_AHB4(GPIOI) },
+};
 # endif
 
 ioRec_t* IO_Rec(IO_t io)
@@ -123,12 +135,10 @@ uint32_t IO_EXTI_Line(IO_t io)
     if (!io) {
         return 0;
     }
-#if defined(STM32F3)
+#if defined(STM32F1) || defined(STM32F4) || defined(STM32F7) || defined(STM32H7)
+    return 1 << IO_GPIOPinIdx(io);
+#elif defined(STM32F3)
     return IO_GPIOPinIdx(io);
-#elif defined(STM32F4)
-    return 1 << IO_GPIOPinIdx(io);
-#elif defined(STM32F7)
-    return 1 << IO_GPIOPinIdx(io);
 #else
 # error "Unknown target type"
 #endif
@@ -259,7 +269,7 @@ resourceType_e IOGetResource(IO_t io)
     return ioRec->resource;
 }
 
-#if defined(STM32F7)
+#if defined(STM32F7) || defined(STM32H7)
 
 void IOConfigGPIO(IO_t io, ioConfig_t cfg)
 {

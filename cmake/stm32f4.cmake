@@ -34,6 +34,9 @@ glob_except(STM32F4_STDPERIPH_SRC "${STM32F4_STDPERIPH_SRC_DIR}/*.c" "${STM32F4_
 
 main_sources(STM32F4_SRC
     target/system_stm32f4xx.c
+
+    config/config_streamer_stm32f4.c
+
     drivers/adc_stm32f4xx.c
     drivers/adc_stm32f4xx.c
     drivers/bus_i2c_stm32f40x.c
@@ -98,7 +101,7 @@ endfunction()
 set(STM32F405_COMPILE_DEFINITIONS
     STM32F40_41xxx
     STM32F405xx
-    FLASH_SIZE=1024
+    MCU_FLASH_SIZE=1024
 )
 
 function(target_stm32f405xg name)
@@ -120,7 +123,7 @@ exclude_basenames(STM32F411_OR_F427_STDPERIPH_SRC ${STM32F411_OR_F427_STDPERIPH_
 
 set(STM32F411_COMPILE_DEFINITIONS
     STM32F411xE
-    FLASH_SIZE=512
+    MCU_FLASH_SIZE=512
 )
 
 function(target_stm32f411xe name)
@@ -137,7 +140,7 @@ endfunction()
 
 set(STM32F427_COMPILE_DEFINITIONS
     STM32F427_437xx
-    FLASH_SIZE=1024
+    MCU_FLASH_SIZE=1024
 )
 function(target_stm32f427xg name)
     target_stm32f4xx(

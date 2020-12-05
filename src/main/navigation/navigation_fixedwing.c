@@ -76,16 +76,16 @@ static int8_t loiterDirYaw = 1;
 static float getSmoothnessCutoffFreq(float baseFreq)
 {
     uint16_t smoothness = 10 - navConfig()->fw.control_smoothness;
-    return 0.001f * baseFreq * (float)(smoothness*smoothness*smoothness) + 0.01f;
+    return 0.001f * baseFreq * (float)(smoothness*smoothness*smoothness) + 0.1f;
 }
 
 // Calculates the cutoff frequency for smoothing out pitchToThrottleCorrection
 // pitch_to_throttle_smooth valid range from 0 to 9
-// resulting cutoff_freq ranging from baseFreq downwards to ~0.11Hz
+// resulting cutoff_freq ranging from baseFreq downwards to ~0.01Hz
 static float getPitchToThrottleSmoothnessCutoffFreq(float baseFreq)
 {
     uint16_t smoothness = 10 - navConfig()->fw.pitch_to_throttle_smooth;
-    return 0.001f * baseFreq * (float)(smoothness*smoothness*smoothness) + 0.1f;
+    return 0.001f * baseFreq * (float)(smoothness*smoothness*smoothness) + 0.01f;
 }
 
 /*-----------------------------------------------------------

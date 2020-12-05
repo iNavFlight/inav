@@ -25,9 +25,9 @@ tables:
     values: ["NONE", "PPM", "SERIAL", "MSP", "SPI", "UIB"]
     enum: rxReceiverType_e
   - name: serial_rx
-    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2"]
+    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2", "GHST"]
   - name: rx_spi_protocol
-    values: ["V202_250K", "V202_1M", "SYMA_X", "SYMA_X5C", "CX10", "CX10A", "H8_3D", "INAV", "ELERES"]
+    values: ["ELERES"]
     enum: rx_spi_protocol_e
   - name: blackbox_device
     values: ["SERIAL", "SPIFLASH", "SDCARD"]
@@ -154,7 +154,7 @@ tables:
     enum: djiOsdTempSource_e
   - name: nav_overrides_motor_stop
     enum: navOverridesMotorStop_e
-    values: ["OFF", "AUTO_ONLY", "ALL_NAV"]
+    values: ["OFF_ALWAYS", "OFF", "AUTO_ONLY", "ALL_NAV"]
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -673,7 +673,7 @@ groups:
         max: 1000
       - name: motor_pwm_protocol
         description: "Protocol that is used to send motor updates to ESCs. Possible values - STANDARD, ONESHOT125, ONESHOT42, MULTISHOT, DSHOT150, DSHOT300, DSHOT600, DSHOT1200, BRUSHED"
-        default_value: "STANDARD"
+        default_value: "ONESHOT125"
         field: motorPwmProtocol
         table: motor_pwm_protocol
       - name: throttle_scale
@@ -1852,7 +1852,7 @@ groups:
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t
-    condition: USE_NAV && USE_AUTOTUNE_FIXED_WING
+    condition: USE_AUTOTUNE_FIXED_WING
     members:
       - name: fw_autotune_overshoot_time
         description: "Time [ms] to detect sustained overshoot"
@@ -2107,8 +2107,8 @@ groups:
         min: 0
         max: 5000
       - name: nav_overrides_motor_stop
-        description: "When set OFF the navigation system will not take over the control of the motor if the throttle is low (motor will stop). When set to AUTO_ONLY the navigation system will only take over the control of the throttle in autonomous navigation modes (NAV WP and NAV RTH). When set to ALL_NAV (default) the navigation system will take over the control of the motor completely and never allow the motor to stop even when the throttle is low. This setting only has an effect combined with MOTOR_STOP and is likely to cause a stall if fw_min_throttle_down_pitch isn't set correctly or the pitch estimation is wrong for fixed wing models when not set to ALL_NAV"
-        default_value: "NOMS_ALL_NAV"
+        description: "When set OFF_ALWAYS the navigation system will not take over the control of the motor if the throttle is low (motor will stop). When set to OFF always the navigation system will not take over the control of the motor if the throttle was low even when failsafe is triggered. When set to AUTO_ONLY the navigation system will only take over the control of the throttle in autonomous navigation modes (NAV WP and NAV RTH). When set to ALL_NAV (default) the navigation system will take over the control of the motor completely and never allow the motor to stop even when the throttle is low. This setting only has an effect on NAV modes which take control of the throttle when combined with MOTOR_STOP and is likely to cause a stall if fw_min_throttle_down_pitch isn't set correctly or the pitch estimation is wrong for fixed wing models when not set to ALL_NAV"
+        default_value: "ALL_NAV"
         field: general.flags.nav_overrides_motor_stop
         table: nav_overrides_motor_stop
       - name: nav_rth_climb_first
@@ -2158,6 +2158,12 @@ groups:
         description: "Aircraft will climb/descend to this altitude after reaching home if landing is not enabled. Set to 0 to stay at `nav_rth_altitude` (default) [cm]"
         default_value: "0"
         field: general.rth_home_altitude
+        max: 65000
+      - name: safehome_max_distance
+        description: "In order for a safehome to be used, it must be less than this distance (in cm) from the arming point."
+        default_value: "20000"
+        field: general.safehome_max_distance
+        min: 0
         max: 65000
       - name: nav_mc_bank_angle
         description: "Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude"
@@ -2291,13 +2297,13 @@ groups:
         max: 100
       - name: nav_fw_pitch2thr_smoothing
         description:  "How smoothly the autopilot makes pitch to throttle correction inside a deadband defined by pitch_to_throttle_thresh."
-        default_value: "0"
+        default_value: "6"
         field: fw.pitch_to_throttle_smooth
         min: 0
         max: 9
       - name: nav_fw_pitch2thr_threshold
         description: "Threshold from average pitch where momentary pitch_to_throttle correction kicks in. [decidegrees]"
-        default_value: "0"
+        default_value: "50"
         field: fw.pitch_to_throttle_thresh
         min: 0
         max: 900
@@ -2763,12 +2769,14 @@ groups:
         min: -550
         max: 1250
       - name: osd_snr_alarm
+        condition: USE_SERIALRX_CRSF
         description: "Value below which Crossfire SNR Alarm pops-up. (dB)"
         default_value: "4"
         field: snr_alarm
         min: -12
         max: 8
       - name: osd_link_quality_alarm
+        condition: USE_SERIALRX_CRSF
         description: "LQ % indicator blinks below this value. For Crossfire use 70%, for Tracer use 50%"
         default_value: "70"
         field: link_quality_alarm
@@ -3185,6 +3193,8 @@ groups:
         - name: dji_workarounds
           description: "Enables workarounds for different versions of MSP protocol used"
           field: proto_workarounds
+          min: 0
+          max: UINT8_MAX
         - name: dji_use_name_for_messages
           description: "Re-purpose the craft name field for messages. Replace craft name with :WTSED for Warnings|Throttle|Speed|Efficiency|Trip distance"
           default_value: "ON"
