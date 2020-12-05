@@ -227,6 +227,12 @@ serialPort_t *openSoftSerial(softSerialPortIndex_e portIndex, serialReceiveCallb
     IO_t rxIO = IOGetByTag(tagRx);
     IO_t txIO = IOGetByTag(tagTx);
 
+	if (tagRx == tagTx) {
+		if ((mode & MODE_RX) && (mode & MODE_TX)) {
+			options |= SERIAL_BIDIR;
+		}
+	}
+    
     if (options & SERIAL_BIDIR) {
         // If RX and TX pins are both assigned, we CAN use either with a timer.
         // However, for consistency with hardware UARTs, we only use TX pin,
