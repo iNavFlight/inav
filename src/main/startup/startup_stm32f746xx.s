@@ -137,9 +137,6 @@ LoopMarkHeapStack:
 	cmp	r2, r3
 	bcc	MarkHeapStack
 
-  //If there was code addressed into ITCM, copy from flash to ITCM_RAM for execution
-  bl CopyFastCode
-
 /* Call the clock system initialization function.*/
   bl  SystemInit   
 /* Call static constructors */

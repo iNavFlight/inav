@@ -199,35 +199,13 @@ void resetMulticopterAltitudeController(void)
     navPidReset(&posControl.pids.surface);
     posControl.rcAdjustment[THROTTLE] = 0;
 
-    if (prepareForTakeoffOnReset) {
-        /* If we are preparing for takeoff - start with lowset possible climb rate, adjust alt target and make sure throttle doesn't jump */
-        posControl.desiredState.vel.z = -navConfig()->general.max_manual_climb_rate;
-        posControl.desiredState.pos.z = posToUse->pos.z - (navConfig()->general.max_manual_climb_rate / posControl.pids.pos[Z].param.kP);
-        posControl.pids.vel[Z].integrator = -500.0f;
-        pt1FilterReset(&altholdThrottleFilterState, -500.0f);
-        prepareForTakeoffOnReset = false;
-    }
-    else {
-        posControl.desiredState.vel.z = posToUse->vel.z;   // Gradually transition from current climb
-        pt1FilterReset(&altholdThrottleFilterState, 0.0f);
-    }
+    posControl.desiredState.vel.z = posToUse->vel.z;   // Gradually transition from current climb
+    pt1FilterReset(&altholdThrottleFilterState, 0.0f);
 }
 
 static void applyMulticopterAltitudeController(timeUs_t currentTimeUs)
 {
-    static timeUs_t previousTimePositionUpdate;         // Occurs @ altitude sensor update rate (max MAX_ALTITUDE_UPDATE_RATE_HZ)
-    static timeUs_t previousTimeUpdate;                 // Occurs @ looptime rate
-
-    const timeDelta_t deltaMicros = currentTimeUs - previousTimeUpdate;
-    previousTimeUpdate = currentTimeUs;
-
-    // If last position update was too long in the past - ignore it (likely restarting altitude controller)
-    if (deltaMicros > HZ2US(MIN_POSITION_UPDATE_RATE_HZ)) {
-        previousTimeUpdate = currentTimeUs;
-        previousTimePositionUpdate = currentTimeUs;
-        resetMulticopterAltitudeController();
-        return;
-    }
+    static timeUs_t previousTimePositionUpdate = 0;     // Occurs @ altitude sensor update rate (max MAX_ALTITUDE_UPDATE_RATE_HZ)
 
     // If we have an update on vertical position data - update velocity and accel targets
     if (posControl.flags.verticalPositionDataNew) {
@@ -236,11 +214,23 @@ static void applyMulticopterAltitudeController(timeUs_t currentTimeUs)
 
         // Check if last correction was too log ago - ignore this update
         if (deltaMicrosPositionUpdate < HZ2US(MIN_POSITION_UPDATE_RATE_HZ)) {
+            // If we are preparing for takeoff - start with lowset possible climb rate, adjust alt target and make sure throttle doesn't jump
+            if (prepareForTakeoffOnReset) {
+                const navEstimatedPosVel_t * posToUse = navGetCurrentActualPositionAndVelocity();
+
+                posControl.desiredState.vel.z = -navConfig()->general.max_manual_climb_rate;
+                posControl.desiredState.pos.z = posToUse->pos.z - (navConfig()->general.max_manual_climb_rate / posControl.pids.pos[Z].param.kP);
+                posControl.pids.vel[Z].integrator = -500.0f;
+                pt1FilterReset(&altholdThrottleFilterState, -500.0f);
+                prepareForTakeoffOnReset = false;
+            }
+
+            // Execute actual altitude controllers
             updateAltitudeVelocityController_MC(deltaMicrosPositionUpdate);
             updateAltitudeThrottleController_MC(deltaMicrosPositionUpdate);
         }
         else {
-            // due to some glitch position update has not occurred in time, reset altitude controller
+            // Position update has not occurred in time (first start or glitch), reset altitude controller
             resetMulticopterAltitudeController();
         }
 
@@ -625,23 +615,11 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
 
 static void applyMulticopterPositionController(timeUs_t currentTimeUs)
 {
-    static timeUs_t previousTimePositionUpdate;         // Occurs @ GPS update rate
-    static timeUs_t previousTimeUpdate;                 // Occurs @ looptime rate
-
-    const timeDelta_t deltaMicros = currentTimeUs - previousTimeUpdate;
-    previousTimeUpdate = currentTimeUs;
+    static timeUs_t previousTimePositionUpdate = 0;     // Occurs @ GPS update rate
     bool bypassPositionController;
 
     // We should passthrough rcCommand is adjusting position in GPS_ATTI mode
     bypassPositionController = (navConfig()->general.flags.user_control_mode == NAV_GPS_ATTI) && posControl.flags.isAdjustingPosition;
-
-    // If last call to controller was too long in the past - ignore it (likely restarting position controller)
-    if (deltaMicros > HZ2US(MIN_POSITION_UPDATE_RATE_HZ)) {
-        previousTimeUpdate = currentTimeUs;
-        previousTimePositionUpdate = currentTimeUs;
-        resetMulticopterPositionController();
-        return;
-    }
 
     // Apply controller only if position source is valid. In absence of valid pos sensor (GPS loss), we'd stick in forced ANGLE mode
     // and pilots input would be passed thru to PID controller
@@ -660,6 +638,7 @@ static void applyMulticopterPositionController(timeUs_t currentTimeUs)
                     updatePositionAccelController_MC(deltaMicrosPositionUpdate, NAV_ACCELERATION_XY_MAX, maxSpeed);
                 }
                 else {
+                    // Position update has not occurred in time (first start or glitch), reset altitude controller
                     resetMulticopterPositionController();
                 }
             }
@@ -749,48 +728,14 @@ bool isMulticopterLandingDetected(void)
  *-----------------------------------------------------------*/
 static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
 {
-    static timeUs_t previousTimeUpdate;
-    static timeUs_t previousTimePositionUpdate;
-    const timeDelta_t deltaMicros = currentTimeUs - previousTimeUpdate;
-    previousTimeUpdate = currentTimeUs;
+    static timeUs_t previousTimePositionUpdate = 0;
 
     /* Attempt to stabilise */
     rcCommand[ROLL] = 0;
     rcCommand[PITCH] = 0;
     rcCommand[YAW] = 0;
 
-    if ((posControl.flags.estAltStatus >= EST_USABLE)) {
-        // If last position update was too long in the past - ignore it (likely restarting altitude controller)
-        if (deltaMicros > HZ2US(MIN_POSITION_UPDATE_RATE_HZ)) {
-            previousTimeUpdate = currentTimeUs;
-            previousTimePositionUpdate = currentTimeUs;
-            resetMulticopterAltitudeController();
-            return;
-        }
-
-        if (posControl.flags.verticalPositionDataNew) {
-            const timeDelta_t deltaMicrosPositionUpdate = currentTimeUs - previousTimePositionUpdate;
-            previousTimePositionUpdate = currentTimeUs;
-
-            // Check if last correction was too log ago - ignore this update
-            if (deltaMicrosPositionUpdate < HZ2US(MIN_POSITION_UPDATE_RATE_HZ)) {
-                updateClimbRateToAltitudeController(-1.0f * navConfig()->general.emerg_descent_rate, ROC_TO_ALT_NORMAL);
-                updateAltitudeVelocityController_MC(deltaMicrosPositionUpdate);
-                updateAltitudeThrottleController_MC(deltaMicrosPositionUpdate);
-            }
-            else {
-                // due to some glitch position update has not occurred in time, reset altitude controller
-                resetMulticopterAltitudeController();
-            }
-
-            // Indicate that information is no longer usable
-            posControl.flags.verticalPositionDataConsumed = 1;
-        }
-
-        // Update throttle controller
-        rcCommand[THROTTLE] = constrain((int16_t)navConfig()->mc.hover_throttle + posControl.rcAdjustment[THROTTLE], getThrottleIdleValue(), motorConfig()->maxthrottle);
-    }
-    else {
+    if ((posControl.flags.estAltStatus < EST_USABLE)) {
         /* Sensors has gone haywire, attempt to land regardless */
         if (failsafeConfig()->failsafe_procedure == FAILSAFE_PROCEDURE_DROP_IT) {
             rcCommand[THROTTLE] = getThrottleIdleValue();
@@ -798,7 +743,32 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
         else {
             rcCommand[THROTTLE] = failsafeConfig()->failsafe_throttle;
         }
+
+        return;
     }
+
+    // Normal sensor data
+    if (posControl.flags.verticalPositionDataNew) {
+        const timeDelta_t deltaMicrosPositionUpdate = currentTimeUs - previousTimePositionUpdate;
+        previousTimePositionUpdate = currentTimeUs;
+
+        // Check if last correction was too log ago - ignore this update
+        if (deltaMicrosPositionUpdate < HZ2US(MIN_POSITION_UPDATE_RATE_HZ)) {
+            updateClimbRateToAltitudeController(-1.0f * navConfig()->general.emerg_descent_rate, ROC_TO_ALT_NORMAL);
+            updateAltitudeVelocityController_MC(deltaMicrosPositionUpdate);
+            updateAltitudeThrottleController_MC(deltaMicrosPositionUpdate);
+        }
+        else {
+            // due to some glitch position update has not occurred in time, reset altitude controller
+            resetMulticopterAltitudeController();
+        }
+
+        // Indicate that information is no longer usable
+        posControl.flags.verticalPositionDataConsumed = 1;
+    }
+
+    // Update throttle controller
+    rcCommand[THROTTLE] = constrain((int16_t)navConfig()->mc.hover_throttle + posControl.rcAdjustment[THROTTLE], getThrottleIdleValue(), motorConfig()->maxthrottle);
 }
 
 /*-----------------------------------------------------------

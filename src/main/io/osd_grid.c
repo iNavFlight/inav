@@ -34,6 +34,7 @@
 #include "common/utils.h"
 
 #include "drivers/display.h"
+#include "drivers/osd.h"
 #include "drivers/osd_symbols.h"
 #include "drivers/time.h"
 
@@ -103,6 +104,11 @@ void osdGridDrawDirArrow(displayPort_t *display, unsigned gx, unsigned gy, float
     displayWriteChar(display, gx, gy, SYM_ARROW_UP + arrowOffset);
 }
 
+static float osdGetAspectRatioCorrection(void)
+{
+    return osdDisplayIsPAL() ? 12.0f/15.0f : 12.0f/18.46f;
+}
+
 void osdGridDrawArtificialHorizon(displayPort_t *display, unsigned gx, unsigned gy, float pitchAngle, float rollAngle)
 {
     UNUSED(gx);
@@ -117,10 +123,11 @@ void osdGridDrawArtificialHorizon(displayPort_t *display, unsigned gx, unsigned 
     static int8_t previous_written[OSD_AHI_PREV_SIZE];
     static int8_t previous_orient = -1;
 
-    float pitch_rad_to_char = (float)(OSD_AHI_HEIGHT / 2 + 0.5) / DEGREES_TO_RADIANS(osdConfig()->ahi_max_pitch);
+    const float pitch_rad_to_char = (float)(OSD_AHI_HEIGHT / 2 + 0.5) / DEGREES_TO_RADIANS(osdConfig()->ahi_max_pitch);
 
-    float ky = sin_approx(rollAngle);
-    float kx = cos_approx(rollAngle);
+    const float ky = sin_approx(rollAngle);
+    const float kx = cos_approx(rollAngle);
+    const float ratio = osdGetAspectRatioCorrection();
 
     if (previous_orient != -1) {
         for (int i = 0; i < OSD_AHI_PREV_SIZE; ++i) {
@@ -138,7 +145,7 @@ void osdGridDrawArtificialHorizon(displayPort_t *display, unsigned gx, unsigned 
         previous_orient = 0;
 
         for (int8_t dx = -OSD_AHI_WIDTH / 2; dx <= OSD_AHI_WIDTH / 2; dx++) {
-            float fy = dx * (ky / kx) + pitchAngle * pitch_rad_to_char + 0.49f;
+            float fy = (ratio * dx) * (ky / kx) + pitchAngle * pitch_rad_to_char + 0.49f;
             int8_t dy = floorf(fy);
             const uint8_t chX = elemPosX + dx, chY = elemPosY - dy;
             uint16_t c;
@@ -155,7 +162,7 @@ void osdGridDrawArtificialHorizon(displayPort_t *display, unsigned gx, unsigned 
         previous_orient = 1;
 
         for (int8_t dy = -OSD_AHI_HEIGHT / 2; dy <= OSD_AHI_HEIGHT / 2; dy++) {
-            const float fx = (dy - pitchAngle * pitch_rad_to_char) * (kx / ky) + 0.5f;
+            const float fx = ((dy / ratio) - pitchAngle * pitch_rad_to_char) * (kx / ky) + 0.5f;
             const int8_t dx = floorf(fx);
             const uint8_t chX = elemPosX + dx, chY = elemPosY - dy;
             uint16_t c;
@@ -218,7 +225,7 @@ static uint8_t osdUpdateSidebar(osd_sidebar_scroll_e scroll, osd_sidebar_t *side
     // Scroll between SYM_AH_DECORATION_MIN and SYM_AH_DECORATION_MAX.
     // Zero scrolling should draw SYM_AH_DECORATION.
     uint8_t decoration = SYM_AH_DECORATION;
-    int offset;
+    int offset = 0;
     int steps;
     switch (scroll) {
         case OSD_SIDEBAR_SCROLL_NONE:
@@ -233,8 +240,6 @@ static uint8_t osdUpdateSidebar(osd_sidebar_scroll_e scroll, osd_sidebar_t *side
         case OSD_SIDEBAR_SCROLL_GROUND_SPEED:
 #if defined(USE_GPS)
             offset = gpsSol.groundSpeed;
-#else
-            offset = 0;
 #endif
             // Move 1 char for every 20 cm/s
             steps = offset / 20;
@@ -242,8 +247,6 @@ static uint8_t osdUpdateSidebar(osd_sidebar_scroll_e scroll, osd_sidebar_t *side
         case OSD_SIDEBAR_SCROLL_HOME_DISTANCE:
 #if defined(USE_GPS)
             offset = GPS_distanceToHome;
-#else
-            offset = 0;
 #endif
             // Move 1 char for every 5m
             steps = offset / 5;

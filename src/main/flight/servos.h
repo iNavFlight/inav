@@ -58,6 +58,10 @@ typedef enum {
     INPUT_GVAR_1                    = 31,
     INPUT_GVAR_2                    = 32,
     INPUT_GVAR_3                    = 33,
+    INPUT_GVAR_4                    = 34,
+    INPUT_GVAR_5                    = 35,
+    INPUT_GVAR_6                    = 36,
+    INPUT_GVAR_7                    = 37,
 
     INPUT_SOURCE_COUNT
 } inputSource_e;

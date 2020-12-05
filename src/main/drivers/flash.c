@@ -186,13 +186,13 @@ static void flashConfigurePartitions(void)
     }
 
 #if defined(FIRMWARE_SIZE)
-    createPartition(FLASH_PARTITION_TYPE_FIRMWARE, FIRMWARE_SIZE*1024, &endSector);
+    createPartition(FLASH_PARTITION_TYPE_FIRMWARE, FIRMWARE_SIZE * 1024, &endSector);
 #endif
 
 #if defined(MSP_FIRMWARE_UPDATE)
     createPartition(FLASH_PARTITION_TYPE_FIRMWARE_UPDATE_META, flashGeometry->sectorSize, &endSector);
-    createPartition(FLASH_PARTITION_TYPE_UPDATE_FIRMWARE, FLASH_SIZE*1024, &endSector);
-    createPartition(FLASH_PARTITION_TYPE_FULL_BACKUP, FLASH_SIZE*1024, &endSector);
+    createPartition(FLASH_PARTITION_TYPE_UPDATE_FIRMWARE, MCU_FLASH_SIZE * 1024, &endSector);
+    createPartition(FLASH_PARTITION_TYPE_FULL_BACKUP, MCU_FLASH_SIZE * 1024, &endSector);
 #endif
 
 #if defined(CONFIG_IN_EXTERNAL_FLASH)
@@ -286,6 +286,13 @@ uint32_t flashPartitionSize(flashPartition_t *partition)
 void flashPartitionErase(flashPartition_t *partition)
 {
     const flashGeometry_t * const geometry = flashGetGeometry();
+
+    // if there's a single FLASHFS partition and it uses the entire flash then do a full erase
+    const bool doFullErase = (flashPartitionCount() == 1) && (FLASH_PARTITION_SECTOR_COUNT(partition) == geometry->sectors);
+    if (doFullErase) {
+        flashEraseCompletely();
+        return;
+    }
 
     for (unsigned i = partition->startSector; i <= partition->endSector; i++) {
         uint32_t flashAddress = geometry->sectorSize * i;

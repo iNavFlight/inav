@@ -52,17 +52,22 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 19            | GVAR INC      | Increase the GVAR indexed by `Operand A` with value from `Operand B`  |
 | 20            | GVAR DEC      | Decrease the GVAR indexed by `Operand A` with value from `Operand B`  |
 | 21            | IO PORT SET   | Set I2C IO Expander pin `Operand A` to value of `Operand B`. `Operand A` accepts values `0-7` and `Operand B` accepts `0` and `1` |
-| 22             | OVERRIDE_ARMING_SAFETY        | Allows to arm on any angle even without GPS fix              |
-| 23             | OVERRIDE_THROTTLE_SCALE       | Override throttle scale to the value defined by operand. Operand type `0` and value `50` means throttle will be scaled by 50%. |
-| 24             | SWAP_ROLL_YAW                 | basically, when activated, yaw stick will control roll and roll stick will control yaw. Required for tail-sitters VTOL during vertical-horizonral transition when body frame changes |
-| 25             | SET_VTX_POWER_LEVEL           | Sets VTX power level. Accepted values are `0-3` for SmartAudio and `0-4` for Tramp protocol |
-| 26             | INVERT_ROLL                   | Inverts ROLL axis input for PID/PIFF controller |
-| 27             | INVERT_PITCH                  | Inverts PITCH axis input for PID/PIFF controller  |
-| 28             | INVERT_YAW                    | Inverts YAW axis input for PID/PIFF controller |
-| 29             | OVERRIDE_THROTTLE             | Override throttle value that is fed to the motors by mixer. Operand is scaled in us. `1000` means throttle cut, `1500` means half throttle |
-| 30             | SET_VTX_BAND                  | Sets VTX band. Accepted values are `1-5` |
-| 31             | SET_VTX_CHANNEL               | Sets VTX channel. Accepted values are `1-8` |
+| 22            | OVERRIDE_ARMING_SAFETY        | Allows to arm on any angle even without GPS fix              |
+| 23            | OVERRIDE_THROTTLE_SCALE       | Override throttle scale to the value defined by operand. Operand type `0` and value `50` means throttle will be scaled by 50%. |
+| 24            | SWAP_ROLL_YAW                 | basically, when activated, yaw stick will control roll and roll stick will control yaw. Required for tail-sitters VTOL during vertical-horizonral transition when body frame changes |
+| 25            | SET_VTX_POWER_LEVEL           | Sets VTX power level. Accepted values are `0-3` for SmartAudio and `0-4` for Tramp protocol |
+| 26            | INVERT_ROLL                   | Inverts ROLL axis input for PID/PIFF controller |
+| 27            | INVERT_PITCH                  | Inverts PITCH axis input for PID/PIFF controller  |
+| 28            | INVERT_YAW                    | Inverts YAW axis input for PID/PIFF controller |
+| 29            | OVERRIDE_THROTTLE             | Override throttle value that is fed to the motors by mixer. Operand is scaled in us. `1000` means throttle cut, `1500` means half throttle |
+| 30            | SET_VTX_BAND                  | Sets VTX band. Accepted values are `1-5` |
+| 31            | SET_VTX_CHANNEL               | Sets VTX channel. Accepted values are `1-8` |
 | 32            | SET_OSD_LAYOUT                | Sets OSD layout. Accepted values are `0-3` |
+| 33            | SIN                | Computes SIN of `Operand A` value in degrees. Output is multiplied by `Operand B` value. If `Operand B` is `0`, result is multiplied by `500` |
+| 34            | COS                | Computes COS of `Operand A` value in degrees. Output is multiplied by `Operand B` value. If `Operand B` is `0`, result is multiplied by `500` |
+| 35            | TAN                | Computes TAN of `Operand A` value in degrees. Output is multiplied by `Operand B` value. If `Operand B` is `0`, result is multiplied by `500` |
+| 36            | MAP_INPUT          | Scales `Operand A` from [`0` : `Operand B`] to [`0` : `1000`]. Note: input will be constrained and then scaled |
+| 37            | MAP_OUTPUT         | Scales `Operand A` from [`0` : `1000`] to [`0` : `Operand B`]. Note: input will be constrained and then scaled |
 
 
 ### Operands
@@ -106,6 +111,27 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 23            | IS_WP                 | boolean `0`/`1`               |
 | 24            | IS_LANDING            | boolean `0`/`1`               |
 | 25            | IS_FAILSAFE           | boolean `0`/`1`               |
+| 26            | STABILIZED_ROLL       | Roll PID controller output `[-500:500]`   |
+| 27            | STABILIZED_PITCH      | Pitch PID controller output `[-500:500]`  |
+| 28            | STABILIZED_YAW        | Yaw PID controller output `[-500:500]`    |
+| 29            | ACTIVE_WAYPOINT_INDEX | Indexed from `1`. To verify WP is in progress, use `IS_WP` |
+| 30            | ACTIVE_WAYPOINT_ACTION | See ACTIVE_WAYPOINT_ACTION paragraph |
+| 31            | 3D HOME_DISTANCE      | in `meters`, calculated from HOME_DISTANCE and ALTITUDE using Pythagorean theorem |
+| 32            | CROSSFIRE LQ          | Crossfire Link quality as returned by the CRSF protocol   | 
+| 33            | CROSSFIRE SNR          | Crossfire SNR as returned by the CRSF protocol   | 
+
+##### ACTIVE_WAYPOINT_ACTION
+
+| Action        |  Value   |
+|----           |----      |
+| WAYPOINT      | 1      |
+| HOLD_TIME     | 3      |
+| RTH           | 4      |
+| SET_POI       | 5      |
+| JUMP          | 6      |
+| SET_HEAD      | 7      |
+| LAND          | 8      |
+
 
 #### FLIGHT_MODE
 
@@ -120,6 +146,8 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 6             | ANGLE         |                                       |
 | 7             | HORIZON       |                                       |
 | 8             | AIR           |                                       |
+| 9             | USER1         |                                       |
+| 10            | USER2         |                                       |
 
     
 ### Flags
@@ -173,3 +201,36 @@ Sets Thhrottle output to about `50%` when Logic Condition `0` evaluates as `true
 
 If Logic Condition `0` evaluates as `true`, motor throttle control is bound to RC channel 7 instead of throttle channel
 
+### Set VTX channel with a POT
+
+Set VTX channel with a POT on the radio assigned to RC channel 6
+
+```
+logic 0 1 -1 15 1 6 0 1000 0
+logic 1 1 -1 37 4 0 0 7 0
+logic 2 1 -1 14 4 1 0 1 0
+logic 3 1 -1 31 4 2 0 0 0
+```
+
+Steps:
+1. Normalize range `[1000:2000]` to `[0:1000]` by substracting `1000`
+2. Scale range `[0:1000]` to `[0:7]`
+3. Increase range by `1` to have the range of `[1:8]`
+4. Assign LC#2 to VTX channel function
+
+### Set VTX power with a POT
+
+Set VTX power with a POT on the radio assigned to RC channel 6. In this example we scale POT to 4 power level `[1:4]`
+
+```
+logic 0 1 -1 15 1 6 0 1000 0
+logic 1 1 -1 37 4 0 0 3 0
+logic 2 1 -1 14 4 1 0 1 0
+logic 3 1 -1 25 4 2 0 0 0
+```
+
+Steps:
+1. Normalize range [1000:2000] to [0:1000] by substracting `1000`
+2. Scale range [0:1000] to [0:3]
+3. Increase range by `1` to have the range of [1:4]
+4. Assign LC#2 to VTX power function

@@ -120,6 +120,9 @@ static void icm20689AccAndGyroInit(gyroDev_t *gyro)
 #ifdef USE_MPU_DATA_READY_SIGNAL
     busWrite(busDev, MPU_RA_INT_ENABLE, 0x01); // RAW_RDY_EN interrupt enable
 #endif
+
+    // Switch SPI to fast speed
+    busSetSpeed(busDev, BUS_SPEED_FAST);
 }
 
 bool icm20689GyroDetect(gyroDev_t *gyro)

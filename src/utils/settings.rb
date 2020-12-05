@@ -532,6 +532,7 @@ class Generator
         table_names.each do |name|
             buf << "const char * const #{table_variable_name(name)}[] = {\n"
             tbl = @tables[name]
+            raise "values not found for table #{name}" unless tbl.has_key? 'values'
             tbl["values"].each do |v|
                 buf << "\t#{v.inspect},\n"
             end
@@ -748,7 +749,27 @@ class Generator
         add_condition = -> (c) {
             if c && !conditions.include?(c)
                 conditions.add(c)
-                buf << "#ifdef #{c}\n"
+                buf << "#if "
+                in_word = false
+                c.split('').each do |ch|
+                    if in_word
+                        if !ch.match(/^[a-zA-Z0-9_]$/)
+                            in_word = false
+                            buf << ")"
+                        end
+                        buf << ch
+                    else
+                        if ch.match(/^[a-zA-Z_]$/)
+                            in_word = true
+                            buf << "defined("
+                        end
+                        buf << ch
+                    end
+                end
+                if in_word
+                    buf << ")"
+                end
+                buf << "\n"
                 buf << "#pragma message(#{c.inspect})\n"
                 buf << "#endif\n"
             end

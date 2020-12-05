@@ -82,11 +82,18 @@ uint8_t sbusChannelsDecode(rxRuntimeConfig_t *rxRuntimeConfig, const sbusChannel
     return RX_FRAME_COMPLETE;
 }
 
-uint16_t sbusDecodeChannelValue(uint16_t sbusValue)
+uint16_t sbusDecodeChannelValue(uint16_t sbusValue, bool safeValuesOnly)
 {
     // Linear fitting values read from OpenTX-ppmus and comparing with values received by X4R
     // http://www.wolframalpha.com/input/?i=linear+fit+%7B173%2C+988%7D%2C+%7B1812%2C+2012%7D%2C+%7B993%2C+1500%7D
-    return (5 * constrain(sbusValue, SBUS_DIGITAL_CHANNEL_MIN, SBUS_DIGITAL_CHANNEL_MAX) / 8) + 880;
+    if (safeValuesOnly) {
+        // Clip channel values to more or less safe values (988 .. 2012)
+        return (5 * constrain(sbusValue, SBUS_DIGITAL_CHANNEL_MIN, SBUS_DIGITAL_CHANNEL_MAX) / 8) + 880;
+    }
+    else {
+        // Use full range of values (11 bit, channel values in range 880 .. 2159)
+        return (5 * constrain(sbusValue, 0, 2047) / 8) + 880;
+    }
 }
 
 uint16_t sbusEncodeChannelValue(uint16_t rcValue)
@@ -96,7 +103,7 @@ uint16_t sbusEncodeChannelValue(uint16_t rcValue)
 
 static uint16_t sbusChannelsReadRawRC(const rxRuntimeConfig_t *rxRuntimeConfig, uint8_t chan)
 {
-    return sbusDecodeChannelValue(rxRuntimeConfig->channelData[chan]);
+    return sbusDecodeChannelValue(rxRuntimeConfig->channelData[chan], false);
 }
 
 void sbusChannelsInit(rxRuntimeConfig_t *rxRuntimeConfig)

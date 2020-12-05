@@ -124,7 +124,6 @@ int32_t axisPID_P[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_I[FLIGHT_DYNAMICS_INDEX_
 static EXTENDED_FASTRAM pidState_t pidState[FLIGHT_DYNAMICS_INDEX_COUNT];
 static EXTENDED_FASTRAM pt1Filter_t windupLpf[XYZ_AXIS_COUNT];
 static EXTENDED_FASTRAM uint8_t itermRelax;
-static EXTENDED_FASTRAM uint8_t itermRelaxType;
 
 #ifdef USE_ANTIGRAVITY
 static EXTENDED_FASTRAM pt1Filter_t antigravityThrottleLpf;
@@ -155,7 +154,7 @@ static EXTENDED_FASTRAM filterApplyFnPtr dTermLpfFilterApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr dTermLpf2FilterApplyFn;
 static EXTENDED_FASTRAM bool levelingEnabled = false;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 13);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 0);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -257,6 +256,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .fixedWingItermThrowLimit = FW_ITERM_THROW_LIMIT_DEFAULT,
         .fixedWingReferenceAirspeed = 1000,
         .fixedWingCoordinatedYawGain = 1.0f,
+        .fixedWingCoordinatedPitchGain = 1.0f,
         .fixedWingItermLimitOnStickPosition = 0.5f,
 
         .loiter_direction = NAV_LOITER_RIGHT,
@@ -264,7 +264,6 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .navVelXyDtermAttenuation = 90,
         .navVelXyDtermAttenuationStart = 10,
         .navVelXyDtermAttenuationEnd = 60,
-        .iterm_relax_type = ITERM_RELAX_SETPOINT,
         .iterm_relax_cutoff = MC_ITERM_RELAX_CUTOFF_DEFAULT,
         .iterm_relax = ITERM_RELAX_RP,
         .dBoostFactor = 1.25f,
@@ -276,6 +275,10 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .pidControllerType = PID_TYPE_AUTO,
         .navFwPosHdgPidsumLimit = PID_SUM_LIMIT_YAW_DEFAULT,
         .controlDerivativeLpfHz = 30,
+        .kalman_q = 100,
+        .kalman_w = 4,
+        .kalman_sharpness = 100,
+        .kalmanEnabled = 0,
 );
 
 bool pidInitFilters(void)
@@ -632,31 +635,20 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
 #endif
 }
 
-static void FAST_CODE applyItermRelax(const int axis, const float gyroRate, float currentPidSetpoint, float *itermErrorRate)
+static float FAST_CODE applyItermRelax(const int axis, float currentPidSetpoint, float itermErrorRate)
 {
-    const float setpointLpf = pt1FilterApply(&windupLpf[axis], currentPidSetpoint);
-    const float setpointHpf = fabsf(currentPidSetpoint - setpointLpf);
-
     if (itermRelax) {
         if (axis < FD_YAW || itermRelax == ITERM_RELAX_RPY) {
 
+            const float setpointLpf = pt1FilterApply(&windupLpf[axis], currentPidSetpoint);
+            const float setpointHpf = fabsf(currentPidSetpoint - setpointLpf);
+            
             const float itermRelaxFactor = MAX(0, 1 - setpointHpf / MC_ITERM_RELAX_SETPOINT_THRESHOLD);
-
-            if (itermRelaxType == ITERM_RELAX_SETPOINT) {
-                *itermErrorRate *= itermRelaxFactor;
-            } else if (itermRelaxType == ITERM_RELAX_GYRO ) {
-                *itermErrorRate = fapplyDeadbandf(setpointLpf - gyroRate, setpointHpf);
-            } else {
-                *itermErrorRate = 0.0f;
-            }
-
-            if (axis == FD_ROLL) {
-                DEBUG_SET(DEBUG_ITERM_RELAX, 0, lrintf(setpointHpf));
-                DEBUG_SET(DEBUG_ITERM_RELAX, 1, lrintf(itermRelaxFactor * 100.0f));
-                DEBUG_SET(DEBUG_ITERM_RELAX, 2, lrintf(*itermErrorRate));
-            }
+            return itermErrorRate * itermRelaxFactor;
         }
     }
+
+    return itermErrorRate;
 }
 #ifdef USE_D_BOOST
 static float FAST_CODE applyDBoost(pidState_t *pidState, float dT) {
@@ -723,8 +715,7 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
     const float newOutput = newPTerm + newDTerm + pidState->errorGyroIf + newCDTerm;
     const float newOutputLimited = constrainf(newOutput, -pidState->pidSumLimit, +pidState->pidSumLimit);
 
-    float itermErrorRate = rateError;
-    applyItermRelax(axis, pidState->gyroRate, pidState->rateTarget, &itermErrorRate);
+    float itermErrorRate = applyItermRelax(axis, pidState->rateTarget, rateError);
 
 #ifdef USE_ANTIGRAVITY
     itermErrorRate *= iTermAntigravityGain;
@@ -899,7 +890,7 @@ static void NOINLINE pidTurnAssistant(pidState_t *pidState)
 
     // Add in roll and pitch
     pidState[ROLL].rateTarget = constrainf(pidState[ROLL].rateTarget + targetRates.x, -currentControlRateProfile->stabilized.rates[ROLL] * 10.0f, currentControlRateProfile->stabilized.rates[ROLL] * 10.0f);
-    pidState[PITCH].rateTarget = constrainf(pidState[PITCH].rateTarget + targetRates.y, -currentControlRateProfile->stabilized.rates[PITCH] * 10.0f, currentControlRateProfile->stabilized.rates[PITCH] * 10.0f);
+    pidState[PITCH].rateTarget = constrainf(pidState[PITCH].rateTarget + targetRates.y * pidProfile()->fixedWingCoordinatedPitchGain, -currentControlRateProfile->stabilized.rates[PITCH] * 10.0f, currentControlRateProfile->stabilized.rates[PITCH] * 10.0f);
 
     // Replace YAW on quads - add it in on airplanes
     if (STATE(AIRPLANE)) {
@@ -974,9 +965,13 @@ void FAST_CODE pidController(float dT)
 
         // Limit desired rate to something gyro can measure reliably
         pidState[axis].rateTarget = constrainf(rateTarget, -GYRO_SATURATION_LIMIT, +GYRO_SATURATION_LIMIT);
+
 #ifdef USE_GYRO_KALMAN
-        gyroKalmanSetSetpoint(axis, pidState[axis].rateTarget);
+        if (pidProfile()->kalmanEnabled) {
+            pidState[axis].gyroRate = gyroKalmanUpdate(axis, pidState[axis].gyroRate, pidState[axis].rateTarget);
+        }
 #endif
+        DEBUG_SET(DEBUG_PID_MEASUREMENT, axis, pidState[axis].gyroRate);
     }
 
     // Step 3: Run control for ANGLE_MODE, HORIZON_MODE, and HEADING_LOCK
@@ -1038,7 +1033,6 @@ void pidInit(void)
     pidGainsUpdateRequired = false;
 
     itermRelax = pidProfile()->iterm_relax;
-    itermRelaxType = pidProfile()->iterm_relax_type;
 
     yawLpfHz = pidProfile()->yaw_lpf_hz;
     motorItermWindupPoint = 1.0f - (pidProfile()->itermWindupPointPercent / 100.0f);
@@ -1108,6 +1102,11 @@ void pidInit(void)
     }
 
     pidResetTPAFilter();
+#ifdef USE_GYRO_KALMAN
+    if (pidProfile()->kalmanEnabled) {
+        gyroKalmanInitialize(pidProfile()->kalman_q, pidProfile()->kalman_w, pidProfile()->kalman_sharpness);
+    }
+#endif
 }
 
 const pidBank_t * pidBank(void) { 
@@ -1115,4 +1114,13 @@ const pidBank_t * pidBank(void) {
 }
 pidBank_t * pidBankMutable(void) { 
     return usedPidControllerType == PID_TYPE_PIFF ? &pidProfileMutable()->bank_fw : &pidProfileMutable()->bank_mc;
+}
+
+uint8_t * getD_FFRefByBank(pidBank_t *pidBank, pidIndex_e pidIndex)
+{
+    if (pidIndexGetType(pidIndex) == PID_TYPE_PIFF) {
+       return &pidBank->pid[pidIndex].FF;
+    } else {
+        return &pidBank->pid[pidIndex].D;
+    }
 }

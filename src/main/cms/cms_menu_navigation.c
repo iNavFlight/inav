@@ -96,9 +96,9 @@ static const CMS_Menu cmsx_menuRTH = {
     .entries = cmsx_menuRTHEntries
 };
 
-static const OSD_Entry cmsx_menuFixedWingEntries[] =
+static const OSD_Entry cmsx_menuFWCruiseEntries[] =
 {
-    OSD_LABEL_ENTRY("-- FIXED WING --"),
+    OSD_LABEL_ENTRY("-- CRUISE --"),
 
     OSD_SETTING_ENTRY("CRUISE THROTTLE", SETTING_NAV_FW_CRUISE_THR),
     OSD_SETTING_ENTRY("MIN THROTTLE", SETTING_NAV_FW_MIN_THR),
@@ -109,11 +109,66 @@ static const OSD_Entry cmsx_menuFixedWingEntries[] =
     OSD_SETTING_ENTRY("PITCH TO THR RATIO", SETTING_NAV_FW_PITCH2THR),
     OSD_SETTING_ENTRY("LOITER RADIUS", SETTING_NAV_FW_LOITER_RADIUS),
     OSD_SETTING_ENTRY("CONTROL SMOOTHNESS", SETTING_NAV_FW_CONTROL_SMOOTHNESS),
+    OSD_SETTING_ENTRY("PITCH TO THR SMOOTHING", SETTING_NAV_FW_PITCH2THR_SMOOTHING),
+    OSD_SETTING_ENTRY("PITCH TO THR THRESHOLD", SETTING_NAV_FW_PITCH2THR_THRESHOLD),
+    OSD_SETTING_ENTRY("MANUAL THR INCREASE", SETTING_NAV_FW_ALLOW_MANUAL_THR_INCREASE),
 
     OSD_BACK_AND_END_ENTRY,
 };
 
-static const CMS_Menu cmsx_menuFixedWing = {
+static const CMS_Menu cmsx_menuFWCruise = {
+#ifdef CMS_MENU_DEBUG
+    .GUARD_text = "MENUNAVFWCRUISE",
+    .GUARD_type = OME_MENU,
+#endif
+    .onEnter = NULL,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = cmsx_menuFWCruiseEntries
+};
+
+static const OSD_Entry cmsx_menuFWLaunchEntries[] =
+{
+    OSD_LABEL_ENTRY("-- AUTOLAUNCH --"),
+
+    OSD_SETTING_ENTRY("LAUNCH THR", SETTING_NAV_FW_LAUNCH_THR),
+    OSD_SETTING_ENTRY("IDLE THROTTLE", SETTING_NAV_FW_LAUNCH_IDLE_THR),
+    OSD_SETTING_ENTRY("MOTOR SPINUP TIME", SETTING_NAV_FW_LAUNCH_SPINUP_TIME),
+    OSD_SETTING_ENTRY("TIMEOUT", SETTING_NAV_FW_LAUNCH_TIMEOUT),
+    OSD_SETTING_ENTRY("END TRANSITION TIME", SETTING_NAV_FW_LAUNCH_END_TIME),
+    OSD_SETTING_ENTRY("MAX ALTITUDE", SETTING_NAV_FW_LAUNCH_MAX_ALTITUDE),
+    OSD_SETTING_ENTRY("CLIMB ANGLE", SETTING_NAV_FW_LAUNCH_CLIMB_ANGLE),
+    OSD_SETTING_ENTRY("MAX BANK ANGLE", SETTING_NAV_FW_LAUNCH_MAX_ANGLE),
+    OSD_SETTING_ENTRY("MOTOR DELAY", SETTING_NAV_FW_LAUNCH_MOTOR_DELAY),
+    OSD_SETTING_ENTRY("VELOCITY", SETTING_NAV_FW_LAUNCH_VELOCITY),
+    OSD_SETTING_ENTRY("ACCELERATION", SETTING_NAV_FW_LAUNCH_ACCEL),
+    OSD_SETTING_ENTRY("DETECT TIME", SETTING_NAV_FW_LAUNCH_DETECT_TIME),
+
+    OSD_BACK_AND_END_ENTRY,
+ };
+
+static const CMS_Menu cmsx_menuFWLaunch = {
+#ifdef CMS_MENU_DEBUG
+    .GUARD_text = "MENUNAVFWLAUNCH",
+    .GUARD_type = OME_MENU,
+#endif
+    .onEnter = NULL,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = cmsx_menuFWLaunchEntries
+};
+
+static const OSD_Entry cmsx_menuFWSettingsEntries[] =
+{
+    OSD_LABEL_ENTRY("-- FIXED WING --"),
+
+    OSD_SUBMENU_ENTRY("AUTOLAUNCH", &cmsx_menuFWLaunch),
+    OSD_SUBMENU_ENTRY("CRUISE", &cmsx_menuFWCruise),
+
+    OSD_BACK_AND_END_ENTRY,
+};
+
+static const CMS_Menu cmsx_menuFWSettings = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUNAVFW",
     .GUARD_type = OME_MENU,
@@ -121,7 +176,7 @@ static const CMS_Menu cmsx_menuFixedWing = {
     .onEnter = NULL,
     .onExit = NULL,
     .onGlobalExit = NULL,
-    .entries = cmsx_menuFixedWingEntries
+    .entries = cmsx_menuFWSettingsEntries
 };
 
 static const OSD_Entry cmsx_menuNavigationEntries[] =
@@ -130,7 +185,7 @@ static const OSD_Entry cmsx_menuNavigationEntries[] =
 
     OSD_SUBMENU_ENTRY("BASIC SETTINGS", &cmsx_menuNavSettings),
     OSD_SUBMENU_ENTRY("RTH", &cmsx_menuRTH),
-    OSD_SUBMENU_ENTRY("FIXED WING", &cmsx_menuFixedWing),
+    OSD_SUBMENU_ENTRY("FIXED WING", &cmsx_menuFWSettings),
 
     OSD_BACK_AND_END_ENTRY,
 };

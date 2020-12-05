@@ -97,6 +97,24 @@ static uint8_t rfRxBuffer[DATA_PACKAGE_SIZE];
 static uint8_t txFull = 0;
 static uint8_t statusRegisters[2];
 static uint8_t *eleresSignaturePtr;
+static uint32_t lastIrqTime = 0;
+
+typedef struct {
+    uint8_t	idx;
+    int32_t	lat; 		// lat 10E7
+    int32_t	lon; 		// lon 10E7
+    int32_t 	alt; 		// altitude (cm)
+    uint16_t	heading; 	// �
+    uint16_t	speed;		//cm/s
+    uint8_t		lq;			// Link quality, from 0 to 4
+}__attribute__((packed)) eleres_radar_packet_t;
+
+typedef struct {
+    uint8_t	idx;
+    int32_t	lat; 		// lat 10E7
+    int32_t	lon; 		// lon 10E7
+    int32_t alt; 		// altitude (cm)
+}__attribute__((packed)) eleres_wp_packet_t;
 
 static uint8_t rfmSpiRead(uint8_t address)
 {
@@ -381,6 +399,7 @@ rx_spi_received_e eleresDataReceived(uint8_t *payload, uint16_t *linkQuality)
 
     if (rxSpiCheckIrq())
     {
+        lastIrqTime = millis();
         statusRegisters[0] = rfmSpiRead(0x03);
         statusRegisters[1] = rfmSpiRead(0x04);
         //only if RC frame received
@@ -424,6 +443,49 @@ static void parseStatusRegister(const uint8_t *payload)
 
             channelHoppingTime = (rfRxBuffer[20] & 0x0F)+18;
             dataReady |= DATA_FLAG;
+        } else if ((rfRxBuffer[0] & 127) == 'R') { //radar poi info
+            eleres_radar_packet_t p;
+            uint8_t idx=0;
+
+            firstRun = 0;
+            goodFrames++;
+
+            if ((rfRxBuffer[21] & 0xF0) == 0x20)
+                hoppingChannel = rfRxBuffer[21] & 0x0F;
+            channelHoppingTime = (rfRxBuffer[20] & 0x0F)+18;
+
+            //parse plane info
+            memcpy(&p, &rfRxBuffer[1], sizeof(p));
+            idx = MIN(p.idx, RADAR_MAX_POIS - 1); // Radar poi number, 0 to 3
+            radar_pois[idx].gps.lat = p.lat;
+            radar_pois[idx].gps.lon = p.lon;
+            radar_pois[idx].gps.alt = p.alt;
+            radar_pois[idx].heading = p.heading;
+            radar_pois[idx].speed = p.speed;
+            radar_pois[idx].lq = p.lq;
+            if (p.lat == 0 || p.lon == 0)
+                radar_pois[idx].state = 0;
+            else
+                radar_pois[idx].state = 1;
+        } else if ((rfRxBuffer[0] & 127) == 'W') { //WP info
+            eleres_wp_packet_t p;
+            navWaypoint_t tp; //targetPoint
+
+            firstRun = 0;
+            goodFrames++;
+
+            if ((rfRxBuffer[21] & 0xF0) == 0x20)
+                hoppingChannel = rfRxBuffer[21] & 0x0F;
+            channelHoppingTime = (rfRxBuffer[20] & 0x0F)+18;
+
+            //parse plane info
+            memcpy(&p, &rfRxBuffer[1], sizeof(p));
+
+            tp.action = NAV_WP_ACTION_WAYPOINT;
+            tp.alt = p.alt;
+            tp.lat = p.lat;
+            tp.lon = p.lon;
+            setWaypoint(p.idx, &tp);
         } else if (eleresConfig()->eleresLocEn && eleresConfig()->eleresTelemetryEn && bkgLocEnable==2) {
             if ((rfRxBuffer[0] == 'H' && rfRxBuffer[2] == 'L') ||
                     rfRxBuffer[0]=='T' || rfRxBuffer[0]=='P' || rfRxBuffer[0]=='G') {
@@ -497,6 +559,20 @@ void eleresSetRcDataFromPayload(uint16_t *rcData, const uint8_t *payload)
         red_led_local = 1;
     else
         led_time = cr_time;
+
+    //watch IRQ - if not received, restart RFM
+    if (eleresConfig()->eleresTelemetryEn && millis() - lastIrqTime > 2000)
+    {
+        if (lastIrqTime < 4000)
+        {
+            rfmSpiWrite(0x07, 0x80); //restart rfm22 in case of problems only at startup
+            delay(1);
+        }
+
+        rfm22bInitParameter();
+        toRxMode();
+        lastIrqTime = millis();
+    }
 
     if ((dataReady & LOCALIZER_FLAG) == 0) {
         if (cr_time > nextPackTime+2) {
@@ -699,7 +775,7 @@ void eleresInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
     rfmSpiWrite(0x07, 0x80);
     delay(100);
 
-    eleresSignaturePtr = (uint8_t*)&eleresConfigMutable()->eleresSignature;
+    eleresSignaturePtr = (uint8_t*)&eleresConfig()->eleresSignature;
 
     rfm22bInitParameter();
     bindChannels(eleresSignaturePtr,holList);

@@ -42,10 +42,6 @@
 #include "io/asyncfatfs/asyncfatfs.h"
 
 
-#if !(defined(STM32F405xx) || defined(STM32F722xx) || defined(STM32F765XG) || defined(STM32F7X5XI))
-#error Unsupported MCU
-#endif
-
 #if !(defined(USE_FLASHFS) || defined(USE_SDCARD))
 #error No storage backend available
 #endif
@@ -64,14 +60,16 @@ flashSectorDef_t flashSectors[] = { { 16, 4 }, { 64, 1 }, { 128, 7 }, { 0, 0 } }
 #define SECTOR_COUNT 8
 flashSectorDef_t flashSectors[] = { { 16, 4 }, { 64, 1 }, { 128, 3 }, { 0, 0 } };
 
-#elif defined(STM32F765XG)
+#elif defined(STM32F745xG) || defined(STM32F765xG)
 #define SECTOR_COUNT 8
 flashSectorDef_t flashSectors[] = { { 32, 4 }, { 128, 1 }, { 256, 3 }, { 0, 0 } };
 
-#elif defined(STM32F7X5XI)
+#elif defined(STM32F765xI)
 #define SECTOR_COUNT 8
 flashSectorDef_t flashSectors[] = { { 32, 4 }, { 128, 1 }, { 256, 7 }, { 0, 0 } };
 
+#else
+#error Unsupported MCU
 #endif
 
 #if defined(STM32F4)

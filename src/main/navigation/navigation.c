@@ -18,7 +18,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <math.h>
-
+#include <string.h>
 
 #include "platform.h"
 
@@ -74,13 +74,24 @@ uint32_t      GPS_distanceToHome;        // distance to home point in meters
 int16_t       GPS_directionToHome;       // direction to home point in degrees
 
 radar_pois_t radar_pois[RADAR_MAX_POIS];
+#if defined(USE_SAFE_HOME)
+int8_t safehome_used;                     // -1 if no safehome, 0 to MAX_SAFEHOMES -1 otherwise
+uint32_t safehome_distance;               // distance to the selected safehome
+
+PG_REGISTER_ARRAY(navSafeHome_t, MAX_SAFE_HOMES, safeHomeConfig, PG_SAFE_HOME_CONFIG , 0);
+
+#endif
 
 #if defined(USE_NAV)
+
+// waypoint 254, 255 are special waypoints
+STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_range);
+
 #if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE)
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 0);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 7);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 9);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -95,7 +106,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
             .rth_tail_first = 0,
             .disarm_on_landing = 0,
             .rth_allow_landing = NAV_RTH_ALLOW_LANDING_ALWAYS,
-            .auto_overrides_motor_stop = 1,
+            .nav_overrides_motor_stop = NOMS_ALL_NAV,
         },
 
         // General navigation parameters
@@ -115,8 +126,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .rth_home_altitude = 0,                 // altitude in centimeters
         .rth_abort_threshold = 50000,           // centimeters - 500m should be safe for all aircraft
         .max_terrain_follow_altitude = 100,     // max altitude in centimeters in terrain following mode
-        .rth_home_offset_distance = 0,          // Distance offset from GPS established home to "safe" position used for RTH (cm, 0 disables)
-        .rth_home_offset_direction = 0,         // Direction offset from GPS established home to "safe" position used for RTH (degrees, 0=N, 90=E, 180=S, 270=W, requires non-zero offset distance)
+        .safehome_max_distance = 20000,         // Max distance that a safehome is from the arming point
         },
 
     // MC-specific
@@ -147,6 +157,8 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .max_throttle = 1700,
         .min_throttle = 1200,
         .pitch_to_throttle = 10,                // pwm units per degree of pitch (10pwm units ~ 1% throttle)
+        .pitch_to_throttle_smooth = 0,
+        .pitch_to_throttle_thresh = 0,
         .loiter_radius = 5000,                  // 50m
 
         //Fixed wing landing
@@ -160,6 +172,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .launch_idle_throttle = 1000,           // Motor idle or MOTOR_STOP
         .launch_motor_timer = 500,              // ms
         .launch_motor_spinup_time = 100,        // ms, time to gredually increase throttle from idle to launch
+        .launch_end_time = 3000,                // ms, time to gradually decrease/increase throttle and decrease pitch angle from launch to the current flight mode
         .launch_min_time = 0,                   // ms, min time in launch mode
         .launch_timeout = 5000,                 // ms, timeout for launch procedure
         .launch_max_altitude = 0,               // cm, altitude where to consider launch ended
@@ -487,7 +500,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .timeoutMs = 10,
         .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH | NAV_RC_POS | NAV_RC_YAW,     // allow pos adjustment while climbind to safe alt
         .mapToFlightModes = NAV_RTH_MODE | NAV_ALTHOLD_MODE,
-        .mwState = MW_NAV_STATE_RTH_ENROUTE,
+        .mwState = MW_NAV_STATE_RTH_CLIMB,
         .mwError = MW_NAV_ERROR_WAIT_FOR_RTH_ALT,
         .onEvent = {
             [NAV_FSM_EVENT_TIMEOUT]                     = NAV_STATE_RTH_CLIMB_TO_SAFE_ALT,   // re-process the state
@@ -1907,13 +1920,13 @@ static fpVector3_t * rthGetHomeTargetPosition(rthTargetMode_e mode)
 // Control System Design, Lecture Notes for ME 155A by Karl Johan Åström (p.228)
 // http://www.cds.caltech.edu/~murray/courses/cds101/fa02/caltech/astrom-ch6.pdf
 float navPidApply3(
-    pidController_t *pid, 
-    const float setpoint, 
-    const float measurement, 
-    const float dt, 
-    const float outMin, 
-    const float outMax, 
-    const pidControllerFlags_e pidFlags, 
+    pidController_t *pid,
+    const float setpoint,
+    const float measurement,
+    const float dt,
+    const float outMin,
+    const float outMax,
+    const pidControllerFlags_e pidFlags,
     const float gainScaler,
     const float dTermScaler
 ) {
@@ -2434,6 +2447,57 @@ static navigationHomeFlags_t navigationActualStateHomeValidity(void)
     return flags;
 }
 
+#if defined(USE_SAFE_HOME)
+
+/*******************************************************
+ * Is a safehome being used instead of the arming point?
+ *******************************************************/
+bool isSafeHomeInUse(void)
+{
+    return (safehome_used > -1 && safehome_used < MAX_SAFE_HOMES);
+}
+
+/***********************************************************
+ *  See if there are any safehomes near where we are arming.
+ *  If so, use it instead of the arming point for home.
+ *  Select the nearest safehome
+ **********************************************************/
+bool foundNearbySafeHome(void)
+{
+    safehome_used = -1;
+    uint32_t nearest_safehome_distance = navConfig()->general.safehome_max_distance + 1;
+    uint32_t distance_to_current;
+    fpVector3_t currentSafeHome;
+    fpVector3_t nearestSafeHome;
+    gpsLocation_t shLLH;
+    shLLH.alt = 0;
+    for (uint8_t i = 0; i < MAX_SAFE_HOMES; i++) {
+		if (!safeHomeConfig(i)->enabled)
+		    continue;
+
+        shLLH.lat = safeHomeConfig(i)->lat;
+        shLLH.lon = safeHomeConfig(i)->lon;
+        geoConvertGeodeticToLocal(&currentSafeHome, &posControl.gpsOrigin, &shLLH, GEO_ALT_RELATIVE);
+        distance_to_current = calculateDistanceToDestination(&currentSafeHome);
+        if (distance_to_current < nearest_safehome_distance) {
+             // this safehome is the nearest so far - keep track of it.
+             safehome_used = i;
+             nearest_safehome_distance = distance_to_current;
+             nearestSafeHome.x = currentSafeHome.x;
+             nearestSafeHome.y = currentSafeHome.y;
+             nearestSafeHome.z = currentSafeHome.z;
+        }
+    }
+    if (safehome_used >= 0) {
+		safehome_distance = nearest_safehome_distance;
+        setHomePosition(&nearestSafeHome, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
+        return true;
+    }
+    safehome_distance = 0;
+    return false;
+}
+#endif
+
 /*-----------------------------------------------------------
  * Update home position, calculate distance and bearing to home
  *-----------------------------------------------------------*/
@@ -2455,15 +2519,10 @@ void updateHomePosition(void)
                     break;
             }
             if (setHome) {
-                if (navConfig()->general.rth_home_offset_distance != 0) { // apply user defined offset
-                    fpVector3_t offsetHome;
-                    offsetHome.x = posControl.actualState.abs.pos.x + navConfig()->general.rth_home_offset_distance * cos_approx(DEGREES_TO_RADIANS(navConfig()->general.rth_home_offset_direction));
-                    offsetHome.y = posControl.actualState.abs.pos.y + navConfig()->general.rth_home_offset_distance * sin_approx(DEGREES_TO_RADIANS(navConfig()->general.rth_home_offset_direction));
-                    offsetHome.z = posControl.actualState.abs.pos.z;
-                    setHomePosition(&offsetHome, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
-                } else {
+#if defined(USE_SAFE_HOME)
+                if (!foundNearbySafeHome())
+#endif
                     setHomePosition(&posControl.actualState.abs.pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
-                }
             }
         }
     }
@@ -2787,6 +2846,20 @@ void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData)
         wpData->lon = wpLLH.lon;
         wpData->alt = wpLLH.alt;
     }
+    // WP #254 - special waypoint - get desiredPosition that was set by ground control station if in 3D-guided mode
+    else if (wpNumber == 254) {
+        navigationFSMStateFlags_t navStateFlags = navGetStateFlags(posControl.navState);
+
+        if ((posControl.gpsOrigin.valid) && (navStateFlags & NAV_CTL_ALT) && (navStateFlags & NAV_CTL_POS)) {
+            gpsLocation_t wpLLH;
+
+            geoConvertLocalToGeodetic(&wpLLH, &posControl.gpsOrigin, &posControl.desiredState.pos);
+
+            wpData->lat = wpLLH.lat;
+            wpData->lon = wpLLH.lon;
+            wpData->alt = wpLLH.alt;
+        }
+    }
     // WP #1 - #60 - common waypoints - pre-programmed mission
     else if ((wpNumber >= 1) && (wpNumber <= NAV_MAX_WAYPOINTS)) {
         if (wpNumber <= posControl.waypointCount) {
@@ -2908,6 +2981,14 @@ bool saveNonVolatileWaypointList(void)
     saveConfigAndNotify();
 
     return true;
+}
+#endif
+
+#if defined(USE_SAFE_HOME)
+
+void resetSafeHomes(void)
+{
+    memset(safeHomeConfigMutable(0), 0, sizeof(navSafeHome_t) * MAX_SAFE_HOMES);
 }
 #endif
 
@@ -3128,6 +3209,11 @@ static bool canActivateNavigationModes(void)
     return (posControl.flags.estPosStatus == EST_TRUSTED) && (posControl.flags.estVelStatus == EST_TRUSTED) && (posControl.flags.estHeadingStatus >= EST_USABLE);
 }
 
+static bool isWaypointMissionValid(void)
+{
+    return posControl.waypointListValid && (posControl.waypointCount > 0);
+}
+
 static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
 {
     static bool canActivateWaypoint = false;
@@ -3141,9 +3227,16 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         }
 
         // Flags if we can activate certain nav modes (check if we have required sensors and they provide valid data)
-        bool canActivateAltHold    = canActivateAltHoldMode();
-        bool canActivatePosHold    = canActivatePosHoldMode();
-        bool canActivateNavigation = canActivateNavigationModes();
+        const bool canActivateAltHold    = canActivateAltHoldMode();
+        const bool canActivatePosHold    = canActivatePosHoldMode();
+        const bool canActivateNavigation = canActivateNavigationModes();
+        const bool isExecutingRTH        = navGetStateFlags(posControl.navState) & NAV_AUTO_RTH;
+
+        // Keep canActivateWaypoint flag at FALSE if there is no mission loaded
+        // Also block WP mission if we are executing RTH
+        if (!isWaypointMissionValid() || isExecutingRTH) {
+            canActivateWaypoint = false;
+        }
 
         // LAUNCH mode has priority over any other NAV mode
         if (STATE(FIXED_WING_LEGACY)) {
@@ -3170,11 +3263,21 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         }
 
         // RTH/Failsafe_RTH can override MANUAL
-        if (posControl.flags.forcedRTHActivated || (IS_RC_MODE_ACTIVE(BOXNAVRTH) && canActivatePosHold && canActivateNavigation && canActivateAltHold && STATE(GPS_FIX_HOME))) {
+        if (posControl.flags.forcedRTHActivated) {
             // If we request forced RTH - attempt to activate it no matter what
             // This might switch to emergency landing controller if GPS is unavailable
-            canActivateWaypoint = false;    // Block WP mode if we switched to RTH for whatever reason
             return NAV_FSM_EVENT_SWITCH_TO_RTH;
+        }
+
+        // Pilot-triggered RTH, also fall-back for WP if there is no mission loaded
+        if (IS_RC_MODE_ACTIVE(BOXNAVRTH) || (IS_RC_MODE_ACTIVE(BOXNAVWP) && !canActivateWaypoint)) {
+            // Check for isExecutingRTH to prevent switching our from RTH in case of a brief GPS loss
+            // If don't keep this, loss of any of the canActivatePosHold && canActivateNavigation && canActivateAltHold
+            // will kick us out of RTH state machine via NAV_FSM_EVENT_SWITCH_TO_IDLE and will prevent any of the fall-back
+            // logic to kick in (waiting for GPS on airplanes, switch to emergency landing etc)
+            if (isExecutingRTH || (canActivatePosHold && canActivateNavigation && canActivateAltHold && STATE(GPS_FIX_HOME))) {
+                return NAV_FSM_EVENT_SWITCH_TO_RTH;
+            }
         }
 
         // MANUAL mode has priority over WP/PH/AH
@@ -3183,8 +3286,9 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
             return NAV_FSM_EVENT_SWITCH_TO_IDLE;
         }
 
+        // Pilot-activated waypoint mission. Fall-back to RTH in case of no mission loaded
         if (IS_RC_MODE_ACTIVE(BOXNAVWP)) {
-            if ((FLIGHT_MODE(NAV_WP_MODE)) || (canActivateNavigation && canActivateWaypoint && canActivatePosHold && canActivateAltHold && STATE(GPS_FIX_HOME) && ARMING_FLAG(ARMED) && posControl.waypointListValid && (posControl.waypointCount > 0)))
+            if (FLIGHT_MODE(NAV_WP_MODE) || (canActivateWaypoint && canActivatePosHold && canActivateNavigation && canActivateAltHold && STATE(GPS_FIX_HOME)))
                 return NAV_FSM_EVENT_SWITCH_TO_WAYPOINT;
         }
         else {
@@ -3592,10 +3696,16 @@ bool navigationIsExecutingAnEmergencyLanding(void)
     return navGetCurrentStateFlags() & NAV_CTL_EMERG;
 }
 
-bool navigationIsControllingThrottle(void)
+bool navigationInAutomaticThrottleMode(void)
 {
     navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
-    return ((stateFlags & (NAV_CTL_ALT | NAV_CTL_EMERG | NAV_CTL_LAUNCH | NAV_CTL_LAND)) && (getMotorStatus() != MOTOR_STOPPED_USER));
+    return (stateFlags & (NAV_CTL_ALT | NAV_CTL_EMERG | NAV_CTL_LAUNCH | NAV_CTL_LAND));
+}
+
+bool navigationIsControllingThrottle(void)
+{
+    // Note that this makes a detour into mixer code to evaluate actual motor status
+    return navigationInAutomaticThrottleMode() && (getMotorStatus() != MOTOR_STOPPED_USER);
 }
 
 bool navigationIsFlyingAutonomousMode(void)

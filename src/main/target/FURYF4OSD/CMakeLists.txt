@@ -1,0 +1,2 @@
+target_stm32f405xg(FURYF4OSD)
+target_stm32f405xg(MAMBAF405)

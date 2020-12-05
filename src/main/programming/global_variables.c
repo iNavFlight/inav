@@ -38,7 +38,7 @@ FILE_COMPILE_FOR_SIZE
  
 static EXTENDED_FASTRAM int32_t globalVariableState[MAX_GLOBAL_VARIABLES];
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(globalVariableConfig_t, MAX_GLOBAL_VARIABLES, globalVariableConfigs, PG_GLOBAL_VARIABLE_CONFIG, 0);
+PG_REGISTER_ARRAY_WITH_RESET_FN(globalVariableConfig_t, MAX_GLOBAL_VARIABLES, globalVariableConfigs, PG_GLOBAL_VARIABLE_CONFIG, 1);
 
 void pgResetFn_globalVariableConfigs(globalVariableConfig_t *globalVariableConfigs)
 {

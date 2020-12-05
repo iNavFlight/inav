@@ -3,15 +3,15 @@
 
 #define MAVLINK_MSG_ID_SERIAL_CONTROL 126
 
-MAVPACKED(
+
 typedef struct __mavlink_serial_control_t {
- uint32_t baudrate; /*< Baudrate of transfer. Zero means no change.*/
- uint16_t timeout; /*< Timeout for reply data in milliseconds*/
- uint8_t device; /*< See SERIAL_CONTROL_DEV enum*/
- uint8_t flags; /*< See SERIAL_CONTROL_FLAG enum*/
- uint8_t count; /*< how many bytes in this transfer*/
- uint8_t data[70]; /*< serial data*/
-}) mavlink_serial_control_t;
+ uint32_t baudrate; /*< [bits/s] Baudrate of transfer. Zero means no change.*/
+ uint16_t timeout; /*< [ms] Timeout for reply data*/
+ uint8_t device; /*<  Serial control device type.*/
+ uint8_t flags; /*<  Bitmap of serial control flags.*/
+ uint8_t count; /*< [bytes] how many bytes in this transfer*/
+ uint8_t data[70]; /*<  serial data*/
+} mavlink_serial_control_t;
 
 #define MAVLINK_MSG_ID_SERIAL_CONTROL_LEN 79
 #define MAVLINK_MSG_ID_SERIAL_CONTROL_MIN_LEN 79
@@ -28,10 +28,10 @@ typedef struct __mavlink_serial_control_t {
     126, \
     "SERIAL_CONTROL", \
     6, \
-    {  { "baudrate", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_serial_control_t, baudrate) }, \
-         { "timeout", NULL, MAVLINK_TYPE_UINT16_T, 0, 4, offsetof(mavlink_serial_control_t, timeout) }, \
-         { "device", NULL, MAVLINK_TYPE_UINT8_T, 0, 6, offsetof(mavlink_serial_control_t, device) }, \
+    {  { "device", NULL, MAVLINK_TYPE_UINT8_T, 0, 6, offsetof(mavlink_serial_control_t, device) }, \
          { "flags", NULL, MAVLINK_TYPE_UINT8_T, 0, 7, offsetof(mavlink_serial_control_t, flags) }, \
+         { "timeout", NULL, MAVLINK_TYPE_UINT16_T, 0, 4, offsetof(mavlink_serial_control_t, timeout) }, \
+         { "baudrate", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_serial_control_t, baudrate) }, \
          { "count", NULL, MAVLINK_TYPE_UINT8_T, 0, 8, offsetof(mavlink_serial_control_t, count) }, \
          { "data", NULL, MAVLINK_TYPE_UINT8_T, 70, 9, offsetof(mavlink_serial_control_t, data) }, \
          } \
@@ -40,10 +40,10 @@ typedef struct __mavlink_serial_control_t {
 #define MAVLINK_MESSAGE_INFO_SERIAL_CONTROL { \
     "SERIAL_CONTROL", \
     6, \
-    {  { "baudrate", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_serial_control_t, baudrate) }, \
-         { "timeout", NULL, MAVLINK_TYPE_UINT16_T, 0, 4, offsetof(mavlink_serial_control_t, timeout) }, \
-         { "device", NULL, MAVLINK_TYPE_UINT8_T, 0, 6, offsetof(mavlink_serial_control_t, device) }, \
+    {  { "device", NULL, MAVLINK_TYPE_UINT8_T, 0, 6, offsetof(mavlink_serial_control_t, device) }, \
          { "flags", NULL, MAVLINK_TYPE_UINT8_T, 0, 7, offsetof(mavlink_serial_control_t, flags) }, \
+         { "timeout", NULL, MAVLINK_TYPE_UINT16_T, 0, 4, offsetof(mavlink_serial_control_t, timeout) }, \
+         { "baudrate", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_serial_control_t, baudrate) }, \
          { "count", NULL, MAVLINK_TYPE_UINT8_T, 0, 8, offsetof(mavlink_serial_control_t, count) }, \
          { "data", NULL, MAVLINK_TYPE_UINT8_T, 70, 9, offsetof(mavlink_serial_control_t, data) }, \
          } \
@@ -56,12 +56,12 @@ typedef struct __mavlink_serial_control_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param device See SERIAL_CONTROL_DEV enum
- * @param flags See SERIAL_CONTROL_FLAG enum
- * @param timeout Timeout for reply data in milliseconds
- * @param baudrate Baudrate of transfer. Zero means no change.
- * @param count how many bytes in this transfer
- * @param data serial data
+ * @param device  Serial control device type.
+ * @param flags  Bitmap of serial control flags.
+ * @param timeout [ms] Timeout for reply data
+ * @param baudrate [bits/s] Baudrate of transfer. Zero means no change.
+ * @param count [bytes] how many bytes in this transfer
+ * @param data  serial data
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_serial_control_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -97,12 +97,12 @@ static inline uint16_t mavlink_msg_serial_control_pack(uint8_t system_id, uint8_
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param device See SERIAL_CONTROL_DEV enum
- * @param flags See SERIAL_CONTROL_FLAG enum
- * @param timeout Timeout for reply data in milliseconds
- * @param baudrate Baudrate of transfer. Zero means no change.
- * @param count how many bytes in this transfer
- * @param data serial data
+ * @param device  Serial control device type.
+ * @param flags  Bitmap of serial control flags.
+ * @param timeout [ms] Timeout for reply data
+ * @param baudrate [bits/s] Baudrate of transfer. Zero means no change.
+ * @param count [bytes] how many bytes in this transfer
+ * @param data  serial data
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_serial_control_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -164,12 +164,12 @@ static inline uint16_t mavlink_msg_serial_control_encode_chan(uint8_t system_id,
  * @brief Send a serial_control message
  * @param chan MAVLink channel to send the message
  *
- * @param device See SERIAL_CONTROL_DEV enum
- * @param flags See SERIAL_CONTROL_FLAG enum
- * @param timeout Timeout for reply data in milliseconds
- * @param baudrate Baudrate of transfer. Zero means no change.
- * @param count how many bytes in this transfer
- * @param data serial data
+ * @param device  Serial control device type.
+ * @param flags  Bitmap of serial control flags.
+ * @param timeout [ms] Timeout for reply data
+ * @param baudrate [bits/s] Baudrate of transfer. Zero means no change.
+ * @param count [bytes] how many bytes in this transfer
+ * @param data  serial data
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -250,7 +250,7 @@ static inline void mavlink_msg_serial_control_send_buf(mavlink_message_t *msgbuf
 /**
  * @brief Get field device from serial_control message
  *
- * @return See SERIAL_CONTROL_DEV enum
+ * @return  Serial control device type.
  */
 static inline uint8_t mavlink_msg_serial_control_get_device(const mavlink_message_t* msg)
 {
@@ -260,7 +260,7 @@ static inline uint8_t mavlink_msg_serial_control_get_device(const mavlink_messag
 /**
  * @brief Get field flags from serial_control message
  *
- * @return See SERIAL_CONTROL_FLAG enum
+ * @return  Bitmap of serial control flags.
  */
 static inline uint8_t mavlink_msg_serial_control_get_flags(const mavlink_message_t* msg)
 {
@@ -270,7 +270,7 @@ static inline uint8_t mavlink_msg_serial_control_get_flags(const mavlink_message
 /**
  * @brief Get field timeout from serial_control message
  *
- * @return Timeout for reply data in milliseconds
+ * @return [ms] Timeout for reply data
  */
 static inline uint16_t mavlink_msg_serial_control_get_timeout(const mavlink_message_t* msg)
 {
@@ -280,7 +280,7 @@ static inline uint16_t mavlink_msg_serial_control_get_timeout(const mavlink_mess
 /**
  * @brief Get field baudrate from serial_control message
  *
- * @return Baudrate of transfer. Zero means no change.
+ * @return [bits/s] Baudrate of transfer. Zero means no change.
  */
 static inline uint32_t mavlink_msg_serial_control_get_baudrate(const mavlink_message_t* msg)
 {
@@ -290,7 +290,7 @@ static inline uint32_t mavlink_msg_serial_control_get_baudrate(const mavlink_mes
 /**
  * @brief Get field count from serial_control message
  *
- * @return how many bytes in this transfer
+ * @return [bytes] how many bytes in this transfer
  */
 static inline uint8_t mavlink_msg_serial_control_get_count(const mavlink_message_t* msg)
 {
@@ -300,7 +300,7 @@ static inline uint8_t mavlink_msg_serial_control_get_count(const mavlink_message
 /**
  * @brief Get field data from serial_control message
  *
- * @return serial data
+ * @return  serial data
  */
 static inline uint16_t mavlink_msg_serial_control_get_data(const mavlink_message_t* msg, uint8_t *data)
 {

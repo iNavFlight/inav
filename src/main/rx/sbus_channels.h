@@ -72,7 +72,7 @@ typedef struct sbusFrame_s {
 } __attribute__ ((__packed__)) sbusFrame_t;
 
 
-uint16_t sbusDecodeChannelValue(uint16_t sbusValue);
+uint16_t sbusDecodeChannelValue(uint16_t sbusValue, bool safeValuesOnly);
 uint16_t sbusEncodeChannelValue(uint16_t rcValue);
 
 uint8_t sbusChannelsDecode(rxRuntimeConfig_t *rxRuntimeConfig, const sbusChannels_t *channels);

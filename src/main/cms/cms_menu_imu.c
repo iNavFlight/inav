@@ -400,13 +400,21 @@ static const CMS_Menu cmsx_menuProfileOther = {
 //
 static const OSD_Entry cmsx_menuFilterPerProfileEntries[] =
 {
-    OSD_LABEL_DATA_ENTRY("-- FILTER PP  --", profileIndexString),
-
+    OSD_LABEL_DATA_ENTRY("-- FILTERING  --", profileIndexString),
+    OSD_SETTING_ENTRY("HARDWARE LPF", SETTING_GYRO_HARDWARE_LPF),
+    OSD_SETTING_ENTRY("GYRO LPF", SETTING_GYRO_LPF_HZ),
+    OSD_SETTING_ENTRY("GYRO LPF2", SETTING_GYRO_STAGE2_LOWPASS_HZ),
     OSD_SETTING_ENTRY("DTERM LPF", SETTING_DTERM_LPF_HZ),
-    OSD_SETTING_ENTRY("GYRO SLPF", SETTING_GYRO_LPF_HZ),
-    OSD_SETTING_ENTRY("YAW SUM LIM", SETTING_PIDSUM_LIMIT_YAW),
-    OSD_SETTING_ENTRY("YAW LPF", SETTING_YAW_LPF_HZ),
-
+    OSD_SETTING_ENTRY("DTERM LPF2", SETTING_DTERM_LPF2_HZ),
+#ifdef USE_DYNAMIC_FILTERS
+    OSD_SETTING_ENTRY("MATRIX FILTER", SETTING_DYNAMIC_GYRO_NOTCH_ENABLED),
+    OSD_SETTING_ENTRY("MATRIX MIN HZ", SETTING_DYNAMIC_GYRO_NOTCH_MIN_HZ),  //dynamic_gyro_notch_min_hz
+    OSD_SETTING_ENTRY("MATRIX Q", SETTING_DYNAMIC_GYRO_NOTCH_Q),            //dynamic_gyro_notch_q
+#endif
+#ifdef USE_GYRO_KALMAN
+    OSD_SETTING_ENTRY("UNICORN FILTER", SETTING_SETPOINT_KALMAN_ENABLED),   //setpoint_kalman_enabled
+    OSD_SETTING_ENTRY("UNICORN Q", SETTING_SETPOINT_KALMAN_Q),              //setpoint_kalman_q
+#endif
     OSD_BACK_AND_END_ENTRY,
 };
 
@@ -421,17 +429,23 @@ static const CMS_Menu cmsx_menuFilterPerProfile = {
     .entries = cmsx_menuFilterPerProfileEntries,
 };
 
-static const OSD_Entry cmsx_menuGyroEntries[] =
+static const OSD_Entry cmsx_menuMechanicsEntries[] =
 {
-    OSD_LABEL_DATA_ENTRY("-- GYRO GLB --", profileIndexString),
-
-    OSD_SETTING_ENTRY("GYRO SYNC", SETTING_GYRO_SYNC),
-    OSD_SETTING_ENTRY("GYRO LPF", SETTING_GYRO_HARDWARE_LPF),
-
+    OSD_LABEL_DATA_ENTRY("-- MECHANICS --", profileIndexString),
+#ifdef USE_D_BOOST
+    OSD_SETTING_ENTRY("DBOOST_FACTOR", SETTING_D_BOOST_FACTOR),
+#endif
+#ifdef USE_ANTIGRAVITY
+    OSD_SETTING_ENTRY("ANTIGRAV. GAIN", SETTING_ANTIGRAVITY_GAIN),
+#endif
+    OSD_SETTING_ENTRY("ITERM RELAX", SETTING_MC_ITERM_RELAX),
+    OSD_SETTING_ENTRY("ITERM CUTOFF", SETTING_MC_ITERM_RELAX_CUTOFF),
+    OSD_SETTING_ENTRY("CD LPF", SETTING_MC_CD_LPF_HZ),
+ 
     OSD_BACK_AND_END_ENTRY,
 };
 
-static const CMS_Menu cmsx_menuGyro = {
+static const CMS_Menu cmsx_menuMechanics = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "XGYROGLB",
     .GUARD_type = OME_MENU,
@@ -439,7 +453,7 @@ static const CMS_Menu cmsx_menuGyro = {
     .onEnter = NULL,
     .onExit = NULL,
     .onGlobalExit = NULL,
-    .entries = cmsx_menuGyroEntries,
+    .entries = cmsx_menuMechanicsEntries,
 };
 
 static const OSD_Entry cmsx_menuImuEntries[] =
@@ -451,7 +465,8 @@ static const OSD_Entry cmsx_menuImuEntries[] =
     OSD_SUBMENU_ENTRY("PID", &cmsx_menuPid),
     OSD_SUBMENU_ENTRY("PID ALTMAG", &cmsx_menuPidAltMag),
     OSD_SUBMENU_ENTRY("PID GPSNAV", &cmsx_menuPidGpsnav),
-    OSD_SUBMENU_ENTRY("FILT PP", &cmsx_menuFilterPerProfile),
+    OSD_SUBMENU_ENTRY("FILTERING", &cmsx_menuFilterPerProfile),
+    OSD_SUBMENU_ENTRY("MECHANICS",  &cmsx_menuMechanics),
 
     // Rate profile dependent
     OSD_UINT8_CALLBACK_ENTRY("RATE PROF", cmsx_profileIndexOnChange, (&(const OSD_UINT8_t){ &tmpProfileIndex, 1, MAX_CONTROL_RATE_PROFILE_COUNT, 1})),
@@ -459,7 +474,6 @@ static const OSD_Entry cmsx_menuImuEntries[] =
     OSD_SUBMENU_ENTRY("MANU RATE", &cmsx_menuManualRateProfile),
 
     // Global
-    OSD_SUBMENU_ENTRY("GYRO GLB",  &cmsx_menuGyro),
 
 #ifdef NOT_YET
     {"OTHER PP",  OME_Submenu, cmsMenuChange,                 &cmsx_menuProfileOther,                                      0},

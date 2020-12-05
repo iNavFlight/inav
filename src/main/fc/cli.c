@@ -26,8 +26,6 @@
 #include "platform.h"
 
 uint8_t cliMode = 0;
-extern uint8_t __config_start;   // configured via linker script when building binaries.
-extern uint8_t __config_end;
 
 #include "blackbox/blackbox.h"
 
@@ -67,7 +65,6 @@ extern uint8_t __config_end;
 #include "drivers/stack_check.h"
 #include "drivers/system.h"
 #include "drivers/time.h"
-#include "drivers/timer.h"
 #include "drivers/usb_msc.h"
 #include "drivers/vtx_common.h"
 
@@ -103,6 +100,7 @@ extern uint8_t __config_end;
 #include "rx/rx.h"
 #include "rx/spektrum.h"
 #include "rx/eleres.h"
+#include "rx/srxl2.h"
 
 #include "scheduler/scheduler.h"
 
@@ -123,7 +121,7 @@ extern uint8_t __config_end;
 #include "telemetry/telemetry.h"
 #include "build/debug.h"
 
-#if FLASH_SIZE > 128
+#if MCU_FLASH_SIZE > 128
 #define PLAY_SOUND
 #endif
 
@@ -1276,6 +1274,67 @@ static void cliTempSensor(char *cmdline)
 }
 #endif
 
+#if defined(USE_SAFE_HOME)
+static void printSafeHomes(uint8_t dumpMask, const navSafeHome_t *navSafeHome, const navSafeHome_t *defaultSafeHome)
+{
+    const char *format = "safehome %u %u %d %d"; // uint8_t enabled, int32_t lat; int32_t lon
+    for (uint8_t i = 0; i < MAX_SAFE_HOMES; i++) {
+        bool equalsDefault = false;
+        if (defaultSafeHome) {
+            equalsDefault = navSafeHome[i].enabled == defaultSafeHome[i].enabled
+               && navSafeHome[i].lat == defaultSafeHome[i].lat
+               && navSafeHome[i].lon == defaultSafeHome[i].lon;
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format, i,
+                defaultSafeHome[i].enabled, defaultSafeHome[i].lat, defaultSafeHome[i].lon);
+        }
+        cliDumpPrintLinef(dumpMask, equalsDefault, format, i,
+            navSafeHome[i].enabled, navSafeHome[i].lat, navSafeHome[i].lon);
+    }
+}
+
+static void cliSafeHomes(char *cmdline)
+{
+    if (isEmpty(cmdline)) {
+        printSafeHomes(DUMP_MASTER, safeHomeConfig(0), NULL);
+    } else if (sl_strcasecmp(cmdline, "reset") == 0) {
+        resetSafeHomes();
+    } else {
+        int32_t lat, lon;
+        bool enabled;
+        uint8_t validArgumentCount = 0;
+        const char *ptr = cmdline;
+        int8_t i = fastA2I(ptr);
+        if (i < 0 || i >= MAX_SAFE_HOMES) {
+             cliShowArgumentRangeError("safehome index", 0, MAX_SAFE_HOMES - 1);
+        } else {
+            if ((ptr = nextArg(ptr))) {
+                enabled = fastA2I(ptr);
+                validArgumentCount++;
+            }
+            if ((ptr = nextArg(ptr))) {
+                lat = fastA2I(ptr);
+                validArgumentCount++;
+            }
+            if ((ptr = nextArg(ptr))) {
+                lon = fastA2I(ptr);
+                validArgumentCount++;
+            }
+            if ((ptr = nextArg(ptr))) {
+                // check for too many arguments
+                validArgumentCount++;
+            }
+            if (validArgumentCount != 3) {
+                cliShowParseError();
+            } else {
+                safeHomeConfigMutable(i)->enabled = enabled;
+                safeHomeConfigMutable(i)->lat = lat;
+                safeHomeConfigMutable(i)->lon = lon;
+            }
+        }
+    }
+}
+
+#endif 
 #if defined(USE_NAV) && defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE) && defined(NAV_NON_VOLATILE_WAYPOINT_CLI)
 static void printWaypoints(uint8_t dumpMask, const navWaypoint_t *navWaypoint, const navWaypoint_t *defaultNavWaypoint)
 {
@@ -2517,6 +2576,35 @@ static void cliEleresBind(char *cmdline)
 }
 #endif // USE_RX_ELERES
 
+#if defined(USE_RX_SPI) || defined (USE_SERIALRX_SRXL2)
+void cliRxBind(char *cmdline){
+    UNUSED(cmdline);
+    if (rxConfig()->receiverType == RX_TYPE_SERIAL) {
+        switch (rxConfig()->serialrx_provider) {
+        default:
+            cliPrint("Not supported.");
+            break;
+#if defined(USE_SERIALRX_SRXL2)
+        case SERIALRX_SRXL2:
+            srxl2Bind();
+            cliPrint("Binding SRXL2 receiver...");
+            break;
+#endif
+        }
+    } 
+#if defined(USE_RX_SPI)
+    else if (rxConfig()->receiverType == RX_TYPE_SPI) {
+        switch (rxConfig()->rx_spi_protocol) {
+        default:
+            cliPrint("Not supported.");
+            break;
+        }
+    
+    }
+#endif
+}
+#endif
+
 static void cliExit(char *cmdline)
 {
     UNUSED(cmdline);
@@ -3214,6 +3302,10 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintHashLine("servo");
         printServo(dumpMask, servoParams_CopyArray, servoParams(0));
 
+#if defined(USE_SAFE_HOME)
+        cliPrintHashLine("safehome");
+        printSafeHomes(dumpMask, safeHomeConfig_CopyArray, safeHomeConfig(0)); 
+#endif
 #ifdef USE_PROGRAMMING_FRAMEWORK
         cliPrintHashLine("logic");
         printLogic(dumpMask, logicConditions_CopyArray, logicConditions(0));
@@ -3400,6 +3492,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("beeper", "turn on/off beeper", "list\r\n"
             "\t<+|->[name]", cliBeeper),
 #endif
+#if defined(USE_RX_SPI) || defined (USE_SERIALRX_SRXL2)
+    CLI_COMMAND_DEF("bind_rx", "initiate binding for RX SPI or SRXL2", NULL, cliRxBind),
+#endif
 #if defined(USE_BOOTLOG)
     CLI_COMMAND_DEF("bootlog", "show boot events", NULL, cliBootlog),
 #endif
@@ -3454,6 +3549,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("resource", "view currently used resources", NULL, cliResource),
 #endif
     CLI_COMMAND_DEF("rxrange", "configure rx channel ranges", NULL, cliRxRange),
+#if defined(USE_SAFE_HOME)
+    CLI_COMMAND_DEF("safehome", "safe home list", NULL, cliSafeHomes),
+#endif
     CLI_COMMAND_DEF("save", "save and reboot", NULL, cliSave),
     CLI_COMMAND_DEF("serial", "configure serial ports", NULL, cliSerial),
 #ifdef USE_SERIAL_PASSTHROUGH

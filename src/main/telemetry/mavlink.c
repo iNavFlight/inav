@@ -23,6 +23,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include <math.h>
 
 #include "platform.h"
 
@@ -35,16 +36,21 @@
 #include "common/color.h"
 #include "common/maths.h"
 #include "common/utils.h"
+#include "common/string_light.h"
 
 #include "config/feature.h"
 
 #include "drivers/serial.h"
 #include "drivers/time.h"
+#include "drivers/display.h"
+#include "drivers/osd_symbols.h"
 
 #include "fc/config.h"
 #include "fc/fc_core.h"
 #include "fc/rc_controls.h"
+#include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
+#include "fc/settings.h"
 
 #include "flight/failsafe.h"
 #include "flight/imu.h"
@@ -55,8 +61,10 @@
 #include "io/gps.h"
 #include "io/ledstrip.h"
 #include "io/serial.h"
+#include "io/osd.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_private.h"
 
 #include "rx/rx.h"
 
@@ -66,10 +74,17 @@
 #include "sensors/boardalignment.h"
 #include "sensors/gyro.h"
 #include "sensors/pitotmeter.h"
+#include "sensors/diagnostics.h"
 #include "sensors/sensors.h"
+#include "sensors/temperature.h"
+#include "sensors/esc_sensor.h"
 
 #include "telemetry/mavlink.h"
 #include "telemetry/telemetry.h"
+
+#include "blackbox/blackbox_io.h"
+
+#include "scheduler/scheduler.h"
 
 // mavlink library uses unnames unions that's causes GCC to complain if -Wpedantic is used
 // until this is resolved in mavlink library - ignore -Wpedantic for mavlink code
@@ -148,7 +163,8 @@ static uint8_t mavRates[] = {
     [MAV_DATA_STREAM_RC_CHANNELS] = 5,          // 5Hz
     [MAV_DATA_STREAM_POSITION] = 2,             // 2Hz
     [MAV_DATA_STREAM_EXTRA1] = 10,              // 10Hz
-    [MAV_DATA_STREAM_EXTRA2] = 2                // 2Hz
+    [MAV_DATA_STREAM_EXTRA2] = 2,               // 2Hz
+    [MAV_DATA_STREAM_EXTRA3] = 1                // 1Hz
 };
 
 #define MAXSTREAMS (sizeof(mavRates) / sizeof(mavRates[0]))
@@ -162,7 +178,7 @@ static mavlink_status_t mavRecvStatus;
 static uint8_t mavSystemId = 1;
 static uint8_t mavComponentId = MAV_COMP_ID_SYSTEM_CONTROL;
 
-APM_COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
+static APM_COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
 {
     switch (flightMode)
     {
@@ -175,12 +191,22 @@ APM_COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
         case FLM_RTH:           return COPTER_MODE_RTL;
         case FLM_MISSION:       return COPTER_MODE_AUTO;
         case FLM_LAUNCH:        return COPTER_MODE_THROW;
-        case FLM_FAILSAFE:      return COPTER_MODE_RTL;
+        case FLM_FAILSAFE:
+            {
+                if (failsafePhase() == FAILSAFE_RETURN_TO_HOME) {
+                    return COPTER_MODE_RTL;
+                } else if (failsafePhase() == FAILSAFE_LANDING) {
+                    return COPTER_MODE_LAND;
+                } else {
+                    // There is no valid mapping to ArduCopter
+                    return COPTER_MODE_ENUM_END;
+                }
+            }
         default:                return COPTER_MODE_ENUM_END;
     }
 }
 
-APM_PLANE_MODE inavToArduPlaneMap(flightModeForTelemetry_e flightMode)
+static APM_PLANE_MODE inavToArduPlaneMap(flightModeForTelemetry_e flightMode)
 {
     switch (flightMode)
     {
@@ -195,12 +221,22 @@ APM_PLANE_MODE inavToArduPlaneMap(flightModeForTelemetry_e flightMode)
         case FLM_MISSION:       return PLANE_MODE_AUTO;
         case FLM_CRUISE:        return PLANE_MODE_CRUISE;
         case FLM_LAUNCH:        return PLANE_MODE_TAKEOFF;
-        case FLM_FAILSAFE:      return PLANE_MODE_RTL;
+        case FLM_FAILSAFE:
+            {
+                if (failsafePhase() == FAILSAFE_RETURN_TO_HOME) {
+                    return PLANE_MODE_RTL;
+                }
+                else if (failsafePhase() == FAILSAFE_LANDING) {
+                    return PLANE_MODE_AUTO;
+                }
+                else {
+                    // There is no valid mapping to ArduPlane
+                    return PLANE_MODE_ENUM_END;
+                }
+            }
         default:                return PLANE_MODE_ENUM_END;
     }
 }
-
-
 
 static int mavlinkStreamTrigger(enum MAV_DATA_STREAM streamNum)
 {
@@ -265,6 +301,7 @@ static void configureMAVLinkStreamRates(void)
     mavRates[MAV_DATA_STREAM_POSITION] = telemetryConfig()->mavlink.position_rate;
     mavRates[MAV_DATA_STREAM_EXTRA1] = telemetryConfig()->mavlink.extra1_rate;
     mavRates[MAV_DATA_STREAM_EXTRA2] = telemetryConfig()->mavlink.extra2_rate;
+    mavRates[MAV_DATA_STREAM_EXTRA3] = telemetryConfig()->mavlink.extra3_rate;
 }
 
 void checkMAVLinkTelemetryState(void)
@@ -294,35 +331,126 @@ static void mavlinkSendMessage(void)
 
 void mavlinkSendSystemStatus(void)
 {
-    uint32_t onboardControlAndSensors = 35843;
+    // Receiver is assumed to be always present
+    uint32_t onboard_control_sensors_present    = (MAV_SYS_STATUS_SENSOR_RC_RECEIVER);
+    // GYRO and RC are assumed as minimium requirements
+    uint32_t onboard_control_sensors_enabled    = (MAV_SYS_STATUS_SENSOR_3D_GYRO | MAV_SYS_STATUS_SENSOR_RC_RECEIVER);
+    uint32_t onboard_control_sensors_health     = 0;
 
-    /*
-    onboard_control_sensors_present Bitmask
-    fedcba9876543210
-    1000110000000011    For all   = 35843
-    0001000000000100    With Mag  = 4100
-    0010000000001000    With Baro = 8200
-    0100000000100000    With GPS  = 16416
-    0000001111111111
-    */
+    if (getHwGyroStatus() == HW_SENSOR_OK) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_3D_GYRO;
+        // Missing presence will report as sensor unhealthy
+        onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_3D_GYRO;
+    }
 
-    if (sensors(SENSOR_MAG))  onboardControlAndSensors |=  4100;
-    if (sensors(SENSOR_BARO)) onboardControlAndSensors |=  8200;
-    if (sensors(SENSOR_GPS))  onboardControlAndSensors |= 16416;
+    hardwareSensorStatus_e accStatus = getHwAccelerometerStatus();
+    if (accStatus == HW_SENSOR_OK) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_3D_ACCEL;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_3D_ACCEL;
+        onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_3D_ACCEL;
+    } else if (accStatus == HW_SENSOR_UNHEALTHY) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_3D_ACCEL;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_3D_ACCEL;
+    } else if (accStatus == HW_SENSOR_UNAVAILABLE) {
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_3D_ACCEL;
+    }
+
+    hardwareSensorStatus_e compassStatus = getHwCompassStatus();
+    if (compassStatus == HW_SENSOR_OK) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_3D_MAG;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_3D_MAG;
+        onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_3D_MAG;
+    } else if (compassStatus == HW_SENSOR_UNHEALTHY) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_3D_MAG;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_3D_MAG;
+    } else if (compassStatus == HW_SENSOR_UNAVAILABLE) {
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_3D_MAG;
+    }
+
+    hardwareSensorStatus_e baroStatus = getHwBarometerStatus();
+    if (baroStatus == HW_SENSOR_OK) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE;
+        onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE;
+    } else if (baroStatus == HW_SENSOR_UNHEALTHY) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE;
+    } else if (baroStatus == HW_SENSOR_UNAVAILABLE) {
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE;
+    }
+
+    hardwareSensorStatus_e pitotStatus = getHwPitotmeterStatus();
+    if (pitotStatus == HW_SENSOR_OK) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE;
+        onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE;
+    } else if (pitotStatus == HW_SENSOR_UNHEALTHY) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE;
+    } else if (pitotStatus == HW_SENSOR_UNAVAILABLE) {
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE;
+    }
+
+    hardwareSensorStatus_e gpsStatus = getHwGPSStatus();
+    if (gpsStatus == HW_SENSOR_OK) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_GPS;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_GPS;
+        onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_GPS;
+    } else if (gpsStatus == HW_SENSOR_UNHEALTHY) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_GPS;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_GPS;
+    } else if (gpsStatus == HW_SENSOR_UNAVAILABLE) {
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_GPS;
+    }
+
+    hardwareSensorStatus_e opFlowStatus = getHwOpticalFlowStatus();
+    if (opFlowStatus == HW_SENSOR_OK) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_OPTICAL_FLOW;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_OPTICAL_FLOW;
+        onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_OPTICAL_FLOW;
+    } else if (opFlowStatus == HW_SENSOR_UNHEALTHY) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_OPTICAL_FLOW;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_OPTICAL_FLOW;
+    } else if (opFlowStatus == HW_SENSOR_UNAVAILABLE) {
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_OPTICAL_FLOW;
+    }
+
+    hardwareSensorStatus_e rangefinderStatus = getHwRangefinderStatus();
+    if (rangefinderStatus == HW_SENSOR_OK) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_LASER_POSITION;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_LASER_POSITION;
+        onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_LASER_POSITION;
+    } else if (rangefinderStatus == HW_SENSOR_UNHEALTHY) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_LASER_POSITION;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_LASER_POSITION;
+    } else if (rangefinderStatus == HW_SENSOR_UNAVAILABLE) {
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_LASER_POSITION;
+    }
+
+    if (rxIsReceivingSignal() && rxAreFlightChannelsValid()) {
+        onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_RC_RECEIVER;
+    }
+
+#ifdef USE_BLACKBOX
+    // BLACKBOX is assumed enabled and present for boards with capability
+    onboard_control_sensors_present |= MAV_SYS_STATUS_LOGGING;
+    onboard_control_sensors_enabled |= MAV_SYS_STATUS_LOGGING;
+    // Unhealthy only for cases with not enough space to record
+    if (!isBlackboxDeviceFull()) {
+        onboard_control_sensors_health |= MAV_SYS_STATUS_LOGGING;
+    }
+#endif
 
     mavlink_msg_sys_status_pack(mavSystemId, mavComponentId, &mavSendMsg,
         // onboard_control_sensors_present Bitmask showing which onboard controllers and sensors are present.
-        //Value of 0: not present. Value of 1: present. Indices: 0: 3D gyro, 1: 3D acc, 2: 3D mag, 3: absolute pressure,
-        // 4: differential pressure, 5: GPS, 6: optical flow, 7: computer vision position, 8: laser based position,
-        // 9: external ground-truth (Vicon or Leica). Controllers: 10: 3D angular rate control 11: attitude stabilization,
-        // 12: yaw position, 13: z/altitude control, 14: x/y position control, 15: motor outputs / control
-        onboardControlAndSensors,
+        //Value of 0: not present. Value of 1: present. Indices according MAV_SYS_STATUS_SENSOR
+        onboard_control_sensors_present,
         // onboard_control_sensors_enabled Bitmask showing which onboard controllers and sensors are enabled
-        onboardControlAndSensors,
+        onboard_control_sensors_enabled,
         // onboard_control_sensors_health Bitmask showing which onboard controllers and sensors are operational or have an error.
-        onboardControlAndSensors & 1023,
+        onboard_control_sensors_health,
         // load Maximum usage in percent of the mainloop time, (0%: 0, 100%: 1000) should be always below 1000
-        0,
+        constrain(averageSystemLoadPercent*10, 0, 1000),
         // voltage_battery Battery voltage, in millivolts (1 = 1 millivolt)
         feature(FEATURE_VBAT) ? getBatteryVoltage() * 10 : 0,
         // current_battery Battery current, in 10*milliamperes (1 = 10 milliampere), -1: autopilot does not measure the current
@@ -431,14 +559,14 @@ void mavlinkSendPosition(timeUs_t currentTimeUs)
 #else
         gpsSol.llh.alt * 10,
 #endif
-        // Ground X Speed (Latitude), expressed as m/s * 100
-        0,
-        // Ground Y Speed (Longitude), expressed as m/s * 100
-        0,
-        // Ground Z Speed (Altitude), expressed as m/s * 100
-        0,
-        // heading Current heading in degrees, in compass units (0..360, 0=north)
-        DECIDEGREES_TO_DEGREES(attitude.values.yaw)
+        // [cm/s] Ground X Speed (Latitude, positive north)
+        getEstimatedActualVelocity(X),
+        // [cm/s] Ground Y Speed (Longitude, positive east)
+        getEstimatedActualVelocity(Y),
+        // [cm/s] Ground Z Speed (Altitude, positive down)
+        getEstimatedActualVelocity(Z),
+        // [cdeg] Vehicle heading (yaw angle) (0.0..359.99 degrees, 0=north)
+        DECIDEGREES_TO_CENTIDEGREES(attitude.values.yaw)
     );
 
     mavlinkSendMessage();
@@ -507,6 +635,11 @@ void mavlinkSendHUDAndHeartbeat(void)
     }
 #endif
 
+    
+    int16_t thr = rxGetChannelValue(THROTTLE);
+    if (navigationIsControllingThrottle()) {
+        thr = rcCommand[THROTTLE];
+    }
     mavlink_msg_vfr_hud_pack(mavSystemId, mavComponentId, &mavSendMsg,
         // airspeed Current airspeed in m/s
         mavAirSpeed,
@@ -515,7 +648,7 @@ void mavlinkSendHUDAndHeartbeat(void)
         // heading Current heading in degrees, in compass units (0..360, 0=north)
         DECIDEGREES_TO_DEGREES(attitude.values.yaw),
         // throttle Current throttle setting in integer percent, 0 to 100
-        scaleRange(constrain(rxGetChannelValue(THROTTLE), PWM_RANGE_MIN, PWM_RANGE_MAX), PWM_RANGE_MIN, PWM_RANGE_MAX, 0, 100),
+        scaleRange(constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX), PWM_RANGE_MIN, PWM_RANGE_MAX, 0, 100),
         // alt Current altitude (MSL), in meters, if we have surface or baro use them, otherwise use GPS (less accurate)
         mavAltitude,
         // climb Current climb rate in meters/second
@@ -602,6 +735,82 @@ void mavlinkSendHUDAndHeartbeat(void)
     mavlinkSendMessage();
 }
 
+void mavlinkSendBatteryTemperatureStatusText(void)
+{
+    uint16_t batteryVoltages[MAVLINK_MSG_BATTERY_STATUS_FIELD_VOLTAGES_LEN];
+    memset(batteryVoltages, UINT16_MAX, sizeof(batteryVoltages));
+    if (feature(FEATURE_VBAT)) {
+        uint8_t batteryCellCount = getBatteryCellCount();
+        if (batteryCellCount > 0) {
+            for (int cell=0; (cell < batteryCellCount) && (cell < MAVLINK_MSG_BATTERY_STATUS_FIELD_VOLTAGES_LEN); cell++) {
+                batteryVoltages[cell] = getBatteryAverageCellVoltage() * 10;
+            }
+        }
+        else {
+            batteryVoltages[0] = getBatteryVoltage() * 10;
+        }
+    }
+    else {
+        batteryVoltages[0] = 0;
+    }
+
+    mavlink_msg_battery_status_pack(mavSystemId, mavComponentId, &mavSendMsg,
+        // id Battery ID
+        0,
+        // battery_function Function of the battery
+        MAV_BATTERY_FUNCTION_UNKNOWN,
+        // type Type (chemistry) of the battery
+        MAV_BATTERY_TYPE_UNKNOWN,
+        // temperature Temperature of the battery in centi-degrees celsius. INT16_MAX for unknown temperature
+        INT16_MAX,
+        // voltages Battery voltage of cells, in millivolts (1 = 1 millivolt). Cells above the valid cell count for this battery should have the UINT16_MAX value.
+        batteryVoltages,
+        // current_battery Battery current, in 10*milliamperes (1 = 10 milliampere), -1: autopilot does not measure the current
+        isAmperageConfigured() ? getAmperage() : -1,
+        // current_consumed Consumed charge, in milliampere hours (1 = 1 mAh), -1: autopilot does not provide mAh consumption estimate
+        isAmperageConfigured() ? getMAhDrawn() : -1,
+        // energy_consumed Consumed energy, in 100*Joules (intergrated U*I*dt)  (1 = 100 Joule), -1: autopilot does not provide energy consumption estimate
+        isAmperageConfigured() ? getMWhDrawn()*36 : -1,
+        // battery_remaining Remaining battery energy: (0%: 0, 100%: 100), -1: autopilot does not estimate the remaining battery);
+        feature(FEATURE_VBAT) ? calculateBatteryPercentage() : -1);
+
+    mavlinkSendMessage();
+
+
+    int16_t temperature;
+    sensors(SENSOR_BARO) ? getBaroTemperature(&temperature) : getIMUTemperature(&temperature);
+    mavlink_msg_scaled_pressure_pack(mavSystemId, mavComponentId, &mavSendMsg,
+        millis(),
+        0,
+        0,
+        temperature * 10);
+
+    mavlinkSendMessage();
+
+
+// FIXME - Status text is limited to boards with USE_OSD
+#ifdef USE_OSD
+    char buff[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN] = {" "};
+    textAttributes_t elemAttr = osdGetSystemMessage(buff, sizeof(buff), false);
+    if (buff[0] != SYM_BLANK) {
+        MAV_SEVERITY severity = MAV_SEVERITY_NOTICE;
+        if (TEXT_ATTRIBUTES_HAVE_BLINK(elemAttr)) {
+            severity = MAV_SEVERITY_CRITICAL;
+        } else if TEXT_ATTRIBUTES_HAVE_INVERTED(elemAttr) {
+            severity = MAV_SEVERITY_WARNING;
+        }
+
+        mavlink_msg_statustext_pack(mavSystemId, mavComponentId, &mavSendMsg,
+            (uint8_t)severity,
+            buff);
+
+        mavlinkSendMessage();
+    }
+#endif
+
+
+}
+
 void processMAVLinkTelemetry(timeUs_t currentTimeUs)
 {
     // is executed @ TELEMETRY_MAVLINK_MAXRATE rate
@@ -626,6 +835,11 @@ void processMAVLinkTelemetry(timeUs_t currentTimeUs)
     if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTRA2)) {
         mavlinkSendHUDAndHeartbeat();
     }
+
+    if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTRA3)) {
+        mavlinkSendBatteryTemperatureStatusText();
+    }
+
 }
 
 static bool handleIncoming_MISSION_CLEAR_ALL(void)

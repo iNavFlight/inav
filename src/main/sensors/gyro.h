@@ -74,10 +74,6 @@ typedef struct gyroConfig_s {
     uint16_t dynamicGyroNotchQ;
     uint16_t dynamicGyroNotchMinHz;
     uint8_t dynamicGyroNotchEnabled;
-    uint16_t kalman_q;
-    uint16_t kalman_w;
-    uint16_t kalman_sharpness;
-    uint8_t kalmanEnabled;
 } gyroConfig_t;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);

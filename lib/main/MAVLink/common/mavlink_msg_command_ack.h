@@ -3,11 +3,11 @@
 
 #define MAVLINK_MSG_ID_COMMAND_ACK 77
 
-MAVPACKED(
+
 typedef struct __mavlink_command_ack_t {
- uint16_t command; /*< Command ID, as defined by MAV_CMD enum.*/
- uint8_t result; /*< See MAV_RESULT enum*/
-}) mavlink_command_ack_t;
+ uint16_t command; /*<  Command ID (of acknowledged command).*/
+ uint8_t result; /*<  Result of command.*/
+} mavlink_command_ack_t;
 
 #define MAVLINK_MSG_ID_COMMAND_ACK_LEN 3
 #define MAVLINK_MSG_ID_COMMAND_ACK_MIN_LEN 3
@@ -44,8 +44,8 @@ typedef struct __mavlink_command_ack_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param command Command ID, as defined by MAV_CMD enum.
- * @param result See MAV_RESULT enum
+ * @param command  Command ID (of acknowledged command).
+ * @param result  Result of command.
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_command_ack_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -75,8 +75,8 @@ static inline uint16_t mavlink_msg_command_ack_pack(uint8_t system_id, uint8_t c
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param command Command ID, as defined by MAV_CMD enum.
- * @param result See MAV_RESULT enum
+ * @param command  Command ID (of acknowledged command).
+ * @param result  Result of command.
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_command_ack_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -132,8 +132,8 @@ static inline uint16_t mavlink_msg_command_ack_encode_chan(uint8_t system_id, ui
  * @brief Send a command_ack message
  * @param chan MAVLink channel to send the message
  *
- * @param command Command ID, as defined by MAV_CMD enum.
- * @param result See MAV_RESULT enum
+ * @param command  Command ID (of acknowledged command).
+ * @param result  Result of command.
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -202,7 +202,7 @@ static inline void mavlink_msg_command_ack_send_buf(mavlink_message_t *msgbuf, m
 /**
  * @brief Get field command from command_ack message
  *
- * @return Command ID, as defined by MAV_CMD enum.
+ * @return  Command ID (of acknowledged command).
  */
 static inline uint16_t mavlink_msg_command_ack_get_command(const mavlink_message_t* msg)
 {
@@ -212,7 +212,7 @@ static inline uint16_t mavlink_msg_command_ack_get_command(const mavlink_message
 /**
  * @brief Get field result from command_ack message
  *
- * @return See MAV_RESULT enum
+ * @return  Result of command.
  */
 static inline uint8_t mavlink_msg_command_ack_get_result(const mavlink_message_t* msg)
 {

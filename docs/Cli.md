@@ -65,7 +65,8 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 | `1wire <esc>`    | passthrough 1wire to the specified esc         |
 | `adjrange`       | show/set adjustment ranges settings            |
 | `aux`            | show/set aux settings                          |
-| `beeper`         | show/set beeper (buzzer) usage (see docs/Buzzer.md) |
+| `beeper`         | show/set beeper (buzzer) [usage](Buzzer.md)    |
+| `bind_rx`        | Initiate binding for RX_SPI or SRXL2 receivers |
 | `mmix`           | design custom motor mixer                      |
 | `smix`           | design custom servo mixer                      |
 | `color`          | configure colors                               |
@@ -80,46 +81,57 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 | `led`            | configure leds                                 |
 | `map`            | mapping of rc channel order                    |
 | `motor`          | get/set motor output value                     |
-| `msc`            | Enter USB Mass storage mode. See docs/USB_Mass_Storage_(MSC)_mode.md for usage information.|
+| `msc`            | Enter USB Mass storage mode. See [USB MSC documentation](USB_Mass_Storage_(MSC)_mode.md) for usage information.|
 | `play_sound`     | index, or none for next                        |
 | `profile`        | index (0 to 2)                                 |
 | `rxrange`        | configure rx channel ranges (end-points) |
+| `safehome`      | Define safe home locations. See the [safehome documentation](Safehomes.md) for usage information. |
 | `save`           | save and reboot                                |
 | `serial`         | Configure serial ports                         |
 | `serialpassthrough <id> <baud> <mode>`| where `id` is the zero based port index, `baud` is a standard baud rate, and mode is `rx`, `tx`, or both (`rxtx`) |
 | `set`            | name=value or blank or * for list              |
 | `status`         | show system status                             |
-| `temp_sensor`    | list or configure temperature sensor(s). See docs/Temperature sensors.md |
-| `wp`             | list or configure waypoints. See more in docs/Navigation.md section NAV WP |
-| `version`        |                                                |
+| `temp_sensor`    | list or configure temperature sensor(s). See [temperature sensors documentation](Temperature sensors.md) for more information. |
+| `wp`             | list or configure waypoints. See more in the [navigation documentation](Navigation.md#cli-command-wp-to-manage-waypoints). |
+| `version`        | Displays version information,                  |
 
 ### serial
 
-The syntax of the `serial` command is `serial <id>  <functions> <msp-baudrate> <gps-baudrate> <telemetry-baudate> <peripheral-baudrate>`.
+The syntax of the `serial` command is `serial <id>  <function_value> <msp-baudrate> <gps-baudrate> <telemetry-baudate> <peripheral-baudrate>`.
 
-A shorter form is also supported to enable and disable functions using `serial <id> +n` and
-`serial <id> -n`, where n is the a serial function identifier. The following values are available:
+A shorter form is also supported to enable and disable a single function using `serial <id> +n` and `serial <id> -n`, where n is the a serial function identifier. The following values are available:
 
-| Function              | Identifier    |
-|-----------------------|---------------|
-| MSP                   | 0             |
-| GPS                   | 1             |
-| TELEMETRY_FRSKY       | 2             |
-| TELEMETRY_HOTT        | 3             |
-| TELEMETRY_LTM         | 4             |
-| TELEMETRY_SMARTPORT   | 5             |
-| RX_SERIAL             | 6             |
-| BLACKBOX              | 7             |
-| TELEMETRY_MAVLINK     | 8             |
-| TELEMETRY_IBUS        | 9             |
-| RCDEVICE              | 10            |
-| VTX_SMARTAUDIO        | 11            |
-| VTX_TRAMP             | 12            |
-| UAV_INTERCONNECT      | 13            |
-| OPTICAL_FLOW          | 14            |
-| LOG                   | 15            |
-| RANGEFINDER           | 16            |
-| VTX_FFPV              | 17            |
+| Function              | Bit Identifier | Numeric value |
+|-----------------------|---------------|----------------|
+| MSP                   | 0             | 1 |
+| GPS                   | 1             | 2 |
+| TELEMETRY_FRSKY       | 2             | 4 |
+| TELEMETRY_HOTT        | 3             | 8 |
+| TELEMETRY_LTM         | 4             | 16 |
+| TELEMETRY_SMARTPORT   | 5             | 32 |
+| RX_SERIAL             | 6             | 64 |
+| BLACKBOX              | 7             | 128 |
+| TELEMETRY_MAVLINK     | 8             | 256 |
+| TELEMETRY_IBUS        | 9             | 512 |
+| RCDEVICE              | 10            | 1024 |
+| VTX_SMARTAUDIO        | 11            | 2048 |
+| VTX_TRAMP             | 12            | 4096 |
+| UAV_INTERCONNECT      | 13            | 8192 |
+| OPTICAL_FLOW          | 14            | 16384 |
+| LOG                   | 15            | 32768 |
+| RANGEFINDER           | 16            | 65536 |
+| VTX_FFPV              | 17            | 131072 |
+
+Thus, to enable MSP and LTM on a port, one would use the function **value** of 17 (1 << 0)+(1<<4), aka 1+16, aka 17.
+
+```
+serial 0 17 57600 57600 57600 57600
+```
+but to remove LTM using the +/- shorthand, use the **bit Id** (4, TELEMETRY_LTM):
+
+```
+serial 0 -4
+```
 
 `serial` can also be used without any argument to print the current configuration of all the serial ports.
 
@@ -135,5 +147,4 @@ For targets that have a flash data chip, typically used for blackbox logs, the f
 | `flash_write <address> <data>` | Writes `data` to `address` |
 
 ## CLI Variable Reference
-
 See [Settings.md](Settings.md).

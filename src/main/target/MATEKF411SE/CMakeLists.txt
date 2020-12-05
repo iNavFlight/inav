@@ -1,1 +1,1 @@
-target_stm32f411(MATEKF411SE)
+target_stm32f411xe(MATEKF411SE)

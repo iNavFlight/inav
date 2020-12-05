@@ -26,7 +26,7 @@
 #include "config/parameter_group.h"
 #include "common/time.h"
 
-#define MAX_LOGIC_CONDITIONS 16
+#define MAX_LOGIC_CONDITIONS 32
 
 typedef enum {
     LOGIC_CONDITION_TRUE                        = 0,
@@ -62,7 +62,12 @@ typedef enum {
     LOGIC_CONDITION_SET_VTX_BAND                = 30,
     LOGIC_CONDITION_SET_VTX_CHANNEL             = 31,
     LOGIC_CONDITION_SET_OSD_LAYOUT              = 32,
-    LOGIC_CONDITION_LAST                        = 33,
+    LOGIC_CONDITION_SIN                         = 33,
+    LOGIC_CONDITION_COS                         = 34,
+    LOGIC_CONDITION_TAN                         = 35,
+    LOGIC_CONDITION_MAP_INPUT                   = 36,
+    LOGIC_CONDITION_MAP_OUTPUT                  = 37,
+    LOGIC_CONDITION_LAST                        = 38,
 } logicOperation_e;
 
 typedef enum logicOperandType_s {
@@ -105,18 +110,26 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_ROLL,                         // 26
     LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_PITCH,                        // 27
     LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_YAW,                          // 28
+    LOGIC_CONDITION_OPERAND_FLIGHT_WAYPOINT_INDEX,                          // 29
+    LOGIC_CONDITION_OPERAND_FLIGHT_WAYPOINT_ACTION,                         // 30
+    LOGIC_CONDITION_OPERAND_FLIGHT_3D_HOME_DISTANCE,                        // 31
+    LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_LQ,                                 // 32
+    LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_SNR,                                // 33
+
 } logicFlightOperands_e;
 
 typedef enum {
-    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_FAILSAFE,
-    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_MANUAL,
-    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_RTH,
-    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_POSHOLD,
-    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_CRUISE,
-    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_ALTHOLD,
-    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_ANGLE,
-    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_HORIZON,
-    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_AIR,
+    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_FAILSAFE,                           // 0
+    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_MANUAL,                             // 1
+    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_RTH,                                // 2
+    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_POSHOLD,                            // 3
+    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_CRUISE,                             // 4
+    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_ALTHOLD,                            // 5
+    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_ANGLE,                              // 6
+    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_HORIZON,                            // 7
+    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_AIR,                                // 8
+    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER1,                              // 9
+    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER2,                              // 10
 } logicFlightModeOperands_e;
 
 typedef enum {

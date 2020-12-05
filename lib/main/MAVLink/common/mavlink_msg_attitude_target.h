@@ -3,16 +3,16 @@
 
 #define MAVLINK_MSG_ID_ATTITUDE_TARGET 83
 
-MAVPACKED(
+
 typedef struct __mavlink_attitude_target_t {
- uint32_t time_boot_ms; /*< Timestamp in milliseconds since system boot*/
- float q[4]; /*< Attitude quaternion (w, x, y, z order, zero-rotation is 1, 0, 0, 0)*/
- float body_roll_rate; /*< Body roll rate in radians per second*/
- float body_pitch_rate; /*< Body roll rate in radians per second*/
- float body_yaw_rate; /*< Body roll rate in radians per second*/
- float thrust; /*< Collective thrust, normalized to 0 .. 1 (-1 .. 1 for vehicles capable of reverse trust)*/
- uint8_t type_mask; /*< Mappings: If any of these bits are set, the corresponding input should be ignored: bit 1: body roll rate, bit 2: body pitch rate, bit 3: body yaw rate. bit 4-bit 7: reserved, bit 8: attitude*/
-}) mavlink_attitude_target_t;
+ uint32_t time_boot_ms; /*< [ms] Timestamp (time since system boot).*/
+ float q[4]; /*<  Attitude quaternion (w, x, y, z order, zero-rotation is 1, 0, 0, 0)*/
+ float body_roll_rate; /*< [rad/s] Body roll rate*/
+ float body_pitch_rate; /*< [rad/s] Body pitch rate*/
+ float body_yaw_rate; /*< [rad/s] Body yaw rate*/
+ float thrust; /*<  Collective thrust, normalized to 0 .. 1 (-1 .. 1 for vehicles capable of reverse trust)*/
+ uint8_t type_mask; /*<  Mappings: If any of these bits are set, the corresponding input should be ignored: bit 1: body roll rate, bit 2: body pitch rate, bit 3: body yaw rate. bit 4-bit 7: reserved, bit 8: attitude*/
+} mavlink_attitude_target_t;
 
 #define MAVLINK_MSG_ID_ATTITUDE_TARGET_LEN 37
 #define MAVLINK_MSG_ID_ATTITUDE_TARGET_MIN_LEN 37
@@ -30,12 +30,12 @@ typedef struct __mavlink_attitude_target_t {
     "ATTITUDE_TARGET", \
     7, \
     {  { "time_boot_ms", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_attitude_target_t, time_boot_ms) }, \
+         { "type_mask", NULL, MAVLINK_TYPE_UINT8_T, 0, 36, offsetof(mavlink_attitude_target_t, type_mask) }, \
          { "q", NULL, MAVLINK_TYPE_FLOAT, 4, 4, offsetof(mavlink_attitude_target_t, q) }, \
          { "body_roll_rate", NULL, MAVLINK_TYPE_FLOAT, 0, 20, offsetof(mavlink_attitude_target_t, body_roll_rate) }, \
          { "body_pitch_rate", NULL, MAVLINK_TYPE_FLOAT, 0, 24, offsetof(mavlink_attitude_target_t, body_pitch_rate) }, \
          { "body_yaw_rate", NULL, MAVLINK_TYPE_FLOAT, 0, 28, offsetof(mavlink_attitude_target_t, body_yaw_rate) }, \
          { "thrust", NULL, MAVLINK_TYPE_FLOAT, 0, 32, offsetof(mavlink_attitude_target_t, thrust) }, \
-         { "type_mask", NULL, MAVLINK_TYPE_UINT8_T, 0, 36, offsetof(mavlink_attitude_target_t, type_mask) }, \
          } \
 }
 #else
@@ -43,12 +43,12 @@ typedef struct __mavlink_attitude_target_t {
     "ATTITUDE_TARGET", \
     7, \
     {  { "time_boot_ms", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_attitude_target_t, time_boot_ms) }, \
+         { "type_mask", NULL, MAVLINK_TYPE_UINT8_T, 0, 36, offsetof(mavlink_attitude_target_t, type_mask) }, \
          { "q", NULL, MAVLINK_TYPE_FLOAT, 4, 4, offsetof(mavlink_attitude_target_t, q) }, \
          { "body_roll_rate", NULL, MAVLINK_TYPE_FLOAT, 0, 20, offsetof(mavlink_attitude_target_t, body_roll_rate) }, \
          { "body_pitch_rate", NULL, MAVLINK_TYPE_FLOAT, 0, 24, offsetof(mavlink_attitude_target_t, body_pitch_rate) }, \
          { "body_yaw_rate", NULL, MAVLINK_TYPE_FLOAT, 0, 28, offsetof(mavlink_attitude_target_t, body_yaw_rate) }, \
          { "thrust", NULL, MAVLINK_TYPE_FLOAT, 0, 32, offsetof(mavlink_attitude_target_t, thrust) }, \
-         { "type_mask", NULL, MAVLINK_TYPE_UINT8_T, 0, 36, offsetof(mavlink_attitude_target_t, type_mask) }, \
          } \
 }
 #endif
@@ -59,13 +59,13 @@ typedef struct __mavlink_attitude_target_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param time_boot_ms Timestamp in milliseconds since system boot
- * @param type_mask Mappings: If any of these bits are set, the corresponding input should be ignored: bit 1: body roll rate, bit 2: body pitch rate, bit 3: body yaw rate. bit 4-bit 7: reserved, bit 8: attitude
- * @param q Attitude quaternion (w, x, y, z order, zero-rotation is 1, 0, 0, 0)
- * @param body_roll_rate Body roll rate in radians per second
- * @param body_pitch_rate Body roll rate in radians per second
- * @param body_yaw_rate Body roll rate in radians per second
- * @param thrust Collective thrust, normalized to 0 .. 1 (-1 .. 1 for vehicles capable of reverse trust)
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param type_mask  Mappings: If any of these bits are set, the corresponding input should be ignored: bit 1: body roll rate, bit 2: body pitch rate, bit 3: body yaw rate. bit 4-bit 7: reserved, bit 8: attitude
+ * @param q  Attitude quaternion (w, x, y, z order, zero-rotation is 1, 0, 0, 0)
+ * @param body_roll_rate [rad/s] Body roll rate
+ * @param body_pitch_rate [rad/s] Body pitch rate
+ * @param body_yaw_rate [rad/s] Body yaw rate
+ * @param thrust  Collective thrust, normalized to 0 .. 1 (-1 .. 1 for vehicles capable of reverse trust)
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_attitude_target_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -103,13 +103,13 @@ static inline uint16_t mavlink_msg_attitude_target_pack(uint8_t system_id, uint8
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param time_boot_ms Timestamp in milliseconds since system boot
- * @param type_mask Mappings: If any of these bits are set, the corresponding input should be ignored: bit 1: body roll rate, bit 2: body pitch rate, bit 3: body yaw rate. bit 4-bit 7: reserved, bit 8: attitude
- * @param q Attitude quaternion (w, x, y, z order, zero-rotation is 1, 0, 0, 0)
- * @param body_roll_rate Body roll rate in radians per second
- * @param body_pitch_rate Body roll rate in radians per second
- * @param body_yaw_rate Body roll rate in radians per second
- * @param thrust Collective thrust, normalized to 0 .. 1 (-1 .. 1 for vehicles capable of reverse trust)
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param type_mask  Mappings: If any of these bits are set, the corresponding input should be ignored: bit 1: body roll rate, bit 2: body pitch rate, bit 3: body yaw rate. bit 4-bit 7: reserved, bit 8: attitude
+ * @param q  Attitude quaternion (w, x, y, z order, zero-rotation is 1, 0, 0, 0)
+ * @param body_roll_rate [rad/s] Body roll rate
+ * @param body_pitch_rate [rad/s] Body pitch rate
+ * @param body_yaw_rate [rad/s] Body yaw rate
+ * @param thrust  Collective thrust, normalized to 0 .. 1 (-1 .. 1 for vehicles capable of reverse trust)
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_attitude_target_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -173,13 +173,13 @@ static inline uint16_t mavlink_msg_attitude_target_encode_chan(uint8_t system_id
  * @brief Send a attitude_target message
  * @param chan MAVLink channel to send the message
  *
- * @param time_boot_ms Timestamp in milliseconds since system boot
- * @param type_mask Mappings: If any of these bits are set, the corresponding input should be ignored: bit 1: body roll rate, bit 2: body pitch rate, bit 3: body yaw rate. bit 4-bit 7: reserved, bit 8: attitude
- * @param q Attitude quaternion (w, x, y, z order, zero-rotation is 1, 0, 0, 0)
- * @param body_roll_rate Body roll rate in radians per second
- * @param body_pitch_rate Body roll rate in radians per second
- * @param body_yaw_rate Body roll rate in radians per second
- * @param thrust Collective thrust, normalized to 0 .. 1 (-1 .. 1 for vehicles capable of reverse trust)
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param type_mask  Mappings: If any of these bits are set, the corresponding input should be ignored: bit 1: body roll rate, bit 2: body pitch rate, bit 3: body yaw rate. bit 4-bit 7: reserved, bit 8: attitude
+ * @param q  Attitude quaternion (w, x, y, z order, zero-rotation is 1, 0, 0, 0)
+ * @param body_roll_rate [rad/s] Body roll rate
+ * @param body_pitch_rate [rad/s] Body pitch rate
+ * @param body_yaw_rate [rad/s] Body yaw rate
+ * @param thrust  Collective thrust, normalized to 0 .. 1 (-1 .. 1 for vehicles capable of reverse trust)
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -264,7 +264,7 @@ static inline void mavlink_msg_attitude_target_send_buf(mavlink_message_t *msgbu
 /**
  * @brief Get field time_boot_ms from attitude_target message
  *
- * @return Timestamp in milliseconds since system boot
+ * @return [ms] Timestamp (time since system boot).
  */
 static inline uint32_t mavlink_msg_attitude_target_get_time_boot_ms(const mavlink_message_t* msg)
 {
@@ -274,7 +274,7 @@ static inline uint32_t mavlink_msg_attitude_target_get_time_boot_ms(const mavlin
 /**
  * @brief Get field type_mask from attitude_target message
  *
- * @return Mappings: If any of these bits are set, the corresponding input should be ignored: bit 1: body roll rate, bit 2: body pitch rate, bit 3: body yaw rate. bit 4-bit 7: reserved, bit 8: attitude
+ * @return  Mappings: If any of these bits are set, the corresponding input should be ignored: bit 1: body roll rate, bit 2: body pitch rate, bit 3: body yaw rate. bit 4-bit 7: reserved, bit 8: attitude
  */
 static inline uint8_t mavlink_msg_attitude_target_get_type_mask(const mavlink_message_t* msg)
 {
@@ -284,7 +284,7 @@ static inline uint8_t mavlink_msg_attitude_target_get_type_mask(const mavlink_me
 /**
  * @brief Get field q from attitude_target message
  *
- * @return Attitude quaternion (w, x, y, z order, zero-rotation is 1, 0, 0, 0)
+ * @return  Attitude quaternion (w, x, y, z order, zero-rotation is 1, 0, 0, 0)
  */
 static inline uint16_t mavlink_msg_attitude_target_get_q(const mavlink_message_t* msg, float *q)
 {
@@ -294,7 +294,7 @@ static inline uint16_t mavlink_msg_attitude_target_get_q(const mavlink_message_t
 /**
  * @brief Get field body_roll_rate from attitude_target message
  *
- * @return Body roll rate in radians per second
+ * @return [rad/s] Body roll rate
  */
 static inline float mavlink_msg_attitude_target_get_body_roll_rate(const mavlink_message_t* msg)
 {
@@ -304,7 +304,7 @@ static inline float mavlink_msg_attitude_target_get_body_roll_rate(const mavlink
 /**
  * @brief Get field body_pitch_rate from attitude_target message
  *
- * @return Body roll rate in radians per second
+ * @return [rad/s] Body pitch rate
  */
 static inline float mavlink_msg_attitude_target_get_body_pitch_rate(const mavlink_message_t* msg)
 {
@@ -314,7 +314,7 @@ static inline float mavlink_msg_attitude_target_get_body_pitch_rate(const mavlin
 /**
  * @brief Get field body_yaw_rate from attitude_target message
  *
- * @return Body roll rate in radians per second
+ * @return [rad/s] Body yaw rate
  */
 static inline float mavlink_msg_attitude_target_get_body_yaw_rate(const mavlink_message_t* msg)
 {
@@ -324,7 +324,7 @@ static inline float mavlink_msg_attitude_target_get_body_yaw_rate(const mavlink_
 /**
  * @brief Get field thrust from attitude_target message
  *
- * @return Collective thrust, normalized to 0 .. 1 (-1 .. 1 for vehicles capable of reverse trust)
+ * @return  Collective thrust, normalized to 0 .. 1 (-1 .. 1 for vehicles capable of reverse trust)
  */
 static inline float mavlink_msg_attitude_target_get_thrust(const mavlink_message_t* msg)
 {

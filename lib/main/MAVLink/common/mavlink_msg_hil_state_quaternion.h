@@ -3,25 +3,25 @@
 
 #define MAVLINK_MSG_ID_HIL_STATE_QUATERNION 115
 
-MAVPACKED(
+
 typedef struct __mavlink_hil_state_quaternion_t {
- uint64_t time_usec; /*< Timestamp (microseconds since UNIX epoch or microseconds since system boot)*/
- float attitude_quaternion[4]; /*< Vehicle attitude expressed as normalized quaternion in w, x, y, z order (with 1 0 0 0 being the null-rotation)*/
- float rollspeed; /*< Body frame roll / phi angular speed (rad/s)*/
- float pitchspeed; /*< Body frame pitch / theta angular speed (rad/s)*/
- float yawspeed; /*< Body frame yaw / psi angular speed (rad/s)*/
- int32_t lat; /*< Latitude, expressed as * 1E7*/
- int32_t lon; /*< Longitude, expressed as * 1E7*/
- int32_t alt; /*< Altitude in meters, expressed as * 1000 (millimeters)*/
- int16_t vx; /*< Ground X Speed (Latitude), expressed as m/s * 100*/
- int16_t vy; /*< Ground Y Speed (Longitude), expressed as m/s * 100*/
- int16_t vz; /*< Ground Z Speed (Altitude), expressed as m/s * 100*/
- uint16_t ind_airspeed; /*< Indicated airspeed, expressed as m/s * 100*/
- uint16_t true_airspeed; /*< True airspeed, expressed as m/s * 100*/
- int16_t xacc; /*< X acceleration (mg)*/
- int16_t yacc; /*< Y acceleration (mg)*/
- int16_t zacc; /*< Z acceleration (mg)*/
-}) mavlink_hil_state_quaternion_t;
+ uint64_t time_usec; /*< [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.*/
+ float attitude_quaternion[4]; /*<  Vehicle attitude expressed as normalized quaternion in w, x, y, z order (with 1 0 0 0 being the null-rotation)*/
+ float rollspeed; /*< [rad/s] Body frame roll / phi angular speed*/
+ float pitchspeed; /*< [rad/s] Body frame pitch / theta angular speed*/
+ float yawspeed; /*< [rad/s] Body frame yaw / psi angular speed*/
+ int32_t lat; /*< [degE7] Latitude*/
+ int32_t lon; /*< [degE7] Longitude*/
+ int32_t alt; /*< [mm] Altitude*/
+ int16_t vx; /*< [cm/s] Ground X Speed (Latitude)*/
+ int16_t vy; /*< [cm/s] Ground Y Speed (Longitude)*/
+ int16_t vz; /*< [cm/s] Ground Z Speed (Altitude)*/
+ uint16_t ind_airspeed; /*< [cm/s] Indicated airspeed*/
+ uint16_t true_airspeed; /*< [cm/s] True airspeed*/
+ int16_t xacc; /*< [mG] X acceleration*/
+ int16_t yacc; /*< [mG] Y acceleration*/
+ int16_t zacc; /*< [mG] Z acceleration*/
+} mavlink_hil_state_quaternion_t;
 
 #define MAVLINK_MSG_ID_HIL_STATE_QUATERNION_LEN 64
 #define MAVLINK_MSG_ID_HIL_STATE_QUATERNION_MIN_LEN 64
@@ -86,22 +86,22 @@ typedef struct __mavlink_hil_state_quaternion_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param time_usec Timestamp (microseconds since UNIX epoch or microseconds since system boot)
- * @param attitude_quaternion Vehicle attitude expressed as normalized quaternion in w, x, y, z order (with 1 0 0 0 being the null-rotation)
- * @param rollspeed Body frame roll / phi angular speed (rad/s)
- * @param pitchspeed Body frame pitch / theta angular speed (rad/s)
- * @param yawspeed Body frame yaw / psi angular speed (rad/s)
- * @param lat Latitude, expressed as * 1E7
- * @param lon Longitude, expressed as * 1E7
- * @param alt Altitude in meters, expressed as * 1000 (millimeters)
- * @param vx Ground X Speed (Latitude), expressed as m/s * 100
- * @param vy Ground Y Speed (Longitude), expressed as m/s * 100
- * @param vz Ground Z Speed (Altitude), expressed as m/s * 100
- * @param ind_airspeed Indicated airspeed, expressed as m/s * 100
- * @param true_airspeed True airspeed, expressed as m/s * 100
- * @param xacc X acceleration (mg)
- * @param yacc Y acceleration (mg)
- * @param zacc Z acceleration (mg)
+ * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
+ * @param attitude_quaternion  Vehicle attitude expressed as normalized quaternion in w, x, y, z order (with 1 0 0 0 being the null-rotation)
+ * @param rollspeed [rad/s] Body frame roll / phi angular speed
+ * @param pitchspeed [rad/s] Body frame pitch / theta angular speed
+ * @param yawspeed [rad/s] Body frame yaw / psi angular speed
+ * @param lat [degE7] Latitude
+ * @param lon [degE7] Longitude
+ * @param alt [mm] Altitude
+ * @param vx [cm/s] Ground X Speed (Latitude)
+ * @param vy [cm/s] Ground Y Speed (Longitude)
+ * @param vz [cm/s] Ground Z Speed (Altitude)
+ * @param ind_airspeed [cm/s] Indicated airspeed
+ * @param true_airspeed [cm/s] True airspeed
+ * @param xacc [mG] X acceleration
+ * @param yacc [mG] Y acceleration
+ * @param zacc [mG] Z acceleration
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_hil_state_quaternion_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -157,22 +157,22 @@ static inline uint16_t mavlink_msg_hil_state_quaternion_pack(uint8_t system_id, 
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param time_usec Timestamp (microseconds since UNIX epoch or microseconds since system boot)
- * @param attitude_quaternion Vehicle attitude expressed as normalized quaternion in w, x, y, z order (with 1 0 0 0 being the null-rotation)
- * @param rollspeed Body frame roll / phi angular speed (rad/s)
- * @param pitchspeed Body frame pitch / theta angular speed (rad/s)
- * @param yawspeed Body frame yaw / psi angular speed (rad/s)
- * @param lat Latitude, expressed as * 1E7
- * @param lon Longitude, expressed as * 1E7
- * @param alt Altitude in meters, expressed as * 1000 (millimeters)
- * @param vx Ground X Speed (Latitude), expressed as m/s * 100
- * @param vy Ground Y Speed (Longitude), expressed as m/s * 100
- * @param vz Ground Z Speed (Altitude), expressed as m/s * 100
- * @param ind_airspeed Indicated airspeed, expressed as m/s * 100
- * @param true_airspeed True airspeed, expressed as m/s * 100
- * @param xacc X acceleration (mg)
- * @param yacc Y acceleration (mg)
- * @param zacc Z acceleration (mg)
+ * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
+ * @param attitude_quaternion  Vehicle attitude expressed as normalized quaternion in w, x, y, z order (with 1 0 0 0 being the null-rotation)
+ * @param rollspeed [rad/s] Body frame roll / phi angular speed
+ * @param pitchspeed [rad/s] Body frame pitch / theta angular speed
+ * @param yawspeed [rad/s] Body frame yaw / psi angular speed
+ * @param lat [degE7] Latitude
+ * @param lon [degE7] Longitude
+ * @param alt [mm] Altitude
+ * @param vx [cm/s] Ground X Speed (Latitude)
+ * @param vy [cm/s] Ground Y Speed (Longitude)
+ * @param vz [cm/s] Ground Z Speed (Altitude)
+ * @param ind_airspeed [cm/s] Indicated airspeed
+ * @param true_airspeed [cm/s] True airspeed
+ * @param xacc [mG] X acceleration
+ * @param yacc [mG] Y acceleration
+ * @param zacc [mG] Z acceleration
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_hil_state_quaternion_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -254,22 +254,22 @@ static inline uint16_t mavlink_msg_hil_state_quaternion_encode_chan(uint8_t syst
  * @brief Send a hil_state_quaternion message
  * @param chan MAVLink channel to send the message
  *
- * @param time_usec Timestamp (microseconds since UNIX epoch or microseconds since system boot)
- * @param attitude_quaternion Vehicle attitude expressed as normalized quaternion in w, x, y, z order (with 1 0 0 0 being the null-rotation)
- * @param rollspeed Body frame roll / phi angular speed (rad/s)
- * @param pitchspeed Body frame pitch / theta angular speed (rad/s)
- * @param yawspeed Body frame yaw / psi angular speed (rad/s)
- * @param lat Latitude, expressed as * 1E7
- * @param lon Longitude, expressed as * 1E7
- * @param alt Altitude in meters, expressed as * 1000 (millimeters)
- * @param vx Ground X Speed (Latitude), expressed as m/s * 100
- * @param vy Ground Y Speed (Longitude), expressed as m/s * 100
- * @param vz Ground Z Speed (Altitude), expressed as m/s * 100
- * @param ind_airspeed Indicated airspeed, expressed as m/s * 100
- * @param true_airspeed True airspeed, expressed as m/s * 100
- * @param xacc X acceleration (mg)
- * @param yacc Y acceleration (mg)
- * @param zacc Z acceleration (mg)
+ * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
+ * @param attitude_quaternion  Vehicle attitude expressed as normalized quaternion in w, x, y, z order (with 1 0 0 0 being the null-rotation)
+ * @param rollspeed [rad/s] Body frame roll / phi angular speed
+ * @param pitchspeed [rad/s] Body frame pitch / theta angular speed
+ * @param yawspeed [rad/s] Body frame yaw / psi angular speed
+ * @param lat [degE7] Latitude
+ * @param lon [degE7] Longitude
+ * @param alt [mm] Altitude
+ * @param vx [cm/s] Ground X Speed (Latitude)
+ * @param vy [cm/s] Ground Y Speed (Longitude)
+ * @param vz [cm/s] Ground Z Speed (Altitude)
+ * @param ind_airspeed [cm/s] Indicated airspeed
+ * @param true_airspeed [cm/s] True airspeed
+ * @param xacc [mG] X acceleration
+ * @param yacc [mG] Y acceleration
+ * @param zacc [mG] Z acceleration
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -390,7 +390,7 @@ static inline void mavlink_msg_hil_state_quaternion_send_buf(mavlink_message_t *
 /**
  * @brief Get field time_usec from hil_state_quaternion message
  *
- * @return Timestamp (microseconds since UNIX epoch or microseconds since system boot)
+ * @return [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
  */
 static inline uint64_t mavlink_msg_hil_state_quaternion_get_time_usec(const mavlink_message_t* msg)
 {
@@ -400,7 +400,7 @@ static inline uint64_t mavlink_msg_hil_state_quaternion_get_time_usec(const mavl
 /**
  * @brief Get field attitude_quaternion from hil_state_quaternion message
  *
- * @return Vehicle attitude expressed as normalized quaternion in w, x, y, z order (with 1 0 0 0 being the null-rotation)
+ * @return  Vehicle attitude expressed as normalized quaternion in w, x, y, z order (with 1 0 0 0 being the null-rotation)
  */
 static inline uint16_t mavlink_msg_hil_state_quaternion_get_attitude_quaternion(const mavlink_message_t* msg, float *attitude_quaternion)
 {
@@ -410,7 +410,7 @@ static inline uint16_t mavlink_msg_hil_state_quaternion_get_attitude_quaternion(
 /**
  * @brief Get field rollspeed from hil_state_quaternion message
  *
- * @return Body frame roll / phi angular speed (rad/s)
+ * @return [rad/s] Body frame roll / phi angular speed
  */
 static inline float mavlink_msg_hil_state_quaternion_get_rollspeed(const mavlink_message_t* msg)
 {
@@ -420,7 +420,7 @@ static inline float mavlink_msg_hil_state_quaternion_get_rollspeed(const mavlink
 /**
  * @brief Get field pitchspeed from hil_state_quaternion message
  *
- * @return Body frame pitch / theta angular speed (rad/s)
+ * @return [rad/s] Body frame pitch / theta angular speed
  */
 static inline float mavlink_msg_hil_state_quaternion_get_pitchspeed(const mavlink_message_t* msg)
 {
@@ -430,7 +430,7 @@ static inline float mavlink_msg_hil_state_quaternion_get_pitchspeed(const mavlin
 /**
  * @brief Get field yawspeed from hil_state_quaternion message
  *
- * @return Body frame yaw / psi angular speed (rad/s)
+ * @return [rad/s] Body frame yaw / psi angular speed
  */
 static inline float mavlink_msg_hil_state_quaternion_get_yawspeed(const mavlink_message_t* msg)
 {
@@ -440,7 +440,7 @@ static inline float mavlink_msg_hil_state_quaternion_get_yawspeed(const mavlink_
 /**
  * @brief Get field lat from hil_state_quaternion message
  *
- * @return Latitude, expressed as * 1E7
+ * @return [degE7] Latitude
  */
 static inline int32_t mavlink_msg_hil_state_quaternion_get_lat(const mavlink_message_t* msg)
 {
@@ -450,7 +450,7 @@ static inline int32_t mavlink_msg_hil_state_quaternion_get_lat(const mavlink_mes
 /**
  * @brief Get field lon from hil_state_quaternion message
  *
- * @return Longitude, expressed as * 1E7
+ * @return [degE7] Longitude
  */
 static inline int32_t mavlink_msg_hil_state_quaternion_get_lon(const mavlink_message_t* msg)
 {
@@ -460,7 +460,7 @@ static inline int32_t mavlink_msg_hil_state_quaternion_get_lon(const mavlink_mes
 /**
  * @brief Get field alt from hil_state_quaternion message
  *
- * @return Altitude in meters, expressed as * 1000 (millimeters)
+ * @return [mm] Altitude
  */
 static inline int32_t mavlink_msg_hil_state_quaternion_get_alt(const mavlink_message_t* msg)
 {
@@ -470,7 +470,7 @@ static inline int32_t mavlink_msg_hil_state_quaternion_get_alt(const mavlink_mes
 /**
  * @brief Get field vx from hil_state_quaternion message
  *
- * @return Ground X Speed (Latitude), expressed as m/s * 100
+ * @return [cm/s] Ground X Speed (Latitude)
  */
 static inline int16_t mavlink_msg_hil_state_quaternion_get_vx(const mavlink_message_t* msg)
 {
@@ -480,7 +480,7 @@ static inline int16_t mavlink_msg_hil_state_quaternion_get_vx(const mavlink_mess
 /**
  * @brief Get field vy from hil_state_quaternion message
  *
- * @return Ground Y Speed (Longitude), expressed as m/s * 100
+ * @return [cm/s] Ground Y Speed (Longitude)
  */
 static inline int16_t mavlink_msg_hil_state_quaternion_get_vy(const mavlink_message_t* msg)
 {
@@ -490,7 +490,7 @@ static inline int16_t mavlink_msg_hil_state_quaternion_get_vy(const mavlink_mess
 /**
  * @brief Get field vz from hil_state_quaternion message
  *
- * @return Ground Z Speed (Altitude), expressed as m/s * 100
+ * @return [cm/s] Ground Z Speed (Altitude)
  */
 static inline int16_t mavlink_msg_hil_state_quaternion_get_vz(const mavlink_message_t* msg)
 {
@@ -500,7 +500,7 @@ static inline int16_t mavlink_msg_hil_state_quaternion_get_vz(const mavlink_mess
 /**
  * @brief Get field ind_airspeed from hil_state_quaternion message
  *
- * @return Indicated airspeed, expressed as m/s * 100
+ * @return [cm/s] Indicated airspeed
  */
 static inline uint16_t mavlink_msg_hil_state_quaternion_get_ind_airspeed(const mavlink_message_t* msg)
 {
@@ -510,7 +510,7 @@ static inline uint16_t mavlink_msg_hil_state_quaternion_get_ind_airspeed(const m
 /**
  * @brief Get field true_airspeed from hil_state_quaternion message
  *
- * @return True airspeed, expressed as m/s * 100
+ * @return [cm/s] True airspeed
  */
 static inline uint16_t mavlink_msg_hil_state_quaternion_get_true_airspeed(const mavlink_message_t* msg)
 {
@@ -520,7 +520,7 @@ static inline uint16_t mavlink_msg_hil_state_quaternion_get_true_airspeed(const 
 /**
  * @brief Get field xacc from hil_state_quaternion message
  *
- * @return X acceleration (mg)
+ * @return [mG] X acceleration
  */
 static inline int16_t mavlink_msg_hil_state_quaternion_get_xacc(const mavlink_message_t* msg)
 {
@@ -530,7 +530,7 @@ static inline int16_t mavlink_msg_hil_state_quaternion_get_xacc(const mavlink_me
 /**
  * @brief Get field yacc from hil_state_quaternion message
  *
- * @return Y acceleration (mg)
+ * @return [mG] Y acceleration
  */
 static inline int16_t mavlink_msg_hil_state_quaternion_get_yacc(const mavlink_message_t* msg)
 {
@@ -540,7 +540,7 @@ static inline int16_t mavlink_msg_hil_state_quaternion_get_yacc(const mavlink_me
 /**
  * @brief Get field zacc from hil_state_quaternion message
  *
- * @return Z acceleration (mg)
+ * @return [mG] Z acceleration
  */
 static inline int16_t mavlink_msg_hil_state_quaternion_get_zacc(const mavlink_message_t* msg)
 {

@@ -9,11 +9,12 @@ jobs:
     runs-on: ubuntu-18.04
     strategy:
         matrix:
-          start: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
-          count: [10]
+          id: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
     steps:
       - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get -y install ninja-build
       - name: Setup environment
         run: |
           # This is the hash of the commit for the PR
@@ -25,44 +26,27 @@ jobs:
           # why we try github.event.pull_request.head.sha first
           COMMIT_ID=${COMMIT_ID:-${{ github.sha }}}
           BUILD_SUFFIX=ci-$(date '+%Y%m%d')-$(git rev-parse --short ${COMMIT_ID})
-          echo "::set-env name=TARGETS::$(./src/utils/build-targets.sh -n -s ${{ matrix.start }} -c ${{ matrix.count }})"
-          echo "::set-env name=BUILD_SUFFIX::${BUILD_SUFFIX}"
-          echo "::set-env name=BUILD_NAME::inav-$(make print_version)-${BUILD_SUFFIX}"
-          echo "::set-env name=IS_LAST_JOB::$([ $(expr ${{ strategy.job-index }} + 1) = ${{ strategy.job-total }} ] && echo yes)"
-      - name: Ensure all targets will be tested
-        if: ${{ env.IS_LAST_JOB }}
-        run: |
-          UNTESTED=$(./src/utils/build-targets.sh -n -s $(expr ${{ matrix.start }} + ${{ matrix.count }}) -c 10000)
-          if ! [ -z "${UNTESTED}" ]; then
-            echo "Untested targets: ${UNTESTED}" >&2
-            exit 1
-          fi
+          VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/^[ \t]+|[ \t\)]+$/, "", $2); print $2 }')
+          echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
+          echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
       - uses: actions/cache@v1
         with:
           path: downloads
-          key: ${{ runner.os }}-downloads-${{ hashFiles('Makefile') }}-${{ hashFiles('**/make/*.mk')}}
-      - name: Install ARM toolchain
-        run: make arm_sdk_install
-      - name: Build targets (${{ matrix.start }})
-        if: ${{ env.TARGETS }}
-        run: ./src/utils/build-targets.sh -s ${{ matrix.start }} -c ${{ matrix.count }} -S ${{ env.BUILD_SUFFIX }}
+          key: ${{ runner.os }}-downloads-${{ hashFiles('CMakeLists.txt') }}-${{ hashFiles('**/cmake/*')}}
+      - name: Build targets (${{ matrix.id }})
+        run: mkdir -p build && cd build && cmake -DWARNINGS_AS_ERRORS=ON -DCI_JOB_INDEX=${{ matrix.id }} -DCI_JOB_COUNT=${{ strategy.job-total }} -DBUILD_SUFFIX=${{ env.BUILD_SUFFIX }} -G Ninja .. && ninja ci
       - name: Upload artifacts
-        if: ${{ env.TARGETS }}
         uses: actions/upload-artifact@v2-preview
         with:
           name: ${{ env.BUILD_NAME }}.zip
-          path: ./obj/dist/*.hex
+          path: ./build/*.hex
 
   test:
     needs: [build]
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/cache@v1
-        with:
-          path: downloads
-          key: ${{ runner.os }}-downloads-${{ hashFiles('Makefile') }}-${{ hashFiles('**/make/*.mk')}}
-      - name: Install ARM toolchain
-        run: make arm_sdk_install
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get -y install ninja-build
       - name: Run Tests
-        run: make test
+        run: mkdir -p build && cd build && cmake -DTOOLCHAIN=none -G Ninja .. && ninja check
