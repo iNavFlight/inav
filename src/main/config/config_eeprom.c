@@ -118,8 +118,13 @@ bool isEEPROMContentValid(void)
             // Found the end.  Stop scanning.
             break;
         }
-        if (p + record->size >= &__config_end
-            || record->size < sizeof(*record)) {
+
+        if (p + sizeof(*record) >= &__config_end) {
+            // Too big. Further checking for size doesn't make sense
+            return false;
+        }
+
+        if (p + record->size >= &__config_end || record->size < sizeof(*record)) {
             // Too big or too small.
             return false;
         }
@@ -152,13 +157,21 @@ static const configRecord_t *findEEPROM(const pgRegistry_t *reg, configRecordFla
     p += sizeof(configHeader_t);             // skip header
     while (true) {
         const configRecord_t *record = (const configRecord_t *)p;
-        if (record->size == 0
-            || p + record->size >= &__config_end
-            || record->size < sizeof(*record))
+        // Ensure that the record header fits into config memory, otherwise accessing size and flags may cause a hardfault.
+        if (p + sizeof(*record) >= &__config_end) {
             break;
-        if (pgN(reg) == record->pgn
-            && (record->flags & CR_CLASSIFICATION_MASK) == classification)
+        }
+
+        // Check that record header makes sense
+        if (record->size == 0 || p + record->size >= &__config_end || record->size < sizeof(*record)) {
+            break;
+        }
+
+        // Check if this is the record we're looking for (check for size)
+        if (pgN(reg) == record->pgn && (record->flags & CR_CLASSIFICATION_MASK) == classification) {
             return record;
+        }
+
         p += record->size;
     }
     // record not found
