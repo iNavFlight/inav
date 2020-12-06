@@ -280,7 +280,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_THROTTLE(timeUs
         }
     }
     else {
-         applyThrottleIdleLogic(true);   // Stick low, force mixer idle (motor stop or low rpm)
+        applyThrottleIdleLogic(true);   // Stick low, force mixer idle (motor stop or low rpm)
     }
 
     fwLaunch.pitchAngle = 0;
