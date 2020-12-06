@@ -34,9 +34,6 @@
 
 #include "fc/config.h"
 
-extern uint8_t __config_start;   // configured via linker script when building binaries.
-extern uint8_t __config_end;
-
 static uint16_t eepromConfigSize;
 
 typedef enum {

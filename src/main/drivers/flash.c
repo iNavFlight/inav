@@ -186,13 +186,13 @@ static void flashConfigurePartitions(void)
     }
 
 #if defined(FIRMWARE_SIZE)
-    createPartition(FLASH_PARTITION_TYPE_FIRMWARE, FIRMWARE_SIZE*1024, &endSector);
+    createPartition(FLASH_PARTITION_TYPE_FIRMWARE, FIRMWARE_SIZE * 1024, &endSector);
 #endif
 
 #if defined(MSP_FIRMWARE_UPDATE)
     createPartition(FLASH_PARTITION_TYPE_FIRMWARE_UPDATE_META, flashGeometry->sectorSize, &endSector);
-    createPartition(FLASH_PARTITION_TYPE_UPDATE_FIRMWARE, FLASH_SIZE*1024, &endSector);
-    createPartition(FLASH_PARTITION_TYPE_FULL_BACKUP, FLASH_SIZE*1024, &endSector);
+    createPartition(FLASH_PARTITION_TYPE_UPDATE_FIRMWARE, MCU_FLASH_SIZE * 1024, &endSector);
+    createPartition(FLASH_PARTITION_TYPE_FULL_BACKUP, MCU_FLASH_SIZE * 1024, &endSector);
 #endif
 
 #if defined(CONFIG_IN_EXTERNAL_FLASH)

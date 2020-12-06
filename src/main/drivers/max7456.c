@@ -33,6 +33,8 @@ FILE_COMPILE_FOR_SPEED
 #define BOUNDS_CHECK_FAILED() do {} while(0)
 #endif
 
+#include "build/debug.h"
+
 #include "common/bitarray.h"
 #include "common/printf.h"
 #include "common/utils.h"
