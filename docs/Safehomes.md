@@ -12,7 +12,9 @@ One potential risk when landing is that there might be buildings, trees and othe
 
 ## Safehome
 
-Safehomes are a list of GPS coordinates that identify safe landing points.  When the flight controller is armed, it checks the list of safehomes.  The first one that is enabled and within 200m of the current position will be selected.  Otherwise, it reverts to the old behaviour of using your current GPS position as home.  
+Safehomes are a list of GPS coordinates that identify safe landing points.  When the flight controller is armed, it checks the list of safehomes.  The nearest safehome that is enabled and within ```safehome_max_distance``` (default 200m) of the current position will be selected.  Otherwise, it reverts to the old behaviour of using your current GPS position as home.  
+
+Be aware that the safehome replaces your arming position as home.  When flying, RTH will return to the safehome and OSD elements such as distance to home and direction to home will refer to the selected safehome.
 
 You can define up to 8 safehomes for different locations you fly at.
 

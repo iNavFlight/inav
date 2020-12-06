@@ -571,7 +571,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP_RC:
         for (int i = 0; i < rxRuntimeConfig.channelCount; i++) {
-            sbufWriteU16(dst, rxGetRawChannelValue(i));
+            sbufWriteU16(dst, rxGetChannelValue(i));
         }
         break;
 

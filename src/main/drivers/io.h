@@ -33,7 +33,7 @@
 // expand pinid to to ioTag_t
 #define IO_TAG(pinid) DEFIO_TAG(pinid)
 
-#if defined(STM32F7)
+#if defined(STM32F7) || defined(STM32H7)
 
 //speed is packed inside modebits 5 and 2,
 #define IO_CONFIG(mode, speed, pupd) ((mode) | ((speed) << 2) | ((pupd) << 5))
@@ -101,8 +101,6 @@ resourceType_e IOGetResources(IO_t io);
 IO_t IOGetByTag(ioTag_t tag);
 
 void IOConfigGPIO(IO_t io, ioConfig_t cfg);
-#if defined(STM32F3) || defined(STM32F4) || defined(STM32F7)
 void IOConfigGPIOAF(IO_t io, ioConfig_t cfg, uint8_t af);
-#endif
 
 void IOInitGlobal(void);

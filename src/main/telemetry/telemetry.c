@@ -50,6 +50,7 @@
 #include "telemetry/crsf.h"
 #include "telemetry/srxl.h"
 #include "telemetry/sim.h"
+#include "telemetry/ghst.h"
 
 
 PG_REGISTER_WITH_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, 4);
@@ -129,6 +130,10 @@ void telemetryInit(void)
     initSrxlTelemetry();
 #endif
 
+#ifdef USE_TELEMETRY_GHST
+    initGhstTelemetry();
+#endif
+
     telemetryCheckState();
 }
 
@@ -194,6 +199,9 @@ void telemetryCheckState(void)
 #ifdef USE_TELEMETRY_SRXL
     checkSrxlTelemetryState();
 #endif
+#ifdef USE_TELEMETRY_GHST
+    checkGhstTelemetryState();
+#endif
 }
 
 void telemetryProcess(timeUs_t currentTimeUs)
@@ -238,6 +246,9 @@ void telemetryProcess(timeUs_t currentTimeUs)
 
 #ifdef USE_TELEMETRY_SRXL
     handleSrxlTelemetry(currentTimeUs);
+#endif
+#ifdef USE_TELEMETRY_GHST
+    handleGhstTelemetry(currentTimeUs);
 #endif
 }
 
