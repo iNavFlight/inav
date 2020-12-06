@@ -47,7 +47,7 @@ set(STM32F7_VCP_DIR "${MAIN_SRC_DIR}/vcp_hal")
 
 set(STM32F7_VCP_SRC
     usbd_desc.c
-    usbd_conf.c
+    usbd_conf_stm32f7xx.c
     usbd_cdc_interface.c
 )
 list(TRANSFORM STM32F7_VCP_SRC PREPEND "${STM32F7_VCP_DIR}/")
@@ -59,10 +59,13 @@ set(STM32F7_INCLUDE_DIRS
 
 main_sources(STM32F7_SRC
     target/system_stm32f7xx.c
+
+    config/config_streamer_stm32f7.c
+
     drivers/adc_stm32f7xx.c
     drivers/bus_i2c_hal.c
     drivers/dma_stm32f7xx.c
-    drivers/bus_spi_hal.c
+    drivers/bus_spi_hal_ll.c
     drivers/timer.c
     drivers/timer_impl_hal.c
     drivers/timer_stm32f7xx.c
@@ -113,7 +116,7 @@ macro(define_target_stm32f7 subfamily size)
             STM32F7
             STM32F7${subfamily}xx
             STM32F7${subfamily}x${upper_size}
-            FLASH_SIZE=${flash_size}
+            MCU_FLASH_SIZE=${flash_size}
         )
         target_stm32f7xx(
             NAME ${name}
