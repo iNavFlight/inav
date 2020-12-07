@@ -614,7 +614,7 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
     // Calculate integral
     // Freeze yaw Iterm when bank angle is above threshold to avoid rudder counteracting turns
     float bankAngle = DECIDEGREES_TO_DEGREES(attitude.values.roll);
-    if (fabsf(bankAngle) > pidProfile()->fixedWingYawItermBankLimit && axis == FD_YAW) {
+    if (fabsf(bankAngle) > pidProfile()->fixedWingYawItermBankLimit && axis == FD_YAW && !FLIGHT_MODE(AUTO_TUNE)) {
         pidState->errorGyroIf += 0;
     } else
     {
