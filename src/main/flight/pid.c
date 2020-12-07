@@ -611,7 +611,15 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
     const float newFFTerm = pidState->rateTarget * pidState->kFF;
 
     // Calculate integral
-    pidState->errorGyroIf += rateError * pidState->kI * dT;
+    // If bank angle is more than 20 degrees do not update yaw and pitch I-term
+    float bankAngle = attitude.values.roll;
+    if (bankAngle > 100 && axis == FD_YAW) {
+        pidState->errorGyroIf += 0;
+    } else
+    {
+        pidState->errorGyroIf += rateError * pidState->kI * dT;
+    }
+    
 
     applyItermLimiting(pidState);
 
