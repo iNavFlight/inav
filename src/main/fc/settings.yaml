@@ -1569,10 +1569,10 @@ groups:
         field: fixedWingItermLimitOnStickPosition
         min: 0
         max: 1
-      - name: fw_iterm_limit_bank_angle
-        description: "Iterm is not allowed to grow when bank angle is above this threshold [degrees]. This solves the problem of the rudder counteracting turns by partially disabling yaw stabilization when making banked turns. Setting to 180 (the default) disables this feature."
+      - name: fw_yaw_iterm_limit_bank_angle
+        description: "Yaw Iterm is not allowed to grow when bank angle is above this threshold [degrees]. This solves the problem of the rudder counteracting turns by partially disabling yaw stabilization when making banked turns. Setting to 180 (the default) disables this feature."
         default_value: "180"
-        field: fixedWingItermBankLimit
+        field: fixedWingYawItermBankLimit
         min: 0
         max: 180
       - name: pidsum_limit

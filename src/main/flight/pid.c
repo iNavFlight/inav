@@ -258,7 +258,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .fixedWingCoordinatedYawGain = 1.0f,
         .fixedWingCoordinatedPitchGain = 1.0f,
         .fixedWingItermLimitOnStickPosition = 0.5f,
-        .fixedWingItermBankLimit = 180,
+        .fixedWingYawItermBankLimit = 180,
 
         .loiter_direction = NAV_LOITER_RIGHT,
         .navVelXyDTermLpfHz = NAV_ACCEL_CUTOFF_FREQUENCY_HZ,
@@ -614,7 +614,7 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
     // Calculate integral
     // Freeze yaw Iterm when bank angle is above threshold to avoid rudder counteracting turns
     float bankAngle = DECIDEGREES_TO_DEGREES(attitude.values.roll);
-    if (fabsf(bankAngle) > pidProfile()->fixedWingItermBankLimit && axis == FD_YAW) {
+    if (fabsf(bankAngle) > pidProfile()->fixedWingYawItermBankLimit && axis == FD_YAW) {
         pidState->errorGyroIf += 0;
     } else
     {
