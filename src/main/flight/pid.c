@@ -154,7 +154,7 @@ static EXTENDED_FASTRAM filterApplyFnPtr dTermLpfFilterApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr dTermLpf2FilterApplyFn;
 static EXTENDED_FASTRAM bool levelingEnabled = false;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 0);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 1);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -258,6 +258,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .fixedWingCoordinatedYawGain = 1.0f,
         .fixedWingCoordinatedPitchGain = 1.0f,
         .fixedWingItermLimitOnStickPosition = 0.5f,
+        .fixedWingItermBankLimit = 180,
 
         .loiter_direction = NAV_LOITER_RIGHT,
         .navVelXyDTermLpfHz = NAV_ACCEL_CUTOFF_FREQUENCY_HZ,
@@ -611,15 +612,14 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
     const float newFFTerm = pidState->rateTarget * pidState->kFF;
 
     // Calculate integral
-    // If bank angle is more than 20 degrees do not update yaw and pitch I-term
-    float bankAngle = attitude.values.roll;
-    if (bankAngle > 100 && axis == FD_YAW) {
+    // Freeze yaw Iterm when bank angle is above threshold to avoid rudder counteracting turns
+    float bankAngle = DECIDEGREES_TO_DEGREES(attitude.values.roll);
+    if (fabsf(bankAngle) > pidProfile()->fixedWingItermBankLimit && axis == FD_YAW) {
         pidState->errorGyroIf += 0;
     } else
     {
         pidState->errorGyroIf += rateError * pidState->kI * dT;
     }
-    
 
     applyItermLimiting(pidState);
 
