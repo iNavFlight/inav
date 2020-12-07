@@ -234,8 +234,8 @@ groups:
       - name: gyro_dyn_lpf_curve_expo
         description: "Expo value for the throttle-to-frequency mapping for Dynamic LPF"
         default_value: "5"
-        field: gyroDynamicLpFCurveExpo
-        min: 0
+        field: gyroDynamicLpfCurveExpo
+        min: 1
         max: 10
       - name: dynamic_gyro_notch_enabled
         description: "Enable/disable dynamic gyro notch also known as Matrix Filter"

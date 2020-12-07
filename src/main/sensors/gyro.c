@@ -121,7 +121,7 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .useDynamicLpf = 0,
     .gyroDynamicLpfMinHz = 200,
     .gyroDynamicLpfMaxHz = 500,
-    .gyroDynamicLpFCurveExpo = 5,
+    .gyroDynamicLpfCurveExpo = 5,
     .dynamicGyroNotchRange = DYN_NOTCH_RANGE_MEDIUM,
     .dynamicGyroNotchQ = 120,
     .dynamicGyroNotchMinHz = 150,
@@ -524,23 +524,13 @@ static float dynLpfCutoffFreq(float throttle, uint16_t dynLpfMin, uint16_t dynLp
     return (dynLpfMax - dynLpfMin) * curve + dynLpfMin;
 }
 
-static float dynThrottle(float throttle) {
-    return throttle * (1 - (throttle * throttle) / 3.0f) * 1.5f;
-}
-
 void gyroUpdateDynamicLpf(void) {
     if (!gyroConfig()->useDynamicLpf) {
         return;
     }
 
     const float throttle = scaleRangef((float) rcCommand[THROTTLE], getThrottleIdleValue(), motorConfig()->maxthrottle, 0.0f, 1.0f);
-
-    uint16_t cutoffFreq;
-    if (gyroConfig()->gyroDynamicLpFCurveExpo > 0) {
-        cutoffFreq = dynLpfCutoffFreq(throttle, gyroConfig()->gyroDynamicLpfMinHz, gyroConfig()->gyroDynamicLpfMaxHz, gyroConfig()->gyroDynamicLpFCurveExpo);
-    } else {
-        cutoffFreq = fmax(dynThrottle(throttle) * gyroConfig()->gyroDynamicLpfMaxHz, gyroConfig()->gyroDynamicLpfMinHz);
-    }
+    const uint16_t cutoffFreq = dynLpfCutoffFreq(throttle, gyroConfig()->gyroDynamicLpfMinHz, gyroConfig()->gyroDynamicLpfMaxHz, gyroConfig()->gyroDynamicLpfCurveExpo);
 
     if (gyroConfig()->gyro_soft_lpf_type == FILTER_PT1) {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
