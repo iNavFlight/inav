@@ -927,7 +927,7 @@ void checkItermLimitingActive(pidState_t *pidState, flight_dynamics_index_t axis
     float bankAngle = DECIDEGREES_TO_DEGREES(attitude.values.roll);
     if (usedPidControllerType == PID_TYPE_PIFF) {
         // Do not allow yaw I-term to grow when bank angle is too large
-        if (axis == FD_YAW && fabsf(bankAngle) > pidProfile()->fixedWingYawItermBankLimit){
+        if (axis == FD_YAW && fabsf(bankAngle) > pidProfile()->fixedWingYawItermBankLimit && !FLIGHT_MODE(AUTO_TUNE)){
             shouldActivate = 1;
         } else
         {
