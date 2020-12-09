@@ -17,6 +17,18 @@
 
 #pragma once
 
+#if defined(STM32F7) || defined(STM32H7)
+#define USE_ITCM_RAM
+#endif
+
+#ifdef USE_ITCM_RAM
+#define FAST_CODE                   __attribute__((section(".tcm_code")))
+#define NOINLINE                    __attribute__((noinline))
+#else
+#define FAST_CODE
+#define NOINLINE
+#endif
+
 #if defined(STM32F3)
 #define DYNAMIC_HEAP_SIZE   1024
 #else
@@ -54,6 +66,7 @@
 #define USE_BLACKBOX
 #define USE_GPS
 #define USE_GPS_PROTO_UBLOX
+#define USE_GPS_PROTO_MSP
 #define USE_NAV
 #define USE_TELEMETRY
 #define USE_TELEMETRY_LTM
@@ -65,7 +78,7 @@
 #define SCHEDULER_DELAY_LIMIT           100
 #endif
 
-#if (FLASH_SIZE > 256)
+#if (MCU_FLASH_SIZE > 256)
 #define USE_MR_BRAKING_MODE
 #define USE_PITOT
 #define USE_PITOT_ADC
@@ -93,8 +106,10 @@
 #define USE_OPFLOW_CXOF
 #define USE_OPFLOW_MSP
 
+// Allow default airspeed sensors
 #define USE_PITOT
 #define USE_PITOT_MS4525
+#define USE_PITOT_MSP
 
 #define USE_1WIRE
 #define USE_1WIRE_DS2482
@@ -124,11 +139,22 @@
 
 #define USE_I2C_IO_EXPANDER
 
-#else // FLASH_SIZE < 256
+#define USE_SERIALRX_SRXL2     // Spektrum SRXL2 protocol
+#define USE_TELEMETRY_SRXL
+#define USE_SPEKTRUM_CMS_TELEMETRY
+//#define USE_SPEKTRUM_VTX_CONTROL //Some functions from betaflight still not implemented
+#define USE_SPEKTRUM_VTX_TELEMETRY
+
+#define USE_VTX_COMMON
+
+#define USE_SERIALRX_GHST
+#define USE_TELEMETRY_GHST
+
+#else // MCU_FLASH_SIZE < 256
 #define LOG_LEVEL_MAXIMUM LOG_LEVEL_ERROR
 #endif
 
-#if (FLASH_SIZE > 128)
+#if (MCU_FLASH_SIZE > 128)
 #define NAV_FIXED_WING_LANDING
 #define USE_SAFE_HOME
 #define USE_AUTOTUNE_FIXED_WING
@@ -175,12 +201,8 @@
 // Wind estimator
 #define USE_WIND_ESTIMATOR
 
-#else // FLASH_SIZE < 128
+#else // MCU_FLASH_SIZE < 128
 
 #define SKIP_TASK_STATISTICS
 
-#endif
-
-#ifdef STM32F7
-#define USE_ITCM_RAM
 #endif

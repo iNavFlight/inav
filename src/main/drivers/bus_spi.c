@@ -74,7 +74,7 @@
 
 #if defined(STM32F3)
 #if defined(USE_SPI_DEVICE_1)
-static const uint16_t spiDivisorMapFast[] = {
+static const uint32_t spiDivisorMapFast[] = {
     SPI_BaudRatePrescaler_256,    // SPI_CLOCK_INITIALIZATON      281.25 KBits/s
     SPI_BaudRatePrescaler_128,    // SPI_CLOCK_SLOW               562.5 KBits/s
     SPI_BaudRatePrescaler_8,      // SPI_CLOCK_STANDARD           9.0 MBits/s
@@ -84,7 +84,7 @@ static const uint16_t spiDivisorMapFast[] = {
 #endif
 
 #if defined(USE_SPI_DEVICE_2) || defined(USE_SPI_DEVICE_3)
-static const uint16_t spiDivisorMapSlow[] = {
+static const uint32_t spiDivisorMapSlow[] = {
     SPI_BaudRatePrescaler_256,    // SPI_CLOCK_INITIALIZATON      140.625 KBits/s
     SPI_BaudRatePrescaler_64,     // SPI_CLOCK_SLOW               562.5 KBits/s
     SPI_BaudRatePrescaler_4,      // SPI_CLOCK_STANDARD           9.0 MBits/s
@@ -113,7 +113,7 @@ static spiDevice_t spiHardwareMap[] = {
 };
 #elif defined(STM32F4)
 #if defined(USE_SPI_DEVICE_1)
-static const uint16_t spiDivisorMapFast[] = {
+static const uint32_t spiDivisorMapFast[] = {
     SPI_BaudRatePrescaler_256,    // SPI_CLOCK_INITIALIZATON      328.125 KBits/s
     SPI_BaudRatePrescaler_128,    // SPI_CLOCK_SLOW               656.25 KBits/s
     SPI_BaudRatePrescaler_8,      // SPI_CLOCK_STANDARD           10.5 MBits/s
@@ -123,7 +123,7 @@ static const uint16_t spiDivisorMapFast[] = {
 #endif
 
 #if defined(USE_SPI_DEVICE_2) || defined(USE_SPI_DEVICE_3)
-static const uint16_t spiDivisorMapSlow[] = {
+static const uint32_t spiDivisorMapSlow[] = {
     SPI_BaudRatePrescaler_256,    // SPI_CLOCK_INITIALIZATON      164.062 KBits/s
     SPI_BaudRatePrescaler_64,     // SPI_CLOCK_SLOW               656.25 KBits/s
     SPI_BaudRatePrescaler_4,      // SPI_CLOCK_STANDARD           10.5 MBits/s
@@ -182,7 +182,7 @@ bool spiInitDevice(SPIDevice device, bool leadingEdge)
 
     // Enable SPI clock
     RCC_ClockCmd(spi->rcc, ENABLE);
-    RCC_ResetCmd(spi->rcc, ENABLE);
+    RCC_ResetCmd(spi->rcc, DISABLE);
 
     IOInit(IOGetByTag(spi->sck),  OWNER_SPI, RESOURCE_SPI_SCK,  device + 1);
     IOInit(IOGetByTag(spi->miso), OWNER_SPI, RESOURCE_SPI_MISO, device + 1);

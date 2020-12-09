@@ -1,1 +1,1 @@
-target_stm32f303xc(SPRACINGF3)
+target_stm32f303xc(SPRACINGF3 SKIP_RELEASES)

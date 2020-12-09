@@ -40,8 +40,11 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/accgyro/accgyro.h"
-#include "drivers/bus_i2c.h"
 #include "drivers/compass/compass.h"
+#include "drivers/compass/compass_msp.h"
+#include "drivers/barometer/barometer_msp.h"
+#include "drivers/pitotmeter/pitotmeter_msp.h"
+#include "drivers/bus_i2c.h"
 #include "drivers/display.h"
 #include "drivers/flash.h"
 #include "drivers/osd.h"
@@ -568,7 +571,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP_RC:
         for (int i = 0; i < rxRuntimeConfig.channelCount; i++) {
-            sbufWriteU16(dst, rxGetRawChannelValue(i));
+            sbufWriteU16(dst, rxGetChannelValue(i));
         }
         break;
 
@@ -3213,6 +3216,30 @@ static mspResult_e mspProcessSensorCommand(uint16_t cmdMSP, sbuf_t *src)
 #if defined(USE_OPFLOW_MSP)
         case MSP2_SENSOR_OPTIC_FLOW:
             mspOpflowReceiveNewData(sbufPtr(src));
+            break;
+#endif
+
+#if defined(USE_GPS_PROTO_MSP)
+        case MSP2_SENSOR_GPS:
+            mspGPSReceiveNewData(sbufPtr(src));
+            break;
+#endif
+
+#if defined(USE_MAG_MSP)
+        case MSP2_SENSOR_COMPASS:
+            mspMagReceiveNewData(sbufPtr(src));
+            break;
+#endif
+
+#if defined(USE_BARO_MSP)
+        case MSP2_SENSOR_BAROMETER:
+            mspBaroReceiveNewData(sbufPtr(src));
+            break;
+#endif
+
+#if defined(USE_PITOT_MSP)
+        case MSP2_SENSOR_AIRSPEED:
+            mspPitotmeterReceiveNewData(sbufPtr(src));
             break;
 #endif
     }

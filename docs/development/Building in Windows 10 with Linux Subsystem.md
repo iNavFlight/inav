@@ -41,6 +41,18 @@ Mount MS windows C drive and clone iNav
 You are ready!
 You now have a folder called inav in the root of C drive that you can edit in windows
 
+### If you get a cloning error
+
+On some installations, you may see the following error:
+```
+Cloning into 'inav'...
+error: chmod on /mnt/c/inav/.git/config.lock failed: Operation not permitted
+fatal: could not set 'core.filemode' to 'false'
+```
+
+You can fix this with by remounting the drive using the following commands
+1. `sudo umount /mnt/c`
+2. `sudo mount -t drvfs C: /mnt/c -o metadata`
 
 ## Building (example):
 
@@ -84,7 +96,9 @@ make[1]: *** [CMakeFiles/Makefile2:33290: src/main/target/MATEKF722SE/CMakeFiles
 make: *** [Makefile:13703: MATEKF722SE] Error 2
 ```
 
-This error can be triggered by a Windows PATHs included in the Linux Subsystem. The solution is to:
+This error can be triggered by a Windows PATHs included in the Linux Subsystem. The solution is:
+
+#### For WSL V1 - Flags set as 7 by default
 
 1. Open Windows RegEdit tool
 1. Find `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Lxss\{GUID}\Flags`
@@ -93,3 +107,28 @@ This error can be triggered by a Windows PATHs included in the Linux Subsystem. 
 1. `cd build`
 1. `cmake ..`
 1. `make {TARGET}` should be working again 
+
+#### For WSL V2 - Flags set as 0x0000000f (15) by default
+1. Open Windows RegEdit tool
+1. Find `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Lxss\{GUID}\Flags`
+1. Change `Flags` from `f` to `d`, it is stored as Base Hexadecimal
+1. Restart WSL and Windows preferably
+1. `cd build`
+1. `cmake ..`
+1. `make {TARGET}` should be working again 
+
+#### Or, for either version
+1. In the Linux Subsystem, `cd /etc/`
+2. Create a new file with `sudo nano wsl.conf`
+3. Enter the following in to the new file:
+```
+[Interop]
+appendWindowsPath=false
+```
+4. Save the file by holding `Ctrl` and pressing `o`
+5. Press `Enter` to confirm the wsl.conf filename.
+6. Hit `Ctrl`+`x` to exit nano
+7. Restart WSL and Windows preferably
+8. `cd build`
+9. `cmake ..`
+9. `make {TARGET}` should be working again 

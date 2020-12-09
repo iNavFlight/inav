@@ -485,7 +485,7 @@ static SD_Error_t SD_InitializeCard(void)
             SD_GetResponse(SD_Handle.CID);
         }
 
-        if ((SD_CardType == SD_STD_CAPACITY_V1_1) || (SD_CardType == SD_STD_CAPACITY_V2_0) || 
+        if ((SD_CardType == SD_STD_CAPACITY_V1_1) || (SD_CardType == SD_STD_CAPACITY_V2_0) ||
             (SD_CardType == SD_SECURE_DIGITAL_IO_COMBO) || (SD_CardType == SD_HIGH_CAPACITY)) {
             // Send CMD3 SET_REL_ADDR with argument 0
             // SD Card publishes its RCA.
@@ -1000,7 +1000,7 @@ SD_Error_t SD_GetStatus(void)
         }
     }
     else {
-        ErrorState = SD_CARD_ERROR;
+        ErrorState = SD_ERROR;
     }
 
     return ErrorState;

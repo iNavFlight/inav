@@ -3,12 +3,12 @@
 
 #define MAVLINK_MSG_ID_DEBUG 254
 
-MAVPACKED(
+
 typedef struct __mavlink_debug_t {
- uint32_t time_boot_ms; /*< Timestamp (milliseconds since system boot)*/
- float value; /*< DEBUG value*/
- uint8_t ind; /*< index of debug variable*/
-}) mavlink_debug_t;
+ uint32_t time_boot_ms; /*< [ms] Timestamp (time since system boot).*/
+ float value; /*<  DEBUG value*/
+ uint8_t ind; /*<  index of debug variable*/
+} mavlink_debug_t;
 
 #define MAVLINK_MSG_ID_DEBUG_LEN 9
 #define MAVLINK_MSG_ID_DEBUG_MIN_LEN 9
@@ -26,8 +26,8 @@ typedef struct __mavlink_debug_t {
     "DEBUG", \
     3, \
     {  { "time_boot_ms", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_debug_t, time_boot_ms) }, \
-         { "value", NULL, MAVLINK_TYPE_FLOAT, 0, 4, offsetof(mavlink_debug_t, value) }, \
          { "ind", NULL, MAVLINK_TYPE_UINT8_T, 0, 8, offsetof(mavlink_debug_t, ind) }, \
+         { "value", NULL, MAVLINK_TYPE_FLOAT, 0, 4, offsetof(mavlink_debug_t, value) }, \
          } \
 }
 #else
@@ -35,8 +35,8 @@ typedef struct __mavlink_debug_t {
     "DEBUG", \
     3, \
     {  { "time_boot_ms", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_debug_t, time_boot_ms) }, \
-         { "value", NULL, MAVLINK_TYPE_FLOAT, 0, 4, offsetof(mavlink_debug_t, value) }, \
          { "ind", NULL, MAVLINK_TYPE_UINT8_T, 0, 8, offsetof(mavlink_debug_t, ind) }, \
+         { "value", NULL, MAVLINK_TYPE_FLOAT, 0, 4, offsetof(mavlink_debug_t, value) }, \
          } \
 }
 #endif
@@ -47,9 +47,9 @@ typedef struct __mavlink_debug_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param time_boot_ms Timestamp (milliseconds since system boot)
- * @param ind index of debug variable
- * @param value DEBUG value
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param ind  index of debug variable
+ * @param value  DEBUG value
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_debug_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -81,9 +81,9 @@ static inline uint16_t mavlink_msg_debug_pack(uint8_t system_id, uint8_t compone
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param time_boot_ms Timestamp (milliseconds since system boot)
- * @param ind index of debug variable
- * @param value DEBUG value
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param ind  index of debug variable
+ * @param value  DEBUG value
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_debug_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -141,9 +141,9 @@ static inline uint16_t mavlink_msg_debug_encode_chan(uint8_t system_id, uint8_t 
  * @brief Send a debug message
  * @param chan MAVLink channel to send the message
  *
- * @param time_boot_ms Timestamp (milliseconds since system boot)
- * @param ind index of debug variable
- * @param value DEBUG value
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param ind  index of debug variable
+ * @param value  DEBUG value
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -216,7 +216,7 @@ static inline void mavlink_msg_debug_send_buf(mavlink_message_t *msgbuf, mavlink
 /**
  * @brief Get field time_boot_ms from debug message
  *
- * @return Timestamp (milliseconds since system boot)
+ * @return [ms] Timestamp (time since system boot).
  */
 static inline uint32_t mavlink_msg_debug_get_time_boot_ms(const mavlink_message_t* msg)
 {
@@ -226,7 +226,7 @@ static inline uint32_t mavlink_msg_debug_get_time_boot_ms(const mavlink_message_
 /**
  * @brief Get field ind from debug message
  *
- * @return index of debug variable
+ * @return  index of debug variable
  */
 static inline uint8_t mavlink_msg_debug_get_ind(const mavlink_message_t* msg)
 {
@@ -236,7 +236,7 @@ static inline uint8_t mavlink_msg_debug_get_ind(const mavlink_message_t* msg)
 /**
  * @brief Get field value from debug message
  *
- * @return DEBUG value
+ * @return  DEBUG value
  */
 static inline float mavlink_msg_debug_get_value(const mavlink_message_t* msg)
 {

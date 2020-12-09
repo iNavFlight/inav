@@ -3,16 +3,16 @@
 
 #define MAVLINK_MSG_ID_GLOBAL_VISION_POSITION_ESTIMATE 101
 
-MAVPACKED(
+
 typedef struct __mavlink_global_vision_position_estimate_t {
- uint64_t usec; /*< Timestamp (microseconds, synced to UNIX time or since system boot)*/
- float x; /*< Global X position*/
- float y; /*< Global Y position*/
- float z; /*< Global Z position*/
- float roll; /*< Roll angle in rad*/
- float pitch; /*< Pitch angle in rad*/
- float yaw; /*< Yaw angle in rad*/
-}) mavlink_global_vision_position_estimate_t;
+ uint64_t usec; /*< [us] Timestamp (UNIX time or since system boot)*/
+ float x; /*< [m] Global X position*/
+ float y; /*< [m] Global Y position*/
+ float z; /*< [m] Global Z position*/
+ float roll; /*< [rad] Roll angle*/
+ float pitch; /*< [rad] Pitch angle*/
+ float yaw; /*< [rad] Yaw angle*/
+} mavlink_global_vision_position_estimate_t;
 
 #define MAVLINK_MSG_ID_GLOBAL_VISION_POSITION_ESTIMATE_LEN 32
 #define MAVLINK_MSG_ID_GLOBAL_VISION_POSITION_ESTIMATE_MIN_LEN 32
@@ -59,13 +59,13 @@ typedef struct __mavlink_global_vision_position_estimate_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param usec Timestamp (microseconds, synced to UNIX time or since system boot)
- * @param x Global X position
- * @param y Global Y position
- * @param z Global Z position
- * @param roll Roll angle in rad
- * @param pitch Pitch angle in rad
- * @param yaw Yaw angle in rad
+ * @param usec [us] Timestamp (UNIX time or since system boot)
+ * @param x [m] Global X position
+ * @param y [m] Global Y position
+ * @param z [m] Global Z position
+ * @param roll [rad] Roll angle
+ * @param pitch [rad] Pitch angle
+ * @param yaw [rad] Yaw angle
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_global_vision_position_estimate_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -105,13 +105,13 @@ static inline uint16_t mavlink_msg_global_vision_position_estimate_pack(uint8_t 
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param usec Timestamp (microseconds, synced to UNIX time or since system boot)
- * @param x Global X position
- * @param y Global Y position
- * @param z Global Z position
- * @param roll Roll angle in rad
- * @param pitch Pitch angle in rad
- * @param yaw Yaw angle in rad
+ * @param usec [us] Timestamp (UNIX time or since system boot)
+ * @param x [m] Global X position
+ * @param y [m] Global Y position
+ * @param z [m] Global Z position
+ * @param roll [rad] Roll angle
+ * @param pitch [rad] Pitch angle
+ * @param yaw [rad] Yaw angle
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_global_vision_position_estimate_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -177,13 +177,13 @@ static inline uint16_t mavlink_msg_global_vision_position_estimate_encode_chan(u
  * @brief Send a global_vision_position_estimate message
  * @param chan MAVLink channel to send the message
  *
- * @param usec Timestamp (microseconds, synced to UNIX time or since system boot)
- * @param x Global X position
- * @param y Global Y position
- * @param z Global Z position
- * @param roll Roll angle in rad
- * @param pitch Pitch angle in rad
- * @param yaw Yaw angle in rad
+ * @param usec [us] Timestamp (UNIX time or since system boot)
+ * @param x [m] Global X position
+ * @param y [m] Global Y position
+ * @param z [m] Global Z position
+ * @param roll [rad] Roll angle
+ * @param pitch [rad] Pitch angle
+ * @param yaw [rad] Yaw angle
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -272,7 +272,7 @@ static inline void mavlink_msg_global_vision_position_estimate_send_buf(mavlink_
 /**
  * @brief Get field usec from global_vision_position_estimate message
  *
- * @return Timestamp (microseconds, synced to UNIX time or since system boot)
+ * @return [us] Timestamp (UNIX time or since system boot)
  */
 static inline uint64_t mavlink_msg_global_vision_position_estimate_get_usec(const mavlink_message_t* msg)
 {
@@ -282,7 +282,7 @@ static inline uint64_t mavlink_msg_global_vision_position_estimate_get_usec(cons
 /**
  * @brief Get field x from global_vision_position_estimate message
  *
- * @return Global X position
+ * @return [m] Global X position
  */
 static inline float mavlink_msg_global_vision_position_estimate_get_x(const mavlink_message_t* msg)
 {
@@ -292,7 +292,7 @@ static inline float mavlink_msg_global_vision_position_estimate_get_x(const mavl
 /**
  * @brief Get field y from global_vision_position_estimate message
  *
- * @return Global Y position
+ * @return [m] Global Y position
  */
 static inline float mavlink_msg_global_vision_position_estimate_get_y(const mavlink_message_t* msg)
 {
@@ -302,7 +302,7 @@ static inline float mavlink_msg_global_vision_position_estimate_get_y(const mavl
 /**
  * @brief Get field z from global_vision_position_estimate message
  *
- * @return Global Z position
+ * @return [m] Global Z position
  */
 static inline float mavlink_msg_global_vision_position_estimate_get_z(const mavlink_message_t* msg)
 {
@@ -312,7 +312,7 @@ static inline float mavlink_msg_global_vision_position_estimate_get_z(const mavl
 /**
  * @brief Get field roll from global_vision_position_estimate message
  *
- * @return Roll angle in rad
+ * @return [rad] Roll angle
  */
 static inline float mavlink_msg_global_vision_position_estimate_get_roll(const mavlink_message_t* msg)
 {
@@ -322,7 +322,7 @@ static inline float mavlink_msg_global_vision_position_estimate_get_roll(const m
 /**
  * @brief Get field pitch from global_vision_position_estimate message
  *
- * @return Pitch angle in rad
+ * @return [rad] Pitch angle
  */
 static inline float mavlink_msg_global_vision_position_estimate_get_pitch(const mavlink_message_t* msg)
 {
@@ -332,7 +332,7 @@ static inline float mavlink_msg_global_vision_position_estimate_get_pitch(const 
 /**
  * @brief Get field yaw from global_vision_position_estimate message
  *
- * @return Yaw angle in rad
+ * @return [rad] Yaw angle
  */
 static inline float mavlink_msg_global_vision_position_estimate_get_yaw(const mavlink_message_t* msg)
 {

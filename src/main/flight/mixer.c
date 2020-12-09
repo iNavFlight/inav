@@ -574,14 +574,42 @@ void FAST_CODE mixTable(const float dT)
 
 motorStatus_e getMotorStatus(void)
 {
-    if (failsafeRequiresMotorStop() || (!failsafeIsActive() && STATE(NAV_MOTOR_STOP_OR_IDLE))) {
+    if (failsafeRequiresMotorStop()) {
         return MOTOR_STOPPED_AUTO;
     }
 
-    if (calculateThrottleStatus(feature(FEATURE_REVERSIBLE_MOTORS) ? THROTTLE_STATUS_TYPE_COMMAND : THROTTLE_STATUS_TYPE_RC) == THROTTLE_LOW) {
-        if ((STATE(FIXED_WING_LEGACY) || !STATE(AIRMODE_ACTIVE)) && (!(navigationIsFlyingAutonomousMode() && navConfig()->general.flags.auto_overrides_motor_stop)) && (!failsafeIsActive())) {
+    if (!failsafeIsActive() && STATE(NAV_MOTOR_STOP_OR_IDLE)) {
+        return MOTOR_STOPPED_AUTO;
+    }
+
+    const bool fixedWingOrAirmodeNotActive = STATE(FIXED_WING_LEGACY) || !STATE(AIRMODE_ACTIVE);
+    const bool throttleStickLow =
+        (calculateThrottleStatus(feature(FEATURE_REVERSIBLE_MOTORS) ? THROTTLE_STATUS_TYPE_COMMAND : THROTTLE_STATUS_TYPE_RC) == THROTTLE_LOW);
+
+    if (throttleStickLow && fixedWingOrAirmodeNotActive) {
+
+        if ((navConfig()->general.flags.nav_overrides_motor_stop == NOMS_OFF_ALWAYS) && failsafeIsActive()) {
+            // If we are in failsafe and user was holding stick low before it was triggered and nav_overrides_motor_stop is set to OFF_ALWAYS
+            // and either on a plane or on a quad with inactive airmode - stop motor
             return MOTOR_STOPPED_USER;
+
+        } else if (!failsafeIsActive()) {
+            // If user is holding stick low, we are not in failsafe and either on a plane or on a quad with inactive
+            // airmode - we need to check if we are allowing navigation to override MOTOR_STOP
+
+            switch (navConfig()->general.flags.nav_overrides_motor_stop) {
+                case NOMS_ALL_NAV:
+                    return navigationInAutomaticThrottleMode() ? MOTOR_RUNNING : MOTOR_STOPPED_USER;
+
+                case NOMS_AUTO_ONLY:
+                    return navigationIsFlyingAutonomousMode() ? MOTOR_RUNNING : MOTOR_STOPPED_USER;
+
+                case NOMS_OFF:
+                default:
+                    return MOTOR_STOPPED_USER;
+            }
         }
+
     }
 
     return MOTOR_RUNNING;

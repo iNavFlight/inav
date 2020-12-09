@@ -10,24 +10,24 @@ tables:
     values: ["NONE", "HCSR04", "SRF10", "INAV_I2C", "VL53L0X", "MSP", "UIB", "BENEWAKE"]
     enum: rangefinderType_e
   - name: mag_hardware
-    values: ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "FAKE"]
+    values: ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "MSP", "FAKE"]
     enum: magSensor_e
   - name: opflow_hardware
     values: ["NONE", "PMW3901", "CXOF", "MSP", "FAKE"]
     enum: opticalFlowSensor_e
   - name: baro_hardware
-    values: ["NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "LPS25H", "SPL06", "BMP388", "DPS310", "FAKE"]
+    values: ["NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "LPS25H", "SPL06", "BMP388", "DPS310", "MSP", "FAKE"]
     enum: baroSensor_e
   - name: pitot_hardware
-    values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE"]
+    values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE", "MSP"]
     enum: pitotSensor_e
   - name: receiver_type
     values: ["NONE", "PPM", "SERIAL", "MSP", "SPI", "UIB"]
     enum: rxReceiverType_e
   - name: serial_rx
-    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2"]
+    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2", "GHST"]
   - name: rx_spi_protocol
-    values: ["V202_250K", "V202_1M", "SYMA_X", "SYMA_X5C", "CX10", "CX10A", "H8_3D", "INAV", "ELERES"]
+    values: ["ELERES"]
     enum: rx_spi_protocol_e
   - name: blackbox_device
     values: ["SERIAL", "SPIFLASH", "SDCARD"]
@@ -44,7 +44,7 @@ tables:
     values: ["NONE", "ADC", "ESC"]
     enum: voltageSensor_e
   - name: gps_provider
-    values: ["NMEA", "UBLOX", "UNUSED", "NAZA", "UBLOX7", "MTK"]
+    values: ["NMEA", "UBLOX", "UNUSED", "NAZA", "UBLOX7", "MTK", "MSP"]
     enum: gpsProvider_e
   - name: gps_sbas_mode
     values: ["AUTO", "EGNOS", "WAAS", "MSAS", "GAGAN", "NONE"]
@@ -144,6 +144,17 @@ tables:
   - name: tristate
     enum: tristate_e
     values: ["AUTO", "ON", "OFF"]
+  - name: osd_crsf_lq_format
+    enum: osd_crsf_lq_format_e
+    values: ["TYPE1", "TYPE2"]
+  - name: off_on
+    values: ["OFF", "ON"]
+  - name: djiOsdTempSource
+    values: ["ESC", "IMU", "BARO"]
+    enum: djiOsdTempSource_e
+  - name: nav_overrides_motor_stop
+    enum: navOverridesMotorStop_e
+    values: ["OFF_ALWAYS", "OFF", "AUTO_ONLY", "ALL_NAV"]
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -567,6 +578,13 @@ groups:
         condition: USE_SPEKTRUM_BIND
         min: SPEKTRUM_SAT_BIND_DISABLED
         max: SPEKTRUM_SAT_BIND_MAX
+      - name: srxl2_unit_id
+        condition: USE_SERIALRX_SRXL2
+        min: 0
+        max: 15
+      - name: srxl2_baud_fast
+        condition: USE_SERIALRX_SRXL2
+        table: off_on
       - name: rx_min_usec
         description: "Defines the shortest pulse width value used when ensuring the channel value is valid. If the receiver gives a pulse value lower than this value then the channel will be marked as bad and will default to the value of mid_rc."
         default_value: "885"
@@ -655,7 +673,7 @@ groups:
         max: 1000
       - name: motor_pwm_protocol
         description: "Protocol that is used to send motor updates to ESCs. Possible values - STANDARD, ONESHOT125, ONESHOT42, MULTISHOT, DSHOT150, DSHOT300, DSHOT600, DSHOT1200, BRUSHED"
-        default_value: "STANDARD"
+        default_value: "ONESHOT125"
         field: motorPwmProtocol
         table: motor_pwm_protocol
       - name: throttle_scale
@@ -1539,6 +1557,12 @@ groups:
         field: fixedWingCoordinatedYawGain
         min: 0
         max: 2
+      - name: fw_turn_assist_pitch_gain
+        description: "Gain required to keep constant pitch angle during coordinated turns (in TURN_ASSIST mode). Value significantly different from 1.0 indicates a problem with the airspeed calibration (if present) or value of `fw_reference_airspeed` parameter"
+        default_value: "1"
+        field: fixedWingCoordinatedPitchGain
+        min: 0
+        max: 2
       - name: fw_iterm_limit_stick_position
         description: "Iterm is not allowed to grow when stick position is above threshold. This solves the problem of bounceback or followthrough when full stick deflection is applied on poorely tuned fixed wings. In other words, stabilization is partialy disabled when pilot is actively controlling the aircraft and active when sticks are not touched. `0` mean stick is in center position, `1` means it is fully deflected to either side"
         default_value: "0.5"
@@ -1828,7 +1852,7 @@ groups:
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t
-    condition: USE_NAV && USE_AUTOTUNE_FIXED_WING
+    condition: USE_AUTOTUNE_FIXED_WING
     members:
       - name: fw_autotune_overshoot_time
         description: "Time [ms] to detect sustained overshoot"
@@ -2083,10 +2107,10 @@ groups:
         min: 0
         max: 5000
       - name: nav_overrides_motor_stop
-        description: "Setting to OFF combined with MOTOR_STOP feature will allow user to stop motor when in autonomous modes. On most places this setting is likely to cause a stall."
-        default_value: "ON"
-        field: general.flags.auto_overrides_motor_stop
-        type: bool
+        description: "When set OFF_ALWAYS the navigation system will not take over the control of the motor if the throttle is low (motor will stop). When set to OFF always the navigation system will not take over the control of the motor if the throttle was low even when failsafe is triggered. When set to AUTO_ONLY the navigation system will only take over the control of the throttle in autonomous navigation modes (NAV WP and NAV RTH). When set to ALL_NAV (default) the navigation system will take over the control of the motor completely and never allow the motor to stop even when the throttle is low. This setting only has an effect on NAV modes which take control of the throttle when combined with MOTOR_STOP and is likely to cause a stall if fw_min_throttle_down_pitch isn't set correctly or the pitch estimation is wrong for fixed wing models when not set to ALL_NAV"
+        default_value: "ALL_NAV"
+        field: general.flags.nav_overrides_motor_stop
+        table: nav_overrides_motor_stop
       - name: nav_rth_climb_first
         description: "If set to ON drone will climb to nav_rth_altitude first and head home afterwards. If set to OFF drone will head home instantly and climb on the way."
         default_value: "ON"
@@ -2129,6 +2153,12 @@ groups:
         description: "Aircraft will climb/descend to this altitude after reaching home if landing is not enabled. Set to 0 to stay at `nav_rth_altitude` (default) [cm]"
         default_value: "0"
         field: general.rth_home_altitude
+        max: 65000
+      - name: safehome_max_distance
+        description: "In order for a safehome to be used, it must be less than this distance (in cm) from the arming point."
+        default_value: "20000"
+        field: general.safehome_max_distance
+        min: 0
         max: 65000
       - name: nav_mc_bank_angle
         description: "Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude"
@@ -2260,6 +2290,18 @@ groups:
         field: fw.pitch_to_throttle
         min: 0
         max: 100
+      - name: nav_fw_pitch2thr_smoothing
+        description:  "How smoothly the autopilot makes pitch to throttle correction inside a deadband defined by pitch_to_throttle_thresh."
+        default_value: "6"
+        field: fw.pitch_to_throttle_smooth
+        min: 0
+        max: 9
+      - name: nav_fw_pitch2thr_threshold
+        description: "Threshold from average pitch where momentary pitch_to_throttle correction kicks in. [decidegrees]"
+        default_value: "50"
+        field: fw.pitch_to_throttle_thresh
+        min: 0
+        max: 900
       - name: nav_fw_loiter_radius
         description: "PosHold radius. 3000 to 7500 is a good value (30-75m) [cm]"
         default_value: "5000"
@@ -2335,6 +2377,12 @@ groups:
         field: fw.launch_motor_spinup_time
         min: 0
         max: 1000
+      - name: nav_fw_launch_end_time
+        description: "Time for the transition of throttle and pitch angle, between the launch state and the subsequent flight mode [ms]"
+        default_value: "2000"
+        field: fw.launch_end_time
+        min: 0
+        max: 5000
       - name: nav_fw_launch_min_time
         description: "Allow launch mode to execute at least this time (ms) and ignore stick movements [0-60000]."
         default_value: "0"
@@ -2547,6 +2595,11 @@ groups:
         type: uint8_t
         min: 0
         max: 255
+      - name: mavlink_extra3_rate
+        field: mavlink.extra3_rate
+        type: uint8_t
+        min: 0
+        max: 255
   - name: PG_ELERES_CONFIG
     type: eleresConfig_t
     headers: ["rx/eleres.h"]
@@ -2619,7 +2672,7 @@ groups:
         type: uint8_t
 
       - name: osd_rssi_alarm
-        description: "Value bellow which to make the OSD RSSI indicator blink"
+        description: "Value below which to make the OSD RSSI indicator blink"
         default_value: "20"
         field: rssi_alarm
         min: 0
@@ -2643,7 +2696,7 @@ groups:
         min: 0
         max: 50000
       - name: osd_neg_alt_alarm
-        description: "Value bellow which (negative altitude) to make the OSD relative altitude indicator blink (meters)"
+        description: "Value below which (negative altitude) to make the OSD relative altitude indicator blink (meters)"
         default_value: "5"
         field: neg_alt_alarm
         min: 0
@@ -2711,11 +2764,19 @@ groups:
         min: -550
         max: 1250
       - name: osd_snr_alarm
+        condition: USE_SERIALRX_CRSF
         description: "Value below which Crossfire SNR Alarm pops-up. (dB)"
-        default_value: "5"
+        default_value: "4"
         field: snr_alarm
         min: -12
         max: 8
+      - name: osd_link_quality_alarm
+        condition: USE_SERIALRX_CRSF
+        description: "LQ % indicator blinks below this value. For Crossfire use 70%, for Tracer use 50%"
+        default_value: "70"
+        field: link_quality_alarm
+        min: 0
+        max: 100
       - name: osd_temp_label_align
         description: "Allows to chose between left and right alignment for the OSD temperature sensor labels. Valid values are `LEFT` and `RIGHT`"
         default_value: "LEFT"
@@ -2738,6 +2799,12 @@ groups:
         default_value: "DEFAULT"
         field: crosshairs_style
         table: osd_crosshairs_style
+        type: uint8_t
+      - name: osd_crsf_lq_format
+        description: "To select LQ format"
+        default_value: "TYPE1"
+        field: crsf_lq_format
+        table: osd_crsf_lq_format
         type: uint8_t
       - name: osd_horizon_offset
         description: "To vertically adjust the whole OSD and AHI and scrolling bars"
@@ -3091,6 +3158,7 @@ groups:
           max: UINT32_MAX
           description: "Defines serial debugging log topic. See `docs/development/serial_printf_debugging.md` for usage."
           default_value: "0"
+
   - name: PG_ESC_SENSOR_CONFIG
     type: escSensorConfig_t
     headers: ["sensors/esc_sensor.h"]
@@ -3111,3 +3179,25 @@ groups:
       - name: smartport_master_inverted
         field: inverted
         type: bool
+
+  - name: PG_DJI_OSD_CONFIG
+    type: djiOsdConfig_t
+    headers: ["io/osd_dji_hd.h"]
+    condition: USE_DJI_HD_OSD
+    members:
+        - name: dji_workarounds
+          description: "Enables workarounds for different versions of MSP protocol used"
+          field: proto_workarounds
+          min: 0
+          max: UINT8_MAX
+        - name: dji_use_name_for_messages
+          description: "Re-purpose the craft name field for messages. Replace craft name with :WTSED for Warnings|Throttle|Speed|Efficiency|Trip distance"
+          default_value: "ON"
+          field: use_name_for_messages
+          type: bool
+        - name: dji_esc_temp_source
+          description: "Re-purpose the ESC temperature field for IMU/BARO temperature"
+          default_value: "ESC"
+          field: esc_temperature_source
+          table: djiOsdTempSource
+          type: uint8_t

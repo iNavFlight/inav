@@ -3,13 +3,13 @@
 
 #define MAVLINK_MSG_ID_LOG_DATA 120
 
-MAVPACKED(
+
 typedef struct __mavlink_log_data_t {
- uint32_t ofs; /*< Offset into the log*/
- uint16_t id; /*< Log id (from LOG_ENTRY reply)*/
- uint8_t count; /*< Number of bytes (zero for end of log)*/
- uint8_t data[90]; /*< log data*/
-}) mavlink_log_data_t;
+ uint32_t ofs; /*<  Offset into the log*/
+ uint16_t id; /*<  Log id (from LOG_ENTRY reply)*/
+ uint8_t count; /*< [bytes] Number of bytes (zero for end of log)*/
+ uint8_t data[90]; /*<  log data*/
+} mavlink_log_data_t;
 
 #define MAVLINK_MSG_ID_LOG_DATA_LEN 97
 #define MAVLINK_MSG_ID_LOG_DATA_MIN_LEN 97
@@ -26,8 +26,8 @@ typedef struct __mavlink_log_data_t {
     120, \
     "LOG_DATA", \
     4, \
-    {  { "ofs", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_log_data_t, ofs) }, \
-         { "id", NULL, MAVLINK_TYPE_UINT16_T, 0, 4, offsetof(mavlink_log_data_t, id) }, \
+    {  { "id", NULL, MAVLINK_TYPE_UINT16_T, 0, 4, offsetof(mavlink_log_data_t, id) }, \
+         { "ofs", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_log_data_t, ofs) }, \
          { "count", NULL, MAVLINK_TYPE_UINT8_T, 0, 6, offsetof(mavlink_log_data_t, count) }, \
          { "data", NULL, MAVLINK_TYPE_UINT8_T, 90, 7, offsetof(mavlink_log_data_t, data) }, \
          } \
@@ -36,8 +36,8 @@ typedef struct __mavlink_log_data_t {
 #define MAVLINK_MESSAGE_INFO_LOG_DATA { \
     "LOG_DATA", \
     4, \
-    {  { "ofs", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_log_data_t, ofs) }, \
-         { "id", NULL, MAVLINK_TYPE_UINT16_T, 0, 4, offsetof(mavlink_log_data_t, id) }, \
+    {  { "id", NULL, MAVLINK_TYPE_UINT16_T, 0, 4, offsetof(mavlink_log_data_t, id) }, \
+         { "ofs", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_log_data_t, ofs) }, \
          { "count", NULL, MAVLINK_TYPE_UINT8_T, 0, 6, offsetof(mavlink_log_data_t, count) }, \
          { "data", NULL, MAVLINK_TYPE_UINT8_T, 90, 7, offsetof(mavlink_log_data_t, data) }, \
          } \
@@ -50,10 +50,10 @@ typedef struct __mavlink_log_data_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param id Log id (from LOG_ENTRY reply)
- * @param ofs Offset into the log
- * @param count Number of bytes (zero for end of log)
- * @param data log data
+ * @param id  Log id (from LOG_ENTRY reply)
+ * @param ofs  Offset into the log
+ * @param count [bytes] Number of bytes (zero for end of log)
+ * @param data  log data
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_log_data_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -85,10 +85,10 @@ static inline uint16_t mavlink_msg_log_data_pack(uint8_t system_id, uint8_t comp
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param id Log id (from LOG_ENTRY reply)
- * @param ofs Offset into the log
- * @param count Number of bytes (zero for end of log)
- * @param data log data
+ * @param id  Log id (from LOG_ENTRY reply)
+ * @param ofs  Offset into the log
+ * @param count [bytes] Number of bytes (zero for end of log)
+ * @param data  log data
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_log_data_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -146,10 +146,10 @@ static inline uint16_t mavlink_msg_log_data_encode_chan(uint8_t system_id, uint8
  * @brief Send a log_data message
  * @param chan MAVLink channel to send the message
  *
- * @param id Log id (from LOG_ENTRY reply)
- * @param ofs Offset into the log
- * @param count Number of bytes (zero for end of log)
- * @param data log data
+ * @param id  Log id (from LOG_ENTRY reply)
+ * @param ofs  Offset into the log
+ * @param count [bytes] Number of bytes (zero for end of log)
+ * @param data  log data
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -222,7 +222,7 @@ static inline void mavlink_msg_log_data_send_buf(mavlink_message_t *msgbuf, mavl
 /**
  * @brief Get field id from log_data message
  *
- * @return Log id (from LOG_ENTRY reply)
+ * @return  Log id (from LOG_ENTRY reply)
  */
 static inline uint16_t mavlink_msg_log_data_get_id(const mavlink_message_t* msg)
 {
@@ -232,7 +232,7 @@ static inline uint16_t mavlink_msg_log_data_get_id(const mavlink_message_t* msg)
 /**
  * @brief Get field ofs from log_data message
  *
- * @return Offset into the log
+ * @return  Offset into the log
  */
 static inline uint32_t mavlink_msg_log_data_get_ofs(const mavlink_message_t* msg)
 {
@@ -242,7 +242,7 @@ static inline uint32_t mavlink_msg_log_data_get_ofs(const mavlink_message_t* msg
 /**
  * @brief Get field count from log_data message
  *
- * @return Number of bytes (zero for end of log)
+ * @return [bytes] Number of bytes (zero for end of log)
  */
 static inline uint8_t mavlink_msg_log_data_get_count(const mavlink_message_t* msg)
 {
@@ -252,7 +252,7 @@ static inline uint8_t mavlink_msg_log_data_get_count(const mavlink_message_t* ms
 /**
  * @brief Get field data from log_data message
  *
- * @return log data
+ * @return  log data
  */
 static inline uint16_t mavlink_msg_log_data_get_data(const mavlink_message_t* msg, uint8_t *data)
 {
