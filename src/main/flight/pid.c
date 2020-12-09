@@ -612,14 +612,7 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
     const float newFFTerm = pidState->rateTarget * pidState->kFF;
 
     // Calculate integral
-    // Freeze yaw Iterm when bank angle is above threshold to avoid rudder counteracting turns
-    float bankAngle = DECIDEGREES_TO_DEGREES(attitude.values.roll);
-    if (fabsf(bankAngle) > pidProfile()->fixedWingYawItermBankLimit && axis == FD_YAW && !FLIGHT_MODE(AUTO_TUNE)) {
-        pidState->errorGyroIf += 0;
-    } else
-    {
-        pidState->errorGyroIf += rateError * pidState->kI * dT;
-    }
+    pidState->errorGyroIf += rateError * pidState->kI * dT;
 
     applyItermLimiting(pidState);
 
@@ -928,11 +921,18 @@ static void pidApplyFpvCameraAngleMix(pidState_t *pidState, uint8_t fpvCameraAng
     pidState[YAW].rateTarget = constrainf(yawRate * cosCameraAngle + rollRate * sinCameraAngle, -GYRO_SATURATION_LIMIT, GYRO_SATURATION_LIMIT);
 }
 
-void checkItermLimitingActive(pidState_t *pidState)
+void checkItermLimitingActive(pidState_t *pidState, flight_dynamics_index_t axis)
 {
     bool shouldActivate;
+    float bankAngle = DECIDEGREES_TO_DEGREES(attitude.values.roll);
     if (usedPidControllerType == PID_TYPE_PIFF) {
-        shouldActivate = isFixedWingItermLimitActive(pidState->stickPosition);
+        // Do not allow yaw I-term to grow when bank angle is too large
+        if (axis == FD_YAW && fabsf(bankAngle) > pidProfile()->fixedWingYawItermBankLimit){
+            shouldActivate = 1;
+        } else
+        {
+            shouldActivate = isFixedWingItermLimitActive(pidState->stickPosition);
+        }
     } else 
     {
         shouldActivate = mixerIsOutputSaturated();
@@ -1010,7 +1010,7 @@ void FAST_CODE pidController(float dT)
         pidApplySetpointRateLimiting(&pidState[axis], axis, dT);
         
         // Step 4: Run gyro-driven control
-        checkItermLimitingActive(&pidState[axis]);
+        checkItermLimitingActive(&pidState[axis], axis);
         pidControllerApplyFn(&pidState[axis], axis, dT);
     }
 }
