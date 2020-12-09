@@ -950,7 +950,7 @@ void checkItermLimitingActive(pidState_t *pidState)
 
 void checkItermFreezingActive(pidState_t *pidState, flight_dynamics_index_t axis)
 {
-    if (usedPidControllerType == PID_TYPE_PIFF) {
+    if (usedPidControllerType == PID_TYPE_PIFF && pidProfile()->fixedWingYawItermBankLimit != 0) {
         // Do not allow yaw I-term to grow when bank angle is too large
         float bankAngle = DECIDEGREES_TO_DEGREES(attitude.values.roll);
         if (axis == FD_YAW && fabsf(bankAngle) > pidProfile()->fixedWingYawItermBankLimit && !(FLIGHT_MODE(AUTO_TUNE) || FLIGHT_MODE(TURN_ASSISTANT) || navigationRequiresTurnAssistance())){
@@ -959,7 +959,11 @@ void checkItermFreezingActive(pidState_t *pidState, flight_dynamics_index_t axis
         {
             pidState->itermFreezeActive = false;
         }
+    } else
+    {
+        pidState->itermFreezeActive = false;
     }
+    
 }
 
 void FAST_CODE pidController(float dT)

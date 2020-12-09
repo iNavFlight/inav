@@ -1570,11 +1570,11 @@ groups:
         min: 0
         max: 1
       - name: fw_yaw_iterm_limit_bank_angle
-        description: "Yaw Iterm is not allowed to grow when bank angle is above this threshold [degrees]. This solves the problem of the rudder counteracting turns by partially disabling yaw stabilization when making banked turns. Setting to 180 (the default) disables this feature."
-        default_value: "180"
+        description: "Yaw Iterm is frozen when bank angle is above this threshold [degrees]. This solves the problem of the rudder counteracting turns by partially disabling yaw stabilization when making banked turns. Setting to 0 (the default) disables this feature. Only applies when autopilot is not active and TURN ASSIST is disabled."
+        default_value: "0"
         field: fixedWingYawItermBankLimit
         min: 0
-        max: 180
+        max: 90
       - name: pidsum_limit
         description: "A limitation to overall amount of correction Flight PID can request on each axis (Roll/Pitch). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help"
         default_value: "500"
