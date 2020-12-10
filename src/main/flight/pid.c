@@ -260,7 +260,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .fixedWingCoordinatedYawGain = 1.0f,
         .fixedWingCoordinatedPitchGain = 1.0f,
         .fixedWingItermLimitOnStickPosition = 0.5f,
-        .fixedWingYawItermBankLimit = 180,
+        .fixedWingYawItermBankLimit = 0,
 
         .loiter_direction = NAV_LOITER_RIGHT,
         .navVelXyDTermLpfHz = NAV_ACCEL_CUTOFF_FREQUENCY_HZ,
