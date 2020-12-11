@@ -99,6 +99,8 @@
 
 // *************** UART *****************************
 #define USE_VCP
+#define VBUS_SENSING_PIN        PC15
+#define VBUS_SENSING_ENABLED
 
 #define USE_UART1
 #if defined(FLYWOOF411GV2)
