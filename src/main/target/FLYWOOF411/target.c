@@ -25,8 +25,7 @@
 
 
 const timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM9, CH1, PA2,   TIM_USE_PPM,   0, 0), // PPM IN
-
+//  DEF_TIM(TIM9, CH1, PA2,  TIM_USE_PPM,   0, 0), // PPM IN
     DEF_TIM(TIM1, CH1, PA8,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,  0, 1),
 #if defined(FLYWOOF411GV2)
     DEF_TIM(TIM2, CH2, PB3,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,  0, 0), 
@@ -41,7 +40,8 @@ const timerHardware_t timerHardware[] = {
 #if defined(FLYWOOF411GV2)
 //  DEF_TIM(TIM5, CH4, PA3,  TIM_USE_ANY,   0, 1), //  RX2
     DEF_TIM(TIM5, CH1, PA0,  TIM_USE_LED,   0, 0), //  LED
-    DEF_TIM(TIM4, CH1, PB6,  TIM_USE_ANY,   0, 0), //  SOFTSERIAL
+    DEF_TIM(TIM4, CH1, PB6,  TIM_USE_ANY,   0, 0), //  SOFTSERIAL TX
+    DEF_TIM(TIM4, CH2, PB7,  TIM_USE_ANY,   0, 0), //  SOFTSERIAL RX
 #elif defined(FLYWOOF411GV1)
     DEF_TIM(TIM5, CH4, PA3,  TIM_USE_ANY,   0, 1), //  RX2    1,0
     DEF_TIM(TIM2, CH1, PA15, TIM_USE_LED,   0, 0), //  LED    1,5
