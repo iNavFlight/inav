@@ -871,7 +871,7 @@ static void NOINLINE pidTurnAssistant(pidState_t *pidState)
             airspeedForCoordinatedTurn = constrainf(airspeedForCoordinatedTurn, 300, 6000);
 
             // Calculate rate of turn in Earth frame according to FAA's Pilot's Handbook of Aeronautical Knowledge
-            float bankAngleTarget = pidRcCommandToAngle(rcCommand[ROLL], pidProfile()->max_angle_inclination[ROLL]);
+            float bankAngleTarget = pidRcCommandToAngle(rcCommand[ROLL], pidProfile()->max_angle_inclination[FD_ROLL]);
             float coordinatedTurnRateEarthFrame = GRAVITY_CMSS * tan_approx(-bankAngleTarget) / airspeedForCoordinatedTurn;
 
             targetRates.z = RADIANS_TO_DEGREES(coordinatedTurnRateEarthFrame);
@@ -986,9 +986,7 @@ void FAST_CODE pidController(float dT)
     }
 
     if (FLIGHT_MODE(TURN_ASSISTANT) || navigationRequiresTurnAssistance()) {
-        //for (int axis = 0; axis < 3; axis++) {
-            pidTurnAssistant(pidState);
-        //}
+        pidTurnAssistant(pidState);
         canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with TURN_ASSISTANT
     }
 
