@@ -98,8 +98,8 @@
 | failsafe_recovery_delay | 5 | Time in deciseconds to wait before aborting failsafe when signal is recovered. See [Failsafe documentation](Failsafe.md#failsafe_recovery_delay). |
 | failsafe_stick_threshold | 50 | Threshold for stick motion to consider failsafe condition resolved. If non-zero failsafe won't clear even if RC link is restored - you have to move sticks to exit failsafe. |
 | failsafe_throttle | 1000 | Throttle level used for landing when failsafe is enabled. See [Failsafe documentation](Failsafe.md#failsafe_throttle). |
-| failsafe_throttle_low_delay | 0 | If failsafe activated when throttle is low for this much time - bypass failsafe and disarm, in 10th of seconds. 0 = No timeout |
-| fixed_wing_auto_arm | False | Auto-arm fixed wing aircraft on throttle above min_check, and disarming with stick commands are disabled, so power cycle is required to disarm. Requires enabled motorstop and no arm switch configured. |
+| failsafe_throttle_low_delay | 0 | If failsafe gets activated when throttle has been low for this much time, bypass failsafe and disarm. In 10th of seconds. 0 = No timeout |
+| fixed_wing_auto_arm | OFF | Auto-arm fixed wing aircraft on throttle above min_check, and disarming with stick commands are disabled, so power cycle is required to disarm. Requires enabled motorstop and no arm switch configured. |
 | flaperon_throw_offset | 200 | Defines throw range in us for both ailerons that will be passed to servo mixer via input source 14 (`FEATURE FLAPS`) when FLAPERON mode is activated. |
 | flip_over_after_crash_power_factor | 65 | flip over after crash power factor |
 | fpv_mix_degrees | 0 |  |
@@ -437,11 +437,10 @@
 | pinio_box4 | :BOX_PERMANENT_ID_NONE | Mode assignment for PINIO#1 |
 | pitch_rate | 20 | Defines rotation rate on PITCH axis that UAV will try to archive on max. stick deflection. Rates are defined in tens of degrees (deca-degrees) per second [rate = dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure. |
 | pitot_hardware | NONE | Selection of pitot hardware. |
-| pitot_lpf_milli_hz | 350 |  |
-| pitot_scale | 1.0 |  |
-| platform_type | MULTIROTOR | Defines UAV platform type. Allowed values: "MULTIROTOR", "AIRPLANE", "HELICOPTER", "TRICOPTER", "ROVER", "BOAT". Currently only MULTIROTOR, AIRPLANE and TRICOPTER types are implemented |
+| pitot_lpf_milli_hz |  |  |
+| pitot_scale |  |  |
+| platform_type | "MULTIROTOR" | Defines UAV platform type. Allowed values: "MULTIROTOR", "AIRPLANE", "HELICOPTER", "TRICOPTER", "ROVER", "BOAT". Currently only MULTIROTOR, AIRPLANE and TRICOPTER types are implemented |
 | pos_hold_deadband | 10 | Stick deadband in [r/c points], applied after r/c deadband and expo |
-| prearm_timeout | 10000 | Duration (ms) for which Prearm being activated is valid. after this, Prearm needs to be reset. 0 means Prearm does not timeout. |
 | rangefinder_hardware | NONE | Selection of rangefinder hardware. |
 | rangefinder_median_filter | False | 3-point median filtering for rangefinder readouts |
 | rate_accel_limit_roll_pitch | 0 | Limits acceleration of ROLL/PITCH rotation speed that can be requested by stick input. In degrees-per-second-squared. Small and powerful UAV flies great with high acceleration limit ( > 5000 dps^2 and even > 10000 dps^2). Big and heavy multirotors will benefit from low acceleration limit (~ 360 dps^2). When set correctly, it greatly improves stopping performance. Value of 0 disables limiting. |
