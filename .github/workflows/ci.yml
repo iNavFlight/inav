@@ -2,7 +2,10 @@ name: Build firmware
 # Don't enable CI on push, just on PR. If you
 # are working on the main repo and want to trigger
 # a CI build submit a draft PR.
-on: pull_request
+on:
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
 
 jobs:
   build:
