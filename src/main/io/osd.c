@@ -1383,6 +1383,19 @@ static void osdDisplayAdjustableDecimalValue(uint8_t elemPosX, uint8_t elemPosY,
     displayWriteWithAttr(osdDisplayPort, elemPosX + strlen(str) + 1 + valueOffset, elemPosY, buff, elemAttr);
 }
 
+int8_t getGeoWaypointNumber(int8_t waypointIndex)
+{
+    if (posControl.waypointList[waypointIndex].flag == NAV_WP_FLAG_LAST) {
+        if ((posControl.waypointList[waypointIndex].action == NAV_WP_ACTION_JUMP || posControl.waypointList[waypointIndex].action == NAV_WP_ACTION_SET_POI || posControl.waypointList[waypointIndex].action == NAV_WP_ACTION_SET_HEAD)) {
+            return posControl.waypointList[waypointIndex - 1].flag;
+        } else {
+            return posControl.waypointList[waypointIndex - 1].flag + 1;
+        }
+    } else {
+        return posControl.waypointList[waypointIndex].flag;
+    }
+}
+
 static bool osdDrawSingleElement(uint8_t item)
 {
     uint16_t pos = osdLayoutsConfig()->item_pos[currentLayout][item];
@@ -3833,7 +3846,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                         // Countdown display for remaining Waypoints
                         char buf[6];
                         osdFormatDistanceSymbol(buf, posControl.wpDistance, 0);
-                        tfp_sprintf(messageBuf, "TO WP %u/%u (%s)", posControl.activeWaypointIndex + 1, posControl.waypointCount, buf);
+                        tfp_sprintf(messageBuf, "TO WP %u/%u (%s)", getGeoWaypointNumber(posControl.activeWaypointIndex), posControl.geoWaypointCount, buf);
                         messages[messageCount++] = messageBuf;
                     } else if (NAV_Status.state == MW_NAV_STATE_HOLD_TIMED) {
                         // WP hold time countdown in seconds
