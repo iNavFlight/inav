@@ -440,7 +440,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_FINISH(timeUs_t curr
     }
     else {
         // make a smooth transition from the launch state to the current state for throttle and the pitch angle
-        rcCommand[THROTTLE] = scaleRangef(elapsedTimeMs, 0.0f, endTimeMs,  navConfig()->fw.launch_throttle, rcCommand[THROTTLE]);
+        rcCommand[THROTTLE] = scaleRangef(elapsedTimeMs, 0.0f, endTimeMs, navConfig()->fw.launch_throttle, rcCommand[THROTTLE]);
         fwLaunch.pitchAngle = scaleRangef(elapsedTimeMs, 0.0f, endTimeMs, navConfig()->fw.launch_climb_angle, rcCommand[PITCH]);
     }
 
@@ -448,14 +448,25 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_FINISH(timeUs_t curr
 }
 
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_FINISH_THR_LOW(timeUs_t currentTimeUs)
-{
-    UNUSED(currentTimeUs);
+{    
+    static timeMs_t throttleRaisedStartTimeMs;
+    const timeMs_t elapsedTimeMs = US2MS(currentTimeUs) - throttleRaisedStartTimeMs;
+    const timeMs_t endTimeMs = 1000;    // smooth throttle transistion over 1 second when throttle stick raised
 
-    rcCommand[THROTTLE] = navConfig()->fw.cruise_throttle;
-
-    if (areSticksDeflectedMoreThanPosHoldDeadband() || !isThrottleLow()) {
-        return FW_LAUNCH_EVENT_SUCCESS; // end the launch and go to FW_LAUNCH_STATE_IDLE
+    if (areSticksDeflectedMoreThanPosHoldDeadband()) {
+        return FW_LAUNCH_EVENT_SUCCESS;     // end the launch and go to FW_LAUNCH_STATE_IDLE
     }
+    
+    if (isThrottleLow()) {
+        throttleRaisedStartTimeMs = US2MS(currentTimeUs);
+        rcCommand[THROTTLE] = navConfig()->fw.cruise_throttle;
+    } else {
+        // smooth throttle transition to launch finish when throttle stick raised
+        rcCommand[THROTTLE] = scaleRangef(elapsedTimeMs, 0.0f, endTimeMs, navConfig()->fw.cruise_throttle, rcCommand[THROTTLE]);
+        if (elapsedTimeMs > endTimeMs) {
+            return FW_LAUNCH_EVENT_SUCCESS;
+        }
+    }   
 
     return FW_LAUNCH_EVENT_NONE;
 }
