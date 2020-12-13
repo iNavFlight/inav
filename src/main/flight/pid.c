@@ -849,7 +849,7 @@ static void NOINLINE pidTurnAssistant(pidState_t *pidState, float bankAngleTarge
     targetRates.x = 0.0f;
     targetRates.y = 0.0f;
 
-    if (STATE(AIRPLANE) && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || navigationRequiresTurnAssistance())) {
+    if (STATE(AIRPLANE)) {
         if (calculateCosTiltAngle() >= 0.173648f) {
             // Ideal banked turn follow the equations:
             //      forward_vel^2 / radius = Gravity * tan(roll_angle)
@@ -984,7 +984,7 @@ void FAST_CODE pidController(float dT)
         levelingEnabled = false;
     }
 
-    if (FLIGHT_MODE(TURN_ASSISTANT) || navigationRequiresTurnAssistance()) {
+    if ((FLIGHT_MODE(TURN_ASSISTANT) || navigationRequiresTurnAssistance()) && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || navigationRequiresTurnAssistance())) {
         float bankAngleTarget = DECIDEGREES_TO_RADIANS(pidRcCommandToAngle(rcCommand[FD_ROLL], pidProfile()->max_angle_inclination[FD_ROLL]));
         pidTurnAssistant(pidState, bankAngleTarget);
         canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with TURN_ASSISTANT
