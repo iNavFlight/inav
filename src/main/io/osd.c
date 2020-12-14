@@ -1385,14 +1385,10 @@ static void osdDisplayAdjustableDecimalValue(uint8_t elemPosX, uint8_t elemPosY,
 
 int8_t getGeoWaypointNumber(int8_t waypointIndex)
 {
-    if (posControl.waypointList[waypointIndex].flag == NAV_WP_FLAG_LAST) {
-        if ((posControl.waypointList[waypointIndex].action == NAV_WP_ACTION_JUMP || posControl.waypointList[waypointIndex].action == NAV_WP_ACTION_SET_POI || posControl.waypointList[waypointIndex].action == NAV_WP_ACTION_SET_HEAD)) {
-            return posControl.waypointList[waypointIndex - 1].flag;
-        } else {
-            return posControl.waypointList[waypointIndex - 1].flag + 1;
-        }
+    if ((posControl.waypointList[waypointIndex].action == NAV_WP_ACTION_JUMP || posControl.waypointList[waypointIndex].action == NAV_WP_ACTION_SET_POI || posControl.waypointList[waypointIndex].action == NAV_WP_ACTION_SET_HEAD)) {
+        return posControl.waypointList[waypointIndex - 1].p3;
     } else {
-        return posControl.waypointList[waypointIndex].flag;
+        return posControl.waypointList[waypointIndex].p3;
     }
 }
 
