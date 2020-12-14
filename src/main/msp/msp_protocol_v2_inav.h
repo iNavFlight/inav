@@ -72,3 +72,6 @@
 #define MSP2_INAV_FWUPDT_EXEC                   0x2035
 #define MSP2_INAV_FWUPDT_ROLLBACK_PREPARE       0x2036
 #define MSP2_INAV_FWUPDT_ROLLBACK_EXEC          0x2037
+
+#define MSP2_INAV_SAFEHOME                      0x2038
+#define MSP2_INAV_SET_SAFEHOME                  0x2039
