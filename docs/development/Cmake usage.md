@@ -70,4 +70,4 @@ target_stm32f405xg(OMNIBUSF4V3)
 
 ## Adding (or removing) a source file
 
-In the cmake build system, project source files are listed in `src/main/CMakeLists.txt`. New source files must be added to this list to be considered by the build system.
+In the cmake system, project source files are listed in `src/main/CMakeLists.txt`. New source files must be added to this list to be considered by the build system.
