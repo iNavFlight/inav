@@ -349,11 +349,7 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_PWMDRIVER, (servoConfig()->servo_protocol == SERVO_TYPE_SERVO_DRIVER) || (servoConfig()->servo_protocol == SERVO_TYPE_SBUS));
 #endif
 #ifdef USE_CMS
-#ifdef USE_MSP_DISPLAYPORT
     setTaskEnabled(TASK_CMS, true);
-#else
-    setTaskEnabled(TASK_CMS, feature(FEATURE_OSD) || feature(FEATURE_DASHBOARD));
-#endif
 #endif
 #ifdef USE_OPFLOW
     setTaskEnabled(TASK_OPFLOW, sensors(SENSOR_OPFLOW));

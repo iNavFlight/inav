@@ -62,11 +62,6 @@
 #define SDCARD_DETECT_INVERTED
 #define SDCARD_DETECT_PIN       PC13
 
-#define USE_OSD
-#ifdef USE_MSP_DISPLAYPORT
-#undef USE_MSP_DISPLAYPORT
-#endif
-
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI1
 #define MAX7456_CS_PIN          PC4

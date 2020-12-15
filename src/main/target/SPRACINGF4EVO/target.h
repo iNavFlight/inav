@@ -144,7 +144,6 @@
 
 //#define USE_OSD
 //#define USE_MAX7456
-//#define USE_OSD_OVER_MSP_DISPLAYPORT
 
 #define USE_LED_STRIP
 #define WS2811_PIN                      PA1

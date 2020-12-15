@@ -105,7 +105,6 @@
 #include "io/lights.h"
 #include "io/dashboard.h"
 #include "io/displayport_frsky_osd.h"
-#include "io/displayport_msp.h"
 #include "io/displayport_max7456.h"
 #include "io/displayport_srxl.h"
 #include "io/flashfs.h"
@@ -116,7 +115,6 @@
 #include "io/osd_dji_hd.h"
 #include "io/rcdevice_cam.h"
 #include "io/serial.h"
-#include "io/displayport_msp.h"
 #include "io/smartport_master.h"
 #include "io/vtx.h"
 #include "io/vtx_control.h"
@@ -559,10 +557,6 @@ void init(void)
         // external OSD initialized, use it.
         if (!osdDisplayPort) {
             osdDisplayPort = max7456DisplayPortInit(osdConfig()->video_system);
-        }
-#elif defined(USE_OSD_OVER_MSP_DISPLAYPORT) // OSD over MSP; not supported (yet)
-        if (!osdDisplayPort) {
-            osdDisplayPort = displayPortMspInit();
         }
 #endif
         // osdInit  will register with CMS by itself.
