@@ -53,7 +53,7 @@ Parameters:
   * `<lat>` - Latitude (WGS84), in degrees * 1E7 (for example 123456789 means 12.3456789).
   * `<lon>` - Longitude.
 
-Note that coordinates from Google Maps only have six decimals, so you need to remove the decimal dot and add a zero to the end to set the correct safehome location.
+Note that coordinates from Google Maps only have five or six decimals, so you need to pad zero decimals until you have seven before removing the decimal period to set the correct safehome location. For example, coordinates 54.353319 -4.517927 obtained from Google Maps need to be entered as 543533190 -45179270 and coordiniates 43.54648 -7.86545 as 435464800 -78654500.
 
 Safehomes are saved along with your regular settings and will appear in `diff` and `dump` output.  Use `save` to save any changes, as with other settings. 
 
@@ -61,8 +61,8 @@ Safehomes are saved along with your regular settings and will appear in `diff` a
 
 ```
 # safehome
-safehome 0 1 543533193 -45179273
-safehome 1 1 435464846 -78654544
+safehome 0 1 543533190 -45179270
+safehome 1 1 435464800 -78654500
 safehome 2 0 0 0 
 safehome 3 0 0 0 
 safehome 4 0 0 0 
