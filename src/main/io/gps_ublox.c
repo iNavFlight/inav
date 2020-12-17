@@ -66,6 +66,15 @@
 #define UBX_VALID_GPS_TIME(valid) (valid & 1 << 1)
 #define UBX_VALID_GPS_DATE_TIME(valid) (UBX_VALID_GPS_DATE(valid) && UBX_VALID_GPS_TIME(valid))
 
+#define GNSS_SBAS 1
+#define GNSS_GALILEO 2
+//#define GNSS_GPS 0
+//#define GNSS_BEIDOU 3
+//#define GNSS_IMES 4
+//#define GNSS_QZSS 5
+//#define GNSS_GLONASS 6
+#define GNSS_SET_COUNT 2
+
 // SBAS_AUTO, SBAS_EGNOS, SBAS_WAAS, SBAS_MSAS, SBAS_GAGAN, SBAS_NONE
 // note EGNOS correct as of 2020-12
 static const uint32_t ubloxScanMode1[] = {
@@ -102,11 +111,32 @@ typedef struct {
     uint16_t time;
 } ubx_rate;
 
+typedef struct {
+     uint8_t gnssId;
+     uint8_t resTrkCh;
+     uint8_t maxTrkCh;
+     uint8_t reserved1;
+// flags
+     uint8_t f_enabled;
+     uint8_t f_reserved0;
+     uint8_t f_sigCfgMask;
+     uint8_t f_reserved1;
+} ubx_gnss_element_t;
+
+typedef struct {
+     uint8_t msgVer;
+     uint8_t numTrkChHw;
+     uint8_t numTrkChUse;
+     uint8_t numConfigBlocks;
+     ubx_gnss_element_t config[GNSS_SET_COUNT];
+} ubx_gnss_msg_t;
+
 typedef union {
-    uint8_t bytes[60]; // sizeof Galileo config
+    uint8_t bytes[1]; // placeholder
     ubx_sbas sbas;
     ubx_msg msg;
     ubx_rate rate;
+    ubx_gnss_msg_t gnss;
 } ubx_payload;
 
 // UBX support
@@ -410,25 +440,33 @@ static const uint8_t default_payload[] = {
     0x00, 0xC8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-// Note the organisation of the bytes reflects the structure of the payload
-// 4 bytes then 8*number of elements (7)
-static const uint8_t galileo_payload[] =  {
-    0x00, 0x00, 0x20, 0x07,			    // GNSS    / min / max / enable
-    0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01, // GPS     / 8 / 16 / Y
-    0x01, 0x01, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01, // SBAS    / 1 /  3 / Y
-    0x02, 0x04, 0x08, 0x00, 0x01, 0x00, 0x01, 0x01, // Galileo / 4 /  8 / Y
-    0x03, 0x08, 0x10, 0x00, 0x00, 0x00, 0x01, 0x01, // BeiDou  / 8 / 16 / N
-    0x04, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x01, // IMES    / 0 /  8 / N
-    0x05, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x01, // QZSS    / 0 /  3 / N
-    0x06, 0x08, 0x0e, 0x00, 0x01, 0x00, 0x01, 0x01  // GLONASS / 8 / 14 / Y
+static const ubx_gnss_msg_t  gnss_payload = {
+     0x00, 0x00, 0x20, 0x02,                         // GNSS    / res / max / enable
+//    0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01, // GPS     / 8 / 16 / Y
+     {{0x01, 0x01, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01}, // SBAS    / 1 /  3 / Y
+      {0x02, 0x04, 0x08, 0x00, 0x01, 0x00, 0x01, 0x01}} // Galileo / 4 /  8 / Y
+//    0x03, 0x08, 0x10, 0x00, 0x00, 0x00, 0x01, 0x01, // BeiDou  / 8 / 16 / N
+//    0x04, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x01, // IMES    / 0 /  8 / N
+//    0x05, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x01, // QZSS    / 0 /  3 / N
+//    0x06, 0x08, 0x0e, 0x00, 0x01, 0x00, 0x01, 0x01  // GLONASS / 8 / 14 / Y
 };
 
-static void configureGalileo(void)
+static void configureGNSS(void)
 {
     send_buffer.message.header.msg_class = CLASS_CFG;
     send_buffer.message.header.msg_id = MSG_CFG_GNSS;
-    send_buffer.message.header.length = sizeof(galileo_payload);
-    memcpy(send_buffer.message.payload.bytes, galileo_payload, sizeof(galileo_payload));
+    memcpy(send_buffer.message.payload.bytes, (void*)&gnss_payload, sizeof(gnss_payload));
+
+    // default is SBAS and Galielo, fixup if not required
+    if (gpsState.gpsConfig->sbasMode == SBAS_NONE) {
+         send_buffer.message.payload.gnss.config[GNSS_SBAS].f_enabled = 0;
+         send_buffer.message.payload.gnss.config[GNSS_SBAS].resTrkCh = 0;
+    }
+
+    if (!(gpsState.gpsConfig->ubloxUseGalileo && capGalileo)) {
+         send_buffer.message.payload.gnss.config[GNSS_GALILEO].f_enabled = 0;
+         send_buffer.message.payload.gnss.config[GNSS_GALILEO].resTrkCh = 0;
+    }
     sendConfigMessageUBLOX();
 }
 
@@ -841,13 +879,13 @@ STATIC_PROTOTHREAD(gpsConfigure)
     configureSBAS();
     ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
 
-    // Enable GALILEO
-    if (gpsState.gpsConfig->ubloxUseGalileo && capGalileo) {
-        // If GALILEO is not supported by the hardware we'll get a NAK,
-        // however GPS would otherwise be perfectly initialized, so we are just waiting for any response
-        gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
-        configureGalileo();
-        ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+    // Configure GNSS for M8N and later
+    if ((gpsState.gpsConfig->provider == GPS_UBLOX) || (gpsState.hwVersion < 70000)) {
+         if ((gpsState.gpsConfig->ubloxUseGalileo && capGalileo) || (gpsState.gpsConfig->sbasMode != SBAS_NONE)) {
+            gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
+            configureGNSS();
+            ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+         }
     }
 
     ptEnd(0);
