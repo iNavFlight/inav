@@ -67,8 +67,9 @@
 #define UBX_VALID_GPS_DATE_TIME(valid) (UBX_VALID_GPS_DATE(valid) && UBX_VALID_GPS_TIME(valid))
 
 // SBAS_AUTO, SBAS_EGNOS, SBAS_WAAS, SBAS_MSAS, SBAS_GAGAN, SBAS_NONE
+// note EGNOS correct as of 2020-12
 static const uint32_t ubloxScanMode1[] = {
-    0x00000000, 0x00000851, 0x0004E004, 0x00020200, 0x00000180, 0x00000000,
+    0x00000000, 0x00010048, 0x0004E004, 0x00020200, 0x00000180, 0x00000000,
 };
 
 static const char * baudInitDataNMEA[GPS_BAUDRATE_COUNT] = {
@@ -741,7 +742,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
     // Configure UBX binary messages
     gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
 
-    // u-Blox 9 
+    // u-Blox 9
     // M9N does not support some of the UBX 6/7/8 messages, so we have to configure it using special sequence
     if (gpsState.hwVersion >= 190000) {
         configureMSG(MSG_CLASS_UBX, MSG_POSLLH, 0);
