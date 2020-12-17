@@ -153,7 +153,7 @@ static float calculateRemainingEnergyBeforeRTH(bool takeWindIntoAccount) {
           && feature(FEATURE_CURRENT_METER) && (batteryMetersConfig()->cruise_power > 0)
           && (currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MWH) && (currentBatteryProfile->capacity.value > 0)
           && navigationPositionEstimateIsHealthy() && isImuHeadingValid() && (navConfig()->fw.cruise_speed > 0)
-          && ((!STATE(FIXED_WING_LEGACY)) || !isNavLaunchEnabled() || (isNavLaunchEnabled() && isFixedWingLaunchDetected()))
+          && ((!STATE(FIXED_WING_LEGACY)) || !isNavLaunchEnabled() || (isNavLaunchEnabled() && (isFixedWingLaunchDetected() || isFixedWingLaunchFinishedOrAborted())))
           && (ARMING_FLAG(ARMED))
 #ifdef USE_WIND_ESTIMATOR
           && (!takeWindIntoAccount || isEstimatedWindSpeedValid())
