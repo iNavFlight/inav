@@ -448,17 +448,16 @@ static const uint8_t default_payload[] = {
 #define GNSSID_GALILEO 2
 #define GNSS_INDEX_SBAS 0
 #define GNSS_INDEX_GALILEO 1
-#define GNSS_BLOCKS_USED 2
 
 static void configureGNSS(void)
 {
+    int blocksUsed = 1; // always do SBAS
+
     send_buffer.message.header.msg_class = CLASS_CFG;
     send_buffer.message.header.msg_id = MSG_CFG_GNSS;
-    send_buffer.message.header.length = (sizeof(ubx_gnss_msg_t) + sizeof(ubx_gnss_element_t)* GNSS_BLOCKS_USED);
     send_buffer.message.payload.gnss.msgVer = 0;
     send_buffer.message.payload.gnss.numTrkChHw = 0; // read only, so unset
     send_buffer.message.payload.gnss.numTrkChUse = 32;
-    send_buffer.message.payload.gnss.numConfigBlocks = GNSS_BLOCKS_USED; // alter SBAS & GALILEO
 
     /* SBAS, config slot 0 */
     send_buffer.message.payload.gnss.config[GNSS_INDEX_SBAS].gnssId = GNSSID_SBAS;
@@ -473,16 +472,21 @@ static void configureGNSS(void)
     }
 
     /* Galileo, config slot 1 */
-    send_buffer.message.payload.gnss.config[GNSS_INDEX_GALILEO].gnssId = GNSSID_GALILEO;
-    send_buffer.message.payload.gnss.config[GNSS_INDEX_GALILEO].maxTrkCh = 8;
-    send_buffer.message.payload.gnss.config[GNSS_INDEX_GALILEO].sigCfgMask = 1;
-    if (gpsState.gpsConfig->ubloxUseGalileo && capGalileo) {
-        send_buffer.message.payload.gnss.config[GNSS_INDEX_GALILEO].enabled = 1;
-        send_buffer.message.payload.gnss.config[GNSS_INDEX_GALILEO].resTrkCh = 4;
-    } else {
-        send_buffer.message.payload.gnss.config[GNSS_INDEX_GALILEO].enabled = 0;
-        send_buffer.message.payload.gnss.config[GNSS_INDEX_GALILEO].resTrkCh = 0;
+    if (capGalileo) {
+        blocksUsed++;
+        send_buffer.message.payload.gnss.config[GNSS_INDEX_GALILEO].gnssId = GNSSID_GALILEO;
+        send_buffer.message.payload.gnss.config[GNSS_INDEX_GALILEO].maxTrkCh = 8;
+        send_buffer.message.payload.gnss.config[GNSS_INDEX_GALILEO].sigCfgMask = 1;
+        if (gpsState.gpsConfig->ubloxUseGalileo) {
+            send_buffer.message.payload.gnss.config[GNSS_INDEX_GALILEO].enabled = 1;
+            send_buffer.message.payload.gnss.config[GNSS_INDEX_GALILEO].resTrkCh = 4;
+        } else {
+            send_buffer.message.payload.gnss.config[GNSS_INDEX_GALILEO].enabled = 0;
+            send_buffer.message.payload.gnss.config[GNSS_INDEX_GALILEO].resTrkCh = 0;
+        }
     }
+    send_buffer.message.payload.gnss.numConfigBlocks = blocksUsed;
+    send_buffer.message.header.length = (sizeof(ubx_gnss_msg_t) + sizeof(ubx_gnss_element_t)* blocksUsed);
     sendConfigMessageUBLOX();
 }
 
