@@ -21,6 +21,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <math.h>
+#include <stdarg.h>
 
 #include "platform.h"
 #include "build/build_config.h"
@@ -66,19 +67,19 @@
 #define UBX_VALID_GPS_TIME(valid) (valid & 1 << 1)
 #define UBX_VALID_GPS_DATE_TIME(valid) (UBX_VALID_GPS_DATE(valid) && UBX_VALID_GPS_TIME(valid))
 
-#define GNSS_SBAS 1
-#define GNSS_GALILEO 2
-//#define GNSS_GPS 0
-//#define GNSS_BEIDOU 3
-//#define GNSS_IMES 4
-//#define GNSS_QZSS 5
-//#define GNSS_GLONASS 6
-#define GNSS_SET_COUNT 2
-
 // SBAS_AUTO, SBAS_EGNOS, SBAS_WAAS, SBAS_MSAS, SBAS_GAGAN, SBAS_NONE
-// note EGNOS correct as of 2020-12
+// note PRNs last upadted 2020-12-18
+
+#define SBASMASK1_BASE 120
+#define SBASMASK1_BITS(prn) (1 << (prn-SBASMASK1_BASE))
+
 static const uint32_t ubloxScanMode1[] = {
-    0x00000000, 0x00010048, 0x0004E004, 0x00020200, 0x00000180, 0x00000000,
+    0x00000000, // AUTO
+    (SBASMASK1_BITS(123) | SBASMASK1_BITS(126) | SBASMASK1_BITS(136)), // SBAS
+    (SBASMASK1_BITS(131) | SBASMASK1_BITS(133) | SBASMASK1_BITS(138)), // WAAS
+    (SBASMASK1_BITS(129) | SBASMASK1_BITS(137)), // MAAS
+    (SBASMASK1_BITS(127) | SBASMASK1_BITS(128)), // GAGAN
+    0x00000000, // NONE
 };
 
 static const char * baudInitDataNMEA[GPS_BAUDRATE_COUNT] = {
@@ -117,10 +118,10 @@ typedef struct {
      uint8_t maxTrkCh;
      uint8_t reserved1;
 // flags
-     uint8_t f_enabled;
-     uint8_t f_reserved0;
-     uint8_t f_sigCfgMask;
-     uint8_t f_reserved1;
+     uint8_t enabled;
+     uint8_t undefined0;
+     uint8_t sigCfgMask;
+     uint8_t undefined1;
 } ubx_gnss_element_t;
 
 typedef struct {
@@ -128,11 +129,14 @@ typedef struct {
      uint8_t numTrkChHw;
      uint8_t numTrkChUse;
      uint8_t numConfigBlocks;
-     ubx_gnss_element_t config[GNSS_SET_COUNT];
+     ubx_gnss_element_t config[0];
 } ubx_gnss_msg_t;
 
+#define MAX_GNSS 7
+#define MAX_GNSS_SIZE_BYTES (sizeof(ubx_gnss_msg_t) + sizeof(ubx_gnss_element_t)*MAX_GNSS)
+
 typedef union {
-    uint8_t bytes[1]; // placeholder
+    uint8_t bytes[MAX_GNSS_SIZE_BYTES]; // placeholder
     ubx_sbas sbas;
     ubx_msg msg;
     ubx_rate rate;
@@ -440,32 +444,44 @@ static const uint8_t default_payload[] = {
     0x00, 0xC8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-static const ubx_gnss_msg_t  gnss_payload = {
-     0x00, 0x00, 0x20, 0x02,                         // GNSS    / res / max / enable
-//    0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01, // GPS     / 8 / 16 / Y
-     {{0x01, 0x01, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01}, // SBAS    / 1 /  3 / Y
-      {0x02, 0x04, 0x08, 0x00, 0x01, 0x00, 0x01, 0x01}} // Galileo / 4 /  8 / Y
-//    0x03, 0x08, 0x10, 0x00, 0x00, 0x00, 0x01, 0x01, // BeiDou  / 8 / 16 / N
-//    0x04, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x01, // IMES    / 0 /  8 / N
-//    0x05, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x01, // QZSS    / 0 /  3 / N
-//    0x06, 0x08, 0x0e, 0x00, 0x01, 0x00, 0x01, 0x01  // GLONASS / 8 / 14 / Y
-};
+#define GNSSID_SBAS 1
+#define GNSSID_GALILEO 2
+#define GNSS_INDEX_SBAS 0
+#define GNSS_INDEX_GALILEO 1
+#define GNSS_BLOCKS_USED 2
 
 static void configureGNSS(void)
 {
     send_buffer.message.header.msg_class = CLASS_CFG;
     send_buffer.message.header.msg_id = MSG_CFG_GNSS;
-    memcpy(send_buffer.message.payload.bytes, (void*)&gnss_payload, sizeof(gnss_payload));
+    send_buffer.message.header.length = (sizeof(ubx_gnss_msg_t) + sizeof(ubx_gnss_element_t)* GNSS_BLOCKS_USED);
+    send_buffer.message.payload.gnss.msgVer = 0;
+    send_buffer.message.payload.gnss.numTrkChHw = 0; // read only, so unset
+    send_buffer.message.payload.gnss.numTrkChUse = 32;
+    send_buffer.message.payload.gnss.numConfigBlocks = GNSS_BLOCKS_USED; // alter SBAS & GALILEO
 
-    // default is SBAS and Galielo, fixup if not required
+    /* SBAS, config slot 0 */
+    send_buffer.message.payload.gnss.config[GNSS_INDEX_SBAS].gnssId = GNSSID_SBAS;
+    send_buffer.message.payload.gnss.config[GNSS_INDEX_SBAS].maxTrkCh = 3;
+    send_buffer.message.payload.gnss.config[GNSS_INDEX_SBAS].sigCfgMask = 1;
     if (gpsState.gpsConfig->sbasMode == SBAS_NONE) {
-         send_buffer.message.payload.gnss.config[GNSS_SBAS].f_enabled = 0;
-         send_buffer.message.payload.gnss.config[GNSS_SBAS].resTrkCh = 0;
+         send_buffer.message.payload.gnss.config[GNSS_INDEX_SBAS].enabled = 0;
+         send_buffer.message.payload.gnss.config[GNSS_INDEX_SBAS].resTrkCh = 0;
+    } else {
+         send_buffer.message.payload.gnss.config[GNSS_INDEX_SBAS].enabled = 1;
+         send_buffer.message.payload.gnss.config[GNSS_INDEX_SBAS].resTrkCh = 1;
     }
 
-    if (!(gpsState.gpsConfig->ubloxUseGalileo && capGalileo)) {
-         send_buffer.message.payload.gnss.config[GNSS_GALILEO].f_enabled = 0;
-         send_buffer.message.payload.gnss.config[GNSS_GALILEO].resTrkCh = 0;
+    /* Galileo, config slot 1 */
+    send_buffer.message.payload.gnss.config[GNSS_INDEX_GALILEO].gnssId = GNSSID_GALILEO;
+    send_buffer.message.payload.gnss.config[GNSS_INDEX_GALILEO].maxTrkCh = 8;
+    send_buffer.message.payload.gnss.config[GNSS_INDEX_GALILEO].sigCfgMask = 1;
+    if (gpsState.gpsConfig->ubloxUseGalileo && capGalileo) {
+        send_buffer.message.payload.gnss.config[GNSS_INDEX_GALILEO].enabled = 1;
+        send_buffer.message.payload.gnss.config[GNSS_INDEX_GALILEO].resTrkCh = 4;
+    } else {
+        send_buffer.message.payload.gnss.config[GNSS_INDEX_GALILEO].enabled = 0;
+        send_buffer.message.payload.gnss.config[GNSS_INDEX_GALILEO].resTrkCh = 0;
     }
     sendConfigMessageUBLOX();
 }
@@ -880,12 +896,10 @@ STATIC_PROTOTHREAD(gpsConfigure)
     ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
 
     // Configure GNSS for M8N and later
-    if ((gpsState.gpsConfig->provider == GPS_UBLOX) || (gpsState.hwVersion < 70000)) {
-         if ((gpsState.gpsConfig->ubloxUseGalileo && capGalileo) || (gpsState.gpsConfig->sbasMode != SBAS_NONE)) {
-            gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
-            configureGNSS();
-            ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
-         }
+    if (gpsState.hwVersion >= 80000) {
+         gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
+         configureGNSS();
+         ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
     }
 
     ptEnd(0);
