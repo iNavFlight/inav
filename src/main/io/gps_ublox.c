@@ -655,8 +655,7 @@ static bool gpsParceFrameUBLOX(void)
                 // check extensions;
                 // after hw + sw vers; each is 30 bytes, ensure NUL terminated
                 for(int j = 40; j < _payload_length; j += 30) {
-                    _buffer.bytes[j+29] = 0;
-                    if (strstr((const char *)(_buffer.bytes+j), "GAL")) {
+                    if (strnstr((const char *)(_buffer.bytes+j), "GAL", 30)) {
                         capGalileo = true;
                         break;
                     }
