@@ -653,7 +653,7 @@ static bool gpsParceFrameUBLOX(void)
             gpsState.hwVersion = fastA2I(_buffer.ver.hwVersion);
             if  ((gpsState.hwVersion >= 80000) && (_buffer.ver.swVersion[9] > '2')) {
                 // check extensions;
-                // after hw + sw vers; each is 30 bytes, ensure NUL terminated
+                // after hw + sw vers; each is 30 bytes
                 for(int j = 40; j < _payload_length; j += 30) {
                     if (strnstr((const char *)(_buffer.bytes+j), "GAL", 30)) {
                         capGalileo = true;
