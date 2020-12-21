@@ -1334,7 +1334,7 @@ static void cliSafeHomes(char *cmdline)
     }
 }
 
-#endif 
+#endif
 #if defined(USE_NAV) && defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE) && defined(NAV_NON_VOLATILE_WAYPOINT_CLI)
 static void printWaypoints(uint8_t dumpMask, const navWaypoint_t *navWaypoint, const navWaypoint_t *defaultNavWaypoint)
 {
@@ -1457,7 +1457,7 @@ static void cliWaypoints(char *cmdline)
 
             if (!(validArgumentCount == 6 || validArgumentCount == 8)) {
                 cliShowParseError();
-            } else if (!(action == 0 || action == NAV_WP_ACTION_WAYPOINT || action == NAV_WP_ACTION_RTH || action == NAV_WP_ACTION_JUMP || action == NAV_WP_ACTION_HOLD_TIME || action == NAV_WP_ACTION_LAND) || (p1 < 0) || !(flag == 0 || flag == NAV_WP_FLAG_LAST)) {
+            } else if (!(action == 0 || action == NAV_WP_ACTION_WAYPOINT || action == NAV_WP_ACTION_RTH || action == NAV_WP_ACTION_JUMP || action == NAV_WP_ACTION_HOLD_TIME || action == NAV_WP_ACTION_LAND || action == NAV_WP_ACTION_SET_POI || action == NAV_WP_ACTION_SET_HEAD) || !(flag == 0 || flag == NAV_WP_FLAG_LAST)) {
                 cliShowParseError();
             } else {
                 posControl.waypointList[i].action = action;
@@ -2591,7 +2591,7 @@ void cliRxBind(char *cmdline){
             break;
 #endif
         }
-    } 
+    }
 #if defined(USE_RX_SPI)
     else if (rxConfig()->receiverType == RX_TYPE_SPI) {
         switch (rxConfig()->rx_spi_protocol) {
@@ -2599,7 +2599,7 @@ void cliRxBind(char *cmdline){
             cliPrint("Not supported.");
             break;
         }
-    
+
     }
 #endif
 }
@@ -3304,7 +3304,7 @@ static void printConfig(const char *cmdline, bool doDiff)
 
 #if defined(USE_SAFE_HOME)
         cliPrintHashLine("safehome");
-        printSafeHomes(dumpMask, safeHomeConfig_CopyArray, safeHomeConfig(0)); 
+        printSafeHomes(dumpMask, safeHomeConfig_CopyArray, safeHomeConfig(0));
 #endif
 #ifdef USE_PROGRAMMING_FRAMEWORK
         cliPrintHashLine("logic");

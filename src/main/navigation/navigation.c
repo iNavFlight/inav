@@ -157,8 +157,8 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .max_throttle = 1700,
         .min_throttle = 1200,
         .pitch_to_throttle = 10,                // pwm units per degree of pitch (10pwm units ~ 1% throttle)
-        .pitch_to_throttle_smooth = 0,
-        .pitch_to_throttle_thresh = 0,
+        .pitch_to_throttle_smooth = 6,
+        .pitch_to_throttle_thresh = 50,
         .loiter_radius = 5000,                  // 50m
 
         //Fixed wing landing
