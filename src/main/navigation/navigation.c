@@ -106,6 +106,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
             .rth_tail_first = 0,
             .disarm_on_landing = 0,
             .rth_allow_landing = NAV_RTH_ALLOW_LANDING_ALWAYS,
+            .rth_fw_spiral_climb = 0,           // Loiter climb for FW RTH
             .nav_overrides_motor_stop = NOMS_ALL_NAV,
         },
 
@@ -1150,8 +1151,13 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigati
             fpVector3_t targetHoldPos;
 
             if (STATE(FIXED_WING_LEGACY)) {
-                // Airplane - climbout before turning around
-                calculateFarAwayTarget(&targetHoldPos, posControl.actualState.yaw, 100000.0f);  // 1km away
+                // Airplane - climbout before heading home
+                if (navConfig()->general.flags.rth_fw_spiral_climb) {
+                    // Spiral climb centered at xy of RTH activation
+                    calculateInitialHoldPosition(&targetHoldPos);
+                } else {
+                    calculateFarAwayTarget(&targetHoldPos, posControl.actualState.yaw, 100000.0f);  // 1km away Linear climb                
+                }
             } else {
                 // Multicopter, hover and climb
                 calculateInitialHoldPosition(&targetHoldPos);
@@ -1226,8 +1232,13 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
 
             // Climb to safe altitude and turn to correct direction
             if (STATE(FIXED_WING_LEGACY)) {
-                tmpHomePos->z += FW_RTH_CLIMB_OVERSHOOT_CM;
-                setDesiredPosition(tmpHomePos, 0, NAV_POS_UPDATE_Z);
+                if (navConfig()->general.flags.rth_fw_spiral_climb) {
+                    float altitudeChangeDirection = (tmpHomePos->z += FW_RTH_CLIMB_OVERSHOOT_CM) > navGetCurrentActualPositionAndVelocity()->pos.z ? 1 : -1;
+                    updateClimbRateToAltitudeController(altitudeChangeDirection * navConfig()->general.max_auto_climb_rate, ROC_TO_ALT_NORMAL);
+                } else {
+                    tmpHomePos->z += FW_RTH_CLIMB_OVERSHOOT_CM;
+                    setDesiredPosition(tmpHomePos, 0, NAV_POS_UPDATE_Z);
+                }
             } else {
                 // Until the initial climb phase is complete target slightly *above* the cruise altitude to ensure we actually reach
                 // it in a reasonable time. Immediately after we finish this phase - target the original altitude.

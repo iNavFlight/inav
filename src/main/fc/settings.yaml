@@ -2136,6 +2136,11 @@ groups:
         default_value: "AT_LEAST"
         field: general.flags.rth_alt_control_mode
         table: nav_rth_alt_mode
+      - name: nav_rth_fw_spiral_climb
+        description: "Performs RTH loiter climb rather than a linear climb when RTH set to Climb First. Climb rate set by max_auto_climb_rate, turn rate set by nav_fw_loiter_radius."
+        default_value: "OFF"
+        field: general.flags.rth_fw_spiral_climb   
+        type: bool
       - name: nav_rth_abort_threshold
         description: "RTH sanity checking feature will notice if distance to home is increasing during RTH and once amount of increase exceeds the threshold defined by this parameter, instead of continuing RTH machine will enter emergency landing, self-level and go down safely. Default is 500m which is safe enough for both multirotor machines and airplanes. [cm]"
         default_value: "50000"
