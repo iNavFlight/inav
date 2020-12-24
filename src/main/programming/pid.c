@@ -92,6 +92,8 @@ void programmingPidUpdateTask(timeUs_t currentTimeUs)
 
         }
     }
+
+    previousUpdateTimeUs = currentTimeUs;
 }
 
 void programmingPidInit(void)
