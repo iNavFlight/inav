@@ -25,6 +25,7 @@ typedef struct pt1Filter_s {
     float state;
     float RC;
     float dT;
+    float alpha;
 } pt1Filter_t;
 
 /* this holds the data required to update samples thru a filter */
