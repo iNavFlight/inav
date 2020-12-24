@@ -1,5 +1,9 @@
 name: Make sure docs are updated
 on:
+  pull_request:
+    paths:
+      - src/main/fc/settings.yaml
+      - docs/Settings.md
   push:
     paths:
       - src/main/fc/settings.yaml

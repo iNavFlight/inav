@@ -2067,6 +2067,13 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_VERSION:
+        {
+            tfp_sprintf(buff, "INAV %s", FC_VERSION_STRING);
+            displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
+            break;
+        }
+
     case OSD_MAIN_BATT_CELL_VOLTAGE:
         {
             osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatteryRawAverageCellVoltage(), 3, 2);
@@ -3030,10 +3037,11 @@ static void osdShowArmed(void)
     dateTime_t dt;
     char buf[MAX(32, FORMATTED_DATE_TIME_BUFSIZE)];
     char craftNameBuf[MAX_NAME_LENGTH];
+    char versionBuf[30];
     char *date;
     char *time;
-    // We need 10 visible rows
-    uint8_t y = MIN((osdDisplayPort->rows / 2) - 1, osdDisplayPort->rows - 10 - 1);
+    // We need 12 visible rows
+    uint8_t y = MIN((osdDisplayPort->rows / 2) - 1, osdDisplayPort->rows - 12 - 1);
 
     displayClearScreen(osdDisplayPort);
     displayWrite(osdDisplayPort, 12, y, "ARMED");
@@ -3080,7 +3088,11 @@ static void osdShowArmed(void)
 
         displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(date)) / 2, y, date);
         displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(time)) / 2, y + 1, time);
+        y += 3;
     }
+
+    tfp_sprintf(versionBuf, "INAV VERSION: %s", FC_VERSION_STRING);
+    displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(versionBuf)) / 2, y, versionBuf);
 }
 
 static void osdFilterData(timeUs_t currentTimeUs) {

@@ -29,7 +29,7 @@ else()
     include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/${TOOLCHAIN}-checks.cmake")
 endif()
 
-project(INAV VERSION 2.6.0)
+project(INAV VERSION 2.7.0)
 
 enable_language(ASM)
 
@@ -57,6 +57,12 @@ set(FIRMWARE_VERSION ${PROJECT_VERSION})
 
 option(WARNINGS_AS_ERRORS "Make all warnings into errors")
 message("-- toolchain: ${TOOLCHAIN}, WARNINGS_AS_ERRORS: ${WARNINGS_AS_ERRORS}")
+
+set(COMMON_COMPILE_DEFINITIONS
+    FC_VERSION_MAJOR=${CMAKE_PROJECT_VERSION_MAJOR}
+    FC_VERSION_MINOR=${CMAKE_PROJECT_VERSION_MINOR}
+    FC_VERSION_PATCH_LEVEL=${CMAKE_PROJECT_VERSION_PATCH}
+)
 
 include(settings)
 include(openocd)

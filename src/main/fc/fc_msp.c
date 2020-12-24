@@ -571,7 +571,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP_RC:
         for (int i = 0; i < rxRuntimeConfig.channelCount; i++) {
-            sbufWriteU16(dst, rxGetRawChannelValue(i));
+            sbufWriteU16(dst, rxGetChannelValue(i));
         }
         break;
 
@@ -1515,6 +1515,20 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     return true;
 }
 
+static mspResult_e mspFcSafeHomeOutCommand(sbuf_t *dst, sbuf_t *src)
+{
+    const uint8_t safe_home_no = sbufReadU8(src);    // get the home number
+    if(safe_home_no < MAX_SAFE_HOMES) {
+        sbufWriteU8(dst, safe_home_no);
+        sbufWriteU8(dst, safeHomeConfig(safe_home_no)->enabled);
+        sbufWriteU32(dst, safeHomeConfig(safe_home_no)->lat);
+        sbufWriteU32(dst, safeHomeConfig(safe_home_no)->lon);
+        return MSP_RESULT_ACK;
+    } else {
+         return MSP_RESULT_ERROR;
+    }
+}
+
 #ifdef USE_NAV
 static void mspFcWaypointOutCommand(sbuf_t *dst, sbuf_t *src)
 {
@@ -2095,7 +2109,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU16(src); //Legacy yaw_jump_prevention_limit
             gyroConfigMutable()->gyro_lpf = sbufReadU8(src);
             accelerometerConfigMutable()->acc_lpf_hz = sbufReadU8(src);
-            sbufReadU8(src); //reserved 
+            sbufReadU8(src); //reserved
             sbufReadU8(src); //reserved
             sbufReadU8(src); //reserved
             sbufReadU8(src); //reserved
@@ -2892,6 +2906,19 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         return MSP_RESULT_ERROR; // will only be reached if the rollback is not ready
         break;
 #endif
+    case MSP2_INAV_SET_SAFEHOME:
+        if (dataSize == 10) {
+             uint8_t i;
+             if (!sbufReadU8Safe(&i, src) || i >= MAX_SAFE_HOMES) {
+                 return MSP_RESULT_ERROR;
+             }
+             safeHomeConfigMutable(i)->enabled = sbufReadU8(src);
+             safeHomeConfigMutable(i)->lat = sbufReadU32(src);
+             safeHomeConfigMutable(i)->lon = sbufReadU32(src);
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+        break;
 
     default:
         return MSP_RESULT_ERROR;
@@ -3194,6 +3221,10 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         *ret = MSP_RESULT_ACK;
         break;
 #endif
+
+    case MSP2_INAV_SAFEHOME:
+         *ret = mspFcSafeHomeOutCommand(dst, src);
+         break;
 
     default:
         // Not handled

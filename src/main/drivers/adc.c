@@ -20,17 +20,15 @@
 #include <string.h>
 
 #include "platform.h"
-
 #include "build/build_config.h"
 #include "build/debug.h"
-
 #include "drivers/time.h"
+#include "common/utils.h"
 
+#ifdef USE_ADC
 #include "drivers/io.h"
 #include "drivers/adc.h"
 #include "drivers/adc_impl.h"
-
-#include "common/utils.h"
 
 #ifndef ADC_INSTANCE
 #define ADC_INSTANCE                ADC1
@@ -205,4 +203,12 @@ uint16_t adcGetChannel(uint8_t channel)
     return 0;
 }
 
+#endif
+
+#else // USE_ADC
+uint16_t adcGetChannel(uint8_t channel)
+{
+    UNUSED(channel);
+    return 0;
+}
 #endif

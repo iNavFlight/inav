@@ -65,6 +65,7 @@
 
 #include <string.h>
 #include "stm32f7xx.h"
+#include "drivers/system.h"
 
 #if !defined  (HSE_VALUE)
   #define HSE_VALUE    ((uint32_t)8000000) /*!< Default value of the External oscillator in Hz */
@@ -253,15 +254,6 @@
   * @{
   */
 
-void CopyFastCode(void)
-{
-    /* Load functions into ITCM RAM */
-    extern uint8_t tcm_code_start;
-    extern uint8_t tcm_code_end;
-    extern uint8_t tcm_code;
-    memcpy(&tcm_code_start, &tcm_code, (size_t) (&tcm_code_end - &tcm_code_start));
-}
-
 /**
   * @brief  Setup the microcontroller system
   *         Initialize the Embedded Flash Interface, the PLL and update the
@@ -271,6 +263,8 @@ void CopyFastCode(void)
   */
 void SystemInit(void)
 {
+  initialiseMemorySections();
+
   /* FPU settings ------------------------------------------------------------*/
   #if (__FPU_PRESENT == 1) && (__FPU_USED == 1)
     SCB->CPACR |= ((3UL << 10*2)|(3UL << 11*2));  /* set CP10 and CP11 Full Access */
