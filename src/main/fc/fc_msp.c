@@ -36,6 +36,7 @@
 #include "common/time.h"
 #include "common/utils.h"
 #include "programming/global_variables.h"
+#include "programming/pid.h"
 
 #include "config/parameter_group_ids.h"
 
@@ -551,6 +552,19 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP2_INAV_GVAR_STATUS:
         for (int i = 0; i < MAX_GLOBAL_VARIABLES; i++) {
             sbufWriteU32(dst, gvGet(i));
+        }
+        break;
+    case MSP2_INAV_PROGRAMMING_PID:
+        for (int i = 0; i < MAX_PROGRAMMING_PID_COUNT; i++) {
+            sbufWriteU8(dst, programmingPids(i)->enabled);
+            sbufWriteU8(dst, programmingPids(i)->setpoint.type);
+            sbufWriteU32(dst, programmingPids(i)->setpoint.value);
+            sbufWriteU8(dst, programmingPids(i)->measurement.type);
+            sbufWriteU32(dst, programmingPids(i)->measurement.value);
+            sbufWriteU16(dst, programmingPids(i)->gains.P);
+            sbufWriteU16(dst, programmingPids(i)->gains.I);
+            sbufWriteU16(dst, programmingPids(i)->gains.D);
+            sbufWriteU16(dst, programmingPids(i)->gains.FF);
         }
         break;
 #endif
@@ -1966,6 +1980,22 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             logicConditionsMutable(tmp_u8)->operandB.type = sbufReadU8(src);
             logicConditionsMutable(tmp_u8)->operandB.value = sbufReadU32(src);
             logicConditionsMutable(tmp_u8)->flags = sbufReadU8(src);
+        } else
+            return MSP_RESULT_ERROR;
+        break;
+
+    case MSP2_INAV_SET_PROGRAMMING_PID:
+        sbufReadU8Safe(&tmp_u8, src);
+        if ((dataSize == 20) && (tmp_u8 < MAX_PROGRAMMING_PID_COUNT)) {
+            programmingPidsMutable(tmp_u8)->enabled = sbufReadU8(src);
+            programmingPidsMutable(tmp_u8)->setpoint.type = sbufReadU8(src);
+            programmingPidsMutable(tmp_u8)->setpoint.value = sbufReadU32(src);
+            programmingPidsMutable(tmp_u8)->measurement.type = sbufReadU8(src);
+            programmingPidsMutable(tmp_u8)->measurement.value = sbufReadU32(src);
+            programmingPidsMutable(tmp_u8)->gains.P = sbufReadU16(src);
+            programmingPidsMutable(tmp_u8)->gains.I = sbufReadU16(src);
+            programmingPidsMutable(tmp_u8)->gains.D = sbufReadU16(src);
+            programmingPidsMutable(tmp_u8)->gains.FF = sbufReadU16(src);
         } else
             return MSP_RESULT_ERROR;
         break;
