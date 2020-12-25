@@ -49,6 +49,7 @@
 #include "flight/wind_estimator.h"
 #include "flight/rpm_filter.h"
 #include "flight/servos.h"
+#include "flight/dynamic_lpf.h"
 
 #include "navigation/navigation.h"
 
