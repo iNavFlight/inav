@@ -73,7 +73,6 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/gyroanalyse.h"
 #include "flight/rpm_filter.h"
 #include "flight/dynamic_gyro_notch.h"
-#include "flight/mixer.h"
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
@@ -517,21 +516,7 @@ bool gyroSyncCheckUpdate(void)
     return gyroDev[0].intStatusFn(&gyroDev[0]);
 }
 
-static float dynLpfCutoffFreq(float throttle, uint16_t dynLpfMin, uint16_t dynLpfMax, uint8_t expo) {
-    const float expof = expo / 10.0f;
-    static float curve;
-    curve = throttle * (1 - throttle) * expof + throttle;
-    return (dynLpfMax - dynLpfMin) * curve + dynLpfMin;
-}
-
-void gyroUpdateDynamicLpf(void) {
-    if (!gyroConfig()->useDynamicLpf) {
-        return;
-    }
-
-    const float throttle = scaleRangef((float) rcCommand[THROTTLE], getThrottleIdleValue(), motorConfig()->maxthrottle, 0.0f, 1.0f);
-    const uint16_t cutoffFreq = dynLpfCutoffFreq(throttle, gyroConfig()->gyroDynamicLpfMinHz, gyroConfig()->gyroDynamicLpfMaxHz, gyroConfig()->gyroDynamicLpfCurveExpo);
-
+void gyroUpdateDynamicLpf(float cutoffFreq) {
     if (gyroConfig()->gyro_soft_lpf_type == FILTER_PT1) {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             pt1FilterUpdateCutoff(&gyroLpfState[axis].pt1, cutoffFreq);

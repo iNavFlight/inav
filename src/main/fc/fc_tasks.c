@@ -294,7 +294,7 @@ void taskUpdateAux(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
     updatePIDCoefficients();
-    gyroUpdateDynamicLpf();
+    dynamicLpfGyroTask();
 }
 
 void fcTasksInit(void)
