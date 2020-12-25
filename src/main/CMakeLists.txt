@@ -362,6 +362,8 @@ main_sources(COMMON_SRC
     programming/global_variables.h
     programming/programming_task.c
     programming/programming_task.h
+    programming/pid.c
+    programming/pid.h
 
     rx/crsf.c
     rx/crsf.h

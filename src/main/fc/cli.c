@@ -42,6 +42,7 @@ uint8_t cliMode = 0;
 #include "common/time.h"
 #include "common/typeconversion.h"
 #include "programming/global_variables.h"
+#include "programming/pid.h"
 
 #include "config/config_eeprom.h"
 #include "config/feature.h"
@@ -1998,6 +1999,118 @@ static void cliGvar(char *cmdline) {
     }
 }
 
+static void printPid(uint8_t dumpMask, const programmingPid_t *programmingPids, const programmingPid_t *defaultProgrammingPids)
+{
+    const char *format = "pid %d %d %d %d %d %d %d %d %d %d";
+    for (uint32_t i = 0; i < MAX_PROGRAMMING_PID_COUNT; i++) {
+        const programmingPid_t pid = programmingPids[i];
+
+        bool equalsDefault = false;
+        if (defaultProgrammingPids) {
+            programmingPid_t defaultValue = defaultProgrammingPids[i];
+            equalsDefault =
+                pid.enabled == defaultValue.enabled &&
+                pid.setpoint.type == defaultValue.setpoint.type &&
+                pid.setpoint.value == defaultValue.setpoint.value &&
+                pid.measurement.type == defaultValue.measurement.type &&
+                pid.measurement.value == defaultValue.measurement.value &&
+                pid.gains.P == defaultValue.gains.P && 
+                pid.gains.I == defaultValue.gains.I && 
+                pid.gains.D == defaultValue.gains.D && 
+                pid.gains.FF == defaultValue.gains.FF;
+
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                i,
+                pid.enabled,
+                pid.setpoint.type,
+                pid.setpoint.value,
+                pid.measurement.type,
+                pid.measurement.value,
+                pid.gains.P,
+                pid.gains.I,
+                pid.gains.D,
+                pid.gains.FF
+            );
+        }
+        cliDumpPrintLinef(dumpMask, equalsDefault, format,
+            i,
+            pid.enabled,
+            pid.setpoint.type,
+            pid.setpoint.value,
+            pid.measurement.type,
+            pid.measurement.value,
+            pid.gains.P,
+            pid.gains.I,
+            pid.gains.D,
+            pid.gains.FF
+        );
+    }
+}
+
+static void cliPid(char *cmdline) {
+    char * saveptr;
+    int args[10], check = 0;
+    uint8_t len = strlen(cmdline);
+
+    if (len == 0) {
+        printPid(DUMP_MASTER, programmingPids(0), NULL);
+    } else if (sl_strncasecmp(cmdline, "reset", 5) == 0) {
+        pgResetCopy(programmingPidsMutable(0), PG_LOGIC_CONDITIONS);
+    } else {
+        enum {
+            INDEX = 0,
+            ENABLED,
+            SETPOINT_TYPE,
+            SETPOINT_VALUE,
+            MEASUREMENT_TYPE,
+            MEASUREMENT_VALUE,
+            P_GAIN,
+            I_GAIN,
+            D_GAIN,
+            FF_GAIN,
+            ARGS_COUNT
+            };
+        char *ptr = strtok_r(cmdline, " ", &saveptr);
+        while (ptr != NULL && check < ARGS_COUNT) {
+            args[check++] = fastA2I(ptr);
+            ptr = strtok_r(NULL, " ", &saveptr);
+        }
+
+        if (ptr != NULL || check != ARGS_COUNT) {
+            cliShowParseError();
+            return;
+        }
+
+        int32_t i = args[INDEX];
+        if (
+            i >= 0 && i < MAX_PROGRAMMING_PID_COUNT &&
+            args[ENABLED] >= 0 && args[ENABLED] <= 1 &&
+            args[SETPOINT_TYPE] >= 0 && args[SETPOINT_TYPE] < LOGIC_CONDITION_OPERAND_TYPE_LAST &&
+            args[SETPOINT_VALUE] >= -1000000 && args[SETPOINT_VALUE] <= 1000000 &&
+            args[MEASUREMENT_TYPE] >= 0 && args[MEASUREMENT_TYPE] < LOGIC_CONDITION_OPERAND_TYPE_LAST &&
+            args[MEASUREMENT_VALUE] >= -1000000 && args[MEASUREMENT_VALUE] <= 1000000 &&
+            args[P_GAIN] >= 0 && args[P_GAIN] <= INT16_MAX &&
+            args[I_GAIN] >= 0 && args[I_GAIN] <= INT16_MAX &&
+            args[D_GAIN] >= 0 && args[D_GAIN] <= INT16_MAX &&
+            args[FF_GAIN] >= 0 && args[FF_GAIN] <= INT16_MAX
+        ) {
+            programmingPidsMutable(i)->enabled = args[ENABLED];
+            programmingPidsMutable(i)->setpoint.type = args[SETPOINT_TYPE];
+            programmingPidsMutable(i)->setpoint.value = args[SETPOINT_VALUE];
+            programmingPidsMutable(i)->measurement.type = args[MEASUREMENT_TYPE];
+            programmingPidsMutable(i)->measurement.value = args[MEASUREMENT_VALUE];
+            programmingPidsMutable(i)->gains.P = args[P_GAIN];
+            programmingPidsMutable(i)->gains.I = args[I_GAIN];
+            programmingPidsMutable(i)->gains.D = args[D_GAIN];
+            programmingPidsMutable(i)->gains.FF = args[FF_GAIN];
+
+            cliPid("");
+        } else {
+            cliShowParseError();
+        }
+    }
+}
+
 #endif
 
 #ifdef USE_SDCARD
@@ -3312,6 +3425,9 @@ static void printConfig(const char *cmdline, bool doDiff)
 
         cliPrintHashLine("gvar");
         printGvar(dumpMask, globalVariableConfigs_CopyArray, globalVariableConfigs(0));
+
+        cliPrintHashLine("pid");
+        printPid(dumpMask, programmingPids_CopyArray, programmingPids(0));
 #endif
 
         cliPrintHashLine("feature");
@@ -3566,6 +3682,10 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("gvar", "configure global variables",
         "<gvar> <default> <min> <max>\r\n"
         "\treset\r\n", cliGvar),
+
+    CLI_COMMAND_DEF("pid", "configurable PID controllers",
+        "<#> <enabled> <setpoint type> <setpoint value> <measurement type> <measurement value> <P gain> <I gain> <D gain> <FF gain>\r\n"
+        "\treset\r\n", cliPid),
 #endif
     CLI_COMMAND_DEF("set", "change setting", "[<name>=<value>]", cliSet),
     CLI_COMMAND_DEF("smix", "servo mixer",
