@@ -149,7 +149,7 @@
 | gyro_stage2_lowpass_type | `BIQUAD` | Defines the type of stage 2 gyro LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation. |
 | gyro_sync | OFF | This option enables gyro_sync feature. In this case the loop will be synced to gyro refresh rate. Loop will always wait for the newest gyro measurement. Maximum gyro refresh rate is determined by gyro_hardware_lpf |
 | gyro_to_use |  |  |
-| gyro_use_dyn_lpf | OFF | Use Dynamic LPF instead of static gyro stage1 LPF. |
+| gyro_use_dyn_lpf | OFF | Use Dynamic LPF instead of static gyro stage1 LPF. Dynamic Gyro LPF updates gyro LPF based on the throttle position. |
 | has_flaps | OFF | Defines is UAV is capable of having flaps. If ON and AIRPLANE `platform_type` is used, **FLAPERON** flight mode will be available for the pilot |
 | heading_hold_rate_limit | 90 | This setting limits yaw rotation rate that HEADING_HOLD controller can request from PID inner loop controller. It is independent from manual yaw rate and used only when HEADING_HOLD flight mode is enabled by pilot, RTH or WAYPOINT modes. |
 | hott_alarm_sound_interval | 5 | Battery alarm delay in seconds for Hott telemetry |

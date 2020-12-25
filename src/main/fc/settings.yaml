@@ -215,7 +215,7 @@ groups:
         field: gyro_stage2_lowpass_type
         table: filter_type
       - name: gyro_use_dyn_lpf
-        description: "Use Dynamic LPF instead of static gyro stage1 LPF."
+        description: "Use Dynamic LPF instead of static gyro stage1 LPF. Dynamic Gyro LPF updates gyro LPF based on the throttle position."
         default_value: "OFF"
         field: useDynamicLpf
         type: bool
