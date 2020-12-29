@@ -72,7 +72,7 @@ typedef enum {
 typedef struct smartAudioDevice_s {
     smartAudioVersion_e version;
     int8_t channel;
-    int8_t power;
+    int8_t power;  // -1 - not initialized, 0 - power level unknown, or power level index 1..n. For SA_2_1 device you can get power in mW: saPowerTable[index-1].mW 
     int8_t mode;
     uint16_t freq;
     uint16_t orfreq;
