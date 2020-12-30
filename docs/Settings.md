@@ -137,6 +137,9 @@
 | gps_provider | UBLOX | Which GPS protocol to be used, note that UBLOX is 5Hz and UBLOX7 is 10Hz (M8N). |
 | gps_sbas_mode | NONE | Which SBAS mode to be used |
 | gps_ublox_use_galileo | OFF | Enable use of Galileo satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires M8N and Ublox firmware 3.x (or later) [OFF/ON]. |
+| gyro_dyn_lpf_curve_expo | 5 | Expo value for the throttle-to-frequency mapping for Dynamic LPF |
+| gyro_dyn_lpf_max_hz | 500 | Maximum frequency of the gyro Dynamic LPF |
+| gyro_dyn_lpf_min_hz | 200 | Minimum frequency of the gyro Dynamic LPF |
 | gyro_hardware_lpf | 42HZ | Hardware lowpass filter for gyro. Allowed values depend on the driver - For example MPU6050 allows 10HZ,20HZ,42HZ,98HZ,188HZ,256Hz (8khz mode). If you have to set gyro lpf below 42Hz generally means the frame is vibrating too much, and that should be fixed first. |
 | gyro_lpf_hz | 60 | Software-based filter to remove mechanical vibrations from the gyro signal. Value is cutoff frequency (Hz). For larger frames with bigger props set to lower value. |
 | gyro_lpf_type | BIQUAD | Specifies the type of the software LPF of the gyro signals. BIQUAD gives better filtering and more delay, PT1 less filtering and less delay, so use only on clean builds. |
@@ -146,6 +149,7 @@
 | gyro_stage2_lowpass_type | `BIQUAD` | Defines the type of stage 2 gyro LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation. |
 | gyro_sync | OFF | This option enables gyro_sync feature. In this case the loop will be synced to gyro refresh rate. Loop will always wait for the newest gyro measurement. Maximum gyro refresh rate is determined by gyro_hardware_lpf |
 | gyro_to_use |  |  |
+| gyro_use_dyn_lpf | OFF | Use Dynamic LPF instead of static gyro stage1 LPF. Dynamic Gyro LPF updates gyro LPF based on the throttle position. |
 | has_flaps | OFF | Defines is UAV is capable of having flaps. If ON and AIRPLANE `platform_type` is used, **FLAPERON** flight mode will be available for the pilot |
 | heading_hold_rate_limit | 90 | This setting limits yaw rotation rate that HEADING_HOLD controller can request from PID inner loop controller. It is independent from manual yaw rate and used only when HEADING_HOLD flight mode is enabled by pilot, RTH or WAYPOINT modes. |
 | hott_alarm_sound_interval | 5 | Battery alarm delay in seconds for Hott telemetry |

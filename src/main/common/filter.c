@@ -28,9 +28,6 @@ FILE_COMPILE_FOR_SPEED
 #include "common/maths.h"
 #include "common/utils.h"
 
-#define BIQUAD_BANDWIDTH 1.9f     /* bandwidth in octaves */
-#define BIQUAD_Q 1.0f / sqrtf(2.0f)     /* quality factor - butterworth*/
-
 // NULL filter
 float nullFilterApply(void *filter, float input)
 {
@@ -48,6 +45,11 @@ float nullFilterApply4(void *filter, float input, float f_cut, float dt)
 
 // PT1 Low Pass filter
 
+static float pt1ComputeRC(const float f_cut)
+{
+    return 1.0f / (2.0f * M_PIf * f_cut);
+}
+
 // f_cut = cutoff frequency
 void pt1FilterInitRC(pt1Filter_t *filter, float tau, float dT)
 {
@@ -59,7 +61,7 @@ void pt1FilterInitRC(pt1Filter_t *filter, float tau, float dT)
 
 void pt1FilterInit(pt1Filter_t *filter, float f_cut, float dT)
 {
-    pt1FilterInitRC(filter, 1.0f / (2.0f * M_PIf * f_cut), dT);
+    pt1FilterInitRC(filter, pt1ComputeRC(f_cut), dT);
 }
 
 void pt1FilterSetTimeConstant(pt1Filter_t *filter, float tau) {
@@ -68,6 +70,12 @@ void pt1FilterSetTimeConstant(pt1Filter_t *filter, float tau) {
 
 float pt1FilterGetLastOutput(pt1Filter_t *filter) {
     return filter->state;
+}
+
+void pt1FilterUpdateCutoff(pt1Filter_t *filter, float f_cut)
+{
+    filter->RC = pt1ComputeRC(f_cut);
+    filter->alpha = filter->dT / (filter->RC + filter->dT);
 }
 
 float FAST_CODE NOINLINE pt1FilterApply(pt1Filter_t *filter, float input)
@@ -87,7 +95,7 @@ float FAST_CODE NOINLINE pt1FilterApply4(pt1Filter_t *filter, float input, float
 {
     // Pre calculate and store RC
     if (!filter->RC) {
-        filter->RC = 1.0f / ( 2.0f * M_PIf * f_cut );
+        filter->RC = pt1ComputeRC(f_cut);
     }
 
     filter->dT = dT;    // cache latest dT for possible use in pt1FilterApply
