@@ -49,6 +49,7 @@
 #include "flight/wind_estimator.h"
 #include "flight/rpm_filter.h"
 #include "flight/servos.h"
+#include "flight/dynamic_lpf.h"
 
 #include "navigation/navigation.h"
 
@@ -294,6 +295,7 @@ void taskUpdateAux(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
     updatePIDCoefficients();
+    dynamicLpfGyroTask();
 }
 
 void fcTasksInit(void)
@@ -620,7 +622,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_AUX] = {
         .taskName = "AUX",
         .taskFunc = taskUpdateAux,
-        .desiredPeriod = TASK_PERIOD_HZ(TASK_AUX_RATE_HZ),          // 300Hz @3,33ms
+        .desiredPeriod = TASK_PERIOD_HZ(TASK_AUX_RATE_HZ),          // 100Hz @10ms
         .staticPriority = TASK_PRIORITY_HIGH,
     },
 };

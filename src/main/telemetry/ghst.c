@@ -163,7 +163,7 @@ bool checkGhstTelemetryState(void)
 // Called periodically by the scheduler
  void handleGhstTelemetry(timeUs_t currentTimeUs)
 {
-    static uint32_t ghstLastCycleTime;
+    static timeUs_t ghstLastCycleTime;
 
     if (!ghstTelemetryEnabled) {
         return;
