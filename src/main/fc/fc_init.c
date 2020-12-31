@@ -218,7 +218,7 @@ void init(void)
 #endif
 
     initEEPROM();
-    //ensureEEPROMContainsValidData();
+    ensureEEPROMContainsValidData();
     readEEPROM();
 
     // Re-initialize system clock to their final values (if necessary)

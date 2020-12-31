@@ -70,6 +70,9 @@
 #   define BARO_I2C_BUS            BUS_I2C1
 #   define USE_BARO_MS5611
 #   define USE_BARO_BMP280
+#else // V1 does not have I2C exposed, common_post.h will pull in USE_*_MSP
+#   define USE_BARO
+#   define USE_MAG
 #endif
 
 #define USE_OSD
