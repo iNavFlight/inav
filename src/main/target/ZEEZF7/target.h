@@ -44,6 +44,17 @@
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW180_DEG
 
+// *************** I2C/Baro/Mag *********************
+// Target has no I2C but can use MSP devices, such as those provided on Mateksys MQ8-CAN/MSP
+// Which contains: GPS SAM-M8Q, Compass QMC5883L, Barometer DPS310
+// See: http://www.mateksys.com/?portfolio=m8q-can
+
+#define USE_BARO
+#define USE_BARO_DPS310
+
+#define USE_MAG 1
+#define USE_MAG_QMC5883
+
 // *************** Flash ****************************
 
 #define USE_SPI_DEVICE_1
