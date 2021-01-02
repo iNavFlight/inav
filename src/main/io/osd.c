@@ -2282,6 +2282,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 // +codes with > 8 digits have a + at the 9th digit
                 // and we only support 10 and up.
                 memset(buff, '-', digits + 1);
+                buff[0] = buff[1] = buff[2] = buff[3] = ' ';
                 buff[8] = '+';
                 buff[digits + 1] = '\0';
             }
