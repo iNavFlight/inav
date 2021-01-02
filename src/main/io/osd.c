@@ -2277,6 +2277,7 @@ static bool osdDrawSingleElement(uint8_t item)
             int digits = osdConfig()->plus_code_digits;
             if (STATE(GPS_FIX)) {
                 olc_encode(gpsSol.llh.lat, gpsSol.llh.lon, digits, buff, sizeof(buff));
+                buff[0] = buff[1] = buff[2] = buff[3] = ' ';
             } else {
                 // +codes with > 8 digits have a + at the 9th digit
                 // and we only support 10 and up.
