@@ -26,12 +26,9 @@
 #define LED0_PIN                PC13
 #define LED1_PIN                PC14
 
-#define USE_BEEPER
 #define BEEPER_PIN              PB2
 #define BEEPER_INVERTED
 
-#define ENABLE_DSHOT_DMAR       DSHOT_DMAR_AUTO
-#define DSHOT_BITBANG_DEFAULT   DSHOT_BITBANG_OFF
 
 
 // *************** SPI Gyro & ACC **********************
@@ -56,10 +53,12 @@
 // ******* SERIAL ********
 
 #define USE_VCP
+#define USE_UART_INVERTER
 
 #define USE_UART1
 #define UART1_TX_PIN            PA9
 #define UART1_RX_PIN            PA10
+#define INVERTER_PIN_UART1_RX   PB10
 
 #define USE_UART2
 #define UART2_TX_PIN            PA2
@@ -73,9 +72,6 @@
 #define USE_ESCSERIAL
 #define ESCSERIAL_TIMER_TX_PIN  PB9  // (HARDARE=0,PPM)
 
-// ******* INVERTER PIN ********
-#define USE_UART_INVERTER
-#define INVERTER_PIN_UART1      PB10
 
 // ******* SPI ********
 
@@ -96,12 +92,12 @@
 // ******* ADC ********
 
 #define USE_ADC
-#define DEFAULT_VOLTAGE_METER_SOURCE VOLTAGE_METER_ADC
-#define ADC_INSTANCE            ADC1  // Default added
-#define ADC1_DMA_OPT            0     // DMA 2 Stream 0 Channel 0
-#define VBAT_ADC_PIN            PA0
-#define RSSI_ADC_PIN            PB1
-#define CURRENT_METER_ADC_PIN   PA1
+#define ADC_CHANNEL_1_PIN       PA0
+#define ADC_CHANNEL_2_PIN       PB1
+#define ADC_CHANNEL_3_PIN       PA1
+#define VBAT_ADC_CHANNEL        ADC_CHN_1
+#define RSSI_ADC_CHANNEL        ADC_CHN_2
+#define CURRENT_METER_ADC_PIN   ADC_CHN_3
 
 // ******* FEATURES ********
 
@@ -110,8 +106,6 @@
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 
 #define DEFAULT_FEATURES                (FEATURE_OSD | FEATURE_TELEMETRY)
-#define DEFAULT_VOLTAGE_METER_SOURCE    VOLTAGE_METER_ADC
-#define DEFAULT_CURRENT_METER_SOURCE    CURRENT_METER_ADC
 
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
