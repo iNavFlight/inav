@@ -2980,7 +2980,7 @@ static void osdShowStats(void)
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
         int32_t totalDistance = getTotalTravelDistance();
-        if (totalDistance > 10000) {
+        if (STATE(GPS_FIX)) {
             displayWrite(osdDisplayPort, statNameX, top, "AVG EFFICIENCY   :");
             if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH)
                 tfp_sprintf(buff, "%d%c%c", (int)(getMAhDrawn() * 100000 / totalDistance),
@@ -2990,6 +2990,19 @@ static void osdShowStats(void)
                 buff[3] = SYM_WH_KM_0;
                 buff[4] = SYM_WH_KM_1;
                 buff[5] = '\0';
+            }
+            // If traveled distance is less than 100 meters efficiency numbers are useless and unreliable so display --- instead
+            if (totalDistance < 10000) {
+                buff[0] = buff[1] = buff[2] = '-';
+                if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH){
+                    buff[3] = SYM_MAH_KM_0;
+                    buff[4] = SYM_MAH_KM_1;
+                    buff[5] = '\0';
+                } else {
+                    buff[3] = SYM_WH_KM_0;
+                    buff[4] = SYM_WH_KM_1;
+                    buff[5] = '\0';
+                }
             }
             displayWrite(osdDisplayPort, statValuesX, top++, buff);
         }
