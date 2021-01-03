@@ -2284,9 +2284,11 @@ static bool osdDrawSingleElement(uint8_t item)
                 buff[8] = '+';
                 buff[digits + 1] = '\0';
             }
-            // Use local code
-            memmove(buff, buff+4, strlen(buff)+4);
-            buff[digits + 1 - 4] = '\0';
+            if (osdConfig()->plus_code_type == OSD_PLUS_CODE_LOCAL) {
+                // Use local code (see https://github.com/google/open-location-code/wiki/Guidance-for-shortening-codes)
+                memmove(buff, buff+4, strlen(buff)+4);
+                buff[digits + 1 - 4] = '\0';
+            }
             break;
         }
 
@@ -2594,6 +2596,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .osd_failsafe_switch_layout = false,
 
     .plus_code_digits = 11,
+    .plus_code_type = OSD_PLUS_CODE_GLOBAL,
 
     .ahi_width = OSD_AHI_WIDTH * OSD_CHAR_WIDTH,
     .ahi_height = OSD_AHI_HEIGHT * OSD_CHAR_HEIGHT,

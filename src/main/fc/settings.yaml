@@ -155,6 +155,9 @@ tables:
   - name: nav_overrides_motor_stop
     enum: navOverridesMotorStop_e
     values: ["OFF_ALWAYS", "OFF", "AUTO_ONLY", "ALL_NAV"]
+  - name: osd_plus_code_type
+    enum: osd_plus_code_type_e
+    values: ["GLOBAL", "LOCAL"]
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -2913,6 +2916,12 @@ groups:
         field: plus_code_digits
         min: 10
         max: 13
+      - name: osd_plus_code_type
+        description: "Select plus code type, `LOCAL` removes first four digits and needs a reference location within ~40 km to recover the original coordinates."
+        field: plus_code_type
+        default_value: "GLOBAL"
+        table: osd_plus_code_type
+        type: uint8_t
 
       - name: osd_ahi_style
         description: "Sets OSD Artificial Horizon style \"DEFAULT\" or \"LINE\" for the FrSky Graphical OSD."

@@ -268,6 +268,11 @@ typedef enum {
     OSD_CRSF_LQ_TYPE2,
 } osd_crsf_lq_format_e;
 
+typedef enum {
+    OSD_PLUS_CODE_GLOBAL,
+    OSD_PLUS_CODE_LOCAL,
+} osd_plus_code_type_e;
+
 typedef struct osdLayoutsConfig_s {
     // Layouts
     uint16_t item_pos[OSD_LAYOUT_COUNT][OSD_ITEM_COUNT];
@@ -336,6 +341,7 @@ typedef struct osdConfig_s {
 
     bool osd_failsafe_switch_layout;
     uint8_t plus_code_digits; // Number of digits to use in OSD_PLUS_CODE
+    uint8_t plus_code_type; 
     uint8_t osd_ahi_style;
     uint8_t force_grid;                 // Force a pixel based OSD to use grid mode.
     uint8_t ahi_bordered;               // Only used by the AHI widget
