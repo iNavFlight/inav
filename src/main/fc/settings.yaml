@@ -155,8 +155,8 @@ tables:
   - name: nav_overrides_motor_stop
     enum: navOverridesMotorStop_e
     values: ["OFF_ALWAYS", "OFF", "AUTO_ONLY", "ALL_NAV"]
-  - name: osd_plus_code_type
-    enum: osd_plus_code_type_e
+  - name: osd_plus_code_format
+    enum: osd_plus_code_format_e
     values: ["GLOBAL", "COUNTRY", "LOCAL", "FIELD"]
 
 groups:
@@ -2916,11 +2916,11 @@ groups:
         field: plus_code_digits
         min: 10
         max: 13
-      - name: osd_plus_code_type
-        description: "Select plus code type. Each consecutive setting (`COUNTRY`, `LOCAL`, `FIELD`) removes two extra digits from the beginning of the plus code. This requires a reference location within respectively ~800km, ~40 km and ~2km to recover the original coordinates."
-        field: plus_code_type
+      - name: osd_plus_code_format
+        description: "Select plus code format. Each consecutive setting (`COUNTRY`, `LOCAL`, `FIELD`) removes two extra digits from the beginning of the plus code. This requires a reference location within respectively ~800km, ~40 km and ~2km to recover the original coordinates."
+        field: plus_code_format
         default_value: "GLOBAL"
-        table: osd_plus_code_type
+        table: osd_plus_code_format
         type: uint8_t
 
       - name: osd_ahi_style
