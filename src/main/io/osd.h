@@ -270,7 +270,9 @@ typedef enum {
 
 typedef enum {
     OSD_PLUS_CODE_GLOBAL,
+    OSD_PLUS_CODE_COUNTRY,
     OSD_PLUS_CODE_LOCAL,
+    OSD_PLUS_CODE_FIELD,
 } osd_plus_code_type_e;
 
 typedef struct osdLayoutsConfig_s {

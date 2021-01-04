@@ -157,7 +157,7 @@ tables:
     values: ["OFF_ALWAYS", "OFF", "AUTO_ONLY", "ALL_NAV"]
   - name: osd_plus_code_type
     enum: osd_plus_code_type_e
-    values: ["GLOBAL", "LOCAL"]
+    values: ["GLOBAL", "COUNTRY", "LOCAL", "FIELD"]
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -2917,7 +2917,7 @@ groups:
         min: 10
         max: 13
       - name: osd_plus_code_type
-        description: "Select plus code type, `LOCAL` removes first four digits and needs a reference location within ~40 km to recover the original coordinates."
+        description: "Select plus code type. Each consecutive setting (`COUNTRY`, `LOCAL`, `FIELD`) removes two extra digits from the beginning of the plus code. This requires a reference location within respectively ~800km, ~40 km and ~2km to recover the original coordinates."
         field: plus_code_type
         default_value: "GLOBAL"
         table: osd_plus_code_type

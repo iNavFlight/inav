@@ -385,7 +385,7 @@
 | osd_main_voltage_decimals | 1 | Number of decimals for the battery voltages displayed in the OSD [1-2]. |
 | osd_neg_alt_alarm | 5 | Value below which (negative altitude) to make the OSD relative altitude indicator blink (meters) |
 | osd_plus_code_digits |  |  |
-| osd_plus_code_type | GLOBAL | Select plus code type, `LOCAL` removes first four digits and needs a reference location within ~40 km to recover the original coordinates. |
+| osd_plus_code_type | GLOBAL | Select plus code type. Each consecutive setting (`COUNTRY`, `LOCAL`, `FIELD`) removes two extra digits from the beginning of the plus code. This requires a reference location within respectively ~800km, ~40 km and ~2km to recover the original coordinates. |
 | osd_right_sidebar_scroll |  |  |
 | osd_right_sidebar_scroll_step | 0 | Same as left_sidebar_scroll_step, but for the right sidebar |
 | osd_row_shiftdown | 0 | Number of rows to shift the OSD display (increase if top rows are cut off) |

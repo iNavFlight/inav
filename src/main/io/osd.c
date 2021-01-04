@@ -2275,6 +2275,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             STATIC_ASSERT(GPS_DEGREES_DIVIDER == OLC_DEG_MULTIPLIER, invalid_olc_deg_multiplier);
             int digits = osdConfig()->plus_code_digits;
+            int digitsRemoved = osdConfig()->plus_code_type * 2;
             if (STATE(GPS_FIX)) {
                 olc_encode(gpsSol.llh.lat, gpsSol.llh.lon, digits, buff, sizeof(buff));
             } else {
@@ -2284,11 +2285,9 @@ static bool osdDrawSingleElement(uint8_t item)
                 buff[8] = '+';
                 buff[digits + 1] = '\0';
             }
-            if (osdConfig()->plus_code_type == OSD_PLUS_CODE_LOCAL) {
-                // Use local code (see https://github.com/google/open-location-code/wiki/Guidance-for-shortening-codes)
-                memmove(buff, buff+4, strlen(buff)+4);
-                buff[digits + 1 - 4] = '\0';
-            }
+            // Optionally trim digits from the left
+            memmove(buff, buff+digitsRemoved, strlen(buff) + digitsRemoved);
+            buff[digits + 1 - digitsRemoved] = '\0';
             break;
         }
 
