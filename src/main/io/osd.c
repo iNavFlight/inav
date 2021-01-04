@@ -2928,7 +2928,7 @@ static void osdShowStats(void)
     if (osdDisplayIsPAL())
         displayWrite(osdDisplayPort, statNameX, top++, "  --- STATS ---");
 
-    if (STATE(GPS_FIX)) {
+    if (feature(FEATURE_GPS)) {
         displayWrite(osdDisplayPort, statNameX, top, "MAX SPEED        :");
         osdFormatVelocityStr(buff, stats.max_speed, true);
         osdLeftAlignString(buff);
@@ -2980,7 +2980,7 @@ static void osdShowStats(void)
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
         int32_t totalDistance = getTotalTravelDistance();
-        if (STATE(GPS_FIX)) {
+        if (feature(FEATURE_GPS)) {
             displayWrite(osdDisplayPort, statNameX, top, "AVG EFFICIENCY   :");
             if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH)
                 tfp_sprintf(buff, "%d%c%c", (int)(getMAhDrawn() * 100000 / totalDistance),
