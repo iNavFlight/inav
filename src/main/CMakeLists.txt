@@ -24,6 +24,8 @@ main_sources(COMMON_SRC
     common/encoding.h
     common/filter.c
     common/filter.h
+    common/fp_pid.c
+    common/fp_pid.h
     common/gps_conversion.c
     common/gps_conversion.h
     common/log.c
