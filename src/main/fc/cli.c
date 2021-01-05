@@ -41,6 +41,7 @@ uint8_t cliMode = 0;
 #include "common/memory.h"
 #include "common/time.h"
 #include "common/typeconversion.h"
+#include "common/fp_pid.h"
 #include "programming/global_variables.h"
 #include "programming/pid.h"
 

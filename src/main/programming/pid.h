@@ -26,11 +26,11 @@
 
 #include "config/parameter_group.h"
 #include "common/time.h"
+#include "common/fp_pid.h"
 
 #include "programming/logic_condition.h"
 #include "common/axis.h"
 #include "flight/pid.h"
-#include "navigation/navigation.h"
 
 #define MAX_PROGRAMMING_PID_COUNT 4
 
