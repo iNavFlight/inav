@@ -86,6 +86,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXUSER2, "USER2", BOX_PERMANENT_ID_USER2 },
     { BOXLOITERDIRCHN, "LOITER CHANGE", 49 },
     { BOXMSPRCOVERRIDE, "MSP RC OVERRIDE", 50 },
+    { BOXAUTOLEVEL, "AUTO LEVEL", 51 },
     { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
@@ -239,6 +240,9 @@ void initActiveBoxIds(void)
 #if defined(USE_AUTOTUNE_FIXED_WING)
         activeBoxIds[activeBoxIdCount++] = BOXAUTOTUNE;
 #endif
+        if (sensors(SENSOR_BARO)) {
+            activeBoxIds[activeBoxIdCount++] = BOXAUTOLEVEL;
+        }
     }
 
     /*

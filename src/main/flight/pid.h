@@ -150,6 +150,9 @@ typedef struct pidProfile_s {
     uint16_t kalman_w;
     uint16_t kalman_sharpness;
     uint8_t kalmanEnabled;
+
+    float fixedWingLevelTrim;
+    float fixedWingLevelTrimGain;
 } pidProfile_t;
 
 typedef struct pidAutotuneConfig_s {

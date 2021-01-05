@@ -154,6 +154,9 @@ static EXTENDED_FASTRAM filterApplyFnPtr dTermLpfFilterApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr dTermLpf2FilterApplyFn;
 static EXTENDED_FASTRAM bool levelingEnabled = false;
 
+static EXTENDED_FASTRAM float fixedWingLevelTrim;
+static EXTENDED_FASTRAM pidController_t fixedWingLevelTrimController;
+
 PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 0);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
@@ -279,6 +282,8 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .kalman_w = 4,
         .kalman_sharpness = 100,
         .kalmanEnabled = 0,
+        .fixedWingLevelTrim = 0,
+        .fixedWingLevelTrimGain = 100,
 );
 
 bool pidInitFilters(void)
@@ -530,8 +535,18 @@ static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float h
     float angleTarget = pidRcCommandToAngle(rcCommand[axis], pidProfile()->max_angle_inclination[axis]);
 
     // Automatically pitch down if the throttle is manually controlled and reduced bellow cruise throttle
-    if ((axis == FD_PITCH) && STATE(AIRPLANE) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle())
+    if ((axis == FD_PITCH) && STATE(AIRPLANE) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle()) {
         angleTarget += scaleRange(MAX(0, navConfig()->fw.cruise_throttle - rcCommand[THROTTLE]), 0, navConfig()->fw.cruise_throttle - PWM_RANGE_MIN, 0, mixerConfig()->fwMinThrottleDownPitchAngle);
+
+        DEBUG_SET(DEBUG_ALWAYS, 0, angleTarget * 10);
+        DEBUG_SET(DEBUG_ALWAYS, 1, fixedWingLevelTrim * 10);
+        DEBUG_SET(DEBUG_ALWAYS, 2, getEstimatedActualVelocity(Z));
+
+        //Apply level trim
+        angleTarget -= fixedWingLevelTrim;
+        DEBUG_SET(DEBUG_ALWAYS, 3, angleTarget * 10);
+        
+    }
 
     const float angleErrorDeg = DECIDEGREES_TO_DEGREES(angleTarget - attitude.raw[axis]);
 
@@ -1107,6 +1122,18 @@ void pidInit(void)
         gyroKalmanInitialize(pidProfile()->kalman_q, pidProfile()->kalman_w, pidProfile()->kalman_sharpness);
     }
 #endif
+
+    fixedWingLevelTrim = pidProfile()->fixedWingLevelTrim;
+
+    navPidInit(
+        &fixedWingLevelTrimController,
+        0.0f,
+        pidProfile()->fixedWingLevelTrimGain / 1000.0f,
+        0.0f,
+        0.0f,
+        2.0f
+    );
+
 }
 
 const pidBank_t * pidBank(void) { 
