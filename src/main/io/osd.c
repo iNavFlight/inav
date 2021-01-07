@@ -1322,12 +1322,40 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 
     case OSD_GPS_LAT:
-        osdFormatCoordinate(buff, SYM_LAT, gpsSol.llh.lat);
-        break;
+        {
+            int digits = osdConfig()->coordinate_digits;
+            static int32_t previousLat;
+            if (STATE(GPS_FIX)) {
+                osdFormatCoordinate(buff, SYM_LAT, gpsSol.llh.lat);
+                previousLat = gpsSol.llh.lat;
+            } else if (STATE(GPS_FIX_LOST)){
+                osdFormatCoordinate(buff, SYM_LAT, previousLat);
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            } else {
+                memset(buff, '-', digits+1);
+                buff[0] = SYM_LAT;
+                buff[digits+1] = '\0';
+            }
+            break;
+        }
 
     case OSD_GPS_LON:
-        osdFormatCoordinate(buff, SYM_LON, gpsSol.llh.lon);
-        break;
+        {
+            int digits = osdConfig()->coordinate_digits;
+            static int32_t previousLon;
+            if (STATE(GPS_FIX)) {
+                osdFormatCoordinate(buff, SYM_LON, gpsSol.llh.lon);
+                previousLon = gpsSol.llh.lon;
+            } else if (STATE(GPS_FIX_LOST)){
+                osdFormatCoordinate(buff, SYM_LON, previousLon);
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            } else {
+                memset(buff, '-', digits+1);
+                buff[0] = SYM_LON;
+                buff[digits+1] = '\0';
+            }
+            break;
+        }
 
     case OSD_HOME_DIR:
         {
