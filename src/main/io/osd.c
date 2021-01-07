@@ -1312,12 +1312,20 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_GPS_SPEED:
-        osdFormatVelocityStr(buff, gpsSol.groundSpeed, false);
-        break;
+        {
+            osdFormatVelocityStr(buff, gpsSol.groundSpeed, false);
+            if (!STATE(GPS_FIX)) {
+                buff[0] = buff[1] = buff[2]= '-';
+            }
+            break;
+        }
 
     case OSD_3D_SPEED:
         {
             osdFormatVelocityStr(buff, osdGet3DSpeed(), true);
+            if (!STATE(GPS_FIX)) {
+                buff[0] = buff[1] = buff[2]= '-';
+            }
             break;
         }
 
