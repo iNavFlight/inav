@@ -367,6 +367,7 @@
 | osd_gforce_alarm | 5 | Value above which the OSD g force indicator will blink (g) |
 | osd_gforce_axis_alarm_max | 5 | Value above which the OSD axis g force indicators will blink (g) |
 | osd_gforce_axis_alarm_min | -5 | Value under which the OSD axis g force indicators will blink (g) |
+| osd_home_position_arm_screen | ON | Should home position coordinates be displayed on the arming screen. |
 | osd_horizon_offset | 0 | To vertically adjust the whole OSD and AHI and scrolling bars |
 | osd_hud_homepoint | 0 | To 3D-display the home point location in the hud |
 | osd_hud_homing | 0 | To display little arrows around the crossair showing where the home point is in the hud |

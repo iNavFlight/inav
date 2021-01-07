@@ -345,6 +345,7 @@ typedef struct osdConfig_s {
     int8_t sidebar_horizontal_offset;   // Horizontal offset from default position. Units are grid slots for grid OSDs, pixels for pixel based OSDs. Positive values move sidebars closer to the edges.
     uint8_t left_sidebar_scroll_step;   // How many units each sidebar step represents. 0 means the default value for the scroll type.
     uint8_t right_sidebar_scroll_step;  // Same as left_sidebar_scroll_step, but for the right sidebar.
+    bool osd_home_position_arm_screen;
 
     uint8_t crsf_lq_format;
 
