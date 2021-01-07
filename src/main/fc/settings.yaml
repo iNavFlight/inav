@@ -156,7 +156,6 @@ tables:
     enum: navOverridesMotorStop_e
     values: ["OFF_ALWAYS", "OFF", "AUTO_ONLY", "ALL_NAV"]
   - name: osd_plus_code_short
-    # enum: osd_plus_code_short_e
     values: ["0", "2", "4", "6"]
 
 groups:
