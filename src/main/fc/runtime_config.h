@@ -132,6 +132,7 @@ typedef enum {
     SET_REVERSIBLE_MOTORS_FORWARD       = (1 << 23),
     FW_HEADING_USE_YAW                  = (1 << 24),
     ANTI_WINDUP_DEACTIVATED             = (1 << 25),
+    GPS_FIX_LOST                        = (1 << 26)
 } stateFlags_t;
 
 #define DISABLE_STATE(mask) (stateFlags &= ~(mask))

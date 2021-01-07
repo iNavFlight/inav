@@ -168,6 +168,9 @@ void gpsProcessNewSolutionData(void)
         DISABLE_STATE(GPS_FIX);
     }
 
+    // Check if fix was lost
+    isGPSFixLost();
+
     // Set sensor as ready and available
     sensorsSet(SENSOR_GPS);
 
@@ -485,6 +488,20 @@ bool isGPSHealthy(void)
 bool isGPSHeadingValid(void)
 {
     return sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6 && gpsSol.groundSpeed >= 300;
+}
+
+void isGPSFixLost(void)
+{
+    static bool gpsFixEver = false;
+    if (STATE(GPS_FIX)){
+        gpsFixEver = true;
+    }
+
+    if (!STATE(GPS_FIX) && gpsFixEver) {
+        ENABLE_STATE(GPS_FIX_LOST);
+    } else {
+        DISABLE_STATE(GPS_FIX_LOST);
+    }
 }
 
 #endif
