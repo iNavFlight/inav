@@ -163,6 +163,7 @@ bool gpsUpdate(void);
 void updateGpsIndicator(timeUs_t currentTimeUs);
 bool isGPSHealthy(void);
 bool isGPSHeadingValid(void);
+bool isGPSFixLost(void);
 struct serialPort_s;
 void gpsEnablePassthrough(struct serialPort_s *gpsPassthroughPort);
 void mspGPSReceiveNewData(const uint8_t * bufferPtr);
