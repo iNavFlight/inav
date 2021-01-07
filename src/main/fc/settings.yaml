@@ -3000,6 +3000,10 @@ groups:
         default_value: 0
         description: Same as left_sidebar_scroll_step, but for the right sidebar
 
+      - name: osd_home_position_arm_screen
+        type: bool
+        default_value: "ON"
+        description: Should home position coordinates be displayed on the arming screen.
 
   - name: PG_SYSTEM_CONFIG
     type: systemConfig_t
