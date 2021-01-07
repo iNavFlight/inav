@@ -79,6 +79,11 @@ More target options:
 * SBUS inverter connected to UART1
 * Uses target **FIREWORKSV2**
 
+### Omnibus Corner Nano
+
+* Configurable inverter on UART6
+* Use target **OMNIBUSF4V3**
+
 ## **NOT** supported
 
 * HC-SR04 Rangefinder
