@@ -2303,8 +2303,15 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             STATIC_ASSERT(GPS_DEGREES_DIVIDER == OLC_DEG_MULTIPLIER, invalid_olc_deg_multiplier);
             int digits = osdConfig()->plus_code_digits;
+            static int32_t previousLat;
+            static int32_t previousLon;
             if (STATE(GPS_FIX)) {
                 olc_encode(gpsSol.llh.lat, gpsSol.llh.lon, digits, buff, sizeof(buff));
+                previousLat = gpsSol.llh.lat;
+                previousLon = gpsSol.llh.lon;
+            } else if (STATE(GPS_FIX_LOST)) {
+                olc_encode(previousLat, previousLon, digits, buff, sizeof(buff));
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             } else {
                 // +codes with > 8 digits have a + at the 9th digit
                 // and we only support 10 and up.
