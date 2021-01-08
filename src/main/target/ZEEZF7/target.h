@@ -52,7 +52,7 @@
 #define USE_BARO
 #define USE_BARO_DPS310
 
-#define USE_MAG 1
+#define USE_MAG
 #define USE_MAG_QMC5883
 
 // *************** Flash ****************************
