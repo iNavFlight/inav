@@ -22,7 +22,7 @@
 
 #include "platform.h"
 
-#ifdef USE_MSP_DISPLAYPORT
+#if defined(USE_MSP_DISPLAYPORT) && defined(USE_OSD)
 
 #include "common/utils.h"
 

@@ -55,6 +55,7 @@ typedef enum {
     FUNCTION_DJI_HD_OSD                 = (1 << 21), // 2097152
     FUNCTION_SERVO_SERIAL               = (1 << 22), // 4194304
     FUNCTION_TELEMETRY_SMARTPORT_MASTER = (1 << 23), // 8388608
+    FUNCTION_MSP_DISPLAYPORT            = (1 << 24), // 16777216
 } serialPortFunction_e;
 
 typedef enum {

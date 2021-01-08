@@ -554,6 +554,12 @@ void init(void)
             osdDisplayPort = frskyOSDDisplayPortInit(osdConfig()->video_system);
         }
 #endif
+#if defined(USE_MSP_DISPLAYPORT)
+        if (!osdDisplayPort) {
+            osdDisplayPort = displayPortMspInit();
+
+        }
+#endif
 #if defined(USE_MAX7456)
         // If there is a max7456 chip for the OSD and we have no
         // external OSD initialized, use it.

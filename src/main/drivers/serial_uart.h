@@ -25,6 +25,24 @@
 // Size must be a power of two due to various optimizations which use 'and' instead of 'mod'
 // Various serial routines return the buffer occupied size as uint8_t which would need to be extended in order to
 // increase size further.
+#ifdef USE_MSP_DISPLAYPORT
+#define UART1_RX_BUFFER_SIZE    256
+#define UART1_TX_BUFFER_SIZE    1280
+#define UART2_RX_BUFFER_SIZE    256
+#define UART2_TX_BUFFER_SIZE    1280
+#define UART3_RX_BUFFER_SIZE    256
+#define UART3_TX_BUFFER_SIZE    1280
+#define UART4_RX_BUFFER_SIZE    256
+#define UART4_TX_BUFFER_SIZE    1280
+#define UART5_RX_BUFFER_SIZE    256
+#define UART5_TX_BUFFER_SIZE    1280
+#define UART6_RX_BUFFER_SIZE    256
+#define UART6_TX_BUFFER_SIZE    1280
+#define UART7_RX_BUFFER_SIZE    256
+#define UART7_TX_BUFFER_SIZE    1280
+#define UART8_RX_BUFFER_SIZE    256
+#define UART8_TX_BUFFER_SIZE    1280
+#else
 #define UART1_RX_BUFFER_SIZE    256
 #define UART1_TX_BUFFER_SIZE    256
 #define UART2_RX_BUFFER_SIZE    256
@@ -41,7 +59,7 @@
 #define UART7_TX_BUFFER_SIZE    256
 #define UART8_RX_BUFFER_SIZE    256
 #define UART8_TX_BUFFER_SIZE    256
-
+#endif
 typedef enum {
     UARTDEV_1 = 0,
     UARTDEV_2 = 1,

@@ -37,8 +37,12 @@
 #include "msp/msp.h"
 #include "msp/msp_serial.h"
 
-static mspPort_t mspPorts[MAX_MSP_PORT_COUNT];
+#include "msp/msp_protocol.h"
 
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+static mspPort_t mspPorts[MAX_MSP_PORT_COUNT];
+uint8_t msp_displayport_index;
 
 void resetMspPort(mspPort_t *mspPortToReset, serialPort_t *serialPort)
 {
@@ -50,7 +54,28 @@ void resetMspPort(mspPort_t *mspPortToReset, serialPort_t *serialPort)
 void mspSerialAllocatePorts(void)
 {
     uint8_t portIndex = 0;
-    serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_MSP);
+    //FUNCTION_MSP_DISPLAYPORT detect
+    serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_MSP_DISPLAYPORT);
+    while (portConfig && portIndex < MAX_MSP_PORT_COUNT) {
+        mspPort_t *mspPort = &mspPorts[portIndex];
+        if (mspPort->port) {
+            portIndex++;
+            continue;
+        }
+
+        serialPort_t *serialPort = openSerialPort(portConfig->identifier, FUNCTION_MSP_DISPLAYPORT, NULL, NULL, baudRates[portConfig->msp_baudrateIndex], MODE_RXTX, SERIAL_NOT_INVERTED);
+        msp_displayport_index |= (1 << (portConfig->identifier));
+
+        if (serialPort) {
+            resetMspPort(mspPort, serialPort);
+            portIndex++;
+        }
+
+        portConfig = findNextSerialPortConfig(FUNCTION_MSP_DISPLAYPORT);
+    }
+    
+
+    portConfig = findSerialPortConfig(FUNCTION_MSP);
     while (portConfig && portIndex < MAX_MSP_PORT_COUNT) {
         mspPort_t *mspPort = &mspPorts[portIndex];
         if (mspPort->port) {
@@ -59,6 +84,7 @@ void mspSerialAllocatePorts(void)
         }
 
         serialPort_t *serialPort = openSerialPort(portConfig->identifier, FUNCTION_MSP, NULL, NULL, baudRates[portConfig->msp_baudrateIndex], MODE_RXTX, SERIAL_NOT_INVERTED);
+
         if (serialPort) {
             resetMspPort(mspPort, serialPort);
             portIndex++;
@@ -66,6 +92,7 @@ void mspSerialAllocatePorts(void)
 
         portConfig = findNextSerialPortConfig(FUNCTION_MSP);
     }
+
 }
 
 void mspSerialReleasePortIfAllocated(serialPort_t *serialPort)
@@ -509,6 +536,7 @@ void mspSerialProcess(mspEvaluateNonMspData_e evaluateNonMspData, mspProcessComm
 
 void mspSerialInit(void)
 {
+    msp_displayport_index = 0;
     memset(mspPorts, 0, sizeof(mspPorts));
     mspSerialAllocatePorts();
 }
@@ -534,14 +562,24 @@ int mspSerialPush(uint8_t cmd, const uint8_t *data, int datalen)
 {
     int ret = 0;
 
+    //Do not output in climode
+    if(cliMode){
+        return ret;
+    }
+
     for (int portIndex = 0; portIndex < MAX_MSP_PORT_COUNT; portIndex++) {
         mspPort_t * const mspPort = &mspPorts[portIndex];
         if (!mspPort->port) {
             continue;
         }
-
-        // Avoid unconnected ports (only VCP for now)
-        if (!serialIsConnected(mspPort->port)) {
+        
+        // Avoid unconnected or VCP ports
+        if (!serialIsConnected(mspPort->port) || mspPort->port->identifier == SERIAL_PORT_USB_VCP) {
+            continue;
+        }
+        
+        // only enable for msp_displayport
+        if((msp_displayport_index & (1 << mspPort->port->identifier)) == 0) {
             continue;
         }
 
