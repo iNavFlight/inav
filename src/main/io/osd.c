@@ -2280,6 +2280,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             STATIC_ASSERT(GPS_DEGREES_DIVIDER == OLC_DEG_MULTIPLIER, invalid_olc_deg_multiplier);
             int digits = osdConfig()->plus_code_digits;
+            int digitsRemoved = osdConfig()->plus_code_short * 2;
             if (STATE(GPS_FIX)) {
                 olc_encode(gpsSol.llh.lat, gpsSol.llh.lon, digits, buff, sizeof(buff));
             } else {
@@ -2289,6 +2290,9 @@ static bool osdDrawSingleElement(uint8_t item)
                 buff[8] = '+';
                 buff[digits + 1] = '\0';
             }
+            // Optionally trim digits from the left
+            memmove(buff, buff+digitsRemoved, strlen(buff) + digitsRemoved);
+            buff[digits + 1 - digitsRemoved] = '\0';
             break;
         }
 
@@ -2597,6 +2601,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .osd_failsafe_switch_layout = false,
 
     .plus_code_digits = 11,
+    .plus_code_short = 0,
 
     .ahi_width = OSD_AHI_WIDTH * OSD_CHAR_WIDTH,
     .ahi_height = OSD_AHI_HEIGHT * OSD_CHAR_HEIGHT,

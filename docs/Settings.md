@@ -389,7 +389,8 @@
 | osd_link_quality_alarm | 70 | LQ % indicator blinks below this value. For Crossfire use 70%, for Tracer use 50% |
 | osd_main_voltage_decimals | 1 | Number of decimals for the battery voltages displayed in the OSD [1-2]. |
 | osd_neg_alt_alarm | 5 | Value below which (negative altitude) to make the OSD relative altitude indicator blink (meters) |
-| osd_plus_code_digits |  |  |
+| osd_plus_code_digits | 10 | Numer of plus code digits before shortening with `osd_plus_code_short`. Precision at the equator: 10=13.9x13.9m; 11=2.8x3.5m; 12=56x87cm; 13=11x22cm. |
+| osd_plus_code_short | 0 | Number of leading digits removed from plus code. Removing 2, 4 and 6 digits requires a reference location within, respectively, ~800km, ~40 km and ~2km to recover the original coordinates. |
 | osd_right_sidebar_scroll |  |  |
 | osd_right_sidebar_scroll_step | 0 | Same as left_sidebar_scroll_step, but for the right sidebar |
 | osd_row_shiftdown | 0 | Number of rows to shift the OSD display (increase if top rows are cut off) |

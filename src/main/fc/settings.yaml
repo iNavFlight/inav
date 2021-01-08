@@ -155,6 +155,8 @@ tables:
   - name: nav_overrides_motor_stop
     enum: navOverridesMotorStop_e
     values: ["OFF_ALWAYS", "OFF", "AUTO_ONLY", "ALL_NAV"]
+  - name: osd_plus_code_short
+    values: ["0", "2", "4", "6"]
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -2941,9 +2943,17 @@ groups:
         type: bool
 
       - name: osd_plus_code_digits
+        description: "Numer of plus code digits before shortening with `osd_plus_code_short`. Precision at the equator: 10=13.9x13.9m; 11=2.8x3.5m; 12=56x87cm; 13=11x22cm."
         field: plus_code_digits
+        default_value: 10
         min: 10
         max: 13
+      - name: osd_plus_code_short
+        description: "Number of leading digits removed from plus code. Removing 2, 4 and 6 digits requires a reference location within, respectively, ~800km, ~40 km and ~2km to recover the original coordinates."
+        field: plus_code_short
+        default_value: "0"
+        table: osd_plus_code_short
+        type: uint8_t
 
       - name: osd_ahi_style
         description: "Sets OSD Artificial Horizon style \"DEFAULT\" or \"LINE\" for the FrSky Graphical OSD."
