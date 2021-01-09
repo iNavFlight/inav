@@ -494,6 +494,7 @@
 | vbat_min_cell_voltage | 330 | Minimum voltage per cell, this triggers battery out alarms, in 0.01V units, default is 330 (3.3V) |
 | vbat_scale | 1100 | Battery voltage calibration value. 1100 = 11:1 voltage divider (10k:1k) x 100. Adjust this slightly if reported pack voltage is different from multimeter reading. You can get current voltage by typing "status" in cli. |
 | vbat_warning_cell_voltage | 350 | Warning voltage per cell, this triggers battery-warning alarms, in 0.01V units, default is 350 (3.5V) |
+| vtx_smartaudio_early_akk_workaround | ON | Enable workaround for early AKK SAudio-enabled VTX bug. |
 | vtx_band | 4 | Configure the VTX band. Set to zero to use `vtx_freq`. Bands: 1: A, 2: B, 3: E, 4: F, 5: Race. |
 | vtx_channel | 1 | Channel to use within the configured `vtx_band`. Valid values are [1, 8]. |
 | vtx_halfduplex | ON | Use half duplex UART to communicate with the VTX, using only a TX pin in the FC. |
