@@ -1208,10 +1208,10 @@ static void cliTempSensor(char *cmdline)
     } else {
         int16_t i;
         const char *ptr = cmdline, *label;
-        int16_t type, alarm_min, alarm_max;
+        int16_t type=0, alarm_min=0, alarm_max=0;
         bool addressValid = false;
         uint64_t address;
-        int8_t osdSymbol;
+        int8_t osdSymbol=0;
         uint8_t validArgumentCount = 0;
         i = fastA2I(ptr);
         if (i >= 0 && i < MAX_TEMP_SENSORS) {
@@ -1300,8 +1300,8 @@ static void cliSafeHomes(char *cmdline)
     } else if (sl_strcasecmp(cmdline, "reset") == 0) {
         resetSafeHomes();
     } else {
-        int32_t lat, lon;
-        bool enabled;
+        int32_t lat=0, lon=0;
+        bool enabled=false;
         uint8_t validArgumentCount = 0;
         const char *ptr = cmdline;
         int8_t i = fastA2I(ptr);
@@ -1402,9 +1402,9 @@ static void cliWaypoints(char *cmdline)
             cliShowParseError();
         }
     } else {
-        int16_t i, p1,p2=0,p3=0,tmp;
-        uint8_t action, flag;
-        int32_t lat, lon, alt;
+        int16_t i, p1=0,p2=0,p3=0,tmp=0;
+        uint8_t action=0, flag=0;
+        int32_t lat=0, lon=0, alt=0;
         uint8_t validArgumentCount = 0;
         const char *ptr = cmdline;
         i = fastA2I(ptr);
@@ -2014,9 +2014,9 @@ static void printPid(uint8_t dumpMask, const programmingPid_t *programmingPids, 
                 pid.setpoint.value == defaultValue.setpoint.value &&
                 pid.measurement.type == defaultValue.measurement.type &&
                 pid.measurement.value == defaultValue.measurement.value &&
-                pid.gains.P == defaultValue.gains.P && 
-                pid.gains.I == defaultValue.gains.I && 
-                pid.gains.D == defaultValue.gains.D && 
+                pid.gains.P == defaultValue.gains.P &&
+                pid.gains.I == defaultValue.gains.I &&
+                pid.gains.D == defaultValue.gains.D &&
                 pid.gains.FF == defaultValue.gains.FF;
 
             cliDefaultPrintLinef(dumpMask, equalsDefault, format,

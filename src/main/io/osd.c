@@ -185,7 +185,7 @@ static bool osdDisplayHasCanvas;
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
-PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 13);
+PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 14);
 PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 0);
 
 static int digitCount(int32_t value)
@@ -2108,8 +2108,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_EFFICIENCY_MAH_PER_KM:
         {
             // amperage is in centi amps, speed is in cms/s. We want
-            // mah/km. Values over 999 are considered useless and
-            // displayed as "---""
+            // mah/km. Only show when ground speed > 1m/s.
             static pt1Filter_t eFilterState;
             static timeUs_t efficiencyUpdated = 0;
             int32_t value = 0;
@@ -2125,7 +2124,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     value = eFilterState.state;
                 }
             }
-            if (value > 0 && value <= 999) {
+            if (value > 0 && gpsSol.groundSpeed > 100) {
                 tfp_sprintf(buff, "%3d", (int)value);
             } else {
                 buff[0] = buff[1] = buff[2] = '-';
@@ -2139,8 +2138,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_EFFICIENCY_WH_PER_KM:
         {
             // amperage is in centi amps, speed is in cms/s. We want
-            // mWh/km. Values over 999Wh/km are considered useless and
-            // displayed as "---""
+            // mWh/km. Only show when ground speed > 1m/s.
             static pt1Filter_t eFilterState;
             static timeUs_t efficiencyUpdated = 0;
             int32_t value = 0;
@@ -2156,7 +2154,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     value = eFilterState.state;
                 }
             }
-            if (value > 0 && value <= 999999) {
+            if (value > 0 && gpsSol.groundSpeed > 100) {
                 osdFormatCentiNumber(buff, value / 10, 0, 2, 0, 3);
             } else {
                 buff[0] = buff[1] = buff[2] = '-';
@@ -2282,6 +2280,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             STATIC_ASSERT(GPS_DEGREES_DIVIDER == OLC_DEG_MULTIPLIER, invalid_olc_deg_multiplier);
             int digits = osdConfig()->plus_code_digits;
+            int digitsRemoved = osdConfig()->plus_code_short * 2;
             if (STATE(GPS_FIX)) {
                 olc_encode(gpsSol.llh.lat, gpsSol.llh.lon, digits, buff, sizeof(buff));
             } else {
@@ -2291,6 +2290,9 @@ static bool osdDrawSingleElement(uint8_t item)
                 buff[8] = '+';
                 buff[digits + 1] = '\0';
             }
+            // Optionally trim digits from the left
+            memmove(buff, buff+digitsRemoved, strlen(buff) + digitsRemoved);
+            buff[digits + 1 - digitsRemoved] = '\0';
             break;
         }
 
@@ -2588,6 +2590,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .left_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE,
     .right_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE,
     .sidebar_scroll_arrows = 0,
+    .osd_home_position_arm_screen = true,
 
     .units = OSD_UNIT_METRIC,
     .main_voltage_decimals = 1,
@@ -2598,6 +2601,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .osd_failsafe_switch_layout = false,
 
     .plus_code_digits = 11,
+    .plus_code_short = 0,
 
     .ahi_width = OSD_AHI_WIDTH * OSD_CHAR_WIDTH,
     .ahi_height = OSD_AHI_HEIGHT * OSD_CHAR_HEIGHT,
@@ -2937,7 +2941,7 @@ static void osdShowStats(void)
     if (osdDisplayIsPAL())
         displayWrite(osdDisplayPort, statNameX, top++, "  --- STATS ---");
 
-    if (STATE(GPS_FIX)) {
+    if (feature(FEATURE_GPS)) {
         displayWrite(osdDisplayPort, statNameX, top, "MAX SPEED        :");
         osdFormatVelocityStr(buff, stats.max_speed, true);
         osdLeftAlignString(buff);
@@ -2989,7 +2993,7 @@ static void osdShowStats(void)
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
         int32_t totalDistance = getTotalTravelDistance();
-        if (totalDistance > 0) {
+        if (feature(FEATURE_GPS)) {
             displayWrite(osdDisplayPort, statNameX, top, "AVG EFFICIENCY   :");
             if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH)
                 tfp_sprintf(buff, "%d%c%c", (int)(getMAhDrawn() * 100000 / totalDistance),
@@ -2999,6 +3003,19 @@ static void osdShowStats(void)
                 buff[3] = SYM_WH_KM_0;
                 buff[4] = SYM_WH_KM_1;
                 buff[5] = '\0';
+            }
+            // If traveled distance is less than 100 meters efficiency numbers are useless and unreliable so display --- instead
+            if (totalDistance < 10000) {
+                buff[0] = buff[1] = buff[2] = '-';
+                if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH){
+                    buff[3] = SYM_MAH_KM_0;
+                    buff[4] = SYM_MAH_KM_1;
+                    buff[5] = '\0';
+                } else {
+                    buff[3] = SYM_WH_KM_0;
+                    buff[4] = SYM_WH_KM_1;
+                    buff[5] = '\0';
+                }
             }
             displayWrite(osdDisplayPort, statValuesX, top++, buff);
         }
@@ -3056,13 +3073,15 @@ static void osdShowArmed(void)
 #if defined(USE_GPS)
     if (feature(FEATURE_GPS)) {
         if (STATE(GPS_FIX_HOME)) {
-            osdFormatCoordinate(buf, SYM_LAT, GPS_home.lat);
-            displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y, buf);
-            osdFormatCoordinate(buf, SYM_LON, GPS_home.lon);
-            displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y + 1, buf);
-            int digits = osdConfig()->plus_code_digits;
-            olc_encode(GPS_home.lat, GPS_home.lon, digits, buf, sizeof(buf));
-            displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y + 2, buf);
+            if (osdConfig()->osd_home_position_arm_screen){
+                osdFormatCoordinate(buf, SYM_LAT, GPS_home.lat);
+                displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y, buf);
+                osdFormatCoordinate(buf, SYM_LON, GPS_home.lon);
+                displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y + 1, buf);
+                int digits = osdConfig()->plus_code_digits;
+                olc_encode(GPS_home.lat, GPS_home.lon, digits, buf, sizeof(buf));
+                displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y + 2, buf);
+            }
             y += 4;
 #if defined (USE_SAFE_HOME)
             if (isSafeHomeInUse()) {
