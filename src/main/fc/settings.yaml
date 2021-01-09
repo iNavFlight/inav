@@ -7,7 +7,7 @@ tables:
     values: ["NONE", "AUTO", "ADXL345", "MPU6050", "MMA845x", "BMA280", "LSM303DLHC", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "FAKE"]
     enum: accelerationSensor_e
   - name: rangefinder_hardware
-    values: ["NONE", "HCSR04", "SRF10", "INAV_I2C", "VL53L0X", "MSP", "UIB", "BENEWAKE"]
+    values: ["NONE", "HCSR04", "SRF10", "INAV_I2C", "VL53L0X", "MSP", "UNUSED", "BENEWAKE"]
     enum: rangefinderType_e
   - name: mag_hardware
     values: ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "MSP", "FAKE"]
@@ -22,7 +22,7 @@ tables:
     values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE", "MSP"]
     enum: pitotSensor_e
   - name: receiver_type
-    values: ["NONE", "PPM", "SERIAL", "MSP", "SPI", "UIB"]
+    values: ["NONE", "PPM", "SERIAL", "MSP", "SPI", "UNUSED"]
     enum: rxReceiverType_e
   - name: serial_rx
     values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2", "GHST"]
