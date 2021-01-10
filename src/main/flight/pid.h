@@ -19,6 +19,7 @@
 
 #include "config/parameter_group.h"
 #include "fc/runtime_config.h"
+#include "common/time.h"
 
 #define GYRO_SATURATION_LIMIT       1800        // 1800dps
 #define PID_SUM_LIMIT_MIN           100
@@ -203,3 +204,5 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
 
 pidType_e pidIndexGetType(pidIndex_e pidIndex);
 uint16_t * getD_FFRefByBank(pidBank_t *pidBank, pidIndex_e pidIndex);
+
+void updateFixedWingLevelTrim(timeUs_t currentTimeUs);

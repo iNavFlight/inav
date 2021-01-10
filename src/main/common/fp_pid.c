@@ -147,6 +147,10 @@ void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD, float _kF
         float Td = _kD / _kP;
         pid->param.kT = 2.0f / (Ti + Td);
     }
+    else if (_kI > 1e-6f) {
+        pid->param.kI = _kI;
+        pid->param.kT = 0.0f;
+    }
     else {
         pid->param.kI = 0.0;
         pid->param.kT = 0.0;

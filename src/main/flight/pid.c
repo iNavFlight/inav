@@ -284,7 +284,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .kalman_sharpness = 100,
         .kalmanEnabled = 0,
         .fixedWingLevelTrim = 0,
-        .fixedWingLevelTrimGain = 100,
+        .fixedWingLevelTrimGain = 10,
 );
 
 bool pidInitFilters(void)
@@ -1129,7 +1129,7 @@ void pidInit(void)
     navPidInit(
         &fixedWingLevelTrimController,
         0.0f,
-        pidProfile()->fixedWingLevelTrimGain / 1000.0f,
+        (float)pidProfile()->fixedWingLevelTrimGain / 100000.0f,
         0.0f,
         0.0f,
         2.0f
@@ -1151,4 +1151,25 @@ uint16_t * getD_FFRefByBank(pidBank_t *pidBank, pidIndex_e pidIndex)
     } else {
         return &pidBank->pid[pidIndex].D;
     }
+}
+
+void updateFixedWingLevelTrim(timeUs_t currentTimeUs)
+{
+    static timeUs_t previousUpdateTimeUs;
+    const float dT = US2S(currentTimeUs - previousUpdateTimeUs);
+
+    const float output = navPidApply3(
+        &fixedWingLevelTrimController,
+        0,
+        getEstimatedActualVelocity(Z),
+        dT,
+        -1000.0f,
+        1000.0f,
+        PID_LIMIT_INTEGRATOR,
+        1.0f,
+        1.0f
+    );
+
+    DEBUG_SET(DEBUG_ALWAYS, 4, output / 100);
+
 }

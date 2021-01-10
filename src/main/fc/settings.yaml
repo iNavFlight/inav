@@ -1883,7 +1883,7 @@ groups:
         default_value: "0"
         field: fixedWingLevelTrimGain
         min: 0
-        max: 1000
+        max: 20
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t
