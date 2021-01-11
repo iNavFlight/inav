@@ -84,7 +84,7 @@
 // *************** PINIO ***************************
 #define USE_PINIO
 #define USE_PINIOBOX
-#define PINIO1_PIN              PB11
+#define PINIO1_PIN              PB11 // VTX power switcher
 
 // *************** UART *****************************
 #define USE_VCP
