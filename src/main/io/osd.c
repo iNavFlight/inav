@@ -2037,6 +2037,11 @@ static bool osdDrawSingleElement(uint8_t item)
             osdFormatCentiNumber(buff, getPower(), 0, 2, 0, 3);
             buff[3] = SYM_WATT;
             buff[4] = '\0';
+
+            uint8_t current_alarm = osdConfig()->current_alarm;
+            if ((current_alarm > 0) && ((getAmperage() / 100.0f) > current_alarm)) {
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            }
             break;
         }
 
