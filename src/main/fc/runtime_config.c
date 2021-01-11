@@ -144,6 +144,9 @@ flightModeForTelemetry_e getFlightModeForTelemetry(void)
     if (FLIGHT_MODE(MANUAL_MODE))
         return FLM_MANUAL;
 
+    if (FLIGHT_MODE(NAV_LAUNCH_MODE))
+        return FLM_LAUNCH;
+
     if (FLIGHT_MODE(NAV_RTH_MODE))
         return FLM_RTH;
 
@@ -165,8 +168,6 @@ flightModeForTelemetry_e getFlightModeForTelemetry(void)
     if (FLIGHT_MODE(HORIZON_MODE))
         return FLM_HORIZON;
 
-    if (FLIGHT_MODE(NAV_LAUNCH_MODE))
-        return FLM_LAUNCH;
 
     return STATE(AIRMODE_ACTIVE) ? FLM_ACRO_AIR : FLM_ACRO;
 }
