@@ -3016,15 +3016,15 @@ groups:
         description: Should home position coordinates be displayed on the arming screen.
 
       - name: osd_pan_servo_index
-        type: uint8_t
+        description: Index of the pan servo to adjust osd home heading direction based on camera pan. Note that this feature does not work with continiously rotating servos.
         field: pan_servo_index
         min: 0
         max: 10
 
       - name: osd_pan_servo_us2centideg
-        type: float
+        description: Centidegrees of rotation of the pan servo per us PWM signal. A servo with 180 degrees of rotation from 1000 to 2000 us PWM typically needs `18` for this setting.
         field: pan_servo_us2centideg
-        default_value: 9
+        default_value: 0
         min: -36
         max: 36
 

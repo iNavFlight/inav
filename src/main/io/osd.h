@@ -349,7 +349,7 @@ typedef struct osdConfig_s {
     uint8_t right_sidebar_scroll_step;  // Same as left_sidebar_scroll_step, but for the right sidebar.
     bool osd_home_position_arm_screen;
     uint8_t pan_servo_index;            // Index of the pan servo used for home direction offset
-    float pan_servo_us2centideg;          // cenitdegrees per us pwm
+    int8_t pan_servo_us2centideg;          // centidegrees per us pwm
     uint8_t crsf_lq_format;
 
 } osdConfig_t;

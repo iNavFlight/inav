@@ -949,6 +949,14 @@ int16_t osdGetHeading(void)
     return attitude.values.yaw;
 }
 
+int16_t osdPanServoHomeDirectionOffset(void)
+{
+    int8_t servoIndex = osdConfig()->pan_servo_index;
+    int16_t servoPosition = servo[servoIndex];
+    int16_t servoMiddle = servoParams(servoIndex)->middle;
+    return (int16_t)CENTIDEGREES_TO_DEGREES((servoPosition - servoMiddle) * osdConfig()->pan_servo_us2centideg);
+}
+
 // Returns a heading angle in degrees normalized to [0, 360).
 int osdGetHeadingAngle(int angle)
 {
@@ -1127,14 +1135,6 @@ static int16_t osdGet3DSpeed(void)
     int16_t vert_speed = getEstimatedActualVelocity(Z);
     int16_t hor_speed = gpsSol.groundSpeed;
     return (int16_t)sqrtf(sq(hor_speed) + sq(vert_speed));
-}
-
-static int16_t osdPanServoHomeDirectionOffset(void)
-{
-    int8_t servoIndex = osdConfig()->pan_servo_index;
-    int16_t servoPosition = servo[servoIndex];
-    int16_t servoMiddle = servoParams(servoIndex)->middle;
-    return (int16_t)CENTIDEGREES_TO_DEGREES((servoPosition - servoMiddle) * osdConfig()->pan_servo_us2centideg);
 }
 
 #endif
@@ -1340,7 +1340,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_HOME_DIR:
         {
-            if (STATE(GPS_FIX) && STATE(GPS_FIX_HOME)) { // && isImuHeadingValid()
+            if (STATE(GPS_FIX) && STATE(GPS_FIX_HOME) && isImuHeadingValid()) {
                 if (GPS_distanceToHome < (navConfig()->general.min_rth_distance / 100) ) {
                     displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_HOME_NEAR);
                 }
