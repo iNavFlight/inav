@@ -1134,7 +1134,7 @@ static int16_t osdPanServoHomeDirectionOffset(void)
     int8_t servoIndex = osdConfig()->pan_servo_index;
     int16_t servoPosition = servo[servoIndex];
     int16_t servoMiddle = servoParams(servoIndex)->middle;
-    return (int16_t)((servoPosition - servoMiddle) * CENTIDEGREES_TO_DEGREES(osdConfig()->pan_servo_us2centideg));
+    return (int16_t)CENTIDEGREES_TO_DEGREES((servoPosition - servoMiddle) * osdConfig()->pan_servo_us2centideg);
 }
 
 #endif
@@ -1347,7 +1347,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 else
                 {
                     int16_t panHomeDirOffset = 0;
-                    if (!osdConfig()->pan_servo_us2centideg){
+                    if (!(osdConfig()->pan_servo_us2centideg == 0)){
                         panHomeDirOffset = osdPanServoHomeDirectionOffset();
                     }
                     int homeDirection = GPS_directionToHome - DECIDEGREES_TO_DEGREES(osdGetHeading()) + panHomeDirOffset;

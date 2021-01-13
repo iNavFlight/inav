@@ -3022,7 +3022,7 @@ groups:
         max: 10
 
       - name: osd_pan_servo_us2centideg
-        type: uint16_t
+        type: float
         field: pan_servo_us2centideg
         default_value: 9
         min: -36
