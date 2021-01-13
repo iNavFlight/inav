@@ -101,7 +101,7 @@
 #define SOFTSERIAL_1_TX_PIN             PA2                             //dont need this, we have 6 UARTs in HW
 #define SOFTSERIAL_1_RX_PIN             PA2
 */
-#define SERIAL_PORT_COUNT               6
+#define SERIAL_PORT_COUNT               8
 
 // ******* SPI ********
 #define USE_SPI
