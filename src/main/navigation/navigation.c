@@ -225,6 +225,7 @@ void calculateNewCruiseTarget(fpVector3_t * origin, int32_t yaw, int32_t distanc
 static bool isWaypointPositionReached(const fpVector3_t * pos, const bool isWaypointHome);
 static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint_t * waypoint);
 static navigationFSMEvent_t nextForNonGeoStates(void);
+static bool isWaypointMissionValid(void);
 
 void initializeRTHSanityChecker(const fpVector3_t * pos);
 bool validateRTHSanityChecker(void);
@@ -653,6 +654,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SUCCESS]                     = NAV_STATE_WAYPOINT_IN_PROGRESS,
             [NAV_FSM_EVENT_ERROR]                       = NAV_STATE_IDLE,
             [NAV_FSM_EVENT_SWITCH_TO_IDLE]              = NAV_STATE_IDLE,
+            [NAV_FSM_EVENT_SWITCH_TO_RTH]               = NAV_STATE_RTH_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_FINISHED] = NAV_STATE_WAYPOINT_FINISHED,
         }
     },
@@ -1301,30 +1303,27 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HOVER_PRIOR_TO_LAND
 
     // If position ok OR within valid timeout - continue
     if ((posControl.flags.estPosStatus >= EST_USABLE) || !checkForPositionSensorTimeout()) {
-
-        // Wait until target heading is reached (with 15 deg margin for error)
-        if (STATE(FIXED_WING_LEGACY)) {
+        // Wait until target heading is reached for MR (with 15 deg margin for error), or continue for Fixed Wing
+        if ((ABS(wrap_18000(posControl.rthState.homePosition.yaw - posControl.actualState.yaw)) < DEGREES_TO_CENTIDEGREES(15)) || STATE(FIXED_WING_LEGACY)) {
             resetLandingDetector();
             updateClimbRateToAltitudeController(0, ROC_TO_ALT_RESET);
-            return navigationRTHAllowsLanding() ? NAV_FSM_EVENT_SUCCESS : NAV_FSM_EVENT_SWITCH_TO_RTH_HOVER_ABOVE_HOME;
+            if (IS_RC_MODE_ACTIVE(BOXNAVWP) && isWaypointMissionValid() && !(IS_RC_MODE_ACTIVE(BOXNAVRTH) || posControl.flags.forcedRTHActivated)) {
+                // use WP mission landing setting
+                return posControl.waypointList[posControl.waypointCount - 1].p1 > 0 ? NAV_FSM_EVENT_SUCCESS : NAV_FSM_EVENT_SWITCH_TO_RTH_HOVER_ABOVE_HOME;
+            } else {
+                // use normal RTH landing setting
+                return navigationRTHAllowsLanding() ? NAV_FSM_EVENT_SUCCESS : NAV_FSM_EVENT_SWITCH_TO_RTH_HOVER_ABOVE_HOME; // success = land
+            }
+        }
+        else if (!validateRTHSanityChecker()) {
+            // Continue to check for RTH sanity during pre-landing hover
+            return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
         }
         else {
-            if (ABS(wrap_18000(posControl.rthState.homePosition.yaw - posControl.actualState.yaw)) < DEGREES_TO_CENTIDEGREES(15)) {
-                resetLandingDetector();
-                updateClimbRateToAltitudeController(0, ROC_TO_ALT_RESET);
-                return navigationRTHAllowsLanding() ? NAV_FSM_EVENT_SUCCESS : NAV_FSM_EVENT_SWITCH_TO_RTH_HOVER_ABOVE_HOME;
-            }
-            else if (!validateRTHSanityChecker()) {
-                // Continue to check for RTH sanity during pre-landing hover
-                return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
-            }
-            else {
-                fpVector3_t * tmpHomePos = rthGetHomeTargetPosition(RTH_HOME_ENROUTE_FINAL);
-                setDesiredPosition(tmpHomePos, posControl.rthState.homePosition.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
-                return NAV_FSM_EVENT_NONE;
-            }
+            fpVector3_t * tmpHomePos = rthGetHomeTargetPosition(RTH_HOME_ENROUTE_FINAL);
+            setDesiredPosition(tmpHomePos, posControl.rthState.homePosition.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+            return NAV_FSM_EVENT_NONE;
         }
-
     } else {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
@@ -1520,10 +1519,11 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
             return nextForNonGeoStates();
 
         case NAV_WP_ACTION_RTH:
-            posControl.rthState.rthInitialDistance = posControl.homeDistance;
-            initializeRTHSanityChecker(&navGetCurrentActualPositionAndVelocity()->pos);
-            calculateAndSetActiveWaypointToLocalPosition(rthGetHomeTargetPosition(RTH_HOME_ENROUTE_INITIAL));
-            return NAV_FSM_EVENT_SUCCESS;       // will switch to NAV_STATE_WAYPOINT_IN_PROGRESS
+            return NAV_FSM_EVENT_SWITCH_TO_RTH;
+            // posControl.rthState.rthInitialDistance = posControl.homeDistance;
+            // initializeRTHSanityChecker(&navGetCurrentActualPositionAndVelocity()->pos);
+            // calculateAndSetActiveWaypointToLocalPosition(rthGetHomeTargetPosition(RTH_HOME_ENROUTE_INITIAL));
+            // return NAV_FSM_EVENT_SUCCESS;       // will switch to NAV_STATE_WAYPOINT_IN_PROGRESS
     };
 
     UNREACHABLE();
@@ -1572,17 +1572,17 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_IN_PROGRESS(na
                  UNREACHABLE();
 
             case NAV_WP_ACTION_RTH:
-                if (isWaypointReached(&posControl.activeWaypoint, true) || isWaypointMissed(&posControl.activeWaypoint)) {
-                    return NAV_FSM_EVENT_SUCCESS;   // will switch to NAV_STATE_WAYPOINT_REACHED
-                }
-                else {
-                    if(navConfig()->general.flags.rth_tail_first && !STATE(FIXED_WING_LEGACY))
-                        setDesiredPosition(&posControl.activeWaypoint.pos, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_BEARING_TAIL_FIRST);
-                    else
-                        setDesiredPosition(&posControl.activeWaypoint.pos, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_BEARING);
-                    setDesiredPosition(rthGetHomeTargetPosition(RTH_HOME_ENROUTE_PROPORTIONAL), 0, NAV_POS_UPDATE_Z);
-                    return NAV_FSM_EVENT_NONE;      // will re-process state in >10ms
-                }
+                // if (isWaypointReached(&posControl.activeWaypoint, true) || isWaypointMissed(&posControl.activeWaypoint)) {
+                    // return NAV_FSM_EVENT_SUCCESS;   // will switch to NAV_STATE_WAYPOINT_REACHED
+                // }
+                // else {
+                    // if(navConfig()->general.flags.rth_tail_first && !STATE(FIXED_WING_LEGACY))
+                        // setDesiredPosition(&posControl.activeWaypoint.pos, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_BEARING_TAIL_FIRST);
+                    // else
+                        // setDesiredPosition(&posControl.activeWaypoint.pos, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_BEARING);
+                    // setDesiredPosition(rthGetHomeTargetPosition(RTH_HOME_ENROUTE_PROPORTIONAL), 0, NAV_POS_UPDATE_Z);
+                    // return NAV_FSM_EVENT_NONE;      // will re-process state in >10ms
+                // }
                 break;
         }
     }
@@ -1611,13 +1611,13 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_REACHED(naviga
             UNREACHABLE();
 
         case NAV_WP_ACTION_RTH:
-            if (posControl.waypointList[posControl.activeWaypointIndex].p1 != 0) {
-                return NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_RTH_LAND;
-            }
-            else {
-                return NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_HOVER_ABOVE_HOME;
-            }
-
+            // if (posControl.waypointList[posControl.activeWaypointIndex].p1 != 0) {
+                // return NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_RTH_LAND;
+            // }
+            // else {
+                // return NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_HOVER_ABOVE_HOME;
+            // }
+            break;
         case NAV_WP_ACTION_LAND:
             return NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_RTH_LAND;
 
