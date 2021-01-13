@@ -954,7 +954,7 @@ int16_t osdPanServoHomeDirectionOffset(void)
     int8_t servoIndex = osdConfig()->pan_servo_index;
     int16_t servoPosition = servo[servoIndex];
     int16_t servoMiddle = servoParams(servoIndex)->middle;
-    return (int16_t)CENTIDEGREES_TO_DEGREES((servoPosition - servoMiddle) * osdConfig()->pan_servo_us2centideg);
+    return (int16_t)CENTIDEGREES_TO_DEGREES((servoPosition - servoMiddle) * osdConfig()->pan_servo_pwm2centideg);
 }
 
 // Returns a heading angle in degrees normalized to [0, 360).
@@ -1347,7 +1347,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 else
                 {
                     int16_t panHomeDirOffset = 0;
-                    if (!(osdConfig()->pan_servo_us2centideg == 0)){
+                    if (!(osdConfig()->pan_servo_pwm2centideg == 0)){
                         panHomeDirOffset = osdPanServoHomeDirectionOffset();
                     }
                     int homeDirection = GPS_directionToHome - DECIDEGREES_TO_DEGREES(osdGetHeading()) + panHomeDirOffset;
@@ -2605,7 +2605,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .sidebar_scroll_arrows = 0,
     .osd_home_position_arm_screen = true,
     .pan_servo_index = 0,
-    .pan_servo_us2centideg = 0,
+    .pan_servo_pwm2centideg = 0,
 
     .units = OSD_UNIT_METRIC,
     .main_voltage_decimals = 1,

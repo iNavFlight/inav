@@ -3021,9 +3021,9 @@ groups:
         min: 0
         max: 10
 
-      - name: osd_pan_servo_us2centideg
-        description: Centidegrees of rotation of the pan servo per us PWM signal. A servo with 180 degrees of rotation from 1000 to 2000 us PWM typically needs `18` for this setting. Change sign to inverse direction.
-        field: pan_servo_us2centideg
+      - name: osd_pan_servo_pwm2centideg
+        description: Centidegrees of pan servo rotation us PWM signal. A servo with 180 degrees of rotation from 1000 to 2000 us PWM typically needs `18` for this setting. Change sign to inverse direction.
+        field: pan_servo_pwm2centideg
         default_value: 0
         min: -36
         max: 36
