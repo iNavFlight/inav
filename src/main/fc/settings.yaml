@@ -3015,6 +3015,20 @@ groups:
         default_value: "ON"
         description: Should home position coordinates be displayed on the arming screen.
 
+      - name: osd_pan_servo_index
+        type: uint8_t
+        field: pan_servo_index
+        min: 0
+        max: 10
+
+      - name: osd_pan_servo_us2centideg
+        type: uint16_t
+        field: pan_servo_us2centideg
+        default_value: 9
+        min: -36
+        max: 36
+
+
   - name: PG_SYSTEM_CONFIG
     type: systemConfig_t
     headers: ["fc/config.h"]

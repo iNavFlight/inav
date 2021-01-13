@@ -87,6 +87,7 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/pid.h"
 #include "flight/rth_estimator.h"
 #include "flight/wind_estimator.h"
+#include "flight/servos.h"
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
@@ -185,7 +186,7 @@ static bool osdDisplayHasCanvas;
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
-PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 14);
+PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 15);
 PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 0);
 
 static int digitCount(int32_t value)
@@ -1128,6 +1129,14 @@ static int16_t osdGet3DSpeed(void)
     return (int16_t)sqrtf(sq(hor_speed) + sq(vert_speed));
 }
 
+static int16_t osdPanServoHomeDirectionOffset(void)
+{
+    int8_t servoIndex = osdConfig()->pan_servo_index;
+    int16_t servoPosition = servo[servoIndex];
+    int16_t servoMiddle = servoParams(servoIndex)->middle;
+    return (int16_t)((servoPosition - servoMiddle) * CENTIDEGREES_TO_DEGREES(osdConfig()->pan_servo_us2centideg));
+}
+
 #endif
 
 static void osdFormatPidControllerOutput(char *buff, const char *label, const pidController_t *pidController, uint8_t scale, bool showDecimal) {
@@ -1337,7 +1346,11 @@ static bool osdDrawSingleElement(uint8_t item)
                 }
                 else
                 {
-                    int homeDirection = GPS_directionToHome - DECIDEGREES_TO_DEGREES(osdGetHeading());
+                    int16_t panHomeDirOffset = 0;
+                    if (!osdConfig()->pan_servo_us2centideg){
+                        panHomeDirOffset = osdPanServoHomeDirectionOffset();
+                    }
+                    int homeDirection = GPS_directionToHome - DECIDEGREES_TO_DEGREES(osdGetHeading()) + panHomeDirOffset;
                     osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX, elemPosY), homeDirection);
                 }
             } else {
@@ -2591,6 +2604,8 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .right_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE,
     .sidebar_scroll_arrows = 0,
     .osd_home_position_arm_screen = true,
+    .pan_servo_index = 0,
+    .pan_servo_us2centideg = 0,
 
     .units = OSD_UNIT_METRIC,
     .main_voltage_decimals = 1,
