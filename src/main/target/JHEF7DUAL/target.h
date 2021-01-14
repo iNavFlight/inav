@@ -61,13 +61,13 @@
 #define USE_BARO_BMP085
 #define USE_BARO_MS5611
 
-
 // *************** PINIO **************************
 #define USE_PINIO
 #define USE_PINIOBOX
-#define PINIO2_PIN                  PB9 // VTX power switcher
-#define PINIO1_PIN                  PC14 // 2xCamera switcher
-
+#define PINIO1_PIN                  PB9
+#define PINIO1_FLAGS                PINIO_FLAGS_INVERTED
+#define PINIO2_PIN                  PC14
+#define PINIO2_FLAGS                PINIO_FLAGS_INVERTED
 
 //*********** Magnetometer / Compass *************
 //#define USE_MAG
@@ -109,7 +109,7 @@
 #define SOFTSERIAL_1_TX_PIN             PA2                             //dont need this, we have 6 UARTs in HW
 #define SOFTSERIAL_1_RX_PIN             PA2
 */
-#define SERIAL_PORT_COUNT               6
+#define SERIAL_PORT_COUNT               8
 
 // ******* SPI ********
 #define USE_SPI
@@ -182,3 +182,4 @@
 #define USE_SERIALSHOT
 #define USE_ESC_SENSOR
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
+
