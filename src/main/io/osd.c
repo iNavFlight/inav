@@ -185,6 +185,8 @@ static bool osdDisplayHasCanvas;
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
+bool DrawAllElement = true;  //use for MSP_DISPLAYPORT
+
 PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 13);
 PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 0);
 
@@ -2523,6 +2525,7 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
 
     if (elementIndex == OSD_ITEM_COUNT) {
         elementIndex = 0;
+        DrawAllElement = true;
     }
     return elementIndex;
 }
@@ -2537,9 +2540,7 @@ void osdDrawNextElement(void)
     } while(!osdDrawSingleElement(elementIndex) && index != elementIndex);
 
     // Draw artificial horizon last
-#ifndef USE_MSP_DISPLAYPORT
     osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
-#endif
 }
 
 PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
@@ -2768,6 +2769,7 @@ static void osdCompleteAsyncInitialization(void)
         // Update the display.
         // XXX: Rename displayDrawScreen() and associated functions
         // to displayUpdate()
+        DrawAllElement = true;
         displayDrawScreen(osdDisplayPort);
         return;
     }
@@ -3179,9 +3181,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
             fullRedraw = false;
         }
         osdDrawNextElement();
-#ifndef USE_MSP_DISPLAYPORT
         displayHeartbeat(osdDisplayPort);
-#endif
         displayCommitTransaction(osdDisplayPort);
 #ifdef OSD_CALLS_CMS
     } else {
@@ -3249,7 +3249,7 @@ void osdUpdate(timeUs_t currentTimeUs)
     }
 #endif
 
-#define DRAW_FREQ_DENOM     4
+#define DRAW_FREQ_DENOM     2
 #define STATS_FREQ_DENOM    50
     counter++;
 
@@ -3257,18 +3257,12 @@ void osdUpdate(timeUs_t currentTimeUs)
         osdUpdateStats();
     }
 
-    if ((counter & DRAW_FREQ_DENOM) == 0) {
+    if ((counter % DRAW_FREQ_DENOM) == 0) {
         // redraw values in buffer
         osdRefresh(currentTimeUs);
     } else {
         // rest of time redraw screen
-#ifdef USE_MSP_DISPLAYPORT
-    if(counter % DRAW_FREQ_DENOM == 1){
         displayDrawScreen(osdDisplayPort);
-    }
-#else
-    displayDrawScreen(osdDisplayPort);
-#endif
     }
 #ifdef USE_CMS
     // do not allow ARM if we are in menu
