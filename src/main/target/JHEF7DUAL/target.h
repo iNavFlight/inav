@@ -61,6 +61,14 @@
 #define USE_BARO_BMP085
 #define USE_BARO_MS5611
 
+
+// *************** PINIO **************************
+#define USE_PINIO
+#define USE_PINIOBOX
+#define PINIO2_PIN                  PB9 // VTX power switcher
+#define PINIO1_PIN                  PC14 // 2xCamera switcher
+
+
 //*********** Magnetometer / Compass *************
 //#define USE_MAG
 //#define MAG_I2C_BUS                     DEFAULT_I2C_BUS               //taken from unified target, no mag onboard
