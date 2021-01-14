@@ -52,8 +52,8 @@
 
 void targetConfiguration(void)
 {
-    pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_BECEN;
-    pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_CAMSEL;
+    pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
+    pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
     
     
     // RX6 is hard-wired to ESC-telemetry
