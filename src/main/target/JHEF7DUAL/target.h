@@ -64,8 +64,8 @@
 // *************** PINIO **************************
 #define USE_PINIO
 #define USE_PINIOBOX
-#define PINIO1_PIN                  PB9
-#define PINIO2_PIN                  PC14
+#define PINIO1_PIN                  PC14
+#define PINIO2_PIN                  PB9
 
 //*********** Magnetometer / Compass *************
 //#define USE_MAG
