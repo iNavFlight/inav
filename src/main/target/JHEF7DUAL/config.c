@@ -45,8 +45,17 @@
 
 #include "telemetry/telemetry.h"
 
+#include "fc/fc_msp_box.h"
+
+#include "io/piniobox.h"
+#include "io/serial.h"
+
 void targetConfiguration(void)
 {
+    pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_BECEN;
+    pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_CAMSEL;
+    
+    
     // RX6 is hard-wired to ESC-telemetry
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART6)].functionMask = FUNCTION_ESCSERIAL;
 
