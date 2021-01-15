@@ -187,7 +187,7 @@ static bool osdDisplayHasCanvas;
 
 bool DrawAllElement = true;  //use for MSP_DISPLAYPORT
 
-PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 13);
+PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 14);
 PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 0);
 
 static int digitCount(int32_t value)
