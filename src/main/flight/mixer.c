@@ -62,6 +62,7 @@ static float mixerScale = 1.0f;
 static EXTENDED_FASTRAM motorMixer_t currentMixer[MAX_SUPPORTED_MOTORS];
 static EXTENDED_FASTRAM uint8_t motorCount = 0;
 EXTENDED_FASTRAM int mixerThrottleCommand;
+EXTENDED_FASTRAM int throttlePercent;
 static EXTENDED_FASTRAM int throttleIdleValue = 0;
 static EXTENDED_FASTRAM int motorValueWhenStopped = 0;
 static reversibleMotorsThrottleState_e reversibleMotorsThrottleState = MOTOR_DIRECTION_FORWARD;
@@ -528,6 +529,12 @@ void FAST_CODE mixTable(const float dT)
     throttleMax = throttleRangeMax;
 
     throttleRange = throttleMax - throttleMin;
+
+    // Throttle Percent used by OSD and MSP
+    if(navigationIsControllingThrottle())
+        throttlePercent = (constrain(mixerThrottleCommand, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN);
+    else
+        throttlePercent = (constrain(mixerThrottleCommand, PWM_RANGE_MIN, PWM_RANGE_MAX) - throttleMin) * 100 / throttleRange; 
 
     #define THROTTLE_CLIPPING_FACTOR    0.33f
     motorMixRange = (float)rpyMixRange / (float)throttleRange;

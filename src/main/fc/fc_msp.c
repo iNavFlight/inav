@@ -830,16 +830,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU32(dst, getFlightTime()); // Flight time (seconds)
 
         // Throttle
-        int16_t thr = 0;
-        const int minThrottle = getThrottleIdleValue();
-        bool autoThrottle = navigationIsControllingThrottle();
-        if(autoThrottle)
-            thr = (constrain(rcCommand[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN);
-        else
-            thr = (constrain(rcCommand[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX ) - minThrottle) * 100 / (motorConfig()->maxthrottle - minThrottle);
-
-        sbufWriteU8(dst, thr); // Throttle Percent
-        sbufWriteU8(dst, autoThrottle ? 1 : 0); // Auto Throttle Flag (0 or 1)
+        sbufWriteU8(dst, throttlePercent); // Throttle Percent
+        sbufWriteU8(dst, navigationIsControllingThrottle() ? 1 : 0); // Auto Throttle Flag (0 or 1)
 
         break;
 
