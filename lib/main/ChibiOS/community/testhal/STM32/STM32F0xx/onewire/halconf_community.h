@@ -14,8 +14,8 @@
     limitations under the License.
 */
 
-#ifndef _HALCONF_COMMUNITY_H_
-#define _HALCONF_COMMUNITY_H_
+#ifndef HALCONF_COMMUNITY_H
+#define HALCONF_COMMUNITY_H
 
 /**
  * @brief   Enables the community overlay.
@@ -66,6 +66,48 @@
 #define HAL_USE_RNG                 FALSE
 #endif
 
+/**
+ * @brief   Enables the EEPROM subsystem.
+ */
+#if !defined(HAL_USE_EEPROM) || defined(__DOXYGEN__)
+#define HAL_USE_EEPROM              FALSE
+#endif
+
+/**
+ * @brief   Enables the TIMCAP subsystem.
+ */
+#if !defined(HAL_USE_TIMCAP) || defined(__DOXYGEN__)
+#define HAL_USE_TIMCAP              FALSE
+#endif
+
+/**
+ * @brief   Enables the TIMCAP subsystem.
+ */
+#if !defined(HAL_USE_COMP) || defined(__DOXYGEN__)
+#define HAL_USE_COMP                FALSE
+#endif
+
+/**
+ * @brief   Enables the QEI subsystem.
+ */
+#if !defined(HAL_USE_QEI) || defined(__DOXYGEN__)
+#define HAL_USE_QEI                 FALSE
+#endif
+
+/**
+ * @brief   Enables the USBH subsystem.
+ */
+#if !defined(HAL_USE_USBH) || defined(__DOXYGEN__)
+#define HAL_USE_USBH                FALSE
+#endif
+
+/**
+ * @brief   Enables the USB_MSD subsystem.
+ */
+#if !defined(HAL_USE_USB_MSD) || defined(__DOXYGEN__)
+#define HAL_USE_USB_MSD             FALSE
+#endif
+
 /*===========================================================================*/
 /* FSMCNAND driver related settings.                                         */
 /*===========================================================================*/
@@ -93,6 +135,39 @@
  */
 #define ONEWIRE_USE_SEARCH_ROM      TRUE
 
-#endif /* _HALCONF_COMMUNITY_H_ */
+/*===========================================================================*/
+/* QEI driver related settings.                                              */
+/*===========================================================================*/
+
+/**
+ * @brief   Enables discard of overlow
+ */
+#if !defined(QEI_USE_OVERFLOW_DISCARD) || defined(__DOXYGEN__)
+#define QEI_USE_OVERFLOW_DISCARD    FALSE
+#endif
+
+/**
+ * @brief   Enables min max of overlow
+ */
+#if !defined(QEI_USE_OVERFLOW_MINMAX) || defined(__DOXYGEN__)
+#define QEI_USE_OVERFLOW_MINMAX     FALSE
+#endif
+
+/*===========================================================================*/
+/* EEProm driver related settings.                                           */
+/*===========================================================================*/
+
+/**
+ * @brief   Enables 24xx series I2C eeprom device driver.
+ * @note    Disabling this option saves both code and data space.
+ */
+#define EEPROM_USE_EE24XX FALSE
+ /**
+ * @brief   Enables 25xx series SPI eeprom device driver.
+ * @note    Disabling this option saves both code and data space.
+ */
+#define EEPROM_USE_EE25XX FALSE
+
+#endif /* HALCONF_COMMUNITY_H */
 
 /** @} */

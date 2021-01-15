@@ -81,13 +81,15 @@ endif
 PROJECT = ch
 
 # Imported source files and paths
-CHIBIOS = ../../../../../ChibiOS-RT
+CHIBIOS = ../../../../../ChibiOS
 CHIBIOS_CONTRIB = $(CHIBIOS)/../ChibiOS-Contrib
+# Licensing files.
+include $(CHIBIOS)/os/license/license.mk
 # Startup files.
 include $(CHIBIOS_CONTRIB)/os/common/startup/ARMCMx/compilers/GCC/mk/startup_nrf51.mk
 # HAL-OSAL files (optional).
 include $(CHIBIOS)/os/hal/hal.mk
-include $(CHIBIOS_CONTRIB)/os/hal/ports/NRF51/NRF51822/platform.mk
+include $(CHIBIOS_CONTRIB)/os/hal/ports/NRF5/NRF51822/platform.mk
 include $(CHIBIOS_CONTRIB)/os/hal/boards/NRF51-DK/board.mk
 include $(CHIBIOS)/os/hal/osal/rt/osal.mk
 # RTOS files (optional).
@@ -99,19 +101,13 @@ LDSCRIPT= $(STARTUPLD)/NRF51822.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
-CSRC = $(STARTUPSRC) \
-       $(KERNSRC) \
-       $(PORTSRC) \
-       $(OSALSRC) \
-       $(HALSRC) \
-       $(PLATFORMSRC) \
-       $(BOARDSRC) \
+CSRC = $(ALLCSRC) \
        $(TESTSRC) \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
-CPPSRC =
+CPPSRC = $(ALLCPPSRC)
 
 # C sources to be compiled in ARM mode regardless of the global setting.
 # NOTE: Mixing ARM and THUMB mode enables the -mthumb-interwork compiler
@@ -134,11 +130,11 @@ TCSRC =
 TCPPSRC =
 
 # List ASM source files here
-ASMSRC = $(STARTUPASM) $(PORTASM) $(OSALASM)
+ASMSRC = $(ALLASMSRC)
+ASMXSRC = $(ALLXASMSRC)
 
-INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
-         $(HALINC) $(PLATFORMINC) $(BOARDINC) $(TESTINC) \
-         $(CHIBIOS)/os/various
+INCDIR = $(ALLINC) $(TESTINC) \
+         $(TESTHAL)
 
 #
 # Project, sources and paths

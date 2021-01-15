@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ static THD_FUNCTION(can_rx, p) {
   chRegSetThreadName("receiver");
   chEvtRegister(&cip->canp->rxfull_event, &el, 0);
   while(!chThdShouldTerminateX()) {
-    if (chEvtWaitAnyTimeout(ALL_EVENTS, MS2ST(100)) == 0)
+    if (chEvtWaitAnyTimeout(ALL_EVENTS, TIME_MS2I(100)) == 0)
       continue;
     while (canReceive(cip->canp, CAN_ANY_MAILBOX,
                       &rxmsg, TIME_IMMEDIATE) == MSG_OK) {
@@ -76,7 +76,7 @@ static THD_FUNCTION(can_tx, p) {
   txmsg.data32[1] = 0x00FF00FF;
 
   while (!chThdShouldTerminateX()) {
-    canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, MS2ST(100));
+    canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, TIME_MS2I(100));
     chThdSleepMilliseconds(500);
   }
 }

@@ -15,15 +15,15 @@
 */
 
 /**
- * @file    fsmc_sram.h
+ * @file    hal_fsmc_sram.h
  * @brief   SRAM Driver subsystem low level driver header.
  *
  * @addtogroup SRAM
  * @{
  */
 
-#ifndef _FSMC_SRAM_H_
-#define _FSMC_SRAM_H_
+#ifndef HAL_FSMC_SRAM_H_
+#define HAL_FSMC_SRAM_H_
 
 #include "hal_fsmc.h"
 
@@ -167,6 +167,6 @@ extern "C" {
 
 #endif /* STM32_USE_FSMC_SRAM */
 
-#endif /* _FSMC_SRAM_H_ */
+#endif /* HAL_FSMC_SRAM_H_ */
 
 /** @} */

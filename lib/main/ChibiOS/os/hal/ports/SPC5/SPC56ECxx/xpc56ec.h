@@ -7231,16 +7231,18 @@ struct INTC_tag {
 
     union { /* INTC End Of Interrupt Proc0 (Z4) (Base+0x0018) */
         vuint32_t R;
+        /* CHIBIOS FIX
         struct {
             vuint32_t:32;
-        } B;
+        } B;*/
     } EOIR_PRC0;
 
     union { /* INTC End Of Interrupt Proc1 (Z0) (Base+0x001C) */
         vuint32_t R;
+        /* CHIBIOS FIX
         struct {
             vuint32_t:32;
-        } B;
+        } B;*/
     } EOIR_PRC1;
 
     union { /* INTC Software Set/Clear Interrupt0-7 (+0x0020-0x0027) */

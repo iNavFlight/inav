@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio.
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio.
 
     This file is part of ChibiOS.
 
@@ -25,33 +25,12 @@
  * @{
  */
 
-#ifndef _CHVT_H_
-#define _CHVT_H_
+#ifndef CHVT_H
+#define CHVT_H
 
 /*===========================================================================*/
 /* Module constants.                                                         */
 /*===========================================================================*/
-
-/**
- * @name    Special time constants
- * @{
- */
-/**
- * @brief   Zero time specification for some functions with a timeout
- *          specification.
- * @note    Not all functions accept @p TIME_IMMEDIATE as timeout parameter,
- *          see the specific function documentation.
- */
-#define TIME_IMMEDIATE  ((systime_t)0)
-
-/**
- * @brief   Infinite time specification for all functions with a timeout
- *          specification.
- * @note    Not all functions accept @p TIME_INFINITE as timeout parameter,
- *          see the specific function documentation.
- */
-#define TIME_INFINITE   ((systime_t)-1)
-/** @} */
 
 /*===========================================================================*/
 /* Module pre-compile time settings.                                         */
@@ -60,14 +39,6 @@
 /*===========================================================================*/
 /* Derived constants and error checks.                                       */
 /*===========================================================================*/
-
-#if (CH_CFG_ST_RESOLUTION != 16) && (CH_CFG_ST_RESOLUTION != 32)
-#error "invalid CH_CFG_ST_RESOLUTION specified, must be 16 or 32"
-#endif
-
-#if CH_CFG_ST_FREQUENCY <= 0
-#error "invalid CH_CFG_ST_FREQUENCY specified, must be greater than zero"
-#endif
 
 #if (CH_CFG_ST_TIMEDELTA < 0) || (CH_CFG_ST_TIMEDELTA == 1)
 #error "invalid CH_CFG_ST_TIMEDELTA specified, must "                       \
@@ -90,90 +61,6 @@
 /* Module macros.                                                            */
 /*===========================================================================*/
 
-/**
- * @name    Time conversion utilities
- * @{
- */
-/**
- * @brief   Seconds to system ticks.
- * @details Converts from seconds to system ticks number.
- * @note    The result is rounded upward to the next tick boundary.
- *
- * @param[in] sec       number of seconds
- * @return              The number of ticks.
- *
- * @api
- */
-#define S2ST(sec)                                                           \
-  ((systime_t)((uint32_t)(sec) * (uint32_t)CH_CFG_ST_FREQUENCY))
-
-/**
- * @brief   Milliseconds to system ticks.
- * @details Converts from milliseconds to system ticks number.
- * @note    The result is rounded upward to the next tick boundary.
- *
- * @param[in] msec      number of milliseconds
- * @return              The number of ticks.
- *
- * @api
- */
-#define MS2ST(msec)                                                         \
-  ((systime_t)(((((uint32_t)(msec)) *                                       \
-                 ((uint32_t)CH_CFG_ST_FREQUENCY)) + 999UL) / 1000UL))
-
-/**
- * @brief   Microseconds to system ticks.
- * @details Converts from microseconds to system ticks number.
- * @note    The result is rounded upward to the next tick boundary.
- *
- * @param[in] usec      number of microseconds
- * @return              The number of ticks.
- *
- * @api
- */
-#define US2ST(usec)                                                         \
-  ((systime_t)(((((uint32_t)(usec)) *                                       \
-                 ((uint32_t)CH_CFG_ST_FREQUENCY)) + 999999UL) / 1000000UL))
-
-/**
- * @brief   System ticks to seconds.
- * @details Converts from system ticks number to seconds.
- * @note    The result is rounded up to the next second boundary.
- *
- * @param[in] n         number of system ticks
- * @return              The number of seconds.
- *
- * @api
- */
-#define ST2S(n) (((n) + CH_CFG_ST_FREQUENCY - 1UL) / CH_CFG_ST_FREQUENCY)
-
-/**
- * @brief   System ticks to milliseconds.
- * @details Converts from system ticks number to milliseconds.
- * @note    The result is rounded up to the next millisecond boundary.
- *
- * @param[in] n         number of system ticks
- * @return              The number of milliseconds.
- *
- * @api
- */
-#define ST2MS(n) (((n) * 1000UL + CH_CFG_ST_FREQUENCY - 1UL) /              \
-                  CH_CFG_ST_FREQUENCY)
-
-/**
- * @brief   System ticks to microseconds.
- * @details Converts from system ticks number to microseconds.
- * @note    The result is rounded up to the next microsecond boundary.
- *
- * @param[in] n         number of system ticks
- * @return              The number of microseconds.
- *
- * @api
- */
-#define ST2US(n) (((n) * 1000000UL + CH_CFG_ST_FREQUENCY - 1UL) /           \
-                  CH_CFG_ST_FREQUENCY)
-/** @} */
-
 /*===========================================================================*/
 /* External declarations.                                                    */
 /*===========================================================================*/
@@ -185,7 +72,7 @@
 extern "C" {
 #endif
   void _vt_init(void);
-  void chVTDoSetI(virtual_timer_t *vtp, systime_t delay,
+  void chVTDoSetI(virtual_timer_t *vtp, sysinterval_t delay,
                   vtfunc_t vtfunc, void *par);
   void chVTDoResetI(virtual_timer_t *vtp);
 #ifdef __cplusplus
@@ -209,7 +96,7 @@ extern "C" {
  */
 static inline void chVTObjectInit(virtual_timer_t *vtp) {
 
-  vtp->vt_func = NULL;
+  vtp->func = NULL;
 }
 
 /**
@@ -228,7 +115,7 @@ static inline void chVTObjectInit(virtual_timer_t *vtp) {
 static inline systime_t chVTGetSystemTimeX(void) {
 
 #if CH_CFG_ST_TIMEDELTA == 0
-  return ch.vtlist.vt_systime;
+  return ch.vtlist.systime;
 #else /* CH_CFG_ST_TIMEDELTA > 0 */
   return port_timer_get_time();
 #endif /* CH_CFG_ST_TIMEDELTA > 0 */
@@ -262,30 +149,9 @@ static inline systime_t chVTGetSystemTime(void) {
  *
  * @xclass
  */
-static inline systime_t chVTTimeElapsedSinceX(systime_t start) {
+static inline sysinterval_t chVTTimeElapsedSinceX(systime_t start) {
 
-  return chVTGetSystemTimeX() - start;
-}
-
-/**
- * @brief   Checks if the specified time is within the specified time window.
- * @note    When start==end then the function returns always true because the
- *          whole time range is specified.
- * @note    This function can be called from any context.
- *
- * @param[in] time      the time to be verified
- * @param[in] start     the start of the time window (inclusive)
- * @param[in] end       the end of the time window (non inclusive)
- * @retval true         current time within the specified time window.
- * @retval false        current time not within the specified time window.
- *
- * @xclass
- */
-static inline bool chVTIsTimeWithinX(systime_t time,
-                                     systime_t start,
-                                     systime_t end) {
-
-  return (bool)((systime_t)(time - start) < (systime_t)(end - start));
+  return chTimeDiffX(start, chVTGetSystemTimeX());
 }
 
 /**
@@ -303,7 +169,7 @@ static inline bool chVTIsTimeWithinX(systime_t time,
  */
 static inline bool chVTIsSystemTimeWithinX(systime_t start, systime_t end) {
 
-  return chVTIsTimeWithinX(chVTGetSystemTimeX(), start, end);
+  return chTimeIsInRangeX(chVTGetSystemTimeX(), start, end);
 }
 
 /**
@@ -321,7 +187,7 @@ static inline bool chVTIsSystemTimeWithinX(systime_t start, systime_t end) {
  */
 static inline bool chVTIsSystemTimeWithin(systime_t start, systime_t end) {
 
-  return chVTIsTimeWithinX(chVTGetSystemTime(), start, end);
+  return chTimeIsInRangeX(chVTGetSystemTime(), start, end);
 }
 
 /**
@@ -340,20 +206,20 @@ static inline bool chVTIsSystemTimeWithin(systime_t start, systime_t end) {
  *
  * @iclass
  */
-static inline bool chVTGetTimersStateI(systime_t *timep) {
+static inline bool chVTGetTimersStateI(sysinterval_t *timep) {
 
   chDbgCheckClassI();
 
-  if (&ch.vtlist == (virtual_timers_list_t *)ch.vtlist.vt_next) {
+  if (&ch.vtlist == (virtual_timers_list_t *)ch.vtlist.next) {
     return false;
   }
 
   if (timep != NULL) {
 #if CH_CFG_ST_TIMEDELTA == 0
-    *timep = ch.vtlist.vt_next->vt_delta;
+    *timep = ch.vtlist.next->delta;
 #else
-    *timep = ch.vtlist.vt_lasttime + ch.vtlist.vt_next->vt_delta +
-             CH_CFG_ST_TIMEDELTA - chVTGetSystemTimeX();
+    *timep = (ch.vtlist.next->delta + (sysinterval_t)CH_CFG_ST_TIMEDELTA) -
+             chTimeDiffX(ch.vtlist.lasttime, chVTGetSystemTimeX());
 #endif
   }
 
@@ -370,11 +236,11 @@ static inline bool chVTGetTimersStateI(systime_t *timep) {
  *
  * @iclass
  */
-static inline bool chVTIsArmedI(virtual_timer_t *vtp) {
+static inline bool chVTIsArmedI(const virtual_timer_t *vtp) {
 
   chDbgCheckClassI();
 
-  return (bool)(vtp->vt_func != NULL);
+  return (bool)(vtp->func != NULL);
 }
 
 /**
@@ -387,7 +253,7 @@ static inline bool chVTIsArmedI(virtual_timer_t *vtp) {
  *
  * @api
  */
-static inline bool chVTIsArmed(virtual_timer_t *vtp) {
+static inline bool chVTIsArmed(const virtual_timer_t *vtp) {
   bool b;
 
   chSysLock();
@@ -453,7 +319,7 @@ static inline void chVTReset(virtual_timer_t *vtp) {
  *
  * @iclass
  */
-static inline void chVTSetI(virtual_timer_t *vtp, systime_t delay,
+static inline void chVTSetI(virtual_timer_t *vtp, sysinterval_t delay,
                             vtfunc_t vtfunc, void *par) {
 
   chVTResetI(vtp);
@@ -482,7 +348,7 @@ static inline void chVTSetI(virtual_timer_t *vtp, systime_t delay,
  *
  * @api
  */
-static inline void chVTSet(virtual_timer_t *vtp, systime_t delay,
+static inline void chVTSet(virtual_timer_t *vtp, sysinterval_t delay,
                            vtfunc_t vtfunc, void *par) {
 
   chSysLock();
@@ -504,88 +370,102 @@ static inline void chVTDoTickI(void) {
   chDbgCheckClassI();
 
 #if CH_CFG_ST_TIMEDELTA == 0
-  ch.vtlist.vt_systime++;
-  if (&ch.vtlist != (virtual_timers_list_t *)ch.vtlist.vt_next) {
+  ch.vtlist.systime++;
+  if (&ch.vtlist != (virtual_timers_list_t *)ch.vtlist.next) {
     /* The list is not empty, processing elements on top.*/
-    --ch.vtlist.vt_next->vt_delta;
-    while (ch.vtlist.vt_next->vt_delta == (systime_t)0) {
+    --ch.vtlist.next->delta;
+    while (ch.vtlist.next->delta == (sysinterval_t)0) {
       virtual_timer_t *vtp;
       vtfunc_t fn;
 
-      vtp = ch.vtlist.vt_next;
-      fn = vtp->vt_func;
-      vtp->vt_func = NULL;
-      vtp->vt_next->vt_prev = (virtual_timer_t *)&ch.vtlist;
-      ch.vtlist.vt_next = vtp->vt_next;
+      vtp = ch.vtlist.next;
+      fn = vtp->func;
+      vtp->func = NULL;
+      vtp->next->prev = (virtual_timer_t *)&ch.vtlist;
+      ch.vtlist.next = vtp->next;
       chSysUnlockFromISR();
-      fn(vtp->vt_par);
+      fn(vtp->par);
       chSysLockFromISR();
     }
   }
 #else /* CH_CFG_ST_TIMEDELTA > 0 */
   virtual_timer_t *vtp;
-  systime_t now, delta;
+  systime_t now;
+  sysinterval_t delta, nowdelta;
 
-  /* First timer to be processed.*/
-  vtp = ch.vtlist.vt_next;
-  now = chVTGetSystemTimeX();
+  /* Looping through timers.*/
+  vtp = ch.vtlist.next;
+  while (true) {
 
-  /* All timers within the time window are triggered and removed,
-     note that the loop is stopped by the timers header having
-     "ch.vtlist.vt_delta == (systime_t)-1" which is greater than
-     all deltas.*/
-  while (vtp->vt_delta <= (systime_t)(now - ch.vtlist.vt_lasttime)) {
-    vtfunc_t fn;
+    /* Getting the system time as reference.*/
+    now = chVTGetSystemTimeX();
+    nowdelta = chTimeDiffX(ch.vtlist.lasttime, now);
 
-    /* The "last time" becomes this timer's expiration time.*/
-    ch.vtlist.vt_lasttime += vtp->vt_delta;
-
-    vtp->vt_next->vt_prev = (virtual_timer_t *)&ch.vtlist;
-    ch.vtlist.vt_next = vtp->vt_next;
-    fn = vtp->vt_func;
-    vtp->vt_func = NULL;
-
-    /* if the list becomes empty then the timer is stopped.*/
-    if (ch.vtlist.vt_next == (virtual_timer_t *)&ch.vtlist) {
-      port_timer_stop_alarm();
+    /* The list scan is limited by the timers header having
+       "ch.vtlist.vt_delta == (sysinterval_t)-1" which is
+       greater than all deltas.*/
+    if (nowdelta < vtp->delta) {
+      break;
     }
 
-    /* Leaving the system critical zone in order to execute the callback
-       and in order to give a preemption chance to higher priority
-       interrupts.*/
-    chSysUnlockFromISR();
+    /* Consuming all timers between "vtp->lasttime" and now.*/
+    do {
+      vtfunc_t fn;
 
-    /* The callback is invoked outside the kernel critical zone.*/
-    fn(vtp->vt_par);
+      /* The "last time" becomes this timer's expiration time.*/
+      ch.vtlist.lasttime += vtp->delta;
+      nowdelta -= vtp->delta;
 
-    /* Re-entering the critical zone in order to continue the exploration
-       of the list.*/
-    chSysLockFromISR();
+      vtp->next->prev = (virtual_timer_t *)&ch.vtlist;
+      ch.vtlist.next = vtp->next;
+      fn = vtp->func;
+      vtp->func = NULL;
 
-    /* Next element in the list, the current time could have advanced so
-       recalculating the time window.*/
-    vtp = ch.vtlist.vt_next;
-    now = chVTGetSystemTimeX();
+      /* If the list becomes empty then the timer is stopped.*/
+      if (ch.vtlist.next == (virtual_timer_t *)&ch.vtlist) {
+        port_timer_stop_alarm();
+      }
+
+      /* The callback is invoked outside the kernel critical zone.*/
+      chSysUnlockFromISR();
+      fn(vtp->par);
+      chSysLockFromISR();
+
+      /* Next element in the list.*/
+      vtp = ch.vtlist.next;
+    }
+    while (vtp->delta <= nowdelta);
   }
 
-  /* if the list is empty, nothing else to do.*/
-  if (ch.vtlist.vt_next == (virtual_timer_t *)&ch.vtlist) {
+  /* If the list is empty, nothing else to do.*/
+  if (ch.vtlist.next == (virtual_timer_t *)&ch.vtlist) {
     return;
   }
 
-  /* Recalculating the next alarm time.*/
-  delta = ch.vtlist.vt_lasttime + vtp->vt_delta - now;
-  if (delta < (systime_t)CH_CFG_ST_TIMEDELTA) {
-    delta = (systime_t)CH_CFG_ST_TIMEDELTA;
-  }
-  port_timer_set_alarm(now + delta);
+  /* The "unprocessed nowdelta" time slice is added to "last time"
+     and subtracted to next timer's delta.*/
+  ch.vtlist.lasttime += nowdelta;
+  ch.vtlist.next->delta -= nowdelta;
 
-  chDbgAssert((chVTGetSystemTimeX() - ch.vtlist.vt_lasttime) <=
-              (now + delta - ch.vtlist.vt_lasttime),
+  /* Recalculating the next alarm time.*/
+  delta = vtp->delta - chTimeDiffX(ch.vtlist.lasttime, now);
+  if (delta < (sysinterval_t)CH_CFG_ST_TIMEDELTA) {
+    delta = (sysinterval_t)CH_CFG_ST_TIMEDELTA;
+  }
+#if CH_CFG_INTERVALS_SIZE > CH_CFG_ST_RESOLUTION
+  /* The delta could be too large for the physical timer to handle.*/
+  else if (delta > (sysinterval_t)TIME_MAX_SYSTIME) {
+    delta = (sysinterval_t)TIME_MAX_SYSTIME;
+  }
+#endif
+  port_timer_set_alarm(chTimeAddX(now, delta));
+
+  chDbgAssert(chTimeDiffX(ch.vtlist.lasttime, chVTGetSystemTimeX()) <=
+              chTimeDiffX(ch.vtlist.lasttime, chTimeAddX(now, delta)),
               "exceeding delta");
 #endif /* CH_CFG_ST_TIMEDELTA > 0 */
 }
 
-#endif /* _CHVT_H_ */
+#endif /* CHVT_H */
 
 /** @} */

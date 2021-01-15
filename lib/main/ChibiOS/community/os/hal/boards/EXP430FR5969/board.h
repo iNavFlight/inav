@@ -65,8 +65,6 @@
 #define VAL_IOPORT1_REN   0xFCFE
 #define VAL_IOPORT1_SEL0  0x0000
 #define VAL_IOPORT1_SEL1  0x0300
-#define VAL_IOPORT1_IES   0x0000
-#define VAL_IOPORT1_IE    0x0000
 
 /*
  * Port B setup:
@@ -93,8 +91,6 @@
 #define VAL_IOPORT2_REN   0xBDFF
 #define VAL_IOPORT2_SEL0  0x0000
 #define VAL_IOPORT2_SEL1  0x0000
-#define VAL_IOPORT2_IES   0x0000
-#define VAL_IOPORT2_IE    0x0000
 
 /*
  * Port J setup:
@@ -113,8 +109,6 @@
 #define VAL_IOPORT0_REN   0x00CF
 #define VAL_IOPORT0_SEL0  0x0030
 #define VAL_IOPORT0_SEL1  0x0000
-#define VAL_IOPORT0_IES   0x0000
-#define VAL_IOPORT0_IE    0x0000
 
 #if !defined(_FROM_ASM_)
 #ifdef __cplusplus

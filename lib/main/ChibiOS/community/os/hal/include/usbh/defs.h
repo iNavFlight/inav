@@ -1,6 +1,6 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
-              Copyright (C) 2015 Diego Ismirlian, TISA, (dismirlian (at) google's mail)
+    ChibiOS - Copyright (C) 2006..2017 Giovanni Di Sirio
+              Copyright (C) 2015..2017 Diego Ismirlian, (dismirlian (at) google's mail)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -25,12 +25,12 @@
 #include "osal.h"
 
 #ifdef __IAR_SYSTEMS_ICC__
-#define PACKED_STRUCT typedef PACKED_VAR struct
+#define PACKED_STRUCT PACKED_VAR struct
 #else
-#define PACKED_STRUCT typedef struct PACKED_VAR
+#define PACKED_STRUCT struct PACKED_VAR
 #endif
 
-PACKED_STRUCT {
+typedef PACKED_STRUCT {
 	uint8_t  bLength;
 	uint8_t  bDescriptorType;
 	uint16_t bcdUSB;
@@ -49,7 +49,7 @@ PACKED_STRUCT {
 #define USBH_DT_DEVICE                   0x01
 #define USBH_DT_DEVICE_SIZE              18
 
-PACKED_STRUCT {
+typedef PACKED_STRUCT {
 	uint8_t  bLength;
 	uint8_t  bDescriptorType;
 	uint16_t wTotalLength;
@@ -62,7 +62,7 @@ PACKED_STRUCT {
 #define USBH_DT_CONFIG                   0x02
 #define USBH_DT_CONFIG_SIZE              9
 
-PACKED_STRUCT {
+typedef PACKED_STRUCT {
 	uint8_t  bLength;
 	uint8_t  bDescriptorType;
 	uint16_t wData[1];
@@ -70,7 +70,7 @@ PACKED_STRUCT {
 #define USBH_DT_STRING                   0x03
 #define USBH_DT_STRING_SIZE              2
 
-PACKED_STRUCT {
+typedef PACKED_STRUCT {
 	uint8_t  bLength;
 	uint8_t  bDescriptorType;
 	uint8_t  bInterfaceNumber;
@@ -84,7 +84,7 @@ PACKED_STRUCT {
 #define USBH_DT_INTERFACE                0x04
 #define USBH_DT_INTERFACE_SIZE           9
 
-PACKED_STRUCT {
+typedef PACKED_STRUCT {
 	uint8_t	bLength;
 	uint8_t	bDescriptorType;
 	uint8_t	bEndpointAddress;
@@ -95,7 +95,7 @@ PACKED_STRUCT {
 #define USBH_DT_ENDPOINT                 0x05
 #define USBH_DT_ENDPOINT_SIZE            7
 
-PACKED_STRUCT {
+typedef PACKED_STRUCT {
 	uint8_t  bLength;
 	uint8_t  bDescriptorType;
 	uint8_t  bFirstInterface;
@@ -108,7 +108,7 @@ PACKED_STRUCT {
 #define USBH_DT_INTERFACE_ASSOCIATION    	0x0b
 #define USBH_DT_INTERFACE_ASSOCIATION_SIZE	8
 
-PACKED_STRUCT {
+typedef PACKED_STRUCT {
 	uint8_t  bDescLength;
 	uint8_t  bDescriptorType;
 	uint8_t  bNbrPorts;
@@ -120,7 +120,7 @@ PACKED_STRUCT {
 #define USBH_DT_HUB				    	0x29
 #define USBH_DT_HUB_SIZE		    	(7 + 4)
 
-PACKED_STRUCT {
+typedef PACKED_STRUCT {
 	uint8_t  bmRequestType;
 	uint8_t  bRequest;
 	uint16_t wValue;
@@ -141,18 +141,17 @@ PACKED_STRUCT {
 #define USBH_REQ_SET_INTERFACE           0x0B
 #define USBH_REQ_SYNCH_FRAME             0x0C
 
+#define USBH_REQTYPE_DIR_IN				0x80
+#define USBH_REQTYPE_DIR_OUT			0x00
 
-#define USBH_REQTYPE_IN					0x80
-#define USBH_REQTYPE_OUT				0x00
+#define USBH_REQTYPE_TYPE_STANDARD		0x00
+#define USBH_REQTYPE_TYPE_CLASS			0x20
+#define USBH_REQTYPE_TYPE_VENDOR		0x40
 
-#define USBH_REQTYPE_STANDARD			0x00
-#define USBH_REQTYPE_CLASS				0x20
-#define USBH_REQTYPE_VENDOR				0x40
-
-#define USBH_REQTYPE_DEVICE				0x00
-#define USBH_REQTYPE_INTERFACE			0x01
-#define USBH_REQTYPE_ENDPOINT			0x02
-#define USBH_REQTYPE_OTHER				0x03
+#define USBH_REQTYPE_RECIP_DEVICE		0x00
+#define USBH_REQTYPE_RECIP_INTERFACE	0x01
+#define USBH_REQTYPE_RECIP_ENDPOINT		0x02
+#define USBH_REQTYPE_RECIP_OTHER		0x03
 
 #endif
 

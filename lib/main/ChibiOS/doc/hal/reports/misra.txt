@@ -7,78 +7,90 @@
 
 --- Module:   ..\..\..\os\hal\src\hal_mmcsd.c (C)
 
---- Module:   ..\..\..\os\hal\src\adc.c (C)
+--- Module:   ..\..\..\os\hal\src\hal_adc.c (C)
 
---- Module:   ..\..\..\os\hal\src\can.c (C)
+--- Module:   ..\..\..\os\hal\src\hal_can.c (C)
 
---- Module:   ..\..\..\os\hal\src\dac.c (C)
+--- Module:   ..\..\..\os\hal\src\hal_dac.c (C)
 
---- Module:   ..\..\..\os\hal\src\ext.c (C)
+--- Module:   ..\..\..\os\hal\src\hal_ext.c (C)
 
---- Module:   ..\..\..\os\hal\src\gpt.c (C)
+--- Module:   ..\..\..\os\hal\src\hal_gpt.c (C)
 
---- Module:   ..\..\..\os\hal\src\i2c.c (C)
+--- Module:   ..\..\..\os\hal\src\hal_i2c.c (C)
 
---- Module:   ..\..\..\os\hal\src\i2s.c (C)
+--- Module:   ..\..\..\os\hal\src\hal_i2s.c (C)
 
---- Module:   ..\..\..\os\hal\src\icu.c (C)
+--- Module:   ..\..\..\os\hal\src\hal_icu.c (C)
 
---- Module:   ..\..\..\os\hal\src\mac.c (C)
+--- Module:   ..\..\..\os\hal\src\hal_mac.c (C)
 
---- Module:   ..\..\..\os\hal\src\mmc_spi.c (C)
+--- Module:   ..\..\..\os\hal\src\hal_mmc_spi.c (C)
 
---- Module:   ..\..\..\os\hal\src\pal.c (C)
+--- Module:   ..\..\..\os\hal\src\hal_pal.c (C)
 
---- Module:   ..\..\..\os\hal\src\pwm.c (C)
+--- Module:   ..\..\..\os\hal\src\hal_pwm.c (C)
 
---- Module:   ..\..\..\os\hal\src\rtc.c (C)
+--- Module:   ..\..\..\os\hal\src\hal_qspi.c (C)
 
---- Module:   ..\..\..\os\hal\src\sdc.c (C)
+--- Module:   ..\..\..\os\hal\src\hal_rtc.c (C)
 
---- Module:   ..\..\..\os\hal\src\serial.c (C)
+--- Module:   ..\..\..\os\hal\src\hal_sdc.c (C)
 
---- Module:   ..\..\..\os\hal\src\serial_usb.c (C)
+--- Module:   ..\..\..\os\hal\src\hal_serial.c (C)
 
---- Module:   ..\..\..\os\hal\src\spi.c (C)
+--- Module:   ..\..\..\os\hal\src\hal_serial_usb.c (C)
 
---- Module:   ..\..\..\os\hal\src\st.c (C)
+--- Module:   ..\..\..\os\hal\src\hal_spi.c (C)
 
---- Module:   ..\..\..\os\hal\src\uart.c (C)
+--- Module:   ..\..\..\os\hal\src\hal_st.c (C)
 
---- Module:   ..\..\..\os\hal\src\usb.c (C)
+--- Module:   ..\..\..\os\hal\src\hal_uart.c (C)
 
---- Module:   ..\..\..\os\hal\src\wdg.c (C)
+--- Module:   ..\..\..\os\hal\src\hal_usb.c (C)
+
+--- Module:   ..\..\..\os\hal\src\hal_wdg.c (C)
 
 --- Module:   ..\..\..\os\hal\templates\osal\osal.c (C)
 
 --- Module:   ..\..\..\os\hal\templates\hal_lld.c (C)
 
---- Module:   ..\..\..\os\hal\templates\adc_lld.c (C)
+--- Module:   ..\..\..\os\hal\templates\hal_adc_lld.c (C)
 
---- Module:   ..\..\..\os\hal\templates\can_lld.c (C)
+--- Module:   ..\..\..\os\hal\templates\hal_can_lld.c (C)
 
---- Module:   ..\..\..\os\hal\templates\dac_lld.c (C)
+--- Module:   ..\..\..\os\hal\templates\hal_dac_lld.c (C)
 
---- Module:   ..\..\..\os\hal\templates\ext_lld.c (C)
+--- Module:   ..\..\..\os\hal\templates\hal_ext_lld.c (C)
 
---- Module:   ..\..\..\os\hal\templates\gpt_lld.c (C)
+--- Module:   ..\..\..\os\hal\templates\hal_gpt_lld.c (C)
 
---- Module:   ..\..\..\os\hal\templates\i2c_lld.c (C)
+--- Module:   ..\..\..\os\hal\templates\hal_i2c_lld.c (C)
 
---- Module:   ..\..\..\os\hal\templates\icu_lld.c (C)
+--- Module:   ..\..\..\os\hal\templates\hal_i2s_lld.c (C)
 
---- Module:   ..\..\..\os\hal\templates\mac_lld.c (C)
+--- Module:   ..\..\..\os\hal\templates\hal_icu_lld.c (C)
 
---- Module:   ..\..\..\os\hal\templates\pal_lld.c (C)
+--- Module:   ..\..\..\os\hal\templates\hal_mac_lld.c (C)
 
---- Module:   ..\..\..\os\hal\templates\pwm_lld.c (C)
+--- Module:   ..\..\..\os\hal\templates\hal_pal_lld.c (C)
 
---- Module:   ..\..\..\os\hal\templates\sdc_lld.c (C)
+--- Module:   ..\..\..\os\hal\templates\hal_pwm_lld.c (C)
 
---- Module:   ..\..\..\os\hal\templates\serial_lld.c (C)
+--- Module:   ..\..\..\os\hal\templates\hal_qspi_lld.c (C)
 
---- Module:   ..\..\..\os\hal\templates\spi_lld.c (C)
+--- Module:   ..\..\..\os\hal\templates\hal_rtc_lld.c (C)
 
---- Module:   ..\..\..\os\hal\templates\uart_lld.c (C)
+--- Module:   ..\..\..\os\hal\templates\hal_sdc_lld.c (C)
 
---- Module:   ..\..\..\os\hal\templates\usb_lld.c (C)
+--- Module:   ..\..\..\os\hal\templates\hal_serial_lld.c (C)
+
+--- Module:   ..\..\..\os\hal\templates\hal_spi_lld.c (C)
+
+--- Module:   ..\..\..\os\hal\templates\hal_st_lld.c (C)
+
+--- Module:   ..\..\..\os\hal\templates\hal_uart_lld.c (C)
+
+--- Module:   ..\..\..\os\hal\templates\hal_usb_lld.c (C)
+
+--- Module:   ..\..\..\os\hal\templates\hal_wdg_lld.c (C)

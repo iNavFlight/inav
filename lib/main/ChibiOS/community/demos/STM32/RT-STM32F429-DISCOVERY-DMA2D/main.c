@@ -284,10 +284,12 @@ static const LTDCConfig ltdc_cfg = {
 extern LTDCDriver LTDCD1;
 
 const SPIConfig spi_cfg5 = {
+  false,
   NULL,
   GPIOC,
   GPIOC_SPI5_LCD_CS,
   (((1 << 3) & SPI_CR1_BR) | SPI_CR1_SSM | SPI_CR1_SSI | SPI_CR1_MSTR),
+  0
 };
 
 extern SPIDriver SPID5;
@@ -473,10 +475,6 @@ static void dma2d_test(void) {
 /* Command line related.                                                     */
 /*===========================================================================*/
 
-#if (HAL_USE_SERIAL_USB == TRUE)
-/* Virtual serial port over USB.*/
-SerialUSBDriver SDU1;
-#endif
 
 #define SHELL_WA_SIZE   THD_WORKING_AREA_SIZE(2048)
 #define TEST_WA_SIZE    THD_WORKING_AREA_SIZE(256)
@@ -500,7 +498,7 @@ static const ShellCommand commands[] = {
 
 static const ShellConfig shell_cfg1 = {
 #if (HAL_USE_SERIAL_USB == TRUE)
-  (BaseSequentialStream *)&SDU1,
+  (BaseSequentialStream *)&SDU2,
 #else
   (BaseSequentialStream *)&SD1,
 #endif
@@ -536,8 +534,8 @@ int main(void) {
   /*
    * Initializes a serial-over-USB CDC driver.
    */
-  sduObjectInit(&SDU1);
-  sduStart(&SDU1, &serusbcfg);
+  sduObjectInit(&SDU2);
+  sduStart(&SDU2, &serusbcfg);
 
   /*
    * Activates the USB driver and then the USB bus pull-up on D+.
@@ -594,7 +592,7 @@ int main(void) {
   while (true) {
     if (!shelltp) {
 #if (HAL_USE_SERIAL_USB == TRUE)
-      if (SDU1.config->usbp->state == USB_ACTIVE) {
+      if (SDU2.config->usbp->state == USB_ACTIVE) {
         /* Spawns a new shell.*/
         shelltp = chThdCreateFromHeap(NULL, SHELL_WA_SIZE, "shell", NORMALPRIO, shellThread, (void *) &shell_cfg1);
       }

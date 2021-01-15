@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ static i2cflags_t errors = 0;
 /* This is main function. */
 void request_fake(void){
   msg_t status = MSG_OK;
-  systime_t tmo = MS2ST(4);
+  sysinterval_t tmo = TIME_MS2I(4);
 
   i2cAcquireBus(&I2CD1);
   status = i2cMasterReceiveTimeout(&I2CD1, addr, rx_data, 2, tmo);

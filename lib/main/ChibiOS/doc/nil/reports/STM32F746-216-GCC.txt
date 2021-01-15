@@ -1,0 +1,144 @@
+
+*** ChibiOS/NIL Test Suite
+***
+*** Compiled:     Dec 10 2017 - 15:34:01
+*** Platform:     STM32F746 Very High Performance with DSP and FPU
+*** Test Board:   STMicroelectronics STM32F746G-Discovery
+
+============================================================================
+=== Test Sequence 1 (Information)
+----------------------------------------------------------------------------
+--- Test Case 1.1 (Port Info)
+--- Architecture:                       ARMv7E-M
+--- Core Variant:                       Cortex-M7
+--- Compiler:                           GCC 5.4.1 20160919 (release) [ARM/embedded-5-branch revision 240496]
+--- Port Info:                          Advanced kernel mode
+--- Natural alignment:                  4
+--- Stack alignment:                    8
+--- Working area alignment:             8
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 1.2 (Kernel Info)
+--- Product:                            ChibiOS/NIL
+--- Stable Flag:                        0
+--- Version String:                     3.0.0
+--- Major Number:                       3
+--- Minor Number:                       0
+--- Patch Number:                       0
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 1.3 (Kernel Settings)
+--- CH_CFG_NUM_THREADS:                 3
+--- CH_CFG_ST_RESOLUTION:               16
+--- CH_CFG_ST_FREQUENCY:                10000
+--- CH_CFG_ST_TIMEDELTA:                2
+--- CH_CFG_USE_SEMAPHORES:              1
+--- CH_CFG_USE_MUTEXES:                 0
+--- CH_CFG_USE_EVENTS:                  1
+--- CH_CFG_USE_MAILBOXES:               1
+--- CH_CFG_USE_MEMCORE:                 1
+--- CH_CFG_USE_HEAP:                    1
+--- CH_CFG_USE_MEMPOOLS:                1
+--- CH_CFG_USE_OBJ_FIFOS:               1
+--- CH_CFG_MEMCORE_SIZE:                0
+--- CH_CFG_USE_FACTORY:                 1
+--- CH_CFG_FACTORY_MAX_NAMES_LENGTH:    8
+--- CH_CFG_FACTORY_OBJECTS_REGISTRY:    1
+--- CH_CFG_FACTORY_GENERIC_BUFFERS:     1
+--- CH_CFG_FACTORY_SEMAPHORES:          1
+--- CH_CFG_FACTORY_MAILBOXES:           1
+--- CH_CFG_FACTORY_OBJ_FIFOS:           1
+--- CH_DBG_STATISTICS:                  0
+--- CH_DBG_SYSTEM_STATE_CHECK:          1
+--- CH_DBG_ENABLE_CHECKS:               1
+--- CH_DBG_ENABLE_ASSERTS:              1
+--- CH_DBG_ENABLE_STACK_CHECK:          1
+--- Result: SUCCESS
+============================================================================
+=== Test Sequence 2 (Threads Functionality)
+----------------------------------------------------------------------------
+--- Test Case 2.1 (System Tick Counter functionality)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 2.2 (Thread Sleep functionality)
+--- Result: SUCCESS
+============================================================================
+=== Test Sequence 3 (Semaphores)
+----------------------------------------------------------------------------
+--- Test Case 3.1 (Semaphore primitives, no state change)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 3.2 (Semaphore primitives, with state change)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 3.3 (Semaphores timeout)
+--- Result: SUCCESS
+============================================================================
+=== Test Sequence 4 (Suspend/Resume and Event Flags)
+----------------------------------------------------------------------------
+--- Test Case 4.1 (Suspend and Resume functionality)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 4.2 (Events Flags functionality)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+
+Final result: SUCCESS
+
+*** ChibiOS OS Library Test Suite
+***
+*** Compiled:     Dec 10 2017 - 15:34:01
+*** Platform:     STM32F746 Very High Performance with DSP and FPU
+*** Test Board:   STMicroelectronics STM32F746G-Discovery
+
+============================================================================
+=== Test Sequence 1 (Mailboxes)
+----------------------------------------------------------------------------
+--- Test Case 1.1 (Mailbox normal API, non-blocking tests)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 1.2 (Mailbox I-Class API, non-blocking tests)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 1.3 (Mailbox timeouts)
+--- Result: SUCCESS
+============================================================================
+=== Test Sequence 2 (Memory Pools)
+----------------------------------------------------------------------------
+--- Test Case 2.1 (Loading and emptying a memory pool)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 2.2 (Loading and emptying a guarded memory pool without waiting)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 2.3 (Guarded Memory Pools timeout)
+--- Result: SUCCESS
+============================================================================
+=== Test Sequence 3 (Memory Heaps)
+----------------------------------------------------------------------------
+--- Test Case 3.1 (Allocation and fragmentation)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 3.2 (Default Heap)
+--- Result: SUCCESS
+============================================================================
+=== Test Sequence 4 (Objects Factory)
+----------------------------------------------------------------------------
+--- Test Case 4.1 (Objects Registry)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 4.2 (Dynamic Buffers Factory)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 4.3 (Dynamic Semaphores Factory)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 4.4 (Dynamic Mailboxes Factory)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 4.5 (Dynamic Objects FIFOs Factory)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+
+Final result: SUCCESS
+

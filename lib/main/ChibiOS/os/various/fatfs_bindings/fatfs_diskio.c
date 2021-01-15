@@ -13,10 +13,18 @@
 #error "cannot specify both MMC_SPI and SDC drivers"
 #endif
 
+#if !defined(FATFS_HAL_DEVICE)
 #if HAL_USE_MMC_SPI
-extern MMCDriver MMCD1;
+#define FATFS_HAL_DEVICE MMCD1
+#else
+#define FATFS_HAL_DEVICE SDCD1
+#endif
+#endif
+
+#if HAL_USE_MMC_SPI
+extern MMCDriver FATFS_HAL_DEVICE;
 #elif HAL_USE_SDC
-extern SDCDriver SDCD1;
+extern SDCDriver FATFS_HAL_DEVICE;
 #else
 #error "MMC_SPI or SDC driver must be specified"
 #endif
@@ -37,7 +45,7 @@ extern RTCDriver RTCD1;
 /* Inidialize a Drive                                                    */
 
 DSTATUS disk_initialize (
-    BYTE pdrv                /* Physical drive nmuber (0..) */
+    BYTE pdrv         /* Physical drive number (0..) */
 )
 {
   DSTATUS stat;
@@ -47,18 +55,18 @@ DSTATUS disk_initialize (
   case MMC:
     stat = 0;
     /* It is initialized externally, just reads the status.*/
-    if (blkGetDriverState(&MMCD1) != BLK_READY)
+    if (blkGetDriverState(&FATFS_HAL_DEVICE) != BLK_READY)
       stat |= STA_NOINIT;
-    if (mmcIsWriteProtected(&MMCD1))
+    if (mmcIsWriteProtected(&FATFS_HAL_DEVICE))
       stat |=  STA_PROTECT;
     return stat;
 #else
   case SDC:
     stat = 0;
     /* It is initialized externally, just reads the status.*/
-    if (blkGetDriverState(&SDCD1) != BLK_READY)
+    if (blkGetDriverState(&FATFS_HAL_DEVICE) != BLK_READY)
       stat |= STA_NOINIT;
-    if (sdcIsWriteProtected(&SDCD1))
+    if (sdcIsWriteProtected(&FATFS_HAL_DEVICE))
       stat |=  STA_PROTECT;
     return stat;
 #endif
@@ -72,7 +80,7 @@ DSTATUS disk_initialize (
 /* Return Disk Status                                                    */
 
 DSTATUS disk_status (
-    BYTE pdrv        /* Physical drive nmuber (0..) */
+    BYTE pdrv         /* Physical drive number (0..) */
 )
 {
   DSTATUS stat;
@@ -82,18 +90,18 @@ DSTATUS disk_status (
   case MMC:
     stat = 0;
     /* It is initialized externally, just reads the status.*/
-    if (blkGetDriverState(&MMCD1) != BLK_READY)
+    if (blkGetDriverState(&FATFS_HAL_DEVICE) != BLK_READY)
       stat |= STA_NOINIT;
-    if (mmcIsWriteProtected(&MMCD1))
+    if (mmcIsWriteProtected(&FATFS_HAL_DEVICE))
       stat |= STA_PROTECT;
     return stat;
 #else
   case SDC:
     stat = 0;
     /* It is initialized externally, just reads the status.*/
-    if (blkGetDriverState(&SDCD1) != BLK_READY)
+    if (blkGetDriverState(&FATFS_HAL_DEVICE) != BLK_READY)
       stat |= STA_NOINIT;
-    if (sdcIsWriteProtected(&SDCD1))
+    if (sdcIsWriteProtected(&FATFS_HAL_DEVICE))
       stat |= STA_PROTECT;
     return stat;
 #endif
@@ -107,33 +115,33 @@ DSTATUS disk_status (
 /* Read Sector(s)                                                        */
 
 DRESULT disk_read (
-    BYTE pdrv,        /* Physical drive nmuber (0..) */
-    BYTE *buff,        /* Data buffer to store read data */
-    DWORD sector,    /* Sector address (LBA) */
+    BYTE pdrv,        /* Physical drive number (0..) */
+    BYTE *buff,       /* Data buffer to store read data */
+    DWORD sector,     /* Sector address (LBA) */
     UINT count        /* Number of sectors to read (1..255) */
 )
 {
   switch (pdrv) {
 #if HAL_USE_MMC_SPI
   case MMC:
-    if (blkGetDriverState(&MMCD1) != BLK_READY)
+    if (blkGetDriverState(&FATFS_HAL_DEVICE) != BLK_READY)
       return RES_NOTRDY;
-    if (mmcStartSequentialRead(&MMCD1, sector))
+    if (mmcStartSequentialRead(&FATFS_HAL_DEVICE, sector))
       return RES_ERROR;
     while (count > 0) {
-      if (mmcSequentialRead(&MMCD1, buff))
+      if (mmcSequentialRead(&FATFS_HAL_DEVICE, buff))
         return RES_ERROR;
       buff += MMCSD_BLOCK_SIZE;
       count--;
     }
-    if (mmcStopSequentialRead(&MMCD1))
+    if (mmcStopSequentialRead(&FATFS_HAL_DEVICE))
         return RES_ERROR;
     return RES_OK;
 #else
   case SDC:
-    if (blkGetDriverState(&SDCD1) != BLK_READY)
+    if (blkGetDriverState(&FATFS_HAL_DEVICE) != BLK_READY)
       return RES_NOTRDY;
-    if (sdcRead(&SDCD1, sector, buff, count))
+    if (sdcRead(&FATFS_HAL_DEVICE, sector, buff, count))
       return RES_ERROR;
     return RES_OK;
 #endif
@@ -146,69 +154,72 @@ DRESULT disk_read (
 /*-----------------------------------------------------------------------*/
 /* Write Sector(s)                                                       */
 
-#if _USE_WRITE
+#if !FF_FS_READONLY
 DRESULT disk_write (
-    BYTE pdrv,            /* Physical drive nmuber (0..) */
-    const BYTE *buff,    /* Data to be written */
-    DWORD sector,        /* Sector address (LBA) */
-    UINT count            /* Number of sectors to write (1..255) */
+    BYTE pdrv,        /* Physical drive number (0..) */
+    const BYTE *buff, /* Data to be written */
+    DWORD sector,     /* Sector address (LBA) */
+    UINT count        /* Number of sectors to write (1..255) */
 )
 {
   switch (pdrv) {
 #if HAL_USE_MMC_SPI
   case MMC:
-    if (blkGetDriverState(&MMCD1) != BLK_READY)
+    if (blkGetDriverState(&FATFS_HAL_DEVICE) != BLK_READY)
         return RES_NOTRDY;
-    if (mmcIsWriteProtected(&MMCD1))
+    if (mmcIsWriteProtected(&FATFS_HAL_DEVICE))
         return RES_WRPRT;
-    if (mmcStartSequentialWrite(&MMCD1, sector))
+    if (mmcStartSequentialWrite(&FATFS_HAL_DEVICE, sector))
         return RES_ERROR;
     while (count > 0) {
-        if (mmcSequentialWrite(&MMCD1, buff))
+        if (mmcSequentialWrite(&FATFS_HAL_DEVICE, buff))
             return RES_ERROR;
         buff += MMCSD_BLOCK_SIZE;
         count--;
     }
-    if (mmcStopSequentialWrite(&MMCD1))
+    if (mmcStopSequentialWrite(&FATFS_HAL_DEVICE))
         return RES_ERROR;
     return RES_OK;
 #else
   case SDC:
-    if (blkGetDriverState(&SDCD1) != BLK_READY)
+    if (blkGetDriverState(&FATFS_HAL_DEVICE) != BLK_READY)
       return RES_NOTRDY;
-    if (sdcWrite(&SDCD1, sector, buff, count))
+    if (sdcWrite(&FATFS_HAL_DEVICE, sector, buff, count))
       return RES_ERROR;
     return RES_OK;
 #endif
   }
   return RES_PARERR;
 }
-#endif /* _USE_WRITE */
+#endif /* _FS_READONLY */
 
 
 
 /*-----------------------------------------------------------------------*/
 /* Miscellaneous Functions                                               */
 
-#if _USE_IOCTL
 DRESULT disk_ioctl (
-    BYTE pdrv,        /* Physical drive nmuber (0..) */
-    BYTE cmd,        /* Control code */
+    BYTE pdrv,        /* Physical drive number (0..) */
+    BYTE cmd,         /* Control code */
     void *buff        /* Buffer to send/receive control data */
 )
 {
+  (void)buff;
+
   switch (pdrv) {
 #if HAL_USE_MMC_SPI
   case MMC:
     switch (cmd) {
     case CTRL_SYNC:
         return RES_OK;
+#if FF_MAX_SS > FF_MIN_SS
     case GET_SECTOR_SIZE:
         *((WORD *)buff) = MMCSD_BLOCK_SIZE;
         return RES_OK;
-#if _USE_ERASE
-    case CTRL_ERASE_SECTOR:
-        mmcErase(&MMCD1, *((DWORD *)buff), *((DWORD *)buff + 1));
+#endif
+#if FF_USE_TRIM
+    case CTRL_TRIM:
+        mmcErase(&FATFS_HAL_DEVICE, *((DWORD *)buff), *((DWORD *)buff + 1));
         return RES_OK;
 #endif
     default:
@@ -220,17 +231,19 @@ DRESULT disk_ioctl (
     case CTRL_SYNC:
         return RES_OK;
     case GET_SECTOR_COUNT:
-        *((DWORD *)buff) = mmcsdGetCardCapacity(&SDCD1);
+        *((DWORD *)buff) = mmcsdGetCardCapacity(&FATFS_HAL_DEVICE);
         return RES_OK;
+#if FF_MAX_SS > FF_MIN_SS
     case GET_SECTOR_SIZE:
         *((WORD *)buff) = MMCSD_BLOCK_SIZE;
         return RES_OK;
+#endif
     case GET_BLOCK_SIZE:
         *((DWORD *)buff) = 256; /* 512b blocks in one erase block */
         return RES_OK;
-#if _USE_ERASE
-    case CTRL_ERASE_SECTOR:
-        sdcErase(&SDCD1, *((DWORD *)buff), *((DWORD *)buff + 1));
+#if FF_USE_TRIM
+    case CTRL_TRIM:
+        sdcErase(&FATFS_HAL_DEVICE, *((DWORD *)buff), *((DWORD *)buff + 1));
         return RES_OK;
 #endif
     default:
@@ -240,7 +253,6 @@ DRESULT disk_ioctl (
   }
   return RES_PARERR;
 }
-#endif /* _USE_IOCTL */
 
 DWORD get_fattime(void) {
 #if HAL_USE_RTC

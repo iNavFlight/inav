@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio.
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio.
 
     This file is part of ChibiOS.
 
@@ -19,14 +19,14 @@
 
 /**
  * @file    chdebug.h
- * @brief   Debug macros and structures.
+ * @brief   Debug support macros and structures.
  *
- * @addtogroup debug
+ * @addtogroup checks_assertions
  * @{
  */
 
-#ifndef _CHDEBUG_H_
-#define _CHDEBUG_H_
+#ifndef CHDEBUG_H
+#define CHDEBUG_H
 
 /*===========================================================================*/
 /* Module constants.                                                         */
@@ -41,28 +41,10 @@
  * @{
  */
 /**
- * @brief   Trace buffer entries.
- */
-#ifndef CH_DBG_TRACE_BUFFER_SIZE
-#define CH_DBG_TRACE_BUFFER_SIZE            64
-#endif
-
-/**
  * @brief   Fill value for thread stack area in debug mode.
  */
-#ifndef CH_DBG_STACK_FILL_VALUE
+#if !defined(CH_DBG_STACK_FILL_VALUE) || defined(__DOXYGEN__)
 #define CH_DBG_STACK_FILL_VALUE             0x55
-#endif
-
-/**
- * @brief   Fill value for thread area in debug mode.
- * @note    The chosen default value is 0xFF in order to make evident which
- *          thread fields were not initialized when inspecting the memory with
- *          a debugger. A uninitialized field is not an error in itself but it
- *          better to know it.
- */
-#ifndef CH_DBG_THREAD_FILL_VALUE
-#define CH_DBG_THREAD_FILL_VALUE            0xFF
 #endif
 /** @} */
 
@@ -73,48 +55,6 @@
 /*===========================================================================*/
 /* Module data structures and types.                                         */
 /*===========================================================================*/
-
-#if (CH_DBG_ENABLE_TRACE == TRUE) || defined(__DOXYGEN__)
-/**
- * @brief   Trace buffer record.
- */
-typedef struct {
-  /**
-   * @brief   Time of the switch event.
-   */
-  systime_t             se_time;
-  /**
-   * @brief   Switched in thread.
-   */
-  thread_t              *se_tp;
-  /**
-   * @brief   Object where going to sleep.
-   */
-  void                  *se_wtobjp;
-  /**
-   * @brief   Switched out thread state.
-   */
-  uint8_t               se_state;
-} ch_swc_event_t;
-
-/**
- * @brief   Trace buffer header.
- */
-typedef struct {
-  /**
-   * @brief   Trace buffer size (entries).
-   */
-  unsigned              tb_size;
-  /**
-   * @brief   Pointer to the buffer front.
-   */
-  ch_swc_event_t        *tb_ptr;
-  /**
-   * @brief   Ring buffer.
-   */
-  ch_swc_event_t        tb_buffer[CH_DBG_TRACE_BUFFER_SIZE];
-} ch_trace_buffer_t;
-#endif /* CH_DBG_ENABLE_TRACE */
 
 /*===========================================================================*/
 /* Module macros.                                                            */
@@ -141,12 +81,6 @@ typedef struct {
 #define _dbg_check_leave_isr()
 #define chDbgCheckClassI()
 #define chDbgCheckClassS()
-#endif
-
-/* When the trace feature is disabled this function is replaced by an empty
-   macro.*/
-#if CH_DBG_ENABLE_TRACE == FALSE
-#define _dbg_trace(otp)
 #endif
 
 /**
@@ -222,10 +156,6 @@ extern "C" {
   void chDbgCheckClassI(void);
   void chDbgCheckClassS(void);
 #endif
-#if (CH_DBG_ENABLE_TRACE == TRUE) || defined(__DOXYGEN__)
-  void _dbg_trace_init(void);
-  void _dbg_trace(thread_t *otp);
-#endif
 #ifdef __cplusplus
 }
 #endif
@@ -234,6 +164,6 @@ extern "C" {
 /* Module inline functions.                                                  */
 /*===========================================================================*/
 
-#endif /* _CHDEBUG_H_ */
+#endif /* CHDEBUG_H */
 
 /** @} */

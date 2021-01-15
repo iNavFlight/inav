@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@
 
 static uint16_t i2s_rx_buf[I2S_BUF_SIZE];
 
-static void i2scallback(I2SDriver *i2sp, size_t offset, size_t n);
+static void i2scallback(I2SDriver *i2sp);
 
 static const I2SConfig i2scfg = {
   NULL,
@@ -32,11 +32,14 @@ static const I2SConfig i2scfg = {
   16
 };
 
-static void i2scallback(I2SDriver *i2sp, size_t offset, size_t n) {
+static void i2scallback(I2SDriver *i2sp) {
 
-  (void)i2sp;
-  (void)offset;
-  (void)n;
+  if (i2sIsBufferComplete(i2sp)) {
+    /* 2nd buffer half processing.*/
+  }
+  else {
+    /* 1st buffer half processing.*/
+  }
 }
 
 /*

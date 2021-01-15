@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2016 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -21,6 +21,10 @@
 
 #ifndef BOARD_H
 #define BOARD_H
+
+/*===========================================================================*/
+/* Driver constants.                                                         */
+/*===========================================================================*/
 
 /*
  * Setup for STMicroelectronics STM32373C-EVAL board.
@@ -204,14 +208,12 @@
 #define LINE_SWDIO                  PAL_LINE(GPIOA, 13U)
 #define LINE_SWCLK                  PAL_LINE(GPIOA, 14U)
 #define LINE_JTDI                   PAL_LINE(GPIOA, 15U)
-
 #define LINE_MIC_IN                 PAL_LINE(GPIOB, 0U)
 #define LINE_ADC_POT_IN             PAL_LINE(GPIOB, 1U)
 #define LINE_SWO                    PAL_LINE(GPIOB, 3U)
 #define LINE_JTRST                  PAL_LINE(GPIOB, 4U)
 #define LINE_I2C1_SCL               PAL_LINE(GPIOB, 6U)
 #define LINE_I2C1_SDA               PAL_LINE(GPIOB, 7U)
-
 #define LINE_LED1                   PAL_LINE(GPIOC, 0U)
 #define LINE_LED2                   PAL_LINE(GPIOC, 1U)
 #define LINE_LED3                   PAL_LINE(GPIOC, 2U)
@@ -222,7 +224,6 @@
 #define LINE_SPI3_MOSI              PAL_LINE(GPIOC, 12U)
 #define LINE_OSC32_IN               PAL_LINE(GPIOC, 14U)
 #define LINE_OSC32_OUT              PAL_LINE(GPIOC, 15U)
-
 #define LINE_CAN_RX                 PAL_LINE(GPIOD, 0U)
 #define LINE_CAN_TX                 PAL_LINE(GPIOD, 1U)
 #define LINE_LCD_CS                 PAL_LINE(GPIOD, 2U)
@@ -231,7 +232,6 @@
 #define LINE_USART2_TX              PAL_LINE(GPIOD, 5U)
 #define LINE_USART2_RX              PAL_LINE(GPIOD, 6U)
 #define LINE_AUDIO_RST              PAL_LINE(GPIOD, 11U)
-
 #define LINE_SD_CS                  PAL_LINE(GPIOE, 2U)
 #define LINE_SD_DETECT              PAL_LINE(GPIOE, 3U)
 #define LINE_JOY_SEL                PAL_LINE(GPIOE, 6U)
@@ -239,7 +239,6 @@
 #define LINE_PRESSUREP              PAL_LINE(GPIOE, 8U)
 #define LINE_PRESSUREN              PAL_LINE(GPIOE, 9U)
 #define LINE_PRESSURE_TEPM          PAL_LINE(GPIOE, 14U)
-
 #define LINE_OSC_IN                 PAL_LINE(GPIOF, 0U)
 #define LINE_OSC_OUT                PAL_LINE(GPIOF, 1U)
 #define LINE_JOY_DOWN               PAL_LINE(GPIOF, 2U)
@@ -247,7 +246,21 @@
 #define LINE_JOY_RIGHT              PAL_LINE(GPIOF, 9U)
 #define LINE_JOY_UP                 PAL_LINE(GPIOF, 10U)
 
+/*===========================================================================*/
+/* Driver pre-compile time settings.                                         */
+/*===========================================================================*/
 
+/*===========================================================================*/
+/* Derived constants and error checks.                                       */
+/*===========================================================================*/
+
+/*===========================================================================*/
+/* Driver data structures and types.                                         */
+/*===========================================================================*/
+
+/*===========================================================================*/
+/* Driver macros.                                                            */
+/*===========================================================================*/
 
 /*
  * I/O ports initial setup, this configuration is established soon after reset
@@ -1207,6 +1220,9 @@
                                      PIN_AFIO_AF(GPIOH_PIN14, 0U) |         \
                                      PIN_AFIO_AF(GPIOH_PIN15, 0U))
 
+/*===========================================================================*/
+/* External declarations.                                                    */
+/*===========================================================================*/
 
 #if !defined(_FROM_ASM_)
 #ifdef __cplusplus

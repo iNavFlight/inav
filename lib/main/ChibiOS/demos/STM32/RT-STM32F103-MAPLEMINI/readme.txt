@@ -23,14 +23,13 @@ Just modify the TRGT line in the makefile in order to use different GCC ports.
 
 ** Flashing Target Board **
 
-To flash the firmware to the maplemini, an additional Make target has been
-added. It requies dfu-util. While the MapleMini is connected via USB and
+To flash the firmware to the maplemini, you can use dfu-util. While the MapleMini is connected via USB and
 still in bootloader mode, just run
 
-     > make flash_usb
+     > dfu-util -a1 -d 1eaf:0003 -D build/ch.bin -R
 
 If you compiled without the bootloader support, you will have to flash via the
-original serial flashing method. Please see
+original serial flashing method or via SWD. For the serial method please see
 http://static.leaflabs.com/pub/leaflabs/maple-docs/latest/bootloader.html#id7
 for a howto. there you can also get the official bootloader files.
 As a quick reference:

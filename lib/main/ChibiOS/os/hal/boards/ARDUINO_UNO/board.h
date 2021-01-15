@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -27,19 +27,36 @@
 #define BOARD_ARDUINO_UNO
 #define BOARD_NAME "Arduino Uno"
 
-/* All inputs except PB5 which has a LED connected */
+/*
+ * IO pins assignments.
+ */
+#define PORTB_LED1       5
+
+/*
+ * IO lines assignments.
+ */
+#define LINE_LED1   PAL_LINE(IOPORT2, 5U)
+
+/*
+ * Port B setup.
+ * All inputs except PB5 which has a LED connected.
+ */
 #define VAL_DDRB  0x20
 #define VAL_PORTB 0xFF
 
-/* All inputs with pull-ups */
+/*
+ * Port C setup.
+ * All inputs with pull-ups.
+ */
 #define VAL_DDRC  0x00
 #define VAL_PORTC 0xFF
 
-/* All inputs except PD1 (Serial TX0) */
+/*
+ * Port D setup.
+ * All inputs except PD1 (Serial TX0).
+ */
 #define VAL_DDRD  0x02
 #define VAL_PORTD 0xFF
-
-#define PORTB_LED1       5
 
 #if !defined(_FROM_ASM_)
 #ifdef __cplusplus

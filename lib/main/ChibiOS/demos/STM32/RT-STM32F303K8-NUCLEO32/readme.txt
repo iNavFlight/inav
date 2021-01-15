@@ -4,7 +4,7 @@
 
 ** TARGET **
 
-The demo runs on an ST_NUCLEO32_F303K8 board.
+The demo runs on an STM32 Nucleo32-F303K8 board.
 
 ** The Demo **
 

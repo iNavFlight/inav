@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2014..2016 Marco Veeneman
+    Copyright (C) 2014..2017 Marco Veeneman
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,13 +16,13 @@
 
 #include "ch.h"
 #include "hal.h"
-#include "ch_test.h"
+#include "rt_test_root.h"
+#include "oslib_test_root.h"
 
 typedef struct led_config
 {
-  ioportid_t port;
+  ioline_t line;
   uint32_t sleep;
-  uint8_t  pin;
 } led_config_t;
 
 /*
@@ -38,11 +38,11 @@ static THD_FUNCTION(blinkLed, arg) {
   chRegSetThreadName("Blinker");
 
   /* Configure pin as push-pull output.*/
-  palSetPadMode(ledConfig->port, ledConfig->pin, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetLineMode(ledConfig->line, PAL_MODE_OUTPUT_PUSHPULL);
 
   while (TRUE) {
     chThdSleepMilliseconds(ledConfig->sleep);
-    palTogglePad(ledConfig->port, ledConfig->pin);
+    palToggleLine(ledConfig->line);
   }
 }
 
@@ -64,43 +64,52 @@ int main(void)
   chSysInit();
 
   /* Configure RX and TX pins for UART0.*/
-  palSetPadMode(GPIOA, GPIOA_UART0_RX, PAL_MODE_INPUT | PAL_MODE_ALTERNATE(1));
-  palSetPadMode(GPIOA, GPIOA_UART0_TX, PAL_MODE_INPUT | PAL_MODE_ALTERNATE(1));
+  palSetLineMode(LINE_UART0_RX, PAL_MODE_INPUT | PAL_MODE_ALTERNATE(1));
+  palSetLineMode(LINE_UART0_TX, PAL_MODE_INPUT | PAL_MODE_ALTERNATE(1));
 
   /* Start the serial driver with the default configuration.*/
   sdStart(&SD1, NULL);
 
-  if (!palReadPad(GPIOJ, GPIOJ_SW1)) {
-    test_execute((BaseSequentialStream *)&SD1);
+  if (!palReadLine(LINE_SW1)) {
+    test_execute((BaseSequentialStream *)&SD1, &rt_test_suite);
+    test_execute((BaseSequentialStream *)&SD1, &oslib_test_suite);
   }
 
-  led1.port  = GPIOF;
-  led1.pin   = GPIOF_LED0;
+  led1.line  = LINE_LED0;
   led1.sleep = 100;
 
-  led2.port  = GPIOF;
-  led2.pin   = GPIOF_LED1;
+  led2.line  = LINE_LED1;
   led2.sleep = 101;
 
-  led3.port  = GPION;
-  led3.pin   = GPION_LED2;
+  led3.line  = LINE_LED2;
   led3.sleep = 102;
 
-  led4.port  = GPION;
-  led4.pin   = GPION_LED3;
+  led4.line  = LINE_LED3;
   led4.sleep = 103;
 
   /* Creating the blinker threads.*/
-  chThdCreateStatic(waBlinkLed1, sizeof(waBlinkLed1), NORMALPRIO, blinkLed,
+  chThdCreateStatic(waBlinkLed1,
+                    sizeof(waBlinkLed1),
+                    NORMALPRIO,
+                    blinkLed,
                     &led1);
 
-  chThdCreateStatic(waBlinkLed2, sizeof(waBlinkLed2), NORMALPRIO, blinkLed,
+  chThdCreateStatic(waBlinkLed2,
+                    sizeof(waBlinkLed2),
+                    NORMALPRIO,
+                    blinkLed,
                     &led2);
 
-  chThdCreateStatic(waBlinkLed3, sizeof(waBlinkLed3), NORMALPRIO, blinkLed,
+  chThdCreateStatic(waBlinkLed3,
+                    sizeof(waBlinkLed3),
+                    NORMALPRIO,
+                    blinkLed,
                     &led3);
 
-  chThdCreateStatic(waBlinkLed4, sizeof(waBlinkLed4), NORMALPRIO, blinkLed,
+  chThdCreateStatic(waBlinkLed4,
+                    sizeof(waBlinkLed4),
+                    NORMALPRIO,
+                    blinkLed,
                     &led4);
 
   /*

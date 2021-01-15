@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ static void txend2(UARTDriver *uartp) {
   palSetPad(GPIOC, GPIOC_LED1);
   chSysLockFromISR();
   chVTResetI(&vt1);
-  chVTDoSetI(&vt1, MS2ST(5000), restart, NULL);
+  chVTDoSetI(&vt1, TIME_MS2I(5000), restart, NULL);
   chSysUnlockFromISR();
 }
 
@@ -79,7 +79,7 @@ static void rxchar(UARTDriver *uartp, uint16_t c) {
   palClearPad(GPIOC, GPIOC_LED1);
   chSysLockFromISR();
   chVTResetI(&vt2);
-  chVTDoSetI(&vt2, MS2ST(200), ledoff, NULL);
+  chVTDoSetI(&vt2, TIME_MS2I(200), ledoff, NULL);
   chSysUnlockFromISR();
 }
 
@@ -87,6 +87,14 @@ static void rxchar(UARTDriver *uartp, uint16_t c) {
  * This callback is invoked when a receive buffer has been completely written.
  */
 static void rxend(UARTDriver *uartp) {
+
+  (void)uartp;
+}
+
+/*
+ * This callback is invoked when configured timeout reached.
+ */
+static void rxtimeout(UARTDriver *uartp) {
 
   (void)uartp;
 }
@@ -100,6 +108,8 @@ static UARTConfig uart_cfg_1 = {
   rxend,
   rxchar,
   rxerr,
+  rxtimeout,
+  0,
   38400,
   0,
   USART_CR2_LINEN,

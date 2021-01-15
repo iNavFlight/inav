@@ -44,9 +44,8 @@ static msp430x_dma_ch_reg_t * const dma_channels =
     (msp430x_dma_ch_reg_t *)&DMA0CTL;
 
 static msp430x_dma_cb_t callbacks[MSP430X_DMA_CHANNELS];
-#if CH_CFG_USE_SEMAPHORES
-static semaphore_t dma_lock;
-#endif
+static threads_queue_t dma_queue;
+static unsigned int queue_length;
 
 /*===========================================================================*/
 /* Driver local functions.                                                   */
@@ -88,9 +87,9 @@ PORT_IRQ_HANDLER(DMA_VECTOR) {
   index = (DMAIV >> 1) - 1;
 
   if (index < MSP430X_DMA_CHANNELS) {
-#if CH_CFG_USE_SEMAPHORES
-    chSemSignalI(&dma_lock);
-#endif
+    osalSysLockFromISR();
+    osalThreadDequeueNextI(&dma_queue, MSG_OK);
+    osalSysUnlockFromISR();
 
     msp430x_dma_cb_t * cb = &callbacks[index];
 
@@ -113,9 +112,7 @@ PORT_IRQ_HANDLER(DMA_VECTOR) {
  * @init
  */
 void dmaInit(void) {
-#if CH_CFG_USE_SEMAPHORES
-  chSemObjectInit(&dma_lock, MSP430X_DMA_CHANNELS);
-#endif
+  osalThreadQueueObjectInit(&dma_queue);
 }
 
 /**
@@ -125,134 +122,124 @@ void dmaInit(void) {
  *          semaphores are enabled, the calling thread will sleep until a
  *          channel is available or the request times out. If semaphores are
  *          disabled, the calling thread will busy-wait instead of sleeping.
+ *          
+ *  @sclass
  */
-bool dmaRequest(msp430x_dma_req_t * request, systime_t timeout) {
-/* Check if a DMA channel is available */
-#if CH_CFG_USE_SEMAPHORES
-  msg_t semresult = chSemWaitTimeout(&dma_lock, timeout);
-  if (semresult != MSG_OK)
+int dmaRequestS(msp430x_dma_req_t * request, systime_t timeout) {
+  
+  osalDbgCheckClassS();
+  
+  /* Check if a DMA channel is available */
+  if (queue_length >= MSP430X_DMA_CHANNELS) {
+    msg_t queueresult = osalThreadEnqueueTimeoutS(&dma_queue, timeout);
+    if (queueresult != MSG_OK)
+      return -1;
+  }
+
+  /* Grab the correct DMA channel to use */
+  int i = 0;
+  for (i = 0; i < MSP430X_DMA_CHANNELS; i++) {
+    if (!(dma_channels[i].ctl & DMAEN)) {
+      break;
+    }
+  }
+
+  /* Make the request */
+  init_request(request, i);
+  
+  return i;
+}
+
+/**
+ * @brief   Acquires exclusive control of a DMA channel.
+ * @pre     The channel must not be already acquired or an error is returned.
+ * @note    If the channel is in use by the DMA engine, blocks until acquired.
+ * @post    This channel must be interacted with using only the functions
+ *          defined in this module.
+ *
+ * @param[out] channel    The channel handle. Must be pre-allocated.
+ * @param[in]  index      The index of the channel (< MSP430X_DMA_CHANNELS).
+ * @return                The operation status.
+ * @retval false          no error, channel acquired.
+ * @retval true           error, channel already acquired.
+ * 
+ * @iclass
+ */
+bool dmaAcquireI(msp430x_dma_ch_t * channel, uint8_t index) {
+  
+  osalDbgCheckClassI();
+
+  /* Is the channel already acquired? */
+  osalDbgAssert(index < MSP430X_DMA_CHANNELS, "invalid channel index");
+  if (dma_channels[index].ctl & DMADT_4) {
     return true;
-#endif
-
-#if !(CH_CFG_USE_SEMAPHORES)
-  systime_t start = chVTGetSystemTimeX();
-
-  do {
-#endif
-    /* Grab the correct DMA channel to use */
-    int i = 0;
-    for (i = 0; i < MSP430X_DMA_CHANNELS; i++) {
-      if (!(dma_channels[i].ctl & DMAEN)) {
-        break;
-      }
-    }
-#if !(CH_CFG_USE_SEMAPHORES)
-    while (chVTTimeElapsedSinceX(start) < timeout)
-      ;
-#endif
-
-#if !(CH_CFG_USE_SEMAPHORES)
-    if (i == MSP430X_DMA_CHANNELS) {
-      return true;
-    }
-#endif
-
-    /* Make the request */
-    init_request(request, i);
-
-    return false;
   }
 
-  /**
-   * @brief   Acquires exclusive control of a DMA channel.
-   * @pre     The channel must not be already acquired or an error is returned.
-   * @note    If the channel is in use by the DMA engine, blocks until acquired.
-   * @post    This channel must be interacted with using only the functions
-   *          defined in this module.
-   *
-   * @param[out] channel    The channel handle. Must be pre-allocated.
-   * @param[in]  index      The index of the channel (< MSP430X_DMA_CHANNELS).
-   * @return                The operation status.
-   * @retval false          no error, channel acquired.
-   * @retval true           error, channel already acquired.
-   */
-  bool dmaAcquire(msp430x_dma_ch_t * channel, uint8_t index) {
-    /* Acquire the channel in an idle mode */
+  /* Increment the DMA counter */
+  queue_length++;
 
-    /* Is the channel already acquired? */
-    osalDbgAssert(index < MSP430X_DMA_CHANNELS, "invalid channel index");
-    if (dma_channels[index].ctl & DMADT_4) {
-      return true;
-    }
+  while (dma_channels[index].ctl & DMAEN)
+    ;
 
-/* Increment the DMA counter */
-#if CH_CFG_USE_SEMAPHORES
-    msg_t semresult = chSemWait(&dma_lock);
-    if (semresult != MSG_OK)
-      return true;
-#endif
+  /* Acquire the channel in an idle mode */
+  dma_trigger_set(index, DMA_TRIGGER_MNEM(DMAREQ));
+  dma_channels[index].sz  = 0;
+  dma_channels[index].ctl = DMAEN | DMAABORT | DMADT_4;
 
-    while (dma_channels[index].ctl & DMAEN)
-      ;
+  channel->registers = dma_channels + index;
+  channel->index     = index;
+  channel->cb        = callbacks + index;
+  
+  return false;
+}
 
-    dma_trigger_set(index, DMA_TRIGGER_MNEM(DMAREQ));
-    dma_channels[index].sz  = 0;
-    dma_channels[index].ctl = DMAEN | DMAABORT | DMADT_4;
+/**
+ * @brief   Initiates a DMA transfer operation using an acquired channel.
+ * @pre     The channel must have been acquired using @p dmaAcquire().
+ *
+ * @param[in] channel   pointer to a DMA channel from @p dmaAcquire().
+ * @param[in] request   pointer to a DMA request object.
+ */
+void dmaTransfer(msp430x_dma_ch_t * channel, msp430x_dma_req_t * request) {
 
-    channel->registers = dma_channels + index;
-    channel->index     = index;
-    channel->cb        = callbacks + index;
+  dma_trigger_set(channel->index, request->trigger);
+  /**(channel->ctl) = request->trigger;*/
 
-    return false;
-  }
+  channel->cb->callback = request->callback.callback;
+  channel->cb->args     = request->callback.args;
 
-  /**
-   * @brief   Initiates a DMA transfer operation using an acquired channel.
-   * @pre     The channel must have been acquired using @p dmaAcquire().
-   *
-   * @param[in] channel   pointer to a DMA channel from @p dmaAcquire().
-   * @param[in] request   pointer to a DMA request object.
-   */
-  void dmaTransfer(msp430x_dma_ch_t * channel, msp430x_dma_req_t * request) {
+  channel->registers->ctl &= (~DMAEN);
+  channel->registers->sa  = (uintptr_t)request->source_addr;
+  channel->registers->da  = (uintptr_t)request->dest_addr;
+  channel->registers->sz  = request->size;
+  channel->registers->ctl = DMAIE | request->data_mode | request->addr_mode |
+                            request->transfer_mode | DMADT_4 | DMAEN |
+                            DMAREQ; /* repeated transfers */
+}
 
-    dma_trigger_set(channel->index, request->trigger);
-    /**(channel->ctl) = request->trigger;*/
+/**
+ * @brief   Releases exclusive control of a DMA channel.
+ * @details The channel is released from control and returned to the DMA
+ * engine
+ *          pool. Trying to release an unallocated channel is an illegal
+ *          operation and is trapped if assertions are enabled.
+ * @pre     The channel must have been acquired using @p dmaAcquire().
+ * @post    The channel is returned to the DMA engine pool.
+ */
+void dmaRelease(msp430x_dma_ch_t * channel) {
+  syssts_t sts;
 
-    channel->cb->callback = request->callback.callback;
-    channel->cb->args     = request->callback.args;
+  sts = osalSysGetStatusAndLockX();
+  osalDbgCheck(channel != NULL);
 
-    chSysLock();
-    channel->registers->ctl &= (~DMAEN);
-    channel->registers->sa  = (uintptr_t)request->source_addr;
-    channel->registers->da  = (uintptr_t)request->dest_addr;
-    channel->registers->sz  = request->size;
-    channel->registers->ctl = DMAIE | request->data_mode | request->addr_mode |
-                              request->transfer_mode | DMADT_4 | DMAEN |
-                              DMAREQ; /* repeated transfers */
-    chSysUnlock();
-  }
+  /* Release the channel in an idle mode */
+  channel->registers->ctl = DMAABORT;
 
-  /**
-   * @brief   Releases exclusive control of a DMA channel.
-   * @details The channel is released from control and returned to the DMA
-   * engine
-   *          pool. Trying to release an unallocated channel is an illegal
-   *          operation and is trapped if assertions are enabled.
-   * @pre     The channel must have been acquired using @p dmaAcquire().
-   * @post    The channel is returned to the DMA engine pool.
-   */
-  void dmaRelease(msp430x_dma_ch_t * channel) {
-
-    osalDbgCheck(channel != NULL);
-
-    /* Release the channel in an idle mode */
-    channel->registers->ctl = DMAABORT;
-
-/* release the DMA counter */
-#if CH_CFG_USE_SEMAPHORES
-    chSemSignal(&dma_lock);
-#endif
-  }
+  /* release the DMA counter */
+  osalThreadDequeueAllI(&dma_queue, MSG_RESET);
+  queue_length = 0;
+  osalSysRestoreStatusX(sts);
+}
 
 #endif /* HAL_USE_DMA == TRUE */
 

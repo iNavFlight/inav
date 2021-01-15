@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -53,22 +53,37 @@
 
 #include <hal.h>
 
-typedef uint8_t         u8_t;
-typedef int8_t          s8_t;
-typedef uint16_t        u16_t;
-typedef int16_t         s16_t;
-typedef uint32_t        u32_t;
-typedef int32_t         s32_t;
-typedef uint32_t        mem_ptr_t;
+/* Use errno provided by system. */
+#define LWIP_ERRNO_INCLUDE <errno.h>
 
-#define PACK_STRUCT_STRUCT __attribute__((packed))
+/**
+ * @brief   Use system provided struct timeval by default.
+ */
+#ifndef LWIP_TIMEVAL_PRIVATE
+#define LWIP_TIMEVAL_PRIVATE        0
+#include <sys/time.h>
+#endif
 
+/**
+ * @brief   Use a no-op diagnostic output macro by default.
+ */
+#if !defined(LWIP_PLATFORM_DIAG)
 #define LWIP_PLATFORM_DIAG(x)
-#define LWIP_PLATFORM_ASSERT(x) {                                       \
-  osalSysHalt(x);                                                          \
-}
+#endif
 
-#define BYTE_ORDER LITTLE_ENDIAN
-#define LWIP_PROVIDE_ERRNO
+/**
+ * @brief   Halt the system on lwIP assert failure by default.
+ */
+#if !defined(LWIP_PLATFORM_ASSERT)
+#define LWIP_PLATFORM_ASSERT(x)     osalSysHalt(x)
+#endif
+
+/**
+ * @brief   The NETIF API is required by lwipthread.
+ */
+#ifdef LWIP_NETIF_API
+#undef LWIP_NETIF_API
+#endif
+#define LWIP_NETIF_API              1
 
 #endif /* __CC_H__ */

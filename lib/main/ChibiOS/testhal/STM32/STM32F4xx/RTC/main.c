@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -278,7 +278,8 @@ int main(void){
   /* Shell initialization.*/
   sdStart(&SD6, &ser_cfg);
   shellInit();
-  shellCreateStatic(&shell_cfg1, waShell, sizeof(waShell), NORMALPRIO);
+  chThdCreateStatic(waShell, sizeof(waShell), NORMALPRIO,
+                    shellThread, (void *)&shell_cfg1);
 
   /* wait until user do not want to test wakeup */
   while (true){

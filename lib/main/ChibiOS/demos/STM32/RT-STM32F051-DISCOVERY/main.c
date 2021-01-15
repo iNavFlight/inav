@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,7 +16,8 @@
 
 #include "ch.h"
 #include "hal.h"
-#include "test.h"
+#include "rt_test_root.h"
+#include "oslib_test_root.h"
 
 /*
  * Blue LED blinker thread, times are in milliseconds.
@@ -86,8 +87,10 @@ int main(void) {
    * driver 1.
    */
   while (true) {
-    if (palReadPad(GPIOA, GPIOA_BUTTON))
-      TestThread(&SD1);
+    if (palReadPad(GPIOA, GPIOA_BUTTON)) {
+      test_execute((BaseSequentialStream *)&SD1, &rt_test_suite);
+      test_execute((BaseSequentialStream *)&SD1, &oslib_test_suite);
+    }
     chThdSleepMilliseconds(500);
   }
 }

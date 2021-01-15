@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@
 
 #include "ch.h"
 #include "hal.h"
-#include "test.h"
 
 #include "shell.h"
 #include "chprintf.h"
@@ -37,58 +36,6 @@
 /*===========================================================================*/
 
 #define SHELL_WA_SIZE   THD_WORKING_AREA_SIZE(2048)
-#define TEST_WA_SIZE    THD_WORKING_AREA_SIZE(256)
-
-static void cmd_mem(BaseSequentialStream *chp, int argc, char *argv[]) {
-  size_t n, size;
-
-  (void)argv;
-  if (argc > 0) {
-    chprintf(chp, "Usage: mem\r\n");
-    return;
-  }
-  n = chHeapStatus(NULL, &size);
-  chprintf(chp, "core free memory : %u bytes\r\n", chCoreGetStatusX());
-  chprintf(chp, "heap fragments   : %u\r\n", n);
-  chprintf(chp, "heap free total  : %u bytes\r\n", size);
-}
-
-static void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]) {
-  static const char *states[] = {CH_STATE_NAMES};
-  thread_t *tp;
-
-  (void)argv;
-  if (argc > 0) {
-    chprintf(chp, "Usage: threads\r\n");
-    return;
-  }
-  chprintf(chp, "    addr    stack prio refs     state time\r\n");
-  tp = chRegFirstThread();
-  do {
-    chprintf(chp, "%08lx %08lx %4lu %4lu %9s\r\n",
-            (uint32_t)tp, (uint32_t)tp->p_ctx.r13,
-            (uint32_t)tp->p_prio, (uint32_t)(tp->p_refs - 1),
-            states[tp->p_state]);
-    tp = chRegNextThread(tp);
-  } while (tp != NULL);
-}
-
-static void cmd_test(BaseSequentialStream *chp, int argc, char *argv[]) {
-  thread_t *tp;
-
-  (void)argv;
-  if (argc > 0) {
-    chprintf(chp, "Usage: test\r\n");
-    return;
-  }
-  tp = chThdCreateFromHeap(NULL, TEST_WA_SIZE, chThdGetPriorityX(),
-                           TestThread, chp);
-  if (tp == NULL) {
-    chprintf(chp, "out of memory\r\n");
-    return;
-  }
-  chThdWait(tp);
-}
 
 /* Can be measured using dd if=/dev/xxxx of=/dev/null bs=512 count=10000.*/
 static void cmd_write(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -131,9 +78,6 @@ static void cmd_write(BaseSequentialStream *chp, int argc, char *argv[]) {
 }
 
 static const ShellCommand commands[] = {
-  {"mem", cmd_mem},
-  {"threads", cmd_threads},
-  {"test", cmd_test},
   {"write", cmd_write},
   {NULL, NULL}
 };
@@ -154,13 +98,14 @@ static THD_WORKING_AREA(waThread1, 128);
 static THD_FUNCTION(Thread1, arg) {
 
   (void)arg;
-
   chRegSetThreadName("blinker");
   while (true) {
-    systime_t time = serusbcfg.usbp->state == USB_ACTIVE ? 250 : 500;
-    palClearPad(GPIOC, GPIOC_LED1);
+    systime_t time;
+
+    time = serusbcfg.usbp->state == USB_ACTIVE ? 250 : 500;
+    palClearLine(LINE_LED1);
     chThdSleepMilliseconds(time);
-    palSetPad(GPIOC, GPIOC_LED1);
+    palSetLine(LINE_LED1);
     chThdSleepMilliseconds(time);
   }
 }
@@ -169,7 +114,6 @@ static THD_FUNCTION(Thread1, arg) {
  * Application entry point.
  */
 int main(void) {
-  thread_t *shelltp = NULL;
 
   /*
    * System initializations.
@@ -208,15 +152,14 @@ int main(void) {
   chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
 
   /*
-   * Normal main() thread activity, in this demo it does nothing except
-   * sleeping in a loop and check the button state.
+   * Normal main() thread activity, spawning shells.
    */
   while (true) {
-    if (!shelltp && (SDU1.config->usbp->state == USB_ACTIVE))
-      shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
-    else if (chThdTerminatedX(shelltp)) {
-      chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
-      shelltp = NULL;           /* Triggers spawning of a new shell.        */
+    if (SDU1.config->usbp->state == USB_ACTIVE) {
+      thread_t *shelltp = chThdCreateFromHeap(NULL, SHELL_WA_SIZE,
+                                              "shell", NORMALPRIO + 1,
+                                              shellThread, (void *)&shell_cfg1);
+      chThdWait(shelltp);               /* Waiting termination.             */
     }
     chThdSleepMilliseconds(1000);
   }

@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio.
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio.
 
     This file is part of ChibiOS.
 
@@ -25,8 +25,8 @@
  * @{
  */
 
-#ifndef _CHSYSTYPES_H_
-#define _CHSYSTYPES_H_
+#ifndef CHSYSTYPES_H
+#define CHSYSTYPES_H
 
 /*===========================================================================*/
 /* Module constants.                                                         */
@@ -43,17 +43,6 @@
 /*===========================================================================*/
 /* Module data structures and types.                                         */
 /*===========================================================================*/
-
-/**
- * @brief   Type of system time.
- */
-#if (CH_CFG_ST_RESOLUTION == 32) || defined(__DOXYGEN__)
-typedef uint32_t systime_t;
-#elif CH_CFG_ST_RESOLUTION == 16
-typedef uint16_t systime_t;
-#else
-#error "invalid CH_CFG_ST_RESOLUTION setting"
-#endif
 
 /**
  * @extends threads_queue_t
@@ -115,6 +104,11 @@ typedef struct ch_system ch_system_t;
 /* Module macros.                                                            */
 /*===========================================================================*/
 
+/**
+ * @brief   Utility to make the parameter a quoted string.
+ */
+#define __CH_STRINGIFY(a) #a
+
 /*===========================================================================*/
 /* External declarations.                                                    */
 /*===========================================================================*/
@@ -131,6 +125,6 @@ extern "C" {
 /* Module inline functions.                                                  */
 /*===========================================================================*/
 
-#endif /* _CHSYSTYPES_H_ */
+#endif /* CHSYSTYPES_H */
 
 /** @} */

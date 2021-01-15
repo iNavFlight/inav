@@ -1,6 +1,6 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
-              Copyright (C) 2015 Diego Ismirlian, TISA, (dismirlian (at) google's mail)
+    ChibiOS - Copyright (C) 2006..2017 Giovanni Di Sirio
+              Copyright (C) 2015..2017 Diego Ismirlian, (dismirlian (at) google's mail)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -15,11 +15,14 @@
     limitations under the License.
 */
 
-#ifndef USBH_H_
-#define USBH_H_
+#ifndef HAL_USBH_H_
+#define HAL_USBH_H_
 
 #include "hal.h"
 
+#ifndef HAL_USE_USBH
+#define HAL_USE_USBH FALSE
+#endif
 
 #ifndef HAL_USBH_USE_FTDI
 #define HAL_USBH_USE_FTDI FALSE
@@ -37,18 +40,25 @@
 #define HAL_USBH_USE_UVC FALSE
 #endif
 
+#ifndef HAL_USBH_USE_AOA
+#define HAL_USBH_USE_AOA FALSE
+#endif
+
+#ifndef HAL_USBH_USE_HID
+#define HAL_USBH_USE_HID FALSE
+#endif
+
+#ifndef HAL_USBH_USE_ADDITIONAL_CLASS_DRIVERS
+#define HAL_USBH_USE_ADDITIONAL_CLASS_DRIVERS	FALSE
+#endif
+
+#define HAL_USBH_USE_IAD     HAL_USBH_USE_UVC
+
 #if (HAL_USE_USBH == TRUE) || defined(__DOXYGEN__)
 
 #include "osal.h"
 #include "usbh/list.h"
 #include "usbh/defs.h"
-
-/* TODO:
- *
- * - Integrate VBUS power switching functionality to the API.
- *
- */
-
 
 /*===========================================================================*/
 /* Derived constants and error checks.                                       */
@@ -66,6 +76,7 @@ enum usbh_status {
 	USBH_STATUS_SUSPENDED,
 };
 
+/* These correspond to the USB spec */
 enum usbh_devstatus {
 	USBH_DEVSTATUS_DISCONNECTED = 0,
 	USBH_DEVSTATUS_ATTACHED,
@@ -104,13 +115,11 @@ enum usbh_urbstatus {
 	USBH_URBSTATUS_UNINITIALIZED = 0,
 	USBH_URBSTATUS_INITIALIZED,
 	USBH_URBSTATUS_PENDING,
-//	USBH_URBSTATUS_QUEUED,
 	USBH_URBSTATUS_ERROR,
 	USBH_URBSTATUS_TIMEOUT,
 	USBH_URBSTATUS_CANCELLED,
 	USBH_URBSTATUS_STALL,
 	USBH_URBSTATUS_DISCONNECTED,
-//	USBH_URBSTATUS_EPCLOSED,
 	USBH_URBSTATUS_OK,
 };
 
@@ -145,7 +154,8 @@ typedef void (*usbh_completion_cb)(usbh_urb_t *);
 /* include the low level driver; the required definitions are above */
 #include "hal_usbh_lld.h"
 
-#define USBH_DEFINE_BUFFER(type, name)	USBH_LLD_DEFINE_BUFFER(type, name)
+#define USBH_DEFINE_BUFFER(var)	USBH_LLD_DEFINE_BUFFER(var)
+#define USBH_DECLARE_STRUCT_MEMBER(member) USBH_LLD_DECLARE_STRUCT_MEMBER(member)
 
 struct usbh_urb {
 	usbh_ep_t *ep;
@@ -198,9 +208,8 @@ struct usbh_device {
 	usbh_devstatus_t status;
 	usbh_devspeed_t speed;
 
-	USBH_DEFINE_BUFFER(usbh_device_descriptor_t, devDesc);
-	unsigned char align_bytes[2];
-	USBH_DEFINE_BUFFER(usbh_config_descriptor_t, basicConfigDesc);
+	USBH_DECLARE_STRUCT_MEMBER(usbh_device_descriptor_t devDesc);
+	USBH_DECLARE_STRUCT_MEMBER(usbh_config_descriptor_t basicConfigDesc);
 
 	uint8_t *fullConfigurationDescriptor;
 	uint8_t keepFullCfgDesc;
@@ -257,14 +266,6 @@ struct USBHDriver {
 /*===========================================================================*/
 /* External declarations.                                                    */
 /*===========================================================================*/
-
-#if STM32_USBH_USE_OTG1
-extern USBHDriver USBHD1;
-#endif
-
-#if STM32_USBH_USE_OTG2
-extern USBHDriver USBHD2;
-#endif
 
 
 /*===========================================================================*/
@@ -351,10 +352,8 @@ extern "C" {
 		osalDbgCheck(ep != 0);
 		osalDbgCheckClassS();
 		osalDbgAssert(ep->status != USBH_EPSTATUS_UNINITIALIZED, "invalid state");
-		if (ep->status == USBH_EPSTATUS_CLOSED) {
-			osalOsRescheduleS();
+		if (ep->status == USBH_EPSTATUS_CLOSED)
 			return;
-		}
 		usbh_lld_ep_close(ep);
 	}
 	static inline void usbhEPClose(usbh_ep_t *ep) {
@@ -362,11 +361,7 @@ extern "C" {
 		usbhEPCloseS(ep);
 		osalSysUnlock();
 	}
-	static inline void usbhEPResetI(usbh_ep_t *ep) {
-		osalDbgCheckClassI();
-		osalDbgCheck(ep != NULL);
-		usbh_lld_epreset(ep);
-	}
+	bool usbhEPReset(usbh_ep_t *ep);
 	static inline bool usbhEPIsPeriodic(usbh_ep_t *ep) {
 		osalDbgCheck(ep != NULL);
 		return (ep->type & 1) != 0;
@@ -389,6 +384,22 @@ extern "C" {
 	void usbhURBCancelAndWaitS(usbh_urb_t *urb);
 	msg_t usbhURBWaitTimeoutS(usbh_urb_t *urb, systime_t timeout);
 
+	static inline void usbhURBSubmit(usbh_urb_t *urb) {
+		osalSysLock();
+		usbhURBSubmitI(urb);
+		osalOsRescheduleS();
+		osalSysUnlock();
+	}
+
+	static inline bool usbhURBCancel(usbh_urb_t *urb) {
+		bool ret;
+		osalSysLock();
+		ret = usbhURBCancelI(urb);
+		osalOsRescheduleS();
+		osalSysUnlock();
+		return ret;
+	}
+
 	/* Main loop */
 	void usbhMainLoop(USBHDriver *usbh);
 
@@ -403,14 +414,13 @@ extern "C" {
 
 typedef struct usbh_classdriver_vmt usbh_classdriver_vmt_t;
 struct usbh_classdriver_vmt {
+	void (*init)(void);
 	usbh_baseclassdriver_t *(*load)(usbh_device_t *dev,	const uint8_t *descriptor, uint16_t rem);
 	void (*unload)(usbh_baseclassdriver_t *drv);
+	/* TODO: add power control, suspend, etc */
 };
 
 struct usbh_classdriverinfo {
-	int16_t class;
-	int16_t subclass;
-	int16_t protocol;
 	const char *name;
 	const usbh_classdriver_vmt_t *vmt;
 };
@@ -424,13 +434,6 @@ struct usbh_baseclassdriver {
 	_usbh_base_classdriver_data
 };
 
-
-/*===========================================================================*/
-/* Helper functions.				                                         */
-/*===========================================================================*/
-#include <usbh/desciter.h>	/* descriptor iterators */
-#include <usbh/debug.h>		/* debug */
-
 #endif
 
-#endif /* USBH_H_ */
+#endif /* HAL_USBH_H_ */

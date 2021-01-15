@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- STM32F4xx board Template -->
+<!-- STM32F7xx board Template -->
 <board
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:noNamespaceSchemaLocation="http://www.chibios.org/xml/schema/boards/stm32f7xx_board.xsd">
   <configuration_settings>
     <templates_path>resources/gencfg/processors/boards/stm32f7xx/templates</templates_path>
     <output_path>..</output_path>
-    <hal_version>3.0.x</hal_version>
+    <hal_version>5.0.x</hal_version>
   </configuration_settings>
   <board_name>STMicroelectronics STM32F746G-Discovery</board_name>
   <board_id>ST_STM32F746G_DISCOVERY</board_id>
@@ -30,7 +30,8 @@
     HSEBypass="true"
     LSEFrequency="32768"
     LSEBypass="false"
-    VDD="300" />
+    VDD="300"
+    LSEDrive="3 High Drive (default)" />
   <ports>
     <GPIOA>
       <pin0
@@ -883,8 +884,8 @@
         Level="High"
         Speed="Maximum"
         Resistor="Floating"
-        Mode="Input"
-        Alternate="0" />
+        Mode="Alternate"
+        Alternate="12" />
       <pin9
         ID="DCMI_VSYNC"
         Type="PushPull"
@@ -1175,8 +1176,8 @@
         Level="High"
         Speed="Maximum"
         Resistor="Floating"
-        Mode="Alternate"
-        Alternate="14" />
+        Mode="Output"
+        Alternate="0" />
       <pin13
         ID="LCD_INT"
         Type="PushPull"

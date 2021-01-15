@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -106,7 +106,7 @@ void cmd_sdc(BaseSequentialStream *chp, int argc, char *argv[]) {
     /* Single block read performance, aligned.*/
     chprintf(chp, "Single block aligned read performance:           ");
     start = chVTGetSystemTime();
-    end = start + MS2ST(1000);
+    end = chTimeAddX(start, TIME_MS2I(1000));
     n = 0;
     do {
       if (blkRead(&SDCD1, startblk, buf, 1)) {
@@ -120,7 +120,7 @@ void cmd_sdc(BaseSequentialStream *chp, int argc, char *argv[]) {
     /* Multiple sequential blocks read performance, aligned.*/
     chprintf(chp, "16 sequential blocks aligned read performance:   ");
     start = chVTGetSystemTime();
-    end = start + MS2ST(1000);
+    end = chTimeAddX(start, TIME_MS2I(1000));
     n = 0;
     do {
       if (blkRead(&SDCD1, startblk, buf, SDC_BURST_SIZE)) {
@@ -135,7 +135,7 @@ void cmd_sdc(BaseSequentialStream *chp, int argc, char *argv[]) {
     /* Single block read performance, unaligned.*/
     chprintf(chp, "Single block unaligned read performance:         ");
     start = chVTGetSystemTime();
-    end = start + MS2ST(1000);
+    end = chTimeAddX(start, TIME_MS2I(1000));
     n = 0;
     do {
       if (blkRead(&SDCD1, startblk, buf + 1, 1)) {
@@ -149,7 +149,7 @@ void cmd_sdc(BaseSequentialStream *chp, int argc, char *argv[]) {
     /* Multiple sequential blocks read performance, unaligned.*/
     chprintf(chp, "16 sequential blocks unaligned read performance: ");
     start = chVTGetSystemTime();
-    end = start + MS2ST(1000);
+    end = chTimeAddX(start, TIME_MS2I(1000));
     n = 0;
     do {
       if (blkRead(&SDCD1, startblk, buf + 1, SDC_BURST_SIZE)) {
@@ -292,7 +292,6 @@ static const ShellConfig shell_cfg1 = {
  * Application entry point.
  */
 int main(void) {
-  thread_t *shelltp = NULL;
 
   /*
    * System initializations.
@@ -325,15 +324,13 @@ int main(void) {
   chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
 
   /*
-   * Normal main() thread activity, in this demo it does nothing.
+   * Normal main() thread activity, spawning shells.
    */
   while (true) {
-    if (!shelltp)
-      shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
-    else if (chThdTerminatedX(shelltp)) {
-      chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
-      shelltp = NULL;           /* Triggers spawning of a new shell.        */
-    }
+    thread_t *shelltp = chThdCreateFromHeap(NULL, SHELL_WA_SIZE,
+                                            "shell", NORMALPRIO + 1,
+                                            shellThread, (void *)&shell_cfg1);
+    chThdWait(shelltp);               /* Waiting termination.             */
     chThdSleepMilliseconds(1000);
   }
 }

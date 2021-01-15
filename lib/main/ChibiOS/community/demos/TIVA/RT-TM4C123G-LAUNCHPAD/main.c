@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2014..2016 Marco Veeneman
+    Copyright (C) 2014..2017 Marco Veeneman
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,13 +16,13 @@
 
 #include "ch.h"
 #include "hal.h"
-#include "ch_test.h"
+#include "rt_test_root.h"
+#include "oslib_test_root.h"
 
 typedef struct led_config
 {
-  ioportid_t port;
+  ioline_t line;
   uint32_t sleep;
-  uint8_t  pin;
 } led_config_t;
 
 /*
@@ -36,11 +36,11 @@ static THD_FUNCTION(blinkLed, arg) {
 
   chRegSetThreadName("Blinker");
 
-  palSetPadMode(ledConfig->port, ledConfig->pin, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetLineMode(ledConfig->line, PAL_MODE_OUTPUT_PUSHPULL);
 
   while (TRUE) {
     chThdSleepMilliseconds(ledConfig->sleep);
-    palTogglePad(ledConfig->port, ledConfig->pin);
+    palToggleLine(ledConfig->line);
   }
 }
 
@@ -62,37 +62,44 @@ int main(void)
   chSysInit();
 
   /* Configure RX and TX pins for UART0.*/
-  palSetPadMode(GPIOA, GPIOA_UART0_RX, PAL_MODE_INPUT | PAL_MODE_ALTERNATE(1));
-  palSetPadMode(GPIOA, GPIOA_UART0_TX, PAL_MODE_INPUT | PAL_MODE_ALTERNATE(1));
+  palSetLineMode(LINE_UART0_RX, PAL_MODE_INPUT | PAL_MODE_ALTERNATE(1));
+  palSetLineMode(LINE_UART0_TX, PAL_MODE_INPUT | PAL_MODE_ALTERNATE(1));
 
   /* Start the serial driver with the default configuration.*/
   sdStart(&SD1, NULL);
 
-  if (!palReadPad(GPIOF, GPIOF_SW2)) {
-    test_execute((BaseSequentialStream *)&SD1);
+  if (!palReadLine(LINE_SW2)) {
+    test_execute((BaseSequentialStream *)&SD1, &rt_test_suite);
+    test_execute((BaseSequentialStream *)&SD1, &oslib_test_suite);
   }
 
-  ledRed.port    = GPIOF;
-  ledRed.pin     = GPIOF_LED_RED;
+  ledRed.line    = LINE_LED_RED;
   ledRed.sleep   = 100;
 
-  ledGreen.port  = GPIOF;
-  ledGreen.pin   = GPIOF_LED_GREEN;
+  ledGreen.line  = LINE_LED_GREEN;
   ledGreen.sleep = 101;
 
-  ledBlue.port   = GPIOF;
-  ledBlue.pin    = GPIOF_LED_BLUE;
+  ledBlue.line   = LINE_LED_BLUE;
   ledBlue.sleep  = 102;
 
   /* Creating the blinker threads.*/
-  chThdCreateStatic(waBlinkLedRed, sizeof(waBlinkLedRed), NORMALPRIO, blinkLed,
+  chThdCreateStatic(waBlinkLedRed,
+                    sizeof(waBlinkLedRed),
+                    NORMALPRIO,
+                    blinkLed,
                     &ledRed);
 
-  chThdCreateStatic(waBlinkLedGreen, sizeof(waBlinkLedGreen), NORMALPRIO,
-                    blinkLed, &ledGreen);
+  chThdCreateStatic(waBlinkLedGreen,
+                    sizeof(waBlinkLedGreen),
+                    NORMALPRIO,
+                    blinkLed,
+                    &ledGreen);
 
-  chThdCreateStatic(waBlinkLedBlue, sizeof(waBlinkLedBlue), NORMALPRIO,
-                    blinkLed, &ledBlue);
+  chThdCreateStatic(waBlinkLedBlue,
+                    sizeof(waBlinkLedBlue),
+                    NORMALPRIO,
+                    blinkLed,
+                    &ledBlue);
 
   /* Normal main() thread activity.*/
   while (TRUE) {

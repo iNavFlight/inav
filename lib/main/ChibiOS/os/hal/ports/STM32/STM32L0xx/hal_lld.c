@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ static void hal_lld_backup_domain_init(void) {
   PWR->CR |= PWR_CR_DBP;
 
   /* Reset BKP domain if different clock source selected.*/
-  if ((RCC->CSR & STM32_RTCSEL_MASK) != STM32_RTCSEL){
+  if ((RCC->CSR & STM32_RTCSEL_MASK) != STM32_RTCSEL) {
     /* Backup domain reset.*/
     RCC->CSR |= RCC_CSR_RTCRST;
     RCC->CSR &= ~RCC_CSR_RTCRST;
@@ -65,7 +65,7 @@ static void hal_lld_backup_domain_init(void) {
 #if STM32_LSE_ENABLED
   RCC->CSR |= RCC_CSR_LSEON;
   while ((RCC->CSR & RCC_CSR_LSERDY) == 0)
-    ;                                     /* Waits until LSE is stable.   */
+    ;                                       /* Waits until LSE is stable.   */
 #endif
 
 #if STM32_RTCSEL != STM32_RTCSEL_NOCLOCK
@@ -150,20 +150,24 @@ OSAL_IRQ_HANDLER(STM32_DMA1_CH4567_HANDLER) {
  */
 void hal_lld_init(void) {
 
-  /* Reset of all peripherals.*/
+  /* Reset of all peripherals except those on IOP.*/
   rccResetAHB(~RCC_AHBRSTR_MIFRST);
   rccResetAPB1(~RCC_APB1RSTR_PWRRST);
   rccResetAPB2(~0);
 
   /* PWR clock enabled.*/
-  rccEnablePWRInterface(FALSE);
+  rccEnablePWRInterface(true);
 
   /* Initializes the backup domain.*/
   hal_lld_backup_domain_init();
 
+  /* DMA subsystems initialization.*/
 #if defined(STM32_DMA_REQUIRED)
   dmaInit();
 #endif
+
+  /* IRQ subsystem initialization.*/
+  irqInit();
 
   /* Programmable voltage detector enable.*/
 #if STM32_PVD_ENABLE
@@ -172,7 +176,7 @@ void hal_lld_init(void) {
 }
 
 /**
- * @brief   STM32L1xx voltage, clocks and PLL initialization.
+ * @brief   STM32L0xx voltage, clocks and PLL initialization.
  * @note    All the involved constants come from the file @p board.h.
  * @note    This function should be invoked just after the system reset.
  *
@@ -208,6 +212,12 @@ void stm32_clock_init(void) {
   RCC->CR |= RCC_CR_HSION;
   while ((RCC->CR & RCC_CR_HSIRDY) == 0)
     ;                           /* Waits until HSI16 is stable.             */
+
+#if STM32_HSI16_DIVIDER_ENABLED
+  RCC->CR |= RCC_CR_HSIDIVEN;
+  while ((RCC->CR & RCC_CR_HSIDIVF) == 0)
+    ;
+#endif
 #endif
 
 #if STM32_HSE_ENABLED
@@ -254,6 +264,23 @@ void stm32_clock_init(void) {
     ;                           /* Waits until PLL is stable.               */
 #endif
 
+#if STM32_ACTIVATE_HSI48
+  /* Enabling SYSCFG clock. */
+  rccEnableAPB2(RCC_APB2ENR_SYSCFGEN, true);
+  /* Configuring SYSCFG to enable VREFINT and HSI48 VREFINT buffer. */
+  SYSCFG->CFGR3 = STM32_VREFINT_EN | SYSCFG_CFGR3_ENREF_HSI48;
+
+  while (!(SYSCFG->CFGR3 & SYSCFG_CFGR3_VREFINT_RDYF))
+    ;                             /* Waits until VREFINT is stable.         */
+  /* Disabling SYSCFG clock. */
+  rccDisableAPB2(RCC_APB2ENR_SYSCFGEN);
+
+  /* Enabling HSI48. */
+  RCC->CRRCR |= RCC_CRRCR_HSI48ON;
+  while (!(RCC->CRRCR & RCC_CRRCR_HSI48RDY))
+    ;                             /* Waits until HSI48 is stable.           */
+#endif
+
   /* Other clock-related settings (dividers, MCO etc).*/
   RCC->CR   |= STM32_RTCPRE;
   RCC->CFGR |= STM32_MCOPRE | STM32_MCOSEL |
@@ -263,9 +290,12 @@ void stm32_clock_init(void) {
   /* Flash setup and final clock selection.*/
 #if defined(STM32_FLASHBITS)
   FLASH->ACR = STM32_FLASHBITS;
+  while ((FLASH->ACR & FLASH_ACR_LATENCY_Msk) !=
+         (STM32_FLASHBITS & FLASH_ACR_LATENCY_Msk)) {
+  }
 #endif
 
-  /* Switching to the configured clock source if it is different from MSI.*/
+  /* Switching to the configured clock source if it is different from MSI.  */
 #if (STM32_SW != STM32_SW_MSI)
   RCC->CFGR |= STM32_SW;        /* Switches on the selected clock source.   */
   while ((RCC->CFGR & RCC_CFGR_SWS) != (STM32_SW << 2))
@@ -273,12 +303,12 @@ void stm32_clock_init(void) {
 #endif
 
   /* Peripherals clock sources setup.*/
-  RCC->CCIPR = STM32_HSI48SEL   | STM32_LPTIM1CLK | STM32_I2C1CLK   |
-               STM32_LPUART1CLK | STM32_USART2CLK | STM32_USART1CLK;
+  RCC->CCIPR = STM32_HSI48SEL   | STM32_LPTIM1SEL | STM32_I2C1SEL   |
+               STM32_LPUART1SEL | STM32_USART2SEL | STM32_USART1SEL;
 
   /* SYSCFG clock enabled here because it is a multi-functional unit shared
      among multiple drivers.*/
-  rccEnableAPB2(RCC_APB2ENR_SYSCFGEN, TRUE);
+  rccEnableAPB2(RCC_APB2ENR_SYSCFGEN, true);
 #endif /* STM32_NO_INIT */
 }
 

@@ -48,7 +48,7 @@ static void cmd_random(BaseSequentialStream *chp, int argc, char *argv[]) {
 
     for (i = 0 ; i < size ; i++) {
 	chprintf(chp, "%02x ", random_buffer[i]);
-	if (nl = (((i+1) % 20) == 0))
+	if ((nl = (((i+1) % 20)) == 0))
 	    chprintf(chp, "\r\n");
     }
     if (!nl)
@@ -60,7 +60,7 @@ static void cmd_random(BaseSequentialStream *chp, int argc, char *argv[]) {
 /*
  * Shell
  */
-#define SHELL_WA_SIZE   THD_WORKING_AREA_SIZE(2048)
+static THD_WORKING_AREA(shell_wa, 1024);
 
 static const ShellCommand commands[] = {
   {"random", cmd_random}, 
@@ -105,7 +105,8 @@ int main(void) {
    * Shell manager initialization.
    */
   shellInit();
-  shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
+  chThdCreateStatic(shell_wa, sizeof(shell_wa), NORMALPRIO,
+		      shellThread, (void *)&shell_cfg1);
   
 
   /*

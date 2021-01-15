@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2014..2016 Marco Veeneman
+    Copyright (C) 2014..2017 Marco Veeneman
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -45,123 +45,6 @@
  * @}
  */
 
-/**
- * @name    RCC register bits definitions
- * @{
- */
-
-#define TIVA_RCC_MOSCDIS            (0x01 << 0)
-
-#define TIVA_RCC_OSCSRC_MASK        (0x03 << 4)
-#define TIVA_RCC_OSCSRC_MOSC        (0x00 << 4)
-#define TIVA_RCC_OSCSRC_PIOSC       (0x01 << 4)
-#define TIVA_RCC_OSCSRC_PIOSC_4     (0x02 << 4)
-#define TIVA_RCC_OSCSRC_LFIOSC      (0x03 << 4)
-
-#define TIVA_RCC_XTAL_MASK          (0x1f << 6)
-#define TIVA_RCC_XTAL_4000000       (0x06 << 6)
-#define TIVA_RCC_XTAL_4096000       (0x07 << 6)
-#define TIVA_RCC_XTAL_4915200       (0x08 << 6)
-#define TIVA_RCC_XTAL_5000000       (0x09 << 6)
-#define TIVA_RCC_XTAL_5120000       (0x0a << 6)
-#define TIVA_RCC_XTAL_6000000       (0x0b << 6)
-#define TIVA_RCC_XTAL_6144000       (0x0c << 6)
-#define TIVA_RCC_XTAL_7372800       (0x0d << 6)
-#define TIVA_RCC_XTAL_8000000       (0x0e << 6)
-#define TIVA_RCC_XTAL_8192000       (0x0f << 6)
-#define TIVA_RCC_XTAL_10000000      (0x10 << 6)
-#define TIVA_RCC_XTAL_12000000      (0x11 << 6)
-#define TIVA_RCC_XTAL_12288000      (0x12 << 6)
-#define TIVA_RCC_XTAL_13560000      (0x13 << 6)
-#define TIVA_RCC_XTAL_14318180      (0x14 << 6)
-#define TIVA_RCC_XTAL_16000000      (0x15 << 6)
-#define TIVA_RCC_XTAL_16384000      (0x16 << 6)
-#define TIVA_RCC_XTAL_18000000      (0x17 << 6)
-#define TIVA_RCC_XTAL_20000000      (0x18 << 6)
-#define TIVA_RCC_XTAL_24000000      (0x19 << 6)
-#define TIVA_RCC_XTAL_25000000      (0x1a << 6)
-
-#define TIVA_RCC_BYPASS             (1 << 11)
-
-#define TIVA_RCC_PWRDN              (1 << 13)
-
-#define TIVA_RCC_PWMDIV_MASK        (0x07 << 17)
-#define TIVA_RCC_PWMDIV_2           (0x00 << 17)
-#define TIVA_RCC_PWMDIV_4           (0x01 << 17)
-#define TIVA_RCC_PWMDIV_8           (0x02 << 17)
-#define TIVA_RCC_PWMDIV_16          (0x03 << 17)
-#define TIVA_RCC_PWMDIV_32          (0x04 << 17)
-#define TIVA_RCC_PWMDIV_64          (0x07 << 17)
-
-#define TIVA_RCC_USEPWMDIV          (1 << 20)
-
-#define TIVA_RCC_USESYSDIV	        (1 << 22)
-
-#define TIVA_RCC_SYSDIV_MASK	    (0x0f << 23)
-#define TIVA_RCC_SYSDIV_1           (0x00 << 23)
-#define TIVA_RCC_SYSDIV_2           (0x01 << 23)
-#define TIVA_RCC_SYSDIV_3           (0x02 << 23)
-#define TIVA_RCC_SYSDIV_4           (0x03 << 23)
-#define TIVA_RCC_SYSDIV_5           (0x04 << 23)
-#define TIVA_RCC_SYSDIV_6           (0x05 << 23)
-#define TIVA_RCC_SYSDIV_7           (0x06 << 23)
-#define TIVA_RCC_SYSDIV_8           (0x07 << 23)
-#define TIVA_RCC_SYSDIV_9           (0x08 << 23)
-#define TIVA_RCC_SYSDIV_10          (0x09 << 23)
-#define TIVA_RCC_SYSDIV_11          (0x0a << 23)
-#define TIVA_RCC_SYSDIV_12          (0x0b << 23)
-#define TIVA_RCC_SYSDIV_13          (0x0c << 23)
-#define TIVA_RCC_SYSDIV_14          (0x0d << 23)
-#define TIVA_RCC_SYSDIV_15          (0x0e << 23)
-#define TIVA_RCC_SYSDIV_16          (0x0f << 23)
-
-#define TIVA_RCC_ACG		        (1 << 27)
-
-/**
- * @}
- */
-
-/**
- * @name    RCC2 register bits definitions
- * @{
- */
-
-#define TIVA_RCC2_OSCSRC2_MASK      (0x07 << 4)
-#define TIVA_RCC2_OSCSRC2_MOSC      (0x00 << 4)
-#define TIVA_RCC2_OSCSRC2_PIOSC     (0x01 << 4)
-#define TIVA_RCC2_OSCSRC2_PIOSC_4   (0x02 << 4)
-#define TIVA_RCC2_OSCSRC2_LFIOSC    (0x03 << 4)
-#define TIVA_RCC2_OSCSRC2_32768     (0x07 << 4)
-
-#define TIVA_RCC2_BYPASS2           (1 << 11)
-
-#define TIVA_RCC2_PWRDN2            (1 << 13)
-
-#define TIVA_RCC2_USBPWRDN          (1 << 14)
-
-#define TIVA_RCC2_SYSDIV2LSB        (1 << 22)
-
-#define TIVA_RCC2_SYSDIV2_MASK      (0x3f << 23)
-
-#define TIVA_RCC2_DIV400            (1 << 30)
-
-#define TIVA_RCC2_USERCC2           (1 << 31)
-
-/**
- * @}
- */
-
-/**
- * @name    RIS register bits definitions
- * @{
- */
-
-#define SYSCTL_RIS_PLLLRIS	            (1 << 6)
-
-/**
- * @}
- */
-
 /*===========================================================================*/
 /* Driver pre-compile time settings.                                         */
 /*===========================================================================*/
@@ -172,7 +55,7 @@
  */
 
 #if !defined(TIVA_OSCSRC)
-#define TIVA_OSCSRC                     TIVA_RCC2_OSCSRC2_MOSC
+#define TIVA_OSCSRC                     SYSCTL_RCC2_OSCSRC2_MO
 #endif
 
 #if !defined(TIVA_MOSC_ENABLE)
@@ -217,56 +100,56 @@
 /*
  * Oscillator-related checks.
  */
-#if !(TIVA_OSCSRC == TIVA_RCC2_OSCSRC2_MOSC) &&                                 \
-    !(TIVA_OSCSRC == TIVA_RCC2_OSCSRC2_PIOSC) &&                                \
-    !(TIVA_OSCSRC == TIVA_RCC2_OSCSRC2_PIOSC_4) &&                              \
-    !(TIVA_OSCSRC == TIVA_RCC2_OSCSRC2_LFIOSC) &&                               \
-    !(TIVA_OSCSRC == TIVA_RCC2_OSCSRC2_32768)
+#if !(TIVA_OSCSRC == SYSCTL_RCC2_OSCSRC2_MO) &&                                 \
+    !(TIVA_OSCSRC == SYSCTL_RCC2_OSCSRC2_IO) &&                                \
+    !(TIVA_OSCSRC == SYSCTL_RCC2_OSCSRC2_IO4) &&                              \
+    !(TIVA_OSCSRC == SYSCTL_RCC2_OSCSRC2_30) &&                               \
+    !(TIVA_OSCSRC == SYSCTL_RCC2_OSCSRC2_32)
 #error "Invalid value for TIVA_OSCSRC defined"
 #endif
 
 #if TIVA_XTAL_VALUE == 4000000
-#define TIVA_XTAL_              (0x06 << 6)
+#define TIVA_XTAL_              SYSCTL_RCC_XTAL_4MHZ
 #elif TIVA_XTAL_VALUE == 4096000
-#define TIVA_XTAL_              (0x07 << 6)
+#define TIVA_XTAL_              SYSCTL_RCC_XTAL_4_09MHZ
 #elif TIVA_XTAL_VALUE == 4915200
-#define TIVA_XTAL_              (0x08 << 6)
+#define TIVA_XTAL_              SYSCTL_RCC_XTAL_4_91MHZ
 #elif TIVA_XTAL_VALUE == 5000000
-#define TIVA_XTAL_              (0x09 << 6)
+#define TIVA_XTAL_              SYSCTL_RCC_XTAL_5MHZ
 #elif TIVA_XTAL_VALUE == 5120000
-#define TIVA_XTAL_              (0x0a << 6)
+#define TIVA_XTAL_              SYSCTL_RCC_XTAL_5_12MHZ
 #elif TIVA_XTAL_VALUE == 6000000
-#define TIVA_XTAL_              (0x0b << 6)
+#define TIVA_XTAL_              SYSCTL_RCC_XTAL_6MHZ
 #elif TIVA_XTAL_VALUE == 6144000
-#define TIVA_XTAL_              (0x0c << 6)
+#define TIVA_XTAL_              SYSCTL_RCC_XTAL_6_14MHZ
 #elif TIVA_XTAL_VALUE == 7372800
-#define TIVA_XTAL_              (0x0d << 6)
+#define TIVA_XTAL_              SYSCTL_RCC_XTAL_7_37MHZ
 #elif TIVA_XTAL_VALUE == 8000000
-#define TIVA_XTAL_              (0x0e << 6)
+#define TIVA_XTAL_              SYSCTL_RCC_XTAL_8MHZ
 #elif TIVA_XTAL_VALUE == 8192000
-#define TIVA_XTAL_              (0x0f << 6)
+#define TIVA_XTAL_              SYSCTL_RCC_XTAL_8_19MHZ
 #elif TIVA_XTAL_VALUE == 10000000
-#define TIVA_XTAL_              (0x10 << 6)
+#define TIVA_XTAL_              SYSCTL_RCC_XTAL_10MHZ
 #elif TIVA_XTAL_VALUE == 12000000
-#define TIVA_XTAL_              (0x11 << 6)
+#define TIVA_XTAL_              SYSCTL_RCC_XTAL_12MHZ
 #elif TIVA_XTAL_VALUE == 12288000
-#define TIVA_XTAL_              (0x12 << 6)
+#define TIVA_XTAL_              SYSCTL_RCC_XTAL_12_2MHZ
 #elif TIVA_XTAL_VALUE == 13560000
-#define TIVA_XTAL_              (0x13 << 6)
+#define TIVA_XTAL_              SYSCTL_RCC_XTAL_13_5MHZ
 #elif TIVA_XTAL_VALUE == 14318180
-#define TIVA_XTAL_              (0x14 << 6)
+#define TIVA_XTAL_              SYSCTL_RCC_XTAL_14_3MHZ
 #elif TIVA_XTAL_VALUE == 16000000
-#define TIVA_XTAL_              (0x15 << 6)
+#define TIVA_XTAL_              SYSCTL_RCC_XTAL_16MHZ
 #elif TIVA_XTAL_VALUE == 16384000
-#define TIVA_XTAL_              (0x16 << 6)
+#define TIVA_XTAL_              SYSCTL_RCC_XTAL_16_3MHZ
 #elif TIVA_XTAL_VALUE == 18000000
-#define TIVA_XTAL_              (0x17 << 6)
+#define TIVA_XTAL_              SYSCTL_RCC_XTAL_18MHZ
 #elif TIVA_XTAL_VALUE == 20000000
-#define TIVA_XTAL_              (0x18 << 6)
+#define TIVA_XTAL_              SYSCTL_RCC_XTAL_20MHZ
 #elif TIVA_XTAL_VALUE == 24000000
-#define TIVA_XTAL_              (0x19 << 6)
+#define TIVA_XTAL_              SYSCTL_RCC_XTAL_24MHZ
 #elif TIVA_XTAL_VALUE == 25000000
-#define TIVA_XTAL_              (0x1a << 6)
+#define TIVA_XTAL_              SYSCTL_RCC_XTAL_25MHZ
 #else
 #error "Invalid value for TIVA_XTAL_VALUE defined"
 #endif
@@ -320,7 +203,7 @@
 #error "Invalid value for TIVA_BYPASS_VALUE defined"
 #endif
 
-#if (TIVA_OSCSRC == TIVA_RCC_OSCSRC_MOSC) && (TIVA_MOSC_ENABLE == FALSE)
+#if (TIVA_OSCSRC == SYSCTL_RCC2_OSCSRC2_MO) && (TIVA_MOSC_ENABLE == FALSE)
 #error "Main Oscillator selected but not enabled"
 #endif
 

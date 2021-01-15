@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2014..2016 Marco Veeneman
+    Copyright (C) 2014..2017 Marco Veeneman
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -35,9 +35,9 @@
  */
 
 /* GPIO units.*/
-#if defined(TM4C1290NCPDT) || defined(TM4C1292NCPDT) || defined(TM4C1294KCPDT)\
-  || defined(TM4C1294NCPDT) || defined(TM4C129CNCPDT) || defined(TM4C129DNCPDT)\
-  || defined(TM4C129EKCPDT) || defined(TM4C129ENCPDT)
+#if defined(PART_TM4C1290NCPDT) || defined(PART_TM4C1292NCPDT) || defined(PART_TM4C1294KCPDT)\
+  || defined(PART_TM4C1294NCPDT) || defined(PART_TM4C129CNCPDT) || defined(PART_TM4C129DNCPDT)\
+  || defined(PART_TM4C129EKCPDT) || defined(PART_TM4C129ENCPDT)
 #define TIVA_GPIOA_HANDLER                  Vector40
 #define TIVA_GPIOB_HANDLER                  Vector44
 #define TIVA_GPIOC_HANDLER                  Vector48
@@ -98,10 +98,10 @@
 #define TIVA_GPIOQ6_NUMBER                  90
 #define TIVA_GPIOQ7_NUMBER                  91
 #endif
-#if defined(TM4C1290NCZAD) || defined(TM4C1292NCZAD) || defined(TM4C1294NCZAD)\
-  || defined(TM4C1297NCZAD) || defined(TM4C1299KCZAD) || defined(TM4C1299NCZAD)\
-  || defined(TM4C129CNCZAD) || defined(TM4C129DNCZAD) || defined(TM4C129ENCZAD)\
-  || defined(TM4C129LNCZAD) || defined(TM4C129XKCZAD) || defined(TM4C129XNCZAD)
+#if defined(PART_TM4C1290NCZAD) || defined(PART_TM4C1292NCZAD) || defined(PART_TM4C1294NCZAD)\
+  || defined(PART_TM4C1297NCZAD) || defined(PART_TM4C1299KCZAD) || defined(PART_TM4C1299NCZAD)\
+  || defined(PART_TM4C129CNCZAD) || defined(PART_TM4C129DNCZAD) || defined(PART_TM4C129ENCZAD)\
+  || defined(PART_TM4C129LNCZAD) || defined(PART_TM4C129XKCZAD) || defined(PART_TM4C129XNCZAD)
 #define TIVA_GPIOA_HANDLER                  Vector40
 #define TIVA_GPIOB_HANDLER                  Vector44
 #define TIVA_GPIOC_HANDLER                  Vector48
@@ -170,85 +170,85 @@
 #endif
 
 /* EPI units.*/
-#if defined(TM4C1290NCPDT) || defined(TM4C1290NCZAD) || defined(TM4C1292NCPDT)\
-  || defined(TM4C1292NCZAD) || defined(TM4C1294KCPDT) || defined(TM4C1294NCPDT)\
-  || defined(TM4C1294NCZAD) || defined(TM4C1297NCZAD) || defined(TM4C1299KCZAD)\
-  || defined(TM4C1299NCZAD) || defined(TM4C129CNCPDT) || defined(TM4C129CNCZAD)\
-  || defined(TM4C129DNCPDT) || defined(TM4C129DNCZAD) || defined(TM4C129EKCPDT)\
-  || defined(TM4C129ENCPDT) || defined(TM4C129ENCZAD) || defined(TM4C129LNCZAD)\
-  || defined(TM4C129XKCZAD) || defined(TM4C129XNCZAD)
+#if defined(PART_TM4C1290NCPDT) || defined(PART_TM4C1290NCZAD) || defined(PART_TM4C1292NCPDT)\
+  || defined(PART_TM4C1292NCZAD) || defined(PART_TM4C1294KCPDT) || defined(PART_TM4C1294NCPDT)\
+  || defined(PART_TM4C1294NCZAD) || defined(PART_TM4C1297NCZAD) || defined(PART_TM4C1299KCZAD)\
+  || defined(PART_TM4C1299NCZAD) || defined(PART_TM4C129CNCPDT) || defined(PART_TM4C129CNCZAD)\
+  || defined(PART_TM4C129DNCPDT) || defined(PART_TM4C129DNCZAD) || defined(PART_TM4C129EKCPDT)\
+  || defined(PART_TM4C129ENCPDT) || defined(PART_TM4C129ENCZAD) || defined(PART_TM4C129LNCZAD)\
+  || defined(PART_TM4C129XKCZAD) || defined(PART_TM4C129XNCZAD)
 #define TIVA_EPI0_HANDLER                   Vector108
 
 #define TIVA_EPI0_NUMBER                    50
 #endif
 
 /* CRC units.*/
-#if defined(TM4C1290NCPDT) || defined(TM4C1290NCZAD) || defined(TM4C1292NCPDT)\
-  || defined(TM4C1292NCZAD) || defined(TM4C1294KCPDT) || defined(TM4C1294NCPDT)\
-  || defined(TM4C1294NCZAD) || defined(TM4C1297NCZAD) || defined(TM4C1299KCZAD)\
-  || defined(TM4C1299NCZAD) || defined(TM4C129CNCPDT) || defined(TM4C129CNCZAD)\
-  || defined(TM4C129DNCPDT) || defined(TM4C129DNCZAD) || defined(TM4C129EKCPDT)\
-  || defined(TM4C129ENCPDT) || defined(TM4C129ENCZAD) || defined(TM4C129LNCZAD)\
-  || defined(TM4C129XKCZAD) || defined(TM4C129XNCZAD)
+#if defined(PART_TM4C1290NCPDT) || defined(PART_TM4C1290NCZAD) || defined(PART_TM4C1292NCPDT)\
+  || defined(PART_TM4C1292NCZAD) || defined(PART_TM4C1294KCPDT) || defined(PART_TM4C1294NCPDT)\
+  || defined(PART_TM4C1294NCZAD) || defined(PART_TM4C1297NCZAD) || defined(PART_TM4C1299KCZAD)\
+  || defined(PART_TM4C1299NCZAD) || defined(PART_TM4C129CNCPDT) || defined(PART_TM4C129CNCZAD)\
+  || defined(PART_TM4C129DNCPDT) || defined(PART_TM4C129DNCZAD) || defined(PART_TM4C129EKCPDT)\
+  || defined(PART_TM4C129ENCPDT) || defined(PART_TM4C129ENCZAD) || defined(PART_TM4C129LNCZAD)\
+  || defined(PART_TM4C129XKCZAD) || defined(PART_TM4C129XNCZAD)
 /* CRC has no interrupts.*/
 #endif
 
 /* AES Accelerator units.*/
-#if defined(TM4C1290NCPDT) || defined(TM4C1290NCZAD) || defined(TM4C1292NCPDT)\
-  || defined(TM4C1292NCZAD) || defined(TM4C1294KCPDT) || defined(TM4C1294NCPDT)\
-  || defined(TM4C1294NCZAD) || defined(TM4C1297NCZAD) || defined(TM4C1299KCZAD)\
-  || defined(TM4C1299NCZAD)
+#if defined(PART_TM4C1290NCPDT) || defined(PART_TM4C1290NCZAD) || defined(PART_TM4C1292NCPDT)\
+  || defined(PART_TM4C1292NCZAD) || defined(PART_TM4C1294KCPDT) || defined(PART_TM4C1294NCPDT)\
+  || defined(PART_TM4C1294NCZAD) || defined(PART_TM4C1297NCZAD) || defined(PART_TM4C1299KCZAD)\
+  || defined(PART_TM4C1299NCZAD)
 /* no interrupts.*/
 #endif
-#if defined(TM4C129CNCPDT) || defined(TM4C129CNCZAD) || defined(TM4C129DNCPDT) \
-  || defined(TM4C129DNCZAD) || defined(TM4C129EKCPDT) || defined(TM4C129ENCPDT)\
-  || defined(TM4C129ENCZAD) || defined(TM4C129LNCZAD) || defined(TM4C129XKCZAD)\
-  || defined(TM4C129XNCZAD)
+#if defined(PART_TM4C129CNCPDT) || defined(PART_TM4C129CNCZAD) || defined(PART_TM4C129DNCPDT) \
+  || defined(PART_TM4C129DNCZAD) || defined(PART_TM4C129EKCPDT) || defined(PART_TM4C129ENCPDT)\
+  || defined(PART_TM4C129ENCZAD) || defined(PART_TM4C129LNCZAD) || defined(PART_TM4C129XKCZAD)\
+  || defined(PART_TM4C129XNCZAD)
 #define TIVA_AES_HANDLER                    Vector1BC
 
 #define TIVA_AES_NUMBER                     95
 #endif
 
 /* DES Accelerator units.*/
-#if defined(TM4C1290NCPDT) || defined(TM4C1290NCZAD) || defined(TM4C1292NCPDT)\
-  || defined(TM4C1292NCZAD) || defined(TM4C1294KCPDT) || defined(TM4C1294NCPDT)\
-  || defined(TM4C1294NCZAD) || defined(TM4C1297NCZAD) || defined(TM4C1299KCZAD)\
-  || defined(TM4C1299NCZAD)
+#if defined(PART_TM4C1290NCPDT) || defined(PART_TM4C1290NCZAD) || defined(PART_TM4C1292NCPDT)\
+  || defined(PART_TM4C1292NCZAD) || defined(PART_TM4C1294KCPDT) || defined(PART_TM4C1294NCPDT)\
+  || defined(PART_TM4C1294NCZAD) || defined(PART_TM4C1297NCZAD) || defined(PART_TM4C1299KCZAD)\
+  || defined(PART_TM4C1299NCZAD)
 /* no interrupts.*/
 #endif
-#if defined(TM4C129CNCPDT) || defined(TM4C129CNCZAD) || defined(TM4C129DNCPDT)\
-  || defined(TM4C129DNCZAD) || defined(TM4C129EKCPDT) || defined(TM4C129ENCPDT)\
-  || defined(TM4C129ENCZAD) || defined(TM4C129LNCZAD) || defined(TM4C129XKCZAD)\
-  || defined(TM4C129XNCZAD)
+#if defined(PART_TM4C129CNCPDT) || defined(PART_TM4C129CNCZAD) || defined(PART_TM4C129DNCPDT)\
+  || defined(PART_TM4C129DNCZAD) || defined(PART_TM4C129EKCPDT) || defined(PART_TM4C129ENCPDT)\
+  || defined(PART_TM4C129ENCZAD) || defined(PART_TM4C129LNCZAD) || defined(PART_TM4C129XKCZAD)\
+  || defined(PART_TM4C129XNCZAD)
 #define TIVA_DES_HANDLER                    Vector1C0
 
 #define TIVA_DES_NUMBER                     51
 #endif
 
 /* SHA/MD5 Accelerator units.*/
-#if defined(TM4C1290NCPDT) || defined(TM4C1290NCZAD) || defined(TM4C1292NCPDT)\
-  || defined(TM4C1292NCZAD) || defined(TM4C1294KCPDT) || defined(TM4C1294NCPDT)\
-  || defined(TM4C1294NCZAD) || defined(TM4C1297NCZAD) || defined(TM4C1299KCZAD)\
-  || defined(TM4C1299NCZAD)
+#if defined(PART_TM4C1290NCPDT) || defined(PART_TM4C1290NCZAD) || defined(PART_TM4C1292NCPDT)\
+  || defined(PART_TM4C1292NCZAD) || defined(PART_TM4C1294KCPDT) || defined(PART_TM4C1294NCPDT)\
+  || defined(PART_TM4C1294NCZAD) || defined(PART_TM4C1297NCZAD) || defined(PART_TM4C1299KCZAD)\
+  || defined(PART_TM4C1299NCZAD)
 /* no interrupts.*/
 #endif
-#if defined(TM4C129CNCPDT) || defined(TM4C129CNCZAD) || defined(TM4C129DNCPDT)\
-  || defined(TM4C129DNCZAD) || defined(TM4C129EKCPDT) || defined(TM4C129ENCPDT)\
-  || defined(TM4C129ENCZAD) || defined(TM4C129LNCZAD) || defined(TM4C129XKCZAD)\
-  || defined(TM4C129XNCZAD)
+#if defined(PART_TM4C129CNCPDT) || defined(PART_TM4C129CNCZAD) || defined(PART_TM4C129DNCPDT)\
+  || defined(PART_TM4C129DNCZAD) || defined(PART_TM4C129EKCPDT) || defined(PART_TM4C129ENCPDT)\
+  || defined(PART_TM4C129ENCZAD) || defined(PART_TM4C129LNCZAD) || defined(PART_TM4C129XKCZAD)\
+  || defined(PART_TM4C129XNCZAD)
 #define TIVA_SHA_MD5_HANDLER                Vector1B8
 
 #define TIVA_SHA_MD5_NUMBER                 94
 #endif
 
 /* GPT units.*/
-#if defined(TM4C1290NCPDT) || defined(TM4C1290NCZAD) || defined(TM4C1292NCPDT)\
-  || defined(TM4C1292NCZAD) || defined(TM4C1294KCPDT) || defined(TM4C1294NCPDT)\
-  || defined(TM4C1294NCZAD) || defined(TM4C1297NCZAD) || defined(TM4C1299KCZAD)\
-  || defined(TM4C1299NCZAD) || defined(TM4C129CNCPDT) || defined(TM4C129CNCZAD)\
-  || defined(TM4C129DNCPDT) || defined(TM4C129DNCZAD) || defined(TM4C129EKCPDT)\
-  || defined(TM4C129ENCPDT) || defined(TM4C129ENCZAD) || defined(TM4C129LNCZAD)\
-  || defined(TM4C129XKCZAD) || defined(TM4C129XNCZAD)
+#if defined(PART_TM4C1290NCPDT) || defined(PART_TM4C1290NCZAD) || defined(PART_TM4C1292NCPDT)\
+  || defined(PART_TM4C1292NCZAD) || defined(PART_TM4C1294KCPDT) || defined(PART_TM4C1294NCPDT)\
+  || defined(PART_TM4C1294NCZAD) || defined(PART_TM4C1297NCZAD) || defined(PART_TM4C1299KCZAD)\
+  || defined(PART_TM4C1299NCZAD) || defined(PART_TM4C129CNCPDT) || defined(PART_TM4C129CNCZAD)\
+  || defined(PART_TM4C129DNCPDT) || defined(PART_TM4C129DNCZAD) || defined(PART_TM4C129EKCPDT)\
+  || defined(PART_TM4C129ENCPDT) || defined(PART_TM4C129ENCZAD) || defined(PART_TM4C129LNCZAD)\
+  || defined(PART_TM4C129XKCZAD) || defined(PART_TM4C129XNCZAD)
 #define TIVA_GPT0A_HANDLER                   Vector8C
 #define TIVA_GPT0B_HANDLER                   Vector90
 #define TIVA_GPT1A_HANDLER                   Vector94
@@ -285,26 +285,26 @@
 #endif
 
 /* WDT units.*/
-#if defined(TM4C1290NCPDT) || defined(TM4C1290NCZAD) || defined(TM4C1292NCPDT)\
-  || defined(TM4C1292NCZAD) || defined(TM4C1294KCPDT) || defined(TM4C1294NCPDT)\
-  || defined(TM4C1294NCZAD) || defined(TM4C1297NCZAD) || defined(TM4C1299KCZAD)\
-  || defined(TM4C1299NCZAD) || defined(TM4C129CNCPDT) || defined(TM4C129CNCZAD)\
-  || defined(TM4C129DNCPDT) || defined(TM4C129DNCZAD) || defined(TM4C129EKCPDT)\
-  || defined(TM4C129ENCPDT) || defined(TM4C129ENCZAD) || defined(TM4C129LNCZAD)\
-  || defined(TM4C129XKCZAD) || defined(TM4C129XNCZAD)
+#if defined(PART_TM4C1290NCPDT) || defined(PART_TM4C1290NCZAD) || defined(PART_TM4C1292NCPDT)\
+  || defined(PART_TM4C1292NCZAD) || defined(PART_TM4C1294KCPDT) || defined(PART_TM4C1294NCPDT)\
+  || defined(PART_TM4C1294NCZAD) || defined(PART_TM4C1297NCZAD) || defined(PART_TM4C1299KCZAD)\
+  || defined(PART_TM4C1299NCZAD) || defined(PART_TM4C129CNCPDT) || defined(PART_TM4C129CNCZAD)\
+  || defined(PART_TM4C129DNCPDT) || defined(PART_TM4C129DNCZAD) || defined(PART_TM4C129EKCPDT)\
+  || defined(PART_TM4C129ENCPDT) || defined(PART_TM4C129ENCZAD) || defined(PART_TM4C129LNCZAD)\
+  || defined(PART_TM4C129XKCZAD) || defined(PART_TM4C129XNCZAD)
 #define TIVA_WDT_HANDLER                    Vector88
 
 #define TIVA_WDT_NUMBER                     18
 #endif
 
 /* ADC units.*/
-#if defined(TM4C1290NCPDT) || defined(TM4C1290NCZAD) || defined(TM4C1292NCPDT)\
-  || defined(TM4C1292NCZAD) || defined(TM4C1294KCPDT) || defined(TM4C1294NCPDT)\
-  || defined(TM4C1294NCZAD) || defined(TM4C1297NCZAD) || defined(TM4C1299KCZAD)\
-  || defined(TM4C1299NCZAD) || defined(TM4C129CNCPDT) || defined(TM4C129CNCZAD)\
-  || defined(TM4C129DNCPDT) || defined(TM4C129DNCZAD) || defined(TM4C129EKCPDT)\
-  || defined(TM4C129ENCPDT) || defined(TM4C129ENCZAD) || defined(TM4C129LNCZAD)\
-  || defined(TM4C129XKCZAD) || defined(TM4C129XNCZAD)
+#if defined(PART_TM4C1290NCPDT) || defined(PART_TM4C1290NCZAD) || defined(PART_TM4C1292NCPDT)\
+  || defined(PART_TM4C1292NCZAD) || defined(PART_TM4C1294KCPDT) || defined(PART_TM4C1294NCPDT)\
+  || defined(PART_TM4C1294NCZAD) || defined(PART_TM4C1297NCZAD) || defined(PART_TM4C1299KCZAD)\
+  || defined(PART_TM4C1299NCZAD) || defined(PART_TM4C129CNCPDT) || defined(PART_TM4C129CNCZAD)\
+  || defined(PART_TM4C129DNCPDT) || defined(PART_TM4C129DNCZAD) || defined(PART_TM4C129EKCPDT)\
+  || defined(PART_TM4C129ENCPDT) || defined(PART_TM4C129ENCZAD) || defined(PART_TM4C129LNCZAD)\
+  || defined(PART_TM4C129XKCZAD) || defined(PART_TM4C129XNCZAD)
 #define TIVA_ADC0_SEQ0_HANDLER              Vector78
 #define TIVA_ADC0_SEQ1_HANDLER              Vector7C
 #define TIVA_ADC0_SEQ2_HANDLER              Vector80
@@ -325,13 +325,13 @@
 #endif
 
 /* UART units.*/
-#if defined(TM4C1290NCPDT) || defined(TM4C1290NCZAD) || defined(TM4C1292NCPDT)\
-  || defined(TM4C1292NCZAD) || defined(TM4C1294KCPDT) || defined(TM4C1294NCPDT)\
-  || defined(TM4C1294NCZAD) || defined(TM4C1297NCZAD) || defined(TM4C1299KCZAD)\
-  || defined(TM4C1299NCZAD) || defined(TM4C129CNCPDT) || defined(TM4C129CNCZAD)\
-  || defined(TM4C129DNCPDT) || defined(TM4C129DNCZAD) || defined(TM4C129EKCPDT)\
-  || defined(TM4C129ENCPDT) || defined(TM4C129ENCZAD) || defined(TM4C129LNCZAD)\
-  || defined(TM4C129XKCZAD) || defined(TM4C129XNCZAD)
+#if defined(PART_TM4C1290NCPDT) || defined(PART_TM4C1290NCZAD) || defined(PART_TM4C1292NCPDT)\
+  || defined(PART_TM4C1292NCZAD) || defined(PART_TM4C1294KCPDT) || defined(PART_TM4C1294NCPDT)\
+  || defined(PART_TM4C1294NCZAD) || defined(PART_TM4C1297NCZAD) || defined(PART_TM4C1299KCZAD)\
+  || defined(PART_TM4C1299NCZAD) || defined(PART_TM4C129CNCPDT) || defined(PART_TM4C129CNCZAD)\
+  || defined(PART_TM4C129DNCPDT) || defined(PART_TM4C129DNCZAD) || defined(PART_TM4C129EKCPDT)\
+  || defined(PART_TM4C129ENCPDT) || defined(PART_TM4C129ENCZAD) || defined(PART_TM4C129LNCZAD)\
+  || defined(PART_TM4C129XKCZAD) || defined(PART_TM4C129XNCZAD)
 #define TIVA_UART0_HANDLER                  Vector54
 #define TIVA_UART1_HANDLER                  Vector58
 #define TIVA_UART2_HANDLER                  VectorC4
@@ -352,13 +352,13 @@
 #endif
 
 /* QSSI units.*/
-#if defined(TM4C1290NCPDT) || defined(TM4C1290NCZAD) || defined(TM4C1292NCPDT)\
-  || defined(TM4C1292NCZAD) || defined(TM4C1294KCPDT) || defined(TM4C1294NCPDT)\
-  || defined(TM4C1294NCZAD) || defined(TM4C1297NCZAD) || defined(TM4C1299KCZAD)\
-  || defined(TM4C1299NCZAD) || defined(TM4C129CNCPDT) || defined(TM4C129CNCZAD)\
-  || defined(TM4C129DNCPDT) || defined(TM4C129DNCZAD) || defined(TM4C129EKCPDT)\
-  || defined(TM4C129ENCPDT) || defined(TM4C129ENCZAD) || defined(TM4C129LNCZAD)\
-  || defined(TM4C129XKCZAD) || defined(TM4C129XNCZAD)
+#if defined(PART_TM4C1290NCPDT) || defined(PART_TM4C1290NCZAD) || defined(PART_TM4C1292NCPDT)\
+  || defined(PART_TM4C1292NCZAD) || defined(PART_TM4C1294KCPDT) || defined(PART_TM4C1294NCPDT)\
+  || defined(PART_TM4C1294NCZAD) || defined(PART_TM4C1297NCZAD) || defined(PART_TM4C1299KCZAD)\
+  || defined(PART_TM4C1299NCZAD) || defined(PART_TM4C129CNCPDT) || defined(PART_TM4C129CNCZAD)\
+  || defined(PART_TM4C129DNCPDT) || defined(PART_TM4C129DNCZAD) || defined(PART_TM4C129EKCPDT)\
+  || defined(PART_TM4C129ENCPDT) || defined(PART_TM4C129ENCZAD) || defined(PART_TM4C129LNCZAD)\
+  || defined(PART_TM4C129XKCZAD) || defined(PART_TM4C129XNCZAD)
 #define TIVA_QSSI0_HANDLER                  Vector5C
 #define TIVA_QSSI1_HANDLER                  VectorC8
 #define TIVA_QSSI2_HANDLER                  Vector118
@@ -371,13 +371,13 @@
 #endif
 
 /* I2C units.*/
-#if defined(TM4C1290NCPDT) || defined(TM4C1290NCZAD) || defined(TM4C1292NCPDT)\
-  || defined(TM4C1292NCZAD) || defined(TM4C1294KCPDT) || defined(TM4C1294NCPDT)\
-  || defined(TM4C1294NCZAD) || defined(TM4C1297NCZAD) || defined(TM4C1299KCZAD)\
-  || defined(TM4C1299NCZAD) || defined(TM4C129CNCPDT) || defined(TM4C129CNCZAD)\
-  || defined(TM4C129DNCPDT) || defined(TM4C129DNCZAD) || defined(TM4C129EKCPDT)\
-  || defined(TM4C129ENCPDT) || defined(TM4C129ENCZAD) || defined(TM4C129LNCZAD)\
-  || defined(TM4C129XKCZAD) || defined(TM4C129XNCZAD)
+#if defined(PART_TM4C1290NCPDT) || defined(PART_TM4C1290NCZAD) || defined(PART_TM4C1292NCPDT)\
+  || defined(PART_TM4C1292NCZAD) || defined(PART_TM4C1294KCPDT) || defined(PART_TM4C1294NCPDT)\
+  || defined(PART_TM4C1294NCZAD) || defined(PART_TM4C1297NCZAD) || defined(PART_TM4C1299KCZAD)\
+  || defined(PART_TM4C1299NCZAD) || defined(PART_TM4C129CNCPDT) || defined(PART_TM4C129CNCZAD)\
+  || defined(PART_TM4C129DNCPDT) || defined(PART_TM4C129DNCZAD) || defined(PART_TM4C129EKCPDT)\
+  || defined(PART_TM4C129ENCPDT) || defined(PART_TM4C129ENCZAD) || defined(PART_TM4C129LNCZAD)\
+  || defined(PART_TM4C129XKCZAD) || defined(PART_TM4C129XNCZAD)
 #define TIVA_I2C0_HANDLER                   Vector60
 #define TIVA_I2C1_HANDLER                   VectorD4
 #define TIVA_I2C2_HANDLER                   Vector134
@@ -402,28 +402,28 @@
 #endif
 
 /* 1-Wire Master units.*/
-#if defined(TM4C1290NCPDT) || defined(TM4C1290NCZAD) || defined(TM4C1292NCPDT)\
-  || defined(TM4C1292NCZAD) || defined(TM4C1294KCPDT) || defined(TM4C1294NCPDT)\
-  || defined(TM4C1294NCZAD) || defined(TM4C1297NCZAD) || defined(TM4C1299KCZAD)\
-  || defined(TM4C1299NCZAD) || defined(TM4C129CNCPDT) || defined(TM4C129CNCZAD)\
-  || defined(TM4C129DNCPDT) || defined(TM4C129DNCZAD) || defined(TM4C129EKCPDT)\
-  || defined(TM4C129ENCPDT) || defined(TM4C129ENCZAD) || defined(TM4C129LNCZAD)
+#if defined(PART_TM4C1290NCPDT) || defined(PART_TM4C1290NCZAD) || defined(PART_TM4C1292NCPDT)\
+  || defined(PART_TM4C1292NCZAD) || defined(PART_TM4C1294KCPDT) || defined(PART_TM4C1294NCPDT)\
+  || defined(PART_TM4C1294NCZAD) || defined(PART_TM4C1297NCZAD) || defined(PART_TM4C1299KCZAD)\
+  || defined(PART_TM4C1299NCZAD) || defined(PART_TM4C129CNCPDT) || defined(PART_TM4C129CNCZAD)\
+  || defined(PART_TM4C129DNCPDT) || defined(PART_TM4C129DNCZAD) || defined(PART_TM4C129EKCPDT)\
+  || defined(PART_TM4C129ENCPDT) || defined(PART_TM4C129ENCZAD) || defined(PART_TM4C129LNCZAD)
 #define TIVA_HAS_1WIRE                      FALSE
 #endif
-#if defined(TM4C129XKCZAD) || defined(TM4C129XNCZAD)
+#if defined(PART_TM4C129XKCZAD) || defined(PART_TM4C129XNCZAD)
 #define TIVA_1WIRE_HANDLER                  Vector1E4
 
 #define TIVA_1WIRE_NUMBER                   105
 #endif
 
 /* CAN units.*/
-#if defined(TM4C1290NCPDT) || defined(TM4C1290NCZAD) || defined(TM4C1292NCPDT)\
-  || defined(TM4C1292NCZAD) || defined(TM4C1294KCPDT) || defined(TM4C1294NCPDT)\
-  || defined(TM4C1294NCZAD) || defined(TM4C1297NCZAD) || defined(TM4C1299KCZAD)\
-  || defined(TM4C1299NCZAD) || defined(TM4C129CNCPDT) || defined(TM4C129CNCZAD)\
-  || defined(TM4C129DNCPDT) || defined(TM4C129DNCZAD) || defined(TM4C129EKCPDT)\
-  || defined(TM4C129ENCPDT) || defined(TM4C129ENCZAD) || defined(TM4C129LNCZAD)\
-  || defined(TM4C129XKCZAD) || defined(TM4C129XNCZAD)
+#if defined(PART_TM4C1290NCPDT) || defined(PART_TM4C1290NCZAD) || defined(PART_TM4C1292NCPDT)\
+  || defined(PART_TM4C1292NCZAD) || defined(PART_TM4C1294KCPDT) || defined(PART_TM4C1294NCPDT)\
+  || defined(PART_TM4C1294NCZAD) || defined(PART_TM4C1297NCZAD) || defined(PART_TM4C1299KCZAD)\
+  || defined(PART_TM4C1299NCZAD) || defined(PART_TM4C129CNCPDT) || defined(PART_TM4C129CNCZAD)\
+  || defined(PART_TM4C129DNCPDT) || defined(PART_TM4C129DNCZAD) || defined(PART_TM4C129EKCPDT)\
+  || defined(PART_TM4C129ENCPDT) || defined(PART_TM4C129ENCZAD) || defined(PART_TM4C129LNCZAD)\
+  || defined(PART_TM4C129XKCZAD) || defined(PART_TM4C129XNCZAD)
 #define TIVA_CAN0_HANDLER                   VectorD8
 #define TIVA_CAN1_HANDLER                   VectorDC
 
@@ -432,69 +432,69 @@
 #endif
 
 /* Ethernet MAC units.*/
-#if defined(TM4C1290NCPDT) || defined(TM4C1290NCZAD) || defined(TM4C1297NCZAD)\
-  || defined(TM4C129CNCPDT) || defined(TM4C129CNCZAD)
+#if defined(PART_TM4C1290NCPDT) || defined(PART_TM4C1290NCZAD) || defined(PART_TM4C1297NCZAD)\
+  || defined(PART_TM4C129CNCPDT) || defined(PART_TM4C129CNCZAD)
 /* no interrupts.*/
 #endif
-#if defined(TM4C1292NCPDT) || defined(TM4C1292NCZAD) || defined(TM4C1294KCPDT)\
-  || defined(TM4C1294NCPDT) || defined(TM4C1294NCZAD) || defined(TM4C1299KCZAD)\
-  || defined(TM4C1299NCZAD) || defined(TM4C129DNCPDT) || defined(TM4C129DNCZAD)\
-  || defined(TM4C129EKCPDT) || defined(TM4C129ENCPDT) || defined(TM4C129ENCZAD)\
-  || defined(TM4C129LNCZAD) || defined(TM4C129XKCZAD) || defined(TM4C129XNCZAD)
+#if defined(PART_TM4C1292NCPDT) || defined(PART_TM4C1292NCZAD) || defined(PART_TM4C1294KCPDT)\
+  || defined(PART_TM4C1294NCPDT) || defined(PART_TM4C1294NCZAD) || defined(PART_TM4C1299KCZAD)\
+  || defined(PART_TM4C1299NCZAD) || defined(PART_TM4C129DNCPDT) || defined(PART_TM4C129DNCZAD)\
+  || defined(PART_TM4C129EKCPDT) || defined(PART_TM4C129ENCPDT) || defined(PART_TM4C129ENCZAD)\
+  || defined(PART_TM4C129LNCZAD) || defined(PART_TM4C129XKCZAD) || defined(PART_TM4C129XNCZAD)
 #define TIVA_MAC_HANDLER                    VectorE0
 
 #define TIVA_MAC_NUMBER                     40
 #endif
 
 /* Ethernet PHY units.*/
-#if defined(TM4C1290NCPDT)|| defined(TM4C1290NCZAD) || defined(TM4C1292NCPDT) \
-  || defined(TM4C1292NCZAD) || defined(TM4C1297NCZAD) || defined(TM4C129CNCPDT)\
-  || defined(TM4C129CNCZAD) || defined(TM4C129DNCPDT) || defined(TM4C129DNCZAD)
+#if defined(PART_TM4C1290NCPDT)|| defined(PART_TM4C1290NCZAD) || defined(PART_TM4C1292NCPDT) \
+  || defined(PART_TM4C1292NCZAD) || defined(PART_TM4C1297NCZAD) || defined(PART_TM4C129CNCPDT)\
+  || defined(PART_TM4C129CNCZAD) || defined(PART_TM4C129DNCPDT) || defined(PART_TM4C129DNCZAD)
 /* no interrupts.*/
 #endif
-#if  defined(TM4C1294KCPDT) || defined(TM4C1294NCPDT) || defined(TM4C1294NCZAD)\
-  || defined(TM4C1299KCZAD) || defined(TM4C1299NCZAD) || defined(TM4C129EKCPDT)\
-  || defined(TM4C129ENCPDT) || defined(TM4C129ENCZAD) || defined(TM4C129LNCZAD)\
-  || defined(TM4C129XKCZAD) || defined(TM4C129XNCZAD)
+#if  defined(PART_TM4C1294KCPDT) || defined(PART_TM4C1294NCPDT) || defined(PART_TM4C1294NCZAD)\
+  || defined(PART_TM4C1299KCZAD) || defined(PART_TM4C1299NCZAD) || defined(PART_TM4C129EKCPDT)\
+  || defined(PART_TM4C129ENCPDT) || defined(PART_TM4C129ENCZAD) || defined(PART_TM4C129LNCZAD)\
+  || defined(PART_TM4C129XKCZAD) || defined(PART_TM4C129XNCZAD)
 /* no interrupts.*/
 #endif
 
 /* USB units.*/
-#if defined(TM4C1290NCPDT) || defined(TM4C1290NCZAD) || defined(TM4C1292NCPDT)\
-  || defined(TM4C1292NCZAD) || defined(TM4C1294KCPDT) || defined(TM4C1294NCPDT)\
-  || defined(TM4C1294NCZAD) || defined(TM4C1297NCZAD) || defined(TM4C1299KCZAD)\
-  || defined(TM4C1299NCZAD) || defined(TM4C129CNCPDT) || defined(TM4C129CNCZAD)\
-  || defined(TM4C129DNCPDT) || defined(TM4C129DNCZAD) || defined(TM4C129EKCPDT)\
-  || defined(TM4C129ENCPDT) || defined(TM4C129ENCZAD) || defined(TM4C129LNCZAD)\
-  || defined(TM4C129XKCZAD) || defined(TM4C129XNCZAD)
+#if defined(PART_TM4C1290NCPDT) || defined(PART_TM4C1290NCZAD) || defined(PART_TM4C1292NCPDT)\
+  || defined(PART_TM4C1292NCZAD) || defined(PART_TM4C1294KCPDT) || defined(PART_TM4C1294NCPDT)\
+  || defined(PART_TM4C1294NCZAD) || defined(PART_TM4C1297NCZAD) || defined(PART_TM4C1299KCZAD)\
+  || defined(PART_TM4C1299NCZAD) || defined(PART_TM4C129CNCPDT) || defined(PART_TM4C129CNCZAD)\
+  || defined(PART_TM4C129DNCPDT) || defined(PART_TM4C129DNCZAD) || defined(PART_TM4C129EKCPDT)\
+  || defined(PART_TM4C129ENCPDT) || defined(PART_TM4C129ENCZAD) || defined(PART_TM4C129LNCZAD)\
+  || defined(PART_TM4C129XKCZAD) || defined(PART_TM4C129XNCZAD)
 #define TIVA_USB0_HANDLER                   VectorE8
 
 #define TIVA_USB0_NUMBER                    42
 #endif
 
 /* LCD units.*/
-#if  defined(TM4C1297NCZAD) || defined(TM4C1299KCZAD) || defined(TM4C129DNCZAD)\
-  || defined(TM4C129LNCZAD) || defined(TM4C129XKCZAD) || defined(TM4C129XNCZAD)
+#if  defined(PART_TM4C1297NCZAD) || defined(PART_TM4C1299KCZAD) || defined(PART_TM4C129DNCZAD)\
+  || defined(PART_TM4C129LNCZAD) || defined(PART_TM4C129XKCZAD) || defined(PART_TM4C129XNCZAD)
 #define TIVA_LCD_HANDLER                    Vector1C4
 
 #define TIVA_LCD_NUMBER                     97
 #endif
-#if defined(TM4C1290NCPDT) || defined(TM4C1290NCZAD) || defined(TM4C1292NCPDT)\
-  || defined(TM4C1292NCZAD) || defined(TM4C1294KCPDT) || defined(TM4C1294NCPDT)\
-  || defined(TM4C1294NCZAD) || defined(TM4C1299NCZAD) || defined(TM4C129CNCPDT)\
-  || defined(TM4C129CNCZAD) || defined(TM4C129DNCPDT) || defined(TM4C129EKCPDT)\
-  || defined(TM4C129ENCPDT) || defined(TM4C129ENCZAD)
+#if defined(PART_TM4C1290NCPDT) || defined(PART_TM4C1290NCZAD) || defined(PART_TM4C1292NCPDT)\
+  || defined(PART_TM4C1292NCZAD) || defined(PART_TM4C1294KCPDT) || defined(PART_TM4C1294NCPDT)\
+  || defined(PART_TM4C1294NCZAD) || defined(PART_TM4C1299NCZAD) || defined(PART_TM4C129CNCPDT)\
+  || defined(PART_TM4C129CNCZAD) || defined(PART_TM4C129DNCPDT) || defined(PART_TM4C129EKCPDT)\
+  || defined(PART_TM4C129ENCPDT) || defined(PART_TM4C129ENCZAD)
 /* no interrupts.*/
 #endif
 
 /* AC units.*/
-#if defined(TM4C1290NCPDT) || defined(TM4C1290NCZAD) || defined(TM4C1292NCPDT)\
-  || defined(TM4C1292NCZAD) || defined(TM4C1294KCPDT) || defined(TM4C1294NCPDT)\
-  || defined(TM4C1294NCZAD) || defined(TM4C1297NCZAD) || defined(TM4C1299KCZAD)\
-  || defined(TM4C1299NCZAD) || defined(TM4C129CNCPDT) || defined(TM4C129CNCZAD)\
-  || defined(TM4C129DNCPDT) || defined(TM4C129DNCZAD) || defined(TM4C129EKCPDT)\
-  || defined(TM4C129ENCPDT) || defined(TM4C129ENCZAD) || defined(TM4C129LNCZAD)\
-  || defined(TM4C129XKCZAD) || defined(TM4C129XNCZAD)
+#if defined(PART_TM4C1290NCPDT) || defined(PART_TM4C1290NCZAD) || defined(PART_TM4C1292NCPDT)\
+  || defined(PART_TM4C1292NCZAD) || defined(PART_TM4C1294KCPDT) || defined(PART_TM4C1294NCPDT)\
+  || defined(PART_TM4C1294NCZAD) || defined(PART_TM4C1297NCZAD) || defined(PART_TM4C1299KCZAD)\
+  || defined(PART_TM4C1299NCZAD) || defined(PART_TM4C129CNCPDT) || defined(PART_TM4C129CNCZAD)\
+  || defined(PART_TM4C129DNCPDT) || defined(PART_TM4C129DNCZAD) || defined(PART_TM4C129EKCPDT)\
+  || defined(PART_TM4C129ENCPDT) || defined(PART_TM4C129ENCZAD) || defined(PART_TM4C129LNCZAD)\
+  || defined(PART_TM4C129XKCZAD) || defined(PART_TM4C129XNCZAD)
 #define TIVA_AC0_HANDLER                    VectorA4
 #define TIVA_AC1_HANDLER                    VectorA8
 #define TIVA_AC2_HANDLER                    VectorAC
@@ -505,13 +505,13 @@
 #endif
 
 /* PWM units.*/
-#if defined(TM4C1290NCPDT) || defined(TM4C1290NCZAD) || defined(TM4C1292NCPDT)\
-  || defined(TM4C1292NCZAD) || defined(TM4C1294KCPDT) || defined(TM4C1294NCPDT)\
-  || defined(TM4C1294NCZAD) || defined(TM4C1297NCZAD) || defined(TM4C1299KCZAD)\
-  || defined(TM4C1299NCZAD) || defined(TM4C129CNCPDT) || defined(TM4C129CNCZAD)\
-  || defined(TM4C129DNCPDT) || defined(TM4C129DNCZAD) || defined(TM4C129EKCPDT)\
-  || defined(TM4C129ENCPDT) || defined(TM4C129ENCZAD) || defined(TM4C129LNCZAD)\
-  || defined(TM4C129XKCZAD) || defined(TM4C129XNCZAD)
+#if defined(PART_TM4C1290NCPDT) || defined(PART_TM4C1290NCZAD) || defined(PART_TM4C1292NCPDT)\
+  || defined(PART_TM4C1292NCZAD) || defined(PART_TM4C1294KCPDT) || defined(PART_TM4C1294NCPDT)\
+  || defined(PART_TM4C1294NCZAD) || defined(PART_TM4C1297NCZAD) || defined(PART_TM4C1299KCZAD)\
+  || defined(PART_TM4C1299NCZAD) || defined(PART_TM4C129CNCPDT) || defined(PART_TM4C129CNCZAD)\
+  || defined(PART_TM4C129DNCPDT) || defined(PART_TM4C129DNCZAD) || defined(PART_TM4C129EKCPDT)\
+  || defined(PART_TM4C129ENCPDT) || defined(PART_TM4C129ENCZAD) || defined(PART_TM4C129LNCZAD)\
+  || defined(PART_TM4C129XKCZAD) || defined(PART_TM4C129XNCZAD)
 #define TIVA_PWM0FAULT_HANDLER              Vector64
 #define TIVA_PWM0GEN0_HANDLER               Vector68
 #define TIVA_PWM0GEN1_HANDLER               Vector6C
@@ -526,13 +526,13 @@
 #endif
 
 /* QEI units.*/
-#if defined(TM4C1290NCPDT) || defined(TM4C1290NCZAD) || defined(TM4C1292NCPDT)\
-  || defined(TM4C1292NCZAD) || defined(TM4C1294KCPDT) || defined(TM4C1294NCPDT)\
-  || defined(TM4C1294NCZAD) || defined(TM4C1297NCZAD) || defined(TM4C1299KCZAD)\
-  || defined(TM4C1299NCZAD) || defined(TM4C129CNCPDT) || defined(TM4C129CNCZAD)\
-  || defined(TM4C129DNCPDT) || defined(TM4C129DNCZAD) || defined(TM4C129EKCPDT)\
-  || defined(TM4C129ENCPDT) || defined(TM4C129ENCZAD) || defined(TM4C129LNCZAD)\
-  || defined(TM4C129XKCZAD) || defined(TM4C129XNCZAD)
+#if defined(PART_TM4C1290NCPDT) || defined(PART_TM4C1290NCZAD) || defined(PART_TM4C1292NCPDT)\
+  || defined(PART_TM4C1292NCZAD) || defined(PART_TM4C1294KCPDT) || defined(PART_TM4C1294NCPDT)\
+  || defined(PART_TM4C1294NCZAD) || defined(PART_TM4C1297NCZAD) || defined(PART_TM4C1299KCZAD)\
+  || defined(PART_TM4C1299NCZAD) || defined(PART_TM4C129CNCPDT) || defined(PART_TM4C129CNCZAD)\
+  || defined(PART_TM4C129DNCPDT) || defined(PART_TM4C129DNCZAD) || defined(PART_TM4C129EKCPDT)\
+  || defined(PART_TM4C129ENCPDT) || defined(PART_TM4C129ENCZAD) || defined(PART_TM4C129LNCZAD)\
+  || defined(PART_TM4C129XKCZAD) || defined(PART_TM4C129XNCZAD)
 #define TIVA_QEI0_HANLDER                   Vector74
 
 #define TIVA_QEI0_NUMBER                    13

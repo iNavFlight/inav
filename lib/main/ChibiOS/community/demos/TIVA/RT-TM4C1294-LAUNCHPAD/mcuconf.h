@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2014..2016 Marco Veeneman
+    Copyright (C) 2014..2017 Marco Veeneman
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@
  * HAL driver system settings.
  */
 #define TIVA_MOSC_SINGLE_ENDED              FALSE
-#define TIVA_RSCLKCFG_OSCSRC                RSCLKCFG_OSCSRC_MOSC
+#define TIVA_RSCLKCFG_OSCSRC                SYSCTL_RSCLKCFG_OSCSRC_MOSC
 
 /*
  * GPT driver system settings.
@@ -52,6 +52,42 @@
 #define TIVA_GPT_GPT5A_IRQ_PRIORITY         7
 #define TIVA_GPT_GPT6A_IRQ_PRIORITY         7
 #define TIVA_GPT_GPT7A_IRQ_PRIORITY         7
+
+/*
+ * PAL driver system settings.
+ */
+#define TIVA_PAL_GPIOA_IRQ_PRIORITY         3
+#define TIVA_PAL_GPIOB_IRQ_PRIORITY         3
+#define TIVA_PAL_GPIOC_IRQ_PRIORITY         3
+#define TIVA_PAL_GPIOD_IRQ_PRIORITY         3
+#define TIVA_PAL_GPIOE_IRQ_PRIORITY         3
+#define TIVA_PAL_GPIOF_IRQ_PRIORITY         3
+#define TIVA_PAL_GPIOG_IRQ_PRIORITY         3
+#define TIVA_PAL_GPIOH_IRQ_PRIORITY         3
+#define TIVA_PAL_GPIOJ_IRQ_PRIORITY         3
+#define TIVA_PAL_GPIOK_IRQ_PRIORITY         3
+#define TIVA_PAL_GPIOL_IRQ_PRIORITY         3
+#define TIVA_PAL_GPIOM_IRQ_PRIORITY         3
+#define TIVA_PAL_GPION_IRQ_PRIORITY         3
+#define TIVA_PAL_GPIOP0_IRQ_PRIORITY        3
+#define TIVA_PAL_GPIOP1_IRQ_PRIORITY        3
+#define TIVA_PAL_GPIOP2_IRQ_PRIORITY        3
+#define TIVA_PAL_GPIOP3_IRQ_PRIORITY        3
+#define TIVA_PAL_GPIOP4_IRQ_PRIORITY        3
+#define TIVA_PAL_GPIOP5_IRQ_PRIORITY        3
+#define TIVA_PAL_GPIOP6_IRQ_PRIORITY        3
+#define TIVA_PAL_GPIOP7_IRQ_PRIORITY        3
+#define TIVA_PAL_GPIOQ0_IRQ_PRIORITY        3
+#define TIVA_PAL_GPIOQ1_IRQ_PRIORITY        3
+#define TIVA_PAL_GPIOQ2_IRQ_PRIORITY        3
+#define TIVA_PAL_GPIOQ3_IRQ_PRIORITY        3
+#define TIVA_PAL_GPIOQ4_IRQ_PRIORITY        3
+#define TIVA_PAL_GPIOQ5_IRQ_PRIORITY        3
+#define TIVA_PAL_GPIOQ6_IRQ_PRIORITY        3
+#define TIVA_PAL_GPIOQ7_IRQ_PRIORITY        3
+#define TIVA_PAL_GPIOR_IRQ_PRIORITY         3
+#define TIVA_PAL_GPIOS_IRQ_PRIORITY         3
+#define TIVA_PAL_GPIOT_IRQ_PRIORITY         3
 
 /*
  * I2C driver system settings.

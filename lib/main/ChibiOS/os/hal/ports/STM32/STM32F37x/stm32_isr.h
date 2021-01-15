@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,14 +16,14 @@
 
 /**
  * @file    STM32F37x/stm32_isr.h
- * @brief   ISR remapper driver header.
+ * @brief   STM32F37x ISR handler header.
  *
  * @addtogroup STM32F37x_ISR
  * @{
  */
 
-#ifndef _STM32_ISR_H_
-#define _STM32_ISR_H_
+#ifndef STM32_ISR_H
+#define STM32_ISR_H
 
 /*===========================================================================*/
 /* Driver constants.                                                         */
@@ -69,7 +69,13 @@
 #define STM32_TIM6_HANDLER          Vector118
 #define STM32_TIM7_HANDLER          Vector11C
 #define STM32_TIM12_HANDLER         VectorEC
+#define STM32_TIM13_HANDLER         VectorF0
 #define STM32_TIM14_HANDLER         VectorF4
+#define STM32_TIM15_HANDLER         VectorA0
+#define STM32_TIM16_HANDLER         VectorA4
+#define STM32_TIM17_HANDLER         VectorA8
+#define STM32_TIM18_HANDLER         VectorAC
+#define STM32_TIM19_HANDLER         Vector178
 
 #define STM32_TIM2_NUMBER           28
 #define STM32_TIM3_NUMBER           29
@@ -78,7 +84,13 @@
 #define STM32_TIM6_NUMBER           54
 #define STM32_TIM7_NUMBER           55
 #define STM32_TIM12_NUMBER          43
+#define STM32_TIM13_NUMBER          44
 #define STM32_TIM14_NUMBER          45
+#define STM32_TIM15_NUMBER          24
+#define STM32_TIM16_NUMBER          25
+#define STM32_TIM17_NUMBER          26
+#define STM32_TIM18_NUMBER          27
+#define STM32_TIM19_NUMBER          78
 
 /*
  * USART units.
@@ -105,6 +117,102 @@
 /* Driver pre-compile time settings.                                         */
 /*===========================================================================*/
 
+/**
+ * @name    Configuration options
+ * @{
+ */
+/**
+ * @brief   EXTI0 interrupt priority level setting.
+ */
+#if !defined(STM32_IRQ_EXTI0_PRIORITY) || defined(__DOXYGEN__)
+#define STM32_IRQ_EXTI0_PRIORITY            6
+#endif
+
+/**
+ * @brief   EXTI1 interrupt priority level setting.
+ */
+#if !defined(STM32_IRQ_EXTI1_PRIORITY) || defined(__DOXYGEN__)
+#define STM32_IRQ_EXTI1_PRIORITY            6
+#endif
+
+/**
+ * @brief   EXTI2 interrupt priority level setting.
+ */
+#if !defined(STM32_IRQ_EXTI2_PRIORITY) || defined(__DOXYGEN__)
+#define STM32_IRQ_EXTI2_PRIORITY            6
+#endif
+
+/**
+ * @brief   EXTI3 interrupt priority level setting.
+ */
+#if !defined(STM32_IRQ_EXTI3_PRIORITY) || defined(__DOXYGEN__)
+#define STM32_IRQ_EXTI3_PRIORITY            6
+#endif
+
+/**
+ * @brief   EXTI4 interrupt priority level setting.
+ */
+#if !defined(STM32_IRQ_EXTI4_PRIORITY) || defined(__DOXYGEN__)
+#define STM32_IRQ_EXTI4_PRIORITY            6
+#endif
+
+/**
+ * @brief   EXTI5..9 interrupt priority level setting.
+ */
+#if !defined(STM32_IRQ_EXTI5_9_PRIORITY) || defined(__DOXYGEN__)
+#define STM32_IRQ_EXTI5_9_PRIORITY          6
+#endif
+
+/**
+ * @brief   EXTI10..15 interrupt priority level setting.
+ */
+#if !defined(STM32_IRQ_EXTI10_15_PRIORITY) || defined(__DOXYGEN__)
+#define STM32_IRQ_EXTI10_15_PRIORITY        6
+#endif
+
+/**
+ * @brief   EXTI16 interrupt priority level setting.
+ */
+#if !defined(STM32_IRQ_EXTI16_PRIORITY) || defined(__DOXYGEN__)
+#define STM32_IRQ_EXTI16_PRIORITY           6
+#endif
+
+/**
+ * @brief   EXTI17 interrupt priority level setting.
+ */
+#if !defined(STM32_IRQ_EXTI17_PRIORITY) || defined(__DOXYGEN__)
+#define STM32_IRQ_EXTI17_PRIORITY           6
+#endif
+
+/**
+ * @brief   EXTI18 interrupt priority level setting.
+ */
+#if !defined(STM32_IRQ_EXTI18_PRIORITY) || defined(__DOXYGEN__)
+#define STM32_IRQ_EXTI18_PRIORITY           6
+#endif
+
+/**
+ * @brief   EXTI19 interrupt priority level setting.
+ */
+#if !defined(STM32_IRQ_EXTI19_PRIORITY) || defined(__DOXYGEN__)
+#define STM32_IRQ_EXTI19_PRIORITY           6
+#endif
+
+/**
+ * @brief   EXTI20 interrupt priority level setting.
+ */
+#if !defined(STM32_IRQ_EXTI20_PRIORITY) || defined(__DOXYGEN__)
+#define STM32_IRQ_EXTI20_PRIORITY           6
+#endif
+
+/**
+ * @brief   EXTI21..22 interrupt priority level setting.
+ */
+#if !defined(STM32_IRQ_EXTI21_22_PRIORITY) || defined(__DOXYGEN__)
+#define STM32_IRQ_EXTI21_22_PRIORITY        6
+#endif
+/** @} */
+
 /*===========================================================================*/
 /* Derived constants and error checks.                                       */
 /*===========================================================================*/
@@ -121,6 +229,15 @@
 /* External declarations.                                                    */
 /*===========================================================================*/
 
-#endif /* _STM32_ISR_H_ */
+#ifdef __cplusplus
+extern "C" {
+#endif
+  void irqInit(void);
+  void irqDeinit(void);
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* STM32_ISR_H */
 
 /** @} */

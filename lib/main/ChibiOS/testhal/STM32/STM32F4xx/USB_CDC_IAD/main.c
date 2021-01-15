@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@
 
 #include "ch.h"
 #include "hal.h"
-#include "test.h"
 
 #include "shell.h"
 #include "chprintf.h"
@@ -31,58 +30,6 @@
 /*===========================================================================*/
 
 #define SHELL_WA_SIZE   THD_WORKING_AREA_SIZE(2048)
-#define TEST_WA_SIZE    THD_WORKING_AREA_SIZE(256)
-
-static void cmd_mem(BaseSequentialStream *chp, int argc, char *argv[]) {
-  size_t n, size;
-
-  (void)argv;
-  if (argc > 0) {
-    chprintf(chp, "Usage: mem\r\n");
-    return;
-  }
-  n = chHeapStatus(NULL, &size);
-  chprintf(chp, "core free memory : %u bytes\r\n", chCoreGetStatusX());
-  chprintf(chp, "heap fragments   : %u\r\n", n);
-  chprintf(chp, "heap free total  : %u bytes\r\n", size);
-}
-
-static void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]) {
-  static const char *states[] = {CH_STATE_NAMES};
-  thread_t *tp;
-
-  (void)argv;
-  if (argc > 0) {
-    chprintf(chp, "Usage: threads\r\n");
-    return;
-  }
-  chprintf(chp, "    addr    stack prio refs     state time\r\n");
-  tp = chRegFirstThread();
-  do {
-    chprintf(chp, "%08lx %08lx %4lu %4lu %9s\r\n",
-            (uint32_t)tp, (uint32_t)tp->p_ctx.r13,
-            (uint32_t)tp->p_prio, (uint32_t)(tp->p_refs - 1),
-            states[tp->p_state]);
-    tp = chRegNextThread(tp);
-  } while (tp != NULL);
-}
-
-static void cmd_test(BaseSequentialStream *chp, int argc, char *argv[]) {
-  thread_t *tp;
-
-  (void)argv;
-  if (argc > 0) {
-    chprintf(chp, "Usage: test\r\n");
-    return;
-  }
-  tp = chThdCreateFromHeap(NULL, TEST_WA_SIZE, chThdGetPriorityX(),
-                           TestThread, chp);
-  if (tp == NULL) {
-    chprintf(chp, "out of memory\r\n");
-    return;
-  }
-  chThdWait(tp);
-}
 
 /* Can be measured using dd if=/dev/xxxx of=/dev/null bs=512 count=10000.*/
 static void cmd_write(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -125,9 +72,6 @@ static void cmd_write(BaseSequentialStream *chp, int argc, char *argv[]) {
 }
 
 static const ShellCommand commands[] = {
-  {"mem", cmd_mem},
-  {"threads", cmd_threads},
-  {"test", cmd_test},
   {"write", cmd_write},
   {NULL, NULL}
 };
@@ -155,12 +99,10 @@ static THD_FUNCTION(Thread1, arg) {
   (void)arg;
   chRegSetThreadName("blinker");
   while (true) {
-    systime_t time;
-
-    time = serusbcfg1.usbp->state == USB_ACTIVE ? 250 : 500;
-    palClearPad(GPIOC, GPIOC_LED);
+    systime_t time = serusbcfg1.usbp->state == USB_ACTIVE ? 250 : 500;
+    palClearLine(LINE_LED);
     chThdSleepMilliseconds(time);
-    palSetPad(GPIOC, GPIOC_LED);
+    palSetLine(LINE_LED);
     chThdSleepMilliseconds(time);
   }
 }
@@ -171,6 +113,7 @@ static THD_FUNCTION(Thread1, arg) {
 int main(void) {
   thread_t *shelltp1 = NULL;
   thread_t *shelltp2 = NULL;
+  event_listener_t shell_el;
 
   /*
    * System initializations.
@@ -202,31 +145,46 @@ int main(void) {
 
   /*
    * Shell manager initialization.
+   * Event zero is shell exit.
    */
   shellInit();
+  chEvtRegister(&shell_terminated, &shell_el, 0);
 
   /*
-   * Creates the blinker threads.
+   * Creates the blinker thread.
    */
   chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
 
   /*
-   * Normal main() thread activity, in this demo it does nothing except
-   * sleeping in a loop and check the button state.
+   * Normal main() thread activity, managing two shells.
    */
   while (true) {
-    if (!shelltp1 && (SDU1.config->usbp->state == USB_ACTIVE))
-      shelltp1 = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
-    else if (chThdTerminatedX(shelltp1)) {
-      chThdRelease(shelltp1);   /* Recovers memory of the previous shell.   */
-      shelltp1 = NULL;          /* Triggers spawning of a new shell.        */
+    if (SDU1.config->usbp->state == USB_ACTIVE) {
+      /* Starting shells.*/
+      if (shelltp1 == NULL) {
+        shelltp1 = chThdCreateFromHeap(NULL, SHELL_WA_SIZE,
+                                       "shell1", NORMALPRIO + 1,
+                                       shellThread, (void *)&shell_cfg1);
+      }
+      if (shelltp2 == NULL) {
+        shelltp2 = chThdCreateFromHeap(NULL, SHELL_WA_SIZE,
+                                       "shell2", NORMALPRIO + 1,
+                                       shellThread, (void *)&shell_cfg2);
+      }
+
+      /* Waiting for an exit event then freeing terminated shells.*/
+      chEvtWaitAny(EVENT_MASK(0));
+      if (chThdTerminatedX(shelltp1)) {
+        chThdRelease(shelltp1);
+        shelltp1 = NULL;
+      }
+      if (chThdTerminatedX(shelltp2)) {
+        chThdRelease(shelltp2);
+        shelltp2 = NULL;
+      }
     }
-    if (!shelltp2 && (SDU2.config->usbp->state == USB_ACTIVE))
-      shelltp2 = shellCreate(&shell_cfg2, SHELL_WA_SIZE, NORMALPRIO);
-    else if (chThdTerminatedX(shelltp2)) {
-      chThdRelease(shelltp2);   /* Recovers memory of the previous shell.   */
-      shelltp2 = NULL;          /* Triggers spawning of a new shell.        */
+    else {
+      chThdSleepMilliseconds(1000);
     }
-    chThdSleepMilliseconds(1000);
   }
 }

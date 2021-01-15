@@ -4937,9 +4937,6 @@ struct INTC_tag {
 	
     union { /* INTC End Of Interrupt (Base+0x0018) */
         vuint32_t R;
-        struct {
-            vuint32_t:32;
-        } B;
     } EOIR;
 
 	vuint8_t INTC_reserved3[4]; /* reserved 4 bytes (Base+0x001C-0x0019) */

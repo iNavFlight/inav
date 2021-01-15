@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,7 +16,8 @@
 
 #include "ch.h"
 #include "hal.h"
-#include "test.h"
+#include "rt_test_root.h"
+#include "oslib_test_root.h"
 
 /*
  * This is a periodic thread that does absolutely nothing except flashing LEDs.
@@ -75,8 +76,10 @@ int main(void) {
    * pressed the test procedure is launched.
    */
   while (true) {
-    if (palReadPad(GPIOA, GPIOA_WKUP_BUTTON))
-      TestThread(&SD2);
+    if (palReadPad(GPIOA, GPIOA_WKUP_BUTTON)) {
+      test_execute((BaseSequentialStream *)&SD2, &rt_test_suite);
+      test_execute((BaseSequentialStream *)&SD2, &oslib_test_suite);
+    }
     chThdSleepMilliseconds(500);
   }
 }

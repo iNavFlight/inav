@@ -19,7 +19,7 @@
 */
 
 /**
- * @file    timcap.c
+ * @file    hal_timcap.c
  * @brief   TIMCAP Driver code.
  *
  * @addtogroup TIMCAP

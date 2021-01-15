@@ -51,7 +51,7 @@ static char read_front(void) {
   msg_t error;
 
   /* Wait until a new front buffer gets available with prepared data */
-  error = tribufWaitReadyTimeout(&tribuf, MS2ST(1000));
+  error = tribufWaitReadyTimeout(&tribuf, TIME_MS2I(1000));
   if (error == MSG_TIMEOUT)
     chSysHalt("ERROR: read_front() timed out");
 

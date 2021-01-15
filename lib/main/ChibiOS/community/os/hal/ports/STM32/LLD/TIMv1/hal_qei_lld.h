@@ -33,6 +33,16 @@
 /* Driver constants.                                                         */
 /*===========================================================================*/
 
+/**
+ * @brief Mininum usable value for defining counter underflow
+ */
+#define QEI_COUNT_MIN (0)
+
+/**
+ * @brief Maximum usable value for defining counter overflow
+ */
+#define QEI_COUNT_MAX (65535)
+
 /*===========================================================================*/
 /* Driver pre-compile time settings.                                         */
 /*===========================================================================*/
@@ -172,6 +182,56 @@
 #error "QEI driver activated but no TIM peripheral assigned"
 #endif
 
+/* Checks on allocation of TIMx units.*/
+#if STM32_QEI_USE_TIM1
+#if defined(STM32_TIM1_IS_USED)
+#error "QEID1 requires TIM1 but the timer is already used"
+#else
+#define STM32_TIM1_IS_USED
+#endif
+#endif
+
+#if STM32_QEI_USE_TIM2
+#if defined(STM32_TIM2_IS_USED)
+#error "QEID2 requires TIM2 but the timer is already used"
+#else
+#define STM32_TIM2_IS_USED
+#endif
+#endif
+
+#if STM32_QEI_USE_TIM3
+#if defined(STM32_TIM3_IS_USED)
+#error "QEID3 requires TIM3 but the timer is already used"
+#else
+#define STM32_TIM3_IS_USED
+#endif
+#endif
+
+#if STM32_QEI_USE_TIM4
+#if defined(STM32_TIM4_IS_USED)
+#error "QEID4 requires TIM4 but the timer is already used"
+#else
+#define STM32_TIM4_IS_USED
+#endif
+#endif
+
+#if STM32_QEI_USE_TIM5
+#if defined(STM32_TIM5_IS_USED)
+#error "QEID5 requires TIM5 but the timer is already used"
+#else
+#define STM32_TIM5_IS_USED
+#endif
+#endif
+
+#if STM32_QEI_USE_TIM8
+#if defined(STM32_TIM8_IS_USED)
+#error "QEID8 requires TIM8 but the timer is already used"
+#else
+#define STM32_TIM8_IS_USED
+#endif
+#endif
+
+/* IRQ priority checks.*/
 #if STM32_QEI_USE_TIM1 &&                                                   \
     !OSAL_IRQ_IS_VALID_PRIORITY(STM32_QEI_TIM1_IRQ_PRIORITY)
 #error "Invalid IRQ priority assigned to TIM1"
@@ -200,6 +260,14 @@
 #if STM32_QEI_USE_TIM8 &&                                                   \
     !OSAL_IRQ_IS_VALID_PRIORITY(STM32_QEI_TIM8_IRQ_PRIORITY)
 #error "Invalid IRQ priority assigned to TIM8"
+#endif
+
+#if QEI_USE_OVERFLOW_DISCARD
+#error "QEI_USE_OVERFLOW_DISCARD not supported by this driver"
+#endif
+
+#if QEI_USE_OVERFLOW_MINMAX
+#error "QEI_USE_OVERFLOW_MINMAX not supported by this driver"
 #endif
 
 /*===========================================================================*/
@@ -233,7 +301,7 @@ typedef enum {
 /**
  * @brief   QEI counter type.
  */
-typedef uint16_t qeicnt_t;
+typedef int16_t qeicnt_t;
 
 /**
  * @brief   QEI delta type.
@@ -257,6 +325,45 @@ typedef struct {
    * @brief   Direction inversion.
    */
   qeidirinv_t               dirinv;
+  /**
+   * @brief   Handling of counter overflow/underflow
+   *
+   * @details When overflow occurs, the counter value is updated
+   *          according to:
+   *            - QEI_OVERFLOW_DISCARD:
+   *                discard the update value, counter doesn't change
+   */
+  qeioverflow_t             overflow;
+  /**
+   * @brief   Min count value.
+   *
+   * @note    If min == max, then QEI_COUNT_MIN is used.
+   *
+   * @note    Only min set to 0 / QEI_COUNT_MIN is supported.
+   */
+  qeicnt_t                  min;
+  /**
+   * @brief   Max count value.
+   *
+   * @note    If min == max, then QEI_COUNT_MAX is used.
+   *
+   * @note    Only max set to 0 / QEI_COUNT_MAX is supported.
+   */
+  qeicnt_t                  max;
+  /**
+    * @brief  Notify of value change
+    *
+    * @note   Called from ISR context.
+    */
+  qeicallback_t             notify_cb;
+  /**
+   * @brief   Notify of overflow
+   *
+   * @note    Overflow notification is performed after
+   *          value changed notification.
+   * @note    Called from ISR context.
+   */
+  void (*overflow_cb)(QEIDriver *qeip, qeidelta_t delta);
   /* End of the mandatory fields.*/
 } QEIConfig;
 
@@ -299,6 +406,16 @@ struct QEIDriver {
  * @notapi
  */
 #define qei_lld_get_count(qeip) ((qeip)->tim->CNT)
+
+/**
+ * @brief   Set the counter value.
+ *
+ * @param[in] qeip      pointer to the @p QEIDriver object
+ * @param[in] qeip      counter value
+ *
+ * @notapi
+ */
+#define qei_lld_set_count(qeip, value) ((qeip)->tim->CNT = (value))
 
 /*===========================================================================*/
 /* External declarations.                                                    */

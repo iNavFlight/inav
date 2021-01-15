@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -22,8 +22,8 @@
  * @{
  */
 
-#ifndef _STM32_REGISTRY_H_
-#define _STM32_REGISTRY_H_
+#ifndef STM32_REGISTRY_H
+#define STM32_REGISTRY_H
 
 /**
  * @brief   Sub-family identifier.
@@ -33,10 +33,6 @@
 #endif
 
 /*===========================================================================*/
-/* Common features.                                                          */
-/*===========================================================================*/
-
-/*===========================================================================*/
 /* Platform capabilities.                                                    */
 /*===========================================================================*/
 
@@ -44,6 +40,14 @@
  * @name    STM32F3xx capabilities
  * @{
  */
+
+/*===========================================================================*/
+/* Common.                                                                   */
+/*===========================================================================*/
+
+/* RNG attributes.*/
+#define STM32_HAS_RNG1                      TRUE
+
 /*===========================================================================*/
 /* STM32F303xC.                                                              */
 /*===========================================================================*/
@@ -82,6 +86,7 @@
 /* CAN attributes.*/
 #define STM32_HAS_CAN1                      TRUE
 #define STM32_HAS_CAN2                      FALSE
+#define STM32_HAS_CAN3                      FALSE
 #define STM32_CAN_MAX_FILTERS               14
 
 /* DAC attributes.*/
@@ -96,6 +101,7 @@
 
 /* DMA attributes.*/
 #define STM32_ADVANCED_DMA                  FALSE
+#define STM32_DMA_SUPPORTS_DMAMUX           FALSE
 #define STM32_DMA_SUPPORTS_CSELR            FALSE
 
 #define STM32_DMA1_NUM_CHANNELS             7
@@ -131,7 +137,7 @@
 
 /* EXTI attributes.*/
 #define STM32_EXTI_NUM_LINES                34
-#define STM32_EXTI_IMR_MASK                 0x1F800000U
+#define STM32_EXTI_IMR1_MASK                0x1F800000U
 #define STM32_EXTI_IMR2_MASK                0xFFFFFFFCU
 
 /* GPIO attributes.*/
@@ -164,12 +170,29 @@
 #define STM32_HAS_I2C3                      FALSE
 #define STM32_HAS_I2C4                      FALSE
 
+/* QUADSPI attributes.*/
+#define STM32_HAS_QUADSPI1                  FALSE
+
 /* RTC attributes.*/
 #define STM32_HAS_RTC                       TRUE
 #define STM32_RTC_HAS_SUBSECONDS            TRUE
 #define STM32_RTC_HAS_PERIODIC_WAKEUPS      TRUE
 #define STM32_RTC_NUM_ALARMS                1
-#define STM32_RTC_HAS_INTERRUPTS            FALSE
+#define STM32_RTC_STORAGE_SIZE              64
+#define STM32_RTC_TAMP_STAMP_HANDLER        Vector48
+#define STM32_RTC_WKUP_HANDLER              Vector4C
+#define STM32_RTC_ALARM_HANDLER             VectorE4
+#define STM32_RTC_TAMP_STAMP_NUMBER         2
+#define STM32_RTC_WKUP_NUMBER               3
+#define STM32_RTC_ALARM_NUMBER              41
+#define STM32_RTC_ALARM_EXTI                17
+#define STM32_RTC_TAMP_STAMP_EXTI           19
+#define STM32_RTC_WKUP_EXTI                 20
+#define STM32_RTC_IRQ_ENABLE() do {                                         \
+  nvicEnableVector(STM32_RTC_TAMP_STAMP_NUMBER, STM32_IRQ_EXTI19_PRIORITY); \
+  nvicEnableVector(STM32_RTC_WKUP_NUMBER, STM32_IRQ_EXTI20_PRIORITY);       \
+  nvicEnableVector(STM32_RTC_ALARM_NUMBER, STM32_IRQ_EXTI17_PRIORITY);      \
+} while (false)
 
 /* SDIO attributes.*/
 #define STM32_HAS_SDIO                      FALSE
@@ -340,6 +363,7 @@
 /* CAN attributes.*/
 #define STM32_HAS_CAN1                      TRUE
 #define STM32_HAS_CAN2                      FALSE
+#define STM32_HAS_CAN3                      FALSE
 #define STM32_CAN_MAX_FILTERS               14
 
 /* DAC attributes.*/
@@ -354,6 +378,7 @@
 
 /* DMA attributes.*/
 #define STM32_ADVANCED_DMA                  FALSE
+#define STM32_DMA_SUPPORTS_DMAMUX           FALSE
 #define STM32_DMA_SUPPORTS_CSELR            FALSE
 
 #define STM32_DMA1_NUM_CHANNELS             7
@@ -389,7 +414,7 @@
 
 /* EXTI attributes.*/
 #define STM32_EXTI_NUM_LINES                34
-#define STM32_EXTI_IMR_MASK                 0x1F800000U
+#define STM32_EXTI_IMR1_MASK                0x1F800000U
 #define STM32_EXTI_IMR2_MASK                0xFFFFFFFCU
 
 /* GPIO attributes.*/
@@ -428,12 +453,29 @@
 
 #define STM32_HAS_I2C4                      FALSE
 
+/* QUADSPI attributes.*/
+#define STM32_HAS_QUADSPI1                  FALSE
+
 /* RTC attributes.*/
 #define STM32_HAS_RTC                       TRUE
 #define STM32_RTC_HAS_SUBSECONDS            TRUE
 #define STM32_RTC_HAS_PERIODIC_WAKEUPS      TRUE
 #define STM32_RTC_NUM_ALARMS                2
-#define STM32_RTC_HAS_INTERRUPTS            FALSE
+#define STM32_RTC_STORAGE_SIZE              64
+#define STM32_RTC_TAMP_STAMP_HANDLER        Vector48
+#define STM32_RTC_WKUP_HANDLER              Vector4C
+#define STM32_RTC_ALARM_HANDLER             VectorE4
+#define STM32_RTC_TAMP_STAMP_NUMBER         2
+#define STM32_RTC_WKUP_NUMBER               3
+#define STM32_RTC_ALARM_NUMBER              41
+#define STM32_RTC_ALARM_EXTI                17
+#define STM32_RTC_TAMP_STAMP_EXTI           19
+#define STM32_RTC_WKUP_EXTI                 20
+#define STM32_RTC_IRQ_ENABLE() do {                                         \
+  nvicEnableVector(STM32_RTC_TAMP_STAMP_NUMBER, STM32_IRQ_EXTI19_PRIORITY); \
+  nvicEnableVector(STM32_RTC_WKUP_NUMBER, STM32_IRQ_EXTI20_PRIORITY);       \
+  nvicEnableVector(STM32_RTC_ALARM_NUMBER, STM32_IRQ_EXTI17_PRIORITY);      \
+} while (false)
 
 /* SDIO attributes.*/
 #define STM32_HAS_SDIO                      FALSE
@@ -509,7 +551,7 @@
 
 #define STM32_HAS_TIM20                     TRUE
 #define STM32_TIM20_IS_32BITS               FALSE
-#define STM32_TIM20_CHANNELS                4
+#define STM32_TIM20_CHANNELS                6
 
 #define STM32_HAS_TIM5                      FALSE
 #define STM32_HAS_TIM9                      FALSE
@@ -587,8 +629,7 @@
 #define STM32_HAS_ADC2                      TRUE
 #define STM32_ADC2_HANDLER                  Vector88
 #define STM32_ADC2_NUMBER                   18
-#define STM32_ADC2_DMA_MSK                  (STM32_DMA_STREAM_ID_MSK(2, 1) |\
-                                             STM32_DMA_STREAM_ID_MSK(2, 3))
+#define STM32_ADC2_DMA_MSK                  (STM32_DMA_STREAM_ID_MSK(1, 2))
 #define STM32_ADC2_DMA_CHN                  0x00000000
 
 #define STM32_HAS_ADC3                      FALSE
@@ -601,6 +642,7 @@
 /* CAN attributes.*/
 #define STM32_HAS_CAN1                      TRUE
 #define STM32_HAS_CAN2                      FALSE
+#define STM32_HAS_CAN3                      FALSE
 #define STM32_CAN_MAX_FILTERS               14
 
 /* DAC attributes.*/
@@ -617,6 +659,7 @@
 
 /* DMA attributes.*/
 #define STM32_ADVANCED_DMA                  FALSE
+#define STM32_DMA_SUPPORTS_DMAMUX           FALSE
 #define STM32_DMA_SUPPORTS_CSELR            FALSE
 
 #define STM32_DMA1_NUM_CHANNELS             7
@@ -641,8 +684,8 @@
 #define STM32_HAS_ETH                       FALSE
 
 /* EXTI attributes.*/
-#define STM32_EXTI_NUM_LINES                34
-#define STM32_EXTI_IMR_MASK                 0x1F800000U
+#define STM32_EXTI_NUM_LINES                33
+#define STM32_EXTI_IMR1_MASK                0x1F800000U
 #define STM32_EXTI_IMR2_MASK                0xFFFFFFFCU
 
 /* GPIO attributes.*/
@@ -672,12 +715,29 @@
 #define STM32_HAS_I2C3                      FALSE
 #define STM32_HAS_I2C4                      FALSE
 
+/* QUADSPI attributes.*/
+#define STM32_HAS_QUADSPI1                  FALSE
+
 /* RTC attributes.*/
 #define STM32_HAS_RTC                       TRUE
 #define STM32_RTC_HAS_SUBSECONDS            TRUE
 #define STM32_RTC_HAS_PERIODIC_WAKEUPS      TRUE
 #define STM32_RTC_NUM_ALARMS                2
-#define STM32_RTC_HAS_INTERRUPTS            FALSE
+#define STM32_RTC_STORAGE_SIZE              64
+#define STM32_RTC_TAMP_STAMP_HANDLER        Vector48
+#define STM32_RTC_WKUP_HANDLER              Vector4C
+#define STM32_RTC_ALARM_HANDLER             VectorE4
+#define STM32_RTC_TAMP_STAMP_NUMBER         2
+#define STM32_RTC_WKUP_NUMBER               3
+#define STM32_RTC_ALARM_NUMBER              41
+#define STM32_RTC_ALARM_EXTI                17
+#define STM32_RTC_TAMP_STAMP_EXTI           19
+#define STM32_RTC_WKUP_EXTI                 20
+#define STM32_RTC_IRQ_ENABLE() do {                                         \
+  nvicEnableVector(STM32_RTC_TAMP_STAMP_NUMBER, STM32_IRQ_EXTI19_PRIORITY); \
+  nvicEnableVector(STM32_RTC_WKUP_NUMBER, STM32_IRQ_EXTI20_PRIORITY);       \
+  nvicEnableVector(STM32_RTC_ALARM_NUMBER, STM32_IRQ_EXTI17_PRIORITY);      \
+} while (false)
 
 /* SDIO attributes.*/
 #define STM32_HAS_SDIO                      FALSE
@@ -812,6 +872,7 @@
 /* CAN attributes.*/
 #define STM32_HAS_CAN1                      FALSE
 #define STM32_HAS_CAN2                      FALSE
+#define STM32_HAS_CAN3                      FALSE
 #define STM32_CAN_MAX_FILTERS               14
 
 /* DAC attributes.*/
@@ -824,6 +885,7 @@
 
 /* DMA attributes.*/
 #define STM32_ADVANCED_DMA                  FALSE
+#define STM32_DMA_SUPPORTS_DMAMUX           FALSE
 #define STM32_DMA_SUPPORTS_CSELR            FALSE
 
 #define STM32_DMA1_NUM_CHANNELS             7
@@ -849,7 +911,7 @@
 
 /* EXTI attributes.*/
 #define STM32_EXTI_NUM_LINES                33
-#define STM32_EXTI_IMR_MASK                 0x1F800000U
+#define STM32_EXTI_IMR1_MASK                0x1F800000U
 #define STM32_EXTI_IMR2_MASK                0xFFFFFFFCU
 
 /* GPIO attributes.*/
@@ -885,12 +947,29 @@
 
 #define STM32_HAS_I2C4                      FALSE
 
+/* QUADSPI attributes.*/
+#define STM32_HAS_QUADSPI1                  FALSE
+
 /* RTC attributes.*/
 #define STM32_HAS_RTC                       TRUE
 #define STM32_RTC_HAS_SUBSECONDS            TRUE
 #define STM32_RTC_HAS_PERIODIC_WAKEUPS      TRUE
 #define STM32_RTC_NUM_ALARMS                2
-#define STM32_RTC_HAS_INTERRUPTS            FALSE
+#define STM32_RTC_STORAGE_SIZE              64
+#define STM32_RTC_TAMP_STAMP_HANDLER        Vector48
+#define STM32_RTC_WKUP_HANDLER              Vector4C
+#define STM32_RTC_ALARM_HANDLER             VectorE4
+#define STM32_RTC_TAMP_STAMP_NUMBER         2
+#define STM32_RTC_WKUP_NUMBER               3
+#define STM32_RTC_ALARM_NUMBER              41
+#define STM32_RTC_ALARM_EXTI                17
+#define STM32_RTC_TAMP_STAMP_EXTI           19
+#define STM32_RTC_WKUP_EXTI                 20
+#define STM32_RTC_IRQ_ENABLE() do {                                         \
+  nvicEnableVector(STM32_RTC_TAMP_STAMP_NUMBER, STM32_IRQ_EXTI19_PRIORITY); \
+  nvicEnableVector(STM32_RTC_WKUP_NUMBER, STM32_IRQ_EXTI20_PRIORITY);       \
+  nvicEnableVector(STM32_RTC_ALARM_NUMBER, STM32_IRQ_EXTI17_PRIORITY);      \
+} while (false)
 
 /* SDIO attributes.*/
 #define STM32_HAS_SDIO                      FALSE
@@ -1022,6 +1101,7 @@
 /* CAN attributes.*/
 #define STM32_HAS_CAN1                      TRUE
 #define STM32_HAS_CAN2                      FALSE
+#define STM32_HAS_CAN3                      FALSE
 #define STM32_CAN_MAX_FILTERS               14
 
 /* DAC attributes.*/
@@ -1034,6 +1114,7 @@
 
 /* DMA attributes.*/
 #define STM32_ADVANCED_DMA                  FALSE
+#define STM32_DMA_SUPPORTS_DMAMUX           FALSE
 #define STM32_DMA_SUPPORTS_CSELR            FALSE
 
 #define STM32_DMA1_NUM_CHANNELS             7
@@ -1059,7 +1140,7 @@
 
 /* EXTI attributes.*/
 #define STM32_EXTI_NUM_LINES                33
-#define STM32_EXTI_IMR_MASK                 0x1F800000U
+#define STM32_EXTI_IMR1_MASK                0x1F800000U
 #define STM32_EXTI_IMR2_MASK                0xFFFFFFFCU
 
 /* GPIO attributes.*/
@@ -1095,12 +1176,29 @@
 
 #define STM32_HAS_I2C4                      FALSE
 
+/* QUADSPI attributes.*/
+#define STM32_HAS_QUADSPI1                  FALSE
+
 /* RTC attributes.*/
 #define STM32_HAS_RTC                       TRUE
 #define STM32_RTC_HAS_SUBSECONDS            TRUE
 #define STM32_RTC_HAS_PERIODIC_WAKEUPS      TRUE
 #define STM32_RTC_NUM_ALARMS                2
-#define STM32_RTC_HAS_INTERRUPTS            FALSE
+#define STM32_RTC_STORAGE_SIZE              64
+#define STM32_RTC_TAMP_STAMP_HANDLER        Vector48
+#define STM32_RTC_WKUP_HANDLER              Vector4C
+#define STM32_RTC_ALARM_HANDLER             VectorE4
+#define STM32_RTC_TAMP_STAMP_NUMBER         2
+#define STM32_RTC_WKUP_NUMBER               3
+#define STM32_RTC_ALARM_NUMBER              41
+#define STM32_RTC_ALARM_EXTI                17
+#define STM32_RTC_TAMP_STAMP_EXTI           19
+#define STM32_RTC_WKUP_EXTI                 20
+#define STM32_RTC_IRQ_ENABLE() do {                                         \
+  nvicEnableVector(STM32_RTC_TAMP_STAMP_NUMBER, STM32_IRQ_EXTI19_PRIORITY); \
+  nvicEnableVector(STM32_RTC_WKUP_NUMBER, STM32_IRQ_EXTI20_PRIORITY);       \
+  nvicEnableVector(STM32_RTC_ALARM_NUMBER, STM32_IRQ_EXTI17_PRIORITY);      \
+} while (false)
 
 /* SDIO attributes.*/
 #define STM32_HAS_SDIO                      FALSE
@@ -1241,6 +1339,7 @@
 /* CAN attributes.*/
 #define STM32_HAS_CAN1                      TRUE
 #define STM32_HAS_CAN2                      FALSE
+#define STM32_HAS_CAN3                      FALSE
 #define STM32_CAN_MAX_FILTERS               14
 
 /* DAC attributes.*/
@@ -1253,6 +1352,7 @@
 
 /* DMA attributes.*/
 #define STM32_ADVANCED_DMA                  FALSE
+#define STM32_DMA_SUPPORTS_DMAMUX           FALSE
 #define STM32_DMA_SUPPORTS_CSELR            FALSE
 
 #define STM32_DMA1_NUM_CHANNELS             7
@@ -1288,7 +1388,7 @@
 
 /* EXTI attributes.*/
 #define STM32_EXTI_NUM_LINES                34
-#define STM32_EXTI_IMR_MASK                 0x1F800000U
+#define STM32_EXTI_IMR1_MASK                0x1F800000U
 #define STM32_EXTI_IMR2_MASK                0xFFFFFFFCU
 
 /* GPIO attributes.*/
@@ -1322,12 +1422,29 @@
 #define STM32_HAS_I2C3                      FALSE
 #define STM32_HAS_I2C4                      FALSE
 
+/* QUADSPI attributes.*/
+#define STM32_HAS_QUADSPI1                  FALSE
+
 /* RTC attributes.*/
 #define STM32_HAS_RTC                       TRUE
 #define STM32_RTC_HAS_SUBSECONDS            TRUE
 #define STM32_RTC_HAS_PERIODIC_WAKEUPS      TRUE
 #define STM32_RTC_NUM_ALARMS                2
-#define STM32_RTC_HAS_INTERRUPTS            FALSE
+#define STM32_RTC_STORAGE_SIZE              64
+#define STM32_RTC_TAMP_STAMP_HANDLER        Vector48
+#define STM32_RTC_WKUP_HANDLER              Vector4C
+#define STM32_RTC_ALARM_HANDLER             VectorE4
+#define STM32_RTC_TAMP_STAMP_NUMBER         2
+#define STM32_RTC_WKUP_NUMBER               3
+#define STM32_RTC_ALARM_NUMBER              41
+#define STM32_RTC_ALARM_EXTI                17
+#define STM32_RTC_TAMP_STAMP_EXTI           19
+#define STM32_RTC_WKUP_EXTI                 20
+#define STM32_RTC_IRQ_ENABLE() do {                                         \
+  nvicEnableVector(STM32_RTC_TAMP_STAMP_NUMBER, STM32_IRQ_EXTI19_PRIORITY); \
+  nvicEnableVector(STM32_RTC_WKUP_NUMBER, STM32_IRQ_EXTI20_PRIORITY);       \
+  nvicEnableVector(STM32_RTC_ALARM_NUMBER, STM32_IRQ_EXTI17_PRIORITY);      \
+} while (false)
 
 /* SDIO attributes.*/
 #define STM32_HAS_SDIO                      FALSE
@@ -1482,6 +1599,7 @@
 /* CAN attributes.*/
 #define STM32_HAS_CAN1                      TRUE
 #define STM32_HAS_CAN2                      FALSE
+#define STM32_HAS_CAN3                      FALSE
 #define STM32_CAN_MAX_FILTERS               14
 
 /* DAC attributes.*/
@@ -1494,6 +1612,7 @@
 
 /* DMA attributes.*/
 #define STM32_ADVANCED_DMA                  FALSE
+#define STM32_DMA_SUPPORTS_DMAMUX           FALSE
 #define STM32_DMA_SUPPORTS_CSELR            FALSE
 
 #define STM32_DMA1_NUM_CHANNELS             7
@@ -1529,7 +1648,7 @@
 
 /* EXTI attributes.*/
 #define STM32_EXTI_NUM_LINES                34
-#define STM32_EXTI_IMR_MASK                 0x1F800000U
+#define STM32_EXTI_IMR1_MASK                0x1F800000U
 #define STM32_EXTI_IMR2_MASK                0xFFFFFFFCU
 
 /* GPIO attributes.*/
@@ -1568,12 +1687,29 @@
 
 #define STM32_HAS_I2C4                      FALSE
 
+/* QUADSPI attributes.*/
+#define STM32_HAS_QUADSPI1                  FALSE
+
 /* RTC attributes.*/
 #define STM32_HAS_RTC                       TRUE
 #define STM32_RTC_HAS_SUBSECONDS            TRUE
 #define STM32_RTC_HAS_PERIODIC_WAKEUPS      TRUE
 #define STM32_RTC_NUM_ALARMS                2
-#define STM32_RTC_HAS_INTERRUPTS            FALSE
+#define STM32_RTC_STORAGE_SIZE              64
+#define STM32_RTC_TAMP_STAMP_HANDLER        Vector48
+#define STM32_RTC_WKUP_HANDLER              Vector4C
+#define STM32_RTC_ALARM_HANDLER             VectorE4
+#define STM32_RTC_TAMP_STAMP_NUMBER         2
+#define STM32_RTC_WKUP_NUMBER               3
+#define STM32_RTC_ALARM_NUMBER              41
+#define STM32_RTC_ALARM_EXTI                17
+#define STM32_RTC_TAMP_STAMP_EXTI           19
+#define STM32_RTC_WKUP_EXTI                 20
+#define STM32_RTC_IRQ_ENABLE() do {                                         \
+  nvicEnableVector(STM32_RTC_TAMP_STAMP_NUMBER, STM32_IRQ_EXTI19_PRIORITY); \
+  nvicEnableVector(STM32_RTC_WKUP_NUMBER, STM32_IRQ_EXTI20_PRIORITY);       \
+  nvicEnableVector(STM32_RTC_ALARM_NUMBER, STM32_IRQ_EXTI17_PRIORITY);      \
+} while (false)
 
 /* SDIO attributes.*/
 #define STM32_HAS_SDIO                      FALSE
@@ -1726,6 +1862,7 @@
 /* CAN attributes.*/
 #define STM32_HAS_CAN1                      TRUE
 #define STM32_HAS_CAN2                      FALSE
+#define STM32_HAS_CAN3                      FALSE
 #define STM32_CAN_MAX_FILTERS               14
 
 /* DAC attributes.*/
@@ -1738,6 +1875,7 @@
 
 /* DMA attributes.*/
 #define STM32_ADVANCED_DMA                  FALSE
+#define STM32_DMA_SUPPORTS_DMAMUX           FALSE
 #define STM32_DMA_SUPPORTS_CSELR            FALSE
 
 #define STM32_DMA1_NUM_CHANNELS             7
@@ -1763,7 +1901,7 @@
 
 /* EXTI attributes.*/
 #define STM32_EXTI_NUM_LINES                33
-#define STM32_EXTI_IMR_MASK                 0x1F800000U
+#define STM32_EXTI_IMR1_MASK                0x1F800000U
 #define STM32_EXTI_IMR2_MASK                0xFFFFFFFCU
 
 /* GPIO attributes.*/
@@ -1798,12 +1936,29 @@
 
 #define STM32_HAS_I2C4                      FALSE
 
+/* QUADSPI attributes.*/
+#define STM32_HAS_QUADSPI1                  FALSE
+
 /* RTC attributes.*/
 #define STM32_HAS_RTC                       TRUE
 #define STM32_RTC_HAS_SUBSECONDS            TRUE
 #define STM32_RTC_HAS_PERIODIC_WAKEUPS      TRUE
 #define STM32_RTC_NUM_ALARMS                2
-#define STM32_RTC_HAS_INTERRUPTS            FALSE
+#define STM32_RTC_STORAGE_SIZE              64
+#define STM32_RTC_TAMP_STAMP_HANDLER        Vector48
+#define STM32_RTC_WKUP_HANDLER              Vector4C
+#define STM32_RTC_ALARM_HANDLER             VectorE4
+#define STM32_RTC_TAMP_STAMP_NUMBER         2
+#define STM32_RTC_WKUP_NUMBER               3
+#define STM32_RTC_ALARM_NUMBER              41
+#define STM32_RTC_ALARM_EXTI                17
+#define STM32_RTC_TAMP_STAMP_EXTI           19
+#define STM32_RTC_WKUP_EXTI                 20
+#define STM32_RTC_IRQ_ENABLE() do {                                         \
+  nvicEnableVector(STM32_RTC_TAMP_STAMP_NUMBER, STM32_IRQ_EXTI19_PRIORITY); \
+  nvicEnableVector(STM32_RTC_WKUP_NUMBER, STM32_IRQ_EXTI20_PRIORITY);       \
+  nvicEnableVector(STM32_RTC_ALARM_NUMBER, STM32_IRQ_EXTI17_PRIORITY);      \
+} while (false)
 
 /* SDIO attributes.*/
 #define STM32_HAS_SDIO                      FALSE
@@ -1941,6 +2096,7 @@
 /* CAN attributes.*/
 #define STM32_HAS_CAN1                      TRUE
 #define STM32_HAS_CAN2                      FALSE
+#define STM32_HAS_CAN3                      FALSE
 #define STM32_CAN_MAX_FILTERS               14
 
 /* DAC attributes.*/
@@ -1957,6 +2113,7 @@
 
 /* DMA attributes.*/
 #define STM32_ADVANCED_DMA                  FALSE
+#define STM32_DMA_SUPPORTS_DMAMUX           FALSE
 #define STM32_DMA_SUPPORTS_CSELR            FALSE
 
 #define STM32_DMA1_NUM_CHANNELS             7
@@ -1982,7 +2139,7 @@
 
 /* EXTI attributes.*/
 #define STM32_EXTI_NUM_LINES                33
-#define STM32_EXTI_IMR_MASK                 0x1F800000U
+#define STM32_EXTI_IMR1_MASK                0x1F800000U
 #define STM32_EXTI_IMR2_MASK                0xFFFFFFFCU
 
 /* GPIO attributes.*/
@@ -2012,12 +2169,29 @@
 #define STM32_HAS_I2C3                      FALSE
 #define STM32_HAS_I2C4                      FALSE
 
+/* QUADSPI attributes.*/
+#define STM32_HAS_QUADSPI1                  FALSE
+
 /* RTC attributes.*/
 #define STM32_HAS_RTC                       TRUE
 #define STM32_RTC_HAS_SUBSECONDS            TRUE
 #define STM32_RTC_HAS_PERIODIC_WAKEUPS      TRUE
 #define STM32_RTC_NUM_ALARMS                2
-#define STM32_RTC_HAS_INTERRUPTS            FALSE
+#define STM32_RTC_STORAGE_SIZE              64
+#define STM32_RTC_TAMP_STAMP_HANDLER        Vector48
+#define STM32_RTC_WKUP_HANDLER              Vector4C
+#define STM32_RTC_ALARM_HANDLER             VectorE4
+#define STM32_RTC_TAMP_STAMP_NUMBER         2
+#define STM32_RTC_WKUP_NUMBER               3
+#define STM32_RTC_ALARM_NUMBER              41
+#define STM32_RTC_ALARM_EXTI                17
+#define STM32_RTC_TAMP_STAMP_EXTI           19
+#define STM32_RTC_WKUP_EXTI                 20
+#define STM32_RTC_IRQ_ENABLE() do {                                         \
+  nvicEnableVector(STM32_RTC_TAMP_STAMP_NUMBER, STM32_IRQ_EXTI19_PRIORITY); \
+  nvicEnableVector(STM32_RTC_WKUP_NUMBER, STM32_IRQ_EXTI20_PRIORITY);       \
+  nvicEnableVector(STM32_RTC_ALARM_NUMBER, STM32_IRQ_EXTI17_PRIORITY);      \
+} while (false)
 
 /* SDIO attributes.*/
 #define STM32_HAS_SDIO                      FALSE
@@ -2155,6 +2329,7 @@
 /* CAN attributes.*/
 #define STM32_HAS_CAN1                      TRUE
 #define STM32_HAS_CAN2                      FALSE
+#define STM32_HAS_CAN3                      FALSE
 #define STM32_CAN_MAX_FILTERS               14
 
 /* DAC attributes.*/
@@ -2169,6 +2344,7 @@
 
 /* DMA attributes.*/
 #define STM32_ADVANCED_DMA                  FALSE
+#define STM32_DMA_SUPPORTS_DMAMUX           FALSE
 #define STM32_DMA_SUPPORTS_CSELR            FALSE
 
 #define STM32_DMA1_NUM_CHANNELS             7
@@ -2204,7 +2380,7 @@
 
 /* EXTI attributes.*/
 #define STM32_EXTI_NUM_LINES                34
-#define STM32_EXTI_IMR_MASK                 0x1F800000U
+#define STM32_EXTI_IMR1_MASK                0x1F800000U
 #define STM32_EXTI_IMR2_MASK                0xFFFFFFFCU
 
 /* GPIO attributes.*/
@@ -2238,12 +2414,29 @@
 #define STM32_HAS_I2C3                      FALSE
 #define STM32_HAS_I2C4                      FALSE
 
+/* QUADSPI attributes.*/
+#define STM32_HAS_QUADSPI1                  FALSE
+
 /* RTC attributes.*/
 #define STM32_HAS_RTC                       TRUE
 #define STM32_RTC_HAS_SUBSECONDS            TRUE
 #define STM32_RTC_HAS_PERIODIC_WAKEUPS      TRUE
 #define STM32_RTC_NUM_ALARMS                1
-#define STM32_RTC_HAS_INTERRUPTS            FALSE
+#define STM32_RTC_STORAGE_SIZE              64
+#define STM32_RTC_TAMP_STAMP_HANDLER        Vector48
+#define STM32_RTC_WKUP_HANDLER              Vector4C
+#define STM32_RTC_ALARM_HANDLER             VectorE4
+#define STM32_RTC_TAMP_STAMP_NUMBER         2
+#define STM32_RTC_WKUP_NUMBER               3
+#define STM32_RTC_ALARM_NUMBER              41
+#define STM32_RTC_ALARM_EXTI                17
+#define STM32_RTC_TAMP_STAMP_EXTI           19
+#define STM32_RTC_WKUP_EXTI                 20
+#define STM32_RTC_IRQ_ENABLE() do {                                         \
+  nvicEnableVector(STM32_RTC_TAMP_STAMP_NUMBER, STM32_IRQ_EXTI19_PRIORITY); \
+  nvicEnableVector(STM32_RTC_WKUP_NUMBER, STM32_IRQ_EXTI20_PRIORITY);       \
+  nvicEnableVector(STM32_RTC_ALARM_NUMBER, STM32_IRQ_EXTI17_PRIORITY);      \
+} while (false)
 
 /* SDIO attributes.*/
 #define STM32_HAS_SDIO                      FALSE
@@ -2384,8 +2577,8 @@
 #define STM32_HAS_ADC2                      TRUE
 #define STM32_ADC2_HANDLER                  Vector88
 #define STM32_ADC2_NUMBER                   18
-#define STM32_ADC2_DMA_MSK                  (STM32_DMA_STREAM_ID_MSK(2, 1) |\
-                                             STM32_DMA_STREAM_ID_MSK(2, 3))
+#define STM32_ADC2_DMA_MSK                  (STM32_DMA_STREAM_ID_MSK(1, 2) |\
+                                             STM32_DMA_STREAM_ID_MSK(1, 4))
 #define STM32_ADC2_DMA_CHN                  0x00000000
 
 #define STM32_HAS_ADC3                      FALSE
@@ -2398,6 +2591,7 @@
 /* CAN attributes.*/
 #define STM32_HAS_CAN1                      TRUE
 #define STM32_HAS_CAN2                      FALSE
+#define STM32_HAS_CAN3                      FALSE
 #define STM32_CAN_MAX_FILTERS               14
 
 /* DAC attributes.*/
@@ -2414,6 +2608,7 @@
 
 /* DMA attributes.*/
 #define STM32_ADVANCED_DMA                  FALSE
+#define STM32_DMA_SUPPORTS_DMAMUX           FALSE
 #define STM32_DMA_SUPPORTS_CSELR            FALSE
 
 #define STM32_DMA1_NUM_CHANNELS             7
@@ -2439,7 +2634,7 @@
 
 /* EXTI attributes.*/
 #define STM32_EXTI_NUM_LINES                33
-#define STM32_EXTI_IMR_MASK                 0x1F800000U
+#define STM32_EXTI_IMR1_MASK                0x1F800000U
 #define STM32_EXTI_IMR2_MASK                0xFFFFFFFCU
 
 /* GPIO attributes.*/
@@ -2469,12 +2664,29 @@
 #define STM32_HAS_I2C3                      FALSE
 #define STM32_HAS_I2C4                      FALSE
 
+/* QUADSPI attributes.*/
+#define STM32_HAS_QUADSPI1                  FALSE
+
 /* RTC attributes.*/
 #define STM32_HAS_RTC                       TRUE
 #define STM32_RTC_HAS_SUBSECONDS            TRUE
 #define STM32_RTC_HAS_PERIODIC_WAKEUPS      TRUE
 #define STM32_RTC_NUM_ALARMS                1
-#define STM32_RTC_HAS_INTERRUPTS            FALSE
+#define STM32_RTC_STORAGE_SIZE              64
+#define STM32_RTC_TAMP_STAMP_HANDLER        Vector48
+#define STM32_RTC_WKUP_HANDLER              Vector4C
+#define STM32_RTC_ALARM_HANDLER             VectorE4
+#define STM32_RTC_TAMP_STAMP_NUMBER         2
+#define STM32_RTC_WKUP_NUMBER               3
+#define STM32_RTC_ALARM_NUMBER              41
+#define STM32_RTC_ALARM_EXTI                17
+#define STM32_RTC_TAMP_STAMP_EXTI           19
+#define STM32_RTC_WKUP_EXTI                 20
+#define STM32_RTC_IRQ_ENABLE() do {                                         \
+  nvicEnableVector(STM32_RTC_TAMP_STAMP_NUMBER, STM32_IRQ_EXTI19_PRIORITY); \
+  nvicEnableVector(STM32_RTC_WKUP_NUMBER, STM32_IRQ_EXTI20_PRIORITY);       \
+  nvicEnableVector(STM32_RTC_ALARM_NUMBER, STM32_IRQ_EXTI17_PRIORITY);      \
+} while (false)
 
 /* SDIO attributes.*/
 #define STM32_HAS_SDIO                      FALSE
@@ -2540,6 +2752,9 @@
 #define STM32_HAS_TIM20                     FALSE
 #define STM32_HAS_TIM21                     FALSE
 #define STM32_HAS_TIM22                     FALSE
+
+/* HRTIM attributes.*/
+#define STM32_HAS_HRTIM1                    TRUE
 
 /* USART attributes.*/
 #define STM32_HAS_USART1                    TRUE
@@ -2622,6 +2837,7 @@
 /* CAN attributes.*/
 #define STM32_HAS_CAN1                      TRUE
 #define STM32_HAS_CAN2                      FALSE
+#define STM32_HAS_CAN3                      FALSE
 #define STM32_CAN_MAX_FILTERS               14
 
 /* DAC attributes.*/
@@ -2636,6 +2852,7 @@
 
 /* DMA attributes.*/
 #define STM32_ADVANCED_DMA                  FALSE
+#define STM32_DMA_SUPPORTS_DMAMUX           FALSE
 #define STM32_DMA_SUPPORTS_CSELR            FALSE
 
 #define STM32_DMA1_NUM_CHANNELS             7
@@ -2671,7 +2888,7 @@
 
 /* EXTI attributes.*/
 #define STM32_EXTI_NUM_LINES                34
-#define STM32_EXTI_IMR_MASK                 0x1F800000U
+#define STM32_EXTI_IMR1_MASK                0x1F800000U
 #define STM32_EXTI_IMR2_MASK                0xFFFFFFFCU
 
 /* GPIO attributes.*/
@@ -2710,12 +2927,29 @@
 
 #define STM32_HAS_I2C4                      FALSE
 
+/* QUADSPI attributes.*/
+#define STM32_HAS_QUADSPI1                  FALSE
+
 /* RTC attributes.*/
 #define STM32_HAS_RTC                       TRUE
 #define STM32_RTC_HAS_SUBSECONDS            TRUE
 #define STM32_RTC_HAS_PERIODIC_WAKEUPS      TRUE
 #define STM32_RTC_NUM_ALARMS                2
-#define STM32_RTC_HAS_INTERRUPTS            FALSE
+#define STM32_RTC_STORAGE_SIZE              64
+#define STM32_RTC_TAMP_STAMP_HANDLER        Vector48
+#define STM32_RTC_WKUP_HANDLER              Vector4C
+#define STM32_RTC_ALARM_HANDLER             VectorE4
+#define STM32_RTC_TAMP_STAMP_NUMBER         2
+#define STM32_RTC_WKUP_NUMBER               3
+#define STM32_RTC_ALARM_NUMBER              41
+#define STM32_RTC_ALARM_EXTI                17
+#define STM32_RTC_TAMP_STAMP_EXTI           19
+#define STM32_RTC_WKUP_EXTI                 20
+#define STM32_RTC_IRQ_ENABLE() do {                                         \
+  nvicEnableVector(STM32_RTC_TAMP_STAMP_NUMBER, STM32_IRQ_EXTI19_PRIORITY); \
+  nvicEnableVector(STM32_RTC_WKUP_NUMBER, STM32_IRQ_EXTI20_PRIORITY);       \
+  nvicEnableVector(STM32_RTC_ALARM_NUMBER, STM32_IRQ_EXTI17_PRIORITY);      \
+} while (false)
 
 /* SDIO attributes.*/
 #define STM32_HAS_SDIO                      FALSE
@@ -2791,7 +3025,7 @@
 
 #define STM32_HAS_TIM20                     TRUE
 #define STM32_TIM20_IS_32BITS               FALSE
-#define STM32_TIM20_CHANNELS                4
+#define STM32_TIM20_CHANNELS                6
 
 #define STM32_HAS_TIM5                      FALSE
 #define STM32_HAS_TIM9                      FALSE
@@ -2855,6 +3089,6 @@
 
 /** @} */
 
-#endif /* _STM32_REGISTRY_H_ */
+#endif /* STM32_REGISTRY_H */
 
 /** @} */

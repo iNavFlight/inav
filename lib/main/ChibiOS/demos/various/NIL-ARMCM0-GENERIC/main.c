@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
     limitations under the License.
 */
 
-#include "nil.h"
+#include "ch.h"
 
 #if !defined(SYSTEM_CLOCK)
 #define SYSTEM_CLOCK 8000000U
@@ -83,7 +83,7 @@ int main(void) {
    * Hardware initialization, in this simple demo just the systick timer is
    * initialized.
    */
-  SysTick->LOAD = SYSTEM_CLOCK / NIL_CFG_ST_FREQUENCY - (systime_t)1;
+  SysTick->LOAD = SYSTEM_CLOCK / CH_CFG_ST_FREQUENCY - (systime_t)1;
   SysTick->VAL = (uint32_t)0;
   SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk |
                   SysTick_CTRL_TICKINT_Msk;

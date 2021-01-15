@@ -22,8 +22,8 @@
    32-bit timers and timers with single capture/compare channels.
 */
 
-#ifndef _EICU_H_
-#define _EICU_H_
+#ifndef HAL_EICU_H_
+#define HAL_EICU_H_
 
 #if (HAL_USE_EICU == TRUE) || defined(__DOXYGEN__)
 
@@ -186,6 +186,6 @@ extern "C" {
 
 #endif /* HAL_USE_EICU */
 
-#endif /* _EICU_H_ */
+#endif /* HAL_EICU_H_ */
 
 /** @} */

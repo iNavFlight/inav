@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -15,27 +15,15 @@
 */
 
 /**
- * @file    stm32_otg.h
+ * @file    OTGv1/stm32_otg.h
  * @brief   STM32 OTG registers layout header.
  *
  * @addtogroup USB
  * @{
  */
 
-#ifndef _STM32_OTG_H_
-#define _STM32_OTG_H_
-
-/**
- * @brief   Number of the implemented endpoints in OTG_FS.
- * @details This value does not include the endpoint 0 that is always present.
- */
-#define STM32_OTG1_ENDOPOINTS_NUMBER    3
-
-/**
- * @brief   Number of the implemented endpoints in OTG_HS.
- * @details This value does not include the endpoint 0 that is always present.
- */
-#define STM32_OTG2_ENDOPOINTS_NUMBER    5
+#ifndef STM32_OTG_H
+#define STM32_OTG_H
 
 /**
  * @brief   OTG_FS FIFO memory size in words.
@@ -429,12 +417,16 @@ typedef struct {
  * @name GCCFG register bit definitions
  * @{
  */
+/* Definitions for stepping 1.*/
 #define GCCFG_NOVBUSSENS        (1U<<21)    /**< VBUS sensing disable.      */
 #define GCCFG_SOFOUTEN          (1U<<20)    /**< SOF output enable.         */
 #define GCCFG_VBUSBSEN          (1U<<19)    /**< Enable the VBUS sensing "B"
                                                  device.                    */
 #define GCCFG_VBUSASEN          (1U<<18)    /**< Enable the VBUS sensing "A"
                                                  device.                    */
+
+/* Definitions for stepping 2.*/
+#define GCCFG_VBDEN             (1U<<21)    /**< VBUS sensing enable.       */
 #define GCCFG_PWRDWN            (1U<<16)    /**< Power down.                */
 /** @} */
 
@@ -870,6 +862,7 @@ typedef struct {
  * @name DOEPINT register bit definitions
  * @{
  */
+#define DOEPINT_SETUP_RCVD      (1U<<15)    /**< SETUP packet received.     */
 #define DOEPINT_B2BSTUP         (1U<<6)     /**< Back-to-back SETUP packets
                                                  received.                  */
 #define DOEPINT_OTEPDIS         (1U<<4)     /**< OUT token received when
@@ -904,15 +897,20 @@ typedef struct {
 #define PCGCCTL_STPPCLK         (1U<<0)     /**< Stop PCLK.                 */
 /** @} */
 
+#if defined(STM32H7XX) || defined(__DOXYGEN__)
 /**
  * @brief   OTG_FS registers block memory address.
  */
-#define OTG_FS_ADDR                 0x50000000
+#define OTG_FS_ADDR                 0x40080000
 
 /**
  * @brief   OTG_HS registers block memory address.
  */
 #define OTG_HS_ADDR                 0x40040000
+#else
+#define OTG_FS_ADDR                 0x50000000
+#define OTG_HS_ADDR                 0x40040000
+#endif
 
 /**
  * @brief   Accesses to the OTG_FS registers block.
@@ -924,6 +922,6 @@ typedef struct {
  */
 #define OTG_HS                      ((stm32_otg_t *)OTG_HS_ADDR)
 
-#endif /* _STM32_OTG_H_ */
+#endif /* STM32_OTG_H */
 
 /** @} */

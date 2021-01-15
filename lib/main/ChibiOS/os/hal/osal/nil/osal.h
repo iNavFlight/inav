@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -22,14 +22,14 @@
  * @{
  */
 
-#ifndef _OSAL_H_
-#define _OSAL_H_
+#ifndef OSAL_H
+#define OSAL_H
 
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "nil.h"
+#include "ch.h"
 
 #if defined(__SPC5_HAL__)
 #include "platform.h"
@@ -48,11 +48,11 @@
 #endif
 
 #if !defined(TRUE) || defined(__DOXYGEN__)
-#define TRUE                                (!FALSE)
+#define TRUE                                1
 #endif
 
-#define OSAL_SUCCESS                        FALSE
-#define OSAL_FAILED                         TRUE
+#define OSAL_SUCCESS                        false
+#define OSAL_FAILED                         true
 /** @} */
 
 #if 0
@@ -60,9 +60,9 @@
  * @name    Messages
  * @{
  */
-#define MSG_OK                              RDY_OK
-#define MSG_RESET                           RDY_RESET
-#define MSG_TIMEOUT                         RDY_TIMEOUT
+#define MSG_OK                              (msg_t)0
+#define MSG_TIMEOUT                         (msg_t)-1
+#define MSG_RESET                           (msg_t)-2
 /** @} */
 #endif
 
@@ -71,8 +71,8 @@
  * @name    Special time constants
  * @{
  */
-#define TIME_IMMEDIATE                      ((systime_t)0)
-#define TIME_INFINITE                       ((systime_t)-1)
+#define TIME_IMMEDIATE                      ((sysinterval_t)0)
+#define TIME_INFINITE                       ((sysinterval_t)-1)
 /** @} */
 #endif
 
@@ -92,17 +92,17 @@
 /**
  * @brief   Size in bits of the @p systick_t type.
  */
-#define OSAL_ST_RESOLUTION                  NIL_CFG_ST_RESOLUTION
+#define OSAL_ST_RESOLUTION                  CH_CFG_ST_RESOLUTION
 
 /**
  * @brief   Required systick frequency or resolution.
  */
-#define OSAL_ST_FREQUENCY                   NIL_CFG_ST_FREQUENCY
+#define OSAL_ST_FREQUENCY                   CH_CFG_ST_FREQUENCY
 
 /**
  * @brief   Systick mode required by the underlying OS.
  */
-#if (NIL_CFG_ST_TIMEDELTA == 0) || defined(__DOXYGEN__)
+#if (CH_CFG_ST_TIMEDELTA == 0) || defined(__DOXYGEN__)
 #define OSAL_ST_MODE                        OSAL_ST_MODE_PERIODIC
 #else
 #define OSAL_ST_MODE                        OSAL_ST_MODE_FREERUNNING
@@ -117,8 +117,12 @@
 /* Derived constants and error checks.                                       */
 /*===========================================================================*/
 
-#if NIL_CFG_USE_EVENTS == FALSE
-#error "OSAL requires NIL_CFG_USE_EVENTS=TRUE"
+#if CH_CFG_USE_SEMAPHORES == FALSE
+#error "OSAL requires CH_CFG_USE_SEMAPHORES=TRUE"
+#endif
+
+#if CH_CFG_USE_EVENTS == FALSE
+#error "OSAL requires CH_CFG_USE_EVENTS=TRUE"
 #endif
 
 #if !(OSAL_ST_MODE == OSAL_ST_MODE_NONE) &&                                 \
@@ -158,6 +162,13 @@ typedef uint32_t systime_t;
 
 #if 0
 /**
+ * @brief   Type of system time interval.
+ */
+typedef uint32_t sysinterval_t;
+#endif
+
+#if 0
+/**
  * @brief   Type of realtime counter.
  */
 typedef uint32_t rtcnt_t;
@@ -168,6 +179,13 @@ typedef uint32_t rtcnt_t;
  * @brief   Type of a thread reference.
  */
 typedef thread_t * thread_reference_t;
+#endif
+
+#if 0
+/**
+ * @brief   Type of an event flags mask.
+ */
+typedef uint32_t eventflags_t;
 #endif
 
 /**
@@ -185,12 +203,7 @@ typedef struct event_source event_source_t;
  * @note    This type is not part of the OSAL API and is provided
  *          exclusively as an example and for convenience.
  */
-typedef void (*eventcallback_t)(event_source_t *p);
-
-/**
- * @brief   Type of an event flags mask.
- */
-typedef uint32_t eventflags_t;
+typedef void (*eventcallback_t)(event_source_t *esp);
 
 /**
  * @brief   Events source object.
@@ -213,6 +226,7 @@ struct event_source {
  */
 typedef semaphore_t mutex_t;
 
+#if 0
 /**
  * @brief   Type of a thread queue.
  * @details A thread queue is a queue of sleeping threads, queued threads
@@ -221,8 +235,9 @@ typedef semaphore_t mutex_t;
  *          because there are no real threads.
  */
 typedef struct {
-  semaphore_t   sem;
+  thread_reference_t    tr;
 } threads_queue_t;
+#endif
 
 /*===========================================================================*/
 /* Module macros.                                                            */
@@ -258,19 +273,17 @@ typedef struct {
  *
  * @api
  */
-#define osalDbgCheck(c) chDbgAssert(c, "parameter check")
+#define osalDbgCheck(c) chDbgCheck(c)
 
 /**
  * @brief   I-Class state check.
- * @note    Not implemented in this simplified OSAL.
  */
-#define osalDbgCheckClassI() /*chDbgCheckClassI()*/
+#define osalDbgCheckClassI() chDbgCheckClassI()
 
 /**
  * @brief   S-Class state check.
- * @note    Not implemented in this simplified OSAL.
  */
-#define osalDbgCheckClassS() /*chDbgCheckClassS()*/
+#define osalDbgCheckClassS() chDbgCheckClassS()
 /** @} */
 
 /**
@@ -312,36 +325,36 @@ typedef struct {
  * @details Converts from seconds to system ticks number.
  * @note    The result is rounded upward to the next tick boundary.
  *
- * @param[in] sec       number of seconds
+ * @param[in] secs      number of seconds
  * @return              The number of ticks.
  *
  * @api
  */
-#define OSAL_S2ST(sec) S2ST(sec)
+#define OSAL_S2I(secs) TIME_S2I(secs)
 
 /**
  * @brief   Milliseconds to system ticks.
  * @details Converts from milliseconds to system ticks number.
  * @note    The result is rounded upward to the next tick boundary.
  *
- * @param[in] msec      number of milliseconds
+ * @param[in] msecs     number of milliseconds
  * @return              The number of ticks.
  *
  * @api
  */
-#define OSAL_MS2ST(msec) MS2ST(msec)
+#define OSAL_MS2I(msecs) TIME_MS2I(msecs)
 
 /**
  * @brief   Microseconds to system ticks.
  * @details Converts from microseconds to system ticks number.
  * @note    The result is rounded upward to the next tick boundary.
  *
- * @param[in] usec      number of microseconds
+ * @param[in] usecs     number of microseconds
  * @return              The number of ticks.
  *
  * @api
  */
-#define OSAL_US2ST(usec) US2ST(usec)
+#define OSAL_US2I(usecs) TIME_US2I(usecs)
 /** @} */
 
 /**
@@ -400,11 +413,11 @@ typedef struct {
  *          system tick clock.
  * @note    The maximum specifiable value is implementation dependent.
  *
- * @param[in] sec       time in seconds, must be different from zero
+ * @param[in] secs      time in seconds, must be different from zero
  *
  * @api
  */
-#define osalThreadSleepSeconds(sec) osalThreadSleep(OSAL_S2ST(sec))
+#define osalThreadSleepSeconds(secs) osalThreadSleep(OSAL_S2I(secs))
 
 /**
  * @brief   Delays the invoking thread for the specified number of
@@ -413,11 +426,11 @@ typedef struct {
  *          system tick clock.
  * @note    The maximum specifiable value is implementation dependent.
  *
- * @param[in] msec      time in milliseconds, must be different from zero
+ * @param[in] msecs     time in milliseconds, must be different from zero
  *
  * @api
  */
-#define osalThreadSleepMilliseconds(msec) osalThreadSleep(OSAL_MS2ST(msec))
+#define osalThreadSleepMilliseconds(msecs) osalThreadSleep(OSAL_MS2I(msecs))
 
 /**
  * @brief   Delays the invoking thread for the specified number of
@@ -426,11 +439,11 @@ typedef struct {
  *          system tick clock.
  * @note    The maximum specifiable value is implementation dependent.
  *
- * @param[in] usec      time in microseconds, must be different from zero
+ * @param[in] usecs     time in microseconds, must be different from zero
  *
  * @api
  */
-#define osalThreadSleepMicroseconds(usec) osalThreadSleep(OSAL_US2ST(usec))
+#define osalThreadSleepMicroseconds(usecs) osalThreadSleep(OSAL_US2I(usecs))
 /** @} */
 
 /*===========================================================================*/
@@ -440,8 +453,7 @@ typedef struct {
 #ifdef __cplusplus
 extern "C" {
 #endif
-  void osalThreadDequeueNextI(threads_queue_t *tqp, msg_t msg);
-  void osalThreadDequeueAllI(threads_queue_t *tqp, msg_t msg);
+
 #ifdef __cplusplus
 }
 #endif
@@ -628,6 +640,35 @@ static inline systime_t osalOsGetSystemTimeX(void) {
 }
 
 /**
+ * @brief   Adds an interval to a system time returning a system time.
+ *
+ * @param[in] systime   base system time
+ * @param[in] interval  interval to be added
+ * @return              The new system time.
+ *
+ * @xclass
+ */
+static inline systime_t osalTimeAddX(systime_t systime,
+                                     sysinterval_t interval) {
+
+  return chTimeAddX(systime, interval);
+}
+
+/**
+ * @brief   Subtracts two system times returning an interval.
+ *
+ * @param[in] start     first system time
+ * @param[in] end       second system time
+ * @return              The interval representing the time difference.
+ *
+ * @xclass
+ */
+static inline sysinterval_t osalTimeDiffX(systime_t start, systime_t end) {
+
+  return chTimeDiffX(start, end);
+}
+
+/**
  * @brief   Checks if the specified time is within the specified time window.
  * @note    When start==end then the function returns always true because the
  *          whole time range is specified.
@@ -641,11 +682,11 @@ static inline systime_t osalOsGetSystemTimeX(void) {
  *
  * @xclass
  */
-static inline bool osalOsIsTimeWithinX(systime_t time,
-                                       systime_t start,
-                                       systime_t end) {
+static inline bool osalTimeIsInRangeX(systime_t time,
+                                      systime_t start,
+                                      systime_t end) {
 
-  return chVTIsTimeWithinX(time, start, end);
+  return chTimeIsInRangeX(time, start, end);
 }
 
 /**
@@ -660,7 +701,7 @@ static inline bool osalOsIsTimeWithinX(systime_t time,
  *
  * @sclass
  */
-static inline void osalThreadSleepS(systime_t time) {
+static inline void osalThreadSleepS(sysinterval_t time) {
 
   chThdSleepS(time);
 }
@@ -677,7 +718,7 @@ static inline void osalThreadSleepS(systime_t time) {
  *
  * @api
  */
-static inline void osalThreadSleep(systime_t time) {
+static inline void osalThreadSleep(sysinterval_t time) {
 
   chThdSleep(time);
 }
@@ -717,7 +758,7 @@ static inline msg_t osalThreadSuspendS(thread_reference_t *trp) {
  * @sclass
  */
 static inline msg_t osalThreadSuspendTimeoutS(thread_reference_t *trp,
-                                              systime_t timeout) {
+                                              sysinterval_t timeout) {
 
   return chThdSuspendTimeoutS(trp, timeout);
 }
@@ -762,7 +803,7 @@ static inline void osalThreadResumeS(thread_reference_t *trp, msg_t msg) {
  */
 static inline void osalThreadQueueObjectInit(threads_queue_t *tqp) {
 
-  chSemObjectInit(&tqp->sem, (cnt_t)0);
+  chThdQueueObjectInit(tqp);
 }
 
 /**
@@ -789,15 +830,41 @@ static inline void osalThreadQueueObjectInit(threads_queue_t *tqp) {
  * @sclass
  */
 static inline msg_t osalThreadEnqueueTimeoutS(threads_queue_t *tqp,
-                                              systime_t time) {
+                                              sysinterval_t time) {
 
-  return chSemWaitTimeoutS(&tqp->sem, time);
+  return chThdEnqueueTimeoutS(tqp, time);
 }
 
 /**
- * @brief   Initializes an event flags object.
+ * @brief   Dequeues and wakes up one thread from the queue, if any.
  *
- * @param[out] esp      pointer to the event flags object
+ * @param[in] tqp       pointer to the threads queue object
+ * @param[in] msg       the message code
+ *
+ * @iclass
+ */
+static inline void osalThreadDequeueNextI(threads_queue_t *tqp, msg_t msg) {
+
+  chThdDequeueNextI(tqp, msg);
+}
+
+/**
+ * @brief   Dequeues and wakes up all threads from the queue.
+ *
+ * @param[in] tqp       pointer to the threads queue object
+ * @param[in] msg       the message code
+ *
+ * @iclass
+ */
+static inline void osalThreadDequeueAllI(threads_queue_t *tqp, msg_t msg) {
+
+  chThdDequeueAllI(tqp, msg);
+}
+
+/**
+ * @brief   Initializes an event source object.
+ *
+ * @param[out] esp      pointer to the event source object
  *
  * @init
  */
@@ -805,7 +872,7 @@ static inline void osalEventObjectInit(event_source_t *esp) {
 
   osalDbgCheck(esp != NULL);
 
-  esp->flags = 0;
+  esp->flags = (eventflags_t)0;
   esp->cb    = NULL;
   esp->param = NULL;
 }
@@ -843,8 +910,10 @@ static inline void osalEventBroadcastFlags(event_source_t *esp,
   osalDbgCheck(esp != NULL);
 
   chSysLock();
-  osalEventBroadcastFlagsI(esp, flags);
-  chSchRescheduleS();
+  esp->flags |= flags;
+  if (esp->cb != NULL) {
+    esp->cb(esp);
+  }
   chSysUnlock();
 }
 
@@ -915,6 +984,6 @@ static inline void osalMutexUnlock(mutex_t *mp) {
   chSemSignal((semaphore_t *)mp);
 }
 
-#endif /* _OSAL_H_ */
+#endif /* OSAL_H */
 
 /** @} */

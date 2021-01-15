@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2014..2016 Marco Veeneman
+    Copyright (C) 2014..2017 Marco Veeneman
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@
 static void gpt1cb(GPTDriver *gptp)
 {
   (void)gptp;
-  palClearPad(GPIOF, GPIOF_LED_RED);
+  palClearLine(LINE_LED_RED);
 }
 
 /*
@@ -32,7 +32,7 @@ static void gpt1cb(GPTDriver *gptp)
 static void gpt7cb(GPTDriver *gptp)
 {
   (void)gptp;
-  palSetPad(GPIOF, GPIOF_LED_RED);
+  palSetLine(LINE_LED_RED);
   chSysLockFromISR();
   gptStartOneShotI(&GPTD1, 31250);  /* 0.1 second pulse.*/
   chSysUnlockFromISR();
@@ -71,7 +71,7 @@ int main(void)
   halInit();
   chSysInit();
 
-  palSetPadMode(GPIOF, GPIOF_LED_RED, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetLineMode(LINE_LED_RED, PAL_MODE_OUTPUT_PUSHPULL);
 
   /*
    * Start the gpt drivers with the custom configurations.

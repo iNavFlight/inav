@@ -34,11 +34,12 @@ const char * test_5_msg = "TEST 5: spiIgnore\r\n";
 const char * test_6_msg = "TEST 6: spiExchange\r\n";
 const char * test_7_msg = "TEST 7: spiSend\r\n";
 const char * test_8_msg = "TEST 8: spiReceive\r\n";
-const char * test_9_msg = "TEST 9: spiStartExchange with exclusive DMA\r\n";
-const char * test_10_msg =
-    "TEST 10: spiStartExchange with exclusive DMA for TX\r\n";
+const char * test_9_msg = "TEST 9: spiPolledExchange\r\n";
+const char * test_10_msg = "TEST 10: spiStartExchange with exclusive DMA\r\n";
 const char * test_11_msg =
-    "TEST 11: spiStartExchange with exclusive DMA for RX\r\n";
+    "TEST 11: spiStartExchange with exclusive DMA for TX\r\n";
+const char * test_12_msg =
+    "TEST 12: spiStartExchange with exclusive DMA for RX\r\n";
 
 const char * succeed_string = "SUCCESS\r\n\r\n";
 const char * fail_string    = "FAILURE\r\n\r\n";
@@ -270,6 +271,25 @@ THD_FUNCTION(Thread1, arg) {
     else {
       chnWrite(&SD0, (const uint8_t *)succeed_string, strlen(succeed_string));
     }
+    
+    /* Test 9 - spiPolledExchange */
+    chnWrite(&SD0, (const uint8_t *)test_9_msg, strlen(test_9_msg));
+    strcpy(outstring, "After SPI test  \r\n");
+    strcpy(instring, "Before SPI test \r\n");
+    if (strcmp("Before SPI test \r\n", instring) ||
+        strcmp("After SPI test  \r\n", outstring)) {
+      chnWrite(&SD0, (const uint8_t *)fail_string, strlen(fail_string));
+    }
+    spiSelect(&SPIDB0);
+    outstring[0] = spiPolledExchange(&SPIDB0, instring[0]);
+    spiUnselect(&SPIDB0);
+    if (strcmp("Bfter SPI test  \r\n", outstring) ||
+        strcmp("Before SPI test \r\n", instring)) {
+      chnWrite(&SD0, (const uint8_t *)fail_string, strlen(fail_string));
+    }
+    else {
+      chnWrite(&SD0, (const uint8_t *)succeed_string, strlen(succeed_string));
+    }
 
     /* Reconfigure SPIDA1 to use exclusive DMA for both */
     spiStop(&SPIDA1);
@@ -278,8 +298,8 @@ THD_FUNCTION(Thread1, arg) {
     SPIDA1_config.spi_mode    = 1; /* because why not get coverage */
     spiStart(&SPIDA1, &SPIDA1_config);
 
-    /* Test 9 - spiStartExchange with exclusive DMA */
-    chnWrite(&SD0, (const uint8_t *)test_9_msg, strlen(test_9_msg));
+    /* Test 10 - spiStartExchange with exclusive DMA */
+    chnWrite(&SD0, (const uint8_t *)test_10_msg, strlen(test_10_msg));
     strcpy(outstring, "After SPI test  \r\n");
     strcpy(instring, "Before SPI test \r\n");
     cb_arg = 1;
@@ -307,8 +327,8 @@ THD_FUNCTION(Thread1, arg) {
     SPIDA1_config.spi_mode    = 2; /* because why not get coverage */
     spiStart(&SPIDA1, &SPIDA1_config);
 
-    /* Test 10 - spiStartExchange with exclusive DMA for TX */
-    chnWrite(&SD0, (const uint8_t *)test_10_msg, strlen(test_10_msg));
+    /* Test 11 - spiStartExchange with exclusive DMA for TX */
+    chnWrite(&SD0, (const uint8_t *)test_11_msg, strlen(test_11_msg));
     strcpy(outstring, "After SPI test  \r\n");
     strcpy(instring, "Before SPI test \r\n");
     cb_arg = 1;
@@ -336,8 +356,8 @@ THD_FUNCTION(Thread1, arg) {
     SPIDA1_config.spi_mode    = 3; /* because why not get coverage */
     spiStart(&SPIDA1, &SPIDA1_config);
 
-    /* Test 11 - spiStartExchange with exclusive DMA for RX */
-    chnWrite(&SD0, (const uint8_t *)test_11_msg, strlen(test_11_msg));
+    /* Test 12 - spiStartExchange with exclusive DMA for RX */
+    chnWrite(&SD0, (const uint8_t *)test_12_msg, strlen(test_12_msg));
     strcpy(outstring, "After SPI test  \r\n");
     strcpy(instring, "Before SPI test \r\n");
     cb_arg = 1;

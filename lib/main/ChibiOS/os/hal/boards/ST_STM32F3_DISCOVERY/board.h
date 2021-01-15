@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2016 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -21,6 +21,10 @@
 
 #ifndef BOARD_H
 #define BOARD_H
+
+/*===========================================================================*/
+/* Driver constants.                                                         */
+/*===========================================================================*/
 
 /*
  * Setup for STMicroelectronics STM32F3-Discovery board.
@@ -62,8 +66,11 @@
 #define GPIOA_PIN3                  3U
 #define GPIOA_PIN4                  4U
 #define GPIOA_SPI1_SCK              5U
+#define GPIOA_L3GD20_SCL            5U
 #define GPIOA_SPI1_MISO             6U
+#define GPIOA_L3GD20_SDO            6U
 #define GPIOA_SPI1_MOSI             7U
+#define GPIOA_L3GD20_SDI            7U
 #define GPIOA_PIN8                  8U
 #define GPIOA_PIN9                  9U
 #define GPIOA_PIN10                 10U
@@ -80,7 +87,9 @@
 #define GPIOB_PIN4                  4U
 #define GPIOB_PIN5                  5U
 #define GPIOB_I2C1_SCL              6U
+#define GPIOB_LSM303DLHC_SCL        6U
 #define GPIOB_I2C1_SDA              7U
+#define GPIOB_LSM303DLHC_SDA        7U
 #define GPIOB_PIN8                  8U
 #define GPIOB_PIN9                  9U
 #define GPIOB_PIN10                 10U
@@ -94,8 +103,8 @@
 #define GPIOC_PIN1                  1U
 #define GPIOC_PIN2                  2U
 #define GPIOC_PIN3                  3U
-#define GPIOC_PIN4                  4U
-#define GPIOC_PIN5                  5U
+#define GPIOC_VCP_RX                4U
+#define GPIOC_VCP_TX                5U
 #define GPIOC_PIN6                  6U
 #define GPIOC_PIN7                  7U
 #define GPIOC_PIN8                  8U
@@ -126,10 +135,11 @@
 
 #define GPIOE_L3GD20_INT1           0U
 #define GPIOE_L3GD20_INT2           1U
-#define GPIOE_LSM303_DRDY           2U
+#define GPIOE_LSM303DLHC_DRDY       2U
 #define GPIOE_SPI1_CS               3U
-#define GPIOE_LSM303_INT1           4U
-#define GPIOE_LSM303_INT2           5U
+#define GPIOE_L3GD20_CS             3U
+#define GPIOE_LSM303DLHC_INT1       4U
+#define GPIOE_LSM303DLHC_INT2       5U
 #define GPIOE_PIN6                  6U
 #define GPIOE_PIN7                  7U
 #define GPIOE_LED4_BLUE             8U
@@ -197,27 +207,31 @@
  */
 #define LINE_BUTTON                 PAL_LINE(GPIOA, 0U)
 #define LINE_SPI1_SCK               PAL_LINE(GPIOA, 5U)
+#define LINE_L3GD20_SCL             PAL_LINE(GPIOA, 5U)
 #define LINE_SPI1_MISO              PAL_LINE(GPIOA, 6U)
+#define LINE_L3GD20_SDO             PAL_LINE(GPIOA, 6U)
 #define LINE_SPI1_MOSI              PAL_LINE(GPIOA, 7U)
+#define LINE_L3GD20_SDI             PAL_LINE(GPIOA, 7U)
 #define LINE_USB_DM                 PAL_LINE(GPIOA, 11U)
 #define LINE_USB_DP                 PAL_LINE(GPIOA, 12U)
 #define LINE_SWDIO                  PAL_LINE(GPIOA, 13U)
 #define LINE_SWCLK                  PAL_LINE(GPIOA, 14U)
-
 #define LINE_SWO                    PAL_LINE(GPIOB, 3U)
 #define LINE_I2C1_SCL               PAL_LINE(GPIOB, 6U)
+#define LINE_LSM303DLHC_SCL         PAL_LINE(GPIOB, 6U)
 #define LINE_I2C1_SDA               PAL_LINE(GPIOB, 7U)
-
+#define LINE_LSM303DLHC_SDA         PAL_LINE(GPIOB, 7U)
+#define LINE_VCP_RX                 PAL_LINE(GPIOC, 4U)
+#define LINE_VCP_TX                 PAL_LINE(GPIOC, 5U)
 #define LINE_OSC32_IN               PAL_LINE(GPIOC, 14U)
 #define LINE_OSC32_OUT              PAL_LINE(GPIOC, 15U)
-
-
 #define LINE_L3GD20_INT1            PAL_LINE(GPIOE, 0U)
 #define LINE_L3GD20_INT2            PAL_LINE(GPIOE, 1U)
-#define LINE_LSM303_DRDY            PAL_LINE(GPIOE, 2U)
+#define LINE_LSM303DLHC_DRDY        PAL_LINE(GPIOE, 2U)
 #define LINE_SPI1_CS                PAL_LINE(GPIOE, 3U)
-#define LINE_LSM303_INT1            PAL_LINE(GPIOE, 4U)
-#define LINE_LSM303_INT2            PAL_LINE(GPIOE, 5U)
+#define LINE_L3GD20_CS              PAL_LINE(GPIOE, 3U)
+#define LINE_LSM303DLHC_INT1        PAL_LINE(GPIOE, 4U)
+#define LINE_LSM303DLHC_INT2        PAL_LINE(GPIOE, 5U)
 #define LINE_LED4_BLUE              PAL_LINE(GPIOE, 8U)
 #define LINE_LED3_RED               PAL_LINE(GPIOE, 9U)
 #define LINE_LED5_ORANGE            PAL_LINE(GPIOE, 10U)
@@ -226,11 +240,24 @@
 #define LINE_LED10_RED              PAL_LINE(GPIOE, 13U)
 #define LINE_LED8_ORANGE            PAL_LINE(GPIOE, 14U)
 #define LINE_LED6_GREEN             PAL_LINE(GPIOE, 15U)
-
 #define LINE_OSC_IN                 PAL_LINE(GPIOF, 0U)
 #define LINE_OSC_OUT                PAL_LINE(GPIOF, 1U)
 
+/*===========================================================================*/
+/* Driver pre-compile time settings.                                         */
+/*===========================================================================*/
 
+/*===========================================================================*/
+/* Derived constants and error checks.                                       */
+/*===========================================================================*/
+
+/*===========================================================================*/
+/* Driver data structures and types.                                         */
+/*===========================================================================*/
+
+/*===========================================================================*/
+/* Driver macros.                                                            */
+/*===========================================================================*/
 
 /*
  * I/O ports initial setup, this configuration is established soon after reset
@@ -262,9 +289,9 @@
  * PA2  - PIN2                      (input pullup).
  * PA3  - PIN3                      (input pullup).
  * PA4  - PIN4                      (input pullup).
- * PA5  - SPI1_SCK                  (alternate 5).
- * PA6  - SPI1_MISO                 (alternate 5).
- * PA7  - SPI1_MOSI                 (alternate 5).
+ * PA5  - SPI1_SCK L3GD20_SCL       (alternate 5).
+ * PA6  - SPI1_MISO L3GD20_SDO      (alternate 5).
+ * PA7  - SPI1_MOSI L3GD20_SDI      (alternate 5).
  * PA8  - PIN8                      (input pullup).
  * PA9  - PIN9                      (input pullup).
  * PA10 - PIN10                     (input pullup).
@@ -380,8 +407,8 @@
  * PB3  - SWO                       (alternate 0).
  * PB4  - PIN4                      (input pullup).
  * PB5  - PIN5                      (input pullup).
- * PB6  - I2C1_SCL                  (alternate 4).
- * PB7  - I2C1_SDA                  (alternate 4).
+ * PB6  - I2C1_SCL LSM303DLHC_SCL   (alternate 4).
+ * PB7  - I2C1_SDA LSM303DLHC_SDA   (alternate 4).
  * PB8  - PIN8                      (input pullup).
  * PB9  - PIN9                      (input pullup).
  * PB10 - PIN10                     (input pullup).
@@ -495,8 +522,8 @@
  * PC1  - PIN1                      (input pullup).
  * PC2  - PIN2                      (input pullup).
  * PC3  - PIN3                      (input pullup).
- * PC4  - PIN4                      (input pullup).
- * PC5  - PIN5                      (input pullup).
+ * PC4  - VCP_RX                    (alternate 7).
+ * PC5  - VCP_TX                    (alternate 7).
  * PC6  - PIN6                      (input pullup).
  * PC7  - PIN7                      (input pullup).
  * PC8  - PIN8                      (input pullup).
@@ -512,8 +539,8 @@
                                      PIN_MODE_INPUT(GPIOC_PIN1) |           \
                                      PIN_MODE_INPUT(GPIOC_PIN2) |           \
                                      PIN_MODE_INPUT(GPIOC_PIN3) |           \
-                                     PIN_MODE_INPUT(GPIOC_PIN4) |           \
-                                     PIN_MODE_INPUT(GPIOC_PIN5) |           \
+                                     PIN_MODE_ALTERNATE(GPIOC_VCP_RX) |     \
+                                     PIN_MODE_ALTERNATE(GPIOC_VCP_TX) |     \
                                      PIN_MODE_INPUT(GPIOC_PIN6) |           \
                                      PIN_MODE_INPUT(GPIOC_PIN7) |           \
                                      PIN_MODE_INPUT(GPIOC_PIN8) |           \
@@ -528,8 +555,8 @@
                                      PIN_OTYPE_PUSHPULL(GPIOC_PIN1) |       \
                                      PIN_OTYPE_PUSHPULL(GPIOC_PIN2) |       \
                                      PIN_OTYPE_PUSHPULL(GPIOC_PIN3) |       \
-                                     PIN_OTYPE_PUSHPULL(GPIOC_PIN4) |       \
-                                     PIN_OTYPE_PUSHPULL(GPIOC_PIN5) |       \
+                                     PIN_OTYPE_PUSHPULL(GPIOC_VCP_RX) |     \
+                                     PIN_OTYPE_PUSHPULL(GPIOC_VCP_TX) |     \
                                      PIN_OTYPE_PUSHPULL(GPIOC_PIN6) |       \
                                      PIN_OTYPE_PUSHPULL(GPIOC_PIN7) |       \
                                      PIN_OTYPE_PUSHPULL(GPIOC_PIN8) |       \
@@ -544,8 +571,8 @@
                                      PIN_OSPEED_VERYLOW(GPIOC_PIN1) |       \
                                      PIN_OSPEED_VERYLOW(GPIOC_PIN2) |       \
                                      PIN_OSPEED_VERYLOW(GPIOC_PIN3) |       \
-                                     PIN_OSPEED_VERYLOW(GPIOC_PIN4) |       \
-                                     PIN_OSPEED_VERYLOW(GPIOC_PIN5) |       \
+                                     PIN_OSPEED_VERYLOW(GPIOC_VCP_RX) |     \
+                                     PIN_OSPEED_VERYLOW(GPIOC_VCP_TX) |     \
                                      PIN_OSPEED_VERYLOW(GPIOC_PIN6) |       \
                                      PIN_OSPEED_VERYLOW(GPIOC_PIN7) |       \
                                      PIN_OSPEED_VERYLOW(GPIOC_PIN8) |       \
@@ -560,8 +587,8 @@
                                      PIN_PUPDR_PULLUP(GPIOC_PIN1) |         \
                                      PIN_PUPDR_PULLUP(GPIOC_PIN2) |         \
                                      PIN_PUPDR_PULLUP(GPIOC_PIN3) |         \
-                                     PIN_PUPDR_PULLUP(GPIOC_PIN4) |         \
-                                     PIN_PUPDR_PULLUP(GPIOC_PIN5) |         \
+                                     PIN_PUPDR_PULLUP(GPIOC_VCP_RX) |       \
+                                     PIN_PUPDR_PULLUP(GPIOC_VCP_TX) |       \
                                      PIN_PUPDR_PULLUP(GPIOC_PIN6) |         \
                                      PIN_PUPDR_PULLUP(GPIOC_PIN7) |         \
                                      PIN_PUPDR_PULLUP(GPIOC_PIN8) |         \
@@ -576,8 +603,8 @@
                                      PIN_ODR_HIGH(GPIOC_PIN1) |             \
                                      PIN_ODR_HIGH(GPIOC_PIN2) |             \
                                      PIN_ODR_HIGH(GPIOC_PIN3) |             \
-                                     PIN_ODR_HIGH(GPIOC_PIN4) |             \
-                                     PIN_ODR_HIGH(GPIOC_PIN5) |             \
+                                     PIN_ODR_HIGH(GPIOC_VCP_RX) |           \
+                                     PIN_ODR_HIGH(GPIOC_VCP_TX) |           \
                                      PIN_ODR_HIGH(GPIOC_PIN6) |             \
                                      PIN_ODR_HIGH(GPIOC_PIN7) |             \
                                      PIN_ODR_HIGH(GPIOC_PIN8) |             \
@@ -592,8 +619,8 @@
                                      PIN_AFIO_AF(GPIOC_PIN1, 0U) |          \
                                      PIN_AFIO_AF(GPIOC_PIN2, 0U) |          \
                                      PIN_AFIO_AF(GPIOC_PIN3, 0U) |          \
-                                     PIN_AFIO_AF(GPIOC_PIN4, 0U) |          \
-                                     PIN_AFIO_AF(GPIOC_PIN5, 0U) |          \
+                                     PIN_AFIO_AF(GPIOC_VCP_RX, 7U) |        \
+                                     PIN_AFIO_AF(GPIOC_VCP_TX, 7U) |        \
                                      PIN_AFIO_AF(GPIOC_PIN6, 0U) |          \
                                      PIN_AFIO_AF(GPIOC_PIN7, 0U))
 #define VAL_GPIOC_AFRH              (PIN_AFIO_AF(GPIOC_PIN8, 0U) |          \
@@ -727,10 +754,10 @@
  *
  * PE0  - L3GD20_INT1               (input pullup).
  * PE1  - L3GD20_INT2               (input pullup).
- * PE2  - LSM303_DRDY               (input pullup).
- * PE3  - SPI1_CS                   (output pushpull maximum).
- * PE4  - LSM303_INT1               (input pullup).
- * PE5  - LSM303_INT2               (input pullup).
+ * PE2  - LSM303DLHC_DRDY           (input pullup).
+ * PE3  - SPI1_CS L3GD20_CS         (output pushpull maximum).
+ * PE4  - LSM303DLHC_INT1           (input pullup).
+ * PE5  - LSM303DLHC_INT2           (input pullup).
  * PE6  - PIN6                      (input pullup).
  * PE7  - PIN7                      (input pullup).
  * PE8  - LED4_BLUE                 (output pushpull maximum).
@@ -744,10 +771,10 @@
  */
 #define VAL_GPIOE_MODER             (PIN_MODE_INPUT(GPIOE_L3GD20_INT1) |    \
                                      PIN_MODE_INPUT(GPIOE_L3GD20_INT2) |    \
-                                     PIN_MODE_INPUT(GPIOE_LSM303_DRDY) |    \
+                                     PIN_MODE_INPUT(GPIOE_LSM303DLHC_DRDY) |\
                                      PIN_MODE_OUTPUT(GPIOE_SPI1_CS) |       \
-                                     PIN_MODE_INPUT(GPIOE_LSM303_INT1) |    \
-                                     PIN_MODE_INPUT(GPIOE_LSM303_INT2) |    \
+                                     PIN_MODE_INPUT(GPIOE_LSM303DLHC_INT1) |\
+                                     PIN_MODE_INPUT(GPIOE_LSM303DLHC_INT2) |\
                                      PIN_MODE_INPUT(GPIOE_PIN6) |           \
                                      PIN_MODE_INPUT(GPIOE_PIN7) |           \
                                      PIN_MODE_OUTPUT(GPIOE_LED4_BLUE) |     \
@@ -760,10 +787,10 @@
                                      PIN_MODE_OUTPUT(GPIOE_LED6_GREEN))
 #define VAL_GPIOE_OTYPER            (PIN_OTYPE_PUSHPULL(GPIOE_L3GD20_INT1) |\
                                      PIN_OTYPE_PUSHPULL(GPIOE_L3GD20_INT2) |\
-                                     PIN_OTYPE_PUSHPULL(GPIOE_LSM303_DRDY) |\
+                                     PIN_OTYPE_PUSHPULL(GPIOE_LSM303DLHC_DRDY) |\
                                      PIN_OTYPE_PUSHPULL(GPIOE_SPI1_CS) |    \
-                                     PIN_OTYPE_PUSHPULL(GPIOE_LSM303_INT1) |\
-                                     PIN_OTYPE_PUSHPULL(GPIOE_LSM303_INT2) |\
+                                     PIN_OTYPE_PUSHPULL(GPIOE_LSM303DLHC_INT1) |\
+                                     PIN_OTYPE_PUSHPULL(GPIOE_LSM303DLHC_INT2) |\
                                      PIN_OTYPE_PUSHPULL(GPIOE_PIN6) |       \
                                      PIN_OTYPE_PUSHPULL(GPIOE_PIN7) |       \
                                      PIN_OTYPE_PUSHPULL(GPIOE_LED4_BLUE) |  \
@@ -776,10 +803,10 @@
                                      PIN_OTYPE_PUSHPULL(GPIOE_LED6_GREEN))
 #define VAL_GPIOE_OSPEEDR           (PIN_OSPEED_VERYLOW(GPIOE_L3GD20_INT1) |\
                                      PIN_OSPEED_VERYLOW(GPIOE_L3GD20_INT2) |\
-                                     PIN_OSPEED_VERYLOW(GPIOE_LSM303_DRDY) |\
+                                     PIN_OSPEED_VERYLOW(GPIOE_LSM303DLHC_DRDY) |\
                                      PIN_OSPEED_HIGH(GPIOE_SPI1_CS) |       \
-                                     PIN_OSPEED_VERYLOW(GPIOE_LSM303_INT1) |\
-                                     PIN_OSPEED_VERYLOW(GPIOE_LSM303_INT2) |\
+                                     PIN_OSPEED_VERYLOW(GPIOE_LSM303DLHC_INT1) |\
+                                     PIN_OSPEED_VERYLOW(GPIOE_LSM303DLHC_INT2) |\
                                      PIN_OSPEED_VERYLOW(GPIOE_PIN6) |       \
                                      PIN_OSPEED_VERYLOW(GPIOE_PIN7) |       \
                                      PIN_OSPEED_HIGH(GPIOE_LED4_BLUE) |     \
@@ -792,10 +819,10 @@
                                      PIN_OSPEED_HIGH(GPIOE_LED6_GREEN))
 #define VAL_GPIOE_PUPDR             (PIN_PUPDR_PULLUP(GPIOE_L3GD20_INT1) |  \
                                      PIN_PUPDR_PULLUP(GPIOE_L3GD20_INT2) |  \
-                                     PIN_PUPDR_PULLUP(GPIOE_LSM303_DRDY) |  \
+                                     PIN_PUPDR_PULLUP(GPIOE_LSM303DLHC_DRDY) |\
                                      PIN_PUPDR_FLOATING(GPIOE_SPI1_CS) |    \
-                                     PIN_PUPDR_PULLUP(GPIOE_LSM303_INT1) |  \
-                                     PIN_PUPDR_PULLUP(GPIOE_LSM303_INT2) |  \
+                                     PIN_PUPDR_PULLUP(GPIOE_LSM303DLHC_INT1) |\
+                                     PIN_PUPDR_PULLUP(GPIOE_LSM303DLHC_INT2) |\
                                      PIN_PUPDR_PULLUP(GPIOE_PIN6) |         \
                                      PIN_PUPDR_PULLUP(GPIOE_PIN7) |         \
                                      PIN_PUPDR_PULLUP(GPIOE_LED4_BLUE) |    \
@@ -808,10 +835,10 @@
                                      PIN_PUPDR_FLOATING(GPIOE_LED6_GREEN))
 #define VAL_GPIOE_ODR               (PIN_ODR_HIGH(GPIOE_L3GD20_INT1) |      \
                                      PIN_ODR_HIGH(GPIOE_L3GD20_INT2) |      \
-                                     PIN_ODR_HIGH(GPIOE_LSM303_DRDY) |      \
+                                     PIN_ODR_HIGH(GPIOE_LSM303DLHC_DRDY) |  \
                                      PIN_ODR_HIGH(GPIOE_SPI1_CS) |          \
-                                     PIN_ODR_HIGH(GPIOE_LSM303_INT1) |      \
-                                     PIN_ODR_HIGH(GPIOE_LSM303_INT2) |      \
+                                     PIN_ODR_HIGH(GPIOE_LSM303DLHC_INT1) |  \
+                                     PIN_ODR_HIGH(GPIOE_LSM303DLHC_INT2) |  \
                                      PIN_ODR_HIGH(GPIOE_PIN6) |             \
                                      PIN_ODR_HIGH(GPIOE_PIN7) |             \
                                      PIN_ODR_LOW(GPIOE_LED4_BLUE) |         \
@@ -824,10 +851,10 @@
                                      PIN_ODR_LOW(GPIOE_LED6_GREEN))
 #define VAL_GPIOE_AFRL              (PIN_AFIO_AF(GPIOE_L3GD20_INT1, 0U) |   \
                                      PIN_AFIO_AF(GPIOE_L3GD20_INT2, 0U) |   \
-                                     PIN_AFIO_AF(GPIOE_LSM303_DRDY, 0U) |   \
+                                     PIN_AFIO_AF(GPIOE_LSM303DLHC_DRDY, 0U) |\
                                      PIN_AFIO_AF(GPIOE_SPI1_CS, 0U) |       \
-                                     PIN_AFIO_AF(GPIOE_LSM303_INT1, 0U) |   \
-                                     PIN_AFIO_AF(GPIOE_LSM303_INT2, 0U) |   \
+                                     PIN_AFIO_AF(GPIOE_LSM303DLHC_INT1, 0U) |\
+                                     PIN_AFIO_AF(GPIOE_LSM303DLHC_INT2, 0U) |\
                                      PIN_AFIO_AF(GPIOE_PIN6, 0U) |          \
                                      PIN_AFIO_AF(GPIOE_PIN7, 0U))
 #define VAL_GPIOE_AFRH              (PIN_AFIO_AF(GPIOE_LED4_BLUE, 0U) |     \
@@ -1190,6 +1217,9 @@
                                      PIN_AFIO_AF(GPIOH_PIN14, 0U) |         \
                                      PIN_AFIO_AF(GPIOH_PIN15, 0U))
 
+/*===========================================================================*/
+/* External declarations.                                                    */
+/*===========================================================================*/
 
 #if !defined(_FROM_ASM_)
 #ifdef __cplusplus

@@ -65,7 +65,35 @@ typedef struct QEIDriver QEIDriver;
  */
 typedef void (*qeicallback_t)(QEIDriver *qeip);
 
+/**
+ * @brief   Driver possible handling of counter overflow/underflow.
+ *
+ * @details When counter is going to overflow, the new value is
+ *          computed according to this mode in such a way that 
+ *          the counter will either wrap around, stay unchange 
+ *          or reach min/max
+ *
+ * @note    All driver implementation should support the
+ *          QEI_OVERFLOW_WRAP mode.
+ *
+ * @note    Mode QEI_OVERFLOW_DISCARD and QEI_OVERFLOW_MINMAX are included
+ *          if QEI_USE_OVERFLOW_DISCARD and QEI_USE_OVERFLOW_MINMAX are
+ *          set to TRUE in halconf_community.h and are not necessary supported
+ *          by all drivers
+ */
+typedef enum {
+  QEI_OVERFLOW_WRAP    = 0,     /**< Counter value will wrap around.        */
+#if defined(QEI_USE_OVERFLOW_DISCARD) && QEI_USE_OVERFLOW_DISCARD == TRUE
+  QEI_OVERFLOW_DISCARD = 1,     /**< Counter doesn't change.                */
+#endif
+#if defined(QEI_USE_OVERFLOW_MINMAX) && QEI_USE_OVERFLOW_MINMAX == TRUE
+  QEI_OVERFLOW_MINMAX  = 2,     /**< Counter will be updated upto min or max.*/
+#endif
+} qeioverflow_t;
+
+
 #include "hal_qei_lld.h"
+
 
 /*===========================================================================*/
 /* Driver macros.                                                            */
@@ -117,8 +145,10 @@ extern "C" {
   void qeiEnable(QEIDriver *qeip);
   void qeiDisable(QEIDriver *qeip);
   qeicnt_t qeiGetCount(QEIDriver *qeip);
+  void qeiSetCount(QEIDriver *qeip, qeicnt_t value);
   qeidelta_t qeiUpdate(QEIDriver *qeip);
   qeidelta_t qeiUpdateI(QEIDriver *qeip);
+  qeidelta_t qeiAdjustI(QEIDriver *qeip, qeidelta_t delta);
 #ifdef __cplusplus
 }
 #endif

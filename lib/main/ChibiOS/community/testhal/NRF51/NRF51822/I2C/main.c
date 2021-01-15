@@ -107,7 +107,7 @@ static THD_FUNCTION(PollFakeThread, arg) {
     i2cflags_t errors;
 
     i2cAcquireBus(&I2CD1);
-    status = i2cMasterReceiveTimeout(&I2CD1, I2C_FAKE_ADDR, rx_data, 2, MS2ST(4));
+    status = i2cMasterReceiveTimeout(&I2CD1, I2C_FAKE_ADDR, rx_data, 2, TIME_MS2I(4));
     i2cReleaseBus(&I2CD1);
 
     if (status == MSG_RESET){

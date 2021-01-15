@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -15,11 +15,13 @@
 */
 
 #include <string.h>
+#include <stdlib.h>
 #include <stdio.h>
 
 #include "ch.h"
 #include "hal.h"
-#include "test.h"
+#include "rt_test_root.h"
+#include "oslib_test_root.h"
 #include "console.h"
 
 /*
@@ -41,7 +43,8 @@ int main(int argc, char *argv[]) {
   conInit();
   chSysInit();
 
-  TestThread(&CD1);
+  test_execute((BaseSequentialStream *)&CD1, &rt_test_suite);
+  test_execute((BaseSequentialStream *)&CD1, &oslib_test_suite);
   if (test_global_fail)
     exit(1);
   else

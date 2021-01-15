@@ -1,6 +1,6 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
-              Copyright (C) 2015 Diego Ismirlian, TISA, (dismirlian (at) google's mail)
+    ChibiOS - Copyright (C) 2006..2017 Giovanni Di Sirio
+              Copyright (C) 2015..2017 Diego Ismirlian, (dismirlian (at) google's mail)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@
 /* TODO:
  *
  * - Implement of conditional compilation of multiple-luns per instance.
- * - Implement error checking and recovery when commands fail.
  *
  */
 
@@ -59,29 +58,14 @@ struct USBHMassStorageLUNDriver {
 	const struct USBHMassStorageDriverVMT *vmt;
 	_base_block_device_data
 
+	/* for serializing access to the LUN driver */
+	semaphore_t sem;
+
 	BlockDeviceInfo info;
 	USBHMassStorageDriver *msdp;
 
 	USBHMassStorageLUNDriver *next;
 };
-
-typedef struct USBHMassStorageDriver {
-	/* inherited from abstract class driver */
-	_usbh_base_classdriver_data
-
-	/* for LUN request serialization, can be removed
-	 * if the driver is configured to support only one LUN
-	 * per USBHMassStorageDriver instance */
-	mutex_t mtx;
-
-	usbh_ep_t epin;
-	usbh_ep_t epout;
-	uint8_t ifnum;
-	uint8_t max_lun;
-	uint32_t tag;
-
-	USBHMassStorageLUNDriver *luns;
-} USBHMassStorageDriver;
 
 
 /*===========================================================================*/
@@ -94,18 +78,13 @@ typedef struct USBHMassStorageDriver {
 /*===========================================================================*/
 
 extern USBHMassStorageLUNDriver MSBLKD[HAL_USBHMSD_MAX_LUNS];
-extern USBHMassStorageDriver USBHMSD[HAL_USBHMSD_MAX_INSTANCES];
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-	/* Mass Storage Driver */
-	void usbhmsdObjectInit(USBHMassStorageDriver *msdp);
-
 	/* Mass Storage LUN Driver (block driver) */
-	void usbhmsdLUNObjectInit(USBHMassStorageLUNDriver *lunp);
-	void usbhmsdLUNStart(USBHMassStorageLUNDriver *lunp);
-	void usbhmsdLUNStop(USBHMassStorageLUNDriver *lunp);
+//	void usbhmsdLUNStart(USBHMassStorageLUNDriver *lunp);
+//	void usbhmsdLUNStop(USBHMassStorageLUNDriver *lunp);
 	bool usbhmsdLUNConnect(USBHMassStorageLUNDriver *lunp);
 	bool usbhmsdLUNDisconnect(USBHMassStorageLUNDriver *lunp);
 	bool usbhmsdLUNRead(USBHMassStorageLUNDriver *lunp, uint32_t startblk,

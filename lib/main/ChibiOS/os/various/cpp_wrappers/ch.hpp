@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -32,8 +32,8 @@
  */
 namespace chibios_rt {
 
-  /* Forward declarations */
-  class Mutex;
+  /* Forward declaration of some classes.*/
+  class ThreadReference;
 
   /*------------------------------------------------------------------------*
    * chibios_rt::System                                                     *
@@ -55,7 +55,7 @@ namespace chibios_rt {
      *
      * @special
      */
-    static inline void init(void) {
+    static void init(void) {
 
       chSysInit();
     }
@@ -72,7 +72,7 @@ namespace chibios_rt {
      *
      * @special
      */
-    static inline void halt(const char *reason) {
+    static void halt(const char *reason) {
 
       chSysHalt(reason);
     }
@@ -84,8 +84,9 @@ namespace chibios_rt {
      * @note    The appropriate action in case of failure is to halt the system
      *          before releasing the critical zone.
      * @note    If the system is corrupted then one possible outcome of this
-     *          function is an exception caused by @p NULL or corrupted pointers
-     *          in list elements. Exception vectors must be monitored as well.
+     *          function is an exception caused by @p nullptr or corrupted
+     *          pointers in list elements. Exception vectors must be monitored
+     *          as well.
      * @note    This function is not used internally, it is up to the
      *          application to define if and where to perform system
      *          checking.
@@ -101,9 +102,52 @@ namespace chibios_rt {
      *
      * @iclass
      */
-    static inline bool integrityCheckI(unsigned int testmask) {
+    static bool integrityCheckI(unsigned int testmask) {
 
       return chSysIntegrityCheckI(testmask);
+    }
+
+    /**
+     * @brief   Raises the system interrupt priority mask to the maximum level.
+     * @details All the maskable interrupt sources are disabled regardless their
+     *          hardware priority.
+     * @note    Do not invoke this API from within a kernel lock.
+     *
+     * @special
+     */
+    static void disable(void) {
+
+      chSysDisable();
+    }
+
+    /**
+     * @brief   Raises the system interrupt priority mask to system level.
+     * @details The interrupt sources that should not be able to preempt the kernel
+     *          are disabled, interrupt sources with higher priority are still
+     *          enabled.
+     * @note    Do not invoke this API from within a kernel lock.
+     * @note    This API is no replacement for @p chSysLock(), the @p chSysLock()
+     *          could do more than just disable the interrupts.
+     *
+     * @special
+     */
+    static void suspend(void) {
+
+      chSysSuspend();
+    }
+
+    /**
+     * @brief   Lowers the system interrupt priority mask to user level.
+     * @details All the interrupt sources are enabled.
+     * @note    Do not invoke this API from within a kernel lock.
+     * @note    This API is no replacement for @p chSysUnlock(), the
+     *          @p chSysUnlock() could do more than just enable the interrupts.
+     *
+     * @special
+     */
+    static void enable(void) {
+
+      chSysEnable();
     }
 
     /**
@@ -111,7 +155,7 @@ namespace chibios_rt {
      *
      * @special
      */
-    static inline void lock(void) {
+    static void lock(void) {
 
       chSysLock();
     }
@@ -121,7 +165,7 @@ namespace chibios_rt {
      *
      * @special
      */
-    static inline void unlock(void) {
+    static void unlock(void) {
 
       chSysUnlock();
     }
@@ -138,7 +182,7 @@ namespace chibios_rt {
      *
      * @special
      */
-    static inline void lockFromIsr(void) {
+    static void lockFromIsr(void) {
 
       chSysLockFromISR();
     }
@@ -156,10 +200,124 @@ namespace chibios_rt {
      *
      * @special
      */
-    static inline void unlockFromIsr(void) {
+    static void unlockFromIsr(void) {
 
       chSysUnlockFromISR();
     }
+
+    /**
+     * @brief   Unconditionally enters the kernel lock state.
+     * @note    Can be called without previous knowledge of the current lock state.
+     *          The final state is "s-locked".
+     *
+     * @special
+     */
+    static void unconditionalLock(void) {
+
+      chSysUnconditionalLock();
+    }
+
+    /**
+     * @brief   Unconditionally leaves the kernel lock state.
+     * @note    Can be called without previous knowledge of the current lock state.
+     *          The final state is "normal".
+     *
+     * @special
+     */
+    static void unconditionalUnlock(void) {
+
+      chSysUnconditionalUnlock();
+    }
+
+    /**
+     * @brief   Returns the execution status and enters a critical zone.
+     * @details This functions enters into a critical zone and can be called
+     *          from any context. Because its flexibility it is less efficient
+     *          than @p chSysLock() which is preferable when the calling context
+     *          is known.
+     * @post    The system is in a critical zone.
+     *
+     * @return              The previous system status, the encoding of this
+     *                      status word is architecture-dependent and opaque.
+     *
+     * @xclass
+     */
+    static syssts_t getStatusAndLockX(void) {
+
+      return chSysGetStatusAndLockX();
+    }
+
+    /**
+     * @brief   Restores the specified execution status and leaves a critical zone.
+     * @note    A call to @p chSchRescheduleS() is automatically performed
+     *          if exiting the critical zone and if not in ISR context.
+     *
+     * @param[in] sts       the system status to be restored.
+     *
+     * @xclass
+     */
+    static void restoreStatusX(syssts_t sts) {
+
+      chSysRestoreStatusX(sts);
+    }
+
+#if (PORT_SUPPORTS_RT == TRUE) || defined(__DOXYGEN__)
+    /**
+     * @brief   Returns the current value of the system real time counter.
+     * @note    This function is only available if the port layer supports the
+     *          option @p PORT_SUPPORTS_RT.
+     *
+     * @return              The value of the system realtime counter of
+     *                      type rtcnt_t.
+     *
+     * @xclass
+     */
+    static rtcnt_t getRealtimeCounterX(void) {
+
+      return chSysGetRealtimeCounterX();
+    }
+
+    /**
+     * @brief   Realtime window test.
+     * @details This function verifies if the current realtime counter value
+     *          lies within the specified range or not. The test takes care
+     *          of the realtime counter wrapping to zero on overflow.
+     * @note    When start==end then the function returns always true because the
+     *          whole time range is specified.
+     * @note    This function is only available if the port layer supports the
+     *          option @p PORT_SUPPORTS_RT.
+     *
+     * @param[in] cnt       the counter value to be tested
+     * @param[in] start     the start of the time window (inclusive)
+     * @param[in] end       the end of the time window (non inclusive)
+     * @retval true         current time within the specified time window.
+     * @retval false        current time not within the specified time window.
+     *
+     * @xclass
+     */
+    static bool isCounterWithinX(rtcnt_t cnt,
+                                       rtcnt_t start,
+                                       rtcnt_t end) {
+
+      return chSysIsCounterWithinX(cnt, start, end);
+    }
+
+   /**
+    * @brief   Polled delay.
+    * @note    The real delay is always few cycles in excess of the specified
+    *          value.
+    * @note    This function is only available if the port layer supports the
+    *          option @p PORT_SUPPORTS_RT.
+    *
+    * @param[in] cycles    number of cycles
+    *
+    * @xclass
+    */
+    static void polledDelayX(rtcnt_t cycles) {
+
+      chSysPolledDelayX(cycles);
+    }
+#endif /* PORT_SUPPORTS_RT == TRUE */
 
     /**
      * @brief   Returns the system time as system ticks.
@@ -169,7 +327,7 @@ namespace chibios_rt {
      *
      * @api
      */
-    static inline systime_t getTime(void) {
+    static systime_t getTime(void) {
 
       return chVTGetSystemTime();
     }
@@ -182,7 +340,7 @@ namespace chibios_rt {
      *
      * @xclass
      */
-    static inline systime_t getTimeX(void) {
+    static systime_t getTimeX(void) {
 
       return chVTGetSystemTimeX();
     }
@@ -200,13 +358,66 @@ namespace chibios_rt {
      *
      * @api
      */
-    static inline bool isSystemTimeWithin(systime_t start, systime_t end) {
+    static bool isSystemTimeWithin(systime_t start, systime_t end) {
 
       return chVTIsSystemTimeWithin(start, end);
     }
+
+#if (CH_CFG_NO_IDLE_THREAD == FALSE) || defined(__DOXYGEN__)
+    /**
+     * @brief   Returns a reference to the idle thread.
+     * @pre     In order to use this function the option @p CH_CFG_NO_IDLE_THREAD
+     *          must be disabled.
+     * @note    The reference counter of the idle thread is not incremented but
+     *          it is not strictly required being the idle thread a static
+     *          object.
+     *
+     * @return              Reference to the idle thread.
+     *
+     * @xclass
+     */
+    static ThreadReference getIdleThreadX(void);
+#endif /* CH_CFG_NO_IDLE_THREAD == FALSE */
   };
 
-#if CH_CFG_USE_MEMCORE || defined(__DOXYGEN__)
+  /*------------------------------------------------------------------------*
+   * chibios_rt::CriticalSectionLocker                                      *
+   *------------------------------------------------------------------------*/
+  /**
+   * @brief   RAII helper for reentrant critical sections.
+   */
+  class CriticalSectionLocker {
+    volatile const syssts_t syssts = chSysGetStatusAndLockX();
+
+  public:
+    ~CriticalSectionLocker() {
+
+      chSysRestoreStatusX(syssts);
+    }
+  };
+
+  /*------------------------------------------------------------------------*
+   * chibios_rt::Scheduler                                                  *
+   *------------------------------------------------------------------------*/
+  /**
+   * @brief Class encapsulating the low level scheduler functionalities.
+   */
+  class Scheduler {
+  public:
+    /**
+     * @brief   Performs a reschedule if a higher priority thread is runnable.
+     * @details If a thread with a higher priority than the current thread is in
+     *          the ready list then make the higher priority thread running.
+     *
+     * @sclass
+     */
+    static void rescheduleS(void) {
+
+      void chSchRescheduleS();
+    }
+  };
+
+#if (CH_CFG_USE_MEMCORE == TRUE) || defined(__DOXYGEN__)
   /*------------------------------------------------------------------------*
    * chibios_rt::Core                                                       *
    *------------------------------------------------------------------------*/
@@ -215,7 +426,6 @@ namespace chibios_rt {
    */
   class Core {
   public:
-
     /**
      * @brief   Allocates a memory block.
      * @details The size of the returned block is aligned to the alignment
@@ -224,11 +434,11 @@ namespace chibios_rt {
      *
      * @param[in] size      the size of the block to be allocated
      * @return              A pointer to the allocated memory block.
-     * @retval NULL         allocation failed, core memory exhausted.
+     * @retval nullptr      allocation failed, core memory exhausted.
      *
      * @api
      */
-    static inline void *alloc(size_t size) {
+    static void *alloc(size_t size) {
 
       return chCoreAlloc(size);
     }
@@ -241,11 +451,11 @@ namespace chibios_rt {
      *
      * @param[in] size      the size of the block to be allocated.
      * @return              A pointer to the allocated memory block.
-     * @retval NULL         allocation failed, core memory exhausted.
+     * @retval nullptr      allocation failed, core memory exhausted.
      *
      * @iclass
      */
-    static inline void *allocI(size_t size) {
+    static void *allocI(size_t size) {
 
       return chCoreAllocI(size);
     }
@@ -257,12 +467,12 @@ namespace chibios_rt {
      *
      * @xclass
      */
-    static inline size_t getStatusX(void) {
+    static size_t getStatusX(void) {
 
       return chCoreGetStatusX();
     }
   };
-#endif /* CH_CFG_USE_MEMCORE */
+#endif /* CH_CFG_USE_MEMCORE == TRUE */
 
   /*------------------------------------------------------------------------*
    * chibios_rt::Timer                                                      *
@@ -271,17 +481,52 @@ namespace chibios_rt {
    * @brief   Timer class.
    */
   class Timer {
+    /**
+     * @brief   Embedded @p virtual_timer_t structure.
+     */
+    virtual_timer_t vt;
+
   public:
     /**
-     * @brief   Embedded @p VirtualTimer structure.
+     * @brief  Construct a virtual timer.
      */
-    ::virtual_timer_t timer_ref;
+    Timer() : vt() {
+
+      chVTObjectInit(&vt);
+    }
+
+    /* Prohibit copy construction and assignment.*/
+    Timer(const Timer &) = delete;
+    Timer &operator=(const Timer &) = delete;
 
     /**
      * @brief   Enables a virtual timer.
      * @note    The associated function is invoked from interrupt context.
      *
-     * @param[in] time      the number of ticks before the operation timeouts,
+     * @param[in] timeout   the number of ticks before the operation timeouts,
+     *                      the special values are handled as follow:
+     *                      - @a TIME_INFINITE is allowed but interpreted as a
+     *                        normal time specification.
+     *                      - @a TIME_IMMEDIATE this value is not allowed.
+     *                      .
+     * @param[in] vtfunc    the timer callback function. After invoking the
+     *                      callback the timer is disabled and the structure
+     *                      can be disposed or reused.
+     * @param[in] par       a parameter that will be passed to the callback
+     *                      function
+     *
+     * @api
+     */
+    void set(sysinterval_t timeout, vtfunc_t vtfunc, void *par) {
+
+      chVTSet(&vt, timeout, vtfunc, par);
+    }
+
+    /**
+     * @brief   Enables a virtual timer.
+     * @note    The associated function is invoked from interrupt context.
+     *
+     * @param[in] timeout   the number of ticks before the operation timeouts,
      *                      the special values are handled as follow:
      *                      - @a TIME_INFINITE is allowed but interpreted as a
      *                        normal time specification.
@@ -295,94 +540,44 @@ namespace chibios_rt {
      *
      * @iclass
      */
-    inline void setI(systime_t time, vtfunc_t vtfunc, void *par);
+    void setI(sysinterval_t timeout, vtfunc_t vtfunc, void *par) {
+
+      chVTSetI(&vt, timeout, vtfunc, par);
+    }
+
+    /**
+     * @brief   Resets the timer, if armed.
+     *
+     * @api
+     */
+    void reset() {
+
+      chVTReset(&vt);
+    }
 
     /**
      * @brief   Resets the timer, if armed.
      *
      * @iclass
      */
-    inline void resetI();
+    void resetI() {
+
+      chVTResetI(&vt);
+    }
 
     /**
      * @brief   Returns the timer status.
      *
-     * @retval TRUE         The timer is armed.
-     * @retval FALSE        The timer already fired its callback.
+     * @return              The timer status.
+     * @retval true         If the timer is armed.
+     * @retval false        If the timer already fired its callback.
      *
      * @iclass
      */
-    inline bool isArmedI(void);
-  };
+    bool isArmedI(void) const {
 
-  /*------------------------------------------------------------------------*
-   * chibios_rt::ThreadStayPoint                                            *
-   *------------------------------------------------------------------------*/
-  /**
-   * @brief     Thread suspension point class.
-   * @details   This class encapsulates a reference to a suspended thread.
-   */
-  class ThreadStayPoint {
-  public:
-    /**
-     * @brief   Pointer to the system thread.
-     */
-    ::thread_reference_t thread_ref;
-
-    /**
-     * @brief   Suspends the current thread on the reference.
-     * @details The suspended thread becomes the referenced thread. It is
-     *          possible to use this method only if the thread reference
-     *          was set to @p NULL.
-     *
-     * @return                  The incoming message.
-     *
-     * @sclass
-     */
-    inline msg_t suspendS(void);
-
-    /**
-     * @brief   Suspends the current thread on the reference with timeout.
-     * @details The suspended thread becomes the referenced thread. It is
-     *          possible to use this method only if the thread reference
-     *          was set to @p NULL.
-     *
-     *
-     * @param[in] timeout   the number of ticks before the operation timeouts,
-     *                      the following special values are allowed:
-     *                      - @a TIME_IMMEDIATE immediate timeout.
-     *                      - @a TIME_INFINITE no timeout.
-     *                      .
-     * @return              A message specifying how the invoking thread has
-     *                      been released from the semaphore.
-     * @retval MSG_OK       if the binary semaphore has been successfully
-     *                      taken.
-     * @retval MSG_RESET    if the binary semaphore has been reset using
-     *                      @p bsemReset().
-     * @retval MSG_TIMEOUT  if the binary semaphore has not been signaled
-     *                      or reset within the specified timeout.
-     *
-     * @sclass
-     */
-    inline msg_t suspendS(systime_t timeout);
-
-    /**
-     * @brief   Resumes the currently referenced thread, if any.
-     *
-     * @param[in] msg       the wakeup message
-     *
-     * @iclass
-     */
-    inline void resumeI(msg_t msg);
-
-    /**
-     * @brief   Resumes the currently referenced thread, if any.
-     *
-     * @param[in] msg       the wakeup message
-     *
-     * @sclass
-     */
-    inline void resumeS(msg_t msg);
+      return chVTIsArmedI(&vt);
+    }
   };
 
   /*------------------------------------------------------------------------*
@@ -394,32 +589,59 @@ namespace chibios_rt {
    *            operations involving another thread are performed through
    *            an object of this type.
    */
-  class ThreadReference {
-  public:
+  class ThreadReference final {
     /**
      * @brief   Pointer to the system thread.
      */
-    ::thread_t *thread_ref;
+    thread_t *thread_ref;
+
+  public:
+    /**
+     * @brief   Thread reference constructor.
+     * @note    Do not call this version directly, this constructor is empty
+     *          and is here only to do nothing when an object of this kind
+     *          is declared then assigned.
+     * @note    Automatic instances of this object are not initialized
+     *          because this constructor, this is intentional.
+     *
+     * @param[in] tp            the target thread
+     *
+     * @init
+     */
+    ThreadReference(void) {
+
+    }
 
     /**
      * @brief   Thread reference constructor.
      *
-     * @param[in] tp            the target thread. This parameter can be
-     *                          @p NULL if the thread is not known at
-     *                          creation time.
+     * @param[in] tp            the target thread
      *
      * @init
      */
     ThreadReference(thread_t *tp) : thread_ref(tp) {
 
-    };
+    }
 
     /**
-     * @brief   Stops the thread.
-     * @note    The implementation is left to descendant classes and is
-     *          optional.
+     * @brief   Returns the reference state.
+     *
+     * @return          The reference state.
+     * @retval false    if the reference is still valid.
+     * @retval true     if the reference is set to @p nullptr.
      */
-    virtual void stop(void);
+    bool isNull(void) const {
+
+      return (bool)(thread_ref == nullptr);
+    }
+
+    /**
+     * @brief   Returns the low level pointer to the referenced thread.
+     */
+    thread_t *getInner(void) {
+
+      return thread_ref;
+    }
 
     /**
      * @brief   Requests a thread termination.
@@ -431,9 +653,50 @@ namespace chibios_rt {
      *
      * @api
      */
-    void requestTerminate(void);
+    void requestTerminate(void) const {
 
-#if CH_CFG_USE_WAITEXIT || defined(__DOXYGEN__)
+      chThdTerminate(thread_ref);
+    }
+
+#if (CH_CFG_USE_REGISTRY == TRUE) || defined(__DOXYGEN__)
+    /**
+     * @brief   Adds a reference to a thread object.
+     * @pre     The configuration option @p CH_CFG_USE_REGISTRY must be enabled
+     *          in order to use this function.
+     *
+     * @return              A new thread reference.
+     *
+     * @api
+     */
+    ThreadReference addRef(void) const {
+
+      return ThreadReference(chThdAddRef(thread_ref));
+    }
+
+    /**
+     * @brief   Releases a reference to a thread object.
+     * @details If the references counter reaches zero <b>and</b> the thread
+     *          is in the @p CH_STATE_FINAL state then the thread's memory is
+     *          returned to the proper allocator and the thread is removed
+     *          from the registry.<br>
+     *          Threads whose counter reaches zero and are still active become
+     *          "detached" and will be removed from registry on termination.
+     * @pre     The configuration option @p CH_CFG_USE_REGISTRY must be enabled in
+     *          order to use this function.
+     * @post    The reference is set to @p nullptr.
+     * @note    Static threads are not affected.
+     *
+     * @api
+     */
+    void release(void) {
+      thread_t *tp = thread_ref;
+      thread_ref = nullptr;
+
+      chThdRelease(tp);
+    }
+#endif /* CH_CFG_USE_REGISTRY == TRUE */
+
+#if (CH_CFG_USE_WAITEXIT == TRUE) || defined(__DOXYGEN__)
     /**
      * @brief   Blocks the execution of the invoking thread until the specified
      *          thread terminates then the exit code is returned.
@@ -456,9 +719,7 @@ namespace chibios_rt {
      *          order to use this function.
      * @post    Enabling @p chThdWait() requires 2-4 (depending on the
      *          architecture) extra bytes in the @p Thread structure.
-     * @post    After invoking @p chThdWait() the thread pointer becomes
-     *          invalid and must not be used as parameter for further system
-     *          calls.
+     * @post    The reference is set to @p nullptr.
      * @note    If @p CH_USE_DYNAMIC is not specified this function just waits
      *          for the thread termination, no memory allocators are involved.
      *
@@ -466,10 +727,16 @@ namespace chibios_rt {
      *
      * @api
      */
-    msg_t wait(void);
-#endif /* CH_CFG_USE_WAITEXIT */
+    msg_t wait(void) {
+      thread_t *tp = thread_ref;
+      thread_ref = nullptr;
 
-#if CH_CFG_USE_MESSAGES || defined(__DOXYGEN__)
+      msg_t msg = chThdWait(tp);
+      return msg;
+    }
+#endif /* CH_CFG_USE_WAITEXIT == TRUE */
+
+#if (CH_CFG_USE_MESSAGES == TRUE) || defined(__DOXYGEN__)
     /**
      * @brief   Sends a message to the thread and returns the answer.
      *
@@ -478,7 +745,10 @@ namespace chibios_rt {
      *
      * @api
      */
-    msg_t sendMessage(msg_t msg);
+    msg_t sendMessage(msg_t msg) const {
+
+      return chMsgSend(thread_ref, msg);
+    }
 
     /**
      * @brief   Returns true if there is at least one message in queue.
@@ -488,28 +758,40 @@ namespace chibios_rt {
      *
      * @api
      */
-    bool isPendingMessage(void);
+    bool isPendingMessage(void) const {
+
+      return chMsgIsPendingI(thread_ref);
+    }
 
     /**
-     * @brief   Returns an enqueued message or @p NULL.
+     * @brief   Returns an enqueued message or @p nullptr.
      *
      * @return                  The incoming message.
      *
      * @api
      */
-    msg_t getMessage(void);
+    msg_t getMessage(void) const {
+
+      return chMsgGet(thread_ref);
+    }
 
     /**
      * @brief   Releases the next message in queue with a reply.
+     * @post    The reference is set to @p nullptr.
      *
      * @param[in] msg           the answer message
      *
      * @api
      */
-    void releaseMessage(msg_t msg);
-#endif /* CH_CFG_USE_MESSAGES */
+    void releaseMessage(msg_t msg) {
+      thread_t *tp = thread_ref;
+      thread_ref = nullptr;
 
-#if CH_CFG_USE_EVENTS || defined(__DOXYGEN__)
+      chMsgRelease(tp, msg);
+    }
+#endif /* CH_CFG_USE_MESSAGES == TRUE */
+
+#if (CH_CFG_USE_EVENTS == TRUE) || defined(__DOXYGEN__)
     /**
      * @brief   Adds a set of event flags directly to specified @p Thread.
      *
@@ -517,7 +799,10 @@ namespace chibios_rt {
      *
      * @api
      */
-    void signalEvents(eventmask_t mask);
+    void signalEvents(eventmask_t mask) const {
+
+      chEvtSignal(thread_ref, mask);
+    }
 
     /**
      * @brief   Adds a set of event flags directly to specified @p Thread.
@@ -526,12 +811,88 @@ namespace chibios_rt {
      *
      * @iclass
      */
-    void signalEventsI(eventmask_t mask);
-#endif /* CH_CFG_USE_EVENTS */
+    void signalEventsI(eventmask_t mask) const {
 
-#if CH_CFG_USE_DYNAMIC || defined(__DOXYGEN__)
-#endif /* CH_CFG_USE_DYNAMIC */
+      chEvtSignalI(thread_ref, mask);
+    }
+#endif /* CH_CFG_USE_EVENTS == TRUE */
+
+#if (CH_DBG_THREADS_PROFILING == TRUE) || defined(__DOXYGEN__)
+    /**
+     * @brief   Returns the number of ticks consumed by the specified thread.
+     * @note    This function is only available when the
+     *          @p CH_DBG_THREADS_PROFILING configuration option is enabled.
+     *
+     * @param[in] tp        pointer to the thread
+     * @return              The number of consumed system ticks.
+     *
+     * @xclass
+     */
+    systime_t getTicksX(void) const {
+
+      return chThdGetTicksX(thread_ref);
+    }
+#endif /* CH_DBG_THREADS_PROFILING == TRUE */
   };
+
+#if (CH_CFG_USE_REGISTRY == TRUE) || defined(__DOXYGEN__)
+  /*------------------------------------------------------------------------*
+   * chibios_rt::Registry                                                   *
+   *------------------------------------------------------------------------*/
+  class Registry {
+  public:
+    /**
+     * @brief   Returns the first thread in the system.
+     * @details Returns the most ancient thread in the system, usually this is
+     *          the main thread unless it terminated. A reference is added to the
+     *          returned thread in order to make sure its status is not lost.
+     * @note    This function cannot return @p nullptr because there is always at
+     *          least one thread in the system.
+     *
+     * @return              A reference to the most ancient thread.
+     *
+     * @api
+     */
+    static ThreadReference firstThread(void) {
+
+      return ThreadReference(chRegFirstThread());
+    }
+
+    /**
+     * @brief   Returns the thread next to the specified one.
+     * @details The reference counter of the specified thread is decremented and
+     *          the reference counter of the returned thread is incremented.
+     *
+     * @param[in] tref      reference to the thread
+     * @return              A reference to the next thread. The reference is
+     *                      set to @p nullptr if there is no next thread.
+     *
+     * @api
+     */
+    static ThreadReference nextThread(ThreadReference tref) {
+
+      return ThreadReference(chRegNextThread(tref.getInner()));
+    }
+
+    /**
+     * @brief   Retrieves a thread reference by name.
+     * @note    The reference counter of the found thread is increased by one so
+     *          it cannot be disposed incidentally after the pointer has been
+     *          returned.
+     *
+     * @param[in] name      the thread name
+     * @return              A pointer to the found thread.
+     * @return              A reference to the found thread. The reference is
+     *                      set to @p nullptr if no next thread is found.
+     *
+     * @api
+     */
+    static ThreadReference findThreadByName(const char *name) {
+
+      return ThreadReference(chRegFindThreadByName(name));
+    }
+  };
+#endif /* CH_CFG_USE_REGISTRY == TRUE */
 
   /*------------------------------------------------------------------------*
    * chibios_rt::BaseThread                                                 *
@@ -540,14 +901,16 @@ namespace chibios_rt {
    * @brief   Abstract base class for a ChibiOS/RT thread.
    * @details The thread body is the virtual function @p Main().
    */
-  class BaseThread : public ThreadReference {
+  class BaseThread {
   public:
     /**
      * @brief   BaseThread constructor.
      *
      * @init
      */
-    BaseThread(void);
+    BaseThread(void) {
+
+    }
 
     /**
      * @brief   Thread body function.
@@ -556,7 +919,7 @@ namespace chibios_rt {
      *
      * @api
      */
-    virtual void main(void);
+    virtual void main(void) = 0;
 
     /**
      * @brief   Creates and starts a system thread.
@@ -567,7 +930,19 @@ namespace chibios_rt {
      *
      * @api
      */
-    virtual ThreadReference start(tprio_t prio);
+    virtual ThreadReference start(tprio_t prio) = 0;
+
+    /**
+     * @brief   Returns a reference to the current thread.
+     *
+     * @return             A reference to the current thread.
+     *
+     * @xclass
+     */
+    static ThreadReference getSelfX(void) {
+
+      return ThreadReference(chThdGetSelfX());
+    }
 
     /**
      * @brief   Sets the current thread name.
@@ -578,7 +953,10 @@ namespace chibios_rt {
      *
      * @api
      */
-    static void setName(const char *tname);
+    static void setName(const char *tname) {
+
+      chRegSetThreadName(tname);
+    }
 
     /**
      * @brief   Changes the running thread priority level then reschedules if
@@ -592,7 +970,23 @@ namespace chibios_rt {
      *
      * @api
      */
-    static tprio_t setPriority(tprio_t newprio);
+    static tprio_t setPriority(tprio_t newprio) {
+
+      return chThdSetPriority(newprio);
+    }
+
+    /**
+     * @brief   Returns the current thread priority.
+     * @note    Can be invoked in any context.
+     *
+     * @return              The current thread priority.
+     *
+     * @xclass
+     */
+    static tprio_t getPriorityX(void) {
+
+      return chThdGetPriorityX();
+    }
 
     /**
      * @brief   Terminates the current thread.
@@ -608,7 +1002,10 @@ namespace chibios_rt {
      *
      * @api
      */
-    static void exit(msg_t msg);
+    static void exit(msg_t msg) {
+
+      chThdExit(msg);
+    }
 
     /**
      * @brief   Terminates the current thread.
@@ -624,7 +1021,10 @@ namespace chibios_rt {
      *
      * @sclass
      */
-    static void exitS(msg_t msg);
+    static void exitS(msg_t msg) {
+
+      chThdExitS(msg);
+    }
 
     /**
      * @brief   Verifies if the current thread has a termination request
@@ -636,7 +1036,10 @@ namespace chibios_rt {
      *
      * @special
      */
-    static bool shouldTerminate(void);
+    static bool shouldTerminate(void) {
+
+      return chThdShouldTerminateX();
+    }
 
     /**
      * @brief   Suspends the invoking thread for the specified time.
@@ -650,7 +1053,10 @@ namespace chibios_rt {
      *
      * @api
      */
-    static void sleep(systime_t interval);
+    static void sleep(sysinterval_t interval) {
+
+      chThdSleep(interval);
+    }
 
     /**
      * @brief   Suspends the invoking thread until the system time arrives to
@@ -660,7 +1066,29 @@ namespace chibios_rt {
      *
      * @api
      */
-    static void sleepUntil(systime_t time);
+    static void sleepUntil(systime_t time) {
+
+      chThdSleepUntil(time);
+    }
+
+    /**
+     * @brief   Suspends the invoking thread until the system time arrives to the
+     *          specified value.
+     * @note    The system time is assumed to be between @p prev and @p time
+     *          else the call is assumed to have been called outside the
+     *          allowed time interval, in this case no sleep is performed.
+     * @see     chThdSleepUntil()
+     *
+     * @param[in] prev      absolute system time of the previous deadline
+     * @param[in] next      absolute system time of the next deadline
+     * @return              the @p next parameter
+     *
+     * @api
+     */
+    static systime_t sleepUntilWindowed(systime_t prev, systime_t next) {
+
+      return chThdSleepUntilWindowed(prev, next);
+    }
 
     /**
      * @brief   Yields the time slot.
@@ -669,18 +1097,27 @@ namespace chibios_rt {
      *
      * @api
      */
-    static void yield(void);
+    static void yield(void) {
+
+      chThdYield();
+    }
 
 #if CH_CFG_USE_MESSAGES || defined(__DOXYGEN__)
     /**
      * @brief   Waits for a message.
+     * @post    On the returned reference it is mandatory to call
+     *          @p releaseMessage() or the sender thread would be waiting
+     *          undefinitely.
      *
-     * @return                  The sender thread.
+     * @return                  The sender thread reference.
      *
      * @api
      */
-    static ThreadReference waitMessage(void);
-#endif /* CH_CFG_USE_MESSAGES */
+    static ThreadReference waitMessage(void) {
+
+      return ThreadReference(chMsgWait());
+    }
+#endif /* CH_CFG_USE_MESSAGES == TRUE */
 
 #if CH_CFG_USE_EVENTS || defined(__DOXYGEN__)
     /**
@@ -691,7 +1128,10 @@ namespace chibios_rt {
      *
      * @api
      */
-    static eventmask_t getAndClearEvents(eventmask_t mask);
+    static eventmask_t getAndClearEvents(eventmask_t mask) {
+
+      return chEvtGetAndClearEvents(mask);
+    }
 
     /**
      * @brief   Adds (OR) a set of event flags on the current thread, this is
@@ -703,7 +1143,10 @@ namespace chibios_rt {
      *
      * @api
      */
-    static eventmask_t addEvents(eventmask_t mask);
+    static eventmask_t addEvents(eventmask_t mask) {
+
+      return chEvtAddEvents(mask);
+    }
 
     /**
      * @brief   Waits for a single event.
@@ -722,7 +1165,10 @@ namespace chibios_rt {
      *
      * @api
      */
-    static eventmask_t waitOneEvent(eventmask_t ewmask);
+    static eventmask_t waitOneEvent(eventmask_t ewmask) {
+
+      return chEvtWaitOne(ewmask);
+    }
 
     /**
      * @brief   Waits for any of the specified events.
@@ -736,7 +1182,10 @@ namespace chibios_rt {
      *
      * @api
      */
-    static eventmask_t waitAnyEvent(eventmask_t ewmask);
+    static eventmask_t waitAnyEvent(eventmask_t ewmask) {
+
+      return chEvtWaitAny(ewmask);
+    }
 
     /**
      * @brief   Waits for all the specified event flags then clears them.
@@ -749,7 +1198,10 @@ namespace chibios_rt {
      *
      * @api
      */
-    static eventmask_t waitAllEvents(eventmask_t ewmask);
+    static eventmask_t waitAllEvents(eventmask_t ewmask) {
+
+      return chEvtWaitAll(ewmask);
+    }
 
 #if CH_CFG_USE_EVENTS_TIMEOUT || defined(__DOXYGEN__)
     /**
@@ -765,7 +1217,7 @@ namespace chibios_rt {
      * @param[in] ewmask        mask of the events that the function should
      *                          wait for, @p ALL_EVENTS enables all the events
      *
-     * @param[in] time          the number of ticks before the operation
+     * @param[in] timeout       the number of ticks before the operation
      *                          timouts
      * @return                  The mask of the lowest id served and cleared
      *                          event.
@@ -774,7 +1226,10 @@ namespace chibios_rt {
      * @api
      */
     static eventmask_t waitOneEventTimeout(eventmask_t ewmask,
-                                           systime_t time);
+                                           sysinterval_t timeout) {
+
+      return chEvtWaitOneTimeout(ewmask, timeout);
+    }
 
     /**
      * @brief   Waits for any of the specified events.
@@ -784,7 +1239,7 @@ namespace chibios_rt {
      *
      * @param[in] ewmask        mask of the events that the function should
      *                          wait for, @p ALL_EVENTS enables all the events
-     * @param[in] time          the number of ticks before the operation
+     * @param[in] timeout       the number of ticks before the operation
      *                          timouts
      * @return                  The mask of the served and cleared events.
      * @retval 0                if the specified timeout expired.
@@ -792,7 +1247,10 @@ namespace chibios_rt {
      * @api
      */
     static eventmask_t waitAnyEventTimeout(eventmask_t ewmask,
-                                           systime_t time);
+                                           sysinterval_t timeout) {
+
+      return chEvtWaitAnyTimeout(ewmask, timeout);
+    }
 
     /**
      * @brief   Waits for all the specified event flags then clears them.
@@ -801,7 +1259,7 @@ namespace chibios_rt {
      *
      * @param[in] ewmask        mask of the event ids that the function should
      *                          wait for
-     * @param[in] time          the number of ticks before the operation
+     * @param[in] timeout       the number of ticks before the operation
      *                          timouts
      * @return                  The mask of the served and cleared events.
      * @retval 0                if the specified timeout expired.
@@ -809,8 +1267,11 @@ namespace chibios_rt {
      * @api
      */
     static eventmask_t waitAllEventsTimeout(eventmask_t ewmask,
-                                            systime_t time);
-#endif /* CH_CFG_USE_EVENTS_TIMEOUT */
+                                            sysinterval_t timeout) {
+
+      return chEvtWaitAllTimeout(ewmask, timeout);
+    }
+#endif /* CH_CFG_USE_EVENTS_TIMEOUT == TRUE */
 
     /**
      * @brief   Invokes the event handlers associated to an event flags mask.
@@ -822,36 +1283,13 @@ namespace chibios_rt {
      * @api
      */
     static void dispatchEvents(const evhandler_t handlers[],
-                               eventmask_t mask);
-#endif /* CH_CFG_USE_EVENTS */
+                               eventmask_t mask) {
+
+      chEvtDispatch(handlers, mask);
+    }
+#endif /* CH_CFG_USE_EVENTS == TRUE */
 
 #if CH_CFG_USE_MUTEXES || defined(__DOXYGEN__)
-    /**
-     * @brief   Unlocks the next owned mutex in reverse lock order.
-     * @pre     The invoking thread <b>must</b> have at least one owned mutex.
-     * @post    The mutex is unlocked and removed from the per-thread stack of
-     *          owned mutexes.
-     *
-     * @return              A pointer to the unlocked mutex.
-     *
-     * @api
-     */
-    static void unlockMutex(Mutex *mp);
-
-    /**
-     * @brief   Unlocks the next owned mutex in reverse lock order.
-     * @pre     The invoking thread <b>must</b> have at least one owned mutex.
-     * @post    The mutex is unlocked and removed from the per-thread stack of
-     *          owned mutexes.
-     * @post    This function does not reschedule so a call to a rescheduling
-     *          function must be performed before unlocking the kernel.
-     *
-     * @return              A pointer to the unlocked mutex.
-     *
-     * @sclass
-     */
-    static void unlockMutexS(Mutex *mp);
-
     /**
      * @brief   Unlocks all the mutexes owned by the invoking thread.
      * @post    The stack of owned mutexes is emptied and all the found
@@ -863,16 +1301,19 @@ namespace chibios_rt {
      *
      * @api
      */
-    static void unlockAllMutexes(void);
-#endif /* CH_CFG_USE_MUTEXES */
+    static void unlockAllMutexes(void) {
+
+      chMtxUnlockAll();
+    }
+#endif /* CH_CFG_USE_MUTEXES == TRUE */
   };
 
   /*------------------------------------------------------------------------*
    * chibios_rt::BaseStaticThread                                           *
    *------------------------------------------------------------------------*/
   /**
-   * @brief   Static threads template class.
-   * @details This class introduces static working area allocation.
+   * @brief   Static threads template base class.
+   * @details This class introduces static working area instantiation.
    *
    * @param N               the working area size for the thread class
    */
@@ -883,18 +1324,7 @@ namespace chibios_rt {
 
   public:
     /**
-     * @brief   Thread constructor.
-     * @details The thread object is initialized but the thread is not
-     *          started here.
-     *
-     * @init
-     */
-    BaseStaticThread(void) : BaseThread() {
-
-    }
-
-    /**
-     * @brief   Creates and starts a system thread.
+     * @brief   Starts a static thread.
      *
      * @param[in] prio          thread priority
      * @return                  A reference to the created thread with
@@ -902,38 +1332,236 @@ namespace chibios_rt {
      *
      * @api
      */
-    virtual ThreadReference start(tprio_t prio) {
+    ThreadReference start(tprio_t prio) override {
       void _thd_start(void *arg);
 
-      thread_ref = chThdCreateStatic(wa, sizeof(wa), prio, _thd_start, this);
-      return *this;
+      return ThreadReference(chThdCreateStatic(wa, sizeof(wa), prio,
+                                               _thd_start, this));
     }
   };
 
-#if CH_CFG_USE_SEMAPHORES || defined(__DOXYGEN__)
+  /*------------------------------------------------------------------------*
+   * chibios_rt::BaseDynamicThread                                          *
+   *------------------------------------------------------------------------*/
+  /**
+   * @brief   Dynamic threads base class.
+   */
+  class BaseDynamicThread : public BaseThread {
+  };
+
+  /*------------------------------------------------------------------------*
+   * chibios_rt::ThreadStayPoint                                            *
+   *------------------------------------------------------------------------*/
+  /**
+   * @brief     Thread suspension point class.
+   * @details   This class encapsulates a reference to a suspended thread.
+   */
+  class ThreadStayPoint {
+    /**
+     * @brief   Pointer to the suspended thread.
+     */
+    thread_reference_t thread_ref = nullptr;
+
+  public:
+    /**
+     * @brief   Thread stay point constructor.
+     *
+     * @init
+     */
+    ThreadStayPoint() {
+
+    }
+
+    /* Prohibit copy construction and assignment.*/
+    ThreadStayPoint(const ThreadStayPoint &) = delete;
+    ThreadStayPoint &operator=(const ThreadStayPoint &) = delete;
+
+    /**
+     * @brief   Suspends the current thread on the stay point.
+     * @details The suspended thread becomes the referenced thread. It is
+     *          possible to use this method only if the thread reference
+     *          was set to @p nullptr.
+     *
+     * @return                  The incoming message.
+     *
+     * @sclass
+     */
+    msg_t suspendS(void) {
+
+      return chThdSuspendS(&thread_ref);
+    }
+
+    /**
+     * @brief   Suspends the current thread on the stay point with timeout.
+     * @details The suspended thread becomes the referenced thread. It is
+     *          possible to use this method only if the thread reference
+     *          was set to @p nullptr.
+     *
+     *
+     * @param[in] timeout   the number of ticks before the operation timeouts,
+     *                      the following special values are allowed:
+     *                      - @a TIME_IMMEDIATE immediate timeout.
+     *                      - @a TIME_INFINITE no timeout.
+     *                      .
+     * @return              A message specifying how the invoking thread has
+     *                      been released from the semaphore.
+     * @retval MSG_OK       if the binary semaphore has been successfully
+     *                      taken.
+     * @retval MSG_RESET    if the binary semaphore has been reset using
+     *                      @p bsemReset().
+     * @retval MSG_TIMEOUT  if the binary semaphore has not been signaled
+     *                      or reset within the specified timeout.
+     *
+     * @sclass
+     */
+    msg_t suspendS(sysinterval_t timeout) {
+
+      return chThdSuspendTimeoutS(&thread_ref, timeout);
+    }
+
+    /**
+     * @brief   Resumes the currently referenced thread, if any.
+     *
+     * @param[in] msg       the wakeup message
+     *
+     * @iclass
+     */
+    void resumeI(msg_t msg) {
+
+      chThdResumeI(&thread_ref, msg);
+    }
+
+    /**
+     * @brief   Resumes the currently referenced thread, if any.
+     *
+     * @param[in] msg       the wakeup message
+     *
+     * @sclass
+     */
+    void resumeS(msg_t msg) {
+
+      chThdResumeS(&thread_ref, msg);
+    }
+  };
+
+  /*------------------------------------------------------------------------*
+   * chibios_rt::SynchronizationObject                                      *
+   *------------------------------------------------------------------------*/
+  /**
+   * @brief     Base class for all synchronization objects.
+   * @note      No other uses.
+   */
+  class SynchronizationObject {
+  };
+
+  /*------------------------------------------------------------------------*
+   * chibios_rt::ThreadsQueue                                               *
+   *------------------------------------------------------------------------*/
+  /**
+   * @brief     Threads queue class.
+   * @details   This class encapsulates a queue of threads.
+   */
+  class ThreadsQueue : public SynchronizationObject {
+    /**
+     * @brief   Pointer to the system thread.
+     */
+    threads_queue_t threads_queue;
+
+  public:
+    /**
+     * @brief   Threads queue constructor.
+     *
+     * @init
+     */
+    ThreadsQueue() {
+
+      chThdQueueObjectInit(&threads_queue);
+    }
+
+    /* Prohibit copy construction and assignment.*/
+    ThreadsQueue(const ThreadsQueue &) = delete;
+    ThreadsQueue &operator=(const ThreadsQueue &) = delete;
+
+    /**
+     * @brief   Enqueues the caller thread on a threads queue object.
+     * @details The caller thread is enqueued and put to sleep until it is
+     *          dequeued or the specified timeouts expires.
+     *
+     * @param[in] timeout   the timeout in system ticks, the special values are
+     *                      handled as follow:
+     *                      - @a TIME_INFINITE the thread enters an infinite sleep
+     *                        state.
+     *                      - @a TIME_IMMEDIATE the thread is not enqueued and
+     *                        the function returns @p MSG_TIMEOUT as if a timeout
+     *                        occurred.
+     *                      .
+     * @return              The message from @p osalQueueWakeupOneI() or
+     *                      @p osalQueueWakeupAllI() functions.
+     * @retval MSG_TIMEOUT  if the thread has not been dequeued within the
+     *                      specified timeout or if the function has been
+     *                      invoked with @p TIME_IMMEDIATE as timeout
+     *                      specification.
+     *
+     * @sclass
+     */
+    msg_t enqueueSelfS(sysinterval_t timeout) {
+
+      return chThdEnqueueTimeoutS(&threads_queue, timeout);
+    }
+
+    /**
+     * @brief   Dequeues and wakes up one thread from the threads queue object,
+     *          if any.
+     *
+     * @param[in] msg       the message code
+     *
+     * @iclass
+     */
+    void dequeueNextI(msg_t msg) {
+
+      chThdDequeueNextI(&threads_queue, msg);
+    }
+
+    /**
+     * @brief   Dequeues and wakes up all threads from the threads queue object.
+     *
+     * @param[in] msg       the message code
+     *
+     * @iclass
+     */
+    void chdequeueAllI(msg_t msg) {
+
+      chThdDequeueAllI(&threads_queue, msg);
+    }
+};
+
+#if (CH_CFG_USE_SEMAPHORES == TRUE) || defined(__DOXYGEN__)
   /*------------------------------------------------------------------------*
    * chibios_rt::CounterSemaphore                                           *
    *------------------------------------------------------------------------*/
   /**
    * @brief   Class encapsulating a semaphore.
    */
-  class CounterSemaphore {
+  class CounterSemaphore : public SynchronizationObject {
+    /**
+     * @brief   Embedded @p semaphore_t structure.
+     */
+    semaphore_t sem;
+
   public:
     /**
-     * @brief   Embedded @p ::Semaphore structure.
-     */
-    ::semaphore_t sem;
-
-    /**
      * @brief   CounterSemaphore constructor.
-     * @details The embedded @p ::Semaphore structure is initialized.
+     * @details The embedded @p Semaphore structure is initialized.
      *
      * @param[in] n             the semaphore counter value, must be greater
      *                          or equal to zero
      *
      * @init
      */
-    CounterSemaphore(cnt_t n);
+    CounterSemaphore(cnt_t n) {
+
+      chSemObjectInit(&sem, n);
+    }
 
     /**
      * @brief   Performs a reset operation on the semaphore.
@@ -949,7 +1577,10 @@ namespace chibios_rt {
      *
      * @api
      */
-    void reset(cnt_t n);
+    void reset(cnt_t n) {
+
+      chSemReset(&sem, n);
+    }
 
     /**
      * @brief   Performs a reset operation on the semaphore.
@@ -969,7 +1600,10 @@ namespace chibios_rt {
      *
      * @iclass
      */
-    void resetI(cnt_t n);
+    void resetI(cnt_t n) {
+
+      chSemResetI(&sem, n);
+    }
 
     /**
      * @brief   Performs a wait operation on a semaphore.
@@ -983,7 +1617,10 @@ namespace chibios_rt {
      *
      * @api
      */
-    msg_t wait(void);
+    msg_t wait(void) {
+
+      return chSemWait(&sem);
+    }
 
     /**
      * @brief   Performs a wait operation on a semaphore.
@@ -997,13 +1634,16 @@ namespace chibios_rt {
      *
      * @sclass
      */
-    msg_t waitS(void);
+    msg_t waitS(void) {
+
+      return chSemWaitS(&sem);
+    }
 
     /**
      * @brief   Performs a wait operation on a semaphore with timeout
      *          specification.
      *
-     * @param[in] time      the number of ticks before the operation timeouts,
+     * @param[in] timeout   the number of ticks before the operation timeouts,
      *                      the following special values are allowed:
      *                      - @a TIME_IMMEDIATE immediate timeout.
      *                      - @a TIME_INFINITE no timeout.
@@ -1019,13 +1659,16 @@ namespace chibios_rt {
      *
      * @api
      */
-    msg_t wait(systime_t time);
+    msg_t wait(sysinterval_t timeout) {
+
+      return chSemWaitTimeout(&sem, timeout);
+    }
 
     /**
      * @brief   Performs a wait operation on a semaphore with timeout
      *          specification.
      *
-     * @param[in] time      the number of ticks before the operation timeouts,
+     * @param[in] timeout   the number of ticks before the operation timeouts,
      *                      the following special values are allowed:
      *                      - @a TIME_IMMEDIATE immediate timeout.
      *                      - @a TIME_INFINITE no timeout.
@@ -1041,14 +1684,20 @@ namespace chibios_rt {
      *
      * @sclass
      */
-    msg_t waitS(systime_t time);
+    msg_t waitS(sysinterval_t timeout) {
+
+      return chSemWaitTimeoutS(&sem, timeout);
+    }
 
     /**
      * @brief   Performs a signal operation on a semaphore.
      *
      * @api
      */
-    void signal(void);
+    void signal(void) {
+
+      chSemSignal(&sem);
+    }
 
     /**
      * @brief   Performs a signal operation on a semaphore.
@@ -1059,7 +1708,10 @@ namespace chibios_rt {
      *
      * @iclass
      */
-    void signalI(void);
+    void signalI(void) {
+
+      chSemSignalI(&sem);
+    }
 
     /**
      * @brief   Adds the specified value to the semaphore counter.
@@ -1073,7 +1725,10 @@ namespace chibios_rt {
      *
      * @iclass
      */
-    void addCounterI(cnt_t n);
+    void addCounterI(cnt_t n) {
+
+      chSemAddCounterI(&sem, n);
+    }
 
     /**
      * @brief   Returns the semaphore counter value.
@@ -1082,7 +1737,10 @@ namespace chibios_rt {
      *
      * @iclass
      */
-    cnt_t getCounterI(void);
+    cnt_t getCounterI(void) const {
+
+      return chSemGetCounterI(&sem);
+    }
 
     /**
      * @brief   Atomic signal and wait operations.
@@ -1099,21 +1757,25 @@ namespace chibios_rt {
      * @api
      */
     static msg_t signalWait(CounterSemaphore *ssem,
-                            CounterSemaphore *wsem);
+                            CounterSemaphore *wsem) {
+
+      return chSemSignalWait(&ssem->sem, &wsem->sem);
+    }
   };
+
   /*------------------------------------------------------------------------*
    * chibios_rt::BinarySemaphore                                            *
    *------------------------------------------------------------------------*/
   /**
    * @brief   Class encapsulating a binary semaphore.
    */
-  class BinarySemaphore {
-  public:
+  class BinarySemaphore : public SynchronizationObject {
     /**
-     * @brief   Embedded @p ::Semaphore structure.
+     * @brief   Embedded @p binary_semaphore_t structure.
      */
-    ::binary_semaphore_t bsem;
+    binary_semaphore_t bsem;
 
+  public:
     /**
      * @brief   BinarySemaphore constructor.
      * @details The embedded @p ::BinarySemaphore structure is initialized.
@@ -1125,7 +1787,10 @@ namespace chibios_rt {
      *
      * @init
      */
-    BinarySemaphore(bool taken);
+    BinarySemaphore(bool taken) {
+
+      chBSemObjectInit(&bsem, taken);
+    }
 
     /**
      * @brief   Wait operation on the binary semaphore.
@@ -1139,7 +1804,10 @@ namespace chibios_rt {
      *
      * @api
      */
-    msg_t wait(void);
+    msg_t wait(void) {
+
+      return chBSemWait(&bsem);
+    }
 
     /**
      * @brief   Wait operation on the binary semaphore.
@@ -1153,12 +1821,15 @@ namespace chibios_rt {
      *
      * @sclass
      */
-    msg_t waitS(void);
+    msg_t waitS(void) {
+
+      return chBSemWaitS(&bsem);
+    }
 
     /**
      * @brief   Wait operation on the binary semaphore.
      *
-     * @param[in] time      the number of ticks before the operation timeouts,
+     * @param[in] timeout   the number of ticks before the operation timeouts,
      *                      the following special values are allowed:
      *                      - @a TIME_IMMEDIATE immediate timeout.
      *                      - @a TIME_INFINITE no timeout.
@@ -1174,12 +1845,15 @@ namespace chibios_rt {
      *
      * @api
      */
-    msg_t wait(systime_t time);
+    msg_t wait(sysinterval_t timeout) {
+
+      return chBSemWaitTimeout(&bsem, timeout);
+    }
 
     /**
      * @brief   Wait operation on the binary semaphore.
      *
-     * @param[in] time      the number of ticks before the operation timeouts,
+     * @param[in] timeout   the number of ticks before the operation timeouts,
      *                      the following special values are allowed:
      *                      - @a TIME_IMMEDIATE immediate timeout.
      *                      - @a TIME_INFINITE no timeout.
@@ -1195,7 +1869,10 @@ namespace chibios_rt {
      *
      * @sclass
      */
-    msg_t waitS(systime_t time);
+    msg_t waitS(sysinterval_t timeout) {
+
+      return chBSemWaitTimeoutS(&bsem, timeout);
+    }
 
     /**
      * @brief   Reset operation on the binary semaphore.
@@ -1210,7 +1887,10 @@ namespace chibios_rt {
      *
      * @api
      */
-    void reset(bool taken);
+    void reset(bool taken) {
+
+      chBSemReset(&bsem, taken);
+    }
 
     /**
      * @brief   Reset operation on the binary semaphore.
@@ -1226,14 +1906,20 @@ namespace chibios_rt {
      *
      * @iclass
      */
-    void resetI(bool taken);
+    void resetI(bool taken) {
+
+      chBSemResetI(&bsem, taken);
+    }
 
     /**
      * @brief   Performs a signal operation on a binary semaphore.
      *
      * @api
      */
-    void signal(void);
+    void signal(void) {
+
+      chBSemSignal(&bsem);
+    }
 
     /**
      * @brief   Performs a signal operation on a binary semaphore.
@@ -1241,7 +1927,10 @@ namespace chibios_rt {
      *
      * @iclass
      */
-    void signalI(void);
+    void signalI(void) {
+
+      chBSemSignalI(&bsem);
+    }
 
     /**
      * @brief   Returns the binary semaphore current state.
@@ -1252,31 +1941,37 @@ namespace chibios_rt {
      *
      * @iclass
      */
-    bool getStateI(void);
-};
-#endif /* CH_CFG_USE_SEMAPHORES */
+    bool getStateI(void) const {
 
-#if CH_CFG_USE_MUTEXES || defined(__DOXYGEN__)
+      return (bool)chBSemGetStateI(&bsem);
+    }
+};
+#endif /* CH_CFG_USE_SEMAPHORES == TRUE */
+
+#if (CH_CFG_USE_MUTEXES == TRUE) || defined(__DOXYGEN__)
   /*------------------------------------------------------------------------*
    * chibios_rt::Mutex                                                      *
    *------------------------------------------------------------------------*/
   /**
    * @brief   Class encapsulating a mutex.
    */
-  class Mutex {
+  class Mutex : public SynchronizationObject {
+    /**
+     * @brief   Embedded @p mutex_t structure.
+     */
+    mutex_t mutex;
+
   public:
     /**
-     * @brief   Embedded @p ::Mutex structure.
-     */
-    ::mutex_t mutex;
-
-    /**
      * @brief   Mutex object constructor.
-     * @details The embedded @p ::Mutex structure is initialized.
+     * @details The embedded @p mutex_t structure is initialized.
      *
      * @init
      */
-    Mutex(void);
+    Mutex(void) {
+
+      chMtxObjectInit(&mutex);
+    }
 
     /**
      * @brief   Tries to lock a mutex.
@@ -1295,7 +1990,10 @@ namespace chibios_rt {
      *
      * @api
      */
-    bool tryLock(void);
+    bool tryLock(void) {
+
+      return chMtxTryLock(&mutex);
+    }
 
     /**
      * @brief   Tries to lock a mutex.
@@ -1314,7 +2012,10 @@ namespace chibios_rt {
      *
      * @sclass
      */
-    bool tryLockS(void);
+    bool tryLockS(void) {
+
+      return chMtxTryLockS(&mutex);
+    }
 
     /**
      * @brief   Locks the specified mutex.
@@ -1323,7 +2024,10 @@ namespace chibios_rt {
      *
      * @api
      */
-    void lock(void);
+    void lock(void) {
+
+      chMtxLock(&mutex);
+    }
 
     /**
      * @brief   Locks the specified mutex.
@@ -1332,7 +2036,10 @@ namespace chibios_rt {
      *
      * @sclass
      */
-    void lockS(void);
+    void lockS(void) {
+
+      chMtxLockS(&mutex);
+    }
 
     /**
      * @brief   Unlocks the next owned mutex in reverse lock order.
@@ -1342,7 +2049,10 @@ namespace chibios_rt {
      *
      * @api
      */
-    void unlock(void);
+    void unlock(void) {
+
+      chMtxUnlock(&mutex);
+    }
 
     /**
      * @brief   Unlocks the next owned mutex in reverse lock order.
@@ -1354,151 +2064,275 @@ namespace chibios_rt {
      *
      * @sclass
      */
-    void unlockS(void);
-  };
+    void unlockS(void) {
 
-#if CH_CFG_USE_CONDVARS || defined(__DOXYGEN__)
-  /*------------------------------------------------------------------------*
-   * chibios_rt::CondVar                                                    *
-   *------------------------------------------------------------------------*/
-  /**
-   * @brief   Class encapsulating a conditional variable.
-   */
-  class CondVar {
-  public:
-    /**
-     * @brief   Embedded @p ::CondVar structure.
-     */
-    ::condition_variable_t condvar;
+      chMtxUnlockS(&mutex);
+    }
 
     /**
-     * @brief   CondVar object constructor.
-     * @details The embedded @p ::CondVar structure is initialized.
-     *
-     * @init
-     */
-    CondVar(void);
-
-    /**
-     * @brief   Signals one thread that is waiting on the condition variable.
-     *
-     * @api
-     */
-    void signal(void);
-
-    /**
-     * @brief   Signals one thread that is waiting on the condition variable.
-     * @post    This function does not reschedule so a call to a rescheduling
-     *          function must be performed before unlocking the kernel. Note
-     *          that interrupt handlers always reschedule on exit so an
-     *          explicit reschedule must not be performed in ISRs.
-     *
-     * @iclass
-     */
-    void signalI(void);
-
-    /**
-     * @brief   Signals all threads that are waiting on the condition variable.
-     *
-     * @api
-     */
-    void broadcast(void);
-
-    /**
-     * @brief   Signals all threads that are waiting on the condition variable.
-     * @post    This function does not reschedule so a call to a rescheduling
-     *          function must be performed before unlocking the kernel. Note
-     *          that interrupt handlers always reschedule on exit so an
-     *          explicit reschedule must not be performed in ISRs.
-     *
-     * @iclass
-     */
-    void broadcastI(void);
-
-    /**
-     * @brief   Waits on the condition variable releasing the mutex lock.
-     * @details Releases the currently owned mutex, waits on the condition
-     *          variable, and finally acquires the mutex again. All the
-     *          sequence is performed atomically.
+     * @brief   Unlocks the next owned mutex in reverse lock order.
      * @pre     The invoking thread <b>must</b> have at least one owned mutex.
+     * @post    The mutex is unlocked and removed from the per-thread stack of
+     *          owned mutexes.
      *
-     * @return              A message specifying how the invoking thread has
-     *                      been released from the condition variable.
-     * @retval MSG_OK       if the condvar has been signaled using
-     *                      @p chCondSignal().
-     * @retval MSG_RESET    if the condvar has been signaled using
-     *                      @p chCondBroadcast().
+     * @return              A pointer to the unlocked mutex.
      *
      * @api
      */
-    msg_t wait(void);
+    void unlockMutex(void) {
+
+      chMtxUnlock(&mutex);
+    }
 
     /**
-     * @brief   Waits on the condition variable releasing the mutex lock.
-     * @details Releases the currently owned mutex, waits on the condition
-     *          variable, and finally acquires the mutex again. All the
-     *          sequence is performed atomically.
+     * @brief   Unlocks the next owned mutex in reverse lock order.
      * @pre     The invoking thread <b>must</b> have at least one owned mutex.
+     * @post    The mutex is unlocked and removed from the per-thread stack of
+     *          owned mutexes.
+     * @post    This function does not reschedule so a call to a rescheduling
+     *          function must be performed before unlocking the kernel.
      *
-     * @return              A message specifying how the invoking thread has
-     *                      been released from the condition variable.
-     * @retval MSG_OK       if the condvar has been signaled using
-     *                      @p chCondSignal().
-     * @retval MSG_RESET    if the condvar has been signaled using
-     *                      @p chCondBroadcast().
+     * @return              A pointer to the unlocked mutex.
      *
      * @sclass
      */
-    msg_t waitS(void);
+    void unlockMutexS(void) {
 
-#if CH_CFG_USE_CONDVARS_TIMEOUT || defined(__DOXYGEN__)
+      chMtxUnlockS(&mutex);
+    }
+  };
+
+  /*------------------------------------------------------------------------*
+   * chibios_rt::MutexLocker                                                *
+   *------------------------------------------------------------------------*/
+  /**
+   * @brief   RAII helper for mutexes.
+   */
+  class MutexLocker
+  {
+    Mutex& mutex;
+
+  public:
+      MutexLocker(Mutex& m) : mutex(m) {
+
+        mutex.lock();
+      }
+
+      ~MutexLocker() {
+
+        mutex.unlock();
+      }
+  };
+
+#if (CH_CFG_USE_CONDVARS == TRUE) || defined(__DOXYGEN__)
+  /*------------------------------------------------------------------------*
+   * chibios_rt::Monitor                                                    *
+   *------------------------------------------------------------------------*/
+  /**
+   * @brief   Template class to be used for implementing a monitor.
+   */
+  template <unsigned N>
+  class Monitor: protected Mutex {
+    condition_variable_t condvars[N];
+
+  protected:
     /**
-     * @brief   Waits on the CondVar while releasing the controlling mutex.
+     * @brief   Waits on the condition variable releasing the mutex lock.
      *
-     * @param[in] time          the number of ticks before the operation fails
-     * @return                  The wakep mode.
-     * @retval MSG_OK if        the condvar was signaled using
-     *                          @p chCondSignal().
-     * @retval MSG_RESET        if the condvar was signaled using
-     *                          @p chCondBroadcast().
-     * @retval MSG_TIMEOUT      if the condvar was not signaled within the
-     *                          specified timeout.
+     * @param[in] var       the condition variable index
+     * @return              A message specifying how the invoking thread has
+     *                      been released from the condition variable.
+     * @retval MSG_OK       if the condition variable has been signaled using
+     *                      @p signal().
+     * @retval MSG_RESET    if the condition variable has been signaled using
+     *                      @p broadcast().
      *
      * @api
      */
-    msg_t wait(systime_t time);
-#endif /* CH_CFG_USE_CONDVARS_TIMEOUT */
-  };
-#endif /* CH_CFG_USE_CONDVARS */
-#endif /* CH_CFG_USE_MUTEXES */
+    msg_t wait(unsigned var) {
 
-#if CH_CFG_USE_EVENTS || defined(__DOXYGEN__)
+      chDbgCheck(var < N);
+
+      return chCondWait(&condvars[var]);
+    }
+
+    /**
+     * @brief   Waits on the condition variable releasing the mutex lock.
+     *
+     * @param[in] var       the condition variable index
+     * @return              A message specifying how the invoking thread has
+     *                      been released from the condition variable.
+     * @retval MSG_OK       if the condition variable has been signaled using
+     *                      @p signal().
+     * @retval MSG_RESET    if the condition variable has been signaled using
+     *                      @p broadcast().
+     *
+     * @sclass
+     */
+    msg_t waitS(unsigned var) {
+
+      chDbgCheck(var < N);
+
+      return chCondWaitS(&condvars[var]);
+    }
+
+#if (CH_CFG_USE_CONDVARS_TIMEOUT == TRUE) || defined(__DOXYGEN__)
+    /**
+     * @brief   Waits on the CondVar while releasing the controlling mutex.
+     *
+     * @param[in] var       the condition variable index
+     * @param[in] timeout   the number of ticks before the operation fails
+     * @return              The wakep mode.
+     * @retval MSG_OK       if the condition variable was signaled using
+     *                      @p signal().
+     * @retval MSG_RESET    if the condition variable was signaled using
+     *                      @p broadcast().
+     * @retval MSG_TIMEOUT  if the condition variable was not signaled
+     *                      within the specified timeout.
+     *
+     * @api
+     */
+    msg_t wait(unsigned var, sysinterval_t timeout) {
+
+      chDbgCheck(var < N);
+
+      return chCondWaitTimeout(&condvars[var], timeout);
+    }
+
+    /**
+     * @brief   Waits on the CondVar while releasing the controlling mutex.
+     *
+     * @param[in] var       the condition variable index
+     * @param[in] timeout   the number of ticks before the operation fails
+     * @return              The wakep mode.
+     * @retval MSG_OK       if the condition variable was signaled using
+     *                      @p signal().
+     * @retval MSG_RESET    if the condition variable was signaled using
+     *                      @p broadcast().
+     * @retval MSG_TIMEOUT  if the condition variable was not signaled
+     *                      within the specified timeout.
+     *
+     * @sclass
+     */
+    msg_t waitS(unsigned var, sysinterval_t timeout) {
+
+      chDbgCheck(var < N);
+
+      return chCondWaitTimeoutS(&condvars[var], timeout);
+    }
+#endif /* CH_CFG_USE_CONDVARS_TIMEOUT == TRUE */
+
+  public:
+    /**
+     * @brief   Monitor object constructor.
+     *
+     * @init
+     */
+    Monitor(void) : Mutex() {
+
+      for (unsigned i = 0; i < N; i++) {
+        chCondObjectInit(&condvars[i]);
+      }
+    }
+
+    /**
+     * @brief   Signals one thread that is waiting on the condition variable.
+     *
+     * @param[in] var       the condition variable index
+     *
+     * @api
+     */
+    void signal(unsigned var) {
+
+      chDbgCheck(var < N);
+
+      chCondSignal(&condvars[var]);
+    }
+
+    /**
+     * @brief   Signals one thread that is waiting on the condition variable.
+     * @post    This function does not reschedule so a call to a rescheduling
+     *          function must be performed before unlocking the kernel. Note
+     *          that interrupt handlers always reschedule on exit so an
+     *          explicit reschedule must not be performed in ISRs.
+     *
+     * @param[in] var       the condition variable index
+     *
+     * @iclass
+     */
+    void signalI(unsigned var) {
+
+      chDbgCheck(var < N);
+
+      chCondSignalI(&condvars[var]);
+    }
+
+    /**
+     * @brief   Signals all threads that are waiting on the condition variable.
+     *
+     * @param[in] var       the condition variable index
+     *
+     * @api
+     */
+    void broadcast(unsigned var) {
+
+      chDbgCheck(var < N);
+
+      chCondBroadcast(&condvars[var]);
+    }
+
+    /**
+     * @brief   Signals all threads that are waiting on the condition variable.
+     * @post    This function does not reschedule so a call to a rescheduling
+     *          function must be performed before unlocking the kernel. Note
+     *          that interrupt handlers always reschedule on exit so an
+     *          explicit reschedule must not be performed in ISRs.
+     *
+     * @param[in] var       the condition variable index
+     *
+     * @iclass
+     */
+    void broadcastI(unsigned var) {
+
+      chDbgCheck(var < N);
+
+      chCondBroadcastI(&condvars[var]);
+    }
+  };
+
+#endif /* CH_CFG_USE_CONDVARS == TRUE */
+#endif /* CH_CFG_USE_MUTEXES == TRUE */
+
+#if (CH_CFG_USE_EVENTS == TRUE) || defined(__DOXYGEN__)
   /*------------------------------------------------------------------------*
    * chibios_rt::EvtListener                                                *
    *------------------------------------------------------------------------*/
   /**
    * @brief   Class encapsulating an event listener.
    */
-  class EvtListener {
+  class EventListener {
   public:
     /**
-     * @brief   Embedded @p ::EventListener structure.
+     * @brief   Embedded @p event_listener_t structure.
      */
-    ::event_listener_t ev_listener;
+    event_listener_t ev_listener;
 
     /**
      * @brief   Returns the pending flags from the listener and clears them.
      *
-     * @return                  The flags added to the listener by the
-     *                          associated event source.
+     * @return              The flags added to the listener by the
+     *                      associated event source.
      *
      * @api
      */
-    eventflags_t getAndClearFlags(void);
+    eventflags_t getAndClearFlags(void) {
+
+      return chEvtGetAndClearFlags(&ev_listener);
+    }
 
     /**
-     * @brief   Returns the flags associated to an @p EventListener.
-     * @details The flags are returned and the @p EventListener flags mask is
+     * @brief   Returns the flags associated to an @p event_listener_t.
+     * @details The flags are returned and the @p event_listener_t flags mask is
      *          cleared.
      *
      * @return              The flags added to the listener by the associated
@@ -1506,7 +2340,10 @@ namespace chibios_rt {
      *
      * @iclass
      */
-    eventflags_t getAndClearFlagsI(void);
+    eventflags_t getAndClearFlagsI(void) {
+
+      return chEvtGetAndClearFlagsI(&ev_listener);
+    }
   };
 
   /*------------------------------------------------------------------------*
@@ -1515,448 +2352,102 @@ namespace chibios_rt {
   /**
    * @brief   Class encapsulating an event source.
    */
-  class EvtSource {
-  public:
+  class EventSource {
     /**
-     * @brief   Embedded @p ::EventSource structure.
+     * @brief   Embedded @p event_source_t structure.
      */
-    ::event_source_t ev_source;
+    event_source_t ev_source;
 
-    /**
+   public:
+   /**
      * @brief   EvtSource object constructor.
-     * @details The embedded @p ::EventSource structure is initialized.
+     * @details The embedded @p event_source_t structure is initialized.
      *
      * @init
      */
-    EvtSource(void);
+    EventSource(void) {
+
+      chEvtObjectInit(&ev_source);
+    }
 
     /**
      * @brief   Registers a listener on the event source.
      *
-     * @param[in] elp           pointer to the @p EvtListener object
-     * @param[in] eid           numeric identifier assigned to the Event
-     *                          Listener
+     * @param[in] elp       pointer to the @p EvtListener object
+     * @param[in] eid       numeric identifier assigned to the Event
+     *                      Listener
      *
      * @api
      */
-    void registerOne(chibios_rt::EvtListener *elp, eventid_t eid);
+    void registerOne(EventListener *elp,
+                     eventid_t eid) {
+
+      chEvtRegister(&ev_source, &elp->ev_listener, eid);
+    }
 
     /**
      * @brief   Registers an Event Listener on an Event Source.
      * @note    Multiple Event Listeners can specify the same bits to be added.
      *
-     * @param[in] elp           pointer to the @p EvtListener object
-     * @param[in] emask         the mask of event flags to be pended to the
-     *                          thread when the event source is broadcasted
+     * @param[in] elp       pointer to the @p EvtListener object
+     * @param[in] emask     the mask of event flags to be pended to the
+     *                      thread when the event source is broadcasted
      *
      * @api
      */
-    void registerMask(chibios_rt::EvtListener *elp, eventmask_t emask);
+    void registerMask(EventListener *elp,
+                      eventmask_t emask) {
+
+      chEvtRegisterMask(&ev_source, &elp->ev_listener, emask);
+    }
 
     /**
      * @brief   Unregisters a listener.
      * @details The specified listeners is no more signaled by the event
      *          source.
      *
-     * @param[in] elp           the listener to be unregistered
+     * @param[in] elp       the listener to be unregistered
      *
      * @api
      */
-    void unregister(chibios_rt::EvtListener *elp);
+    void unregister(EventListener *elp) {
+
+      chEvtUnregister(&ev_source, &elp->ev_listener);
+    }
 
     /**
      * @brief   Broadcasts on an event source.
      * @details All the listeners registered on the event source are signaled
      *          and the flags are added to the listener's flags mask.
      *
-     * @param[in] flags         the flags set to be added to the listener
-     *                          flags mask
+     * @param[in] flags     the flags set to be added to the listener
+     *                      flags mask
      *
      * @api
      */
-    void broadcastFlags(eventflags_t flags);
+    void broadcastFlags(eventflags_t flags) {
+
+      chEvtBroadcastFlags(&ev_source, flags);
+    }
 
     /**
      * @brief   Broadcasts on an event source.
      * @details All the listeners registered on the event source are signaled
      *          and the flags are added to the listener's flags mask.
      *
-     * @param[in] flags         the flags set to be added to the listener
-     *                          flags mask
+     * @param[in] flags     the flags set to be added to the listener
+     *                      flags mask
      *
      * @iclass
      */
-    void broadcastFlagsI(eventflags_t flags);
-  };
-#endif /* CH_CFG_USE_EVENTS */
+    void broadcastFlagsI(eventflags_t flags) {
 
-#if CH_CFG_USE_QUEUES || defined(__DOXYGEN__)
-  /*------------------------------------------------------------------------*
-   * chibios_rt::InQueue                                                    *
-   *------------------------------------------------------------------------*/
-  /**
-   * @brief   Class encapsulating an input queue.
-   */
-  class InQueue {
-  private:
-    /**
-     * @brief   Embedded @p ::InputQueue structure.
-     */
-    ::input_queue_t iq;
-
-  public:
-    /**
-     * @brief   InQueue constructor.
-     *
-     * @param[in] bp        pointer to a memory area allocated as queue buffer
-     * @param[in] size      size of the queue buffer
-     * @param[in] infy      pointer to a callback function that is invoked when
-     *                      data is read from the queue. The value can be
-     *                      @p NULL.
-     * @param[in] link      application defined pointer
-     *
-     * @init
-     */
-    InQueue(uint8_t *bp, size_t size, qnotify_t infy, void *link);
-
-    /**
-     * @brief   Returns the filled space into an input queue.
-     *
-     * @return              The number of full bytes in the queue.
-     * @retval 0            if the queue is empty.
-     *
-     * @iclass
-     */
-    size_t getFullI(void);
-
-    /**
-     * @brief   Returns the empty space into an input queue.
-     *
-     * @return              The number of empty bytes in the queue.
-     * @retval 0            if the queue is full.
-     *
-     * @iclass
-     */
-    size_t getEmptyI(void);
-
-    /**
-     * @brief   Evaluates to @p TRUE if the specified input queue is empty.
-     *
-     * @return              The queue status.
-     * @retval false        if the queue is not empty.
-     * @retval true         if the queue is empty.
-     *
-     * @iclass
-     */
-    bool isEmptyI(void);
-
-    /**
-     * @brief   Evaluates to @p TRUE if the specified input queue is full.
-     *
-     * @return              The queue status.
-     * @retval FALSE        if the queue is not full.
-     * @retval TRUE         if the queue is full.
-     *
-     * @iclass
-     */
-    bool isFullI(void);
-
-    /**
-     * @brief   Resets an input queue.
-     * @details All the data in the input queue is erased and lost, any waiting
-     *          thread is resumed with status @p Q_RESET.
-     * @note    A reset operation can be used by a low level driver in order to
-     *          obtain immediate attention from the high level layers.
-     * @iclass
-     */
-    void resetI(void);
-
-    /**
-     * @brief   Input queue write.
-     * @details A byte value is written into the low end of an input queue.
-     *
-     * @param[in] b         the byte value to be written in the queue
-     * @return              The operation status.
-     * @retval Q_OK         if the operation has been completed with success.
-     * @retval Q_FULL       if the queue is full and the operation cannot be
-     *                      completed.
-     *
-     * @iclass
-     */
-    msg_t putI(uint8_t b);
-
-    /**
-     * @brief   Input queue read.
-     * @details This function reads a byte value from an input queue. If the
-     *          queue is empty then the calling thread is suspended until a
-     *          byte arrives in the queue.
-     *
-     * @return              A byte value from the queue.
-     * @retval Q_RESET      if the queue has been reset.
-     *
-     * @api
-     */
-    msg_t get();
-
-    /**
-     * @brief   Input queue read with timeout.
-     * @details This function reads a byte value from an input queue. If the
-     *          queue is empty then the calling thread is suspended until a
-     *          byte arrives in the queue or a timeout occurs.
-     * @note    The callback is invoked before reading the character from the
-     *          buffer or before entering the state @p THD_STATE_WTQUEUE.
-     *
-     * @param[in] time      the number of ticks before the operation timeouts,
-     *                      the following special values are allowed:
-     *                      - @a TIME_IMMEDIATE immediate timeout.
-     *                      - @a TIME_INFINITE no timeout.
-     *                      .
-     * @return              A byte value from the queue.
-     * @retval Q_TIMEOUT    if the specified time expired.
-     * @retval Q_RESET      if the queue has been reset.
-     *
-     * @api
-     */
-    msg_t get(systime_t time);
-
-    /**
-     * @brief   Input queue read with timeout.
-     * @details The function reads data from an input queue into a buffer. The
-     *          operation completes when the specified amount of data has been
-     *          transferred or after the specified timeout or if the queue has
-     *          been reset.
-     * @note    The function is not atomic, if you need atomicity it is
-     *          suggested to use a semaphore or a mutex for mutual exclusion.
-     * @note    The callback is invoked before reading each character from the
-     *          buffer or before entering the state @p THD_STATE_WTQUEUE.
-     *
-     * @param[out] bp       pointer to the data buffer
-     * @param[in] n         the maximum amount of data to be transferred, the
-     *                      value 0 is reserved
-     * @param[in] time      the number of ticks before the operation timeouts,
-     *                      the following special values are allowed:
-     *                      - @a TIME_IMMEDIATE immediate timeout.
-     *                      - @a TIME_INFINITE no timeout.
-     *                      .
-     * @return              The number of bytes effectively transferred.
-     *
-     * @api
-     */
-    size_t read(uint8_t *bp, size_t n, systime_t time);
-  };
-
-  /*------------------------------------------------------------------------*
-   * chibios_rt::InQueueBuffer                                              *
-   *------------------------------------------------------------------------*/
-  /**
-   * @brief   Template class encapsulating an input queue and its buffer.
-   *
-   * @param N                   size of the input queue
-   */
-  template <int N>
-  class InQueueBuffer : public InQueue {
-  private:
-    uint8_t iq_buf[N];
-
-  public:
-    /**
-     * @brief   InQueueBuffer constructor.
-     *
-     * @param[in] infy      input notify callback function
-     * @param[in] link      parameter to be passed to the callback
-     *
-     * @init
-     */
-    InQueueBuffer(qnotify_t infy, void *link) : InQueue(iq_buf, N,
-                                                        infy, link) {
+      chEvtBroadcastFlagsI(&ev_source, flags);
     }
   };
+#endif /* CH_CFG_USE_EVENTS == TRUE */
 
-  /*------------------------------------------------------------------------*
-   * chibios_rt::OutQueue                                                   *
-   *------------------------------------------------------------------------*/
-  /**
-   * @brief   Class encapsulating an output queue.
-   */
-  class OutQueue {
-  private:
-    /**
-     * @brief   Embedded @p ::OutputQueue structure.
-     */
-    ::output_queue_t oq;
-
-  public:
-    /**
-     * @brief   OutQueue constructor.
-     *
-     * @param[in] bp        pointer to a memory area allocated as queue buffer
-     * @param[in] size      size of the queue buffer
-     * @param[in] onfy      pointer to a callback function that is invoked when
-     *                      data is written to the queue. The value can be
-     *                      @p NULL.
-     * @param[in] link      application defined pointer
-     *
-     * @init
-     */
-    OutQueue(uint8_t *bp, size_t size, qnotify_t onfy, void *link);
-
-    /**
-     * @brief   Returns the filled space into an output queue.
-     *
-     * @return              The number of full bytes in the queue.
-     * @retval 0            if the queue is empty.
-     *
-     * @iclass
-     */
-    size_t getFullI(void);
-
-    /**
-     * @brief   Returns the empty space into an output queue.
-     *
-     * @return              The number of empty bytes in the queue.
-     * @retval 0            if the queue is full.
-     *
-     * @iclass
-     */
-    size_t getEmptyI(void);
-
-    /**
-     * @brief   Evaluates to @p TRUE if the specified output queue is empty.
-     *
-     * @return              The queue status.
-     * @retval false        if the queue is not empty.
-     * @retval true         if the queue is empty.
-     *
-     * @iclass
-     */
-    bool isEmptyI(void);
-
-    /**
-     * @brief   Evaluates to @p TRUE if the specified output queue is full.
-     *
-     * @return              The queue status.
-     * @retval FALSE        if the queue is not full.
-     * @retval TRUE         if the queue is full.
-     *
-     * @iclass
-     */
-    bool isFullI(void);
-
-    /**
-     * @brief   Resets an output queue.
-     * @details All the data in the output queue is erased and lost, any
-     *          waiting thread is resumed with status @p Q_RESET.
-     * @note    A reset operation can be used by a low level driver in order
-     *          to obtain immediate attention from the high level layers.
-     *
-     * @iclass
-     */
-    void resetI(void);
-
-    /**
-     * @brief   Output queue write.
-     * @details This function writes a byte value to an output queue. If the
-     *          queue is full then the calling thread is suspended until there
-     *          is space in the queue.
-     *
-     * @param[in] b         the byte value to be written in the queue
-     * @return              The operation status.
-     * @retval Q_OK         if the operation succeeded.
-     * @retval Q_RESET      if the queue has been reset.
-     *
-     * @api
-     */
-    msg_t put(uint8_t b);
-
-    /**
-     * @brief   Output queue write with timeout.
-     * @details This function writes a byte value to an output queue. If the
-     *          queue is full then the calling thread is suspended until there
-     *          is space in the queue or a timeout occurs.
-     * @note    The callback is invoked after writing the character into the
-     *          buffer.
-     *
-     * @param[in] b         the byte value to be written in the queue
-     * @param[in] time      the number of ticks before the operation timeouts,
-     *                      the following special values are allowed:
-     *                      - @a TIME_IMMEDIATE immediate timeout.
-     *                      - @a TIME_INFINITE no timeout.
-     *                      .
-     * @return              The operation status.
-     * @retval Q_OK         if the operation succeeded.
-     * @retval Q_TIMEOUT    if the specified time expired.
-     * @retval Q_RESET      if the queue has been reset.
-     *
-     * @api
-     */
-    msg_t put(uint8_t b, systime_t time);
-
-    /**
-     * @brief   Output queue read.
-     * @details A byte value is read from the low end of an output queue.
-     *
-     * @return              The byte value from the queue.
-     * @retval Q_EMPTY      if the queue is empty.
-     *
-     * @iclass
-     */
-    msg_t getI(void);
-
-    /**
-     * @brief   Output queue write with timeout.
-     * @details The function writes data from a buffer to an output queue. The
-     *          operation completes when the specified amount of data has been
-     *          transferred or after the specified timeout or if the queue has
-     *          been reset.
-     * @note    The function is not atomic, if you need atomicity it is
-     *          suggested to use a semaphore or a mutex for mutual exclusion.
-     * @note    The callback is invoked after writing each character into the
-     *          buffer.
-     *
-     * @param[out] bp       pointer to the data buffer
-     * @param[in] n         the maximum amount of data to be transferred, the
-     *                      value 0 is reserved
-     * @param[in] time      the number of ticks before the operation timeouts,
-     *                      the following special values are allowed:
-     *                      - @a TIME_IMMEDIATE immediate timeout.
-     *                      - @a TIME_INFINITE no timeout.
-     *                      .
-     * @return              The number of bytes effectively transferred.
-     *
-     * @api
-     */
-    size_t write(const uint8_t *bp, size_t n, systime_t time);
-};
-
-  /*------------------------------------------------------------------------*
-   * chibios_rt::OutQueueBuffer                                             *
-   *------------------------------------------------------------------------*/
-  /**
-   * @brief   Template class encapsulating an output queue and its buffer.
-   *
-   * @param N                   size of the output queue
-   */
-  template <int N>
-  class OutQueueBuffer : public OutQueue {
-  private:
-    uint8_t oq_buf[N];
-
-  public:
-    /**
-     * @brief   OutQueueBuffer constructor.
-     *
-     * @param[in] onfy      output notify callback function
-     * @param[in] link      parameter to be passed to the callback
-     *
-     * @init
-     */
-    OutQueueBuffer(qnotify_t onfy, void *link) : OutQueue(oq_buf, N,
-                                                          onfy, link) {
-    }
-  };
-#endif /* CH_CFG_USE_QUEUES */
-
-#if CH_CFG_USE_MAILBOXES || defined(__DOXYGEN__)
+#if (CH_CFG_USE_MAILBOXES == TRUE) || defined(__DOXYGEN__)
   /*------------------------------------------------------------------------*
    * chibios_rt::Mailbox                                                    *
    *------------------------------------------------------------------------*/
@@ -1967,20 +2458,20 @@ namespace chibios_rt {
    */
   template <typename T>
   class MailboxBase {
-  public:
 
     /**
-     * @brief   Embedded @p ::Mailbox structure.
+     * @brief   Embedded @p mailbox_t structure.
      */
-    ::mailbox_t mb;
+    mailbox_t mb;
 
-    /**
+   public:
+   /**
      * @brief   Mailbox constructor.
-     * @details The embedded @p ::Mailbox structure is initialized.
+     * @details The embedded @p mailbox_t structure is initialized.
      *
-     * @param[in] buf           pointer to the messages buffer as an array of
-     *                          @p msg_t
-     * @param[in] n             number of elements in the buffer array
+     * @param[in] buf       pointer to the messages buffer as an array of
+     *                      @p msg_t
+     * @param[in] n         number of elements in the buffer array
      *
      * @init
      */
@@ -2002,12 +2493,22 @@ namespace chibios_rt {
     }
 
     /**
+     * @brief   Terminates the reset state.
+     *
+     * @xclass
+     */
+    void resumeX(void) {
+
+      chMBResumeX(&mb);
+    }
+
+    /**
      * @brief   Posts a message into a mailbox.
      * @details The invoking thread waits until a empty slot in the mailbox
      *          becomes available or the specified time runs out.
      *
      * @param[in] msg       the message to be posted on the mailbox
-     * @param[in] time      the number of ticks before the operation timeouts,
+     * @param[in] timeout   the number of ticks before the operation timeouts,
      *                      the following special values are allowed:
      *                      - @a TIME_IMMEDIATE immediate timeout.
      *                      - @a TIME_INFINITE no timeout.
@@ -2019,9 +2520,9 @@ namespace chibios_rt {
      *
      * @api
      */
-    msg_t post(T msg, systime_t time) {
+    msg_t post(T msg, sysinterval_t timeout) {
 
-      return chMBPost(&mb, reinterpret_cast<msg_t>(msg), time);
+      return chMBPostTimeout(&mb, reinterpret_cast<msg_t>(msg), timeout);
     }
 
     /**
@@ -2030,7 +2531,7 @@ namespace chibios_rt {
      *          becomes available or the specified time runs out.
      *
      * @param[in] msg       the message to be posted on the mailbox
-     * @param[in] time      the number of ticks before the operation timeouts,
+     * @param[in] timeout   the number of ticks before the operation timeouts,
      *                      the following special values are allowed:
      *                      - @a TIME_IMMEDIATE immediate timeout.
      *                      - @a TIME_INFINITE no timeout.
@@ -2042,9 +2543,9 @@ namespace chibios_rt {
      *
      * @sclass
      */
-    msg_t postS(T msg, systime_t time) {
+    msg_t postS(T msg, sysinterval_t timeout) {
 
-      return chMBPostS(&mb, reinterpret_cast<msg_t>(msg), time);
+      return chMBPostTimeoutS(&mb, reinterpret_cast<msg_t>(msg), timeout);
     }
 
     /**
@@ -2071,7 +2572,7 @@ namespace chibios_rt {
      *          becomes available or the specified time runs out.
      *
      * @param[in] msg       the message to be posted on the mailbox
-     * @param[in] time      the number of ticks before the operation timeouts,
+     * @param[in] timeout   the number of ticks before the operation timeouts,
      *                      the following special values are allowed:
      *                      - @a TIME_IMMEDIATE immediate timeout.
      *                      - @a TIME_INFINITE no timeout.
@@ -2083,9 +2584,9 @@ namespace chibios_rt {
      *
      * @api
      */
-    msg_t postAhead(T msg, systime_t time) {
+    msg_t postAhead(T msg, sysinterval_t timeout) {
 
-      return chMBPostAhead(&mb, reinterpret_cast<msg_t>(msg), time);
+      return chMBPostAheadTimeout(&mb, reinterpret_cast<msg_t>(msg), timeout);
     }
 
     /**
@@ -2094,7 +2595,7 @@ namespace chibios_rt {
      *          becomes available or the specified time runs out.
      *
      * @param[in] msg       the message to be posted on the mailbox
-     * @param[in] time      the number of ticks before the operation timeouts,
+     * @param[in] timeout   the number of ticks before the operation timeouts,
      *                      the following special values are allowed:
      *                      - @a TIME_IMMEDIATE immediate timeout.
      *                      - @a TIME_INFINITE no timeout.
@@ -2106,9 +2607,9 @@ namespace chibios_rt {
      *
      * @sclass
      */
-    msg_t postAheadS(T msg, systime_t time) {
+    msg_t postAheadS(T msg, sysinterval_t timeout) {
 
-      return chMBPostAheadS(&mb, reinterpret_cast<msg_t>(msg), time);
+      return chMBPostAheadTimeoutS(&mb, reinterpret_cast<msg_t>(msg), timeout);
     }
 
     /**
@@ -2135,7 +2636,7 @@ namespace chibios_rt {
      *          mailbox or the specified time runs out.
      *
      * @param[out] msgp     pointer to a message variable for the received
-     * @param[in] time      message the number of ticks before the operation
+     * @param[in] timeout   message the number of ticks before the operation
      *                      timeouts, the following special values are allowed:
      *                      - @a TIME_IMMEDIATE immediate timeout.
      *                      - @a TIME_INFINITE no timeout.
@@ -2147,9 +2648,9 @@ namespace chibios_rt {
      *
      * @api
      */
-    msg_t fetch(T *msgp, systime_t time) {
+    msg_t fetch(T *msgp, sysinterval_t timeout) {
 
-      return chMBFetch(&mb, reinterpret_cast<msg_t*>(msgp), time);
+      return chMBFetchTimeout(&mb, reinterpret_cast<msg_t*>(msgp), timeout);
     }
 
     /**
@@ -2158,7 +2659,7 @@ namespace chibios_rt {
      *          mailbox or the specified time runs out.
      *
      * @param[out] msgp     pointer to a message variable for the received
-     * @param[in] time      message the number of ticks before the operation
+     * @param[in] timeout   message the number of ticks before the operation
      *                      timeouts, the following special values are allowed:
      *                      - @a TIME_IMMEDIATE immediate timeout.
      *                      - @a TIME_INFINITE no timeout.
@@ -2170,9 +2671,9 @@ namespace chibios_rt {
      *
      * @sclass
      */
-    msg_t fetchS(T *msgp, systime_t time) {
+    msg_t fetchS(T *msgp, sysinterval_t timeout) {
 
-      return chMBFetchS(&mb, reinterpret_cast<msg_t*>(msgp), time);
+      return chMBFetchTimeoutS(&mb, reinterpret_cast<msg_t*>(msgp), timeout);
     }
 
     /**
@@ -2195,6 +2696,22 @@ namespace chibios_rt {
     }
 
     /**
+     * @brief   Returns the next message in the queue without removing it.
+     * @pre     A message must be waiting in the queue for this function to work
+     *          or it would return garbage. The correct way to use this macro is
+     *          to use @p getUsedCountI() and then use this macro, all within
+     *          a lock state.
+     *
+     * @return              The next message in queue.
+     *
+     * @iclass
+     */
+    T peekI(const mailbox_t *mbp) const {
+
+      return chMBPeekI(&mb);
+    }
+
+    /**
      * @brief   Returns the number of free message slots into a mailbox.
      * @note    Can be invoked in any system state but if invoked out of a
      *          locked state then the returned value may change after reading.
@@ -2205,7 +2722,7 @@ namespace chibios_rt {
      *
      * @iclass
      */
-    cnt_t getFreeCountI(void) {
+    cnt_t getFreeCountI(void) const {
 
       return chMBGetFreeCountI(&mb);
     }
@@ -2221,7 +2738,7 @@ namespace chibios_rt {
      *
      * @iclass
      */
-    cnt_t getUsedCountI(void) {
+    cnt_t getUsedCountI(void) const {
 
       return chMBGetUsedCountI(&mb);
     }
@@ -2237,6 +2754,10 @@ namespace chibios_rt {
    */
   template <typename T, int N>
   class Mailbox : public MailboxBase<T> {
+
+    static_assert(sizeof(T) <= sizeof(msg_t),
+                  "Mailbox type does not fit in msg_t");
+
   private:
     msg_t   mb_buf[N];
 
@@ -2250,22 +2771,22 @@ namespace chibios_rt {
       MailboxBase<T>(mb_buf, (cnt_t)(sizeof mb_buf / sizeof (msg_t))) {
     }
   };
-#endif /* CH_CFG_USE_MAILBOXES */
+#endif /* CH_CFG_USE_MAILBOXES == TRUE */
 
-#if CH_CFG_USE_MEMPOOLS || defined(__DOXYGEN__)
+#if (CH_CFG_USE_MEMPOOLS == TRUE) || defined(__DOXYGEN__)
   /*------------------------------------------------------------------------*
    * chibios_rt::MemoryPool                                                 *
    *------------------------------------------------------------------------*/
   /**
-   * @brief   Class encapsulating a mailbox.
+   * @brief   Class encapsulating a memory pool.
    */
   class MemoryPool {
-  public:
     /**
-     * @brief   Embedded @p ::MemoryPool structure.
+     * @brief   Embedded @p memory_pool_t structure.
      */
-    ::memory_pool_t pool;
+    memory_pool_t pool;
 
+  public:
     /**
      * @brief   MemoryPool constructor.
      *
@@ -2273,12 +2794,15 @@ namespace chibios_rt {
      *                      pool, the minimum accepted size is the size of
      *                      a pointer to void.
      * @param[in] provider  memory provider function for the memory pool or
-     *                      @p NULL if the pool is not allowed to grow
+     *                      @p nullptr if the pool is not allowed to grow
      *                      automatically
      *
      * @init
      */
-    MemoryPool(size_t size, memgetfunc_t provider);
+    MemoryPool(size_t size, memgetfunc_t provider=0) : pool() {
+
+      chPoolObjectInit(&pool, size, provider);
+    }
 
     /**
      * @brief   MemoryPool constructor.
@@ -2287,14 +2811,25 @@ namespace chibios_rt {
      *                      pool, the minimum accepted size is the size of
      *                      a pointer to void.
      * @param[in] provider  memory provider function for the memory pool or
-     *                      @p NULL if the pool is not allowed to grow
+     *                      @p nullptr if the pool is not allowed to grow
      *                      automatically
      * @param[in] p         pointer to the array first element
      * @param[in] n         number of elements in the array
      *
      * @init
      */
-    MemoryPool(size_t size, memgetfunc_t provider, void* p, size_t n);
+    MemoryPool(size_t size, void* p, size_t n,
+               memgetfunc_t provider=0) : pool() {
+
+      chPoolObjectInit(&pool, size, provider);
+      chPoolLoadArray(&pool, p, n);
+    }
+
+    /* Prohibit copy construction and assignment, but allow move.*/
+    MemoryPool(const MemoryPool &) = delete;
+    MemoryPool &operator=(const MemoryPool &) = delete;
+    MemoryPool(MemoryPool &&) = default;
+    MemoryPool &operator=(MemoryPool &&) = default;
 
     /**
      * @brief   Loads a memory pool with an array of static objects.
@@ -2308,29 +2843,38 @@ namespace chibios_rt {
      *
      * @api
      */
-    void loadArray(void *p, size_t n);
+    void loadArray(void *p, size_t n) {
+
+      chPoolLoadArray(&pool, p, n);
+    }
 
     /**
      * @brief   Allocates an object from a memory pool.
      * @pre     The memory pool must be already been initialized.
      *
      * @return              The pointer to the allocated object.
-     * @retval NULL         if pool is empty.
+     * @retval nullptr      if pool is empty.
      *
      * @iclass
      */
-    void *allocI(void);
+    void *allocI(void) {
+
+      return chPoolAllocI(&pool);
+    }
 
     /**
      * @brief   Allocates an object from a memory pool.
      * @pre     The memory pool must be already been initialized.
      *
      * @return              The pointer to the allocated object.
-     * @retval NULL         if pool is empty.
+     * @retval nullptr      if pool is empty.
      *
      * @api
      */
-    void *alloc(void);
+    void *alloc(void) {
+
+      return chPoolAlloc(&pool);
+    }
 
     /**
      * @brief   Releases an object into a memory pool.
@@ -2344,7 +2888,10 @@ namespace chibios_rt {
      *
      * @iclass
      */
-    void free(void *objp);
+    void free(void *objp) {
+
+      chPoolFree(&pool, objp);
+    }
 
     /**
      * @brief   Adds an object to a memory pool.
@@ -2360,7 +2907,10 @@ namespace chibios_rt {
      *
      * @iclass
      */
-    void freeI(void *objp);
+    void freeI(void *objp) {
+
+      chPoolFreeI(&pool, objp);
+    }
   };
 
   /*------------------------------------------------------------------------*
@@ -2371,13 +2921,11 @@ namespace chibios_rt {
    */
   template<class T, size_t N>
   class ObjectsPool : public MemoryPool {
-  private:
     /* The buffer is declared as an array of pointers to void for two
        reasons:
        1) The objects must be properly aligned to hold a pointer as
           first field.
-       2) There is no need to invoke constructors for object that are
-          into the pool.*/
+       2) Objects are dirtied when loaded in the pool.*/
     void *pool_buf[(N * sizeof (T)) / sizeof (void *)];
 
   public:
@@ -2386,19 +2934,138 @@ namespace chibios_rt {
      *
      * @init
      */
-    ObjectsPool(void) : MemoryPool(sizeof (T), NULL) {
+    ObjectsPool(void) : MemoryPool(sizeof (T), nullptr) {
 
       loadArray(pool_buf, N);
     }
   };
-#endif /* CH_CFG_USE_MEMPOOLS */
+
+  /*------------------------------------------------------------------------*
+   * chibios_rt::ThreadsPool                                                *
+   *------------------------------------------------------------------------*/
+  /**
+   * @brief   Template class encapsulating a pool of threads.
+   */
+  template<size_t S, size_t N, const char *C>
+  class ThreadsPool : public BaseDynamicThread {
+    THD_WORKING_AREA(working_areas, S)[N];
+    MemoryPool threads_pool;
+
+  public:
+    /**
+     * @brief   ThreadsPool constructor.
+     *
+     * @init
+     */
+    ThreadsPool(void) : threads_pool(THD_WORKING_AREA_SIZE(S)) {
+
+      threads_pool.loadArray(working_areas, N);
+    }
+
+    /**
+     * @brief   Starts a dynamic thread from the pool.
+     *
+     * @param[in] prio          thread priority
+     * @return                  A reference to the created thread with
+     *                          reference counter set to one.
+     *
+     * @api
+     */
+    ThreadReference start(tprio_t prio) override {
+      void _thd_start(void *arg);
+
+      return ThreadReference(chThdCreateFromMemoryPool(&threads_pool.pool,
+                                                       C,
+                                                       prio,
+                                                       _thd_start,
+                                                       this));
+     }
+   };
+#endif /* CH_CFG_USE_MEMPOOLS == TRUE */
+
+#if (CH_CFG_USE_HEAP == TRUE) || defined(__DOXYGEN__)
+  /*------------------------------------------------------------------------*
+   * chibios_rt::Heap                                                       *
+   *------------------------------------------------------------------------*/
+  /**
+   * @brief   Class encapsulating a heap.
+   */
+  class Heap {
+    /**
+     * @brief   Embedded @p memory_heap_t structure.
+     */
+    memory_heap_t heap;
+
+  public:
+    /**
+     * @brief   Heap constructor.
+     * @pre     Both the heap buffer base and the heap size must be aligned to
+     *          the @p stkalign_t type size.
+     *
+     * @param[in] buffer    heap buffer base
+     * @param[in] size      the size of the memory area located at \e buffer
+     * @init
+     */
+    Heap(void *buffer, const size_t size) : heap() {
+
+      chHeapObjectInit(&heap, buffer, size);
+    }
+
+    /* Prohibit copy construction and assignment, but allow move.*/
+    Heap(const Heap &) = delete;
+    Heap &operator=(const Heap &) = delete;
+    Heap(Heap &&) = default;
+    Heap &operator=(Heap &&) = default;
+
+    /**
+     * @brief   Allocates an object from a heap.
+     * @pre     The heap must be already been initialized.
+     *
+     * @return              The pointer to the allocated object.
+     * @retval nullptr      if pool is empty.
+     *
+     * @api
+     */
+    void *alloc(const size_t size) {
+
+      return chHeapAlloc(&heap, size);
+    }
+
+    /**
+     * @brief   Releases an object into the heap.
+     *
+     * @param[in] objp      the pointer to the object to be released
+     *
+     * @api
+     */
+    void free(void *objp) {
+
+      chHeapFree(objp);
+    }
+
+    /**
+     * @brief   Reports the heap status.
+     *
+     * @param[out] frag     the size of total fragmented free space
+     * @param[in] largestp  pointer to a variable that will receive the largest
+     *                      free free block found space or @p nullptr
+     * @return              the number of fragments in the heap
+     *
+     * @api
+     */
+    size_t status(size_t &frag, size_t *largestp=0) {
+
+      return chHeapStatus(&heap, &frag, largestp);
+    }
+  };
+#endif /* CH_CFG_USE_MEMPOOLS == TRUE */
 
   /*------------------------------------------------------------------------*
    * chibios_rt::BaseSequentialStreamInterface                              *
    *------------------------------------------------------------------------*/
   /**
-   * @brief   Interface of a ::BaseSequentialStream.
-   * @note    You can cast a ::BaseSequentialStream to this interface and use
+   * @brief   Interface of a BaseSequentialStream.
+   * @note    You can cast a BaseSequentialStream to this interface and use
    *          it, the memory layout is the same.
    */
   class BaseSequentialStreamInterface {
@@ -2415,7 +3082,7 @@ namespace chibios_rt {
      *
      * @api
      */
-    virtual size_t write(const uint8_t *bp, size_t n) = 0;
+    virtual size_t write(const uint8_t *bp, const size_t n) = 0;
 
     /**
      * @brief   Sequential Stream read.
@@ -2429,7 +3096,7 @@ namespace chibios_rt {
      *
      * @api
      */
-    virtual size_t read(uint8_t *bp, size_t n) = 0;
+    virtual size_t read(uint8_t *bp, const size_t n) = 0;
 
     /**
      * @brief   Sequential Stream blocking byte write.
@@ -2445,7 +3112,7 @@ namespace chibios_rt {
      *
      * @api
      */
-    virtual msg_t put(uint8_t b) = 0;
+    virtual msg_t put(const uint8_t b) = 0;
 
     /**
      * @brief   Sequential Stream blocking byte read.

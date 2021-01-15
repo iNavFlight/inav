@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -14,8 +14,8 @@
     limitations under the License.
 */
 
-#ifndef _MCUCONF_H_
-#define _MCUCONF_H_
+#ifndef MCUCONF_H
+#define MCUCONF_H
 
 /*
  * STM32F0xx drivers configuration.
@@ -61,6 +61,16 @@
 #define STM32_RTCSEL                        STM32_RTCSEL_LSI
 
 /*
+ * IRQ system settings.
+ */
+#define STM32_IRQ_EXTI0_1_IRQ_PRIORITY      3
+#define STM32_IRQ_EXTI2_3_IRQ_PRIORITY      3
+#define STM32_IRQ_EXTI4_15_IRQ_PRIORITY     3
+#define STM32_IRQ_EXTI16_IRQ_PRIORITY       3
+#define STM32_IRQ_EXTI17_20_IRQ_PRIORITY    3
+#define STM32_IRQ_EXTI21_22_IRQ_PRIORITY    3
+
+/*
  * ADC driver system settings.
  */
 #define STM32_ADC_USE_ADC1                  FALSE
@@ -76,14 +86,17 @@
 #define STM32_CAN_CAN1_IRQ_PRIORITY         3
 
 /*
- * EXT driver system settings.
+ * DAC driver system settings.
  */
-#define STM32_EXT_EXTI0_1_IRQ_PRIORITY      3
-#define STM32_EXT_EXTI2_3_IRQ_PRIORITY      3
-#define STM32_EXT_EXTI4_15_IRQ_PRIORITY     3
-#define STM32_EXT_EXTI16_IRQ_PRIORITY       3
-#define STM32_EXT_EXTI17_20_IRQ_PRIORITY    3
-#define STM32_EXT_EXTI21_22_IRQ_PRIORITY    3
+#define STM32_DAC_DUAL_MODE                 FALSE
+#define STM32_DAC_USE_DAC1_CH1              FALSE
+#define STM32_DAC_USE_DAC1_CH2              FALSE
+#define STM32_DAC_DAC1_CH1_IRQ_PRIORITY     2
+#define STM32_DAC_DAC1_CH2_IRQ_PRIORITY     2
+#define STM32_DAC_DAC1_CH1_DMA_PRIORITY     2
+#define STM32_DAC_DAC1_CH2_DMA_PRIORITY     2
+#define STM32_DAC_DAC1_CH1_DMA_STREAM       STM32_DMA_STREAM_ID(1, 3)
+#define STM32_DAC_DAC1_CH2_DMA_STREAM       STM32_DMA_STREAM_ID(1, 4)
 
 /*
  * GPT driver system settings.
@@ -91,10 +104,12 @@
 #define STM32_GPT_USE_TIM1                  FALSE
 #define STM32_GPT_USE_TIM2                  FALSE
 #define STM32_GPT_USE_TIM3                  FALSE
+#define STM32_GPT_USE_TIM6                  FALSE
 #define STM32_GPT_USE_TIM14                 FALSE
 #define STM32_GPT_TIM1_IRQ_PRIORITY         2
 #define STM32_GPT_TIM2_IRQ_PRIORITY         2
 #define STM32_GPT_TIM3_IRQ_PRIORITY         2
+#define STM32_GPT_TIM6_IRQ_PRIORITY         2
 #define STM32_GPT_TIM14_IRQ_PRIORITY        2
 
 /*
@@ -159,8 +174,11 @@
  */
 #define STM32_SERIAL_USE_USART1             FALSE
 #define STM32_SERIAL_USE_USART2             FALSE
+#define STM32_SERIAL_USE_USART3             FALSE
+#define STM32_SERIAL_USE_UART4              FALSE
 #define STM32_SERIAL_USART1_PRIORITY        3
 #define STM32_SERIAL_USART2_PRIORITY        3
+#define STM32_SERIAL_USART3_8_PRIORITY      3
 
 /*
  * SPI driver system settings.
@@ -188,14 +206,23 @@
  */
 #define STM32_UART_USE_USART1               FALSE
 #define STM32_UART_USE_USART2               FALSE
+#define STM32_UART_USE_USART3               FALSE
+#define STM32_UART_USE_UART4                FALSE
 #define STM32_UART_USART1_IRQ_PRIORITY      3
 #define STM32_UART_USART2_IRQ_PRIORITY      3
+#define STM32_UART_USART3_8_IRQ_PRIORITY    3
 #define STM32_UART_USART1_DMA_PRIORITY      0
 #define STM32_UART_USART2_DMA_PRIORITY      0
+#define STM32_UART_USART3_DMA_PRIORITY      0
+#define STM32_UART_UART4_DMA_PRIORITY       0
 #define STM32_UART_USART1_RX_DMA_STREAM     STM32_DMA_STREAM_ID(1, 3)
 #define STM32_UART_USART1_TX_DMA_STREAM     STM32_DMA_STREAM_ID(1, 2)
 #define STM32_UART_USART2_RX_DMA_STREAM     STM32_DMA_STREAM_ID(1, 5)
 #define STM32_UART_USART2_TX_DMA_STREAM     STM32_DMA_STREAM_ID(1, 4)
+#define STM32_UART_USART3_RX_DMA_STREAM     STM32_DMA_STREAM_ID(1, 3)
+#define STM32_UART_USART3_TX_DMA_STREAM     STM32_DMA_STREAM_ID(1, 2)
+#define STM32_UART_UART4_RX_DMA_STREAM      STM32_DMA_STREAM_ID(1, 6)
+#define STM32_UART_UART4_TX_DMA_STREAM      STM32_DMA_STREAM_ID(1, 7)
 #define STM32_UART_DMA_ERROR_HOOK(uartp)    osalSysHalt("DMA failure")
 
 /*
@@ -210,4 +237,4 @@
  */
 #define STM32_WDG_USE_IWDG                  FALSE
 
-#endif /* _MCUCONF_H_ */
+#endif /* MCUCONF_H */

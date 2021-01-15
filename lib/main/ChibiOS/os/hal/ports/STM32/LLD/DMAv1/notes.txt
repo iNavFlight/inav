@@ -19,6 +19,7 @@ STM32_ADVANCED_DMA          - TRUE not used by the DMA drivers but other
                               channels. Probably will be removed in the
                               future.
 STM32_DMA_SUPPORTS_CSELR    - TRUE if the DMA have a CSELR register.
+STM32_DMA_SUPPORTS_DMAMUX   - TRUE if the DMA is  riven by a DMAMUX.
 STM32_DMAn_NUM_CHANNELS     - Number of channels in DMAs "n" (1..2).
 STM32_DMAn_CHx_HANDLER      - Vector name for IRQ "x" (1..7). If the macro
                               is not exported then the ISR is not declared.

@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -22,7 +22,8 @@
  */
 static const WDGConfig wdgcfg = {
   STM32_IWDG_PR_64,
-  STM32_IWDG_RL(1000)};
+  STM32_IWDG_RL(1000)
+};
 
 /*
  * Application entry point.

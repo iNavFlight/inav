@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2014..2016 Marco Veeneman
+    Copyright (C) 2014..2017 Marco Veeneman
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -14,8 +14,8 @@
     limitations under the License.
 */
 
-#ifndef _BOARD_H_
-#define _BOARD_H_
+#ifndef BOARD_H
+#define BOARD_H
 
 /*
  * Setup for Texas Instruments TM4C123G Launchpad Board.
@@ -28,59 +28,10 @@
 #define BOARD_NAME              "Texas Instruments TM4C123G Launchpad"
 
 /*
- * MCU type
+ * MCU type and revision as defined in the TI header.
  */
-//#define TM4C1230C3PM
-//#define TM4C1230D5PM
-//#define TM4C1230E6PM
-//#define TM4C1230H6PM
-//#define TM4C1231C3PM
-//#define TM4C1231D5PM
-//#define TM4C1231D5PZ
-//#define TM4C1231E6PM
-//#define TM4C1231E6PZ
-//#define TM4C1231H6PGE
-//#define TM4C1231H6PM
-//#define TM4C1231H6PZ
-//#define TM4C1232C3PM
-//#define TM4C1232D5PM
-//#define TM4C1232E6PM
-//#define TM4C1232H6PM
-//#define TM4C1233C3PM
-//#define TM4C1233D5PM
-//#define TM4C1233D5PZ
-//#define TM4C1233E6PM
-//#define TM4C1233E6PZ
-//#define TM4C1233H6PGE
-//#define TM4C1233H6PM
-//#define TM4C1233H6PZ
-//#define TM4C1236D5PM
-//#define TM4C1236E6PM
-//#define TM4C1236H6PM
-//#define TM4C1237D5PM
-//#define TM4C1237D5PZ
-//#define TM4C1237E6PM
-//#define TM4C1237E6PZ
-//#define TM4C1237H6PGE
-//#define TM4C1237H6PM
-//#define TM4C1237H6PZ
-//#define TM4C123AE6PM
-//#define TM4C123AH6PM
-//#define TM4C123BE6PM
-//#define TM4C123BE6PZ
-//#define TM4C123BH6PGE
-//#define TM4C123BH6PM
-//#define TM4C123BH6PZ
-//#define TM4C123BH6ZRB
-//#define TM4C123FE6PM
-//#define TM4C123FH6PM
-//#define TM4C123GE6PM
-//#define TM4C123GE6PZ
-//#define TM4C123GH6PGE
-#define TM4C123GH6PM
-//#define TM4C123GH6PZ
-//#define TM4C123GH6ZRB
-//#define TM4C123GH5ZXR
+#define PART_TM4C123GH6PM
+#define TARGET_IS_TM4C123_RB1
 
 /*
  * Board oscillators-related settings.
@@ -143,6 +94,24 @@
 #define GPIOF_PIN5              5
 #define GPIOF_PIN6              6
 #define GPIOF_PIN7              7
+
+/*
+ * IO lines assignments.
+ */
+#define LINE_UART0_RX           PAL_LINE(GPIOA, 0U)
+#define LINE_UART0_TX           PAL_LINE(GPIOA, 1U)
+#define LINE_SSI0_CLK           PAL_LINE(GPIOA, 2U)
+#define LINE_SSI0_RX            PAL_LINE(GPIOA, 4U)
+#define LINE_SSI0_TX            PAL_LINE(GPIOA, 5U)
+
+#define LINE_I2C0_SCL           PAL_LINE(GPIOB, 2U)
+#define LINE_I2C0_SDA           PAL_LINE(GPIOB, 3U)
+
+#define LINE_SW2                PAL_LINE(GPIOF, 0U)
+#define LINE_LED_RED            PAL_LINE(GPIOF, 1U)
+#define LINE_LED_BLUE           PAL_LINE(GPIOF, 2U)
+#define LINE_LED_GREEN          PAL_LINE(GPIOF, 3U)
+#define LINE_SW1                PAL_LINE(GPIOF, 4U)
 
 /*
  * I/O ports initial setup, this configuration is established soon after reset
@@ -940,4 +909,4 @@ extern "C" {
 #endif
 #endif /* _FROM_ASM_ */
 
-#endif /* _BOARD_H_ */
+#endif /* BOARD_H */

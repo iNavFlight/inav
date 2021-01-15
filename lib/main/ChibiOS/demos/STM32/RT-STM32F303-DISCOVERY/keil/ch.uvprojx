@@ -349,7 +349,7 @@
           </ArmAdsMisc>
           <Cads>
             <interw>1</interw>
-            <Optim>4</Optim>
+            <Optim>3</Optim>
             <oTime>1</oTime>
             <SplitLS>0</SplitLS>
             <OneElfS>0</OneElfS>
@@ -369,7 +369,7 @@
               <MiscControls>--c99 -USTM32F303xC</MiscControls>
               <Define>__heap_base__=Image$$$$RW_IRAM1$$$$ZI$$$$Limit __heap_end__=Image$$$$RW_IRAM2$$$$Base</Define>
               <Undefine></Undefine>
-              <IncludePath>..\;..\..\..\..\os\common\ports\ARMCMx\devices\STM32F3xx;..\..\..\..\os\ext\CMSIS\include;..\..\..\..\os\ext\CMSIS\ST;..\..\..\..\os\rt\ports\ARMCMx;..\..\..\..\os\rt\ports\ARMCMx\compilers\RVCT;..\..\..\..\os\rt\include;..\..\..\..\os\hal\osal\rt;..\..\..\..\os\hal\include;..\..\..\..\os\hal\boards\ST_STM32F3_DISCOVERY;..\..\..\..\os\hal\ports\common\ARMCMx;..\..\..\..\os\hal\ports\STM32\STM32F3xx;..\..\..\..\os\hal\ports\STM32\LLD;..\..\..\..\os\hal\ports\STM32\LLD\ADCv3;..\..\..\..\os\hal\ports\STM32\LLD\CANv1;..\..\..\..\os\hal\ports\STM32\LLD\DACv1;..\..\..\..\os\hal\ports\STM32\LLD\DMAv1;..\..\..\..\os\hal\ports\STM32\LLD\EXTIv1;..\..\..\..\os\hal\ports\STM32\LLD\GPIOv2;..\..\..\..\os\hal\ports\STM32\LLD\I2Cv2;..\..\..\..\os\hal\ports\STM32\LLD\RTCv2;..\..\..\..\os\hal\ports\STM32\LLD\SPIv2;..\..\..\..\os\hal\ports\STM32\LLD\TIMv1;..\..\..\..\os\hal\ports\STM32\LLD\USARTv2;..\..\..\..\os\hal\ports\STM32\LLD\USBv1;..\..\..\..\os\hal\ports\STM32\LLD\xWDGv1;..\..\..\..\test\rt</IncludePath>
+              <IncludePath>..\;..\..\..\..\os\license;..\..\..\..\os\common\startup\ARMCMx\devices\STM32F3xx;..\..\..\..\os\common\ext\CMSIS\include;..\..\..\..\os\common\ext\CMSIS\ST\STM32F3xx;..\..\..\..\os\common\ports\ARMCMx;..\..\..\..\os\common\ports\ARMCMx\compilers\RVCT;..\..\..\..\os\common\oslib\include;..\..\..\..\os\rt\include;..\..\..\..\os\hal\osal\rt;..\..\..\..\os\hal\include;..\..\..\..\os\hal\boards\ST_STM32F3_DISCOVERY;..\..\..\..\os\hal\ports\common\ARMCMx;..\..\..\..\os\hal\ports\STM32\STM32F3xx;..\..\..\..\os\hal\ports\STM32\LLD\ADCv3;..\..\..\..\os\hal\ports\STM32\LLD\CANv1;..\..\..\..\os\hal\ports\STM32\LLD\DACv1;..\..\..\..\os\hal\ports\STM32\LLD\DMAv1;..\..\..\..\os\hal\ports\STM32\LLD\EXTIv1;..\..\..\..\os\hal\ports\STM32\LLD\GPIOv2;..\..\..\..\os\hal\ports\STM32\LLD\I2Cv2;..\..\..\..\os\hal\ports\STM32\LLD\RTCv2;..\..\..\..\os\hal\ports\STM32\LLD\SPIv2;..\..\..\..\os\hal\ports\STM32\LLD\TIMv1;..\..\..\..\os\hal\ports\STM32\LLD\USARTv2;..\..\..\..\os\hal\ports\STM32\LLD\USBv1;..\..\..\..\os\hal\ports\STM32\LLD\xWDGv1;..\..\..\..\test\lib;..\..\..\..\test\rt\source\test</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -386,7 +386,7 @@
               <MiscControls>--cpreproc</MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath>..\;..\..\..\..\os\common\ports\ARMCMx\devices\STM32F3xx;..\..\..\..\os\rt\ports\ARMCMx</IncludePath>
+              <IncludePath>..\;..\..\..\..\os\license;..\..\..\..\os\common\startup\ARMCMx\devices\STM32F3xx;..\..\..\..\os\common\ports\ARMCMx</IncludePath>
             </VariousControls>
           </Aads>
           <LDads>
@@ -413,19 +413,19 @@
           <GroupName>startup</GroupName>
           <Files>
             <File>
-              <FileName>cmparams.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\common\ports\ARMCMx\devices\STM32F3xx\cmparams.h</FilePath>
-            </File>
-            <File>
               <FileName>cstartup.s</FileName>
               <FileType>2</FileType>
-              <FilePath>..\..\..\..\os\common\ports\ARMCMx\compilers\RVCT\cstartup.s</FilePath>
+              <FilePath>..\..\..\..\os\common\startup\ARMCMx\compilers\RVCT\cstartup.s</FilePath>
             </File>
             <File>
               <FileName>vectors.s</FileName>
               <FileType>2</FileType>
-              <FilePath>..\..\..\..\os\common\ports\ARMCMx\compilers\RVCT\vectors.s</FilePath>
+              <FilePath>..\..\..\..\os\common\startup\ARMCMx\compilers\RVCT\vectors.s</FilePath>
+            </File>
+            <File>
+              <FileName>cmparams.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\common\startup\ARMCMx\devices\STM32F3xx\cmparams.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -433,29 +433,19 @@
           <GroupName>cmsis</GroupName>
           <Files>
             <File>
-              <FileName>core_cmInstr.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\ext\CMSIS\include\core_cmInstr.h</FilePath>
-            </File>
-            <File>
               <FileName>core_cm4.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\ext\CMSIS\include\core_cm4.h</FilePath>
-            </File>
-            <File>
-              <FileName>core_cm4_simd.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\ext\CMSIS\include\core_cm4_simd.h</FilePath>
+              <FilePath>..\..\..\..\os\common\ext\CMSIS\include\core_cm4.h</FilePath>
             </File>
             <File>
               <FileName>core_cmFunc.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\ext\CMSIS\include\core_cmFunc.h</FilePath>
+              <FilePath>..\..\..\..\os\common\ext\CMSIS\include\core_cmFunc.h</FilePath>
             </File>
             <File>
-              <FileName>system_stm32f3xx.h</FileName>
+              <FileName>stm32f3xx.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\ext\CMSIS\ST\system_stm32f3xx.h</FilePath>
+              <FilePath>..\..\..\..\os\common\ext\CMSIS\ST\STM32F3xx\stm32f3xx.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -463,39 +453,44 @@
           <GroupName>kernel port</GroupName>
           <Files>
             <File>
-              <FileName>chcore_v7m.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\rt\ports\ARMCMx\chcore_v7m.h</FilePath>
-            </File>
-            <File>
               <FileName>chcore.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\rt\ports\ARMCMx\chcore.c</FilePath>
+              <FilePath>..\..\..\..\os\common\ports\ARMCMx\chcore.c</FilePath>
             </File>
             <File>
               <FileName>chcore.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\rt\ports\ARMCMx\chcore.h</FilePath>
+              <FilePath>..\..\..\..\os\common\ports\ARMCMx\chcore.h</FilePath>
             </File>
             <File>
               <FileName>chcore_timer.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\rt\ports\ARMCMx\chcore_timer.h</FilePath>
+              <FilePath>..\..\..\..\os\common\ports\ARMCMx\chcore_timer.h</FilePath>
+            </File>
+            <File>
+              <FileName>chcore_v7m.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\common\ports\ARMCMx\chcore_v7m.h</FilePath>
             </File>
             <File>
               <FileName>chcore_v7m.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\rt\ports\ARMCMx\chcore_v7m.c</FilePath>
+              <FilePath>..\..\..\..\os\common\ports\ARMCMx\chcore_v7m.c</FilePath>
             </File>
             <File>
-              <FileName>chtypes.h</FileName>
+              <FileName>mpu.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\rt\ports\ARMCMx\compilers\RVCT\chtypes.h</FilePath>
+              <FilePath>..\..\..\..\os\common\ports\ARMCMx\mpu.h</FilePath>
             </File>
             <File>
               <FileName>chcoreasm_v7m.s</FileName>
               <FileType>2</FileType>
-              <FilePath>..\..\..\..\os\rt\ports\ARMCMx\compilers\RVCT\chcoreasm_v7m.s</FilePath>
+              <FilePath>..\..\..\..\os\common\ports\ARMCMx\compilers\RVCT\chcoreasm_v7m.s</FilePath>
+            </File>
+            <File>
+              <FileName>chtypes.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\common\ports\ARMCMx\compilers\RVCT\chtypes.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -503,14 +498,14 @@
           <GroupName>kernel</GroupName>
           <Files>
             <File>
+              <FileName>chalign.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\rt\include\chalign.h</FilePath>
+            </File>
+            <File>
               <FileName>ch.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\..\..\..\os\rt\include\ch.h</FilePath>
-            </File>
-            <File>
-              <FileName>chbsem.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\rt\include\chbsem.h</FilePath>
             </File>
             <File>
               <FileName>chcond.h</FileName>
@@ -533,26 +528,6 @@
               <FilePath>..\..\..\..\os\rt\include\chevents.h</FilePath>
             </File>
             <File>
-              <FileName>chheap.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\rt\include\chheap.h</FilePath>
-            </File>
-            <File>
-              <FileName>chmboxes.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\rt\include\chmboxes.h</FilePath>
-            </File>
-            <File>
-              <FileName>chmemcore.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\rt\include\chmemcore.h</FilePath>
-            </File>
-            <File>
-              <FileName>chmempools.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\rt\include\chmempools.h</FilePath>
-            </File>
-            <File>
               <FileName>chmsg.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\..\..\..\os\rt\include\chmsg.h</FilePath>
@@ -561,11 +536,6 @@
               <FileName>chmtx.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\..\..\..\os\rt\include\chmtx.h</FilePath>
-            </File>
-            <File>
-              <FileName>chqueues.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\rt\include\chqueues.h</FilePath>
             </File>
             <File>
               <FileName>chregistry.h</FileName>
@@ -586,11 +556,6 @@
               <FileName>chstats.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\..\..\..\os\rt\include\chstats.h</FilePath>
-            </File>
-            <File>
-              <FileName>chstreams.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\rt\include\chstreams.h</FilePath>
             </File>
             <File>
               <FileName>chsys.h</FileName>
@@ -633,26 +598,6 @@
               <FilePath>..\..\..\..\os\rt\src\chevents.c</FilePath>
             </File>
             <File>
-              <FileName>chheap.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\rt\src\chheap.c</FilePath>
-            </File>
-            <File>
-              <FileName>chmboxes.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\rt\src\chmboxes.c</FilePath>
-            </File>
-            <File>
-              <FileName>chmemcore.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\rt\src\chmemcore.c</FilePath>
-            </File>
-            <File>
-              <FileName>chmempools.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\rt\src\chmempools.c</FilePath>
-            </File>
-            <File>
               <FileName>chmsg.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\..\os\rt\src\chmsg.c</FilePath>
@@ -661,11 +606,6 @@
               <FileName>chmtx.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\..\os\rt\src\chmtx.c</FilePath>
-            </File>
-            <File>
-              <FileName>chqueues.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\rt\src\chqueues.c</FilePath>
             </File>
             <File>
               <FileName>chregistry.c</FileName>
@@ -707,6 +647,76 @@
               <FileType>1</FileType>
               <FilePath>..\..\..\..\os\rt\src\chvt.c</FilePath>
             </File>
+            <File>
+              <FileName>chchecks.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\rt\include\chchecks.h</FilePath>
+            </File>
+            <File>
+              <FileName>chcustomer.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\rt\include\chcustomer.h</FilePath>
+            </File>
+            <File>
+              <FileName>chsystypes.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\rt\include\chsystypes.h</FilePath>
+            </File>
+            <File>
+              <FileName>chtrace.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\rt\include\chtrace.h</FilePath>
+            </File>
+            <File>
+              <FileName>chtrace.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\rt\src\chtrace.c</FilePath>
+            </File>
+            <File>
+              <FileName>chbsem.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\common\oslib\include\chbsem.h</FilePath>
+            </File>
+            <File>
+              <FileName>chheap.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\common\oslib\include\chheap.h</FilePath>
+            </File>
+            <File>
+              <FileName>chmboxes.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\common\oslib\include\chmboxes.h</FilePath>
+            </File>
+            <File>
+              <FileName>chmemcore.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\common\oslib\include\chmemcore.h</FilePath>
+            </File>
+            <File>
+              <FileName>chmempools.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\common\oslib\include\chmempools.h</FilePath>
+            </File>
+            <File>
+              <FileName>chheap.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\common\oslib\src\chheap.c</FilePath>
+            </File>
+            <File>
+              <FileName>chmboxes.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\common\oslib\src\chmboxes.c</FilePath>
+            </File>
+            <File>
+              <FileName>chmemcore.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\common\oslib\src\chmemcore.c</FilePath>
+            </File>
+            <File>
+              <FileName>chmempools.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\common\oslib\src\chmempools.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -725,17 +735,17 @@
           </Files>
         </Group>
         <Group>
-          <GroupName>hal port</GroupName>
+          <GroupName>hal_port</GroupName>
           <Files>
             <File>
-              <FileName>ext_lld_isr.c</FileName>
+              <FileName>hal_ext_lld_isr.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\STM32F3xx\ext_lld_isr.c</FilePath>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\STM32F3xx\hal_ext_lld_isr.c</FilePath>
             </File>
             <File>
-              <FileName>ext_lld_isr.h</FileName>
+              <FileName>hal_ext_lld_isr.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\STM32F3xx\ext_lld_isr.h</FilePath>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\STM32F3xx\hal_ext_lld_isr.h</FilePath>
             </File>
             <File>
               <FileName>hal_lld.c</FileName>
@@ -763,154 +773,34 @@
               <FilePath>..\..\..\..\os\hal\ports\STM32\STM32F3xx\stm32_registry.h</FilePath>
             </File>
             <File>
-              <FileName>pal_lld.c</FileName>
+              <FileName>hal_adc_lld.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\GPIOv2\pal_lld.c</FilePath>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\ADCv3\hal_adc_lld.c</FilePath>
             </File>
             <File>
-              <FileName>pal_lld.h</FileName>
+              <FileName>hal_adc_lld.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\GPIOv2\pal_lld.h</FilePath>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\ADCv3\hal_adc_lld.h</FilePath>
             </File>
             <File>
-              <FileName>i2c_lld.c</FileName>
+              <FileName>hal_can_lld.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\I2Cv2\i2c_lld.c</FilePath>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\CANv1\hal_can_lld.c</FilePath>
             </File>
             <File>
-              <FileName>i2c_lld.h</FileName>
+              <FileName>hal_can_lld.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\I2Cv2\i2c_lld.h</FilePath>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\CANv1\hal_can_lld.h</FilePath>
             </File>
             <File>
-              <FileName>rtc_lld.c</FileName>
+              <FileName>hal_dac_lld.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\RTCv2\rtc_lld.c</FilePath>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\DACv1\hal_dac_lld.c</FilePath>
             </File>
             <File>
-              <FileName>rtc_lld.h</FileName>
+              <FileName>hal_dac_lld.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\RTCv2\rtc_lld.h</FilePath>
-            </File>
-            <File>
-              <FileName>spi_lld.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\SPIv2\spi_lld.c</FilePath>
-            </File>
-            <File>
-              <FileName>spi_lld.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\SPIv2\spi_lld.h</FilePath>
-            </File>
-            <File>
-              <FileName>gpt_lld.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\TIMv1\gpt_lld.c</FilePath>
-            </File>
-            <File>
-              <FileName>gpt_lld.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\TIMv1\gpt_lld.h</FilePath>
-            </File>
-            <File>
-              <FileName>icu_lld.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\TIMv1\icu_lld.c</FilePath>
-            </File>
-            <File>
-              <FileName>icu_lld.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\TIMv1\icu_lld.h</FilePath>
-            </File>
-            <File>
-              <FileName>pwm_lld.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\TIMv1\pwm_lld.c</FilePath>
-            </File>
-            <File>
-              <FileName>pwm_lld.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\TIMv1\pwm_lld.h</FilePath>
-            </File>
-            <File>
-              <FileName>st_lld.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\TIMv1\st_lld.c</FilePath>
-            </File>
-            <File>
-              <FileName>st_lld.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\TIMv1\st_lld.h</FilePath>
-            </File>
-            <File>
-              <FileName>stm32_tim.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\TIMv1\stm32_tim.h</FilePath>
-            </File>
-            <File>
-              <FileName>serial_lld.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\USARTv2\serial_lld.c</FilePath>
-            </File>
-            <File>
-              <FileName>serial_lld.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\USARTv2\serial_lld.h</FilePath>
-            </File>
-            <File>
-              <FileName>uart_lld.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\USARTv2\uart_lld.c</FilePath>
-            </File>
-            <File>
-              <FileName>uart_lld.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\USARTv2\uart_lld.h</FilePath>
-            </File>
-            <File>
-              <FileName>stm32_usb.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\USBv1\stm32_usb.h</FilePath>
-            </File>
-            <File>
-              <FileName>usb_lld.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\USBv1\usb_lld.c</FilePath>
-            </File>
-            <File>
-              <FileName>usb_lld.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\USBv1\usb_lld.h</FilePath>
-            </File>
-            <File>
-              <FileName>nvic.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\common\ARMCMx\nvic.c</FilePath>
-            </File>
-            <File>
-              <FileName>nvic.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\common\ARMCMx\nvic.h</FilePath>
-            </File>
-            <File>
-              <FileName>can_lld.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\CANv1\can_lld.c</FilePath>
-            </File>
-            <File>
-              <FileName>can_lld.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\CANv1\can_lld.h</FilePath>
-            </File>
-            <File>
-              <FileName>ext_lld.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\EXTIv1\ext_lld.c</FilePath>
-            </File>
-            <File>
-              <FileName>ext_lld.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\EXTIv1\ext_lld.h</FilePath>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\DACv1\hal_dac_lld.h</FilePath>
             </File>
             <File>
               <FileName>stm32_dma.c</FileName>
@@ -923,14 +813,139 @@
               <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\DMAv1\stm32_dma.h</FilePath>
             </File>
             <File>
-              <FileName>adc_lld.c</FileName>
+              <FileName>hal_ext_lld.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\ADCv3\adc_lld.c</FilePath>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\EXTIv1\hal_ext_lld.c</FilePath>
             </File>
             <File>
-              <FileName>adc_lld.h</FileName>
+              <FileName>hal_ext_lld.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\ADCv3\adc_lld.h</FilePath>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\EXTIv1\hal_ext_lld.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_rtc_lld.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\RTCv2\hal_rtc_lld.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_rtc_lld.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\RTCv2\hal_rtc_lld.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_i2c_lld.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\I2Cv2\hal_i2c_lld.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_i2c_lld.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\I2Cv2\hal_i2c_lld.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_gpt_lld.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\TIMv1\hal_gpt_lld.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_gpt_lld.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\TIMv1\hal_gpt_lld.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_icu_lld.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\TIMv1\hal_icu_lld.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_icu_lld.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\TIMv1\hal_icu_lld.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_pwm_lld.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\TIMv1\hal_pwm_lld.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_pwm_lld.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\TIMv1\hal_pwm_lld.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_st_lld.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\TIMv1\hal_st_lld.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_st_lld.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\TIMv1\hal_st_lld.h</FilePath>
+            </File>
+            <File>
+              <FileName>stm32_tim.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\TIMv1\stm32_tim.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_serial_lld.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\USARTv2\hal_serial_lld.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_serial_lld.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\USARTv2\hal_serial_lld.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_uart_lld.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\USARTv2\hal_uart_lld.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_uart_lld.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\USARTv2\hal_uart_lld.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_usb_lld.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\USBv1\hal_usb_lld.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_usb_lld.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\USBv1\hal_usb_lld.h</FilePath>
+            </File>
+            <File>
+              <FileName>stm32_usb.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\USBv1\stm32_usb.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_wdg_lld.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\xWDGv1\hal_wdg_lld.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_wdg_lld.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\xWDGv1\hal_wdg_lld.h</FilePath>
+            </File>
+            <File>
+              <FileName>nvic.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\hal\ports\common\ARMCMx\nvic.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_pal_lld.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\GPIOv2\hal_pal_lld.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_pal_lld.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\ports\STM32\LLD\GPIOv2\hal_pal_lld.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -938,34 +953,14 @@
           <GroupName>hal</GroupName>
           <Files>
             <File>
-              <FileName>adc.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\include\adc.h</FilePath>
-            </File>
-            <File>
-              <FileName>can.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\include\can.h</FilePath>
-            </File>
-            <File>
-              <FileName>dac.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\include\dac.h</FilePath>
-            </File>
-            <File>
-              <FileName>ext.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\include\ext.h</FilePath>
-            </File>
-            <File>
-              <FileName>gpt.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\include\gpt.h</FilePath>
-            </File>
-            <File>
               <FileName>hal.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\..\..\..\os\hal\include\hal.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_adc.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\include\hal_adc.h</FilePath>
             </File>
             <File>
               <FileName>hal_buffers.h</FileName>
@@ -973,9 +968,24 @@
               <FilePath>..\..\..\..\os\hal\include\hal_buffers.h</FilePath>
             </File>
             <File>
+              <FileName>hal_can.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\include\hal_can.h</FilePath>
+            </File>
+            <File>
               <FileName>hal_channels.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\..\..\..\os\hal\include\hal_channels.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_dac.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\include\hal_dac.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_ext.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\include\hal_ext.h</FilePath>
             </File>
             <File>
               <FileName>hal_files.h</FileName>
@@ -983,9 +993,44 @@
               <FilePath>..\..\..\..\os\hal\include\hal_files.h</FilePath>
             </File>
             <File>
+              <FileName>hal_gpt.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\include\hal_gpt.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_i2c.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\include\hal_i2c.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_i2s.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\include\hal_i2s.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_icu.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\include\hal_icu.h</FilePath>
+            </File>
+            <File>
               <FileName>hal_ioblock.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\..\..\..\os\hal\include\hal_ioblock.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_mac.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\include\hal_mac.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_mii.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\include\hal_mii.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_mmc_spi.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\include\hal_mmc_spi.h</FilePath>
             </File>
             <File>
               <FileName>hal_mmcsd.h</FileName>
@@ -993,9 +1038,54 @@
               <FilePath>..\..\..\..\os\hal\include\hal_mmcsd.h</FilePath>
             </File>
             <File>
+              <FileName>hal_pal.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\include\hal_pal.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_pwm.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\include\hal_pwm.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_qspi.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\include\hal_qspi.h</FilePath>
+            </File>
+            <File>
               <FileName>hal_queues.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\..\..\..\os\hal\include\hal_queues.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_rtc.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\include\hal_rtc.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_sdc.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\include\hal_sdc.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_serial.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\include\hal_serial.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_serial_usb.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\include\hal_serial_usb.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_spi.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\include\hal_spi.h</FilePath>
+            </File>
+            <File>
+              <FileName>hal_st.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\os\hal\include\hal_st.h</FilePath>
             </File>
             <File>
               <FileName>hal_streams.h</FileName>
@@ -1003,114 +1093,24 @@
               <FilePath>..\..\..\..\os\hal\include\hal_streams.h</FilePath>
             </File>
             <File>
-              <FileName>i2c.h</FileName>
+              <FileName>hal_uart.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\include\i2c.h</FilePath>
+              <FilePath>..\..\..\..\os\hal\include\hal_uart.h</FilePath>
             </File>
             <File>
-              <FileName>i2s.h</FileName>
+              <FileName>hal_usb.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\include\i2s.h</FilePath>
+              <FilePath>..\..\..\..\os\hal\include\hal_usb.h</FilePath>
             </File>
             <File>
-              <FileName>icu.h</FileName>
+              <FileName>hal_usb_cdc.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\include\icu.h</FilePath>
+              <FilePath>..\..\..\..\os\hal\include\hal_usb_cdc.h</FilePath>
             </File>
             <File>
-              <FileName>mac.h</FileName>
+              <FileName>hal_wdg.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\include\mac.h</FilePath>
-            </File>
-            <File>
-              <FileName>mii.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\include\mii.h</FilePath>
-            </File>
-            <File>
-              <FileName>mmc_spi.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\include\mmc_spi.h</FilePath>
-            </File>
-            <File>
-              <FileName>pal.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\include\pal.h</FilePath>
-            </File>
-            <File>
-              <FileName>pwm.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\include\pwm.h</FilePath>
-            </File>
-            <File>
-              <FileName>rtc.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\include\rtc.h</FilePath>
-            </File>
-            <File>
-              <FileName>sdc.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\include\sdc.h</FilePath>
-            </File>
-            <File>
-              <FileName>serial.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\include\serial.h</FilePath>
-            </File>
-            <File>
-              <FileName>serial_usb.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\include\serial_usb.h</FilePath>
-            </File>
-            <File>
-              <FileName>spi.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\include\spi.h</FilePath>
-            </File>
-            <File>
-              <FileName>st.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\include\st.h</FilePath>
-            </File>
-            <File>
-              <FileName>uart.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\include\uart.h</FilePath>
-            </File>
-            <File>
-              <FileName>usb.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\include\usb.h</FilePath>
-            </File>
-            <File>
-              <FileName>wdg.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\os\hal\include\wdg.h</FilePath>
-            </File>
-            <File>
-              <FileName>adc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\src\adc.c</FilePath>
-            </File>
-            <File>
-              <FileName>can.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\src\can.c</FilePath>
-            </File>
-            <File>
-              <FileName>dac.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\src\dac.c</FilePath>
-            </File>
-            <File>
-              <FileName>ext.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\src\ext.c</FilePath>
-            </File>
-            <File>
-              <FileName>gpt.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\src\gpt.c</FilePath>
+              <FilePath>..\..\..\..\os\hal\include\hal_wdg.h</FilePath>
             </File>
             <File>
               <FileName>hal.c</FileName>
@@ -1118,9 +1118,59 @@
               <FilePath>..\..\..\..\os\hal\src\hal.c</FilePath>
             </File>
             <File>
+              <FileName>hal_adc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\hal\src\hal_adc.c</FilePath>
+            </File>
+            <File>
               <FileName>hal_buffers.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\..\os\hal\src\hal_buffers.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_can.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\hal\src\hal_can.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_dac.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\hal\src\hal_dac.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_ext.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\hal\src\hal_ext.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_gpt.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\hal\src\hal_gpt.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_i2c.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\hal\src\hal_i2c.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_i2s.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\hal\src\hal_i2s.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_icu.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\hal\src\hal_icu.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_mac.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\hal\src\hal_mac.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_mmc_spi.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\hal\src\hal_mmc_spi.c</FilePath>
             </File>
             <File>
               <FileName>hal_mmcsd.c</FileName>
@@ -1128,89 +1178,69 @@
               <FilePath>..\..\..\..\os\hal\src\hal_mmcsd.c</FilePath>
             </File>
             <File>
+              <FileName>hal_pal.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\hal\src\hal_pal.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_pwm.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\hal\src\hal_pwm.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_qspi.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\os\hal\src\hal_qspi.c</FilePath>
+            </File>
+            <File>
               <FileName>hal_queues.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\..\os\hal\src\hal_queues.c</FilePath>
             </File>
             <File>
-              <FileName>i2c.c</FileName>
+              <FileName>hal_rtc.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\src\i2c.c</FilePath>
+              <FilePath>..\..\..\..\os\hal\src\hal_rtc.c</FilePath>
             </File>
             <File>
-              <FileName>i2s.c</FileName>
+              <FileName>hal_sdc.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\src\i2s.c</FilePath>
+              <FilePath>..\..\..\..\os\hal\src\hal_sdc.c</FilePath>
             </File>
             <File>
-              <FileName>icu.c</FileName>
+              <FileName>hal_serial.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\src\icu.c</FilePath>
+              <FilePath>..\..\..\..\os\hal\src\hal_serial.c</FilePath>
             </File>
             <File>
-              <FileName>mac.c</FileName>
+              <FileName>hal_serial_usb.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\src\mac.c</FilePath>
+              <FilePath>..\..\..\..\os\hal\src\hal_serial_usb.c</FilePath>
             </File>
             <File>
-              <FileName>mmc_spi.c</FileName>
+              <FileName>hal_spi.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\src\mmc_spi.c</FilePath>
+              <FilePath>..\..\..\..\os\hal\src\hal_spi.c</FilePath>
             </File>
             <File>
-              <FileName>pal.c</FileName>
+              <FileName>hal_st.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\src\pal.c</FilePath>
+              <FilePath>..\..\..\..\os\hal\src\hal_st.c</FilePath>
             </File>
             <File>
-              <FileName>pwm.c</FileName>
+              <FileName>hal_uart.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\src\pwm.c</FilePath>
+              <FilePath>..\..\..\..\os\hal\src\hal_uart.c</FilePath>
             </File>
             <File>
-              <FileName>rtc.c</FileName>
+              <FileName>hal_usb.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\src\rtc.c</FilePath>
+              <FilePath>..\..\..\..\os\hal\src\hal_usb.c</FilePath>
             </File>
             <File>
-              <FileName>sdc.c</FileName>
+              <FileName>hal_wdg.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\src\sdc.c</FilePath>
-            </File>
-            <File>
-              <FileName>serial.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\src\serial.c</FilePath>
-            </File>
-            <File>
-              <FileName>serial_usb.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\src\serial_usb.c</FilePath>
-            </File>
-            <File>
-              <FileName>spi.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\src\spi.c</FilePath>
-            </File>
-            <File>
-              <FileName>st.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\src\st.c</FilePath>
-            </File>
-            <File>
-              <FileName>uart.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\src\uart.c</FilePath>
-            </File>
-            <File>
-              <FileName>usb.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\src\usb.c</FilePath>
-            </File>
-            <File>
-              <FileName>wdg.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\os\hal\src\wdg.c</FilePath>
+              <FilePath>..\..\..\..\os\hal\src\hal_wdg.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -1233,134 +1263,154 @@
           <GroupName>test</GroupName>
           <Files>
             <File>
-              <FileName>testthd.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\test\rt\testthd.h</FilePath>
-            </File>
-            <File>
-              <FileName>test.c</FileName>
+              <FileName>ch_test.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\test\rt\test.c</FilePath>
+              <FilePath>..\..\..\..\test\lib\ch_test.c</FilePath>
             </File>
             <File>
-              <FileName>test.h</FileName>
+              <FileName>ch_test.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\..\test\rt\test.h</FilePath>
+              <FilePath>..\..\..\..\test\lib\ch_test.h</FilePath>
             </File>
             <File>
-              <FileName>testbmk.c</FileName>
+              <FileName>test_root.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\test\rt\testbmk.c</FilePath>
+              <FilePath>..\..\..\..\test\rt\source\test\test_root.c</FilePath>
             </File>
             <File>
-              <FileName>testbmk.h</FileName>
+              <FileName>test_root.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\..\test\rt\testbmk.h</FilePath>
+              <FilePath>..\..\..\..\test\rt\source\test\test_root.h</FilePath>
             </File>
             <File>
-              <FileName>testdyn.c</FileName>
+              <FileName>test_sequence_001.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\test\rt\testdyn.c</FilePath>
+              <FilePath>..\..\..\..\test\rt\source\test\test_sequence_001.c</FilePath>
             </File>
             <File>
-              <FileName>testdyn.h</FileName>
+              <FileName>test_sequence_001.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\..\test\rt\testdyn.h</FilePath>
+              <FilePath>..\..\..\..\test\rt\source\test\test_sequence_001.h</FilePath>
             </File>
             <File>
-              <FileName>testevt.c</FileName>
+              <FileName>test_sequence_002.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\test\rt\testevt.c</FilePath>
+              <FilePath>..\..\..\..\test\rt\source\test\test_sequence_002.c</FilePath>
             </File>
             <File>
-              <FileName>testevt.h</FileName>
+              <FileName>test_sequence_002.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\..\test\rt\testevt.h</FilePath>
+              <FilePath>..\..\..\..\test\rt\source\test\test_sequence_002.h</FilePath>
             </File>
             <File>
-              <FileName>testheap.c</FileName>
+              <FileName>test_sequence_003.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\test\rt\testheap.c</FilePath>
+              <FilePath>..\..\..\..\test\rt\source\test\test_sequence_003.c</FilePath>
             </File>
             <File>
-              <FileName>testheap.h</FileName>
+              <FileName>test_sequence_003.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\..\test\rt\testheap.h</FilePath>
+              <FilePath>..\..\..\..\test\rt\source\test\test_sequence_003.h</FilePath>
             </File>
             <File>
-              <FileName>testmbox.c</FileName>
+              <FileName>test_sequence_004.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\test\rt\testmbox.c</FilePath>
+              <FilePath>..\..\..\..\test\rt\source\test\test_sequence_004.c</FilePath>
             </File>
             <File>
-              <FileName>testmbox.h</FileName>
+              <FileName>test_sequence_004.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\..\test\rt\testmbox.h</FilePath>
+              <FilePath>..\..\..\..\test\rt\source\test\test_sequence_004.h</FilePath>
             </File>
             <File>
-              <FileName>testmsg.c</FileName>
+              <FileName>test_sequence_005.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\test\rt\testmsg.c</FilePath>
+              <FilePath>..\..\..\..\test\rt\source\test\test_sequence_005.c</FilePath>
             </File>
             <File>
-              <FileName>testmsg.h</FileName>
+              <FileName>test_sequence_005.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\..\test\rt\testmsg.h</FilePath>
+              <FilePath>..\..\..\..\test\rt\source\test\test_sequence_005.h</FilePath>
             </File>
             <File>
-              <FileName>testmtx.c</FileName>
+              <FileName>test_sequence_006.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\test\rt\testmtx.c</FilePath>
+              <FilePath>..\..\..\..\test\rt\source\test\test_sequence_006.c</FilePath>
             </File>
             <File>
-              <FileName>testmtx.h</FileName>
+              <FileName>test_sequence_006.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\..\test\rt\testmtx.h</FilePath>
+              <FilePath>..\..\..\..\test\rt\source\test\test_sequence_006.h</FilePath>
             </File>
             <File>
-              <FileName>testpools.c</FileName>
+              <FileName>test_sequence_007.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\test\rt\testpools.c</FilePath>
+              <FilePath>..\..\..\..\test\rt\source\test\test_sequence_007.c</FilePath>
             </File>
             <File>
-              <FileName>testpools.h</FileName>
+              <FileName>test_sequence_007.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\..\test\rt\testpools.h</FilePath>
+              <FilePath>..\..\..\..\test\rt\source\test\test_sequence_007.h</FilePath>
             </File>
             <File>
-              <FileName>testqueues.c</FileName>
+              <FileName>test_sequence_008.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\test\rt\testqueues.c</FilePath>
+              <FilePath>..\..\..\..\test\rt\source\test\test_sequence_008.c</FilePath>
             </File>
             <File>
-              <FileName>testqueues.h</FileName>
+              <FileName>test_sequence_008.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\..\test\rt\testqueues.h</FilePath>
+              <FilePath>..\..\..\..\test\rt\source\test\test_sequence_008.h</FilePath>
             </File>
             <File>
-              <FileName>testsem.c</FileName>
+              <FileName>test_sequence_009.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\test\rt\testsem.c</FilePath>
+              <FilePath>..\..\..\..\test\rt\source\test\test_sequence_009.c</FilePath>
             </File>
             <File>
-              <FileName>testsem.h</FileName>
+              <FileName>test_sequence_009.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\..\test\rt\testsem.h</FilePath>
+              <FilePath>..\..\..\..\test\rt\source\test\test_sequence_009.h</FilePath>
             </File>
             <File>
-              <FileName>testthd.c</FileName>
+              <FileName>test_sequence_010.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\test\rt\testthd.c</FilePath>
+              <FilePath>..\..\..\..\test\rt\source\test\test_sequence_010.c</FilePath>
             </File>
             <File>
-              <FileName>testsys.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\test\rt\testsys.c</FilePath>
-            </File>
-            <File>
-              <FileName>testsys.h</FileName>
+              <FileName>test_sequence_010.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\..\test\rt\testsys.h</FilePath>
+              <FilePath>..\..\..\..\test\rt\source\test\test_sequence_010.h</FilePath>
+            </File>
+            <File>
+              <FileName>test_sequence_011.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\test\rt\source\test\test_sequence_011.c</FilePath>
+            </File>
+            <File>
+              <FileName>test_sequence_011.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\test\rt\source\test\test_sequence_011.h</FilePath>
+            </File>
+            <File>
+              <FileName>test_sequence_012.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\test\rt\source\test\test_sequence_012.c</FilePath>
+            </File>
+            <File>
+              <FileName>test_sequence_012.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\test\rt\source\test\test_sequence_012.h</FilePath>
+            </File>
+            <File>
+              <FileName>test_sequence_013.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\test\rt\source\test\test_sequence_013.c</FilePath>
+            </File>
+            <File>
+              <FileName>test_sequence_013.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\test\rt\source\test\test_sequence_013.h</FilePath>
             </File>
           </Files>
         </Group>

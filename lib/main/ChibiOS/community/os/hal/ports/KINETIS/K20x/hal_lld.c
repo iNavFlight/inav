@@ -148,11 +148,10 @@ void k20x_clock_init(void) {
    *       frequency, which would required other registers to be modified.
    */
   /* Enable OSC, low power mode */
-  MCG->C2 = MCG_C2_LOCRE0 | MCG_C2_EREFS0;
   if (KINETIS_XTAL_FREQUENCY > 8000000UL)
-    MCG->C2 |= MCG_C2_RANGE0(2);
+    MCG->C2 = MCG_C2_LOCRE0 | MCG_C2_EREFS0 | MCG_C2_RANGE0(2);
   else
-    MCG->C2 |= MCG_C2_RANGE0(1);
+    MCG->C2 = MCG_C2_LOCRE0 | MCG_C2_EREFS0 | MCG_C2_RANGE0(1);
 
   frdiv = 7;
   ratio = KINETIS_XTAL_FREQUENCY / 31250UL;

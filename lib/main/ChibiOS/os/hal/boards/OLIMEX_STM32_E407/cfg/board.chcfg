@@ -5,7 +5,7 @@
   <configuration_settings>
     <templates_path>resources/gencfg/processors/boards/stm32f4xx/templates</templates_path>
     <output_path>..</output_path>
-    <hal_version>3.0.x</hal_version>
+    <hal_version>5.0.x</hal_version>
   </configuration_settings>
     <board_name>Olimex STM32-E407</board_name>
     <board_id>OLIMEX_STM32_E407</board_id>

@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,17 +16,18 @@
 
 #include "ch.h"
 #include "hal.h"
-#include "test.h"
+#include "rt_test_root.h"
+#include "oslib_test_root.h"
 
 /*
- * Red LED blinker thread, times are in milliseconds.
+ * Green LED blinker thread, times are in milliseconds.
  */
 static THD_WORKING_AREA(waThread1, 128);
 static THD_FUNCTION(Thread1, arg) {
 
   (void)arg;
   chRegSetThreadName("blinker");
-  palSetLineMode(LINE_LED_GREEN, PAL_MODE_OUTPUT_PUSHPULL);
+
   while (true) {
     palClearLine(LINE_LED_GREEN);
     chThdSleepMilliseconds(500);
@@ -65,8 +66,10 @@ int main(void) {
    * sleeping in a loop and check the button state.
    */
   while (true) {
-    if (!palReadLine(LINE_ARD_D3))
-      TestThread(&SD2);
+    if (!palReadLine(LINE_ARD_D3)) {
+      test_execute((BaseSequentialStream *)&SD2, &rt_test_suite);
+      test_execute((BaseSequentialStream *)&SD2, &oslib_test_suite);
+    }
     chThdSleepMilliseconds(500);
   }
 }

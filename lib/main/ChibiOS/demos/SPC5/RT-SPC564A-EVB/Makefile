@@ -83,7 +83,7 @@ PROJECT = ch
 # Imported source files and paths
 CHIBIOS = ../../..
 # Startup files.
-include $(CHIBIOS)/os/common/ports/e200/compilers/GCC/mk/startup_spc564axx.mk
+include $(CHIBIOS)/os/common/startup/e200/compilers/GCC/mk/startup_spc564axx.mk
 # HAL-OSAL files (optional).
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/hal/boards/ST_EVB_SPC564A/board.mk
@@ -91,9 +91,13 @@ include $(CHIBIOS)/os/hal/ports/SPC5/SPC564Axx/platform.mk
 include $(CHIBIOS)/os/hal/osal/rt/osal.mk
 # RTOS files (optional).
 include $(CHIBIOS)/os/rt/rt.mk
-include $(CHIBIOS)/os/rt/ports/e200/compilers/GCC/mk/port.mk
+include $(CHIBIOS)/os/common/ports/e200/compilers/GCC/mk/port.mk
 # Other files (optional).
-include $(CHIBIOS)/test/rt/test.mk
+include $(CHIBIOS)/test/lib/test.mk
+include $(CHIBIOS)/test/rt/rt_test.mk
+include $(CHIBIOS)/test/oslib/oslib_test.mk
+include $(CHIBIOS)/os/hal/lib/streams/streams.mk
+include $(CHIBIOS)/os/various/shell/shell.mk
 
 # Define linker script file here
 LDSCRIPT= $(STARTUPLD)/SPC564A80.ld
@@ -107,20 +111,21 @@ CSRC = $(STARTUPSRC) \
        $(PLATFORMSRC) \
        $(BOARDSRC) \
        $(TESTSRC) \
-       $(CHIBIOS)/os/hal/lib/streams/memstreams.c \
-       $(CHIBIOS)/os/hal/lib/streams/chprintf.c \
-       $(CHIBIOS)/os/various/shell.c \
+       $(STREAMSSRC) \
+       $(SHELLSRC) \
        main.c
 
 # C++ sources here.
 CPPSRC =
 
 # List ASM source files here
-ASMSRC = $(STARTUPASM) $(PORTASM) $(OSALASM)
+ASMSRC =
+ASMXSRC = $(STARTUPASM) $(PORTASM) $(OSALASM)
 
-INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
+INCDIR = $(CHIBIOS)/os/license \
+         $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(TESTINC) \
-         $(CHIBIOS)/os/hal/lib/streams $(CHIBIOS)/os/various
+         $(STREAMSINC) $(SHELLINC)
 
 #
 # Project, sources and paths
@@ -130,11 +135,12 @@ INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
 # Compiler settings
 #
 
-#MCU  = e500mc -meabi -msdata=none -mnew-mnemonics -mregnames
-MCU  = e200zx -meabi -msdata=none -mnew-mnemonics -mregnames
+#MCU  = e200zx -meabi -msdata=none -mnew-mnemonics -mregnames # HighTec
+MCU  = e200z4 -meabi -msdata=none -mregnames # Free GCC
 
-#TRGT = powerpc-eabi-
-TRGT = ppc-vle-
+#TRGT = ppc-vle-
+#TRGT = powerpc-eabivle-
+TRGT = ppc-freevle-eabi-
 CC   = $(TRGT)gcc
 CPPC = $(TRGT)g++
 # Enable loading with g++ only if you need C++ runtime support.
@@ -184,5 +190,5 @@ ULIBS =
 # End of user defines
 ##############################################################################
 
-RULESPATH = $(CHIBIOS)/os/common/ports/e200/compilers/GCC
+RULESPATH = $(CHIBIOS)/os/common/startup/e200/compilers/GCC
 include $(RULESPATH)/rules.mk

@@ -1,0 +1,123 @@
+******************************************************************************
+*** ChibiOS 19.1.0 Release Notes.                                          ***
+******************************************************************************
+
+ChibiOS 19.1.0 is composed of several independent but inter-operable
+sub-projects: RT, NIL, HAL, EX. Plus several external libraries
+integrated in our structure: WolfSSL, FatFS and lwIP.
+
+*** ChibiOS 19.1.0 highlights ****
+
+This release is focused on features and  general improvements, HAL, RT and NIL
+received a series of important improvements, new features have been added.
+
+*** ChibiOS 19.1.0 general improvements ***
+
+- CMSIS 5.4.0 has been integrated.
+- Improved build system based on make.
+- Now it is possible to define separate directories for each configuration
+  file.
+- Demo projects reworked to use the new make system and remove configuration
+  files from the root.
+- Linker scripts improvements.
+
+*** What's new in RT/NIL ports ***
+
+- Added a sanity check on GCC version for ARMv6-M, a version below 6
+  must be used.
+
+*** What's new in OS Library 1.1.0 ***
+
+- Separated OSLIB from RT and NIL, now it is a separate "product" with
+  its own version, configuration file and licensing. The library will
+  grow to include more functionalities.
+  RT and NIL will contain only the core functionalities, everything else
+  is shared library code.
+- Added a new "pipes" subsystem.
+- Many improvements in Memory Pools, Object FIFOs.
+- Stricter alignment checks in memory pools.
+- chFifoObjectInit() renamed to chFifoObjectInitAligned(). Added a new
+  chFifoObjectInit() without the alignment parameter.
+
+*** What's new in RT 6.0.0 ***
+
+- C++ wrapper reworked, now it is mostly inline code, added some new
+  wrappers and methods. Added wrappers for more API functions. BaseThreads
+  are no more descendants of ThreadReference.
+- Change, chMtxGetNextMutexS() renamed to chMtxGetNextMutexX().
+- Added a new function chMtxGetOwnerI() to mutexes.
+
+*** What's new in NIL 3.2.0 ***
+
+- Added chThdResume() function.
+
+*** What's new in HAL 7.0.0 ***
+
+- Added new SIO, TRNG, WSPI driver models.
+- Removed EXT, QSPI driver models.
+- Removed TRNG functionality from CRY driver.
+- Low level drivers simplification. There is a new template of LLD, now
+  driver and configuration types are defined in the HLD, LLD just exports
+  macros with the fields to be added to the structures.
+  So far the drivers updated are: ADC, DAC, I2S, RTC, SPI, TRNG, WSPI.
+- New infrastructure for Serial NOR Flash devices.
+- New and improved MFS subsystem.
+- Improved CRY driver with better keys loading.
+- Added a new "persistent storage" base class.
+- Modified the RTC driver to implement the persistent storage interface
+  instead of files interface.
+- Added optional support for character match callback in the UART
+  high level driver.
+- Added new functions to I/O queues: qSetLink().
+- ADC driver state machine change, now the state ADC_COMPLETE is set
+  before calling the 2nd callback even in circular mode. This has been
+  done for consistency with other drivers with circular buffers.
+- The callbacks of drivers with circular buffers (ADC, DAC, I2S, SPI) have
+  been simplified, no parameters. A driver function xxxIsBufferComplete()
+  has been added to determine if it is the half buffer callback or the
+  final callback.
+- Event enable check API added to PAL driver.
+
+*** What's new in EX 1.1.0 ***
+
+- All drivers updated.
+- Added support for LDM303AGR 6 axis Accelerometer\Magnetometer MEMS.
+- Added support for LSM6DSL 6 axis Accelerometer\Gyroscope MEMS.
+- Added support for LPS22HB 2 axis Barometer\Thermometer MEMS.
+
+*** What's new in AVR HAL support ***
+
+
+*** What's new in STM32 HAL support ***
+
+- Introduced support for STM32L4+ devices.
+- Added support for STM32L433 and STM32L443.
+- Added support for STM32L072 and STM32L073.
+- Added support for TIM21 and TIM22 in STM32 GPT driver.
+- Added support for TIM15, TIM16 and TIM17 on GPT, ICU and PWM drivers.
+- Both DMAv1 and DMAv2 have been reworked to support DMAMUX, DMAv3 has
+  been removed. In addition, both drivers are now able to support dynamic
+  channel allocation.
+- Updated all drivers to use the new DMA API.
+- Added demos for STM32L496ZG-Nucleo144, STM32L4R5ZI-Nucleo144 and
+  STM32L4R9I-Discovery boards.
+- Updated STM32L4xx headers to version 1.11.0.
+- Restructured the STM32F4xx HAL support, added support for STM32F413,
+  added ability to handle the TIMPRE bit, separated the clock tree in
+  two distinct implementation to reduce the proliferation of compiler
+  time conditionals, added more checks to the input parameters.
+- Added support for oversampling in STM32 ADCv3 driver.
+- Added analog watchdog functionality to STM32 ADCv2 driver.
+- STM32 ADCv3, DACv1, I2Cv2, SPIv2 and USARTv2 are now DMAMUX-aware.
+- Modified USARTv2 to support HW FIFOs where present.
+- Added UART7/8 support to STM32 UART USARTv1 driver.
+- Added an EXTI helper driver.
+- RTCv2 driver now supports callbacks on events.
+- Added option to enable bypass on SDIOv1 driver allowing to use a
+  50MHz clock.
+
+*** What's new in tools ***
+
+- Added mcuconf.h generators for STM32L432xx, STM32L476xx, STM32L496xx,
+  STM32L4Rxxx, STM32F72x/73x, STM32F746/756, STM32F76x/77x, STM32F413xx
+  and STM32F303xx devices.

@@ -48,7 +48,7 @@
 #endif
 
 #if !defined(HAL_USE_QEI)
-#define HAL_USE_QEI                        FALSE
+#define HAL_USE_QEI                         FALSE
 #endif
 
 #if !defined(HAL_USE_RNG)
@@ -67,6 +67,18 @@
 #define HAL_USE_USB_HID                     FALSE
 #endif
 
+#if !defined(HAL_USE_USB_MSD)
+#define HAL_USE_USB_MSD                     FALSE
+#endif
+
+#if !defined(HAL_USE_COMP)
+#define HAL_USE_COMP                        FALSE
+#endif
+
+#if !defined(HAL_USE_OPAMP)
+#define HAL_USE_OPAMP                        FALSE
+#endif
+
 /* Abstract interfaces.*/
 
 /* Shared headers.*/
@@ -78,12 +90,15 @@
 #include "hal_usbh.h"
 #include "hal_timcap.h"
 #include "hal_qei.h"
+#include "hal_comp.h"
+#include "hal_opamp.h"
 
 /* Complex drivers.*/
 #include "hal_onewire.h"
 #include "hal_crc.h"
 #include "hal_eeprom.h"
 #include "hal_usb_hid.h"
+#include "hal_usb_msd.h"
 
 /*===========================================================================*/
 /* Driver constants.                                                         */

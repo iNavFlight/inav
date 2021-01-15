@@ -20,7 +20,7 @@
 /*
  * NRF51 driver system settings.
  */
-#define NRF51_GPT_USE_TIMER1                 TRUE
-#define NRF51_GPT_USE_TIMER2                 TRUE
+#define NRF5_GPT_USE_TIMER1                 TRUE
+#define NRF5_GPT_USE_TIMER2                 TRUE
 
 #endif /* _MCUCONF_H_ */

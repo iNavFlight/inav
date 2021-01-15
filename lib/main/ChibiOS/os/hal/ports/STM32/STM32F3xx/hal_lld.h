@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -44,8 +44,8 @@
  * @{
  */
 
-#ifndef _HAL_LLD_H_
-#define _HAL_LLD_H_
+#ifndef HAL_LLD_H
+#define HAL_LLD_H
 
 #include "stm32_registry.h"
 
@@ -300,6 +300,9 @@
 #define STM32_TIM8SW_MASK       (1 << 9)    /**< TIM8 clock source mask.   */
 #define STM32_TIM8SW_PCLK2      (0 << 9)    /**< TIM8 clock is PCLK2.      */
 #define STM32_TIM8SW_PLLX2      (1 << 9)    /**< TIM8 clock is PLL*2.      */
+#define STM32_HRTIM1SW_MASK     (1 << 12)   /**< HRTIM1 clock source mask. */
+#define STM32_HRTIM1SW_PCLK2    (0 << 12)   /**< HRTIM1 clock is PCLK2.    */
+#define STM32_HRTIM1SW_PLLX2    (1 << 12)   /**< HRTIM1 clock is PLL*2.    */
 #define STM32_USART2SW_MASK     (3 << 16)   /**< USART2 clock source mask. */
 #define STM32_USART2SW_PCLK     (0 << 16)   /**< USART2 clock is PCLK.     */
 #define STM32_USART2SW_SYSCLK   (1 << 16)   /**< USART2 clock is SYSCLK.   */
@@ -530,6 +533,13 @@
 #endif
 
 /**
+ * @brief   HRTIM1 clock source.
+ */
+#if !defined(STM32_HRTIM1SW) || defined(__DOXYGEN__)
+#define STM32_HRTIM1SW                      STM32_HRTIM1SW_PCLK2
+#endif
+
+/**
  * @brief   RTC clock source.
  */
 #if !defined(STM32_RTCSEL) || defined(__DOXYGEN__)
@@ -560,6 +570,13 @@
  */
 #if !defined(STM32F3xx_MCUCONF)
 #error "Using a wrong mcuconf.h file, STM32F3xx_MCUCONF not defined"
+#endif
+
+/* Only some devices have strongly checked mcuconf.h files. Others will be
+   added gradually.*/
+#if (defined(STM32F303xC) || defined(STM32F303xE)) &&                       \
+    !defined(STM32F303_MCUCONF)
+#error "Using a wrong mcuconf.h file, STM32F303_MCUCONF not defined"
 #endif
 
 /*
@@ -1091,6 +1108,28 @@
 #endif
 
 /**
+ * @brief   HRTIM1 frequency.
+ */
+#if STM32_HRTIM1SW == STM32_HRTIM1SW_PCLK2
+#if STM32_PPRE2 == STM32_PPRE2_DIV1
+#define STM32_HRTIM1CLK               STM32_PCLK2
+#else
+#define STM32_HRTIM1CLK               (STM32_PCLK2 * 2)
+#endif
+
+#elif STM32_HRTIM1SW == STM32_HRTIM1SW_PLLX2
+#if (STM32_SW != STM32_SW_PLL) ||                                           \
+    (STM32_HPRE != STM32_HPRE_DIV1) ||                                      \
+    (STM32_PPRE2 != STM32_PPRE2_DIV1)
+#error "double clock mode cannot be activated for HRTIM1 under the current settings"
+#endif
+#define STM32_HRTIM1CLK               (STM32_PLLCLKOUT * 2)
+
+#else
+#error "invalid source selected for HRTIM1 clock"
+#endif
+
+/**
  * @brief   Timers 2, 3, 4, 6, 7 frequency.
  */
 #if (STM32_PPRE1 == STM32_PPRE1_DIV1) || defined(__DOXYGEN__)
@@ -1144,8 +1183,11 @@
 
 /* Various helpers.*/
 #include "nvic.h"
+#include "cache.h"
+#include "mpu_v7m.h"
 #include "stm32_isr.h"
 #include "stm32_dma.h"
+#include "stm32_exti.h"
 #include "stm32_rcc.h"
 
 #ifdef __cplusplus
@@ -1157,6 +1199,6 @@ extern "C" {
 }
 #endif
 
-#endif /* _HAL_LLD_H_ */
+#endif /* HAL_LLD_H */
 
 /** @} */

@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -56,7 +56,7 @@ static void txend2(UARTDriver *uartp) {
   palSetPad(IOPORT3, GPIOC_LED);
   chSysLockFromISR();
   chVTResetI(&vt1);
-  chVTDoSetI(&vt1, MS2ST(5000), restart, NULL);
+  chVTDoSetI(&vt1, TIME_MS2I(5000), restart, NULL);
   chSysUnlockFromISR();
 }
 
@@ -83,7 +83,7 @@ static void rxchar(UARTDriver *uartp, uint16_t c) {
   palClearPad(IOPORT3, GPIOC_LED);
   chSysLockFromISR();
   chVTResetI(&vt2);
-  chVTDoSetI(&vt2, MS2ST(200), ledoff, NULL);
+  chVTDoSetI(&vt2, TIME_MS2I(200), ledoff, NULL);
   chSysUnlockFromISR();
 }
 

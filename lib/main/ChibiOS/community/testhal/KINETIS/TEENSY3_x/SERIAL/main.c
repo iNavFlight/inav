@@ -26,7 +26,7 @@ static THD_FUNCTION(thSerEcho, arg)
 
   while (!chThdShouldTerminateX())
   {
-     chEvtWaitOneTimeout(EVENT_MASK(1), MS2ST(10));
+     chEvtWaitOneTimeout(EVENT_MASK(1), TIME_MS2I(10));
      flags = chEvtGetAndClearFlags(&elSerData);
      if (flags & CHN_INPUT_AVAILABLE)
      {

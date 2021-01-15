@@ -22,8 +22,8 @@
  * @{
  */
 
-#ifndef _TRIBUF_H_
-#define _TRIBUF_H_
+#ifndef TRIBUF_H_
+#define TRIBUF_H_
 
 /*===========================================================================*/
 /* Driver constants.                                                         */
@@ -221,5 +221,5 @@ extern "C" {
 }
 #endif
 
-#endif  /* _TRIBUF_H_ */
+#endif  /* TRIBUF_H_ */
 /** @} */

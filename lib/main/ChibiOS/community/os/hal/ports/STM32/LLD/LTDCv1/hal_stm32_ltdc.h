@@ -15,15 +15,15 @@
 */
 
 /**
- * @file    stm32_ltdc.h
+ * @file    hal_stm32_ltdc.h
  * @brief   LCD-TFT Controller Driver.
  *
  * @addtogroup ltdc
  * @{
  */
 
-#ifndef _STM32_LTDC_H_
-#define _STM32_LTDC_H_
+#ifndef HAL_STM32_LTDC_H_
+#define HAL_STM32_LTDC_H_
 
 /**
  * @brief   Using the LTDC driver.
@@ -731,6 +731,6 @@ extern "C" {
 
 #endif  /* STM32_LTDC_USE_LTDC */
 
-#endif  /* _STM32_LTDC_H_ */
+#endif  /* HAL_STM32_LTDC_H_ */
 
 /** @} */

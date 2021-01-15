@@ -80,6 +80,10 @@ void halCommunityInit(void) {
 #if HAL_USE_QEI || defined(__DOXYGEN__)
   qeiInit();
 #endif
+
+#if HAL_USE_COMP || defined(__DOXYGEN__)
+  compInit();
+#endif
 }
 
 #endif /* HAL_USE_COMMUNITY */

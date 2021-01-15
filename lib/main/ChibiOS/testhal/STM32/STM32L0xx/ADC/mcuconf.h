@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -14,18 +14,18 @@
     limitations under the License.
 */
 
-#ifndef _MCUCONF_H_
-#define _MCUCONF_H_
+#ifndef MCUCONF_H
+#define MCUCONF_H
 
 /*
- * STM32L1xx drivers configuration.
+ * STM32L0xx drivers configuration.
  * The following settings override the default settings present in
  * the various device driver implementation headers.
  * Note that the settings for each driver only have effect if the whole
  * driver is enabled in halconf.h.
  *
  * IRQ priorities:
- * 15...0       Lowest...Highest.
+ * 3...0       Lowest...Highest.
  *
  * DMA priorities:
  * 0...3        Lowest...Highest.
@@ -41,6 +41,7 @@
 #define STM32_PVD_ENABLE                    FALSE
 #define STM32_PLS                           STM32_PLS_LEV0
 #define STM32_HSI16_ENABLED                 TRUE
+#define STM32_HSI16_DIVIDER_ENABLED         FALSE
 #define STM32_LSI_ENABLED                   FALSE
 #define STM32_HSE_ENABLED                   FALSE
 #define STM32_LSE_ENABLED                   TRUE
@@ -66,6 +67,16 @@
 #define STM32_HSI48SEL                      STM32_HSI48SEL_HSI48
 
 /*
+ * IRQ system settings.
+ */
+#define STM32_IRQ_EXTI0_1_PRIORITY          3
+#define STM32_IRQ_EXTI2_3_PRIORITY          3
+#define STM32_IRQ_EXTI4_15_PRIORITY         3
+#define STM32_IRQ_EXTI16_PRIORITY           3
+#define STM32_IRQ_EXTI17_20_PRIORITY        3
+#define STM32_IRQ_EXTI21_22_PRIORITY        3
+
+/*
  * ADC driver system settings.
  * Note, IRQ is shared with EXT channels 21 and 22.
  */
@@ -75,16 +86,6 @@
 #define STM32_ADC_ADC1_DMA_IRQ_PRIORITY     2
 #define STM32_ADC_ADC1_DMA_STREAM           STM32_DMA_STREAM_ID(1, 1)
 #define STM32_ADC_PRESCALER_VALUE           1
-
-/*
- * EXT driver system settings.
- */
-#define STM32_EXT_EXTI0_1_IRQ_PRIORITY      3
-#define STM32_EXT_EXTI2_3_IRQ_PRIORITY      3
-#define STM32_EXT_EXTI4_15_IRQ_PRIORITY     3
-#define STM32_EXT_EXTI16_IRQ_PRIORITY       3
-#define STM32_EXT_EXTI17_20_IRQ_PRIORITY    3
-#define STM32_EXT_EXTI21_22_IRQ_PRIORITY    3
 
 /*
  * GPT driver system settings.
@@ -173,4 +174,4 @@
  */
 #define STM32_WDG_USE_IWDG                  FALSE
 
-#endif /* _MCUCONF_H_ */
+#endif /* MCUCONF_H */

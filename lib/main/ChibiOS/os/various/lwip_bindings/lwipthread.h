@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -21,10 +21,31 @@
  * @{
  */
 
-#ifndef _LWIPTHREAD_H_
-#define _LWIPTHREAD_H_
+#ifndef LWIPTHREAD_H
+#define LWIPTHREAD_H
 
 #include <lwip/opt.h>
+
+/**
+ * @brief   lwIP default network interface maximum transmission unit (MTU).
+ */
+#if !defined(LWIP_NETIF_MTU) || defined(__DOXYGEN__)
+#define LWIP_NETIF_MTU                      1500
+#endif
+
+/**
+ * @brief   Default network interface hostname.
+ */
+#if !defined(LWIP_NETIF_HOSTNAME_STRING) || defined(__DOXYGEN__)
+#define LWIP_NETIF_HOSTNAME_STRING          "lwip"
+#endif
+
+/**
+ * @brief   Default network interface hostname.
+ */
+#if !defined(LWIP_THREAD_NAME) || defined(__DOXYGEN__)
+#define LWIP_THREAD_NAME                    "lwipthread"
+#endif
 
 /**
  * @brief   lwIP thread priority.
@@ -37,14 +58,14 @@
  * @brief  lwIP thread stack size.
  */
 #if !defined(LWIP_THREAD_STACK_SIZE) || defined(__DOXYGEN__)
-#define LWIP_THREAD_STACK_SIZE              576
+#define LWIP_THREAD_STACK_SIZE              672
 #endif
 
 /**
  * @brief   Link poll interval.
  */
 #if !defined(LWIP_LINK_POLL_INTERVAL) || defined(__DOXYGEN__)
-#define LWIP_LINK_POLL_INTERVAL             S2ST(5)
+#define LWIP_LINK_POLL_INTERVAL             TIME_S2I(5)
 #endif
 
 /**
@@ -139,13 +160,78 @@
 #endif
 
 /**
+ *  @brief   Utility macro to define an IPv4 address.
+ *
+ *  @note    Within the networking subsystem, IPv4 network addresses are
+ *           stored with LS byte of network address in MS byte of unsigned int.
+ */
+#if BYTE_ORDER == LITTLE_ENDIAN
+#define IP4_ADDR_VALUE(a,b,c,d)        \
+        (((u32_t)((d) & 0xff) << 24) | \
+         ((u32_t)((c) & 0xff) << 16) | \
+         ((u32_t)((b) & 0xff) << 8)  | \
+          (u32_t)((a) & 0xff))
+#else
+#define IP4_ADDR_VALUE(a,b,c,d)        \
+        (((u32_t)((a) & 0xff) << 24) | \
+         ((u32_t)((b) & 0xff) << 16) | \
+         ((u32_t)((c) & 0xff) << 8)  | \
+          (u32_t)((d) & 0xff))
+#endif
+
+/**
+ *  @brief   Startup network assigning modes.
+ */
+typedef enum {
+#if LWIP_DHCP || defined(__DOXYGEN__)
+    /** 
+     * @brief   Assign a DHCP given address.
+     */
+    NET_ADDRESS_DHCP = 1,
+#endif
+    /**
+     * @brief   Assign a statically IPv4 address. 
+     */
+    NET_ADDRESS_STATIC = 2,
+#if LWIP_AUTOIP  || defined(__DOXYGEN__)
+    /**
+     * @brief   Assign an IPv4 link-Local address.
+     */
+    NET_ADDRESS_AUTO = 3
+#endif
+} net_addr_mode_t;
+
+/**
  * @brief   Runtime TCP/IP settings.
  */
 typedef struct lwipthread_opts {
-  uint8_t       *macaddress;
-  uint32_t      address;
-  uint32_t      netmask;
-  uint32_t      gateway;
+  /**
+   * @brief   Pointer to MAC address as an array of 6 unsigned bytes.
+   */
+  uint8_t         *macaddress;
+  /**
+   * @brief   Network address as 32-bit unsigned integer.
+   */
+  uint32_t        address;
+  /**
+   * @brief   Network subnet mask as 32-bit unsigned integer.
+   */
+  uint32_t        netmask;
+  /**
+   * @brief   Network gateway as 32-bit unsigned integer.
+   */
+  uint32_t        gateway;
+  /**
+   * @brief   Startup network addressing mode - static, DHCP, auto.
+   */
+  net_addr_mode_t addrMode;
+  /**
+   * @brief   Host name. If NULL, a default string is used.
+   * @note    Not checked for validity. In particular, spaces not allowed.
+   */
+#if LWIP_NETIF_HOSTNAME || defined(__DOXYGEN__)
+  const char              *ourHostName;
+#endif
 } lwipthread_opts_t;
 
 #ifdef __cplusplus
@@ -156,6 +242,6 @@ extern "C" {
 }
 #endif
 
-#endif /* _LWIPTHREAD_H_ */
+#endif /* LWIPTHREAD_H */
 
 /** @} */

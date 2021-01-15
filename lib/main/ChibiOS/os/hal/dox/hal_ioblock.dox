@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 /**
  * @defgroup IO_BLOCK Abstract I/O Block Device
- * @ingroup HAL_INTERFACES
+ * @ingroup HAL_BLOCKS
  *
  * @section io_block_1 Driver State Machine
  * The drivers implementing this interface shall implement the following

@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio.
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio.
 
     This file is part of ChibiOS.
 
@@ -25,8 +25,8 @@
  * @{
  */
 
-#ifndef _CHTHREADS_H_
-#define _CHTHREADS_H_
+#ifndef CHTHREADS_H
+#define CHTHREADS_H
 
 /*lint -sem(chThdExit, r_no) -sem(chThdExitS, r_no)*/
 
@@ -50,6 +50,36 @@
  * @brief   Thread function.
  */
 typedef void (*tfunc_t)(void *p);
+
+/**
+ * @brief   Type of a thread descriptor.
+ */
+typedef struct {
+  /**
+   * @brief   Thread name.
+   */
+  const char        *name;
+  /**
+   * @brief   Pointer to the working area base.
+   */
+  stkalign_t        *wbase;
+  /**
+   * @brief   End of the working area.
+   */
+  stkalign_t        *wend;
+  /**
+   * @brief   Thread priority.
+   */
+  tprio_t           prio;
+  /**
+   * @brief   Thread function pointer.
+   */
+  tfunc_t           funcp;
+  /**
+   * @brief   Thread argument.
+   */
+  void              *arg;
+} thread_descriptor_t;
 
 /*===========================================================================*/
 /* Module macros.                                                            */
@@ -79,6 +109,59 @@ typedef void (*tfunc_t)(void *p);
 /** @} */
 
 /**
+ * @name    Working Areas
+ */
+/**
+ * @brief   Calculates the total Working Area size.
+ *
+ * @param[in] n         the stack size to be assigned to the thread
+ * @return              The total used memory in bytes.
+ *
+ * @api
+ */
+#define THD_WORKING_AREA_SIZE(n)                                            \
+  MEM_ALIGN_NEXT(sizeof(thread_t) + PORT_WA_SIZE(n), PORT_STACK_ALIGN)
+
+/**
+ * @brief   Static working area allocation.
+ * @details This macro is used to allocate a static thread working area
+ *          aligned as both position and size.
+ *
+ * @param[in] s         the name to be assigned to the stack array
+ * @param[in] n         the stack size to be assigned to the thread
+ *
+ * @api
+ */
+#define THD_WORKING_AREA(s, n) PORT_WORKING_AREA(s, n)
+
+/**
+ * @brief   Base of a working area casted to the correct type.
+ *
+ * @param[in] s         name of the working area
+ */
+#define THD_WORKING_AREA_BASE(s) ((stkalign_t *)(s))
+
+/**
+ * @brief   End of a working area casted to the correct type.
+ *
+ * @param[in] s         name of the working area
+ */
+#define THD_WORKING_AREA_END(s) (THD_WORKING_AREA_BASE(s) +                 \
+                                 (sizeof (s) / sizeof (stkalign_t)))
+/** @} */
+
+/**
+ * @name    Threads abstraction macros
+ */
+/**
+ * @brief   Thread declaration macro.
+ * @note    Thread declarations should be performed using this macro because
+ *          the port layer could define optimizations for thread functions.
+ */
+#define THD_FUNCTION(tname, arg) PORT_THD_FUNCTION(tname, arg)
+/** @} */
+
+/**
  * @name    Macro Functions
  * @{
  */
@@ -87,12 +170,15 @@ typedef void (*tfunc_t)(void *p);
  * @note    The specified time is rounded up to a value allowed by the real
  *          system tick clock.
  * @note    The maximum specifiable value is implementation dependent.
+ * @note    Use of this macro for large values is not secure because
+ *          integer overflows, make sure your value can be correctly
+ *          converted.
  *
  * @param[in] sec       time in seconds, must be different from zero
  *
  * @api
  */
-#define chThdSleepSeconds(sec) chThdSleep(S2ST(sec))
+#define chThdSleepSeconds(sec) chThdSleep(TIME_S2I(sec))
 
 /**
  * @brief   Delays the invoking thread for the specified number of
@@ -100,12 +186,15 @@ typedef void (*tfunc_t)(void *p);
  * @note    The specified time is rounded up to a value allowed by the real
  *          system tick clock.
  * @note    The maximum specifiable value is implementation dependent.
+ * @note    Use of this macro for large values is not secure because
+ *          integer overflows, make sure your value can be correctly
+ *          converted.
  *
  * @param[in] msec      time in milliseconds, must be different from zero
  *
  * @api
  */
-#define chThdSleepMilliseconds(msec) chThdSleep(MS2ST(msec))
+#define chThdSleepMilliseconds(msec) chThdSleep(TIME_MS2I(msec))
 
 /**
  * @brief   Delays the invoking thread for the specified number of
@@ -113,12 +202,15 @@ typedef void (*tfunc_t)(void *p);
  * @note    The specified time is rounded up to a value allowed by the real
  *          system tick clock.
  * @note    The maximum specifiable value is implementation dependent.
+ * @note    Use of this macro for large values is not secure because
+ *          integer overflows, make sure your value can be correctly
+ *          converted.
  *
  * @param[in] usec      time in microseconds, must be different from zero
  *
  * @api
  */
-#define chThdSleepMicroseconds(usec) chThdSleep(US2ST(usec))
+#define chThdSleepMicroseconds(usec) chThdSleep(TIME_US2I(usec))
 /** @} */
 
 /*===========================================================================*/
@@ -128,34 +220,40 @@ typedef void (*tfunc_t)(void *p);
 #ifdef __cplusplus
 extern "C" {
 #endif
-   thread_t *_thread_init(thread_t *tp, tprio_t prio);
+   thread_t *_thread_init(thread_t *tp, const char *name, tprio_t prio);
 #if CH_DBG_FILL_THREADS == TRUE
   void _thread_memfill(uint8_t *startp, uint8_t *endp, uint8_t v);
 #endif
-  thread_t *chThdCreateI(void *wsp, size_t size,
-                         tprio_t prio, tfunc_t pf, void *arg);
+  thread_t *chThdCreateSuspendedI(const thread_descriptor_t *tdp);
+  thread_t *chThdCreateSuspended(const thread_descriptor_t *tdp);
+  thread_t *chThdCreateI(const thread_descriptor_t *tdp);
+  thread_t *chThdCreate(const thread_descriptor_t *tdp);
   thread_t *chThdCreateStatic(void *wsp, size_t size,
                               tprio_t prio, tfunc_t pf, void *arg);
   thread_t *chThdStart(thread_t *tp);
-  tprio_t chThdSetPriority(tprio_t newprio);
-  msg_t chThdSuspendS(thread_reference_t *trp);
-  msg_t chThdSuspendTimeoutS(thread_reference_t *trp, systime_t timeout);
-  void chThdResumeI(thread_reference_t *trp, msg_t msg);
-  void chThdResumeS(thread_reference_t *trp, msg_t msg);
-  void chThdResume(thread_reference_t *trp, msg_t msg);
-  msg_t chThdEnqueueTimeoutS(threads_queue_t *tqp, systime_t timeout);
-  void chThdDequeueNextI(threads_queue_t *tqp, msg_t msg);
-  void chThdDequeueAllI(threads_queue_t *tqp, msg_t msg);
-  void chThdTerminate(thread_t *tp);
-  void chThdSleep(systime_t time);
-  void chThdSleepUntil(systime_t time);
-  systime_t chThdSleepUntilWindowed(systime_t prev, systime_t next);
-  void chThdYield(void);
+#if CH_CFG_USE_REGISTRY == TRUE
+  thread_t *chThdAddRef(thread_t *tp);
+  void chThdRelease(thread_t *tp);
+#endif
   void chThdExit(msg_t msg);
   void chThdExitS(msg_t msg);
 #if CH_CFG_USE_WAITEXIT == TRUE
   msg_t chThdWait(thread_t *tp);
 #endif
+  tprio_t chThdSetPriority(tprio_t newprio);
+  void chThdTerminate(thread_t *tp);
+  msg_t chThdSuspendS(thread_reference_t *trp);
+  msg_t chThdSuspendTimeoutS(thread_reference_t *trp, sysinterval_t timeout);
+  void chThdResumeI(thread_reference_t *trp, msg_t msg);
+  void chThdResumeS(thread_reference_t *trp, msg_t msg);
+  void chThdResume(thread_reference_t *trp, msg_t msg);
+  msg_t chThdEnqueueTimeoutS(threads_queue_t *tqp, sysinterval_t timeout);
+  void chThdDequeueNextI(threads_queue_t *tqp, msg_t msg);
+  void chThdDequeueAllI(threads_queue_t *tqp, msg_t msg);
+  void chThdSleep(sysinterval_t time);
+  void chThdSleepUntil(systime_t time);
+  systime_t chThdSleepUntilWindowed(systime_t prev, systime_t next);
+  void chThdYield(void);
 #ifdef __cplusplus
 }
 #endif
@@ -173,7 +271,7 @@ extern "C" {
   */
 static inline thread_t *chThdGetSelfX(void) {
 
-  return ch.rlist.r_current;
+  return ch.rlist.current;
 }
 
 /**
@@ -186,7 +284,7 @@ static inline thread_t *chThdGetSelfX(void) {
  */
 static inline tprio_t chThdGetPriorityX(void) {
 
-  return chThdGetSelfX()->p_prio;
+  return chThdGetSelfX()->prio;
 }
 
 /**
@@ -202,9 +300,25 @@ static inline tprio_t chThdGetPriorityX(void) {
 #if (CH_DBG_THREADS_PROFILING == TRUE) || defined(__DOXYGEN__)
 static inline systime_t chThdGetTicksX(thread_t *tp) {
 
-  return tp->p_time;
+  return tp->time;
 }
 #endif
+
+#if (CH_DBG_ENABLE_STACK_CHECK == TRUE) || (CH_CFG_USE_DYNAMIC == TRUE) ||  \
+    defined(__DOXYGEN__)
+/**
+ * @brief   Returns the working area base of the specified thread.
+ *
+ * @param[in] tp        pointer to the thread
+ * @return              The working area base pointer.
+ *
+ * @xclass
+ */
+static inline stkalign_t *chThdGetWorkingAreaX(thread_t *tp) {
+
+  return tp->wabase;
+}
+#endif /* CH_DBG_ENABLE_STACK_CHECK == TRUE */
 
 /**
  * @brief   Verifies if the specified thread is in the @p CH_STATE_FINAL state.
@@ -217,7 +331,7 @@ static inline systime_t chThdGetTicksX(thread_t *tp) {
  */
 static inline bool chThdTerminatedX(thread_t *tp) {
 
-  return (bool)(tp->p_state == CH_STATE_FINAL);
+  return (bool)(tp->state == CH_STATE_FINAL);
 }
 
 /**
@@ -230,7 +344,7 @@ static inline bool chThdTerminatedX(thread_t *tp) {
  */
 static inline bool chThdShouldTerminateX(void) {
 
-  return (bool)((chThdGetSelfX()->p_flags & CH_FLAG_TERMINATE) != (tmode_t)0);
+  return (bool)((chThdGetSelfX()->flags & CH_FLAG_TERMINATE) != (tmode_t)0);
 }
 
 /**
@@ -244,15 +358,15 @@ static inline bool chThdShouldTerminateX(void) {
  */
 static inline thread_t *chThdStartI(thread_t *tp) {
 
-  chDbgAssert(tp->p_state == CH_STATE_WTSTART, "wrong state");
+  chDbgAssert(tp->state == CH_STATE_WTSTART, "wrong state");
 
   return chSchReadyI(tp);
 }
 
 /**
- * @brief   Suspends the invoking thread for the specified time.
+ * @brief   Suspends the invoking thread for the specified number of ticks.
  *
- * @param[in] time      the delay in system ticks, the special values are
+ * @param[in] ticks     the delay in system ticks, the special values are
  *                      handled as follow:
  *                      - @a TIME_INFINITE the thread enters an infinite sleep
  *                        state.
@@ -261,11 +375,11 @@ static inline thread_t *chThdStartI(thread_t *tp) {
  *
  * @sclass
  */
-static inline void chThdSleepS(systime_t time) {
+static inline void chThdSleepS(sysinterval_t ticks) {
 
-  chDbgCheck(time != TIME_IMMEDIATE);
+  chDbgCheck(ticks != TIME_IMMEDIATE);
 
-  (void) chSchGoSleepTimeoutS(CH_STATE_SLEEPING, time);
+  (void) chSchGoSleepTimeoutS(CH_STATE_SLEEPING, ticks);
 }
 
 /**
@@ -297,7 +411,6 @@ static inline bool chThdQueueIsEmptyI(threads_queue_t *tqp) {
   return queue_isempty(tqp);
 }
 
-
 /**
  * @brief   Dequeues and wakes up one thread from the threads queue object.
  * @details Dequeues one thread from the queue without checking if the queue
@@ -316,12 +429,12 @@ static inline void chThdDoDequeueNextI(threads_queue_t *tqp, msg_t msg) {
 
   tp = queue_fifo_remove(tqp);
 
-  chDbgAssert(tp->p_state == CH_STATE_QUEUED, "invalid state");
+  chDbgAssert(tp->state == CH_STATE_QUEUED, "invalid state");
 
-  tp->p_u.rdymsg = msg;
+  tp->u.rdymsg = msg;
   (void) chSchReadyI(tp);
 }
 
-#endif /* _CHTHREADS_H_ */
+#endif /* CHTHREADS_H */
 
 /** @} */

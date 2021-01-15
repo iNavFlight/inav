@@ -24,6 +24,7 @@
 #define EEPROM_SPIDCONFIG spi1cfg
 
 static const SPIConfig EEPROM_SPIDCONFIG = {
+  false,
   NULL,
   GPIOA,
   12,
@@ -36,7 +37,7 @@ static SPIEepromFileConfig eeCfg = {
   EEPROM_SIZE,
   EEPROM_SIZE,
   EEPROM_PAGE_SIZE,
-  MS2ST(EEPROM_WRITE_TIME_MS),
+  TIME_MS2I(EEPROM_WRITE_TIME_MS),
   &EEPROM_SPID,
   &EEPROM_SPIDCONFIG,
 };

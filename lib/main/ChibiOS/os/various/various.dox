@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -76,6 +76,16 @@
  * @brief   System formatted print service.
  * @details This module implements printf()-like function able to send data
  *          to any module implementing a @p BaseSequentialStream interface.
+ *
+ * @ingroup various
+ */
+
+/**
+ * @defgroup LWIP_THREAD LWIP bindings
+ *
+ * @brief   lwIP port and wrapper thread.
+ * @details This module implements the lwIP system abstraction and wrapper
+ *          thread.
  *
  * @ingroup various
  */

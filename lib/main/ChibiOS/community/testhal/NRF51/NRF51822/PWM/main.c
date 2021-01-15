@@ -46,8 +46,6 @@ int main(void) {
 	.ioline         = LINE_LED2,
 	.gpiote_channel = 0,
 	.ppi_channel    = { 0, 1 } },
-      { .mode           = PWM_OUTPUT_DISABLED,
-	.callback       = NULL, },
     },
   };
 

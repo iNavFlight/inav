@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -30,14 +30,13 @@ static adcsample_t samples2[ADC_GRP2_NUM_CHANNELS * ADC_GRP2_BUF_DEPTH];
  * ADC streaming callback.
  */
 size_t nx = 0, ny = 0;
-static void adccallback(ADCDriver *adcp, adcsample_t *buffer, size_t n) {
+static void adccallback(ADCDriver *adcp) {
 
-  (void)adcp;
-  if (samples2 == buffer) {
-    nx += n;
+  if (adcIsBufferComplete(adcp)) {
+    nx += 1;
   }
   else {
-    ny += n;
+    ny += 1;
   }
 }
 

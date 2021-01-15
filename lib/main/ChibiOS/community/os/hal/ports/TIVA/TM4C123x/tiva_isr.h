@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2014..2016 Marco Veeneman
+    Copyright (C) 2014..2017 Marco Veeneman
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -42,11 +42,11 @@
 #define TIVA_UDMA_ERR_NUMBER                47
 
 /* GPIO units.*/
-#if defined(TM4C1230C3PM) || defined(TM4C1230D5PM) || defined(TM4C1230E6PM)   \
-  || defined(TM4C1230H6PM) || defined(TM4C1232C3PM) || defined(TM4C1232D5PM)  \
-  || defined(TM4C1232E6PM) || defined(TM4C1232H6PM) || defined(TM4C1236D5PM)  \
-  || defined(TM4C1236E6PM) || defined(TM4C1236H6PM) || defined(TM4C123AE6PM)  \
-  || defined(TM4C123AH6PM) || defined(TM4C123FE6PM) || defined(TM4C123FH6PM)
+#if defined(PART_TM4C1230C3PM) || defined(PART_TM4C1230D5PM) || defined(PART_TM4C1230E6PM)   \
+  || defined(PART_TM4C1230H6PM) || defined(PART_TM4C1232C3PM) || defined(PART_TM4C1232D5PM)  \
+  || defined(PART_TM4C1232E6PM) || defined(PART_TM4C1232H6PM) || defined(PART_TM4C1236D5PM)  \
+  || defined(PART_TM4C1236E6PM) || defined(PART_TM4C1236H6PM) || defined(PART_TM4C123AE6PM)  \
+  || defined(PART_TM4C123AH6PM) || defined(PART_TM4C123FE6PM) || defined(PART_TM4C123FH6PM)
 #define TIVA_GPIOA_HANDLER                  Vector40
 #define TIVA_GPIOB_HANDLER                  Vector44
 #define TIVA_GPIOC_HANDLER                  Vector48
@@ -63,11 +63,11 @@
 #define TIVA_GPIOF_NUMBER                   30
 #define TIVA_GPIOG_NUMBER                   31
 #endif
-#if defined(TM4C1231C3PM) || defined(TM4C1231D5PM) || defined(TM4C1231E6PM)   \
-  || defined(TM4C1231H6PM) || defined(TM4C1233C3PM) || defined(TM4C1233D5PM)  \
-  || defined(TM4C1233E6PM) || defined(TM4C1233H6PM) || defined(TM4C1237D5PM)  \
-  || defined(TM4C1237E6PM) || defined(TM4C1237H6PM) || defined(TM4C123BE6PM)  \
-  || defined(TM4C123BH6PM) || defined(TM4C123GE6PM) || defined(TM4C123GH6PM)
+#if defined(PART_TM4C1231C3PM) || defined(PART_TM4C1231D5PM) || defined(PART_TM4C1231E6PM)   \
+  || defined(PART_TM4C1231H6PM) || defined(PART_TM4C1233C3PM) || defined(PART_TM4C1233D5PM)  \
+  || defined(PART_TM4C1233E6PM) || defined(PART_TM4C1233H6PM) || defined(PART_TM4C1237D5PM)  \
+  || defined(PART_TM4C1237E6PM) || defined(PART_TM4C1237H6PM) || defined(PART_TM4C123BE6PM)  \
+  || defined(PART_TM4C123BH6PM) || defined(PART_TM4C123GE6PM) || defined(PART_TM4C123GH6PM)
 #define TIVA_GPIOA_HANDLER                  Vector40
 #define TIVA_GPIOB_HANDLER                  Vector44
 #define TIVA_GPIOC_HANDLER                  Vector48
@@ -82,11 +82,11 @@
 #define TIVA_GPIOE_NUMBER                   4
 #define TIVA_GPIOF_NUMBER                   30
 #endif
-#if defined(TM4C1231D5PZ) || defined(TM4C1231E6PZ) || defined(TM4C1231H6PZ)   \
-  || defined(TM4C1233D5PZ) || defined(TM4C1233E6PZ) || defined(TM4C1233H6PZ)  \
-  || defined(TM4C1237D5PZ) || defined(TM4C1237E6PZ) || defined(TM4C1237H6PZ)  \
-  || defined(TM4C123BE6PZ) || defined(TM4C123BH6PZ) || defined(TM4C123GE6PZ)  \
-  || defined(TM4C123GH6PZ)
+#if defined(PART_TM4C1231D5PZ) || defined(PART_TM4C1231E6PZ) || defined(PART_TM4C1231H6PZ)   \
+  || defined(PART_TM4C1233D5PZ) || defined(PART_TM4C1233E6PZ) || defined(PART_TM4C1233H6PZ)  \
+  || defined(PART_TM4C1237D5PZ) || defined(PART_TM4C1237E6PZ) || defined(PART_TM4C1237H6PZ)  \
+  || defined(PART_TM4C123BE6PZ) || defined(PART_TM4C123BH6PZ) || defined(PART_TM4C123GE6PZ)  \
+  || defined(PART_TM4C123GH6PZ)
 #define TIVA_GPIOA_HANDLER                  Vector40
 #define TIVA_GPIOB_HANDLER                  Vector44
 #define TIVA_GPIOC_HANDLER                  Vector48
@@ -111,8 +111,8 @@
 #define TIVA_GPIOK_NUMBER                   55
 #define TIVA_GPIOL_NUMBER                   56
 #endif
-#if defined(TM4C1231H6PGE) || defined(TM4C1233H6PGE) || defined(TM4C1237H6PGE)\
-  || defined(TM4C123BH6PGE) || defined(TM4C123GH6PGE)
+#if defined(PART_TM4C1231H6PGE) || defined(PART_TM4C1233H6PGE) || defined(PART_TM4C1237H6PGE)\
+  || defined(PART_TM4C123BH6PGE) || defined(PART_TM4C123GH6PGE)
 #define TIVA_GPIOA_HANDLER                  Vector40
 #define TIVA_GPIOB_HANDLER                  Vector44
 #define TIVA_GPIOC_HANDLER                  Vector48
@@ -157,7 +157,7 @@
 #define TIVA_GPIOP6_NUMBER                  122
 #define TIVA_GPIOP7_NUMBER                  123
 #endif
-#if defined(TM4C123BH6ZRB) || defined(TM4C123GH6ZRB) || defined(TM4C123GH5ZXR)
+#if defined(PART_TM4C123BH6ZRB) || defined(PART_TM4C123GH6ZRB) || defined(PART_TM4C123GH5ZXR)
 #define TIVA_GPIOA_HANDLER                  Vector40
 #define TIVA_GPIOB_HANDLER                  Vector44
 #define TIVA_GPIOC_HANDLER                  Vector48
@@ -220,23 +220,23 @@
 #endif
 
 /* GPTM units.*/
-#if defined(TM4C1230C3PM) || defined(TM4C1230D5PM) || defined(TM4C1230E6PM)   \
-  || defined(TM4C1230H6PM) || defined(TM4C1231C3PM) || defined(TM4C1231D5PM)  \
-  || defined(TM4C1231D5PZ) || defined(TM4C1231E6PM) || defined(TM4C1231E6PZ)  \
-  || defined(TM4C1231H6PGE) || defined(TM4C1231H6PM) || defined(TM4C1231H6PZ) \
-  || defined(TM4C1232C3PM) || defined(TM4C1232D5PM) || defined(TM4C1232E6PM)  \
-  || defined(TM4C1232H6PM) || defined(TM4C1233C3PM) || defined(TM4C1233D5PM)  \
-  || defined(TM4C1233D5PZ) || defined(TM4C1233E6PM) || defined(TM4C1233E6PZ)  \
-  || defined(TM4C1233H6PGE) || defined(TM4C1233H6PM) || defined(TM4C1233H6PZ) \
-  || defined(TM4C1236D5PM) || defined(TM4C1236E6PM) || defined(TM4C1236H6PM)  \
-  || defined(TM4C1237D5PM) || defined(TM4C1237D5PZ) || defined(TM4C1237E6PM)  \
-  || defined(TM4C1237E6PZ) || defined(TM4C1237H6PGE) || defined(TM4C1237H6PM) \
-  || defined(TM4C1237H6PZ) || defined(TM4C123AE6PM) || defined(TM4C123AH6PM)  \
-  || defined(TM4C123BE6PM) || defined(TM4C123BE6PZ) || defined(TM4C123BH6PGE) \
-  || defined(TM4C123BH6PM) || defined(TM4C123BH6PZ) || defined(TM4C123BH6ZRB) \
-  || defined(TM4C123FE6PM) || defined(TM4C123FH6PM) || defined(TM4C123GE6PM)  \
-  || defined(TM4C123GE6PZ) || defined(TM4C123GH6PGE) || defined(TM4C123GH6PM) \
-  || defined(TM4C123GH6PZ) || defined(TM4C123GH6ZRB) || defined(TM4C123GH5ZXR)
+#if defined(PART_TM4C1230C3PM) || defined(PART_TM4C1230D5PM) || defined(PART_TM4C1230E6PM)   \
+  || defined(PART_TM4C1230H6PM) || defined(PART_TM4C1231C3PM) || defined(PART_TM4C1231D5PM)  \
+  || defined(PART_TM4C1231D5PZ) || defined(PART_TM4C1231E6PM) || defined(PART_TM4C1231E6PZ)  \
+  || defined(PART_TM4C1231H6PGE) || defined(PART_TM4C1231H6PM) || defined(PART_TM4C1231H6PZ) \
+  || defined(PART_TM4C1232C3PM) || defined(PART_TM4C1232D5PM) || defined(PART_TM4C1232E6PM)  \
+  || defined(PART_TM4C1232H6PM) || defined(PART_TM4C1233C3PM) || defined(PART_TM4C1233D5PM)  \
+  || defined(PART_TM4C1233D5PZ) || defined(PART_TM4C1233E6PM) || defined(PART_TM4C1233E6PZ)  \
+  || defined(PART_TM4C1233H6PGE) || defined(PART_TM4C1233H6PM) || defined(PART_TM4C1233H6PZ) \
+  || defined(PART_TM4C1236D5PM) || defined(PART_TM4C1236E6PM) || defined(PART_TM4C1236H6PM)  \
+  || defined(PART_TM4C1237D5PM) || defined(PART_TM4C1237D5PZ) || defined(PART_TM4C1237E6PM)  \
+  || defined(PART_TM4C1237E6PZ) || defined(PART_TM4C1237H6PGE) || defined(PART_TM4C1237H6PM) \
+  || defined(PART_TM4C1237H6PZ) || defined(PART_TM4C123AE6PM) || defined(PART_TM4C123AH6PM)  \
+  || defined(PART_TM4C123BE6PM) || defined(PART_TM4C123BE6PZ) || defined(PART_TM4C123BH6PGE) \
+  || defined(PART_TM4C123BH6PM) || defined(PART_TM4C123BH6PZ) || defined(PART_TM4C123BH6ZRB) \
+  || defined(PART_TM4C123FE6PM) || defined(PART_TM4C123FH6PM) || defined(PART_TM4C123GE6PM)  \
+  || defined(PART_TM4C123GE6PZ) || defined(PART_TM4C123GH6PGE) || defined(PART_TM4C123GH6PM) \
+  || defined(PART_TM4C123GH6PZ) || defined(PART_TM4C123GH6ZRB) || defined(PART_TM4C123GH5ZXR)
 #define TIVA_GPT0A_HANDLER                   Vector8C
 #define TIVA_GPT0B_HANDLER                   Vector90
 #define TIVA_GPT1A_HANDLER                   Vector94
@@ -291,46 +291,46 @@
 #endif
 
 /* WDT units.*/
-#if defined(TM4C1230C3PM) || defined(TM4C1230D5PM) || defined(TM4C1230E6PM)   \
-  || defined(TM4C1230H6PM) || defined(TM4C1231C3PM) || defined(TM4C1231D5PM)  \
-  || defined(TM4C1231D5PZ) || defined(TM4C1231E6PM) || defined(TM4C1231E6PZ)  \
-  || defined(TM4C1231H6PGE) || defined(TM4C1231H6PM) || defined(TM4C1231H6PZ) \
-  || defined(TM4C1232C3PM) || defined(TM4C1232D5PM) || defined(TM4C1232E6PM)  \
-  || defined(TM4C1232H6PM) || defined(TM4C1233C3PM) || defined(TM4C1233D5PM)  \
-  || defined(TM4C1233D5PZ) || defined(TM4C1233E6PM) || defined(TM4C1233E6PZ)  \
-  || defined(TM4C1233H6PGE) || defined(TM4C1233H6PM) || defined(TM4C1233H6PZ) \
-  || defined(TM4C1236D5PM) || defined(TM4C1236E6PM) || defined(TM4C1236H6PM)  \
-  || defined(TM4C1237D5PM) || defined(TM4C1237D5PZ) || defined(TM4C1237E6PM)  \
-  || defined(TM4C1237E6PZ) || defined(TM4C1237H6PGE) || defined(TM4C1237H6PM) \
-  || defined(TM4C1237H6PZ) || defined(TM4C123AE6PM) || defined(TM4C123AH6PM)  \
-  || defined(TM4C123BE6PM) || defined(TM4C123BE6PZ) || defined(TM4C123BH6PGE) \
-  || defined(TM4C123BH6PM) || defined(TM4C123BH6PZ) || defined(TM4C123BH6ZRB) \
-  || defined(TM4C123FE6PM) || defined(TM4C123FH6PM) || defined(TM4C123GE6PM)  \
-  || defined(TM4C123GE6PZ) || defined(TM4C123GH6PGE) || defined(TM4C123GH6PM) \
-  || defined(TM4C123GH6PZ) || defined(TM4C123GH6ZRB) || defined(TM4C123GH5ZXR)
+#if defined(PART_TM4C1230C3PM) || defined(PART_TM4C1230D5PM) || defined(PART_TM4C1230E6PM)   \
+  || defined(PART_TM4C1230H6PM) || defined(PART_TM4C1231C3PM) || defined(PART_TM4C1231D5PM)  \
+  || defined(PART_TM4C1231D5PZ) || defined(PART_TM4C1231E6PM) || defined(PART_TM4C1231E6PZ)  \
+  || defined(PART_TM4C1231H6PGE) || defined(PART_TM4C1231H6PM) || defined(PART_TM4C1231H6PZ) \
+  || defined(PART_TM4C1232C3PM) || defined(PART_TM4C1232D5PM) || defined(PART_TM4C1232E6PM)  \
+  || defined(PART_TM4C1232H6PM) || defined(PART_TM4C1233C3PM) || defined(PART_TM4C1233D5PM)  \
+  || defined(PART_TM4C1233D5PZ) || defined(PART_TM4C1233E6PM) || defined(PART_TM4C1233E6PZ)  \
+  || defined(PART_TM4C1233H6PGE) || defined(PART_TM4C1233H6PM) || defined(PART_TM4C1233H6PZ) \
+  || defined(PART_TM4C1236D5PM) || defined(PART_TM4C1236E6PM) || defined(PART_TM4C1236H6PM)  \
+  || defined(PART_TM4C1237D5PM) || defined(PART_TM4C1237D5PZ) || defined(PART_TM4C1237E6PM)  \
+  || defined(PART_TM4C1237E6PZ) || defined(PART_TM4C1237H6PGE) || defined(PART_TM4C1237H6PM) \
+  || defined(PART_TM4C1237H6PZ) || defined(PART_TM4C123AE6PM) || defined(PART_TM4C123AH6PM)  \
+  || defined(PART_TM4C123BE6PM) || defined(PART_TM4C123BE6PZ) || defined(PART_TM4C123BH6PGE) \
+  || defined(PART_TM4C123BH6PM) || defined(PART_TM4C123BH6PZ) || defined(PART_TM4C123BH6ZRB) \
+  || defined(PART_TM4C123FE6PM) || defined(PART_TM4C123FH6PM) || defined(PART_TM4C123GE6PM)  \
+  || defined(PART_TM4C123GE6PZ) || defined(PART_TM4C123GH6PGE) || defined(PART_TM4C123GH6PM) \
+  || defined(PART_TM4C123GH6PZ) || defined(PART_TM4C123GH6ZRB) || defined(PART_TM4C123GH5ZXR)
 #define TIVA_WDT_HANDLER                    Vector88
 
 #define TIVA_WDT_NUMBER                     18
 #endif
 
 /* ADC units.*/
-#if defined(TM4C1230C3PM) || defined(TM4C1230D5PM) || defined(TM4C1230E6PM)   \
-  || defined(TM4C1230H6PM) || defined(TM4C1231C3PM) || defined(TM4C1231D5PM)  \
-  || defined(TM4C1231D5PZ) || defined(TM4C1231E6PM) || defined(TM4C1231E6PZ)  \
-  || defined(TM4C1231H6PGE) || defined(TM4C1231H6PM) || defined(TM4C1231H6PZ) \
-  || defined(TM4C1232C3PM) || defined(TM4C1232D5PM) || defined(TM4C1232E6PM)  \
-  || defined(TM4C1232H6PM) || defined(TM4C1233C3PM) || defined(TM4C1233D5PM)  \
-  || defined(TM4C1233D5PZ) || defined(TM4C1233E6PM) || defined(TM4C1233E6PZ)  \
-  || defined(TM4C1233H6PGE) || defined(TM4C1233H6PM) || defined(TM4C1233H6PZ) \
-  || defined(TM4C1236D5PM) || defined(TM4C1236E6PM) || defined(TM4C1236H6PM)  \
-  || defined(TM4C1237D5PM) || defined(TM4C1237D5PZ) || defined(TM4C1237E6PM)  \
-  || defined(TM4C1237E6PZ) || defined(TM4C1237H6PGE) || defined(TM4C1237H6PM) \
-  || defined(TM4C1237H6PZ) || defined(TM4C123AE6PM) || defined(TM4C123AH6PM)  \
-  || defined(TM4C123BE6PM) || defined(TM4C123BE6PZ) || defined(TM4C123BH6PGE) \
-  || defined(TM4C123BH6PM) || defined(TM4C123BH6PZ) || defined(TM4C123BH6ZRB) \
-  || defined(TM4C123FE6PM) || defined(TM4C123FH6PM) || defined(TM4C123GE6PM)  \
-  || defined(TM4C123GE6PZ) || defined(TM4C123GH6PGE) || defined(TM4C123GH6PM) \
-  || defined(TM4C123GH6PZ) || defined(TM4C123GH6ZRB) || defined(TM4C123GH5ZXR)
+#if defined(PART_TM4C1230C3PM) || defined(PART_TM4C1230D5PM) || defined(PART_TM4C1230E6PM)   \
+  || defined(PART_TM4C1230H6PM) || defined(PART_TM4C1231C3PM) || defined(PART_TM4C1231D5PM)  \
+  || defined(PART_TM4C1231D5PZ) || defined(PART_TM4C1231E6PM) || defined(PART_TM4C1231E6PZ)  \
+  || defined(PART_TM4C1231H6PGE) || defined(PART_TM4C1231H6PM) || defined(PART_TM4C1231H6PZ) \
+  || defined(PART_TM4C1232C3PM) || defined(PART_TM4C1232D5PM) || defined(PART_TM4C1232E6PM)  \
+  || defined(PART_TM4C1232H6PM) || defined(PART_TM4C1233C3PM) || defined(PART_TM4C1233D5PM)  \
+  || defined(PART_TM4C1233D5PZ) || defined(PART_TM4C1233E6PM) || defined(PART_TM4C1233E6PZ)  \
+  || defined(PART_TM4C1233H6PGE) || defined(PART_TM4C1233H6PM) || defined(PART_TM4C1233H6PZ) \
+  || defined(PART_TM4C1236D5PM) || defined(PART_TM4C1236E6PM) || defined(PART_TM4C1236H6PM)  \
+  || defined(PART_TM4C1237D5PM) || defined(PART_TM4C1237D5PZ) || defined(PART_TM4C1237E6PM)  \
+  || defined(PART_TM4C1237E6PZ) || defined(PART_TM4C1237H6PGE) || defined(PART_TM4C1237H6PM) \
+  || defined(PART_TM4C1237H6PZ) || defined(PART_TM4C123AE6PM) || defined(PART_TM4C123AH6PM)  \
+  || defined(PART_TM4C123BE6PM) || defined(PART_TM4C123BE6PZ) || defined(PART_TM4C123BH6PGE) \
+  || defined(PART_TM4C123BH6PM) || defined(PART_TM4C123BH6PZ) || defined(PART_TM4C123BH6ZRB) \
+  || defined(PART_TM4C123FE6PM) || defined(PART_TM4C123FH6PM) || defined(PART_TM4C123GE6PM)  \
+  || defined(PART_TM4C123GE6PZ) || defined(PART_TM4C123GH6PGE) || defined(PART_TM4C123GH6PM) \
+  || defined(PART_TM4C123GH6PZ) || defined(PART_TM4C123GH6ZRB) || defined(PART_TM4C123GH5ZXR)
 #define TIVA_ADC0_SEQ0_HANDLER              Vector78
 #define TIVA_ADC0_SEQ1_HANDLER              Vector7C
 #define TIVA_ADC0_SEQ2_HANDLER              Vector80
@@ -351,23 +351,23 @@
 #endif
 
 /* UART units.*/
-#if defined(TM4C1230C3PM) || defined(TM4C1230D5PM) || defined(TM4C1230E6PM)   \
-  || defined(TM4C1230H6PM) || defined(TM4C1231C3PM) || defined(TM4C1231D5PM)  \
-  || defined(TM4C1231D5PZ) || defined(TM4C1231E6PM) || defined(TM4C1231E6PZ)  \
-  || defined(TM4C1231H6PGE) || defined(TM4C1231H6PM) || defined(TM4C1231H6PZ) \
-  || defined(TM4C1232C3PM) || defined(TM4C1232D5PM) || defined(TM4C1232E6PM)  \
-  || defined(TM4C1232H6PM) || defined(TM4C1233C3PM) || defined(TM4C1233D5PM)  \
-  || defined(TM4C1233D5PZ) || defined(TM4C1233E6PM) || defined(TM4C1233E6PZ)  \
-  || defined(TM4C1233H6PGE) || defined(TM4C1233H6PM) || defined(TM4C1233H6PZ) \
-  || defined(TM4C1236D5PM) || defined(TM4C1236E6PM) || defined(TM4C1236H6PM)  \
-  || defined(TM4C1237D5PM) || defined(TM4C1237D5PZ) || defined(TM4C1237E6PM)  \
-  || defined(TM4C1237E6PZ) || defined(TM4C1237H6PGE) || defined(TM4C1237H6PM) \
-  || defined(TM4C1237H6PZ) || defined(TM4C123AE6PM) || defined(TM4C123AH6PM)  \
-  || defined(TM4C123BE6PM) || defined(TM4C123BE6PZ) || defined(TM4C123BH6PGE) \
-  || defined(TM4C123BH6PM) || defined(TM4C123BH6PZ) || defined(TM4C123BH6ZRB) \
-  || defined(TM4C123FE6PM) || defined(TM4C123FH6PM) || defined(TM4C123GE6PM)  \
-  || defined(TM4C123GE6PZ) || defined(TM4C123GH6PGE) || defined(TM4C123GH6PM) \
-  || defined(TM4C123GH6PZ) || defined(TM4C123GH6ZRB) || defined(TM4C123GH5ZXR)
+#if defined(PART_TM4C1230C3PM) || defined(PART_TM4C1230D5PM) || defined(PART_TM4C1230E6PM)   \
+  || defined(PART_TM4C1230H6PM) || defined(PART_TM4C1231C3PM) || defined(PART_TM4C1231D5PM)  \
+  || defined(PART_TM4C1231D5PZ) || defined(PART_TM4C1231E6PM) || defined(PART_TM4C1231E6PZ)  \
+  || defined(PART_TM4C1231H6PGE) || defined(PART_TM4C1231H6PM) || defined(PART_TM4C1231H6PZ) \
+  || defined(PART_TM4C1232C3PM) || defined(PART_TM4C1232D5PM) || defined(PART_TM4C1232E6PM)  \
+  || defined(PART_TM4C1232H6PM) || defined(PART_TM4C1233C3PM) || defined(PART_TM4C1233D5PM)  \
+  || defined(PART_TM4C1233D5PZ) || defined(PART_TM4C1233E6PM) || defined(PART_TM4C1233E6PZ)  \
+  || defined(PART_TM4C1233H6PGE) || defined(PART_TM4C1233H6PM) || defined(PART_TM4C1233H6PZ) \
+  || defined(PART_TM4C1236D5PM) || defined(PART_TM4C1236E6PM) || defined(PART_TM4C1236H6PM)  \
+  || defined(PART_TM4C1237D5PM) || defined(PART_TM4C1237D5PZ) || defined(PART_TM4C1237E6PM)  \
+  || defined(PART_TM4C1237E6PZ) || defined(PART_TM4C1237H6PGE) || defined(PART_TM4C1237H6PM) \
+  || defined(PART_TM4C1237H6PZ) || defined(PART_TM4C123AE6PM) || defined(PART_TM4C123AH6PM)  \
+  || defined(PART_TM4C123BE6PM) || defined(PART_TM4C123BE6PZ) || defined(PART_TM4C123BH6PGE) \
+  || defined(PART_TM4C123BH6PM) || defined(PART_TM4C123BH6PZ) || defined(PART_TM4C123BH6ZRB) \
+  || defined(PART_TM4C123FE6PM) || defined(PART_TM4C123FH6PM) || defined(PART_TM4C123GE6PM)  \
+  || defined(PART_TM4C123GE6PZ) || defined(PART_TM4C123GH6PGE) || defined(PART_TM4C123GH6PM) \
+  || defined(PART_TM4C123GH6PZ) || defined(PART_TM4C123GH6ZRB) || defined(PART_TM4C123GH5ZXR)
 #define TIVA_UART0_HANDLER                  Vector54
 #define TIVA_UART1_HANDLER                  Vector58
 #define TIVA_UART2_HANDLER                  VectorC4
@@ -388,23 +388,23 @@
 #endif
 
 /* SPI units.*/
-#if defined(TM4C1230C3PM) || defined(TM4C1230D5PM) || defined(TM4C1230E6PM)   \
-  || defined(TM4C1230H6PM) || defined(TM4C1231C3PM) || defined(TM4C1231D5PM)  \
-  || defined(TM4C1231D5PZ) || defined(TM4C1231E6PM) || defined(TM4C1231E6PZ)  \
-  || defined(TM4C1231H6PGE) || defined(TM4C1231H6PM) || defined(TM4C1231H6PZ) \
-  || defined(TM4C1232C3PM) || defined(TM4C1232D5PM) || defined(TM4C1232E6PM)  \
-  || defined(TM4C1232H6PM) || defined(TM4C1233C3PM) || defined(TM4C1233D5PM)  \
-  || defined(TM4C1233D5PZ) || defined(TM4C1233E6PM) || defined(TM4C1233E6PZ)  \
-  || defined(TM4C1233H6PGE) || defined(TM4C1233H6PM) || defined(TM4C1233H6PZ) \
-  || defined(TM4C1236D5PM) || defined(TM4C1236E6PM) || defined(TM4C1236H6PM)  \
-  || defined(TM4C1237D5PM) || defined(TM4C1237D5PZ) || defined(TM4C1237E6PM)  \
-  || defined(TM4C1237E6PZ) || defined(TM4C1237H6PGE) || defined(TM4C1237H6PM) \
-  || defined(TM4C1237H6PZ) || defined(TM4C123AE6PM) || defined(TM4C123AH6PM)  \
-  || defined(TM4C123BE6PM) || defined(TM4C123BE6PZ) || defined(TM4C123BH6PGE) \
-  || defined(TM4C123BH6PM) || defined(TM4C123BH6PZ) || defined(TM4C123BH6ZRB) \
-  || defined(TM4C123FE6PM) || defined(TM4C123FH6PM) || defined(TM4C123GE6PM)  \
-  || defined(TM4C123GE6PZ) || defined(TM4C123GH6PGE) || defined(TM4C123GH6PM) \
-  || defined(TM4C123GH6PZ) || defined(TM4C123GH6ZRB) || defined(TM4C123GH5ZXR)
+#if defined(PART_TM4C1230C3PM) || defined(PART_TM4C1230D5PM) || defined(PART_TM4C1230E6PM)   \
+  || defined(PART_TM4C1230H6PM) || defined(PART_TM4C1231C3PM) || defined(PART_TM4C1231D5PM)  \
+  || defined(PART_TM4C1231D5PZ) || defined(PART_TM4C1231E6PM) || defined(PART_TM4C1231E6PZ)  \
+  || defined(PART_TM4C1231H6PGE) || defined(PART_TM4C1231H6PM) || defined(PART_TM4C1231H6PZ) \
+  || defined(PART_TM4C1232C3PM) || defined(PART_TM4C1232D5PM) || defined(PART_TM4C1232E6PM)  \
+  || defined(PART_TM4C1232H6PM) || defined(PART_TM4C1233C3PM) || defined(PART_TM4C1233D5PM)  \
+  || defined(PART_TM4C1233D5PZ) || defined(PART_TM4C1233E6PM) || defined(PART_TM4C1233E6PZ)  \
+  || defined(PART_TM4C1233H6PGE) || defined(PART_TM4C1233H6PM) || defined(PART_TM4C1233H6PZ) \
+  || defined(PART_TM4C1236D5PM) || defined(PART_TM4C1236E6PM) || defined(PART_TM4C1236H6PM)  \
+  || defined(PART_TM4C1237D5PM) || defined(PART_TM4C1237D5PZ) || defined(PART_TM4C1237E6PM)  \
+  || defined(PART_TM4C1237E6PZ) || defined(PART_TM4C1237H6PGE) || defined(PART_TM4C1237H6PM) \
+  || defined(PART_TM4C1237H6PZ) || defined(PART_TM4C123AE6PM) || defined(PART_TM4C123AH6PM)  \
+  || defined(PART_TM4C123BE6PM) || defined(PART_TM4C123BE6PZ) || defined(PART_TM4C123BH6PGE) \
+  || defined(PART_TM4C123BH6PM) || defined(PART_TM4C123BH6PZ) || defined(PART_TM4C123BH6ZRB) \
+  || defined(PART_TM4C123FE6PM) || defined(PART_TM4C123FH6PM) || defined(PART_TM4C123GE6PM)  \
+  || defined(PART_TM4C123GE6PZ) || defined(PART_TM4C123GH6PGE) || defined(PART_TM4C123GH6PM) \
+  || defined(PART_TM4C123GH6PZ) || defined(PART_TM4C123GH6ZRB) || defined(PART_TM4C123GH5ZXR)
 #define TIVA_SSI0_HANDLER                   Vector5C
 #define TIVA_SSI1_HANDLER                   VectorC8
 #define TIVA_SSI2_HANDLER                   Vector124
@@ -417,18 +417,18 @@
 #endif
 
 /* I2C units.*/
-#if defined(TM4C1230C3PM) || defined(TM4C1230D5PM) || defined(TM4C1230E6PM)   \
-  || defined(TM4C1230H6PM) || defined(TM4C1231D5PZ) || defined(TM4C1231E6PZ)  \
-  || defined(TM4C1231H6PGE) || defined(TM4C1231H6PZ) || defined(TM4C1232C3PM) \
-  || defined(TM4C1232D5PM) || defined(TM4C1232E6PM) || defined(TM4C1232H6PM)  \
-  || defined(TM4C1233D5PZ) || defined(TM4C1233E6PZ) || defined(TM4C1233H6PGE) \
-  || defined(TM4C1233H6PZ) || defined(TM4C1236D5PM) || defined(TM4C1236E6PM)  \
-  || defined(TM4C1236H6PM) || defined(TM4C1237D5PZ) || defined(TM4C1237E6PZ)  \
-  || defined(TM4C1237H6PGE) || defined(TM4C1237H6PZ) || defined(TM4C123AE6PM) \
-  || defined(TM4C123AH6PM) || defined(TM4C123BE6PZ) || defined(TM4C123BH6PGE) \
-  || defined(TM4C123BH6PZ) || defined(TM4C123BH6ZRB) || defined(TM4C123FE6PM) \
-  || defined(TM4C123FH6PM) || defined(TM4C123GE6PZ) || defined(TM4C123GH6PGE) \
-  || defined(TM4C123GH6PZ) || defined(TM4C123GH6ZRB) || defined(TM4C123GH5ZXR)
+#if defined(PART_TM4C1230C3PM) || defined(PART_TM4C1230D5PM) || defined(PART_TM4C1230E6PM)   \
+  || defined(PART_TM4C1230H6PM) || defined(PART_TM4C1231D5PZ) || defined(PART_TM4C1231E6PZ)  \
+  || defined(PART_TM4C1231H6PGE) || defined(PART_TM4C1231H6PZ) || defined(PART_TM4C1232C3PM) \
+  || defined(PART_TM4C1232D5PM) || defined(PART_TM4C1232E6PM) || defined(PART_TM4C1232H6PM)  \
+  || defined(PART_TM4C1233D5PZ) || defined(PART_TM4C1233E6PZ) || defined(PART_TM4C1233H6PGE) \
+  || defined(PART_TM4C1233H6PZ) || defined(PART_TM4C1236D5PM) || defined(PART_TM4C1236E6PM)  \
+  || defined(PART_TM4C1236H6PM) || defined(PART_TM4C1237D5PZ) || defined(PART_TM4C1237E6PZ)  \
+  || defined(PART_TM4C1237H6PGE) || defined(PART_TM4C1237H6PZ) || defined(PART_TM4C123AE6PM) \
+  || defined(PART_TM4C123AH6PM) || defined(PART_TM4C123BE6PZ) || defined(PART_TM4C123BH6PGE) \
+  || defined(PART_TM4C123BH6PZ) || defined(PART_TM4C123BH6ZRB) || defined(PART_TM4C123FE6PM) \
+  || defined(PART_TM4C123FH6PM) || defined(PART_TM4C123GE6PZ) || defined(PART_TM4C123GH6PGE) \
+  || defined(PART_TM4C123GH6PZ) || defined(PART_TM4C123GH6ZRB) || defined(PART_TM4C123GH5ZXR)
 #define TIVA_I2C0_HANDLER                   Vector60
 #define TIVA_I2C1_HANDLER                   VectorD4
 #define TIVA_I2C2_HANDLER                   Vector150
@@ -443,11 +443,11 @@
 #define TIVA_I2C4_NUMBER                    109
 #define TIVA_I2C5_NUMBER                    110
 #endif
-#if defined(TM4C1231C3PM) || defined(TM4C1231D5PM) || defined(TM4C1231E6PM)   \
-  || defined(TM4C1231H6PM) || defined(TM4C1233C3PM) || defined(TM4C1233D5PM)  \
-  || defined(TM4C1233E6PM) || defined(TM4C1233H6PM) || defined(TM4C1237D5PM)  \
-  || defined(TM4C1237E6PM) || defined(TM4C1237H6PM) || defined(TM4C123BE6PM)  \
-  || defined(TM4C123BH6PM) || defined(TM4C123GE6PM) || defined(TM4C123GH6PM)
+#if defined(PART_TM4C1231C3PM) || defined(PART_TM4C1231D5PM) || defined(PART_TM4C1231E6PM)   \
+  || defined(PART_TM4C1231H6PM) || defined(PART_TM4C1233C3PM) || defined(PART_TM4C1233D5PM)  \
+  || defined(PART_TM4C1233E6PM) || defined(PART_TM4C1233H6PM) || defined(PART_TM4C1237D5PM)  \
+  || defined(PART_TM4C1237E6PM) || defined(PART_TM4C1237H6PM) || defined(PART_TM4C123BE6PM)  \
+  || defined(PART_TM4C123BH6PM) || defined(PART_TM4C123GE6PM) || defined(PART_TM4C123GH6PM)
 #define TIVA_I2C0_HANDLER                   Vector60
 #define TIVA_I2C1_HANDLER                   VectorD4
 #define TIVA_I2C2_HANDLER                   Vector150
@@ -460,28 +460,28 @@
 #endif
 
 /* CAN units.*/
-#if defined(TM4C1230C3PM) || defined(TM4C1230D5PM) || defined(TM4C1230E6PM)   \
-  || defined(TM4C1230H6PM) || defined(TM4C1231C3PM) || defined(TM4C1231D5PM)  \
-  || defined(TM4C1231D5PZ) || defined(TM4C1231E6PM) || defined(TM4C1231E6PZ)  \
-  || defined(TM4C1231H6PGE) || defined(TM4C1231H6PM) || defined(TM4C1231H6PZ) \
-  || defined(TM4C1232C3PM) || defined(TM4C1232D5PM) || defined(TM4C1232E6PM)  \
-  || defined(TM4C1232H6PM) || defined(TM4C1233C3PM) || defined(TM4C1233D5PM)  \
-  || defined(TM4C1233D5PZ) || defined(TM4C1233E6PM) || defined(TM4C1233E6PZ)  \
-  || defined(TM4C1233H6PGE) || defined(TM4C1233H6PM) || defined(TM4C1233H6PZ) \
-  || defined(TM4C1236D5PM) || defined(TM4C1236E6PM) || defined(TM4C1236H6PM)  \
-  || defined(TM4C1237D5PM) || defined(TM4C1237D5PZ) || defined(TM4C1237E6PM)  \
-  || defined(TM4C1237E6PZ) || defined(TM4C1237H6PGE) || defined(TM4C1237H6PM) \
-  || defined(TM4C1237H6PZ)
+#if defined(PART_TM4C1230C3PM) || defined(PART_TM4C1230D5PM) || defined(PART_TM4C1230E6PM)   \
+  || defined(PART_TM4C1230H6PM) || defined(PART_TM4C1231C3PM) || defined(PART_TM4C1231D5PM)  \
+  || defined(PART_TM4C1231D5PZ) || defined(PART_TM4C1231E6PM) || defined(PART_TM4C1231E6PZ)  \
+  || defined(PART_TM4C1231H6PGE) || defined(PART_TM4C1231H6PM) || defined(PART_TM4C1231H6PZ) \
+  || defined(PART_TM4C1232C3PM) || defined(PART_TM4C1232D5PM) || defined(PART_TM4C1232E6PM)  \
+  || defined(PART_TM4C1232H6PM) || defined(PART_TM4C1233C3PM) || defined(PART_TM4C1233D5PM)  \
+  || defined(PART_TM4C1233D5PZ) || defined(PART_TM4C1233E6PM) || defined(PART_TM4C1233E6PZ)  \
+  || defined(PART_TM4C1233H6PGE) || defined(PART_TM4C1233H6PM) || defined(PART_TM4C1233H6PZ) \
+  || defined(PART_TM4C1236D5PM) || defined(PART_TM4C1236E6PM) || defined(PART_TM4C1236H6PM)  \
+  || defined(PART_TM4C1237D5PM) || defined(PART_TM4C1237D5PZ) || defined(PART_TM4C1237E6PM)  \
+  || defined(PART_TM4C1237E6PZ) || defined(PART_TM4C1237H6PGE) || defined(PART_TM4C1237H6PM) \
+  || defined(PART_TM4C1237H6PZ)
 #define TIVA_CAN0_HANDLER                   VectorDC
 
 #define TIVA_CAN0_NUMBER                    39
 #endif
-#if defined(TM4C123AE6PM) || defined(TM4C123AH6PM) || defined(TM4C123BE6PM)   \
-  || defined(TM4C123BE6PZ) || defined(TM4C123BH6PGE) || defined(TM4C123BH6PM) \
-  || defined(TM4C123BH6PZ) || defined(TM4C123BH6ZRB) || defined(TM4C123FE6PM) \
-  || defined(TM4C123FH6PM) || defined(TM4C123GE6PM) || defined(TM4C123GE6PZ)  \
-  || defined(TM4C123GH6PGE) || defined(TM4C123GH6PM) || defined(TM4C123GH6PZ) \
-  || defined(TM4C123GH6ZRB) || defined(TM4C123GH5ZXR)
+#if defined(PART_TM4C123AE6PM) || defined(PART_TM4C123AH6PM) || defined(PART_TM4C123BE6PM)   \
+  || defined(PART_TM4C123BE6PZ) || defined(PART_TM4C123BH6PGE) || defined(PART_TM4C123BH6PM) \
+  || defined(PART_TM4C123BH6PZ) || defined(PART_TM4C123BH6ZRB) || defined(PART_TM4C123FE6PM) \
+  || defined(PART_TM4C123FH6PM) || defined(PART_TM4C123GE6PM) || defined(PART_TM4C123GE6PZ)  \
+  || defined(PART_TM4C123GH6PGE) || defined(PART_TM4C123GH6PM) || defined(PART_TM4C123GH6PZ) \
+  || defined(PART_TM4C123GH6ZRB) || defined(PART_TM4C123GH5ZXR)
 #define TIVA_CAN0_HANDLER                   VectorDC
 #define TIVA_CAN1_HANDLER                   VectorE0
 
@@ -490,55 +490,55 @@
 #endif
 
 /* USB units.*/
-#if defined(TM4C1230C3PM) || defined(TM4C1230D5PM) || defined(TM4C1230E6PM)   \
-  || defined(TM4C1230H6PM) || defined(TM4C1231C3PM) || defined(TM4C1231D5PM)  \
-  || defined(TM4C1231D5PZ) || defined(TM4C1231E6PM) || defined(TM4C1231E6PZ)  \
-  || defined(TM4C1231H6PGE) || defined(TM4C1231H6PM) || defined(TM4C1231H6PZ) \
-  || defined(TM4C123AE6PM) || defined(TM4C123AH6PM) || defined(TM4C123BE6PM)  \
-  || defined(TM4C123BE6PZ) || defined(TM4C123BH6PGE) || defined(TM4C123BH6PM) \
-  || defined(TM4C123BH6PZ) || defined(TM4C123BH6ZRB)
+#if defined(PART_TM4C1230C3PM) || defined(PART_TM4C1230D5PM) || defined(PART_TM4C1230E6PM)   \
+  || defined(PART_TM4C1230H6PM) || defined(PART_TM4C1231C3PM) || defined(PART_TM4C1231D5PM)  \
+  || defined(PART_TM4C1231D5PZ) || defined(PART_TM4C1231E6PM) || defined(PART_TM4C1231E6PZ)  \
+  || defined(PART_TM4C1231H6PGE) || defined(PART_TM4C1231H6PM) || defined(PART_TM4C1231H6PZ) \
+  || defined(PART_TM4C123AE6PM) || defined(PART_TM4C123AH6PM) || defined(PART_TM4C123BE6PM)  \
+  || defined(PART_TM4C123BE6PZ) || defined(PART_TM4C123BH6PGE) || defined(PART_TM4C123BH6PM) \
+  || defined(PART_TM4C123BH6PZ) || defined(PART_TM4C123BH6ZRB)
 /* No interrupt handler and number.*/
 #endif
-#if defined(TM4C1232C3PM) || defined(TM4C1232D5PM) || defined(TM4C1232E6PM)   \
-  || defined(TM4C1232H6PM) || defined(TM4C1233C3PM) || defined(TM4C1233D5PM)  \
-  || defined(TM4C1233D5PZ) || defined(TM4C1233E6PM) || defined(TM4C1233E6PZ)  \
-  || defined(TM4C1233H6PGE) || defined(TM4C1233H6PM) || defined(TM4C1233H6PZ) \
-  || defined(TM4C1236D5PM) || defined(TM4C1236E6PM) || defined(TM4C1236H6PM)  \
-  || defined(TM4C1237D5PM) || defined(TM4C1237D5PZ) || defined(TM4C1237E6PM)  \
-  || defined(TM4C1237E6PZ) || defined(TM4C1237H6PGE) || defined(TM4C1237H6PM) \
-  || defined(TM4C1237H6PZ) || defined(TM4C123FE6PM) || defined(TM4C123FH6PM)  \
-  || defined(TM4C123GE6PM) || defined(TM4C123GE6PZ) || defined(TM4C123GH6PGE) \
-  || defined(TM4C123GH6PM) || defined(TM4C123GH6PZ) || defined(TM4C123GH6ZRB) \
-  || defined(TM4C123GH5ZXR)
+#if defined(PART_TM4C1232C3PM) || defined(PART_TM4C1232D5PM) || defined(PART_TM4C1232E6PM)   \
+  || defined(PART_TM4C1232H6PM) || defined(PART_TM4C1233C3PM) || defined(PART_TM4C1233D5PM)  \
+  || defined(PART_TM4C1233D5PZ) || defined(PART_TM4C1233E6PM) || defined(PART_TM4C1233E6PZ)  \
+  || defined(PART_TM4C1233H6PGE) || defined(PART_TM4C1233H6PM) || defined(PART_TM4C1233H6PZ) \
+  || defined(PART_TM4C1236D5PM) || defined(PART_TM4C1236E6PM) || defined(PART_TM4C1236H6PM)  \
+  || defined(PART_TM4C1237D5PM) || defined(PART_TM4C1237D5PZ) || defined(PART_TM4C1237E6PM)  \
+  || defined(PART_TM4C1237E6PZ) || defined(PART_TM4C1237H6PGE) || defined(PART_TM4C1237H6PM) \
+  || defined(PART_TM4C1237H6PZ) || defined(PART_TM4C123FE6PM) || defined(PART_TM4C123FH6PM)  \
+  || defined(PART_TM4C123GE6PM) || defined(PART_TM4C123GE6PZ) || defined(PART_TM4C123GH6PGE) \
+  || defined(PART_TM4C123GH6PM) || defined(PART_TM4C123GH6PZ) || defined(PART_TM4C123GH6ZRB) \
+  || defined(PART_TM4C123GH5ZXR)
 #define TIVA_USB0_HANDLER                   VectorF0
 
 #define TIVA_USB0_NUMBER                    44
 #endif
 
 /* AC units.*/
-#if defined(TM4C1230C3PM) || defined(TM4C1230D5PM) || defined(TM4C1230E6PM)   \
-  || defined(TM4C1230H6PM) || defined(TM4C1231C3PM) || defined(TM4C1231D5PM)  \
-  || defined(TM4C1231E6PM) || defined(TM4C1231H6PM) || defined(TM4C1232C3PM)  \
-  || defined(TM4C1232D5PM) || defined(TM4C1232E6PM) || defined(TM4C1232H6PM)  \
-  || defined(TM4C1233C3PM) || defined(TM4C1233D5PM) || defined(TM4C1233E6PM)  \
-  || defined(TM4C1233H6PM) || defined(TM4C1236D5PM) || defined(TM4C1236E6PM)  \
-  || defined(TM4C1236H6PM) || defined(TM4C1237D5PM) || defined(TM4C1237E6PM)  \
-  || defined(TM4C1237H6PM) || defined(TM4C123AE6PM) || defined(TM4C123AH6PM)  \
-  || defined(TM4C123BE6PM) || defined(TM4C123BH6PM) || defined(TM4C123FE6PM)  \
-  || defined(TM4C123FH6PM) || defined(TM4C123GE6PM) || defined(TM4C123GH6PM)
+#if defined(PART_TM4C1230C3PM) || defined(PART_TM4C1230D5PM) || defined(PART_TM4C1230E6PM)   \
+  || defined(PART_TM4C1230H6PM) || defined(PART_TM4C1231C3PM) || defined(PART_TM4C1231D5PM)  \
+  || defined(PART_TM4C1231E6PM) || defined(PART_TM4C1231H6PM) || defined(PART_TM4C1232C3PM)  \
+  || defined(PART_TM4C1232D5PM) || defined(PART_TM4C1232E6PM) || defined(PART_TM4C1232H6PM)  \
+  || defined(PART_TM4C1233C3PM) || defined(PART_TM4C1233D5PM) || defined(PART_TM4C1233E6PM)  \
+  || defined(PART_TM4C1233H6PM) || defined(PART_TM4C1236D5PM) || defined(PART_TM4C1236E6PM)  \
+  || defined(PART_TM4C1236H6PM) || defined(PART_TM4C1237D5PM) || defined(PART_TM4C1237E6PM)  \
+  || defined(PART_TM4C1237H6PM) || defined(PART_TM4C123AE6PM) || defined(PART_TM4C123AH6PM)  \
+  || defined(PART_TM4C123BE6PM) || defined(PART_TM4C123BH6PM) || defined(PART_TM4C123FE6PM)  \
+  || defined(PART_TM4C123FH6PM) || defined(PART_TM4C123GE6PM) || defined(PART_TM4C123GH6PM)
 #define TIVA_AC0_HANDLER                    VectorA4
 #define TIVA_AC1_HANDLER                    VectorA8
 
 #define TIVA_AC0_NUMBER                     25
 #define TIVA_AC1_NUMBER                     26
 #endif
-#if defined(TM4C1231D5PZ) || defined(TM4C1231E6PZ) || defined(TM4C1231H6PGE)  \
-  || defined(TM4C1231H6PZ) || defined(TM4C1233D5PZ) || defined(TM4C1233E6PZ)  \
-  || defined(TM4C1233H6PGE) || defined(TM4C1233H6PZ) || defined(TM4C1237D5PZ) \
-  || defined(TM4C1237E6PZ) || defined(TM4C1237H6PGE) || defined(TM4C1237H6PZ) \
-  || defined(TM4C123BE6PZ) || defined(TM4C123BH6PGE) || defined(TM4C123BH6PZ) \
-  || defined(TM4C123BH6ZRB) || defined(TM4C123GE6PZ) || defined(TM4C123GH6PGE)\
-  || defined(TM4C123GH6PZ) || defined(TM4C123GH6ZRB) || defined(TM4C123GH5ZXR)
+#if defined(PART_TM4C1231D5PZ) || defined(PART_TM4C1231E6PZ) || defined(PART_TM4C1231H6PGE)  \
+  || defined(PART_TM4C1231H6PZ) || defined(PART_TM4C1233D5PZ) || defined(PART_TM4C1233E6PZ)  \
+  || defined(PART_TM4C1233H6PGE) || defined(PART_TM4C1233H6PZ) || defined(PART_TM4C1237D5PZ) \
+  || defined(PART_TM4C1237E6PZ) || defined(PART_TM4C1237H6PGE) || defined(PART_TM4C1237H6PZ) \
+  || defined(PART_TM4C123BE6PZ) || defined(PART_TM4C123BH6PGE) || defined(PART_TM4C123BH6PZ) \
+  || defined(PART_TM4C123BH6ZRB) || defined(PART_TM4C123GE6PZ) || defined(PART_TM4C123GH6PGE)\
+  || defined(PART_TM4C123GH6PZ) || defined(PART_TM4C123GH6ZRB) || defined(PART_TM4C123GH5ZXR)
 #define TIVA_AC0_HANDLER                    VectorA4
 #define TIVA_AC1_HANDLER                    VectorA8
 #define TIVA_AC2_HANDLER                    VectorAC
@@ -549,26 +549,26 @@
 #endif
 
 /* PWM units.*/
-#if defined(TM4C1230C3PM) || defined(TM4C1230D5PM) || defined(TM4C1230E6PM)   \
-  || defined(TM4C1230H6PM) || defined(TM4C1231C3PM) || defined(TM4C1231D5PM)  \
-  || defined(TM4C1231D5PZ) || defined(TM4C1231E6PM) || defined(TM4C1231E6PZ)  \
-  || defined(TM4C1231H6PGE) || defined(TM4C1231H6PM) || defined(TM4C1231H6PZ) \
-  || defined(TM4C1232C3PM) || defined(TM4C1232D5PM) || defined(TM4C1232E6PM)  \
-  || defined(TM4C1232H6PM) || defined(TM4C1233C3PM) || defined(TM4C1233D5PM)  \
-  || defined(TM4C1233D5PZ) || defined(TM4C1233E6PM) || defined(TM4C1233E6PZ)  \
-  || defined(TM4C1233H6PGE) || defined(TM4C1233H6PM) || defined(TM4C1233H6PZ) \
-  || defined(TM4C1236D5PM) || defined(TM4C1236E6PM) || defined(TM4C1236H6PM)  \
-  || defined(TM4C1237D5PM) || defined(TM4C1237D5PZ) || defined(TM4C1237E6PM)  \
-  || defined(TM4C1237E6PZ) || defined(TM4C1237H6PGE) || defined(TM4C1237H6PM) \
-  || defined(TM4C1237H6PZ)
+#if defined(PART_TM4C1230C3PM) || defined(PART_TM4C1230D5PM) || defined(PART_TM4C1230E6PM)   \
+  || defined(PART_TM4C1230H6PM) || defined(PART_TM4C1231C3PM) || defined(PART_TM4C1231D5PM)  \
+  || defined(PART_TM4C1231D5PZ) || defined(PART_TM4C1231E6PM) || defined(PART_TM4C1231E6PZ)  \
+  || defined(PART_TM4C1231H6PGE) || defined(PART_TM4C1231H6PM) || defined(PART_TM4C1231H6PZ) \
+  || defined(PART_TM4C1232C3PM) || defined(PART_TM4C1232D5PM) || defined(PART_TM4C1232E6PM)  \
+  || defined(PART_TM4C1232H6PM) || defined(PART_TM4C1233C3PM) || defined(PART_TM4C1233D5PM)  \
+  || defined(PART_TM4C1233D5PZ) || defined(PART_TM4C1233E6PM) || defined(PART_TM4C1233E6PZ)  \
+  || defined(PART_TM4C1233H6PGE) || defined(PART_TM4C1233H6PM) || defined(PART_TM4C1233H6PZ) \
+  || defined(PART_TM4C1236D5PM) || defined(PART_TM4C1236E6PM) || defined(PART_TM4C1236H6PM)  \
+  || defined(PART_TM4C1237D5PM) || defined(PART_TM4C1237D5PZ) || defined(PART_TM4C1237E6PM)  \
+  || defined(PART_TM4C1237E6PZ) || defined(PART_TM4C1237H6PGE) || defined(PART_TM4C1237H6PM) \
+  || defined(PART_TM4C1237H6PZ)
 /* No interrupt handler and number.*/
 #endif
-#if defined(TM4C123AE6PM) || defined(TM4C123AH6PM) || defined(TM4C123BE6PM)   \
-  || defined(TM4C123BE6PZ) || defined(TM4C123BH6PGE) || defined(TM4C123BH6PM) \
-  || defined(TM4C123BH6PZ) || defined(TM4C123BH6ZRB) || defined(TM4C123FE6PM) \
-  || defined(TM4C123FH6PM) || defined(TM4C123GE6PM) || defined(TM4C123GE6PZ)  \
-  || defined(TM4C123GH6PGE) || defined(TM4C123GH6PM) || defined(TM4C123GH6PZ) \
-  || defined(TM4C123GH6ZRB) || defined(TM4C123GH5ZXR)
+#if defined(PART_TM4C123AE6PM) || defined(PART_TM4C123AH6PM) || defined(PART_TM4C123BE6PM)   \
+  || defined(PART_TM4C123BE6PZ) || defined(PART_TM4C123BH6PGE) || defined(PART_TM4C123BH6PM) \
+  || defined(PART_TM4C123BH6PZ) || defined(PART_TM4C123BH6ZRB) || defined(PART_TM4C123FE6PM) \
+  || defined(PART_TM4C123FH6PM) || defined(PART_TM4C123GE6PM) || defined(PART_TM4C123GE6PZ)  \
+  || defined(PART_TM4C123GH6PGE) || defined(PART_TM4C123GH6PM) || defined(PART_TM4C123GH6PZ) \
+  || defined(PART_TM4C123GH6ZRB) || defined(PART_TM4C123GH5ZXR)
 #define TIVA_PWM0FAULT_HANDLER              Vector64
 #define TIVA_PWM0GEN0_HANDLER               Vector68
 #define TIVA_PWM0GEN1_HANDLER               Vector6C
@@ -593,25 +593,25 @@
 #endif
 
 /* QEI units.*/
-#if defined(TM4C1230C3PM) || defined(TM4C1230D5PM) || defined(TM4C1230E6PM)   \
-  || defined(TM4C1230H6PM) || defined(TM4C1231C3PM) || defined(TM4C1231D5PM)  \
-  || defined(TM4C1231D5PZ) || defined(TM4C1231E6PM) || defined(TM4C1231E6PZ)  \
-  || defined(TM4C1231H6PGE) || defined(TM4C1231H6PM) || defined(TM4C1231H6PZ) \
-  || defined(TM4C1232C3PM) || defined(TM4C1232D5PM) || defined(TM4C1232E6PM)  \
-  || defined(TM4C1232H6PM) || defined(TM4C1233C3PM) || defined(TM4C1233D5PM)  \
-  || defined(TM4C1233D5PZ) || defined(TM4C1233E6PM) || defined(TM4C1233E6PZ)  \
-  || defined(TM4C1233H6PGE) || defined(TM4C1233H6PM) || defined(TM4C1233H6PZ) \
-  || defined(TM4C1236D5PM) || defined(TM4C1236E6PM) || defined(TM4C1236H6PM)  \
-  || defined(TM4C1237D5PM) || defined(TM4C1237D5PZ) || defined(TM4C1237E6PM)  \
-  || defined(TM4C1237E6PZ) || defined(TM4C1237H6PGE) || defined(TM4C1237H6PM) \
-  || defined(TM4C1237H6PZ) || defined(TM4C123AE6PM) || defined(TM4C123AH6PM)
+#if defined(PART_TM4C1230C3PM) || defined(PART_TM4C1230D5PM) || defined(PART_TM4C1230E6PM)   \
+  || defined(PART_TM4C1230H6PM) || defined(PART_TM4C1231C3PM) || defined(PART_TM4C1231D5PM)  \
+  || defined(PART_TM4C1231D5PZ) || defined(PART_TM4C1231E6PM) || defined(PART_TM4C1231E6PZ)  \
+  || defined(PART_TM4C1231H6PGE) || defined(PART_TM4C1231H6PM) || defined(PART_TM4C1231H6PZ) \
+  || defined(PART_TM4C1232C3PM) || defined(PART_TM4C1232D5PM) || defined(PART_TM4C1232E6PM)  \
+  || defined(PART_TM4C1232H6PM) || defined(PART_TM4C1233C3PM) || defined(PART_TM4C1233D5PM)  \
+  || defined(PART_TM4C1233D5PZ) || defined(PART_TM4C1233E6PM) || defined(PART_TM4C1233E6PZ)  \
+  || defined(PART_TM4C1233H6PGE) || defined(PART_TM4C1233H6PM) || defined(PART_TM4C1233H6PZ) \
+  || defined(PART_TM4C1236D5PM) || defined(PART_TM4C1236E6PM) || defined(PART_TM4C1236H6PM)  \
+  || defined(PART_TM4C1237D5PM) || defined(PART_TM4C1237D5PZ) || defined(PART_TM4C1237E6PM)  \
+  || defined(PART_TM4C1237E6PZ) || defined(PART_TM4C1237H6PGE) || defined(PART_TM4C1237H6PM) \
+  || defined(PART_TM4C1237H6PZ) || defined(PART_TM4C123AE6PM) || defined(PART_TM4C123AH6PM)
 /* No interrupt handler and number.*/
 #endif
-#if defined(TM4C123BE6PM) || defined(TM4C123BE6PZ) || defined(TM4C123BH6PGE)  \
-  || defined(TM4C123BH6PM) || defined(TM4C123BH6PZ) || defined(TM4C123BH6ZRB) \
-  || defined(TM4C123FE6PM) || defined(TM4C123FH6PM) || defined(TM4C123GE6PM)  \
-  || defined(TM4C123GE6PZ) || defined(TM4C123GH6PGE) || defined(TM4C123GH6PM) \
-  || defined(TM4C123GH6PZ) || defined(TM4C123GH6ZRB) || defined(TM4C123GH5ZXR)
+#if defined(PART_TM4C123BE6PM) || defined(PART_TM4C123BE6PZ) || defined(PART_TM4C123BH6PGE)  \
+  || defined(PART_TM4C123BH6PM) || defined(PART_TM4C123BH6PZ) || defined(PART_TM4C123BH6ZRB) \
+  || defined(PART_TM4C123FE6PM) || defined(PART_TM4C123FH6PM) || defined(PART_TM4C123GE6PM)  \
+  || defined(PART_TM4C123GE6PZ) || defined(PART_TM4C123GH6PGE) || defined(PART_TM4C123GH6PM) \
+  || defined(PART_TM4C123GH6PZ) || defined(PART_TM4C123GH6ZRB) || defined(PART_TM4C123GH5ZXR)
 #define TIVA_QEI0_HANLDER                   Vector74
 #define TIVA_QEI1_HANLDER                   VectorD8
 

@@ -35,10 +35,10 @@ typedef struct {
 /*
  * Chose values suitable for measurement using 16-bit timer on 1MHz
  */
-static pulse_t pulse_led3 = {MS2ST(2), MS2ST(59), GPIOD_LED3};
-static pulse_t pulse_led4 = {MS2ST(3), MS2ST(53), GPIOD_LED4};
-static pulse_t pulse_led5 = {MS2ST(5), MS2ST(47), GPIOD_LED5};
-static pulse_t pulse_led6 = {MS2ST(7), MS2ST(43), GPIOD_LED6};
+static pulse_t pulse_led3 = {TIME_MS2I(2), TIME_MS2I(59), GPIOD_LED3};
+static pulse_t pulse_led4 = {TIME_MS2I(3), TIME_MS2I(53), GPIOD_LED4};
+static pulse_t pulse_led5 = {TIME_MS2I(5), TIME_MS2I(47), GPIOD_LED5};
+static pulse_t pulse_led6 = {TIME_MS2I(7), TIME_MS2I(43), GPIOD_LED6};
 
 /*
  *
@@ -72,19 +72,19 @@ void eicu_cb(EICUDriver *eicup, eicuchannel_t channel, uint32_t w, uint32_t p) {
   (void)p;
   switch (channel) {
   case EICU_CHANNEL_1:
-    if (abs((int32_t)w - (int32_t)ST2US(pulse_led3.high)) > tolerance)
+    if (abs((int32_t)w - (int32_t)TIME_I2US(pulse_led3.high)) > tolerance)
       osalSysHalt("ch1");
     break;
   case EICU_CHANNEL_2:
-    if (abs((int32_t)w - (int32_t)ST2US(pulse_led4.high)) > tolerance)
+    if (abs((int32_t)w - (int32_t)TIME_I2US(pulse_led4.high)) > tolerance)
       osalSysHalt("ch2");
     break;
   case EICU_CHANNEL_3:
-    if (abs((int32_t)w - (int32_t)ST2US(pulse_led5.high)) > tolerance)
+    if (abs((int32_t)w - (int32_t)TIME_I2US(pulse_led5.high)) > tolerance)
       osalSysHalt("ch3");
     break;
   case EICU_CHANNEL_4:
-    if (abs((int32_t)w - (int32_t)ST2US(pulse_led6.high)) > tolerance)
+    if (abs((int32_t)w - (int32_t)TIME_I2US(pulse_led6.high)) > tolerance)
       osalSysHalt("ch4");
     break;
   default:

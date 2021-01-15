@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -22,8 +22,8 @@
  * @{
  */
 
-#ifndef _CH_TEST_H_
-#define _CH_TEST_H_
+#ifndef CH_TEST_H
+#define CH_TEST_H
 
 /*===========================================================================*/
 /* Module constants.                                                         */
@@ -47,6 +47,13 @@
 #define TEST_DELAY_BETWEEN_TESTS            200
 #endif
 
+/**
+ * @brief   Delay inserted between test cases.
+ */
+#if !defined(TEST_SHOW_SEQUENCES) || defined(__DOXYGEN__)
+#define TEST_SHOW_SEQUENCES                 TRUE
+#endif
+
 /*===========================================================================*/
 /* Derived constants and error checks.                                       */
 /*===========================================================================*/
@@ -65,6 +72,27 @@ typedef struct {
   void (*execute)(void);        /**< @brief Test case execution function.   */
 } testcase_t;
 
+/**
+ * @brief   Structure representing a test sequence.
+ */
+typedef struct {
+  const char        *name;          /**< @brief Name of the test sequence.  */
+  const testcase_t * const * cases; /**< @brief Test cases array.           */
+} testsequence_t;
+
+/**
+ * @brief   Type of a test suite.
+ */
+typedef struct {
+  const char        *name;          /**< @brief Name of the test suite.     */
+  const testsequence_t * const * sequences; /**< @brief Test sequences array.           */
+} testsuite_t;
+
+/**
+ * @brief   Type of a test suite.
+ */
+//typedef const testcase_t * const *testsuite_t[];
+
 /*===========================================================================*/
 /* Module macros.                                                            */
 /*===========================================================================*/
@@ -75,6 +103,13 @@ typedef struct {
  * @param[in] step      the step number
  */
 #define test_set_step(step) test_step = (step)
+
+/**
+ * @brief   End step marker.
+ *
+ * @param[in] step      the step number
+ */
+#define test_end_step(step) (void)(step);
 
 /**
  * @brief   Test failure enforcement.
@@ -156,6 +191,7 @@ typedef struct {
 
 #if !defined(__DOXYGEN__)
 extern unsigned test_step;
+extern bool test_global_fail;
 #endif
 
 #ifdef __cplusplus
@@ -172,7 +208,7 @@ extern "C" {
   void test_println(const char *msgp);
   void test_emit_token(char token);
   void test_emit_token_i(char token);
-  msg_t test_execute(BaseSequentialStream *stream);
+  msg_t test_execute(BaseSequentialStream *stream, const testsuite_t *tsp);
 #ifdef __cplusplus
 }
 #endif
@@ -181,12 +217,6 @@ extern "C" {
 /* Module inline functions.                                                  */
 /*===========================================================================*/
 
-/*===========================================================================*/
-/* Late inclusions.                                                          */
-/*===========================================================================*/
-
-#include "test_root.h"
-
-#endif /* _CH_TEST_H_ */
+#endif /* CH_TEST_H */
 
 /** @} */

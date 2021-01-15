@@ -15,15 +15,15 @@
 */
 
 /**
- * @file    stm32_dma2d.h
+ * @file    hal_stm32_dma2d.h
  * @brief   DMA2D/Chrom-ART driver.
  *
  * @addtogroup dma2d
  * @{
  */
 
-#ifndef _STM32_DMA2D_H_
-#define _STM32_DMA2D_H_
+#ifndef HAL_STM32_DMA2D_H_
+#define HAL_STM32_DMA2D_H_
 
 /**
  * @brief   Using the DMA2D driver.
@@ -659,6 +659,6 @@ extern "C" {
 
 #endif  /* STM32_DMA2D_USE_DMA2D */
 
-#endif  /* _STM32_DMA2D_H_ */
+#endif  /* HAL_STM32_DMA2D_H_ */
 
 /** @} */

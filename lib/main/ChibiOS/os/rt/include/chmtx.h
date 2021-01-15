@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio.
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio.
 
     This file is part of ChibiOS.
 
@@ -25,8 +25,8 @@
  * @{
  */
 
-#ifndef _CHMTX_H_
-#define _CHMTX_H_
+#ifndef CHMTX_H
+#define CHMTX_H
 
 #if (CH_CFG_USE_MUTEXES == TRUE) || defined(__DOXYGEN__)
 
@@ -55,14 +55,14 @@ typedef struct ch_mutex mutex_t;
  * @brief   Mutex structure.
  */
 struct ch_mutex {
-  threads_queue_t       m_queue;    /**< @brief Queue of the threads sleeping
+  threads_queue_t       queue;      /**< @brief Queue of the threads sleeping
                                                 on this mutex.              */
-  thread_t              *m_owner;   /**< @brief Owner @p thread_t pointer or
+  thread_t              *owner;     /**< @brief Owner @p thread_t pointer or
                                                 @p NULL.                    */
-  mutex_t               *m_next;    /**< @brief Next @p mutex_t into an
+  mutex_t               *next;      /**< @brief Next @p mutex_t into an
                                                 owner-list or @p NULL.      */
 #if (CH_CFG_USE_MUTEXES_RECURSIVE == TRUE) || defined(__DOXYGEN__)
-  cnt_t                 m_cnt;      /**< @brief Mutex recursion counter.    */
+  cnt_t                 cnt;        /**< @brief Mutex recursion counter.    */
 #endif
 };
 
@@ -78,9 +78,9 @@ struct ch_mutex {
  * @param[in] name      the name of the mutex variable
  */
 #if (CH_CFG_USE_MUTEXES_RECURSIVE == TRUE) || defined(__DOXYGEN__)
-#define _MUTEX_DATA(name) {_THREADS_QUEUE_DATA(name.m_queue), NULL, NULL, 0}
+#define _MUTEX_DATA(name) {_THREADS_QUEUE_DATA(name.queue), NULL, NULL, 0}
 #else
-#define _MUTEX_DATA(name) {_THREADS_QUEUE_DATA(name.m_queue), NULL, NULL}
+#define _MUTEX_DATA(name) {_THREADS_QUEUE_DATA(name.queue), NULL, NULL}
 #endif
 
 /**
@@ -96,7 +96,6 @@ struct ch_mutex {
 /* External declarations.                                                    */
 /*===========================================================================*/
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -108,6 +107,7 @@ extern "C" {
   void chMtxUnlock(mutex_t *mp);
   void chMtxUnlockS(mutex_t *mp);
   void chMtxUnlockAll(void);
+  void chMtxUnlockAllS(void);
 #ifdef __cplusplus
 }
 #endif
@@ -123,14 +123,29 @@ extern "C" {
  * @param[out] mp       pointer to a @p mutex_t structure
  * @return              The mutex queue status.
  *
- * @deprecated
  * @sclass
  */
 static inline bool chMtxQueueNotEmptyS(mutex_t *mp) {
 
   chDbgCheckClassS();
 
-  return queue_notempty(&mp->m_queue);
+  return queue_notempty(&mp->queue);
+}
+
+/**
+ * @brief   Returns the mutex owner thread.
+ *
+ * @param[out] mp       pointer to a @p mutex_t structure
+ * @return              The owner thread.
+ * @retval NULL         if the mutex is not owned.
+ *
+ * @iclass
+ */
+static inline thread_t *chMtxGetOwnerI(mutex_t *mp) {
+
+  chDbgCheckClassI();
+
+  return mp->owner;
 }
 
 /**
@@ -139,15 +154,15 @@ static inline bool chMtxQueueNotEmptyS(mutex_t *mp) {
  * @return              A pointer to the next mutex in the stack.
  * @retval NULL         if the stack is empty.
  *
- * @sclass
+ * @xclass
  */
-static inline mutex_t *chMtxGetNextMutexS(void) {
+static inline mutex_t *chMtxGetNextMutexX(void) {
 
-  return chThdGetSelfX()->p_mtxlist;
+  return chThdGetSelfX()->mtxlist;
 }
 
 #endif /* CH_CFG_USE_MUTEXES == TRUE */
 
-#endif /* _CHMTX_H_ */
+#endif /* CHMTX_H */
 
 /** @} */

@@ -15,8 +15,8 @@
 */
 
 /**
- * @file    SPC560BCxx/hal_lld.c
- * @brief   SPC560B/Cxx HAL subsystem low level driver source.
+ * @file    SPC56ECxx/hal_lld.c
+ * @brief   SPC56ECxx HAL subsystem low level driver source.
  *
  * @addtogroup HAL
  * @{
@@ -74,23 +74,21 @@ void hal_lld_init(void) {
      initialized here because in the OSAL layer the system clock frequency
      is not yet known.*/
   n = halSPCGetSystemClock() / OSAL_ST_FREQUENCY;
-  asm volatile ("mtspr   22, %[n]           \t\n"   /* Init. DEC register.  */
-                "mtspr   54, %[n]           \t\n"   /* Init. DECAR register.*/
-                "lis     %%r3, 0x0440       \t\n"   /* DIE ARE bits.        */
-                "mtspr   340, %%r3"                 /* TCR register.        */
-                : : [n] "r" (n) : "r3");
+  port_write_spr(22, n);                            /* Init. DEC register.  */
+  port_write_spr(54, n);                            /* Init. DECAR register.*/
+  n = 0x04400000;                                   /* DIE ARE bits.        */
+  port_write_spr(340, n);                           /* TCR register.        */
 
   /* TB counter enabled for debug and measurements.*/
-  asm volatile ("li      %%r3, 0x4000       \t\n"   /* TBEN bit.            */
-                "mtspr   1008, %%r3"                /* HID0 register.       */
-                : : : "r3");
+  n = 0x4000;                                       /* TBEN bit.            */
+  port_write_spr(1008, n);                          /* HID0 register.       */
 
   /* EDMA initialization.*/
   edmaInit();
 }
 
 /**
- * @brief   SPC560B/Cxx clocks and PLL initialization.
+ * @brief   SPC56ECxx clocks and PLL initialization.
  * @note    All the involved constants come from the file @p board.h and
  *          @p hal_lld.h
  * @note    This function must be invoked only after the system reset.

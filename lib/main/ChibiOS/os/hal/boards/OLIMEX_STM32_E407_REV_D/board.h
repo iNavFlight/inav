@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2016 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -21,6 +21,10 @@
 
 #ifndef BOARD_H
 #define BOARD_H
+
+/*===========================================================================*/
+/* Driver constants.                                                         */
+/*===========================================================================*/
 
 /*
  * Setup for Olimex STM32-E407 (rev.D) board.
@@ -232,7 +236,6 @@
 #define LINE_JTAG_TMS               PAL_LINE(GPIOA, 13U)
 #define LINE_JTAG_TCK               PAL_LINE(GPIOA, 14U)
 #define LINE_JTAG_TDI               PAL_LINE(GPIOA, 15U)
-
 #define LINE_USB_FS_BUSON           PAL_LINE(GPIOB, 0U)
 #define LINE_USB_FS_FAULT           PAL_LINE(GPIOB, 1U)
 #define LINE_BOOT1                  PAL_LINE(GPIOB, 2U)
@@ -245,7 +248,6 @@
 #define LINE_OTG_HS_VBUS            PAL_LINE(GPIOB, 13U)
 #define LINE_OTG_HS_DM              PAL_LINE(GPIOB, 14U)
 #define LINE_OTG_HS_DP              PAL_LINE(GPIOB, 15U)
-
 #define LINE_ETH_RMII_MDC           PAL_LINE(GPIOC, 1U)
 #define LINE_SPI2_MISO              PAL_LINE(GPIOC, 2U)
 #define LINE_SPI2_MOSI              PAL_LINE(GPIOC, 3U)
@@ -261,20 +263,30 @@
 #define LINE_LED                    PAL_LINE(GPIOC, 13U)
 #define LINE_OSC32_IN               PAL_LINE(GPIOC, 14U)
 #define LINE_OSC32_OUT              PAL_LINE(GPIOC, 15U)
-
 #define LINE_SD_CMD                 PAL_LINE(GPIOD, 2U)
-
-
 #define LINE_USB_HS_FAULT           PAL_LINE(GPIOF, 11U)
-
 #define LINE_SPI2_CS                PAL_LINE(GPIOG, 10U)
 #define LINE_ETH_RMII_TXEN          PAL_LINE(GPIOG, 11U)
 #define LINE_ETH_RMII_TXD0          PAL_LINE(GPIOG, 13U)
 #define LINE_ETH_RMII_TXD1          PAL_LINE(GPIOG, 14U)
-
 #define LINE_OSC_IN                 PAL_LINE(GPIOH, 0U)
 #define LINE_OSC_OUT                PAL_LINE(GPIOH, 1U)
 
+/*===========================================================================*/
+/* Driver pre-compile time settings.                                         */
+/*===========================================================================*/
+
+/*===========================================================================*/
+/* Derived constants and error checks.                                       */
+/*===========================================================================*/
+
+/*===========================================================================*/
+/* Driver data structures and types.                                         */
+/*===========================================================================*/
+
+/*===========================================================================*/
+/* Driver macros.                                                            */
+/*===========================================================================*/
 
 /*
  * I/O ports initial setup, this configuration is established soon after reset
@@ -1351,6 +1363,9 @@
                                      PIN_AFIO_AF(GPIOI_PIN14, 0U) |         \
                                      PIN_AFIO_AF(GPIOI_PIN15, 0U))
 
+/*===========================================================================*/
+/* External declarations.                                                    */
+/*===========================================================================*/
 
 #if !defined(_FROM_ASM_)
 #ifdef __cplusplus

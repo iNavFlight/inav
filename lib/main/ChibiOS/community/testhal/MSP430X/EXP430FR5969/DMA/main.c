@@ -35,6 +35,8 @@ const char * test_6_msg = "TEST 6: Attempt to claim already claimed DMA "
                           "and succeed.\r\n";
 const char * test_7_msg = "TEST 7: Claim DMA channel 1, perform a Word-to-word "
                           "memcpy, and release it\r\n";
+const char * test_8_msg = "TEST 8: Claim all three DMA channels, try to issue dmaRequest, "
+                          "fail\r\n";
 
 const char * succeed_string = "SUCCESS\r\n\r\n";
 const char * fail_string    = "FAILURE\r\n\r\n";
@@ -43,6 +45,8 @@ char instring[256];
 char outstring[256];
 msp430x_dma_req_t * request;
 uint8_t cb_arg = 1;
+bool result;
+int result_i;
 
 void dma_callback_test(void * args) {
 
@@ -120,6 +124,8 @@ msp430x_dma_req_t test_5_req = {
 };
 
 msp430x_dma_ch_t ch = { NULL, 0, NULL };
+msp430x_dma_ch_t ch1 = { NULL, 0, NULL };
+msp430x_dma_ch_t ch2 = { NULL, 0, NULL };
 
 /*
  * Thread 2.
@@ -146,7 +152,9 @@ THD_FUNCTION(Thread1, arg) {
       chnWrite(&SD0, (const uint8_t *)fail_string, strlen(fail_string));
     }
     request = &test_1_req;
-    dmaRequest(request, TIME_INFINITE);
+    chSysLock();
+    dmaRequestS(request, TIME_INFINITE);
+    chSysUnlock();
     if (strcmp("After DMA test  \r\n", outstring)) {
       chnWrite(&SD0, (const uint8_t *)fail_string, strlen(fail_string));
     }
@@ -162,7 +170,9 @@ THD_FUNCTION(Thread1, arg) {
       chnWrite(&SD0, (const uint8_t *)fail_string, strlen(fail_string));
     }
     request = &test_2_req;
-    dmaRequest(request, TIME_INFINITE);
+    chSysLock();
+    dmaRequestS(request, TIME_INFINITE);
+    chSysUnlock();
     if (strcmp("After DMA test  \r\n", outstring)) {
       chnWrite(&SD0, (const uint8_t *)fail_string, strlen(fail_string));
     }
@@ -178,7 +188,9 @@ THD_FUNCTION(Thread1, arg) {
       chnWrite(&SD0, (const uint8_t *)fail_string, strlen(fail_string));
     }
     request = &test_3_req;
-    dmaRequest(request, TIME_INFINITE);
+    chSysLock();
+    dmaRequestS(request, TIME_INFINITE);
+    chSysUnlock();
     if (strcmp("AAAAAAAAAAAAAAAA\r\n", outstring)) {
       chnWrite(&SD0, (const uint8_t *)fail_string, strlen(fail_string));
     }
@@ -196,7 +208,9 @@ THD_FUNCTION(Thread1, arg) {
       chnWrite(&SD0, (const uint8_t *)fail_string, strlen(fail_string));
     }
     request = &test_4_req;
-    dmaRequest(request, TIME_INFINITE);
+    chSysLock();
+    dmaRequestS(request, TIME_INFINITE);
+    chSysUnlock();
     if (strcmp("After DMA test  \r\n", outstring) || cb_arg) {
       chnWrite(&SD0, (const uint8_t *)fail_string, strlen(fail_string));
     }
@@ -213,7 +227,9 @@ THD_FUNCTION(Thread1, arg) {
       chnWrite(&SD0, (const uint8_t *)fail_string, strlen(fail_string));
     }
     request = &test_5_req;
-    dmaAcquire(&ch, 0);
+    chSysLock();
+    dmaAcquireI(&ch, 0);
+    chSysUnlock();
     dmaTransfer(&ch, request);
     if (strcmp("After DMA test  \r\n", outstring)) {
       chnWrite(&SD0, (const uint8_t *)fail_string, strlen(fail_string));
@@ -225,11 +241,17 @@ THD_FUNCTION(Thread1, arg) {
     /* Test 6 - Attempt to claim DMA channel 0, fail, release it, attempt to
      * claim it again */
     chnWrite(&SD0, (const uint8_t *)test_6_msg, strlen(test_6_msg));
-    if (!dmaAcquire(&ch, 0)) {
+    chSysLock();
+    result = dmaAcquireI(&ch, 0);
+    chSysUnlock();
+    if (!result) {
       chnWrite(&SD0, (const uint8_t *)fail_string, strlen(fail_string));
     }
     dmaRelease(&ch);
-    if (dmaAcquire(&ch, 0)) {
+    chSysLock();
+    result = dmaAcquireI(&ch, 0);
+    chSysUnlock();
+    if (result) {
       chnWrite(&SD0, (const uint8_t *)fail_string, strlen(fail_string));
     }
     else {
@@ -246,7 +268,9 @@ THD_FUNCTION(Thread1, arg) {
       chnWrite(&SD0, (const uint8_t *)fail_string, strlen(fail_string));
     }
     request = &test_5_req;
-    dmaAcquire(&ch, 1);
+    chSysLock();
+    dmaAcquireI(&ch, 1);
+    chSysUnlock();
     dmaTransfer(&ch, request);
     if (strcmp("After DMA test  \r\n", outstring)) {
       chnWrite(&SD0, (const uint8_t *)fail_string, strlen(fail_string));
@@ -255,6 +279,40 @@ THD_FUNCTION(Thread1, arg) {
       chnWrite(&SD0, (const uint8_t *)succeed_string, strlen(succeed_string));
     }
     dmaRelease(&ch);
+    
+    /* Test 8 - Claim all 3 DMA channels, attempt dmaRequest, fail */
+    chnWrite(&SD0, (const uint8_t *)test_8_msg, strlen(test_8_msg));
+    chSysLock();
+    result = dmaAcquireI(&ch, 0);
+    chSysUnlock();
+    if (result) {
+      chnWrite(&SD0, (const uint8_t *)fail_string, strlen(fail_string));
+    }
+    chSysLock();
+    result = dmaAcquireI(&ch1, 1);
+    chSysUnlock();
+    if (result) {
+      chnWrite(&SD0, (const uint8_t *)fail_string, strlen(fail_string));
+    }
+    chSysLock();
+    result = dmaAcquireI(&ch2, 2);
+    chSysUnlock();
+    if (result) {
+      chnWrite(&SD0, (const uint8_t *)fail_string, strlen(fail_string));
+    }
+    chSysLock();
+    result_i = dmaRequestS(request, TIME_IMMEDIATE);
+    chSysUnlock();
+    if (result_i > 0) {
+      chnWrite(&SD0, (const uint8_t *)fail_string, strlen(fail_string));
+    }
+    else {
+      chnWrite(&SD0, (const uint8_t *)succeed_string, strlen(succeed_string));
+    }
+    dmaRelease(&ch);
+    dmaRelease(&ch1);
+    dmaRelease(&ch2);
+
   }
 }
 

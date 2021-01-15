@@ -40,10 +40,10 @@ int main(void) {
   palSetPad(IOPORT1, LED1);
 
   WDGConfig WDG_config = {
-    .flags.pause_on_sleep = 0,
-    .flags.pause_on_halt  = 0,
-    .timeout_ms           = 5000,
-    .callback             = timeout_callback
+    .pause_on_sleep = 0,
+    .pause_on_halt  = 0,
+    .timeout_ms     = 5000,
+    .callback       = timeout_callback
   };
 
   wdgStart(&WDGD1, &WDG_config);

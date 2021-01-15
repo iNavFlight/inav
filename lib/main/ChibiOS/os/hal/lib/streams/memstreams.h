@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -18,12 +18,12 @@
  * @file    memstreams.h
  * @brief   Memory streams structures and macros.
  
- * @addtogroup memory_streams
+ * @addtogroup HAL_MEMORY_STREAMS
  * @{
  */
 
-#ifndef _MEMSTREAMS_H_
-#define _MEMSTREAMS_H_
+#ifndef MEMSTREAMS_H
+#define MEMSTREAMS_H
 
 /*===========================================================================*/
 /* Driver constants.                                                         */
@@ -90,6 +90,6 @@ extern "C" {
 }
 #endif
 
-#endif /* _MEMSTREAMS_H_ */
+#endif /* MEMSTREAMS_H */
 
 /** @} */

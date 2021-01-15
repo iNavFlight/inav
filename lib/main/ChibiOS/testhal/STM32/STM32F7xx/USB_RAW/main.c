@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@
 
 #include "ch.h"
 #include "hal.h"
-#include "test.h"
 
 #include "usbcfg.h"
 
@@ -41,7 +40,7 @@ static const uint8_t txbuf[] =
     "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
     "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
-static uint8_t rxbuf[1024];
+static uint8_t rxbuf[1024 + 1];
 
 /*
  * USB writer. This thread writes data to the USB at maximum rate.
@@ -55,7 +54,7 @@ static THD_FUNCTION(Writer, arg) {
   chRegSetThreadName("writer");
   while (true) {
     msg_t msg = usbTransmit(&USBD2, USBD2_DATA_REQUEST_EP,
-                            txbuf, sizeof (txbuf) - 1);
+                            txbuf, sizeof (txbuf));
     if (msg == MSG_RESET)
       chThdSleepMilliseconds(500);
   }
@@ -73,7 +72,7 @@ static THD_FUNCTION(Reader, arg) {
   chRegSetThreadName("reader");
   while (true) {
     msg_t msg = usbReceive(&USBD2, USBD2_DATA_AVAILABLE_EP,
-                           rxbuf, sizeof (rxbuf) - 1);
+                           rxbuf, sizeof (rxbuf));
     if (msg == MSG_RESET)
       chThdSleepMilliseconds(500);
   }

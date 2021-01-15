@@ -1,22 +1,19 @@
 # List of all the SPC560BCxx platform files.
 PLATFORMSRC = ${CHIBIOS}/os/hal/ports/SPC5/SPC560BCxx/hal_lld.c \
-              ${CHIBIOS}/os/hal/ports/SPC5/SPC5xx/EDMA_v1/spc5_edma.c \
-              ${CHIBIOS}/os/hal/ports/SPC5/SPC5xx/ADC_v1/hal_adc_lld.c \
-              ${CHIBIOS}/os/hal/ports/SPC5/SPC5xx/eMIOS_v1/spc5_emios.c \
-              ${CHIBIOS}/os/hal/ports/SPC5/SPC5xx/eMIOS_v1/hal_icu_lld.c \
-              ${CHIBIOS}/os/hal/ports/SPC5/SPC5xx/eMIOS_v1/hal_pwm_lld.c \
-              ${CHIBIOS}/os/hal/ports/SPC5/SPC5xx/FlexCAN_v1/hal_can_lld.c \
-              ${CHIBIOS}/os/hal/ports/SPC5/SPC5xx/SIUL_v1/hal_pal_lld.c \
-              ${CHIBIOS}/os/hal/ports/SPC5/SPC5xx/LINFlex_v1/hal_serial_lld.c \
-              ${CHIBIOS}/os/hal/ports/SPC5/SPC5xx/DSPI_v1/hal_spi_lld.c \
-              ${CHIBIOS}/os/hal/ports/SPC5/SPC5xx/STM_v1/hal_st_lld.c
+              ${CHIBIOS}/os/hal/ports/SPC5/LLD/EDMA_v1/spc5_edma.c \
+              ${CHIBIOS}/os/hal/ports/SPC5/LLD/SIUL_v1/hal_pal_lld.c \
+              ${CHIBIOS}/os/hal/ports/SPC5/LLD/LINFlex_v1/hal_serial_lld.c \
+              ${CHIBIOS}/os/hal/ports/SPC5/LLD/DSPI_v1/hal_spi_lld.c \
+              ${CHIBIOS}/os/hal/ports/SPC5/LLD/STM_v1/hal_st_lld.c
 
 # Required include directories
 PLATFORMINC = ${CHIBIOS}/os/hal/ports/SPC5/SPC560BCxx \
-              ${CHIBIOS}/os/hal/ports/SPC5/SPC5xx/EDMA_v1 \
-              ${CHIBIOS}/os/hal/ports/SPC5/SPC5xx/FlexCAN_v1 \
-              ${CHIBIOS}/os/hal/ports/SPC5/SPC5xx/SIUL_v1 \
-              ${CHIBIOS}/os/hal/ports/SPC5/SPC5xx/eMIOS_v1 \
-              ${CHIBIOS}/os/hal/ports/SPC5/SPC5xx/LINFlex_v1 \
-              ${CHIBIOS}/os/hal/ports/SPC5/SPC5xx/DSPI_v1 \
-              ${CHIBIOS}/os/hal/ports/SPC5/SPC5xx/STM_v1
+              ${CHIBIOS}/os/hal/ports/SPC5/LLD/EDMA_v1 \
+              ${CHIBIOS}/os/hal/ports/SPC5/LLD/SIUL_v1 \
+              ${CHIBIOS}/os/hal/ports/SPC5/LLD/LINFlex_v1 \
+              ${CHIBIOS}/os/hal/ports/SPC5/LLD/DSPI_v1 \
+              ${CHIBIOS}/os/hal/ports/SPC5/LLD/STM_v1
+
+# Shared variables
+ALLCSRC += $(PLATFORMSRC)
+ALLINC  += $(PLATFORMINC)

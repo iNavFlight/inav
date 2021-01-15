@@ -159,8 +159,8 @@ typedef struct {
 extern "C" {
 #endif
 void dmaInit(void);
-bool dmaRequest(msp430x_dma_req_t * request, systime_t timeout);
-bool dmaAcquire(msp430x_dma_ch_t * channel, uint8_t index);
+int dmaRequestS(msp430x_dma_req_t * request, systime_t timeout);
+bool dmaAcquireI(msp430x_dma_ch_t * channel, uint8_t index);
 void dmaTransfer(msp430x_dma_ch_t * channel, msp430x_dma_req_t * request);
 void dmaRelease(msp430x_dma_ch_t * channel);
 

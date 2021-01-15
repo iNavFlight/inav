@@ -14,8 +14,8 @@
     limitations under the License.
 */
 
-#ifndef _CRC_H_
-#define _CRC_H_
+#ifndef HAL_CRC_H_
+#define HAL_CRC_H_
 
 #if (HAL_USE_CRC == TRUE) || defined(__DOXYGEN__)
 
@@ -153,6 +153,6 @@ extern "C" {
 
 #endif /* HAL_USE_CRC */
 
-#endif /* _CRC_H_ */
+#endif /* HAL_CRC_H_ */
 
 /** @} */

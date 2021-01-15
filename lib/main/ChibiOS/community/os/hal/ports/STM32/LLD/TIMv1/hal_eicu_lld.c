@@ -1057,75 +1057,75 @@ void eicu_lld_stop(EICUDriver *eicup) {
     if (&EICUD1 == eicup) {
       nvicDisableVector(STM32_TIM1_UP_NUMBER);
       nvicDisableVector(STM32_TIM1_CC_NUMBER);
-      rccDisableTIM1(FALSE);
+      rccDisableTIM1();
     }
 #endif
 #if STM32_EICU_USE_TIM2
     if (&EICUD2 == eicup) {
       nvicDisableVector(STM32_TIM2_NUMBER);
-      rccDisableTIM2(FALSE);
+      rccDisableTIM2();
     }
 #endif
 #if STM32_EICU_USE_TIM3
     if (&EICUD3 == eicup) {
       nvicDisableVector(STM32_TIM3_NUMBER);
-      rccDisableTIM3(FALSE);
+      rccDisableTIM3();
     }
 #endif
 #if STM32_EICU_USE_TIM4
     if (&EICUD4 == eicup) {
       nvicDisableVector(STM32_TIM4_NUMBER);
-      rccDisableTIM4(FALSE);
+      rccDisableTIM4();
     }
 #endif
 #if STM32_EICU_USE_TIM5
     if (&EICUD5 == eicup) {
       nvicDisableVector(STM32_TIM5_NUMBER);
-      rccDisableTIM5(FALSE);
+      rccDisableTIM5();
     }
 #endif
 #if STM32_EICU_USE_TIM8
     if (&EICUD8 == eicup) {
       nvicDisableVector(STM32_TIM8_UP_NUMBER);
       nvicDisableVector(STM32_TIM8_CC_NUMBER);
-      rccDisableTIM8(FALSE);
+      rccDisableTIM8();
     }
 #endif
 #if STM32_EICU_USE_TIM9
     if (&EICUD9 == eicup) {
       nvicDisableVector(STM32_TIM9_NUMBER);
-      rccDisableTIM9(FALSE);
+      rccDisableTIM9();
     }
 #endif
 #if STM32_EICU_USE_TIM12
     if (&EICUD12 == eicup) {
       nvicDisableVector(STM32_TIM12_NUMBER);
-      rccDisableTIM12(FALSE);
+      rccDisableTIM12();
     }
 #endif
   }
 #if STM32_EICU_USE_TIM10
     if (&EICUD10 == eicup) {
       nvicDisableVector(STM32_TIM10_NUMBER);
-      rccDisableTIM10(FALSE);
+      rccDisableTIM10();
     }
 #endif
 #if STM32_EICU_USE_TIM11
     if (&EICUD11 == eicup) {
       nvicDisableVector(STM32_TIM11_NUMBER);
-      rccDisableTIM11(FALSE);
+      rccDisableTIM11();
     }
 #endif
 #if STM32_EICU_USE_TIM13
     if (&EICUD13 == eicup) {
       nvicDisableVector(STM32_TIM13_NUMBER);
-      rccDisableTIM13(FALSE);
+      rccDisableTIM13();
     }
 #endif
 #if STM32_EICU_USE_TIM14
     if (&EICUD14 == eicup) {
       nvicDisableVector(STM32_TIM14_NUMBER);
-      rccDisableTIM14(FALSE);
+      rccDisableTIM14();
     }
 #endif
 }

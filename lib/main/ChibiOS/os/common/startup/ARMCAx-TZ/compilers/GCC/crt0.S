@@ -1,0 +1,170 @@
+/*
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+*/
+
+/**
+ * @file    crt0.S
+ * @brief   Generic ARM startup file.
+ *
+ * @addtogroup ARMCAx_GCC_STARTUP
+ * @{
+ */
+
+/**
+ * @brief   Constructors invocation switch.
+ */
+#if !defined(CRT0_CALL_CONSTRUCTORS) || defined(__DOXYGEN__)
+#define CRT0_CALL_CONSTRUCTORS              TRUE
+#endif
+
+/**
+ * @brief   Destructors invocation switch.
+ */
+#if !defined(CRT0_CALL_DESTRUCTORS) || defined(__DOXYGEN__)
+#define CRT0_CALL_DESTRUCTORS               TRUE
+#endif
+
+#if !defined(__DOXYGEN__)
+
+                .set    MODE_USR, 0x10
+                .set    MODE_FIQ, 0x11
+                .set    MODE_IRQ, 0x12
+                .set    MODE_SVC, 0x13
+                .set    MODE_MON, 0x16
+                .set    MODE_ABT, 0x17
+                .set    MODE_UND, 0x1B
+                .set    MODE_SYS, 0x1F
+
+                .set    I_BIT, 0x80
+                .set    F_BIT, 0x40
+
+                .text
+                .code   32
+                .balign 4
+
+/*
+ * Reset handler.
+ */
+                .global Reset_Handler
+Reset_Handler:
+                /*
+                 * Stack pointers initialization.
+                 */
+                ldr     r0, =__stacks_end__
+                /* Undefined */
+                msr     CPSR_c, #MODE_UND | I_BIT | F_BIT
+                mov     sp, r0
+                ldr     r1, =__und_stack_size__
+                sub     r0, r0, r1
+                /* Abort */
+                msr     CPSR_c, #MODE_ABT | I_BIT | F_BIT
+                mov     sp, r0
+                ldr     r1, =__abt_stack_size__
+                sub     r0, r0, r1
+                /* FIQ */
+                msr     CPSR_c, #MODE_FIQ | I_BIT | F_BIT
+                mov     sp, r0
+                ldr     r1, =__fiq_stack_size__
+                sub     r0, r0, r1
+                /* IRQ */
+                msr     CPSR_c, #MODE_IRQ | I_BIT | F_BIT
+                mov     sp, r0
+                ldr     r1, =__irq_stack_size__
+                sub     r0, r0, r1
+                /* Supervisor */
+                msr     CPSR_c, #MODE_SVC | I_BIT | F_BIT
+                mov     sp, r0
+                ldr     r1, =__svc_stack_size__
+                sub     r0, r0, r1
+                /* Monitor */
+                msr     CPSR_c, #MODE_MON | I_BIT | F_BIT
+                mov     sp, r0
+                ldr     r1, =__mon_stack_size__
+                sub     r0, r0, r1
+                /* System */
+                msr     CPSR_c, #MODE_SYS | I_BIT | F_BIT
+                mov     sp, r0
+//                ldr     r1, =__sys_stack_size__
+//                sub     r0, r0, r1
+                /*
+                 * Early initialization.
+                 */
+                bl      __early_init
+
+                /*
+                 * Data initialization.
+                 * NOTE: It assumes that the DATA size is a multiple of 4.
+                 */
+                ldr     r1, =_textdata
+                ldr     r2, =_data
+                ldr     r3, =_edata
+dataloop:
+                cmp     r2, r3
+                ldrlo   r0, [r1], #4
+                strlo   r0, [r2], #4
+                blo     dataloop
+                /*
+                 * BSS initialization.
+                 * NOTE: It assumes that the BSS size is a multiple of 4.
+                 */
+                mov     r0, #0
+                ldr     r1, =_bss_start
+                ldr     r2, =_bss_end
+bssloop:
+                cmp     r1, r2
+                strlo   r0, [r1], #4
+                blo     bssloop
+                /*
+                 * Late initialization.
+                 */
+                bl      __core_init
+                bl      __late_init
+#if 0 /* Constructors initialized after halInit() */
+#if CRT0_CALL_CONSTRUCTORS == TRUE
+                /* Constructors invocation.*/
+                ldr     r4, =__init_array_start
+                ldr     r5, =__init_array_end
+initloop:
+                cmp     r4, r5
+                bge     endinitloop
+                ldr     r1, [r4], #4
+                blx     r1
+                b       initloop
+endinitloop:
+#endif /* CRT0_CALL_CONSTRUCTORS */
+#endif /* if 0 */
+                /*
+                 * Main program invocation.
+                 */
+                bl      main
+
+#if CRT0_CALL_DESTRUCTORS == TRUE
+                /* Destructors invocation.*/
+                ldr     r4, =__fini_array_start
+                ldr     r5, =__fini_array_end
+finiloop:
+                cmp     r4, r5
+                bge     endfiniloop
+                ldr     r1, [r4], #4
+                blx     r1
+                b       finiloop
+endfiniloop:
+#endif
+
+                b       __default_exit
+
+#endif /* !defined(__DOXYGEN__) */
+
+/** @} */

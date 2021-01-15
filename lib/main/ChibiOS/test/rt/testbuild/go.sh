@@ -1,7 +1,7 @@
 #!/bin/bash
 export XOPT XDEFS
 
-XOPT="-ggdb -O0 -fomit-frame-pointer -DDELAY_BETWEEN_TESTS=0 -fprofile-arcs -ftest-coverage"
+XOPT="-ggdb -O0 -fomit-frame-pointer -DTEST_DELAY_BETWEEN_TESTS=0 -fprofile-arcs -ftest-coverage"
 XDEFS=""
 
 function clean() {
@@ -24,7 +24,7 @@ function compile() {
 
 function execute_test() {
   echo -n "  * Testing..."
-  if ! ./ch > testlog.txt
+  if ! ./build/ch > testlog.txt
   then
     echo "failed"
     clean
@@ -38,7 +38,7 @@ function coverage() {
   echo -n "  * Coverage..."
   mkdir reports/${1}_gcov 2> /dev/null
   echo "Configuration $2" > gcovlog.txt
-  echo "----------------------------------------------------------------" >> reports/gcovlog.txt
+  echo "----------------------------------------------------------------" >> gcovlog.txt
   if ! make gcov >> gcovlog.txt 2> /dev/null
   then
     echo "failed"
@@ -90,9 +90,9 @@ mkdir reports 2> /dev/null
 test cfg1 ""
 test cfg2 "-DCH_CFG_OPTIMIZE_SPEED=FALSE"
 test cfg3 "-DCH_CFG_TIME_QUANTUM=0"
-test cfg4 "-DCH_CFG_USE_REGISTRY=FALSE"
+test cfg4 "-DCH_CFG_USE_REGISTRY=FALSE -DCH_CFG_USE_DYNAMIC=FALSE"
 test cfg5 "-DCH_CFG_USE_TM=FALSE"
-test cfg6 "-DCH_CFG_USE_SEMAPHORES=FALSE -DCH_CFG_USE_MAILBOXES=FALSE"
+test cfg6 "-DCH_CFG_USE_SEMAPHORES=FALSE -DCH_CFG_USE_MAILBOXES=FALSE -DCH_CFG_USE_OBJ_FIFOS=FALSE"
 test cfg7 "-DCH_CFG_USE_SEMAPHORES_PRIORITY=TRUE"
 test cfg8 "-DCH_CFG_USE_MUTEXES=FALSE -DCH_CFG_USE_CONDVARS=FALSE"
 test cfg9 "-DCH_CFG_USE_MUTEXES_RECURSIVE=TRUE"
@@ -102,21 +102,26 @@ test cfg12 "-DCH_CFG_USE_EVENTS=FALSE"
 test cfg13 "-DCH_CFG_USE_EVENTS_TIMEOUT=FALSE"
 test cfg14 "-DCH_CFG_USE_MESSAGES=FALSE"
 test cfg15 "-DCH_CFG_USE_MESSAGES_PRIORITY=TRUE"
-test cfg16 "-DCH_CFG_USE_MAILBOXES=FALSE"
-test cfg17 "-DCH_CFG_USE_MEMCORE=FALSE -DCH_CFG_USE_MEMPOOLS=FALSE -DCH_CFG_USE_HEAP=FALSE -DCH_CFG_USE_DYNAMIC=FALSE"
-test cfg18 "-DCH_CFG_USE_MEMPOOLS=FALSE -DCH_CFG_USE_HEAP=FALSE -DCH_CFG_USE_DYNAMIC=FALSE"
-test cfg19 "-DCH_CFG_USE_MEMPOOLS=FALSE"
-test cfg20 "-DCH_CFG_USE_HEAP=FALSE"
+test cfg16 "-DCH_CFG_USE_MAILBOXES=FALSE -DCH_CFG_USE_OBJ_FIFOS=FALSE"
+test cfg17 "-DCH_CFG_USE_MEMCORE=FALSE -DCH_CFG_USE_MEMPOOLS=FALSE -DCH_CFG_USE_HEAP=FALSE -DCH_CFG_USE_DYNAMIC=FALSE -DCH_CFG_USE_OBJ_FIFOS=FALSE -DCH_CFG_USE_FACTORY=FALSE"
+test cfg18 "-DCH_CFG_USE_MEMPOOLS=FALSE -DCH_CFG_USE_HEAP=FALSE -DCH_CFG_USE_DYNAMIC=FALSE -DCH_CFG_USE_OBJ_FIFOS=FALSE -DCH_CFG_USE_FACTORY=FALSE"
+test cfg19 "-DCH_CFG_USE_MEMPOOLS=FALSE -DCH_CFG_USE_OBJ_FIFOS=FALSE -DCH_CFG_USE_FACTORY=FALSE"
+test cfg20 "-DCH_CFG_USE_HEAP=FALSE -DCH_CFG_USE_FACTORY=FALSE"
 test cfg21 "-DCH_CFG_USE_DYNAMIC=FALSE"
 test cfg22 "-DCH_DBG_STATISTICS=TRUE"
 test cfg23 "-DCH_DBG_SYSTEM_STATE_CHECK=TRUE"
 test cfg24 "-DCH_DBG_ENABLE_CHECKS=TRUE"
 test cfg25 "-DCH_DBG_ENABLE_ASSERTS=TRUE"
-test cfg26 "-DCH_DBG_ENABLE_TRACE=TRUE"
+test cfg26 "-DCH_DBG_TRACE_MASK=CH_DBG_TRACE_MASK_ALL"
 #test cfg27 "-DCH_DBG_ENABLE_STACK_CHECK=TRUE"
 test cfg28 "-DCH_DBG_FILL_THREADS=TRUE"
 test cfg29 "-DCH_DBG_THREADS_PROFILING=FALSE"
-test cfg30 "-DCH_DBG_SYSTEM_STATE_CHECK=TRUE -DCH_DBG_ENABLE_CHECKS=TRUE -DCH_DBG_ENABLE_ASSERTS=TRUE -DCH_DBG_ENABLE_TRACE=TRUE -DCH_DBG_FILL_THREADS=TRUE"
+test cfg30 "-DCH_DBG_SYSTEM_STATE_CHECK=TRUE -DCH_DBG_ENABLE_CHECKS=TRUE -DCH_DBG_ENABLE_ASSERTS=TRUE -DCH_DBG_TRACE_MASK=CH_DBG_TRACE_MASK_ALL -DCH_DBG_FILL_THREADS=TRUE"
+test cfg31 "-DCH_CFG_ST_RESOLUTION=16"
+test cfg32 "-DCH_CFG_ST_RESOLUTION=16 -DCH_CFG_INTERVALS_SIZE=64"
+test cfg33 "-DCH_CFG_INTERVALS_SIZE=64"
+test cfg34 "-DCH_CFG_USE_OBJ_FIFOS=FALSE"
+test cfg35 "-DCH_CFG_USE_FACTORY=FALSE"
 
 rm *log.txt 2> /dev/null
 echo

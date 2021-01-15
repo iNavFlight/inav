@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@
 
 #include "hal.h"
 #include "ch_test.h"
-#include "test_root.h"
 
 /*===========================================================================*/
 /* Module local definitions.                                                 */
@@ -39,6 +38,11 @@
  */
 unsigned test_step;
 
+/**
+ * @brief   Test result flag.
+ */
+bool test_global_fail;
+
 /*===========================================================================*/
 /* Module local types.                                                       */
 /*===========================================================================*/
@@ -48,7 +52,6 @@ unsigned test_step;
 /*===========================================================================*/
 
 static bool test_local_fail;
-static bool test_global_fail;
 static const char *test_failure_message;
 static char test_tokens_buffer[TEST_MAX_TOKENS];
 static char *test_tokp;
@@ -74,7 +77,7 @@ static void execute_test(const testcase_t *tcp) {
 
   /* Initialization */
   clear_tokens();
-  test_local_fail = FALSE;
+  test_local_fail = false;
 
   if (tcp->setup != NULL)
     tcp->setup();
@@ -91,23 +94,31 @@ static void print_line(void) {
   streamWrite(test_chp, (const uint8_t *)"\r\n", 2);
 }
 
+static void print_fat_line(void) {
+  unsigned i;
+
+  for (i = 0; i < 76; i++)
+    streamPut(test_chp, '=');
+  streamWrite(test_chp, (const uint8_t *)"\r\n", 2);
+}
+
 /*===========================================================================*/
 /* Module exported functions.                                                */
 /*===========================================================================*/
 
 bool _test_fail(const char *msg) {
 
-  test_local_fail = TRUE;
-  test_global_fail = TRUE;
+  test_local_fail      = true;
+  test_global_fail     = true;
   test_failure_message = msg;
-  return TRUE;
+  return true;
 }
 
 bool _test_assert(bool condition, const char *msg) {
 
   if (!condition)
     return _test_fail(msg);
-  return FALSE;
+  return false;
 }
 
 bool _test_assert_sequence(char *expected, const char *msg) {
@@ -123,14 +134,14 @@ bool _test_assert_sequence(char *expected, const char *msg) {
 
   clear_tokens();
 
-  return FALSE;
+  return false;
 }
 
 bool _test_assert_time_window(systime_t start,
                               systime_t end,
                               const char *msg) {
 
-  return _test_assert(osalOsIsTimeWithinX(osalOsGetSystemTimeX(), start, end),
+  return _test_assert(osalTimeIsInRangeX(osalOsGetSystemTimeX(), start, end),
                       msg);
 }
 
@@ -214,52 +225,83 @@ void test_emit_token_i(char token) {
  *
  * @param[in] stream    pointer to a @p BaseSequentialStream object for test
  *                      output
+ * @param[in] tsp       test suite to execute
  * @return              A failure boolean value casted to @p msg_t.
- * @retval FALSE        if no errors occurred.
- * @retval TRUE         if one or more tests failed.
+ * @retval false        if no errors occurred.
+ * @retval true         if one or more tests failed.
  *
  * @api
  */
-msg_t test_execute(BaseSequentialStream *stream) {
-  int i, j;
+msg_t test_execute(BaseSequentialStream *stream, const testsuite_t *tsp) {
+  int tseq, tcase;
 
   test_chp = stream;
   test_println("");
-#if defined(TEST_SUITE_NAME)
-  test_println("*** " TEST_SUITE_NAME);
-#else
-  test_println("*** ChibiOS test suite");
-#endif
+  if (tsp->name != NULL) {
+    test_print("*** ");
+    test_println(tsp->name);
+  }
+  else {
+    test_println("*** Test Suite");
+  }
   test_println("***");
   test_print("*** Compiled:     ");
   test_println(__DATE__ " - " __TIME__);
-#ifdef PLATFORM_NAME
+#if defined(PLATFORM_NAME)
   test_print("*** Platform:     ");
   test_println(PLATFORM_NAME);
 #endif
-#ifdef BOARD_NAME
+#if defined(BOARD_NAME)
   test_print("*** Test Board:   ");
   test_println(BOARD_NAME);
 #endif
+#if defined(TEST_SIZE_REPORT)
+  {
+    extern uint8_t __text_base, __text_end,
+                   _data_start, _data_end,
+                   _bss_start, _bss_end;
+    test_println("***");
+    test_print("*** Text size:    ");
+    test_printn((uint32_t)(&__text_end - &__text_base));
+    test_println(" bytes");
+    test_print("*** Data size:    ");
+    test_printn((uint32_t)(&_data_end - &_data_start));
+    test_println(" bytes");
+    test_print("*** BSS size:     ");
+    test_printn((uint32_t)(&_bss_end - &_bss_start));
+    test_println(" bytes");
+  }
+#endif
+#if defined(TEST_REPORT_HOOK_HEADER)
+  TEST_REPORT_HOOK_HEADER
+#endif
   test_println("");
 
-  test_global_fail = FALSE;
-  i = 0;
-  while (test_suite[i]) {
-    j = 0;
-    while (test_suite[i][j]) {
+  test_global_fail = false;
+  tseq = 0;
+  while (tsp->sequences[tseq] != NULL) {
+#if TEST_SHOW_SEQUENCES == TRUE
+    print_fat_line();
+    test_print("=== Test Sequence ");
+    test_printn(tseq + 1);
+    test_print(" (");
+    test_print(tsp->sequences[tseq]->name);
+    test_println(")");
+#endif
+    tcase = 0;
+    while (tsp->sequences[tseq]->cases[tcase] != NULL) {
       print_line();
       test_print("--- Test Case ");
-      test_printn(i + 1);
+      test_printn(tseq + 1);
       test_print(".");
-      test_printn(j + 1);
+      test_printn(tcase + 1);
       test_print(" (");
-      test_print(test_suite[i][j]->name);
+      test_print(tsp->sequences[tseq]->cases[tcase]->name);
       test_println(")");
 #if TEST_DELAY_BETWEEN_TESTS > 0
       osalThreadSleepMilliseconds(TEST_DELAY_BETWEEN_TESTS);
 #endif
-      execute_test(test_suite[i][j]);
+      execute_test(tsp->sequences[tseq]->cases[tcase]);
       if (test_local_fail) {
         test_print("--- Result: FAILURE (#");
         test_printn(test_step);
@@ -269,11 +311,12 @@ msg_t test_execute(BaseSequentialStream *stream) {
         test_print(test_failure_message);
         test_println("\")");
       }
-      else
+      else {
         test_println("--- Result: SUCCESS");
-      j++;
+      }
+      tcase++;
     }
-    i++;
+    tseq++;
   }
   print_line();
   test_println("");
@@ -282,6 +325,10 @@ msg_t test_execute(BaseSequentialStream *stream) {
     test_println("FAILURE");
   else
     test_println("SUCCESS");
+
+#if defined(TEST_REPORT_HOOK_END)
+  TEST_REPORT_HOOK_END
+#endif
 
   return (msg_t)test_global_fail;
 }

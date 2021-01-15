@@ -6,9 +6,9 @@
   <configuration_settings>
     <templates_path>resources/gencfg/processors/boards/stm32f0xx/templates</templates_path>
     <output_path>..</output_path>
-    <hal_version>3.0.x</hal_version>
+    <hal_version>5.0.x</hal_version>
   </configuration_settings>
-  <board_name>STMicroelectronics NUCLEO32-F031K6</board_name>
+  <board_name>STMicroelectronics STM32 Nucleo32-F031K6</board_name>
   <board_id>ST_NUCLEO32_F031K6</board_id>
   <board_functions></board_functions>
   <subtype>STM32F031x6</subtype>
@@ -173,10 +173,10 @@
       <pin3
         ID="ARD_D13 LED_GREEN"
         Type="PushPull"
-        Level="High"
+        Level="Low"
         Speed="Maximum"
-        Resistor="PullUp"
-        Mode="Input"
+        Resistor="Floating"
+        Mode="Output"
         Alternate="0" />
       <pin4
         ID="ARD_D12"

@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 */
 
 /**
- * @file    stm32_tim.h
+ * @file    TIMv1/stm32_tim.h
  * @brief   STM32 TIM units common header.
  * @note    This file requires definitions from the ST STM32 header file.
  *
@@ -23,8 +23,8 @@
  * @{
  */
 
-#ifndef _STM32_TIM_H_
-#define _STM32_TIM_H_
+#ifndef STM32_TIM_H
+#define STM32_TIM_H
 
 /*===========================================================================*/
 /* Driver constants.                                                         */
@@ -327,7 +327,7 @@
 #define STM32_TIM_DCR_DBA(n)                ((n) << 0)
 
 #define STM32_TIM_DCR_DBL_MASK              (31U << 8)
-#define STM32_TIM_DCR_DBL(b)                ((n) << 8)
+#define STM32_TIM_DCR_DBL(n)                ((n) << 8)
 /** @} */
 
 /**
@@ -370,6 +370,87 @@
 /** @} */
 
 /**
+ * @name    LPTIM_ISR register
+ * @{
+ */
+#define STM32_LPTIM_ISR_CMPM                (1U << 0)
+#define STM32_LPTIM_ISR_ARRM                (1U << 1)
+#define STM32_LPTIM_ISR_EXTTRIG             (1U << 2)
+#define STM32_LPTIM_ISR_CMPOK               (1U << 3)
+#define STM32_LPTIM_ISR_ARROK               (1U << 4)
+#define STM32_LPTIM_ISR_UP                  (1U << 5)
+#define STM32_LPTIM_ISR_DOWN                (1U << 6)
+/** @} */
+
+/**
+ * @name    LPTIM_ICR register
+ * @{
+ */
+#define STM32_LPTIM_ICR_CMPMCF              (1U << 0)
+#define STM32_LPTIM_ICR_ARRMCF              (1U << 1)
+#define STM32_LPTIM_ICR_EXTTRIGCF           (1U << 2)
+#define STM32_LPTIM_ICR_CMPOKCF             (1U << 3)
+#define STM32_LPTIM_ICR_ARROKCF             (1U << 4)
+#define STM32_LPTIM_ICR_UPCF                (1U << 5)
+#define STM32_LPTIM_ICR_DOWNCF              (1U << 6)
+/** @} */
+
+/**
+ * @name    LPTIM_IER register
+ * @{
+ */
+#define STM32_LPTIM_IER_CMPMIE              (1U << 0)
+#define STM32_LPTIM_IER_ARRMIE              (1U << 1)
+#define STM32_LPTIM_IER_EXTTRIGIE           (1U << 2)
+#define STM32_LPTIM_IER_CMPOKIE             (1U << 3)
+#define STM32_LPTIM_IER_ARROKIE             (1U << 4)
+#define STM32_LPTIM_IER_UPIE                (1U << 5)
+#define STM32_LPTIM_IER_DOWNIE              (1U << 6)
+/** @} */
+
+/**
+ * @name    LPTIM_CFGR register
+ * @{
+ */
+#define STM32_LPTIM_CFGR_CKSEL              (1U << 0)
+#define STM32_LPTIM_CFGR_CKPOL_MASK         (3U << 1)
+#define STM32_LPTIM_CFGR_CKPOL(n)           ((n) << 1)
+#define STM32_LPTIM_CFGR_CKFLT_MASK         (3U << 3)
+#define STM32_LPTIM_CFGR_CKFLT(n)           ((n) << 3)
+#define STM32_LPTIM_CFGR_TRGFLT_MASK        (3U << 6)
+#define STM32_LPTIM_CFGR_TRGFLT(n)          ((n) << 6)
+#define STM32_LPTIM_CFGR_PRESC_MASK         (7U << 9)
+#define STM32_LPTIM_CFGR_PRESC(n)           ((n) << 9)
+#define STM32_LPTIM_CFGR_TRIGSEL_MASK       (7U << 13)
+#define STM32_LPTIM_CFGR_TRIGSEL(n)         ((n) << 13)
+#define STM32_LPTIM_CFGR_TRIGEN_MASK        (3U << 17)
+#define STM32_LPTIM_CFGR_TRIGEN(n)          ((n) << 17)
+#define STM32_LPTIM_CFGR_TIMOUT             (1U << 19)
+#define STM32_LPTIM_CFGR_WAVE               (1U << 20)
+#define STM32_LPTIM_CFGR_WAVPOL             (1U << 21)
+#define STM32_LPTIM_CFGR_PRELOAD            (1U << 22)
+#define STM32_LPTIM_CFGR_COUNTMODE          (1U << 23)
+#define STM32_LPTIM_CFGR_ENC                (1U << 24)
+/** @} */
+
+/**
+ * @name    LPTIM_CR register
+ * @{
+ */
+#define STM32_LPTIM_CR_ENABLE               (1U << 0)
+#define STM32_LPTIM_CR_SNGSTRT              (1U << 1)
+#define STM32_LPTIM_CR_CNTSTRT              (1U << 2)
+/** @} */
+
+/**
+ * @name    LPTIM_OR register
+ * @{
+ */
+#define STM32_LPTIM_OR_0                    (1U << 0)
+#define STM32_LPTIM_OR_1                    (1U << 1)
+/** @} */
+
+/**
  * @name    TIM units references
  * @{
  */
@@ -395,6 +476,9 @@
 #define STM32_TIM20     ((stm32_tim_t *)TIM20_BASE)
 #define STM32_TIM21     ((stm32_tim_t *)TIM21_BASE)
 #define STM32_TIM22     ((stm32_tim_t *)TIM22_BASE)
+
+#define STM32_LPTIM1    ((stm32_lptim_t *)LPTIM1_BASE)
+#define STM32_LPTIM2    ((stm32_lptim_t *)LPTIM2_BASE)
 /** @} */
 
 /*===========================================================================*/
@@ -437,6 +521,23 @@ typedef struct {
   volatile uint32_t     CCXR[2];
 } stm32_tim_t;
 
+/**
+ * @brief   STM32 LPTIM registers block.
+ * @note    This is the most general known form, not all timers have
+ *          necessarily all registers and bits.
+ */
+typedef struct {
+  volatile uint32_t     ISR;
+  volatile uint32_t     ICR;
+  volatile uint32_t     IER;
+  volatile uint32_t     CFGR;
+  volatile uint32_t     CR;
+  volatile uint32_t     CMP;
+  volatile uint32_t     ARR;
+  volatile uint32_t     CNT;
+  volatile uint32_t     OR;
+} stm32_lptim_t;
+
 /*===========================================================================*/
 /* Driver macros.                                                            */
 /*===========================================================================*/
@@ -445,6 +546,6 @@ typedef struct {
 /* External declarations.                                                    */
 /*===========================================================================*/
 
-#endif /* _STM32_TIM_H_ */
+#endif /* STM32_TIM_H */
 
 /** @} */

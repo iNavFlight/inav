@@ -118,7 +118,7 @@
  * @note    This increases the size of the compiled executable somewhat.
  * @note    The default is @p FALSE.
  */
-#if !defined(MSP430X_SPI_EXCLUSIVE_DMA) | defined(__DOXYGEN__)
+#if !defined(MSP430X_SPI_EXCLUSIVE_DMA) || defined(__DOXYGEN__)
 #define MSP430X_SPI_EXCLUSIVE_DMA              FALSE
 #endif
 
@@ -630,7 +630,7 @@ extern "C" {
                         const void *txbuf, void *rxbuf);
   void spi_lld_send(SPIDriver *spip, size_t n, const void *txbuf);
   void spi_lld_receive(SPIDriver *spip, size_t n, void *rxbuf);
-  uint16_t spi_lld_polled_exchange(SPIDriver *spip, uint16_t frame);
+  uint8_t spi_lld_polled_exchange(SPIDriver *spip, uint8_t frame);
 #ifdef __cplusplus
 }
 #endif

@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -22,8 +22,8 @@
  * @{
  */
 
-#ifndef _OSAL_H_
-#define _OSAL_H_
+#ifndef OSAL_H
+#define OSAL_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -63,13 +63,12 @@
 #define MSG_WAIT                            (msg_t)-10
 /** @} */
 
-
 /**
  * @name    Special time constants
  * @{
  */
-#define TIME_IMMEDIATE                      ((systime_t)0)
-#define TIME_INFINITE                       ((systime_t)-1)
+#define TIME_IMMEDIATE                      ((sysinterval_t)0)
+#define TIME_INFINITE                       ((sysinterval_t)-1)
 /** @} */
 
 /**
@@ -178,52 +177,9 @@ typedef int32_t msg_t;
 typedef uint32_t systime_t;
 
 /**
- * @brief   Type of a Virtual Timer callback function.
+ * @brief   Type of system time interval.
  */
-typedef void (*vtfunc_t)(void *);
-
-/**
- * @brief   Type of a Virtual Timer structure.
- */
-typedef struct virtual_timer virtual_timer_t;
-
-/**
- * @brief   Virtual timers list header.
- * @note    The content of this structure is not part of the API and should
- *          not be relied upon. Implementers may define this structure in
- *          an entirely different way.
- * @note    The delta list is implemented as a double link bidirectional list
- *          in order to make the unlink time constant, the reset of a virtual
- *          timer is often used in the code.
- */
-typedef struct {
-  virtual_timer_t       *vt_next;   /**< @brief Next timer in the timers
-                                                list.                       */
-  virtual_timer_t       *vt_prev;   /**< @brief Last timer in the timers
-                                                list.                       */
-  systime_t             vt_time;    /**< @brief Must be initialized to -1.  */
-  volatile systime_t    vt_systime; /**< @brief System Time counter.        */
-} virtual_timers_list_t;
-
-/**
- * @extends virtual_timers_list_t
- *
- * @brief   Virtual Timer descriptor structure.
- * @note    The content of this structure is not part of the API and should
- *          not be relied upon. Implementers may define this structure in
- *          an entirely different way.
- */
-struct virtual_timer {
-  virtual_timer_t       *vt_next;   /**< @brief Next timer in the timers
-                                                list.                       */
-  virtual_timer_t       *vt_prev;   /**< @brief Previous timer in the timers
-                                                list.                       */
-  systime_t             vt_time;    /**< @brief Time delta before timeout.  */
-  vtfunc_t              vt_func;    /**< @brief Timer callback function
-                                                pointer.                    */
-  void                  *vt_par;    /**< @brief Timer callback function
-                                                parameter.                  */
-};
+typedef uint32_t sysinterval_t;
 
 /**
  * @brief   Type of realtime counter.
@@ -246,6 +202,11 @@ typedef struct {
 typedef thread_t * thread_reference_t;
 
 /**
+ * @brief   Type of an event flags mask.
+ */
+typedef uint32_t eventflags_t;
+
+/**
  * @brief   Type of an event flags object.
  * @note    The content of this structure is not part of the API and should
  *          not be relied upon. Implementers may define this structure in
@@ -261,11 +222,6 @@ typedef struct event_source event_source_t;
  *          exclusively as an example and for convenience.
  */
 typedef void (*eventcallback_t)(event_source_t *esp);
-
-/**
- * @brief   Type of an event flags mask.
- */
-typedef uint32_t eventflags_t;
 
 /**
  * @brief   Events source object.
@@ -331,7 +287,6 @@ typedef struct {
   }                                                                         \
 } while (false)
 
-
 /**
  * @brief   Function parameters check.
  * @details If the condition check fails then the OSAL panics and halts.
@@ -351,7 +306,6 @@ typedef struct {
     }                                                                       \
   }                                                                         \
 } while (false)
-
 
 /**
  * @brief   I-Class state check.
@@ -406,41 +360,41 @@ typedef struct {
  * @details Converts from seconds to system ticks number.
  * @note    The result is rounded upward to the next tick boundary.
  *
- * @param[in] sec       number of seconds
+ * @param[in] secs      number of seconds
  * @return              The number of ticks.
  *
  * @api
  */
-#define OSAL_S2ST(sec)                                                      \
-  ((systime_t)((uint32_t)(sec) * (uint32_t)OSAL_ST_FREQUENCY))
+#define OSAL_S2I(secs)                                                      \
+  ((sysinterval_t)((uint32_t)(secs) * (uint32_t)OSAL_ST_FREQUENCY))
 
 /**
  * @brief   Milliseconds to system ticks.
  * @details Converts from milliseconds to system ticks number.
  * @note    The result is rounded upward to the next tick boundary.
  *
- * @param[in] msec      number of milliseconds
+ * @param[in] msecs     number of milliseconds
  * @return              The number of ticks.
  *
  * @api
  */
-#define OSAL_MS2ST(msec)                                                    \
-  ((systime_t)((((uint32_t)(msec)) *                                        \
-                ((uint32_t)OSAL_ST_FREQUENCY) + 999UL) / 1000UL))
+#define OSAL_MS2I(msecs)                                                    \
+  ((sysinterval_t)((((((uint32_t)(msecs)) *                                 \
+                  ((uint32_t)OSAL_ST_FREQUENCY)) - 1UL) / 1000UL) + 1UL))
 
 /**
  * @brief   Microseconds to system ticks.
  * @details Converts from microseconds to system ticks number.
  * @note    The result is rounded upward to the next tick boundary.
  *
- * @param[in] usec      number of microseconds
+ * @param[in] usecs     number of microseconds
  * @return              The number of ticks.
  *
  * @api
  */
-#define OSAL_US2ST(usec)                                                    \
-  ((systime_t)((((uint32_t)(usec)) *                                        \
-                ((uint32_t)OSAL_ST_FREQUENCY) + 999999UL) / 1000000UL))
+#define OSAL_US2I(usecs)                                                    \
+  ((sysinterval_t)((((((uint32_t)(usecs)) *                                 \
+                  ((uint32_t)OSAL_ST_FREQUENCY)) - 1UL) / 1000000UL) + 1UL))
 /** @} */
 
 /**
@@ -499,11 +453,11 @@ typedef struct {
  *          system tick clock.
  * @note    The maximum specifiable value is implementation dependent.
  *
- * @param[in] sec       time in seconds, must be different from zero
+ * @param[in] secs      time in seconds, must be different from zero
  *
  * @api
  */
-#define osalThreadSleepSeconds(sec) osalThreadSleep(OSAL_S2ST(sec))
+#define osalThreadSleepSeconds(secs) osalThreadSleep(OSAL_S2I(secs))
 
 /**
  * @brief   Delays the invoking thread for the specified number of
@@ -512,11 +466,11 @@ typedef struct {
  *          system tick clock.
  * @note    The maximum specifiable value is implementation dependent.
  *
- * @param[in] msec      time in milliseconds, must be different from zero
+ * @param[in] msecs     time in milliseconds, must be different from zero
  *
  * @api
  */
-#define osalThreadSleepMilliseconds(msec) osalThreadSleep(OSAL_MS2ST(msec))
+#define osalThreadSleepMilliseconds(msecs) osalThreadSleep(OSAL_MS2I(msecs))
 
 /**
  * @brief   Delays the invoking thread for the specified number of
@@ -525,11 +479,11 @@ typedef struct {
  *          system tick clock.
  * @note    The maximum specifiable value is implementation dependent.
  *
- * @param[in] usec      time in microseconds, must be different from zero
+ * @param[in] usecs     time in microseconds, must be different from zero
  *
  * @api
  */
-#define osalThreadSleepMicroseconds(usec) osalThreadSleep(OSAL_US2ST(usec))
+#define osalThreadSleepMicroseconds(usecs) osalThreadSleep(OSAL_US2I(usecs))
 /** @} */
 
 /*===========================================================================*/
@@ -547,13 +501,13 @@ extern "C" {
   void osalOsTimerHandlerI(void);
   void osalOsRescheduleS(void);
   systime_t osalOsGetSystemTimeX(void);
-  void osalThreadSleepS(systime_t time);
-  void osalThreadSleep(systime_t time);
+  void osalThreadSleepS(sysinterval_t time);
+  void osalThreadSleep(sysinterval_t time);
   msg_t osalThreadSuspendS(thread_reference_t *trp);
-  msg_t osalThreadSuspendTimeoutS(thread_reference_t *trp, systime_t timeout);
+  msg_t osalThreadSuspendTimeoutS(thread_reference_t *trp, sysinterval_t timeout);
   void osalThreadResumeI(thread_reference_t *trp, msg_t msg);
   void osalThreadResumeS(thread_reference_t *trp, msg_t msg);
-  msg_t osalThreadEnqueueTimeoutS(threads_queue_t *tqp, systime_t timeout);
+  msg_t osalThreadEnqueueTimeoutS(threads_queue_t *tqp, sysinterval_t timeout);
   void osalThreadDequeueNextI(threads_queue_t *tqp, msg_t msg);
   void osalThreadDequeueAllI(threads_queue_t *tqp, msg_t msg);
   void osalEventBroadcastFlagsI(event_source_t *esp, eventflags_t flags);
@@ -700,6 +654,35 @@ static inline void osalSysRestoreStatusX(syssts_t sts) {
 }
 
 /**
+ * @brief   Adds an interval to a system time returning a system time.
+ *
+ * @param[in] systime   base system time
+ * @param[in] interval  interval to be added
+ * @return              The new system time.
+ *
+ * @xclass
+ */
+static inline systime_t osalTimeAddX(systime_t systime,
+                                     sysinterval_t interval) {
+
+  return systime + (systime_t)interval;
+}
+
+/**
+ * @brief   Subtracts two system times returning an interval.
+ *
+ * @param[in] start     first system time
+ * @param[in] end       second system time
+ * @return              The interval representing the time difference.
+ *
+ * @xclass
+ */
+static inline sysinterval_t osalTimeDiffX(systime_t start, systime_t end) {
+
+  return (sysinterval_t)((systime_t)(end - start));
+}
+
+/**
  * @brief   Checks if the specified time is within the specified time window.
  * @note    When start==end then the function returns always true because the
  *          whole time range is specified.
@@ -713,9 +696,9 @@ static inline void osalSysRestoreStatusX(syssts_t sts) {
  *
  * @xclass
  */
-static inline bool osalOsIsTimeWithinX(systime_t time,
-                                       systime_t start,
-                                       systime_t end) {
+static inline bool osalTimeIsInRangeX(systime_t time,
+                                      systime_t start,
+                                      systime_t end) {
 
   return (bool)((time - start) < (end - start));
 }
@@ -730,14 +713,12 @@ static inline bool osalOsIsTimeWithinX(systime_t time,
 static inline void osalThreadQueueObjectInit(threads_queue_t *tqp) {
 
   osalDbgCheck(tqp != NULL);
-
-  (void)tqp;
 }
 
 /**
- * @brief   Initializes an event flags object.
+ * @brief   Initializes an event source object.
  *
- * @param[out] esp      pointer to the event flags object
+ * @param[out] esp      pointer to the event source object
  *
  * @init
  */
@@ -764,6 +745,6 @@ static inline void osalMutexObjectInit(mutex_t *mp) {
   *mp = 0;
 }
 
-#endif /* _OSAL_H_ */
+#endif /* OSAL_H */
 
 /** @} */

@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ uint32_t SystemCoreClock = STM32_HCLK;
 
 /**
  * @brief   Initializes the backup domain.
- * @note    WARNING! Changing clock source impossible without resetting
+ * @note    WARNING! Changing RTC clock source impossible without resetting
  *          of the whole BKP domain.
  */
 static void hal_lld_backup_domain_init(void) {
@@ -59,6 +59,27 @@ static void hal_lld_backup_domain_init(void) {
     RCC->BDCR = RCC_BDCR_BDRST;
     RCC->BDCR = 0;
   }
+
+#if STM32_LSE_ENABLED
+  /* LSE activation.*/
+#if defined(STM32_LSE_BYPASS)
+  /* LSE Bypass.*/
+  RCC->BDCR |= STM32_LSEDRV | RCC_BDCR_LSEON | RCC_BDCR_LSEBYP;
+#else
+  /* No LSE Bypass.*/
+  RCC->BDCR |= STM32_LSEDRV | RCC_BDCR_LSEON;
+#endif
+  while ((RCC->BDCR & RCC_BDCR_LSERDY) == 0)
+    ;                                       /* Wait until LSE is stable.    */
+#endif
+
+#if STM32_MSIPLL_ENABLED
+  /* MSI PLL activation depends on LSE. Reactivating and checking for
+     MSI stability.*/
+  RCC->CR |= RCC_CR_MSIPLLEN;
+  while ((RCC->CR & RCC_CR_MSIRDY) == 0)
+    ;                                       /* Wait until MSI is stable.    */
+#endif
 
 #if HAL_USE_RTC
   /* If the backup domain hasn't been initialized yet then proceed with
@@ -71,6 +92,9 @@ static void hal_lld_backup_domain_init(void) {
     RCC->BDCR |= RCC_BDCR_RTCEN;
   }
 #endif /* HAL_USE_RTC */
+
+  /* Low speed output mode.*/
+  RCC->BDCR |= STM32_LSCOSEL;
 }
 
 /*===========================================================================*/
@@ -88,23 +112,29 @@ static void hal_lld_backup_domain_init(void) {
  */
 void hal_lld_init(void) {
 
-  /* Reset of all peripherals.*/
+  /* Reset of all peripherals.
+     Note, GPIOs are not reset because initialized before this point in
+     board files.*/
   rccResetAHB1(~0);
-  rccResetAHB2(~0);
+  rccResetAHB2(~STM32_GPIO_EN_MASK);
   rccResetAHB3(~0);
   rccResetAPB1R1(~RCC_APB1RSTR1_PWRRST);
   rccResetAPB1R2(~0);
   rccResetAPB2(~0);
 
   /* PWR clock enabled.*/
-  rccEnablePWRInterface(FALSE);
+  rccEnablePWRInterface(true);
 
   /* Initializes the backup domain.*/
   hal_lld_backup_domain_init();
 
+  /* DMA subsystems initialization.*/
 #if defined(STM32_DMA_REQUIRED)
   dmaInit();
 #endif
+
+  /* IRQ subsystem initialization.*/
+  irqInit();
 
   /* Programmable voltage detector enable.*/
 #if STM32_PVD_ENABLE
@@ -135,7 +165,11 @@ void stm32_clock_init(void) {
 
 #if !STM32_NO_INIT
   /* PWR clock enable.*/
-  RCC->APB1ENR1 |= RCC_APB1ENR1_PWREN;
+#if defined(HAL_USE_RTC) && defined(RCC_APB1ENR1_RTCAPBEN)
+  RCC->APB1ENR1 = RCC_APB1ENR1_PWREN | RCC_APB1ENR1_RTCAPBEN;
+#else
+  RCC->APB1ENR1 = RCC_APB1ENR1_PWREN;
+#endif
 
   /* Initial clocks setup and wait for MSI stabilization, the MSI clock is
      always enabled because it is the fall back clock when PLL the fails.
@@ -160,7 +194,16 @@ void stm32_clock_init(void) {
   /* HSI activation.*/
   RCC->CR |= RCC_CR_HSION;
   while ((RCC->CR & RCC_CR_HSIRDY) == 0)
-    ;                                       /* Wait until HSI is stable.    */
+    ;                                       /* Wait until HSI16 is stable.  */
+#endif
+
+#if STM32_CLOCK_HAS_HSI48
+#if STM32_HSI48_ENABLED
+  /* HSI activation.*/
+  RCC->CRRCR |= RCC_CRRCR_HSI48ON;
+  while ((RCC->CRRCR & RCC_CRRCR_HSI48RDY) == 0)
+    ;                                       /* Wait until HSI48 is stable.  */
+#endif
 #endif
 
 #if STM32_HSE_ENABLED
@@ -197,12 +240,11 @@ void stm32_clock_init(void) {
     ;                                       /* Wait until LSE is stable.    */
 #endif
 
-#if STM32_MSIPLL_ENABLED
-  /* MSI PLL activation.*/
-  RCC->CR |= RCC_CR_MSIPLLEN;
-#endif
+  /* Flash setup for selected MSI speed setting.*/
+  FLASH->ACR = FLASH_ACR_DCEN | FLASH_ACR_ICEN | FLASH_ACR_PRFTEN |
+               STM32_MSI_FLASHBITS;
 
-  /* Changing MSIRANGE value. Meanwhile range is set by MSISRANGE which is 4MHz.*/
+  /* Changing MSIRANGE to configured value.*/
   RCC->CR |= STM32_MSIRANGE;
 
   /* Switching from MSISRANGE to MSIRANGE.*/
@@ -210,17 +252,34 @@ void stm32_clock_init(void) {
   while ((RCC->CR & RCC_CR_MSIRDY) == 0)
     ;
 
-  /* Updating MSISRANGE value. MSISRANGE can be set only when MSIRGSEL is high. 
+  /* MSI is configured SYSCLK source so wait for it to be stable as well.*/
+  while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_MSI)
+    ;
+
+#if STM32_MSIPLL_ENABLED
+  /* MSI PLL (to LSE) activation */
+  RCC->CR |= RCC_CR_MSIPLLEN;
+#endif
+
+  /* Updating MSISRANGE value. MSISRANGE can be set only when MSIRGSEL is high.
      This range is used exiting the Standby mode until MSIRGSEL is set.*/
   RCC->CSR |= STM32_MSISRANGE;
 
 #if STM32_ACTIVATE_PLL || STM32_ACTIVATE_PLLSAI1 || STM32_ACTIVATE_PLLSAI2
   /* PLLM and PLLSRC are common to all PLLs.*/
+#if defined(STM32L496xx) || defined(STM32L4A6xx)
+  RCC->PLLCFGR = STM32_PLLPDIV | STM32_PLLR  |
+                 STM32_PLLREN  | STM32_PLLQ  |
+                 STM32_PLLQEN  | STM32_PLLP  |
+                 STM32_PLLPEN  | STM32_PLLN  |
+                 STM32_PLLM    | STM32_PLLSRC;
+#else
   RCC->PLLCFGR = STM32_PLLR   | STM32_PLLREN |
                  STM32_PLLQ   | STM32_PLLQEN |
                  STM32_PLLP   | STM32_PLLPEN |
                  STM32_PLLN   | STM32_PLLM   |
                  STM32_PLLSRC;
+#endif
 #endif
 
 #if STM32_ACTIVATE_PLL
@@ -230,14 +289,21 @@ void stm32_clock_init(void) {
   /* Waiting for PLL lock.*/
   while ((RCC->CR & RCC_CR_PLLRDY) == 0)
     ;
-#endif /* STM32_OVERDRIVE_REQUIRED */
+#endif
 
 #if STM32_ACTIVATE_PLLSAI1
   /* PLLSAI1 activation.*/
+#if defined(STM32L496xx) || defined(STM32L4A6xx)
+  RCC->PLLSAI1CFGR = STM32_PLLSAI1PDIV | STM32_PLLSAI1R |
+                     STM32_PLLSAI1REN  | STM32_PLLSAI1Q |
+                     STM32_PLLSAI1QEN  | STM32_PLLSAI1P |
+                     STM32_PLLSAI1PEN  | STM32_PLLSAI1N;
+#else
   RCC->PLLSAI1CFGR = STM32_PLLSAI1R | STM32_PLLSAI1REN |
                      STM32_PLLSAI1Q | STM32_PLLSAI1QEN |
                      STM32_PLLSAI1P | STM32_PLLSAI1PEN |
                      STM32_PLLSAI1N;
+#endif
   RCC->CR |= RCC_CR_PLLSAI1ON;
 
   /* Waiting for PLL lock.*/
@@ -247,9 +313,15 @@ void stm32_clock_init(void) {
 
 #if STM32_ACTIVATE_PLLSAI2
   /* PLLSAI2 activation.*/
+#if defined(STM32L496xx) || defined(STM32L4A6xx)
+  RCC->PLLSAI2CFGR = STM32_PLLSAI2PDIV | STM32_PLLSAI2R |
+                     STM32_PLLSAI2REN  | STM32_PLLSAI2P |
+                     STM32_PLLSAI2PEN  | STM32_PLLSAI2N;
+#else
   RCC->PLLSAI2CFGR = STM32_PLLSAI2R | STM32_PLLSAI2REN |
                      STM32_PLLSAI2P | STM32_PLLSAI2PEN |
                      STM32_PLLSAI2N;
+#endif
   RCC->CR |= RCC_CR_PLLSAI2ON;
 
   /* Waiting for PLL lock.*/
@@ -278,21 +350,35 @@ void stm32_clock_init(void) {
     RCC->CCIPR = ccipr;
   }
 
-  /* Flash setup.*/
-  FLASH->ACR = FLASH_ACR_DCEN | FLASH_ACR_ICEN | FLASH_ACR_PRFTEN |
-               STM32_FLASHBITS;
+  /* Set flash WS's for SYSCLK source */
+  if (STM32_FLASHBITS > STM32_MSI_FLASHBITS) {
+    FLASH->ACR = (FLASH->ACR & ~FLASH_ACR_LATENCY_Msk) | STM32_FLASHBITS;
+    while ((FLASH->ACR & FLASH_ACR_LATENCY_Msk) !=
+           (STM32_FLASHBITS & FLASH_ACR_LATENCY_Msk)) {
+    }
+  }
 
-  /* Switching to the configured clock source if it is different from MSI.*/
+  /* Switching to the configured SYSCLK source if it is different from MSI.*/
 #if (STM32_SW != STM32_SW_MSI)
   RCC->CFGR |= STM32_SW;        /* Switches on the selected clock source.   */
+  /* Wait until SYSCLK is stable.*/
   while ((RCC->CFGR & RCC_CFGR_SWS) != (STM32_SW << 2))
     ;
 #endif
+
+  /* Reduce the flash WS's for SYSCLK source if they are less than MSI WSs */
+  if (STM32_FLASHBITS < STM32_MSI_FLASHBITS) {
+    FLASH->ACR = (FLASH->ACR & ~FLASH_ACR_LATENCY_Msk) | STM32_FLASHBITS;
+    while ((FLASH->ACR & FLASH_ACR_LATENCY_Msk) !=
+           (STM32_FLASHBITS & FLASH_ACR_LATENCY_Msk)) {
+    }
+  }
+
 #endif /* STM32_NO_INIT */
 
   /* SYSCFG clock enabled here because it is a multi-functional unit shared
      among multiple drivers.*/
-  rccEnableAPB2(RCC_APB2ENR_SYSCFGEN, TRUE);
+  rccEnableAPB2(RCC_APB2ENR_SYSCFGEN, true);
 }
 
 /** @} */

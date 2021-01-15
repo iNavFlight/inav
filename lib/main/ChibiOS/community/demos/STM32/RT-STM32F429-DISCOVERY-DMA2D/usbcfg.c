@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2016 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,6 +16,9 @@
 
 #include "ch.h"
 #include "hal.h"
+
+/* Virtual serial port over USB.*/
+SerialUSBDriver SDU2;
 
 /*
  * Endpoints to be used for USBD2.
@@ -262,11 +265,9 @@ static const USBEndpointConfig ep2config = {
  * Handles the USB driver global events.
  */
 static void usb_event(USBDriver *usbp, usbevent_t event) {
-  extern SerialUSBDriver SDU1;
+  extern SerialUSBDriver SDU2;
 
   switch (event) {
-  case USB_EVENT_RESET:
-    return;
   case USB_EVENT_ADDRESS:
     return;
   case USB_EVENT_CONFIGURED:
@@ -279,18 +280,46 @@ static void usb_event(USBDriver *usbp, usbevent_t event) {
     usbInitEndpointI(usbp, USBD2_INTERRUPT_REQUEST_EP, &ep2config);
 
     /* Resetting the state of the CDC subsystem.*/
-    sduConfigureHookI(&SDU1);
+    sduConfigureHookI(&SDU2);
 
     chSysUnlockFromISR();
     return;
+  case USB_EVENT_RESET:
+    /* Falls into.*/
+  case USB_EVENT_UNCONFIGURED:
+    /* Falls into.*/
   case USB_EVENT_SUSPEND:
+    chSysLockFromISR();
+
+    /* Disconnection event on suspend.*/
+    sduSuspendHookI(&SDU2);
+
+    chSysUnlockFromISR();
     return;
   case USB_EVENT_WAKEUP:
+    chSysLockFromISR();
+
+    /* Disconnection event on suspend.*/
+    sduWakeupHookI(&SDU2);
+
+    chSysUnlockFromISR();
     return;
   case USB_EVENT_STALLED:
     return;
   }
   return;
+}
+
+/*
+ * Handles the USB driver global events.
+ */
+static void sof_handler(USBDriver *usbp) {
+
+  (void)usbp;
+
+  osalSysLockFromISR();
+  sduSOFHookI(&SDU2);
+  osalSysUnlockFromISR();
 }
 
 /*
@@ -300,7 +329,7 @@ const USBConfig usbcfg = {
   usb_event,
   get_descriptor,
   sduRequestsHook,
-  NULL
+  sof_handler
 };
 
 /*

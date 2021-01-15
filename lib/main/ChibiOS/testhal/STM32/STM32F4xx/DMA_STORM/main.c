@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -38,14 +38,12 @@ static virtual_timer_t adcvt;
 
 static adcsample_t samples2[ADC_GRP2_NUM_CHANNELS * ADC_GRP2_BUF_DEPTH];
 
-static void adccallback(ADCDriver *adcp, adcsample_t *buffer, size_t n) {
+static void adccallback(ADCDriver *adcp) {
 
   (void)adcp;
-  (void)buffer;
-  (void)n;
 
   chSysLockFromISR();
-  chVTSetI(&adcvt, MS2ST(10), tmo, (void *)"ADC timeout");
+  chVTSetI(&adcvt, TIME_MS2I(10), tmo, (void *)"ADC timeout");
   chSysUnlockFromISR();
 }
 
@@ -62,7 +60,7 @@ static void adcerrorcallback(ADCDriver *adcp, adcerror_t err) {
  * Channels:    IN11, IN12, IN11, IN12, IN11, IN12, Sensor, VRef.
  */
 static const ADCConversionGroup adcgrpcfg2 = {
-  TRUE,
+  true,
   ADC_GRP2_NUM_CHANNELS,
   adccallback,
   adcerrorcallback,
@@ -71,7 +69,9 @@ static const ADCConversionGroup adcgrpcfg2 = {
   ADC_SMPR1_SMP_AN12(ADC_SAMPLE_56) | ADC_SMPR1_SMP_AN11(ADC_SAMPLE_56) |
   ADC_SMPR1_SMP_SENSOR(ADC_SAMPLE_144) | ADC_SMPR1_SMP_VREF(ADC_SAMPLE_144),
   0,                        /* SMPR2 */
-  ADC_SQR1_NUM_CH(ADC_GRP2_NUM_CHANNELS),
+  0,                        /* HTR */
+  0,                        /* LTR */
+  0,                        /* SQR1 */
   ADC_SQR2_SQ8_N(ADC_CHANNEL_SENSOR) | ADC_SQR2_SQ7_N(ADC_CHANNEL_VREFINT),
   ADC_SQR3_SQ6_N(ADC_CHANNEL_IN12)   | ADC_SQR3_SQ5_N(ADC_CHANNEL_IN11) |
   ADC_SQR3_SQ4_N(ADC_CHANNEL_IN12)   | ADC_SQR3_SQ3_N(ADC_CHANNEL_IN11) |
@@ -86,9 +86,11 @@ static const ADCConversionGroup adcgrpcfg2 = {
  * Maximum speed SPI configuration (21MHz, CPHA=0, CPOL=0, MSb first).
  */
 static const SPIConfig hs_spicfg = {
+  false,
   NULL,
   GPIOB,
   12,
+  0,
   0
 };
 
@@ -117,7 +119,7 @@ static THD_FUNCTION(spi_thread, p) {
   while (true) {
     /* Starts a VT working as watchdog to catch a malfunction in the SPI
        driver.*/
-    chVTSet(&vt, MS2ST(10), tmo, (void *)"SPI timeout");
+    chVTSet(&vt, TIME_MS2I(10), tmo, (void *)"SPI timeout");
 
     spiExchange(spip, sizeof(txbuf), txbuf, rxbuf);
 
@@ -171,7 +173,7 @@ int main(void) {
   adcSTM32EnableTSVREFE();
 
   /* Starts an ADC continuous conversion and its watchdog virtual timer.*/
-  chVTSet(&adcvt, MS2ST(10), tmo, (void *)"ADC timeout");
+  chVTSet(&adcvt, TIME_MS2I(10), tmo, (void *)"ADC timeout");
   adcStartConversion(&ADCD1, &adcgrpcfg2, samples2, ADC_GRP2_BUF_DEPTH);
 
   /* Activating SPI drivers.*/
@@ -185,9 +187,9 @@ int main(void) {
   chThdCreateStatic(waSPI3, sizeof(waSPI3), NORMALPRIO + 1, spi_thread, &SPID3);
 
   /* Allocating two DMA2 streams for memory copy operations.*/
-  if (dmaStreamAllocate(STM32_DMA2_STREAM6, 0, NULL, NULL))
+  if (dmaStreamAlloc(STM32_DMA_STREAM_ID(2, 6), 0, NULL, NULL) == NULL)
     chSysHalt("DMA already in use");
-  if (dmaStreamAllocate(STM32_DMA2_STREAM7, 0, NULL, NULL))
+  if (dmaStreamAlloc(STM32_DMA_STREAM_ID(2, 7), 0, NULL, NULL) == NULL)
     chSysHalt("DMA already in use");
   for (i = 0; i < sizeof (patterns1); i++)
     patterns1[i] = (uint8_t)i;
@@ -203,7 +205,7 @@ int main(void) {
 
     /* Starts a VT working as watchdog to catch a malfunction in the DMA
        driver.*/
-    chVTSet(&vt, MS2ST(10), tmo, (void *)"copy timeout");
+    chVTSet(&vt, TIME_MS2I(10), tmo, (void *)"copy timeout");
 
     /* Copy pattern 1.*/
     dmaStartMemCopy(STM32_DMA2_STREAM6,

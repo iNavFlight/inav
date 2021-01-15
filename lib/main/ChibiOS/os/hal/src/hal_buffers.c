@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@
  *          - <b>Input queue</b>, unidirectional queue where the writer is the
  *            ISR side and the reader is the thread side.
  *          - <b>Output queue</b>, unidirectional queue where the writer is the
- *            ISR side and the reader is the thread side.
+ *            thread side and the reader is the ISR side.
  *          - <b>Full duplex queue</b>, bidirectional queue. Full duplex queues
  *            are implemented by pairing an input queue and an output queue
  *            together.
@@ -64,6 +64,7 @@
  * @brief   Initializes an input buffers queue object.
  *
  * @param[out] ibqp     pointer to the @p input_buffers_queue_t object
+ * @param[in] suspended initial state of the queue
  * @param[in] bp        pointer to a memory area allocated for buffers
  * @param[in] size      buffers size
  * @param[in] n         number of buffers
@@ -72,24 +73,24 @@
  *
  * @init
  */
-void ibqObjectInit(input_buffers_queue_t *ibqp, uint8_t *bp,
-                   size_t size, size_t n,
-                   bqnotify_t infy, void *link) {
+void ibqObjectInit(input_buffers_queue_t *ibqp, bool suspended, uint8_t *bp,
+                   size_t size, size_t n, bqnotify_t infy, void *link) {
 
   osalDbgCheck((ibqp != NULL) && (bp != NULL) && (size >= 2U));
 
   osalThreadQueueObjectInit(&ibqp->waiting);
-  ibqp->bcounter = 0;
-  ibqp->brdptr   = bp;
-  ibqp->bwrptr   = bp;
-  ibqp->btop     = bp + ((size + sizeof (size_t)) * n);
-  ibqp->bsize    = size + sizeof (size_t);
-  ibqp->bn       = n;
-  ibqp->buffers  = bp;
-  ibqp->ptr      = NULL;
-  ibqp->top      = NULL;
-  ibqp->notify   = infy;
-  ibqp->link     = link;
+  ibqp->suspended = suspended;
+  ibqp->bcounter  = 0;
+  ibqp->brdptr    = bp;
+  ibqp->bwrptr    = bp;
+  ibqp->btop      = bp + ((size + sizeof (size_t)) * n);
+  ibqp->bsize     = size + sizeof (size_t);
+  ibqp->bn        = n;
+  ibqp->buffers   = bp;
+  ibqp->ptr       = NULL;
+  ibqp->top       = NULL;
+  ibqp->notify    = infy;
+  ibqp->link      = link;
 }
 
 /**
@@ -107,11 +108,11 @@ void ibqResetI(input_buffers_queue_t *ibqp) {
 
   osalDbgCheckClassI();
 
-  ibqp->bcounter = 0;
-  ibqp->brdptr   = ibqp->buffers;
-  ibqp->bwrptr   = ibqp->buffers;
-  ibqp->ptr      = NULL;
-  ibqp->top      = NULL;
+  ibqp->bcounter  = 0;
+  ibqp->brdptr    = ibqp->buffers;
+  ibqp->bwrptr    = ibqp->buffers;
+  ibqp->ptr       = NULL;
+  ibqp->top       = NULL;
   osalThreadDequeueAllI(&ibqp->waiting, MSG_RESET);
 }
 
@@ -181,12 +182,13 @@ void ibqPostFullBufferI(input_buffers_queue_t *ibqp, size_t size) {
  * @return              The operation status.
  * @retval MSG_OK       if a buffer has been acquired.
  * @retval MSG_TIMEOUT  if the specified time expired.
- * @retval MSG_RESET    if the queue has been reset.
+ * @retval MSG_RESET    if the queue has been reset or has been put in
+ *                      suspended state.
  *
  * @api
  */
 msg_t ibqGetFullBufferTimeout(input_buffers_queue_t *ibqp,
-                              systime_t timeout) {
+                              sysinterval_t timeout) {
   msg_t msg;
 
   osalSysLock();
@@ -212,16 +214,20 @@ msg_t ibqGetFullBufferTimeout(input_buffers_queue_t *ibqp,
    * @return              The operation status.
    * @retval MSG_OK       if a buffer has been acquired.
    * @retval MSG_TIMEOUT  if the specified time expired.
-   * @retval MSG_RESET    if the queue has been reset.
+   * @retval MSG_RESET    if the queue has been reset or has been put in
+   *                      suspended state.
    *
    * @sclass
    */
   msg_t ibqGetFullBufferTimeoutS(input_buffers_queue_t *ibqp,
-                                 systime_t timeout) {
+                                 sysinterval_t timeout) {
 
   osalDbgCheckClassS();
 
   while (ibqIsEmptyI(ibqp)) {
+    if (ibqp->suspended) {
+      return MSG_RESET;
+    }
     msg_t msg = osalThreadEnqueueTimeoutS(&ibqp->waiting, timeout);
     if (msg < MSG_OK) {
        return msg;
@@ -295,11 +301,12 @@ void ibqReleaseEmptyBuffer(input_buffers_queue_t *ibqp) {
  *                      .
  * @return              A byte value from the queue.
  * @retval MSG_TIMEOUT  if the specified time expired.
- * @retval MSG_RESET    if the queue has been reset.
+ * @retval MSG_RESET    if the queue has been reset or has been put in
+ *                      suspended state.
  *
  * @api
  */
-msg_t ibqGetTimeout(input_buffers_queue_t *ibqp, systime_t timeout) {
+msg_t ibqGetTimeout(input_buffers_queue_t *ibqp, sysinterval_t timeout) {
   msg_t msg;
 
   osalSysLock();
@@ -349,14 +356,12 @@ msg_t ibqGetTimeout(input_buffers_queue_t *ibqp, systime_t timeout) {
  * @api
  */
 size_t ibqReadTimeout(input_buffers_queue_t *ibqp, uint8_t *bp,
-                      size_t n, systime_t timeout) {
+                      size_t n, sysinterval_t timeout) {
   size_t r = 0;
-  systime_t deadline;
+
+  osalDbgCheck(n > 0U);
 
   osalSysLock();
-
-  /* Time window for the whole operation.*/
-  deadline = osalOsGetSystemTimeX() + timeout;
 
   while (true) {
     size_t size;
@@ -365,23 +370,8 @@ size_t ibqReadTimeout(input_buffers_queue_t *ibqp, uint8_t *bp,
     if (ibqp->ptr == NULL) {
       msg_t msg;
 
-      /* TIME_INFINITE and TIME_IMMEDIATE are handled differently, no
-         deadline.*/
-      if ((timeout == TIME_INFINITE) || (timeout == TIME_IMMEDIATE)) {
-        msg = ibqGetFullBufferTimeoutS(ibqp, timeout);
-      }
-      else {
-        systime_t next_timeout = deadline - osalOsGetSystemTimeX();
-
-        /* Handling the case where the system time went past the deadline,
-           in this case next becomes a very high number because the system
-           time is an unsigned type.*/
-        if (next_timeout > timeout) {
-          osalSysUnlock();
-          return r;
-        }
-        msg = ibqGetFullBufferTimeoutS(ibqp, next_timeout);
-      }
+      /* Getting a data buffer using the specified timeout.*/
+      msg = ibqGetFullBufferTimeoutS(ibqp, timeout);
 
       /* Anything except MSG_OK interrupts the operation.*/
       if (msg != MSG_OK) {
@@ -398,12 +388,12 @@ size_t ibqReadTimeout(input_buffers_queue_t *ibqp, uint8_t *bp,
 
     /* Smaller chunks in order to not make the critical zone too long,
        this impacts throughput however.*/
-    if (size > 64U) {
+    if (size > (size_t)BUFFERS_CHUNKS_SIZE) {
       /* Giving the compiler a chance to optimize for a fixed size move.*/
-      memcpy(bp, ibqp->ptr, 64U);
-      bp        += 64U;
-      ibqp->ptr += 64U;
-      r         += 64U;
+      memcpy(bp, ibqp->ptr, BUFFERS_CHUNKS_SIZE);
+      bp        += (size_t)BUFFERS_CHUNKS_SIZE;
+      ibqp->ptr += (size_t)BUFFERS_CHUNKS_SIZE;
+      r         += (size_t)BUFFERS_CHUNKS_SIZE;
     }
     else {
       memcpy(bp, ibqp->ptr, size);
@@ -430,6 +420,7 @@ size_t ibqReadTimeout(input_buffers_queue_t *ibqp, uint8_t *bp,
  * @brief   Initializes an output buffers queue object.
  *
  * @param[out] obqp     pointer to the @p output_buffers_queue_t object
+ * @param[in] suspended initial state of the queue
  * @param[in] bp        pointer to a memory area allocated for buffers
  * @param[in] size      buffers size
  * @param[in] n         number of buffers
@@ -438,24 +429,24 @@ size_t ibqReadTimeout(input_buffers_queue_t *ibqp, uint8_t *bp,
  *
  * @init
  */
-void obqObjectInit(output_buffers_queue_t *obqp, uint8_t *bp,
-                   size_t size, size_t n,
-                   bqnotify_t onfy, void *link) {
+void obqObjectInit(output_buffers_queue_t *obqp, bool suspended, uint8_t *bp,
+                   size_t size, size_t n, bqnotify_t onfy, void *link) {
 
   osalDbgCheck((obqp != NULL) && (bp != NULL) && (size >= 2U));
 
   osalThreadQueueObjectInit(&obqp->waiting);
-  obqp->bcounter = n;
-  obqp->brdptr   = bp;
-  obqp->bwrptr   = bp;
-  obqp->btop     = bp + ((size + sizeof (size_t)) * n);
-  obqp->bsize    = size + sizeof (size_t);
-  obqp->bn       = n;
-  obqp->buffers  = bp;
-  obqp->ptr      = NULL;
-  obqp->top      = NULL;
-  obqp->notify   = onfy;
-  obqp->link     = link;
+  obqp->suspended = suspended;
+  obqp->bcounter  = n;
+  obqp->brdptr    = bp;
+  obqp->bwrptr    = bp;
+  obqp->btop      = bp + ((size + sizeof (size_t)) * n);
+  obqp->bsize     = size + sizeof (size_t);
+  obqp->bn        = n;
+  obqp->buffers   = bp;
+  obqp->ptr       = NULL;
+  obqp->top       = NULL;
+  obqp->notify    = onfy;
+  obqp->link      = link;
 }
 
 /**
@@ -473,11 +464,11 @@ void obqResetI(output_buffers_queue_t *obqp) {
 
   osalDbgCheckClassI();
 
-  obqp->bcounter = bqSizeX(obqp);
-  obqp->brdptr   = obqp->buffers;
-  obqp->bwrptr   = obqp->buffers;
-  obqp->ptr      = NULL;
-  obqp->top      = NULL;
+  obqp->bcounter  = bqSizeX(obqp);
+  obqp->brdptr    = obqp->buffers;
+  obqp->bwrptr    = obqp->buffers;
+  obqp->ptr       = NULL;
+  obqp->top       = NULL;
   osalThreadDequeueAllI(&obqp->waiting, MSG_RESET);
 }
 
@@ -546,12 +537,13 @@ void obqReleaseEmptyBufferI(output_buffers_queue_t *obqp) {
  * @return              The operation status.
  * @retval MSG_OK       if a buffer has been acquired.
  * @retval MSG_TIMEOUT  if the specified time expired.
- * @retval MSG_RESET    if the queue has been reset.
+ * @retval MSG_RESET    if the queue has been reset or has been put in
+ *                      suspended state.
  *
  * @api
  */
 msg_t obqGetEmptyBufferTimeout(output_buffers_queue_t *obqp,
-                                systime_t timeout) {
+                               sysinterval_t timeout) {
   msg_t msg;
 
   osalSysLock();
@@ -561,32 +553,36 @@ msg_t obqGetEmptyBufferTimeout(output_buffers_queue_t *obqp,
   return msg;
 }
 
-  /**
-   * @brief   Gets the next empty buffer from the queue.
-   * @note    The function always acquires the same buffer if called repeatedly.
-   * @post    After calling the function the fields @p ptr and @p top are set
-   *          at beginning and end of the buffer data or @p NULL if the queue
-   *          is empty.
-   *
-   * @param[in] obqp      pointer to the @p output_buffers_queue_t object
-   * @param[in] timeout   the number of ticks before the operation timeouts,
-   *                      the following special values are allowed:
-   *                      - @a TIME_IMMEDIATE immediate timeout.
-   *                      - @a TIME_INFINITE no timeout.
-   *                      .
-   * @return              The operation status.
-   * @retval MSG_OK       if a buffer has been acquired.
-   * @retval MSG_TIMEOUT  if the specified time expired.
-   * @retval MSG_RESET    if the queue has been reset.
-   *
-   * @sclass
-   */
-  msg_t obqGetEmptyBufferTimeoutS(output_buffers_queue_t *obqp,
-                                  systime_t timeout) {
+/**
+ * @brief   Gets the next empty buffer from the queue.
+ * @note    The function always acquires the same buffer if called repeatedly.
+ * @post    After calling the function the fields @p ptr and @p top are set
+ *          at beginning and end of the buffer data or @p NULL if the queue
+ *          is empty.
+ *
+ * @param[in] obqp      pointer to the @p output_buffers_queue_t object
+ * @param[in] timeout   the number of ticks before the operation timeouts,
+ *                      the following special values are allowed:
+ *                      - @a TIME_IMMEDIATE immediate timeout.
+ *                      - @a TIME_INFINITE no timeout.
+ *                      .
+ * @return              The operation status.
+ * @retval MSG_OK       if a buffer has been acquired.
+ * @retval MSG_TIMEOUT  if the specified time expired.
+ * @retval MSG_RESET    if the queue has been reset or has been put in
+ *                      suspended state.
+ *
+ * @sclass
+ */
+msg_t obqGetEmptyBufferTimeoutS(output_buffers_queue_t *obqp,
+                                sysinterval_t timeout) {
 
   osalDbgCheckClassS();
 
   while (obqIsFullI(obqp)) {
+    if (obqp->suspended) {
+      return MSG_RESET;
+    }
     msg_t msg = osalThreadEnqueueTimeoutS(&obqp->waiting, timeout);
     if (msg < MSG_OK) {
       return msg;
@@ -667,12 +663,13 @@ void obqPostFullBufferS(output_buffers_queue_t *obqp, size_t size) {
  *                      .
  * @return              A byte value from the queue.
  * @retval MSG_TIMEOUT  if the specified time expired.
- * @retval MSG_RESET    if the queue has been reset.
+ * @retval MSG_RESET    if the queue has been reset or has been put in
+ *                      suspended state.
  *
  * @api
  */
 msg_t obqPutTimeout(output_buffers_queue_t *obqp, uint8_t b,
-                    systime_t timeout) {
+                    sysinterval_t timeout) {
   msg_t msg;
 
   osalSysLock();
@@ -722,14 +719,12 @@ msg_t obqPutTimeout(output_buffers_queue_t *obqp, uint8_t b,
  * @api
  */
 size_t obqWriteTimeout(output_buffers_queue_t *obqp, const uint8_t *bp,
-                       size_t n, systime_t timeout) {
+                       size_t n, sysinterval_t timeout) {
   size_t w = 0;
-  systime_t deadline;
+
+  osalDbgCheck(n > 0U);
 
   osalSysLock();
-
-  /* Time window for the whole operation.*/
-  deadline = osalOsGetSystemTimeX() + timeout;
 
   while (true) {
     size_t size;
@@ -738,23 +733,8 @@ size_t obqWriteTimeout(output_buffers_queue_t *obqp, const uint8_t *bp,
     if (obqp->ptr == NULL) {
       msg_t msg;
 
-      /* TIME_INFINITE and TIME_IMMEDIATE are handled differently, no
-         deadline.*/
-      if ((timeout == TIME_INFINITE) || (timeout == TIME_IMMEDIATE)) {
-        msg = obqGetEmptyBufferTimeoutS(obqp, timeout);
-      }
-      else {
-        systime_t next_timeout = deadline - osalOsGetSystemTimeX();
-
-        /* Handling the case where the system time went past the deadline,
-           in this case next becomes a very high number because the system
-           time is an unsigned type.*/
-        if (next_timeout > timeout) {
-          osalSysUnlock();
-          return w;
-        }
-        msg = obqGetEmptyBufferTimeoutS(obqp, next_timeout);
-      }
+      /* Getting an empty buffer using the specified timeout.*/
+      msg = obqGetEmptyBufferTimeoutS(obqp, timeout);
 
       /* Anything except MSG_OK interrupts the operation.*/
       if (msg != MSG_OK) {
@@ -771,12 +751,12 @@ size_t obqWriteTimeout(output_buffers_queue_t *obqp, const uint8_t *bp,
 
     /* Smaller chunks in order to not make the critical zone too long,
        this impacts throughput however.*/
-    if (size > 64U) {
+    if (size > (size_t)BUFFERS_CHUNKS_SIZE) {
       /* Giving the compiler a chance to optimize for a fixed size move.*/
-      memcpy(obqp->ptr, bp, 64U);
-      bp        += 64U;
-      obqp->ptr += 64U;
-      w         += 64U;
+      memcpy(obqp->ptr, bp, (size_t)BUFFERS_CHUNKS_SIZE);
+      bp        += (size_t)BUFFERS_CHUNKS_SIZE;
+      obqp->ptr += (size_t)BUFFERS_CHUNKS_SIZE;
+      w         += (size_t)BUFFERS_CHUNKS_SIZE;
     }
     else {
       memcpy(obqp->ptr, bp, size);
@@ -855,7 +835,7 @@ void obqFlush(output_buffers_queue_t *obqp) {
 
   /* If there is a buffer partially filled and not being written.*/
   if (obqp->ptr != NULL) {
-    size_t size = (size_t)obqp->ptr - (size_t)obqp->bwrptr - sizeof (size_t);
+    size_t size = ((size_t)obqp->ptr - (size_t)obqp->bwrptr) - sizeof (size_t);
 
     if (size > 0U) {
       obqPostFullBufferS(obqp, size);

@@ -31,7 +31,7 @@ static void extcb1(EXTDriver *extp, expchannel_t channel) {
   chSysLockFromISR();
   chVTResetI(&vt);
   /* LED set to OFF after 500mS.*/
-  chVTSetI(&vt, MS2ST(500), ledoff, NULL);
+  chVTSetI(&vt, TIME_MS2I(500), ledoff, NULL);
   chSysUnlockFromISR();
 }
 

@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -24,8 +24,8 @@
  * @{
  */
 
-#ifndef _STM32_RCC_
-#define _STM32_RCC_
+#ifndef STM32_RCC_H
+#define STM32_RCC_H
 
 /*===========================================================================*/
 /* Driver constants.                                                         */
@@ -62,19 +62,19 @@
  */
 #define rccEnableAPB1(mask, lp) {                                           \
   RCC->APB1ENR |= (mask);                                                   \
+  (void)RCC->APB1ENR;                                                       \
 }
 
 /**
  * @brief   Disables the clock of one or more peripheral on the APB1 bus.
- * @note    The @p lp parameter is ignored in this family.
  *
  * @param[in] mask      APB1 peripherals mask
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisableAPB1(mask, lp) {                                          \
+#define rccDisableAPB1(mask) {                                              \
   RCC->APB1ENR &= ~(mask);                                                  \
+  (void)RCC->APB1ENR;                                                       \
 }
 
 /**
@@ -86,7 +86,8 @@
  */
 #define rccResetAPB1(mask) {                                                \
   RCC->APB1RSTR |= (mask);                                                  \
-  RCC->APB1RSTR = 0;                                                        \
+  RCC->APB1RSTR &= ~(mask);                                                 \
+  (void)RCC->APB1RSTR;                                                      \
 }
 
 /**
@@ -100,19 +101,19 @@
  */
 #define rccEnableAPB2(mask, lp) {                                           \
   RCC->APB2ENR |= (mask);                                                   \
+  (void)RCC->APB2ENR;                                                       \
 }
 
 /**
  * @brief   Disables the clock of one or more peripheral on the APB2 bus.
- * @note    The @p lp parameter is ignored in this family.
  *
  * @param[in] mask      APB2 peripherals mask
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisableAPB2(mask, lp) {                                          \
+#define rccDisableAPB2(mask) {                                              \
   RCC->APB2ENR &= ~(mask);                                                  \
+  (void)RCC->APB2ENR;                                                       \
 }
 
 /**
@@ -124,7 +125,8 @@
  */
 #define rccResetAPB2(mask) {                                                \
   RCC->APB2RSTR |= (mask);                                                  \
-  RCC->APB2RSTR = 0;                                                        \
+  RCC->APB2RSTR &= ~(mask);                                                 \
+  (void)RCC->APB2RSTR;                                                      \
 }
 
 /**
@@ -138,19 +140,19 @@
  */
 #define rccEnableAHB(mask, lp) {                                            \
   RCC->AHBENR |= (mask);                                                    \
+  (void)RCC->AHBENR;                                                        \
 }
 
 /**
  * @brief   Disables the clock of one or more peripheral on the AHB bus.
- * @note    The @p lp parameter is ignored in this family.
  *
  * @param[in] mask      AHB peripherals mask
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisableAHB(mask, lp) {                                           \
+#define rccDisableAHB(mask) {                                               \
   RCC->AHBENR &= ~(mask);                                                   \
+  (void)RCC->AHBENR;                                                        \
 }
 
 /**
@@ -162,7 +164,8 @@
  */
 #define rccResetAHB(mask) {                                                 \
   RCC->AHBRSTR |= (mask);                                                   \
-  RCC->AHBRSTR = 0;                                                         \
+  RCC->AHBRSTR &= ~(mask);                                                  \
+  (void)RCC->AHBRSTR;                                                       \
 }
 /** @} */
 
@@ -182,13 +185,10 @@
 
 /**
  * @brief   Disables the ADC1 peripheral clock.
- * @note    The @p lp parameter is ignored in this family.
- *
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisableADC1(lp) rccDisableAPB2(RCC_APB2ENR_ADC1EN, lp)
+#define rccDisableADC1() rccDisableAPB2(RCC_APB2ENR_ADC1EN)
 
 /**
  * @brief   Resets the ADC1 peripheral.
@@ -214,13 +214,10 @@
 
 /**
  * @brief   Disables the CAN1 peripheral clock.
- * @note    The @p lp parameter is ignored in this family.
- *
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisableCAN1(lp) rccDisableAPB1(RCC_APB1ENR_CANEN, lp)
+#define rccDisableCAN1() rccDisableAPB1(RCC_APB1ENR_CANEN)
 
 /**
  * @brief   Resets the CAN1 peripheral.
@@ -236,6 +233,7 @@
  */
 /**
  * @brief   Enables the DAC1 peripheral clock.
+ * @note    The @p lp parameter is ignored in this family.
  *
  * @param[in] lp        low power enable flag
  *
@@ -246,11 +244,9 @@
 /**
  * @brief   Disables the DAC1 peripheral clock.
  *
- * @param[in] lp        low power enable flag
- *
  * @api
  */
-#define rccDisableDAC1(lp) rccDisableAPB1(RCC_APB1ENR_DACEN, lp)
+#define rccDisableDAC1() rccDisableAPB1(RCC_APB1ENR_DACEN)
 
 /**
  * @brief   Resets the DAC1 peripheral.
@@ -276,13 +272,10 @@
 
 /**
  * @brief   Disables PWR interface clock.
- * @note    The @p lp parameter is ignored in this family.
- *
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisablePWRInterface(lp) rccDisableAPB1(RCC_APB1ENR_PWREN, lp)
+#define rccDisablePWRInterface() rccDisableAPB1(RCC_APB1ENR_PWREN)
 
 /**
  * @brief   Resets the PWR interface.
@@ -308,13 +301,10 @@
 
 /**
  * @brief   Disables the DMA1 peripheral clock.
- * @note    The @p lp parameter is ignored in this family.
- *
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisableDMA1(lp) rccDisableAHB(RCC_AHBENR_DMA1EN, lp)
+#define rccDisableDMA1() rccDisableAHB(RCC_AHBENR_DMA1EN)
 
 /**
  * @brief   Resets the DMA1 peripheral.
@@ -336,13 +326,10 @@
 
 /**
  * @brief   Disables the DMA2 peripheral clock.
- * @note    The @p lp parameter is ignored in this family.
- *
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisableDMA2(lp) rccDisableAHB(RCC_AHBENR_DMA2EN, lp)
+#define rccDisableDMA2() rccDisableAHB(RCC_AHBENR_DMA2EN)
 
 /**
  * @brief   Resets the DMA2 peripheral.
@@ -369,13 +356,10 @@
 
 /**
  * @brief   Disables the I2C1 peripheral clock.
- * @note    The @p lp parameter is ignored in this family.
- *
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisableI2C1(lp) rccDisableAPB1(RCC_APB1ENR_I2C1EN, lp)
+#define rccDisableI2C1() rccDisableAPB1(RCC_APB1ENR_I2C1EN)
 
 /**
  * @brief   Resets the I2C1 peripheral.
@@ -396,13 +380,10 @@
 
 /**
  * @brief   Disables the I2C2 peripheral clock.
- * @note    The @p lp parameter is ignored in this family.
- *
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisableI2C2(lp) rccDisableAPB1(RCC_APB1ENR_I2C2EN, lp)
+#define rccDisableI2C2() rccDisableAPB1(RCC_APB1ENR_I2C2EN)
 
 /**
  * @brief   Resets the I2C2 peripheral.
@@ -428,13 +409,10 @@
 
 /**
  * @brief   Disables the SPI1 peripheral clock.
- * @note    The @p lp parameter is ignored in this family.
- *
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisableSPI1(lp) rccDisableAPB2(RCC_APB2ENR_SPI1EN, lp)
+#define rccDisableSPI1() rccDisableAPB2(RCC_APB2ENR_SPI1EN)
 
 /**
  * @brief   Resets the SPI1 peripheral.
@@ -455,13 +433,10 @@
 
 /**
  * @brief   Disables the SPI2 peripheral clock.
- * @note    The @p lp parameter is ignored in this family.
- *
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisableSPI2(lp) rccDisableAPB1(RCC_APB1ENR_SPI2EN, lp)
+#define rccDisableSPI2() rccDisableAPB1(RCC_APB1ENR_SPI2EN)
 
 /**
  * @brief   Resets the SPI2 peripheral.
@@ -487,13 +462,10 @@
 
 /**
  * @brief   Disables the TIM1 peripheral clock.
- * @note    The @p lp parameter is ignored in this family.
- *
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisableTIM1(lp) rccDisableAPB2(RCC_APB2ENR_TIM1EN, lp)
+#define rccDisableTIM1() rccDisableAPB2(RCC_APB2ENR_TIM1EN)
 
 /**
  * @brief   Resets the TIM1 peripheral.
@@ -514,13 +486,10 @@
 
 /**
  * @brief   Disables the TIM2 peripheral clock.
- * @note    The @p lp parameter is ignored in this family.
- *
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisableTIM2(lp) rccDisableAPB1(RCC_APB1ENR_TIM2EN, lp)
+#define rccDisableTIM2() rccDisableAPB1(RCC_APB1ENR_TIM2EN)
 
 /**
  * @brief   Resets the TIM2 peripheral.
@@ -541,13 +510,10 @@
 
 /**
  * @brief   Disables the TIM3 peripheral clock.
- * @note    The @p lp parameter is ignored in this family.
- *
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisableTIM3(lp) rccDisableAPB1(RCC_APB1ENR_TIM3EN, lp)
+#define rccDisableTIM3() rccDisableAPB1(RCC_APB1ENR_TIM3EN)
 
 /**
  * @brief   Resets the TIM3 peripheral.
@@ -568,13 +534,10 @@
 
 /**
  * @brief   Disables the TIM6 peripheral clock.
- * @note    The @p lp parameter is ignored in this family.
- *
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisableTIM6(lp) rccDisableAPB1(RCC_APB1ENR_TIM6EN, lp)
+#define rccDisableTIM6() rccDisableAPB1(RCC_APB1ENR_TIM6EN)
 
 /**
  * @brief   Resets the TIM6 peripheral.
@@ -595,13 +558,10 @@
 
 /**
  * @brief   Disables the TIM7 peripheral clock.
- * @note    The @p lp parameter is ignored in this family.
- *
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisableTIM7(lp) rccDisableAPB1(RCC_APB1ENR_TIM7EN, lp)
+#define rccDisableTIM7() rccDisableAPB1(RCC_APB1ENR_TIM7EN)
 
 /**
  * @brief   Resets the TIM7 peripheral.
@@ -622,13 +582,10 @@
 
 /**
  * @brief   Disables the TIM14 peripheral clock.
- * @note    The @p lp parameter is ignored in this family.
- *
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisableTIM14(lp) rccDisableAPB1(RCC_APB1ENR_TIM14EN, lp)
+#define rccDisableTIM14() rccDisableAPB1(RCC_APB1ENR_TIM14EN)
 
 /**
  * @brief   Resets the TIM14 peripheral.
@@ -649,13 +606,10 @@
 
 /**
  * @brief   Disables the TIM15 peripheral clock.
- * @note    The @p lp parameter is ignored in this family.
- *
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisableTIM15(lp) rccDisableAPB2(RCC_APB2ENR_TIM15EN, lp)
+#define rccDisableTIM15() rccDisableAPB2(RCC_APB2ENR_TIM15EN)
 
 /**
  * @brief   Resets the TIM15 peripheral.
@@ -676,13 +630,10 @@
 
 /**
  * @brief   Disables the TIM16 peripheral clock.
- * @note    The @p lp parameter is ignored in this family.
- *
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisableTIM16(lp) rccDisableAPB2(RCC_APB2ENR_TIM16EN, lp)
+#define rccDisableTIM16() rccDisableAPB2(RCC_APB2ENR_TIM16EN)
 
 /**
  * @brief   Resets the TIM16 peripheral.
@@ -703,13 +654,10 @@
 
 /**
  * @brief   Disables the TIM17 peripheral clock.
- * @note    The @p lp parameter is ignored in this family.
- *
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisableTIM17(lp) rccDisableAPB2(RCC_APB2ENR_TIM17EN, lp)
+#define rccDisableTIM17() rccDisableAPB2(RCC_APB2ENR_TIM17EN)
 
 /**
  * @brief   Resets the TIM17 peripheral.
@@ -735,13 +683,10 @@
 
 /**
  * @brief   Disables the USART1 peripheral clock.
- * @note    The @p lp parameter is ignored in this family.
- *
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisableUSART1(lp) rccDisableAPB2(RCC_APB2ENR_USART1EN, lp)
+#define rccDisableUSART1() rccDisableAPB2(RCC_APB2ENR_USART1EN)
 
 /**
  * @brief   Resets the USART1 peripheral.
@@ -762,13 +707,10 @@
 
 /**
  * @brief   Disables the USART2 peripheral clock.
- * @note    The @p lp parameter is ignored in this family.
- *
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisableUSART2(lp) rccDisableAPB1(RCC_APB1ENR_USART2EN, lp)
+#define rccDisableUSART2() rccDisableAPB1(RCC_APB1ENR_USART2EN)
 
 /**
  * @brief   Resets the USART2 peripheral.
@@ -789,13 +731,10 @@
 
 /**
  * @brief   Disables the USART3 peripheral clock.
- * @note    The @p lp parameter is ignored in this family.
- *
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisableUSART3(lp) rccDisableAPB1(RCC_APB1ENR_USART3EN, lp)
+#define rccDisableUSART3() rccDisableAPB1(RCC_APB1ENR_USART3EN)
 
 /**
  * @brief   Resets the USART3 peripheral.
@@ -816,13 +755,10 @@
 
 /**
  * @brief   Disables the USART4 peripheral clock.
- * @note    The @p lp parameter is ignored in this family.
- *
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisableUART4(lp) rccDisableAPB1(RCC_APB1ENR_USART4EN, lp)
+#define rccDisableUART4() rccDisableAPB1(RCC_APB1ENR_USART4EN)
 
 /**
  * @brief   Resets the USART4 peripheral.
@@ -839,17 +775,14 @@
  *
  * @api
  */
-#define rccEnableUART5(lp) rccEnableAPB1(RCC_APB1ENR_USARTS5EN, lp)
+#define rccEnableUART5(lp) rccEnableAPB1(RCC_APB1ENR_USART5EN, lp)
 
 /**
  * @brief   Disables the USART5 peripheral clock.
- * @note    The @p lp parameter is ignored in this family.
- *
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisableUART5(lp) rccDisableAPB1(RCC_APB1ENR_USART5EN, lp)
+#define rccDisableUART5() rccDisableAPB1(RCC_APB1ENR_USART5EN)
 
 /**
  * @brief   Resets the USART5 peripheral.
@@ -860,6 +793,7 @@
 
 /**
  * @brief   Enables the USART6 peripheral clock.
+ * @note    The @p lp parameter is ignored in this family.
  *
  * @param[in] lp        low power enable flag
  *
@@ -870,11 +804,9 @@
 /**
  * @brief   Disables the USART6 peripheral clock.
  *
- * @param[in] lp        low power enable flag
- *
  * @api
  */
-#define rccDisableUSART6(lp) rccDisableAPB2(RCC_APB2ENR_USART6EN, lp)
+#define rccDisableUSART6() rccDisableAPB2(RCC_APB2ENR_USART6EN)
 
 /**
  * @brief   Resets the USART6 peripheral.
@@ -882,6 +814,52 @@
  * @api
  */
 #define rccResetUSART6() rccResetAPB2(RCC_APB2RSTR_USART6RST)
+
+/**
+ * @brief Enables the UART7 peripheral clock.
+ *
+ * @param[in] lp low power enable flag
+ *
+ * @api
+ */
+#define rccEnableUART7(lp) rccEnableAPB2(RCC_APB2ENR_USART7EN, lp)
+
+/**
+ * @brief Disables the UART7 peripheral clock.
+ *
+ * @api
+ */
+#define rccDisableUART7() rccDisableAPB2(RCC_APB2ENR_USART7EN)
+
+/**
+ * @brief Resets the UART7 peripheral.
+ *
+ * @api
+ */
+#define rccResetUART7() rccResetAPB2(RCC_APB2RSTR_USART7RST)
+
+/**
+ * @brief Enables the UART8 peripheral clock.
+ *
+ * @param[in] lp low power enable flag
+ *
+ * @api
+ */
+#define rccEnableUART8(lp) rccEnableAPB2(RCC_APB2ENR_USART8EN, lp)
+
+/**
+ * @brief Disables the UART8 peripheral clock.
+ *
+ * @api
+ */
+#define rccDisableUART8() rccDisableAPB2(RCC_APB2ENR_USART8EN)
+
+/**
+ * @brief Resets the UART8 peripheral.
+ *
+ * @api
+ */
+#define rccResetUART8() rccResetAPB2(RCC_APB2RSTR_USART8RST)
 /** @} */
 
 /**
@@ -890,6 +868,7 @@
  */
 /**
  * @brief   Enables the USB peripheral clock.
+ * @note    The @p lp parameter is ignored in this family.
  *
  * @param[in] lp        low power enable flag
  *
@@ -900,11 +879,9 @@
 /**
  * @brief   Disables the USB peripheral clock.
  *
- * @param[in] lp        low power enable flag
- *
  * @api
  */
-#define rccDisableUSB(lp) rccDisableAPB1(RCC_APB1ENR_USBEN, lp)
+#define rccDisableUSB() rccDisableAPB1(RCC_APB1ENR_USBEN)
 
 /**
  * @brief   Resets the USB peripheral.
@@ -930,13 +907,10 @@
 
 /**
  * @brief   Disables the CRC peripheral clock.
- * @note    The @p lp parameter is ignored in this family.
- *
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisableCRC(lp) rccDisableAHB(RCC_AHBENR_CRCEN, lp)
+#define rccDisableCRC() rccDisableAHB(RCC_AHBENR_CRCEN)
 
 /**
  * @brief   Resets the CRC peripheral.
@@ -962,13 +936,10 @@
 
 /**
  * @brief   Disables the WWDG peripheral clock.
- * @note    The @p lp parameter is ignored in this family.
- *
- * @param[in] lp        low power enable flag
  *
  * @api
  */
-#define rccDisableWWDG(lp) rccDisableAPB1(RCC_APB1ENR_WWDGEN, lp)
+#define rccDisableWWDG() rccDisableAPB1(RCC_APB1ENR_WWDGEN)
 
 /**
  * @brief   Resets the WWDG peripheral.
@@ -989,6 +960,6 @@ extern "C" {
 }
 #endif
 
-#endif /* _STM32_RCC_ */
+#endif /* STM32_RCC_H */
 
 /** @} */

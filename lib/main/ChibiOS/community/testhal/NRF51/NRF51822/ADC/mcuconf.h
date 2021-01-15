@@ -20,6 +20,6 @@
 /*
  * NRF51 driver system settings.
  */
-#define NRF51_ADC_USE_ADC1                 TRUE
+#define NRF5_ADC_USE_ADC1                 TRUE
 
 #endif /* _MCUCONF_H_ */

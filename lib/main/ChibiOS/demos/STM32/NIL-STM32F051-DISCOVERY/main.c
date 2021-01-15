@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -15,7 +15,9 @@
 */
 
 #include "hal.h"
-#include "nil.h"
+#include "ch.h"
+#include "nil_test_root.h"
+#include "oslib_test_root.h"
 
 /*
  * Thread 1.
@@ -52,7 +54,7 @@ THD_FUNCTION(Thread2, arg) {
 /*
  * Thread 3.
  */
-THD_WORKING_AREA(waThread3, 128);
+THD_WORKING_AREA(waThread3, 256);
 THD_FUNCTION(Thread3, arg) {
 
   (void)arg;
@@ -65,9 +67,16 @@ THD_FUNCTION(Thread3, arg) {
   palSetPadMode(GPIOA, 9, PAL_MODE_ALTERNATE(1));       /* USART1 TX.       */
   palSetPadMode(GPIOA, 10, PAL_MODE_ALTERNATE(1));      /* USART1 RX.       */
 
+  /* Welcome message.*/
+  chnWrite(&SD1, (const uint8_t *)"Hello World!\r\n", 14);
+
+  /* Waiting for button push and activation of the test suite.*/
   while (true) {
-    chnWrite(&SD1, (const uint8_t *)"Hello World!\r\n", 14);
-    chThdSleepMilliseconds(2000);
+    if (palReadLine(LINE_BUTTON)) {
+      test_execute((BaseSequentialStream *)&SD1, &nil_test_suite);
+      test_execute((BaseSequentialStream *)&SD1, &oslib_test_suite);
+    }
+    chThdSleepMilliseconds(500);
   }
 }
 
@@ -78,7 +87,8 @@ THD_FUNCTION(Thread3, arg) {
 THD_TABLE_BEGIN
   THD_TABLE_ENTRY(waThread1, "blinker1", Thread1, NULL)
   THD_TABLE_ENTRY(waThread2, "blinker2", Thread2, NULL)
-  THD_TABLE_ENTRY(waThread3, "hello", Thread3, NULL)
+  THD_TABLE_ENTRY(wa_test_support, "test_support", test_support, (void *)&nil.threads[3])
+  THD_TABLE_ENTRY(waThread3, "tester", Thread3, NULL)
 THD_TABLE_END
 
 /*

@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio.
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio.
 
     This file is part of ChibiOS.
 
@@ -18,7 +18,7 @@
 */
 
 /**
- * @mainpage Introdution
+ * @mainpage Introduction
  * @author Giovanni Di Sirio (gdisirio@users.sourceforge.net).
  *
  * <h2>Chibi ?</h2>
@@ -36,8 +36,8 @@
  * - Preemptive scheduling.
  * - 128 priority levels. Multiple threads at the same priority level allowed.
  * - Round robin scheduling for threads at the same priority level.
- * - Offers threads, virtual timers, semaphores, mutexes, condvars,
- *   event flags, messages, mailboxes, I/O queues.
+ * - Offers threads, virtual timers, binary and counter semaphores, mutexes,
+ *   condvars, event sources, event flags, messages, mailboxes.
  * - No static setup at compile time, there is no need to configure a maximum
  *   number of all the above objects.
  * - PC simulator target included, the development can be done on a PC
@@ -48,8 +48,6 @@
  *   and declaratively allocated.
  * - Optional, thread safe, Heap Allocator subsystem.
  * - Optional, thread safe, Memory Pools Allocator subsystem.
- * - Blocking and non blocking I/O channels with timeout and events generation
- *   capability.
  * - Minimal system requirements: about 6KiB ROM with all options enabled and
  *   speed optimizations on. The size can shrink under 2KiB by disabling the
  *   the unused subsystems and optimizing for size.
@@ -58,6 +56,5 @@
  * .
  * <h2>Related pages</h2>
  * - @subpage concepts
- * - @subpage testsuite
  * .
  */

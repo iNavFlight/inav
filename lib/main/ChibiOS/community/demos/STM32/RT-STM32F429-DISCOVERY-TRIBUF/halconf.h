@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2016 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -49,6 +49,13 @@
  */
 #if !defined(HAL_USE_CAN) || defined(__DOXYGEN__)
 #define HAL_USE_CAN                 FALSE
+#endif
+
+/**
+ * @brief   Enables the cryptographic subsystem.
+ */
+#if !defined(HAL_USE_CRY) || defined(__DOXYGEN__)
+#define HAL_USE_CRY                 FALSE
 #endif
 
 /**
@@ -112,6 +119,13 @@
  */
 #if !defined(HAL_USE_PWM) || defined(__DOXYGEN__)
 #define HAL_USE_PWM                 FALSE
+#endif
+
+/**
+ * @brief   Enables the QSPI subsystem.
+ */
+#if !defined(HAL_USE_QSPI) || defined(__DOXYGEN__)
+#define HAL_USE_QSPI                FALSE
 #endif
 
 /**
@@ -199,6 +213,28 @@
  */
 #if !defined(CAN_USE_SLEEP_MODE) || defined(__DOXYGEN__)
 #define CAN_USE_SLEEP_MODE          TRUE
+#endif
+
+/*===========================================================================*/
+/* CRY driver related settings.                                              */
+/*===========================================================================*/
+
+/**
+ * @brief   Enables the SW fall-back of the cryptographic driver.
+ * @details When enabled, this option, activates a fall-back software
+ *          implementation for algorithms not supported by the underlying
+ *          hardware.
+ * @note    Fall-back implementations may not be present for all algorithms.
+ */
+#if !defined(HAL_CRY_USE_FALLBACK) || defined(__DOXYGEN__)
+#define HAL_CRY_USE_FALLBACK                FALSE
+#endif
+
+/**
+ * @brief   Makes the driver forcibly use the fall-back implementations.
+ */
+#if !defined(HAL_CRY_ENFORCE_FALLBACK) || defined(__DOXYGEN__)
+#define HAL_CRY_ENFORCE_FALLBACK            FALSE
 #endif
 
 /*===========================================================================*/

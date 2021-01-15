@@ -68,11 +68,11 @@ static void adc_end_cb(ADCDriver *adcp, adcsample_t *buffer, size_t n) {
   chSysLockFromISR();
   chVTResetI(&vt);
   if (temp < 19000) {
-    chVTSetI(&vt, MS2ST(10), ledoff, NULL);
+    chVTSetI(&vt, TIME_MS2I(10), ledoff, NULL);
   } else if (temp > 28000) {
-    chVTSetI(&vt, MS2ST(20), ledoff, NULL);
+    chVTSetI(&vt, TIME_MS2I(20), ledoff, NULL);
   } else {
-    chVTSetI(&vt, MS2ST(40), ledoff, NULL);
+    chVTSetI(&vt, TIME_MS2I(40), ledoff, NULL);
   }
   chSysUnlockFromISR();
 }

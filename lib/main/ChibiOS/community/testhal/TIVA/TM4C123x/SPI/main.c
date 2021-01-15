@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2014..2016 Marco Veeneman
+    Copyright (C) 2014..2017 Marco Veeneman
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ static const SPIConfig hs_spicfg =
   NULL,
   GPIOA,
   3,
-  TIVA_CR0_DSS(8) | /*TIVA_CR0_SPH | TIVA_CR_SPO |*/ TIVA_CR0_SRC(0),
+  SSI_CR0_DSS_8 | /*SSI_CR0_SPH | SSI_CR0_SPO |*/ SSI_CR0_SCR(0),
   16
 };
 
@@ -43,7 +43,7 @@ static const SPIConfig ls_spicfg =
   NULL,
   GPIOA,
   3,
-  TIVA_CR0_DSS(8) | /*TIVA_CR0_SPH | TIVA_CR_SPO |*/ TIVA_CR0_SRC(0),
+  SSI_CR0_DSS_8 | /*SSI_CR0_SPH | SSI_CR0_SPO |*/ SSI_CR0_SCR(0),
   80
 };
 
@@ -104,15 +104,11 @@ int main(void)
   halInit();
   chSysInit();
 
-  palSetPadMode(GPIOA, GPIOA_SSI0_CLK,  PAL_MODE_OUTPUT_PUSHPULL |
-                                        PAL_MODE_ALTERNATE(2));
-  palSetPadMode(GPIOA, GPIOA_SSI0_RX,   PAL_MODE_OUTPUT_PUSHPULL |
-                                        PAL_MODE_ALTERNATE(2));
-  palSetPadMode(GPIOA, GPIOA_SSI0_TX,   PAL_MODE_OUTPUT_PUSHPULL |
-                                        PAL_MODE_ALTERNATE(2));
-  palSetPadMode(GPIOA, GPIOA_PIN3,      PAL_MODE_OUTPUT_PUSHPULL);
-
-  palSetPadMode(GPIOF, GPIOF_LED_GREEN, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetLineMode(LINE_SSI0_CLK, PAL_MODE_OUTPUT_PUSHPULL | PAL_MODE_ALTERNATE(2));
+  palSetLineMode(LINE_SSI0_RX, PAL_MODE_OUTPUT_PUSHPULL | PAL_MODE_ALTERNATE(2));
+  palSetLineMode(LINE_SSI0_TX, PAL_MODE_OUTPUT_PUSHPULL | PAL_MODE_ALTERNATE(2));
+  palSetLineMode(LINE_LED_GREEN, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetPadMode(GPIOA, GPIOA_PIN3, PAL_MODE_OUTPUT_PUSHPULL);
 
   /*
    * Prepare transmit pattern.
@@ -124,10 +120,16 @@ int main(void)
   /*
    * Starting the transmitter and receiver threads.
    */
-  chThdCreateStatic(spi_thread_1_wa, sizeof(spi_thread_1_wa),
-                    NORMALPRIO + 1, spi_thread_1, NULL);
-  chThdCreateStatic(spi_thread_2_wa, sizeof(spi_thread_2_wa),
-                    NORMALPRIO + 1, spi_thread_2, NULL);
+  chThdCreateStatic(spi_thread_1_wa,
+                    sizeof(spi_thread_1_wa),
+                    NORMALPRIO + 1,
+                    spi_thread_1,
+                    NULL);
+  chThdCreateStatic(spi_thread_2_wa,
+                    sizeof(spi_thread_2_wa),
+                    NORMALPRIO + 1,
+                    spi_thread_2,
+                    NULL);
 
   /*
    * Normal main() thread activity

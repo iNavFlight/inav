@@ -1,0 +1,21 @@
+In decreasing order of priority:
+
+Bugs:
+- Synchronization on driver unload between usbhMainLoop and driver APIs
+    - MSD: ok
+    - AOA: not done
+    - HUB: ok
+    - FTDI: not done
+    - HID: ok
+    - UVC: not done
+
+
+Enhancements:
+- Way to return error from the load() functions in order to stop the enumeration process
+- Event sources from the low-level driver, in order to know when to call usbhMainLoop (from the low-level driver and from the HUB driver status callback)
+- Possibility of internal main loop
+- Linked list for drivers for dynamic registration
+- A way to automate matching (similar to linux)
+- Hooks to override driver loading and to inform the user of problems
+- for STM32 LLD: think of a way to prevent Bulk IN NAK interrupt flood.
+- Integrate VBUS power switching functionality to the API.

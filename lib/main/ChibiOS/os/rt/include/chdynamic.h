@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio.
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio.
 
     This file is part of ChibiOS.
 
@@ -25,8 +25,8 @@
  * @{
  */
 
-#ifndef _CHDYNAMIC_H_
-#define _CHDYNAMIC_H_
+#ifndef CHDYNAMIC_H
+#define CHDYNAMIC_H
 
 #if (CH_CFG_USE_DYNAMIC == TRUE) || defined(__DOXYGEN__)
 
@@ -47,6 +47,10 @@
  */
 #if CH_CFG_USE_WAITEXIT == FALSE
 #error "CH_CFG_USE_DYNAMIC requires CH_CFG_USE_WAITEXIT"
+#endif
+
+#if CH_CFG_USE_REGISTRY == FALSE
+#error "CH_CFG_USE_DYNAMIC requires CH_CFG_USE_REGISTRY"
 #endif
 
 #if (CH_CFG_USE_HEAP == FALSE) && (CH_CFG_USE_MEMPOOLS == FALSE)
@@ -71,15 +75,14 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-  thread_t *chThdAddRef(thread_t *tp);
-  void chThdRelease(thread_t *tp);
 #if CH_CFG_USE_HEAP == TRUE
   thread_t *chThdCreateFromHeap(memory_heap_t *heapp, size_t size,
-                                tprio_t prio, tfunc_t pf, void *arg);
+                                const char *name, tprio_t prio,
+                                tfunc_t pf, void *arg);
 #endif
 #if CH_CFG_USE_MEMPOOLS == TRUE
-  thread_t *chThdCreateFromMemoryPool(memory_pool_t *mp, tprio_t prio,
-                                      tfunc_t pf, void *arg);
+  thread_t *chThdCreateFromMemoryPool(memory_pool_t *mp, const char *name,
+                                      tprio_t prio, tfunc_t pf, void *arg);
 #endif
 #ifdef __cplusplus
 }
@@ -91,6 +94,6 @@ extern "C" {
 
 #endif /* CH_CFG_USE_DYNAMIC == TRUE */
 
-#endif /* _CHDYNAMIC_H_ */
+#endif /* CHDYNAMIC_H */
 
 /** @} */

@@ -82,6 +82,10 @@ void hal_lld_init(void) {
   } while (SFRIFG1 & OFIFG);
   #endif
   CSCTL0_H = 0xFF; /* Lock clock system */
+  
+#if (HAL_USE_DMA == TRUE)
+  dmaInit();
+#endif
 }
 
 /** @} */

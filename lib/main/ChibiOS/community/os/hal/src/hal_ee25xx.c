@@ -277,7 +277,7 @@ static msg_t __fitted_write(void *ip, const uint8_t *data, size_t len, uint32_t 
 
   msg_t status = MSG_RESET;
 
-  osalDbgAssert(len != 0, "something broken in hi level part");
+  osalDbgAssert(len > 0, "len must be greater than 0");
 
   status = ll_eeprom_write(((SPIEepromFileStream *)ip)->cfg,
                            eepfs_getposition(ip), data, len);
@@ -290,15 +290,15 @@ static msg_t __fitted_write(void *ip, const uint8_t *data, size_t len, uint32_t 
 
 /**
  * @brief     Write data to EEPROM.
- * @details   Only one EEPROM page can be written at once. So fucntion
+ * @details   Only one EEPROM page can be written at once. So function
  *            splits large data chunks in small EEPROM transactions if needed.
- * @note      To achieve the maximum effectivity use write operations
+ * @note      To achieve the maximum efficiency use write operations
  *            aligned to EEPROM page boundaries.
  */
 static size_t write(void *ip, const uint8_t *bp, size_t n) {
 
-  size_t   len = 0;     /* bytes to be written at one trasaction */
-  uint32_t written; /* total bytes successfully written */
+  size_t   len = 0;      /* bytes to be written per transaction */
+  uint32_t written = 0;  /* total bytes successfully written */
   uint16_t pagesize;
   uint32_t firstpage;
   uint32_t lastpage;
@@ -318,32 +318,30 @@ static size_t write(void *ip, const uint8_t *bp, size_t n) {
   firstpage = (cfg->barrier_low + eepfs_getposition(ip)) / pagesize;
   lastpage  = ((cfg->barrier_low + eepfs_getposition(ip) + n) - 1) / pagesize;
 
-  written = 0;
-  /* data fitted in single page */
+  /* data fits in single page */
   if (firstpage == lastpage) {
     len = n;
     __fitted_write(ip, bp, len, &written);
-    bp += len;
     return written;
   }
+  
   else {
     /* write first piece of data to first page boundary */
     len =  ((firstpage + 1) * pagesize) - eepfs_getposition(ip);
     len -= cfg->barrier_low;
-    __fitted_write(ip, bp, len, &written);
+    if (__fitted_write(ip, bp, len, &written) != MSG_OK)
+      return written;
     bp += len;
 
-    /* now writes blocks at a size of pages (may be no one) */
+    /* now write page sized blocks (zero or more) */
     while ((n - written) > pagesize) {
       len = pagesize;
-      if (__fitted_write(ip, bp, len, &written) != MSG_OK) // Fixed: Would increase bp forever and crash in case of timeouts...
+      if (__fitted_write(ip, bp, len, &written) != MSG_OK)
         return written;
-
       bp += len;
     }
 
-
-    /* wrtie tail */
+    /* write tail */
     len = n - written;
     if (len == 0)
       return written;
@@ -385,6 +383,7 @@ static size_t read(void *ip, uint8_t *bp, size_t n) {
 }
 
 static const struct EepromFileStreamVMT vmt = {
+  (size_t)0,
   write,
   read,
   eepfs_put,

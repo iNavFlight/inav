@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -22,8 +22,8 @@
  * @{
  */
 
-#ifndef _STM32_DMA_H_
-#define _STM32_DMA_H_
+#ifndef STM32_DMA_H
+#define STM32_DMA_H
 
 /*===========================================================================*/
 /* Driver constants.                                                         */
@@ -55,17 +55,38 @@
  *                      nibble
  * @return              Returns the channel associated to the stream.
  */
-#define STM32_DMA_GETCHANNEL(id, c) (((c) >> (((id) & 7U) * 4U)) & 7U)
+#define STM32_DMA_GETCHANNEL(id, c) (((c) >> (((id) & 7U) * 4U)) & 15U)
 
 /**
  * @brief   Checks if a DMA priority is within the valid range.
  * @param[in] prio      DMA priority
  *
  * @retval              The check result.
- * @retval FALSE        invalid DMA priority.
- * @retval TRUE         correct DMA priority.
+ * @retval false        invalid DMA priority.
+ * @retval true         correct DMA priority.
  */
 #define STM32_DMA_IS_VALID_PRIORITY(prio) (((prio) >= 0U) && ((prio) <= 3U))
+
+#if (STM32_DMA_SUPPORTS_DMAMUX == FALSE) || defined(_DOXYGEN__)
+/**
+ * @brief   Checks if a DMA stream id is within the valid range.
+ *
+ * @param[in] id        DMA stream id
+ * @retval              The check result.
+ * @retval false        invalid DMA stream.
+ * @retval true         correct DMA stream.
+ */
+#define STM32_DMA_IS_VALID_STREAM(id) (((id) >= 0U) &&                      \
+                                       ((id) <= STM32_DMA_STREAMS))
+#else /* STM32_DMA_SUPPORTS_DMAMUX == FALSE */
+#if STM32_HAS_DMA2 == TRUE
+#define STM32_DMA_IS_VALID_STREAM(id) (((id) >= 0U) &&                      \
+                                       ((id) <= (STM32_DMA_STREAMS + 2)))
+#else
+#define STM32_DMA_IS_VALID_STREAM(id) (((id) >= 0U) &&                      \
+                                       ((id) <= (STM32_DMA_STREAMS + 1)))
+#endif
+#endif /* STM32_DMA_SUPPORTS_DMAMUX == FALSE */
 
 /**
  * @brief   Returns an unique numeric identifier for a DMA stream.
@@ -93,10 +114,23 @@
  * @param[in] mask      the stream numeric identifiers mask
  *
  * @retval              The check result.
- * @retval FALSE        id does not belong to the mask.
- * @retval TRUE         id belongs to the mask.
+ * @retval false        id does not belong to the mask.
+ * @retval true         id belongs to the mask.
  */
 #define STM32_DMA_IS_VALID_ID(id, mask) (((1U << (id)) & (mask)))
+
+#if (STM32_DMA_SUPPORTS_DMAMUX == TRUE) || defined(_DOXYGEN__)
+/**
+ * @name    Special stream identifiers
+ * @{
+ */
+#define STM32_DMA_STREAM_ID_ANY         STM32_DMA_STREAMS
+#define STM32_DMA_STREAM_ID_ANY_DMA1    (STM32_DMA_STREAM_ID_ANY + 1)
+#if STM32_HAS_DMA2 == TRUE
+#define STM32_DMA_STREAM_ID_ANY_DMA2    (STM32_DMA_STREAM_ID_ANY_DMA1 + 1)
+#endif
+/** @} */
+#endif
 
 /**
  * @name    DMA streams identifiers
@@ -138,6 +172,7 @@
 #define STM32_DMA_CR_TEIE           DMA_SxCR_TEIE
 #define STM32_DMA_CR_HTIE           DMA_SxCR_HTIE
 #define STM32_DMA_CR_TCIE           DMA_SxCR_TCIE
+#define STM32_DMA_CR_PFCTRL         DMA_SxCR_PFCTRL
 #define STM32_DMA_CR_DIR_MASK       DMA_SxCR_DIR
 #define STM32_DMA_CR_DIR_P2M        0
 #define STM32_DMA_CR_DIR_M2P        DMA_SxCR_DIR_0
@@ -160,7 +195,7 @@
 /** @} */
 
 /**
- * @name    CR register constants only found in STM32F2xx/STM32F4xx
+ * @name    CR register constants only found in DMAv2
  * @{
  */
 #define STM32_DMA_CR_DMEIE          DMA_SxCR_DMEIE
@@ -169,21 +204,26 @@
 #define STM32_DMA_CR_DBM            DMA_SxCR_DBM
 #define STM32_DMA_CR_CT             DMA_SxCR_CT
 #define STM32_DMA_CR_PBURST_MASK    DMA_SxCR_PBURST
-#define STM32_DMA_CR_PBURST_SINGLE  0
+#define STM32_DMA_CR_PBURST_SINGLE  0U
 #define STM32_DMA_CR_PBURST_INCR4   DMA_SxCR_PBURST_0
 #define STM32_DMA_CR_PBURST_INCR8   DMA_SxCR_PBURST_1
 #define STM32_DMA_CR_PBURST_INCR16  (DMA_SxCR_PBURST_0 | DMA_SxCR_PBURST_1)
 #define STM32_DMA_CR_MBURST_MASK    DMA_SxCR_MBURST
-#define STM32_DMA_CR_MBURST_SINGLE  0
+#define STM32_DMA_CR_MBURST_SINGLE  0U
 #define STM32_DMA_CR_MBURST_INCR4   DMA_SxCR_MBURST_0
 #define STM32_DMA_CR_MBURST_INCR8   DMA_SxCR_MBURST_1
 #define STM32_DMA_CR_MBURST_INCR16  (DMA_SxCR_MBURST_0 | DMA_SxCR_MBURST_1)
+#if (STM32_DMA_SUPPORTS_DMAMUX == FALSE) || defined(__DOXYGEN__)
 #define STM32_DMA_CR_CHSEL_MASK     DMA_SxCR_CHSEL
 #define STM32_DMA_CR_CHSEL(n)       ((n) << 25U)
+#else
+#define STM32_DMA_CR_CHSEL_MASK     0U
+#define STM32_DMA_CR_CHSEL(n)       0U
+#endif
 /** @} */
 
 /**
- * @name    FCR register constants only found in STM32F2xx/STM32F4xx
+ * @name    FCR register constants only found in DMAv2
  * @{
  */
 #define STM32_DMA_FCR_RESET_VALUE   0x00000021U
@@ -215,8 +255,8 @@
 /* Derived constants and error checks.                                       */
 /*===========================================================================*/
 
-#if !defined(STM32_DMA_CACHE_HANDLING)
-#error "STM32_DMA_CACHE_HANDLING missing in registry"
+#if !defined(STM32_DMA_SUPPORTS_DMAMUX)
+#error "STM32_DMA_SUPPORTS_DMAMUX not defined in registry"
 #endif
 
 #if !defined(STM32_HAS_DMA1)
@@ -355,21 +395,13 @@
 #error "STM32_DMA2_CH7_NUMBER missing in registry"
 #endif
 
+#if (STM32_DMA_SUPPORTS_DMAMUX == TRUE) || defined(__DOXYGEN__)
+#include "stm32_dmamux.h"
+#endif
+
 /*===========================================================================*/
 /* Driver data structures and types.                                         */
 /*===========================================================================*/
-
-/**
- * @brief   STM32 DMA stream descriptor structure.
- */
-typedef struct {
-  DMA_Stream_TypeDef    *stream;        /**< @brief Associated DMA stream.  */
-  volatile uint32_t     *ifcr;          /**< @brief Associated IFCR reg.    */
-  uint8_t               ishift;         /**< @brief Bits offset in xIFCR
-                                             register.                      */
-  uint8_t               selfindex;      /**< @brief Index to self in array. */
-  uint8_t               vector;         /**< @brief Associated IRQ vector.  */
-} stm32_dma_stream_t;
 
 /**
  * @brief   STM32 DMA ISR function type.
@@ -380,74 +412,26 @@ typedef struct {
  */
 typedef void (*stm32_dmaisr_t)(void *p, uint32_t flags);
 
+/**
+ * @brief   STM32 DMA stream descriptor structure.
+ */
+typedef struct {
+  DMA_Stream_TypeDef    *stream;        /**< @brief Associated DMA stream.  */
+  volatile uint32_t     *ifcr;          /**< @brief Associated IFCR reg.    */
+#if (STM32_DMA_SUPPORTS_DMAMUX == TRUE) || defined(__DOXYGEN__)
+  DMAMUX_Channel_TypeDef *mux;          /**< @brief Associated DMA mux.     */
+#else
+  uint8_t               dummy;          /**< @brief Filler.                 */
+#endif
+  uint8_t               shift;          /**< @brief Bits offset in xIFCR
+                                             register.                      */
+  uint8_t               selfindex;      /**< @brief Index to self in array. */
+  uint8_t               vector;         /**< @brief Associated IRQ vector.  */
+} stm32_dma_stream_t;
+
 /*===========================================================================*/
 /* Driver macros.                                                            */
 /*===========================================================================*/
-
-#if STM32_DMA_CACHE_HANDLING || defined(__DOXYGEN__)
-/**
- * @brief   Invalidates the data cache lines overlapping a DMA buffer.
- * @details This function is meant to make sure that data written in
- *          data cache is invalidated. It is used for DMA buffers that
- *          must have been written by a DMA stream.
- * @note    On devices without data cache this function does nothing.
- * @note    The function does not consider the lower 5 bits of addresses,
- *          the buffers are meant to be aligned to a 32 bytes boundary or
- *          adjacent data can be invalidated as side effect.
- *
- * @param[in] saddr     start address of the DMA buffer
- * @param[in] n         size of the DMA buffer in bytes
- *
- * @api
- */
-#define dmaBufferInvalidate(saddr, n) {                                     \
-  uint8_t *start = (uint8_t *)(saddr);                                      \
-  uint8_t *end = start + (size_t)(n);                                       \
-  __DSB();                                                                  \
-  while (start < end) {                                                     \
-    SCB->DCIMVAC = (uint32_t)start;                                         \
-    start += 32U;                                                           \
-  }                                                                         \
-  __DSB();                                                                  \
-  __ISB();                                                                  \
-}
-
-/**
- * @brief   Flushes the data cache lines overlapping a DMA buffer.
- * @details This function is meant to make sure that data written in
- *          data cache is flushed to RAM. It is used for DMA buffers that
- *          must be read by a DMA stream.
- * @note    On devices without data cache this function does nothing.
- * @note    The function does not consider the lower 5 bits of addresses,
- *          the buffers are meant to be aligned to a 32 bytes boundary or
- *          adjacent data can be flushed as side effect.
- *
- * @param[in] saddr     start address of the DMA buffer
- * @param[in] n         size of the DMA buffer in bytes
- *
- * @api
- */
-#define dmaBufferFlush(saddr, n) {                                          \
-  uint8_t *start = (uint8_t *)(saddr);                                      \
-  uint8_t *end = start + (size_t)(n);                                       \
-  __DSB();                                                                  \
-  while (start < end) {                                                     \
-    SCB->DCCIMVAC = (uint32_t)start;                                        \
-    start += 32U;                                                           \
-  }                                                                         \
-  __DSB();                                                                  \
-  __ISB();                                                                  \
-}
-#else
-#define dmaBufferInvalidate(addr, size) {                                   \
-  (void)(addr);                                                             \
-  (void)(size);                                                             \
-}
-#define dmaBufferFlush(addr, size) {                                        \
-  (void)(addr);                                                             \
-  (void)(size);                                                             \
-}
-#endif
 
 /**
  * @name    Macro Functions
@@ -602,7 +586,7 @@ typedef void (*stm32_dmaisr_t)(void *p, uint32_t flags);
  * @special
  */
 #define dmaStreamClearInterrupt(dmastp) {                                   \
-  *(dmastp)->ifcr = STM32_DMA_ISR_MASK << (dmastp)->ishift;                 \
+  *(dmastp)->ifcr = STM32_DMA_ISR_MASK << (dmastp)->shift;                  \
 }
 
 /**
@@ -648,6 +632,20 @@ typedef void (*stm32_dmaisr_t)(void *p, uint32_t flags);
     ;                                                                       \
   dmaStreamClearInterrupt(dmastp);                                          \
 }
+
+/**
+ * @brief   DMA stream current target.
+ * @note    This function can be invoked in both ISR or thread context.
+ * @pre     The stream must have been allocated using @p dmaStreamAllocate().
+ * @post    After use the stream can be released using @p dmaStreamRelease().
+ *
+ * @param[in] dmastp    pointer to a stm32_dma_stream_t structure
+ * @return              Current memory target index.
+ *
+ * @special
+ */
+#define dmaStreamGetCurrentTarget(dmastp)                                   \
+  (((dmastp)->stream->CR >> DMA_SxCR_CT_Pos) & 1U)
 /** @} */
 
 /*===========================================================================*/
@@ -661,16 +659,24 @@ extern const stm32_dma_stream_t _stm32_dma_streams[STM32_DMA_STREAMS];
 #ifdef __cplusplus
 extern "C" {
 #endif
-  //void dmaInit(void);
-  bool dmaStreamAllocate(const stm32_dma_stream_t *dmastp,
-                         uint32_t priority,
-                         stm32_dmaisr_t func,
-                         void *param);
-  void dmaStreamRelease(const stm32_dma_stream_t *dmastp);
+  void dmaInit(void);
+  const stm32_dma_stream_t *dmaStreamAllocI(uint32_t id,
+                                            uint32_t priority,
+                                            stm32_dmaisr_t func,
+                                            void *param);
+  const stm32_dma_stream_t *dmaStreamAlloc(uint32_t id,
+                                           uint32_t priority,
+                                           stm32_dmaisr_t func,
+                                           void *param);
+  void dmaStreamFreeI(const stm32_dma_stream_t *dmastp);
+  void dmaStreamFree(const stm32_dma_stream_t *dmastp);
+#if STM32_DMA_SUPPORTS_DMAMUX == TRUE
+  void dmaSetRequestSource(const stm32_dma_stream_t *dmastp, uint32_t per);
+#endif
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _STM32_DMA_H_ */
+#endif /* STM32_DMA_H */
 
 /** @} */

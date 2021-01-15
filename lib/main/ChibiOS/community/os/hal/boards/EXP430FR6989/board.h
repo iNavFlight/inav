@@ -69,8 +69,6 @@
 #define VAL_IOPORT1_REN   0xFFFE
 #define VAL_IOPORT1_SEL0  0x0000
 #define VAL_IOPORT1_SEL1  0x0000
-#define VAL_IOPORT1_IES   0x0006
-#define VAL_IOPORT1_IE    0x0006
 
 /*
  * Port B setup:
@@ -97,8 +95,6 @@
 #define VAL_IOPORT2_REN   0xFFCF
 #define VAL_IOPORT2_SEL0  0x0030
 #define VAL_IOPORT2_SEL1  0x0000
-#define VAL_IOPORT2_IES   0x0000
-#define VAL_IOPORT2_IE    0x0000
 
 /*
  * Port C setup:
@@ -125,8 +121,6 @@
 #define VAL_IOPORT3_REN   0xFFFF
 #define VAL_IOPORT3_SEL0  0x0000
 #define VAL_IOPORT3_SEL1  0x0000
-#define VAL_IOPORT3_IES   0x0000
-#define VAL_IOPORT3_IE    0x0000
 
 /*
  * Port D setup:
@@ -153,11 +147,9 @@
 #define VAL_IOPORT4_REN   0xFFFF
 #define VAL_IOPORT4_SEL0  0x0000
 #define VAL_IOPORT4_SEL1  0x0000
-#define VAL_IOPORT4_IES   0x0000
-#define VAL_IOPORT4_IE    0x0000
 
 /*
- * Port D setup:
+ * Port E setup:
  * 
  * P9.0 - BoosterPack BP27        (input pullup)
  * P9.1 - BoosterPack BP28        (input pullup)
@@ -181,8 +173,6 @@
 #define VAL_IOPORT5_REN   0xFF7F
 #define VAL_IOPORT5_SEL0  0x0000
 #define VAL_IOPORT5_SEL1  0x0000
-#define VAL_IOPORT5_IES   0x0000
-#define VAL_IOPORT5_IE    0x0000
 
 /*
  * Port J setup:
@@ -201,8 +191,6 @@
 #define VAL_IOPORT0_REN   0x00CF
 #define VAL_IOPORT0_SEL0  0x0030
 #define VAL_IOPORT0_SEL1  0x0000
-#define VAL_IOPORT0_IES   0x0000
-#define VAL_IOPORT0_IE    0x0000
 
 #if !defined(_FROM_ASM_)
 #ifdef __cplusplus

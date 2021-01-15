@@ -70,17 +70,35 @@
  * @name    HID Report items
  * @{
  */
-#define HID_REPORT_USAGE_PAGE               0x04
-#define HID_REPORT_USAGE                    0x08
-#define HID_REPORT_LOGICAL_MINIMUM          0x14
-#define HID_REPORT_USAGE_MINIMUM            0x18
-#define HID_REPORT_LOGICAL_MAXIMUM          0x24
-#define HID_REPORT_USAGE_MAXIMUM            0x28
-#define HID_REPORT_REPORT_SIZE              0x74
 #define HID_REPORT_INPUT                    0x80
-#define HID_REPORT_REPORT_COUNT             0x94
+#define HID_REPORT_OUTPUT                   0x90
 #define HID_REPORT_COLLECTION               0xA0
+#define HID_REPORT_FEATURE                  0xB0
 #define HID_REPORT_END_COLLECTION           0xC0
+
+#define HID_REPORT_USAGE_PAGE               0x04
+#define HID_REPORT_LOGICAL_MINIMUM          0x14
+#define HID_REPORT_LOGICAL_MAXIMUM          0x24
+#define HID_REPORT_PHYSICAL_MINIMUM         0x34
+#define HID_REPORT_PHYSICAL_MAXIMUM         0x44
+#define HID_REPORT_UNIT_EXPONENT            0x54
+#define HID_REPORT_UNIT                     0x64
+#define HID_REPORT_REPORT_SIZE              0x74
+#define HID_REPORT_REPORT_ID                0x84
+#define HID_REPORT_REPORT_COUNT             0x94
+#define HID_REPORT_REPORT_PUSH              0xA4
+#define HID_REPORT_REPORT_POP               0xB4
+
+#define HID_REPORT_USAGE                    0x08
+#define HID_REPORT_USAGE_MINIMUM            0x18
+#define HID_REPORT_USAGE_MAXIMUM            0x28
+#define HID_REPORT_DESIGNATOR_INDEX         0x38
+#define HID_REPORT_DESIGNATOR_MINUMUM       0x48
+#define HID_REPORT_DESIGNATOR_MAXIMUM       0x58
+#define HID_REPORT_STRING_INDEX             0x78
+#define HID_REPORT_STRING_MINUMUM           0x88
+#define HID_REPORT_STRING_MAXIMUM           0x98
+#define HID_REPORT_DELIMITER                0xA8
 /** @} */
 
 /**
@@ -115,6 +133,7 @@
 #define HID_USAGE_PAGE_DIGITIZER            0x0D
 #define HID_USAGE_PAGE_PID                  0x0F
 #define HID_USAGE_PAGE_UNICODE              0x10
+#define HID_USAGE_PAGE_VENDOR               0xFF00
 /** @} */
 
 /**
@@ -170,12 +189,35 @@
 /** @} */
 
 /**
- * @name    HID Input item definitions.
+ * @name    HID item types definitions
  * @{
  */
-#define HID_INPUT_DATA_VAR_ABS              0x02
-#define HID_INPUT_CNST_VAR_ABS              0x03
-#define HID_INPUT_DATA_VAR_REL              0x06
+#define HID_ITEM_DATA                       0x00
+#define HID_ITEM_CNST                       0x01
+#define HID_ITEM_ARR                        0x00
+#define HID_ITEM_VAR                        0x02
+#define HID_ITEM_ABS                        0x00
+#define HID_ITEM_REL                        0x04
+#define HID_ITEM_NWRP                       0x00
+#define HID_ITEM_WRP                        0x08
+#define HID_ITEM_LIN                        0x00
+#define HID_ITEM_NLIN                       0x10
+#define HID_ITEM_PRF                        0x00
+#define HID_ITEM_NPRF                       0x20
+#define HID_ITEM_NNUL                       0x00
+#define HID_ITEM_NUL                        0x40
+#define HID_ITEM_NVOL                       0x00
+#define HID_ITEM_VOL                        0x80
+
+#define HID_ITEM_DATA_VAR_ABS               (HID_ITEM_DATA |                \
+                                             HID_ITEM_VAR |                 \
+                                             HID_ITEM_ABS)
+#define HID_ITEM_CNST_VAR_ABS               (HID_ITEM_CNST |                \
+                                             HID_ITEM_VAR |                 \
+                                             HID_ITEM_ABS)
+#define HID_ITEM_DATA_VAR_REL               (HID_ITEM_DATA |                \
+                                             HID_ITEM_VAR |                 \
+                                             HID_ITEM_REL)
 /** @} */
 
 /**
@@ -202,46 +244,54 @@
   USB_DESC_WORD(wDescriptorLength)
 
 /**
+ * @brief   HID Report item helper macro (Single byte).
+ */
+#define HID_ITEM_B(id, value)                                               \
+  USB_DESC_BYTE(id | 0x01),                                                 \
+  USB_DESC_BYTE(value)
+
+/**
+ * @brief   HID Report item helper macro (Double byte).
+ */
+#define HID_ITEM_W(id, value)                                               \
+  USB_DESC_BYTE(id | 0x02),                                                 \
+  USB_DESC_WORD(value)
+
+/**
  * @brief   HID Report Usage Page item helper macro (Single byte).
  */
 #define HID_USAGE_PAGE_B(up)                                                \
-  USB_DESC_BYTE(HID_REPORT_USAGE_PAGE | 0x01),                              \
-  USB_DESC_BYTE(up)
+  HID_ITEM_B(HID_REPORT_USAGE_PAGE, up)
 
 /**
  * @brief   HID Report Usage Page item helper macro (Double byte).
  */
 #define HID_USAGE_PAGE_W(up)                                                \
-  USB_DESC_BYTE(HID_REPORT_USAGE_PAGE | 0x02),                              \
-  USB_DESC_WORD(up)
+  HID_ITEM_W(HID_REPORT_USAGE_PAGE, up)
 
 /**
  * @brief   HID Report Usage item helper macro (Single byte).
  */
 #define HID_USAGE_B(u)                                                      \
-  USB_DESC_BYTE(HID_REPORT_USAGE | 0x01),                                   \
-  USB_DESC_BYTE(u)
+  HID_ITEM_B(HID_REPORT_USAGE, u)
 
 /**
  * @brief   HID Report Usage item helper macro (Double byte).
  */
 #define HID_USAGE_W(u)                                                      \
-  USB_DESC_BYTE(HID_REPORT_USAGE | 0x02),                                   \
-  USB_DESC_WORD(u)
+  HID_ITEM_W(HID_REPORT_USAGE, u)
 
 /**
  * @brief   HID Report Collection item helper macro (Single Byte).
  */
-#define HID_COLLECTION_B(c)                                                   \
-  USB_DESC_BYTE(HID_REPORT_COLLECTION | 0x01),                                \
-  USB_DESC_BYTE(c)
+#define HID_COLLECTION_B(c)                                                 \
+  HID_ITEM_B(HID_REPORT_COLLECTION, c)
 
 /**
  * @brief   HID Report Collection item helper macro (Double Byte).
  */
-#define HID_COLLECTION_W(c)                                                   \
-  USB_DESC_BYTE(HID_REPORT_COLLECTION | 0x02),                                \
-  USB_DESC_WORD(c)
+#define HID_COLLECTION_W(c)                                                 \
+  HID_ITEM_W(HID_REPORT_COLLECTION, c)
 
 /**
  * @brief   HID Report End Collection item helper macro.
@@ -253,99 +303,110 @@
  * @brief   HID Report Usage Minimum item helper macro (Single byte).
  */
 #define HID_USAGE_MINIMUM_B(x)                                              \
-  USB_DESC_BYTE(HID_REPORT_USAGE_MINIMUM | 0x01),                           \
-  USB_DESC_BYTE(x)
-
+  HID_ITEM_B(HID_REPORT_USAGE_MINIMUM, x)
+  
 /**
  * @brief   HID Report Usage Minimum item helper macro (Double byte).
  */
 #define HID_USAGE_MINIMUM_W(x)                                              \
-  USB_DESC_BYTE(HID_REPORT_USAGE_MINIMUM | 0x02),                           \
-  USB_DESC_WORD(x)
+  HID_ITEM_W(HID_REPORT_USAGE_MINIMUM, x)
 
 /**
  * @brief   HID Report Usage Maximum item helper macro (Single byte).
  */
 #define HID_USAGE_MAXIMUM_B(x)                                              \
-  USB_DESC_BYTE(HID_REPORT_USAGE_MAXIMUM | 0x01),                           \
-  USB_DESC_BYTE(x)
-
+  HID_ITEM_B(HID_REPORT_USAGE_MAXIMUM, x)
+  
 /**
  * @brief   HID Report Usage Maximum item helper macro (Double byte).
  */
 #define HID_USAGE_MAXIMUM_W(x)                                              \
-  USB_DESC_BYTE(HID_REPORT_USAGE_MAXIMUM | 0x02),                           \
-  USB_DESC_WORD(x)
+  HID_ITEM_W(HID_REPORT_USAGE_MAXIMUM, x)
 
 /**
  * @brief   HID Report Logical Minimum item helper macro (Single byte).
  */
 #define HID_LOGICAL_MINIMUM_B(x)                                            \
-  USB_DESC_BYTE(HID_REPORT_LOGICAL_MINIMUM | 0x01),                         \
-  USB_DESC_BYTE(x)
+  HID_ITEM_B(HID_REPORT_LOGICAL_MINIMUM, x)
 
 /**
  * @brief   HID Report Logical Minimum item helper macro (Double byte).
  */
 #define HID_LOGICAL_MINIMUM_W(x)                                            \
-  USB_DESC_BYTE(HID_REPORT_LOGICAL_MINIMUM | 0x02),                         \
-  USB_DESC_WORD(x)
+  HID_ITEM_W(HID_REPORT_LOGICAL_MINIMUM, x)
 
 /**
  * @brief   HID Report Logical Maximum item helper macro (Single byte).
  */
 #define HID_LOGICAL_MAXIMUM_B(x)                                            \
-  USB_DESC_BYTE(HID_REPORT_LOGICAL_MAXIMUM | 0x01),                         \
-  USB_DESC_BYTE(x)
+  HID_ITEM_B(HID_REPORT_LOGICAL_MAXIMUM, x)
 
 /**
  * @brief   HID Report Logical Maximum item helper macro (Double byte).
  */
 #define HID_LOGICAL_MAXIMUM_W(x)                                            \
-  USB_DESC_BYTE(HID_REPORT_LOGICAL_MAXIMUM | 0x02),                         \
-  USB_DESC_WORD(x)
+  HID_ITEM_W(HID_REPORT_LOGICAL_MAXIMUM, x)
 
+/**
+ * @brief   HID Report ID item helper macro (Single byte).
+ */
+#define HID_REPORT_ID_B(x)                                               \
+  HID_ITEM_B(HID_REPORT_REPORT_ID, x)
+
+/**
+ * @brief   HID Report ID item helper macro (Double byte).
+ */
+#define HID_REPORT_ID_W(x)                                               \
+  HID_ITEM_W(HID_REPORT_REPORT_ID, x)
+  
 /**
  * @brief   HID Report Count item helper macro (Single byte).
  */
 #define HID_REPORT_COUNT_B(x)                                               \
-  USB_DESC_BYTE(HID_REPORT_REPORT_COUNT | 0x01),                            \
-  USB_DESC_BYTE(x)
+  HID_ITEM_B(HID_REPORT_REPORT_COUNT, x)
 
 /**
  * @brief   HID Report Count item helper macro (Double byte).
  */
 #define HID_REPORT_COUNT_W(x)                                               \
-  USB_DESC_BYTE(HID_REPORT_REPORT_COUNT | 0x02),                            \
-  USB_DESC_WORD(x)
+  HID_ITEM_W(HID_REPORT_REPORT_COUNT, x)
 
 /**
  * @brief   HID Report Size item helper macro (Single byte).
  */
 #define HID_REPORT_SIZE_B(x)                                                \
-  USB_DESC_BYTE(HID_REPORT_REPORT_SIZE | 0x01),                             \
-  USB_DESC_BYTE(x)
+  HID_ITEM_B(HID_REPORT_REPORT_SIZE, x)
 
 /**
  * @brief   HID Report Size item helper macro (Double byte).
  */
 #define HID_REPORT_SIZE_W(x)                                                \
-  USB_DESC_BYTE(HID_REPORT_REPORT_SIZE | 0x02),                             \
-  USB_DESC_WORD(x)
+  HID_ITEM_W(HID_REPORT_REPORT_SIZE, x)
 
 /**
  * @brief   HID Report Input item helper macro (Single byte).
  */
 #define HID_INPUT_B(x)                                                      \
-  USB_DESC_BYTE(HID_REPORT_INPUT | 0x01),                                   \
-  USB_DESC_BYTE(x)
+  HID_ITEM_B(HID_REPORT_INPUT, x)
 
 /**
  * @brief   HID Report Input item helper macro (Double byte).
  */
 #define HID_INPUT_W(x)                                                      \
-  USB_DESC_BYTE(HID_REPORT_INPUT | 0x02),                                   \
-  USB_DESC_WORD(x)
+  HID_ITEM_W(HID_REPORT_INPUT, x)
+/** @} */
+
+/**
+ * @brief   HID Report Output item helper macro (Single byte).
+ */
+#define HID_OUTPUT_B(x)                                                     \
+  HID_ITEM_B(HID_REPORT_OUTPUT, x)
+
+/**
+ * @brief   HID Report Output item helper macro (Double byte).
+ */
+#define HID_OUTPUT_W(x)                                                     \
+  HID_ITEM_W(HID_REPORT_OUTPUT, x)
 /** @} */
 
 /*===========================================================================*/

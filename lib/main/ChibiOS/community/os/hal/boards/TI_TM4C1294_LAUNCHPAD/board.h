@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2014..2016 Marco Veeneman
+    Copyright (C) 2014..2017 Marco Veeneman
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -14,8 +14,8 @@
     limitations under the License.
 */
 
-#ifndef _BOARD_H_
-#define _BOARD_H_
+#ifndef BOARD_H
+#define BOARD_H
 
 /*
  * Setup for Texas Instruments TM4C1294 Launchpad Board.
@@ -36,28 +36,10 @@
 //#define BOARD_PHY_RMII
 
 /*
- * MCU type
+ * MCU type and revision as defined in the TI header.
  */
-//#define TM4C1290NCPDT
-//#define TM4C1290NCZAD
-//#define TM4C1292NCPDT
-//#define TM4C1292NCZAD
-//#define TM4C1294KCPDT
-#define TM4C1294NCPDT
-//#define TM4C1294NCZAD
-//#define TM4C1297NCZAD
-//#define TM4C1299KCZAD
-//#define TM4C1299NCZAD
-//#define TM4C129CNCPDT
-//#define TM4C129CNCZAD
-//#define TM4C129DNCPDT
-//#define TM4C129DNCZAD
-//#define TM4C129EKCPDT
-//#define TM4C129ENCPDT
-//#define TM4C129ENCZAD
-//#define TM4C129LNCZAD
-//#define TM4C129XKCZAD
-//#define TM4C129XNCZAD
+#define PART_TM4C1294NCPDT
+#define TARGET_IS_TM4C129_RA0
 
 /*
  * Board oscillators-related settings.
@@ -201,6 +183,20 @@
 #define GPIOQ_PIN5              5
 #define GPIOQ_PIN6              6
 #define GPIOQ_PIN7              7
+
+/*
+ * IO lines assignments.
+ */
+#define LINE_UART0_RX           PAL_LINE(GPIOA, 0U)
+#define LINE_UART0_TX           PAL_LINE(GPIOA, 1U)
+
+#define LINE_LED0               PAL_LINE(GPIOF, 0U)
+#define LINE_LED1               PAL_LINE(GPIOF, 4U)
+
+#define LINE_LED2               PAL_LINE(GPION, 0U)
+#define LINE_LED3               PAL_LINE(GPION, 1U)
+
+#define LINE_SW1                PAL_LINE(GPIOJ, 0U)
 
 /*
  * I/O ports initial setup, this configuration is established soon after reset
@@ -426,4 +422,4 @@ extern "C" {
 #endif
 #endif /* _FROM_ASM_ */
 
-#endif /* _BOARD_H_ */
+#endif /* BOARD_H */

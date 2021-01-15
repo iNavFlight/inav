@@ -57,6 +57,8 @@ static const ADCConversionGroup adccg = {
     ADC_SMPR1_SMP_AN14(ADC_SAMPLE_3) |
     ADC_SMPR1_SMP_AN15(ADC_SAMPLE_3),
   0,                        /* SMPR2 */
+  0,
+  0,
   ADC_SQR1_NUM_CH(ADC_NUM_CHANNELS),
   0,
   ADC_SQR3_SQ6_N(ADC_AN33_2)          |

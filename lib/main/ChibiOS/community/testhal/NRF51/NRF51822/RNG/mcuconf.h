@@ -17,8 +17,8 @@
 #ifndef _MCUCONF_H_
 #define _MCUCONF_H_
 
-#define NRF51_RNG_USE_RNG1 		   TRUE
-#define NRF51_SERIAL_USE_UART0             TRUE
+#define NRF5_RNG_USE_RNG0 		   TRUE
+#define NRF5_SERIAL_USE_UART0              TRUE
 
 
 #endif /* _MCUCONF_H_ */

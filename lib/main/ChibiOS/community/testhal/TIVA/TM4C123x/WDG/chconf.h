@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2016 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -14,10 +14,22 @@
     limitations under the License.
 */
 
-#ifndef _CHCONF_H_
-#define _CHCONF_H_
+/**
+ * @file    templates/chconf.h
+ * @brief   Configuration file template.
+ * @details A copy of this file must be placed in each project directory, it
+ *          contains the application specific kernel settings.
+ *
+ * @addtogroup config
+ * @details Kernel related settings and hooks.
+ * @{
+ */
+
+#ifndef CHCONF_H
+#define CHCONF_H
 
 #define _CHIBIOS_RT_CONF_
+#define _CHIBIOS_RT_CONF_VER_5_0_
 
 /*===========================================================================*/
 /**
@@ -40,6 +52,18 @@
 #define CH_CFG_ST_FREQUENCY                 10000
 
 /**
+ * @brief   Time intervals data size.
+ * @note    Allowed values are 16, 32 or 64 bits.
+ */
+#define CH_CFG_INTERVALS_SIZE               32
+
+/**
+ * @brief   Time types data size.
+ * @note    Allowed values are 16 or 32 bits.
+ */
+#define CH_CFG_TIME_TYPES_SIZE              32
+
+/**
  * @brief   Time delta constant for the tick-less mode.
  * @note    If this value is zero then the system uses the classic
  *          periodic tick. This value represents the minimum number
@@ -47,14 +71,7 @@
  *          The value one is not valid, timeouts are rounded up to
  *          this value.
  */
-#define CH_CFG_ST_TIMEDELTA                 0
-
-/**
- * @brief   Realtime Counter frequency.
- * @details Frequency of the system counter used for realtime delays and
- *          measurements.
- */
-#define CH_CFG_RTC_FREQUENCY                80000000
+#define CH_CFG_ST_TIMEDELTA                 2
 
 /** @} */
 
@@ -97,7 +114,8 @@
  * @details When this option is activated the function @p chSysInit()
  *          does not spawn the idle thread. The application @p main()
  *          function becomes the idle thread and must implement an
- *          infinite loop. */
+ *          infinite loop.
+ */
 #define CH_CFG_NO_IDLE_THREAD               FALSE
 
 /** @} */
@@ -182,6 +200,16 @@
 #define CH_CFG_USE_MUTEXES                  TRUE
 
 /**
+ * @brief   Enables recursive behavior on mutexes.
+ * @note    Recursive mutexes are heavier and have an increased
+ *          memory footprint.
+ *
+ * @note    The default is @p FALSE.
+ * @note    Requires @p CH_CFG_USE_MUTEXES.
+ */
+#define CH_CFG_USE_MUTEXES_RECURSIVE        FALSE
+
+/**
  * @brief   Conditional Variables APIs.
  * @details If enabled then the conditional variables APIs are included
  *          in the kernel.
@@ -250,14 +278,6 @@
 #define CH_CFG_USE_MAILBOXES                TRUE
 
 /**
- * @brief   I/O Queues APIs.
- * @details If enabled then the I/O queues APIs are included in the kernel.
- *
- * @note    The default is @p TRUE.
- */
-#define CH_CFG_USE_QUEUES                   TRUE
-
-/**
  * @brief   Core Memory Manager APIs.
  * @details If enabled then the core memory manager APIs are included
  *          in the kernel.
@@ -288,6 +308,15 @@
 #define CH_CFG_USE_MEMPOOLS                 TRUE
 
 /**
+ * @brief  Objects FIFOs APIs.
+ * @details If enabled then the objects FIFOs APIs are included
+ *          in the kernel.
+ *
+ * @note    The default is @p TRUE.
+ */
+#define CH_CFG_USE_OBJ_FIFOS                TRUE
+
+/**
  * @brief   Dynamic Threads APIs.
  * @details If enabled then the dynamic threads creation APIs are included
  *          in the kernel.
@@ -297,6 +326,56 @@
  * @note    Requires @p CH_CFG_USE_HEAP and/or @p CH_CFG_USE_MEMPOOLS.
  */
 #define CH_CFG_USE_DYNAMIC                  TRUE
+
+/** @} */
+
+/*===========================================================================*/
+/**
+ * @name Objects factory options
+ * @{
+ */
+/*===========================================================================*/
+
+/**
+ * @brief   Objects Factory APIs.
+ * @details If enabled then the objects factory APIs are included in the
+ *          kernel.
+ *
+ * @note    The default is @p FALSE.
+ */
+#define CH_CFG_USE_FACTORY                  TRUE
+
+/**
+ * @brief   Maximum length for object names.
+ * @details If the specified length is zero then the name is stored by
+ *          pointer but this could have unintended side effects.
+ */
+#define CH_CFG_FACTORY_MAX_NAMES_LENGTH     8
+
+/**
+ * @brief   Enables the registry of generic objects.
+ */
+#define CH_CFG_FACTORY_OBJECTS_REGISTRY     TRUE
+
+/**
+ * @brief   Enables factory for generic buffers.
+ */
+#define CH_CFG_FACTORY_GENERIC_BUFFERS      TRUE
+
+/**
+ * @brief   Enables factory for semaphores.
+ */
+#define CH_CFG_FACTORY_SEMAPHORES           TRUE
+
+/**
+ * @brief   Enables factory for mailboxes.
+ */
+#define CH_CFG_FACTORY_MAILBOXES            TRUE
+
+/**
+ * @brief   Enables factory for objects FIFOs.
+ */
+#define CH_CFG_FACTORY_OBJ_FIFOS            TRUE
 
 /** @} */
 
@@ -344,12 +423,18 @@
 
 /**
  * @brief   Debug option, trace buffer.
- * @details If enabled then the context switch circular trace buffer is
- *          activated.
+ * @details If enabled then the trace buffer is activated.
  *
- * @note    The default is @p FALSE.
+ * @note    The default is @p CH_DBG_TRACE_MASK_DISABLED.
  */
-#define CH_DBG_ENABLE_TRACE                 FALSE
+#define CH_DBG_TRACE_MASK                   CH_DBG_TRACE_MASK_DISABLED
+
+/**
+ * @brief   Trace buffer entries.
+ * @note    The trace buffer is only allocated if @p CH_DBG_TRACE_MASK is
+ *          different from @p CH_DBG_TRACE_MASK_DISABLED.
+ */
+#define CH_DBG_TRACE_BUFFER_SIZE            128
 
 /**
  * @brief   Debug option, stack checks.
@@ -394,6 +479,22 @@
 /*===========================================================================*/
 
 /**
+ * @brief   System structure extension.
+ * @details User fields added to the end of the @p ch_system_t structure.
+ */
+#define CH_CFG_SYSTEM_EXTRA_FIELDS                                          \
+  /* Add threads custom fields here.*/
+
+/**
+ * @brief   System initialization hook.
+ * @details User initialization code added to the @p chSysInit() function
+ *          just before interrupts are enabled globally.
+ */
+#define CH_CFG_SYSTEM_INIT_HOOK(tp) {                                       \
+  /* Add threads initialization code here.*/                                \
+}
+
+/**
  * @brief   Threads descriptor structure extension.
  * @details User fields added to the end of the @p thread_t structure.
  */
@@ -402,9 +503,9 @@
 
 /**
  * @brief   Threads initialization hook.
- * @details User initialization code added to the @p chThdInit() API.
+ * @details User initialization code added to the @p _thread_init() function.
  *
- * @note    It is invoked from within @p chThdInit() and implicitly from all
+ * @note    It is invoked from within @p _thread_init() and implicitly from all
  *          the threads creation APIs.
  */
 #define CH_CFG_THREAD_INIT_HOOK(tp) {                                       \
@@ -414,10 +515,6 @@
 /**
  * @brief   Threads finalization hook.
  * @details User finalization code added to the @p chThdExit() API.
- *
- * @note    It is inserted into lock zone.
- * @note    It is also invoked when the threads simply return in order to
- *          terminate.
  */
 #define CH_CFG_THREAD_EXIT_HOOK(tp) {                                       \
   /* Add threads finalization code here.*/                                  \
@@ -428,7 +525,7 @@
  * @details This hook is invoked just before switching between threads.
  */
 #define CH_CFG_CONTEXT_SWITCH_HOOK(ntp, otp) {                              \
-  /* System halt code here.*/                                               \
+  /* Context switch code here.*/                                            \
 }
 
 /**
@@ -451,7 +548,8 @@
  *          should be invoked from here.
  * @note    This macro can be used to activate a power saving mode.
  */
-#define CH_CFG_IDLE_ENTER_HOOK() {                                         \
+#define CH_CFG_IDLE_ENTER_HOOK() {                                          \
+  /* Idle-enter code here.*/                                                \
 }
 
 /**
@@ -460,7 +558,8 @@
  *          should be invoked from here.
  * @note    This macro can be used to deactivate a power saving mode.
  */
-#define CH_CFG_IDLE_LEAVE_HOOK() {                                         \
+#define CH_CFG_IDLE_LEAVE_HOOK() {                                          \
+  /* Idle-leave code here.*/                                                \
 }
 
 /**
@@ -504,6 +603,6 @@
 /* Port-specific settings (override port settings defaulted in chcore.h).    */
 /*===========================================================================*/
 
-#endif  /* _CHCONF_H_ */
+#endif  /* CHCONF_H */
 
 /** @} */

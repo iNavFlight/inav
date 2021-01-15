@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -35,17 +35,17 @@
  * - High Level Device Driver (<b>HLD</b>). This layer contains the definitions
  *   of the driver's APIs and the platform independent part of the driver.<br>
  *   An HLD is composed by two files:
- *   - @p @<driver@>.c, the HLD implementation file. This file must be
+ *   - @p hal_@<driver@>.c, the HLD implementation file. This file must be
  *     included in the Makefile in order to use the driver.
- *   - @p @<driver@>.h, the HLD header file. This file is implicitly
+ *   - @p hal_@<driver@>.h, the HLD header file. This file is implicitly
  *     included by the HAL header file @p hal.h.
  *   .
  * - Low Level Device Driver (<b>LLD</b>). This layer contains the platform
  *   dependent part of the driver.<br>
  *   A LLD is composed by two files:
- *   - @p @<driver@>_lld.c, the LLD implementation file. This file must be
+ *   - @p hal_@<driver@>_lld.c, the LLD implementation file. This file must be
  *     included in the Makefile in order to use the driver.
- *   - @p @<driver@>_lld.h, the LLD header file. This file is implicitly
+ *   - @p hal_@<driver@>_lld.h, the LLD header file. This file is implicitly
  *     included by the HLD header file.
  *   .
  * .
@@ -114,12 +114,12 @@
  */
 
 /**
- * @defgroup HAL_INTERFACES Interfaces
- * @brief   HAL Interfaces.
+ * @defgroup HAL_INTERFACES_CLASSES Interfaces and Classes
+ * @brief   HAL Interfaces and Classes.
  *
  * @ingroup IO
  */
-
+ 
 /**
  * @defgroup HAL_INNER_CODE Inner Code
  * @brief   HAL Inner Code.

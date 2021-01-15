@@ -15,7 +15,7 @@
 */
 
 /**
- * @file    nand_lld.c
+ * @file    hal_nand_lld.c
  * @brief   NAND Driver subsystem low level driver source.
  *
  * @addtogroup NAND
@@ -32,6 +32,19 @@
 #define NAND_DMA_CHANNEL                                                  \
   STM32_DMA_GETCHANNEL(STM32_NAND_DMA_STREAM,                             \
                        STM32_FSMC_DMA_CHN)
+
+/**
+ * @brief   Bus width of NAND IC.
+ * @details Must be 8 or 16
+ */
+#if ! defined(STM32_NAND_BUS_WIDTH) || defined(__DOXYGEN__)
+#define STM32_NAND_BUS_WIDTH        8
+#endif
+
+/**
+ * @brief   DMA transaction width on AHB bus in bytes
+ */
+#define AHB_TRANSACTION_WIDTH       2
 
 /*===========================================================================*/
 /* Driver exported variables.                                                */
@@ -62,6 +75,47 @@ NANDDriver NANDD2;
 /*===========================================================================*/
 /* Driver local functions.                                                   */
 /*===========================================================================*/
+
+/**
+ * @brief   Helper function.
+ *
+ * @notapi
+ */
+static void align_check(const void *ptr, uint32_t len) {
+  osalDbgCheck((((uint32_t)ptr % AHB_TRANSACTION_WIDTH) == 0) &&
+                         ((len % AHB_TRANSACTION_WIDTH) == 0) &&
+                         (len >= AHB_TRANSACTION_WIDTH));
+  (void)ptr;
+  (void)len;
+}
+
+/**
+ * @brief   Work around errata in STM32's FSMC core.
+ * @details Constant output clock (if enabled) disappears when CLKDIV value
+ *          sets to 1 (FMC_CLK period = 2 × HCLK periods) AND 8-bit async
+ *          transaction generated on AHB. This workaround eliminates 8-bit
+ *          transactions on bus when you use 8-bit memory. It suitable only
+ *          for 8-bit memory (i.e. PWID bits in PCR register must be set
+ *          to 8-bit mode).
+ *
+ * @notapi
+ */
+static void set_16bit_bus(NANDDriver *nandp) {
+#if STM32_NAND_BUS_WIDTH
+  nandp->nand->PCR |= FSMC_PCR_PWID_16;
+#else
+  (void)nandp;
+#endif
+}
+
+static void set_8bit_bus(NANDDriver *nandp) {
+#if STM32_NAND_BUS_WIDTH
+  nandp->nand->PCR &= ~FSMC_PCR_PWID_16;
+#else
+  (void)nandp;
+#endif
+}
+
 /**
  * @brief   Wakes up the waiting thread.
  *
@@ -117,13 +171,10 @@ static uint32_t calc_eccps(NANDDriver *nandp) {
  * @notapi
  */
 static void nand_ready_isr_enable(NANDDriver *nandp) {
-#if STM32_NAND_USE_EXT_INT
-  nandp->config->ext_nand_isr_enable();
-#else
+
   nandp->nand->SR &= ~(FSMC_SR_IRS | FSMC_SR_ILS | FSMC_SR_IFS |
-                                          FSMC_SR_ILEN | FSMC_SR_IFEN);
+                                    FSMC_SR_ILEN | FSMC_SR_IFEN);
   nandp->nand->SR |= FSMC_SR_IREN;
-#endif
 }
 
 /**
@@ -134,11 +185,8 @@ static void nand_ready_isr_enable(NANDDriver *nandp) {
  * @notapi
  */
 static void nand_ready_isr_disable(NANDDriver *nandp) {
-#if STM32_NAND_USE_EXT_INT
-  nandp->config->ext_nand_isr_disable();
-#else
+
   nandp->nand->SR &= ~FSMC_SR_IREN;
-#endif
 }
 
 /**
@@ -148,31 +196,24 @@ static void nand_ready_isr_disable(NANDDriver *nandp) {
  *
  * @notapi
  */
-static void nand_isr_handler (NANDDriver *nandp) {
+static void nand_isr_handler(NANDDriver *nandp) {
 
   osalSysLockFromISR();
 
-#if !STM32_NAND_USE_EXT_INT
   osalDbgCheck(nandp->nand->SR & FSMC_SR_IRS); /* spurious interrupt happened */
   nandp->nand->SR &= ~FSMC_SR_IRS;
-#endif
 
   switch (nandp->state){
   case NAND_READ:
     nandp->state = NAND_DMA_RX;
-    dmaStartMemCopy(nandp->dma, nandp->dmamode,
-                    nandp->map_data, nandp->rxdata, nandp->datalen);
+    dmaStartMemCopy(nandp->dma, nandp->dmamode, nandp->map_data, nandp->rxdata,
+                    nandp->datalen/AHB_TRANSACTION_WIDTH);
     /* thread will be waked up from DMA ISR */
     break;
 
-  case NAND_ERASE:
-    /* NAND reports about erase finish */
-    nandp->state = NAND_READY;
-    wakeup_isr(nandp);
-    break;
-
-  case NAND_PROGRAM:
-    /* NAND reports about page programming finish */
+  case NAND_ERASE:      /* NAND reports about erase finish */
+  case NAND_PROGRAM:    /* NAND reports about page programming finish */
+  case NAND_RESET:      /* NAND reports about finished reset recover */
     nandp->state = NAND_READY;
     wakeup_isr(nandp);
     break;
@@ -210,7 +251,7 @@ static void nand_lld_serve_transfer_end_irq(NANDDriver *nandp, uint32_t flags) {
   case NAND_DMA_TX:
     nandp->state = NAND_PROGRAM;
     nandp->map_cmd[0] = NAND_CMD_PAGEPROG;
-    /* thread will be woken from ready_isr() */
+    /* thread will be woken up from ready_isr() */
     break;
 
   case NAND_DMA_RX:
@@ -249,9 +290,9 @@ void nand_lld_init(void) {
   NANDD1.thread   = NULL;
   NANDD1.dma      = STM32_DMA_STREAM(STM32_NAND_DMA_STREAM);
   NANDD1.nand     = FSMCD1.nand1;
-  NANDD1.map_data = (uint8_t*)FSMC_Bank2_MAP_COMMON_DATA;
-  NANDD1.map_cmd  = (uint8_t*)FSMC_Bank2_MAP_COMMON_CMD;
-  NANDD1.map_addr = (uint8_t*)FSMC_Bank2_MAP_COMMON_ADDR;
+  NANDD1.map_data = (void *)FSMC_Bank2_MAP_COMMON_DATA;
+  NANDD1.map_cmd  = (uint16_t *)FSMC_Bank2_MAP_COMMON_CMD;
+  NANDD1.map_addr = (uint16_t *)FSMC_Bank2_MAP_COMMON_ADDR;
   NANDD1.bb_map   = NULL;
 #endif /* STM32_NAND_USE_FSMC_NAND1 */
 
@@ -263,9 +304,9 @@ void nand_lld_init(void) {
   NANDD2.thread   = NULL;
   NANDD2.dma      = STM32_DMA_STREAM(STM32_NAND_DMA_STREAM);
   NANDD2.nand     = FSMCD1.nand2;
-  NANDD2.map_data = (uint8_t*)FSMC_Bank3_MAP_COMMON_DATA;
-  NANDD2.map_cmd  = (uint8_t*)FSMC_Bank3_MAP_COMMON_CMD;
-  NANDD2.map_addr = (uint8_t*)FSMC_Bank3_MAP_COMMON_ADDR;
+  NANDD2.map_data = (void *)FSMC_Bank3_MAP_COMMON_DATA;
+  NANDD2.map_cmd  = (uint16_t *)FSMC_Bank3_MAP_COMMON_CMD;
+  NANDD2.map_addr = (uint16_t *)FSMC_Bank3_MAP_COMMON_ADDR;
   NANDD2.bb_map   = NULL;
 #endif /* STM32_NAND_USE_FSMC_NAND2 */
 }
@@ -280,6 +321,8 @@ void nand_lld_init(void) {
 void nand_lld_start(NANDDriver *nandp) {
 
   bool b;
+  uint32_t dmasize;
+  uint32_t pcr_bus_width;
 
   if (FSMCD1.state == FSMC_STOP)
     fsmc_start(&FSMCD1);
@@ -290,16 +333,33 @@ void nand_lld_start(NANDDriver *nandp) {
                           (stm32_dmaisr_t)nand_lld_serve_transfer_end_irq,
                           (void *)nandp);
     osalDbgAssert(!b, "stream already allocated");
+
+#if AHB_TRANSACTION_WIDTH == 4
+    dmasize = STM32_DMA_CR_PSIZE_WORD | STM32_DMA_CR_MSIZE_WORD;
+#elif AHB_TRANSACTION_WIDTH == 2
+    dmasize = STM32_DMA_CR_PSIZE_HWORD | STM32_DMA_CR_MSIZE_HWORD;
+#elif AHB_TRANSACTION_WIDTH == 1
+    dmasize = STM32_DMA_CR_PSIZE_BYTE | STM32_DMA_CR_MSIZE_BYTE;
+#else
+#error "Incorrect AHB_TRANSACTION_WIDTH"
+#endif
+
     nandp->dmamode = STM32_DMA_CR_CHSEL(NAND_DMA_CHANNEL) |
                      STM32_DMA_CR_PL(STM32_NAND_NAND1_DMA_PRIORITY) |
-                     STM32_DMA_CR_PSIZE_BYTE |
-                     STM32_DMA_CR_MSIZE_BYTE |
+                     dmasize |
                      STM32_DMA_CR_DMEIE |
                      STM32_DMA_CR_TEIE |
                      STM32_DMA_CR_TCIE;
-    /* dmaStreamSetFIFO(nandp->dma,
-                    STM32_DMA_FCR_DMDIS | NAND_STM32_DMA_FCR_FTH_LVL); */
-    nandp->nand->PCR = calc_eccps(nandp) | FSMC_PCR_PTYP | FSMC_PCR_PBKEN;
+
+#if STM32_NAND_BUS_WIDTH == 8
+    pcr_bus_width = FSMC_PCR_PWID_8;
+#elif STM32_NAND_BUS_WIDTH == 16
+    pcr_bus_width = FSMC_PCR_PWID_16;
+#else
+#error "Bus width must be 8 or 16 bits"
+#endif
+    nandp->nand->PCR = pcr_bus_width | calc_eccps(nandp) |
+                       FSMC_PCR_PTYP_NAND | FSMC_PCR_PBKEN;
     nandp->nand->PMEM = nandp->config->pmem;
     nandp->nand->PATT = nandp->config->pmem;
     nandp->isr_handler = nand_isr_handler;
@@ -329,24 +389,28 @@ void nand_lld_stop(NANDDriver *nandp) {
  *
  * @param[in] nandp         pointer to the @p NANDDriver object
  * @param[out] data         pointer to data buffer
- * @param[in] datalen       size of data buffer
+ * @param[in] datalen       size of data buffer in bytes
  * @param[in] addr          pointer to address buffer
  * @param[in] addrlen       length of address
  * @param[out] ecc          pointer to store computed ECC. Ignored when NULL.
  *
  * @notapi
  */
-void nand_lld_read_data(NANDDriver *nandp, uint8_t *data, size_t datalen,
+void nand_lld_read_data(NANDDriver *nandp, uint16_t *data, size_t datalen,
                         uint8_t *addr, size_t addrlen, uint32_t *ecc){
+
+  align_check(data, datalen);
 
   nandp->state = NAND_READ;
   nandp->rxdata = data;
   nandp->datalen = datalen;
 
-  nand_lld_write_cmd (nandp, NAND_CMD_READ0);
+  set_16bit_bus(nandp);
+  nand_lld_write_cmd(nandp, NAND_CMD_READ0);
   nand_lld_write_addr(nandp, addr, addrlen);
   osalSysLock();
-  nand_lld_write_cmd (nandp, NAND_CMD_READ0_CONFIRM);
+  nand_lld_write_cmd(nandp, NAND_CMD_READ0_CONFIRM);
+  set_8bit_bus(nandp);
 
   /* Here NAND asserts busy signal and starts transferring from memory
      array to page buffer. After the end of transmission ready_isr functions
@@ -375,7 +439,7 @@ void nand_lld_read_data(NANDDriver *nandp, uint8_t *data, size_t datalen,
  *
  * @param[in] nandp         pointer to the @p NANDDriver object
  * @param[in] data          buffer with data to be written
- * @param[in] datalen       size of data buffer
+ * @param[in] datalen       size of data buffer in bytes
  * @param[in] addr          pointer to address buffer
  * @param[in] addrlen       length of address
  * @param[out] ecc          pointer to store computed ECC. Ignored when NULL.
@@ -384,14 +448,18 @@ void nand_lld_read_data(NANDDriver *nandp, uint8_t *data, size_t datalen,
  *
  * @notapi
  */
-uint8_t nand_lld_write_data(NANDDriver *nandp, const uint8_t *data,
+uint8_t nand_lld_write_data(NANDDriver *nandp, const uint16_t *data,
                 size_t datalen, uint8_t *addr, size_t addrlen, uint32_t *ecc) {
+
+  align_check(data, datalen);
 
   nandp->state = NAND_WRITE;
 
-  nand_lld_write_cmd (nandp, NAND_CMD_WRITE);
+  set_16bit_bus(nandp);
+  nand_lld_write_cmd(nandp, NAND_CMD_WRITE);
   osalSysLock();
   nand_lld_write_addr(nandp, addr, addrlen);
+  set_8bit_bus(nandp);
 
   /* Now start DMA transfer to NAND buffer and put thread in sleep state.
      Tread will be woken up from ready ISR. */
@@ -403,7 +471,8 @@ uint8_t nand_lld_write_data(NANDDriver *nandp, const uint8_t *data,
     nandp->nand->PCR |= FSMC_PCR_ECCEN;
   }
 
-  dmaStartMemCopy(nandp->dma, nandp->dmamode, data, nandp->map_data, datalen);
+  dmaStartMemCopy(nandp->dma, nandp->dmamode, data, nandp->map_data,
+                  datalen/AHB_TRANSACTION_WIDTH);
 
   nand_lld_suspend_thread(nandp);
   osalSysUnlock();
@@ -416,6 +485,26 @@ uint8_t nand_lld_write_data(NANDDriver *nandp, const uint8_t *data,
   }
 
   return nand_lld_read_status(nandp);
+}
+
+/**
+ * @brief   Soft reset NAND device.
+ *
+ * @param[in] nandp         pointer to the @p NANDDriver object
+ *
+ * @notapi
+ */
+void nand_lld_reset(NANDDriver *nandp) {
+
+  nandp->state = NAND_RESET;
+
+  set_16bit_bus(nandp);
+  nand_lld_write_cmd(nandp, NAND_CMD_RESET);
+  set_8bit_bus(nandp);
+
+  osalSysLock();
+  nand_lld_suspend_thread(nandp);
+  osalSysUnlock();
 }
 
 /**
@@ -433,33 +522,17 @@ uint8_t nand_lld_erase(NANDDriver *nandp, uint8_t *addr, size_t addrlen) {
 
   nandp->state = NAND_ERASE;
 
-  nand_lld_write_cmd (nandp, NAND_CMD_ERASE);
+  set_16bit_bus(nandp);
+  nand_lld_write_cmd(nandp, NAND_CMD_ERASE);
   nand_lld_write_addr(nandp, addr, addrlen);
   osalSysLock();
-  nand_lld_write_cmd (nandp, NAND_CMD_ERASE_CONFIRM);
+  nand_lld_write_cmd(nandp, NAND_CMD_ERASE_CONFIRM);
+  set_8bit_bus(nandp);
+
   nand_lld_suspend_thread(nandp);
   osalSysUnlock();
 
   return nand_lld_read_status(nandp);
-}
-
-/**
- * @brief     Read data from NAND using polling approach.
- *
- * @detatils  Use this function to read data when no waiting expected. For
- *            Example read status word after 0x70 command
- *
- * @param[in] nandp         pointer to the @p NANDDriver object
- * @param[out] data         pointer to output buffer
- * @param[in] len           length of data to be read
- *
- * @notapi
- */
-void nand_lld_polled_read_data(NANDDriver *nandp, uint8_t *data, size_t len) {
-  size_t i = 0;
-
-  for (i=0; i<len; i++)
-    data[i] = nandp->map_data[i];
 }
 
 /**
@@ -501,12 +574,14 @@ void nand_lld_write_cmd(NANDDriver *nandp, uint8_t cmd) {
  */
 uint8_t nand_lld_read_status(NANDDriver *nandp) {
 
-  uint8_t status[1] = {0x01}; /* presume worse */
+  uint16_t status;
 
+  set_16bit_bus(nandp);
   nand_lld_write_cmd(nandp, NAND_CMD_STATUS);
-  nand_lld_polled_read_data(nandp, status, 1);
+  set_8bit_bus(nandp);
+  status = nandp->map_data[0];
 
-  return status[0];
+  return status & 0xFF;
 }
 
 #endif /* HAL_USE_NAND */

@@ -15,15 +15,15 @@
 */
 
 /**
- * @file    STM32/CRCv1/crc_lld.h
+ * @file    STM32/CRCv1/hal_crc_lld.h
  * @brief   STM32 CRC subsystem low level driver header.
  *
  * @addtogroup CRC
  * @{
  */
 
-#ifndef _CRC_LLD_H_
-#define _CRC_LLD_H_
+#ifndef HAL_CRC_LLD_H_
+#define HAL_CRC_LLD_H_
 
 #if (HAL_USE_CRC == TRUE) || defined(__DOXYGEN__)
 
@@ -203,6 +203,12 @@ struct CRCDriver {
    */
   thread_reference_t        thread;
   /**
+   * @brief   Remaining data size.
+   * @note    The DMA can handle only 65535 bytes per transfer because
+   *            it's data count register is only 16 bits wide.
+   */
+  size_t rem_data_size;
+  /**
    * @brief CRC DMA stream
    */
   const stm32_dma_stream_t  *dma;
@@ -244,6 +250,6 @@ extern "C" {
 
 #endif /* HAL_USE_CRC */
 
-#endif /* _CRC_LLD_H_ */
+#endif /* HAL_CRC_LLD_H_ */
 
 /** @} */

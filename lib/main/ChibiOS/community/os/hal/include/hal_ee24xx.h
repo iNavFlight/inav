@@ -4,8 +4,8 @@
   The work is provided "as is" without warranty of any kind, neither express nor implied.
 */
 
-#ifndef EE24XX_H
-#define EE24XX_H
+#ifndef HAL_EE24XX_H
+#define HAL_EE24XX_H
 
 #include "hal.h"
 
@@ -61,4 +61,4 @@ typedef struct {
 
 #endif /* #if defined(EEPROM_USE_EE24XX) && EEPROM_USE_EE24XX */
 
-#endif // EE24XX_H
+#endif // HAL_EE24XX_H

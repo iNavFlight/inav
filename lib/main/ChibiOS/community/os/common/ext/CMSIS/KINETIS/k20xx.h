@@ -2242,7 +2242,7 @@ typedef struct
 /******** Bits definition for USBx_CTL register *****************/
 #define USBx_CTL_JSTATE              ((uint8_t)0x80) /*!< Live USB differential receiver JSTATE signal */
 #define USBx_CTL_SE0                 ((uint8_t)0x40) /*!< Live USB single ended zero signal */
-#define USBx_CTL_TXSUSPENDTOKENBUS   ((uint8_t)0x20) /*!<  */
+#define USBx_CTL_TXSUSPENDTOKENBUSY  ((uint8_t)0x20) /*!<  */
 #define USBx_CTL_RESET               ((uint8_t)0x10) /*!< Generates an USB reset signal (host mode) */
 #define USBx_CTL_HOSTMODEEN          ((uint8_t)0x08) /*!< Operate in Host mode */
 #define USBx_CTL_RESUME              ((uint8_t)0x04) /*!< Executes resume signaling */

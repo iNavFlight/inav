@@ -27,6 +27,10 @@ jlink-reset:
 	printf "r\nexit\n" > $(BUILDDIR)/reset.jlink
 	$(JLINK) $(JLINK_COMMON_OPTS) $(BUILDDIR)/reset.jlink
 
+jlink-pin-reset: 
+	printf "$(JLINK_PIN_RESET)\nexit\n" > $(BUILDDIR)/pin-reset.jlink
+	$(JLINK) $(JLINK_COMMON_OPTS) $(BUILDDIR)/pin-reset.jlink
+
 jlink-debug-server:
 	$(JLINK_GDB_SERVER) $(JLINK_COMMON_OPTS) -port $(JLINK_GDB_PORT)
 

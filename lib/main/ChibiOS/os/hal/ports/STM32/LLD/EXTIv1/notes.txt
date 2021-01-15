@@ -1,23 +1,14 @@
-STM32 EXT driver implementation through EXTI unit.
+STM32 EXTIv1 driver.
 
-There are several kind of EXTI lines:
+Driver capability:
 
-1) GPIO lines. Always in range 0..15, always handled by the EXT driver.
-2) Configurable peripheral events not shared, always handled by the EXT driver.
-3) Configurable peripheral events shared with other, non EXTI, interrupts.
-   The EXTI driver declares the ISR and has to call the IRQ handler of the
-   other driver.
-4) Direct lines (1 in IMR register after reset). The EXTI driver never touches
-   the default configuration for direct lines and does not declare ISRs.
-5) Unused lines. The EXTI driver does not declare ISRs.
+- Support for the EXTI peripheral.
 
 The file registry must export:
-STM32_EXTI_NUM_LINES - Range of configurable lines, it can have holes of
-                       unused or direct lines. Configurable line numbers go
-                       from 0 to STM32_EXTI_NUM_LINES-1.
-STM32_EXTI_IMR_MASK  - Direct lines and unused lines marked as 1 in this
-                       mask, configurable lines marked as 0.
-STM32_EXTI_IMR2_MASK - Optional, for lines 32...63.
 
-ISRs are not declared inside the driver, each sub-family must have its own
-ext_lld_isr.h and ext_lld_isr.c files.
+STM32_EXTI_NUM_LINES        - Number of EXTI lines, it can be between 0 and 63.
+STM32_EXTI_IMR1_MASK        - Mask of the fixed lines that must not be
+                              handled by the driver (0..31).
+STM32_EXTI_IMR2_MASK        - Mask of the fixed lines that must not be
+                              handled by the driver (32..63). Only required
+                              if STM32_EXTI_NUM_LINES is greater than 32.

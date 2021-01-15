@@ -1,0 +1,84 @@
+
+*** ChibiOS/NIL Test Suite
+***
+*** Compiled:     Sep 19 2017 - 11:11:04
+*** Platform:     STM32F051x8 Entry Level Access Line devices
+*** Test Board:   ST STM32F0-Discovery
+
+----------------------------------------------------------------------------
+--- Test Case 1.1 (Kernel Info)
+--- Product:                   ChibiOS/NIL
+--- Stable Flag:               1
+--- Version String:            2.0.1
+--- Major Number:              2
+--- Minor Number:              0
+--- Patch Number:              1
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 1.2 (Kernel Settings)
+--- CH_CFG_NUM_THREADS:        4
+--- CH_CFG_ST_RESOLUTION:      32
+--- CH_CFG_ST_FREQUENCY:       1000
+--- CH_CFG_ST_TIMEDELTA:       2
+--- CH_CFG_USE_SEMAPHORES:     1
+--- CH_CFG_USE_MUTEXES:        0
+--- CH_CFG_USE_EVENTS:         1
+--- CH_CFG_USE_MAILBOXES:      1
+--- CH_CFG_USE_MEMCORE:        1
+--- CH_CFG_USE_HEAP:           1
+--- CH_CFG_USE_MEMPOOLS:       1
+--- CH_DBG_STATISTICS:         0
+--- CH_DBG_SYSTEM_STATE_CHECK: 0
+--- CH_DBG_ENABLE_CHECKS:      0
+--- CH_DBG_ENABLE_ASSERTS:     0
+--- CH_DBG_ENABLE_STACK_CHECK: 0
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 2.1 (System Tick Counter functionality)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 2.2 (Thread Sleep functionality)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 3.1 (Semaphore primitives, no state change)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 3.2 (Semaphore primitives, with state change)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 3.3 (Semaphores timeout)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 4.1 (Suspend and Resume functionality)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 4.2 (Events Flags functionality)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 5.1 (Mailbox normal API, non-blocking tests)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 5.2 (Mailbox I-Class API, non-blocking tests)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 5.3 (Mailbox timeouts)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 6.1 (Loading and emptying a memory pool)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 6.2 (Loading and emptying a guarded memory pool without waiting)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 6.3 (Guarded Memory Pools timeout)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 7.1 (Allocation and fragmentation)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 7.2 (Default Heap)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+
+Final result: SUCCESS
+

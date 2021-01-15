@@ -81,22 +81,27 @@ endif
 PROJECT = ch
 
 # Imported source files and paths
-#CHIBIOS = ../../../../../ChibiOS-RT
-#CHIBIOS_CONTRIB = $(CHIBIOS)/../ChibiOS-Contrib
-CHIBIOS = /home/sdalu/ChibiOS/ChibiOS_16.1.2
-CHIBIOS_CONTRIB = /home/sdalu/ChibiOS/Z/ChibiOS-Contrib
+CHIBIOS = ../../../../../ChibiOS
+CHIBIOS_CONTRIB = $(CHIBIOS)/../ChibiOS-Contrib
 
 # Startup files.
-include $(CHIBIOS_CONTRIB)/os/common/ports/ARMCMx/compilers/GCC/mk/startup_nrf51.mk
+include $(CHIBIOS_CONTRIB)/os/common/startup/ARMCMx/compilers/GCC/mk/startup_nrf51.mk
+# Licensing files.
+include $(CHIBIOS)/os/license/license.mk
 # HAL-OSAL files (optional).
-include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS_CONTRIB)/os/hal/hal.mk
-include $(CHIBIOS_CONTRIB)/os/hal/ports/NRF51/NRF51822/platform.mk
+include $(CHIBIOS_CONTRIB)/os/hal/ports/NRF5/NRF51822/platform.mk
 include $(CHIBIOS_CONTRIB)/os/hal/boards/NRF51-DK/board.mk
 include $(CHIBIOS)/os/hal/osal/rt/osal.mk
 # RTOS files (optional).
 include $(CHIBIOS)/os/rt/rt.mk
-include $(CHIBIOS)/os/rt/ports/ARMCMx/compilers/GCC/mk/port_v6m.mk
+include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/port_v6m.mk
+# Other files (optional).
+include $(CHIBIOS)/test/lib/test.mk
+include $(CHIBIOS)/test/rt/rt_test.mk
+include $(CHIBIOS)/test/oslib/oslib_test.mk
+include $(CHIBIOS)/os/various/shell/shell.mk
+include $(CHIBIOS)/os/hal/lib/streams/streams.mk
 
 
 # Define linker script file here
@@ -104,22 +109,13 @@ LDSCRIPT= $(STARTUPLD)/NRF51822.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
-CSRC = $(STARTUPSRC) \
-       $(KERNSRC) \
-       $(PORTSRC) \
-       $(OSALSRC) \
-       $(HALSRC) \
-       $(PLATFORMSRC) \
-       $(BOARDSRC) \
+CSRC = $(ALLCSRC) \
        $(TESTSRC) \
-       $(CHIBIOS)/os/various/shell.c \
-       $(CHIBIOS)/os/hal/lib/streams/memstreams.c \
-       $(CHIBIOS)/os/hal/lib/streams/chprintf.c \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
-CPPSRC =
+CPPSRC = $(ALLCPPSRC)
 
 # C sources to be compiled in ARM mode regardless of the global setting.
 # NOTE: Mixing ARM and THUMB mode enables the -mthumb-interwork compiler
@@ -142,11 +138,11 @@ TCSRC =
 TCPPSRC =
 
 # List ASM source files here
-ASMSRC = $(STARTUPASM) $(PORTASM) $(OSALASM)
+ASMSRC = $(ALLASMSRC)
+ASMXSRC = $(ALLXASMSRC)
 
-INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
-         $(HALINC) $(PLATFORMINC) $(BOARDINC) $(TESTINC) \
-         $(CHIBIOS)/os/hal/lib/streams $(CHIBIOS)/os/various
+INCDIR = $(ALLINC) $(TESTINC) \
+         $(TESTHAL)
 
 #
 # Project, sources and paths
@@ -213,7 +209,7 @@ ULIBS =
 # End of user defines
 ##############################################################################
 
-RULESPATH = $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC
+RULESPATH = $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC/
 include $(RULESPATH)/rules.mk
 
 
@@ -223,8 +219,8 @@ JLINK_PRE_FLASH = w4 4001e504 1
 JLINK_ERASE_ALL = w4 4001e504 2\nw4 4001e50c 1\nsleep 100
 
 
-include /home/sdalu/ChibiOS/W/ChibiOS-Contrib/os/various/jlink.mk
-include /home/sdalu/ChibiOS/W/ChibiOS-Contrib/os/various/gdb.mk
+include $(CHIBIOS_CONTRIB)/os/various/jlink.mk
+include $(CHIBIOS_CONTRIB)/os/various/gdb.mk
 
 flash: all jlink-flash
 debug: gdb-debug

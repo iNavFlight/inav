@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio.
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio.
 
     This file is part of ChibiOS.
 
@@ -25,8 +25,8 @@
  * @{
  */
 
-#ifndef _CHMSG_H_
-#define _CHMSG_H_
+#ifndef CHMSG_H
+#define CHMSG_H
 
 #if (CH_CFG_USE_MESSAGES == TRUE) || defined(__DOXYGEN__)
 
@@ -80,7 +80,7 @@ static inline bool chMsgIsPendingI(thread_t *tp) {
 
   chDbgCheckClassI();
 
-  return (bool)(tp->p_msgqueue.p_next != (thread_t *)&tp->p_msgqueue);
+  return (bool)(tp->msgqueue.next != (thread_t *)&tp->msgqueue);
 }
 
 /**
@@ -95,7 +95,9 @@ static inline bool chMsgIsPendingI(thread_t *tp) {
  */
 static inline msg_t chMsgGet(thread_t *tp) {
 
-  return tp->p_msg;
+  chDbgAssert(tp->state == CH_STATE_SNDMSG, "invalid state");
+
+  return tp->u.sentmsg;
 }
 
 /**
@@ -117,6 +119,6 @@ static inline void chMsgReleaseS(thread_t *tp, msg_t msg) {
 
 #endif /* CH_CFG_USE_MESSAGES == TRUE */
 
-#endif /* _CHMSG_H_ */
+#endif /* CHMSG_H */
 
 /** @} */

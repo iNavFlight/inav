@@ -15,7 +15,7 @@
 */
 
 /**
- * @file    fsmc.c
+ * @file    hal_fsmc.c
  * @brief   FSMC Driver subsystem low level driver source template.
  *
  * @addtogroup FSMC
@@ -96,7 +96,11 @@ void fsmc_init(void) {
 #endif
 
 #if (defined(STM32F427xx) || defined(STM32F437xx) || \
-     defined(STM32F429xx) || defined(STM32F439xx))
+     defined(STM32F429xx) || defined(STM32F439xx) || \
+     defined(STM32F745xx) || defined(STM32F746xx) || \
+     defined(STM32F756xx) || defined(STM32F767xx) || \
+     defined(STM32F769xx) || defined(STM32F777xx) || \
+     defined(STM32F779xx))
   #if STM32_USE_FSMC_SDRAM
     FSMCD1.sdram = (FSMC_SDRAM_TypeDef *)FSMC_Bank5_6_R_BASE;
   #endif
@@ -124,7 +128,7 @@ void fsmc_start(FSMCDriver *fsmcp) {
       rccResetFSMC();
 #endif
       rccEnableFSMC(FALSE);
-#if (!STM32_NAND_USE_EXT_INT && HAL_USE_NAND)
+#if HAL_USE_NAND
       nvicEnableVector(STM32_FSMC_NUMBER, STM32_FSMC_FSMC1_IRQ_PRIORITY);
 #endif
     }
@@ -152,10 +156,10 @@ void fsmc_stop(FSMCDriver *fsmcp) {
     /* Disables the peripheral.*/
 #if STM32_FSMC_USE_FSMC1
     if (&FSMCD1 == fsmcp) {
-#if (!STM32_NAND_USE_EXT_INT && HAL_USE_NAND)
+#if HAL_USE_NAND
       nvicDisableVector(STM32_FSMC_NUMBER);
 #endif
-      rccDisableFSMC(FALSE);
+      rccDisableFSMC();
     }
 #endif /* STM32_FSMC_USE_FSMC1 */
 
@@ -163,7 +167,6 @@ void fsmc_stop(FSMCDriver *fsmcp) {
   }
 }
 
-#if !STM32_NAND_USE_EXT_INT
 /**
  * @brief   FSMC shared interrupt handler.
  *
@@ -184,7 +187,6 @@ CH_IRQ_HANDLER(STM32_FSMC_HANDLER) {
 #endif
   CH_IRQ_EPILOGUE();
 }
-#endif /* !STM32_NAND_USE_EXT_INT */
 
 #endif /* HAL_USE_FSMC */
 

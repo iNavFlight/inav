@@ -1,0 +1,365 @@
+/*
+    ChibiOS - Copyright (C) 2014-2015 Fabio Utzig
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+*/
+
+/* TODO Still need to edit this entire file */
+
+/**
+ * @defgroup MK66FX1M0_DRIVERS MK66FX1M0 Drivers
+ * @details This section describes all the supported drivers on the MK66FX1M0
+ *          platform and the implementation details of the single drivers.
+ *
+ * @ingroup platforms
+ */
+
+/**
+ * @defgroup MK66FX1M0_HAL MK66FX1M0 Initialization Support
+ * @details The MK66FX1M0 HAL support is responsible for system initialization.
+ *
+ * @section mk66fx1m0_hal_1 Supported HW resources
+ * - PLL1.
+ * - PLL2.
+ * - RCC.
+ * - Flash.
+ * .
+ * @section mk66fx1m0_hal_2 MK66FX1M0 HAL driver implementation features
+ * - PLL startup and stabilization.
+ * - Clock tree initialization.
+ * - Clock source selection.
+ * - Flash wait states initialization based on the selected clock options.
+ * - SYSTICK initialization based on current clock and kernel required rate.
+ * - DMA support initialization.
+ * .
+ * @ingroup MK66FX1M0_DRIVERS
+ */
+
+/**
+ * @defgroup MK66FX1M0_ADC MK66FX1M0 ADC Support
+ * @details The MK66FX1M0 ADC driver supports the ADC peripherals using DMA
+ *          channels for maximum performance.
+ *
+ * @section mk66fx1m0_adc_1 Supported HW resources
+ * - ADC1.
+ * - ADC2.
+ * - ADC3.
+ * - DMA2.
+ * .
+ * @section mk66fx1m0_adc_2 MK66FX1M0 ADC driver implementation features
+ * - Clock stop for reduced power usage when the driver is in stop state.
+ * - Streaming conversion using DMA for maximum performance.
+ * - Programmable ADC interrupt priority level.
+ * - Programmable DMA bus priority for each DMA channel.
+ * - Programmable DMA interrupt priority for each DMA channel.
+ * - DMA and ADC errors detection.
+ * .
+ * @ingroup MK66FX1M0_DRIVERS
+ */
+
+/**
+ * @defgroup MK66FX1M0_CAN MK66FX1M0 CAN Support
+ * @details The MK66FX1M0 CAN driver uses the CAN peripherals.
+ *
+ * @section mk66fx1m0_can_1 Supported HW resources
+ * - bxCAN1.
+ * .
+ * @section mk66fx1m0_can_2 MK66FX1M0 CAN driver implementation features
+ * - Clock stop for reduced power usage when the driver is in stop state.
+ * - Support for bxCAN sleep mode.
+ * - Programmable bxCAN interrupts priority level.
+ * .
+ * @ingroup MK66FX1M0_DRIVERS
+ */
+
+/**
+ * @defgroup MK66FX1M0_EXT MK66FX1M0 EXT Support
+ * @details The MK66FX1M0 EXT driver uses the EXTI peripheral.
+ *
+ * @section mk66fx1m0_ext_1 Supported HW resources
+ * - EXTI.
+ * .
+ * @section mk66fx1m0_ext_2 MK66FX1M0 EXT driver implementation features
+ * - Each EXTI channel can be independently enabled and programmed.
+ * - Programmable EXTI interrupts priority level.
+ * - Capability to work as event sources (WFE) rather than interrupt sources.
+ * .
+ * @ingroup MK66FX1M0_DRIVERS
+ */
+
+/**
+ * @defgroup MK66FX1M0_GPT MK66FX1M0 GPT Support
+ * @details The MK66FX1M0 GPT driver uses the TIMx peripherals.
+ *
+ * @section mk66fx1m0_gpt_1 Supported HW resources
+ * - TIM1.
+ * - TIM2.
+ * - TIM3.
+ * - TIM4.
+ * - TIM5.
+ * - TIM8.
+ * .
+ * @section mk66fx1m0_gpt_2 MK66FX1M0 GPT driver implementation features
+ * - Each timer can be independently enabled and programmed. Unused
+ *   peripherals are left in low power mode.
+ * - Programmable TIMx interrupts priority level.
+ * .
+ * @ingroup MK66FX1M0_DRIVERS
+ */
+
+/**
+ * @defgroup MK66FX1M0_ICU MK66FX1M0 ICU Support
+ * @details The MK66FX1M0 ICU driver uses the TIMx peripherals.
+ *
+ * @section mk66fx1m0_icu_1 Supported HW resources
+ * - TIM1.
+ * - TIM2.
+ * - TIM3.
+ * - TIM4.
+ * - TIM5.
+ * - TIM8.
+ * .
+ * @section mk66fx1m0_icu_2 MK66FX1M0 ICU driver implementation features
+ * - Each timer can be independently enabled and programmed. Unused
+ *   peripherals are left in low power mode.
+ * - Programmable TIMx interrupts priority level.
+ * .
+ * @ingroup MK66FX1M0_DRIVERS
+ */
+
+/**
+ * @defgroup MK66FX1M0_MAC MK66FX1M0 MAC Support
+ * @details The MK66FX1M0 MAC driver supports the ETH peripheral.
+ *
+ * @section mk66fx1m0_mac_1 Supported HW resources
+ * - ETH.
+ * - PHY (external).
+ * .
+ * @section mk66fx1m0_mac_2 MK66FX1M0 MAC driver implementation features
+ * - Dedicated DMA operations.
+ * - Support for checksum off-loading.
+ * .
+ * @ingroup MK66FX1M0_DRIVERS
+ */
+
+/**
+ * @defgroup MK66FX1M0_PAL MK66FX1M0 PAL Support
+ * @details The MK66FX1M0 PAL driver uses the GPIO peripherals.
+ *
+ * @section mk66fx1m0_pal_1 Supported HW resources
+ * - GPIOA.
+ * - GPIOB.
+ * - GPIOC.
+ * - GPIOD.
+ * - GPIOE.
+ * - GPIOF.
+ * - GPIOG.
+ * - GPIOH.
+ * - GPIOI.
+ * .
+ * @section mk66fx1m0_pal_2 MK66FX1M0 PAL driver implementation features
+ * The PAL driver implementation fully supports the following hardware
+ * capabilities:
+ * - 16 bits wide ports.
+ * - Atomic set/reset functions.
+ * - Atomic set+reset function (atomic bus operations).
+ * - Output latched regardless of the pad setting.
+ * - Direct read of input pads regardless of the pad setting.
+ * .
+ * @section mk66fx1m0_pal_3 Supported PAL setup modes
+ * The MK66FX1M0 PAL driver supports the following I/O modes:
+ * - @p PAL_MODE_RESET.
+ * - @p PAL_MODE_UNCONNECTED.
+ * - @p PAL_MODE_INPUT.
+ * - @p PAL_MODE_INPUT_PULLUP.
+ * - @p PAL_MODE_INPUT_PULLDOWN.
+ * - @p PAL_MODE_INPUT_ANALOG.
+ * - @p PAL_MODE_OUTPUT_PUSHPULL.
+ * - @p PAL_MODE_OUTPUT_OPENDRAIN.
+ * - @p PAL_MODE_ALTERNATE (non standard).
+ * .
+ * Any attempt to setup an invalid mode is ignored.
+ *
+ * @section mk66fx1m0_pal_4 Suboptimal behavior
+ * The MK66FX1M0 GPIO is less than optimal in several areas, the limitations
+ * should be taken in account while using the PAL driver:
+ * - Pad/port toggling operations are not atomic.
+ * - Pad/group mode setup is not atomic.
+ * .
+ * @ingroup MK66FX1M0_DRIVERS
+ */
+
+/**
+ * @defgroup MK66FX1M0_PWM MK66FX1M0 PWM Support
+ * @details The MK66FX1M0 PWM driver uses the TIMx peripherals.
+ *
+ * @section mk66fx1m0_pwm_1 Supported HW resources
+ * - TIM1.
+ * - TIM2.
+ * - TIM3.
+ * - TIM4.
+ * - TIM5.
+ * - TIM8.
+ * .
+ * @section mk66fx1m0_pwm_2 MK66FX1M0 PWM driver implementation features
+ * - Each timer can be independently enabled and programmed. Unused
+ *   peripherals are left in low power mode.
+ * - Four independent PWM channels per timer.
+ * - Programmable TIMx interrupts priority level.
+ * .
+ * @ingroup MK66FX1M0_DRIVERS
+ */
+
+/**
+ * @defgroup MK66FX1M0_SDC MK66FX1M0 SDC Support
+ * @details The MK66FX1M0 SDC driver uses the SDIO peripheral.
+ *
+ * @section mk66fx1m0_sdc_1 Supported HW resources
+ * - SDIO.
+ * - DMA2.
+ * .
+ * @section mk66fx1m0_sdc_2 MK66FX1M0 SDC driver implementation features
+ * - Clock stop for reduced power usage when the driver is in stop state.
+ * - Programmable interrupt priority.
+ * - DMA is used for receiving and transmitting.
+ * - Programmable DMA bus priority for each DMA channel.
+ * .
+ * @ingroup MK66FX1M0_DRIVERS
+ */
+
+/**
+ * @defgroup MK66FX1M0_SERIAL MK66FX1M0 Serial Support
+ * @details The MK66FX1M0 Serial driver uses the USART/UART peripherals in a
+ *          buffered, interrupt driven, implementation.
+ *
+ * @section mk66fx1m0_serial_1 Supported HW resources
+ * The serial driver can support any of the following hardware resources:
+ * - USART1.
+ * - USART2.
+ * - USART3.
+ * - UART4.
+ * - UART5.
+ * - USART6.
+ * .
+ * @section mk66fx1m0_serial_2 MK66FX1M0 Serial driver implementation features
+ * - Clock stop for reduced power usage when the driver is in stop state.
+ * - Each UART/USART can be independently enabled and programmed. Unused
+ *   peripherals are left in low power mode.
+ * - Fully interrupt driven.
+ * - Programmable priority levels for each UART/USART.
+ * .
+ * @ingroup MK66FX1M0_DRIVERS
+ */
+
+/**
+ * @defgroup MK66FX1M0_SPI MK66FX1M0 SPI Support
+ * @details The SPI driver supports the MK66FX1M0 SPI peripherals using DMA
+ *          channels for maximum performance.
+ *
+ * @section mk66fx1m0_spi_1 Supported HW resources
+ * - SPI1.
+ * - SPI2.
+ * - SPI3.
+ * - DMA1.
+ * - DMA2.
+ * .
+ * @section mk66fx1m0_spi_2 MK66FX1M0 SPI driver implementation features
+ * - Clock stop for reduced power usage when the driver is in stop state.
+ * - Each SPI can be independently enabled and programmed. Unused
+ *   peripherals are left in low power mode.
+ * - Programmable interrupt priority levels for each SPI.
+ * - DMA is used for receiving and transmitting.
+ * - Programmable DMA bus priority for each DMA channel.
+ * - Programmable DMA interrupt priority for each DMA channel.
+ * - Programmable DMA error hook.
+ * .
+ * @ingroup MK66FX1M0_DRIVERS
+ */
+
+/**
+ * @defgroup MK66FX1M0_UART MK66FX1M0 UART Support
+ * @details The UART driver supports the MK66FX1M0 USART peripherals using DMA
+ *          channels for maximum performance.
+ *
+ * @section mk66fx1m0_uart_1 Supported HW resources
+ * The UART driver can support any of the following hardware resources:
+ * - USART1.
+ * - USART2.
+ * - USART3.
+ * - DMA1.
+ * - DMA2.
+ * .
+ * @section mk66fx1m0_uart_2 MK66FX1M0 UART driver implementation features
+ * - Clock stop for reduced power usage when the driver is in stop state.
+ * - Each UART/USART can be independently enabled and programmed. Unused
+ *   peripherals are left in low power mode.
+ * - Programmable interrupt priority levels for each UART/USART.
+ * - DMA is used for receiving and transmitting.
+ * - Programmable DMA bus priority for each DMA channel.
+ * - Programmable DMA interrupt priority for each DMA channel.
+ * - Programmable DMA error hook.
+ * .
+ * @ingroup MK66FX1M0_DRIVERS
+ */
+
+/**
+ * @defgroup MK66FX1M0_PLATFORM_DRIVERS MK66FX1M0 Platform Drivers
+ * @details Platform support drivers. Platform drivers do not implement HAL
+ *          standard driver templates, their role is to support platform
+ *          specific functionalities.
+ *
+ * @ingroup MK66FX1M0_DRIVERS
+ */
+
+/**
+ * @defgroup MK66FX1M0_DMA MK66FX1M0 DMA Support
+ * @details This DMA helper driver is used by the other drivers in order to
+ *          access the shared DMA resources in a consistent way.
+ *
+ * @section mk66fx1m0_dma_1 Supported HW resources
+ * The DMA driver can support any of the following hardware resources:
+ * - DMA1.
+ * - DMA2.
+ * .
+ * @section mk66fx1m0_dma_2 MK66FX1M0 DMA driver implementation features
+ * - Exports helper functions/macros to the other drivers that share the
+ *   DMA resource.
+ * - Automatic DMA clock stop when not in use by any driver.
+ * - DMA streams and interrupt vectors sharing among multiple drivers.
+ * .
+ * @ingroup MK66FX1M0_PLATFORM_DRIVERS
+ */
+
+/**
+ * @defgroup MK66FX1M0_ISR MK66FX1M0 ISR Support
+ * @details This ISR helper driver is used by the other drivers in order to
+ *          map ISR names to physical vector names.
+ *
+ * @ingroup MK66FX1M0_PLATFORM_DRIVERS
+ */
+
+/**
+ * @defgroup MK66FX1M0_RCC MK66FX1M0 RCC Support
+ * @details This RCC helper driver is used by the other drivers in order to
+ *          access the shared RCC resources in a consistent way.
+ *
+ * @section mk66fx1m0_rcc_1 Supported HW resources
+ * - RCC.
+ * .
+ * @section mk66fx1m0_rcc_2 MK66FX1M0 RCC driver implementation features
+ * - Peripherals reset.
+ * - Peripherals clock enable.
+ * - Peripherals clock disable.
+ * .
+ * @ingroup MK66FX1M0_PLATFORM_DRIVERS
+ */

@@ -28,8 +28,6 @@
 #include <stdlib.h>
 
 #if (HAL_USE_SERIAL_USB == TRUE)
-/* Virtual serial port over USB.*/
-SerialUSBDriver SDU1;
 static BaseSequentialStream *const chout = (BaseSequentialStream *)&SDU1;
 #else
 static BaseSequentialStream *const chout = (BaseSequentialStream *)&SD1;
@@ -141,7 +139,7 @@ static THD_FUNCTION(reader_thread, arg) {
       osalThreadSuspendS(&thread_ref);
       reader_suspend = false;
     } else {
-      osalThreadSleepS(MS2ST(reader_delay));
+      osalThreadSleepS(TIME_MS2I(reader_delay));
     }
     old_priority = chThdGetPriorityX();
     osalSysUnlock();
@@ -180,7 +178,7 @@ static THD_FUNCTION(writer_thread, arg) {
         osalThreadSuspendS(&thread_ref);
         writer_suspend = false;
       } else {
-        osalThreadSleepS(MS2ST(writer_delay));
+        osalThreadSleepS(TIME_MS2I(writer_delay));
       }
       osalSysUnlock();
     }

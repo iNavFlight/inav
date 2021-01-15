@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio.
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio.
 
     This file is part of ChibiOS.
 
@@ -28,8 +28,8 @@
  * @{
  */
 
-#ifndef _CHCOND_H_
-#define _CHCOND_H_
+#ifndef CHCOND_H
+#define CHCOND_H
 
 #if (CH_CFG_USE_CONDVARS == TRUE) || defined(__DOXYGEN__)
 
@@ -57,7 +57,7 @@
  * @brief   condition_variable_t structure.
  */
 typedef struct condition_variable {
-  threads_queue_t       c_queue;            /**< @brief Condition variable
+  threads_queue_t       queue;              /**< @brief Condition variable
                                                  threads queue.             */
 } condition_variable_t;
 
@@ -72,7 +72,7 @@ typedef struct condition_variable {
  *
  * @param[in] name      the name of the condition variable
  */
-#define _CONDVAR_DATA(name) {_THREADS_QUEUE_DATA(name.c_queue)}
+#define _CONDVAR_DATA(name) {_THREADS_QUEUE_DATA(name.queue)}
 
 /**
  * @brief Static condition variable initializer.
@@ -98,8 +98,8 @@ extern "C" {
   msg_t chCondWait(condition_variable_t *cp);
   msg_t chCondWaitS(condition_variable_t *cp);
 #if CH_CFG_USE_CONDVARS_TIMEOUT == TRUE
-  msg_t chCondWaitTimeout(condition_variable_t *cp, systime_t time);
-  msg_t chCondWaitTimeoutS(condition_variable_t *cp, systime_t time);
+  msg_t chCondWaitTimeout(condition_variable_t *cp, sysinterval_t timeout);
+  msg_t chCondWaitTimeoutS(condition_variable_t *cp, sysinterval_t timeout);
 #endif
 #ifdef __cplusplus
 }
@@ -111,6 +111,6 @@ extern "C" {
 
 #endif /* CH_CFG_USE_CONDVARS == TRUE */
 
-#endif /* _CHCOND_H_ */
+#endif /* CHCOND_H */
 
 /** @} */

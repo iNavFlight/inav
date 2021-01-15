@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2016 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -21,6 +21,10 @@
 
 #ifndef BOARD_H
 #define BOARD_H
+
+/*===========================================================================*/
+/* Driver constants.                                                         */
+/*===========================================================================*/
 
 /*
  * Setup for ST STM32L-Discovery board.
@@ -47,7 +51,7 @@
 #define STM32_HSE_BYPASS
 
 /*
- * MCU type as defined in the ST header file stm32l1xx.h.
+ * MCU type as defined in the ST header.
  */
 #define STM32L152xB
 
@@ -163,20 +167,31 @@
 #define LINE_JTAG_TMS               PAL_LINE(GPIOA, 13U)
 #define LINE_JTAG_TCK               PAL_LINE(GPIOA, 14U)
 #define LINE_JTAG_TDI               PAL_LINE(GPIOA, 15U)
-
 #define LINE_BOOT1                  PAL_LINE(GPIOB, 2U)
 #define LINE_JTAG_TDO               PAL_LINE(GPIOB, 3U)
 #define LINE_JTAG_TRST              PAL_LINE(GPIOB, 4U)
 #define LINE_LED4                   PAL_LINE(GPIOB, 6U)
 #define LINE_LED3                   PAL_LINE(GPIOB, 7U)
-
 #define LINE_OSC32_IN               PAL_LINE(GPIOC, 14U)
 #define LINE_OSC32_OUT              PAL_LINE(GPIOC, 15U)
-
-
-
 #define LINE_OSC_IN                 PAL_LINE(GPIOH, 0U)
 #define LINE_OSC_OUT                PAL_LINE(GPIOH, 1U)
+
+/*===========================================================================*/
+/* Driver pre-compile time settings.                                         */
+/*===========================================================================*/
+
+/*===========================================================================*/
+/* Derived constants and error checks.                                       */
+/*===========================================================================*/
+
+/*===========================================================================*/
+/* Driver data structures and types.                                         */
+/*===========================================================================*/
+
+/*===========================================================================*/
+/* Driver macros.                                                            */
+/*===========================================================================*/
 
 /*
  * I/O ports initial setup, this configuration is established soon after reset
@@ -902,6 +917,9 @@
                                      PIN_AFIO_AF(GPIOH_PIN14, 0U) |         \
                                      PIN_AFIO_AF(GPIOH_PIN15, 0U))
 
+/*===========================================================================*/
+/* External declarations.                                                    */
+/*===========================================================================*/
 
 #if !defined(_FROM_ASM_)
 #ifdef __cplusplus

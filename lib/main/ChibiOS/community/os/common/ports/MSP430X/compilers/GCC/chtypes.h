@@ -62,6 +62,7 @@ typedef uint8_t             tprio_t;        /**< Thread priority.           */
 typedef int16_t             msg_t;          /**< Inter-thread message.      */
 typedef int32_t             eventid_t;      /**< Numeric event identifier.  */
 typedef uint8_t             eventmask_t;    /**< Mask of event identifiers. */
+typedef uint16_t            eventflags_t;   /**< Mask of event flags.       */
 typedef int16_t             cnt_t;          /**< Generic signed counter.    */
 typedef uint16_t            ucnt_t;         /**< Generic unsigned counter.  */
 

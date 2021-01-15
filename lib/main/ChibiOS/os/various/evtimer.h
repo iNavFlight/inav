@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -22,8 +22,8 @@
  * @{
  */
 
-#ifndef _EVTIMER_H_
-#define _EVTIMER_H_
+#ifndef EVTIMER_H
+#define EVTIMER_H
 
 /*===========================================================================*/
 /* Module constants.                                                         */
@@ -84,11 +84,11 @@ extern "C" {
  *
  * @param[in] etp       pointer to an initialized @p event_timer_t structure.
  */
-static inline void vevtStop(event_timer_t *etp) {
+static inline void evtStop(event_timer_t *etp) {
 
   chVTReset(&etp->et_vt);
 }
 
-#endif /* _EVTIMER_H_ */
+#endif /* EVTIMER_H */
 
 /** @} */

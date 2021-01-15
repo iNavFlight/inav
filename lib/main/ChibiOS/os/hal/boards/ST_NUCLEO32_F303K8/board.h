@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2016 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -22,15 +22,19 @@
 #ifndef BOARD_H
 #define BOARD_H
 
+/*===========================================================================*/
+/* Driver constants.                                                         */
+/*===========================================================================*/
+
 /*
- * Setup for STMicroelectronics NUCLEO32-F303K8 board.
+ * Setup for STMicroelectronics STM32 Nucleo32-F303K8 board.
  */
 
 /*
  * Board identifier.
  */
 #define BOARD_ST_NUCLEO32_F303K8
-#define BOARD_NAME                  "STMicroelectronics NUCLEO32-F303K8"
+#define BOARD_NAME                  "STMicroelectronics STM32 Nucleo32-F303K8"
 
 /*
  * Board oscillators-related settings.
@@ -213,7 +217,6 @@
 #define LINE_SWDIO                  PAL_LINE(GPIOA, 13U)
 #define LINE_SWCLK                  PAL_LINE(GPIOA, 14U)
 #define LINE_VCP_RX                 PAL_LINE(GPIOA, 15U)
-
 #define LINE_ARD_D3                 PAL_LINE(GPIOB, 0U)
 #define LINE_ARD_D6                 PAL_LINE(GPIOB, 1U)
 #define LINE_ARD_D13                PAL_LINE(GPIOB, 3U)
@@ -224,14 +227,24 @@
 #define LINE_ARD_A5_ALT             PAL_LINE(GPIOB, 6U)
 #define LINE_ARD_D4                 PAL_LINE(GPIOB, 7U)
 #define LINE_ARD_A4_ALT             PAL_LINE(GPIOB, 7U)
-
-
-
-
 #define LINE_ARD_D7                 PAL_LINE(GPIOF, 0U)
 #define LINE_ARD_D8                 PAL_LINE(GPIOF, 1U)
 
+/*===========================================================================*/
+/* Driver pre-compile time settings.                                         */
+/*===========================================================================*/
 
+/*===========================================================================*/
+/* Derived constants and error checks.                                       */
+/*===========================================================================*/
+
+/*===========================================================================*/
+/* Driver data structures and types.                                         */
+/*===========================================================================*/
+
+/*===========================================================================*/
+/* Driver macros.                                                            */
+/*===========================================================================*/
 
 /*
  * I/O ports initial setup, this configuration is established soon after reset
@@ -378,7 +391,7 @@
  * PB0  - ARD_D3                    (input pullup).
  * PB1  - ARD_D6                    (input pullup).
  * PB2  - PIN2                      (input pullup).
- * PB3  - ARD_D13 LED_GREEN         (input pullup).
+ * PB3  - ARD_D13 LED_GREEN         (output pushpull maximum).
  * PB4  - ARD_D12                   (input pullup).
  * PB5  - ARD_D11                   (input pullup).
  * PB6  - ARD_D5 ARD_A5_ALT         (input pullup).
@@ -395,7 +408,7 @@
 #define VAL_GPIOB_MODER             (PIN_MODE_INPUT(GPIOB_ARD_D3) |         \
                                      PIN_MODE_INPUT(GPIOB_ARD_D6) |         \
                                      PIN_MODE_INPUT(GPIOB_PIN2) |           \
-                                     PIN_MODE_INPUT(GPIOB_ARD_D13) |        \
+                                     PIN_MODE_OUTPUT(GPIOB_ARD_D13) |       \
                                      PIN_MODE_INPUT(GPIOB_ARD_D12) |        \
                                      PIN_MODE_INPUT(GPIOB_ARD_D11) |        \
                                      PIN_MODE_INPUT(GPIOB_ARD_D5) |         \
@@ -443,7 +456,7 @@
 #define VAL_GPIOB_PUPDR             (PIN_PUPDR_PULLUP(GPIOB_ARD_D3) |       \
                                      PIN_PUPDR_PULLUP(GPIOB_ARD_D6) |       \
                                      PIN_PUPDR_PULLUP(GPIOB_PIN2) |         \
-                                     PIN_PUPDR_PULLUP(GPIOB_ARD_D13) |      \
+                                     PIN_PUPDR_FLOATING(GPIOB_ARD_D13) |    \
                                      PIN_PUPDR_PULLUP(GPIOB_ARD_D12) |      \
                                      PIN_PUPDR_PULLUP(GPIOB_ARD_D11) |      \
                                      PIN_PUPDR_PULLUP(GPIOB_ARD_D5) |       \
@@ -459,7 +472,7 @@
 #define VAL_GPIOB_ODR               (PIN_ODR_HIGH(GPIOB_ARD_D3) |           \
                                      PIN_ODR_HIGH(GPIOB_ARD_D6) |           \
                                      PIN_ODR_HIGH(GPIOB_PIN2) |             \
-                                     PIN_ODR_HIGH(GPIOB_ARD_D13) |          \
+                                     PIN_ODR_LOW(GPIOB_ARD_D13) |           \
                                      PIN_ODR_HIGH(GPIOB_ARD_D12) |          \
                                      PIN_ODR_HIGH(GPIOB_ARD_D11) |          \
                                      PIN_ODR_HIGH(GPIOB_ARD_D5) |           \
@@ -1191,6 +1204,9 @@
                                      PIN_AFIO_AF(GPIOH_PIN14, 0U) |         \
                                      PIN_AFIO_AF(GPIOH_PIN15, 0U))
 
+/*===========================================================================*/
+/* External declarations.                                                    */
+/*===========================================================================*/
 
 #if !defined(_FROM_ASM_)
 #ifdef __cplusplus

@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio.
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio.
 
     This file is part of ChibiOS.
 
@@ -25,8 +25,8 @@
  * @{
  */
 
-#ifndef _CHSEM_H_
-#define _CHSEM_H_
+#ifndef CHSEM_H
+#define CHSEM_H
 
 #if (CH_CFG_USE_SEMAPHORES == TRUE) || defined(__DOXYGEN__)
 
@@ -50,9 +50,9 @@
  * @brief   Semaphore structure.
  */
 typedef struct ch_semaphore {
-  threads_queue_t       s_queue;    /**< @brief Queue of the threads sleeping
+  threads_queue_t       queue;      /**< @brief Queue of the threads sleeping
                                                 on this semaphore.          */
-  cnt_t                 s_cnt;      /**< @brief The semaphore counter.      */
+  cnt_t                 cnt;        /**< @brief The semaphore counter.      */
 } semaphore_t;
 
 /*===========================================================================*/
@@ -68,7 +68,7 @@ typedef struct ch_semaphore {
  * @param[in] n         the counter initial value, this value must be
  *                      non-negative
  */
-#define _SEMAPHORE_DATA(name, n) {_THREADS_QUEUE_DATA(name.s_queue), n}
+#define _SEMAPHORE_DATA(name, n) {_THREADS_QUEUE_DATA(name.queue), n}
 
 /**
  * @brief   Static semaphore initializer.
@@ -93,8 +93,8 @@ extern "C" {
   void chSemResetI(semaphore_t *sp, cnt_t n);
   msg_t chSemWait(semaphore_t *sp);
   msg_t chSemWaitS(semaphore_t *sp);
-  msg_t chSemWaitTimeout(semaphore_t *sp, systime_t time);
-  msg_t chSemWaitTimeoutS(semaphore_t *sp, systime_t time);
+  msg_t chSemWaitTimeout(semaphore_t *sp, sysinterval_t timeout);
+  msg_t chSemWaitTimeoutS(semaphore_t *sp, sysinterval_t timeout);
   void chSemSignal(semaphore_t *sp);
   void chSemSignalI(semaphore_t *sp);
   void chSemAddCounterI(semaphore_t *sp, cnt_t n);
@@ -119,7 +119,7 @@ static inline void chSemFastWaitI(semaphore_t *sp) {
 
   chDbgCheckClassI();
 
-  sp->s_cnt--;
+  sp->cnt--;
 }
 
 /**
@@ -135,7 +135,7 @@ static inline void chSemFastSignalI(semaphore_t *sp) {
 
   chDbgCheckClassI();
 
-  sp->s_cnt++;
+  sp->cnt++;
 }
 
 /**
@@ -146,15 +146,15 @@ static inline void chSemFastSignalI(semaphore_t *sp) {
  *
  * @iclass
  */
-static inline cnt_t chSemGetCounterI(semaphore_t *sp) {
+static inline cnt_t chSemGetCounterI(const semaphore_t *sp) {
 
   chDbgCheckClassI();
 
-  return sp->s_cnt;
+  return sp->cnt;
 }
 
 #endif /* CH_CFG_USE_SEMAPHORES == TRUE */
 
-#endif /* _CHSEM_H_ */
+#endif /* CHSEM_H */
 
 /** @} */

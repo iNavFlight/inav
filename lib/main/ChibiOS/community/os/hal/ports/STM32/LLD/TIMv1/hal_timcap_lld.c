@@ -24,14 +24,13 @@
 
 
 /**
- * @file    STM32/timcap_lld.c
+ * @file    STM32/hal_timcap_lld.c
  * @brief   STM32 TIMCAP subsystem low level driver header.
  *
  * @addtogroup TIMCAP
  * @{
  */
 
-#include "ch.h"
 #include "hal.h"
 
 #if HAL_USE_TIMCAP || defined(__DOXYGEN__)
@@ -714,44 +713,44 @@ void timcap_lld_stop(TIMCAPDriver *timcapp) {
     if (&TIMCAPD1 == timcapp) {
       nvicDisableVector(STM32_TIM1_UP_NUMBER);
       nvicDisableVector(STM32_TIM1_CC_NUMBER);
-      rccDisableTIM1(FALSE);
+      rccDisableTIM1();
     }
 #endif
 #if STM32_TIMCAP_USE_TIM2
     if (&TIMCAPD2 == timcapp) {
       nvicDisableVector(STM32_TIM2_NUMBER);
-      rccDisableTIM2(FALSE);
+      rccDisableTIM2();
     }
 #endif
 #if STM32_TIMCAP_USE_TIM3
     if (&TIMCAPD3 == timcapp) {
       nvicDisableVector(STM32_TIM3_NUMBER);
-      rccDisableTIM3(FALSE);
+      rccDisableTIM3();
     }
 #endif
 #if STM32_TIMCAP_USE_TIM4
     if (&TIMCAPD4 == timcapp) {
       nvicDisableVector(STM32_TIM4_NUMBER);
-      rccDisableTIM4(FALSE);
+      rccDisableTIM4();
     }
 #endif
 #if STM32_TIMCAP_USE_TIM5
     if (&TIMCAPD5 == timcapp) {
       nvicDisableVector(STM32_TIM5_NUMBER);
-      rccDisableTIM5(FALSE);
+      rccDisableTIM5();
     }
 #endif
 #if STM32_TIMCAP_USE_TIM8
     if (&TIMCAPD8 == timcapp) {
       nvicDisableVector(STM32_TIM8_UP_NUMBER);
       nvicDisableVector(STM32_TIM8_CC_NUMBER);
-      rccDisableTIM8(FALSE);
+      rccDisableTIM8();
     }
 #endif
 #if STM32_TIMCAP_USE_TIM9
     if (&TIMCAPD9 == timcapp) {
       nvicDisableVector(STM32_TIM9_NUMBER);
-      rccDisableTIM9(FALSE);
+      rccDisableTIM9();
     }
 #endif
   }

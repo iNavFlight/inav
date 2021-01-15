@@ -49,10 +49,12 @@ static const uint8_t testbuf_flash[SPI_BUF_SIZE];
  *
  */
 static const SPIConfig spicfg = {
+    false,
     spi_end_cb,
     GPIOA,
     GPIOA_SPI1_NSS,
     0, //SPI_CR1_BR_1 | SPI_CR1_BR_0
+    0
 };
 
 static uint32_t ints;

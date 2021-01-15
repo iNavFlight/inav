@@ -17,6 +17,8 @@
 #include "ch.h"
 #include "hal.h"
 #include "ch_test.h"
+#include "rt_test_root.h"
+#include "oslib_test_root.h"
 
 /*
  * LED blinker thread.
@@ -57,7 +59,8 @@ int main(void) {
    */
   chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
 
-  test_execute((BaseSequentialStream *)&SD1);
+  test_execute((BaseSequentialStream *)&SD1, &rt_test_suite);
+  test_execute((BaseSequentialStream *)&SD1, &oslib_test_suite);
   while (true) {
       chThdSleepMilliseconds(1000);
   }

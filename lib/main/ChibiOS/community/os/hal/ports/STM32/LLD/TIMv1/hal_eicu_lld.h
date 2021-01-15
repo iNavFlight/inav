@@ -22,8 +22,8 @@
    32-bit timers and timers with single capture/compare channels.
 */
 
-#ifndef __EICU_LLD_H
-#define __EICU_LLD_H
+#ifndef HAL_EICU_LLD_H
+#define HAL_EICU_LLD_H
 
 #include "stm32_tim.h"
 
@@ -551,4 +551,4 @@ extern "C" {
 
 #endif /* HAL_USE_EICU */
 
-#endif /* __EICU_LLD_H */
+#endif /* HAL_EICU_LLD_H */

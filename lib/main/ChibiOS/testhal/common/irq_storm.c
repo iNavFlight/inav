@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -95,7 +95,7 @@ static THD_FUNCTION(irq_storm_thread, arg) {
   while (chThdShouldTerminateX() == false) {
 
     /* Waiting for a message.*/
-   chMBFetch(&mb[me], &msg, TIME_INFINITE);
+   chMBFetchTimeout(&mb[me], &msg, TIME_INFINITE);
 
 #if IRQ_STORM_CFG_RANDOMIZE != FALSE
    /* Pseudo-random delay.*/
@@ -124,7 +124,7 @@ static THD_FUNCTION(irq_storm_thread, arg) {
     if (target < IRQ_STORM_CFG_NUM_THREADS) {
       /* If this thread is not at the end of a chain re-sending the message,
          note this check works because the variable target is unsigned.*/
-      msg = chMBPost(&mb[target], msg, TIME_IMMEDIATE);
+      msg = chMBPostTimeout(&mb[target], msg, TIME_IMMEDIATE);
       if (msg != MSG_OK)
         saturated = TRUE;
     }

@@ -32,6 +32,8 @@
 /* Module exported variables.                                                */
 /*===========================================================================*/
 
+bool __msp430x_in_isr;
+
 /*===========================================================================*/
 /* Module local types.                                                       */
 /*===========================================================================*/
@@ -98,6 +100,11 @@ void _port_thread_start(void) {
   asm volatile ("mov R5, R12");
   asm volatile ("call R4");
 #endif
+#if defined(_CHIBIOS_RT_CONF_)
+  chThdExit(MSG_OK);
+#endif
+#if defined(_CHIBIOS_NIL_CONF_)
   chSysHalt(0);
+#endif
 }
 /** @} */

@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -57,7 +57,7 @@ static adcsample_t samples1[ADC_GRP1_NUM_CHANNELS * ADC_GRP1_BUF_DEPTH];
  * ADC streaming callback.
  */
 size_t nx = 0, ny = 0;
-static void adccallback(ADCDriver *adcp, adcsample_t *buffer, size_t n) {
+static void adccallback(ADCDriver *adcp) {
 
 #if !DMA_BUFFERS_COHERENCE
   /* DMA buffer invalidation because data cache, only invalidating the
@@ -65,16 +65,14 @@ static void adccallback(ADCDriver *adcp, adcsample_t *buffer, size_t n) {
      Only required if the ADC buffer is placed in a cache-able area.*/
   dmaBufferInvalidate(buffer,
                       n * adcp->grpp->num_channels * sizeof (adcsample_t));
-#else
-  (void)adcp;
 #endif
 
   /* Updating counters.*/
-  if (samples1 == buffer) {
-    nx += n;
+  if (adcIsBufferComplete(adcp)) {
+    nx += 1;
   }
   else {
-    ny += n;
+    ny += 1;
   }
 }
 
@@ -103,7 +101,9 @@ static const ADCConversionGroup adcgrpcfg1 = {
   ADC_SMPR1_SMP_SENSOR(ADC_SAMPLE_144) | 
   ADC_SMPR1_SMP_VREF(ADC_SAMPLE_144),                   /* SMPR1 */
   0,                                                    /* SMPR2 */
-  ADC_SQR1_NUM_CH(ADC_GRP1_NUM_CHANNELS),               /* SQR1  */
+  0,                                                    /* HTR */
+  0,                                                    /* LTR */
+  0,                                                    /* SQR1  */
   0,                                                    /* SQR2  */
   ADC_SQR3_SQ2_N(ADC_CHANNEL_SENSOR) | 
   ADC_SQR3_SQ1_N(ADC_CHANNEL_VREFINT)                   /* SQR3  */

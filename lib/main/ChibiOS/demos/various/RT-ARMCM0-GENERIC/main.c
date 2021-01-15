@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -66,6 +66,9 @@ int main(void) {
   SysTick->VAL = (uint32_t)0;
   SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk |
                   SysTick_CTRL_TICKINT_Msk;
+
+  /* IRQ enabled.*/
+  NVIC_SetPriority(SysTick_IRQn, 1);
 
   /*
    * System initializations.

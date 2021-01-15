@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2014..2016 Marco Veeneman
+    Copyright (C) 2014..2017 Marco Veeneman
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -76,8 +76,8 @@ void tiva_clock_init(void)
   /*
    * 2. Power up the MOSC by clearing the NOXTAL bit in the MOSCCTL register.
    */
-  moscctl = SYSCTL->MOSCCTL;
-  moscctl &= ~MOSCCTL_NOXTAL;
+  moscctl = HWREG(SYSCTL_MOSCCTL);
+  moscctl &= ~SYSCTL_MOSCCTL_NOXTAL;
 
   /*
    * 3. If single-ended MOSC mode is required, the MOSC is ready to use. If crystal mode is required,
@@ -85,18 +85,18 @@ void tiva_clock_init(void)
    * (RIS), indicating MOSC crystal mode is ready.
    */
 #if TIVA_MOSC_SINGLE_ENDED
-  SYSCTL->MOSCCTL = moscctl;
+  HWREG(SYSCTL_MOSCCTL) = moscctl;
 #else
-  moscctl &= ~MOSCCTL_PWRDN;
-  SYSCTL->MOSCCTL = moscctl;
+  moscctl &= ~SYSCTL_MOSCCTL_PWRDN;
+  HWREG(SYSCTL_MOSCCTL) = moscctl;
 
-  while (!(SYSCTL->RIS & SYSCTL_RIS_MOSCPUPRIS));
+  while (!(HWREG(SYSCTL_RIS) & SYSCTL_RIS_MOSCPUPRIS));
 #endif
 
   /*
    * 4. Set the OSCSRC field to 0x3 in the RSCLKCFG register at offset 0x0B0.
    */
-  rsclkcfg = SYSCTL->RSCLKCFG;
+  rsclkcfg = HWREG(SYSCTL_RSCLKCFG);
 
   rsclkcfg |= TIVA_RSCLKCFG_OSCSRC;
 
@@ -109,44 +109,42 @@ void tiva_clock_init(void)
    * 6. Write the PLLFREQ0 and PLLFREQ1 registers with the values of Q, N, MINT, and MFRAC to
    * the configure the desired VCO frequency setting.
    */
-  SYSCTL->PLLFREQ1 = (0x04 << 0); // 5 - 1
-  SYSCTL->PLLFREQ0 = (0x60 << 0) | PLLFREQ0_PLLPWR;
+  HWREG(SYSCTL_PLLFREQ1) = (0x04 << 0); // 5 - 1
+  HWREG(SYSCTL_PLLFREQ0) = (0x60 << 0) | SYSCTL_PLLFREQ0_PLLPWR;
 
   /*
    * 7. Write the MEMTIM0 register to correspond to the new system clock setting.
    */
-  SYSCTL->MEMTIM0 = (MEMTIM0_FBCHT_3_5 | MEMTIM0_FWS_5 | MEMTIM0_EBCHT_3_5 | MEMTIM0_EWS_5 | MEMTIM0_MB1);
+  HWREG(SYSCTL_MEMTIM0) = (SYSCTL_MEMTIM0_FBCHT_3_5 | (5 << SYSCTL_MEMTIM0_FWS_S) | SYSCTL_MEMTIM0_EBCHT_3_5 | (5 << SYSCTL_MEMTIM0_EWS_S) | SYSCTL_MEMTIM0_MB1);
 
   /*
    * Wait for the PLLSTAT register to indicate the PLL has reached lock at the new operating point
    * (or that a timeout period has passed and lock has failed, in which case an error condition exists
    * and this sequence is abandoned and error processing is initiated).
    */
-  while (!SYSCTL->PLLSTAT & PLLSTAT_LOCK);
+  while (!HWREG(SYSCTL_PLLSTAT) & SYSCTL_PLLSTAT_LOCK);
 
   /*
    * 9. Write the RSCLKCFG register's PSYSDIV value, set the USEPLL bit to enabled, and MEMTIMU
    * bit.
    */
 
-  rsclkcfg = SYSCTL->RSCLKCFG;
+  rsclkcfg = HWREG(SYSCTL_RSCLKCFG);
 
-  rsclkcfg |= (RSCLKCFG_USEPLL | (0x03 << 0) | (0x03 << 20) | (0x03 << 24));
+  rsclkcfg |= (SYSCTL_RSCLKCFG_USEPLL | (0x03 << 0) | (0x03 << 20) | (0x03 << 24));
 
   //rsclkcfg |= ((0x03 << 0) | (1 << 28) | (0x03 << 20));
 
-  rsclkcfg |= RSCLKCFG_MEMTIMU;
+  rsclkcfg |= SYSCTL_RSCLKCFG_MEMTIMU;
 
   // set new configuration
-  SYSCTL->RSCLKCFG = rsclkcfg;
+  HWREG(SYSCTL_RSCLKCFG) = rsclkcfg;
 
 #if HAL_USE_PWM
 #if TIVA_PWM_USE_PWM0
-  PWM0->CC = TIVA_PWM_FIELDS;
+  HWREG(PWM0_CC) = TIVA_PWM_FIELDS;
 #endif
 #endif
 }
 
-/**
- * @}
- */
+/** @} */

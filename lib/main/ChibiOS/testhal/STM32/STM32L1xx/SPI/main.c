@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -21,9 +21,11 @@
  * Maximum speed SPI configuration (16MHz, CPHA=0, CPOL=0, MSb first).
  */
 static const SPIConfig hs_spicfg = {
+  false,
   NULL,
   GPIOB,
   12,
+  0,
   0
 };
 
@@ -31,10 +33,12 @@ static const SPIConfig hs_spicfg = {
  * Low speed SPI configuration (256kHz, CPHA=0, CPOL=0, MSb first).
  */
 static const SPIConfig ls_spicfg = {
+  false,
   NULL,
   GPIOB,
   12,
-  SPI_CR1_BR_2 | SPI_CR1_BR_1
+  SPI_CR1_BR_2 | SPI_CR1_BR_1,
+  0
 };
 
 /*

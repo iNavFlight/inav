@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -27,6 +27,9 @@
 /*===========================================================================*/
 /* Driver local definitions.                                                 */
 /*===========================================================================*/
+
+#define STM32_PLLXTPRE_OFFSET   17          /**< PLLXTPRE offset             */
+#define STM32_PLLXTPRE_MASK     0x01        /**< PLLXTPRE mask               */
 
 /*===========================================================================*/
 /* Driver exported variables.                                                */
@@ -57,7 +60,7 @@ static void hal_lld_backup_domain_init(void) {
   PWR->CR |= PWR_CR_DBP;
 
   /* Reset BKP domain if different clock source selected.*/
-  if ((RCC->BDCR & STM32_RTCSEL_MASK) != STM32_RTCSEL){
+  if ((RCC->BDCR & STM32_RTCSEL_MASK) != STM32_RTCSEL) {
     /* Backup domain reset.*/
     RCC->BDCR = RCC_BDCR_BDRST;
     RCC->BDCR = 0;
@@ -223,20 +226,26 @@ OSAL_IRQ_HANDLER(STM32_DMA12_CH4567_CH345_HANDLER) {
  */
 void hal_lld_init(void) {
 
-  /* Reset of all peripherals.*/
-  rccResetAHB(0xFFFFFFFF);
+  /* Reset of all peripherals.
+     Note, GPIOs are not reset because initialized before this point in
+     board files.*/
+  rccResetAHB(~STM32_GPIO_EN_MASK);
   rccResetAPB1(0xFFFFFFFF);
   rccResetAPB2(~RCC_APB2RSTR_DBGMCURST);
 
   /* PWR clock enabled.*/
-  rccEnablePWRInterface(FALSE);
+  rccEnablePWRInterface(true);
 
   /* Initializes the backup domain.*/
   hal_lld_backup_domain_init();
 
+  /* DMA subsystems initialization.*/
 #if defined(STM32_DMA_REQUIRED)
   dmaInit();
 #endif
+
+  /* IRQ subsystem initialization.*/
+  irqInit();
 
   /* Programmable voltage detector enable.*/
 #if STM32_PVD_ENABLE
@@ -263,8 +272,7 @@ void stm32_clock_init(void) {
   /* HSI is selected as new source without touching the other fields in
      CFGR. Clearing the register has to be postponed after HSI is the
      new source.*/
-  RCC->CFGR &= ~RCC_CFGR_SW;                /* Reset SW */
-  RCC->CFGR |= RCC_CFGR_SWS_HSI;            /* Select HSI as internal*/
+  RCC->CFGR &= ~RCC_CFGR_SW;                /* Reset SW, selecting HSI.     */
   while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_HSI)
     ;                                       /* Wait until HSI is selected.  */
 
@@ -307,9 +315,11 @@ void stm32_clock_init(void) {
 #endif
 
   /* Clock settings.*/
-  RCC->CFGR  = STM32_PLLNODIV | STM32_MCOPRE | STM32_MCOSEL | STM32_PLLMUL |
-               STM32_PLLSRC   | STM32_PPRE   | STM32_HPRE;
+  /* CFGR2 must be configured first since CFGR value could change CFGR2 */
   RCC->CFGR2 = STM32_PREDIV;
+  RCC->CFGR  = STM32_PLLNODIV | STM32_MCOPRE | STM32_MCOSEL | STM32_PLLMUL |
+               STM32_PLLSRC   | STM32_PPRE   | STM32_HPRE |
+               ((STM32_PREDIV & STM32_PLLXTPRE_MASK) << STM32_PLLXTPRE_OFFSET);
 #if STM32_CECSW == STM32_CECSW_OFF
   RCC->CFGR3 = STM32_USBSW  | STM32_I2C1SW | STM32_USART1SW;
 #else
@@ -325,6 +335,9 @@ void stm32_clock_init(void) {
 
   /* Flash setup and final clock selection.   */
   FLASH->ACR = STM32_FLASHBITS;
+  while ((FLASH->ACR & FLASH_ACR_LATENCY_Msk) !=
+         (STM32_FLASHBITS & FLASH_ACR_LATENCY_Msk)) {
+  }
 
   /* Switching to the configured clock source if it is different from HSI.*/
 #if (STM32_SW != STM32_SW_HSI)
@@ -336,7 +349,7 @@ void stm32_clock_init(void) {
 
   /* SYSCFG clock enabled here because it is a multi-functional unit shared
      among multiple drivers.*/
-  rccEnableAPB2(RCC_APB2ENR_SYSCFGEN, TRUE);
+  rccEnableAPB2(RCC_APB2ENR_SYSCFGEN, true);
 #endif /* !STM32_NO_INIT */
 }
 

@@ -20,6 +20,6 @@
 /*
  * HAL driver system settings.
  */
-#define NRF51_SPI_USE_SPI0                 TRUE
+#define NRF5_SPI_USE_SPI0                 TRUE
 
 #endif /* _MCUCONF_H_ */

@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -32,8 +32,8 @@
  * @{
  */
 
-#ifndef _HAL_STREAMS_H_
-#define _HAL_STREAMS_H_
+#ifndef HAL_STREAMS_H
+#define HAL_STREAMS_H
 
 /**
  * @name    Streams return codes
@@ -44,14 +44,11 @@
 #define STM_RESET            MSG_RESET
 /** @} */
 
-/* The ChibiOS/RT kernel provides the following definitions by itself, this
-   check is performed in order to avoid conflicts. */
-#if !defined(_CHIBIOS_RT_) || defined(__DOXYGEN__)
-
 /**
  * @brief   BaseSequentialStream specific methods.
  */
 #define _base_sequential_stream_methods                                     \
+  _base_object_methods                                                      \
   /* Stream write buffer method.*/                                          \
   size_t (*write)(void *instance, const uint8_t *bp, size_t n);             \
   /* Stream read buffer method.*/                                           \
@@ -66,7 +63,8 @@
  * @note    It is empty because @p BaseSequentialStream is only an interface
  *          without implementation.
  */
-#define _base_sequential_stream_data
+#define _base_sequential_stream_data                                        \
+  _base_object_data
 
 /**
  * @brief   @p BaseSequentialStream virtual methods table.
@@ -76,6 +74,8 @@ struct BaseSequentialStreamVMT {
 };
 
 /**
+ * @extends BaseObject
+ *
  * @brief   Base stream class.
  * @details This class represents a generic blocking unbuffered sequential
  *          data stream.
@@ -85,8 +85,6 @@ typedef struct {
   const struct BaseSequentialStreamVMT *vmt;
   _base_sequential_stream_data
 } BaseSequentialStream;
-
-#endif /* !defined(_CHIBIOS_RT_)*/
 
 /**
  * @name    Macro Functions (BaseSequentialStream)
@@ -153,6 +151,6 @@ typedef struct {
 #define streamGet(ip) ((ip)->vmt->get(ip))
 /** @} */
 
-#endif /* _HAL_STREAMS_H_ */
+#endif /* HAL_STREAMS_H */
 
 /** @} */

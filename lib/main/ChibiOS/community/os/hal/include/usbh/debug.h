@@ -1,6 +1,6 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
-              Copyright (C) 2015 Diego Ismirlian, TISA, (dismirlian (at) google's mail)
+    ChibiOS - Copyright (C) 2006..2017 Giovanni Di Sirio
+              Copyright (C) 2015..2017 Diego Ismirlian, (dismirlian (at) google's mail)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -22,8 +22,6 @@
 #include "hal_usbh.h"
 
 #if HAL_USE_USBH
-
-//TODO: Debug is only for USBHD1, make it generic.
 
 #if USBH_DEBUG_ENABLE
 	void usbDbgPrintf(const char *fmt, ...);

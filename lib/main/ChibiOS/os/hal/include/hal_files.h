@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -32,8 +32,8 @@
  * @{
  */
 
-#ifndef _HAL_FILES_H_
-#define _HAL_FILES_H_
+#ifndef HAL_FILES_H
+#define HAL_FILES_H
 
 /**
  * @name    Files return codes
@@ -70,11 +70,11 @@ typedef uint32_t fileoffset_t;
   /* Get last error code method.*/                                          \
   msg_t (*geterror)(void *instance);                                        \
   /* File get size method.*/                                                \
-  msg_t (*getsize)(void *instance);                                         \
+  msg_t (*getsize)(void *instance, fileoffset_t *offset);                   \
   /* File get current position method.*/                                    \
-  msg_t (*getposition)(void *instance);                                     \
-  /* File seek method.*/                                                    \
-  msg_t (*lseek)(void *instance, fileoffset_t offset);
+  msg_t (*getposition)(void *instance, fileoffset_t *offset);               \
+  /* File set current position method.*/                                    \
+  msg_t (*setposition)(void *instance, fileoffset_t offset);
 
 /**
  * @brief   @p FileStream specific data.
@@ -201,23 +201,25 @@ typedef struct {
  * @brief   Returns the current file size.
  *
  * @param[in] ip        pointer to a @p FileStream or derived class
+ * @param[out] offset   current size of the file
  * @return              The file size.
  * @retval FILE_ERROR   operation failed.
  *
  * @api
  */
-#define fileStreamGetSize(ip) ((ip)->vmt->getsize(ip))
+#define fileStreamGetSize(ip, offset) ((ip)->vmt->getsize(ip), offset)
 
 /**
  * @brief   Returns the current file pointer position.
  *
  * @param[in] ip        pointer to a @p FileStream or derived class
+ * @param[out] offset   current position in the file
  * @return              The current position inside the file.
  * @retval FILE_ERROR   operation failed.
  *
  * @api
  */
-#define fileStreamGetPosition(ip) ((ip)->vmt->getposition(ip))
+#define fileStreamGetPosition(ip, offset) ((ip)->vmt->getposition(ip, offset))
 
 /**
  * @brief   Moves the file current pointer to an absolute position.
@@ -230,9 +232,9 @@ typedef struct {
  *
  * @api
  */
-#define fileStreamSeek(ip, offset) ((ip)->vmt->lseek(ip, offset))
+#define fileStreamSetPosition(ip, offset) ((ip)->vmt->setposition(ip, offset))
 /** @} */
 
-#endif /* _HAL_FILES_H_ */
+#endif /* HAL_FILES_H */
 
 /** @} */

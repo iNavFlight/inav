@@ -1,0 +1,4 @@
+- BOFF handling in DACv1.
+- Oversampling support for ADCv1 and ADCv3.
+- Implement missing ICU/PWM/GPT/ST units using shared IRQ handlers.
+- Implement I2S driver over SAI interfaces.

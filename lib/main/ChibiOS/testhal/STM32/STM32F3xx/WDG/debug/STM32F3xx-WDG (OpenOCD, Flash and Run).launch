@@ -39,7 +39,7 @@
 <stringAttribute key="org.eclipse.cdt.launch.PROGRAM_NAME" value="./build/ch.elf"/>
 <stringAttribute key="org.eclipse.cdt.launch.PROJECT_ATTR" value="STM32F3xx-WDG"/>
 <booleanAttribute key="org.eclipse.cdt.launch.PROJECT_BUILD_CONFIG_AUTO_ATTR" value="true"/>
-<stringAttribute key="org.eclipse.cdt.launch.PROJECT_BUILD_CONFIG_ID_ATTR" value="0.865376734"/>
+<stringAttribute key="org.eclipse.cdt.launch.PROJECT_BUILD_CONFIG_ID_ATTR" value="0.691815652"/>
 <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
 <listEntry value="/STM32F3xx-WDG"/>
 </listAttribute>

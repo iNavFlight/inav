@@ -22,8 +22,8 @@
  * @{
  */
 
-#ifndef _BITMAP_H_
-#define _BITMAP_H_
+#ifndef BITMAP_H_
+#define BITMAP_H_
 
 /*===========================================================================*/
 /* Module constants.                                                         */
@@ -72,6 +72,6 @@ extern "C" {
 }
 #endif
 
-#endif /* _BITMAP_H_ */
+#endif /* BITMAP_H_ */
 
 /** @} */

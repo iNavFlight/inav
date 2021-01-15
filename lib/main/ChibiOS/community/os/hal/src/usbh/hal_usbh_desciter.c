@@ -1,6 +1,6 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
-              Copyright (C) 2015 Diego Ismirlian, TISA, (dismirlian (at) google's mail)
+    ChibiOS - Copyright (C) 2006..2017 Giovanni Di Sirio
+              Copyright (C) 2015..2017 Diego Ismirlian, (dismirlian (at) google's mail)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -134,22 +134,18 @@ void cs_iter_next(generic_iterator_t *ics) {
 	if ((curr[0] < 2) || (rem < 2) || (rem < curr[0]))
 		return;
 
-	//for (;;) {
-		rem -= curr[0];
-		curr += curr[0];
+	rem -= curr[0];
+	curr += curr[0];
 
-		if ((curr[0] < 2) || (rem < 2) || (rem < curr[0]))
-			return;
+	if ((curr[0] < 2) || (rem < 2) || (rem < curr[0]))
+		return;
 
-		if ((curr[1] == USBH_DT_INTERFACE_ASSOCIATION)
-				|| (curr[1] == USBH_DT_INTERFACE)
-				|| (curr[1] == USBH_DT_CONFIG)
-				|| (curr[1] == USBH_DT_ENDPOINT)) {
-			return;
-		}
-
-	//	break;
-	//}
+	if ((curr[1] == USBH_DT_INTERFACE_ASSOCIATION)
+			|| (curr[1] == USBH_DT_INTERFACE)
+			|| (curr[1] == USBH_DT_CONFIG)
+			|| (curr[1] == USBH_DT_ENDPOINT)) {
+		return;
+	}
 
 	ics->valid = 1;
 	ics->rem = rem;

@@ -5,8 +5,9 @@
   xsi:noNamespaceSchemaLocation="http://www.chibios.org/xml/schema/boards/stm32f3xx_board.xsd">
   <configuration_settings>
   	<templates_path>resources/gencfg/processors/boards/stm32f3xx/templates</templates_path>
+    <board_files_path>$(CHIBIOS)/os/hal/boards/</board_files_path>
   	<output_path>..</output_path>
-  	<hal_version>3.0.x</hal_version>
+  	<hal_version>5.0.x</hal_version>
   </configuration_settings>
   <board_name>STMicroelectronics STM32F3-Discovery</board_name>
   <board_id>ST_STM32F3_DISCOVERY</board_id>
@@ -57,7 +58,7 @@
         Mode="Input"
         Alternate="0" />
       <pin5
-        ID="SPI1_SCK"
+        ID="SPI1_SCK L3GD20_SCL"
         Type="PushPull"
         Speed="Maximum"
         Resistor="Floating"
@@ -65,7 +66,7 @@
         Mode="Alternate"
         Alternate="5" ></pin5>
       <pin6
-        ID="SPI1_MISO"
+        ID="SPI1_MISO L3GD20_SDO"
         Type="PushPull"
         Speed="Maximum"
         Resistor="PullUp"
@@ -73,7 +74,7 @@
         Mode="Alternate"
         Alternate="5" />
       <pin7
-        ID="SPI1_MOSI"
+        ID="SPI1_MOSI L3GD20_SDI"
         Type="PushPull"
         Speed="Maximum"
         Resistor="Floating"
@@ -119,7 +120,7 @@
         Resistor="Floating"
         Level="High"
         Mode="Alternate"
-        Alternate="14" ></pin12>
+        Alternate="14" />
       <pin13
         ID="SWDIO"
         Type="PushPull"
@@ -195,7 +196,7 @@
         Mode="Input"
         Alternate="0" ></pin5>
       <pin6
-        ID="I2C1_SCL"
+        ID="I2C1_SCL LSM303DLHC_SCL"
         Type="OpenDrain"
         Speed="Maximum"
         Resistor="Floating"
@@ -203,7 +204,7 @@
         Mode="Alternate"
         Alternate="4" />
       <pin7
-        ID="I2C1_SDA"
+        ID="I2C1_SDA LSM303DLHC_SDA"
         Type="OpenDrain"
         Speed="Maximum"
         Resistor="Floating"
@@ -309,21 +310,21 @@
         Mode="Input"
         Alternate="0" />
       <pin4
-        ID=""
+        ID="VCP_RX"
         Type="PushPull"
         Speed="Minimum"
         Resistor="PullUp"
         Level="High"
-        Mode="Input"
-        Alternate="0" />
+        Mode="Alternate"
+        Alternate="7" />
       <pin5
-        ID=""
+        ID="VCP_TX"
         Type="PushPull"
         Speed="Minimum"
         Resistor="PullUp"
         Level="High"
-        Mode="Input"
-        Alternate="0" />
+        Mode="Alternate"
+        Alternate="7" />
       <pin6
         ID=""
         Type="PushPull"
@@ -553,7 +554,7 @@
         Mode="Input"
         Alternate="0" />
       <pin2
-        ID="LSM303_DRDY"
+        ID="LSM303DLHC_DRDY"
         Type="PushPull"
         Speed="Minimum"
         Resistor="PullUp"
@@ -561,7 +562,7 @@
         Mode="Input"
         Alternate="0" />
       <pin3
-        ID="SPI1_CS"
+        ID="SPI1_CS L3GD20_CS"
         Type="PushPull"
         Speed="Maximum"
         Resistor="Floating"
@@ -569,7 +570,7 @@
         Mode="Output"
         Alternate="0" ></pin3>
       <pin4
-        ID="LSM303_INT1"
+        ID="LSM303DLHC_INT1"
         Type="PushPull"
         Speed="Minimum"
         Resistor="PullUp"
@@ -577,7 +578,7 @@
         Mode="Input"
         Alternate="0" />
       <pin5
-        ID="LSM303_INT2"
+        ID="LSM303DLHC_INT2"
         Type="PushPull"
         Speed="Minimum"
         Resistor="PullUp"

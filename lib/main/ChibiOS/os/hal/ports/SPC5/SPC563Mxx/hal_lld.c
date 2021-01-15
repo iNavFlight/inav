@@ -75,12 +75,12 @@ void hal_lld_init(void) {
   n = SPC5_SYSCLK / OSAL_ST_FREQUENCY;
   asm volatile ("mtspr   22, %[n]           \t\n"   /* Init. DEC register.  */
                 "mtspr   54, %[n]           \t\n"   /* Init. DECAR register.*/
-                "lis     %%r3, 0x0440       \t\n"   /* DIE ARE bits.        */
+                "e_lis   %%r3, 0x0440       \t\n"   /* DIE ARE bits.        */
                 "mtspr   340, %%r3"                 /* TCR register.        */
                 : : [n] "r" (n) : "r3");
 
   /* TB counter enabled for debug and measurements.*/
-  asm volatile ("li      %%r3, 0x4000       \t\n"   /* TBEN bit.            */
+  asm volatile ("e_li    %%r3, 0x4000       \t\n"   /* TBEN bit.            */
                 "mtspr   1008, %%r3"                /* HID0 register.       */
                 : : : "r3");
 

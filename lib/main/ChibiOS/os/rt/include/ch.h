@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio.
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio.
 
     This file is part of ChibiOS.
 
@@ -18,18 +18,18 @@
 */
 
 /**
- * @file    ch.h
+ * @file    rt/include/ch.h
  * @brief   ChibiOS/RT main include file.
- * @details This header includes all the required kernel headers so it is the
- *          only kernel header you usually want to include in your application.
  *
  * @addtogroup kernel_info
+ * @details This header includes all the required kernel headers so it is the
+ *          only kernel header you usually want to include in your application.
  * @details Kernel related info.
  * @{
  */
 
-#ifndef _CH_H_
-#define _CH_H_
+#ifndef CH_H
+#define CH_H
 
 /**
  * @brief   ChibiOS/RT identification macro.
@@ -48,31 +48,67 @@
 /**
  * @brief   Kernel version string.
  */
-#define CH_KERNEL_VERSION       "3.1.4"
+#define CH_KERNEL_VERSION       "6.0.3"
 
 /**
  * @brief   Kernel version major number.
  */
-#define CH_KERNEL_MAJOR         3
+#define CH_KERNEL_MAJOR         6
 
 /**
  * @brief   Kernel version minor number.
  */
-#define CH_KERNEL_MINOR         1
+#define CH_KERNEL_MINOR         0
 
 /**
  * @brief   Kernel version patch number.
  */
-#define CH_KERNEL_PATCH         4
+#define CH_KERNEL_PATCH         3
 /** @} */
 
-/* Core headers.*/
-#include "chtypes.h"
+/**
+ * @name    Constants for configuration options
+ */
+/**
+ * @brief   Generic 'false' preprocessor boolean constant.
+ * @note    It is meant to be used in configuration files as switch.
+ */
+#if !defined(FALSE) || defined(__DOXYGEN__)
+#define FALSE                   0
+#endif
+
+/**
+ * @brief   Generic 'true' preprocessor boolean constant.
+ * @note    It is meant to be used in configuration files as switch.
+ */
+#if !defined(TRUE) || defined(__DOXYGEN__)
+#define TRUE                    1
+#endif
+/** @} */
+
+/* Configuration headers, checks and licensing restrictions.*/
 #include "chconf.h"
+#include "chchecks.h"
 #include "chlicense.h"
+#include "chrestrictions.h"
+
+/* Early function prototype required by the following headers.*/
+#ifdef __cplusplus
+extern "C" {
+#endif
+  void chSysHalt(const char *reason);
+#ifdef __cplusplus
+}
+#endif
+
+/* Base kernel headers.*/
+#include "chtypes.h" /* TODO: Rename and rework.*/
 #include "chsystypes.h"
-#include "chcore.h"
 #include "chdebug.h"
+#include "chtime.h"
+#include "chalign.h"
+#include "chcore.h"
+#include "chtrace.h"
 #include "chtm.h"
 #include "chstats.h"
 #include "chschd.h"
@@ -83,19 +119,17 @@
 /* Optional subsystems headers.*/
 #include "chregistry.h"
 #include "chsem.h"
-#include "chbsem.h"
 #include "chmtx.h"
 #include "chcond.h"
 #include "chevents.h"
 #include "chmsg.h"
-#include "chmboxes.h"
-#include "chmemcore.h"
-#include "chheap.h"
-#include "chmempools.h"
-#include "chdynamic.h"
-#include "chqueues.h"
-#include "chstreams.h"
 
-#endif /* _CH_H_ */
+/* OSLIB.*/
+#include "chlib.h"
+
+/* Headers dependent on the OSLIB.*/
+#include "chdynamic.h"
+
+#endif /* CH_H */
 
 /** @} */

@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -43,7 +43,7 @@ static const GPTConfig gpt3cfg = {
  * IRQ Storm configuration.
  */
 static const irq_storm_config_t irq_storm_config = {
-  (BaseSequentialStream  *)&SD1,
+  (BaseSequentialStream  *)&SD2,
   GPIOA,
   GPIOA_LED_GREEN,
   &GPTD4,
@@ -68,8 +68,8 @@ int main(void) {
   halInit();
   chSysInit();
 
-  /* Prepares the Serial driver 1.*/
-  sdStart(&SD1, NULL);
+  /* Prepares the Serial driver 2.*/
+  sdStart(&SD2, NULL);
   palSetPadMode(GPIOA, 9, PAL_MODE_ALTERNATE(7));       /* USART1 TX.       */
   palSetPadMode(GPIOA, 10, PAL_MODE_ALTERNATE(7));      /* USART1 RX.       */
 

@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -150,7 +150,7 @@ systime_t osalOsGetSystemTimeX(void) {
  *
  * @sclass
  */
-void osalThreadSleepS(systime_t time) {
+void osalThreadSleepS(sysinterval_t time) {
 
   (void)time;
 }
@@ -167,7 +167,7 @@ void osalThreadSleepS(systime_t time) {
  *
  * @api
  */
-void osalThreadSleep(systime_t time) {
+void osalThreadSleep(sysinterval_t time) {
 
   (void)time;
 }
@@ -208,7 +208,7 @@ msg_t osalThreadSuspendS(thread_reference_t *trp) {
  *
  * @sclass
  */
-msg_t osalThreadSuspendTimeoutS(thread_reference_t *trp, systime_t timeout) {
+msg_t osalThreadSuspendTimeoutS(thread_reference_t *trp, sysinterval_t timeout) {
 
   osalDbgCheck(trp != NULL);
 
@@ -274,7 +274,7 @@ void osalThreadResumeS(thread_reference_t *trp, msg_t msg) {
  *
  * @sclass
  */
-msg_t osalThreadEnqueueTimeoutS(threads_queue_t *tqp, systime_t timeout) {
+msg_t osalThreadEnqueueTimeoutS(threads_queue_t *tqp, sysinterval_t timeout) {
 
   osalDbgCheck(tqp != NULL);
 

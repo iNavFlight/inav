@@ -16,5 +16,3 @@ STM32_ADVANCED_DMA          - TRUE not used by the DMA drivers but other
 STM32_HAS_DMAx              - Support for DMA unit "x" (1..2).
 STM32_DMAx_CHn_HANDLER      - Vector name for channel "n" (0..7).
 STM32_DMAn_CHx_NUMBER       - Vector number for channel "n" (0..7).
-STM32_DMA_CACHE_HANDLING    - TRUE if the device requires explicit cache
-                              handling on DMA buffers.

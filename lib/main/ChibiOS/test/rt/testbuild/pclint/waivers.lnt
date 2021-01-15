@@ -59,6 +59,7 @@
 -e9016                      /* Rule-18.4 */
 -e844 -e954                 /* Rule-18.13 */
 -e9018                      /* Rule-19.2 */
+-e9021                      /* Rule-20.5 */
 -e9024                      /* Rule-20.10 */
 
 /* Waiver Directive 2.1, Rule 1.1, Rule 1.2, assembler is allowed in some

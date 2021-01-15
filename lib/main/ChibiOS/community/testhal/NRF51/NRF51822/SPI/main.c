@@ -23,7 +23,7 @@
 
 static const SPIConfig hs_spicfg = {
   .end_cb=NULL,
-  .freq=NRF51_SPI_FREQ_1MBPS,
+  .freq=NRF5_SPI_FREQ_1MBPS,
   .sckpad=SPI_SCK,
   .mosipad=SPI_MOSI,
   .misopad=SPI_MISO,
@@ -34,7 +34,7 @@ static const SPIConfig hs_spicfg = {
 
 static const SPIConfig ls_spicfg = {
   .end_cb=NULL,
-  .freq=NRF51_SPI_FREQ_250KBPS,
+  .freq=NRF5_SPI_FREQ_250KBPS,
   .sckpad=SPI_SCK,
   .mosipad=SPI_MOSI,
   .misopad=SPI_MISO,

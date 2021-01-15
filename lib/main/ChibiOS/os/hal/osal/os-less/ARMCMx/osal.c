@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@
  */
 
 #include "osal.h"
+#include "osal_vt.h"
 
 /*===========================================================================*/
 /* Module local definitions.                                                 */
@@ -39,11 +40,6 @@
  */
 const char *osal_halt_msg;
 
-/**
- * @brief   Virtual timers delta list header.
- */
-virtual_timers_list_t vtlist;
-
 /*===========================================================================*/
 /* Module local types.                                                       */
 /*===========================================================================*/
@@ -55,115 +51,6 @@ virtual_timers_list_t vtlist;
 /*===========================================================================*/
 /* Module local functions.                                                   */
 /*===========================================================================*/
-
-/**
- * @brief   Timers initialization.
- *
- * @notapi
- */
-static void vtInit(void) {
-
-  /* Virtual Timers initialization.*/
-  vtlist.vt_next = vtlist.vt_prev = (void *)&vtlist;
-  vtlist.vt_time = (systime_t)-1;
-  vtlist.vt_systime = 0;
-}
-
-/**
- * @brief   Returns @p TRUE if the specified timer is armed.
- *
- * @param[out] vtp      the @p virtual_timer_t structure pointer
- *
- * @notapi
- */
-static bool vtIsArmedI(virtual_timer_t *vtp) {
-
-  return vtp->vt_func != NULL;
-}
-
-/**
- * @brief   Virtual timers ticker.
- * @note    The system lock is released before entering the callback and
- *          re-acquired immediately after. It is callback's responsibility
- *          to acquire the lock if needed. This is done in order to reduce
- *          interrupts jitter when many timers are in use.
- *
- * @notapi
- */
-static void vtDoTickI(void) {
-
-  vtlist.vt_systime++;
-  if (&vtlist != (virtual_timers_list_t *)vtlist.vt_next) {
-    virtual_timer_t *vtp;
-
-    --vtlist.vt_next->vt_time;
-    while (!(vtp = vtlist.vt_next)->vt_time) {
-      vtfunc_t fn = vtp->vt_func;
-      vtp->vt_func = (vtfunc_t)NULL;
-      vtp->vt_next->vt_prev = (void *)&vtlist;
-      (&vtlist)->vt_next = vtp->vt_next;
-      osalSysUnlockFromISR();
-      fn(vtp->vt_par);
-      osalSysLockFromISR();
-    }
-  }
-}
-
-/**
- * @brief   Enables a virtual timer.
- * @note    The associated function is invoked from interrupt context.
- *
- * @param[out] vtp      the @p virtual_timer_t structure pointer
- * @param[in] time      the number of ticks before the operation timeouts, the
- *                      special values are handled as follow:
- *                      - @a TIME_INFINITE is allowed but interpreted as a
- *                        normal time specification.
- *                      - @a TIME_IMMEDIATE this value is not allowed.
- *                      .
- * @param[in] vtfunc    the timer callback function. After invoking the
- *                      callback the timer is disabled and the structure can
- *                      be disposed or reused.
- * @param[in] par       a parameter that will be passed to the callback
- *                      function
- *
- * @notapi
- */
-static void vtSetI(virtual_timer_t *vtp, systime_t time,
-                   vtfunc_t vtfunc, void *par) {
-  virtual_timer_t *p;
-
-  vtp->vt_par = par;
-  vtp->vt_func = vtfunc;
-  p = vtlist.vt_next;
-  while (p->vt_time < time) {
-    time -= p->vt_time;
-    p = p->vt_next;
-  }
-
-  vtp->vt_prev = (vtp->vt_next = p)->vt_prev;
-  vtp->vt_prev->vt_next = p->vt_prev = vtp;
-  vtp->vt_time = time;
-  if (p != (void *)&vtlist)
-    p->vt_time -= time;
-}
-
-/**
- * @brief   Disables a Virtual Timer.
- * @note    The timer MUST be active when this function is invoked.
- *
- * @param[in] vtp       the @p virtual_timer_t structure pointer
- *
- * @notapi
- */
-static void vtResetI(virtual_timer_t *vtp) {
-
-  if (vtp->vt_next != (void *)&vtlist)
-    vtp->vt_next->vt_time += vtp->vt_time;
-  vtp->vt_prev->vt_next = vtp->vt_next;
-  vtp->vt_next->vt_prev = vtp->vt_prev;
-  vtp->vt_func = (vtfunc_t)NULL;
-}
-
 
 static void callback_timeout(void *p) {
   osalSysLockFromISR();
@@ -275,7 +162,7 @@ systime_t osalOsGetSystemTimeX(void) {
  *
  * @sclass
  */
-void osalThreadSleepS(systime_t time) {
+void osalThreadSleepS(sysinterval_t time) {
   virtual_timer_t vt;
   thread_reference_t tr;
 
@@ -296,7 +183,7 @@ void osalThreadSleepS(systime_t time) {
  *
  * @api
  */
-void osalThreadSleep(systime_t time) {
+void osalThreadSleep(sysinterval_t time) {
 
   osalSysLock();
   osalThreadSleepS(time);
@@ -349,7 +236,7 @@ msg_t osalThreadSuspendS(thread_reference_t *trp) {
  *
  * @sclass
  */
-msg_t osalThreadSuspendTimeoutS(thread_reference_t *trp, systime_t timeout) {
+msg_t osalThreadSuspendTimeoutS(thread_reference_t *trp, sysinterval_t timeout) {
   msg_t msg;
   virtual_timer_t vt;
 
@@ -429,7 +316,7 @@ void osalThreadResumeS(thread_reference_t *trp, msg_t msg) {
  *
  * @sclass
  */
-msg_t osalThreadEnqueueTimeoutS(threads_queue_t *tqp, systime_t timeout) {
+msg_t osalThreadEnqueueTimeoutS(threads_queue_t *tqp, sysinterval_t timeout) {
   msg_t msg;
   virtual_timer_t vt;
 

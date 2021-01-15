@@ -1,6 +1,6 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
-              Copyright (C) 2015 Diego Ismirlian, TISA, (dismirlian (at) google's mail)
+    ChibiOS - Copyright (C) 2006..2017 Giovanni Di Sirio
+              Copyright (C) 2015..2017 Diego Ismirlian, (dismirlian (at) google's mail)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -96,7 +96,7 @@ struct USBHFTDIPortDriver {
 	usbh_urb_t iq_urb;
 	threads_queue_t	iq_waiting;
 	uint32_t iq_counter;
-	USBH_DEFINE_BUFFER(uint8_t, iq_buff[64]);
+	USBH_DECLARE_STRUCT_MEMBER(uint8_t iq_buff[64]);
 	uint8_t *iq_ptr;
 
 
@@ -104,7 +104,7 @@ struct USBHFTDIPortDriver {
 	usbh_urb_t oq_urb;
 	threads_queue_t	oq_waiting;
 	uint32_t oq_counter;
-	USBH_DEFINE_BUFFER(uint8_t, oq_buff[64]);
+	USBH_DECLARE_STRUCT_MEMBER(uint8_t oq_buff[64]);
 	uint8_t *oq_ptr;
 
 	virtual_timer_t vt;
@@ -113,7 +113,7 @@ struct USBHFTDIPortDriver {
 	USBHFTDIPortDriver *next;
 };
 
-typedef struct USBHFTDIDriver {
+struct USBHFTDIDriver {
 	/* inherited from abstract class driver */
 	_usbh_base_classdriver_data
 
@@ -121,11 +121,12 @@ typedef struct USBHFTDIDriver {
 	USBHFTDIPortDriver *ports;
 
 	mutex_t mtx;
-} USBHFTDIDriver;
+};
 
 /*===========================================================================*/
 /* Driver macros.                                                            */
 /*===========================================================================*/
+#define usbhftdipGetState(ftdipp) ((ftdipp)->state)
 
 
 /*===========================================================================*/
@@ -137,11 +138,7 @@ extern USBHFTDIPortDriver FTDIPD[HAL_USBHFTDI_MAX_PORTS];
 #ifdef __cplusplus
 extern "C" {
 #endif
-	/* FTDI device driver */
-	void usbhftdiObjectInit(USBHFTDIDriver *ftdip);
-
 	/* FTDI port driver */
-	void usbhftdipObjectInit(USBHFTDIPortDriver *ftdipp);
 	void usbhftdipStart(USBHFTDIPortDriver *ftdipp, const USBHFTDIPortConfig *config);
 	void usbhftdipStop(USBHFTDIPortDriver *ftdipp);
 #ifdef __cplusplus

@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2014..2016 Marco Veeneman
+    Copyright (C) 2014..2017 Marco Veeneman
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -57,7 +57,7 @@ static const I2CConfig i2cfg =
 int main(void)
 {
   msg_t status = MSG_OK;
-  systime_t tmo = MS2ST(100);
+  systime_t tmo = OSAL_MS2I(100);
 
   /*
    * System initializations.
@@ -70,8 +70,8 @@ int main(void)
   chSysInit();
 
   /* Configure RX and TX pins for UART0.*/
-  palSetPadMode(GPIOA, GPIOA_UART0_RX, PAL_MODE_INPUT | PAL_MODE_ALTERNATE(1));
-  palSetPadMode(GPIOA, GPIOA_UART0_TX, PAL_MODE_INPUT | PAL_MODE_ALTERNATE(1));
+  palSetLineMode(LINE_UART0_RX, PAL_MODE_INPUT | PAL_MODE_ALTERNATE(1));
+  palSetLineMode(LINE_UART0_TX, PAL_MODE_INPUT | PAL_MODE_ALTERNATE(1));
 
   /*
    * Start the serial driver with the default configuration.
@@ -79,8 +79,8 @@ int main(void)
   sdStart(&SD1, NULL);
 
   /* Configure SCK and SCL pins for I2C0.*/
-  palSetPadMode(GPIOB, GPIOB_I2C0_SCL, PAL_MODE_OUTPUT_PUSHPULL | PAL_MODE_ALTERNATE(3));
-  palSetPadMode(GPIOB, GPIOB_I2C0_SDA, PAL_MODE_OUTPUT_OPENDRAIN | PAL_MODE_ALTERNATE(3));
+  palSetLineMode(LINE_I2C0_SCL, PAL_MODE_OUTPUT_PUSHPULL | PAL_MODE_ALTERNATE(3));
+  palSetLineMode(LINE_I2C0_SDA, PAL_MODE_OUTPUT_OPENDRAIN | PAL_MODE_ALTERNATE(3));
 
   /*
    * Start the i2c driver with the custom configuration.

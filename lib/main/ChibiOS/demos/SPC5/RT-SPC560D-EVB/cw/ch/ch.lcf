@@ -28,7 +28,7 @@ MEMORY
 }
 
 __irq_stack_size__     = 0;
-__process_stack_size__ = 0x1000;
+__process_stack_size__ = 0x0400;
 
 __ram_size__  = SIZEOF(ram);
 __ram_start__ = ADDR(ram);

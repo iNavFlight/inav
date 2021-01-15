@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -14,9 +14,10 @@
     limitations under the License.
 */
 
-#include "nil.h"
+#include "ch.h"
 #include "hal.h"
-#include "ch_test.h"
+#include "nil_test_root.h"
+#include "oslib_test_root.h"
 
 /*
  * LEDs blinker thread, times are in milliseconds.
@@ -109,8 +110,10 @@ THD_FUNCTION(Thread2, arg) {
 
   /* Waiting for button push and activation of the test suite.*/
   while (true) {
-    if (palReadPad(PORT_E, PE_BUTTON1))
-      test_execute((BaseSequentialStream *)&SD1);
+    if (palReadPad(PORT_E, PE_BUTTON1)) {
+      test_execute((BaseSequentialStream *)&SD1, &nil_test_suite);
+      test_execute((BaseSequentialStream *)&SD1, &oslib_test_suite);
+    }
     chThdSleepMilliseconds(500);
   }
 }

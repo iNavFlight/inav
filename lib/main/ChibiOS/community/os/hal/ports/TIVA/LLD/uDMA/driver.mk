@@ -1,0 +1,2 @@
+PLATFORMSRC += ${CHIBIOS_CONTRIB}/os/hal/ports/TIVA/LLD/uDMA/tiva_udma.c
+PLATFORMINC += $(CHIBIOS_CONTRIB)/os/hal/ports/TIVA/LLD/uDMA

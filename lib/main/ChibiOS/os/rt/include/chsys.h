@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio.
+    ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio.
 
     This file is part of ChibiOS.
 
@@ -25,8 +25,8 @@
  * @{
  */
 
-#ifndef _CHSYS_H_
-#define _CHSYS_H_
+#ifndef CHSYS_H
+#define CHSYS_H
 
 /*lint -sem(chSysHalt, r_no)*/
 
@@ -108,7 +108,9 @@
  */
 #define CH_IRQ_PROLOGUE()                                                   \
   PORT_IRQ_PROLOGUE();                                                      \
+  CH_CFG_IRQ_PROLOGUE_HOOK();                                               \
   _stats_increase_irq();                                                    \
+  _trace_isr_enter(__func__);                                               \
   _dbg_check_enter_isr()
 
 /**
@@ -121,6 +123,8 @@
  */
 #define CH_IRQ_EPILOGUE()                                                   \
   _dbg_check_leave_isr();                                                   \
+  _trace_isr_leave(__func__);                                               \
+  CH_CFG_IRQ_EPILOGUE_HOOK();                                               \
   PORT_IRQ_EPILOGUE()
 
 /**
@@ -261,7 +265,7 @@
  */
 #define chSysSwitch(ntp, otp) {                                             \
                                                                             \
-  _dbg_trace(otp);                                                          \
+  _trace_switch(ntp, otp);                                                  \
   _stats_ctxswc(ntp, otp);                                                  \
   CH_CFG_CONTEXT_SWITCH_HOOK(ntp, otp);                                     \
   port_switch(ntp, otp);                                                    \
@@ -271,16 +275,19 @@
 /* External declarations.                                                    */
 /*===========================================================================*/
 
+#if !defined(__DOXYGEN__)
+extern stkalign_t ch_idle_thread_wa[];
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
   void chSysInit(void);
-  void chSysHalt(const char *reason);
   bool chSysIntegrityCheckI(unsigned testmask);
   void chSysTimerHandlerI(void);
   syssts_t chSysGetStatusAndLockX(void);
   void chSysRestoreStatusX(syssts_t sts);
-#if PORT_SUPPORTS_RT
+#if PORT_SUPPORTS_RT == TRUE
   bool chSysIsCounterWithinX(rtcnt_t cnt, rtcnt_t start, rtcnt_t end);
   void chSysPolledDelayX(rtcnt_t cycles);
 #endif
@@ -364,8 +371,8 @@ static inline void chSysUnlock(void) {
      in a critical section not followed by a chSchResceduleS(), this means
      that the current thread has a lower priority than the next thread in
      the ready list.*/
-  chDbgAssert((ch.rlist.r_queue.p_next == (thread_t *)&ch.rlist.r_queue) ||
-              (ch.rlist.r_current->p_prio >= ch.rlist.r_queue.p_next->p_prio),
+  chDbgAssert((ch.rlist.queue.next == (thread_t *)&ch.rlist.queue) ||
+              (ch.rlist.current->prio >= ch.rlist.queue.next->prio),
               "priority order violation");
 
   port_unlock();
@@ -453,10 +460,10 @@ static inline void chSysUnconditionalUnlock(void) {
  */
 static inline thread_t *chSysGetIdleThreadX(void) {
 
-  return ch.rlist.r_queue.p_prev;
+  return ch.rlist.queue.prev;
 }
 #endif /* CH_CFG_NO_IDLE_THREAD == FALSE */
 
-#endif /* _CHSYS_H_ */
+#endif /* CHSYS_H */
 
 /** @} */

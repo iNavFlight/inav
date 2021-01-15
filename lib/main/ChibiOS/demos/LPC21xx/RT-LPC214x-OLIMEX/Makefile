@@ -111,8 +111,10 @@ PROJECT = ch
 
 # Imported source files and paths
 CHIBIOS = ../../..
+# Licensing files.
+include $(CHIBIOS)/os/license/license.mk
 # Startup files.
-include $(CHIBIOS)/os/common/ports/ARM/compilers/GCC/mk/startup_lpc214x.mk
+include $(CHIBIOS)/os/common/startup/ARM/compilers/GCC/mk/startup_lpc214x.mk
 # HAL-OSAL files (optional).
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/hal/ports/LPC/LPC214x/platform.mk
@@ -120,28 +122,24 @@ include $(CHIBIOS)/os/hal/boards/OLIMEX_LPC_P2148/board.mk
 include $(CHIBIOS)/os/hal/osal/rt/osal.mk
 # RTOS files (optional).
 include $(CHIBIOS)/os/rt/rt.mk
-include $(CHIBIOS)/os/rt/ports/ARM/compilers/GCC/mk/port_generic.mk
+include $(CHIBIOS)/os/common/ports/ARM/compilers/GCC/mk/port_generic.mk
 # Other files (optional).
-include $(CHIBIOS)/test/rt/test.mk
+include $(CHIBIOS)/test/lib/test.mk
+include $(CHIBIOS)/test/rt/rt_test.mk
+include $(CHIBIOS)/test/oslib/oslib_test.mk
 
 # Define linker script file here
 LDSCRIPT= $(STARTUPLD)/LPC2148.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
-CSRC = $(STARTUPSRC) \
-       $(KERNSRC) \
-       $(PORTSRC) \
-       $(OSALSRC) \
-       $(HALSRC) \
-       $(PLATFORMSRC) \
-       $(BOARDSRC) \
+CSRC = $(ALLCSRC) \
        $(TESTSRC) \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
-CPPSRC =
+CPPSRC = $(ALLCPPSRC)
 
 # C sources to be compiled in ARM mode regardless of the global setting.
 # NOTE: Mixing ARM and THUMB mode enables the -mthumb-interwork compiler
@@ -163,12 +161,14 @@ TCSRC =
 #       option that results in lower performance and larger code size.
 TCPPSRC =
 
-# List ASM source files here
-ASMSRC = $(STARTUPASM) $(PORTASM) $(OSALASM)
+# List ASM source files here.
+ASMSRC = $(ALLASMSRC)
 
-INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
-         $(HALINC) $(PLATFORMINC) $(BOARDINC) $(TESTINC) \
-         $(CHIBIOS)/os/various
+# List ASM with preprocessor source files here.
+ASMXSRC = $(ALLXASMSRC)
+
+# Inclusion directories.
+INCDIR = $(CONFDIR) $(ALLINC) $(TESTINC)
 
 #
 # Project, sources and paths
@@ -236,5 +236,5 @@ ULIBS =
 # End of user defines
 ##############################################################################
 
-RULESPATH = $(CHIBIOS)/os/common/ports/ARM/compilers/GCC
+RULESPATH = $(CHIBIOS)/os/common/startup/ARM/compilers/GCC
 include $(RULESPATH)/rules.mk

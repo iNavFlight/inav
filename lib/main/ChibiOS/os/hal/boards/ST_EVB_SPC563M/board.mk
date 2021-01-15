@@ -3,3 +3,7 @@ BOARDSRC = ${CHIBIOS}/os/hal/boards/ST_EVB_SPC563M/board.c
 
 # Required include directories
 BOARDINC = ${CHIBIOS}/os/hal/boards/ST_EVB_SPC563M
+
+# Shared variables
+ALLCSRC += $(BOARDSRC)
+ALLINC  += $(BOARDINC)

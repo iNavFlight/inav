@@ -19,3 +19,7 @@ https://github.com/mabl
 
 Andrea Zoppi aka TexZK
 https://github.com/TexZK
+
+Diego Ismirlian aka dismirlian
+https://github.com/dismirlian
+USB Host stack author

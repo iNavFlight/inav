@@ -6,7 +6,7 @@
   <configuration_settings>
   	<templates_path>resources/gencfg/processors/boards/stm32f3xx/templates</templates_path>
   	<output_path>..</output_path>
-  	<hal_version>3.0.x</hal_version>
+  	<hal_version>5.0.x</hal_version>
   </configuration_settings>
   <board_name>STMicroelectronics STM32373C-EVAL</board_name>
   <board_id>ST_STM32373C_EVAL</board_id>
@@ -119,7 +119,7 @@
         Resistor="Floating"
         Level="High"
         Mode="Alternate"
-        Alternate="14" ></pin12>
+        Alternate="14" />
       <pin13
         ID="SWDIO"
         Type="PushPull"

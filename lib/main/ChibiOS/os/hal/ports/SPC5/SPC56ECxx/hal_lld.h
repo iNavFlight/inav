@@ -869,7 +869,8 @@ static inline
 halrtcnt_t hal_lld_get_counter_value(void) {
   halrtcnt_t cnt;
 
-  asm volatile ("mfspr   %[cnt], 284" : [cnt] "=r" (cnt) : : );
+  port_read_spr(284, cnt);
+
   return cnt;
 }
 

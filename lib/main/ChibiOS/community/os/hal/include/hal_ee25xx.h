@@ -4,8 +4,8 @@
   The work is provided "as is" without warranty of any kind, neither express nor implied.
 */
 
-#ifndef EE25XX_H
-#define EE25XX_H
+#ifndef HAL_EE25XX_H
+#define HAL_EE25XX_H
 
 #include "hal.h"
 
@@ -60,4 +60,4 @@ EepromFileStream *SPIEepromFileOpen(SPIEepromFileStream *efs,
 
 #endif /* #if defined(EEPROM_USE_EE25XX) && EEPROM_USE_EE25XX */
 
-#endif // EE25XX_H
+#endif // HAL_EE25XX_H
