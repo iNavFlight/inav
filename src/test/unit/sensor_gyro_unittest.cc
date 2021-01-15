@@ -75,8 +75,8 @@ TEST(SensorGyro, Read)
 
 TEST(SensorGyro, Calibrate)
 {
-    gyroStartCalibration();
     gyroInit();
+    gyroStartCalibration();
     fakeGyroSet(5, 6, 7);
     const bool read = gyroDev[0].readFn(&gyroDev[0]);
     EXPECT_EQ(true, read);
@@ -101,6 +101,7 @@ TEST(SensorGyro, Calibrate)
 
 TEST(SensorGyro, Update)
 {
+    gyroInit();
     gyroStartCalibration();
     EXPECT_EQ(false, gyroIsCalibrationComplete());
     gyroInit();

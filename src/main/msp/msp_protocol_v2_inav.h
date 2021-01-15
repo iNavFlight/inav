@@ -66,3 +66,9 @@
 #define MSP2_SET_PID                            0x2031
 
 #define MSP2_INAV_OPFLOW_CALIBRATION            0x2032
+
+#define MSP2_INAV_FWUPDT_PREPARE                0x2033
+#define MSP2_INAV_FWUPDT_STORE                  0x2034
+#define MSP2_INAV_FWUPDT_EXEC                   0x2035
+#define MSP2_INAV_FWUPDT_ROLLBACK_PREPARE       0x2036
+#define MSP2_INAV_FWUPDT_ROLLBACK_EXEC          0x2037

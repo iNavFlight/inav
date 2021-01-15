@@ -63,6 +63,9 @@ static uint8_t telemetryBufLen = 0;
 crsfLinkInfo_t crsf_link_info;
 uint16_t raw_lq;
 
+// The power levels represented by uplinkTXPower above in mW (250mW added to full TX in v4.00 firmware)
+const uint16_t crsfPowerStates[] = {0, 10, 25, 100, 500, 1000, 2000, 250};
+
 /*
  * CRSF protocol
  *
@@ -112,7 +115,7 @@ struct crsfPayloadRcChannelsPacked_s {
 
 typedef struct crsfPayloadRcChannelsPacked_s crsfPayloadRcChannelsPacked_t;
 
-struct crsfPayloadLinkStatistics_s {
+typedef struct crsfPayloadLinkStatistics_s {
     uint8_t     uplinkRSSIAnt1;
     uint8_t     uplinkRSSIAnt2;
     uint8_t     uplinkLQ;
@@ -123,7 +126,8 @@ struct crsfPayloadLinkStatistics_s {
     uint8_t     downlinkRSSI;
     uint8_t     downlinkLQ;
     int8_t      downlinkSNR;
-} __attribute__ ((__packed__));
+    uint8_t     activeAnt;
+} __attribute__ ((__packed__)) crsfPayloadLinkStatistics_t;
 
 typedef struct crsfPayloadLinkStatistics_s crsfPayloadLinkStatistics_t;
 
@@ -258,6 +262,21 @@ void crsfUpdateLinkStats(void)
     crsf_link_info.lq = linkStats->uplinkLQ;
     if (linkStats->rfMode == 2) {
         crsf_link_info.lq *= 3;
+            // Inject link quality into channel 17.
+            const crsfPayloadLinkStatistics_t* linkStats = (crsfPayloadLinkStatistics_t*)&crsfFrame.frame.payload;
+            crsfChannelData[16] = scaleRange(constrain(linkStats->uplinkLQ, 0, 100), 0, 100, 191, 1791);    // will map to [1000;2000] range
+            lqTrackerSet(rxRuntimeConfig->lqTracker, scaleRange(constrain(linkStats->uplinkLQ, 0, 100), 0, 100, 0, RSSI_MAX_VALUE));
+
+            rxLinkStatistics.uplinkRSSI = -1* (linkStats->activeAntenna ? linkStats->uplinkRSSIAnt2 : linkStats->uplinkRSSIAnt1);
+            rxLinkStatistics.uplinkLQ = linkStats->uplinkLQ;
+            rxLinkStatistics.uplinkSNR = linkStats->uplinkSNR;
+            rxLinkStatistics.rfMode = linkStats->rfMode;
+            rxLinkStatistics.uplinkTXPower = crsfPowerStates[linkStats->uplinkTXPower];
+            rxLinkStatistics.activeAnt = linkStats->activeAntenna;
+
+            // This is not RC channels frame, update channel value but don't indicate frame completion
+            return RX_FRAME_PENDING;
+        }
     }
 
     switch (linkStats->uplinkTXPower) {
@@ -368,7 +387,7 @@ bool crsfRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
         NULL,
         CRSF_BAUDRATE,
         CRSF_PORT_MODE,
-        CRSF_PORT_OPTIONS | (rxConfig->halfDuplex ? SERIAL_BIDIR : 0)
+        CRSF_PORT_OPTIONS | (tristateWithDefaultOffIsActive(rxConfig->halfDuplex) ? SERIAL_BIDIR : 0)
         );
 
     return serialPort != NULL;

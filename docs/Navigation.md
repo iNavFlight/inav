@@ -58,12 +58,14 @@ When deciding what altitude to maintain, RTH has 4 different modes of operation 
 
 Parameters:
 
-  * `<action>` - The action to be taken at the WP. The following are enumerations are available in inav 2.5 and later:
+  * `<action>` - The action to be taken at the WP. The following are enumerations are available in inav 2.6 and later:
       *  0 - Unused / Unassigned
       *  1 - WAYPOINT
       *  3 - POSHOLD_TIME
       *  4 - RTH
+	  *  5 - SET_POI
       *  6 - JUMP
+      *  7 - SET_HEAD
       *  8 - LAND
 
   * `<lat>` - Latitude (WGS84), in degrees * 1E7 (for example 123456789 means 12.3456789).
@@ -72,7 +74,7 @@ Parameters:
 
   * `<alt>` - Altitude in cm.
 
-  * `<p1>` - For a RTH waypoint, p1 > 0 enables landing. For a normal waypoint it is the speed to this waypoint (cm/s), it is taken into account only for multicopters and when > 50 and < nav_auto_speed. For POSHOLD TIME waypoint it is time to loiter in seconds. For JUMP it is the target WP **index** (not number).
+  * `<p1>` - For a RTH waypoint, p1 > 0 enables landing. For a normal waypoint it is the speed to this waypoint (cm/s), it is taken into account only for multicopters and when > 50 and < nav_auto_speed. For POSHOLD TIME waypoint it is time to loiter in seconds. For JUMP it is the target WP **index** (not number). For SET_HEAD, it is the desired heading (0-359) or -1 to cancel a previous SET_HEAD or SET_POI.
 
   * `<p2>` - For a POSHOLD TIME it is the speed to this waypoint (cm/s), it is taken into account only for multicopters and when > 50 and < nav_auto_speed. For JUMP it is the number of iterations of the JUMP.
 
@@ -90,7 +92,7 @@ Parameters:
 # wp load
 
 # wp
-#wp 11 valid
+# wp 11 valid
 wp 0 1 543533193 -45179273 3500 0 0 0 0
 wp 1 1 543535723 -45193913 3500 0 0 0 0
 wp 2 1 543544541 -45196617 5000 0 0 0 0

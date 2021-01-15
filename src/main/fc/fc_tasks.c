@@ -26,8 +26,7 @@
 #include "common/axis.h"
 #include "common/color.h"
 #include "common/utils.h"
-#include "common/logic_condition.h"
-#include "common/global_functions.h"
+#include "programming/programming_task.h"
 
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/compass/compass.h"
@@ -62,6 +61,7 @@
 #include "io/pwmdriver_i2c.h"
 #include "io/serial.h"
 #include "io/rcdevice_cam.h"
+#include "io/smartport_master.h"
 #include "io/vtx.h"
 #include "io/osd_dji_hd.h"
 #include "io/servo_sbus.h"
@@ -252,6 +252,13 @@ void taskTelemetry(timeUs_t currentTimeUs)
 }
 #endif
 
+#if defined(USE_SMARTPORT_MASTER)
+void taskSmartportMaster(timeUs_t currentTimeUs)
+{
+    smartportMasterHandle(currentTimeUs);
+}
+#endif
+
 #ifdef USE_LED_STRIP
 void taskLedStrip(timeUs_t currentTimeUs)
 {
@@ -283,12 +290,19 @@ void taskUpdateOsd(timeUs_t currentTimeUs)
 }
 #endif
 
+void taskUpdateAux(timeUs_t currentTimeUs)
+{
+    UNUSED(currentTimeUs);
+    updatePIDCoefficients();
+}
+
 void fcTasksInit(void)
 {
     schedulerInit();
 
     rescheduleTask(TASK_GYROPID, getLooptime());
     setTaskEnabled(TASK_GYROPID, true);
+    setTaskEnabled(TASK_AUX, true);
 
     setTaskEnabled(TASK_SERIAL, true);
 #ifdef BEEPER
@@ -355,14 +369,14 @@ void fcTasksInit(void)
 #ifdef USE_RCDEVICE
     setTaskEnabled(TASK_RCDEVICE, rcdeviceIsEnabled());
 #endif
-#ifdef USE_LOGIC_CONDITIONS
-    setTaskEnabled(TASK_LOGIC_CONDITIONS, true);
-#endif
-#ifdef USE_GLOBAL_FUNCTIONS
-    setTaskEnabled(TASK_GLOBAL_FUNCTIONS, true);
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    setTaskEnabled(TASK_PROGRAMMING_FRAMEWORK, true);
 #endif
 #ifdef USE_IRLOCK
     setTaskEnabled(TASK_IRLOCK, irlockHasBeenDetected());
+#endif
+#if defined(USE_SMARTPORT_MASTER)
+    setTaskEnabled(TASK_SMARTPORT_MASTER, true);
 #endif
 }
 
@@ -498,6 +512,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
+#if defined(USE_SMARTPORT_MASTER)
+    [TASK_SMARTPORT_MASTER] = {
+        .taskName = "SPORT MASTER",
+        .taskFunc = taskSmartportMaster,
+        .desiredPeriod = TASK_PERIOD_HZ(500),         // 500 Hz
+        .staticPriority = TASK_PRIORITY_IDLE,
+    },
+#endif
+
 #ifdef USE_LED_STRIP
     [TASK_LEDSTRIP] = {
         .taskName = "LEDSTRIP",
@@ -578,18 +601,10 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .staticPriority = TASK_PRIORITY_IDLE,
     },
 #endif
-#ifdef USE_LOGIC_CONDITIONS
-    [TASK_LOGIC_CONDITIONS] = {
-        .taskName = "LOGIC",
-        .taskFunc = logicConditionUpdateTask,
-        .desiredPeriod = TASK_PERIOD_HZ(10),          // 10Hz @100msec
-        .staticPriority = TASK_PRIORITY_IDLE,
-    },
-#endif
-#ifdef USE_GLOBAL_FUNCTIONS
-    [TASK_GLOBAL_FUNCTIONS] = {
-        .taskName = "G_FNK",
-        .taskFunc = globalFunctionsUpdateTask,
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    [TASK_PROGRAMMING_FRAMEWORK] = {
+        .taskName = "PROGRAMMING",
+        .taskFunc = programmingFrameworkUpdateTask,
         .desiredPeriod = TASK_PERIOD_HZ(10),          // 10Hz @100msec
         .staticPriority = TASK_PRIORITY_IDLE,
     },
@@ -602,4 +617,10 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .staticPriority = TASK_PRIORITY_LOW,
     },
 #endif
+    [TASK_AUX] = {
+        .taskName = "AUX",
+        .taskFunc = taskUpdateAux,
+        .desiredPeriod = TASK_PERIOD_HZ(TASK_AUX_RATE_HZ),          // 300Hz @3,33ms
+        .staticPriority = TASK_PRIORITY_HIGH,
+    },
 };

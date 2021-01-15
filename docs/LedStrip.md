@@ -536,7 +536,7 @@ LEDs 14-15 should be placed facing up, in the middle
 ### Exmple 28 LED config
 
 ```
-#right rear cluster
+# right rear cluster
 led 0 9,9:S:FWT:0
 led 1 10,10:S:FWT:0
 led 2 11,11:S:IA:0

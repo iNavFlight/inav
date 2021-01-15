@@ -1,0 +1,23 @@
+name: Make sure docs are updated
+on:
+  push:
+    paths:
+      - src/main/fc/settings.yaml
+      - docs/Settings.md
+
+jobs:
+  settings_md:
+    runs-on: ubuntu-18.04
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get -y install python3-yaml
+      - name: Check that Settings.md is up to date
+        run: |
+          cp docs/Settings.md{,.ci}
+          python3 src/utils/update_cli_docs.py -q
+          if ! diff -q docs/Settings.md{,.ci} >/dev/null; then
+            echo "::error ::\"docs/Settings.md\" is not up to date, please run \"src/utils/update_cli_docs.py\""
+            exit 1
+          fi

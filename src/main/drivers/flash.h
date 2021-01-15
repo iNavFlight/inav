@@ -22,7 +22,7 @@
 
 #include <stdint.h>
 
-//#include "drivers/io.h"
+#include "common/time.h"
 
 //#ifdef USE_FLASHFS
 
@@ -39,7 +39,7 @@ typedef struct flashGeometry_s {
 bool flashInit(void);
 
 bool flashIsReady(void);
-bool flashWaitForReady(uint32_t timeoutMillis);
+bool flashWaitForReady(timeMs_t timeoutMillis);
 void flashEraseSector(uint32_t address);
 void flashEraseCompletely(void);
 #if 0

@@ -20,13 +20,15 @@
 
 #include "platform.h"
 
-#if defined(USE_FRSKYOSD)
+#if defined(USE_OSD) && defined(USE_FRSKYOSD)
 
+#include "common/maths.h"
 #include "common/utils.h"
 
 #include "drivers/display.h"
 #include "drivers/display_canvas.h"
 #include "drivers/display_font_metadata.h"
+#include "drivers/display_widgets.h"
 
 #include "io/displayport_frsky_osd.h"
 #include "io/frsky_osd.h"
@@ -444,6 +446,111 @@ static void contextPop(displayCanvas_t *displayCanvas)
     frskyOSDContextPop();
 }
 
+static int supportedInstances(displayWidgets_t *widgets, displayWidgetType_e widgetType)
+{
+    UNUSED(widgets);
+
+    if (frskyOSDSupportsWidgets()) {
+        switch (widgetType) {
+            case DISPLAY_WIDGET_TYPE_AHI:
+                return 1;
+            case DISPLAY_WIDGET_TYPE_SIDEBAR:
+                return FRSKY_OSD_WIDGET_ID_SIDEBAR_LAST - FRSKY_OSD_WIDGET_ID_SIDEBAR_FIRST + 1;
+        }
+    }
+    return 0;
+}
+
+static bool configureAHI(displayWidgets_t *widgets, unsigned instance, const widgetAHIConfiguration_t *config)
+{
+    UNUSED(widgets);
+
+    if (frskyOSDSupportsWidgets() && instance == 0) {
+        frskyOSDWidgetAHIConfig_t cfg = {
+            .rect.origin.x = config->rect.x,
+            .rect.origin.y = config->rect.y,
+            .rect.size.w = config->rect.w,
+            .rect.size.h = config->rect.h,
+            .style = config->style,
+            .options = config->options,
+            .crosshairMargin = config->crosshairMargin,
+            .strokeWidth = config->strokeWidth,
+        };
+        return frskyOSDSetWidgetConfig(FRSKY_OSD_WIDGET_ID_AHI, &cfg, sizeof(cfg));
+    }
+    return false;
+}
+
+static bool drawAHI(displayWidgets_t *widgets, unsigned instance, const widgetAHIData_t *data)
+{
+    UNUSED(widgets);
+
+    if (frskyOSDSupportsWidgets() && instance == 0) {
+        frskyOSDWidgetAHIData_t ahiData = {
+            .pitch = frskyOSDQuantize(data->pitch, 0, 2 * M_PIf, 12),
+            .roll = frskyOSDQuantize(data->roll, 0, 2 * M_PIf, 12),
+        };
+        return frskyOSDDrawWidget(FRSKY_OSD_WIDGET_ID_AHI, &ahiData, sizeof(ahiData));
+    }
+    return false;
+}
+
+static bool configureSidebar(displayWidgets_t *widgets, unsigned instance, const widgetSidebarConfiguration_t *config)
+{
+    UNUSED(widgets);
+
+    if (frskyOSDSupportsWidgets()) {
+        frskyOSDWidgetID_e id = FRSKY_OSD_WIDGET_ID_SIDEBAR_FIRST + instance;
+        if (id <= FRSKY_OSD_WIDGET_ID_SIDEBAR_LAST) {
+            frskyOSDWidgetSidebarConfig_t cfg = {
+                .rect.origin.x = config->rect.x,
+                .rect.origin.y = config->rect.y,
+                .rect.size.w = config->rect.w,
+                .rect.size.h = config->rect.h,
+                .options = config->options,
+                .divisions = config->divisions,
+                .counts_per_step = config->counts_per_step,
+                .unit = config->unit,
+            };
+            return frskyOSDSetWidgetConfig(id, &cfg, sizeof(cfg));
+        }
+    }
+    return false;
+}
+
+static bool drawSidebar(displayWidgets_t *widgets, unsigned instance, int32_t data)
+{
+    UNUSED(widgets);
+
+    if (frskyOSDSupportsWidgets()) {
+        frskyOSDWidgetID_e id = FRSKY_OSD_WIDGET_ID_SIDEBAR_FIRST + instance;
+        if (id <= FRSKY_OSD_WIDGET_ID_SIDEBAR_LAST) {
+            frskyOSDWidgetSidebarData_t sidebarData = {
+                .value = data,
+            };
+            return frskyOSDDrawWidget(id, &sidebarData, sizeof(sidebarData));
+        }
+    }
+    return false;
+}
+
+static const displayWidgetsVTable_t frskyOSDWidgetsVTable = {
+    .supportedInstances = supportedInstances,
+    .configureAHI = configureAHI,
+    .drawAHI = drawAHI,
+    .configureSidebar = configureSidebar,
+    .drawSidebar = drawSidebar,
+};
+
+static bool getWidgets(displayWidgets_t *widgets, const displayCanvas_t *displayCanvas)
+{
+    if (frskyOSDSupportsWidgets()) {
+        widgets->device = displayCanvas->device;
+        widgets->vTable = &frskyOSDWidgetsVTable;
+        return true;
+    }
+    return false;
+}
 
 static const displayCanvasVTable_t frskyOSDCanvasVTable = {
     .setStrokeColor = setStrokeColor,
@@ -484,12 +591,13 @@ static const displayCanvasVTable_t frskyOSDCanvasVTable = {
 
     .contextPush = contextPush,
     .contextPop = contextPop,
+
+    .getWidgets = getWidgets,
 };
 
 static bool getCanvas(displayCanvas_t *canvas, const displayPort_t *instance)
 {
-    UNUSED(instance);
-
+    canvas->device = instance->device;
     canvas->vTable = &frskyOSDCanvasVTable;
     canvas->width = frskyOSDGetPixelWidth();
     canvas->height = frskyOSDGetPixelHeight();

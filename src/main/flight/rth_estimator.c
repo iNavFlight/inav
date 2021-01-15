@@ -77,7 +77,7 @@ static int8_t RTHInitialAltitudeChangePitchAngle(float altitudeChange) {
 // pitch in degrees
 // output in Watt
 static float estimatePitchPower(float pitch) {
-    int16_t altitudeChangeThrottle = fixedWingPitchToThrottleCorrection(DEGREES_TO_DECIDEGREES(pitch));
+    int16_t altitudeChangeThrottle = (int16_t)pitch * navConfig()->fw.pitch_to_throttle;
     altitudeChangeThrottle = constrain(altitudeChangeThrottle, navConfig()->fw.min_throttle, navConfig()->fw.max_throttle);
     const float altitudeChangeThrToCruiseThrRatio = (float)(altitudeChangeThrottle - getThrottleIdleValue()) / (navConfig()->fw.cruise_throttle - getThrottleIdleValue());
     return (float)heatLossesCompensatedPower(batteryMetersConfig()->idle_power + batteryMetersConfig()->cruise_power * altitudeChangeThrToCruiseThrRatio) / 100;
@@ -149,9 +149,14 @@ static float calculateRemainingEnergyBeforeRTH(bool takeWindIntoAccount) {
     if (!STATE(FIXED_WING_LEGACY))
         return -1;
 
-    if (!(feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER) && navigationPositionEstimateIsHealthy() && (batteryMetersConfig()->cruise_power > 0) && (ARMING_FLAG(ARMED)) && ((!STATE(FIXED_WING_LEGACY)) || (isNavLaunchEnabled() && isFixedWingLaunchDetected())) && (navConfig()->fw.cruise_speed > 0) && (currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MWH) && (currentBatteryProfile->capacity.value > 0) && batteryWasFullWhenPluggedIn() && isImuHeadingValid()
+    if (!(feature(FEATURE_VBAT) && batteryWasFullWhenPluggedIn()
+          && feature(FEATURE_CURRENT_METER) && (batteryMetersConfig()->cruise_power > 0)
+          && (currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MWH) && (currentBatteryProfile->capacity.value > 0)
+          && navigationPositionEstimateIsHealthy() && isImuHeadingValid() && (navConfig()->fw.cruise_speed > 0)
+          && ((!STATE(FIXED_WING_LEGACY)) || !isNavLaunchEnabled() || (isNavLaunchEnabled() && isFixedWingLaunchDetected()))
+          && (ARMING_FLAG(ARMED))
 #ifdef USE_WIND_ESTIMATOR
-            && isEstimatedWindSpeedValid()
+          && (!takeWindIntoAccount || isEstimatedWindSpeedValid())
 #endif
        ))
         return -1;

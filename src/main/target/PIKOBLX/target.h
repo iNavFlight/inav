@@ -64,9 +64,10 @@
 #define BOARD_HAS_VOLTAGE_DIVIDER
 #define USE_ADC
 #define ADC_INSTANCE            ADC2
-#define ADC_CHANNEL_1_PIN               PA2
+//#define ADC_CHANNEL_1_PIN               PA2   <-- conflict with pwm output 6, and the board does not have current sensor
 #define ADC_CHANNEL_2_PIN               PA5
-#define ADC_CHANNEL_3_PIN               PB2
+//#define ADC_CHANNEL_3_PIN               PB2   <-- the board does not have a rssi pad
+
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
 #define VBAT_ADC_CHANNEL                ADC_CHN_2
 #define RSSI_ADC_CHANNEL                ADC_CHN_3

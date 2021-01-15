@@ -1,6 +1,6 @@
-# Board - FOXEERF722DUAL
+# Board - FOXEERF722DUAL, Foxeer F722 V2 and Foxeer F722 Mini
 
-The FOXEERF722DUAL  described here:
+The Foxeer F722 DUAL, Foxeer F722 V2 and Foxeer F722 Mini  described here:
 
 This board use the STM32F722RET6 microcontroller and have the following features:
 * High-performance and DSP with FPU, ARM Cortex-M7 MCU with 512 Kbytes Flash 
@@ -99,5 +99,5 @@ This board use the STM32F722RET6 microcontroller and have the following features
 | 4   | 3V3            | PAD                                          |
 
 
-###Designers
+### Designers
 * NywayZheng(nyway@vip.qq.com)

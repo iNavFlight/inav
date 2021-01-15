@@ -1,7 +1,7 @@
-# Building in windows light
+# Building in windows light [Deprecated]
 no cygwin and no path changes
 
-##Install Git for windows
+## Install Git for windows
 download https://github.com/git-for-windows/git/releases/download/v2.10.1.windows.1/Git-2.10.1-32-bit.exe
 
 Recommended install location is C:\Git (no spaces or special characters in path)
@@ -28,21 +28,21 @@ Follow images as not all are at default settings.
 
 ![Git Installation](assets/010.gitwin.png)
 
-##Install toolset scripts
+## Install toolset scripts
 download https://www.dropbox.com/s/hhlr16h657y4l5u/devtools.zip?dl=0
 
 extract it into C:\ it creates devtools folder
 
-##Install latest arm toolchain
+## Install latest arm toolchain
 download https://gcc.gnu.org/mirrors.html
 
 extract it into C:\devtools\gcc-arm-none-eabi-... (folder already there)
 
-##Install Ruby
+## Install Ruby
 
 Install the latest Ruby version using [Ruby Installer](https://rubyinstaller.org).
 
-##Test
+## Test
 Run C:\devtools\shF4.cmd
 
 If everything went according the manual you should be in mingw console window. (if not we need to update this manual)

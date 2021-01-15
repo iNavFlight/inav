@@ -33,19 +33,19 @@ typedef enum {
     ADJUSTMENT_YAW_RATE                 = 5,
     ADJUSTMENT_PITCH_ROLL_P             = 6,
     ADJUSTMENT_PITCH_ROLL_I             = 7,
-    ADJUSTMENT_PITCH_ROLL_D             = 8,
+    ADJUSTMENT_PITCH_ROLL_D_FF          = 8,
     ADJUSTMENT_YAW_P                    = 9,
     ADJUSTMENT_YAW_I                    = 10,
-    ADJUSTMENT_YAW_D                    = 11,
+    ADJUSTMENT_YAW_D_FF                 = 11,
     ADJUSTMENT_RATE_PROFILE             = 12,    // Unused, placeholder for compatibility
     ADJUSTMENT_PITCH_RATE               = 13,
     ADJUSTMENT_ROLL_RATE                = 14,
     ADJUSTMENT_PITCH_P                  = 15,
     ADJUSTMENT_PITCH_I                  = 16,
-    ADJUSTMENT_PITCH_D                  = 17,
+    ADJUSTMENT_PITCH_D_FF               = 17,
     ADJUSTMENT_ROLL_P                   = 18,
     ADJUSTMENT_ROLL_I                   = 19,
-    ADJUSTMENT_ROLL_D                   = 20,
+    ADJUSTMENT_ROLL_D_FF                = 20,
     ADJUSTMENT_RC_YAW_EXPO              = 21,
     ADJUSTMENT_MANUAL_RC_EXPO           = 22,
     ADJUSTMENT_MANUAL_RC_YAW_EXPO       = 23,
@@ -75,9 +75,9 @@ typedef enum {
     ADJUSTMENT_VEL_Z_D                  = 47,
     ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE = 48,
     ADJUSTMENT_VTX_POWER_LEVEL = 49,
-#ifdef USE_INFLIGHT_PROFILE_ADJUSTMENT
-    ADJUSTMENT_PROFILE                  = 50,
-#endif
+    ADJUSTMENT_TPA                      = 50,
+    ADJUSTMENT_TPA_BREAKPOINT           = 51,
+    ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS = 52,
     ADJUSTMENT_FUNCTION_COUNT // must be last
 } adjustmentFunction_e;
 
@@ -131,7 +131,7 @@ typedef struct adjustmentState_s {
 #define MAX_SIMULTANEOUS_ADJUSTMENT_COUNT 4 // enough for 4 x 3position switches / 4 aux channel
 #endif
 
-#define MAX_ADJUSTMENT_RANGE_COUNT 12 // enough for 2 * 6pos switches.
+#define MAX_ADJUSTMENT_RANGE_COUNT 20 // enough for 2 * 6pos switches.
 
 PG_DECLARE_ARRAY(adjustmentRange_t, MAX_ADJUSTMENT_RANGE_COUNT, adjustmentRanges);
 

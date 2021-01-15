@@ -253,6 +253,12 @@ void uartGetPortPins(UARTDevice_e device, serialPortPins_t * pins)
     }
 }
 
+void uartClearIdleFlag(uartPort_t *s)
+{
+    (void) s->USARTx->SR;
+    (void) s->USARTx->DR;
+}
+
 uartPort_t *serialUART(UARTDevice_e device, uint32_t baudRate, portMode_t mode, portOptions_t options)
 {
     uartPort_t *s;
@@ -298,10 +304,14 @@ uartPort_t *serialUART(UARTDevice_e device, uint32_t baudRate, portMode_t mode, 
         }
 #else
         IOInit(tx, OWNER_SERIAL, RESOURCE_UART_TXRX, RESOURCE_INDEX(device));
-        if (options & SERIAL_BIDIR_PP)
+        if (options & SERIAL_BIDIR_PP) {
             IOConfigGPIOAF(tx, IOCFG_AF_PP, uart->af);
         else
-            IOConfigGPIOAF(tx, IOCFG_AF_OD, uart->af);
+        } else {
+            IOConfigGPIOAF(tx,
+                    (options & SERIAL_BIDIR_NOPULL) ? IOCFG_AF_OD : IOCFG_AF_OD_UP,
+                    uart->af);
+        }
 #endif /* USE_BRAINFPV_FPGA */
     }
     else {

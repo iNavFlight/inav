@@ -30,12 +30,16 @@
 
 #include "flash.h"
 #include "flash_m25p16.h"
+
+#include "common/time.h"
+
 #include "drivers/bus_spi.h"
 #include "drivers/io.h"
 #include "drivers/time.h"
 
 static flashPartitionTable_t flashPartitionTable;
 static int flashPartitions = 0;
+
 
 #ifdef USE_SPI
 static bool flashSpiInit(void)
@@ -64,7 +68,7 @@ bool flashIsReady(void)
     return false;
 }
 
-bool flashWaitForReady(uint32_t timeoutMillis)
+bool flashWaitForReady(timeMs_t timeoutMillis)
 {
 #ifdef USE_FLASH_M25P16
     return m25p16_waitForReady(timeoutMillis);
@@ -282,6 +286,13 @@ uint32_t flashPartitionSize(flashPartition_t *partition)
 void flashPartitionErase(flashPartition_t *partition)
 {
     const flashGeometry_t * const geometry = flashGetGeometry();
+
+    // if there's a single FLASHFS partition and it uses the entire flash then do a full erase
+    const bool doFullErase = (flashPartitionCount() == 1) && (FLASH_PARTITION_SECTOR_COUNT(partition) == geometry->sectors);
+    if (doFullErase) {
+        flashEraseCompletely();
+        return;
+    }
 
     for (unsigned i = partition->startSector; i <= partition->endSector; i++) {
         uint32_t flashAddress = geometry->sectorSize * i;

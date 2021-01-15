@@ -86,7 +86,7 @@ typedef enum {
 #ifdef USE_LED_STRIP
     TASK_LEDSTRIP,
 #endif
-#ifdef USE_PWM_SERVO_DRIVER
+#if defined(USE_PWM_SERVO_DRIVER) || defined(USE_SERVO_SBUS)
     TASK_PWMDRIVER,
 #endif
 #ifdef STACK_CHECK
@@ -110,14 +110,15 @@ typedef enum {
 #ifdef USE_VTX_CONTROL
     TASK_VTXCTRL,
 #endif
-#ifdef USE_LOGIC_CONDITIONS
-    TASK_LOGIC_CONDITIONS,
-#endif
-#ifdef USE_GLOBAL_FUNCTIONS
-    TASK_GLOBAL_FUNCTIONS,
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    TASK_PROGRAMMING_FRAMEWORK,
 #endif
 #ifdef USE_RPM_FILTER
     TASK_RPM_FILTER,
+#endif
+    TASK_AUX,
+#if defined(USE_SMARTPORT_MASTER)
+    TASK_SMARTPORT_MASTER,
 #endif
 #ifdef USE_IRLOCK
     TASK_IRLOCK,

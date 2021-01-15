@@ -57,6 +57,7 @@ class Compiler
     def default_args
         cflags = Shellwords.split(ENV["CFLAGS"] || "")
         args = [@path]
+        args << "-std=c++11"
         cflags.each do |flag|
             # Don't generate temporary files
             if flag == "" || flag == "-MMD" || flag == "-MP" || flag.start_with?("-save-temps")
@@ -67,7 +68,7 @@ class Compiler
                 next
             end
             if flag.start_with? "-std="
-                flag = "-std=c++11"
+                next
             end
             if flag.start_with? "-D'"
                 # Cleanup flag. Done by the shell when called from

@@ -57,8 +57,9 @@ typedef enum {
 
 typedef enum {
     STICK_CENTER = 0,
-    THROTTLE_THRESHOLD
-} airmodeAndAntiWindupHandlingType_e;
+    THROTTLE_THRESHOLD,
+    STICK_CENTER_ONCE
+} airmodeHandlingType_e;
 
 typedef enum {
     ROL_LO = (1 << (2 * ROLL)),

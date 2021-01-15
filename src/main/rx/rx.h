@@ -21,6 +21,8 @@
 #include <stdbool.h>
 
 #include "common/time.h"
+#include "common/tristate.h"
+
 #include "config/parameter_group.h"
 
 #define STICK_CHANNEL_COUNT 4
@@ -79,6 +81,8 @@ typedef enum {
     SERIALRX_CRSF = 9,
     SERIALRX_FPORT = 10,
     SERIALRX_SBUS_FAST = 11,
+    SERIALRX_FPORT2 = 12,
+    SERIALRX_SRXL2 = 13,
 } rxSerialReceiverType_e;
 
 #define MAX_SUPPORTED_RC_PPM_CHANNEL_COUNT          16
@@ -108,7 +112,7 @@ typedef struct rxConfig_s {
     uint8_t rcmap[MAX_MAPPABLE_RX_INPUTS];  // mapping of radio channels to internal RPYTA+ order
     uint8_t serialrx_provider;              // Type of UART-based receiver (rxSerialReceiverType_e enum). Only used if receiverType is RX_TYPE_SERIAL
     uint8_t serialrx_inverted;              // Flip the default inversion of the protocol - e.g. sbus (Futaba, FrSKY) is inverted if this is false, uninverted if it's true. Support for uninverted OpenLRS (and modified FrSKY) receivers.
-    uint8_t halfDuplex;                     // allow rx to operate in half duplex mode on F4, ignored for F1 and F3.
+    uint8_t halfDuplex;                     // allow rx to operate in half duplex mode. From tristate_e.
     uint8_t rx_spi_protocol;                // type of SPI receiver protocol (rx_spi_protocol_e enum). Only used if receiverType is RX_TYPE_SPI
     uint32_t rx_spi_id;
     uint8_t rx_spi_rf_channel_count;
@@ -125,6 +129,8 @@ typedef struct rxConfig_s {
     uint8_t rcFilterFrequency;              // RC filter cutoff frequency (smoothness vs response sharpness)
     uint16_t mspOverrideChannels;           // Channels to override with MSP RC when BOXMSPRCOVERRIDE is active
     uint8_t rssi_source;
+    uint8_t srxl2_unit_id;
+    uint8_t srxl2_baud_fast;
 } rxConfig_t;
 
 PG_DECLARE(rxConfig_t, rxConfig);
@@ -172,8 +178,17 @@ typedef enum {
     RSSI_SOURCE_MSP,
 } rssiSource_e;
 
-extern rxRuntimeConfig_t rxRuntimeConfig; //!!TODO remove this extern, only needed once for channelCount
+typedef struct rxLinkStatistics_s {
+    int16_t     uplinkRSSI;     // RSSI value in dBm
+    uint8_t     uplinkLQ;       // A protocol specific measure of the link quality in [0..100]
+    int8_t      uplinkSNR;      // The SNR of the uplink in dB
+    uint8_t     rfMode;         // A protocol specific measure of the transmission bandwidth [2 = 150Hz, 1 = 50Hz, 0 = 4Hz]
+    uint16_t    uplinkTXPower;  // power in mW
+    uint8_t     activeAnt;
+} rxLinkStatistics_t;
 
+extern rxRuntimeConfig_t rxRuntimeConfig; //!!TODO remove this extern, only needed once for channelCount
+extern rxLinkStatistics_t rxLinkStatistics;
 void lqTrackerReset(rxLinkQualityTracker_e * lqTracker);
 void lqTrackerAccumulate(rxLinkQualityTracker_e * lqTracker, uint16_t rawValue);
 void lqTrackerSet(rxLinkQualityTracker_e * lqTracker, uint16_t rawValue);

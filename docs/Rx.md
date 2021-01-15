@@ -33,6 +33,8 @@ http://www.frsky-rc.com/product/pro.php?pro_id=21
 
 ### Spektrum
 
+This section describes the legacy Spektrum satellite capability; the newer SRXL2 protocol is described [later in this document](#srxl2) .
+
 8 channels via serial currently supported.
 
 These receivers are reported working:
@@ -47,10 +49,10 @@ As of iNav 1.6, a pseudo RSSI, based on satellite fade count is supported and re
 
 * Bind the satellite receiver using a physical RX; the bind function provided by the flight controller is not sufficient.
 * The CLI variable `rssi_channel` is set to channel 9:
-````
+```
 set rssi_channel = 9
-````
-This pseudo-RSSI should work on all makes of Spektrum satellite RX; it is tested as working on Lemon RX satellites http://www.lemon-rx.com/index.php?route=product/product&path=72&product_id=109 and http://www.lemon-rx.com/index.php?route=product/product&path=72&product_id=135 (recommended).
+```
+This pseudo-RSSI should work on all makes of Spektrum satellite RX; it is tested as working on [Lemon RX satellites](http://www.lemon-rx.com/index.php?route=product/product&path=72&product_id=109 and http://www.lemon-rx.com/index.php?route=product/product&path=72&product_id=135) (recommended).
 
 ### S.BUS
 
@@ -95,9 +97,20 @@ Just connect the S.Port wire from the receiver to the TX pad of a free UART on y
 
 #### Configuration
 
+For INAV 2.6 and newer versions, the default configuration should just work. However, if you're
+upgrading from a previous version you might need to set the following settings to their
+default values:
+
 ```
-set serialrx_inverted = true
-set serialrx_halfduplex = true
+set serialrx_inverted = OFF
+set serialrx_halfduplex = AUTO
+```
+
+For INAV versions prior to 2.6, you need to change the following settings:
+
+```
+set serialrx_inverted = ON
+set serialrx_halfduplex = ON
 ```
 
 ### XBUS
@@ -159,6 +172,46 @@ After flash "10ch Timer Mod i6 Updater", it is passible to get RSSI signal on se
 
 It is possible to use IBUS RX and IBUS telemetry on only one port of the hardware UART. More information in Telemetry.md.obj/inav_2.2.2_SPRACINGF3EVO.hex
 
+### SRXL2
+
+SRXL2 is a newer Spektrum protocol that provides a bidirectional link between the FC and the receiver, allowing the user to get FC telemetry data and basic settings on Spektrum Gen 2 airware TX. SRXL2 is supported in inav 2.6 and later. It offers improved performance and features compared to earlier Spektrum RX.
+
+#### Wiring
+
+Signal pin on receiver (labeled "S") must be wired to a **UART TX** pin on the FC. Voltage can be 3.3V (4.0V for SPM4651T) to 8.4V. On some F4 FCs, the TX pin may have a signal inverter (such as for S.Port). Make sure this isn't the case for the pin you intend to use.
+
+#### Configuration
+
+Selection of SXRL2 is provided in the inav 2.6 and later configurators. It is necessary to complete the configuration via the CLI; the following settings are recommended:
+
+```
+feature TELEMETRY
+feature -RSSI_ADC
+map TAER
+set receiver_type = SERIAL
+set serialrx_provider = SRXL2
+set serialrx_inverted = OFF
+set srxl2_unit_id = 1
+set srxl2_baud_fast = ON
+set rssi_source = PROTOCOL
+set rssi_channel = 0
+```
+
+#### Notes:
+
+* RSSI_ADC is disabled, as this would override the value provided through SRXL2
+* `rssi_channel = 0` is required, unlike earlier Spektrum devices (e.g. SPM4649T).
+
+Setting these values differently may have an adverse effects on RSSI readings.
+
+#### CLI Bind Command
+
+This command will put the receiver into bind mode without the need to reboot the FC as it was required with the older `spektrum_sat_bind` command.
+
+```
+bind_rx
+```
+
 ## MultiWii serial protocol (MSP)
 
 Allows you to use MSP commands as the RC input.  Only 8 channel support to maintain compatibility with MSP.
@@ -204,21 +257,20 @@ To setup spectrum in the GUI:
 2. Move to the "Configuration" page and in the upper lefthand corner choose Serial RX as the receiver type.
 3. Below that choose the type of serial receiver that you are using.  Save and reboot.
 
-Using CLI:
-For Serial RX enable `RX_SERIAL` and set the `serialrx_provider` CLI setting as follows.
+#### Using CLI:
 
-| Serial RX Provider | Value |
-| ------------------ | ----- |
-| SPEKTRUM1024       | 0     |
-| SPEKTRUM2048       | 1     |
-| SBUS               | 2     |
-| SUMD               | 3     |
-| SUMH               | 4     |
-| XBUS_MODE_B        | 5     |
-| XBUS_MODE_B_RJ01   | 6     |
-| SERIALRX_IBUS      | 7     |
-| SERIALRX_JETIEXBUS | 8     |
-| SERIALRX_CRSF      | 9     |
+For Serial RX set the `receiver_type` and `serialrx_provider` setting as appropriate for your RX.
+
+```
+# get rec
+receiver_type = SERIAL
+Allowed values: NONE, PPM, SERIAL, MSP, SPI, UIB
+
+# get serialrx
+serialrx_provider = SBUS
+Allowed values: SPEK1024, SPEK2048, SBUS, SUMD, SUMH, XB-B, XB-B-RJ01, IBUS, JETIEXBUS, CRSF, FPORT, SBUS_FAST, FPORT2, SRXL2
+
+```
 
 ### PPM/PWM input filtering.
 

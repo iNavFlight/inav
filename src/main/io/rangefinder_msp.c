@@ -37,14 +37,12 @@
 #include "io/serial.h"
 
 #if defined(USE_RANGEFINDER_MSP)
+
 #include "drivers/rangefinder/rangefinder_virtual.h"
 #include "drivers/time.h"
 #include "io/rangefinder.h"
+#include "msp/msp_protocol_v2_sensor_msg.h"
 
-typedef struct __attribute__((packed)) {
-    uint8_t quality;    // [0;255]
-    int32_t distanceMm; // Negative value for out of range
-} mspRangefinderSensor_t;
 
 static bool hasNewData = false;
 static int32_t sensorData = RANGEFINDER_NO_NEW_DATA;
@@ -76,7 +74,7 @@ static int32_t mspRangefinderGetDistance(void)
 
 void mspRangefinderReceiveNewData(uint8_t * bufferPtr)
 {
-    const mspRangefinderSensor_t * pkt = (const mspRangefinderSensor_t *)bufferPtr;
+    const mspSensorRangefinderDataMessage_t * pkt = (const mspSensorRangefinderDataMessage_t *)bufferPtr;
 
     sensorData = pkt->distanceMm / 10;
     hasNewData = true;

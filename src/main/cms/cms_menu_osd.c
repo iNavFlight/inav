@@ -75,7 +75,7 @@ static long cmsx_osdElementOnChange(displayPort_t *displayPort, const void *ptr)
 {
     UNUSED(ptr);
 
-    uint16_t *pos = &osdConfigMutable()->item_pos[osdCurrentLayout][osdCurrentItem];
+    uint16_t *pos = &osdLayoutsConfigMutable()->item_pos[osdCurrentLayout][osdCurrentItem];
     *pos = OSD_POS(osdCurrentElementColumn, osdCurrentElementRow);
     if (osdCurrentElementVisible) {
         *pos |= OSD_VISIBLE_FLAG;
@@ -125,7 +125,7 @@ static CMS_Menu cmsx_menuOsdElementActions = {
 static long osdElemActionsOnEnter(const OSD_Entry *from)
 {
     osdCurrentItem = from->itemId;
-    uint16_t pos = osdConfig()->item_pos[osdCurrentLayout][osdCurrentItem];
+    uint16_t pos = osdLayoutsConfig()->item_pos[osdCurrentLayout][osdCurrentItem];
     osdCurrentElementColumn = OSD_X(pos);
     osdCurrentElementRow = OSD_Y(pos);
     osdCurrentElementVisible = OSD_VISIBLE(pos) ? 1 : 0;
@@ -139,11 +139,40 @@ static long osdElemActionsOnEnter(const OSD_Entry *from)
 
 #define OSD_ELEMENT_ENTRY(name, osd_item_id)    OSD_ITEM_ENTRY(name, osd_item_id)
 
+static const OSD_Entry menuCrsfRxEntries[]=
+{
+    OSD_LABEL_ENTRY("-- CRSF RX --"),
+
+    OSD_SETTING_ENTRY("LQ FORMAT", SETTING_OSD_CRSF_LQ_FORMAT),
+    OSD_SETTING_ENTRY("LQ ALARM LEVEL", SETTING_OSD_LINK_QUALITY_ALARM),
+    OSD_SETTING_ENTRY("SNR ALARM LEVEL", SETTING_OSD_SNR_ALARM),
+    OSD_ELEMENT_ENTRY("RX RSSI DBM", OSD_CRSF_RSSI_DBM),
+    OSD_ELEMENT_ENTRY("RX LQ", OSD_CRSF_LQ),
+    OSD_ELEMENT_ENTRY("RX SNR ALARM", OSD_CRSF_SNR_DB),
+    OSD_ELEMENT_ENTRY("TX POWER", OSD_CRSF_TX_POWER),
+
+    OSD_BACK_AND_END_ENTRY,
+};
+
+const CMS_Menu cmsx_menuCrsf = {
+#ifdef CMS_MENU_DEBUG
+    .GUARD_text = "MENUCRF",
+    .GUARD_type = OME_MENU,
+#endif
+    .onEnter = NULL,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = menuCrsfRxEntries,
+};
+
 static const OSD_Entry menuOsdElemsEntries[] =
 {
     OSD_LABEL_ENTRY("--- OSD ITEMS ---"),
 
     OSD_ELEMENT_ENTRY("RSSI", OSD_RSSI_VALUE),
+#ifdef USE_SERIALRX_CRSF
+    OSD_SUBMENU_ENTRY("CRSF RX", &cmsx_menuCrsf),
+#endif // CRSF Menu
     OSD_ELEMENT_ENTRY("MAIN BATTERY", OSD_MAIN_BATT_VOLTAGE),
     OSD_ELEMENT_ENTRY("MAIN BATT SC", OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE),
     OSD_ELEMENT_ENTRY("CELL VOLTAGE", OSD_MAIN_BATT_CELL_VOLTAGE),
@@ -184,6 +213,7 @@ static const OSD_Entry menuOsdElemsEntries[] =
     OSD_ELEMENT_ENTRY("GPS HDOP", OSD_GPS_HDOP),
     OSD_ELEMENT_ENTRY("3D SPEED", OSD_3D_SPEED),
     OSD_ELEMENT_ENTRY("PLUS CODE", OSD_PLUS_CODE),
+    OSD_ELEMENT_ENTRY("AZIMUTH", OSD_AZIMUTH),
 #endif // GPS
     OSD_ELEMENT_ENTRY("HEADING", OSD_HEADING),
     OSD_ELEMENT_ENTRY("HEADING GR.", OSD_HEADING_GRAPH),

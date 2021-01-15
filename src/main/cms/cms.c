@@ -1330,6 +1330,7 @@ void cmsUpdate(uint32_t currentTimeUs)
             rcDelayMs = BUTTON_PAUSE;    // Tends to overshoot if BUTTON_TIME
         }
     } else {
+        displayBeginTransaction(pCurrentDisplay, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
 
         // Check if we're yielding and its's time to stop it
         if (cmsYieldUntil > 0 && currentTimeMs > cmsYieldUntil) {
@@ -1355,6 +1356,7 @@ void cmsUpdate(uint32_t currentTimeUs)
             displayHeartbeat(pCurrentDisplay);
             lastCmsHeartBeatMs = currentTimeMs;
         }
+        displayCommitTransaction(pCurrentDisplay);
     }
 
     // Some key (command), notably flash erase, takes too long to use the

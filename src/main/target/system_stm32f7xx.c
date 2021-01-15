@@ -298,7 +298,8 @@ void SystemInit(void)
 #ifdef VECT_TAB_SRAM
   SCB->VTOR = RAMDTCM_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal SRAM */
 #else
-  SCB->VTOR = FLASH_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal FLASH */
+  extern uint8_t isr_vector_table_base; /* Vector Table Relocation in Internal FLASH */
+  SCB->VTOR = (uint32_t) &isr_vector_table_base;
 #endif
 
   /* Enable I-Cache */

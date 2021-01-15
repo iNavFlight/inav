@@ -1,26 +1,14 @@
-FROM ubuntu:bionic
+FROM ubuntu:focal
 
-# Configuration
-VOLUME /home/src/
-WORKDIR /home/src/
-ARG TOOLCHAIN_VERSION_SHORT
-ENV TOOLCHAIN_VERSION_SHORT ${TOOLCHAIN_VERSION_SHORT:-"9-2019q4"}
-ARG TOOLCHAIN_VERSION_LONG
-ENV TOOLCHAIN_VERSION_LONG ${TOOLCHAIN_VERSION_LONG:-"9-2019-q4-major"}
+ENV DEBIAN_FRONTEND noninteractive
 
-# Essentials
-RUN mkdir -p /home/src && \
-    apt-get update && \
-    apt-get install -y software-properties-common ruby make git gcc wget curl bzip2
-
-# Toolchain
-RUN wget -P /tmp "https://developer.arm.com/-/media/Files/downloads/gnu-rm/$TOOLCHAIN_VERSION_SHORT/gcc-arm-none-eabi-$TOOLCHAIN_VERSION_LONG-x86_64-linux.tar.bz2"
-RUN mkdir -p /opt && \
-	cd /opt && \
-    tar xvjf "/tmp/gcc-arm-none-eabi-$TOOLCHAIN_VERSION_LONG-x86_64-linux.tar.bz2" -C /opt && \
-	chmod -R -w "/opt/gcc-arm-none-eabi-$TOOLCHAIN_VERSION_LONG"
-
-ENV PATH="/opt/gcc-arm-none-eabi-$TOOLCHAIN_VERSION_LONG/bin:$PATH"
+RUN apt-get update && apt-get install -y git cmake make ruby gcc
 
 RUN useradd inav
+
 USER inav
+
+VOLUME /src
+
+WORKDIR /src/build
+ENTRYPOINT ["/src/cmake/docker.sh"]

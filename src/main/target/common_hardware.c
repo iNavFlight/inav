@@ -149,6 +149,18 @@
     #endif
 #endif
 
+#if defined(USE_BARO_DPS310)
+    #if defined(DPS310_SPI_BUS)
+    BUSDEV_REGISTER_SPI(busdev_dps310,      DEVHW_DPS310,       DPS310_SPI_BUS,     DPS310_CS_PIN,      NONE,           DEVFLAGS_NONE, 0);
+    #elif defined(DPS310_I2C_BUS) || defined(BARO_I2C_BUS)
+    #if !defined(DPS310_I2C_BUS)
+        #define DPS310_I2C_BUS BARO_I2C_BUS
+    #endif
+    BUSDEV_REGISTER_I2C(busdev_dps310,      DEVHW_DPS310,       DPS310_I2C_BUS,     0x76,               NONE,           DEVFLAGS_NONE, 0);
+    #endif
+#endif
+
+
 /** COMPASS SENSORS **/
 #if !defined(USE_TARGET_MAG_HARDWARE_DESCRIPTORS)
 #if defined(USE_MAG_HMC5883)
@@ -339,6 +351,23 @@
         #define IRLOCK_I2C_BUS BUS_I2C1
     #endif
     BUSDEV_REGISTER_I2C(busdev_irlock,      DEVHW_IRLOCK,       IRLOCK_I2C_BUS,     0x54,               NONE,           DEVFLAGS_USE_RAW_REGISTERS);
+#endif
+
+#if defined(USE_I2C) && defined(USE_I2C_IO_EXPANDER)
+
+    #if !defined(PCF8574_I2C_BUS) && defined(EXTERNAL_I2C_BUS)
+        #define PCF8574_I2C_BUS EXTERNAL_I2C_BUS
+    #endif
+
+    #if !defined(PCF8574_I2C_BUS) && defined(DEFAULT_I2C_BUS)
+        #define PCF8574_I2C_BUS DEFAULT_I2C_BUS
+    #endif
+
+    #if !defined(PCF8574_I2C_BUS)
+        #define PCF8574_I2C_BUS BUS_I2C1
+    #endif
+
+    BUSDEV_REGISTER_I2C(busdev_pcf8574,      DEVHW_PCF8574,       PCF8574_I2C_BUS,     0x20,               NONE,           DEVFLAGS_NONE, 0);
 #endif
 
 #endif  // USE_TARGET_HARDWARE_DESCRIPTORS
