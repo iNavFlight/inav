@@ -165,6 +165,8 @@ static bool refreshWaitForResumeCmdRelease;
 
 static bool fullRedraw = false;
 
+bool DrawAllElement = true;  //use for MSP_DISPLAYPORT
+
 static uint8_t armState;
 
 typedef struct osdMapData_s {
@@ -184,8 +186,6 @@ static bool osdDisplayHasCanvas;
 #endif
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
-
-bool DrawAllElement = true;  //use for MSP_DISPLAYPORT
 
 PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 14);
 PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 0);
