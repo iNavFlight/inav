@@ -63,6 +63,7 @@ include(openocd)
 include(svd)
 include(main)
 include(stm32)
+include(brainfpv)
 
 add_subdirectory(src)
 
