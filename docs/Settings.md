@@ -332,7 +332,7 @@
 | nav_rth_altitude | 1000 | Used in EXTRA, FIXED and AT_LEAST rth alt modes [cm] (Default 1000 means 10 meters) |
 | nav_rth_climb_first | ON | If set to ON drone will climb to nav_rth_altitude first and head home afterwards. If set to OFF drone will head home instantly and climb on the way. |
 | nav_rth_climb_ignore_emerg | OFF | If set to ON, aircraft will execute initial climb regardless of position sensor (GPS) status. |
-| nav_rth_fw_spiral_climb | OFF | Performs RTH loiter climb rather than a linear climb when RTH set to Climb First. Climb rate set by max_auto_climb_rate, turn rate set by nav_fw_loiter_radius. |
+| nav_rth_fw_spiral_climb | OFF | Performs RTH loiter climb rather than a linear climb when RTH set to Climb First. Climb rate set by nav_auto_climb_rate, turn rate set by nav_fw_loiter_radius. |
 | nav_rth_home_altitude | 0 | Aircraft will climb/descend to this altitude after reaching home if landing is not enabled. Set to 0 to stay at `nav_rth_altitude` (default) [cm] |
 | nav_rth_tail_first | OFF | If set to ON drone will return tail-first. Obviously meaningless for airplanes. |
 | nav_use_fw_yaw_control | OFF | Enables or Disables the use of the heading PID controller on fixed wing. Heading PID controller is always enabled for rovers and boats |

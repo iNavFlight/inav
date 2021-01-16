@@ -2137,7 +2137,7 @@ groups:
         field: general.flags.rth_alt_control_mode
         table: nav_rth_alt_mode
       - name: nav_rth_fw_spiral_climb
-        description: "Performs RTH loiter climb rather than a linear climb when RTH set to Climb First. Climb rate set by max_auto_climb_rate, turn rate set by nav_fw_loiter_radius."
+        description: "Performs RTH loiter climb rather than a linear climb when RTH set to Climb First. Climb rate set by nav_auto_climb_rate, turn rate set by nav_fw_loiter_radius."
         default_value: "OFF"
         field: general.flags.rth_fw_spiral_climb   
         type: bool
