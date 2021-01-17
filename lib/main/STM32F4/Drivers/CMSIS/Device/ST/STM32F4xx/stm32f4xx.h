@@ -4877,6 +4877,8 @@ typedef struct
 /*                                                                            */
 /******************************************************************************/
 /*******************  Bits definition for FLASH_ACR register  *****************/
+#define FLASH_ACR_LATENCY_Pos          (0U)
+#define FLASH_ACR_LATENCY_Msk          (0xFU << FLASH_ACR_LATENCY_Pos)         /*!< 0x0000000F */
 #define FLASH_ACR_LATENCY                    ((uint32_t)0x0000000F)
 #define FLASH_ACR_LATENCY_0WS                ((uint32_t)0x00000000)
 #define FLASH_ACR_LATENCY_1WS                ((uint32_t)0x00000001)
