@@ -53,6 +53,7 @@
 #define USE_CMS
 #define USE_MAX7456
 #define USE_OSD
+#define USE_BRAINFPV_OSD
 #define OSD_CALLS_CMS
 #define VIDEO_BITS_PER_PIXEL 2
 #define INCLUDE_VIDEO_QUADSPI
