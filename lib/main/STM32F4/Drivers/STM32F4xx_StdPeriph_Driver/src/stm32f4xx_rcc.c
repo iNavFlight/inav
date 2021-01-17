@@ -119,11 +119,11 @@
     
 /* --- CFGR Register ---*/
 #define RCC_CFGR_OFFSET            (RCC_OFFSET + 0x08)
- #if defined(STM32F410xx)
+ #if defined(STM32F410xx) || defined(STM32F446xx)
 /* Alias word address of MCO1EN bit */
 #define RCC_MCO1EN_BIT_NUMBER      0x8
 #define RCC_CFGR_MCO1EN_BB         (PERIPH_BB_BASE + (RCC_CFGR_OFFSET * 32) + (RCC_MCO1EN_BIT_NUMBER * 4))
-
+    
 /* Alias word address of MCO2EN bit */
 #define RCC_MCO2EN_BIT_NUMBER      0x9
 #define RCC_CFGR_MCO2EN_BB         (PERIPH_BB_BASE + (RCC_CFGR_OFFSET * 32) + (RCC_MCO2EN_BIT_NUMBER * 4))
@@ -920,7 +920,7 @@ void RCC_MCO1Config(uint32_t RCC_MCO1Source, uint32_t RCC_MCO1Div)
   /* Store the new value */
   RCC->CFGR = tmpreg;
 
-#if defined(STM32F410xx)
+#if defined(STM32F410xx) || defined(STM32F446xx)
   RCC_MCO1Cmd(ENABLE);
 #endif /* STM32F410xx */   
 }
@@ -965,7 +965,7 @@ void RCC_MCO2Config(uint32_t RCC_MCO2Source, uint32_t RCC_MCO2Div)
   /* Store the new value */
   RCC->CFGR = tmpreg;
 
-#if defined(STM32F410xx)
+#if defined(STM32F410xx) || defined(STM32F446xx)
   RCC_MCO2Cmd(ENABLE);
 #endif /* STM32F410xx */   
 }
@@ -2800,7 +2800,7 @@ void RCC_FMPI2C1ClockSourceConfig(uint32_t RCC_ClockSource)
   * @}
   */
 
-#if defined(STM32F410xx)
+#if defined(STM32F410xx) || defined(STM32F446xx)
 /**
   * @brief  Enables or disables the MCO1.
   * @param  NewState: new state of the MCO1.

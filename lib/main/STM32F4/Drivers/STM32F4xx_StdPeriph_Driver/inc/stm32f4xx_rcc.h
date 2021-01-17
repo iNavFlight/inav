@@ -947,7 +947,7 @@ void        RCC_FMPI2C1ClockSourceConfig(uint32_t RCC_ClockSource);
 #endif /* STM32F410xx || STM32F412xG || STM32F446xx */
 
 /* Features available only for STM32F410xx devices */
-#if defined(STM32F410xx)
+#if defined(STM32F410xx) || defined(STM32F446xx)
 void        RCC_LPTIM1ClockSourceConfig(uint32_t RCC_ClockSource);
 
 void        RCC_MCO1Cmd(FunctionalState NewState);
