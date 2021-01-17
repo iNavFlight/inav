@@ -358,7 +358,7 @@ void FAST_CODE NOINLINE scheduler(void)
             brainfpv_settings_updated = false;
         }
         // wait for gyro if no tasks are ready
-        chBSemWaitTimeout(&gyroSem, MS2ST(2));
+        chBSemWaitTimeout(&gyroSem, TIME_MS2I(2));
 #endif
     }
 }
