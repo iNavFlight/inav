@@ -127,15 +127,8 @@ PG_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig,
   .show_logo_on_arm = 1,
   .show_pilot_logo = 1,
   .invert = 0,
-  .crsf_link_stats = 1,
-  .crsf_link_stats_power = 1,
-  .crsf_link_stats_rssi = CRSF_LQ_LOW,
-  .crsf_link_stats_snr = CRSF_SNR_LOW,
-  .crsf_link_stats_snr_threshold = -2,
   .center_mark_offset = 0,
 );
-
-const char * const gitTag = __GIT_TAG__;
 
 void video_qspi_enable(void);
 extern binary_semaphore_t onScreenDisplaySemaphore;
@@ -145,9 +138,6 @@ bool brainfpv_user_avatar_set = false;
 bool osd_arming_or_stats = false;
 uint32_t osd_draw_time_ms;
 bool hide_blinking_items;
-
-extern crsfLinkInfo_t crsf_link_info;
-static bool show_crsf_link_info;
 
 static void simple_artificial_horizon(int16_t roll, int16_t pitch, int16_t x, int16_t y,
         int16_t width, int16_t height, int8_t max_pitch,
@@ -306,15 +296,8 @@ void brainFpvOsdInit(void)
         }
     }
 
-    if (bfOsdConfig()->crsf_link_stats && (rxConfig()->serialrx_provider == SERIALRX_CRSF)) {
-        show_crsf_link_info = true;
-    }
-    else {
-        show_crsf_link_info = false;
-    }
-
     // update number of rows
-    chThdSleep(MS2ST(200));
+    chThdSleep(TIME_MS2I(200));
     if (Video_GetType() == VIDEO_TYPE_NTSC) {
         osdDisplayPort->rows = MAX7456_LINES_NTSC;
     }
@@ -330,7 +313,7 @@ void brainFpvOsdWelcome(void)
 #define GY (GRAPHICS_BOTTOM / 2 - 30)
     brainFpvOsdMainLogo(GRAPHICS_X_MIDDLE, GY);
 
-    tfp_sprintf(string_buffer, "VERSION: %s", gitTag);
+    tfp_sprintf(string_buffer, "VERSION: %s", __REVISION__);
     write_string(string_buffer, GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 60, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
     write_string("MENU: THRT MID YAW LEFT PITCH UP", GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 35, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
 }
@@ -403,7 +386,7 @@ void osdRefresh(timeUs_t currentTimeUs);
 void brainFpvOsdMain(void) {
 
     while (1) {
-        if (chBSemWaitTimeout(&onScreenDisplaySemaphore, MS2ST(500)) == MSG_TIMEOUT) {
+        if (chBSemWaitTimeout(&onScreenDisplaySemaphore, TIME_MS2I(500)) == MSG_TIMEOUT) {
             // No trigger received within 500ms, re-enable the video
             video_qspi_enable();
         }
@@ -834,80 +817,6 @@ void brainFpvOsdHeadingGraph(uint16_t x, uint16_t y)
     write_hline_lm(xp - 2, xp + 2, y, 1, 1);
     write_line_lm(xp - 2, y, xp, y + 2, 1, 1);
     write_line_lm(xp + 2, y, xp, y + 2, 1, 1);
-}
-
-#define CRSF_LINE_SPACING 12
-
-bool osdElementRssi_BrainFPV(uint16_t x_pos, uint16_t y_pos)
-{
-    if (!show_crsf_link_info) {
-        return false;
-    }
-    else {
-        char tmp_str[20];
-        bool show;
-
-        x_pos = MAX_X(x_pos);
-        y_pos = MAX_Y(y_pos);
-
-        // Blink if LQ is low
-        if (hide_blinking_items && (crsf_link_info.lq <= osdConfig()->rssi_alarm)) {
-            return true;
-        }
-
-        tfp_sprintf(tmp_str, "%c%d", SYM_RSSI, crsf_link_info.lq);
-        write_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, current_font());
-        y_pos += 16;
-
-        if (bfOsdConfig()->crsf_link_stats_power) {
-            tfp_sprintf(tmp_str, "%dmW", crsf_link_info.tx_power);
-            write_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, FONT8X10);
-            y_pos += CRSF_LINE_SPACING;
-        }
-
-        switch (bfOsdConfig()->crsf_link_stats_rssi) {
-            case CRSF_OFF:
-                show = false;
-                break;
-            case CRSF_LQ_LOW:
-                show = (crsf_link_info.lq <= osdConfig()->rssi_alarm);
-                break;
-            case CRSF_SNR_LOW:
-                show =  (crsf_link_info.snr <= bfOsdConfig()->crsf_link_stats_snr_threshold);
-                break;
-            case CRSF_ON:
-                show = true;
-                break;
-        }
-
-        if (show) {
-            tfp_sprintf(tmp_str, "%ddBm", -1 * (int16_t)crsf_link_info.rssi);
-            write_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, FONT8X10);
-            y_pos += CRSF_LINE_SPACING;
-        }
-
-        switch (bfOsdConfig()->crsf_link_stats_snr) {
-            case CRSF_OFF:
-                show = false;
-                break;
-            case CRSF_LQ_LOW:
-                show = (crsf_link_info.lq <= osdConfig()->rssi_alarm);
-                break;
-            case CRSF_SNR_LOW:
-                show =  (crsf_link_info.snr <= bfOsdConfig()->crsf_link_stats_snr_threshold);
-                break;
-            case CRSF_ON:
-                show = true;
-                break;
-        }
-
-        if (show) {
-            tfp_sprintf(tmp_str, "SN %ddB", crsf_link_info.snr);
-            write_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, FONT8X10);
-        }
-
-        return true;
-    }
 }
 
 #endif /* USE_BRAINFPV_OSD */

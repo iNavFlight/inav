@@ -89,34 +89,11 @@ CMS_Menu cmsx_menuBrainFPVOsd = {
     .entries = cmsx_menuBrainFPVOsdEntries,
 };
 
-const char * CRSF_OPT_NAMES[] = {"NO", "WHEN LQ LOW", "WHEN SNR LOW", "YES"};
-
-OSD_Entry cmsx_menuBrainFPVCrsfLinkEntries[] =
-{
-    OSD_LABEL_ENTRY("-- CRSF LINK QUALITY --"),
-
-    OSD_BOOL_ENTRY("ENABLED",  &bfOsdConfigCms.crsf_link_stats),
-    OSD_BOOL_ENTRY("TX POWER",  &bfOsdConfigCms.crsf_link_stats_power),
-    OSD_TAB_ENTRY("RSSI", (&(const OSD_TAB_t){&bfOsdConfigCms.crsf_link_stats_rssi, 3, &CRSF_OPT_NAMES[0]})),
-    OSD_TAB_ENTRY("SNR", (&(const OSD_TAB_t){&bfOsdConfigCms.crsf_link_stats_snr, 3, &CRSF_OPT_NAMES[0]})),
-    OSD_INT8_ENTRY("SNR THRESHOLD", (&(const OSD_INT8_t){ &bfOsdConfigCms.crsf_link_stats_snr_threshold, -10, 10, 1 })),
-
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY
-};
-
-CMS_Menu cmsx_menuBrainFPVCrsfLink = {
-    .onEnter = NULL,
-    .onExit = NULL,
-    .entries = cmsx_menuBrainFPVCrsfLinkEntries,
-};
-
 OSD_Entry cmsx_menuBrainFPVEntires[] =
 {
     OSD_LABEL_ENTRY("-- BRAINFPV --"),
 
     OSD_SUBMENU_ENTRY("BRAIN OSD", &cmsx_menuBrainFPVOsd),
-    OSD_SUBMENU_ENTRY("CRSF LINK QUALITY", &cmsx_menuBrainFPVCrsfLink),
     OSD_UINT8_ENTRY("AHI STEPS", (&(const OSD_UINT8_t){ &bfOsdConfigCms.ahi_steps, 0, 9, 1 })),
     OSD_BOOL_ENTRY("ALTITUDE SCALE",  &bfOsdConfigCms.altitude_scale),
     OSD_BOOL_ENTRY("SPEED SCALE",  &bfOsdConfigCms.speed_scale),

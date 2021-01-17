@@ -3130,24 +3130,6 @@ groups:
       - name: brainfpv_osd_invert
         field: invert
         type: bool
-      - name: brainfpv_crsf_link_stats
-        field: crsf_link_stats
-        type: bool
-      - name: brainfpv_crsf_link_stats_power
-        field: crsf_link_stats_power
-        type: bool
-      - name: brainfpv_crsf_link_stats_rssi
-        field: crsf_link_stats_rssi
-        min: 0
-        max: 3
-      - name: brainfpv_crsf_link_stats_snr
-        field: crsf_link_stats_snr
-        min: 0
-        max: 3
-      - name: brainfpv_crsf_link_stats_snr_threshold
-        field: crsf_link_stats_snr_threshold
-        min: -10
-        max: 10
       - name: brainfpv_center_mark_offset
         field: center_mark_offset
         min: -100
