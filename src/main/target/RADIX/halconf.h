@@ -30,6 +30,9 @@
 
 #include "mcuconf.h"
 
+#define _CHIBIOS_HAL_CONF_
+#define _CHIBIOS_HAL_CONF_VER_7_0_
+
 /**
  * @brief   Enables the PAL subsystem.
  */
@@ -125,7 +128,7 @@
  * @brief   Enables the RTC subsystem.
  */
 #if !defined(HAL_USE_RTC) || defined(__DOXYGEN__)
-#define HAL_USE_RTC                 FALSE
+#define HAL_USE_RTC                 TRUE
 #endif
 
 /**

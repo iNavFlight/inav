@@ -29,6 +29,7 @@
 #define CHCONF_H
 
 #define _CHIBIOS_RT_CONF_
+#define _CHIBIOS_RT_CONF_VER_6_0_
 
 #define CORTEX_SIMPLIFIED_PRIORITY TRUE
 /*===========================================================================*/
@@ -295,6 +296,26 @@
  */
 #define CH_CFG_USE_MEMPOOLS                 FALSE
 
+
+/**
+ * @brief   Objects FIFOs APIs.
+ * @details If enabled then the objects FIFOs APIs are included
+ *          in the kernel.
+ *
+ * @note    The default is @p TRUE.
+ */
+#define CH_CFG_USE_OBJ_FIFOS                FALSE
+
+
+/**
+ * @brief   Pipes APIs.
+ * @details If enabled then the pipes APIs are included
+ *          in the kernel.
+ *
+ * @note    The default is @p TRUE.
+ */
+#define CH_CFG_USE_PIPES                    FALSE
+
 /**
  * @brief   Dynamic Threads APIs.
  * @details If enabled then the dynamic threads creation APIs are included
@@ -305,6 +326,62 @@
  * @note    Requires @p CH_CFG_USE_HEAP and/or @p CH_CFG_USE_MEMPOOLS.
  */
 #define CH_CFG_USE_DYNAMIC                  FALSE
+
+
+/** @} */
+
+/*===========================================================================*/
+/**
+ * @name Objects factory options
+ * @{
+ */
+/*===========================================================================*/
+
+/**
+ * @brief   Objects Factory APIs.
+ * @details If enabled then the objects factory APIs are included in the
+ *          kernel.
+ *
+ * @note    The default is @p FALSE.
+ */
+#define CH_CFG_USE_FACTORY                  FALSE
+
+/**
+ * @brief   Maximum length for object names.
+ * @details If the specified length is zero then the name is stored by
+ *          pointer but this could have unintended side effects.
+ */
+#define CH_CFG_FACTORY_MAX_NAMES_LENGTH     8
+
+/**
+ * @brief   Enables the registry of generic objects.
+ */
+#define CH_CFG_FACTORY_OBJECTS_REGISTRY     FALSE
+
+/**
+ * @brief   Enables factory for generic buffers.
+ */
+#define CH_CFG_FACTORY_GENERIC_BUFFERS      FALSE
+
+/**
+ * @brief   Enables factory for semaphores.
+ */
+#define CH_CFG_FACTORY_SEMAPHORES           FALSE
+
+/**
+ * @brief   Enables factory for mailboxes.
+ */
+#define CH_CFG_FACTORY_MAILBOXES            FALSE
+
+/**
+ * @brief   Enables factory for objects FIFOs.
+ */
+#define CH_CFG_FACTORY_OBJ_FIFOS            FALSE
+
+/**
+ * @brief   Enables factory for Pipes.
+ */
+#define CH_CFG_FACTORY_PIPES                FALSE
 
 /** @} */
 
@@ -492,6 +569,11 @@
   /* System tick event code here.*/                                         \
 }
 
+#define CH_CFG_SYSTEM_EXTRA_FIELDS
+
+#define CH_CFG_SYSTEM_INIT_HOOK() {                                         \
+    /* Add threads initialization code here.*/                              \
+}
 /**
  * @brief   System halt hook.
  * @details This hook is invoked in case to a system halting error before
@@ -510,6 +592,9 @@
   /* Trace code here.*/                                                     \
 }
 
+
+#define CH_CFG_INTERVALS_SIZE               32
+#define CH_CFG_TIME_TYPES_SIZE              32
 /** @} */
 
 /*===========================================================================*/

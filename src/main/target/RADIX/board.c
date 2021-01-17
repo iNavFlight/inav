@@ -14,8 +14,6 @@
     limitations under the License.
 */
 
-#if defined(USE_CHIBIOS)
-
 #include "ch.h"
 #include "hal.h"
 
@@ -37,4 +35,4 @@ void __early_init(void)
 void boardInit(void)
 {
 }
-#endif /* defined(USE_CHIBIOS) */
+
