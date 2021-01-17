@@ -27,6 +27,8 @@
 
 #include "scheduler/scheduler.h"
 
+#if !defined(USE_CHIBIOS)
+
 #ifdef SOFTSERIAL_LOOPBACK
 serialPort_t *loopbackPort;
 #endif
@@ -63,3 +65,5 @@ int main(void)
         processLoopback();
     }
 }
+
+#endif /* !defined(USE_CHIBIOS) */
