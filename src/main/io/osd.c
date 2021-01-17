@@ -1244,17 +1244,12 @@ static bool osdDrawSingleElement(uint8_t item)
     switch (item) {
     case OSD_RSSI_VALUE:
         {
-            if (osdElementRssi_BrainFPV(elemPosX, elemPosY)) {
-                brainfpv_item = true;
-            }
-            else {
-                uint16_t osdRssi = osdConvertRSSI();
-                buff[0] = SYM_RSSI;
-                tfp_sprintf(buff + 1, "%2d", osdRssi);
-                if (osdRssi < osdConfig()->rssi_alarm) {
-                    TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-                }
-            }
+			uint16_t osdRssi = osdConvertRSSI();
+			buff[0] = SYM_RSSI;
+			tfp_sprintf(buff + 1, "%2d", osdRssi);
+			if (osdRssi < osdConfig()->rssi_alarm) {
+				TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+			}
             break;
         }
 
@@ -1839,16 +1834,6 @@ static bool osdDrawSingleElement(uint8_t item)
 #endif /* USE_BRAINFPV_OSD */
         return true;
         break;
-    case OSD_VTX_POWER:
-        {
-            vtxDeviceOsdInfo_t osdInfo;
-            vtxCommonGetOsdInfo(vtxCommonDevice(), &osdInfo);
-
-            tfp_sprintf(buff, "%c", osdInfo.powerIndexLetter);
-            if (isAdjustmentFunctionSelected(ADJUSTMENT_VTX_POWER_LEVEL)) TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-            displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
-            return true;
-        }
 
     case OSD_ATTITUDE_ROLL:
         buff[0] = SYM_ROLL_LEVEL;
@@ -2843,11 +2828,6 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
 
     // Under OSD_FLYMODE. TODO: Might not be visible on NTSC?
     osdLayoutsConfig->item_pos[0][OSD_MESSAGES] = OSD_POS(1, 13) | OSD_VISIBLE_FLAG;
-
-    // brainfpv: enable by default
-    osdConfig->item_pos[0][OSD_CROSSHAIRS] = OSD_VISIBLE_FLAG;
-    osdConfig->item_pos[0][OSD_RADAR] = OSD_VISIBLE_FLAG;
-
 
     for (unsigned ii = 1; ii < OSD_LAYOUT_COUNT; ii++) {
         for (unsigned jj = 0; jj < ARRAYLEN(osdLayoutsConfig->item_pos[0]); jj++) {
