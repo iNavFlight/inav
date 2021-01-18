@@ -22,6 +22,7 @@
 #include "build/debug.h"
 #include "drivers/serial.h"
 #include "drivers/serial_softserial.h"
+#include "drivers/persistent.h"
 
 #include "fc/fc_init.h"
 
@@ -72,7 +73,7 @@ static void processLoopback(void)
 #endif
 }
 
-static THD_WORKING_AREA(waInavThread, 1 * 1024);
+static THD_WORKING_AREA(waInavThread, 6 * 1024);
 static THD_FUNCTION(InavThread, arg)
 {
     (void)arg;
@@ -89,7 +90,7 @@ static THD_FUNCTION(InavThread, arg)
 #if defined(USE_BRAINFPV_OSD)
 #include "brainfpv/brainfpv_osd.h"
 
-static THD_WORKING_AREA(waOSDThread, 1 * 1024);
+static THD_WORKING_AREA(waOSDThread, 4 * 1024);
 static THD_FUNCTION(OSDThread, arg)
 {
     (void)arg;
@@ -101,16 +102,8 @@ static THD_FUNCTION(OSDThread, arg)
 
 int main(void)
 {
-    //halInit();
-    /* Initializes the OS Abstraction Layer.*/
-    osalInit();
-
-    /* Platform low level initializations.*/
-    hal_lld_init();
-
+    halInit();
     chSysInit();
-
-    st_lld_init();
 
     persistentObjectInit();
 
