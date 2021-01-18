@@ -3135,15 +3135,19 @@ static void cliStatus(char *cmdline)
 uint32_t ChibiGetTaskStackUsage(thread_t *threadp)
 {
 #if CH_DBG_FILL_THREADS
-    uint32_t *stack = (uint32_t*)((size_t)threadp + sizeof(*threadp));
-    uint32_t *stklimit = stack;
-    while (*stack ==
-            ((CH_DBG_STACK_FILL_VALUE << 24) |
-            (CH_DBG_STACK_FILL_VALUE << 16) |
-            (CH_DBG_STACK_FILL_VALUE << 8) |
-            (CH_DBG_STACK_FILL_VALUE << 0)))
-        ++stack;
-    return (stack - stklimit) * 4;
+    uint8_t * stack_base = (uint8_t *)threadp->wabase;
+    uint8_t * stack_end = (uint8_t *)threadp->waend;
+
+    uint8_t *stack = stack_base;
+
+    while (stack < stack_end) {
+        if (*stack != CH_DBG_STACK_FILL_VALUE) {
+            break;
+        }
+        stack++;
+    }
+
+    return (uint32_t)(stack - stack_base);
 #else
     return 0;
 #endif /* CH_DBG_FILL_THREADS */
