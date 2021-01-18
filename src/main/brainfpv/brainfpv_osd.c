@@ -103,6 +103,8 @@
 
 #if defined(USE_BRAINFPV_OSD)
 
+//#define OSD_SHOW_DRAW_TIME
+
 #define SW_BLINK_CYCLE_MS 200 // 200ms on / 200ms off
 
 PG_REGISTER_WITH_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig, PG_BRAINFPV_CONFIG, 0);
@@ -304,6 +306,9 @@ void brainFpvOsdInit(void)
     else {
         osdDisplayPort->rows = MAX7456_LINES_PAL;
     }
+
+    // Update elements that are being shown
+    osdUpdateActiveElements();
 }
 
 void brainFpvOsdWelcome(void)
@@ -410,6 +415,16 @@ void brainFpvOsdMain(void) {
                 osdUpdateLocal();
             }
         }
+
+        // Update elements that are being shown
+        osdUpdateActiveElements();
+
+#if defined(OSD_SHOW_DRAW_TIME)
+        osd_draw_time_ms = millis() - osd_draw_time_ms;
+        char string_buffer[20];
+        tfp_sprintf(string_buffer, "draw: %lu ms", osd_draw_time_ms);
+        write_string(string_buffer, GRAPHICS_LEFT + 10, GRAPHICS_BOTTOM - 10, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, FONT8X10);
+#endif
     }
 }
 

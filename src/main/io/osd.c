@@ -2593,17 +2593,76 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
 }
 
 #if defined(USE_BRAINFPV_OSD)
+static uint8_t num_osd_elements_active = 0;
+static uint8_t osd_elements_active[OSD_ITEM_COUNT];
+
+int cmp_elems(const void *a,const void *b)
+{
+	uint8_t idx_a, idx_b;
+	uint8_t ypos_a, ypos_b;
+
+	idx_a = *(uint8_t*)a;
+	idx_b = *(uint8_t*)b;
+
+	ypos_a = OSD_Y(osdLayoutsConfig()->item_pos[currentLayout][idx_a]);
+	ypos_b = OSD_Y(osdLayoutsConfig()->item_pos[currentLayout][idx_b]);
+
+	if (ypos_a < ypos_b) {
+		return -1;
+	}
+	else if (ypos_a > ypos_b) {
+		return 1;
+	}
+	return 0;
+}
+
+
+void osdUpdateActiveElements(void)
+{
+	uint8_t activeIndex = 0;
+	uint8_t elementIndex = 0;
+	uint16_t pos;
+
+	do {
+	    pos = osdLayoutsConfig()->item_pos[currentLayout][elementIndex];
+	    if (OSD_VISIBLE(pos)) {
+	        osd_elements_active[activeIndex++] = elementIndex;
+	    }
+
+	    elementIndex = osdIncElementIndex(elementIndex);
+	} while (elementIndex != 0);
+
+	num_osd_elements_active = activeIndex;
+
+	// Sort so elements on top are drawn first
+	qsort(osd_elements_active, num_osd_elements_active, 1, cmp_elems);
+}
+
+#define DRAW_FIRST_PASS_Y_MAX 4
+
 void osdDrawNextElement(void)
 {
-   uint8_t elementIndex = 0;
-   do {
-       osdDrawSingleElement(elementIndex);
-       elementIndex = osdIncElementIndex(elementIndex);
-   } while (elementIndex != 0);
+	uint8_t draw_idx;
+	uint8_t ypos;
 
-   // Draw artificial horizon last
-   osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
+	// Draw items on top
+	for (draw_idx = 0; draw_idx < num_osd_elements_active; draw_idx++) {
+		osdDrawSingleElement(osd_elements_active[draw_idx]);
+		ypos = OSD_Y(osdLayoutsConfig()->item_pos[currentLayout][osd_elements_active[draw_idx]]);
+		if (ypos > DRAW_FIRST_PASS_Y_MAX) {
+			break;
+		}
+	}
+
+	// Draw artificial horizon
+	osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
+
+	// Draw items on bottom
+	for (draw_idx = draw_idx; draw_idx < num_osd_elements_active; draw_idx++) {
+		osdDrawSingleElement(osd_elements_active[draw_idx]);
+	}
 }
+
 #else
 void osdDrawNextElement(void)
 {

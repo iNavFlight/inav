@@ -359,6 +359,8 @@ void osdInit(displayPort_t *osdDisplayPort);
 bool osdDisplayIsPAL(void);
 void osdUpdate(timeUs_t currentTimeUs);
 void osdStartFullRedraw(void);
+void osdUpdateActiveElements(void);
+
 // Sets a fixed OSD layout ignoring the RC input. Set it
 // to -1 to disable the override. If layout is >= 0 and
 // duration is > 0, the override is automatically cleared by
