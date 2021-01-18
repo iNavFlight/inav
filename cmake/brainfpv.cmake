@@ -5,6 +5,7 @@ include(stm32f4)
 set(CHIBIOS_DIR "${MAIN_LIB_DIR}/main/ChibiOS")
 
 set(CHIBIOS_STARTUP_DIR "${CHIBIOS_DIR}/os/common/startup/ARMCMx/compilers/GCC")
+set(CHIBIOS_HAL_DIR "${CHIBIOS_DIR}/os/hal")
 set(CHIBIOS_F4_STARTUP_DIR "${CHIBIOS_DIR}/os/common/startup/ARMCMx/devices/STM32F4xx")
 set(CHIBIOS_F4_HAL_DIR "${CHIBIOS_DIR}/os/hal/ports/STM32/STM32F4xx")
 
@@ -52,6 +53,7 @@ set(CHIBIOS_SRC
     "${CHIBIOS_STARTUP_DIR}/crt0_v7m.S"
     "${CHIBIOS_STARTUP_DIR}/crt1.c"
     "${CHIBIOS_DIR}/os/hal/src/hal_st.c"
+    "${CHIBIOS_HAL_DIR}/src/hal.c"
     "${CHIBIOS_F4_HAL_SRC}"
     "${CHIBIOS_HAL_LLD_TIM_SRC}"
     "${CHIBIOS_HAL_LLD_DIR}/EXTIv1/stm32_exti.c"
