@@ -188,15 +188,20 @@ void brainFPVUpdateSettings(void);
 bool brainfpv_is_radixli(void);
 
 // Enable to suppress warning
-#define USE_I2C
+//#define USE_I2C
 
 // Remove unused sensors etc to reduce flash requirements
 
+#undef USE_RANGEFINDER
+#undef USE_RANGEFINDER_MSP
 #undef USE_RANGEFINDER_BENEWAKE
 #undef USE_RANGEFINDER_VL53L0X
 #undef USE_RANGEFINDER_HCSR04_I2C
+
+#undef USE_OPFLOW
 #undef USE_OPFLOW_CXOF
 #undef USE_OPFLOW_MSP
+
 #undef USE_PITOT_MS4525
 #undef USE_1WIRE
 #undef USE_1WIRE_DS2482
@@ -210,3 +215,5 @@ bool brainfpv_is_radixli(void);
 #undef USE_USB_MSC
 #undef USE_SERVO_SBUS
 #undef USE_TELEMETRY_LTM
+
+
