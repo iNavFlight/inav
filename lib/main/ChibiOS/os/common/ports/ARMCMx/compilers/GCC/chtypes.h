@@ -63,8 +63,9 @@ typedef uint32_t            ucnt_t;         /**< Generic unsigned counter.  */
  * @note    If the compiler does not support such attribute then some
  *          time-dependent services could be degraded.
  */
+#if !defined(NOINLINE)
 #define NOINLINE           __attribute__((noinline))
-
+#endif
 /**
  * @brief   Optimized thread function declaration macro.
  */
