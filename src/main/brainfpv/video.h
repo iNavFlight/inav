@@ -90,7 +90,4 @@ extern const struct video_type_boundary *video_type_boundary_act;
 #define BUFFER_WIDTH (BUFFER_WIDTH_TMP + BUFFER_WIDTH_TMP % 4)
 #define BUFFER_HEIGHT        (GRAPHICS_HEIGHT_REAL)
 
-// Macro to swap buffers given a temporary pointer.
-#define SWAP_BUFFS(tmp, a, b) { tmp = a; a = b; b = tmp; }
-
 #endif /* VIDEO_H */

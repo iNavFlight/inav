@@ -97,14 +97,16 @@ static const struct video_type_cfg video_type_cfg_pal = {
 
 // Allocate buffers.
 // Must be allocated in one block, so it is in a struct.
-struct _buffers {
-    uint8_t buffer0[BUFFER_HEIGHT * BUFFER_WIDTH];
-    uint8_t buffer1[BUFFER_HEIGHT * BUFFER_WIDTH];
-} buffers;
+//struct _buffers {
+//    uint8_t buffer0[BUFFER_HEIGHT * BUFFER_WIDTH];
+//    uint8_t buffer1[BUFFER_HEIGHT * BUFFER_WIDTH];
+//} buffers;
+//
+//// Remove the struct definition (makes it easier to write for).
+//#define buffer0 (buffers.buffer0)
+//#define buffer1 (buffers.buffer1)
 
-// Remove the struct definition (makes it easier to write for).
-#define buffer0 (buffers.buffer0)
-#define buffer1 (buffers.buffer1)
+uint8_t buffer0[BUFFER_HEIGHT * BUFFER_WIDTH];
 
 // Pointers to each of these buffers.
 uint8_t *draw_buffer;
@@ -119,6 +121,7 @@ static int16_t active_line = 0;
 static uint32_t buffer_offset;
 static int8_t y_offset = 0;
 static uint16_t num_video_lines = 0;
+static bool trigger_redraw;
 static int8_t video_type_tmp = VIDEO_TYPE_PAL;
 static int8_t video_type_act = VIDEO_TYPE_NONE;
 static const struct video_type_cfg *video_type_cfg_act = &video_type_cfg_pal;
@@ -128,8 +131,6 @@ uint8_t white_pal = 110;
 uint8_t black_ntsc = 10;
 uint8_t white_ntsc = 110;
 
-// Private functions
-static void swap_buffers(void);
 
 // Re-enable the video if it has been disabled
 void video_qspi_enable(void)
@@ -174,7 +175,6 @@ void Vsync_ISR(extiCallbackRec_t *cb)
     // discard spurious vsync pulses (due to improper grounding), so we don't overload the CPU
     if (active_line > 0 && active_line < video_type_cfg_ntsc.graphics_hight_real - 10) {
         CH_IRQ_EPILOGUE();
-        return false;
     }
 
     // Update the number of video lines
@@ -204,10 +204,10 @@ void Vsync_ISR(extiCallbackRec_t *cb)
     // Every VSYNC_REDRAW_CNT field: swap buffers and trigger redraw
     if (++Vsync_update >= VSYNC_REDRAW_CNT) {
         Vsync_update = 0;
-        swap_buffers();
-        chSysLockFromISR();
-        chBSemSignalI(&onScreenDisplaySemaphore);
-        chSysUnlockFromISR();
+        trigger_redraw = true;
+    }
+    else {
+        trigger_redraw = false;
     }
 
     // Get ready for the first line. We will start outputting data at line zero.
@@ -241,6 +241,11 @@ void Hsync_ISR(extiCallbackRec_t *cb)
         DMA2_Stream7->NDTR = (uint16_t)video_type_cfg_act->dma_buffer_length;
         QUADSPI->DLR = (uint32_t)video_type_cfg_act->dma_buffer_length - 1;
 
+        if (trigger_redraw && (active_line == video_type_cfg_act->graphics_hight_real - 1)) {
+            // Last line: Enable DMA TC interrupt
+            DMA_ITConfig(DMA2_Stream7, DMA_IT_TC, ENABLE);
+        }
+
         // Enable DMA
         uint32_t cr = DMA2_Stream7->CR;
         IOHi(debugPin);
@@ -251,19 +256,23 @@ void Hsync_ISR(extiCallbackRec_t *cb)
     }
 }
 
-/**
- * swap_buffers: Swaps the two buffers. Contents in the display
- * buffer is seen on the output and the display buffer becomes
- * the new draw buffer.
- */
-static void swap_buffers(void)
+// ISR runs after last OSD line has been output
+void DMA2_Stream7_IRQHandler(void)
 {
-    // While we could use XOR swap this is more reliable and
-    // dependable and it's only called a few times per second.
-    // Many compilers should optimize these to EXCH instructions.
-    uint8_t *tmp;
+    CH_IRQ_PROLOGUE();
 
-    SWAP_BUFFS(tmp, disp_buffer, draw_buffer);
+    if (DMA2->HISR & DMA_FLAG_TCIF7) {
+        // Clear flag and disable interrupt
+        DMA2->HIFCR  |= DMA_FLAG_TCIF7;
+		DMA_ITConfig(DMA2_Stream7, DMA_IT_TC, DISABLE);
+
+		// Trigger OSD redraw
+        chSysLockFromISR();
+        chBSemSignalI(&onScreenDisplaySemaphore);
+        chSysUnlockFromISR();
+	}
+
+    CH_IRQ_EPILOGUE();
 }
 
 /**
@@ -333,7 +342,7 @@ void Video_Init(void)
 
     /* Configure and clear buffers */
     draw_buffer = buffer0;
-    disp_buffer = buffer1;
+    disp_buffer = buffer0;
 
     /* Enable TC interrupt */
     QSPI_ITConfig(QSPI_IT_TC, ENABLE);
@@ -358,6 +367,11 @@ void Video_Init(void)
     IOConfigGPIO(hsync_io, IOCFG_IN_FLOATING);
     EXTIHandlerInit(&hsyncIntCallbackRec, Hsync_ISR);
     EXTIConfig(hsync_io, &hsyncIntCallbackRec, NVIC_PRIO_GYRO_INT_EXTI, EXTI_Trigger_Falling);
+
+    // DMA TC interrupt for last line
+    NVIC_SetPriority(DMA2_Stream7_IRQn, NVIC_PRIO_GYRO_INT_EXTI);
+    NVIC_EnableIRQ(DMA2_Stream7_IRQn);
+    DMA_ITConfig(DMA2_Stream7, DMA_IT_TC, DISABLE); // will be enabled later
 
     // Enable interrupts
     EXTIEnable(vsync_io, true);
