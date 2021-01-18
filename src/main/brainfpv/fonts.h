@@ -49,14 +49,13 @@ struct FontEntry {
 	const uint16_t* data;
 };
 
-#define NUM_FONTS  6
+#define NUM_FONTS  5
 
 #define DEFAULT 0
 #define LARGE 1
 #define CLARITY 2
-#define VISION 3
-#define FONT8X10 4
-#define FONT_OUTLINED8X8 5
+#define FONT8X10 3
+#define FONT_OUTLINED8X8 4
 
 
 #endif /* FONTS_H */

@@ -62,13 +62,13 @@ static long menuBrainFPVOnExit(const OSD_Entry *from)
 }
 
 const char *STICKS_DISPLAY_NAMES[] = {"OFF", "MODE2", "MODE1"};
-const char *FONT_NAMES[] = {"DEFAULT", "LARGE", "CLARITY", "VISION"};
+const char *FONT_NAMES[] = {"DEFAULT", "LARGE", "CLARITY"};
 
 OSD_Entry cmsx_menuBrainFPVOsdEntries[] =
 {
     OSD_LABEL_ENTRY("-- BRAIN OSD ------"),
 
-    OSD_TAB_ENTRY("FONT", (&(const OSD_TAB_t){&bfOsdConfigCms.font, 3, &FONT_NAMES[0]})),
+    OSD_TAB_ENTRY("FONT", (&(const OSD_TAB_t){&bfOsdConfigCms.font, 2, &FONT_NAMES[0]})),
     OSD_UINT8_ENTRY("OSD WHITE", (&(const OSD_UINT8_t){ &bfOsdConfigCms.white_level, 100, 120, 1 })),
     OSD_UINT8_ENTRY("OSD BLACK", (&(const OSD_UINT8_t){ &bfOsdConfigCms.black_level, 15, 40, 1 })),
     OSD_BOOL_ENTRY("INVERT",  &bfOsdConfigCms.invert),
