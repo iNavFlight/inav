@@ -58,9 +58,6 @@ __ram7_end__            = __ram7_start__ + __ram7_size__;
 ENTRY(ResetHandler)
 
 _estack = ORIGIN(RAM) + LENGTH(RAM);    /* end of RAM */
-/* Generate a link error if heap and stack don't fit into RAM */
-_Min_Heap_Size = 0;      /* required amount of heap  */
-_Min_Stack_Size = 0x800; /* required amount of stack */
 
 /* Base address where the config is stored. */
 __config_start = ORIGIN(FLASH_CONFIG);
@@ -412,6 +409,7 @@ SECTIONS
     } > ram7
 
     /* The default heap uses the (statically) unused part of a RAM section.*/
+/*
     .heap (NOLOAD) :
     {
         . = ALIGN(8);
@@ -419,6 +417,7 @@ SECTIONS
         . = ORIGIN(HEAP_RAM) + LENGTH(HEAP_RAM);
         __heap_end__ = .;
     } > HEAP_RAM
+*/
 }
 
 PROVIDE(end = .);
