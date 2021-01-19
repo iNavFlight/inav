@@ -53,8 +53,6 @@
 
 #include "scheduler/scheduler.h"
 
-#include "uav_interconnect/uav_interconnect.h"
-
 rangefinder_t rangefinder;
 
 #define RANGEFINDER_HARDWARE_TIMEOUT_MS         500     // Accept 500ms of non-responsive sensor, report HW failure otherwise
@@ -138,15 +136,6 @@ static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwar
             if (virtualRangefinderDetect(dev, &rangefinderMSPVtable)) {
                 rangefinderHardware = RANGEFINDER_MSP;
                 rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_VIRTUAL_TASK_PERIOD_MS));
-            }
-#endif
-            break;
-
-        case RANGEFINDER_UIB:
-#if defined(USE_RANGEFINDER_UIB)
-            if (uibRangefinderDetect(dev)) {
-                rangefinderHardware = RANGEFINDER_UIB;
-                rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_UIB_TASK_PERIOD_MS));
             }
 #endif
             break;

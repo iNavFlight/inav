@@ -66,8 +66,8 @@
 #include "rx/srxl2.h"
 #include "rx/sumd.h"
 #include "rx/sumh.h"
-#include "rx/uib_rx.h"
 #include "rx/xbus.h"
+#include "rx/ghst.h"
 
 //#define DEBUG_RX_SIGNAL_LOSS
 
@@ -92,7 +92,6 @@ static bool mspOverrideDataProcessingRequired = false;
 
 static bool rxSignalReceived = false;
 static bool rxFlightChannelsValid = false;
-static bool rxIsInFailsafeMode = true;
 static uint8_t rxChannelCount;
 
 static timeUs_t rxNextUpdateAtUs = 0;
@@ -252,6 +251,11 @@ bool serialRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
         enabled = fport2RxInit(rxConfig, rxRuntimeConfig);
         break;
 #endif
+#ifdef USE_SERIALRX_GHST
+    case SERIALRX_GHST:
+        enabled = ghstRxInit(rxConfig, rxRuntimeConfig);
+        break;
+#endif
     default:
         enabled = false;
         break;
@@ -323,12 +327,6 @@ void rxInit(void)
 #ifdef USE_RX_MSP
         case RX_TYPE_MSP:
             rxMspInit(rxConfig(), &rxRuntimeConfig);
-            break;
-#endif
-
-#ifdef USE_RX_UIB
-        case RX_TYPE_UIB:
-            rxUIBInit(rxConfig(), &rxRuntimeConfig);
             break;
 #endif
 
@@ -434,11 +432,16 @@ bool rxUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime)
     }
 
     const uint8_t frameStatus = rxRuntimeConfig.rcFrameStatusFn(&rxRuntimeConfig);
+
     if (frameStatus & RX_FRAME_COMPLETE) {
-        rxDataProcessingRequired = true;
-        rxIsInFailsafeMode = (frameStatus & RX_FRAME_FAILSAFE) != 0;
-        rxSignalReceived = !rxIsInFailsafeMode;
+        // RX_FRAME_COMPLETE updated the failsafe status regardless
+        rxSignalReceived = (frameStatus & RX_FRAME_FAILSAFE) == 0;
         needRxSignalBefore = currentTimeUs + rxRuntimeConfig.rxSignalTimeout;
+        rxDataProcessingRequired = true;
+    }
+    else if ((frameStatus & RX_FRAME_FAILSAFE) && rxSignalReceived) {
+        // All other receiver statuses are allowed to report failsafe, but not allowed to leave it
+        rxSignalReceived = false;
     }
 
     if (frameStatus & RX_FRAME_PROCESSING_REQUIRED) {
@@ -719,11 +722,6 @@ int16_t rxGetChannelValue(unsigned channelNumber)
     } else {
         return rcChannels[channelNumber].data;
     }
-}
-
-int16_t rxGetRawChannelValue(unsigned channelNumber)
-{
-    return rcChannels[channelNumber].raw;
 }
 
 void lqTrackerReset(rxLinkQualityTracker_e * lqTracker)

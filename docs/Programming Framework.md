@@ -9,10 +9,13 @@ INAV Programming Framework coinsists of:
 
 * Logic Conditions - each Logic Condition can be understood as a single command, a single line of code
 * Global Variables - variables that can store values from and for LogiC Conditions and servo mixer
+* Programming PID - general purpose, user configurable PID controllers
 
 IPF can be edited using INAV Configurator user interface, of via CLI
 
-## CLI
+## Logic Conditions
+
+### CLI
 
 `logic <rule> <enabled> <activatorId> <operation> <operand A type> <operand A value> <operand B type> <operand B value> <flags>`
 
@@ -80,6 +83,7 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 3             | FLIGHT_MODE   | `value` points to flight modes table                  |
 | 4             | LC            | `value` points to other logic condition ID            |
 | 5             | GVAR          | Value stored in Global Variable indexed by `value`. `GVAR 1` means: value in GVAR 1 |
+| 5             | PID          | Output of a Programming PID indexed by `value`. `PID 1` means: value in PID 1 |
 
 #### FLIGHT
 
@@ -120,7 +124,7 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 32            | CROSSFIRE LQ          | Crossfire Link quality as returned by the CRSF protocol   | 
 | 33            | CROSSFIRE SNR          | Crossfire SNR as returned by the CRSF protocol   | 
 
-##### ACTIVE_WAYPOINT_ACTION
+#### ACTIVE_WAYPOINT_ACTION
 
 | Action        |  Value   |
 |----           |----      |
@@ -157,6 +161,27 @@ All flags are reseted on ARM and DISARM event.
 | bit   | Decimal   | Function              |
 |----   |----       |----                   |
 | 0     | 1         | Latch - after activation LC will stay active until LATCH flag is reseted |
+
+## Global variables
+
+### CLI
+
+`gvar <index> <default value> <min> <max>`
+
+## Programming PID
+
+`pid <index> <enabled> <setpoint type> <setpoint value> <measurement type> <measurement value> <P gain> <I gain> <D gain> <FF gain>`
+
+* `<index>` - ID of PID Controller, starting from `0`
+* `<enabled>` - `0` evaluates as disabled, `1` evaluates as enabled
+* `<setpoint type>` - See `Operands` paragraph
+* `<setpoint value>` - See `Operands` paragraph
+* `<measurement type>` - See `Operands` paragraph
+* `<measurement value>` - See `Operands` paragraph
+* `<P gain>` - P-gain, scaled to `1/1000`
+* `<I gain>` - I-gain, scaled to `1/1000`
+* `<D gain>` - D-gain, scaled to `1/1000`
+* `<FF gain>` - FF-gain, scaled to `1/1000`
 
 ## Examples
 

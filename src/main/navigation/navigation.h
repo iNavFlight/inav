@@ -125,6 +125,7 @@ typedef enum {
 } navArmingBlocker_e;
 
 typedef enum {
+    NOMS_OFF_ALWAYS,
     NOMS_OFF,
     NOMS_AUTO_ONLY,
     NOMS_ALL_NAV
@@ -181,7 +182,7 @@ typedef struct navConfig_s {
             uint8_t disarm_on_landing;          //
             uint8_t rth_allow_landing;          // Enable landing as last stage of RTH. Use constants in navRTHAllowLanding_e.
             uint8_t rth_climb_ignore_emerg;     // Option to ignore GPS loss on initial climb stage of RTH
-            uint8_t nav_overrides_motor_stop;  // Autonomous modes override motor_stop setting and user command to stop motor
+            uint8_t nav_overrides_motor_stop;   // Autonomous modes override motor_stop setting and user command to stop motor
         } flags;
 
         uint8_t  pos_failure_timeout;           // Time to wait before switching to emergency landing (0 - disable)
@@ -200,6 +201,7 @@ typedef struct navConfig_s {
         uint16_t min_rth_distance;              // 0 Disables. Minimal distance for RTH in cm, otherwise it will just autoland
         uint16_t rth_abort_threshold;           // Initiate emergency landing if during RTH we get this much [cm] away from home
         uint16_t max_terrain_follow_altitude;   // Max altitude to be used in SURFACE TRACKING mode
+        uint16_t safehome_max_distance;         // Max distance that a safehome is from the arming point
     } general;
 
     struct {
@@ -386,7 +388,7 @@ typedef enum {
     MW_NAV_STATE_LAND_START_DESCENT,      // Start descent
     MW_NAV_STATE_HOVER_ABOVE_HOME,        // Hover/Loitering above home
     MW_NAV_STATE_EMERGENCY_LANDING,       // Emergency landing
-    MW_NAV_STATE_RTH_CLIMB,               // RTH Climb safe altitude    
+    MW_NAV_STATE_RTH_CLIMB,               // RTH Climb safe altitude
 } navSystemStatus_State_e;
 
 typedef enum {

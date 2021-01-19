@@ -411,7 +411,7 @@ static int emfat_find_log(emfat_entry_t *entry, int maxCount, int flashfsUsedSpa
                     char *last;
                     char* tok = strtok_r((char *)buffer, "-T:.", &last);
                     int index=0;
-                    int year=0,month,day,hour,min,sec;
+                    int year=0,month=0,day=0,hour=0,min=0,sec=0;
                     while (tok != NULL) {
                         switch(index) {
                             case 0:

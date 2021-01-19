@@ -32,7 +32,7 @@
 
 #define FIRMWARE_START_ADDRESS ((uint32_t)&__firmware_start)
 #define FLASH_START_ADDRESS 0x08000000UL
-#define FLASH_END (FLASH_START_ADDRESS + FLASH_SIZE * 1024)
+#define FLASH_END (FLASH_START_ADDRESS + MCU_FLASH_SIZE * 1024)
 #define CONFIG_START_ADDRESS ((uint32_t)&__config_start)
 #define CONFIG_END_ADDRESS ((uint32_t)&__config_end)
 

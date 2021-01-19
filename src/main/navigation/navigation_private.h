@@ -25,7 +25,9 @@
 #include "common/maths.h"
 #include "common/filter.h"
 #include "common/time.h"
+#include "common/vector.h"
 #include "fc/runtime_config.h"
+#include "navigation/navigation.h"
 
 #define MIN_POSITION_UPDATE_RATE_HZ         5       // Minimum position update rate at which XYZ controllers would be applied
 #define NAV_THROTTLE_CUTOFF_FREQENCY_HZ     4       // low-pass filter on throttle output
@@ -93,6 +95,7 @@ typedef enum {
     PID_DTERM_FROM_ERROR            = 1 << 0,
     PID_ZERO_INTEGRATOR             = 1 << 1,
     PID_SHRINK_INTEGRATOR           = 1 << 2,
+    PID_LIMIT_INTEGRATOR            = 1 << 3,
 } pidControllerFlags_e;
 
 typedef struct {
@@ -142,6 +145,7 @@ typedef enum {
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_RTH_LAND = NAV_FSM_EVENT_STATE_SPECIFIC_1,
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_FINISHED = NAV_FSM_EVENT_STATE_SPECIFIC_2,
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_HOLD_TIME = NAV_FSM_EVENT_STATE_SPECIFIC_3,
+    NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_HOVER_ABOVE_HOME,
 
     NAV_FSM_EVENT_SWITCH_TO_CRUISE_2D,
     NAV_FSM_EVENT_SWITCH_TO_CRUISE_3D,
@@ -169,7 +173,6 @@ typedef enum {
     NAV_PERSISTENT_ID_RTH_CLIMB_TO_SAFE_ALT                     = 9,
     NAV_PERSISTENT_ID_RTH_HEAD_HOME                             = 10,
     NAV_PERSISTENT_ID_RTH_HOVER_PRIOR_TO_LANDING                = 11,
-    NAV_PERSISTENT_ID_RTH_HOVER_ABOVE_HOME                      = 29,
     NAV_PERSISTENT_ID_RTH_LANDING                               = 12,
     NAV_PERSISTENT_ID_RTH_FINISHING                             = 13,
     NAV_PERSISTENT_ID_RTH_FINISHED                              = 14,
@@ -200,6 +203,9 @@ typedef enum {
     NAV_PERSISTENT_ID_CRUISE_3D_ADJUSTING                       = 34,
 
     NAV_PERSISTENT_ID_WAYPOINT_HOLD_TIME                        = 35,
+    NAV_PERSISTENT_ID_RTH_HOVER_ABOVE_HOME                      = 36,
+    NAV_PERSISTENT_ID_WAYPOINT_HOVER_ABOVE_HOME                 = 37,  
+
 } navigationPersistentId_e;
 
 typedef enum {
@@ -230,6 +236,7 @@ typedef enum {
     NAV_STATE_WAYPOINT_NEXT,
     NAV_STATE_WAYPOINT_FINISHED,
     NAV_STATE_WAYPOINT_RTH_LAND,
+    NAV_STATE_WAYPOINT_HOVER_ABOVE_HOME,
 
     NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
     NAV_STATE_EMERGENCY_LANDING_IN_PROGRESS,
@@ -387,13 +394,13 @@ const navEstimatedPosVel_t * navGetCurrentActualPositionAndVelocity(void);
 
 float navPidApply2(pidController_t *pid, const float setpoint, const float measurement, const float dt, const float outMin, const float outMax, const pidControllerFlags_e pidFlags);
 float navPidApply3(
-    pidController_t *pid, 
-    const float setpoint, 
-    const float measurement, 
-    const float dt, 
-    const float outMin, 
-    const float outMax, 
-    const pidControllerFlags_e pidFlags, 
+    pidController_t *pid,
+    const float setpoint,
+    const float measurement,
+    const float dt,
+    const float outMin,
+    const float outMax,
+    const pidControllerFlags_e pidFlags,
     const float gainScaler,
     const float dTermScaler
 );

@@ -30,6 +30,7 @@
 
 #include "programming/logic_condition.h"
 #include "programming/global_variables.h"
+#include "programming/pid.h"
 #include "common/utils.h"
 #include "rx/rx.h"
 #include "common/maths.h"
@@ -601,6 +602,12 @@ int logicConditionGetOperandValue(logicOperandType_e type, int operand) {
         case LOGIC_CONDITION_OPERAND_TYPE_GVAR:
             if (operand >= 0 && operand < MAX_GLOBAL_VARIABLES) {
                 retVal = gvGet(operand);
+            }
+            break;
+
+        case LOGIC_CONDITION_OPERAND_TYPE_PID:
+            if (operand >= 0 && operand < MAX_PROGRAMMING_PID_COUNT) {
+                retVal = programmingPidGetOutput(operand);
             }
             break;
 

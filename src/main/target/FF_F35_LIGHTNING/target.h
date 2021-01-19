@@ -27,6 +27,8 @@
 #define BEEPER                  PA1
 #define BEEPER_INVERTED
 
+#define USE_DSHOT
+
 // MPU interrupt
 #define USE_EXTI
 #define GYRO_INT_EXTI            PC4

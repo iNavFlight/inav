@@ -7,7 +7,7 @@ It is now possible to measure temperatures with the help of the I²C LM75 and 1-
 Up to 8 can be connected to the flight controller.
 
 * Package: SOP-8, breakout boards can be found easily
-* Interface: I²C
+* Interface: I²C (**max 400kHz**)
 * Supply: 2.7 to 5.5V
 * Temperature range: -55 to +125°C
 
