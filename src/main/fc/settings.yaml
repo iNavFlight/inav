@@ -155,6 +155,9 @@ tables:
   - name: nav_overrides_motor_stop
     enum: navOverridesMotorStop_e
     values: ["OFF_ALWAYS", "OFF", "AUTO_ONLY", "ALL_NAV"]
+  - name: nav_rth_climb_first
+    enum: navRTHClimbFirst_e
+    values: ["OFF", "ON", "ON_FW_SPIRAL"]
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -2112,10 +2115,10 @@ groups:
         field: general.flags.nav_overrides_motor_stop
         table: nav_overrides_motor_stop
       - name: nav_rth_climb_first
-        description: "If set to ON drone will climb to nav_rth_altitude first and head home afterwards. If set to OFF drone will head home instantly and climb on the way."
+        description: "If set to ON or ON_FW_SPIRAL aircraft will climb to nav_rth_altitude first before turning to head home. If set to OFF aircraft will turn and head home immediately climbing on the way. For a fixed wing ON will use a linear climb, ON_FW_SPIRAL will use a loiter turning climb with climb rate set by nav_auto_climb_rate, turn rate set by nav_fw_loiter_radius (ON_FW_SPIRAL is a fixed wing setting and behaves the same as ON for a multirotor)"
         default_value: "ON"
         field: general.flags.rth_climb_first
-        type: bool
+        table: nav_rth_climb_first
       - name: nav_rth_climb_ignore_emerg
         description: "If set to ON, aircraft will execute initial climb regardless of position sensor (GPS) status."
         default_value: "OFF"
@@ -2136,11 +2139,6 @@ groups:
         default_value: "AT_LEAST"
         field: general.flags.rth_alt_control_mode
         table: nav_rth_alt_mode
-      - name: nav_rth_fw_spiral_climb
-        description: "Performs RTH loiter climb rather than a linear climb when RTH set to Climb First. Climb rate set by nav_auto_climb_rate, turn rate set by nav_fw_loiter_radius."
-        default_value: "OFF"
-        field: general.flags.rth_fw_spiral_climb   
-        type: bool
       - name: nav_rth_abort_threshold
         description: "RTH sanity checking feature will notice if distance to home is increasing during RTH and once amount of increase exceeds the threshold defined by this parameter, instead of continuing RTH machine will enter emergency landing, self-level and go down safely. Default is 500m which is safe enough for both multirotor machines and airplanes. [cm]"
         default_value: "50000"
