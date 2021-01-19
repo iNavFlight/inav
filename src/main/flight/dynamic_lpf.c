@@ -1,5 +1,5 @@
 /*
- * This file is part of INAV.
+ * This file is part of INAV Project.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -20,12 +20,31 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see http://www.gnu.org/licenses/.
- *
- * @author Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
  */
 
-#pragma once
+#include "flight/dynamic_lpf.h"
+#include "sensors/gyro.h"
+#include "flight/mixer.h"
+#include "fc/rc_controls.h"
+#include "build/debug.h"
 
-#include "rx/rx.h"
+static float dynLpfCutoffFreq(float throttle, uint16_t dynLpfMin, uint16_t dynLpfMax, uint8_t expo) {
+    const float expof = expo / 10.0f;
+    static float curve;
+    curve = throttle * (1 - throttle) * expof + throttle;
+    return (dynLpfMax - dynLpfMin) * curve + dynLpfMin;
+}
 
-void rxUIBInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
+void dynamicLpfGyroTask(void) {
+
+    if (!gyroConfig()->useDynamicLpf) {
+        return;
+    }
+
+    const float throttle = scaleRangef((float) rcCommand[THROTTLE], getThrottleIdleValue(), motorConfig()->maxthrottle, 0.0f, 1.0f);
+    const float cutoffFreq = dynLpfCutoffFreq(throttle, gyroConfig()->gyroDynamicLpfMinHz, gyroConfig()->gyroDynamicLpfMaxHz, gyroConfig()->gyroDynamicLpfCurveExpo);
+
+    DEBUG_SET(DEBUG_DYNAMIC_GYRO_LPF, 0, cutoffFreq);
+
+    gyroUpdateDynamicLpf(cutoffFreq);
+}

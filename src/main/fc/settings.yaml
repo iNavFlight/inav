@@ -7,7 +7,7 @@ tables:
     values: ["NONE", "AUTO", "ADXL345", "MPU6050", "MMA845x", "BMA280", "LSM303DLHC", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "FAKE"]
     enum: accelerationSensor_e
   - name: rangefinder_hardware
-    values: ["NONE", "HCSR04", "SRF10", "INAV_I2C", "VL53L0X", "MSP", "UIB", "BENEWAKE"]
+    values: ["NONE", "HCSR04", "SRF10", "INAV_I2C", "VL53L0X", "MSP", "UNUSED", "BENEWAKE"]
     enum: rangefinderType_e
   - name: mag_hardware
     values: ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "MSP", "FAKE"]
@@ -22,7 +22,7 @@ tables:
     values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE", "MSP"]
     enum: pitotSensor_e
   - name: receiver_type
-    values: ["NONE", "PPM", "SERIAL", "MSP", "SPI", "UIB"]
+    values: ["NONE", "PPM", "SERIAL", "MSP", "SPI", "UNUSED"]
     enum: rxReceiverType_e
   - name: serial_rx
     values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2", "GHST"]
@@ -84,7 +84,7 @@ tables:
       "FLOW", "SBUS", "FPORT", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "ERPM", "RPM_FILTER", "RPM_FREQ", "NAV_YAW", "DYNAMIC_FILTER", "DYNAMIC_FILTER_FREQUENCY",
-      "IRLOCK", "CD", "KALMAN_GAIN", "PID_MEASUREMENT", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574"]
+      "IRLOCK", "CD", "KALMAN_GAIN", "PID_MEASUREMENT", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574", "DYN_GYRO_LPF"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -155,6 +155,8 @@ tables:
   - name: nav_overrides_motor_stop
     enum: navOverridesMotorStop_e
     values: ["OFF_ALWAYS", "OFF", "AUTO_ONLY", "ALL_NAV"]
+  - name: osd_plus_code_short
+    values: ["0", "2", "4", "6"]
   - name: nav_rth_climb_first
     enum: navRTHClimbFirst_e
     values: ["OFF", "ON", "ON_FW_SPIRAL"]
@@ -217,6 +219,29 @@ groups:
         default_value: "`BIQUAD`"
         field: gyro_stage2_lowpass_type
         table: filter_type
+      - name: gyro_use_dyn_lpf
+        description: "Use Dynamic LPF instead of static gyro stage1 LPF. Dynamic Gyro LPF updates gyro LPF based on the throttle position."
+        default_value: "OFF"
+        field: useDynamicLpf
+        type: bool
+      - name: gyro_dyn_lpf_min_hz
+        description: "Minimum frequency of the gyro Dynamic LPF"
+        default_value: "200"
+        field: gyroDynamicLpfMinHz
+        min: 40
+        max: 400
+      - name: gyro_dyn_lpf_max_hz
+        description: "Maximum frequency of the gyro Dynamic LPF"
+        default_value: "500"
+        field: gyroDynamicLpfMaxHz
+        min: 40
+        max: 1000
+      - name: gyro_dyn_lpf_curve_expo
+        description: "Expo value for the throttle-to-frequency mapping for Dynamic LPF"
+        default_value: "5"
+        field: gyroDynamicLpfCurveExpo
+        min: 1
+        max: 10
       - name: dynamic_gyro_notch_enabled
         description: "Enable/disable dynamic gyro notch also known as Matrix Filter"
         default_value: "`OFF`"
@@ -2921,9 +2946,17 @@ groups:
         type: bool
 
       - name: osd_plus_code_digits
+        description: "Numer of plus code digits before shortening with `osd_plus_code_short`. Precision at the equator: 10=13.9x13.9m; 11=2.8x3.5m; 12=56x87cm; 13=11x22cm."
         field: plus_code_digits
+        default_value: 10
         min: 10
         max: 13
+      - name: osd_plus_code_short
+        description: "Number of leading digits removed from plus code. Removing 2, 4 and 6 digits requires a reference location within, respectively, ~800km, ~40 km and ~2km to recover the original coordinates."
+        field: plus_code_short
+        default_value: "0"
+        table: osd_plus_code_short
+        type: uint8_t
 
       - name: osd_ahi_style
         description: "Sets OSD Artificial Horizon style \"DEFAULT\" or \"LINE\" for the FrSky Graphical OSD."
@@ -2980,6 +3013,10 @@ groups:
         default_value: 0
         description: Same as left_sidebar_scroll_step, but for the right sidebar
 
+      - name: osd_home_position_arm_screen
+        type: bool
+        default_value: "ON"
+        description: Should home position coordinates be displayed on the arming screen.
 
   - name: PG_SYSTEM_CONFIG
     type: systemConfig_t

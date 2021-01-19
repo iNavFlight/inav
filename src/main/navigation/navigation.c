@@ -2003,6 +2003,10 @@ float navPidApply3(
             pid->integrator = newIntegrator;
         }
     }
+    
+    if (pidFlags & PID_LIMIT_INTEGRATOR) {
+        pid->integrator = constrainf(pid->integrator, outMin, outMax);
+    } 
 
     return outValConstrained;
 }

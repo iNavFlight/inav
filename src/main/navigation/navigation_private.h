@@ -25,7 +25,9 @@
 #include "common/maths.h"
 #include "common/filter.h"
 #include "common/time.h"
+#include "common/vector.h"
 #include "fc/runtime_config.h"
+#include "navigation/navigation.h"
 
 #define MIN_POSITION_UPDATE_RATE_HZ         5       // Minimum position update rate at which XYZ controllers would be applied
 #define NAV_THROTTLE_CUTOFF_FREQENCY_HZ     4       // low-pass filter on throttle output
@@ -93,6 +95,7 @@ typedef enum {
     PID_DTERM_FROM_ERROR            = 1 << 0,
     PID_ZERO_INTEGRATOR             = 1 << 1,
     PID_SHRINK_INTEGRATOR           = 1 << 2,
+    PID_LIMIT_INTEGRATOR            = 1 << 3,
 } pidControllerFlags_e;
 
 typedef struct {

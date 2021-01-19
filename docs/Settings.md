@@ -137,6 +137,9 @@
 | gps_provider | UBLOX | Which GPS protocol to be used, note that UBLOX is 5Hz and UBLOX7 is 10Hz (M8N). |
 | gps_sbas_mode | NONE | Which SBAS mode to be used |
 | gps_ublox_use_galileo | OFF | Enable use of Galileo satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires M8N and Ublox firmware 3.x (or later) [OFF/ON]. |
+| gyro_dyn_lpf_curve_expo | 5 | Expo value for the throttle-to-frequency mapping for Dynamic LPF |
+| gyro_dyn_lpf_max_hz | 500 | Maximum frequency of the gyro Dynamic LPF |
+| gyro_dyn_lpf_min_hz | 200 | Minimum frequency of the gyro Dynamic LPF |
 | gyro_hardware_lpf | 42HZ | Hardware lowpass filter for gyro. Allowed values depend on the driver - For example MPU6050 allows 10HZ,20HZ,42HZ,98HZ,188HZ,256Hz (8khz mode). If you have to set gyro lpf below 42Hz generally means the frame is vibrating too much, and that should be fixed first. |
 | gyro_lpf_hz | 60 | Software-based filter to remove mechanical vibrations from the gyro signal. Value is cutoff frequency (Hz). For larger frames with bigger props set to lower value. |
 | gyro_lpf_type | BIQUAD | Specifies the type of the software LPF of the gyro signals. BIQUAD gives better filtering and more delay, PT1 less filtering and less delay, so use only on clean builds. |
@@ -146,6 +149,7 @@
 | gyro_stage2_lowpass_type | `BIQUAD` | Defines the type of stage 2 gyro LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation. |
 | gyro_sync | OFF | This option enables gyro_sync feature. In this case the loop will be synced to gyro refresh rate. Loop will always wait for the newest gyro measurement. Maximum gyro refresh rate is determined by gyro_hardware_lpf |
 | gyro_to_use |  |  |
+| gyro_use_dyn_lpf | OFF | Use Dynamic LPF instead of static gyro stage1 LPF. Dynamic Gyro LPF updates gyro LPF based on the throttle position. |
 | has_flaps | OFF | Defines is UAV is capable of having flaps. If ON and AIRPLANE `platform_type` is used, **FLAPERON** flight mode will be available for the pilot |
 | heading_hold_rate_limit | 90 | This setting limits yaw rotation rate that HEADING_HOLD controller can request from PID inner loop controller. It is independent from manual yaw rate and used only when HEADING_HOLD flight mode is enabled by pilot, RTH or WAYPOINT modes. |
 | hott_alarm_sound_interval | 5 | Battery alarm delay in seconds for Hott telemetry |
@@ -367,6 +371,7 @@
 | osd_gforce_alarm | 5 | Value above which the OSD g force indicator will blink (g) |
 | osd_gforce_axis_alarm_max | 5 | Value above which the OSD axis g force indicators will blink (g) |
 | osd_gforce_axis_alarm_min | -5 | Value under which the OSD axis g force indicators will blink (g) |
+| osd_home_position_arm_screen | ON | Should home position coordinates be displayed on the arming screen. |
 | osd_horizon_offset | 0 | To vertically adjust the whole OSD and AHI and scrolling bars |
 | osd_hud_homepoint | 0 | To 3D-display the home point location in the hud |
 | osd_hud_homing | 0 | To display little arrows around the crossair showing where the home point is in the hud |
@@ -384,7 +389,8 @@
 | osd_link_quality_alarm | 70 | LQ % indicator blinks below this value. For Crossfire use 70%, for Tracer use 50% |
 | osd_main_voltage_decimals | 1 | Number of decimals for the battery voltages displayed in the OSD [1-2]. |
 | osd_neg_alt_alarm | 5 | Value below which (negative altitude) to make the OSD relative altitude indicator blink (meters) |
-| osd_plus_code_digits |  |  |
+| osd_plus_code_digits | 10 | Numer of plus code digits before shortening with `osd_plus_code_short`. Precision at the equator: 10=13.9x13.9m; 11=2.8x3.5m; 12=56x87cm; 13=11x22cm. |
+| osd_plus_code_short | 0 | Number of leading digits removed from plus code. Removing 2, 4 and 6 digits requires a reference location within, respectively, ~800km, ~40 km and ~2km to recover the original coordinates. |
 | osd_right_sidebar_scroll |  |  |
 | osd_right_sidebar_scroll_step | 0 | Same as left_sidebar_scroll_step, but for the right sidebar |
 | osd_row_shiftdown | 0 | Number of rows to shift the OSD display (increase if top rows are cut off) |

@@ -241,7 +241,7 @@ uint8_t ghstFrameStatus(rxRuntimeConfig_t *rxRuntimeState)
 {
     UNUSED(rxRuntimeState);
 
-    if(serialIsIdle(serialPort)) {
+    if (serialIsIdle(serialPort)) {
         ghstIdle();
     }
 
