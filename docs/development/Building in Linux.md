@@ -69,7 +69,7 @@ For 2.6 and later, inav uses `cmake` as its primary build tool. `cmake` simplies
 
 ## Using `cmake`
 
-The canonanical method of using `cmake` is to create a `build` directory and run the `cmake` and `make` commands from within the `build` directory. So, assuming we've cloned the firmware repository into an `inav` directory, we can issue the following commands to set up the build environment.
+The canonical method of using `cmake` is to create a `build` directory and run the `cmake` and `make` commands from within the `build` directory. So, assuming we've cloned the firmware repository into an `inav` directory, we can issue the following commands to set up the build environment.
 
 ```
 cd inav
