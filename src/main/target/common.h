@@ -87,8 +87,6 @@
 #define USE_DYNAMIC_FILTERS
 #define USE_GYRO_KALMAN
 #define USE_EXTENDED_CMS_MENUS
-#define USE_UAV_INTERCONNECT
-#define USE_RX_UIB
 #define USE_HOTT_TEXTMODE
 
 // NAZA GPS support for F4+ only

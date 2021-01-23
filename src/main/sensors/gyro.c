@@ -59,6 +59,7 @@ FILE_COMPILE_FOR_SPEED
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
+#include "fc/rc_controls.h"
 
 #include "io/beeper.h"
 #include "io/statusindicator.h"
@@ -101,10 +102,10 @@ EXTENDED_FASTRAM dynamicGyroNotchState_t dynamicGyroNotchState;
 
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 10);
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 11);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
-    .gyro_lpf = GYRO_LPF_42HZ,      // 42HZ value is defined for Invensense/TDK gyros
+    .gyro_lpf = GYRO_LPF_256HZ,
     .gyro_soft_lpf_hz = 60,
     .gyro_soft_lpf_type = FILTER_BIQUAD,
     .gyro_align = ALIGN_DEFAULT,
@@ -116,6 +117,10 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_notch_cutoff = 1,
     .gyro_stage2_lowpass_hz = 0,
     .gyro_stage2_lowpass_type = FILTER_BIQUAD,
+    .useDynamicLpf = 0,
+    .gyroDynamicLpfMinHz = 200,
+    .gyroDynamicLpfMaxHz = 500,
+    .gyroDynamicLpfCurveExpo = 5,
     .dynamicGyroNotchRange = DYN_NOTCH_RANGE_MEDIUM,
     .dynamicGyroNotchQ = 120,
     .dynamicGyroNotchMinHz = 150,
@@ -509,4 +514,16 @@ bool gyroSyncCheckUpdate(void)
     }
 
     return gyroDev[0].intStatusFn(&gyroDev[0]);
+}
+
+void gyroUpdateDynamicLpf(float cutoffFreq) {
+    if (gyroConfig()->gyro_soft_lpf_type == FILTER_PT1) {
+        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            pt1FilterUpdateCutoff(&gyroLpfState[axis].pt1, cutoffFreq);
+        }
+    } else if (gyroConfig()->gyro_soft_lpf_type == FILTER_BIQUAD) {
+        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            biquadFilterUpdate(&gyroLpfState[axis].biquad, cutoffFreq, getLooptime(), BIQUAD_Q, FILTER_LPF);
+        }
+    }
 }

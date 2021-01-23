@@ -37,6 +37,8 @@ extern "C" {
     #include "sensors/gyro.h"
     #include "sensors/acceleration.h"
     #include "sensors/sensors.h"
+    #include "fc/rc_controls.h"
+    #include "flight/mixer.h"
 
     extern zeroCalibrationVector_t gyroCalibration;
     extern gyroDev_t gyroDev[];
