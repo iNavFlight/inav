@@ -461,7 +461,7 @@ groups:
         description: "Adjust how long time the Calibration of mag will last."
         default_value: "30"
         field: magCalibrationTimeLimit
-        min: 30
+        min: 20
         max: 120
       - name: mag_to_use
         description: "Allow to chose between built-in and external compass sensor if they are connected to separate buses. Currently only for REVO target"
