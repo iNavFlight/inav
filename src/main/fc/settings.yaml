@@ -66,6 +66,9 @@ tables:
   - name: osd_stats_energy_unit
     values: ["MAH", "WH"]
     enum: osd_stats_energy_unit_e
+  - name: osd_stats_min_voltage_unit
+    values: ["BATTERY", "CELL"]
+    enum: osd_stats_min_voltage_unit_e
   - name: osd_video_system
     values: ["AUTO", "PAL", "NTSC"]
     enum: videoSystem_e
@@ -2694,6 +2697,12 @@ groups:
         default_value: "MAH"
         field: stats_energy_unit
         table: osd_stats_energy_unit
+        type: uint8_t
+      - name: osd_stats_min_voltage_unit
+        description: "Display minimum voltage of the whole `BATTERY` or the average per `CELL` in the OSD stats."
+        default_value: "BATTERY"
+        field: stats_min_voltage_unit
+        table: osd_stats_min_voltage_unit
         type: uint8_t
 
       - name: osd_rssi_alarm
