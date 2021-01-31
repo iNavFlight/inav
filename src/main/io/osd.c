@@ -2977,15 +2977,16 @@ static void osdShowStats(void)
     displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
     if (feature(FEATURE_CURRENT_METER)) {
-        displayWrite(osdDisplayPort, statNameX, top, "MAX CURRENT      :");
-        itoa(stats.max_current, buff, 10);
+        displayWrite(osdDisplayPort, statNameX, top, "MAX CURRENT/POWER:");
+        osdFormatCentiNumber(buff, stats.max_current * 100, 0, 0, 0, 3);
         strcat(buff, "A");
-        displayWrite(osdDisplayPort, statValuesX, top++, buff);
-
-        displayWrite(osdDisplayPort, statNameX, top, "MAX POWER        :");
-        itoa(stats.max_power, buff, 10);
+        osdLeftAlignString(buff);
+        strcat(buff, "/");
+        displayWrite(osdDisplayPort, statValuesX, top, buff);
+        osdFormatCentiNumber(buff, stats.max_power * 100, 0, 0, 0, 4);
         strcat(buff, "W");
-        displayWrite(osdDisplayPort, statValuesX, top++, buff);
+        osdLeftAlignString(buff);
+        displayWrite(osdDisplayPort, statValuesX+5, top++, buff);
 
         if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
             displayWrite(osdDisplayPort, statNameX, top, "USED MAH         :");
