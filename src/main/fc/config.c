@@ -217,7 +217,7 @@ void validateAndFixConfig(void)
 #endif
 
 #ifndef USE_SERVO_SBUS
-    if (servoConfig()->servo_protocol == SERVO_TYPE_SBUS) {
+    if (servoConfig()->servo_protocol == SERVO_TYPE_SBUS || servoConfig()->servo_protocol == SERVO_TYPE_SBUS_PWM) {
         servoConfigMutable()->servo_protocol = SERVO_TYPE_PWM;
     }
 #endif
