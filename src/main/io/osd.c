@@ -2968,25 +2968,25 @@ static void osdShowStats(void)
     if (osdConfig()->stats_min_voltage_unit == OSD_STATS_MIN_VOLTAGE_UNIT_BATTERY){
         displayWrite(osdDisplayPort, statNameX, top, "MIN BATTERY VOLT :");
         osdFormatCentiNumber(buff, stats.min_voltage, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
-        strcat(buff, "V");
+        strcat(buff, "V/");
         osdLeftAlignString(buff);
-        strcat(buff, "/");
+        int8_t lengthValues = strlen(buff);
         displayWrite(osdDisplayPort, statValuesX, top, buff);
         osdFormatCentiNumber(buff, getBatteryRawVoltage(), 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
         strcat(buff, "V");
         osdLeftAlignString(buff);
-        displayWrite(osdDisplayPort, statValuesX + 4 + osdConfig()->main_voltage_decimals, top++, buff);
+        displayWrite(osdDisplayPort, statValuesX + lengthValues, top++, buff);
     } else {
         displayWrite(osdDisplayPort, statNameX, top, "MIN CELL VOLT    :");
         osdFormatCentiNumber(buff, stats.min_voltage / getBatteryCellCount(), 0, 2, 0, 3);
-        strcat(buff, "V");
+        strcat(buff, "V/");
         osdLeftAlignString(buff);
-        strcat(buff, "/");
+        int8_t lengthValues = strlen(buff);
         displayWrite(osdDisplayPort, statValuesX, top, buff);
         osdFormatCentiNumber(buff, getBatteryAverageCellVoltage(), 0, 2, 0, 3);
         strcat(buff, "V");
         osdLeftAlignString(buff);
-        displayWrite(osdDisplayPort, statValuesX + 5, top++, buff);
+        displayWrite(osdDisplayPort, statValuesX + lengthValues, top++, buff);
     }
     
     displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI         :");
@@ -2996,15 +2996,21 @@ static void osdShowStats(void)
 
     if (feature(FEATURE_CURRENT_METER)) {
         displayWrite(osdDisplayPort, statNameX, top, "MAX CURRENT/POWER:");
-        osdFormatCentiNumber(buff, stats.max_current * 100, 0, 0, 0, 3);
-        strcat(buff, "A");
+        int8_t currentDigits = 1;
+        if (stats.max_current >= 100){
+            currentDigits = 3;
+        } else if (stats.max_current >= 10){
+            currentDigits = 2;
+        }
+        osdFormatCentiNumber(buff, stats.max_current * 100, 0, 0, 0, currentDigits);
+        strcat(buff, "A/");
         osdLeftAlignString(buff);
-        strcat(buff, "/");
+        int8_t lengthValues = strlen(buff);
         displayWrite(osdDisplayPort, statValuesX, top, buff);
         osdFormatCentiNumber(buff, stats.max_power * 100, 0, 0, 0, 4);
         strcat(buff, "W");
         osdLeftAlignString(buff);
-        displayWrite(osdDisplayPort, statValuesX+5, top++, buff);
+        displayWrite(osdDisplayPort, statValuesX + lengthValues, top++, buff);
 
         if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
             displayWrite(osdDisplayPort, statNameX, top, "USED MAH         :");
