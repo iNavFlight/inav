@@ -111,9 +111,9 @@ typedef enum {
 extern int16_t motor[MAX_SUPPORTED_MOTORS];
 extern int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
 extern int mixerThrottleCommand;
-extern int throttlePercent;
 
 int getThrottleIdleValue(void);
+int16_t getThrottlePercent(void);
 uint8_t getMotorCount(void);
 float getMotorMixRange(void);
 bool mixerIsOutputSaturated(void);

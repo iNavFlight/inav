@@ -877,7 +877,7 @@ static void osdFormatThrottlePosition(char *buff, bool autoThr, textAttributes_t
         if (isFixedWingAutoThrottleManuallyIncreased())
             TEXT_ATTRIBUTES_ADD_BLINK(*elemAttr);
     }
-    tfp_sprintf(buff + 2, "%3d", throttlePercent);
+    tfp_sprintf(buff + 2, "%3d", getThrottlePercent());
 }
 
 /**

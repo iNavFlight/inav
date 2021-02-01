@@ -530,12 +530,6 @@ void FAST_CODE mixTable(const float dT)
 
     throttleRange = throttleMax - throttleMin;
 
-    // Throttle Percent used by OSD and MSP
-    if(navigationIsControllingThrottle())
-        throttlePercent = (constrain(mixerThrottleCommand, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN);
-    else
-        throttlePercent = (constrain(mixerThrottleCommand, PWM_RANGE_MIN, PWM_RANGE_MAX) - throttleMin) * 100 / throttleRange; 
-
     #define THROTTLE_CLIPPING_FACTOR    0.33f
     motorMixRange = (float)rpyMixRange / (float)throttleRange;
     if (motorMixRange > 1.0f) {
@@ -577,6 +571,12 @@ void FAST_CODE mixTable(const float dT)
 
     /* Apply motor acceleration/deceleration limit */
     motorRateLimitingApplyFn(dT);
+}
+
+int16_t getThrottlePercent(void)
+{
+    int16_t thr = (constrain(rcCommand[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX ) - getThrottleIdleValue()) * 100 / (motorConfig()->maxthrottle - getThrottleIdleValue());
+    return thr;
 }
 
 motorStatus_e getMotorStatus(void)
