@@ -2977,7 +2977,6 @@ groups:
       - name: i2c_speed
         description: "This setting controls the clock speed of I2C bus. 400KHZ is the default that most setups are able to use. Some noise-free setups may be overclocked to 800KHZ. Some sensor chips or setups with long wires may work unreliably at 400KHZ - user can try lowering the clock speed to 200KHZ or even 100KHZ. User need to bear in mind that lower clock speeds might require higher looptimes (lower looptime rate)"
         default_value: "400KHZ"
-        condition: USE_I2C
         table: i2c_speed
       - name: cpu_underclock
         description: "This option is only available on certain architectures (F3 CPUs at the moment). It makes CPU clock lower to reduce interference to long-range RC systems working at 433MHz"
