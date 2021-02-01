@@ -2968,23 +2968,23 @@ static void osdShowStats(void)
     if (osdConfig()->stats_min_voltage_unit == OSD_STATS_MIN_VOLTAGE_UNIT_BATTERY){
         displayWrite(osdDisplayPort, statNameX, top, "MIN BATTERY VOLT :");
         osdFormatCentiNumber(buff, stats.min_voltage, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
-        strcat(buff, "V/");
+        strcat(buff, "V(");
         osdLeftAlignString(buff);
         int8_t lengthValues = strlen(buff);
         displayWrite(osdDisplayPort, statValuesX, top, buff);
         osdFormatCentiNumber(buff, getBatteryRawVoltage(), 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
-        strcat(buff, "V");
+        strcat(buff, "V)");
         osdLeftAlignString(buff);
         displayWrite(osdDisplayPort, statValuesX + lengthValues, top++, buff);
     } else {
         displayWrite(osdDisplayPort, statNameX, top, "MIN CELL VOLT    :");
         osdFormatCentiNumber(buff, stats.min_voltage / getBatteryCellCount(), 0, 2, 0, 3);
-        strcat(buff, "V/");
+        strcat(buff, "V(");
         osdLeftAlignString(buff);
         int8_t lengthValues = strlen(buff);
         displayWrite(osdDisplayPort, statValuesX, top, buff);
-        osdFormatCentiNumber(buff, getBatteryAverageCellVoltage(), 0, 2, 0, 3);
-        strcat(buff, "V");
+        osdFormatCentiNumber(buff, getBatteryRawAverageCellVoltage(), 0, 2, 0, 3);
+        strcat(buff, "V)");
         osdLeftAlignString(buff);
         displayWrite(osdDisplayPort, statValuesX + lengthValues, top++, buff);
     }
