@@ -3252,6 +3252,7 @@ uint32_t afatfs_freadSync(afatfsFilePtr_t file, uint8_t *buffer, uint32_t length
         uint32_t leftToRead = length - bytesRead;
         uint32_t readNow = afatfs_fread(file, buffer, leftToRead);
         bytesRead += readNow;
+        buffer += readNow;
         if (bytesRead < length) {
 
             if (afatfs_feof(file)) {
