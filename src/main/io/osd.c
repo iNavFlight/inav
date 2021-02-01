@@ -869,18 +869,15 @@ void osdCrosshairPosition(uint8_t *x, uint8_t *y)
  **/
 static void osdFormatThrottlePosition(char *buff, bool autoThr, textAttributes_t *elemAttr)
 {
-    const int minThrottle = getThrottleIdleValue();
     buff[0] = SYM_BLANK;
     buff[1] = SYM_THR;
-    int16_t thr = (constrain(rcCommand[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX ) - minThrottle) * 100 / (motorConfig()->maxthrottle - minThrottle);
     if (autoThr && navigationIsControllingThrottle()) {
         buff[0] = SYM_AUTO_THR0;
         buff[1] = SYM_AUTO_THR1;
-        thr = (constrain(rcCommand[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN);
         if (isFixedWingAutoThrottleManuallyIncreased())
             TEXT_ATTRIBUTES_ADD_BLINK(*elemAttr);
     }
-    tfp_sprintf(buff + 2, "%3d", thr);
+    tfp_sprintf(buff + 2, "%3d", getThrottlePercent());
 }
 
 /**
