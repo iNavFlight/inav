@@ -1873,7 +1873,7 @@ groups:
         min: 1
         max: 16000
       - name: fw_level_pitch_trim
-        description: "Pitch trim for self-leveling flight modes. In degrees"
+        description: "Pitch trim for self-leveling flight modes. In degrees. +5 means nose should be raised 5 deg from level"
         default_value: "0"
         field: fixedWingLevelTrim
         min: -10

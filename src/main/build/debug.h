@@ -80,5 +80,6 @@ typedef enum {
     DEBUG_SPM_VARIO,    // Smartport master variometer
     DEBUG_PCF8574,
     DEBUG_DYNAMIC_GYRO_LPF,
+    DEBUG_AUTOLEVEL,
     DEBUG_COUNT
 } debugType_e;

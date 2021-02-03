@@ -537,16 +537,26 @@ static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float h
 
     // Automatically pitch down if the throttle is manually controlled and reduced bellow cruise throttle
     if ((axis == FD_PITCH) && STATE(AIRPLANE) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle()) {
-        angleTarget += scaleRange(MAX(0, navConfig()->fw.cruise_throttle - rcCommand[THROTTLE]), 0, navConfig()->fw.cruise_throttle - PWM_RANGE_MIN, 0, mixerConfig()->fwMinThrottleDownPitchAngle);
+        angleTarget += scaleRange(MAX(0, navConfig()->fw.cruise_throttle - rcCommand[THROTTLE]), 0, navConfig()->fw.cruise_throttle - PWM_RANGE_MIN, 0, mixerConfig()->fwMinThrottleDownPitchAngle);        
+    }
 
-        DEBUG_SET(DEBUG_ALWAYS, 0, angleTarget * 10);
-        DEBUG_SET(DEBUG_ALWAYS, 1, fixedWingLevelTrim * 10);
-        DEBUG_SET(DEBUG_ALWAYS, 2, getEstimatedActualVelocity(Z));
+    //PITCH trim applied by a AutoLevel flight mode and manual pitch trimming
+    if (axis == FD_PITCH && STATE(AIRPLANE)) {
+        DEBUG_SET(DEBUG_AUTOLEVEL, 0, angleTarget * 10);
+        DEBUG_SET(DEBUG_AUTOLEVEL, 1, fixedWingLevelTrim * 10);
+        DEBUG_SET(DEBUG_AUTOLEVEL, 2, getEstimatedActualVelocity(Z));
 
-        //Apply level trim
-        angleTarget -= fixedWingLevelTrim;
-        DEBUG_SET(DEBUG_ALWAYS, 3, angleTarget * 10);
-        
+        /* 
+         * fixedWingLevelTrim has opposite sign to rcCommand.
+         * Positive rcCommand means nose should point downwards
+         * Negative rcCommand mean nose should point upwards
+         * This is counter intuitive and a natural way suggests that + should mean UP
+         * This is why fixedWingLevelTrim has opposite sign to rcCommand
+         * Positive fixedWingLevelTrim means nose should point upwards
+         * Negative fixedWingLevelTrim means nose should point downwards
+         */
+        angleTarget -= fixedWingLevelTrim;   
+        DEBUG_SET(DEBUG_AUTOLEVEL, 3, angleTarget * 10);
     }
 
     const float angleErrorDeg = DECIDEGREES_TO_DEGREES(angleTarget - attitude.raw[axis]);
@@ -1170,6 +1180,6 @@ void updateFixedWingLevelTrim(timeUs_t currentTimeUs)
         1.0f
     );
 
-    DEBUG_SET(DEBUG_ALWAYS, 4, output / 100);
+    DEBUG_SET(DEBUG_AUTOLEVEL, 4, output / 100);
 
 }
