@@ -500,6 +500,8 @@ static const char * osdArmingDisabledReasonMessage(void)
             return OSD_MESSAGE_STR("CLI");
         case ARMING_DISABLED_PWM_OUTPUT_ERROR:
             return OSD_MESSAGE_STR("PWM ERR");
+        case ARMING_DISABLED_NO_PREARM:
+            return OSD_MESSAGE_STR("NO PREARM");
             // Cases without message
         case ARMING_DISABLED_CMS_MENU:
             FALLTHROUGH;
