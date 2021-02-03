@@ -408,8 +408,6 @@ main_sources(COMMON_SRC
     rx/sumd.h
     rx/sumh.c
     rx/sumh.h
-    rx/uib_rx.c
-    rx/uib_rx.h
     rx/xbus.c
     rx/xbus.h
 
@@ -436,10 +434,6 @@ main_sources(COMMON_SRC
     sensors/irlock.h
     sensors/temperature.c
     sensors/temperature.h
-
-    uav_interconnect/uav_interconnect.h
-    uav_interconnect/uav_interconnect_bus.c
-    uav_interconnect/uav_interconnect_rangefinder.c
 
     blackbox/blackbox.c
     blackbox/blackbox.h

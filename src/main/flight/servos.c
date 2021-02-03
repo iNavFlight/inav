@@ -133,7 +133,7 @@ void servosInit(void)
 {
     // give all servos a default command
     for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-        servo[i] = DEFAULT_SERVO_MIDDLE;
+        servo[i] = servoParams(i)->middle;
     }
 
     /*

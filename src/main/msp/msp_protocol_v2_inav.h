@@ -77,3 +77,6 @@
 
 #define MSP2_INAV_SAFEHOME                      0x2038
 #define MSP2_INAV_SET_SAFEHOME                  0x2039
+
+#define MSP2_INAV_MISC2                         0x203A
+

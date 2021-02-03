@@ -91,8 +91,6 @@
 
 #include "config/feature.h"
 
-#include "uav_interconnect/uav_interconnect.h"
-
 void taskHandleSerial(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
@@ -348,7 +346,7 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_STACK_CHECK, true);
 #endif
 #if defined(USE_PWM_SERVO_DRIVER) || defined(USE_SERVO_SBUS)
-    setTaskEnabled(TASK_PWMDRIVER, (servoConfig()->servo_protocol == SERVO_TYPE_SERVO_DRIVER) || (servoConfig()->servo_protocol == SERVO_TYPE_SBUS));
+    setTaskEnabled(TASK_PWMDRIVER, (servoConfig()->servo_protocol == SERVO_TYPE_SERVO_DRIVER) || (servoConfig()->servo_protocol == SERVO_TYPE_SBUS) || (servoConfig()->servo_protocol == SERVO_TYPE_SBUS_PWM));
 #endif
 #ifdef USE_CMS
 #ifdef USE_MSP_DISPLAYPORT
@@ -364,9 +362,6 @@ void fcTasksInit(void)
 #if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP)
     setTaskEnabled(TASK_VTXCTRL, true);
 #endif
-#endif
-#ifdef USE_UAV_INTERCONNECT
-    setTaskEnabled(TASK_UAV_INTERCONNECT, uavInterconnectBusIsInitialized());
 #endif
 #ifdef USE_RCDEVICE
     setTaskEnabled(TASK_RCDEVICE, rcdeviceIsEnabled());
@@ -572,16 +567,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_OPFLOW] = {
         .taskName = "OPFLOW",
         .taskFunc = taskUpdateOpticalFlow,
-        .desiredPeriod = TASK_PERIOD_HZ(100),   // I2C/SPI sensor will work at higher rate and accumulate, UIB/UART sensor will work at lower rate w/o accumulation
-        .staticPriority = TASK_PRIORITY_MEDIUM,
-    },
-#endif
-
-#ifdef USE_UAV_INTERCONNECT
-    [TASK_UAV_INTERCONNECT] = {
-        .taskName = "UIB",
-        .taskFunc = uavInterconnectBusTask,
-        .desiredPeriod = 1000000 / 500,          // 500 Hz
+        .desiredPeriod = TASK_PERIOD_HZ(100),   // I2C/SPI sensor will work at higher rate and accumulate, UART sensor will work at lower rate w/o accumulation
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif
