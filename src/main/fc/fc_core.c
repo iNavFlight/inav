@@ -301,6 +301,8 @@ static void updateArmingStatus(void)
             } else {
                 ENABLE_ARMING_FLAG(ARMING_DISABLED_NO_PREARM);
             }
+        } else {
+            DISABLE_ARMING_FLAG(ARMING_DISABLED_NO_PREARM);
         }
 
         /* CHECK: Arming switch */
