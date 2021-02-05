@@ -1875,7 +1875,7 @@ groups:
         min: 1
         max: 16000
       - name: fw_level_pitch_trim
-        description: "Pitch trim for self-leveling flight modes. In degrees. +5 means nose should be raised 5 deg from level"
+        description: "Pitch trim for self-leveling flight modes. In degrees. +5 means airplane nose should be raised 5 deg from level"
         default_value: "0"
         field: fixedWingLevelTrim
         min: -10
@@ -3123,6 +3123,11 @@ groups:
         description: "Use half duplex UART to communicate with the VTX, using only a TX pin in the FC."
         default_value: "ON"
         field: halfDuplex
+        type: bool
+      - name: vtx_smartaudio_early_akk_workaround
+        description: "Enable workaround for early AKK SAudio-enabled VTX bug."
+        default_value: "ON"
+        field: smartAudioEarlyAkkWorkaroundEnable
         type: bool
 
   - name: PG_VTX_SETTINGS_CONFIG

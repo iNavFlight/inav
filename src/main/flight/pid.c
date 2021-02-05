@@ -158,7 +158,7 @@ static EXTENDED_FASTRAM bool levelingEnabled = false;
 static EXTENDED_FASTRAM float fixedWingLevelTrim;
 static EXTENDED_FASTRAM pidController_t fixedWingLevelTrimController;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 0);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 2);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -557,6 +557,21 @@ static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float h
          */
         angleTarget -= fixedWingLevelTrim;   
         DEBUG_SET(DEBUG_AUTOLEVEL, 3, angleTarget * 10);
+    }
+
+
+    //PITCH trim applied by a AutoLevel flight mode and manual pitch trimming
+    if (axis == FD_PITCH && STATE(AIRPLANE)) {
+        /* 
+         * fixedWingLevelTrim has opposite sign to rcCommand.
+         * Positive rcCommand means nose should point downwards
+         * Negative rcCommand mean nose should point upwards
+         * This is counter intuitive and a natural way suggests that + should mean UP
+         * This is why fixedWingLevelTrim has opposite sign to rcCommand
+         * Positive fixedWingLevelTrim means nose should point upwards
+         * Negative fixedWingLevelTrim means nose should point downwards
+         */
+        angleTarget -= DEGREES_TO_DECIDEGREES(fixedWingLevelTrim);   
     }
 
     const float angleErrorDeg = DECIDEGREES_TO_DEGREES(angleTarget - attitude.raw[axis]);
