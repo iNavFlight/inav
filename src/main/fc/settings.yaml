@@ -1874,6 +1874,12 @@ groups:
         condition: USE_GYRO_KALMAN
         min: 1
         max: 16000
+      - name: fw_level_pitch_trim
+        description: "Pitch trim for self-leveling flight modes. In degrees. +5 means airplane nose should be raised 5 deg from level"
+        default_value: "0"
+        field: fixedWingLevelTrim
+        min: -10
+        max: 10
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t
