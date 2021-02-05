@@ -548,10 +548,7 @@ static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float h
          * Positive fixedWingLevelTrim means nose should point upwards
          * Negative fixedWingLevelTrim means nose should point downwards
          */
-        DEBUG_SET(DEBUG_ALWAYS, 0, fixedWingLevelTrim);
-        DEBUG_SET(DEBUG_ALWAYS, 1, angleTarget);
         angleTarget -= DEGREES_TO_DECIDEGREES(fixedWingLevelTrim);   
-        DEBUG_SET(DEBUG_ALWAYS, 2, angleTarget);
     }
 
     const float angleErrorDeg = DECIDEGREES_TO_DEGREES(angleTarget - attitude.raw[axis]);
