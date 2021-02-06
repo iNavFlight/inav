@@ -22,9 +22,12 @@
 
 #include "drivers/time.h"
 #include "drivers/io.h"
+
+#ifdef BEEPER_PWM
 #include "drivers/timer.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
+#endif
 
 #include "sound_beeper.h"
 

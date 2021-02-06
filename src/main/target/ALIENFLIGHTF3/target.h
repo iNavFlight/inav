@@ -21,7 +21,7 @@
 
 #define USE_HARDWARE_REVISION_DETECTION
 #define HW_PIN                  PB2
-#define BRUSHED_ESC_AUTODETECT
+#define USE_BRUSHED_ESC_AUTODETECT
 
 // LED's V1
 #define LED0                    PB4

@@ -27,6 +27,7 @@
 #include "common/maths.h"
 #include "common/printf.h"
 #include "common/time.h"
+#include "common/utils.h"
 
 #include "config/parameter_group_ids.h"
 
