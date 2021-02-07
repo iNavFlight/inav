@@ -278,7 +278,7 @@
 | nav_fw_launch_thr | 1700 | Launch throttle - throttle to be set during launch sequence (pwm units) |
 | nav_fw_launch_timeout | 5000 | Maximum time for launch sequence to be executed. After this time LAUNCH mode will be turned off and regular flight mode will take over (ms) |
 | nav_fw_launch_velocity | 300 | Forward velocity threshold for swing-launch detection [cm/s] |
-| nav_fw_loiter_radius | 5000 | PosHold radius. 3000 to 7500 is a good value (30-75m) [cm] |
+| nav_fw_loiter_radius | 7500 | PosHold radius. 3000 to 7500 is a good value (30-75m) [cm] |
 | nav_fw_max_thr | 1700 | Maximum throttle for flying wing in GPS assisted modes |
 | nav_fw_min_thr | 1200 | Minimum throttle for flying wing in GPS assisted modes |
 | nav_fw_pitch2thr | 10 | Amount of throttle applied related to pitch attitude in GPS assisted modes. Throttle = nav_fw_cruise_throttle - (nav_fw_pitch2thr * pitch_angle). (notice that pitch_angle is in degrees and is negative when climbing and positive when diving, and throttle value is constrained between nav_fw_min_thr and nav_fw_max_thr) |
