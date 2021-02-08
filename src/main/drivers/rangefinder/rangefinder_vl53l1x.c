@@ -109,6 +109,7 @@
 
 #define VL53L1X_MAX_RANGE_CM                                (300)
 #define VL53L1X_DETECTION_CONE_DECIDEGREES                  (270)
+#define VL53L1X_TIMING_BUDGET                               (33)
 
 #define VL53L1X_IMPLEMENTATION_VER_MAJOR       3
 #define VL53L1X_IMPLEMENTATION_VER_MINOR       4
@@ -1607,8 +1608,8 @@ static void vl53l1x_Init(rangefinderDev_t * rangefinder)
     isInitialized = false;
     VL53L1X_SensorInit(rangefinder->busDev);
     VL53L1X_SetDistanceMode(rangefinder->busDev, 2); /* 1=short, 2=long */
-    VL53L1X_SetTimingBudgetInMs(rangefinder->busDev, 33); /* in ms possible values [20, 50, 100, 200, 500] */
-    VL53L1X_SetInterMeasurementInMs(rangefinder->busDev, 33); /* in ms, IM must be > = TB */
+    VL53L1X_SetTimingBudgetInMs(rangefinder->busDev, VL53L1X_TIMING_BUDGET); /* in ms possible values [20, 50, 100, 200, 500] */
+    VL53L1X_SetInterMeasurementInMs(rangefinder->busDev, RANGEFINDER_VL53L1X_TASK_PERIOD_MS); /* in ms, IM must be > = TB */
     VL53L1X_StartRanging(rangefinder->busDev);
     isInitialized = true;
 }

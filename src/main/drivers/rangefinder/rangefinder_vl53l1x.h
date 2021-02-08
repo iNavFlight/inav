@@ -24,6 +24,6 @@
 
 #pragma once
 
-#define RANGEFINDER_VL53L1X_TASK_PERIOD_MS  50
+#define RANGEFINDER_VL53L1X_TASK_PERIOD_MS  (40)
 
 bool vl53l1xDetect(rangefinderDev_t *dev);
