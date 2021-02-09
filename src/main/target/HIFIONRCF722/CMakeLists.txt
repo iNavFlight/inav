@@ -1,1 +1,1 @@
-target_stm32f722xe(HIFIONRCF722)
+target_stm32f722xe(HFORCF722)
