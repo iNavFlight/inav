@@ -53,5 +53,4 @@
 
 void targetConfiguration(void)
 {
-   //no hardwired UARTs, no Softserial
 }
