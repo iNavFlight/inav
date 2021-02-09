@@ -74,7 +74,6 @@ typedef enum {
 // type to hold enough bits for CHECKBOX_ITEM_COUNT. Struct used for value-like behavior
 typedef struct boxBitmask_s { BITARRAY_DECLARE(bits, CHECKBOX_ITEM_COUNT); } boxBitmask_t;
 
-#define MAX_MODE_ACTIVATION_CONDITION_COUNT 20
 
 #define CHANNEL_RANGE_MIN 900
 #define CHANNEL_RANGE_MAX 2100
