@@ -2936,7 +2936,7 @@ static void osdShowStatsPage1(void)
     const char * disarmReasonStr[DISARM_REASON_COUNT] = { "UNKNOWN", "TIMEOUT", "STICKS", "SWITCH", "SWITCH", "KILLSW", "FAILSAFE", "NAV SYS" };
     uint8_t top = 1;    /* first fully visible line */
     const uint8_t statNameX = 1;
-    const uint8_t statValuesX = 20;
+    const uint8_t statValuesX = 19;
     char buff[10];
 
     displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
@@ -2986,7 +2986,7 @@ static void osdShowStatsPage2(void)
 {
     uint8_t top = 1;    /* first fully visible line */
     const uint8_t statNameX = 1;
-    const uint8_t statValuesX = 20;
+    const uint8_t statValuesX = 19;
     char buff[10];
 
     displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
@@ -3001,15 +3001,16 @@ static void osdShowStatsPage2(void)
     displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
     if (feature(FEATURE_CURRENT_METER)) {
-        displayWrite(osdDisplayPort, statNameX, top, "MAX CURRENT      :");
-        itoa(stats.max_current, buff, 10);
+        displayWrite(osdDisplayPort, statNameX, top, "MAX CURRENT/POWER:");
+        osdFormatCentiNumber(buff, stats.max_current * 100, 0, 0, 0, 3);
         strcat(buff, "A");
-        displayWrite(osdDisplayPort, statValuesX, top++, buff);
-
-        displayWrite(osdDisplayPort, statNameX, top, "MAX POWER        :");
-        itoa(stats.max_power, buff, 10);
+        osdLeftAlignString(buff);
+        strcat(buff, "/");
+        displayWrite(osdDisplayPort, statValuesX, top, buff);
+        osdFormatCentiNumber(buff, stats.max_power * 100, 0, 0, 0, 4);
         strcat(buff, "W");
-        displayWrite(osdDisplayPort, statValuesX, top++, buff);
+        osdLeftAlignString(buff);
+        displayWrite(osdDisplayPort, statValuesX + 5, top++, buff);
 
         if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
             displayWrite(osdDisplayPort, statNameX, top, "USED MAH         :");
