@@ -333,13 +333,16 @@ typedef struct osdConfig_s {
     uint8_t units; // from osd_unit_e
     uint8_t stats_energy_unit; // from osd_stats_energy_unit_e
 
+#ifdef USE_WIND_ESTIMATOR
     bool    estimations_wind_compensation; // use wind compensation for estimated remaining flight/distance
+#endif
+
     uint8_t coordinate_digits;
 
     bool osd_failsafe_switch_layout;
     uint8_t plus_code_digits; // Number of digits to use in OSD_PLUS_CODE
     uint8_t plus_code_short;
-    uint8_t osd_ahi_style;
+    uint8_t ahi_style;
     uint8_t force_grid;                 // Force a pixel based OSD to use grid mode.
     uint8_t ahi_bordered;               // Only used by the AHI widget
     uint8_t ahi_width;                  // In pixels, only used by the AHI widget

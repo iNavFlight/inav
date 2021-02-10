@@ -299,9 +299,11 @@ class Generator
 
         load_data
 
+        check_member_default_values_presence
         sanitize_fields
         initialize_name_encoder
         initialize_value_encoder
+        validate_default_values
 
         write_header_file(header_file)
         write_impl_file(impl_file)
@@ -417,8 +419,33 @@ class Generator
         ii = 0
         foreach_enabled_member do |group, member|
             name = member["name"]
+            type = member["type"]
+            default_value = member["default_value"]
+
+            case
+            when %i[ zero target ].include?(default_value)
+                default_value = nil
+
+            when member.has_key?("table")
+                table_name = member["table"]
+                table_values = @tables[table_name]["values"]
+                if table_name == 'off_on' and [false, true].include? default_value
+                    default_value = { false => '0', true => '1' }[default_value]
+                else
+                    default_value = table_values.index default_value
+                end
+
+            when type == "string"
+                default_value = "{ #{[*default_value.bytes, 0] * ', '} }"
+
+            when default_value.is_a?(Float)
+                default_value = default_value.to_s + ?f
+
+            end
+
             min, max = resolve_range(member)
             setting_name = "SETTING_#{name.upcase}"
+            buf << "#define #{setting_name}_DEFAULT #{default_value}\n" unless default_value.nil?
             buf << "#define #{setting_name} #{ii}\n"
             buf << "#define #{setting_name}_MIN #{min}\n"
             buf << "#define #{setting_name}_MAX #{max}\n"
@@ -629,44 +656,47 @@ class Generator
         return !cond || @true_conditions.include?(cond)
     end
 
-    def foreach_enabled_member
-        @data["groups"].each do |group|
-            if is_condition_enabled(group["condition"])
-                group["members"].each do |member|
-                    if is_condition_enabled(member["condition"])
-                        yield group, member
+    def foreach_enabled_member &block
+        enum = Enumerator.new do |yielder|
+            groups.each do |group|
+                if is_condition_enabled(group["condition"])
+                    group["members"].each do |member|
+                        if is_condition_enabled(member["condition"])
+                            yielder.yield group, member
+                        end
                     end
                 end
             end
         end
+        block_given? ? enum.each(&block) : enum
     end
 
-    def foreach_enabled_group
-        last = nil
-        foreach_enabled_member do |group, member|
-            if last != group
-                last = group
-                yield group
+    def foreach_enabled_group &block
+        enum = Enumerator.new do |yielder|
+            last = nil
+            foreach_enabled_member do |group, member|
+                if last != group
+                    last = group
+                    yielder.yield group
+                end
             end
         end
+        block_given? ? enum.each(&block) : enum
     end
 
-    def foreach_member
-        @data["groups"].each do |group|
-            group["members"].each do |member|
-                yield group, member
+    def foreach_member &block
+        enum = Enumerator.new do |yielder|
+            @data["groups"].each do |group|
+                group["members"].each do |member|
+                    yielder.yield group, member
+                end
             end
         end
+        block_given? ? enum.each(&block) : enum
     end
 
-    def foreach_group
-        last = nil
-        foreach_member do |group, member|
-            if last != group
-                last = group
-                yield group
-            end
-        end
+    def groups
+        @data["groups"]
     end
 
     def initialize_tables
@@ -795,25 +825,29 @@ class Generator
             if !group["name"]
                 raise "Missing group name"
             end
+
             if !member["name"]
                 raise "Missing member name in group #{group["name"]}"
             end
+
             table = member["table"]
             if table
                 if !@tables[table]
                     raise "Member #{member["name"]} references non-existing table #{table}"
                 end
+
                 @used_tables << table
             end
+
             if !member["field"]
                 member["field"] = member["name"]
             end
+
             typ = member["type"]
             if !typ
                 pending_types[member] = group
             elsif typ == "bool"
                 has_booleans = true
-                member["type"] = "uint8_t"
                 member["table"] = OFF_ON_TABLE["name"]
             end
         end
@@ -831,6 +865,44 @@ class Generator
             @max_name_length = [@max_name_length, member["name"].length].max
             if member["table"]
                 @enabled_tables << member["table"]
+            end
+        end
+    end
+
+    def validate_default_values
+        foreach_enabled_member do |_, member|
+            name = member["name"]
+            type = member["type"]
+            default_value = member["default_value"]
+
+            next if %i[ zero target ].include? default_value
+
+            case
+            when type == "bool"
+                raise "Member #{name} has an invalid default value" unless [ false, true ].include? default_value
+
+            when member.has_key?("table")
+                table_name = member["table"]
+                table_values = @tables[table_name]["values"]
+                raise "Member #{name} has an invalid default value" unless table_values.include? default_value
+
+            when type =~ /\A(?<unsigned>u?)int(?<bitsize>8|16|32|64)_t\Z/
+                unsigned = !$~[:unsigned].empty?
+                bitsize = $~[:bitsize].to_i
+                type_range = unsigned ? 0..(2**bitsize-1) : (-2**(bitsize-1)+1)..(2**(bitsize-1)-1)
+                raise "Member #{name} default value has an invalid type, integer or symbol expected" unless default_value.is_a? Integer or default_value.is_a? Symbol
+                raise "Member #{name} default value is outside type's storage range, min #{type_range.min}, max #{type_range.max}" unless default_value.is_a? Symbol or type_range === default_value
+
+            when type == "float"
+                raise "Member #{name} default value has an invalid type, numeric or symbol expected" unless default_value.is_a? Numeric or default_value.is_a? Symbol
+
+            when type == "string"
+                max = member["max"].to_i
+                raise "Member #{name} default value has an invalid type, string expected" unless default_value.is_a? String
+                raise "Member #{name} default value is too long (max #{max} chars)" if default_value.bytesize > max
+
+            else
+                raise "Unexpected type for member #{name}: #{type.inspect}"
             end
         end
     end
@@ -923,6 +995,11 @@ class Generator
             values << constantValues[c]
         end
         @value_encoder = ValueEncoder.new(values, constantValues)
+    end
+
+    def check_member_default_values_presence
+        missing_default_value_names = foreach_member.inject([]) { |names, (_, member)| member.has_key?("default_value") ? names : names << member["name"] }
+        raise "Missing default value for #{missing_default_value_names.count} member#{"s" unless missing_default_value_names.one?}: #{missing_default_value_names * ", "}" unless missing_default_value_names.empty?
     end
 
     def resolve_constants(constants)

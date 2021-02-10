@@ -40,11 +40,10 @@
 #include "fc/rc_controls.h"
 #include "fc/rc_adjustments.h"
 #include "fc/runtime_config.h"
+#include "fc/settings.h"
 
 #include "flight/pid.h"
 
-#define AUTOTUNE_FIXED_WING_OVERSHOOT_TIME      100
-#define AUTOTUNE_FIXED_WING_UNDERSHOOT_TIME     200
 #define AUTOTUNE_FIXED_WING_INTEGRATOR_TC       600
 #define AUTOTUNE_FIXED_WING_DECREASE_STEP       8           // 8%
 #define AUTOTUNE_FIXED_WING_INCREASE_STEP       5           // 5%
@@ -54,11 +53,11 @@
 PG_REGISTER_WITH_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig, PG_PID_AUTOTUNE_CONFIG, 0);
 
 PG_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig,
-    .fw_overshoot_time = AUTOTUNE_FIXED_WING_OVERSHOOT_TIME,
-    .fw_undershoot_time = AUTOTUNE_FIXED_WING_UNDERSHOOT_TIME,
-    .fw_max_rate_threshold = 50,
-    .fw_ff_to_p_gain = 10,
-    .fw_ff_to_i_time_constant = AUTOTUNE_FIXED_WING_INTEGRATOR_TC,
+    .fw_overshoot_time = SETTING_FW_AUTOTUNE_OVERSHOOT_TIME_DEFAULT,
+    .fw_undershoot_time = SETTING_FW_AUTOTUNE_UNDERSHOOT_TIME_DEFAULT,
+    .fw_max_rate_threshold = SETTING_FW_AUTOTUNE_THRESHOLD_DEFAULT,
+    .fw_ff_to_p_gain = SETTING_FW_AUTOTUNE_FF_TO_P_GAIN_DEFAULT,
+    .fw_ff_to_i_time_constant = SETTING_FW_AUTOTUNE_FF_TO_I_TC_DEFAULT,
 );
 
 typedef enum {

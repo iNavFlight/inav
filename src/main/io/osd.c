@@ -1615,7 +1615,11 @@ static bool osdDrawSingleElement(uint8_t item)
             timeUs_t currentTimeUs = micros();
             static int32_t timeSeconds = -1;
             if (cmpTimeUs(currentTimeUs, updatedTimestamp) >= 1000000) {
+#ifdef USE_WIND_ESTIMATOR
                 timeSeconds = calculateRemainingFlightTimeBeforeRTH(osdConfig()->estimations_wind_compensation);
+#else
+                timeSeconds = calculateRemainingFlightTimeBeforeRTH(false);
+#endif
                 updatedTimestamp = currentTimeUs;
             }
             if ((!ARMING_FLAG(ARMED)) || (timeSeconds == -1)) {
@@ -1642,7 +1646,11 @@ static bool osdDrawSingleElement(uint8_t item)
         timeUs_t currentTimeUs = micros();
         static int32_t distanceMeters = -1;
         if (cmpTimeUs(currentTimeUs, updatedTimestamp) >= 1000000) {
+#ifdef USE_WIND_ESTIMATOR
             distanceMeters = calculateRemainingDistanceBeforeRTH(osdConfig()->estimations_wind_compensation);
+#else
+            distanceMeters = calculateRemainingDistanceBeforeRTH(false);
+#endif
             updatedTimestamp = currentTimeUs;
         }
         buff[0] = SYM_TRIP_DIST;
@@ -2659,71 +2667,84 @@ void osdDrawNextElement(void)
 }
 
 PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
-    .rssi_alarm = 20,
-    .time_alarm = 10,
-    .alt_alarm = 100,
-    .dist_alarm = 1000,
-    .neg_alt_alarm = 5,
-    .current_alarm = 0,
-    .imu_temp_alarm_min = -200,
-    .imu_temp_alarm_max = 600,
-    .esc_temp_alarm_min = -200,
-    .esc_temp_alarm_max = 900,
-    .gforce_alarm = 5,
-    .gforce_axis_alarm_min = -5,
-    .gforce_axis_alarm_max = 5,
+    .rssi_alarm = SETTING_OSD_RSSI_ALARM_DEFAULT,
+    .time_alarm = SETTING_OSD_TIME_ALARM_DEFAULT,
+    .alt_alarm = SETTING_OSD_ALT_ALARM_DEFAULT,
+    .dist_alarm = SETTING_OSD_DIST_ALARM_DEFAULT,
+    .neg_alt_alarm = SETTING_OSD_NEG_ALT_ALARM_DEFAULT,
+    .current_alarm = SETTING_OSD_CURRENT_ALARM_DEFAULT,
+    .imu_temp_alarm_min = SETTING_OSD_IMU_TEMP_ALARM_MIN_DEFAULT,
+    .imu_temp_alarm_max = SETTING_OSD_IMU_TEMP_ALARM_MAX_DEFAULT,
+    .esc_temp_alarm_min = SETTING_OSD_ESC_TEMP_ALARM_MIN_DEFAULT,
+    .esc_temp_alarm_max = SETTING_OSD_ESC_TEMP_ALARM_MAX_DEFAULT,
+    .gforce_alarm = SETTING_OSD_GFORCE_ALARM_DEFAULT,
+    .gforce_axis_alarm_min = SETTING_OSD_GFORCE_AXIS_ALARM_MIN_DEFAULT,
+    .gforce_axis_alarm_max = SETTING_OSD_GFORCE_AXIS_ALARM_MAX_DEFAULT,
 #ifdef USE_BARO
-    .baro_temp_alarm_min = -200,
-    .baro_temp_alarm_max = 600,
+    .baro_temp_alarm_min = SETTING_OSD_BARO_TEMP_ALARM_MIN_DEFAULT,
+    .baro_temp_alarm_max = SETTING_OSD_BARO_TEMP_ALARM_MAX_DEFAULT,
 #endif
 #ifdef USE_SERIALRX_CRSF
-    .snr_alarm = 4,
-    .crsf_lq_format = OSD_CRSF_LQ_TYPE1,
-    .link_quality_alarm = 70,
+    .snr_alarm = SETTING_OSD_SNR_ALARM_DEFAULT,
+    .crsf_lq_format = SETTING_OSD_CRSF_LQ_FORMAT_DEFAULT,
+    .link_quality_alarm = SETTING_OSD_LINK_QUALITY_ALARM_DEFAULT,
 #endif
 #ifdef USE_TEMPERATURE_SENSOR
-    .temp_label_align = OSD_ALIGN_LEFT,
+    .temp_label_align = SETTING_OSD_TEMP_LABEL_ALIGN_DEFAULT,
 #endif
 
-    .video_system = VIDEO_SYSTEM_AUTO,
+    .video_system = SETTING_OSD_VIDEO_SYSTEM_DEFAULT,
+    .row_shiftdown = SETTING_OSD_ROW_SHIFTDOWN_DEFAULT,
 
-    .ahi_reverse_roll = 0,
-    .ahi_max_pitch = AH_MAX_PITCH_DEFAULT,
-    .crosshairs_style = OSD_CROSSHAIRS_STYLE_DEFAULT,
-    .horizon_offset = 0,
-    .camera_uptilt = 0,
-    .camera_fov_h = 135,
-    .camera_fov_v = 85,
-    .hud_margin_h = 3,
-    .hud_margin_v = 3,
-    .hud_homing = 0,
-    .hud_homepoint = 0,
-    .hud_radar_disp = 0,
-    .hud_radar_range_min = 3,
-    .hud_radar_range_max = 4000,
-    .hud_radar_nearest = 0,
-    .hud_wp_disp = 0,
-    .left_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE,
-    .right_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE,
-    .sidebar_scroll_arrows = 0,
-    .osd_home_position_arm_screen = true,
-    .pan_servo_index = 0,
-    .pan_servo_pwm2centideg = 0,
+    .ahi_reverse_roll = SETTING_OSD_AHI_REVERSE_ROLL_DEFAULT,
+    .ahi_max_pitch = SETTING_OSD_AHI_MAX_PITCH_DEFAULT,
+    .crosshairs_style = SETTING_OSD_CROSSHAIRS_STYLE_DEFAULT,
+    .horizon_offset = SETTING_OSD_HORIZON_OFFSET_DEFAULT,
+    .camera_uptilt = SETTING_OSD_CAMERA_UPTILT_DEFAULT,
+    .camera_fov_h = SETTING_OSD_CAMERA_FOV_H_DEFAULT,
+    .camera_fov_v = SETTING_OSD_CAMERA_FOV_V_DEFAULT,
+    .hud_margin_h = SETTING_OSD_HUD_MARGIN_H_DEFAULT,
+    .hud_margin_v = SETTING_OSD_HUD_MARGIN_V_DEFAULT,
+    .hud_homing = SETTING_OSD_HUD_HOMING_DEFAULT,
+    .hud_homepoint = SETTING_OSD_HUD_HOMEPOINT_DEFAULT,
+    .hud_radar_disp = SETTING_OSD_HUD_RADAR_DISP_DEFAULT,
+    .hud_radar_range_min = SETTING_OSD_HUD_RADAR_RANGE_MIN_DEFAULT,
+    .hud_radar_range_max = SETTING_OSD_HUD_RADAR_RANGE_MAX_DEFAULT,
+    .hud_radar_nearest = SETTING_OSD_HUD_RADAR_NEAREST_DEFAULT,
+    .hud_wp_disp = SETTING_OSD_HUD_WP_DISP_DEFAULT,
+    .left_sidebar_scroll = SETTING_OSD_LEFT_SIDEBAR_SCROLL_DEFAULT,
+    .right_sidebar_scroll = SETTING_OSD_RIGHT_SIDEBAR_SCROLL_DEFAULT,
+    .sidebar_scroll_arrows = SETTING_OSD_SIDEBAR_SCROLL_ARROWS_DEFAULT,
+    .sidebar_horizontal_offset = SETTING_OSD_SIDEBAR_HORIZONTAL_OFFSET_DEFAULT,
+    .left_sidebar_scroll_step = SETTING_OSD_LEFT_SIDEBAR_SCROLL_STEP_DEFAULT,
+    .right_sidebar_scroll_step = SETTING_OSD_RIGHT_SIDEBAR_SCROLL_STEP_DEFAULT,
+    .osd_home_position_arm_screen = SETTING_OSD_HOME_POSITION_ARM_SCREEN_DEFAULT,
+    .pan_servo_index = SETTING_OSD_PAN_SERVO_INDEX_DEFAULT,
+    .pan_servo_pwm2centideg = SETTING_OSD_PAN_SERVO_PWM2CENTIDEG_DEFAULT,
 
-    .units = OSD_UNIT_METRIC,
-    .main_voltage_decimals = 1,
+    .units = SETTING_OSD_UNITS_DEFAULT,
+    .main_voltage_decimals = SETTING_OSD_MAIN_VOLTAGE_DECIMALS_DEFAULT,
 
-    .estimations_wind_compensation = true,
-    .coordinate_digits = 9,
+#ifdef USE_WIND_ESTIMATOR
+    .estimations_wind_compensation = SETTING_OSD_ESTIMATIONS_WIND_COMPENSATION_DEFAULT,
+#endif
 
-    .osd_failsafe_switch_layout = false,
+    .coordinate_digits = SETTING_OSD_COORDINATE_DIGITS_DEFAULT,
 
-    .plus_code_digits = 11,
-    .plus_code_short = 0,
+    .osd_failsafe_switch_layout = SETTING_OSD_FAILSAFE_SWITCH_LAYOUT_DEFAULT,
 
-    .ahi_width = OSD_AHI_WIDTH * OSD_CHAR_WIDTH,
-    .ahi_height = OSD_AHI_HEIGHT * OSD_CHAR_HEIGHT,
-    .ahi_vertical_offset = -OSD_CHAR_HEIGHT,
+    .plus_code_digits = SETTING_OSD_PLUS_CODE_DIGITS_DEFAULT,
+    .plus_code_short = SETTING_OSD_PLUS_CODE_SHORT_DEFAULT,
+
+    .ahi_width = SETTING_OSD_AHI_WIDTH_DEFAULT,
+    .ahi_height = SETTING_OSD_AHI_HEIGHT_DEFAULT,
+    .ahi_vertical_offset = SETTING_OSD_AHI_VERTICAL_OFFSET_DEFAULT,
+    .ahi_bordered = SETTING_OSD_AHI_BORDERED_DEFAULT,
+    .ahi_style = SETTING_OSD_AHI_STYLE_DEFAULT,
+
+    .force_grid = SETTING_OSD_FORCE_GRID_DEFAULT,
+
+    .stats_energy_unit = SETTING_OSD_STATS_ENERGY_UNIT_DEFAULT
 );
 
 void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
