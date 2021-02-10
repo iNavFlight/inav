@@ -2936,7 +2936,7 @@ static void osdShowStatsPage1(void)
     const char * disarmReasonStr[DISARM_REASON_COUNT] = { "UNKNOWN", "TIMEOUT", "STICKS", "SWITCH", "SWITCH", "KILLSW", "FAILSAFE", "NAV SYS" };
     uint8_t top = 1;    /* first fully visible line */
     const uint8_t statNameX = 1;
-    const uint8_t statValuesX = 19;
+    const uint8_t statValuesX = 20;
     char buff[10];
 
     displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
@@ -2986,7 +2986,7 @@ static void osdShowStatsPage2(void)
 {
     uint8_t top = 1;    /* first fully visible line */
     const uint8_t statNameX = 1;
-    const uint8_t statValuesX = 19;
+    const uint8_t statValuesX = 20;
     char buff[10];
 
     displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
