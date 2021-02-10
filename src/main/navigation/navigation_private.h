@@ -25,7 +25,9 @@
 #include "common/maths.h"
 #include "common/filter.h"
 #include "common/time.h"
+#include "common/vector.h"
 #include "fc/runtime_config.h"
+#include "navigation/navigation.h"
 
 #define MIN_POSITION_UPDATE_RATE_HZ         5       // Minimum position update rate at which XYZ controllers would be applied
 #define NAV_THROTTLE_CUTOFF_FREQENCY_HZ     4       // low-pass filter on throttle output
@@ -88,12 +90,6 @@ typedef struct navigationFlags_s {
 
     bool forcedRTHActivated;
 } navigationFlags_t;
-
-typedef enum {
-    PID_DTERM_FROM_ERROR            = 1 << 0,
-    PID_ZERO_INTEGRATOR             = 1 << 1,
-    PID_SHRINK_INTEGRATOR           = 1 << 2,
-} pidControllerFlags_e;
 
 typedef struct {
     fpVector3_t pos;
@@ -388,21 +384,6 @@ extern multicopterPosXyCoefficients_t multicopterPosXyCoefficients;
 
 /* Internally used functions */
 const navEstimatedPosVel_t * navGetCurrentActualPositionAndVelocity(void);
-
-float navPidApply2(pidController_t *pid, const float setpoint, const float measurement, const float dt, const float outMin, const float outMax, const pidControllerFlags_e pidFlags);
-float navPidApply3(
-    pidController_t *pid,
-    const float setpoint,
-    const float measurement,
-    const float dt,
-    const float outMin,
-    const float outMax,
-    const pidControllerFlags_e pidFlags,
-    const float gainScaler,
-    const float dTermScaler
-);
-void navPidReset(pidController_t *pid);
-void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD, float _kFF, float _dTermLpfHz);
 
 bool isThrustFacingDownwards(void);
 uint32_t calculateDistanceToDestination(const fpVector3_t * destinationPos);

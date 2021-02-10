@@ -41,7 +41,9 @@ uint8_t cliMode = 0;
 #include "common/memory.h"
 #include "common/time.h"
 #include "common/typeconversion.h"
+#include "common/fp_pid.h"
 #include "programming/global_variables.h"
+#include "programming/pid.h"
 
 #include "config/config_eeprom.h"
 #include "config/feature.h"
@@ -1207,10 +1209,10 @@ static void cliTempSensor(char *cmdline)
     } else {
         int16_t i;
         const char *ptr = cmdline, *label;
-        int16_t type, alarm_min, alarm_max;
+        int16_t type=0, alarm_min=0, alarm_max=0;
         bool addressValid = false;
         uint64_t address;
-        int8_t osdSymbol;
+        int8_t osdSymbol=0;
         uint8_t validArgumentCount = 0;
         i = fastA2I(ptr);
         if (i >= 0 && i < MAX_TEMP_SENSORS) {
@@ -1299,8 +1301,8 @@ static void cliSafeHomes(char *cmdline)
     } else if (sl_strcasecmp(cmdline, "reset") == 0) {
         resetSafeHomes();
     } else {
-        int32_t lat, lon;
-        bool enabled;
+        int32_t lat=0, lon=0;
+        bool enabled=false;
         uint8_t validArgumentCount = 0;
         const char *ptr = cmdline;
         int8_t i = fastA2I(ptr);
@@ -1334,7 +1336,7 @@ static void cliSafeHomes(char *cmdline)
     }
 }
 
-#endif 
+#endif
 #if defined(USE_NAV) && defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE) && defined(NAV_NON_VOLATILE_WAYPOINT_CLI)
 static void printWaypoints(uint8_t dumpMask, const navWaypoint_t *navWaypoint, const navWaypoint_t *defaultNavWaypoint)
 {
@@ -1401,9 +1403,9 @@ static void cliWaypoints(char *cmdline)
             cliShowParseError();
         }
     } else {
-        int16_t i, p1,p2=0,p3=0,tmp;
-        uint8_t action, flag;
-        int32_t lat, lon, alt;
+        int16_t i, p1=0,p2=0,p3=0,tmp=0;
+        uint8_t action=0, flag=0;
+        int32_t lat=0, lon=0, alt=0;
         uint8_t validArgumentCount = 0;
         const char *ptr = cmdline;
         i = fastA2I(ptr);
@@ -1457,7 +1459,7 @@ static void cliWaypoints(char *cmdline)
 
             if (!(validArgumentCount == 6 || validArgumentCount == 8)) {
                 cliShowParseError();
-            } else if (!(action == 0 || action == NAV_WP_ACTION_WAYPOINT || action == NAV_WP_ACTION_RTH || action == NAV_WP_ACTION_JUMP || action == NAV_WP_ACTION_HOLD_TIME || action == NAV_WP_ACTION_LAND) || (p1 < 0) || !(flag == 0 || flag == NAV_WP_FLAG_LAST)) {
+            } else if (!(action == 0 || action == NAV_WP_ACTION_WAYPOINT || action == NAV_WP_ACTION_RTH || action == NAV_WP_ACTION_JUMP || action == NAV_WP_ACTION_HOLD_TIME || action == NAV_WP_ACTION_LAND || action == NAV_WP_ACTION_SET_POI || action == NAV_WP_ACTION_SET_HEAD) || !(flag == 0 || flag == NAV_WP_FLAG_LAST)) {
                 cliShowParseError();
             } else {
                 posControl.waypointList[i].action = action;
@@ -1992,6 +1994,118 @@ static void cliGvar(char *cmdline) {
             globalVariableConfigsMutable(i)->max = args[MAX];
 
             cliGvar("");
+        } else {
+            cliShowParseError();
+        }
+    }
+}
+
+static void printPid(uint8_t dumpMask, const programmingPid_t *programmingPids, const programmingPid_t *defaultProgrammingPids)
+{
+    const char *format = "pid %d %d %d %d %d %d %d %d %d %d";
+    for (uint32_t i = 0; i < MAX_PROGRAMMING_PID_COUNT; i++) {
+        const programmingPid_t pid = programmingPids[i];
+
+        bool equalsDefault = false;
+        if (defaultProgrammingPids) {
+            programmingPid_t defaultValue = defaultProgrammingPids[i];
+            equalsDefault =
+                pid.enabled == defaultValue.enabled &&
+                pid.setpoint.type == defaultValue.setpoint.type &&
+                pid.setpoint.value == defaultValue.setpoint.value &&
+                pid.measurement.type == defaultValue.measurement.type &&
+                pid.measurement.value == defaultValue.measurement.value &&
+                pid.gains.P == defaultValue.gains.P &&
+                pid.gains.I == defaultValue.gains.I &&
+                pid.gains.D == defaultValue.gains.D &&
+                pid.gains.FF == defaultValue.gains.FF;
+
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                i,
+                pid.enabled,
+                pid.setpoint.type,
+                pid.setpoint.value,
+                pid.measurement.type,
+                pid.measurement.value,
+                pid.gains.P,
+                pid.gains.I,
+                pid.gains.D,
+                pid.gains.FF
+            );
+        }
+        cliDumpPrintLinef(dumpMask, equalsDefault, format,
+            i,
+            pid.enabled,
+            pid.setpoint.type,
+            pid.setpoint.value,
+            pid.measurement.type,
+            pid.measurement.value,
+            pid.gains.P,
+            pid.gains.I,
+            pid.gains.D,
+            pid.gains.FF
+        );
+    }
+}
+
+static void cliPid(char *cmdline) {
+    char * saveptr;
+    int args[10], check = 0;
+    uint8_t len = strlen(cmdline);
+
+    if (len == 0) {
+        printPid(DUMP_MASTER, programmingPids(0), NULL);
+    } else if (sl_strncasecmp(cmdline, "reset", 5) == 0) {
+        pgResetCopy(programmingPidsMutable(0), PG_LOGIC_CONDITIONS);
+    } else {
+        enum {
+            INDEX = 0,
+            ENABLED,
+            SETPOINT_TYPE,
+            SETPOINT_VALUE,
+            MEASUREMENT_TYPE,
+            MEASUREMENT_VALUE,
+            P_GAIN,
+            I_GAIN,
+            D_GAIN,
+            FF_GAIN,
+            ARGS_COUNT
+            };
+        char *ptr = strtok_r(cmdline, " ", &saveptr);
+        while (ptr != NULL && check < ARGS_COUNT) {
+            args[check++] = fastA2I(ptr);
+            ptr = strtok_r(NULL, " ", &saveptr);
+        }
+
+        if (ptr != NULL || check != ARGS_COUNT) {
+            cliShowParseError();
+            return;
+        }
+
+        int32_t i = args[INDEX];
+        if (
+            i >= 0 && i < MAX_PROGRAMMING_PID_COUNT &&
+            args[ENABLED] >= 0 && args[ENABLED] <= 1 &&
+            args[SETPOINT_TYPE] >= 0 && args[SETPOINT_TYPE] < LOGIC_CONDITION_OPERAND_TYPE_LAST &&
+            args[SETPOINT_VALUE] >= -1000000 && args[SETPOINT_VALUE] <= 1000000 &&
+            args[MEASUREMENT_TYPE] >= 0 && args[MEASUREMENT_TYPE] < LOGIC_CONDITION_OPERAND_TYPE_LAST &&
+            args[MEASUREMENT_VALUE] >= -1000000 && args[MEASUREMENT_VALUE] <= 1000000 &&
+            args[P_GAIN] >= 0 && args[P_GAIN] <= INT16_MAX &&
+            args[I_GAIN] >= 0 && args[I_GAIN] <= INT16_MAX &&
+            args[D_GAIN] >= 0 && args[D_GAIN] <= INT16_MAX &&
+            args[FF_GAIN] >= 0 && args[FF_GAIN] <= INT16_MAX
+        ) {
+            programmingPidsMutable(i)->enabled = args[ENABLED];
+            programmingPidsMutable(i)->setpoint.type = args[SETPOINT_TYPE];
+            programmingPidsMutable(i)->setpoint.value = args[SETPOINT_VALUE];
+            programmingPidsMutable(i)->measurement.type = args[MEASUREMENT_TYPE];
+            programmingPidsMutable(i)->measurement.value = args[MEASUREMENT_VALUE];
+            programmingPidsMutable(i)->gains.P = args[P_GAIN];
+            programmingPidsMutable(i)->gains.I = args[I_GAIN];
+            programmingPidsMutable(i)->gains.D = args[D_GAIN];
+            programmingPidsMutable(i)->gains.FF = args[FF_GAIN];
+
+            cliPid("");
         } else {
             cliShowParseError();
         }
@@ -2591,7 +2705,7 @@ void cliRxBind(char *cmdline){
             break;
 #endif
         }
-    } 
+    }
 #if defined(USE_RX_SPI)
     else if (rxConfig()->receiverType == RX_TYPE_SPI) {
         switch (rxConfig()->rx_spi_protocol) {
@@ -2599,7 +2713,7 @@ void cliRxBind(char *cmdline){
             cliPrint("Not supported.");
             break;
         }
-    
+
     }
 #endif
 }
@@ -3304,7 +3418,7 @@ static void printConfig(const char *cmdline, bool doDiff)
 
 #if defined(USE_SAFE_HOME)
         cliPrintHashLine("safehome");
-        printSafeHomes(dumpMask, safeHomeConfig_CopyArray, safeHomeConfig(0)); 
+        printSafeHomes(dumpMask, safeHomeConfig_CopyArray, safeHomeConfig(0));
 #endif
 #ifdef USE_PROGRAMMING_FRAMEWORK
         cliPrintHashLine("logic");
@@ -3312,6 +3426,9 @@ static void printConfig(const char *cmdline, bool doDiff)
 
         cliPrintHashLine("gvar");
         printGvar(dumpMask, globalVariableConfigs_CopyArray, globalVariableConfigs(0));
+
+        cliPrintHashLine("pid");
+        printPid(dumpMask, programmingPids_CopyArray, programmingPids(0));
 #endif
 
         cliPrintHashLine("feature");
@@ -3566,6 +3683,10 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("gvar", "configure global variables",
         "<gvar> <default> <min> <max>\r\n"
         "\treset\r\n", cliGvar),
+
+    CLI_COMMAND_DEF("pid", "configurable PID controllers",
+        "<#> <enabled> <setpoint type> <setpoint value> <measurement type> <measurement value> <P gain> <I gain> <D gain> <FF gain>\r\n"
+        "\treset\r\n", cliPid),
 #endif
     CLI_COMMAND_DEF("set", "change setting", "[<name>=<value>]", cliSet),
     CLI_COMMAND_DEF("smix", "servo mixer",

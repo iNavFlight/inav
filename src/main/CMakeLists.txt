@@ -24,6 +24,8 @@ main_sources(COMMON_SRC
     common/encoding.h
     common/filter.c
     common/filter.h
+    common/fp_pid.c
+    common/fp_pid.h
     common/gps_conversion.c
     common/gps_conversion.h
     common/log.c
@@ -321,6 +323,8 @@ main_sources(COMMON_SRC
     flight/rpm_filter.h
     flight/dynamic_gyro_notch.c
     flight/dynamic_gyro_notch.h
+    flight/dynamic_lpf.c
+    flight/dynamic_lpf.h
 
     io/beeper.c
     io/beeper.h
@@ -362,6 +366,8 @@ main_sources(COMMON_SRC
     programming/global_variables.h
     programming/programming_task.c
     programming/programming_task.h
+    programming/pid.c
+    programming/pid.h
 
     rx/crsf.c
     rx/crsf.h
@@ -402,8 +408,6 @@ main_sources(COMMON_SRC
     rx/sumd.h
     rx/sumh.c
     rx/sumh.h
-    rx/uib_rx.c
-    rx/uib_rx.h
     rx/xbus.c
     rx/xbus.h
 
@@ -430,10 +434,6 @@ main_sources(COMMON_SRC
     sensors/irlock.h
     sensors/temperature.c
     sensors/temperature.h
-
-    uav_interconnect/uav_interconnect.h
-    uav_interconnect/uav_interconnect_bus.c
-    uav_interconnect/uav_interconnect_rangefinder.c
 
     blackbox/blackbox.c
     blackbox/blackbox.h

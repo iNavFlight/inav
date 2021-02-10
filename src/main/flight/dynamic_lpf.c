@@ -22,14 +22,29 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
-#include "platform.h"
+#include "flight/dynamic_lpf.h"
+#include "sensors/gyro.h"
+#include "flight/mixer.h"
+#include "fc/rc_controls.h"
+#include "build/debug.h"
 
-FILE_COMPILE_FOR_SIZE
+static float dynLpfCutoffFreq(float throttle, uint16_t dynLpfMin, uint16_t dynLpfMax, uint8_t expo) {
+    const float expof = expo / 10.0f;
+    static float curve;
+    curve = throttle * (1 - throttle) * expof + throttle;
+    return (dynLpfMax - dynLpfMin) * curve + dynLpfMin;
+}
 
-#include "programming/logic_condition.h"
-#include "programming/pid.h"
+void dynamicLpfGyroTask(void) {
 
-void programmingFrameworkUpdateTask(timeUs_t currentTimeUs) {
-    programmingPidUpdateTask(currentTimeUs);
-    logicConditionUpdateTask(currentTimeUs);
+    if (!gyroConfig()->useDynamicLpf) {
+        return;
+    }
+
+    const float throttle = scaleRangef((float) rcCommand[THROTTLE], getThrottleIdleValue(), motorConfig()->maxthrottle, 0.0f, 1.0f);
+    const float cutoffFreq = dynLpfCutoffFreq(throttle, gyroConfig()->gyroDynamicLpfMinHz, gyroConfig()->gyroDynamicLpfMaxHz, gyroConfig()->gyroDynamicLpfCurveExpo);
+
+    DEBUG_SET(DEBUG_DYNAMIC_GYRO_LPF, 0, cutoffFreq);
+
+    gyroUpdateDynamicLpf(cutoffFreq);
 }

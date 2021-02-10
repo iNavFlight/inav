@@ -148,8 +148,6 @@
 
 #include "telemetry/telemetry.h"
 
-#include "uav_interconnect/uav_interconnect.h"
-
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
 #endif
@@ -218,7 +216,7 @@ void init(void)
 #endif
 
     initEEPROM();
-    //ensureEEPROMContainsValidData();
+    ensureEEPROMContainsValidData();
     readEEPROM();
 
     // Re-initialize system clock to their final values (if necessary)
@@ -568,10 +566,6 @@ void init(void)
         // osdInit  will register with CMS by itself.
         osdInit(osdDisplayPort);
     }
-#endif
-
-#ifdef USE_UAV_INTERCONNECT
-    uavInterconnectBusInit();
 #endif
 
 #if defined(USE_CMS) && defined(USE_SPEKTRUM_CMS_TELEMETRY) && defined(USE_TELEMETRY_SRXL)

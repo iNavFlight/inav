@@ -22,14 +22,8 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
-#include "platform.h"
+#pragma once
 
-FILE_COMPILE_FOR_SIZE
+#include <stdint.h>
 
-#include "programming/logic_condition.h"
-#include "programming/pid.h"
-
-void programmingFrameworkUpdateTask(timeUs_t currentTimeUs) {
-    programmingPidUpdateTask(currentTimeUs);
-    logicConditionUpdateTask(currentTimeUs);
-}
+void dynamicLpfGyroTask(void);

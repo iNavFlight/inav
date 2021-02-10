@@ -29,6 +29,8 @@
 #include "common/maths.h"
 #include "common/utils.h"
 
+#include "programming/logic_condition.h"
+
 #include "config/feature.h"
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
@@ -64,10 +66,8 @@
 #include "rx/srxl2.h"
 #include "rx/sumd.h"
 #include "rx/sumh.h"
-#include "rx/uib_rx.h"
 #include "rx/xbus.h"
 #include "rx/ghst.h"
-
 
 //#define DEBUG_RX_SIGNAL_LOSS
 
@@ -327,12 +327,6 @@ void rxInit(void)
 #ifdef USE_RX_MSP
         case RX_TYPE_MSP:
             rxMspInit(rxConfig(), &rxRuntimeConfig);
-            break;
-#endif
-
-#ifdef USE_RX_UIB
-        case RX_TYPE_UIB:
-            rxUIBInit(rxConfig(), &rxRuntimeConfig);
             break;
 #endif
 
@@ -723,7 +717,11 @@ uint16_t rxGetRefreshRate(void)
 
 int16_t rxGetChannelValue(unsigned channelNumber)
 {
-    return rcChannels[channelNumber].data;
+    if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_RC_CHANNEL)) {
+        return getRcChannelOverride(channelNumber, rcChannels[channelNumber].data);
+    } else {
+        return rcChannels[channelNumber].data;
+    }
 }
 
 void lqTrackerReset(rxLinkQualityTracker_e * lqTracker)

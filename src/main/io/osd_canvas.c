@@ -647,7 +647,7 @@ static bool osdCanvasDrawSidebar(uint32_t *configured, displayWidgets_t *widgets
             .options = options,
             .divisions = OSD_AH_SIDEBAR_HEIGHT_POS * 2,
         };
-        uint16_t countsPerStep;
+        uint16_t countsPerStep = 0;
         osdCanvasSidebarGetUnit(&config.unit, &countsPerStep, scroll);
 
         int center = ex * OSD_CHAR_WIDTH;

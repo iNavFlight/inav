@@ -572,6 +572,12 @@ void FAST_CODE mixTable(const float dT)
     motorRateLimitingApplyFn(dT);
 }
 
+int16_t getThrottlePercent(void)
+{
+    int16_t thr = (constrain(rcCommand[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX ) - getThrottleIdleValue()) * 100 / (motorConfig()->maxthrottle - getThrottleIdleValue());
+    return thr;
+}
+
 motorStatus_e getMotorStatus(void)
 {
     if (failsafeRequiresMotorStop()) {
