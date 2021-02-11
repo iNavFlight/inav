@@ -1155,7 +1155,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigati
                     // Spiral climb centered at xy of RTH activation
                     calculateInitialHoldPosition(&targetHoldPos);
                 } else {
-                    calculateFarAwayTarget(&targetHoldPos, posControl.actualState.yaw, 100000.0f);  // 1km away Linear climb                
+                    calculateFarAwayTarget(&targetHoldPos, posControl.actualState.yaw, 100000.0f);  // 1km away Linear climb
                 }
             } else {
                 // Multicopter, hover and climb
