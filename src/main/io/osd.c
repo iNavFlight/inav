@@ -2996,19 +2996,19 @@ static void osdShowStatsPage2(void)
 
     displayWrite(osdDisplayPort, statNameX, top, "MIN BATTERY VOLT :");
     osdFormatCentiNumber(buff, stats.min_voltage, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
-    strcat(buff, "V");
+    strcat(buff, "\x06");
     osdLeftAlignString(buff);
     displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
     if (feature(FEATURE_CURRENT_METER)) {
         displayWrite(osdDisplayPort, statNameX, top, "MAX CURRENT/POWER:");
         osdFormatCentiNumber(buff, stats.max_current * 100, 0, 0, 0, 3);
-        strcat(buff, "A");
+        strcat(buff, "\x9A");
         osdLeftAlignString(buff);
         strcat(buff, "/");
         displayWrite(osdDisplayPort, statValuesX, top, buff);
         osdFormatCentiNumber(buff, stats.max_power * 100, 0, 0, 0, 4);
-        strcat(buff, "W");
+        strcat(buff, "\xAE");
         osdLeftAlignString(buff);
         displayWrite(osdDisplayPort, statValuesX + 5, top++, buff);
 
