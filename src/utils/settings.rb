@@ -914,7 +914,7 @@ class Generator
     def scan_types(stderr)
         types = Hash.new
         # gcc 6-9
-        stderr.scan(/var_(\d+).*?', which is of non-class type '(.*)'/).each do |m|
+        stderr.scan(/var_(\d+).*?['’], which is of non-class type ['‘](.*)['’]/).each do |m|
             member_idx = m[0].to_i
             type = m[1]
             types[member_idx] = type
@@ -1048,7 +1048,7 @@ class Generator
 		# warnings to find these constants, the compiler
 		# might reach the maximum number of errors and stop
 		# compilation, so we might need multiple passes.
-        gcc_re = /required from 'class expr_(.*?)<(.*?)>'/ # gcc 6-9
+        gcc_re = /required from ['‘]class expr_(.*?)<(.*?)>['’]/ # gcc 6-9
         clang_re = / template class 'expr_(.*?)<(.*?)>'/ # clang
         res = [gcc_re, clang_re]
         values = Hash.new
