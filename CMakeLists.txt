@@ -22,6 +22,10 @@ endif()
 
 option(COMPILER_VERSION_CHECK "Ensure the compiler matches the expected version" ON)
 
+# Load settings related functions, so the tests can use them
+include(main)
+include(settings)
+
 if(TOOLCHAIN STREQUAL none)
     add_subdirectory(src/test)
 else()
@@ -64,10 +68,8 @@ set(COMMON_COMPILE_DEFINITIONS
     FC_VERSION_PATCH_LEVEL=${CMAKE_PROJECT_VERSION_PATCH}
 )
 
-include(settings)
 include(openocd)
 include(svd)
-include(main)
 include(stm32)
 
 add_subdirectory(src)

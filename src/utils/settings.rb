@@ -471,6 +471,12 @@ class Generator
             end
         end
 
+        # When this file is compiled in unit tests, some of the tables
+        # are not used and generate warnings, causing the test to fail
+        # with -Werror. Silence them
+
+        buf << "#pragma GCC diagnostic ignored \"-Wunused-const-variable\"\n"
+
         # Write PGN arrays
         pgn_steps = []
         pgns = []
@@ -844,9 +850,7 @@ class Generator
             end
 
             typ = member["type"]
-            if !typ
-                pending_types[member] = group
-            elsif typ == "bool"
+            if typ == "bool"
                 has_booleans = true
                 member["table"] = OFF_ON_TABLE["name"]
             end
@@ -859,7 +863,7 @@ class Generator
             @used_tables << OFF_ON_TABLE["name"]
         end
 
-        resolve_types pending_types unless !pending_types
+        resolve_all_types
         foreach_enabled_member do |group, member|
             @count += 1
             @max_name_length = [@max_name_length, member["name"].length].max
@@ -907,9 +911,42 @@ class Generator
         end
     end
 
+    def scan_types(stderr)
+        types = Hash.new
+        # gcc 6-9
+        stderr.scan(/var_(\d+).*?', which is of non-class type '(.*)'/).each do |m|
+            member_idx = m[0].to_i
+            type = m[1]
+            types[member_idx] = type
+        end
+        # clang
+        stderr.scan(/member reference base type '(.*?)'.*?is not a structure or union.*? var_(\d+)/m).each do |m|
+            member_idx = m[1].to_i
+            type = m[0]
+            types[member_idx] = type
+        end
+        return types
+    end
+
+    def resolve_all_types()
+        loop do
+            pending = Hash.new
+            foreach_enabled_member do |group, member|
+                if !member["type"]
+                    pending[member] = group
+                end
+            end
+
+            if pending.empty?
+                # All types resolved
+                break
+            end
+
+            resolve_types(pending)
+        end
+    end
+
     def resolve_types(pending)
-        # TODO: Loop to avoid reaching the maximum number
-        # of errors printed by the compiler.
         prog = StringIO.new
         prog << "int main() {\n"
         ii = 0
@@ -925,9 +962,13 @@ class Generator
         prog << "return 0;\n"
         prog << "};\n"
         stderr = compile_test_file(prog)
-        stderr.scan(/var_(\d+).*?', which is of non-class type '(.*)'/).each do |m|
-            member = members[m[0].to_i]
-            case m[1]
+        types = scan_types(stderr)
+        if types.empty?
+            raise "No types resolved from #{stderr}"
+        end
+        types.each do |idx, type|
+            member = members[idx]
+            case type
             when /^int8_t/ # {aka signed char}"
                 typ = "int8_t"
             when /^uint8_t/ # {aka unsigned char}"
@@ -949,12 +990,6 @@ class Generator
             end
             dputs "#{member["name"]} type is #{typ}"
             member["type"] = typ
-        end
-        # Make sure all types have been resolved
-        foreach_enabled_member do |group, member|
-            if !member["type"]
-                raise "Could not resolve type for member #{member["name"]} in group #{group["name"]}"
-            end
         end
     end
 
@@ -1013,7 +1048,9 @@ class Generator
 		# warnings to find these constants, the compiler
 		# might reach the maximum number of errors and stop
 		# compilation, so we might need multiple passes.
-        re = /required from 'class expr_(.*?)<(.*)>'/
+        gcc_re = /required from 'class expr_(.*?)<(.*?)>'/ # gcc 6-9
+        clang_re = / template class 'expr_(.*?)<(.*?)>'/ # clang
+        res = [gcc_re, clang_re]
         values = Hash.new
 		while s.length > 0
             buf = StringIO.new
@@ -1033,7 +1070,12 @@ class Generator
                 ii += 1
             end
             stderr = compile_test_file(buf)
-			matches = stderr.scan(re)
+            matches = []
+            res.each do |re|
+                if matches.length == 0
+                    matches = stderr.scan(re)
+                end
+            end
 			if matches.length == 0
                 puts stderr
                 raise "No more matches looking for constants"
