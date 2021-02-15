@@ -157,6 +157,9 @@ tables:
     values: ["OFF_ALWAYS", "OFF", "AUTO_ONLY", "ALL_NAV"]
   - name: osd_plus_code_short
     values: ["0", "2", "4", "6"]
+  - name: autotune_rate_adjustment
+    enum: autotune_rate_adjustment_e
+    values: ["FIXED", "MAX", "AUTO"]
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -1915,6 +1918,11 @@ groups:
         field: fw_ff_to_i_time_constant
         min: 100
         max: 5000
+      - name: fw_autotune_rate_adjustment
+        description: "`AUTO` adjusts the rates (both up and down) to match the capabilities of the airplane. `MAX` decreases the rates when the airplane is not able to achieve them, but does not increase the rates. `FIXED` (the default) does not adjust the rates."
+        default_value: "FIXED"
+        field: autotune_rate_adjustment
+        table: autotune_rate_adjustment
 
   - name: PG_POSITION_ESTIMATION_CONFIG
     type: positionEstimationConfig_t

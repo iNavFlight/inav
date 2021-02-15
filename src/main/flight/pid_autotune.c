@@ -72,9 +72,11 @@ typedef struct {
     timeMs_t            stateEnterTime;
 
     bool    pidSaturated;
+    bool    servoSaturated;
     float   gainP;
     float   gainI;
     float   gainFF;
+    float   rate;
 } pidAutotuneData_t;
 
 #define AUTOTUNE_SAVE_PERIOD        5000        // Save interval is 5 seconds - when we turn off autotune we'll restore values from previous update at most 5 sec ago
@@ -116,7 +118,9 @@ void autotuneStart(void)
         tuneCurrent[axis].gainP = pidBank()->pid[axis].P;
         tuneCurrent[axis].gainI = pidBank()->pid[axis].I;
         tuneCurrent[axis].gainFF = pidBank()->pid[axis].FF;
+        tuneCurrent[axis].rate = currentControlRateProfile->stabilized.rates[axis]; // Not sure about this
         tuneCurrent[axis].pidSaturated = false;
+        tuneCurrent[axis].servoSaturated = false;
         tuneCurrent[axis].stateEnterTime = millis();
         tuneCurrent[axis].state = DEMAND_TOO_LOW;
     }
@@ -162,7 +166,7 @@ static void blackboxLogAutotuneEvent(adjustmentFunction_e adjustmentFunction, in
 
 #if defined(USE_AUTOTUNE_FIXED_WING)
 
-void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRateDps, float reachedRateDps, float pidOutput)
+void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRateDps, float reachedRateDps, float pidOutput, int32_t servoOutput, int32_t servoMin, int32_t servoMax)
 {
     const timeMs_t currentTimeMs = millis();
     const float absDesiredRateDps = fabsf(desiredRateDps);
@@ -181,6 +185,10 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
         tuneCurrent[axis].pidSaturated = true;
     }
 
+    if (servoOutput >= (servoMax - 50) || servoOutput <= (servoMin + 50)) {
+        tuneCurrent[axis].servoSaturated = true;
+    }
+
     if (absDesiredRateDps < (pidAutotuneConfig()->fw_max_rate_threshold / 100.0f) * maxDesiredRate) {
         // We can make decisions only when we are demanding at least 50% of max configured rate
         newState = DEMAND_TOO_LOW;
@@ -195,6 +203,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
     if (newState != tuneCurrent[axis].state) {
         const timeDelta_t stateTimeMs = currentTimeMs - tuneCurrent[axis].stateEnterTime;
         bool gainsUpdated = false;
+        bool ratesUpdated = false;
 
         switch (tuneCurrent[axis].state) {
             case DEMAND_TOO_LOW:
@@ -247,6 +256,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
         tuneCurrent[axis].state = newState;
         tuneCurrent[axis].stateEnterTime = currentTimeMs;
         tuneCurrent[axis].pidSaturated = false;
+        tuneCurrent[axis].servoSaturated = false;
     }
 }
 #endif
