@@ -30,6 +30,7 @@ FILE_COMPILE_FOR_SPEED
 #include "common/filter.h"
 #include "common/maths.h"
 #include "common/utils.h"
+#include "common/fp_pid.h"
 
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
@@ -153,8 +154,9 @@ static EXTENDED_FASTRAM pidControllerFnPtr pidControllerApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr dTermLpfFilterApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr dTermLpf2FilterApplyFn;
 static EXTENDED_FASTRAM bool levelingEnabled = false;
+static EXTENDED_FASTRAM float fixedWingLevelTrim;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 0);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 1);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -279,6 +281,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .kalman_w = 4,
         .kalman_sharpness = 100,
         .kalmanEnabled = 0,
+        .fixedWingLevelTrim = 0,
 );
 
 bool pidInitFilters(void)
@@ -532,6 +535,21 @@ static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float h
     // Automatically pitch down if the throttle is manually controlled and reduced bellow cruise throttle
     if ((axis == FD_PITCH) && STATE(AIRPLANE) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle())
         angleTarget += scaleRange(MAX(0, navConfig()->fw.cruise_throttle - rcCommand[THROTTLE]), 0, navConfig()->fw.cruise_throttle - PWM_RANGE_MIN, 0, mixerConfig()->fwMinThrottleDownPitchAngle);
+
+
+    //PITCH trim applied by a AutoLevel flight mode and manual pitch trimming
+    if (axis == FD_PITCH && STATE(AIRPLANE)) {
+        /* 
+         * fixedWingLevelTrim has opposite sign to rcCommand.
+         * Positive rcCommand means nose should point downwards
+         * Negative rcCommand mean nose should point upwards
+         * This is counter intuitive and a natural way suggests that + should mean UP
+         * This is why fixedWingLevelTrim has opposite sign to rcCommand
+         * Positive fixedWingLevelTrim means nose should point upwards
+         * Negative fixedWingLevelTrim means nose should point downwards
+         */
+        angleTarget -= DEGREES_TO_DECIDEGREES(fixedWingLevelTrim);   
+    }
 
     const float angleErrorDeg = DECIDEGREES_TO_DEGREES(angleTarget - attitude.raw[axis]);
 
@@ -1107,6 +1125,8 @@ void pidInit(void)
         gyroKalmanInitialize(pidProfile()->kalman_q, pidProfile()->kalman_w, pidProfile()->kalman_sharpness);
     }
 #endif
+
+    fixedWingLevelTrim = pidProfile()->fixedWingLevelTrim;
 }
 
 const pidBank_t * pidBank(void) { 
@@ -1116,7 +1136,7 @@ pidBank_t * pidBankMutable(void) {
     return usedPidControllerType == PID_TYPE_PIFF ? &pidProfileMutable()->bank_fw : &pidProfileMutable()->bank_mc;
 }
 
-uint8_t * getD_FFRefByBank(pidBank_t *pidBank, pidIndex_e pidIndex)
+uint16_t * getD_FFRefByBank(pidBank_t *pidBank, pidIndex_e pidIndex)
 {
     if (pidIndexGetType(pidIndex) == PID_TYPE_PIFF) {
        return &pidBank->pid[pidIndex].FF;

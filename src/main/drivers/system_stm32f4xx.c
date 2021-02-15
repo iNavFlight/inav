@@ -172,7 +172,6 @@ void systemInit(void)
     // Init cycle counter
     cycleCounterInit();
 
-    memset(extiHandlerConfigs, 0x00, sizeof(extiHandlerConfigs));
     // SysTick
     SysTick_Config(SystemCoreClock / 1000);
 }

@@ -28,7 +28,7 @@ typedef enum {
     RANGEFINDER_HCSR04I2C   = 3,
     RANGEFINDER_VL53L0X     = 4,
     RANGEFINDER_MSP         = 5,
-    RANGEFINDER_UIB         = 6,
+    RANGEFINDER_UNUSED      = 6,    // Was UIB
     RANGEFINDER_BENEWAKE    = 7,
 } rangefinderType_e;
 

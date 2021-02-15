@@ -47,7 +47,7 @@ set(STM32F7_VCP_DIR "${MAIN_SRC_DIR}/vcp_hal")
 
 set(STM32F7_VCP_SRC
     usbd_desc.c
-    usbd_conf.c
+    usbd_conf_stm32f7xx.c
     usbd_cdc_interface.c
 )
 list(TRANSFORM STM32F7_VCP_SRC PREPEND "${STM32F7_VCP_DIR}/")
@@ -59,10 +59,13 @@ set(STM32F7_INCLUDE_DIRS
 
 main_sources(STM32F7_SRC
     target/system_stm32f7xx.c
+
+    config/config_streamer_stm32f7.c
+
     drivers/adc_stm32f7xx.c
     drivers/bus_i2c_hal.c
     drivers/dma_stm32f7xx.c
-    drivers/bus_spi_hal.c
+    drivers/bus_spi_hal_ll.c
     drivers/timer.c
     drivers/timer_impl_hal.c
     drivers/timer_stm32f7xx.c
@@ -94,8 +97,6 @@ function(target_stm32f7xx)
         VCP_SOURCES ${STM32F7_USB_SRC} ${STM32F7_VCP_SRC}
         VCP_INCLUDE_DIRECTORIES ${STM32F7_USB_INCLUDE_DIRS} ${STM32F7_VCP_DIR}
 
-        OPTIMIZATION -O2
-
         OPENOCD_TARGET stm32f7x
 
         BOOTLOADER
@@ -109,17 +110,24 @@ macro(define_target_stm32f7 subfamily size)
         set(func_ARGV ARGV)
         string(TOUPPER ${size} upper_size)
         get_stm32_flash_size(flash_size ${size})
+        if(flash_size GREATER 512)
+            set(opt -O2)
+        else()
+            set(opt -Os)
+        endif()
         set(definitions
             STM32F7
             STM32F7${subfamily}xx
             STM32F7${subfamily}x${upper_size}
-            FLASH_SIZE=${flash_size}
+            MCU_FLASH_SIZE=${flash_size}
         )
         target_stm32f7xx(
             NAME ${name}
             STARTUP startup_stm32f7${subfamily}xx.s
             COMPILE_DEFINITIONS ${definitions}
             LINKER_SCRIPT stm32_flash_f7${subfamily}x${size}
+            OPTIMIZATION ${opt}
+
             ${${func_ARGV}}
         )
     endfunction()

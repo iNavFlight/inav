@@ -15,6 +15,8 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma once
+
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -77,5 +79,6 @@ typedef enum {
     DEBUG_SPM_VS600,    // Smartport master VS600 VTX
     DEBUG_SPM_VARIO,    // Smartport master variometer
     DEBUG_PCF8574,
+    DEBUG_DYNAMIC_GYRO_LPF,
     DEBUG_COUNT
 } debugType_e;

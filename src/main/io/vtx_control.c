@@ -39,10 +39,11 @@
 
 #if defined(USE_VTX_CONTROL)
 
-PG_REGISTER_WITH_RESET_TEMPLATE(vtxConfig_t, vtxConfig, PG_VTX_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(vtxConfig_t, vtxConfig, PG_VTX_CONFIG, 3);
 
 PG_RESET_TEMPLATE(vtxConfig_t, vtxConfig,
       .halfDuplex = true,
+      .smartAudioEarlyAkkWorkaroundEnable = true,
 );
 
 static uint8_t locked = 0;

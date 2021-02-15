@@ -994,7 +994,7 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
         case DJI_MSP_RC:
             // Only send sticks (first 4 channels)
             for (int i = 0; i < STICK_CHANNEL_COUNT; i++) {
-                sbufWriteU16(dst, rxGetRawChannelValue(i));
+                sbufWriteU16(dst, rxGetChannelValue(i));
             }
             break;            
 

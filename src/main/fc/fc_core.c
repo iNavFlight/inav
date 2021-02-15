@@ -89,6 +89,7 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/failsafe.h"
 
 #include "config/feature.h"
+#include "programming/pid.h"
 
 // June 2013     V2.2-dev
 
@@ -390,6 +391,7 @@ void disarm(disarmReason_t disarmReason)
 
         statsOnDisarm();
         logicConditionReset();
+        programmingPidReset();
         beeper(BEEPER_DISARMING);      // emit disarm tone
     }
 }
@@ -480,6 +482,7 @@ void tryArm(void)
         //It is required to inform the mixer that arming was executed and it has to switch to the FORWARD direction
         ENABLE_STATE(SET_REVERSIBLE_MOTORS_FORWARD);
         logicConditionReset();
+        programmingPidReset();
         headFreeModeHold = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
 
         resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));

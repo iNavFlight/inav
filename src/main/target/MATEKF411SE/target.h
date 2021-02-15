@@ -70,7 +70,11 @@
 
 #define USE_SOFTSERIAL1
 #define SOFTSERIAL_1_TX_PIN     PB9 // ST1 pad
+#ifdef MATEKF411SE_FD_SFTSRL1
+#define SOFTSERIAL_1_RX_PIN     PB10 // LED pad
+#else
 #define SOFTSERIAL_1_RX_PIN     PB9
+#endif
 
 #define USE_SOFTSERIAL2
 #define SOFTSERIAL_2_TX_PIN     PA2 // TX2 pad
@@ -131,7 +135,7 @@
 #define AIRSPEED_ADC_CHANNEL        ADC_CHN_4
 
 // *************** LED2812 ************************
-#ifndef MATEKF411SE_PINIO
+#if !defined(MATEKF411SE_PINIO) && !defined(MATEKF411SE_FD_SFTSRL1)
 #define USE_LED_STRIP
 #define WS2811_PIN                  PB10
 #endif
