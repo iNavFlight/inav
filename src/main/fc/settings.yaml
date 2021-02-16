@@ -1342,13 +1342,13 @@ groups:
         field: mid_throttle_deadband
         min: 0
         max: 200
-      - name: mc_airmode_type
-        description: "Defines the Airmode state handling type for Multirotors. Default **STICK_CENTER** is the classical approach in which Airmode is always active if enabled, but when the throttle is low and ROLL/PITCH/YAW sticks are centered, Iterms is not allowed to grow (ANTI_WINDUP). **THROTTLE_THRESHOLD** is the Airmode behavior known from Betaflight. In this mode, Airmode is active as soon THROTTLE position is above `mc_airmode_threshold` and stays active until disarm. ANTI_WINDUP is never triggered. For small Multirotors (up to 7-inch propellers) it is suggested to switch to **THROTTLE_THRESHOLD** since it keeps full stabilization no matter what pilot does with the sticks. Fixed Wings always use **STICK_CENTER** mode."
+      - name: airmode_type
+        description: "Defines the Airmode state handling type. Default **STICK_CENTER** is the classical approach in which Airmode is always active if enabled, but when the throttle is low and ROLL/PITCH/YAW sticks are centered, Iterms is not allowed to grow (ANTI_WINDUP). **THROTTLE_THRESHOLD** is the Airmode behavior known from Betaflight. In this mode, Airmode is active as soon THROTTLE position is above `airmode_throttle_threshold` and stays active until disarm. ANTI_WINDUP is never triggered. For small Multirotors (up to 7-inch propellers) it is suggested to switch to **THROTTLE_THRESHOLD** since it keeps full stabilization no matter what pilot does with the sticks. Fixed Wings always use **STICK_CENTER_ONCE** or **STICK_CENTER** modes."
         default_value: "STICK_CENTER"
         field: airmodeHandlingType
         table: airmodeHandlingType
-      - name: mc_airmode_threshold
-        description: "Defines airmode THROTTLE activation threshold when `mc_airmode_type` **THROTTLE_THRESHOLD** is used"
+      - name: airmode_throttle_threshold
+        description: "Defines airmode THROTTLE activation threshold when `airmode_type` **THROTTLE_THRESHOLD** is used"
         default_value: "1300"
         field: airmodeThrottleThreshold
         min: 1000
@@ -2341,7 +2341,7 @@ groups:
         max: 900
       - name: nav_fw_loiter_radius
         description: "PosHold radius. 3000 to 7500 is a good value (30-75m) [cm]"
-        default_value: "5000"
+        default_value: "7500"
         field: fw.loiter_radius
         min: 0
         max: 10000
@@ -2805,8 +2805,8 @@ groups:
         description: "Value below which Crossfire SNR Alarm pops-up. (dB)"
         default_value: "4"
         field: snr_alarm
-        min: -12
-        max: 8
+        min: -20
+        max: 10
       - name: osd_link_quality_alarm
         condition: USE_SERIALRX_CRSF
         description: "LQ % indicator blinks below this value. For Crossfire use 70%, for Tracer use 50%"
