@@ -153,6 +153,8 @@ void osdDrawSidebars(displayPort_t *display, displayCanvas_t *canvas)
     osdGridDrawSidebars(display);
 }
 
+#endif
+
 #ifdef USE_GPS
 int16_t osdGet3DSpeed(void)
 {
@@ -160,6 +162,4 @@ int16_t osdGet3DSpeed(void)
     int16_t hor_speed = gpsSol.groundSpeed;
     return (int16_t)sqrtf(sq(hor_speed) + sq(vert_speed));
 }
-#endif
-
 #endif
