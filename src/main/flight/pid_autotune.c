@@ -50,8 +50,10 @@
 #define AUTOTUNE_FIXED_WING_INCREASE_STEP       5           // 5%
 #define AUTOTUNE_FIXED_WING_MIN_FF              10
 #define AUTOTUNE_FIXED_WING_MAX_FF              200
+#define AUTOTUNE_FIXED_WING_MAX_RATE            360*3
+#define AUTOTUNE_FIXED_WING_MIN_RATE            60
 
-PG_REGISTER_WITH_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig, PG_PID_AUTOTUNE_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig, PG_PID_AUTOTUNE_CONFIG, 1);
 
 PG_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig,
     .fw_overshoot_time = AUTOTUNE_FIXED_WING_OVERSHOOT_TIME,
@@ -59,6 +61,7 @@ PG_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig,
     .fw_max_rate_threshold = 50,
     .fw_ff_to_p_gain = 10,
     .fw_ff_to_i_time_constant = AUTOTUNE_FIXED_WING_INTEGRATOR_TC,
+    .fw_autotune_rate_adjustment = FIXED,
 );
 
 typedef enum {
@@ -210,6 +213,9 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
                 break;
             case DEMAND_OVERSHOOT:
                 if (stateTimeMs >= pidAutotuneConfig()->fw_overshoot_time) {
+                    if (pidAutotuneConfig()->autotune_rate_adjustment == AUTO) {
+                        tuneCurrent[axis].rate = tuneCurrent[axis].rate * (100 + AUTOTUNE_FIXED_WING_DECREASE_STEP) / 100.0f
+                    }
                     tuneCurrent[axis].gainFF = tuneCurrent[axis].gainFF * (100 - AUTOTUNE_FIXED_WING_DECREASE_STEP) / 100.0f;
                     if (tuneCurrent[axis].gainFF < AUTOTUNE_FIXED_WING_MIN_FF) {
                         tuneCurrent[axis].gainFF = AUTOTUNE_FIXED_WING_MIN_FF;
