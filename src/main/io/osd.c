@@ -785,7 +785,7 @@ static const char * navigationStateMessage(void)
             break;
         case MW_NAV_STATE_RTH_START:
             return OSD_MESSAGE_STR(OSD_MSG_STARTING_RTH);
-        case MW_NAV_STATE_RTH_CLIMB:            
+        case MW_NAV_STATE_RTH_CLIMB:
             return OSD_MESSAGE_STR(OSD_MSG_RTH_CLIMB);
         case MW_NAV_STATE_RTH_ENROUTE:
             return OSD_MESSAGE_STR(OSD_MSG_HEADING_HOME);
@@ -1685,7 +1685,7 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 
     case OSD_CRSF_SNR_DB: {
-        const char* showsnr = "-12";
+        const char* showsnr = "-20";
         const char* hidesnr = "     ";
         int16_t osdSNR_Alarm = rxLinkStatistics.uplinkSNR;
         if (osdSNR_Alarm <= osdConfig()->snr_alarm) {
@@ -3378,7 +3378,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
                     if (NAV_Status.state == MW_NAV_STATE_WP_ENROUTE) {
                         // Countdown display for remaining Waypoints
-                        tfp_sprintf(messageBuf, "TO WP %u/%u", posControl.activeWaypointIndex + 1, posControl.waypointCount);                            
+                        tfp_sprintf(messageBuf, "TO WP %u/%u", posControl.activeWaypointIndex + 1, posControl.waypointCount);
                         messages[messageCount++] = messageBuf;
                     } else if (NAV_Status.state == MW_NAV_STATE_HOLD_TIMED) {
                         // WP hold time countdown in seconds
@@ -3388,8 +3388,8 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                             tfp_sprintf(messageBuf, "HOLDING WP FOR %2u S", holdTimeRemaining);
                             messages[messageCount++] = messageBuf;
                         }
-                    } else {                            
-                        const char *navStateMessage = navigationStateMessage();                             
+                    } else {
+                        const char *navStateMessage = navigationStateMessage();
                         if (navStateMessage) {
                             messages[messageCount++] = navStateMessage;
                         }
