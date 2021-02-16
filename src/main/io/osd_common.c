@@ -36,6 +36,8 @@
 #include "io/osd_common.h"
 #include "io/osd_grid.h"
 
+#include "navigation/navigation.h"
+
 #if defined(USE_OSD)
 
 #define CANVAS_DEFAULT_GRID_ELEMENT_WIDTH OSD_CHAR_WIDTH
@@ -150,5 +152,14 @@ void osdDrawSidebars(displayPort_t *display, displayCanvas_t *canvas)
 #endif
     osdGridDrawSidebars(display);
 }
+
+#ifdef USE_GPS
+int16_t osdGet3DSpeed(void)
+{
+    int16_t vert_speed = getEstimatedActualVelocity(Z);
+    int16_t hor_speed = gpsSol.groundSpeed;
+    return (int16_t)sqrtf(sq(hor_speed) + sq(vert_speed));
+}
+#endif
 
 #endif

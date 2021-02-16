@@ -152,6 +152,9 @@ tables:
   - name: djiOsdTempSource
     values: ["ESC", "IMU", "BARO"]
     enum: djiOsdTempSource_e
+  - name: djiOsdSpeedSource
+    values: ["GROUND", "3D", "AIR"]
+    enum: djiOsdSpeedSource_e
   - name: nav_overrides_motor_stop
     enum: navOverridesMotorStop_e
     values: ["OFF_ALWAYS", "OFF", "AUTO_ONLY", "ALL_NAV"]
@@ -3248,4 +3251,10 @@ groups:
           default_value: "ESC"
           field: esc_temperature_source
           table: djiOsdTempSource
+          type: uint8_t
+        - name: dji_speed_source
+          description: "Sets the speed type displayed by the DJI OSD: GROUND, 3D, AIR"
+          default_value: "GROUND"
+          field: speedSource
+          table: djiOsdSpeedSource
           type: uint8_t
