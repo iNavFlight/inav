@@ -113,6 +113,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .pos_failure_timeout = 5,               // 5 sec
         .waypoint_radius = 100,                 // 2m diameter
         .waypoint_safe_distance = 10000,        // centimeters - first waypoint should be closer than this
+        .waypoint_load_on_boot = false,         // load waypoints automatically during boot
         .max_auto_speed = 300,                  // 3 m/s = 10.8 km/h
         .max_auto_climb_rate = 500,             // 5 m/s
         .max_manual_speed = 500,
@@ -2828,6 +2829,12 @@ bool loadNonVolatileWaypointList(void)
     if (ARMING_FLAG(ARMED))
         return false;
 
+    // if waypoints are already loaded, just unload them.
+    if (posControl.waypointCount > 0) {
+        resetWaypointList();
+        return false;
+    }
+
     resetWaypointList();
 
     for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {
@@ -3520,6 +3527,11 @@ void navigationInit(void)
     } else {
         DISABLE_STATE(FW_HEADING_USE_YAW);
     }
+
+#if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE)
+    if (navConfig()->general.waypoint_load_on_boot)
+        loadNonVolatileWaypointList();
+#endif
 }
 
 /*-----------------------------------------------------------
