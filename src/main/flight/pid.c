@@ -155,6 +155,11 @@ static EXTENDED_FASTRAM filterApplyFnPtr dTermLpfFilterApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr dTermLpf2FilterApplyFn;
 static EXTENDED_FASTRAM bool levelingEnabled = false;
 
+#define FIXED_WING_LEVEL_TRIM_MAX_ANGLE 10.0f // Max angle auto trimming can demand
+#define FIXED_WING_LEVEL_TRIM_DIVIDER 500.0f
+#define FIXED_WING_LEVEL_TRIM_MULTIPLIER 1.0f / FIXED_WING_LEVEL_TRIM_DIVIDER
+#define FIXED_WING_LEVEL_TRIM_CONTROLLER_LIMIT FIXED_WING_LEVEL_TRIM_DIVIDER * FIXED_WING_LEVEL_TRIM_MAX_ANGLE
+
 static EXTENDED_FASTRAM float fixedWingLevelTrim;
 static EXTENDED_FASTRAM pidController_t fixedWingLevelTrimController;
 
@@ -285,6 +290,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .kalmanEnabled = 0,
         .fixedWingLevelTrim = 0,
         .fixedWingLevelTrimGain = 10,
+        .fixedWingLevelTrimDeadband = FIXED_WING_LEVEL_TRIM_DEADBAND_DEFAULT,
 );
 
 bool pidInitFilters(void)
@@ -1180,21 +1186,58 @@ uint16_t * getD_FFRefByBank(pidBank_t *pidBank, pidIndex_e pidIndex)
 
 void updateFixedWingLevelTrim(timeUs_t currentTimeUs)
 {
+    if (!STATE(AIRPLANE)) {
+        return;
+    }
+
     static timeUs_t previousUpdateTimeUs;
+    static bool previousArmingState;
     const float dT = US2S(currentTimeUs - previousUpdateTimeUs);
+
+    /*
+     * On every ARM reset the controller
+     */
+    if (ARMING_FLAG(ARMED) && !previousArmingState) {
+        navPidReset(&fixedWingLevelTrimController);
+    } 
+
+    /*
+     * On disarm update the default value
+     */
+    if (!ARMING_FLAG(ARMED) && previousArmingState) {
+        pidProfileMutable()->fixedWingLevelTrim = constrainf(fixedWingLevelTrim, -FIXED_WING_LEVEL_TRIM_MAX_ANGLE, FIXED_WING_LEVEL_TRIM_MAX_ANGLE);
+    } 
+
+    /*
+     * Prepare flags for the PID controller
+     */
+    pidControllerFlags_e flags = PID_LIMIT_INTEGRATOR;
+
+    //Iterm should freeze when pitch stick is deflected
+    if (
+        !IS_RC_MODE_ACTIVE(BOXAUTOLEVEL) ||
+        rxGetChannelValue(PITCH) > (PWM_RANGE_MIDDLE + pidProfile()->fixedWingLevelTrimDeadband) ||
+        rxGetChannelValue(PITCH) < (PWM_RANGE_MIDDLE - pidProfile()->fixedWingLevelTrimDeadband) ||
+        (!FLIGHT_MODE(ANGLE_MODE) && !FLIGHT_MODE(HORIZON_MODE)) ||
+        navigationIsControllingAltitude()
+    ) {
+        flags |= PID_FREEZE_INTEGRATOR;
+    }
 
     const float output = navPidApply3(
         &fixedWingLevelTrimController,
-        0,
+        0,  //Setpoint is always 0 as we try to keep level flight
         getEstimatedActualVelocity(Z),
         dT,
-        -1000.0f,
-        1000.0f,
-        PID_LIMIT_INTEGRATOR,
+        -FIXED_WING_LEVEL_TRIM_CONTROLLER_LIMIT,
+        FIXED_WING_LEVEL_TRIM_CONTROLLER_LIMIT,
+        flags,
         1.0f,
         1.0f
     );
 
-    DEBUG_SET(DEBUG_AUTOLEVEL, 4, output / 100);
+    DEBUG_SET(DEBUG_AUTOLEVEL, 4, output);
+    fixedWingLevelTrim = pidProfile()->fixedWingLevelTrim + (output * FIXED_WING_LEVEL_TRIM_MULTIPLIER);
 
+    previousArmingState = !!ARMING_FLAG(ARMED);
 }

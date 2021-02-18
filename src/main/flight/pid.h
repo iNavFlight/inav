@@ -55,6 +55,8 @@ FP-PID has been rescaled to match LuxFloat (and MWRewrite) from Cleanflight 1.13
 
 #define ANTI_GRAVITY_THROTTLE_FILTER_CUTOFF 15  // The anti gravity throttle highpass filter cutoff
 
+#define FIXED_WING_LEVEL_TRIM_DEADBAND_DEFAULT 5
+
 #define TASK_AUX_RATE_HZ   100 //In Hz
 
 typedef enum {
@@ -154,6 +156,7 @@ typedef struct pidProfile_s {
 
     float fixedWingLevelTrim;
     float fixedWingLevelTrimGain;
+    float fixedWingLevelTrimDeadband;
 } pidProfile_t;
 
 typedef struct pidAutotuneConfig_s {

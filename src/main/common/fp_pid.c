@@ -96,7 +96,10 @@ float navPidApply3(
     pid->output_constrained = outValConstrained;
 
     /* Update I-term */
-    if (!(pidFlags & PID_ZERO_INTEGRATOR)) {
+    if (
+        !(pidFlags & PID_ZERO_INTEGRATOR) &&
+        !(pidFlags & PID_FREEZE_INTEGRATOR) 
+    ) {
         const float newIntegrator = pid->integrator + (error * pid->param.kI * gainScaler * dt) + ((outValConstrained - outVal) * pid->param.kT * dt);
 
         if (pidFlags & PID_SHRINK_INTEGRATOR) {
