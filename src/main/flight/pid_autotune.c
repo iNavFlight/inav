@@ -46,12 +46,12 @@
 #define AUTOTUNE_FIXED_WING_OVERSHOOT_TIME      100
 #define AUTOTUNE_FIXED_WING_UNDERSHOOT_TIME     200
 #define AUTOTUNE_FIXED_WING_INTEGRATOR_TC       600
-#define AUTOTUNE_FIXED_WING_DECREASE_STEP       8           // 8%
-#define AUTOTUNE_FIXED_WING_INCREASE_STEP       5           // 5%
+#define AUTOTUNE_FIXED_WING_CONVERGENCE_RATE    0.5
 #define AUTOTUNE_FIXED_WING_MIN_FF              10
 #define AUTOTUNE_FIXED_WING_MAX_FF              200
+#define AUTOTUNE_FIXED_WING_RATE_TRESHOLD       5
 
-PG_REGISTER_WITH_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig, PG_PID_AUTOTUNE_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig, PG_PID_AUTOTUNE_CONFIG, 1);
 
 PG_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig,
     .fw_overshoot_time = AUTOTUNE_FIXED_WING_OVERSHOOT_TIME,
@@ -59,12 +59,14 @@ PG_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig,
     .fw_max_rate_threshold = 50,
     .fw_ff_to_p_gain = 10,
     .fw_ff_to_i_time_constant = AUTOTUNE_FIXED_WING_INTEGRATOR_TC,
+    .fw_convergence_rate = AUTOTUNE_FIXED_WING_CONVERGENCE_RATE,
 );
 
 typedef enum {
     DEMAND_TOO_LOW,
     DEMAND_UNDERSHOOT,
     DEMAND_OVERSHOOT,
+    DEMAND_SATISFIED,
 } pidAutotuneState_e;
 
 typedef struct {
@@ -166,6 +168,8 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
 {
     const timeMs_t currentTimeMs = millis();
     const float absDesiredRateDps = fabsf(desiredRateDps);
+    const float absReachedRateDps = fabsf(reachedRateDps);
+    const float pidOutputRequired = pidOutput * (absDesiredRateDps / absReachedRateDps);
     float maxDesiredRate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
     pidAutotuneState_e newState;
 
@@ -185,11 +189,14 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
         // We can make decisions only when we are demanding at least 50% of max configured rate
         newState = DEMAND_TOO_LOW;
     }
-    else if (fabsf(reachedRateDps) > absDesiredRateDps) {
+    else if (absReachedRateDps > (absDesiredRateDps + AUTOTUNE_FIXED_WING_RATE_TRESHOLD)) {
         newState = DEMAND_OVERSHOOT;
     }
-    else {
+    else if (absReachedRateDps < (absDesiredRateDps - AUTOTUNE_FIXED_WING_RATE_TRESHOLD)) {
         newState = DEMAND_UNDERSHOOT;
+    } else {
+        // The tune is good enough when we are within 10dps of target
+        newState = DEMAND_SATISFIED;
     }
 
     if (newState != tuneCurrent[axis].state) {
@@ -198,10 +205,11 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
 
         switch (tuneCurrent[axis].state) {
             case DEMAND_TOO_LOW:
+            case DEMAND_SATISFIED:
                 break;
             case DEMAND_OVERSHOOT:
                 if (stateTimeMs >= pidAutotuneConfig()->fw_overshoot_time) {
-                    tuneCurrent[axis].gainFF = tuneCurrent[axis].gainFF * (100 - AUTOTUNE_FIXED_WING_DECREASE_STEP) / 100.0f;
+                    tuneCurrent[axis].gainFF += (pidOutputRequired - tuneCurrent[axis].gainFF) * pidAutotuneConfig()->fw_convergence_rate;
                     if (tuneCurrent[axis].gainFF < AUTOTUNE_FIXED_WING_MIN_FF) {
                         tuneCurrent[axis].gainFF = AUTOTUNE_FIXED_WING_MIN_FF;
                     }
@@ -210,7 +218,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
                 break;
             case DEMAND_UNDERSHOOT:
                 if (stateTimeMs >= pidAutotuneConfig()->fw_undershoot_time && !tuneCurrent[axis].pidSaturated) {
-                    tuneCurrent[axis].gainFF = tuneCurrent[axis].gainFF * (100 + AUTOTUNE_FIXED_WING_INCREASE_STEP) / 100.0f;
+                    tuneCurrent[axis].gainFF += (pidOutputRequired - tuneCurrent[axis].gainFF) * pidAutotuneConfig()->fw_convergence_rate;
                     if (tuneCurrent[axis].gainFF > AUTOTUNE_FIXED_WING_MAX_FF) {
                         tuneCurrent[axis].gainFF = AUTOTUNE_FIXED_WING_MAX_FF;
                     }

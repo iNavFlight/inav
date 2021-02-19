@@ -1915,6 +1915,12 @@ groups:
         field: fw_ff_to_i_time_constant
         min: 100
         max: 5000
+      - name: fw_autotune_convergence_rate
+        description: "Determines how fast autotune will converge towards to the correct FF value"
+        default_value: "0.5"
+        field: fw_convergence_rate
+        min: 0
+        max: 1
 
   - name: PG_POSITION_ESTIMATION_CONFIG
     type: positionEstimationConfig_t

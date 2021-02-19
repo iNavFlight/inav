@@ -160,6 +160,7 @@ typedef struct pidAutotuneConfig_s {
     uint8_t     fw_max_rate_threshold;      // Threshold [%] of max rate to consider autotune detection
     uint8_t     fw_ff_to_p_gain;            // FF to P gain (strength relationship) [%]
     uint16_t    fw_ff_to_i_time_constant;   // FF to I time (defines time for I to reach the same level of response as FF) [ms]
+    float       fw_convergence_rate;        // Convergence rate 
 } pidAutotuneConfig_t;
 
 PG_DECLARE_PROFILE(pidProfile_t, pidProfile);
