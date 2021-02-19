@@ -81,7 +81,6 @@ typedef struct {
     // Rate integrator
     float errorGyroIf;
     float errorGyroIfLimit;
-    float errorGyroIfFrozen;
 
     // Used for ANGLE filtering (PT1, we don't need super-sharpness here)
     pt1Filter_t angleFilterState;
@@ -353,7 +352,6 @@ void pidResetErrorAccumulators(void)
     for (int axis = 0; axis < 3; axis++) {
         pidState[axis].errorGyroIf = 0.0f;
         pidState[axis].errorGyroIfLimit = 0.0f;
-        pidState[axis].errorGyroIfFrozen = 0.0f;
     }
 }
 
@@ -603,15 +601,6 @@ static void applyItermLimiting(pidState_t *pidState) {
     }
 }
 
-static void applyItermFreezing(pidState_t *pidState) {
-    if (pidState->itermFreezeActive) {
-        pidState->errorGyroIf = pidState->errorGyroIfFrozen;
-    } else 
-    {
-        pidState->errorGyroIfFrozen = pidState->errorGyroIf;
-    }
-}
-
 static void nullRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT) {
     UNUSED(pidState);
     UNUSED(axis);
@@ -624,11 +613,14 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
     const float newPTerm = pTermProcess(pidState, rateError, dT);
     const float newFFTerm = pidState->rateTarget * pidState->kFF;
 
-    // Calculate integral
-    pidState->errorGyroIf += rateError * pidState->kI * dT;
+    /*
+     * Integral should be updated only if axis Iterm is not frozen
+     */
+    if (!pidState->itermFreezeActive) {
+        pidState->errorGyroIf += rateError * pidState->kI * dT;
+    }
 
     applyItermLimiting(pidState);
-    applyItermFreezing(pidState);
 
     if (pidProfile()->fixedWingItermThrowLimit != 0) {
         pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -pidProfile()->fixedWingItermThrowLimit, pidProfile()->fixedWingItermThrowLimit);
