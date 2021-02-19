@@ -173,6 +173,8 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
 {
     const timeMs_t currentTimeMs = millis();
     const float absDesiredRateDps = fabsf(desiredRateDps);
+    const float absReachedRateDps = fabsf(reachedRateDps);
+    const float rateError = absReachedRateDps - absDesiredRateDps;
     float maxDesiredRate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
     pidAutotuneState_e newState;
 
@@ -188,7 +190,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
         tuneCurrent[axis].pidSaturated = true;
     }
 
-    if (servoOutput >= (servoMax - 50) || servoOutput <= (servoMin + 50)) {
+    if (false) { //TODO: check servo saturation
         tuneCurrent[axis].servoSaturated = true;
     }
 
@@ -196,7 +198,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
         // We can make decisions only when we are demanding at least 50% of max configured rate
         newState = DEMAND_TOO_LOW;
     }
-    else if (fabsf(reachedRateDps) > absDesiredRateDps) {
+    else if (rateError > 0) {
         newState = DEMAND_OVERSHOOT;
     }
     else {
@@ -214,7 +216,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
             case DEMAND_OVERSHOOT:
                 if (stateTimeMs >= pidAutotuneConfig()->fw_overshoot_time) {
                     if (pidAutotuneConfig()->autotune_rate_adjustment == AUTO) {
-                        tuneCurrent[axis].rate = tuneCurrent[axis].rate * (100 + AUTOTUNE_FIXED_WING_DECREASE_STEP) / 100.0f
+                        tuneCurrent[axis].rate = tuneCurrent[axis].rate * (100 + AUTOTUNE_FIXED_WING_DECREASE_STEP) / 100.0f;
                     }
                     tuneCurrent[axis].gainFF = tuneCurrent[axis].gainFF * (100 - AUTOTUNE_FIXED_WING_DECREASE_STEP) / 100.0f;
                     if (tuneCurrent[axis].gainFF < AUTOTUNE_FIXED_WING_MIN_FF) {
@@ -225,6 +227,10 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
                 break;
             case DEMAND_UNDERSHOOT:
                 if (stateTimeMs >= pidAutotuneConfig()->fw_undershoot_time && !tuneCurrent[axis].pidSaturated) {
+                    if (pidAutotuneConfig()->fw_autotune_rate_adjustment != FIXED && tuneCurrent[axis].servoSaturated) {
+                        // Decrease target rate if not achievable with full servo deflection
+                        tuneCurrent[axis].rate = tuneCurrent[axis].rate * (100 + AUTOTUNE_FIXED_WING_DECREASE_STEP) / 100.0f;
+                    }
                     tuneCurrent[axis].gainFF = tuneCurrent[axis].gainFF * (100 + AUTOTUNE_FIXED_WING_INCREASE_STEP) / 100.0f;
                     if (tuneCurrent[axis].gainFF > AUTOTUNE_FIXED_WING_MAX_FF) {
                         tuneCurrent[axis].gainFF = AUTOTUNE_FIXED_WING_MAX_FF;
