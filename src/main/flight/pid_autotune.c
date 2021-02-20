@@ -50,7 +50,7 @@
 #define AUTOTUNE_FIXED_WING_INCREASE_STEP       5           // 5%
 #define AUTOTUNE_FIXED_WING_MIN_FF              10
 #define AUTOTUNE_FIXED_WING_MAX_FF              200
-#define AUTOTUNE_FIXED_WING_MAX_RATE            360*3
+#define AUTOTUNE_FIXED_WING_MAX_RATE            360*2
 #define AUTOTUNE_FIXED_WING_MIN_RATE            60
 
 PG_REGISTER_WITH_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig, PG_PID_AUTOTUNE_CONFIG, 1);
@@ -75,7 +75,7 @@ typedef struct {
     timeMs_t            stateEnterTime;
 
     bool    pidSaturated;
-    bool    servoSaturated;
+    bool    mixerSaturated;
     float   gainP;
     float   gainI;
     float   gainFF;
@@ -121,9 +121,9 @@ void autotuneStart(void)
         tuneCurrent[axis].gainP = pidBank()->pid[axis].P;
         tuneCurrent[axis].gainI = pidBank()->pid[axis].I;
         tuneCurrent[axis].gainFF = pidBank()->pid[axis].FF;
-        tuneCurrent[axis].rate = currentControlRateProfile->stabilized.rates[axis]; // Not sure about this
+        tuneCurrent[axis].rate = currentControlRateProfile->stabilized.rates[axis] * 10.0f; // Not sure about the unit here. Is it in 10's of degrees per second?
         tuneCurrent[axis].pidSaturated = false;
-        tuneCurrent[axis].servoSaturated = false;
+        tuneCurrent[axis].mixerSaturated = false;
         tuneCurrent[axis].stateEnterTime = millis();
         tuneCurrent[axis].state = DEMAND_TOO_LOW;
     }
@@ -169,7 +169,7 @@ static void blackboxLogAutotuneEvent(adjustmentFunction_e adjustmentFunction, in
 
 #if defined(USE_AUTOTUNE_FIXED_WING)
 
-void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRateDps, float reachedRateDps, float pidOutput, int32_t servoOutput, int32_t servoMin, int32_t servoMax)
+void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRateDps, float reachedRateDps, float pidOutput)
 {
     const timeMs_t currentTimeMs = millis();
     const float absDesiredRateDps = fabsf(desiredRateDps);
@@ -190,15 +190,15 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
         tuneCurrent[axis].pidSaturated = true;
     }
 
-    if (false) { //TODO: check servo saturation
-        tuneCurrent[axis].servoSaturated = true;
+    if (false) { //TODO: check servo/mixer for more than 90% deflection
+        tuneCurrent[axis].mixerSaturated = true;
     }
 
     if (absDesiredRateDps < (pidAutotuneConfig()->fw_max_rate_threshold / 100.0f) * maxDesiredRate) {
         // We can make decisions only when we are demanding at least 50% of max configured rate
         newState = DEMAND_TOO_LOW;
     }
-    else if (rateError > 0) {
+    else if (absReachedRateDps > absDesiredRateDps) {
         newState = DEMAND_OVERSHOOT;
     }
     else {
@@ -215,9 +215,18 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
                 break;
             case DEMAND_OVERSHOOT:
                 if (stateTimeMs >= pidAutotuneConfig()->fw_overshoot_time) {
-                    if (pidAutotuneConfig()->autotune_rate_adjustment == AUTO) {
-                        tuneCurrent[axis].rate = tuneCurrent[axis].rate * (100 + AUTOTUNE_FIXED_WING_DECREASE_STEP) / 100.0f;
+                    if (pidAutotuneConfig()->autotune_rate_adjustment == AUTO && absReachedRateDps > maxDesiredRate && !tuneCurrent[axis].mixerSaturated) {
+                        // AUTO mode: we can rotate faster than current max rate setting, so increase max rate
+                        // TODO: better calculation of new rate instead of fixed increase
+                        // Explicit check for absDesiredRateDps close to maxDesiredRate?
+                        tuneCurrent[axis].rate += 30;
+                        if (tuneCurrent[axis].rate > AUTOTUNE_FIXED_WING_MAX_RATE) {
+                            tuneCurrent[axis].rate = AUTOTUNE_FIXED_WING_MAX_RATE;
+                        }
+                        ratesUpdated = true;
                     }
+                    // In all modes: decrease FF
+                    // TODO: maybe not update FF when rate is updated? Or FF = 13950/rate?
                     tuneCurrent[axis].gainFF = tuneCurrent[axis].gainFF * (100 - AUTOTUNE_FIXED_WING_DECREASE_STEP) / 100.0f;
                     if (tuneCurrent[axis].gainFF < AUTOTUNE_FIXED_WING_MIN_FF) {
                         tuneCurrent[axis].gainFF = AUTOTUNE_FIXED_WING_MIN_FF;
@@ -227,9 +236,13 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
                 break;
             case DEMAND_UNDERSHOOT:
                 if (stateTimeMs >= pidAutotuneConfig()->fw_undershoot_time && !tuneCurrent[axis].pidSaturated) {
-                    if (pidAutotuneConfig()->fw_autotune_rate_adjustment != FIXED && tuneCurrent[axis].servoSaturated) {
+                    if (pidAutotuneConfig()->fw_autotune_rate_adjustment != FIXED && tuneCurrent[axis].mixerSaturated) {
                         // Decrease target rate if not achievable with full servo deflection
-                        tuneCurrent[axis].rate = tuneCurrent[axis].rate * (100 + AUTOTUNE_FIXED_WING_DECREASE_STEP) / 100.0f;
+                        tuneCurrent[axis].rate -= 30;
+                        if (tuneCurrent[axis].rate < AUTOTUNE_FIXED_WING_MIN_RATE) { // Can we use MAX() function here? Seems cleaner.
+                            tuneCurrent[axis].rate = AUTOTUNE_FIXED_WING_MIN_RATE;
+                        }
+                        ratesUpdated = true;
                     }
                     tuneCurrent[axis].gainFF = tuneCurrent[axis].gainFF * (100 + AUTOTUNE_FIXED_WING_INCREASE_STEP) / 100.0f;
                     if (tuneCurrent[axis].gainFF > AUTOTUNE_FIXED_WING_MAX_FF) {
@@ -260,6 +273,24 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
 
             case FD_YAW:
                 blackboxLogAutotuneEvent(ADJUSTMENT_YAW_D_FF, tuneCurrent[axis].gainFF);
+                break;
+            }
+        }
+
+        if (ratesUpdated) {
+            // What to do with autotuneUpdateGains(tuneCurrent)?
+
+            switch (axis) {
+            case FD_ROLL:
+                blackboxLogAutotuneEvent(ADJUSTMENT_ROLL_RATE, tuneCurrent[axis].rate);
+                break;
+
+            case FD_PITCH:
+                blackboxLogAutotuneEvent(ADJUSTMENT_PITCH_RATE, tuneCurrent[axis].rate);
+                break;
+
+            case FD_YAW:
+                blackboxLogAutotuneEvent(ADJUSTMENT_YAW_RATE, tuneCurrent[axis].rate);
                 break;
             }
         }
