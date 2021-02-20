@@ -229,6 +229,12 @@
     #endif
     BUSDEV_REGISTER_I2C(busdev_ist8308,     DEVHW_IST8308,      IST8308_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE,  0);
 #endif
+
+#if defined(USE_MAG_RM3100)
+    #if defined(RM3100_SPI_BUS)
+    BUSDEV_REGISTER_SPI(busdev_rm3100,      DEVHW_RM3100,       RM3100_SPI_BUS,     RM3100_CS_PIN,      NONE,           DEVFLAGS_NONE,  0);
+    #endif
+#endif
 #endif
 
 
