@@ -217,7 +217,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
                 if (stateTimeMs >= pidAutotuneConfig()->fw_overshoot_time) {
                     if (pidAutotuneConfig()->autotune_rate_adjustment == AUTO && absReachedRateDps > maxDesiredRate && !tuneCurrent[axis].mixerSaturated) {
                         // AUTO mode: we can rotate faster than current max rate setting, so increase max rate
-                        // TODO: better calculation of new rate instead of fixed increase
+                        // TODO: better calculation of new rate to ensure convergence
                         // Explicit check for absDesiredRateDps close to maxDesiredRate?
                         // Also increase rate in MAX if it was previously decreased (tuneCurrent[axis].rate < currentControlRateProfile->stabilized.rates[axis] * 10.0f)?
                         tuneCurrent[axis].rate += 30;
@@ -225,14 +225,13 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
                             tuneCurrent[axis].rate = AUTOTUNE_FIXED_WING_MAX_RATE;
                         }
                         ratesUpdated = true;
+                    } else {
+                        tuneCurrent[axis].gainFF = tuneCurrent[axis].gainFF * (100 - AUTOTUNE_FIXED_WING_DECREASE_STEP) / 100.0f;
+                        if (tuneCurrent[axis].gainFF < AUTOTUNE_FIXED_WING_MIN_FF) {
+                            tuneCurrent[axis].gainFF = AUTOTUNE_FIXED_WING_MIN_FF;
+                        }
+                        gainsUpdated = true;
                     }
-                    // In all modes: decrease FF
-                    // TODO: maybe not update FF when rate is updated? Or FF = 13950/rate?
-                    tuneCurrent[axis].gainFF = tuneCurrent[axis].gainFF * (100 - AUTOTUNE_FIXED_WING_DECREASE_STEP) / 100.0f;
-                    if (tuneCurrent[axis].gainFF < AUTOTUNE_FIXED_WING_MIN_FF) {
-                        tuneCurrent[axis].gainFF = AUTOTUNE_FIXED_WING_MIN_FF;
-                    }
-                    gainsUpdated = true;
                 }
                 break;
             case DEMAND_UNDERSHOOT:
@@ -244,12 +243,13 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
                             tuneCurrent[axis].rate = AUTOTUNE_FIXED_WING_MIN_RATE;
                         }
                         ratesUpdated = true;
+                    } else {
+                        tuneCurrent[axis].gainFF = tuneCurrent[axis].gainFF * (100 + AUTOTUNE_FIXED_WING_INCREASE_STEP) / 100.0f;
+                        if (tuneCurrent[axis].gainFF > AUTOTUNE_FIXED_WING_MAX_FF) {
+                            tuneCurrent[axis].gainFF = AUTOTUNE_FIXED_WING_MAX_FF;
+                        }
+                        gainsUpdated = true;
                     }
-                    tuneCurrent[axis].gainFF = tuneCurrent[axis].gainFF * (100 + AUTOTUNE_FIXED_WING_INCREASE_STEP) / 100.0f;
-                    if (tuneCurrent[axis].gainFF > AUTOTUNE_FIXED_WING_MAX_FF) {
-                        tuneCurrent[axis].gainFF = AUTOTUNE_FIXED_WING_MAX_FF;
-                    }
-                    gainsUpdated = true;
                 }
                 break;
         }
