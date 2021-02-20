@@ -97,7 +97,7 @@ void autotuneUpdateGains(pidAutotuneData_t * data)
         pidBankMutable()->pid[axis].I = lrintf(data[axis].gainI);
         pidBankMutable()->pid[axis].D = 0;
         pidBankMutable()->pid[axis].FF = lrintf(data[axis].gainFF);
-        currentControlRateProfile->stabilized.rates[axis] = lrintf(data[axis].rate/10.0f);
+        // &controlRateConfig->stabilized.rates[axis] = lrintf(data[axis].rate/10.0f); // Need to figure out how to save the new rates.
     }
     schedulePidGainsUpdate();
 }
