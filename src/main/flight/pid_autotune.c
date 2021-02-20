@@ -97,6 +97,7 @@ void autotuneUpdateGains(pidAutotuneData_t * data)
         pidBankMutable()->pid[axis].I = lrintf(data[axis].gainI);
         pidBankMutable()->pid[axis].D = 0;
         pidBankMutable()->pid[axis].FF = lrintf(data[axis].gainFF);
+        currentControlRateProfile->stabilized.rates[axis] = lrintf(data[axis].rate/10.0f);
     }
     schedulePidGainsUpdate();
 }
@@ -278,7 +279,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
         }
 
         if (ratesUpdated) {
-            // What to do with autotuneUpdateGains(tuneCurrent)?
+            autotuneUpdateGains(tuneCurrent);
 
             switch (axis) {
             case FD_ROLL:
