@@ -219,6 +219,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
                         // AUTO mode: we can rotate faster than current max rate setting, so increase max rate
                         // TODO: better calculation of new rate instead of fixed increase
                         // Explicit check for absDesiredRateDps close to maxDesiredRate?
+                        // Also increase rate in MAX if it was previously decreased (tuneCurrent[axis].rate < currentControlRateProfile->stabilized.rates[axis] * 10.0f)?
                         tuneCurrent[axis].rate += 30;
                         if (tuneCurrent[axis].rate > AUTOTUNE_FIXED_WING_MAX_RATE) {
                             tuneCurrent[axis].rate = AUTOTUNE_FIXED_WING_MAX_RATE;
