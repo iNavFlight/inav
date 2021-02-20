@@ -174,7 +174,6 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
     const timeMs_t currentTimeMs = millis();
     const float absDesiredRateDps = fabsf(desiredRateDps);
     const float absReachedRateDps = fabsf(reachedRateDps);
-    const float rateError = absReachedRateDps - absDesiredRateDps;
     float maxDesiredRate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
     pidAutotuneState_e newState;
 
@@ -215,7 +214,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
                 break;
             case DEMAND_OVERSHOOT:
                 if (stateTimeMs >= pidAutotuneConfig()->fw_overshoot_time) {
-                    if (pidAutotuneConfig()->autotune_rate_adjustment == AUTO && absReachedRateDps > maxDesiredRate && !tuneCurrent[axis].mixerSaturated) {
+                    if (pidAutotuneConfig()->fw_autotune_rate_adjustment == AUTO && absReachedRateDps > maxDesiredRate && !tuneCurrent[axis].mixerSaturated) {
                         // AUTO mode: we can rotate faster than current max rate setting, so increase max rate
                         // TODO: better calculation of new rate to ensure convergence
                         // Explicit check for absDesiredRateDps close to maxDesiredRate?
@@ -300,7 +299,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
         tuneCurrent[axis].state = newState;
         tuneCurrent[axis].stateEnterTime = currentTimeMs;
         tuneCurrent[axis].pidSaturated = false;
-        tuneCurrent[axis].servoSaturated = false;
+        tuneCurrent[axis].mixerSaturated = false;
     }
 }
 #endif
