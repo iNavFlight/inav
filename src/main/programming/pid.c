@@ -110,7 +110,7 @@ void programmingPidInit(void)
     }
 }
 
-int programmingPidGetOutput(uint8_t i) {
+int32_t programmingPidGetOutput(uint8_t i) {
     return programmingPidState[constrain(i, 0, MAX_PROGRAMMING_PID_COUNT)].output;
 }
 

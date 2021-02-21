@@ -51,4 +51,4 @@ typedef struct programmingPidState_s {
 void programmingPidUpdateTask(timeUs_t currentTimeUs);
 void programmingPidInit(void);
 void programmingPidReset(void);
-int programmingPidGetOutput(uint8_t i);
+int32_t programmingPidGetOutput(uint8_t i);
