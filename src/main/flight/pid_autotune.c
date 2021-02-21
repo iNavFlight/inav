@@ -169,7 +169,8 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
     const timeMs_t currentTimeMs = millis();
     const float absDesiredRateDps = fabsf(desiredRateDps);
     const float absReachedRateDps = fabsf(reachedRateDps);
-    const float pidOutputRequired = pidOutput * (absDesiredRateDps / absReachedRateDps);
+    const float absPidOutput = fabsf(pidOutput);
+    const float pidOutputRequired = absPidOutput * (absDesiredRateDps / absReachedRateDps);
     float maxDesiredRate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
     pidAutotuneState_e newState;
 
@@ -180,7 +181,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
         maxDesiredRate = MIN(maxDesiredRate, maxDesiredRateInAngleMode);
     }
 
-    if (fabsf(pidOutput) >= pidProfile()->pidSumLimit) {
+    if (absPidOutput >= pidProfile()->pidSumLimit) {
         // If we have saturated the pid output by P+FF don't increase the gain
         tuneCurrent[axis].pidSaturated = true;
     }
