@@ -97,23 +97,6 @@ static int16_t hudWrap360(int16_t angle)
 }
 
 /*
- * Radar, get the nearest POI
- */
-int8_t radarGetNearestPOI(void)
-{
-    int8_t poi = -1;
-    uint16_t min = 10000; // 10kms
-
-    for (int i = 0; i < RADAR_MAX_POIS; i++) {
-        if ((radar_pois[i].distance > 0) && (radar_pois[i].distance < min) && (radar_pois[i].state != 2)) {
-            min = radar_pois[i].distance;
-            poi = i;
-        }
-    }
-    return poi;
-}
-
-/*
  * Display a POI as a 3D-marker on the hud
  * Distance (m), Direction (°), Altitude (relative, m, negative means below), Heading (°),
  * Type = 0 : Home point
@@ -319,38 +302,5 @@ void osdHudDrawHoming(uint8_t px, uint8_t py)
     displayWriteChar(osdGetDisplayPort(), px, py + 1, crh_d);
 }
 
-
-/*
- * Draw extra datas for a radar POI
- */
-void osdHudDrawExtras(uint8_t poi_id)
-{
-    char buftmp[6];
-
-    uint8_t minX = osdConfig()->hud_margin_h + 1;
-    uint8_t maxX = osdGetDisplayPort()->cols - osdConfig()->hud_margin_h - 2;
-    uint8_t lineY = osdGetDisplayPort()->rows - osdConfig()->hud_margin_v - 1;
-
-    displayWriteChar(osdGetDisplayPort(), minX + 1, lineY, 65 + poi_id);
-    displayWriteChar(osdGetDisplayPort(), minX + 2, lineY, SYM_HUD_SIGNAL_0 + radar_pois[poi_id].lq);
-
-    if (radar_pois[poi_id].altitude < 0) {
-        osdFormatAltitudeSymbol(buftmp, -radar_pois[poi_id].altitude * 100);
-        displayWriteChar(osdGetDisplayPort(), minX + 8, lineY, SYM_HUD_ARROWS_D2);
-    }
-    else {
-        osdFormatAltitudeSymbol(buftmp, radar_pois[poi_id].altitude * 100);
-        displayWriteChar(osdGetDisplayPort(), minX + 8, lineY, SYM_HUD_ARROWS_U2);
-    }
-
-    displayWrite(osdGetDisplayPort(), minX + 4, lineY, buftmp);
-
-    osdFormatVelocityStr(buftmp, radar_pois[poi_id].speed, false);
-    displayWrite(osdGetDisplayPort(), maxX - 9, lineY, buftmp);
-
-    tfp_sprintf(buftmp, "%3d%c", radar_pois[poi_id].heading, SYM_HEADING);
-    displayWrite(osdGetDisplayPort(), maxX - 4, lineY, buftmp);
-
-}
 
 #endif // USE_OSD

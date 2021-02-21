@@ -1747,13 +1747,6 @@ static bool osdDrawSingleElement(uint8_t item)
                         }
                     }
                 }
-
-                if (osdConfig()->hud_radar_nearest > 0) { // Display extra datas for 1 POI closer than a set distance
-                    int poi_id = radarGetNearestPOI();
-                    if (poi_id >= 0 && radar_pois[poi_id].distance <= osdConfig()->hud_radar_nearest) {
-                        osdHudDrawExtras(poi_id);
-                    }
-                }
             }
 
             // -------- POI : Next waypoints from navigation
