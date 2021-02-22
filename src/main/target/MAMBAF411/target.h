@@ -58,7 +58,7 @@
 #define USE_UART1
 #define UART1_TX_PIN            PA9
 #define UART1_RX_PIN            PA10
-#define INVERTER_PIN_UART1_RX   PB10
+#define INVERTER_PIN_UART1_TX   PB10
 
 #define USE_UART2
 #define UART2_TX_PIN            PA2
