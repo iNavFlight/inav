@@ -220,16 +220,12 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
                         // TODO: better calculation of new rate to ensure convergence
                         // Explicit check for absDesiredRateDps close to maxDesiredRate?
                         // Also increase rate in MAX if it was previously decreased (tuneCurrent[axis].rate < currentControlRateProfile->stabilized.rates[axis] * 10.0f)?
-                        tuneCurrent[axis].rate += 30;
-                        if (tuneCurrent[axis].rate > AUTOTUNE_FIXED_WING_MAX_RATE) {
-                            tuneCurrent[axis].rate = AUTOTUNE_FIXED_WING_MAX_RATE;
-                        }
+                        tuneCurrent[axis].rate += (absReachedRateDps - maxDesiredRate) * 0.5f;
+                        tuneCurrent[axis].rate = MIN(tuneCurrent[axis].rate, AUTOTUNE_FIXED_WING_MAX_RATE);
                         ratesUpdated = true;
                     } else {
                         tuneCurrent[axis].gainFF = tuneCurrent[axis].gainFF * (100 - AUTOTUNE_FIXED_WING_DECREASE_STEP) / 100.0f;
-                        if (tuneCurrent[axis].gainFF < AUTOTUNE_FIXED_WING_MIN_FF) {
-                            tuneCurrent[axis].gainFF = AUTOTUNE_FIXED_WING_MIN_FF;
-                        }
+                        tuneCurrent[axis].gainFF = MAX(tuneCurrent[axis].gainFF, AUTOTUNE_FIXED_WING_MIN_FF)
                         gainsUpdated = true;
                     }
                 }
@@ -238,16 +234,12 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
                 if (stateTimeMs >= pidAutotuneConfig()->fw_undershoot_time && !tuneCurrent[axis].pidSaturated) {
                     if (pidAutotuneConfig()->fw_autotune_rate_adjustment != FIXED && tuneCurrent[axis].mixerSaturated) {
                         // Decrease target rate if not achievable with full servo deflection
-                        tuneCurrent[axis].rate -= 30;
-                        if (tuneCurrent[axis].rate < AUTOTUNE_FIXED_WING_MIN_RATE) { // Can we use MAX() function here? Seems cleaner.
-                            tuneCurrent[axis].rate = AUTOTUNE_FIXED_WING_MIN_RATE;
-                        }
+                        tuneCurrent[axis].rate -= (maxDesiredRate - absReachedRateDps) * 0.5f;
+                        tuneCurrent[axis].rate = MAX(tuneCurrent[axis].rate, AUTOTUNE_FIXED_WING_MIN_RATE);
                         ratesUpdated = true;
                     } else {
                         tuneCurrent[axis].gainFF = tuneCurrent[axis].gainFF * (100 + AUTOTUNE_FIXED_WING_INCREASE_STEP) / 100.0f;
-                        if (tuneCurrent[axis].gainFF > AUTOTUNE_FIXED_WING_MAX_FF) {
-                            tuneCurrent[axis].gainFF = AUTOTUNE_FIXED_WING_MAX_FF;
-                        }
+                        tuneCurrent[axis].gainFF = MIN(tuneCurrent[axis].gainFF, AUTOTUNE_FIXED_WING_MAX_FF);
                         gainsUpdated = true;
                     }
                 }
