@@ -161,6 +161,7 @@ typedef struct pidAutotuneConfig_s {
     uint8_t     fw_ff_to_p_gain;            // FF to P gain (strength relationship) [%]
     uint16_t    fw_ff_to_i_time_constant;   // FF to I time (defines time for I to reach the same level of response as FF) [ms]
     uint8_t     fw_autotune_rate_adjustment;  // Target rate adjustment on full stick deflection?
+    float       fw_convergence_rate;        // Convergence rate
 } pidAutotuneConfig_t;
 
 typedef enum {

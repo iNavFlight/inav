@@ -1924,6 +1924,12 @@ groups:
         field: fw_autotune_rate_adjustment
         table: autotune_rate_adjustment
         type: uint8_t
+      - name: fw_autotune_convergence_rate
+        description: "How fast autotune will converge. Too high values can cause overshooting of FF and rate targets."
+        default_value: "0.5"
+        field: fw_convergence_rate
+        min: 0
+        max: 1
 
   - name: PG_POSITION_ESTIMATION_CONFIG
     type: positionEstimationConfig_t

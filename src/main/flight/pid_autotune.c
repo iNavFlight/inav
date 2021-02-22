@@ -46,14 +46,14 @@
 #define AUTOTUNE_FIXED_WING_OVERSHOOT_TIME      100
 #define AUTOTUNE_FIXED_WING_UNDERSHOOT_TIME     200
 #define AUTOTUNE_FIXED_WING_INTEGRATOR_TC       600
-#define AUTOTUNE_FIXED_WING_DECREASE_STEP       8           // 8%
-#define AUTOTUNE_FIXED_WING_INCREASE_STEP       5           // 5%
 #define AUTOTUNE_FIXED_WING_MIN_FF              10
 #define AUTOTUNE_FIXED_WING_MAX_FF              200
 #define AUTOTUNE_FIXED_WING_MAX_RATE            360*2
 #define AUTOTUNE_FIXED_WING_MIN_RATE            60
+#define AUTOTUNE_FIXED_WING_CONVERGENCE_RATE    0.5
+#define AUTOTUNE_FIXED_WING_RATE_TRESHOLD       10
 
-PG_REGISTER_WITH_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig, PG_PID_AUTOTUNE_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig, PG_PID_AUTOTUNE_CONFIG, 2);
 
 PG_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig,
     .fw_overshoot_time = AUTOTUNE_FIXED_WING_OVERSHOOT_TIME,
@@ -62,6 +62,7 @@ PG_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig,
     .fw_ff_to_p_gain = 10,
     .fw_ff_to_i_time_constant = AUTOTUNE_FIXED_WING_INTEGRATOR_TC,
     .fw_autotune_rate_adjustment = FIXED,
+    .fw_convergence_rate = AUTOTUNE_FIXED_WING_CONVERGENCE_RATE,
 );
 
 typedef enum {
@@ -124,7 +125,6 @@ void autotuneStart(void)
         tuneCurrent[axis].gainFF = pidBank()->pid[axis].FF;
         tuneCurrent[axis].rate = currentControlRateProfile->stabilized.rates[axis] * 10.0f; // Not sure about the unit here. Is it in 10's of degrees per second?
         tuneCurrent[axis].pidSaturated = false;
-        tuneCurrent[axis].mixerSaturated = false;
         tuneCurrent[axis].stateEnterTime = millis();
         tuneCurrent[axis].state = DEMAND_TOO_LOW;
     }
@@ -173,8 +173,12 @@ static void blackboxLogAutotuneEvent(adjustmentFunction_e adjustmentFunction, in
 void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRateDps, float reachedRateDps, float pidOutput)
 {
     const timeMs_t currentTimeMs = millis();
+    const float convergenceRate = pidAutotuneConfig()->fw_convergence_rate;
     const float absDesiredRateDps = fabsf(desiredRateDps);
     const float absReachedRateDps = fabsf(reachedRateDps);
+    const float absPidOutput = fabs(pidOutput);
+    const float pidTuneLimit = 0.9f * pidProfile()->pidSumLimit;
+    const float pidOutputRequired = absPidOutput * (absDesiredRateDps / absReachedRateDps);
     float maxDesiredRate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
     pidAutotuneState_e newState;
 
@@ -183,15 +187,6 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
     if (FLIGHT_MODE(ANGLE_MODE) && (axis == FD_PITCH || axis == FD_ROLL)) {
         float maxDesiredRateInAngleMode = DECIDEGREES_TO_DEGREES(pidProfile()->max_angle_inclination[axis] * 1.0f) * pidBank()->pid[PID_LEVEL].P / FP_PID_LEVEL_P_MULTIPLIER;
         maxDesiredRate = MIN(maxDesiredRate, maxDesiredRateInAngleMode);
-    }
-
-    if (fabsf(pidOutput) >= pidProfile()->pidSumLimit) {
-        // If we have saturated the pid output by P+FF don't increase the gain
-        tuneCurrent[axis].pidSaturated = true;
-    }
-
-    if (false) { //TODO: check servo/mixer for more than 90% deflection
-        tuneCurrent[axis].mixerSaturated = true;
     }
 
     if (absDesiredRateDps < (pidAutotuneConfig()->fw_max_rate_threshold / 100.0f) * maxDesiredRate) {
@@ -215,18 +210,16 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
                 break;
             case DEMAND_OVERSHOOT:
                 if (stateTimeMs >= pidAutotuneConfig()->fw_overshoot_time) {
-                    if (pidAutotuneConfig()->fw_autotune_rate_adjustment == AUTO && absReachedRateDps > maxDesiredRate && !tuneCurrent[axis].mixerSaturated) {
-                        // AUTO mode: we can rotate faster than current max rate setting, so increase max rate
-                        // TODO: better calculation of new rate to ensure convergence
-                        // Explicit check for absDesiredRateDps close to maxDesiredRate?
-                        // Also increase rate in MAX if it was previously decreased (tuneCurrent[axis].rate < currentControlRateProfile->stabilized.rates[axis] * 10.0f)?
-                        tuneCurrent[axis].rate += (absReachedRateDps - maxDesiredRate) * 0.5f;
+                    if (pidAutotuneConfig()->fw_autotune_rate_adjustment == AUTO && absReachedRateDps > (maxDesiredRate + AUTOTUNE_FIXED_WING_RATE_TRESHOLD)) {
+                        // AUTO mode: we can rotate faster than current max rate setting, so increase max rate to level that should be achievable with 90% deflection, scale down to avoid overshooting 
+                        tuneCurrent[axis].rate += ((pidTuneLimit / absPidOutput * absReachedRateDps) - tuneCurrent[axis].rate) * convergenceRate;
                         if (tuneCurrent[axis].rate > AUTOTUNE_FIXED_WING_MAX_RATE) {
                             tuneCurrent[axis].rate = AUTOTUNE_FIXED_WING_MAX_RATE;
                         }
                         ratesUpdated = true;
                     } else {
-                        tuneCurrent[axis].gainFF = tuneCurrent[axis].gainFF * (100 - AUTOTUNE_FIXED_WING_DECREASE_STEP) / 100.0f;
+                        // Decrease FF-gain
+                        tuneCurrent[axis].gainFF -= (tuneCurrent[axis].gainFF - pidOutputRequired) * convergenceRate;
                         if (tuneCurrent[axis].gainFF < AUTOTUNE_FIXED_WING_MIN_FF) {
                             tuneCurrent[axis].gainFF = AUTOTUNE_FIXED_WING_MIN_FF;
                         }
@@ -235,16 +228,18 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
                 }
                 break;
             case DEMAND_UNDERSHOOT:
-                if (stateTimeMs >= pidAutotuneConfig()->fw_undershoot_time && !tuneCurrent[axis].pidSaturated) {
-                    if (pidAutotuneConfig()->fw_autotune_rate_adjustment != FIXED && tuneCurrent[axis].mixerSaturated) {
-                        // Decrease target rate if not achievable with full servo deflection
-                        tuneCurrent[axis].rate -= (maxDesiredRate - absReachedRateDps) * 0.5f;
+                if (stateTimeMs >= pidAutotuneConfig()->fw_undershoot_time) {
+                    if (pidAutotuneConfig()->fw_autotune_rate_adjustment != FIXED && absPidOutput > pidTuneLimit) {
+                        // Decrease max rate to a level that should be achievable with 90% deflection, scale down to avoid overshooting
+                        tuneCurrent[axis].rate -= (tuneCurrent[axis].rate - (pidTuneLimit / absPidOutput * absReachedRateDps)) * convergenceRate;
                         if (tuneCurrent[axis].rate < AUTOTUNE_FIXED_WING_MIN_RATE) {
                             tuneCurrent[axis].rate = AUTOTUNE_FIXED_WING_MIN_RATE;
                         }
                         ratesUpdated = true;
-                    } else {
-                        tuneCurrent[axis].gainFF = tuneCurrent[axis].gainFF * (100 + AUTOTUNE_FIXED_WING_INCREASE_STEP) / 100.0f;
+                    } else if (absPidOutput <= pidProfile()->pidSumLimit){
+                        // Never increase FF if pids are saturated
+                        // Increase FF gain
+                        tuneCurrent[axis].gainFF += (pidOutputRequired - tuneCurrent[axis].gainFF) * convergenceRate;
                         if (tuneCurrent[axis].gainFF > AUTOTUNE_FIXED_WING_MAX_FF) {
                             tuneCurrent[axis].gainFF = AUTOTUNE_FIXED_WING_MAX_FF;
                         }
