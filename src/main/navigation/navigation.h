@@ -282,6 +282,8 @@ typedef enum {
 } navWaypointHeadings_e;
 
 typedef enum {
+    NAV_WP_MISSION_ARM_DATUM = 0x00,
+    NAV_WP_MISSION_MSL_DATUM = 0x01,
     NAV_WP_FLAG_LAST = 0xA5
 } navWaypointFlags_e;
 

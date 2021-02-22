@@ -2894,7 +2894,7 @@ static void calculateAndSetActiveWaypointToLocalPosition(const fpVector3_t * pos
 
 geoAltitudeConversionMode_e waypointMissionAltConvMode(void)
 {
-    return posControl.waypointList[0].flag == 1 ? GEO_ALT_ABSOLUTE : GEO_ALT_RELATIVE;
+    return posControl.waypointList[0].flag == NAV_WP_MISSION_MSL_DATUM ? GEO_ALT_ABSOLUTE : GEO_ALT_RELATIVE;
 }
 
 static void calculateAndSetActiveWaypoint(const navWaypoint_t * waypoint)
