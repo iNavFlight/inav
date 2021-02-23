@@ -77,7 +77,7 @@ fpVector3_t   original_rth_home;         // the original rth home - save it, sin
 
 radar_pois_t radar_pois[RADAR_MAX_POIS];
 #if defined(USE_SAFE_HOME)
-int8_t safehome_index;                    // -1 if no safehome, 0 to MAX_SAFEHOMES -1 otherwise
+int8_t safehome_index = -1;               // -1 if no safehome, 0 to MAX_SAFEHOMES -1 otherwise
 uint32_t safehome_distance = 0;           // distance to the nearest safehome
 fpVector3_t nearestSafeHome;              // The nearestSafeHome found during arming
 bool safehome_applied = false;            // whether the safehome has been applied to home.
@@ -2416,7 +2416,9 @@ void updateHomePosition(void)
             }
             if (setHome) {
 #if defined(USE_SAFE_HOME)
-                findNearestSafeHome();
+                if (navConfig()->general.flags.safehome_usage_mode != SAFEHOME_USAGE_OFF) {
+                    findNearestSafeHome();
+				}
 #endif
                 setHomePosition(&posControl.actualState.abs.pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
                 // save the current location in case it is replaced by a safehome or HOME_RESET
