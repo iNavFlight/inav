@@ -135,9 +135,10 @@
 
 #define USE_VTX_COMMON
 
-#else // FLASH_SIZE < 256
 #define USE_SERIALRX_GHST
 #define USE_TELEMETRY_GHST
+
+#else // FLASH_SIZE < 256
 #define LOG_LEVEL_MAXIMUM LOG_LEVEL_ERROR
 #endif
 
