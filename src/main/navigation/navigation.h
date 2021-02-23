@@ -35,6 +35,7 @@
 extern gpsLocation_t        GPS_home;
 extern uint32_t             GPS_distanceToHome;        // distance to home point in meters
 extern int16_t              GPS_directionToHome;       // direction to home point in degrees
+extern fpVector3_t          original_rth_home;         // the original rth home - save it, since it could be replaced by safehome or HOME_RESET
 
 extern bool autoThrottleManuallyIncreased;
 
@@ -50,14 +51,19 @@ typedef struct {
     int32_t lon;
 } navSafeHome_t;
 
+typedef enum {
+    SAFEHOME_USAGE_OFF = 0,    // Don't use safehomes
+    SAFEHOME_USAGE_RTH = 1,    // Default - use safehome for RTH
+    SAFEHOME_USAGE_RTH_FS = 2, // Use safehomes for RX failsafe only
+} safehomeUsageMode_e;
+
 PG_DECLARE_ARRAY(navSafeHome_t, MAX_SAFE_HOMES, safeHomeConfig);
 
-extern int8_t safehome_used;                     // -1 if no safehome, 0 to MAX_SAFEHOMES -1 otherwise
-extern uint32_t safehome_distance;               // distance to the selected safehome
+extern int8_t safehome_index;                    // -1 if no safehome, 0 to MAX_SAFEHOMES -1 otherwise
+extern uint32_t safehome_distance;               // distance to the nearest safehome
 
 void resetSafeHomes(void);                       // remove all safehomes
-bool isSafeHomeInUse(void);                      // Are we using a safehome instead of the arming point?
-bool foundNearbySafeHome(void);                  // Did we find a safehome nearby?
+bool findNearestSafeHome(void);                  // Find nearest safehome
 
 #endif // defined(USE_SAFE_HOME)
 
@@ -184,6 +190,7 @@ typedef struct navConfig_s {
             uint8_t rth_allow_landing;          // Enable landing as last stage of RTH. Use constants in navRTHAllowLanding_e.
             uint8_t rth_climb_ignore_emerg;     // Option to ignore GPS loss on initial climb stage of RTH
             uint8_t nav_overrides_motor_stop;   // Autonomous modes override motor_stop setting and user command to stop motor
+            uint8_t safehome_usage_mode;        // Controls when safehomes are used
         } flags;
 
         uint8_t  pos_failure_timeout;           // Time to wait before switching to emergency landing (0 - disable)

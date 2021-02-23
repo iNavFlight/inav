@@ -12,9 +12,13 @@ One potential risk when landing is that there might be buildings, trees and othe
 
 ## Safehome
 
-Safehomes are a list of GPS coordinates that identify safe landing points.  When the flight controller is armed, it checks the list of safehomes.  The nearest safehome that is enabled and within ```safehome_max_distance``` (default 200m) of the current position will be selected.  Otherwise, it reverts to the old behaviour of using your current GPS position as home.  
+Safehomes are a list of GPS coordinates that identify safe landing points.  When the flight controller is armed, it checks the list of safehomes.  The nearest safehome that is enabled and within ```safehome_max_distance``` (default 200m) of the current position will be remembered.  The arming home location remains as home.
 
-Be aware that the safehome replaces your arming position as home.  When flying, RTH will return to the safehome and OSD elements such as distance to home and direction to home will refer to the selected safehome.
+When RTH is activated, whether by radio failsafe, or using the RTH radio control mode, the safehome identified during arming will replace the arming home.  If RTH is turned off, either by regaining radio control or turning off the RTH radio control mode, the home location will return to arming point.
+
+The safehome operating mode is set using ```safehome_usage_mode```.  If ```OFF```, safehomes will not be used.  If ```RTH```, the safehome will replace the arming location when RTH is activated, either manually or because of RX failsafe.  If ```RTH_FS```, the safehome will only be used for RX failsafe.  This option can be changed using the OSD menu.
+
+This behavior has changed from the initial release, where the safehome location replaced the arming location during the arming phase.  That would result in flight information involving home (home distance, home bearing, etc) using the safehome, instead of the arming location.
 
 You can define up to 8 safehomes for different locations you fly at.
 
@@ -36,8 +40,8 @@ If a safehome is selected, an additional message appears:
          CURRENT DATE
          CURRENT TIME
 ```
-The GPS details are those of the selected safehome.
-To draw your attention to "HOME" being replaced, the message flashes and stays visible longer.
+The GPS details are those of the arming location, not the safehome.
+To draw your attention to a safehome being selected, the message flashes and stays visible longer.
 
 ## CLI command `safehome` to manage safehomes
 
