@@ -136,7 +136,7 @@ tables:
     values: ["HIGH", "MEDIUM", "LOW"]
     enum: dynamicFilterRange_e
   - name: pidTypeTable
-    values: ["NONE", "PID", "PIFF", "AUTO"]
+    values: ["NONE", "PID", "PIDFF", "AUTO"]
     enum: pidType_e
   - name: osd_ahi_style
     values: ["DEFAULT", "LINE"]
@@ -1464,6 +1464,12 @@ groups:
         field: bank_fw.pid[PID_PITCH].I
         min: 0
         max: 200
+      - name: fw_d_pitch
+        description: "Fixed wing rate stabilisation D-gain for PITCH"
+        default_value: "0"
+        field: bank_fw.pid[PID_PITCH].D
+        min: 0
+        max: 200
       - name: fw_ff_pitch
         description: "Fixed-wing rate stabilisation FF-gain for PITCH"
         default_value: "50"
@@ -1482,6 +1488,12 @@ groups:
         field: bank_fw.pid[PID_ROLL].I
         min: 0
         max: 200
+      - name: fw_d_roll
+        description: "Fixed wing rate stabilisation D-gain for roll"
+        default_value: "0"
+        field: bank_fw.pid[PID_ROLL].D
+        min: 0
+        max: 200
       - name: fw_ff_roll
         description: "Fixed-wing rate stabilisation FF-gain for ROLL"
         default_value: "50"
@@ -1498,6 +1510,12 @@ groups:
         description: "Fixed-wing rate stabilisation I-gain for YAW"
         default_value: "10"
         field: bank_fw.pid[PID_YAW].I
+        min: 0
+        max: 200
+      - name: fw_d_yaw
+        description: "Fixed wing rate stabilisation D-gain for YAW"
+        default_value: "0"
+        field: bank_fw.pid[PID_YAW].D
         min: 0
         max: 200
       - name: fw_ff_yaw
@@ -1847,7 +1865,7 @@ groups:
         min: 1
         max: 30
       - name: pid_type
-        description: "Allows to set type of PID controller used in control loop. Possible values: `NONE`, `PID`, `PIFF`, `AUTO`. Change only in case of experimental platforms like VTOL, tailsitters, rovers, boats, etc. Airplanes should always use `PIFF` and multirotors `PID`"
+        description: "Allows to set type of PID controller used in control loop. Possible values: `NONE`, `PID`, `PIDFF`, `AUTO`. Change only in case of experimental platforms like VTOL, tailsitters, rovers, boats, etc. Airplanes should always use `PIDFF` and multirotors `PID`"
         field: pidControllerType
         table: pidTypeTable
       - name: mc_cd_lpf_hz
