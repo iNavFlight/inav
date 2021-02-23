@@ -95,7 +95,7 @@ void autotuneUpdateGains(pidAutotuneData_t * data)
         pidBankMutable()->pid[axis].I = lrintf(data[axis].gainI);
         pidBankMutable()->pid[axis].D = 0;
         pidBankMutable()->pid[axis].FF = lrintf(data[axis].gainFF);
-        // &controlRateConfig->stabilized.rates[axis] = lrintf(data[axis].rate/10.0f); // Need to figure out how to save the new rates.
+        // &controlRateConfig->stabilized.rates[axis] = lrintf(data[axis].rate/10.0f); // TODO: need to figure out how to apply the new rates for the next loop
     }
     schedulePidGainsUpdate();
 }
@@ -120,7 +120,7 @@ void autotuneStart(void)
         tuneCurrent[axis].gainP = pidBank()->pid[axis].P;
         tuneCurrent[axis].gainI = pidBank()->pid[axis].I;
         tuneCurrent[axis].gainFF = pidBank()->pid[axis].FF;
-        tuneCurrent[axis].rate = currentControlRateProfile->stabilized.rates[axis] * 10.0f; // Not sure about the unit here. Is it in 10's of degrees per second?
+        tuneCurrent[axis].rate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
         tuneCurrent[axis].stateEnterTime = millis();
         tuneCurrent[axis].state = DEMAND_TOO_LOW;
     }
@@ -172,9 +172,6 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
     const float convergenceRate = pidAutotuneConfig()->fw_convergence_rate;
     const float absDesiredRateDps = fabsf(desiredRateDps);
     const float absReachedRateDps = fabsf(reachedRateDps);
-    const float pidTuneLimit = 0.9f * pidProfile()->pidSumLimit;
-    const float pidOutputRequired = fabsf(pidOutput) * (absDesiredRateDps / absReachedRateDps); 
-    const float rate90DegDeflection = (pidTuneLimit / fabsf(pidOutput)) * absReachedRateDps;
     float maxDesiredRateDps = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
     pidAutotuneState_e newState;
 
@@ -208,18 +205,31 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
             case DEMAND_UNDERSHOOT:
                 if (stateTimeMs >= pidAutotuneConfig()->fw_overshoot_time) {
                     if (pidAutotuneConfig()->fw_autotune_rate_adjustment != FIXED) {
-                        // In AUTO and MAX adjust both rates and FF
-                        tuneCurrent[axis].rate += (rate90DegDeflection - maxDesiredRateDps) * convergenceRate;
+                        /* In AUTO and MAX adjust both rates and FF */
+                        // Target pidSum at 90% deflection
+                        const float pidTuneLimit = 0.9f * pidProfile()->pidSumLimit;
+
+                        // Theoretically achievable rate at 90% deflection
+                        const float rate90PercDeflection = (pidTuneLimit / fabsf(pidOutput)) * absReachedRateDps;
+
+                        // Calculate rate update and constrain to safe values
+                        tuneCurrent[axis].rate += (rate90PercDeflection - maxDesiredRateDps) * convergenceRate;
                         tuneCurrent[axis].rate = constrainf(tuneCurrent[axis].rate, AUTOTUNE_FIXED_WING_MIN_RATE, AUTOTUNE_FIXED_WING_MAX_RATE);
                         if (pidAutotuneConfig()->fw_autotune_rate_adjustment == MAX) {
-                            // In MAX constrain rate to initial value
+                            // In MAX limit max rate to initial value
                             tuneCurrent[axis].rate = constrainf(tuneCurrent[axis].rate, AUTOTUNE_FIXED_WING_MIN_RATE, currentControlRateProfile->stabilized.rates[axis] * 10.0f);
                         }
+
+                        // Set FF to be consistent with the max target rate at 90% deflection
                         tuneCurrent[axis].gainFF = AUTOTUNE_FIXED_WING_RATE_TO_FF / tuneCurrent[axis].rate;
                         gainsUpdated = true;
                         ratesUpdated = true;
                     } else {
-                        // In FIXED only adjust FF
+                        /* In FIXED only adjust FF */
+                        // pidSum needed to achieve target rate, never target higher than 500
+                        const float pidOutputRequired = MIN(fabsf(pidOutput) * (absDesiredRateDps / absReachedRateDps), pidProfile()->pidSumLimit);
+
+                        // Calculate FF update and constrain to safe values
                         tuneCurrent[axis].gainFF += (pidOutputRequired / absDesiredRateDps * FP_PID_RATE_FF_MULTIPLIER - tuneCurrent[axis].gainFF) * convergenceRate;
                         tuneCurrent[axis].gainFF = constrainf(tuneCurrent[axis].gainFF, AUTOTUNE_FIXED_WING_MIN_FF, AUTOTUNE_FIXED_WING_MAX_FF);
                         gainsUpdated = true;
