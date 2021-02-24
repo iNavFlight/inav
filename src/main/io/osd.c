@@ -777,6 +777,15 @@ static const char * osdFailsafeInfoMessage(void)
     }
     return OSD_MESSAGE_STR(OSD_MSG_RC_RX_LINK_LOST);
 }
+#if defined(USE_SAFE_HOME)
+static const char * divertingToSafehomeMessage(void)
+{
+	if (safehome_applied) {
+	    return OSD_MESSAGE_STR(OSD_MSG_DIVERT_SAFEHOME);
+	}
+	return NULL;
+}
+#endif
 
 static const char * navigationStateMessage(void)
 {
@@ -3354,6 +3363,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 const char *failsafePhaseMessage = osdFailsafePhaseMessage();
                 const char *failsafeInfoMessage = osdFailsafeInfoMessage();
                 const char *navStateFSMessage = navigationStateMessage();
+
                 if (failsafePhaseMessage) {
                     messages[messageCount++] = failsafePhaseMessage;
                 }
@@ -3363,6 +3373,12 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 if (navStateFSMessage) {
                     messages[messageCount++] = navStateFSMessage;
                 }
+#if defined(USE_SAFE_HOME)
+                const char *safehomeMessage = divertingToSafehomeMessage();
+				if (safehomeMessage) {
+					messages[messageCount++] = safehomeMessage;
+				}
+#endif
                 if (messageCount > 0) {
                     message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
                     if (message == failsafeInfoMessage) {
@@ -3397,6 +3413,12 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                             messages[messageCount++] = navStateMessage;
                         }
                     }
+#if defined(USE_SAFE_HOME)
+					const char *safehomeMessage = divertingToSafehomeMessage();
+					if (safehomeMessage) {
+						messages[messageCount++] = safehomeMessage;
+					}
+#endif
                 } else if (STATE(FIXED_WING_LEGACY) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_AUTOLAUNCH);
                         const char *launchStateMessage = fixedWingLaunchStateMessage();

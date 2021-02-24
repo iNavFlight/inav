@@ -98,6 +98,10 @@
 #define OSD_MSG_HEADFREE            "(HEADFREE)"
 #define OSD_MSG_UNABLE_ARM          "UNABLE TO ARM"
 
+#if defined(USE_SAFE_HOME)
+#define OSD_MSG_DIVERT_SAFEHOME     "DIVERTING TO SAFEHOME"
+#endif
+
 typedef enum {
     OSD_RSSI_VALUE,
     OSD_MAIN_BATT_VOLTAGE,
@@ -337,7 +341,7 @@ typedef struct osdConfig_s {
 
     bool osd_failsafe_switch_layout;
     uint8_t plus_code_digits; // Number of digits to use in OSD_PLUS_CODE
-    uint8_t plus_code_short; 
+    uint8_t plus_code_short;
     uint8_t osd_ahi_style;
     uint8_t force_grid;                 // Force a pixel based OSD to use grid mode.
     uint8_t ahi_bordered;               // Only used by the AHI widget

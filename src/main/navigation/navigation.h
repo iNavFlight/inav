@@ -61,6 +61,7 @@ PG_DECLARE_ARRAY(navSafeHome_t, MAX_SAFE_HOMES, safeHomeConfig);
 
 extern int8_t safehome_index;                    // -1 if no safehome, 0 to MAX_SAFEHOMES -1 otherwise
 extern uint32_t safehome_distance;               // distance to the nearest safehome
+extern bool safehome_applied;                    // whether the safehome has been applied to home.
 
 void resetSafeHomes(void);                       // remove all safehomes
 bool findNearestSafeHome(void);                  // Find nearest safehome
