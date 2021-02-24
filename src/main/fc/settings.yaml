@@ -1919,7 +1919,7 @@ groups:
         min: 100
         max: 5000
       - name: fw_autotune_rate_adjustment
-        description: "`AUTO` increases and decreases the rates to match the capabilities of the airplane. `DECREASE_ONLY` only decreases the rates. `FIXED` (the default) does not adjust the rates."
+        description: "`AUTO` increases and decreases the rates to match the capabilities of the airplane. `DECREASE_ONLY` decreases the rates when they are set too high but never increases them. `FIXED` (the default) does not adjust the rates."
         default_value: "FIXED"
         field: fw_autotune_rate_adjustment
         table: autotune_rate_adjustment
