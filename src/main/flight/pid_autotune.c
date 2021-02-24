@@ -172,7 +172,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
     const float convergenceRate = pidAutotuneConfig()->fw_convergence_rate;
     const float absDesiredRateDps = fabsf(desiredRateDps);
     const float absReachedRateDps = fabsf(reachedRateDps);
-    float maxDesiredRateDps = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
+    float maxDesiredRateDps = tuneCurrent[axis].rate;
     pidAutotuneState_e newState;
 
     // Use different max desired rate in ANGLE for pitch and roll
