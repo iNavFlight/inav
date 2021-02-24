@@ -43,6 +43,10 @@ If a safehome is selected, an additional message appears:
 The GPS details are those of the arming location, not the safehome.
 To draw your attention to a safehome being selected, the message flashes and stays visible longer.
 
+## OSD Message during RTH
+
+If RTH is in progress to a safehome, the message "DIVERTING TO SAFEHOME" will be displayed.
+
 ## CLI command `safehome` to manage safehomes
 
 `safehome` - List all safehomes

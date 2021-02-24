@@ -3133,7 +3133,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         const bool canActivatePosHold    = canActivatePosHoldMode();
         const bool canActivateNavigation = canActivateNavigationModes();
         const bool isExecutingRTH        = navGetStateFlags(posControl.navState) & NAV_AUTO_RTH;
-        checkSafeHomeState(isExecutingRTH);
+        checkSafeHomeState(isExecutingRTH || posControl.flags.forcedRTHActivated);
 
         // Keep canActivateWaypoint flag at FALSE if there is no mission loaded
         // Also block WP mission if we are executing RTH
@@ -3567,6 +3567,7 @@ void activateForcedRTH(void)
 {
     abortFixedWingLaunch();
     posControl.flags.forcedRTHActivated = true;
+    checkSafeHomeState(true);
     navProcessFSMEvents(selectNavEventFromBoxModeInput());
 }
 
