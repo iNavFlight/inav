@@ -78,6 +78,7 @@ typedef struct {
     float   gainI;
     float   gainFF;
     float   rate;
+    float   initialRate;
 } pidAutotuneData_t;
 
 #define AUTOTUNE_SAVE_PERIOD        5000        // Save interval is 5 seconds - when we turn off autotune we'll restore values from previous update at most 5 sec ago
@@ -95,7 +96,7 @@ void autotuneUpdateGains(pidAutotuneData_t * data)
         pidBankMutable()->pid[axis].I = lrintf(data[axis].gainI);
         pidBankMutable()->pid[axis].D = 0;
         pidBankMutable()->pid[axis].FF = lrintf(data[axis].gainFF);
-        // &controlRateConfig->stabilized.rates[axis] = lrintf(data[axis].rate/10.0f); // TODO: need to figure out how to apply the new rates for the next loop
+        ((controlRateConfig_t *)currentControlRateProfile)->stabilized.rates[axis] = lrintf(data[axis].rate/10.0f); // TODO: need to figure out how to apply the new rates for the next loop
     }
     schedulePidGainsUpdate();
 }
@@ -123,6 +124,7 @@ void autotuneStart(void)
         tuneCurrent[axis].rate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
         tuneCurrent[axis].stateEnterTime = millis();
         tuneCurrent[axis].state = DEMAND_TOO_LOW;
+        tuneCurrent[axis].initialRate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
     }
 
     memcpy(tuneSaved, tuneCurrent, sizeof(pidAutotuneData_t) * XYZ_AXIS_COUNT);
@@ -217,7 +219,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
                         tuneCurrent[axis].rate = constrainf(tuneCurrent[axis].rate, AUTOTUNE_FIXED_WING_MIN_RATE, AUTOTUNE_FIXED_WING_MAX_RATE);
                         if (pidAutotuneConfig()->fw_autotune_rate_adjustment == MAX) {
                             // In MAX limit max rate to initial value
-                            tuneCurrent[axis].rate = constrainf(tuneCurrent[axis].rate, AUTOTUNE_FIXED_WING_MIN_RATE, currentControlRateProfile->stabilized.rates[axis] * 10.0f);
+                            tuneCurrent[axis].rate = constrainf(tuneCurrent[axis].rate, AUTOTUNE_FIXED_WING_MIN_RATE, tuneCurrent[axis].initialRate);
                         }
 
                         // Set FF to be consistent with the max target rate at 90% deflection
