@@ -111,7 +111,7 @@
 | fw_autotune_ff_to_i_tc | 600 | FF to I time (defines time for I to reach the same level of response as FF) [ms] |
 | fw_autotune_ff_to_p_gain | 10 | FF to P gain (strength relationship) [%] |
 | fw_autotune_overshoot_time | 100 | Time [ms] to detect sustained overshoot |
-| fw_autotune_rate_adjustment | FIXED | `AUTO` adjusts the rates (both up and down) to match the capabilities of the airplane. `MAX` decreases the rates when the airplane is not able to achieve them, but does not increase the rates. `FIXED` (the default) does not adjust the rates. |
+| fw_autotune_rate_adjustment | FIXED | `AUTO` increases and decreases the rates to match the capabilities of the airplane. `DECREASE_ONLY` only decreases the rates. `FIXED` (the default) does not adjust the rates. |
 | fw_autotune_threshold | 50 | Threshold [%] of max rate to consider overshoot/undershoot detection |
 | fw_autotune_undershoot_time | 200 | Time [ms] to detect sustained undershoot |
 | fw_d_level | 75 | Fixed-wing attitude stabilisation HORIZON transition point |

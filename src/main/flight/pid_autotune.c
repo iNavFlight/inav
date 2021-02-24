@@ -207,7 +207,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
             case DEMAND_UNDERSHOOT:
                 if (stateTimeMs >= pidAutotuneConfig()->fw_overshoot_time) {
                     if (pidAutotuneConfig()->fw_autotune_rate_adjustment != FIXED) {
-                        /* In AUTO and MAX adjust both rates and FF */
+                        /* In AUTO and DECREASE_ONLY simultaniously adjust both rates and FF */
                         // Target pidSum at 90% deflection
                         const float pidTuneLimit = 0.9f * pidProfile()->pidSumLimit;
 
@@ -217,8 +217,8 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
                         // Calculate rate update and constrain to safe values
                         tuneCurrent[axis].rate += (rate90PercDeflection - maxDesiredRateDps) * convergenceRate;
                         tuneCurrent[axis].rate = constrainf(tuneCurrent[axis].rate, AUTOTUNE_FIXED_WING_MIN_RATE, AUTOTUNE_FIXED_WING_MAX_RATE);
-                        if (pidAutotuneConfig()->fw_autotune_rate_adjustment == MAX) {
-                            // In MAX limit max rate to initial value
+                        if (pidAutotuneConfig()->fw_autotune_rate_adjustment == DECREASE_ONLY) {
+                            // In DECREASE_ONLY limit max rate to initial value
                             tuneCurrent[axis].rate = constrainf(tuneCurrent[axis].rate, AUTOTUNE_FIXED_WING_MIN_RATE, tuneCurrent[axis].initialRate);
                         }
 

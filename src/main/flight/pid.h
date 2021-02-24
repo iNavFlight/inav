@@ -166,7 +166,7 @@ typedef struct pidAutotuneConfig_s {
 
 typedef enum {
     FIXED,
-    MAX,
+    DECREASE_ONLY,
     AUTO,
 } fw_autotune_rate_adjustment_e;
 
