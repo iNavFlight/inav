@@ -2416,9 +2416,7 @@ void updateHomePosition(void)
             }
             if (setHome) {
 #if defined(USE_SAFE_HOME)
-                if (navConfig()->general.flags.safehome_usage_mode != SAFEHOME_USAGE_OFF) {
-                    findNearestSafeHome();
-				}
+                findNearestSafeHome();
 #endif
                 setHomePosition(&posControl.actualState.abs.pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
                 // save the current location in case it is replaced by a safehome or HOME_RESET

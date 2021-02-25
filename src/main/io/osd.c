@@ -3095,13 +3095,17 @@ static void osdShowArmed(void)
             }
             y += 4;
 #if defined (USE_SAFE_HOME)
-            if (safehome_distance) {
-                textAttributes_t elemAttr = _TEXT_ATTRIBUTES_BLINK_BIT;
-                char buf2[12]; // format the distance first
-                osdFormatDistanceStr(buf2, safehome_distance);
-                tfp_sprintf(buf, "%c - %s -> SAFEHOME %u", SYM_HOME, buf2, safehome_index);
-                // write this message above the ARMED message to make it obvious
-                displayWriteWithAttr(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y - 8, buf, elemAttr);
+            if (safehome_distance) { // safehome found during arming
+                if (navConfig()->general.flags.safehome_usage_mode == SAFEHOME_USAGE_OFF) {
+                    strcpy(buf, "SAFEHOME FOUND; MODE OFF");
+				} else {
+					char buf2[12]; // format the distance first
+					osdFormatDistanceStr(buf2, safehome_distance);
+					tfp_sprintf(buf, "%c - %s -> SAFEHOME %u", SYM_HOME, buf2, safehome_index);
+				}
+				textAttributes_t elemAttr = _TEXT_ATTRIBUTES_BLINK_BIT;
+				// write this message above the ARMED message to make it obvious
+				displayWriteWithAttr(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y - 8, buf, elemAttr);
             }
 #endif
         } else {
