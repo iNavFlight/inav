@@ -43,6 +43,8 @@ If a safehome is selected, an additional message appears:
 The GPS details are those of the arming location, not the safehome.
 To draw your attention to a safehome being selected, the message flashes and stays visible longer.
 
+If a safehome was found, but ``safehome_usage_mode``` is ```OFF```, the message ```SAFEHOME FOUND; MODE OFF``` will appear.
+
 ## OSD Message during RTH
 
 If RTH is in progress to a safehome, the message "DIVERTING TO SAFEHOME" will be displayed.
