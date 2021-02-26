@@ -104,6 +104,7 @@ typedef struct {
     uint16_t pidSumLimit;
     filterApply4FnPtr ptermFilterApplyFn;
     bool itermLimitActive;
+    bool itermFreezeActive;
 
     biquadFilter_t rateTargetFilter;
 } pidState_t;
@@ -260,6 +261,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .fixedWingCoordinatedYawGain = 1.0f,
         .fixedWingCoordinatedPitchGain = 1.0f,
         .fixedWingItermLimitOnStickPosition = 0.5f,
+        .fixedWingYawItermBankFreeze = 0,
 
         .loiter_direction = NAV_LOITER_RIGHT,
         .navVelXyDTermLpfHz = NAV_ACCEL_CUTOFF_FREQUENCY_HZ,
@@ -611,7 +613,8 @@ static float pTermProcess(pidState_t *pidState, float rateError, float dT) {
 static void applyItermLimiting(pidState_t *pidState) {
     if (pidState->itermLimitActive) {
         pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -pidState->errorGyroIfLimit, pidState->errorGyroIfLimit);
-    } else {
+    } else 
+    {
         pidState->errorGyroIfLimit = fabsf(pidState->errorGyroIf);
     }
 }
@@ -628,8 +631,12 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
     const float newPTerm = pTermProcess(pidState, rateError, dT);
     const float newFFTerm = pidState->rateTarget * pidState->kFF;
 
-    // Calculate integral
-    pidState->errorGyroIf += rateError * pidState->kI * dT;
+    /*
+     * Integral should be updated only if axis Iterm is not frozen
+     */
+    if (!pidState->itermFreezeActive) {
+        pidState->errorGyroIf += rateError * pidState->kI * dT;
+    }
 
     applyItermLimiting(pidState);
 
@@ -952,6 +959,24 @@ void checkItermLimitingActive(pidState_t *pidState)
     pidState->itermLimitActive = STATE(ANTI_WINDUP) || shouldActivate; 
 }
 
+void checkItermFreezingActive(pidState_t *pidState, flight_dynamics_index_t axis)
+{
+    if (usedPidControllerType == PID_TYPE_PIFF && pidProfile()->fixedWingYawItermBankFreeze != 0 && axis == FD_YAW) {
+        // Do not allow yaw I-term to grow when bank angle is too large
+        float bankAngle = DECIDEGREES_TO_DEGREES(attitude.values.roll);
+        if (fabsf(bankAngle) > pidProfile()->fixedWingYawItermBankFreeze && !(FLIGHT_MODE(AUTO_TUNE) || FLIGHT_MODE(TURN_ASSISTANT) || navigationRequiresTurnAssistance())){
+            pidState->itermFreezeActive = true;
+        } else
+        {
+            pidState->itermFreezeActive = false;
+        }
+    } else
+    {
+        pidState->itermFreezeActive = false;
+    }
+    
+}
+
 void FAST_CODE pidController(float dT)
 {
     if (!pidFiltersConfigured) {
@@ -1024,6 +1049,8 @@ void FAST_CODE pidController(float dT)
         
         // Step 4: Run gyro-driven control
         checkItermLimitingActive(&pidState[axis]);
+        checkItermFreezingActive(&pidState[axis], axis);
+
         pidControllerApplyFn(&pidState[axis], axis, dT);
     }
 }
