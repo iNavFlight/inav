@@ -68,7 +68,8 @@ typedef enum {
     LOGIC_CONDITION_MAP_INPUT                   = 36,
     LOGIC_CONDITION_MAP_OUTPUT                  = 37,
     LOGIC_CONDITION_RC_CHANNEL_OVERRIDE         = 38,
-    LOGIC_CONDITION_LAST                        = 39,
+    LOGIC_CONDITION_SET_HEADING_TARGET          = 39,
+    LOGIC_CONDITION_LAST                        = 40,
 } logicOperation_e;
 
 typedef enum logicOperandType_s {

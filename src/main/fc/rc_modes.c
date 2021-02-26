@@ -134,13 +134,7 @@ void rcModeUpdate(boxBitmask_t *newState)
 
 bool isModeActivationConditionPresent(boxId_e modeId)
 {
-    for (int index = 0; index < MAX_MODE_ACTIVATION_CONDITION_COUNT; index++) {
-        if (modeActivationConditions(index)->modeId == modeId && IS_RANGE_USABLE(&modeActivationConditions(index)->range)) {
-            return true;
-        }
-    }
-
-    return false;
+    return specifiedConditionCountPerMode[modeId] > 0;
 }
 
 bool isRangeActive(uint8_t auxChannelIndex, const channelRange_t *range)
