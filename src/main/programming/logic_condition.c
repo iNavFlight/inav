@@ -44,6 +44,7 @@
 #include "flight/imu.h"
 #include "flight/pid.h"
 #include "drivers/io_port_expander.h"
+#include "io/osd_common.h"
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
@@ -408,7 +409,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
 
         //FIXME align with osdGet3DSpeed
         case LOGIC_CONDITION_OPERAND_FLIGHT_3D_SPEED: // cm/s
-            return (int) sqrtf(sq(gpsSol.groundSpeed) + sq((int)getEstimatedActualVelocity(Z)));
+            return osdGet3DSpeed();
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_AIR_SPEED: // cm/s
