@@ -317,6 +317,12 @@ static int logicConditionCompute(
             return true;
         break;
 
+        case LOGIC_CONDITION_SET_HEADING_TARGET:
+            temporaryValue = CENTIDEGREES_TO_DEGREES(wrap_36000(DEGREES_TO_CENTIDEGREES(operandA)));
+            updateHeadingHoldTarget(temporaryValue);
+            return temporaryValue;
+        break;
+
         default:
             return false;
             break; 
