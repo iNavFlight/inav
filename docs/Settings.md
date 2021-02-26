@@ -64,6 +64,7 @@
 | disarm_kill_switch | ON | Disarms the motors independently of throttle value. Setting to OFF reverts to the old behaviour of disarming only when the throttle is low. Only applies when arming and disarming with an AUX channel. |
 | display_force_sw_blink | OFF | OFF = OSD hardware blink / ON = OSD software blink. If OSD warning text/values are invisible, try setting this to ON |
 | dji_esc_temp_source | ESC | Re-purpose the ESC temperature field for IMU/BARO temperature |
+| dji_speed_source | GROUND | Sets the speed type displayed by the DJI OSD: GROUND, 3D, AIR |
 | dji_use_name_for_messages | ON | Re-purpose the craft name field for messages. Replace craft name with :WTSED for Warnings|Throttle|Speed|Efficiency|Trip distance |
 | dji_workarounds |  | Enables workarounds for different versions of MSP protocol used |
 | dterm_lpf2_hz | 0 | Cutoff frequency for stage 2 D-term low pass filter |
@@ -133,6 +134,7 @@
 | fw_tpa_time_constant | 0 | TPA smoothing and delay time constant to reflect non-instant speed/throttle response of the plane. Planes with low thrust/weight ratio generally need higher time constant. Default is zero for compatibility with old setups |
 | fw_turn_assist_pitch_gain | 1 | Gain required to keep constant pitch angle during coordinated turns (in TURN_ASSIST mode). Value significantly different from 1.0 indicates a problem with the airspeed calibration (if present) or value of `fw_reference_airspeed` parameter |
 | fw_turn_assist_yaw_gain | 1 | Gain required to keep the yaw rate consistent with the turn rate for a coordinated turn (in TURN_ASSIST mode). Value significantly different from 1.0 indicates a problem with the airspeed calibration (if present) or value of `fw_reference_airspeed` parameter |
+| fw_yaw_iterm_freeze_bank_angle | 0 | Yaw Iterm is frozen when bank angle is above this threshold [degrees]. This solves the problem of the rudder counteracting turns by partially disabling yaw stabilization when making banked turns. Setting to 0 (the default) disables this feature. Only applies when autopilot is not active and TURN ASSIST is disabled. |
 | gps_auto_baud | ON | Automatic configuration of GPS baudrate(The specified baudrate in configured in ports will be used) when used with UBLOX GPS. When used with NAZA/DJI it will automatic detect GPS baudrate and change to it, ignoring the selected baudrate set in ports |
 | gps_auto_config | ON | Enable automatic configuration of UBlox GPS receivers. |
 | gps_dyn_model | AIR_1G | GPS navigation model: Pedestrian, Air_1g, Air_4g. Default is AIR_1G. Use pedestrian with caution, can cause flyaways with fast flying. |
@@ -390,6 +392,8 @@
 | osd_link_quality_alarm | 70 | LQ % indicator blinks below this value. For Crossfire use 70%, for Tracer use 50% |
 | osd_main_voltage_decimals | 1 | Number of decimals for the battery voltages displayed in the OSD [1-2]. |
 | osd_neg_alt_alarm | 5 | Value below which (negative altitude) to make the OSD relative altitude indicator blink (meters) |
+| osd_pan_servo_index |  | Index of the pan servo to adjust osd home heading direction based on camera pan. Note that this feature does not work with continiously rotating servos. |
+| osd_pan_servo_pwm2centideg | 0 | Centidegrees of pan servo rotation us PWM signal. A servo with 180 degrees of rotation from 1000 to 2000 us PWM typically needs `18` for this setting. Change sign to inverse direction. |
 | osd_plus_code_digits | 10 | Numer of plus code digits before shortening with `osd_plus_code_short`. Precision at the equator: 10=13.9x13.9m; 11=2.8x3.5m; 12=56x87cm; 13=11x22cm. |
 | osd_plus_code_short | 0 | Number of leading digits removed from plus code. Removing 2, 4 and 6 digits requires a reference location within, respectively, ~800km, ~40 km and ~2km to recover the original coordinates. |
 | osd_right_sidebar_scroll |  |  |

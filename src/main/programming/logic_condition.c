@@ -44,6 +44,7 @@
 #include "flight/imu.h"
 #include "flight/pid.h"
 #include "drivers/io_port_expander.h"
+#include "io/osd_common.h"
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
@@ -317,6 +318,12 @@ static int logicConditionCompute(
             return true;
         break;
 
+        case LOGIC_CONDITION_SET_HEADING_TARGET:
+            temporaryValue = CENTIDEGREES_TO_DEGREES(wrap_36000(DEGREES_TO_CENTIDEGREES(operandA)));
+            updateHeadingHoldTarget(temporaryValue);
+            return temporaryValue;
+        break;
+
         default:
             return false;
             break; 
@@ -402,7 +409,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
 
         //FIXME align with osdGet3DSpeed
         case LOGIC_CONDITION_OPERAND_FLIGHT_3D_SPEED: // cm/s
-            return (int) sqrtf(sq(gpsSol.groundSpeed) + sq((int)getEstimatedActualVelocity(Z)));
+            return osdGet3DSpeed();
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_AIR_SPEED: // cm/s
@@ -418,7 +425,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_VERTICAL_SPEED: // cm/s
-            return constrain(getEstimatedActualVelocity(Z), 0, INT16_MAX);
+            return constrain(getEstimatedActualVelocity(Z), INT16_MIN, INT16_MAX);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_TROTTLE_POS: // %

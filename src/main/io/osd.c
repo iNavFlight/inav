@@ -87,6 +87,7 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/pid.h"
 #include "flight/rth_estimator.h"
 #include "flight/wind_estimator.h"
+#include "flight/servos.h"
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
@@ -185,7 +186,7 @@ static bool osdDisplayHasCanvas;
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
-PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 14);
+PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 15);
 PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 0);
 
 static int digitCount(int32_t value)
@@ -712,6 +713,8 @@ static const char * osdArmingDisabledReasonMessage(void)
             return OSD_MESSAGE_STR(OSD_MSG_CLI_ACTIVE);
         case ARMING_DISABLED_PWM_OUTPUT_ERROR:
             return OSD_MESSAGE_STR(OSD_MSG_PWM_INIT_ERROR);
+        case ARMING_DISABLED_NO_PREARM:
+            return OSD_MESSAGE_STR(OSD_MSG_NO_PREARM);
             // Cases without message
         case ARMING_DISABLED_CMS_MENU:
             FALLTHROUGH;
@@ -785,7 +788,7 @@ static const char * navigationStateMessage(void)
             break;
         case MW_NAV_STATE_RTH_START:
             return OSD_MESSAGE_STR(OSD_MSG_STARTING_RTH);
-        case MW_NAV_STATE_RTH_CLIMB:            
+        case MW_NAV_STATE_RTH_CLIMB:
             return OSD_MESSAGE_STR(OSD_MSG_RTH_CLIMB);
         case MW_NAV_STATE_RTH_ENROUTE:
             return OSD_MESSAGE_STR(OSD_MSG_HEADING_HOME);
@@ -943,6 +946,14 @@ static bool osdIsHeadingValid(void)
 int16_t osdGetHeading(void)
 {
     return attitude.values.yaw;
+}
+
+int16_t osdPanServoHomeDirectionOffset(void)
+{
+    int8_t servoIndex = osdConfig()->pan_servo_index;
+    int16_t servoPosition = servo[servoIndex];
+    int16_t servoMiddle = servoParams(servoIndex)->middle;
+    return (int16_t)CENTIDEGREES_TO_DEGREES((servoPosition - servoMiddle) * osdConfig()->pan_servo_pwm2centideg);
 }
 
 // Returns a heading angle in degrees normalized to [0, 360).
@@ -1116,13 +1127,6 @@ static void osdDrawRadar(uint16_t *drawn, uint32_t *usedScale)
     int16_t reference = DECIDEGREES_TO_DEGREES(osdGetHeading());
     int16_t poiDirection = osdGetHeadingAngle(GPS_directionToHome + 180);
     osdDrawMap(reference, 0, SYM_ARROW_UP, GPS_distanceToHome, poiDirection, SYM_HOME, drawn, usedScale);
-}
-
-static int16_t osdGet3DSpeed(void)
-{
-    int16_t vert_speed = getEstimatedActualVelocity(Z);
-    int16_t hor_speed = gpsSol.groundSpeed;
-    return (int16_t)sqrtf(sq(hor_speed) + sq(vert_speed));
 }
 
 #endif
@@ -1334,7 +1338,11 @@ static bool osdDrawSingleElement(uint8_t item)
                 }
                 else
                 {
-                    int homeDirection = GPS_directionToHome - DECIDEGREES_TO_DEGREES(osdGetHeading());
+                    int16_t panHomeDirOffset = 0;
+                    if (!(osdConfig()->pan_servo_pwm2centideg == 0)){
+                        panHomeDirOffset = osdPanServoHomeDirectionOffset();
+                    }
+                    int homeDirection = GPS_directionToHome - DECIDEGREES_TO_DEGREES(osdGetHeading()) + panHomeDirOffset;
                     osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX, elemPosY), homeDirection);
                 }
             } else {
@@ -1685,7 +1693,7 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 
     case OSD_CRSF_SNR_DB: {
-        const char* showsnr = "-12";
+        const char* showsnr = "-20";
         const char* hidesnr = "     ";
         int16_t osdSNR_Alarm = rxLinkStatistics.uplinkSNR;
         if (osdSNR_Alarm <= osdConfig()->snr_alarm) {
@@ -1761,9 +1769,6 @@ static bool osdDrawSingleElement(uint8_t item)
             if (osdConfig()->hud_wp_disp > 0 && posControl.waypointListValid && posControl.waypointCount > 0) { // Display the next waypoints
                 gpsLocation_t wp2;
                 int j;
-
-                tfp_sprintf(buff, "W%u/%u", posControl.activeWaypointIndex, posControl.waypointCount);
-                displayWrite(osdGetDisplayPort(), 13, osdConfig()->hud_margin_v - 1, buff);
 
                 for (int i = osdConfig()->hud_wp_disp - 1; i >= 0 ; i--) { // Display in reverse order so the next WP is always written on top
                     j = posControl.activeWaypointIndex + i;
@@ -2593,6 +2598,8 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .right_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE,
     .sidebar_scroll_arrows = 0,
     .osd_home_position_arm_screen = true,
+    .pan_servo_index = 0,
+    .pan_servo_pwm2centideg = 0,
 
     .units = OSD_UNIT_METRIC,
     .main_voltage_decimals = 1,
@@ -3381,7 +3388,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
                     if (NAV_Status.state == MW_NAV_STATE_WP_ENROUTE) {
                         // Countdown display for remaining Waypoints
-                        tfp_sprintf(messageBuf, "TO WP %u/%u", posControl.activeWaypointIndex + 1, posControl.waypointCount);                            
+                        tfp_sprintf(messageBuf, "TO WP %u/%u", posControl.activeWaypointIndex + 1, posControl.waypointCount);
                         messages[messageCount++] = messageBuf;
                     } else if (NAV_Status.state == MW_NAV_STATE_HOLD_TIMED) {
                         // WP hold time countdown in seconds
@@ -3391,8 +3398,8 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                             tfp_sprintf(messageBuf, "HOLDING WP FOR %2u S", holdTimeRemaining);
                             messages[messageCount++] = messageBuf;
                         }
-                    } else {                            
-                        const char *navStateMessage = navigationStateMessage();                             
+                    } else {
+                        const char *navStateMessage = navigationStateMessage();
                         if (navStateMessage) {
                             messages[messageCount++] = navStateMessage;
                         }
