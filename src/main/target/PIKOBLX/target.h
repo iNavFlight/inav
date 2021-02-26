@@ -19,7 +19,7 @@
 
 #define TARGET_BOARD_IDENTIFIER "PIKO" // Furious FPV Piko BLX
 
-#define CONFIG_FASTLOOP_PREFERRED_ACC ACC_DEFAULT
+#define CONFIG_FASTLOOP_PREFERRED_ACC IMU_DEFAULT
 
 #define LED0                    PB9
 #define LED1                    PB5
@@ -32,14 +32,8 @@
 #define GYRO_INT_EXTI            PA15
 #define USE_MPU_DATA_READY_SIGNAL
 
-#define USE_GYRO
-#define USE_GYRO_MPU6000
-#define GYRO_MPU6000_ALIGN      CW180_DEG
-
-#define USE_ACC
-#define USE_ACC_MPU6000
-#define ACC_MPU6000_ALIGN       CW180_DEG
-
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW180_DEG
 #define MPU6000_CS_PIN          PB12
 #define MPU6000_SPI_BUS         BUS_SPI2
 
@@ -70,9 +64,10 @@
 #define BOARD_HAS_VOLTAGE_DIVIDER
 #define USE_ADC
 #define ADC_INSTANCE            ADC2
-#define ADC_CHANNEL_1_PIN               PA2
+//#define ADC_CHANNEL_1_PIN               PA2   <-- conflict with pwm output 6, and the board does not have current sensor
 #define ADC_CHANNEL_2_PIN               PA5
-#define ADC_CHANNEL_3_PIN               PB2
+//#define ADC_CHANNEL_3_PIN               PB2   <-- the board does not have a rssi pad
+
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
 #define VBAT_ADC_CHANNEL                ADC_CHN_2
 #define RSSI_ADC_CHANNEL                ADC_CHN_3

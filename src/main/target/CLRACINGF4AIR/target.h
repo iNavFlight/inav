@@ -43,15 +43,13 @@
 #else
 #define SPI3_MOSI_PIN           PC12
 #endif
+
 //MPU-9250
 #define MPU9250_CS_PIN          PA4
 #define MPU9250_SPI_BUS         BUS_SPI1
-#define USE_GYRO
-#define USE_GYRO_MPU9250
-#define GYRO_MPU9250_ALIGN      CW0_DEG
-#define USE_ACC
-#define USE_ACC_MPU9250
-#define ACC_MPU9250_ALIGN       CW0_DEG
+#define USE_IMU_MPU9250
+#define IMU_MPU9250_ALIGN       CW0_DEG
+
 #define USE_MAG
 #define USE_MAG_MPU9250
 #define MAG_MPU9250_ALIGN       CW90_DEG
@@ -150,7 +148,3 @@
 #define TARGET_IO_PORTB (0xffff)
 #define TARGET_IO_PORTC (0xffff)
 #define TARGET_IO_PORTD BIT(2)
-
-#ifdef USE_USB_MSC
-# undef USE_USB_MSC
-#endif

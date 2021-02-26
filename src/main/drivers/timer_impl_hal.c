@@ -40,7 +40,10 @@ const uint16_t lookupDMASourceTable[] = { TIM_DMA_CC1, TIM_DMA_CC2, TIM_DMA_CC3,
 const uint8_t lookupTIMChannelTable[] = { TIM_CHANNEL_1, TIM_CHANNEL_2, TIM_CHANNEL_3, TIM_CHANNEL_4 };
 
 static const uint32_t lookupDMALLStreamTable[] = { LL_DMA_STREAM_0, LL_DMA_STREAM_1, LL_DMA_STREAM_2, LL_DMA_STREAM_3, LL_DMA_STREAM_4, LL_DMA_STREAM_5, LL_DMA_STREAM_6, LL_DMA_STREAM_7 };
+
+#if !(defined(STM32H7) || defined(STM32G4))
 static const uint32_t lookupDMALLChannelTable[] = { LL_DMA_CHANNEL_0, LL_DMA_CHANNEL_1, LL_DMA_CHANNEL_2, LL_DMA_CHANNEL_3, LL_DMA_CHANNEL_4, LL_DMA_CHANNEL_5, LL_DMA_CHANNEL_6, LL_DMA_CHANNEL_7 };
+#endif
 
 static TIM_HandleTypeDef timerHandle[HARDWARE_TIMER_DEFINITION_COUNT];
 
@@ -62,12 +65,12 @@ void impl_timerInitContext(timHardwareContext_t * timCtx)
 void impl_timerNVICConfigure(TCH_t * tch, int irqPriority)
 {
     if (tch->timCtx->timDef->irq) {
-        HAL_NVIC_SetPriority(tch->timCtx->timDef->irq, NVIC_PRIORITY_BASE(irqPriority), NVIC_PRIORITY_SUB(irqPriority));
+        HAL_NVIC_SetPriority(tch->timCtx->timDef->irq, irqPriority, 0);
         HAL_NVIC_EnableIRQ(tch->timCtx->timDef->irq);
     }
 
     if (tch->timCtx->timDef->secondIrq) {
-        HAL_NVIC_SetPriority(tch->timCtx->timDef->secondIrq, NVIC_PRIORITY_BASE(irqPriority), NVIC_PRIORITY_SUB(irqPriority));
+        HAL_NVIC_SetPriority(tch->timCtx->timDef->secondIrq, irqPriority, 0);
         HAL_NVIC_EnableIRQ(tch->timCtx->timDef->secondIrq);
     }
 }
@@ -91,7 +94,12 @@ void impl_timerConfigBase(TCH_t * tch, uint16_t period, uint32_t hz)
     timHandle->Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
 
     HAL_TIM_Base_Init(timHandle);
+    
+#if defined(STM32H7) || defined(STM32G4)
+    if (timer == TIM1 || timer == TIM2 || timer == TIM3 || timer == TIM4 || timer == TIM5 || timer == TIM8) {
+#else
     if (timer == TIM1 || timer == TIM2 || timer == TIM3 || timer == TIM4 || timer == TIM5 || timer == TIM8 || timer == TIM9) {
+#endif
         TIM_ClockConfigTypeDef sClockSourceConfig;
         memset(&sClockSourceConfig, 0, sizeof(sClockSourceConfig));
         sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
@@ -337,14 +345,19 @@ bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint8_t dmaBuf
     //  timerConfigBase
     //  timerPWMConfigChannel
     const uint32_t streamLL = lookupDMALLStreamTable[DMATAG_GET_STREAM(tch->timHw->dmaTag)];
-    const uint32_t channelLL = lookupDMALLChannelTable[DMATAG_GET_CHANNEL(tch->timHw->dmaTag)];
 
     LL_DMA_DeInit(tch->dma->dma, streamLL);
 
     LL_DMA_InitTypeDef init;
     LL_DMA_StructInit(&init);
 
-    init.Channel = channelLL;
+#if defined(STM32H7) || defined(STM32G4)
+    // For H7 the DMA periphRequest is encoded in the DMA tag
+    init.PeriphRequest = DMATAG_GET_CHANNEL(tch->timHw->dmaTag);
+#else
+    init.Channel = lookupDMALLChannelTable[DMATAG_GET_CHANNEL(tch->timHw->dmaTag)];
+#endif
+
     init.PeriphOrM2MSrcAddress = (uint32_t)impl_timerCCR(tch);
     init.PeriphOrM2MSrcIncMode = LL_DMA_PERIPH_NOINCREMENT;
 
@@ -380,7 +393,7 @@ bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint8_t dmaBuf
     init.PeriphBurst = LL_DMA_PBURST_SINGLE;
 
     dmaInit(tch->dma, OWNER_TIMER, 0);
-    dmaSetHandler(tch->dma, impl_timerDMA_IRQHandler, NVIC_PRIO_WS2811_DMA, (uint32_t)tch);
+    dmaSetHandler(tch->dma, impl_timerDMA_IRQHandler, NVIC_PRIO_TIMER_DMA, (uint32_t)tch);
 
     LL_DMA_Init(tch->dma->dma, streamLL, &init);
 

@@ -42,23 +42,16 @@
 #define SPI1_MOSI_PIN           PB5
 #define SPI1_NSS_PIN            PA4
 
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW270_DEG
 #define MPU6500_CS_PIN          SPI1_NSS_PIN
 #define MPU6500_SPI_BUS         BUS_SPI1
 
+#define USE_IMU_MPU9250
+#define IMU_MPU9250_ALIGN       CW270_DEG
 #define MPU9250_CS_PIN          SPI1_NSS_PIN
 #define MPU9250_SPI_BUS         BUS_SPI1
 
-#define USE_GYRO
-#define USE_GYRO_MPU6500
-#define GYRO_MPU6500_ALIGN      CW270_DEG
-#define USE_GYRO_MPU9250
-#define GYRO_MPU9250_ALIGN      CW270_DEG
-
-#define USE_ACC
-#define USE_ACC_MPU6500
-#define ACC_MPU6500_ALIGN       CW270_DEG
-#define USE_ACC_MPU9250
-#define ACC_MPU9250_ALIGN       CW270_DEG
 
 #define USE_VCP
 #define USE_UART1

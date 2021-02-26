@@ -17,9 +17,28 @@
 
 #pragma once
 
-#if defined(STM32F7)
+#if defined(STM32H7)
+#include "stm32h7xx.h"
+#include "stm32h7xx_hal.h"
+#include "system_stm32h7xx.h"
+
+#include "stm32h7xx_ll_spi.h"
+#include "stm32h7xx_ll_gpio.h"
+#include "stm32h7xx_ll_dma.h"
+#include "stm32h7xx_ll_rcc.h"
+#include "stm32h7xx_ll_bus.h"
+#include "stm32h7xx_ll_tim.h"
+#include "stm32h7xx_ll_system.h"
+
+// Chip Unique ID on H7
+#define U_ID_0 (*(uint32_t*)UID_BASE)
+#define U_ID_1 (*(uint32_t*)(UID_BASE + 4))
+#define U_ID_2 (*(uint32_t*)(UID_BASE + 8))
+
+#elif defined(STM32F7)
 #include "stm32f7xx.h"
 #include "stm32f7xx_hal.h"
+#include "stm32f7xx_hal_rtc.h"
 #include "stm32f7xx_ll_spi.h"
 #include "stm32f7xx_ll_gpio.h"
 #include "stm32f7xx_ll_dma.h"
@@ -61,6 +80,7 @@
 
 #include "target/common.h"
 #include "target.h"
+#include "target/sanity_check.h"
 #include "target/common_post.h"
 
 // Remove the unaligned packed structure member pointer access warning

@@ -26,16 +26,11 @@
 #define BEEPER                  PC13
 #define BEEPER_INVERTED
 
-#define USE_GYRO
-#define USE_ACC
-
 // MPU6000
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW180_DEG
 #define MPU6000_CS_PIN          PB0
 #define MPU6000_SPI_BUS         BUS_SPI1
-#define USE_GYRO_MPU6000
-#define GYRO_MPU6000_ALIGN      CW180_DEG
-#define USE_ACC_MPU6000
-#define ACC_MPU6000_ALIGN       CW180_DEG
 
 #define USE_EXTI
 #define GYRO_INT_EXTI            PB10
@@ -143,6 +138,9 @@
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #define MAX_PWM_OUTPUT_PORTS    6
+#define USE_DSHOT
+#define USE_SERIALSHOT
+#define USE_ESC_SENSOR
 
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff

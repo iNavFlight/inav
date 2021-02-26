@@ -3,11 +3,11 @@
 
 #define MAVLINK_MSG_ID_SYSTEM_TIME 2
 
-MAVPACKED(
+
 typedef struct __mavlink_system_time_t {
- uint64_t time_unix_usec; /*< Timestamp of the master clock in microseconds since UNIX epoch.*/
- uint32_t time_boot_ms; /*< Timestamp of the component clock since boot time in milliseconds.*/
-}) mavlink_system_time_t;
+ uint64_t time_unix_usec; /*< [us] Timestamp (UNIX epoch time).*/
+ uint32_t time_boot_ms; /*< [ms] Timestamp (time since system boot).*/
+} mavlink_system_time_t;
 
 #define MAVLINK_MSG_ID_SYSTEM_TIME_LEN 12
 #define MAVLINK_MSG_ID_SYSTEM_TIME_MIN_LEN 12
@@ -44,8 +44,8 @@ typedef struct __mavlink_system_time_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param time_unix_usec Timestamp of the master clock in microseconds since UNIX epoch.
- * @param time_boot_ms Timestamp of the component clock since boot time in milliseconds.
+ * @param time_unix_usec [us] Timestamp (UNIX epoch time).
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_system_time_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -75,8 +75,8 @@ static inline uint16_t mavlink_msg_system_time_pack(uint8_t system_id, uint8_t c
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param time_unix_usec Timestamp of the master clock in microseconds since UNIX epoch.
- * @param time_boot_ms Timestamp of the component clock since boot time in milliseconds.
+ * @param time_unix_usec [us] Timestamp (UNIX epoch time).
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_system_time_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -132,8 +132,8 @@ static inline uint16_t mavlink_msg_system_time_encode_chan(uint8_t system_id, ui
  * @brief Send a system_time message
  * @param chan MAVLink channel to send the message
  *
- * @param time_unix_usec Timestamp of the master clock in microseconds since UNIX epoch.
- * @param time_boot_ms Timestamp of the component clock since boot time in milliseconds.
+ * @param time_unix_usec [us] Timestamp (UNIX epoch time).
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -202,7 +202,7 @@ static inline void mavlink_msg_system_time_send_buf(mavlink_message_t *msgbuf, m
 /**
  * @brief Get field time_unix_usec from system_time message
  *
- * @return Timestamp of the master clock in microseconds since UNIX epoch.
+ * @return [us] Timestamp (UNIX epoch time).
  */
 static inline uint64_t mavlink_msg_system_time_get_time_unix_usec(const mavlink_message_t* msg)
 {
@@ -212,7 +212,7 @@ static inline uint64_t mavlink_msg_system_time_get_time_unix_usec(const mavlink_
 /**
  * @brief Get field time_boot_ms from system_time message
  *
- * @return Timestamp of the component clock since boot time in milliseconds.
+ * @return [ms] Timestamp (time since system boot).
  */
 static inline uint32_t mavlink_msg_system_time_get_time_boot_ms(const mavlink_message_t* msg)
 {

@@ -24,17 +24,21 @@
  *
  * Note that bits can only be set to 0 when writing, not back to 1 from 0. You must erase sectors in order
  * to bring bits back to 1 again.
- *
- * In future, we can add support for multiple different flash chips by adding a flash device driver vtable
- * and make calls through that, at the moment flashfs just calls m25p16_* routines explicitly.
  */
 
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
 
-#include "drivers/flash_m25p16.h"
-#include "flashfs.h"
+#include "platform.h"
+
+#if defined(USE_FLASHFS)
+
+#include "drivers/flash.h"
+
+#include "io/flashfs.h"
+
+static flashPartition_t *flashPartition;
 
 static uint8_t flashWriteBuffer[FLASHFS_WRITE_BUFFER_SIZE];
 
@@ -67,10 +71,8 @@ static void flashfsSetTailAddress(uint32_t address)
 
 void flashfsEraseCompletely(void)
 {
-    m25p16_eraseCompletely();
-
+    flashPartitionErase(flashPartition);
     flashfsClearBuffer();
-
     flashfsSetTailAddress(0);
 }
 
@@ -80,7 +82,7 @@ void flashfsEraseCompletely(void)
  */
 void flashfsEraseRange(uint32_t start, uint32_t end)
 {
-    const flashGeometry_t *geometry = m25p16_getGeometry();
+    const flashGeometry_t *geometry = flashGetGeometry();
 
     if (geometry->sectorSize <= 0)
         return;
@@ -97,7 +99,7 @@ void flashfsEraseRange(uint32_t start, uint32_t end)
     }
 
     for (int i = startSector; i < endSector; i++) {
-        m25p16_eraseSector(i * geometry->sectorSize);
+        flashEraseSector(i * geometry->sectorSize);
     }
 }
 
@@ -106,12 +108,12 @@ void flashfsEraseRange(uint32_t start, uint32_t end)
  */
 bool flashfsIsReady(void)
 {
-    return m25p16_isReady();
+    return !!flashPartition;
 }
 
 uint32_t flashfsGetSize(void)
 {
-    return m25p16_getGeometry()->totalSize;
+    return flashPartitionSize(flashPartition);
 }
 
 static uint32_t flashfsTransmitBufferUsed(void)
@@ -138,11 +140,6 @@ uint32_t flashfsGetWriteBufferFreeSpace(void)
     return flashfsGetWriteBufferSize() - flashfsTransmitBufferUsed();
 }
 
-const flashGeometry_t* flashfsGetGeometry(void)
-{
-    return m25p16_getGeometry();
-}
-
 /**
  * Write the given buffers to flash sequentially at the current tail address, advancing the tail address after
  * each write.
@@ -164,6 +161,8 @@ const flashGeometry_t* flashfsGetGeometry(void)
  */
 static uint32_t flashfsWriteBuffers(uint8_t const **buffers, uint32_t *bufferSizes, int bufferCount, bool sync)
 {
+    const flashGeometry_t *geometry = flashGetGeometry();
+
     uint32_t bytesTotal = 0;
 
     int i;
@@ -172,7 +171,7 @@ static uint32_t flashfsWriteBuffers(uint8_t const **buffers, uint32_t *bufferSiz
         bytesTotal += bufferSizes[i];
     }
 
-    if (!sync && !m25p16_isReady()) {
+    if (!sync && !flashIsReady()) {
         return 0;
     }
 
@@ -187,8 +186,8 @@ static uint32_t flashfsWriteBuffers(uint8_t const **buffers, uint32_t *bufferSiz
          * Each page needs to be saved in a separate program operation, so
          * if we would cross a page boundary, only write up to the boundary in this iteration:
          */
-        if (tailAddress % M25P16_PAGESIZE + bytesTotalRemaining > M25P16_PAGESIZE) {
-            bytesTotalThisIteration = M25P16_PAGESIZE - tailAddress % M25P16_PAGESIZE;
+        if (tailAddress % geometry->pageSize + bytesTotalRemaining > geometry->pageSize) {
+            bytesTotalThisIteration = geometry->pageSize - tailAddress % geometry->pageSize;
         } else {
             bytesTotalThisIteration = bytesTotalRemaining;
         }
@@ -207,7 +206,7 @@ static uint32_t flashfsWriteBuffers(uint8_t const **buffers, uint32_t *bufferSiz
             if (bufferSizes[i] > 0) {
                 // Is buffer larger than our write limit? Write our limit out of it
                 if (bufferSizes[i] >= bytesRemainThisIteration) {
-                    currentFlashAddress = m25p16_pageProgram(currentFlashAddress, buffers[i], bytesRemainThisIteration);
+                    currentFlashAddress = flashPageProgram(currentFlashAddress, buffers[i], bytesRemainThisIteration);
 
                     buffers[i] += bytesRemainThisIteration;
                     bufferSizes[i] -= bytesRemainThisIteration;
@@ -216,7 +215,7 @@ static uint32_t flashfsWriteBuffers(uint8_t const **buffers, uint32_t *bufferSiz
                     break;
                 } else {
                     // We'll still have more to write after finishing this buffer off
-                    currentFlashAddress = m25p16_pageProgram(currentFlashAddress, buffers[i], bufferSizes[i]);
+                    currentFlashAddress = flashPageProgram(currentFlashAddress, buffers[i], bufferSizes[i]);
 
                     bytesRemainThisIteration -= bufferSizes[i];
 
@@ -471,7 +470,7 @@ int flashfsReadAbs(uint32_t address, uint8_t *buffer, unsigned int len)
     // Since the read could overlap data in our dirty buffers, force a sync to clear those first
     flashfsFlushSync();
 
-    bytesRead = m25p16_readBytes(address, buffer, len);
+    bytesRead = flashReadBytes(address, buffer, len);
 
     return bytesRead;
 }
@@ -516,7 +515,7 @@ int flashfsIdentifyStartOfFreeSpace(void)
     while (left < right) {
         mid = (left + right) / 2;
 
-        if (m25p16_readBytes(mid * FREE_BLOCK_SIZE, testBuffer.bytes, FREE_BLOCK_TEST_SIZE_BYTES) < FREE_BLOCK_TEST_SIZE_BYTES) {
+        if (flashReadBytes(mid * FREE_BLOCK_SIZE, testBuffer.bytes, FREE_BLOCK_TEST_SIZE_BYTES) < FREE_BLOCK_TEST_SIZE_BYTES) {
             // Unexpected timeout from flash, so bail early (reporting the device fuller than it really is)
             break;
         }
@@ -558,9 +557,12 @@ bool flashfsIsEOF(void)
  */
 void flashfsInit(void)
 {
-    // If we have a flash chip present at all
-    if (flashfsGetSize() > 0) {
+    flashPartition = flashPartitionFindByType(FLASH_PARTITION_TYPE_FLASHFS);
+
+    if (flashPartition) {
         // Start the file pointer off at the beginning of free space so caller can start writing immediately
         flashfsSeekAbs(flashfsIdentifyStartOfFreeSpace());
     }
 }
+
+#endif

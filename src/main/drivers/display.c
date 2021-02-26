@@ -192,9 +192,9 @@ int displayWriteCharWithAttr(displayPort_t *instance, uint8_t x, uint8_t y, uint
         return -1;
     }
     if (displayAttributesRequireEmulation(instance, attr)) {
-        char ec;
-        if (displayEmulateTextAttributes(instance, &ec, 1, &attr)) {
-            c = ec;
+        char ec[2];
+        if (displayEmulateTextAttributes(instance, ec, 1, &attr)) {
+            c = ec[0];
         }
     }
     instance->posX = x + 1;
@@ -317,4 +317,3 @@ void displayInit(displayPort_t *instance, const displayPortVTable_t *vTable)
     instance->maxChar = 0;
     displayUpdateMaxChar(instance);
 }
-

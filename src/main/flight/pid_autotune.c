@@ -230,15 +230,15 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
 
             switch (axis) {
             case FD_ROLL:
-                blackboxLogAutotuneEvent(ADJUSTMENT_ROLL_D, tuneCurrent[axis].gainFF);
+                blackboxLogAutotuneEvent(ADJUSTMENT_ROLL_D_FF, tuneCurrent[axis].gainFF);
                 break;
 
             case FD_PITCH:
-                blackboxLogAutotuneEvent(ADJUSTMENT_PITCH_D, tuneCurrent[axis].gainFF);
+                blackboxLogAutotuneEvent(ADJUSTMENT_PITCH_D_FF, tuneCurrent[axis].gainFF);
                 break;
 
             case FD_YAW:
-                blackboxLogAutotuneEvent(ADJUSTMENT_YAW_D, tuneCurrent[axis].gainFF);
+                blackboxLogAutotuneEvent(ADJUSTMENT_YAW_D_FF, tuneCurrent[axis].gainFF);
                 break;
             }
         }

@@ -167,14 +167,8 @@ uint32_t getLooptime(void) {
 
 void validateAndFixConfig(void)
 {
-    if (gyroConfig()->gyro_soft_notch_cutoff_1 >= gyroConfig()->gyro_soft_notch_hz_1) {
-        gyroConfigMutable()->gyro_soft_notch_hz_1 = 0;
-    }
-    if (gyroConfig()->gyro_soft_notch_cutoff_2 >= gyroConfig()->gyro_soft_notch_hz_2) {
-        gyroConfigMutable()->gyro_soft_notch_hz_2 = 0;
-    }
-    if (pidProfile()->dterm_soft_notch_cutoff >= pidProfile()->dterm_soft_notch_hz) {
-        pidProfileMutable()->dterm_soft_notch_hz = 0;
+    if (gyroConfig()->gyro_notch_cutoff >= gyroConfig()->gyro_notch_hz) {
+        gyroConfigMutable()->gyro_notch_hz = 0;
     }
     if (accelerometerConfig()->acc_notch_cutoff >= accelerometerConfig()->acc_notch_hz) {
         accelerometerConfigMutable()->acc_notch_hz = 0;
@@ -217,7 +211,15 @@ void validateAndFixConfig(void)
 #endif
 
 #ifndef USE_PWM_SERVO_DRIVER
-    featureClear(FEATURE_PWM_SERVO_DRIVER);
+    if (servoConfig()->servo_protocol == SERVO_TYPE_SERVO_DRIVER) {
+        servoConfigMutable()->servo_protocol = SERVO_TYPE_PWM;
+    }
+#endif
+
+#ifndef USE_SERVO_SBUS
+    if (servoConfig()->servo_protocol == SERVO_TYPE_SBUS || servoConfig()->servo_protocol == SERVO_TYPE_SBUS_PWM) {
+        servoConfigMutable()->servo_protocol = SERVO_TYPE_PWM;
+    }
 #endif
 
     if (!isSerialConfigValid(serialConfigMutable())) {

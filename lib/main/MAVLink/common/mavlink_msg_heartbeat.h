@@ -3,15 +3,15 @@
 
 #define MAVLINK_MSG_ID_HEARTBEAT 0
 
-MAVPACKED(
+
 typedef struct __mavlink_heartbeat_t {
- uint32_t custom_mode; /*< A bitfield for use for autopilot-specific flags.*/
- uint8_t type; /*< Type of the MAV (quadrotor, helicopter, etc., up to 15 types, defined in MAV_TYPE ENUM)*/
- uint8_t autopilot; /*< Autopilot type / class. defined in MAV_AUTOPILOT ENUM*/
- uint8_t base_mode; /*< System mode bitfield, see MAV_MODE_FLAG ENUM in mavlink/include/mavlink_types.h*/
- uint8_t system_status; /*< System status flag, see MAV_STATE ENUM*/
- uint8_t mavlink_version; /*< MAVLink version, not writable by user, gets added by protocol because of magic data type: uint8_t_mavlink_version*/
-}) mavlink_heartbeat_t;
+ uint32_t custom_mode; /*<  A bitfield for use for autopilot-specific flags*/
+ uint8_t type; /*<  Vehicle or component type. For a flight controller component the vehicle type (quadrotor, helicopter, etc.). For other components the component type (e.g. camera, gimbal, etc.). This should be used in preference to component id for identifying the component type.*/
+ uint8_t autopilot; /*<  Autopilot type / class. Use MAV_AUTOPILOT_INVALID for components that are not flight controllers.*/
+ uint8_t base_mode; /*<  System mode bitmap.*/
+ uint8_t system_status; /*<  System status flag.*/
+ uint8_t mavlink_version; /*<  MAVLink version, not writable by user, gets added by protocol because of magic data type: uint8_t_mavlink_version*/
+} mavlink_heartbeat_t;
 
 #define MAVLINK_MSG_ID_HEARTBEAT_LEN 9
 #define MAVLINK_MSG_ID_HEARTBEAT_MIN_LEN 9
@@ -28,10 +28,10 @@ typedef struct __mavlink_heartbeat_t {
     0, \
     "HEARTBEAT", \
     6, \
-    {  { "custom_mode", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_heartbeat_t, custom_mode) }, \
-         { "type", NULL, MAVLINK_TYPE_UINT8_T, 0, 4, offsetof(mavlink_heartbeat_t, type) }, \
+    {  { "type", NULL, MAVLINK_TYPE_UINT8_T, 0, 4, offsetof(mavlink_heartbeat_t, type) }, \
          { "autopilot", NULL, MAVLINK_TYPE_UINT8_T, 0, 5, offsetof(mavlink_heartbeat_t, autopilot) }, \
          { "base_mode", NULL, MAVLINK_TYPE_UINT8_T, 0, 6, offsetof(mavlink_heartbeat_t, base_mode) }, \
+         { "custom_mode", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_heartbeat_t, custom_mode) }, \
          { "system_status", NULL, MAVLINK_TYPE_UINT8_T, 0, 7, offsetof(mavlink_heartbeat_t, system_status) }, \
          { "mavlink_version", NULL, MAVLINK_TYPE_UINT8_T, 0, 8, offsetof(mavlink_heartbeat_t, mavlink_version) }, \
          } \
@@ -40,10 +40,10 @@ typedef struct __mavlink_heartbeat_t {
 #define MAVLINK_MESSAGE_INFO_HEARTBEAT { \
     "HEARTBEAT", \
     6, \
-    {  { "custom_mode", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_heartbeat_t, custom_mode) }, \
-         { "type", NULL, MAVLINK_TYPE_UINT8_T, 0, 4, offsetof(mavlink_heartbeat_t, type) }, \
+    {  { "type", NULL, MAVLINK_TYPE_UINT8_T, 0, 4, offsetof(mavlink_heartbeat_t, type) }, \
          { "autopilot", NULL, MAVLINK_TYPE_UINT8_T, 0, 5, offsetof(mavlink_heartbeat_t, autopilot) }, \
          { "base_mode", NULL, MAVLINK_TYPE_UINT8_T, 0, 6, offsetof(mavlink_heartbeat_t, base_mode) }, \
+         { "custom_mode", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_heartbeat_t, custom_mode) }, \
          { "system_status", NULL, MAVLINK_TYPE_UINT8_T, 0, 7, offsetof(mavlink_heartbeat_t, system_status) }, \
          { "mavlink_version", NULL, MAVLINK_TYPE_UINT8_T, 0, 8, offsetof(mavlink_heartbeat_t, mavlink_version) }, \
          } \
@@ -56,11 +56,11 @@ typedef struct __mavlink_heartbeat_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param type Type of the MAV (quadrotor, helicopter, etc., up to 15 types, defined in MAV_TYPE ENUM)
- * @param autopilot Autopilot type / class. defined in MAV_AUTOPILOT ENUM
- * @param base_mode System mode bitfield, see MAV_MODE_FLAG ENUM in mavlink/include/mavlink_types.h
- * @param custom_mode A bitfield for use for autopilot-specific flags.
- * @param system_status System status flag, see MAV_STATE ENUM
+ * @param type  Vehicle or component type. For a flight controller component the vehicle type (quadrotor, helicopter, etc.). For other components the component type (e.g. camera, gimbal, etc.). This should be used in preference to component id for identifying the component type.
+ * @param autopilot  Autopilot type / class. Use MAV_AUTOPILOT_INVALID for components that are not flight controllers.
+ * @param base_mode  System mode bitmap.
+ * @param custom_mode  A bitfield for use for autopilot-specific flags
+ * @param system_status  System status flag.
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_heartbeat_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -98,11 +98,11 @@ static inline uint16_t mavlink_msg_heartbeat_pack(uint8_t system_id, uint8_t com
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param type Type of the MAV (quadrotor, helicopter, etc., up to 15 types, defined in MAV_TYPE ENUM)
- * @param autopilot Autopilot type / class. defined in MAV_AUTOPILOT ENUM
- * @param base_mode System mode bitfield, see MAV_MODE_FLAG ENUM in mavlink/include/mavlink_types.h
- * @param custom_mode A bitfield for use for autopilot-specific flags.
- * @param system_status System status flag, see MAV_STATE ENUM
+ * @param type  Vehicle or component type. For a flight controller component the vehicle type (quadrotor, helicopter, etc.). For other components the component type (e.g. camera, gimbal, etc.). This should be used in preference to component id for identifying the component type.
+ * @param autopilot  Autopilot type / class. Use MAV_AUTOPILOT_INVALID for components that are not flight controllers.
+ * @param base_mode  System mode bitmap.
+ * @param custom_mode  A bitfield for use for autopilot-specific flags
+ * @param system_status  System status flag.
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_heartbeat_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -166,11 +166,11 @@ static inline uint16_t mavlink_msg_heartbeat_encode_chan(uint8_t system_id, uint
  * @brief Send a heartbeat message
  * @param chan MAVLink channel to send the message
  *
- * @param type Type of the MAV (quadrotor, helicopter, etc., up to 15 types, defined in MAV_TYPE ENUM)
- * @param autopilot Autopilot type / class. defined in MAV_AUTOPILOT ENUM
- * @param base_mode System mode bitfield, see MAV_MODE_FLAG ENUM in mavlink/include/mavlink_types.h
- * @param custom_mode A bitfield for use for autopilot-specific flags.
- * @param system_status System status flag, see MAV_STATE ENUM
+ * @param type  Vehicle or component type. For a flight controller component the vehicle type (quadrotor, helicopter, etc.). For other components the component type (e.g. camera, gimbal, etc.). This should be used in preference to component id for identifying the component type.
+ * @param autopilot  Autopilot type / class. Use MAV_AUTOPILOT_INVALID for components that are not flight controllers.
+ * @param base_mode  System mode bitmap.
+ * @param custom_mode  A bitfield for use for autopilot-specific flags
+ * @param system_status  System status flag.
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -255,7 +255,7 @@ static inline void mavlink_msg_heartbeat_send_buf(mavlink_message_t *msgbuf, mav
 /**
  * @brief Get field type from heartbeat message
  *
- * @return Type of the MAV (quadrotor, helicopter, etc., up to 15 types, defined in MAV_TYPE ENUM)
+ * @return  Vehicle or component type. For a flight controller component the vehicle type (quadrotor, helicopter, etc.). For other components the component type (e.g. camera, gimbal, etc.). This should be used in preference to component id for identifying the component type.
  */
 static inline uint8_t mavlink_msg_heartbeat_get_type(const mavlink_message_t* msg)
 {
@@ -265,7 +265,7 @@ static inline uint8_t mavlink_msg_heartbeat_get_type(const mavlink_message_t* ms
 /**
  * @brief Get field autopilot from heartbeat message
  *
- * @return Autopilot type / class. defined in MAV_AUTOPILOT ENUM
+ * @return  Autopilot type / class. Use MAV_AUTOPILOT_INVALID for components that are not flight controllers.
  */
 static inline uint8_t mavlink_msg_heartbeat_get_autopilot(const mavlink_message_t* msg)
 {
@@ -275,7 +275,7 @@ static inline uint8_t mavlink_msg_heartbeat_get_autopilot(const mavlink_message_
 /**
  * @brief Get field base_mode from heartbeat message
  *
- * @return System mode bitfield, see MAV_MODE_FLAG ENUM in mavlink/include/mavlink_types.h
+ * @return  System mode bitmap.
  */
 static inline uint8_t mavlink_msg_heartbeat_get_base_mode(const mavlink_message_t* msg)
 {
@@ -285,7 +285,7 @@ static inline uint8_t mavlink_msg_heartbeat_get_base_mode(const mavlink_message_
 /**
  * @brief Get field custom_mode from heartbeat message
  *
- * @return A bitfield for use for autopilot-specific flags.
+ * @return  A bitfield for use for autopilot-specific flags
  */
 static inline uint32_t mavlink_msg_heartbeat_get_custom_mode(const mavlink_message_t* msg)
 {
@@ -295,7 +295,7 @@ static inline uint32_t mavlink_msg_heartbeat_get_custom_mode(const mavlink_messa
 /**
  * @brief Get field system_status from heartbeat message
  *
- * @return System status flag, see MAV_STATE ENUM
+ * @return  System status flag.
  */
 static inline uint8_t mavlink_msg_heartbeat_get_system_status(const mavlink_message_t* msg)
 {
@@ -305,7 +305,7 @@ static inline uint8_t mavlink_msg_heartbeat_get_system_status(const mavlink_mess
 /**
  * @brief Get field mavlink_version from heartbeat message
  *
- * @return MAVLink version, not writable by user, gets added by protocol because of magic data type: uint8_t_mavlink_version
+ * @return  MAVLink version, not writable by user, gets added by protocol because of magic data type: uint8_t_mavlink_version
  */
 static inline uint8_t mavlink_msg_heartbeat_get_mavlink_version(const mavlink_message_t* msg)
 {

@@ -74,7 +74,7 @@ If the CLI `log_topics` is non-zero, then all topics matching the mask will be d
 
 ## Code usage
 
-A set of macros `LOG_S()` (log system) through `LOG_D()` (log debug) may be used, subject to compile time log level constraints. These provide `printf` style logging for a given topic.
+A set of macros `LOG_E()` (log error) through `LOG_D()` (log debug) may be used, subject to compile time log level constraints. These provide `printf` style logging for a given topic.
 
 ```
 //  LOG_D(topic, fmt, ...)

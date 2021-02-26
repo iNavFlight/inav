@@ -1,0 +1,1 @@
+target_stm32f722xe(KAKUTEF7MINIV3)

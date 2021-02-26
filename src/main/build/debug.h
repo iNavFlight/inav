@@ -15,6 +15,8 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma once
+
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -63,12 +65,21 @@ typedef enum {
     DEBUG_REM_FLIGHT_TIME,
     DEBUG_SMARTAUDIO,
     DEBUG_ACC,
-    DEBUG_ITERM_RELAX,
     DEBUG_ERPM,
     DEBUG_RPM_FILTER,
     DEBUG_RPM_FREQ,
-    DEBUG_IMU2,
+    DEBUG_NAV_YAW,
     DEBUG_DYNAMIC_FILTER,
     DEBUG_DYNAMIC_FILTER_FREQUENCY,
+    DEBUG_IRLOCK,
+    DEBUG_CD,
+    DEBUG_KALMAN_GAIN,
+    DEBUG_PID_MEASUREMENT,
+    DEBUG_SPM_CELLS,    // Smartport master FLVSS
+    DEBUG_SPM_VS600,    // Smartport master VS600 VTX
+    DEBUG_SPM_VARIO,    // Smartport master variometer
+    DEBUG_PCF8574,
+    DEBUG_DYNAMIC_GYRO_LPF,
+    DEBUG_IMU2,
     DEBUG_COUNT
 } debugType_e;

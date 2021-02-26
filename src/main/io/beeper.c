@@ -121,6 +121,10 @@ static const uint8_t beep_runtimeCalibrationDone[] = {
 static const uint8_t beep_launchModeBeep[] = {
     5, 5, 5, 100, BEEPER_COMMAND_STOP
 };
+// Two short beeps, then one shorter beep. Beeps to show the throttle needs to be raised. Will repeat every second while the throttle is low.
+static const uint8_t beep_launchModeLowThrottleBeep[] = {
+    5, 5, 5, 5, 3, 100, BEEPER_COMMAND_STOP
+};
 // short beeps
 static const uint8_t beep_hardwareFailure[] = {
     10, 10, BEEPER_COMMAND_STOP
@@ -164,31 +168,32 @@ typedef struct beeperTableEntry_s {
 #define BEEPER_ENTRY(a,b,c,d) a,b,c,d
 
 /*static*/ const beeperTableEntry_t beeperTable[] = {
-    { BEEPER_ENTRY(BEEPER_RUNTIME_CALIBRATION_DONE, 0, beep_runtimeCalibrationDone, "RUNTIME_CALIBRATION") },
-    { BEEPER_ENTRY(BEEPER_HARDWARE_FAILURE ,        1, beep_hardwareFailure,        "HW_FAILURE") },
-    { BEEPER_ENTRY(BEEPER_RX_LOST,                  2, beep_txLostBeep,             "RX_LOST") },
-    { BEEPER_ENTRY(BEEPER_RX_LOST_LANDING,          3, beep_sos,                    "RX_LOST_LANDING") },
-    { BEEPER_ENTRY(BEEPER_DISARMING,                4, beep_disarmBeep,             "DISARMING") },
-    { BEEPER_ENTRY(BEEPER_ARMING,                   5, beep_armingBeep,             "ARMING")  },
-    { BEEPER_ENTRY(BEEPER_ARMING_GPS_FIX,           6, beep_armedGpsFix,            "ARMING_GPS_FIX") },
-    { BEEPER_ENTRY(BEEPER_BAT_CRIT_LOW,             7, beep_critBatteryBeep,        "BAT_CRIT_LOW") },
-    { BEEPER_ENTRY(BEEPER_BAT_LOW,                  8, beep_lowBatteryBeep,         "BAT_LOW") },
-    { BEEPER_ENTRY(BEEPER_GPS_STATUS,               9, beep_multiBeeps,             "GPS_STATUS") },
-    { BEEPER_ENTRY(BEEPER_RX_SET,                   10, beep_shortBeep,             "RX_SET") },
-    { BEEPER_ENTRY(BEEPER_ACTION_SUCCESS,           11, beep_2shortBeeps,           "ACTION_SUCCESS") },
-    { BEEPER_ENTRY(BEEPER_ACTION_FAIL,              12, beep_2longerBeeps,          "ACTION_FAIL") },
-    { BEEPER_ENTRY(BEEPER_READY_BEEP,               13, beep_readyBeep,             "READY_BEEP") },
-    { BEEPER_ENTRY(BEEPER_MULTI_BEEPS,              14, beep_multiBeeps,            "MULTI_BEEPS") }, // FIXME having this listed makes no sense since the beep array will not be initialised.
-    { BEEPER_ENTRY(BEEPER_DISARM_REPEAT,            15, beep_disarmRepeatBeep,      "DISARM_REPEAT") },
-    { BEEPER_ENTRY(BEEPER_ARMED,                    16, beep_armedBeep,             "ARMED") },
-    { BEEPER_ENTRY(BEEPER_SYSTEM_INIT,              17, NULL,                       "SYSTEM_INIT") },
-    { BEEPER_ENTRY(BEEPER_USB,                      18, NULL,                       "ON_USB") },
-    { BEEPER_ENTRY(BEEPER_LAUNCH_MODE_ENABLED,      19, beep_launchModeBeep,        "LAUNCH_MODE") },
-    { BEEPER_ENTRY(BEEPER_CAM_CONNECTION_OPEN,      20, beep_camOpenBeep,           "CAM_CONNECTION_OPEN") },
-    { BEEPER_ENTRY(BEEPER_CAM_CONNECTION_CLOSE,     21, beep_camCloseBeep,          "CAM_CONNECTION_CLOSED") },
+    { BEEPER_ENTRY(BEEPER_RUNTIME_CALIBRATION_DONE, 0, beep_runtimeCalibrationDone,     "RUNTIME_CALIBRATION") },
+    { BEEPER_ENTRY(BEEPER_HARDWARE_FAILURE ,        1, beep_hardwareFailure,            "HW_FAILURE") },
+    { BEEPER_ENTRY(BEEPER_RX_LOST,                  2, beep_txLostBeep,                 "RX_LOST") },
+    { BEEPER_ENTRY(BEEPER_RX_LOST_LANDING,          3, beep_sos,                        "RX_LOST_LANDING") },
+    { BEEPER_ENTRY(BEEPER_DISARMING,                4, beep_disarmBeep,                 "DISARMING") },
+    { BEEPER_ENTRY(BEEPER_ARMING,                   5, beep_armingBeep,                 "ARMING")  },
+    { BEEPER_ENTRY(BEEPER_ARMING_GPS_FIX,           6, beep_armedGpsFix,                "ARMING_GPS_FIX") },
+    { BEEPER_ENTRY(BEEPER_BAT_CRIT_LOW,             7, beep_critBatteryBeep,            "BAT_CRIT_LOW") },
+    { BEEPER_ENTRY(BEEPER_BAT_LOW,                  8, beep_lowBatteryBeep,             "BAT_LOW") },
+    { BEEPER_ENTRY(BEEPER_GPS_STATUS,               9, beep_multiBeeps,                 "GPS_STATUS") },
+    { BEEPER_ENTRY(BEEPER_RX_SET,                   10, beep_shortBeep,                 "RX_SET") },
+    { BEEPER_ENTRY(BEEPER_ACTION_SUCCESS,           11, beep_2shortBeeps,               "ACTION_SUCCESS") },
+    { BEEPER_ENTRY(BEEPER_ACTION_FAIL,              12, beep_2longerBeeps,              "ACTION_FAIL") },
+    { BEEPER_ENTRY(BEEPER_READY_BEEP,               13, beep_readyBeep,                 "READY_BEEP") },
+    { BEEPER_ENTRY(BEEPER_MULTI_BEEPS,              14, beep_multiBeeps,                "MULTI_BEEPS") }, // FIXME having this listed makes no sense since the beep array will not be initialised.
+    { BEEPER_ENTRY(BEEPER_DISARM_REPEAT,            15, beep_disarmRepeatBeep,          "DISARM_REPEAT") },
+    { BEEPER_ENTRY(BEEPER_ARMED,                    16, beep_armedBeep,                 "ARMED") },
+    { BEEPER_ENTRY(BEEPER_SYSTEM_INIT,              17, NULL,                           "SYSTEM_INIT") },
+    { BEEPER_ENTRY(BEEPER_USB,                      18, NULL,                           "ON_USB") },
+    { BEEPER_ENTRY(BEEPER_LAUNCH_MODE_ENABLED,      19, beep_launchModeBeep,            "LAUNCH_MODE") },
+    { BEEPER_ENTRY(BEEPER_LAUNCH_MODE_LOW_THROTTLE, 20, beep_launchModeLowThrottleBeep, "LAUNCH_MODE_LOW_THROTTLE") },
+    { BEEPER_ENTRY(BEEPER_CAM_CONNECTION_OPEN,      21, beep_camOpenBeep,               "CAM_CONNECTION_OPEN") },
+    { BEEPER_ENTRY(BEEPER_CAM_CONNECTION_CLOSE,     22, beep_camCloseBeep,              "CAM_CONNECTION_CLOSED") },
 
-    { BEEPER_ENTRY(BEEPER_ALL,                      22, NULL,                       "ALL") },
-    { BEEPER_ENTRY(BEEPER_PREFERENCE,               23, NULL,                       "PREFERED") },
+    { BEEPER_ENTRY(BEEPER_ALL,                      23, NULL,                           "ALL") },
+    { BEEPER_ENTRY(BEEPER_PREFERENCE,               24, NULL,                           "PREFERED") },
 };
 
 static const beeperTableEntry_t *currentBeeperEntry = NULL;

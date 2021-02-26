@@ -25,6 +25,8 @@
 #include "quaternion.h"
 #include "platform.h"
 
+FILE_COMPILE_FOR_SPEED
+
 // http://lolengine.net/blog/2011/12/21/better-function-approximations
 // Chebyshev http://stackoverflow.com/questions/345085/how-do-trigonometric-functions-work/345117#345117
 // Thanks for ledvinap for making such accuracy possible! See: https://github.com/cleanflight/cleanflight/issues/940#issuecomment-110323384
@@ -140,15 +142,6 @@ int32_t applyDeadband(int32_t value, int32_t deadband)
     return value;
 }
 
-float fapplyDeadbandf(float value, float deadband)
-{
-    if (fabsf(value) < deadband) {
-        return 0;
-    }
-
-    return value >= 0 ? value - deadband : value + deadband;
-}
-
 int constrain(int amt, int low, int high)
 {
     if (amt < low)
@@ -159,7 +152,7 @@ int constrain(int amt, int low, int high)
         return amt;
 }
 
-float FAST_CODE NOINLINE constrainf(float amt, float low, float high)
+float constrainf(float amt, float low, float high)
 {
     if (amt < low)
         return low;
@@ -473,7 +466,19 @@ static void sensorCalibration_SolveLGS(float A[4][4], float x[4], float b[4]) {
     sensorCalibration_BackwardSubstitution(A, x, y);
 }
 
-void sensorCalibrationSolveForOffset(sensorCalibrationState_t * state, float result[3])
+bool sensorCalibrationValidateResult(const float result[3])
+{
+    // Validate that result is not INF and not NAN
+    for (int i = 0; i < 3; i++) {
+        if (isnan(result[i]) && isinf(result[i])) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool sensorCalibrationSolveForOffset(sensorCalibrationState_t * state, float result[3])
 {
     float beta[4];
     sensorCalibration_SolveLGS(state->XtX, beta, state->XtY);
@@ -481,9 +486,11 @@ void sensorCalibrationSolveForOffset(sensorCalibrationState_t * state, float res
     for (int i = 0; i < 3; i++) {
         result[i] = beta[i] / 2;
     }
+
+    return sensorCalibrationValidateResult(result);
 }
 
-void sensorCalibrationSolveForScale(sensorCalibrationState_t * state, float result[3])
+bool sensorCalibrationSolveForScale(sensorCalibrationState_t * state, float result[3])
 {
     float beta[4];
     sensorCalibration_SolveLGS(state->XtX, beta, state->XtY);
@@ -491,6 +498,8 @@ void sensorCalibrationSolveForScale(sensorCalibrationState_t * state, float resu
     for (int i = 0; i < 3; i++) {
         result[i] = sqrtf(beta[i]);
     }
+
+    return sensorCalibrationValidateResult(result);
 }
 
 float bellCurve(const float x, const float curveWidth)

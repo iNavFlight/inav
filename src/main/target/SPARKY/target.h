@@ -31,14 +31,8 @@
 #define USE_MPU_DATA_READY_SIGNAL
 
 // MPU 9150 INT connected to PA15, pulled up to VCC by 10K Resistor, contains MPU6050 and AK8975 in single component.
-#define USE_GYRO
-#define USE_GYRO_MPU6050
-#define GYRO_MPU6050_ALIGN      CW270_DEG
-
-#define USE_ACC
-#define USE_ACC_MPU6050
-#define ACC_MPU6050_ALIGN       CW270_DEG
-
+#define USE_IMU_MPU6050
+#define IMU_MPU6050_ALIGN       CW270_DEG
 #define MPU6050_I2C_BUS         BUS_I2C2
 
 #define USE_BARO

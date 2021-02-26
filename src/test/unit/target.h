@@ -35,7 +35,7 @@
 #define USE_TELEMETRY_LTM
 #define USE_LED_STRIP
 #define TRANSPONDER
-#define USE_FAKE_GYRO
+#define USE_IMU_FAKE
 #define USE_VCP
 #define USE_UART1
 #define USE_UART2

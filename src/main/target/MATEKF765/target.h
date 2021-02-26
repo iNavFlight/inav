@@ -42,27 +42,20 @@
 #define SPI3_MISO_PIN           PB4
 #define SPI3_MOSI_PIN           PB5
 
-#define USE_ACC
-#define USE_GYRO
 #define USE_DUAL_GYRO
 
-#define USE_ACC_MPU6000
-#define USE_GYRO_MPU6000
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW90_DEG_FLIP
 #define MPU6000_SPI_BUS         BUS_SPI1
 #define MPU6000_CS_PIN          PC4
 #define MPU6000_EXTI_PIN        PB2
 
-#define USE_ACC_MPU6500
-#define USE_GYRO_MPU6500
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW270_DEG_FLIP
 #define MPU6500_SPI_BUS         BUS_SPI3
 #define MPU6500_CS_PIN          PD7
 #define MPU6500_EXTI_PIN        PD4
 
-#define GYRO_MPU6000_ALIGN      CW90_DEG_FLIP
-#define ACC_MPU6000_ALIGN       CW90_DEG_FLIP
-
-#define GYRO_MPU6500_ALIGN      CW270_DEG_FLIP
-#define ACC_MPU6500_ALIGN       CW270_DEG_FLIP
 
 #define USE_EXTI
 #define USE_MPU_DATA_READY_SIGNAL
@@ -81,6 +74,7 @@
 #define BARO_I2C_BUS            BUS_I2C2
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
+#define USE_BARO_DPS310
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
@@ -150,13 +144,13 @@
 #define UART8_TX_PIN            PE1
 #define UART8_RX_PIN            PE0
 
-/*
-#define USE_SOFTSERIAL1
-#define SOFTSERIAL_1_TX_PIN      PA2
-#define SOFTSERIAL_1_RX_PIN      PA2
-*/
 
-#define SERIAL_PORT_COUNT       8
+#define USE_SOFTSERIAL1
+#define SOFTSERIAL_1_TX_PIN      PC6  //TX6 pad
+#define SOFTSERIAL_1_RX_PIN      PC6  //TX6 pad
+
+
+#define SERIAL_PORT_COUNT       9
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
@@ -177,6 +171,8 @@
 #define ADC_CHANNEL_2_PIN           PC3
 #define ADC_CHANNEL_3_PIN           PC1
 #define ADC_CHANNEL_4_PIN           PC0
+#define ADC_CHANNEL_5_PIN           PA4 //VBAT2
+#define ADC_CHANNEL_6_PIN           PC5 //CURR2
 
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2

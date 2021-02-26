@@ -28,6 +28,7 @@
 #include "common/axis.h"
 #include "common/filter.h"
 #include "common/maths.h"
+#include "programming/global_variables.h"
 
 #include "config/config_reset.h"
 #include "config/feature.h"
@@ -35,6 +36,7 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/pwm_output.h"
+#include "drivers/pwm_mapping.h"
 #include "drivers/time.h"
 
 #include "fc/config.h"
@@ -52,12 +54,13 @@
 
 #include "sensors/gyro.h"
 
-PG_REGISTER_WITH_RESET_TEMPLATE(servoConfig_t, servoConfig, PG_SERVO_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(servoConfig_t, servoConfig, PG_SERVO_CONFIG, 1);
 
 PG_RESET_TEMPLATE(servoConfig_t, servoConfig,
     .servoCenterPulse = 1500,
     .servoPwmRate = 50,             // Default for analog servos
     .servo_lowpass_freq = 20,       // Default servo update rate is 50Hz, everything above Nyquist frequency (25Hz) is going to fold and cause distortions
+    .servo_protocol = SERVO_TYPE_PWM,
     .flaperon_throw_offset = FLAPERON_THROW_DEFAULT,
     .tri_unarmed_servo = 1
 );
@@ -72,7 +75,7 @@ void pgResetFn_customServoMixers(servoMixer_t *instance)
             .inputSource = 0,
             .rate = 0,
             .speed = 0
-#ifdef USE_LOGIC_CONDITIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
             ,.conditionId = -1
 #endif
         );
@@ -130,7 +133,7 @@ void servosInit(void)
 {
     // give all servos a default command
     for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-        servo[i] = DEFAULT_SERVO_MIDDLE;
+        servo[i] = servoParams(i)->middle;
     }
 
     /*
@@ -262,7 +265,17 @@ void servoMixer(float dT)
 
     input[INPUT_FEATURE_FLAPS] = FLIGHT_MODE(FLAPERON) ? servoConfig()->flaperon_throw_offset : 0;
 
-    input[INPUT_LOGIC_ONE] = 500;
+    input[INPUT_MAX] = 500;
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    input[INPUT_GVAR_0] = constrain(gvGet(0), -1000, 1000);
+    input[INPUT_GVAR_1] = constrain(gvGet(1), -1000, 1000);
+    input[INPUT_GVAR_2] = constrain(gvGet(2), -1000, 1000);
+    input[INPUT_GVAR_3] = constrain(gvGet(3), -1000, 1000);
+    input[INPUT_GVAR_4] = constrain(gvGet(4), -1000, 1000);
+    input[INPUT_GVAR_5] = constrain(gvGet(5), -1000, 1000);
+    input[INPUT_GVAR_6] = constrain(gvGet(6), -1000, 1000);
+    input[INPUT_GVAR_7] = constrain(gvGet(7), -1000, 1000);
+#endif
 
     if (IS_RC_MODE_ACTIVE(BOXCAMSTAB)) {
         input[INPUT_GIMBAL_PITCH] = scaleRange(attitude.values.pitch, -900, 900, -500, +500);
@@ -309,7 +322,7 @@ void servoMixer(float dT)
         /*
          * Check if conditions for a rule are met, not all conditions apply all the time
          */
-    #ifdef USE_LOGIC_CONDITIONS
+    #ifdef USE_PROGRAMMING_FRAMEWORK
         if (!logicConditionGetValue(currentServoMixer[i].conditionId)) {
             continue; 
         }
@@ -444,17 +457,17 @@ void processServoAutotrim(void)
     }
 }
 
-bool FAST_CODE NOINLINE isServoOutputEnabled(void)
+bool isServoOutputEnabled(void)
 {
     return servoOutputEnabled;
 }
 
-void NOINLINE setServoOutputEnabled(bool flag)
+void setServoOutputEnabled(bool flag)
 {
     servoOutputEnabled = flag;
 }
 
-bool FAST_CODE NOINLINE isMixerUsingServos(void)
+bool isMixerUsingServos(void)
 {
     return mixerUsesServos;
 }

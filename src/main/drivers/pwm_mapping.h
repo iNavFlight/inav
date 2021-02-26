@@ -50,6 +50,13 @@ typedef enum {
 } motorPwmProtocolTypes_e;
 
 typedef enum {
+    SERVO_TYPE_PWM = 0,
+    SERVO_TYPE_SERVO_DRIVER,
+    SERVO_TYPE_SBUS,
+    SERVO_TYPE_SBUS_PWM
+} servoProtocolType_e;
+
+typedef enum {
     PWM_INIT_ERROR_NONE = 0,
     PWM_INIT_ERROR_TOO_MANY_MOTORS,
     PWM_INIT_ERROR_TOO_MANY_SERVOS,

@@ -268,8 +268,14 @@ static uint8_t mspSerialChecksumBuf(uint8_t checksum, const uint8_t *data, int l
 #define JUMBO_FRAME_SIZE_LIMIT 255
 static int mspSerialSendFrame(mspPort_t *msp, const uint8_t * hdr, int hdrLen, const uint8_t * data, int dataLen, const uint8_t * crc, int crcLen)
 {
+    // MSP port might be turned into a CLI port, which will make
+    // msp->port become NULL.
+    serialPort_t *port = msp->port;
+    if (!port) {
+        return 0;
+    }
     // VSP MSP port might be unconnected. To prevent blocking - check if it's connected first
-    if (!serialIsConnected(msp->port)) {
+    if (!serialIsConnected(port)) {
         return 0;
     }
 
@@ -278,15 +284,15 @@ static int mspSerialSendFrame(mspPort_t *msp, const uint8_t * hdr, int hdrLen, c
     //     this allows us to transmit jumbo frames bigger than TX buffer (serialWriteBuf will block, but for jumbo frames we don't care)
     //  b) Response fits into TX buffer
     const int totalFrameLength = hdrLen + dataLen + crcLen;
-    if (!isSerialTransmitBufferEmpty(msp->port) && ((int)serialTxBytesFree(msp->port) < totalFrameLength))
+    if (!isSerialTransmitBufferEmpty(port) && ((int)serialTxBytesFree(port) < totalFrameLength))
         return 0;
 
     // Transmit frame
-    serialBeginWrite(msp->port);
-    serialWriteBuf(msp->port, hdr, hdrLen);
-    serialWriteBuf(msp->port, data, dataLen);
-    serialWriteBuf(msp->port, crc, crcLen);
-    serialEndWrite(msp->port);
+    serialBeginWrite(port);
+    serialWriteBuf(port, hdr, hdrLen);
+    serialWriteBuf(port, data, dataLen);
+    serialWriteBuf(port, crc, crcLen);
+    serialEndWrite(port);
 
     return totalFrameLength;
 }

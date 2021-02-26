@@ -27,37 +27,7 @@
 #include "drivers/nvic.h"
 #include "drivers/system.h"
 
-
-#define AIRCR_VECTKEY_MASK    ((uint32_t)0x05FA0000)
 void SystemClock_Config(void);
-
-inline static void NVIC_DisableAllIRQs(void)
-{
-    // We access CMSIS NVIC registers directly here
-    for (int x = 0; x < 8; x++) {
-        // Mask all IRQs controlled by a ICERx
-        NVIC->ICER[x] = 0xFFFFFFFF;
-        // Clear all pending IRQs controlled by a ICPRx
-        NVIC->ICPR[x] = 0xFFFFFFFF;
-    }
-}
-
-void systemReset(void)
-{
-    __disable_irq();
-    NVIC_DisableAllIRQs();
-    NVIC_SystemReset();
-}
-
-void systemResetToBootloader(void)
-{
-    __disable_irq();
-    NVIC_DisableAllIRQs();
-
-    (*(__IO uint32_t *) (BKPSRAM_BASE + 4)) = 0xDEADBEEF;   // flag that will be readable after reboot
-
-    NVIC_SystemReset();
-}
 
 void enableGPIOPowerUsageAndNoiseReductions(void)
 {
@@ -89,6 +59,11 @@ bool isMPUSoftReset(void)
         return true;
     else
         return false;
+}
+
+uint32_t systemBootloaderAddress(void)
+{
+    return 0x1FF00000;
 }
 
 void systemClockSetup(uint8_t cpuUnderclock)
@@ -127,27 +102,4 @@ void systemInit(void)
     HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
 
     HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
-}
-
-void(*bootJump)(void);
-void checkForBootLoaderRequest(void)
-{
-    uint32_t bt;
-    __PWR_CLK_ENABLE();
-    __BKPSRAM_CLK_ENABLE();
-    HAL_PWR_EnableBkUpAccess();
-
-    bt = (*(__IO uint32_t *) (BKPSRAM_BASE + 4)) ;
-    if ( bt == 0xDEADBEEF ) {
-        (*(__IO uint32_t *) (BKPSRAM_BASE + 4)) =  0xCAFEFEED; // Reset our trigger
-
-        void (*SysMemBootJump)(void);
-        __SYSCFG_CLK_ENABLE();
-        SYSCFG->MEMRMP |= SYSCFG_MEM_BOOT_ADD0 ;
-        uint32_t p =  (*((uint32_t *) 0x1ff00000));
-        __set_MSP(p); //Set the main stack pointer to its defualt values
-        SysMemBootJump = (void (*)(void)) (*((uint32_t *) 0x1ff00004)); // Point the PC to the System Memory reset vector (+4)
-        SysMemBootJump();
-        while (1);
-    }
 }

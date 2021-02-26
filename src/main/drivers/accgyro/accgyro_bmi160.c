@@ -42,7 +42,7 @@
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_bmi160.h"
 
-#if defined(USE_GYRO_BMI160) || defined(USE_ACC_BMI160)
+#if defined(USE_IMU_BMI160)
 
 /* BMI160 Registers */
 #define BMI160_REG_CHIPID           0x00
@@ -270,6 +270,7 @@ bool bmi160GyroDetect(gyroDev_t *gyro)
     gyro->intStatusFn = gyroCheckDataReady;
     gyro->temperatureFn = NULL;
     gyro->scale = 1.0f / 16.4f;     // 16.4 dps/lsb scalefactor
+    gyro->gyroAlign = gyro->busDev->param;
 
     return true;
 }

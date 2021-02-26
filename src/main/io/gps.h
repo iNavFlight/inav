@@ -38,6 +38,7 @@ typedef enum {
     GPS_NAZA,
     GPS_UBLOX7PLUS,
     GPS_MTK,
+    GPS_MSP,
     GPS_PROVIDER_COUNT
 } gpsProvider_e;
 
@@ -58,6 +59,7 @@ typedef enum {
     GPS_BAUDRATE_38400,
     GPS_BAUDRATE_19200,
     GPS_BAUDRATE_9600,
+    GPS_BAUDRATE_230400,
     GPS_BAUDRATE_COUNT
 } gpsBaudRate_e;
 
@@ -163,3 +165,4 @@ bool isGPSHealthy(void);
 bool isGPSHeadingValid(void);
 struct serialPort_s;
 void gpsEnablePassthrough(struct serialPort_s *gpsPassthroughPort);
+void mspGPSReceiveNewData(const uint8_t * bufferPtr);

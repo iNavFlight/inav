@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include "platform.h"
+FILE_COMPILE_FOR_SPEED
 
 #ifdef USE_SERIAL_RX
 
@@ -52,21 +53,6 @@
  * time to send frame: 3ms.
  */
 
-#define SBUS_FRAME_SIZE (SBUS_CHANNEL_DATA_LENGTH + 2)
-
-#define SBUS_FRAME_BEGIN_BYTE 0x0F
-
-#define SBUS_BAUDRATE       100000
-#define SBUS_BAUDRATE_FAST  200000
-
-#if !defined(SBUS_PORT_OPTIONS)
-#define SBUS_PORT_OPTIONS (SERIAL_STOPBITS_2 | SERIAL_PARITY_EVEN)
-#endif
-
-#define SBUS_DIGITAL_CHANNEL_MIN 173
-#define SBUS_DIGITAL_CHANNEL_MAX 1812
-
-
 enum {
     DEBUG_SBUS_INTERFRAME_TIME = 0,
     DEBUG_SBUS_FRAME_FLAGS = 1,
@@ -79,19 +65,6 @@ typedef enum {
     STATE_SBUS_WAIT_SYNC
 } sbusDecoderState_e;
 
-typedef struct sbusFrame_s {
-    uint8_t syncByte;
-    sbusChannels_t channels;
-    /**
-     * The endByte is 0x00 on FrSky and some futaba RX's, on Some SBUS2 RX's the value indicates the telemetry byte that is sent after every 4th sbus frame.
-     *
-     * See https://github.com/cleanflight/cleanflight/issues/590#issuecomment-101027349
-     * and
-     * https://github.com/cleanflight/cleanflight/issues/590#issuecomment-101706023
-     */
-    uint8_t endByte;
-} __attribute__ ((__packed__)) sbusFrame_t;
-
 typedef struct sbusFrameData_s {
     sbusDecoderState_e state;
     volatile sbusFrame_t frame;
@@ -100,8 +73,6 @@ typedef struct sbusFrameData_s {
     uint8_t position;
     timeUs_t lastActivityTimeUs;
 } sbusFrameData_t;
-
-STATIC_ASSERT(SBUS_FRAME_SIZE == sizeof(sbusFrame_t), SBUS_FRAME_SIZE_doesnt_match_sbusFrame_t);
 
 // Receive ISR callback
 static void sbusDataReceive(uint16_t c, void *data)
@@ -224,7 +195,9 @@ static bool sbusInitEx(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeC
         &sbusFrameData,
         sbusBaudRate,
         portShared ? MODE_RXTX : MODE_RX,
-        SBUS_PORT_OPTIONS | (rxConfig->serialrx_inverted ? 0 : SERIAL_INVERTED) | (rxConfig->halfDuplex ? SERIAL_BIDIR : 0)
+        SBUS_PORT_OPTIONS |
+            (rxConfig->serialrx_inverted ? 0 : SERIAL_INVERTED) |
+            (tristateWithDefaultOffIsActive(rxConfig->halfDuplex) ? SERIAL_BIDIR : 0)
         );
 
 #ifdef USE_TELEMETRY

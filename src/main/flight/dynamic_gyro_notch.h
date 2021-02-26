@@ -29,7 +29,6 @@
 #include "common/filter.h"
 
 #define DYNAMIC_NOTCH_DEFAULT_CENTER_HZ 350
-#define DYNAMIC_NOTCH_DEFAULT_CUTOFF_HZ 300
 
 typedef struct dynamicGyroNotchState_s {
     uint16_t frequency[XYZ_AXIS_COUNT];

@@ -169,7 +169,6 @@ void serialUARTInit(IO_t tx, IO_t rx, portMode_t mode, portOptions_t options, ui
 #ifdef USE_UART1
 uartPort_t *serialUART1(uint32_t baudRate, portMode_t mode, portOptions_t options)
 {
-    NVIC_InitTypeDef NVIC_InitStructure;
     uartPort_t *s;
 
     static volatile uint8_t rx1Buffer[UART1_RX_BUFFER_SIZE];
@@ -191,11 +190,8 @@ uartPort_t *serialUART1(uint32_t baudRate, portMode_t mode, portOptions_t option
 
     serialUARTInit(IOGetByTag(IO_TAG(UART1_TX_PIN)), IOGetByTag(IO_TAG(UART1_RX_PIN)), mode, options, GPIO_AF_7, 1);
 
-    NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = NVIC_PRIORITY_BASE(NVIC_PRIO_SERIALUART1);
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = NVIC_PRIORITY_SUB(NVIC_PRIO_SERIALUART1);
-    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&NVIC_InitStructure);
+    NVIC_SetPriority(USART1_IRQn, NVIC_PRIO_SERIALUART);
+    NVIC_EnableIRQ(USART1_IRQn);
 
     return s;
 }
@@ -204,7 +200,6 @@ uartPort_t *serialUART1(uint32_t baudRate, portMode_t mode, portOptions_t option
 #ifdef USE_UART2
 uartPort_t *serialUART2(uint32_t baudRate, portMode_t mode, portOptions_t options)
 {
-    NVIC_InitTypeDef NVIC_InitStructure;
     uartPort_t *s;
 
     static volatile uint8_t rx2Buffer[UART2_RX_BUFFER_SIZE];
@@ -226,11 +221,8 @@ uartPort_t *serialUART2(uint32_t baudRate, portMode_t mode, portOptions_t option
 
     serialUARTInit(IOGetByTag(IO_TAG(UART2_TX_PIN)), IOGetByTag(IO_TAG(UART2_RX_PIN)), mode, options, GPIO_AF_7, 2);
 
-    NVIC_InitStructure.NVIC_IRQChannel = USART2_IRQn;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = NVIC_PRIORITY_BASE(NVIC_PRIO_SERIALUART2);
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = NVIC_PRIORITY_SUB(NVIC_PRIO_SERIALUART2);
-    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&NVIC_InitStructure);
+    NVIC_SetPriority(USART2_IRQn, NVIC_PRIO_SERIALUART);
+    NVIC_EnableIRQ(USART2_IRQn);
 
     return s;
 }
@@ -239,7 +231,6 @@ uartPort_t *serialUART2(uint32_t baudRate, portMode_t mode, portOptions_t option
 #ifdef USE_UART3
 uartPort_t *serialUART3(uint32_t baudRate, portMode_t mode, portOptions_t options)
 {
-    NVIC_InitTypeDef NVIC_InitStructure;
     uartPort_t *s;
 
     static volatile uint8_t rx3Buffer[UART3_RX_BUFFER_SIZE];
@@ -261,11 +252,8 @@ uartPort_t *serialUART3(uint32_t baudRate, portMode_t mode, portOptions_t option
 
     serialUARTInit(IOGetByTag(IO_TAG(UART3_TX_PIN)), IOGetByTag(IO_TAG(UART3_RX_PIN)), mode, options, GPIO_AF_7, 3);
 
-    NVIC_InitStructure.NVIC_IRQChannel = USART3_IRQn;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = NVIC_PRIORITY_BASE(NVIC_PRIO_SERIALUART3);
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = NVIC_PRIORITY_SUB(NVIC_PRIO_SERIALUART3);
-    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&NVIC_InitStructure);
+    NVIC_SetPriority(USART3_IRQn, NVIC_PRIO_SERIALUART);
+    NVIC_EnableIRQ(USART3_IRQn);
 
     return s;
 }
@@ -277,7 +265,6 @@ uartPort_t *serialUART4(uint32_t baudRate, portMode_t mode, portOptions_t option
     uartPort_t *s;
     static volatile uint8_t rx4Buffer[UART4_RX_BUFFER_SIZE];
     static volatile uint8_t tx4Buffer[UART4_TX_BUFFER_SIZE];
-    NVIC_InitTypeDef NVIC_InitStructure;
 
     s = &uartPort4;
     s->port.vTable = uartVTable;
@@ -295,11 +282,8 @@ uartPort_t *serialUART4(uint32_t baudRate, portMode_t mode, portOptions_t option
 
     serialUARTInit(IOGetByTag(IO_TAG(UART4_TX_PIN)), IOGetByTag(IO_TAG(UART4_RX_PIN)), mode, options, GPIO_AF_5, 4);
 
-    NVIC_InitStructure.NVIC_IRQChannel = UART4_IRQn;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = NVIC_PRIORITY_BASE(NVIC_PRIO_SERIALUART4);
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = NVIC_PRIORITY_SUB(NVIC_PRIO_SERIALUART4);
-    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&NVIC_InitStructure);
+    NVIC_SetPriority(UART4_IRQn, NVIC_PRIO_SERIALUART);
+    NVIC_EnableIRQ(UART4_IRQn);
 
     return s;
 }
@@ -311,7 +295,6 @@ uartPort_t *serialUART5(uint32_t baudRate, portMode_t mode, portOptions_t option
     uartPort_t *s;
     static volatile uint8_t rx5Buffer[UART5_RX_BUFFER_SIZE];
     static volatile uint8_t tx5Buffer[UART5_TX_BUFFER_SIZE];
-    NVIC_InitTypeDef NVIC_InitStructure;
 
     s = &uartPort5;
     s->port.vTable = uartVTable;
@@ -329,11 +312,8 @@ uartPort_t *serialUART5(uint32_t baudRate, portMode_t mode, portOptions_t option
 
     serialUARTInit(IOGetByTag(IO_TAG(UART5_TX_PIN)), IOGetByTag(IO_TAG(UART5_RX_PIN)), mode, options, GPIO_AF_5, 5);
 
-    NVIC_InitStructure.NVIC_IRQChannel = UART5_IRQn;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = NVIC_PRIORITY_BASE(NVIC_PRIO_SERIALUART5);
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = NVIC_PRIORITY_SUB(NVIC_PRIO_SERIALUART5);
-    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&NVIC_InitStructure);
+    NVIC_SetPriority(UART5_IRQn, NVIC_PRIO_SERIALUART);
+    NVIC_EnableIRQ(UART5_IRQn);
 
     return s;
 }
@@ -369,6 +349,11 @@ void usartIrqHandler(uartPort_t *s)
     {
         USART_ClearITPendingBit (s->USARTx, USART_IT_ORE);
     }
+}
+
+void uartClearIdleFlag(uartPort_t *s)
+{
+    USART_ClearITPendingBit(s->USARTx, USART_IT_IDLE);
 }
 
 #ifdef USE_UART1

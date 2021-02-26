@@ -33,7 +33,7 @@
 #include "drivers/accgyro/accgyro_mpu.h"
 #include "drivers/accgyro/accgyro_mpu6500.h"
 
-#if defined(USE_GYRO_MPU6500) || defined(USE_ACC_MPU6500)
+#if defined(USE_IMU_MPU6500)
 
 #define MPU6500_BIT_RESET                   (0x80)
 #define MPU6500_BIT_INT_ANYRD_2CLEAR        (1 << 4)
@@ -60,6 +60,7 @@ bool mpu6500AccDetect(accDev_t *acc)
 
     acc->initFn = mpu6500AccInit;
     acc->readFn = mpuAccReadScratchpad;
+    acc->accAlign = acc->busDev->param;
 
     return true;
 }
@@ -163,6 +164,7 @@ bool mpu6500GyroDetect(gyroDev_t *gyro)
     gyro->intStatusFn = gyroCheckDataReady;
     gyro->temperatureFn = mpuTemperatureReadScratchpad;
     gyro->scale = 1.0f / 16.4f;     // 16.4 dps/lsb scalefactor
+    gyro->gyroAlign = gyro->busDev->param;
 
     return true;
 }

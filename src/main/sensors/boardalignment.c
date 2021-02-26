@@ -22,6 +22,8 @@
 
 #include "platform.h"
 
+FILE_COMPILE_FOR_SPEED
+
 #include "common/maths.h"
 #include "common/vector.h"
 #include "common/axis.h"
@@ -85,7 +87,7 @@ void updateBoardAlignment(int16_t roll, int16_t pitch)
     initBoardAlignment();
 }
 
-void FAST_CODE applyBoardAlignment(int32_t *vec)
+void applyBoardAlignment(int32_t *vec)
 {
     if (standardBoardAlignment) {
         return;

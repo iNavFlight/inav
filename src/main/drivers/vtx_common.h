@@ -46,6 +46,10 @@
 #define VTX_SETTINGS_FREQCMD
 #define VTX_SETTINGS_MAX_POWER          (VTX_SETTINGS_POWER_COUNT - VTX_SETTINGS_MIN_POWER + 1)
 
+#else
+
+#define VTX_SETTINGS_DEFAULT_POWER      0
+
 #endif
 
 // check value for MSP_SET_VTX_CONFIG to determine if value is encoded

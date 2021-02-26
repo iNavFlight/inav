@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 #define U_ID_0 0
 #define U_ID_1 1
 #define U_ID_2 2
@@ -82,3 +84,9 @@ extern SysTick_Type *SysTick;
 #define FAST_CODE 
 #define NOINLINE
 #define EXTENDED_FASTRAM
+#define FUNCTION_COMPILE_FOR_SIZE
+#define FUNCTION_COMPILE_NORMAL
+#define FUNCTION_COMPILE_FOR_SPEED
+#define FILE_COMPILE_FOR_SIZE
+#define FILE_COMPILE_NORMAL
+#define FILE_COMPILE_FOR_SPEED

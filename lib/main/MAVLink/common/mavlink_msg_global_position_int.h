@@ -3,18 +3,18 @@
 
 #define MAVLINK_MSG_ID_GLOBAL_POSITION_INT 33
 
-MAVPACKED(
+
 typedef struct __mavlink_global_position_int_t {
- uint32_t time_boot_ms; /*< Timestamp (milliseconds since system boot)*/
- int32_t lat; /*< Latitude, expressed as degrees * 1E7*/
- int32_t lon; /*< Longitude, expressed as degrees * 1E7*/
- int32_t alt; /*< Altitude in meters, expressed as * 1000 (millimeters), AMSL (not WGS84 - note that virtually all GPS modules provide the AMSL as well)*/
- int32_t relative_alt; /*< Altitude above ground in meters, expressed as * 1000 (millimeters)*/
- int16_t vx; /*< Ground X Speed (Latitude, positive north), expressed as m/s * 100*/
- int16_t vy; /*< Ground Y Speed (Longitude, positive east), expressed as m/s * 100*/
- int16_t vz; /*< Ground Z Speed (Altitude, positive down), expressed as m/s * 100*/
- uint16_t hdg; /*< Vehicle heading (yaw angle) in degrees * 100, 0.0..359.99 degrees. If unknown, set to: UINT16_MAX*/
-}) mavlink_global_position_int_t;
+ uint32_t time_boot_ms; /*< [ms] Timestamp (time since system boot).*/
+ int32_t lat; /*< [degE7] Latitude, expressed*/
+ int32_t lon; /*< [degE7] Longitude, expressed*/
+ int32_t alt; /*< [mm] Altitude (MSL). Note that virtually all GPS modules provide both WGS84 and MSL.*/
+ int32_t relative_alt; /*< [mm] Altitude above ground*/
+ int16_t vx; /*< [cm/s] Ground X Speed (Latitude, positive north)*/
+ int16_t vy; /*< [cm/s] Ground Y Speed (Longitude, positive east)*/
+ int16_t vz; /*< [cm/s] Ground Z Speed (Altitude, positive down)*/
+ uint16_t hdg; /*< [cdeg] Vehicle heading (yaw angle), 0.0..359.99 degrees. If unknown, set to: UINT16_MAX*/
+} mavlink_global_position_int_t;
 
 #define MAVLINK_MSG_ID_GLOBAL_POSITION_INT_LEN 28
 #define MAVLINK_MSG_ID_GLOBAL_POSITION_INT_MIN_LEN 28
@@ -65,15 +65,15 @@ typedef struct __mavlink_global_position_int_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param time_boot_ms Timestamp (milliseconds since system boot)
- * @param lat Latitude, expressed as degrees * 1E7
- * @param lon Longitude, expressed as degrees * 1E7
- * @param alt Altitude in meters, expressed as * 1000 (millimeters), AMSL (not WGS84 - note that virtually all GPS modules provide the AMSL as well)
- * @param relative_alt Altitude above ground in meters, expressed as * 1000 (millimeters)
- * @param vx Ground X Speed (Latitude, positive north), expressed as m/s * 100
- * @param vy Ground Y Speed (Longitude, positive east), expressed as m/s * 100
- * @param vz Ground Z Speed (Altitude, positive down), expressed as m/s * 100
- * @param hdg Vehicle heading (yaw angle) in degrees * 100, 0.0..359.99 degrees. If unknown, set to: UINT16_MAX
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param lat [degE7] Latitude, expressed
+ * @param lon [degE7] Longitude, expressed
+ * @param alt [mm] Altitude (MSL). Note that virtually all GPS modules provide both WGS84 and MSL.
+ * @param relative_alt [mm] Altitude above ground
+ * @param vx [cm/s] Ground X Speed (Latitude, positive north)
+ * @param vy [cm/s] Ground Y Speed (Longitude, positive east)
+ * @param vz [cm/s] Ground Z Speed (Altitude, positive down)
+ * @param hdg [cdeg] Vehicle heading (yaw angle), 0.0..359.99 degrees. If unknown, set to: UINT16_MAX
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_global_position_int_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -117,15 +117,15 @@ static inline uint16_t mavlink_msg_global_position_int_pack(uint8_t system_id, u
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param time_boot_ms Timestamp (milliseconds since system boot)
- * @param lat Latitude, expressed as degrees * 1E7
- * @param lon Longitude, expressed as degrees * 1E7
- * @param alt Altitude in meters, expressed as * 1000 (millimeters), AMSL (not WGS84 - note that virtually all GPS modules provide the AMSL as well)
- * @param relative_alt Altitude above ground in meters, expressed as * 1000 (millimeters)
- * @param vx Ground X Speed (Latitude, positive north), expressed as m/s * 100
- * @param vy Ground Y Speed (Longitude, positive east), expressed as m/s * 100
- * @param vz Ground Z Speed (Altitude, positive down), expressed as m/s * 100
- * @param hdg Vehicle heading (yaw angle) in degrees * 100, 0.0..359.99 degrees. If unknown, set to: UINT16_MAX
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param lat [degE7] Latitude, expressed
+ * @param lon [degE7] Longitude, expressed
+ * @param alt [mm] Altitude (MSL). Note that virtually all GPS modules provide both WGS84 and MSL.
+ * @param relative_alt [mm] Altitude above ground
+ * @param vx [cm/s] Ground X Speed (Latitude, positive north)
+ * @param vy [cm/s] Ground Y Speed (Longitude, positive east)
+ * @param vz [cm/s] Ground Z Speed (Altitude, positive down)
+ * @param hdg [cdeg] Vehicle heading (yaw angle), 0.0..359.99 degrees. If unknown, set to: UINT16_MAX
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_global_position_int_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -195,15 +195,15 @@ static inline uint16_t mavlink_msg_global_position_int_encode_chan(uint8_t syste
  * @brief Send a global_position_int message
  * @param chan MAVLink channel to send the message
  *
- * @param time_boot_ms Timestamp (milliseconds since system boot)
- * @param lat Latitude, expressed as degrees * 1E7
- * @param lon Longitude, expressed as degrees * 1E7
- * @param alt Altitude in meters, expressed as * 1000 (millimeters), AMSL (not WGS84 - note that virtually all GPS modules provide the AMSL as well)
- * @param relative_alt Altitude above ground in meters, expressed as * 1000 (millimeters)
- * @param vx Ground X Speed (Latitude, positive north), expressed as m/s * 100
- * @param vy Ground Y Speed (Longitude, positive east), expressed as m/s * 100
- * @param vz Ground Z Speed (Altitude, positive down), expressed as m/s * 100
- * @param hdg Vehicle heading (yaw angle) in degrees * 100, 0.0..359.99 degrees. If unknown, set to: UINT16_MAX
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param lat [degE7] Latitude, expressed
+ * @param lon [degE7] Longitude, expressed
+ * @param alt [mm] Altitude (MSL). Note that virtually all GPS modules provide both WGS84 and MSL.
+ * @param relative_alt [mm] Altitude above ground
+ * @param vx [cm/s] Ground X Speed (Latitude, positive north)
+ * @param vy [cm/s] Ground Y Speed (Longitude, positive east)
+ * @param vz [cm/s] Ground Z Speed (Altitude, positive down)
+ * @param hdg [cdeg] Vehicle heading (yaw angle), 0.0..359.99 degrees. If unknown, set to: UINT16_MAX
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -300,7 +300,7 @@ static inline void mavlink_msg_global_position_int_send_buf(mavlink_message_t *m
 /**
  * @brief Get field time_boot_ms from global_position_int message
  *
- * @return Timestamp (milliseconds since system boot)
+ * @return [ms] Timestamp (time since system boot).
  */
 static inline uint32_t mavlink_msg_global_position_int_get_time_boot_ms(const mavlink_message_t* msg)
 {
@@ -310,7 +310,7 @@ static inline uint32_t mavlink_msg_global_position_int_get_time_boot_ms(const ma
 /**
  * @brief Get field lat from global_position_int message
  *
- * @return Latitude, expressed as degrees * 1E7
+ * @return [degE7] Latitude, expressed
  */
 static inline int32_t mavlink_msg_global_position_int_get_lat(const mavlink_message_t* msg)
 {
@@ -320,7 +320,7 @@ static inline int32_t mavlink_msg_global_position_int_get_lat(const mavlink_mess
 /**
  * @brief Get field lon from global_position_int message
  *
- * @return Longitude, expressed as degrees * 1E7
+ * @return [degE7] Longitude, expressed
  */
 static inline int32_t mavlink_msg_global_position_int_get_lon(const mavlink_message_t* msg)
 {
@@ -330,7 +330,7 @@ static inline int32_t mavlink_msg_global_position_int_get_lon(const mavlink_mess
 /**
  * @brief Get field alt from global_position_int message
  *
- * @return Altitude in meters, expressed as * 1000 (millimeters), AMSL (not WGS84 - note that virtually all GPS modules provide the AMSL as well)
+ * @return [mm] Altitude (MSL). Note that virtually all GPS modules provide both WGS84 and MSL.
  */
 static inline int32_t mavlink_msg_global_position_int_get_alt(const mavlink_message_t* msg)
 {
@@ -340,7 +340,7 @@ static inline int32_t mavlink_msg_global_position_int_get_alt(const mavlink_mess
 /**
  * @brief Get field relative_alt from global_position_int message
  *
- * @return Altitude above ground in meters, expressed as * 1000 (millimeters)
+ * @return [mm] Altitude above ground
  */
 static inline int32_t mavlink_msg_global_position_int_get_relative_alt(const mavlink_message_t* msg)
 {
@@ -350,7 +350,7 @@ static inline int32_t mavlink_msg_global_position_int_get_relative_alt(const mav
 /**
  * @brief Get field vx from global_position_int message
  *
- * @return Ground X Speed (Latitude, positive north), expressed as m/s * 100
+ * @return [cm/s] Ground X Speed (Latitude, positive north)
  */
 static inline int16_t mavlink_msg_global_position_int_get_vx(const mavlink_message_t* msg)
 {
@@ -360,7 +360,7 @@ static inline int16_t mavlink_msg_global_position_int_get_vx(const mavlink_messa
 /**
  * @brief Get field vy from global_position_int message
  *
- * @return Ground Y Speed (Longitude, positive east), expressed as m/s * 100
+ * @return [cm/s] Ground Y Speed (Longitude, positive east)
  */
 static inline int16_t mavlink_msg_global_position_int_get_vy(const mavlink_message_t* msg)
 {
@@ -370,7 +370,7 @@ static inline int16_t mavlink_msg_global_position_int_get_vy(const mavlink_messa
 /**
  * @brief Get field vz from global_position_int message
  *
- * @return Ground Z Speed (Altitude, positive down), expressed as m/s * 100
+ * @return [cm/s] Ground Z Speed (Altitude, positive down)
  */
 static inline int16_t mavlink_msg_global_position_int_get_vz(const mavlink_message_t* msg)
 {
@@ -380,7 +380,7 @@ static inline int16_t mavlink_msg_global_position_int_get_vz(const mavlink_messa
 /**
  * @brief Get field hdg from global_position_int message
  *
- * @return Vehicle heading (yaw angle) in degrees * 100, 0.0..359.99 degrees. If unknown, set to: UINT16_MAX
+ * @return [cdeg] Vehicle heading (yaw angle), 0.0..359.99 degrees. If unknown, set to: UINT16_MAX
  */
 static inline uint16_t mavlink_msg_global_position_int_get_hdg(const mavlink_message_t* msg)
 {

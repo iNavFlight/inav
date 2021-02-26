@@ -74,7 +74,7 @@ PG_REGISTER_WITH_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig, PG_RC_CONT
 PG_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig,
     .deadband = 5,
     .yaw_deadband = 5,
-    .pos_hold_deadband = 20,
+    .pos_hold_deadband = 10,
     .alt_hold_deadband = 50,
     .mid_throttle_deadband = 50,
     .airmodeHandlingType = STICK_CENTER,
@@ -99,12 +99,19 @@ bool areSticksDeflectedMoreThanPosHoldDeadband(void)
     return (ABS(rcCommand[ROLL]) > rcControlsConfig()->pos_hold_deadband) || (ABS(rcCommand[PITCH]) > rcControlsConfig()->pos_hold_deadband);
 }
 
-throttleStatus_e calculateThrottleStatus(void)
+throttleStatus_e FAST_CODE NOINLINE calculateThrottleStatus(throttleStatusType_e type)
 {
+    int value;
+    if (type == THROTTLE_STATUS_TYPE_RC) {
+        value = rxGetChannelValue(THROTTLE);
+    } else {
+        value = rcCommand[THROTTLE];
+    }
+
     const uint16_t mid_throttle_deadband = rcControlsConfig()->mid_throttle_deadband;
-    if (feature(FEATURE_REVERSIBLE_MOTORS) && (rxGetChannelValue(THROTTLE) > (PWM_RANGE_MIDDLE - mid_throttle_deadband) && rxGetChannelValue(THROTTLE) < (PWM_RANGE_MIDDLE + mid_throttle_deadband)))
+    if (feature(FEATURE_REVERSIBLE_MOTORS) && (value > (PWM_RANGE_MIDDLE - mid_throttle_deadband) && value < (PWM_RANGE_MIDDLE + mid_throttle_deadband)))
         return THROTTLE_LOW;
-    else if (!feature(FEATURE_REVERSIBLE_MOTORS) && (rxGetChannelValue(THROTTLE) < rxConfig()->mincheck))
+    else if (!feature(FEATURE_REVERSIBLE_MOTORS) && (value < rxConfig()->mincheck))
         return THROTTLE_LOW;
 
     return THROTTLE_HIGH;

@@ -31,7 +31,7 @@
 #include "usb_core.h"
 #include "usbd_cdc_vcp.h"
 #include "usb_io.h"
-#elif defined(STM32F7)
+#elif defined(STM32F7) || defined(STM32H7)
 #include "vcp_hal/usbd_cdc_interface.h"
 #include "usb_io.h"
 USBD_HandleTypeDef USBD_Device;
@@ -187,7 +187,8 @@ static const struct serialPortVTable usbVTable[] = {
         .isConnected = usbVcpIsConnected,
         .writeBuf = usbVcpWriteBuf,
         .beginWrite = usbVcpBeginWrite,
-        .endWrite = usbVcpEndWrite
+        .endWrite = usbVcpEndWrite,
+        .isIdle = NULL,
     }
 };
 
@@ -199,7 +200,7 @@ void usbVcpInitHardware(void)
     IOInit(IOGetByTag(IO_TAG(PA11)), OWNER_USB, RESOURCE_INPUT, 0);
     IOInit(IOGetByTag(IO_TAG(PA12)), OWNER_USB, RESOURCE_OUTPUT, 0);
     USBD_Init(&USB_OTG_dev, USB_OTG_FS_CORE_ID, &USR_desc, &USBD_CDC_cb, &USR_cb);
-#elif defined(STM32F7)
+#elif defined(STM32F7) || defined(STM32H7)
     usbGenerateDisconnectPulse();
 
     IOInit(IOGetByTag(IO_TAG(PA11)), OWNER_USB, RESOURCE_INPUT, 0);

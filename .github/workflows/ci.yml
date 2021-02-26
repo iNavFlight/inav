@@ -1,0 +1,52 @@
+name: Build firmware
+# Don't enable CI on push, just on PR. If you
+# are working on the main repo and want to trigger
+# a CI build submit a draft PR.
+on: pull_request
+
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    strategy:
+        matrix:
+          id: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get -y install ninja-build
+      - name: Setup environment
+        run: |
+          # This is the hash of the commit for the PR
+          # when the action is triggered by PR, empty otherwise
+          COMMIT_ID=${{ github.event.pull_request.head.sha }}
+          # This is the hash of the commit when triggered by push
+          # but the hash of refs/pull/<n>/merge, which is different
+          # from the hash of the latest commit in the PR, that's
+          # why we try github.event.pull_request.head.sha first
+          COMMIT_ID=${COMMIT_ID:-${{ github.sha }}}
+          BUILD_SUFFIX=ci-$(date '+%Y%m%d')-$(git rev-parse --short ${COMMIT_ID})
+          VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/^[ \t]+|[ \t\)]+$/, "", $2); print $2 }')
+          echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
+          echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
+      - uses: actions/cache@v1
+        with:
+          path: downloads
+          key: ${{ runner.os }}-downloads-${{ hashFiles('CMakeLists.txt') }}-${{ hashFiles('**/cmake/*')}}
+      - name: Build targets (${{ matrix.id }})
+        run: mkdir -p build && cd build && cmake -DWARNINGS_AS_ERRORS=ON -DCI_JOB_INDEX=${{ matrix.id }} -DCI_JOB_COUNT=${{ strategy.job-total }} -DBUILD_SUFFIX=${{ env.BUILD_SUFFIX }} -G Ninja .. && ninja ci
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2-preview
+        with:
+          name: ${{ env.BUILD_NAME }}.zip
+          path: ./build/*.hex
+
+  test:
+    needs: [build]
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get -y install ninja-build
+      - name: Run Tests
+        run: mkdir -p build && cd build && cmake -DTOOLCHAIN=none -G Ninja .. && ninja check

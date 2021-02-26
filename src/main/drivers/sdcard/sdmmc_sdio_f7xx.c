@@ -485,7 +485,7 @@ static SD_Error_t SD_InitializeCard(void)
             SD_GetResponse(SD_Handle.CID);
         }
 
-        if ((SD_CardType == SD_STD_CAPACITY_V1_1) || (SD_CardType == SD_STD_CAPACITY_V2_0) || 
+        if ((SD_CardType == SD_STD_CAPACITY_V1_1) || (SD_CardType == SD_STD_CAPACITY_V2_0) ||
             (SD_CardType == SD_SECURE_DIGITAL_IO_COMBO) || (SD_CardType == SD_HIGH_CAPACITY)) {
             // Send CMD3 SET_REL_ADDR with argument 0
             // SD Card publishes its RCA.
@@ -1000,7 +1000,7 @@ SD_Error_t SD_GetStatus(void)
         }
     }
     else {
-        ErrorState = SD_CARD_ERROR;
+        ErrorState = SD_ERROR;
     }
 
     return ErrorState;
@@ -1329,10 +1329,8 @@ bool SD_Initialize_LL(DMA_Stream_TypeDef * dmaRef)
     IOInit(cmd, OWNER_SDCARD, RESOURCE_NONE, 0);
     IOConfigGPIOAF(cmd, SDMMC_CMD, GPIO_AF12_SDMMC1);
 
-    uint32_t PriorityGroup = NVIC_GetPriorityGrouping();
-
     // NVIC configuration for SDIO interrupts
-    NVIC_SetPriority(SDMMC1_IRQn, NVIC_EncodePriority(PriorityGroup, 1, 0));
+    NVIC_SetPriority(SDMMC1_IRQn, NVIC_PRIO_SDIO);
     NVIC_EnableIRQ(SDMMC1_IRQn);
 
     dma_stream = dmaRef;

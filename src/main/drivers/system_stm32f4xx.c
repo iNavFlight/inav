@@ -28,37 +28,10 @@
 
 #include "drivers/exti.h"
 
+#include "target/system.h"
 
-#define AIRCR_VECTKEY_MASK    ((uint32_t)0x05FA0000)
+
 void SetSysClock(void);
-
-inline static void NVIC_DisableAllIRQs(void)
-{
-    // We access CMSIS NVIC registers directly here
-    for (int x = 0; x < 8; x++) {
-        // Mask all IRQs controlled by a ICERx
-        NVIC->ICER[x] = 0xFFFFFFFF;
-        // Clear all pending IRQs controlled by a ICPRx
-        NVIC->ICPR[x] = 0xFFFFFFFF;
-    }
-}
-
-void systemReset(void)
-{
-    __disable_irq();
-    NVIC_DisableAllIRQs();
-    NVIC_SystemReset();
-}
-
-void systemResetToBootloader(void)
-{
-    __disable_irq();
-    NVIC_DisableAllIRQs();
-
-    *((uint32_t *)0x2001FFFC) = 0xDEADBEEF; // 128KB SRAM STM32F4XX
-
-    NVIC_SystemReset();
-}
 
 void enableGPIOPowerUsageAndNoiseReductions(void)
 {
@@ -167,6 +140,11 @@ bool isMPUSoftReset(void)
         return false;
 }
 
+uint32_t systemBootloaderAddress(void)
+{
+    return 0x1FFF0000;
+}
+
 void systemClockSetup(uint8_t cpuUnderclock)
 {
     (void)cpuUnderclock;
@@ -184,7 +162,6 @@ void systemInit(void)
     cachedRccCsrValue = RCC->CSR;
 
     /* Accounts for OP Bootloader, set the Vector Table base address as specified in .ld file */
-    extern void *isr_vector_table_base;
     NVIC_SetVectorTable((uint32_t)&isr_vector_table_base, 0x0);
     RCC_AHB2PeriphClockCmd(RCC_AHB2Periph_OTG_FS, DISABLE);
 
@@ -195,7 +172,6 @@ void systemInit(void)
     // Init cycle counter
     cycleCounterInit();
 
-    memset(extiHandlerConfigs, 0x00, sizeof(extiHandlerConfigs));
     // SysTick
     SysTick_Config(SystemCoreClock / 1000);
 }

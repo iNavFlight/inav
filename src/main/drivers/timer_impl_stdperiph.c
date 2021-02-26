@@ -44,20 +44,14 @@ void impl_timerInitContext(timHardwareContext_t * timCtx)
 
 void impl_timerNVICConfigure(TCH_t * tch, int irqPriority)
 {
-    NVIC_InitTypeDef NVIC_InitStructure;
-
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = NVIC_PRIORITY_BASE(irqPriority);
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = NVIC_PRIORITY_SUB(irqPriority);
-    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-
     if (tch->timCtx->timDef->irq) {
-        NVIC_InitStructure.NVIC_IRQChannel = tch->timCtx->timDef->irq;
-        NVIC_Init(&NVIC_InitStructure);
+        NVIC_SetPriority(tch->timCtx->timDef->irq, irqPriority);
+        NVIC_EnableIRQ(tch->timCtx->timDef->irq);
     }
 
     if (tch->timCtx->timDef->secondIrq) {
-        NVIC_InitStructure.NVIC_IRQChannel = tch->timCtx->timDef->secondIrq;
-        NVIC_Init(&NVIC_InitStructure);
+        NVIC_SetPriority(tch->timCtx->timDef->secondIrq, irqPriority);
+        NVIC_EnableIRQ(tch->timCtx->timDef->secondIrq);
     }
 }
 
@@ -311,7 +305,7 @@ bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint8_t dmaBuf
     TIM_Cmd(timer, ENABLE);
 
     dmaInit(tch->dma, OWNER_TIMER, 0);
-    dmaSetHandler(tch->dma, impl_timerDMA_IRQHandler, NVIC_PRIO_WS2811_DMA, (uint32_t)tch);
+    dmaSetHandler(tch->dma, impl_timerDMA_IRQHandler, NVIC_PRIO_TIMER_DMA, (uint32_t)tch);
 
     DMA_DeInit(tch->dma->ref);
     DMA_Cmd(tch->dma->ref, DISABLE);

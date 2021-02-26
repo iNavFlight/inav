@@ -3,23 +3,23 @@
 
 #define MAVLINK_MSG_ID_POSITION_TARGET_GLOBAL_INT 87
 
-MAVPACKED(
+
 typedef struct __mavlink_position_target_global_int_t {
- uint32_t time_boot_ms; /*< Timestamp in milliseconds since system boot. The rationale for the timestamp in the setpoint is to allow the system to compensate for the transport delay of the setpoint. This allows the system to compensate processing latency.*/
- int32_t lat_int; /*< X Position in WGS84 frame in 1e7 * meters*/
- int32_t lon_int; /*< Y Position in WGS84 frame in 1e7 * meters*/
- float alt; /*< Altitude in meters in AMSL altitude, not WGS84 if absolute or relative, above terrain if GLOBAL_TERRAIN_ALT_INT*/
- float vx; /*< X velocity in NED frame in meter / s*/
- float vy; /*< Y velocity in NED frame in meter / s*/
- float vz; /*< Z velocity in NED frame in meter / s*/
- float afx; /*< X acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N*/
- float afy; /*< Y acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N*/
- float afz; /*< Z acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N*/
- float yaw; /*< yaw setpoint in rad*/
- float yaw_rate; /*< yaw rate setpoint in rad/s*/
- uint16_t type_mask; /*< Bitmask to indicate which dimensions should be ignored by the vehicle: a value of 0b0000000000000000 or 0b0000001000000000 indicates that none of the setpoint dimensions should be ignored. If bit 10 is set the floats afx afy afz should be interpreted as force instead of acceleration. Mapping: bit 1: x, bit 2: y, bit 3: z, bit 4: vx, bit 5: vy, bit 6: vz, bit 7: ax, bit 8: ay, bit 9: az, bit 10: is force setpoint, bit 11: yaw, bit 12: yaw rate*/
- uint8_t coordinate_frame; /*< Valid options are: MAV_FRAME_GLOBAL_INT = 5, MAV_FRAME_GLOBAL_RELATIVE_ALT_INT = 6, MAV_FRAME_GLOBAL_TERRAIN_ALT_INT = 11*/
-}) mavlink_position_target_global_int_t;
+ uint32_t time_boot_ms; /*< [ms] Timestamp (time since system boot). The rationale for the timestamp in the setpoint is to allow the system to compensate for the transport delay of the setpoint. This allows the system to compensate processing latency.*/
+ int32_t lat_int; /*< [degE7] X Position in WGS84 frame*/
+ int32_t lon_int; /*< [degE7] Y Position in WGS84 frame*/
+ float alt; /*< [m] Altitude (MSL, AGL or relative to home altitude, depending on frame)*/
+ float vx; /*< [m/s] X velocity in NED frame*/
+ float vy; /*< [m/s] Y velocity in NED frame*/
+ float vz; /*< [m/s] Z velocity in NED frame*/
+ float afx; /*< [m/s/s] X acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N*/
+ float afy; /*< [m/s/s] Y acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N*/
+ float afz; /*< [m/s/s] Z acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N*/
+ float yaw; /*< [rad] yaw setpoint*/
+ float yaw_rate; /*< [rad/s] yaw rate setpoint*/
+ uint16_t type_mask; /*<  Bitmap to indicate which dimensions should be ignored by the vehicle.*/
+ uint8_t coordinate_frame; /*<  Valid options are: MAV_FRAME_GLOBAL_INT = 5, MAV_FRAME_GLOBAL_RELATIVE_ALT_INT = 6, MAV_FRAME_GLOBAL_TERRAIN_ALT_INT = 11*/
+} mavlink_position_target_global_int_t;
 
 #define MAVLINK_MSG_ID_POSITION_TARGET_GLOBAL_INT_LEN 51
 #define MAVLINK_MSG_ID_POSITION_TARGET_GLOBAL_INT_MIN_LEN 51
@@ -37,6 +37,8 @@ typedef struct __mavlink_position_target_global_int_t {
     "POSITION_TARGET_GLOBAL_INT", \
     14, \
     {  { "time_boot_ms", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_position_target_global_int_t, time_boot_ms) }, \
+         { "coordinate_frame", NULL, MAVLINK_TYPE_UINT8_T, 0, 50, offsetof(mavlink_position_target_global_int_t, coordinate_frame) }, \
+         { "type_mask", NULL, MAVLINK_TYPE_UINT16_T, 0, 48, offsetof(mavlink_position_target_global_int_t, type_mask) }, \
          { "lat_int", NULL, MAVLINK_TYPE_INT32_T, 0, 4, offsetof(mavlink_position_target_global_int_t, lat_int) }, \
          { "lon_int", NULL, MAVLINK_TYPE_INT32_T, 0, 8, offsetof(mavlink_position_target_global_int_t, lon_int) }, \
          { "alt", NULL, MAVLINK_TYPE_FLOAT, 0, 12, offsetof(mavlink_position_target_global_int_t, alt) }, \
@@ -48,8 +50,6 @@ typedef struct __mavlink_position_target_global_int_t {
          { "afz", NULL, MAVLINK_TYPE_FLOAT, 0, 36, offsetof(mavlink_position_target_global_int_t, afz) }, \
          { "yaw", NULL, MAVLINK_TYPE_FLOAT, 0, 40, offsetof(mavlink_position_target_global_int_t, yaw) }, \
          { "yaw_rate", NULL, MAVLINK_TYPE_FLOAT, 0, 44, offsetof(mavlink_position_target_global_int_t, yaw_rate) }, \
-         { "type_mask", NULL, MAVLINK_TYPE_UINT16_T, 0, 48, offsetof(mavlink_position_target_global_int_t, type_mask) }, \
-         { "coordinate_frame", NULL, MAVLINK_TYPE_UINT8_T, 0, 50, offsetof(mavlink_position_target_global_int_t, coordinate_frame) }, \
          } \
 }
 #else
@@ -57,6 +57,8 @@ typedef struct __mavlink_position_target_global_int_t {
     "POSITION_TARGET_GLOBAL_INT", \
     14, \
     {  { "time_boot_ms", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_position_target_global_int_t, time_boot_ms) }, \
+         { "coordinate_frame", NULL, MAVLINK_TYPE_UINT8_T, 0, 50, offsetof(mavlink_position_target_global_int_t, coordinate_frame) }, \
+         { "type_mask", NULL, MAVLINK_TYPE_UINT16_T, 0, 48, offsetof(mavlink_position_target_global_int_t, type_mask) }, \
          { "lat_int", NULL, MAVLINK_TYPE_INT32_T, 0, 4, offsetof(mavlink_position_target_global_int_t, lat_int) }, \
          { "lon_int", NULL, MAVLINK_TYPE_INT32_T, 0, 8, offsetof(mavlink_position_target_global_int_t, lon_int) }, \
          { "alt", NULL, MAVLINK_TYPE_FLOAT, 0, 12, offsetof(mavlink_position_target_global_int_t, alt) }, \
@@ -68,8 +70,6 @@ typedef struct __mavlink_position_target_global_int_t {
          { "afz", NULL, MAVLINK_TYPE_FLOAT, 0, 36, offsetof(mavlink_position_target_global_int_t, afz) }, \
          { "yaw", NULL, MAVLINK_TYPE_FLOAT, 0, 40, offsetof(mavlink_position_target_global_int_t, yaw) }, \
          { "yaw_rate", NULL, MAVLINK_TYPE_FLOAT, 0, 44, offsetof(mavlink_position_target_global_int_t, yaw_rate) }, \
-         { "type_mask", NULL, MAVLINK_TYPE_UINT16_T, 0, 48, offsetof(mavlink_position_target_global_int_t, type_mask) }, \
-         { "coordinate_frame", NULL, MAVLINK_TYPE_UINT8_T, 0, 50, offsetof(mavlink_position_target_global_int_t, coordinate_frame) }, \
          } \
 }
 #endif
@@ -80,20 +80,20 @@ typedef struct __mavlink_position_target_global_int_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param time_boot_ms Timestamp in milliseconds since system boot. The rationale for the timestamp in the setpoint is to allow the system to compensate for the transport delay of the setpoint. This allows the system to compensate processing latency.
- * @param coordinate_frame Valid options are: MAV_FRAME_GLOBAL_INT = 5, MAV_FRAME_GLOBAL_RELATIVE_ALT_INT = 6, MAV_FRAME_GLOBAL_TERRAIN_ALT_INT = 11
- * @param type_mask Bitmask to indicate which dimensions should be ignored by the vehicle: a value of 0b0000000000000000 or 0b0000001000000000 indicates that none of the setpoint dimensions should be ignored. If bit 10 is set the floats afx afy afz should be interpreted as force instead of acceleration. Mapping: bit 1: x, bit 2: y, bit 3: z, bit 4: vx, bit 5: vy, bit 6: vz, bit 7: ax, bit 8: ay, bit 9: az, bit 10: is force setpoint, bit 11: yaw, bit 12: yaw rate
- * @param lat_int X Position in WGS84 frame in 1e7 * meters
- * @param lon_int Y Position in WGS84 frame in 1e7 * meters
- * @param alt Altitude in meters in AMSL altitude, not WGS84 if absolute or relative, above terrain if GLOBAL_TERRAIN_ALT_INT
- * @param vx X velocity in NED frame in meter / s
- * @param vy Y velocity in NED frame in meter / s
- * @param vz Z velocity in NED frame in meter / s
- * @param afx X acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
- * @param afy Y acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
- * @param afz Z acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
- * @param yaw yaw setpoint in rad
- * @param yaw_rate yaw rate setpoint in rad/s
+ * @param time_boot_ms [ms] Timestamp (time since system boot). The rationale for the timestamp in the setpoint is to allow the system to compensate for the transport delay of the setpoint. This allows the system to compensate processing latency.
+ * @param coordinate_frame  Valid options are: MAV_FRAME_GLOBAL_INT = 5, MAV_FRAME_GLOBAL_RELATIVE_ALT_INT = 6, MAV_FRAME_GLOBAL_TERRAIN_ALT_INT = 11
+ * @param type_mask  Bitmap to indicate which dimensions should be ignored by the vehicle.
+ * @param lat_int [degE7] X Position in WGS84 frame
+ * @param lon_int [degE7] Y Position in WGS84 frame
+ * @param alt [m] Altitude (MSL, AGL or relative to home altitude, depending on frame)
+ * @param vx [m/s] X velocity in NED frame
+ * @param vy [m/s] Y velocity in NED frame
+ * @param vz [m/s] Z velocity in NED frame
+ * @param afx [m/s/s] X acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ * @param afy [m/s/s] Y acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ * @param afz [m/s/s] Z acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ * @param yaw [rad] yaw setpoint
+ * @param yaw_rate [rad/s] yaw rate setpoint
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_position_target_global_int_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -147,20 +147,20 @@ static inline uint16_t mavlink_msg_position_target_global_int_pack(uint8_t syste
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param time_boot_ms Timestamp in milliseconds since system boot. The rationale for the timestamp in the setpoint is to allow the system to compensate for the transport delay of the setpoint. This allows the system to compensate processing latency.
- * @param coordinate_frame Valid options are: MAV_FRAME_GLOBAL_INT = 5, MAV_FRAME_GLOBAL_RELATIVE_ALT_INT = 6, MAV_FRAME_GLOBAL_TERRAIN_ALT_INT = 11
- * @param type_mask Bitmask to indicate which dimensions should be ignored by the vehicle: a value of 0b0000000000000000 or 0b0000001000000000 indicates that none of the setpoint dimensions should be ignored. If bit 10 is set the floats afx afy afz should be interpreted as force instead of acceleration. Mapping: bit 1: x, bit 2: y, bit 3: z, bit 4: vx, bit 5: vy, bit 6: vz, bit 7: ax, bit 8: ay, bit 9: az, bit 10: is force setpoint, bit 11: yaw, bit 12: yaw rate
- * @param lat_int X Position in WGS84 frame in 1e7 * meters
- * @param lon_int Y Position in WGS84 frame in 1e7 * meters
- * @param alt Altitude in meters in AMSL altitude, not WGS84 if absolute or relative, above terrain if GLOBAL_TERRAIN_ALT_INT
- * @param vx X velocity in NED frame in meter / s
- * @param vy Y velocity in NED frame in meter / s
- * @param vz Z velocity in NED frame in meter / s
- * @param afx X acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
- * @param afy Y acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
- * @param afz Z acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
- * @param yaw yaw setpoint in rad
- * @param yaw_rate yaw rate setpoint in rad/s
+ * @param time_boot_ms [ms] Timestamp (time since system boot). The rationale for the timestamp in the setpoint is to allow the system to compensate for the transport delay of the setpoint. This allows the system to compensate processing latency.
+ * @param coordinate_frame  Valid options are: MAV_FRAME_GLOBAL_INT = 5, MAV_FRAME_GLOBAL_RELATIVE_ALT_INT = 6, MAV_FRAME_GLOBAL_TERRAIN_ALT_INT = 11
+ * @param type_mask  Bitmap to indicate which dimensions should be ignored by the vehicle.
+ * @param lat_int [degE7] X Position in WGS84 frame
+ * @param lon_int [degE7] Y Position in WGS84 frame
+ * @param alt [m] Altitude (MSL, AGL or relative to home altitude, depending on frame)
+ * @param vx [m/s] X velocity in NED frame
+ * @param vy [m/s] Y velocity in NED frame
+ * @param vz [m/s] Z velocity in NED frame
+ * @param afx [m/s/s] X acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ * @param afy [m/s/s] Y acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ * @param afz [m/s/s] Z acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ * @param yaw [rad] yaw setpoint
+ * @param yaw_rate [rad/s] yaw rate setpoint
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_position_target_global_int_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -240,20 +240,20 @@ static inline uint16_t mavlink_msg_position_target_global_int_encode_chan(uint8_
  * @brief Send a position_target_global_int message
  * @param chan MAVLink channel to send the message
  *
- * @param time_boot_ms Timestamp in milliseconds since system boot. The rationale for the timestamp in the setpoint is to allow the system to compensate for the transport delay of the setpoint. This allows the system to compensate processing latency.
- * @param coordinate_frame Valid options are: MAV_FRAME_GLOBAL_INT = 5, MAV_FRAME_GLOBAL_RELATIVE_ALT_INT = 6, MAV_FRAME_GLOBAL_TERRAIN_ALT_INT = 11
- * @param type_mask Bitmask to indicate which dimensions should be ignored by the vehicle: a value of 0b0000000000000000 or 0b0000001000000000 indicates that none of the setpoint dimensions should be ignored. If bit 10 is set the floats afx afy afz should be interpreted as force instead of acceleration. Mapping: bit 1: x, bit 2: y, bit 3: z, bit 4: vx, bit 5: vy, bit 6: vz, bit 7: ax, bit 8: ay, bit 9: az, bit 10: is force setpoint, bit 11: yaw, bit 12: yaw rate
- * @param lat_int X Position in WGS84 frame in 1e7 * meters
- * @param lon_int Y Position in WGS84 frame in 1e7 * meters
- * @param alt Altitude in meters in AMSL altitude, not WGS84 if absolute or relative, above terrain if GLOBAL_TERRAIN_ALT_INT
- * @param vx X velocity in NED frame in meter / s
- * @param vy Y velocity in NED frame in meter / s
- * @param vz Z velocity in NED frame in meter / s
- * @param afx X acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
- * @param afy Y acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
- * @param afz Z acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
- * @param yaw yaw setpoint in rad
- * @param yaw_rate yaw rate setpoint in rad/s
+ * @param time_boot_ms [ms] Timestamp (time since system boot). The rationale for the timestamp in the setpoint is to allow the system to compensate for the transport delay of the setpoint. This allows the system to compensate processing latency.
+ * @param coordinate_frame  Valid options are: MAV_FRAME_GLOBAL_INT = 5, MAV_FRAME_GLOBAL_RELATIVE_ALT_INT = 6, MAV_FRAME_GLOBAL_TERRAIN_ALT_INT = 11
+ * @param type_mask  Bitmap to indicate which dimensions should be ignored by the vehicle.
+ * @param lat_int [degE7] X Position in WGS84 frame
+ * @param lon_int [degE7] Y Position in WGS84 frame
+ * @param alt [m] Altitude (MSL, AGL or relative to home altitude, depending on frame)
+ * @param vx [m/s] X velocity in NED frame
+ * @param vy [m/s] Y velocity in NED frame
+ * @param vz [m/s] Z velocity in NED frame
+ * @param afx [m/s/s] X acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ * @param afy [m/s/s] Y acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ * @param afz [m/s/s] Z acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ * @param yaw [rad] yaw setpoint
+ * @param yaw_rate [rad/s] yaw rate setpoint
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -370,7 +370,7 @@ static inline void mavlink_msg_position_target_global_int_send_buf(mavlink_messa
 /**
  * @brief Get field time_boot_ms from position_target_global_int message
  *
- * @return Timestamp in milliseconds since system boot. The rationale for the timestamp in the setpoint is to allow the system to compensate for the transport delay of the setpoint. This allows the system to compensate processing latency.
+ * @return [ms] Timestamp (time since system boot). The rationale for the timestamp in the setpoint is to allow the system to compensate for the transport delay of the setpoint. This allows the system to compensate processing latency.
  */
 static inline uint32_t mavlink_msg_position_target_global_int_get_time_boot_ms(const mavlink_message_t* msg)
 {
@@ -380,7 +380,7 @@ static inline uint32_t mavlink_msg_position_target_global_int_get_time_boot_ms(c
 /**
  * @brief Get field coordinate_frame from position_target_global_int message
  *
- * @return Valid options are: MAV_FRAME_GLOBAL_INT = 5, MAV_FRAME_GLOBAL_RELATIVE_ALT_INT = 6, MAV_FRAME_GLOBAL_TERRAIN_ALT_INT = 11
+ * @return  Valid options are: MAV_FRAME_GLOBAL_INT = 5, MAV_FRAME_GLOBAL_RELATIVE_ALT_INT = 6, MAV_FRAME_GLOBAL_TERRAIN_ALT_INT = 11
  */
 static inline uint8_t mavlink_msg_position_target_global_int_get_coordinate_frame(const mavlink_message_t* msg)
 {
@@ -390,7 +390,7 @@ static inline uint8_t mavlink_msg_position_target_global_int_get_coordinate_fram
 /**
  * @brief Get field type_mask from position_target_global_int message
  *
- * @return Bitmask to indicate which dimensions should be ignored by the vehicle: a value of 0b0000000000000000 or 0b0000001000000000 indicates that none of the setpoint dimensions should be ignored. If bit 10 is set the floats afx afy afz should be interpreted as force instead of acceleration. Mapping: bit 1: x, bit 2: y, bit 3: z, bit 4: vx, bit 5: vy, bit 6: vz, bit 7: ax, bit 8: ay, bit 9: az, bit 10: is force setpoint, bit 11: yaw, bit 12: yaw rate
+ * @return  Bitmap to indicate which dimensions should be ignored by the vehicle.
  */
 static inline uint16_t mavlink_msg_position_target_global_int_get_type_mask(const mavlink_message_t* msg)
 {
@@ -400,7 +400,7 @@ static inline uint16_t mavlink_msg_position_target_global_int_get_type_mask(cons
 /**
  * @brief Get field lat_int from position_target_global_int message
  *
- * @return X Position in WGS84 frame in 1e7 * meters
+ * @return [degE7] X Position in WGS84 frame
  */
 static inline int32_t mavlink_msg_position_target_global_int_get_lat_int(const mavlink_message_t* msg)
 {
@@ -410,7 +410,7 @@ static inline int32_t mavlink_msg_position_target_global_int_get_lat_int(const m
 /**
  * @brief Get field lon_int from position_target_global_int message
  *
- * @return Y Position in WGS84 frame in 1e7 * meters
+ * @return [degE7] Y Position in WGS84 frame
  */
 static inline int32_t mavlink_msg_position_target_global_int_get_lon_int(const mavlink_message_t* msg)
 {
@@ -420,7 +420,7 @@ static inline int32_t mavlink_msg_position_target_global_int_get_lon_int(const m
 /**
  * @brief Get field alt from position_target_global_int message
  *
- * @return Altitude in meters in AMSL altitude, not WGS84 if absolute or relative, above terrain if GLOBAL_TERRAIN_ALT_INT
+ * @return [m] Altitude (MSL, AGL or relative to home altitude, depending on frame)
  */
 static inline float mavlink_msg_position_target_global_int_get_alt(const mavlink_message_t* msg)
 {
@@ -430,7 +430,7 @@ static inline float mavlink_msg_position_target_global_int_get_alt(const mavlink
 /**
  * @brief Get field vx from position_target_global_int message
  *
- * @return X velocity in NED frame in meter / s
+ * @return [m/s] X velocity in NED frame
  */
 static inline float mavlink_msg_position_target_global_int_get_vx(const mavlink_message_t* msg)
 {
@@ -440,7 +440,7 @@ static inline float mavlink_msg_position_target_global_int_get_vx(const mavlink_
 /**
  * @brief Get field vy from position_target_global_int message
  *
- * @return Y velocity in NED frame in meter / s
+ * @return [m/s] Y velocity in NED frame
  */
 static inline float mavlink_msg_position_target_global_int_get_vy(const mavlink_message_t* msg)
 {
@@ -450,7 +450,7 @@ static inline float mavlink_msg_position_target_global_int_get_vy(const mavlink_
 /**
  * @brief Get field vz from position_target_global_int message
  *
- * @return Z velocity in NED frame in meter / s
+ * @return [m/s] Z velocity in NED frame
  */
 static inline float mavlink_msg_position_target_global_int_get_vz(const mavlink_message_t* msg)
 {
@@ -460,7 +460,7 @@ static inline float mavlink_msg_position_target_global_int_get_vz(const mavlink_
 /**
  * @brief Get field afx from position_target_global_int message
  *
- * @return X acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ * @return [m/s/s] X acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
  */
 static inline float mavlink_msg_position_target_global_int_get_afx(const mavlink_message_t* msg)
 {
@@ -470,7 +470,7 @@ static inline float mavlink_msg_position_target_global_int_get_afx(const mavlink
 /**
  * @brief Get field afy from position_target_global_int message
  *
- * @return Y acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ * @return [m/s/s] Y acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
  */
 static inline float mavlink_msg_position_target_global_int_get_afy(const mavlink_message_t* msg)
 {
@@ -480,7 +480,7 @@ static inline float mavlink_msg_position_target_global_int_get_afy(const mavlink
 /**
  * @brief Get field afz from position_target_global_int message
  *
- * @return Z acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ * @return [m/s/s] Z acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
  */
 static inline float mavlink_msg_position_target_global_int_get_afz(const mavlink_message_t* msg)
 {
@@ -490,7 +490,7 @@ static inline float mavlink_msg_position_target_global_int_get_afz(const mavlink
 /**
  * @brief Get field yaw from position_target_global_int message
  *
- * @return yaw setpoint in rad
+ * @return [rad] yaw setpoint
  */
 static inline float mavlink_msg_position_target_global_int_get_yaw(const mavlink_message_t* msg)
 {
@@ -500,7 +500,7 @@ static inline float mavlink_msg_position_target_global_int_get_yaw(const mavlink
 /**
  * @brief Get field yaw_rate from position_target_global_int message
  *
- * @return yaw rate setpoint in rad/s
+ * @return [rad/s] yaw rate setpoint
  */
 static inline float mavlink_msg_position_target_global_int_get_yaw_rate(const mavlink_message_t* msg)
 {

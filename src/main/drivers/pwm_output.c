@@ -22,6 +22,8 @@
 
 #include "platform.h"
 
+FILE_COMPILE_FOR_SPEED
+
 #include "build/debug.h"
 
 #include "common/log.h"
@@ -35,6 +37,7 @@
 
 #include "io/pwmdriver_i2c.h"
 #include "io/esc_serialshot.h"
+#include "io/servo_sbus.h"
 #include "sensors/esc_sensor.h"
 
 #include "config/feature.h"
@@ -325,6 +328,10 @@ bool isMotorProtocolDigital(void)
 
 void pwmRequestMotorTelemetry(int motorIndex)
 {
+    if (!isMotorProtocolDigital()) {
+        return;
+    }
+
     const int motorCount = getMotorCount();
     for (int index = 0; index < motorCount; index++) {
         if (motors[index].pwmPort && motors[index].pwmPort->configured && index == motorIndex) {
@@ -342,10 +349,6 @@ void pwmCompleteMotorUpdate(void)
 
     int motorCount = getMotorCount();
     timeUs_t currentTimeUs = micros();
-
-#ifdef USE_ESC_SENSOR
-    escSensorUpdate(currentTimeUs);
-#endif
 
     // Enforce motor update rate
     if ((digitalMotorUpdateIntervalUs == 0) || ((currentTimeUs - digitalMotorLastUpdateUs) <= digitalMotorUpdateIntervalUs)) {
@@ -385,6 +388,15 @@ void pwmCompleteMotorUpdate(void)
     }
 #endif
 }
+
+#else // digital motor protocol
+
+// This stub is needed to avoid ESC_SENSOR dependency on DSHOT
+void pwmRequestMotorTelemetry(int motorIndex)
+{
+    UNUSED(motorIndex);
+}
+
 #endif
 
 void pwmMotorPreconfigure(void)
@@ -415,10 +427,6 @@ void pwmMotorPreconfigure(void)
         case PWM_TYPE_DSHOT600:
         case PWM_TYPE_DSHOT300:
         case PWM_TYPE_DSHOT150:
-#ifdef USE_ESC_SENSOR
-            // DSHOT supports a dedicated wire ESC telemetry. Kick off the ESC-sensor receiver initialization
-            escSensorInitialize();
-#endif
             motorConfigDigitalUpdateInterval(motorConfig()->motorPwmRate);
             motorWritePtr = pwmWriteDigital;
             break;
@@ -493,6 +501,14 @@ static void pwmServoWriteStandard(uint8_t index, uint16_t value)
     }
 }
 
+#ifdef USE_SERVO_SBUS
+static void sbusPwmWriteStandard(uint8_t index, uint16_t value)
+{
+    pwmServoWriteStandard(index, value);
+    sbusServoUpdate(index, value);
+}
+#endif
+
 #ifdef USE_PWM_SERVO_DRIVER
 static void pwmServoWriteExternalDriver(uint8_t index, uint16_t value)
 {
@@ -505,14 +521,32 @@ static void pwmServoWriteExternalDriver(uint8_t index, uint16_t value)
 
 void pwmServoPreconfigure(void)
 {
-    servoWritePtr = pwmServoWriteStandard;
+    // Protocol-specific configuration
+    switch (servoConfig()->servo_protocol) {
+        default:
+        case SERVO_TYPE_PWM:
+            servoWritePtr = pwmServoWriteStandard;
+            break;
 
 #ifdef USE_PWM_SERVO_DRIVER
-    // If PCA9685 is enabled - switch the servo write function to external
-    if (feature(FEATURE_PWM_SERVO_DRIVER)) {
-        servoWritePtr = pwmServoWriteExternalDriver;
-    }
+        case SERVO_TYPE_SERVO_DRIVER:
+            pwmDriverInitialize();
+            servoWritePtr = pwmServoWriteExternalDriver;
+            break;
 #endif
+
+#ifdef USE_SERVO_SBUS
+        case SERVO_TYPE_SBUS:
+            sbusServoInitialize();
+            servoWritePtr = sbusServoUpdate;
+            break;
+
+        case SERVO_TYPE_SBUS_PWM:
+            sbusServoInitialize();
+            servoWritePtr = sbusPwmWriteStandard;
+            break;
+#endif
+    }
 }
 
 bool pwmServoConfig(const timerHardware_t *timerHardware, uint8_t servoIndex, uint16_t servoPwmRate, uint16_t servoCenterPulse, bool enableOutput)
@@ -557,7 +591,7 @@ void beeperPwmInit(ioTag_t tag, uint16_t frequency)
         // Attempt to allocate TCH
         TCH_t * tch = timerGetTCH(timHw);
         if (tch == NULL) {
-            return NULL;
+            return;
         }
 
         beeperPwm = &beeperPwmPort;

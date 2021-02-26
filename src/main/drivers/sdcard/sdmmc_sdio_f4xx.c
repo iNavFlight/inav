@@ -1411,12 +1411,8 @@ bool SD_Initialize_LL(DMA_Stream_TypeDef *dmaRef)
     IOConfigGPIOAF(cmd, SDIO_CMD, GPIO_AF_SDIO);
 
     // NVIC configuration for SDIO interrupts
-    NVIC_InitTypeDef NVIC_InitStructure;
-    NVIC_InitStructure.NVIC_IRQChannel = SDIO_IRQn;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = NVIC_PRIORITY_BASE(1);
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = NVIC_PRIORITY_SUB(0);
-    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&NVIC_InitStructure);
+    NVIC_SetPriority(SDIO_IRQn, NVIC_PRIO_SDIO);
+    NVIC_EnableIRQ(SDIO_IRQn);
 
     dma_stream = dmaRef;
     RCC->AHB1ENR |= RCC_AHB1ENR_DMA2EN;

@@ -77,6 +77,10 @@ defined in linker script */
   .weak  Reset_Handler
   .type  Reset_Handler, %function
 Reset_Handler:  
+  ldr   sp, =_estack      /* set stack pointer */
+
+  bl persistentObjectInit
+
 /* Copy the data segment initializers from flash to SRAM */  
   movs  r1, #0
   b  LoopCopyDataInit
@@ -137,9 +141,6 @@ LoopMarkHeapStack:
   ldr  r1,[r0]
   orr  r1,r1,#(0xF << 20)
   str  r1,[r0]
-
-  //If there was code addressed into ITCM, copy from flash to ITCM_RAM for execution
-  bl CopyFastCode
 
 /* Call the clock system initialization function.*/
   bl  SystemInit   

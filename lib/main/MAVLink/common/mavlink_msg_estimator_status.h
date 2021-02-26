@@ -3,19 +3,19 @@
 
 #define MAVLINK_MSG_ID_ESTIMATOR_STATUS 230
 
-MAVPACKED(
+
 typedef struct __mavlink_estimator_status_t {
- uint64_t time_usec; /*< Timestamp (micros since boot or Unix epoch)*/
- float vel_ratio; /*< Velocity innovation test ratio*/
- float pos_horiz_ratio; /*< Horizontal position innovation test ratio*/
- float pos_vert_ratio; /*< Vertical position innovation test ratio*/
- float mag_ratio; /*< Magnetometer innovation test ratio*/
- float hagl_ratio; /*< Height above terrain innovation test ratio*/
- float tas_ratio; /*< True airspeed innovation test ratio*/
- float pos_horiz_accuracy; /*< Horizontal position 1-STD accuracy relative to the EKF local origin (m)*/
- float pos_vert_accuracy; /*< Vertical position 1-STD accuracy relative to the EKF local origin (m)*/
- uint16_t flags; /*< Integer bitmask indicating which EKF outputs are valid. See definition for ESTIMATOR_STATUS_FLAGS.*/
-}) mavlink_estimator_status_t;
+ uint64_t time_usec; /*< [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.*/
+ float vel_ratio; /*<  Velocity innovation test ratio*/
+ float pos_horiz_ratio; /*<  Horizontal position innovation test ratio*/
+ float pos_vert_ratio; /*<  Vertical position innovation test ratio*/
+ float mag_ratio; /*<  Magnetometer innovation test ratio*/
+ float hagl_ratio; /*<  Height above terrain innovation test ratio*/
+ float tas_ratio; /*<  True airspeed innovation test ratio*/
+ float pos_horiz_accuracy; /*< [m] Horizontal position 1-STD accuracy relative to the EKF local origin*/
+ float pos_vert_accuracy; /*< [m] Vertical position 1-STD accuracy relative to the EKF local origin*/
+ uint16_t flags; /*<  Bitmap indicating which EKF outputs are valid.*/
+} mavlink_estimator_status_t;
 
 #define MAVLINK_MSG_ID_ESTIMATOR_STATUS_LEN 42
 #define MAVLINK_MSG_ID_ESTIMATOR_STATUS_MIN_LEN 42
@@ -33,6 +33,7 @@ typedef struct __mavlink_estimator_status_t {
     "ESTIMATOR_STATUS", \
     10, \
     {  { "time_usec", NULL, MAVLINK_TYPE_UINT64_T, 0, 0, offsetof(mavlink_estimator_status_t, time_usec) }, \
+         { "flags", NULL, MAVLINK_TYPE_UINT16_T, 0, 40, offsetof(mavlink_estimator_status_t, flags) }, \
          { "vel_ratio", NULL, MAVLINK_TYPE_FLOAT, 0, 8, offsetof(mavlink_estimator_status_t, vel_ratio) }, \
          { "pos_horiz_ratio", NULL, MAVLINK_TYPE_FLOAT, 0, 12, offsetof(mavlink_estimator_status_t, pos_horiz_ratio) }, \
          { "pos_vert_ratio", NULL, MAVLINK_TYPE_FLOAT, 0, 16, offsetof(mavlink_estimator_status_t, pos_vert_ratio) }, \
@@ -41,7 +42,6 @@ typedef struct __mavlink_estimator_status_t {
          { "tas_ratio", NULL, MAVLINK_TYPE_FLOAT, 0, 28, offsetof(mavlink_estimator_status_t, tas_ratio) }, \
          { "pos_horiz_accuracy", NULL, MAVLINK_TYPE_FLOAT, 0, 32, offsetof(mavlink_estimator_status_t, pos_horiz_accuracy) }, \
          { "pos_vert_accuracy", NULL, MAVLINK_TYPE_FLOAT, 0, 36, offsetof(mavlink_estimator_status_t, pos_vert_accuracy) }, \
-         { "flags", NULL, MAVLINK_TYPE_UINT16_T, 0, 40, offsetof(mavlink_estimator_status_t, flags) }, \
          } \
 }
 #else
@@ -49,6 +49,7 @@ typedef struct __mavlink_estimator_status_t {
     "ESTIMATOR_STATUS", \
     10, \
     {  { "time_usec", NULL, MAVLINK_TYPE_UINT64_T, 0, 0, offsetof(mavlink_estimator_status_t, time_usec) }, \
+         { "flags", NULL, MAVLINK_TYPE_UINT16_T, 0, 40, offsetof(mavlink_estimator_status_t, flags) }, \
          { "vel_ratio", NULL, MAVLINK_TYPE_FLOAT, 0, 8, offsetof(mavlink_estimator_status_t, vel_ratio) }, \
          { "pos_horiz_ratio", NULL, MAVLINK_TYPE_FLOAT, 0, 12, offsetof(mavlink_estimator_status_t, pos_horiz_ratio) }, \
          { "pos_vert_ratio", NULL, MAVLINK_TYPE_FLOAT, 0, 16, offsetof(mavlink_estimator_status_t, pos_vert_ratio) }, \
@@ -57,7 +58,6 @@ typedef struct __mavlink_estimator_status_t {
          { "tas_ratio", NULL, MAVLINK_TYPE_FLOAT, 0, 28, offsetof(mavlink_estimator_status_t, tas_ratio) }, \
          { "pos_horiz_accuracy", NULL, MAVLINK_TYPE_FLOAT, 0, 32, offsetof(mavlink_estimator_status_t, pos_horiz_accuracy) }, \
          { "pos_vert_accuracy", NULL, MAVLINK_TYPE_FLOAT, 0, 36, offsetof(mavlink_estimator_status_t, pos_vert_accuracy) }, \
-         { "flags", NULL, MAVLINK_TYPE_UINT16_T, 0, 40, offsetof(mavlink_estimator_status_t, flags) }, \
          } \
 }
 #endif
@@ -68,16 +68,16 @@ typedef struct __mavlink_estimator_status_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param time_usec Timestamp (micros since boot or Unix epoch)
- * @param flags Integer bitmask indicating which EKF outputs are valid. See definition for ESTIMATOR_STATUS_FLAGS.
- * @param vel_ratio Velocity innovation test ratio
- * @param pos_horiz_ratio Horizontal position innovation test ratio
- * @param pos_vert_ratio Vertical position innovation test ratio
- * @param mag_ratio Magnetometer innovation test ratio
- * @param hagl_ratio Height above terrain innovation test ratio
- * @param tas_ratio True airspeed innovation test ratio
- * @param pos_horiz_accuracy Horizontal position 1-STD accuracy relative to the EKF local origin (m)
- * @param pos_vert_accuracy Vertical position 1-STD accuracy relative to the EKF local origin (m)
+ * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
+ * @param flags  Bitmap indicating which EKF outputs are valid.
+ * @param vel_ratio  Velocity innovation test ratio
+ * @param pos_horiz_ratio  Horizontal position innovation test ratio
+ * @param pos_vert_ratio  Vertical position innovation test ratio
+ * @param mag_ratio  Magnetometer innovation test ratio
+ * @param hagl_ratio  Height above terrain innovation test ratio
+ * @param tas_ratio  True airspeed innovation test ratio
+ * @param pos_horiz_accuracy [m] Horizontal position 1-STD accuracy relative to the EKF local origin
+ * @param pos_vert_accuracy [m] Vertical position 1-STD accuracy relative to the EKF local origin
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_estimator_status_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -123,16 +123,16 @@ static inline uint16_t mavlink_msg_estimator_status_pack(uint8_t system_id, uint
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param time_usec Timestamp (micros since boot or Unix epoch)
- * @param flags Integer bitmask indicating which EKF outputs are valid. See definition for ESTIMATOR_STATUS_FLAGS.
- * @param vel_ratio Velocity innovation test ratio
- * @param pos_horiz_ratio Horizontal position innovation test ratio
- * @param pos_vert_ratio Vertical position innovation test ratio
- * @param mag_ratio Magnetometer innovation test ratio
- * @param hagl_ratio Height above terrain innovation test ratio
- * @param tas_ratio True airspeed innovation test ratio
- * @param pos_horiz_accuracy Horizontal position 1-STD accuracy relative to the EKF local origin (m)
- * @param pos_vert_accuracy Vertical position 1-STD accuracy relative to the EKF local origin (m)
+ * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
+ * @param flags  Bitmap indicating which EKF outputs are valid.
+ * @param vel_ratio  Velocity innovation test ratio
+ * @param pos_horiz_ratio  Horizontal position innovation test ratio
+ * @param pos_vert_ratio  Vertical position innovation test ratio
+ * @param mag_ratio  Magnetometer innovation test ratio
+ * @param hagl_ratio  Height above terrain innovation test ratio
+ * @param tas_ratio  True airspeed innovation test ratio
+ * @param pos_horiz_accuracy [m] Horizontal position 1-STD accuracy relative to the EKF local origin
+ * @param pos_vert_accuracy [m] Vertical position 1-STD accuracy relative to the EKF local origin
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_estimator_status_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -204,16 +204,16 @@ static inline uint16_t mavlink_msg_estimator_status_encode_chan(uint8_t system_i
  * @brief Send a estimator_status message
  * @param chan MAVLink channel to send the message
  *
- * @param time_usec Timestamp (micros since boot or Unix epoch)
- * @param flags Integer bitmask indicating which EKF outputs are valid. See definition for ESTIMATOR_STATUS_FLAGS.
- * @param vel_ratio Velocity innovation test ratio
- * @param pos_horiz_ratio Horizontal position innovation test ratio
- * @param pos_vert_ratio Vertical position innovation test ratio
- * @param mag_ratio Magnetometer innovation test ratio
- * @param hagl_ratio Height above terrain innovation test ratio
- * @param tas_ratio True airspeed innovation test ratio
- * @param pos_horiz_accuracy Horizontal position 1-STD accuracy relative to the EKF local origin (m)
- * @param pos_vert_accuracy Vertical position 1-STD accuracy relative to the EKF local origin (m)
+ * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
+ * @param flags  Bitmap indicating which EKF outputs are valid.
+ * @param vel_ratio  Velocity innovation test ratio
+ * @param pos_horiz_ratio  Horizontal position innovation test ratio
+ * @param pos_vert_ratio  Vertical position innovation test ratio
+ * @param mag_ratio  Magnetometer innovation test ratio
+ * @param hagl_ratio  Height above terrain innovation test ratio
+ * @param tas_ratio  True airspeed innovation test ratio
+ * @param pos_horiz_accuracy [m] Horizontal position 1-STD accuracy relative to the EKF local origin
+ * @param pos_vert_accuracy [m] Vertical position 1-STD accuracy relative to the EKF local origin
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -314,7 +314,7 @@ static inline void mavlink_msg_estimator_status_send_buf(mavlink_message_t *msgb
 /**
  * @brief Get field time_usec from estimator_status message
  *
- * @return Timestamp (micros since boot or Unix epoch)
+ * @return [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
  */
 static inline uint64_t mavlink_msg_estimator_status_get_time_usec(const mavlink_message_t* msg)
 {
@@ -324,7 +324,7 @@ static inline uint64_t mavlink_msg_estimator_status_get_time_usec(const mavlink_
 /**
  * @brief Get field flags from estimator_status message
  *
- * @return Integer bitmask indicating which EKF outputs are valid. See definition for ESTIMATOR_STATUS_FLAGS.
+ * @return  Bitmap indicating which EKF outputs are valid.
  */
 static inline uint16_t mavlink_msg_estimator_status_get_flags(const mavlink_message_t* msg)
 {
@@ -334,7 +334,7 @@ static inline uint16_t mavlink_msg_estimator_status_get_flags(const mavlink_mess
 /**
  * @brief Get field vel_ratio from estimator_status message
  *
- * @return Velocity innovation test ratio
+ * @return  Velocity innovation test ratio
  */
 static inline float mavlink_msg_estimator_status_get_vel_ratio(const mavlink_message_t* msg)
 {
@@ -344,7 +344,7 @@ static inline float mavlink_msg_estimator_status_get_vel_ratio(const mavlink_mes
 /**
  * @brief Get field pos_horiz_ratio from estimator_status message
  *
- * @return Horizontal position innovation test ratio
+ * @return  Horizontal position innovation test ratio
  */
 static inline float mavlink_msg_estimator_status_get_pos_horiz_ratio(const mavlink_message_t* msg)
 {
@@ -354,7 +354,7 @@ static inline float mavlink_msg_estimator_status_get_pos_horiz_ratio(const mavli
 /**
  * @brief Get field pos_vert_ratio from estimator_status message
  *
- * @return Vertical position innovation test ratio
+ * @return  Vertical position innovation test ratio
  */
 static inline float mavlink_msg_estimator_status_get_pos_vert_ratio(const mavlink_message_t* msg)
 {
@@ -364,7 +364,7 @@ static inline float mavlink_msg_estimator_status_get_pos_vert_ratio(const mavlin
 /**
  * @brief Get field mag_ratio from estimator_status message
  *
- * @return Magnetometer innovation test ratio
+ * @return  Magnetometer innovation test ratio
  */
 static inline float mavlink_msg_estimator_status_get_mag_ratio(const mavlink_message_t* msg)
 {
@@ -374,7 +374,7 @@ static inline float mavlink_msg_estimator_status_get_mag_ratio(const mavlink_mes
 /**
  * @brief Get field hagl_ratio from estimator_status message
  *
- * @return Height above terrain innovation test ratio
+ * @return  Height above terrain innovation test ratio
  */
 static inline float mavlink_msg_estimator_status_get_hagl_ratio(const mavlink_message_t* msg)
 {
@@ -384,7 +384,7 @@ static inline float mavlink_msg_estimator_status_get_hagl_ratio(const mavlink_me
 /**
  * @brief Get field tas_ratio from estimator_status message
  *
- * @return True airspeed innovation test ratio
+ * @return  True airspeed innovation test ratio
  */
 static inline float mavlink_msg_estimator_status_get_tas_ratio(const mavlink_message_t* msg)
 {
@@ -394,7 +394,7 @@ static inline float mavlink_msg_estimator_status_get_tas_ratio(const mavlink_mes
 /**
  * @brief Get field pos_horiz_accuracy from estimator_status message
  *
- * @return Horizontal position 1-STD accuracy relative to the EKF local origin (m)
+ * @return [m] Horizontal position 1-STD accuracy relative to the EKF local origin
  */
 static inline float mavlink_msg_estimator_status_get_pos_horiz_accuracy(const mavlink_message_t* msg)
 {
@@ -404,7 +404,7 @@ static inline float mavlink_msg_estimator_status_get_pos_horiz_accuracy(const ma
 /**
  * @brief Get field pos_vert_accuracy from estimator_status message
  *
- * @return Vertical position 1-STD accuracy relative to the EKF local origin (m)
+ * @return [m] Vertical position 1-STD accuracy relative to the EKF local origin
  */
 static inline float mavlink_msg_estimator_status_get_pos_vert_accuracy(const mavlink_message_t* msg)
 {

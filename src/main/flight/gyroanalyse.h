@@ -51,23 +51,6 @@ typedef struct gyroAnalyseState_s {
     biquadFilter_t detectedFrequencyFilter[XYZ_AXIS_COUNT];
     uint16_t centerFreq[XYZ_AXIS_COUNT];
     uint16_t prevCenterFreq[XYZ_AXIS_COUNT];
-
-    /*
-     * Extended Dynamic Filters are 3x3 filter matrix
-     * In this approach, we assume that vibration peak on one axis
-     * can be also detected on other axises, but with lower amplitude
-     * that causes this freqency not to be attenuated.
-     * 
-     * This approach is similiar to the approach on RPM filter when motor base
-     * frequency is attenuated on every axis even tho it might not be appearing
-     * in gyro traces
-     * 
-     * extendedDynamicFilter[GYRO_AXIS][ANALYZED_AXIS]
-     * 
-     */
-    biquadFilter_t extendedDynamicFilter[XYZ_AXIS_COUNT][XYZ_AXIS_COUNT];
-    filterApplyFnPtr extendedDynamicFilterApplyFn;
-
     bool filterUpdateExecute;
     uint8_t filterUpdateAxis;
     uint16_t filterUpdateFrequency;

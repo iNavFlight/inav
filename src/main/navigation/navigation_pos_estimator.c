@@ -55,7 +55,7 @@
 
 navigationPosEstimator_t posEstimator;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig, PG_POSITION_ESTIMATION_CONFIG, 4);
+PG_REGISTER_WITH_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig, PG_POSITION_ESTIMATION_CONFIG, 5);
 
 PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
         // Inertial position estimator parameters
@@ -63,7 +63,8 @@ PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
         .reset_altitude_type = NAV_RESET_ON_FIRST_ARM,
         .reset_home_type = NAV_RESET_ON_FIRST_ARM,
         .gravity_calibration_tolerance = 5,     // 5 cm/s/s calibration error accepted (0.5% of gravity)
-        .use_gps_velned = 1,         // "Disabled" is mandatory with gps_dyn_model = Pedestrian
+        .use_gps_velned = 1,                    // "Disabled" is mandatory with gps_dyn_model = Pedestrian
+        .use_gps_no_baro = 0,                   // Use GPS altitude if no baro is available on all aircrafts
         .allow_dead_reckoning = 0,
 
         .max_surface_altitude = 200,
@@ -573,7 +574,7 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
         if (ctx->newFlags & EST_GPS_Z_VALID) {
             // Trust GPS velocity only if residual/error is less than 2.5 m/s, scale weight according to gaussian distribution
             const float gpsRocResidual = posEstimator.gps.vel.z - posEstimator.est.vel.z;
-            const float gpsRocScaler = bellCurve(gpsRocResidual, 2.5f);
+            const float gpsRocScaler = bellCurve(gpsRocResidual, 250.0f);
             ctx->estVelCorr.z += gpsRocResidual * positionEstimationConfig()->w_z_gps_v * gpsRocScaler * ctx->dt;
         }
 
@@ -586,7 +587,7 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
 
         return true;
     }
-    else if (STATE(FIXED_WING_LEGACY) && (ctx->newFlags & EST_GPS_Z_VALID)) {
+    else if ((STATE(FIXED_WING_LEGACY) || positionEstimationConfig()->use_gps_no_baro) && (ctx->newFlags & EST_GPS_Z_VALID)) {
         // If baro is not available - use GPS Z for correction on a plane
         // Reset current estimate to GPS altitude if estimate not valid
         if (!(ctx->newFlags & EST_Z_VALID)) {
@@ -622,7 +623,7 @@ static bool estimationCalculateCorrection_XY_GPS(estimationContext_t * ctx)
             ctx->estPosCorr.y += posEstimator.gps.pos.y - posEstimator.est.pos.y;
             ctx->estVelCorr.x += posEstimator.gps.vel.x - posEstimator.est.vel.x;
             ctx->estVelCorr.y += posEstimator.gps.vel.y - posEstimator.est.vel.y;
-            ctx->newEPH = posEstimator.gps.epv;
+            ctx->newEPH = posEstimator.gps.eph;
         }
         else {
             const float gpsPosXResidual = posEstimator.gps.pos.x - posEstimator.est.pos.x;
@@ -828,7 +829,7 @@ void initializePositionEstimator(void)
  * Update estimator
  *  Update rate: loop rate (>100Hz)
  */
-void FAST_CODE NOINLINE updatePositionEstimator(void)
+void updatePositionEstimator(void)
 {
     static bool isInitialized = false;
 

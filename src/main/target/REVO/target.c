@@ -23,13 +23,13 @@
 #include "drivers/timer.h"
 #include "drivers/timer_def.h"
 #include "drivers/pwm_mapping.h"
+#include "drivers/sensor.h"
 
-/* GYRO */
-BUSDEV_REGISTER_I2C_TAG(busdev_hmc5883_int, DEVHW_HMC5883,      MAG_I2C_BUS_INT,    0x1E,               NONE,                   0,  DEVFLAGS_NONE);
-
-BUSDEV_REGISTER_I2C_TAG(busdev_hmc5883,     DEVHW_HMC5883,      MAG_I2C_BUS_EXT,    0x1E,               NONE,                   1,  DEVFLAGS_NONE);
-BUSDEV_REGISTER_I2C_TAG(busdev_qmc5883,     DEVHW_QMC5883,      MAG_I2C_BUS_EXT,    0x0D,               NONE,                   1,  DEVFLAGS_NONE);
-BUSDEV_REGISTER_I2C_TAG(busdev_mag3110,     DEVHW_MAG3110,      MAG_I2C_BUS_EXT,    0x0E,               NONE,                   1,  DEVFLAGS_NONE);
+/* COMPAS */
+BUSDEV_REGISTER_I2C_TAG(busdev_hmc5883_int, DEVHW_HMC5883,      MAG_I2C_BUS_INT,    0x1E,               NONE,                   0,  DEVFLAGS_NONE,  0);
+BUSDEV_REGISTER_I2C_TAG(busdev_hmc5883,     DEVHW_HMC5883,      MAG_I2C_BUS_EXT,    0x1E,               NONE,                   1,  DEVFLAGS_NONE,  0);
+BUSDEV_REGISTER_I2C_TAG(busdev_qmc5883,     DEVHW_QMC5883,      MAG_I2C_BUS_EXT,    0x0D,               NONE,                   1,  DEVFLAGS_NONE,  0);
+BUSDEV_REGISTER_I2C_TAG(busdev_mag3110,     DEVHW_MAG3110,      MAG_I2C_BUS_EXT,    0x0E,               NONE,                   1,  DEVFLAGS_NONE,  0);
 
 
 /* TIMERS */

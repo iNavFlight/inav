@@ -28,6 +28,7 @@
 #include "io/osd_hud.h"
 
 #include "drivers/display.h"
+#include "drivers/display_canvas.h"
 #include "drivers/osd.h"
 #include "drivers/osd_symbols.h"
 #include "drivers/time.h"
@@ -36,7 +37,7 @@
 
 #ifdef USE_OSD
 
-#define HUD_DRAWN_MAXCHARS 40 // 6 POI (1 home, 5 radar) x 7 chars max for each minus 2 for H (no icons for heading and signal)
+#define HUD_DRAWN_MAXCHARS 54 // 8 POI (1 home, 4 radar, 3 WP) x 7 chars max for each, minus 2 for H
 
 static int8_t hud_drawn[HUD_DRAWN_MAXCHARS][2];
 static int8_t hud_drawn_pt;
@@ -113,16 +114,20 @@ int8_t radarGetNearestPOI(void)
 }
 
 /*
- * Display one POI on the hud, centered on crosshair position.
- * Distance (m), Direction (°), Altitude (relative, m, negative means below), Heading (°), Signal 0 to 5, Symbol 0 to 480
+ * Display a POI as a 3D-marker on the hud
+ * Distance (m), Direction (°), Altitude (relative, m, negative means below), Heading (°),
+ * Type = 0 : Home point
+ * Type = 1 : Radar POI, P1: Heading, P2: Signal
+ * Type = 2 : Waypoint, P1: WP number, P2: 1=WP+1, 2=WP+2, 3=WP+3
  */
-void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitude, int16_t poiHeading, uint8_t poiSignal, uint16_t poiSymbol)
+void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitude, uint8_t poiType, uint16_t poiSymbol, int16_t poiP1, int16_t poiP2)
 {
     int poi_x;
     int poi_y;
     uint8_t center_x;
     uint8_t center_y;
     bool poi_is_oos = 0;
+    char buff[3];
 
     uint8_t minX = osdConfig()->hud_margin_h + 2;
     uint8_t maxX = osdGetDisplayPort()->cols - osdConfig()->hud_margin_h - 3;
@@ -161,10 +166,10 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
         uint16_t c;
 
         poi_x = (error_x > 0 ) ? maxX : minX;
-        poi_y = center_y;
+        poi_y = center_y - 1;
 
         if (displayReadCharWithAttr(osdGetDisplayPort(), poi_x, poi_y, &c, NULL) && c != SYM_BLANK) {
-            poi_y = center_y - 2;
+            poi_y = center_y - 3;
             while (displayReadCharWithAttr(osdGetDisplayPort(), poi_x, poi_y, &c, NULL) && c != SYM_BLANK && poi_y < maxY - 3) { // Stacks the out-of-sight POI from top to bottom
                 poi_y += 2;
             }
@@ -180,21 +185,22 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
         }
     }
 
-    // POI marker (A B C ...)
+    // Markers
 
     osdHudWrite(poi_x, poi_y, poiSymbol, 1);
 
-    // Signal on the right, heading on the left
-
-    if (poiSignal < 5) { // 0 to 4 = signal bars, 5 = No LQ and no heading displayed
-        error_x = hudWrap360(poiHeading - DECIDEGREES_TO_DEGREES(osdGetHeading()));
+    if (poiType == 1) { // POI from the ESP radar
+        error_x = hudWrap360(poiP1 - DECIDEGREES_TO_DEGREES(osdGetHeading()));
         osdHudWrite(poi_x - 1, poi_y, SYM_DIRECTION + ((error_x + 22) / 45) % 8, 1);
-        osdHudWrite(poi_x + 1, poi_y, SYM_HUD_SIGNAL_0 + poiSignal, 1);
+        osdHudWrite(poi_x + 1, poi_y, SYM_HUD_SIGNAL_0 + poiP2, 1);
     }
+    else if (poiType == 2) { // Waypoint,
+        osdHudWrite(poi_x - 1, poi_y, SYM_HUD_ARROWS_U1 + poiP2, 1);
+        osdHudWrite(poi_x + 1, poi_y, poiP1, 1);
+        }
 
     // Distance
 
-    char buff[3];
     if ((osd_unit_e)osdConfig()->units == OSD_UNIT_IMPERIAL) {
         osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(poiDistance * 100), FEET_PER_MILE, 0, 3, 3);
     }
@@ -210,7 +216,7 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
 /*
  * Draw the crosshair
  */
-void osdHudDrawCrosshair(uint8_t px, uint8_t py)
+void osdHudDrawCrosshair(displayCanvas_t *canvas, uint8_t px, uint8_t py)
 {
     static const uint16_t crh_style_all[] = {
         SYM_AH_CH_LEFT, SYM_AH_CH_CENTER, SYM_AH_CH_RIGHT,
@@ -222,11 +228,21 @@ void osdHudDrawCrosshair(uint8_t px, uint8_t py)
         SYM_AH_CH_TYPE7, SYM_AH_CH_TYPE7 + 1, SYM_AH_CH_TYPE7 + 2,
     };
 
+    // Center on the screen
+    if (canvas) {
+        displayCanvasContextPush(canvas);
+        displayCanvasCtmTranslate(canvas, -canvas->gridElementWidth / 2, -canvas->gridElementHeight / 2);
+    }
+
     uint8_t crh_crosshair = (osd_crosshairs_style_e)osdConfig()->crosshairs_style;
 
     displayWriteChar(osdGetDisplayPort(), px - 1, py,crh_style_all[crh_crosshair * 3]);
     displayWriteChar(osdGetDisplayPort(), px, py, crh_style_all[crh_crosshair * 3 + 1]);
     displayWriteChar(osdGetDisplayPort(), px + 1, py, crh_style_all[crh_crosshair * 3 + 2]);
+
+    if (canvas) {
+        displayCanvasContextPop(canvas);
+    }
 }
 
 

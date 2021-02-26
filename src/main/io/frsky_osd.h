@@ -26,6 +26,77 @@ typedef enum {
     FRSKY_OSD_OUTLINE_TYPE_LEFT = 1 << 3,
 } frskyOSDLineOutlineType_e;
 
+typedef enum
+{
+    FRSKY_OSD_WIDGET_ID_AHI = 0,
+
+    FRSKY_OSD_WIDGET_ID_SIDEBAR_0 = 1,
+    FRSKY_OSD_WIDGET_ID_SIDEBAR_1 = 2,
+
+    FRSKY_OSD_WIDGET_ID_GRAPH_0 = 3,
+    FRSKY_OSD_WIDGET_ID_GRAPH_1 = 4,
+    FRSKY_OSD_WIDGET_ID_GRAPH_2 = 5,
+    FRSKY_OSD_WIDGET_ID_GRAPH_3 = 6,
+
+    FRSKY_OSD_WIDGET_ID_CHARGAUGE_0 = 7,
+    FRSKY_OSD_WIDGET_ID_CHARGAUGE_1 = 8,
+    FRSKY_OSD_WIDGET_ID_CHARGAUGE_2 = 9,
+    FRSKY_OSD_WIDGET_ID_CHARGAUGE_3 = 10,
+
+    FRSKY_OSD_WIDGET_ID_SIDEBAR_FIRST = FRSKY_OSD_WIDGET_ID_SIDEBAR_0,
+    FRSKY_OSD_WIDGET_ID_SIDEBAR_LAST = FRSKY_OSD_WIDGET_ID_SIDEBAR_1,
+
+    FRSKY_OSD_WIDGET_ID_GRAPH_FIRST = FRSKY_OSD_WIDGET_ID_GRAPH_0,
+    FRSKY_OSD_WIDGET_ID_GRAPH_LAST = FRSKY_OSD_WIDGET_ID_GRAPH_3,
+
+    FRSKY_OSD_WIDGET_ID_CHARGAUGE_FIRST = FRSKY_OSD_WIDGET_ID_CHARGAUGE_0,
+    FRSKY_OSD_WIDGET_ID_CHARGAUGE_LAST = FRSKY_OSD_WIDGET_ID_CHARGAUGE_3,
+} frskyOSDWidgetID_e;
+
+typedef struct frskyOSDPoint_s {
+    int x : 12;
+    int y : 12;
+} __attribute__((packed)) frskyOSDPoint_t;
+
+typedef struct frskyOSDSize_s {
+    int w : 12;
+    int h : 12;
+} __attribute__((packed)) frskyOSDSize_t;
+
+typedef struct frskyOSDRect_s {
+    frskyOSDPoint_t origin;
+    frskyOSDSize_t size;
+} __attribute__((packed)) frskyOSDRect_t;
+
+typedef struct frskyOSDWidgetAHIData_s
+{
+    uint16_t pitch : 12;
+    uint16_t roll : 12;
+} __attribute__((packed)) frskyOSDWidgetAHIData_t;
+
+typedef struct frskyOSDWidgetAHIConfig_s
+{
+    frskyOSDRect_t rect;
+    uint8_t style;
+    uint8_t options;
+    uint8_t crosshairMargin;
+    uint8_t strokeWidth;
+} __attribute__((packed)) frskyOSDWidgetAHIConfig_t;
+
+typedef struct frskyOSDWidgetSidebarData_s
+{
+    int32_t value : 24;
+} __attribute__((packed)) frskyOSDWidgetSidebarData_t;
+
+typedef struct frskyOSDWidgetSidebarConfig_s
+{
+    frskyOSDRect_t rect;
+    uint8_t options;
+    uint8_t divisions;
+    uint16_t counts_per_step;
+    osdUnit_t unit;
+} __attribute__((packed)) frskyOSDWidgetSidebarConfig_t;
+
 bool frskyOSDInit(videoSystem_e videoSystem);
 bool frskyOSDIsReady(void);
 void frskyOSDUpdate(void);
@@ -84,3 +155,9 @@ void frskyOSDCtmRotate(float r);
 
 void frskyOSDContextPush(void);
 void frskyOSDContextPop(void);
+
+bool frskyOSDSupportsWidgets(void);
+bool frskyOSDSetWidgetConfig(frskyOSDWidgetID_e widget, const void *config, size_t configSize);
+bool frskyOSDDrawWidget(frskyOSDWidgetID_e widget, const void *data, size_t dataSize);
+
+uint32_t frskyOSDQuantize(float val, float min, float max, int bits);

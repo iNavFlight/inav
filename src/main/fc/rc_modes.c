@@ -19,6 +19,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "platform.h"
+
 #include "rc_modes.h"
 
 #include "common/bitarray.h"
@@ -63,7 +65,7 @@ static void processAirmodeAirplane(void) {
 }
 
 static void processAirmodeMultirotor(void) {
-    if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
+    if ((rcControlsConfig()->airmodeHandlingType == STICK_CENTER) || (rcControlsConfig()->airmodeHandlingType == STICK_CENTER_ONCE)) {
         if (feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE)) {
             ENABLE_STATE(AIRMODE_ACTIVE);
         } else {

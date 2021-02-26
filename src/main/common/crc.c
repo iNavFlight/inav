@@ -132,3 +132,14 @@ uint8_t crc8_update(uint8_t crc, const void *data, uint32_t length)
     }
     return crc;
 }
+
+uint8_t crc8_sum_update(uint8_t crc, const void *data, uint32_t length)
+{
+    const uint8_t *p = (const uint8_t *)data;
+    const uint8_t *pend = p + length;
+
+    for (; p != pend; p++) {
+        crc += *p;
+    }
+    return crc;
+}

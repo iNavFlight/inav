@@ -1,9 +1,9 @@
 /*
 *****************************************************************************
 **
-**  File        : stm32_flash_split.ld
+**  File        : stm32_flash_f7_split.ld
 **
-**  Abstract    : Common linker script for STM32 devices.
+**  Abstract    : Common linker script for STM32F7 devices.
 **
 *****************************************************************************
 */
@@ -49,15 +49,15 @@ SECTIONS
     _etext = .;        /* define a global symbols at end of code */
   } >FLASH1
 
-  tcm_code = LOADADDR(.tcm_code); 
+  tcm_code = LOADADDR(.tcm_code);
   .tcm_code (NOLOAD) :
   {
     . = ALIGN(4);
-    tcm_code_start = .; 
+    tcm_code_start = .;
     *(.tcm_code)
     *(.tcm_code*)
     . = ALIGN(4);
-    tcm_code_end = .; 
+    tcm_code_end = .;
   } >ITCM_RAM AT >FLASH1
 
   .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >FLASH

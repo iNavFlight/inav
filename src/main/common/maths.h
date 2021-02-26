@@ -18,6 +18,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifndef sq
 #define sq(x) ((x)*(x))
@@ -58,6 +59,8 @@
 #define CENTIMETERS_TO_CENTIFEET(cm)            (cm * (328 / 100.0))
 #define CENTIMETERS_TO_FEET(cm)                 (cm * (328 / 10000.0))
 #define CENTIMETERS_TO_METERS(cm)               (cm / 100)
+
+#define METERS_TO_CENTIMETERS(m)                (m * 100)
 
 // copied from https://code.google.com/p/cxutil/source/browse/include/cxutil/utility.h#70
 #define _CHOOSE2(binoper, lexpr, lvar, rexpr, rvar)         \
@@ -122,12 +125,11 @@ typedef struct {
 void sensorCalibrationResetState(sensorCalibrationState_t * state);
 void sensorCalibrationPushSampleForOffsetCalculation(sensorCalibrationState_t * state, int32_t sample[3]);
 void sensorCalibrationPushSampleForScaleCalculation(sensorCalibrationState_t * state, int axis, int32_t sample[3], int target);
-void sensorCalibrationSolveForOffset(sensorCalibrationState_t * state, float result[3]);
-void sensorCalibrationSolveForScale(sensorCalibrationState_t * state, float result[3]);
+bool sensorCalibrationSolveForOffset(sensorCalibrationState_t * state, float result[3]);
+bool sensorCalibrationSolveForScale(sensorCalibrationState_t * state, float result[3]);
 
 int gcd(int num, int denom);
 int32_t applyDeadband(int32_t value, int32_t deadband);
-float fapplyDeadbandf(float value, float deadband);
 
 int constrain(int amt, int low, int high);
 float constrainf(float amt, float low, float high);

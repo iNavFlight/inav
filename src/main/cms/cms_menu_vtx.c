@@ -142,7 +142,7 @@ static void cms_Vtx_initSettings(void)
         vtxPitMode = onoff ? 2 : 1;
     }
     else {
-        vtxPitMode = vtxSettingsConfig()->lowPowerDisarm ? 2 : 1;
+        vtxPitMode = 0;
     }
 }
 
@@ -165,7 +165,6 @@ static long cms_Vtx_Commence(displayPort_t *pDisp, const void *self)
     vtxSettingsConfigMutable()->band = vtxBand;
     vtxSettingsConfigMutable()->channel = vtxChan;
     vtxSettingsConfigMutable()->power = vtxPower;
-    vtxSettingsConfigMutable()->lowPowerDisarm = (vtxPitMode == 2 ? 1 : 0);
 
     saveConfigAndNotify();
 

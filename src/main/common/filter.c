@@ -22,12 +22,11 @@
 
 #include "platform.h"
 
+FILE_COMPILE_FOR_SPEED
+
 #include "common/filter.h"
 #include "common/maths.h"
 #include "common/utils.h"
-
-#define BIQUAD_BANDWIDTH 1.9f     /* bandwidth in octaves */
-#define BIQUAD_Q 1.0f / sqrtf(2.0f)     /* quality factor - butterworth*/
 
 // NULL filter
 float nullFilterApply(void *filter, float input)
@@ -46,17 +45,23 @@ float nullFilterApply4(void *filter, float input, float f_cut, float dt)
 
 // PT1 Low Pass filter
 
+static float pt1ComputeRC(const float f_cut)
+{
+    return 1.0f / (2.0f * M_PIf * f_cut);
+}
+
 // f_cut = cutoff frequency
 void pt1FilterInitRC(pt1Filter_t *filter, float tau, float dT)
 {
     filter->state = 0.0f;
     filter->RC = tau;
     filter->dT = dT;
+    filter->alpha = filter->dT / (filter->RC + filter->dT);
 }
 
 void pt1FilterInit(pt1Filter_t *filter, float f_cut, float dT)
 {
-    pt1FilterInitRC(filter, 1.0f / (2.0f * M_PIf * f_cut), dT);
+    pt1FilterInitRC(filter, pt1ComputeRC(f_cut), dT);
 }
 
 void pt1FilterSetTimeConstant(pt1Filter_t *filter, float tau) {
@@ -67,9 +72,15 @@ float pt1FilterGetLastOutput(pt1Filter_t *filter) {
     return filter->state;
 }
 
+void pt1FilterUpdateCutoff(pt1Filter_t *filter, float f_cut)
+{
+    filter->RC = pt1ComputeRC(f_cut);
+    filter->alpha = filter->dT / (filter->RC + filter->dT);
+}
+
 float FAST_CODE NOINLINE pt1FilterApply(pt1Filter_t *filter, float input)
 {
-    filter->state = filter->state + filter->dT / (filter->RC + filter->dT) * (input - filter->state);
+    filter->state = filter->state + filter->alpha * (input - filter->state);
     return filter->state;
 }
 
@@ -84,11 +95,12 @@ float FAST_CODE NOINLINE pt1FilterApply4(pt1Filter_t *filter, float input, float
 {
     // Pre calculate and store RC
     if (!filter->RC) {
-        filter->RC = 1.0f / ( 2.0f * M_PIf * f_cut );
+        filter->RC = pt1ComputeRC(f_cut);
     }
 
     filter->dT = dT;    // cache latest dT for possible use in pt1FilterApply
-    filter->state = filter->state + dT / (filter->RC + dT) * (input - filter->state);
+    filter->alpha = filter->dT / (filter->RC + filter->dT);
+    filter->state = filter->state + filter->alpha * (input - filter->state);
     return filter->state;
 }
 
@@ -116,10 +128,9 @@ float rateLimitFilterApply4(rateLimitFilter_t *filter, float input, float rate_l
     return filter->state;
 }
 
-float filterGetNotchQ(uint16_t centerFreq, uint16_t cutoff)
+float filterGetNotchQ(float centerFrequencyHz, float cutoffFrequencyHz)
 {
-    const float octaves = log2f((float)centerFreq  / (float)cutoff) * 2;
-    return sqrtf(powf(2, octaves)) / (powf(2, octaves) - 1);
+    return centerFrequencyHz * cutoffFrequencyHz / (centerFrequencyHz * centerFrequencyHz - cutoffFrequencyHz * cutoffFrequencyHz);
 }
 
 void biquadFilterInitNotch(biquadFilter_t *filter, uint32_t samplingIntervalUs, uint16_t filterFreq, uint16_t cutoffHz)
@@ -132,6 +143,17 @@ void biquadFilterInitNotch(biquadFilter_t *filter, uint32_t samplingIntervalUs, 
 void biquadFilterInitLPF(biquadFilter_t *filter, uint16_t filterFreq, uint32_t samplingIntervalUs)
 {
     biquadFilterInit(filter, filterFreq, samplingIntervalUs, BIQUAD_Q, FILTER_LPF);
+}
+
+
+static void biquadFilterSetupPassthrough(biquadFilter_t *filter)
+{
+    // By default set as passthrough
+    filter->b0 = 1.0f;
+    filter->b1 = 0.0f;
+    filter->b2 = 0.0f;
+    filter->a1 = 0.0f;
+    filter->a2 = 0.0f;
 }
 
 void biquadFilterInit(biquadFilter_t *filter, uint16_t filterFreq, uint32_t samplingIntervalUs, float Q, biquadFilterType_e filterType)
@@ -147,16 +169,19 @@ void biquadFilterInit(biquadFilter_t *filter, uint16_t filterFreq, uint32_t samp
 
         float b0, b1, b2;
         switch (filterType) {
-        case FILTER_LPF:
-            b0 = (1 - cs) / 2;
-            b1 = 1 - cs;
-            b2 = (1 - cs) / 2;
-            break;
-        case FILTER_NOTCH:
-            b0 =  1;
-            b1 = -2 * cs;
-            b2 =  1;
-            break;
+            case FILTER_LPF:
+                b0 = (1 - cs) / 2;
+                b1 = 1 - cs;
+                b2 = (1 - cs) / 2;
+                break;
+            case FILTER_NOTCH:
+                b0 = 1;
+                b1 = -2 * cs;
+                b2 = 1;
+                break;
+            default:
+                biquadFilterSetupPassthrough(filter);
+                return;
         }
         const float a0 =  1 + alpha;
         const float a1 = -2 * cs;
@@ -168,14 +193,8 @@ void biquadFilterInit(biquadFilter_t *filter, uint16_t filterFreq, uint32_t samp
         filter->b2 = b2 / a0;
         filter->a1 = a1 / a0;
         filter->a2 = a2 / a0;
-    }
-    else {
-        // Not possible to filter frequencies above Nyquist frequency - passthrough
-        filter->b0 = 1.0f;
-        filter->b1 = 0.0f;
-        filter->b2 = 0.0f;
-        filter->a1 = 0.0f;
-        filter->a2 = 0.0f;
+    } else {
+        biquadFilterSetupPassthrough(filter);
     }
 
     // zero initial samples
@@ -230,40 +249,4 @@ FAST_CODE void biquadFilterUpdate(biquadFilter_t *filter, float filterFreq, uint
     filter->x2 = x2;
     filter->y1 = y1;
     filter->y2 = y2;
-}
-
-/*
- * FIR filter
- */
-void firFilterInit2(firFilter_t *filter, float *buf, uint8_t bufLength, const float *coeffs, uint8_t coeffsLength)
-{
-    filter->buf = buf;
-    filter->bufLength = bufLength;
-    filter->coeffs = coeffs;
-    filter->coeffsLength = coeffsLength;
-    memset(filter->buf, 0, sizeof(float) * filter->bufLength);
-}
-
-/*
- * FIR filter initialisation
- * If FIR filter is just used for averaging, coeffs can be set to NULL
- */
-void firFilterInit(firFilter_t *filter, float *buf, uint8_t bufLength, const float *coeffs)
-{
-    firFilterInit2(filter, buf, bufLength, coeffs, bufLength);
-}
-
-void firFilterUpdate(firFilter_t *filter, float input)
-{
-    memmove(&filter->buf[1], &filter->buf[0], (filter->bufLength-1) * sizeof(float));
-    filter->buf[0] = input;
-}
-
-float firFilterApply(const firFilter_t *filter)
-{
-    float ret = 0.0f;
-    for (int ii = 0; ii < filter->coeffsLength; ++ii) {
-        ret += filter->coeffs[ii] * filter->buf[ii];
-    }
-    return ret;
 }

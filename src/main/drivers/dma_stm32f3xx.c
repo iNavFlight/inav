@@ -98,18 +98,13 @@ void dmaInit(DMA_t dma, resourceOwner_e owner, uint8_t resourceIndex)
 
 void dmaSetHandler(DMA_t dma, dmaCallbackHandlerFuncPtr callback, uint32_t priority, uint32_t userParam)
 {
-    NVIC_InitTypeDef NVIC_InitStructure;
-
     dmaEnableClock(dma);
 
     dma->irqHandlerCallback = callback;
     dma->userParam = userParam;
 
-    NVIC_InitStructure.NVIC_IRQChannel = dma->irqNumber;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = NVIC_PRIORITY_BASE(priority);
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = NVIC_PRIORITY_SUB(priority);
-    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&NVIC_InitStructure);
+    NVIC_SetPriority(dma->irqNumber, priority);
+    NVIC_EnableIRQ(dma->irqNumber);
 }
 
 DMA_t dmaGetByRef(const DMA_Channel_TypeDef * ref)

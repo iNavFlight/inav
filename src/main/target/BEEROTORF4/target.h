@@ -36,13 +36,8 @@
 #define MPU6500_CS_PIN          SPI1_NSS_PIN
 #define MPU6500_SPI_BUS         BUS_SPI1
 
-#define USE_GYRO
-#define USE_GYRO_MPU6500
-#define GYRO_MPU6500_ALIGN      CW270_DEG
-
-#define USE_ACC
-#define USE_ACC_MPU6500
-#define ACC_MPU6500_ALIGN       CW270_DEG
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW270_DEG
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1

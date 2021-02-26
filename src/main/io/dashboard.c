@@ -418,14 +418,6 @@ static void showStatusPage(void)
         i2c_OLED_send_string(lineBuffer);
     }
 #endif
-
-    rowIndex++;
-    char rollTrim[7], pitchTrim[7];
-    formatTrimDegrees(rollTrim, boardAlignment()->rollDeciDegrees);
-    formatTrimDegrees(pitchTrim, boardAlignment()->pitchDeciDegrees);
-    tfp_sprintf(lineBuffer, "Acc: %sR, %sP", rollTrim, pitchTrim );
-    i2c_OLED_set_line(rowIndex++);
-    i2c_OLED_send_string(lineBuffer);
 }
 
 void dashboardUpdate(timeUs_t currentTimeUs)
@@ -549,18 +541,6 @@ void dashboardInit(void)
 void dashboardSetNextPageChangeAt(timeUs_t futureMicros)
 {
     nextPageAt = futureMicros;
-}
-
-void formatTrimDegrees ( char *formattedTrim, int16_t trimValue ) {
-    char trim[6];
-    tfp_sprintf(trim, "%d", trimValue);
-    int x = strlen(trim)-1;
-    strncpy(formattedTrim,trim,x);
-    formattedTrim[x] = '\0';
-    if (trimValue !=0) {
-        strcat(formattedTrim,".");
-    }
-    strcat(formattedTrim,trim+x);
 }
 
 #endif

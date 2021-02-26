@@ -32,7 +32,7 @@
 #include "drivers/bus.h"
 #include "drivers/io.h"
 
-#define BUSDEV_MAX_DEVICES 8
+#define BUSDEV_MAX_DEVICES 16
 
 #ifdef USE_SPI
 static void busDevPreInit_SPI(const busDeviceDescriptor_t * descriptor)
@@ -124,6 +124,7 @@ busDevice_t * busDeviceInit(busType_e bus, devHardwareType_e hw, uint8_t tag, re
                 dev->descriptorPtr = descriptor;
                 dev->busType = descriptor->busType;
                 dev->flags = descriptor->flags;
+                dev->param = descriptor->param;
 
                 switch (descriptor->busType) {
                     default:
@@ -357,7 +358,6 @@ bool busRead(const busDevice_t * dev, uint8_t reg, uint8_t * data)
 #else
             return false;
 #endif
-
         default:
             return false;
     }
@@ -395,7 +395,6 @@ bool busIsBusy(const busDevice_t * dev)
             UNUSED(dev);
             return false;
 #endif
-
         case BUSTYPE_I2C:
             // Not implemented for I2C, respond as always free
             return false;

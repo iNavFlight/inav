@@ -42,7 +42,7 @@
 #include "drivers/accgyro/accgyro_mpu.h"
 #include "drivers/accgyro/accgyro_mpu6050.h"
 
-#if defined(USE_GYRO_MPU6050) || defined(USE_ACC_MPU6050)
+#if defined(USE_IMU_MPU6050)
 
 #define BIT_H_RESET                 0x80
 #define MPU_CLK_SEL_PLLGYROZ        0x03
@@ -127,6 +127,7 @@ bool mpu6050AccDetect(accDev_t *acc)
     if (ctx->chipMagicNumber == 0x6850 || ctx->chipMagicNumber == 0x6050) {
         acc->initFn = mpu6050AccInit;
         acc->readFn = mpuAccReadScratchpad;
+        acc->accAlign = acc->busDev->param;
         return true;
     }
 
@@ -213,6 +214,7 @@ bool mpu6050GyroDetect(gyroDev_t *gyro)
     gyro->intStatusFn = gyroCheckDataReady;
     gyro->temperatureFn = mpuTemperatureReadScratchpad;
     gyro->scale = 1.0f / 16.4f;     // 16.4 dps/lsb scalefactor
+    gyro->gyroAlign = gyro->busDev->param;
 
     return true;
 }

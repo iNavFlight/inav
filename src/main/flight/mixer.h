@@ -102,11 +102,18 @@ typedef enum {
     MOTOR_RUNNING
 } motorStatus_e;
 
+typedef enum {
+    MOTOR_DIRECTION_FORWARD,
+    MOTOR_DIRECTION_BACKWARD,
+    MOTOR_DIRECTION_DEADBAND
+} reversibleMotorsThrottleState_e;
+
 extern int16_t motor[MAX_SUPPORTED_MOTORS];
 extern int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
 extern int mixerThrottleCommand;
 
 int getThrottleIdleValue(void);
+int16_t getThrottlePercent(void);
 uint8_t getMotorCount(void);
 float getMotorMixRange(void);
 bool mixerIsOutputSaturated(void);

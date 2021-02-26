@@ -28,16 +28,10 @@
 #define USE_MPU_DATA_READY_SIGNAL
 #define MPU_ADDRESS             0x69
 
-#define USE_GYRO
-#define USE_ACC
-
 #define MPU6050_I2C_BUS         BUS_I2C1
 
-#define USE_GYRO_MPU6050
-#define GYRO_MPU6050_ALIGN      CW270_DEG
-
-#define USE_ACC_MPU6050
-#define ACC_MPU6050_ALIGN       CW270_DEG
+#define USE_IMU_MPU6050
+#define IMU_MPU6050_ALIGN       CW270_DEG
 
 #define USE_VCP
 #define USE_UART1

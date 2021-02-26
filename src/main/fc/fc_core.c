@@ -21,6 +21,8 @@
 
 #include "platform.h"
 
+FILE_COMPILE_FOR_SPEED
+
 #include "blackbox/blackbox.h"
 
 #include "build/debug.h"
@@ -30,7 +32,6 @@
 #include "common/color.h"
 #include "common/utils.h"
 #include "common/filter.h"
-#include "common/global_functions.h"
 
 #include "drivers/light_led.h"
 #include "drivers/serial.h"
@@ -49,6 +50,7 @@
 #include "sensors/battery.h"
 #include "sensors/rangefinder.h"
 #include "sensors/opflow.h"
+#include "sensors/esc_sensor.h"
 
 #include "fc/fc_core.h"
 #include "fc/cli.h"
@@ -89,6 +91,7 @@
 
 #include "config/feature.h"
 #include "common/vector.h"
+#include "programming/pid.h"
 
 // June 2013     V2.2-dev
 
@@ -202,7 +205,7 @@ static void updateArmingStatus(void)
         /* CHECK: Throttle */
         if (!armingConfig()->fixed_wing_auto_arm) {
             // Don't want this check if fixed_wing_auto_arm is in use - machine arms on throttle > LOW
-            if (calculateThrottleStatus() != THROTTLE_LOW) {
+            if (calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC) != THROTTLE_LOW) {
                 ENABLE_ARMING_FLAG(ARMING_DISABLED_THROTTLE);
             } else {
                 DISABLE_ARMING_FLAG(ARMING_DISABLED_THROTTLE);
@@ -390,6 +393,7 @@ void disarm(disarmReason_t disarmReason)
 
         statsOnDisarm();
         logicConditionReset();
+        programmingPidReset();
         beeper(BEEPER_DISARMING);      // emit disarm tone
     }
 }
@@ -445,11 +449,11 @@ void releaseSharedTelemetryPorts(void) {
 void tryArm(void)
 {
     updateArmingStatus();
-#ifdef USE_GLOBAL_FUNCTIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
     if (
         !isArmingDisabled() || 
         emergencyArmingIsEnabled() || 
-        GLOBAL_FUNCTION_FLAG(GLOBAL_FUNCTION_FLAG_OVERRIDE_ARMING_SAFETY)
+        LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_ARMING_SAFETY)
     ) {
 #else 
     if (
@@ -477,7 +481,10 @@ void tryArm(void)
 
         ENABLE_ARMING_FLAG(ARMED);
         ENABLE_ARMING_FLAG(WAS_EVER_ARMED);
+        //It is required to inform the mixer that arming was executed and it has to switch to the FORWARD direction
+        ENABLE_STATE(SET_REVERSIBLE_MOTORS_FORWARD);
         logicConditionReset();
+        programmingPidReset();
         headFreeModeHold = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
 
         resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
@@ -531,7 +538,7 @@ void processRx(timeUs_t currentTimeUs)
 
     failsafeUpdateState();
 
-    const throttleStatus_e throttleStatus = calculateThrottleStatus();
+    const throttleStatus_e throttleStatus = calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC);
 
     // When armed and motors aren't spinning, do beeps periodically
     if (ARMING_FLAG(ARMED) && feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING_LEGACY)) {
@@ -647,39 +654,67 @@ void processRx(timeUs_t currentTimeUs)
     /* In airmode Iterm should be prevented to grow when Low thottle and Roll + Pitch Centered.
        This is needed to prevent Iterm winding on the ground, but keep full stabilisation on 0 throttle while in air
        Low Throttle + roll and Pitch centered is assuming the copter is on the ground. Done to prevent complex air/ground detections */
+
+    if (!ARMING_FLAG(ARMED)) {
+        DISABLE_STATE(ANTI_WINDUP_DEACTIVATED);
+    }
+
+    const rollPitchStatus_e rollPitchStatus = calculateRollPitchCenterStatus();
+
+    // In MANUAL mode we reset integrators prevent I-term wind-up (PID output is not used in MANUAL)
     if (FLIGHT_MODE(MANUAL_MODE) || !ARMING_FLAG(ARMED)) {
-        /* In MANUAL mode we reset integrators prevent I-term wind-up (PID output is not used in MANUAL) */
+        DISABLE_STATE(ANTI_WINDUP);
         pidResetErrorAccumulators();
     }
-    else if (STATE(FIXED_WING_LEGACY) || rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
+    else if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
         if (throttleStatus == THROTTLE_LOW) {
-            if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive() && ARMING_FLAG(ARMED)) {
-                rollPitchStatus_e rollPitchStatus = calculateRollPitchCenterStatus();
-
-                // ANTI_WINDUP at centred stick with MOTOR_STOP is needed on MRs and not needed on FWs
-                if ((rollPitchStatus == CENTERED) || (feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING_LEGACY))) {
-                    ENABLE_STATE(ANTI_WINDUP);
-                }
-                else {
-                    DISABLE_STATE(ANTI_WINDUP);
-                }
-            }
-            else {
-                DISABLE_STATE(ANTI_WINDUP);
-                pidResetErrorAccumulators();
-            }
-        }
-        else {
-            DISABLE_STATE(ANTI_WINDUP);
-        }
-    } else if (rcControlsConfig()->airmodeHandlingType == THROTTLE_THRESHOLD) {
-        DISABLE_STATE(ANTI_WINDUP);
-        //This case applies only to MR when Airmode management is throttle threshold activated
-        if (throttleStatus == THROTTLE_LOW && !STATE(AIRMODE_ACTIVE)) {
-            pidResetErrorAccumulators();
-        }
+             if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
+                 if ((rollPitchStatus == CENTERED) || (feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING_LEGACY))) {
+                     ENABLE_STATE(ANTI_WINDUP);
+                 }
+                 else {
+                     DISABLE_STATE(ANTI_WINDUP);
+                 }
+             }
+             else {
+                 DISABLE_STATE(ANTI_WINDUP);
+                 pidResetErrorAccumulators();
+             }
+         }
+         else {
+             DISABLE_STATE(ANTI_WINDUP);
+         }
     }
-
+    else if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER_ONCE) {
+        if (throttleStatus == THROTTLE_LOW) {
+             if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
+                 if ((rollPitchStatus == CENTERED) && !STATE(ANTI_WINDUP_DEACTIVATED)) {
+                     ENABLE_STATE(ANTI_WINDUP);
+                 }
+                 else {
+                     DISABLE_STATE(ANTI_WINDUP);
+                 }
+             }
+             else {
+                 DISABLE_STATE(ANTI_WINDUP);
+                 pidResetErrorAccumulators();
+             }
+         }
+         else {
+             DISABLE_STATE(ANTI_WINDUP);
+             if (rollPitchStatus != CENTERED) {
+                 ENABLE_STATE(ANTI_WINDUP_DEACTIVATED);
+             }
+         }
+    }
+    else if (rcControlsConfig()->airmodeHandlingType == THROTTLE_THRESHOLD) {
+         DISABLE_STATE(ANTI_WINDUP);
+         //This case applies only to MR when Airmode management is throttle threshold activated
+         if (throttleStatus == THROTTLE_LOW && !STATE(AIRMODE_ACTIVE)) {
+             pidResetErrorAccumulators();
+         }
+     }
+//---------------------------------------------------------
     if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
         DISABLE_FLIGHT_MODE(HEADFREE_MODE);
     }
@@ -805,9 +840,6 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         // FIXME: throttle pitch comp for FW
     }
 
-    // Update PID coefficients
-    updatePIDCoefficients(dT);
-
     // Calculate stabilisation
     pidController(dT);
 
@@ -853,6 +885,10 @@ void taskRunRealtimeCallbacks(timeUs_t currentTimeUs)
 
 #ifdef USE_DSHOT
     pwmCompleteMotorUpdate();
+#endif
+
+#ifdef USE_ESC_SENSOR
+    escSensorUpdate(currentTimeUs);
 #endif
 }
 

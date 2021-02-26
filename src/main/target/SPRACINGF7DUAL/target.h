@@ -39,40 +39,23 @@
 #define USE_EXTI
 #define GYRO_1_EXTI_PIN         PC13
 #define GYRO_2_EXTI_PIN         PC14
-#define GYRO_INT_EXTI           GYRO_1_EXTI_PIN
 
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
-#define USE_GYRO
-#define USE_GYRO_MPU6500
 
-#define USE_ACC
-#define USE_ACC_MPU6500
+#define USE_IMU_MPU6500
+#define IMU_1_ALIGN                 IMU_MPU6500_1_ALIGN
+#define IMU_2_ALIGN                 IMU_MPU6500_2_ALIGN
 
 #if (SPRACINGF7DUAL_REV >= 2)
-#define ACC_MPU6500_1_ALIGN           CW0_DEG
-#define GYRO_MPU6500_1_ALIGN          CW0_DEG
-
-#define ACC_MPU6500_2_ALIGN         CW270_DEG
-#define GYRO_MPU6500_2_ALIGN        CW270_DEG
+#define IMU_MPU6500_1_ALIGN         CW0_DEG
+#define IMU_MPU6500_2_ALIGN         CW270_DEG
 #else
-#define ACC_MPU6500_1_ALIGN           CW180_DEG
-#define GYRO_MPU6500_1_ALIGN          CW180_DEG
-
-#define ACC_MPU6500_2_ALIGN         CW270_DEG
-#define GYRO_MPU6500_2_ALIGN        CW270_DEG
+#define IMU_MPU6500_1_ALIGN         CW180_DEG
+#define IMU_MPU6500_2_ALIGN         CW270_DEG
 #endif
-
-
-#define GYRO_1_ALIGN                GYRO_MPU6500_1_ALIGN
-#define GYRO_2_ALIGN                GYRO_MPU6500_2_ALIGN
-#define ACC_1_ALIGN                 ACC_MPU6500_1_ALIGN
-#define ACC_2_ALIGN                 ACC_MPU6500_2_ALIGN
-
-#define ACC_MPU6500_ALIGN       ACC_1_ALIGN
-#define GYRO_MPU6500_ALIGN      GYRO_1_ALIGN
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1

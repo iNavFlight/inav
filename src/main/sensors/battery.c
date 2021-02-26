@@ -466,7 +466,7 @@ void currentMeterUpdate(timeUs_t timeDelta)
         case CURRENT_SENSOR_VIRTUAL:
             amperage = batteryMetersConfig()->current.offset;
             if (ARMING_FLAG(ARMED)) {
-                throttleStatus_e throttleStatus = calculateThrottleStatus();
+                throttleStatus_e throttleStatus = calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC);
                 int32_t throttleOffset = ((throttleStatus == THROTTLE_LOW) && feature(FEATURE_MOTOR_STOP)) ? 0 : (int32_t)rcCommand[THROTTLE] - 1000;
                 int32_t throttleFactor = throttleOffset + (throttleOffset * throttleOffset / 50);
                 amperage += throttleFactor * batteryMetersConfig()->current.scale / 1000;
