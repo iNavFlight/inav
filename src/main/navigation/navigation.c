@@ -2837,17 +2837,13 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
 
             if (wpNumber == (posControl.waypointCount + 1) || wpNumber == 1) {
                 posControl.waypointList[wpNumber - 1] = *wpData;
-
                 if(wpData->action == NAV_WP_ACTION_SET_POI || wpData->action == NAV_WP_ACTION_SET_HEAD || wpData->action == NAV_WP_ACTION_JUMP) {
                     nonGeoWaypointCount += 1;
                     if(wpData->action == NAV_WP_ACTION_JUMP) {
                         posControl.waypointList[wpNumber - 1].p1 -= 1; // make index (vice WP #)
-                    } else {
-                        posControl.waypointList[wpNumber - 1].p3 = wpNumber - nonGeoWaypointCount;
                     }
-                } else {
-                    posControl.waypointList[wpNumber - 1].p3 = wpNumber - nonGeoWaypointCount;
                 }
+                posControl.geoWaypointList[wpNumber - 1] = wpNumber - nonGeoWaypointCount;
 
                 posControl.waypointCount = wpNumber;
                 posControl.waypointListValid = (wpData->flag == NAV_WP_FLAG_LAST);

@@ -1385,11 +1385,7 @@ static void osdDisplayAdjustableDecimalValue(uint8_t elemPosX, uint8_t elemPosY,
 
 int8_t getGeoWaypointNumber(int8_t waypointIndex)
 {
-    if (posControl.waypointList[waypointIndex].action == NAV_WP_ACTION_JUMP) {
-        return posControl.waypointList[waypointIndex - 1].p3;
-    } else {
-        return posControl.waypointList[waypointIndex].p3;
-    }
+    return posControl.geoWaypointList[waypointIndex];
 }
 
 static bool osdDrawSingleElement(uint8_t item)
