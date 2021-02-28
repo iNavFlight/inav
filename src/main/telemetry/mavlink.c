@@ -1010,6 +1010,10 @@ static bool handleIncoming_MISSION_REQUEST(void)
     return false;
 }
 
+static bool handleIncoming_RC_CHANNELS_OVERRIDE(void) {
+
+}
+
 static bool processMAVLinkIncomingTelemetry(void)
 {
     while (serialRxBytesWaiting(mavlinkPort) > 0) {
@@ -1030,6 +1034,8 @@ static bool processMAVLinkIncomingTelemetry(void)
                     return handleIncoming_MISSION_REQUEST_LIST();
                 case MAVLINK_MSG_ID_MISSION_REQUEST:
                     return handleIncoming_MISSION_REQUEST();
+                case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:
+                    return handleIncoming_RC_CHANNELS_OVERRIDE();
                 default:
                     return false;
             }

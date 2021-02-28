@@ -68,6 +68,7 @@
 #include "rx/sumh.h"
 #include "rx/xbus.h"
 #include "rx/ghst.h"
+#include "rx/mavlink.h"
 
 //#define DEBUG_RX_SIGNAL_LOSS
 
@@ -254,6 +255,11 @@ bool serialRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
 #ifdef USE_SERIALRX_GHST
     case SERIALRX_GHST:
         enabled = ghstRxInit(rxConfig, rxRuntimeConfig);
+        break;
+#endif
+#ifdef USE_SERIALRX_MAVLINK
+    case SERIALRX_MAVLINK:
+        enabled = mavlinkRxInit(rxConfig, rxRuntimeConfig);
         break;
 #endif
     default:
