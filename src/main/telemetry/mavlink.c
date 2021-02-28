@@ -86,8 +86,9 @@
 
 #include "scheduler/scheduler.h"
 
-// mavlink library uses unnames unions that's causes GCC to complain if -Wpedantic is used
+// mavlink library uses unnamed unions that's causes GCC to complain if -Wpedantic is used
 // until this is resolved in mavlink library - ignore -Wpedantic for mavlink code
+// TODO check if this is resolved in V2 library
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
 #include "common/mavlink.h"
@@ -1023,6 +1024,7 @@ static bool processMAVLinkIncomingTelemetry(void)
         if (result == MAVLINK_FRAMING_OK) {
             switch (mavRecvMsg.msgid) {
                 case MAVLINK_MSG_ID_HEARTBEAT:
+                    // TODO failsafe
                     break;
                 case MAVLINK_MSG_ID_MISSION_CLEAR_ALL:
                     return handleIncoming_MISSION_CLEAR_ALL();
