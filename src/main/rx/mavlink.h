@@ -17,4 +17,7 @@
 
 #pragma once
 
+#include "common/mavlink.h"
+
+void mavlinkRxHandleMessage(const mavlink_rc_channels_override_t *msg);
 bool mavlinkRxInit(const struct rxConfig_s *initialRxConfig, struct rxRuntimeConfig_s *rxRuntimeConfig);

@@ -67,6 +67,7 @@
 #include "navigation/navigation_private.h"
 
 #include "rx/rx.h"
+#include "rx/mavlink.h"
 
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
@@ -86,13 +87,7 @@
 
 #include "scheduler/scheduler.h"
 
-// mavlink library uses unnamed unions that's causes GCC to complain if -Wpedantic is used
-// until this is resolved in mavlink library - ignore -Wpedantic for mavlink code
-// TODO check if this is resolved in V2 library
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
 #include "common/mavlink.h"
-#pragma GCC diagnostic pop
 
 #define TELEMETRY_MAVLINK_PORT_MODE     MODE_RXTX
 #define TELEMETRY_MAVLINK_MAXRATE       50
@@ -1048,7 +1043,17 @@ static bool handleIncoming_MISSION_REQUEST(void)
 }
 
 static bool handleIncoming_RC_CHANNELS_OVERRIDE(void) {
+    mavlink_rc_channels_override_t msg;
+    mavlink_msg_rc_channels_override_decode(&mavRecvMsg, &msg);
 
+    // Check if this message is for us
+    if (msg.target_system == mavSystemId) {
+        mavlinkRxHandleMessage(&msg);
+        // TODO do we need to send an ack?
+        return true;
+    }
+
+    return false;
 }
 
 static bool processMAVLinkIncomingTelemetry(void)
