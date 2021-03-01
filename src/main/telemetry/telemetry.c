@@ -84,7 +84,8 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
         .position_rate = 2,
         .extra1_rate = 10,
         .extra2_rate = 2,
-        .extra3_rate = 1
+        .extra3_rate = 1,
+        .version = 2
     }
 );
 

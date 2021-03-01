@@ -2640,6 +2640,12 @@ groups:
         type: uint8_t
         min: 0
         max: 255
+      - name: mavlink_version
+        field: mavlink.version
+        type: uint8_t
+        min: 1
+        max: 2
+
   - name: PG_ELERES_CONFIG
     type: eleresConfig_t
     headers: ["rx/eleres.h"]

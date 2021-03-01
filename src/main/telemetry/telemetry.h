@@ -83,6 +83,7 @@ typedef struct telemetryConfig_s {
         uint8_t extra1_rate;
         uint8_t extra2_rate;
         uint8_t extra3_rate;
+        uint8_t version;
     } mavlink;
 } telemetryConfig_t;
 

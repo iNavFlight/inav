@@ -318,7 +318,7 @@ void checkMAVLinkTelemetryState(void)
 static void mavlinkSendMessage(void)
 {
     uint8_t mavBuffer[MAVLINK_MAX_PACKET_LEN];
-    // TODO encode message as MAVLink v1 if required0
+    if (telemetryConfig()->mavlink.version == 1) mavSendMsg.magic = MAVLINK_STX_MAVLINK1; // TODO test this switches to MAVLink v1
     int msgLength = mavlink_msg_to_send_buffer(mavBuffer, &mavSendMsg);
 
     for (int i = 0; i < msgLength; i++) {
@@ -330,7 +330,7 @@ void mavlinkSendSystemStatus(void)
 {
     // Receiver is assumed to be always present
     uint32_t onboard_control_sensors_present    = (MAV_SYS_STATUS_SENSOR_RC_RECEIVER);
-    // GYRO and RC are assumed as minimium requirements
+    // GYRO and RC are assumed as minimum requirements
     uint32_t onboard_control_sensors_enabled    = (MAV_SYS_STATUS_SENSOR_3D_GYRO | MAV_SYS_STATUS_SENSOR_RC_RECEIVER);
     uint32_t onboard_control_sensors_health     = 0;
 
@@ -1111,8 +1111,6 @@ void handleMAVLinkTelemetry(timeUs_t currentTimeUs)
         lastMavlinkMessage = currentTimeUs;
         incomingRequestServed = false;
     }
-
-
 }
 
 #endif
