@@ -12,17 +12,19 @@ One potential risk when landing is that there might be buildings, trees and othe
 
 ## Safehome
 
-Safehomes are a list of GPS coordinates that identify safe landing points.  When the flight controller is armed, it checks the list of safehomes.  The nearest safehome that is enabled and within ```safehome_max_distance``` (default 200m) of the current position will be remembered.  The arming home location remains as home.
+Safehomes are a list of GPS coordinates that identify safe landing points.  You can define up to 8 safehomes for different locations you fly at.  When the flight controller is armed, it checks the list of safehomes.  The nearest safehome that is enabled and within ```safehome_max_distance``` (default 200m) of the current position is identified.  The arming home location remains as home.
 
-When RTH is activated, whether by radio failsafe, or using the RTH radio control mode, the safehome identified during arming will replace the arming home.  If RTH is turned off, either by regaining radio control or turning off the RTH radio control mode, the home location will return to arming point.
+When RTH is activated, whether by radio failsafe, or using the RTH radio control mode, the safehome identified during arming will replace the home location.  If RTH is turned off, either by regaining radio control or turning off the RTH radio control mode, the home location will return back to arming point.
 
 The safehome operating mode is set using ```safehome_usage_mode```.  If ```OFF```, safehomes will not be used.  If ```RTH```, the safehome will replace the arming location when RTH is activated, either manually or because of RX failsafe.  If ```RTH_FS```, the safehome will only be used for RX failsafe.  This option can be changed using the OSD menu.
 
-This behavior has changed from the initial release, where the safehome location replaced the arming location during the arming phase.  That would result in flight information involving home (home distance, home bearing, etc) using the safehome, instead of the arming location.
+If you frequently use RTH to return back to the arming point, you may not want the aircraft to fly to the safehome.  Let it do this at least once to confirm safehomes is working as expected.  Afterward, `set safehome_usage_mode = RTH_FS` and the safehome will only be used for failsafe.  
 
-You can define up to 8 safehomes for different locations you fly at.
+When using mode `RTH_FS`, you should confirm that your radio's failsafe configuration triggers the iNav failsafe mode.  With many receivers, you have the ability to specify what signal to output during failsafe conditions.
 
 When you are choosing safehome locations, ensure that the location is clear of obstructions for a radius more than 50m (`nav_fw_loiter_radius`).  As the plane descends, the circles aren't always symmetrical, as wind direction could result in some wider or tighter turns.  Also, the direction and length of the final landing stage is also unknown.  You want to choose a point that has provides a margin for variation and the final landing.
+
+If your safehome is not visible from your current location, use extra caution.  A visual check of the safehome is recommend prior to flying.  If the safehome is in use, you can use the OSD menu to disable safehome usage prior to your flight.
 
 ## OSD Message when Armed
 
