@@ -42,8 +42,10 @@ FILE_COMPILE_FOR_SPEED
 
 #define MAVLINK_CHANNEL_COUNT 18
 static uint16_t mavlinkChannelData[MAVLINK_CHANNEL_COUNT];
+static bool frameReceived;
 
 void mavlinkRxHandleMessage(const mavlink_rc_channels_override_t *msg) {
+    // TODO handle non-present channels
     mavlinkChannelData[0] = msg->chan1_raw;
     mavlinkChannelData[1] = msg->chan2_raw;
     mavlinkChannelData[2] = msg->chan3_raw;
@@ -62,11 +64,16 @@ void mavlinkRxHandleMessage(const mavlink_rc_channels_override_t *msg) {
     mavlinkChannelData[15] = msg->chan16_raw;
     mavlinkChannelData[16] = msg->chan17_raw;
     mavlinkChannelData[17] = msg->chan18_raw;
+    frameReceived = true;
 }
 
 static uint8_t mavlinkFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 {
-    return RX_FRAME_COMPLETE;
+    if (frameReceived) {
+        frameReceived = false;
+        return RX_FRAME_COMPLETE;
+    }
+    return RX_FRAME_PENDING;
 }
 
 static uint16_t mavlinkReadRawRC(const rxRuntimeConfig_t *rxRuntimeConfig, uint8_t chan)
@@ -78,9 +85,9 @@ static uint16_t mavlinkReadRawRC(const rxRuntimeConfig_t *rxRuntimeConfig, uint8
 
 bool mavlinkRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
 {
-    // TODO failsafe
-
     UNUSED(rxConfig);
+
+    frameReceived = false;
 
     rxRuntimeConfig->channelData = mavlinkChannelData;
     rxRuntimeConfig->channelCount = MAVLINK_CHANNEL_COUNT;

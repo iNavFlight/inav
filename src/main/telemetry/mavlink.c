@@ -1049,7 +1049,6 @@ static bool handleIncoming_RC_CHANNELS_OVERRIDE(void) {
     // Check if this message is for us
     if (msg.target_system == mavSystemId) {
         mavlinkRxHandleMessage(&msg);
-        // TODO do we need to send an ack?
         return true;
     }
 
@@ -1065,7 +1064,6 @@ static bool processMAVLinkIncomingTelemetry(void)
         if (result == MAVLINK_FRAMING_OK) {
             switch (mavRecvMsg.msgid) {
                 case MAVLINK_MSG_ID_HEARTBEAT:
-                    // TODO failsafe
                     break;
                 case MAVLINK_MSG_ID_MISSION_CLEAR_ALL:
                     return handleIncoming_MISSION_CLEAR_ALL();
