@@ -1882,12 +1882,12 @@ groups:
         max: 10
       - name: fw_level_pitch_gain
         description: "I-gain for the pitch trim for self-leveling flight modes."
-        default_value: "10"
+        default_value: "5"
         field: fixedWingLevelTrimGain
         min: 0
         max: 20
       - name: fw_level_pitch_deadband
-        description: "Deadband for automatic self-trimming"
+        description: "Deadband for automatic leveling when AUTOLEVEL mode is used."
         default_value: "5"
         field: fixedWingLevelTrimDeadband
         min: 0
