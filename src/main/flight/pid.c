@@ -289,7 +289,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .kalman_sharpness = 100,
         .kalmanEnabled = 0,
         .fixedWingLevelTrim = 0,
-        .fixedWingLevelTrimGain = 10,
+        .fixedWingLevelTrimGain = 5,
         .fixedWingLevelTrimDeadband = FIXED_WING_LEVEL_TRIM_DEADBAND_DEFAULT,
 );
 
