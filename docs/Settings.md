@@ -114,6 +114,9 @@
 | fw_autotune_threshold | 50 | Threshold [%] of max rate to consider overshoot/undershoot detection |
 | fw_autotune_undershoot_time | 200 | Time [ms] to detect sustained undershoot |
 | fw_d_level | 75 | Fixed-wing attitude stabilisation HORIZON transition point |
+| fw_d_pitch | 0 | Fixed wing rate stabilisation D-gain for PITCH |
+| fw_d_roll | 0 | Fixed wing rate stabilisation D-gain for roll |
+| fw_d_yaw | 0 | Fixed wing rate stabilisation D-gain for YAW |
 | fw_ff_pitch | 50 | Fixed-wing rate stabilisation FF-gain for PITCH |
 | fw_ff_roll | 50 | Fixed-wing rate stabilisation FF-gain for ROLL |
 | fw_ff_yaw | 60 | Fixed-wing rate stabilisation FF-gain for YAW |
@@ -408,7 +411,7 @@
 | osd_time_alarm | 10 | Value above which to make the OSD flight time indicator blink (minutes) |
 | osd_units | METRIC | IMPERIAL, METRIC, UK |
 | osd_video_system | AUTO | Video system used. Possible values are `AUTO`, `PAL` and `NTSC` |
-| pid_type |  | Allows to set type of PID controller used in control loop. Possible values: `NONE`, `PID`, `PIFF`, `AUTO`. Change only in case of experimental platforms like VTOL, tailsitters, rovers, boats, etc. Airplanes should always use `PIFF` and multirotors `PID` |
+| pid_type |  | Allows to set type of PID controller used in control loop. Possible values: `NONE`, `PID`, `PIDFF`, `AUTO`. Change only in case of experimental platforms like VTOL, tailsitters, rovers, boats, etc. Airplanes should always use `PIDFF` and multirotors `PID` |
 | pidsum_limit | 500 | A limitation to overall amount of correction Flight PID can request on each axis (Roll/Pitch). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help |
 | pidsum_limit_yaw | 400 | A limitation to overall amount of correction Flight PID can request on each axis (Yaw). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help |
 | pinio_box1 |  |  |
