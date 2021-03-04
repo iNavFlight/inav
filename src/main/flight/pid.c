@@ -343,7 +343,7 @@ bool pidInitFilters(void)
 
 void pidResetTPAFilter(void)
 {
-    if (usedPidControllerType == PID_TYPE_PIDFF && currentControlRateProfile->throttle.fixedWingTauMs > 0) {
+    if (usedPidControllerType == PID_TYPE_PIFF && currentControlRateProfile->throttle.fixedWingTauMs > 0) {
         pt1FilterInitRC(&fixedWingTpaFilter, currentControlRateProfile->throttle.fixedWingTauMs * 1e-3f, TASK_PERIOD_HZ(TASK_AUX_RATE_HZ) * 1e-6f);
         pt1FilterReset(&fixedWingTpaFilter, getThrottleIdleValue());
     }
@@ -441,7 +441,7 @@ void updatePIDCoefficients()
     STATIC_FASTRAM uint16_t prevThrottle = 0;
 
     // Check if throttle changed. Different logic for fixed wing vs multirotor
-    if (usedPidControllerType == PID_TYPE_PIDFF && (currentControlRateProfile->throttle.fixedWingTauMs > 0)) {
+    if (usedPidControllerType == PID_TYPE_PIFF && (currentControlRateProfile->throttle.fixedWingTauMs > 0)) {
         uint16_t filteredThrottle = pt1FilterApply(&fixedWingTpaFilter, rcCommand[THROTTLE]);
         if (filteredThrottle != prevThrottle) {
             prevThrottle = filteredThrottle;
@@ -474,12 +474,12 @@ void updatePIDCoefficients()
         return;
     }
 
-    const float tpaFactor = usedPidControllerType == PID_TYPE_PIDFF ? calculateFixedWingTPAFactor(prevThrottle) : calculateMultirotorTPAFactor();
+    const float tpaFactor = usedPidControllerType == PID_TYPE_PIFF ? calculateFixedWingTPAFactor(prevThrottle) : calculateMultirotorTPAFactor();
 
     // PID coefficients can be update only with THROTTLE and TPA or inflight PID adjustments
     //TODO: Next step would be to update those only at THROTTLE or inflight adjustments change
     for (int axis = 0; axis < 3; axis++) {
-        if (usedPidControllerType == PID_TYPE_PIDFF) {
+        if (usedPidControllerType == PID_TYPE_PIFF) {
             // Airplanes - scale all PIDs according to TPA
             pidState[axis].kP  = pidBank()->pid[axis].P / FP_PID_RATE_P_MULTIPLIER  * tpaFactor;
             pidState[axis].kI  = pidBank()->pid[axis].I / FP_PID_RATE_I_MULTIPLIER  * tpaFactor;
@@ -610,6 +610,50 @@ static float pTermProcess(pidState_t *pidState, float rateError, float dT) {
     return pidState->ptermFilterApplyFn(&pidState->ptermLpfState, newPTerm, yawLpfHz, dT);
 }
 
+#ifdef USE_D_BOOST
+static float FAST_CODE applyDBoost(pidState_t *pidState, float dT) {
+    
+    float dBoost = 1.0f;
+    
+    if (dBoostFactor > 1) {
+        const float dBoostGyroDelta = (pidState->gyroRate - pidState->previousRateGyro) / dT;
+        const float dBoostGyroAcceleration = fabsf(biquadFilterApply(&pidState->dBoostGyroLpf, dBoostGyroDelta));
+        const float dBoostRateAcceleration = fabsf((pidState->rateTarget - pidState->previousRateTarget) / dT);
+        
+        const float acceleration = MAX(dBoostGyroAcceleration, dBoostRateAcceleration);
+        dBoost = scaleRangef(acceleration, 0.0f, dBoostMaxAtAlleceleration, 1.0f, dBoostFactor);
+        dBoost = pt1FilterApply4(&pidState->dBoostLpf, dBoost, D_BOOST_LPF_HZ, dT);
+        dBoost = constrainf(dBoost, 1.0f, dBoostFactor);
+    } 
+
+    return dBoost;
+}
+#else 
+static float applyDBoost(pidState_t *pidState, float dT) {
+    UNUSED(pidState);
+    UNUSED(dT);
+    return 1.0f;
+}
+#endif
+
+static float dTermProcess(pidState_t *pidState, float dT) {
+    // Calculate new D-term
+    float newDTerm = 0;
+    if (pidState->kD == 0) {
+        // optimisation for when D is zero, often used by YAW axis
+        newDTerm = 0;
+    } else {
+        float delta = pidState->previousRateGyro - pidState->gyroRate;
+
+        delta = dTermLpfFilterApplyFn((filter_t *) &pidState->dtermLpfState, delta);
+        delta = dTermLpf2FilterApplyFn((filter_t *) &pidState->dtermLpf2State, delta);
+
+        // Calculate derivative
+        newDTerm =  delta * (pidState->kD / dT) * applyDBoost(pidState, dT);
+    }
+    return(newDTerm);
+}
+
 static void applyItermLimiting(pidState_t *pidState) {
     if (pidState->itermLimitActive) {
         pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -pidState->errorGyroIfLimit, pidState->errorGyroIfLimit);
@@ -629,6 +673,7 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
 {
     const float rateError = pidState->rateTarget - pidState->gyroRate;
     const float newPTerm = pTermProcess(pidState, rateError, dT);
+    const float newDTerm = dTermProcess(pidState, dT);
     const float newFFTerm = pidState->rateTarget * pidState->kFF;
 
     /*
@@ -636,21 +681,6 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
      */
     if (!pidState->itermFreezeActive) {
         pidState->errorGyroIf += rateError * pidState->kI * dT;
-    }
-
-    // Calculate new D-term
-    float newDTerm;
-    if (pidState->kD == 0) {
-        // optimisation for when D8 is zero, often used by YAW axis
-        newDTerm = 0;
-    } else {
-        float delta = pidState->previousRateGyro - pidState->gyroRate;
-
-        delta = dTermLpfFilterApplyFn((filter_t *) &pidState->dtermLpfState, delta);
-        delta = dTermLpf2FilterApplyFn((filter_t *) &pidState->dtermLpf2State, delta);
-
-        // Calculate derivative
-        newDTerm =  delta * (pidState->kD / dT);
     }
 
     applyItermLimiting(pidState);
@@ -693,36 +723,12 @@ static float FAST_CODE applyItermRelax(const int axis, float currentPidSetpoint,
 
     return itermErrorRate;
 }
-#ifdef USE_D_BOOST
-static float FAST_CODE applyDBoost(pidState_t *pidState, float dT) {
-    
-    float dBoost = 1.0f;
-    
-    if (dBoostFactor > 1) {
-        const float dBoostGyroDelta = (pidState->gyroRate - pidState->previousRateGyro) / dT;
-        const float dBoostGyroAcceleration = fabsf(biquadFilterApply(&pidState->dBoostGyroLpf, dBoostGyroDelta));
-        const float dBoostRateAcceleration = fabsf((pidState->rateTarget - pidState->previousRateTarget) / dT);
-        
-        const float acceleration = MAX(dBoostGyroAcceleration, dBoostRateAcceleration);
-        dBoost = scaleRangef(acceleration, 0.0f, dBoostMaxAtAlleceleration, 1.0f, dBoostFactor);
-        dBoost = pt1FilterApply4(&pidState->dBoostLpf, dBoost, D_BOOST_LPF_HZ, dT);
-        dBoost = constrainf(dBoost, 1.0f, dBoostFactor);
-    } 
-
-    return dBoost;
-}
-#else 
-static float applyDBoost(pidState_t *pidState, float dT) {
-    UNUSED(pidState);
-    UNUSED(dT);
-    return 1.0f;
-}
-#endif
 
 static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT)
 {
     const float rateError = pidState->rateTarget - pidState->gyroRate;
     const float newPTerm = pTermProcess(pidState, rateError, dT);
+    const float newDTerm = dTermProcess(pidState, dT);
 
     const float rateTargetDelta = pidState->rateTarget - pidState->previousRateTarget;
     const float rateTargetDeltaFiltered = biquadFilterApply(&pidState->rateTargetFilter, rateTargetDelta);
@@ -738,21 +744,6 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
         newCDTerm = rateTargetDeltaFiltered * (pidState->kCD / dT);
     }
     DEBUG_SET(DEBUG_CD, axis, newCDTerm);
-
-    // Calculate new D-term
-    float newDTerm;
-    if (pidState->kD == 0) {
-        // optimisation for when D8 is zero, often used by YAW axis
-        newDTerm = 0;
-    } else {
-        float delta = pidState->previousRateGyro - pidState->gyroRate;
-
-        delta = dTermLpfFilterApplyFn((filter_t *) &pidState->dtermLpfState, delta);
-        delta = dTermLpf2FilterApplyFn((filter_t *) &pidState->dtermLpf2State, delta);
-
-        // Calculate derivative
-        newDTerm =  delta * (pidState->kD / dT) * applyDBoost(pidState, dT);
-    }
 
     // TODO: Get feedback from mixer on available correction range for each axis
     const float newOutput = newPTerm + newDTerm + pidState->errorGyroIf + newCDTerm;
@@ -967,7 +958,7 @@ static void pidApplyFpvCameraAngleMix(pidState_t *pidState, uint8_t fpvCameraAng
 void checkItermLimitingActive(pidState_t *pidState)
 {
     bool shouldActivate;
-    if (usedPidControllerType == PID_TYPE_PIDFF) {
+    if (usedPidControllerType == PID_TYPE_PIFF) {
         shouldActivate = isFixedWingItermLimitActive(pidState->stickPosition);
     } else 
     {
@@ -979,7 +970,7 @@ void checkItermLimitingActive(pidState_t *pidState)
 
 void checkItermFreezingActive(pidState_t *pidState, flight_dynamics_index_t axis)
 {
-    if (usedPidControllerType == PID_TYPE_PIDFF && pidProfile()->fixedWingYawItermBankFreeze != 0 && axis == FD_YAW) {
+    if (usedPidControllerType == PID_TYPE_PIFF && pidProfile()->fixedWingYawItermBankFreeze != 0 && axis == FD_YAW) {
         // Do not allow yaw I-term to grow when bank angle is too large
         float bankAngle = DECIDEGREES_TO_DEGREES(attitude.values.roll);
         if (fabsf(bankAngle) > pidProfile()->fixedWingYawItermBankFreeze && !(FLIGHT_MODE(AUTO_TUNE) || FLIGHT_MODE(TURN_ASSISTANT) || navigationRequiresTurnAssistance())){
@@ -1133,7 +1124,7 @@ void pidInit(void)
             mixerConfig()->platformType == PLATFORM_BOAT ||
             mixerConfig()->platformType == PLATFORM_ROVER
         ) {
-            usedPidControllerType = PID_TYPE_PIDFF;
+            usedPidControllerType = PID_TYPE_PIFF;
         } else {
             usedPidControllerType = PID_TYPE_PID;
         }
@@ -1159,7 +1150,7 @@ void pidInit(void)
         }
     }
 
-    if (usedPidControllerType == PID_TYPE_PIDFF) {
+    if (usedPidControllerType == PID_TYPE_PIFF) {
         pidControllerApplyFn = pidApplyFixedWingRateController;
     } else if (usedPidControllerType == PID_TYPE_PID) {
         pidControllerApplyFn = pidApplyMulticopterRateController;
@@ -1178,15 +1169,15 @@ void pidInit(void)
 }
 
 const pidBank_t * pidBank(void) { 
-    return usedPidControllerType == PID_TYPE_PIDFF ? &pidProfile()->bank_fw : &pidProfile()->bank_mc; 
+    return usedPidControllerType == PID_TYPE_PIFF ? &pidProfile()->bank_fw : &pidProfile()->bank_mc; 
 }
 pidBank_t * pidBankMutable(void) { 
-    return usedPidControllerType == PID_TYPE_PIDFF ? &pidProfileMutable()->bank_fw : &pidProfileMutable()->bank_mc;
+    return usedPidControllerType == PID_TYPE_PIFF ? &pidProfileMutable()->bank_fw : &pidProfileMutable()->bank_mc;
 }
 
 uint16_t * getD_FFRefByBank(pidBank_t *pidBank, pidIndex_e pidIndex)
 {
-    if (pidIndexGetType(pidIndex) == PID_TYPE_PIDFF) {
+    if (pidIndexGetType(pidIndex) == PID_TYPE_PIFF) {
        return &pidBank->pid[pidIndex].FF;
     } else {
         return &pidBank->pid[pidIndex].D;

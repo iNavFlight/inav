@@ -1195,7 +1195,7 @@ static void osdDisplayPIDValues(uint8_t elemPosX, uint8_t elemPosY, const char *
     displayWriteWithAttr(osdDisplayPort, elemPosX + 8, elemPosY, buff, elemAttr);
 
     elemAttr = TEXT_ATTRIBUTES_NONE;
-    tfp_sprintf(buff, "%3d", pidType == PID_TYPE_PIDFF ? pid->FF : pid->D);
+    tfp_sprintf(buff, "%3d", pidType == PID_TYPE_PIFF ? pid->FF : pid->D);
     if ((isAdjustmentFunctionSelected(adjFuncD)) || (((adjFuncD == ADJUSTMENT_ROLL_D_FF) || (adjFuncD == ADJUSTMENT_PITCH_D_FF)) && (isAdjustmentFunctionSelected(ADJUSTMENT_PITCH_ROLL_D_FF))))
         TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
     displayWriteWithAttr(osdDisplayPort, elemPosX + 12, elemPosY, buff, elemAttr);
