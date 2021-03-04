@@ -650,7 +650,7 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
         delta = dTermLpf2FilterApplyFn((filter_t *) &pidState->dtermLpf2State, delta);
 
         // Calculate derivative
-        newDTerm =  delta * (pidState->kD / dT); // * applyDBoost(pidState, dT);
+        newDTerm =  delta * (pidState->kD / dT);
     }
 
     applyItermLimiting(pidState);
