@@ -109,34 +109,6 @@ static const adjustmentConfig_t defaultAdjustmentConfigs[ADJUSTMENT_FUNCTION_COU
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 1 }}
     }, {
-        .adjustmentFunction = ADJUSTMENT_YAW_P,
-        .mode = ADJUSTMENT_MODE_STEP,
-        .data = { .stepConfig = { .step = 1 }}
-    }, {
-        .adjustmentFunction = ADJUSTMENT_YAW_I,
-        .mode = ADJUSTMENT_MODE_STEP,
-        .data = { .stepConfig = { .step = 1 }}
-    }, {
-        .adjustmentFunction = ADJUSTMENT_YAW_D,
-        .mode = ADJUSTMENT_MODE_STEP,
-        .data = { .stepConfig = { .step = 1 }}
-    }, {
-        .adjustmentFunction = ADJUSTMENT_YAW_FF,
-        .mode = ADJUSTMENT_MODE_STEP,
-        .data = { .stepConfig = { .step = 1 }}
-    }, {
-        .adjustmentFunction = ADJUSTMENT_RATE_PROFILE,
-        .mode = ADJUSTMENT_MODE_STEP,
-        .data = { .stepConfig = { .step = 1 }}
-    }, {
-        .adjustmentFunction = ADJUSTMENT_PITCH_RATE,
-        .mode = ADJUSTMENT_MODE_STEP,
-        .data = { .stepConfig = { .step = 1 }}
-    }, {
-        .adjustmentFunction = ADJUSTMENT_ROLL_RATE,
-        .mode = ADJUSTMENT_MODE_STEP,
-        .data = { .stepConfig = { .step = 1 }}
-    }, {
         .adjustmentFunction = ADJUSTMENT_PITCH_P,
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 1 }}
@@ -166,6 +138,34 @@ static const adjustmentConfig_t defaultAdjustmentConfigs[ADJUSTMENT_FUNCTION_COU
         .data = { .stepConfig = { .step = 1 }}
     }, {
         .adjustmentFunction = ADJUSTMENT_ROLL_FF,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_YAW_P,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_YAW_I,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_YAW_D,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_YAW_FF,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_RATE_PROFILE,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_PITCH_RATE,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_ROLL_RATE,
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 1 }}
     }, {
