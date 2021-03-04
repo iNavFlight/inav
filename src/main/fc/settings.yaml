@@ -136,7 +136,7 @@ tables:
     values: ["HIGH", "MEDIUM", "LOW"]
     enum: dynamicFilterRange_e
   - name: pidTypeTable
-    values: ["NONE", "PID", "PIDFF", "AUTO"]
+    values: ["NONE", "PID", "PIFF", "AUTO"]
     enum: pidType_e
   - name: osd_ahi_style
     values: ["DEFAULT", "LINE"]
@@ -1865,7 +1865,7 @@ groups:
         min: 1
         max: 30
       - name: pid_type
-        description: "Allows to set type of PID controller used in control loop. Possible values: `NONE`, `PID`, `PIDFF`, `AUTO`. Change only in case of experimental platforms like VTOL, tailsitters, rovers, boats, etc. Airplanes should always use `PIDFF` and multirotors `PID`"
+        description: "Allows to set type of PID controller used in control loop. Possible values: `NONE`, `PID`, `PIFF`, `AUTO`. Change only in case of experimental platforms like VTOL, tailsitters, rovers, boats, etc. Airplanes should always use `PIFF` and multirotors `PID`"
         field: pidControllerType
         table: pidTypeTable
       - name: mc_cd_lpf_hz
