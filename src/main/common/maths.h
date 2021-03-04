@@ -88,6 +88,8 @@
 #define _ABS_I(x, var) _ABS_II(x, var)
 #define ABS(x) _ABS_I(x, _CHOOSE_VAR(_abs, __COUNTER__))
 
+#define power3(x) ((x)*(x)*(x))
+
 // Floating point Euler angles.
 typedef struct fp_angles {
     float roll;

@@ -105,7 +105,7 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .motorPwmProtocol = DEFAULT_PWM_PROTOCOL,
     .motorPwmRate = DEFAULT_PWM_RATE,
     .maxthrottle = DEFAULT_MAX_THROTTLE,
-    .mincommand = 1000, 
+    .mincommand = 1000,
     .motorAccelTimeMs = 0,
     .motorDecelTimeMs = 0,
     .throttleIdle = 15.0f,
@@ -184,7 +184,7 @@ void mixerUpdateStateFlags(void)
     } else if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
         ENABLE_STATE(MULTIROTOR);
         ENABLE_STATE(ALTITUDE_CONTROL);
-    } 
+    }
 
     if (mixerConfig()->hasFlaps) {
         ENABLE_STATE(FLAPERON_AVAILABLE);
@@ -266,7 +266,7 @@ void mixerInit(void)
 void mixerResetDisarmedMotors(void)
 {
     int motorZeroCommand;
-    
+
     if (feature(FEATURE_REVERSIBLE_MOTORS)) {
         motorZeroCommand = reversibleMotorsConfig()->neutral;
         throttleRangeMin = throttleDeadbandHigh;
@@ -318,6 +318,100 @@ static uint16_t handleOutputScaling(
         value = constrain(value, outputScaleMin, outputScaleMax);
     }
     return value;
+}
+
+#define CRASH_FLIP_DEADBAND 20.0f
+#define CRASH_FLIP_STICK_MINF 0.15f
+
+static void applyFlipOverAfterCrashModeToMotors(void)
+{
+    //To convert in configs
+    const float crashlip_expo = 35.0f;
+
+    if (ARMING_FLAG(ARMED)) {
+        const float flipPowerFactor = 1.0f - crashlip_expo / 100.0f;
+        const float stickDeflectionPitchAbs = ABS(((float)rcCommand[PITCH])/500.0f);
+        const float stickDeflectionRollAbs = ABS(((float)rcCommand[ROLL])/500.0f);
+        const float stickDeflectionYawAbs = ABS(((float)rcCommand[YAW])/500.0f);
+        //deflection stick position
+
+        const float stickDeflectionPitchExpo = flipPowerFactor * stickDeflectionPitchAbs + power3(stickDeflectionPitchAbs) * (1 - flipPowerFactor);
+        const float stickDeflectionRollExpo = flipPowerFactor * stickDeflectionRollAbs + power3(stickDeflectionRollAbs) * (1 - flipPowerFactor);
+        const float stickDeflectionYawExpo = flipPowerFactor * stickDeflectionYawAbs + power3(stickDeflectionYawAbs) * (1 - flipPowerFactor);
+
+        float signPitch = rcCommand[PITCH] < 0 ? 1 : -1;
+        float signRoll = rcCommand[ROLL] < 0 ? 1 : -1;
+        //float signYaw = (rcCommand[YAW] < 0 ? 1 : -1) * (mixerConfig()->yaw_motors_reversed ? 1 : -1);
+        float signYaw = (rcCommand[YAW] < 0 ? 1 : -1) * (mixerConfig()->motorDirectionInverted ? 1 : -1);
+
+        float stickDeflectionLength = sqrtf(sq(stickDeflectionPitchAbs) + sq(stickDeflectionRollAbs));
+        float stickDeflectionExpoLength = sqrtf(sq(stickDeflectionPitchExpo) + sq(stickDeflectionRollExpo));
+
+        if (stickDeflectionYawAbs > MAX(stickDeflectionPitchAbs, stickDeflectionRollAbs)) {
+            // If yaw is the dominant, disable pitch and roll
+            stickDeflectionLength = stickDeflectionYawAbs;
+            stickDeflectionExpoLength = stickDeflectionYawExpo;
+            signRoll = 0;
+            signPitch = 0;
+        } else {
+            // If pitch/roll dominant, disable yaw
+            signYaw = 0;
+        }
+
+        const float cosPhi = (stickDeflectionLength > 0) ? (stickDeflectionPitchAbs + stickDeflectionRollAbs) / (sqrtf(2.0f) * stickDeflectionLength) : 0;
+        const float cosThreshold = sqrtf(3.0f)/2.0f; // cos(PI/6.0f)
+
+        if (cosPhi < cosThreshold) {
+            // Enforce either roll or pitch exclusively, if not on diagonal
+            if (stickDeflectionRollAbs > stickDeflectionPitchAbs) {
+                signPitch = 0;
+            } else {
+                signRoll = 0;
+            }
+        }
+
+        // Apply a reasonable amount of stick deadband
+        const float crashFlipStickMinExpo = flipPowerFactor * CRASH_FLIP_STICK_MINF + power3(CRASH_FLIP_STICK_MINF) * (1 - flipPowerFactor);
+        const float flipStickRange = 1.0f - crashFlipStickMinExpo;
+        const float flipPower = MAX(0.0f, stickDeflectionExpoLength - crashFlipStickMinExpo) / flipStickRange;
+
+        for (int i = 0; i < motorCount; ++i) {
+
+            float motorOutputNormalised =
+                signPitch * currentMixer[i].pitch +    //mixer, per ogni motore quanto interviene nel pitch, roll e yaw
+                signRoll * currentMixer[i].roll +
+                signYaw * currentMixer[i].yaw;
+
+            if (motorOutputNormalised < 0) {
+                    motorOutputNormalised = 0;
+            }
+
+            motorOutputNormalised = MIN(1.0f, flipPower * motorOutputNormalised);
+
+            float motorOutput = motorConfig()->mincommand+ motorOutputNormalised * motorConfig()->maxthrottle;
+
+            // Add a little bit to the motorOutputMin so props aren't spinning when sticks are centered
+            motorOutput = (motorOutput < motorConfig()->mincommand + CRASH_FLIP_DEADBAND) ? DSHOT_DISARM_COMMAND : (motorOutput - CRASH_FLIP_DEADBAND);
+
+            uint16_t motorValue;
+
+            motorValue = handleOutputScaling(
+                    motorOutput,
+                    throttleIdleValue,
+                    DSHOT_DISARM_COMMAND,
+                    motorConfig()->mincommand,
+                    motorConfig()->maxthrottle,
+                    DSHOT_MIN_THROTTLE,
+                    DSHOT_3D_DEADBAND_LOW,
+                    false
+            );
+
+            pwmWriteMotor(i,motorValue);
+        }
+    } else {
+        // Disarmed mode
+        stopMotors();
+    }
 }
 #endif
 
@@ -443,6 +537,11 @@ static int getReversibleMotorsThrottleDeadband(void)
 
 void FAST_CODE mixTable(const float dT)
 {
+    if (FLIGHT_MODE(FLIP_OVER_AFTER_CRASH)) {
+        applyFlipOverAfterCrashModeToMotors();
+        return;
+    }
+
     int16_t input[3];   // RPY, range [-500:+500]
     // Allow direct stick input to motors in passthrough mode on airplanes
     if (STATE(FIXED_WING_LEGACY) && FLIGHT_MODE(MANUAL_MODE)) {
@@ -482,7 +581,7 @@ void FAST_CODE mixTable(const float dT)
     if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_THROTTLE)) {
         throttleRangeMin = throttleIdleValue;
         throttleRangeMax = motorConfig()->maxthrottle;
-        mixerThrottleCommand = constrain(logicConditionValuesByType[LOGIC_CONDITION_OVERRIDE_THROTTLE], throttleRangeMin, throttleRangeMax); 
+        mixerThrottleCommand = constrain(logicConditionValuesByType[LOGIC_CONDITION_OVERRIDE_THROTTLE], throttleRangeMin, throttleRangeMax);
     } else
 #endif
     if (feature(FEATURE_REVERSIBLE_MOTORS)) {
@@ -519,7 +618,7 @@ void FAST_CODE mixTable(const float dT)
         mixerThrottleCommand = ((mixerThrottleCommand - throttleRangeMin) * motorConfig()->throttleScale) + throttleRangeMin;
     #endif
         // Throttle compensation based on battery voltage
-        if (feature(FEATURE_THR_VBAT_COMP) && isAmperageConfigured() && feature(FEATURE_VBAT)) {                
+        if (feature(FEATURE_THR_VBAT_COMP) && isAmperageConfigured() && feature(FEATURE_VBAT)) {
             mixerThrottleCommand = MIN(throttleRangeMin + (mixerThrottleCommand - throttleRangeMin) * calculateThrottleCompensationFactor(), throttleRangeMax);
         }
     }

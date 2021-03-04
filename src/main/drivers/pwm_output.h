@@ -28,6 +28,7 @@ void pwmWriteMotor(uint8_t index, uint16_t value);
 void pwmShutdownPulsesForAllMotors(uint8_t motorCount);
 void pwmCompleteMotorUpdate(void);
 bool isMotorProtocolDigital(void);
+bool isMotorProtocolDshot(void);
 
 void pwmWriteServo(uint8_t index, uint16_t value);
 
