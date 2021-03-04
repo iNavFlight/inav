@@ -145,7 +145,7 @@
 | gyro_dyn_lpf_curve_expo | 5 | Expo value for the throttle-to-frequency mapping for Dynamic LPF |
 | gyro_dyn_lpf_max_hz | 500 | Maximum frequency of the gyro Dynamic LPF |
 | gyro_dyn_lpf_min_hz | 200 | Minimum frequency of the gyro Dynamic LPF |
-| gyro_hardware_lpf | 256HZ | Hardware lowpass filter for gyro. Do value should never be changed without a very strong reason! If you have to set gyro lpf below 256HZ, it means the frame is vibrating too much, and that should be fixed first. |
+| gyro_hardware_lpf | 256HZ | Hardware lowpass filter for gyro. This value should never be changed without a very strong reason! If you have to set gyro lpf below 256HZ, it means the frame is vibrating too much, and that should be fixed first. |
 | gyro_lpf_hz | 60 | Software-based filter to remove mechanical vibrations from the gyro signal. Value is cutoff frequency (Hz). For larger frames with bigger props set to lower value. |
 | gyro_lpf_type | BIQUAD | Specifies the type of the software LPF of the gyro signals. BIQUAD gives better filtering and more delay, PT1 less filtering and less delay, so use only on clean builds. |
 | gyro_notch_cutoff |  |  |
