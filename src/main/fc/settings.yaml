@@ -1489,7 +1489,7 @@ groups:
         min: 0
         max: 200
       - name: fw_d_roll
-        description: "Fixed wing rate stabilisation D-gain for roll"
+        description: "Fixed wing rate stabilisation D-gain for ROLL"
         default_value: "0"
         field: bank_fw.pid[PID_ROLL].D
         min: 0

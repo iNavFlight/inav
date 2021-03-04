@@ -115,7 +115,7 @@
 | fw_autotune_undershoot_time | 200 | Time [ms] to detect sustained undershoot |
 | fw_d_level | 75 | Fixed-wing attitude stabilisation HORIZON transition point |
 | fw_d_pitch | 0 | Fixed wing rate stabilisation D-gain for PITCH |
-| fw_d_roll | 0 | Fixed wing rate stabilisation D-gain for roll |
+| fw_d_roll | 0 | Fixed wing rate stabilisation D-gain for ROLL |
 | fw_d_yaw | 0 | Fixed wing rate stabilisation D-gain for YAW |
 | fw_ff_pitch | 50 | Fixed-wing rate stabilisation FF-gain for PITCH |
 | fw_ff_roll | 50 | Fixed-wing rate stabilisation FF-gain for ROLL |
