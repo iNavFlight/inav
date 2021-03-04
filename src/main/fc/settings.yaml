@@ -182,8 +182,8 @@ groups:
         type: uint8_t
         table: alignment
       - name: gyro_hardware_lpf
-        description: "Hardware lowpass filter for gyro. Allowed values depend on the driver - For example MPU6050 allows 10HZ,20HZ,42HZ,98HZ,188HZ,256Hz (8khz mode). If you have to set gyro lpf below 42Hz generally means the frame is vibrating too much, and that should be fixed first."
-        default_value: "42HZ"
+        description: "Hardware lowpass filter for gyro. This value should never be changed without a very strong reason! If you have to set gyro lpf below 256HZ, it means the frame is vibrating too much, and that should be fixed first."
+        default_value: "256HZ"
         field: gyro_lpf
         table: gyro_lpf
       - name: gyro_lpf_hz
@@ -718,6 +718,8 @@ groups:
         max: 30
       - name: motor_poles
         field: motorPoleCount
+        description: "The number of motor poles. Required to compute motor RPM"
+        default_value: "14"
         min: 4
         max: 255
 
@@ -2183,6 +2185,8 @@ groups:
         max: 65000
       - name: nav_max_terrain_follow_alt
         field: general.max_terrain_follow_altitude
+        default_value: "100"
+        description: "Max allowed above the ground altitude for terrain following mode"
         max: 1000
       - name: nav_rth_altitude
         description: "Used in EXTRA, FIXED and AT_LEAST rth alt modes [cm] (Default 1000 means 10 meters)"
@@ -3194,21 +3198,29 @@ groups:
     members:
       - name: pinio_box1
         field: permanentId[0]
+        description: "Mode assignment for PINIO#1"
+        default_value: "target specific"
         min: 0
         max: 255
         type: uint8_t
       - name: pinio_box2
         field: permanentId[1]
+        default_value: "target specific"
+        description: "Mode assignment for PINIO#1"
         min: 0
         max: 255
         type: uint8_t
       - name: pinio_box3
         field: permanentId[2]
+        default_value: "target specific"
+        description: "Mode assignment for PINIO#1"
         min: 0
         max: 255
         type: uint8_t
       - name: pinio_box4
         field: permanentId[3]
+        default_value: "target specific"
+        description: "Mode assignment for PINIO#1"
         min: 0
         max: 255
         type: uint8_t
@@ -3236,6 +3248,8 @@ groups:
     condition: USE_ESC_SENSOR
     members:
         - name: esc_sensor_listen_only
+          default_value: "OFF"
+          description: "Enable when BLHeli32 Auto Telemetry function is used. Disable in every other case"
           field: listenOnly
           type: bool
 
