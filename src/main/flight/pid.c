@@ -676,6 +676,7 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
     const float newDTerm = dTermProcess(pidState, dT);
     const float newFFTerm = pidState->rateTarget * pidState->kFF;
 
+    DEBUG_SET(DEBUG_FW_D, axis, newDTerm);
     /*
      * Integral should be updated only if axis Iterm is not frozen
      */
