@@ -465,7 +465,7 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
             break;
         case ADJUSTMENT_PITCH_ROLL_D:
         case ADJUSTMENT_PITCH_D:
-            applyAdjustmentPID(ADJUSTMENT_PITCH_D, &pidBankMutable()->pid[PID_ROLL].D, delta);
+            applyAdjustmentPID(ADJUSTMENT_PITCH_D, &pidBankMutable()->pid[PID_PITCH].D, delta);
             if (adjustmentFunction == ADJUSTMENT_PITCH_D) {
                 schedulePidGainsUpdate();
                 break;
@@ -479,7 +479,7 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
             break;
         case ADJUSTMENT_PITCH_ROLL_FF:
         case ADJUSTMENT_PITCH_FF:
-            applyAdjustmentPID(ADJUSTMENT_PITCH_FF, &pidBankMutable()->pid[PID_ROLL].FF, delta);
+            applyAdjustmentPID(ADJUSTMENT_PITCH_FF, &pidBankMutable()->pid[PID_PITCH].FF, delta);
             if (adjustmentFunction == ADJUSTMENT_PITCH_FF) {
                 schedulePidGainsUpdate();
                 break;
@@ -500,11 +500,11 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
             schedulePidGainsUpdate();
             break;
         case ADJUSTMENT_YAW_D:
-            applyAdjustmentPID(ADJUSTMENT_YAW_D, &pidBankMutable()->pid[PID_ROLL].D, delta);
+            applyAdjustmentPID(ADJUSTMENT_YAW_D, &pidBankMutable()->pid[PID_YAW].D, delta);
             schedulePidGainsUpdate();
             break;
         case ADJUSTMENT_YAW_FF:
-            applyAdjustmentPID(ADJUSTMENT_YAW_FF, &pidBankMutable()->pid[PID_ROLL].FF, delta);
+            applyAdjustmentPID(ADJUSTMENT_YAW_FF, &pidBankMutable()->pid[PID_YAW].FF, delta);
             schedulePidGainsUpdate();
             break;
         case ADJUSTMENT_NAV_FW_CRUISE_THR:
