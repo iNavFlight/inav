@@ -20,6 +20,11 @@
 #include "drivers/io_types.h"
 #include "drivers/time.h"
 
+typedef enum {
+    DSHOT_CMD_SPIN_DIRECTION_NORMAL = 20,
+    DSHOT_CMD_SPIN_DIRECTION_REVERSED = 21,
+} dshotDirectionCommands_e;
+
 void pwmRequestMotorTelemetry(int motorIndex);
 
 ioTag_t pwmGetMotorPinTag(int motorIndex);
@@ -43,3 +48,5 @@ void pwmServoPreconfigure(void);
 bool pwmServoConfig(const struct timerHardware_s *timerHardware, uint8_t servoIndex, uint16_t servoPwmRate, uint16_t servoCenterPulse, bool enableOutput);
 void pwmWriteBeeper(bool onoffBeep);
 void beeperPwmInit(ioTag_t tag, uint16_t frequency);
+
+void changeDshotSpinRotation(dshotDirectionCommands_e directionSpin);

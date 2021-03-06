@@ -322,22 +322,23 @@ static uint16_t handleOutputScaling(
 
 #define CRASH_FLIP_DEADBAND 20.0f
 #define CRASH_FLIP_STICK_MINF 0.15f
-
-static void applyFlipOverAfterCrashModeToMotors(void)
-{
+static void applyFlipOverAfterCrashModeToMotors(void) {
     //To convert in configs
     const float crashlip_expo = 35.0f;
 
     if (ARMING_FLAG(ARMED)) {
         const float flipPowerFactor = 1.0f - crashlip_expo / 100.0f;
-        const float stickDeflectionPitchAbs = ABS(((float)rcCommand[PITCH])/500.0f);
-        const float stickDeflectionRollAbs = ABS(((float)rcCommand[ROLL])/500.0f);
-        const float stickDeflectionYawAbs = ABS(((float)rcCommand[YAW])/500.0f);
+        const float stickDeflectionPitchAbs = ABS(((float) rcCommand[PITCH]) / 500.0f);
+        const float stickDeflectionRollAbs = ABS(((float) rcCommand[ROLL]) / 500.0f);
+        const float stickDeflectionYawAbs = ABS(((float) rcCommand[YAW]) / 500.0f);
         //deflection stick position
 
-        const float stickDeflectionPitchExpo = flipPowerFactor * stickDeflectionPitchAbs + power3(stickDeflectionPitchAbs) * (1 - flipPowerFactor);
-        const float stickDeflectionRollExpo = flipPowerFactor * stickDeflectionRollAbs + power3(stickDeflectionRollAbs) * (1 - flipPowerFactor);
-        const float stickDeflectionYawExpo = flipPowerFactor * stickDeflectionYawAbs + power3(stickDeflectionYawAbs) * (1 - flipPowerFactor);
+        const float stickDeflectionPitchExpo =
+                flipPowerFactor * stickDeflectionPitchAbs + power3(stickDeflectionPitchAbs) * (1 - flipPowerFactor);
+        const float stickDeflectionRollExpo =
+                flipPowerFactor * stickDeflectionRollAbs + power3(stickDeflectionRollAbs) * (1 - flipPowerFactor);
+        const float stickDeflectionYawExpo =
+                flipPowerFactor * stickDeflectionYawAbs + power3(stickDeflectionYawAbs) * (1 - flipPowerFactor);
 
         float signPitch = rcCommand[PITCH] < 0 ? 1 : -1;
         float signRoll = rcCommand[ROLL] < 0 ? 1 : -1;
@@ -358,8 +359,9 @@ static void applyFlipOverAfterCrashModeToMotors(void)
             signYaw = 0;
         }
 
-        const float cosPhi = (stickDeflectionLength > 0) ? (stickDeflectionPitchAbs + stickDeflectionRollAbs) / (sqrtf(2.0f) * stickDeflectionLength) : 0;
-        const float cosThreshold = sqrtf(3.0f)/2.0f; // cos(PI/6.0f)
+        const float cosPhi = (stickDeflectionLength > 0) ? (stickDeflectionPitchAbs + stickDeflectionRollAbs) /
+                                                           (sqrtf(2.0f) * stickDeflectionLength) : 0;
+        const float cosThreshold = sqrtf(3.0f) / 2.0f; // cos(PI/6.0f)
 
         if (cosPhi < cosThreshold) {
             // Enforce either roll or pitch exclusively, if not on diagonal
@@ -371,29 +373,32 @@ static void applyFlipOverAfterCrashModeToMotors(void)
         }
 
         // Apply a reasonable amount of stick deadband
-        const float crashFlipStickMinExpo = flipPowerFactor * CRASH_FLIP_STICK_MINF + power3(CRASH_FLIP_STICK_MINF) * (1 - flipPowerFactor);
+        const float crashFlipStickMinExpo =
+                flipPowerFactor * CRASH_FLIP_STICK_MINF + power3(CRASH_FLIP_STICK_MINF) * (1 - flipPowerFactor);
         const float flipStickRange = 1.0f - crashFlipStickMinExpo;
         const float flipPower = MAX(0.0f, stickDeflectionExpoLength - crashFlipStickMinExpo) / flipStickRange;
 
         for (int i = 0; i < motorCount; ++i) {
 
             float motorOutputNormalised =
-                signPitch * currentMixer[i].pitch +    //mixer, per ogni motore quanto interviene nel pitch, roll e yaw
-                signRoll * currentMixer[i].roll +
-                signYaw * currentMixer[i].yaw;
+                    signPitch * currentMixer[i].pitch +
+                    //mixer, per ogni motore quanto interviene nel pitch, roll e yaw
+                    signRoll * currentMixer[i].roll +
+                    signYaw * currentMixer[i].yaw;
 
             if (motorOutputNormalised < 0) {
-                    motorOutputNormalised = 0;
+                motorOutputNormalised = 0;
             }
 
             motorOutputNormalised = MIN(1.0f, flipPower * motorOutputNormalised);
 
-            float motorOutput = motorConfig()->mincommand+ motorOutputNormalised * motorConfig()->maxthrottle;
+            float motorOutput = motorConfig()->mincommand + motorOutputNormalised * motorConfig()->maxthrottle;
 
             // Add a little bit to the motorOutputMin so props aren't spinning when sticks are centered
-            motorOutput = (motorOutput < motorConfig()->mincommand + CRASH_FLIP_DEADBAND) ? DSHOT_DISARM_COMMAND : (motorOutput - CRASH_FLIP_DEADBAND);
+            motorOutput = (motorOutput < motorConfig()->mincommand + CRASH_FLIP_DEADBAND) ? DSHOT_DISARM_COMMAND : (
+                    motorOutput - CRASH_FLIP_DEADBAND);
 
-            uint16_t motorValue;
+            motor[i] = motorOutput;
 
             motorValue = handleOutputScaling(
                     motorOutput,
