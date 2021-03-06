@@ -399,19 +399,6 @@ static void applyFlipOverAfterCrashModeToMotors(void) {
                     motorOutput - CRASH_FLIP_DEADBAND);
 
             motor[i] = motorOutput;
-
-            motorValue = handleOutputScaling(
-                    motorOutput,
-                    throttleIdleValue,
-                    DSHOT_DISARM_COMMAND,
-                    motorConfig()->mincommand,
-                    motorConfig()->maxthrottle,
-                    DSHOT_MIN_THROTTLE,
-                    DSHOT_3D_DEADBAND_LOW,
-                    false
-            );
-
-            pwmWriteMotor(i,motorValue);
         }
     } else {
         // Disarmed mode
