@@ -1284,13 +1284,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HOVER_PRIOR_TO_LAND
         if ((ABS(wrap_18000(posControl.rthState.homePosition.yaw - posControl.actualState.yaw)) < DEGREES_TO_CENTIDEGREES(15)) || STATE(FIXED_WING_LEGACY)) {
             resetLandingDetector();
             updateClimbRateToAltitudeController(0, ROC_TO_ALT_RESET);
-            if (IS_RC_MODE_ACTIVE(BOXNAVWP) && isWaypointMissionValid() && !(IS_RC_MODE_ACTIVE(BOXNAVRTH) || posControl.flags.forcedRTHActivated)) {
-                // use WP mission landing setting
-                return posControl.waypointList[posControl.waypointCount - 1].p1 > 0 ? NAV_FSM_EVENT_SUCCESS : NAV_FSM_EVENT_SWITCH_TO_RTH_HOVER_ABOVE_HOME;
-            } else {
-                // use normal RTH landing setting
-                return navigationRTHAllowsLanding() ? NAV_FSM_EVENT_SUCCESS : NAV_FSM_EVENT_SWITCH_TO_RTH_HOVER_ABOVE_HOME; // success = land
-            }
+            return navigationRTHAllowsLanding() ? NAV_FSM_EVENT_SUCCESS : NAV_FSM_EVENT_SWITCH_TO_RTH_HOVER_ABOVE_HOME; // success = land
         }
         else if (!validateRTHSanityChecker()) {
             // Continue to check for RTH sanity during pre-landing hover
@@ -3668,6 +3662,12 @@ bool navigationRTHAllowsLanding(void)
     if (posControl.waypointList[posControl.activeWaypointIndex].action == NAV_WP_ACTION_LAND)
         return true;
 
+    // WP mission landing setting
+    if (IS_RC_MODE_ACTIVE(BOXNAVWP) && isWaypointMissionValid() && !(IS_RC_MODE_ACTIVE(BOXNAVRTH) || posControl.flags.forcedRTHActivated)) {
+        return posControl.waypointList[posControl.waypointCount - 1].p1 > 0;
+    }
+
+    // normal RTH landing setting
     navRTHAllowLanding_e allow = navConfig()->general.flags.rth_allow_landing;
     return allow == NAV_RTH_ALLOW_LANDING_ALWAYS ||
         (allow == NAV_RTH_ALLOW_LANDING_FS_ONLY && FLIGHT_MODE(FAILSAFE_MODE));
