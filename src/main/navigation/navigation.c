@@ -3659,10 +3659,7 @@ bool navigationIsFlyingAutonomousMode(void)
 
 bool navigationRTHAllowsLanding(void)
 {
-    if (posControl.waypointList[posControl.activeWaypointIndex].action == NAV_WP_ACTION_LAND)
-        return true;
-
-    // WP mission landing setting
+    // WP mission RTH landing setting
     if (IS_RC_MODE_ACTIVE(BOXNAVWP) && isWaypointMissionValid() && !(IS_RC_MODE_ACTIVE(BOXNAVRTH) || posControl.flags.forcedRTHActivated)) {
         return posControl.waypointList[posControl.waypointCount - 1].p1 > 0;
     }
