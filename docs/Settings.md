@@ -101,6 +101,7 @@
 | failsafe_throttle_low_delay | 100 | If failsafe activated when throttle is low for this much time - bypass failsafe and disarm, in 10th of seconds. 0 = No timeout |
 | fixed_wing_auto_arm | OFF | Auto-arm fixed wing aircraft on throttle above min_check, and disarming with stick commands are disabled, so power cycle is required to disarm. Requires enabled motorstop and no arm switch configured. |
 | flaperon_throw_offset | 200 | Defines throw range in us for both ailerons that will be passed to servo mixer via input source 14 (`FEATURE FLAPS`) when FLAPERON mode is activated. |
+| flip_over_after_crash_power_factor | 65 | flip over after crash power factor |
 | fpv_mix_degrees |  |  |
 | frsky_coordinates_format | 0 | D-Series telemetry only: FRSKY_FORMAT_DMS (default), FRSKY_FORMAT_NMEA |
 | frsky_default_latitude | 0.000 | D-Series telemetry only: OpenTX needs a valid set of coordinates to show compass value. A fake value defined in this setting is sent while no fix is acquired. |
