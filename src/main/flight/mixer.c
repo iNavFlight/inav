@@ -529,10 +529,12 @@ static int getReversibleMotorsThrottleDeadband(void)
 
 void FAST_CODE mixTable(const float dT)
 {
+#ifdef USE_DSHOT
     if (FLIGHT_MODE(FLIP_OVER_AFTER_CRASH)) {
         applyFlipOverAfterCrashModeToMotors();
         return;
     }
+#endif
 
     int16_t input[3];   // RPY, range [-500:+500]
     // Allow direct stick input to motors in passthrough mode on airplanes

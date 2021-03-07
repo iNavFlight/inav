@@ -398,11 +398,12 @@ void disarm(disarmReason_t disarmReason)
             blackboxFinish();
         }
 #endif
+#ifdef USE_DSHOT
         if (FLIGHT_MODE(FLIP_OVER_AFTER_CRASH)) {
             changeDshotSpinRotation(DSHOT_CMD_SPIN_DIRECTION_NORMAL);
             DISABLE_FLIGHT_MODE(FLIP_OVER_AFTER_CRASH);
         }
-
+#endif
         statsOnDisarm();
         logicConditionReset();
         programmingPidReset();
