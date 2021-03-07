@@ -155,6 +155,8 @@ typedef struct statistic_s {
     int16_t max_current; // /100
     int16_t max_power; // /100
     int16_t min_rssi;
+    int16_t min_lq; // for CRSF
+    int16_t min_rssi_dbm; // for CRSF
     int32_t max_altitude;
     uint32_t max_distance;
 } statistic_t;
@@ -527,6 +529,21 @@ static uint16_t osdConvertRSSI(void)
     return constrain(getRSSI() * 100 / RSSI_MAX_VALUE, 0, 99);
 }
 
+static uint16_t osdGetLQ(void)
+{
+    int16_t statsLQ = rxLinkStatistics.uplinkLQ;
+    int16_t scaledLQ = scaleRange(constrain(statsLQ, 0, 100), 0, 100, 170, 300);
+    if (rxLinkStatistics.rfMode == 2) {
+        return scaledLQ;
+    } else {
+        return statsLQ;
+    }
+}
+
+static uint16_t osdGetdBm(void)
+{
+    return rxLinkStatistics.uplinkRSSI;
+}
 /**
 * Displays a temperature postfixed with a symbol depending on the current unit system
 * @param label to display
@@ -2196,17 +2213,17 @@ static bool osdDrawSingleElement(uint8_t item)
         }
     case OSD_DEBUG:
         {
-            /* 
-             * Longest representable string is -2147483648 does not fit in the screen. 
+            /*
+             * Longest representable string is -2147483648 does not fit in the screen.
              * Only 7 digits for negative and 8 digits for positive values allowed
              */
             for (uint8_t bufferIndex = 0; bufferIndex < DEBUG32_VALUE_COUNT; ++elemPosY, bufferIndex += 2) {
                 tfp_sprintf(
-                    buff, 
-                    "[%u]=%8ld [%u]=%8ld", 
-                    bufferIndex, 
-                    constrain(debug[bufferIndex], -9999999, 99999999), 
-                    bufferIndex+1, 
+                    buff,
+                    "[%u]=%8ld [%u]=%8ld",
+                    bufferIndex,
+                    constrain(debug[bufferIndex], -9999999, 99999999),
+                    bufferIndex+1,
                     constrain(debug[bufferIndex+1], -9999999, 99999999)
                 );
                 displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
@@ -2910,6 +2927,8 @@ static void osdResetStats(void)
     stats.max_speed = 0;
     stats.min_voltage = 5000;
     stats.min_rssi = 99;
+    stats.min_lq = 300;
+    stats.min_rssi_dbm = 0;
     stats.max_altitude = 0;
 }
 
@@ -2941,6 +2960,14 @@ static void osdUpdateStats(void)
     value = osdConvertRSSI();
     if (stats.min_rssi > value)
         stats.min_rssi = value;
+
+    value = osdGetLQ();
+    if (stats.min_lq > value)
+        stats.min_lq = value;
+
+    value = osdGetdBm();
+    if (stats.min_rssi_dbm > value)
+        stats.min_rssi_dbm = value;
 
     stats.max_altitude = MAX(stats.max_altitude, osdGetAltitude());
 }
@@ -2984,10 +3011,22 @@ static void osdShowStats(void)
     osdLeftAlignString(buff);
     displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
+#if defined(USE_SERIALRX_CRSF)
+    displayWrite(osdDisplayPort, statNameX, top, "MIN LQ           :");
+    itoa(stats.min_lq, buff, 10);
+    strcat(buff, "%");
+    displayWrite(osdDisplayPort, statValuesX, top++, buff);
+
+    displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI         :");
+    itoa(stats.min_rssi_dbm, buff, 10);
+    tfp_sprintf(buff, "%s%c", buff, SYM_DBM);
+    displayWrite(osdDisplayPort, statValuesX, top++, buff);
+#else
     displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI         :");
     itoa(stats.min_rssi, buff, 10);
     strcat(buff, "%");
     displayWrite(osdDisplayPort, statValuesX, top++, buff);
+#endif
 
     if (feature(FEATURE_CURRENT_METER)) {
         displayWrite(osdDisplayPort, statNameX, top, "MAX CURRENT      :");
