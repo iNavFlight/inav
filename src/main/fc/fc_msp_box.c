@@ -309,7 +309,8 @@ void initActiveBoxIds(void)
 #endif
 
 #ifdef USE_DSHOT
-    activeBoxIds[activeBoxIdCount++] = BOXFLIPOVERAFTERCRASH;
+    if(STATE(MULTIROTOR))
+        activeBoxIds[activeBoxIdCount++] = BOXFLIPOVERAFTERCRASH;
 #endif
 }
 
