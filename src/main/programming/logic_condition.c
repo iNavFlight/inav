@@ -384,7 +384,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
             return constrain(getRSSI() * 100 / RSSI_MAX_VALUE, 0, 99);
             break;
         
-        case LOGIC_CONDITION_OPERAND_FLIGHT_VBAT: // V / 10
+        case LOGIC_CONDITION_OPERAND_FLIGHT_VBAT: // V / 100
             return getBatteryVoltage();
             break;
 
