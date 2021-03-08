@@ -2292,6 +2292,11 @@ groups:
         condition: USE_NAV
         min: 0
         max: 255
+      - name: nav_mc_wp_slowdown
+        description: "When ON, NAV engine will slow down when switching to the next waypoint. This prioritizes turning over forward movement. When OFF, NAV engine will continue to the next waypoint and turn as it goes."
+        default_value: "ON"
+        field: mc.slowDownForTurning
+        type: bool
       - name: nav_fw_cruise_thr
         description: "Cruise throttle in GPS assisted modes, this includes RTH. Should be set high enough to avoid stalling. This values gives INAV a base for throttle when flying straight, and it will increase or decrease throttle based on pitch of airplane and the parameters below. In addition it will increase throttle if GPS speed gets below 7m/s ( hardcoded )"
         default_value: "1400"
