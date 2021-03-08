@@ -104,6 +104,7 @@ typedef struct {
     uint16_t pidSumLimit;
     filterApply4FnPtr ptermFilterApplyFn;
     bool itermLimitActive;
+    bool itermFreezeActive;
 
     biquadFilter_t rateTargetFilter;
 } pidState_t;
@@ -260,6 +261,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .fixedWingCoordinatedYawGain = 1.0f,
         .fixedWingCoordinatedPitchGain = 1.0f,
         .fixedWingItermLimitOnStickPosition = 0.5f,
+        .fixedWingYawItermBankFreeze = 0,
 
         .loiter_direction = NAV_LOITER_RIGHT,
         .navVelXyDTermLpfHz = NAV_ACCEL_CUTOFF_FREQUENCY_HZ,
@@ -611,7 +613,8 @@ static float pTermProcess(pidState_t *pidState, float rateError, float dT) {
 static void applyItermLimiting(pidState_t *pidState) {
     if (pidState->itermLimitActive) {
         pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -pidState->errorGyroIfLimit, pidState->errorGyroIfLimit);
-    } else {
+    } else 
+    {
         pidState->errorGyroIfLimit = fabsf(pidState->errorGyroIf);
     }
 }
@@ -628,8 +631,12 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
     const float newPTerm = pTermProcess(pidState, rateError, dT);
     const float newFFTerm = pidState->rateTarget * pidState->kFF;
 
-    // Calculate integral
-    pidState->errorGyroIf += rateError * pidState->kI * dT;
+    /*
+     * Integral should be updated only if axis Iterm is not frozen
+     */
+    if (!pidState->itermFreezeActive) {
+        pidState->errorGyroIf += rateError * pidState->kI * dT;
+    }
 
     applyItermLimiting(pidState);
 
@@ -861,7 +868,7 @@ float pidHeadingHold(float dT)
  * TURN ASSISTANT mode is an assisted mode to do a Yaw rotation on a ground plane, allowing one-stick turn in RATE more
  * and keeping ROLL and PITCH attitude though the turn.
  */
-static void NOINLINE pidTurnAssistant(pidState_t *pidState)
+static void NOINLINE pidTurnAssistant(pidState_t *pidState, float bankAngleTarget, float pitchAngleTarget)
 {
     fpVector3_t targetRates;
     targetRates.x = 0.0f;
@@ -889,8 +896,9 @@ static void NOINLINE pidTurnAssistant(pidState_t *pidState)
             airspeedForCoordinatedTurn = constrainf(airspeedForCoordinatedTurn, 300, 6000);
 
             // Calculate rate of turn in Earth frame according to FAA's Pilot's Handbook of Aeronautical Knowledge
-            float bankAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
-            float coordinatedTurnRateEarthFrame = GRAVITY_CMSS * tan_approx(-bankAngle) / airspeedForCoordinatedTurn;
+            bankAngleTarget = constrainf(bankAngleTarget, -DEGREES_TO_RADIANS(60), DEGREES_TO_RADIANS(60));
+            float turnRatePitchAdjustmentFactor = cos_approx(fabsf(pitchAngleTarget));
+            float coordinatedTurnRateEarthFrame = GRAVITY_CMSS * tan_approx(-bankAngleTarget) / airspeedForCoordinatedTurn * turnRatePitchAdjustmentFactor;
 
             targetRates.z = RADIANS_TO_DEGREES(coordinatedTurnRateEarthFrame);
         }
@@ -951,6 +959,24 @@ void checkItermLimitingActive(pidState_t *pidState)
     pidState->itermLimitActive = STATE(ANTI_WINDUP) || shouldActivate; 
 }
 
+void checkItermFreezingActive(pidState_t *pidState, flight_dynamics_index_t axis)
+{
+    if (usedPidControllerType == PID_TYPE_PIFF && pidProfile()->fixedWingYawItermBankFreeze != 0 && axis == FD_YAW) {
+        // Do not allow yaw I-term to grow when bank angle is too large
+        float bankAngle = DECIDEGREES_TO_DEGREES(attitude.values.roll);
+        if (fabsf(bankAngle) > pidProfile()->fixedWingYawItermBankFreeze && !(FLIGHT_MODE(AUTO_TUNE) || FLIGHT_MODE(TURN_ASSISTANT) || navigationRequiresTurnAssistance())){
+            pidState->itermFreezeActive = true;
+        } else
+        {
+            pidState->itermFreezeActive = false;
+        }
+    } else
+    {
+        pidState->itermFreezeActive = false;
+    }
+    
+}
+
 void FAST_CODE pidController(float dT)
 {
     if (!pidFiltersConfigured) {
@@ -1003,8 +1029,10 @@ void FAST_CODE pidController(float dT)
         levelingEnabled = false;
     }
 
-    if (FLIGHT_MODE(TURN_ASSISTANT) || navigationRequiresTurnAssistance()) {
-        pidTurnAssistant(pidState);
+    if ((FLIGHT_MODE(TURN_ASSISTANT) || navigationRequiresTurnAssistance()) && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || navigationRequiresTurnAssistance())) {
+        float bankAngleTarget = DECIDEGREES_TO_RADIANS(pidRcCommandToAngle(rcCommand[FD_ROLL], pidProfile()->max_angle_inclination[FD_ROLL]));
+        float pitchAngleTarget = DECIDEGREES_TO_RADIANS(pidRcCommandToAngle(rcCommand[FD_PITCH], pidProfile()->max_angle_inclination[FD_PITCH]));
+        pidTurnAssistant(pidState, bankAngleTarget, pitchAngleTarget);
         canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with TURN_ASSISTANT
     }
 
@@ -1021,6 +1049,8 @@ void FAST_CODE pidController(float dT)
         
         // Step 4: Run gyro-driven control
         checkItermLimitingActive(&pidState[axis]);
+        checkItermFreezingActive(&pidState[axis], axis);
+
         pidControllerApplyFn(&pidState[axis], axis, dT);
     }
 }

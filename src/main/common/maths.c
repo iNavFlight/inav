@@ -142,7 +142,7 @@ int32_t applyDeadband(int32_t value, int32_t deadband)
     return value;
 }
 
-int constrain(int amt, int low, int high)
+int32_t constrain(int32_t amt, int32_t low, int32_t high)
 {
     if (amt < low)
         return low;

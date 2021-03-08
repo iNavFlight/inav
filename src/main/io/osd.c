@@ -87,6 +87,7 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/pid.h"
 #include "flight/rth_estimator.h"
 #include "flight/wind_estimator.h"
+#include "flight/servos.h"
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
@@ -156,6 +157,8 @@ typedef struct statistic_s {
     int16_t max_current; // /100
     int16_t max_power; // /100
     int16_t min_rssi;
+    int16_t min_lq; // for CRSF
+    int16_t min_rssi_dbm; // for CRSF
     int32_t max_altitude;
     uint32_t max_distance;
 } statistic_t;
@@ -188,7 +191,7 @@ static bool osdDisplayHasCanvas;
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
-PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 14);
+PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 15);
 PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 0);
 
 static int digitCount(int32_t value)
@@ -529,6 +532,21 @@ static uint16_t osdConvertRSSI(void)
     return constrain(getRSSI() * 100 / RSSI_MAX_VALUE, 0, 99);
 }
 
+static uint16_t osdGetLQ(void)
+{
+    int16_t statsLQ = rxLinkStatistics.uplinkLQ;
+    int16_t scaledLQ = scaleRange(constrain(statsLQ, 0, 100), 0, 100, 170, 300);
+    if (rxLinkStatistics.rfMode == 2) {
+        return scaledLQ;
+    } else {
+        return statsLQ;
+    }
+}
+
+static uint16_t osdGetdBm(void)
+{
+    return rxLinkStatistics.uplinkRSSI;
+}
 /**
 * Displays a temperature postfixed with a symbol depending on the current unit system
 * @param label to display
@@ -715,6 +733,8 @@ static const char * osdArmingDisabledReasonMessage(void)
             return OSD_MESSAGE_STR(OSD_MSG_CLI_ACTIVE);
         case ARMING_DISABLED_PWM_OUTPUT_ERROR:
             return OSD_MESSAGE_STR(OSD_MSG_PWM_INIT_ERROR);
+        case ARMING_DISABLED_NO_PREARM:
+            return OSD_MESSAGE_STR(OSD_MSG_NO_PREARM);
             // Cases without message
         case ARMING_DISABLED_CMS_MENU:
             FALLTHROUGH;
@@ -948,6 +968,14 @@ int16_t osdGetHeading(void)
     return attitude.values.yaw;
 }
 
+int16_t osdPanServoHomeDirectionOffset(void)
+{
+    int8_t servoIndex = osdConfig()->pan_servo_index;
+    int16_t servoPosition = servo[servoIndex];
+    int16_t servoMiddle = servoParams(servoIndex)->middle;
+    return (int16_t)CENTIDEGREES_TO_DEGREES((servoPosition - servoMiddle) * osdConfig()->pan_servo_pwm2centideg);
+}
+
 // Returns a heading angle in degrees normalized to [0, 360).
 int osdGetHeadingAngle(int angle)
 {
@@ -1119,13 +1147,6 @@ static void osdDrawRadar(uint16_t *drawn, uint32_t *usedScale)
     int16_t reference = DECIDEGREES_TO_DEGREES(osdGetHeading());
     int16_t poiDirection = osdGetHeadingAngle(GPS_directionToHome + 180);
     osdDrawMap(reference, 0, SYM_ARROW_UP, GPS_distanceToHome, poiDirection, SYM_HOME, drawn, usedScale);
-}
-
-static int16_t osdGet3DSpeed(void)
-{
-    int16_t vert_speed = getEstimatedActualVelocity(Z);
-    int16_t hor_speed = gpsSol.groundSpeed;
-    return (int16_t)sqrtf(sq(hor_speed) + sq(vert_speed));
 }
 
 #endif
@@ -1337,7 +1358,11 @@ static bool osdDrawSingleElement(uint8_t item)
                 }
                 else
                 {
-                    int homeDirection = GPS_directionToHome - DECIDEGREES_TO_DEGREES(osdGetHeading());
+                    int16_t panHomeDirOffset = 0;
+                    if (!(osdConfig()->pan_servo_pwm2centideg == 0)){
+                        panHomeDirOffset = osdPanServoHomeDirectionOffset();
+                    }
+                    int homeDirection = GPS_directionToHome - DECIDEGREES_TO_DEGREES(osdGetHeading()) + panHomeDirOffset;
                     osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX, elemPosY), homeDirection);
                 }
             } else {
@@ -1688,7 +1713,7 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 
     case OSD_CRSF_SNR_DB: {
-        const char* showsnr = "-12";
+        const char* showsnr = "-20";
         const char* hidesnr = "     ";
         int16_t osdSNR_Alarm = rxLinkStatistics.uplinkSNR;
         if (osdSNR_Alarm <= osdConfig()->snr_alarm) {
@@ -1764,9 +1789,6 @@ static bool osdDrawSingleElement(uint8_t item)
             if (osdConfig()->hud_wp_disp > 0 && posControl.waypointListValid && posControl.waypointCount > 0) { // Display the next waypoints
                 gpsLocation_t wp2;
                 int j;
-
-                tfp_sprintf(buff, "W%u/%u", posControl.activeWaypointIndex, posControl.waypointCount);
-                displayWrite(osdGetDisplayPort(), 13, osdConfig()->hud_margin_v - 1, buff);
 
                 for (int i = osdConfig()->hud_wp_disp - 1; i >= 0 ; i--) { // Display in reverse order so the next WP is always written on top
                     j = posControl.activeWaypointIndex + i;
@@ -2192,12 +2214,21 @@ static bool osdDrawSingleElement(uint8_t item)
             }
             break;
         }
-
     case OSD_DEBUG:
         {
-            // Longest representable string is -2147483648, hence 11 characters
+            /*
+             * Longest representable string is -2147483648 does not fit in the screen.
+             * Only 7 digits for negative and 8 digits for positive values allowed
+             */
             for (uint8_t bufferIndex = 0; bufferIndex < DEBUG32_VALUE_COUNT; ++elemPosY, bufferIndex += 2) {
-                tfp_sprintf(buff, "[%u]=%11ld [%u]=%11ld", bufferIndex, debug[bufferIndex], bufferIndex+1, debug[bufferIndex+1]);
+                tfp_sprintf(
+                    buff,
+                    "[%u]=%8ld [%u]=%8ld",
+                    bufferIndex,
+                    constrain(debug[bufferIndex], -9999999, 99999999),
+                    bufferIndex+1,
+                    constrain(debug[bufferIndex+1], -9999999, 99999999)
+                );
                 displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
             }
             break;
@@ -2596,6 +2627,8 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .right_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE,
     .sidebar_scroll_arrows = 0,
     .osd_home_position_arm_screen = true,
+    .pan_servo_index = 0,
+    .pan_servo_pwm2centideg = 0,
 
     .units = OSD_UNIT_METRIC,
     .main_voltage_decimals = 1,
@@ -2897,6 +2930,8 @@ static void osdResetStats(void)
     stats.max_speed = 0;
     stats.min_voltage = 5000;
     stats.min_rssi = 99;
+    stats.min_lq = 300;
+    stats.min_rssi_dbm = 0;
     stats.max_altitude = 0;
 }
 
@@ -2928,6 +2963,14 @@ static void osdUpdateStats(void)
     value = osdConvertRSSI();
     if (stats.min_rssi > value)
         stats.min_rssi = value;
+
+    value = osdGetLQ();
+    if (stats.min_lq > value)
+        stats.min_lq = value;
+
+    value = osdGetdBm();
+    if (stats.min_rssi_dbm > value)
+        stats.min_rssi_dbm = value;
 
     stats.max_altitude = MAX(stats.max_altitude, osdGetAltitude());
 }
@@ -2965,10 +3008,28 @@ static void osdShowStatsPage1(void)
     osdFormatAltitudeStr(buff, stats.max_altitude);
     displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
+    displayWrite(osdDisplayPort, statNameX, top, "MIN BATTERY VOLT :");
+    osdFormatCentiNumber(buff, stats.min_voltage, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
+    strcat(buff, "V");
+    osdLeftAlignString(buff);
+    displayWrite(osdDisplayPort, statValuesX, top++, buff);
+
+#if defined(USE_SERIALRX_CRSF)
+    displayWrite(osdDisplayPort, statNameX, top, "MIN LQ           :");
+    itoa(stats.min_lq, buff, 10);
+    strcat(buff, "%");
+    displayWrite(osdDisplayPort, statValuesX, top++, buff);
+
+    displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI         :");
+    itoa(stats.min_rssi_dbm, buff, 10);
+    tfp_sprintf(buff, "%s%c", buff, SYM_DBM);
+    displayWrite(osdDisplayPort, statValuesX, top++, buff);
+#else
     displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI         :");
     itoa(stats.min_rssi, buff, 10);
     strcat(buff, "%");
     displayWrite(osdDisplayPort, statValuesX, top++, buff);
+#endif
 
     displayWrite(osdDisplayPort, statNameX, top, "FLY TIME         :");
     uint16_t flySeconds = getFlightTime();

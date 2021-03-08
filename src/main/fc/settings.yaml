@@ -4,7 +4,7 @@ tables:
   - name: gyro_lpf
     values: ["256HZ", "188HZ", "98HZ", "42HZ", "20HZ", "10HZ"]
   - name: acc_hardware
-    values: ["NONE", "AUTO", "ADXL345", "MPU6050", "MMA845x", "BMA280", "LSM303DLHC", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "FAKE"]
+    values: ["NONE", "AUTO", "ADXL345", "MPU6050", "MMA845x", "BMA280", "LSM303DLHC", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "FAKE"]
     enum: accelerationSensor_e
   - name: rangefinder_hardware
     values: ["NONE", "HCSR04", "SRF10", "INAV_I2C", "VL53L0X", "MSP", "UNUSED", "BENEWAKE"]
@@ -152,6 +152,9 @@ tables:
   - name: djiOsdTempSource
     values: ["ESC", "IMU", "BARO"]
     enum: djiOsdTempSource_e
+  - name: djiOsdSpeedSource
+    values: ["GROUND", "3D", "AIR"]
+    enum: djiOsdSpeedSource_e
   - name: nav_overrides_motor_stop
     enum: navOverridesMotorStop_e
     values: ["OFF_ALWAYS", "OFF", "AUTO_ONLY", "ALL_NAV"]
@@ -179,8 +182,8 @@ groups:
         type: uint8_t
         table: alignment
       - name: gyro_hardware_lpf
-        description: "Hardware lowpass filter for gyro. Allowed values depend on the driver - For example MPU6050 allows 10HZ,20HZ,42HZ,98HZ,188HZ,256Hz (8khz mode). If you have to set gyro lpf below 42Hz generally means the frame is vibrating too much, and that should be fixed first."
-        default_value: "42HZ"
+        description: "Hardware lowpass filter for gyro. This value should never be changed without a very strong reason! If you have to set gyro lpf below 256HZ, it means the frame is vibrating too much, and that should be fixed first."
+        default_value: "256HZ"
         field: gyro_lpf
         table: gyro_lpf
       - name: gyro_lpf_hz
@@ -461,7 +464,7 @@ groups:
         description: "Adjust how long time the Calibration of mag will last."
         default_value: "30"
         field: magCalibrationTimeLimit
-        min: 30
+        min: 20
         max: 120
       - name: mag_to_use
         description: "Allow to chose between built-in and external compass sensor if they are connected to separate buses. Currently only for REVO target"
@@ -715,6 +718,8 @@ groups:
         max: 30
       - name: motor_poles
         field: motorPoleCount
+        description: "The number of motor poles. Required to compute motor RPM"
+        default_value: "14"
         min: 4
         max: 255
 
@@ -1594,6 +1599,12 @@ groups:
         field: fixedWingItermLimitOnStickPosition
         min: 0
         max: 1
+      - name: fw_yaw_iterm_freeze_bank_angle
+        description: "Yaw Iterm is frozen when bank angle is above this threshold [degrees]. This solves the problem of the rudder counteracting turns by partially disabling yaw stabilization when making banked turns. Setting to 0 (the default) disables this feature. Only applies when autopilot is not active and TURN ASSIST is disabled."
+        default_value: "0"
+        field: fixedWingYawItermBankFreeze
+        min: 0
+        max: 90
       - name: pidsum_limit
         description: "A limitation to overall amount of correction Flight PID can request on each axis (Roll/Pitch). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help"
         default_value: "500"
@@ -2174,6 +2185,8 @@ groups:
         max: 65000
       - name: nav_max_terrain_follow_alt
         field: general.max_terrain_follow_altitude
+        default_value: "100"
+        description: "Max allowed above the ground altitude for terrain following mode"
         max: 1000
       - name: nav_rth_altitude
         description: "Used in EXTRA, FIXED and AT_LEAST rth alt modes [cm] (Default 1000 means 10 meters)"
@@ -2799,8 +2812,8 @@ groups:
         description: "Value below which Crossfire SNR Alarm pops-up. (dB)"
         default_value: "4"
         field: snr_alarm
-        min: -12
-        max: 8
+        min: -20
+        max: 10
       - name: osd_link_quality_alarm
         condition: USE_SERIALRX_CRSF
         description: "LQ % indicator blinks below this value. For Crossfire use 70%, for Tracer use 50%"
@@ -3021,6 +3034,20 @@ groups:
         default_value: "ON"
         description: Should home position coordinates be displayed on the arming screen.
 
+      - name: osd_pan_servo_index
+        description: Index of the pan servo to adjust osd home heading direction based on camera pan. Note that this feature does not work with continiously rotating servos.
+        field: pan_servo_index
+        min: 0
+        max: 10
+
+      - name: osd_pan_servo_pwm2centideg
+        description: Centidegrees of pan servo rotation us PWM signal. A servo with 180 degrees of rotation from 1000 to 2000 us PWM typically needs `18` for this setting. Change sign to inverse direction.
+        field: pan_servo_pwm2centideg
+        default_value: 0
+        min: -36
+        max: 36
+
+
   - name: PG_SYSTEM_CONFIG
     type: systemConfig_t
     headers: ["fc/config.h"]
@@ -3171,21 +3198,29 @@ groups:
     members:
       - name: pinio_box1
         field: permanentId[0]
+        description: "Mode assignment for PINIO#1"
+        default_value: "target specific"
         min: 0
         max: 255
         type: uint8_t
       - name: pinio_box2
         field: permanentId[1]
+        default_value: "target specific"
+        description: "Mode assignment for PINIO#1"
         min: 0
         max: 255
         type: uint8_t
       - name: pinio_box3
         field: permanentId[2]
+        default_value: "target specific"
+        description: "Mode assignment for PINIO#1"
         min: 0
         max: 255
         type: uint8_t
       - name: pinio_box4
         field: permanentId[3]
+        default_value: "target specific"
+        description: "Mode assignment for PINIO#1"
         min: 0
         max: 255
         type: uint8_t
@@ -3213,6 +3248,8 @@ groups:
     condition: USE_ESC_SENSOR
     members:
         - name: esc_sensor_listen_only
+          default_value: "OFF"
+          description: "Enable when BLHeli32 Auto Telemetry function is used. Disable in every other case"
           field: listenOnly
           type: bool
 
@@ -3248,4 +3285,10 @@ groups:
           default_value: "ESC"
           field: esc_temperature_source
           table: djiOsdTempSource
+          type: uint8_t
+        - name: dji_speed_source
+          description: "Sets the speed type displayed by the DJI OSD: GROUND, 3D, AIR"
+          default_value: "GROUND"
+          field: speedSource
+          table: djiOsdSpeedSource
           type: uint8_t
