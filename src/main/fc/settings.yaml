@@ -722,6 +722,12 @@ groups:
         default_value: "14"
         min: 4
         max: 255
+      - name: flip_over_after_crash_power_factor
+        field: flipOverAfterPowerFactor
+        default_value: "65"
+        description: "flip over after crash power factor"
+        min: 0
+        max: 100
 
   - name: PG_FAILSAFE_CONFIG
     type: failsafeConfig_t
@@ -1159,12 +1165,6 @@ groups:
         field: misc.fpvCamAngleDegrees
         min: 0
         max: 50
-      - name: flip_over_after_crash_power_factor
-        field: misc.flipOverAfterPowerFactor
-        default_value: "65"
-        description: "flip over after crash power factor"
-        min: 0
-        max: 100
 
   - name: PG_SERIAL_CONFIG
     type: serialConfig_t

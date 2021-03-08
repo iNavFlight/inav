@@ -100,7 +100,7 @@ PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
 
 #define DEFAULT_MAX_THROTTLE    1850
 
-PG_REGISTER_WITH_RESET_TEMPLATE(motorConfig_t, motorConfig, PG_MOTOR_CONFIG, 6);
+PG_REGISTER_WITH_RESET_TEMPLATE(motorConfig_t, motorConfig, PG_MOTOR_CONFIG, 7);
 
 PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .motorPwmProtocol = DEFAULT_PWM_PROTOCOL,
@@ -111,7 +111,8 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .motorDecelTimeMs = 0,
     .throttleIdle = 15.0f,
     .throttleScale = 1.0f,
-    .motorPoleCount = 14            // Most brushless motors that we use are 14 poles
+    .motorPoleCount = 14,           // Most brushless motors that we use are 14 poles
+    .flipOverAfterPowerFactor = 65
 );
 
 PG_REGISTER_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer, PG_MOTOR_MIXER, 0);
@@ -326,7 +327,7 @@ static uint16_t handleOutputScaling(
 static void applyFlipOverAfterCrashModeToMotors(void) {
 
     if (ARMING_FLAG(ARMED)) {
-        const float flipPowerFactor = ((float)currentControlRateProfile->misc.flipOverAfterPowerFactor/100.0f);
+        const float flipPowerFactor = ((float)motorConfig()->flipOverAfterPowerFactor)/100.0f;
         const float stickDeflectionPitchAbs = ABS(((float) rcCommand[PITCH]) / 500.0f);
         const float stickDeflectionRollAbs = ABS(((float) rcCommand[ROLL]) / 500.0f);
         const float stickDeflectionYawAbs = ABS(((float) rcCommand[YAW]) / 500.0f);
