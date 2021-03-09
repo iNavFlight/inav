@@ -494,6 +494,7 @@ void tryArm(void)
         //It is required to inform the mixer that arming was executed and it has to switch to the FORWARD direction
         ENABLE_STATE(SET_REVERSIBLE_MOTORS_FORWARD);
         logicConditionReset();
+	    
 #ifdef USE_PROGRAMMING_FRAMEWORK	    
         programmingPidReset();
 #endif	    
