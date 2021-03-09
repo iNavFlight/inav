@@ -130,7 +130,7 @@ void ghstFrameGpsPrimaryTelemetry(sbuf_t *dst)
     // constrain alt. from -32,000m to +32,000m, units of meters
     const int16_t altitude = (constrain(getEstimatedActualPosition(Z), -32000 * 100, 32000 * 100) / 100);
     sbufWriteU16(dst, altitude);
-.}
+}
 
 // GPS data, secondary, auxiliary data
 void ghstFrameGpsSecondaryTelemetry(sbuf_t *dst)
