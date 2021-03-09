@@ -43,6 +43,7 @@
 
 #include "drivers/nvic.h"
 
+#include "fc/config.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 
@@ -50,6 +51,8 @@
 
 #include "io/gps.h"
 #include "io/serial.h"
+
+#include "navigation/navigation.h"
 
 #include "rx/rx.h"
 #include "rx/ghst.h"
@@ -67,6 +70,7 @@
 
 #define GHST_CYCLETIME_US                   100000      // 10x/sec
 #define GHST_FRAME_PACK_PAYLOAD_SIZE        10
+#define GHST_FRAME_GPS_PAYLOAD_SIZE         10
 #define GHST_FRAME_LENGTH_CRC               1
 #define GHST_FRAME_LENGTH_TYPE              1
 
@@ -112,11 +116,51 @@ void ghstFramePackTelemetry(sbuf_t *dst)
     sbufWriteU8(dst, 0x00);                     // tbd3
 }
 
+
+// GPS data, primary, positional data
+void ghstFrameGpsPrimaryTelemetry(sbuf_t *dst)
+{
+    // use sbufWrite since CRC does not include frame length
+    sbufWriteU8(dst, GHST_FRAME_GPS_PAYLOAD_SIZE + GHST_FRAME_LENGTH_CRC + GHST_FRAME_LENGTH_TYPE);
+    sbufWriteU8(dst, GHST_DL_GPS_PRIMARY);
+
+    sbufWriteU32(dst, gpsSol.llh.lat);
+    sbufWriteU32(dst, gpsSol.llh.lon);
+
+    // constrain alt. from -32,000m to +32,000m, units of meters
+    const int16_t altitude = (constrain(getEstimatedActualPosition(Z), -32000 * 100, 32000 * 100) / 100);
+    sbufWriteU16(dst, altitude);
+.}
+
+// GPS data, secondary, auxiliary data
+void ghstFrameGpsSecondaryTelemetry(sbuf_t *dst)
+{
+    // use sbufWrite since CRC does not include frame length
+    sbufWriteU8(dst, GHST_FRAME_GPS_PAYLOAD_SIZE + GHST_FRAME_LENGTH_CRC + GHST_FRAME_LENGTH_TYPE);
+    sbufWriteU8(dst, GHST_DL_GPS_SECONDARY);
+
+    sbufWriteU16(dst, gpsSol.groundSpeed);      // speed in 0.1m/s
+    sbufWriteU16(dst, gpsSol.groundCourse);     // degrees * 10
+    sbufWriteU8(dst, gpsSol.numSat);
+
+    sbufWriteU16(dst, (uint16_t) (GPS_distanceToHome / 10));    // use units of 10m to increase range of U16 to 655.36km
+    sbufWriteU16(dst, GPS_directionToHome);
+
+    uint8_t gpsFlags = 0;
+    if(STATE(GPS_FIX))
+        gpsFlags |= GPS_FLAGS_FIX;
+    if(STATE(GPS_FIX_HOME))
+        gpsFlags |= GPS_FLAGS_FIX_HOME;
+    sbufWriteU8(dst, gpsFlags);
+}
+
 // schedule array to decide how often each type of frame is sent
 typedef enum {
     GHST_FRAME_START_INDEX = 0,
     GHST_FRAME_PACK_INDEX = GHST_FRAME_START_INDEX, // Battery (Pack) data
-    GHST_SCHEDULE_COUNT_MAX
+    GHST_FRAME_GPS_PRIMARY_INDEX,                   // GPS, primary values (Lat, Long, Alt)
+    GHST_FRAME_GPS_SECONDARY_INDEX,                 // GPS, secondary values (Sat Count, HDOP, etc.)
+   GHST_SCHEDULE_COUNT_MAX
 } ghstFrameTypeIndex_e;
 
 static uint8_t ghstScheduleCount;
@@ -136,6 +180,19 @@ static void processGhst(void)
         ghstFramePackTelemetry(dst);
         ghstFinalize(dst);
     } 
+
+    if (currentSchedule & BIT(GHST_FRAME_GPS_PRIMARY_INDEX)) {
+        ghstInitializeFrame(dst);
+        ghstFrameGpsPrimaryTelemetry(dst);
+        ghstFinalize(dst);
+    }
+
+   if (currentSchedule & BIT(GHST_FRAME_GPS_SECONDARY_INDEX)) {
+        ghstInitializeFrame(dst);
+        ghstFrameGpsSecondaryTelemetry(dst);
+        ghstFinalize(dst);
+    }
+
     ghstScheduleIndex = (ghstScheduleIndex + 1) % ghstScheduleCount;
 }
 
@@ -152,6 +209,14 @@ void initGhstTelemetry(void)
     if (isBatteryVoltageConfigured() || isAmperageConfigured()) {
         ghstSchedule[index++] = BIT(GHST_FRAME_PACK_INDEX);
     }
+
+#ifdef USE_GPS
+    if (feature(FEATURE_GPS)) {
+        ghstSchedule[index++] = BIT(GHST_FRAME_GPS_PRIMARY_INDEX);
+        ghstSchedule[index++] = BIT(GHST_FRAME_GPS_SECONDARY_INDEX);
+    }
+#endif
+
     ghstScheduleCount = (uint8_t)index;
  }
 
