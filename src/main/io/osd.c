@@ -3008,12 +3008,6 @@ static void osdShowStatsPage1(void)
     osdFormatAltitudeStr(buff, stats.max_altitude);
     displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
-    displayWrite(osdDisplayPort, statNameX, top, "MIN BATTERY VOLT :");
-    osdFormatCentiNumber(buff, stats.min_voltage, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
-    strcat(buff, "V");
-    osdLeftAlignString(buff);
-    displayWrite(osdDisplayPort, statValuesX, top++, buff);
-
 #if defined(USE_SERIALRX_CRSF)
     displayWrite(osdDisplayPort, statNameX, top, "MIN LQ           :");
     itoa(stats.min_lq, buff, 10);
