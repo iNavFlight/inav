@@ -401,7 +401,9 @@ void disarm(disarmReason_t disarmReason)
 
         statsOnDisarm();
         logicConditionReset();
+#ifdef USE_PROGRAMMING_FRAMEWORK	    
         programmingPidReset();
+#endif	    
         beeper(BEEPER_DISARMING);      // emit disarm tone
     }
 }
@@ -492,7 +494,9 @@ void tryArm(void)
         //It is required to inform the mixer that arming was executed and it has to switch to the FORWARD direction
         ENABLE_STATE(SET_REVERSIBLE_MOTORS_FORWARD);
         logicConditionReset();
+#ifdef USE_PROGRAMMING_FRAMEWORK	    
         programmingPidReset();
+#endif	    
         headFreeModeHold = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
 
         resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
