@@ -438,7 +438,19 @@ static void updatePositionVelocityController_MC(const float maxSpeed)
 
     // Scale velocity to respect max_speed
     float newVelTotal = sqrtf(sq(newVelX) + sq(newVelY));
-    if (newVelTotal > maxSpeed) {
+
+    /*
+     * We override computed speed with max speed in following cases:
+     * 1 - computed velocity is > maxSpeed
+     * 2 - in WP mission when: slowDownForTurning is OFF, we do not fly towards na last waypoint and computed speed is < maxSpeed
+     */    
+    if (
+        (navGetStateFlags(posControl.navState) & NAV_AUTO_WP && 
+        !isApproachingLastWaypoint() && 
+        newVelTotal < maxSpeed && 
+        !navConfig()->mc.slowDownForTurning
+        ) || newVelTotal > maxSpeed
+    ) {
         newVelX = maxSpeed * (newVelX / newVelTotal);
         newVelY = maxSpeed * (newVelY / newVelTotal);
         newVelTotal = maxSpeed;
