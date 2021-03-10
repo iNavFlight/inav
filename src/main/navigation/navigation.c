@@ -3634,6 +3634,11 @@ rthState_e getStateOfForcedRTH(void)
     }
 }
 
+bool isWaypointMissionRTHActive(void)
+{
+    return FLIGHT_MODE(NAV_RTH_MODE) && IS_RC_MODE_ACTIVE(BOXNAVWP) && !(IS_RC_MODE_ACTIVE(BOXNAVRTH) || posControl.flags.forcedRTHActivated);
+}
+
 bool navigationIsExecutingAnEmergencyLanding(void)
 {
     return navGetCurrentStateFlags() & NAV_CTL_EMERG;
@@ -3660,7 +3665,7 @@ bool navigationIsFlyingAutonomousMode(void)
 bool navigationRTHAllowsLanding(void)
 {
     // WP mission RTH landing setting
-    if (IS_RC_MODE_ACTIVE(BOXNAVWP) && isWaypointMissionValid() && !(IS_RC_MODE_ACTIVE(BOXNAVRTH) || posControl.flags.forcedRTHActivated)) {
+    if (isWaypointMissionRTHActive() && isWaypointMissionValid()) {
         return posControl.waypointList[posControl.waypointCount - 1].p1 > 0;
     }
 

@@ -85,6 +85,7 @@
 #define OSD_MSG_HOLDING_WAYPOINT    "HOLDING WAYPOINT"
 #define OSD_MSG_TO_WP               "TO WP"
 #define OSD_MSG_PREPARE_NEXT_WP     "PREPARING FOR NEXT WAYPOINT"
+#define OSD_MSG_WP_RTH_CANCEL       "CANCEL WP MODE TO EXIT RTH"
 #define OSD_MSG_EMERG_LANDING       "EMERGENCY LANDING"
 #define OSD_MSG_LANDING             "LANDING"
 #define OSD_MSG_LOITERING_HOME      "LOITERING AROUND HOME"
@@ -337,7 +338,7 @@ typedef struct osdConfig_s {
 
     bool osd_failsafe_switch_layout;
     uint8_t plus_code_digits; // Number of digits to use in OSD_PLUS_CODE
-    uint8_t plus_code_short; 
+    uint8_t plus_code_short;
     uint8_t osd_ahi_style;
     uint8_t force_grid;                 // Force a pixel based OSD to use grid mode.
     uint8_t ahi_bordered;               // Only used by the AHI widget
