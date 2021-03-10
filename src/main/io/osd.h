@@ -97,7 +97,6 @@
 #define OSD_MSG_AUTOTUNE            "(AUTOTUNE)"
 #define OSD_MSG_HEADFREE            "(HEADFREE)"
 #define OSD_MSG_UNABLE_ARM          "UNABLE TO ARM"
-#define OSD_MSG_WP_RTH_CANCEL       "CANCEL WP MODE TO EXIT RTH"
 
 typedef enum {
     OSD_RSSI_VALUE,
@@ -338,7 +337,7 @@ typedef struct osdConfig_s {
 
     bool osd_failsafe_switch_layout;
     uint8_t plus_code_digits; // Number of digits to use in OSD_PLUS_CODE
-    uint8_t plus_code_short;
+    uint8_t plus_code_short; 
     uint8_t osd_ahi_style;
     uint8_t force_grid;                 // Force a pixel based OSD to use grid mode.
     uint8_t ahi_bordered;               // Only used by the AHI widget
