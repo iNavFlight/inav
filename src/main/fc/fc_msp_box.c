@@ -33,6 +33,8 @@
 
 #include "io/osd.h"
 
+#include "drivers/pwm_output.h"
+
 #include "sensors/diagnostics.h"
 #include "sensors/sensors.h"
 
@@ -309,7 +311,7 @@ void initActiveBoxIds(void)
 #endif
 
 #ifdef USE_DSHOT
-    if(STATE(MULTIROTOR))
+    if(STATE(MULTIROTOR) && isMotorProtocolDshot())
         activeBoxIds[activeBoxIdCount++] = BOXFLIPOVERAFTERCRASH;
 #endif
 }
