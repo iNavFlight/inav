@@ -183,6 +183,9 @@ extern int32_t axisPID_P[], axisPID_I[], axisPID_D[], axisPID_Setpoint[];
 void pidInit(void);
 bool pidInitFilters(void);
 void pidResetErrorAccumulators(void);
+void pidReduceErrorAccumulators(int8_t delta, uint8_t axis);
+float getAxisIterm(uint8_t axis);
+float getTotalRateTarget(void);
 void pidResetTPAFilter(void);
 
 struct controlRateConfig_s;

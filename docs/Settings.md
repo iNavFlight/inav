@@ -474,6 +474,8 @@
 | serialrx_halfduplex | AUTO | Allow serial receiver to operate on UART TX pin. With some receivers will allow control and telemetry over a single wire. |
 | serialrx_inverted | OFF | Reverse the serial inversion of the serial RX protocol. When this value is OFF, each protocol will use its default signal (e.g. SBUS will use an inverted signal). Some OpenLRS receivers produce a non-inverted SBUS signal. This setting supports this type of receivers (including modified FrSKY). |
 | serialrx_provider | _target default_ | When feature SERIALRX is enabled, this allows connection to several receivers which output data via digital interface resembling serial. See RX section. |
+| servo_autotrim_iterm_threshold | 5 | How much of the Iterm is carried over to the servo midpoints on each update. Only applies when using `feature FW_AUTOTRIM`. |
+| servo_autotrim_rotation_limit | 10 | Servo midpoints are only updated when total aircraft rotation is less than this threshold [deg/s]. Only applies when using `feature FW_AUTOTRIM`. |
 | servo_center_pulse | 1500 | Servo midpoint |
 | servo_lpf_hz | 20 | Selects the servo PWM output cutoff frequency. Value is in [Hz] |
 | servo_protocol | PWM | An option to chose the protocol/option that would be used to output servo data. Possible options `PWM` (FC servo outputs), `SERVO_DRIVER` (I2C PCA9685 peripheral), `SBUS` (S.Bus protocol output via a configured serial port) |

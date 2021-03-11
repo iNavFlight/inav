@@ -371,6 +371,22 @@ void pidResetErrorAccumulators(void)
     }
 }
 
+void pidReduceErrorAccumulators(int8_t delta, uint8_t axis) 
+{
+    pidState[axis].errorGyroIf -= delta;
+    pidState[axis].errorGyroIfLimit -= delta;
+}
+
+float getTotalRateTarget(void)
+{
+    return sqrtf(sq(pidState[FD_ROLL].rateTarget) + sq(pidState[FD_PITCH].rateTarget) + sq(pidState[FD_YAW].rateTarget));
+}
+
+float getAxisIterm(uint8_t axis) 
+{
+    return pidState[axis].errorGyroIf;
+}
+
 static float pidRcCommandToAngle(int16_t stick, int16_t maxInclination)
 {
     stick = constrain(stick, -500, 500);

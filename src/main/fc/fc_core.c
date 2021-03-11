@@ -121,6 +121,7 @@ typedef struct emergencyArmingState_s {
 
 timeDelta_t cycleTime = 0;         // this is the number in micro second to achieve a full loop, it can differ a little and is taken into account in the PID loop
 static timeUs_t flightTime = 0;
+static timeUs_t armTime = 0;
 
 EXTENDED_FASTRAM float dT;
 
@@ -842,7 +843,11 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
     if (ARMING_FLAG(ARMED) && (!STATE(FIXED_WING_LEGACY) || !isNavLaunchEnabled() || (isNavLaunchEnabled() && (isFixedWingLaunchDetected() || isFixedWingLaunchFinishedOrAborted())))) {
         flightTime += cycleTime;
+        armTime += cycleTime;
         updateAccExtremes();
+    }
+    if (!ARMING_FLAG(ARMED)) {
+        armTime = 0;
     }
 
     taskGyro(currentTimeUs);
@@ -905,6 +910,8 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     if (isMixerUsingServos()) {
         servoMixer(dT);
         processServoAutotrim();
+        processContinuousServoAutotrim(dT);
+    
     }
 
     //Servos should be filtered or written only when mixer is using servos or special feaures are enabled
@@ -959,6 +966,11 @@ void taskUpdateRxMain(timeUs_t currentTimeUs)
 float getFlightTime()
 {
     return (float)(flightTime / 1000) / 1000;
+}
+
+float getArmTime()
+{
+    return (float)(armTime / 1000) / 1000;
 }
 
 void fcReboot(bool bootLoader)

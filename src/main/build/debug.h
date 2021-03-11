@@ -83,5 +83,6 @@ typedef enum {
     DEBUG_FW_D,
     DEBUG_IMU2,
     DEBUG_ALTITUDE,
+    DEBUG_AUTOTRIM,
     DEBUG_COUNT
 } debugType_e;

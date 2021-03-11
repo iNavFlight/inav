@@ -127,6 +127,7 @@ void mixerResetDisarmedMotors(void);
 void mixTable(const float dT);
 void writeMotors(void);
 void processServoAutotrim(void);
+void processContinuousServoAutotrim(const float dT);
 void stopMotors(void);
 void stopPwmAllMotors(void);
 

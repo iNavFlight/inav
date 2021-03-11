@@ -90,6 +90,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXMSPRCOVERRIDE, "MSP RC OVERRIDE", 50 },
     { BOXPREARM, "PREARM", 51 },
     { BOXFLIPOVERAFTERCRASH, "TURTLE", 52 },
+    { BOXCONTAUTOTRIM, "CONTINUOUS AUTOTRIM", 53 },
     { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
@@ -240,7 +241,12 @@ void initActiveBoxIds(void)
         if (!feature(FEATURE_FW_LAUNCH)) {
            activeBoxIds[activeBoxIdCount++] = BOXNAVLAUNCH;
         }
-        activeBoxIds[activeBoxIdCount++] = BOXAUTOTRIM;
+
+        if (!feature(FEATURE_FW_AUTOTRIM)) {
+            activeBoxIds[activeBoxIdCount++] = BOXAUTOTRIM;
+            activeBoxIds[activeBoxIdCount++] = BOXCONTAUTOTRIM;
+        }
+        
 #if defined(USE_AUTOTUNE_FIXED_WING)
         activeBoxIds[activeBoxIdCount++] = BOXAUTOTUNE;
 #endif
@@ -373,6 +379,7 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE)),   BOXMSPRCOVERRIDE);
 #endif
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCONTAUTOTRIM)),    BOXCONTAUTOTRIM);
 
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
     for (uint32_t i = 0; i < activeBoxIdCount; i++) {
