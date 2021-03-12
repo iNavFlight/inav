@@ -193,14 +193,6 @@ static int logicConditionCompute(
                 return operandA;
             }
             break;
-
-        case LOGIC_CONDITION_MODULUS:
-            if (operandB != 0) {
-                return constrain(operandA % operandB, INT16_MIN, INT16_MAX);
-            } else {
-                return operandA;
-            }
-            break;
         
         case LOGIC_CONDITION_OVERRIDE_ARMING_SAFETY:
             LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_ARMING_SAFETY);
@@ -331,6 +323,14 @@ static int logicConditionCompute(
             updateHeadingHoldTarget(temporaryValue);
             return temporaryValue;
         break;
+
+        case LOGIC_CONDITION_MODULUS:
+            if (operandB != 0) {
+                return constrain(operandA % operandB, INT16_MIN, INT16_MAX);
+            } else {
+                return operandA;
+            }
+            break;
 
         default:
             return false;

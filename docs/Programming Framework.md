@@ -51,7 +51,6 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 15            | SUB           | Substract `Operand B` from `Operand A` and returns the result |
 | 16            | MUL           | Multiply `Operand A` by `Operand B` and returns the result |
 | 17            | DIV           | Divide `Operand A` by `Operand B` and returns the result |
-| 17            | MOD           | Divide `Operand A` by `Operand B` and returns the remainder |
 | 18            | GVAR SET      | Store value from `Operand B` into the Global Variable addressed by `Operand B`. Bear in mind, that operand `Global Variable` means: Value stored in Global Variable of an index! To store in GVAR 1 use `Value 1` not `Global Variable 1` |
 | 19            | GVAR INC      | Increase the GVAR indexed by `Operand A` with value from `Operand B`  |
 | 20            | GVAR DEC      | Decrease the GVAR indexed by `Operand A` with value from `Operand B`  |
@@ -74,6 +73,7 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 37            | MAP_OUTPUT         | Scales `Operand A` from [`0` : `1000`] to [`0` : `Operand B`]. Note: input will be constrained and then scaled |
 | 38            | RC_CHANNEL_OVERRIDE | Overrides channel set by `Operand A` to value of `Operand B` |
 | 39            | SET_HEADING_TARGET  | Sets heading-hold target to `Operand A`, in degrees. Value wraps-around. |
+| 40            | MOD           | Divide `Operand A` by `Operand B` and returns the remainder |
 
 
 ### Operands
