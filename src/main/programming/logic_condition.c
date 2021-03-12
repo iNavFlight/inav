@@ -324,6 +324,14 @@ static int logicConditionCompute(
             return temporaryValue;
         break;
 
+        case LOGIC_CONDITION_MODULUS:
+            if (operandB != 0) {
+                return constrain(operandA % operandB, INT16_MIN, INT16_MAX);
+            } else {
+                return operandA;
+            }
+            break;
+
         default:
             return false;
             break; 
