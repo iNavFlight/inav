@@ -1910,7 +1910,7 @@ groups:
         min: -10
         max: 10
       - name: fw_level_pitch_gain
-        description: "I-gain for the pitch trim for self-leveling flight modes."
+        description: "I-gain for the pitch trim for self-leveling flight modes. Higher values means that AUTOTRIM will be faster but might introduce oscillations"
         default_value: "5"
         field: fixedWingLevelTrimGain
         min: 0
