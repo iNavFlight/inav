@@ -72,7 +72,7 @@ void lightsUpdate(timeUs_t currentTimeUs)
         lightsSetStatus(IS_RC_MODE_ACTIVE(BOXLIGHTS), currentTimeUs);
 }
 
-void lightsInit()
+void lightsInit(void)
 {
     lightsHardwareInit();
 }

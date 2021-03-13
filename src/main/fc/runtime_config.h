@@ -23,7 +23,6 @@ typedef enum {
     WAS_EVER_ARMED                                  = (1 << 3),
 
     ARMING_DISABLED_FAILSAFE_SYSTEM                 = (1 << 7),
-
     ARMING_DISABLED_NOT_LEVEL                       = (1 << 8),
     ARMING_DISABLED_SENSORS_CALIBRATING             = (1 << 9),
     ARMING_DISABLED_SYSTEM_OVERLOADED               = (1 << 10),
@@ -44,6 +43,7 @@ typedef enum {
     ARMING_DISABLED_OOM                             = (1 << 25),
     ARMING_DISABLED_INVALID_SETTING                 = (1 << 26),
     ARMING_DISABLED_PWM_OUTPUT_ERROR                = (1 << 27),
+    ARMING_DISABLED_NO_PREARM                       = (1 << 28),
 
     ARMING_DISABLED_ALL_FLAGS                       = (ARMING_DISABLED_FAILSAFE_SYSTEM | ARMING_DISABLED_NOT_LEVEL | ARMING_DISABLED_SENSORS_CALIBRATING | 
                                                        ARMING_DISABLED_SYSTEM_OVERLOADED | ARMING_DISABLED_NAVIGATION_UNSAFE |
@@ -52,7 +52,7 @@ typedef enum {
                                                        ARMING_DISABLED_BOXKILLSWITCH | ARMING_DISABLED_RC_LINK | ARMING_DISABLED_THROTTLE | ARMING_DISABLED_CLI |
                                                        ARMING_DISABLED_CMS_MENU | ARMING_DISABLED_OSD_MENU | ARMING_DISABLED_ROLLPITCH_NOT_CENTERED |
                                                        ARMING_DISABLED_SERVO_AUTOTRIM | ARMING_DISABLED_OOM | ARMING_DISABLED_INVALID_SETTING |
-                                                       ARMING_DISABLED_PWM_OUTPUT_ERROR),
+                                                       ARMING_DISABLED_PWM_OUTPUT_ERROR | ARMING_DISABLED_NO_PREARM),
 } armingFlag_e;
 
 // Arming blockers that can be overriden by emergency arming.
@@ -78,7 +78,7 @@ extern const char *armingDisableFlagNames[];
 #define ARMING_FLAG(mask)           (armingFlags & (mask))
 
 // Returns the 1st flag from ARMING_DISABLED_ALL_FLAGS which is
-// preventing arming, or zero is arming is not disabled.
+// preventing arming, or zero if arming is not disabled.
 armingFlag_e isArmingDisabledReason(void);
 
 typedef enum {

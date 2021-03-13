@@ -52,6 +52,7 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/accgyro/accgyro_adxl345.h"
 #include "drivers/accgyro/accgyro_mma845x.h"
 #include "drivers/accgyro/accgyro_bma280.h"
+#include "drivers/accgyro/accgyro_bmi088.h"
 #include "drivers/accgyro/accgyro_bmi160.h"
 #include "drivers/accgyro/accgyro_icm20689.h"
 #include "drivers/accgyro/accgyro_fake.h"
@@ -202,6 +203,15 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     case GYRO_BMI160:
         if (bmi160GyroDetect(dev)) {
             gyroHardware = GYRO_BMI160;
+            break;
+        }
+        FALLTHROUGH;
+#endif
+
+#ifdef USE_IMU_BMI088
+    case GYRO_BMI088:
+        if (bmi088GyroDetect(dev)) {
+            gyroHardware = GYRO_BMI088;
             break;
         }
         FALLTHROUGH;

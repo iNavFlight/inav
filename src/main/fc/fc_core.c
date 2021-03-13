@@ -295,6 +295,16 @@ static void updateArmingStatus(void)
 	       DISABLE_ARMING_FLAG(ARMING_DISABLED_SERVO_AUTOTRIM);
 	    }
 
+        if (isModeActivationConditionPresent(BOXPREARM)) {
+            if (IS_RC_MODE_ACTIVE(BOXPREARM)) {
+                DISABLE_ARMING_FLAG(ARMING_DISABLED_NO_PREARM);
+            } else {
+                ENABLE_ARMING_FLAG(ARMING_DISABLED_NO_PREARM);
+            }
+        } else {
+            DISABLE_ARMING_FLAG(ARMING_DISABLED_NO_PREARM);
+        }
+
         /* CHECK: Arming switch */
         // If arming is disabled and the ARM switch is on
         // Note that this should be last check so all other blockers could be cleared correctly
@@ -391,7 +401,9 @@ void disarm(disarmReason_t disarmReason)
 
         statsOnDisarm();
         logicConditionReset();
+#ifdef USE_PROGRAMMING_FRAMEWORK	    
         programmingPidReset();
+#endif	    
         beeper(BEEPER_DISARMING);      // emit disarm tone
     }
 }
@@ -482,7 +494,10 @@ void tryArm(void)
         //It is required to inform the mixer that arming was executed and it has to switch to the FORWARD direction
         ENABLE_STATE(SET_REVERSIBLE_MOTORS_FORWARD);
         logicConditionReset();
+	    
+#ifdef USE_PROGRAMMING_FRAMEWORK	    
         programmingPidReset();
+#endif	    
         headFreeModeHold = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
 
         resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
@@ -506,6 +521,7 @@ void tryArm(void)
 #else
         beeper(BEEPER_ARMING);
 #endif
+
         statsOnArm();
 
         return;

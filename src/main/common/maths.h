@@ -131,7 +131,7 @@ bool sensorCalibrationSolveForScale(sensorCalibrationState_t * state, float resu
 int gcd(int num, int denom);
 int32_t applyDeadband(int32_t value, int32_t deadband);
 
-int constrain(int amt, int low, int high);
+int32_t constrain(int32_t amt, int32_t low, int32_t high);
 float constrainf(float amt, float low, float high);
 
 void devClear(stdev_t *dev);

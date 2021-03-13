@@ -406,7 +406,7 @@ bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcR
 static float getVelocityHeadingAttenuationFactor(void)
 {
     // In WP mode scale velocity if heading is different from bearing
-    if (navGetCurrentStateFlags() & NAV_AUTO_WP) {
+    if (navConfig()->mc.slowDownForTurning && (navGetCurrentStateFlags() & NAV_AUTO_WP)) {
         const int32_t headingError = constrain(wrap_18000(posControl.desiredState.yaw - posControl.actualState.yaw), -9000, 9000);
         const float velScaling = cos_approx(CENTIDEGREES_TO_RADIANS(headingError));
 

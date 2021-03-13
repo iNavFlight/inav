@@ -87,6 +87,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXLOITERDIRCHN, "LOITER CHANGE", 49 },
     { BOXMSPRCOVERRIDE, "MSP RC OVERRIDE", 50 },
     { BOXAUTOLEVEL, "AUTO LEVEL", 51 },
+    { BOXPREARM, "PREARM", 52 },
     { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
@@ -164,6 +165,7 @@ void initActiveBoxIds(void)
 
     activeBoxIdCount = 0;
     activeBoxIds[activeBoxIdCount++] = BOXARM;
+    activeBoxIds[activeBoxIdCount++] = BOXPREARM;
 
     if (sensors(SENSOR_ACC) && STATE(ALTITUDE_CONTROL)) {
         activeBoxIds[activeBoxIdCount++] = BOXANGLE;

@@ -58,6 +58,7 @@
 #include "io/gps.h"
 #include "io/osd.h"
 #include "io/osd_dji_hd.h"
+#include "io/osd_common.h"
 
 #include "rx/rx.h"
 
@@ -68,6 +69,7 @@
 #include "sensors/acceleration.h"
 #include "sensors/esc_sensor.h"
 #include "sensors/temperature.h"
+#include "sensors/pitotmeter.h"
 
 #include "msp/msp.h"
 #include "msp/msp_protocol.h"
@@ -118,11 +120,12 @@
  * but reuse the packet decoder to minimize code duplication
  */
 
-PG_REGISTER_WITH_RESET_TEMPLATE(djiOsdConfig_t, djiOsdConfig, PG_DJI_OSD_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(djiOsdConfig_t, djiOsdConfig, PG_DJI_OSD_CONFIG, 2);
 PG_RESET_TEMPLATE(djiOsdConfig_t, djiOsdConfig,
     .use_name_for_messages  = true,
     .esc_temperature_source = DJI_OSD_TEMP_ESC,
     .proto_workarounds = DJI_OSD_USE_NON_STANDARD_MSP_ESC_SENSOR_DATA,
+    .speedSource = DJI_OSD_SPEED_GROUND,
 );
 
 // External dependency on looptime
@@ -500,6 +503,8 @@ static const char * osdArmingDisabledReasonMessage(void)
             return OSD_MESSAGE_STR("CLI");
         case ARMING_DISABLED_PWM_OUTPUT_ERROR:
             return OSD_MESSAGE_STR("PWM ERR");
+        case ARMING_DISABLED_NO_PREARM:
+            return OSD_MESSAGE_STR("NO PREARM");
             // Cases without message
         case ARMING_DISABLED_CMS_MENU:
             FALLTHROUGH;
@@ -639,13 +644,6 @@ static int32_t osdConvertVelocityToUnit(int32_t vel)
     return -1;
 }
 
-static int16_t osdDJIGet3DSpeed(void)
-{
-    int16_t vert_speed = getEstimatedActualVelocity(Z);
-    int16_t hor_speed = gpsSol.groundSpeed;
-    return (int16_t)sqrtf(sq(hor_speed) + sq(vert_speed));
-}
-
 /**
  * Converts velocity into a string based on the current unit system.
  * @param alt Raw velocity (i.e. as taken from gpsSol.groundSpeed in centimeters/seconds)
@@ -670,7 +668,7 @@ static void osdDJIFormatThrottlePosition(char *buff, bool autoThr )
         thr = rcCommand[THROTTLE];
     }
 
-    tfp_sprintf(buff, "%3d%s", (constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN), "%THR");
+    tfp_sprintf(buff, "%3ld%s", (constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN), "%THR");
 }
 
 /**
@@ -766,7 +764,7 @@ static void djiSerializeCraftNameOverride(sbuf_t *dst, const char * name)
                 osdDJIFormatThrottlePosition(djibuf,true);
                 break;
             case 'S':
-                osdDJIFormatVelocityStr(djibuf, osdDJIGet3DSpeed());
+                osdDJIFormatVelocityStr(djibuf, osdGet3DSpeed());
                 break;
             case 'E':
                 osdDJIEfficiencyMahPerKM(djibuf);
@@ -1004,7 +1002,21 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
             sbufWriteU32(dst, gpsSol.llh.lat);
             sbufWriteU32(dst, gpsSol.llh.lon);
             sbufWriteU16(dst, gpsSol.llh.alt / 100);
-            sbufWriteU16(dst, gpsSol.groundSpeed);
+
+            int reportedSpeed = 0;
+            if (djiOsdConfig()->speedSource == DJI_OSD_SPEED_GROUND) {
+                reportedSpeed = gpsSol.groundSpeed;
+            } else if (djiOsdConfig()->speedSource == DJI_OSD_SPEED_3D) {
+                reportedSpeed = osdGet3DSpeed();
+            } else if (djiOsdConfig()->speedSource == DJI_OSD_SPEED_AIR) {
+            #ifdef USE_PITOT
+                reportedSpeed = pitot.airSpeed;
+            #else
+                reportedSpeed = 0;
+            #endif
+            }
+
+            sbufWriteU16(dst, reportedSpeed);
             sbufWriteU16(dst, gpsSol.groundCourse);
             break;
 

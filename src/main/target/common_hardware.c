@@ -80,6 +80,15 @@
         BUSDEV_REGISTER_I2C(busdev_bmi160,      DEVHW_BMI160,       BMI160_I2C_BUS,     0x68,               GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_BMI160_ALIGN);
         #endif
     #endif
+
+    #if defined(USE_IMU_BMI088)
+        #if defined(BMI088_SPI_BUS)
+        BUSDEV_REGISTER_SPI(busdev_bmi088_gyro, DEVHW_BMI088_GYRO,  BMI088_SPI_BUS,     BMI088_GYRO_CS_PIN, GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_BMI088_ALIGN);
+        BUSDEV_REGISTER_SPI(busdev_bmi088_acc,  DEVHW_BMI088_ACC,   BMI088_SPI_BUS,     BMI088_ACC_CS_PIN,  GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_BMI088_ALIGN);
+        #elif defined(BMI088_I2C_BUS)
+        BUSDEV_REGISTER_I2C(busdev_bmi088,      DEVHW_BMI088,       BMI088_I2C_BUS,     0x68,               GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_BMI088_ALIGN);
+        #endif
+    #endif
 #endif
 
 
