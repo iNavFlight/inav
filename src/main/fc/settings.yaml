@@ -726,6 +726,7 @@ groups:
         field: flipOverAfterPowerFactor
         default_value: "65"
         description: "flip over after crash power factor"
+        condition: "USE_DSHOT"
         min: 0
         max: 100
 

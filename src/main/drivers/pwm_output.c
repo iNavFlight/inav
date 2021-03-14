@@ -28,6 +28,7 @@ FILE_COMPILE_FOR_SPEED
 
 #include "common/log.h"
 #include "common/maths.h"
+#include "common/circular_queue.h"
 
 #include "drivers/io.h"
 #include "drivers/timer.h"
@@ -61,7 +62,8 @@ FILE_COMPILE_FOR_SPEED
 
 #define DSHOT_DMA_BUFFER_SIZE   18 /* resolution + frame reset (2us) */
 
-#define DSHOT_COMMAND_DELAY_US 1000
+#define DSHOT_COMMAND_INTERVAL_US 1000
+#define DSHOT_COMMAND_QUEUE_SIZE 16
 #endif
 
 typedef void (*pwmWriteFuncPtr)(uint8_t index, uint16_t value);  // function pointer used to write motors
@@ -111,6 +113,12 @@ static uint16_t beeperFrequency = 0;
 static uint8_t allocatedOutputPortCount = 0;
 
 static bool pwmMotorsEnabled = true;
+
+#ifdef USE_DSHOT
+    circularBuffer_t commandsCircularBuffer;
+    uint8_t commandsBuff[DSHOT_COMMAND_QUEUE_SIZE * sizeof(dshotCommands_e)];
+    timeUs_t lastCommandSent = 0;
+#endif
 
 static void pwmOutConfigTimer(pwmOutputPort_t * p, TCH_t * tch, uint32_t hz, uint16_t period, uint16_t value)
 {
@@ -361,6 +369,22 @@ void pwmCompleteMotorUpdate(void)
 
 #ifdef USE_DSHOT
     if (isMotorProtocolDshot()) {
+
+        //Check if there are commands to send
+        if(!circularBufferIsEmpty(&commandsCircularBuffer) &&
+            micros() - lastCommandSent > DSHOT_COMMAND_INTERVAL_US){
+
+            dshotCommands_e cmd;
+            circularBufferPopHead(&commandsCircularBuffer,(uint8_t*) &cmd);
+
+            for (uint8_t i = 0; i < getMotorCount(); i++) {
+                pwmRequestMotorTelemetry(i);
+                pwmWriteMotor(i, cmd);
+            }
+            lastCommandSent = micros();
+        }
+
+
         // Generate DMA buffers
         for (int index = 0; index < motorCount; index++) {
             if (motors[index].pwmPort && motors[index].pwmPort->configured) {
@@ -571,20 +595,28 @@ void pwmWriteServo(uint8_t index, uint16_t value)
 }
 
 #ifdef USE_DSHOT
-void changeDshotSpinRotation(dshotDirectionCommands_e directionSpin) {
 
-    const uint8_t number_of_packets = 10;
+void sendDShotCommand(dshotCommands_e cmd) {
 
-    for (uint8_t j = 0; j < number_of_packets; j++) {
+    uint8_t repeats = 1;
 
-        delayMicroseconds(DSHOT_COMMAND_DELAY_US);
-        for (uint8_t i = 0; i < getMotorCount(); i++) {
-            pwmRequestMotorTelemetry(i);
-            pwmWriteMotor(i, directionSpin);
-        }
-        pwmCompleteMotorUpdate();
+    //Some commands must be repeated more times
+    switch (cmd) {
+        case DSHOT_CMD_SPIN_DIRECTION_NORMAL:
+        case DSHOT_CMD_SPIN_DIRECTION_REVERSED:
+            repeats = 10;
+            break;
 
+        default:
+            break;
     }
+
+    for(uint8_t i = 0; i<repeats;i++) {
+        circularBufferPushElement(&commandsCircularBuffer,(uint8_t*)&cmd);
+    }
+}
+void initDShotCommands(void){
+    circularBufferInit(&commandsCircularBuffer, commandsBuff, DSHOT_COMMAND_QUEUE_SIZE * sizeof(dshotCommands_e), sizeof(dshotCommands_e));
 }
 #endif
 

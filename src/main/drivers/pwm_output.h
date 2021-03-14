@@ -23,7 +23,7 @@
 typedef enum {
     DSHOT_CMD_SPIN_DIRECTION_NORMAL = 20,
     DSHOT_CMD_SPIN_DIRECTION_REVERSED = 21,
-} dshotDirectionCommands_e;
+} dshotCommands_e;
 
 void pwmRequestMotorTelemetry(int motorIndex);
 
@@ -49,4 +49,5 @@ bool pwmServoConfig(const struct timerHardware_s *timerHardware, uint8_t servoIn
 void pwmWriteBeeper(bool onoffBeep);
 void beeperPwmInit(ioTag_t tag, uint16_t frequency);
 
-void changeDshotSpinRotation(dshotDirectionCommands_e directionSpin);
+void sendDShotCommand(dshotCommands_e directionSpin);
+void initDShotCommands(void);
