@@ -1717,12 +1717,12 @@ static bool osdDrawSingleElement(uint8_t item)
         const char* hidesnr = "     ";
         int16_t osdSNR_Alarm = rxLinkStatistics.uplinkSNR;
         if (osdSNR_Alarm <= osdConfig()->snr_alarm) {
-          buff[0] = SYM_SRN;
+          buff[0] = SYM_SNR;
           tfp_sprintf(buff + 1, "%3d%c", rxLinkStatistics.uplinkSNR, SYM_DB);
         }
         else if (osdSNR_Alarm > osdConfig()->snr_alarm) {
             if (cmsInMenu) {
-                buff[0] = SYM_SRN;
+                buff[0] = SYM_SNR;
                 tfp_sprintf(buff + 1, "%s%c", showsnr, SYM_DB);
             } else {
                 buff[0] = SYM_BLANK;
