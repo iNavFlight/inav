@@ -1712,25 +1712,23 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
-    case OSD_CRSF_SNR_DB: {
-        const char* showsnr = "-20";
-        const char* hidesnr = "     ";
-        int16_t osdSNR_Alarm = rxLinkStatistics.uplinkSNR;
-        if (osdSNR_Alarm <= osdConfig()->snr_alarm) {
-          buff[0] = SYM_SNR;
-          tfp_sprintf(buff + 1, "%3d%c", rxLinkStatistics.uplinkSNR, SYM_DB);
-        }
-        else if (osdSNR_Alarm > osdConfig()->snr_alarm) {
-            if (cmsInMenu) {
+        case OSD_CRSF_SNR_DB: {
+            const char* showsnr = "-20";
+            const char* hidesnr = "     ";
+            int16_t osdSNR_Alarm = rxLinkStatistics.uplinkSNR;
+            buff[0] = SYM_BLANK;
+            tfp_sprintf(buff + 1, "%s%c", hidesnr, SYM_BLANK);
+            if (osdSNR_Alarm <= osdConfig()->snr_alarm) {
                 buff[0] = SYM_SNR;
-                tfp_sprintf(buff + 1, "%s%c", showsnr, SYM_DB);
-            } else {
-                buff[0] = SYM_BLANK;
-                tfp_sprintf(buff + 1, "%s%c", hidesnr, SYM_BLANK);
+                tfp_sprintf(buff + 1, "%3d%c", rxLinkStatistics.uplinkSNR, SYM_DB);
+            } else if (osdSNR_Alarm > osdConfig()->snr_alarm) {
+                if (cmsInMenu) {
+                    buff[0] = SYM_SNR;
+                    tfp_sprintf(buff + 1, "%s%c", showsnr, SYM_DB);
+                }
             }
-        }
-        break;
-      }
+            break;
+          }
 #endif
 
     case OSD_CRSF_TX_POWER: {
