@@ -467,8 +467,8 @@ void tryArm(void)
     if (
             STATE(MULTIROTOR) &&
             IS_RC_MODE_ACTIVE(BOXFLIPOVERAFTERCRASH) &&
+            emergencyArmingCanOverrideArmingDisabled() &&
             isMotorProtocolDshot() &&
-            !ARMING_FLAG(ARMING_DISABLED_THROTTLE) &&
             !FLIGHT_MODE(FLIP_OVER_AFTER_CRASH)
             ) {
         sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_REVERSED);

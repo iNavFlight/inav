@@ -63,7 +63,8 @@ FILE_COMPILE_FOR_SPEED
 #define DSHOT_DMA_BUFFER_SIZE   18 /* resolution + frame reset (2us) */
 
 #define DSHOT_COMMAND_INTERVAL_US 1000
-#define DSHOT_COMMAND_QUEUE_SIZE 16
+#define DSHOT_COMMAND_QUEUE_LENGTH 8
+#define DHSOT_COMMAND_QUEUE_SIZE   DSHOT_COMMAND_QUEUE_LENGTH * sizeof(dshotCommands_e)
 #endif
 
 typedef void (*pwmWriteFuncPtr)(uint8_t index, uint16_t value);  // function pointer used to write motors
@@ -115,9 +116,9 @@ static uint8_t allocatedOutputPortCount = 0;
 static bool pwmMotorsEnabled = true;
 
 #ifdef USE_DSHOT
-    circularBuffer_t commandsCircularBuffer;
-    uint8_t commandsBuff[DSHOT_COMMAND_QUEUE_SIZE * sizeof(dshotCommands_e)];
-    timeUs_t lastCommandSent = 0;
+static circularBuffer_t commandsCircularBuffer;
+static uint8_t commandsBuff[DHSOT_COMMAND_QUEUE_SIZE];
+static currentExecutingCommand_t currentExecutingCommand;
 #endif
 
 static void pwmOutConfigTimer(pwmOutputPort_t * p, TCH_t * tch, uint32_t hz, uint16_t period, uint16_t value)
@@ -350,8 +351,60 @@ void pwmRequestMotorTelemetry(int motorIndex)
     }
 }
 
-void pwmCompleteMotorUpdate(void)
-{
+#ifdef USE_DSHOT
+void sendDShotCommand(dshotCommands_e cmd) {
+    circularBufferPushElement(&commandsCircularBuffer, (uint8_t *) &cmd);
+}
+
+void initDShotCommands(void) {
+    circularBufferInit(&commandsCircularBuffer, commandsBuff,DHSOT_COMMAND_QUEUE_SIZE, sizeof(dshotCommands_e));
+
+    currentExecutingCommand.remainingRepeats = 0;
+}
+
+static int getDShotCommandRepeats(dshotCommands_e cmd) {
+    int repeats = 1;
+
+    switch (cmd) {
+        case DSHOT_CMD_SPIN_DIRECTION_NORMAL:
+        case DSHOT_CMD_SPIN_DIRECTION_REVERSED:
+            repeats = 6;
+            break;
+        default:
+            break;
+    }
+
+    return repeats;
+}
+
+static void executeDShotCommands(void){
+
+    if(currentExecutingCommand.remainingRepeats == 0) {
+
+        const int isTherePendingCommands = !circularBufferIsEmpty(&commandsCircularBuffer);
+
+        if (isTherePendingCommands) {
+            //Load the command
+            dshotCommands_e cmd;
+            circularBufferPopHead(&commandsCircularBuffer, (uint8_t *) &cmd);
+
+            currentExecutingCommand.cmd = cmd;
+            currentExecutingCommand.remainingRepeats = getDShotCommandRepeats(cmd);
+        }
+        else {
+            return;
+        }
+    }
+
+    for (uint8_t i = 0; i < getMotorCount(); i++) {
+        motors[i].requestTelemetry = true;
+        motors[i].value = currentExecutingCommand.cmd;
+    }
+    currentExecutingCommand.remainingRepeats--;
+}
+#endif
+
+void pwmCompleteMotorUpdate(void) {
     // This only makes sense for digital motor protocols
     if (!isMotorProtocolDigital()) {
         return;
@@ -370,20 +423,7 @@ void pwmCompleteMotorUpdate(void)
 #ifdef USE_DSHOT
     if (isMotorProtocolDshot()) {
 
-        //Check if there are commands to send
-        if(!circularBufferIsEmpty(&commandsCircularBuffer) &&
-            micros() - lastCommandSent > DSHOT_COMMAND_INTERVAL_US){
-
-            dshotCommands_e cmd;
-            circularBufferPopHead(&commandsCircularBuffer,(uint8_t*) &cmd);
-
-            for (uint8_t i = 0; i < getMotorCount(); i++) {
-                pwmRequestMotorTelemetry(i);
-                pwmWriteMotor(i, cmd);
-            }
-            lastCommandSent = micros();
-        }
-
+        executeDShotCommands();
 
         // Generate DMA buffers
         for (int index = 0; index < motorCount; index++) {
@@ -593,32 +633,6 @@ void pwmWriteServo(uint8_t index, uint16_t value)
         servoWritePtr(index, value);
     }
 }
-
-#ifdef USE_DSHOT
-
-void sendDShotCommand(dshotCommands_e cmd) {
-
-    uint8_t repeats = 1;
-
-    //Some commands must be repeated more times
-    switch (cmd) {
-        case DSHOT_CMD_SPIN_DIRECTION_NORMAL:
-        case DSHOT_CMD_SPIN_DIRECTION_REVERSED:
-            repeats = 10;
-            break;
-
-        default:
-            break;
-    }
-
-    for(uint8_t i = 0; i<repeats;i++) {
-        circularBufferPushElement(&commandsCircularBuffer,(uint8_t*)&cmd);
-    }
-}
-void initDShotCommands(void){
-    circularBufferInit(&commandsCircularBuffer, commandsBuff, DSHOT_COMMAND_QUEUE_SIZE * sizeof(dshotCommands_e), sizeof(dshotCommands_e));
-}
-#endif
 
 #ifdef BEEPER_PWM
 void pwmWriteBeeper(bool onoffBeep)

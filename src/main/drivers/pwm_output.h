@@ -25,6 +25,11 @@ typedef enum {
     DSHOT_CMD_SPIN_DIRECTION_REVERSED = 21,
 } dshotCommands_e;
 
+typedef struct {
+    dshotCommands_e cmd;
+    int remainingRepeats;
+} currentExecutingCommand_t;
+
 void pwmRequestMotorTelemetry(int motorIndex);
 
 ioTag_t pwmGetMotorPinTag(int motorIndex);
