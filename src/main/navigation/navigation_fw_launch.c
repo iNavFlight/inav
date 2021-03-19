@@ -316,7 +316,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_DETECTION(timeU
 
     const bool isBungeeLaunched = isForwardAccelerationHigh && isAircraftAlmostLevel;
     const bool isSwingLaunched = (swingVelocity > navConfig()->fw.launch_velocity_thresh) && (imuMeasuredAccelBF.x > 0);
-    const bool isForwardLaunched = (gpsSol.groundSpeed > navConfig()->fw.launch_velocity_thresh);
+    const bool isForwardLaunched = (gpsSol.groundSpeed > navConfig()->fw.launch_velocity_thresh) && (imuMeasuredAccelBF.x > 0);
 
     applyThrottleIdleLogic(false);
 
