@@ -48,6 +48,8 @@ main_sources(COMMON_SRC
     common/typeconversion.h
     common/uvarint.c
     common/uvarint.h
+    common/circular_queue.c
+    common/circular_queue.h
 
     config/config_eeprom.c
     config/config_eeprom.h

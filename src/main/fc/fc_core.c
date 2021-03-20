@@ -398,7 +398,12 @@ void disarm(disarmReason_t disarmReason)
             blackboxFinish();
         }
 #endif
-
+#ifdef USE_DSHOT
+        if (FLIGHT_MODE(FLIP_OVER_AFTER_CRASH)) {
+            sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_NORMAL);
+            DISABLE_FLIGHT_MODE(FLIP_OVER_AFTER_CRASH);
+        }
+#endif
         statsOnDisarm();
         logicConditionReset();
 #ifdef USE_PROGRAMMING_FRAMEWORK	    
@@ -459,6 +464,21 @@ void releaseSharedTelemetryPorts(void) {
 void tryArm(void)
 {
     updateArmingStatus();
+
+#ifdef USE_DSHOT
+    if (
+            STATE(MULTIROTOR) &&
+            IS_RC_MODE_ACTIVE(BOXFLIPOVERAFTERCRASH) &&
+            emergencyArmingCanOverrideArmingDisabled() &&
+            isMotorProtocolDshot() &&
+            !FLIGHT_MODE(FLIP_OVER_AFTER_CRASH)
+            ) {
+        sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_REVERSED);
+        ENABLE_ARMING_FLAG(ARMED);
+        enableFlightMode(FLIP_OVER_AFTER_CRASH);
+        return;
+    }
+#endif
 #ifdef USE_PROGRAMMING_FRAMEWORK
     if (
         !isArmingDisabled() || 
