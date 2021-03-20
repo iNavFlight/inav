@@ -15,24 +15,17 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include <stdint.h>
+#include "platform.h"
+#include "config/config_master.h"
+#include "config/feature.h"
+#include "io/serial.h"
 
-#include "config/parameter_group.h"
-#include "common/time.h"
 
-#ifdef USE_LIGHTS
+void targetConfiguration(void)
+{
 
-typedef struct lightsConfig_s {
-    struct {
-        bool enabled;
-        uint16_t flash_period;
-        uint16_t flash_on_time;
-    } failsafe;
-} lightsConfig_t;
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART4)].functionMask = FUNCTION_GPS;
+    // serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART4)].gps_baudrateIndex = BAUD_115200;
 
-PG_DECLARE(lightsConfig_t, lightsConfig);
-
-void lightsUpdate(timeUs_t currentTimeUs);
-void lightsInit(void);
-
-#endif /* USE_LIGHTS */
+}

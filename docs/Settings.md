@@ -114,6 +114,9 @@
 | fw_autotune_threshold | 50 | Threshold [%] of max rate to consider overshoot/undershoot detection |
 | fw_autotune_undershoot_time | 200 | Time [ms] to detect sustained undershoot |
 | fw_d_level | 75 | Fixed-wing attitude stabilisation HORIZON transition point |
+| fw_d_pitch | 0 | Fixed wing rate stabilisation D-gain for PITCH |
+| fw_d_roll | 0 | Fixed wing rate stabilisation D-gain for ROLL |
+| fw_d_yaw | 0 | Fixed wing rate stabilisation D-gain for YAW |
 | fw_ff_pitch | 50 | Fixed-wing rate stabilisation FF-gain for PITCH |
 | fw_ff_roll | 50 | Fixed-wing rate stabilisation FF-gain for ROLL |
 | fw_ff_yaw | 60 | Fixed-wing rate stabilisation FF-gain for YAW |
@@ -330,6 +333,7 @@
 | nav_mc_vel_z_d | 10 | D gain of velocity PID controller |
 | nav_mc_vel_z_i | 50 | I gain of velocity PID controller |
 | nav_mc_vel_z_p | 100 | P gain of velocity PID controller |
+| nav_mc_wp_slowdown | ON | When ON, NAV engine will slow down when switching to the next waypoint. This prioritizes turning over forward movement. When OFF, NAV engine will continue to the next waypoint and turn as it goes. |
 | nav_min_rth_distance | 500 | Minimum distance from homepoint when RTH full procedure will be activated [cm]. Below this distance, the mode will activate at the current location and the final phase is executed (loiter / land). Above this distance, the full procedure is activated, which may include initial climb and flying directly to the homepoint before entering the loiter / land phase. |
 | nav_overrides_motor_stop | ALL_NAV | When set to OFF the navigation system will not take over the control of the motor if the throttle is low (motor will stop). When set to OFF_ALWAYS the navigation system will not take over the control of the motor if the throttle was low even when failsafe is triggered. When set to AUTO_ONLY the navigation system will only take over the control of the throttle in autonomous navigation modes (NAV WP and NAV RTH). When set to ALL_NAV (default) the navigation system will take over the control of the motor completely and never allow the motor to stop even when the throttle is low. This setting only has an effect on NAV modes which take control of the throttle when combined with MOTOR_STOP and is likely to cause a stall if fw_min_throttle_down_pitch isn't set correctly or the pitch estimation is wrong for fixed wing models when not set to ALL_NAV |
 | nav_position_timeout | 5 | If GPS fails wait for this much seconds before switching to emergency landing mode (0 - disable) |
