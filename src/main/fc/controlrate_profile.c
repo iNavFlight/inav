@@ -64,7 +64,7 @@ void pgResetFn_controlRateProfiles(controlRateConfig_t *instance)
             },
 
             .misc = {
-                .fpvCamAngleDegrees = 0
+                .fpvCamAngleDegrees = 0,
             }
         );
     }

@@ -27,6 +27,8 @@ set_property(SOURCE telemetry_hott_unittest.cc PROPERTY depends
 
 set_property(SOURCE time_unittest.cc PROPERTY depends "drivers/time.c")
 
+set_property(SOURCE circular_queue_unittest.cc PROPERTY depends "common/circular_queue.c")
+
 function(unit_test src)
     get_filename_component(basename ${src} NAME)
     string(REPLACE ".cc" "" name ${basename} )

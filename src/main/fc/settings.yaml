@@ -10,7 +10,7 @@ tables:
     values: ["NONE", "HCSR04", "SRF10", "INAV_I2C", "VL53L0X", "MSP", "UNUSED", "BENEWAKE"]
     enum: rangefinderType_e
   - name: mag_hardware
-    values: ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "MSP", "FAKE"]
+    values: ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "MSP", "RM3100", FAKE"]
     enum: magSensor_e
   - name: opflow_hardware
     values: ["NONE", "CXOF", "MSP", "FAKE"]
@@ -722,6 +722,13 @@ groups:
         default_value: "14"
         min: 4
         max: 255
+      - name: flip_over_after_crash_power_factor
+        field: flipOverAfterPowerFactor
+        default_value: "65"
+        description: "flip over after crash power factor"
+        condition: "USE_DSHOT"
+        min: 0
+        max: 100
 
   - name: PG_FAILSAFE_CONFIG
     type: failsafeConfig_t

@@ -40,6 +40,7 @@
 #include "drivers/compass/compass_qmc5883l.h"
 #include "drivers/compass/compass_mpu9250.h"
 #include "drivers/compass/compass_lis3mdl.h"
+#include "drivers/compass/compass_rm3100.h"
 #include "drivers/compass/compass_msp.h"
 #include "drivers/io.h"
 #include "drivers/light_led.h"
@@ -255,6 +256,22 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         // Skip autodetection for MSP mag
         if (magHardwareToUse != MAG_AUTODETECT && mspMagDetect(dev)) {
             magHardware = MAG_MSP;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (magHardwareToUse != MAG_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
+    case MAG_RM3100:
+#ifdef USE_MAG_RM3100
+        if (rm3100MagDetect(dev)) {
+#ifdef MAG_RM3100_ALIGN
+            dev->magAlign.onBoard = MAG_RM3100_ALIGN;
+#endif
+            magHardware = MAG_RM3100;
             break;
         }
 #endif

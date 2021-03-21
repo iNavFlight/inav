@@ -97,6 +97,7 @@ typedef enum {
     NAV_CRUISE_MODE = (1 << 12),
     FLAPERON        = (1 << 13),
     TURN_ASSISTANT  = (1 << 14),
+    FLIP_OVER_AFTER_CRASH = (1 << 15),
 } flightModeFlags_e;
 
 extern uint32_t flightModeFlags;
