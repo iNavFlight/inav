@@ -1670,7 +1670,9 @@ static bool osdDrawSingleElement(uint8_t item)
             return true;
         }
 
+#if defined(USE_SERIALRX_CRSF)
     case OSD_CRSF_RSSI_DBM:
+        {
             if (rxLinkStatistics.activeAnt == 0) {
               buff[0] = SYM_RSSI;
               tfp_sprintf(buff + 1, "%4d%c", rxLinkStatistics.uplinkRSSI, SYM_DBM);
@@ -1685,12 +1687,12 @@ static bool osdDrawSingleElement(uint8_t item)
               }
             }
             break;
-
-#if defined(USE_SERIALRX_CRSF)
-        case OSD_CRSF_LQ: {
-        buff[0] = SYM_BLANK;
-        int16_t statsLQ = rxLinkStatistics.uplinkLQ;
-        int16_t scaledLQ = scaleRange(constrain(statsLQ, 0, 100), 0, 100, 170, 300);
+        }
+    case OSD_CRSF_LQ:
+        {
+            buff[0] = SYM_BLANK;
+            int16_t statsLQ = rxLinkStatistics.uplinkLQ;
+            int16_t scaledLQ = scaleRange(constrain(statsLQ, 0, 100), 0, 100, 170, 300);
             if (rxLinkStatistics.rfMode == 2) {
                 if (osdConfig()->crsf_lq_format == OSD_CRSF_LQ_TYPE1) {
                     tfp_sprintf(buff, "%5d%s", scaledLQ, "%");
@@ -1700,9 +1702,9 @@ static bool osdDrawSingleElement(uint8_t item)
             } else {
                 if (osdConfig()->crsf_lq_format == OSD_CRSF_LQ_TYPE1) {
                     tfp_sprintf(buff, "%5d%s", rxLinkStatistics.uplinkLQ, "%");
-            } else {
+                } else {
                     tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
-            }
+                }
             }
             if (!failsafeIsReceivingRxData()){
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
@@ -1712,27 +1714,32 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
-        case OSD_CRSF_SNR_DB: {
+    case OSD_CRSF_SNR_DB:
+        {
             const char* showsnr = "-20";
             const char* hidesnr = "     ";
             int16_t osdSNR_Alarm = rxLinkStatistics.uplinkSNR;
-            buff[0] = SYM_BLANK;
-            tfp_sprintf(buff + 1, "%s%c", hidesnr, SYM_BLANK);
-            if (osdSNR_Alarm <= osdConfig()->snr_alarm) {
+            if (osdSNR_Alarm > osdConfig()->snr_alarm) {
+                if (cmsInMenu) {
+                    buff[0] = SYM_SNR;
+                    tfp_sprintf(buff + 1, "%s%c", showsnr, SYM_DB);
+                } else {
+                    buff[0] = SYM_BLANK;
+                    tfp_sprintf(buff + 1, "%s%c", hidesnr, SYM_BLANK);
+                }
+            } else if (osdSNR_Alarm <= osdConfig()->snr_alarm) {
                 buff[0] = SYM_SNR;
                 tfp_sprintf(buff + 1, "%3d%c", rxLinkStatistics.uplinkSNR, SYM_DB);
-            } else if (cmsInMenu) {
-                buff[0] = SYM_SNR;
-                tfp_sprintf(buff + 1, "%s%c", showsnr, SYM_DB);
             }
             break;
-         }
-#endif
+        }
 
-    case OSD_CRSF_TX_POWER: {
-        tfp_sprintf(buff, "%4d%c", rxLinkStatistics.uplinkTXPower, SYM_MW);
-        break;
-    }
+    case OSD_CRSF_TX_POWER:
+        {
+            tfp_sprintf(buff, "%4d%c", rxLinkStatistics.uplinkTXPower, SYM_MW);
+            break;
+        }
+#endif
 
     case OSD_CROSSHAIRS: // Hud is a sub-element of the crosshair
 
