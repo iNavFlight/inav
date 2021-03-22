@@ -296,9 +296,14 @@ static void updateArmingStatus(void)
 	    }
 
         if (isModeActivationConditionPresent(BOXPREARM)) {
-            if (IS_RC_MODE_ACTIVE(BOXPREARM)) {
+            static timeMs_t prearmTimer = 0;
+
+            if (IS_RC_MODE_ACTIVE(BOXPREARM) && millis() - prearmTimer < 5000) {
                 DISABLE_ARMING_FLAG(ARMING_DISABLED_NO_PREARM);
             } else {
+                if (!IS_RC_MODE_ACTIVE(BOXPREARM)) {
+                   prearmTimer = millis();
+                }
                 ENABLE_ARMING_FLAG(ARMING_DISABLED_NO_PREARM);
             }
         } else {
@@ -406,9 +411,9 @@ void disarm(disarmReason_t disarmReason)
 #endif
         statsOnDisarm();
         logicConditionReset();
-#ifdef USE_PROGRAMMING_FRAMEWORK	    
+#ifdef USE_PROGRAMMING_FRAMEWORK
         programmingPidReset();
-#endif	    
+#endif
         beeper(BEEPER_DISARMING);      // emit disarm tone
     }
 }
@@ -481,13 +486,13 @@ void tryArm(void)
 #endif
 #ifdef USE_PROGRAMMING_FRAMEWORK
     if (
-        !isArmingDisabled() || 
-        emergencyArmingIsEnabled() || 
+        !isArmingDisabled() ||
+        emergencyArmingIsEnabled() ||
         LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_ARMING_SAFETY)
     ) {
-#else 
+#else
     if (
-        !isArmingDisabled() || 
+        !isArmingDisabled() ||
         emergencyArmingIsEnabled()
     ) {
 #endif
@@ -514,10 +519,10 @@ void tryArm(void)
         //It is required to inform the mixer that arming was executed and it has to switch to the FORWARD direction
         ENABLE_STATE(SET_REVERSIBLE_MOTORS_FORWARD);
         logicConditionReset();
-	    
-#ifdef USE_PROGRAMMING_FRAMEWORK	    
+
+#ifdef USE_PROGRAMMING_FRAMEWORK
         programmingPidReset();
-#endif	    
+#endif
         headFreeModeHold = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
 
         resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
