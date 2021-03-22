@@ -69,6 +69,7 @@ typedef enum {
     BOXLOITERDIRCHN  = 40,
     BOXMSPRCOVERRIDE = 41,
     BOXPREARM        = 42,
+    BOXFLIPOVERAFTERCRASH = 43,
     CHECKBOX_ITEM_COUNT
 } boxId_e;
 
