@@ -48,6 +48,8 @@
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
 
+#include "io/gps.h"
+
 #define SWING_LAUNCH_MIN_ROTATION_RATE      DEGREES_TO_RADIANS(100)     // expect minimum 100dps rotation rate
 #define LAUNCH_MOTOR_IDLE_SPINUP_TIME 1500                              // ms
 #define UNUSED(x) ((void)(x))
@@ -316,10 +318,11 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_DETECTION(timeU
 
     const bool isBungeeLaunched = isForwardAccelerationHigh && isAircraftAlmostLevel;
     const bool isSwingLaunched = (swingVelocity > navConfig()->fw.launch_velocity_thresh) && (imuMeasuredAccelBF.x > 0);
+    const bool isForwardLaunched = isGPSHeadingValid() && (gpsSol.groundSpeed > navConfig()->fw.launch_velocity_thresh) && (imuMeasuredAccelBF.x > 0);
 
     applyThrottleIdleLogic(false);
 
-    if (isBungeeLaunched || isSwingLaunched) {
+    if (isBungeeLaunched || isSwingLaunched || isForwardLaunched) {
         if (currentStateElapsedMs(currentTimeUs) > navConfig()->fw.launch_time_thresh) {
             return FW_LAUNCH_EVENT_SUCCESS; // the launch is detected now, go to FW_LAUNCH_STATE_DETECTED
         }
