@@ -324,6 +324,14 @@ static int logicConditionCompute(
             return temporaryValue;
         break;
 
+        case LOGIC_CONDITION_MODULUS:
+            if (operandB != 0) {
+                return constrain(operandA % operandB, INT16_MIN, INT16_MAX);
+            } else {
+                return operandA;
+            }
+            break;
+
         default:
             return false;
             break; 
@@ -384,7 +392,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
             return constrain(getRSSI() * 100 / RSSI_MAX_VALUE, 0, 99);
             break;
         
-        case LOGIC_CONDITION_OPERAND_FLIGHT_VBAT: // V / 10
+        case LOGIC_CONDITION_OPERAND_FLIGHT_VBAT: // V / 100
             return getBatteryVoltage();
             break;
 

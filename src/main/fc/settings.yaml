@@ -10,10 +10,10 @@ tables:
     values: ["NONE", "HCSR04", "SRF10", "INAV_I2C", "VL53L0X", "MSP", "UNUSED", "BENEWAKE"]
     enum: rangefinderType_e
   - name: mag_hardware
-    values: ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "MSP", "FAKE"]
+    values: ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "MSP", "RM3100", FAKE"]
     enum: magSensor_e
   - name: opflow_hardware
-    values: ["NONE", "PMW3901", "CXOF", "MSP", "FAKE"]
+    values: ["NONE", "CXOF", "MSP", "FAKE"]
     enum: opticalFlowSensor_e
   - name: baro_hardware
     values: ["NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "LPS25H", "SPL06", "BMP388", "DPS310", "MSP", "FAKE"]
@@ -84,7 +84,7 @@ tables:
       "FLOW", "SBUS", "FPORT", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "ERPM", "RPM_FILTER", "RPM_FREQ", "NAV_YAW", "DYNAMIC_FILTER", "DYNAMIC_FILTER_FREQUENCY",
-      "IRLOCK", "CD", "KALMAN_GAIN", "PID_MEASUREMENT", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574", "DYN_GYRO_LPF"]
+      "IRLOCK", "CD", "KALMAN_GAIN", "PID_MEASUREMENT", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574", "DYN_GYRO_LPF", "FW_D"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -182,8 +182,8 @@ groups:
         type: uint8_t
         table: alignment
       - name: gyro_hardware_lpf
-        description: "Hardware lowpass filter for gyro. Allowed values depend on the driver - For example MPU6050 allows 10HZ,20HZ,42HZ,98HZ,188HZ,256Hz (8khz mode). If you have to set gyro lpf below 42Hz generally means the frame is vibrating too much, and that should be fixed first."
-        default_value: "42HZ"
+        description: "Hardware lowpass filter for gyro. This value should never be changed without a very strong reason! If you have to set gyro lpf below 256HZ, it means the frame is vibrating too much, and that should be fixed first."
+        default_value: "256HZ"
         field: gyro_lpf
         table: gyro_lpf
       - name: gyro_lpf_hz
@@ -718,8 +718,17 @@ groups:
         max: 30
       - name: motor_poles
         field: motorPoleCount
+        description: "The number of motor poles. Required to compute motor RPM"
+        default_value: "14"
         min: 4
         max: 255
+      - name: flip_over_after_crash_power_factor
+        field: flipOverAfterPowerFactor
+        default_value: "65"
+        description: "flip over after crash power factor"
+        condition: "USE_DSHOT"
+        min: 0
+        max: 100
 
   - name: PG_FAILSAFE_CONFIG
     type: failsafeConfig_t
@@ -1464,6 +1473,12 @@ groups:
         field: bank_fw.pid[PID_PITCH].I
         min: 0
         max: 200
+      - name: fw_d_pitch
+        description: "Fixed wing rate stabilisation D-gain for PITCH"
+        default_value: "0"
+        field: bank_fw.pid[PID_PITCH].D
+        min: 0
+        max: 200
       - name: fw_ff_pitch
         description: "Fixed-wing rate stabilisation FF-gain for PITCH"
         default_value: "50"
@@ -1482,6 +1497,12 @@ groups:
         field: bank_fw.pid[PID_ROLL].I
         min: 0
         max: 200
+      - name: fw_d_roll
+        description: "Fixed wing rate stabilisation D-gain for ROLL"
+        default_value: "0"
+        field: bank_fw.pid[PID_ROLL].D
+        min: 0
+        max: 200
       - name: fw_ff_roll
         description: "Fixed-wing rate stabilisation FF-gain for ROLL"
         default_value: "50"
@@ -1498,6 +1519,12 @@ groups:
         description: "Fixed-wing rate stabilisation I-gain for YAW"
         default_value: "10"
         field: bank_fw.pid[PID_YAW].I
+        min: 0
+        max: 200
+      - name: fw_d_yaw
+        description: "Fixed wing rate stabilisation D-gain for YAW"
+        default_value: "0"
+        field: bank_fw.pid[PID_YAW].D
         min: 0
         max: 200
       - name: fw_ff_yaw
@@ -2183,6 +2210,8 @@ groups:
         max: 65000
       - name: nav_max_terrain_follow_alt
         field: general.max_terrain_follow_altitude
+        default_value: "100"
+        description: "Max allowed above the ground altitude for terrain following mode"
         max: 1000
       - name: nav_rth_altitude
         description: "Used in EXTRA, FIXED and AT_LEAST rth alt modes [cm] (Default 1000 means 10 meters)"
@@ -2288,6 +2317,11 @@ groups:
         condition: USE_NAV
         min: 0
         max: 255
+      - name: nav_mc_wp_slowdown
+        description: "When ON, NAV engine will slow down when switching to the next waypoint. This prioritizes turning over forward movement. When OFF, NAV engine will continue to the next waypoint and turn as it goes."
+        default_value: "ON"
+        field: mc.slowDownForTurning
+        type: bool
       - name: nav_fw_cruise_thr
         description: "Cruise throttle in GPS assisted modes, this includes RTH. Should be set high enough to avoid stalling. This values gives INAV a base for throttle when flying straight, and it will increase or decrease throttle based on pitch of airplane and the parameters below. In addition it will increase throttle if GPS speed gets below 7m/s ( hardcoded )"
         default_value: "1400"
@@ -3200,21 +3234,29 @@ groups:
     members:
       - name: pinio_box1
         field: permanentId[0]
+        description: "Mode assignment for PINIO#1"
+        default_value: "target specific"
         min: 0
         max: 255
         type: uint8_t
       - name: pinio_box2
         field: permanentId[1]
+        default_value: "target specific"
+        description: "Mode assignment for PINIO#1"
         min: 0
         max: 255
         type: uint8_t
       - name: pinio_box3
         field: permanentId[2]
+        default_value: "target specific"
+        description: "Mode assignment for PINIO#1"
         min: 0
         max: 255
         type: uint8_t
       - name: pinio_box4
         field: permanentId[3]
+        default_value: "target specific"
+        description: "Mode assignment for PINIO#1"
         min: 0
         max: 255
         type: uint8_t
@@ -3242,6 +3284,8 @@ groups:
     condition: USE_ESC_SENSOR
     members:
         - name: esc_sensor_listen_only
+          default_value: "OFF"
+          description: "Enable when BLHeli32 Auto Telemetry function is used. Disable in every other case"
           field: listenOnly
           type: bool
 

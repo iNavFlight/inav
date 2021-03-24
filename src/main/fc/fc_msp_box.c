@@ -33,6 +33,8 @@
 
 #include "io/osd.h"
 
+#include "drivers/pwm_output.h"
+
 #include "sensors/diagnostics.h"
 #include "sensors/sensors.h"
 
@@ -87,6 +89,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXLOITERDIRCHN, "LOITER CHANGE", 49 },
     { BOXMSPRCOVERRIDE, "MSP RC OVERRIDE", 50 },
     { BOXPREARM, "PREARM", 51 },
+    { BOXFLIPOVERAFTERCRASH, "TURTLE", 52 },
     { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
@@ -305,6 +308,11 @@ void initActiveBoxIds(void)
 
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     activeBoxIds[activeBoxIdCount++] = BOXMSPRCOVERRIDE;
+#endif
+
+#ifdef USE_DSHOT
+    if(STATE(MULTIROTOR) && isMotorProtocolDshot())
+        activeBoxIds[activeBoxIdCount++] = BOXFLIPOVERAFTERCRASH;
 #endif
 }
 

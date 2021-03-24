@@ -73,6 +73,7 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 37            | MAP_OUTPUT         | Scales `Operand A` from [`0` : `1000`] to [`0` : `Operand B`]. Note: input will be constrained and then scaled |
 | 38            | RC_CHANNEL_OVERRIDE | Overrides channel set by `Operand A` to value of `Operand B` |
 | 39            | SET_HEADING_TARGET  | Sets heading-hold target to `Operand A`, in degrees. Value wraps-around. |
+| 40            | MOD           | Divide `Operand A` by `Operand B` and returns the remainder |
 
 
 ### Operands
@@ -95,8 +96,8 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 1             | HOME_DISTANCE | in `meters`                           |
 | 2             | TRIP_DISTANCE | in `meters`                           |
 | 3             | RSSI          |                                       |
-| 4             | VBAT          | in `Volts * 10`, eg. `12.1V` is `121` |
-| 5             | CELL_VOLTAGE  | in `Volts * 10`, eg. `12.1V` is `121` |
+| 4             | VBAT          | in `Volts * 100`, eg. `12.1V` is `1210` |
+| 5             | CELL_VOLTAGE  | in `Volts * 100`, eg. `12.1V` is `1210` |
 | 6             | CURRENT       | in `Amps * 100`, eg. `9A` is `900`    |
 | 7             | MAH_DRAWN     | in `mAh`                              |
 | 8             | GPS_SATS      |                                       |

@@ -1165,7 +1165,49 @@ static void osdDisplayBatteryVoltage(uint8_t elemPosX, uint8_t elemPosY, uint16_
     displayWriteWithAttr(osdDisplayPort, elemPosX + 1, elemPosY, buff, elemAttr);
 }
 
-static void osdDisplayPIDValues(uint8_t elemPosX, uint8_t elemPosY, const char *str, pidIndex_e pidIndex, adjustmentFunction_e adjFuncP, adjustmentFunction_e adjFuncI, adjustmentFunction_e adjFuncD)
+static void osdDisplayFlightPIDValues(uint8_t elemPosX, uint8_t elemPosY, const char *str, pidIndex_e pidIndex, adjustmentFunction_e adjFuncP, adjustmentFunction_e adjFuncI, adjustmentFunction_e adjFuncD, adjustmentFunction_e adjFuncFF)
+{
+    textAttributes_t elemAttr;
+    char buff[4];
+
+    const pid8_t *pid = &pidBank()->pid[pidIndex];
+    pidType_e pidType = pidIndexGetType(pidIndex);
+
+    displayWrite(osdDisplayPort, elemPosX, elemPosY, str);
+
+    if (pidType == PID_TYPE_NONE) {
+        // PID is not used in this configuration. Draw dashes.
+        // XXX: Keep this in sync with the %3d format and spacing used below
+        displayWrite(osdDisplayPort, elemPosX + 6, elemPosY, "-   -   -   -");
+        return;
+    }
+
+    elemAttr = TEXT_ATTRIBUTES_NONE;
+    tfp_sprintf(buff, "%3d", pid->P);
+    if ((isAdjustmentFunctionSelected(adjFuncP)) || (((adjFuncP == ADJUSTMENT_ROLL_P) || (adjFuncP == ADJUSTMENT_PITCH_P)) && (isAdjustmentFunctionSelected(ADJUSTMENT_PITCH_ROLL_P))))
+        TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+    displayWriteWithAttr(osdDisplayPort, elemPosX + 4, elemPosY, buff, elemAttr);
+
+    elemAttr = TEXT_ATTRIBUTES_NONE;
+    tfp_sprintf(buff, "%3d", pid->I);
+    if ((isAdjustmentFunctionSelected(adjFuncI)) || (((adjFuncI == ADJUSTMENT_ROLL_I) || (adjFuncI == ADJUSTMENT_PITCH_I)) && (isAdjustmentFunctionSelected(ADJUSTMENT_PITCH_ROLL_I))))
+        TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+    displayWriteWithAttr(osdDisplayPort, elemPosX + 8, elemPosY, buff, elemAttr);
+
+    elemAttr = TEXT_ATTRIBUTES_NONE;
+    tfp_sprintf(buff, "%3d", pid->D);
+    if ((isAdjustmentFunctionSelected(adjFuncD)) || (((adjFuncD == ADJUSTMENT_ROLL_D) || (adjFuncD == ADJUSTMENT_PITCH_D)) && (isAdjustmentFunctionSelected(ADJUSTMENT_PITCH_ROLL_D))))
+        TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+    displayWriteWithAttr(osdDisplayPort, elemPosX + 12, elemPosY, buff, elemAttr);
+    
+    elemAttr = TEXT_ATTRIBUTES_NONE;
+    tfp_sprintf(buff, "%3d", pid->FF);
+    if ((isAdjustmentFunctionSelected(adjFuncFF)) || (((adjFuncFF == ADJUSTMENT_ROLL_FF) || (adjFuncFF == ADJUSTMENT_PITCH_FF)) && (isAdjustmentFunctionSelected(ADJUSTMENT_PITCH_ROLL_FF))))
+        TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+    displayWriteWithAttr(osdDisplayPort, elemPosX + 16, elemPosY, buff, elemAttr);
+}
+
+static void osdDisplayNavPIDValues(uint8_t elemPosX, uint8_t elemPosY, const char *str, pidIndex_e pidIndex, adjustmentFunction_e adjFuncP, adjustmentFunction_e adjFuncI, adjustmentFunction_e adjFuncD)
 {
     textAttributes_t elemAttr;
     char buff[4];
@@ -1196,7 +1238,7 @@ static void osdDisplayPIDValues(uint8_t elemPosX, uint8_t elemPosY, const char *
 
     elemAttr = TEXT_ATTRIBUTES_NONE;
     tfp_sprintf(buff, "%3d", pidType == PID_TYPE_PIFF ? pid->FF : pid->D);
-    if ((isAdjustmentFunctionSelected(adjFuncD)) || (((adjFuncD == ADJUSTMENT_ROLL_D_FF) || (adjFuncD == ADJUSTMENT_PITCH_D_FF)) && (isAdjustmentFunctionSelected(ADJUSTMENT_PITCH_ROLL_D_FF))))
+    if ((isAdjustmentFunctionSelected(adjFuncD)) || (((adjFuncD == ADJUSTMENT_ROLL_D) || (adjFuncD == ADJUSTMENT_PITCH_D)) && (isAdjustmentFunctionSelected(ADJUSTMENT_PITCH_ROLL_D))))
         TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
     displayWriteWithAttr(osdDisplayPort, elemPosX + 12, elemPosY, buff, elemAttr);
 }
@@ -1609,6 +1651,8 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "ANGL";
             else if (FLIGHT_MODE(HORIZON_MODE))
                 p = "HOR ";
+            else if (FLIGHT_MODE(FLIP_OVER_AFTER_CRASH))
+                p = "TURT";
 
             displayWrite(osdDisplayPort, elemPosX, elemPosY, p);
             return true;
@@ -1862,35 +1906,35 @@ static bool osdDrawSingleElement(uint8_t item)
 #endif
 
     case OSD_ROLL_PIDS:
-        osdDisplayPIDValues(elemPosX, elemPosY, "ROL", PID_ROLL, ADJUSTMENT_ROLL_P, ADJUSTMENT_ROLL_I, ADJUSTMENT_ROLL_D_FF);
+        osdDisplayFlightPIDValues(elemPosX, elemPosY, "ROL", PID_ROLL, ADJUSTMENT_ROLL_P, ADJUSTMENT_ROLL_I, ADJUSTMENT_ROLL_D, ADJUSTMENT_ROLL_FF);
         return true;
 
     case OSD_PITCH_PIDS:
-        osdDisplayPIDValues(elemPosX, elemPosY, "PIT", PID_PITCH, ADJUSTMENT_PITCH_P, ADJUSTMENT_PITCH_I, ADJUSTMENT_PITCH_D_FF);
+        osdDisplayFlightPIDValues(elemPosX, elemPosY, "PIT", PID_PITCH, ADJUSTMENT_PITCH_P, ADJUSTMENT_PITCH_I, ADJUSTMENT_PITCH_D, ADJUSTMENT_PITCH_FF);
         return true;
 
     case OSD_YAW_PIDS:
-        osdDisplayPIDValues(elemPosX, elemPosY, "YAW", PID_YAW, ADJUSTMENT_YAW_P, ADJUSTMENT_YAW_I, ADJUSTMENT_YAW_D_FF);
+        osdDisplayFlightPIDValues(elemPosX, elemPosY, "YAW", PID_YAW, ADJUSTMENT_YAW_P, ADJUSTMENT_YAW_I, ADJUSTMENT_YAW_D, ADJUSTMENT_YAW_FF);
         return true;
 
     case OSD_LEVEL_PIDS:
-        osdDisplayPIDValues(elemPosX, elemPosY, "LEV", PID_LEVEL, ADJUSTMENT_LEVEL_P, ADJUSTMENT_LEVEL_I, ADJUSTMENT_LEVEL_D);
+        osdDisplayNavPIDValues(elemPosX, elemPosY, "LEV", PID_LEVEL, ADJUSTMENT_LEVEL_P, ADJUSTMENT_LEVEL_I, ADJUSTMENT_LEVEL_D);
         return true;
 
     case OSD_POS_XY_PIDS:
-        osdDisplayPIDValues(elemPosX, elemPosY, "PXY", PID_POS_XY, ADJUSTMENT_POS_XY_P, ADJUSTMENT_POS_XY_I, ADJUSTMENT_POS_XY_D);
+        osdDisplayNavPIDValues(elemPosX, elemPosY, "PXY", PID_POS_XY, ADJUSTMENT_POS_XY_P, ADJUSTMENT_POS_XY_I, ADJUSTMENT_POS_XY_D);
         return true;
 
     case OSD_POS_Z_PIDS:
-        osdDisplayPIDValues(elemPosX, elemPosY, "PZ", PID_POS_Z, ADJUSTMENT_POS_Z_P, ADJUSTMENT_POS_Z_I, ADJUSTMENT_POS_Z_D);
+        osdDisplayNavPIDValues(elemPosX, elemPosY, "PZ", PID_POS_Z, ADJUSTMENT_POS_Z_P, ADJUSTMENT_POS_Z_I, ADJUSTMENT_POS_Z_D);
         return true;
 
     case OSD_VEL_XY_PIDS:
-        osdDisplayPIDValues(elemPosX, elemPosY, "VXY", PID_VEL_XY, ADJUSTMENT_VEL_XY_P, ADJUSTMENT_VEL_XY_I, ADJUSTMENT_VEL_XY_D);
+        osdDisplayNavPIDValues(elemPosX, elemPosY, "VXY", PID_VEL_XY, ADJUSTMENT_VEL_XY_P, ADJUSTMENT_VEL_XY_I, ADJUSTMENT_VEL_XY_D);
         return true;
 
     case OSD_VEL_Z_PIDS:
-        osdDisplayPIDValues(elemPosX, elemPosY, "VZ", PID_VEL_Z, ADJUSTMENT_VEL_Z_P, ADJUSTMENT_VEL_Z_I, ADJUSTMENT_VEL_Z_D);
+        osdDisplayNavPIDValues(elemPosX, elemPosY, "VZ", PID_VEL_Z, ADJUSTMENT_VEL_Z_P, ADJUSTMENT_VEL_Z_I, ADJUSTMENT_VEL_Z_D);
         return true;
 
     case OSD_HEADING_P:
@@ -2194,12 +2238,21 @@ static bool osdDrawSingleElement(uint8_t item)
             }
             break;
         }
-
     case OSD_DEBUG:
         {
-            // Longest representable string is -2147483648, hence 11 characters
+            /* 
+             * Longest representable string is -2147483648 does not fit in the screen. 
+             * Only 7 digits for negative and 8 digits for positive values allowed
+             */
             for (uint8_t bufferIndex = 0; bufferIndex < DEBUG32_VALUE_COUNT; ++elemPosY, bufferIndex += 2) {
-                tfp_sprintf(buff, "[%u]=%11ld [%u]=%11ld", bufferIndex, debug[bufferIndex], bufferIndex+1, debug[bufferIndex+1]);
+                tfp_sprintf(
+                    buff, 
+                    "[%u]=%8ld [%u]=%8ld", 
+                    bufferIndex, 
+                    constrain(debug[bufferIndex], -9999999, 99999999), 
+                    bufferIndex+1, 
+                    constrain(debug[bufferIndex+1], -9999999, 99999999)
+                );
                 displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
             }
             break;
