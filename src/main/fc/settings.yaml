@@ -1238,7 +1238,7 @@ groups:
         max: 1000
       - name: prearm_timeout
         description: "Duration (ms) for which Prearm being activated is valid. after this, Prearm needs to be reset. 0 means Prearm does not timeout."
-        default_value: "0"
+        default_value: "10000"
         field: prearmTimeoutMs
         min: 0
         max: 10000
