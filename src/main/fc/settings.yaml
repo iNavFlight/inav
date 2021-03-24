@@ -2676,6 +2676,8 @@ groups:
         max: 255
       - name: mavlink_version
         field: mavlink.version
+        description: "Version of MAVLink to use"
+        default_value: "2"
         type: uint8_t
         min: 1
         max: 2
