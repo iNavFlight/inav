@@ -59,6 +59,7 @@ void mavlinkRxHandleMessage(const mavlink_rc_channels_override_t *msg) {
 
 static uint8_t mavlinkFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 {
+    UNUSED(rxRuntimeConfig);
     if (frameReceived) {
         frameReceived = false;
         return RX_FRAME_COMPLETE;
