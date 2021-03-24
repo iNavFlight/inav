@@ -130,7 +130,9 @@ static bool isRXDataNew;
 static uint32_t gyroSyncFailureCount;
 static disarmReason_t lastDisarmReason = DISARM_NONE;
 static emergencyArmingState_t emergencyArming;
+
 static bool prearmWasReset = false; // Prearm must be reset (RC Mode not active) before arming is possible
+static timeMs_t prearmActivationTime = 0;
 
 bool isCalibrating(void)
 {
@@ -298,13 +300,14 @@ static void updateArmingStatus(void)
 
         if (isModeActivationConditionPresent(BOXPREARM)) {
             if (IS_RC_MODE_ACTIVE(BOXPREARM)) {
-                if (prearmWasReset) {
+                if (prearmWasReset && (armingConfig()->prearmTimeoutMs == 0 || millis() - prearmActivationTime < armingConfig()->prearmTimeoutMs)) {
                     DISABLE_ARMING_FLAG(ARMING_DISABLED_NO_PREARM);
                 } else {
                     ENABLE_ARMING_FLAG(ARMING_DISABLED_NO_PREARM);
                 }
             } else {
                 prearmWasReset = true;
+                prearmActivationTime = millis();
                 ENABLE_ARMING_FLAG(ARMING_DISABLED_NO_PREARM);
             }
         } else {
