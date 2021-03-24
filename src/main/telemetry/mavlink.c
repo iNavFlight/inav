@@ -318,7 +318,7 @@ void checkMAVLinkTelemetryState(void)
 static void mavlinkSendMessage(void)
 {
     uint8_t mavBuffer[MAVLINK_MAX_PACKET_LEN];
-    if (telemetryConfig()->mavlink.version == 1) mavSendMsg.magic = MAVLINK_STX_MAVLINK1; // TODO test this switches to MAVLink v1
+    if (telemetryConfig()->mavlink.version == 1) mavSendMsg.magic = MAVLINK_STX_MAVLINK1;
     int msgLength = mavlink_msg_to_send_buffer(mavBuffer, &mavSendMsg);
 
     for (int i = 0; i < msgLength; i++) {
@@ -607,11 +607,11 @@ void mavlinkSendAttitude(void)
         // yaw Yaw angle (rad)
         DECIDEGREES_TO_RADIANS(attitude.values.yaw),
         // rollspeed Roll angular speed (rad/s)
-        imuMeasuredRotationBF.x, // TODO check if this is the correct axis
+        gyro.gyroADCf[FD_ROLL],
         // pitchspeed Pitch angular speed (rad/s)
-        imuMeasuredRotationBF.y, // TODO check if this is the correct axis
+        gyro.gyroADCf[FD_PITCH],
         // yawspeed Yaw angular speed (rad/s)
-        imuMeasuredRotationBF.z); // TODO check if this is the correct axis
+        gyro.gyroADCf[FD_YAW]);
 
     mavlinkSendMessage();
 }
@@ -1045,14 +1045,9 @@ static bool handleIncoming_MISSION_REQUEST(void)
 static bool handleIncoming_RC_CHANNELS_OVERRIDE(void) {
     mavlink_rc_channels_override_t msg;
     mavlink_msg_rc_channels_override_decode(&mavRecvMsg, &msg);
-
-    // Check if this message is for us
-    if (msg.target_system == mavSystemId) {
-        mavlinkRxHandleMessage(&msg);
-        return true;
-    }
-
-    return false;
+    // Don't check system ID because it's not configurable with systems like Crossfire
+    mavlinkRxHandleMessage(&msg);
+    return true;
 }
 
 static bool processMAVLinkIncomingTelemetry(void)
