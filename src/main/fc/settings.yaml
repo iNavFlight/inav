@@ -2195,7 +2195,7 @@ groups:
         min: 0
         max: 65000
       - name: safehome_usage_mode
-        description: "Used to control when safehomes will be used."
+        description: "Used to control when safehomes will be used. Possible values are `OFF`, `RTH` and `RTH_FS`.  See [Safehome documentation](Safehomes.md#Safehome) for more information."
         default_value: "RTH"
         field: general.flags.safehome_usage_mode
         table: safehome_usage_mode
