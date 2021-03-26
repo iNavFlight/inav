@@ -73,6 +73,7 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 37            | MAP_OUTPUT         | Scales `Operand A` from [`0` : `1000`] to [`0` : `Operand B`]. Note: input will be constrained and then scaled |
 | 38            | RC_CHANNEL_OVERRIDE | Overrides channel set by `Operand A` to value of `Operand B` |
 | 39            | SET_HEADING_TARGET  | Sets heading-hold target to `Operand A`, in degrees. Value wraps-around. |
+| 40            | MOD           | Divide `Operand A` by `Operand B` and returns the remainder |
 
 
 ### Operands
