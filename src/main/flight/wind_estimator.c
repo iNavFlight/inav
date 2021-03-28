@@ -84,13 +84,14 @@ float getEstimatedHorizontalWindSpeed(uint16_t *angle)
 //https://en.wikipedia.org/wiki/Equivalent_airspeed
 int32_t Get_EAS2TAS(void)
 {
-    if ((ABS(baroCalculateAltitude() - Last_EAS2TAS) < 100) && (EAS2TAS != 0))
+    int32_t CalcedAltitude = baroCalculateAltitude();
+    if ((ABS(CalcedAltitude - Last_EAS2TAS) < 100) && (EAS2TAS != 0))
     {
         return EAS2TAS;
     }
-    int32_t TempKelvin = ((float)baroGetTemperature()) + 27315 - 0.0065f * baroCalculateAltitude();
+    int32_t TempKelvin = ((float)baroGetTemperature()) + 27315 - 0.0065f * CalcedAltitude;
     EAS2TAS = sqrtf(1.225f / ((float)baro.baroPressure / (287.26f * TempKelvin)));
-    Last_EAS2TAS = baroCalculateAltitude();
+    Last_EAS2TAS = CalcedAltitude;
     return EAS2TAS;
 }
 
