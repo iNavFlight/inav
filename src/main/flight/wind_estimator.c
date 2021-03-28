@@ -40,12 +40,18 @@
 
 #include "io/gps.h"
 
+#include "sensors/pitotmeter.h"
+#include "sensors/barometer.h"
+
 // Based on WindEstimation.pdf paper
 
 static bool hasValidWindEstimate = false;
 static float estimatedWind[XYZ_AXIS_COUNT] = {0, 0, 0};    // wind velocity vectors in cm / sec in earth frame
 static float lastGroundVelocity[XYZ_AXIS_COUNT];
 static float lastFuselageDirection[XYZ_AXIS_COUNT];
+
+int32_t EAS2TAS;
+int32_t Last_EAS2TAS;
 
 bool isEstimatedWindSpeedValid(void)
 {
@@ -73,6 +79,19 @@ float getEstimatedHorizontalWindSpeed(uint16_t *angle)
         *angle = RADIANS_TO_CENTIDEGREES(horizontalWindAngle);
     }
     return sqrtf(sq(xWindSpeed) + sq(yWindSpeed));
+}
+
+//https://en.wikipedia.org/wiki/Equivalent_airspeed
+int32_t Get_EAS2TAS(void)
+{
+    if ((ABS(baroCalculateAltitude() - Last_EAS2TAS) < 100) && (EAS2TAS != 0))
+    {
+        return EAS2TAS;
+    }
+    int32_t TempKelvin = ((float)baroGetTemperature()) + 27315 - 0.0065f * baroCalculateAltitude();
+    EAS2TAS = sqrtf(1.225f / ((float)baro.baroPressure / (287.26f * TempKelvin)));
+    Last_EAS2TAS = baroCalculateAltitude();
+    return EAS2TAS;
 }
 
 void updateWindEstimator(timeUs_t currentTimeUs)
@@ -166,6 +185,27 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         }
         lastUpdateUs = currentTimeUs;
         hasValidWindEstimate = true;
+    } else if(timeDelta > 2 * USECS_PER_SEC && 
+            (pitotmeterConfig()->pitot_hardware != PITOT_NONE ||
+             pitotmeterConfig()->pitot_hardware != PITOT_VIRTUAL ||
+             pitotmeterConfig()->pitot_hardware != PITOT_FAKE)) {
+
+        // when flying direct, use the speed of the pitot tube to get the wind estimate
+        float AirSpeedVector[3];
+        AirSpeedVector[X] = fuselageDirection[X] * pitotCalculateAirSpeed();
+        AirSpeedVector[Y] = fuselageDirection[Y] * pitotCalculateAirSpeed();
+        AirSpeedVector[Z] = fuselageDirection[Z] * pitotCalculateAirSpeed();
+
+        float Wind[3];
+        int32_t EAS2TAS = Get_EAS2TAS();
+        Wind[X] = groundVelocity[X] - (AirSpeedVector[X] * EAS2TAS);
+        Wind[Y] = groundVelocity[Y] - (AirSpeedVector[Y] * EAS2TAS);
+        Wind[Z] = groundVelocity[Z] - (AirSpeedVector[Z] * EAS2TAS);
+
+        estimatedWind[X] = estimatedWind[X] * 0.92f + Wind[X] * 0.08f;
+        estimatedWind[Y] = estimatedWind[Y] * 0.92f + Wind[Y] * 0.08f;
+        estimatedWind[Z] = estimatedWind[Z] * 0.92f + Wind[Z] * 0.08f;
+
     }
 }
 
