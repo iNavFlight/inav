@@ -1199,7 +1199,7 @@ static void osdDisplayFlightPIDValues(uint8_t elemPosX, uint8_t elemPosY, const 
     if ((isAdjustmentFunctionSelected(adjFuncD)) || (((adjFuncD == ADJUSTMENT_ROLL_D) || (adjFuncD == ADJUSTMENT_PITCH_D)) && (isAdjustmentFunctionSelected(ADJUSTMENT_PITCH_ROLL_D))))
         TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
     displayWriteWithAttr(osdDisplayPort, elemPosX + 12, elemPosY, buff, elemAttr);
-    
+
     elemAttr = TEXT_ATTRIBUTES_NONE;
     tfp_sprintf(buff, "%3d", pid->FF);
     if ((isAdjustmentFunctionSelected(adjFuncFF)) || (((adjFuncFF == ADJUSTMENT_ROLL_FF) || (adjFuncFF == ADJUSTMENT_PITCH_FF)) && (isAdjustmentFunctionSelected(ADJUSTMENT_PITCH_ROLL_FF))))
@@ -2240,17 +2240,17 @@ static bool osdDrawSingleElement(uint8_t item)
         }
     case OSD_DEBUG:
         {
-            /* 
-             * Longest representable string is -2147483648 does not fit in the screen. 
+            /*
+             * Longest representable string is -2147483648 does not fit in the screen.
              * Only 7 digits for negative and 8 digits for positive values allowed
              */
             for (uint8_t bufferIndex = 0; bufferIndex < DEBUG32_VALUE_COUNT; ++elemPosY, bufferIndex += 2) {
                 tfp_sprintf(
-                    buff, 
-                    "[%u]=%8ld [%u]=%8ld", 
-                    bufferIndex, 
-                    constrain(debug[bufferIndex], -9999999, 99999999), 
-                    bufferIndex+1, 
+                    buff,
+                    "[%u]=%8ld [%u]=%8ld",
+                    bufferIndex,
+                    constrain(debug[bufferIndex], -9999999, 99999999),
+                    bufferIndex+1,
                     constrain(debug[bufferIndex+1], -9999999, 99999999)
                 );
                 displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
@@ -3129,8 +3129,16 @@ static void osdShowArmed(void)
     if (strlen(systemConfig()->name) > 0) {
         osdFormatCraftName(craftNameBuf);
         displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(systemConfig() -> name)) / 2, y, craftNameBuf );
-        y += 2;
+        y += 1;
     }
+
+    if (posControl.waypointListValid && posControl.waypointCount > 0) {
+        tfp_sprintf(buf, "MISSION %u/%u (%u WP)", navConfig()->general.multi_waypoint_mission_index, posControl.multiMissionCount, posControl.waypointCount);
+        displayWrite(osdDisplayPort, 6, y, buf);
+    } else if (navConfig()->general.multi_waypoint_mission_index > posControl.multiMissionCount) {
+        displayWrite(osdDisplayPort, 3, y, "MISSION INDEX OUT RANGE");
+    }
+    y += 1;
 
 #if defined(USE_GPS)
     if (feature(FEATURE_GPS)) {

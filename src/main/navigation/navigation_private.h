@@ -197,7 +197,7 @@ typedef enum {
 
     NAV_PERSISTENT_ID_WAYPOINT_HOLD_TIME                        = 35,
     NAV_PERSISTENT_ID_RTH_HOVER_ABOVE_HOME                      = 36,
-    NAV_PERSISTENT_ID_WAYPOINT_HOVER_ABOVE_HOME                 = 37,  
+    NAV_PERSISTENT_ID_WAYPOINT_HOVER_ABOVE_HOME                 = 37,
 
 } navigationPersistentId_e;
 
@@ -355,6 +355,7 @@ typedef struct {
     navWaypoint_t               waypointList[NAV_MAX_WAYPOINTS];
     bool                        waypointListValid;
     int8_t                      waypointCount;
+    int8_t                      multiMissionCount;      // number of missions in multi mission entry
 
     navWaypointPosition_t       activeWaypoint;     // Local position and initial bearing, filled on waypoint activation
     int8_t                      activeWaypointIndex;

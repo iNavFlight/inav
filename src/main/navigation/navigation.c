@@ -113,6 +113,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .pos_failure_timeout = 5,               // 5 sec
         .waypoint_radius = 100,                 // 2m diameter
         .waypoint_safe_distance = 10000,        // centimeters - first waypoint should be closer than this
+        .multi_waypoint_mission_index = 1,      // mission index selected for multi mission WP entry
         .max_auto_speed = 300,                  // 3 m/s = 10.8 km/h
         .max_auto_climb_rate = 500,             // 5 m/s
         .max_manual_speed = 500,
@@ -2831,13 +2832,26 @@ bool loadNonVolatileWaypointList(void)
 
     resetWaypointList();
 
+    posControl.multiMissionCount = 0;
+    int8_t WPCounter = 0;
+
     for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {
-        // Load waypoint
-        setWaypoint(i + 1, nonVolatileWaypointList(i));
+        if (posControl.multiMissionCount + 1 == navConfig()->general.multi_waypoint_mission_index) {
+            // Load waypoints
+            setWaypoint(i + 1 - WPCounter, nonVolatileWaypointList(i));
+        } else {
+            WPCounter = i + 1;  // count WPs not in selected multi mission entry to ensure set WP numbering starts at 1
+        }
 
         // Check if this is the last waypoint
-        if (nonVolatileWaypointList(i)->flag == NAV_WP_FLAG_LAST)
-            break;
+        if (nonVolatileWaypointList(i)->flag == NAV_WP_FLAG_LAST) {
+            posControl.multiMissionCount += 1;  // count up number missions in multi mission WP entry
+            if (i != NAV_MAX_WAYPOINTS - 1) {
+                if (nonVolatileWaypointList(i + 1)->flag == NAV_WP_FLAG_LAST) {
+                    break;      // end of multi mission entry if successive NAV_WP_FLAG_LAST
+                }
+            }
+        }
     }
 
     // Mission sanity check failed - reset the list
