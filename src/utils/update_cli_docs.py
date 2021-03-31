@@ -37,6 +37,23 @@ def generate_md_table_from_yaml(settings_yaml):
         for member in group['members']:
             if not any(key in member for key in ["description", "default_value"]) and not options.quiet:
                 print("Setting \"{}\" has no description or default value specified".format(member['name']))
+            # Handle edge cases of YAML autogeneration
+            if "default_value" in member:
+                # Replace booleans with "ON"/"OFF"
+                if type(member["default_value"]) == bool:
+                    member["default_value"] = "ON" if member["default_value"] else "OFF"
+                # Replace zero placeholder with actual zero
+                elif member["default_value"] == ":zero":
+                    member["default_value"] = 0
+                # Replace target-default placeholder with extended definition
+                elif member["default_value"] == ":target":
+                    member["default_value"] = "_target default_"
+                # Replace empty strings with more evident marker
+                elif member["default_value"] == "":
+                    member["default_value"] = "_empty_"
+                # Reformat direct code references
+                elif str(member["default_value"])[0] == ":":
+                    member["default_value"] = f'`{member["default_value"][1:]}`'
             params[member['name']] = {
                     "description": member["description"] if "description" in member else "",
                     "default": member["default_value"] if "default_value" in member else ""
