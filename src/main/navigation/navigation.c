@@ -39,6 +39,7 @@
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
+#include "fc/cli.h"
 
 #include "flight/imu.h"
 #include "flight/mixer.h"
@@ -2835,8 +2836,9 @@ bool loadNonVolatileWaypointList(void)
     posControl.multiMissionCount = 0;
     int8_t WPCounter = 0;
 
+    // when in CLI mode load all WPs in NVM so all multi mission WPs are visible
     for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {
-        if (posControl.multiMissionCount + 1 == navConfig()->general.multi_waypoint_mission_index) {
+        if ((posControl.multiMissionCount + 1 == navConfig()->general.multi_waypoint_mission_index) || cliMode) {
             // Load waypoints
             setWaypoint(i + 1 - WPCounter, nonVolatileWaypointList(i));
         } else {
