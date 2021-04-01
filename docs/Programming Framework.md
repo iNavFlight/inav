@@ -125,7 +125,8 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 30            | ACTIVE_WAYPOINT_ACTION | See ACTIVE_WAYPOINT_ACTION paragraph |
 | 31            | 3D HOME_DISTANCE      | in `meters`, calculated from HOME_DISTANCE and ALTITUDE using Pythagorean theorem |
 | 32            | CROSSFIRE LQ          | Crossfire Link quality as returned by the CRSF protocol   | 
-| 33            | CROSSFIRE SNR          | Crossfire SNR as returned by the CRSF protocol   | 
+| 33            | CROSSFIRE SNR          | Crossfire SNR as returned by the CRSF protocol   |
+| 34            | GPS_VALID              | boolean `0`/`1`. True when the GPS has a valid 3D Fix                |
 
 #### ACTIVE_WAYPOINT_ACTION
 
