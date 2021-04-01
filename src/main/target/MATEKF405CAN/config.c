@@ -17,15 +17,15 @@
 
 #include <stdint.h>
 #include "platform.h"
+#include "config/config_master.h"
+#include "config/feature.h"
+#include "io/serial.h"
 
-#include "fc/fc_msp_box.h"
-
-#include "io/piniobox.h"
 
 void targetConfiguration(void)
 {
-    pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
-#ifdef MATEKF411SE_PINIO
-    pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
-#endif
+
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART4)].functionMask = FUNCTION_GPS;
+    // serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART4)].gps_baudrateIndex = BAUD_115200;
+
 }

@@ -10,7 +10,7 @@
 
 static IO_t lightsIO = DEFIO_IO(NONE);
 
-bool lightsHardwareInit()
+bool lightsHardwareInit(void)
 {
     lightsIO = IOGetByTag(IO_TAG(LIGHTS_PIN));
 

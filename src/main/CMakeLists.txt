@@ -48,6 +48,8 @@ main_sources(COMMON_SRC
     common/typeconversion.h
     common/uvarint.c
     common/uvarint.h
+    common/circular_queue.c
+    common/circular_queue.h
 
     config/config_eeprom.c
     config/config_eeprom.h
@@ -156,6 +158,8 @@ main_sources(COMMON_SRC
     drivers/compass/compass_mpu9250.h
     drivers/compass/compass_qmc5883l.c
     drivers/compass/compass_qmc5883l.h
+    drivers/compass/compass_rm3100.c
+    drivers/compass/compass_rm3100.h
     drivers/compass/compass_msp.c
     drivers/compass/compass_msp.h
 

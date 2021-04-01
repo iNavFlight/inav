@@ -45,6 +45,7 @@
 #include "flight/pid.h"
 #include "drivers/io_port_expander.h"
 #include "io/osd_common.h"
+#include "sensors/diagnostics.h"
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
@@ -324,6 +325,14 @@ static int logicConditionCompute(
             return temporaryValue;
         break;
 
+        case LOGIC_CONDITION_MODULUS:
+            if (operandB != 0) {
+                return constrain(operandA % operandB, INT16_MIN, INT16_MAX);
+            } else {
+                return operandA;
+            }
+            break;
+
         default:
             return false;
             break; 
@@ -384,7 +393,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
             return constrain(getRSSI() * 100 / RSSI_MAX_VALUE, 0, 99);
             break;
         
-        case LOGIC_CONDITION_OPERAND_FLIGHT_VBAT: // V / 10
+        case LOGIC_CONDITION_OPERAND_FLIGHT_VBAT: // V / 100
             return getBatteryVoltage();
             break;
 
@@ -400,7 +409,15 @@ static int logicConditionGetFlightOperandValue(int operand) {
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_GPS_SATS:
-            return gpsSol.numSat;
+            if (getHwGPSStatus() == HW_SENSOR_UNAVAILABLE || getHwGPSStatus() == HW_SENSOR_UNHEALTHY) {
+                return 0;
+            } else {
+                return gpsSol.numSat;
+            }
+            break;
+            
+        case LOGIC_CONDITION_OPERAND_FLIGHT_GPS_VALID: // 0/1
+            return STATE(GPS_FIX) ? 1 : 0;
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_GROUD_SPEED: // cm/s

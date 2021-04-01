@@ -674,6 +674,10 @@ void init(void)
     rcdeviceInit();
 #endif // USE_RCDEVICE
 
+#ifdef USE_DSHOT
+    initDShotCommands();
+#endif
+
     // Latch active features AGAIN since some may be modified by init().
     latchActiveFeatures();
     motorControlEnable = true;
