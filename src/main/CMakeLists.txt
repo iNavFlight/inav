@@ -232,6 +232,8 @@ main_sources(COMMON_SRC
     drivers/rangefinder/rangefinder_srf10.h
     drivers/rangefinder/rangefinder_vl53l0x.c
     drivers/rangefinder/rangefinder_vl53l0x.h
+    drivers/rangefinder/rangefinder_vl53l1x.c
+    drivers/rangefinder/rangefinder_vl53l1x.h
     drivers/rangefinder/rangefinder_virtual.c
     drivers/rangefinder/rangefinder_virtual.h
 

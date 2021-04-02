@@ -310,6 +310,15 @@
     #endif
 #endif
 
+#if defined(USE_RANGEFINDER_VL53L1X)
+    #if !defined(VL53L1X_I2C_BUS) && defined(RANGEFINDER_I2C_BUS)
+        #define VL53L1X_I2C_BUS RANGEFINDER_I2C_BUS
+    #endif
+
+    #if defined(VL53L1X_I2C_BUS)
+    BUSDEV_REGISTER_I2C(busdev_vl53l1x,     DEVHW_VL53L1X,      VL53L1X_I2C_BUS,    0x29,               NONE,           DEVFLAGS_USE_RAW_REGISTERS,  0);
+    #endif
+#endif
 
 /** AIRSPEED SENSORS **/
 
