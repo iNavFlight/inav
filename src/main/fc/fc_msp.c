@@ -567,6 +567,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU16(dst, programmingPids(i)->gains.FF);
         }
         break;
+    case MSP2_INAV_PROGRAMMING_PID_STATUS:
+        for (int i = 0; i < MAX_PROGRAMMING_PID_COUNT; i++) {
+            sbufWriteU32(dst, programmingPidGetOutput(i));
+        }
+        break;
 #endif
     case MSP2_COMMON_MOTOR_MIXER:
         for (uint8_t i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
@@ -822,6 +827,17 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU32(dst, currentBatteryProfile->capacity.warning);
         sbufWriteU32(dst, currentBatteryProfile->capacity.critical);
         sbufWriteU8(dst, currentBatteryProfile->capacity.unit);
+        break;
+
+    case MSP2_INAV_MISC2:
+        // Timers
+        sbufWriteU32(dst, micros() / 1000000); // On time (seconds)
+        sbufWriteU32(dst, getFlightTime()); // Flight time (seconds)
+
+        // Throttle
+        sbufWriteU8(dst, getThrottlePercent()); // Throttle Percent
+        sbufWriteU8(dst, navigationIsControllingThrottle() ? 1 : 0); // Auto Throttle Flag (0 or 1)
+
         break;
 
     case MSP2_INAV_BATTERY_CONFIG:

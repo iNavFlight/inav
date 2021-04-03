@@ -20,6 +20,8 @@
 | acczero_x | 0 | Calculated value after '6 position avanced calibration'. See Wiki page. |
 | acczero_y | 0 | Calculated value after '6 position avanced calibration'. See Wiki page. |
 | acczero_z | 0 | Calculated value after '6 position avanced calibration'. See Wiki page. |
+| airmode_throttle_threshold | 1300 | Defines airmode THROTTLE activation threshold when `airmode_type` **THROTTLE_THRESHOLD** is used |
+| airmode_type | STICK_CENTER | Defines the Airmode state handling type. Default **STICK_CENTER** is the classical approach in which Airmode is always active if enabled, but when the throttle is low and ROLL/PITCH/YAW sticks are centered, Iterms is not allowed to grow (ANTI_WINDUP). **THROTTLE_THRESHOLD** is the Airmode behavior known from Betaflight. In this mode, Airmode is active as soon THROTTLE position is above `airmode_throttle_threshold` and stays active until disarm. ANTI_WINDUP is never triggered. For small Multirotors (up to 7-inch propellers) it is suggested to switch to **THROTTLE_THRESHOLD** since it keeps full stabilization no matter what pilot does with the sticks. Fixed Wings always use **STICK_CENTER_ONCE** or **STICK_CENTER** modes. |
 | airspeed_adc_channel | 0 | ADC channel to use for analog pitot tube (airspeed) sensor. If board doesn't have a dedicated connector for analog airspeed sensor will default to 0 |
 | align_acc | DEFAULT | When running on non-default hardware or adding support for new sensors/sensor boards, these values are used for sensor orientation. When carefully understood, these values can also be used to rotate (in 90deg steps) or flip the board. Possible values are: DEFAULT, CW0_DEG, CW90_DEG, CW180_DEG, CW270_DEG, CW0_DEG_FLIP, CW90_DEG_FLIP, CW180_DEG_FLIP, CW270_DEG_FLIP. |
 | align_board_pitch | 0 | Arbitrary board rotation in deci-degrees (0.1 degree), to allow mounting it sideways / upside down / rotated etc |
@@ -62,6 +64,7 @@
 | disarm_kill_switch | ON | Disarms the motors independently of throttle value. Setting to OFF reverts to the old behaviour of disarming only when the throttle is low. Only applies when arming and disarming with an AUX channel. |
 | display_force_sw_blink | OFF | OFF = OSD hardware blink / ON = OSD software blink. If OSD warning text/values are invisible, try setting this to ON |
 | dji_esc_temp_source | ESC | Re-purpose the ESC temperature field for IMU/BARO temperature |
+| dji_speed_source | GROUND | Sets the speed type displayed by the DJI OSD: GROUND, 3D, AIR |
 | dji_use_name_for_messages | ON | Re-purpose the craft name field for messages. Replace craft name with :WTSED for Warnings|Throttle|Speed|Efficiency|Trip distance |
 | dji_workarounds |  | Enables workarounds for different versions of MSP protocol used |
 | dterm_lpf2_hz | 0 | Cutoff frequency for stage 2 D-term low pass filter |
@@ -79,7 +82,7 @@
 | eleres_signature |  |  |
 | eleres_telemetry_en |  |  |
 | eleres_telemetry_power |  |  |
-| esc_sensor_listen_only |  |  |
+| esc_sensor_listen_only | OFF | Enable when BLHeli32 Auto Telemetry function is used. Disable in every other case |
 | failsafe_delay | 5 | Time in deciseconds to wait before activating failsafe when signal is lost. See [Failsafe documentation](Failsafe.md#failsafe_delay). |
 | failsafe_fw_pitch_angle | 100 | Amount of dive/climb when `SET-THR` failsafe is active on a fixed-wing machine. In 1/10 deg (deci-degrees). Negative values = climb |
 | failsafe_fw_roll_angle | -200 | Amount of banking when `SET-THR` failsafe is active on a fixed-wing machine. In 1/10 deg (deci-degrees). Negative values = left roll |
@@ -98,6 +101,7 @@
 | failsafe_throttle_low_delay | 100 | If failsafe activated when throttle is low for this much time - bypass failsafe and disarm, in 10th of seconds. 0 = No timeout |
 | fixed_wing_auto_arm | OFF | Auto-arm fixed wing aircraft on throttle above min_check, and disarming with stick commands are disabled, so power cycle is required to disarm. Requires enabled motorstop and no arm switch configured. |
 | flaperon_throw_offset | 200 | Defines throw range in us for both ailerons that will be passed to servo mixer via input source 14 (`FEATURE FLAPS`) when FLAPERON mode is activated. |
+| flip_over_after_crash_power_factor | 65 | flip over after crash power factor |
 | fpv_mix_degrees |  |  |
 | frsky_coordinates_format | 0 | D-Series telemetry only: FRSKY_FORMAT_DMS (default), FRSKY_FORMAT_NMEA |
 | frsky_default_latitude | 0.000 | D-Series telemetry only: OpenTX needs a valid set of coordinates to show compass value. A fake value defined in this setting is sent while no fix is acquired. |
@@ -111,6 +115,9 @@
 | fw_autotune_threshold | 50 | Threshold [%] of max rate to consider overshoot/undershoot detection |
 | fw_autotune_undershoot_time | 200 | Time [ms] to detect sustained undershoot |
 | fw_d_level | 75 | Fixed-wing attitude stabilisation HORIZON transition point |
+| fw_d_pitch | 0 | Fixed wing rate stabilisation D-gain for PITCH |
+| fw_d_roll | 0 | Fixed wing rate stabilisation D-gain for ROLL |
+| fw_d_yaw | 0 | Fixed wing rate stabilisation D-gain for YAW |
 | fw_ff_pitch | 50 | Fixed-wing rate stabilisation FF-gain for PITCH |
 | fw_ff_roll | 50 | Fixed-wing rate stabilisation FF-gain for ROLL |
 | fw_ff_yaw | 60 | Fixed-wing rate stabilisation FF-gain for YAW |
@@ -120,6 +127,7 @@
 | fw_i_yaw | 10 | Fixed-wing rate stabilisation I-gain for YAW |
 | fw_iterm_limit_stick_position | 0.5 | Iterm is not allowed to grow when stick position is above threshold. This solves the problem of bounceback or followthrough when full stick deflection is applied on poorely tuned fixed wings. In other words, stabilization is partialy disabled when pilot is actively controlling the aircraft and active when sticks are not touched. `0` mean stick is in center position, `1` means it is fully deflected to either side |
 | fw_iterm_throw_limit | 165 | Limits max/min I-term value in stabilization PID controller in case of Fixed Wing. It solves the problem of servo saturation before take-off/throwing the airplane into the air. By default, error accumulated in I-term can not exceed 1/3 of servo throw (around 165us). Set 0 to disable completely. |
+| fw_level_pitch_trim | 0 | Pitch trim for self-leveling flight modes. In degrees. +5 means airplane nose should be raised 5 deg from level |
 | fw_loiter_direction | RIGHT | Direction of loitering: center point on right wing (clockwise - default), or center point on left wing (counterclockwise). If equal YAW then can be changed in flight using a yaw stick. |
 | fw_min_throttle_down_pitch | 0 | Automatic pitch down angle when throttle is at 0 in angle mode. Progressively applied between cruise throttle and zero throttle (decidegrees) |
 | fw_p_level | 20 | Fixed-wing attitude stabilisation P-gain |
@@ -130,6 +138,7 @@
 | fw_tpa_time_constant | 0 | TPA smoothing and delay time constant to reflect non-instant speed/throttle response of the plane. Planes with low thrust/weight ratio generally need higher time constant. Default is zero for compatibility with old setups |
 | fw_turn_assist_pitch_gain | 1 | Gain required to keep constant pitch angle during coordinated turns (in TURN_ASSIST mode). Value significantly different from 1.0 indicates a problem with the airspeed calibration (if present) or value of `fw_reference_airspeed` parameter |
 | fw_turn_assist_yaw_gain | 1 | Gain required to keep the yaw rate consistent with the turn rate for a coordinated turn (in TURN_ASSIST mode). Value significantly different from 1.0 indicates a problem with the airspeed calibration (if present) or value of `fw_reference_airspeed` parameter |
+| fw_yaw_iterm_freeze_bank_angle | 0 | Yaw Iterm is frozen when bank angle is above this threshold [degrees]. This solves the problem of the rudder counteracting turns by partially disabling yaw stabilization when making banked turns. Setting to 0 (the default) disables this feature. Only applies when autopilot is not active and TURN ASSIST is disabled. |
 | gps_auto_baud | ON | Automatic configuration of GPS baudrate(The specified baudrate in configured in ports will be used) when used with UBLOX GPS. When used with NAZA/DJI it will automatic detect GPS baudrate and change to it, ignoring the selected baudrate set in ports |
 | gps_auto_config | ON | Enable automatic configuration of UBlox GPS receivers. |
 | gps_dyn_model | AIR_1G | GPS navigation model: Pedestrian, Air_1g, Air_4g. Default is AIR_1G. Use pedestrian with caution, can cause flyaways with fast flying. |
@@ -140,7 +149,7 @@
 | gyro_dyn_lpf_curve_expo | 5 | Expo value for the throttle-to-frequency mapping for Dynamic LPF |
 | gyro_dyn_lpf_max_hz | 500 | Maximum frequency of the gyro Dynamic LPF |
 | gyro_dyn_lpf_min_hz | 200 | Minimum frequency of the gyro Dynamic LPF |
-| gyro_hardware_lpf | 42HZ | Hardware lowpass filter for gyro. Allowed values depend on the driver - For example MPU6050 allows 10HZ,20HZ,42HZ,98HZ,188HZ,256Hz (8khz mode). If you have to set gyro lpf below 42Hz generally means the frame is vibrating too much, and that should be fixed first. |
+| gyro_hardware_lpf | 256HZ | Hardware lowpass filter for gyro. This value should never be changed without a very strong reason! If you have to set gyro lpf below 256HZ, it means the frame is vibrating too much, and that should be fixed first. |
 | gyro_lpf_hz | 60 | Software-based filter to remove mechanical vibrations from the gyro signal. Value is cutoff frequency (Hz). For larger frames with bigger props set to lower value. |
 | gyro_lpf_type | BIQUAD | Specifies the type of the software LPF of the gyro signals. BIQUAD gives better filtering and more delay, PT1 less filtering and less delay, so use only on clean builds. |
 | gyro_notch_cutoff |  |  |
@@ -216,8 +225,6 @@
 | max_angle_inclination_rll | 300 | Maximum inclination in level (angle) mode (ROLL axis). 100=10° |
 | max_check | 1900 | These are min/max values (in us) which, when a channel is smaller (min) or larger (max) than the value will activate various RC commands, such as arming, or stick configuration. Normally, every RC channel should be set so that min = 1000us, max = 2000us. On most transmitters this usually means 125% endpoints. Default check values are 100us above/below this value. |
 | max_throttle | 1850 | This is the maximum value (in us) sent to esc when armed. Default of 1850 are OK for everyone (legacy). For modern ESCs, higher values (c. 2000) may be more appropriate. If you have brushed motors, the value should be set to 2000. |
-| mc_airmode_threshold | 1300 | Defines airmode THROTTLE activation threshold when `mc_airmode_type` **THROTTLE_THRESHOLD** is used |
-| mc_airmode_type | STICK_CENTER | Defines the Airmode state handling type for Multirotors. Default **STICK_CENTER** is the classical approach in which Airmode is always active if enabled, but when the throttle is low and ROLL/PITCH/YAW sticks are centered, Iterms is not allowed to grow (ANTI_WINDUP). **THROTTLE_THRESHOLD** is the Airmode behavior known from Betaflight. In this mode, Airmode is active as soon THROTTLE position is above `mc_airmode_threshold` and stays active until disarm. ANTI_WINDUP is never triggered. For small Multirotors (up to 7-inch propellers) it is suggested to switch to **THROTTLE_THRESHOLD** since it keeps full stabilization no matter what pilot does with the sticks. Fixed Wings always use **STICK_CENTER** mode. |
 | mc_cd_lpf_hz | 30 | Cutoff frequency for Control Derivative. Lower value smoother reaction on fast stick movements. With higher values, response will be more aggressive, jerky |
 | mc_cd_pitch | 60 | Multicopter Control Derivative gain for PITCH |
 | mc_cd_roll | 60 | Multicopter Control Derivative gain for ROLL |
@@ -244,7 +251,7 @@
 | motor_accel_time | 0 | Minimum time for the motor(s) to accelerate from 0 to 100% throttle (ms) [0-1000] |
 | motor_decel_time | 0 | Minimum time for the motor(s) to deccelerate from 100 to 0% throttle (ms) [0-1000] |
 | motor_direction_inverted | OFF | Use if you need to inverse yaw motor direction. |
-| motor_poles |  |  |
+| motor_poles | 14 | The number of motor poles. Required to compute motor RPM |
 | motor_pwm_protocol | ONESHOT125 | Protocol that is used to send motor updates to ESCs. Possible values - STANDARD, ONESHOT125, ONESHOT42, MULTISHOT, DSHOT150, DSHOT300, DSHOT600, DSHOT1200, BRUSHED |
 | motor_pwm_rate | 400 | Output frequency (in Hz) for motor pins. Default is 400Hz for motor with motor_pwm_protocol set to STANDARD. For *SHOT (e.g. ONESHOT125) values of 1000 and 2000 have been tested by the development team and are supported. It may be possible to use higher values. For BRUSHED values of 8000 and above should be used. Setting to 8000 will use brushed mode at 8kHz switching frequency. Up to 32kHz is supported for brushed. Default is 16000 for boards with brushed motors. Note, that in brushed mode, minthrottle is offset to zero. For brushed mode, set max_throttle to 2000. |
 | msp_override_channels | 0 | Mask of RX channels that may be overridden by MSP `SET_RAW_RC`. Note that this requires custom firmware with `USE_RX_MSP` and `USE_MSP_RC_OVERRIDE` compile options and the `MSP RC Override` flight mode. |
@@ -277,7 +284,7 @@
 | nav_fw_launch_thr | 1700 | Launch throttle - throttle to be set during launch sequence (pwm units) |
 | nav_fw_launch_timeout | 5000 | Maximum time for launch sequence to be executed. After this time LAUNCH mode will be turned off and regular flight mode will take over (ms) |
 | nav_fw_launch_velocity | 300 | Forward velocity threshold for swing-launch detection [cm/s] |
-| nav_fw_loiter_radius | 5000 | PosHold radius. 3000 to 7500 is a good value (30-75m) [cm] |
+| nav_fw_loiter_radius | 7500 | PosHold radius. 3000 to 7500 is a good value (30-75m) [cm] |
 | nav_fw_max_thr | 1700 | Maximum throttle for flying wing in GPS assisted modes |
 | nav_fw_min_thr | 1200 | Minimum throttle for flying wing in GPS assisted modes |
 | nav_fw_pitch2thr | 10 | Amount of throttle applied related to pitch attitude in GPS assisted modes. Throttle = nav_fw_cruise_throttle - (nav_fw_pitch2thr * pitch_angle). (notice that pitch_angle is in degrees and is negative when climbing and positive when diving, and throttle value is constrained between nav_fw_min_thr and nav_fw_max_thr) |
@@ -299,7 +306,7 @@
 | nav_landing_speed | 200 | Vertical descent velocity during the RTH landing phase. [cm/s] |
 | nav_manual_climb_rate | 200 | Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s] |
 | nav_manual_speed | 500 | Maximum velocity firmware is allowed when processing pilot input for POSHOLD/CRUISE control mode [cm/s] [Multirotor only] |
-| nav_max_terrain_follow_alt |  |  |
+| nav_max_terrain_follow_alt | 100 | Max allowed above the ground altitude for terrain following mode |
 | nav_mc_auto_disarm_delay | 2000 | Delay before multi-rotor disarms when `nav_disarm_on_landing` is set (m/s) |
 | nav_mc_bank_angle | 30 | Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude |
 | nav_mc_braking_bank_angle | 40 | max angle that MR is allowed to bank in BOOST mode |
@@ -327,6 +334,7 @@
 | nav_mc_vel_z_d | 10 | D gain of velocity PID controller |
 | nav_mc_vel_z_i | 50 | I gain of velocity PID controller |
 | nav_mc_vel_z_p | 100 | P gain of velocity PID controller |
+| nav_mc_wp_slowdown | ON | When ON, NAV engine will slow down when switching to the next waypoint. This prioritizes turning over forward movement. When OFF, NAV engine will continue to the next waypoint and turn as it goes. |
 | nav_min_rth_distance | 500 | Minimum distance from homepoint when RTH full procedure will be activated [cm]. Below this distance, the mode will activate at the current location and the final phase is executed (loiter / land). Above this distance, the full procedure is activated, which may include initial climb and flying directly to the homepoint before entering the loiter / land phase. |
 | nav_overrides_motor_stop | ALL_NAV | When set to OFF the navigation system will not take over the control of the motor if the throttle is low (motor will stop). When set to OFF_ALWAYS the navigation system will not take over the control of the motor if the throttle was low even when failsafe is triggered. When set to AUTO_ONLY the navigation system will only take over the control of the throttle in autonomous navigation modes (NAV WP and NAV RTH). When set to ALL_NAV (default) the navigation system will take over the control of the motor completely and never allow the motor to stop even when the throttle is low. This setting only has an effect on NAV modes which take control of the throttle when combined with MOTOR_STOP and is likely to cause a stall if fw_min_throttle_down_pitch isn't set correctly or the pitch estimation is wrong for fixed wing models when not set to ALL_NAV |
 | nav_position_timeout | 5 | If GPS fails wait for this much seconds before switching to emergency landing mode (0 - disable) |
@@ -389,6 +397,8 @@
 | osd_link_quality_alarm | 70 | LQ % indicator blinks below this value. For Crossfire use 70%, for Tracer use 50% |
 | osd_main_voltage_decimals | 1 | Number of decimals for the battery voltages displayed in the OSD [1-2]. |
 | osd_neg_alt_alarm | 5 | Value below which (negative altitude) to make the OSD relative altitude indicator blink (meters) |
+| osd_pan_servo_index |  | Index of the pan servo to adjust osd home heading direction based on camera pan. Note that this feature does not work with continiously rotating servos. |
+| osd_pan_servo_pwm2centideg | 0 | Centidegrees of pan servo rotation us PWM signal. A servo with 180 degrees of rotation from 1000 to 2000 us PWM typically needs `18` for this setting. Change sign to inverse direction. |
 | osd_plus_code_digits | 10 | Numer of plus code digits before shortening with `osd_plus_code_short`. Precision at the equator: 10=13.9x13.9m; 11=2.8x3.5m; 12=56x87cm; 13=11x22cm. |
 | osd_plus_code_short | 0 | Number of leading digits removed from plus code. Removing 2, 4 and 6 digits requires a reference location within, respectively, ~800km, ~40 km and ~2km to recover the original coordinates. |
 | osd_right_sidebar_scroll |  |  |
@@ -406,10 +416,10 @@
 | pid_type |  | Allows to set type of PID controller used in control loop. Possible values: `NONE`, `PID`, `PIFF`, `AUTO`. Change only in case of experimental platforms like VTOL, tailsitters, rovers, boats, etc. Airplanes should always use `PIFF` and multirotors `PID` |
 | pidsum_limit | 500 | A limitation to overall amount of correction Flight PID can request on each axis (Roll/Pitch). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help |
 | pidsum_limit_yaw | 400 | A limitation to overall amount of correction Flight PID can request on each axis (Yaw). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help |
-| pinio_box1 |  |  |
-| pinio_box2 |  |  |
-| pinio_box3 |  |  |
-| pinio_box4 |  |  |
+| pinio_box1 | target specific | Mode assignment for PINIO#1 |
+| pinio_box2 | target specific | Mode assignment for PINIO#1 |
+| pinio_box3 | target specific | Mode assignment for PINIO#1 |
+| pinio_box4 | target specific | Mode assignment for PINIO#1 |
 | pitch_rate | 20 | Defines rotation rate on PITCH axis that UAV will try to archive on max. stick deflection. Rates are defined in tens of degrees (deca-degrees) per second [rate = dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure. |
 | pitot_hardware | NONE | Selection of pitot hardware. |
 | pitot_lpf_milli_hz |  |  |
@@ -501,6 +511,7 @@
 | vtx_max_power_override | 0 | Some VTXes may report max power incorrectly (i.e. 200mW for a 600mW VTX). Use this to override max supported power. 0 to disable and use whatever VTX reports as its capabilities |
 | vtx_pit_mode_chan |  |  |
 | vtx_power | 1 | VTX RF power level to use. The exact number of mw depends on the VTX hardware. |
+| vtx_smartaudio_early_akk_workaround | ON | Enable workaround for early AKK SAudio-enabled VTX bug. |
 | yaw_deadband | 5 | These are values (in us) by how much RC input can be different before it's considered valid. For transmitters with jitter on outputs, this value can be increased. Defaults are zero, but can be increased up to 10 or so if rc inputs twitch while idle. |
 | yaw_lpf_hz | 30 | Yaw low pass filter cutoff frequency. Should be disabled (set to `0`) on small multirotors (7 inches and below) |
 | yaw_rate | 20 | Defines rotation rate on YAW axis that UAV will try to archive on max. stick deflection. Rates are defined in tens of degrees (deca-degrees) per second [rate = dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure. |

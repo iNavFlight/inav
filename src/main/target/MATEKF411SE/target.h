@@ -70,7 +70,11 @@
 
 #define USE_SOFTSERIAL1
 #define SOFTSERIAL_1_TX_PIN     PB9 // ST1 pad
+#ifdef MATEKF411SE_FD_SFTSRL1
+#define SOFTSERIAL_1_RX_PIN     PB10 // LED pad
+#else
 #define SOFTSERIAL_1_RX_PIN     PB9
+#endif
 
 #define USE_SOFTSERIAL2
 #define SOFTSERIAL_2_TX_PIN     PA2 // TX2 pad
@@ -131,13 +135,18 @@
 #define AIRSPEED_ADC_CHANNEL        ADC_CHN_4
 
 // *************** LED2812 ************************
+#if !defined(MATEKF411SE_PINIO) && !defined(MATEKF411SE_FD_SFTSRL1)
 #define USE_LED_STRIP
 #define WS2811_PIN                  PB10
+#endif
 
 // *************** PINIO ***************************
 #define USE_PINIO
 #define USE_PINIOBOX
 #define PINIO1_PIN                  PA13 // Camera switcher
+#ifdef MATEKF411SE_PINIO
+#define PINIO2_PIN                  PB10 // External PINIO (LED pad)
+#endif
 
 // ***************  OTHERS *************************
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_OSD | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY | FEATURE_SOFTSERIAL )

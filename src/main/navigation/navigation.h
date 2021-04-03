@@ -23,6 +23,7 @@
 #include "common/filter.h"
 #include "common/maths.h"
 #include "common/vector.h"
+#include "common/fp_pid.h"
 
 #include "config/feature.h"
 
@@ -224,6 +225,7 @@ typedef struct navConfig_s {
         uint8_t  braking_bank_angle;            // Max angle [deg] that MR is allowed duing braking boost phase
         uint8_t posDecelerationTime;            // Brake time parameter
         uint8_t posResponseExpo;                // Position controller expo (taret vel expo for MC)
+        bool slowDownForTurning;             // Slow down during WP missions when changing heading on next waypoint
     } mc;
 
     struct {
@@ -255,7 +257,7 @@ typedef struct navConfig_s {
         uint8_t  launch_max_angle;           // Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg]
         uint8_t  cruise_yaw_rate;            // Max yaw rate (dps) when CRUISE MODE is enabled
         bool     allow_manual_thr_increase;
-        bool useFwNavYawControl;
+        bool    useFwNavYawControl;
         uint8_t yawControlDeadband;
     } fw;
 } navConfig_t;
@@ -329,33 +331,6 @@ typedef struct navDestinationPath_s {
     uint32_t distance; // meters * 100
     int32_t bearing; // deg * 100
 } navDestinationPath_t;
-
-typedef struct {
-    float kP;
-    float kI;
-    float kD;
-    float kT;   // Tracking gain (anti-windup)
-    float kFF;  // FeedForward Component
-} pidControllerParam_t;
-
-typedef struct {
-    float kP;
-} pControllerParam_t;
-
-typedef struct {
-    bool reset;
-    pidControllerParam_t param;
-    pt1Filter_t dterm_filter_state;     // last derivative for low-pass filter
-    float dTermLpfHz;                   // dTerm low pass filter cutoff frequency
-    float integrator;                   // integrator value
-    float last_input;                   // last input for derivative
-
-    float integral;                     // used integral value in output
-    float proportional;                 // used proportional value in output
-    float derivative;                   // used derivative value in output
-    float feedForward;                  // used FeedForward value in output
-    float output_constrained;           // controller output constrained
-} pidController_t;
 
 typedef struct navigationPIDControllers_s {
     /* Multicopter PIDs */

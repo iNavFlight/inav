@@ -75,7 +75,7 @@ static float opflowCalibrationFlowAcc;
 #define OPFLOW_UPDATE_TIMEOUT_US        200000  // At least 5Hz updates required
 #define OPFLOW_CALIBRATE_TIME_MS        30000   // 30 second calibration time
 
-PG_REGISTER_WITH_RESET_TEMPLATE(opticalFlowConfig_t, opticalFlowConfig, PG_OPFLOW_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(opticalFlowConfig_t, opticalFlowConfig, PG_OPFLOW_CONFIG, 2);
 
 PG_RESET_TEMPLATE(opticalFlowConfig_t, opticalFlowConfig,
     .opflow_hardware = OPFLOW_NONE,

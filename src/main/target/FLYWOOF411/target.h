@@ -140,8 +140,13 @@
 #define USE_ADC
 #define ADC_INSTANCE                    ADC1
 #define ADC_CHANNEL_1_PIN               PA1
+#ifdef FLYWOOF411_V2
+#define ADC_CHANNEL_2_PIN               PB1
+#define ADC_CHANNEL_3_PIN               PB0
+#else
 #define ADC_CHANNEL_2_PIN               PA0
 #define ADC_CHANNEL_3_PIN               PB1
+#endif
 
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
 #define VBAT_ADC_CHANNEL                ADC_CHN_2

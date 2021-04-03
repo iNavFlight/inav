@@ -40,6 +40,7 @@
 #include "drivers/compass/compass_qmc5883l.h"
 #include "drivers/compass/compass_mpu9250.h"
 #include "drivers/compass/compass_lis3mdl.h"
+#include "drivers/compass/compass_rm3100.h"
 #include "drivers/compass/compass_msp.h"
 #include "drivers/io.h"
 #include "drivers/light_led.h"
@@ -264,6 +265,22 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         }
         FALLTHROUGH;
 
+    case MAG_RM3100:
+#ifdef USE_MAG_RM3100
+        if (rm3100MagDetect(dev)) {
+#ifdef MAG_RM3100_ALIGN
+            dev->magAlign.onBoard = MAG_RM3100_ALIGN;
+#endif
+            magHardware = MAG_RM3100;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (magHardwareToUse != MAG_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
     case MAG_FAKE:
 #ifdef USE_FAKE_MAG
         if (fakeMagDetect(dev)) {
@@ -350,7 +367,7 @@ void compassUpdate(timeUs_t currentTimeUs)
     static sensorCalibrationState_t calState;
     static timeUs_t calStartedAt = 0;
     static int16_t magPrev[XYZ_AXIS_COUNT];
-    static int magGain[XYZ_AXIS_COUNT] = {-4096, -4096, -4096};
+    static int magAxisDeviation[XYZ_AXIS_COUNT];
 
     // Check magZero
     if (
@@ -381,6 +398,7 @@ void compassUpdate(timeUs_t currentTimeUs)
             compassConfigMutable()->magZero.raw[axis] = 0;
             compassConfigMutable()->magGain[axis] = 1024;
             magPrev[axis] = 0;
+            magAxisDeviation[axis] = 0;  // Gain is based on the biggest absolute deviation from the mag zero point. Gain computation starts at 0
         }
 
         beeper(BEEPER_ACTION_SUCCESS);
@@ -400,9 +418,9 @@ void compassUpdate(timeUs_t currentTimeUs)
                 diffMag += (mag.magADC[axis] - magPrev[axis]) * (mag.magADC[axis] - magPrev[axis]);
                 avgMag += (mag.magADC[axis] + magPrev[axis]) * (mag.magADC[axis] + magPrev[axis]) / 4.0f;
 
-                const int32_t sample = ABS(mag.magADC[axis]);
-                if (sample > magGain[axis]) {
-                    magGain[axis] = sample;
+                // Find the biggest sample deviation together with sample' sign
+                if (ABS(mag.magADC[axis]) > ABS(magAxisDeviation[axis])) {
+                    magAxisDeviation[axis] = mag.magADC[axis];
                 }
 
             }
@@ -429,7 +447,7 @@ void compassUpdate(timeUs_t currentTimeUs)
              * It is dirty, but worth checking if this will solve the problem of changing mag vector when UAV is tilted
              */
             for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-                compassConfigMutable()->magGain[axis] = magGain[axis] - compassConfig()->magZero.raw[axis];
+                compassConfigMutable()->magGain[axis] = ABS(magAxisDeviation[axis] - compassConfig()->magZero.raw[axis]);
             }
 
             calStartedAt = 0;
