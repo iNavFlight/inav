@@ -160,6 +160,4 @@
 #define USE_ESC_SENSOR
 #define USE_SERIALSHOT
 
-#define USE_SECONDARY_IMU
-#define USE_IMU_BNO055
 #define BNO055_I2C_BUS          BUS_I2C1
