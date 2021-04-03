@@ -381,7 +381,7 @@ static bool osdCanvasDrawArtificialHorizonWidget(displayPort_t *display, display
         // so that's 135degs each direction. Map that to the configured limit.
         const float halfRange = 135.0f;
         const float limit = halfRange / 180.0f * M_PIf;
-        float multiplier = halfRange / osdConfig()->ahi_max_pitch;
+        float multiplier = osdConfig()->osd_ahi_style == OSD_AHI_STYLE_DEFAULT ? 1.0f : halfRange / osdConfig()->ahi_max_pitch;
         widgetAHIData_t data = {
             .pitch = constrainf(pitchAngle * multiplier, -limit, limit),
             .roll = rollAngle,
