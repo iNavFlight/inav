@@ -45,6 +45,7 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/rpm_filter.h"
+#include "flight/secondary_imu.h"
 #include "flight/kalman.h"
 
 #include "io/gps.h"
@@ -538,8 +539,7 @@ static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float h
     if ((axis == FD_PITCH) && STATE(AIRPLANE) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle())
         angleTarget += scaleRange(MAX(0, navConfig()->fw.cruise_throttle - rcCommand[THROTTLE]), 0, navConfig()->fw.cruise_throttle - PWM_RANGE_MIN, 0, mixerConfig()->fwMinThrottleDownPitchAngle);
 
-
-    //PITCH trim applied by a AutoLevel flight mode and manual pitch trimming
+        //PITCH trim applied by a AutoLevel flight mode and manual pitch trimming
     if (axis == FD_PITCH && STATE(AIRPLANE)) {
         /* 
          * fixedWingLevelTrim has opposite sign to rcCommand.
@@ -553,7 +553,22 @@ static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float h
         angleTarget -= DEGREES_TO_DECIDEGREES(fixedWingLevelTrim);   
     }
 
+#ifdef USE_SECONDARY_IMU
+    float actual;
+    if (secondaryImuState.active && secondaryImuConfig()->useForStabilized) {
+        if (axis == FD_ROLL) {
+            actual = secondaryImuState.eulerAngles.values.roll;
+        } else {
+            actual = secondaryImuState.eulerAngles.values.pitch;
+        }
+    } else {
+        actual = attitude.raw[axis];
+    }
+
+    const float angleErrorDeg = DECIDEGREES_TO_DEGREES(angleTarget - actual);
+#else
     const float angleErrorDeg = DECIDEGREES_TO_DEGREES(angleTarget - attitude.raw[axis]);
+#endif
 
     float angleRateTarget = constrainf(angleErrorDeg * (pidBank()->pid[PID_LEVEL].P / FP_PID_LEVEL_P_MULTIPLIER), -currentControlRateProfile->stabilized.rates[axis] * 10.0f, currentControlRateProfile->stabilized.rates[axis] * 10.0f);
 

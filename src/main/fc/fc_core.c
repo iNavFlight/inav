@@ -38,6 +38,7 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/time.h"
 #include "drivers/system.h"
 #include "drivers/pwm_output.h"
+#include "drivers/accgyro/accgyro_bno055.h"
 
 #include "sensors/sensors.h"
 #include "sensors/diagnostics.h"
@@ -89,6 +90,7 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/failsafe.h"
 
 #include "config/feature.h"
+#include "common/vector.h"
 #include "programming/pid.h"
 
 // June 2013     V2.2-dev
