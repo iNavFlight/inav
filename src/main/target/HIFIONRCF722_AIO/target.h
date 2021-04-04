@@ -24,7 +24,7 @@
 #define USE_TARGET_CONFIG
 
 #define TARGET_BOARD_IDENTIFIER         "HFOR"
-#define USBD_PRODUCT_STRING             "HIFIONRCF722_I2C_TX3SDA_RX3SCL"
+#define USBD_PRODUCT_STRING             "HIFIONRCF722_AIO"
 
 // ******** Board LEDs  **********************
 #define LED0                            PA15                            //taken from unified target
@@ -50,8 +50,8 @@
 #define USE_I2C
 #define USE_I2C_DEVICE_1
 #define USE_I2C_PULLUP
-#define I2C1_SCL                        PB6        //taken from unified target
-#define I2C1_SDA                        PB7        //taken from unified target
+#define I2C1_SCL                        PB10        // SCL pad TX3       //taken from unified target
+#define I2C1_SDA                        PB11        // SDA pad RX3       //taken from unified target
 #define DEFAULT_I2C_BUS                 BUS_I2C1
 
 #define USE_BARO
@@ -73,7 +73,7 @@
 #define USE_VCP
 #define USE_UART1
 #define USE_UART2
-#define USE_UART3
+//#define USE_UART3
 #define USE_UART4
 #define USE_UART5
 #define USE_UART6
@@ -85,10 +85,10 @@
 
 #define UART2_TX_PIN                    PA2                             //taken from unified target
 #define UART2_RX_PIN                    PA3                             //taken from unified target
-
+/*
 #define UART3_TX_PIN                    PB10                            //taken from unified target
 #define UART3_RX_PIN                    PB11                            //taken from unified target
-
+*/
 #define UART4_TX_PIN                    PA0                             //taken from unified target
 #define UART4_RX_PIN                    PA1                             //taken from unified target
 
