@@ -15,7 +15,7 @@
  * along with INAV.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//this is Part of INAV Sourcecode, more exactly target.h for MAMBAF722, modified by LTwin8 to fit HIFIONRCF7 AIO and HIFIONRCF7 PRO
+//this is Part of INAV Sourcecode, more exactly target.h for MAMBAF722, modified by LTwin8 to fit JHEF7
 
 //Used resources are the INAV-Code and the Betaflight unified target file https://raw.githubusercontent.com/betaflight/unified-targets/master/configs/default/JHEF-JHEF7DUAL.config
 
