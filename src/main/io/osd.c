@@ -942,7 +942,7 @@ static inline int32_t osdGetAltitudeMsl(void)
 static bool osdIsHeadingValid(void)
 {
 #ifdef USE_SECONDARY_IMU
-    if (secondaryImuConfig()->useForOsdHeading) {
+    if (secondaryImuState.active && secondaryImuConfig()->useForOsdHeading) {
         return true;
     } else {
         return isImuHeadingValid();
@@ -955,7 +955,7 @@ static bool osdIsHeadingValid(void)
 int16_t osdGetHeading(void)
 {
 #ifdef USE_SECONDARY_IMU
-    if (secondaryImuConfig()->useForOsdHeading) {
+    if (secondaryImuState.active && secondaryImuConfig()->useForOsdHeading) {
         return secondaryImuState.eulerAngles.values.yaw;
     } else {
         return attitude.values.yaw;
@@ -1872,7 +1872,7 @@ static bool osdDrawSingleElement(uint8_t item)
             float pitchAngle;
 
 #ifdef USE_SECONDARY_IMU
-            if (secondaryImuConfig()->useForOsdAHI) {
+            if (secondaryImuState.active && secondaryImuConfig()->useForOsdAHI) {
                 rollAngle = DECIDEGREES_TO_RADIANS(secondaryImuState.eulerAngles.values.roll);
                 pitchAngle = DECIDEGREES_TO_RADIANS(secondaryImuState.eulerAngles.values.pitch);
             } else {

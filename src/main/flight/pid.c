@@ -555,7 +555,7 @@ static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float h
 
 #ifdef USE_SECONDARY_IMU
     float actual;
-    if (secondaryImuConfig()->useForStabilized) {
+    if (secondaryImuState.active && secondaryImuConfig()->useForStabilized) {
         if (axis == FD_ROLL) {
             actual = secondaryImuState.eulerAngles.values.roll;
         } else {

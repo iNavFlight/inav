@@ -165,21 +165,21 @@
 | i2c_speed | 400KHZ | This setting controls the clock speed of I2C bus. 400KHZ is the default that most setups are able to use. Some noise-free setups may be overclocked to 800KHZ. Some sensor chips or setups with long wires may work unreliably at 400KHZ - user can try lowering the clock speed to 200KHZ or even 100KHZ. User need to bear in mind that lower clock speeds might require higher looptimes (lower looptime rate) |
 | ibus_telemetry_type | 0 | Type compatibility ibus telemetry for transmitters. See Telemetry.md label IBUS for details. |
 | idle_power | 0 | Power draw at zero throttle used for remaining flight time/distance estimation in 0.01W unit |
-| imu2_align_pitch |  |  |
-| imu2_align_roll |  |  |
-| imu2_align_yaw |  |  |
-| imu2_enabled |  |  |
-| imu2_gain_acc_x |  |  |
-| imu2_gain_acc_y |  |  |
-| imu2_gain_acc_z |  |  |
-| imu2_gain_mag_x |  |  |
-| imu2_gain_mag_y |  |  |
-| imu2_gain_mag_z |  |  |
-| imu2_radius_acc |  |  |
-| imu2_radius_mag |  |  |
-| imu2_use_for_osd_ahi |  |  |
-| imu2_use_for_osd_heading |  |  |
-| imu2_use_for_stabilized |  |  |
+| imu2_align_pitch | 0 | Pitch alignment for Secondary IMU. 1/10 of a degree |
+| imu2_align_roll | 0 | Roll alignment for Secondary IMU. 1/10 of a degree |
+| imu2_align_yaw | 0 | Yaw alignment for Secondary IMU. 1/10 of a degree |
+| imu2_gain_acc_x | 0 | Secondary IMU ACC calibration data |
+| imu2_gain_acc_y | 0 | Secondary IMU ACC calibration data |
+| imu2_gain_acc_z | 0 | Secondary IMU ACC calibration data |
+| imu2_gain_mag_x | 0 | Secondary IMU MAG calibration data |
+| imu2_gain_mag_y | 0 | Secondary IMU MAG calibration data |
+| imu2_gain_mag_z | 0 | Secondary IMU MAG calibration data |
+| imu2_hardware | NONE | Selection of a Secondary IMU hardware type. NONE disables this functionality |
+| imu2_radius_acc | 0 | Secondary IMU MAG calibration data |
+| imu2_radius_mag | 0 | Secondary IMU MAG calibration data |
+| imu2_use_for_osd_ahi | OFF | If set to ON, Secondary IMU data will be used for Analog OSD Artificial Horizon |
+| imu2_use_for_osd_heading | OFF | If set to ON, Secondary IMU data will be used for Analog OSD heading |
+| imu2_use_for_stabilized | OFF | If set to ON, Secondary IMU data will be used for Angle, Horizon and all other modes that control attitude (PosHold, WP, RTH) |
 | imu_acc_ignore_rate | 0 | Total gyro rotation rate threshold [deg/s] to consider accelerometer trustworthy on airplanes |
 | imu_acc_ignore_slope | 0 | Half-width of the interval to gradually reduce accelerometer weight. Centered at `imu_acc_ignore_rate` (exactly 50% weight) |
 | imu_dcm_ki | 50 | Inertial Measurement Unit KI Gain for accelerometer measurements |

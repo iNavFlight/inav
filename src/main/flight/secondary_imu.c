@@ -40,7 +40,7 @@ EXTENDED_FASTRAM secondaryImuState_t secondaryImuState;
 
 void pgResetFn_secondaryImuConfig(secondaryImuConfig_t *instance)
 {
-    instance->enabled = 0;
+    instance->hardwareType = SECONDARY_IMU_NONE,
     instance->rollDeciDegrees = 0;
     instance->pitchDeciDegrees = 0;
     instance->yawDeciDegrees = 0;
@@ -60,6 +60,7 @@ void pgResetFn_secondaryImuConfig(secondaryImuConfig_t *instance)
 
 void secondaryImuInit(void)
 {
+    secondaryImuState.active = false;
     // Create magnetic declination matrix
     const int deg = compassConfig()->mag_declination / 100;
     const int min = compassConfig()->mag_declination % 100;
@@ -79,7 +80,14 @@ void secondaryImuInit(void)
         calibrationData.radius[ACC] = secondaryImuConfig()->calibrationRadiusAcc;
         calibrationData.radius[MAG] = secondaryImuConfig()->calibrationRadiusMag;
 
-    secondaryImuState.active = bno055Init(calibrationData, (secondaryImuConfig()->calibrationRadiusAcc && secondaryImuConfig()->calibrationRadiusMag));
+    if (secondaryImuConfig()->hardwareType == SECONDARY_IMU_BNO055) {
+        secondaryImuState.active = bno055Init(calibrationData, (secondaryImuConfig()->calibrationRadiusAcc && secondaryImuConfig()->calibrationRadiusMag));
+    }
+
+    if (!secondaryImuState.active) {
+        secondaryImuConfigMutable()->hardwareType = SECONDARY_IMU_NONE;
+    }
+
 }
 
 void taskSecondaryImu(timeUs_t currentTimeUs)

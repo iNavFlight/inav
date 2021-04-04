@@ -377,7 +377,7 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_SMARTPORT_MASTER, true);
 #endif
 #ifdef USE_SECONDARY_IMU
-    setTaskEnabled(TASK_SECONDARY_IMU, secondaryImuConfig()->enabled && secondaryImuState.active);
+    setTaskEnabled(TASK_SECONDARY_IMU, secondaryImuConfig()->hardwareType != SECONDARY_IMU_NONE && secondaryImuState.active);
 #endif
 }
 

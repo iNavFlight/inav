@@ -29,8 +29,13 @@
 #include "sensors/sensors.h"
 #include "drivers/accgyro/accgyro_bno055.h"
 
+typedef enum {
+    SECONDARY_IMU_NONE      = 0,
+    SECONDARY_IMU_BNO055    = 1,
+} secondaryImuType_e;
+
 typedef struct secondaryImuConfig_s {
-    uint8_t enabled;
+    uint8_t hardwareType;
     int16_t rollDeciDegrees;
     int16_t pitchDeciDegrees;
     int16_t yawDeciDegrees;
