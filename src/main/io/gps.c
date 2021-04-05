@@ -192,6 +192,8 @@ static void gpsResetSolution(void)
 {
     gpsSol.eph = 9999;
     gpsSol.epv = 9999;
+    gpsSol.numSat = 0;
+    gpsSol.hdop = 9999;
 
     gpsSol.fixType = GPS_NO_FIX;
 
