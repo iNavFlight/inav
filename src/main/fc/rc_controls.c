@@ -64,12 +64,13 @@
 #define AIRMODE_DEADBAND 25
 #define MIN_RC_TICK_INTERVAL_MS             20
 #define DEFAULT_RC_SWITCH_DISARM_DELAY_MS   250     // Wait at least 250ms before disarming via switch
+#define DEFAULT_PREARM_TIMEOUT              10000   // Prearm is invalidated after 10 seconds
 
 stickPositions_e rcStickPositions;
 
 FASTRAM int16_t rcCommand[4];           // interval [1000;2000] for THROTTLE and [-500;+500] for ROLL/PITCH/YAW
 
-PG_REGISTER_WITH_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig, PG_RC_CONTROLS_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig, PG_RC_CONTROLS_CONFIG, 2);
 
 PG_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig,
     .deadband = 5,
@@ -87,6 +88,7 @@ PG_RESET_TEMPLATE(armingConfig_t, armingConfig,
     .fixed_wing_auto_arm = 0,
     .disarm_kill_switch = 1,
     .switchDisarmDelayMs = DEFAULT_RC_SWITCH_DISARM_DELAY_MS,
+    .prearmTimeoutMs = DEFAULT_PREARM_TIMEOUT,
 );
 
 bool areSticksInApModePosition(uint16_t ap_mode)
