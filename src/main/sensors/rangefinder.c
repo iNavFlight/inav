@@ -40,6 +40,7 @@
 #include "drivers/rangefinder/rangefinder_srf10.h"
 #include "drivers/rangefinder/rangefinder_hcsr04_i2c.h"
 #include "drivers/rangefinder/rangefinder_vl53l0x.h"
+#include "drivers/rangefinder/rangefinder_vl53l1x.h"
 #include "drivers/rangefinder/rangefinder_virtual.h"
 
 #include "fc/config.h"
@@ -127,6 +128,15 @@ static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwar
             if (vl53l0xDetect(dev)) {
                 rangefinderHardware = RANGEFINDER_VL53L0X;
                 rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_VL53L0X_TASK_PERIOD_MS));
+            }
+#endif
+            break;
+
+            case RANGEFINDER_VL53L1X:
+#if defined(USE_RANGEFINDER_VL53L1X)
+            if (vl53l1xDetect(dev)) {
+                rangefinderHardware = RANGEFINDER_VL53L1X;
+                rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_VL53L1X_TASK_PERIOD_MS));
             }
 #endif
             break;

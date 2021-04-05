@@ -7,8 +7,11 @@ tables:
     values: ["NONE", "AUTO", "ADXL345", "MPU6050", "MMA845x", "BMA280", "LSM303DLHC", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "FAKE"]
     enum: accelerationSensor_e
   - name: rangefinder_hardware
-    values: ["NONE", "HCSR04", "SRF10", "INAV_I2C", "VL53L0X", "MSP", "UNUSED", "BENEWAKE"]
+    values: ["NONE", "HCSR04", "SRF10", "INAV_I2C", "VL53L0X", "MSP", "UNUSED", "BENEWAKE", "VL53L1X"]
     enum: rangefinderType_e
+  - name: secondary_imu_hardware
+    values: ["NONE", "BNO055"]
+    enum: secondaryImuType_e
   - name: mag_hardware
     values: ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "MSP", "RM3100", FAKE"]
     enum: magSensor_e
@@ -84,7 +87,7 @@ tables:
       "FLOW", "SBUS", "FPORT", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "ERPM", "RPM_FILTER", "RPM_FREQ", "NAV_YAW", "DYNAMIC_FILTER", "DYNAMIC_FILTER_FREQUENCY",
-      "IRLOCK", "CD", "KALMAN_GAIN", "PID_MEASUREMENT", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574", "DYN_GYRO_LPF", "FW_D"]
+      "IRLOCK", "CD", "KALMAN_GAIN", "PID_MEASUREMENT", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574", "DYN_GYRO_LPF", "FW_D", "IMU2"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -403,6 +406,98 @@ groups:
         field: opflow_align
         type: uint8_t
         table: alignment
+
+  - name: PG_SECONDARY_IMU
+    type: secondaryImuConfig_t
+    headers: ["flight/secondary_imu.h"]
+    condition: USE_SECONDARY_IMU
+    members:
+      - name: imu2_hardware
+        description: "Selection of a Secondary IMU hardware type. NONE disables this functionality"
+        default_value: "NONE"
+        field: hardwareType
+        table: secondary_imu_hardware
+      - name: imu2_use_for_osd_heading
+        description: "If set to ON, Secondary IMU data will be used for Analog OSD heading"
+        default_value: "OFF"
+        field: useForOsdHeading
+        type: bool
+      - name: imu2_use_for_osd_ahi
+        description: "If set to ON, Secondary IMU data will be used for Analog OSD Artificial Horizon"
+        field: useForOsdAHI
+        default_value: "OFF"
+        type: bool
+      - name: imu2_use_for_stabilized
+        description: "If set to ON, Secondary IMU data will be used for Angle, Horizon and all other modes that control attitude (PosHold, WP, RTH)"
+        field: useForStabilized
+        default_value: "OFF"
+        type: bool
+      - name: imu2_align_roll
+        description: "Roll alignment for Secondary IMU. 1/10 of a degree"
+        field: rollDeciDegrees
+        default_value: "0"
+        min: -1800
+        max: 3600
+      - name: imu2_align_pitch
+        description: "Pitch alignment for Secondary IMU. 1/10 of a degree"
+        field: pitchDeciDegrees
+        default_value: "0"
+        min: -1800
+        max: 3600
+      - name: imu2_align_yaw
+        description: "Yaw alignment for Secondary IMU. 1/10 of a degree"
+        field: yawDeciDegrees
+        default_value: "0"
+        min: -1800
+        max: 3600
+      - name: imu2_gain_acc_x
+        description: "Secondary IMU ACC calibration data"
+        field: calibrationOffsetAcc[X]
+        default_value: "0"
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: imu2_gain_acc_y
+        field: calibrationOffsetAcc[Y]
+        description: "Secondary IMU ACC calibration data"
+        default_value: "0"
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: imu2_gain_acc_z
+        field: calibrationOffsetAcc[Z]
+        description: "Secondary IMU ACC calibration data"
+        default_value: "0"
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: imu2_gain_mag_x
+        field: calibrationOffsetMag[X]
+        description: "Secondary IMU MAG calibration data"
+        default_value: "0"
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: imu2_gain_mag_y
+        field: calibrationOffsetMag[Y]
+        description: "Secondary IMU MAG calibration data"
+        default_value: "0"
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: imu2_gain_mag_z
+        field: calibrationOffsetMag[Z]
+        description: "Secondary IMU MAG calibration data"
+        default_value: "0"
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: imu2_radius_acc
+        field: calibrationRadiusAcc
+        description: "Secondary IMU MAG calibration data"
+        default_value: "0"
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: imu2_radius_mag
+        field: calibrationRadiusMag
+        description: "Secondary IMU MAG calibration data"
+        default_value: "0"
+        min: INT16_MIN
+        max: INT16_MAX
 
   - name: PG_COMPASS_CONFIG
     type: compassConfig_t
@@ -1236,6 +1331,12 @@ groups:
         field: switchDisarmDelayMs
         min: 0
         max: 1000
+      - name: prearm_timeout
+        description: "Duration (ms) for which Prearm being activated is valid. after this, Prearm needs to be reset. 0 means Prearm does not timeout."
+        default_value: "10000"
+        field: prearmTimeoutMs
+        min: 0
+        max: 10000
 
   - name: PG_GENERAL_SETTINGS
     headers: ["config/general_settings.h"]
@@ -2864,10 +2965,10 @@ groups:
         table: osd_alignment
         type: uint8_t
 
-      - name: osd_artificial_horizon_reverse_roll
+      - name: osd_ahi_reverse_roll
         field: ahi_reverse_roll
         type: bool
-      - name: osd_artificial_horizon_max_pitch
+      - name: osd_ahi_max_pitch
         description: "Max pitch, in degrees, for OSD artificial horizon"
         default_value: "20"
         field: ahi_max_pitch

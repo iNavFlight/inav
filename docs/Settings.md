@@ -165,6 +165,21 @@
 | i2c_speed | 400KHZ | This setting controls the clock speed of I2C bus. 400KHZ is the default that most setups are able to use. Some noise-free setups may be overclocked to 800KHZ. Some sensor chips or setups with long wires may work unreliably at 400KHZ - user can try lowering the clock speed to 200KHZ or even 100KHZ. User need to bear in mind that lower clock speeds might require higher looptimes (lower looptime rate) |
 | ibus_telemetry_type | 0 | Type compatibility ibus telemetry for transmitters. See Telemetry.md label IBUS for details. |
 | idle_power | 0 | Power draw at zero throttle used for remaining flight time/distance estimation in 0.01W unit |
+| imu2_align_pitch | 0 | Pitch alignment for Secondary IMU. 1/10 of a degree |
+| imu2_align_roll | 0 | Roll alignment for Secondary IMU. 1/10 of a degree |
+| imu2_align_yaw | 0 | Yaw alignment for Secondary IMU. 1/10 of a degree |
+| imu2_gain_acc_x | 0 | Secondary IMU ACC calibration data |
+| imu2_gain_acc_y | 0 | Secondary IMU ACC calibration data |
+| imu2_gain_acc_z | 0 | Secondary IMU ACC calibration data |
+| imu2_gain_mag_x | 0 | Secondary IMU MAG calibration data |
+| imu2_gain_mag_y | 0 | Secondary IMU MAG calibration data |
+| imu2_gain_mag_z | 0 | Secondary IMU MAG calibration data |
+| imu2_hardware | NONE | Selection of a Secondary IMU hardware type. NONE disables this functionality |
+| imu2_radius_acc | 0 | Secondary IMU MAG calibration data |
+| imu2_radius_mag | 0 | Secondary IMU MAG calibration data |
+| imu2_use_for_osd_ahi | OFF | If set to ON, Secondary IMU data will be used for Analog OSD Artificial Horizon |
+| imu2_use_for_osd_heading | OFF | If set to ON, Secondary IMU data will be used for Analog OSD heading |
+| imu2_use_for_stabilized | OFF | If set to ON, Secondary IMU data will be used for Angle, Horizon and all other modes that control attitude (PosHold, WP, RTH) |
 | imu_acc_ignore_rate | 0 | Total gyro rotation rate threshold [deg/s] to consider accelerometer trustworthy on airplanes |
 | imu_acc_ignore_slope | 0 | Half-width of the interval to gradually reduce accelerometer weight. Centered at `imu_acc_ignore_rate` (exactly 50% weight) |
 | imu_dcm_ki | 50 | Inertial Measurement Unit KI Gain for accelerometer measurements |
@@ -356,12 +371,12 @@
 | opflow_scale |  |  |
 | osd_ahi_bordered | OFF | Shows a border/corners around the AHI region (pixel OSD only) |
 | osd_ahi_height | 162 | AHI height in pixels (pixel OSD only) |
+| osd_ahi_max_pitch | 20 | Max pitch, in degrees, for OSD artificial horizon |
+| osd_ahi_reverse_roll |  |  |
 | osd_ahi_style | DEFAULT | Sets OSD Artificial Horizon style "DEFAULT" or "LINE" for the FrSky Graphical OSD. |
 | osd_ahi_vertical_offset | 0 | AHI vertical offset from center (pixel OSD only) |
 | osd_ahi_width | 132 | AHI width in pixels (pixel OSD only) |
 | osd_alt_alarm | 100 | Value above which to make the OSD relative altitude indicator blink (meters) |
-| osd_artificial_horizon_max_pitch | 20 | Max pitch, in degrees, for OSD artificial horizon |
-| osd_artificial_horizon_reverse_roll |  |  |
 | osd_baro_temp_alarm_max | 600 | Temperature above which the baro temperature OSD element will start blinking (decidegrees centigrade) |
 | osd_baro_temp_alarm_min | -200 | Temperature under which the baro temperature OSD element will start blinking (decidegrees centigrade) |
 | osd_camera_fov_h | 135 | Horizontal field of view for the camera in degres |
@@ -427,6 +442,7 @@
 | pitot_scale |  |  |
 | platform_type | "MULTIROTOR" | Defines UAV platform type. Allowed values: "MULTIROTOR", "AIRPLANE", "HELICOPTER", "TRICOPTER", "ROVER", "BOAT". Currently only MULTIROTOR, AIRPLANE and TRICOPTER types are implemented |
 | pos_hold_deadband | 20 | Stick deadband in [r/c points], applied after r/c deadband and expo |
+| prearm_timeout | 10000 | Duration (ms) for which Prearm being activated is valid. after this, Prearm needs to be reset. 0 means Prearm does not timeout. |
 | rangefinder_hardware | NONE | Selection of rangefinder hardware. |
 | rangefinder_median_filter | OFF | 3-point median filtering for rangefinder readouts |
 | rate_accel_limit_roll_pitch | 0 | Limits acceleration of ROLL/PITCH rotation speed that can be requested by stick input. In degrees-per-second-squared. Small and powerful UAV flies great with high acceleration limit ( > 5000 dps^2 and even > 10000 dps^2). Big and heavy multirotors will benefit from low acceleration limit (~ 360 dps^2). When set correctly, it greatly improves stopping performance. Value of 0 disables limiting. |

@@ -87,6 +87,7 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/pid.h"
 #include "flight/rth_estimator.h"
 #include "flight/wind_estimator.h"
+#include "flight/secondary_imu.h"
 #include "flight/servos.h"
 
 #include "navigation/navigation.h"
@@ -940,12 +941,28 @@ static inline int32_t osdGetAltitudeMsl(void)
 
 static bool osdIsHeadingValid(void)
 {
+#ifdef USE_SECONDARY_IMU
+    if (secondaryImuState.active && secondaryImuConfig()->useForOsdHeading) {
+        return true;
+    } else {
+        return isImuHeadingValid();
+    }
+#else 
     return isImuHeadingValid();
+#endif
 }
 
 int16_t osdGetHeading(void)
 {
+#ifdef USE_SECONDARY_IMU
+    if (secondaryImuState.active && secondaryImuConfig()->useForOsdHeading) {
+        return secondaryImuState.eulerAngles.values.yaw;
+    } else {
+        return attitude.values.yaw;
+    }
+#else 
     return attitude.values.yaw;
+#endif
 }
 
 int16_t osdPanServoHomeDirectionOffset(void)
@@ -1350,6 +1367,9 @@ static bool osdDrawSingleElement(uint8_t item)
         buff[1] = SYM_SAT_R;
         tfp_sprintf(buff + 2, "%2d", gpsSol.numSat);
         if (!STATE(GPS_FIX)) {
+            if (getHwGPSStatus() == HW_SENSOR_UNAVAILABLE || getHwGPSStatus() == HW_SENSOR_UNHEALTHY) {
+                strcpy(buff + 2, "X!");
+            }
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         }
         break;
@@ -1851,8 +1871,21 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_ARTIFICIAL_HORIZON:
         {
-            float rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
-            float pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
+            float rollAngle;
+            float pitchAngle;
+
+#ifdef USE_SECONDARY_IMU
+            if (secondaryImuState.active && secondaryImuConfig()->useForOsdAHI) {
+                rollAngle = DECIDEGREES_TO_RADIANS(secondaryImuState.eulerAngles.values.roll);
+                pitchAngle = DECIDEGREES_TO_RADIANS(secondaryImuState.eulerAngles.values.pitch);
+            } else {
+                rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
+                pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);    
+            }
+#else
+            rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
+            pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
+#endif
 
             if (osdConfig()->ahi_reverse_roll) {
                 rollAngle = -rollAngle;
@@ -3119,8 +3152,8 @@ static void osdShowArmed(void)
     char versionBuf[30];
     char *date;
     char *time;
-    // We need 12 visible rows
-    uint8_t y = MIN((osdDisplayPort->rows / 2) - 1, osdDisplayPort->rows - 12 - 1);
+    // We need 12 visible rows, start row never < first fully visible row 1
+    uint8_t y = osdDisplayPort->rows > 13 ? (osdDisplayPort->rows - 12) / 2 : 1;
 
     displayClearScreen(osdDisplayPort);
     displayWrite(osdDisplayPort, 12, y, "ARMED");
