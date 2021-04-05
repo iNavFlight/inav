@@ -370,12 +370,12 @@
 | opflow_scale |  |  |
 | osd_ahi_bordered | OFF | Shows a border/corners around the AHI region (pixel OSD only) |
 | osd_ahi_height | 162 | AHI height in pixels (pixel OSD only) |
+| osd_ahi_max_pitch | 20 | Max pitch, in degrees, for OSD artificial horizon |
+| osd_ahi_reverse_roll |  |  |
 | osd_ahi_style | DEFAULT | Sets OSD Artificial Horizon style "DEFAULT" or "LINE" for the FrSky Graphical OSD. |
 | osd_ahi_vertical_offset | 0 | AHI vertical offset from center (pixel OSD only) |
 | osd_ahi_width | 132 | AHI width in pixels (pixel OSD only) |
 | osd_alt_alarm | 100 | Value above which to make the OSD relative altitude indicator blink (meters) |
-| osd_artificial_horizon_max_pitch | 20 | Max pitch, in degrees, for OSD artificial horizon |
-| osd_artificial_horizon_reverse_roll |  |  |
 | osd_baro_temp_alarm_max | 600 | Temperature above which the baro temperature OSD element will start blinking (decidegrees centigrade) |
 | osd_baro_temp_alarm_min | -200 | Temperature under which the baro temperature OSD element will start blinking (decidegrees centigrade) |
 | osd_camera_fov_h | 135 | Horizontal field of view for the camera in degres |

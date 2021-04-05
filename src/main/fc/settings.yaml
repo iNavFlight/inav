@@ -2954,10 +2954,10 @@ groups:
         table: osd_alignment
         type: uint8_t
 
-      - name: osd_artificial_horizon_reverse_roll
+      - name: osd_ahi_reverse_roll
         field: ahi_reverse_roll
         type: bool
-      - name: osd_artificial_horizon_max_pitch
+      - name: osd_ahi_max_pitch
         description: "Max pitch, in degrees, for OSD artificial horizon"
         default_value: "20"
         field: ahi_max_pitch
