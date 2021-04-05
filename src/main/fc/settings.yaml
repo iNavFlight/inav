@@ -1015,10 +1015,10 @@ groups:
         field: cells
         condition: USE_ADC
         min: 0
-        max: 8
+        max: 12
       - name: vbat_cell_detect_voltage
         description: "Maximum voltage per cell, used for auto-detecting the number of cells of the battery in 0.01V units, default is 4.30V"
-        default_value: "430"
+        default_value: "425"
         field: voltage.cellDetect
         condition: USE_ADC
         min: 100
