@@ -238,7 +238,9 @@ main_sources(COMMON_SRC
     drivers/rangefinder/rangefinder_vl53l1x.h
     drivers/rangefinder/rangefinder_virtual.c
     drivers/rangefinder/rangefinder_virtual.h
-
+    drivers/rangefinder/rangefinder_us42.c
+    drivers/rangefinder/rangefinder_us42.h
+    
     drivers/resource.c
     drivers/resource.h
     drivers/rcc.c
