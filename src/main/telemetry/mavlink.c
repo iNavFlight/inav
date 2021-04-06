@@ -96,6 +96,11 @@
 #define TELEMETRY_MAVLINK_MAXRATE       50
 #define TELEMETRY_MAVLINK_DELAY         ((1000 * 1000) / TELEMETRY_MAVLINK_MAXRATE)
 
+/**
+ * MAVLink requires angles to be in the range -Pi..Pi.
+ * This converts angles from a range of 0..Pi to -Pi..Pi
+ */
+#define RADIANS_TO_MAVLINK_RANGE(angle) (angle > M_PIf) ? angle - (2 * M_PIf) : angle
 
 /** @brief A mapping of plane flight modes for custom_mode field of heartbeat. */
 typedef enum APM_PLANE_MODE
@@ -604,11 +609,11 @@ void mavlinkSendAttitude(void)
         // time_boot_ms Timestamp (milliseconds since system boot)
         millis(),
         // roll Roll angle (rad)
-        DECIDEGREES_TO_RADIANS(attitude.values.roll),
+        RADIANS_TO_MAVLINK_RANGE(DECIDEGREES_TO_RADIANS(attitude.values.roll)),
         // pitch Pitch angle (rad)
-        DECIDEGREES_TO_RADIANS(-attitude.values.pitch),
+        RADIANS_TO_MAVLINK_RANGE(DECIDEGREES_TO_RADIANS(-attitude.values.pitch)),
         // yaw Yaw angle (rad)
-        DECIDEGREES_TO_RADIANS(attitude.values.yaw),
+        RADIANS_TO_MAVLINK_RANGE(DECIDEGREES_TO_RADIANS(attitude.values.yaw)),
         // rollspeed Roll angular speed (rad/s)
         gyro.gyroADCf[FD_ROLL],
         // pitchspeed Pitch angular speed (rad/s)
