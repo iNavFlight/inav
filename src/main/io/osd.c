@@ -947,7 +947,7 @@ static bool osdIsHeadingValid(void)
     } else {
         return isImuHeadingValid();
     }
-#else 
+#else
     return isImuHeadingValid();
 #endif
 }
@@ -960,7 +960,7 @@ int16_t osdGetHeading(void)
     } else {
         return attitude.values.yaw;
     }
-#else 
+#else
     return attitude.values.yaw;
 #endif
 }
@@ -1880,7 +1880,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 pitchAngle = DECIDEGREES_TO_RADIANS(secondaryImuState.eulerAngles.values.pitch);
             } else {
                 rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
-                pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);    
+                pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
             }
 #else
             rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
@@ -3166,10 +3166,12 @@ static void osdShowArmed(void)
     }
 
     if (posControl.waypointListValid && posControl.waypointCount > 0) {
-        tfp_sprintf(buf, "MISSION %u/%u (%u WP)", navConfig()->general.multi_waypoint_mission_index, posControl.multiMissionCount, posControl.waypointCount);
-        displayWrite(osdDisplayPort, 6, y, buf);
-    } else if (navConfig()->general.multi_waypoint_mission_index > posControl.multiMissionCount) {
-        displayWrite(osdDisplayPort, 3, y, "MISSION INDEX OUT RANGE");
+        if (navConfig()->general.multi_waypoint_mission_index > posControl.multiMissionCount) {
+            displayWrite(osdDisplayPort, 3, y, "MISSION INDEX OUT RANGE");
+        } else {
+            tfp_sprintf(buf, "MISSION %u/%u (%u WP)", navConfig()->general.multi_waypoint_mission_index, posControl.multiMissionCount, posControl.waypointCount);
+            displayWrite(osdDisplayPort, 6, y, buf);
+        }
     }
     y += 1;
 
