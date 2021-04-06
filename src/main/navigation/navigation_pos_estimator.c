@@ -616,8 +616,8 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
     DEBUG_SET(DEBUG_ALTITUDE, 4, posEstimator.gps.pos.z);       // GPS altitude
     DEBUG_SET(DEBUG_ALTITUDE, 6, accGetVibrationLevel());       // Vibration level
     DEBUG_SET(DEBUG_ALTITUDE, 1, posEstimator.est.vel.z);       // Vertical speed estimate
-    DEBUG_SET(DEBUG_ALTITUDE, 3, posEstimator.gps.vel.z);       // GPS vertical speed
-    DEBUG_SET(DEBUG_ALTITUDE, 5, posEstimator.imu.accelNEU.z);  // Vertical acceleration on earth frame
+    DEBUG_SET(DEBUG_ALTITUDE, 3, posEstimator.imu.accelNEU.z);  // Vertical acceleration on earth frame
+    DEBUG_SET(DEBUG_ALTITUDE, 5, posEstimator.gps.vel.z);       // GPS vertical speed
     DEBUG_SET(DEBUG_ALTITUDE, 7, navGetAccelerometerWeight()*1000);  // Acceleromter weight in position/speed estimation
 
     return false;
