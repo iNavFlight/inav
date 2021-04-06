@@ -22,6 +22,10 @@ endif()
 
 option(COMPILER_VERSION_CHECK "Ensure the compiler matches the expected version" ON)
 
+include(GetGitRevisionDescription)
+get_git_head_revision(GIT_REFSPEC GIT_SHA1)
+string(SUBSTRING ${GIT_SHA1} 0 8 GIT_REV)
+
 # Load settings related functions, so the tests can use them
 include(main)
 include(settings)
@@ -52,10 +56,6 @@ endif()
 if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     set(IS_RELEASE_BUILD ON)
 endif()
-
-include(GetGitRevisionDescription)
-get_git_head_revision(GIT_REFSPEC GIT_SHA1)
-string(SUBSTRING ${GIT_SHA1} 0 8 GIT_REV)
 
 set(FIRMWARE_VERSION ${PROJECT_VERSION})
 
