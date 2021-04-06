@@ -23,3 +23,6 @@ PYTHONPATH="$(pwd)/mavlink-src"
 
 echo "Running MAVLink generator..."
 python -m pymavlink.tools.mavgen --lang=C --wire-protocol=2.0 --output=. mavlink-src/message_definitions/v1.0/common.xml --no-validate
+
+echo "Removing inlines..."
+sed -i 's/ inline//' protocol.h
