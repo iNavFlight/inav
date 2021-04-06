@@ -967,7 +967,7 @@ static bool osdIsHeadingValid(void)
     } else {
         return isImuHeadingValid();
     }
-#else 
+#else
     return isImuHeadingValid();
 #endif
 }
@@ -980,7 +980,7 @@ int16_t osdGetHeading(void)
     } else {
         return attitude.values.yaw;
     }
-#else 
+#else
     return attitude.values.yaw;
 #endif
 }
@@ -1614,7 +1614,7 @@ static bool osdDrawSingleElement(uint8_t item)
             /*static int32_t updatedTimeSeconds = 0;*/
             timeUs_t currentTimeUs = micros();
             static int32_t timeSeconds = -1;
-            if (cmpTimeUs(currentTimeUs, updatedTimestamp) >= 1000000) {
+            if (cmpTimeUs(currentTimeUs, updatedTimestamp) >= MS2US(1000)) {
 #ifdef USE_WIND_ESTIMATOR
                 timeSeconds = calculateRemainingFlightTimeBeforeRTH(osdConfig()->estimations_wind_compensation);
 #else
@@ -1645,7 +1645,7 @@ static bool osdDrawSingleElement(uint8_t item)
         static timeUs_t updatedTimestamp = 0;
         timeUs_t currentTimeUs = micros();
         static int32_t distanceMeters = -1;
-        if (cmpTimeUs(currentTimeUs, updatedTimestamp) >= 1000000) {
+        if (cmpTimeUs(currentTimeUs, updatedTimestamp) >= MS2US(1000)) {
 #ifdef USE_WIND_ESTIMATOR
             distanceMeters = calculateRemainingDistanceBeforeRTH(osdConfig()->estimations_wind_compensation);
 #else
@@ -1911,7 +1911,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 pitchAngle = DECIDEGREES_TO_RADIANS(secondaryImuState.eulerAngles.values.pitch);
             } else {
                 rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
-                pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);    
+                pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
             }
 #else
             rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
@@ -2232,7 +2232,7 @@ static bool osdDrawSingleElement(uint8_t item)
             if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
                 if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
                     value = pt1FilterApply4(&eFilterState, ((float)getAmperage() / gpsSol.groundSpeed) / 0.0036f,
-                        1, efficiencyTimeDelta * 1e-6f);
+                        1, US2S(efficiencyTimeDelta));
 
                     efficiencyUpdated = currentTimeUs;
                 } else {
@@ -2262,7 +2262,7 @@ static bool osdDrawSingleElement(uint8_t item)
             if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
                 if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
                     value = pt1FilterApply4(&eFilterState, ((float)getPower() / gpsSol.groundSpeed) / 0.0036f,
-                        1, efficiencyTimeDelta * 1e-6f);
+                        1, US2S(efficiencyTimeDelta));
 
                     efficiencyUpdated = currentTimeUs;
                 } else {
@@ -3296,7 +3296,7 @@ static void osdShowArmed(void)
 
 static void osdFilterData(timeUs_t currentTimeUs) {
     static timeUs_t lastRefresh = 0;
-    float refresh_dT = cmpTimeUs(currentTimeUs, lastRefresh) * 1e-6;
+    float refresh_dT = US2S(cmpTimeUs(currentTimeUs, lastRefresh));
 
     GForce = sqrtf(vectorNormSquared(&imuMeasuredAccelBF)) / GRAVITY_MSS;
     for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; ++axis) GForceAxis[axis] = imuMeasuredAccelBF.v[axis] / GRAVITY_MSS;
