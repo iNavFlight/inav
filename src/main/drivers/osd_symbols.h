@@ -246,6 +246,9 @@
 #define SYM_SNR                   0xEE  // SNR
 #define SYM_MW                    0xED  // mW
 
+#define SYM_KILOWATT              0xEF // 239 kW
+
+
 #else
 
 #define TEMP_SENSOR_SYM_COUNT 0

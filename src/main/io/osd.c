@@ -155,8 +155,8 @@ static float GForce, GForceAxis[XYZ_AXIS_COUNT];
 typedef struct statistic_s {
     uint16_t max_speed;
     uint16_t min_voltage; // /100
-    int16_t max_current; // /100
-    int16_t max_power; // /100
+    int16_t max_current;
+    int32_t max_power;
     int16_t min_rssi;
     int16_t min_lq; // for CRSF
     int16_t min_rssi_dbm; // for CRSF
@@ -2136,8 +2136,8 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_POWER:
         {
-            osdFormatCentiNumber(buff, getPower(), 0, 2, 0, 3);
-            buff[3] = SYM_WATT;
+            bool kiloWatt = osdFormatCentiNumber(buff, getPower(), 1000, 2, 2, 3);
+            buff[3] = kiloWatt ? SYM_KILOWATT : SYM_WATT;
             buff[4] = '\0';
 
             uint8_t current_alarm = osdConfig()->current_alarm;
@@ -3032,11 +3032,11 @@ static void osdUpdateStats(void)
     if (stats.min_voltage > value)
         stats.min_voltage = value;
 
-    value = abs(getAmperage() / 100);
+    value = abs(getAmperage());
     if (stats.max_current < value)
         stats.max_current = value;
 
-    value = abs(getPower() / 100);
+    value = abs(getPower());
     if (stats.max_power < value)
         stats.max_power = value;
 
@@ -3139,13 +3139,14 @@ static void osdShowStatsPage2(void)
 
     if (feature(FEATURE_CURRENT_METER)) {
         displayWrite(osdDisplayPort, statNameX, top, "MAX CURRENT      :");
-        itoa(stats.max_current, buff, 10);
+        osdFormatCentiNumber(buff, stats.max_current, 0, 2, 0, 3);
         tfp_sprintf(buff, "%s%c", buff, SYM_AMP);
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
         displayWrite(osdDisplayPort, statNameX, top, "MAX POWER        :");
-        itoa(stats.max_power, buff, 10);
-        tfp_sprintf(buff, "%s%c", buff, SYM_WATT);
+        bool kiloWatt = osdFormatCentiNumber(buff, stats.max_power, 1000, 2, 2, 3);
+        buff[3] = kiloWatt ? SYM_KILOWATT : SYM_WATT;
+        buff[4] = '\0';
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
         if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
