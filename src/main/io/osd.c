@@ -117,6 +117,8 @@ FILE_COMPILE_FOR_SPEED
 #define GFORCE_FILTER_TC 0.2
 
 #define DELAYED_REFRESH_RESUME_COMMAND (checkStickPosition(THR_HI) || checkStickPosition(PIT_HI))
+#define STATS_PAGE2 (checkStickPosition(ROL_HI))
+#define STATS_PAGE1 (checkStickPosition(ROL_LO))
 
 #define SPLASH_SCREEN_DISPLAY_TIME 4000 // ms
 #define ARMED_SCREEN_DISPLAY_TIME 1500 // ms
@@ -156,6 +158,8 @@ typedef struct statistic_s {
     int16_t max_current; // /100
     int16_t max_power; // /100
     int16_t min_rssi;
+    int16_t min_lq; // for CRSF
+    int16_t min_rssi_dbm; // for CRSF
     int32_t max_altitude;
     uint32_t max_distance;
 } statistic_t;
@@ -168,6 +172,7 @@ static bool refreshWaitForResumeCmdRelease;
 static bool fullRedraw = false;
 
 static uint8_t armState;
+static uint8_t statsPagesCheck = 0;
 
 typedef struct osdMapData_s {
     uint32_t scale;
@@ -528,6 +533,21 @@ static uint16_t osdConvertRSSI(void)
     return constrain(getRSSI() * 100 / RSSI_MAX_VALUE, 0, 99);
 }
 
+static uint16_t osdGetLQ(void)
+{
+    int16_t statsLQ = rxLinkStatistics.uplinkLQ;
+    int16_t scaledLQ = scaleRange(constrain(statsLQ, 0, 100), 0, 100, 170, 300);
+    if (rxLinkStatistics.rfMode == 2) {
+        return scaledLQ;
+    } else {
+        return statsLQ;
+    }
+}
+
+static uint16_t osdGetdBm(void)
+{
+    return rxLinkStatistics.uplinkRSSI;
+}
 /**
 * Displays a temperature postfixed with a symbol depending on the current unit system
 * @param label to display
@@ -1714,7 +1734,9 @@ static bool osdDrawSingleElement(uint8_t item)
             return true;
         }
 
+#if defined(USE_SERIALRX_CRSF)
     case OSD_CRSF_RSSI_DBM:
+        {
             if (rxLinkStatistics.activeAnt == 0) {
               buff[0] = SYM_RSSI;
               tfp_sprintf(buff + 1, "%4d%c", rxLinkStatistics.uplinkRSSI, SYM_DBM);
@@ -1729,12 +1751,12 @@ static bool osdDrawSingleElement(uint8_t item)
               }
             }
             break;
-
-#if defined(USE_SERIALRX_CRSF)
-        case OSD_CRSF_LQ: {
-        buff[0] = SYM_BLANK;
-        int16_t statsLQ = rxLinkStatistics.uplinkLQ;
-        int16_t scaledLQ = scaleRange(constrain(statsLQ, 0, 100), 0, 100, 170, 300);
+        }
+    case OSD_CRSF_LQ:
+        {
+            buff[0] = SYM_BLANK;
+            int16_t statsLQ = rxLinkStatistics.uplinkLQ;
+            int16_t scaledLQ = scaleRange(constrain(statsLQ, 0, 100), 0, 100, 170, 300);
             if (rxLinkStatistics.rfMode == 2) {
                 if (osdConfig()->crsf_lq_format == OSD_CRSF_LQ_TYPE1) {
                     tfp_sprintf(buff, "%5d%s", scaledLQ, "%");
@@ -1744,9 +1766,9 @@ static bool osdDrawSingleElement(uint8_t item)
             } else {
                 if (osdConfig()->crsf_lq_format == OSD_CRSF_LQ_TYPE1) {
                     tfp_sprintf(buff, "%5d%s", rxLinkStatistics.uplinkLQ, "%");
-            } else {
+                } else {
                     tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
-            }
+                }
             }
             if (!failsafeIsReceivingRxData()){
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
@@ -1756,31 +1778,32 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
-    case OSD_CRSF_SNR_DB: {
-        const char* showsnr = "-20";
-        const char* hidesnr = "     ";
-        int16_t osdSNR_Alarm = rxLinkStatistics.uplinkSNR;
-        if (osdSNR_Alarm <= osdConfig()->snr_alarm) {
-          buff[0] = SYM_SRN;
-          tfp_sprintf(buff + 1, "%3d%c", rxLinkStatistics.uplinkSNR, SYM_DB);
-        }
-        else if (osdSNR_Alarm > osdConfig()->snr_alarm) {
-            if (cmsInMenu) {
-                buff[0] = SYM_SRN;
-                tfp_sprintf(buff + 1, "%s%c", showsnr, SYM_DB);
-            } else {
-                buff[0] = SYM_BLANK;
-                tfp_sprintf(buff + 1, "%s%c", hidesnr, SYM_BLANK);
+    case OSD_CRSF_SNR_DB:
+        {
+            const char* showsnr = "-20";
+            const char* hidesnr = "     ";
+            int16_t osdSNR_Alarm = rxLinkStatistics.uplinkSNR;
+            if (osdSNR_Alarm > osdConfig()->snr_alarm) {
+                if (cmsInMenu) {
+                    buff[0] = SYM_SNR;
+                    tfp_sprintf(buff + 1, "%s%c", showsnr, SYM_DB);
+                } else {
+                    buff[0] = SYM_BLANK;
+                    tfp_sprintf(buff + 1, "%s%c", hidesnr, SYM_BLANK);
+                }
+            } else if (osdSNR_Alarm <= osdConfig()->snr_alarm) {
+                buff[0] = SYM_SNR;
+                tfp_sprintf(buff + 1, "%3d%c", rxLinkStatistics.uplinkSNR, SYM_DB);
             }
+            break;
         }
-        break;
-      }
-#endif
 
-    case OSD_CRSF_TX_POWER: {
-        tfp_sprintf(buff, "%4d%c", rxLinkStatistics.uplinkTXPower, SYM_MW);
-        break;
-    }
+    case OSD_CRSF_TX_POWER:
+        {
+            tfp_sprintf(buff, "%4d%c", rxLinkStatistics.uplinkTXPower, SYM_MW);
+            break;
+        }
+#endif
 
     case OSD_CROSSHAIRS: // Hud is a sub-element of the crosshair
 
@@ -2987,6 +3010,8 @@ static void osdResetStats(void)
     stats.max_speed = 0;
     stats.min_voltage = 5000;
     stats.min_rssi = 99;
+    stats.min_lq = 300;
+    stats.min_rssi_dbm = 0;
     stats.max_altitude = 0;
 }
 
@@ -3019,22 +3044,30 @@ static void osdUpdateStats(void)
     if (stats.min_rssi > value)
         stats.min_rssi = value;
 
+    value = osdGetLQ();
+    if (stats.min_lq > value)
+        stats.min_lq = value;
+
+    value = osdGetdBm();
+    if (stats.min_rssi_dbm > value)
+        stats.min_rssi_dbm = value;
+
     stats.max_altitude = MAX(stats.max_altitude, osdGetAltitude());
 }
 
-/* Attention: NTSC screen only has 12 fully visible lines - it is FULL now! */
-static void osdShowStats(void)
+static void osdShowStatsPage1(void)
 {
     const char * disarmReasonStr[DISARM_REASON_COUNT] = { "UNKNOWN", "TIMEOUT", "STICKS", "SWITCH", "SWITCH", "KILLSW", "FAILSAFE", "NAV SYS" };
     uint8_t top = 1;    /* first fully visible line */
     const uint8_t statNameX = 1;
     const uint8_t statValuesX = 20;
     char buff[10];
+    statsPagesCheck = 1;
 
     displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
     displayClearScreen(osdDisplayPort);
-    if (osdDisplayIsPAL())
-        displayWrite(osdDisplayPort, statNameX, top++, "  --- STATS ---");
+
+    displayWrite(osdDisplayPort, statNameX, top++, "--- STATS ---      1/2");
 
     if (feature(FEATURE_GPS)) {
         displayWrite(osdDisplayPort, statNameX, top, "MAX SPEED        :");
@@ -3055,26 +3088,64 @@ static void osdShowStats(void)
     osdFormatAltitudeStr(buff, stats.max_altitude);
     displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
-    displayWrite(osdDisplayPort, statNameX, top, "MIN BATTERY VOLT :");
-    osdFormatCentiNumber(buff, stats.min_voltage, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
-    strcat(buff, "V");
-    osdLeftAlignString(buff);
+#if defined(USE_SERIALRX_CRSF)
+    displayWrite(osdDisplayPort, statNameX, top, "MIN LQ           :");
+    itoa(stats.min_lq, buff, 10);
+    strcat(buff, "%");
     displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
     displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI         :");
+    itoa(stats.min_rssi_dbm, buff, 10);
+    tfp_sprintf(buff, "%s%c", buff, SYM_DBM);
+    displayWrite(osdDisplayPort, statValuesX, top++, buff);
+#else
+    displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI         :");
     itoa(stats.min_rssi, buff, 10);
     strcat(buff, "%");
+    displayWrite(osdDisplayPort, statValuesX, top++, buff);
+#endif
+
+    displayWrite(osdDisplayPort, statNameX, top, "FLY TIME         :");
+    uint16_t flySeconds = getFlightTime();
+    uint16_t flyMinutes = flySeconds / 60;
+    flySeconds %= 60;
+    uint16_t flyHours = flyMinutes / 60;
+    flyMinutes %= 60;
+    tfp_sprintf(buff, "%02u:%02u:%02u", flyHours, flyMinutes, flySeconds);
+    displayWrite(osdDisplayPort, statValuesX, top++, buff);
+
+    displayWrite(osdDisplayPort, statNameX, top, "DISARMED BY      :");
+    displayWrite(osdDisplayPort, statValuesX, top++, disarmReasonStr[getDisarmReason()]);
+    displayCommitTransaction(osdDisplayPort);
+}
+
+static void osdShowStatsPage2(void)
+{
+    uint8_t top = 1;    /* first fully visible line */
+    const uint8_t statNameX = 1;
+    const uint8_t statValuesX = 20;
+    char buff[10];
+    statsPagesCheck = 1;
+
+    displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
+    displayClearScreen(osdDisplayPort);
+
+    displayWrite(osdDisplayPort, statNameX, top++, "--- STATS ---      2/2");
+
+    displayWrite(osdDisplayPort, statNameX, top, "MIN BATTERY VOLT :");
+    osdFormatCentiNumber(buff, stats.min_voltage, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
+    tfp_sprintf(buff, "%s%c", buff, SYM_VOLT);
     displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
     if (feature(FEATURE_CURRENT_METER)) {
         displayWrite(osdDisplayPort, statNameX, top, "MAX CURRENT      :");
         itoa(stats.max_current, buff, 10);
-        strcat(buff, "A");
+        tfp_sprintf(buff, "%s%c", buff, SYM_AMP);
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
         displayWrite(osdDisplayPort, statNameX, top, "MAX POWER        :");
         itoa(stats.max_power, buff, 10);
-        strcat(buff, "W");
+        tfp_sprintf(buff, "%s%c", buff, SYM_WATT);
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
         if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
@@ -3083,7 +3154,7 @@ static void osdShowStats(void)
         } else {
             displayWrite(osdDisplayPort, statNameX, top, "USED WH          :");
             osdFormatCentiNumber(buff, getMWhDrawn() / 10, 0, 2, 0, 3);
-            strcat(buff, "\xAB"); // SYM_WH
+            tfp_sprintf(buff, "%s%c", buff, SYM_WH);
         }
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
@@ -3116,15 +3187,6 @@ static void osdShowStats(void)
         }
     }
 
-    displayWrite(osdDisplayPort, statNameX, top, "FLY TIME         :");
-    uint16_t flySeconds = getFlightTime();
-    uint16_t flyMinutes = flySeconds / 60;
-    flySeconds %= 60;
-    uint16_t flyHours = flyMinutes / 60;
-    flyMinutes %= 60;
-    tfp_sprintf(buff, "%02u:%02u:%02u", flyHours, flyMinutes, flySeconds);
-    displayWrite(osdDisplayPort, statValuesX, top++, buff);
-
     const float max_gforce = accGetMeasuredMaxG();
     displayWrite(osdDisplayPort, statNameX, top, "MAX G-FORCE      :");
     osdFormatCentiNumber(buff, max_gforce * 100, 0, 2, 0, 3);
@@ -3134,12 +3196,9 @@ static void osdShowStats(void)
     displayWrite(osdDisplayPort, statNameX, top, "MIN/MAX Z G-FORCE:");
     osdFormatCentiNumber(buff, acc_extremes[Z].min * 100, 0, 2, 0, 4);
     strcat(buff,"/");
-    displayWrite(osdDisplayPort, statValuesX, top, buff);
+    displayWrite(osdDisplayPort, statValuesX - 1, top, buff);
     osdFormatCentiNumber(buff, acc_extremes[Z].max * 100, 0, 2, 0, 3);
-    displayWrite(osdDisplayPort, statValuesX + 5, top++, buff);
-
-    displayWrite(osdDisplayPort, statNameX, top, "DISARMED BY      :");
-    displayWrite(osdDisplayPort, statValuesX, top++, disarmReasonStr[getDisarmReason()]);
+    displayWrite(osdDisplayPort, statValuesX + 4, top++, buff);
     displayCommitTransaction(osdDisplayPort);
 }
 
@@ -3257,13 +3316,14 @@ static void osdRefresh(timeUs_t currentTimeUs)
             osdResetStats();
             osdShowArmed(); // reset statistic etc
             uint32_t delay = ARMED_SCREEN_DISPLAY_TIME;
+            statsPagesCheck = 0;
 #if defined(USE_SAFE_HOME)
             if (isSafeHomeInUse())
                 delay *= 3;
 #endif
             osdSetNextRefreshIn(delay);
         } else {
-            osdShowStats(); // show statistic
+            osdShowStatsPage1(); // show first page of statistic
             osdSetNextRefreshIn(STATS_SCREEN_DISPLAY_TIME);
         }
 
@@ -3282,6 +3342,14 @@ static void osdRefresh(timeUs_t currentTimeUs)
         if ((currentTimeUs > resumeRefreshAt) || ((!refreshWaitForResumeCmdRelease) && DELAYED_REFRESH_RESUME_COMMAND)) {
             displayClearScreen(osdDisplayPort);
             resumeRefreshAt = 0;
+        } else if ((currentTimeUs > resumeRefreshAt) || ((!refreshWaitForResumeCmdRelease) && STATS_PAGE1)) {
+            if (statsPagesCheck == 1) {
+                osdShowStatsPage1();
+            }
+        } else if ((currentTimeUs > resumeRefreshAt) || ((!refreshWaitForResumeCmdRelease) && STATS_PAGE2)) {
+            if (statsPagesCheck == 1) {
+                osdShowStatsPage2();
+            }
         } else {
             displayHeartbeat(osdDisplayPort);
         }
