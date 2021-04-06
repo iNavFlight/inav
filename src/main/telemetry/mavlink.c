@@ -87,7 +87,10 @@
 
 #include "scheduler/scheduler.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
 #include "common/mavlink.h"
+#pragma GCC diagnostic pop
 
 #define TELEMETRY_MAVLINK_PORT_MODE     MODE_RXTX
 #define TELEMETRY_MAVLINK_MAXRATE       50
