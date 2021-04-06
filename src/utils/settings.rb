@@ -894,10 +894,12 @@ class Generator
                 unsigned = !$~[:unsigned].empty?
                 bitsize = $~[:bitsize].to_i
                 type_range = unsigned ? 0..(2**bitsize-1) : (-2**(bitsize-1)+1)..(2**(bitsize-1)-1)
+                raise "Numeric member #{name} doesn't have maximum value defined" unless member.has_key? 'max'
                 raise "Member #{name} default value has an invalid type, integer or symbol expected" unless default_value.is_a? Integer or default_value.is_a? Symbol
                 raise "Member #{name} default value is outside type's storage range, min #{type_range.min}, max #{type_range.max}" unless default_value.is_a? Symbol or type_range === default_value
 
             when type == "float"
+                raise "Numeric member #{name} doesn't have maximum value defined" unless member.has_key? 'max'
                 raise "Member #{name} default value has an invalid type, numeric or symbol expected" unless default_value.is_a? Numeric or default_value.is_a? Symbol
 
             when type == "string"

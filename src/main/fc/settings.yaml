@@ -2741,6 +2741,7 @@ groups:
         default_value: :SIM_TX_FLAG_FAILSAFE
         field: simTransmitFlags
         condition: USE_TELEMETRY_SIM
+        max: 63
       - name: acc_event_threshold_high
         description: "Acceleration threshold [cm/s/s] for impact / high g event text messages sent by SIM module. Acceleration values greater than 4 g can occur in fixed wing flight without an impact, so a setting of 4000 or greater is suggested. 0 = detection off."
         default_value: 0
