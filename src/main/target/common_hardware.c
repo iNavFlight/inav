@@ -321,7 +321,7 @@
 #endif
 
 #if defined(USE_RANGEFINDER_US42)
-    #if !defined(US42_I2C_BUS)
+    #if !defined(US42_I2C_BUS) && defined(RANGEFINDER_I2C_BUS)
         #define US42_I2C_BUS RANGEFINDER_I2C_BUS
     #endif
     #if defined(US42_I2C_BUS)
