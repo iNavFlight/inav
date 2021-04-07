@@ -866,8 +866,8 @@ groups:
         min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
       - name: failsafe_throttle_low_delay
-        description: "If failsafe gets activated when throttle has been low for this much time, bypass failsafe and disarm. In 10th of seconds. 0 = No timeout"
-        default_value: "0"
+        description: "If failsafe activated when throttle is low for this much time - bypass failsafe and disarm, in 10th of seconds. 0 = No timeout"
+        default_value: 0
         min: 0
         max: 300
       - name: failsafe_procedure
@@ -1459,7 +1459,7 @@ groups:
         max: 100
       - name: pos_hold_deadband
         description: "Stick deadband in [r/c points], applied after r/c deadband and expo"
-        default_value: "10"
+        default_value: 10
         min: 2
         max: 250
       - name: alt_hold_deadband
@@ -1704,7 +1704,7 @@ groups:
         table: filter_type
       - name: yaw_lpf_hz
         description: "Yaw low pass filter cutoff frequency. Should be disabled (set to `0`) on small multirotors (7 inches and below)"
-        default_value: "0"
+        default_value: 0
         min: 0
         max: 200
       - name: fw_iterm_throw_limit

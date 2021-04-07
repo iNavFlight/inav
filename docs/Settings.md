@@ -98,7 +98,7 @@
 | failsafe_recovery_delay | 5 | Time in deciseconds to wait before aborting failsafe when signal is recovered. See [Failsafe documentation](Failsafe.md#failsafe_recovery_delay). |
 | failsafe_stick_threshold | 50 | Threshold for stick motion to consider failsafe condition resolved. If non-zero failsafe won't clear even if RC link is restored - you have to move sticks to exit failsafe. |
 | failsafe_throttle | 1000 | Throttle level used for landing when failsafe is enabled. See [Failsafe documentation](Failsafe.md#failsafe_throttle). |
-| failsafe_throttle_low_delay | 0 | If failsafe gets activated when throttle has been low for this much time, bypass failsafe and disarm. In 10th of seconds. 0 = No timeout |
+| failsafe_throttle_low_delay | 0 | If failsafe activated when throttle is low for this much time - bypass failsafe and disarm, in 10th of seconds. 0 = No timeout |
 | fixed_wing_auto_arm | OFF | Auto-arm fixed wing aircraft on throttle above min_check, and disarming with stick commands are disabled, so power cycle is required to disarm. Requires enabled motorstop and no arm switch configured. |
 | flaperon_throw_offset | 200 | Defines throw range in us for both ailerons that will be passed to servo mixer via input source 14 (`FEATURE FLAPS`) when FLAPERON mode is activated. |
 | flip_over_after_crash_power_factor | 65 | flip over after crash power factor |
