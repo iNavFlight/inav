@@ -220,6 +220,7 @@ typedef enum {
     OSD_TPA,
     OSD_NAV_FW_CONTROL_SMOOTHNESS,
     OSD_VERSION,
+    OSD_RANGEFINDER,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 

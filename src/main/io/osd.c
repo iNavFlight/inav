@@ -1586,6 +1586,19 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+#ifdef USE_RANGEFINDER
+    case OSD_RANGEFINDER:
+        {
+            int32_t range = rangefinderGetLatestRawAltitude();
+            if (range < 0) {
+                buff[0] = "-";
+            } else {
+                osdFormatDistanceSymbol(buff, range);
+            }
+        }
+        break;
+#endif
+
     case OSD_ONTIME:
         {
             osdFormatOnTime(buff);
