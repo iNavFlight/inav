@@ -62,6 +62,7 @@ extern secondaryImuState_t secondaryImuState;
 
 PG_DECLARE(secondaryImuConfig_t, secondaryImuConfig);
 
+void secondaryImuProcess(void);
 void secondaryImuInit(void);
 void taskSecondaryImu(timeUs_t currentTimeUs);
 void secondaryImuFetchCalibration(void);

@@ -30,6 +30,7 @@
 #include "sensors/compass.h"
 
 #include "build/debug.h"
+#include "scheduler/scheduler.h"
 
 #include "drivers/sensor.h"
 #include "drivers/accgyro/accgyro_bno055.h"
@@ -83,8 +84,17 @@ void secondaryImuInit(void)
 
     if (secondaryImuConfig()->hardwareType == SECONDARY_IMU_BNO055) {
         secondaryImuState.active = bno055Init(calibrationData, (secondaryImuConfig()->calibrationRadiusAcc && secondaryImuConfig()->calibrationRadiusMag));
+
+        if (secondaryImuState.active) {
+            rescheduleTask(TASK_SECONDARY_IMU, TASK_PERIOD_HZ(10));
+        }
+
     } else if (secondaryImuConfig()->hardwareType == SECONDARY_IMU_BNO055_SERIAL) {
         secondaryImuState.active = bno055SerialInit(calibrationData, (secondaryImuConfig()->calibrationRadiusAcc && secondaryImuConfig()->calibrationRadiusMag));
+
+        if (secondaryImuState.active) {
+            rescheduleTask(TASK_SECONDARY_IMU, TASK_PERIOD_HZ(50));
+        }
     }
 
     if (!secondaryImuState.active) {
@@ -93,25 +103,7 @@ void secondaryImuInit(void)
 
 }
 
-void taskSecondaryImu(timeUs_t currentTimeUs)
-{
-    if (!secondaryImuState.active)
-    {
-        return;
-    }
-    /*
-     * Secondary IMU works in decidegrees
-     */
-    UNUSED(currentTimeUs);
-
-    if (secondaryImuConfig()->hardwareType == SECONDARY_IMU_BNO055) {
-        bno055FetchEulerAngles(secondaryImuState.eulerAngles.raw);
-    } else if (secondaryImuConfig()->hardwareType == SECONDARY_IMU_BNO055_SERIAL) {
-        bno055SerialFetchEulerAngles(secondaryImuState.eulerAngles.raw);
-    }
-
-    bno055FetchEulerAngles(secondaryImuState.eulerAngles.raw);
-
+void secondaryImuProcess(void) {
     //Apply mag declination
     secondaryImuState.eulerAngles.raw[2] += secondaryImuState.magDeclination;
 
@@ -138,17 +130,6 @@ void taskSecondaryImu(timeUs_t currentTimeUs)
     secondaryImuState.eulerAngles.values.pitch = rotated.y;
     secondaryImuState.eulerAngles.values.yaw = rotated.z;
 
-    /*
-     * Every 10 cycles fetch current calibration state
-     */
-    static uint8_t tick = 0;
-    tick++;
-    if (tick == 10)
-    {
-        secondaryImuState.calibrationStatus = bno055GetCalibStat();
-        tick = 0;
-    }
-
     DEBUG_SET(DEBUG_IMU2, 0, secondaryImuState.eulerAngles.values.roll);
     DEBUG_SET(DEBUG_IMU2, 1, secondaryImuState.eulerAngles.values.pitch);
     DEBUG_SET(DEBUG_IMU2, 2, secondaryImuState.eulerAngles.values.yaw);
@@ -157,6 +138,36 @@ void taskSecondaryImu(timeUs_t currentTimeUs)
     // DEBUG_SET(DEBUG_IMU2, 4, secondaryImuState.calibrationStatus.gyr);
     // DEBUG_SET(DEBUG_IMU2, 5, secondaryImuState.calibrationStatus.acc);
     // DEBUG_SET(DEBUG_IMU2, 6, secondaryImuState.magDeclination);
+}
+
+void taskSecondaryImu(timeUs_t currentTimeUs)
+{
+    if (!secondaryImuState.active)
+    {
+        return;
+    }
+    /*
+     * Secondary IMU works in decidegrees
+     */
+    UNUSED(currentTimeUs);
+
+    if (secondaryImuConfig()->hardwareType == SECONDARY_IMU_BNO055) {
+        bno055FetchEulerAngles(secondaryImuState.eulerAngles.raw);
+        secondaryImuProcess();
+
+        /*
+        * Every 10 cycles fetch current calibration state
+        */
+        static uint8_t tick = 0;
+        tick++;
+        if (tick == 10)
+        {
+            secondaryImuState.calibrationStatus = bno055GetCalibStat();
+            tick = 0;
+        }
+    } else if (secondaryImuConfig()->hardwareType == SECONDARY_IMU_BNO055_SERIAL) {
+        bno055SerialFetchEulerAngles();
+    }
 }
 
 void secondaryImuFetchCalibration(void) {

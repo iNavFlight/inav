@@ -33,6 +33,7 @@
 #include "drivers/accgyro/accgyro_bno055.h"
 #include "build/debug.h"
 #include "drivers/time.h"
+#include "flight/secondary_imu.h"
 
 static serialPort_t * bno055SerialPort = NULL;
 
@@ -51,11 +52,17 @@ typedef enum {
     BNO055_FRAME_DATA,
 } bno055FrameType_e;
 
+typedef enum {
+    BNO055_DATA_TYPE_NONE,
+    BNO055_DATA_TYPE_EULER,
+} bno055DataType_e;
+
 static uint8_t bno055ProtocolState = BNO055_RECEIVE_IDLE;
 static uint8_t bno055FrameType;
 static uint8_t bno055FrameLength;
 static uint8_t bno055FrameIndex;
 static timeMs_t bno055FrameStartAtMs = 0;
+static uint8_t bno055DataType = BNO055_DATA_TYPE_NONE;
 
 static void bno055SerialWrite(uint8_t reg, uint8_t data) {
     bno055ProtocolState = BNO055_RECEIVE_IDLE;
@@ -66,12 +73,12 @@ static void bno055SerialWrite(uint8_t reg, uint8_t data) {
     serialWrite(bno055SerialPort, data);
 }
 
-static void bno055SerialRead(uint8_t reg) {
+static void bno055SerialRead(const uint8_t reg, const uint8_t len) {
     bno055ProtocolState = BNO055_RECEIVE_IDLE;
     serialWrite(bno055SerialPort, 0xAA); // Start Byte
     serialWrite(bno055SerialPort, 0x01); // Read command
     serialWrite(bno055SerialPort, reg);
-    serialWrite(bno055SerialPort, 1);
+    serialWrite(bno055SerialPort, len);
 }
 
 void bno055SerialDataReceive(uint16_t c, void *data) {
@@ -104,6 +111,15 @@ void bno055SerialDataReceive(uint16_t c, void *data) {
 
         if (bno055FrameIndex == bno055FrameLength) {
             bno055ProtocolState = BNO055_RECEIVE_IDLE;
+
+            if (bno055DataType == BNO055_DATA_TYPE_EULER) {
+                secondaryImuState.eulerAngles.raw[0] = ((int16_t)((receiveBuffer[3] << 8) | receiveBuffer[2])) / 1.6f;
+                secondaryImuState.eulerAngles.raw[1] = ((int16_t)((receiveBuffer[5] << 8) | receiveBuffer[4])) / -1.6f; //Pitch has to be reversed to match INAV notation
+                secondaryImuState.eulerAngles.raw[2] = ((int16_t)((receiveBuffer[1] << 8) | receiveBuffer[0])) / 1.6f;
+                secondaryImuProcess();
+            }
+
+            bno055DataType = BNO055_DATA_TYPE_NONE;
         }
     }
 
@@ -116,8 +132,6 @@ bool bno055SerialInit(bno055CalibrationData_t calibrationData, bool setCalibrati
     if (!portConfig) {
         return false;
     }
-
-    // DEBUG_SET(DEBUG_IMU2, 0, 2);
 
     bno055SerialPort = openSerialPort(
         portConfig->identifier,
@@ -133,44 +147,34 @@ bool bno055SerialInit(bno055CalibrationData_t calibrationData, bool setCalibrati
         return false;
     }
 
-    bno055SerialRead(0x00); // Read ChipID
+    bno055SerialRead(0x00, 1); // Read ChipID
     delay(5);
 
-    DEBUG_SET(DEBUG_IMU2, 0, bno055FrameType);
-    DEBUG_SET(DEBUG_IMU2, 1, receiveBuffer[0]);
-    DEBUG_SET(DEBUG_IMU2, 2, bno055ProtocolState);
-    DEBUG_SET(DEBUG_IMU2, 3, bno055FrameIndex);
-    
     //Check ident
     if (bno055FrameType != BNO055_FRAME_DATA || receiveBuffer[0] != 0xA0 || bno055ProtocolState != BNO055_RECEIVE_IDLE) {
         return false; // Ident does not match, leave
     }
 
-    // bno055SerialWrite(BNO055_ADDR_PWR_MODE, BNO055_PWR_MODE_NORMAL); //Set power mode NORMAL
-    // delay(5);
+    bno055SerialWrite(BNO055_ADDR_PWR_MODE, BNO055_PWR_MODE_NORMAL); //Set power mode NORMAL
+    delay(25);
+
+    //TODO Here set calibration data 
+
+    bno055SerialWrite(BNO055_ADDR_OPR_MODE, BNO055_OPR_MODE_NDOF); //Set power mode NORMAL
+    delay(25);
 
 
-    // DEBUG_SET(DEBUG_IMU2, 0, 3);
-
-    // while (1) {
-    //     // bno055SerialWrite(BNO055_ADDR_PWR_MODE, BNO055_PWR_MODE_NORMAL); //Set power mode NORMAL
-    //     // bno055SerialRead(0x00); //Set power mode NORMAL
-    //     bno055SerialRead(0x00); // Read ChipID
-    //     delay(100);
-    // }
-
-
-    // DEBUG_SET(DEBUG_IMU2, 0, 4);
+    // DEBUG_SET(DEBUG_IMU2, 0, bno055FrameType);
+    // DEBUG_SET(DEBUG_IMU2, 1, receiveBuffer[0]);
+    // DEBUG_SET(DEBUG_IMU2, 2, bno055ProtocolState);
+    // DEBUG_SET(DEBUG_IMU2, 3, bno055FrameIndex);
 
     return true;
 }
 
-fpVector3_t bno055SerialGetEurlerAngles(void) {
-    
-}
-
-void bno055SerialFetchEulerAngles(int16_t * buffer) {
-    // bno055SerialRead(0x00);
+void bno055SerialFetchEulerAngles() {
+    bno055DataType = BNO055_DATA_TYPE_EULER;
+    bno055SerialRead(BNO055_ADDR_EUL_YAW_LSB, 6);
 }
 
 bno055CalibStat_t bno055SerialGetCalibStat(void) {

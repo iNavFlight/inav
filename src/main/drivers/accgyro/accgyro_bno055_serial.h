@@ -28,8 +28,7 @@
 #include "drivers/accgyro/accgyro_bno055.h"
 
 bool bno055SerialInit(bno055CalibrationData_t calibrationData, bool setCalibration);
-fpVector3_t bno055SerialGetEurlerAngles(void);
-void bno055SerialFetchEulerAngles(int16_t * buffer);
+void bno055SerialFetchEulerAngles();
 bno055CalibStat_t bno055SerialGetCalibStat(void);
 bno055CalibrationData_t bno055SerialGetCalibrationData(void);
 void bno055SerialSetCalibrationData(bno055CalibrationData_t data);

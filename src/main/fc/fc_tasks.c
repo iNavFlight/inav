@@ -605,7 +605,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_SECONDARY_IMU] = {
         .taskName = "IMU2",
         .taskFunc = taskSecondaryImu,
-        .desiredPeriod = TASK_PERIOD_HZ(1),          // 10Hz @100msec
+        .desiredPeriod = TASK_PERIOD_HZ(10),          // 10Hz @100msec
         .staticPriority = TASK_PRIORITY_IDLE,
     },
 #endif
