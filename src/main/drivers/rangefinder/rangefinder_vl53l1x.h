@@ -1,5 +1,5 @@
 /*
- * This file is part of INAV Project.
+ * This file is part of INAV.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -22,16 +22,8 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
-#include "config/config_reset.h"
-#include "config/parameter_group.h"
-#include "config/parameter_group_ids.h"
+#pragma once
 
-#include "config/general_settings.h"
+#define RANGEFINDER_VL53L1X_TASK_PERIOD_MS  (40)
 
-#include "fc/settings.h"
-
-PG_REGISTER_WITH_RESET_TEMPLATE(generalSettings_t, generalSettings, PG_GENERAL_SETTINGS, 0);
-
-PG_RESET_TEMPLATE(generalSettings_t, generalSettings,
-    .appliedDefaults = SETTING_APPLIED_DEFAULTS_DEFAULT,
-);
+bool vl53l1xDetect(rangefinderDev_t *dev);

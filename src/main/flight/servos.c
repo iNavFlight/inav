@@ -44,6 +44,7 @@
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 #include "fc/controlrate_profile.h"
+#include "fc/settings.h"
 
 #include "flight/imu.h"
 #include "flight/mixer.h"
@@ -57,12 +58,12 @@
 PG_REGISTER_WITH_RESET_TEMPLATE(servoConfig_t, servoConfig, PG_SERVO_CONFIG, 1);
 
 PG_RESET_TEMPLATE(servoConfig_t, servoConfig,
-    .servoCenterPulse = 1500,
-    .servoPwmRate = 50,             // Default for analog servos
-    .servo_lowpass_freq = 20,       // Default servo update rate is 50Hz, everything above Nyquist frequency (25Hz) is going to fold and cause distortions
-    .servo_protocol = SERVO_TYPE_PWM,
-    .flaperon_throw_offset = FLAPERON_THROW_DEFAULT,
-    .tri_unarmed_servo = 1
+    .servoCenterPulse = SETTING_SERVO_CENTER_PULSE_DEFAULT,
+    .servoPwmRate = SETTING_SERVO_PWM_RATE_DEFAULT,             // Default for analog servos
+    .servo_lowpass_freq = SETTING_SERVO_LPF_HZ_DEFAULT,         // Default servo update rate is 50Hz, everything above Nyquist frequency (25Hz) is going to fold and cause distortions
+    .servo_protocol = SETTING_SERVO_PROTOCOL_DEFAULT,
+    .flaperon_throw_offset = SETTING_FLAPERON_THROW_OFFSET_DEFAULT,
+    .tri_unarmed_servo = SETTING_TRI_UNARMED_SERVO_DEFAULT
 );
 
 PG_REGISTER_ARRAY_WITH_RESET_FN(servoMixer_t, MAX_SERVO_RULES, customServoMixers, PG_SERVO_MIXER, 1);

@@ -56,6 +56,7 @@
 #define USE_MAG_LIS3MDL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
+#define BNO055_I2C_BUS          BUS_I2C2
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
