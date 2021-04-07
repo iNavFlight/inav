@@ -33,6 +33,7 @@
 
 #include "drivers/sensor.h"
 #include "drivers/accgyro/accgyro_bno055.h"
+#include "drivers/accgyro/accgyro_bno055_serial.h"
 
 PG_REGISTER_WITH_RESET_FN(secondaryImuConfig_t, secondaryImuConfig, PG_SECONDARY_IMU, 1);
 
@@ -82,6 +83,8 @@ void secondaryImuInit(void)
 
     if (secondaryImuConfig()->hardwareType == SECONDARY_IMU_BNO055) {
         secondaryImuState.active = bno055Init(calibrationData, (secondaryImuConfig()->calibrationRadiusAcc && secondaryImuConfig()->calibrationRadiusMag));
+    } else if (secondaryImuConfig()->hardwareType == SECONDARY_IMU_BNO055_SERIAL) {
+        secondaryImuState.active = bno055SerialInit(calibrationData, (secondaryImuConfig()->calibrationRadiusAcc && secondaryImuConfig()->calibrationRadiusMag));
     }
 
     if (!secondaryImuState.active) {
@@ -100,6 +103,12 @@ void taskSecondaryImu(timeUs_t currentTimeUs)
      * Secondary IMU works in decidegrees
      */
     UNUSED(currentTimeUs);
+
+    if (secondaryImuConfig()->hardwareType == SECONDARY_IMU_BNO055) {
+        bno055FetchEulerAngles(secondaryImuState.eulerAngles.raw);
+    } else if (secondaryImuConfig()->hardwareType == SECONDARY_IMU_BNO055_SERIAL) {
+        bno055SerialFetchEulerAngles(secondaryImuState.eulerAngles.raw);
+    }
 
     bno055FetchEulerAngles(secondaryImuState.eulerAngles.raw);
 
@@ -144,10 +153,10 @@ void taskSecondaryImu(timeUs_t currentTimeUs)
     DEBUG_SET(DEBUG_IMU2, 1, secondaryImuState.eulerAngles.values.pitch);
     DEBUG_SET(DEBUG_IMU2, 2, secondaryImuState.eulerAngles.values.yaw);
 
-    DEBUG_SET(DEBUG_IMU2, 3, secondaryImuState.calibrationStatus.mag);
-    DEBUG_SET(DEBUG_IMU2, 4, secondaryImuState.calibrationStatus.gyr);
-    DEBUG_SET(DEBUG_IMU2, 5, secondaryImuState.calibrationStatus.acc);
-    DEBUG_SET(DEBUG_IMU2, 6, secondaryImuState.magDeclination);
+    // DEBUG_SET(DEBUG_IMU2, 3, secondaryImuState.calibrationStatus.mag);
+    // DEBUG_SET(DEBUG_IMU2, 4, secondaryImuState.calibrationStatus.gyr);
+    // DEBUG_SET(DEBUG_IMU2, 5, secondaryImuState.calibrationStatus.acc);
+    // DEBUG_SET(DEBUG_IMU2, 6, secondaryImuState.magDeclination);
 }
 
 void secondaryImuFetchCalibration(void) {
