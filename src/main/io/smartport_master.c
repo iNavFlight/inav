@@ -34,6 +34,8 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/serial.h"
 #include "drivers/time.h"
 
+#include "fc/settings.h"
+
 #include "io/serial.h"
 #include "io/smartport_master.h"
 
@@ -137,8 +139,8 @@ typedef struct {
 PG_REGISTER_WITH_RESET_TEMPLATE(smartportMasterConfig_t, smartportMasterConfig, PG_SMARTPORT_MASTER_CONFIG, 0);
 
 PG_RESET_TEMPLATE(smartportMasterConfig_t, smartportMasterConfig,
-    .halfDuplex = true,
-    .inverted = false
+    .halfDuplex = SETTING_SMARTPORT_MASTER_HALFDUPLEX_DEFAULT,
+    .inverted = SETTING_SMARTPORT_MASTER_INVERTED_DEFAULT
 );
 
 static serialPort_t *smartportMasterSerialPort = NULL;

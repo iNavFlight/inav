@@ -45,6 +45,7 @@
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
+#include "fc/settings.h"
 
 #include "sensors/sensors.h"
 #include "sensors/rangefinder.h"
@@ -65,8 +66,8 @@ rangefinder_t rangefinder;
 PG_REGISTER_WITH_RESET_TEMPLATE(rangefinderConfig_t, rangefinderConfig, PG_RANGEFINDER_CONFIG, 1);
 
 PG_RESET_TEMPLATE(rangefinderConfig_t, rangefinderConfig,
-    .rangefinder_hardware = RANGEFINDER_NONE,
-    .use_median_filtering = 0,
+    .rangefinder_hardware = SETTING_RANGEFINDER_HARDWARE_DEFAULT,
+    .use_median_filtering = SETTING_RANGEFINDER_MEDIAN_FILTER_DEFAULT,
 );
 
 const rangefinderHardwarePins_t * rangefinderGetHardwarePins(void)
@@ -287,4 +288,3 @@ bool rangefinderIsHealthy(void)
     return (millis() - rangefinder.lastValidResponseTimeMs) < RANGEFINDER_HARDWARE_TIMEOUT_MS;
 }
 #endif
-
