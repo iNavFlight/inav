@@ -100,7 +100,7 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
             .cells = 0,
 
             .voltage = {
-                .cellDetect = 430,
+                .cellDetect = 425,
                 .cellMax = 420,
                 .cellMin = 330,
                 .cellWarning = 350
@@ -266,7 +266,9 @@ void batteryUpdate(timeUs_t timeDelta)
             batteryCellCount = currentBatteryProfile->cells;
         else {
             batteryCellCount = (vbat / currentBatteryProfile->voltage.cellDetect) + 1;
-            if (batteryCellCount > 8) batteryCellCount = 8; // something is wrong, we expect 8 cells maximum (and autodetection will be problematic at 6+ cells)
+            // Assume there are no 7S, 9S and 11S batteries so round up to 8S, 10S and 12S
+            batteryCellCount = ((batteryCellCount > 6) && (batteryCellCount & 2) == 0) ? batteryCellCount : batteryCellCount + 1;
+            batteryCellCount = MIN(batteryCellCount, 12);
         }
 
         batteryFullVoltage = batteryCellCount * currentBatteryProfile->voltage.cellMax;
