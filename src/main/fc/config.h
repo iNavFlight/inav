@@ -73,8 +73,12 @@ typedef struct systemConfig_s {
     uint8_t current_profile_index;
     uint8_t current_battery_profile_index;
     uint8_t debug_mode;
+#ifdef USE_I2C
     uint8_t i2c_speed;
+#endif
+#ifdef USE_UNDERCLOCK
     uint8_t cpuUnderclock;
+#endif
     uint8_t throttle_tilt_compensation_strength;    // the correction that will be applied at throttle_correction_angle.
     char name[MAX_NAME_LENGTH + 1];
 } systemConfig_t;

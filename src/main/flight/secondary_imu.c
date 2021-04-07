@@ -21,18 +21,25 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
+
 #include "stdint.h"
-#include "common/utils.h"
-#include "common/axis.h"
-#include "flight/secondary_imu.h"
-#include "config/parameter_group_ids.h"
-#include "sensors/boardalignment.h"
-#include "sensors/compass.h"
 
 #include "build/debug.h"
 
+#include "common/utils.h"
+#include "common/axis.h"
+
+#include "config/parameter_group_ids.h"
+
 #include "drivers/sensor.h"
 #include "drivers/accgyro/accgyro_bno055.h"
+
+#include "fc/settings.h"
+
+#include "flight/secondary_imu.h"
+
+#include "sensors/boardalignment.h"
+#include "sensors/compass.h"
 
 PG_REGISTER_WITH_RESET_FN(secondaryImuConfig_t, secondaryImuConfig, PG_SECONDARY_IMU, 1);
 
@@ -62,8 +69,13 @@ void secondaryImuInit(void)
 {
     secondaryImuState.active = false;
     // Create magnetic declination matrix
+#ifdef USE_MAG
     const int deg = compassConfig()->mag_declination / 100;
     const int min = compassConfig()->mag_declination % 100;
+#else
+    const int deg = 0;
+    const int min = 0;
+#endif
 
     secondaryImuSetMagneticDeclination(deg + min / 60.0f);
 
