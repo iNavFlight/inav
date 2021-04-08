@@ -1027,7 +1027,7 @@ groups:
     value_type: BATTERY_CONFIG_VALUE
     members:
       - name: bat_cells
-        description: "Number of cells of the battery (0 = autodetect), see battery documentation. 7S, 9S and 11S batteries cannot be autodetected."
+        description: "Number of cells of the battery (0 = auto-detect), see battery documentation. 7S, 9S and 11S batteries cannot be auto-detected."
         default_value: 0
         field: cells
         condition: USE_ADC
