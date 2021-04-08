@@ -274,8 +274,10 @@ void batteryUpdate(timeUs_t timeDelta)
             batteryCellCount = currentBatteryProfile->cells;
         else {
             batteryCellCount = (vbat / currentBatteryProfile->voltage.cellDetect) + 1;
-            // Assume there are no 7S, 9S and 11S batteries so round up to 8S, 10S and 12S
-            batteryCellCount = ((batteryCellCount > 6) && (batteryCellCount & 2) == 0) ? batteryCellCount : batteryCellCount + 1;
+            // Assume there are no 7S, 9S and 11S batteries so round up to 8S, 10S and 12S respectively
+            if (batteryCellCount == 7 || batteryCellCount == 9 || batteryCellCount == 11) {
+                batteryCellCount += 1;
+            }
             batteryCellCount = MIN(batteryCellCount, 12);
         }
 

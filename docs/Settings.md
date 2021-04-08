@@ -514,7 +514,7 @@
 | tz_automatic_dst | OFF | Automatically add Daylight Saving Time to the GPS time when needed or simply ignore it. Includes presets for EU and the USA - if you live outside these areas it is suggested to manage DST manually via `tz_offset`. |
 | tz_offset | 0 | Time zone offset from UTC, in minutes. This is applied to the GPS time for logging and time-stamping of Blackbox logs |
 | vbat_adc_channel | _target default_ | ADC channel to use for battery voltage sensor. Defaults to board VBAT input (if available). 0 = disabled |
-| vbat_cell_detect_voltage | 425 | Maximum voltage per cell, used for auto-detecting the number of cells of the battery in 0.01V units, default is 4.30V. |
+| vbat_cell_detect_voltage | 425 | Maximum voltage per cell, used for auto-detecting the number of cells of the battery in 0.01V units. |
 | vbat_max_cell_voltage | 420 | Maximum voltage per cell in 0.01V units, default is 4.20V |
 | vbat_meter_type | ADC | Vbat voltage source. Possible values: `NONE`, `ADC`, `ESC`. `ESC` required ESC telemetry enebled and running |
 | vbat_min_cell_voltage | 330 | Minimum voltage per cell, this triggers battery out alarms, in 0.01V units, default is 330 (3.3V) |
