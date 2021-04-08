@@ -41,7 +41,7 @@
 | baro_cal_tolerance | 150 | Baro calibration tolerance in cm. The default should allow the noisiest baro to complete calibration [cm]. |
 | baro_hardware | AUTO | Selection of baro hardware. See Wiki Sensor auto detect and hardware failure detection for more info |
 | baro_median_filter | ON | 3-point median filtering for barometer readouts. No reason to change this setting |
-| bat_cells | 0 | Number of cells of the battery (0 = autodetect), see battery documentation. 7S, 9S and 11S batteries cannot be autodetected. |
+| bat_cells | 0 | Number of cells of the battery (0 = auto-detect), see battery documentation. 7S, 9S and 11S batteries cannot be auto-detected. |
 | bat_voltage_src | RAW | Chose between raw and sag compensated battery voltage to use for battery alarms and telemetry. Possible values are `RAW` and `SAG_COMP` |
 | battery_capacity | 0 | Set the battery capacity in mAh or mWh (see `battery_capacity_unit`). Used to calculate the remaining battery capacity. |
 | battery_capacity_critical | 0 | If the remaining battery capacity goes below this threshold the battery is considered empty and the beeper will emit long beeps. |
