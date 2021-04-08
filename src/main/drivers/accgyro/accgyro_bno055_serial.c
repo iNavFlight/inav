@@ -55,6 +55,7 @@ typedef enum {
 typedef enum {
     BNO055_DATA_TYPE_NONE,
     BNO055_DATA_TYPE_EULER,
+    BNO055_DATA_TYPE_CALIBRATION_STATS,
 } bno055DataType_e;
 
 static uint8_t bno055ProtocolState = BNO055_RECEIVE_IDLE;
@@ -82,6 +83,8 @@ static void bno055SerialRead(const uint8_t reg, const uint8_t len) {
 }
 
 void bno055SerialDataReceive(uint16_t c, void *data) {
+
+    UNUSED(data);
 
     const uint8_t incoming = (uint8_t) c;
 
@@ -117,6 +120,11 @@ void bno055SerialDataReceive(uint16_t c, void *data) {
                 secondaryImuState.eulerAngles.raw[1] = ((int16_t)((receiveBuffer[5] << 8) | receiveBuffer[4])) / -1.6f; //Pitch has to be reversed to match INAV notation
                 secondaryImuState.eulerAngles.raw[2] = ((int16_t)((receiveBuffer[1] << 8) | receiveBuffer[0])) / 1.6f;
                 secondaryImuProcess();
+            }  else if (bno055DataType == BNO055_DATA_TYPE_CALIBRATION_STATS) {
+                secondaryImuState.calibrationStatus.mag = receiveBuffer[0] & 0b00000011;
+                secondaryImuState.calibrationStatus.acc = (receiveBuffer[0] >> 2) & 0b00000011;
+                secondaryImuState.calibrationStatus.gyr = (receiveBuffer[0] >> 4) & 0b00000011;
+                secondaryImuState.calibrationStatus.sys = (receiveBuffer[0] >> 6) & 0b00000011;
             }
 
             bno055DataType = BNO055_DATA_TYPE_NONE;
@@ -163,12 +171,6 @@ bool bno055SerialInit(bno055CalibrationData_t calibrationData, bool setCalibrati
     bno055SerialWrite(BNO055_ADDR_OPR_MODE, BNO055_OPR_MODE_NDOF); //Set power mode NORMAL
     delay(25);
 
-
-    // DEBUG_SET(DEBUG_IMU2, 0, bno055FrameType);
-    // DEBUG_SET(DEBUG_IMU2, 1, receiveBuffer[0]);
-    // DEBUG_SET(DEBUG_IMU2, 2, bno055ProtocolState);
-    // DEBUG_SET(DEBUG_IMU2, 3, bno055FrameIndex);
-
     return true;
 }
 
@@ -178,7 +180,8 @@ void bno055SerialFetchEulerAngles() {
 }
 
 bno055CalibStat_t bno055SerialGetCalibStat(void) {
-    
+    bno055DataType = BNO055_DATA_TYPE_CALIBRATION_STATS;
+    bno055SerialRead(BNO055_ADDR_CALIB_STAT, 1);
 }
 
 bno055CalibrationData_t bno055SerialGetCalibrationData(void) {

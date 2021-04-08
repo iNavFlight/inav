@@ -147,14 +147,17 @@ void secondaryImuProcess(void) {
     DEBUG_SET(DEBUG_IMU2, 1, secondaryImuState.eulerAngles.values.pitch);
     DEBUG_SET(DEBUG_IMU2, 2, secondaryImuState.eulerAngles.values.yaw);
 
-    // DEBUG_SET(DEBUG_IMU2, 3, secondaryImuState.calibrationStatus.mag);
-    // DEBUG_SET(DEBUG_IMU2, 4, secondaryImuState.calibrationStatus.gyr);
-    // DEBUG_SET(DEBUG_IMU2, 5, secondaryImuState.calibrationStatus.acc);
-    // DEBUG_SET(DEBUG_IMU2, 6, secondaryImuState.magDeclination);
+    DEBUG_SET(DEBUG_IMU2, 3, secondaryImuState.calibrationStatus.mag);
+    DEBUG_SET(DEBUG_IMU2, 4, secondaryImuState.calibrationStatus.gyr);
+    DEBUG_SET(DEBUG_IMU2, 5, secondaryImuState.calibrationStatus.acc);
+    DEBUG_SET(DEBUG_IMU2, 6, secondaryImuState.magDeclination);
 }
 
 void taskSecondaryImu(timeUs_t currentTimeUs)
 {
+    static uint8_t tick = 0;
+    tick++;
+
     if (!secondaryImuState.active)
     {
         return;
@@ -169,17 +172,24 @@ void taskSecondaryImu(timeUs_t currentTimeUs)
         secondaryImuProcess();
 
         /*
-        * Every 10 cycles fetch current calibration state
+        * Every 2 seconds fetch current calibration state
         */
-        static uint8_t tick = 0;
-        tick++;
-        if (tick == 10)
+        if (tick == 20)
         {
             secondaryImuState.calibrationStatus = bno055GetCalibStat();
             tick = 0;
         }
     } else if (secondaryImuConfig()->hardwareType == SECONDARY_IMU_BNO055_SERIAL) {
-        bno055SerialFetchEulerAngles();
+        /*
+         * Every 2 seconds fetch current calibration state
+         */
+        if (tick == 100)
+        {
+            bno055SerialGetCalibStat();
+            tick = 0;
+        } else {
+            bno055SerialFetchEulerAngles();
+        }
     }
 }
 
