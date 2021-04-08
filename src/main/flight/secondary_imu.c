@@ -194,7 +194,15 @@ void taskSecondaryImu(timeUs_t currentTimeUs)
 }
 
 void secondaryImuFetchCalibration(void) {
-    bno055CalibrationData_t calibrationData = bno055GetCalibrationData();
+    bno055CalibrationData_t calibrationData;
+
+    if (secondaryImuConfig()->hardwareType == SECONDARY_IMU_BNO055) {
+        calibrationData = bno055GetCalibrationData();
+    } else if (secondaryImuConfig()->hardwareType == SECONDARY_IMU_BNO055_SERIAL) {
+        calibrationData = bno055SerialGetCalibrationData();
+    } else {
+        return;
+    }
 
     secondaryImuConfigMutable()->calibrationOffsetAcc[X] = calibrationData.offset[ACC][X];
     secondaryImuConfigMutable()->calibrationOffsetAcc[Y] = calibrationData.offset[ACC][Y];

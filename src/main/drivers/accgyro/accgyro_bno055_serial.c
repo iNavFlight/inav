@@ -36,8 +36,7 @@
 #include "flight/secondary_imu.h"
 
 static serialPort_t * bno055SerialPort = NULL;
-
-static uint8_t receiveBuffer[16];
+static uint8_t receiveBuffer[22];
 
 typedef enum {
     BNO055_RECEIVE_IDLE,
@@ -174,18 +173,52 @@ bool bno055SerialInit(bno055CalibrationData_t calibrationData, bool setCalibrati
     return true;
 }
 
+/*
+ * This function is non-blocking and response will be processed by bno055SerialDataReceive
+ */
 void bno055SerialFetchEulerAngles() {
     bno055DataType = BNO055_DATA_TYPE_EULER;
     bno055SerialRead(BNO055_ADDR_EUL_YAW_LSB, 6);
 }
 
-bno055CalibStat_t bno055SerialGetCalibStat(void) {
+/*
+ * This function is non-blocking and response will be processed by bno055SerialDataReceive
+ */
+void bno055SerialGetCalibStat(void) {
     bno055DataType = BNO055_DATA_TYPE_CALIBRATION_STATS;
     bno055SerialRead(BNO055_ADDR_CALIB_STAT, 1);
 }
 
+/*
+ * This function is blocking and should not be used during flight conditions!
+ */
 bno055CalibrationData_t bno055SerialGetCalibrationData(void) {
 
+    bno055CalibrationData_t data;
+
+    bno055SerialWrite(BNO055_ADDR_OPR_MODE, BNO055_OPR_MODE_CONFIG);
+    delay(25);
+
+    bno055SerialRead(BNO055_ADDR_ACC_OFFSET_X_LSB, 22);
+    delay(50);
+
+    uint8_t bufferBit = 0;
+    for (uint8_t sensorIndex = 0; sensorIndex < 3; sensorIndex++)
+    {
+        for (uint8_t axisIndex = 0; axisIndex < 3; axisIndex++)
+        {
+            data.offset[sensorIndex][axisIndex] = (int16_t)((receiveBuffer[bufferBit + 1] << 8) | receiveBuffer[bufferBit]);
+            bufferBit += 2;
+        }
+    }
+
+    data.radius[ACC] = (int16_t)((receiveBuffer[19] << 8) | receiveBuffer[18]);
+    data.radius[MAG] = (int16_t)((receiveBuffer[21] << 8) | receiveBuffer[20]);
+
+    bno055SerialWrite(BNO055_ADDR_OPR_MODE, BNO055_OPR_MODE_NDOF);
+    delay(25);
+
+    return data;
 }
 
 void bno055SerialSetCalibrationData(bno055CalibrationData_t data) {

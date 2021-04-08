@@ -29,6 +29,6 @@
 
 bool bno055SerialInit(bno055CalibrationData_t calibrationData, bool setCalibration);
 void bno055SerialFetchEulerAngles(void);
-bno055CalibStat_t bno055SerialGetCalibStat(void);
+void bno055SerialGetCalibStat(void);
 bno055CalibrationData_t bno055SerialGetCalibrationData(void);
 void bno055SerialSetCalibrationData(bno055CalibrationData_t data);
