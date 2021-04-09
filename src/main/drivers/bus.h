@@ -141,6 +141,7 @@ typedef enum {
     DEVHW_HCSR04_I2C,   // DIY-style adapter
     DEVHW_VL53L0X,
     DEVHW_VL53L1X,
+    DEVHW_US42,
 
     /* Other hardware */
     DEVHW_MS4525,       // Pitot meter

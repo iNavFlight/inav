@@ -99,6 +99,7 @@
 #define USE_RANGEFINDER_VL53L0X
 #define USE_RANGEFINDER_VL53L1X
 #define USE_RANGEFINDER_HCSR04_I2C
+#define USE_RANGEFINDER_US42
 
 // Allow default optic flow boards
 #define USE_OPFLOW

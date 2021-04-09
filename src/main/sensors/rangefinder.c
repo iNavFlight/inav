@@ -42,6 +42,7 @@
 #include "drivers/rangefinder/rangefinder_vl53l0x.h"
 #include "drivers/rangefinder/rangefinder_vl53l1x.h"
 #include "drivers/rangefinder/rangefinder_virtual.h"
+#include "drivers/rangefinder/rangefinder_us42.h"
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
@@ -160,7 +161,16 @@ static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwar
 #endif
             break;
 
-        case RANGEFINDER_NONE:
+            case RANGEFINDER_US42:
+#ifdef USE_RANGEFINDER_US42
+            if (us42Detect(dev)) {
+                rangefinderHardware = RANGEFINDER_US42;
+                rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_US42_TASK_PERIOD_MS));
+            }
+#endif
+            break;
+
+            case RANGEFINDER_NONE:
             rangefinderHardware = RANGEFINDER_NONE;
             break;
     }
