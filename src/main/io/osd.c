@@ -1917,7 +1917,7 @@ static bool osdDrawSingleElement(uint8_t item)
             rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
             pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
 #endif
-
+            pitchAngle -= DEGREES_TO_RADIANS(osdConfig()->camera_uptilt);
             if (osdConfig()->ahi_reverse_roll) {
                 rollAngle = -rollAngle;
             }
