@@ -122,10 +122,10 @@
 
 PG_REGISTER_WITH_RESET_TEMPLATE(djiOsdConfig_t, djiOsdConfig, PG_DJI_OSD_CONFIG, 2);
 PG_RESET_TEMPLATE(djiOsdConfig_t, djiOsdConfig,
-    .use_name_for_messages  = true,
-    .esc_temperature_source = DJI_OSD_TEMP_ESC,
-    .proto_workarounds = DJI_OSD_USE_NON_STANDARD_MSP_ESC_SENSOR_DATA,
-    .speedSource = DJI_OSD_SPEED_GROUND,
+    .use_name_for_messages  = SETTING_DJI_USE_NAME_FOR_MESSAGES_DEFAULT,
+    .esc_temperature_source = SETTING_DJI_ESC_TEMP_SOURCE_DEFAULT,
+    .proto_workarounds = SETTING_DJI_WORKAROUNDS_DEFAULT,
+    .speedSource = SETTING_DJI_SPEED_SOURCE_DEFAULT,
 );
 
 // External dependency on looptime

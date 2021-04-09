@@ -38,6 +38,7 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/time.h"
 #include "drivers/system.h"
 #include "drivers/pwm_output.h"
+#include "drivers/accgyro/accgyro_bno055.h"
 
 #include "sensors/sensors.h"
 #include "sensors/diagnostics.h"
@@ -89,6 +90,7 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/failsafe.h"
 
 #include "config/feature.h"
+#include "common/vector.h"
 #include "programming/pid.h"
 
 // June 2013     V2.2-dev
@@ -130,6 +132,9 @@ static bool isRXDataNew;
 static uint32_t gyroSyncFailureCount;
 static disarmReason_t lastDisarmReason = DISARM_NONE;
 static emergencyArmingState_t emergencyArming;
+
+static bool prearmWasReset = false; // Prearm must be reset (RC Mode not active) before arming is possible
+static timeMs_t prearmActivationTime = 0;
 
 bool isCalibrating(void)
 {
@@ -297,8 +302,14 @@ static void updateArmingStatus(void)
 
         if (isModeActivationConditionPresent(BOXPREARM)) {
             if (IS_RC_MODE_ACTIVE(BOXPREARM)) {
-                DISABLE_ARMING_FLAG(ARMING_DISABLED_NO_PREARM);
+                if (prearmWasReset && (armingConfig()->prearmTimeoutMs == 0 || millis() - prearmActivationTime < armingConfig()->prearmTimeoutMs)) {
+                    DISABLE_ARMING_FLAG(ARMING_DISABLED_NO_PREARM);
+                } else {
+                    ENABLE_ARMING_FLAG(ARMING_DISABLED_NO_PREARM);
+                }
             } else {
+                prearmWasReset = true;
+                prearmActivationTime = millis();
                 ENABLE_ARMING_FLAG(ARMING_DISABLED_NO_PREARM);
             }
         } else {
@@ -406,10 +417,14 @@ void disarm(disarmReason_t disarmReason)
 #endif
         statsOnDisarm();
         logicConditionReset();
-#ifdef USE_PROGRAMMING_FRAMEWORK	    
+
+#ifdef USE_PROGRAMMING_FRAMEWORK
         programmingPidReset();
-#endif	    
+#endif
+
         beeper(BEEPER_DISARMING);      // emit disarm tone
+
+        prearmWasReset = false;
     }
 }
 
@@ -514,10 +529,11 @@ void tryArm(void)
         //It is required to inform the mixer that arming was executed and it has to switch to the FORWARD direction
         ENABLE_STATE(SET_REVERSIBLE_MOTORS_FORWARD);
         logicConditionReset();
-	    
-#ifdef USE_PROGRAMMING_FRAMEWORK	    
+
+#ifdef USE_PROGRAMMING_FRAMEWORK
         programmingPidReset();
-#endif	    
+#endif
+
         headFreeModeHold = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
 
         resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));

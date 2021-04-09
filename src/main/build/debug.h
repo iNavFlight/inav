@@ -81,5 +81,7 @@ typedef enum {
     DEBUG_PCF8574,
     DEBUG_DYNAMIC_GYRO_LPF,
     DEBUG_FW_D,
+    DEBUG_IMU2,
+    DEBUG_ALTITUDE,
     DEBUG_COUNT
 } debugType_e;
