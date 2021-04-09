@@ -64,13 +64,24 @@ static uint8_t bno055FrameIndex;
 static timeMs_t bno055FrameStartAtMs = 0;
 static uint8_t bno055DataType = BNO055_DATA_TYPE_NONE;
 
-static void bno055SerialWrite(uint8_t reg, uint8_t data) {
+
+static void bno055SerialWriteBuffer(const uint8_t reg, const uint8_t *data, const uint8_t count) {
+
     bno055ProtocolState = BNO055_RECEIVE_IDLE;
     serialWrite(bno055SerialPort, 0xAA); // Start Byte
     serialWrite(bno055SerialPort, 0x00); // Write command
     serialWrite(bno055SerialPort, reg);
-    serialWrite(bno055SerialPort, 1);
-    serialWrite(bno055SerialPort, data);
+    serialWrite(bno055SerialPort, count);
+    for (uint8_t i = 0; i < count; i++) {
+        serialWrite(bno055SerialPort, data[i]);
+    }
+}
+
+static void bno055SerialWrite(const uint8_t reg, const uint8_t data) {
+    uint8_t buff[1];
+    buff[0] = data;
+
+    bno055SerialWriteBuffer(reg, buff, 1);
 }
 
 static void bno055SerialRead(const uint8_t reg, const uint8_t len) {
