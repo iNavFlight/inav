@@ -1027,14 +1027,14 @@ groups:
     value_type: BATTERY_CONFIG_VALUE
     members:
       - name: bat_cells
-        description: "Number of cells of the battery (0 = autodetect), see battery documentation. 7S, 9S and 11S batteries cannot be autodetected."
+        description: "Number of cells of the battery (0 = auto-detect), see battery documentation. 7S, 9S and 11S batteries cannot be auto-detected."
         default_value: 0
         field: cells
         condition: USE_ADC
         min: 0
         max: 12
       - name: vbat_cell_detect_voltage
-        description: "Maximum voltage per cell, used for auto-detecting the number of cells of the battery in 0.01V units, default is 4.30V."
+        description: "Maximum voltage per cell, used for auto-detecting the number of cells of the battery in 0.01V units."
         default_value: 425
         field: voltage.cellDetect
         condition: USE_ADC
