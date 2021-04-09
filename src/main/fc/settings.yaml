@@ -2813,10 +2813,10 @@ groups:
       - name: mavlink_version
         field: mavlink.version
         description: "Version of MAVLink to use"
-        default_value: "2"
         type: uint8_t
         min: 1
         max: 2
+        default_value: 2
   - name: PG_ELERES_CONFIG
     type: eleresConfig_t
     headers: ["rx/eleres.h"]
