@@ -2516,7 +2516,7 @@ groups:
         default_value: 7500
         field: fw.loiter_radius
         min: 0
-        max: 10000
+        max: 30000
       - name: nav_fw_cruise_speed
         description: "Speed for the plane/wing at cruise throttle used for remaining flight time/distance estimation in cm/s"
         default_value: 0
