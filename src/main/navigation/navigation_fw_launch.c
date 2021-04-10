@@ -198,7 +198,7 @@ static const fixedWingLaunchStateDescriptor_t launchStateMachine[FW_LAUNCH_STATE
         },
         .messageType                                = FW_LAUNCH_MESSAGE_TYPE_FINISHING
     },
-    
+
         [FW_LAUNCH_STATE_FINISH_THR_LOW] = {
         .onEntry                                    = fwLaunchState_FW_LAUNCH_STATE_FINISH_THR_LOW,
         .onEvent = {
@@ -426,12 +426,12 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_FINISH(timeUs_t curr
     if (areSticksDeflectedMoreThanPosHoldDeadband()) {
         return FW_LAUNCH_EVENT_ABORT; // cancel the launch and do the FW_LAUNCH_STATE_IDLE state
     }
-    
+
     if (navConfig()->fw.launch_allow_throttle_low && isThrottleLow()) {
         // if launch with throttle low selected default to cruise throttle
         rcCommand[THROTTLE] = navConfig()->fw.cruise_throttle;
     }
-    
+
     if (elapsedTimeMs > endTimeMs) {
         // if launch with throttle low selected and throttle is low
         // move to state FW_LAUNCH_EVENT_FINISH_THR_LOW, otherwise end launch
@@ -451,7 +451,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_FINISH(timeUs_t curr
 }
 
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_FINISH_THR_LOW(timeUs_t currentTimeUs)
-{    
+{
     static timeMs_t throttleRaisedStartTimeMs;
     const timeMs_t elapsedTimeMs = US2MS(currentTimeUs) - throttleRaisedStartTimeMs;
     const timeMs_t endTimeMs = 1000;    // smooth throttle transistion over 1 second when throttle stick raised
@@ -459,7 +459,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_FINISH_THR_LOW(timeU
     if (areSticksDeflectedMoreThanPosHoldDeadband()) {
         return FW_LAUNCH_EVENT_SUCCESS;     // end the launch and go to FW_LAUNCH_STATE_IDLE
     }
-    
+
     if (isThrottleLow()) {
         throttleRaisedStartTimeMs = US2MS(currentTimeUs);
         rcCommand[THROTTLE] = navConfig()->fw.cruise_throttle;
@@ -469,7 +469,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_FINISH_THR_LOW(timeU
         if (elapsedTimeMs > endTimeMs) {
             return FW_LAUNCH_EVENT_SUCCESS;
         }
-    }   
+    }
 
     return FW_LAUNCH_EVENT_NONE;
 }
@@ -508,7 +508,7 @@ void resetFixedWingLaunchController(timeUs_t currentTimeUs)
 
 bool isFixedWingLaunchDetected(void)
 {
-    return fwLaunch.currentState == FW_LAUNCH_STATE_DETECTED;
+    return fwLaunch.currentState >= FW_LAUNCH_STATE_DETECTED;
 }
 
 void enableFixedWingLaunchController(timeUs_t currentTimeUs)
