@@ -183,8 +183,6 @@ static void updateArmingStatus(void)
     if (ARMING_FLAG(ARMED)) {
         LED0_ON;
     } else {
-        const timeUs_t currentTimeUs = micros();
-
         /* CHECK: Run-time calibration */
         static bool calibratingFinishedBeep = false;
         if (isCalibrating()) {
@@ -305,7 +303,7 @@ static void updateArmingStatus(void)
 
 #ifdef USE_DSHOT
         /* CHECK: Don't arm if the DShot beeper was used recently, as there is a minimum delay before sending the next DShot command */
-        if (currentTimeUs - getLastDshotBeeperCommandTimeUs() < getDShotBeaconGuardDelayUs()) {
+        if (micros() - getLastDshotBeeperCommandTimeUs() < getDShotBeaconGuardDelayUs()) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_DSHOT_BEEPER);
         } else {
             DISABLE_ARMING_FLAG(ARMING_DISABLED_DSHOT_BEEPER);
