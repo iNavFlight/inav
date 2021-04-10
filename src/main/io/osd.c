@@ -1495,6 +1495,22 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_GLIDE_SLOPE:
+        {
+            float sinkRate = -getEstimatedActualVelocity(Z);
+            float horizontalSpeed = gpsSol.groundSpeed;
+            float glideSlope = horizontalSpeed / sinkRate;
+            buff[0] = 'G';
+            buff[1] = 'S';
+            if (sinkRate > 0 && horizontalSpeed > 100) {
+                osdFormatCentiNumber(buff + 2, (int16_t)(glideSlope * 100.0f), 0, 2, 0, 3);
+            } else {
+                buff[2] = buff[3] = buff[4] = '-';
+            }
+            buff[5] = '\0';
+            break;
+        }
+
     case OSD_GPS_LAT:
         osdFormatCoordinate(buff, SYM_LAT, gpsSol.llh.lat);
         break;
