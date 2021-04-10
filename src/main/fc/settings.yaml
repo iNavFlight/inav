@@ -2617,7 +2617,7 @@ groups:
         max: 45
       - name: nav_fw_launch_allow_throttle_low
         description: "Allow launch sequence with throttle maintained low throughout. When main launch sequence completes flight control is maintained with Nav cruise throttle until sticks moved/throttle raised or control switches to other Nav mode if preselected"
-        default_value: "OFF"
+        default_value: OFF
         field: fw.launch_allow_throttle_low
         type: bool
       - name: nav_fw_cruise_yaw_rate
