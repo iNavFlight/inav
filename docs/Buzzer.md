@@ -43,6 +43,8 @@ Sequences:
     14   DISARM_REPEAT         0, 100, 10		Stick held in disarm position (after pause)
     15   ARMED                 0, 245, 10, 5	Board is armed (after pause ; repeats until board is disarmed or throttle is increased)
 
+You can use [this tool](https://www.mrd-rc.com/tutorials-tools-and-testing/useful-tools/helpful-inav-buzzer-code-checker/) to hear current buzzer sequences or enter custom sequences.
+
 ## Controlling buzzer usage
 
 The usage of the buzzer can be controlled by the CLI `beeper` command.

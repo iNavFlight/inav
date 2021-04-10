@@ -67,7 +67,10 @@ typedef enum {
     LOGIC_CONDITION_TAN                         = 35,
     LOGIC_CONDITION_MAP_INPUT                   = 36,
     LOGIC_CONDITION_MAP_OUTPUT                  = 37,
-    LOGIC_CONDITION_LAST                        = 38,
+    LOGIC_CONDITION_RC_CHANNEL_OVERRIDE         = 38,
+    LOGIC_CONDITION_SET_HEADING_TARGET          = 39,
+    LOGIC_CONDITION_MODULUS                     = 40,
+    LOGIC_CONDITION_LAST                        = 41,
 } logicOperation_e;
 
 typedef enum logicOperandType_s {
@@ -116,6 +119,7 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_3D_HOME_DISTANCE,                        // 31
     LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_LQ,                                 // 32
     LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_SNR,                                // 33
+    LOGIC_CONDITION_OPERAND_FLIGHT_GPS_VALID, // 0/1                        // 34
 
 } logicFlightOperands_e;
 
@@ -142,6 +146,7 @@ typedef enum {
     LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_YAW = (1 << 5),
     LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_THROTTLE = (1 << 6),
     LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_OSD_LAYOUT = (1 << 7),
+    LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_RC_CHANNEL = (1 << 8),
 } logicConditionsGlobalFlags_t;
 
 typedef enum {
@@ -169,6 +174,11 @@ typedef struct logicConditionState_s {
     uint8_t flags;
 } logicConditionState_t;
 
+typedef struct rcChannelOverride_s {
+    uint8_t active;
+    int value;
+} rcChannelOverride_t;
+
 extern int logicConditionValuesByType[LOGIC_CONDITION_LAST];
 extern uint64_t logicConditionsGlobalFlags;
 
@@ -186,3 +196,4 @@ void logicConditionReset(void);
 
 float getThrottleScale(float globalThrottleScale);
 int16_t getRcCommandOverride(int16_t command[], uint8_t axis);
+int16_t getRcChannelOverride(uint8_t channel, int16_t originalValue);

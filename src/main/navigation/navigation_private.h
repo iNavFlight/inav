@@ -91,13 +91,6 @@ typedef struct navigationFlags_s {
     bool forcedRTHActivated;
 } navigationFlags_t;
 
-typedef enum {
-    PID_DTERM_FROM_ERROR            = 1 << 0,
-    PID_ZERO_INTEGRATOR             = 1 << 1,
-    PID_SHRINK_INTEGRATOR           = 1 << 2,
-    PID_LIMIT_INTEGRATOR            = 1 << 3,
-} pidControllerFlags_e;
-
 typedef struct {
     fpVector3_t pos;
     fpVector3_t vel;
@@ -146,9 +139,9 @@ typedef enum {
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_FINISHED = NAV_FSM_EVENT_STATE_SPECIFIC_2,
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_HOLD_TIME = NAV_FSM_EVENT_STATE_SPECIFIC_3,
 
-    NAV_FSM_EVENT_SWITCH_TO_CRUISE_2D,
-    NAV_FSM_EVENT_SWITCH_TO_CRUISE_3D,
-    NAV_FSM_EVENT_SWITCH_TO_CRUISE_ADJ,
+    NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD,
+    NAV_FSM_EVENT_SWITCH_TO_CRUISE,
+    NAV_FSM_EVENT_SWITCH_TO_COURSE_ADJ,
     NAV_FSM_EVENT_COUNT,
 } navigationFSMEvent_t;
 
@@ -193,13 +186,13 @@ typedef enum {
     NAV_PERSISTENT_ID_UNUSED_3                                  = 27, // was NAV_STATE_LAUNCH_MOTOR_DELAY
     NAV_PERSISTENT_ID_LAUNCH_IN_PROGRESS                        = 28,
 
-    NAV_PERSISTENT_ID_CRUISE_2D_INITIALIZE                      = 29,
-    NAV_PERSISTENT_ID_CRUISE_2D_IN_PROGRESS                     = 30,
-    NAV_PERSISTENT_ID_CRUISE_2D_ADJUSTING                       = 31,
+    NAV_PERSISTENT_ID_COURSE_HOLD_INITIALIZE                    = 29,
+    NAV_PERSISTENT_ID_COURSE_HOLD_IN_PROGRESS                   = 30,
+    NAV_PERSISTENT_ID_COURSE_HOLD_ADJUSTING                     = 31,
 
-    NAV_PERSISTENT_ID_CRUISE_3D_INITIALIZE                      = 32,
-    NAV_PERSISTENT_ID_CRUISE_3D_IN_PROGRESS                     = 33,
-    NAV_PERSISTENT_ID_CRUISE_3D_ADJUSTING                       = 34,
+    NAV_PERSISTENT_ID_CRUISE_INITIALIZE                         = 32,
+    NAV_PERSISTENT_ID_CRUISE_IN_PROGRESS                        = 33,
+    NAV_PERSISTENT_ID_CRUISE_ADJUSTING                          = 34,
 
     NAV_PERSISTENT_ID_WAYPOINT_HOLD_TIME                        = 35,
     NAV_PERSISTENT_ID_RTH_HOVER_ABOVE_HOME                      = 36,
@@ -244,12 +237,12 @@ typedef enum {
     NAV_STATE_LAUNCH_WAIT,
     NAV_STATE_LAUNCH_IN_PROGRESS,
 
-    NAV_STATE_CRUISE_2D_INITIALIZE,
-    NAV_STATE_CRUISE_2D_IN_PROGRESS,
-    NAV_STATE_CRUISE_2D_ADJUSTING,
-    NAV_STATE_CRUISE_3D_INITIALIZE,
-    NAV_STATE_CRUISE_3D_IN_PROGRESS,
-    NAV_STATE_CRUISE_3D_ADJUSTING,
+    NAV_STATE_COURSE_HOLD_INITIALIZE,
+    NAV_STATE_COURSE_HOLD_IN_PROGRESS,
+    NAV_STATE_COURSE_HOLD_ADJUSTING,
+    NAV_STATE_CRUISE_INITIALIZE,
+    NAV_STATE_CRUISE_IN_PROGRESS,
+    NAV_STATE_CRUISE_ADJUSTING,
 
     NAV_STATE_COUNT,
 } navigationFSMState_t;
@@ -389,21 +382,6 @@ extern multicopterPosXyCoefficients_t multicopterPosXyCoefficients;
 
 /* Internally used functions */
 const navEstimatedPosVel_t * navGetCurrentActualPositionAndVelocity(void);
-
-float navPidApply2(pidController_t *pid, const float setpoint, const float measurement, const float dt, const float outMin, const float outMax, const pidControllerFlags_e pidFlags);
-float navPidApply3(
-    pidController_t *pid,
-    const float setpoint,
-    const float measurement,
-    const float dt,
-    const float outMin,
-    const float outMax,
-    const pidControllerFlags_e pidFlags,
-    const float gainScaler,
-    const float dTermScaler
-);
-void navPidReset(pidController_t *pid);
-void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD, float _kFF, float _dTermLpfHz);
 
 bool isThrustFacingDownwards(void);
 uint32_t calculateDistanceToDestination(const fpVector3_t * destinationPos);

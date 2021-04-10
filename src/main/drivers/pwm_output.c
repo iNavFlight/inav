@@ -28,6 +28,7 @@ FILE_COMPILE_FOR_SPEED
 
 #include "common/log.h"
 #include "common/maths.h"
+#include "common/circular_queue.h"
 
 #include "drivers/io.h"
 #include "drivers/timer.h"
@@ -60,6 +61,10 @@ FILE_COMPILE_FOR_SPEED
 #define DSHOT_MOTOR_BITLENGTH   20
 
 #define DSHOT_DMA_BUFFER_SIZE   18 /* resolution + frame reset (2us) */
+
+#define DSHOT_COMMAND_INTERVAL_US 1000
+#define DSHOT_COMMAND_QUEUE_LENGTH 8
+#define DHSOT_COMMAND_QUEUE_SIZE   DSHOT_COMMAND_QUEUE_LENGTH * sizeof(dshotCommands_e)
 #endif
 
 typedef void (*pwmWriteFuncPtr)(uint8_t index, uint16_t value);  // function pointer used to write motors
@@ -109,6 +114,12 @@ static uint16_t beeperFrequency = 0;
 static uint8_t allocatedOutputPortCount = 0;
 
 static bool pwmMotorsEnabled = true;
+
+#ifdef USE_DSHOT
+static circularBuffer_t commandsCircularBuffer;
+static uint8_t commandsBuff[DHSOT_COMMAND_QUEUE_SIZE];
+static currentExecutingCommand_t currentExecutingCommand;
+#endif
 
 static void pwmOutConfigTimer(pwmOutputPort_t * p, TCH_t * tch, uint32_t hz, uint16_t period, uint16_t value)
 {
@@ -340,8 +351,60 @@ void pwmRequestMotorTelemetry(int motorIndex)
     }
 }
 
-void pwmCompleteMotorUpdate(void)
-{
+#ifdef USE_DSHOT
+void sendDShotCommand(dshotCommands_e cmd) {
+    circularBufferPushElement(&commandsCircularBuffer, (uint8_t *) &cmd);
+}
+
+void initDShotCommands(void) {
+    circularBufferInit(&commandsCircularBuffer, commandsBuff,DHSOT_COMMAND_QUEUE_SIZE, sizeof(dshotCommands_e));
+
+    currentExecutingCommand.remainingRepeats = 0;
+}
+
+static int getDShotCommandRepeats(dshotCommands_e cmd) {
+    int repeats = 1;
+
+    switch (cmd) {
+        case DSHOT_CMD_SPIN_DIRECTION_NORMAL:
+        case DSHOT_CMD_SPIN_DIRECTION_REVERSED:
+            repeats = 6;
+            break;
+        default:
+            break;
+    }
+
+    return repeats;
+}
+
+static void executeDShotCommands(void){
+
+    if(currentExecutingCommand.remainingRepeats == 0) {
+
+        const int isTherePendingCommands = !circularBufferIsEmpty(&commandsCircularBuffer);
+
+        if (isTherePendingCommands) {
+            //Load the command
+            dshotCommands_e cmd;
+            circularBufferPopHead(&commandsCircularBuffer, (uint8_t *) &cmd);
+
+            currentExecutingCommand.cmd = cmd;
+            currentExecutingCommand.remainingRepeats = getDShotCommandRepeats(cmd);
+        }
+        else {
+            return;
+        }
+    }
+
+    for (uint8_t i = 0; i < getMotorCount(); i++) {
+        motors[i].requestTelemetry = true;
+        motors[i].value = currentExecutingCommand.cmd;
+    }
+    currentExecutingCommand.remainingRepeats--;
+}
+#endif
+
+void pwmCompleteMotorUpdate(void) {
     // This only makes sense for digital motor protocols
     if (!isMotorProtocolDigital()) {
         return;
@@ -359,6 +422,9 @@ void pwmCompleteMotorUpdate(void)
 
 #ifdef USE_DSHOT
     if (isMotorProtocolDshot()) {
+
+        executeDShotCommands();
+
         // Generate DMA buffers
         for (int index = 0; index < motorCount; index++) {
             if (motors[index].pwmPort && motors[index].pwmPort->configured) {
@@ -501,6 +567,14 @@ static void pwmServoWriteStandard(uint8_t index, uint16_t value)
     }
 }
 
+#ifdef USE_SERVO_SBUS
+static void sbusPwmWriteStandard(uint8_t index, uint16_t value)
+{
+    pwmServoWriteStandard(index, value);
+    sbusServoUpdate(index, value);
+}
+#endif
+
 #ifdef USE_PWM_SERVO_DRIVER
 static void pwmServoWriteExternalDriver(uint8_t index, uint16_t value)
 {
@@ -531,6 +605,11 @@ void pwmServoPreconfigure(void)
         case SERVO_TYPE_SBUS:
             sbusServoInitialize();
             servoWritePtr = sbusServoUpdate;
+            break;
+
+        case SERVO_TYPE_SBUS_PWM:
+            sbusServoInitialize();
+            servoWritePtr = sbusPwmWriteStandard;
             break;
 #endif
     }

@@ -47,6 +47,7 @@
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/wind_estimator.h"
+#include "flight/secondary_imu.h"
 #include "flight/rpm_filter.h"
 #include "flight/servos.h"
 #include "flight/dynamic_lpf.h"
@@ -346,7 +347,7 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_STACK_CHECK, true);
 #endif
 #if defined(USE_PWM_SERVO_DRIVER) || defined(USE_SERVO_SBUS)
-    setTaskEnabled(TASK_PWMDRIVER, (servoConfig()->servo_protocol == SERVO_TYPE_SERVO_DRIVER) || (servoConfig()->servo_protocol == SERVO_TYPE_SBUS));
+    setTaskEnabled(TASK_PWMDRIVER, (servoConfig()->servo_protocol == SERVO_TYPE_SERVO_DRIVER) || (servoConfig()->servo_protocol == SERVO_TYPE_SBUS) || (servoConfig()->servo_protocol == SERVO_TYPE_SBUS_PWM));
 #endif
 #ifdef USE_CMS
 #ifdef USE_MSP_DISPLAYPORT
@@ -374,6 +375,9 @@ void fcTasksInit(void)
 #endif
 #if defined(USE_SMARTPORT_MASTER)
     setTaskEnabled(TASK_SMARTPORT_MASTER, true);
+#endif
+#ifdef USE_SECONDARY_IMU
+    setTaskEnabled(TASK_SECONDARY_IMU, secondaryImuConfig()->hardwareType != SECONDARY_IMU_NONE && secondaryImuState.active);
 #endif
 }
 
@@ -593,6 +597,14 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_PROGRAMMING_FRAMEWORK] = {
         .taskName = "PROGRAMMING",
         .taskFunc = programmingFrameworkUpdateTask,
+        .desiredPeriod = TASK_PERIOD_HZ(10),          // 10Hz @100msec
+        .staticPriority = TASK_PRIORITY_IDLE,
+    },
+#endif
+#ifdef USE_SECONDARY_IMU
+    [TASK_SECONDARY_IMU] = {
+        .taskName = "IMU2",
+        .taskFunc = taskSecondaryImu,
         .desiredPeriod = TASK_PERIOD_HZ(10),          // 10Hz @100msec
         .staticPriority = TASK_PRIORITY_IDLE,
     },
