@@ -505,6 +505,8 @@ static const char * osdArmingDisabledReasonMessage(void)
             return OSD_MESSAGE_STR("PWM ERR");
         case ARMING_DISABLED_NO_PREARM:
             return OSD_MESSAGE_STR("NO PREARM");
+        case ARMING_DISABLED_DSHOT_BEEPER:
+            return OSD_MESSAGE_STR("DSHOT BEEPER");
             // Cases without message
         case ARMING_DISABLED_CMS_MENU:
             FALLTHROUGH;

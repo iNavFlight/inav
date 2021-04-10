@@ -736,6 +736,8 @@ static const char * osdArmingDisabledReasonMessage(void)
             return OSD_MESSAGE_STR(OSD_MSG_PWM_INIT_ERROR);
         case ARMING_DISABLED_NO_PREARM:
             return OSD_MESSAGE_STR(OSD_MSG_NO_PREARM);
+        case ARMING_DISABLED_DSHOT_BEEPER:
+            return OSD_MESSAGE_STR(OSD_MSG_DSHOT_BEEPER);
             // Cases without message
         case ARMING_DISABLED_CMS_MENU:
             FALLTHROUGH;
