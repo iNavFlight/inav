@@ -24,7 +24,6 @@
 #include "drivers/adc.h"
 #include "drivers/rx_pwm.h"
 #include "fc/stats.h"
-#include "fc/settings.h"
 
 #define MAX_PROFILE_COUNT 3
 #define ONESHOT_FEATURE_CHANGED_DELAY_ON_BOOT_MS 1500
