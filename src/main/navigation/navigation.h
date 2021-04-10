@@ -23,6 +23,7 @@
 #include "common/filter.h"
 #include "common/maths.h"
 #include "common/vector.h"
+#include "common/fp_pid.h"
 
 #include "config/feature.h"
 
@@ -208,6 +209,8 @@ typedef struct navConfig_s {
         uint8_t  max_bank_angle;                // multicopter max banking angle (deg)
         uint16_t hover_throttle;                // multicopter hover throttle
         uint16_t auto_disarm_delay;             // multicopter safety delay for landing detector
+
+#ifdef USE_MR_BRAKING_MODE
         uint16_t braking_speed_threshold;       // above this speed braking routine might kick in
         uint16_t braking_disengage_speed;       // below this speed braking will be disengaged
         uint16_t braking_timeout;               // Timeout for braking mode
@@ -216,8 +219,11 @@ typedef struct navConfig_s {
         uint16_t braking_boost_speed_threshold; // Above this speed braking boost mode can engage
         uint16_t braking_boost_disengage_speed; // Below this speed braking boost will disengage
         uint8_t  braking_bank_angle;            // Max angle [deg] that MR is allowed duing braking boost phase
+#endif
+
         uint8_t posDecelerationTime;            // Brake time parameter
         uint8_t posResponseExpo;                // Position controller expo (taret vel expo for MC)
+        bool slowDownForTurning;             // Slow down during WP missions when changing heading on next waypoint
     } mc;
 
     struct {
@@ -250,7 +256,7 @@ typedef struct navConfig_s {
         bool     launch_allow_throttle_low;  // Allow launch with throttle low
         uint8_t  cruise_yaw_rate;            // Max yaw rate (dps) when CRUISE MODE is enabled
         bool     allow_manual_thr_increase;
-        bool useFwNavYawControl;
+        bool    useFwNavYawControl;
         uint8_t yawControlDeadband;
     } fw;
 } navConfig_t;
@@ -324,33 +330,6 @@ typedef struct navDestinationPath_s {
     uint32_t distance; // meters * 100
     int32_t bearing; // deg * 100
 } navDestinationPath_t;
-
-typedef struct {
-    float kP;
-    float kI;
-    float kD;
-    float kT;   // Tracking gain (anti-windup)
-    float kFF;  // FeedForward Component
-} pidControllerParam_t;
-
-typedef struct {
-    float kP;
-} pControllerParam_t;
-
-typedef struct {
-    bool reset;
-    pidControllerParam_t param;
-    pt1Filter_t dterm_filter_state;     // last derivative for low-pass filter
-    float dTermLpfHz;                   // dTerm low pass filter cutoff frequency
-    float integrator;                   // integrator value
-    float last_input;                   // last input for derivative
-
-    float integral;                     // used integral value in output
-    float proportional;                 // used proportional value in output
-    float derivative;                   // used derivative value in output
-    float feedForward;                  // used FeedForward value in output
-    float output_constrained;           // controller output constrained
-} pidController_t;
 
 typedef struct navigationPIDControllers_s {
     /* Multicopter PIDs */

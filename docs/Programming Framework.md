@@ -9,10 +9,13 @@ INAV Programming Framework coinsists of:
 
 * Logic Conditions - each Logic Condition can be understood as a single command, a single line of code
 * Global Variables - variables that can store values from and for LogiC Conditions and servo mixer
+* Programming PID - general purpose, user configurable PID controllers
 
 IPF can be edited using INAV Configurator user interface, of via CLI
 
-## CLI
+## Logic Conditions
+
+### CLI
 
 `logic <rule> <enabled> <activatorId> <operation> <operand A type> <operand A value> <operand B type> <operand B value> <flags>`
 
@@ -68,6 +71,9 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 35            | TAN                | Computes TAN of `Operand A` value in degrees. Output is multiplied by `Operand B` value. If `Operand B` is `0`, result is multiplied by `500` |
 | 36            | MAP_INPUT          | Scales `Operand A` from [`0` : `Operand B`] to [`0` : `1000`]. Note: input will be constrained and then scaled |
 | 37            | MAP_OUTPUT         | Scales `Operand A` from [`0` : `1000`] to [`0` : `Operand B`]. Note: input will be constrained and then scaled |
+| 38            | RC_CHANNEL_OVERRIDE | Overrides channel set by `Operand A` to value of `Operand B` |
+| 39            | SET_HEADING_TARGET  | Sets heading-hold target to `Operand A`, in degrees. Value wraps-around. |
+| 40            | MOD           | Divide `Operand A` by `Operand B` and returns the remainder |
 
 
 ### Operands
@@ -80,6 +86,7 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 3             | FLIGHT_MODE   | `value` points to flight modes table                  |
 | 4             | LC            | `value` points to other logic condition ID            |
 | 5             | GVAR          | Value stored in Global Variable indexed by `value`. `GVAR 1` means: value in GVAR 1 |
+| 5             | PID          | Output of a Programming PID indexed by `value`. `PID 1` means: value in PID 1 |
 
 #### FLIGHT
 
@@ -89,8 +96,8 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 1             | HOME_DISTANCE | in `meters`                           |
 | 2             | TRIP_DISTANCE | in `meters`                           |
 | 3             | RSSI          |                                       |
-| 4             | VBAT          | in `Volts * 10`, eg. `12.1V` is `121` |
-| 5             | CELL_VOLTAGE  | in `Volts * 10`, eg. `12.1V` is `121` |
+| 4             | VBAT          | in `Volts * 100`, eg. `12.1V` is `1210` |
+| 5             | CELL_VOLTAGE  | in `Volts * 100`, eg. `12.1V` is `1210` |
 | 6             | CURRENT       | in `Amps * 100`, eg. `9A` is `900`    |
 | 7             | MAH_DRAWN     | in `mAh`                              |
 | 8             | GPS_SATS      |                                       |
@@ -118,9 +125,10 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 30            | ACTIVE_WAYPOINT_ACTION | See ACTIVE_WAYPOINT_ACTION paragraph |
 | 31            | 3D HOME_DISTANCE      | in `meters`, calculated from HOME_DISTANCE and ALTITUDE using Pythagorean theorem |
 | 32            | CROSSFIRE LQ          | Crossfire Link quality as returned by the CRSF protocol   | 
-| 33            | CROSSFIRE SNR          | Crossfire SNR as returned by the CRSF protocol   | 
+| 33            | CROSSFIRE SNR          | Crossfire SNR as returned by the CRSF protocol   |
+| 34            | GPS_VALID              | boolean `0`/`1`. True when the GPS has a valid 3D Fix                |
 
-##### ACTIVE_WAYPOINT_ACTION
+#### ACTIVE_WAYPOINT_ACTION
 
 | Action        |  Value   |
 |----           |----      |
@@ -157,6 +165,27 @@ All flags are reseted on ARM and DISARM event.
 | bit   | Decimal   | Function              |
 |----   |----       |----                   |
 | 0     | 1         | Latch - after activation LC will stay active until LATCH flag is reseted |
+
+## Global variables
+
+### CLI
+
+`gvar <index> <default value> <min> <max>`
+
+## Programming PID
+
+`pid <index> <enabled> <setpoint type> <setpoint value> <measurement type> <measurement value> <P gain> <I gain> <D gain> <FF gain>`
+
+* `<index>` - ID of PID Controller, starting from `0`
+* `<enabled>` - `0` evaluates as disabled, `1` evaluates as enabled
+* `<setpoint type>` - See `Operands` paragraph
+* `<setpoint value>` - See `Operands` paragraph
+* `<measurement type>` - See `Operands` paragraph
+* `<measurement value>` - See `Operands` paragraph
+* `<P gain>` - P-gain, scaled to `1/1000`
+* `<I gain>` - I-gain, scaled to `1/1000`
+* `<D gain>` - D-gain, scaled to `1/1000`
+* `<FF gain>` - FF-gain, scaled to `1/1000`
 
 ## Examples
 

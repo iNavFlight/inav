@@ -27,6 +27,8 @@
 #define BEEPER                  PA1
 #define BEEPER_INVERTED
 
+#define USE_DSHOT
+
 // MPU interrupt
 #define USE_EXTI
 #define GYRO_INT_EXTI            PC4
@@ -125,6 +127,7 @@
 #define PITOT_I2C_BUS           BUS_I2C1
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
+#define BNO055_I2C_BUS          BUS_I2C1
 
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_VBAT | FEATURE_CURRENT_METER | FEATURE_OSD | FEATURE_GPS | FEATURE_TELEMETRY)
 

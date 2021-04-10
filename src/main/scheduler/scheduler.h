@@ -101,9 +101,6 @@ typedef enum {
 #ifdef USE_OPFLOW
     TASK_OPFLOW,
 #endif
-#ifdef USE_UAV_INTERCONNECT
-    TASK_UAV_INTERCONNECT,
-#endif
 #ifdef USE_RCDEVICE
     TASK_RCDEVICE,
 #endif
@@ -122,6 +119,9 @@ typedef enum {
 #endif
 #ifdef USE_IRLOCK
     TASK_IRLOCK,
+#endif
+#ifdef USE_SECONDARY_IMU
+    TASK_SECONDARY_IMU,
 #endif
     /* Count of real tasks */
     TASK_COUNT,

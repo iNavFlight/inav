@@ -97,8 +97,6 @@ function(target_stm32f7xx)
         VCP_SOURCES ${STM32F7_USB_SRC} ${STM32F7_VCP_SRC}
         VCP_INCLUDE_DIRECTORIES ${STM32F7_USB_INCLUDE_DIRS} ${STM32F7_VCP_DIR}
 
-        OPTIMIZATION -O2
-
         OPENOCD_TARGET stm32f7x
 
         BOOTLOADER
@@ -112,6 +110,11 @@ macro(define_target_stm32f7 subfamily size)
         set(func_ARGV ARGV)
         string(TOUPPER ${size} upper_size)
         get_stm32_flash_size(flash_size ${size})
+        if(flash_size GREATER 512)
+            set(opt -O2)
+        else()
+            set(opt -Os)
+        endif()
         set(definitions
             STM32F7
             STM32F7${subfamily}xx
@@ -123,6 +126,8 @@ macro(define_target_stm32f7 subfamily size)
             STARTUP startup_stm32f7${subfamily}xx.s
             COMPILE_DEFINITIONS ${definitions}
             LINKER_SCRIPT stm32_flash_f7${subfamily}x${size}
+            OPTIMIZATION ${opt}
+
             ${${func_ARGV}}
         )
     endfunction()

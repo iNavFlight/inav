@@ -52,6 +52,7 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/accgyro/accgyro_adxl345.h"
 #include "drivers/accgyro/accgyro_mma845x.h"
 #include "drivers/accgyro/accgyro_bma280.h"
+#include "drivers/accgyro/accgyro_bmi088.h"
 #include "drivers/accgyro/accgyro_bmi160.h"
 #include "drivers/accgyro/accgyro_icm20689.h"
 #include "drivers/accgyro/accgyro_fake.h"
@@ -59,6 +60,8 @@ FILE_COMPILE_FOR_SPEED
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
+#include "fc/rc_controls.h"
+#include "fc/settings.h"
 
 #include "io/beeper.h"
 #include "io/statusindicator.h"
@@ -101,25 +104,33 @@ EXTENDED_FASTRAM dynamicGyroNotchState_t dynamicGyroNotchState;
 
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 10);
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 11);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
-    .gyro_lpf = GYRO_LPF_42HZ,      // 42HZ value is defined for Invensense/TDK gyros
-    .gyro_soft_lpf_hz = 60,
-    .gyro_soft_lpf_type = FILTER_BIQUAD,
-    .gyro_align = ALIGN_DEFAULT,
-    .gyroMovementCalibrationThreshold = 32,
-    .looptime = 1000,
-    .gyroSync = 1,
-    .gyro_to_use = 0,
-    .gyro_notch_hz = 0,
-    .gyro_notch_cutoff = 1,
-    .gyro_stage2_lowpass_hz = 0,
-    .gyro_stage2_lowpass_type = FILTER_BIQUAD,
-    .dynamicGyroNotchRange = DYN_NOTCH_RANGE_MEDIUM,
-    .dynamicGyroNotchQ = 120,
-    .dynamicGyroNotchMinHz = 150,
-    .dynamicGyroNotchEnabled = 0,
+    .gyro_lpf = SETTING_GYRO_HARDWARE_LPF_DEFAULT,
+    .gyro_soft_lpf_hz = SETTING_GYRO_LPF_HZ_DEFAULT,
+    .gyro_soft_lpf_type = SETTING_GYRO_LPF_TYPE_DEFAULT,
+    .gyro_align = SETTING_ALIGN_GYRO_DEFAULT,
+    .gyroMovementCalibrationThreshold = SETTING_MORON_THRESHOLD_DEFAULT,
+    .looptime = SETTING_LOOPTIME_DEFAULT,
+    .gyroSync = SETTING_GYRO_SYNC_DEFAULT,
+#ifdef USE_DUAL_GYRO
+    .gyro_to_use = SETTING_GYRO_TO_USE_DEFAULT,
+#endif
+    .gyro_notch_hz = SETTING_GYRO_NOTCH_HZ_DEFAULT,
+    .gyro_notch_cutoff = SETTING_GYRO_NOTCH_CUTOFF_DEFAULT,
+    .gyro_stage2_lowpass_hz = SETTING_GYRO_STAGE2_LOWPASS_HZ_DEFAULT,
+    .gyro_stage2_lowpass_type = SETTING_GYRO_STAGE2_LOWPASS_TYPE_DEFAULT,
+    .useDynamicLpf = SETTING_GYRO_USE_DYN_LPF_DEFAULT,
+    .gyroDynamicLpfMinHz = SETTING_GYRO_DYN_LPF_MIN_HZ_DEFAULT,
+    .gyroDynamicLpfMaxHz = SETTING_GYRO_DYN_LPF_MAX_HZ_DEFAULT,
+    .gyroDynamicLpfCurveExpo = SETTING_GYRO_DYN_LPF_CURVE_EXPO_DEFAULT,
+#ifdef USE_DYNAMIC_FILTERS
+    .dynamicGyroNotchRange = SETTING_DYNAMIC_GYRO_NOTCH_RANGE_DEFAULT,
+    .dynamicGyroNotchQ = SETTING_DYNAMIC_GYRO_NOTCH_Q_DEFAULT,
+    .dynamicGyroNotchMinHz = SETTING_DYNAMIC_GYRO_NOTCH_MIN_HZ_DEFAULT,
+    .dynamicGyroNotchEnabled = SETTING_DYNAMIC_GYRO_NOTCH_ENABLED_DEFAULT,
+#endif
 );
 
 STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHardware)
@@ -197,6 +208,15 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     case GYRO_BMI160:
         if (bmi160GyroDetect(dev)) {
             gyroHardware = GYRO_BMI160;
+            break;
+        }
+        FALLTHROUGH;
+#endif
+
+#ifdef USE_IMU_BMI088
+    case GYRO_BMI088:
+        if (bmi088GyroDetect(dev)) {
+            gyroHardware = GYRO_BMI088;
             break;
         }
         FALLTHROUGH;
@@ -509,4 +529,16 @@ bool gyroSyncCheckUpdate(void)
     }
 
     return gyroDev[0].intStatusFn(&gyroDev[0]);
+}
+
+void gyroUpdateDynamicLpf(float cutoffFreq) {
+    if (gyroConfig()->gyro_soft_lpf_type == FILTER_PT1) {
+        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            pt1FilterUpdateCutoff(&gyroLpfState[axis].pt1, cutoffFreq);
+        }
+    } else if (gyroConfig()->gyro_soft_lpf_type == FILTER_BIQUAD) {
+        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            biquadFilterUpdate(&gyroLpfState[axis].biquad, cutoffFreq, getLooptime(), BIQUAD_Q, FILTER_LPF);
+        }
+    }
 }

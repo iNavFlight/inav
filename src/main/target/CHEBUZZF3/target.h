@@ -39,6 +39,7 @@
 #define L3GD20_CS_PIN                   PE3
 
 #define IMU_L3GD20_ALIGN       CW270_DEG
+#define IMU_LSM303DLHC_ALIGN   CW0_DEG
 #define IMU_MPU6050_ALIGN      CW0_DEG
 
 #define USE_BARO
