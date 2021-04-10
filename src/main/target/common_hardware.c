@@ -320,6 +320,15 @@
     #endif
 #endif
 
+#if defined(USE_RANGEFINDER_US42)
+    #if !defined(US42_I2C_BUS) && defined(RANGEFINDER_I2C_BUS)
+        #define US42_I2C_BUS RANGEFINDER_I2C_BUS
+    #endif
+    #if defined(US42_I2C_BUS)
+    BUSDEV_REGISTER_I2C(busdev_us42,       DEVHW_US42,           US42_I2C_BUS,       0x70,               NONE,           DEVFLAGS_USE_RAW_REGISTERS, 0); // Requires null data to passthrough
+    #endif
+#endif
+
 /** AIRSPEED SENSORS **/
 
 #if defined(PITOT_I2C_BUS) && !defined(MS4525_I2C_BUS)
@@ -392,6 +401,13 @@
     #endif
 
     BUSDEV_REGISTER_I2C(busdev_pcf8574,      DEVHW_PCF8574,       PCF8574_I2C_BUS,     0x20,               NONE,           DEVFLAGS_NONE, 0);
+#endif
+
+#ifdef USE_IMU_BNO055
+#ifndef BNO055_I2C_BUS
+    #define BNO055_I2C_BUS BUS_I2C1
+#endif
+    BUSDEV_REGISTER_I2C(busdev_bno055,      DEVHW_BNO055,       BNO055_I2C_BUS,     0x29,               NONE,           DEVFLAGS_NONE, 0);
 #endif
 
 #endif  // USE_TARGET_HARDWARE_DESCRIPTORS

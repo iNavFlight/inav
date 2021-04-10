@@ -39,6 +39,7 @@
 #include "fc/fc_core.h"
 #include "fc/runtime_config.h"
 #include "fc/stats.h"
+#include "fc/settings.h"
 
 #include "flight/imu.h"
 #include "flight/mixer.h"
@@ -97,20 +98,22 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
 {
     for (int i = 0; i < MAX_BATTERY_PROFILE_COUNT; i++) {
         RESET_CONFIG(batteryProfile_t, &instance[i],
-            .cells = 0,
+#ifdef USE_ADC
+            .cells = SETTING_BAT_CELLS_DEFAULT,
 
             .voltage = {
-                .cellDetect = 430,
-                .cellMax = 420,
-                .cellMin = 330,
-                .cellWarning = 350
+                .cellDetect = SETTING_VBAT_CELL_DETECT_VOLTAGE_DEFAULT,
+                .cellMax = SETTING_VBAT_MAX_CELL_VOLTAGE_DEFAULT,
+                .cellMin = SETTING_VBAT_MIN_CELL_VOLTAGE_DEFAULT,
+                .cellWarning = SETTING_VBAT_WARNING_CELL_VOLTAGE_DEFAULT
             },
+#endif
 
             .capacity = {
-                .value = 0,
-                .warning = 0,
-                .critical = 0,
-                .unit = BAT_CAPACITY_UNIT_MAH,
+                .value = SETTING_BATTERY_CAPACITY_DEFAULT,
+                .warning = SETTING_BATTERY_CAPACITY_WARNING_DEFAULT,
+                .critical = SETTING_BATTERY_CAPACITY_CRITICAL_DEFAULT,
+                .unit = SETTING_BATTERY_CAPACITY_UNIT_DEFAULT,
             }
         );
     }
@@ -120,24 +123,26 @@ PG_REGISTER_WITH_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig, PG_B
 
 PG_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig,
 
+#ifdef USE_ADC
     .voltage = {
-        .type = VOLTAGE_SENSOR_ADC,
+        .type = SETTING_VBAT_METER_TYPE_DEFAULT,
         .scale = VBAT_SCALE_DEFAULT,
     },
+#endif
 
     .current = {
-        .type = CURRENT_SENSOR_ADC,
+        .type = SETTING_CURRENT_METER_TYPE_DEFAULT,
         .scale = CURRENT_METER_SCALE,
         .offset = CURRENT_METER_OFFSET
     },
 
-    .voltageSource = BAT_VOLTAGE_RAW,
+    .voltageSource = SETTING_BAT_VOLTAGE_SRC_DEFAULT,
 
-    .cruise_power = 0,
-    .idle_power = 0,
-    .rth_energy_margin = 5,
+    .cruise_power = SETTING_CRUISE_POWER_DEFAULT,
+    .idle_power = SETTING_IDLE_POWER_DEFAULT,
+    .rth_energy_margin = SETTING_RTH_ENERGY_MARGIN_DEFAULT,
 
-    .throttle_compensation_weight = 1.0f
+    .throttle_compensation_weight = SETTING_THR_COMP_WEIGHT_DEFAULT
 
 );
 
@@ -150,6 +155,7 @@ void batteryInit(void)
     batteryCriticalVoltage = 0;
 }
 
+#ifdef USE_ADC
 // profileDetect() profile sorting compare function
 static int profile_compare(profile_comp_t *a, profile_comp_t *b) {
     if (a->max_voltage < b->max_voltage)
@@ -182,6 +188,7 @@ static int8_t profileDetect(void) {
     // No matching profile found
     return -1;
 }
+#endif
 
 void setBatteryProfile(uint8_t profileIndex)
 {
@@ -202,6 +209,7 @@ void activateBatteryProfile(void)
     }
 }
 
+#ifdef USE_ADC
 static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
 {
     static pt1Filter_t vbatFilterState;
@@ -266,7 +274,11 @@ void batteryUpdate(timeUs_t timeDelta)
             batteryCellCount = currentBatteryProfile->cells;
         else {
             batteryCellCount = (vbat / currentBatteryProfile->voltage.cellDetect) + 1;
-            if (batteryCellCount > 8) batteryCellCount = 8; // something is wrong, we expect 8 cells maximum (and autodetection will be problematic at 6+ cells)
+            // Assume there are no 7S, 9S and 11S batteries so round up to 8S, 10S and 12S respectively
+            if (batteryCellCount == 7 || batteryCellCount == 9 || batteryCellCount == 11) {
+                batteryCellCount += 1;
+            }
+            batteryCellCount = MIN(batteryCellCount, 12);
         }
 
         batteryFullVoltage = batteryCellCount * currentBatteryProfile->voltage.cellMax;
@@ -340,6 +352,7 @@ void batteryUpdate(timeUs_t timeDelta)
             }
     }
 }
+#endif
 
 batteryState_e getBatteryState(void)
 {

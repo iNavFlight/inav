@@ -141,6 +141,7 @@ typedef enum {
     DEVHW_HCSR04_I2C,   // DIY-style adapter
     DEVHW_VL53L0X,
     DEVHW_VL53L1X,
+    DEVHW_US42,
 
     /* Other hardware */
     DEVHW_MS4525,       // Pitot meter
@@ -150,6 +151,7 @@ typedef enum {
     DEVHW_SDCARD,       // Generic SD-Card
     DEVHW_IRLOCK,       // IR-Lock visual positioning hardware
     DEVHW_PCF8574,      // 8-bit I/O expander
+    DEVHW_BNO055,       // BNO055 IMU
 } devHardwareType_e;
 
 typedef enum {

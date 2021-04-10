@@ -1,5 +1,5 @@
 /*
- * This file is part of INAV Project.
+ * This file is part of INAV.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -21,17 +21,31 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
+#pragma once
 
-#include "config/config_reset.h"
-#include "config/parameter_group.h"
-#include "config/parameter_group_ids.h"
+#include "common/vector.h"
 
-#include "config/general_settings.h"
+typedef struct {
+    uint8_t sys;
+    uint8_t gyr;
+    uint8_t acc;
+    uint8_t mag;
+} bno055CalibStat_t;
 
-#include "fc/settings.h"
+typedef enum {
+    ACC = 0,
+    MAG = 1,
+    GYRO = 2
+} bno055Sensor_e;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(generalSettings_t, generalSettings, PG_GENERAL_SETTINGS, 0);
+typedef struct {
+    int16_t radius[2];
+    int16_t offset[3][3];
+} bno055CalibrationData_t;
 
-PG_RESET_TEMPLATE(generalSettings_t, generalSettings,
-    .appliedDefaults = SETTING_APPLIED_DEFAULTS_DEFAULT,
-);
+bool bno055Init(bno055CalibrationData_t calibrationData, bool setCalibration);
+fpVector3_t bno055GetEurlerAngles(void);
+void bno055FetchEulerAngles(int16_t * buffer);
+bno055CalibStat_t bno055GetCalibStat(void);
+bno055CalibrationData_t bno055GetCalibrationData(void);
+void bno055SetCalibrationData(bno055CalibrationData_t data);

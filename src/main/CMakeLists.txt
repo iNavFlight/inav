@@ -103,6 +103,8 @@ main_sources(COMMON_SRC
     drivers/accgyro/accgyro_mpu6500.h
     drivers/accgyro/accgyro_mpu9250.c
     drivers/accgyro/accgyro_mpu9250.h
+    drivers/accgyro/accgyro_bno055.c
+    drivers/accgyro/accgyro_bno055.h
 
     drivers/adc.c
     drivers/adc.h
@@ -236,7 +238,9 @@ main_sources(COMMON_SRC
     drivers/rangefinder/rangefinder_vl53l1x.h
     drivers/rangefinder/rangefinder_virtual.c
     drivers/rangefinder/rangefinder_virtual.h
-
+    drivers/rangefinder/rangefinder_us42.c
+    drivers/rangefinder/rangefinder_us42.h
+    
     drivers/resource.c
     drivers/resource.h
     drivers/rcc.c
@@ -333,6 +337,8 @@ main_sources(COMMON_SRC
     flight/dynamic_gyro_notch.h
     flight/dynamic_lpf.c
     flight/dynamic_lpf.h
+    flight/secondary_imu.c
+    flight/secondary_imu.h
 
     io/beeper.c
     io/beeper.h
