@@ -236,6 +236,7 @@
 | mavlink_extra3_rate | 1 |  |
 | mavlink_pos_rate | 2 |  |
 | mavlink_rc_chan_rate | 5 |  |
+| mavlink_version | 2 | Version of MAVLink to use |
 | max_angle_inclination_pit | 300 | Maximum inclination in level (angle) mode (PITCH axis). 100=10° |
 | max_angle_inclination_rll | 300 | Maximum inclination in level (angle) mode (ROLL axis). 100=10° |
 | max_check | 1900 | These are min/max values (in us) which, when a channel is smaller (min) or larger (max) than the value will activate various RC commands, such as arming, or stick configuration. Normally, every RC channel should be set so that min = 1000us, max = 2000us. On most transmitters this usually means 125% endpoints. Default check values are 100us above/below this value. |

@@ -28,7 +28,7 @@ tables:
     values: ["NONE", "PPM", "SERIAL", "MSP", "SPI", "UNUSED"]
     enum: rxReceiverType_e
   - name: serial_rx
-    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2", "GHST"]
+    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2", "GHST", "MAVLINK"]
   - name: rx_spi_protocol
     values: ["ELERES"]
     enum: rx_spi_protocol_e
@@ -2810,6 +2810,13 @@ groups:
         min: 0
         max: 255
         default_value: 1
+      - name: mavlink_version
+        field: mavlink.version
+        description: "Version of MAVLink to use"
+        type: uint8_t
+        min: 1
+        max: 2
+        default_value: 2
   - name: PG_ELERES_CONFIG
     type: eleresConfig_t
     headers: ["rx/eleres.h"]
