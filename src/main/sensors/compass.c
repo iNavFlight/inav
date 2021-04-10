@@ -48,6 +48,7 @@
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
+#include "fc/settings.h"
 
 #include "io/gps.h"
 #include "io/beeper.h"
@@ -59,26 +60,23 @@
 
 mag_t mag;                   // mag access functions
 
+#ifdef USE_MAG
+
 PG_REGISTER_WITH_RESET_TEMPLATE(compassConfig_t, compassConfig, PG_COMPASS_CONFIG, 4);
 
-#ifdef USE_MAG
-#define MAG_HARDWARE_DEFAULT    MAG_AUTODETECT
-#else
-#define MAG_HARDWARE_DEFAULT    MAG_NONE
-#endif
 PG_RESET_TEMPLATE(compassConfig_t, compassConfig,
-    .mag_align = ALIGN_DEFAULT,
-    .mag_hardware = MAG_HARDWARE_DEFAULT,
-    .mag_declination = 0,
-    .mag_to_use = 0,
-    .magCalibrationTimeLimit = 30,
-    .rollDeciDegrees = 0,
-    .pitchDeciDegrees = 0,
-    .yawDeciDegrees = 0,
-    .magGain = {1024, 1024, 1024},
+    .mag_align = SETTING_ALIGN_MAG_DEFAULT,
+    .mag_hardware = SETTING_MAG_HARDWARE_DEFAULT,
+    .mag_declination = SETTING_MAG_DECLINATION_DEFAULT,
+#ifdef USE_DUAL_MAG
+    .mag_to_use = SETTING_MAG_TO_USE_DEFAULT,
+#endif
+    .magCalibrationTimeLimit = SETTING_MAG_CALIBRATION_TIME_DEFAULT,
+    .rollDeciDegrees = SETTING_ALIGN_MAG_ROLL_DEFAULT,
+    .pitchDeciDegrees = SETTING_ALIGN_MAG_PITCH_DEFAULT,
+    .yawDeciDegrees = SETTING_ALIGN_MAG_YAW_DEFAULT,
+    .magGain = {SETTING_MAGGAIN_X_DEFAULT, SETTING_MAGGAIN_Y_DEFAULT, SETTING_MAGGAIN_Z_DEFAULT},
 );
-
-#ifdef USE_MAG
 
 static uint8_t magUpdatedAtLeastOnce = 0;
 

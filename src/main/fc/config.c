@@ -112,11 +112,15 @@ PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 
 PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .current_profile_index = 0,
     .current_battery_profile_index = 0,
-    .debug_mode = DEBUG_NONE,
-    .i2c_speed = I2C_SPEED_400KHZ,
-    .cpuUnderclock = 0,
-    .throttle_tilt_compensation_strength = 0,      // 0-100, 0 - disabled
-    .name = { 0 }
+    .debug_mode = SETTING_DEBUG_MODE_DEFAULT,
+#ifdef USE_I2C
+    .i2c_speed = SETTING_I2C_SPEED_DEFAULT,
+#endif
+#ifdef USE_UNDERCLOCK
+    .cpuUnderclock = SETTING_CPU_UNDERCLOCK_DEFAULT,
+#endif
+    .throttle_tilt_compensation_strength = SETTING_THROTTLE_TILT_COMP_STR_DEFAULT,      // 0-100, 0 - disabled
+    .name = SETTING_NAME_DEFAULT
 );
 
 PG_REGISTER(beeperConfig_t, beeperConfig, PG_BEEPER_CONFIG, 0);
