@@ -308,6 +308,8 @@ static void updateArmingStatus(void)
         } else {
             DISABLE_ARMING_FLAG(ARMING_DISABLED_DSHOT_BEEPER);
         }
+#else
+        DISABLE_ARMING_FLAG(ARMING_DISABLED_DSHOT_BEEPER);
 #endif
 
         if (isModeActivationConditionPresent(BOXPREARM)) {
