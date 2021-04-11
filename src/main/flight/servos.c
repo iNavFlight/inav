@@ -406,15 +406,11 @@ void processServoAutotrim(void)
             case AUTOTRIM_IDLE:
                 if (ARMING_FLAG(ARMED)) {
                     // We are activating servo trim - backup current middles and prepare to average the data
-                    for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
-                        for (int i = 0; i < servoRuleCount; i++) {
-                            const uint8_t target = currentServoMixer[i].targetChannel;
-                            const uint8_t from = currentServoMixer[i].inputSource;
-                            if (from == axis) {
-                                servoMiddleBackup[target] = servoParams(target)->middle;
-                            }
-                        }
+                    for (int servoIndex = SERVO_ELEVATOR; servoIndex <= MIN(SERVO_RUDDER, MAX_SUPPORTED_SERVOS); servoIndex++) {
+                        servoMiddleBackup[servoIndex] = servoParams(servoIndex)->middle;
+                        servoMiddleAccum[servoIndex] = 0;
                     }
+
                     trimStartedAt = millis();
                     servoMiddleAccumCount = 0;
                     trimState = AUTOTRIM_COLLECTING;
@@ -427,25 +423,14 @@ void processServoAutotrim(void)
             case AUTOTRIM_COLLECTING:
                 if (ARMING_FLAG(ARMED)) {
                     servoMiddleAccumCount++;
-                    for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
-                        for (int i = 0; i < servoRuleCount; i++) {
-                            const uint8_t target = currentServoMixer[i].targetChannel;
-                            const uint8_t from = currentServoMixer[i].inputSource;
-                            if (from == axis) {
-                                servoMiddleAccum[target] += servo[target];
-                            }
-                        }
+
+                    for (int servoIndex = SERVO_ELEVATOR; servoIndex <= MIN(SERVO_RUDDER, MAX_SUPPORTED_SERVOS); servoIndex++) {
+                        servoMiddleAccum[servoIndex] += servo[servoIndex];
                     }
 
                     if ((millis() - trimStartedAt) > SERVO_AUTOTRIM_TIMER_MS) {
-                        for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
-                            for (int i = 0; i < servoRuleCount; i++) {
-                                const uint8_t target = currentServoMixer[i].targetChannel;
-                                const uint8_t from = currentServoMixer[i].inputSource;
-                                if (from == axis) {
-                                    servoParamsMutable(target)->middle = servoMiddleAccum[target] / servoMiddleAccumCount;
-                                }
-                            }
+                        for (int servoIndex = SERVO_ELEVATOR; servoIndex <= MIN(SERVO_RUDDER, MAX_SUPPORTED_SERVOS); servoIndex++) {
+                            servoParamsMutable(servoIndex)->middle = servoMiddleAccum[servoIndex] / servoMiddleAccumCount;
                         }
                         trimState = AUTOTRIM_SAVE_PENDING;
                         pidResetErrorAccumulators(); //Reset Iterm since new midpoints override previously acumulated errors
@@ -471,16 +456,11 @@ void processServoAutotrim(void)
     else {
         // We are deactivating servo trim - restore servo midpoints
         if (trimState == AUTOTRIM_SAVE_PENDING) {
-            for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
-                for (int i = 0; i < servoRuleCount; i++) {
-                    const uint8_t target = currentServoMixer[i].targetChannel;
-                    const uint8_t from = currentServoMixer[i].inputSource;
-                    if (from == axis) {
-                        servoParamsMutable(target)->middle = servoMiddleBackup[target];
-                    }
-                }
+            for (int servoIndex = SERVO_ELEVATOR; servoIndex <= MIN(SERVO_RUDDER, MAX_SUPPORTED_SERVOS); servoIndex++) {
+                servoParamsMutable(servoIndex)->middle = servoMiddleBackup[servoIndex];
             }
         }
+
         trimState = AUTOTRIM_IDLE;
     }
 }
@@ -526,8 +506,8 @@ void processContinuousServoAutotrim(const float dT)
                     for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
                         for (int i = 0; i < servoRuleCount; i++) {
                             const uint8_t target = currentServoMixer[i].targetChannel;
-                            const uint8_t from = currentServoMixer[i].inputSource;
-                            if (from == axis) {
+                            const uint8_t source = currentServoMixer[i].inputSource;
+                            if (source == axis) {
                                 servoMiddleBackup[target] = servoParams(target)->middle;
                             }
                         }
@@ -561,8 +541,8 @@ void processContinuousServoAutotrim(const float dT)
                                         }
 #endif
                                         const uint8_t target = currentServoMixer[i].targetChannel;
-                                        const uint8_t from = currentServoMixer[i].inputSource;
-                                        if (from == axis) {
+                                        const uint8_t source = currentServoMixer[i].inputSource;
+                                        if (source == axis) {
                                             // Convert axis I-term to servo PWM and add to midpoint
                                             const float mixerRate = currentServoMixer[i].rate / 100.0f;
                                             const float servoRate = servoParams(target)->rate / 100.0f;
@@ -596,8 +576,8 @@ void processContinuousServoAutotrim(const float dT)
             for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
                 for (int i = 0; i < servoRuleCount; i++) {
                     const uint8_t target = currentServoMixer[i].targetChannel;
-                    const uint8_t from = currentServoMixer[i].inputSource;
-                    if (from == axis) {
+                    const uint8_t source = currentServoMixer[i].inputSource;
+                    if (source == axis) {
                         servoParamsMutable(target)->middle = servoMiddleBackup[target];
                     }
                 }
