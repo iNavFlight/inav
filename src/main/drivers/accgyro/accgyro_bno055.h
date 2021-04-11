@@ -89,4 +89,3 @@ fpVector3_t bno055GetEurlerAngles(void);
 void bno055FetchEulerAngles(int16_t * buffer);
 bno055CalibStat_t bno055GetCalibStat(void);
 bno055CalibrationData_t bno055GetCalibrationData(void);
-void bno055SetCalibrationData(bno055CalibrationData_t data);

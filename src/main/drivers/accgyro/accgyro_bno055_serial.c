@@ -143,6 +143,37 @@ void bno055SerialDataReceive(uint16_t c, void *data) {
 
 }
 
+static void bno055SerialSetCalibrationData(bno055CalibrationData_t data) 
+{
+    uint8_t buf[12];
+
+    //Prepare gains
+    //We do not restore gyro offsets, they are quickly calibrated at startup
+    uint8_t bufferBit = 0;
+    for (uint8_t sensorIndex = 0; sensorIndex < 2; sensorIndex++)
+    {
+        for (uint8_t axisIndex = 0; axisIndex < 3; axisIndex++)
+        {
+            buf[bufferBit] = (uint8_t)(data.offset[sensorIndex][axisIndex] & 0xff);
+            buf[bufferBit + 1] = (uint8_t)((data.offset[sensorIndex][axisIndex] >> 8 ) & 0xff);
+            bufferBit += 2;
+        }
+    }
+
+    bno055SerialWriteBuffer(BNO055_ADDR_ACC_OFFSET_X_LSB, buf, 12);
+    delay(25);
+
+    //Prepare radius
+    buf[0] = (uint8_t)(data.radius[ACC] & 0xff);
+    buf[1] = (uint8_t)((data.radius[ACC] >> 8 ) & 0xff);
+    buf[2] = (uint8_t)(data.radius[MAG] & 0xff);
+    buf[3] = (uint8_t)((data.radius[MAG] >> 8 ) & 0xff);
+
+    //Write to the device
+    bno055SerialWriteBuffer(BNO055_ADDR_ACC_RADIUS_LSB, buf, 4);
+    delay(25);
+}
+
 bool bno055SerialInit(bno055CalibrationData_t calibrationData, bool setCalibration) {
     bno055SerialPort = NULL;
 
@@ -176,9 +207,14 @@ bool bno055SerialInit(bno055CalibrationData_t calibrationData, bool setCalibrati
     bno055SerialWrite(BNO055_ADDR_PWR_MODE, BNO055_PWR_MODE_NORMAL); //Set power mode NORMAL
     delay(25);
 
-    //TODO Here set calibration data 
+    if (setCalibration) {
+        bno055SerialWrite(BNO055_ADDR_OPR_MODE, BNO055_OPR_MODE_CONFIG);
+        delay(25);
 
-    bno055SerialWrite(BNO055_ADDR_OPR_MODE, BNO055_OPR_MODE_NDOF); //Set power mode NORMAL
+        bno055SerialSetCalibrationData(calibrationData);
+    }
+
+    bno055SerialWrite(BNO055_ADDR_OPR_MODE, BNO055_OPR_MODE_NDOF);
     delay(25);
 
     return true;
@@ -230,10 +266,6 @@ bno055CalibrationData_t bno055SerialGetCalibrationData(void) {
     delay(25);
 
     return data;
-}
-
-void bno055SerialSetCalibrationData(bno055CalibrationData_t data) {
-
 }
 
 #endif
