@@ -238,7 +238,9 @@ main_sources(COMMON_SRC
     drivers/rangefinder/rangefinder_vl53l1x.h
     drivers/rangefinder/rangefinder_virtual.c
     drivers/rangefinder/rangefinder_virtual.h
-
+    drivers/rangefinder/rangefinder_us42.c
+    drivers/rangefinder/rangefinder_us42.h
+    
     drivers/resource.c
     drivers/resource.h
     drivers/rcc.c
@@ -396,6 +398,8 @@ main_sources(COMMON_SRC
     rx/ibus.h
     rx/jetiexbus.c
     rx/jetiexbus.h
+    rx/mavlink.c
+    rx/mavlink.h
     rx/msp.c
     rx/msp.h
     rx/msp_override.c

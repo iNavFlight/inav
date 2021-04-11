@@ -7,7 +7,7 @@ tables:
     values: ["NONE", "AUTO", "ADXL345", "MPU6050", "MMA845x", "BMA280", "LSM303DLHC", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "FAKE"]
     enum: accelerationSensor_e
   - name: rangefinder_hardware
-    values: ["NONE", "HCSR04", "SRF10", "INAV_I2C", "VL53L0X", "MSP", "UNUSED", "BENEWAKE", "VL53L1X"]
+    values: ["NONE", "HCSR04", "SRF10", "INAV_I2C", "VL53L0X", "MSP", "UNUSED", "BENEWAKE", "VL53L1X", "US42"]
     enum: rangefinderType_e
   - name: secondary_imu_hardware
     values: ["NONE", "BNO055"]
@@ -28,7 +28,7 @@ tables:
     values: ["NONE", "PPM", "SERIAL", "MSP", "SPI", "UNUSED"]
     enum: rxReceiverType_e
   - name: serial_rx
-    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2", "GHST"]
+    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2", "GHST", "MAVLINK"]
   - name: rx_spi_protocol
     values: ["ELERES"]
     enum: rx_spi_protocol_e
@@ -87,7 +87,7 @@ tables:
       "FLOW", "SBUS", "FPORT", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "ERPM", "RPM_FILTER", "RPM_FREQ", "NAV_YAW", "DYNAMIC_FILTER", "DYNAMIC_FILTER_FREQUENCY",
-      "IRLOCK", "CD", "KALMAN_GAIN", "PID_MEASUREMENT", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574", "DYN_GYRO_LPF", "FW_D", "IMU2"]
+      "IRLOCK", "CD", "KALMAN_GAIN", "PID_MEASUREMENT", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574", "DYN_GYRO_LPF", "FW_D", "IMU2", "ALTITUDE"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -1027,14 +1027,14 @@ groups:
     value_type: BATTERY_CONFIG_VALUE
     members:
       - name: bat_cells
-        description: "Number of cells of the battery (0 = autodetect), see battery documentation. 7S, 9S and 11S batteries cannot be autodetected."
+        description: "Number of cells of the battery (0 = auto-detect), see battery documentation. 7S, 9S and 11S batteries cannot be auto-detected."
         default_value: 0
         field: cells
         condition: USE_ADC
         min: 0
         max: 12
       - name: vbat_cell_detect_voltage
-        description: "Maximum voltage per cell, used for auto-detecting the number of cells of the battery in 0.01V units, default is 4.30V."
+        description: "Maximum voltage per cell, used for auto-detecting the number of cells of the battery in 0.01V units."
         default_value: 425
         field: voltage.cellDetect
         condition: USE_ADC
@@ -2516,7 +2516,7 @@ groups:
         default_value: 7500
         field: fw.loiter_radius
         min: 0
-        max: 10000
+        max: 30000
       - name: nav_fw_cruise_speed
         description: "Speed for the plane/wing at cruise throttle used for remaining flight time/distance estimation in cm/s"
         default_value: 0
@@ -2810,6 +2810,13 @@ groups:
         min: 0
         max: 255
         default_value: 1
+      - name: mavlink_version
+        field: mavlink.version
+        description: "Version of MAVLink to use"
+        type: uint8_t
+        min: 1
+        max: 2
+        default_value: 2
   - name: PG_ELERES_CONFIG
     type: eleresConfig_t
     headers: ["rx/eleres.h"]
