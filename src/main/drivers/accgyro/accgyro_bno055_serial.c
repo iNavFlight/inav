@@ -177,14 +177,14 @@ static void bno055SerialSetCalibrationData(bno055CalibrationData_t data)
 bool bno055SerialInit(bno055CalibrationData_t calibrationData, bool setCalibration) {
     bno055SerialPort = NULL;
 
-    serialPortConfig_t * portConfig = findSerialPortConfig(FUNCTION_BNO055);
+    serialPortConfig_t * portConfig = findSerialPortConfig(FUNCTION_IMU2);
     if (!portConfig) {
         return false;
     }
 
     bno055SerialPort = openSerialPort(
         portConfig->identifier,
-        FUNCTION_BNO055,
+        FUNCTION_IMU2,
         bno055SerialDataReceive,
         NULL,
         BNO055_BAUD_RATE,
