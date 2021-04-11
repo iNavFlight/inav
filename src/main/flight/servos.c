@@ -68,7 +68,7 @@ PG_RESET_TEMPLATE(servoConfig_t, servoConfig,
     .flaperon_throw_offset = SETTING_FLAPERON_THROW_OFFSET_DEFAULT,
     .tri_unarmed_servo = SETTING_TRI_UNARMED_SERVO_DEFAULT,
     .servo_autotrim_rotation_limit = SETTING_SERVO_AUTOTRIM_ROTATION_LIMIT_DEFAULT,
-    .servo_autotrim_iterm_threshold = SETTING_SERVO_AUTOTRIM_ITERM_THRESHOLD
+    .servo_autotrim_iterm_threshold = SETTING_SERVO_AUTOTRIM_ITERM_THRESHOLD_DEFAULT
 );
 
 PG_REGISTER_ARRAY_WITH_RESET_FN(servoMixer_t, MAX_SERVO_RULES, customServoMixers, PG_SERVO_MIXER, 1);
@@ -444,7 +444,6 @@ void processServoAutotrim(void)
                                 const uint8_t from = currentServoMixer[i].inputSource;
                                 if (from == axis) {
                                     servoParamsMutable(target)->middle = servoMiddleAccum[target] / servoMiddleAccumCount;
-
                                 }
                             }
                         }
@@ -556,6 +555,11 @@ void processContinuousServoAutotrim(const float dT)
                                 if (fabsf(axisIterm) > ItermThreshold) {
                                     const int8_t ItermUpdate = axisIterm > 0.0f ? ItermThreshold : -ItermThreshold;
                                     for (int i = 0; i < servoRuleCount; i++) {
+#ifdef USE_PROGRAMMING_FRAMEWORK
+                                        if (!logicConditionGetValue(currentServoMixer[i].conditionId)) {
+                                            continue;
+                                        }
+#endif
                                         const uint8_t target = currentServoMixer[i].targetChannel;
                                         const uint8_t from = currentServoMixer[i].inputSource;
                                         if (from == axis) {
