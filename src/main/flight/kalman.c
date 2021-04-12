@@ -92,7 +92,7 @@ static void updateAxisVariance(kalman_t *kalmanState, float rate)
     kalmanState->varianceWindow[kalmanState->windex] = varianceElement;
 
     kalmanState->windex++;
-    if (kalmanState->windex >= kalmanState->w) {
+    if (kalmanState->windex > kalmanState->w) {
         kalmanState->windex = 0;
     }
 

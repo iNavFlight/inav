@@ -40,8 +40,8 @@ typedef struct kalman
 
     float axisVar;
     uint16_t windex;
-    float axisWindow[MAX_KALMAN_WINDOW_SIZE];
-    float varianceWindow[MAX_KALMAN_WINDOW_SIZE];
+    float axisWindow[MAX_KALMAN_WINDOW_SIZE + 1];
+    float varianceWindow[MAX_KALMAN_WINDOW_SIZE + 1];
     float axisSumMean;
     float axisMean;
     float axisSumVar;
