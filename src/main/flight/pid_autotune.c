@@ -264,7 +264,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
 
                     // Update FF towards value needed to achieve current rate target
                     pidOutputRequired = MIN(tuneCurrent[axis].maxAbsPidOutput * (tuneCurrent[axis].maxAbsDesiredRateDps / tuneCurrent[axis].maxAbsReachedRateDps), pidSumLimit);
-                    gainFF += (pidOutputRequired / tuneCurrent[axis].maxAbsDesiredRateDps * FP_PID_RATE_FF_MULTIPLIER - gainFF) * convergenceRate * stickInput;
+                    gainFF += (pidOutputRequired / tuneCurrent[axis].maxAbsDesiredRateDps * FP_PID_RATE_FF_MULTIPLIER - gainFF) * convergenceRate;
                     tuneCurrent[axis].gainFF = constrainf(gainFF, AUTOTUNE_FIXED_WING_MIN_FF, AUTOTUNE_FIXED_WING_MAX_FF);
                     gainsUpdated = true;
 
