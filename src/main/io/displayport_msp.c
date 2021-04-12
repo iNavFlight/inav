@@ -82,7 +82,7 @@ static int clearScreen(displayPort_t *displayPort)
 static int drawScreen(displayPort_t *displayPort)
 {
     uint8_t subcmd[] = { 4 };
-    if(DrawAllElement) {
+    if (DrawAllElement) {
         DrawAllElement = false;
         return output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
     }

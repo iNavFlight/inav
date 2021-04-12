@@ -41,6 +41,7 @@
 
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
+
 static mspPort_t mspPorts[MAX_MSP_PORT_COUNT];
 uint8_t msp_displayport_index;
 
@@ -73,7 +74,6 @@ void mspSerialAllocatePorts(void)
 
         portConfig = findNextSerialPortConfig(FUNCTION_MSP_DISPLAYPORT);
     }
-    
 
     portConfig = findSerialPortConfig(FUNCTION_MSP);
     while (portConfig && portIndex < MAX_MSP_PORT_COUNT) {
@@ -579,7 +579,7 @@ int mspSerialPush(uint8_t cmd, const uint8_t *data, int datalen)
         }
         
         // only enable for msp_displayport
-        if((msp_displayport_index & (1 << mspPort->port->identifier)) == 0) {
+        if ((msp_displayport_index & (1 << mspPort->port->identifier)) == 0) {
             continue;
         }
 

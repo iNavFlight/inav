@@ -557,7 +557,6 @@ void init(void)
 #if defined(USE_MSP_DISPLAYPORT)
         if (!osdDisplayPort) {
             osdDisplayPort = displayPortMspInit();
-
         }
 #endif
 #if defined(USE_MAX7456)
