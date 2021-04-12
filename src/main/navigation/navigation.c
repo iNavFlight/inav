@@ -2470,7 +2470,7 @@ static bool rthAltControlStickOverrideCheck(unsigned axis)
 
         if (!rthOverrideStickHoldStartTime[axis]) {
             rthOverrideStickHoldStartTime[axis] = millis();
-        } else if (ABS(2500 - holdTime) < 500) {
+        } else if (ABS(2500 - holdTime) < 500) {    // 2s delay to activate, activation duration limited to 1 sec
             if (axis == PITCH) {    // PITCH down to override preset altitude reset to current altitude
                 posControl.rthState.rthInitialAltitude = posControl.actualState.abs.pos.z;
                 posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;
