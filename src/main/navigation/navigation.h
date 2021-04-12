@@ -132,6 +132,12 @@ typedef enum {
     NOMS_ALL_NAV
 } navOverridesMotorStop_e;
 
+typedef enum {
+    OFF,
+    ON,
+    ON_FW_SPIRAL,
+} navRTHClimbFirst_e;
+
 typedef struct positionEstimationConfig_s {
     uint8_t automatic_mag_declination;
     uint8_t reset_altitude_type; // from nav_reset_type_e
