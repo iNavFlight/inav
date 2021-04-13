@@ -104,6 +104,7 @@ FILE_COMPILE_FOR_SPEED
 #include "sensors/pitotmeter.h"
 #include "sensors/temperature.h"
 #include "sensors/esc_sensor.h"
+#include "sensors/rangefinder.h"
 
 #include "programming/logic_condition.h"
 #include "programming/global_variables.h"
@@ -1591,7 +1592,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             int32_t range = rangefinderGetLatestRawAltitude();
             if (range < 0) {
-                buff[0] = "-";
+                buff[0] = '-';
             } else {
                 osdFormatDistanceSymbol(buff, range);
             }
