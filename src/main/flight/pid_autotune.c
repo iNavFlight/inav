@@ -182,6 +182,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
     const float convergenceRate = pidAutotuneConfig()->fw_convergence_rate / 100.0f;
     float maxDesiredRateDps = tuneCurrent[axis].rate;
     float gainFF = tuneCurrent[axis].gainFF;
+    float pidSumLimit = (axis == FD_YAW) ? pidProfile()->pidSumLimitYaw : pidProfile()->pidSumLimit;
 
     // Use different max desired rate in ANGLE for pitch and roll
     if (FLIGHT_MODE(ANGLE_MODE) && (axis == FD_PITCH || axis == FD_ROLL)) {
@@ -195,6 +196,9 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
     const bool correctDirection = (desiredRateDps>0) == (reachedRateDps>0);
     const float stickInput = absDesiredRateDps / maxDesiredRateDps;
     pidAutotuneState_e newState;
+
+    float rateFullStick;
+    float pidOutputRequired;
 
     if (stickInput < (pidAutotuneConfig()->fw_min_stick / 100.0f) || !correctDirection) {
         // We can make decisions only when we are giving at least 80% stick input and the airplane is rotating in the requested direction
@@ -235,11 +239,10 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
                         // Tuning the rates is not compatible with ANGLE mode
 
                         // Target 80% control surface deflection to leave some room for P and I to work
-                        float pidSumLimit = (axis == FD_YAW) ? pidProfile()->pidSumLimitYaw : pidProfile()->pidSumLimit;
                         float pidSumTarget = (pidAutotuneConfig()->fw_max_rate_deflection / 100.0f) * pidSumLimit;
 
                         // Theoretically achievable rate with target deflection
-                        float rateFullStick = (pidSumTarget / tuneCurrent[axis].maxAbsPidOutput) * tuneCurrent[axis].maxAbsReachedRateDps;
+                        rateFullStick = (pidSumTarget / tuneCurrent[axis].maxAbsPidOutput) * tuneCurrent[axis].maxAbsReachedRateDps;
 
                         // Rate update
                         if (rateFullStick > (maxDesiredRateDps + 10.0f)) {
@@ -256,7 +259,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
                     }
 
                     // Update FF towards value needed to achieve current rate target
-                    float pidOutputRequired = MIN(tuneCurrent[axis].maxAbsPidOutput * (tuneCurrent[axis].maxAbsDesiredRateDps / tuneCurrent[axis].maxAbsReachedRateDps), pidSumLimit);
+                    pidOutputRequired = MIN(tuneCurrent[axis].maxAbsPidOutput * (tuneCurrent[axis].maxAbsDesiredRateDps / tuneCurrent[axis].maxAbsReachedRateDps), pidSumLimit);
                     gainFF += (pidOutputRequired / tuneCurrent[axis].maxAbsDesiredRateDps * FP_PID_RATE_FF_MULTIPLIER - gainFF) * convergenceRate;
                     tuneCurrent[axis].gainFF = constrainf(gainFF, AUTOTUNE_FIXED_WING_MIN_FF, AUTOTUNE_FIXED_WING_MAX_FF);
                     gainsUpdated = true;
