@@ -2454,24 +2454,23 @@ void updateHomePosition(void)
 
 /* -----------------------------------------------------------
  * Override RTH preset altitude and Climb First option
- * using Pitch/Roll stick held for > 2 seconds
+ * using Pitch/Roll stick held for > 1 seconds
+ * Climb First override limited to Fixed Wing only
  *-----------------------------------------------------------*/
 static bool rthAltControlStickOverrideCheck(unsigned axis)
 {
-    if (!navConfig()->general.flags.rth_alt_control_override || posControl.flags.forcedRTHActivated) {
+    if (!navConfig()->general.flags.rth_alt_control_override || posControl.flags.forcedRTHActivated || (axis == ROLL && STATE(MULTIROTOR))) {
         return false;
     }
-
     static timeMs_t rthOverrideStickHoldStartTime[2];
 
     if (rxGetChannelValue(axis) > rxConfig()->maxcheck) {
-
         timeDelta_t holdTime = millis() - rthOverrideStickHoldStartTime[axis];
 
         if (!rthOverrideStickHoldStartTime[axis]) {
             rthOverrideStickHoldStartTime[axis] = millis();
-        } else if (ABS(2500 - holdTime) < 500) {    // 2s delay to activate, activation duration limited to 1 sec
-            if (axis == PITCH) {    // PITCH down to override preset altitude reset to current altitude
+        } else if (ABS(1500 - holdTime) < 500) {    // 1s delay to activate, activation duration limited to 1 sec
+            if (axis == PITCH) {           // PITCH down to override preset altitude reset to current altitude
                 posControl.rthState.rthInitialAltitude = posControl.actualState.abs.pos.z;
                 posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;
                 return true;
