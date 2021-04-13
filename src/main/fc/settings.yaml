@@ -1178,7 +1178,7 @@ groups:
         type: bool
       - name: servo_autotrim_rotation_limit
         description: "Servo midpoints are only updated when total aircraft rotation is less than this threshold [deg/s]. Only applies when using `feature FW_AUTOTRIM`."
-        default_value: 10
+        default_value: 15
         min: 1
         max: 60
       - name: servo_autotrim_iterm_threshold
