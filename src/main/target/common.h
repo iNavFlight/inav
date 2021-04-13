@@ -151,6 +151,7 @@
 #define USE_SERIALRX_SUMH
 #define USE_SERIALRX_XBUS
 #define USE_SERIALRX_JETIEXBUS
+#define USE_SERIALRX_MAVLINK
 #define USE_TELEMETRY_SRXL
 #define USE_SPEKTRUM_CMS_TELEMETRY
 //#define USE_SPEKTRUM_VTX_CONTROL //Some functions from betaflight still not implemented
