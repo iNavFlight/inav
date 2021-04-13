@@ -183,6 +183,12 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
     float maxDesiredRateDps = tuneCurrent[axis].rate;
     float gainFF = tuneCurrent[axis].gainFF;
 
+    // Use different max desired rate in ANGLE for pitch and roll
+    if (FLIGHT_MODE(ANGLE_MODE) && (axis == FD_PITCH || axis == FD_ROLL)) {
+        float maxDesiredRateInAngleMode = DECIDEGREES_TO_DEGREES(pidProfile()->max_angle_inclination[axis] * 1.0f) * pidBank()->pid[PID_LEVEL].P / FP_PID_LEVEL_P_MULTIPLIER;
+        maxDesiredRateDps = MIN(maxDesiredRateDps, maxDesiredRateInAngleMode);
+    }
+
     const float absDesiredRateDps = fabsf(desiredRateDps);
     const float absReachedRateDps = fabsf(reachedRateDps);
     const float absPidOutput = fabsf(pidOutput);
@@ -231,7 +237,8 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
                 tuneCurrent[axis].maxAbsPidOutput = MAX(tuneCurrent[axis].maxAbsPidOutput, absPidOutput);
 
                 if (stateTimeMs >= pidAutotuneConfig()->fw_detect_time) {
-                    if (pidAutotuneConfig()->fw_rate_adjustment != FIXED) {
+                    if (pidAutotuneConfig()->fw_rate_adjustment != FIXED && !FLIGHT_MODE(ANGLE_MODE)) {
+                        // Tuning the rates is not compatible with ANGLE mode
 
                         // Target 80% control surface deflection to leave some room for P and I to work
                         pidSumLimit = (axis == FD_YAW) ? pidProfile()->pidSumLimitYaw : pidProfile()->pidSumLimit;

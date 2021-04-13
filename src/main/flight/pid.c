@@ -717,13 +717,13 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
         pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -pidProfile()->fixedWingItermThrowLimit, pidProfile()->fixedWingItermThrowLimit);
     }
 
+    axisPID[axis] = constrainf(newPTerm + newFFTerm + pidState->errorGyroIf, -pidState->pidSumLimit, +pidState->pidSumLimit);
+
 #ifdef USE_AUTOTUNE_FIXED_WING
-    if (FLIGHT_MODE(AUTO_TUNE) && !(FLIGHT_MODE(MANUAL_MODE) || FLIGHT_MODE(ANGLE_MODE))) {
+    if (FLIGHT_MODE(AUTO_TUNE) && !FLIGHT_MODE(MANUAL_MODE)) {
         autotuneFixedWingUpdate(axis, pidState->rateTarget, pidState->gyroRate, constrainf(newFFTerm, -pidState->pidSumLimit, +pidState->pidSumLimit));
     }
 #endif
-
-    axisPID[axis] = constrainf(newPTerm + newFFTerm + pidState->errorGyroIf + newDTerm, -pidState->pidSumLimit, +pidState->pidSumLimit);
 
 #ifdef USE_BLACKBOX
     axisPID_P[axis] = newPTerm;
