@@ -447,6 +447,12 @@
 | rangefinder_median_filter | OFF | 3-point median filtering for rangefinder readouts |
 | rate_accel_limit_roll_pitch | 0 | Limits acceleration of ROLL/PITCH rotation speed that can be requested by stick input. In degrees-per-second-squared. Small and powerful UAV flies great with high acceleration limit ( > 5000 dps^2 and even > 10000 dps^2). Big and heavy multirotors will benefit from low acceleration limit (~ 360 dps^2). When set correctly, it greatly improves stopping performance. Value of 0 disables limiting. |
 | rate_accel_limit_yaw | 10000 | Limits acceleration of YAW rotation speed that can be requested by stick input. In degrees-per-second-squared. Small and powerful UAV flies great with high acceleration limit ( > 10000 dps^2). Big and heavy multirotors will benefit from low acceleration limit (~ 180 dps^2). When set correctly, it greatly improves stopping performance and general stability during yaw turns. Value of 0 disables limiting. |
+| rate_dynamics_center_correction | 10 | The center stick correction for Rate Dynamics |
+| rate_dynamics_center_sensitivity | 100 | The center stick sensitivity for Rate Dynamics |
+| rate_dynamics_center_weight | 0 | The center stick weight for Rate Dynamics |
+| rate_dynamics_end_correction | 10 | The end  stick correction for Rate Dynamics |
+| rate_dynamics_end_sensitivity | 100 | The end stick sensitivity for Rate Dynamics |
+| rate_dynamics_end_weight | 0 | The end  stick weight for Rate Dynamics |
 | rc_expo | 70 | Exposition value used for the PITCH/ROLL axes by all the stabilized flights modes (all but `MANUAL`) |
 | rc_filter_frequency | 50 | RC data biquad filter cutoff frequency. Lower cutoff frequencies result in smoother response at expense of command control delay. Practical values are 20-50. Set to zero to disable entirely and use unsmoothed RC stick values |
 | rc_yaw_expo | 20 | Exposition value used for the YAW axis by all the stabilized flights modes (all but `MANUAL`) |
