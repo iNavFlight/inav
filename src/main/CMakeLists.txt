@@ -318,6 +318,8 @@ main_sources(COMMON_SRC
     flight/imu.h
     flight/kalman.c
     flight/kalman.h
+    flight/rate_dynamics.c
+    flight/rate_dynamics.h
     flight/mixer.c
     flight/mixer.h
     flight/pid.c

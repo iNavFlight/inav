@@ -86,6 +86,8 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/servos.h"
 #include "flight/pid.h"
 #include "flight/imu.h"
+#include "flight/secondary_imu.h"
+#include "flight/rate_dynamics.h"
 
 #include "flight/failsafe.h"
 
@@ -356,7 +358,7 @@ static bool emergencyArmingIsEnabled(void)
     return emergencyArmingIsTriggered() && emergencyArmingCanOverrideArmingDisabled();
 }
 
-void annexCode(void)
+void annexCode(float dT)
 {
     int32_t throttleValue;
 
@@ -375,6 +377,10 @@ void annexCode(void)
             rcCommand[ROLL] = rcCommand[ROLL] * currentControlRateProfile->manual.rates[FD_ROLL] / 100L;
             rcCommand[PITCH] = rcCommand[PITCH] * currentControlRateProfile->manual.rates[FD_PITCH] / 100L;
             rcCommand[YAW] = rcCommand[YAW] * currentControlRateProfile->manual.rates[FD_YAW] / 100L;
+        } else {
+            rcCommand[ROLL] = applyRateDynamics(rcCommand[ROLL], ROLL, dT);
+            rcCommand[PITCH] = applyRateDynamics(rcCommand[PITCH], PITCH, dT);
+            rcCommand[YAW] = applyRateDynamics(rcCommand[YAW], YAW, dT);
         }
 
         //Compute THROTTLE command
@@ -849,7 +855,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     imuUpdateAccelerometer();
     imuUpdateAttitude(currentTimeUs);
 
-    annexCode();
+    annexCode(dT);
 
     if (rxConfig()->rcFilterFrequency) {
         rcInterpolationApply(isRXDataNew);
