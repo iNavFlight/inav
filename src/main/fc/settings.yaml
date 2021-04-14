@@ -164,6 +164,9 @@ tables:
     values: ["OFF_ALWAYS", "OFF", "AUTO_ONLY", "ALL_NAV"]
   - name: osd_plus_code_short
     values: ["0", "2", "4", "6"]
+  - name: nav_rth_climb_first
+    enum: navRTHClimbFirst_e
+    values: ["OFF", "ON", "ON_FW_SPIRAL"]
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -2356,10 +2359,10 @@ groups:
         field: general.flags.nav_overrides_motor_stop
         table: nav_overrides_motor_stop
       - name: nav_rth_climb_first
-        description: "If set to ON drone will climb to nav_rth_altitude first and head home afterwards. If set to OFF drone will head home instantly and climb on the way."
-        default_value: ON
+        description: "If set to ON or ON_FW_SPIRAL aircraft will climb to nav_rth_altitude first before turning to head home. If set to OFF aircraft will turn and head home immediately climbing on the way. For a fixed wing ON will use a linear climb, ON_FW_SPIRAL will use a loiter turning climb with climb rate set by nav_auto_climb_rate, turn rate set by nav_fw_loiter_radius (ON_FW_SPIRAL is a fixed wing setting and behaves the same as ON for a multirotor)"
+        default_value: "ON"
         field: general.flags.rth_climb_first
-        type: bool
+        table: nav_rth_climb_first
       - name: nav_rth_climb_ignore_emerg
         description: "If set to ON, aircraft will execute initial climb regardless of position sensor (GPS) status."
         default_value: OFF
