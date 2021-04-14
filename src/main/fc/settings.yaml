@@ -2017,6 +2017,12 @@ groups:
         field: fixedWingLevelTrim
         min: -10
         max: 10
+      - name: fw_use_airspeed_tpa
+        description: "Throttle PID attenuation based on the pitot tube"
+        default_value: "0"
+        field: useAirSpeedTPA
+        min: 0
+        max: 1
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t
@@ -2177,6 +2183,12 @@ groups:
         field: baro_epv
         min: 0
         max: 9999
+      - name: inav_TPA_scaling_speed
+        description: "Calculates the TPA value based on the fuselage speed [m/s]"
+        default_value: "15.0"
+        field: TPA_scaling_speed
+        min: 0
+        max: 30
 
   - name: PG_NAV_CONFIG
     type: navConfig_t

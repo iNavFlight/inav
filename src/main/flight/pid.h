@@ -153,6 +153,8 @@ typedef struct pidProfile_s {
     uint8_t kalmanEnabled;
 
     float fixedWingLevelTrim;
+    
+    bool useAirSpeedTPA;
 } pidProfile_t;
 
 typedef struct pidAutotuneConfig_s {

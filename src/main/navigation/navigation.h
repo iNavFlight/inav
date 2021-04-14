@@ -165,6 +165,8 @@ typedef struct positionEstimationConfig_s {
     float max_eph_epv;  // Max estimated position error acceptable for estimation (cm)
     float baro_epv;     // Baro position error
 
+    float TPA_scaling_speed;
+
     uint8_t use_gps_no_baro;
 } positionEstimationConfig_t;
 
@@ -534,6 +536,8 @@ extern uint16_t navFlags;
 extern uint16_t navEPH;
 extern uint16_t navEPV;
 extern int16_t navAccNEU[3];
+
+float get_PID_airspeed_scaler(void);
 
 #else
 

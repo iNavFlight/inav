@@ -157,6 +157,7 @@ static EXTENDED_FASTRAM filterApplyFnPtr dTermLpfFilterApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr dTermLpf2FilterApplyFn;
 static EXTENDED_FASTRAM bool levelingEnabled = false;
 static EXTENDED_FASTRAM float fixedWingLevelTrim;
+bool useAirSpeedTPA = false;
 
 PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 1);
 
@@ -285,6 +286,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .kalman_sharpness = 100,
         .kalmanEnabled = 0,
         .fixedWingLevelTrim = 0,
+        .useAirSpeedTPA = false,
 );
 
 bool pidInitFilters(void)
@@ -390,6 +392,18 @@ float pidRcCommandToRate(int16_t stick, uint8_t rate)
 
 static float calculateFixedWingTPAFactor(uint16_t throttle)
 {
+
+#ifdef USE_PITOT
+
+    UNUSED(throttle);
+
+    if (useAirSpeedTPA && pitotIsHealthy())
+    {
+        return get_PID_airspeed_scaler();
+    }
+
+#endif
+
     float tpaFactor;
 
     // tpa_rate is amount of curve TPA applied to PIDs
@@ -1182,6 +1196,7 @@ void pidInit(void)
 #endif
 
     fixedWingLevelTrim = pidProfile()->fixedWingLevelTrim;
+    useAirSpeedTPA = pidProfile()->useAirSpeedTPA;
 }
 
 const pidBank_t * pidBank(void) { 

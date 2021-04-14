@@ -35,6 +35,7 @@
 #include "sensors/sensors.h"
 #include "sensors/acceleration.h"
 #include "sensors/boardalignment.h"
+#include "sensors/pitotmeter.h"
 
 #include "flight/pid.h"
 #include "flight/imu.h"
@@ -662,5 +663,40 @@ int32_t navigationGetHeadingError(void)
 {
     return navHeadingError;
 }
+
+#ifdef USE_PITOT
+
+#define AIRSPEED_MIN 9 //m/s ~ 32,4km/h
+#define AIRSPEED_MAX 22 //ms/s ~ 79,2km/h
+
+float get_PID_airspeed_scaler(void)
+{
+    float aspeed = pitot.airSpeed / 100.0f; //in m/s
+    float speed_scaler;
+    float scaling_speed = positionEstimationConfig()->TPA_scaling_speed;
+    if (pitotIsHealthy()) {
+        if (aspeed > 0.0001f) {
+            speed_scaler = scaling_speed / aspeed;
+        } else {
+            speed_scaler = 2.0f;
+        }
+        float scale_min = MIN(0.5f, (0.5f * AIRSPEED_MIN) / scaling_speed);
+        float scale_max = MAX(2.0f, (1.5f * AIRSPEED_MAX) / scaling_speed);
+        speed_scaler = constrainf(speed_scaler, scale_min, scale_max);
+        
+    } else {
+        speed_scaler = 1;
+    }
+    return speed_scaler;
+}
+
+#else
+
+float get_PID_airspeed_scaler(void)
+{
+    return 1.0f
+}
+
+#endif
 
 #endif  // NAV
