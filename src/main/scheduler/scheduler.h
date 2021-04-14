@@ -51,7 +51,8 @@ typedef struct {
 typedef enum {
     /* Actual tasks */
     TASK_SYSTEM = 0,
-    TASK_GYROPID,
+    TASK_PID,
+    TASK_GYRO,
     TASK_RX,
     TASK_SERIAL,
     TASK_BATTERY,

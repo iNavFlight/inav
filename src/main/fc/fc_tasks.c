@@ -301,8 +301,12 @@ void fcTasksInit(void)
 {
     schedulerInit();
 
-    rescheduleTask(TASK_GYROPID, getLooptime());
-    setTaskEnabled(TASK_GYROPID, true);
+    rescheduleTask(TASK_PID, getLooptime());
+    setTaskEnabled(TASK_PID, true);
+
+    rescheduleTask(TASK_GYRO, getGyroLooptime());
+    setTaskEnabled(TASK_GYRO, true);
+
     setTaskEnabled(TASK_AUX, true);
 
     setTaskEnabled(TASK_SERIAL, true);
@@ -388,10 +392,16 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .desiredPeriod = TASK_PERIOD_HZ(10),              // run every 100 ms, 10Hz
         .staticPriority = TASK_PRIORITY_HIGH,
     },
-    [TASK_GYROPID] = {
-        .taskName = "GYRO/PID",
+    [TASK_PID] = {
+        .taskName = "PID",
         .taskFunc = taskMainPidLoop,
         .desiredPeriod = TASK_PERIOD_US(1000),
+        .staticPriority = TASK_PRIORITY_REALTIME,
+    },
+    [TASK_GYRO] = {
+        .taskName = "GYRO",
+        .taskFunc = taskGyro,
+        .desiredPeriod = TASK_PERIOD_US(TASK_GYRO_LOOPTIME),
         .staticPriority = TASK_PRIORITY_REALTIME,
     },
     [TASK_SERIAL] = {

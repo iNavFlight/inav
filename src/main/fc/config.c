@@ -166,6 +166,10 @@ __attribute__((weak)) void targetConfiguration(void)
 #endif
 
 uint32_t getLooptime(void) {
+    return gyroConfig()->looptime;
+}
+
+uint32_t getGyroLooptime(void) {
     return gyro.targetLooptime;
 }
 

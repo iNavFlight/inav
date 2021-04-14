@@ -257,13 +257,13 @@ static void initGyroFilter(filterApplyFnPtr *applyFn, filter_t state[], uint8_t 
             case FILTER_PT1:
                 *applyFn = (filterApplyFnPtr)pt1FilterApply;
                 for (int axis = 0; axis < 3; axis++) {
-                    pt1FilterInit(&state[axis].pt1, cutoff, getLooptime()* 1e-6f);
+                    pt1FilterInit(&state[axis].pt1, cutoff, getGyroLooptime()* 1e-6f);
                 }
                 break;
             case FILTER_BIQUAD:
                 *applyFn = (filterApplyFnPtr)biquadFilterApply;
                 for (int axis = 0; axis < 3; axis++) {
-                    biquadFilterInitLPF(&state[axis].biquad, cutoff, getLooptime());
+                    biquadFilterInitLPF(&state[axis].biquad, cutoff, getGyroLooptime());
                 }
                 break;
         }
@@ -282,7 +282,7 @@ static void gyroInitFilters(void)
         notchFilter1ApplyFn = (filterApplyFnPtr)biquadFilterApply;
         for (int axis = 0; axis < 3; axis++) {
             notchFilter1[axis] = &gyroFilterNotch_1[axis];
-            biquadFilterInitNotch(notchFilter1[axis], getLooptime(), gyroConfig()->gyro_notch_hz, gyroConfig()->gyro_notch_cutoff);
+            biquadFilterInitNotch(notchFilter1[axis], getGyroLooptime(), gyroConfig()->gyro_notch_hz, gyroConfig()->gyro_notch_cutoff);
         }
     }
 }
@@ -313,12 +313,12 @@ bool gyroInit(void)
 
     // Driver initialisation
     gyroDev[0].lpf = gyroConfig()->gyro_lpf;
-    gyroDev[0].requestedSampleIntervalUs = gyroConfig()->looptime;
-    gyroDev[0].sampleRateIntervalUs = gyroConfig()->looptime;
+    gyroDev[0].requestedSampleIntervalUs = TASK_GYRO_LOOPTIME;
+    gyroDev[0].sampleRateIntervalUs = TASK_GYRO_LOOPTIME;
     gyroDev[0].initFn(&gyroDev[0]);
 
     // initFn will initialize sampleRateIntervalUs to actual gyro sampling rate (if driver supports it). Calculate target looptime using that value
-    gyro.targetLooptime = gyroConfig()->gyroSync ? gyroDev[0].sampleRateIntervalUs : gyroConfig()->looptime;
+    gyro.targetLooptime = gyroConfig()->gyroSync ? gyroDev[0].sampleRateIntervalUs : TASK_GYRO_LOOPTIME;
 
     // At this poinrt gyroDev[0].gyroAlign was set up by the driver from the busDev record
     // If configuration says different - override
@@ -333,7 +333,7 @@ bool gyroInit(void)
         &gyroAnalyseState, 
         gyroConfig()->dynamicGyroNotchMinHz,
         gyroConfig()->dynamicGyroNotchRange,
-        getLooptime()
+        getGyroLooptime()
     );
 #endif
     return true;
@@ -538,7 +538,7 @@ void gyroUpdateDynamicLpf(float cutoffFreq) {
         }
     } else if (gyroConfig()->gyro_soft_lpf_type == FILTER_BIQUAD) {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            biquadFilterUpdate(&gyroLpfState[axis].biquad, cutoffFreq, getLooptime(), BIQUAD_Q, FILTER_LPF);
+            biquadFilterUpdate(&gyroLpfState[axis].biquad, cutoffFreq, getGyroLooptime(), BIQUAD_Q, FILTER_LPF);
         }
     }
 }
