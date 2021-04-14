@@ -107,6 +107,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
             .rth_tail_first = SETTING_NAV_RTH_TAIL_FIRST_DEFAULT,
             .disarm_on_landing = SETTING_NAV_DISARM_ON_LANDING_DEFAULT,
             .rth_allow_landing = SETTING_NAV_RTH_ALLOW_LANDING_DEFAULT,
+            .rth_alt_control_override = SETTING_NAV_RTH_ALT_CONTROL_OVERRIDE_DEFAULT, // Override RTH Altitude and Climb First using Pitch and Roll stick
             .nav_overrides_motor_stop = SETTING_NAV_OVERRIDES_MOTOR_STOP_DEFAULT,
         },
 
@@ -234,6 +235,8 @@ static navigationFSMEvent_t nextForNonGeoStates(void);
 
 void initializeRTHSanityChecker(const fpVector3_t * pos);
 bool validateRTHSanityChecker(void);
+
+static bool rthAltControlStickOverrideCheck(unsigned axis);
 
 /*************************************************************************************************/
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_IDLE(navigationFSMState_t previousState);
@@ -1191,6 +1194,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
 {
     UNUSED(previousState);
 
+    rthAltControlStickOverrideCheck(PITCH);
+
     if ((posControl.flags.estHeadingStatus == EST_NONE)) {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
@@ -1206,7 +1211,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
         const float rthAltitudeMargin = MAX(FW_RTH_CLIMB_MARGIN_MIN_CM, (rthClimbMarginPercent/100.0) * fabsf(posControl.rthState.rthInitialAltitude - posControl.rthState.homePosition.pos.z));
 
         // If we reached desired initial RTH altitude or we don't want to climb first
-        if (((navGetCurrentActualPositionAndVelocity()->pos.z - posControl.rthState.rthInitialAltitude) > -rthAltitudeMargin) || (navConfig()->general.flags.rth_climb_first == OFF)) {
+        if (((navGetCurrentActualPositionAndVelocity()->pos.z - posControl.rthState.rthInitialAltitude) > -rthAltitudeMargin) || (navConfig()->general.flags.rth_climb_first == OFF) || rthAltControlStickOverrideCheck(ROLL)) {
 
             // Delayed initialization for RTH sanity check on airplanes - allow to finish climb first as it can take some distance
             if (STATE(FIXED_WING_LEGACY)) {
@@ -1269,6 +1274,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigationFSMState_t previousState)
 {
     UNUSED(previousState);
+
+    rthAltControlStickOverrideCheck(PITCH);
 
     if ((posControl.flags.estHeadingStatus == EST_NONE)) {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
@@ -2443,6 +2450,39 @@ void updateHomePosition(void)
             updateHomePositionCompatibility();
         }
     }
+}
+
+/* -----------------------------------------------------------
+ * Override RTH preset altitude and Climb First option
+ * using Pitch/Roll stick held for > 1 seconds
+ * Climb First override limited to Fixed Wing only
+ *-----------------------------------------------------------*/
+static bool rthAltControlStickOverrideCheck(unsigned axis)
+{
+    if (!navConfig()->general.flags.rth_alt_control_override || posControl.flags.forcedRTHActivated || (axis == ROLL && STATE(MULTIROTOR))) {
+        return false;
+    }
+    static timeMs_t rthOverrideStickHoldStartTime[2];
+
+    if (rxGetChannelValue(axis) > rxConfig()->maxcheck) {
+        timeDelta_t holdTime = millis() - rthOverrideStickHoldStartTime[axis];
+
+        if (!rthOverrideStickHoldStartTime[axis]) {
+            rthOverrideStickHoldStartTime[axis] = millis();
+        } else if (ABS(1500 - holdTime) < 500) {    // 1s delay to activate, activation duration limited to 1 sec
+            if (axis == PITCH) {           // PITCH down to override preset altitude reset to current altitude
+                posControl.rthState.rthInitialAltitude = posControl.actualState.abs.pos.z;
+                posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;
+                return true;
+            } else if (axis == ROLL) {     // ROLL right to override climb first
+                return true;
+            }
+        }
+    } else {
+        rthOverrideStickHoldStartTime[axis] = 0;
+    }
+
+    return false;
 }
 
 /*-----------------------------------------------------------
