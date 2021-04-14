@@ -988,7 +988,7 @@ class Generator
                 member["max"] = $1.to_i - 1;
                 typ = "string"
             else
-                raise "Unknown type #{m[1]} when resolving type for setting #{member["name"]}"
+                raise "Unknown type #{type} when resolving type for setting #{member["name"]}"
             end
             dputs "#{member["name"]} type is #{typ}"
             member["type"] = typ
