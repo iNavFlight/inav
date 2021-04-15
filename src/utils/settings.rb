@@ -971,8 +971,6 @@ class Generator
         types.each do |idx, type|
             member = members[idx]
             case type
-            when /^bool/
-                typ = "bool"
             when /^int8_t/ # {aka signed char}"
                 typ = "int8_t"
             when /^uint8_t/ # {aka unsigned char}"
