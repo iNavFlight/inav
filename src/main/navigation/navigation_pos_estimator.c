@@ -93,7 +93,9 @@ PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
         .max_eph_epv = 1000.0f,
         .baro_epv = 100.0f,
 
-        .TPA_scaling_speed = 15.0f
+#ifdef USE_PITOT
+        .TPA_scaling_speed = 15.0f,
+#endif
 );
 
 #define resetTimer(tim, currentTimeUs) { (tim)->deltaTime = 0; (tim)->lastTriggeredTime = currentTimeUs; }

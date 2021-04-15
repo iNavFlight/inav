@@ -286,7 +286,9 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .kalman_sharpness = 100,
         .kalmanEnabled = 0,
         .fixedWingLevelTrim = 0,
+#ifdef USE_PITOT        
         .useAirSpeedTPA = false,
+#endif
 );
 
 bool pidInitFilters(void)
@@ -1196,7 +1198,11 @@ void pidInit(void)
 #endif
 
     fixedWingLevelTrim = pidProfile()->fixedWingLevelTrim;
+
+#ifdef USE_PITOT
     useAirSpeedTPA = pidProfile()->useAirSpeedTPA;
+#endif
+
 }
 
 const pidBank_t * pidBank(void) { 
