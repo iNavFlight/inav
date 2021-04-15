@@ -3102,7 +3102,7 @@ static void osdShowStatsPage1(void)
     displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
     displayClearScreen(osdDisplayPort);
 
-    displayWrite(osdDisplayPort, statNameX, top++, "--- STATS ---      1/2");
+    displayWrite(osdDisplayPort, statNameX, top++, "--- STATS ---      1/2 ->");
 
     if (feature(FEATURE_GPS)) {
         displayWrite(osdDisplayPort, statNameX, top, "MAX SPEED        :");
@@ -3123,25 +3123,24 @@ static void osdShowStatsPage1(void)
     osdFormatAltitudeStr(buff, stats.max_altitude);
     displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
-switch (rxConfig()->serialrx_provider) {
-    case SERIALRX_CRSF:
-        displayWrite(osdDisplayPort, statNameX, top, "MIN LQ           :");
-        itoa(stats.min_lq, buff, 10);
-        strcat(buff, "%");
-        displayWrite(osdDisplayPort, statValuesX, top++, buff);
+    switch (rxConfig()->serialrx_provider) {
+        case SERIALRX_CRSF:
+            displayWrite(osdDisplayPort, statNameX, top, "MIN LQ           :");
+            itoa(stats.min_lq, buff, 10);
+            strcat(buff, "%");
+            displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
-        displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI         :");
-        itoa(stats.min_rssi_dbm, buff, 10);
-        tfp_sprintf(buff, "%s%c", buff, SYM_DBM);
-        displayWrite(osdDisplayPort, statValuesX, top++, buff);
-        break;
-    default:
-        displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI         :");
-        itoa(stats.min_rssi, buff, 10);
-        strcat(buff, "%");
-        displayWrite(osdDisplayPort, statValuesX, top++, buff);
-        break;
-}
+            displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI         :");
+            itoa(stats.min_rssi_dbm, buff, 10);
+            tfp_sprintf(buff, "%s%c", buff, SYM_DBM);
+            displayWrite(osdDisplayPort, statValuesX, top++, buff);
+            break;
+        default:
+            displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI         :");
+            itoa(stats.min_rssi, buff, 10);
+            strcat(buff, "%");
+            displayWrite(osdDisplayPort, statValuesX, top++, buff);
+        }
 
     displayWrite(osdDisplayPort, statNameX, top, "FLY TIME         :");
     uint16_t flySeconds = getFlightTime();
@@ -3168,7 +3167,7 @@ static void osdShowStatsPage2(void)
     displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
     displayClearScreen(osdDisplayPort);
 
-    displayWrite(osdDisplayPort, statNameX, top++, "--- STATS ---      2/2");
+    displayWrite(osdDisplayPort, statNameX, top++, "--- STATS ---   <- 2/2");
 
     displayWrite(osdDisplayPort, statNameX, top, "MIN BATTERY VOLT :");
     osdFormatCentiNumber(buff, stats.min_voltage, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
