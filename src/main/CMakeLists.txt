@@ -398,6 +398,8 @@ main_sources(COMMON_SRC
     rx/ibus.h
     rx/jetiexbus.c
     rx/jetiexbus.h
+    rx/mavlink.c
+    rx/mavlink.h
     rx/msp.c
     rx/msp.h
     rx/msp_override.c

@@ -45,6 +45,7 @@
 #include "flight/mixer.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_private.h"
 
 #include "config/feature.h"
 
@@ -480,7 +481,16 @@ void currentMeterUpdate(timeUs_t timeDelta)
             amperage = batteryMetersConfig()->current.offset;
             if (ARMING_FLAG(ARMED)) {
                 throttleStatus_e throttleStatus = calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC);
-                int32_t throttleOffset = ((throttleStatus == THROTTLE_LOW) && feature(FEATURE_MOTOR_STOP)) ? 0 : (int32_t)rcCommand[THROTTLE] - 1000;
+                navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
+                bool allNav = navConfig()->general.flags.nav_overrides_motor_stop == NOMS_ALL_NAV && posControl.navState != NAV_STATE_IDLE;
+                bool autoNav = navConfig()->general.flags.nav_overrides_motor_stop == NOMS_AUTO_ONLY && (stateFlags & (NAV_AUTO_RTH | NAV_AUTO_WP));
+                int32_t throttleOffset;
+
+                if (allNav || autoNav) {    // account for motors running in Nav modes with throttle low + motor stop
+                    throttleOffset = (int32_t)rcCommand[THROTTLE] - 1000;
+                } else {
+                    throttleOffset = ((throttleStatus == THROTTLE_LOW) && feature(FEATURE_MOTOR_STOP)) ? 0 : (int32_t)rcCommand[THROTTLE] - 1000;
+                }
                 int32_t throttleFactor = throttleOffset + (throttleOffset * throttleOffset / 50);
                 amperage += throttleFactor * batteryMetersConfig()->current.scale / 1000;
             }
