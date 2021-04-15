@@ -132,6 +132,12 @@ typedef enum {
     NOMS_ALL_NAV
 } navOverridesMotorStop_e;
 
+typedef enum {
+    OFF,
+    ON,
+    ON_FW_SPIRAL,
+} navRTHClimbFirst_e;
+
 typedef struct positionEstimationConfig_s {
     uint8_t automatic_mag_declination;
     uint8_t reset_altitude_type; // from nav_reset_type_e
@@ -165,8 +171,6 @@ typedef struct positionEstimationConfig_s {
     float max_eph_epv;  // Max estimated position error acceptable for estimation (cm)
     float baro_epv;     // Baro position error
 
-    float TPA_scaling_speed;
-
     uint8_t use_gps_no_baro;
 } positionEstimationConfig_t;
 
@@ -185,6 +189,7 @@ typedef struct navConfig_s {
             uint8_t disarm_on_landing;          //
             uint8_t rth_allow_landing;          // Enable landing as last stage of RTH. Use constants in navRTHAllowLanding_e.
             uint8_t rth_climb_ignore_emerg;     // Option to ignore GPS loss on initial climb stage of RTH
+            uint8_t rth_alt_control_override;   // Override RTH Altitude and Climb First settings using Pitch and Roll stick
             uint8_t nav_overrides_motor_stop;   // Autonomous modes override motor_stop setting and user command to stop motor
         } flags;
 
@@ -211,6 +216,8 @@ typedef struct navConfig_s {
         uint8_t  max_bank_angle;                // multicopter max banking angle (deg)
         uint16_t hover_throttle;                // multicopter hover throttle
         uint16_t auto_disarm_delay;             // multicopter safety delay for landing detector
+
+#ifdef USE_MR_BRAKING_MODE
         uint16_t braking_speed_threshold;       // above this speed braking routine might kick in
         uint16_t braking_disengage_speed;       // below this speed braking will be disengaged
         uint16_t braking_timeout;               // Timeout for braking mode
@@ -219,6 +226,8 @@ typedef struct navConfig_s {
         uint16_t braking_boost_speed_threshold; // Above this speed braking boost mode can engage
         uint16_t braking_boost_disengage_speed; // Below this speed braking boost will disengage
         uint8_t  braking_bank_angle;            // Max angle [deg] that MR is allowed duing braking boost phase
+#endif
+
         uint8_t posDecelerationTime;            // Brake time parameter
         uint8_t posResponseExpo;                // Position controller expo (taret vel expo for MC)
         bool slowDownForTurning;             // Slow down during WP missions when changing heading on next waypoint
@@ -255,6 +264,7 @@ typedef struct navConfig_s {
         bool     allow_manual_thr_increase;
         bool    useFwNavYawControl;
         uint8_t yawControlDeadband;
+        float TPA_scaling_speed;
     } fw;
 } navConfig_t;
 

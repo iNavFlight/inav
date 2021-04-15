@@ -260,7 +260,7 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
     bool needToCalculateCircularLoiter = (isApproachingLastWaypoint() || isWaypointWait())
                                             && (distanceToActualTarget <= (navConfig()->fw.loiter_radius / TAN_15DEG))
                                             && (distanceToActualTarget > 50.0f)
-                                            && !FLIGHT_MODE(NAV_CRUISE_MODE);
+                                            && !FLIGHT_MODE(NAV_COURSE_HOLD_MODE);
 
     // Calculate virtual position for straight movement
     if (needToCalculateCircularLoiter) {
@@ -650,7 +650,7 @@ void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags,
             posControl.rcAdjustment[ROLL] = 0;
         }
 
-        if (FLIGHT_MODE(NAV_CRUISE_MODE) && posControl.flags.isAdjustingPosition)
+        if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && posControl.flags.isAdjustingPosition)
             rcCommand[ROLL] = applyDeadband(rcCommand[ROLL], rcControlsConfig()->pos_hold_deadband);
 
         //if (navStateFlags & NAV_CTL_YAW)
@@ -673,7 +673,7 @@ float get_PID_airspeed_scaler(void)
 {
     float aspeed = pitot.airSpeed / 100.0f; //in m/s
     float speed_scaler;
-    float scaling_speed = positionEstimationConfig()->TPA_scaling_speed;
+    float scaling_speed = navConfig()->fw.TPA_scaling_speed;
     if (pitotIsHealthy()) {
         if (aspeed > 0.0001f) {
             speed_scaler = scaling_speed / aspeed;
@@ -694,7 +694,7 @@ float get_PID_airspeed_scaler(void)
 
 float get_PID_airspeed_scaler(void)
 {
-    return 1.0f
+    return 1.0f;
 }
 
 #endif
