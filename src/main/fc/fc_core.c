@@ -131,6 +131,7 @@ uint8_t motorControlEnable = false;
 static bool isRXDataNew;
 static uint32_t gyroSyncFailureCount;
 static disarmReason_t lastDisarmReason = DISARM_NONE;
+timeUs_t lastDisarmTimeUs = 0;
 static emergencyArmingState_t emergencyArming;
 
 static bool prearmWasReset = false; // Prearm must be reset (RC Mode not active) before arming is possible
@@ -300,6 +301,17 @@ static void updateArmingStatus(void)
 	       DISABLE_ARMING_FLAG(ARMING_DISABLED_SERVO_AUTOTRIM);
 	    }
 
+#ifdef USE_DSHOT
+        /* CHECK: Don't arm if the DShot beeper was used recently, as there is a minimum delay before sending the next DShot command */
+        if (micros() - getLastDshotBeeperCommandTimeUs() < getDShotBeaconGuardDelayUs()) {
+            ENABLE_ARMING_FLAG(ARMING_DISABLED_DSHOT_BEEPER);
+        } else {
+            DISABLE_ARMING_FLAG(ARMING_DISABLED_DSHOT_BEEPER);
+        }
+#else
+        DISABLE_ARMING_FLAG(ARMING_DISABLED_DSHOT_BEEPER);
+#endif
+
         if (isModeActivationConditionPresent(BOXPREARM)) {
             if (IS_RC_MODE_ACTIVE(BOXPREARM)) {
                 if (prearmWasReset && (armingConfig()->prearmTimeoutMs == 0 || millis() - prearmActivationTime < armingConfig()->prearmTimeoutMs)) {
@@ -402,6 +414,7 @@ void disarm(disarmReason_t disarmReason)
 {
     if (ARMING_FLAG(ARMED)) {
         lastDisarmReason = disarmReason;
+        lastDisarmTimeUs = micros();
         DISABLE_ARMING_FLAG(ARMED);
 
 #ifdef USE_BLACKBOX
@@ -426,6 +439,10 @@ void disarm(disarmReason_t disarmReason)
 
         prearmWasReset = false;
     }
+}
+
+timeUs_t getLastDisarmTimeUs(void) {
+    return lastDisarmTimeUs;
 }
 
 disarmReason_t getDisarmReason(void)

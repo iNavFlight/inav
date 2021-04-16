@@ -3498,3 +3498,20 @@ groups:
           field: speedSource
           table: djiOsdSpeedSource
           type: uint8_t
+
+  - name: PG_BEEPER_CONFIG
+    type: beeperConfig_t
+    headers: [ "fc/config.h" ]
+    members:
+      - name: dshot_beeper_enabled
+        description: "Whether using DShot motors as beepers is enabled"
+        default_value: ON
+        field: dshot_beeper_enabled
+        type: bool
+      - name: dshot_beeper_tone
+        description: "Sets the DShot beeper tone"
+        min: 1
+        max: 5
+        default_value: 1
+        field: dshot_beeper_tone
+        type: uint8_t

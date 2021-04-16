@@ -67,6 +67,8 @@
 | dji_speed_source | GROUND | Sets the speed type displayed by the DJI OSD: GROUND, 3D, AIR |
 | dji_use_name_for_messages | ON | Re-purpose the craft name field for messages. Replace craft name with :WTSED for Warnings|Throttle|Speed|Efficiency|Trip distance |
 | dji_workarounds | 1 | Enables workarounds for different versions of MSP protocol used |
+| dshot_beeper_enabled | ON | Whether using DShot motors as beepers is enabled |
+| dshot_beeper_tone | 1 | Sets the DShot beeper tone |
 | dterm_lpf2_hz | 0 | Cutoff frequency for stage 2 D-term low pass filter |
 | dterm_lpf2_type | BIQUAD | Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation. |
 | dterm_lpf_hz | 40 | Dterm low pass filter cutoff frequency. Default setting is very conservative and small multirotors should use higher value between 80 and 100Hz. 80 seems like a gold spot for 7-inch builds while 100 should work best with 5-inch machines. If motors are getting too hot, lower the value |
