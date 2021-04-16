@@ -41,7 +41,6 @@
 static displayPort_t mspDisplayPort;
 
 extern uint8_t cliMode;
-extern bool DrawAllElement;
 
 static int output(displayPort_t *displayPort, uint8_t cmd, uint8_t *buf, int len)
 {
@@ -82,12 +81,8 @@ static int clearScreen(displayPort_t *displayPort)
 static int drawScreen(displayPort_t *displayPort)
 {
     uint8_t subcmd[] = { 4 };
-    if (DrawAllElement) {
-        DrawAllElement = false;
-        return output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
-    }
-    else
-        return 0;
+    
+    return output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
 }
 
 static int screenSize(const displayPort_t *displayPort)

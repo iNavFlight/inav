@@ -165,8 +165,6 @@ static bool refreshWaitForResumeCmdRelease;
 
 static bool fullRedraw = false;
 
-bool DrawAllElement = true;  //use for MSP_DISPLAYPORT
-
 static uint8_t armState;
 
 typedef struct osdMapData_s {
@@ -2525,19 +2523,17 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
 
     if (elementIndex == OSD_ITEM_COUNT) {
         elementIndex = 0;
-        DrawAllElement = true;
     }
     return elementIndex;
 }
 
-void osdDrawNextElement(void)
+void osdDrawAllElement(void)
 {
     static uint8_t elementIndex = 0;
-    // Prevent infinite loop when no elements are enabled
-    uint8_t index = elementIndex;
-    do {
-        elementIndex = osdIncElementIndex(elementIndex);
-    } while(!osdDrawSingleElement(elementIndex) && index != elementIndex);
+    
+    for(elementIndex=0; elementIndex<OSD_ITEM_COUNT; elementIndex++) {
+        osdDrawSingleElement(elementIndex);
+    }
 
     // Draw artificial horizon last
     osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
@@ -2769,7 +2765,6 @@ static void osdCompleteAsyncInitialization(void)
         // Update the display.
         // XXX: Rename displayDrawScreen() and associated functions
         // to displayUpdate()
-        DrawAllElement = true;
         displayDrawScreen(osdDisplayPort);
         return;
     }
@@ -3126,15 +3121,8 @@ static void osdRefresh(timeUs_t currentTimeUs)
 {
     osdFilterData(currentTimeUs);
 
-#ifdef USE_CMS
-    if (IS_RC_MODE_ACTIVE(BOXOSD) && (!cmsInMenu) && !(osdConfig()->osd_failsafe_switch_layout && FLIGHT_MODE(FAILSAFE_MODE))) {
-#else
-    if (IS_RC_MODE_ACTIVE(BOXOSD) && !(osdConfig()->osd_failsafe_switch_layout && FLIGHT_MODE(FAILSAFE_MODE))) {
-#endif
-      displayClearScreen(osdDisplayPort);
-      armState = ARMING_FLAG(ARMED);
-      return;
-    }
+    displayClearScreen(osdDisplayPort);
+    armState = ARMING_FLAG(ARMED);
 
     // detect arm/disarm
     if (armState != ARMING_FLAG(ARMED)) {
@@ -3176,11 +3164,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
 #ifdef USE_CMS
     if (!displayIsGrabbed(osdDisplayPort)) {
         displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
-        if (fullRedraw) {
-            displayClearScreen(osdDisplayPort);
-            fullRedraw = false;
-        }
-        osdDrawNextElement();
+        osdDrawAllElement();
         displayHeartbeat(osdDisplayPort);
         displayCommitTransaction(osdDisplayPort);
 #ifdef OSD_CALLS_CMS
@@ -3249,8 +3233,8 @@ void osdUpdate(timeUs_t currentTimeUs)
     }
 #endif
 
-#define DRAW_FREQ_DENOM     2
-#define STATS_FREQ_DENOM    50
+#define DRAW_FREQ_DENOM     25  // 250HZ/25 = 10HZ
+#define STATS_FREQ_DENOM    50  // 250HZ/50 = 5HZ
     counter++;
 
     if ((counter % STATS_FREQ_DENOM) == 0) {
@@ -3260,8 +3244,6 @@ void osdUpdate(timeUs_t currentTimeUs)
     if ((counter % DRAW_FREQ_DENOM) == 0) {
         // redraw values in buffer
         osdRefresh(currentTimeUs);
-    } else {
-        // rest of time redraw screen
         displayDrawScreen(osdDisplayPort);
     }
 #ifdef USE_CMS
