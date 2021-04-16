@@ -123,7 +123,7 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .name = SETTING_NAME_DEFAULT
 );
 
-PG_REGISTER(beeperConfig_t, beeperConfig, PG_BEEPER_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(beeperConfig_t, beeperConfig, PG_BEEPER_CONFIG, 1);
 
 PG_RESET_TEMPLATE(beeperConfig_t, beeperConfig,
                   .beeper_off_flags = 0,
