@@ -2573,6 +2573,17 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_NAV_FW_CONTROL_SMOOTHNESS:
         osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "CTL S", 0, navConfig()->fw.control_smoothness, 1, 0, ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS);
         return true;
+
+    case OSD_MISSION:
+        {
+            if (posControl.waypointListValid && posControl.waypointCount > 0) {
+                tfp_sprintf(buff, "M%u/%u>%uWP", navConfig()->general.multi_waypoint_mission_index, posControl.multiMissionCount, posControl.waypointCount);
+            } else {
+                tfp_sprintf(buff, "M0/%u>0WP", posControl.multiMissionCount);
+            }
+            displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
+            return true;
+        }
     default:
         return false;
     }
@@ -2806,6 +2817,7 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_REMAINING_FLIGHT_TIME_BEFORE_RTH] = OSD_POS(23, 7);
     osdLayoutsConfig->item_pos[0][OSD_REMAINING_DISTANCE_BEFORE_RTH] = OSD_POS(23, 6);
 
+    osdLayoutsConfig->item_pos[0][OSD_MISSION] = OSD_POS(0, 10);
     osdLayoutsConfig->item_pos[0][OSD_GPS_SATS] = OSD_POS(0, 11) | OSD_VISIBLE_FLAG;
     osdLayoutsConfig->item_pos[0][OSD_GPS_HDOP] = OSD_POS(0, 10);
 
