@@ -32,47 +32,6 @@
 
 #ifdef USE_IMU_BNO055
 
-#define BNO055_ADDR_PWR_MODE 0x3E
-#define BNO055_ADDR_OPR_MODE 0x3D
-#define BNO055_ADDR_CALIB_STAT 0x35
-
-#define BNO055_PWR_MODE_NORMAL  0x00
-#define BNO055_OPR_MODE_CONFIG  0x00
-#define BNO055_OPR_MODE_NDOF    0x0C
-
-#define BNO055_ADDR_EUL_YAW_LSB 0x1A
-#define BNO055_ADDR_EUL_YAW_MSB 0x1B
-#define BNO055_ADDR_EUL_ROLL_LSB 0x1C
-#define BNO055_ADDR_EUL_ROLL_MSB 0x1D
-#define BNO055_ADDR_EUL_PITCH_LSB 0x1E
-#define BNO055_ADDR_EUL_PITCH_MSB 0x1F
-
-#define BNO055_ADDR_MAG_RADIUS_MSB 0x6A 
-#define BNO055_ADDR_MAG_RADIUS_LSB 0x69
-#define BNO055_ADDR_ACC_RADIUS_MSB 0x68
-#define BNO055_ADDR_ACC_RADIUS_LSB 0x67
-
-#define BNO055_ADDR_GYR_OFFSET_Z_MSB 0x66
-#define BNO055_ADDR_GYR_OFFSET_Z_LSB 0x65
-#define BNO055_ADDR_GYR_OFFSET_Y_MSB 0x64
-#define BNO055_ADDR_GYR_OFFSET_Y_LSB 0x63
-#define BNO055_ADDR_GYR_OFFSET_X_MSB 0x62
-#define BNO055_ADDR_GYR_OFFSET_X_LSB 0x61
-
-#define BNO055_ADDR_MAG_OFFSET_Z_MSB 0x60
-#define BNO055_ADDR_MAG_OFFSET_Z_LSB 0x5F
-#define BNO055_ADDR_MAG_OFFSET_Y_MSB 0x5E
-#define BNO055_ADDR_MAG_OFFSET_Y_LSB 0x5D
-#define BNO055_ADDR_MAG_OFFSET_X_MSB 0x5C
-#define BNO055_ADDR_MAG_OFFSET_X_LSB 0x5B
-
-#define BNO055_ADDR_ACC_OFFSET_Z_MSB 0x5A
-#define BNO055_ADDR_ACC_OFFSET_Z_LSB 0x59
-#define BNO055_ADDR_ACC_OFFSET_Y_MSB 0x58
-#define BNO055_ADDR_ACC_OFFSET_Y_LSB 0x57
-#define BNO055_ADDR_ACC_OFFSET_X_MSB 0x56
-#define BNO055_ADDR_ACC_OFFSET_X_LSB 0x55
-
 static busDevice_t *busDev;
 
 static bool deviceDetect(busDevice_t *busDev)
@@ -99,18 +58,45 @@ static void bno055SetMode(uint8_t mode)
     delay(25);
 }
 
+static void bno055SetCalibrationData(bno055CalibrationData_t data) 
+{
+    uint8_t buf[12];
+
+    //Prepare gains
+    //We do not restore gyro offsets, they are quickly calibrated at startup
+    uint8_t bufferBit = 0;
+    for (uint8_t sensorIndex = 0; sensorIndex < 2; sensorIndex++)
+    {
+        for (uint8_t axisIndex = 0; axisIndex < 3; axisIndex++)
+        {
+            buf[bufferBit] = (uint8_t)(data.offset[sensorIndex][axisIndex] & 0xff);
+            buf[bufferBit + 1] = (uint8_t)((data.offset[sensorIndex][axisIndex] >> 8 ) & 0xff);
+            bufferBit += 2;
+        }
+    }
+
+    busWriteBuf(busDev, BNO055_ADDR_ACC_OFFSET_X_LSB, buf, 12);
+
+    //Prepare radius
+    buf[0] = (uint8_t)(data.radius[ACC] & 0xff);
+    buf[1] = (uint8_t)((data.radius[ACC] >> 8 ) & 0xff);
+    buf[2] = (uint8_t)(data.radius[MAG] & 0xff);
+    buf[3] = (uint8_t)((data.radius[MAG] >> 8 ) & 0xff);
+
+    //Write to the device
+    busWriteBuf(busDev, BNO055_ADDR_ACC_RADIUS_LSB, buf, 4);
+}
+
 bool bno055Init(bno055CalibrationData_t calibrationData, bool setCalibration)
 {
     busDev = busDeviceInit(BUSTYPE_I2C, DEVHW_BNO055, 0, 0);
     if (busDev == NULL)
     {
-        DEBUG_SET(DEBUG_IMU2, 2, 1);
         return false;
     }
 
     if (!deviceDetect(busDev))
     {
-        DEBUG_SET(DEBUG_IMU2, 2, 2);
         busDeviceDeInit(busDev);
         return false;
     }
@@ -190,35 +176,6 @@ bno055CalibrationData_t bno055GetCalibrationData(void)
     data.radius[MAG] = (int16_t)((buf[21] << 8) | buf[20]);
 
     return data;
-}
-
-void bno055SetCalibrationData(bno055CalibrationData_t data) 
-{
-    uint8_t buf[12];
-
-    //Prepare gains
-    //We do not restore gyro offsets, they are quickly calibrated at startup
-    uint8_t bufferBit = 0;
-    for (uint8_t sensorIndex = 0; sensorIndex < 2; sensorIndex++)
-    {
-        for (uint8_t axisIndex = 0; axisIndex < 3; axisIndex++)
-        {
-            buf[bufferBit] = (uint8_t)(data.offset[sensorIndex][axisIndex] & 0xff);
-            buf[bufferBit + 1] = (uint8_t)((data.offset[sensorIndex][axisIndex] >> 8 ) & 0xff);
-            bufferBit += 2;
-        }
-    }
-
-    busWriteBuf(busDev, BNO055_ADDR_ACC_OFFSET_X_LSB, buf, 12);
-
-    //Prepare radius
-    buf[0] = (uint8_t)(data.radius[ACC] & 0xff);
-    buf[1] = (uint8_t)((data.radius[ACC] >> 8 ) & 0xff);
-    buf[2] = (uint8_t)(data.radius[MAG] & 0xff);
-    buf[3] = (uint8_t)((data.radius[MAG] >> 8 ) & 0xff);
-
-    //Write to the device
-    busWriteBuf(busDev, BNO055_ADDR_ACC_RADIUS_LSB, buf, 4);
 }
 
 #endif

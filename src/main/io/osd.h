@@ -77,6 +77,7 @@
 #define OSD_MSG_CLI_ACTIVE          "CLI IS ACTIVE"
 #define OSD_MSG_PWM_INIT_ERROR      "PWM INIT ERROR"
 #define OSD_MSG_NO_PREARM           "NO PREARM"
+#define OSD_MSG_DSHOT_BEEPER        "MOTOR BEEPER ACTIVE"
 #define OSD_MSG_RTH_FS              "(RTH)"
 #define OSD_MSG_EMERG_LANDING_FS    "(EMERGENCY LANDING)"
 #define OSD_MSG_MOVE_EXIT_FS        "!MOVE STICKS TO EXIT FS!"
@@ -220,6 +221,7 @@ typedef enum {
     OSD_TPA,
     OSD_NAV_FW_CONTROL_SMOOTHNESS,
     OSD_VERSION,
+    OSD_RANGEFINDER,
     OSD_MISSION,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;

@@ -2521,7 +2521,7 @@ static void cliFeature(char *cmdline)
     }
 }
 
-#ifdef BEEPER
+#if defined(BEEPER) || defined(USE_DSHOT)
 static void printBeeper(uint8_t dumpMask, const beeperConfig_t *beeperConfig, const beeperConfig_t *beeperConfigDefault)
 {
     const uint8_t beeperCount = beeperTableEntryCount();
@@ -3504,7 +3504,7 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintHashLine("feature");
         printFeature(dumpMask, &featureConfig_Copy, featureConfig());
 
-#ifdef BEEPER
+#if defined(BEEPER) || defined(USE_DSHOT)
         cliPrintHashLine("beeper");
         printBeeper(dumpMask, &beeperConfig_Copy, beeperConfig());
 #endif
@@ -3675,7 +3675,7 @@ const clicmd_t cmdTable[] = {
 #ifdef USE_CLI_BATCH
     CLI_COMMAND_DEF("batch", "start or end a batch of commands", "start | end", cliBatch),
 #endif
-#ifdef BEEPER
+#if defined(BEEPER) || defined(USE_DSHOT)
     CLI_COMMAND_DEF("beeper", "turn on/off beeper", "list\r\n"
             "\t<+|->[name]", cliBeeper),
 #endif
