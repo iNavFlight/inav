@@ -175,6 +175,8 @@ static bool fullRedraw = false;
 static uint8_t armState;
 static uint8_t statsPagesCheck = 0;
 
+static bool infocycleSuspended = false;
+
 typedef struct osdMapData_s {
     uint32_t scale;
     char referenceSymbol;
@@ -968,7 +970,7 @@ static bool osdIsHeadingValid(void)
     } else {
         return isImuHeadingValid();
     }
-#else 
+#else
     return isImuHeadingValid();
 #endif
 }
@@ -981,7 +983,7 @@ int16_t osdGetHeading(void)
     } else {
         return attitude.values.yaw;
     }
-#else 
+#else
     return attitude.values.yaw;
 #endif
 }
@@ -1295,12 +1297,60 @@ static void osdDisplayAdjustableDecimalValue(uint8_t elemPosX, uint8_t elemPosY,
 
 static bool osdDrawSingleElement(uint8_t item)
 {
+    static uint8_t infocycleItemCounter;
+    if (item == 0) {
+        infocycleItemCounter = 0;
+    }
+
     uint16_t pos = osdLayoutsConfig()->item_pos[currentLayout][item];
     if (!OSD_VISIBLE(pos)) {
         return false;
     }
     uint8_t elemPosX = OSD_X(pos);
     uint8_t elemPosY = OSD_Y(pos);
+
+    /* routine to direct selected OSD items to Info Cycle field on OSD.
+    Items cycled in field unless BOXOSD mode selected for < 2s in which case items are displayed in normal positions
+    (Info Cycle suspended). Info Cycle is restarted by selecting BOXOSD for < 2s again.
+    BOXOSD switches off OSD if selected for > 2s*/
+    uint16_t infocyclePos = osdLayoutsConfig()->item_pos[currentLayout][OSD_INFO_CYCLE];
+
+    if (OSD_VISIBLE(infocyclePos)) {
+        static uint8_t infocycleNumItems;
+        static uint8_t infocycleLastLayout = 5;
+
+        if (currentLayout != infocycleLastLayout) { // count number active infocycle items for each layout selected
+            infocycleNumItems = 0;
+            for (uint8_t i = 0; i < OSD_ITEM_COUNT; i++) {
+                if (OSD_INFOCYCLE(osdLayoutsConfig()->item_pos[currentLayout][i])) {
+                    infocycleNumItems += 1;
+                }
+            }
+            infocycleLastLayout = currentLayout;
+            infocycleSuspended = false;
+        }
+
+        if (infocycleNumItems > 0 && !infocycleSuspended) {
+            static uint8_t infocyclePreviousItem;
+            uint8_t selectedItem;
+
+            if (OSD_INFOCYCLE(pos)) {
+                infocycleItemCounter += 1;
+                selectedItem = OSD_ALTERNATING_CHOICES(1500, infocycleNumItems) + 1;
+                if (infocycleItemCounter == selectedItem) {
+                    elemPosX = OSD_X(infocyclePos);
+                    elemPosY = OSD_Y(infocyclePos);
+                    if (infocyclePreviousItem != item) {     // clear infocycle field before displaying new item
+                        infocyclePreviousItem = item;
+                        displayWrite(osdDisplayPort, elemPosX, elemPosY, "            ");   // 12 characters long
+                    }
+                } else {
+                    return false;
+                }
+            }
+        }
+    }
+
     textAttributes_t elemAttr = TEXT_ATTRIBUTES_NONE;
     char buff[32] = {0};
 
@@ -1925,7 +1975,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 pitchAngle = DECIDEGREES_TO_RADIANS(secondaryImuState.eulerAngles.values.pitch);
             } else {
                 rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
-                pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);    
+                pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
             }
 #else
             rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
@@ -2587,6 +2637,12 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_NAV_FW_CONTROL_SMOOTHNESS:
         osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "CTL S", 0, navConfig()->fw.control_smoothness, 1, 0, ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS);
         return true;
+
+    case OSD_INFO_CYCLE:
+        {
+            // deliberately left blank
+            return false;
+        }
     default:
         return false;
     }
@@ -2892,6 +2948,8 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_GVAR_1] = OSD_POS(1, 2);
     osdLayoutsConfig->item_pos[0][OSD_GVAR_2] = OSD_POS(1, 3);
     osdLayoutsConfig->item_pos[0][OSD_GVAR_3] = OSD_POS(1, 4);
+
+    osdLayoutsConfig->item_pos[0][OSD_INFO_CYCLE] = OSD_POS(1, 1);
 
 #if defined(USE_ESC_SENSOR)
     osdLayoutsConfig->item_pos[0][OSD_ESC_RPM] = OSD_POS(1, 2);
@@ -3335,10 +3393,27 @@ static void osdRefresh(timeUs_t currentTimeUs)
 {
     osdFilterData(currentTimeUs);
 
+    bool boxOsdClearDisplay = false;
+    static timeMs_t boxOsdTimer = 0;
+    const uint16_t boxOsdTimeDelay_Ms = 2000;
+
+    if (IS_RC_MODE_ACTIVE(BOXOSD)) {
+        if (boxOsdTimer == 0) {
+            boxOsdTimer = millis();
+        }
+        boxOsdClearDisplay = millis() - boxOsdTimer > boxOsdTimeDelay_Ms;
+    } else {
+        if (millis() - boxOsdTimer < boxOsdTimeDelay_Ms) {
+            infocycleSuspended = infocycleSuspended == false ? true : false;
+            displayClearScreen(osdDisplayPort);
+        }
+        boxOsdTimer = 0;
+    }
+
 #ifdef USE_CMS
-    if (IS_RC_MODE_ACTIVE(BOXOSD) && (!cmsInMenu) && !(osdConfig()->osd_failsafe_switch_layout && FLIGHT_MODE(FAILSAFE_MODE))) {
+    if (boxOsdClearDisplay && (!cmsInMenu) && !(osdConfig()->osd_failsafe_switch_layout && FLIGHT_MODE(FAILSAFE_MODE))) {
 #else
-    if (IS_RC_MODE_ACTIVE(BOXOSD) && !(osdConfig()->osd_failsafe_switch_layout && FLIGHT_MODE(FAILSAFE_MODE))) {
+    if (boxOsdClearDisplay && !(osdConfig()->osd_failsafe_switch_layout && FLIGHT_MODE(FAILSAFE_MODE))) {
 #endif
       displayClearScreen(osdDisplayPort);
       armState = ARMING_FLAG(ARMED);

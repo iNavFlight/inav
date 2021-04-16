@@ -30,7 +30,9 @@
 #define OSD_LAYOUT_COUNT (OSD_ALTERNATE_LAYOUT_COUNT + 1)
 
 #define OSD_VISIBLE_FLAG    0x0800
+#define OSD_INFOCYCLE_FLAG  0x0400
 #define OSD_VISIBLE(x)      ((x) & OSD_VISIBLE_FLAG)
+#define OSD_INFOCYCLE(x)    ((x) & OSD_INFOCYCLE_FLAG)
 #define OSD_POS(x,y)        ((x) | ((y) << 5))
 #define OSD_X(x)            ((x) & 0x001F)
 #define OSD_Y(x)            (((x) >> 5) & 0x001F)
@@ -221,6 +223,7 @@ typedef enum {
     OSD_NAV_FW_CONTROL_SMOOTHNESS,
     OSD_VERSION,
     OSD_RANGEFINDER,
+    OSD_INFO_CYCLE,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
