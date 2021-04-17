@@ -970,7 +970,7 @@ static bool osdIsHeadingValid(void)
     } else {
         return isImuHeadingValid();
     }
-#else 
+#else
     return isImuHeadingValid();
 #endif
 }
@@ -983,7 +983,7 @@ int16_t osdGetHeading(void)
     } else {
         return attitude.values.yaw;
     }
-#else 
+#else
     return attitude.values.yaw;
 #endif
 }
@@ -1927,7 +1927,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 pitchAngle = DECIDEGREES_TO_RADIANS(secondaryImuState.eulerAngles.values.pitch);
             } else {
                 rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
-                pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);    
+                pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
             }
 #else
             rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
@@ -3584,7 +3584,9 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
                     if (NAV_Status.state == MW_NAV_STATE_WP_ENROUTE) {
                         // Countdown display for remaining Waypoints
-                        tfp_sprintf(messageBuf, "TO WP %u/%u", posControl.activeWaypointIndex + 1, posControl.waypointCount);
+                        char buf[6];
+                        osdFormatDistanceSymbol(buf, posControl.wpDistance, 0);
+                        tfp_sprintf(messageBuf, "TO WP %u/%u (%s)", posControl.activeWaypointIndex + 1, posControl.waypointCount, buf);
                         messages[messageCount++] = messageBuf;
                     } else if (NAV_Status.state == MW_NAV_STATE_HOLD_TIMED) {
                         // WP hold time countdown in seconds
