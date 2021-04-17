@@ -497,20 +497,6 @@ void tryArm(void)
 {
     updateArmingStatus();
 
-#ifdef USE_DSHOT
-    if (
-            STATE(MULTIROTOR) &&
-            IS_RC_MODE_ACTIVE(BOXFLIPOVERAFTERCRASH) &&
-            emergencyArmingCanOverrideArmingDisabled() &&
-            isMotorProtocolDshot() &&
-            !FLIGHT_MODE(FLIP_OVER_AFTER_CRASH)
-            ) {
-        sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_REVERSED);
-        ENABLE_ARMING_FLAG(ARMED);
-        enableFlightMode(FLIP_OVER_AFTER_CRASH);
-        return;
-    }
-#endif
 #ifdef USE_PROGRAMMING_FRAMEWORK
     if (
         !isArmingDisabled() || 
@@ -526,6 +512,21 @@ void tryArm(void)
         if (ARMING_FLAG(ARMED)) {
             return;
         }
+
+#ifdef USE_DSHOT
+        if (
+                STATE(MULTIROTOR) &&
+                IS_RC_MODE_ACTIVE(BOXFLIPOVERAFTERCRASH) &&
+                emergencyArmingCanOverrideArmingDisabled() &&
+                isMotorProtocolDshot() &&
+                !FLIGHT_MODE(FLIP_OVER_AFTER_CRASH)
+                ) {
+            sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_REVERSED);
+            ENABLE_ARMING_FLAG(ARMED);
+            enableFlightMode(FLIP_OVER_AFTER_CRASH);
+            return;
+        }
+#endif
 
 #if defined(USE_NAV)
         // If nav_extra_arming_safety was bypassed we always
