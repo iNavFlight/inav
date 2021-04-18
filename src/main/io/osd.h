@@ -297,7 +297,7 @@ typedef struct osdConfig_s {
     float gforce_axis_alarm_min;
     float gforce_axis_alarm_max;
 #ifdef USE_SERIALRX_CRSF
-    int16_t snr_alarm; //CRSF SNR alarm in dB
+    int8_t snr_alarm; //CRSF SNR alarm in dB
     int8_t link_quality_alarm;
 #endif
 #ifdef USE_BARO
