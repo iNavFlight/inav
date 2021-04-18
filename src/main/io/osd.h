@@ -362,6 +362,7 @@ typedef struct osdConfig_s {
     uint8_t pan_servo_index;            // Index of the pan servo used for home direction offset
     int8_t pan_servo_pwm2centideg;      // Centidegrees of servo rotation per us pwm
     uint8_t crsf_lq_format;
+    uint16_t system_msg_display_time;   // system message display time for multiple messages (ms)
 
 } osdConfig_t;
 
