@@ -136,7 +136,7 @@
 | fw_p_pitch | 5 | Fixed-wing rate stabilisation P-gain for PITCH |
 | fw_p_roll | 5 | Fixed-wing rate stabilisation P-gain for ROLL |
 | fw_p_yaw | 6 | Fixed-wing rate stabilisation P-gain for YAW |
-| fw_reference_airspeed | 1000 | Reference airspeed. Set this to airspeed at which PIDs were tuned. Usually should be set to cruise airspeed. Also used for coordinated turn calculation if airspeed sensor is not present. |
+| fw_reference_airspeed | 1500 | Reference airspeed. Set this to airspeed at which PIDs were tuned. Usually should be set to cruise airspeed. Also used for coordinated turn calculation if airspeed sensor is not present. |
 | fw_tpa_time_constant | 0 | TPA smoothing and delay time constant to reflect non-instant speed/throttle response of the plane. Planes with low thrust/weight ratio generally need higher time constant. Default is zero for compatibility with old setups |
 | fw_turn_assist_pitch_gain | 1 | Gain required to keep constant pitch angle during coordinated turns (in TURN_ASSIST mode). Value significantly different from 1.0 indicates a problem with the airspeed calibration (if present) or value of `fw_reference_airspeed` parameter |
 | fw_turn_assist_yaw_gain | 1 | Gain required to keep the yaw rate consistent with the turn rate for a coordinated turn (in TURN_ASSIST mode). Value significantly different from 1.0 indicates a problem with the airspeed calibration (if present) or value of `fw_reference_airspeed` parameter |
