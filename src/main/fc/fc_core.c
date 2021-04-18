@@ -909,9 +909,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
     if (isMixerUsingServos()) {
         servoMixer(dT);
-        processServoAutotrim();
-        processContinuousServoAutotrim(dT);
-    
+        processServoAutotrim(dT);
     }
 
     //Servos should be filtered or written only when mixer is using servos or special feaures are enabled

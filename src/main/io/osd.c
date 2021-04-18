@@ -3598,7 +3598,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                         // by OSD_FLYMODE.
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ALTITUDE_HOLD);
                     }
-                    if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM) || IS_RC_MODE_ACTIVE(BOXCONTAUTOTRIM)) {
+                    if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_AUTOTRIM);
                     }
                     if (IS_RC_MODE_ACTIVE(BOXAUTOTUNE)) {

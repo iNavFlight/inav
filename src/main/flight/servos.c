@@ -391,7 +391,7 @@ typedef enum {
     AUTOTRIM_DONE,
 } servoAutotrimState_e;
 
-void processServoAutotrim(void)
+void processServoAutotrimMode(void)
 {
     static servoAutotrimState_e trimState = AUTOTRIM_IDLE;
     static timeMs_t trimStartedAt;
@@ -485,6 +485,81 @@ void processServoAutotrim(void)
     }
 }
 
+#define SERVO_AUTOTRIM_FILTER_CUTOFF    1       // LPF cutoff frequency
+#define SERVO_AUTOTRIM_CENTER_MIN       1300
+#define SERVO_AUTOTRIM_CENTER_MAX       1700
+#define SERVO_AUTOTRIM_UPDATE_SIZE      5
+
+void processContinuousServoAutotrim(const float dT)
+{
+    static timeMs_t lastUpdateTimeMs;
+    static servoAutotrimState_e trimState = AUTOTRIM_IDLE;    
+    static uint32_t servoMiddleUpdateCount;
+
+    const float rotRateMagnitude = sqrtf(vectorNormSquared(&imuMeasuredRotationBF));
+    const float rotRateMagnitudeFiltered = pt1FilterApply4(&rotRateFilter, rotRateMagnitude, SERVO_AUTOTRIM_FILTER_CUTOFF, dT);
+
+    if (ARMING_FLAG(ARMED)) {
+        trimState = AUTOTRIM_COLLECTING;
+        if ((millis() - lastUpdateTimeMs) > 500) {
+            const bool planeFlyingStraight = rotRateMagnitudeFiltered <= DEGREES_TO_RADIANS(servoConfig()->servo_autotrim_rotation_limit);
+            const bool zeroRotationCommanded = getTotalRateTarget() <= servoConfig()->servo_autotrim_rotation_limit;
+            if (planeFlyingStraight && zeroRotationCommanded && !areSticksDeflectedMoreThanPosHoldDeadband() && !FLIGHT_MODE(MANUAL_MODE) && isGPSHeadingValid()) { 
+                // Plane is flying straight and sticks are centered
+                for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
+                    // For each stabilized axis, add 5 units of I-term to all associated servo midpoints
+                    const float axisIterm = getAxisIterm(axis);
+                    if (fabsf(axisIterm) > SERVO_AUTOTRIM_UPDATE_SIZE) {
+                        const int8_t ItermUpdate = axisIterm > 0.0f ? SERVO_AUTOTRIM_UPDATE_SIZE : -SERVO_AUTOTRIM_UPDATE_SIZE;
+                        for (int i = 0; i < servoRuleCount; i++) {
+#ifdef USE_PROGRAMMING_FRAMEWORK
+                            if (!logicConditionGetValue(currentServoMixer[i].conditionId)) {
+                                continue;
+                            }
+#endif
+                            const uint8_t target = currentServoMixer[i].targetChannel;
+                            const uint8_t source = currentServoMixer[i].inputSource;
+                            if (source == axis) {
+                                // Convert axis I-term to servo PWM and add to midpoint
+                                const float mixerRate = currentServoMixer[i].rate / 100.0f;
+                                const float servoRate = servoParams(target)->rate / 100.0f;
+                                servoParamsMutable(target)->middle += ItermUpdate * mixerRate * servoRate;
+                                servoParamsMutable(target)->middle = constrain(servoParamsMutable(target)->middle, SERVO_AUTOTRIM_CENTER_MIN, SERVO_AUTOTRIM_CENTER_MAX);
+                                }
+                        }
+                        pidReduceErrorAccumulators(ItermUpdate, axis);
+                    }
+                }
+                servoMiddleUpdateCount++;
+            }
+            // Reset timer
+            lastUpdateTimeMs = millis();
+        }
+    } else if (trimState == AUTOTRIM_COLLECTING) {
+        // We have disarmed, save midpoints to EEPROM
+        writeEEPROM();
+        trimState = AUTOTRIM_IDLE;
+    }
+
+    // Debug
+    DEBUG_SET(DEBUG_AUTOTRIM, 0, servoParams(2)->middle);
+    DEBUG_SET(DEBUG_AUTOTRIM, 2, servoParams(3)->middle);
+    DEBUG_SET(DEBUG_AUTOTRIM, 4, servoParams(4)->middle);
+    DEBUG_SET(DEBUG_AUTOTRIM, 6, servoParams(5)->middle);
+    DEBUG_SET(DEBUG_AUTOTRIM, 1, servoMiddleUpdateCount);
+    DEBUG_SET(DEBUG_AUTOTRIM, 3, MAX(RADIANS_TO_DEGREES(rotRateMagnitudeFiltered), getTotalRateTarget()));
+    DEBUG_SET(DEBUG_AUTOTRIM, 5, axisPID_I[FD_ROLL]);
+    DEBUG_SET(DEBUG_AUTOTRIM, 7, axisPID_I[FD_PITCH]);    
+}
+
+void processServoAutotrim(const float dT) {
+    if (feature(FEATURE_FW_AUTOTRIM)) {
+        processContinuousServoAutotrim(dT);
+    } else {
+        processServoAutotrimMode();
+    }
+}
+
 bool isServoOutputEnabled(void)
 {
     return servoOutputEnabled;
@@ -498,124 +573,4 @@ void setServoOutputEnabled(bool flag)
 bool isMixerUsingServos(void)
 {
     return mixerUsesServos;
-}
-
-#define SERVO_AUTOTRIM_FILTER_CUTOFF    1       // LPF cutoff frequency
-#define SERVO_AUTOTRIM_CENTER_MIN       1300
-#define SERVO_AUTOTRIM_CENTER_MAX       1700
-#define SERVO_AUTOTRIM_UPDATE_SIZE      5
-
-void processContinuousServoAutotrim(const float dT)
-{
-    static timeMs_t lastUpdateTimeMs;
-    static servoAutotrimState_e trimState = AUTOTRIM_IDLE;    
-
-    static int16_t servoMiddleBackup[MAX_SUPPORTED_SERVOS];
-    static int32_t servoMiddleUpdateCount;
-
-    const float rotRateMagnitude = sqrtf(vectorNormSquared(&imuMeasuredRotationBF));
-    const float rotRateMagnitudeFiltered = pt1FilterApply4(&rotRateFilter, rotRateMagnitude, SERVO_AUTOTRIM_FILTER_CUTOFF, dT);
-
-    if (IS_RC_MODE_ACTIVE(BOXCONTAUTOTRIM) || feature(FEATURE_FW_AUTOTRIM)) {
-        switch (trimState) {
-            case AUTOTRIM_IDLE:
-                if (ARMING_FLAG(ARMED)) {
-                    // FIXME: use proper flying detection
-                    // We are activating servo trim - backup current middles and prepare to update the servo midpoints
-                    for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
-                        for (int i = 0; i < servoRuleCount; i++) {
-                            const uint8_t target = currentServoMixer[i].targetChannel;
-                            const uint8_t source = currentServoMixer[i].inputSource;
-                            if (source == axis) {
-                                servoMiddleBackup[target] = servoParams(target)->middle;
-                            }
-                        }
-                    }
-                    servoMiddleUpdateCount = 0;
-                    lastUpdateTimeMs = millis();
-                    trimState = AUTOTRIM_COLLECTING;
-                }
-                else {
-                    break;
-                }
-                // Fallthru
-
-            case AUTOTRIM_COLLECTING:
-                if (ARMING_FLAG(ARMED)) {
-                    // Every half second update servo midpoints
-                    if ((millis() - lastUpdateTimeMs) > 500) {
-                        const bool planeFlyingStraight = rotRateMagnitudeFiltered <= DEGREES_TO_RADIANS(servoConfig()->servo_autotrim_rotation_limit);
-                        const bool zeroRotationCommanded = getTotalRateTarget() <= servoConfig()->servo_autotrim_rotation_limit;
-                        if (planeFlyingStraight && 
-                            zeroRotationCommanded && 
-                            !areSticksDeflectedMoreThanPosHoldDeadband() &&
-                            isGPSHeadingValid() &&
-                            !FLIGHT_MODE(MANUAL_MODE)) {
-                            // Plane is flying straight and sticks are centered
-                            for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
-                                // For each stabilized axis, add x units of I-term to all associated servo midpoints
-                                const float axisIterm = getAxisIterm(axis);
-                                if (fabsf(axisIterm) > SERVO_AUTOTRIM_UPDATE_SIZE) {
-                                    const int8_t ItermUpdate = axisIterm > 0.0f ? SERVO_AUTOTRIM_UPDATE_SIZE : -SERVO_AUTOTRIM_UPDATE_SIZE;
-                                    for (int i = 0; i < servoRuleCount; i++) {
-#ifdef USE_PROGRAMMING_FRAMEWORK
-                                        if (!logicConditionGetValue(currentServoMixer[i].conditionId)) {
-                                            continue;
-                                        }
-#endif
-                                        const uint8_t target = currentServoMixer[i].targetChannel;
-                                        const uint8_t source = currentServoMixer[i].inputSource;
-                                        if (source == axis) {
-                                            // Convert axis I-term to servo PWM and add to midpoint
-                                            const float mixerRate = currentServoMixer[i].rate / 100.0f;
-                                            const float servoRate = servoParams(target)->rate / 100.0f;
-                                            servoParamsMutable(target)->middle += ItermUpdate * mixerRate * servoRate;
-                                            servoParamsMutable(target)->middle = constrain(servoParamsMutable(target)->middle, SERVO_AUTOTRIM_CENTER_MIN, SERVO_AUTOTRIM_CENTER_MAX);
-                                        }
-                                    }
-                                    pidReduceErrorAccumulators(ItermUpdate, axis);
-                                }
-                            }
-                            servoMiddleUpdateCount++;
-                        }
-                        // Reset timer
-                        lastUpdateTimeMs = millis();
-                    }
-                    break;
-                } else {
-                    // We have disarmed, save to EEPROM
-                    saveConfigAndNotify();
-                    trimState = AUTOTRIM_IDLE;
-                    break;
-                }
-            case AUTOTRIM_SAVE_PENDING:
-            case AUTOTRIM_DONE:
-                break;
-        }
-    }
-    else {
-        // We are deactivating servo trim - restore servo midpoints
-        if (trimState == AUTOTRIM_COLLECTING) {
-            for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
-                for (int i = 0; i < servoRuleCount; i++) {
-                    const uint8_t target = currentServoMixer[i].targetChannel;
-                    const uint8_t source = currentServoMixer[i].inputSource;
-                    if (source == axis) {
-                        servoParamsMutable(target)->middle = servoMiddleBackup[target];
-                    }
-                }
-            }
-        }
-        trimState = AUTOTRIM_IDLE;
-    }
-
-    // Debug
-    DEBUG_SET(DEBUG_AUTOTRIM, 0, servoParams(2)->middle);
-    DEBUG_SET(DEBUG_AUTOTRIM, 2, servoParams(3)->middle);
-    DEBUG_SET(DEBUG_AUTOTRIM, 4, servoParams(4)->middle);
-    DEBUG_SET(DEBUG_AUTOTRIM, 6, servoParams(5)->middle);
-    DEBUG_SET(DEBUG_AUTOTRIM, 1, servoMiddleUpdateCount);
-    DEBUG_SET(DEBUG_AUTOTRIM, 3, RADIANS_TO_DEGREES(rotRateMagnitudeFiltered));
-    DEBUG_SET(DEBUG_AUTOTRIM, 5, axisPID_I[FD_ROLL]);
-    DEBUG_SET(DEBUG_AUTOTRIM, 7, axisPID_I[FD_PITCH]);    
 }
