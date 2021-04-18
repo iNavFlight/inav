@@ -805,6 +805,7 @@ void processRx(timeUs_t currentTimeUs)
 
 // Function for loop trigger
 void FAST_CODE taskGyro(timeUs_t currentTimeUs) {
+    UNUSED(currentTimeUs);
     // getTaskDeltaTime() returns delta time frozen at the moment of entering the scheduler. currentTime is frozen at the very same point.
     // To make busy-waiting timeout work we need to account for time spent within busy-waiting loop
     const timeDelta_t currentDeltaTime = getTaskDeltaTime(TASK_SELF);
@@ -816,8 +817,6 @@ void FAST_CODE taskGyro(timeUs_t currentTimeUs) {
     if (sensors(SENSOR_OPFLOW)) {
         opflowGyroUpdateCallback(currentDeltaTime);
     }
-#else
-    UNUSED(currentTimeUs);
 #endif
 }
 
