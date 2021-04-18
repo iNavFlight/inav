@@ -37,7 +37,7 @@ void dynamicGyroNotchFiltersInit(dynamicGyroNotchState_t *state) {
 
     state->dynNotchQ = gyroConfig()->dynamicGyroNotchQ / 100.0f;
     state->enabled = gyroConfig()->dynamicGyroNotchEnabled;
-    state->looptime = getGyroLooptime();
+    state->looptime = getLooptime();
 
     if (state->enabled) {
         /*

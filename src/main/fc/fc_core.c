@@ -845,6 +845,8 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         updateAccExtremes();
     }
 
+    gyroFilter();
+
     imuUpdateAccelerometer();
     imuUpdateAttitude(currentTimeUs);
 
