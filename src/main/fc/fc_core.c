@@ -816,6 +816,8 @@ void FAST_CODE taskGyro(timeUs_t currentTimeUs) {
     if (sensors(SENSOR_OPFLOW)) {
         opflowGyroUpdateCallback(currentDeltaTime);
     }
+#else
+    UNUSED(currentTimeUs);
 #endif
 }
 
