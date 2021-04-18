@@ -1310,9 +1310,9 @@ static bool osdDrawSingleElement(uint8_t item)
     uint8_t elemPosY = OSD_Y(pos);
 
     /* routine to direct selected OSD items to Info Cycle field on OSD.
-    Items cycled in field unless BOXOSD mode selected for < 2s in which case items are displayed in normal positions
-    (Info Cycle suspended). Info Cycle is restarted by selecting BOXOSD for < 2s again.
-    BOXOSD switches off OSD if selected for > 2s*/
+    Items cycled in field unless BOXOSD mode selected for < 1s in which case items are displayed in normal positions
+    (Info Cycle suspended). Info Cycle restarted by selecting BOXOSD for < 1s again.
+    BOXOSD switches off OSD if selected for > 1s*/
     uint16_t infocyclePos = osdLayoutsConfig()->item_pos[currentLayout][OSD_INFO_CYCLE];
 
     if (OSD_VISIBLE(infocyclePos)) {
@@ -1332,12 +1332,10 @@ static bool osdDrawSingleElement(uint8_t item)
 
         if (infocycleNumItems > 0 && !infocycleSuspended) {
             static uint8_t infocyclePreviousItem;
-            uint8_t selectedItem;
 
             if (OSD_INFOCYCLE(pos)) {
                 infocycleItemCounter += 1;
-                selectedItem = OSD_ALTERNATING_CHOICES(1500, infocycleNumItems) + 1;
-                if (infocycleItemCounter == selectedItem) {
+                if (infocycleItemCounter == OSD_ALTERNATING_CHOICES(osdConfig()->infocycle_interval_time, infocycleNumItems) + 1) {
                     elemPosX = OSD_X(infocyclePos);
                     elemPosY = OSD_Y(infocyclePos);
                     if (infocyclePreviousItem != item) {     // clear infocycle field before displaying new item
@@ -3395,7 +3393,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
 
     bool boxOsdClearDisplay = false;
     static timeMs_t boxOsdTimer = 0;
-    const uint16_t boxOsdTimeDelay_Ms = 2000;
+    const uint16_t boxOsdTimeDelay_Ms = 1000;
 
     if (IS_RC_MODE_ACTIVE(BOXOSD)) {
         if (boxOsdTimer == 0) {
