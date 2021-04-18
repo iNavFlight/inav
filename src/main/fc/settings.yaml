@@ -1181,11 +1181,6 @@ groups:
         default_value: 15
         min: 1
         max: 60
-      - name: servo_autotrim_iterm_threshold
-        description: "How much of the Iterm is carried over to the servo midpoints on each update. Only applies when using `feature FW_AUTOTRIM`."
-        default_value: 5
-        min: 1
-        max: 25
 
   - name: PG_CONTROL_RATE_PROFILES
     type: controlRateConfig_t

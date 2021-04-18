@@ -67,8 +67,7 @@ PG_RESET_TEMPLATE(servoConfig_t, servoConfig,
     .servo_protocol = SETTING_SERVO_PROTOCOL_DEFAULT,
     .flaperon_throw_offset = SETTING_FLAPERON_THROW_OFFSET_DEFAULT,
     .tri_unarmed_servo = SETTING_TRI_UNARMED_SERVO_DEFAULT,
-    .servo_autotrim_rotation_limit = SETTING_SERVO_AUTOTRIM_ROTATION_LIMIT_DEFAULT,
-    .servo_autotrim_iterm_threshold = SETTING_SERVO_AUTOTRIM_ITERM_THRESHOLD_DEFAULT
+    .servo_autotrim_rotation_limit = SETTING_SERVO_AUTOTRIM_ROTATION_LIMIT_DEFAULT
 );
 
 PG_REGISTER_ARRAY_WITH_RESET_FN(servoMixer_t, MAX_SERVO_RULES, customServoMixers, PG_SERVO_MIXER, 1);
@@ -504,6 +503,7 @@ bool isMixerUsingServos(void)
 #define SERVO_AUTOTRIM_FILTER_CUTOFF    1       // LPF cutoff frequency
 #define SERVO_AUTOTRIM_CENTER_MIN       1300
 #define SERVO_AUTOTRIM_CENTER_MAX       1700
+#define SERVO_AUTOTRIM_UPDATE_SIZE      5
 
 void processContinuousServoAutotrim(const float dT)
 {
@@ -512,8 +512,6 @@ void processContinuousServoAutotrim(const float dT)
 
     static int16_t servoMiddleBackup[MAX_SUPPORTED_SERVOS];
     static int32_t servoMiddleUpdateCount;
-
-    const uint8_t ItermThreshold = servoConfig()->servo_autotrim_iterm_threshold;
 
     const float rotRateMagnitude = sqrtf(vectorNormSquared(&imuMeasuredRotationBF));
     const float rotRateMagnitudeFiltered = pt1FilterApply4(&rotRateFilter, rotRateMagnitude, SERVO_AUTOTRIM_FILTER_CUTOFF, dT);
@@ -545,16 +543,20 @@ void processContinuousServoAutotrim(const float dT)
             case AUTOTRIM_COLLECTING:
                 if (ARMING_FLAG(ARMED)) {
                     // Every half second update servo midpoints
-                    if ((millis() - lastUpdateTimeMs) > 500 && isGPSHeadingValid()) {
+                    if ((millis() - lastUpdateTimeMs) > 500) {
                         const bool planeFlyingStraight = rotRateMagnitudeFiltered <= DEGREES_TO_RADIANS(servoConfig()->servo_autotrim_rotation_limit);
                         const bool zeroRotationCommanded = getTotalRateTarget() <= servoConfig()->servo_autotrim_rotation_limit;
-                        if (planeFlyingStraight && zeroRotationCommanded && !areSticksDeflectedMoreThanPosHoldDeadband() &&!FLIGHT_MODE(MANUAL_MODE)) {
+                        if (planeFlyingStraight && 
+                            zeroRotationCommanded && 
+                            !areSticksDeflectedMoreThanPosHoldDeadband() &&
+                            isGPSHeadingValid() &&
+                            !FLIGHT_MODE(MANUAL_MODE)) {
                             // Plane is flying straight and sticks are centered
                             for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
                                 // For each stabilized axis, add x units of I-term to all associated servo midpoints
                                 const float axisIterm = getAxisIterm(axis);
-                                if (fabsf(axisIterm) > ItermThreshold) {
-                                    const int8_t ItermUpdate = axisIterm > 0.0f ? ItermThreshold : -ItermThreshold;
+                                if (fabsf(axisIterm) > SERVO_AUTOTRIM_UPDATE_SIZE) {
+                                    const int8_t ItermUpdate = axisIterm > 0.0f ? SERVO_AUTOTRIM_UPDATE_SIZE : -SERVO_AUTOTRIM_UPDATE_SIZE;
                                     for (int i = 0; i < servoRuleCount; i++) {
 #ifdef USE_PROGRAMMING_FRAMEWORK
                                         if (!logicConditionGetValue(currentServoMixer[i].conditionId)) {
