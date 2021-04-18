@@ -158,7 +158,6 @@
 | gyro_notch_hz | 0 |  |
 | gyro_stage2_lowpass_hz | 0 | Software based second stage lowpass filter for gyro. Value is cutoff frequency (Hz) |
 | gyro_stage2_lowpass_type | BIQUAD | Defines the type of stage 2 gyro LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation. |
-| gyro_sync | ON | This option enables gyro_sync feature. In this case the loop will be synced to gyro refresh rate. Loop will always wait for the newest gyro measurement. Maximum gyro refresh rate is determined by gyro_hardware_lpf |
 | gyro_to_use | 0 |  |
 | gyro_use_dyn_lpf | OFF | Use Dynamic LPF instead of static gyro stage1 LPF. Dynamic Gyro LPF updates gyro LPF based on the throttle position. |
 | has_flaps | OFF | Defines is UAV is capable of having flaps. If ON and AIRPLANE `platform_type` is used, **FLAPERON** flight mode will be available for the pilot |
