@@ -1229,7 +1229,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, motorConfig()->motorPwmProtocol);
         sbufWriteU16(dst, motorConfig()->motorPwmRate);
         sbufWriteU16(dst, servoConfig()->servoPwmRate);
-        sbufWriteU8(dst, gyroConfig()->gyroSync);
+        sbufWriteU8(dst, 0);
         break;
 
     case MSP_FILTER_CONFIG :
@@ -2163,7 +2163,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             motorConfigMutable()->motorPwmProtocol = sbufReadU8(src);
             motorConfigMutable()->motorPwmRate = sbufReadU16(src);
             servoConfigMutable()->servoPwmRate = sbufReadU16(src);
-            gyroConfigMutable()->gyroSync = sbufReadU8(src);
+            sbufReadU8(src);    //Was gyroSync
         } else
             return MSP_RESULT_ERROR;
         break;
