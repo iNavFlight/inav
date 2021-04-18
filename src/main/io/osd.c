@@ -804,6 +804,15 @@ static const char * osdFailsafeInfoMessage(void)
     }
     return OSD_MESSAGE_STR(OSD_MSG_RC_RX_LINK_LOST);
 }
+#if defined(USE_SAFE_HOME)
+static const char * divertingToSafehomeMessage(void)
+{
+	if (NAV_Status.state != MW_NAV_STATE_HOVER_ABOVE_HOME && safehome_applied) {
+	    return OSD_MESSAGE_STR(OSD_MSG_DIVERT_SAFEHOME);
+	}
+	return NULL;
+}
+#endif
 
 static const char * navigationStateMessage(void)
 {
@@ -839,6 +848,11 @@ static const char * navigationStateMessage(void)
             return OSD_MESSAGE_STR(OSD_MSG_LANDING);
         case MW_NAV_STATE_HOVER_ABOVE_HOME:
             if (STATE(FIXED_WING_LEGACY)) {
+#if defined(USE_SAFE_HOME)
+                if (safehome_applied) {
+                    return OSD_MESSAGE_STR(OSD_MSG_LOITERING_SAFEHOME);
+                }
+#endif
                 return OSD_MESSAGE_STR(OSD_MSG_LOITERING_HOME);
             }
             return OSD_MESSAGE_STR(OSD_MSG_HOVERING);
@@ -3280,13 +3294,17 @@ static void osdShowArmed(void)
             }
             y += 4;
 #if defined (USE_SAFE_HOME)
-            if (isSafeHomeInUse()) {
-                textAttributes_t elemAttr = _TEXT_ATTRIBUTES_BLINK_BIT;
-                char buf2[12]; // format the distance first
-                osdFormatDistanceStr(buf2, safehome_distance);
-                tfp_sprintf(buf, "%c - %s -> SAFEHOME %u", SYM_HOME, buf2, safehome_used);
-                // write this message above the ARMED message to make it obvious
-                displayWriteWithAttr(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y - 8, buf, elemAttr);
+            if (safehome_distance) { // safehome found during arming
+                if (navConfig()->general.flags.safehome_usage_mode == SAFEHOME_USAGE_OFF) {
+                    strcpy(buf, "SAFEHOME FOUND; MODE OFF");
+				} else {
+					char buf2[12]; // format the distance first
+					osdFormatDistanceStr(buf2, safehome_distance);
+					tfp_sprintf(buf, "%c - %s -> SAFEHOME %u", SYM_HOME, buf2, safehome_index);
+				}
+				textAttributes_t elemAttr = _TEXT_ATTRIBUTES_BLINK_BIT;
+				// write this message above the ARMED message to make it obvious
+				displayWriteWithAttr(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y - 8, buf, elemAttr);
             }
 #endif
         } else {
@@ -3355,7 +3373,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
             uint32_t delay = ARMED_SCREEN_DISPLAY_TIME;
             statsPagesCheck = 0;
 #if defined(USE_SAFE_HOME)
-            if (isSafeHomeInUse())
+            if (safehome_distance)
                 delay *= 3;
 #endif
             osdSetNextRefreshIn(delay);
@@ -3557,6 +3575,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 const char *failsafePhaseMessage = osdFailsafePhaseMessage();
                 const char *failsafeInfoMessage = osdFailsafeInfoMessage();
                 const char *navStateFSMessage = navigationStateMessage();
+
                 if (failsafePhaseMessage) {
                     messages[messageCount++] = failsafePhaseMessage;
                 }
@@ -3566,6 +3585,12 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 if (navStateFSMessage) {
                     messages[messageCount++] = navStateFSMessage;
                 }
+#if defined(USE_SAFE_HOME)
+                const char *safehomeMessage = divertingToSafehomeMessage();
+				if (safehomeMessage) {
+					messages[messageCount++] = safehomeMessage;
+				}
+#endif
                 if (messageCount > 0) {
                     message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
                     if (message == failsafeInfoMessage) {
@@ -3600,6 +3625,12 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                             messages[messageCount++] = navStateMessage;
                         }
                     }
+#if defined(USE_SAFE_HOME)
+					const char *safehomeMessage = divertingToSafehomeMessage();
+					if (safehomeMessage) {
+						messages[messageCount++] = safehomeMessage;
+					}
+#endif
                 } else if (STATE(FIXED_WING_LEGACY) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_AUTOLAUNCH);
                         const char *launchStateMessage = fixedWingLaunchStateMessage();

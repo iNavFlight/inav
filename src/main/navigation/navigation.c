@@ -74,10 +74,14 @@ gpsLocation_t GPS_home;
 uint32_t      GPS_distanceToHome;        // distance to home point in meters
 int16_t       GPS_directionToHome;       // direction to home point in degrees
 
+fpVector3_t   original_rth_home;         // the original rth home - save it, since it could be replaced by safehome or HOME_RESET
+
 radar_pois_t radar_pois[RADAR_MAX_POIS];
 #if defined(USE_SAFE_HOME)
-int8_t safehome_used;                     // -1 if no safehome, 0 to MAX_SAFEHOMES -1 otherwise
-uint32_t safehome_distance;               // distance to the selected safehome
+int8_t safehome_index = -1;               // -1 if no safehome, 0 to MAX_SAFEHOMES -1 otherwise
+uint32_t safehome_distance = 0;           // distance to the nearest safehome
+fpVector3_t nearestSafeHome;              // The nearestSafeHome found during arming
+bool safehome_applied = false;            // whether the safehome has been applied to home.
 
 PG_REGISTER_ARRAY(navSafeHome_t, MAX_SAFE_HOMES, safeHomeConfig, PG_SAFE_HOME_CONFIG , 0);
 
@@ -109,6 +113,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
             .rth_allow_landing = SETTING_NAV_RTH_ALLOW_LANDING_DEFAULT,
             .rth_alt_control_override = SETTING_NAV_RTH_ALT_CONTROL_OVERRIDE_DEFAULT, // Override RTH Altitude and Climb First using Pitch and Roll stick
             .nav_overrides_motor_stop = SETTING_NAV_OVERRIDES_MOTOR_STOP_DEFAULT,
+            .safehome_usage_mode = SETTING_SAFEHOME_USAGE_MODE_DEFAULT,
         },
 
         // General navigation parameters
@@ -235,6 +240,7 @@ static navigationFSMEvent_t nextForNonGeoStates(void);
 
 void initializeRTHSanityChecker(const fpVector3_t * pos);
 bool validateRTHSanityChecker(void);
+void updateHomePosition(void);
 
 static bool rthAltControlStickOverrideCheck(unsigned axis);
 
@@ -2350,26 +2356,42 @@ static navigationHomeFlags_t navigationActualStateHomeValidity(void)
 
 #if defined(USE_SAFE_HOME)
 
-/*******************************************************
- * Is a safehome being used instead of the arming point?
- *******************************************************/
-bool isSafeHomeInUse(void)
+void checkSafeHomeState(bool shouldBeEnabled)
 {
-    return (safehome_used > -1 && safehome_used < MAX_SAFE_HOMES);
+	if (navConfig()->general.flags.safehome_usage_mode == SAFEHOME_USAGE_OFF) {
+		shouldBeEnabled = false;
+	} else if (navConfig()->general.flags.safehome_usage_mode == SAFEHOME_USAGE_RTH_FS && shouldBeEnabled) {
+		// if safehomes are only used with failsafe and we're trying to enable safehome
+		// then enable the safehome only with failsafe
+		shouldBeEnabled = posControl.flags.forcedRTHActivated;
+	}
+    // no safe homes found when arming or safehome feature in the correct state, then we don't need to do anything
+	if (safehome_distance == 0 || (safehome_applied == shouldBeEnabled)) {
+		return;
+	}
+    if (shouldBeEnabled) {
+		// set home to safehome
+        setHomePosition(&nearestSafeHome, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
+		safehome_applied = true;
+	} else {
+		// set home to original arming point
+        setHomePosition(&original_rth_home, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
+		safehome_applied = false;
+	}
+	// if we've changed the home position, update the distance and direction
+    updateHomePosition();
 }
 
 /***********************************************************
  *  See if there are any safehomes near where we are arming.
- *  If so, use it instead of the arming point for home.
- *  Select the nearest safehome
+ *  If so, save the nearest one in case we need it later for RTH.
  **********************************************************/
-bool foundNearbySafeHome(void)
+bool findNearestSafeHome(void)
 {
-    safehome_used = -1;
+    safehome_index = -1;
     uint32_t nearest_safehome_distance = navConfig()->general.safehome_max_distance + 1;
     uint32_t distance_to_current;
     fpVector3_t currentSafeHome;
-    fpVector3_t nearestSafeHome;
     gpsLocation_t shLLH;
     shLLH.alt = 0;
     for (uint8_t i = 0; i < MAX_SAFE_HOMES; i++) {
@@ -2382,20 +2404,19 @@ bool foundNearbySafeHome(void)
         distance_to_current = calculateDistanceToDestination(&currentSafeHome);
         if (distance_to_current < nearest_safehome_distance) {
              // this safehome is the nearest so far - keep track of it.
-             safehome_used = i;
+             safehome_index = i;
              nearest_safehome_distance = distance_to_current;
              nearestSafeHome.x = currentSafeHome.x;
              nearestSafeHome.y = currentSafeHome.y;
              nearestSafeHome.z = currentSafeHome.z;
         }
     }
-    if (safehome_used >= 0) {
+    if (safehome_index >= 0) {
 		safehome_distance = nearest_safehome_distance;
-        setHomePosition(&nearestSafeHome, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
-        return true;
+    } else {
+        safehome_distance = 0;
     }
-    safehome_distance = 0;
-    return false;
+    return safehome_distance > 0;
 }
 #endif
 
@@ -2421,9 +2442,13 @@ void updateHomePosition(void)
             }
             if (setHome) {
 #if defined(USE_SAFE_HOME)
-                if (!foundNearbySafeHome())
+                findNearestSafeHome();
 #endif
-                    setHomePosition(&posControl.actualState.abs.pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
+                setHomePosition(&posControl.actualState.abs.pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
+                // save the current location in case it is replaced by a safehome or HOME_RESET
+                original_rth_home.x = posControl.rthState.homePosition.pos.x;
+                original_rth_home.y = posControl.rthState.homePosition.pos.y;
+                original_rth_home.z = posControl.rthState.homePosition.pos.z;
             }
         }
     }
@@ -3165,6 +3190,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         const bool canActivatePosHold    = canActivatePosHoldMode();
         const bool canActivateNavigation = canActivateNavigationModes();
         const bool isExecutingRTH        = navGetStateFlags(posControl.navState) & NAV_AUTO_RTH;
+        checkSafeHomeState(isExecutingRTH || posControl.flags.forcedRTHActivated);
 
         // Keep canActivateWaypoint flag at FALSE if there is no mission loaded
         // Also block WP mission if we are executing RTH
@@ -3601,6 +3627,7 @@ void activateForcedRTH(void)
 {
     abortFixedWingLaunch();
     posControl.flags.forcedRTHActivated = true;
+    checkSafeHomeState(true);
     navProcessFSMEvents(selectNavEventFromBoxModeInput());
 }
 
@@ -3609,6 +3636,7 @@ void abortForcedRTH(void)
     // Disable failsafe RTH and make sure we back out of navigation mode to IDLE
     // If any navigation mode was active prior to RTH it will be re-enabled with next RX update
     posControl.flags.forcedRTHActivated = false;
+    checkSafeHomeState(false);
     navProcessFSMEvents(NAV_FSM_EVENT_SWITCH_TO_IDLE);
 }
 

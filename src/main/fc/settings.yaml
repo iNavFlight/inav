@@ -163,6 +163,9 @@ tables:
     values: ["OFF_ALWAYS", "OFF", "AUTO_ONLY", "ALL_NAV"]
   - name: osd_plus_code_short
     values: ["0", "2", "4", "6"]
+  - name: safehome_usage_mode
+    values: ["OFF", "RTH", "RTH_FS"]
+    enum: safehomeUsageMode_e
   - name: nav_rth_climb_first
     enum: navRTHClimbFirst_e
     values: ["OFF", "ON", "ON_FW_SPIRAL"]
@@ -2372,6 +2375,11 @@ groups:
         field: general.safehome_max_distance
         min: 0
         max: 65000
+      - name: safehome_usage_mode
+        description: "Used to control when safehomes will be used. Possible values are `OFF`, `RTH` and `RTH_FS`.  See [Safehome documentation](Safehomes.md#Safehome) for more information."
+        default_value: "RTH"
+        field: general.flags.safehome_usage_mode
+        table: safehome_usage_mode
       - name: nav_mc_bank_angle
         description: "Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude"
         default_value: 30

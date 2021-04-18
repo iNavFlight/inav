@@ -473,6 +473,7 @@
 | rx_spi_protocol | _target default_ |  |
 | rx_spi_rf_channel_count | 0 |  |
 | safehome_max_distance | 20000 | In order for a safehome to be used, it must be less than this distance (in cm) from the arming point. |
+| safehome_usage_mode | RTH | Used to control when safehomes will be used. Possible values are `OFF`, `RTH` and `RTH_FS`.  See [Safehome documentation](Safehomes.md#Safehome) for more information. |
 | sbus_sync_interval | 3000 |  |
 | sdcard_detect_inverted | _target default_ | This setting drives the way SD card is detected in card slot. On some targets (AnyFC F7 clone) different card slot was used and depending of hardware revision ON or OFF setting might be required. If card is not detected, change this value. |
 | serialrx_halfduplex | AUTO | Allow serial receiver to operate on UART TX pin. With some receivers will allow control and telemetry over a single wire. |
