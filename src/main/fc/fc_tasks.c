@@ -47,6 +47,7 @@
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/wind_estimator.h"
+#include "flight/secondary_imu.h"
 #include "flight/rpm_filter.h"
 #include "flight/servos.h"
 #include "flight/dynamic_lpf.h"
@@ -305,7 +306,7 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_AUX, true);
 
     setTaskEnabled(TASK_SERIAL, true);
-#ifdef BEEPER
+#if defined(BEEPER) || defined(USE_DSHOT)
     setTaskEnabled(TASK_BEEPER, true);
 #endif
 #ifdef USE_LIGHTS
@@ -375,6 +376,9 @@ void fcTasksInit(void)
 #if defined(USE_SMARTPORT_MASTER)
     setTaskEnabled(TASK_SMARTPORT_MASTER, true);
 #endif
+#ifdef USE_SECONDARY_IMU
+    setTaskEnabled(TASK_SECONDARY_IMU, secondaryImuConfig()->hardwareType != SECONDARY_IMU_NONE && secondaryImuState.active);
+#endif
 }
 
 cfTask_t cfTasks[TASK_COUNT] = {
@@ -397,7 +401,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .staticPriority = TASK_PRIORITY_LOW,
     },
 
-#ifdef BEEPER
+#if defined(BEEPER) || defined(USE_DSHOT)
     [TASK_BEEPER] = {
         .taskName = "BEEPER",
         .taskFunc = beeperUpdate,
@@ -593,6 +597,14 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_PROGRAMMING_FRAMEWORK] = {
         .taskName = "PROGRAMMING",
         .taskFunc = programmingFrameworkUpdateTask,
+        .desiredPeriod = TASK_PERIOD_HZ(10),          // 10Hz @100msec
+        .staticPriority = TASK_PRIORITY_IDLE,
+    },
+#endif
+#ifdef USE_SECONDARY_IMU
+    [TASK_SECONDARY_IMU] = {
+        .taskName = "IMU2",
+        .taskFunc = taskSecondaryImu,
         .desiredPeriod = TASK_PERIOD_HZ(10),          // 10Hz @100msec
         .staticPriority = TASK_PRIORITY_IDLE,
     },

@@ -91,6 +91,8 @@ typedef enum {
     DEVHW_MPU6050,
     DEVHW_MPU6500,
     DEVHW_BMI160,
+    DEVHW_BMI088_GYRO,
+    DEVHW_BMI088_ACC,
     DEVHW_ICM20689,
 
     /* Combined ACC/GYRO/MAG chips */
@@ -116,6 +118,7 @@ typedef enum {
     DEVHW_QMC5883,
     DEVHW_MAG3110,
     DEVHW_LIS3MDL,
+    DEVHW_RM3100,
 
     /* Temp sensor chips */
     DEVHW_LM75_0,
@@ -137,6 +140,8 @@ typedef enum {
     DEVHW_SRF10,
     DEVHW_HCSR04_I2C,   // DIY-style adapter
     DEVHW_VL53L0X,
+    DEVHW_VL53L1X,
+    DEVHW_US42,
 
     /* Other hardware */
     DEVHW_MS4525,       // Pitot meter
@@ -146,6 +151,7 @@ typedef enum {
     DEVHW_SDCARD,       // Generic SD-Card
     DEVHW_IRLOCK,       // IR-Lock visual positioning hardware
     DEVHW_PCF8574,      // 8-bit I/O expander
+    DEVHW_BNO055,       // BNO055 IMU
 } devHardwareType_e;
 
 typedef enum {

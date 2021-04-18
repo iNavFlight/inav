@@ -38,6 +38,7 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/time.h"
 #include "drivers/system.h"
 #include "drivers/pwm_output.h"
+#include "drivers/accgyro/accgyro_bno055.h"
 
 #include "sensors/sensors.h"
 #include "sensors/diagnostics.h"
@@ -89,6 +90,7 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/failsafe.h"
 
 #include "config/feature.h"
+#include "common/vector.h"
 #include "programming/pid.h"
 
 // June 2013     V2.2-dev
@@ -129,7 +131,11 @@ uint8_t motorControlEnable = false;
 static bool isRXDataNew;
 static uint32_t gyroSyncFailureCount;
 static disarmReason_t lastDisarmReason = DISARM_NONE;
+timeUs_t lastDisarmTimeUs = 0;
 static emergencyArmingState_t emergencyArming;
+
+static bool prearmWasReset = false; // Prearm must be reset (RC Mode not active) before arming is possible
+static timeMs_t prearmActivationTime = 0;
 
 bool isCalibrating(void)
 {
@@ -295,6 +301,33 @@ static void updateArmingStatus(void)
 	       DISABLE_ARMING_FLAG(ARMING_DISABLED_SERVO_AUTOTRIM);
 	    }
 
+#ifdef USE_DSHOT
+        /* CHECK: Don't arm if the DShot beeper was used recently, as there is a minimum delay before sending the next DShot command */
+        if (micros() - getLastDshotBeeperCommandTimeUs() < getDShotBeaconGuardDelayUs()) {
+            ENABLE_ARMING_FLAG(ARMING_DISABLED_DSHOT_BEEPER);
+        } else {
+            DISABLE_ARMING_FLAG(ARMING_DISABLED_DSHOT_BEEPER);
+        }
+#else
+        DISABLE_ARMING_FLAG(ARMING_DISABLED_DSHOT_BEEPER);
+#endif
+
+        if (isModeActivationConditionPresent(BOXPREARM)) {
+            if (IS_RC_MODE_ACTIVE(BOXPREARM)) {
+                if (prearmWasReset && (armingConfig()->prearmTimeoutMs == 0 || millis() - prearmActivationTime < armingConfig()->prearmTimeoutMs)) {
+                    DISABLE_ARMING_FLAG(ARMING_DISABLED_NO_PREARM);
+                } else {
+                    ENABLE_ARMING_FLAG(ARMING_DISABLED_NO_PREARM);
+                }
+            } else {
+                prearmWasReset = true;
+                prearmActivationTime = millis();
+                ENABLE_ARMING_FLAG(ARMING_DISABLED_NO_PREARM);
+            }
+        } else {
+            DISABLE_ARMING_FLAG(ARMING_DISABLED_NO_PREARM);
+        }
+
         /* CHECK: Arming switch */
         // If arming is disabled and the ARM switch is on
         // Note that this should be last check so all other blockers could be cleared correctly
@@ -381,6 +414,7 @@ void disarm(disarmReason_t disarmReason)
 {
     if (ARMING_FLAG(ARMED)) {
         lastDisarmReason = disarmReason;
+        lastDisarmTimeUs = micros();
         DISABLE_ARMING_FLAG(ARMED);
 
 #ifdef USE_BLACKBOX
@@ -388,12 +422,27 @@ void disarm(disarmReason_t disarmReason)
             blackboxFinish();
         }
 #endif
-
+#ifdef USE_DSHOT
+        if (FLIGHT_MODE(FLIP_OVER_AFTER_CRASH)) {
+            sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_NORMAL);
+            DISABLE_FLIGHT_MODE(FLIP_OVER_AFTER_CRASH);
+        }
+#endif
         statsOnDisarm();
         logicConditionReset();
+
+#ifdef USE_PROGRAMMING_FRAMEWORK
         programmingPidReset();
+#endif
+
         beeper(BEEPER_DISARMING);      // emit disarm tone
+
+        prearmWasReset = false;
     }
+}
+
+timeUs_t getLastDisarmTimeUs(void) {
+    return lastDisarmTimeUs;
 }
 
 disarmReason_t getDisarmReason(void)
@@ -447,6 +496,7 @@ void releaseSharedTelemetryPorts(void) {
 void tryArm(void)
 {
     updateArmingStatus();
+
 #ifdef USE_PROGRAMMING_FRAMEWORK
     if (
         !isArmingDisabled() || 
@@ -462,6 +512,21 @@ void tryArm(void)
         if (ARMING_FLAG(ARMED)) {
             return;
         }
+
+#ifdef USE_DSHOT
+        if (
+                STATE(MULTIROTOR) &&
+                IS_RC_MODE_ACTIVE(BOXFLIPOVERAFTERCRASH) &&
+                emergencyArmingCanOverrideArmingDisabled() &&
+                isMotorProtocolDshot() &&
+                !FLIGHT_MODE(FLIP_OVER_AFTER_CRASH)
+                ) {
+            sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_REVERSED);
+            ENABLE_ARMING_FLAG(ARMED);
+            enableFlightMode(FLIP_OVER_AFTER_CRASH);
+            return;
+        }
+#endif
 
 #if defined(USE_NAV)
         // If nav_extra_arming_safety was bypassed we always
@@ -482,7 +547,11 @@ void tryArm(void)
         //It is required to inform the mixer that arming was executed and it has to switch to the FORWARD direction
         ENABLE_STATE(SET_REVERSIBLE_MOTORS_FORWARD);
         logicConditionReset();
+
+#ifdef USE_PROGRAMMING_FRAMEWORK
         programmingPidReset();
+#endif
+
         headFreeModeHold = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
 
         resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
@@ -506,6 +575,7 @@ void tryArm(void)
 #else
         beeper(BEEPER_ARMING);
 #endif
+
         statsOnArm();
 
         return;
@@ -738,7 +808,7 @@ void processRx(timeUs_t currentTimeUs)
 }
 
 // Function for loop trigger
-void FAST_CODE NOINLINE taskGyro(timeUs_t currentTimeUs) {
+void FAST_CODE taskGyro(timeUs_t currentTimeUs) {
     // getTaskDeltaTime() returns delta time frozen at the moment of entering the scheduler. currentTime is frozen at the very same point.
     // To make busy-waiting timeout work we need to account for time spent within busy-waiting loop
     const timeDelta_t currentDeltaTime = getTaskDeltaTime(TASK_SELF);
