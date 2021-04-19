@@ -2843,7 +2843,6 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
                         posControl.waypointList[wpNumber - 1].p1 -= 1; // make index (vice WP #)
                     }
                 }
-                posControl.geoWaypointList[wpNumber - 1] = wpNumber - nonGeoWaypointCount;
 
                 posControl.waypointCount = wpNumber;
                 posControl.waypointListValid = (wpData->flag == NAV_WP_FLAG_LAST);
