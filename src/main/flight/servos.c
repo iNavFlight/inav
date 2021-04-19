@@ -118,6 +118,7 @@ static servoMetadata_t servoMetadata[MAX_SUPPORTED_SERVOS];
 static rateLimitFilter_t servoSpeedLimitFilter[MAX_SERVO_RULES];
 
 STATIC_FASTRAM pt1Filter_t rotRateFilter;
+STATIC_FASTRAM pt1Filter_t targetRateFilter;
 
 int16_t getFlaperonDirection(uint8_t servoPin)
 {
@@ -498,12 +499,14 @@ void processContinuousServoAutotrim(const float dT)
 
     const float rotRateMagnitude = sqrtf(vectorNormSquared(&imuMeasuredRotationBF));
     const float rotRateMagnitudeFiltered = pt1FilterApply4(&rotRateFilter, rotRateMagnitude, SERVO_AUTOTRIM_FILTER_CUTOFF, dT);
+    const float targetRateMagnitude = getTotalRateTarget();
+    const float targetRateMagnitudeFiltered = pt1FilterApply4(&targetRateFilter, targetRateMagnitude, SERVO_AUTOTRIM_FILTER_CUTOFF, dT);
 
     if (ARMING_FLAG(ARMED)) {
         trimState = AUTOTRIM_COLLECTING;
         if ((millis() - lastUpdateTimeMs) > 500) {
             const bool planeFlyingStraight = rotRateMagnitudeFiltered <= DEGREES_TO_RADIANS(servoConfig()->servo_autotrim_rotation_limit);
-            const bool zeroRotationCommanded = getTotalRateTarget() <= servoConfig()->servo_autotrim_rotation_limit;
+            const bool zeroRotationCommanded = targetRateMagnitudeFiltered <= servoConfig()->servo_autotrim_rotation_limit;
             if (planeFlyingStraight && zeroRotationCommanded && !areSticksDeflectedMoreThanPosHoldDeadband() && !FLIGHT_MODE(MANUAL_MODE) && isGPSHeadingValid()) { 
                 // Plane is flying straight and sticks are centered
                 for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
@@ -547,7 +550,7 @@ void processContinuousServoAutotrim(const float dT)
     DEBUG_SET(DEBUG_AUTOTRIM, 4, servoParams(4)->middle);
     DEBUG_SET(DEBUG_AUTOTRIM, 6, servoParams(5)->middle);
     DEBUG_SET(DEBUG_AUTOTRIM, 1, servoMiddleUpdateCount);
-    DEBUG_SET(DEBUG_AUTOTRIM, 3, MAX(RADIANS_TO_DEGREES(rotRateMagnitudeFiltered), getTotalRateTarget()));
+    DEBUG_SET(DEBUG_AUTOTRIM, 3, MAX(RADIANS_TO_DEGREES(rotRateMagnitudeFiltered), targetRateMagnitudeFiltered));
     DEBUG_SET(DEBUG_AUTOTRIM, 5, axisPID_I[FD_ROLL]);
     DEBUG_SET(DEBUG_AUTOTRIM, 7, axisPID_I[FD_PITCH]);    
 }
