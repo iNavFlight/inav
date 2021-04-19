@@ -1722,10 +1722,10 @@ groups:
         table: direction
       - name: fw_reference_airspeed
         description: "Reference airspeed. Set this to airspeed at which PIDs were tuned. Usually should be set to cruise airspeed. Also used for coordinated turn calculation if airspeed sensor is not present."
-        default_value: 1000
+        default_value: 1500
         field: fixedWingReferenceAirspeed
-        min: 1
-        max: 5000
+        min: 300
+        max: 6000
       - name: fw_turn_assist_yaw_gain
         description: "Gain required to keep the yaw rate consistent with the turn rate for a coordinated turn (in TURN_ASSIST mode). Value significantly different from 1.0 indicates a problem with the airspeed calibration (if present) or value of `fw_reference_airspeed` parameter"
         default_value: 1
