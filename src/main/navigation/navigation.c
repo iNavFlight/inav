@@ -1480,6 +1480,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_INITIALIZE(nav
 */
         setupJumpCounters();
         posControl.activeWaypointIndex = 0;
+        wpHeadingControl.mode = NAV_WP_HEAD_MODE_NONE;
         return NAV_FSM_EVENT_SUCCESS;   // will switch to NAV_STATE_WAYPOINT_PRE_ACTION
     }
 }
