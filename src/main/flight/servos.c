@@ -505,10 +505,17 @@ void processContinuousServoAutotrim(const float dT)
     if (ARMING_FLAG(ARMED)) {
         trimState = AUTOTRIM_COLLECTING;
         if ((millis() - lastUpdateTimeMs) > 500) {
-            const bool planeFlyingStraight = rotRateMagnitudeFiltered <= DEGREES_TO_RADIANS(servoConfig()->servo_autotrim_rotation_limit);
-            const bool zeroRotationCommanded = targetRateMagnitudeFiltered <= servoConfig()->servo_autotrim_rotation_limit;
-            if (planeFlyingStraight && zeroRotationCommanded && !areSticksDeflectedMoreThanPosHoldDeadband() && !FLIGHT_MODE(MANUAL_MODE) && isGPSHeadingValid()) { 
-                // Plane is flying straight and sticks are centered
+            const bool planeIsFlyingStraight = rotRateMagnitudeFiltered <= DEGREES_TO_RADIANS(servoConfig()->servo_autotrim_rotation_limit);
+            const bool noRotationCommanded = targetRateMagnitudeFiltered <= servoConfig()->servo_autotrim_rotation_limit;
+            const bool planeIsFlyingLevel = calculateCosTiltAngle() >= 0.878153032f;
+            if (
+                planeIsFlyingStraight && 
+                noRotationCommanded && 
+                planeIsFlyingLevel &&
+                !FLIGHT_MODE(MANUAL_MODE) && 
+                isGPSHeadingValid() // TODO: proper flying detection
+            ) { 
+                // Plane is flying straight and level: trim servos
                 for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
                     // For each stabilized axis, add 5 units of I-term to all associated servo midpoints
                     const float axisIterm = getAxisIterm(axis);
