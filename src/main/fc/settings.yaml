@@ -2278,10 +2278,16 @@ groups:
         field: general.max_manual_climb_rate
         min: 10
         max: 2000
-      - name: nav_landing_speed
-        description: "Vertical descent velocity during the RTH landing phase. [cm/s]"
+      - name: nav_landing_minalt_vspd
+        description: "Vertical descent velocity under nav_land_slowdown_minalt during the RTH landing phase. [cm/s]"
+        default_value: 50
+        field: general.land_minalt_vspd
+        min: 50
+        max: 500
+      - name: nav_landing_maxalt_vspd
+        description: "Vertical descent velocity above nav_land_slowdown_maxalt during the RTH landing phase. [cm/s]"
         default_value: 200
-        field: general.land_descent_rate
+        field: general.land_maxalt_vspd
         min: 100
         max: 2000
       - name: nav_land_slowdown_minalt
