@@ -321,11 +321,7 @@ bool gyroInit(void)
     gyroDev[0].initFn(&gyroDev[0]);
 
     // initFn will initialize sampleRateIntervalUs to actual gyro sampling rate (if driver supports it). Calculate target looptime using that value
-<<<<<<< HEAD
-    gyro.targetLooptime = gyroConfig()->gyroSync ? gyroDev[0].sampleRateIntervalUs : TASK_GYRO_LOOPTIME;
-=======
     gyro.targetLooptime = gyroDev[0].sampleRateIntervalUs;
->>>>>>> origin/master
 
     // At this poinrt gyroDev[0].gyroAlign was set up by the driver from the busDev record
     // If configuration says different - override
