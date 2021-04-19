@@ -131,3 +131,4 @@ void stopMotors(void);
 void stopPwmAllMotors(void);
 
 void loadPrimaryMotorMixer(void);
+bool areMotorsRunning(void);

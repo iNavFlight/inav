@@ -10,7 +10,7 @@ tables:
     values: ["NONE", "HCSR04", "SRF10", "INAV_I2C", "VL53L0X", "MSP", "UNUSED", "BENEWAKE", "VL53L1X", "US42"]
     enum: rangefinderType_e
   - name: secondary_imu_hardware
-    values: ["NONE", "BNO055"]
+    values: ["NONE", "BNO055", "BNO055_SERIAL"]
     enum: secondaryImuType_e
   - name: mag_hardware
     values: ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "MSP", "RM3100", FAKE"]
@@ -163,6 +163,12 @@ tables:
     values: ["OFF_ALWAYS", "OFF", "AUTO_ONLY", "ALL_NAV"]
   - name: osd_plus_code_short
     values: ["0", "2", "4", "6"]
+  - name: safehome_usage_mode
+    values: ["OFF", "RTH", "RTH_FS"]
+    enum: safehomeUsageMode_e
+  - name: nav_rth_climb_first
+    enum: navRTHClimbFirst_e
+    values: ["OFF", "ON", "ON_FW_SPIRAL"]
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -2313,10 +2319,10 @@ groups:
         field: general.flags.nav_overrides_motor_stop
         table: nav_overrides_motor_stop
       - name: nav_rth_climb_first
-        description: "If set to ON drone will climb to nav_rth_altitude first and head home afterwards. If set to OFF drone will head home instantly and climb on the way."
-        default_value: ON
+        description: "If set to ON or ON_FW_SPIRAL aircraft will climb to nav_rth_altitude first before turning to head home. If set to OFF aircraft will turn and head home immediately climbing on the way. For a fixed wing ON will use a linear climb, ON_FW_SPIRAL will use a loiter turning climb with climb rate set by nav_auto_climb_rate, turn rate set by nav_fw_loiter_radius (ON_FW_SPIRAL is a fixed wing setting and behaves the same as ON for a multirotor)"
+        default_value: "ON"
         field: general.flags.rth_climb_first
-        type: bool
+        table: nav_rth_climb_first
       - name: nav_rth_climb_ignore_emerg
         description: "If set to ON, aircraft will execute initial climb regardless of position sensor (GPS) status."
         default_value: OFF
@@ -2337,6 +2343,11 @@ groups:
         default_value: "AT_LEAST"
         field: general.flags.rth_alt_control_mode
         table: nav_rth_alt_mode
+      - name: nav_rth_alt_control_override
+        description: "If set to ON RTH altitude and CLIMB FIRST settings can be overridden during the RTH climb phase using full pitch or roll stick held for > 1 second. RTH altitude is reset to the current altitude using pitch down stick. RTH CLIMB FIRST is overridden using right roll stick so craft turns and heads directly to home (CLIMB FIRST override only works for fixed wing)"
+        default_value: OFF
+        field: general.flags.rth_alt_control_override
+        type: bool
       - name: nav_rth_abort_threshold
         description: "RTH sanity checking feature will notice if distance to home is increasing during RTH and once amount of increase exceeds the threshold defined by this parameter, instead of continuing RTH machine will enter emergency landing, self-level and go down safely. Default is 500m which is safe enough for both multirotor machines and airplanes. [cm]"
         default_value: 50000
@@ -2364,6 +2375,11 @@ groups:
         field: general.safehome_max_distance
         min: 0
         max: 65000
+      - name: safehome_usage_mode
+        description: "Used to control when safehomes will be used. Possible values are `OFF`, `RTH` and `RTH_FS`.  See [Safehome documentation](Safehomes.md#Safehome) for more information."
+        default_value: "RTH"
+        field: general.flags.safehome_usage_mode
+        table: safehome_usage_mode
       - name: nav_mc_bank_angle
         description: "Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude"
         default_value: 30
@@ -3490,3 +3506,20 @@ groups:
           field: speedSource
           table: djiOsdSpeedSource
           type: uint8_t
+
+  - name: PG_BEEPER_CONFIG
+    type: beeperConfig_t
+    headers: [ "fc/config.h" ]
+    members:
+      - name: dshot_beeper_enabled
+        description: "Whether using DShot motors as beepers is enabled"
+        default_value: ON
+        field: dshot_beeper_enabled
+        type: bool
+      - name: dshot_beeper_tone
+        description: "Sets the DShot beeper tone"
+        min: 1
+        max: 5
+        default_value: 1
+        field: dshot_beeper_tone
+        type: uint8_t

@@ -58,9 +58,9 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXNAVPOSHOLD, "NAV POSHOLD", 11 },     // old GPS HOLD
     { BOXMANUAL, "MANUAL", 12 },
     { BOXBEEPERON, "BEEPER", 13 },
-    { BOXLEDLOW, "LEDLOW", 15 },
+    { BOXLEDLOW, "LEDS OFF", 15 },
     { BOXLIGHTS, "LIGHTS", 16 },
-    { BOXOSD, "OSD SW", 19 },
+    { BOXOSD, "OSD OFF", 19 },
     { BOXTELEMETRY, "TELEMETRY", 20 },
     { BOXAUTOTUNE, "AUTO TUNE", 21 },
     { BOXBLACKBOX, "BLACKBOX", 26 },
