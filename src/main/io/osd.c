@@ -3017,7 +3017,7 @@ static void osdResetStats(void)
 
 static void osdUpdateStats(void)
 {
-    int16_t value;
+    int32_t value;
 
     if (feature(FEATURE_GPS)) {
         value = osdGet3DSpeed();
@@ -3036,7 +3036,7 @@ static void osdUpdateStats(void)
     if (stats.max_current < value)
         stats.max_current = value;
 
-    value = abs(getPower());
+    value = labs(getPower());
     if (stats.max_power < value)
         stats.max_power = value;
 
