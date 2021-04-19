@@ -2291,13 +2291,13 @@ groups:
         min: 100
         max: 2000
       - name: nav_land_slowdown_minalt
-        description: "Defines at what altitude the descent velocity should start to be 25% of nav_landing_speed [cm]"
+        description: "Defines at what altitude the descent velocity should start to be `nav_landing_minalt_vspd` [cm]"
         default_value: 500
         field: general.land_slowdown_minalt
         min: 50
         max: 1000
       - name: nav_land_slowdown_maxalt
-        description: "Defines at what altitude the descent velocity should start to ramp down from 100% nav_landing_speed to 25% nav_landing_speed. [cm]"
+        description: "Defines at what altitude the descent velocity should start to ramp down from `nav_landing_maxalt_vspd` to `nav_landing_minalt_vspd`. [cm]"
         default_value: 2000
         field: general.land_slowdown_maxalt
         min: 500
