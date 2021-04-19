@@ -123,7 +123,14 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .name = SETTING_NAME_DEFAULT
 );
 
-PG_REGISTER(beeperConfig_t, beeperConfig, PG_BEEPER_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(beeperConfig_t, beeperConfig, PG_BEEPER_CONFIG, 1);
+
+PG_RESET_TEMPLATE(beeperConfig_t, beeperConfig,
+                  .beeper_off_flags = 0,
+                  .preferred_beeper_off_flags = 0,
+                  .dshot_beeper_enabled = SETTING_DSHOT_BEEPER_ENABLED_DEFAULT,
+                  .dshot_beeper_tone = SETTING_DSHOT_BEEPER_TONE_DEFAULT,
+);
 
 PG_REGISTER_WITH_RESET_TEMPLATE(adcChannelConfig_t, adcChannelConfig, PG_ADC_CHANNEL_CONFIG, 0);
 
@@ -289,10 +296,6 @@ void validateAndFixConfig(void)
         break;
 #endif
     }
-#endif
-
-#if !defined(USE_MPU_DATA_READY_SIGNAL)
-    gyroConfigMutable()->gyroSync = false;
 #endif
 
     // Call target-specific validation function

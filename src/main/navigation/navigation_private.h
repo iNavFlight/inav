@@ -37,6 +37,9 @@
 
 #define INAV_SURFACE_MAX_DISTANCE           40
 
+#define MAX_POSITION_UPDATE_INTERVAL_US     HZ2US(MIN_POSITION_UPDATE_RATE_HZ)        // convenience macro
+_Static_assert(MAX_POSITION_UPDATE_INTERVAL_US <= TIMEDELTA_MAX, "deltaMicros can overflow!");
+
 typedef enum {
     NAV_POS_UPDATE_NONE                 = 0,
     NAV_POS_UPDATE_Z                    = 1 << 1,
@@ -197,7 +200,7 @@ typedef enum {
 
     NAV_PERSISTENT_ID_WAYPOINT_HOLD_TIME                        = 35,
     NAV_PERSISTENT_ID_RTH_HOVER_ABOVE_HOME                      = 36,
-    NAV_PERSISTENT_ID_WAYPOINT_HOVER_ABOVE_HOME                 = 37,  
+    NAV_PERSISTENT_ID_WAYPOINT_HOVER_ABOVE_HOME                 = 37,
 
 } navigationPersistentId_e;
 

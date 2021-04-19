@@ -104,7 +104,7 @@ EXTENDED_FASTRAM dynamicGyroNotchState_t dynamicGyroNotchState;
 
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 11);
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 12);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_lpf = SETTING_GYRO_HARDWARE_LPF_DEFAULT,
@@ -113,7 +113,6 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_align = SETTING_ALIGN_GYRO_DEFAULT,
     .gyroMovementCalibrationThreshold = SETTING_MORON_THRESHOLD_DEFAULT,
     .looptime = SETTING_LOOPTIME_DEFAULT,
-    .gyroSync = SETTING_GYRO_SYNC_DEFAULT,
 #ifdef USE_DUAL_GYRO
     .gyro_to_use = SETTING_GYRO_TO_USE_DEFAULT,
 #endif
@@ -322,7 +321,11 @@ bool gyroInit(void)
     gyroDev[0].initFn(&gyroDev[0]);
 
     // initFn will initialize sampleRateIntervalUs to actual gyro sampling rate (if driver supports it). Calculate target looptime using that value
+<<<<<<< HEAD
     gyro.targetLooptime = gyroConfig()->gyroSync ? gyroDev[0].sampleRateIntervalUs : TASK_GYRO_LOOPTIME;
+=======
+    gyro.targetLooptime = gyroDev[0].sampleRateIntervalUs;
+>>>>>>> origin/master
 
     // At this poinrt gyroDev[0].gyroAlign was set up by the driver from the busDev record
     // If configuration says different - override
@@ -539,19 +542,6 @@ int16_t gyroRateDps(int axis)
     }
 
     return lrintf(gyro.gyroADCf[axis]);
-}
-
-bool gyroSyncCheckUpdate(void)
-{
-    if (!gyro.initialized) {
-        return false;
-    }
-
-    if (!gyroDev[0].intStatusFn) {
-        return false;
-    }
-
-    return gyroDev[0].intStatusFn(&gyroDev[0]);
 }
 
 void gyroUpdateDynamicLpf(float cutoffFreq) {

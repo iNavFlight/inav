@@ -550,7 +550,7 @@ void smartportMasterHandle(timeUs_t currentTimeUs)
         return;
     }
 
-    if (!pollTimestamp || (cmpTimeUs(currentTimeUs, pollTimestamp) > SMARTPORT_POLLING_INTERVAL * 1000)) {
+    if (!pollTimestamp || (cmpTimeUs(currentTimeUs, pollTimestamp) > MS2US(SMARTPORT_POLLING_INTERVAL))) {
         if (forwardRequestCount() && (forcedPolledPhyID == -1)) { // forward next payload if there is one in queue and we are not waiting from the response of the previous one
             smartportMasterForwardNextPayload();
         } else {

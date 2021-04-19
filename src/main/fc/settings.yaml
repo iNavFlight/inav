@@ -10,7 +10,7 @@ tables:
     values: ["NONE", "HCSR04", "SRF10", "INAV_I2C", "VL53L0X", "MSP", "UNUSED", "BENEWAKE", "VL53L1X", "US42"]
     enum: rangefinderType_e
   - name: secondary_imu_hardware
-    values: ["NONE", "BNO055"]
+    values: ["NONE", "BNO055", "BNO055_SERIAL"]
     enum: secondaryImuType_e
   - name: mag_hardware
     values: ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "MSP", "RM3100", FAKE"]
@@ -163,6 +163,9 @@ tables:
     values: ["OFF_ALWAYS", "OFF", "AUTO_ONLY", "ALL_NAV"]
   - name: osd_plus_code_short
     values: ["0", "2", "4", "6"]
+  - name: safehome_usage_mode
+    values: ["OFF", "RTH", "RTH_FS"]
+    enum: safehomeUsageMode_e
   - name: nav_rth_climb_first
     enum: navRTHClimbFirst_e
     values: ["OFF", "ON", "ON_FW_SPIRAL"]
@@ -176,11 +179,6 @@ groups:
         description: "This is the main loop time (in us). Changing this affects PID effect with some PID controllers (see PID section for details). A very conservative value of 3500us/285Hz should work for everyone. Setting it to zero does not limit loop time, so it will go as fast as possible."
         default_value: 1000
         max: 9000
-      - name: gyro_sync
-        description: "This option enables gyro_sync feature. In this case the loop will be synced to gyro refresh rate. Loop will always wait for the newest gyro measurement. Maximum gyro refresh rate is determined by gyro_hardware_lpf"
-        default_value: ON
-        field: gyroSync
-        type: bool
       - name: align_gyro
         description: "When running on non-default hardware or adding support for new sensors/sensor boards, these values are used for sensor orientation. When carefully understood, these values can also be used to rotate (in 90deg steps) or flip the board. Possible values are: DEFAULT, CW0_DEG, CW90_DEG, CW180_DEG, CW270_DEG, CW0_DEG_FLIP, CW90_DEG_FLIP, CW180_DEG_FLIP, CW270_DEG_FLIP."
         default_value: "DEFAULT"
@@ -2340,6 +2338,11 @@ groups:
         default_value: "AT_LEAST"
         field: general.flags.rth_alt_control_mode
         table: nav_rth_alt_mode
+      - name: nav_rth_alt_control_override
+        description: "If set to ON RTH altitude and CLIMB FIRST settings can be overridden during the RTH climb phase using full pitch or roll stick held for > 1 second. RTH altitude is reset to the current altitude using pitch down stick. RTH CLIMB FIRST is overridden using right roll stick so craft turns and heads directly to home (CLIMB FIRST override only works for fixed wing)"
+        default_value: OFF
+        field: general.flags.rth_alt_control_override
+        type: bool
       - name: nav_rth_abort_threshold
         description: "RTH sanity checking feature will notice if distance to home is increasing during RTH and once amount of increase exceeds the threshold defined by this parameter, instead of continuing RTH machine will enter emergency landing, self-level and go down safely. Default is 500m which is safe enough for both multirotor machines and airplanes. [cm]"
         default_value: 50000
@@ -2367,6 +2370,11 @@ groups:
         field: general.safehome_max_distance
         min: 0
         max: 65000
+      - name: safehome_usage_mode
+        description: "Used to control when safehomes will be used. Possible values are `OFF`, `RTH` and `RTH_FS`.  See [Safehome documentation](Safehomes.md#Safehome) for more information."
+        default_value: "RTH"
+        field: general.flags.safehome_usage_mode
+        table: safehome_usage_mode
       - name: nav_mc_bank_angle
         description: "Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude"
         default_value: 30
@@ -3493,3 +3501,20 @@ groups:
           field: speedSource
           table: djiOsdSpeedSource
           type: uint8_t
+
+  - name: PG_BEEPER_CONFIG
+    type: beeperConfig_t
+    headers: [ "fc/config.h" ]
+    members:
+      - name: dshot_beeper_enabled
+        description: "Whether using DShot motors as beepers is enabled"
+        default_value: ON
+        field: dshot_beeper_enabled
+        type: bool
+      - name: dshot_beeper_tone
+        description: "Sets the DShot beeper tone"
+        min: 1
+        max: 5
+        default_value: 1
+        field: dshot_beeper_tone
+        type: uint8_t

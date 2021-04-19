@@ -77,6 +77,7 @@
 #define OSD_MSG_CLI_ACTIVE          "CLI IS ACTIVE"
 #define OSD_MSG_PWM_INIT_ERROR      "PWM INIT ERROR"
 #define OSD_MSG_NO_PREARM           "NO PREARM"
+#define OSD_MSG_DSHOT_BEEPER        "MOTOR BEEPER ACTIVE"
 #define OSD_MSG_RTH_FS              "(RTH)"
 #define OSD_MSG_EMERG_LANDING_FS    "(EMERGENCY LANDING)"
 #define OSD_MSG_MOVE_EXIT_FS        "!MOVE STICKS TO EXIT FS!"
@@ -98,6 +99,11 @@
 #define OSD_MSG_AUTOTUNE            "(AUTOTUNE)"
 #define OSD_MSG_HEADFREE            "(HEADFREE)"
 #define OSD_MSG_UNABLE_ARM          "UNABLE TO ARM"
+
+#if defined(USE_SAFE_HOME)
+#define OSD_MSG_DIVERT_SAFEHOME     "DIVERTING TO SAFEHOME"
+#define OSD_MSG_LOITERING_SAFEHOME  "LOITERING AROUND SAFEHOME"
+#endif
 
 typedef enum {
     OSD_RSSI_VALUE,
