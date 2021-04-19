@@ -318,9 +318,10 @@
 | nav_fw_pos_z_i | 5 | I gain of altitude PID controller (Fixedwing) |
 | nav_fw_pos_z_p | 40 | P gain of altitude PID controller (Fixedwing) |
 | nav_fw_yaw_deadband | 0 | Deadband for heading trajectory PID controller. When heading error is below the deadband, controller assumes that vehicle is on course |
-| nav_land_slowdown_maxalt | 2000 | Defines at what altitude the descent velocity should start to ramp down from 100% nav_landing_speed to 25% nav_landing_speed. [cm] |
-| nav_land_slowdown_minalt | 500 | Defines at what altitude the descent velocity should start to be 25% of nav_landing_speed [cm] |
-| nav_landing_speed | 200 | Vertical descent velocity during the RTH landing phase. [cm/s] |
+| nav_land_maxalt_vspd | 200 | Vertical descent velocity above nav_land_slowdown_maxalt during the RTH landing phase. [cm/s] |
+| nav_land_minalt_vspd | 50 | Vertical descent velocity under nav_land_slowdown_minalt during the RTH landing phase. [cm/s] |
+| nav_land_slowdown_maxalt | 2000 | Defines at what altitude the descent velocity should start to ramp down from `nav_land_maxalt_vspd` to `nav_land_minalt_vspd` during the RTH landing phase [cm] |
+| nav_land_slowdown_minalt | 500 | Defines at what altitude the descent velocity should start to be `nav_land_minalt_vspd` [cm] |
 | nav_manual_climb_rate | 200 | Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s] |
 | nav_manual_speed | 500 | Maximum velocity firmware is allowed when processing pilot input for POSHOLD/CRUISE control mode [cm/s] [Multirotor only] |
 | nav_max_terrain_follow_alt | 100 | Max allowed above the ground altitude for terrain following mode |
