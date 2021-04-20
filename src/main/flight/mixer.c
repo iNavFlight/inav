@@ -73,6 +73,8 @@ static EXTENDED_FASTRAM int throttleRangeMin = 0;
 static EXTENDED_FASTRAM int throttleRangeMax = 0;
 static EXTENDED_FASTRAM int8_t motorYawMultiplier = 1;
 
+int motorZeroCommand = 0;
+
 PG_REGISTER_WITH_RESET_TEMPLATE(reversibleMotorsConfig_t, reversibleMotorsConfig, PG_REVERSIBLE_MOTORS_CONFIG, 0);
 
 PG_RESET_TEMPLATE(reversibleMotorsConfig_t, reversibleMotorsConfig,
@@ -273,7 +275,6 @@ void mixerInit(void)
 
 void mixerResetDisarmedMotors(void)
 {
-    int motorZeroCommand;
 
     if (feature(FEATURE_REVERSIBLE_MOTORS)) {
         motorZeroCommand = reversibleMotorsConfig()->neutral;
@@ -719,4 +720,19 @@ void loadPrimaryMotorMixer(void) {
     for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
         currentMixer[i] = *primaryMotorMixer(i);
     }
+}
+
+bool areMotorsRunning(void)
+{
+    if (ARMING_FLAG(ARMED)) {
+        return true;
+    } else {
+        for (int i = 0; i < motorCount; i++) {
+            if (motor_disarmed[i] != motorZeroCommand) {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
