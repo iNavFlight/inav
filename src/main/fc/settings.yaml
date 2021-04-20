@@ -2091,12 +2091,6 @@ groups:
         field: fw_rate_adjustment
         table: autotune_rate_adjustment
         type: uint8_t
-      - name: fw_autotune_convergence_rate
-        description: "How much autotune adjusts the gains on each update. Setting this too high can cause erratically changing gains during autotune."
-        default_value: 10
-        field: fw_convergence_rate
-        min: 1
-        max: 50
       - name: fw_autotune_max_rate_deflection
         description: "The target percentage of maximum mixer output used for determining the rates in `AUTO` and `LIMIT`."
         default_value: 80

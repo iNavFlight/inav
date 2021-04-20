@@ -51,6 +51,7 @@
 #define AUTOTUNE_FIXED_WING_MIN_ROLL_PITCH_RATE 40
 #define AUTOTUNE_FIXED_WING_MIN_YAW_RATE        10
 #define AUTOTUNE_FIXED_WING_MAX_RATE            720
+#define AUTOTUNE_FIXED_WING_CONVERGENCE_RATE    10
 
 PG_REGISTER_WITH_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig, PG_PID_AUTOTUNE_CONFIG, 2);
 
@@ -61,7 +62,6 @@ PG_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig,
     .fw_ff_to_i_time_constant = SETTING_FW_AUTOTUNE_FF_TO_I_TC_DEFAULT,
     .fw_p_to_d_gain = SETTING_FW_AUTOTUNE_P_TO_D_GAIN_DEFAULT,
     .fw_rate_adjustment = SETTING_FW_AUTOTUNE_RATE_ADJUSTMENT_DEFAULT,
-    .fw_convergence_rate = SETTING_FW_AUTOTUNE_CONVERGENCE_RATE_DEFAULT,
     .fw_max_rate_deflection = SETTING_FW_AUTOTUNE_MAX_RATE_DEFLECTION_DEFAULT,
 );
 
@@ -179,17 +179,16 @@ static void blackboxLogAutotuneEvent(adjustmentFunction_e adjustmentFunction, in
 void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRateDps, float reachedRateDps, float pidOutput)
 {
     const timeMs_t currentTimeMs = millis();
-    const float convergenceRate = pidAutotuneConfig()->fw_convergence_rate / 100.0f;
     float maxDesiredRateDps = tuneCurrent[axis].rate;
     float gainFF = tuneCurrent[axis].gainFF;
-    float pidSumLimit = (axis == FD_YAW) ? pidProfile()->pidSumLimitYaw : pidProfile()->pidSumLimit;
 
+    const float pidSumLimit = (axis == FD_YAW) ? pidProfile()->pidSumLimitYaw : pidProfile()->pidSumLimit;
     const float absDesiredRateDps = fabsf(desiredRateDps);
     const float absReachedRateDps = fabsf(reachedRateDps);
     const float absPidOutput = fabsf(pidOutput);
     const bool correctDirection = (desiredRateDps>0) == (reachedRateDps>0);
     const float stickInput = absDesiredRateDps / maxDesiredRateDps;
-
+    
     pidAutotuneState_e newState;
     float rateFullStick;
     float pidOutputRequired;
@@ -254,7 +253,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
 
                     // Update FF towards value needed to achieve current rate target
                     pidOutputRequired = MIN(tuneCurrent[axis].maxAbsPidOutput * (tuneCurrent[axis].maxAbsDesiredRateDps / tuneCurrent[axis].maxAbsReachedRateDps), pidSumLimit);
-                    gainFF += (pidOutputRequired / tuneCurrent[axis].maxAbsDesiredRateDps * FP_PID_RATE_FF_MULTIPLIER - gainFF) * convergenceRate;
+                    gainFF += (pidOutputRequired / tuneCurrent[axis].maxAbsDesiredRateDps * FP_PID_RATE_FF_MULTIPLIER - gainFF) * (AUTOTUNE_FIXED_WING_CONVERGENCE_RATE / 100.0f);
                     tuneCurrent[axis].gainFF = constrainf(gainFF, AUTOTUNE_FIXED_WING_MIN_FF, AUTOTUNE_FIXED_WING_MAX_FF);
                     gainsUpdated = true;
 

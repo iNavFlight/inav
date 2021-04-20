@@ -170,7 +170,6 @@ typedef struct pidAutotuneConfig_s {
     uint8_t     fw_p_to_d_gain;             // P to D gain (strength relationship) [%]
     uint16_t    fw_ff_to_i_time_constant;   // FF to I time (defines time for I to reach the same level of response as FF) [ms]
     uint8_t     fw_rate_adjustment;         // Adjust rate settings during autotune?
-    uint8_t     fw_convergence_rate;        // Convergence rate
     uint8_t     fw_max_rate_deflection;     // Percentage of max mixer output used for calculating the rates
 } pidAutotuneConfig_t;
 

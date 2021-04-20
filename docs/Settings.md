@@ -109,7 +109,6 @@
 | frsky_pitch_roll | OFF | S.Port and D-Series telemetry: Send pitch and roll degrees*10 instead of raw accelerometer data |
 | frsky_unit | METRIC | Not used? [METRIC/IMPERIAL] |
 | frsky_vfas_precision | 0 | D-Series telemetry only: Set to 1 to send raw VBat value in 0.1V resolution for receivers that can handle it, or 0 (default) to use the standard method |
-| fw_autotune_convergence_rate | 10 | How much autotune adjusts the gains on each update. Setting this too high can cause erratically changing gains during autotune. |
 | fw_autotune_detect_time | 250 | Time [ms] to detect sustained undershoot or overshoot |
 | fw_autotune_ff_to_i_tc | 600 | FF to I time (defines time for I to reach the same level of response as FF) [ms] |
 | fw_autotune_ff_to_p_gain | 10 | FF to P gain (strength relationship) [%] |
