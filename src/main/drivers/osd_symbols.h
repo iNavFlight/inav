@@ -248,6 +248,8 @@
 
 #define SYM_KILOWATT              0xEF // 239 kW
 
+#define SYM_AH_KM_0               0x1AE // 430 Ah/km left
+#define SYM_AH_KM_1               0x1AF // 431 Ah/km right
 
 #else
 
