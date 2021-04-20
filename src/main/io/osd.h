@@ -76,6 +76,8 @@
 #define OSD_MSG_INVALID_SETTING     "INVALID SETTING"
 #define OSD_MSG_CLI_ACTIVE          "CLI IS ACTIVE"
 #define OSD_MSG_PWM_INIT_ERROR      "PWM INIT ERROR"
+#define OSD_MSG_NO_PREARM           "NO PREARM"
+#define OSD_MSG_DSHOT_BEEPER        "MOTOR BEEPER ACTIVE"
 #define OSD_MSG_RTH_FS              "(RTH)"
 #define OSD_MSG_EMERG_LANDING_FS    "(EMERGENCY LANDING)"
 #define OSD_MSG_MOVE_EXIT_FS        "!MOVE STICKS TO EXIT FS!"
@@ -97,6 +99,11 @@
 #define OSD_MSG_AUTOTUNE            "(AUTOTUNE)"
 #define OSD_MSG_HEADFREE            "(HEADFREE)"
 #define OSD_MSG_UNABLE_ARM          "UNABLE TO ARM"
+
+#if defined(USE_SAFE_HOME)
+#define OSD_MSG_DIVERT_SAFEHOME     "DIVERTING TO SAFEHOME"
+#define OSD_MSG_LOITERING_SAFEHOME  "LOITERING AROUND SAFEHOME"
+#endif
 
 typedef enum {
     OSD_RSSI_VALUE,
@@ -150,8 +157,8 @@ typedef enum {
     OSD_REMAINING_FLIGHT_TIME_BEFORE_RTH,
     OSD_REMAINING_DISTANCE_BEFORE_RTH,
     OSD_HOME_HEADING_ERROR,
-    OSD_CRUISE_HEADING_ERROR,
-    OSD_CRUISE_HEADING_ADJUSTMENT,
+    OSD_COURSE_HOLD_ERROR,
+    OSD_COURSE_HOLD_ADJUSTMENT,
     OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE,
     OSD_MAIN_BATT_SAG_COMPENSATED_CELL_VOLTAGE,
     OSD_POWER_SUPPLY_IMPEDANCE,
@@ -218,6 +225,8 @@ typedef enum {
     OSD_GVAR_3,
     OSD_TPA,
     OSD_NAV_FW_CONTROL_SMOOTHNESS,
+    OSD_VERSION,
+    OSD_RANGEFINDER,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -291,7 +300,7 @@ typedef struct osdConfig_s {
     float gforce_axis_alarm_min;
     float gforce_axis_alarm_max;
 #ifdef USE_SERIALRX_CRSF
-    int16_t snr_alarm; //CRSF SNR alarm in dB
+    int8_t snr_alarm; //CRSF SNR alarm in dB
     int8_t link_quality_alarm;
 #endif
 #ifdef USE_BARO
@@ -331,12 +340,16 @@ typedef struct osdConfig_s {
     uint8_t units; // from osd_unit_e
     uint8_t stats_energy_unit; // from osd_stats_energy_unit_e
 
+#ifdef USE_WIND_ESTIMATOR
     bool    estimations_wind_compensation; // use wind compensation for estimated remaining flight/distance
+#endif
+
     uint8_t coordinate_digits;
 
     bool osd_failsafe_switch_layout;
     uint8_t plus_code_digits; // Number of digits to use in OSD_PLUS_CODE
-    uint8_t osd_ahi_style;
+    uint8_t plus_code_short;
+    uint8_t ahi_style;
     uint8_t force_grid;                 // Force a pixel based OSD to use grid mode.
     uint8_t ahi_bordered;               // Only used by the AHI widget
     uint8_t ahi_width;                  // In pixels, only used by the AHI widget
@@ -345,7 +358,9 @@ typedef struct osdConfig_s {
     int8_t sidebar_horizontal_offset;   // Horizontal offset from default position. Units are grid slots for grid OSDs, pixels for pixel based OSDs. Positive values move sidebars closer to the edges.
     uint8_t left_sidebar_scroll_step;   // How many units each sidebar step represents. 0 means the default value for the scroll type.
     uint8_t right_sidebar_scroll_step;  // Same as left_sidebar_scroll_step, but for the right sidebar.
-
+    bool osd_home_position_arm_screen;
+    uint8_t pan_servo_index;            // Index of the pan servo used for home direction offset
+    int8_t pan_servo_pwm2centideg;      // Centidegrees of servo rotation per us pwm
     uint8_t crsf_lq_format;
 
 } osdConfig_t;

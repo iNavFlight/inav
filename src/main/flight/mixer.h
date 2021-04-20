@@ -92,6 +92,7 @@ typedef struct motorConfig_s {
     float throttleIdle;                     // Throttle IDLE value based on min_command, max_throttle, in percent
     float throttleScale;                    // Scaling factor for throttle.
     uint8_t motorPoleCount;                 // Magnetic poles in the motors for calculating actual RPM from eRPM provided by ESC telemetry
+    uint8_t flipOverAfterPowerFactor;       // Power factor from 0 to 100% of flip over after crash
 } motorConfig_t;
 
 PG_DECLARE(motorConfig_t, motorConfig);
@@ -113,6 +114,7 @@ extern int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
 extern int mixerThrottleCommand;
 
 int getThrottleIdleValue(void);
+int16_t getThrottlePercent(void);
 uint8_t getMotorCount(void);
 float getMotorMixRange(void);
 bool mixerIsOutputSaturated(void);
@@ -129,3 +131,4 @@ void stopMotors(void);
 void stopPwmAllMotors(void);
 
 void loadPrimaryMotorMixer(void);
+bool areMotorsRunning(void);

@@ -55,7 +55,7 @@
 #define RPY_PIDFF_MAX 200
 #define OTHER_PIDDF_MAX 255
 
-#define PIDFF_ENTRY(label, ptr, max) OSD_UINT8_ENTRY(label, (&(const OSD_UINT8_t){ ptr, PIDFF_MIN, max, PIDFF_STEP }))
+#define PIDFF_ENTRY(label, ptr, max) OSD_UINT16_ENTRY(label, (&(const OSD_UINT16_t){ ptr, PIDFF_MIN, max, PIDFF_STEP }))
 #define RPY_PIDFF_ENTRY(label, ptr) PIDFF_ENTRY(label, ptr, RPY_PIDFF_MAX)
 #define OTHER_PIDFF_ENTRY(label, ptr) PIDFF_ENTRY(label, ptr, OTHER_PIDDF_MAX)
 

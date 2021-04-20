@@ -36,7 +36,7 @@ const char *armingDisableFlagNames[]= {
     "FS", "ANGLE", "CAL", "OVRLD", "NAV", "COMPASS",
     "ACC", "ARMSW", "HWFAIL", "BOXFS", "KILLSW", "RX",
     "THR", "CLI", "CMS", "OSD", "ROLL/PITCH", "AUTOTRIM", "OOM",
-    "SETTINGFAIL", "PWMOUT"
+    "SETTINGFAIL", "PWMOUT", "NOPREARM", "DSHOTBEEPER"
 };
 #endif
 
@@ -57,7 +57,9 @@ const armingFlag_e armDisableReasonsChecklist[] = {
     ARMING_DISABLED_OSD_MENU,
     ARMING_DISABLED_ROLLPITCH_NOT_CENTERED,
     ARMING_DISABLED_SERVO_AUTOTRIM,
-    ARMING_DISABLED_OOM
+    ARMING_DISABLED_OOM,
+    ARMING_DISABLED_NO_PREARM,
+    ARMING_DISABLED_DSHOT_BEEPER
 };
 
 armingFlag_e isArmingDisabledReason(void)
@@ -144,13 +146,16 @@ flightModeForTelemetry_e getFlightModeForTelemetry(void)
     if (FLIGHT_MODE(MANUAL_MODE))
         return FLM_MANUAL;
 
+    if (FLIGHT_MODE(NAV_LAUNCH_MODE))
+        return FLM_LAUNCH;
+
     if (FLIGHT_MODE(NAV_RTH_MODE))
         return FLM_RTH;
 
     if (FLIGHT_MODE(NAV_POSHOLD_MODE))
         return FLM_POSITION_HOLD;
 
-    if (FLIGHT_MODE(NAV_CRUISE_MODE))
+    if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE))
         return FLM_CRUISE;
 
     if (FLIGHT_MODE(NAV_WP_MODE))
@@ -165,8 +170,6 @@ flightModeForTelemetry_e getFlightModeForTelemetry(void)
     if (FLIGHT_MODE(HORIZON_MODE))
         return FLM_HORIZON;
 
-    if (FLIGHT_MODE(NAV_LAUNCH_MODE))
-        return FLM_LAUNCH;
 
     return STATE(AIRMODE_ACTIVE) ? FLM_ACRO_AIR : FLM_ACRO;
 }

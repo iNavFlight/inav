@@ -243,8 +243,11 @@
 #define SYM_2RSS                  0xEA  // RSSI 2
 #define SYM_DB                    0xEB  // dB
 #define SYM_DBM                   0xEC  // dBm
-#define SYM_SRN                   0xEE  // SNR
+#define SYM_SNR                   0xEE  // SNR
 #define SYM_MW                    0xED  // mW
+
+#define SYM_KILOWATT              0xEF // 239 kW
+
 
 #else
 

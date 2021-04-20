@@ -40,10 +40,13 @@
 #include "drivers/rangefinder/rangefinder_srf10.h"
 #include "drivers/rangefinder/rangefinder_hcsr04_i2c.h"
 #include "drivers/rangefinder/rangefinder_vl53l0x.h"
+#include "drivers/rangefinder/rangefinder_vl53l1x.h"
 #include "drivers/rangefinder/rangefinder_virtual.h"
+#include "drivers/rangefinder/rangefinder_us42.h"
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
+#include "fc/settings.h"
 
 #include "sensors/sensors.h"
 #include "sensors/rangefinder.h"
@@ -52,8 +55,6 @@
 #include "io/rangefinder.h"
 
 #include "scheduler/scheduler.h"
-
-#include "uav_interconnect/uav_interconnect.h"
 
 rangefinder_t rangefinder;
 
@@ -66,8 +67,8 @@ rangefinder_t rangefinder;
 PG_REGISTER_WITH_RESET_TEMPLATE(rangefinderConfig_t, rangefinderConfig, PG_RANGEFINDER_CONFIG, 1);
 
 PG_RESET_TEMPLATE(rangefinderConfig_t, rangefinderConfig,
-    .rangefinder_hardware = RANGEFINDER_NONE,
-    .use_median_filtering = 0,
+    .rangefinder_hardware = SETTING_RANGEFINDER_HARDWARE_DEFAULT,
+    .use_median_filtering = SETTING_RANGEFINDER_MEDIAN_FILTER_DEFAULT,
 );
 
 const rangefinderHardwarePins_t * rangefinderGetHardwarePins(void)
@@ -133,20 +134,20 @@ static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwar
 #endif
             break;
 
+            case RANGEFINDER_VL53L1X:
+#if defined(USE_RANGEFINDER_VL53L1X)
+            if (vl53l1xDetect(dev)) {
+                rangefinderHardware = RANGEFINDER_VL53L1X;
+                rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_VL53L1X_TASK_PERIOD_MS));
+            }
+#endif
+            break;
+
         case RANGEFINDER_MSP:
 #if defined(USE_RANGEFINDER_MSP)
             if (virtualRangefinderDetect(dev, &rangefinderMSPVtable)) {
                 rangefinderHardware = RANGEFINDER_MSP;
                 rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_VIRTUAL_TASK_PERIOD_MS));
-            }
-#endif
-            break;
-
-        case RANGEFINDER_UIB:
-#if defined(USE_RANGEFINDER_UIB)
-            if (uibRangefinderDetect(dev)) {
-                rangefinderHardware = RANGEFINDER_UIB;
-                rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_UIB_TASK_PERIOD_MS));
             }
 #endif
             break;
@@ -160,7 +161,16 @@ static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwar
 #endif
             break;
 
-        case RANGEFINDER_NONE:
+            case RANGEFINDER_US42:
+#ifdef USE_RANGEFINDER_US42
+            if (us42Detect(dev)) {
+                rangefinderHardware = RANGEFINDER_US42;
+                rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_US42_TASK_PERIOD_MS));
+            }
+#endif
+            break;
+
+            case RANGEFINDER_NONE:
             rangefinderHardware = RANGEFINDER_NONE;
             break;
     }
@@ -217,7 +227,7 @@ timeDelta_t rangefinderUpdate(void)
         rangefinder.dev.update(&rangefinder.dev);
     }
 
-    return rangefinder.dev.delayMs * 1000;  // to microseconds
+    return MS2US(rangefinder.dev.delayMs);
 }
 
 /**
@@ -288,4 +298,3 @@ bool rangefinderIsHealthy(void)
     return (millis() - rangefinder.lastValidResponseTimeMs) < RANGEFINDER_HARDWARE_TIMEOUT_MS;
 }
 #endif
-

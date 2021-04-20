@@ -24,6 +24,8 @@ main_sources(COMMON_SRC
     common/encoding.h
     common/filter.c
     common/filter.h
+    common/fp_pid.c
+    common/fp_pid.h
     common/gps_conversion.c
     common/gps_conversion.h
     common/log.c
@@ -46,6 +48,8 @@ main_sources(COMMON_SRC
     common/typeconversion.h
     common/uvarint.c
     common/uvarint.h
+    common/circular_queue.c
+    common/circular_queue.h
 
     config/config_eeprom.c
     config/config_eeprom.h
@@ -71,6 +75,8 @@ main_sources(COMMON_SRC
     drivers/accgyro/accgyro_adxl345.h
     drivers/accgyro/accgyro_bma280.c
     drivers/accgyro/accgyro_bma280.h
+    drivers/accgyro/accgyro_bmi088.c
+    drivers/accgyro/accgyro_bmi088.h
     drivers/accgyro/accgyro_bmi160.c
     drivers/accgyro/accgyro_bmi160.h
     drivers/accgyro/accgyro_fake.c
@@ -97,6 +103,10 @@ main_sources(COMMON_SRC
     drivers/accgyro/accgyro_mpu6500.h
     drivers/accgyro/accgyro_mpu9250.c
     drivers/accgyro/accgyro_mpu9250.h
+    drivers/accgyro/accgyro_bno055.c
+    drivers/accgyro/accgyro_bno055.h
+    drivers/accgyro/accgyro_bno055_serial.c
+    drivers/accgyro/accgyro_bno055_serial.h
 
     drivers/adc.c
     drivers/adc.h
@@ -150,6 +160,8 @@ main_sources(COMMON_SRC
     drivers/compass/compass_mpu9250.h
     drivers/compass/compass_qmc5883l.c
     drivers/compass/compass_qmc5883l.h
+    drivers/compass/compass_rm3100.c
+    drivers/compass/compass_rm3100.h
     drivers/compass/compass_msp.c
     drivers/compass/compass_msp.h
 
@@ -224,9 +236,13 @@ main_sources(COMMON_SRC
     drivers/rangefinder/rangefinder_srf10.h
     drivers/rangefinder/rangefinder_vl53l0x.c
     drivers/rangefinder/rangefinder_vl53l0x.h
+    drivers/rangefinder/rangefinder_vl53l1x.c
+    drivers/rangefinder/rangefinder_vl53l1x.h
     drivers/rangefinder/rangefinder_virtual.c
     drivers/rangefinder/rangefinder_virtual.h
-
+    drivers/rangefinder/rangefinder_us42.c
+    drivers/rangefinder/rangefinder_us42.h
+    
     drivers/resource.c
     drivers/resource.h
     drivers/rcc.c
@@ -321,6 +337,10 @@ main_sources(COMMON_SRC
     flight/rpm_filter.h
     flight/dynamic_gyro_notch.c
     flight/dynamic_gyro_notch.h
+    flight/dynamic_lpf.c
+    flight/dynamic_lpf.h
+    flight/secondary_imu.c
+    flight/secondary_imu.h
 
     io/beeper.c
     io/beeper.h
@@ -362,6 +382,8 @@ main_sources(COMMON_SRC
     programming/global_variables.h
     programming/programming_task.c
     programming/programming_task.h
+    programming/pid.c
+    programming/pid.h
 
     rx/crsf.c
     rx/crsf.h
@@ -378,6 +400,8 @@ main_sources(COMMON_SRC
     rx/ibus.h
     rx/jetiexbus.c
     rx/jetiexbus.h
+    rx/mavlink.c
+    rx/mavlink.h
     rx/msp.c
     rx/msp.h
     rx/msp_override.c
@@ -402,8 +426,6 @@ main_sources(COMMON_SRC
     rx/sumd.h
     rx/sumh.c
     rx/sumh.h
-    rx/uib_rx.c
-    rx/uib_rx.h
     rx/xbus.c
     rx/xbus.h
 
@@ -430,10 +452,6 @@ main_sources(COMMON_SRC
     sensors/irlock.h
     sensors/temperature.c
     sensors/temperature.h
-
-    uav_interconnect/uav_interconnect.h
-    uav_interconnect/uav_interconnect_bus.c
-    uav_interconnect/uav_interconnect_rangefinder.c
 
     blackbox/blackbox.c
     blackbox/blackbox.h
