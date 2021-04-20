@@ -184,19 +184,13 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
     float gainFF = tuneCurrent[axis].gainFF;
     float pidSumLimit = (axis == FD_YAW) ? pidProfile()->pidSumLimitYaw : pidProfile()->pidSumLimit;
 
-    // Use different max desired rate in ANGLE for pitch and roll
-    if (FLIGHT_MODE(ANGLE_MODE) && (axis == FD_PITCH || axis == FD_ROLL)) {
-        float maxDesiredRateInAngleMode = DECIDEGREES_TO_DEGREES(pidProfile()->max_angle_inclination[axis] * 1.0f) * pidBank()->pid[PID_LEVEL].P / FP_PID_LEVEL_P_MULTIPLIER;
-        maxDesiredRateDps = MIN(maxDesiredRateDps, maxDesiredRateInAngleMode);
-    }
-
     const float absDesiredRateDps = fabsf(desiredRateDps);
     const float absReachedRateDps = fabsf(reachedRateDps);
     const float absPidOutput = fabsf(pidOutput);
     const bool correctDirection = (desiredRateDps>0) == (reachedRateDps>0);
     const float stickInput = absDesiredRateDps / maxDesiredRateDps;
-    pidAutotuneState_e newState;
 
+    pidAutotuneState_e newState;
     float rateFullStick;
     float pidOutputRequired;
 
