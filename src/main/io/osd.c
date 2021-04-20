@@ -2304,9 +2304,8 @@ static bool osdDrawSingleElement(uint8_t item)
             } else {
                 buff[0] = buff[1] = buff[2] = '-';
             }
-            buff[3] = SYM_WH_KM_0;
-            buff[4] = SYM_WH_KM_1;
-            buff[5] = '\0';
+            buff[3] = SYM_WH_KM;
+            buff[4] = '\0';
             break;
         }
 
@@ -3023,9 +3022,8 @@ static void osdCompleteAsyncInitialization(void)
                 osdFormatCentiNumber(string_buffer, avg_efficiency / 10, 0, 2, 0, 3);
             } else
                 strcpy(string_buffer, "---");
-            string_buffer[3] = SYM_WH_KM_0;
-            string_buffer[4] = SYM_WH_KM_1;
-            string_buffer[5] = '\0';
+            string_buffer[3] = SYM_WH_KM;
+            string_buffer[4] = '\0';
             displayWrite(osdDisplayPort, STATS_VALUE_X_POS-3, y,  string_buffer);
         }
 #endif // USE_ADC
@@ -3220,9 +3218,8 @@ static void osdShowStatsPage2(void)
                     SYM_MAH_KM_0, SYM_MAH_KM_1);
             else {
                 osdFormatCentiNumber(buff, getMWhDrawn() * 10000 / totalDistance, 0, 2, 0, 3);
-                buff[3] = SYM_WH_KM_0;
-                buff[4] = SYM_WH_KM_1;
-                buff[5] = '\0';
+                buff[3] = SYM_WH_KM;
+                buff[4] = '\0';
             }
             // If traveled distance is less than 100 meters efficiency numbers are useless and unreliable so display --- instead
             if (totalDistance < 10000) {
@@ -3232,9 +3229,8 @@ static void osdShowStatsPage2(void)
                     buff[4] = SYM_MAH_KM_1;
                     buff[5] = '\0';
                 } else {
-                    buff[3] = SYM_WH_KM_0;
-                    buff[4] = SYM_WH_KM_1;
-                    buff[5] = '\0';
+                    buff[3] = SYM_WH_KM;
+                    buff[4] = '\0';
                 }
             }
             displayWrite(osdDisplayPort, statValuesX, top++, buff);
