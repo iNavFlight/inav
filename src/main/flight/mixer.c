@@ -394,11 +394,7 @@ static void applyFlipOverAfterCrashModeToMotors(void) {
 
             motorOutputNormalised = MIN(1.0f, flipPower * motorOutputNormalised);
 
-            float motorOutput = (float)motorConfig()->mincommand + motorOutputNormalised * (float)motorConfig()->maxthrottle;
-
-            // Add a little bit to the motorOutputMin so props aren't spinning when sticks are centered
-            motorOutput = (motorOutput < (float)motorConfig()->mincommand + CRASH_OVER_AFTER_CRASH_FLIP_DEADBAND) ? DSHOT_DISARM_COMMAND : (
-                    motorOutput - CRASH_OVER_AFTER_CRASH_FLIP_DEADBAND);
+            float motorOutput = (float)motorConfig()->mincommand + (motorOutputNormalised * (float)(motorConfig()->maxthrottle - motorConfig()->mincommand));
 
             motor[i] = motorOutput;
         }
