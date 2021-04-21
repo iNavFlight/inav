@@ -3050,10 +3050,16 @@ static void osdCompleteAsyncInitialization(void)
             displayWrite(osdDisplayPort, STATS_LABEL_X_POS, ++y, "AVG EFFICIENCY:");
             if (statsConfig()->stats_total_dist) {
                 uint32_t avg_efficiency = statsConfig()->stats_total_energy / (statsConfig()->stats_total_dist / METERS_PER_KILOMETER); // mWh/km
-                osdFormatCentiNumber(string_buffer, avg_efficiency / 10, 0, 2, 0, 3);
-            } else
-                strcpy(string_buffer, "---");
-            string_buffer[3] = SYM_WH_KM;
+                if (osdConfig()->units == OSD_UNIT_IMPERIAL) {
+                    osdFormatCentiNumber(string_buffer, avg_efficiency / 10, 0, 2, 0, 3);
+                    string_buffer[3] = SYM_WH_MI;
+                } else {
+                    osdFormatCentiNumber(string_buffer, avg_efficiency / 10000 * METERS_PER_MILE, 0, 2, 0, 3);
+                    string_buffer[3] = SYM_WH_KM;
+                }
+            } else {
+                string_buffer[0] = string_buffer[1] = string_buffer[2] = '-';
+            }
             string_buffer[4] = '\0';
             displayWrite(osdDisplayPort, STATS_VALUE_X_POS-3, y,  string_buffer);
         }
