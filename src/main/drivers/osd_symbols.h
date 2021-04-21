@@ -248,8 +248,15 @@
 
 #define SYM_KILOWATT              0xEF // 239 kW
 
-#define SYM_AH_KM_0               0x1AE // 430 Ah/km left
-#define SYM_AH_KM_1               0x1AF // 431 Ah/km right
+#define SYM_AH_KM_0               0x1AE // 430 Ah/km left // TODO: set to correct index
+#define SYM_AH_KM_1               0x1AF // 431 Ah/km right // TODO: set to correct index
+#define SYM_MAH_MI_0              0x1B0 // 432 mAh/mi left
+#define SYM_MAH_MI_1              0x1B1 // 433 mAh/mi right
+#define SYM_AH_MI_0               0x1B2 // 434 mAh/mi left
+#define SYM_AH_MI_1               0x1B3 // 435 mAh/mi right
+#define SYM_WH_MI_0               0x1B4 // 436 Wh/mi left
+#define SYM_WH_MI_1               0x1B5 // 437 Wh/mi right
+
 
 #else
 
