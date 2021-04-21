@@ -2257,6 +2257,7 @@ static bool osdDrawSingleElement(uint8_t item)
             static pt1Filter_t eFilterState;
             static timeUs_t efficiencyUpdated = 0;
             int32_t value = 0;
+            bool moreThanAh = false;
             timeUs_t currentTimeUs = micros();
             timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
             if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
@@ -2273,7 +2274,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 case OSD_UNIT_UK:
                     FALLTHROUGH;
                 case OSD_UNIT_IMPERIAL:
-                    const bool moreThanAh = osdFormatCentiNumber(buff, value * METERS_PER_MILE / 10, 1000, 0, 2, 3);
+                    moreThanAh = osdFormatCentiNumber(buff, value * METERS_PER_MILE / 10, 1000, 0, 2, 3);
                     if (moreThanAh) {
                         displayWriteChar(osdDisplayPort, elemPosX+3, elemPosY, SYM_AH_MI_0);
                         displayWriteChar(osdDisplayPort, elemPosX+4, elemPosY, SYM_AH_MI_1);
@@ -2283,7 +2284,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     }
                     break;
                 case OSD_UNIT_METRIC:
-                    const bool moreThanAh = osdFormatCentiNumber(buff, value * 100, 1000, 0, 2, 3);
+                    moreThanAh = osdFormatCentiNumber(buff, value * 100, 1000, 0, 2, 3);
                     if (moreThanAh) {
                         displayWriteChar(osdDisplayPort, elemPosX+3, elemPosY, SYM_AH_KM_0);
                         displayWriteChar(osdDisplayPort, elemPosX+4, elemPosY, SYM_AH_KM_1);
@@ -3242,6 +3243,7 @@ static void osdShowStatsPage2(void)
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
         int32_t totalDistance = getTotalTravelDistance();
+        bool moreThanAh = false;
         if (feature(FEATURE_GPS)) {
             displayWrite(osdDisplayPort, statNameX, top, "AVG EFFICIENCY   :");
             switch (osdConfig()->units) {
@@ -3249,7 +3251,7 @@ static void osdShowStatsPage2(void)
                     FALLTHROUGH;
                 case OSD_UNIT_IMPERIAL:
                     if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
-                        const bool moreThanAh = osdFormatCentiNumber(buff, (int)(getMAhDrawn() * 10000 / totalDistance * METERS_PER_MILE), 1000, 1, 2, 3);
+                        moreThanAh = osdFormatCentiNumber(buff, (int)(getMAhDrawn() * 10000 / totalDistance * METERS_PER_MILE), 1000, 1, 2, 3);
                         if (moreThanAh) {
                             displayWriteChar(osdDisplayPort, statValuesX+3, top, SYM_AH_MI_0);
                             displayWriteChar(osdDisplayPort, statValuesX+4, top, SYM_AH_MI_1);
@@ -3266,7 +3268,7 @@ static void osdShowStatsPage2(void)
                     break;
                 case OSD_UNIT_METRIC:
                     if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
-                        const bool moreThanAh = osdFormatCentiNumber(buff, (int)(getMAhDrawn() * 10000000 / totalDistance), 1000, 1, 2, 3);
+                        moreThanAh = osdFormatCentiNumber(buff, (int)(getMAhDrawn() * 10000000 / totalDistance), 1000, 1, 2, 3);
                         if (moreThanAh) {
                             displayWriteChar(osdDisplayPort, statValuesX+3, top, SYM_AH_KM_0);
                             displayWriteChar(osdDisplayPort, statValuesX+4, top, SYM_AH_KM_1);
