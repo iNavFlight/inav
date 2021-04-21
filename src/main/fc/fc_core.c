@@ -500,7 +500,7 @@ void tryArm(void)
 #ifdef USE_DSHOT
     if (
             STATE(MULTIROTOR) &&
-            IS_RC_MODE_ACTIVE(BOXFLIPOVERAFTERCRASH) &&
+            IS_RC_MODE_ACTIVE(BOXTURTLE) &&
             emergencyArmingCanOverrideArmingDisabled() &&
             isMotorProtocolDshot() &&
             !ARMING_FLAG(ARMED) &&
