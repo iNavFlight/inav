@@ -31,10 +31,10 @@
 #define SYM_VOLT                  0x06 // 006 V
 #define SYM_MAH                   0x07 // 007 MAH
 
-//                                0x08 // 008 -
-//                                0x09 // 009 -
-//                                0x0A // 010 -
-//                                0x0B // 011 -
+#define SYM_AH_KM                 0x08 // 008 Ah/km
+#define SYM_AH_MI                 0x09 // 009 Ah/mi
+#define SYM_MAH_MI_0              0x0A // 010 mAh/mi left
+#define SYM_MAH_MI_1              0x0B // 010 mAh/mi left
 //                                0x0C // 012 -
 
 #define SYM_TEMP_F                0x0D // 013 °F
@@ -153,8 +153,8 @@
 #define SYM_HEADING               0xA9 // 169 Compass Heading symbol
 #define SYM_ALT                   0xAA // 170 ALT
 #define SYM_WH                    0xAB // 171 WH
-#define SYM_WH_KM_0               0xAC // 172 WH/KM left
-#define SYM_WH_KM_1               0xAD // 173 WH/KM right
+#define SYM_WH_KM                 0xAC // 172 Wh/km
+#define SYM_WH_MI                 0xAD // 173 Wh/mi
 #define SYM_WATT                  0xAE // 174 W
 #define SYM_SCALE                 0xAF // 175 Map scale
 #define SYM_MPH                   0xB0 // 176 MPH
@@ -247,15 +247,6 @@
 #define SYM_MW                    0xED  // mW
 
 #define SYM_KILOWATT              0xEF // 239 kW
-
-#define SYM_AH_KM_0               0x1AE // 430 Ah/km left // TODO: set to correct index
-#define SYM_AH_KM_1               0x1AF // 431 Ah/km right // TODO: set to correct index
-#define SYM_MAH_MI_0              0x1B0 // 432 mAh/mi left
-#define SYM_MAH_MI_1              0x1B1 // 433 mAh/mi right
-#define SYM_AH_MI_0               0x1B2 // 434 mAh/mi left
-#define SYM_AH_MI_1               0x1B3 // 435 mAh/mi right
-#define SYM_WH_MI_0               0x1B4 // 436 Wh/mi left
-#define SYM_WH_MI_1               0x1B5 // 437 Wh/mi right
 
 
 #else
