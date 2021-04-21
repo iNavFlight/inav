@@ -79,18 +79,18 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXCAMERA1, "CAMERA CONTROL 1", 39 },
     { BOXCAMERA2, "CAMERA CONTROL 2", 40 },
     { BOXCAMERA3, "CAMERA CONTROL 3", 41 },
-    {BOXOSDALT1,       "OSD ALT 1",       42 },
-    {BOXOSDALT2,       "OSD ALT 2",       43 },
-    {BOXOSDALT3,       "OSD ALT 3",       44 },
-    {BOXNAVCOURSEHOLD, "NAV COURSE HOLD", 45 },
-    {BOXBRAKING,       "MC BRAKING",      46 },
-    {BOXUSER1,         "USER1", BOX_PERMANENT_ID_USER1 },
-    {BOXUSER2,         "USER2", BOX_PERMANENT_ID_USER2 },
-    {BOXLOITERDIRCHN,  "LOITER CHANGE",   49 },
-    {BOXMSPRCOVERRIDE, "MSP RC OVERRIDE", 50 },
-    {BOXPREARM,        "PREARM",          51 },
-    {BOXTURTLE,        "TURTLE",          52 },
-    {CHECKBOX_ITEM_COUNT, NULL,           0xFF }
+    { BOXOSDALT1, "OSD ALT 1", 42 },
+    { BOXOSDALT2, "OSD ALT 2", 43 },
+    { BOXOSDALT3, "OSD ALT 3", 44 },
+    { BOXNAVCOURSEHOLD, "NAV COURSE HOLD", 45 },
+    { BOXBRAKING, "MC BRAKING", 46 },
+    { BOXUSER1, "USER1", BOX_PERMANENT_ID_USER1 },
+    { BOXUSER2, "USER2", BOX_PERMANENT_ID_USER2 },
+    { BOXLOITERDIRCHN, "LOITER CHANGE", 49 },
+    { BOXMSPRCOVERRIDE, "MSP RC OVERRIDE", 50 },
+    { BOXPREARM, "PREARM", 51 },
+    { BOXTURTLE, "TURTLE", 52 },
+    { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
 // this is calculated at startup based on enabled features.
@@ -312,7 +312,7 @@ void initActiveBoxIds(void)
 
 #ifdef USE_DSHOT
     if(STATE(MULTIROTOR) && isMotorProtocolDshot())
-        activeBoxIds[activeBoxIdCount++] = BOXTURTLE;
+        activeBoxIds[activeBoxIdCount++] = BOXFLIPOVERAFTERCRASH;
 #endif
 }
 
