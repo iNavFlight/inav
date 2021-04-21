@@ -312,7 +312,7 @@ void initActiveBoxIds(void)
 
 #ifdef USE_DSHOT
     if(STATE(MULTIROTOR) && isMotorProtocolDshot())
-        activeBoxIds[activeBoxIdCount++] = BOXFLIPOVERAFTERCRASH;
+        activeBoxIds[activeBoxIdCount++] = BOXTURTLE;
 #endif
 }
 
