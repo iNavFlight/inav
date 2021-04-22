@@ -20,7 +20,11 @@
 #define USE_TARGET_CONFIG
 
 #define TARGET_BOARD_IDENTIFIER         "MBF7"
+#ifdef MAMBAF722_I2C
+#define USBD_PRODUCT_STRING             "MAMBAF722_I2C"
+#else
 #define USBD_PRODUCT_STRING             "MAMBAF722"
+#endif
 
 // ******** Board LEDs  **********************
 #define LED0                            PC15
