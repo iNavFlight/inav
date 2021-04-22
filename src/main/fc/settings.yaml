@@ -69,6 +69,9 @@ tables:
   - name: osd_stats_energy_unit
     values: ["MAH", "WH"]
     enum: osd_stats_energy_unit_e
+  - name: osd_stats_min_voltage_unit
+    values: ["BATTERY", "CELL"]
+    enum: osd_stats_min_voltage_unit_e
   - name: osd_video_system
     values: ["AUTO", "PAL", "NTSC"]
     enum: videoSystem_e
@@ -104,7 +107,7 @@ tables:
     enum: navRTHAllowLanding_e
   - name: bat_capacity_unit
     values: ["MAH", "MWH"]
-    enum: batCapacityUnit_e
+    enum: batCapacityUnit_e    
   - name: bat_voltage_source
     values: ["RAW", "SAG_COMP"]
     enum: batVoltageSource_e
@@ -179,11 +182,6 @@ groups:
         description: "This is the main loop time (in us). Changing this affects PID effect with some PID controllers (see PID section for details). A very conservative value of 3500us/285Hz should work for everyone. Setting it to zero does not limit loop time, so it will go as fast as possible."
         default_value: 1000
         max: 9000
-      - name: gyro_sync
-        description: "This option enables gyro_sync feature. In this case the loop will be synced to gyro refresh rate. Loop will always wait for the newest gyro measurement. Maximum gyro refresh rate is determined by gyro_hardware_lpf"
-        default_value: ON
-        field: gyroSync
-        type: bool
       - name: align_gyro
         description: "When running on non-default hardware or adding support for new sensors/sensor boards, these values are used for sensor orientation. When carefully understood, these values can also be used to rotate (in 90deg steps) or flip the board. Possible values are: DEFAULT, CW0_DEG, CW90_DEG, CW180_DEG, CW270_DEG, CW0_DEG_FLIP, CW90_DEG_FLIP, CW180_DEG_FLIP, CW270_DEG_FLIP."
         default_value: "DEFAULT"
@@ -1727,10 +1725,10 @@ groups:
         table: direction
       - name: fw_reference_airspeed
         description: "Reference airspeed. Set this to airspeed at which PIDs were tuned. Usually should be set to cruise airspeed. Also used for coordinated turn calculation if airspeed sensor is not present."
-        default_value: 1000
+        default_value: 1500
         field: fixedWingReferenceAirspeed
-        min: 1
-        max: 5000
+        min: 300
+        max: 6000
       - name: fw_turn_assist_yaw_gain
         description: "Gain required to keep the yaw rate consistent with the turn rate for a coordinated turn (in TURN_ASSIST mode). Value significantly different from 1.0 indicates a problem with the airspeed calibration (if present) or value of `fw_reference_airspeed` parameter"
         default_value: 1
@@ -2283,20 +2281,26 @@ groups:
         field: general.max_manual_climb_rate
         min: 10
         max: 2000
-      - name: nav_landing_speed
-        description: "Vertical descent velocity during the RTH landing phase. [cm/s]"
+      - name: nav_land_minalt_vspd
+        description: "Vertical descent velocity under nav_land_slowdown_minalt during the RTH landing phase. [cm/s]"
+        default_value: 50
+        field: general.land_minalt_vspd
+        min: 50
+        max: 500
+      - name: nav_land_maxalt_vspd
+        description: "Vertical descent velocity above nav_land_slowdown_maxalt during the RTH landing phase. [cm/s]"
         default_value: 200
-        field: general.land_descent_rate
+        field: general.land_maxalt_vspd
         min: 100
         max: 2000
       - name: nav_land_slowdown_minalt
-        description: "Defines at what altitude the descent velocity should start to be 25% of nav_landing_speed [cm]"
+        description: "Defines at what altitude the descent velocity should start to be `nav_land_minalt_vspd` [cm]"
         default_value: 500
         field: general.land_slowdown_minalt
         min: 50
         max: 1000
       - name: nav_land_slowdown_maxalt
-        description: "Defines at what altitude the descent velocity should start to ramp down from 100% nav_landing_speed to 25% nav_landing_speed. [cm]"
+        description: "Defines at what altitude the descent velocity should start to ramp down from `nav_land_maxalt_vspd` to `nav_land_minalt_vspd` during the RTH landing phase [cm]"
         default_value: 2000
         field: general.land_slowdown_maxalt
         min: 500
@@ -2909,6 +2913,12 @@ groups:
         default_value: "MAH"
         field: stats_energy_unit
         table: osd_stats_energy_unit
+        type: uint8_t
+      - name: osd_stats_min_voltage_unit
+        description: "Display minimum voltage of the `BATTERY` or the average per `CELL` in the OSD stats."
+        default_value: "BATTERY"
+        field: stats_min_voltage_unit
+        table: osd_stats_min_voltage_unit
         type: uint8_t
 
       - name: osd_rssi_alarm

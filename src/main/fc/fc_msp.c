@@ -1229,7 +1229,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, motorConfig()->motorPwmProtocol);
         sbufWriteU16(dst, motorConfig()->motorPwmRate);
         sbufWriteU16(dst, servoConfig()->servoPwmRate);
-        sbufWriteU8(dst, gyroConfig()->gyroSync);
+        sbufWriteU8(dst, 0);
         break;
 
     case MSP_FILTER_CONFIG :
@@ -1334,7 +1334,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, navConfig()->general.flags.rth_alt_control_mode);
         sbufWriteU16(dst, navConfig()->general.rth_abort_threshold);
         sbufWriteU16(dst, navConfig()->general.rth_altitude);
-        sbufWriteU16(dst, navConfig()->general.land_descent_rate);
+        sbufWriteU16(dst, navConfig()->general.land_minalt_vspd);
+        sbufWriteU16(dst, navConfig()->general.land_maxalt_vspd);
         sbufWriteU16(dst, navConfig()->general.land_slowdown_minalt);
         sbufWriteU16(dst, navConfig()->general.land_slowdown_maxalt);
         sbufWriteU16(dst, navConfig()->general.emerg_descent_rate);
@@ -2163,7 +2164,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             motorConfigMutable()->motorPwmProtocol = sbufReadU8(src);
             motorConfigMutable()->motorPwmRate = sbufReadU16(src);
             servoConfigMutable()->servoPwmRate = sbufReadU16(src);
-            gyroConfigMutable()->gyroSync = sbufReadU8(src);
+            sbufReadU8(src);    //Was gyroSync
         } else
             return MSP_RESULT_ERROR;
         break;
@@ -2307,7 +2308,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             navConfigMutable()->general.flags.rth_alt_control_mode = sbufReadU8(src);
             navConfigMutable()->general.rth_abort_threshold = sbufReadU16(src);
             navConfigMutable()->general.rth_altitude = sbufReadU16(src);
-            navConfigMutable()->general.land_descent_rate = sbufReadU16(src);
+            navConfigMutable()->general.land_minalt_vspd = sbufReadU16(src);
+            navConfigMutable()->general.land_maxalt_vspd = sbufReadU16(src);
             navConfigMutable()->general.land_slowdown_minalt = sbufReadU16(src);
             navConfigMutable()->general.land_slowdown_maxalt = sbufReadU16(src);
             navConfigMutable()->general.emerg_descent_rate = sbufReadU16(src);

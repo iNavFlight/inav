@@ -96,7 +96,7 @@ STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_rang
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 0);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 10);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 11);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -124,9 +124,10 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .max_auto_climb_rate = SETTING_NAV_AUTO_CLIMB_RATE_DEFAULT,                   // 5 m/s
         .max_manual_speed = SETTING_NAV_MANUAL_SPEED_DEFAULT,
         .max_manual_climb_rate = SETTING_NAV_MANUAL_CLIMB_RATE_DEFAULT,
-        .land_descent_rate = SETTING_NAV_LANDING_SPEED_DEFAULT,                       // centimeters/s
         .land_slowdown_minalt = SETTING_NAV_LAND_SLOWDOWN_MINALT_DEFAULT,             // altitude in centimeters
         .land_slowdown_maxalt = SETTING_NAV_LAND_SLOWDOWN_MAXALT_DEFAULT,             // altitude in meters
+        .land_minalt_vspd = SETTING_NAV_LAND_MINALT_VSPD_DEFAULT,                     // centimeters/s
+        .land_maxalt_vspd = SETTING_NAV_LAND_MAXALT_VSPD_DEFAULT,                     // centimeters/s
         .emerg_descent_rate = SETTING_NAV_EMERG_LANDING_SPEED_DEFAULT,                // centimeters/s
         .min_rth_distance = SETTING_NAV_MIN_RTH_DISTANCE_DEFAULT,                     // centimeters, if closer than this land immediately
         .rth_altitude = SETTING_NAV_RTH_ALTITUDE_DEFAULT,                             // altitude in centimeters
@@ -1413,22 +1414,20 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
         if ((posControl.flags.estAglStatus == EST_TRUSTED) && posControl.actualState.agl.pos.z < 50.0f) {
             // land_descent_rate == 200 : descend speed = 30 cm/s, gentle touchdown
             // Do not allow descent velocity slower than -30cm/s so the landing detector works.
-            descentVelLimited = MIN(-0.15f * navConfig()->general.land_descent_rate, -30.0f);
+            descentVelLimited = navConfig()->general.land_minalt_vspd;
         }
         else {
-            fpVector3_t * tmpHomePos = rthGetHomeTargetPosition(RTH_HOME_FINAL_LAND);
 
             // Ramp down descent velocity from 100% at maxAlt altitude to 25% from minAlt to 0cm.
-            float descentVelScaling = (navGetCurrentActualPositionAndVelocity()->pos.z - tmpHomePos->z - navConfig()->general.land_slowdown_minalt)
-                / (navConfig()->general.land_slowdown_maxalt - navConfig()->general.land_slowdown_minalt) * 0.75f + 0.25f;  // Yield 1.0 at 2000 alt and 0.25 at 500 alt
+            float descentVelScaled = scaleRangef(navGetCurrentActualPositionAndVelocity()->pos.z,
+                                                    navConfig()->general.land_slowdown_minalt, navConfig()->general.land_slowdown_maxalt,
+                                                    navConfig()->general.land_minalt_vspd, navConfig()->general.land_maxalt_vspd);
 
-            descentVelScaling = constrainf(descentVelScaling, 0.25f, 1.0f);
+            descentVelLimited = constrainf(descentVelScaled, navConfig()->general.land_minalt_vspd, navConfig()->general.land_maxalt_vspd);
 
-            // Do not allow descent velocity slower than -50cm/s so the landing detector works.
-            descentVelLimited = MIN(-descentVelScaling * navConfig()->general.land_descent_rate, -50.0f);
         }
 
-        updateClimbRateToAltitudeController(descentVelLimited, ROC_TO_ALT_NORMAL);
+        updateClimbRateToAltitudeController(-descentVelLimited, ROC_TO_ALT_NORMAL);
 
         return NAV_FSM_EVENT_NONE;
     }
@@ -1452,7 +1451,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_FINISHED(navigation
     UNUSED(previousState);
 
     if (STATE(ALTITUDE_CONTROL)) {
-        updateClimbRateToAltitudeController(-0.3f * navConfig()->general.land_descent_rate, ROC_TO_ALT_NORMAL);  // FIXME
+        updateClimbRateToAltitudeController(-1.1f * navConfig()->general.land_minalt_vspd, ROC_TO_ALT_NORMAL);  // FIXME
     }
 
     // Prevent I-terms growing when already landed
@@ -1480,6 +1479,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_INITIALIZE(nav
 */
         setupJumpCounters();
         posControl.activeWaypointIndex = 0;
+        wpHeadingControl.mode = NAV_WP_HEAD_MODE_NONE;
         return NAV_FSM_EVENT_SUCCESS;   // will switch to NAV_STATE_WAYPOINT_PRE_ACTION
     }
 }

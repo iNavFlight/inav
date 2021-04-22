@@ -136,7 +136,7 @@
 | fw_p_pitch | 5 | Fixed-wing rate stabilisation P-gain for PITCH |
 | fw_p_roll | 5 | Fixed-wing rate stabilisation P-gain for ROLL |
 | fw_p_yaw | 6 | Fixed-wing rate stabilisation P-gain for YAW |
-| fw_reference_airspeed | 1000 | Reference airspeed. Set this to airspeed at which PIDs were tuned. Usually should be set to cruise airspeed. Also used for coordinated turn calculation if airspeed sensor is not present. |
+| fw_reference_airspeed | 1500 | Reference airspeed. Set this to airspeed at which PIDs were tuned. Usually should be set to cruise airspeed. Also used for coordinated turn calculation if airspeed sensor is not present. |
 | fw_tpa_time_constant | 0 | TPA smoothing and delay time constant to reflect non-instant speed/throttle response of the plane. Planes with low thrust/weight ratio generally need higher time constant. Default is zero for compatibility with old setups |
 | fw_turn_assist_pitch_gain | 1 | Gain required to keep constant pitch angle during coordinated turns (in TURN_ASSIST mode). Value significantly different from 1.0 indicates a problem with the airspeed calibration (if present) or value of `fw_reference_airspeed` parameter |
 | fw_turn_assist_yaw_gain | 1 | Gain required to keep the yaw rate consistent with the turn rate for a coordinated turn (in TURN_ASSIST mode). Value significantly different from 1.0 indicates a problem with the airspeed calibration (if present) or value of `fw_reference_airspeed` parameter |
@@ -158,7 +158,6 @@
 | gyro_notch_hz | 0 |  |
 | gyro_stage2_lowpass_hz | 0 | Software based second stage lowpass filter for gyro. Value is cutoff frequency (Hz) |
 | gyro_stage2_lowpass_type | BIQUAD | Defines the type of stage 2 gyro LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation. |
-| gyro_sync | ON | This option enables gyro_sync feature. In this case the loop will be synced to gyro refresh rate. Loop will always wait for the newest gyro measurement. Maximum gyro refresh rate is determined by gyro_hardware_lpf |
 | gyro_to_use | 0 |  |
 | gyro_use_dyn_lpf | OFF | Use Dynamic LPF instead of static gyro stage1 LPF. Dynamic Gyro LPF updates gyro LPF based on the throttle position. |
 | has_flaps | OFF | Defines is UAV is capable of having flaps. If ON and AIRPLANE `platform_type` is used, **FLAPERON** flight mode will be available for the pilot |
@@ -319,9 +318,10 @@
 | nav_fw_pos_z_i | 5 | I gain of altitude PID controller (Fixedwing) |
 | nav_fw_pos_z_p | 40 | P gain of altitude PID controller (Fixedwing) |
 | nav_fw_yaw_deadband | 0 | Deadband for heading trajectory PID controller. When heading error is below the deadband, controller assumes that vehicle is on course |
-| nav_land_slowdown_maxalt | 2000 | Defines at what altitude the descent velocity should start to ramp down from 100% nav_landing_speed to 25% nav_landing_speed. [cm] |
-| nav_land_slowdown_minalt | 500 | Defines at what altitude the descent velocity should start to be 25% of nav_landing_speed [cm] |
-| nav_landing_speed | 200 | Vertical descent velocity during the RTH landing phase. [cm/s] |
+| nav_land_maxalt_vspd | 200 | Vertical descent velocity above nav_land_slowdown_maxalt during the RTH landing phase. [cm/s] |
+| nav_land_minalt_vspd | 50 | Vertical descent velocity under nav_land_slowdown_minalt during the RTH landing phase. [cm/s] |
+| nav_land_slowdown_maxalt | 2000 | Defines at what altitude the descent velocity should start to ramp down from `nav_land_maxalt_vspd` to `nav_land_minalt_vspd` during the RTH landing phase [cm] |
+| nav_land_slowdown_minalt | 500 | Defines at what altitude the descent velocity should start to be `nav_land_minalt_vspd` [cm] |
 | nav_manual_climb_rate | 200 | Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s] |
 | nav_manual_speed | 500 | Maximum velocity firmware is allowed when processing pilot input for POSHOLD/CRUISE control mode [cm/s] [Multirotor only] |
 | nav_max_terrain_follow_alt | 100 | Max allowed above the ground altitude for terrain following mode |
@@ -429,6 +429,7 @@
 | osd_snr_alarm | 4 | Value below which Crossfire SNR Alarm pops-up. (dB) |
 | osd_stats_energy_unit | MAH | Unit used for the drawn energy in the OSD stats [MAH/WH] (milliAmpere hour/ Watt hour) |
 | osd_system_msg_display_time | 1000 | System message display cycle time for multiple messages (milliseconds). |
+| osd_stats_min_voltage_unit | BATTERY | Display minimum voltage of the `BATTERY` or the average per `CELL` in the OSD stats. |
 | osd_temp_label_align | LEFT | Allows to chose between left and right alignment for the OSD temperature sensor labels. Valid values are `LEFT` and `RIGHT` |
 | osd_time_alarm | 10 | Value above which to make the OSD flight time indicator blink (minutes) |
 | osd_units | METRIC | IMPERIAL, METRIC, UK |
