@@ -172,7 +172,7 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
     static uint8_t rcDelayCommand;      // this indicates the number of time (multiple of RC measurement at 50Hz) the sticks must be maintained to run or switch off motors
     static uint32_t rcSticks;           // this hold sticks position for command combos
     static timeMs_t rcDisarmTimeMs;     // this is an extra guard for disarming through switch to prevent that one frame can disarm it
-    static timeMs_t rcArmTimeMs;        // allows time for Rx signal loss after disarming to set failsafe blocker preventing unwanted rearm
+    static timeMs_t rcArmTimeMs;        // allows time to apply blocker to prevent switched arm channel changing state during failsafe (avoid unwanted rearm)
     const timeMs_t currentTimeMs = millis();
 
     updateRcStickPositions();

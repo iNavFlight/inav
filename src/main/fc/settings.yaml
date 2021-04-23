@@ -1355,7 +1355,7 @@ groups:
         max: 1000
       - name: switch_arm_delay
         description: "Delay before arming when set by switch (ms) [0-1000]"
-        default_value: 400
+        default_value: 250
         field: switchArmDelayMs
         min: 0
         max: 1000
