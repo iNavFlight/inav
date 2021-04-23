@@ -2277,7 +2277,8 @@ static bool osdDrawSingleElement(uint8_t item)
                     moreThanAh = osdFormatCentiNumber(buff, value * METERS_PER_MILE / 10, 1000, 0, 2, 3);
                     if (moreThanAh) {
                         buff[3] = SYM_AH_MI;
-                        buff[4] = '\0';
+                        buff[4] = ' ';
+                        buff[5] = '\0';
                     } else {
                         buff[3] = SYM_MAH_MI_0;
                         buff[4] = SYM_MAH_MI_1;
@@ -2288,7 +2289,8 @@ static bool osdDrawSingleElement(uint8_t item)
                     moreThanAh = osdFormatCentiNumber(buff, value * 100, 1000, 0, 2, 3);
                     if (moreThanAh) {
                         buff[3] = SYM_AH_KM;
-                        buff[4] = '\0';
+                        buff[4] = ' ';
+                        buff[5] = '\0';
                     } else {
                         buff[3] = SYM_MAH_KM_0;
                         buff[4] = SYM_MAH_KM_1;
@@ -3258,7 +3260,7 @@ static void osdShowStatsPage2(void)
                         moreThanAh = osdFormatCentiNumber(buff, (int)(getMAhDrawn() * 10000 / totalDistance * METERS_PER_MILE), 1000, 1, 2, 3);
                         if (moreThanAh) {
                             buff[3] = SYM_AH_MI;
-                            buff[4] = '\0';
+                            buff[5] = '\0';
                         } else {
                             buff[3] = SYM_MAH_MI_0;
                             buff[4] = SYM_MAH_MI_1;
