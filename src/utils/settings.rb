@@ -877,6 +877,8 @@ class Generator
         foreach_enabled_member do |_, member|
             name = member["name"]
             type = member["type"]
+            min = member["min"] || 0
+            max = member["max"]
             default_value = member["default_value"]
 
             next if %i[ zero target ].include? default_value
@@ -894,13 +896,17 @@ class Generator
                 unsigned = !$~[:unsigned].empty?
                 bitsize = $~[:bitsize].to_i
                 type_range = unsigned ? 0..(2**bitsize-1) : (-2**(bitsize-1)+1)..(2**(bitsize-1)-1)
-                raise "Numeric member #{name} doesn't have maximum value defined" unless member.has_key? 'max'
+                min = type_range.min if min =~ /\AU?INT\d+_MIN\Z/
+                max = type_range.max if max =~ /\AU?INT\d+_MAX\Z/
                 raise "Member #{name} default value has an invalid type, integer or symbol expected" unless default_value.is_a? Integer or default_value.is_a? Symbol
                 raise "Member #{name} default value is outside type's storage range, min #{type_range.min}, max #{type_range.max}" unless default_value.is_a? Symbol or type_range === default_value
+                raise "Numeric member #{name} doesn't have maximum value defined" unless member.has_key? 'max'
+                raise "Member #{name} default value is outside of the allowed range" if default_value.is_a? Numeric and min.is_a? Numeric and max.is_a? Numeric and not (min..max) === default_value
 
             when type == "float"
-                raise "Numeric member #{name} doesn't have maximum value defined" unless member.has_key? 'max'
                 raise "Member #{name} default value has an invalid type, numeric or symbol expected" unless default_value.is_a? Numeric or default_value.is_a? Symbol
+                raise "Numeric member #{name} doesn't have maximum value defined" unless member.has_key? 'max'
+                raise "Member #{name} default value is outside of the allowed range" if default_value.is_a? Numeric and min.is_a? Numeric and max.is_a? Numeric and not (min..max) === default_value
 
             when type == "string"
                 max = member["max"].to_i
