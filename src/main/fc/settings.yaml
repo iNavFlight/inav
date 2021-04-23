@@ -107,7 +107,7 @@ tables:
     enum: navRTHAllowLanding_e
   - name: bat_capacity_unit
     values: ["MAH", "MWH"]
-    enum: batCapacityUnit_e    
+    enum: batCapacityUnit_e
   - name: bat_voltage_source
     values: ["RAW", "SAG_COMP"]
     enum: batVoltageSource_e
@@ -1348,9 +1348,15 @@ groups:
         default_value: ON
         type: bool
       - name: switch_disarm_delay
-        description: "Delay before disarming when requested by switch (ms) [0-1000]"
+        description: "Delay before disarming when set by switch (ms) [0-1000]"
         default_value: 250
         field: switchDisarmDelayMs
+        min: 0
+        max: 1000
+      - name: switch_arm_delay
+        description: "Delay before arming when set by switch (ms) [0-1000]"
+        default_value: 400
+        field: switchArmDelayMs
         min: 0
         max: 1000
       - name: prearm_timeout
