@@ -504,7 +504,8 @@
 | stats_total_dist | 0 | Total flight distance [in meters]. The value is updated on every disarm when "stats" are enabled. |
 | stats_total_energy | 0 |  |
 | stats_total_time | 0 | Total flight time [in seconds]. The value is updated on every disarm when "stats" are enabled. |
-| switch_disarm_delay | 250 | Delay before disarming when requested by switch (ms) [0-1000] |
+| switch_arm_delay | 400 | Delay before arming when set by switch (ms) [0-1000] |
+| switch_disarm_delay | 250 | Delay before disarming when set by switch (ms) [0-1000] |
 | telemetry_halfduplex | ON | S.Port telemetry only: Turn UART into UNIDIR for usage on F1 and F4 target. See Telemetry.md for details |
 | telemetry_inverted | OFF | Determines if the telemetry protocol default signal inversion is reversed. This should be OFF in most cases unless a custom or hacked RX is used. |
 | telemetry_switch | OFF | Which aux channel to use to change serial output & baud rate (MSP / Telemetry). It disables automatic switching to Telemetry when armed. |
