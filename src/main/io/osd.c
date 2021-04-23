@@ -3402,7 +3402,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
         boxOsdClearDisplay = millis() - boxOsdTimer > boxOsdTimeDelay_Ms;
     } else {
         if (millis() - boxOsdTimer < boxOsdTimeDelay_Ms) {
-            infocycleSuspended = infocycleSuspended == false ? true : false;
+            infocycleSuspended = !infocycleSuspended;
             displayClearScreen(osdDisplayPort);
         }
         boxOsdTimer = 0;
