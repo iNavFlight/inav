@@ -81,7 +81,7 @@
 #define USE_MAG_LIS3MDL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
-
+#define BNO055_I2C_BUS          BUS_I2C1
 #define PITOT_I2C_BUS           BUS_I2C1
 
 #define USE_RANGEFINDER
@@ -148,19 +148,6 @@
 #define SDCARD_SDIO_DMA         DMA_TAG(2,3,4)
 #define SDCARD_SDIO_4BIT
 
-// *************** SPI4 FLASH BLACKBOX*******************
-
-#define USE_SPI_DEVICE_4
-#define SPI4_SCK_PIN            PE12
-#define SPI4_MISO_PIN           PE13
-#define SPI4_MOSI_PIN           PE14
-
-#define M25P16_CS_PIN           PE11
-#define M25P16_SPI_BUS          BUS_SPI4
-
-#define USE_FLASHFS
-#define USE_FLASH_M25P16
-
 // *************** ADC *****************************
 #define USE_ADC
 #define ADC_INSTANCE                ADC1
@@ -180,8 +167,7 @@
 // *************** PINIO ***************************
 #define USE_PINIO
 #define USE_PINIOBOX
-#define PINIO1_PIN                  PE9  // VTX power switcher
-#define PINIO2_PIN                  PE15 // 2xCamera switcher
+#define PINIO1_PIN                  PE9  // 9V switching
 
 // *************** LEDSTRIP ************************
 #define USE_LED_STRIP
@@ -193,7 +179,6 @@
 #define BIND_PIN                PD11
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
-//#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 #define DEFAULT_FEATURES            (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
