@@ -1295,7 +1295,7 @@ static void osdDisplayAdjustableDecimalValue(uint8_t elemPosX, uint8_t elemPosY,
     displayWriteWithAttr(osdDisplayPort, elemPosX + strlen(str) + 1 + valueOffset, elemPosY, buff, elemAttr);
 }
 
-static bool osdDrawSingleElement(uint8_t item)
+bool isItemSelectedForDisplay(uint8_t *elemPosX, uint8_t *elemPosY, uint8_t item)
 {
     static uint8_t infocycleItemCounter;
     if (item == 0) {
@@ -1303,26 +1303,29 @@ static bool osdDrawSingleElement(uint8_t item)
     }
 
     uint16_t pos = osdLayoutsConfig()->item_pos[currentLayout][item];
+
     if (!OSD_VISIBLE(pos)) {
         return false;
     }
-    uint8_t elemPosX = OSD_X(pos);
-    uint8_t elemPosY = OSD_Y(pos);
+    // normal position of item if not active in Infocycle field
+    *elemPosX = OSD_X(pos);
+    *elemPosY = OSD_Y(pos);
 
-    /* routine to direct selected OSD items to Info Cycle field on OSD.
-    Items cycled in field unless BOXOSD mode selected for < 1s in which case items are displayed in normal positions
-    (Info Cycle suspended). Info Cycle restarted by selecting BOXOSD for < 1s again.
-    BOXOSD switches off OSD if selected for > 1s*/
+    /* Infocycle routine to direct selected OSD items to Info Cycle field on OSD.
+    Items cycled in field unless BOXOSD mode selected for < 2s in which case items are displayed in normal positions
+    and Infocycle is suspended. Infocycle starts again by selecting BOXOSD again for < 2s.
+    BOXOSD switches off OSD if selected for > 2s*/
+
     uint16_t infocyclePos = osdLayoutsConfig()->item_pos[currentLayout][OSD_INFO_CYCLE];
 
     if (OSD_VISIBLE(infocyclePos)) {
         static uint8_t infocycleNumItems;
         static uint8_t infocycleLastLayout = 5;
 
-        if (currentLayout != infocycleLastLayout) { // count number active infocycle items for each layout selected
+        if (currentLayout != infocycleLastLayout) {
             infocycleNumItems = 0;
             for (uint8_t i = 0; i < OSD_ITEM_COUNT; i++) {
-                if (OSD_INFOCYCLE(osdLayoutsConfig()->item_pos[currentLayout][i])) {
+                if (OSD_INFOCYCLE(osdLayoutsConfig()->item_pos[currentLayout][i])) {   // count number infocycle items
                     infocycleNumItems += 1;
                 }
             }
@@ -1336,17 +1339,29 @@ static bool osdDrawSingleElement(uint8_t item)
             if (OSD_INFOCYCLE(pos)) {
                 infocycleItemCounter += 1;
                 if (infocycleItemCounter == OSD_ALTERNATING_CHOICES(osdConfig()->infocycle_interval_time, infocycleNumItems) + 1) {
-                    elemPosX = OSD_X(infocyclePos);
-                    elemPosY = OSD_Y(infocyclePos);
+                    *elemPosX = OSD_X(infocyclePos);
+                    *elemPosY = OSD_Y(infocyclePos);
                     if (infocyclePreviousItem != item) {     // clear infocycle field before displaying new item
                         infocyclePreviousItem = item;
-                        displayWrite(osdDisplayPort, elemPosX, elemPosY, "            ");   // 12 characters long
+                        displayWrite(osdDisplayPort, *elemPosX, *elemPosY, "            ");   // 12 characters long
                     }
                 } else {
                     return false;
                 }
             }
         }
+    }
+
+    return true;
+}
+
+static bool osdDrawSingleElement(uint8_t item)
+{
+    uint8_t elemPosX;
+    uint8_t elemPosY;
+
+    if (!isItemSelectedForDisplay(&elemPosX, &elemPosY, item)) {
+        return false;
     }
 
     textAttributes_t elemAttr = TEXT_ATTRIBUTES_NONE;
