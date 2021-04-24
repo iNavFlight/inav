@@ -294,10 +294,6 @@ void validateAndFixConfig(void)
     }
 #endif
 
-#if !defined(USE_MPU_DATA_READY_SIGNAL)
-    gyroConfigMutable()->gyroSync = false;
-#endif
-
     // Call target-specific validation function
     validateAndFixTargetConfig();
 
