@@ -101,9 +101,6 @@ enum {
     ALIGN_MAG = 2
 };
 
-#define GYRO_WATCHDOG_DELAY                 100 // Watchdog for boards without interrupt for gyro
-#define GYRO_SYNC_MAX_CONSECUTIVE_FAILURES  100 // After this many consecutive missed interrupts disable gyro sync and fall back to scheduled updates
-
 #define EMERGENCY_ARMING_TIME_WINDOW_MS 10000
 #define EMERGENCY_ARMING_COUNTER_STEP_MS 100
 
@@ -129,8 +126,8 @@ int16_t headFreeModeHold;
 uint8_t motorControlEnable = false;
 
 static bool isRXDataNew;
-static uint32_t gyroSyncFailureCount;
 static disarmReason_t lastDisarmReason = DISARM_NONE;
+timeUs_t lastDisarmTimeUs = 0;
 static emergencyArmingState_t emergencyArming;
 
 static bool prearmWasReset = false; // Prearm must be reset (RC Mode not active) before arming is possible
@@ -300,6 +297,17 @@ static void updateArmingStatus(void)
 	       DISABLE_ARMING_FLAG(ARMING_DISABLED_SERVO_AUTOTRIM);
 	    }
 
+#ifdef USE_DSHOT
+        /* CHECK: Don't arm if the DShot beeper was used recently, as there is a minimum delay before sending the next DShot command */
+        if (micros() - getLastDshotBeeperCommandTimeUs() < getDShotBeaconGuardDelayUs()) {
+            ENABLE_ARMING_FLAG(ARMING_DISABLED_DSHOT_BEEPER);
+        } else {
+            DISABLE_ARMING_FLAG(ARMING_DISABLED_DSHOT_BEEPER);
+        }
+#else
+        DISABLE_ARMING_FLAG(ARMING_DISABLED_DSHOT_BEEPER);
+#endif
+
         if (isModeActivationConditionPresent(BOXPREARM)) {
             if (IS_RC_MODE_ACTIVE(BOXPREARM)) {
                 if (prearmWasReset && (armingConfig()->prearmTimeoutMs == 0 || millis() - prearmActivationTime < armingConfig()->prearmTimeoutMs)) {
@@ -402,6 +410,7 @@ void disarm(disarmReason_t disarmReason)
 {
     if (ARMING_FLAG(ARMED)) {
         lastDisarmReason = disarmReason;
+        lastDisarmTimeUs = micros();
         DISABLE_ARMING_FLAG(ARMED);
 
 #ifdef USE_BLACKBOX
@@ -426,6 +435,10 @@ void disarm(disarmReason_t disarmReason)
 
         prearmWasReset = false;
     }
+}
+
+timeUs_t getLastDisarmTimeUs(void) {
+    return lastDisarmTimeUs;
 }
 
 disarmReason_t getDisarmReason(void)
@@ -480,20 +493,6 @@ void tryArm(void)
 {
     updateArmingStatus();
 
-#ifdef USE_DSHOT
-    if (
-            STATE(MULTIROTOR) &&
-            IS_RC_MODE_ACTIVE(BOXFLIPOVERAFTERCRASH) &&
-            emergencyArmingCanOverrideArmingDisabled() &&
-            isMotorProtocolDshot() &&
-            !FLIGHT_MODE(FLIP_OVER_AFTER_CRASH)
-            ) {
-        sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_REVERSED);
-        ENABLE_ARMING_FLAG(ARMED);
-        enableFlightMode(FLIP_OVER_AFTER_CRASH);
-        return;
-    }
-#endif
 #ifdef USE_PROGRAMMING_FRAMEWORK
     if (
         !isArmingDisabled() || 
@@ -509,6 +508,21 @@ void tryArm(void)
         if (ARMING_FLAG(ARMED)) {
             return;
         }
+
+#ifdef USE_DSHOT
+        if (
+                STATE(MULTIROTOR) &&
+                IS_RC_MODE_ACTIVE(BOXFLIPOVERAFTERCRASH) &&
+                emergencyArmingCanOverrideArmingDisabled() &&
+                isMotorProtocolDshot() &&
+                !FLIGHT_MODE(FLIP_OVER_AFTER_CRASH)
+                ) {
+            sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_REVERSED);
+            ENABLE_ARMING_FLAG(ARMED);
+            enableFlightMode(FLIP_OVER_AFTER_CRASH);
+            return;
+        }
+#endif
 
 #if defined(USE_NAV)
         // If nav_extra_arming_safety was bypassed we always
@@ -791,36 +805,17 @@ void processRx(timeUs_t currentTimeUs)
 
 // Function for loop trigger
 void FAST_CODE taskGyro(timeUs_t currentTimeUs) {
+    UNUSED(currentTimeUs);
     // getTaskDeltaTime() returns delta time frozen at the moment of entering the scheduler. currentTime is frozen at the very same point.
     // To make busy-waiting timeout work we need to account for time spent within busy-waiting loop
     const timeDelta_t currentDeltaTime = getTaskDeltaTime(TASK_SELF);
-    timeUs_t gyroUpdateUs = currentTimeUs;
-
-    if (gyroConfig()->gyroSync) {
-        while (true) {
-            gyroUpdateUs = micros();
-            if (gyroSyncCheckUpdate()) {
-                gyroSyncFailureCount = 0;
-                break;
-            }
-            else if ((currentDeltaTime + cmpTimeUs(gyroUpdateUs, currentTimeUs)) >= (timeDelta_t)(getLooptime() + GYRO_WATCHDOG_DELAY)) {
-                gyroSyncFailureCount++;
-                break;
-            }
-        }
-
-        // If we detect gyro sync failure - disable gyro sync
-        if (gyroSyncFailureCount > GYRO_SYNC_MAX_CONSECUTIVE_FAILURES) {
-            gyroConfigMutable()->gyroSync = false;
-        }
-    }
 
     /* Update actual hardware readings */
     gyroUpdate();
 
 #ifdef USE_OPFLOW
     if (sensors(SENSOR_OPFLOW)) {
-        opflowGyroUpdateCallback((timeUs_t)currentDeltaTime + (gyroUpdateUs - currentTimeUs));
+        opflowGyroUpdateCallback(currentDeltaTime);
     }
 #endif
 }

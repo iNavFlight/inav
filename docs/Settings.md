@@ -67,6 +67,8 @@
 | dji_speed_source | GROUND |  |  | Sets the speed type displayed by the DJI OSD: GROUND, 3D, AIR |
 | dji_use_name_for_messages | ON |  |  | Re-purpose the craft name field for messages. Replace craft name with :WTSED for Warnings|Throttle|Speed|Efficiency|Trip distance |
 | dji_workarounds | 1 | 0 | 255 | Enables workarounds for different versions of MSP protocol used |
+| dshot_beeper_enabled | ON |  |  | Whether using DShot motors as beepers is enabled |
+| dshot_beeper_tone | 1 | 1 | 5 | Sets the DShot beeper tone |
 | dterm_lpf2_hz | 0 | 0 | 500 | Cutoff frequency for stage 2 D-term low pass filter |
 | dterm_lpf2_type | BIQUAD |  |  | Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation. |
 | dterm_lpf_hz | 40 | 0 | 500 | Dterm low pass filter cutoff frequency. Default setting is very conservative and small multirotors should use higher value between 80 and 100Hz. 80 seems like a gold spot for 7-inch builds while 100 should work best with 5-inch machines. If motors are getting too hot, lower the value |
@@ -134,7 +136,7 @@
 | fw_p_pitch | 5 | 0 | 200 | Fixed-wing rate stabilisation P-gain for PITCH |
 | fw_p_roll | 5 | 0 | 200 | Fixed-wing rate stabilisation P-gain for ROLL |
 | fw_p_yaw | 6 | 0 | 200 | Fixed-wing rate stabilisation P-gain for YAW |
-| fw_reference_airspeed | 1000 | 1 | 5000 | Reference airspeed. Set this to airspeed at which PIDs were tuned. Usually should be set to cruise airspeed. Also used for coordinated turn calculation if airspeed sensor is not present. |
+| fw_reference_airspeed | 1500 | 300 | 6000 | Reference airspeed. Set this to airspeed at which PIDs were tuned. Usually should be set to cruise airspeed. Also used for coordinated turn calculation if airspeed sensor is not present. |
 | fw_tpa_time_constant | 0 | 0 | 5000 | TPA smoothing and delay time constant to reflect non-instant speed/throttle response of the plane. Planes with low thrust/weight ratio generally need higher time constant. Default is zero for compatibility with old setups |
 | fw_turn_assist_pitch_gain | 1 | 0 | 2 | Gain required to keep constant pitch angle during coordinated turns (in TURN_ASSIST mode). Value significantly different from 1.0 indicates a problem with the airspeed calibration (if present) or value of `fw_reference_airspeed` parameter |
 | fw_turn_assist_yaw_gain | 1 | 0 | 2 | Gain required to keep the yaw rate consistent with the turn rate for a coordinated turn (in TURN_ASSIST mode). Value significantly different from 1.0 indicates a problem with the airspeed calibration (if present) or value of `fw_reference_airspeed` parameter |
@@ -156,7 +158,6 @@
 | gyro_notch_hz | 0 |  | 500 |  |
 | gyro_stage2_lowpass_hz | 0 | 0 | 500 | Software based second stage lowpass filter for gyro. Value is cutoff frequency (Hz) |
 | gyro_stage2_lowpass_type | BIQUAD |  |  | Defines the type of stage 2 gyro LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation. |
-| gyro_sync | ON |  |  | This option enables gyro_sync feature. In this case the loop will be synced to gyro refresh rate. Loop will always wait for the newest gyro measurement. Maximum gyro refresh rate is determined by gyro_hardware_lpf |
 | gyro_to_use | 0 | 0 | 1 |  |
 | gyro_use_dyn_lpf | OFF |  |  | Use Dynamic LPF instead of static gyro stage1 LPF. Dynamic Gyro LPF updates gyro LPF based on the throttle position. |
 | has_flaps | OFF |  |  | Defines is UAV is capable of having flaps. If ON and AIRPLANE `platform_type` is used, **FLAPERON** flight mode will be available for the pilot |
@@ -318,9 +319,10 @@
 | nav_fw_pos_z_i | 5 | 0 | 255 | I gain of altitude PID controller (Fixedwing) |
 | nav_fw_pos_z_p | 40 | 0 | 255 | P gain of altitude PID controller (Fixedwing) |
 | nav_fw_yaw_deadband | 0 | 0 | 90 | Deadband for heading trajectory PID controller. When heading error is below the deadband, controller assumes that vehicle is on course |
-| nav_land_slowdown_maxalt | 2000 | 500 | 4000 | Defines at what altitude the descent velocity should start to ramp down from 100% nav_landing_speed to 25% nav_landing_speed. [cm] |
-| nav_land_slowdown_minalt | 500 | 50 | 1000 | Defines at what altitude the descent velocity should start to be 25% of nav_landing_speed [cm] |
-| nav_landing_speed | 200 | 100 | 2000 | Vertical descent velocity during the RTH landing phase. [cm/s] |
+| nav_land_maxalt_vspd | 200 | 100 | 2000 | Vertical descent velocity above nav_land_slowdown_maxalt during the RTH landing phase. [cm/s] |
+| nav_land_minalt_vspd | 50 | 50 | 500 | Vertical descent velocity under nav_land_slowdown_minalt during the RTH landing phase. [cm/s] |
+| nav_land_slowdown_maxalt | 2000 | 500 | 4000 | Defines at what altitude the descent velocity should start to ramp down from `nav_land_maxalt_vspd` to `nav_land_minalt_vspd` during the RTH landing phase [cm] |
+| nav_land_slowdown_minalt | 500 | 50 | 1000 | Defines at what altitude the descent velocity should start to be `nav_land_minalt_vspd` [cm] |
 | nav_manual_climb_rate | 200 | 10 | 2000 | Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s] |
 | nav_manual_speed | 500 | 10 | 2000 | Maximum velocity firmware is allowed when processing pilot input for POSHOLD/CRUISE control mode [cm/s] [Multirotor only] |
 | nav_max_terrain_follow_alt | 100 |  | 1000 | Max allowed above the ground altitude for terrain following mode |
@@ -427,6 +429,7 @@
 | osd_sidebar_scroll_arrows | OFF |  |  |  |
 | osd_snr_alarm | 4 | -20 | 10 | Value below which Crossfire SNR Alarm pops-up. (dB) |
 | osd_stats_energy_unit | MAH |  |  | Unit used for the drawn energy in the OSD stats [MAH/WH] (milliAmpere hour/ Watt hour) |
+| osd_stats_min_voltage_unit | BATTERY |  |  | Display minimum voltage of the `BATTERY` or the average per `CELL` in the OSD stats. |
 | osd_temp_label_align | LEFT |  |  | Allows to chose between left and right alignment for the OSD temperature sensor labels. Valid values are `LEFT` and `RIGHT` |
 | osd_time_alarm | 10 | 0 | 600 | Value above which to make the OSD flight time indicator blink (minutes) |
 | osd_units | METRIC |  |  | IMPERIAL, METRIC, UK |
@@ -438,7 +441,7 @@
 | pinio_box2 | `BOX_PERMANENT_ID_NONE` | 0 | 255 | Mode assignment for PINIO#1 |
 | pinio_box3 | `BOX_PERMANENT_ID_NONE` | 0 | 255 | Mode assignment for PINIO#1 |
 | pinio_box4 | `BOX_PERMANENT_ID_NONE` | 0 | 255 | Mode assignment for PINIO#1 |
-| pitch_rate | 20 | CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MIN | CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MAX | Defines rotation rate on PITCH axis that UAV will try to archive on max. stick deflection. Rates are defined in tens of degrees (deca-degrees) per second [rate = dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure. |
+| pitch_rate | 20 | 6 | 180 | Defines rotation rate on PITCH axis that UAV will try to archive on max. stick deflection. Rates are defined in tens of degrees (deca-degrees) per second [rate = dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure. |
 | pitot_hardware | NONE |  |  | Selection of pitot hardware. |
 | pitot_lpf_milli_hz | 350 | 0 | 10000 |  |
 | pitot_scale | 1.0 | 0 | 100 |  |
@@ -455,7 +458,7 @@
 | reboot_character | 82 | 48 | 126 | Special character used to trigger reboot |
 | receiver_type | _target default_ |  |  | Selection of receiver (RX) type. Additional configuration of a `serialrx_provider` and a UART will be needed for `SERIAL` |
 | report_cell_voltage | OFF |  |  | S.Port, D-Series, and IBUS telemetry: Send the average cell voltage if set to ON |
-| roll_rate | 20 | CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MIN | CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MAX | Defines rotation rate on ROLL axis that UAV will try to archive on max. stick deflection. Rates are defined in tens of degrees (deca-degrees) per second [rate = dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure. |
+| roll_rate | 20 | 6 | 180 | Defines rotation rate on ROLL axis that UAV will try to archive on max. stick deflection. Rates are defined in tens of degrees (deca-degrees) per second [rate = dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure. |
 | rpm_gyro_filter_enabled | OFF |  |  | Enables gyro RPM filtere. Set to `ON` only when ESC telemetry is working and rotation speed of the motors is correctly reported to INAV |
 | rpm_gyro_harmonics | 1 | 1 | 3 | Number of harmonic frequences to be covered by gyro RPM filter. Default value of `1` usually works just fine |
 | rpm_gyro_min_hz | 100 | 30 | 200 | The lowest frequency for gyro RPM filtere. Default `150` is fine for 5" mini-quads. On 7-inch drones you can lower even down to `60`-`70` |
@@ -472,6 +475,7 @@
 | rx_spi_protocol | _target default_ |  |  |  |
 | rx_spi_rf_channel_count | 0 | 0 | 8 |  |
 | safehome_max_distance | 20000 | 0 | 65000 | In order for a safehome to be used, it must be less than this distance (in cm) from the arming point. |
+| safehome_usage_mode | RTH |  |  | Used to control when safehomes will be used. Possible values are `OFF`, `RTH` and `RTH_FS`.  See [Safehome documentation](Safehomes.md#Safehome) for more information. |
 | sbus_sync_interval | 3000 | 500 | 10000 |  |
 | sdcard_detect_inverted | _target default_ |  |  | This setting drives the way SD card is detected in card slot. On some targets (AnyFC F7 clone) different card slot was used and depending of hardware revision ON or OFF setting might be required. If card is not detected, change this value. |
 | serialrx_halfduplex | AUTO |  |  | Allow serial receiver to operate on UART TX pin. With some receivers will allow control and telemetry over a single wire. |
@@ -512,7 +516,7 @@
 | throttle_scale | 1.0 | 0 | 1 | Throttle scaling factor. `1` means no throttle scaling. `0.5` means throttle scaled down by 50% |
 | throttle_tilt_comp_str | 0 | 0 | 100 | Can be used in ANGLE and HORIZON mode and will automatically boost throttle when banking. Setting is in percentage, 0=disabled. |
 | tpa_breakpoint | 1500 | PWM_RANGE_MIN | PWM_RANGE_MAX | See tpa_rate. |
-| tpa_rate | 0 | 0 | CONTROL_RATE_CONFIG_TPA_MAX | Throttle PID attenuation reduces influence of P on ROLL and PITCH as throttle increases. For every 1% throttle after the TPA breakpoint, P is reduced by the TPA rate. |
+| tpa_rate | 0 | 0 | 100 | Throttle PID attenuation reduces influence of P on ROLL and PITCH as throttle increases. For every 1% throttle after the TPA breakpoint, P is reduced by the TPA rate. |
 | tri_unarmed_servo | ON |  |  | On tricopter mix only, if this is set to ON, servo will always be correcting regardless of armed state. to disable this, set it to OFF. |
 | tz_automatic_dst | OFF |  |  | Automatically add Daylight Saving Time to the GPS time when needed or simply ignore it. Includes presets for EU and the USA - if you live outside these areas it is suggested to manage DST manually via `tz_offset`. |
 | tz_offset | 0 | -1440 | 1440 | Time zone offset from UTC, in minutes. This is applied to the GPS time for logging and time-stamping of Blackbox logs |
@@ -533,6 +537,6 @@
 | vtx_smartaudio_early_akk_workaround | ON |  |  | Enable workaround for early AKK SAudio-enabled VTX bug. |
 | yaw_deadband | 5 | 0 | 100 | These are values (in us) by how much RC input can be different before it's considered valid. For transmitters with jitter on outputs, this value can be increased. Defaults are zero, but can be increased up to 10 or so if rc inputs twitch while idle. |
 | yaw_lpf_hz | 0 | 0 | 200 | Yaw low pass filter cutoff frequency. Should be disabled (set to `0`) on small multirotors (7 inches and below) |
-| yaw_rate | 20 | CONTROL_RATE_CONFIG_YAW_RATE_MIN | CONTROL_RATE_CONFIG_YAW_RATE_MAX | Defines rotation rate on YAW axis that UAV will try to archive on max. stick deflection. Rates are defined in tens of degrees (deca-degrees) per second [rate = dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure. |
+| yaw_rate | 20 | 2 | 180 | Defines rotation rate on YAW axis that UAV will try to archive on max. stick deflection. Rates are defined in tens of degrees (deca-degrees) per second [rate = dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure. |
 
 > Note: this table is autogenerated. Do not edit it manually.
