@@ -22,6 +22,16 @@ DEFAULTS_BLACKLIST = [
     'serialrx_provider',
 ]
 
+MIN_MAX_REPLACEMENTS = {
+    'INT16_MIN': -32768,
+    'INT16_MAX': 32767,
+    'INT32_MIN': -2147483648,
+    'INT32_MAX': 2147483647,
+    'UINT8_MAX': 255,
+    'UINT16_MAX': 65535,
+    'UINT32_MAX': 4294967295,
+}
+
 def parse_settings_yaml():
     """Parse the YAML settings specs"""
 
@@ -32,42 +42,59 @@ def generate_md_table_from_yaml(settings_yaml):
     """Generate a sorted markdown table with description & default value for each setting"""
     params = {}
     
-    # Extract description and default value of each setting from the YAML specs (if present)
+    # Extract description, default/min/max values of each setting from the YAML specs (if present)
     for group in settings_yaml['groups']:
         for member in group['members']:
-            if not any(key in member for key in ["description", "default_value"]) and not options.quiet:
-                print("Setting \"{}\" has no description or default value specified".format(member['name']))
-            # Handle edge cases of YAML autogeneration
-            if "default_value" in member:
-                # Replace booleans with "ON"/"OFF"
-                if type(member["default_value"]) == bool:
-                    member["default_value"] = "ON" if member["default_value"] else "OFF"
-                # Replace zero placeholder with actual zero
-                elif member["default_value"] == ":zero":
-                    member["default_value"] = 0
-                # Replace target-default placeholder with extended definition
-                elif member["default_value"] == ":target":
-                    member["default_value"] = "_target default_"
-                # Replace empty strings with more evident marker
-                elif member["default_value"] == "":
-                    member["default_value"] = "_empty_"
-                # Reformat direct code references
-                elif str(member["default_value"])[0] == ":":
-                    member["default_value"] = f'`{member["default_value"][1:]}`'
+            if not any(key in member for key in ["description", "default_value", "min", "max"]) and not options.quiet:
+                print("Setting \"{}\" has an incomplete specification".format(member['name']))
+
+            # Handle default/min/max fields for each setting
+            for key in ["default_value", "min", "max"]:
+                # Basing on the check above, not all fields may be present
+                if key in member:
+                    ### Fetch actual values from the `constants` block if present
+                    if ('constants' in settings_yaml) and (member[key] in settings_yaml['constants']):
+                        member[key] = settings_yaml['constants'][member[key]]
+                    ### Fetch actual values from hardcoded min/max replacements
+                    elif member[key] in MIN_MAX_REPLACEMENTS:
+                        member[key] = MIN_MAX_REPLACEMENTS[member[key]]
+
+                    ### Handle edge cases of YAML autogeneration and prettify some values
+                    # Replace booleans with "ON"/"OFF"
+                    if type(member[key]) == bool:
+                        member[key] = "ON" if member[key] else "OFF"
+                    # Replace zero placeholder with actual zero
+                    elif member[key] == ":zero":
+                        member[key] = 0
+                    # Replace target-default placeholder with extended definition
+                    elif member[key] == ":target":
+                        member[key] = "_target default_"
+                    # Replace empty strings with more evident marker
+                    elif member[key] == "":
+                        member[key] = "_empty_"
+                    # Reformat direct code references
+                    elif str(member[key])[0] == ":":
+                        member[key] = f'`{member[key][1:]}`'
+
+
             params[member['name']] = {
                     "description": member["description"] if "description" in member else "",
-                    "default": member["default_value"] if "default_value" in member else ""
+                    "default": member["default_value"] if "default_value" in member else "",
+                    "min": member["min"] if "min" in member else "",
+                    "max": member["max"] if "max" in member else ""
                 }
     
     # MD table header
     md_table_lines = [
-        "| Variable Name | Default Value | Description |\n",
-        "| ------------- | ------------- | ----------- |\n",
+        "| Variable Name | Default Value | Min | Max | Description |\n",
+        "| ------------- | ------------- | --- | --- | ----------- |\n",
         ]
     
     # Sort the settings by name and build the rows of the table
     for param in sorted(params.items()):
-        md_table_lines.append("| {} | {} | {} |\n".format(param[0], param[1]['default'], param[1]['description']))
+        md_table_lines.append("| {} | {} | {} | {} | {} |\n".format(
+            param[0], param[1]['default'], param[1]['min'], param[1]['max'], param[1]['description']
+        ))
     
     # Return the assembled table
     return md_table_lines
