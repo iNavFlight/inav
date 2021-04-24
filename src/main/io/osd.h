@@ -77,6 +77,7 @@
 #define OSD_MSG_CLI_ACTIVE          "CLI IS ACTIVE"
 #define OSD_MSG_PWM_INIT_ERROR      "PWM INIT ERROR"
 #define OSD_MSG_NO_PREARM           "NO PREARM"
+#define OSD_MSG_DSHOT_BEEPER        "MOTOR BEEPER ACTIVE"
 #define OSD_MSG_RTH_FS              "(RTH)"
 #define OSD_MSG_EMERG_LANDING_FS    "(EMERGENCY LANDING)"
 #define OSD_MSG_MOVE_EXIT_FS        "!MOVE STICKS TO EXIT FS!"
@@ -99,6 +100,11 @@
 #define OSD_MSG_AUTOTUNE            "(AUTOTUNE)"
 #define OSD_MSG_HEADFREE            "(HEADFREE)"
 #define OSD_MSG_UNABLE_ARM          "UNABLE TO ARM"
+
+#if defined(USE_SAFE_HOME)
+#define OSD_MSG_DIVERT_SAFEHOME     "DIVERTING TO SAFEHOME"
+#define OSD_MSG_LOITERING_SAFEHOME  "LOITERING AROUND SAFEHOME"
+#endif
 
 typedef enum {
     OSD_RSSI_VALUE,
@@ -221,6 +227,7 @@ typedef enum {
     OSD_TPA,
     OSD_NAV_FW_CONTROL_SMOOTHNESS,
     OSD_VERSION,
+    OSD_RANGEFINDER,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -236,6 +243,11 @@ typedef enum {
     OSD_STATS_ENERGY_UNIT_MAH,
     OSD_STATS_ENERGY_UNIT_WH,
 } osd_stats_energy_unit_e;
+
+typedef enum {
+    OSD_STATS_MIN_VOLTAGE_UNIT_BATTERY,
+    OSD_STATS_MIN_VOLTAGE_UNIT_CELL,
+} osd_stats_min_voltage_unit_e;
 
 typedef enum {
     OSD_CROSSHAIRS_STYLE_DEFAULT,
@@ -333,6 +345,7 @@ typedef struct osdConfig_s {
 
     uint8_t units; // from osd_unit_e
     uint8_t stats_energy_unit; // from osd_stats_energy_unit_e
+    uint8_t stats_min_voltage_unit; // from osd_stats_min_voltage_unit_e
 
 #ifdef USE_WIND_ESTIMATOR
     bool    estimations_wind_compensation; // use wind compensation for estimated remaining flight/distance
