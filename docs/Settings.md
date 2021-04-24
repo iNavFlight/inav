@@ -441,7 +441,7 @@
 | pinio_box2 | `BOX_PERMANENT_ID_NONE` | 0 | 255 | Mode assignment for PINIO#1 |
 | pinio_box3 | `BOX_PERMANENT_ID_NONE` | 0 | 255 | Mode assignment for PINIO#1 |
 | pinio_box4 | `BOX_PERMANENT_ID_NONE` | 0 | 255 | Mode assignment for PINIO#1 |
-| pitch_rate | 20 | CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MIN | CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MAX | Defines rotation rate on PITCH axis that UAV will try to archive on max. stick deflection. Rates are defined in tens of degrees (deca-degrees) per second [rate = dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure. |
+| pitch_rate | 20 | 6 | 180 | Defines rotation rate on PITCH axis that UAV will try to archive on max. stick deflection. Rates are defined in tens of degrees (deca-degrees) per second [rate = dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure. |
 | pitot_hardware | NONE |  |  | Selection of pitot hardware. |
 | pitot_lpf_milli_hz | 350 | 0 | 10000 |  |
 | pitot_scale | 1.0 | 0 | 100 |  |
@@ -458,7 +458,7 @@
 | reboot_character | 82 | 48 | 126 | Special character used to trigger reboot |
 | receiver_type | _target default_ |  |  | Selection of receiver (RX) type. Additional configuration of a `serialrx_provider` and a UART will be needed for `SERIAL` |
 | report_cell_voltage | OFF |  |  | S.Port, D-Series, and IBUS telemetry: Send the average cell voltage if set to ON |
-| roll_rate | 20 | CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MIN | CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MAX | Defines rotation rate on ROLL axis that UAV will try to archive on max. stick deflection. Rates are defined in tens of degrees (deca-degrees) per second [rate = dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure. |
+| roll_rate | 20 | 6 | 180 | Defines rotation rate on ROLL axis that UAV will try to archive on max. stick deflection. Rates are defined in tens of degrees (deca-degrees) per second [rate = dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure. |
 | rpm_gyro_filter_enabled | OFF |  |  | Enables gyro RPM filtere. Set to `ON` only when ESC telemetry is working and rotation speed of the motors is correctly reported to INAV |
 | rpm_gyro_harmonics | 1 | 1 | 3 | Number of harmonic frequences to be covered by gyro RPM filter. Default value of `1` usually works just fine |
 | rpm_gyro_min_hz | 100 | 30 | 200 | The lowest frequency for gyro RPM filtere. Default `150` is fine for 5" mini-quads. On 7-inch drones you can lower even down to `60`-`70` |
@@ -516,7 +516,7 @@
 | throttle_scale | 1.0 | 0 | 1 | Throttle scaling factor. `1` means no throttle scaling. `0.5` means throttle scaled down by 50% |
 | throttle_tilt_comp_str | 0 | 0 | 100 | Can be used in ANGLE and HORIZON mode and will automatically boost throttle when banking. Setting is in percentage, 0=disabled. |
 | tpa_breakpoint | 1500 | PWM_RANGE_MIN | PWM_RANGE_MAX | See tpa_rate. |
-| tpa_rate | 0 | 0 | CONTROL_RATE_CONFIG_TPA_MAX | Throttle PID attenuation reduces influence of P on ROLL and PITCH as throttle increases. For every 1% throttle after the TPA breakpoint, P is reduced by the TPA rate. |
+| tpa_rate | 0 | 0 | 100 | Throttle PID attenuation reduces influence of P on ROLL and PITCH as throttle increases. For every 1% throttle after the TPA breakpoint, P is reduced by the TPA rate. |
 | tri_unarmed_servo | ON |  |  | On tricopter mix only, if this is set to ON, servo will always be correcting regardless of armed state. to disable this, set it to OFF. |
 | tz_automatic_dst | OFF |  |  | Automatically add Daylight Saving Time to the GPS time when needed or simply ignore it. Includes presets for EU and the USA - if you live outside these areas it is suggested to manage DST manually via `tz_offset`. |
 | tz_offset | 0 | -1440 | 1440 | Time zone offset from UTC, in minutes. This is applied to the GPS time for logging and time-stamping of Blackbox logs |
@@ -537,6 +537,6 @@
 | vtx_smartaudio_early_akk_workaround | ON |  |  | Enable workaround for early AKK SAudio-enabled VTX bug. |
 | yaw_deadband | 5 | 0 | 100 | These are values (in us) by how much RC input can be different before it's considered valid. For transmitters with jitter on outputs, this value can be increased. Defaults are zero, but can be increased up to 10 or so if rc inputs twitch while idle. |
 | yaw_lpf_hz | 0 | 0 | 200 | Yaw low pass filter cutoff frequency. Should be disabled (set to `0`) on small multirotors (7 inches and below) |
-| yaw_rate | 20 | CONTROL_RATE_CONFIG_YAW_RATE_MIN | CONTROL_RATE_CONFIG_YAW_RATE_MAX | Defines rotation rate on YAW axis that UAV will try to archive on max. stick deflection. Rates are defined in tens of degrees (deca-degrees) per second [rate = dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure. |
+| yaw_rate | 20 | 2 | 180 | Defines rotation rate on YAW axis that UAV will try to archive on max. stick deflection. Rates are defined in tens of degrees (deca-degrees) per second [rate = dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure. |
 
 > Note: this table is autogenerated. Do not edit it manually.
