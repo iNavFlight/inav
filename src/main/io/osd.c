@@ -2258,6 +2258,7 @@ static bool osdDrawSingleElement(uint8_t item)
             static timeUs_t efficiencyUpdated = 0;
             int32_t value = 0;
             bool moreThanAh = false;
+            bool efficiencyValid = value > 0 && gpsSol.groundSpeed > 100;
             timeUs_t currentTimeUs = micros();
             timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
             if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
@@ -2275,7 +2276,12 @@ static bool osdDrawSingleElement(uint8_t item)
                     FALLTHROUGH;
                 case OSD_UNIT_IMPERIAL:
                     moreThanAh = osdFormatCentiNumber(buff, value * METERS_PER_MILE / 10, 1000, 0, 2, 3);
-                    if (moreThanAh) {
+                    if (!efficiencyValid) {
+                        buff[0] = buff[1] = buff[2] = '-';
+                        buff[3] = SYM_MAH_MI_0;
+                        buff[4] = SYM_MAH_MI_1;
+                        buff[5] = '\0';
+                    } else if (moreThanAh) {
                         buff[3] = SYM_AH_MI;
                         buff[4] = ' ';
                         buff[5] = '\0';
@@ -2287,7 +2293,12 @@ static bool osdDrawSingleElement(uint8_t item)
                     break;
                 case OSD_UNIT_METRIC:
                     moreThanAh = osdFormatCentiNumber(buff, value * 100, 1000, 0, 2, 3);
-                    if (moreThanAh) {
+                    if (!efficiencyValid) {
+                        buff[0] = buff[1] = buff[2] = '-';
+                        buff[3] = SYM_MAH_KM_0;
+                        buff[4] = SYM_MAH_KM_1;
+                        buff[5] = '\0';
+                    } else if (moreThanAh) {
                         buff[3] = SYM_AH_KM;
                         buff[4] = ' ';
                         buff[5] = '\0';
@@ -2297,9 +2308,6 @@ static bool osdDrawSingleElement(uint8_t item)
                         buff[5] = '\0';
                     }
                     break;
-            }
-            if (value < 0 || gpsSol.groundSpeed < 100) {
-                buff[0] = buff[1] = buff[2] = '-';
             }
             break;
         }
@@ -3267,7 +3275,7 @@ static void osdShowStatsPage2(void)
                             buff[5] = '\0';
                         }
                     } else {
-                        osdFormatCentiNumber(buff, getMWhDrawn() * 10 / totalDistance * METERS_PER_MILE, 0, 2, 0, 4);
+                        osdFormatCentiNumber(buff, (int)(getMWhDrawn() * 10 / totalDistance * METERS_PER_MILE), 0, 2, 0, 4);
                         buff[3] = SYM_WH_MI;
                         buff[4] = '\0';
                     }
@@ -3284,7 +3292,7 @@ static void osdShowStatsPage2(void)
                             buff[5] = '\0';
                         }
                     } else {
-                        osdFormatCentiNumber(buff, getMWhDrawn() * 10000 / totalDistance, 0, 2, 0, 4);
+                        osdFormatCentiNumber(buff, (int)(getMWhDrawn() * 10000 / totalDistance), 0, 2, 0, 4);
                         buff[3] = SYM_WH_KM;
                         buff[4] = '\0';
                     }
