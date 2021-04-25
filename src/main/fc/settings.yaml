@@ -72,6 +72,9 @@ tables:
   - name: osd_video_system
     values: ["AUTO", "PAL", "NTSC"]
     enum: videoSystem_e
+  - name: osd_telemetry
+    values: ["OFF", "ON","TEST"]
+    enum: osd_telemetry_e    
   - name: osd_alignment
     values: ["LEFT", "RIGHT"]
     enum: osd_alignment_e
@@ -2887,6 +2890,12 @@ groups:
     headers: ["io/osd.h", "drivers/osd.h"]
     condition: USE_OSD
     members:
+      - name: osd_telemetry
+        description: "To enable OSD telemetry for antenna tracker. Possible values are `OFF`, `ON` and `TEST`"
+        table: osd_telemetry
+        field: telemetry
+        type: uint8_t
+        default_value: "OFF"
       - name: osd_video_system
         description: "Video system used. Possible values are `AUTO`, `PAL` and `NTSC`"
         default_value: "AUTO"
