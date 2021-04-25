@@ -2804,8 +2804,8 @@ groups:
         description: "Value below which Crossfire SNR Alarm pops-up. (dB)"
         default_value: "4"
         field: snr_alarm
-        min: -12
-        max: 8
+        min: -20
+        max: 10
       - name: osd_link_quality_alarm
         condition: USE_SERIALRX_CRSF
         description: "LQ % indicator blinks below this value. For Crossfire use 70%, for Tracer use 50%"
