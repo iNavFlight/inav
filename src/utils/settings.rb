@@ -301,6 +301,7 @@ class Generator
 
         check_member_default_values_presence
         sanitize_fields
+        resolv_min_max_and_default_values_if_possible
         initialize_name_encoder
         initialize_value_encoder
         validate_default_values
@@ -359,6 +360,7 @@ class Generator
         @data = YAML.load_file(@settings_file)
 
         initialize_tables
+        initialize_constants
         check_conditions
     end
 
@@ -413,6 +415,11 @@ class Generator
         # Write table pointers
         table_names.each do |name|
             buf << "extern const char * const #{table_variable_name(name)}[];\n"
+        end
+
+        # Write setting constants from settings file
+        @constants.each do |name, value|
+            buf << "#define SETTING_CONSTANT_#{name.upcase} #{value.inspect}\n"
         end
 
         # Write #define'd constants for referencing each setting
@@ -715,6 +722,10 @@ class Generator
         end
     end
 
+    def initialize_constants
+        @constants = @data["constants"]
+    end
+
     def ordered_table_names
         @enabled_tables.to_a().sort()
     end
@@ -877,6 +888,8 @@ class Generator
         foreach_enabled_member do |_, member|
             name = member["name"]
             type = member["type"]
+            min = member["min"] || 0
+            max = member["max"]
             default_value = member["default_value"]
 
             next if %i[ zero target ].include? default_value
@@ -894,13 +907,17 @@ class Generator
                 unsigned = !$~[:unsigned].empty?
                 bitsize = $~[:bitsize].to_i
                 type_range = unsigned ? 0..(2**bitsize-1) : (-2**(bitsize-1)+1)..(2**(bitsize-1)-1)
-                raise "Numeric member #{name} doesn't have maximum value defined" unless member.has_key? 'max'
+                min = type_range.min if min =~ /\AU?INT\d+_MIN\Z/
+                max = type_range.max if max =~ /\AU?INT\d+_MAX\Z/
                 raise "Member #{name} default value has an invalid type, integer or symbol expected" unless default_value.is_a? Integer or default_value.is_a? Symbol
                 raise "Member #{name} default value is outside type's storage range, min #{type_range.min}, max #{type_range.max}" unless default_value.is_a? Symbol or type_range === default_value
+                raise "Numeric member #{name} doesn't have maximum value defined" unless member.has_key? 'max'
+                raise "Member #{name} default value is outside of the allowed range" if default_value.is_a? Numeric and min.is_a? Numeric and max.is_a? Numeric and not (min..max) === default_value
 
             when type == "float"
-                raise "Numeric member #{name} doesn't have maximum value defined" unless member.has_key? 'max'
                 raise "Member #{name} default value has an invalid type, numeric or symbol expected" unless default_value.is_a? Numeric or default_value.is_a? Symbol
+                raise "Numeric member #{name} doesn't have maximum value defined" unless member.has_key? 'max'
+                raise "Member #{name} default value is outside of the allowed range" if default_value.is_a? Numeric and min.is_a? Numeric and max.is_a? Numeric and not (min..max) === default_value
 
             when type == "string"
                 max = member["max"].to_i
@@ -1039,6 +1056,18 @@ class Generator
     def check_member_default_values_presence
         missing_default_value_names = foreach_member.inject([]) { |names, (_, member)| member.has_key?("default_value") ? names : names << member["name"] }
         raise "Missing default value for #{missing_default_value_names.count} member#{"s" unless missing_default_value_names.one?}: #{missing_default_value_names * ", "}" unless missing_default_value_names.empty?
+    end
+
+    def resolv_min_max_and_default_values_if_possible
+        foreach_member do |_, member|
+            %w[ min max default_value ].each do |value_type|
+                member_value = member[value_type]
+                if member_value.is_a? String
+                    constant_value = @constants[member_value]
+                    member[value_type] = constant_value unless constant_value.nil?
+                end
+            end
+        end
     end
 
     def resolve_constants(constants)

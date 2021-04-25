@@ -154,8 +154,8 @@
 #define SYM_HEADING               0xA9 // 169 Compass Heading symbol
 #define SYM_ALT                   0xAA // 170 ALT
 #define SYM_WH                    0xAB // 171 WH
-#define SYM_WH_KM_0               0xAC // 172 WH/KM left
-#define SYM_WH_KM_1               0xAD // 173 WH/KM right
+#define SYM_WH_KM                 0xAC // 172 WH/KM
+#define SYM_WH_MI                 0xAD // 173 WH/MI
 #define SYM_WATT                  0xAE // 174 W
 #define SYM_SCALE                 0xAF // 175 Map scale
 #define SYM_MPH                   0xB0 // 176 MPH
