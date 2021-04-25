@@ -34,6 +34,7 @@
 #include "fc/config.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
+#include "fc/settings.h"
 
 #include "rx/rx.h"
 
@@ -55,6 +56,10 @@ boxBitmask_t rcModeActivationMask; // one bit per mode defined in boxId_e
 
 PG_REGISTER_ARRAY(modeActivationCondition_t, MAX_MODE_ACTIVATION_CONDITION_COUNT, modeActivationConditions, PG_MODE_ACTIVATION_PROFILE, 0);
 PG_REGISTER(modeActivationOperatorConfig_t, modeActivationOperatorConfig, PG_MODE_ACTIVATION_OPERATOR_CONFIG, 0);
+
+PG_RESET_TEMPLATE(modeActivationOperatorConfig_t, modeActivationOperatorConfig,
+    .modeActivationOperator = SETTING_MODE_RANGE_LOGIC_OPERATOR_DEFAULT
+);
 
 static void processAirmodeAirplane(void) {
     if (feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE)) {
@@ -134,13 +139,7 @@ void rcModeUpdate(boxBitmask_t *newState)
 
 bool isModeActivationConditionPresent(boxId_e modeId)
 {
-    for (int index = 0; index < MAX_MODE_ACTIVATION_CONDITION_COUNT; index++) {
-        if (modeActivationConditions(index)->modeId == modeId && IS_RANGE_USABLE(&modeActivationConditions(index)->range)) {
-            return true;
-        }
-    }
-
-    return false;
+    return specifiedConditionCountPerMode[modeId] > 0;
 }
 
 bool isRangeActive(uint8_t auxChannelIndex, const channelRange_t *range)
@@ -212,7 +211,7 @@ void updateUsedModeActivationConditionFlags(void)
 #ifdef USE_NAV
     isUsingNAVModes = isModeActivationConditionPresent(BOXNAVPOSHOLD) ||
                         isModeActivationConditionPresent(BOXNAVRTH) ||
-                        isModeActivationConditionPresent(BOXNAVCRUISE) ||
+                        isModeActivationConditionPresent(BOXNAVCOURSEHOLD) ||
                         isModeActivationConditionPresent(BOXNAVWP);
 #endif
 }
