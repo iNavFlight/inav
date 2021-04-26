@@ -423,9 +423,9 @@ void disarm(disarmReason_t disarmReason)
         }
 #endif
 #ifdef USE_DSHOT
-        if (FLIGHT_MODE(FLIP_OVER_AFTER_CRASH)) {
+        if (FLIGHT_MODE(TURTLE_MODE)) {
             sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_NORMAL);
-            DISABLE_FLIGHT_MODE(FLIP_OVER_AFTER_CRASH);
+            DISABLE_FLIGHT_MODE(TURTLE_MODE);
         }
 #endif
         statsOnDisarm();
@@ -504,11 +504,11 @@ void tryArm(void)
             emergencyArmingCanOverrideArmingDisabled() &&
             isMotorProtocolDshot() &&
             !ARMING_FLAG(ARMED) &&
-            !FLIGHT_MODE(FLIP_OVER_AFTER_CRASH)
+            !FLIGHT_MODE(TURTLE_MODE)
             ) {
         sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_REVERSED);
         ENABLE_ARMING_FLAG(ARMED);
-        enableFlightMode(FLIP_OVER_AFTER_CRASH);
+        enableFlightMode(TURTLE_MODE);
         return;
     }
 #endif

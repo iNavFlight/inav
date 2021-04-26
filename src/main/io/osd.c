@@ -1715,7 +1715,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "ANGL";
             else if (FLIGHT_MODE(HORIZON_MODE))
                 p = "HOR ";
-            else if (FLIGHT_MODE(FLIP_OVER_AFTER_CRASH))
+            else if (FLIGHT_MODE(TURTLE_MODE))
                 p = "TURT";
 
             displayWrite(osdDisplayPort, elemPosX, elemPosY, p);

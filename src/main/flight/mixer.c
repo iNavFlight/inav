@@ -525,7 +525,7 @@ static int getReversibleMotorsThrottleDeadband(void)
 void FAST_CODE mixTable(const float dT)
 {
 #ifdef USE_DSHOT
-    if (FLIGHT_MODE(FLIP_OVER_AFTER_CRASH)) {
+    if (FLIGHT_MODE(TURTLE_MODE)) {
         applyTurtleModeToMotors();
         return;
     }
