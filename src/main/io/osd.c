@@ -3371,10 +3371,11 @@ static void osdRefresh(timeUs_t currentTimeUs)
     }
 
     // detect arm/disarm
-    static timeMs_t osdStatsAutoScreenSwapStartAt = 0;
+    static uint8_t statsScreenAutoSwapToggle = 2;
     if (armState != ARMING_FLAG(ARMED)) {
         if (ARMING_FLAG(ARMED)) {
             osdResetStats();
+            statsScreenAutoSwapToggle = 2;
             osdShowArmed(); // reset statistic etc
             uint32_t delay = ARMED_SCREEN_DISPLAY_TIME;
             statsPagesCheck = 0;
@@ -3386,7 +3387,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
         } else {
             osdShowStatsPage1(); // show first page of statistic
             osdSetNextRefreshIn(STATS_SCREEN_DISPLAY_TIME);
-            osdStatsAutoScreenSwapStartAt = millis();
+            statsScreenAutoSwapToggle = 0;
         }
 
         armState = ARMING_FLAG(ARMED);
@@ -3399,15 +3400,18 @@ static void osdRefresh(timeUs_t currentTimeUs)
         // might have been drawn while the OSD wasn't refreshing.
 
         // auto swap to stats page 2 for 2 seconds to allow DVR capture
-        // Cancelled if Roll stick page swap used
-        timeDelta_t elapsedTime = millis() - osdStatsAutoScreenSwapStartAt;
-        if (STATS_PAGE1 || STATS_PAGE2 || osdStatsAutoScreenSwapStartAt == 0) {
-            osdStatsAutoScreenSwapStartAt = 0;
-        } else if (elapsedTime > 4000) {
-            osdShowStatsPage1();
-            osdStatsAutoScreenSwapStartAt = 0;
-        } else if (ABS(2050 - elapsedTime) < 50) {
-            osdShowStatsPage2();
+        // Auto swap cancelled if Roll stick page swap used
+        if (statsScreenAutoSwapToggle != 2) {
+            timeMs_t elapsedTime = millis() - ((resumeRefreshAt / 1000) - STATS_SCREEN_DISPLAY_TIME);
+            if (STATS_PAGE1 || STATS_PAGE2) {
+                statsScreenAutoSwapToggle = 2;
+            } else if (elapsedTime > 4000 && statsScreenAutoSwapToggle == 1) {
+                osdShowStatsPage1();
+                statsScreenAutoSwapToggle = 2;
+            } else if (elapsedTime > 2000 && statsScreenAutoSwapToggle == 0) {
+                osdShowStatsPage2();
+                statsScreenAutoSwapToggle = 1;
+            }
         }
 
         if (!DELAYED_REFRESH_RESUME_COMMAND)
