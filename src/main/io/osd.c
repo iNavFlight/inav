@@ -3371,6 +3371,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
     }
 
     // detect arm/disarm
+    static timeMs_t osdStatsAutoScreenSwapStartAt = 0;
     if (armState != ARMING_FLAG(ARMED)) {
         if (ARMING_FLAG(ARMED)) {
             osdResetStats();
@@ -3385,6 +3386,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
         } else {
             osdShowStatsPage1(); // show first page of statistic
             osdSetNextRefreshIn(STATS_SCREEN_DISPLAY_TIME);
+            osdStatsAutoScreenSwapStartAt = millis();
         }
 
         armState = ARMING_FLAG(ARMED);
@@ -3395,6 +3397,18 @@ static void osdRefresh(timeUs_t currentTimeUs)
         // or THR is high or PITCH is high, resume refreshing.
         // Clear the screen first to erase other elements which
         // might have been drawn while the OSD wasn't refreshing.
+
+        // auto swap to stats page 2 for 2 seconds to allow DVR capture
+        // Cancelled if Roll stick page swap used
+        timeDelta_t elapsedTime = millis() - osdStatsAutoScreenSwapStartAt;
+        if (STATS_PAGE1 || STATS_PAGE2 || osdStatsAutoScreenSwapStartAt == 0) {
+            osdStatsAutoScreenSwapStartAt = 0;
+        } else if (elapsedTime > 4000) {
+            osdShowStatsPage1();
+            osdStatsAutoScreenSwapStartAt = 0;
+        } else if (ABS(2050 - elapsedTime) < 50) {
+            osdShowStatsPage2();
+        }
 
         if (!DELAYED_REFRESH_RESUME_COMMAND)
             refreshWaitForResumeCmdRelease = false;
