@@ -112,7 +112,7 @@
 })
 
 
-/* 
+/*
  * DJI HD goggles use MSPv1 compatible with Betaflight 4.1.0
  * DJI uses a subset of messages and assume fixed bit positions for flight modes
  *
@@ -687,7 +687,7 @@ static void osdDJIFormatDistanceStr(char *buff, int32_t dist)
             if (abs(centifeet) < FEET_PER_MILE * 100 / 2) {
                 // Show feet when dist < 0.5mi
                 tfp_sprintf(buff, "%d%s", (int)(centifeet / 100), "FT");
-            } 
+            }
             else {
                 // Show miles when dist >= 0.5mi
                 tfp_sprintf(buff, "%d.%02d%s", (int)(centifeet / (100*FEET_PER_MILE)),
@@ -724,7 +724,7 @@ static void osdDJIEfficiencyMahPerKM(char *buff)
     if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
         if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
             value = pt1FilterApply4(&eFilterState, ((float)getAmperage() / gpsSol.groundSpeed) / 0.0036f,
-                1, efficiencyTimeDelta * 1e-6f);
+                1, US2S(efficiencyTimeDelta));
 
             efficiencyUpdated = currentTimeUs;
         }
@@ -757,7 +757,7 @@ static void djiSerializeCraftNameOverride(sbuf_t *dst, const char * name)
     if (enabledElements[0] == 'W') {
         enabledElements += 1;
     }
-    
+
     int elemLen = strlen(enabledElements);
 
     if (elemLen > 0) {
@@ -827,14 +827,14 @@ static void djiSerializeCraftNameOverride(sbuf_t *dst, const char * name)
                     // during a lost aircraft recovery and blinking
                     // will cause it to be missing from some frames.
                 }
-            } 
+            }
             else {
                 if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
                     const char *navStateMessage = navigationStateMessage();
                     if (navStateMessage) {
                         messages[messageCount++] = navStateMessage;
                     }
-                } 
+                }
                 else if (STATE(FIXED_WING_LEGACY) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
                     messages[messageCount++] = "AUTOLAUNCH";
                 }
@@ -996,7 +996,7 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
             for (int i = 0; i < STICK_CHANNEL_COUNT; i++) {
                 sbufWriteU16(dst, rxGetChannelValue(i));
             }
-            break;            
+            break;
 
         case DJI_MSP_RAW_GPS:
             sbufWriteU8(dst, gpsSol.fixType);

@@ -100,6 +100,11 @@
 #define OSD_MSG_HEADFREE            "(HEADFREE)"
 #define OSD_MSG_UNABLE_ARM          "UNABLE TO ARM"
 
+#if defined(USE_SAFE_HOME)
+#define OSD_MSG_DIVERT_SAFEHOME     "DIVERTING TO SAFEHOME"
+#define OSD_MSG_LOITERING_SAFEHOME  "LOITERING AROUND SAFEHOME"
+#endif
+
 typedef enum {
     OSD_RSSI_VALUE,
     OSD_MAIN_BATT_VOLTAGE,
@@ -239,6 +244,11 @@ typedef enum {
 } osd_stats_energy_unit_e;
 
 typedef enum {
+    OSD_STATS_MIN_VOLTAGE_UNIT_BATTERY,
+    OSD_STATS_MIN_VOLTAGE_UNIT_CELL,
+} osd_stats_min_voltage_unit_e;
+
+typedef enum {
     OSD_CROSSHAIRS_STYLE_DEFAULT,
     OSD_CROSSHAIRS_STYLE_AIRCRAFT,
     OSD_CROSSHAIRS_STYLE_TYPE3,
@@ -334,6 +344,7 @@ typedef struct osdConfig_s {
 
     uint8_t units; // from osd_unit_e
     uint8_t stats_energy_unit; // from osd_stats_energy_unit_e
+    uint8_t stats_min_voltage_unit; // from osd_stats_min_voltage_unit_e
 
 #ifdef USE_WIND_ESTIMATOR
     bool    estimations_wind_compensation; // use wind compensation for estimated remaining flight/distance
