@@ -3371,11 +3371,11 @@ static void osdRefresh(timeUs_t currentTimeUs)
     }
 
     // detect arm/disarm
-    static uint8_t statsScreenAutoSwapToggle = 2;
+    static bool statsScreenAutoSwapToggle = false;
     if (armState != ARMING_FLAG(ARMED)) {
         if (ARMING_FLAG(ARMED)) {
             osdResetStats();
-            statsScreenAutoSwapToggle = 2;
+            statsScreenAutoSwapToggle = false;
             osdShowArmed(); // reset statistic etc
             uint32_t delay = ARMED_SCREEN_DISPLAY_TIME;
             statsPagesCheck = 0;
@@ -3385,9 +3385,9 @@ static void osdRefresh(timeUs_t currentTimeUs)
 #endif
             osdSetNextRefreshIn(delay);
         } else {
-            osdShowStatsPage1(); // show first page of statistic
+            osdShowStatsPage2(); // initially show page 2 of statistics, auto swap to page 1 after 2s
             osdSetNextRefreshIn(STATS_SCREEN_DISPLAY_TIME);
-            statsScreenAutoSwapToggle = 0;
+            statsScreenAutoSwapToggle = true;
         }
 
         armState = ARMING_FLAG(ARMED);
@@ -3399,18 +3399,15 @@ static void osdRefresh(timeUs_t currentTimeUs)
         // Clear the screen first to erase other elements which
         // might have been drawn while the OSD wasn't refreshing.
 
-        // auto swap to stats page 2 for 2 seconds to allow DVR capture
+        // auto swap to stats page 1 two secs after page 2 initially displayed (to allow full DVR capture)
         // Auto swap cancelled if Roll stick page swap used
-        if (statsScreenAutoSwapToggle != 2) {
+        if (statsScreenAutoSwapToggle) {
             timeMs_t elapsedTime = millis() - ((resumeRefreshAt / 1000) - STATS_SCREEN_DISPLAY_TIME);
             if (STATS_PAGE1 || STATS_PAGE2) {
-                statsScreenAutoSwapToggle = 2;
-            } else if (elapsedTime > 4000 && statsScreenAutoSwapToggle == 1) {
+                statsScreenAutoSwapToggle = false;
+            } else if (elapsedTime > 2000) {
                 osdShowStatsPage1();
-                statsScreenAutoSwapToggle = 2;
-            } else if (elapsedTime > 2000 && statsScreenAutoSwapToggle == 0) {
-                osdShowStatsPage2();
-                statsScreenAutoSwapToggle = 1;
+                statsScreenAutoSwapToggle = false;
             }
         }
 
