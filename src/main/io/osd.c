@@ -2258,7 +2258,6 @@ static bool osdDrawSingleElement(uint8_t item)
             static timeUs_t efficiencyUpdated = 0;
             int32_t value = 0;
             bool moreThanAh = false;
-            bool efficiencyValid = value > 0 && gpsSol.groundSpeed > 100;
             timeUs_t currentTimeUs = micros();
             timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
             if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
@@ -2271,21 +2270,19 @@ static bool osdDrawSingleElement(uint8_t item)
                     value = eFilterState.state;
                 }
             }
+            bool efficiencyValid = (value > 0) && (gpsSol.groundSpeed > 100);
             switch (osdConfig()->units) {
                 case OSD_UNIT_UK:
                     FALLTHROUGH;
                 case OSD_UNIT_IMPERIAL:
                     moreThanAh = osdFormatCentiNumber(buff, value * METERS_PER_MILE / 10, 1000, 0, 2, 3);
+                    if (!moreThanAh) {
+                        tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_MI_0, SYM_MAH_MI_1);
+                    } else {
+                        tfp_sprintf(buff, "%s%c", buff, SYM_AH_MI);
+                    } 
                     if (!efficiencyValid) {
                         buff[0] = buff[1] = buff[2] = '-';
-                        buff[3] = SYM_MAH_MI_0;
-                        buff[4] = SYM_MAH_MI_1;
-                        buff[5] = '\0';
-                    } else if (moreThanAh) {
-                        buff[3] = SYM_AH_MI;
-                        buff[4] = ' ';
-                        buff[5] = '\0';
-                    } else {
                         buff[3] = SYM_MAH_MI_0;
                         buff[4] = SYM_MAH_MI_1;
                         buff[5] = '\0';
@@ -2293,16 +2290,13 @@ static bool osdDrawSingleElement(uint8_t item)
                     break;
                 case OSD_UNIT_METRIC:
                     moreThanAh = osdFormatCentiNumber(buff, value * 100, 1000, 0, 2, 3);
+                    if (!moreThanAh) {
+                        tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_KM_0, SYM_MAH_KM_1);
+                    } else {
+                        tfp_sprintf(buff, "%s%c", buff, SYM_AH_KM);
+                    } 
                     if (!efficiencyValid) {
                         buff[0] = buff[1] = buff[2] = '-';
-                        buff[3] = SYM_MAH_KM_0;
-                        buff[4] = SYM_MAH_KM_1;
-                        buff[5] = '\0';
-                    } else if (moreThanAh) {
-                        buff[3] = SYM_AH_KM;
-                        buff[4] = ' ';
-                        buff[5] = '\0';
-                    } else {
                         buff[3] = SYM_MAH_KM_0;
                         buff[4] = SYM_MAH_KM_1;
                         buff[5] = '\0';
@@ -2331,6 +2325,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     value = eFilterState.state;
                 }
             }
+            bool efficiencyValid = (value > 0) && (gpsSol.groundSpeed > 100);
             switch (osdConfig()->units) {
                 case OSD_UNIT_UK:
                     FALLTHROUGH;
@@ -2344,7 +2339,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     break;
             }
             buff[4] = '\0';
-            if (value < 0 || gpsSol.groundSpeed < 100) {
+            if (!efficiencyValid) {
                 buff[0] = buff[1] = buff[2] = '-';
             }
             break;
@@ -3266,40 +3261,46 @@ static void osdShowStatsPage2(void)
                     FALLTHROUGH;
                 case OSD_UNIT_IMPERIAL:
                     if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
-                        moreThanAh = osdFormatCentiNumber(buff, (int)(getMAhDrawn() * 10000 / totalDistance * METERS_PER_MILE), 1000, 1, 2, 3);
+                        moreThanAh = osdFormatCentiNumber(buff, (int)(getMAhDrawn() * 100 * METERS_PER_MILE / totalDistance), 1000, 2, 2, 3);
+                        if (!moreThanAh) {
+                            tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_MI_0, SYM_MAH_MI_1);
+                        } else {
+                            tfp_sprintf(buff, "%s%c", buff, SYM_AH_MI);
+                        }
                         if (!efficiencyValid) {
                             buff[0] = buff[1] = buff[2] = '-';
-                            tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_MI_0, SYM_MAH_MI_1);
-                        } else if (moreThanAh) {
-                            tfp_sprintf(buff, "%s%c", buff, SYM_AH_MI);
-                        } else {
-                            tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_MI_0, SYM_MAH_MI_1);
+                            buff[3] = SYM_MAH_MI_0;
+                            buff[4] = SYM_MAH_MI_1;
+                            buff[5] = '\0';
                         }
                     } else {
                         osdFormatCentiNumber(buff, (int)(getMWhDrawn() * 10 / totalDistance * METERS_PER_MILE), 0, 2, 0, 3);
+                        tfp_sprintf(buff, "%s%c", buff, SYM_WH_MI);
                         if (!efficiencyValid) {
                             buff[0] = buff[1] = buff[2] = '-';
                         }
-                        tfp_sprintf(buff, "%s%c", buff, SYM_WH_MI);
                     }
                     break;
                 case OSD_UNIT_METRIC:
                     if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
-                        moreThanAh = osdFormatCentiNumber(buff, (int)(getMAhDrawn() * 10000000 / totalDistance), 1000, 1, 2, 3);
+                        moreThanAh = osdFormatCentiNumber(buff, (int)(getMAhDrawn() * 100000 / totalDistance), 1000, 1, 2, 3);
+                        if (!moreThanAh) {
+                            tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_KM_0, SYM_MAH_KM_1);
+                        } else {
+                            tfp_sprintf(buff, "%s%c", buff, SYM_AH_KM);
+                        }
                         if (!efficiencyValid) {
                             buff[0] = buff[1] = buff[2] = '-';
-                            tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_KM_0, SYM_MAH_KM_1);
-                        } else if (moreThanAh) {
-                            tfp_sprintf(buff, "%s%c", buff, SYM_AH_KM);
-                        } else {
-                            tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_KM_0, SYM_MAH_KM_1);
+                            buff[3] = SYM_MAH_KM_0;
+                            buff[4] = SYM_MAH_KM_1;
+                            buff[5] = '\0';
                         }
                     } else {
                         osdFormatCentiNumber(buff, (int)(getMWhDrawn() * 10000 / totalDistance), 0, 2, 0, 3);
+                        tfp_sprintf(buff, "%s%c", buff, SYM_WH_KM);
                         if (!efficiencyValid) {
                             buff[0] = buff[1] = buff[2] = '-';
                         }
-                        tfp_sprintf(buff, "%s%c", buff, SYM_WH_KM);
                     }
                     break;
             }
