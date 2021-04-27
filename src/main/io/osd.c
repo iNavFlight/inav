@@ -3288,7 +3288,7 @@ static void osdShowStatsPage2(void)
                         moreThanAh = osdFormatCentiNumber(buff, (int)(getMAhDrawn() * 10000000 / totalDistance), 1000, 1, 2, 3);
                         if (!efficiencyValid) {
                             buff[0] = buff[1] = buff[2] = '-';
-                            tfp_sprintf(buff, "%s%c", buff, SYM_AH_KM);
+                            tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_KM_0, SYM_MAH_KM_1);
                         } else if (moreThanAh) {
                             tfp_sprintf(buff, "%s%c", buff, SYM_AH_KM);
                         } else {
