@@ -1495,7 +1495,7 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
-    case OSD_GLIDE_SLOPE:
+    case OSD_GLIDESLOPE:
         {
 
             #if defined(USE_PITOT)
@@ -1505,22 +1505,18 @@ static bool osdDrawSingleElement(uint8_t item)
             #endif
             float sinkRate = -getEstimatedActualVelocity(Z);
 
-            float glideSlope;
             static pt1Filter_t gsFilterState;
-            static timeUs_t gsUpdated = 0;
-            timeUs_t currentTimeUs = micros();
-            timeDelta_t gsTimeDelta = cmpTimeUs(currentTimeUs, gsUpdated);
-            glideSlope = pt1FilterApply4(&gsFilterState, horizontalSpeed / sinkRate, 1, gsTimeDelta * 1e-6f);
+            static timeUs_t gsUpdatedTime;
+            float glideSlope = pt1FilterApply4(&gsFilterState, horizontalSpeed / sinkRate, 0.5, US2S(micros() - gsUpdatedTime));
             gsUpdated = currentTimeUs;
 
-            buff[0] = 'G';
-            buff[1] = 'S';
-            if (glideSlope > 0 && horizontalSpeed > 100) {
-                osdFormatCentiNumber(buff + 2, (int16_t)(glideSlope * 100.0f), 0, 2, 0, 3);
+            buff[0] = 0x77; // Use direction arrow as glideslope symbol
+            if (glideSlope > 0 && horizontalSpeed > 100 && glideSlope < 100) {
+                osdFormatCentiNumber(buff + 1, (int16_t)(glideSlope * 100.0f), 0, 2, 0, 3);
             } else {
-                buff[2] = buff[3] = buff[4] = '-';
+                buff[1] = buff[2] = buff[3] = '-';
             }
-            buff[5] = '\0';
+            buff[4] = '\0';
             break;
         }
 
@@ -2990,7 +2986,7 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_MAIN_BATT_SAG_COMPENSATED_CELL_VOLTAGE] = OSD_POS(12, 1);
     osdLayoutsConfig->item_pos[0][OSD_GPS_SPEED] = OSD_POS(23, 1);
     osdLayoutsConfig->item_pos[0][OSD_3D_SPEED] = OSD_POS(23, 1);
-    osdLayoutsConfig->item_pos[0][OSD_GLIDE_SLOPE] = OSD_POS(23, 2);
+    osdLayoutsConfig->item_pos[0][OSD_GLIDESLOPE] = OSD_POS(23, 2);
 
     osdLayoutsConfig->item_pos[0][OSD_THROTTLE_POS] = OSD_POS(1, 2) | OSD_VISIBLE_FLAG;
     osdLayoutsConfig->item_pos[0][OSD_THROTTLE_POS_AUTO_THR] = OSD_POS(6, 2);
