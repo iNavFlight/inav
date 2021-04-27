@@ -3269,14 +3269,17 @@ static void osdShowStatsPage2(void)
                         moreThanAh = osdFormatCentiNumber(buff, (int)(getMAhDrawn() * 10000 / totalDistance * METERS_PER_MILE), 1000, 1, 2, 3);
                         if (!efficiencyValid) {
                             buff[0] = buff[1] = buff[2] = '-';
-                            tfp_sprintf(buff, "%s%c", buff, SYM_AH_MI);
+                            tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_MI_0, SYM_MAH_MI_1);
                         } else if (moreThanAh) {
                             tfp_sprintf(buff, "%s%c", buff, SYM_AH_MI);
                         } else {
                             tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_MI_0, SYM_MAH_MI_1);
                         }
                     } else {
-                        osdFormatCentiNumber(buff, (int)(getMWhDrawn() * 10 / totalDistance * METERS_PER_MILE), 0, 2, 0, 4);
+                        osdFormatCentiNumber(buff, (int)(getMWhDrawn() * 10 / totalDistance * METERS_PER_MILE), 0, 2, 0, 3);
+                        if (!efficiencyValid) {
+                            buff[0] = buff[1] = buff[2] = '-';
+                        }
                         tfp_sprintf(buff, "%s%c", buff, SYM_WH_MI);
                     }
                     break;
@@ -3292,7 +3295,10 @@ static void osdShowStatsPage2(void)
                             tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_KM_0, SYM_MAH_KM_1);
                         }
                     } else {
-                        osdFormatCentiNumber(buff, (int)(getMWhDrawn() * 10000 / totalDistance), 0, 2, 0, 4);
+                        osdFormatCentiNumber(buff, (int)(getMWhDrawn() * 10000 / totalDistance), 0, 2, 0, 3);
+                        if (!efficiencyValid) {
+                            buff[0] = buff[1] = buff[2] = '-';
+                        }
                         tfp_sprintf(buff, "%s%c", buff, SYM_WH_KM);
                     }
                     break;
