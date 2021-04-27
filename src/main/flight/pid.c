@@ -48,6 +48,7 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/rpm_filter.h"
 #include "flight/secondary_imu.h"
 #include "flight/kalman.h"
+#include "flight/smith_predictor.h"
 
 #include "io/gps.h"
 
@@ -109,6 +110,8 @@ typedef struct {
     bool itermFreezeActive;
 
     biquadFilter_t rateTargetFilter;
+
+    smithPredictor_t smithPredictor;
 } pidState_t;
 
 STATIC_FASTRAM bool pidFiltersConfigured = false;
@@ -348,6 +351,30 @@ bool pidInitFilters(void)
             biquadFilterInitLPF(&pidState[axis].rateTargetFilter, pidProfile()->controlDerivativeLpfHz, getLooptime());
         }
     }
+
+#ifdef USE_SMITH_PREDICTOR
+    smithPredictorInit(
+        &pidState[FD_ROLL].smithPredictor, 
+        pidProfile()->smithPredictorDelay, 
+        pidProfile()->smithPredictorStrength, 
+        pidProfile()->smithPredictorFilterHz, 
+        getLooptime()
+    );
+    smithPredictorInit(
+        &pidState[FD_PITCH].smithPredictor, 
+        pidProfile()->smithPredictorDelay, 
+        pidProfile()->smithPredictorStrength, 
+        pidProfile()->smithPredictorFilterHz, 
+        getLooptime()
+    );
+    smithPredictorInit(
+        &pidState[FD_YAW].smithPredictor, 
+        pidProfile()->smithPredictorDelay, 
+        pidProfile()->smithPredictorStrength, 
+        pidProfile()->smithPredictorFilterHz, 
+        getLooptime()
+    );
+#endif
 
     pidFiltersConfigured = true;
 
@@ -1052,6 +1079,13 @@ void FAST_CODE pidController(float dT)
             pidState[axis].gyroRate = gyroKalmanUpdate(axis, pidState[axis].gyroRate, pidState[axis].rateTarget);
         }
 #endif
+
+#ifdef USE_SMITH_PREDICTOR
+        DEBUG_SET(DEBUG_SMITH_COMPENSATOR, axis, pidState[axis].gyroRate);
+        pidState[axis].gyroRate = applySmithPredictor(axis, &pidState[axis].smithPredictor, pidState[axis].gyroRate);
+        DEBUG_SET(DEBUG_SMITH_COMPENSATOR, axis + 3, pidState[axis].gyroRate);
+#endif
+
         DEBUG_SET(DEBUG_PID_MEASUREMENT, axis, pidState[axis].gyroRate);
     }
 
