@@ -186,6 +186,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
     const float absReachedRate = fabsf(reachedRate);
     const float absPidOutput = fabsf(pidOutput);
     const bool correctDirection = (desiredRate>0) == (reachedRate>0);
+    float rateFullStick;
 
     bool gainsUpdated = false;
     bool ratesUpdated = false;
@@ -211,7 +212,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
                 float pidSumTarget = (pidAutotuneConfig()->fw_max_rate_deflection / 100.0f) * pidSumLimit;
 
                 // Theoretically achievable rate with target deflection
-                float rateFullStick = pidSumTarget / tuneCurrent[axis].absPidOutputAccum * tuneCurrent[axis].absReachedRateAccum;
+                rateFullStick = pidSumTarget / tuneCurrent[axis].absPidOutputAccum * tuneCurrent[axis].absReachedRateAccum;
 
                 // Rate update
                 if (rateFullStick > (maxRateSetting + 10.0f)) {
