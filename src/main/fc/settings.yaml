@@ -107,7 +107,7 @@ tables:
     enum: navRTHAllowLanding_e
   - name: bat_capacity_unit
     values: ["MAH", "MWH"]
-    enum: batCapacityUnit_e    
+    enum: batCapacityUnit_e
   - name: bat_voltage_source
     values: ["RAW", "SAG_COMP"]
     enum: batVoltageSource_e
@@ -3251,6 +3251,13 @@ groups:
         max: 255
         default_value: 0
         description: Same as left_sidebar_scroll_step, but for the right sidebar
+
+      - name: osd_sidebar_height
+        field: sidebar_height
+        min: 0
+        max: 5
+        default_value: 3
+        description: Height of sidebars in rows. 0 leaves only the level indicator arrows (Not for pixel OSD)
 
       - name: osd_home_position_arm_screen
         type: bool
