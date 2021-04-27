@@ -1549,6 +1549,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
             return nextForNonGeoStates();
 
         case NAV_WP_ACTION_RTH:
+#if defined(USE_SAFE_HOME)
+            findNearestSafeHome();
+#endif
             posControl.rthState.rthInitialDistance = posControl.homeDistance;
             initializeRTHSanityChecker(&navGetCurrentActualPositionAndVelocity()->pos);
             calculateAndSetActiveWaypointToLocalPosition(rthGetHomeTargetPosition(RTH_HOME_ENROUTE_INITIAL));
