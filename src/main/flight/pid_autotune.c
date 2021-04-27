@@ -73,8 +73,6 @@ typedef enum {
 } pidAutotuneState_e;
 
 typedef struct {
-    pidAutotuneState_e  state;
-    timeMs_t            stateEnterTime;
     float   gainP;
     float   gainI;
     float   gainD;
@@ -129,8 +127,6 @@ void autotuneStart(void)
         tuneCurrent[axis].gainD = pidBank()->pid[axis].D;
         tuneCurrent[axis].gainFF = pidBank()->pid[axis].FF;
         tuneCurrent[axis].rate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
-        tuneCurrent[axis].stateEnterTime = millis();
-        tuneCurrent[axis].state = DEMAND_TOO_LOW;
         tuneCurrent[axis].initialRate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
         tuneCurrent[axis].absDesiredRateAccum = 0;
         tuneCurrent[axis].absReachedRateAccum = 0;
@@ -209,7 +205,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
         tuneCurrent[axis].absPidOutputAccum += absPidOutput;
         tuneCurrent[axis].updateCount++;
 
-        if ((tuneCurrent[axis].updateCount & 100) == 0 && tuneCurrent[axis].updateCount > 5000) {
+        if ((tuneCurrent[axis].updateCount & 100) == 0 && tuneCurrent[axis].updateCount >= 5000) {
             if (pidAutotuneConfig()->fw_rate_adjustment != FIXED) {//} && !FLIGHT_MODE(ANGLE_MODE)) { // Rate discovery is not possible in ANGLE mode
                 // Target 80% control surface deflection to leave some room for P and I to work
                 float pidSumTarget = (pidAutotuneConfig()->fw_max_rate_deflection / 100.0f) * pidSumLimit;
@@ -262,9 +258,6 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
                     blackboxLogAutotuneEvent(ADJUSTMENT_YAW_FF, tuneCurrent[axis].gainFF);
                     break;
             }
-
-            // Debug
-            // DEBUG_SET(DEBUG_AUTOTUNE, axis + 3, pidOutputRequired);
             gainsUpdated = false;
         }
 
@@ -286,7 +279,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
             }
 
             // Debug
-            // DEBUG_SET(DEBUG_AUTOTUNE, axis, rateFullStick);
+            DEBUG_SET(DEBUG_AUTOTUNE, axis, rateFullStick);
             ratesUpdated = false;
         }
     }
