@@ -48,12 +48,6 @@ const timerDef_t timerDefinitions[HARDWARE_TIMER_DEFINITION_COUNT] = {
     [13] = { .tim = TIM17, .rcc = RCC_APB2(TIM17),  .irq = TIM17_IRQn},
 };
 
-uint8_t timerClockDivisor(TIM_TypeDef *tim)
-{
-    UNUSED(tim);
-    return 1;
-}
-
 uint32_t timerClock(TIM_TypeDef *tim)
 {
     int timpre;
