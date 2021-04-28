@@ -2061,18 +2061,18 @@ groups:
         max: 10
       - name: smith_predictor_strength
         description: "The strength factor of a Smith Predictor of PID measurement. In percents"
-        default_value: 50
+        default_value: 0.5
         field: smithPredictorStrength
         condition: USE_SMITH_PREDICTOR
         min: 0
-        max: 100
+        max: 1
       - name: smith_predictor_delay
-        description: "Expected delay of the gyro signal. In tenths of a millisecond. 32 means 3.2ms"
-        default_value: 32
+        description: "Expected delay of the gyro signal. In milliseconds"
+        default_value: 3.2
         field: smithPredictorDelay
         condition: USE_SMITH_PREDICTOR
         min: 0
-        max: 80
+        max: 8
       - name: smith_predictor_lpf_hz
         description: "Cutoff frequency for the Smith Predictor Low Pass Filter"
         default_value: 50

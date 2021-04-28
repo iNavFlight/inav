@@ -44,7 +44,7 @@ float applySmithPredictor(uint8_t axis, smithPredictor_t *predictor, float sampl
             predictor->idx = 0;
         }
 
-        // filter the delayedGyro to help reduce the overall noise this prediction adds
+        // filter the delayed data to help reduce the overall noise this prediction adds
         float delayed = pt1FilterApply(&predictor->smithPredictorFilter, predictor->data[predictor->idx]);
         float delayCompensatedSample = predictor->smithPredictorStrength * (sample - delayed);
 
@@ -54,12 +54,12 @@ float applySmithPredictor(uint8_t axis, smithPredictor_t *predictor, float sampl
 }
 
 FUNCTION_COMPILE_FOR_SIZE
-void smithPredictorInit(smithPredictor_t *predictor, uint8_t delay, uint8_t strength, uint16_t filterLpfHz, uint32_t looptime) {
-    if (delay > 0) {
+void smithPredictorInit(smithPredictor_t *predictor, float delay, float strength, uint16_t filterLpfHz, uint32_t looptime) {
+    if (delay > 0.1) {
         predictor->enabled = true;
-        predictor->samples = delay / (looptime / 100.0f);
+        predictor->samples = (delay * 1000) / looptime;
         predictor->idx = 0;
-        predictor->smithPredictorStrength = strength / 100.0f;
+        predictor->smithPredictorStrength = strength;
         pt1FilterInit(&predictor->smithPredictorFilter, filterLpfHz, looptime * 1e-6f);
     } else {
         predictor->enabled = false;
