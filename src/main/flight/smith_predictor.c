@@ -30,6 +30,7 @@
 
 #include <stdbool.h>
 #include "common/axis.h"
+#include "common/utils.h"
 #include "flight/smith_predictor.h"
 #include "build/debug.h"
 
