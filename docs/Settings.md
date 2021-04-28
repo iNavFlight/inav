@@ -148,6 +148,9 @@
 | gps_provider | UBLOX |  |  | Which GPS protocol to be used, note that UBLOX is 5Hz and UBLOX7 is 10Hz (M8N). |
 | gps_sbas_mode | NONE |  |  | Which SBAS mode to be used |
 | gps_ublox_use_galileo | OFF |  |  | Enable use of Galileo satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires M8N and Ublox firmware 3.x (or later) [OFF/ON]. |
+| gyro_abg_alpha | 0 | 0 | 1 | Alpha factor for Gyro Alpha-Beta-Gamma filter |
+| gyro_abg_boost | 0.35 | 0 | 2 | Boost factor for Gyro Alpha-Beta-Gamma filter |
+| gyro_abg_half_life | 0.5 | 0 | 10 | Sample half-life for Gyro Alpha-Beta-Gamma filter |
 | gyro_dyn_lpf_curve_expo | 5 | 1 | 10 | Expo value for the throttle-to-frequency mapping for Dynamic LPF |
 | gyro_dyn_lpf_max_hz | 500 | 40 | 1000 | Maximum frequency of the gyro Dynamic LPF |
 | gyro_dyn_lpf_min_hz | 200 | 40 | 400 | Minimum frequency of the gyro Dynamic LPF |
