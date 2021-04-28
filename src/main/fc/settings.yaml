@@ -2068,7 +2068,7 @@ groups:
         max: 1
       - name: smith_predictor_delay
         description: "Expected delay of the gyro signal. In milliseconds"
-        default_value: 3.2
+        default_value: 0
         field: smithPredictorDelay
         condition: USE_SMITH_PREDICTOR
         min: 0
