@@ -1497,20 +1497,19 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_GLIDESLOPE:
         {
-
             #if defined(USE_PITOT)
                 float horizontalSpeed = sensors(SENSOR_PITOT) ? pitot.airSpeed : gpsSol.groundSpeed;
             #else
                 float horizontalSpeed = gpsSol.groundSpeed;
             #endif
             float sinkRate = -getEstimatedActualVelocity(Z);
-
             static pt1Filter_t gsFilterState;
-            static timeUs_t gsUpdatedTime;
-            float glideSlope = pt1FilterApply4(&gsFilterState, horizontalSpeed / sinkRate, 0.5, US2S(micros() - gsUpdatedTime));
-            gsUpdated = currentTimeUs;
+            const timeUs_t currentTimeUs = millis();
+            static timeUs_t gsUpdatedTimeUs;
+            float glideSlope = pt1FilterApply4(&gsFilterState, horizontalSpeed / sinkRate, 0.5, US2S(currentTimeUs - gsUpdatedTimeUs));
+            gsUpdatedTimeUs = currentTimeUs;
 
-            buff[0] = 0x77; // Use direction arrow as glideslope symbol
+            buff[0] = SYM_GLIDESLOPE; // Use direction arrow as glideslope symbol
             if (glideSlope > 0 && horizontalSpeed > 100 && glideSlope < 100) {
                 osdFormatCentiNumber(buff + 1, (int16_t)(glideSlope * 100.0f), 0, 2, 0, 3);
             } else {
