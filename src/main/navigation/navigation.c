@@ -3212,7 +3212,13 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
                 return NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D;
         }
 
-        // PH has priority over CRUISE
+        // CRUISE has priority over COURSE_HOLD and AH
+        if (IS_RC_MODE_ACTIVE(BOXNAVCRUISE)) {
+            if ((FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE)) || (canActivatePosHold && canActivateAltHold))
+                return NAV_FSM_EVENT_SWITCH_TO_CRUISE;
+        }
+
+        // PH has priority over COURSE_HOLD
         // CRUISE has priority on AH
         if (IS_RC_MODE_ACTIVE(BOXNAVCOURSEHOLD)) {
 
@@ -3302,8 +3308,8 @@ bool navigationTerrainFollowingEnabled(void)
 
 navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
 {
-    const bool navBoxModesEnabled = IS_RC_MODE_ACTIVE(BOXNAVRTH) || IS_RC_MODE_ACTIVE(BOXNAVWP) || IS_RC_MODE_ACTIVE(BOXNAVPOSHOLD) || (STATE(FIXED_WING_LEGACY) && IS_RC_MODE_ACTIVE(BOXNAVALTHOLD)) || (STATE(FIXED_WING_LEGACY) && IS_RC_MODE_ACTIVE(BOXNAVCOURSEHOLD));
-    const bool navLaunchComboModesEnabled = isNavLaunchEnabled() && (IS_RC_MODE_ACTIVE(BOXNAVRTH) || IS_RC_MODE_ACTIVE(BOXNAVWP) || IS_RC_MODE_ACTIVE(BOXNAVALTHOLD) || IS_RC_MODE_ACTIVE(BOXNAVCOURSEHOLD));
+    const bool navBoxModesEnabled = IS_RC_MODE_ACTIVE(BOXNAVRTH) || IS_RC_MODE_ACTIVE(BOXNAVWP) || IS_RC_MODE_ACTIVE(BOXNAVPOSHOLD) || (STATE(FIXED_WING_LEGACY) && IS_RC_MODE_ACTIVE(BOXNAVALTHOLD)) || (STATE(FIXED_WING_LEGACY) && (IS_RC_MODE_ACTIVE(BOXNAVCOURSEHOLD) || IS_RC_MODE_ACTIVE(BOXNAVCRUISE)));
+    const bool navLaunchComboModesEnabled = isNavLaunchEnabled() && (IS_RC_MODE_ACTIVE(BOXNAVRTH) || IS_RC_MODE_ACTIVE(BOXNAVWP) || IS_RC_MODE_ACTIVE(BOXNAVALTHOLD) || IS_RC_MODE_ACTIVE(BOXNAVCOURSEHOLD) || IS_RC_MODE_ACTIVE(BOXNAVCRUISE));
 
     if (usedBypass) {
         *usedBypass = false;
