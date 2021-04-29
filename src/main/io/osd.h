@@ -87,6 +87,7 @@
 #define OSD_MSG_HOLDING_WAYPOINT    "HOLDING WAYPOINT"
 #define OSD_MSG_TO_WP               "TO WP"
 #define OSD_MSG_PREPARE_NEXT_WP     "PREPARING FOR NEXT WAYPOINT"
+#define OSD_MSG_WP_RTH_CANCEL       "CANCEL WP MODE TO EXIT RTH"
 #define OSD_MSG_EMERG_LANDING       "EMERGENCY LANDING"
 #define OSD_MSG_LANDING             "LANDING"
 #define OSD_MSG_LOITERING_HOME      "LOITERING AROUND HOME"
@@ -244,6 +245,11 @@ typedef enum {
 } osd_stats_energy_unit_e;
 
 typedef enum {
+    OSD_STATS_MIN_VOLTAGE_UNIT_BATTERY,
+    OSD_STATS_MIN_VOLTAGE_UNIT_CELL,
+} osd_stats_min_voltage_unit_e;
+
+typedef enum {
     OSD_CROSSHAIRS_STYLE_DEFAULT,
     OSD_CROSSHAIRS_STYLE_AIRCRAFT,
     OSD_CROSSHAIRS_STYLE_TYPE3,
@@ -339,6 +345,7 @@ typedef struct osdConfig_s {
 
     uint8_t units; // from osd_unit_e
     uint8_t stats_energy_unit; // from osd_stats_energy_unit_e
+    uint8_t stats_min_voltage_unit; // from osd_stats_min_voltage_unit_e
 
 #ifdef USE_WIND_ESTIMATOR
     bool    estimations_wind_compensation; // use wind compensation for estimated remaining flight/distance
