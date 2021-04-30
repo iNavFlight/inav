@@ -107,7 +107,7 @@ tables:
     enum: navRTHAllowLanding_e
   - name: bat_capacity_unit
     values: ["MAH", "MWH"]
-    enum: batCapacityUnit_e    
+    enum: batCapacityUnit_e
   - name: bat_voltage_source
     values: ["RAW", "SAG_COMP"]
     enum: batVoltageSource_e
@@ -2930,7 +2930,12 @@ groups:
         field: stats_min_voltage_unit
         table: osd_stats_min_voltage_unit
         type: uint8_t
-
+      - name: osd_stats_page_auto_swap_time
+        description: "Auto swap display time interval between disarm stats pages (seconds)."
+        default_value: 3
+        field: stats_page_auto_swap_time
+        min: 1
+        max: 10
       - name: osd_rssi_alarm
         description: "Value below which to make the OSD RSSI indicator blink"
         default_value: 20
