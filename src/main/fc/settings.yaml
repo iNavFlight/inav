@@ -75,6 +75,9 @@ tables:
   - name: osd_video_system
     values: ["AUTO", "PAL", "NTSC"]
     enum: videoSystem_e
+  - name: osd_telemetry
+    values: ["OFF", "ON","TEST"]
+    enum: osd_telemetry_e    
   - name: osd_alignment
     values: ["LEFT", "RIGHT"]
     enum: osd_alignment_e
@@ -91,7 +94,7 @@ tables:
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "ERPM", "RPM_FILTER", "RPM_FREQ", "NAV_YAW", "DYNAMIC_FILTER", "DYNAMIC_FILTER_FREQUENCY",
       "IRLOCK", "CD", "KALMAN_GAIN", "PID_MEASUREMENT", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574", "DYN_GYRO_LPF", "FW_D", "IMU2", "ALTITUDE",
-      "DEBUG_GYRO_ALPHA_BETA_GAMMA"]
+      "GYRO_ALPHA_BETA_GAMMA", "SMITH_PREDICTOR"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -2080,6 +2083,27 @@ groups:
         field: fixedWingLevelTrim
         min: -10
         max: 10
+      - name: smith_predictor_strength
+        description: "The strength factor of a Smith Predictor of PID measurement. In percents"
+        default_value: 0.5
+        field: smithPredictorStrength
+        condition: USE_SMITH_PREDICTOR
+        min: 0
+        max: 1
+      - name: smith_predictor_delay
+        description: "Expected delay of the gyro signal. In milliseconds"
+        default_value: 0
+        field: smithPredictorDelay
+        condition: USE_SMITH_PREDICTOR
+        min: 0
+        max: 8
+      - name: smith_predictor_lpf_hz
+        description: "Cutoff frequency for the Smith Predictor Low Pass Filter"
+        default_value: 50
+        field: smithPredictorFilterHz
+        condition: USE_SMITH_PREDICTOR
+        min: 1
+        max: 500
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t
@@ -2922,6 +2946,12 @@ groups:
     headers: ["io/osd.h", "drivers/osd.h"]
     condition: USE_OSD
     members:
+      - name: osd_telemetry
+        description: "To enable OSD telemetry for antenna tracker. Possible values are `OFF`, `ON` and `TEST`"
+        table: osd_telemetry
+        field: telemetry
+        type: uint8_t
+        default_value: "OFF"
       - name: osd_video_system
         description: "Video system used. Possible values are `AUTO`, `PAL` and `NTSC`"
         default_value: "AUTO"
