@@ -430,6 +430,7 @@
 | osd_stats_energy_unit | MAH |  |  | Unit used for the drawn energy in the OSD stats [MAH/WH] (milliAmpere hour/ Watt hour) |
 | osd_stats_min_voltage_unit | BATTERY |  |  | Display minimum voltage of the `BATTERY` or the average per `CELL` in the OSD stats. |
 | osd_stats_page_auto_swap_time | 3 | 1 | 10 | Auto swap display time interval between disarm stats pages (seconds). |
+| osd_telemetry | OFF |  |  | To enable OSD telemetry for antenna tracker. Possible values are `OFF`, `ON` and `TEST` |
 | osd_temp_label_align | LEFT |  |  | Allows to chose between left and right alignment for the OSD temperature sensor labels. Valid values are `LEFT` and `RIGHT` |
 | osd_time_alarm | 10 | 0 | 600 | Value above which to make the OSD flight time indicator blink (minutes) |
 | osd_units | METRIC |  |  | IMPERIAL, METRIC, UK |
@@ -498,6 +499,9 @@
 | smartport_fuel_unit | MAH |  |  | S.Port telemetry only: Unit of the value sent with the `FUEL` ID (FrSky D-Series always sends percent). [PERCENT/MAH/MWH] |
 | smartport_master_halfduplex | ON |  |  |  |
 | smartport_master_inverted | OFF |  |  |  |
+| smith_predictor_delay | 0 | 0 | 8 | Expected delay of the gyro signal. In milliseconds |
+| smith_predictor_lpf_hz | 50 | 1 | 500 | Cutoff frequency for the Smith Predictor Low Pass Filter |
+| smith_predictor_strength | 0.5 | 0 | 1 | The strength factor of a Smith Predictor of PID measurement. In percents |
 | spektrum_sat_bind | `SPEKTRUM_SAT_BIND_DISABLED` | SPEKTRUM_SAT_BIND_DISABLED | SPEKTRUM_SAT_BIND_MAX | 0 = disabled. Used to bind the spektrum satellite to RX |
 | srxl2_baud_fast | ON |  |  |  |
 | srxl2_unit_id | 1 | 0 | 15 |  |
