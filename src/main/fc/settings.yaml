@@ -10,7 +10,7 @@ tables:
     values: ["NONE", "HCSR04", "SRF10", "INAV_I2C", "VL53L0X", "MSP", "UNUSED", "BENEWAKE", "VL53L1X", "US42"]
     enum: rangefinderType_e
   - name: secondary_imu_hardware
-    values: ["NONE", "BNO055"]
+    values: ["NONE", "BNO055", "BNO055_SERIAL"]
     enum: secondaryImuType_e
   - name: mag_hardware
     values: ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "MSP", "RM3100", FAKE"]
@@ -28,7 +28,7 @@ tables:
     values: ["NONE", "PPM", "SERIAL", "MSP", "SPI", "UNUSED"]
     enum: rxReceiverType_e
   - name: serial_rx
-    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2", "GHST"]
+    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2", "GHST", "MAVLINK"]
   - name: rx_spi_protocol
     values: ["ELERES"]
     enum: rx_spi_protocol_e
@@ -69,9 +69,15 @@ tables:
   - name: osd_stats_energy_unit
     values: ["MAH", "WH"]
     enum: osd_stats_energy_unit_e
+  - name: osd_stats_min_voltage_unit
+    values: ["BATTERY", "CELL"]
+    enum: osd_stats_min_voltage_unit_e
   - name: osd_video_system
     values: ["AUTO", "PAL", "NTSC"]
     enum: videoSystem_e
+  - name: osd_telemetry
+    values: ["OFF", "ON","TEST"]
+    enum: osd_telemetry_e    
   - name: osd_alignment
     values: ["LEFT", "RIGHT"]
     enum: osd_alignment_e
@@ -87,7 +93,8 @@ tables:
       "FLOW", "SBUS", "FPORT", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "ERPM", "RPM_FILTER", "RPM_FREQ", "NAV_YAW", "DYNAMIC_FILTER", "DYNAMIC_FILTER_FREQUENCY",
-      "IRLOCK", "CD", "KALMAN_GAIN", "PID_MEASUREMENT", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574", "DYN_GYRO_LPF", "FW_D", "IMU2", "ALTITUDE", "AUTOTRIM"]
+      "IRLOCK", "CD", "KALMAN_GAIN", "PID_MEASUREMENT", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574", "DYN_GYRO_LPF", "FW_D", "IMU2", "ALTITUDE",
+      "SMITH_COMPENSATOR", "AUTOTRIM"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -104,7 +111,7 @@ tables:
     enum: navRTHAllowLanding_e
   - name: bat_capacity_unit
     values: ["MAH", "MWH"]
-    enum: batCapacityUnit_e
+    enum: batCapacityUnit_e    
   - name: bat_voltage_source
     values: ["RAW", "SAG_COMP"]
     enum: batVoltageSource_e
@@ -163,6 +170,22 @@ tables:
     values: ["OFF_ALWAYS", "OFF", "AUTO_ONLY", "ALL_NAV"]
   - name: osd_plus_code_short
     values: ["0", "2", "4", "6"]
+  - name: safehome_usage_mode
+    values: ["OFF", "RTH", "RTH_FS"]
+    enum: safehomeUsageMode_e
+  - name: nav_rth_climb_first
+    enum: navRTHClimbFirst_e
+    values: ["OFF", "ON", "ON_FW_SPIRAL"]
+
+constants:
+  RPYL_PID_MIN: 0
+  RPYL_PID_MAX: 200
+
+  MANUAL_RATE_MIN: 0
+  MANUAL_RATE_MAX: 100
+
+  ROLL_PITCH_RATE_MIN: 6
+  ROLL_PITCH_RATE_MAX: 180
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -173,11 +196,6 @@ groups:
         description: "This is the main loop time (in us). Changing this affects PID effect with some PID controllers (see PID section for details). A very conservative value of 3500us/285Hz should work for everyone. Setting it to zero does not limit loop time, so it will go as fast as possible."
         default_value: 1000
         max: 9000
-      - name: gyro_sync
-        description: "This option enables gyro_sync feature. In this case the loop will be synced to gyro refresh rate. Loop will always wait for the newest gyro measurement. Maximum gyro refresh rate is determined by gyro_hardware_lpf"
-        default_value: ON
-        field: gyroSync
-        type: bool
       - name: align_gyro
         description: "When running on non-default hardware or adding support for new sensors/sensor boards, these values are used for sensor orientation. When carefully understood, these values can also be used to rotate (in 90deg steps) or flip the board. Possible values are: DEFAULT, CW0_DEG, CW90_DEG, CW180_DEG, CW270_DEG, CW0_DEG_FLIP, CW90_DEG_FLIP, CW180_DEG_FLIP, CW270_DEG_FLIP."
         default_value: "DEFAULT"
@@ -1204,7 +1222,7 @@ groups:
         default_value: 0
         field: throttle.dynPID
         min: 0
-        max: CONTROL_RATE_CONFIG_TPA_MAX
+        max: 100
       - name: tpa_breakpoint
         description: "See tpa_rate."
         default_value: 1500
@@ -1235,20 +1253,20 @@ groups:
         description: "Defines rotation rate on ROLL axis that UAV will try to archive on max. stick deflection. Rates are defined in tens of degrees (deca-degrees) per second [rate = dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure."
         default_value: 20
         field: stabilized.rates[FD_ROLL]
-        min: CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MIN
-        max: CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MAX
+        min: ROLL_PITCH_RATE_MIN
+        max: ROLL_PITCH_RATE_MAX
       - name: pitch_rate
         description: "Defines rotation rate on PITCH axis that UAV will try to archive on max. stick deflection. Rates are defined in tens of degrees (deca-degrees) per second [rate = dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure."
         default_value: 20
         field: stabilized.rates[FD_PITCH]
-        min: CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MIN
-        max: CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MAX
+        min: ROLL_PITCH_RATE_MIN
+        max: ROLL_PITCH_RATE_MAX
       - name: yaw_rate
         description: "Defines rotation rate on YAW axis that UAV will try to archive on max. stick deflection. Rates are defined in tens of degrees (deca-degrees) per second [rate = dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure."
         default_value: 20
         field: stabilized.rates[FD_YAW]
-        min: CONTROL_RATE_CONFIG_YAW_RATE_MIN
-        max: CONTROL_RATE_CONFIG_YAW_RATE_MAX
+        min: 2
+        max: 180
       - name: manual_rc_expo
         description: "Exposition value used for the PITCH/ROLL axes by the `MANUAL` flight mode [0-100]"
         default_value: 70
@@ -1265,20 +1283,20 @@ groups:
         description: "Servo travel multiplier for the ROLL axis in `MANUAL` flight mode [0-100]%"
         default_value: 100
         field: manual.rates[FD_ROLL]
-        min: 0
-        max: 100
+        min: MANUAL_RATE_MIN
+        max: MANUAL_RATE_MAX
       - name: manual_pitch_rate
         description: "Servo travel multiplier for the PITCH axis in `MANUAL` flight mode [0-100]%"
         default_value: 100
         field: manual.rates[FD_PITCH]
-        min: 0
-        max: 100
+        min: MANUAL_RATE_MIN
+        max: MANUAL_RATE_MAX
       - name: manual_yaw_rate
         description: "Servo travel multiplier for the YAW axis in `MANUAL` flight mode [0-100]%"
         default_value: 100
         field: manual.rates[FD_YAW]
-        min: 0
-        max: 100
+        min: MANUAL_RATE_MIN
+        max: MANUAL_RATE_MAX
       - name: fpv_mix_degrees
         field: misc.fpvCamAngleDegrees
         min: 0
@@ -1499,182 +1517,182 @@ groups:
         description: "Multicopter rate stabilisation P-gain for PITCH"
         default_value: 40
         field: bank_mc.pid[PID_PITCH].P
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: mc_i_pitch
         description: "Multicopter rate stabilisation I-gain for PITCH"
         default_value: 30
         field: bank_mc.pid[PID_PITCH].I
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: mc_d_pitch
         description: "Multicopter rate stabilisation D-gain for PITCH"
         default_value: 23
         field: bank_mc.pid[PID_PITCH].D
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: mc_cd_pitch
         description: "Multicopter Control Derivative gain for PITCH"
         default_value: 60
         field: bank_mc.pid[PID_PITCH].FF
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: mc_p_roll
         description: "Multicopter rate stabilisation P-gain for ROLL"
         default_value: 40
         field: bank_mc.pid[PID_ROLL].P
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: mc_i_roll
         description: "Multicopter rate stabilisation I-gain for ROLL"
         default_value: 30
         field: bank_mc.pid[PID_ROLL].I
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: mc_d_roll
         description: "Multicopter rate stabilisation D-gain for ROLL"
         default_value: 23
         field: bank_mc.pid[PID_ROLL].D
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: mc_cd_roll
         description: "Multicopter Control Derivative gain for ROLL"
         default_value: 60
         field: bank_mc.pid[PID_ROLL].FF
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: mc_p_yaw
         description: "Multicopter rate stabilisation P-gain for YAW"
         default_value: 85
         field: bank_mc.pid[PID_YAW].P
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: mc_i_yaw
         description: "Multicopter rate stabilisation I-gain for YAW"
         default_value: 45
         field: bank_mc.pid[PID_YAW].I
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: mc_d_yaw
         description: "Multicopter rate stabilisation D-gain for YAW"
         default_value: 0
         field: bank_mc.pid[PID_YAW].D
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: mc_cd_yaw
         description: "Multicopter Control Derivative gain for YAW"
         default_value: 60
         field: bank_mc.pid[PID_YAW].FF
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: mc_p_level
         description: "Multicopter attitude stabilisation P-gain"
         default_value: 20
         field: bank_mc.pid[PID_LEVEL].P
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: mc_i_level
         description: "Multicopter attitude stabilisation low-pass filter cutoff"
         default_value: 15
         field: bank_mc.pid[PID_LEVEL].I
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: mc_d_level
         description: "Multicopter attitude stabilisation HORIZON transition point"
         default_value: 75
         field: bank_mc.pid[PID_LEVEL].D
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: fw_p_pitch
         description: "Fixed-wing rate stabilisation P-gain for PITCH"
         default_value: 5
         field: bank_fw.pid[PID_PITCH].P
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: fw_i_pitch
         description: "Fixed-wing rate stabilisation I-gain for PITCH"
         default_value: 7
         field: bank_fw.pid[PID_PITCH].I
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: fw_d_pitch
         description: "Fixed wing rate stabilisation D-gain for PITCH"
         default_value: 0
         field: bank_fw.pid[PID_PITCH].D
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: fw_ff_pitch
         description: "Fixed-wing rate stabilisation FF-gain for PITCH"
         default_value: 50
         field: bank_fw.pid[PID_PITCH].FF
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: fw_p_roll
         description: "Fixed-wing rate stabilisation P-gain for ROLL"
         default_value: 5
         field: bank_fw.pid[PID_ROLL].P
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: fw_i_roll
         description: "Fixed-wing rate stabilisation I-gain for ROLL"
         default_value: 7
         field: bank_fw.pid[PID_ROLL].I
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: fw_d_roll
         description: "Fixed wing rate stabilisation D-gain for ROLL"
         default_value: 0
         field: bank_fw.pid[PID_ROLL].D
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: fw_ff_roll
         description: "Fixed-wing rate stabilisation FF-gain for ROLL"
         default_value: 50
         field: bank_fw.pid[PID_ROLL].FF
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: fw_p_yaw
         description: "Fixed-wing rate stabilisation P-gain for YAW"
         default_value: 6
         field: bank_fw.pid[PID_YAW].P
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: fw_i_yaw
         description: "Fixed-wing rate stabilisation I-gain for YAW"
         default_value: 10
         field: bank_fw.pid[PID_YAW].I
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: fw_d_yaw
         description: "Fixed wing rate stabilisation D-gain for YAW"
         default_value: 0
         field: bank_fw.pid[PID_YAW].D
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: fw_ff_yaw
         description: "Fixed-wing rate stabilisation FF-gain for YAW"
         default_value: 60
         field: bank_fw.pid[PID_YAW].FF
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: fw_p_level
         description: "Fixed-wing attitude stabilisation P-gain"
         default_value: 20
         field: bank_fw.pid[PID_LEVEL].P
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: fw_i_level
         description: "Fixed-wing attitude stabilisation low-pass filter cutoff"
         default_value: 5
         field: bank_fw.pid[PID_LEVEL].I
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: fw_d_level
         description: "Fixed-wing attitude stabilisation HORIZON transition point"
         default_value: 75
         field: bank_fw.pid[PID_LEVEL].D
-        min: 0
-        max: 200
+        min: RPYL_PID_MIN
+        max: RPYL_PID_MAX
       - name: max_angle_inclination_rll
         description: "Maximum inclination in level (angle) mode (ROLL axis). 100=10°"
         default_value: 300
@@ -1726,10 +1744,10 @@ groups:
         table: direction
       - name: fw_reference_airspeed
         description: "Reference airspeed. Set this to airspeed at which PIDs were tuned. Usually should be set to cruise airspeed. Also used for coordinated turn calculation if airspeed sensor is not present."
-        default_value: 1000
+        default_value: 1500
         field: fixedWingReferenceAirspeed
-        min: 1
-        max: 5000
+        min: 300
+        max: 6000
       - name: fw_turn_assist_yaw_gain
         description: "Gain required to keep the yaw rate consistent with the turn rate for a coordinated turn (in TURN_ASSIST mode). Value significantly different from 1.0 indicates a problem with the airspeed calibration (if present) or value of `fw_reference_airspeed` parameter"
         default_value: 1
@@ -2049,6 +2067,27 @@ groups:
         field: fixedWingLevelTrim
         min: -10
         max: 10
+      - name: smith_predictor_strength
+        description: "The strength factor of a Smith Predictor of PID measurement. In percents"
+        default_value: 0.5
+        field: smithPredictorStrength
+        condition: USE_SMITH_PREDICTOR
+        min: 0
+        max: 1
+      - name: smith_predictor_delay
+        description: "Expected delay of the gyro signal. In milliseconds"
+        default_value: 0
+        field: smithPredictorDelay
+        condition: USE_SMITH_PREDICTOR
+        min: 0
+        max: 8
+      - name: smith_predictor_lpf_hz
+        description: "Cutoff frequency for the Smith Predictor Low Pass Filter"
+        default_value: 50
+        field: smithPredictorFilterHz
+        condition: USE_SMITH_PREDICTOR
+        min: 1
+        max: 500
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t
@@ -2282,20 +2321,26 @@ groups:
         field: general.max_manual_climb_rate
         min: 10
         max: 2000
-      - name: nav_landing_speed
-        description: "Vertical descent velocity during the RTH landing phase. [cm/s]"
+      - name: nav_land_minalt_vspd
+        description: "Vertical descent velocity under nav_land_slowdown_minalt during the RTH landing phase. [cm/s]"
+        default_value: 50
+        field: general.land_minalt_vspd
+        min: 50
+        max: 500
+      - name: nav_land_maxalt_vspd
+        description: "Vertical descent velocity above nav_land_slowdown_maxalt during the RTH landing phase. [cm/s]"
         default_value: 200
-        field: general.land_descent_rate
+        field: general.land_maxalt_vspd
         min: 100
         max: 2000
       - name: nav_land_slowdown_minalt
-        description: "Defines at what altitude the descent velocity should start to be 25% of nav_landing_speed [cm]"
+        description: "Defines at what altitude the descent velocity should start to be `nav_land_minalt_vspd` [cm]"
         default_value: 500
         field: general.land_slowdown_minalt
         min: 50
         max: 1000
       - name: nav_land_slowdown_maxalt
-        description: "Defines at what altitude the descent velocity should start to ramp down from 100% nav_landing_speed to 25% nav_landing_speed. [cm]"
+        description: "Defines at what altitude the descent velocity should start to ramp down from `nav_land_maxalt_vspd` to `nav_land_minalt_vspd` during the RTH landing phase [cm]"
         default_value: 2000
         field: general.land_slowdown_maxalt
         min: 500
@@ -2318,10 +2363,10 @@ groups:
         field: general.flags.nav_overrides_motor_stop
         table: nav_overrides_motor_stop
       - name: nav_rth_climb_first
-        description: "If set to ON drone will climb to nav_rth_altitude first and head home afterwards. If set to OFF drone will head home instantly and climb on the way."
-        default_value: ON
+        description: "If set to ON or ON_FW_SPIRAL aircraft will climb to nav_rth_altitude first before turning to head home. If set to OFF aircraft will turn and head home immediately climbing on the way. For a fixed wing ON will use a linear climb, ON_FW_SPIRAL will use a loiter turning climb with climb rate set by nav_auto_climb_rate, turn rate set by nav_fw_loiter_radius (ON_FW_SPIRAL is a fixed wing setting and behaves the same as ON for a multirotor)"
+        default_value: "ON"
         field: general.flags.rth_climb_first
-        type: bool
+        table: nav_rth_climb_first
       - name: nav_rth_climb_ignore_emerg
         description: "If set to ON, aircraft will execute initial climb regardless of position sensor (GPS) status."
         default_value: OFF
@@ -2342,6 +2387,11 @@ groups:
         default_value: "AT_LEAST"
         field: general.flags.rth_alt_control_mode
         table: nav_rth_alt_mode
+      - name: nav_rth_alt_control_override
+        description: "If set to ON RTH altitude and CLIMB FIRST settings can be overridden during the RTH climb phase using full pitch or roll stick held for > 1 second. RTH altitude is reset to the current altitude using pitch down stick. RTH CLIMB FIRST is overridden using right roll stick so craft turns and heads directly to home (CLIMB FIRST override only works for fixed wing)"
+        default_value: OFF
+        field: general.flags.rth_alt_control_override
+        type: bool
       - name: nav_rth_abort_threshold
         description: "RTH sanity checking feature will notice if distance to home is increasing during RTH and once amount of increase exceeds the threshold defined by this parameter, instead of continuing RTH machine will enter emergency landing, self-level and go down safely. Default is 500m which is safe enough for both multirotor machines and airplanes. [cm]"
         default_value: 50000
@@ -2369,6 +2419,11 @@ groups:
         field: general.safehome_max_distance
         min: 0
         max: 65000
+      - name: safehome_usage_mode
+        description: "Used to control when safehomes will be used. Possible values are `OFF`, `RTH` and `RTH_FS`.  See [Safehome documentation](Safehomes.md#Safehome) for more information."
+        default_value: "RTH"
+        field: general.flags.safehome_usage_mode
+        table: safehome_usage_mode
       - name: nav_mc_bank_angle
         description: "Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude"
         default_value: 30
@@ -2815,6 +2870,13 @@ groups:
         min: 0
         max: 255
         default_value: 1
+      - name: mavlink_version
+        field: mavlink.version
+        description: "Version of MAVLink to use"
+        type: uint8_t
+        min: 1
+        max: 2
+        default_value: 2
   - name: PG_ELERES_CONFIG
     type: eleresConfig_t
     headers: ["rx/eleres.h"]
@@ -2868,6 +2930,12 @@ groups:
     headers: ["io/osd.h", "drivers/osd.h"]
     condition: USE_OSD
     members:
+      - name: osd_telemetry
+        description: "To enable OSD telemetry for antenna tracker. Possible values are `OFF`, `ON` and `TEST`"
+        table: osd_telemetry
+        field: telemetry
+        type: uint8_t
+        default_value: "OFF"
       - name: osd_video_system
         description: "Video system used. Possible values are `AUTO`, `PAL` and `NTSC`"
         default_value: "AUTO"
@@ -2891,6 +2959,12 @@ groups:
         default_value: "MAH"
         field: stats_energy_unit
         table: osd_stats_energy_unit
+        type: uint8_t
+      - name: osd_stats_min_voltage_unit
+        description: "Display minimum voltage of the `BATTERY` or the average per `CELL` in the OSD stats."
+        default_value: "BATTERY"
+        field: stats_min_voltage_unit
+        table: osd_stats_min_voltage_unit
         type: uint8_t
 
       - name: osd_rssi_alarm
@@ -3488,3 +3562,20 @@ groups:
           field: speedSource
           table: djiOsdSpeedSource
           type: uint8_t
+
+  - name: PG_BEEPER_CONFIG
+    type: beeperConfig_t
+    headers: [ "fc/config.h" ]
+    members:
+      - name: dshot_beeper_enabled
+        description: "Whether using DShot motors as beepers is enabled"
+        default_value: ON
+        field: dshot_beeper_enabled
+        type: bool
+      - name: dshot_beeper_tone
+        description: "Sets the DShot beeper tone"
+        min: 1
+        max: 5
+        default_value: 1
+        field: dshot_beeper_tone
+        type: uint8_t

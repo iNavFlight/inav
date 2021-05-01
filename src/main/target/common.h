@@ -86,6 +86,7 @@
 
 #define USE_DYNAMIC_FILTERS
 #define USE_GYRO_KALMAN
+#define USE_SMITH_PREDICTOR
 #define USE_EXTENDED_CMS_MENUS
 #define USE_HOTT_TEXTMODE
 
@@ -151,6 +152,7 @@
 #define USE_SERIALRX_SUMH
 #define USE_SERIALRX_XBUS
 #define USE_SERIALRX_JETIEXBUS
+#define USE_SERIALRX_MAVLINK
 #define USE_TELEMETRY_SRXL
 #define USE_SPEKTRUM_CMS_TELEMETRY
 //#define USE_SPEKTRUM_VTX_CONTROL //Some functions from betaflight still not implemented

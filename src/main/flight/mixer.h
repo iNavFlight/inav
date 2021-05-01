@@ -25,11 +25,6 @@
 #define MAX_SUPPORTED_MOTORS 12
 #endif
 
-#define YAW_JUMP_PREVENTION_LIMIT_LOW 80
-#define YAW_JUMP_PREVENTION_LIMIT_HIGH 500
-
-#define FW_MIN_THROTTLE_DOWN_PITCH_ANGLE_MAX 450
-
 // Digital protocol has fixed values
 #define DSHOT_DISARM_COMMAND      0
 #define DSHOT_MIN_THROTTLE       48
@@ -133,3 +128,4 @@ void stopMotors(void);
 void stopPwmAllMotors(void);
 
 void loadPrimaryMotorMixer(void);
+bool areMotorsRunning(void);
