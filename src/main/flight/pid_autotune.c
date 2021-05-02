@@ -59,7 +59,6 @@
 PG_REGISTER_WITH_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig, PG_PID_AUTOTUNE_CONFIG, 2);
 
 PG_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig,
-    .fw_detect_time = SETTING_FW_AUTOTUNE_DETECT_TIME_DEFAULT,
     .fw_min_stick = SETTING_FW_AUTOTUNE_MIN_STICK_DEFAULT,
     .fw_ff_to_p_gain = SETTING_FW_AUTOTUNE_FF_TO_P_GAIN_DEFAULT,
     .fw_ff_to_i_time_constant = SETTING_FW_AUTOTUNE_FF_TO_I_TC_DEFAULT,
@@ -207,14 +206,14 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
     const float stickInput = absDesiredRate / maxDesiredRate;
 
     if ((stickInput > (pidAutotuneConfig()->fw_min_stick / 100.0f)) && correctDirection && (timeSincePreviousSample >= AUTOTUNE_FIXED_WING_SAMPLE_INTERVAL)) {
-        // Record values every 20ms
+        // Record values every 20ms and calculate moving average over samples
         tuneCurrent[axis].updateCount++;
         tuneCurrent[axis].absDesiredRateAccum += (absDesiredRate - tuneCurrent[axis].absDesiredRateAccum) / MIN(tuneCurrent[axis].updateCount, AUTOTUNE_FIXED_WING_SAMPLES);
         tuneCurrent[axis].absReachedRateAccum += (absReachedRate - tuneCurrent[axis].absReachedRateAccum) / MIN(tuneCurrent[axis].updateCount, AUTOTUNE_FIXED_WING_SAMPLES);
         tuneCurrent[axis].absPidOutputAccum += (absPidOutput - tuneCurrent[axis].absPidOutputAccum) / MIN(tuneCurrent[axis].updateCount, AUTOTUNE_FIXED_WING_SAMPLES);;
 
         if ((tuneCurrent[axis].updateCount & 25) == 0 && tuneCurrent[axis].updateCount >= AUTOTUNE_FIXED_WING_MIN_SAMPLES) {
-            if (pidAutotuneConfig()->fw_rate_adjustment != FIXED) {//} && !FLIGHT_MODE(ANGLE_MODE)) { // Rate discovery is not possible in ANGLE mode
+            if (pidAutotuneConfig()->fw_rate_adjustment != FIXED  && !FLIGHT_MODE(ANGLE_MODE)) { // Rate discovery is not possible in ANGLE mode
                 
                 // Target 80% control surface deflection to leave some room for P and I to work
                 float pidSumTarget = (pidAutotuneConfig()->fw_max_rate_deflection / 100.0f) * pidSumLimit;

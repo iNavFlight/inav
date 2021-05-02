@@ -2091,15 +2091,9 @@ groups:
     type: pidAutotuneConfig_t
     condition: USE_AUTOTUNE_FIXED_WING
     members:
-      - name: fw_autotune_detect_time
-        description: "Time [ms] to detect sustained undershoot or overshoot"
-        default_value: 250
-        field: fw_detect_time
-        min: 50
-        max: 500
       - name: fw_autotune_min_stick
         description: "Minimum stick input [%] to consider overshoot/undershoot detection"
-        default_value: 80
+        default_value: 50
         field: fw_min_stick
         min: 0
         max: 100
