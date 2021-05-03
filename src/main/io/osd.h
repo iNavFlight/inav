@@ -89,6 +89,7 @@
 #define OSD_MSG_HOLDING_WAYPOINT    "HOLDING WAYPOINT"
 #define OSD_MSG_TO_WP               "TO WP"
 #define OSD_MSG_PREPARE_NEXT_WP     "PREPARING FOR NEXT WAYPOINT"
+#define OSD_MSG_WP_RTH_CANCEL       "CANCEL WP MODE TO EXIT RTH"
 #define OSD_MSG_EMERG_LANDING       "EMERGENCY LANDING"
 #define OSD_MSG_LANDING             "LANDING"
 #define OSD_MSG_LOITERING_HOME      "LOITERING AROUND HOME"
@@ -372,6 +373,7 @@ typedef struct osdConfig_s {
     int8_t pan_servo_pwm2centideg;      // Centidegrees of servo rotation per us pwm
     uint8_t crsf_lq_format;
     uint16_t infocycle_interval_time;   // Info Cycle item display time interval (ms)
+    uint8_t telemetry; 				        // use telemetry on displayed pixel line 0
 
 } osdConfig_t;
 
