@@ -103,7 +103,6 @@
 | failsafe_throttle_low_delay | 0 | 0 | 300 | If failsafe activated when throttle is low for this much time - bypass failsafe and disarm, in 10th of seconds. 0 = No timeout |
 | fixed_wing_auto_arm | OFF |  |  | Auto-arm fixed wing aircraft on throttle above min_check, and disarming with stick commands are disabled, so power cycle is required to disarm. Requires enabled motorstop and no arm switch configured. |
 | flaperon_throw_offset | 200 | FLAPERON_THROW_MIN | FLAPERON_THROW_MAX | Defines throw range in us for both ailerons that will be passed to servo mixer via input source 14 (`FEATURE FLAPS`) when FLAPERON mode is activated. |
-| flip_over_after_crash_power_factor | 65 | 0 | 100 | flip over after crash power factor |
 | fpv_mix_degrees | 0 | 0 | 50 |  |
 | frsky_coordinates_format | 0 | 0 | FRSKY_FORMAT_NMEA | D-Series telemetry only: FRSKY_FORMAT_DMS (default), FRSKY_FORMAT_NMEA |
 | frsky_default_latitude | 0 | -90 | 90 | D-Series telemetry only: OpenTX needs a valid set of coordinates to show compass value. A fake value defined in this setting is sent while no fix is acquired. |
@@ -524,6 +523,7 @@
 | tpa_breakpoint | 1500 | PWM_RANGE_MIN | PWM_RANGE_MAX | See tpa_rate. |
 | tpa_rate | 0 | 0 | 100 | Throttle PID attenuation reduces influence of P on ROLL and PITCH as throttle increases. For every 1% throttle after the TPA breakpoint, P is reduced by the TPA rate. |
 | tri_unarmed_servo | ON |  |  | On tricopter mix only, if this is set to ON, servo will always be correcting regardless of armed state. to disable this, set it to OFF. |
+| turtle_mode_power_factor | 55 | 0 | 100 | Turtle mode power factor |
 | tz_automatic_dst | OFF |  |  | Automatically add Daylight Saving Time to the GPS time when needed or simply ignore it. Includes presets for EU and the USA - if you live outside these areas it is suggested to manage DST manually via `tz_offset`. |
 | tz_offset | 0 | -1440 | 1440 | Time zone offset from UTC, in minutes. This is applied to the GPS time for logging and time-stamping of Blackbox logs |
 | vbat_adc_channel | _target default_ | ADC_CHN_NONE | ADC_CHN_MAX | ADC channel to use for battery voltage sensor. Defaults to board VBAT input (if available). 0 = disabled |
