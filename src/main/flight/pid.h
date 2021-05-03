@@ -161,6 +161,11 @@ typedef struct pidProfile_s {
 #endif
 
     float fixedWingLevelTrim;
+#ifdef USE_SMITH_PREDICTOR
+    float smithPredictorStrength;
+    float smithPredictorDelay;
+    uint16_t smithPredictorFilterHz;
+#endif
 } pidProfile_t;
 
 typedef struct pidAutotuneConfig_s {
