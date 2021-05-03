@@ -115,8 +115,8 @@ PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 13);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_lpf = SETTING_GYRO_HARDWARE_LPF_DEFAULT,
-    .gyro_soft_lpf_hz = SETTING_GYRO_LPF_HZ_DEFAULT,
-    .gyro_soft_lpf_type = SETTING_GYRO_LPF_TYPE_DEFAULT,
+    .gyro_anti_aliasing_lpf_hz = SETTING_GYRO_ANTI_ALIASING_LPF_HZ_DEFAULT,
+    .gyro_anti_aliasing_lpf_type = SETTING_GYRO_ANTI_ALIASING_LPF_TYPE_DEFAULT,
     .gyro_align = SETTING_ALIGN_GYRO_DEFAULT,
     .gyroMovementCalibrationThreshold = SETTING_MORON_THRESHOLD_DEFAULT,
     .looptime = SETTING_LOOPTIME_DEFAULT,
@@ -125,8 +125,8 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
 #endif
     .gyro_notch_hz = SETTING_GYRO_NOTCH_HZ_DEFAULT,
     .gyro_notch_cutoff = SETTING_GYRO_NOTCH_CUTOFF_DEFAULT,
-    .gyro_stage2_lowpass_hz = SETTING_GYRO_STAGE2_LOWPASS_HZ_DEFAULT,
-    .gyro_stage2_lowpass_type = SETTING_GYRO_STAGE2_LOWPASS_TYPE_DEFAULT,
+    .gyro_main_lpf_hz = SETTING_GYRO_MAIN_LPF_HZ_DEFAULT,
+    .gyro_main_lpf_type = SETTING_GYRO_MAIN_LPF_TYPE_DEFAULT,
     .useDynamicLpf = SETTING_GYRO_USE_DYN_LPF_DEFAULT,
     .gyroDynamicLpfMinHz = SETTING_GYRO_DYN_LPF_MIN_HZ_DEFAULT,
     .gyroDynamicLpfMaxHz = SETTING_GYRO_DYN_LPF_MAX_HZ_DEFAULT,
@@ -287,10 +287,10 @@ static void gyroInitFilters(void)
     notchFilter1ApplyFn = nullFilterApply;
     
     //First gyro LPF running at full gyro frequency 8kHz
-    initGyroFilter(&gyroLpfApplyFn, gyroLpfState, gyroConfig()->gyro_soft_lpf_type, gyroConfig()->gyro_soft_lpf_hz, getGyroLooptime());
+    initGyroFilter(&gyroLpfApplyFn, gyroLpfState, gyroConfig()->gyro_anti_aliasing_lpf_type, gyroConfig()->gyro_anti_aliasing_lpf_hz, getGyroLooptime());
     
     //Second gyro LPF runnig and PID frequency - this filter is dynamic when gyro_use_dyn_lpf = ON
-    initGyroFilter(&gyroLpf2ApplyFn, gyroLpf2State, gyroConfig()->gyro_stage2_lowpass_type, gyroConfig()->gyro_stage2_lowpass_hz, getLooptime());
+    initGyroFilter(&gyroLpf2ApplyFn, gyroLpf2State, gyroConfig()->gyro_main_lpf_type, gyroConfig()->gyro_main_lpf_hz, getLooptime());
 
     //Static Gyro notch running and PID frequency
     if (gyroConfig()->gyro_notch_hz) {
@@ -577,11 +577,11 @@ int16_t gyroRateDps(int axis)
 }
 
 void gyroUpdateDynamicLpf(float cutoffFreq) {
-    if (gyroConfig()->gyro_soft_lpf_type == FILTER_PT1) {
+    if (gyroConfig()->gyro_main_lpf_type == FILTER_PT1) {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             pt1FilterUpdateCutoff(&gyroLpf2State[axis].pt1, cutoffFreq);
         }
-    } else if (gyroConfig()->gyro_soft_lpf_type == FILTER_BIQUAD) {
+    } else if (gyroConfig()->gyro_main_lpf_type == FILTER_BIQUAD) {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             biquadFilterUpdate(&gyroLpf2State[axis].biquad, cutoffFreq, getLooptime(), BIQUAD_Q, FILTER_LPF);
         }
