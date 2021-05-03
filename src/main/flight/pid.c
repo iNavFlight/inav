@@ -48,6 +48,7 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/rpm_filter.h"
 #include "flight/secondary_imu.h"
 #include "flight/kalman.h"
+#include "flight/smith_predictor.h"
 
 #include "io/gps.h"
 
@@ -109,6 +110,8 @@ typedef struct {
     bool itermFreezeActive;
 
     biquadFilter_t rateTargetFilter;
+
+    smithPredictor_t smithPredictor;
 } pidState_t;
 
 STATIC_FASTRAM bool pidFiltersConfigured = false;
@@ -159,7 +162,7 @@ static EXTENDED_FASTRAM filterApplyFnPtr dTermLpf2FilterApplyFn;
 static EXTENDED_FASTRAM bool levelingEnabled = false;
 static EXTENDED_FASTRAM float fixedWingLevelTrim;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 1);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 2);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -297,6 +300,12 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
 #endif
 
         .fixedWingLevelTrim = SETTING_FW_LEVEL_PITCH_TRIM_DEFAULT,
+
+#ifdef USE_SMITH_PREDICTOR
+        .smithPredictorStrength = SETTING_SMITH_PREDICTOR_STRENGTH_DEFAULT,
+        .smithPredictorDelay = SETTING_SMITH_PREDICTOR_DELAY_DEFAULT,
+        .smithPredictorFilterHz = SETTING_SMITH_PREDICTOR_LPF_HZ_DEFAULT,
+#endif
 );
 
 bool pidInitFilters(void)
@@ -348,6 +357,30 @@ bool pidInitFilters(void)
             biquadFilterInitLPF(&pidState[axis].rateTargetFilter, pidProfile()->controlDerivativeLpfHz, getLooptime());
         }
     }
+
+#ifdef USE_SMITH_PREDICTOR
+    smithPredictorInit(
+        &pidState[FD_ROLL].smithPredictor, 
+        pidProfile()->smithPredictorDelay, 
+        pidProfile()->smithPredictorStrength, 
+        pidProfile()->smithPredictorFilterHz, 
+        getLooptime()
+    );
+    smithPredictorInit(
+        &pidState[FD_PITCH].smithPredictor, 
+        pidProfile()->smithPredictorDelay, 
+        pidProfile()->smithPredictorStrength, 
+        pidProfile()->smithPredictorFilterHz, 
+        getLooptime()
+    );
+    smithPredictorInit(
+        &pidState[FD_YAW].smithPredictor, 
+        pidProfile()->smithPredictorDelay, 
+        pidProfile()->smithPredictorStrength, 
+        pidProfile()->smithPredictorFilterHz, 
+        getLooptime()
+    );
+#endif
 
     pidFiltersConfigured = true;
 
@@ -1052,6 +1085,13 @@ void FAST_CODE pidController(float dT)
             pidState[axis].gyroRate = gyroKalmanUpdate(axis, pidState[axis].gyroRate, pidState[axis].rateTarget);
         }
 #endif
+
+#ifdef USE_SMITH_PREDICTOR
+        DEBUG_SET(DEBUG_SMITH_PREDICTOR, axis, pidState[axis].gyroRate);
+        pidState[axis].gyroRate = applySmithPredictor(axis, &pidState[axis].smithPredictor, pidState[axis].gyroRate);
+        DEBUG_SET(DEBUG_SMITH_PREDICTOR, axis + 3, pidState[axis].gyroRate);
+#endif
+
         DEBUG_SET(DEBUG_PID_MEASUREMENT, axis, pidState[axis].gyroRate);
     }
 
