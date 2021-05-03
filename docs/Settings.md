@@ -148,6 +148,9 @@
 | gps_provider | UBLOX |  |  | Which GPS protocol to be used, note that UBLOX is 5Hz and UBLOX7 is 10Hz (M8N). |
 | gps_sbas_mode | NONE |  |  | Which SBAS mode to be used |
 | gps_ublox_use_galileo | OFF |  |  | Enable use of Galileo satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires M8N and Ublox firmware 3.x (or later) [OFF/ON]. |
+| gyro_abg_alpha | 0 | 0 | 1 | Alpha factor for Gyro Alpha-Beta-Gamma filter |
+| gyro_abg_boost | 0.35 | 0 | 2 | Boost factor for Gyro Alpha-Beta-Gamma filter |
+| gyro_abg_half_life | 0.5 | 0 | 10 | Sample half-life for Gyro Alpha-Beta-Gamma filter |
 | gyro_dyn_lpf_curve_expo | 5 | 1 | 10 | Expo value for the throttle-to-frequency mapping for Dynamic LPF |
 | gyro_dyn_lpf_max_hz | 500 | 40 | 1000 | Maximum frequency of the gyro Dynamic LPF |
 | gyro_dyn_lpf_min_hz | 200 | 40 | 400 | Minimum frequency of the gyro Dynamic LPF |
@@ -429,6 +432,7 @@
 | osd_snr_alarm | 4 | -20 | 10 | Value below which Crossfire SNR Alarm pops-up. (dB) |
 | osd_stats_energy_unit | MAH |  |  | Unit used for the drawn energy in the OSD stats [MAH/WH] (milliAmpere hour/ Watt hour) |
 | osd_stats_min_voltage_unit | BATTERY |  |  | Display minimum voltage of the `BATTERY` or the average per `CELL` in the OSD stats. |
+| osd_telemetry | OFF |  |  | To enable OSD telemetry for antenna tracker. Possible values are `OFF`, `ON` and `TEST` |
 | osd_temp_label_align | LEFT |  |  | Allows to chose between left and right alignment for the OSD temperature sensor labels. Valid values are `LEFT` and `RIGHT` |
 | osd_time_alarm | 10 | 0 | 600 | Value above which to make the OSD flight time indicator blink (minutes) |
 | osd_units | METRIC |  |  | IMPERIAL, METRIC, UK |
@@ -497,6 +501,9 @@
 | smartport_fuel_unit | MAH |  |  | S.Port telemetry only: Unit of the value sent with the `FUEL` ID (FrSky D-Series always sends percent). [PERCENT/MAH/MWH] |
 | smartport_master_halfduplex | ON |  |  |  |
 | smartport_master_inverted | OFF |  |  |  |
+| smith_predictor_delay | 0 | 0 | 8 | Expected delay of the gyro signal. In milliseconds |
+| smith_predictor_lpf_hz | 50 | 1 | 500 | Cutoff frequency for the Smith Predictor Low Pass Filter |
+| smith_predictor_strength | 0.5 | 0 | 1 | The strength factor of a Smith Predictor of PID measurement. In percents |
 | spektrum_sat_bind | `SPEKTRUM_SAT_BIND_DISABLED` | SPEKTRUM_SAT_BIND_DISABLED | SPEKTRUM_SAT_BIND_MAX | 0 = disabled. Used to bind the spektrum satellite to RX |
 | srxl2_baud_fast | ON |  |  |  |
 | srxl2_unit_id | 1 | 0 | 15 |  |
