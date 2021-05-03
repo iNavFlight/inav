@@ -2686,7 +2686,7 @@ groups:
         min: 0
         max: 60000
       - name: nav_fw_launch_climb_angle
-        description: "Climb angle for launch sequence (degrees), is also restrained by global max_angle_inclination_pit"
+        description: "Climb angle (attitude of model, not climb slope) for launch sequence (degrees), is also restrained by global max_angle_inclination_pit"
         default_value: 18
         field: fw.launch_climb_angle
         min: 5
