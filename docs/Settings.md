@@ -426,6 +426,7 @@
 | osd_right_sidebar_scroll_step | 0 |  | 255 | Same as left_sidebar_scroll_step, but for the right sidebar |
 | osd_row_shiftdown | 0 | 0 | 1 | Number of rows to shift the OSD display (increase if top rows are cut off) |
 | osd_rssi_alarm | 20 | 0 | 100 | Value below which to make the OSD RSSI indicator blink |
+| osd_sidebar_height | 3 | 0 | 5 | Height of sidebars in rows. 0 leaves only the level indicator arrows (Not for pixel OSD) |
 | osd_sidebar_horizontal_offset | 0 | -128 | 127 | Sidebar horizontal offset from default position. Positive values move the sidebars closer to the edges. |
 | osd_sidebar_scroll_arrows | OFF |  |  |  |
 | osd_snr_alarm | 4 | -20 | 10 | Value below which Crossfire SNR Alarm pops-up. (dB) |
