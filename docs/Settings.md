@@ -150,16 +150,16 @@
 | gyro_abg_alpha | 0 | 0 | 1 | Alpha factor for Gyro Alpha-Beta-Gamma filter |
 | gyro_abg_boost | 0.35 | 0 | 2 | Boost factor for Gyro Alpha-Beta-Gamma filter |
 | gyro_abg_half_life | 0.5 | 0 | 10 | Sample half-life for Gyro Alpha-Beta-Gamma filter |
+| gyro_anti_aliasing_lpf_hz | 250 |  | 255 | Gyro processing anti-aliasing filter cutoff frequency. In normal operation this filter setting should never be changed. In Hz |
+| gyro_anti_aliasing_lpf_type | PT1 |  |  | Specifies the type of the software LPF of the gyro signals. |
 | gyro_dyn_lpf_curve_expo | 5 | 1 | 10 | Expo value for the throttle-to-frequency mapping for Dynamic LPF |
 | gyro_dyn_lpf_max_hz | 500 | 40 | 1000 | Maximum frequency of the gyro Dynamic LPF |
 | gyro_dyn_lpf_min_hz | 200 | 40 | 400 | Minimum frequency of the gyro Dynamic LPF |
 | gyro_hardware_lpf | 256HZ |  |  | Hardware lowpass filter for gyro. This value should never be changed without a very strong reason! If you have to set gyro lpf below 256HZ, it means the frame is vibrating too much, and that should be fixed first. |
-| gyro_lpf_hz | 60 |  | 200 | Software-based filter to remove mechanical vibrations from the gyro signal. Value is cutoff frequency (Hz). For larger frames with bigger props set to lower value. |
-| gyro_lpf_type | BIQUAD |  |  | Specifies the type of the software LPF of the gyro signals. BIQUAD gives better filtering and more delay, PT1 less filtering and less delay, so use only on clean builds. |
+| gyro_main_lpf_hz | 60 | 0 | 500 | Software based gyro main lowpass filter. Value is cutoff frequency (Hz) |
+| gyro_main_lpf_type | BIQUAD |  |  | Defines the type of the main gyro LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation. |
 | gyro_notch_cutoff | 1 | 1 | 500 |  |
 | gyro_notch_hz | 0 |  | 500 |  |
-| gyro_stage2_lowpass_hz | 0 | 0 | 500 | Software based second stage lowpass filter for gyro. Value is cutoff frequency (Hz) |
-| gyro_stage2_lowpass_type | BIQUAD |  |  | Defines the type of stage 2 gyro LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation. |
 | gyro_to_use | 0 | 0 | 1 |  |
 | gyro_use_dyn_lpf | OFF |  |  | Use Dynamic LPF instead of static gyro stage1 LPF. Dynamic Gyro LPF updates gyro LPF based on the throttle position. |
 | has_flaps | OFF |  |  | Defines is UAV is capable of having flaps. If ON and AIRPLANE `platform_type` is used, **FLAPERON** flight mode will be available for the pilot |
