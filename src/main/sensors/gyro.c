@@ -104,7 +104,14 @@ EXTENDED_FASTRAM dynamicGyroNotchState_t dynamicGyroNotchState;
 
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 12);
+#ifdef USE_ALPHA_BETA_GAMMA_FILTER
+
+STATIC_FASTRAM filterApplyFnPtr abgFilterApplyFn;
+STATIC_FASTRAM alphaBetaGammaFilter_t abgFilter[XYZ_AXIS_COUNT];
+
+#endif
+
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 13);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_lpf = SETTING_GYRO_HARDWARE_LPF_DEFAULT,
@@ -129,6 +136,11 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .dynamicGyroNotchQ = SETTING_DYNAMIC_GYRO_NOTCH_Q_DEFAULT,
     .dynamicGyroNotchMinHz = SETTING_DYNAMIC_GYRO_NOTCH_MIN_HZ_DEFAULT,
     .dynamicGyroNotchEnabled = SETTING_DYNAMIC_GYRO_NOTCH_ENABLED_DEFAULT,
+#endif
+#ifdef USE_ALPHA_BETA_GAMMA_FILTER
+    .alphaBetaGammaAlpha = SETTING_GYRO_ABG_ALPHA_DEFAULT,
+    .alphaBetaGammaBoost = SETTING_GYRO_ABG_BOOST_DEFAULT,
+    .alphaBetaGammaHalfLife = SETTING_GYRO_ABG_HALF_LIFE_DEFAULT,
 #endif
 );
 
@@ -288,6 +300,24 @@ static void gyroInitFilters(void)
             biquadFilterInitNotch(notchFilter1[axis], getLooptime(), gyroConfig()->gyro_notch_hz, gyroConfig()->gyro_notch_cutoff);
         }
     }
+
+#ifdef USE_ALPHA_BETA_GAMMA_FILTER
+    
+    abgFilterApplyFn = (filterApplyFnPtr)nullFilterApply;
+
+    if (gyroConfig()->alphaBetaGammaAlpha > 0) {
+        abgFilterApplyFn = (filterApplyFnPtr)alphaBetaGammaFilterApply;
+        for (int axis = 0; axis < 3; axis++) {
+            alphaBetaGammaFilterInit(
+                &abgFilter[axis], 
+                gyroConfig()->alphaBetaGammaAlpha, 
+                gyroConfig()->alphaBetaGammaBoost, 
+                gyroConfig()->alphaBetaGammaHalfLife, 
+                getLooptime() * 1e-6f
+            );
+        }
+    } 
+#endif
 }
 
 bool gyroInit(void)
@@ -455,6 +485,12 @@ void FAST_CODE NOINLINE gyroFilter()
 
         gyroADCf = gyroLpf2ApplyFn((filter_t *) &gyroLpf2State[axis], gyroADCf);
         gyroADCf = notchFilter1ApplyFn(notchFilter1[axis], gyroADCf);
+
+#ifdef USE_ALPHA_BETA_GAMMA_FILTER
+        DEBUG_SET(DEBUG_GYRO_ALPHA_BETA_GAMMA, axis, gyroADCf);
+        gyroADCf = abgFilterApplyFn(&abgFilter[axis], gyroADCf);
+        DEBUG_SET(DEBUG_GYRO_ALPHA_BETA_GAMMA, axis + 3, gyroADCf);
+#endif
 
 #ifdef USE_DYNAMIC_FILTERS
         if (dynamicGyroNotchState.enabled) {

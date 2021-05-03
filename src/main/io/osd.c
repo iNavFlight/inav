@@ -193,7 +193,7 @@ static bool osdDisplayHasCanvas;
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
-PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 1);
 PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 0);
 
 static int digitCount(int32_t value)
@@ -1183,6 +1183,67 @@ static void osdDrawRadar(uint16_t *drawn, uint32_t *usedScale)
     osdDrawMap(reference, 0, SYM_ARROW_UP, GPS_distanceToHome, poiDirection, SYM_HOME, drawn, usedScale);
 }
 
+static uint16_t crc_accumulate(uint8_t data, uint16_t crcAccum)
+{
+    uint8_t tmp;
+    tmp = data ^ (uint8_t)(crcAccum & 0xff);
+    tmp ^= (tmp << 4);
+    crcAccum = (crcAccum >> 8) ^ (tmp << 8) ^ (tmp << 3) ^ (tmp >> 4);
+    return crcAccum;
+}
+
+
+static void osdDisplayTelemetry(void)
+{
+    uint32_t          trk_data;
+    uint16_t          trk_crc = 0;
+    char              trk_buffer[31];
+    static int16_t    trk_elevation = 127;
+    static uint16_t   trk_bearing   = 0;
+
+    if (ARMING_FLAG(ARMED)) {
+      if (STATE(GPS_FIX)){
+        if (GPS_distanceToHome > 5) {
+          trk_bearing = GPS_directionToHome;
+          trk_bearing += 360 + 180;
+          trk_bearing %= 360;
+          int32_t alt = CENTIMETERS_TO_METERS(osdGetAltitude());
+          float at = atan2(alt, GPS_distanceToHome);
+          trk_elevation = (float)at * 57.2957795; // 57.2957795 = 1 rad
+          trk_elevation += 37; // because elevation in telemetry should be from -37 to 90
+          if (trk_elevation < 0) {
+            trk_elevation = 0;
+          }
+        }
+      }
+    }
+    else{
+      trk_elevation = 127;
+      trk_bearing   = 0;
+    }
+
+    trk_data = 0;                                                // bit  0    - packet type 0 = bearing/elevation, 1 = 2 byte data packet
+    trk_data = trk_data | (uint32_t)(0x7F & trk_elevation) << 1; // bits 1-7  - elevation angle to target. NOTE number is abused. constrained value of -37 to 90 sent as 0 to 127.
+    trk_data = trk_data | (uint32_t)trk_bearing << 8;            // bits 8-17 - bearing angle to target. 0 = true north. 0 to 360
+    trk_crc = crc_accumulate(0xFF & trk_data, trk_crc);          // CRC First Byte  bits 0-7
+    trk_crc = crc_accumulate(0xFF & trk_bearing, trk_crc);       // CRC Second Byte bits 8-15
+    trk_crc = crc_accumulate(trk_bearing >> 8, trk_crc);         // CRC Third Byte  bits  16-17
+    trk_data = trk_data | (uint32_t)trk_crc << 17;               // bits 18-29 CRC & 0x3FFFF
+
+    for (uint8_t t_ctr = 0; t_ctr < 30; t_ctr++) {               // Prepare screen buffer and write data line.
+      if (trk_data & (uint32_t)1 << t_ctr){
+        trk_buffer[29 - t_ctr] = SYM_TELEMETRY_0;
+      }
+      else{
+        trk_buffer[29 - t_ctr] = SYM_TELEMETRY_1;
+      }
+    }
+    trk_buffer[30] = 0;
+    displayWrite(osdDisplayPort, 0, 0, trk_buffer);
+    if (osdConfig()->telemetry>1){
+      displayWrite(osdDisplayPort, 0, 3, trk_buffer);               // Test display because normal telemetry line is not visible
+    }    
+}
 #endif
 
 static void osdFormatPidControllerOutput(char *buff, const char *label, const pidController_t *pidController, uint8_t scale, bool showDecimal) {
@@ -1709,6 +1770,8 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "!FS!";
             else if (FLIGHT_MODE(MANUAL_MODE))
                 p = "MANU";
+            else if (FLIGHT_MODE(TURTLE_MODE))
+                p = "TURT";
             else if (FLIGHT_MODE(NAV_RTH_MODE))
                 p = isWaypointMissionRTHActive() ? "WRTH" : "RTH ";
             else if (FLIGHT_MODE(NAV_POSHOLD_MODE))
@@ -1729,8 +1792,6 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "ANGL";
             else if (FLIGHT_MODE(HORIZON_MODE))
                 p = "HOR ";
-            else if (FLIGHT_MODE(FLIP_OVER_AFTER_CRASH))
-                p = "TURT";
 
             displayWrite(osdDisplayPort, elemPosX, elemPosY, p);
             return true;
@@ -1902,9 +1963,10 @@ static bool osdDrawSingleElement(uint8_t item)
                         wp2.lon = posControl.waypointList[j].lon;
                         wp2.alt = posControl.waypointList[j].alt;
                         fpVector3_t poi;
-                        geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &wp2, GEO_ALT_RELATIVE);
+                        geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &wp2, waypointMissionAltConvMode(posControl.waypointList[j].p3));
+                        int32_t altConvModeAltitude = waypointMissionAltConvMode(posControl.waypointList[j].p3) == GEO_ALT_ABSOLUTE ? osdGetAltitudeMsl() : osdGetAltitude();
                         while (j > 9) j -= 10; // Only the last digit displayed if WP>=10, no room for more
-                        osdHudDrawPoi(calculateDistanceToDestination(&poi) / 100, osdGetHeadingAngle(calculateBearingToDestination(&poi) / 100), (posControl.waypointList[j].alt - osdGetAltitude())/ 100, 2, SYM_WAYPOINT, 49 + j, i);
+                        osdHudDrawPoi(calculateDistanceToDestination(&poi) / 100, osdGetHeadingAngle(calculateBearingToDestination(&poi) / 100), (posControl.waypointList[j].alt - altConvModeAltitude)/ 100, 2, SYM_WAYPOINT, 49 + j, i);
                     }
                 }
             }
@@ -2691,8 +2753,11 @@ void osdDrawNextElement(void)
         elementIndex = osdIncElementIndex(elementIndex);
     } while(!osdDrawSingleElement(elementIndex) && index != elementIndex);
 
-    // Draw artificial horizon last
+    // Draw artificial horizon + tracking telemtry last
     osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
+    if (osdConfig()->telemetry>0){
+      osdDisplayTelemetry();
+    }    
 }
 
 PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
@@ -2747,6 +2812,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .sidebar_horizontal_offset = SETTING_OSD_SIDEBAR_HORIZONTAL_OFFSET_DEFAULT,
     .left_sidebar_scroll_step = SETTING_OSD_LEFT_SIDEBAR_SCROLL_STEP_DEFAULT,
     .right_sidebar_scroll_step = SETTING_OSD_RIGHT_SIDEBAR_SCROLL_STEP_DEFAULT,
+    .sidebar_height = SETTING_OSD_SIDEBAR_HEIGHT_DEFAULT,
     .osd_home_position_arm_screen = SETTING_OSD_HOME_POSITION_ARM_SCREEN_DEFAULT,
     .pan_servo_index = SETTING_OSD_PAN_SERVO_INDEX_DEFAULT,
     .pan_servo_pwm2centideg = SETTING_OSD_PAN_SERVO_PWM2CENTIDEG_DEFAULT,
