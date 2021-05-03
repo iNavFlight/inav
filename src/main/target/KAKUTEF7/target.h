@@ -179,3 +179,5 @@
 #define TARGET_IO_PORTE 0xffff
 
 #define MAX_PWM_OUTPUT_PORTS       6
+
+#define BNO055_I2C_BUS          BUS_I2C1

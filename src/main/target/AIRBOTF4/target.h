@@ -64,8 +64,8 @@
 
 #define USE_PITOT_ADC
 #define PITOT_I2C_BUS           BUS_I2C2
-
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
+#define BNO055_I2C_BUS          BUS_I2C2
 
 #define M25P16_CS_PIN           PB3
 #define M25P16_SPI_BUS          BUS_SPI3

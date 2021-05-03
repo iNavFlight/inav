@@ -25,11 +25,6 @@
 #define MAX_SUPPORTED_MOTORS 12
 #endif
 
-#define YAW_JUMP_PREVENTION_LIMIT_LOW 80
-#define YAW_JUMP_PREVENTION_LIMIT_HIGH 500
-
-#define FW_MIN_THROTTLE_DOWN_PITCH_ANGLE_MAX 450
-
 // Digital protocol has fixed values
 #define DSHOT_DISARM_COMMAND      0
 #define DSHOT_MIN_THROTTLE       48
@@ -92,6 +87,7 @@ typedef struct motorConfig_s {
     float throttleIdle;                     // Throttle IDLE value based on min_command, max_throttle, in percent
     float throttleScale;                    // Scaling factor for throttle.
     uint8_t motorPoleCount;                 // Magnetic poles in the motors for calculating actual RPM from eRPM provided by ESC telemetry
+    uint8_t flipOverAfterPowerFactor;       // Power factor from 0 to 100% of flip over after crash
 } motorConfig_t;
 
 PG_DECLARE(motorConfig_t, motorConfig);
@@ -130,3 +126,4 @@ void stopMotors(void);
 void stopPwmAllMotors(void);
 
 void loadPrimaryMotorMixer(void);
+bool areMotorsRunning(void);

@@ -56,7 +56,7 @@ typedef enum {
     TASK_SERIAL,
     TASK_BATTERY,
     TASK_TEMPERATURE,
-#ifdef BEEPER
+#if defined(BEEPER) || defined(USE_DSHOT)
     TASK_BEEPER,
 #endif
 #ifdef USE_LIGHTS
@@ -119,6 +119,9 @@ typedef enum {
 #endif
 #ifdef USE_IRLOCK
     TASK_IRLOCK,
+#endif
+#ifdef USE_SECONDARY_IMU
+    TASK_SECONDARY_IMU,
 #endif
     /* Count of real tasks */
     TASK_COUNT,
