@@ -138,21 +138,34 @@ typedef struct pidProfile_s {
     uint8_t iterm_relax_cutoff;             // This cutoff frequency specifies a low pass filter which predicts average response of the quad to setpoint
     uint8_t iterm_relax;                    // Enable iterm suppression during stick input
 
+#ifdef USE_D_BOOST
     float dBoostFactor;
     float dBoostMaxAtAlleceleration;
     uint8_t dBoostGyroDeltaLpfHz;
+#endif
+
+#ifdef USE_ANTIGRAVITY
     float antigravityGain;
     float antigravityAccelerator;
     uint8_t antigravityCutoff;
+#endif
 
     uint16_t navFwPosHdgPidsumLimit;
     uint8_t controlDerivativeLpfHz;
+
+#ifdef USE_GYRO_KALMAN
     uint16_t kalman_q;
     uint16_t kalman_w;
     uint16_t kalman_sharpness;
     uint8_t kalmanEnabled;
+#endif
 
     float fixedWingLevelTrim;
+#ifdef USE_SMITH_PREDICTOR
+    float smithPredictorStrength;
+    float smithPredictorDelay;
+    uint16_t smithPredictorFilterHz;
+#endif
 } pidProfile_t;
 
 typedef struct pidAutotuneConfig_s {

@@ -69,7 +69,8 @@ typedef enum {
     LOGIC_CONDITION_MAP_OUTPUT                  = 37,
     LOGIC_CONDITION_RC_CHANNEL_OVERRIDE         = 38,
     LOGIC_CONDITION_SET_HEADING_TARGET          = 39,
-    LOGIC_CONDITION_LAST                        = 40,
+    LOGIC_CONDITION_MODULUS                     = 40,
+    LOGIC_CONDITION_LAST                        = 41,
 } logicOperation_e;
 
 typedef enum logicOperandType_s {
@@ -118,6 +119,7 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_3D_HOME_DISTANCE,                        // 31
     LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_LQ,                                 // 32
     LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_SNR,                                // 33
+    LOGIC_CONDITION_OPERAND_FLIGHT_GPS_VALID, // 0/1                        // 34
 
 } logicFlightOperands_e;
 

@@ -36,7 +36,7 @@ const char *armingDisableFlagNames[]= {
     "FS", "ANGLE", "CAL", "OVRLD", "NAV", "COMPASS",
     "ACC", "ARMSW", "HWFAIL", "BOXFS", "KILLSW", "RX",
     "THR", "CLI", "CMS", "OSD", "ROLL/PITCH", "AUTOTRIM", "OOM",
-    "SETTINGFAIL", "PWMOUT", "NOPREARM"
+    "SETTINGFAIL", "PWMOUT", "NOPREARM", "DSHOTBEEPER"
 };
 #endif
 
@@ -58,7 +58,8 @@ const armingFlag_e armDisableReasonsChecklist[] = {
     ARMING_DISABLED_ROLLPITCH_NOT_CENTERED,
     ARMING_DISABLED_SERVO_AUTOTRIM,
     ARMING_DISABLED_OOM,
-    ARMING_DISABLED_NO_PREARM
+    ARMING_DISABLED_NO_PREARM,
+    ARMING_DISABLED_DSHOT_BEEPER
 };
 
 armingFlag_e isArmingDisabledReason(void)
@@ -154,7 +155,7 @@ flightModeForTelemetry_e getFlightModeForTelemetry(void)
     if (FLIGHT_MODE(NAV_POSHOLD_MODE))
         return FLM_POSITION_HOLD;
 
-    if (FLIGHT_MODE(NAV_CRUISE_MODE))
+    if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE))
         return FLM_CRUISE;
 
     if (FLIGHT_MODE(NAV_WP_MODE))

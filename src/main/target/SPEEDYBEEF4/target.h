@@ -124,6 +124,8 @@
 #define SERIAL_PORT_COUNT       6
 #endif
 
+#define BNO055_I2C_BUS          BUS_I2C1
+
 /*** BARO & MAG ***/
 #define USE_BARO							
 #define BARO_I2C_BUS          	BUS_I2C1	
