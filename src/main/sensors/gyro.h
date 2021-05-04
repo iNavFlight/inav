@@ -82,6 +82,11 @@ typedef struct gyroConfig_s {
     uint16_t dynamicGyroNotchMinHz;
     uint8_t dynamicGyroNotchEnabled;
 #endif
+#ifdef USE_ALPHA_BETA_GAMMA_FILTER
+    float alphaBetaGammaAlpha;
+    float alphaBetaGammaBoost;
+    float alphaBetaGammaHalfLife;
+#endif
 } gyroConfig_t;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);

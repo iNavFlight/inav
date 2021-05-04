@@ -236,7 +236,7 @@ void calculateInitialHoldPosition(fpVector3_t * pos);
 void calculateFarAwayTarget(fpVector3_t * farAwayPos, int32_t yaw, int32_t distance);
 void calculateNewCruiseTarget(fpVector3_t * origin, int32_t yaw, int32_t distance);
 static bool isWaypointPositionReached(const fpVector3_t * pos, const bool isWaypointHome);
-static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint_t * waypoint);
+static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint_t * waypoint, geoAltitudeConversionMode_e altConv);
 static navigationFSMEvent_t nextForNonGeoStates(void);
 static bool isWaypointMissionValid(void);
 
@@ -1502,7 +1502,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
             if (STATE(MULTIROTOR)) {
                 wpHeadingControl.mode = NAV_WP_HEAD_MODE_POI;
                 mapWaypointToLocalPosition(&wpHeadingControl.poi_pos,
-                                           &posControl.waypointList[posControl.activeWaypointIndex]);
+                                           &posControl.waypointList[posControl.activeWaypointIndex], GEO_ALT_RELATIVE);
             }
             return nextForNonGeoStates();
 
@@ -1875,6 +1875,13 @@ static fpVector3_t * rthGetHomeTargetPosition(rthTargetMode_e mode)
             break;
 
         case RTH_HOME_FINAL_LAND:
+            // if WP mission p2 > 0 use p2 value as landing elevation (in meters !) (otherwise default to takeoff home elevation)
+            if (FLIGHT_MODE(NAV_WP_MODE) && posControl.waypointList[posControl.activeWaypointIndex].action == NAV_WP_ACTION_LAND && posControl.waypointList[posControl.activeWaypointIndex].p2 != 0) {
+                posControl.rthState.homeTmpWaypoint.z = posControl.waypointList[posControl.activeWaypointIndex].p2 * 100;   // 100 -> m to cm
+                if (waypointMissionAltConvMode(posControl.waypointList[posControl.activeWaypointIndex].p3) == GEO_ALT_ABSOLUTE) {
+                    posControl.rthState.homeTmpWaypoint.z -= posControl.gpsOrigin.alt;  // correct to relative if absolute SL altitude datum used
+                }
+            }
             break;
     }
 
@@ -2890,7 +2897,7 @@ void resetSafeHomes(void)
 }
 #endif
 
-static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint_t * waypoint)
+static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint_t * waypoint, geoAltitudeConversionMode_e altConv)
 {
     gpsLocation_t wpLLH;
 
@@ -2898,7 +2905,7 @@ static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint
     wpLLH.lon = waypoint->lon;
     wpLLH.alt = waypoint->alt;
 
-    geoConvertGeodeticToLocal(localPos, &posControl.gpsOrigin, &wpLLH, GEO_ALT_RELATIVE);
+    geoConvertGeodeticToLocal(localPos, &posControl.gpsOrigin, &wpLLH, altConv);
 }
 
 static void calculateAndSetActiveWaypointToLocalPosition(const fpVector3_t * pos)
@@ -2912,10 +2919,15 @@ static void calculateAndSetActiveWaypointToLocalPosition(const fpVector3_t * pos
     setDesiredPosition(&posControl.activeWaypoint.pos, posControl.activeWaypoint.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
 }
 
+geoAltitudeConversionMode_e waypointMissionAltConvMode(geoAltitudeDatumFlag_e datumFlag)
+{
+    return datumFlag == NAV_WP_MSL_DATUM ? GEO_ALT_ABSOLUTE : GEO_ALT_RELATIVE;
+}
+
 static void calculateAndSetActiveWaypoint(const navWaypoint_t * waypoint)
 {
     fpVector3_t localPos;
-    mapWaypointToLocalPosition(&localPos, waypoint);
+    mapWaypointToLocalPosition(&localPos, waypoint, waypointMissionAltConvMode(waypoint->p3));
     calculateAndSetActiveWaypointToLocalPosition(&localPos);
 }
 
@@ -3321,7 +3333,7 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
     // Don't allow arming if first waypoint is farther than configured safe distance
     if ((posControl.waypointCount > 0) && (navConfig()->general.waypoint_safe_distance != 0)) {
         fpVector3_t startingWaypointPos;
-        mapWaypointToLocalPosition(&startingWaypointPos, &posControl.waypointList[0]);
+        mapWaypointToLocalPosition(&startingWaypointPos, &posControl.waypointList[0], GEO_ALT_RELATIVE);
 
         const bool navWpMissionStartTooFar = calculateDistanceToDestination(&startingWaypointPos) > navConfig()->general.waypoint_safe_distance;
 
