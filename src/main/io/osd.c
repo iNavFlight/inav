@@ -64,6 +64,7 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/time.h"
 #include "drivers/vtx_common.h"
 
+#include "io/adsb.h" 
 #include "io/flashfs.h"
 #include "io/gps.h"
 #include "io/osd.h"
@@ -1558,7 +1559,35 @@ static bool osdDrawSingleElement(uint8_t item)
             osdFormatCentiNumber(&buff[2], centiHDOP, 0, 1, 0, 2);
             break;
         }
-
+#if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_MAVLINK)
+    case OSD_ADSB:
+        {         
+            static uint8_t adsblen=1;
+            for (int i = 0; i <= adsblen; i++) {
+                buff[i] = SYM_BLANK;
+            }
+            buff[adsblen]='\0';
+            displayWrite(osdDisplayPort, elemPosX, elemPosY, buff); // clear any previous chars because variable element size
+            adsbexpiry();
+            adsblen=1;
+            buff[0] = SYM_ADSB;   
+            if ((adsb.dist > 0) && (adsb.dist < osdConfig()->adsb_range)){
+                osdFormatDistanceStr(&buff[1], adsb.dist*100);
+                adsblen = strlen(buff);
+                int dir = osdGetHeadingAngle(adsb.dir + 11);
+                unsigned arrowOffset = dir * 2 / 45;
+                buff[adsblen-1]=SYM_ARROW_UP + arrowOffset;
+                osdFormatDistanceStr(&buff[adsblen], adsb.alt*100);
+                adsblen = strlen(buff)-1;
+                if (adsb.dist < osdConfig()->adsb_alarm) {
+                    TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+                }
+            }  
+            buff[adsblen]='\0';          
+            displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
+            return true;
+        }
+#endif  
     case OSD_MAP_NORTH:
         {
             static uint16_t drawn = 0;

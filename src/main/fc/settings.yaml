@@ -3159,6 +3159,20 @@ groups:
         field: sidebar_scroll_arrows
         type: bool
         default_value: OFF
+      - name: osd_adsb_range
+        description: "Distance in meters of adsb aircraft that are displayed"
+        default_value: 20000
+        field: adsb_range
+        min: 0
+        max: 64000
+        type: uint16_t        
+      - name: osd_adsb_alarm
+        description: "Distance inside which adsb data flashes for proximity warning"
+        default_value: 2000
+        field: adsb_alarm
+        min: 0
+        max: 64000
+        type: uint16_t      
       - name: osd_main_voltage_decimals
         description: "Number of decimals for the battery voltages displayed in the OSD [1-2]."
         default_value: 1
