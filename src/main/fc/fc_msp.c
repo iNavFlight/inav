@@ -1233,7 +1233,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_FILTER_CONFIG :
-        sbufWriteU8(dst, gyroConfig()->gyro_soft_lpf_hz);
+        sbufWriteU8(dst, gyroConfig()->gyro_main_lpf_hz);
         sbufWriteU16(dst, pidProfile()->dterm_lpf_hz);
         sbufWriteU16(dst, pidProfile()->yaw_lpf_hz);
         sbufWriteU16(dst, gyroConfig()->gyro_notch_hz);
@@ -1247,7 +1247,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, accelerometerConfig()->acc_notch_hz);
         sbufWriteU16(dst, accelerometerConfig()->acc_notch_cutoff);
 
-        sbufWriteU16(dst, gyroConfig()->gyro_stage2_lowpass_hz);
+        sbufWriteU16(dst, 0);    //Was gyroConfig()->gyro_stage2_lowpass_hz
         break;
 
     case MSP_PID_ADVANCED:
@@ -2171,7 +2171,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_FILTER_CONFIG :
         if (dataSize >= 5) {
-            gyroConfigMutable()->gyro_soft_lpf_hz = sbufReadU8(src);
+            gyroConfigMutable()->gyro_main_lpf_hz = sbufReadU8(src);
             pidProfileMutable()->dterm_lpf_hz = constrain(sbufReadU16(src), 0, 500);
             pidProfileMutable()->yaw_lpf_hz = constrain(sbufReadU16(src), 0, 255);
             if (dataSize >= 9) {
@@ -2202,7 +2202,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             }
 
             if (dataSize >= 22) {
-                gyroConfigMutable()->gyro_stage2_lowpass_hz = constrain(sbufReadU16(src), 0, 500);
+                sbufReadU16(src); //Was gyro_stage2_lowpass_hz
             } else {
                 return MSP_RESULT_ERROR;
             }

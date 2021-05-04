@@ -207,15 +207,15 @@ groups:
         default_value: "256HZ"
         field: gyro_lpf
         table: gyro_lpf
-      - name: gyro_lpf_hz
-        description: "Software-based filter to remove mechanical vibrations from the gyro signal. Value is cutoff frequency (Hz). For larger frames with bigger props set to lower value."
-        default_value: 60
-        field: gyro_soft_lpf_hz
-        max: 200
-      - name: gyro_lpf_type
-        description: "Specifies the type of the software LPF of the gyro signals. BIQUAD gives better filtering and more delay, PT1 less filtering and less delay, so use only on clean builds."
-        default_value: "BIQUAD"
-        field: gyro_soft_lpf_type
+      - name: gyro_anti_aliasing_lpf_hz
+        description: "Gyro processing anti-aliasing filter cutoff frequency. In normal operation this filter setting should never be changed. In Hz"
+        default_value: 250
+        field: gyro_anti_aliasing_lpf_hz
+        max: 255
+      - name: gyro_anti_aliasing_lpf_type
+        description: "Specifies the type of the software LPF of the gyro signals."
+        default_value: "PT1"
+        field: gyro_anti_aliasing_lpf_type
         table: filter_type
       - name: moron_threshold
         description: "When powering up, gyro bias is calculated. If the model is shaking/moving during this initial calibration, offsets are calculated incorrectly, and could lead to poor flying performance. This threshold means how much average gyro reading could differ before re-calibration is triggered."
@@ -231,16 +231,16 @@ groups:
         min: 1
         max: 500
         default_value: 1
-      - name: gyro_stage2_lowpass_hz
-        description: "Software based second stage lowpass filter for gyro. Value is cutoff frequency (Hz)"
-        default_value: 0
-        field: gyro_stage2_lowpass_hz
+      - name: gyro_main_lpf_hz
+        description: "Software based gyro main lowpass filter. Value is cutoff frequency (Hz)"
+        default_value: 60
+        field: gyro_main_lpf_hz
         min: 0
         max: 500
-      - name: gyro_stage2_lowpass_type
-        description: "Defines the type of stage 2 gyro LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation."
+      - name: gyro_main_lpf_type
+        description: "Defines the type of the main gyro LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation."
         default_value: BIQUAD
-        field: gyro_stage2_lowpass_type
+        field: gyro_main_lpf_type
         table: filter_type
       - name: gyro_use_dyn_lpf
         description: "Use Dynamic LPF instead of static gyro stage1 LPF. Dynamic Gyro LPF updates gyro LPF based on the throttle position."
