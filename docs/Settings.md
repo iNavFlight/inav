@@ -111,11 +111,10 @@
 | frsky_pitch_roll | OFF |  |  | S.Port and D-Series telemetry: Send pitch and roll degrees*10 instead of raw accelerometer data |
 | frsky_unit | METRIC |  |  | Not used? [METRIC/IMPERIAL] |
 | frsky_vfas_precision | 0 | FRSKY_VFAS_PRECISION_LOW | FRSKY_VFAS_PRECISION_HIGH | D-Series telemetry only: Set to 1 to send raw VBat value in 0.1V resolution for receivers that can handle it, or 0 (default) to use the standard method |
-| fw_autotune_detect_time | 250 | 50 | 500 | Time [ms] to detect sustained undershoot or overshoot |
 | fw_autotune_ff_to_i_tc | 600 | 100 | 5000 | FF to I time (defines time for I to reach the same level of response as FF) [ms] |
 | fw_autotune_ff_to_p_gain | 10 | 0 | 100 | FF to P gain (strength relationship) [%] |
 | fw_autotune_max_rate_deflection | 80 | 50 | 100 | The target percentage of maximum mixer output used for determining the rates in `AUTO` and `LIMIT`. |
-| fw_autotune_min_stick | 80 | 0 | 100 | Minimum stick input [%] to consider overshoot/undershoot detection |
+| fw_autotune_min_stick | 50 | 0 | 100 | Minimum stick input [%] to consider overshoot/undershoot detection |
 | fw_autotune_p_to_d_gain | 0 | 0 | 200 | P to D gain (strength relationship) [%] |
 | fw_autotune_rate_adjustment | AUTO |  |  | `AUTO` and `LIMIT` adjust the rates to match the capabilities of the airplane, with `LIMIT` they are never increased above the starting rates setting. `FIXED` does not adjust the rates. Rates are not changed when tuning in `ANGLE` mode. |
 | fw_d_level | 75 | 0 | 200 | Fixed-wing attitude stabilisation HORIZON transition point |
