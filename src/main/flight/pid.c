@@ -112,6 +112,11 @@ typedef struct {
     biquadFilter_t rateTargetFilter;
 
     smithPredictor_t smithPredictor;
+
+#ifdef USE_ALPHA_BETA_GAMMA_FILTER
+    alphaBetaGammaFilter_t dTermAbgFilterState;
+#endif
+
 } pidState_t;
 
 STATIC_FASTRAM bool pidFiltersConfigured = false;
@@ -159,10 +164,11 @@ typedef void (*pidControllerFnPtr)(pidState_t *pidState, flight_dynamics_index_t
 static EXTENDED_FASTRAM pidControllerFnPtr pidControllerApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr dTermLpfFilterApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr dTermLpf2FilterApplyFn;
+static EXTENDED_FASTRAM filterApplyFnPtr dTermAbgFilterApplyFn;
 static EXTENDED_FASTRAM bool levelingEnabled = false;
 static EXTENDED_FASTRAM float fixedWingLevelTrim;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 2);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 3);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -306,6 +312,11 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .smithPredictorDelay = SETTING_SMITH_PREDICTOR_DELAY_DEFAULT,
         .smithPredictorFilterHz = SETTING_SMITH_PREDICTOR_LPF_HZ_DEFAULT,
 #endif
+#ifdef USE_ALPHA_BETA_GAMMA_FILTER
+        .dTermAlphaBetaGammaAlpha = SETTING_DTERM_ABG_ALPHA_DEFAULT,
+        .dTermAlphaBetaGammaBoost = SETTING_DTERM_ABG_BOOST_DEFAULT,
+        .dTermAlphaBetaGammaHalfLife = SETTING_DTERM_ABG_HALF_LIFE_DEFAULT,
+#endif
 );
 
 bool pidInitFilters(void)
@@ -380,6 +391,25 @@ bool pidInitFilters(void)
         pidProfile()->smithPredictorFilterHz, 
         getLooptime()
     );
+#endif
+
+#ifdef USE_ALPHA_BETA_GAMMA_FILTER
+
+    dTermAbgFilterApplyFn = (filterApplyFnPtr)nullFilterApply;
+
+    if (pidProfile()->dTermAlphaBetaGammaAlpha > 0) {
+        dTermAbgFilterApplyFn = (filterApplyFnPtr)alphaBetaGammaFilterApply;
+        for (int axis = 0; axis < 3; axis++) {
+            alphaBetaGammaFilterInit(
+                &pidState[axis].dTermAbgFilterState, 
+                pidProfile()->dTermAlphaBetaGammaAlpha, 
+                pidProfile()->dTermAlphaBetaGammaBoost, 
+                pidProfile()->dTermAlphaBetaGammaHalfLife, 
+                getLooptime() * 1e-6f
+            );
+        }
+    }
+
 #endif
 
     pidFiltersConfigured = true;
@@ -696,7 +726,7 @@ static float applyDBoost(pidState_t *pidState, float dT) {
 }
 #endif
 
-static float dTermProcess(pidState_t *pidState, float dT) {
+static float dTermProcess(flight_dynamics_index_t axis, pidState_t *pidState, float dT) {
     // Calculate new D-term
     float newDTerm = 0;
     if (pidState->kD == 0) {
@@ -707,6 +737,12 @@ static float dTermProcess(pidState_t *pidState, float dT) {
 
         delta = dTermLpfFilterApplyFn((filter_t *) &pidState->dtermLpfState, delta);
         delta = dTermLpf2FilterApplyFn((filter_t *) &pidState->dtermLpf2State, delta);
+
+#ifdef USE_ALPHA_BETA_GAMMA_FILTER
+        DEBUG_SET(DEBUG_DTERM_ALPHA_BETA_GAMMA, axis, delta);
+        delta = dTermAbgFilterApplyFn((filter_t *) &pidState->dTermAbgFilterState, delta);
+        DEBUG_SET(DEBUG_DTERM_ALPHA_BETA_GAMMA, axis + 3, delta);
+#endif
 
         // Calculate derivative
         newDTerm =  delta * (pidState->kD / dT) * applyDBoost(pidState, dT);
@@ -733,7 +769,7 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
 {
     const float rateError = pidState->rateTarget - pidState->gyroRate;
     const float newPTerm = pTermProcess(pidState, rateError, dT);
-    const float newDTerm = dTermProcess(pidState, dT);
+    const float newDTerm = dTermProcess(axis, pidState, dT);
     const float newFFTerm = pidState->rateTarget * pidState->kFF;
 
     DEBUG_SET(DEBUG_FW_D, axis, newDTerm);
@@ -789,7 +825,7 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
 {
     const float rateError = pidState->rateTarget - pidState->gyroRate;
     const float newPTerm = pTermProcess(pidState, rateError, dT);
-    const float newDTerm = dTermProcess(pidState, dT);
+    const float newDTerm = dTermProcess(axis, pidState, dT);
 
     const float rateTargetDelta = pidState->rateTarget - pidState->previousRateTarget;
     const float rateTargetDeltaFiltered = biquadFilterApply(&pidState->rateTargetFilter, rateTargetDelta);

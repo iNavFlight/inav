@@ -166,6 +166,11 @@ typedef struct pidProfile_s {
     float smithPredictorDelay;
     uint16_t smithPredictorFilterHz;
 #endif
+#ifdef USE_ALPHA_BETA_GAMMA_FILTER
+    float dTermAlphaBetaGammaAlpha;
+    float dTermAlphaBetaGammaBoost;
+    float dTermAlphaBetaGammaHalfLife;
+#endif
 } pidProfile_t;
 
 typedef struct pidAutotuneConfig_s {
