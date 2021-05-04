@@ -89,7 +89,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXLOITERDIRCHN, "LOITER CHANGE", 49 },
     { BOXMSPRCOVERRIDE, "MSP RC OVERRIDE", 50 },
     { BOXPREARM, "PREARM", 51 },
-    { BOXFLIPOVERAFTERCRASH, "TURTLE", 52 },
+    { BOXTURTLE, "TURTLE", 52 },
     { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
@@ -316,7 +316,7 @@ void initActiveBoxIds(void)
 
 #ifdef USE_DSHOT
     if(STATE(MULTIROTOR) && isMotorProtocolDshot())
-        activeBoxIds[activeBoxIdCount++] = BOXFLIPOVERAFTERCRASH;
+        activeBoxIds[activeBoxIdCount++] = BOXTURTLE;
 #endif
 }
 
