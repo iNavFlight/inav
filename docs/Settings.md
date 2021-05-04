@@ -69,6 +69,9 @@
 | dji_workarounds | 1 | 0 | 255 | Enables workarounds for different versions of MSP protocol used |
 | dshot_beeper_enabled | ON |  |  | Whether using DShot motors as beepers is enabled |
 | dshot_beeper_tone | 1 | 1 | 5 | Sets the DShot beeper tone |
+| dterm_abg_alpha | 0 | 0 | 1 | Alpha factor for D-term Alpha-Beta-Gamma filter |
+| dterm_abg_boost | 0.35 | 0 | 2 | Boost factor for D-term Alpha-Beta-Gamma filter |
+| dterm_abg_half_life | 0.5 | 0 | 10 | Sample half-life for D-term Alpha-Beta-Gamma filter |
 | dterm_lpf2_hz | 0 | 0 | 500 | Cutoff frequency for stage 2 D-term low pass filter |
 | dterm_lpf2_type | BIQUAD |  |  | Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation. |
 | dterm_lpf_hz | 40 | 0 | 500 | Dterm low pass filter cutoff frequency. Default setting is very conservative and small multirotors should use higher value between 80 and 100Hz. 80 seems like a gold spot for 7-inch builds while 100 should work best with 5-inch machines. If motors are getting too hot, lower the value |
