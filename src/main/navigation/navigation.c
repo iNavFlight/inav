@@ -2716,8 +2716,8 @@ static bool adjustPositionFromRCInput(void)
     }
     else {
 
-        const int16_t rcPitchAdjustment = applyDeadband(rcCommand[PITCH], rcControlsConfig()->pos_hold_deadband);
-        const int16_t rcRollAdjustment = applyDeadband(rcCommand[ROLL], rcControlsConfig()->pos_hold_deadband);
+        const int16_t rcPitchAdjustment = applyDeadbandRescaled(rcCommand[PITCH], rcControlsConfig()->pos_hold_deadband, -500, 500);
+        const int16_t rcRollAdjustment = applyDeadbandRescaled(rcCommand[ROLL], rcControlsConfig()->pos_hold_deadband, -500, 500);
 
         retValue = adjustMulticopterPositionFromRCInput(rcPitchAdjustment, rcRollAdjustment);
     }
