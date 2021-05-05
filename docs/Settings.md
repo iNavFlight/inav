@@ -326,6 +326,7 @@
 | nav_land_slowdown_minalt | 500 | 50 | 1000 | Defines at what altitude the descent velocity should start to be `nav_land_minalt_vspd` [cm] |
 | nav_manual_climb_rate | 200 | 10 | 2000 | Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s] |
 | nav_manual_speed | 500 | 10 | 2000 | Maximum velocity firmware is allowed when processing pilot input for POSHOLD/CRUISE control mode [cm/s] [Multirotor only] |
+| nav_max_altitude | 0 | 0 | 65000 | Max allowed altitude (above Home Point) that applies to all NAV modes (including Altitude Hold). 0 means limit is disabled |
 | nav_max_terrain_follow_alt | 100 |  | 1000 | Max allowed above the ground altitude for terrain following mode |
 | nav_mc_auto_disarm_delay | 2000 | 100 | 10000 | Delay before multi-rotor disarms when `nav_disarm_on_landing` is set (m/s) |
 | nav_mc_bank_angle | 30 | 15 | 45 | Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude |
