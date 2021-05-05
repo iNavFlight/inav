@@ -320,6 +320,8 @@ main_sources(COMMON_SRC
     flight/imu.h
     flight/kalman.c
     flight/kalman.h
+    flight/smith_predictor.c
+    flight/smith_predictor.h
     flight/mixer.c
     flight/mixer.h
     flight/pid.c

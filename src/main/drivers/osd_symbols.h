@@ -119,8 +119,9 @@
 #define SYM_RPM                   0x8B // 139 RPM
 #define SYM_WAYPOINT              0x8C // 140 Waypoint
 #define SYM_AZIMUTH               0x8D // 141 Azimuth
-//                                0x8E // 142 -
-//                                0x8F // 143 -
+
+#define SYM_TELEMETRY_0           0x8E // 142 Antenna tracking telemetry
+#define SYM_TELEMETRY_1           0x8F // 143 Antenna tracking telemetry
 
 #define SYM_BATT_FULL             0x90 // 144 Battery full
 #define SYM_BATT_5                0x91 // 145 Battery
