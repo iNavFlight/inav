@@ -1,29 +1,28 @@
 # INAV - navigation capable flight controller
 
+## F3 based flight controllers
+
+> STM32 F3 flight controllers like Omnibus F3 or SP Racing F3 are deprecated and soon they will reach the end of support in INAV. If you are still using F3 boards, please migrate to F4 or F7.
+
 ![INAV](http://static.rcgroups.net/forums/attachments/6/1/0/3/7/6/a9088858-102-inav.png)
 ![Travis CI status](https://travis-ci.org/iNavFlight/inav.svg?branch=master)
 
 ## Features
 
-* Outstanding navigation performance out of the box
+* Runs on the most popular F4 and F7 flight controllers
+* Outstanding performance out of the box
 * Position Hold, Altitude Hold, Return To Home and Missions
 * Excellent support for fixed wing UAVs: airplanes, flying wings 
-* Pitot tube support
-* Rangefinder support (sonar and laser)
-* Oneshot and Multishot ESC support.
-* Blackbox flight recorder logging (to onboard flash or external SD card).
-* Lux's new PID (uses float values internally, resistant to looptime variation).
-* Simultaneous Bluetooth configuration and OSD.
-* LTM Telemetry.
-* Smartport Telemetry.
-* RSSI via ADC - Uses ADC to read PWM RSSI signals, tested with FrSky D4R-II and X8R.
-* OLED Displays - Display information on: Battery voltage, profile, rate profile, version, sensors, RC, etc.
-* In-flight manual PID tuning and rate adjustment.
-* Rate profiles and in-flight selection of them.
-* Multiple simultaneous telemetry providers.
-* Configurable serial ports for Serial RX, Telemetry, MSP, GPS - Use most devices on any port, softserial too.
-* Multi-color RGB LED Strip support (each LED can be a different color using variable length WS2811 Addressable RGB strips - use for Orientation Indicators, Low Battery Warning, Flight Mode Status, etc)
-* PIDs from CF/BF can be used in INAV, no need to retune for INAV
+* Fully configurable mixer that allows to run any hardware you want: multirotor, fixed wing, rovers, boats and other experimental devices
+* Multiple sensor support: GPS, Pitot tube, sonar, lidar, temperature, ESC with BlHeli_32 telemetry
+* SmartAudio and IRC Tramp VTX support
+* DSHOT and Multishot ESCs
+* Blackbox flight recorder logging
+* On Screen Display (OSD) - both character and pixel style
+* Telemetry: SmartPort, FPort, MAVlink, LTM
+* Multi-color RGB LED Strip support
+* Advanced gyro filtering: Matrix Filter and RPM filter
+* Logic Conditions, Global Functions and Global Variables: you can program INAV with a GUI
 * And many more!
 
 For a list of features, changes and some discussion please review consult the releases [page](https://github.com/iNavFlight/inav/releases) and the documentation.
@@ -40,14 +39,17 @@ Tool for Blackbox logs analysis is available [here](https://github.com/iNavFligh
 
 ### Telemetry screen for OpenTX
 
-Users of FrSky Taranis X9 and Q X7 can use INAV Lua Telemetry screen created by @teckel12 . Software and installation instruction are available here: [https://github.com/iNavFlight/LuaTelemetry](https://github.com/iNavFlight/LuaTelemetry)
+Users of OpenTX radios (Taranis, Horus, Jumper, Radiomaster, Nirvana) can use INAV OpenTX Telemetry Widget screen. Software and installation instruction are available here: [https://github.com/iNavFlight/OpenTX-Telemetry-Widget](https://github.com/iNavFlight/OpenTX-Telemetry-Widget)
 
 ## Installation
 
 See: https://github.com/iNavFlight/inav/blob/master/docs/Installation.md
 
 ## Documentation, support and learning resources
-
+* [Fixed Wing Guide](docs/INAV_Fixed_Wing_Setup_Guide.pdf)
+* [Autolaunch Guide](docs/INAV_Autolaunch.pdf)
+* [Modes Guide](docs/INAV_Modes.pdf)
+* [Wing Tuning Masterclass](docs/INAV_Wing_Tuning_Masterclass.pdf)
 * [Official documentation](https://github.com/iNavFlight/inav/tree/master/docs)
 * [Official Wiki](https://github.com/iNavFlight/inav/wiki)
 * [INAV Official on Telegram](https://t.me/INAVFlight)

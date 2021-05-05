@@ -167,20 +167,22 @@ static bool deviceDetect(magDev_t * mag)
 
 bool ist8310Detect(magDev_t * mag)
 {
-    mag->busDev = busDeviceInit(BUSTYPE_ANY, DEVHW_IST8310, mag->magSensorToUse, OWNER_COMPASS);
-    if (mag->busDev == NULL) {
-        return false;
+    for (uint8_t index = 0; index < 2; ++index) {
+        mag->busDev = busDeviceInit(BUSTYPE_ANY, DEVHW_IST8310_0 + index, mag->magSensorToUse, OWNER_COMPASS);
+        if (mag->busDev == NULL) {
+            continue;
+        }
+
+        if (deviceDetect(mag)) {
+            mag->init = ist8310Init;
+            mag->read = ist8310Read;
+            return true;
+        } else {
+            busDeviceDeInit(mag->busDev);
+        }
     }
 
-    if (!deviceDetect(mag)) {
-        busDeviceDeInit(mag->busDev);
-        return false;
-    }
-
-    mag->init = ist8310Init;
-    mag->read = ist8310Read;
-
-    return true;
+    return false;
 }
 
 #endif

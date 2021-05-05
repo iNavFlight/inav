@@ -33,7 +33,7 @@
 #include "drivers/accgyro/accgyro_mpu.h"
 #include "drivers/accgyro/accgyro_mpu3050.h"
 
-#ifdef USE_GYRO_MPU3050
+#ifdef USE_IMU_MPU3050
 
 // MPU3050, Standard address 0x68
 #define MPU3050_ADDRESS         0x68
@@ -131,6 +131,7 @@ bool mpu3050Detect(gyroDev_t *gyro)
     gyro->readFn = mpu3050GyroRead;
     gyro->intStatusFn = gyroCheckDataReady;
     gyro->scale = 1.0f / 16.4f;     // 16.4 dps/lsb scalefactor
+    gyro->gyroAlign = gyro->busDev->param;
 
     return true;
 }

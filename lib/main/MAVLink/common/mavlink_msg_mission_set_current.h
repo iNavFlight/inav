@@ -3,12 +3,12 @@
 
 #define MAVLINK_MSG_ID_MISSION_SET_CURRENT 41
 
-MAVPACKED(
+
 typedef struct __mavlink_mission_set_current_t {
- uint16_t seq; /*< Sequence*/
- uint8_t target_system; /*< System ID*/
- uint8_t target_component; /*< Component ID*/
-}) mavlink_mission_set_current_t;
+ uint16_t seq; /*<  Sequence*/
+ uint8_t target_system; /*<  System ID*/
+ uint8_t target_component; /*<  Component ID*/
+} mavlink_mission_set_current_t;
 
 #define MAVLINK_MSG_ID_MISSION_SET_CURRENT_LEN 4
 #define MAVLINK_MSG_ID_MISSION_SET_CURRENT_MIN_LEN 4
@@ -25,18 +25,18 @@ typedef struct __mavlink_mission_set_current_t {
     41, \
     "MISSION_SET_CURRENT", \
     3, \
-    {  { "seq", NULL, MAVLINK_TYPE_UINT16_T, 0, 0, offsetof(mavlink_mission_set_current_t, seq) }, \
-         { "target_system", NULL, MAVLINK_TYPE_UINT8_T, 0, 2, offsetof(mavlink_mission_set_current_t, target_system) }, \
+    {  { "target_system", NULL, MAVLINK_TYPE_UINT8_T, 0, 2, offsetof(mavlink_mission_set_current_t, target_system) }, \
          { "target_component", NULL, MAVLINK_TYPE_UINT8_T, 0, 3, offsetof(mavlink_mission_set_current_t, target_component) }, \
+         { "seq", NULL, MAVLINK_TYPE_UINT16_T, 0, 0, offsetof(mavlink_mission_set_current_t, seq) }, \
          } \
 }
 #else
 #define MAVLINK_MESSAGE_INFO_MISSION_SET_CURRENT { \
     "MISSION_SET_CURRENT", \
     3, \
-    {  { "seq", NULL, MAVLINK_TYPE_UINT16_T, 0, 0, offsetof(mavlink_mission_set_current_t, seq) }, \
-         { "target_system", NULL, MAVLINK_TYPE_UINT8_T, 0, 2, offsetof(mavlink_mission_set_current_t, target_system) }, \
+    {  { "target_system", NULL, MAVLINK_TYPE_UINT8_T, 0, 2, offsetof(mavlink_mission_set_current_t, target_system) }, \
          { "target_component", NULL, MAVLINK_TYPE_UINT8_T, 0, 3, offsetof(mavlink_mission_set_current_t, target_component) }, \
+         { "seq", NULL, MAVLINK_TYPE_UINT16_T, 0, 0, offsetof(mavlink_mission_set_current_t, seq) }, \
          } \
 }
 #endif
@@ -47,9 +47,9 @@ typedef struct __mavlink_mission_set_current_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param target_system System ID
- * @param target_component Component ID
- * @param seq Sequence
+ * @param target_system  System ID
+ * @param target_component  Component ID
+ * @param seq  Sequence
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_mission_set_current_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -81,9 +81,9 @@ static inline uint16_t mavlink_msg_mission_set_current_pack(uint8_t system_id, u
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param target_system System ID
- * @param target_component Component ID
- * @param seq Sequence
+ * @param target_system  System ID
+ * @param target_component  Component ID
+ * @param seq  Sequence
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_mission_set_current_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -141,9 +141,9 @@ static inline uint16_t mavlink_msg_mission_set_current_encode_chan(uint8_t syste
  * @brief Send a mission_set_current message
  * @param chan MAVLink channel to send the message
  *
- * @param target_system System ID
- * @param target_component Component ID
- * @param seq Sequence
+ * @param target_system  System ID
+ * @param target_component  Component ID
+ * @param seq  Sequence
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -216,7 +216,7 @@ static inline void mavlink_msg_mission_set_current_send_buf(mavlink_message_t *m
 /**
  * @brief Get field target_system from mission_set_current message
  *
- * @return System ID
+ * @return  System ID
  */
 static inline uint8_t mavlink_msg_mission_set_current_get_target_system(const mavlink_message_t* msg)
 {
@@ -226,7 +226,7 @@ static inline uint8_t mavlink_msg_mission_set_current_get_target_system(const ma
 /**
  * @brief Get field target_component from mission_set_current message
  *
- * @return Component ID
+ * @return  Component ID
  */
 static inline uint8_t mavlink_msg_mission_set_current_get_target_component(const mavlink_message_t* msg)
 {
@@ -236,7 +236,7 @@ static inline uint8_t mavlink_msg_mission_set_current_get_target_component(const
 /**
  * @brief Get field seq from mission_set_current message
  *
- * @return Sequence
+ * @return  Sequence
  */
 static inline uint16_t mavlink_msg_mission_set_current_get_seq(const mavlink_message_t* msg)
 {

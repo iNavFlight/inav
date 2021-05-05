@@ -27,6 +27,8 @@
 #define BEEPER                  PA1
 #define BEEPER_INVERTED
 
+#define USE_DSHOT
+
 // MPU interrupt
 #define USE_EXTI
 #define GYRO_INT_EXTI            PC4
@@ -35,13 +37,8 @@
 #define MPU9250_CS_PIN          PC0
 #define MPU9250_SPI_BUS         BUS_SPI3
 
-#define USE_ACC
-#define USE_ACC_MPU9250
-#define ACC_MPU9250_ALIGN       CW180_DEG
-
-#define USE_GYRO
-#define USE_GYRO_MPU9250
-#define GYRO_MPU9250_ALIGN      CW180_DEG
+#define USE_IMU_MPU9250
+#define IMU_MPU9250_ALIGN       CW180_DEG
 
 #define USE_MAG
 #define USE_MAG_MPU9250
@@ -87,7 +84,11 @@
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
 
-#define SERIAL_PORT_COUNT       7 //VCP, UART1, UART2, UART3, UART4, UART5, UART6
+#define USE_SOFTSERIAL1
+#define SOFTSERIAL_1_RX_PIN     PA3     // shared with UART2 RX
+#define SOFTSERIAL_1_TX_PIN     PA2     // shared with UART2 TX
+
+#define SERIAL_PORT_COUNT       8       //VCP, UART1, UART2, UART3, UART4, UART5, UART6
 
 #define USE_SPI
 #define USE_SPI_DEVICE_1
@@ -126,6 +127,7 @@
 #define PITOT_I2C_BUS           BUS_I2C1
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
+#define BNO055_I2C_BUS          BUS_I2C1
 
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_VBAT | FEATURE_CURRENT_METER | FEATURE_OSD | FEATURE_GPS | FEATURE_TELEMETRY)
 

@@ -38,6 +38,7 @@
 
 #include "drivers/system.h"
 #include "drivers/rx_spi.h"
+#include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
 #include "drivers/serial.h"
 #include "drivers/timer.h"
@@ -106,20 +107,30 @@ PG_RESET_TEMPLATE(featureConfig_t, featureConfig,
     .enabledFeatures = DEFAULT_FEATURES | COMMON_DEFAULT_FEATURES
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 3);
 
 PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .current_profile_index = 0,
     .current_battery_profile_index = 0,
-    .debug_mode = DEBUG_NONE,
-    .i2c_speed = I2C_SPEED_400KHZ,
-    .cpuUnderclock = 0,
-    .throttle_tilt_compensation_strength = 0,      // 0-100, 0 - disabled
-    .pwmRxInputFilteringMode = INPUT_FILTERING_DISABLED,
-    .name = { 0 }
+    .debug_mode = SETTING_DEBUG_MODE_DEFAULT,
+#ifdef USE_I2C
+    .i2c_speed = SETTING_I2C_SPEED_DEFAULT,
+#endif
+#ifdef USE_UNDERCLOCK
+    .cpuUnderclock = SETTING_CPU_UNDERCLOCK_DEFAULT,
+#endif
+    .throttle_tilt_compensation_strength = SETTING_THROTTLE_TILT_COMP_STR_DEFAULT,      // 0-100, 0 - disabled
+    .name = SETTING_NAME_DEFAULT
 );
 
-PG_REGISTER(beeperConfig_t, beeperConfig, PG_BEEPER_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(beeperConfig_t, beeperConfig, PG_BEEPER_CONFIG, 1);
+
+PG_RESET_TEMPLATE(beeperConfig_t, beeperConfig,
+                  .beeper_off_flags = 0,
+                  .preferred_beeper_off_flags = 0,
+                  .dshot_beeper_enabled = SETTING_DSHOT_BEEPER_ENABLED_DEFAULT,
+                  .dshot_beeper_tone = SETTING_DSHOT_BEEPER_TONE_DEFAULT,
+);
 
 PG_REGISTER_WITH_RESET_TEMPLATE(adcChannelConfig_t, adcChannelConfig, PG_ADC_CHANNEL_CONFIG, 0);
 
@@ -162,41 +173,24 @@ __attribute__((weak)) void targetConfiguration(void)
 #endif
 
 uint32_t getLooptime(void) {
+    return gyroConfig()->looptime;
+}
+
+uint32_t getGyroLooptime(void) {
     return gyro.targetLooptime;
-} 
+}
 
 void validateAndFixConfig(void)
 {
-#ifdef USE_GYRO_NOTCH_1
-    if (gyroConfig()->gyro_soft_notch_cutoff_1 >= gyroConfig()->gyro_soft_notch_hz_1) {
-        gyroConfigMutable()->gyro_soft_notch_hz_1 = 0;
+    if (gyroConfig()->gyro_notch_cutoff >= gyroConfig()->gyro_notch_hz) {
+        gyroConfigMutable()->gyro_notch_hz = 0;
     }
-#endif
-#ifdef USE_GYRO_NOTCH_2
-    if (gyroConfig()->gyro_soft_notch_cutoff_2 >= gyroConfig()->gyro_soft_notch_hz_2) {
-        gyroConfigMutable()->gyro_soft_notch_hz_2 = 0;
-    }
-#endif
-#ifdef USE_DTERM_NOTCH
-    if (pidProfile()->dterm_soft_notch_cutoff >= pidProfile()->dterm_soft_notch_hz) {
-        pidProfileMutable()->dterm_soft_notch_hz = 0;
-    }
-#endif
-
-#ifdef USE_ACC_NOTCH
     if (accelerometerConfig()->acc_notch_cutoff >= accelerometerConfig()->acc_notch_hz) {
         accelerometerConfigMutable()->acc_notch_hz = 0;
     }
-#endif
 
     // Disable unused features
-    featureClear(FEATURE_UNUSED_3 | FEATURE_UNUSED_4 | FEATURE_UNUSED_5 | FEATURE_UNUSED_6 | FEATURE_UNUSED_7 | FEATURE_UNUSED_8 | FEATURE_UNUSED_9 );
-
-#if defined(DISABLE_RX_PWM_FEATURE) || !defined(USE_RX_PWM)
-    if (rxConfig()->receiverType == RX_TYPE_PWM) {
-        rxConfigMutable()->receiverType = RX_TYPE_NONE;
-    }
-#endif
+    featureClear(FEATURE_UNUSED_1 | FEATURE_UNUSED_3 | FEATURE_UNUSED_4 | FEATURE_UNUSED_5 | FEATURE_UNUSED_6 | FEATURE_UNUSED_7 | FEATURE_UNUSED_8 | FEATURE_UNUSED_9 | FEATURE_UNUSED_10);
 
 #if !defined(USE_RX_PPM)
     if (rxConfig()->receiverType == RX_TYPE_PPM) {
@@ -204,16 +198,6 @@ void validateAndFixConfig(void)
     }
 #endif
 
-
-    if (rxConfig()->receiverType == RX_TYPE_PWM) {
-#if defined(CHEBUZZ) || defined(STM32F3DISCOVERY)
-        // led strip needs the same ports
-        featureClear(FEATURE_LED_STRIP);
-#endif
-
-        // software serial needs free PWM ports
-        featureClear(FEATURE_SOFTSERIAL);
-    }
 
 #if defined(USE_LED_STRIP) && (defined(USE_SOFTSERIAL1) || defined(USE_SOFTSERIAL2))
     if (featureConfigured(FEATURE_SOFTSERIAL) && featureConfigured(FEATURE_LED_STRIP)) {
@@ -242,7 +226,15 @@ void validateAndFixConfig(void)
 #endif
 
 #ifndef USE_PWM_SERVO_DRIVER
-    featureClear(FEATURE_PWM_SERVO_DRIVER);
+    if (servoConfig()->servo_protocol == SERVO_TYPE_SERVO_DRIVER) {
+        servoConfigMutable()->servo_protocol = SERVO_TYPE_PWM;
+    }
+#endif
+
+#ifndef USE_SERVO_SBUS
+    if (servoConfig()->servo_protocol == SERVO_TYPE_SBUS || servoConfig()->servo_protocol == SERVO_TYPE_SBUS_PWM) {
+        servoConfigMutable()->servo_protocol = SERVO_TYPE_PWM;
+    }
 #endif
 
     if (!isSerialConfigValid(serialConfigMutable())) {
@@ -298,11 +290,12 @@ void validateAndFixConfig(void)
         motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 32000);
         break;
 #endif
-    }
+#ifdef USE_SERIALSHOT
+    case PWM_TYPE_SERIALSHOT:   // 2-4 kHz
+        motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 2000, 4000);
+        break;
 #endif
-
-#if !defined(USE_MPU_DATA_READY_SIGNAL)
-    gyroConfigMutable()->gyroSync = false;
+    }
 #endif
 
     // Call target-specific validation function

@@ -103,13 +103,6 @@ void vtxCommonSetPitMode(vtxDevice_t *vtxDevice, uint8_t onoff)
     }
 }
 
-void vtxCommonSetFrequency(vtxDevice_t *vtxDevice, uint16_t frequency)
-{
-    if (vtxDevice && vtxDevice->vTable->setFrequency) {
-        vtxDevice->vTable->setFrequency(vtxDevice, frequency);
-    }
-}
-
 bool vtxCommonGetBandAndChannel(vtxDevice_t *vtxDevice, uint8_t *pBand, uint8_t *pChannel)
 {
     if (vtxDevice && vtxDevice->vTable->getBandAndChannel) {
@@ -149,4 +142,36 @@ bool vtxCommonGetDeviceCapability(vtxDevice_t *vtxDevice, vtxDeviceCapability_t 
         return true;
     }
     return false;
+}
+
+bool vtxCommonGetPower(const vtxDevice_t *vtxDevice, uint8_t *pIndex, uint16_t *pPowerMw)
+{
+    if (vtxDevice && vtxDevice->vTable->getPower) {
+        return vtxDevice->vTable->getPower(vtxDevice, pIndex, pPowerMw);
+    }
+    return false;
+}
+
+bool vtxCommonGetOsdInfo(vtxDevice_t *vtxDevice, vtxDeviceOsdInfo_t * pOsdInfo)
+{
+    bool ret = false;
+
+    if (vtxDevice && vtxDevice->vTable->getOsdInfo) {
+        ret = vtxDevice->vTable->getOsdInfo(vtxDevice, pOsdInfo);
+    }
+
+    // Make sure we provide sane results even in case API fails
+    if (!ret) {
+        pOsdInfo->band = 0;
+        pOsdInfo->channel = 0;
+        pOsdInfo->frequency = 0;
+        pOsdInfo->powerIndex = 0;
+        pOsdInfo->powerMilliwatt = 0;
+        pOsdInfo->bandLetter = '-';
+        pOsdInfo->bandName = "-";
+        pOsdInfo->channelName = "-";
+        pOsdInfo->powerIndexLetter = '0';
+    }
+
+    return ret;
 }

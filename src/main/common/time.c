@@ -27,10 +27,13 @@
 #include "common/maths.h"
 #include "common/printf.h"
 #include "common/time.h"
+#include "common/utils.h"
 
 #include "config/parameter_group_ids.h"
 
 #include "drivers/time.h"
+
+#include "fc/settings.h"
 
 // For the "modulo 4" arithmetic to work, we need a leap base year
 #define REFERENCE_YEAR 2000
@@ -54,8 +57,8 @@ static const uint16_t days[4][12] =
 PG_REGISTER_WITH_RESET_TEMPLATE(timeConfig_t, timeConfig, PG_TIME_CONFIG, 1);
 
 PG_RESET_TEMPLATE(timeConfig_t, timeConfig,
-    .tz_offset = 0,
-    .tz_automatic_dst = TZ_AUTO_DST_OFF,
+    .tz_offset = SETTING_TZ_OFFSET_DEFAULT,
+    .tz_automatic_dst = SETTING_TZ_AUTOMATIC_DST_DEFAULT,
 );
 
 static rtcTime_t dateTimeToRtcTime(const dateTime_t *dt)

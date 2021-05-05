@@ -33,11 +33,13 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/time.h"
+#include "drivers/vtx_common.h"
 
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_curves.h"
+#include "fc/settings.h"
 
 #include "navigation/navigation.h"
 
@@ -45,6 +47,7 @@
 #include "flight/pid.h"
 
 #include "io/beeper.h"
+#include "io/vtx.h"
 
 #include "sensors/boardalignment.h"
 
@@ -58,15 +61,6 @@ static uint8_t adjustmentStateMask = 0;
 #define MARK_ADJUSTMENT_FUNCTION_AS_READY(adjustmentIndex) adjustmentStateMask &= ~(1 << adjustmentIndex)
 
 #define IS_ADJUSTMENT_FUNCTION_BUSY(adjustmentIndex) (adjustmentStateMask & (1 << adjustmentIndex))
-
-#define RC_ADJUSTMENT_EXPO_MIN 0
-#define RC_ADJUSTMENT_EXPO_MAX 100
-
-#define RC_ADJUSTMENT_MANUAL_RATE_MIN 0
-#define RC_ADJUSTMENT_MANUAL_RATE_MAX 100
-
-#define RC_ADJUSTMENT_PID_MIN 0
-#define RC_ADJUSTMENT_PID_MAX 200
 
 // sync with adjustmentFunction_e
 static const adjustmentConfig_t defaultAdjustmentConfigs[ADJUSTMENT_FUNCTION_COUNT - 1] = {
@@ -103,27 +97,7 @@ static const adjustmentConfig_t defaultAdjustmentConfigs[ADJUSTMENT_FUNCTION_COU
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 1 }}
     }, {
-        .adjustmentFunction = ADJUSTMENT_YAW_P,
-        .mode = ADJUSTMENT_MODE_STEP,
-        .data = { .stepConfig = { .step = 1 }}
-    }, {
-        .adjustmentFunction = ADJUSTMENT_YAW_I,
-        .mode = ADJUSTMENT_MODE_STEP,
-        .data = { .stepConfig = { .step = 1 }}
-    }, {
-        .adjustmentFunction = ADJUSTMENT_YAW_D,
-        .mode = ADJUSTMENT_MODE_STEP,
-        .data = { .stepConfig = { .step = 1 }}
-    }, {
-        .adjustmentFunction = ADJUSTMENT_RATE_PROFILE,
-        .mode = ADJUSTMENT_MODE_STEP,
-        .data = { .stepConfig = { .step = 1 }}
-    }, {
-        .adjustmentFunction = ADJUSTMENT_PITCH_RATE,
-        .mode = ADJUSTMENT_MODE_STEP,
-        .data = { .stepConfig = { .step = 1 }}
-    }, {
-        .adjustmentFunction = ADJUSTMENT_ROLL_RATE,
+        .adjustmentFunction = ADJUSTMENT_PITCH_ROLL_FF,
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 1 }}
     }, {
@@ -139,6 +113,10 @@ static const adjustmentConfig_t defaultAdjustmentConfigs[ADJUSTMENT_FUNCTION_COU
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 1 }}
     }, {
+        .adjustmentFunction = ADJUSTMENT_PITCH_FF,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
         .adjustmentFunction = ADJUSTMENT_ROLL_P,
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 1 }}
@@ -148,6 +126,38 @@ static const adjustmentConfig_t defaultAdjustmentConfigs[ADJUSTMENT_FUNCTION_COU
         .data = { .stepConfig = { .step = 1 }}
     }, {
         .adjustmentFunction = ADJUSTMENT_ROLL_D,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_ROLL_FF,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_YAW_P,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_YAW_I,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_YAW_D,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_YAW_FF,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_RATE_PROFILE,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_PITCH_RATE,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_ROLL_RATE,
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 1 }}
     }, {
@@ -262,12 +272,22 @@ static const adjustmentConfig_t defaultAdjustmentConfigs[ADJUSTMENT_FUNCTION_COU
         .adjustmentFunction = ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE,
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 5 }}
-#ifdef USE_INFLIGHT_PROFILE_ADJUSTMENT
     }, {
-        .adjustmentFunction = ADJUSTMENT_PROFILE,
-        .mode = ADJUSTMENT_MODE_SELECT,
-        .data = { .selectConfig = { .switchPositions = 3 }}
-#endif
+        .adjustmentFunction = ADJUSTMENT_VTX_POWER_LEVEL,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_TPA,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_TPA_BREAKPOINT,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 5 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
     }
 };
 
@@ -340,17 +360,17 @@ static void applyAdjustmentU16(adjustmentFunction_e adjustmentFunction, uint16_t
 
 static void applyAdjustmentExpo(adjustmentFunction_e adjustmentFunction, uint8_t *val, int delta)
 {
-    applyAdjustmentU8(adjustmentFunction, val, delta, RC_ADJUSTMENT_EXPO_MIN, RC_ADJUSTMENT_EXPO_MAX);
+    applyAdjustmentU8(adjustmentFunction, val, delta, SETTING_RC_EXPO_MIN, SETTING_RC_EXPO_MAX);
 }
 
 static void applyAdjustmentManualRate(adjustmentFunction_e adjustmentFunction, uint8_t *val, int delta)
 {
-    return applyAdjustmentU8(adjustmentFunction, val, delta, RC_ADJUSTMENT_MANUAL_RATE_MIN, RC_ADJUSTMENT_MANUAL_RATE_MAX);
+    return applyAdjustmentU8(adjustmentFunction, val, delta, SETTING_CONSTANT_MANUAL_RATE_MIN, SETTING_CONSTANT_MANUAL_RATE_MAX);
 }
 
-static void applyAdjustmentPID(adjustmentFunction_e adjustmentFunction, uint8_t *val, int delta)
+static void applyAdjustmentPID(adjustmentFunction_e adjustmentFunction, uint16_t *val, int delta)
 {
-    applyAdjustmentU8(adjustmentFunction, val, delta, RC_ADJUSTMENT_PID_MIN, RC_ADJUSTMENT_PID_MAX);
+    applyAdjustmentU16(adjustmentFunction, val, delta, SETTING_CONSTANT_RPYL_PID_MIN, SETTING_CONSTANT_RPYL_PID_MAX);
 }
 
 static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t adjustmentFunction, int delta)
@@ -378,7 +398,7 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
             break;
         case ADJUSTMENT_PITCH_ROLL_RATE:
         case ADJUSTMENT_PITCH_RATE:
-            applyAdjustmentU8(ADJUSTMENT_PITCH_RATE, &controlRateConfig->stabilized.rates[FD_PITCH], delta, CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MIN, CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MAX);
+            applyAdjustmentU8(ADJUSTMENT_PITCH_RATE, &controlRateConfig->stabilized.rates[FD_PITCH], delta, SETTING_PITCH_RATE_MIN, SETTING_PITCH_RATE_MAX);
             if (adjustmentFunction == ADJUSTMENT_PITCH_RATE) {
                 schedulePidGainsUpdate();
                 break;
@@ -387,7 +407,7 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
             FALLTHROUGH;
 
         case ADJUSTMENT_ROLL_RATE:
-            applyAdjustmentU8(ADJUSTMENT_ROLL_RATE, &controlRateConfig->stabilized.rates[FD_ROLL], delta, CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MIN, CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MAX);
+            applyAdjustmentU8(ADJUSTMENT_ROLL_RATE, &controlRateConfig->stabilized.rates[FD_ROLL], delta, SETTING_CONSTANT_ROLL_PITCH_RATE_MIN, SETTING_CONSTANT_ROLL_PITCH_RATE_MAX);
             schedulePidGainsUpdate();
             break;
         case ADJUSTMENT_MANUAL_PITCH_ROLL_RATE:
@@ -401,7 +421,7 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
             applyAdjustmentManualRate(ADJUSTMENT_MANUAL_PITCH_RATE, &controlRateConfig->manual.rates[FD_PITCH], delta);
             break;
         case ADJUSTMENT_YAW_RATE:
-            applyAdjustmentU8(ADJUSTMENT_YAW_RATE, &controlRateConfig->stabilized.rates[FD_YAW], delta, CONTROL_RATE_CONFIG_YAW_RATE_MIN, CONTROL_RATE_CONFIG_YAW_RATE_MAX);
+            applyAdjustmentU8(ADJUSTMENT_YAW_RATE, &controlRateConfig->stabilized.rates[FD_YAW], delta, SETTING_YAW_RATE_MIN, SETTING_YAW_RATE_MAX);
             schedulePidGainsUpdate();
             break;
         case ADJUSTMENT_MANUAL_YAW_RATE:
@@ -449,6 +469,20 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
             applyAdjustmentPID(ADJUSTMENT_ROLL_D, &pidBankMutable()->pid[PID_ROLL].D, delta);
             schedulePidGainsUpdate();
             break;
+        case ADJUSTMENT_PITCH_ROLL_FF:
+        case ADJUSTMENT_PITCH_FF:
+            applyAdjustmentPID(ADJUSTMENT_PITCH_FF, &pidBankMutable()->pid[PID_PITCH].FF, delta);
+            if (adjustmentFunction == ADJUSTMENT_PITCH_FF) {
+                schedulePidGainsUpdate();
+                break;
+            }
+            // follow though for combined ADJUSTMENT_PITCH_ROLL_FF
+            FALLTHROUGH;
+
+        case ADJUSTMENT_ROLL_FF:
+            applyAdjustmentPID(ADJUSTMENT_ROLL_FF, &pidBankMutable()->pid[PID_ROLL].FF, delta);
+            schedulePidGainsUpdate();
+            break;
         case ADJUSTMENT_YAW_P:
             applyAdjustmentPID(ADJUSTMENT_YAW_P, &pidBankMutable()->pid[PID_YAW].P, delta);
             schedulePidGainsUpdate();
@@ -461,11 +495,15 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
             applyAdjustmentPID(ADJUSTMENT_YAW_D, &pidBankMutable()->pid[PID_YAW].D, delta);
             schedulePidGainsUpdate();
             break;
+        case ADJUSTMENT_YAW_FF:
+            applyAdjustmentPID(ADJUSTMENT_YAW_FF, &pidBankMutable()->pid[PID_YAW].FF, delta);
+            schedulePidGainsUpdate();
+            break;
         case ADJUSTMENT_NAV_FW_CRUISE_THR:
-            applyAdjustmentU16(ADJUSTMENT_NAV_FW_CRUISE_THR, &navConfigMutable()->fw.cruise_throttle, delta, 1000, 2000);
+            applyAdjustmentU16(ADJUSTMENT_NAV_FW_CRUISE_THR, &navConfigMutable()->fw.cruise_throttle, delta, SETTING_NAV_FW_CRUISE_THR_MIN, SETTING_NAV_FW_CRUISE_THR_MAX);
             break;
         case ADJUSTMENT_NAV_FW_PITCH2THR:
-            applyAdjustmentU8(ADJUSTMENT_NAV_FW_PITCH2THR, &navConfigMutable()->fw.pitch_to_throttle, delta, 0, 100);
+            applyAdjustmentU8(ADJUSTMENT_NAV_FW_PITCH2THR, &navConfigMutable()->fw.pitch_to_throttle, delta, SETTING_NAV_FW_PITCH2THR_MIN, SETTING_NAV_FW_PITCH2THR_MAX);
             break;
         case ADJUSTMENT_ROLL_BOARD_ALIGNMENT:
             updateBoardAlignment(delta, 0);
@@ -540,7 +578,26 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
             navigationUsePIDs();
             break;
         case ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE:
-            applyAdjustmentU16(ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE, &mixerConfigMutable()->fwMinThrottleDownPitchAngle, delta, 0, FW_MIN_THROTTLE_DOWN_PITCH_ANGLE_MAX);
+            applyAdjustmentU16(ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE, &mixerConfigMutable()->fwMinThrottleDownPitchAngle, delta, SETTING_FW_MIN_THROTTLE_DOWN_PITCH_MIN, SETTING_FW_MIN_THROTTLE_DOWN_PITCH_MAX);
+            break;
+#if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP)
+        case ADJUSTMENT_VTX_POWER_LEVEL:
+            {
+                vtxDeviceCapability_t vtxDeviceCapability;
+                if (vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
+                    applyAdjustmentU8(ADJUSTMENT_VTX_POWER_LEVEL, &vtxSettingsConfigMutable()->power, delta, VTX_SETTINGS_MIN_POWER, vtxDeviceCapability.powerCount);
+                }
+            }
+            break;
+#endif
+        case ADJUSTMENT_TPA:
+            applyAdjustmentU8(ADJUSTMENT_TPA, &controlRateConfig->throttle.dynPID, delta, 0, SETTING_TPA_RATE_MAX);
+            break;
+        case ADJUSTMENT_TPA_BREAKPOINT:
+            applyAdjustmentU16(ADJUSTMENT_TPA_BREAKPOINT, &controlRateConfig->throttle.pa_breakpoint, delta, PWM_RANGE_MIN, PWM_RANGE_MAX);
+            break;
+        case ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS:
+            applyAdjustmentU8(ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS, &navConfigMutable()->fw.control_smoothness, delta, SETTING_NAV_FW_CONTROL_SMOOTHNESS_MIN, SETTING_NAV_FW_CONTROL_SMOOTHNESS_MAX);
             break;
         default:
             break;
@@ -601,9 +658,9 @@ void processRcAdjustments(controlRateConfig_t *controlRateConfig, bool canUseRxD
 
         if (adjustmentState->config->mode == ADJUSTMENT_MODE_STEP) {
             int delta;
-            if (rcData[channelIndex] > PWM_RANGE_MIDDLE + 200) {
+            if (rxGetChannelValue(channelIndex) > PWM_RANGE_MIDDLE + 200) {
                 delta = adjustmentState->config->data.stepConfig.step;
-            } else if (rcData[channelIndex] < PWM_RANGE_MIDDLE - 200) {
+            } else if (rxGetChannelValue(channelIndex) < PWM_RANGE_MIDDLE - 200) {
                 delta = 0 - adjustmentState->config->data.stepConfig.step;
             } else {
                 // returning the switch to the middle immediately resets the ready state
@@ -620,7 +677,7 @@ void processRcAdjustments(controlRateConfig_t *controlRateConfig, bool canUseRxD
 #ifdef USE_INFLIGHT_PROFILE_ADJUSTMENT
         } else if (adjustmentState->config->mode == ADJUSTMENT_MODE_SELECT) {
             const uint16_t rangeWidth = ((2100 - 900) / adjustmentState->config->data.selectConfig.switchPositions);
-            const uint8_t position = (constrain(rcData[channelIndex], 900, 2100 - 1) - 900) / rangeWidth;
+            const uint8_t position = (constrain(rxGetChannelValue(channelIndex), 900, 2100 - 1) - 900) / rangeWidth;
 
             applySelectAdjustment(adjustmentFunction, position);
 #endif

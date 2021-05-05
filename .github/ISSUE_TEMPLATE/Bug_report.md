@@ -1,8 +1,24 @@
 ---
 name: "\U0001F41B Bug report"
 about: Report an issue to help make INAV better
+title: ''
+labels: ''
+assignees: ''
 
 ---
+
+**PLEASE MAKE SURE YOU READ AND UNDERSTAND THE SOCIAL MEDIA SUPPORT CHANNELS. QUESTIONS ABOUT FLASHING, CONFIGURING, PILOTING MAY BE CLOSED WITHOUT FURTHER INTERACTION.**
+
+* [Telegram channel](https://t.me/INAVFlight)
+* [Facebook group](https://www.facebook.com/groups/INAVOfficial)
+* [RC Groups thread](https://www.rcgroups.com/forums/showthread.php?2495732-Cleanflight-iNav-%28navigation-rewrite%29-project)
+
+**Please double-check that nobody reported the issue before by using search in this bug tracker.**
+
+**PLEASE DELETE THE TEXT ABOVE AFTER READING AND UNDERSTANDING IT**
+
+****
+
 
 ## Current Behavior
 <!-- If applicable, add screenshots, videos and blackbox logs to help explain your problem. -->

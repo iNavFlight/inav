@@ -35,6 +35,8 @@
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PA7
 
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW180_DEG
 #define MPU6500_CS_PIN          PC2
 #define MPU6500_SPI_BUS         BUS_SPI1
 
@@ -42,13 +44,6 @@
 #define GYRO_INT_EXTI            PC3
 #define USE_MPU_DATA_READY_SIGNAL
 
-#define USE_GYRO
-#define USE_GYRO_MPU6500
-#define GYRO_MPU6500_ALIGN      CW180_DEG
-
-#define USE_ACC
-#define USE_ACC_MPU6500
-#define ACC_MPU6500_ALIGN       CW180_DEG
 
 // *************** I2C/Baro/Mag *********************
 #define USE_I2C
@@ -61,6 +56,7 @@
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 #define USE_BARO_BMP085
+#define USE_BARO_DPS310
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
@@ -85,7 +81,6 @@
 #define SPI3_SCK_PIN            PB3
 #define SPI3_MISO_PIN   	    PB4
 #define SPI3_MOSI_PIN   	    PB5
-#define SPI3_CLOCK_LEADING_EDGE
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
@@ -162,3 +157,7 @@
 
 #define MAX_PWM_OUTPUT_PORTS        7
 #define USE_DSHOT
+#define USE_ESC_SENSOR
+#define USE_SERIALSHOT
+
+#define BNO055_I2C_BUS          BUS_I2C1

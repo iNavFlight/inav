@@ -42,12 +42,12 @@
 #include "rx/nrf24_inav.h"
 
 
-uint16_t rxSpiRcData[MAX_SUPPORTED_RC_CHANNEL_COUNT];
+static uint16_t rxSpiRcData[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 STATIC_UNIT_TESTED uint8_t rxSpiPayload[RX_SPI_MAX_PAYLOAD_SIZE];
 STATIC_UNIT_TESTED uint8_t rxSpiNewPacketAvailable; // set true when a new packet is received
 
 typedef void (*protocolInitPtr)(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
-typedef rx_spi_received_e (*protocolDataReceivedPtr)(uint8_t *payload);
+typedef rx_spi_received_e (*protocolDataReceivedPtr)(uint8_t *payload, uint16_t *linkQuality);
 typedef void (*protocolSetRcDataFromPayloadPtr)(uint16_t *rcData, const uint8_t *payload);
 
 static protocolInitPtr protocolInit;
@@ -71,44 +71,6 @@ STATIC_UNIT_TESTED bool rxSpiSetProtocol(rx_spi_protocol_e protocol)
 {
     switch (protocol) {
     default:
-#ifdef USE_RX_V202
-    case NRF24RX_V202_250K:
-    case NRF24RX_V202_1M:
-        protocolInit = v202Nrf24Init;
-        protocolDataReceived = v202Nrf24DataReceived;
-        protocolSetRcDataFromPayload = v202Nrf24SetRcDataFromPayload;
-        break;
-#endif
-#ifdef USE_RX_SYMA
-    case NRF24RX_SYMA_X:
-    case NRF24RX_SYMA_X5C:
-        protocolInit = symaNrf24Init;
-        protocolDataReceived = symaNrf24DataReceived;
-        protocolSetRcDataFromPayload = symaNrf24SetRcDataFromPayload;
-        break;
-#endif
-#ifdef USE_RX_CX10
-    case NRF24RX_CX10:
-    case NRF24RX_CX10A:
-        protocolInit = cx10Nrf24Init;
-        protocolDataReceived = cx10Nrf24DataReceived;
-        protocolSetRcDataFromPayload = cx10Nrf24SetRcDataFromPayload;
-        break;
-#endif
-#ifdef USE_RX_H8_3D
-    case NRF24RX_H8_3D:
-        protocolInit = h8_3dNrf24Init;
-        protocolDataReceived = h8_3dNrf24DataReceived;
-        protocolSetRcDataFromPayload = h8_3dNrf24SetRcDataFromPayload;
-        break;
-#endif
-#ifdef USE_RX_INAV
-    case NRF24RX_INAV:
-        protocolInit = inavNrf24Init;
-        protocolDataReceived = inavNrf24DataReceived;
-        protocolSetRcDataFromPayload = inavNrf24SetRcDataFromPayload;
-        break;
-#endif
 #ifdef USE_RX_ELERES
     case RFM22_ELERES:
         protocolInit = eleresInit;
@@ -127,9 +89,10 @@ STATIC_UNIT_TESTED bool rxSpiSetProtocol(rx_spi_protocol_e protocol)
  */
 static uint8_t rxSpiFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 {
-    UNUSED(rxRuntimeConfig);
+    uint16_t linkQuality = 0;
 
-    if (protocolDataReceived(rxSpiPayload) == RX_SPI_RECEIVED_DATA) {
+    if (protocolDataReceived(&rxSpiPayload[0], &linkQuality) == RX_SPI_RECEIVED_DATA) {
+        lqTrackerSet(rxRuntimeConfig->lqTracker, linkQuality);
         rxSpiNewPacketAvailable = true;
         return RX_FRAME_COMPLETE;
     }
@@ -148,10 +111,12 @@ bool rxSpiInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
         protocolInit(rxConfig, rxRuntimeConfig);
         ret = true;
     }
+
     rxRuntimeConfig->rxRefreshRate = 10000;
     rxSpiNewPacketAvailable = false;
     rxRuntimeConfig->rcReadRawFn = rxSpiReadRawRC;
     rxRuntimeConfig->rcFrameStatusFn = rxSpiFrameStatus;
+
     return ret;
 }
 #endif

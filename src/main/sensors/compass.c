@@ -40,13 +40,15 @@
 #include "drivers/compass/compass_qmc5883l.h"
 #include "drivers/compass/compass_mpu9250.h"
 #include "drivers/compass/compass_lis3mdl.h"
+#include "drivers/compass/compass_rm3100.h"
+#include "drivers/compass/compass_msp.h"
 #include "drivers/io.h"
 #include "drivers/light_led.h"
-#include "drivers/logging.h"
 #include "drivers/time.h"
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
+#include "fc/settings.h"
 
 #include "io/gps.h"
 #include "io/beeper.h"
@@ -58,25 +60,23 @@
 
 mag_t mag;                   // mag access functions
 
-PG_REGISTER_WITH_RESET_TEMPLATE(compassConfig_t, compassConfig, PG_COMPASS_CONFIG, 3);
-
 #ifdef USE_MAG
-#define MAG_HARDWARE_DEFAULT    MAG_AUTODETECT
-#else
-#define MAG_HARDWARE_DEFAULT    MAG_NONE
-#endif
+
+PG_REGISTER_WITH_RESET_TEMPLATE(compassConfig_t, compassConfig, PG_COMPASS_CONFIG, 4);
+
 PG_RESET_TEMPLATE(compassConfig_t, compassConfig,
-    .mag_align = ALIGN_DEFAULT,
-    .mag_hardware = MAG_HARDWARE_DEFAULT,
-    .mag_declination = 0,
-    .mag_to_use = 0,
-    .magCalibrationTimeLimit = 30,
-    .rollDeciDegrees = 0,
-    .pitchDeciDegrees = 0,
-    .yawDeciDegrees = 0,
+    .mag_align = SETTING_ALIGN_MAG_DEFAULT,
+    .mag_hardware = SETTING_MAG_HARDWARE_DEFAULT,
+    .mag_declination = SETTING_MAG_DECLINATION_DEFAULT,
+#ifdef USE_DUAL_MAG
+    .mag_to_use = SETTING_MAG_TO_USE_DEFAULT,
+#endif
+    .magCalibrationTimeLimit = SETTING_MAG_CALIBRATION_TIME_DEFAULT,
+    .rollDeciDegrees = SETTING_ALIGN_MAG_ROLL_DEFAULT,
+    .pitchDeciDegrees = SETTING_ALIGN_MAG_PITCH_DEFAULT,
+    .yawDeciDegrees = SETTING_ALIGN_MAG_YAW_DEFAULT,
+    .magGain = {SETTING_MAGGAIN_X_DEFAULT, SETTING_MAGGAIN_Y_DEFAULT, SETTING_MAGGAIN_Z_DEFAULT},
 );
-
-#ifdef USE_MAG
 
 static uint8_t magUpdatedAtLeastOnce = 0;
 
@@ -249,6 +249,36 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         }
         FALLTHROUGH;
 
+    case MAG_MSP:
+#ifdef USE_MAG_MSP
+        // Skip autodetection for MSP mag
+        if (magHardwareToUse != MAG_AUTODETECT && mspMagDetect(dev)) {
+            magHardware = MAG_MSP;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (magHardwareToUse != MAG_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
+    case MAG_RM3100:
+#ifdef USE_MAG_RM3100
+        if (rm3100MagDetect(dev)) {
+#ifdef MAG_RM3100_ALIGN
+            dev->magAlign.onBoard = MAG_RM3100_ALIGN;
+#endif
+            magHardware = MAG_RM3100;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (magHardwareToUse != MAG_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
     case MAG_FAKE:
 #ifdef USE_FAKE_MAG
         if (fakeMagDetect(dev)) {
@@ -266,8 +296,6 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         magHardware = MAG_NONE;
         break;
     }
-
-    addBootlogEvent6(BOOT_EVENT_MAG_DETECTION, BOOT_EVENT_FLAGS_NONE, magHardware, 0, 0, 0);
 
     if (magHardware == MAG_NONE) {
         sensorsClear(SENSOR_MAG);
@@ -296,7 +324,6 @@ bool compassInit(void)
     LED1_OFF;
 
     if (!ret) {
-        addBootlogEvent2(BOOT_EVENT_MAG_INIT_FAILED, BOOT_EVENT_FLAGS_ERROR);
         sensorsClear(SENSOR_MAG);
     }
 
@@ -338,9 +365,13 @@ void compassUpdate(timeUs_t currentTimeUs)
     static sensorCalibrationState_t calState;
     static timeUs_t calStartedAt = 0;
     static int16_t magPrev[XYZ_AXIS_COUNT];
+    static int magAxisDeviation[XYZ_AXIS_COUNT];
 
     // Check magZero
-    if ((compassConfig()->magZero.raw[X] == 0) && (compassConfig()->magZero.raw[Y] == 0) && (compassConfig()->magZero.raw[Z] == 0)) {
+    if (
+        compassConfig()->magZero.raw[X] == 0 && compassConfig()->magZero.raw[Y] == 0 && compassConfig()->magZero.raw[Z] == 0 &&
+        compassConfig()->magGain[X] == 1024 && compassConfig()->magGain[Y] == 1024 && compassConfig()->magGain[Z] == 1024  
+    ) {
         DISABLE_STATE(COMPASS_CALIBRATED);
     }
     else {
@@ -363,7 +394,9 @@ void compassUpdate(timeUs_t currentTimeUs)
 
         for (int axis = 0; axis < 3; axis++) {
             compassConfigMutable()->magZero.raw[axis] = 0;
+            compassConfigMutable()->magGain[axis] = 1024;
             magPrev[axis] = 0;
+            magAxisDeviation[axis] = 0;  // Gain is based on the biggest absolute deviation from the mag zero point. Gain computation starts at 0
         }
 
         beeper(BEEPER_ACTION_SUCCESS);
@@ -379,9 +412,15 @@ void compassUpdate(timeUs_t currentTimeUs)
             float diffMag = 0;
             float avgMag = 0;
 
-            for (int axis = 0; axis < 3; axis++) {
+            for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
                 diffMag += (mag.magADC[axis] - magPrev[axis]) * (mag.magADC[axis] - magPrev[axis]);
                 avgMag += (mag.magADC[axis] + magPrev[axis]) * (mag.magADC[axis] + magPrev[axis]) / 4.0f;
+
+                // Find the biggest sample deviation together with sample' sign
+                if (ABS(mag.magADC[axis]) > ABS(magAxisDeviation[axis])) {
+                    magAxisDeviation[axis] = mag.magADC[axis];
+                }
+
             }
 
             // sqrtf(diffMag / avgMag) is a rough approximation of tangent of angle between magADC and magPrev. tan(8 deg) = 0.14
@@ -400,14 +439,23 @@ void compassUpdate(timeUs_t currentTimeUs)
                 compassConfigMutable()->magZero.raw[axis] = lrintf(magZerof[axis]);
             }
 
+            /*
+             * Scale calibration
+             * We use max absolute value of each axis as scale calibration with constant 1024 as base
+             * It is dirty, but worth checking if this will solve the problem of changing mag vector when UAV is tilted
+             */
+            for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+                compassConfigMutable()->magGain[axis] = ABS(magAxisDeviation[axis] - compassConfig()->magZero.raw[axis]);
+            }
+
             calStartedAt = 0;
             saveConfigAndNotify();
         }
     }
     else {
-        mag.magADC[X] -= compassConfig()->magZero.raw[X];
-        mag.magADC[Y] -= compassConfig()->magZero.raw[Y];
-        mag.magADC[Z] -= compassConfig()->magZero.raw[Z];
+        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            mag.magADC[axis] = (mag.magADC[axis] - compassConfig()->magZero.raw[axis]) * 1024 / compassConfig()->magGain[axis];
+        }
     }
 
     if (mag.dev.magAlign.useExternal) {

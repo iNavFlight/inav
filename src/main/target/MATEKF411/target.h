@@ -32,29 +32,28 @@
 #define USE_SPI_DEVICE_1
 
 #define SPI1_SCK_PIN            PA5
-#define SPI1_MISO_PIN   	    PA6
-#define SPI1_MOSI_PIN   	    PA7
+#define SPI1_MISO_PIN           PA6
+#define SPI1_MOSI_PIN           PA7
 
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW180_DEG
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
+
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW180_DEG
+#define MPU6500_CS_PIN          PA4
+#define MPU6500_SPI_BUS         BUS_SPI1
 
 #define USE_EXTI
 #define GYRO_INT_EXTI            PA1
 #define USE_MPU_DATA_READY_SIGNAL
 
-#define USE_GYRO
-#define USE_GYRO_MPU6000
-#define GYRO_MPU6000_ALIGN      CW180_DEG
-
-#define USE_ACC
-#define USE_ACC_MPU6000
-#define ACC_MPU6000_ALIGN       CW180_DEG
-
 // *************** SPI2 OSD *****************************
 #define USE_SPI_DEVICE_2
 #define SPI2_SCK_PIN            PB13
-#define SPI2_MISO_PIN   	    PB14
-#define SPI2_MOSI_PIN   	    PB15
+#define SPI2_MISO_PIN           PB14
+#define SPI2_MOSI_PIN           PB15
 
 #define USE_OSD
 #define USE_MAX7456
@@ -82,6 +81,12 @@
 #define SOFTSERIAL_2_TX_PIN     PA8 // LED pad
 #define SOFTSERIAL_2_RX_PIN     PA8
 #define SERIAL_PORT_COUNT       5
+
+#elif defined(MATEKF411_FD_SFTSRL)
+#define USE_SOFTSERIAL1
+#define SOFTSERIAL_1_TX_PIN     PA0 // ST1 pad
+#define SOFTSERIAL_1_RX_PIN     PA8 // LED pad
+#define SERIAL_PORT_COUNT       4
 
 #elif defined(MATEKF411_RSSI)
 #define USE_SOFTSERIAL1
@@ -113,8 +118,10 @@
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 #define USE_BARO_BMP085
+#define USE_BARO_DPS310
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
+#define BNO055_I2C_BUS          BUS_I2C1
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
@@ -141,7 +148,7 @@
 #endif
 
 // *************** LED2812 ************************
-#if !defined(MATEKF411_SFTSRL2) && !defined(MATEKF411_RSSI)
+#if !defined(MATEKF411_SFTSRL2) && !defined(MATEKF411_RSSI) && !defined(MATEKF411_FD_SFTSRL)
 #define USE_LED_STRIP
 #define WS2811_PIN                      PA8
 #endif
@@ -151,6 +158,10 @@
 #define USE_SPEKTRUM_BIND
 #define BIND_PIN                PA10 //  RX1
 
+#define USE_DSHOT
+#define USE_ESC_SENSOR
+
+#define USE_SERIALSHOT
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #define TARGET_IO_PORTA         0xffff

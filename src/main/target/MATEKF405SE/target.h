@@ -33,6 +33,8 @@
 #define SPI1_MISO_PIN   	    PA6
 #define SPI1_MOSI_PIN   	    PA7
 
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
@@ -40,13 +42,6 @@
 #define GYRO_INT_EXTI            PC4
 #define USE_MPU_DATA_READY_SIGNAL
 
-#define USE_GYRO
-#define USE_GYRO_MPU6000
-#define GYRO_MPU6000_ALIGN      CW270_DEG
-
-#define USE_ACC
-#define USE_ACC_MPU6000
-#define ACC_MPU6000_ALIGN       CW270_DEG
 
 // *************** I2C /Baro/Mag *********************
 #define USE_I2C
@@ -63,6 +58,7 @@
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 #define USE_BARO_BMP085
+#define USE_BARO_DPS310
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
@@ -76,11 +72,11 @@
 
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_HCSR04_I2C
+#define USE_RANGEFINDER_US42
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
-
 #define PITOT_I2C_BUS           BUS_I2C2
-
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
+#define BNO055_I2C_BUS          BUS_I2C2
 
 
 // *************** SPI2 OSD ***************************
@@ -104,7 +100,6 @@
 #define SPI3_SCK_PIN            PB3
 #define SPI3_MISO_PIN   	    PB4
 #define SPI3_MOSI_PIN   	    PB5
-#define SPI3_CLOCK_LEADING_EDGE
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
@@ -171,6 +166,9 @@
 
 #define USE_SPEKTRUM_BIND
 #define BIND_PIN                PA3 //  RX2
+
+#define USE_DSHOT
+#define USE_ESC_SENSOR
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

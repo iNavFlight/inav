@@ -20,7 +20,7 @@
 
 ## Radio Receivers
 
-This board does not support Parallel PWM receiver connection. Only SerialRX, PPM and MSP receivers are supported.
+SerialRX, PPM and MSP receivers are supported.
 
 SerialRX and PPM receivers should be connected to dedicated _PPM SBUS_ connector. For SerialRX use UART2
 

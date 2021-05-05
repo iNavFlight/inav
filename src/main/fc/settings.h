@@ -112,6 +112,9 @@ const lookupTableEntry_t * settingLookupTable(const setting_t *val);
 // for the given setting. If the setting mode is not MODE_LOOKUP or
 // if the value is out of range, it returns NULL.
 const char * settingLookupValueName(const setting_t *val, unsigned v);
+// Returns the length of the longest value name for the given setting,
+// or 0 if the setting does not use value names.
+size_t settingGetValueNameMaxSize(const setting_t *val);
 // Returns the setting value as a const char * iff the setting is of type
 // VAR_STRING. Otherwise it returns NULL.
 const char * settingGetString(const setting_t *val);

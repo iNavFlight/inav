@@ -22,7 +22,7 @@ Full details on the MATEKSYS F722-SE can be found on the Matek Website: [mateksy
 
 ### Integrated PDB Specs
 
-* *Input:* 6-36v (3-8S LiPo) w/TVS protection
+* *Input:* 6-36v (2-8S LiPo) w/TVS protection
 * *ESC Pads:* Rated 4x30A per ESC pad set (4x46A burst)
 * Voltage Regulators:
   * *5v BEC:* 2A continuous load (3A burst)

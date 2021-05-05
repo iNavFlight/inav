@@ -21,6 +21,8 @@
 
 #include "platform.h"
 
+FILE_COMPILE_FOR_SPEED
+
 #include "scheduler.h"
 
 #include "build/build_config.h"
@@ -212,27 +214,15 @@ void schedulerInit(void)
     queueAdd(&cfTasks[TASK_SYSTEM]);
 }
 
-void scheduler(void)
+void FAST_CODE NOINLINE scheduler(void)
 {
     // Cache currentTime
     const timeUs_t currentTimeUs = micros();
 
-    // Check for realtime tasks
-    timeUs_t timeToNextRealtimeTask = TIMEUS_MAX;
-    for (const cfTask_t *task = queueFirst(); task != NULL && task->staticPriority >= TASK_PRIORITY_REALTIME; task = queueNext()) {
-        const timeUs_t nextExecuteAt = task->lastExecutedAt + task->desiredPeriod;
-        if ((int32_t)(currentTimeUs - nextExecuteAt) >= 0) {
-            timeToNextRealtimeTask = 0;
-        } else {
-            const timeUs_t newTimeInterval = nextExecuteAt - currentTimeUs;
-            timeToNextRealtimeTask = MIN(timeToNextRealtimeTask, newTimeInterval);
-        }
-    }
-    const bool outsideRealtimeGuardInterval = (timeToNextRealtimeTask > 0);
-
     // The task to be invoked
     cfTask_t *selectedTask = NULL;
     uint16_t selectedTaskDynamicPriority = 0;
+    bool forcedRealTimeTask = false;
 
     // Update task dynamic priorities
     uint16_t waitingTasks = 0;
@@ -261,6 +251,14 @@ void scheduler(void)
             } else {
                 task->taskAgeCycles = 0;
             }
+        } else if (task->staticPriority == TASK_PRIORITY_REALTIME) {
+            //realtime tasks take absolute priority. Any RT tasks that is overdue, should be execute immediately
+            if (((timeDelta_t)(currentTimeUs - task->lastExecutedAt)) > task->desiredPeriod) {
+                selectedTaskDynamicPriority = task->dynamicPriority;
+                selectedTask = task;
+                waitingTasks++;
+                forcedRealTimeTask = true;
+            }
         } else {
             // Task is time-driven, dynamicPriority is last execution age (measured in desiredPeriods)
             // Task age is calculated from last execution
@@ -271,15 +269,9 @@ void scheduler(void)
             }
         }
 
-        if (task->dynamicPriority > selectedTaskDynamicPriority) {
-            const bool taskCanBeChosenForScheduling =
-                (outsideRealtimeGuardInterval) ||
-                (task->taskAgeCycles > 1) ||
-                (task->staticPriority == TASK_PRIORITY_REALTIME);
-            if (taskCanBeChosenForScheduling) {
-                selectedTaskDynamicPriority = task->dynamicPriority;
-                selectedTask = task;
-            }
+        if (!forcedRealTimeTask && task->dynamicPriority > selectedTaskDynamicPriority) {
+            selectedTaskDynamicPriority = task->dynamicPriority;
+            selectedTask = task;
         }
     }
 

@@ -15,6 +15,10 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "platform.h"
+
+FILE_COMPILE_FOR_SPEED
+
 #include "encoding.h"
 
 /**

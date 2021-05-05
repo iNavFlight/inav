@@ -36,8 +36,6 @@
 #include "drivers/bus.h"
 #include "drivers/light_led.h"
 
-#include "drivers/logging.h"
-
 #include "drivers/sensor.h"
 #include "drivers/compass/compass.h"
 

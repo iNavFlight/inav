@@ -1,0 +1,51 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "options": {
+        "env": {
+            "TARGET": "${config:TARGET}",
+        }
+    },
+    "tasks": [
+        {
+            "label": "target",
+            "type": "shell",
+            "command": "make", "args": ["-C", "${config:BUILD_DIR}", "${config:TARGET}"],
+            "problemMatcher": "$gcc",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+            }
+        },
+        {
+            "label": "flash",
+            "type": "shell",
+            "command": "make", "args":  ["-C", "${config:BUILD_DIR}", "openocd_flash_${config:TARGET}"],
+            "dependsOn": "elf"
+        },
+        {
+            "label": "svd",
+            "type": "shell",
+            "command": "make", "args":  ["-C", "${config:BUILD_DIR}", "svd_${config:TARGET}"],
+            "problemMatcher": []
+        },
+        {
+            "label": "openocd-cfg",
+            "type": "shell",
+            "command": "make", "args":  ["-C", "${config:BUILD_DIR}", "openocd_cfg_${config:TARGET}"],
+            "problemMatcher": []
+        },
+        {
+            "label": "openocd-debug-prepare",
+            "type": "shell",
+            "dependsOn": ["svd", "openocd-cfg", "flash"],
+            "problemMatcher": []
+        }
+    ]
+}

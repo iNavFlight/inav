@@ -338,7 +338,7 @@ void generateLedConfig(ledConfig_t *ledConfig, char *ledConfigBuffer, size_t buf
     *fptr = 0;
 
     // TODO - check buffer length
-    sprintf(ledConfigBuffer, "%u,%u:%s:%s:%u", ledGetX(ledConfig), ledGetY(ledConfig), directions, baseFunctionOverlays, ledGetColor(ledConfig));
+    tfp_sprintf(ledConfigBuffer, "%u,%u:%s:%s:%u", ledGetX(ledConfig), ledGetY(ledConfig), directions, baseFunctionOverlays, ledGetColor(ledConfig));
 }
 
 typedef enum {
@@ -727,7 +727,7 @@ static void applyLedThrustRingLayer(bool updateNow, timeUs_t *timer)
     if (updateNow) {
         rotationPhase = rotationPhase > 0 ? rotationPhase - 1 : ledCounts.ringSeqLen - 1;
 
-        int scale = scaledThrottle; // ARMING_FLAG(ARMED) ? scaleRange(rcData[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX, 10, 100) : 10;
+        int scale = scaledThrottle; // ARMING_FLAG(ARMED) ? scaleRange(rxGetChannelValue(THROTTLE), PWM_RANGE_MIN, PWM_RANGE_MAX, 10, 100) : 10;
         *timer += LED_STRIP_HZ(5) * 10 / scale;  // 5 - 50Hz update rate
     }
 
@@ -935,7 +935,7 @@ void ledStripUpdate(timeUs_t currentTimeUs)
     for (timId_e timId = 0; timId < timTimerCount; timId++) {
         // sanitize timer value, so that it can be safely incremented. Handles inital timerVal value.
         // max delay is limited to 5s
-        int32_t delta = cmpTimeUs(currentTimeUs, timerVal[timId]);
+        timeDelta_t delta = cmpTimeUs(currentTimeUs, timerVal[timId]);
         if (delta < 0 && delta > -LED_STRIP_MS(5000))
             continue;  // not ready yet
         timActive |= 1 << timId;
@@ -949,7 +949,7 @@ void ledStripUpdate(timeUs_t currentTimeUs)
 
     // apply all layers; triggered timed functions has to update timers
 
-    scaledThrottle = ARMING_FLAG(ARMED) ? scaleRange(rcData[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX, 10, 100) : 10;
+    scaledThrottle = ARMING_FLAG(ARMED) ? scaleRange(rxGetChannelValue(THROTTLE), PWM_RANGE_MIN, PWM_RANGE_MAX, 10, 100) : 10;
 
     applyLedFixedLayers();
 

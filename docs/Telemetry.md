@@ -40,7 +40,7 @@ Only TX serial pin has to be connected to Smartport receiver. Disable `telemetry
 
 ```
 set telemetry_inverted = OFF
-set smartport_uart_unidir = OFF
+set telemetry_uart_unidir = OFF
 ```
 
 ### Receiver univerted hack
@@ -49,7 +49,7 @@ Some receivers (X4R, XSR and so on) can be hacked to get _uninverted_ Smartport 
 
 ```
 set telemetry_inverted = ON
-set smartport_uart_unidir = OFF
+set telemetry_uart_unidir = OFF
 ```
 
 ### Software Serial
@@ -86,7 +86,7 @@ It is possible to use DIY UART inverter to connect SmartPort receivers to F1 and
 When external inverter is used, following configuration has to be applied:
 
 ```
-set smartport_uart_unidir = ON
+set telemetry_uart_unidir = ON
 set telemetry_inverted = ON
 ```
 
@@ -120,10 +120,10 @@ The following sensors are transmitted
 * **0420** : distance to GPS home fix, in meters
 * **0430** : if `frsky_pitch_roll = ON` set this will be pitch degrees*10
 * **0440** : if `frsky_pitch_roll = ON` set this will be roll degrees*10
-
+* **0450** : 'Flight Path Vector' or 'Course over ground' in degrees*10
 ### Compatible SmartPort/INAV telemetry flight status
 
-To quickly and easily monitor these SmartPort sensors and flight modes, install [iNav LuaTelemetry](https://github.com/iNavFlight/LuaTelemetry) to your Taranis Q X7, X9D, X9D+ or X9E transmitter.
+To quickly and easily monitor these SmartPort sensors and flight modes, install [OpenTX Telemetry Widget](https://github.com/iNavFlight/OpenTX-Telemetry-Widget) to your Taranis Q X7, X9D, X9D+ or X9E transmitter.
 
 ## FrSky telemetry
 
@@ -176,6 +176,9 @@ Use the latest Graupner firmware for your transmitter and receiver.
 
 Older HoTT transmitters required the EAM and GPS modules to be enabled in the telemetry menu of the transmitter. (e.g. on MX-20)
 
+You can use a single connection, connect HoTT RX/TX only to serial TX, leave serial RX open and make sure the setting `telemetry_uart_unidir` is OFF.
+
+The following information is deprecated, use only for compatibility:
 Serial ports use two wires but HoTT uses a single wire so some electronics are required so that the signals don't get mixed up.  The TX and RX pins of
 a serial port should be connected using a diode and a single wire to the `T` port on a HoTT receiver.
 
@@ -191,6 +194,8 @@ The diode should be arranged to allow the data signals to flow the right way
 ```
 
 1N4148 diodes have been tested and work with the GR-24.
+
+When using the diode enable `telemetry_uart_unidir`, go to CLI and type `set telemetry_uart_unidir = ON`, don't forget a `save` afterwards.
 
 As noticed by Skrebber the GR-12 (and probably GR-16/24, too) are based on a PIC 24FJ64GA-002, which has 5V tolerant digital pins.
 
@@ -242,6 +247,26 @@ INAV supports MAVLink for compatibility with ground stations, OSDs and antenna t
 for PX4, PIXHAWK, APM and Parrot AR.Drone platforms.
 
 MAVLink implementation in INAV is transmit-only and usable on low baud rates and can be used over soft serial.
+
+
+## Cellular telemetry via text messages
+
+INAV can use a SimCom SIM800 series cellular module to provide telemetry via text messages. Telemetry messages can be requested by calling the module's number or sending it a text message. The module can be set to transmit messages at regular intervals, or when an acceleration event is detected. A text message command can be used to put the flight controller into RTH mode.
+
+The telemetry message looks like this:
+```
+12.34V 2.0A ALT:5 SPD:10/13.6 DIS:78/19833 HDG:16 SAT:21  SIG:9 ANG maps.google.com/?q=6FG22222%2B222
+```
+giving battery voltage, current, altitude (m), speed / average speed (m/s), distance to home / total traveled distance (m), heading (degrees), number of satellites, cellular signal strength, flight mode and GPS coordinates as a Google Maps link. `SIG` has a range of 0 -- 31, with a value of 10 or higher indicating a usable signal quality.
+
+Transmission at regular intervals can be set by giving a string of flags in the CLI variable `sim_transmit_flags`: `T` - transmit continuously, `F` - transmit in failsafe mode, `A` - transmit when altitude is lower than `sim_low_altitude`, `G` - transmit when GPS signal quality is low. `A` only transmits in ALT HOLD, WAYPOINT, RTH, and FAILSAFE flight modes. The transmission interval is given by `sim_transmit_interval` and is 60 seconds by default.
+
+Text messages sent to the module can be used to set the transmission flags during flight, or to issue a RTH command to the flight controller. If a message begins with `RTH` it toggles forced RTH on / off, otherwise it is taken as a value for `sim_transmit_flags`. Note that an empty message turns transmission off, setting all flags to zero.
+
+Acceleration events are indicated at the beginning of the message as follows: `HIT!` indicates impact / high g event, `HIT` indicates landing / backwards acceleration event, `DROP` indicates freefall / low g event.
+
+To receive acceleration event messages, set one or more of the acceleration event threshold CLI variables to a nonzero value, and use the `A` flag in `sim_transmit_flags`. `acc_event_threshold_high` is the threshold (in cm/s/s) for impact detection by high magnitude of acceleration. `acc_event_threshold_low` is the threshold for freefall detection by low magnitude of acceleration. `acc_event_threshold_neg_x` is the threshold for landing detection (for fixed wing models) by high magnitude of negative x axis acceleration.
+
 
 ## Ibus telemetry
 

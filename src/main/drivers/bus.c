@@ -27,10 +27,12 @@
 #include "platform.h"
 #include "build/debug.h"
 
+#include "common/memory.h"
+
 #include "drivers/bus.h"
 #include "drivers/io.h"
 
-#define BUSDEV_MAX_DEVICES 8
+#define BUSDEV_MAX_DEVICES 16
 
 #ifdef USE_SPI
 static void busDevPreInit_SPI(const busDeviceDescriptor_t * descriptor)
@@ -88,7 +90,9 @@ static bool busDevInit_SPI(busDevice_t * dev, const busDeviceDescriptor_t * desc
     dev->irqPin = IOGetByTag(descriptor->irqPin);
     dev->busdev.spi.spiBus = descriptor->busdev.spi.spiBus;
     dev->busdev.spi.csnPin = IOGetByTag(descriptor->busdev.spi.csnPin);
-    if (dev->busdev.spi.csnPin) {
+
+    if (dev->busdev.spi.csnPin && spiBusInitHost(dev)) {
+        // Init CSN pin
         IOInit(dev->busdev.spi.csnPin, owner, RESOURCE_SPI_CS, 0);
         IOConfigGPIO(dev->busdev.spi.csnPin, SPI_IO_CS_CFG);
         IOHi(dev->busdev.spi.csnPin);
@@ -114,13 +118,14 @@ busDevice_t * busDeviceInit(busType_e bus, devHardwareType_e hw, uint8_t tag, re
         if (hw == descriptor->devHwType && (bus == descriptor->busType || bus == BUSTYPE_ANY) && (tag == descriptor->tag)) {
             // We have a candidate - initialize device context memory
             busDevice_t * dev = descriptor->devicePtr;
-            memset(dev, 0, sizeof(busDevice_t));
-
-            dev->descriptorPtr = descriptor;
-            dev->busType = descriptor->busType;
-            dev->flags = descriptor->flags;
-
             if (dev) {
+                memset(dev, 0, sizeof(busDevice_t));
+
+                dev->descriptorPtr = descriptor;
+                dev->busType = descriptor->busType;
+                dev->flags = descriptor->flags;
+                dev->param = descriptor->param;
+
                 switch (descriptor->busType) {
                     default:
                     case BUSTYPE_NONE:
@@ -199,16 +204,25 @@ void busSetSpeed(const busDevice_t * dev, busSpeed_e speed)
 
 uint32_t busDeviceReadScratchpad(const busDevice_t * dev)
 {
-    return dev->scratchpad[0];
+    uint32_t * mem = busDeviceGetScratchpadMemory(dev);
+    return (mem != NULL) ? mem[0] : 0;
 }
 
 void busDeviceWriteScratchpad(busDevice_t * dev, uint32_t value)
 {
-    dev->scratchpad[0] = value;
+    uint32_t * mem = busDeviceGetScratchpadMemory(dev);
+
+    if (mem != NULL) {
+        mem[0] = value;
+    }
 }
 
 void * busDeviceGetScratchpadMemory(const busDevice_t * dev)
 {
+    if (dev->scratchpad == NULL) {
+        ((busDevice_t *)dev)->scratchpad = memAllocate(BUS_SCRATCHPAD_MEMORY_SIZE, OWNER_SYSTEM);
+    }
+
     return (void *)dev->scratchpad;
 }
 
@@ -344,7 +358,6 @@ bool busRead(const busDevice_t * dev, uint8_t reg, uint8_t * data)
 #else
             return false;
 #endif
-
         default:
             return false;
     }
@@ -382,7 +395,6 @@ bool busIsBusy(const busDevice_t * dev)
             UNUSED(dev);
             return false;
 #endif
-
         case BUSTYPE_I2C:
             // Not implemented for I2C, respond as always free
             return false;

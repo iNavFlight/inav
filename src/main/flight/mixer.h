@@ -25,11 +25,6 @@
 #define MAX_SUPPORTED_MOTORS 12
 #endif
 
-#define YAW_JUMP_PREVENTION_LIMIT_LOW 80
-#define YAW_JUMP_PREVENTION_LIMIT_HIGH 500
-
-#define FW_MIN_THROTTLE_DOWN_PITCH_ANGLE_MAX 450
-
 // Digital protocol has fixed values
 #define DSHOT_DISARM_COMMAND      0
 #define DSHOT_MIN_THROTTLE       48
@@ -60,11 +55,10 @@ typedef struct motorMixer_s {
     float yaw;
 } motorMixer_t;
 
-PG_DECLARE_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, customMotorMixer);
+PG_DECLARE_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer);
 
 typedef struct mixerConfig_s {
-    int8_t yaw_motor_direction;
-    uint16_t yaw_jump_prevention_limit;      // make limit configurable (original fixed value was 100)
+    int8_t motorDirectionInverted;
     uint8_t platformType;
     bool hasFlaps;
     int16_t appliedMixerPreset;
@@ -73,17 +67,16 @@ typedef struct mixerConfig_s {
 
 PG_DECLARE(mixerConfig_t, mixerConfig);
 
-typedef struct flight3DConfig_s {
-    uint16_t deadband3d_low;                // min 3d value
-    uint16_t deadband3d_high;               // max 3d value
-    uint16_t neutral3d;                     // center 3d value
-} flight3DConfig_t;
+typedef struct reversibleMotorsConfig_s {
+    uint16_t deadband_low;                // min 3d value
+    uint16_t deadband_high;               // max 3d value
+    uint16_t neutral;                     // center 3d value
+} reversibleMotorsConfig_t;
 
-PG_DECLARE(flight3DConfig_t, flight3DConfig);
+PG_DECLARE(reversibleMotorsConfig_t, reversibleMotorsConfig);
 
 typedef struct motorConfig_s {
     // PWM values, in milliseconds, common range is 1000-2000 (1ms to 2ms)
-    uint16_t minthrottle;                   // Set the minimum throttle command sent to the ESC (Electronic Speed Controller). This is the minimum value that allow motors to run at a idle speed.
     uint16_t maxthrottle;                   // This is the maximum value for the ESCs at full power this value can be increased up to 2000
     uint16_t mincommand;                    // This is the value for the ESCs when they are not armed. In some cases, this value must be lowered down to 900 for some specific ESCs
     uint16_t motorPwmRate;                  // The update rate of motor outputs (50-498Hz)
@@ -91,6 +84,10 @@ typedef struct motorConfig_s {
     uint16_t motorAccelTimeMs;              // Time limit for motor to accelerate from 0 to 100% throttle [ms]
     uint16_t motorDecelTimeMs;              // Time limit for motor to decelerate from 0 to 100% throttle [ms]
     uint16_t digitalIdleOffsetValue;
+    float throttleIdle;                     // Throttle IDLE value based on min_command, max_throttle, in percent
+    float throttleScale;                    // Scaling factor for throttle.
+    uint8_t motorPoleCount;                 // Magnetic poles in the motors for calculating actual RPM from eRPM provided by ESC telemetry
+    uint8_t turtleModePowerFactor;          // Power factor from 0 to 100% of flip over after crash
 } motorConfig_t;
 
 PG_DECLARE(motorConfig_t, motorConfig);
@@ -101,16 +98,25 @@ typedef enum {
     MOTOR_RUNNING
 } motorStatus_e;
 
+typedef enum {
+    MOTOR_DIRECTION_FORWARD,
+    MOTOR_DIRECTION_BACKWARD,
+    MOTOR_DIRECTION_DEADBAND
+} reversibleMotorsThrottleState_e;
+
 extern int16_t motor[MAX_SUPPORTED_MOTORS];
 extern int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
+extern int mixerThrottleCommand;
 
+int getThrottleIdleValue(void);
+int16_t getThrottlePercent(void);
 uint8_t getMotorCount(void);
 float getMotorMixRange(void);
 bool mixerIsOutputSaturated(void);
 motorStatus_e getMotorStatus(void);
 
 void writeAllMotors(int16_t mc);
-void mixerUsePWMIOConfiguration(void);
+void mixerInit(void);
 void mixerUpdateStateFlags(void);
 void mixerResetDisarmedMotors(void);
 void mixTable(const float dT);
@@ -118,3 +124,6 @@ void writeMotors(void);
 void processServoAutotrim(void);
 void stopMotors(void);
 void stopPwmAllMotors(void);
+
+void loadPrimaryMotorMixer(void);
+bool areMotorsRunning(void);

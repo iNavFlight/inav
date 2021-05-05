@@ -19,6 +19,7 @@
 #include "platform.h"
 #include "config/feature.h"
 #include "drivers/pwm_output.h"
+#include "drivers/pwm_mapping.h"
 #include "blackbox/blackbox.h"
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
@@ -58,11 +59,10 @@ void targetConfiguration(void)
 
 
     gyroConfigMutable()->looptime = 1000;
-    gyroConfigMutable()->gyroSync = 1;
     gyroConfigMutable()->gyro_lpf = 0;              // 256 Hz
-    gyroConfigMutable()->gyro_soft_lpf_hz = 90;
-    gyroConfigMutable()->gyro_soft_notch_hz_1 = 150;
-    gyroConfigMutable()->gyro_soft_notch_cutoff_1 = 80;
+    gyroConfigMutable()->gyro_main_lpf_hz = 90;
+    gyroConfigMutable()->gyro_notch_hz = 150;
+    gyroConfigMutable()->gyro_notch_cutoff = 80;
 
     accelerometerConfigMutable()->acc_hardware = ACC_MPU6500;
     accelerometerConfigMutable()->acc_lpf_hz = 15;
@@ -81,7 +81,6 @@ void targetConfiguration(void)
     blackboxConfigMutable()->rate_num = 1;
     blackboxConfigMutable()->rate_denom = 4;
 
-    motorConfigMutable()->minthrottle = 1015;
     motorConfigMutable()->maxthrottle = 2000;
     motorConfigMutable()->mincommand = 980;
     motorConfigMutable()->motorPwmRate = 2000;
@@ -96,8 +95,6 @@ void targetConfiguration(void)
     boardAlignmentMutable()->rollDeciDegrees = 0;
     boardAlignmentMutable()->pitchDeciDegrees = 165;
     boardAlignmentMutable()->yawDeciDegrees = 0;
-
-    mixerConfigMutable()->yaw_jump_prevention_limit = 200;
 
     imuConfigMutable()->small_angle = 30;
 
@@ -169,11 +166,7 @@ void targetConfiguration(void)
     pidProfileMutable()->max_angle_inclination[FD_PITCH] = 300;
     pidProfileMutable()->dterm_lpf_hz = 70;
     pidProfileMutable()->yaw_lpf_hz = 35;
-    pidProfileMutable()->dterm_setpoint_weight = 0;
-    pidProfileMutable()->dterm_soft_notch_hz = 0;
-    pidProfileMutable()->dterm_soft_notch_cutoff = 1;
     pidProfileMutable()->pidSumLimit = 500;
-    pidProfileMutable()->yaw_p_limit = 300;
     pidProfileMutable()->axisAccelerationLimitRollPitch = 0;
     pidProfileMutable()->axisAccelerationLimitYaw = 10000;
 

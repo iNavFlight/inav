@@ -79,7 +79,7 @@ void updateWindEstimator(timeUs_t currentTimeUs)
 {
     static timeUs_t lastUpdateUs = 0;
 
-    if (!STATE(FIXED_WING) ||
+    if (!STATE(FIXED_WING_LEGACY) ||
         !isGPSHeadingValid() ||
         !gpsSol.flags.validVelNE ||
         !gpsSol.flags.validVelD) {
@@ -163,10 +163,6 @@ void updateWindEstimator(timeUs_t currentTimeUs)
             estimatedWind[X] = estimatedWind[X] * 0.95f + wind[X] * 0.05f;
             estimatedWind[Y] = estimatedWind[Y] * 0.95f + wind[Y] * 0.05f;
             estimatedWind[Z] = estimatedWind[Z] * 0.95f + wind[Z] * 0.05f;
-
-            DEBUG_SET(DEBUG_WIND_ESTIMATOR, 0, estimatedWind[X]);
-            DEBUG_SET(DEBUG_WIND_ESTIMATOR, 1, estimatedWind[Y]);
-            DEBUG_SET(DEBUG_WIND_ESTIMATOR, 2, estimatedWind[Z]);
         }
         lastUpdateUs = currentTimeUs;
         hasValidWindEstimate = true;

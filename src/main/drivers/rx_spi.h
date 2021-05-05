@@ -20,7 +20,7 @@
 
 #define RX_SPI_MAX_PAYLOAD_SIZE 32
 
-void rxSpiDeviceInit();
+void rxSpiDeviceInit(void);
 uint8_t rxSpiTransferByte(uint8_t data);
 uint8_t rxSpiWriteByte(uint8_t data);
 uint8_t rxSpiWriteCommand(uint8_t command, uint8_t data);

@@ -33,13 +33,8 @@
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
-#define USE_GYRO
-#define USE_GYRO_MPU9250
-#define GYRO_MPU9250_ALIGN      CW270_DEG
-
-#define USE_ACC
-#define USE_ACC_MPU9250
-#define ACC_MPU9250_ALIGN       CW270_DEG
+#define USE_IMU_MPU9250
+#define IMU_MPU9250_ALIGN       CW270_DEG
 
 #define MPU9250_SPI_BUS         BUS_SPI1
 #define MPU9250_CS_PIN          PC4
@@ -58,6 +53,7 @@
 #define USE_MAG_LIS3MDL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
+#define BNO055_I2C_BUS          BUS_I2C1
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
@@ -125,9 +121,6 @@
 
 #define USE_RANGEFINDER
 #define RANGEFINDER_I2C_BUS             BUS_I2C2
-
-#define USE_OPTICAL_FLOW
-#define USE_OPFLOW_CXOF
 
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL

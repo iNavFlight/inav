@@ -20,13 +20,13 @@
 #include <math.h>
 
 #include "platform.h"
-
 #include "build/debug.h"
 
+#include "common/calibration.h"
+#include "common/log.h"
 #include "common/maths.h"
 #include "common/time.h"
 #include "common/utils.h"
-#include "common/calibration.h"
 
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
@@ -34,13 +34,17 @@
 #include "drivers/barometer/barometer.h"
 #include "drivers/barometer/barometer_bmp085.h"
 #include "drivers/barometer/barometer_bmp280.h"
+#include "drivers/barometer/barometer_bmp388.h"
 #include "drivers/barometer/barometer_lps25h.h"
 #include "drivers/barometer/barometer_fake.h"
 #include "drivers/barometer/barometer_ms56xx.h"
-#include "drivers/logging.h"
+#include "drivers/barometer/barometer_spl06.h"
+#include "drivers/barometer/barometer_dps310.h"
+#include "drivers/barometer/barometer_msp.h"
 #include "drivers/time.h"
 
 #include "fc/runtime_config.h"
+#include "fc/settings.h"
 
 #include "sensors/barometer.h"
 #include "sensors/sensors.h"
@@ -53,20 +57,15 @@
 
 baro_t baro;                        // barometer access functions
 
-PG_REGISTER_WITH_RESET_TEMPLATE(barometerConfig_t, barometerConfig, PG_BAROMETER_CONFIG, 1);
-
 #ifdef USE_BARO
-#define BARO_HARDWARE_DEFAULT    BARO_AUTODETECT
-#else
-#define BARO_HARDWARE_DEFAULT    BARO_NONE
-#endif
+
+PG_REGISTER_WITH_RESET_TEMPLATE(barometerConfig_t, barometerConfig, PG_BAROMETER_CONFIG, 3);
+
 PG_RESET_TEMPLATE(barometerConfig_t, barometerConfig,
-    .baro_hardware = BARO_HARDWARE_DEFAULT,
-    .use_median_filtering = 1,
-    .baro_calibration_tolerance = 150
+    .baro_hardware = SETTING_BARO_HARDWARE_DEFAULT,
+    .use_median_filtering = SETTING_BARO_MEDIAN_FILTER_DEFAULT,
+    .baro_calibration_tolerance = SETTING_BARO_CAL_TOLERANCE_DEFAULT
 );
-
-#ifdef USE_BARO
 
 static zeroCalibrationScalar_t zeroCalibration;
 static float baroGroundAltitude = 0;
@@ -133,10 +132,63 @@ bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
         }
         FALLTHROUGH;
 
+    case BARO_BMP388:
+#if defined(USE_BARO_BMP388) || defined(USE_BARO_SPI_BMP388)
+        if (bmp388Detect(dev)) {
+            baroHardware = BARO_BMP388;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (baroHardwareToUse != BARO_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
+    case BARO_SPL06:
+#if defined(USE_BARO_SPL06) || defined(USE_BARO_SPI_SPL06)
+        if (spl06Detect(dev)) {
+            baroHardware = BARO_SPL06;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (baroHardwareToUse != BARO_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
     case BARO_LPS25H:
 #if defined(USE_BARO_LPS25H)
         if (lps25hDetect(dev)) {
             baroHardware = BARO_LPS25H;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (baroHardwareToUse != BARO_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
+    case BARO_DPS310:
+#if defined(USE_BARO_DPS310)
+        if (baroDPS310Detect(dev)) {
+            baroHardware = BARO_DPS310;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (baroHardwareToUse != BARO_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
+    case BARO_MSP:
+#ifdef USE_BARO_MSP
+        // Skip autodetection for MSP baro, only allow manual config
+        if (baroHardwareToUse != BARO_AUTODETECT && mspBaroDetect(dev)) {
+            baroHardware = BARO_MSP;
             break;
         }
 #endif
@@ -163,8 +215,6 @@ bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
         baroHardware = BARO_NONE;
         break;
     }
-
-    addBootlogEvent6(BOOT_EVENT_BARO_DETECTION, BOOT_EVENT_FLAGS_NONE, baroHardware, 0, 0, 0);
 
     if (baroHardware == BARO_NONE) {
         sensorsClear(SENSOR_BARO);
@@ -241,15 +291,23 @@ uint32_t baroUpdate(void)
     switch (state) {
         default:
         case BAROMETER_NEEDS_SAMPLES:
-            baro.dev.get_ut(&baro.dev);
-            baro.dev.start_up(&baro.dev);
+            if (baro.dev.get_ut) {
+                baro.dev.get_ut(&baro.dev);
+            }
+            if (baro.dev.start_up) {
+                baro.dev.start_up(&baro.dev);
+            }
             state = BAROMETER_NEEDS_CALCULATION;
             return baro.dev.up_delay;
         break;
 
         case BAROMETER_NEEDS_CALCULATION:
-            baro.dev.get_up(&baro.dev);
-            baro.dev.start_ut(&baro.dev);
+            if (baro.dev.get_up) {
+                baro.dev.get_up(&baro.dev);
+            }
+            if (baro.dev.start_ut) {
+                baro.dev.start_ut(&baro.dev);
+            }
             baro.dev.calculate(&baro.dev, &baro.baroPressure, &baro.baroTemperature);
             if (barometerConfig()->use_median_filtering) {
                 baro.baroPressure = applyBarometerMedianFilter(baro.baroPressure);
@@ -289,7 +347,7 @@ int32_t baroCalculateAltitude(void)
         if (zeroCalibrationIsCompleteS(&zeroCalibration)) {
             zeroCalibrationGetZeroS(&zeroCalibration, &baroGroundPressure);
             baroGroundAltitude = pressureToAltitude(baroGroundPressure);
-            DEBUG_TRACE_SYNC("Barometer calibration complete (%d)", lrintf(baroGroundAltitude));
+            LOG_D(BARO, "Barometer calibration complete (%d)", (int)lrintf(baroGroundAltitude));
         }
 
         baro.BaroAlt = 0;
@@ -303,7 +361,7 @@ int32_t baroCalculateAltitude(void)
 #endif
         // calculates height from ground via baro readings
         baro.BaroAlt = pressureToAltitude(baro.baroPressure) - baroGroundAltitude;
-    }
+   }
 
     return baro.BaroAlt;
 }

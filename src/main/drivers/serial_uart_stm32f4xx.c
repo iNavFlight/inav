@@ -60,7 +60,7 @@ static uartDevice_t uart1 =
 #endif
     .rcc_apb2 = RCC_APB2(USART1),
     .irq = USART1_IRQn,
-    .irqPriority = NVIC_PRIO_SERIALUART1
+    .irqPriority = NVIC_PRIO_SERIALUART
 };
 #endif
 
@@ -76,7 +76,7 @@ static uartDevice_t uart2 =
 #endif
     .rcc_apb1 = RCC_APB1(USART2),
     .irq = USART2_IRQn,
-    .irqPriority = NVIC_PRIO_SERIALUART2
+    .irqPriority = NVIC_PRIO_SERIALUART
 };
 #endif
 
@@ -92,7 +92,7 @@ static uartDevice_t uart3 =
 #endif
     .rcc_apb1 = RCC_APB1(USART3),
     .irq = USART3_IRQn,
-    .irqPriority = NVIC_PRIO_SERIALUART3
+    .irqPriority = NVIC_PRIO_SERIALUART
 };
 #endif
 
@@ -108,7 +108,7 @@ static uartDevice_t uart4 =
 #endif
     .rcc_apb1 = RCC_APB1(UART4),
     .irq = UART4_IRQn,
-    .irqPriority = NVIC_PRIO_SERIALUART4
+    .irqPriority = NVIC_PRIO_SERIALUART
 };
 #endif
 
@@ -124,7 +124,7 @@ static uartDevice_t uart5 =
 #endif
     .rcc_apb1 = RCC_APB1(UART5),
     .irq = UART5_IRQn,
-    .irqPriority = NVIC_PRIO_SERIALUART5
+    .irqPriority = NVIC_PRIO_SERIALUART
 };
 #endif
 
@@ -140,7 +140,7 @@ static uartDevice_t uart6 =
 #endif
     .rcc_apb2 = RCC_APB2(USART6),
     .irq = USART6_IRQn,
-    .irqPriority = NVIC_PRIO_SERIALUART6
+    .irqPriority = NVIC_PRIO_SERIALUART
 };
 #endif
 
@@ -153,7 +153,7 @@ static uartDevice_t uart7 =
     .af = GPIO_AF_UART7,
     .rcc_apb1 = RCC_APB1(UART7),
     .irq = UART7_IRQn,
-    .irqPriority = NVIC_PRIO_SERIALUART7
+    .irqPriority = NVIC_PRIO_SERIALUART
 };
 #endif
 
@@ -166,7 +166,7 @@ static uartDevice_t uart8 =
     .af = GPIO_AF_UART8,
     .rcc_apb1 = RCC_APB1(UART8),
     .irq = UART8_IRQn,
-    .irqPriority = NVIC_PRIO_SERIALUART8
+    .irqPriority = NVIC_PRIO_SERIALUART
 };
 #endif
 
@@ -239,10 +239,29 @@ void uartIrqHandler(uartPort_t *s)
     }
 }
 
+void uartGetPortPins(UARTDevice_e device, serialPortPins_t * pins)
+{
+    uartDevice_t *uart = uartHardwareMap[device];
+
+    if (uart) {
+        pins->txPin = uart->tx;
+        pins->rxPin = uart->rx;
+    }
+    else {
+        pins->txPin = IO_TAG(NONE);
+        pins->rxPin = IO_TAG(NONE);
+    }
+}
+
+void uartClearIdleFlag(uartPort_t *s)
+{
+    (void) s->USARTx->SR;
+    (void) s->USARTx->DR;
+}
+
 uartPort_t *serialUART(UARTDevice_e device, uint32_t baudRate, portMode_t mode, portOptions_t options)
 {
     uartPort_t *s;
-    NVIC_InitTypeDef NVIC_InitStructure;
 
     uartDevice_t *uart = uartHardwareMap[device];
     if (!uart) return NULL;
@@ -273,10 +292,13 @@ uartPort_t *serialUART(UARTDevice_e device, uint32_t baudRate, portMode_t mode, 
 
     if (options & SERIAL_BIDIR) {
         IOInit(tx, OWNER_SERIAL, RESOURCE_UART_TXRX, RESOURCE_INDEX(device));
-        if (options & SERIAL_BIDIR_PP)
+        if (options & SERIAL_BIDIR_PP) {
             IOConfigGPIOAF(tx, IOCFG_AF_PP, uart->af);
-        else
-            IOConfigGPIOAF(tx, IOCFG_AF_OD, uart->af);
+        } else {
+            IOConfigGPIOAF(tx,
+                    (options & SERIAL_BIDIR_NOPULL) ? IOCFG_AF_OD : IOCFG_AF_OD_UP,
+                    uart->af);
+        }
     }
     else {
         if (mode & MODE_TX) {
@@ -290,11 +312,8 @@ uartPort_t *serialUART(UARTDevice_e device, uint32_t baudRate, portMode_t mode, 
         }
     }
 
-    NVIC_InitStructure.NVIC_IRQChannel = uart->irq;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = NVIC_PRIORITY_BASE(uart->irqPriority);
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = NVIC_PRIORITY_SUB(uart->irqPriority);
-    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&NVIC_InitStructure);
+    NVIC_SetPriority(uart->irq, uart->irqPriority);
+    NVIC_EnableIRQ(uart->irq);
 
     return s;
 }

@@ -27,9 +27,11 @@
 
 #include "platform.h"
 
-#include "build/debug.h"
-#include "drivers/resource.h"
+#include "common/log.h"
 #include "common/memory.h"
+
+#include "drivers/resource.h"
+
 #include "fc/runtime_config.h"
 
 #if !defined(DYNAMIC_HEAP_SIZE)
@@ -50,11 +52,11 @@ void * memAllocate(size_t wantedSize, resourceOwner_e owner)
         retPointer = &dynHeap[dynHeapFreeWord];
         dynHeapFreeWord += wantedWords;
         dynHeapUsage[owner] += wantedWords * sizeof(uint32_t);
-        DEBUG_TRACE("Memory allocated. Free memory = %d", memGetAvailableBytes());
+        LOG_D(SYSTEM, "Memory allocated. Free memory = %d", memGetAvailableBytes());
     }
     else {
         // OOM
-        DEBUG_TRACE("Out of memory");
+        LOG_E(SYSTEM, "Out of memory");
         ENABLE_ARMING_FLAG(ARMING_DISABLED_OOM);
     }
 

@@ -24,17 +24,17 @@
 #ifdef USE_SERIAL_RX
 
 #include "common/utils.h"
+#include "common/maths.h"
 
-#include "rx/rx.h"
 #include "rx/sbus_channels.h"
-
-#define DEBUG_SBUS_FRAME_INTERVAL 3
 
 #define SBUS_FLAG_CHANNEL_17        (1 << 0)
 #define SBUS_FLAG_CHANNEL_18        (1 << 1)
 
 #define SBUS_DIGITAL_CHANNEL_MIN 173
 #define SBUS_DIGITAL_CHANNEL_MAX 1812
+
+STATIC_ASSERT(SBUS_FRAME_SIZE == sizeof(sbusFrame_t), SBUS_FRAME_SIZE_doesnt_match_sbusFrame_t);
 
 uint8_t sbusChannelsDecode(rxRuntimeConfig_t *rxRuntimeConfig, const sbusChannels_t *channels)
 {
@@ -74,14 +74,36 @@ uint8_t sbusChannelsDecode(rxRuntimeConfig_t *rxRuntimeConfig, const sbusChannel
         return RX_FRAME_COMPLETE | RX_FRAME_FAILSAFE;
     }
 
+    if (channels->flags & SBUS_FLAG_SIGNAL_LOSS) {
+        // The received data is a repeat of the last valid data so can be considered complete.
+        return RX_FRAME_COMPLETE | RX_FRAME_DROPPED;
+    }
+
     return RX_FRAME_COMPLETE;
+}
+
+uint16_t sbusDecodeChannelValue(uint16_t sbusValue, bool safeValuesOnly)
+{
+    // Linear fitting values read from OpenTX-ppmus and comparing with values received by X4R
+    // http://www.wolframalpha.com/input/?i=linear+fit+%7B173%2C+988%7D%2C+%7B1812%2C+2012%7D%2C+%7B993%2C+1500%7D
+    if (safeValuesOnly) {
+        // Clip channel values to more or less safe values (988 .. 2012)
+        return (5 * constrain(sbusValue, SBUS_DIGITAL_CHANNEL_MIN, SBUS_DIGITAL_CHANNEL_MAX) / 8) + 880;
+    }
+    else {
+        // Use full range of values (11 bit, channel values in range 880 .. 2159)
+        return (5 * constrain(sbusValue, 0, 2047) / 8) + 880;
+    }
+}
+
+uint16_t sbusEncodeChannelValue(uint16_t rcValue)
+{
+    return constrain((((int)rcValue - 880) * 8 + 4) / 5, SBUS_DIGITAL_CHANNEL_MIN, SBUS_DIGITAL_CHANNEL_MAX);
 }
 
 static uint16_t sbusChannelsReadRawRC(const rxRuntimeConfig_t *rxRuntimeConfig, uint8_t chan)
 {
-    // Linear fitting values read from OpenTX-ppmus and comparing with values received by X4R
-    // http://www.wolframalpha.com/input/?i=linear+fit+%7B173%2C+988%7D%2C+%7B1812%2C+2012%7D%2C+%7B993%2C+1500%7D
-    return (5 * rxRuntimeConfig->channelData[chan] / 8) + 880;
+    return sbusDecodeChannelValue(rxRuntimeConfig->channelData[chan], false);
 }
 
 void sbusChannelsInit(rxRuntimeConfig_t *rxRuntimeConfig)

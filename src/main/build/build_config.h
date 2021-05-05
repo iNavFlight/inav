@@ -44,5 +44,12 @@
 #else
 #define FASTRAM                     __attribute__ ((section(".fastram_bss"), aligned(4)))
 #endif
+
+#if defined (STM32F4) || defined (STM32F7)
+#define EXTENDED_FASTRAM FASTRAM
+#else
+#define EXTENDED_FASTRAM
+#endif
+
 #define STATIC_FASTRAM              static FASTRAM
 #define STATIC_FASTRAM_UNIT_TESTED  STATIC_UNIT_TESTED FASTRAM

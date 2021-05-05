@@ -25,9 +25,12 @@
 
 #include "config/parameter_group_ids.h"
 
+#include "drivers/display.h"
+#include "drivers/display_canvas.h"
+#include "drivers/display_font_metadata.h"
 #include "drivers/time.h"
 
-#include "display.h"
+#include "fc/settings.h"
 
 #define SW_BLINK_CYCLE_MS 200 // 200ms on / 200ms off
 
@@ -41,7 +44,7 @@
 PG_REGISTER_WITH_RESET_TEMPLATE(displayConfig_t, displayConfig, PG_DISPLAY_CONFIG, 0);
 
 PG_RESET_TEMPLATE(displayConfig_t, displayConfig,
-    .force_sw_blink = false,
+    .force_sw_blink = SETTING_DISPLAY_FORCE_SW_BLINK_DEFAULT
 );
 
 static bool displayAttributesRequireEmulation(displayPort_t *instance, textAttributes_t attr)
@@ -70,6 +73,19 @@ static bool displayEmulateTextAttributes(displayPort_t *instance,
     }
     // Tell the caller to use s but with the updated attributes
     return false;
+}
+
+static void displayUpdateMaxChar(displayPort_t *instance)
+{
+    if (displayIsReady(instance)) {
+        displayFontMetadata_t metadata;
+        if (displayGetFontMetadata(&metadata, instance)) {
+            instance->maxChar = metadata.charCount - 1;
+        } else {
+            // Assume 8-bit character implementation
+            instance->maxChar = 255;
+        }
+    }
 }
 
 void displayClearScreen(displayPort_t *instance)
@@ -157,6 +173,9 @@ int displayWriteWithAttr(displayPort_t *instance, uint8_t x, uint8_t y, const ch
 
 int displayWriteChar(displayPort_t *instance, uint8_t x, uint8_t y, uint16_t c)
 {
+    if (instance->maxChar == 0) {
+        displayUpdateMaxChar(instance);
+    }
     if (c > instance->maxChar) {
         return -1;
     }
@@ -167,13 +186,16 @@ int displayWriteChar(displayPort_t *instance, uint8_t x, uint8_t y, uint16_t c)
 
 int displayWriteCharWithAttr(displayPort_t *instance, uint8_t x, uint8_t y, uint16_t c, textAttributes_t attr)
 {
+    if (instance->maxChar == 0) {
+        displayUpdateMaxChar(instance);
+    }
     if (c > instance->maxChar) {
         return -1;
     }
     if (displayAttributesRequireEmulation(instance, attr)) {
-        char ec;
-        if (displayEmulateTextAttributes(instance, &ec, 1, &attr)) {
-            c = ec;
+        char ec[2];
+        if (displayEmulateTextAttributes(instance, ec, 1, &attr)) {
+            c = ec[0];
         }
     }
     instance->posX = x + 1;
@@ -229,10 +251,59 @@ bool displayGetFontMetadata(displayFontMetadata_t *metadata, const displayPort_t
     return false;
 }
 
+int displayWriteFontCharacter(displayPort_t *instance, uint16_t addr, const osdCharacter_t *chr)
+{
+    if (instance->vTable->writeFontCharacter) {
+        return instance->vTable->writeFontCharacter(instance, addr, chr);
+    }
+    return -1;
+}
+
+bool displayIsReady(displayPort_t *instance)
+{
+    if (instance->vTable->isReady) {
+        return instance->vTable->isReady(instance);
+    }
+    // Drivers that don't provide an isReady method are
+    // assumed to be immediately ready (either by actually
+    // begin ready very quickly or by blocking)
+    return true;
+}
+
+void displayBeginTransaction(displayPort_t *instance, displayTransactionOption_e opts)
+{
+    if (instance->vTable->beginTransaction) {
+        instance->vTable->beginTransaction(instance, opts);
+    }
+}
+
+void displayCommitTransaction(displayPort_t *instance)
+{
+    if (instance->vTable->commitTransaction) {
+        instance->vTable->commitTransaction(instance);
+    }
+}
+
+bool displayGetCanvas(displayCanvas_t *canvas, const displayPort_t *instance)
+{
+#if defined(USE_CANVAS)
+    if (canvas && instance->vTable->getCanvas && instance->vTable->getCanvas(canvas, instance)) {
+        canvas->gridElementWidth = canvas->width / instance->cols;
+        canvas->gridElementHeight = canvas->height / instance->rows;
+        return true;
+    }
+#else
+    UNUSED(canvas);
+    UNUSED(instance);
+#endif
+    return false;
+}
+
 void displayInit(displayPort_t *instance, const displayPortVTable_t *vTable)
 {
     instance->vTable = vTable;
     instance->vTable->clearScreen(instance);
+    instance->useFullscreen = false;
     instance->cleared = true;
     instance->grabCount = 0;
     instance->cursorRow = -1;
@@ -244,12 +315,6 @@ void displayInit(displayPort_t *instance, const displayPortVTable_t *vTable)
         TEXT_ATTRIBUTES_REMOVE_BLINK(instance->cachedSupportedTextAttributes);
     }
 
-    displayFontMetadata_t metadata;
-    if (displayGetFontMetadata(&metadata, instance)) {
-        instance->maxChar = metadata.charCount - 1;
-    } else {
-        // Assume 8-bit character implementation
-        instance->maxChar = 255;
-    }
+    instance->maxChar = 0;
+    displayUpdateMaxChar(instance);
 }
-

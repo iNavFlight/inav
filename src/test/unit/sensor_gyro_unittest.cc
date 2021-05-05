@@ -37,9 +37,11 @@ extern "C" {
     #include "sensors/gyro.h"
     #include "sensors/acceleration.h"
     #include "sensors/sensors.h"
+    #include "fc/rc_controls.h"
+    #include "flight/mixer.h"
 
     extern zeroCalibrationVector_t gyroCalibration;
-    extern gyroDev_t gyroDev0;
+    extern gyroDev_t gyroDev[];
 
     STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHardware);
     STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVector_t *gyroCalibration);
@@ -50,9 +52,8 @@ extern "C" {
 
 TEST(SensorGyro, Detect)
 {
-    const gyroSensor_e detected = gyroDetect(&gyroDev0, GYRO_AUTODETECT);
+    const gyroSensor_e detected = gyroDetect(&gyroDev[0], GYRO_AUTODETECT);
     EXPECT_EQ(GYRO_FAKE, detected);
-    EXPECT_EQ(GYRO_FAKE, detectedSensors[SENSOR_INDEX_GYRO]);
 }
 
 TEST(SensorGyro, Init)
@@ -67,41 +68,42 @@ TEST(SensorGyro, Read)
     gyroInit();
     EXPECT_EQ(GYRO_FAKE, detectedSensors[SENSOR_INDEX_GYRO]);
     fakeGyroSet(5, 6, 7);
-    const bool read = gyroDev0.readFn(&gyroDev0);
+    const bool read = gyroDev[0].readFn(&gyroDev[0]);
     EXPECT_EQ(true, read);
-    EXPECT_EQ(5, gyroDev0.gyroADCRaw[X]);
-    EXPECT_EQ(6, gyroDev0.gyroADCRaw[Y]);
-    EXPECT_EQ(7, gyroDev0.gyroADCRaw[Z]);
+    EXPECT_EQ(5, gyroDev[0].gyroADCRaw[X]);
+    EXPECT_EQ(6, gyroDev[0].gyroADCRaw[Y]);
+    EXPECT_EQ(7, gyroDev[0].gyroADCRaw[Z]);
 }
 
 TEST(SensorGyro, Calibrate)
 {
-    gyroStartCalibration();
     gyroInit();
+    gyroStartCalibration();
     fakeGyroSet(5, 6, 7);
-    const bool read = gyroDev0.readFn(&gyroDev0);
+    const bool read = gyroDev[0].readFn(&gyroDev[0]);
     EXPECT_EQ(true, read);
-    EXPECT_EQ(5, gyroDev0.gyroADCRaw[X]);
-    EXPECT_EQ(6, gyroDev0.gyroADCRaw[Y]);
-    EXPECT_EQ(7, gyroDev0.gyroADCRaw[Z]);
-    gyroDev0.gyroZero[X] = 8;
-    gyroDev0.gyroZero[Y] = 9;
-    gyroDev0.gyroZero[Z] = 10;
-    performGyroCalibration(&gyroDev0, &gyroCalibration);
-    EXPECT_EQ(0, gyroDev0.gyroZero[X]);
-    EXPECT_EQ(0, gyroDev0.gyroZero[Y]);
-    EXPECT_EQ(0, gyroDev0.gyroZero[Z]);
+    EXPECT_EQ(5, gyroDev[0].gyroADCRaw[X]);
+    EXPECT_EQ(6, gyroDev[0].gyroADCRaw[Y]);
+    EXPECT_EQ(7, gyroDev[0].gyroADCRaw[Z]);
+    gyroDev[0].gyroZero[X] = 8;
+    gyroDev[0].gyroZero[Y] = 9;
+    gyroDev[0].gyroZero[Z] = 10;
+    performGyroCalibration(&gyroDev[0], &gyroCalibration);
+    EXPECT_EQ(0, gyroDev[0].gyroZero[X]);
+    EXPECT_EQ(0, gyroDev[0].gyroZero[Y]);
+    EXPECT_EQ(0, gyroDev[0].gyroZero[Z]);
     EXPECT_EQ(false, gyroIsCalibrationComplete());
     while (!gyroIsCalibrationComplete()) {
-        performGyroCalibration(&gyroDev0, &gyroCalibration);
+        performGyroCalibration(&gyroDev[0], &gyroCalibration);
     }
-    EXPECT_EQ(5, gyroDev0.gyroZero[X]);
-    EXPECT_EQ(6, gyroDev0.gyroZero[Y]);
-    EXPECT_EQ(7, gyroDev0.gyroZero[Z]);
+    EXPECT_EQ(5, gyroDev[0].gyroZero[X]);
+    EXPECT_EQ(6, gyroDev[0].gyroZero[Y]);
+    EXPECT_EQ(7, gyroDev[0].gyroZero[Z]);
 }
 
 TEST(SensorGyro, Update)
 {
+    gyroInit();
     gyroStartCalibration();
     EXPECT_EQ(false, gyroIsCalibrationComplete());
     gyroInit();
@@ -112,9 +114,9 @@ TEST(SensorGyro, Update)
         gyroUpdate();
     }
     EXPECT_EQ(true, gyroIsCalibrationComplete());
-    EXPECT_EQ(5, gyroDev0.gyroZero[X]);
-    EXPECT_EQ(6, gyroDev0.gyroZero[Y]);
-    EXPECT_EQ(7, gyroDev0.gyroZero[Z]);
+    EXPECT_EQ(5, gyroDev[0].gyroZero[X]);
+    EXPECT_EQ(6, gyroDev[0].gyroZero[Y]);
+    EXPECT_EQ(7, gyroDev[0].gyroZero[Z]);
     EXPECT_FLOAT_EQ(0, gyro.gyroADCf[X]);
     EXPECT_FLOAT_EQ(0, gyro.gyroADCf[Y]);
     EXPECT_FLOAT_EQ(0, gyro.gyroADCf[Z]);
@@ -125,9 +127,9 @@ TEST(SensorGyro, Update)
     EXPECT_FLOAT_EQ(0, gyro.gyroADCf[Z]);
     fakeGyroSet(15, 26, 97);
     gyroUpdate();
-    EXPECT_FLOAT_EQ(10 * gyroDev0.scale, gyro.gyroADCf[X]); // gyroADCf values are scaled
-    EXPECT_FLOAT_EQ(20 * gyroDev0.scale, gyro.gyroADCf[Y]);
-    EXPECT_FLOAT_EQ(90 * gyroDev0.scale, gyro.gyroADCf[Z]);
+    EXPECT_FLOAT_EQ(10 * gyroDev[0].scale, gyro.gyroADCf[X]); // gyroADCf values are scaled
+    EXPECT_FLOAT_EQ(20 * gyroDev[0].scale, gyro.gyroADCf[Y]);
+    EXPECT_FLOAT_EQ(90 * gyroDev[0].scale, gyro.gyroADCf[Z]);
 }
 
 
@@ -140,9 +142,8 @@ timeMs_t millis(void) {return milliTime++;}
 uint32_t micros(void) {return 0;}
 void beeper(beeperMode_e) {}
 uint8_t detectedSensors[] = { GYRO_NONE, ACC_NONE };
-void addBootlogEvent6(bootLogEventCode_e eventCode, uint16_t eventFlags, uint16_t param1, uint16_t param2, uint16_t param3, uint16_t param4)
-    {UNUSED(eventCode);UNUSED(eventFlags);UNUSED(param1);UNUSED(param2);UNUSED(param3);UNUSED(param4);}
 timeDelta_t getLooptime(void) {return gyro.targetLooptime;}
+timeDelta_t getGyroLooptime(void) {return gyro.targetLooptime;}
 void sensorsSet(uint32_t) {}
 void schedulerResetTaskStatistics(cfTaskId_e) {}
 }

@@ -26,12 +26,14 @@
 #include "common/axis.h"
 #include "common/color.h"
 #include "common/utils.h"
+#include "programming/programming_task.h"
 
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/compass/compass.h"
 #include "drivers/sensor.h"
 #include "drivers/serial.h"
 #include "drivers/stack_check.h"
+#include "drivers/pwm_mapping.h"
 
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -45,6 +47,10 @@
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/wind_estimator.h"
+#include "flight/secondary_imu.h"
+#include "flight/rpm_filter.h"
+#include "flight/servos.h"
+#include "flight/dynamic_lpf.h"
 
 #include "navigation/navigation.h"
 
@@ -57,7 +63,10 @@
 #include "io/pwmdriver_i2c.h"
 #include "io/serial.h"
 #include "io/rcdevice_cam.h"
+#include "io/smartport_master.h"
 #include "io/vtx.h"
+#include "io/osd_dji_hd.h"
+#include "io/servo_sbus.h"
 
 #include "msp/msp_serial.h"
 
@@ -74,6 +83,7 @@
 #include "sensors/battery.h"
 #include "sensors/compass.h"
 #include "sensors/gyro.h"
+#include "sensors/irlock.h"
 #include "sensors/pitotmeter.h"
 #include "sensors/rangefinder.h"
 #include "sensors/opflow.h"
@@ -81,8 +91,6 @@
 #include "telemetry/telemetry.h"
 
 #include "config/feature.h"
-
-#include "uav_interconnect/uav_interconnect.h"
 
 void taskHandleSerial(timeUs_t currentTimeUs)
 {
@@ -94,6 +102,11 @@ void taskHandleSerial(timeUs_t currentTimeUs)
 
     // Allow MSP processing even if in CLI mode
     mspSerialProcess(ARMING_FLAG(ARMED) ? MSP_SKIP_NON_MSP_DATA : MSP_EVALUATE_NON_MSP_DATA, mspFcProcessCommand);
+
+#if defined(USE_DJI_HD_OSD)
+    // DJI OSD uses a special flavour of MSP (subset of Betaflight 4.1.1 MSP) - process as part of serial task
+    djiOsdSerialProcess();
+#endif
 }
 
 void taskUpdateBattery(timeUs_t currentTimeUs)
@@ -152,8 +165,6 @@ void taskUpdateCompass(timeUs_t currentTimeUs)
 #ifdef USE_BARO
 void taskUpdateBaro(timeUs_t currentTimeUs)
 {
-    UNUSED(currentTimeUs);
-
     if (!sensors(SENSOR_BARO)) {
         return;
     }
@@ -202,7 +213,15 @@ void taskUpdateRangefinder(timeUs_t currentTimeUs)
 }
 #endif
 
-#ifdef USE_OPTICAL_FLOW
+#if defined(USE_NAV) && defined(USE_IRLOCK)
+void taskUpdateIrlock(timeUs_t currentTimeUs)
+{
+    UNUSED(currentTimeUs);
+    irlockUpdate();
+}
+#endif
+
+#ifdef USE_OPFLOW
 void taskUpdateOpticalFlow(timeUs_t currentTimeUs)
 {
     if (!sensors(SENSOR_OPFLOW))
@@ -233,6 +252,13 @@ void taskTelemetry(timeUs_t currentTimeUs)
 }
 #endif
 
+#if defined(USE_SMARTPORT_MASTER)
+void taskSmartportMaster(timeUs_t currentTimeUs)
+{
+    smartportMasterHandle(currentTimeUs);
+}
+#endif
+
 #ifdef USE_LED_STRIP
 void taskLedStrip(timeUs_t currentTimeUs)
 {
@@ -242,16 +268,18 @@ void taskLedStrip(timeUs_t currentTimeUs)
 }
 #endif
 
-#ifdef USE_PWM_SERVO_DRIVER
-void taskSyncPwmDriver(timeUs_t currentTimeUs)
+void taskSyncServoDriver(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
 
-    if (feature(FEATURE_PWM_SERVO_DRIVER)) {
-        pwmDriverSync();
-    }
-}
+#if defined(USE_SERVO_SBUS)
+    sbusServoSendUpdate();
 #endif
+
+#ifdef USE_PWM_SERVO_DRIVER
+    pwmDriverSync();
+#endif
+}
 
 #ifdef USE_OSD
 void taskUpdateOsd(timeUs_t currentTimeUs)
@@ -262,15 +290,27 @@ void taskUpdateOsd(timeUs_t currentTimeUs)
 }
 #endif
 
+void taskUpdateAux(timeUs_t currentTimeUs)
+{
+    UNUSED(currentTimeUs);
+    updatePIDCoefficients();
+    dynamicLpfGyroTask();
+}
+
 void fcTasksInit(void)
 {
     schedulerInit();
 
-    rescheduleTask(TASK_GYROPID, getLooptime());
-    setTaskEnabled(TASK_GYROPID, true);
+    rescheduleTask(TASK_PID, getLooptime());
+    setTaskEnabled(TASK_PID, true);
+
+    rescheduleTask(TASK_GYRO, getGyroLooptime());
+    setTaskEnabled(TASK_GYRO, true);
+
+    setTaskEnabled(TASK_AUX, true);
 
     setTaskEnabled(TASK_SERIAL, true);
-#ifdef BEEPER
+#if defined(BEEPER) || defined(USE_DSHOT)
     setTaskEnabled(TASK_BEEPER, true);
 #endif
 #ifdef USE_LIGHTS
@@ -310,11 +350,8 @@ void fcTasksInit(void)
 #ifdef STACK_CHECK
     setTaskEnabled(TASK_STACK_CHECK, true);
 #endif
-#ifdef USE_PWM_SERVO_DRIVER
-    setTaskEnabled(TASK_PWMDRIVER, feature(FEATURE_PWM_SERVO_DRIVER));
-#endif
-#ifdef USE_OSD
-    setTaskEnabled(TASK_OSD, feature(FEATURE_OSD));
+#if defined(USE_PWM_SERVO_DRIVER) || defined(USE_SERVO_SBUS)
+    setTaskEnabled(TASK_PWMDRIVER, (servoConfig()->servo_protocol == SERVO_TYPE_SERVO_DRIVER) || (servoConfig()->servo_protocol == SERVO_TYPE_SBUS) || (servoConfig()->servo_protocol == SERVO_TYPE_SBUS_PWM));
 #endif
 #ifdef USE_CMS
 #ifdef USE_MSP_DISPLAYPORT
@@ -323,7 +360,7 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_CMS, feature(FEATURE_OSD) || feature(FEATURE_DASHBOARD));
 #endif
 #endif
-#ifdef USE_OPTICAL_FLOW
+#ifdef USE_OPFLOW
     setTaskEnabled(TASK_OPFLOW, sensors(SENSOR_OPFLOW));
 #endif
 #ifdef USE_VTX_CONTROL
@@ -331,11 +368,20 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_VTXCTRL, true);
 #endif
 #endif
-#ifdef USE_UAV_INTERCONNECT
-    setTaskEnabled(TASK_UAV_INTERCONNECT, uavInterconnectBusIsInitialized());
-#endif
 #ifdef USE_RCDEVICE
     setTaskEnabled(TASK_RCDEVICE, rcdeviceIsEnabled());
+#endif
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    setTaskEnabled(TASK_PROGRAMMING_FRAMEWORK, true);
+#endif
+#ifdef USE_IRLOCK
+    setTaskEnabled(TASK_IRLOCK, irlockHasBeenDetected());
+#endif
+#if defined(USE_SMARTPORT_MASTER)
+    setTaskEnabled(TASK_SMARTPORT_MASTER, true);
+#endif
+#ifdef USE_SECONDARY_IMU
+    setTaskEnabled(TASK_SECONDARY_IMU, secondaryImuConfig()->hardwareType != SECONDARY_IMU_NONE && secondaryImuState.active);
 #endif
 }
 
@@ -346,10 +392,16 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .desiredPeriod = TASK_PERIOD_HZ(10),              // run every 100 ms, 10Hz
         .staticPriority = TASK_PRIORITY_HIGH,
     },
-    [TASK_GYROPID] = {
-        .taskName = "GYRO/PID",
+    [TASK_PID] = {
+        .taskName = "PID",
         .taskFunc = taskMainPidLoop,
         .desiredPeriod = TASK_PERIOD_US(1000),
+        .staticPriority = TASK_PRIORITY_REALTIME,
+    },
+    [TASK_GYRO] = {
+        .taskName = "GYRO",
+        .taskFunc = taskGyro,
+        .desiredPeriod = TASK_PERIOD_US(TASK_GYRO_LOOPTIME),
         .staticPriority = TASK_PRIORITY_REALTIME,
     },
     [TASK_SERIAL] = {
@@ -359,7 +411,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .staticPriority = TASK_PRIORITY_LOW,
     },
 
-#ifdef BEEPER
+#if defined(BEEPER) || defined(USE_DSHOT)
     [TASK_BEEPER] = {
         .taskName = "BEEPER",
         .taskFunc = beeperUpdate,
@@ -444,6 +496,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
+#ifdef USE_IRLOCK
+    [TASK_IRLOCK] = {
+        .taskName = "IRLOCK",
+        .taskFunc = taskUpdateIrlock,
+        .desiredPeriod = TASK_PERIOD_HZ(100),
+        .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
 #ifdef USE_DASHBOARD
     [TASK_DASHBOARD] = {
         .taskName = "DASHBOARD",
@@ -462,6 +523,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
+#if defined(USE_SMARTPORT_MASTER)
+    [TASK_SMARTPORT_MASTER] = {
+        .taskName = "SPORT MASTER",
+        .taskFunc = taskSmartportMaster,
+        .desiredPeriod = TASK_PERIOD_HZ(500),         // 500 Hz
+        .staticPriority = TASK_PRIORITY_IDLE,
+    },
+#endif
+
 #ifdef USE_LED_STRIP
     [TASK_LEDSTRIP] = {
         .taskName = "LEDSTRIP",
@@ -471,10 +541,10 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef USE_PWM_SERVO_DRIVER
+#if defined(USE_PWM_SERVO_DRIVER) || defined(USE_SERVO_SBUS)
     [TASK_PWMDRIVER] = {
-        .taskName = "PWMDRIVER",
-        .taskFunc = taskSyncPwmDriver,
+        .taskName = "SERVOS",
+        .taskFunc = taskSyncServoDriver,
         .desiredPeriod = TASK_PERIOD_HZ(200),         // 200 Hz
         .staticPriority = TASK_PRIORITY_HIGH,
     },
@@ -507,20 +577,11 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef USE_OPTICAL_FLOW
+#ifdef USE_OPFLOW
     [TASK_OPFLOW] = {
         .taskName = "OPFLOW",
         .taskFunc = taskUpdateOpticalFlow,
-        .desiredPeriod = TASK_PERIOD_HZ(100),   // I2C/SPI sensor will work at higher rate and accumulate, UIB/UART sensor will work at lower rate w/o accumulation
-        .staticPriority = TASK_PRIORITY_MEDIUM,
-    },
-#endif
-
-#ifdef USE_UAV_INTERCONNECT
-    [TASK_UAV_INTERCONNECT] = {
-        .taskName = "UIB",
-        .taskFunc = uavInterconnectBusTask,
-        .desiredPeriod = 1000000 / 500,          // 500 Hz
+        .desiredPeriod = TASK_PERIOD_HZ(100),   // I2C/SPI sensor will work at higher rate and accumulate, UART sensor will work at lower rate w/o accumulation
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif
@@ -542,4 +603,34 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .staticPriority = TASK_PRIORITY_IDLE,
     },
 #endif
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    [TASK_PROGRAMMING_FRAMEWORK] = {
+        .taskName = "PROGRAMMING",
+        .taskFunc = programmingFrameworkUpdateTask,
+        .desiredPeriod = TASK_PERIOD_HZ(10),          // 10Hz @100msec
+        .staticPriority = TASK_PRIORITY_IDLE,
+    },
+#endif
+#ifdef USE_SECONDARY_IMU
+    [TASK_SECONDARY_IMU] = {
+        .taskName = "IMU2",
+        .taskFunc = taskSecondaryImu,
+        .desiredPeriod = TASK_PERIOD_HZ(10),          // 10Hz @100msec
+        .staticPriority = TASK_PRIORITY_IDLE,
+    },
+#endif
+#ifdef USE_RPM_FILTER
+    [TASK_RPM_FILTER] = {
+        .taskName = "RPM",
+        .taskFunc = rpmFilterUpdateTask,
+        .desiredPeriod = TASK_PERIOD_HZ(RPM_FILTER_UPDATE_RATE_HZ),          // 300Hz @3,33ms
+        .staticPriority = TASK_PRIORITY_LOW,
+    },
+#endif
+    [TASK_AUX] = {
+        .taskName = "AUX",
+        .taskFunc = taskUpdateAux,
+        .desiredPeriod = TASK_PERIOD_HZ(TASK_AUX_RATE_HZ),          // 100Hz @10ms
+        .staticPriority = TASK_PRIORITY_HIGH,
+    },
 };

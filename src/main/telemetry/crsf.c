@@ -20,6 +20,7 @@
 #include <string.h>
 
 #include "platform.h"
+FILE_COMPILE_FOR_SPEED
 
 #if defined(USE_TELEMETRY) && defined(USE_SERIALRX_CRSF) && defined(USE_TELEMETRY_CRSF)
 
@@ -56,6 +57,7 @@
 #include "rx/rx.h"
 
 #include "sensors/battery.h"
+#include "sensors/sensors.h"
 
 #include "telemetry/crsf.h"
 #include "telemetry/telemetry.h"
@@ -117,7 +119,7 @@ bool handleCrsfMspFrameBuffer(uint8_t payloadSize, mspResponseFnPtr responseFn)
             requestHandled |= sendMspReply(payloadSize, responseFn);
         }
         pos += CRSF_MSP_LENGTH_OFFSET + mspFrameLength;
-        ATOMIC_BLOCK(NVIC_PRIO_SERIALUART1) {
+        ATOMIC_BLOCK(NVIC_PRIO_SERIALUART) {
             if (pos >= mspRxBuffer.len) {
                 mspRxBuffer.len = 0;
                 return requestHandled;
@@ -204,7 +206,7 @@ uint16_t    GPS heading ( degree / 100 )
 uint16      Altitude ( meter ­1000m offset )
 uint8_t     Satellites in use ( counter )
 */
-void crsfFrameGps(sbuf_t *dst)
+static void crsfFrameGps(sbuf_t *dst)
 {
     // use sbufWrite since CRC does not include frame length
     sbufWriteU8(dst, CRSF_FRAME_GPS_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
@@ -219,6 +221,19 @@ void crsfFrameGps(sbuf_t *dst)
 }
 
 /*
+0x07 Vario sensor
+Payload:
+int16      Vertical speed ( cm/s )
+*/
+static void crsfFrameVarioSensor(sbuf_t *dst)
+{
+    // use sbufWrite since CRC does not include frame length
+    sbufWriteU8(dst, CRSF_FRAME_VARIO_SENSOR_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
+    crsfSerialize8(dst, CRSF_FRAMETYPE_VARIO_SENSOR);
+    crsfSerialize16(dst, lrintf(getEstimatedActualVelocity(Z)));
+}
+
+/*
 0x08 Battery sensor
 Payload:
 uint16_t    Voltage ( mV * 100 )
@@ -226,12 +241,16 @@ uint16_t    Current ( mA * 100 )
 uint24_t    Capacity ( mAh )
 uint8_t     Battery remaining ( percent )
 */
-void crsfFrameBatterySensor(sbuf_t *dst)
+static void crsfFrameBatterySensor(sbuf_t *dst)
 {
     // use sbufWrite since CRC does not include frame length
     sbufWriteU8(dst, CRSF_FRAME_BATTERY_SENSOR_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
     crsfSerialize8(dst, CRSF_FRAMETYPE_BATTERY_SENSOR);
-    crsfSerialize16(dst, getBatteryVoltage() / 10); // vbat is in units of 0.01V
+    if (telemetryConfig()->report_cell_voltage) {
+        crsfSerialize16(dst, getBatteryAverageCellVoltage() / 10);
+    } else {
+        crsfSerialize16(dst, getBatteryVoltage() / 10); // vbat is in units of 0.01V
+    }
     crsfSerialize16(dst, getAmperage() / 10);
     const uint8_t batteryRemainingPercentage = calculateBatteryPercentage();
     crsfSerialize8(dst, (getMAhDrawn() >> 16));
@@ -258,7 +277,8 @@ typedef enum {
     CRSF_RF_POWER_100_mW = 3,
     CRSF_RF_POWER_500_mW = 4,
     CRSF_RF_POWER_1000_mW = 5,
-    CRSF_RF_POWER_2000_mW = 6
+    CRSF_RF_POWER_2000_mW = 6,
+    CRSF_RF_POWER_250_mW = 7
 } crsrRfPower_e;
 
 /*
@@ -271,7 +291,7 @@ int16_t     Yaw angle ( rad / 10000 )
 
 #define DECIDEGREES_TO_RADIANS10000(angle) ((int16_t)(1000.0f * (angle) * RAD))
 
-void crsfFrameAttitude(sbuf_t *dst)
+static void crsfFrameAttitude(sbuf_t *dst)
 {
      sbufWriteU8(dst, CRSF_FRAME_ATTITUDE_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
      crsfSerialize8(dst, CRSF_FRAMETYPE_ATTITUDE);
@@ -285,7 +305,7 @@ void crsfFrameAttitude(sbuf_t *dst)
 Payload:
 char[]      Flight mode ( Null­terminated string )
 */
-void crsfFrameFlightMode(sbuf_t *dst)
+static void crsfFrameFlightMode(sbuf_t *dst)
 {
     // just do "OK" for the moment as a placeholder
     // write zero for frame length, since we don't know it yet
@@ -296,7 +316,7 @@ void crsfFrameFlightMode(sbuf_t *dst)
     // use same logic as OSD, so telemetry displays same flight text as OSD when armed
     const char *flightMode = "OK";
     if (ARMING_FLAG(ARMED)) {
-        if (isAirmodeActive()) {
+        if (STATE(AIRMODE_ACTIVE)) {
             flightMode = "AIR";
         } else {
             flightMode = "ACRO";
@@ -311,9 +331,9 @@ void crsfFrameFlightMode(sbuf_t *dst)
             flightMode = "RTH";
         } else if (FLIGHT_MODE(NAV_POSHOLD_MODE)) {
             flightMode = "HOLD";
-        } else if (FLIGHT_MODE(NAV_CRUISE_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
+        } else if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
             flightMode = "3CRS";
-        } else if (FLIGHT_MODE(NAV_CRUISE_MODE)) {
+        } else if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
             flightMode = "CRS";
         } else if (FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
             flightMode = "AH";
@@ -350,8 +370,8 @@ uint32_t    Null Bytes
 uint8_t     255 (Max MSP Parameter)
 uint8_t     0x01 (Parameter version 1)
 */
-void crsfFrameDeviceInfo(sbuf_t *dst) {
-
+static void crsfFrameDeviceInfo(sbuf_t *dst)
+{
     char buff[30];
     tfp_sprintf(buff, "%s %s: %s", FC_FIRMWARE_NAME, FC_VERSION_STRING, TARGET_BOARD_IDENTIFIER);
 
@@ -379,6 +399,7 @@ typedef enum {
     CRSF_FRAME_BATTERY_SENSOR_INDEX,
     CRSF_FRAME_FLIGHT_MODE_INDEX,
     CRSF_FRAME_GPS_INDEX,
+    CRSF_FRAME_VARIO_SENSOR_INDEX,
     CRSF_SCHEDULE_COUNT_MAX
 } crsfFrameTypeIndex_e;
 
@@ -439,6 +460,13 @@ static void processCrsf(void)
         crsfFinalize(dst);
     }
 #endif
+#if defined(USE_BARO) || defined(USE_GPS)
+    if (currentSchedule & BV(CRSF_FRAME_VARIO_SENSOR_INDEX)) {
+        crsfInitializeFrame(dst);
+        crsfFrameVarioSensor(dst);
+        crsfFinalize(dst);
+    }
+#endif
     crsfScheduleIndex = (crsfScheduleIndex + 1) % crsfScheduleCount;
 }
 
@@ -462,12 +490,18 @@ void initCrsfTelemetry(void)
     crsfSchedule[index++] = BV(CRSF_FRAME_ATTITUDE_INDEX);
     crsfSchedule[index++] = BV(CRSF_FRAME_BATTERY_SENSOR_INDEX);
     crsfSchedule[index++] = BV(CRSF_FRAME_FLIGHT_MODE_INDEX);
+#ifdef USE_GPS
     if (feature(FEATURE_GPS)) {
         crsfSchedule[index++] = BV(CRSF_FRAME_GPS_INDEX);
     }
+#endif
+#if defined(USE_BARO) || defined(USE_GPS)
+    if (sensors(SENSOR_BARO) || (STATE(FIXED_WING_LEGACY) && feature(FEATURE_GPS))) {
+        crsfSchedule[index++] = BV(CRSF_FRAME_VARIO_SENSOR_INDEX);
+    }
+#endif
     crsfScheduleCount = (uint8_t)index;
-
- }
+}
 
 bool checkCrsfTelemetryState(void)
 {
@@ -489,7 +523,7 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
     // in between the RX frames.
     crsfRxSendTelemetryData();
 
-   // Send ad-hoc response frames as soon as possible
+    // Send ad-hoc response frames as soon as possible
 #if defined(USE_MSP_OVER_TELEMETRY)
     if (mspReplyPending) {
         mspReplyPending = handleCrsfMspFrameBuffer(CRSF_FRAME_TX_MSP_FRAME_SIZE, &crsfSendMspResponse);
@@ -510,7 +544,7 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
     }
 
     // Actual telemetry data only needs to be sent at a low frequency, ie 10Hz
-	// Spread out scheduled frames evenly so each frame is sent at the same frequency.
+    // Spread out scheduled frames evenly so each frame is sent at the same frequency.
     if (currentTimeUs >= crsfLastCycleTime + (CRSF_CYCLETIME_US / crsfScheduleCount)) {
         crsfLastCycleTime = currentTimeUs;
         processCrsf();
@@ -539,6 +573,9 @@ int getCrsfFrame(uint8_t *frame, crsfFrameType_e frameType)
         crsfFrameGps(sbuf);
         break;
 #endif
+    case CRSF_FRAMETYPE_VARIO_SENSOR:
+        crsfFrameVarioSensor(sbuf);
+        break;
     }
     const int frameSize = crsfFinalizeBuf(sbuf, frame);
     return frameSize;

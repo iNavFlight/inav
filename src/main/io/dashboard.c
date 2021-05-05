@@ -367,7 +367,7 @@ static void showStatusPage(void)
 
     if (feature(FEATURE_CURRENT_METER)) {
         i2c_OLED_set_line(rowIndex++);
-        tfp_sprintf(lineBuffer, "mAh: %d", getMAhDrawn());
+        tfp_sprintf(lineBuffer, "mAh: %d", (int)getMAhDrawn());
         padLineBufferToChar(12);
         i2c_OLED_send_string(lineBuffer);
 
@@ -392,7 +392,7 @@ static void showStatusPage(void)
         i2c_OLED_set_line(rowIndex++);
         i2c_OLED_send_string(lineBuffer);
 
-        tfp_sprintf(lineBuffer, "La/Lo: %d/%d", gpsSol.llh.lat / GPS_DEGREES_DIVIDER, gpsSol.llh.lon / GPS_DEGREES_DIVIDER);
+        tfp_sprintf(lineBuffer, "La/Lo: %d/%d", (int)(gpsSol.llh.lat / GPS_DEGREES_DIVIDER), (int)(gpsSol.llh.lon / GPS_DEGREES_DIVIDER));
         padLineBuffer();
         i2c_OLED_set_line(rowIndex++);
         i2c_OLED_send_string(lineBuffer);
@@ -412,20 +412,12 @@ static void showStatusPage(void)
 #ifdef USE_BARO
     if (sensors(SENSOR_BARO)) {
         int32_t alt = baroCalculateAltitude();
-        tfp_sprintf(lineBuffer, "Alt: %d", alt / 100);
+        tfp_sprintf(lineBuffer, "Alt: %d", (int)(alt / 100));
         padHalfLineBuffer();
         i2c_OLED_set_xy(HALF_SCREEN_CHARACTER_COLUMN_COUNT, rowIndex);
         i2c_OLED_send_string(lineBuffer);
     }
 #endif
-
-    rowIndex++;
-    char rollTrim[7], pitchTrim[7];
-    formatTrimDegrees(rollTrim, boardAlignment()->rollDeciDegrees);
-    formatTrimDegrees(pitchTrim, boardAlignment()->pitchDeciDegrees);
-    tfp_sprintf(lineBuffer, "Acc: %sR, %sP", rollTrim, pitchTrim );
-    i2c_OLED_set_line(rowIndex++);
-    i2c_OLED_send_string(lineBuffer);
 }
 
 void dashboardUpdate(timeUs_t currentTimeUs)
@@ -549,18 +541,6 @@ void dashboardInit(void)
 void dashboardSetNextPageChangeAt(timeUs_t futureMicros)
 {
     nextPageAt = futureMicros;
-}
-
-void formatTrimDegrees ( char *formattedTrim, int16_t trimValue ) {
-    char trim[6];
-    tfp_sprintf(trim, "%d", trimValue);
-    int x = strlen(trim)-1;
-    strncpy(formattedTrim,trim,x);
-    formattedTrim[x] = '\0';
-    if (trimValue !=0) {
-        strcat(formattedTrim,".");
-    }
-    strcat(formattedTrim,trim+x);
 }
 
 #endif

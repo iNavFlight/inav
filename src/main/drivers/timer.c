@@ -23,10 +23,10 @@
 #include "platform.h"
 
 #include "build/atomic.h"
-#include "build/debug.h"
 
-#include "common/utils.h"
+#include "common/log.h"
 #include "common/memory.h"
+#include "common/utils.h"
 
 #include "drivers/io.h"
 #include "drivers/rcc.h"
@@ -80,7 +80,7 @@ TCH_t * timerGetTCH(const timerHardware_t * timHw)
     const int timerIndex = lookupTimerIndex(timHw->tim);
     
     if (timerIndex >= HARDWARE_TIMER_DEFINITION_COUNT) {
-        DEBUG_TRACE("Can't find hardware timer definition");
+        LOG_E(TIMER, "Can't find hardware timer definition");
         return NULL;
     }
 
@@ -90,7 +90,7 @@ TCH_t * timerGetTCH(const timerHardware_t * timHw)
         
         // Check for OOM
         if (timerCtx[timerIndex] == NULL) {
-            DEBUG_TRACE("Can't allocate TCH object");
+            LOG_E(TIMER, "Can't allocate TCH object");
             return NULL;
         }
 
@@ -193,6 +193,16 @@ const timerHardware_t * timerGetByTag(ioTag_t tag, timerUsageFlag_e flag)
     return NULL;
 }
 
+const timerHardware_t * timerGetByUsageFlag(timerUsageFlag_e flag)
+{
+    for (int i = 0; i < timerHardwareCount; i++) {
+        if (timerHardware[i].usageFlags & flag) {
+            return &timerHardware[i];
+        }
+    }
+    return NULL;
+}
+
 void timerPWMConfigChannel(TCH_t * tch, uint16_t value)
 {
     impl_timerPWMConfigChannel(tch, value);
@@ -230,17 +240,17 @@ uint32_t timerGetBaseClock(TCH_t * tch)
 
 uint32_t timerGetBaseClockHW(const timerHardware_t * timHw)
 {
-    return SystemCoreClock / timerClockDivisor(timHw->tim);
+    return timerClock(timHw->tim);
 }
 
-bool timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint32_t dmaBufferSize)
+bool timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint8_t dmaBufferElementSize, uint32_t dmaBufferElementCount)
 {
-    return impl_timerPWMConfigChannelDMA(tch, dmaBuffer, dmaBufferSize);
+    return impl_timerPWMConfigChannelDMA(tch, dmaBuffer, dmaBufferElementSize, dmaBufferElementCount);
 }
 
-void timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferSize)
+void timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferElementCount)
 {
-    impl_timerPWMPrepareDMA(tch, dmaBufferSize);
+    impl_timerPWMPrepareDMA(tch, dmaBufferElementCount);
 }
 
 void timerPWMStartDMA(TCH_t * tch)

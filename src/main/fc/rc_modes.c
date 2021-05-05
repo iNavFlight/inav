@@ -19,6 +19,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "platform.h"
+
 #include "rc_modes.h"
 
 #include "common/bitarray.h"
@@ -31,11 +33,12 @@
 
 #include "fc/config.h"
 #include "fc/rc_controls.h"
+#include "fc/runtime_config.h"
+#include "fc/settings.h"
 
 #include "rx/rx.h"
 
 static uint8_t specifiedConditionCountPerMode[CHECKBOX_ITEM_COUNT];
-static bool isUsingSticksToArm = true;
 #ifdef USE_NAV
 static bool isUsingNAVModes = false;
 #endif
@@ -54,14 +57,66 @@ boxBitmask_t rcModeActivationMask; // one bit per mode defined in boxId_e
 PG_REGISTER_ARRAY(modeActivationCondition_t, MAX_MODE_ACTIVATION_CONDITION_COUNT, modeActivationConditions, PG_MODE_ACTIVATION_PROFILE, 0);
 PG_REGISTER(modeActivationOperatorConfig_t, modeActivationOperatorConfig, PG_MODE_ACTIVATION_OPERATOR_CONFIG, 0);
 
-bool isUsingSticksForArming(void)
-{
-    return isUsingSticksToArm;
+PG_RESET_TEMPLATE(modeActivationOperatorConfig_t, modeActivationOperatorConfig,
+    .modeActivationOperator = SETTING_MODE_RANGE_LOGIC_OPERATOR_DEFAULT
+);
+
+static void processAirmodeAirplane(void) {
+    if (feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE)) {
+        ENABLE_STATE(AIRMODE_ACTIVE);
+    } else {
+        DISABLE_STATE(AIRMODE_ACTIVE);
+    }
 }
 
-bool isAirmodeActive(void)
-{
-    return feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE);
+static void processAirmodeMultirotor(void) {
+    if ((rcControlsConfig()->airmodeHandlingType == STICK_CENTER) || (rcControlsConfig()->airmodeHandlingType == STICK_CENTER_ONCE)) {
+        if (feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE)) {
+            ENABLE_STATE(AIRMODE_ACTIVE);
+        } else {
+            DISABLE_STATE(AIRMODE_ACTIVE);
+        }
+    } else if (rcControlsConfig()->airmodeHandlingType == THROTTLE_THRESHOLD) {
+
+        if (!ARMING_FLAG(ARMED)) {
+            /*
+             * Disarm disables airmode immediately
+             */
+            DISABLE_STATE(AIRMODE_ACTIVE);
+        } else if (
+            !STATE(AIRMODE_ACTIVE) && 
+            rcCommand[THROTTLE] > rcControlsConfig()->airmodeThrottleThreshold &&
+            (feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE))
+        ) {
+            /*
+             * Airmode is allowed to be active only after ARMED and then THROTTLE goes above
+             * activation threshold
+             */
+            ENABLE_STATE(AIRMODE_ACTIVE);
+        } else if (
+            STATE(AIRMODE_ACTIVE) &&
+            !feature(FEATURE_AIRMODE) &&
+            !IS_RC_MODE_ACTIVE(BOXAIRMODE)
+        ) {
+            /*
+             *  When user disables BOXAIRMODE, turn airmode off as well
+             */
+            DISABLE_STATE(AIRMODE_ACTIVE);
+        }
+
+    } else {
+        DISABLE_STATE(AIRMODE_ACTIVE);
+    }
+}
+
+void processAirmode(void) {
+
+    if (STATE(AIRPLANE)) {
+        processAirmodeAirplane();
+    } else if (STATE(MULTIROTOR)) {
+        processAirmodeMultirotor();
+    }
+
 }
 
 #if defined(USE_NAV)
@@ -84,13 +139,7 @@ void rcModeUpdate(boxBitmask_t *newState)
 
 bool isModeActivationConditionPresent(boxId_e modeId)
 {
-    for (int index = 0; index < MAX_MODE_ACTIVATION_CONDITION_COUNT; index++) {
-        if (modeActivationConditions(index)->modeId == modeId && IS_RANGE_USABLE(&modeActivationConditions(index)->range)) {
-            return true;
-        }
-    }
-
-    return false;
+    return specifiedConditionCountPerMode[modeId] > 0;
 }
 
 bool isRangeActive(uint8_t auxChannelIndex, const channelRange_t *range)
@@ -102,7 +151,7 @@ bool isRangeActive(uint8_t auxChannelIndex, const channelRange_t *range)
     // No need to constrain() here, since we're testing for a closed range defined
     // by the channelRange_t. If channelValue has an invalid value, the test will
     // be false anyway.
-    uint16_t channelValue = rcData[auxChannelIndex + NON_AUX_CHANNEL_COUNT];
+    uint16_t channelValue = rxGetChannelValue(auxChannelIndex + NON_AUX_CHANNEL_COUNT);
     return (channelValue >= CHANNEL_RANGE_MIN + (range->startStep * CHANNEL_RANGE_STEP_WIDTH) &&
             channelValue < CHANNEL_RANGE_MIN + (range->endStep * CHANNEL_RANGE_STEP_WIDTH));
 }
@@ -159,11 +208,10 @@ void updateUsedModeActivationConditionFlags(void)
         }
     }
 
-    isUsingSticksToArm = !isModeActivationConditionPresent(BOXARM);
-
 #ifdef USE_NAV
     isUsingNAVModes = isModeActivationConditionPresent(BOXNAVPOSHOLD) ||
                         isModeActivationConditionPresent(BOXNAVRTH) ||
+                        isModeActivationConditionPresent(BOXNAVCOURSEHOLD) ||
                         isModeActivationConditionPresent(BOXNAVCRUISE) ||
                         isModeActivationConditionPresent(BOXNAVWP);
 #endif

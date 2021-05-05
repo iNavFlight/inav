@@ -23,6 +23,7 @@
 #include "common/axis.h"
 
 #include "drivers/pwm_esc_detect.h"
+#include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
 
 #include "fc/controlrate_profile.h"
@@ -49,31 +50,27 @@ void targetConfiguration(void)
 {
     // alternative defaults settings for ALIENFLIGHTF1 and ALIENFLIGHTF3 targets
     serialConfigMutable()->portConfigs[2].functionMask = FUNCTION_RX_SERIAL;
-    batteryMetersConfigMutable()->voltage_scale = 200;
+    batteryMetersConfigMutable()->voltage.scale = 200;
     rxConfigMutable()->spektrum_sat_bind = 5;
     rxConfigMutable()->spektrum_sat_bind_autoreset = 1;
 
     if (hardwareMotorType == MOTOR_BRUSHED) {
         motorConfigMutable()->motorPwmProtocol = PWM_TYPE_BRUSHED;
         motorConfigMutable()->motorPwmRate = BRUSHED_MOTORS_PWM_RATE;
-        motorConfigMutable()->minthrottle = 1000;
     }
 
     pidProfileMutable()->bank_mc.pid[ROLL].P = 36;
     pidProfileMutable()->bank_mc.pid[PITCH].P = 36;
     failsafeConfigMutable()->failsafe_delay = 2;
     failsafeConfigMutable()->failsafe_off_delay = 0;
-    controlRateProfilesMutable(0)->stabilized.rates[FD_PITCH] = CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_DEFAULT;
-    controlRateProfilesMutable(0)->stabilized.rates[FD_ROLL] = CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_DEFAULT;
-    controlRateProfilesMutable(0)->stabilized.rates[FD_YAW] = CONTROL_RATE_CONFIG_YAW_RATE_DEFAULT;
     parseRcChannels("TAER1234");
 
-    *customMotorMixerMutable(0) = (motorMixer_t){ 1.0f, -0.414178f,  1.0f, -1.0f };    // REAR_R
-    *customMotorMixerMutable(1) = (motorMixer_t){ 1.0f, -0.414178f, -1.0f,  1.0f };    // FRONT_R
-    *customMotorMixerMutable(2) = (motorMixer_t){ 1.0f,  0.414178f,  1.0f,  1.0f };    // REAR_L
-    *customMotorMixerMutable(3) = (motorMixer_t){ 1.0f,  0.414178f, -1.0f, -1.0f };    // FRONT_L
-    *customMotorMixerMutable(4) = (motorMixer_t){ 1.0f, -1.0f, -0.414178f, -1.0f };    // MIDFRONT_R
-    *customMotorMixerMutable(5) = (motorMixer_t){ 1.0f,  1.0f, -0.414178f,  1.0f };    // MIDFRONT_L
-    *customMotorMixerMutable(6) = (motorMixer_t){ 1.0f, -1.0f,  0.414178f,  1.0f };    // MIDREAR_R
-    *customMotorMixerMutable(7) = (motorMixer_t){ 1.0f,  1.0f,  0.414178f, -1.0f };    // MIDREAR_L
+    *primaryMotorMixerMutable(0) = (motorMixer_t){ 1.0f, -0.414178f,  1.0f, -1.0f };    // REAR_R
+    *primaryMotorMixerMutable(1) = (motorMixer_t){ 1.0f, -0.414178f, -1.0f,  1.0f };    // FRONT_R
+    *primaryMotorMixerMutable(2) = (motorMixer_t){ 1.0f,  0.414178f,  1.0f,  1.0f };    // REAR_L
+    *primaryMotorMixerMutable(3) = (motorMixer_t){ 1.0f,  0.414178f, -1.0f, -1.0f };    // FRONT_L
+    *primaryMotorMixerMutable(4) = (motorMixer_t){ 1.0f, -1.0f, -0.414178f, -1.0f };    // MIDFRONT_R
+    *primaryMotorMixerMutable(5) = (motorMixer_t){ 1.0f,  1.0f, -0.414178f,  1.0f };    // MIDFRONT_L
+    *primaryMotorMixerMutable(6) = (motorMixer_t){ 1.0f, -1.0f,  0.414178f,  1.0f };    // MIDREAR_R
+    *primaryMotorMixerMutable(7) = (motorMixer_t){ 1.0f,  1.0f,  0.414178f, -1.0f };    // MIDREAR_L
 }

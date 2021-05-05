@@ -25,18 +25,23 @@ typedef struct pt1Filter_s {
     float state;
     float RC;
     float dT;
+    float alpha;
 } pt1Filter_t;
 
 /* this holds the data required to update samples thru a filter */
 typedef struct biquadFilter_s {
     float b0, b1, b2, a1, a2;
-    float d1, d2;
+    float x1, x2, y1, y2;
 } biquadFilter_t;
+
+typedef union { 
+    biquadFilter_t biquad; 
+    pt1Filter_t pt1; 
+} filter_t;
 
 typedef enum {
     FILTER_PT1 = 0,
-    FILTER_BIQUAD,
-    FILTER_FIR,
+    FILTER_BIQUAD
 } filterType_e;
 
 typedef enum {
@@ -51,13 +56,31 @@ typedef struct firFilter_s {
     uint8_t coeffsLength;
 } firFilter_t;
 
+typedef struct alphaBetaGammaFilter_s {
+    float a, b, g, e;
+    float ak; // derivative of system velociy (ie: acceleration)
+    float vk; // derivative of system state (ie: velocity)
+    float xk; // current system state (ie: position)
+    float jk; // derivative of system acceleration (ie: jerk)
+    float rk; // residual error
+    float dT, dT2, dT3;
+    float halfLife, boost;
+    pt1Filter_t boostFilter;
+} alphaBetaGammaFilter_t;
+
 typedef float (*filterApplyFnPtr)(void *filter, float input);
+typedef float (*filterApply4FnPtr)(void *filter, float input, float f_cut, float dt);
+
+#define BIQUAD_BANDWIDTH 1.9f     /* bandwidth in octaves */
+#define BIQUAD_Q 1.0f / sqrtf(2.0f)     /* quality factor - butterworth*/
 
 float nullFilterApply(void *filter, float input);
+float nullFilterApply4(void *filter, float input, float f_cut, float dt);
 
 void pt1FilterInit(pt1Filter_t *filter, float f_cut, float dT);
 void pt1FilterInitRC(pt1Filter_t *filter, float tau, float dT);
 void pt1FilterSetTimeConstant(pt1Filter_t *filter, float tau);
+void pt1FilterUpdateCutoff(pt1Filter_t *filter, float f_cut);
 float pt1FilterGetLastOutput(pt1Filter_t *filter);
 float pt1FilterApply(pt1Filter_t *filter, float input);
 float pt1FilterApply3(pt1Filter_t *filter, float input, float dT);
@@ -67,17 +90,14 @@ void pt1FilterReset(pt1Filter_t *filter, float input);
 void rateLimitFilterInit(rateLimitFilter_t *filter);
 float rateLimitFilterApply4(rateLimitFilter_t *filter, float input, float rate_limit, float dT);
 
-void biquadRCFIR2FilterInit(biquadFilter_t *filter, uint16_t f_cut, uint32_t samplingIntervalUs);
-
 void biquadFilterInitNotch(biquadFilter_t *filter, uint32_t samplingIntervalUs, uint16_t filterFreq, uint16_t cutoffHz);
 void biquadFilterInitLPF(biquadFilter_t *filter, uint16_t filterFreq, uint32_t samplingIntervalUs);
 void biquadFilterInit(biquadFilter_t *filter, uint16_t filterFreq, uint32_t samplingIntervalUs, float Q, biquadFilterType_e filterType);
 float biquadFilterApply(biquadFilter_t *filter, float sample);
 float biquadFilterReset(biquadFilter_t *filter, float value);
-float filterGetNotchQ(uint16_t centerFreq, uint16_t cutoff);
+float biquadFilterApplyDF1(biquadFilter_t *filter, float input);
+float filterGetNotchQ(float centerFrequencyHz, float cutoffFrequencyHz);
+void biquadFilterUpdate(biquadFilter_t *filter, float filterFreq, uint32_t refreshRate, float Q, biquadFilterType_e filterType);
 
-void firFilterInit(firFilter_t *filter, float *buf, uint8_t bufLength, const float *coeffs);
-void firFilterInit2(firFilter_t *filter, float *buf, uint8_t bufLength, const float *coeffs, uint8_t coeffsLength);
-void firFilterUpdate(firFilter_t *filter, float input);
-float firFilterApply(const firFilter_t *filter);
-
+void alphaBetaGammaFilterInit(alphaBetaGammaFilter_t *filter, float alpha, float boostGain, float halfLife, float dT);
+float alphaBetaGammaFilterApply(alphaBetaGammaFilter_t *filter, float input);

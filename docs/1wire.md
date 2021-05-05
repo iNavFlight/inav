@@ -58,7 +58,7 @@ The following parameters can be used to enable and configure this in the related
 
        ```
        // Define your esc hardware
-       #if defined(STM32F3DISCOVERY) && !(defined(CHEBUZZF3))
+       #if defined(STM32F3DISCOVERY)
        const escHardware_t escHardware[ESC_COUNT] = {
          { GPIOD, 12 },
          { GPIOD, 13 },

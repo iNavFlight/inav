@@ -37,24 +37,18 @@
 #define BEEPER                  PC13
 #define BEEPER_INVERTED
 
-#define USE_ACC
-#define USE_GYRO
 #define USE_DUAL_GYRO
 
 // OMNIBUS F7 NEXT has two IMUs - MPU6000 onboard and ICM20608 (MPU6500) in the vibration dampened box
-#define USE_GYRO_MPU6000
-#define USE_ACC_MPU6000
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW180_DEG
 #define MPU6000_CS_PIN          PB12
 #define MPU6000_SPI_BUS         BUS_SPI1
-#define GYRO_MPU6000_ALIGN      CW180_DEG
-#define ACC_MPU6000_ALIGN       CW180_DEG
 
-#define USE_GYRO_MPU6500
-#define USE_ACC_MPU6500
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW90_DEG
 #define MPU6500_CS_PIN          PA8
 #define MPU6500_SPI_BUS         BUS_SPI1
-#define GYRO_MPU6500_ALIGN      CW90_DEG
-#define ACC_MPU6500_ALIGN       CW90_DEG
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
@@ -65,6 +59,7 @@
 #define USE_MAG_LIS3MDL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
+#define BNO055_I2C_BUS          BUS_I2C1
 
 #define USE_BARO
 #define USE_BARO_LPS25H
@@ -174,6 +169,8 @@
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #define USE_DSHOT
+#define USE_ESC_SENSOR
+#define USE_SERIALSHOT
 
 // Number of available PWM outputs
 #define MAX_PWM_OUTPUT_PORTS    6

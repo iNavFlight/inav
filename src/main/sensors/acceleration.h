@@ -45,9 +45,15 @@ typedef enum {
     ACC_MPU9250 = 9,
     ACC_BMI160 = 10,
     ACC_ICM20689 = 11,
-    ACC_FAKE = 12,
+    ACC_BMI088 = 12,
+    ACC_FAKE = 13,
     ACC_MAX = ACC_FAKE
 } accelerationSensor_e;
+
+typedef struct {
+    float min;
+    float max;
+} acc_extremes_t;
 
 typedef struct acc_s {
     accDev_t dev;
@@ -55,6 +61,9 @@ typedef struct acc_s {
     float accADCf[XYZ_AXIS_COUNT]; // acceleration in g
     float accVibeSq[XYZ_AXIS_COUNT];
     uint32_t accClipCount;
+    bool isClipped;
+    acc_extremes_t extremes[XYZ_AXIS_COUNT];
+    float maxG;
 } acc_t;
 
 extern acc_t acc;
@@ -67,6 +76,7 @@ typedef struct accelerometerConfig_s {
     flightDynamicsTrims_t accGain;          // Accelerometer gain to read exactly 1G
     uint8_t acc_notch_hz;                   // Accelerometer notch filter frequency
     uint8_t acc_notch_cutoff;               // Accelerometer notch filter cutoff frequency
+    uint8_t acc_soft_lpf_type;              // Accelerometer LPF type 
 } accelerometerConfig_t;
 
 PG_DECLARE(accelerometerConfig_t, accelerometerConfig);
@@ -75,9 +85,13 @@ bool accInit(uint32_t accTargetLooptime);
 bool accIsCalibrationComplete(void);
 void accStartCalibration(void);
 void accGetMeasuredAcceleration(fpVector3_t *measuredAcc);
+const acc_extremes_t* accGetMeasuredExtremes(void);
+float accGetMeasuredMaxG(void);
+void updateAccExtremes(void);
 void accGetVibrationLevels(fpVector3_t *accVibeLevels);
 float accGetVibrationLevel(void);
 uint32_t accGetClipCount(void);
+bool accIsClipped(void);
 void accUpdate(void);
 void accSetCalibrationValues(void);
 void accInitFilters(void);

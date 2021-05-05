@@ -34,14 +34,16 @@
 
 #ifdef USE_RCDEVICE
 
-#define IS_HI(X) (rcData[X] > 1750)
-#define IS_LO(X) (rcData[X] < 1250)
-#define IS_MID(X) (rcData[X] > 1250 && rcData[X] < 1750)
+#define IS_HI(X) (rxGetChannelValue(X) > FIVE_KEY_CABLE_JOYSTICK_MAX)
+#define IS_LO(X) (rxGetChannelValue(X) < FIVE_KEY_CABLE_JOYSTICK_MIN)
+#define IS_MID(X) (rxGetChannelValue(X) > FIVE_KEY_CABLE_JOYSTICK_MID_START && rxGetChannelValue(X) < FIVE_KEY_CABLE_JOYSTICK_MID_END)
 static runcamDevice_t runcamDevice;
 runcamDevice_t *camDevice = &runcamDevice;
 rcdeviceSwitchState_t switchStates[BOXCAMERA3 - BOXCAMERA1 + 1];
-bool rcdeviceInMenu;
-bool needRelease = false;
+bool rcdeviceInMenu = false;
+bool isButtonPressed = false;
+bool waitingDeviceResponse = false;
+
 
 static bool isFeatureSupported(uint8_t feature)
 {
@@ -52,67 +54,9 @@ static bool isFeatureSupported(uint8_t feature)
     return false;
 }
 
-static bool rcdeviceIsCameraControlEnabled(void)
-{
-    bool isPowerSimulationSupported = isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_POWER_BUTTON);
-    bool isWiFiSimulationSupported = isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_WIFI_BUTTON);
-    bool isChangeModeSupported = isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_CHANGE_MODE);
-
-    if (camDevice->serialPort != NULL && (isPowerSimulationSupported || isWiFiSimulationSupported || isChangeModeSupported)) {
-        return true;
-    }
-
-    return false;
-}
-
 bool rcdeviceIsEnabled(void)
 {
-    bool is5KeySimulationSupported = isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_5_KEY_OSD_CABLE);
-
-    if (camDevice->serialPort != NULL && (rcdeviceIsCameraControlEnabled() || is5KeySimulationSupported)) {
-        return true;
-    }
-
-    return false;
-}
-
-static bool rcdeviceIs5KeyEnabled(void)
-{
-    if (camDevice->serialPort != NULL && isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_5_KEY_OSD_CABLE)) {
-        return true;
-    }
-
-    return false;
-}
-
-static void rcdeviceCameraUpdateTime(void)
-{
-    static bool hasSynchronizedTime = false;
-    // don't try more than 3 times to avoid overloading the CPU if
-    // the camera doesn't accept the command for some reason.
-    static int retries = 0;
-    runcamDeviceWriteSettingResponse_t updateSettingResponse;
-    // Format is yyyyMMddThhmmss.0 plus null terminator, hence 18
-    // characters.
-    char buf[18];
-    dateTime_t dt;
-
-    if (isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_DEVICE_SETTINGS_ACCESS) &&
-        !hasSynchronizedTime && retries < 3) {
-
-        if (rtcGetDateTimeLocal(&dt)) {
-            retries++;
-            tfp_sprintf(buf, "%04d%02d%02dT%02d%02d%02d.0",
-                dt.year, dt.month, dt.day,
-                dt.hours, dt.minutes, dt.seconds);
-
-            bool ok = runcamDeviceWriteSetting(camDevice, RCDEVICE_PROTOCOL_SETTINGID_CAMERA_TIME,
-                buf, sizeof(buf), &updateSettingResponse);
-            if (ok && updateSettingResponse.resultCode == 0) {
-                hasSynchronizedTime = true;
-            }
-        }
-    }
+    return camDevice->serialPort != NULL;
 }
 
 static void rcdeviceCameraControlProcess(void)
@@ -131,7 +75,12 @@ static void rcdeviceCameraControlProcess(void)
             switch (i) {
             case BOXCAMERA1:
                 if (isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_WIFI_BUTTON)) {
-                    behavior = RCDEVICE_PROTOCOL_CAM_CTRL_SIMULATE_WIFI_BTN;
+                    // avoid display wifi page when arming, in the next firmware(>2.0) of rcsplit we have change the wifi page logic:
+                    // when the wifi was turn on it won't turn off the analog video output,
+                    // and just put a wifi indicator on the right top of the video output. here is for the old split firmware
+                    if (!ARMING_FLAG(ARMED)) {
+                        behavior = RCDEVICE_PROTOCOL_CAM_CTRL_SIMULATE_WIFI_BTN;
+                    }
                 }
                 break;
             case BOXCAMERA2:
@@ -141,7 +90,10 @@ static void rcdeviceCameraControlProcess(void)
                 break;
             case BOXCAMERA3:
                 if (isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_CHANGE_MODE)) {
-                    behavior = RCDEVICE_PROTOCOL_CAM_CTRL_CHANGE_MODE;
+                    // avoid change camera mode when arming
+                    if (!ARMING_FLAG(ARMED)) {
+                        behavior = RCDEVICE_PROTOCOL_CAM_CTRL_CHANGE_MODE;
+                    }
                 }
                 break;
             default:
@@ -155,10 +107,62 @@ static void rcdeviceCameraControlProcess(void)
             switchStates[switchIndex].isActivated = false;
         }
     }
-    rcdeviceCameraUpdateTime();
 }
 
-static bool rcdeviceCamSimulate5KeyCablePress(rcdeviceCamSimulationKeyEvent_e key)
+static void rcdeviceSimulationOSDCableFailed(rcdeviceResponseParsingContext_t *ctx)
+{
+    waitingDeviceResponse = false;
+    if (ctx->command == RCDEVICE_PROTOCOL_COMMAND_5KEY_CONNECTION) {
+        uint8_t operationID = ctx->paramData[0];
+        if (operationID == RCDEVICE_PROTOCOL_5KEY_CONNECTION_CLOSE) {
+            return;
+        }
+    }
+}
+
+static void rcdeviceSimulationRespHandle(rcdeviceResponseParsingContext_t *ctx)
+{
+    if (ctx->result != RCDEVICE_RESP_SUCCESS) {
+        rcdeviceSimulationOSDCableFailed(ctx);
+        waitingDeviceResponse = false;
+        return;
+    }
+
+    switch (ctx->command) {
+    case RCDEVICE_PROTOCOL_COMMAND_5KEY_SIMULATION_RELEASE:
+        isButtonPressed = false;
+        break;
+    case RCDEVICE_PROTOCOL_COMMAND_5KEY_CONNECTION:
+    {
+        // the high 4 bits is the operationID that we sent
+        // the low 4 bits is the result code
+        isButtonPressed = true;
+        uint8_t operationID = ctx->paramData[0];
+        bool errorCode = (ctx->recvBuf[1] & 0x0F);
+        if (operationID == RCDEVICE_PROTOCOL_5KEY_CONNECTION_OPEN) {
+            if (errorCode == 1) {
+                rcdeviceInMenu = true;
+                beeper(BEEPER_CAM_CONNECTION_OPEN);
+            } else {
+                beeper(BEEPER_CAM_CONNECTION_CLOSE);
+            }
+        } else if (operationID == RCDEVICE_PROTOCOL_5KEY_CONNECTION_CLOSE) {
+            if (errorCode == 1) {
+                rcdeviceInMenu = false;
+                beeper(BEEPER_CAM_CONNECTION_CLOSE);
+            }
+        }
+    }
+        break;
+    case RCDEVICE_PROTOCOL_COMMAND_5KEY_SIMULATION_PRESS:
+        isButtonPressed = true;
+        break;
+    }
+
+    waitingDeviceResponse = false;
+}
+
+static void rcdeviceCamSimulate5KeyCablePress(rcdeviceCamSimulationKeyEvent_e key)
 {
     uint8_t operation = RCDEVICE_PROTOCOL_5KEY_SIMULATION_NONE;
     switch (key) {
@@ -177,48 +181,38 @@ static bool rcdeviceCamSimulate5KeyCablePress(rcdeviceCamSimulationKeyEvent_e ke
     case RCDEVICE_CAM_KEY_ENTER:
         operation = RCDEVICE_PROTOCOL_5KEY_SIMULATION_SET;
         break;
+    case RCDEVICE_CAM_KEY_NONE:
     default:
         operation = RCDEVICE_PROTOCOL_5KEY_SIMULATION_NONE;
         break;
     }
 
-    return runcamDeviceSimulate5KeyOSDCableButtonPress(camDevice, operation);
+    runcamDeviceSimulate5KeyOSDCableButtonPress(camDevice, operation, rcdeviceSimulationRespHandle);
 }
 
-static bool rcdeviceSend5KeyOSDCableSimualtionEvent(rcdeviceCamSimulationKeyEvent_e key)
+void rcdeviceSend5KeyOSDCableSimualtionEvent(rcdeviceCamSimulationKeyEvent_e key)
 {
-    bool reqResult = false;
     switch (key) {
     case RCDEVICE_CAM_KEY_CONNECTION_OPEN:
-        reqResult = runcamDeviceOpen5KeyOSDCableConnection(camDevice);
-        if (reqResult) {
-            rcdeviceInMenu = true;
-            beeper(BEEPER_CAM_CONNECTION_OPEN);
-        }
+        runcamDeviceOpen5KeyOSDCableConnection(camDevice, rcdeviceSimulationRespHandle);
         break;
     case RCDEVICE_CAM_KEY_CONNECTION_CLOSE:
-        reqResult = runcamDeviceClose5KeyOSDCableConnection(camDevice);
-        if (reqResult) {
-            rcdeviceInMenu = false;
-            beeper(BEEPER_CAM_CONNECTION_CLOSE);
-        }
+        runcamDeviceClose5KeyOSDCableConnection(camDevice, rcdeviceSimulationRespHandle);
         break;
     case RCDEVICE_CAM_KEY_ENTER:
     case RCDEVICE_CAM_KEY_LEFT:
     case RCDEVICE_CAM_KEY_UP:
     case RCDEVICE_CAM_KEY_RIGHT:
     case RCDEVICE_CAM_KEY_DOWN:
-        reqResult = rcdeviceCamSimulate5KeyCablePress(key);
+        rcdeviceCamSimulate5KeyCablePress(key);
         break;
     case RCDEVICE_CAM_KEY_RELEASE:
-        reqResult = runcamDeviceSimulate5KeyOSDCableButtonRelease(camDevice);
+        runcamDeviceSimulate5KeyOSDCableButtonRelease(camDevice, rcdeviceSimulationRespHandle);
         break;
+    case RCDEVICE_CAM_KEY_NONE:
     default:
-        reqResult = false;
         break;
     }
-
-    return reqResult;
 }
 
 static void rcdevice5KeySimulationProcess(timeUs_t currentTimeUs)
@@ -231,26 +225,23 @@ static void rcdevice5KeySimulationProcess(timeUs_t currentTimeUs)
     }
 #endif
 
-    if (camDevice->serialPort == 0) {
+    if (camDevice->serialPort == 0 || ARMING_FLAG(ARMED)) {
         return;
     }
 
-    rcdeviceCamSimulationKeyEvent_e key = RCDEVICE_CAM_KEY_NONE;
-
-    if (needRelease) {
+    if (isButtonPressed) {
         if (IS_MID(YAW) && IS_MID(PITCH) && IS_MID(ROLL)) {
-            key = RCDEVICE_CAM_KEY_RELEASE;
-            if (rcdeviceSend5KeyOSDCableSimualtionEvent(key)) {
-                needRelease = false;
-            } else {
-                rcdeviceInMenu = false;
-            }
-            return;
-        } else {
-            return;
+            rcdeviceSend5KeyOSDCableSimualtionEvent(RCDEVICE_CAM_KEY_RELEASE);
+            waitingDeviceResponse = true;
         }
     } else {
-        if (IS_MID(THROTTLE) && IS_MID(ROLL) && IS_MID(PITCH) && IS_LO(YAW)) { // Disconnect HI YAW
+        if (waitingDeviceResponse) {
+            return;
+        }
+
+        rcdeviceCamSimulationKeyEvent_e key = RCDEVICE_CAM_KEY_NONE;
+
+        if (IS_MID(THROTTLE) && IS_MID(ROLL) && IS_MID(PITCH) && IS_LO(YAW)) { // Disconnect Lo YAW
             if (rcdeviceInMenu) {
                 key = RCDEVICE_CAM_KEY_CONNECTION_CLOSE;
             }
@@ -268,46 +259,38 @@ static void rcdevice5KeySimulationProcess(timeUs_t currentTimeUs)
                     key = RCDEVICE_CAM_KEY_ENTER;
                 }
             } else {
-                if (IS_MID(THROTTLE) && IS_MID(ROLL) && IS_MID(PITCH) && IS_HI(YAW) && !ARMING_FLAG(ARMED)) { // Enter HI YAW
+                if (IS_MID(THROTTLE) && IS_MID(ROLL) && IS_MID(PITCH) && IS_HI(YAW)) { // Enter HI YAW
                     key = RCDEVICE_CAM_KEY_CONNECTION_OPEN;
                 }
             }
         }
-    }
 
-    if (key != RCDEVICE_CAM_KEY_NONE) {
-        if (rcdeviceSend5KeyOSDCableSimualtionEvent(key)) {
-            needRelease = true;
-        } else {
-            rcdeviceInMenu = false;
+        if (key != RCDEVICE_CAM_KEY_NONE) {
+            rcdeviceSend5KeyOSDCableSimualtionEvent(key);
+            isButtonPressed = true;
+            waitingDeviceResponse = true;
         }
     }
 }
 
 void rcdeviceUpdate(timeUs_t currentTimeUs)
 {
-    if (rcdeviceIsCameraControlEnabled()) {
-        rcdeviceCameraControlProcess();
-    }
+    rcdeviceReceive(currentTimeUs);
 
-    if (rcdeviceIs5KeyEnabled()) {
-        rcdevice5KeySimulationProcess(currentTimeUs);
-    }
+    rcdeviceCameraControlProcess();
+
+    rcdevice5KeySimulationProcess(currentTimeUs);
 }
 
-bool rcdeviceInit(void)
+void rcdeviceInit(void)
 {
     // open serial port
-    if (!runcamDeviceInit(camDevice)) {
-        return false;
-    }
+    runcamDeviceInit(camDevice);
 
     for (boxId_e i = BOXCAMERA1; i <= BOXCAMERA3; i++) {
         uint8_t switchIndex = i - BOXCAMERA1;
         switchStates[switchIndex].isActivated = true;
     }
-
-    return true;
 }
 
 #endif

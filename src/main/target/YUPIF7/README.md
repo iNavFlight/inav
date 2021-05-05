@@ -34,9 +34,12 @@ The YuPiF7 is a 36x36mm (30.5x30.5 mounting holes) board with an F7 microcontrol
 
 ## Manufacturers and Distributors
 
-This board is available in the shop FR 
+This board is available in the shop
 
-Website : https://www.yupif7.com
+Website : https://www.studiosport.fr
+Website : https://www.drone-fpv-racer.com
+Website : https://www.fpv4drone.com
+Website : https://www.yupifc.com
 
 ## Hardware Designs (if available)
 

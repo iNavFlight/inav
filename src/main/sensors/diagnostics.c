@@ -30,13 +30,16 @@ extern uint8_t detectedSensors[SENSOR_INDEX_COUNT];
 
 hardwareSensorStatus_e getHwGyroStatus(void)
 {
-    // Gyro is assumed to be always healthy
+    // Gyro is assumed to be always healthy, but it must be present
+    if (detectedSensors[SENSOR_INDEX_GYRO] == GYRO_NONE) {
+        return HW_SENSOR_UNAVAILABLE;
+    }
+
     return HW_SENSOR_OK;
 }
 
 hardwareSensorStatus_e getHwAccelerometerStatus(void)
 {
-#if defined(USE_ACC)
     if (detectedSensors[SENSOR_INDEX_ACC] != ACC_NONE) {
         if (accIsHealthy()) {
             return HW_SENSOR_OK;
@@ -55,9 +58,6 @@ hardwareSensorStatus_e getHwAccelerometerStatus(void)
             return HW_SENSOR_NONE;
         }
     }
-#else
-    return HW_SENSOR_NONE;
-#endif
 }
 
 hardwareSensorStatus_e getHwCompassStatus(void)
@@ -192,7 +192,7 @@ hardwareSensorStatus_e getHwGPSStatus(void)
 
 hardwareSensorStatus_e getHwOpticalFlowStatus(void)
 {
-#if defined(USE_OPTICAL_FLOW)
+#if defined(USE_OPFLOW)
     if (detectedSensors[SENSOR_INDEX_OPFLOW] != OPFLOW_NONE) {
         if (opflowIsHealthy()) {
             return HW_SENSOR_OK;

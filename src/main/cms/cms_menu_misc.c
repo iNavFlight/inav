@@ -38,60 +38,16 @@
 
 #include "sensors/battery.h"
 
-//
-// Misc
-//
-
-static long cmsx_menuRcConfirmBack(const OSD_Entry *self)
-{
-    if (self && self->type == OME_Back)
-        return 0;
-    else
-        return -1;
-}
-
-//
-// RC preview
-//
-static const OSD_Entry cmsx_menuRcEntries[] =
-{
-    OSD_LABEL_ENTRY("-- RC PREV --"),
-
-    OSD_INT16_RO_ENTRY("ROLL", &rcData[ROLL]),
-    OSD_INT16_RO_ENTRY("PITCH", &rcData[PITCH]),
-    OSD_INT16_RO_ENTRY("THR", &rcData[THROTTLE]),
-    OSD_INT16_RO_ENTRY("YAW", &rcData[YAW]),
-
-    OSD_INT16_RO_ENTRY("AUX1", &rcData[AUX1]),
-    OSD_INT16_RO_ENTRY("AUX2", &rcData[AUX2]),
-    OSD_INT16_RO_ENTRY("AUX3", &rcData[AUX3]),
-    OSD_INT16_RO_ENTRY("AUX4", &rcData[AUX4]),
-
-    OSD_BACK_AND_END_ENTRY,
-};
-
-static const CMS_Menu cmsx_menuRcPreview = {
-#ifdef CMS_MENU_DEBUG
-    .GUARD_text = "XRCPREV",
-    .GUARD_type = OME_MENU,
-#endif
-    .onEnter = NULL,
-    .onExit = cmsx_menuRcConfirmBack,
-    .onGlobalExit = NULL,
-    .entries = cmsx_menuRcEntries
-};
-
 static const OSD_Entry menuMiscEntries[]=
 {
     OSD_LABEL_ENTRY("-- MISC --"),
 
-    OSD_SETTING_ENTRY("MIN THR", SETTING_MIN_THROTTLE),
+    OSD_SETTING_ENTRY("THR IDLE", SETTING_THROTTLE_IDLE),
 #if defined(USE_OSD) && defined(USE_ADC)
     OSD_SETTING_ENTRY("OSD VOLT DECIMALS", SETTING_OSD_MAIN_VOLTAGE_DECIMALS),
     OSD_SETTING_ENTRY("STATS ENERGY UNIT", SETTING_OSD_STATS_ENERGY_UNIT),
 #endif
-
-    OSD_SUBMENU_ENTRY("RC PREV", &cmsx_menuRcPreview),
+    OSD_SETTING_ENTRY("FS PROCEDURE", SETTING_FAILSAFE_PROCEDURE),
 
     OSD_BACK_AND_END_ENTRY,
 };

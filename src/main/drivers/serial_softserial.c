@@ -169,7 +169,7 @@ static bool isTimerPeriodTooLarge(uint32_t timerPeriod)
 
 static void serialTimerConfigureTimebase(TCH_t * tch, uint32_t baud)
 {
-    uint32_t baseClock = SystemCoreClock / timerClockDivisor(tch->timHw->tim);
+    uint32_t baseClock = timerClock(tch->timHw->tim);
     uint32_t clock = baseClock;
     uint32_t timerPeriod;
 
@@ -227,6 +227,12 @@ serialPort_t *openSoftSerial(softSerialPortIndex_e portIndex, serialReceiveCallb
     IO_t rxIO = IOGetByTag(tagRx);
     IO_t txIO = IOGetByTag(tagTx);
 
+	if (tagRx == tagTx) {
+		if ((mode & MODE_RX) && (mode & MODE_TX)) {
+			options |= SERIAL_BIDIR;
+		}
+	}
+    
     if (options & SERIAL_BIDIR) {
         // If RX and TX pins are both assigned, we CAN use either with a timer.
         // However, for consistency with hardware UARTs, we only use TX pin,
@@ -628,7 +634,8 @@ static const struct serialPortVTable softSerialVTable = {
     .isConnected = NULL,
     .writeBuf = NULL,
     .beginWrite = NULL,
-    .endWrite = NULL
+    .endWrite = NULL,
+    .isIdle = NULL,
 };
 
 #endif

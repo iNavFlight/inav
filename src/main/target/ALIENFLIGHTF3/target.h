@@ -21,7 +21,7 @@
 
 #define USE_HARDWARE_REVISION_DETECTION
 #define HW_PIN                  PB2
-#define BRUSHED_ESC_AUTODETECT
+#define USE_BRUSHED_ESC_AUTODETECT
 
 // LED's V1
 #define LED0                    PB4
@@ -38,27 +38,19 @@
 //#define DEBUG_MPU_DATA_READY_INTERRUPT
 
 // Using MPU6050 for the moment.
-#define USE_GYRO
-
-#define USE_GYRO_MPU6050
+#define USE_IMU_MPU6050
+#define IMU_MPU6050_ALIGN       CW270_DEG
 #define MPU6050_I2C_BUS         BUS_I2C2
-#define GYRO_MPU6050_ALIGN      CW270_DEG
 
-#define USE_GYRO_MPU9250
-#define GYRO_MPU6500_ALIGN      CW270_DEG
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW270_DEG
 #define MPU6500_CS_PIN          PA15
 #define MPU6500_SPI_BUS         BUS_SPI3
-#define GYRO_MPU9250_ALIGN      CW270_DEG
+
+#define USE_IMU_MPU9250
+#define IMU_MPU9250_ALIGN       CW270_DEG
 #define MPU9250_CS_PIN          PA15
 #define MPU9250_SPI_BUS         BUS_SPI3
-
-#define USE_ACC
-#define USE_ACC_MPU6050
-#define ACC_MPU6050_ALIGN       CW270_DEG
-#define USE_ACC_MPU6500
-#define ACC_MPU6500_ALIGN       CW270_DEG
-#define USE_ACC_MPU9250
-#define ACC_MPU9250_ALIGN       CW270_DEG
 
 // No baro support.
 //#define USE_BARO

@@ -30,19 +30,20 @@
 
 
 typedef struct failsafeConfig_s {
-    uint16_t failsafe_throttle;             // Throttle level used for landing - specify value between 1000..2000 (pwm pulse width for slightly below hover). center throttle = 1500.
-    uint16_t failsafe_throttle_low_delay;   // Time throttle stick must have been below 'min_check' to "JustDisarm" instead of "full failsafe procedure" (TENTH_SECOND)
-    uint8_t failsafe_delay;                 // Guard time for failsafe activation after signal lost. 1 step = 0.1sec - 1sec in example (10)
-    uint8_t failsafe_recovery_delay;        // Time from RC link recovery to failsafe abort. 1 step = 0.1sec - 1sec in example (10)
-    uint8_t failsafe_off_delay;             // Time for Landing before motors stop in 0.1sec. 1 step = 0.1sec - 20sec in example (200)
-    uint8_t failsafe_procedure;             // selected full failsafe procedure is 0: auto-landing, 1: Drop it, 2: Return To Home (RTH)
+    uint16_t failsafe_throttle;                 // Throttle level used for landing - specify value between 1000..2000 (pwm pulse width for slightly below hover). center throttle = 1500.
+    uint16_t failsafe_throttle_low_delay;       // Time throttle stick must have been below 'min_check' to "JustDisarm" instead of "full failsafe procedure" (TENTH_SECOND)
+    uint8_t failsafe_delay;                     // Guard time for failsafe activation after signal lost. 1 step = 0.1sec - 1sec in example (10)
+    uint8_t failsafe_recovery_delay;            // Time from RC link recovery to failsafe abort. 1 step = 0.1sec - 1sec in example (10)
+    uint8_t failsafe_off_delay;                 // Time for Landing before motors stop in 0.1sec. 1 step = 0.1sec - 20sec in example (200)
+    uint8_t failsafe_procedure;                 // selected full failsafe procedure is 0: auto-landing, 1: Drop it, 2: Return To Home (RTH)
 
-    int16_t failsafe_fw_roll_angle;         // Settings to be applies during "LAND" procedure on a fixed-wing
+    int16_t failsafe_fw_roll_angle;             // Settings to be applies during "LAND" procedure on a fixed-wing
     int16_t failsafe_fw_pitch_angle;
     int16_t failsafe_fw_yaw_rate;
     uint16_t failsafe_stick_motion_threshold;
-    uint16_t failsafe_min_distance;              // Minimum distance required for failsafe procedure to be taken. 1 step = 1 centimeter. 0 = Regular failsafe_procedure always active (default)
-    uint8_t failsafe_min_distance_procedure;     // selected minimum distance failsafe procedure is 0: auto-landing, 1: Drop it, 2: Return To Home (RTH)
+    uint16_t failsafe_min_distance;             // Minimum distance required for failsafe procedure to be taken. 1 step = 1 centimeter. 0 = Regular failsafe_procedure always active (default)
+    uint8_t failsafe_min_distance_procedure;    // selected minimum distance failsafe procedure is 0: auto-landing, 1: Drop it, 2: Return To Home (RTH)
+    bool failsafe_mission;                      // Enable failsafe in WP mode or not
 } failsafeConfig_t;
 
 PG_DECLARE(failsafeConfig_t, failsafeConfig);
@@ -56,7 +57,7 @@ typedef enum {
     /* In this phase, the connection from the receiver
      * has been confirmed as lost and it will either
      * transition into FAILSAFE_RX_LOSS_RECOVERED if the
-     * RX link is recovered inmmediately or one of the
+     * RX link is recovered immediately or one of the
      * recovery phases otherwise (as configured via
      * failsafe_procedure) or into FAILSAFE_RX_LOSS_IDLE
      * if failsafe_procedure is NONE.
@@ -134,7 +135,6 @@ typedef struct failsafeState_s {
     bool suspended;                         // Failsafe is temporary suspended. This happens when we temporary suspend RX system due to EEPROM write/read
     bool active;                            // Failsafe is active (on RC link loss)
     bool controlling;                       // Failsafe is driving the sticks instead of pilot
-    bool bypassNavigation;
     timeMs_t rxDataFailurePeriod;
     timeMs_t rxDataRecoveryPeriod;
     timeMs_t validRxDataReceivedAt;
@@ -143,6 +143,7 @@ typedef struct failsafeState_s {
     timeMs_t landingShouldBeFinishedAt;
     timeMs_t receivingRxDataPeriod;         // period for the required period of valid rxData
     timeMs_t receivingRxDataPeriodPreset;   // preset for the required period of valid rxData
+    failsafeProcedure_e activeProcedure;
     failsafePhase_e phase;
     failsafeRxLinkState_e rxLinkState;
     int16_t lastGoodRcCommand[4];

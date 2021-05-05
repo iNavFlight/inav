@@ -246,6 +246,17 @@ void uartWrite(serialPort_t *instance, uint8_t ch)
     __HAL_UART_ENABLE_IT(&s->Handle, UART_IT_TXE);
 }
 
+bool isUartIdle(serialPort_t *instance)
+{
+    uartPort_t *s = (uartPort_t *)instance;
+    if(__HAL_UART_GET_FLAG(&s->Handle, UART_FLAG_IDLE)) {
+        __HAL_UART_CLEAR_IDLEFLAG(&s->Handle);
+        return true;
+    } else {
+        return false;
+    }
+}
+
 const struct serialPortVTable uartVTable[] = {
     {
         .serialWrite = uartWrite,
@@ -259,5 +270,6 @@ const struct serialPortVTable uartVTable[] = {
         .writeBuf = NULL,
         .beginWrite = NULL,
         .endWrite = NULL,
+        .isIdle = isUartIdle,
     }
 };

@@ -15,7 +15,6 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #pragma once
 #define TARGET_BOARD_IDENTIFIER "YPF7"
 #define USBD_PRODUCT_STRING     "YUPIF7"
@@ -37,29 +36,18 @@
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
 // ICM 20689
-#define MPU6500_CS_PIN          SPI1_NSS_PIN
-#define MPU6500_SPI_BUS         BUS_SPI1
-
-#define USE_GYRO_MPU6500
-#define USE_ACC_MPU6500
+#define USE_IMU_ICM20689
+#define IMU_ICM20689_ALIGN      CW90_DEG
 #define ICM20689_CS_PIN         SPI1_NSS_PIN
-#define ICM20689_EXTI_PIN       PC4
-
-#define USE_ACC
-#define USE_ACC_SPI_MPU6500
-#define ACC_MPU6500_ALIGN       CW90_DEG
-
-#define USE_GYRO
-#define USE_GYRO_SPI_MPU6500
-#define GYRO_MPU6500_ALIGN      CW90_DEG
+#define ICM20689_SPI_BUS        BUS_SPI1
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_HMC5883
 #define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
 #define USE_MAG_QMC5883
-
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
+#define BNO055_I2C_BUS          BUS_I2C1
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
@@ -67,8 +55,10 @@
 #define USE_BARO_BMP280
 
 // Serial ports
+#define USB_IO
 #define USE_VCP
 #define VBUS_SENSING_PIN        PA8
+#define VBUS_SENSING_ENABLED
 
 #define USE_UART1
 #define UART1_RX_PIN            PA10
@@ -94,6 +84,14 @@
 
 #define USE_ESCSERIAL
 #define ESCSERIAL_TIMER_TX_HARDWARE 0
+
+#define UG2864_I2C_BUS          BUS_I2C1
+#define USE_DASHBOARD
+#define USE_OLED_UG2864
+#define DASHBOARD_ARMED_BITMAP
+
+#define USE_PITOT
+#define PITOT_I2C_BUS           BUS_I2C1
 
 //SPI ports
 #define USE_SPI
@@ -144,7 +142,12 @@
 #define USE_LED_STRIP
 #define WS2811_PIN                      PB1
 
+// DSHOT
+#define USE_DSHOT
+#define USE_ESC_SENSOR
+
 // Default configuration
+#define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART6
 #define TELEMETRY_UART          SERIAL_PORT_USART1
@@ -160,3 +163,4 @@
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
+

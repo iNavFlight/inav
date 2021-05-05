@@ -19,8 +19,6 @@
 
 #define TARGET_BOARD_IDENTIFIER "OMNI" // https://en.wikipedia.org/wiki/Omnibus
 
-#define CONFIG_FASTLOOP_PREFERRED_ACC ACC_NONE
-
 #define BEEPER                  PC15
 #define BEEPER_INVERTED
 
@@ -32,19 +30,17 @@
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PA7
 
+#undef USE_VTX_SMARTAUDIO       // Disabled due to flash size
+
 #define USE_EXTI
 
-#define USE_GYRO
-#define USE_GYRO_MPU6000
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW90_DEG
 #define MPU6000_SPI_BUS         BUS_SPI1
 #define MPU6000_CS_PIN          PA4
 #define GYRO_INT_EXTI            PC13
 #define USE_MPU_DATA_READY_SIGNAL
-#define GYRO_MPU6000_ALIGN      CW90_DEG
 
-#define USE_ACC
-#define USE_ACC_MPU6000
-#define ACC_MPU6000_ALIGN       CW90_DEG
 
 #define USE_BARO
 #define USE_BARO_BMP280
@@ -96,9 +92,7 @@
 #define SPI2_SCK_PIN            PB13
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PB15
-#define SPI2_CLOCK_LEADING_EDGE
 
-//#define USE_RX_SPI
 #define RX_SPI_INSTANCE SPI2
 #define RX_NSS_PIN PB3
 
@@ -125,8 +119,8 @@
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
 
-#define USE_LED_STRIP
-#define WS2811_PIN                      PA8
+//#define USE_LED_STRIP
+//#define WS2811_PIN                      PA8
 
 //#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 

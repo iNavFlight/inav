@@ -27,27 +27,21 @@
 
 /*** IMU sensors ***/
 #define USE_EXTI
-#define USE_GYRO
-#define USE_ACC
 
 #define GYRO_INT_EXTI            PC4
 #define USE_MPU_DATA_READY_SIGNAL
 
 // MPU6000
-#define USE_GYRO_MPU6000
-#define USE_ACC_MPU6000
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW90_DEG
 #define MPU6000_CS_PIN          PB2
 #define MPU6000_SPI_BUS         BUS_SPI1
-#define GYRO_MPU6000_ALIGN      CW90_DEG
-#define ACC_MPU6000_ALIGN       CW90_DEG
 
 // ICM20689 - handled by MPU6500 driver
-#define USE_GYRO_MPU6500
-#define USE_ACC_MPU6500
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW90_DEG
 #define MPU6500_CS_PIN          PB2
 #define MPU6500_SPI_BUS         BUS_SPI1
-#define GYRO_MPU6500_ALIGN      CW90_DEG
-#define ACC_MPU6500_ALIGN       CW90_DEG
 
 /*** SPI/I2C bus ***/
 #define USE_SPI
@@ -116,12 +110,14 @@
 #define USE_BARO_BMP085
 
 #define USE_MAG
-#define MAG_I2C_BUS             BUS_I2C2
+#define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
+
+#define BNO055_I2C_BUS          BUS_I2C1
 
 /*** ADC ***/
 #define USE_ADC
@@ -145,6 +141,7 @@
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 #define MAX_PWM_OUTPUT_PORTS            6
 #define USE_DSHOT
+#define USE_ESC_SENSOR
 
 /*** Used pins ***/
 #define TARGET_IO_PORTA         0xffff

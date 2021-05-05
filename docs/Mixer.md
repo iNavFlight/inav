@@ -82,10 +82,25 @@ Each servo mixing rule has the following parameters:
 | 26 | Stabilized PITCH-        | Clipped between -1000 and 0 |
 | 27 | Stabilized YAW+          | Clipped between 0 and 1000 |
 | 28 | Stabilized YAW-          | Clipped between -1000 and 0 |
-
+| 29 | MAX                      | Constant value of 500 |
 
 The `smix reset` command removes all the existing motor mixing rules.
 
 The `smix` command is used to list, create or modify rules. To list the currently defined rules run the `smix` command without parameters.
 
-To create or modify rules use the `smix` command with the following syntax: `smix <n> <servo_index> <input_id> <weight> <speed>`. `<n>` is representing the index of the servo mixing rule to create or modify (integer). To disable a mixing rule set the weight to 0.
+To create or modify rules use the `smix` command with the following syntax: `smix <n> <servo_index> <input_id> <weight> <speed> <logic_condition_id>`. `<n>` is representing the index of the servo mixing rule to create or modify (integer). To disable a mixing rule set the weight to 0.
+
+`logic_condition_id` default value is `-1` for rules that should be always executed. 
+
+### Logic Conditions
+
+[Logic Conditions](Logic%20Conditions.md) allows to activate/deactivate `smix` rules based on user input and flight parameters. If Logic Condition evaluates as `false`, smix rule connected with with LC will not be active and used inside the Mixer. 
+
+This mechanism allows to move servos when desired conditions are met. For example, if an airplane is equipped with a pitot tube and flaps, flaps can be automatically deployed when airspeed goes below a threshold.
+
+Other usages can be:
+
+* automatic parachute deployment
+* VTOL and especially tail-sitters that require change in mixings during flight mode transition
+* crowbar airbrakes
+* any kind of servo mixings that should be changed during flight

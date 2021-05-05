@@ -420,10 +420,10 @@ uint32_t millis(void)
     return sysTickUptime;
 }
 
-throttleStatus_e calculateThrottleStatus(rxConfig_t *rxConfig, uint16_t deadband3d_throttle)
+throttleStatus_e calculateThrottleStatus(rxConfig_t *rxConfig, uint16_t mid_throttle_deadband)
 {
     UNUSED(rxConfig);
-    UNUSED(deadband3d_throttle);
+    UNUSED(mid_throttle_deadband);
     return throttleStatus;
 }
 
@@ -456,11 +456,6 @@ uint16_t disableFlightMode(flightModeFlags_e mask)
 uint16_t getCurrentMinthrottle(void)
 {
     return testMinThrottle;
-}
-
-bool isUsingSticksForArming(void)
-{
-    return isUsingSticksToArm;
 }
 
 }

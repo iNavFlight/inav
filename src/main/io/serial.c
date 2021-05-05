@@ -49,6 +49,7 @@
 #include "io/serial.h"
 
 #include "fc/cli.h"
+#include "fc/settings.h"
 
 #include "msp/msp_serial.h"
 
@@ -115,7 +116,7 @@ void pgResetFn_serialConfig(serialConfig_t *serialConfig)
         serialConfig->portConfigs[i].peripheral_baudrateIndex = BAUD_115200;
     }
 
-    serialConfig->portConfigs[0].functionMask = FUNCTION_MSP | FUNCTION_DEBUG_TRACE;
+    serialConfig->portConfigs[0].functionMask = FUNCTION_MSP;
 
 #ifdef SERIALRX_UART
     serialPortConfig_t *serialRxUartConfig = serialFindPortConfiguration(SERIALRX_UART);
@@ -147,7 +148,7 @@ void pgResetFn_serialConfig(serialConfig_t *serialConfig)
     }
 #endif
 
-    serialConfig->reboot_character = 'R';
+    serialConfig->reboot_character = SETTING_REBOOT_CHARACTER_DEFAULT;
 }
 
 baudRate_e lookupBaudRateIndex(uint32_t baudRate)
@@ -263,7 +264,7 @@ serialPort_t *findNextSharedSerialPort(uint32_t functionMask, serialPortFunction
 }
 
 #define ALL_TELEMETRY_FUNCTIONS_MASK (FUNCTION_TELEMETRY_FRSKY | FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)
-#define ALL_FUNCTIONS_SHARABLE_WITH_MSP (FUNCTION_BLACKBOX | ALL_TELEMETRY_FUNCTIONS_MASK | FUNCTION_DEBUG_TRACE)
+#define ALL_FUNCTIONS_SHARABLE_WITH_MSP (FUNCTION_BLACKBOX | ALL_TELEMETRY_FUNCTIONS_MASK | FUNCTION_LOG)
 
 bool isSerialConfigValid(const serialConfig_t *serialConfigToCheck)
 {

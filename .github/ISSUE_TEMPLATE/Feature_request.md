@@ -1,6 +1,9 @@
 ---
 name: "\U0001F680Feature request"
 about: Suggest a new feature for INAV
+title: ''
+labels: ''
+assignees: ''
 
 ---
 

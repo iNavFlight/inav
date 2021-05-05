@@ -37,6 +37,7 @@
 #endif
 
 #define USE_DSHOT
+#define USE_ESC_SENSOR
 
 // Status LED
 #define LED0                    PA8
@@ -61,31 +62,28 @@
 #define GYRO_INT_EXTI            PC8
 // #define USE_MPU_DATA_READY_SIGNAL        // Not connected on FireworksV2
 
-#define USE_GYRO
-#define USE_ACC
-
-#define USE_GYRO_MPU6500
-#define USE_ACC_MPU6500
+#define USE_DUAL_GYRO
+#define USE_TARGET_IMU_HARDWARE_DESCRIPTORS     // Don't use common busdev descriptors for IMU
+#define USE_IMU_MPU6500
+#define USE_IMU_MPU6000
 
 #if defined(OMNIBUSF4V6)
-#define MPU6500_CS_PIN          PC14
-#define MPU6500_SPI_BUS         BUS_SPI1
-#define GYRO_MPU6500_ALIGN      CW0_DEG
-#define ACC_MPU6500_ALIGN       CW0_DEG
+#   define IMU_1_CS_PIN            PA4
+#   define IMU_1_SPI_BUS           BUS_SPI1
+#   define IMU_1_ALIGN             CW180_DEG
+#   define IMU_2_CS_PIN            PC14
+#   define IMU_2_SPI_BUS           BUS_SPI1
+#   define IMU_2_ALIGN             CW0_DEG
 #else
-#define MPU6500_CS_PIN          PD2
-#define MPU6500_SPI_BUS         BUS_SPI3
-#define GYRO_MPU6500_ALIGN      CW180_DEG
-#define ACC_MPU6500_ALIGN       CW180_DEG
+    // IMU_1 is verified to work on OBF4V6 and Omnibus Fireworks board
+#   define IMU_1_CS_PIN            PA4
+#   define IMU_1_SPI_BUS           BUS_SPI1
+#   define IMU_1_ALIGN             CW0_DEG_FLIP
+    // IMU_2 is sketchy and was not verified on actual hardware
+#   define IMU_2_CS_PIN            PD2
+#   define IMU_2_SPI_BUS           BUS_SPI3
+#   define IMU_2_ALIGN             CW180_DEG
 #endif
-
-// OmnibusF4 Nano v6 and OmnibusF4 V6 has a MPU6000
-#define USE_GYRO_MPU6000
-#define USE_ACC_MPU6000
-#define MPU6000_CS_PIN          PA4
-#define MPU6000_SPI_BUS         BUS_SPI1
-#define GYRO_MPU6000_ALIGN      CW180_DEG
-#define ACC_MPU6000_ALIGN       CW180_DEG
 
 #define USE_MAG
 #if defined(OMNIBUSF4V6)
@@ -182,11 +180,11 @@
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PA15
 
-#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
-#define M25P16_CS_PIN           PB12
-#define M25P16_SPI_BUS          BUS_SPI2
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
+#define M25P16_CS_PIN           PB12
+#define M25P16_SPI_BUS          BUS_SPI2
+#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PC1
@@ -223,8 +221,8 @@
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 // Number of available PWM outputs
-#define MAX_PWM_OUTPUT_PORTS    4
-#define TARGET_MOTOR_COUNT      4
+#define MAX_PWM_OUTPUT_PORTS    8
+#define TARGET_MOTOR_COUNT      6
 
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
@@ -233,6 +231,8 @@
 
 #if defined(OMNIBUSF4V6)
 #define PCA9685_I2C_BUS         BUS_I2C1
+#define BNO055_I2C_BUS          BUS_I2C1
 #else
 #define PCA9685_I2C_BUS         BUS_I2C2
+#define BNO055_I2C_BUS          BUS_I2C2
 #endif

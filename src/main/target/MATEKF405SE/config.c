@@ -26,9 +26,7 @@
 // alternative defaults settings for MATEKF405SE targets
 void targetConfiguration(void)
 {
-    motorConfigMutable()->minthrottle = 1050;
-    motorConfigMutable()->maxthrottle = 1950;
-
+    
     serialConfigMutable()->portConfigs[1].functionMask = FUNCTION_MSP;
     serialConfigMutable()->portConfigs[1].msp_baudrateIndex = BAUD_57600;
 

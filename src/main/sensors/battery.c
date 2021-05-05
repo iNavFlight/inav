@@ -39,15 +39,18 @@
 #include "fc/fc_core.h"
 #include "fc/runtime_config.h"
 #include "fc/stats.h"
+#include "fc/settings.h"
 
 #include "flight/imu.h"
 #include "flight/mixer.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_private.h"
 
 #include "config/feature.h"
 
 #include "sensors/battery.h"
+#include "sensors/esc_sensor.h"
 
 #include "rx/rx.h"
 
@@ -96,44 +99,51 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
 {
     for (int i = 0; i < MAX_BATTERY_PROFILE_COUNT; i++) {
         RESET_CONFIG(batteryProfile_t, &instance[i],
-            .cells = 0,
+#ifdef USE_ADC
+            .cells = SETTING_BAT_CELLS_DEFAULT,
 
             .voltage = {
-                .cellDetect = 430,
-                .cellMax = 420,
-                .cellMin = 330,
-                .cellWarning = 350
+                .cellDetect = SETTING_VBAT_CELL_DETECT_VOLTAGE_DEFAULT,
+                .cellMax = SETTING_VBAT_MAX_CELL_VOLTAGE_DEFAULT,
+                .cellMin = SETTING_VBAT_MIN_CELL_VOLTAGE_DEFAULT,
+                .cellWarning = SETTING_VBAT_WARNING_CELL_VOLTAGE_DEFAULT
             },
+#endif
 
             .capacity = {
-                .value = 0,
-                .warning = 0,
-                .critical = 0,
-                .unit = BAT_CAPACITY_UNIT_MAH,
+                .value = SETTING_BATTERY_CAPACITY_DEFAULT,
+                .warning = SETTING_BATTERY_CAPACITY_WARNING_DEFAULT,
+                .critical = SETTING_BATTERY_CAPACITY_CRITICAL_DEFAULT,
+                .unit = SETTING_BATTERY_CAPACITY_UNIT_DEFAULT,
             }
         );
     }
 }
 
-PG_REGISTER_WITH_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig, PG_BATTERY_METERS_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig, PG_BATTERY_METERS_CONFIG, 1);
 
 PG_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig,
 
-    .voltage_scale = VBAT_SCALE_DEFAULT,
+#ifdef USE_ADC
+    .voltage = {
+        .type = SETTING_VBAT_METER_TYPE_DEFAULT,
+        .scale = VBAT_SCALE_DEFAULT,
+    },
+#endif
 
     .current = {
-        .type = CURRENT_SENSOR_ADC,
+        .type = SETTING_CURRENT_METER_TYPE_DEFAULT,
         .scale = CURRENT_METER_SCALE,
         .offset = CURRENT_METER_OFFSET
     },
 
-    .voltageSource = BAT_VOLTAGE_RAW,
+    .voltageSource = SETTING_BAT_VOLTAGE_SRC_DEFAULT,
 
-    .cruise_power = 0,
-    .idle_power = 0,
-    .rth_energy_margin = 5,
+    .cruise_power = SETTING_CRUISE_POWER_DEFAULT,
+    .idle_power = SETTING_IDLE_POWER_DEFAULT,
+    .rth_energy_margin = SETTING_RTH_ENERGY_MARGIN_DEFAULT,
 
-    .throttle_compensation_weight = 1.0f
+    .throttle_compensation_weight = SETTING_THR_COMP_WEIGHT_DEFAULT
 
 );
 
@@ -146,6 +156,7 @@ void batteryInit(void)
     batteryCriticalVoltage = 0;
 }
 
+#ifdef USE_ADC
 // profileDetect() profile sorting compare function
 static int profile_compare(profile_comp_t *a, profile_comp_t *b) {
     if (a->max_voltage < b->max_voltage)
@@ -157,7 +168,7 @@ static int profile_compare(profile_comp_t *a, profile_comp_t *b) {
 }
 
 // Find profile matching plugged battery for profile_autoselect
-static int8_t profileDetect() {
+static int8_t profileDetect(void) {
     profile_comp_t profile_comp_array[MAX_BATTERY_PROFILE_COUNT];
 
     // Prepare profile sort
@@ -178,6 +189,7 @@ static int8_t profileDetect() {
     // No matching profile found
     return -1;
 }
+#endif
 
 void setBatteryProfile(uint8_t profileIndex)
 {
@@ -198,13 +210,37 @@ void activateBatteryProfile(void)
     }
 }
 
+#ifdef USE_ADC
 static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
 {
     static pt1Filter_t vbatFilterState;
 
-    // calculate battery voltage based on ADC reading
-    // result is Vbatt in 0.01V steps. 3.3V = ADC Vref, 0xFFF = 12bit adc, 1100 = 11:1 voltage divider (10k:1k)
-    vbat = (uint64_t)adcGetChannel(ADC_BATTERY) * batteryMetersConfig()->voltage_scale * ADCVREF / (0xFFF * 1000);
+    switch (batteryMetersConfig()->voltage.type) {
+        case VOLTAGE_SENSOR_ADC:
+            {
+                // calculate battery voltage based on ADC reading
+                // result is Vbatt in 0.01V steps. 3.3V = ADC Vref, 0xFFF = 12bit adc, 1100 = 11:1 voltage divider (10k:1k)
+                vbat = (uint64_t)adcGetChannel(ADC_BATTERY) * batteryMetersConfig()->voltage.scale * ADCVREF / (0xFFF * 1000);
+                break;
+            }
+#if defined(USE_ESC_SENSOR)
+        case VOLTAGE_SENSOR_ESC:
+            {
+                escSensorData_t * escSensor = escSensorGetData();
+                if (escSensor && escSensor->dataAge <= ESC_DATA_MAX_AGE) {
+                    vbat = escSensor->voltage;
+                }
+                else {
+                    vbat = 0;
+                }
+            }
+            break;
+#endif
+        case VOLTAGE_SENSOR_NONE:
+        default:
+            vbat = 0;
+            break;
+    }
 
     if (justConnected) {
         pt1FilterReset(&vbatFilterState, vbat);
@@ -239,7 +275,11 @@ void batteryUpdate(timeUs_t timeDelta)
             batteryCellCount = currentBatteryProfile->cells;
         else {
             batteryCellCount = (vbat / currentBatteryProfile->voltage.cellDetect) + 1;
-            if (batteryCellCount > 8) batteryCellCount = 8; // something is wrong, we expect 8 cells maximum (and autodetection will be problematic at 6+ cells)
+            // Assume there are no 7S, 9S and 11S batteries so round up to 8S, 10S and 12S respectively
+            if (batteryCellCount == 7 || batteryCellCount == 9 || batteryCellCount == 11) {
+                batteryCellCount += 1;
+            }
+            batteryCellCount = MIN(batteryCellCount, 12);
         }
 
         batteryFullVoltage = batteryCellCount * currentBatteryProfile->voltage.cellMax;
@@ -313,6 +353,7 @@ void batteryUpdate(timeUs_t timeDelta)
             }
     }
 }
+#endif
 
 batteryState_e getBatteryState(void)
 {
@@ -439,16 +480,42 @@ void currentMeterUpdate(timeUs_t timeDelta)
         case CURRENT_SENSOR_VIRTUAL:
             amperage = batteryMetersConfig()->current.offset;
             if (ARMING_FLAG(ARMED)) {
-                throttleStatus_e throttleStatus = calculateThrottleStatus();
-                int32_t throttleOffset = ((throttleStatus == THROTTLE_LOW) && feature(FEATURE_MOTOR_STOP)) ? 0 : (int32_t)rcCommand[THROTTLE] - 1000;
+                throttleStatus_e throttleStatus = calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC);
+                navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
+                bool allNav = navConfig()->general.flags.nav_overrides_motor_stop == NOMS_ALL_NAV && posControl.navState != NAV_STATE_IDLE;
+                bool autoNav = navConfig()->general.flags.nav_overrides_motor_stop == NOMS_AUTO_ONLY && (stateFlags & (NAV_AUTO_RTH | NAV_AUTO_WP));
+                int32_t throttleOffset;
+
+                if (allNav || autoNav) {    // account for motors running in Nav modes with throttle low + motor stop
+                    throttleOffset = (int32_t)rcCommand[THROTTLE] - 1000;
+                } else {
+                    throttleOffset = ((throttleStatus == THROTTLE_LOW) && feature(FEATURE_MOTOR_STOP)) ? 0 : (int32_t)rcCommand[THROTTLE] - 1000;
+                }
                 int32_t throttleFactor = throttleOffset + (throttleOffset * throttleOffset / 50);
                 amperage += throttleFactor * batteryMetersConfig()->current.scale / 1000;
             }
             break;
+#if defined(USE_ESC_SENSOR)
+        case CURRENT_SENSOR_ESC:
+            {
+                escSensorData_t * escSensor = escSensorGetData();
+                if (escSensor && escSensor->dataAge <= ESC_DATA_MAX_AGE) {
+                    amperage = pt1FilterApply4(&amperageFilterState, escSensor->current, AMPERAGE_LPF_FREQ, timeDelta * 1e-6f);
+                }
+                else {
+                    amperage = 0;
+                }
+            }
+            break;
+#endif
         case CURRENT_SENSOR_NONE:
+        default:
             amperage = 0;
             break;
     }
+
+    // Clamp amperage to positive values
+    amperage = MAX(0, amperage);
 
     // Work around int64 math compiler bug, don't change it unless the bug has been fixed !
     // should be: mAhdrawnRaw += (int64_t)amperage * timeDelta / 1000;
@@ -503,7 +570,7 @@ void sagCompensatedVBatUpdate(timeUs_t currentTime, timeUs_t timeDelta)
 
     } else {
 
-        if (cmpTimeUs(currentTime, recordTimestamp) > 500000)
+        if (cmpTimeUs(currentTime, recordTimestamp) > MS2US(500))
             recordTimestamp = 0;
 
         if (!recordTimestamp) {
@@ -520,7 +587,7 @@ void sagCompensatedVBatUpdate(timeUs_t currentTime, timeUs_t timeDelta)
 
             if (impedanceFilterState.state) {
                 pt1FilterSetTimeConstant(&impedanceFilterState, impedanceSampleCount > IMPEDANCE_STABLE_SAMPLE_COUNT_THRESH ? 1.2 : 0.5);
-                pt1FilterApply3(&impedanceFilterState, impedanceSample, timeDelta * 1e-6f);
+                pt1FilterApply3(&impedanceFilterState, impedanceSample, US2S(timeDelta));
             } else {
                 pt1FilterReset(&impedanceFilterState, impedanceSample);
             }
@@ -534,7 +601,7 @@ void sagCompensatedVBatUpdate(timeUs_t currentTime, timeUs_t timeDelta)
 
         uint16_t sagCompensatedVBatSample = MIN(batteryFullVoltage, vbat + (int32_t)powerSupplyImpedance * amperage / 1000);
         pt1FilterSetTimeConstant(&sagCompVBatFilterState, sagCompensatedVBatSample < pt1FilterGetLastOutput(&sagCompVBatFilterState) ? 40 : 500);
-        sagCompensatedVBat = lrintf(pt1FilterApply3(&sagCompVBatFilterState, sagCompensatedVBatSample, timeDelta * 1e-6f));
+        sagCompensatedVBat = lrintf(pt1FilterApply3(&sagCompVBatFilterState, sagCompensatedVBatSample, US2S(timeDelta)));
     }
 
     DEBUG_SET(DEBUG_SAG_COMP_VOLTAGE, 0, powerSupplyImpedance);

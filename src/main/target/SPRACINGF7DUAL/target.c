@@ -27,10 +27,11 @@
 #include "drivers/timer_def.h"
 #include "drivers/dma.h"
 #include "drivers/bus.h"
+#include "drivers/sensor.h"
 
 // Register both MPU6500
-BUSDEV_REGISTER_SPI(busdev_mpu6500_1,     DEVHW_MPU6500,      MPU6500_1_SPI_BUS,    MPU6500_1_CS_PIN,     GYRO_1_EXTI_PIN,  DEVFLAGS_NONE);
-BUSDEV_REGISTER_SPI(busdev_mpu6500_2,     DEVHW_MPU6500,      MPU6500_2_SPI_BUS,    MPU6500_2_CS_PIN,     GYRO_2_EXTI_PIN,  DEVFLAGS_NONE);
+BUSDEV_REGISTER_SPI_TAG(busdev_mpu6500_1,     DEVHW_MPU6500,      MPU6500_1_SPI_BUS,    MPU6500_1_CS_PIN,     GYRO_1_EXTI_PIN,  0,  DEVFLAGS_NONE,  IMU_1_ALIGN);
+BUSDEV_REGISTER_SPI_TAG(busdev_mpu6500_2,     DEVHW_MPU6500,      MPU6500_2_SPI_BUS,    MPU6500_2_CS_PIN,     GYRO_2_EXTI_PIN,  0,  DEVFLAGS_NONE,  IMU_2_ALIGN);
 
 const timerHardware_t timerHardware[] = {
 

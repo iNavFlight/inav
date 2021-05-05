@@ -109,13 +109,14 @@ regs Kusti, 23.10.2004
 
 void init_printf(void *putp, void (*putf) (void *, char));
 
-int tfp_printf(const char *fmt, ...);
-int tfp_sprintf(char *s, const char *fmt, ...);
+int tfp_printf(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
+int tfp_sprintf(char *s, const char *fmt, ...) __attribute__ ((format (printf, 2, 3)));
+int tfp_snprintf(char *s, int size, const char *fmt, ...) __attribute__ ((format (printf, 3, 4)));
+int tfp_vsprintf(char *s, const char *fmt, va_list va) __attribute__ ((format (printf, 2, 0)));
+int tfp_vsnprintf(char *s, int size, const char *fmt, va_list va) __attribute__ ((format (printf, 3, 0)));
 
 int tfp_format(void *putp, void (*putf) (void *, char), const char *fmt, va_list va);
-
-#define printf tfp_printf
-#define sprintf tfp_sprintf
+int tfp_nformat(void *putp, int n, void (*putf) (void *, char), const char *fmt, va_list va);
 
 void printfSupportInit(void);
 struct serialPort_s;

@@ -17,6 +17,8 @@
 
 #pragma once
 
+#define UART_AF(uart, af) CONCAT3(GPIO_AF, af, _ ## uart)
+
 // Since serial ports can be used for any function these buffer sizes should be equal
 // The two largest things that need to be sent are: 1, MSP responses, 2, UBLOX SVINFO packet.
 
@@ -61,6 +63,8 @@ typedef struct {
     USART_TypeDef *USARTx;
 } uartPort_t;
 
+void uartGetPortPins(UARTDevice_e device, serialPortPins_t * pins);
+void uartClearIdleFlag(uartPort_t *s);
 serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr rxCallback, void *rxCallbackData, uint32_t baudRate, portMode_t mode, portOptions_t options);
 
 // serialPort API

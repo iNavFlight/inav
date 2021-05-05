@@ -8,12 +8,16 @@
 .project
 .settings
 .cproject
-obj/
-patches/
+__pycache__
 startup_stm32f10x_md_gcc.s
 .vagrant/
 .vscode/
 cov-int*
+/build/
+/obj/
+/patches/
+/tools/
+/downloads/
 
 # script-generated files
 docs/Manual.pdf
@@ -21,3 +25,6 @@ README.pdf
 
 # build generated files
 /settings.json
+
+# local changes only
+make/local.mk

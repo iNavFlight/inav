@@ -32,7 +32,7 @@
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_l3gd20.h"
 
-#ifdef USE_GYRO_L3GD20
+#ifdef USE_IMU_L3GD20
 
 #define READ_CMD               ((uint8_t)0x80)
 #define MULTIPLEBYTE_CMD       ((uint8_t)0x40)
@@ -116,6 +116,7 @@ bool l3gd20Detect(gyroDev_t *gyro)
 
     // Page 9 in datasheet, So - Sensitivity, Full Scale = 2000, 70 mdps/digit
     gyro->scale = 0.07f;
+    gyro->gyroAlign = gyro->busDev->param;
 
     return true;
 }

@@ -26,7 +26,7 @@
 
 #define WS2811_DMA_BUFFER_SIZE (WS2811_DATA_BUFFER_SIZE + WS2811_DELAY_BUFFER_LENGTH)   // number of bytes needed is #LEDs * 24 bytes + 42 trailing bytes)
 
-#define WS2811_TIMER_HZ         24000000
+#define WS2811_TIMER_HZ         2400000
 #define WS2811_CARRIER_HZ       800000
 
 void ws2811LedStripInit(void);

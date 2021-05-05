@@ -2,12 +2,9 @@
 
 ## Arming
 
-When armed, the aircraft is ready to fly and the motors will spin when throttle is applied.  The motors will
-spin at a slow speed when armed (this feature may be disabled by setting MOTOR_STOP, but for safety reasons,
-that is not recommended).
+When armed, the aircraft is ready to fly and the motors will spin when throttle is applied.  With multirotors, the motors will spin at a slow speed when armed (this feature may be disabled by setting MOTOR_STOP, but for safety reasons, that is not recommended).
 
-By default, arming and disarming is done using stick positions.  (NOTE: this feature is disabled when using a
-switch to arm.)
+Arming and disarming is done using a switch, set up on the modes page.  (NOTE: Stick arming was removed in iNav 2.2)
 
 ## Stick Positions
 
@@ -23,8 +20,6 @@ The stick positions are combined to activate different functions:
 
 | Function                      | Throttle | Yaw     | Pitch  | Roll   |
 | ----------------------------- | -------- | ------- | ------ | ------ |
-| ARM                           | LOW      | HIGH    | CENTER | CENTER |
-| DISARM                        | LOW      | LOW     | CENTER | CENTER |
 | Profile 1                     | LOW      | LOW     | CENTER | LOW    |
 | Profile 2                     | LOW      | LOW     | HIGH   | CENTER |
 | Profile 3                     | LOW      | LOW     | CENTER | HIGH   |
@@ -47,14 +42,9 @@ The stick positions are combined to activate different functions:
 
 ## Yaw control
 
-While arming/disarming with sticks, your yaw stick will be moving to extreme values. In order to prevent your craft
-from trying to yaw during arming/disarming while on the ground, your yaw input will not cause the craft to yaw when the
-throttle is LOW (i.e. below the `min_check` setting).
+While arming/disarming with sticks, your yaw stick will be moving to extreme values. In order to prevent your craft from trying to yaw during arming/disarming while on the ground, your yaw input will not cause the craft to yaw when the throttle is LOW (i.e. below the `min_check` setting).
 
-For tricopters, you may want to retain the ability to yaw while on the ground, so that you can verify that your tail
-servo is working correctly before takeoff. You can do this by setting `tri_unarmed_servo` to `1` on the CLI (this is the
-default). If you are having issues with your tail rotor contacting the ground during arm/disarm, you can set this to
-`0` instead. Check this table to decide which setting will suit you:
+For tricopters, you may want to retain the ability to yaw while on the ground, so that you can verify that your tail servo is working correctly before takeoff. You can do this by setting `tri_unarmed_servo` to `1` on the CLI (this is the default). If you are having issues with your tail rotor contacting the ground during arm/disarm, you can set this to `0` instead. Check this table to decide which setting will suit you:
 
 <table>
     <tr>
@@ -80,23 +70,24 @@ default). If you are having issues with your tail rotor contacting the ground du
     </tr>
 </table>
 
-
 ## Throttle settings and their interaction
 
+*Terminology. After iNav 2.3, the setting `min_throttle` was replaced with `throttle_idle` which is more appropriate to modern hardware. In this document `min_throttle` may be taken as either the older `min_throttle` value, or the throttle value calculated  from the modern `throttle_idle` setting. The way that `throttle_idle` generates a throttle value is described in `Cli.md`.*
+
 `min_command` -
-With motor stop enabled this is the command sent to the esc's when the throttle is below min_check or disarmed. With motor stop disabled, this is the command sent only when the copter is disarmed. This must be set well below motors spinning for safety. 
+With motor stop enabled this is the command sent to the esc's when the throttle is below min_check or disarmed. With motor stop disabled, this is the command sent only when the copter is disarmed. This must be set well below motors spinning for safety.
 
-`min_check` - 
-With switch arming mode is in use, lowering your throttle below min_check will result in motors spinning at min_throttle. When using the default stick arming, lowering your throttle below min_check will result in motors spinning at min_throttle and yaw being disabled so that you may arm/disarm. With motor stop enabled, lowering your throttle below min_check will also result in motors off and the esc's being sent min_command. Min_check must be set to a level that is 100% reliably met by the throttle throw. A setting too low may result in a dangerous condition where the copter can’t be disarmed. It is ok to set this below min_throttle because the FC will automaticly scale the output to the esc's
+`min_check` -
+With switch arming mode is in use, lowering your throttle below min_check will result in motors spinning at `throttle_idle`  (min_throttle). When using the default stick arming, lowering your throttle below min_check will result in motors spinning at min_throttle and yaw being disabled so that you may arm/disarm. With motor stop enabled, lowering your throttle below min_check will also result in motors off and the esc's being sent min_command. Min_check must be set to a level that is 100% reliably met by the throttle throw. A setting too low may result in a dangerous condition where the copter can’t be disarmed. It is ok to set this below `throttle_idle` (min_throttle) because the FC will automaticly scale the output to the ESCs
 
-`min_throttle` -
-Typically set to just above reliable spin up of all motors. Sometimes this is set slightly higher for prop stall prevention during advanced maneuvers or sometimes considerably higher to produce a desired result. When armed with motor stop off, your motors will spin at this command so keep that in mind from a safety stand point.  
+`throttle_idle` (previously `min_throttle)` -
+Typically set to just above reliable spin up of all motors. Sometimes this is set slightly higher for prop stall prevention during advanced maneuvers or sometimes considerably higher to produce a desired result. When armed with motor stop off, your motors will spin at this command so keep that in mind from a safety stand point.
 
 `max_check` -
-Throttle positions above this level will send max_command to the esc's. 
+Throttle positions above this level will send max_command to the ESCs.
 
 `max_throttle` -
-This is the max command to the esc's from the flight controller. 
+This is the max command to the ESCs from the flight controller.
 
 In depth videos explaining these terms are available from Joshua Bardwell here:
 

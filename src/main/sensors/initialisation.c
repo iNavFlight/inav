@@ -24,21 +24,20 @@
 
 #include "config/config_eeprom.h"
 
-#include "drivers/logging.h"
-
 #include "fc/config.h"
 #include "fc/runtime_config.h"
 
-#include "sensors/sensors.h"
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
-#include "sensors/pitotmeter.h"
-#include "sensors/gyro.h"
 #include "sensors/compass.h"
-#include "sensors/rangefinder.h"
-#include "sensors/opflow.h"
-#include "sensors/temperature.h"
+#include "sensors/gyro.h"
 #include "sensors/initialisation.h"
+#include "sensors/irlock.h"
+#include "sensors/opflow.h"
+#include "sensors/pitotmeter.h"
+#include "sensors/rangefinder.h"
+#include "sensors/sensors.h"
+#include "sensors/temperature.h"
 
 uint8_t requestedSensors[SENSOR_INDEX_COUNT] = { GYRO_AUTODETECT, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE, PITOT_NONE, OPFLOW_NONE };
 uint8_t detectedSensors[SENSOR_INDEX_COUNT] = { GYRO_NONE, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE, PITOT_NONE, OPFLOW_NONE };
@@ -74,7 +73,7 @@ bool sensorsAutodetect(void)
     rangefinderInit();
 #endif
 
-#ifdef USE_OPTICAL_FLOW
+#ifdef USE_OPFLOW
     opflowInit();
 #endif
 
@@ -102,6 +101,10 @@ bool sensorsAutodetect(void)
         pitotmeterConfigMutable()->pitot_hardware = detectedSensors[SENSOR_INDEX_PITOT];
         eepromUpdatePending = true;
     }
+#endif
+
+#ifdef USE_IRLOCK
+    irlockInit();
 #endif
 
     if (eepromUpdatePending) {

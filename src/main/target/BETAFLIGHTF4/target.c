@@ -27,10 +27,10 @@ const timerHardware_t timerHardware[] = {
     DEF_TIM(TIM4, CH3, PB8,  TIM_USE_PPM,                               0, 0), // PPM
 
     // Motors
-    DEF_TIM(TIM1,  CH2, PB0,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,      0, 0), // S1_OUT D2_ST6
-    DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,      0, 0), // S2_OUT D1_ST2
-    DEF_TIM(TIM8,  CH4, PC9,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,      0, 0), // S3_OUT D1_ST6
-    DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,      0, 0), // S4_OUT D1_ST1
+    DEF_TIM(TIM3,  CH3,  PB0,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,      0, 0), // S1_OUT D1_ST7
+    DEF_TIM(TIM3,  CH4,  PB1,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,      0, 0), // S2_OUT D1_ST2
+    DEF_TIM(TIM8,  CH4,  PC9,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,      0, 0), // S3_OUT D1_ST6
+    DEF_TIM(TIM8,  CH3,  PC8,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,      0, 0), // S4_OUT D1_ST1
 
     // LED strip
     DEF_TIM(TIM4,  CH1, PB6,  TIM_USE_LED,                              0, 0), // D1_ST0

@@ -75,7 +75,7 @@ static long cmsx_osdElementOnChange(displayPort_t *displayPort, const void *ptr)
 {
     UNUSED(ptr);
 
-    uint16_t *pos = &osdConfigMutable()->item_pos[osdCurrentLayout][osdCurrentItem];
+    uint16_t *pos = &osdLayoutsConfigMutable()->item_pos[osdCurrentLayout][osdCurrentItem];
     *pos = OSD_POS(osdCurrentElementColumn, osdCurrentElementRow);
     if (osdCurrentElementVisible) {
         *pos |= OSD_VISIBLE_FLAG;
@@ -125,7 +125,7 @@ static CMS_Menu cmsx_menuOsdElementActions = {
 static long osdElemActionsOnEnter(const OSD_Entry *from)
 {
     osdCurrentItem = from->itemId;
-    uint16_t pos = osdConfig()->item_pos[osdCurrentLayout][osdCurrentItem];
+    uint16_t pos = osdLayoutsConfig()->item_pos[osdCurrentLayout][osdCurrentItem];
     osdCurrentElementColumn = OSD_X(pos);
     osdCurrentElementRow = OSD_Y(pos);
     osdCurrentElementVisible = OSD_VISIBLE(pos) ? 1 : 0;
@@ -139,11 +139,40 @@ static long osdElemActionsOnEnter(const OSD_Entry *from)
 
 #define OSD_ELEMENT_ENTRY(name, osd_item_id)    OSD_ITEM_ENTRY(name, osd_item_id)
 
+static const OSD_Entry menuCrsfRxEntries[]=
+{
+    OSD_LABEL_ENTRY("-- CRSF RX --"),
+
+    OSD_SETTING_ENTRY("LQ FORMAT", SETTING_OSD_CRSF_LQ_FORMAT),
+    OSD_SETTING_ENTRY("LQ ALARM LEVEL", SETTING_OSD_LINK_QUALITY_ALARM),
+    OSD_SETTING_ENTRY("SNR ALARM LEVEL", SETTING_OSD_SNR_ALARM),
+    OSD_ELEMENT_ENTRY("RX RSSI DBM", OSD_CRSF_RSSI_DBM),
+    OSD_ELEMENT_ENTRY("RX LQ", OSD_CRSF_LQ),
+    OSD_ELEMENT_ENTRY("RX SNR ALARM", OSD_CRSF_SNR_DB),
+    OSD_ELEMENT_ENTRY("TX POWER", OSD_CRSF_TX_POWER),
+
+    OSD_BACK_AND_END_ENTRY,
+};
+
+const CMS_Menu cmsx_menuCrsf = {
+#ifdef CMS_MENU_DEBUG
+    .GUARD_text = "MENUCRF",
+    .GUARD_type = OME_MENU,
+#endif
+    .onEnter = NULL,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = menuCrsfRxEntries,
+};
+
 static const OSD_Entry menuOsdElemsEntries[] =
 {
     OSD_LABEL_ENTRY("--- OSD ITEMS ---"),
 
     OSD_ELEMENT_ENTRY("RSSI", OSD_RSSI_VALUE),
+#ifdef USE_SERIALRX_CRSF
+    OSD_SUBMENU_ENTRY("CRSF RX", &cmsx_menuCrsf),
+#endif // CRSF Menu
     OSD_ELEMENT_ENTRY("MAIN BATTERY", OSD_MAIN_BATT_VOLTAGE),
     OSD_ELEMENT_ENTRY("MAIN BATT SC", OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE),
     OSD_ELEMENT_ENTRY("CELL VOLTAGE", OSD_MAIN_BATT_CELL_VOLTAGE),
@@ -184,17 +213,18 @@ static const OSD_Entry menuOsdElemsEntries[] =
     OSD_ELEMENT_ENTRY("GPS HDOP", OSD_GPS_HDOP),
     OSD_ELEMENT_ENTRY("3D SPEED", OSD_3D_SPEED),
     OSD_ELEMENT_ENTRY("PLUS CODE", OSD_PLUS_CODE),
+    OSD_ELEMENT_ENTRY("AZIMUTH", OSD_AZIMUTH),
 #endif // GPS
     OSD_ELEMENT_ENTRY("HEADING", OSD_HEADING),
     OSD_ELEMENT_ENTRY("HEADING GR.", OSD_HEADING_GRAPH),
-    OSD_ELEMENT_ENTRY("CRS HEAD. ERR", OSD_CRUISE_HEADING_ERROR),
-    OSD_ELEMENT_ENTRY("CRS HEAD. ADJ", OSD_CRUISE_HEADING_ADJUSTMENT),
+    OSD_ELEMENT_ENTRY("CRS HLD ERR", OSD_COURSE_HOLD_ERROR),
+    OSD_ELEMENT_ENTRY("CRS HLD ADJ", OSD_COURSE_HOLD_ADJUSTMENT),
 #if defined(USE_BARO) || defined(USE_GPS)
     OSD_ELEMENT_ENTRY("VARIO", OSD_VARIO),
     OSD_ELEMENT_ENTRY("VARIO NUM", OSD_VARIO_NUM),
 #endif // defined
     OSD_ELEMENT_ENTRY("ALTITUDE", OSD_ALTITUDE),
-    OSD_ELEMENT_ENTRY("ALTITUDE MSL", OSD_ALTITUDE_MSL),	
+    OSD_ELEMENT_ENTRY("ALTITUDE MSL", OSD_ALTITUDE_MSL),
 #if defined(USE_PITOT)
     OSD_ELEMENT_ENTRY("AIR SPEED", OSD_AIR_SPEED),
 #endif
@@ -202,6 +232,8 @@ static const OSD_Entry menuOsdElemsEntries[] =
     OSD_ELEMENT_ENTRY("MAP NORTH", OSD_MAP_NORTH),
     OSD_ELEMENT_ENTRY("MAP TAKE OFF", OSD_MAP_TAKEOFF),
     OSD_ELEMENT_ENTRY("RADAR", OSD_RADAR),
+    OSD_ELEMENT_ENTRY("MAP SCALE", OSD_MAP_SCALE),
+    OSD_ELEMENT_ENTRY("MAP REFERENCE", OSD_MAP_REFERENCE),
 #endif
     OSD_ELEMENT_ENTRY("EXPO", OSD_RC_EXPO),
     OSD_ELEMENT_ENTRY("YAW EXPO", OSD_RC_YAW_EXPO),
@@ -242,10 +274,21 @@ static const OSD_Entry menuOsdElemsEntries[] =
     OSD_ELEMENT_ENTRY("WIND HOR", OSD_WIND_SPEED_HORIZONTAL),
     OSD_ELEMENT_ENTRY("WIND VERT", OSD_WIND_SPEED_VERTICAL),
 
+    OSD_ELEMENT_ENTRY("G-FORCE", OSD_GFORCE),
+    OSD_ELEMENT_ENTRY("G-FORCE X", OSD_GFORCE),
+    OSD_ELEMENT_ENTRY("G-FORCE Y", OSD_GFORCE),
+    OSD_ELEMENT_ENTRY("G-FORCE Z", OSD_GFORCE),
+
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    OSD_ELEMENT_ENTRY("RC SOURCE", OSD_RC_SOURCE),
+#endif
+
     OSD_ELEMENT_ENTRY("IMU TEMP", OSD_IMU_TEMPERATURE),
 #ifdef USE_BARO
     OSD_ELEMENT_ENTRY("BARO TEMP", OSD_BARO_TEMPERATURE),
 #endif
+
+    OSD_ELEMENT_ENTRY("VTX POWER", OSD_VTX_POWER),
 
 #ifdef USE_TEMPERATURE_SENSOR
     OSD_ELEMENT_ENTRY("SENSOR 0 TEMP", OSD_TEMP_SENSOR_0_TEMPERATURE),
@@ -258,10 +301,15 @@ static const OSD_Entry menuOsdElemsEntries[] =
     OSD_ELEMENT_ENTRY("SENSOR 7 TEMP", OSD_TEMP_SENSOR_7_TEMPERATURE),
 #endif
 
+#ifdef USE_ESC_SENSOR
+    OSD_ELEMENT_ENTRY("ESC RPM", OSD_ESC_RPM),
+    OSD_ELEMENT_ENTRY("ESC TEMPERATURE", OSD_ESC_TEMPERATURE),
+#endif
+
     OSD_BACK_AND_END_ENTRY,
 };
 
-#if defined(USE_GPS) && defined(USE_BARO) && defined(USE_PITOT) && defined(USE_TEMPERATURE_SENSOR)
+#if defined(USE_GPS) && defined(USE_BARO) && defined(USE_PITOT) && defined(USE_TEMPERATURE_SENSOR) && defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
 // All CMS OSD elements should be enabled in this case. The menu has 2 extra
 // elements (label, back+end), but there's an OSD element that we intentionally
 // don't show here (OSD_DEBUG).
@@ -334,7 +382,6 @@ static const OSD_Entry menuOsdSettingsEntries[] = {
 
     OSD_SETTING_ENTRY("VOLT. DECIMALS", SETTING_OSD_MAIN_VOLTAGE_DECIMALS),
     OSD_SETTING_ENTRY("COORD. DIGITS", SETTING_OSD_COORDINATE_DIGITS),
-    OSD_SETTING_ENTRY("CROSSHAIRS STYLE", SETTING_OSD_CROSSHAIRS_STYLE),
     OSD_SETTING_ENTRY("LEFT SCROLL", SETTING_OSD_LEFT_SIDEBAR_SCROLL),
     OSD_SETTING_ENTRY("RIGHT SCROLL", SETTING_OSD_RIGHT_SIDEBAR_SCROLL),
     OSD_SETTING_ENTRY("SCROLL ARROWS", SETTING_OSD_SIDEBAR_SCROLL_ARROWS),
@@ -353,12 +400,65 @@ static const CMS_Menu cmsx_menuOsdSettings = {
     .entries = menuOsdSettingsEntries,
 };
 
+static const OSD_Entry menuOsdHud2Entries[] = {
+    OSD_LABEL_ENTRY("--- HUD ITEMS ---"),
+
+    OSD_SETTING_ENTRY("HOMING ARROWS", SETTING_OSD_HUD_HOMING),
+    OSD_SETTING_ENTRY("HOME POINT", SETTING_OSD_HUD_HOMEPOINT),
+    OSD_SETTING_ENTRY("RADAR MAX AIRCRAFT", SETTING_OSD_HUD_RADAR_DISP),
+    OSD_SETTING_ENTRY("RADAR MIN RANGE", SETTING_OSD_HUD_RADAR_RANGE_MIN),
+    OSD_SETTING_ENTRY("RADAR MAX RANGE", SETTING_OSD_HUD_RADAR_RANGE_MAX),
+    OSD_SETTING_ENTRY("RADAR DET. NEAREST", SETTING_OSD_HUD_RADAR_NEAREST),
+    OSD_SETTING_ENTRY("NEXT WAYPOINTS", SETTING_OSD_HUD_WP_DISP),
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
+};
+
+static const CMS_Menu cmsx_menuOsdHud2 = {
+#ifdef CMS_MENU_DEBUG
+    .GUARD_text = "MENUOSDH2",
+    .GUARD_type = OME_MENU,
+#endif
+    .onEnter = NULL,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = menuOsdHud2Entries,
+};
+
+static const OSD_Entry menuOsdHudEntries[] = {
+    OSD_LABEL_ENTRY("--- HUD ---"),
+
+    OSD_SETTING_ENTRY("CROSSHAIRS STYLE", SETTING_OSD_CROSSHAIRS_STYLE),
+    OSD_SETTING_ENTRY("HORIZON OFFSET", SETTING_OSD_HORIZON_OFFSET),
+    OSD_SETTING_ENTRY("CAMERA UPTILT", SETTING_OSD_CAMERA_UPTILT),
+    OSD_SETTING_ENTRY("CAMERA FOV HORI", SETTING_OSD_CAMERA_FOV_H),
+    OSD_SETTING_ENTRY("CAMERA FOV VERT", SETTING_OSD_CAMERA_FOV_V),
+    OSD_SETTING_ENTRY("HUD MARGIN HORI", SETTING_OSD_HUD_MARGIN_H),
+    OSD_SETTING_ENTRY("HUD MARGIN VERT", SETTING_OSD_HUD_MARGIN_V),
+    OSD_SUBMENU_ENTRY("DISPLAYED ITEMS", &cmsx_menuOsdHud2),
+
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
+};
+
+static const CMS_Menu cmsx_menuOsdHud = {
+#ifdef CMS_MENU_DEBUG
+    .GUARD_text = "MENUOSDH",
+    .GUARD_type = OME_MENU,
+#endif
+    .onEnter = NULL,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = menuOsdHudEntries,
+};
+
 static const OSD_Entry menuOsdEntries[] = {
     OSD_LABEL_ENTRY("--- OSD ---"),
 
     OSD_SUBMENU_ENTRY("LAYOUTS", &cmsx_menuOsdLayout),
     OSD_SUBMENU_ENTRY("SETTINGS", &cmsx_menuOsdSettings),
     OSD_SUBMENU_ENTRY("ALARMS", &cmsx_menuAlarms),
+    OSD_SUBMENU_ENTRY("HUD", &cmsx_menuOsdHud),
 
     OSD_BACK_AND_END_ENTRY,
 };

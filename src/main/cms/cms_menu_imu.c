@@ -47,24 +47,39 @@
 
 
 //
-// PID
+// PIDFF
 //
+#define PIDFF_MIN 0
+#define PIDFF_STEP 1
+
+#define RPY_PIDFF_MAX 200
+#define OTHER_PIDDF_MAX 255
+
+#define PIDFF_ENTRY(label, ptr, max) OSD_UINT16_ENTRY(label, (&(const OSD_UINT16_t){ ptr, PIDFF_MIN, max, PIDFF_STEP }))
+#define RPY_PIDFF_ENTRY(label, ptr) PIDFF_ENTRY(label, ptr, RPY_PIDFF_MAX)
+#define OTHER_PIDFF_ENTRY(label, ptr) PIDFF_ENTRY(label, ptr, OTHER_PIDDF_MAX)
+
+static pid8_t cmsx_pidRoll;
+static pid8_t cmsx_pidPitch;
+static pid8_t cmsx_pidYaw;
+static pid8_t cmsx_pidPosZ;
+static pid8_t cmsx_pidVelZ;
+static pid8_t cmsx_pidHead;
+static pid8_t cmsx_pidPosXY;
+static pid8_t cmsx_pidVelXY;
+
 static uint8_t tmpProfileIndex;
 static uint8_t profileIndex;
 static char profileIndexString[] = " p";
 
-static void cmsx_ReadPidToArray(uint8_t *dst, int pidIndex)
+static void cmsx_ReadPidToArray(pid8_t *dst, int pidIndex)
 {
-    dst[0] = pidBank()->pid[pidIndex].P;
-    dst[1] = pidBank()->pid[pidIndex].I;
-    dst[2] = pidBank()->pid[pidIndex].D;
+    memcpy(dst, &pidBank()->pid[pidIndex], sizeof(*dst));
 }
 
-static void cmsx_WritebackPidFromArray(uint8_t *src, int pidIndex)
+static void cmsx_WritebackPidFromArray(const pid8_t *src, int pidIndex)
 {
-    pidBankMutable()->pid[pidIndex].P = src[0];
-    pidBankMutable()->pid[pidIndex].I = src[1];
-    pidBankMutable()->pid[pidIndex].D = src[2];
+    memcpy(&pidBankMutable()->pid[pidIndex], src, sizeof(*src));
 }
 
 static long cmsx_menuImu_onEnter(const OSD_Entry *from)
@@ -90,15 +105,11 @@ static long cmsx_profileIndexOnChange(displayPort_t *displayPort, const void *pt
     return 0;
 }
 
-static uint8_t cmsx_pidRoll[3];
-static uint8_t cmsx_pidPitch[3];
-static uint8_t cmsx_pidYaw[3];
-
 static long cmsx_PidRead(void)
 {
-    cmsx_ReadPidToArray(cmsx_pidRoll, PID_ROLL);
-    cmsx_ReadPidToArray(cmsx_pidPitch, PID_PITCH);
-    cmsx_ReadPidToArray(cmsx_pidYaw, PID_YAW);
+    cmsx_ReadPidToArray(&cmsx_pidRoll, PID_ROLL);
+    cmsx_ReadPidToArray(&cmsx_pidPitch, PID_PITCH);
+    cmsx_ReadPidToArray(&cmsx_pidYaw, PID_YAW);
 
     return 0;
 }
@@ -117,9 +128,9 @@ static long cmsx_PidWriteback(const OSD_Entry *self)
 {
     UNUSED(self);
 
-    cmsx_WritebackPidFromArray(cmsx_pidRoll, PID_ROLL);
-    cmsx_WritebackPidFromArray(cmsx_pidPitch, PID_PITCH);
-    cmsx_WritebackPidFromArray(cmsx_pidYaw, PID_YAW);
+    cmsx_WritebackPidFromArray(&cmsx_pidRoll, PID_ROLL);
+    cmsx_WritebackPidFromArray(&cmsx_pidPitch, PID_PITCH);
+    cmsx_WritebackPidFromArray(&cmsx_pidYaw, PID_YAW);
 
     schedulePidGainsUpdate();
 
@@ -130,17 +141,20 @@ static const OSD_Entry cmsx_menuPidEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- PID --", profileIndexString),
 
-    OSD_UINT8_ENTRY("ROLL P", (&(const OSD_UINT8_t){ &cmsx_pidRoll[0],  0, 200, 1 })),
-    OSD_UINT8_ENTRY("ROLL I", (&(const OSD_UINT8_t){ &cmsx_pidRoll[1],  0, 200, 1 })),
-    OSD_UINT8_ENTRY("ROLL D", (&(const OSD_UINT8_t){ &cmsx_pidRoll[2],  0, 200, 1 })),
+    RPY_PIDFF_ENTRY("ROLL  P", &cmsx_pidRoll.P),
+    RPY_PIDFF_ENTRY("ROLL  I", &cmsx_pidRoll.I),
+    RPY_PIDFF_ENTRY("ROLL  D", &cmsx_pidRoll.D),
+    RPY_PIDFF_ENTRY("ROLL  FF", &cmsx_pidRoll.FF),
 
-    OSD_UINT8_ENTRY("PITCH P", (&(const OSD_UINT8_t){ &cmsx_pidPitch[0], 0, 200, 1 })),
-    OSD_UINT8_ENTRY("PITCH I", (&(const OSD_UINT8_t){ &cmsx_pidPitch[1], 0, 200, 1 })),
-    OSD_UINT8_ENTRY("PITCH D", (&(const OSD_UINT8_t){ &cmsx_pidPitch[2], 0, 200, 1 })),
+    RPY_PIDFF_ENTRY("PITCH P", &cmsx_pidPitch.P),
+    RPY_PIDFF_ENTRY("PITCH I", &cmsx_pidPitch.I),
+    RPY_PIDFF_ENTRY("PITCH D", &cmsx_pidPitch.D),
+    RPY_PIDFF_ENTRY("PITCH FF", &cmsx_pidPitch.FF),
 
-    OSD_UINT8_ENTRY("YAW   P", (&(const OSD_UINT8_t){ &cmsx_pidYaw[0],   0, 200, 1 })),
-    OSD_UINT8_ENTRY("YAW   I", (&(const OSD_UINT8_t){ &cmsx_pidYaw[1],   0, 200, 1 })),
-    OSD_UINT8_ENTRY("YAW   D", (&(const OSD_UINT8_t){ &cmsx_pidYaw[2],   0, 200, 1 })),
+    RPY_PIDFF_ENTRY("YAW   P", &cmsx_pidYaw.P),
+    RPY_PIDFF_ENTRY("YAW   I", &cmsx_pidYaw.I),
+    RPY_PIDFF_ENTRY("YAW   D", &cmsx_pidYaw.D),
+    RPY_PIDFF_ENTRY("YAW   FF", &cmsx_pidYaw.FF),
 
     OSD_BACK_AND_END_ENTRY,
 };
@@ -156,17 +170,13 @@ static const CMS_Menu cmsx_menuPid = {
     .entries = cmsx_menuPidEntries
 };
 
-static uint8_t cmsx_pidPosZ[3];
-static uint8_t cmsx_pidVelZ[3];
-static uint8_t cmsx_pidHead[3];
-
 static long cmsx_menuPidAltMag_onEnter(const OSD_Entry *from)
 {
     UNUSED(from);
 
-    cmsx_ReadPidToArray(cmsx_pidPosZ, PID_POS_Z);
-    cmsx_ReadPidToArray(cmsx_pidVelZ, PID_VEL_Z);
-    cmsx_pidHead[0] = pidBank()->pid[PID_HEADING].P;
+    cmsx_ReadPidToArray(&cmsx_pidPosZ, PID_POS_Z);
+    cmsx_ReadPidToArray(&cmsx_pidVelZ, PID_VEL_Z);
+    cmsx_ReadPidToArray(&cmsx_pidHead, PID_HEADING);
 
     return 0;
 }
@@ -175,9 +185,9 @@ static long cmsx_menuPidAltMag_onExit(const OSD_Entry *self)
 {
     UNUSED(self);
 
-    cmsx_WritebackPidFromArray(cmsx_pidPosZ, PID_POS_Z);
-    cmsx_WritebackPidFromArray(cmsx_pidVelZ, PID_VEL_Z);
-    pidBankMutable()->pid[PID_HEADING].P = cmsx_pidHead[0];
+    cmsx_WritebackPidFromArray(&cmsx_pidPosZ, PID_POS_Z);
+    cmsx_WritebackPidFromArray(&cmsx_pidVelZ, PID_VEL_Z);
+    cmsx_WritebackPidFromArray(&cmsx_pidHead, PID_HEADING);
 
     navigationUsePIDs();
 
@@ -188,14 +198,15 @@ static const OSD_Entry cmsx_menuPidAltMagEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- ALT&MAG --", profileIndexString),
 
-    OSD_UINT8_ENTRY("ALT P", (&(const OSD_UINT8_t){ &cmsx_pidPosZ[0], 0, 255, 1 })),
-    OSD_UINT8_ENTRY("ALT I", (&(const OSD_UINT8_t){ &cmsx_pidPosZ[1], 0, 255, 1 })),
-    OSD_UINT8_ENTRY("ALT D", (&(const OSD_UINT8_t){ &cmsx_pidPosZ[2], 0, 255, 1 })),
-    OSD_UINT8_ENTRY("VEL P", (&(const OSD_UINT8_t){ &cmsx_pidVelZ[0], 0, 255, 1 })),
-    OSD_UINT8_ENTRY("VEL I", (&(const OSD_UINT8_t){ &cmsx_pidVelZ[1], 0, 255, 1 })),
-    OSD_UINT8_ENTRY("VEL D", (&(const OSD_UINT8_t){ &cmsx_pidVelZ[2], 0, 255, 1 })),
+    OTHER_PIDFF_ENTRY("ALT P", &cmsx_pidPosZ.P),
+    OTHER_PIDFF_ENTRY("ALT I", &cmsx_pidPosZ.I),
+    OTHER_PIDFF_ENTRY("ALT D", &cmsx_pidPosZ.D),
 
-    OSD_UINT8_ENTRY("MAG P", (&(const OSD_UINT8_t){ &cmsx_pidHead[0], 0, 255, 1 })),
+    OTHER_PIDFF_ENTRY("VEL P", &cmsx_pidVelZ.P),
+    OTHER_PIDFF_ENTRY("VEL I", &cmsx_pidVelZ.I),
+    OTHER_PIDFF_ENTRY("VEL D", &cmsx_pidVelZ.D),
+
+    OTHER_PIDFF_ENTRY("MAG P", &cmsx_pidHead.P),
 
     OSD_BACK_AND_END_ENTRY,
 };
@@ -211,15 +222,12 @@ static const CMS_Menu cmsx_menuPidAltMag = {
     .entries = cmsx_menuPidAltMagEntries,
 };
 
-static uint8_t cmsx_pidPosXY[3];
-static uint8_t cmsx_pidVelXY[3];
-
 static long cmsx_menuPidGpsnav_onEnter(const OSD_Entry *from)
 {
     UNUSED(from);
 
-    cmsx_ReadPidToArray(cmsx_pidPosXY, PID_POS_XY);
-    cmsx_ReadPidToArray(cmsx_pidVelXY, PID_VEL_XY);
+    cmsx_ReadPidToArray(&cmsx_pidPosXY, PID_POS_XY);
+    cmsx_ReadPidToArray(&cmsx_pidVelXY, PID_VEL_XY);
 
     return 0;
 }
@@ -228,8 +236,8 @@ static long cmsx_menuPidGpsnav_onExit(const OSD_Entry *self)
 {
     UNUSED(self);
 
-    cmsx_WritebackPidFromArray(cmsx_pidPosXY, PID_POS_XY);
-    cmsx_WritebackPidFromArray(cmsx_pidVelXY, PID_VEL_XY);
+    cmsx_WritebackPidFromArray(&cmsx_pidPosXY, PID_POS_XY);
+    cmsx_WritebackPidFromArray(&cmsx_pidVelXY, PID_VEL_XY);
 
     navigationUsePIDs();
 
@@ -240,11 +248,12 @@ static const OSD_Entry cmsx_menuPidGpsnavEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- GPSNAV --", profileIndexString),
 
-    OSD_UINT8_ENTRY("POS  P", (&(const OSD_UINT8_t){ &cmsx_pidPosXY[0],  0, 255, 1 })),
-    OSD_UINT8_ENTRY("POS  I", (&(const OSD_UINT8_t){ &cmsx_pidPosXY[1],  0, 255, 1 })),
-    OSD_UINT8_ENTRY("POSR P", (&(const OSD_UINT8_t){ &cmsx_pidVelXY[0], 0, 255, 1 })),
-    OSD_UINT8_ENTRY("POSR I", (&(const OSD_UINT8_t){ &cmsx_pidVelXY[1], 0, 255, 1 })),
-    OSD_UINT8_ENTRY("POSR D", (&(const OSD_UINT8_t){ &cmsx_pidVelXY[2], 0, 255, 1 })),
+    OTHER_PIDFF_ENTRY("POS  P", &cmsx_pidPosXY.P),
+    OTHER_PIDFF_ENTRY("POS  I", &cmsx_pidPosXY.I),
+
+    OTHER_PIDFF_ENTRY("POSR P", &cmsx_pidVelXY.P),
+    OTHER_PIDFF_ENTRY("POSR I", &cmsx_pidVelXY.I),
+    OTHER_PIDFF_ENTRY("POSR D", &cmsx_pidVelXY.D),
 
     OSD_BACK_AND_END_ENTRY,
 };
@@ -391,13 +400,20 @@ static const CMS_Menu cmsx_menuProfileOther = {
 //
 static const OSD_Entry cmsx_menuFilterPerProfileEntries[] =
 {
-    OSD_LABEL_DATA_ENTRY("-- FILTER PP  --", profileIndexString),
-
+    OSD_LABEL_DATA_ENTRY("-- FILTERING  --", profileIndexString),
+    OSD_SETTING_ENTRY("HARDWARE LPF", SETTING_GYRO_HARDWARE_LPF),
+    OSD_SETTING_ENTRY("GYRO MAIN", SETTING_GYRO_MAIN_LPF_HZ),
     OSD_SETTING_ENTRY("DTERM LPF", SETTING_DTERM_LPF_HZ),
-    OSD_SETTING_ENTRY("GYRO SLPF", SETTING_GYRO_LPF_HZ),
-    OSD_SETTING_ENTRY("YAW P LIM", SETTING_YAW_P_LIMIT),
-    OSD_SETTING_ENTRY("YAW LPF", SETTING_YAW_LPF_HZ),
-
+    OSD_SETTING_ENTRY("DTERM LPF2", SETTING_DTERM_LPF2_HZ),
+#ifdef USE_DYNAMIC_FILTERS
+    OSD_SETTING_ENTRY("MATRIX FILTER", SETTING_DYNAMIC_GYRO_NOTCH_ENABLED),
+    OSD_SETTING_ENTRY("MATRIX MIN HZ", SETTING_DYNAMIC_GYRO_NOTCH_MIN_HZ),  //dynamic_gyro_notch_min_hz
+    OSD_SETTING_ENTRY("MATRIX Q", SETTING_DYNAMIC_GYRO_NOTCH_Q),            //dynamic_gyro_notch_q
+#endif
+#ifdef USE_GYRO_KALMAN
+    OSD_SETTING_ENTRY("UNICORN FILTER", SETTING_SETPOINT_KALMAN_ENABLED),   //setpoint_kalman_enabled
+    OSD_SETTING_ENTRY("UNICORN Q", SETTING_SETPOINT_KALMAN_Q),              //setpoint_kalman_q
+#endif
     OSD_BACK_AND_END_ENTRY,
 };
 
@@ -412,17 +428,23 @@ static const CMS_Menu cmsx_menuFilterPerProfile = {
     .entries = cmsx_menuFilterPerProfileEntries,
 };
 
-static const OSD_Entry cmsx_menuGyroEntries[] =
+static const OSD_Entry cmsx_menuMechanicsEntries[] =
 {
-    OSD_LABEL_DATA_ENTRY("-- GYRO GLB --", profileIndexString),
-
-    OSD_SETTING_ENTRY("GYRO SYNC", SETTING_GYRO_SYNC),
-    OSD_SETTING_ENTRY("GYRO LPF", SETTING_GYRO_HARDWARE_LPF),
-
+    OSD_LABEL_DATA_ENTRY("-- MECHANICS --", profileIndexString),
+#ifdef USE_D_BOOST
+    OSD_SETTING_ENTRY("DBOOST_FACTOR", SETTING_D_BOOST_FACTOR),
+#endif
+#ifdef USE_ANTIGRAVITY
+    OSD_SETTING_ENTRY("ANTIGRAV. GAIN", SETTING_ANTIGRAVITY_GAIN),
+#endif
+    OSD_SETTING_ENTRY("ITERM RELAX", SETTING_MC_ITERM_RELAX),
+    OSD_SETTING_ENTRY("ITERM CUTOFF", SETTING_MC_ITERM_RELAX_CUTOFF),
+    OSD_SETTING_ENTRY("CD LPF", SETTING_MC_CD_LPF_HZ),
+ 
     OSD_BACK_AND_END_ENTRY,
 };
 
-static const CMS_Menu cmsx_menuGyro = {
+static const CMS_Menu cmsx_menuMechanics = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "XGYROGLB",
     .GUARD_type = OME_MENU,
@@ -430,7 +452,7 @@ static const CMS_Menu cmsx_menuGyro = {
     .onEnter = NULL,
     .onExit = NULL,
     .onGlobalExit = NULL,
-    .entries = cmsx_menuGyroEntries,
+    .entries = cmsx_menuMechanicsEntries,
 };
 
 static const OSD_Entry cmsx_menuImuEntries[] =
@@ -442,7 +464,8 @@ static const OSD_Entry cmsx_menuImuEntries[] =
     OSD_SUBMENU_ENTRY("PID", &cmsx_menuPid),
     OSD_SUBMENU_ENTRY("PID ALTMAG", &cmsx_menuPidAltMag),
     OSD_SUBMENU_ENTRY("PID GPSNAV", &cmsx_menuPidGpsnav),
-    OSD_SUBMENU_ENTRY("FILT PP", &cmsx_menuFilterPerProfile),
+    OSD_SUBMENU_ENTRY("FILTERING", &cmsx_menuFilterPerProfile),
+    OSD_SUBMENU_ENTRY("MECHANICS",  &cmsx_menuMechanics),
 
     // Rate profile dependent
     OSD_UINT8_CALLBACK_ENTRY("RATE PROF", cmsx_profileIndexOnChange, (&(const OSD_UINT8_t){ &tmpProfileIndex, 1, MAX_CONTROL_RATE_PROFILE_COUNT, 1})),
@@ -450,7 +473,6 @@ static const OSD_Entry cmsx_menuImuEntries[] =
     OSD_SUBMENU_ENTRY("MANU RATE", &cmsx_menuManualRateProfile),
 
     // Global
-    OSD_SUBMENU_ENTRY("GYRO GLB",  &cmsx_menuGyro),
 
 #ifdef NOT_YET
     {"OTHER PP",  OME_Submenu, cmsMenuChange,                 &cmsx_menuProfileOther,                                      0},

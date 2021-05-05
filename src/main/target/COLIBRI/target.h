@@ -39,11 +39,7 @@
 #define MPU6000_CS_PIN          PC4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
-#define USE_ACC
-#define USE_ACC_MPU6000
-
-#define USE_GYRO
-#define USE_GYRO_MPU6000
+#define USE_IMU_MPU6000
 
 // MPU6000 interrupts
 #define USE_EXTI
@@ -60,14 +56,13 @@
 #define USE_MAG_LIS3MDL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C3
+#define BNO055_I2C_BUS          BUS_I2C3
 
 #ifdef QUANTON
-#define ACC_MPU6000_ALIGN       CW90_DEG
-#define GYRO_MPU6000_ALIGN      CW90_DEG
+#define IMU_MPU6000_ALIGN       CW90_DEG
 #define MAG_HMC5883_ALIGN       CW90_DEG
 #else
-#define ACC_MPU6000_ALIGN       CW270_DEG_FLIP
-#define GYRO_MPU6000_ALIGN      CW270_DEG_FLIP
+#define IMU_MPU6000_ALIGN       CW270_DEG_FLIP
 #define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
 #endif
 

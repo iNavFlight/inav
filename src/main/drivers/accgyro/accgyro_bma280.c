@@ -27,7 +27,7 @@
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_bma280.h"
 
-#ifdef USE_ACC_BMA280
+#ifdef USE_IMU_BMA280
 
 // BMA280, default I2C address mode 0x18
 #define BMA280_WHOAMI       0x00
@@ -86,6 +86,7 @@ bool bma280Detect(accDev_t *acc)
 
     acc->initFn = bma280Init;
     acc->readFn = bma280Read;
+    acc->accAlign = acc->busDev->param;
     return true;
 }
 

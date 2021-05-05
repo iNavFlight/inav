@@ -20,9 +20,6 @@
 #define TARGET_BOARD_IDENTIFIER "REVO"
 
 #define USBD_PRODUCT_STRING     "Revolution"
-#ifdef OPBL
-#define USBD_SERIALNUMBER_STRING "0x8020000"
-#endif
 
 // Use target-specific MAG hardware descriptors (don't use common_hardware.h)
 #define USE_TARGET_MAG_HARDWARE_DESCRIPTORS
@@ -33,22 +30,18 @@
 #define BEEPER                  PB4
 
 #define USE_DSHOT
+#define USE_ESC_SENSOR
+#define USE_SERIALSHOT
 
 // MPU6000 interrupts
 #define USE_EXTI
-#define MPU6000_EXTI_PIN        PC4
+#define GYRO_INT_EXTI           PC4
 #define USE_MPU_DATA_READY_SIGNAL
 
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
-
-#define USE_GYRO
-#define USE_GYRO_MPU6000
-#define ACC_MPU6000_ALIGN       CW270_DEG
-
-#define USE_ACC
-#define USE_ACC_MPU6000
-#define GYRO_MPU6000_ALIGN      CW270_DEG
 
 #define USE_MAG
 #define USE_DUAL_MAG
@@ -63,14 +56,13 @@
 #define USE_MAG_LIS3MDL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
+#define BNO055_I2C_BUS          BUS_I2C2
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_MS5611
 
 #define PITOT_I2C_BUS           BUS_I2C2
-
-#define USE_OPTICAL_FLOW
 
 #define USE_RANGEFINDER
 #define RANGEFINDER_I2C_BUS     BUS_I2C2

@@ -87,13 +87,9 @@ Reset_Handler:
   str     r1, [r0, #0x30]
   dsb
 
-  // Check for bootloader reboot
-  ldr r0, =0x2001FFFC         // mj666
-  ldr r1, =0xDEADBEEF         // mj666
-  ldr r2, [r0, #0]            // mj666
-  str r0, [r0, #0]            // mj666
-  cmp r2, r1                  // mj666
-  beq Reboot_Loader           // mj666
+  // Defined in C code
+  bl persistentObjectInit
+  bl checkForBootLoaderRequest
 
 /* Copy the data segment initializers from flash to SRAM */ 
   movs  r1, #0
@@ -164,25 +160,6 @@ LoopMarkHeapStack:
 
 LoopForever:
   b LoopForever
-
-Reboot_Loader:                // mj666
-  // RCC->APB2ENR |= RCC_APB2Periph_SYSCFG;
-  ldr     r0, =0x40023800
-  ldr     r1, [r0, #0x44]
-  orr     r1, r1, 0x00004000    // RCC_APB2Periph_SYSCFG
-  str     r1, [r0, #0x44]
-
-  // Remap system memory to 0x00000000
-  // SYSCFG->MEMRMP = SYSCFG_MemoryRemap_SystemFlash
-  ldr     r0, =0x40013800
-  ldr     r1, =0x00000001
-  str     r1, [r0]
-
-  // Reboot to ROM            // mj666
-  ldr     r0, =0x1FFF0000     // mj666
-  ldr     sp,[r0, #0]         // mj666
-  ldr     r0,[r0, #4]         // mj666
-  bx      r0                  // mj666
 
 .size  Reset_Handler, .-Reset_Handler
 

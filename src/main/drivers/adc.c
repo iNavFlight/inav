@@ -20,17 +20,15 @@
 #include <string.h>
 
 #include "platform.h"
-
 #include "build/build_config.h"
 #include "build/debug.h"
-
 #include "drivers/time.h"
+#include "common/utils.h"
 
+#ifdef USE_ADC
 #include "drivers/io.h"
 #include "drivers/adc.h"
 #include "drivers/adc_impl.h"
-
-#include "common/utils.h"
 
 #ifndef ADC_INSTANCE
 #define ADC_INSTANCE                ADC1
@@ -100,6 +98,7 @@ uint16_t adcGetChannel(uint8_t function)
     }
 }
 
+#if defined(ADC_CHANNEL_1_PIN) || defined(ADC_CHANNEL_2_PIN) || defined(ADC_CHANNEL_3_PIN) || defined(ADC_CHANNEL_4_PIN)
 static bool isChannelInUse(int channel)
 {
     for (int i = 0; i < ADC_FUNCTION_COUNT; i++) {
@@ -109,6 +108,7 @@ static bool isChannelInUse(int channel)
 
     return false;
 }
+#endif
 
 #if !defined(ADC_CHANNEL_1_PIN) || !defined(ADC_CHANNEL_2_PIN) || !defined(ADC_CHANNEL_3_PIN) || !defined(ADC_CHANNEL_4_PIN)
 static void disableChannelMapping(int channel)
@@ -203,4 +203,12 @@ uint16_t adcGetChannel(uint8_t channel)
     return 0;
 }
 
+#endif
+
+#else // USE_ADC
+uint16_t adcGetChannel(uint8_t channel)
+{
+    UNUSED(channel);
+    return 0;
+}
 #endif

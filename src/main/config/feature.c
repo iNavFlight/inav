@@ -22,7 +22,7 @@
 
 #include "config/feature.h"
 
-static uint32_t activeFeaturesLatch = 0;
+static EXTENDED_FASTRAM uint32_t activeFeaturesLatch = 0;
 
 void latchActiveFeatures(void)
 {
@@ -31,12 +31,13 @@ void latchActiveFeatures(void)
 
 bool featureConfigured(uint32_t mask)
 {
-    return featureConfig()->enabledFeatures & mask;
+    return (featureConfig()->enabledFeatures & mask) == mask;
 }
 
 bool feature(uint32_t mask)
 {
-    return activeFeaturesLatch & mask;
+    // Check for ALL masked features
+    return (activeFeaturesLatch & mask) == mask;
 }
 
 void featureSet(uint32_t mask)

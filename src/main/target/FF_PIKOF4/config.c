@@ -27,7 +27,6 @@
 
 void targetConfiguration(void)
 {
-    rxConfigMutable()->halfDuplex = false;
-    telemetryConfigMutable()->smartportUartUnidirectional = true;
+    rxConfigMutable()->halfDuplex = TRISTATE_OFF;
     batteryMetersConfigMutable()->current.scale = CURRENTSCALE;
 }

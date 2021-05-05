@@ -40,13 +40,8 @@
 #define MPU6500_CS_PIN          PC4
 #define MPU6500_SPI_BUS         BUS_SPI1
 
-#define USE_ACC
-#define USE_ACC_MPU6500
-#define ACC_MPU6500_ALIGN       CW0_DEG
-
-#define USE_GYRO
-#define USE_GYRO_MPU6500
-#define GYRO_MPU6500_ALIGN      CW0_DEG
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW0_DEG
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
@@ -58,6 +53,7 @@
 #define USE_MAG_LIS3MDL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
+#define BNO055_I2C_BUS          BUS_I2C1
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
@@ -121,7 +117,6 @@
 #define SPI3_SCK_PIN            PC10
 #define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PC12
-#define SPI3_CLOCK_LEADING_EDGE
 
 #define USE_I2C
 #define USE_I2C_DEVICE_1

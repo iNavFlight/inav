@@ -21,8 +21,6 @@
 
 #include "platform.h"
 
-#include "build/debug.h"
-
 #include "common/maths.h"
 #include "common/printf.h"
 
@@ -30,7 +28,6 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/1-wire.h"
-#include "drivers/logging.h"
 #include "drivers/temperature/temperature.h"
 #include "drivers/temperature/lm75.h"
 #include "drivers/temperature/ds18b20.h"
@@ -45,7 +42,7 @@
 #include "scheduler/protothreads.h"
 
 
-PG_REGISTER_ARRAY(tempSensorConfig_t, MAX_TEMP_SENSORS, tempSensorConfig, PG_TEMP_SENSOR_CONFIG, 1);
+PG_REGISTER_ARRAY(tempSensorConfig_t, MAX_TEMP_SENSORS, tempSensorConfig, PG_TEMP_SENSOR_CONFIG, 2);
 
 #define MPU_TEMP_VALID_BIT 0
 #define BARO_TEMP_VALID_BIT 1
@@ -102,7 +99,6 @@ static void newSensorCheckAndEnter(uint8_t type, uint64_t addr)
 void temperatureInit(void)
 {
     memset(sensorStatus, 0, sizeof(sensorStatus) * sizeof(*sensorStatus));
-    addBootlogEvent2(BOOT_EVENT_TEMP_SENSOR_DETECTION, BOOT_EVENT_FLAGS_NONE);
 
     sensorsSet(SENSOR_TEMP);
 
@@ -164,7 +160,7 @@ bool getSensorTemperature(uint8_t temperatureUpdateSensorIndex, int16_t *tempera
 void tempSensorAddressToString(uint64_t address, char *hex_address)
 {
     if (address < 8)
-        tfp_sprintf(hex_address, "%d", address);
+        tfp_sprintf(hex_address, "%d", (int)address);
     else {
         uint32_t *address32 = (uint32_t *)&address;
         tfp_sprintf(hex_address, "%08lx%08lx", address32[1], address32[0]);
@@ -214,13 +210,13 @@ PROTOTHREAD(temperatureUpdate)
         } else
             mpuBaroTempValid &= ~(1 << MPU_TEMP_VALID_BIT);
 
-        #ifdef USE_BARO
+#ifdef USE_BARO
         if (sensors(SENSOR_BARO)) {
             baroTemperature = baroGetTemperature();
             mpuBaroTempValid |= (1 << BARO_TEMP_VALID_BIT);
         } else
             mpuBaroTempValid &= ~(1 << BARO_TEMP_VALID_BIT);
-        #endif
+#endif
 
 #ifdef USE_TEMPERATURE_SENSOR
 

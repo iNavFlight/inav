@@ -43,6 +43,45 @@ Sequences:
     14   DISARM_REPEAT         0, 100, 10		Stick held in disarm position (after pause)
     15   ARMED                 0, 245, 10, 5	Board is armed (after pause ; repeats until board is disarmed or throttle is increased)
 
+You can use [this tool](https://www.mrd-rc.com/tutorials-tools-and-testing/useful-tools/helpful-inav-buzzer-code-checker/) to hear current buzzer sequences or enter custom sequences.
+
+## Controlling buzzer usage
+
+The usage of the buzzer can be controlled by the CLI `beeper` command.
+
+### List current usage
+
+```
+beeper 
+```
+### List all buzzer setting options
+
+```
+beeper list
+```
+giving:
+
+```
+Available:  RUNTIME_CALIBRATION  HW_FAILURE  RX_LOST  RX_LOST_LANDING  DISARMING  ARMING  ARMING_GPS_FIX  BAT_CRIT_LOW  BAT_LOW  GPS_STATUS  RX_SET  ACTION_SUCCESS  ACTION_FAIL  READY_BEEP  MULTI_BEEPS  DISARM_REPEAT  ARMED  SYSTEM_INIT  ON_USB  LAUNCH_MODE  CAM_CONNECTION_OPEN  CAM_CONNECTION_CLOSED  ALL  PREFERED
+```
+
+The `beeper` command  syntax follows that of the `feature` command; a minus (`-`) in front of a name disables that function.
+
+So to disable the beeper / buzzer when connected to USB (may enhance domestic harmony)
+
+```
+beeper -ON_USB
+```
+
+Now the `beeper` command will show:
+
+```
+# beeper
+Disabled:  ON_USB
+
+```
+
+As with other CLI commands, the `save` command is needed to save the new settings.
 
 ## Types of buzzer supported
 
@@ -54,7 +93,7 @@ Buzzers that need an analog or PWM signal do not work and will make clicking noi
 Examples of a known-working buzzers.
 
  * [Hcm1205x Miniature Buzzer 5v](http://www.rapidonline.com/Audio-Visual/Hcm1205x-Miniature-Buzzer-5v-35-0055)
- * [5V Electromagnetic Active Buzzer Continuous Beep](http://www.banggood.com/10Pcs-5V-Electromagnetic-Active-Buzzer-Continuous-Beep-Continuously-p-943524.html)
+ * [5V Electromagnetic Active Buzzer Continuous Beep](https://inavflight.com/shop/s/bg/943524)
  * [Radio Shack Model: 273-074 PC-BOARD 12VDC (3-16v) 70DB PIEZO BUZZER](http://www.radioshack.com/pc-board-12vdc-70db-piezo-buzzer/2730074.html#.VIAtpzHF_Si)
  * [MultiComp MCKPX-G1205A-3700 TRANSDUCER, THRU-HOLE, 4V, 30MA](http://uk.farnell.com/multicomp/mckpx-g1205a-3700/transducer-thru-hole-4v-30ma/dp/2135914?CMP=i-bf9f-00001000)
- * [3-24V Piezo Electronic Tone Buzzer Alarm 95DB](http://www.banggood.com/3-24V-Piezo-Electronic-Tone-Buzzer-Alarm-95DB-Continuous-Sound-p-919348.html)
+ * [3-24V Piezo Electronic Tone Buzzer Alarm 95DB](https://inavflight.com/shop/s/bg/919348)

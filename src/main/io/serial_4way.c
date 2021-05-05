@@ -72,7 +72,7 @@
 // *** change to adapt Revision
 #define SERIAL_4WAY_VER_MAIN 20
 #define SERIAL_4WAY_VER_SUB_1 (uint8_t) 0
-#define SERIAL_4WAY_VER_SUB_2 (uint8_t) 02
+#define SERIAL_4WAY_VER_SUB_2 (uint8_t) 05
 
 #define SERIAL_4WAY_PROTOCOL_VER 107
 // *** end
@@ -136,17 +136,17 @@ uint8_t esc4wayInit(void)
     pwmDisableMotors();
     escCount = 0;
     memset(&escHardware, 0, sizeof(escHardware));
-    pwmIOConfiguration_t *pwmIOConfiguration = pwmGetOutputConfiguration();
-    for (volatile uint8_t i = 0; i < pwmIOConfiguration->ioCount; i++) {
-        if ((pwmIOConfiguration->ioConfigurations[i].flags & PWM_PF_MOTOR) == PWM_PF_MOTOR) {
-            if (motor[pwmIOConfiguration->ioConfigurations[i].index] > 0) {
-                escHardware[escCount].io = IOGetByTag(pwmIOConfiguration->ioConfigurations[i].timerHardware->tag);
-                setEscInput(escCount);
-                setEscHi(escCount);
-                escCount++;
-            }
+
+    for (int idx = 0; idx < getMotorCount(); idx++) {
+        ioTag_t tag = pwmGetMotorPinTag(idx);
+        if (tag != IOTAG_NONE) {
+            escHardware[escCount].io = IOGetByTag(tag);
+            setEscInput(escCount);
+            setEscHi(escCount);
+            escCount++;
         }
     }
+
     return escCount;
 }
 
@@ -326,13 +326,13 @@ uint16_t _crc_xmodem_update (uint16_t crc, uint8_t data) {
 #define ATMEL_DEVICE_MATCH ((pDeviceInfo->words[0] == 0x9307) || (pDeviceInfo->words[0] == 0x930A) || \
         (pDeviceInfo->words[0] == 0x930F) || (pDeviceInfo->words[0] == 0x940B))
 
-#define SILABS_DEVICE_MATCH ((pDeviceInfo->words[0] == 0xF310)||(pDeviceInfo->words[0] ==0xF330) || \
+#define SILABS_DEVICE_MATCH ((pDeviceInfo->words[0] == 0xF310)||(pDeviceInfo->words[0] == 0xF330) || \
         (pDeviceInfo->words[0] == 0xF410) || (pDeviceInfo->words[0] == 0xF390) || \
         (pDeviceInfo->words[0] == 0xF850) || (pDeviceInfo->words[0] == 0xE8B1) || \
         (pDeviceInfo->words[0] == 0xE8B2))
 
-#define ARM_DEVICE_MATCH ((pDeviceInfo->words[0] == 0x1F06) || \
-        (pDeviceInfo->words[0] == 0x3306) || (pDeviceInfo->words[0] == 0x3406) || (pDeviceInfo->words[0] == 0x3506))
+// BLHeli_32 MCU ID hi > 0x00 and < 0x90 / lo always = 0x06
+#define ARM_DEVICE_MATCH ((pDeviceInfo->bytes[1] > 0x00) && (pDeviceInfo->bytes[1] < 0x90) && (pDeviceInfo->bytes[0] == 0x06))
 
 static uint8_t CurrentInterfaceMode;
 
@@ -427,11 +427,11 @@ void esc4wayProcess(serialPort_t *mspPort)
     port = mspPort;
 
     // Start here  with UART Main loop
-    #ifdef BEEPER
+#if defined(BEEPER) || defined(USE_DSHOT)
     // fix for buzzer often starts beeping continuously when the ESCs are read
     // switch beeper silent here
     beeperSilence();
-    #endif
+#endif
     bool isExitScheduled = false;
 
     while (1) {

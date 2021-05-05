@@ -17,188 +17,105 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "platform.h"
 
-#include "drivers/light_led.h"
-#include "sound_beeper.h"
-#include "drivers/nvic.h"
-#include "build/atomic.h"
 #include "build/build_config.h"
 
+#include "drivers/light_led.h"
+#include "drivers/persistent.h"
+#include "drivers/sound_beeper.h"
 #include "drivers/system.h"
 #include "drivers/time.h"
 
-#ifndef EXTI_CALLBACK_HANDLER_COUNT
-#define EXTI_CALLBACK_HANDLER_COUNT 1
+#if defined(STM32F3) || defined(STM32F4) || defined(STM32F7) || defined(STM32H7)
+// See "RM CoreSight Architecture Specification"
+// B2.3.10  "LSR and LAR, Software Lock Status Register and Software Lock Access Register"
+// "E1.2.11  LAR, Lock Access Register"
+#define DWT_LAR_UNLOCK_VALUE 0xC5ACCE55
 #endif
 
-extiCallbackHandlerConfig_t extiHandlerConfigs[EXTI_CALLBACK_HANDLER_COUNT];
-
-void registerExtiCallbackHandler(IRQn_Type irqn, extiCallbackHandlerFunc *fn)
-{
-    for (int index = 0; index < EXTI_CALLBACK_HANDLER_COUNT; index++) {
-        extiCallbackHandlerConfig_t *candidate = &extiHandlerConfigs[index];
-        if (!candidate->fn) {
-            candidate->fn = fn;
-            candidate->irqn = irqn;
-            return;
-        }
-    }
-    failureMode(FAILURE_DEVELOPER); // EXTI_CALLBACK_HANDLER_COUNT is too low for the amount of handlers required.
-}
-
-// cycles per microsecond
-STATIC_UNIT_TESTED  timeUs_t usTicks = 0;
-// current uptime for 1kHz systick timer. will rollover after 49 days. hopefully we won't care.
-STATIC_UNIT_TESTED volatile timeMs_t sysTickUptime = 0;
-STATIC_UNIT_TESTED volatile uint32_t sysTickValStamp = 0;
 // cached value of RCC->CSR
 uint32_t cachedRccCsrValue;
 
-#ifndef UNIT_TEST
 void cycleCounterInit(void)
 {
+    extern uint32_t usTicks; // From drivers/time.h
+
 #if defined(USE_HAL_DRIVER)
-    usTicks = HAL_RCC_GetSysClockFreq() / 1000000;
+    // We assume that SystemCoreClock is already set to a correct value by init code
+    usTicks = SystemCoreClock / 1000000;
 #else
     RCC_ClocksTypeDef clocks;
     RCC_GetClocksFreq(&clocks);
     usTicks = clocks.SYSCLK_Frequency / 1000000;
-
 #endif
 
     // Enable DWT for precision time measurement
     CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+
+#if defined(STM32F7) || defined(STM32H7)
+    DWT->LAR = DWT_LAR_UNLOCK_VALUE;
+#elif defined(STM32F3) || defined(STM32F4)
+    volatile uint32_t *DWTLAR = (uint32_t *)(DWT_BASE + 0x0FB0);
+    *(DWTLAR) = DWT_LAR_UNLOCK_VALUE;
+#endif
+
+    DWT->CYCCNT = 0;
     DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 }
-#endif // UNIT_TEST
 
-// SysTick
-
-static volatile int sysTickPending = 0;
-
-void SysTick_Handler(void)
+static inline void systemDisableAllIRQs(void)
 {
-    ATOMIC_BLOCK(NVIC_PRIO_MAX) {
-        sysTickUptime++;
-        sysTickValStamp = SysTick->VAL;
-        sysTickPending = 0;
-        (void)(SysTick->CTRL);
-    }
-#ifdef USE_HAL_DRIVER
-    // used by the HAL for some timekeeping and timeouts, should always be 1ms
-    HAL_IncTick();
-#endif
-}
-
-uint32_t ticks(void)
-{
-#ifdef UNIT_TEST
-    return 0;
-#else
-    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-    return DWT->CYCCNT;
-#endif
-}
-
-timeDelta_t ticks_diff_us(uint32_t begin, uint32_t end)
-{
-    return (end - begin) / usTicks;
-}
-
-// Return system uptime in microseconds
-timeUs_t microsISR(void)
-{
-    register uint32_t ms, pending, cycle_cnt;
-
-    ATOMIC_BLOCK(NVIC_PRIO_MAX) {
-        cycle_cnt = SysTick->VAL;
-
-        if (SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk) {
-            // Update pending.
-            // Record it for multiple calls within the same rollover period
-            // (Will be cleared when serviced).
-            // Note that multiple rollovers are not considered.
-
-            sysTickPending = 1;
-
-            // Read VAL again to ensure the value is read after the rollover.
-
-            cycle_cnt = SysTick->VAL;
-        }
-
-        ms = sysTickUptime;
-        pending = sysTickPending;
-    }
-
-    return ((timeUs_t)(ms + pending) * 1000LL) + (usTicks * 1000LL - (timeUs_t)cycle_cnt) / usTicks;
-}
-
-timeUs_t micros(void)
-{
-    register uint32_t ms, cycle_cnt;
-
-    // Call microsISR() in interrupt and elevated (non-zero) BASEPRI context
-
-#ifndef UNIT_TEST
-    if ((SCB->ICSR & SCB_ICSR_VECTACTIVE_Msk) || (__get_BASEPRI())) {
-        return microsISR();
-    }
-#endif
-
-    do {
-        ms = sysTickUptime;
-        cycle_cnt = SysTick->VAL;
-    } while (ms != sysTickUptime || cycle_cnt > sysTickValStamp);
-
-    return ((timeUs_t)ms * 1000LL) + (usTicks * 1000LL - (timeUs_t)cycle_cnt) / usTicks;
-}
-
-// Return system uptime in milliseconds (rollover in 49 days)
-timeMs_t millis(void)
-{
-    return sysTickUptime;
-}
-
-#if 1
-void delayMicroseconds(timeUs_t us)
-{
-    timeUs_t now = micros();
-    while (micros() - now < us);
-}
-#else
-void delayMicroseconds(timeUs_t us)
-{
-    uint32_t elapsed = 0;
-    uint32_t lastCount = SysTick->VAL;
-
-    for (;;) {
-        register uint32_t current_count = SysTick->VAL;
-        timeUs_t elapsed_us;
-
-        // measure the time elapsed since the last time we checked
-        elapsed += current_count - lastCount;
-        lastCount = current_count;
-
-        // convert to microseconds
-        elapsed_us = elapsed / usTicks;
-        if (elapsed_us >= us)
-            break;
-
-        // reduce the delay by the elapsed time
-        us -= elapsed_us;
-
-        // keep fractional microseconds for the next iteration
-        elapsed %= usTicks;
+    // We access CMSIS NVIC registers directly here
+    for (int x = 0; x < 8; x++) {
+        // Mask all IRQs controlled by a ICERx
+        NVIC->ICER[x] = 0xFFFFFFFF;
+        // Clear all pending IRQs controlled by a ICPRx
+        NVIC->ICPR[x] = 0xFFFFFFFF;
     }
 }
-#endif
 
-void delay(timeMs_t ms)
+void systemReset(void)
 {
-    while (ms--)
-        delayMicroseconds(1000);
+    __disable_irq();
+    systemDisableAllIRQs();
+    NVIC_SystemReset();
+}
+
+void systemResetRequest(uint32_t requestId)
+{
+    persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, requestId);
+    systemReset();
+}
+
+void systemResetToBootloader(void)
+{
+    systemResetRequest(RESET_BOOTLOADER_REQUEST_ROM);
+}
+
+typedef void resetHandler_t(void);
+
+typedef struct isrVector_s {
+    uint32_t    stackEnd;
+    resetHandler_t *resetHandler;
+} isrVector_t;
+
+
+void checkForBootLoaderRequest(void)
+{
+    uint32_t bootloaderRequest = persistentObjectRead(PERSISTENT_OBJECT_RESET_REASON);
+
+    if (bootloaderRequest != RESET_BOOTLOADER_REQUEST_ROM) {
+        return;
+    }
+    persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_NONE);
+
+    volatile isrVector_t *bootloaderVector = (isrVector_t *)systemBootloaderAddress();
+    __set_MSP(bootloaderVector->stackEnd);
+    bootloaderVector->resetHandler();
+    while (1);
 }
 
 #define SHORT_FLASH_DURATION 50
@@ -250,4 +167,15 @@ void failureMode(failureMode_e mode)
     systemResetToBootloader();
 #endif
 #endif //UNIT_TEST
+}
+
+void initialiseMemorySections(void)
+{
+#ifdef USE_ITCM_RAM
+    /* Load functions into ITCM RAM */
+    extern uint8_t tcm_code_start;
+    extern uint8_t tcm_code_end;
+    extern uint8_t tcm_code;
+    memcpy(&tcm_code_start, &tcm_code, (size_t) (&tcm_code_end - &tcm_code_start));
+#endif
 }

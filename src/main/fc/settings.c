@@ -1,6 +1,8 @@
 #include <string.h>
 #include <stdint.h>
 
+#include "platform.h"
+
 #include "common/string_light.h"
 #include "common/utils.h"
 
@@ -8,6 +10,8 @@
 
 #include "fc/settings.h"
 
+#include "config/general_settings.h"
+#include "flight/rpm_filter.h"
 #include "settings_generated.c"
 
 static bool settingGetWord(char *buf, int idx)
@@ -282,6 +286,18 @@ const char * settingLookupValueName(const setting_t *val, unsigned v)
 		return table->values[v];
 	}
 	return NULL;
+}
+
+size_t settingGetValueNameMaxSize(const setting_t *val)
+{
+	size_t maxSize = 0;
+	const lookupTableEntry_t *table = settingLookupTable(val);
+	if (table) {
+		for (unsigned ii = 0; ii < table->valueCount; ii++) {
+			maxSize = MAX(maxSize, strlen(table->values[ii]));
+		}
+	}
+	return maxSize;
 }
 
 const char * settingGetString(const setting_t *val)

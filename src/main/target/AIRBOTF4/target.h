@@ -34,23 +34,15 @@
 #define GYRO_INT_EXTI            PC4
 #define USE_MPU_DATA_READY_SIGNAL
 
-#define USE_GYRO
-#define USE_GYRO_MPU6000
-#define GYRO_MPU6000_ALIGN      CW270_DEG
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
-#define USE_GYRO_MPU6500
-#define GYRO_MPU6500_ALIGN      CW270_DEG
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW270_DEG
 #define MPU6500_CS_PIN          PA4
 #define MPU6500_SPI_BUS         BUS_SPI1
-
-#define USE_ACC
-#define USE_ACC_MPU6000
-#define ACC_MPU6000_ALIGN       CW270_DEG
-
-#define USE_ACC_MPU6500
-#define ACC_MPU6500_ALIGN       CW270_DEG
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
@@ -72,8 +64,8 @@
 
 #define USE_PITOT_ADC
 #define PITOT_I2C_BUS           BUS_I2C2
-
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
+#define BNO055_I2C_BUS          BUS_I2C2
 
 #define M25P16_CS_PIN           PB3
 #define M25P16_SPI_BUS          BUS_SPI3
@@ -159,3 +151,4 @@
 #define PCA9685_I2C_BUS         BUS_I2C2
 
 #define USE_DSHOT
+#define USE_ESC_SENSOR

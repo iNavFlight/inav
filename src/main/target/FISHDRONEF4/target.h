@@ -38,17 +38,11 @@
 #define MPU9250_CS_PIN          PA4
 #define MPU9250_SPI_BUS         BUS_SPI1
 
-#define USE_ACC
-#define USE_ACC_MPU6500
-#define GYRO_MPU6500_ALIGN      CW180_DEG
-#define USE_ACC_MPU9250
-#define GYRO_MPU9250_ALIGN      CW180_DEG
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW180_DEG
 
-#define USE_GYRO
-#define USE_GYRO_MPU6500
-#define ACC_MPU6500_ALIGN       CW180_DEG
-#define USE_GYRO_MPU9250
-#define ACC_MPU9250_ALIGN       CW180_DEG
+#define USE_IMU_MPU9250
+#define IMU_MPU9250_ALIGN       CW180_DEG
 
 // MPU6500 interrupts
 #define USE_EXTI
@@ -70,6 +64,8 @@
 
 // *************** Temperature sensor *****************
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
+
+#define BNO055_I2C_BUS          BUS_I2C1
 
 // *************** BARO *****************************
 #define USE_BARO
@@ -94,7 +90,6 @@
 #define SPI3_MISO_PIN   PB4
 #define SPI3_MOSI_PIN   PB5
 #define SPI3_NSS_PIN    PB6
-#define SPI3_CLOCK_LEADING_EDGE
 
 #define USE_SDCARD
 #define USE_SDCARD_SPI
@@ -161,7 +156,6 @@
 
 // *************** NAV *****************************
 #define USE_NAV
-#define NAV_AUTO_MAG_DECLINATION
 #define NAV_GPS_GLITCH_DETECTION
 #define NAV_MAX_WAYPOINTS       60
 

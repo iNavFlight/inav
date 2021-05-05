@@ -43,4 +43,4 @@
 
 ## Where to buy:
 * [Airbot](https://store.myairbot.com/noxv2.html)
-* [Banggood](https://www.banggood.com/nl/20x20mm-Betaflight-F4-Noxe-MPU6000-Flight-Controller-AIO-OSD-5V-BEC-Built-in-LC-Filter-for-RC-Drone-p-1310419.html)
+* [Banggood](https:inavflight.com/shop/s/bg/1310419)

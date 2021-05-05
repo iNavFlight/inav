@@ -18,6 +18,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifndef sq
 #define sq(x) ((x)*(x))
@@ -55,6 +56,12 @@
 #define RADIANS_TO_CENTIDEGREES(angle) (((angle) * 100.0f) / RAD)
 #define CENTIDEGREES_TO_RADIANS(angle) (((angle) / 100.0f) * RAD)
 
+#define CENTIMETERS_TO_CENTIFEET(cm)            (cm * (328 / 100.0))
+#define CENTIMETERS_TO_FEET(cm)                 (cm * (328 / 10000.0))
+#define CENTIMETERS_TO_METERS(cm)               (cm / 100)
+
+#define METERS_TO_CENTIMETERS(m)                (m * 100)
+
 // copied from https://code.google.com/p/cxutil/source/browse/include/cxutil/utility.h#70
 #define _CHOOSE2(binoper, lexpr, lvar, rexpr, rvar)         \
     ( __extension__ ({                                      \
@@ -80,6 +87,8 @@
     }))
 #define _ABS_I(x, var) _ABS_II(x, var)
 #define ABS(x) _ABS_I(x, _CHOOSE_VAR(_abs, __COUNTER__))
+
+#define power3(x) ((x)*(x)*(x))
 
 // Floating point Euler angles.
 typedef struct fp_angles {
@@ -118,13 +127,13 @@ typedef struct {
 void sensorCalibrationResetState(sensorCalibrationState_t * state);
 void sensorCalibrationPushSampleForOffsetCalculation(sensorCalibrationState_t * state, int32_t sample[3]);
 void sensorCalibrationPushSampleForScaleCalculation(sensorCalibrationState_t * state, int axis, int32_t sample[3], int target);
-void sensorCalibrationSolveForOffset(sensorCalibrationState_t * state, float result[3]);
-void sensorCalibrationSolveForScale(sensorCalibrationState_t * state, float result[3]);
+bool sensorCalibrationSolveForOffset(sensorCalibrationState_t * state, float result[3]);
+bool sensorCalibrationSolveForScale(sensorCalibrationState_t * state, float result[3]);
 
 int gcd(int num, int denom);
 int32_t applyDeadband(int32_t value, int32_t deadband);
 
-int constrain(int amt, int low, int high);
+int32_t constrain(int32_t amt, int32_t low, int32_t high);
 float constrainf(float amt, float low, float high);
 
 void devClear(stdev_t *dev);

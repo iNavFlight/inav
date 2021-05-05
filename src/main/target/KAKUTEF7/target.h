@@ -20,29 +20,38 @@
 
 #pragma once
 
+#ifdef KAKUTEF7MINI
+#define TARGET_BOARD_IDENTIFIER "KF7M"
+#define USBD_PRODUCT_STRING "KakuteF7-Mini"
+#else
 #define TARGET_BOARD_IDENTIFIER "KTF7"
 #define USBD_PRODUCT_STRING "KakuteF7"
+#endif
 
 #define LED0                PA2
 
 #define BEEPER              PD15
 #define BEEPER_INVERTED
 
-#define USE_ACC
-#define USE_GYRO
+#define USE_DSHOT
+#define USE_ESC_SENSOR
 
 #define USE_MPU_DATA_READY_SIGNAL
 #define USE_EXTI
 
 // ICM-20689
-#define USE_ACC_ICM20689
-#define USE_GYRO_ICM20689
-#define GYRO_ICM20689_ALIGN      CW270_DEG
-#define ACC_ICM20689_ALIGN       CW270_DEG
-
-#define ICM20689_EXTI_PIN            PE1
+#define USE_IMU_ICM20689
+#define IMU_ICM20689_ALIGN       CW270_DEG
+#define GYRO_INT_EXTI            PE1
 #define ICM20689_CS_PIN          SPI4_NSS_PIN
 #define ICM20689_SPI_BUS         BUS_SPI4
+
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW270_DEG
+#define GYRO_INT_EXTI           PE1
+#define MPU6000_CS_PIN          SPI4_NSS_PIN
+#define MPU6000_SPI_BUS         BUS_SPI4
+
 
 #define USB_IO
 #define USE_VCP
@@ -84,7 +93,6 @@
 #define SPI1_SCK_PIN            PA5
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PA7
-#define SPI1_CLOCK_LEADING_EDGE
 
 #define SPI2_NSS_PIN            PB12
 #define SPI2_SCK_PIN            PB13
@@ -97,16 +105,27 @@
 #define SPI4_MOSI_PIN           PE6
 
 #define USE_OSD
+
+#ifndef KAKUTEF7HDV
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          SPI2_NSS_PIN
+#endif
 
+#if defined(KAKUTEF7MINI)
+#define M25P16_CS_PIN           SPI1_NSS_PIN
+#define M25P16_SPI_BUS          BUS_SPI1
+#define USE_FLASHFS
+#define USE_FLASH_M25P16
+#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+#else
 #define USE_SDCARD
 #define USE_SDCARD_SPI
 #define SDCARD_SPI_BUS          BUS_SPI1
 #define SDCARD_CS_PIN           SPI1_NSS_PIN
 #define SDCARD_DETECT_INVERTED
 #define SDCARD_DETECT_PIN       PD8
+#endif
 
 #define USE_I2C
 #define USE_I2C_DEVICE_1
@@ -115,6 +134,7 @@
 
 #define USE_BARO
 #define USE_BARO_BMP280
+#define USE_BARO_MS5611
 #define BARO_I2C_BUS            BUS_I2C1
 
 #define USE_MAG
@@ -128,6 +148,8 @@
 #define USE_MAG_LIS3MDL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
+
+#define RANGEFINDER_I2C_BUS     BUS_I2C1
 
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN           PC2
@@ -145,6 +167,9 @@
 #define SERIALRX_UART           SERIAL_PORT_USART6
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 
+#define USE_LED_STRIP
+#define WS2811_PIN                      PD12   //TIM4_CH1
+
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #define TARGET_IO_PORTA 0xffff
@@ -154,3 +179,5 @@
 #define TARGET_IO_PORTE 0xffff
 
 #define MAX_PWM_OUTPUT_PORTS       6
+
+#define BNO055_I2C_BUS          BUS_I2C1

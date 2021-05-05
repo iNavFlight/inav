@@ -18,6 +18,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include <math.h>
 
 #include "platform.h"
 
@@ -39,7 +40,10 @@ const uint16_t lookupDMASourceTable[] = { TIM_DMA_CC1, TIM_DMA_CC2, TIM_DMA_CC3,
 const uint8_t lookupTIMChannelTable[] = { TIM_CHANNEL_1, TIM_CHANNEL_2, TIM_CHANNEL_3, TIM_CHANNEL_4 };
 
 static const uint32_t lookupDMALLStreamTable[] = { LL_DMA_STREAM_0, LL_DMA_STREAM_1, LL_DMA_STREAM_2, LL_DMA_STREAM_3, LL_DMA_STREAM_4, LL_DMA_STREAM_5, LL_DMA_STREAM_6, LL_DMA_STREAM_7 };
+
+#if !(defined(STM32H7) || defined(STM32G4))
 static const uint32_t lookupDMALLChannelTable[] = { LL_DMA_CHANNEL_0, LL_DMA_CHANNEL_1, LL_DMA_CHANNEL_2, LL_DMA_CHANNEL_3, LL_DMA_CHANNEL_4, LL_DMA_CHANNEL_5, LL_DMA_CHANNEL_6, LL_DMA_CHANNEL_7 };
+#endif
 
 static TIM_HandleTypeDef timerHandle[HARDWARE_TIMER_DEFINITION_COUNT];
 
@@ -61,12 +65,12 @@ void impl_timerInitContext(timHardwareContext_t * timCtx)
 void impl_timerNVICConfigure(TCH_t * tch, int irqPriority)
 {
     if (tch->timCtx->timDef->irq) {
-        HAL_NVIC_SetPriority(tch->timCtx->timDef->irq, NVIC_PRIORITY_BASE(irqPriority), NVIC_PRIORITY_SUB(irqPriority));
+        HAL_NVIC_SetPriority(tch->timCtx->timDef->irq, irqPriority, 0);
         HAL_NVIC_EnableIRQ(tch->timCtx->timDef->irq);
     }
 
     if (tch->timCtx->timDef->secondIrq) {
-        HAL_NVIC_SetPriority(tch->timCtx->timDef->secondIrq, NVIC_PRIORITY_BASE(irqPriority), NVIC_PRIORITY_SUB(irqPriority));
+        HAL_NVIC_SetPriority(tch->timCtx->timDef->secondIrq, irqPriority, 0);
         HAL_NVIC_EnableIRQ(tch->timCtx->timDef->secondIrq);
     }
 }
@@ -82,7 +86,7 @@ void impl_timerConfigBase(TCH_t * tch, uint16_t period, uint32_t hz)
     }
 
     timHandle->Instance = timer;
-    timHandle->Init.Prescaler = (timerGetBaseClock(tch) / hz) - 1;
+    timHandle->Init.Prescaler = lrintf((float)timerGetBaseClock(tch) / hz + 0.01f) - 1;
     timHandle->Init.Period = (period - 1) & 0xffff; // AKA TIMx_ARR
     timHandle->Init.RepetitionCounter = 0;
     timHandle->Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -90,7 +94,12 @@ void impl_timerConfigBase(TCH_t * tch, uint16_t period, uint32_t hz)
     timHandle->Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
 
     HAL_TIM_Base_Init(timHandle);
+    
+#if defined(STM32H7) || defined(STM32G4)
+    if (timer == TIM1 || timer == TIM2 || timer == TIM3 || timer == TIM4 || timer == TIM5 || timer == TIM8) {
+#else
     if (timer == TIM1 || timer == TIM2 || timer == TIM3 || timer == TIM4 || timer == TIM5 || timer == TIM8 || timer == TIM9) {
+#endif
         TIM_ClockConfigTypeDef sClockSourceConfig;
         memset(&sClockSourceConfig, 0, sizeof(sClockSourceConfig));
         sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
@@ -319,7 +328,7 @@ static void impl_timerDMA_IRQHandler(DMA_t descriptor)
     }
 }
 
-bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint32_t dmaBufferSize)
+bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint8_t dmaBufferElementSize, uint32_t dmaBufferElementCount)
 {
     tch->dma = dmaGetByTag(tch->timHw->dmaTag);
     tch->dmaBuffer = dmaBuffer;
@@ -336,21 +345,45 @@ bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint32_t dmaBu
     //  timerConfigBase
     //  timerPWMConfigChannel
     const uint32_t streamLL = lookupDMALLStreamTable[DMATAG_GET_STREAM(tch->timHw->dmaTag)];
-    const uint32_t channelLL = lookupDMALLChannelTable[DMATAG_GET_CHANNEL(tch->timHw->dmaTag)];
 
     LL_DMA_DeInit(tch->dma->dma, streamLL);
 
     LL_DMA_InitTypeDef init;
     LL_DMA_StructInit(&init);
 
-    init.Channel = channelLL;
+#if defined(STM32H7) || defined(STM32G4)
+    // For H7 the DMA periphRequest is encoded in the DMA tag
+    init.PeriphRequest = DMATAG_GET_CHANNEL(tch->timHw->dmaTag);
+#else
+    init.Channel = lookupDMALLChannelTable[DMATAG_GET_CHANNEL(tch->timHw->dmaTag)];
+#endif
+
     init.PeriphOrM2MSrcAddress = (uint32_t)impl_timerCCR(tch);
     init.PeriphOrM2MSrcIncMode = LL_DMA_PERIPH_NOINCREMENT;
-    init.PeriphOrM2MSrcDataSize = LL_DMA_PDATAALIGN_WORD;
+
+    switch (dmaBufferElementSize) {
+        case 1:
+            init.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_BYTE;
+            init.PeriphOrM2MSrcDataSize = LL_DMA_MDATAALIGN_BYTE;
+            break;
+        case 2:
+            init.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_HALFWORD;
+            init.PeriphOrM2MSrcDataSize = LL_DMA_MDATAALIGN_HALFWORD;
+            break;
+        case 4:
+            init.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_WORD;
+            init.PeriphOrM2MSrcDataSize = LL_DMA_PDATAALIGN_WORD;
+            break;
+        default:
+            // Programmer error
+            while(1) {
+
+            }
+    }
+
     init.MemoryOrM2MDstAddress = (uint32_t)dmaBuffer;
     init.MemoryOrM2MDstIncMode = LL_DMA_MEMORY_INCREMENT;
-    init.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_WORD;
-    init.NbData = dmaBufferSize;
+    init.NbData = dmaBufferElementCount;
     init.Direction = LL_DMA_DIRECTION_MEMORY_TO_PERIPH;
     init.Mode = LL_DMA_MODE_NORMAL;
     init.Priority = LL_DMA_PRIORITY_HIGH;
@@ -360,7 +393,7 @@ bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint32_t dmaBu
     init.PeriphBurst = LL_DMA_PBURST_SINGLE;
 
     dmaInit(tch->dma, OWNER_TIMER, 0);
-    dmaSetHandler(tch->dma, impl_timerDMA_IRQHandler, NVIC_PRIO_WS2811_DMA, (uint32_t)tch);
+    dmaSetHandler(tch->dma, impl_timerDMA_IRQHandler, NVIC_PRIO_TIMER_DMA, (uint32_t)tch);
 
     LL_DMA_Init(tch->dma->dma, streamLL, &init);
 
@@ -375,10 +408,10 @@ bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint32_t dmaBu
     return true;
 }
 
-void impl_timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferSize)
+void impl_timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferElementCount)
 {
     const uint32_t streamLL = lookupDMALLStreamTable[DMATAG_GET_STREAM(tch->timHw->dmaTag)];
-    DMA_TypeDef * dmaBase = tch->dma->dma;
+    DMA_TypeDef *dmaBase = tch->dma->dma;
 
     // Make sure we terminate any DMA transaction currently in progress
     // Clear the flag as well, so even if DMA transfer finishes while within ATOMIC_BLOCK
@@ -389,7 +422,7 @@ void impl_timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferSize)
         DMA_CLEAR_FLAG(tch->dma, DMA_IT_TCIF);
     }
 
-    LL_DMA_SetDataLength(dmaBase, streamLL, dmaBufferSize);
+    LL_DMA_SetDataLength(dmaBase, streamLL, dmaBufferElementCount);
     LL_DMA_ConfigAddresses(dmaBase, streamLL, (uint32_t)tch->dmaBuffer, (uint32_t)impl_timerCCR(tch), LL_DMA_DIRECTION_MEMORY_TO_PERIPH);
     LL_DMA_EnableIT_TC(dmaBase, streamLL);
     LL_DMA_EnableStream(dmaBase, streamLL);

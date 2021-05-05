@@ -38,6 +38,11 @@
 * PPM and UART6 can be used together when S.BUS jumper is removed (close to PPM/SBUS connector)
 * Uses target **OMNIBUSF4V3**
 
+More target options:
+* OMNIBUSF4V3_S6_SS: Softserial1 on S6
+* OMNIBUSF4V3_S5_S6_2SS: Softserial1 on S5 and Softserial2 on S6
+* OMNIBUSF4V3_S5S6_SS: Softserial1 on S5/RX and S6/TX
+
 ### [Omnibus F4 v4/v5](https://inavflight.com/shop/p/OMNIBUSF4V5)
 
 * Switching voltage regulator - solves problem of overheating BEC
@@ -74,6 +79,11 @@
 * SBUS inverter connected to UART1
 * Uses target **FIREWORKSV2**
 
+### Omnibus Corner Nano
+
+* Configurable inverter on UART6
+* Use target **OMNIBUSF4V3**
+
 ## **NOT** supported
 
 * HC-SR04 Rangefinder
@@ -81,7 +91,7 @@
 
 ## Radio Receivers
 
-This board does not support Parallel PWM receiver connection. Only SerialRX, PPM and MSP receivers are supported.
+SerialRX, PPM and MSP receivers are supported.
 
 SerialRX and PPM receivers should be connected to dedicated _PPM SBUS_ connector above _Motor 1_. MSP receivers should be connected to one of UARTs configured as MSP.
 

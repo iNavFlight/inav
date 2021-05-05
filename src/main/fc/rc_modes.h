@@ -26,54 +26,58 @@
 #define BOXID_NONE 255
 
 typedef enum {
-    BOXARM          = 0,
-    BOXANGLE        = 1,
-    BOXHORIZON      = 2,
-    BOXNAVALTHOLD   = 3,    // old BOXBARO
-    BOXHEADINGHOLD  = 4,    // old MAG
-    BOXHEADFREE     = 5,
-    BOXHEADADJ      = 6,
-    BOXCAMSTAB      = 7,
-    BOXNAVRTH       = 8,    // old GPSHOME
-    BOXNAVPOSHOLD   = 9,    // old GPSHOLD
-    BOXMANUAL       = 10,
-    BOXBEEPERON     = 11,
-    BOXLEDLOW       = 12,
-    BOXLIGHTS       = 13,
-    BOXNAVLAUNCH    = 14,
-    BOXOSD          = 15,
-    BOXTELEMETRY    = 16,
-    BOXBLACKBOX     = 17,
-    BOXFAILSAFE     = 18,
-    BOXNAVWP        = 19,
-    BOXAIRMODE      = 20,
-    BOXHOMERESET    = 21,
-    BOXGCSNAV       = 22,
-    BOXKILLSWITCH   = 23,   // old HEADING LOCK
-    BOXSURFACE      = 24,
-    BOXFLAPERON     = 25,
-    BOXTURNASSIST   = 26,
-    BOXAUTOTRIM     = 27,
-    BOXAUTOTUNE     = 28,
-    BOXCAMERA1      = 29,
-    BOXCAMERA2      = 30,
-    BOXCAMERA3      = 31,
-    BOXOSDALT1      = 32,
-    BOXOSDALT2      = 33,
-    BOXOSDALT3      = 34,
-    BOXNAVCRUISE    = 35,
-    BOXBRAKING      = 36,
-    BOXUSER1        = 37,
-    BOXUSER2        = 38,
-    BOXFPVANGLEMIX  = 39,
-    BOXLOITERDIRCHN = 40,
+    BOXARM           = 0,
+    BOXANGLE         = 1,
+    BOXHORIZON       = 2,
+    BOXNAVALTHOLD    = 3,    // old BOXBARO
+    BOXHEADINGHOLD   = 4,    // old MAG
+    BOXHEADFREE      = 5,
+    BOXHEADADJ       = 6,
+    BOXCAMSTAB       = 7,
+    BOXNAVRTH        = 8,    // old GPSHOME
+    BOXNAVPOSHOLD    = 9,    // old GPSHOLD
+    BOXMANUAL        = 10,
+    BOXBEEPERON      = 11,
+    BOXLEDLOW        = 12,
+    BOXLIGHTS        = 13,
+    BOXNAVLAUNCH     = 14,
+    BOXOSD           = 15,
+    BOXTELEMETRY     = 16,
+    BOXBLACKBOX      = 17,
+    BOXFAILSAFE      = 18,
+    BOXNAVWP         = 19,
+    BOXAIRMODE       = 20,
+    BOXHOMERESET     = 21,
+    BOXGCSNAV        = 22,
+    BOXKILLSWITCH    = 23,   // old HEADING LOCK
+    BOXSURFACE       = 24,
+    BOXFLAPERON      = 25,
+    BOXTURNASSIST    = 26,
+    BOXAUTOTRIM      = 27,
+    BOXAUTOTUNE      = 28,
+    BOXCAMERA1       = 29,
+    BOXCAMERA2       = 30,
+    BOXCAMERA3       = 31,
+    BOXOSDALT1       = 32,
+    BOXOSDALT2       = 33,
+    BOXOSDALT3       = 34,
+    BOXNAVCOURSEHOLD = 35,
+    BOXBRAKING       = 36,
+    BOXUSER1         = 37,
+    BOXUSER2         = 38,
+    BOXFPVANGLEMIX   = 39,
+    BOXLOITERDIRCHN  = 40,
+    BOXMSPRCOVERRIDE = 41,
+    BOXPREARM        = 42,
+    BOXTURTLE        = 43,
+    BOXNAVCRUISE     = 44,
     CHECKBOX_ITEM_COUNT
 } boxId_e;
 
 // type to hold enough bits for CHECKBOX_ITEM_COUNT. Struct used for value-like behavior
 typedef struct boxBitmask_s { BITARRAY_DECLARE(bits, CHECKBOX_ITEM_COUNT); } boxBitmask_t;
 
-#define MAX_MODE_ACTIVATION_CONDITION_COUNT 20
+#define MAX_MODE_ACTIVATION_CONDITION_COUNT 40
 
 #define CHANNEL_RANGE_MIN 900
 #define CHANNEL_RANGE_MAX 2100
@@ -120,8 +124,7 @@ void rcModeUpdate(boxBitmask_t *newState);
 
 bool isModeActivationConditionPresent(boxId_e modeId);
 
-bool isUsingSticksForArming(void);
-bool isAirmodeActive(void);
+void processAirmode(void);
 bool isUsingNavigationModes(void);
 bool isRangeActive(uint8_t auxChannelIndex, const channelRange_t *range);
 

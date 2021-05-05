@@ -4,9 +4,6 @@
 #include "drivers/1-wire.h"
 #include "drivers/1-wire/ds2482.h"
 
-#include "drivers/logging.h"
-
-
 #ifdef USE_1WIRE
 
 #ifdef USE_1WIRE_DS2482
@@ -17,7 +14,6 @@ static owDev_t ds2482Dev;
 void owInit(void)
 {
     memset(&ds2482Dev, 0, sizeof(ds2482Dev));
-    addBootlogEvent2(BOOT_EVENT_TEMP_SENSOR_DETECTION, BOOT_EVENT_FLAGS_NONE);
 #ifdef USE_1WIRE_DS2482
     if (ds2482Detect(&ds2482Dev)) ds2482Detected = true;
 #endif

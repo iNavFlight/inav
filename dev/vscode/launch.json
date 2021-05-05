@@ -1,0 +1,28 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+
+    // ******* INAV ********
+    // Define the following values in settings.json
+    //      - BUILD_DIR: Relative path to the build directory
+    //      - TARGET: Target name that you want to launch
+
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Cortex Debug",
+            "cwd": "${workspaceRoot}",
+            "executable": "${config:BUILD_DIR}/bin/${config:TARGET}.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "servertype": "openocd",
+            "device": "${config:TARGET}",
+            "configFiles": [
+                "${config:BUILD_DIR}/openocd/${config:TARGET}.cfg"
+            ],
+            "preLaunchTask": "openocd-debug-prepare",
+            "svdFile": "${config:BUILD_DIR}/svd/${config:TARGET}.svd",
+        }
+    ]
+}

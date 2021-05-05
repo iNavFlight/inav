@@ -97,7 +97,7 @@ static bool mag3110Read(magDev_t * mag)
 
     mag->magADCRaw[X] = (int16_t)(buf[0] << 8 | buf[1]);
     mag->magADCRaw[Y] = (int16_t)(buf[2] << 8 | buf[3]);
-    mag->magADCRaw[Z] = (int16_t)(buf[4] << 8 | buf[5]);
+    mag->magADCRaw[Z] = -(int16_t)(buf[4] << 8 | buf[5]);  // Z is down, not up in this sensor
 
     return true;
 }

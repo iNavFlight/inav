@@ -21,43 +21,39 @@
 
 struct dmaChannelDescriptor_s;
 
-typedef uint16_t dmaTag_t;                          // Packed DMA adapter/channel/stream
+typedef uint32_t dmaTag_t;                          // Packed DMA adapter/channel/stream
 typedef struct dmaChannelDescriptor_s * DMA_t;
 
 #if defined(UNIT_TEST)
 typedef uint32_t DMA_TypeDef;
 #endif
 
-#define DMA_TAG(dma, stream, channel)   ( (((dma) & 0x03) << 7) | (((stream) & 0x07) << 4) | (((channel) & 0x0F) << 0) )
+#define DMA_TAG(dma, stream, channel)   ( (((dma) & 0x03) << 12) | (((stream) & 0x0F) << 8) | (((channel) & 0xFF) << 0) )
 #define DMA_NONE                        (0)
 
-#define DMATAG_GET_DMA(x)               ( ((x) >> 7) & 0x03 )
-#define DMATAG_GET_STREAM(x)            ( ((x) >> 4) & 0x07 )
-#define DMATAG_GET_CHANNEL(x)           ( ((x) >> 0) & 0x0F )
+#define DMATAG_GET_DMA(x)               ( ((x) >> 12) & 0x03 )
+#define DMATAG_GET_STREAM(x)            ( ((x) >> 8)  & 0x0F )
+#define DMATAG_GET_CHANNEL(x)           ( ((x) >> 0)  & 0xFF )
 
 typedef void (*dmaCallbackHandlerFuncPtr)(DMA_t channelDescriptor);
 
 typedef struct dmaChannelDescriptor_s {
     dmaTag_t                    tag;
     DMA_TypeDef*                dma;
-#if defined(STM32F4)
+#if defined(STM32F4) || defined(STM32F7) || defined(STM32H7)
     DMA_Stream_TypeDef*         ref;
-#elif defined(STM32F7)
-    DMA_Stream_TypeDef*         ref;
-    DMA_HandleTypeDef           hdma;
 #else
     DMA_Channel_TypeDef*        ref;
 #endif
     dmaCallbackHandlerFuncPtr   irqHandlerCallback;
     uint32_t                    flagsShift;
     IRQn_Type                   irqNumber;
-    uint32_t                    rcc;
     uint32_t                    userParam;
     resourceOwner_e             owner;
     uint8_t                     resourceIndex;
 } dmaChannelDescriptor_t;
 
-#if defined(STM32F4)
+#if defined(STM32F4) || defined(STM32F7) || defined(STM32H7)
 
 #define DEFINE_DMA_CHANNEL(d, s, f) { \
                                         .tag = DMA_TAG(d, s, 0), \
@@ -66,7 +62,6 @@ typedef struct dmaChannelDescriptor_s {
                                         .irqHandlerCallback = NULL, \
                                         .flagsShift = f, \
                                         .irqNumber = DMA##d##_Stream##s##_IRQn, \
-                                        .rcc = RCC_AHB1Periph_DMA##d, \
                                         .userParam = 0 \
                                     }
 
@@ -85,33 +80,7 @@ typedef struct dmaChannelDescriptor_s {
 #define DMA_IT_DMEIF                        ((uint32_t)0x00000004)
 #define DMA_IT_FEIF                         ((uint32_t)0x00000001)
 
-#elif defined(STM32F7)
-
-#define DEFINE_DMA_CHANNEL(d, s, f) { \
-                                        .tag = DMA_TAG(d, s, 0), \
-                                        .dma = DMA##d, \
-                                        .ref = DMA##d##_Stream##s, \
-                                        .irqHandlerCallback = NULL, \
-                                        .flagsShift = f, \
-                                        .irqNumber = DMA##d##_Stream##s##_IRQn, \
-                                        .rcc = RCC_AHB1ENR_DMA##d##EN, \
-                                        .userParam = 0 \
-                                    }
-
-#define DEFINE_DMA_IRQ_HANDLER(d, s, i) void DMA ## d ## _Stream ## s ## _IRQHandler(void) {\
-                                                                if (dmaDescriptors[i].irqHandlerCallback)\
-                                                                    dmaDescriptors[i].irqHandlerCallback(&dmaDescriptors[i]);\
-                                                            }
-
-#define DMA_CLEAR_FLAG(d, flag) if (d->flagsShift > 31) d->dma->HIFCR = (flag << (d->flagsShift - 32)); else d->dma->LIFCR = (flag << d->flagsShift)
-#define DMA_GET_FLAG_STATUS(d, flag) (d->flagsShift > 31 ? d->dma->HISR & (flag << (d->flagsShift - 32)): d->dma->LISR & (flag << d->flagsShift))
-
-
-#define DMA_IT_TCIF                         ((uint32_t)0x00000020)
-#define DMA_IT_HTIF                         ((uint32_t)0x00000010)
-#define DMA_IT_TEIF                         ((uint32_t)0x00000008)
-#define DMA_IT_DMEIF                        ((uint32_t)0x00000004)
-#define DMA_IT_FEIF                         ((uint32_t)0x00000001)
+DMA_t dmaGetByRef(const DMA_Stream_TypeDef * ref);
 
 #else   // STM32F3
 
@@ -122,7 +91,6 @@ typedef struct dmaChannelDescriptor_s {
                                         .irqHandlerCallback = NULL, \
                                         .flagsShift = f, \
                                         .irqNumber = DMA##d##_Channel##c##_IRQn, \
-                                        .rcc = RCC_AHBPeriph_DMA##d, \
                                         .userParam = 0 \
                                     }
 
@@ -138,12 +106,8 @@ typedef struct dmaChannelDescriptor_s {
 #define DMA_IT_HTIF                          ((uint32_t)0x00000004)
 #define DMA_IT_TEIF                          ((uint32_t)0x00000008)
 
-#endif
+DMA_t dmaGetByRef(const DMA_Channel_TypeDef * ref);
 
-#if defined(STM32F4) || defined(STM32F7)
-DMA_t dmaFindHandlerIdentifier(DMA_Stream_TypeDef* stream);
-#else
-DMA_t dmaFindHandlerIdentifier(DMA_Channel_TypeDef* channel);
 #endif
 
 DMA_t dmaGetByTag(dmaTag_t tag);

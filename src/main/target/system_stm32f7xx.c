@@ -65,6 +65,7 @@
 
 #include <string.h>
 #include "stm32f7xx.h"
+#include "drivers/system.h"
 
 #if !defined  (HSE_VALUE)
   #define HSE_VALUE    ((uint32_t)8000000) /*!< Default value of the External oscillator in Hz */
@@ -74,10 +75,22 @@
   #define HSI_VALUE    ((uint32_t)16000000) /*!< Value of the Internal oscillator in Hz*/
 #endif /* HSI_VALUE */
 
+#if !defined(MHZ_VALUE)
+  #define MHZ_VALUE     216
+#endif
+
+#if MHZ_VALUE == 216
+  #define PLL_N     432
+  #define PLL_Q     9
+#elif MHZ_VALUE == 168
+  #define PLL_N     336
+  #define PLL_Q     7
+#else
+  #error "Unsupported MHZ_VALUE!"
+#endif
+
 #define PLL_M     8
-#define PLL_N     432
 #define PLL_P     RCC_PLLP_DIV2 /* 2 */
-#define PLL_Q     9
 
 #define PLL_SAIN  384
 #define PLL_SAIQ  7
@@ -241,15 +254,6 @@
   * @{
   */
 
-void CopyFastCode(void)
-{
-    /* Load functions into ITCM RAM */
-    extern uint8_t tcm_code_start;
-    extern uint8_t tcm_code_end;
-    extern uint8_t tcm_code;
-    memcpy(&tcm_code_start, &tcm_code, (size_t) (&tcm_code_end - &tcm_code_start));
-}
-
 /**
   * @brief  Setup the microcontroller system
   *         Initialize the Embedded Flash Interface, the PLL and update the
@@ -259,6 +263,8 @@ void CopyFastCode(void)
   */
 void SystemInit(void)
 {
+  initialiseMemorySections();
+
   /* FPU settings ------------------------------------------------------------*/
   #if (__FPU_PRESENT == 1) && (__FPU_USED == 1)
     SCB->CPACR |= ((3UL << 10*2)|(3UL << 11*2));  /* set CP10 and CP11 Full Access */
@@ -286,7 +292,8 @@ void SystemInit(void)
 #ifdef VECT_TAB_SRAM
   SCB->VTOR = RAMDTCM_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal SRAM */
 #else
-  SCB->VTOR = FLASH_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal FLASH */
+  extern uint8_t isr_vector_table_base; /* Vector Table Relocation in Internal FLASH */
+  SCB->VTOR = (uint32_t) &isr_vector_table_base;
 #endif
 
   /* Enable I-Cache */
@@ -298,7 +305,7 @@ void SystemInit(void)
   /* Configure the system clock to 216 MHz */
   SystemClock_Config();
 
-  if (SystemCoreClock != 216000000)
+  if (SystemCoreClock != MHZ_VALUE * 1000000)
   {
       while (1)
       {
