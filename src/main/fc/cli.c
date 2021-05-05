@@ -1400,7 +1400,7 @@ static void cliWaypoints(char *cmdline)
                     posControl.waypointListValid = true;
                     multiMissionWPCounter = 0;
                     posControl.multiMissionCount = 0;
-                    navConfigMutable()->general.multi_waypoint_mission_index = 1;    // reset selected mission to 1 when new entries loaded
+                    navConfigMutable()->general.waypoint_multi_mission_index = 1;    // reset selected mission to 1 when new entries loaded
                     break;
                 } else {
                     posControl.multiMissionCount -= 1;
@@ -1486,7 +1486,7 @@ static void cliWaypoints(char *cmdline)
                 posControl.waypointList[i + multiMissionWPCounter].flag = flag;
 
                 // Process WP entries made up of multiple successive WP missions (multiple NAV_WP_FLAG_LAST entries)
-                // Individial missions loaded at runtime, selected mission defined by setting nav_multi_waypoint_mission_index
+                // Individial missions loaded at runtime, mission selected nav_waypoint_multi_mission_index
                 if (flag == NAV_WP_FLAG_LAST) {
                     multiMissionWPCounter += i + 1;
                     posControl.multiMissionCount += 1;
@@ -2950,28 +2950,28 @@ static void printImu2Status(void)
     cliPrintLinef("Acc: %d", secondaryImuState.calibrationStatus.acc);
     cliPrintLinef("Mag: %d", secondaryImuState.calibrationStatus.mag);
     cliPrintLine("Calibration gains:");
-    
+
     cliPrintLinef(
-        "Gyro: %d %d %d", 
-        secondaryImuConfig()->calibrationOffsetGyro[X], 
-        secondaryImuConfig()->calibrationOffsetGyro[Y], 
+        "Gyro: %d %d %d",
+        secondaryImuConfig()->calibrationOffsetGyro[X],
+        secondaryImuConfig()->calibrationOffsetGyro[Y],
         secondaryImuConfig()->calibrationOffsetGyro[Z]
     );
     cliPrintLinef(
-        "Acc: %d %d %d", 
-        secondaryImuConfig()->calibrationOffsetAcc[X], 
-        secondaryImuConfig()->calibrationOffsetAcc[Y], 
+        "Acc: %d %d %d",
+        secondaryImuConfig()->calibrationOffsetAcc[X],
+        secondaryImuConfig()->calibrationOffsetAcc[Y],
         secondaryImuConfig()->calibrationOffsetAcc[Z]
     );
     cliPrintLinef(
-        "Mag: %d %d %d", 
-        secondaryImuConfig()->calibrationOffsetMag[X], 
-        secondaryImuConfig()->calibrationOffsetMag[Y], 
+        "Mag: %d %d %d",
+        secondaryImuConfig()->calibrationOffsetMag[X],
+        secondaryImuConfig()->calibrationOffsetMag[Y],
         secondaryImuConfig()->calibrationOffsetMag[Z]
     );
     cliPrintLinef(
-        "Radius: %d %d", 
-        secondaryImuConfig()->calibrationRadiusAcc, 
+        "Radius: %d %d",
+        secondaryImuConfig()->calibrationRadiusAcc,
         secondaryImuConfig()->calibrationRadiusMag
     );
 }

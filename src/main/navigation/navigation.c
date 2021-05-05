@@ -121,7 +121,8 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .pos_failure_timeout = SETTING_NAV_POSITION_TIMEOUT_DEFAULT,                  // 5 sec
         .waypoint_radius = SETTING_NAV_WP_RADIUS_DEFAULT,                             // 2m diameter
         .waypoint_safe_distance = SETTING_NAV_WP_SAFE_DISTANCE_DEFAULT,               // centimeters - first waypoint should be closer than this
-        .multi_waypoint_mission_index = SETTING_NAV_MULTI_WAYPOINT_MISSION_INDEX_DEFAULT,  // mission index selected from multi mission WP file 
+        .waypoint_multi_mission_index = SETTING_NAV_WP_MULTI_MISSION_INDEX_DEFAULT,   // mission index selected from multi mission WP entry
+        .waypoint_load_on_boot = SETTING_NAV_WP_LOAD_ON_BOOT_DEFAULT,                 // load waypoints automatically during boot
         .max_auto_speed = SETTING_NAV_AUTO_SPEED_DEFAULT,                             // 3 m/s = 10.8 km/h
         .max_auto_climb_rate = SETTING_NAV_AUTO_CLIMB_RATE_DEFAULT,                   // 5 m/s
         .max_manual_speed = SETTING_NAV_MANUAL_SPEED_DEFAULT,
@@ -2905,6 +2906,11 @@ int getWaypointCount(void)
     return posControl.waypointCount;
 }
 
+void selectMultiMissionIndex(int8_t increment)
+{
+    navConfigMutable()->general.waypoint_multi_mission_index = constrain(navConfigMutable()->general.waypoint_multi_mission_index + increment, 0, posControl.multiMissionCount);
+}
+
 #ifdef NAV_NON_VOLATILE_WAYPOINT_STORAGE
 bool loadNonVolatileWaypointList(void)
 {
@@ -2916,9 +2922,9 @@ bool loadNonVolatileWaypointList(void)
     posControl.multiMissionCount = 0;
     int8_t WPCounter = 0;
 
-    // when in CLI mode load all WPs in NVM so all multi mission WPs are visible
+    // when in CLI mode load all WPs in EEPROM so all multi mission WPs are visible
     for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {
-        if ((posControl.multiMissionCount + 1 == navConfig()->general.multi_waypoint_mission_index) || cliMode) {
+        if ((posControl.multiMissionCount + 1 == navConfig()->general.waypoint_multi_mission_index) || cliMode) {
             // Load waypoints
             setWaypoint(i + 1 - WPCounter, nonVolatileWaypointList(i));
         } else {
@@ -2928,6 +2934,7 @@ bool loadNonVolatileWaypointList(void)
         // Check if this is the last waypoint
         if (nonVolatileWaypointList(i)->flag == NAV_WP_FLAG_LAST) {
             posControl.multiMissionCount += 1;  // count up number missions in multi mission WP entry
+            posControl.multiMissionTotalWPCount = i + 1;
             if (i != NAV_MAX_WAYPOINTS - 1) {
                 if (nonVolatileWaypointList(i + 1)->flag == NAV_WP_FLAG_LAST && nonVolatileWaypointList(i + 1)->action == NAV_WP_ACTION_RTH) {
                     break;      // end of multi mission file if successive NAV_WP_FLAG_LAST and default action (RTH)
@@ -2935,6 +2942,8 @@ bool loadNonVolatileWaypointList(void)
             }
         }
     }
+
+    posControl.loadedMultiMissionIndex = navConfig()->general.waypoint_multi_mission_index;
 
     // Mission sanity check failed - reset the list
     if (!posControl.waypointListValid) {
@@ -3602,6 +3611,22 @@ void navigationInit(void)
     posControl.waypointCount = 0;
     posControl.activeWaypointIndex = 0;
     posControl.waypointListValid = false;
+#if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE)
+    uint8_t savedMultiMissionIndex = navConfig()->general.waypoint_multi_mission_index;
+
+    /* check number missions loaded by loading waypoint list.
+     * Set index to 0 so no mission is loaded during check if waypoint_load_on_boot option is OFF */
+    if (!navConfig()->general.waypoint_load_on_boot) {
+        navConfigMutable()->general.waypoint_multi_mission_index = 0;
+    }
+    loadNonVolatileWaypointList();
+    // set index to 1 if saved mission index > available missions
+    if (savedMultiMissionIndex > posControl.multiMissionCount) {
+        navConfigMutable()->general.waypoint_multi_mission_index = 1;
+    } else {
+        navConfigMutable()->general.waypoint_multi_mission_index = savedMultiMissionIndex;
+    }
+#endif
 
     /* Set initial surface invalid */
     posControl.actualState.surfaceMin = -1.0f;

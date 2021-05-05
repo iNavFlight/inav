@@ -2605,10 +2605,14 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_MISSION:
         {
-            if (posControl.waypointListValid && posControl.waypointCount > 0) {
-                tfp_sprintf(buff, "M%u/%u>%uWP", navConfig()->general.multi_waypoint_mission_index, posControl.multiMissionCount, posControl.waypointCount);
+            if (navConfig()->general.waypoint_multi_mission_index != posControl.loadedMultiMissionIndex) {
+                tfp_sprintf(buff, "M%u/%u>LOAD", navConfig()->general.waypoint_multi_mission_index, posControl.multiMissionCount);
             } else {
-                tfp_sprintf(buff, "M0/%u>0WP", posControl.multiMissionCount);
+                if (posControl.waypointListValid && posControl.waypointCount > 0) {
+                    tfp_sprintf(buff, "M%u/%u>%2uWP", posControl.loadedMultiMissionIndex, posControl.multiMissionCount, posControl.waypointCount);
+                } else {
+                    tfp_sprintf(buff, "M0/%u> 0WP", posControl.multiMissionCount);
+                }
             }
             displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
             return true;
@@ -3293,12 +3297,8 @@ static void osdShowArmed(void)
     }
 
     if (posControl.waypointListValid && posControl.waypointCount > 0) {
-        if (navConfig()->general.multi_waypoint_mission_index > posControl.multiMissionCount) {
-            displayWrite(osdDisplayPort, 3, y, "MISSION INDEX OUT RANGE");
-        } else {
-            tfp_sprintf(buf, "MISSION %u/%u (%u WP)", navConfig()->general.multi_waypoint_mission_index, posControl.multiMissionCount, posControl.waypointCount);
-            displayWrite(osdDisplayPort, 6, y, buf);
-        }
+        tfp_sprintf(buf, "MISSION %u/%u (%u WP)", posControl.loadedMultiMissionIndex, posControl.multiMissionCount, posControl.waypointCount);
+        displayWrite(osdDisplayPort, 6, y, buf);
     }
     y += 1;
 
