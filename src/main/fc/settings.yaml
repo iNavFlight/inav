@@ -2419,6 +2419,12 @@ groups:
         description: "Max allowed above the ground altitude for terrain following mode"
         max: 1000
         default_value: 100
+      - name: nav_max_altitude
+        field: general.max_altitude
+        description: "Max allowed altitude (above Home Point) that applies to all NAV modes (including Altitude Hold). 0 means limit is disabled"
+        default_value: 0
+        max: 65000
+        min: 0
       - name: nav_rth_altitude
         description: "Used in EXTRA, FIXED and AT_LEAST rth alt modes [cm] (Default 1000 means 10 meters)"
         default_value: 1000

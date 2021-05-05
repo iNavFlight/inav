@@ -96,7 +96,7 @@ STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_rang
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 0);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 11);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 12);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -135,7 +135,8 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .rth_abort_threshold = SETTING_NAV_RTH_ABORT_THRESHOLD_DEFAULT,               // centimeters - 500m should be safe for all aircraft
         .max_terrain_follow_altitude = SETTING_NAV_MAX_TERRAIN_FOLLOW_ALT_DEFAULT,    // max altitude in centimeters in terrain following mode
         .safehome_max_distance = SETTING_SAFEHOME_MAX_DISTANCE_DEFAULT,               // Max distance that a safehome is from the arming point
-        },
+        .max_altitude = SETTING_NAV_MAX_ALTITUDE_DEFAULT,
+    },
 
     // MC-specific
     .mc = {
@@ -2576,6 +2577,18 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAlti
         posControl.desiredState.pos.z = altitudeToUse;
     }
     else {
+
+        /* 
+         * If max altitude is set, reset climb rate if altitude is reached and climb rate is > 0
+         * In other words, when altitude is reached, allow it only to shrink
+         */
+        if (navConfig()->general.max_altitude > 0 && 
+            altitudeToUse >= navConfig()->general.max_altitude &&
+            desiredClimbRate > 0
+        ) {
+            desiredClimbRate = 0;
+        }
+
         if (STATE(FIXED_WING_LEGACY)) {
             // Fixed wing climb rate controller is open-loop. We simply move the known altitude target
             float timeDelta = US2S(currentTimeUs - lastUpdateTimeUs);
