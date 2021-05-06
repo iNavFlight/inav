@@ -49,8 +49,6 @@
 #include "sensors/battery.h"
 #include "sensors/compass.h"
 
-#include "hardware_revision.h"
-
 void targetConfiguration(void)
 {
     compassConfigMutable()->mag_align = CW90_DEG;
