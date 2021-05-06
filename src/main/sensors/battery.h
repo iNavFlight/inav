@@ -138,7 +138,6 @@ void batteryDisableProfileAutoswitch(void);
 
 bool isBatteryVoltageConfigured(void);
 bool isPowerSupplyImpedanceValid(void);
-uint16_t getVBatSample(void);
 uint16_t getBatteryVoltage(void);
 uint16_t getBatteryRawVoltage(void);
 uint16_t getBatterySagCompensatedVoltage(void);
@@ -161,6 +160,7 @@ int32_t getMWhDrawn(void);
 void batteryUpdate(timeUs_t timeDelta);
 void sagCompensatedVBatUpdate(timeUs_t currentTime, timeUs_t timeDelta);
 void powerMeterUpdate(timeUs_t timeDelta);
+uint16_t getVBatSample(void);
 #endif
 
 void currentMeterUpdate(timeUs_t timeDelta);

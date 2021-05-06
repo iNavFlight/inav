@@ -52,10 +52,12 @@ PG_RESET_TEMPLATE(powerLimitsConfig_t, powerLimitsConfig,
     .burstCurrent = SETTING_LIMIT_BURST_CURRENT_DEFAULT,                                // dA
     .burstCurrentTime = SETTING_LIMIT_BURST_CURRENT_TIME_DEFAULT,                       // dS
     .burstCurrentFalldownTime = SETTING_LIMIT_BURST_CURRENT_FALLDOWN_TIME_DEFAULT,      // dS
+#ifdef USE_ADC
     .continuousPower = SETTING_LIMIT_CONT_POWER_DEFAULT,                                // dW
     .burstPower = SETTING_LIMIT_BURST_POWER_DEFAULT,                                    // dW
     .burstPowerTime = SETTING_LIMIT_BURST_POWER_TIME_DEFAULT,                           // dS
     .burstPowerFalldownTime = SETTING_LIMIT_BURST_POWER_FALLDOWN_TIME_DEFAULT,          // dS
+#endif
     .piP = SETTING_LIMIT_PI_P_DEFAULT,
     .piI = SETTING_LIMIT_PI_I_DEFAULT,
     .attnFilterCutoff = SETTING_LIMIT_ATTN_FILTER_CUTOFF_DEFAULT,                       // Hz
@@ -70,6 +72,7 @@ static pt1Filter_t currentThrAttnFilter;
 static pt1Filter_t currentThrLimitingBaseFilter;
 static bool wasLimitingCurrent = false;
 
+#ifdef USE_ADC
 static float burstPowerReserve;                 // cW.µs
 static float burstPowerReserveMax;              // cW.µs
 static float burstPowerReserveFalldown;         // cW.µs
@@ -78,32 +81,36 @@ static float powerThrAttnIntegrator = 0;
 static pt1Filter_t powerThrAttnFilter;
 static pt1Filter_t powerThrLimitingBaseFilter;
 static bool wasLimitingPower = false;
+#endif
 
 void powerLimiterInit(void) {
     if (powerLimitsConfig()->burstCurrent < powerLimitsConfig()->continuousCurrent) {
         powerLimitsConfigMutable()->burstCurrent = powerLimitsConfig()->continuousCurrent;
     }
 
-    if (powerLimitsConfig()->burstPower < powerLimitsConfig()->continuousPower) {
-        powerLimitsConfigMutable()->burstPower = powerLimitsConfig()->continuousPower;
-    }
-
     activeCurrentLimit = powerLimitsConfig()->burstCurrent;
-    activePowerLimit = powerLimitsConfig()->burstPower;
 
     uint16_t currentBurstOverContinuous = powerLimitsConfig()->burstCurrent - powerLimitsConfig()->continuousCurrent;
     burstCurrentReserve = burstCurrentReserveMax = currentBurstOverContinuous * powerLimitsConfig()->burstCurrentTime * 1e6;
     burstCurrentReserveFalldown = currentBurstOverContinuous * powerLimitsConfig()->burstCurrentFalldownTime * 1e6;
 
+    pt1FilterInit(&currentThrAttnFilter, powerLimitsConfig()->attnFilterCutoff, 0);
+    pt1FilterInitRC(&currentThrLimitingBaseFilter, LIMITING_THR_FILTER_TCONST, 0);
+
+#ifdef USE_ADC
+    if (powerLimitsConfig()->burstPower < powerLimitsConfig()->continuousPower) {
+        powerLimitsConfigMutable()->burstPower = powerLimitsConfig()->continuousPower;
+    }
+
+    activePowerLimit = powerLimitsConfig()->burstPower;
+
     uint16_t powerBurstOverContinuous = powerLimitsConfig()->burstPower - powerLimitsConfig()->continuousPower;
     burstPowerReserve = burstPowerReserveMax = powerBurstOverContinuous * powerLimitsConfig()->burstPowerTime * 1e6;
     burstPowerReserveFalldown = powerBurstOverContinuous * powerLimitsConfig()->burstPowerFalldownTime * 1e6;
 
-    pt1FilterInit(&currentThrAttnFilter, powerLimitsConfig()->attnFilterCutoff, 0);
-    pt1FilterInitRC(&currentThrLimitingBaseFilter, LIMITING_THR_FILTER_TCONST, 0);
-
     pt1FilterInit(&powerThrAttnFilter, powerLimitsConfig()->attnFilterCutoff, 0);
     pt1FilterInitRC(&powerThrLimitingBaseFilter, LIMITING_THR_FILTER_TCONST, 0);
+#endif
 }
 
 static uint32_t calculateActiveLimit(int32_t value, uint32_t continuousLimit, uint32_t burstLimit, float *burstReserve, float burstReserveFalldown, float burstReserveMax, timeDelta_t timeDelta) {
@@ -125,18 +132,26 @@ void currentLimiterUpdate(timeDelta_t timeDelta) {
                             timeDelta);
 }
 
+#ifdef USE_ADC
 void powerLimiterUpdate(timeDelta_t timeDelta) {
     activePowerLimit = calculateActiveLimit(getPower(),
                             powerLimitsConfig()->continuousPower, powerLimitsConfig()->burstPower,
                             &burstPowerReserve, burstPowerReserveFalldown, burstPowerReserveMax,
                             timeDelta);
 }
+#endif
 
 void powerLimiterApply(int16_t *throttleCommand) {
 
+#ifdef USE_ADC
     if (!activeCurrentLimit && !activePowerLimit) {
         return;
     }
+#else
+    if (!activeCurrentLimit) {
+        return;
+    }
+#endif
 
     static timeUs_t lastCallTimestamp = 0;
     timeUs_t currentTimeUs = micros();
@@ -144,11 +159,15 @@ void powerLimiterApply(int16_t *throttleCommand) {
 
     int16_t throttleBase;
     int16_t currentThrottleCommand;
+#ifdef USE_ADC
     int16_t powerThrottleCommand;
+#endif
 
-    uint16_t voltage = getVBatSample();
     int16_t current = getAmperageSample();
+#ifdef USE_ADC
+    uint16_t voltage = getVBatSample();
     int32_t power = (int32_t)voltage * current / 100;
+#endif
 
     // Current limiting
     int32_t overCurrent = current - activeCurrentLimit;
@@ -179,6 +198,7 @@ void powerLimiterApply(int16_t *throttleCommand) {
         currentThrottleCommand = *throttleCommand;
     }
 
+#ifdef USE_ADC
     // Power limiting
     int32_t overPower = power - activePowerLimit;
 
@@ -209,26 +229,37 @@ void powerLimiterApply(int16_t *throttleCommand) {
     }
 
     *throttleCommand = MIN(currentThrottleCommand, powerThrottleCommand);
+#else
+    *throttleCommand = currentThrottleCommand;
+#endif
 
     lastCallTimestamp = currentTimeUs;
 }
 
 bool powerLimiterIsLimiting(void) {
+#ifdef USE_ADC
     return wasLimitingPower || wasLimitingCurrent;
+#else
+    return wasLimitingCurrent;
+#endif
 }
 
 bool powerLimiterIsLimitingCurrent(void) {
     return wasLimitingCurrent;
 }
 
+#ifdef USE_ADC
 bool powerLimiterIsLimitingPower(void) {
     return wasLimitingPower;
 }
+#endif
 
 // returns seconds
 float powerLimiterGetRemainingBurstTime(void) {
     uint16_t currentBurstOverContinuous = powerLimitsConfig()->burstCurrent - powerLimitsConfig()->continuousCurrent;
     float remainingCurrentBurstTime = burstCurrentReserve / currentBurstOverContinuous / 1e7;
+
+#ifdef USE_ADC
     uint16_t powerBurstOverContinuous = powerLimitsConfig()->burstPower - powerLimitsConfig()->continuousPower;
     float remainingPowerBurstTime = burstPowerReserve / powerBurstOverContinuous / 1e7;
 
@@ -241,6 +272,9 @@ float powerLimiterGetRemainingBurstTime(void) {
     }
 
     return MIN(remainingCurrentBurstTime, remainingPowerBurstTime);
+#else
+    return remainingCurrentBurstTime;
+#endif
 }
 
 // returns cA
@@ -248,9 +282,11 @@ uint16_t powerLimiterGetActiveCurrentLimit(void) {
     return activeCurrentLimit;
 }
 
+#ifdef USE_ADC
 // returns cW
 uint16_t powerLimiterGetActivePowerLimit(void) {
     return activePowerLimit;
 }
+#endif
 
 #endif

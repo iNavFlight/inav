@@ -35,10 +35,12 @@ typedef struct {
     uint16_t burstCurrentTime;          // ds
     uint16_t burstCurrentFalldownTime;  // ds
 
+#ifdef USE_ADC
     uint16_t continuousPower;           // dW
     uint16_t burstPower;                // dW
     uint16_t burstPowerTime;            // ds
     uint16_t burstPowerFalldownTime;    // ds
+#endif
 
     uint16_t piP;
     uint16_t piI;
@@ -54,9 +56,11 @@ void powerLimiterUpdate(timeDelta_t timeDelta);
 void powerLimiterApply(int16_t *throttleCommand);
 bool powerLimiterIsLimiting(void);
 bool powerLimiterIsLimitingCurrent(void);
-bool powerLimiterIsLimitingPower(void);
 float powerLimiterGetRemainingBurstTime(void);      // returns seconds
 uint16_t powerLimiterGetActiveCurrentLimit(void);   // returns cA
+#ifdef USE_ADC
 uint16_t powerLimiterGetActivePowerLimit(void);     // returns cW
+bool powerLimiterIsLimitingPower(void);
+#endif
 
 #endif

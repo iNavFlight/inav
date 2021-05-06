@@ -373,11 +373,13 @@ bool isBatteryVoltageConfigured(void)
     return feature(FEATURE_VBAT);
 }
 
+#ifdef USE_ADC
 uint16_t getVBatSample(void) {
     // calculate battery voltage based on ADC reading
     // result is Vbatt in 0.01V steps. 3.3V = ADC Vref, 0xFFF = 12bit adc, 1100 = 11:1 voltage divider (10k:1k)
     return (uint64_t)adcGetChannel(ADC_BATTERY) * batteryMetersConfig()->voltage.scale * ADCVREF / (0xFFF * 1000);
 }
+#endif
 
 uint16_t getBatteryVoltage(void)
 {

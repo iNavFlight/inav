@@ -130,7 +130,7 @@ void taskUpdateBattery(timeUs_t currentTimeUs)
     if (feature(FEATURE_VBAT) && isAmperageConfigured()) {
         powerMeterUpdate(BatMonitoringTimeSinceLastServiced);
         sagCompensatedVBatUpdate(currentTimeUs, BatMonitoringTimeSinceLastServiced);
-#ifdef USE_POWER_LIMITS
+#if defined(USE_POWER_LIMITS) && defined(USE_ADC)
         powerLimiterUpdate(BatMonitoringTimeSinceLastServiced);
 #endif
     }

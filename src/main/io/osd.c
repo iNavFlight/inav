@@ -2692,6 +2692,7 @@ static bool osdDrawSingleElement(uint8_t item)
         }
         break;
 
+#ifdef USE_ADC
     case OSD_PLIMIT_ACTIVE_POWER_LIMIT:
         {
             if (powerLimitsConfig()->continuousPower) {
@@ -2705,7 +2706,8 @@ static bool osdDrawSingleElement(uint8_t item)
             }
             break;
         }
-#endif
+#endif // USE_ADC
+#endif // USE_POWER_LIMITS
 
     default:
         return false;
