@@ -16,17 +16,17 @@
  */
 
 #include <stdint.h>
-#include "platform.h"
-#include "config/config_master.h"
-#include "config/feature.h"
-#include "io/serial.h"
-#include "sensors/compass.h"
 
+#include "platform.h"
+
+#include "config/feature.h"
+#include "fc/config.h"
+#include "flight/mixer.h"
+#include "io/serial.h"
+#include "rx/rx.h"
+#include "sensors/compass.h"
 
 void targetConfiguration(void)
 {
-    compassConfigMutable()->mag_align = CW0_DEG_FLIP;
-    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART4)].functionMask = FUNCTION_GPS;
-    // serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART4)].gps_baudrateIndex = BAUD_115200;
-
+    compassConfigMutable()->mag_align = CW90_DEG;
 }
