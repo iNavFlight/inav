@@ -214,6 +214,17 @@
 | inav_w_z_surface_v | 6.1 | 0 | 100 |  |
 | iterm_windup | 50 | 0 | 90 | Used to prevent Iterm accumulation on during maneuvers. Iterm will be dampened when motors are reaching it's limit (when requested motor correction range is above percentage specified by this parameter) |
 | ledstrip_visual_beeper | OFF |  |  |  |
+| limit_attn_filter_cutoff | 1.2 |  | 100 | Throttle attenuation PI control output filter cutoff frequency |
+| limit_burst_current | 0 |  | 4000 | Burst current limit (dA): the current which is allowed during `limit_burst_current_time` after which `limit_cont_current` will be enforced, set to 0 to disable |
+| limit_burst_current_falldown_time | 0 |  | 120 | Time slice at the end of the burst time during which the current limit will be ramped down from `limit_burst_current` back down to `limit_cont_current` |
+| limit_burst_current_time | 0 |  | 120 | Allowed current burst time (ds) during which `limit_burst_current` is allowed and after which `limit_cont_current` will be enforced |
+| limit_burst_power | 0 |  | 40000 | Burst power limit (dW): the current which is allowed during `limit_burst_power_time` after which `limit_cont_power` will be enforced, set to 0 to disable |
+| limit_burst_power_falldown_time | 0 |  | 120 | Time slice at the end of the burst time during which the power limit will be ramped down from `limit_burst_power` back down to `limit_cont_power` |
+| limit_burst_power_time | 0 |  | 120 | Allowed power burst time (ds) during which `limit_burst_power` is allowed and after which `limit_cont_power` will be enforced |
+| limit_cont_current | 0 |  | 4000 | Continous current limit (dA), set to 0 to disable |
+| limit_cont_power | 0 |  | 40000 | Continous power limit (dW), set to 0 to disable |
+| limit_pi_i | 100 |  | 10000 | Throttle attenuation PI control I term |
+| limit_pi_p | 100 |  | 10000 | Throttle attenuation PI control P term |
 | log_level | ERROR |  |  | Defines serial debugging log level. See `docs/development/serial_printf_debugging.md` for usage. |
 | log_topics | 0 | 0 | 4294967295 | Defines serial debugging log topic. See `docs/development/serial_printf_debugging.md` for usage. |
 | looptime | 1000 |  | 9000 | This is the main loop time (in us). Changing this affects PID effect with some PID controllers (see PID section for details). A very conservative value of 3500us/285Hz should work for everyone. Setting it to zero does not limit loop time, so it will go as fast as possible. |

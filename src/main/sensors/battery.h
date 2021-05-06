@@ -138,6 +138,7 @@ void batteryDisableProfileAutoswitch(void);
 
 bool isBatteryVoltageConfigured(void);
 bool isPowerSupplyImpedanceValid(void);
+uint16_t getVBatSample(void);
 uint16_t getBatteryVoltage(void);
 uint16_t getBatteryRawVoltage(void);
 uint16_t getBatterySagCompensatedVoltage(void);
@@ -151,6 +152,7 @@ uint16_t getPowerSupplyImpedance(void);
 
 bool isAmperageConfigured(void);
 int16_t getAmperage(void);
+int16_t getAmperageSample(void);
 int32_t getPower(void);
 int32_t getMAhDrawn(void);
 int32_t getMWhDrawn(void);
