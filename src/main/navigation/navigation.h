@@ -219,6 +219,7 @@ typedef struct navConfig_s {
         uint16_t rth_abort_threshold;           // Initiate emergency landing if during RTH we get this much [cm] away from home
         uint16_t max_terrain_follow_altitude;   // Max altitude to be used in SURFACE TRACKING mode
         uint16_t safehome_max_distance;         // Max distance that a safehome is from the arming point
+        uint16_t max_altitude;                  // Max altitude when in AltHold mode (not Surface Following)
     } general;
 
     struct {
@@ -481,6 +482,11 @@ typedef enum {
     GEO_ORIGIN_RESET_ALTITUDE
 } geoOriginResetMode_e;
 
+typedef enum {
+    NAV_WP_TAKEOFF_DATUM,
+    NAV_WP_MSL_DATUM
+} geoAltitudeDatumFlag_e;
+
 // geoSetOrigin stores the location provided in llh as a GPS origin in the
 // provided origin parameter. resetMode indicates wether all origin coordinates
 // should be overwritten by llh (GEO_ORIGIN_SET) or just the altitude, leaving
@@ -501,6 +507,8 @@ bool geoConvertGeodeticToLocalOrigin(fpVector3_t * pos, const gpsLocation_t *llh
 // the provided origin is valid and the conversion could be performed.
 bool geoConvertLocalToGeodetic(gpsLocation_t *llh, const gpsOrigin_t *origin, const fpVector3_t *pos);
 float geoCalculateMagDeclination(const gpsLocation_t * llh); // degrees units
+// Select absolute or relative altitude based on WP mission flag setting
+geoAltitudeConversionMode_e waypointMissionAltConvMode(geoAltitudeDatumFlag_e datumFlag);
 
 /* Distance/bearing calculation */
 bool navCalculatePathToDestination(navDestinationPath_t *result, const fpVector3_t * destinationPos);

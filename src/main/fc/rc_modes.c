@@ -212,6 +212,7 @@ void updateUsedModeActivationConditionFlags(void)
     isUsingNAVModes = isModeActivationConditionPresent(BOXNAVPOSHOLD) ||
                         isModeActivationConditionPresent(BOXNAVRTH) ||
                         isModeActivationConditionPresent(BOXNAVCOURSEHOLD) ||
+                        isModeActivationConditionPresent(BOXNAVCRUISE) ||
                         isModeActivationConditionPresent(BOXNAVWP);
 #endif
 }

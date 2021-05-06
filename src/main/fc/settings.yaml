@@ -111,7 +111,7 @@ tables:
     enum: navRTHAllowLanding_e
   - name: bat_capacity_unit
     values: ["MAH", "MWH"]
-    enum: batCapacityUnit_e    
+    enum: batCapacityUnit_e
   - name: bat_voltage_source
     values: ["RAW", "SAG_COMP"]
     enum: batVoltageSource_e
@@ -207,15 +207,15 @@ groups:
         default_value: "256HZ"
         field: gyro_lpf
         table: gyro_lpf
-      - name: gyro_lpf_hz
-        description: "Software-based filter to remove mechanical vibrations from the gyro signal. Value is cutoff frequency (Hz). For larger frames with bigger props set to lower value."
-        default_value: 60
-        field: gyro_soft_lpf_hz
-        max: 200
-      - name: gyro_lpf_type
-        description: "Specifies the type of the software LPF of the gyro signals. BIQUAD gives better filtering and more delay, PT1 less filtering and less delay, so use only on clean builds."
-        default_value: "BIQUAD"
-        field: gyro_soft_lpf_type
+      - name: gyro_anti_aliasing_lpf_hz
+        description: "Gyro processing anti-aliasing filter cutoff frequency. In normal operation this filter setting should never be changed. In Hz"
+        default_value: 250
+        field: gyro_anti_aliasing_lpf_hz
+        max: 255
+      - name: gyro_anti_aliasing_lpf_type
+        description: "Specifies the type of the software LPF of the gyro signals."
+        default_value: "PT1"
+        field: gyro_anti_aliasing_lpf_type
         table: filter_type
       - name: moron_threshold
         description: "When powering up, gyro bias is calculated. If the model is shaking/moving during this initial calibration, offsets are calculated incorrectly, and could lead to poor flying performance. This threshold means how much average gyro reading could differ before re-calibration is triggered."
@@ -231,16 +231,16 @@ groups:
         min: 1
         max: 500
         default_value: 1
-      - name: gyro_stage2_lowpass_hz
-        description: "Software based second stage lowpass filter for gyro. Value is cutoff frequency (Hz)"
-        default_value: 0
-        field: gyro_stage2_lowpass_hz
+      - name: gyro_main_lpf_hz
+        description: "Software based gyro main lowpass filter. Value is cutoff frequency (Hz)"
+        default_value: 60
+        field: gyro_main_lpf_hz
         min: 0
         max: 500
-      - name: gyro_stage2_lowpass_type
-        description: "Defines the type of stage 2 gyro LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation."
+      - name: gyro_main_lpf_type
+        description: "Defines the type of the main gyro LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation."
         default_value: BIQUAD
-        field: gyro_stage2_lowpass_type
+        field: gyro_main_lpf_type
         table: filter_type
       - name: gyro_use_dyn_lpf
         description: "Use Dynamic LPF instead of static gyro stage1 LPF. Dynamic Gyro LPF updates gyro LPF based on the throttle position."
@@ -872,10 +872,10 @@ groups:
         min: 4
         max: 255
         default_value: 14
-      - name: flip_over_after_crash_power_factor
-        field: flipOverAfterPowerFactor
-        default_value: 65
-        description: "flip over after crash power factor"
+      - name: turtle_mode_power_factor
+        field: turtleModePowerFactor
+        default_value: 55
+        description: "Turtle mode power factor"
         condition: "USE_DSHOT"
         min: 0
         max: 100
@@ -2419,6 +2419,12 @@ groups:
         description: "Max allowed above the ground altitude for terrain following mode"
         max: 1000
         default_value: 100
+      - name: nav_max_altitude
+        field: general.max_altitude
+        description: "Max allowed altitude (above Home Point) that applies to all NAV modes (including Altitude Hold). 0 means limit is disabled"
+        default_value: 0
+        max: 65000
+        min: 0
       - name: nav_rth_altitude
         description: "Used in EXTRA, FIXED and AT_LEAST rth alt modes [cm] (Default 1000 means 10 meters)"
         default_value: 1000
@@ -2686,7 +2692,7 @@ groups:
         min: 0
         max: 60000
       - name: nav_fw_launch_climb_angle
-        description: "Climb angle for launch sequence (degrees), is also restrained by global max_angle_inclination_pit"
+        description: "Climb angle (attitude of model, not climb slope) for launch sequence (degrees), is also restrained by global max_angle_inclination_pit"
         default_value: 18
         field: fw.launch_climb_angle
         min: 5
@@ -3303,6 +3309,13 @@ groups:
         max: 255
         default_value: 0
         description: Same as left_sidebar_scroll_step, but for the right sidebar
+
+      - name: osd_sidebar_height
+        field: sidebar_height
+        min: 0
+        max: 5
+        default_value: 3
+        description: Height of sidebars in rows. 0 leaves only the level indicator arrows (Not for pixel OSD)
 
       - name: osd_home_position_arm_screen
         type: bool

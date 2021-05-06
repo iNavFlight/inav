@@ -103,7 +103,6 @@
 | failsafe_throttle_low_delay | 0 | 0 | 300 | If failsafe activated when throttle is low for this much time - bypass failsafe and disarm, in 10th of seconds. 0 = No timeout |
 | fixed_wing_auto_arm | OFF |  |  | Auto-arm fixed wing aircraft on throttle above min_check, and disarming with stick commands are disabled, so power cycle is required to disarm. Requires enabled motorstop and no arm switch configured. |
 | flaperon_throw_offset | 200 | FLAPERON_THROW_MIN | FLAPERON_THROW_MAX | Defines throw range in us for both ailerons that will be passed to servo mixer via input source 14 (`FEATURE FLAPS`) when FLAPERON mode is activated. |
-| flip_over_after_crash_power_factor | 65 | 0 | 100 | flip over after crash power factor |
 | fpv_mix_degrees | 0 | 0 | 50 |  |
 | frsky_coordinates_format | 0 | 0 | FRSKY_FORMAT_NMEA | D-Series telemetry only: FRSKY_FORMAT_DMS (default), FRSKY_FORMAT_NMEA |
 | frsky_default_latitude | 0 | -90 | 90 | D-Series telemetry only: OpenTX needs a valid set of coordinates to show compass value. A fake value defined in this setting is sent while no fix is acquired. |
@@ -151,16 +150,16 @@
 | gyro_abg_alpha | 0 | 0 | 1 | Alpha factor for Gyro Alpha-Beta-Gamma filter |
 | gyro_abg_boost | 0.35 | 0 | 2 | Boost factor for Gyro Alpha-Beta-Gamma filter |
 | gyro_abg_half_life | 0.5 | 0 | 10 | Sample half-life for Gyro Alpha-Beta-Gamma filter |
+| gyro_anti_aliasing_lpf_hz | 250 |  | 255 | Gyro processing anti-aliasing filter cutoff frequency. In normal operation this filter setting should never be changed. In Hz |
+| gyro_anti_aliasing_lpf_type | PT1 |  |  | Specifies the type of the software LPF of the gyro signals. |
 | gyro_dyn_lpf_curve_expo | 5 | 1 | 10 | Expo value for the throttle-to-frequency mapping for Dynamic LPF |
 | gyro_dyn_lpf_max_hz | 500 | 40 | 1000 | Maximum frequency of the gyro Dynamic LPF |
 | gyro_dyn_lpf_min_hz | 200 | 40 | 400 | Minimum frequency of the gyro Dynamic LPF |
 | gyro_hardware_lpf | 256HZ |  |  | Hardware lowpass filter for gyro. This value should never be changed without a very strong reason! If you have to set gyro lpf below 256HZ, it means the frame is vibrating too much, and that should be fixed first. |
-| gyro_lpf_hz | 60 |  | 200 | Software-based filter to remove mechanical vibrations from the gyro signal. Value is cutoff frequency (Hz). For larger frames with bigger props set to lower value. |
-| gyro_lpf_type | BIQUAD |  |  | Specifies the type of the software LPF of the gyro signals. BIQUAD gives better filtering and more delay, PT1 less filtering and less delay, so use only on clean builds. |
+| gyro_main_lpf_hz | 60 | 0 | 500 | Software based gyro main lowpass filter. Value is cutoff frequency (Hz) |
+| gyro_main_lpf_type | BIQUAD |  |  | Defines the type of the main gyro LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation. |
 | gyro_notch_cutoff | 1 | 1 | 500 |  |
 | gyro_notch_hz | 0 |  | 500 |  |
-| gyro_stage2_lowpass_hz | 0 | 0 | 500 | Software based second stage lowpass filter for gyro. Value is cutoff frequency (Hz) |
-| gyro_stage2_lowpass_type | BIQUAD |  |  | Defines the type of stage 2 gyro LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation. |
 | gyro_to_use | 0 | 0 | 1 |  |
 | gyro_use_dyn_lpf | OFF |  |  | Use Dynamic LPF instead of static gyro stage1 LPF. Dynamic Gyro LPF updates gyro LPF based on the throttle position. |
 | has_flaps | OFF |  |  | Defines is UAV is capable of having flaps. If ON and AIRPLANE `platform_type` is used, **FLAPERON** flight mode will be available for the pilot |
@@ -292,7 +291,7 @@
 | nav_fw_heading_p | 60 | 0 | 255 | P gain of Heading Hold controller (Fixedwing) |
 | nav_fw_land_dive_angle | 2 | -20 | 20 | Dive angle that airplane will use during final landing phase. During dive phase, motor is stopped or IDLE and roll control is locked to 0 degrees |
 | nav_fw_launch_accel | 1863 | 1000 | 20000 | Forward acceleration threshold for bungee launch of throw launch [cm/s/s], 1G = 981 cm/s/s |
-| nav_fw_launch_climb_angle | 18 | 5 | 45 | Climb angle for launch sequence (degrees), is also restrained by global max_angle_inclination_pit |
+| nav_fw_launch_climb_angle | 18 | 5 | 45 | Climb angle (attitude of model, not climb slope) for launch sequence (degrees), is also restrained by global max_angle_inclination_pit |
 | nav_fw_launch_detect_time | 40 | 10 | 1000 | Time for which thresholds have to breached to consider launch happened [ms] |
 | nav_fw_launch_end_time | 3000 | 0 | 5000 | Time for the transition of throttle and pitch angle, between the launch state and the subsequent flight mode [ms] |
 | nav_fw_launch_idle_thr | 1000 | 1000 | 2000 | Launch idle throttle - throttle to be set before launch sequence is initiated. If set below minimum throttle it will force motor stop or at idle throttle (depending if the MOTOR_STOP is enabled). If set above minimum throttle it will force throttle to this value (if MOTOR_STOP is enabled it will be handled according to throttle stick position) |
@@ -327,6 +326,7 @@
 | nav_land_slowdown_minalt | 500 | 50 | 1000 | Defines at what altitude the descent velocity should start to be `nav_land_minalt_vspd` [cm] |
 | nav_manual_climb_rate | 200 | 10 | 2000 | Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s] |
 | nav_manual_speed | 500 | 10 | 2000 | Maximum velocity firmware is allowed when processing pilot input for POSHOLD/CRUISE control mode [cm/s] [Multirotor only] |
+| nav_max_altitude | 0 | 0 | 65000 | Max allowed altitude (above Home Point) that applies to all NAV modes (including Altitude Hold). 0 means limit is disabled |
 | nav_max_terrain_follow_alt | 100 |  | 1000 | Max allowed above the ground altitude for terrain following mode |
 | nav_mc_auto_disarm_delay | 2000 | 100 | 10000 | Delay before multi-rotor disarms when `nav_disarm_on_landing` is set (m/s) |
 | nav_mc_bank_angle | 30 | 15 | 45 | Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude |
@@ -427,6 +427,7 @@
 | osd_right_sidebar_scroll_step | 0 |  | 255 | Same as left_sidebar_scroll_step, but for the right sidebar |
 | osd_row_shiftdown | 0 | 0 | 1 | Number of rows to shift the OSD display (increase if top rows are cut off) |
 | osd_rssi_alarm | 20 | 0 | 100 | Value below which to make the OSD RSSI indicator blink |
+| osd_sidebar_height | 3 | 0 | 5 | Height of sidebars in rows. 0 leaves only the level indicator arrows (Not for pixel OSD) |
 | osd_sidebar_horizontal_offset | 0 | -128 | 127 | Sidebar horizontal offset from default position. Positive values move the sidebars closer to the edges. |
 | osd_sidebar_scroll_arrows | OFF |  |  |  |
 | osd_snr_alarm | 4 | -20 | 10 | Value below which Crossfire SNR Alarm pops-up. (dB) |
@@ -525,6 +526,7 @@
 | tpa_breakpoint | 1500 | PWM_RANGE_MIN | PWM_RANGE_MAX | See tpa_rate. |
 | tpa_rate | 0 | 0 | 100 | Throttle PID attenuation reduces influence of P on ROLL and PITCH as throttle increases. For every 1% throttle after the TPA breakpoint, P is reduced by the TPA rate. |
 | tri_unarmed_servo | ON |  |  | On tricopter mix only, if this is set to ON, servo will always be correcting regardless of armed state. to disable this, set it to OFF. |
+| turtle_mode_power_factor | 55 | 0 | 100 | Turtle mode power factor |
 | tz_automatic_dst | OFF |  |  | Automatically add Daylight Saving Time to the GPS time when needed or simply ignore it. Includes presets for EU and the USA - if you live outside these areas it is suggested to manage DST manually via `tz_offset`. |
 | tz_offset | 0 | -1440 | 1440 | Time zone offset from UTC, in minutes. This is applied to the GPS time for logging and time-stamping of Blackbox logs |
 | vbat_adc_channel | _target default_ | ADC_CHN_NONE | ADC_CHN_MAX | ADC channel to use for battery voltage sensor. Defaults to board VBAT input (if available). 0 = disabled |

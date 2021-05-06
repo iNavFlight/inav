@@ -89,7 +89,8 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXLOITERDIRCHN, "LOITER CHANGE", 49 },
     { BOXMSPRCOVERRIDE, "MSP RC OVERRIDE", 50 },
     { BOXPREARM, "PREARM", 51 },
-    { BOXFLIPOVERAFTERCRASH, "TURTLE", 52 },
+    { BOXTURTLE, "TURTLE", 52 },
+    { BOXNAVCRUISE, "NAV CRUISE", 53 },
     { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
@@ -220,6 +221,7 @@ void initActiveBoxIds(void)
             activeBoxIds[activeBoxIdCount++] = BOXGCSNAV;
             if (STATE(AIRPLANE)) {
                 activeBoxIds[activeBoxIdCount++] = BOXNAVCOURSEHOLD;
+                activeBoxIds[activeBoxIdCount++] = BOXNAVCRUISE;
             }
         }
     }
@@ -312,7 +314,7 @@ void initActiveBoxIds(void)
 
 #ifdef USE_DSHOT
     if(STATE(MULTIROTOR) && isMotorProtocolDshot())
-        activeBoxIds[activeBoxIdCount++] = BOXFLIPOVERAFTERCRASH;
+        activeBoxIds[activeBoxIdCount++] = BOXTURTLE;
 #endif
 }
 
@@ -346,6 +348,7 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_ALTHOLD_MODE)),         BOXNAVALTHOLD);
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_POSHOLD_MODE)),         BOXNAVPOSHOLD);
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_COURSE_HOLD_MODE)),     BOXNAVCOURSEHOLD);
+    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) && IS_ENABLED(FLIGHT_MODE(NAV_COURSE_HOLD_MODE)),     BOXNAVCRUISE);
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_RTH_MODE)),             BOXNAVRTH);
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_WP_MODE)),              BOXNAVWP);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXAIRMODE)),         BOXAIRMODE);
