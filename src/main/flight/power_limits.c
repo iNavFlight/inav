@@ -178,10 +178,10 @@ void powerLimiterApply(int16_t *throttleCommand) {
 
     float currentThrAttnProportional = MAX(0, overCurrent) * powerLimitsConfig()->piP * 1e-3;
 
-    float currentThrAttn = pt1FilterApply3(&currentThrAttnFilter, currentThrAttnProportional + currentThrAttnIntegrator, callTimeDelta * 1e-6);
+    uint16_t currentThrAttn = lrintf(pt1FilterApply3(&currentThrAttnFilter, currentThrAttnProportional + currentThrAttnIntegrator, callTimeDelta * 1e-6));
 
     throttleBase = wasLimitingCurrent ? lrintf(pt1FilterApply3(&currentThrLimitingBaseFilter, *throttleCommand, callTimeDelta * 1e-6)) : *throttleCommand;
-    uint16_t currentThrAttned = MAX(PWM_RANGE_MIN, (int32_t)throttleBase - currentThrAttn);
+    uint16_t currentThrAttned = MAX(PWM_RANGE_MIN, (int16_t)throttleBase - currentThrAttn);
 
     if (activeCurrentLimit && currentThrAttned < *throttleCommand) {
         if (!wasLimitingCurrent && getAmperage() >= activeCurrentLimit) {
@@ -208,10 +208,10 @@ void powerLimiterApply(int16_t *throttleCommand) {
 
     float powerThrAttnProportional = MAX(0, overPower) * powerLimitsConfig()->piP / voltage * 1e-1;
 
-    float powerThrAttn = pt1FilterApply3(&powerThrAttnFilter, powerThrAttnProportional + powerThrAttnIntegrator, callTimeDelta * 1e-6);
+    uint16_t powerThrAttn = lrintf(pt1FilterApply3(&powerThrAttnFilter, powerThrAttnProportional + powerThrAttnIntegrator, callTimeDelta * 1e-6));
 
     throttleBase = wasLimitingPower ? lrintf(pt1FilterApply3(&powerThrLimitingBaseFilter, *throttleCommand, callTimeDelta * 1e-6)) : *throttleCommand;
-    uint16_t powerThrAttned = MAX(PWM_RANGE_MIN, (int32_t)throttleBase - powerThrAttn);
+    uint16_t powerThrAttned = MAX(PWM_RANGE_MIN, (int16_t)throttleBase - powerThrAttn);
 
     if (activePowerLimit && powerThrAttned < *throttleCommand) {
         if (!wasLimitingPower && getPower() >= activePowerLimit) {
