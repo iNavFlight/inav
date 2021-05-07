@@ -2276,7 +2276,7 @@ groups:
       - name: nav_wp_load_on_boot
         description: "If set to ON WP mission will automatically load during boot."
         default_value: OFF
-        field: general.waypoint_load_on_boot
+        field: general.flags.waypoint_load_on_boot
         type: bool
       - name: nav_auto_speed
         description: "Maximum velocity firmware is allowed in full auto modes (RTH, WP) [cm/s] [Multirotor only]"

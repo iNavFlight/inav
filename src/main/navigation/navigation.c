@@ -115,6 +115,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
             .rth_alt_control_override = SETTING_NAV_RTH_ALT_CONTROL_OVERRIDE_DEFAULT, // Override RTH Altitude and Climb First using Pitch and Roll stick
             .nav_overrides_motor_stop = SETTING_NAV_OVERRIDES_MOTOR_STOP_DEFAULT,
             .safehome_usage_mode = SETTING_SAFEHOME_USAGE_MODE_DEFAULT,
+            .waypoint_load_on_boot = SETTING_NAV_WP_LOAD_ON_BOOT_DEFAULT,             // load waypoints automatically during boot
         },
 
         // General navigation parameters
@@ -122,7 +123,6 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .waypoint_radius = SETTING_NAV_WP_RADIUS_DEFAULT,                             // 2m diameter
         .waypoint_safe_distance = SETTING_NAV_WP_SAFE_DISTANCE_DEFAULT,               // centimeters - first waypoint should be closer than this
         .waypoint_multi_mission_index = SETTING_NAV_WP_MULTI_MISSION_INDEX_DEFAULT,   // mission index selected from multi mission WP entry
-        .waypoint_load_on_boot = SETTING_NAV_WP_LOAD_ON_BOOT_DEFAULT,                 // load waypoints automatically during boot
         .max_auto_speed = SETTING_NAV_AUTO_SPEED_DEFAULT,                             // 3 m/s = 10.8 km/h
         .max_auto_climb_rate = SETTING_NAV_AUTO_CLIMB_RATE_DEFAULT,                   // 5 m/s
         .max_manual_speed = SETTING_NAV_MANUAL_SPEED_DEFAULT,
@@ -3616,7 +3616,7 @@ void navigationInit(void)
 
     /* check number missions loaded by loading waypoint list.
      * Set index to 0 so no mission is loaded during check if waypoint_load_on_boot option is OFF */
-    if (!navConfig()->general.waypoint_load_on_boot) {
+    if (!navConfig()->general.flags.waypoint_load_on_boot) {
         navConfigMutable()->general.waypoint_multi_mission_index = 0;
     }
     loadNonVolatileWaypointList();
