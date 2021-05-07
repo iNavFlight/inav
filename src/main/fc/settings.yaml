@@ -3622,12 +3622,12 @@ groups:
         description: "Allowed current burst time (ds) during which `limit_burst_current` is allowed and after which `limit_cont_current` will be enforced"
         default_value: 0
         field: burstCurrentTime
-        max: 120
+        max: 3000
       - name: limit_burst_current_falldown_time
         description: "Time slice at the end of the burst time during which the current limit will be ramped down from `limit_burst_current` back down to `limit_cont_current`"
         default_value: 0
         field: burstCurrentFalldownTime
-        max: 120
+        max: 3000
       - name: limit_cont_power
         condition: USE_ADC
         description: "Continous power limit (dW), set to 0 to disable"
@@ -3645,13 +3645,13 @@ groups:
         description: "Allowed power burst time (ds) during which `limit_burst_power` is allowed and after which `limit_cont_power` will be enforced"
         default_value: 0
         field: burstPowerTime
-        max: 120
+        max: 3000
       - name: limit_burst_power_falldown_time
         condition: USE_ADC
         description: "Time slice at the end of the burst time during which the power limit will be ramped down from `limit_burst_power` back down to `limit_cont_power`"
         default_value: 0
         field: burstPowerFalldownTime
-        max: 120
+        max: 3000
       - name: limit_pi_p
         description: "Throttle attenuation PI control P term"
         default_value: 100
