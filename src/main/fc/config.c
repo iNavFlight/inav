@@ -301,6 +301,12 @@ void validateAndFixConfig(void)
     // Call target-specific validation function
     validateAndFixTargetConfig();
 
+#ifdef USE_MAG
+    if (compassConfig()->mag_align == ALIGN_DEFAULT) {
+        compassConfigMutable()->mag_align = CW270_DEG_FLIP;
+    }
+#endif
+
     if (settingsValidate(NULL)) {
         DISABLE_ARMING_FLAG(ARMING_DISABLED_INVALID_SETTING);
     } else {

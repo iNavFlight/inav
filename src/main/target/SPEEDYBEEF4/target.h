@@ -140,7 +140,6 @@
 #define USE_MAG_IST8310						
 #define USE_MAG_MAG3110						
 #define USE_MAG_LIS3MDL						
-#define MAG_HMC5883_ALIGN       CW90_DEG	
 
 /*** ADC ***/
 #define USE_ADC
