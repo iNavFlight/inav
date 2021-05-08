@@ -86,5 +86,6 @@ typedef enum {
     DEBUG_GYRO_ALPHA_BETA_GAMMA,
     DEBUG_SMITH_PREDICTOR,
     DEBUG_AUTOTRIM,
+    DEBUG_AUTOTUNE,
     DEBUG_COUNT
 } debugType_e;

@@ -94,7 +94,7 @@ tables:
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "ERPM", "RPM_FILTER", "RPM_FREQ", "NAV_YAW", "DYNAMIC_FILTER", "DYNAMIC_FILTER_FREQUENCY",
       "IRLOCK", "CD", "KALMAN_GAIN", "PID_MEASUREMENT", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574", "DYN_GYRO_LPF", "FW_D", "IMU2", "ALTITUDE",
-      "GYRO_ALPHA_BETA_GAMMA", "SMITH_PREDICTOR", "AUTOTRIM"]
+      "GYRO_ALPHA_BETA_GAMMA", "SMITH_PREDICTOR", "AUTOTRIM", "AUTOTUNE"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -170,6 +170,9 @@ tables:
     values: ["OFF_ALWAYS", "OFF", "AUTO_ONLY", "ALL_NAV"]
   - name: osd_plus_code_short
     values: ["0", "2", "4", "6"]
+  - name: autotune_rate_adjustment
+    enum: autotune_rate_adjustment_e
+    values: ["FIXED", "LIMIT", "AUTO"]
   - name: safehome_usage_mode
     values: ["OFF", "RTH", "RTH_FS"]
     enum: safehomeUsageMode_e
@@ -2114,22 +2117,10 @@ groups:
     type: pidAutotuneConfig_t
     condition: USE_AUTOTUNE_FIXED_WING
     members:
-      - name: fw_autotune_overshoot_time
-        description: "Time [ms] to detect sustained overshoot"
-        default_value: 100
-        field: fw_overshoot_time
-        min: 50
-        max: 500
-      - name: fw_autotune_undershoot_time
-        description: "Time [ms] to detect sustained undershoot"
-        default_value: 200
-        field: fw_undershoot_time
-        min: 50
-        max: 500
-      - name: fw_autotune_threshold
-        description: "Threshold [%] of max rate to consider overshoot/undershoot detection"
+      - name: fw_autotune_min_stick
+        description: "Minimum stick input [%] to consider overshoot/undershoot detection"
         default_value: 50
-        field: fw_max_rate_threshold
+        field: fw_min_stick
         min: 0
         max: 100
       - name: fw_autotune_ff_to_p_gain
@@ -2138,12 +2129,30 @@ groups:
         field: fw_ff_to_p_gain
         min: 0
         max: 100
+      - name: fw_autotune_p_to_d_gain
+        description: "P to D gain (strength relationship) [%]"
+        default_value: 0
+        field: fw_p_to_d_gain
+        min: 0
+        max: 200
       - name: fw_autotune_ff_to_i_tc
         description: "FF to I time (defines time for I to reach the same level of response as FF) [ms]"
         default_value: 600
         field: fw_ff_to_i_time_constant
         min: 100
         max: 5000
+      - name: fw_autotune_rate_adjustment
+        description: "`AUTO` and `LIMIT` adjust the rates to match the capabilities of the airplane, with `LIMIT` they are never increased above the starting rates setting. `FIXED` does not adjust the rates. Rates are not changed when tuning in `ANGLE` mode."
+        default_value: "AUTO"
+        field: fw_rate_adjustment
+        table: autotune_rate_adjustment
+        type: uint8_t
+      - name: fw_autotune_max_rate_deflection
+        description: "The target percentage of maximum mixer output used for determining the rates in `AUTO` and `LIMIT`."
+        default_value: 80
+        field: fw_max_rate_deflection
+        min: 50
+        max: 100
 
   - name: PG_POSITION_ESTIMATION_CONFIG
     type: positionEstimationConfig_t
