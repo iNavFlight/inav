@@ -140,7 +140,6 @@
 #define USE_MAG_IST8310						
 #define USE_MAG_MAG3110						
 #define USE_MAG_LIS3MDL						
-#define MAG_HMC5883_ALIGN       CW90_DEG	
 
 /*** ADC ***/
 #define USE_ADC
@@ -171,3 +170,5 @@
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
+
+#define RANGEFINDER_I2C_BUS BUS_I2C1

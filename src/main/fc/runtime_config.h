@@ -152,6 +152,7 @@ typedef enum {
     FLM_POSITION_HOLD,
     FLM_RTH,
     FLM_MISSION,
+    FLM_COURSE_HOLD,
     FLM_CRUISE,
     FLM_LAUNCH,
     FLM_FAILSAFE,

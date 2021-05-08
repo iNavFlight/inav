@@ -45,5 +45,6 @@ void emergencyArmingUpdate(bool armingSwitchIsOn);
 
 bool isCalibrating(void);
 float getFlightTime(void);
+float getArmTime(void);
 
 void fcReboot(bool bootLoader);
