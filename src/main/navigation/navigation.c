@@ -2864,6 +2864,7 @@ void resetWaypointList(void)
     if (!ARMING_FLAG(ARMED)) {
         posControl.waypointCount = 0;
         posControl.waypointListValid = false;
+        posControl.activeWaypointIndex = 0;
     }
 }
 
@@ -3571,7 +3572,6 @@ void navigationInit(void)
     posControl.waypointCount = 0;
     posControl.activeWaypointIndex = 0;
     posControl.waypointListValid = false;
-    posControl.activeWaypointIndex = 0;
 
     /* Set initial surface invalid */
     posControl.actualState.surfaceMin = -1.0f;
