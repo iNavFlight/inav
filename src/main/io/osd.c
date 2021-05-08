@@ -3261,7 +3261,7 @@ static void osdShowStatsPage2(void)
                     FALLTHROUGH;
                 case OSD_UNIT_IMPERIAL:
                     if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
-                        moreThanAh = osdFormatCentiNumber(buff, (int32_t)(getMAhDrawn() * 10000.0f * METERS_PER_MILE / totalDistance), 1000, 2, 2, 3);
+                        moreThanAh = osdFormatCentiNumber(buff, (int32_t)(getMAhDrawn() * 10000.0f * METERS_PER_MILE / totalDistance), 1000, 0, 2, 3);
                         if (!moreThanAh) {
                             tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_MI_0, SYM_MAH_MI_1);
                         } else {
@@ -3283,7 +3283,7 @@ static void osdShowStatsPage2(void)
                     break;
                 case OSD_UNIT_METRIC:
                     if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
-                        moreThanAh = osdFormatCentiNumber(buff, (int32_t)(getMAhDrawn() * 10000000.0f / totalDistance), 1000, 2, 2, 3);
+                        moreThanAh = osdFormatCentiNumber(buff, (int32_t)(getMAhDrawn() * 10000000.0f / totalDistance), 1000, 0, 2, 3);
                         if (!moreThanAh) {
                             tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_KM_0, SYM_MAH_KM_1);
                         } else {
@@ -3304,6 +3304,7 @@ static void osdShowStatsPage2(void)
                     }
                     break;
             }
+            osdLeftAlignString(buff);
             displayWrite(osdDisplayPort, statValuesX, top++, buff);
         }
     }
