@@ -114,6 +114,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
             .rth_alt_control_override = SETTING_NAV_RTH_ALT_CONTROL_OVERRIDE_DEFAULT, // Override RTH Altitude and Climb First using Pitch and Roll stick
             .nav_overrides_motor_stop = SETTING_NAV_OVERRIDES_MOTOR_STOP_DEFAULT,
             .safehome_usage_mode = SETTING_SAFEHOME_USAGE_MODE_DEFAULT,
+            .waypoint_mission_restart = SETTING_NAV_WP_MISSION_RESTART_DEFAULT,           // WP mission restart action
         },
 
         // General navigation parameters
@@ -1448,9 +1449,20 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_INITIALIZE(nav
   Use p3 as the volatile jump counter, allowing embedded, rearmed jumps
   Using p3 minimises the risk of saving an invalid counter if a mission is aborted.
 */
-        setupJumpCounters();
-        posControl.activeWaypointIndex = 0;
-        wpHeadingControl.mode = NAV_WP_HEAD_MODE_NONE;
+        static bool missionRestart;
+        if (posControl.activeWaypointIndex == 0) {
+            missionRestart = true;
+        } else if (navConfig()->general.flags.waypoint_mission_restart == SWITCH) {
+            missionRestart = !missionRestart;
+        } else {
+            missionRestart = navConfig()->general.flags.waypoint_mission_restart == START;
+        }
+
+        if (missionRestart) {
+            setupJumpCounters();
+            posControl.activeWaypointIndex = 0;
+            wpHeadingControl.mode = NAV_WP_HEAD_MODE_NONE;
+        }
         return NAV_FSM_EVENT_SUCCESS;   // will switch to NAV_STATE_WAYPOINT_PRE_ACTION
     }
 }
@@ -1520,6 +1532,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
             return nextForNonGeoStates();
 
         case NAV_WP_ACTION_RTH:
+            posControl.activeWaypointIndex = 0;
             return NAV_FSM_EVENT_SWITCH_TO_RTH;
     };
 
@@ -1660,6 +1673,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_FINISHED(navig
     UNUSED(previousState);
 
     clearJumpCounters();
+    posControl.activeWaypointIndex = 0;
+
     // If no position sensor available - land immediately
     if ((posControl.flags.estPosStatus >= EST_USABLE) && (posControl.flags.estHeadingStatus >= EST_USABLE)) {
         return NAV_FSM_EVENT_NONE;
@@ -2578,11 +2593,11 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAlti
     }
     else {
 
-        /* 
+        /*
          * If max altitude is set, reset climb rate if altitude is reached and climb rate is > 0
          * In other words, when altitude is reached, allow it only to shrink
          */
-        if (navConfig()->general.max_altitude > 0 && 
+        if (navConfig()->general.max_altitude > 0 &&
             altitudeToUse >= navConfig()->general.max_altitude &&
             desiredClimbRate > 0
         ) {
@@ -3556,6 +3571,7 @@ void navigationInit(void)
     posControl.waypointCount = 0;
     posControl.activeWaypointIndex = 0;
     posControl.waypointListValid = false;
+    posControl.activeWaypointIndex = 0;
 
     /* Set initial surface invalid */
     posControl.actualState.surfaceMin = -1.0f;
