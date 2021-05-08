@@ -1497,11 +1497,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_GLIDESLOPE:
         {
-            #if defined(USE_PITOT)
-                float horizontalSpeed = sensors(SENSOR_PITOT) ? pitot.airSpeed : gpsSol.groundSpeed;
-            #else
-                float horizontalSpeed = gpsSol.groundSpeed;
-            #endif
+            float horizontalSpeed = gpsSol.groundSpeed;
             float sinkRate = -getEstimatedActualVelocity(Z);
             static pt1Filter_t gsFilterState;
             const timeUs_t currentTimeUs = millis();
