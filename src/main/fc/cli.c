@@ -156,7 +156,7 @@ static const char * const featureNames[] = {
     "", "RSSI_ADC", "LED_STRIP", "DASHBOARD", "",
     "BLACKBOX", "", "TRANSPONDER", "AIRMODE",
     "SUPEREXPO", "VTX", "", "", "", "PWM_OUTPUT_ENABLE",
-    "OSD", "FW_LAUNCH", NULL
+    "OSD", "FW_LAUNCH", "FW_AUTOTRIM", NULL
 };
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status command output) */
