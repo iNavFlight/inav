@@ -88,6 +88,7 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/imu.h"
 
 #include "flight/failsafe.h"
+#include "flight/power_limits.h"
 
 #include "config/feature.h"
 #include "common/vector.h"
@@ -891,6 +892,10 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     else {
         // FIXME: throttle pitch comp for FW
     }
+
+#ifdef USE_POWER_LIMITS
+    powerLimiterApply(&rcCommand[THROTTLE]);
+#endif
 
     // Calculate stabilisation
     pidController(dT);
