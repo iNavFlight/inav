@@ -3081,7 +3081,7 @@ void applyWaypointNavigationAndAltitudeHold(void)
     if (!ARMING_FLAG(ARMED)) {
         // If we are disarmed, abort forced RTH
         posControl.flags.forcedRTHActivated = false;
-        // ensure WP missions always restart from first waypoint after disarm
+        //  ensure WP missions always restart from first waypoint after disarm
         posControl.activeWaypointIndex = 0;
         return;
     }
