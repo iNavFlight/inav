@@ -3814,7 +3814,9 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
 
                     if (NAV_Status.state == MW_NAV_STATE_WP_ENROUTE) {
                         // Countdown display for remaining Waypoints
-                        tfp_sprintf(messageBuf, "TO WP %u/%u", posControl.activeWaypointIndex + 1, posControl.waypointCount);
+                        char buf[6];
+                        osdFormatDistanceSymbol(buf, posControl.wpDistance, 0);
+                        tfp_sprintf(messageBuf, "TO WP %u/%u (%s)", posControl.activeWaypointIndex + 1, posControl.waypointCount, buf);
                         messages[messageCount++] = messageBuf;
                     } else if (NAV_Status.state == MW_NAV_STATE_HOLD_TIMED) {
                         // WP hold time countdown in seconds
