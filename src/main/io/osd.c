@@ -1863,18 +1863,19 @@ static bool osdDrawSingleElement(uint8_t item)
             buff[0] = SYM_BLANK;
             int16_t statsLQ = rxLinkStatistics.uplinkLQ;
             int16_t scaledLQ = scaleRange(constrain(statsLQ, 0, 100), 0, 100, 170, 300);
-            if (rxLinkStatistics.rfMode == 2) {
-                if (osdConfig()->crsf_lq_format == OSD_CRSF_LQ_TYPE1) {
-                    tfp_sprintf(buff, "%5d%s", scaledLQ, "%");
-                } else {
+            switch (osdConfig()->crsf_lq_format) {
+                case OSD_CRSF_LQ_TYPE1:
+                    if (rxLinkStatistics.rfMode >= 2) {
+                        tfp_sprintf(buff, "%3d%s", scaledLQ, "%");
+                    } else {
+                        tfp_sprintf(buff, "%3d%s", rxLinkStatistics.uplinkLQ, "%");
+                    }
+
+                case OSD_CRSF_LQ_TYPE2:
                     tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
-                }
-            } else {
-                if (osdConfig()->crsf_lq_format == OSD_CRSF_LQ_TYPE1) {
-                    tfp_sprintf(buff, "%5d%s", rxLinkStatistics.uplinkLQ, "%");
-                } else {
-                    tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
-                }
+
+                case OSD_CRSF_LQ_TYPE3:
+                    tfp_sprintf(buff, "%3d%s", rxLinkStatistics.uplinkLQ, "%");
             }
             if (!failsafeIsReceivingRxData()){
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
