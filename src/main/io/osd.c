@@ -1505,8 +1505,8 @@ static bool osdDrawSingleElement(uint8_t item)
             float glideSlope = pt1FilterApply4(&gsFilterState, horizontalSpeed / sinkRate, 0.5, US2S(currentTimeUs - gsUpdatedTimeUs));
             gsUpdatedTimeUs = currentTimeUs;
 
-            buff[0] = SYM_GLIDESLOPE; // Use direction arrow as glideslope symbol
-            if (glideSlope > 0 && horizontalSpeed > 100 && glideSlope < 100) {
+            buff[0] = SYM_GLIDESLOPE;
+            if (glideSlope > 0.0f && glideSlope < 100.0f) {
                 osdFormatCentiNumber(buff + 1, glideSlope * 100, 0, 2, 0, 3);
             } else {
                 buff[1] = buff[2] = buff[3] = '-';
