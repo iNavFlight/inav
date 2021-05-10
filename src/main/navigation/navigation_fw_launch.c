@@ -115,6 +115,7 @@ typedef struct fixedWingLaunchData_s {
 } fixedWingLaunchData_t;
 
 static EXTENDED_FASTRAM fixedWingLaunchData_t fwLaunch;
+static bool idleMotorAboutToStart;
 
 static const fixedWingLaunchStateDescriptor_t launchStateMachine[FW_LAUNCH_STATE_COUNT] = {
 
@@ -309,8 +310,11 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IDLE_MOTOR_DELAY(tim
     applyThrottleIdleLogic(true);
 
     if (currentStateElapsedMs(currentTimeUs) > navConfig()->fw.launch_idle_motor_timer) {
+        idleMotorAboutToStart = false;
         return FW_LAUNCH_EVENT_SUCCESS;
     }
+    // 5 second warning motor about to start at idle, changes Beeper sound
+    idleMotorAboutToStart = navConfig()->fw.launch_idle_motor_timer - currentStateElapsedMs(currentTimeUs) < 5000;
 
     return FW_LAUNCH_EVENT_NONE;
 }
@@ -469,7 +473,11 @@ void applyFixedWingLaunchController(timeUs_t currentTimeUs)
         beeper(BEEPER_LAUNCH_MODE_LOW_THROTTLE);
     }
     else {
-        beeper(BEEPER_LAUNCH_MODE_ENABLED);
+        if (idleMotorAboutToStart) {
+            beeper(BEEPER_LAUNCH_MODE_IDLE_START);
+        } else {
+            beeper(BEEPER_LAUNCH_MODE_ENABLED);
+        }
     }
 }
 
