@@ -54,6 +54,7 @@
 #define LAUNCH_MOTOR_IDLE_SPINUP_TIME 1500                              // ms
 #define UNUSED(x) ((void)(x))
 #define FW_LAUNCH_MESSAGE_TEXT_WAIT_THROTTLE "RAISE THE THROTTLE"
+#define FW_LAUNCH_MESSAGE_TEXT_WAIT_IDLE "WAITING FOR IDLE"
 #define FW_LAUNCH_MESSAGE_TEXT_WAIT_DETECTION "READY"
 #define FW_LAUNCH_MESSAGE_TEXT_IN_PROGRESS "MOVE THE STICKS TO ABORT"
 #define FW_LAUNCH_MESSAGE_TEXT_FINISHING "FINISHING"
@@ -61,6 +62,7 @@
 typedef enum {
     FW_LAUNCH_MESSAGE_TYPE_NONE = 0,
     FW_LAUNCH_MESSAGE_TYPE_WAIT_THROTTLE,
+    FW_LAUNCH_MESSAGE_TYPE_WAIT_IDLE,
     FW_LAUNCH_MESSAGE_TYPE_WAIT_DETECTION,
     FW_LAUNCH_MESSAGE_TYPE_IN_PROGRESS,
     FW_LAUNCH_MESSAGE_TYPE_FINISHING
@@ -78,6 +80,7 @@ typedef enum {
 typedef enum {
     FW_LAUNCH_STATE_IDLE = 0,
     FW_LAUNCH_STATE_WAIT_THROTTLE,
+    FW_LAUNCH_STATE_IDLE_MOTOR_DELAY,
     FW_LAUNCH_STATE_MOTOR_IDLE,
     FW_LAUNCH_STATE_WAIT_DETECTION,
     FW_LAUNCH_STATE_DETECTED,
@@ -90,6 +93,7 @@ typedef enum {
 
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IDLE(timeUs_t currentTimeUs);
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_THROTTLE(timeUs_t currentTimeUs);
+static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IDLE_MOTOR_DELAY(timeUs_t currentTimeUs);
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_MOTOR_IDLE(timeUs_t currentTimeUs);
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_DETECTION(timeUs_t currentTimeUs);
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_DETECTED(timeUs_t currentTimeUs);
@@ -125,10 +129,19 @@ static const fixedWingLaunchStateDescriptor_t launchStateMachine[FW_LAUNCH_STATE
     [FW_LAUNCH_STATE_WAIT_THROTTLE] = {
         .onEntry                                    = fwLaunchState_FW_LAUNCH_STATE_WAIT_THROTTLE,
         .onEvent = {
-            [FW_LAUNCH_EVENT_SUCCESS]               = FW_LAUNCH_STATE_MOTOR_IDLE,
+            [FW_LAUNCH_EVENT_SUCCESS]               = FW_LAUNCH_STATE_IDLE_MOTOR_DELAY,
             [FW_LAUNCH_EVENT_GOTO_DETECTION]        = FW_LAUNCH_STATE_WAIT_DETECTION
         },
         .messageType                                = FW_LAUNCH_MESSAGE_TYPE_WAIT_THROTTLE
+    },
+
+    [FW_LAUNCH_STATE_IDLE_MOTOR_DELAY] = {
+        .onEntry                                    = fwLaunchState_FW_LAUNCH_STATE_IDLE_MOTOR_DELAY,
+        .onEvent = {
+            [FW_LAUNCH_EVENT_SUCCESS]               = FW_LAUNCH_STATE_MOTOR_IDLE,
+            [FW_LAUNCH_EVENT_THROTTLE_LOW]          = FW_LAUNCH_STATE_WAIT_THROTTLE
+        },
+        .messageType                                = FW_LAUNCH_MESSAGE_TYPE_WAIT_IDLE
     },
 
     [FW_LAUNCH_STATE_MOTOR_IDLE] = {
@@ -137,7 +150,7 @@ static const fixedWingLaunchStateDescriptor_t launchStateMachine[FW_LAUNCH_STATE
             [FW_LAUNCH_EVENT_SUCCESS]               = FW_LAUNCH_STATE_WAIT_DETECTION,
             [FW_LAUNCH_EVENT_THROTTLE_LOW]          = FW_LAUNCH_STATE_WAIT_THROTTLE
         },
-        .messageType                                = FW_LAUNCH_MESSAGE_TYPE_WAIT_THROTTLE
+        .messageType                                = FW_LAUNCH_MESSAGE_TYPE_WAIT_IDLE
     },
 
     [FW_LAUNCH_STATE_WAIT_DETECTION] = {
@@ -283,6 +296,21 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_THROTTLE(timeUs
     }
 
     fwLaunch.pitchAngle = 0;
+
+    return FW_LAUNCH_EVENT_NONE;
+}
+
+static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IDLE_MOTOR_DELAY(timeUs_t currentTimeUs)
+{
+    if (isThrottleLow()) {
+        return FW_LAUNCH_EVENT_THROTTLE_LOW; // go back to FW_LAUNCH_STATE_WAIT_THROTTLE
+    }
+
+    applyThrottleIdleLogic(true);
+
+    if (currentStateElapsedMs(currentTimeUs) > navConfig()->fw.launch_idle_motor_timer) {
+        return FW_LAUNCH_EVENT_SUCCESS;
+    }
 
     return FW_LAUNCH_EVENT_NONE;
 }
@@ -475,6 +503,9 @@ const char * fixedWingLaunchStateMessage(void)
     switch (launchStateMachine[fwLaunch.currentState].messageType) {
         case FW_LAUNCH_MESSAGE_TYPE_WAIT_THROTTLE:
             return FW_LAUNCH_MESSAGE_TEXT_WAIT_THROTTLE;
+
+        case FW_LAUNCH_MESSAGE_TYPE_WAIT_IDLE:
+            return FW_LAUNCH_MESSAGE_TEXT_WAIT_IDLE;
 
         case FW_LAUNCH_MESSAGE_TYPE_WAIT_DETECTION:
             return FW_LAUNCH_MESSAGE_TEXT_WAIT_DETECTION;

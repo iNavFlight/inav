@@ -185,6 +185,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .launch_throttle = SETTING_NAV_FW_LAUNCH_THR_DEFAULT,
         .launch_idle_throttle = SETTING_NAV_FW_LAUNCH_IDLE_THR_DEFAULT,         // Motor idle or MOTOR_STOP
         .launch_motor_timer = SETTING_NAV_FW_LAUNCH_MOTOR_DELAY_DEFAULT,        // ms
+        .launch_idle_motor_timer = SETTING_NAV_FW_LAUNCH_IDLE_MOTOR_DELAY_DEFAULT,   // ms
         .launch_motor_spinup_time = SETTING_NAV_FW_LAUNCH_SPINUP_TIME_DEFAULT,  // ms, time to gredually increase throttle from idle to launch
         .launch_end_time = SETTING_NAV_FW_LAUNCH_END_TIME_DEFAULT,              // ms, time to gradually decrease/increase throttle and decrease pitch angle from launch to the current flight mode
         .launch_min_time = SETTING_NAV_FW_LAUNCH_MIN_TIME_DEFAULT,              // ms, min time in launch mode
@@ -2578,11 +2579,11 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAlti
     }
     else {
 
-        /* 
+        /*
          * If max altitude is set, reset climb rate if altitude is reached and climb rate is > 0
          * In other words, when altitude is reached, allow it only to shrink
          */
-        if (navConfig()->general.max_altitude > 0 && 
+        if (navConfig()->general.max_altitude > 0 &&
             altitudeToUse >= navConfig()->general.max_altitude &&
             desiredClimbRate > 0
         ) {

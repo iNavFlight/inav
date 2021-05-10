@@ -77,7 +77,7 @@ tables:
     enum: videoSystem_e
   - name: osd_telemetry
     values: ["OFF", "ON","TEST"]
-    enum: osd_telemetry_e    
+    enum: osd_telemetry_e
   - name: osd_alignment
     values: ["LEFT", "RIGHT"]
     enum: osd_alignment_e
@@ -2670,6 +2670,12 @@ groups:
         field: fw.launch_idle_throttle
         min: 1000
         max: 2000
+      - name: nav_fw_launch_idle_motor_delay
+        description: "Delay between raising throttle and motor starting at idle throttle (ms)"
+        default_value: 0
+        field: fw.launch_idle_motor_timer
+        min: 0
+        max: 20000
       - name: nav_fw_launch_motor_delay
         description: "Delay between detected launch and launch sequence start and throttling up (ms)"
         default_value: 500
