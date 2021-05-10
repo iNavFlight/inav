@@ -64,7 +64,6 @@
 | disarm_kill_switch | ON |  |  | Disarms the motors independently of throttle value. Setting to OFF reverts to the old behaviour of disarming only when the throttle is low. Only applies when arming and disarming with an AUX channel. |
 | display_force_sw_blink | OFF |  |  | OFF = OSD hardware blink / ON = OSD software blink. If OSD warning text/values are invisible, try setting this to ON |
 | dji_esc_temp_source | ESC |  |  | Re-purpose the ESC temperature field for IMU/BARO temperature |
-| dji_speed_source | GROUND |  |  | Sets the speed type displayed by the DJI OSD: GROUND, 3D, AIR |
 | dji_use_name_for_messages | ON |  |  | Re-purpose the craft name field for messages. Replace craft name with :WTSED for Warnings|Throttle|Speed|Efficiency|Trip distance |
 | dji_workarounds | 1 | 0 | 255 | Enables workarounds for different versions of MSP protocol used |
 | dshot_beeper_enabled | ON |  |  | Whether using DShot motors as beepers is enabled |
@@ -443,6 +442,7 @@
 | osd_sidebar_horizontal_offset | 0 | -128 | 127 | Sidebar horizontal offset from default position. Positive values move the sidebars closer to the edges. |
 | osd_sidebar_scroll_arrows | OFF |  |  |  |
 | osd_snr_alarm | 4 | -20 | 10 | Value below which Crossfire SNR Alarm pops-up. (dB) |
+| osd_speed_source | GROUND |  |  | Sets the speed type displayed by the DJI OSD and OSD canvas (FrSky Pixel): GROUND, 3D, AIR |
 | osd_stats_energy_unit | MAH |  |  | Unit used for the drawn energy in the OSD stats [MAH/WH] (milliAmpere hour/ Watt hour) |
 | osd_stats_min_voltage_unit | BATTERY |  |  | Display minimum voltage of the `BATTERY` or the average per `CELL` in the OSD stats. |
 | osd_telemetry | OFF |  |  | To enable OSD telemetry for antenna tracker. Possible values are `OFF`, `ON` and `TEST` |
