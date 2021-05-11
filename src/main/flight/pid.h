@@ -169,6 +169,7 @@ typedef struct pidProfile_s {
     float smithPredictorDelay;
     uint16_t smithPredictorFilterHz;
 #endif
+
 #ifdef USE_PITOT
     float TPA_Scaling_Speed;
 #endif

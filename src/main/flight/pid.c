@@ -306,6 +306,10 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .smithPredictorDelay = SETTING_SMITH_PREDICTOR_DELAY_DEFAULT,
         .smithPredictorFilterHz = SETTING_SMITH_PREDICTOR_LPF_HZ_DEFAULT,
 #endif
+
+#ifdef USE_PITOT
+    .TPA_Scaling_Speed = SETTING_TPA_AIRSPEED_ATTENUATION_DEFAULT,
+#endif
 );
 
 bool pidInitFilters(void)
