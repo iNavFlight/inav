@@ -402,7 +402,7 @@
 | osd_camera_uptilt | 0 | -40 | 80 | Set the camera uptilt for the FPV camera in degres, positive is up, negative is down, relative to the horizontal |
 | osd_coordinate_digits | 9 | 8 | 11 |  |
 | osd_crosshairs_style | DEFAULT |  |  | To set the visual type for the crosshair |
-| osd_crsf_lq_format | TYPE3 |  |  | To select LQ format |
+| osd_crsf_lq_format | TYPE1 |  |  | To select LQ format |
 | osd_current_alarm | 0 | 0 | 255 | Value above which the OSD current consumption element will start blinking. Measured in full Amperes. |
 | osd_dist_alarm | 1000 | 0 | 50000 | Value above which to make the OSD distance from home indicator blink (meters) |
 | osd_esc_temp_alarm_max | 900 | -550 | 1500 | Temperature above which the IMU temperature OSD element will start blinking (decidegrees centigrade) |
