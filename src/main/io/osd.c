@@ -1850,8 +1850,13 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_CRSF_RSSI_DBM:
         {
             int16_t rssi = rxLinkStatistics.uplinkRSSI;
+            // Remove empty space when RSSI > -100, only switch back to compact notation when RSSI > -95
+            static bool fourDigits = false;
+            if (rssi <= -100) fourDigits = true;
+            if (rssi >= -95) fourDigits = false;
+            
             buff[0] = (rxLinkStatistics.activeAnt == 0) ? SYM_RSSI : SYM_2RSS; // Separate symbols for each antenna
-            tfp_sprintf(buff + 1, (rssi <= -100 ? "%4d%c" : "%3d%c"), rssi, SYM_DBM);
+            tfp_sprintf(buff + 1, (fourDigits ? "%4d%c" : "%3d%c"), rssi, SYM_DBM);
             if (!failsafeIsReceivingRxData()){
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             }
