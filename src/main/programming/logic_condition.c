@@ -45,6 +45,7 @@
 #include "flight/pid.h"
 #include "drivers/io_port_expander.h"
 #include "io/osd_common.h"
+#include "sensors/diagnostics.h"
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
@@ -408,7 +409,15 @@ static int logicConditionGetFlightOperandValue(int operand) {
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_GPS_SATS:
-            return gpsSol.numSat;
+            if (getHwGPSStatus() == HW_SENSOR_UNAVAILABLE || getHwGPSStatus() == HW_SENSOR_UNHEALTHY) {
+                return 0;
+            } else {
+                return gpsSol.numSat;
+            }
+            break;
+            
+        case LOGIC_CONDITION_OPERAND_FLIGHT_GPS_VALID: // 0/1
+            return STATE(GPS_FIX) ? 1 : 0;
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_GROUD_SPEED: // cm/s
@@ -550,8 +559,12 @@ static int logicConditionGetFlightModeOperandValue(int operand) {
             return (bool) FLIGHT_MODE(NAV_POSHOLD_MODE);
             break;
 
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_COURSE_HOLD:
+            return (bool) FLIGHT_MODE(NAV_COURSE_HOLD_MODE);
+            break;
+
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_CRUISE:
-            return (bool) FLIGHT_MODE(NAV_CRUISE_MODE);
+            return (bool)(FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE));
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_ALTHOLD:

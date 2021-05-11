@@ -119,6 +119,7 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_3D_HOME_DISTANCE,                        // 31
     LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_LQ,                                 // 32
     LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_SNR,                                // 33
+    LOGIC_CONDITION_OPERAND_FLIGHT_GPS_VALID, // 0/1                        // 34
 
 } logicFlightOperands_e;
 
@@ -134,6 +135,7 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_MODE_AIR,                                // 8
     LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER1,                              // 9
     LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER2,                              // 10
+    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_COURSE_HOLD,                        // 11
 } logicFlightModeOperands_e;
 
 typedef enum {
