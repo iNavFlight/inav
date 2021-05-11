@@ -3136,7 +3136,7 @@ groups:
         type: uint8_t
       - name: osd_crsf_lq_format
         description: "To select LQ format"
-        default_value: "TYPE1"
+        default_value: "TYPE3"
         field: crsf_lq_format
         table: osd_crsf_lq_format
         type: uint8_t
