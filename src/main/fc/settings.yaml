@@ -2113,7 +2113,7 @@ groups:
         min: 1
         max: 500
       - name: tpa_airspeed_attenuation
-        description: "Calculate TPA based on AirSpeed (0 is disabled) / 15 is a recommended value"
+        description: "Calculate TPA based on AirSpeed (0 is disabled) ~ 15 is a recommended value [m/s]"
         default_value: 0
         field: TPA_Scaling_Speed
         condition: USE_PITOT

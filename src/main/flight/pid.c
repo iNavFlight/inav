@@ -487,7 +487,7 @@ static float Get_PID_AirSpeed_Scaler(const float ScalingSpeed)
 {
   float AirSpeedValue = (pitotCalculateAirSpeed() / 100) * Get_EAS2TAS(); //in m/s
   float AirSpeed_Scaler = 0.0f;
-  if (pitotIsHealthy()) //HEALTHY
+  if (pitotIsHealthy()) 
   {
     if (AirSpeedValue > 0.0001f)
     {
