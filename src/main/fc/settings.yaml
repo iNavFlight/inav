@@ -104,7 +104,7 @@ tables:
     values: ["DEFAULT", "AIRCRAFT", "TYPE3", "TYPE4", "TYPE5", "TYPE6", "TYPE7"]
     enum: osd_crosshairs_style_e
   - name: osd_sidebar_scroll
-    values: ["NONE", "ALTITUDE", "GROUND_SPEED", "HOME_DISTANCE"]
+    values: ["NONE", "ALTITUDE", "SPEED", "HOME_DISTANCE"]
     enum: osd_sidebar_scroll_e
   - name: nav_rth_allow_landing
     values: ["NEVER", "ALWAYS", "FS_ONLY"]
@@ -162,9 +162,9 @@ tables:
   - name: djiOsdTempSource
     values: ["ESC", "IMU", "BARO"]
     enum: djiOsdTempSource_e
-  - name: djiOsdSpeedSource
+  - name: osdSpeedSource
     values: ["GROUND", "3D", "AIR"]
-    enum: djiOsdSpeedSource_e
+    enum: osdSpeedSource_e
   - name: nav_overrides_motor_stop
     enum: navOverridesMotorStop_e
     values: ["OFF_ALWAYS", "OFF", "AUTO_ONLY", "ALL_NAV"]
@@ -3350,6 +3350,17 @@ groups:
         min: -36
         max: 36
 
+  - name: PG_OSD_COMMON_CONFIG
+    type: osdCommonConfig_t
+    headers: ["io/osd_common.h"]
+    condition: USE_OSD || USE_DJI_HD_OSD
+    members:
+      - name: osd_speed_source
+        description: "Sets the speed type displayed by the DJI OSD and OSD canvas (FrSky Pixel): GROUND, 3D, AIR"
+        default_value: "GROUND"
+        field: speedSource
+        table: osdSpeedSource
+        type: uint8_t
 
   - name: PG_SYSTEM_CONFIG
     type: systemConfig_t
@@ -3598,12 +3609,6 @@ groups:
           default_value: "ESC"
           field: esc_temperature_source
           table: djiOsdTempSource
-          type: uint8_t
-        - name: dji_speed_source
-          description: "Sets the speed type displayed by the DJI OSD: GROUND, 3D, AIR"
-          default_value: "GROUND"
-          field: speedSource
-          table: djiOsdSpeedSource
           type: uint8_t
 
   - name: PG_BEEPER_CONFIG
