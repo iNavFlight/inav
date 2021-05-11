@@ -1849,18 +1849,11 @@ static bool osdDrawSingleElement(uint8_t item)
 #if defined(USE_SERIALRX_CRSF)
     case OSD_CRSF_RSSI_DBM:
         {
-            if (rxLinkStatistics.activeAnt == 0) {
-              buff[0] = SYM_RSSI;
-              tfp_sprintf(buff + 1, "%4d%c", rxLinkStatistics.uplinkRSSI, SYM_DBM);
-              if (!failsafeIsReceivingRxData()){
-                  TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-              }
-            } else {
-              buff[0] = SYM_2RSS;
-              tfp_sprintf(buff + 1, "%4d%c", rxLinkStatistics.uplinkRSSI, SYM_DBM);
-              if (!failsafeIsReceivingRxData()){
-                  TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-              }
+            int16_t rssi = rxLinkStatistics.uplinkRSSI;
+            buff[0] = (rxLinkStatistics.activeAnt == 0) ? SYM_RSSI : SYM_2RSS; // Separate symbols for each antenna
+            tfp_sprintf(buff + 1, (rssi <= -100 ? "%4d%c" : "%3d%c"), rssi, SYM_DBM);
+            if (!failsafeIsReceivingRxData()){
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             }
             break;
         }
