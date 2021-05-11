@@ -1860,22 +1860,16 @@ static bool osdDrawSingleElement(uint8_t item)
         }
     case OSD_CRSF_LQ:
         {
-            buff[0] = SYM_BLANK;
+            buff[0] = SYM_LQ;
             int16_t statsLQ = rxLinkStatistics.uplinkLQ;
             int16_t scaledLQ = scaleRange(constrain(statsLQ, 0, 100), 0, 100, 170, 300);
             switch (osdConfig()->crsf_lq_format) {
                 case OSD_CRSF_LQ_TYPE1:
-                    if (rxLinkStatistics.rfMode >= 2) {
-                        tfp_sprintf(buff, "%3d%s", scaledLQ, "%");
-                    } else {
-                        tfp_sprintf(buff, "%3d%s", rxLinkStatistics.uplinkLQ, "%");
-                    }
-
+                    tfp_sprintf(buff+1, "%3d", rxLinkStatistics.rfMode >= 2 ? scaledLQ : rxLinkStatistics.uplinkLQ);
                 case OSD_CRSF_LQ_TYPE2:
-                    tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
-
+                    tfp_sprintf(buff+1, "%d:%3d", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ);
                 case OSD_CRSF_LQ_TYPE3:
-                    tfp_sprintf(buff, "%3d%s", rxLinkStatistics.uplinkLQ, "%");
+                    tfp_sprintf(buff+1, "%3d", rxLinkStatistics.uplinkLQ);
             }
             if (!failsafeIsReceivingRxData()){
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
