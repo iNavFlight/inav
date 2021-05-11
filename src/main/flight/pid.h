@@ -56,6 +56,9 @@ FP-PID has been rescaled to match LuxFloat (and MWRewrite) from Cleanflight 1.13
 
 #define TASK_AUX_RATE_HZ   100 //In Hz
 
+#define TPA_AIR_SPEED_MIN 9  //m/s ~ 32,4km/h
+#define TPA_AIR_SPEED_MAX 22 //m/s ~ 79,2km/h
+
 typedef enum {
     /* PID              MC      FW  */
     PID_ROLL,       //   +       +
@@ -165,6 +168,9 @@ typedef struct pidProfile_s {
     float smithPredictorStrength;
     float smithPredictorDelay;
     uint16_t smithPredictorFilterHz;
+#endif
+#ifdef USE_PITOT
+    float TPA_Scaling_Speed;
 #endif
 } pidProfile_t;
 

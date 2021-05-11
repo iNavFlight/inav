@@ -477,8 +477,49 @@ static float calculateFixedWingTPAFactor(uint16_t throttle)
     return tpaFactor;
 }
 
+#ifdef USE_PITOT
+
+static float Get_PID_AirSpeed_Scaler(const float ScalingSpeed)
+{
+  float AirSpeedValue = (pitotCalculateAirSpeed() / 100) * Get_EAS2TAS(); //in m/s
+  float AirSpeed_Scaler = 0.0f;
+  if (pitotIsHealthy()) //HEALTHY
+  {
+    if (AirSpeedValue > 0.0001f)
+    {
+      AirSpeed_Scaler = ScalingSpeed / AirSpeedValue;
+    }
+    else
+    {
+      AirSpeed_Scaler = 2.0f;
+    }
+    float Scale_Min = MIN(0.5f, (0.5f * TPA_AIR_SPEED_MIN) / ScalingSpeed);
+    float Scale_Max = MAX(2.0f, (1.5f * TPA_AIR_SPEED_MAX) / ScalingSpeed);
+    AirSpeed_Scaler = Constrain_Float(AirSpeed_Scaler, Scale_Min, Scale_Max);
+  }
+  else
+  {
+    AirSpeed_Scaler = 1.0f;
+  }
+  return AirSpeed_Scaler;
+}
+
+#endif
+
 static float calculateMultirotorTPAFactor(void)
 {
+
+#ifdef USE_PITOT
+
+  const float ParseScalingSpeed = pidProfile()->TPA_Scaling_Speed;
+
+  if (ParseScalingSpeed > 0)
+  {
+    return Get_PID_AirSpeed_Scaler(ParseScalingSpeed);
+  }
+
+#endif
+
     float tpaFactor;
 
     // TPA should be updated only when TPA is actually set

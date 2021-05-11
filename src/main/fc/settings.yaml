@@ -2112,6 +2112,13 @@ groups:
         condition: USE_SMITH_PREDICTOR
         min: 1
         max: 500
+      - name: tpa_airspeed_attenuation
+        description: "Calculate TPA based on AirSpeed (0 is disabled) / 15 is a recommended value"
+        default_value: 0
+        field: TPA_Scaling_Speed
+        condition: USE_PITOT
+        min: 0
+        max: 30
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t

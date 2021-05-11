@@ -70,6 +70,8 @@ PG_RESET_TEMPLATE(barometerConfig_t, barometerConfig,
 static zeroCalibrationScalar_t zeroCalibration;
 static float baroGroundAltitude = 0;
 static float baroGroundPressure = 101325.0f; // 101325 pascal, 1 standard atmosphere
+float EAS2TAS;
+float Last_EAS2TAS;
 
 bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
 {
@@ -379,6 +381,31 @@ int16_t baroGetTemperature(void)
 bool baroIsHealthy(void)
 {
     return true;
+}
+
+static bool SafeToApplyEAS2TAS(void)
+{
+    return ARMING_FLAG(ARMED) && sensors(SENSOR_BARO);
+}
+
+//https://en.wikipedia.org/wiki/Equivalent_airspeed
+float Get_EAS2TAS(void)
+{
+    static int16_t CalibratedGroundTemperature = 0;
+    if (!SafeToApplyEAS2TAS()) //anti overflow
+    {
+        CalibratedGroundTemperature = baroGetTemperature();
+        return 1.0f;
+    }
+    float ActualBaroAltitude = (float)baro.BaroAlt;
+    if ((ABS(ActualBaroAltitude - Last_EAS2TAS) < 100.0f) && (EAS2TAS != 0.0f))
+    {
+        return EAS2TAS;
+    }
+    float TempKelvin = ((float)CalibratedGroundTemperature) + 273.15f - 0.0065f * ActualBaroAltitude;
+    EAS2TAS = sqrtf(1.225f / ((float)baro.baroPressure / (287.26f * TempKelvin)));
+    Last_EAS2TAS = ActualBaroAltitude;
+    return EAS2TAS;
 }
 
 #endif /* BARO */
