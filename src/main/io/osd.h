@@ -284,6 +284,7 @@ typedef enum {
 typedef enum {
     OSD_CRSF_LQ_TYPE1,
     OSD_CRSF_LQ_TYPE2,
+    OSD_CRSF_LQ_TYPE3
 } osd_crsf_lq_format_e;
 
 typedef struct osdLayoutsConfig_s {

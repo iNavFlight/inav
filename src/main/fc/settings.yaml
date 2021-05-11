@@ -156,7 +156,7 @@ tables:
     values: ["AUTO", "ON", "OFF"]
   - name: osd_crsf_lq_format
     enum: osd_crsf_lq_format_e
-    values: ["TYPE1", "TYPE2"]
+    values: ["TYPE1", "TYPE2", "TYPE3"]
   - name: off_on
     values: ["OFF", "ON"]
   - name: djiOsdTempSource

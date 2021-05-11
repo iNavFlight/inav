@@ -194,7 +194,7 @@ static bool osdDisplayHasCanvas;
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
-PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 2);
 PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 0);
 
 static int digitCount(int32_t value)
@@ -539,11 +539,17 @@ static uint16_t osdGetCrsfLQ(void)
 {
     int16_t statsLQ = rxLinkStatistics.uplinkLQ;
     int16_t scaledLQ = scaleRange(constrain(statsLQ, 0, 100), 0, 100, 170, 300);
-    if (rxLinkStatistics.rfMode == 2) {
-        return scaledLQ;
-    } else {
-        return statsLQ;
+    int16_t displayedLQ;
+    switch (osdConfig()->crsf_lq_format) {
+        case OSD_CRSF_LQ_TYPE1:
+        case OSD_CRSF_LQ_TYPE2:
+            displayedLQ = statsLQ;
+            break;
+        case OSD_CRSF_LQ_TYPE3:
+            displayedLQ = rxLinkStatistics.rfMode >= 2 ? scaledLQ : statsLQ;
+            break;
     }
+    return displayedLQ;
 }
 
 static int16_t osdGetCrsfdBm(void)
@@ -1860,21 +1866,19 @@ static bool osdDrawSingleElement(uint8_t item)
         }
     case OSD_CRSF_LQ:
         {
-            buff[0] = SYM_BLANK;
+            buff[0] = SYM_LQ;
             int16_t statsLQ = rxLinkStatistics.uplinkLQ;
             int16_t scaledLQ = scaleRange(constrain(statsLQ, 0, 100), 0, 100, 170, 300);
-            if (rxLinkStatistics.rfMode == 2) {
-                if (osdConfig()->crsf_lq_format == OSD_CRSF_LQ_TYPE1) {
-                    tfp_sprintf(buff, "%5d%s", scaledLQ, "%");
-                } else {
-                    tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
-                }
-            } else {
-                if (osdConfig()->crsf_lq_format == OSD_CRSF_LQ_TYPE1) {
-                    tfp_sprintf(buff, "%5d%s", rxLinkStatistics.uplinkLQ, "%");
-                } else {
-                    tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
-                }
+            switch (osdConfig()->crsf_lq_format) {
+                case OSD_CRSF_LQ_TYPE1:
+                    tfp_sprintf(buff+1, "%3d", rxLinkStatistics.uplinkLQ);
+                    break;
+                case OSD_CRSF_LQ_TYPE2:
+                    tfp_sprintf(buff+1, "%d:%3d", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ);
+                    break;
+                case OSD_CRSF_LQ_TYPE3:
+                    tfp_sprintf(buff+1, "%3d", rxLinkStatistics.rfMode >= 2 ? scaledLQ : rxLinkStatistics.uplinkLQ);
+                    break;
             }
             if (!failsafeIsReceivingRxData()){
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
