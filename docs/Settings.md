@@ -535,7 +535,7 @@
 | throttle_idle | 15 | 0 | 30 | The percentage of the throttle range (`max_throttle` - `min_command`) above `min_command` used for minimum / idle throttle. |
 | throttle_scale | 1.0 | 0 | 1 | Throttle scaling factor. `1` means no throttle scaling. `0.5` means throttle scaled down by 50% |
 | throttle_tilt_comp_str | 0 | 0 | 100 | Can be used in ANGLE and HORIZON mode and will automatically boost throttle when banking. Setting is in percentage, 0=disabled. |
-| tpa_airspeed_attenuation | 0 | 0 | 30 | Calculate TPA based on AirSpeed (0 is disabled) / 15 is a recommended value |
+| tpa_airspeed_attenuation | 0 | 0 | 3000 | Calculate TPA based on AirSpeed (0 is disabled) ~ 1500 is a recommended value [cm/s] |
 | tpa_breakpoint | 1500 | PWM_RANGE_MIN | PWM_RANGE_MAX | See tpa_rate. |
 | tpa_rate | 0 | 0 | 100 | Throttle PID attenuation reduces influence of P on ROLL and PITCH as throttle increases. For every 1% throttle after the TPA breakpoint, P is reduced by the TPA rate. |
 | tri_unarmed_servo | ON |  |  | On tricopter mix only, if this is set to ON, servo will always be correcting regardless of armed state. to disable this, set it to OFF. |

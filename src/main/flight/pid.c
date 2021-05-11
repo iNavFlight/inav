@@ -457,7 +457,7 @@ float pidRcCommandToRate(int16_t stick, uint8_t rate)
 
 static float Get_PID_AirSpeed_Scaler(const float ScalingSpeed)
 {
-  float AirSpeedValue = (pitotCalculateAirSpeed() / 100) * Get_EAS2TAS(); //in m/s
+  float AirSpeedValue = CENTIMETERS_TO_METERS(pitotCalculateAirSpeed()) * Get_EAS2TAS(); //in m/s
   float AirSpeed_Scaler = 0.0f;
   if (pitotIsHealthy()) 
   {
@@ -487,7 +487,7 @@ static float calculateFixedWingTPAFactor(uint16_t throttle)
 
 #ifdef USE_PITOT
 
-  const float ParseScalingSpeed = pidProfile()->TPA_Scaling_Speed;
+  const float ParseScalingSpeed = CENTIMETERS_TO_METERS(pidProfile()->TPA_Scaling_Speed);
 
   if (ParseScalingSpeed > 0)
   {
