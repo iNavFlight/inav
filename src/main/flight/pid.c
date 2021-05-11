@@ -499,7 +499,7 @@ static float Get_PID_AirSpeed_Scaler(const float ScalingSpeed)
     }
     float Scale_Min = MIN(0.5f, (0.5f * TPA_AIR_SPEED_MIN) / ScalingSpeed);
     float Scale_Max = MAX(2.0f, (1.5f * TPA_AIR_SPEED_MAX) / ScalingSpeed);
-    AirSpeed_Scaler = Constrain_Float(AirSpeed_Scaler, Scale_Min, Scale_Max);
+    AirSpeed_Scaler = constrainf(AirSpeed_Scaler, Scale_Min, Scale_Max);
   }
   else
   {
