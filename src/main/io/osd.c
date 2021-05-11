@@ -539,11 +539,17 @@ static uint16_t osdGetCrsfLQ(void)
 {
     int16_t statsLQ = rxLinkStatistics.uplinkLQ;
     int16_t scaledLQ = scaleRange(constrain(statsLQ, 0, 100), 0, 100, 170, 300);
-    if (rxLinkStatistics.rfMode == 2) {
-        return scaledLQ;
-    } else {
-        return statsLQ;
+    int16_t displayedLQ;
+    switch (osdConfig()->crsf_lq_format) {
+        case OSD_CRSF_LQ_TYPE1:
+            displayedLQ = rxLinkStatistics.rfMode >= 2 ? scaledLQ : statsLQ;
+            break;
+        case OSD_CRSF_LQ_TYPE2:
+        case OSD_CRSF_LQ_TYPE3:
+            displayedLQ = statsLQ;
+            break;
     }
+    return displayedLQ;
 }
 
 static int16_t osdGetCrsfdBm(void)
@@ -1866,10 +1872,13 @@ static bool osdDrawSingleElement(uint8_t item)
             switch (osdConfig()->crsf_lq_format) {
                 case OSD_CRSF_LQ_TYPE1:
                     tfp_sprintf(buff+1, "%3d", rxLinkStatistics.rfMode >= 2 ? scaledLQ : rxLinkStatistics.uplinkLQ);
+                    break;
                 case OSD_CRSF_LQ_TYPE2:
                     tfp_sprintf(buff+1, "%d:%3d", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ);
+                    break;
                 case OSD_CRSF_LQ_TYPE3:
                     tfp_sprintf(buff+1, "%3d", rxLinkStatistics.uplinkLQ);
+                    break;
             }
             if (!failsafeIsReceivingRxData()){
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
