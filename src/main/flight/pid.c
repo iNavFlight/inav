@@ -453,34 +453,6 @@ float pidRcCommandToRate(int16_t stick, uint8_t rate)
     return scaleRangef((float) stick, -500.0f, 500.0f, -maxRateDPS, maxRateDPS);
 }
 
-static float calculateFixedWingTPAFactor(uint16_t throttle)
-{
-    float tpaFactor;
-
-    // tpa_rate is amount of curve TPA applied to PIDs
-    // tpa_breakpoint for fixed wing is cruise throttle value (value at which PIDs were tuned)
-    if (currentControlRateProfile->throttle.dynPID != 0 && currentControlRateProfile->throttle.pa_breakpoint > getThrottleIdleValue() && !FLIGHT_MODE(AUTO_TUNE) && ARMING_FLAG(ARMED)) {
-        if (throttle > getThrottleIdleValue()) {
-            // Calculate TPA according to throttle
-            tpaFactor = 0.5f + ((float)(currentControlRateProfile->throttle.pa_breakpoint - getThrottleIdleValue()) / (throttle - getThrottleIdleValue()) / 2.0f);
-
-            // Limit to [0.5; 2] range
-            tpaFactor = constrainf(tpaFactor, 0.5f, 2.0f);
-        }
-        else {
-            tpaFactor = 2.0f;
-        }
-
-        // Attenuate TPA curve according to configured amount
-        tpaFactor = 1.0f + (tpaFactor - 1.0f) * (currentControlRateProfile->throttle.dynPID / 100.0f);
-    }
-    else {
-        tpaFactor = 1.0f;
-    }
-
-    return tpaFactor;
-}
-
 #ifdef USE_PITOT
 
 static float Get_PID_AirSpeed_Scaler(const float ScalingSpeed)
@@ -510,7 +482,7 @@ static float Get_PID_AirSpeed_Scaler(const float ScalingSpeed)
 
 #endif
 
-static float calculateMultirotorTPAFactor(void)
+static float calculateFixedWingTPAFactor(uint16_t throttle)
 {
 
 #ifdef USE_PITOT
@@ -524,6 +496,34 @@ static float calculateMultirotorTPAFactor(void)
 
 #endif
 
+    float tpaFactor;
+
+    // tpa_rate is amount of curve TPA applied to PIDs
+    // tpa_breakpoint for fixed wing is cruise throttle value (value at which PIDs were tuned)
+    if (currentControlRateProfile->throttle.dynPID != 0 && currentControlRateProfile->throttle.pa_breakpoint > getThrottleIdleValue() && !FLIGHT_MODE(AUTO_TUNE) && ARMING_FLAG(ARMED)) {
+        if (throttle > getThrottleIdleValue()) {
+            // Calculate TPA according to throttle
+            tpaFactor = 0.5f + ((float)(currentControlRateProfile->throttle.pa_breakpoint - getThrottleIdleValue()) / (throttle - getThrottleIdleValue()) / 2.0f);
+
+            // Limit to [0.5; 2] range
+            tpaFactor = constrainf(tpaFactor, 0.5f, 2.0f);
+        }
+        else {
+            tpaFactor = 2.0f;
+        }
+
+        // Attenuate TPA curve according to configured amount
+        tpaFactor = 1.0f + (tpaFactor - 1.0f) * (currentControlRateProfile->throttle.dynPID / 100.0f);
+    }
+    else {
+        tpaFactor = 1.0f;
+    }
+
+    return tpaFactor;
+}
+
+static float calculateMultirotorTPAFactor(void)
+{
     float tpaFactor;
 
     // TPA should be updated only when TPA is actually set
