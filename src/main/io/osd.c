@@ -1249,7 +1249,7 @@ static void osdDisplayTelemetry(void)
     displayWrite(osdDisplayPort, 0, 0, trk_buffer);
     if (osdConfig()->telemetry>1){
       displayWrite(osdDisplayPort, 0, 3, trk_buffer);               // Test display because normal telemetry line is not visible
-    }    
+    }
 }
 #endif
 
@@ -1965,7 +1965,10 @@ static bool osdDrawSingleElement(uint8_t item)
 
                 for (int i = osdConfig()->hud_wp_disp - 1; i >= 0 ; i--) { // Display in reverse order so the next WP is always written on top
                     j = posControl.activeWaypointIndex + i;
-                    if (posControl.waypointList[j].lat != 0 && posControl.waypointList[j].lon != 0 && j <= posControl.waypointCount) {
+                    if (j > posControl.waypointCount - 1) { // limit to max WP index for mission
+                        break;
+                    }
+                    if (posControl.waypointList[j].lat != 0 && posControl.waypointList[j].lon != 0) {
                         wp2.lat = posControl.waypointList[j].lat;
                         wp2.lon = posControl.waypointList[j].lon;
                         wp2.alt = posControl.waypointList[j].alt;
@@ -2349,7 +2352,7 @@ static bool osdDrawSingleElement(uint8_t item)
                         tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_MI_0, SYM_MAH_MI_1);
                     } else {
                         tfp_sprintf(buff, "%s%c", buff, SYM_AH_MI);
-                    } 
+                    }
                     if (!efficiencyValid) {
                         buff[0] = buff[1] = buff[2] = '-';
                         buff[3] = SYM_MAH_MI_0;
@@ -2363,7 +2366,7 @@ static bool osdDrawSingleElement(uint8_t item)
                         tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_KM_0, SYM_MAH_KM_1);
                     } else {
                         tfp_sprintf(buff, "%s%c", buff, SYM_AH_KM);
-                    } 
+                    }
                     if (!efficiencyValid) {
                         buff[0] = buff[1] = buff[2] = '-';
                         buff[3] = SYM_MAH_KM_0;
@@ -2844,7 +2847,7 @@ void osdDrawNextElement(void)
     osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
     if (osdConfig()->telemetry>0){
       osdDisplayTelemetry();
-    }    
+    }
 }
 
 PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
