@@ -82,7 +82,7 @@
 #define SOFTSERIAL_2_RX_PIN     PB8
 #else
 #define SOFTSERIAL_2_TX_PIN     PA2 // TX2 pad
-#define SOFTSERIAL_2_RX_PIN     PA2
+#define SOFTSERIAL_2_RX_PIN     PB10
 #endif
 
 #define SERIAL_PORT_COUNT       5
