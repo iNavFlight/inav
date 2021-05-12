@@ -392,7 +392,7 @@ static bool SafeToApplyEAS2TAS(void)
 float Get_EAS2TAS(void)
 {
     static int16_t CalibratedGroundTemperature = 0;
-    if (!SafeToApplyEAS2TAS()) //anti overflow
+    if (!SafeToApplyEAS2TAS()) //prevent overflow
     {
         CalibratedGroundTemperature = baroGetTemperature();
         return 1.0f;
