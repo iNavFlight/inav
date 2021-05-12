@@ -1894,7 +1894,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             static pt1Filter_t snrFilterState;
             static timeMs_t snrUpdated = 0;
-            int16_t snrFiltered = pt1FilterApply4(&snrFilterState, rxLinkStatistics.uplinkSNR, 1, MS2S(millis() - snrUpdated));
+            int8_t snrFiltered = pt1FilterApply4(&snrFilterState, rxLinkStatistics.uplinkSNR, 0.5f, MS2S(millis() - snrUpdated));
             snrUpdated = millis();
 
             const char* showsnr = "-20";
