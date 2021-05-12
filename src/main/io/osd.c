@@ -1856,7 +1856,11 @@ static bool osdDrawSingleElement(uint8_t item)
             if (rssi >= -95) fourDigits = false;
             
             buff[0] = (rxLinkStatistics.activeAnt == 0) ? SYM_RSSI : SYM_2RSS; // Separate symbols for each antenna
-            tfp_sprintf(buff + 1, (fourDigits ? "%4d%c" : "%3d%c"), rssi, SYM_DBM);
+            if (fourdigits) {
+                tfp_sprintf(buff + 1, "%4d%c", rssi, SYM_DBM);
+            } else {
+                tfp_sprintf(buff + 1, "%3d%c%c", rssi, SYM_DBM, ' ');
+            }
             if (!failsafeIsReceivingRxData()){
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             }
