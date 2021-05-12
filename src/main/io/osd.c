@@ -1894,8 +1894,8 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             const char* showsnr = "-20";
             const char* hidesnr = "     ";
-            int16_t osdSNR_Alarm = rxLinkStatistics.uplinkSNR;
-            if (osdSNR_Alarm > osdConfig()->snr_alarm) {
+            int16_t osdSNR = rxLinkStatistics.uplinkSNR;
+            if (osdSNR > osdConfig()->snr_alarm) {
                 if (cmsInMenu) {
                     buff[0] = SYM_SNR;
                     tfp_sprintf(buff + 1, "%s%c", showsnr, SYM_DB);
@@ -1903,9 +1903,13 @@ static bool osdDrawSingleElement(uint8_t item)
                     buff[0] = SYM_BLANK;
                     tfp_sprintf(buff + 1, "%s%c", hidesnr, SYM_BLANK);
                 }
-            } else if (osdSNR_Alarm <= osdConfig()->snr_alarm) {
+            } else if (osdSNR <= osdConfig()->snr_alarm) {
                 buff[0] = SYM_SNR;
-                tfp_sprintf(buff + 1, "%3d%c", rxLinkStatistics.uplinkSNR, SYM_DB);
+                if (osdSNR <= -10) {
+                    tfp_sprintf(buff + 1, "%3d%c", osdSNR, SYM_DB);
+                } else {
+                    tfp_sprintf(buff + 1, "%2d%c%c", osdSNR, SYM_DB, ' ');
+                }
             }
             break;
         }
