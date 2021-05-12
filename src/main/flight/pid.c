@@ -61,6 +61,7 @@ FILE_COMPILE_FOR_SPEED
 #include "sensors/acceleration.h"
 #include "sensors/compass.h"
 #include "sensors/pitotmeter.h"
+#include "sensors/barometer.h"
 
 #include "scheduler/scheduler.h"
 
