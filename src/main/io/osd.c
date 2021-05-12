@@ -1887,9 +1887,9 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_CRSF_SNR_DB:
         {
             static pt1Filter_t snrFilterState;
-            static timeUs_t snrUpdated = 0;
-            int16_t snrFiltered = pt1FilterApply4(&snrFilterState, rxLinkStatistics.uplinkSNR, 1, US2S(micros() - snrUpdated));
-            snrUpdated = micros();
+            static timeMs_t snrUpdated = 0;
+            int16_t snrFiltered = pt1FilterApply4(&snrFilterState, rxLinkStatistics.uplinkSNR, 1, MS2S(millis() - snrUpdated));
+            snrUpdated = millis();
 
             const char* showsnr = "-20";
             const char* hidesnr = "     ";
