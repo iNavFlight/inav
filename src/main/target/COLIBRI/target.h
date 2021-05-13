@@ -60,10 +60,8 @@
 
 #ifdef QUANTON
 #define IMU_MPU6000_ALIGN       CW90_DEG
-#define MAG_HMC5883_ALIGN       CW90_DEG
 #else
 #define IMU_MPU6000_ALIGN       CW270_DEG_FLIP
-#define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
 #endif
 
 #define USE_BARO

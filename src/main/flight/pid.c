@@ -48,6 +48,7 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/rpm_filter.h"
 #include "flight/secondary_imu.h"
 #include "flight/kalman.h"
+#include "flight/smith_predictor.h"
 
 #include "io/gps.h"
 
@@ -109,6 +110,8 @@ typedef struct {
     bool itermFreezeActive;
 
     biquadFilter_t rateTargetFilter;
+
+    smithPredictor_t smithPredictor;
 } pidState_t;
 
 STATIC_FASTRAM bool pidFiltersConfigured = false;
@@ -159,7 +162,7 @@ static EXTENDED_FASTRAM filterApplyFnPtr dTermLpf2FilterApplyFn;
 static EXTENDED_FASTRAM bool levelingEnabled = false;
 static EXTENDED_FASTRAM float fixedWingLevelTrim;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 1);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 2);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -297,6 +300,12 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
 #endif
 
         .fixedWingLevelTrim = SETTING_FW_LEVEL_PITCH_TRIM_DEFAULT,
+
+#ifdef USE_SMITH_PREDICTOR
+        .smithPredictorStrength = SETTING_SMITH_PREDICTOR_STRENGTH_DEFAULT,
+        .smithPredictorDelay = SETTING_SMITH_PREDICTOR_DELAY_DEFAULT,
+        .smithPredictorFilterHz = SETTING_SMITH_PREDICTOR_LPF_HZ_DEFAULT,
+#endif
 );
 
 bool pidInitFilters(void)
@@ -349,6 +358,30 @@ bool pidInitFilters(void)
         }
     }
 
+#ifdef USE_SMITH_PREDICTOR
+    smithPredictorInit(
+        &pidState[FD_ROLL].smithPredictor, 
+        pidProfile()->smithPredictorDelay, 
+        pidProfile()->smithPredictorStrength, 
+        pidProfile()->smithPredictorFilterHz, 
+        getLooptime()
+    );
+    smithPredictorInit(
+        &pidState[FD_PITCH].smithPredictor, 
+        pidProfile()->smithPredictorDelay, 
+        pidProfile()->smithPredictorStrength, 
+        pidProfile()->smithPredictorFilterHz, 
+        getLooptime()
+    );
+    smithPredictorInit(
+        &pidState[FD_YAW].smithPredictor, 
+        pidProfile()->smithPredictorDelay, 
+        pidProfile()->smithPredictorStrength, 
+        pidProfile()->smithPredictorFilterHz, 
+        getLooptime()
+    );
+#endif
+
     pidFiltersConfigured = true;
 
     return true;
@@ -369,6 +402,22 @@ void pidResetErrorAccumulators(void)
         pidState[axis].errorGyroIf = 0.0f;
         pidState[axis].errorGyroIfLimit = 0.0f;
     }
+}
+
+void pidReduceErrorAccumulators(int8_t delta, uint8_t axis) 
+{
+    pidState[axis].errorGyroIf -= delta;
+    pidState[axis].errorGyroIfLimit -= delta;
+}
+
+float getTotalRateTarget(void)
+{
+    return sqrtf(sq(pidState[FD_ROLL].rateTarget) + sq(pidState[FD_PITCH].rateTarget) + sq(pidState[FD_YAW].rateTarget));
+}
+
+float getAxisIterm(uint8_t axis) 
+{
+    return pidState[axis].errorGyroIf;
 }
 
 static float pidRcCommandToAngle(int16_t stick, int16_t maxInclination)
@@ -406,7 +455,7 @@ static float calculateFixedWingTPAFactor(uint16_t throttle)
 
     // tpa_rate is amount of curve TPA applied to PIDs
     // tpa_breakpoint for fixed wing is cruise throttle value (value at which PIDs were tuned)
-    if (currentControlRateProfile->throttle.dynPID != 0 && currentControlRateProfile->throttle.pa_breakpoint > getThrottleIdleValue()) {
+    if (currentControlRateProfile->throttle.dynPID != 0 && currentControlRateProfile->throttle.pa_breakpoint > getThrottleIdleValue() && !FLIGHT_MODE(AUTO_TUNE) && ARMING_FLAG(ARMED)) {
         if (throttle > getThrottleIdleValue()) {
             // Calculate TPA according to throttle
             tpaFactor = 0.5f + ((float)(currentControlRateProfile->throttle.pa_breakpoint - getThrottleIdleValue()) / (throttle - getThrottleIdleValue()) / 2.0f);
@@ -717,13 +766,13 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
         pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -pidProfile()->fixedWingItermThrowLimit, pidProfile()->fixedWingItermThrowLimit);
     }
 
+    axisPID[axis] = constrainf(newPTerm + newFFTerm + pidState->errorGyroIf, -pidState->pidSumLimit, +pidState->pidSumLimit);
+
 #ifdef USE_AUTOTUNE_FIXED_WING
     if (FLIGHT_MODE(AUTO_TUNE) && !FLIGHT_MODE(MANUAL_MODE)) {
-        autotuneFixedWingUpdate(axis, pidState->rateTarget, pidState->gyroRate, newPTerm + newFFTerm);
+        autotuneFixedWingUpdate(axis, pidState->rateTarget, pidState->gyroRate, constrainf(newPTerm + newFFTerm, -pidState->pidSumLimit, +pidState->pidSumLimit));
     }
 #endif
-
-    axisPID[axis] = constrainf(newPTerm + newFFTerm + pidState->errorGyroIf + newDTerm, -pidState->pidSumLimit, +pidState->pidSumLimit);
 
 #ifdef USE_BLACKBOX
     axisPID_P[axis] = newPTerm;
@@ -1052,6 +1101,13 @@ void FAST_CODE pidController(float dT)
             pidState[axis].gyroRate = gyroKalmanUpdate(axis, pidState[axis].gyroRate, pidState[axis].rateTarget);
         }
 #endif
+
+#ifdef USE_SMITH_PREDICTOR
+        DEBUG_SET(DEBUG_SMITH_PREDICTOR, axis, pidState[axis].gyroRate);
+        pidState[axis].gyroRate = applySmithPredictor(axis, &pidState[axis].smithPredictor, pidState[axis].gyroRate);
+        DEBUG_SET(DEBUG_SMITH_PREDICTOR, axis + 3, pidState[axis].gyroRate);
+#endif
+
         DEBUG_SET(DEBUG_PID_MEASUREMENT, axis, pidState[axis].gyroRate);
     }
 

@@ -156,7 +156,7 @@ static const char * const featureNames[] = {
     "", "RSSI_ADC", "LED_STRIP", "DASHBOARD", "",
     "BLACKBOX", "", "TRANSPONDER", "AIRMODE",
     "SUPEREXPO", "VTX", "", "", "", "PWM_OUTPUT_ENABLE",
-    "OSD", "FW_LAUNCH", NULL
+    "OSD", "FW_LAUNCH", "FW_AUTOTRIM", NULL
 };
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status command output) */
@@ -3254,7 +3254,7 @@ static void cliStatus(char *cmdline)
 #endif
 
     cliPrintf("System load: %d", averageSystemLoadPercent);
-    const timeDelta_t pidTaskDeltaTime = getTaskDeltaTime(TASK_GYROPID);
+    const timeDelta_t pidTaskDeltaTime = getTaskDeltaTime(TASK_PID);
     const int pidRate = pidTaskDeltaTime == 0 ? 0 : (int)(1000000.0f / ((float)pidTaskDeltaTime));
     const int rxRate = getTaskDeltaTime(TASK_RX) == 0 ? 0 : (int)(1000000.0f / ((float)getTaskDeltaTime(TASK_RX)));
     const int systemRate = getTaskDeltaTime(TASK_SYSTEM) == 0 ? 0 : (int)(1000000.0f / ((float)getTaskDeltaTime(TASK_SYSTEM)));
