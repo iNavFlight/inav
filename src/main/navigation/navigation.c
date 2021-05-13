@@ -2943,7 +2943,7 @@ bool loadNonVolatileWaypointList(void)
         }
     }
 
-    posControl.loadedMultiMissionIndex = navConfig()->general.waypoint_multi_mission_index;
+    posControl.loadedMultiMissionIndex = posControl.multiMissionCount > 0 ? navConfig()->general.waypoint_multi_mission_index : 0;
 
     // Mission sanity check failed - reset the list
     if (!posControl.waypointListValid) {

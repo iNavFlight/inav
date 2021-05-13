@@ -2608,7 +2608,7 @@ static bool osdDrawSingleElement(uint8_t item)
             if (ARMING_FLAG(ARMED)){
                 tfp_sprintf(buff, "M%u       ", posControl.loadedMultiMissionIndex);    // only show selected mission index when armed
             } else {
-                if (navConfig()->general.waypoint_multi_mission_index != posControl.loadedMultiMissionIndex) {
+                if (navConfig()->general.waypoint_multi_mission_index != posControl.loadedMultiMissionIndex && posControl.multiMissionCount > 0) {
                     tfp_sprintf(buff, "M%u/%u>LOAD", navConfig()->general.waypoint_multi_mission_index, posControl.multiMissionCount);
                 } else {
                     if (posControl.waypointListValid && posControl.waypointCount > 0) {
