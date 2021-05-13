@@ -15,18 +15,41 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdbool.h>
 #include <stdint.h>
-#include "platform.h"
+
+#include <platform.h>
+
+#include "common/axis.h"
+
+#include "drivers/sensor.h"
+#include "drivers/pwm_esc_detect.h"
+#include "drivers/pwm_mapping.h"
+#include "drivers/pwm_output.h"
+#include "drivers/serial.h"
+
+#include "fc/rc_controls.h"
+
+#include "flight/failsafe.h"
+#include "flight/mixer.h"
+#include "flight/pid.h"
+
+#include "rx/rx.h"
+
+#include "io/serial.h"
+
+#include "telemetry/telemetry.h"
+
+#include "sensors/battery.h"
+#include "sensors/sensors.h"
+
 #include "config/config_master.h"
 #include "config/feature.h"
-#include "io/serial.h"
-#include "sensors/compass.h"
 
+#include "sensors/battery.h"
+#include "sensors/compass.h"
 
 void targetConfiguration(void)
 {
-    compassConfigMutable()->mag_align = CW0_DEG_FLIP;
-    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART4)].functionMask = FUNCTION_GPS;
-    // serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART4)].gps_baudrateIndex = BAUD_115200;
-
+    compassConfigMutable()->mag_align = CW90_DEG;
 }

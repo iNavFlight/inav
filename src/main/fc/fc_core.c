@@ -88,6 +88,7 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/imu.h"
 
 #include "flight/failsafe.h"
+#include "flight/power_limits.h"
 
 #include "config/feature.h"
 #include "common/vector.h"
@@ -118,6 +119,7 @@ typedef struct emergencyArmingState_s {
 
 timeDelta_t cycleTime = 0;         // this is the number in micro second to achieve a full loop, it can differ a little and is taken into account in the PID loop
 static timeUs_t flightTime = 0;
+static timeUs_t armTime = 0;
 
 EXTENDED_FASTRAM float dT;
 
@@ -169,7 +171,7 @@ int16_t getAxisRcCommand(int16_t rawData, int16_t rate, int16_t deadband)
     int16_t stickDeflection;
 
     stickDeflection = constrain(rawData - PWM_RANGE_MIDDLE, -500, 500);
-    stickDeflection = applyDeadband(stickDeflection, deadband);
+    stickDeflection = applyDeadbandRescaled(stickDeflection, deadband, -500, 500);
 
     return rcLookup(stickDeflection, rate);
 }
@@ -838,10 +840,15 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
     if (ARMING_FLAG(ARMED) && (!STATE(FIXED_WING_LEGACY) || !isNavLaunchEnabled() || (isNavLaunchEnabled() && (isFixedWingLaunchDetected() || isFixedWingLaunchFinishedOrAborted())))) {
         flightTime += cycleTime;
+        armTime += cycleTime;
         updateAccExtremes();
     }
+    if (!ARMING_FLAG(ARMED)) {
+        armTime = 0;
+    }
 
-    taskGyro(currentTimeUs);
+    gyroFilter();
+
     imuUpdateAccelerometer();
     imuUpdateAttitude(currentTimeUs);
 
@@ -886,6 +893,10 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         // FIXME: throttle pitch comp for FW
     }
 
+#ifdef USE_POWER_LIMITS
+    powerLimiterApply(&rcCommand[THROTTLE]);
+#endif
+
     // Calculate stabilisation
     pidController(dT);
 
@@ -900,7 +911,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
     if (isMixerUsingServos()) {
         servoMixer(dT);
-        processServoAutotrim();
+        processServoAutotrim(dT);
     }
 
     //Servos should be filtered or written only when mixer is using servos or special feaures are enabled
@@ -955,6 +966,11 @@ void taskUpdateRxMain(timeUs_t currentTimeUs)
 float getFlightTime()
 {
     return (float)(flightTime / 1000) / 1000;
+}
+
+float getArmTime()
+{
+    return (float)(armTime / 1000) / 1000;
 }
 
 void fcReboot(bool bootLoader)

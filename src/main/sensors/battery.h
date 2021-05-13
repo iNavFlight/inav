@@ -151,6 +151,7 @@ uint16_t getPowerSupplyImpedance(void);
 
 bool isAmperageConfigured(void);
 int16_t getAmperage(void);
+int16_t getAmperageSample(void);
 int32_t getPower(void);
 int32_t getMAhDrawn(void);
 int32_t getMWhDrawn(void);
@@ -159,6 +160,7 @@ int32_t getMWhDrawn(void);
 void batteryUpdate(timeUs_t timeDelta);
 void sagCompensatedVBatUpdate(timeUs_t currentTime, timeUs_t timeDelta);
 void powerMeterUpdate(timeUs_t timeDelta);
+uint16_t getVBatSample(void);
 #endif
 
 void currentMeterUpdate(timeUs_t timeDelta);

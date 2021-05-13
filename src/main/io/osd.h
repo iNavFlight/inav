@@ -228,7 +228,9 @@ typedef enum {
     OSD_NAV_FW_CONTROL_SMOOTHNESS,
     OSD_VERSION,
     OSD_RANGEFINDER,
-    OSD_ADSB,    
+    OSD_PLIMIT_REMAINING_BURST_TIME,
+    OSD_PLIMIT_ACTIVE_CURRENT_LIMIT,
+    OSD_PLIMIT_ACTIVE_POWER_LIMIT,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -263,7 +265,7 @@ typedef enum {
 typedef enum {
     OSD_SIDEBAR_SCROLL_NONE,
     OSD_SIDEBAR_SCROLL_ALTITUDE,
-    OSD_SIDEBAR_SCROLL_GROUND_SPEED,
+    OSD_SIDEBAR_SCROLL_SPEED,
     OSD_SIDEBAR_SCROLL_HOME_DISTANCE,
 
     OSD_SIDEBAR_SCROLL_MAX = OSD_SIDEBAR_SCROLL_HOME_DISTANCE,
@@ -282,6 +284,7 @@ typedef enum {
 typedef enum {
     OSD_CRSF_LQ_TYPE1,
     OSD_CRSF_LQ_TYPE2,
+    OSD_CRSF_LQ_TYPE3
 } osd_crsf_lq_format_e;
 
 typedef struct osdLayoutsConfig_s {
@@ -299,7 +302,6 @@ typedef struct osdConfig_s {
     uint16_t dist_alarm; // home distance in m
     uint16_t neg_alt_alarm; // abs(negative altitude) in m
     uint8_t current_alarm; // current consumption in A
-    uint16_t adsb_alarm; 
     int16_t imu_temp_alarm_min;
     int16_t imu_temp_alarm_max;
     int16_t esc_temp_alarm_min;
@@ -340,7 +342,7 @@ typedef struct osdConfig_s {
     uint16_t hud_radar_range_max;
     uint16_t hud_radar_nearest;
     uint8_t hud_wp_disp;
-    uint16_t adsb_range;
+
     uint8_t left_sidebar_scroll; // from osd_sidebar_scroll_e
     uint8_t right_sidebar_scroll; // from osd_sidebar_scroll_e
     uint8_t sidebar_scroll_arrows;
@@ -371,7 +373,8 @@ typedef struct osdConfig_s {
     uint8_t pan_servo_index;            // Index of the pan servo used for home direction offset
     int8_t pan_servo_pwm2centideg;      // Centidegrees of servo rotation per us pwm
     uint8_t crsf_lq_format;
-    uint8_t telemetry; 				        // use telemetry on displayed pixel line 0
+    uint8_t sidebar_height;             // sidebar height in rows, 0 turns off sidebars leaving only level indicator arrows
+    uint8_t telemetry; 				    // use telemetry on displayed pixel line 0
 
 } osdConfig_t;
 
