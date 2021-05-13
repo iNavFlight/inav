@@ -1452,10 +1452,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_INITIALIZE(nav
         static bool missionRestart;
         if (posControl.activeWaypointIndex == 0) {
             missionRestart = true;
-        } else if (navConfig()->general.flags.waypoint_mission_restart == SWITCH) {
+        } else if (navConfig()->general.flags.waypoint_mission_restart == WP_MISSION_SWITCH) {
             missionRestart = !missionRestart;
         } else {
-            missionRestart = navConfig()->general.flags.waypoint_mission_restart == START;
+            missionRestart = navConfig()->general.flags.waypoint_mission_restart == WP_MISSION_START;
         }
 
         if (missionRestart) {

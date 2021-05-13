@@ -146,9 +146,9 @@ typedef enum {
 } navRTHClimbFirst_e;
 
 typedef enum {
-    START,
-    RESUME,
-    SWITCH,
+    WP_MISSION_START,
+    WP_MISSION_RESUME,
+    WP_MISSION_SWITCH,
 } navMissionRestart_e;
 
 typedef struct positionEstimationConfig_s {
