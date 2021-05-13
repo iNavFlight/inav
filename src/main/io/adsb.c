@@ -23,70 +23,72 @@
 #include "common/time.h"
 #include "drivers/time.h"
 
-adsbVehicle_t adsb;
-static timeUs_t lastADSB = 0;
+adsbVehicle_t adsbNearest;
+static timeUs_t last_adsb = 0;
 
-void GPS_distance_cm_bearing(int32_t currentLat1, int32_t currentLon1, int32_t destinationLat2, int32_t destinationLon2, uint32_t *dist, int32_t *bearing)
+void gpsDistanceCmBearing(int32_t currentLat1, int32_t currentLon1, int32_t destinationLat2, int32_t destinationLon2, uint32_t *dist, int32_t *bearing)
 {
-  #define DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR    1.113195f  // MagicEarthNumber from APM
-  float GPS_scaleLonDown = cos_approx((fabsf((float)gpsSol.llh.lat) / 10000000.0f) * 0.0174532925f);
-  const float dLat = destinationLat2 - currentLat1; // difference of latitude in 1/10 000 000 degrees
-  const float dLon = (float)(destinationLon2 - currentLon1) * GPS_scaleLonDown;
+    #define DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR    1.113195f  // MagicEarthNumber from APM
+    float gps_scale_lon_down = cos_approx((fabsf((float)gpsSol.llh.lat) / 10000000.0f) * 0.0174532925f);
+    const float d_lat = destinationLat2 - currentLat1; // difference of latitude in 1/10 000 000 degrees
+    const float d_lon = (float)(destinationLon2 - currentLon1) * gps_scale_lon_down;
 
-  *dist = sqrtf(sq(dLat) + sq(dLon)) * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR;
-  *bearing = 9000.0f + RADIANS_TO_CENTIDEGREES(atan2_approx(-dLat, dLon));      // Convert the output radians to 100xdeg
-  if (*bearing < 0){
-    *bearing += 36000;
-  }
-};
+    *dist = sqrtf(sq(d_lat) + sq(d_lon)) * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR;
+    *bearing = 9000.0f + RADIANS_TO_CENTIDEGREES(atan2_approx(-d_lat, d_lon));      // Convert the output radians to 100xdeg
+    *bearing = wrap_36000(*bearing);
+}
 
 void adsbNewVehicle(uint32_t avicao, int32_t avlat, int32_t avlon, int32_t avalt)
 {
-    uint32_t avdist; int32_t avdir; uint8_t avupdate = 1; 
-    if (STATE(GPS_FIX) && gpsSol.numSat >= 5){
-      GPS_distance_cm_bearing(gpsSol.llh.lat, gpsSol.llh.lon, avlat, avlon, &avdist, &avdir); 
+    uint32_t avdist; 
+    int32_t avdir; 
+    uint8_t avupdate = 1; 
+    if (STATE(GPS_FIX) && gpsSol.numSat >= 5) {
+        gpsDistanceCmBearing(gpsSol.llh.lat, gpsSol.llh.lon, avlat, avlon, &avdist, &avdir); 
     }
-    avdist /= 100; avdir /= 100;
+    avdist /= 100; 
+    avdir /= 100;
 #if defined(USE_NAV)
-    avalt -= getEstimatedActualPosition(Z)+GPS_home.alt;
+    avalt -= getEstimatedActualPosition(Z) + GPS_home.alt;
 #elif defined(USE_BARO)
-    avalt -= baro.alt+GPS_home.alt;
+    avalt -= baro.alt + GPS_home.alt;
 #endif
     avalt /= 1000;
-    if (avdist > adsb.dist){
-      avupdate = 0;
+    if (avdist > adsbNearest.dist) {
+        avupdate = 0;
     }   
-    if (adsb.ttl <= 1){
-      avupdate = 1;
+    if (adsbNearest.ttl <= 1) {
+        avupdate = 1;
     }    
-    if (avicao == adsb.icao){
-      avupdate = 1;
+    if (avicao == adsbNearest.icao) {
+        avupdate = 1;
     }      
-    if (avdist > 50000){ // limit display to aircraft < 50Km
-      avupdate = 0; 
+    if (avdist > 50000) { // limit display to aircraft < 50Km
+        avupdate = 0; 
     }  
-    if (avupdate == 1){
-      adsb.icao = avicao;
-      adsb.dist = avdist;       
-      adsb.alt = avalt; 
-      adsb.dir = avdir; 
-      adsb.ttl = 10;    // 10 secs default timeout    
+    if (avupdate == 1) {
+        adsbNearest.icao = avicao;
+        adsbNearest.dist = avdist;       
+        adsbNearest.alt = avalt; 
+        adsbNearest.dir = avdir; 
+        adsbNearest.ttl = 10;    // 10 secs default timeout    
     }   
-};
+}
 
-void adsbexpiry(){
-  uint64_t currentTimeUs = micros();
-  if ((currentTimeUs - lastADSB) > 1000*1000) {
-    lastADSB = currentTimeUs;
-    if (adsb.ttl > 0){
-      adsb.ttl--;
+void adsbExpiry()
+{
+    timeUs_t currentTimeUs = micros();
+    if ((currentTimeUs - last_adsb) > 1000 * 1000) {
+        last_adsb = currentTimeUs;
+    if (adsbNearest.ttl > 0) {
+        adsbNearest.ttl--;
     }
-    else{
-      adsb.icao = 0;
-      adsb.dist = 0;       
-      adsb.alt = 0; 
-      adsb.dir = 0;       
+    else {
+        adsbNearest.icao = 0;
+        adsbNearest.dist = 0;       
+        adsbNearest.alt = 0; 
+        adsbNearest.dir = 0;       
     }
   }
-};
+}
 

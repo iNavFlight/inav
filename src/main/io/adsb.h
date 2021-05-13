@@ -21,17 +21,17 @@
 #include "fc/runtime_config.h"
 
 typedef struct adsbVehicle_s{
-  uint32_t icao;
-  int32_t  alt;
-  uint16_t cog;
-  uint16_t dir;
-  uint32_t dist;     
-  uint8_t  ttl; 
+    uint32_t icao;
+    int32_t  alt;
+    uint16_t cog;
+    uint16_t dir;
+    uint32_t dist;     
+    uint8_t  ttl; 
 } adsbVehicle_t;
 
 extern void adsbNewVehicle(uint32_t avicao, int32_t avlat, int32_t avlon, int32_t avalt);
-extern void adsbexpiry(void);
-extern adsbVehicle_t adsb;
+extern void adsbExpiry(void);
+extern adsbVehicle_t adsbNearest;
 
 
 

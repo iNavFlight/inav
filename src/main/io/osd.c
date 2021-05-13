@@ -1623,28 +1623,26 @@ static bool osdDrawSingleElement(uint8_t item)
 #if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_MAVLINK)
     case OSD_ADSB:
         {         
-            static uint8_t adsblen=1;
-            for (int i = 0; i <= adsblen; i++) {
-                buff[i] = SYM_BLANK;
-            }
-            buff[adsblen]='\0';
+            static uint8_t adsb_len = 1;
+            memset(buff, SYM_BLANK, adsb_len);
+            buff[adsb_len] = '\0';
             displayWrite(osdDisplayPort, elemPosX, elemPosY, buff); // clear any previous chars because variable element size
-            adsbexpiry();
-            adsblen=1;
+            adsbExpiry();
+            adsb_len = 1;
             buff[0] = SYM_ADSB;   
-            if ((adsb.dist > 0) && (adsb.dist < osdConfig()->adsb_range)){
-                osdFormatDistanceStr(&buff[1], adsb.dist*100);
-                adsblen = strlen(buff);
-                int dir = osdGetHeadingAngle(adsb.dir + 11);
+            if ((adsbNearest.dist > 0) && (adsbNearest.dist < osdConfig()->adsb_range)) {
+                osdFormatDistanceStr(buff + 1, adsbNearest.dist * 100);
+                adsb_len = strlen(buff);
+                int dir = osdGetHeadingAngle(adsbNearest.dir + 11);
                 unsigned arrowOffset = dir * 2 / 45;
-                buff[adsblen-1]=SYM_ARROW_UP + arrowOffset;
-                osdFormatDistanceStr(&buff[adsblen], adsb.alt*100);
-                adsblen = strlen(buff)-1;
-                if (adsb.dist < osdConfig()->adsb_alarm) {
+                buff[adsb_len-1] = SYM_ARROW_UP + arrowOffset;
+                osdFormatDistanceStr(buff + adsb_len, adsbNearest.alt * 100);
+                adsb_len = strlen(buff) - 1;
+                if (adsbNearest.dist < osdConfig()->adsb_alarm) {
                     TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
                 }
             }  
-            buff[adsblen]='\0';          
+            buff[adsb_len] = '\0';          
             displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
             return true;
         }
