@@ -77,7 +77,7 @@ tables:
     enum: videoSystem_e
   - name: osd_telemetry
     values: ["OFF", "ON","TEST"]
-    enum: osd_telemetry_e    
+    enum: osd_telemetry_e
   - name: osd_alignment
     values: ["LEFT", "RIGHT"]
     enum: osd_alignment_e
@@ -2460,6 +2460,12 @@ groups:
         default_value: "RTH"
         field: general.flags.safehome_usage_mode
         table: safehome_usage_mode
+      - name: nav_wp_planner_min_wp_distance
+        description: "Minimum distance between waypoints set using 'on the fly' WP mission planner. Next WP can only be set when craft is more than this distance away from the last WP. (cm)"
+        default_value: 5000
+        field: general.wp_planner_min_wp_distance
+        min: 0
+        max: 65000
       - name: nav_mc_bank_angle
         description: "Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude"
         default_value: 30

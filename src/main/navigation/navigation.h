@@ -145,6 +145,13 @@ typedef enum {
     ON_FW_SPIRAL,
 } navRTHClimbFirst_e;
 
+typedef enum {
+    WP_PLAN_WAIT,
+    WP_PLAN_SAVE,
+    WP_PLAN_OK,
+    WP_PLAN_FULL,
+} wpMissionPlanStatus_e;
+
 typedef struct positionEstimationConfig_s {
     uint8_t automatic_mag_declination;
     uint8_t reset_altitude_type; // from nav_reset_type_e
@@ -220,6 +227,7 @@ typedef struct navConfig_s {
         uint16_t max_terrain_follow_altitude;   // Max altitude to be used in SURFACE TRACKING mode
         uint16_t safehome_max_distance;         // Max distance that a safehome is from the arming point
         uint16_t max_altitude;                  // Max altitude when in AltHold mode (not Surface Following)
+        uint16_t wp_planner_min_wp_distance;    // Min distance between waypoints set using WP mission planner (cm)
     } general;
 
     struct {

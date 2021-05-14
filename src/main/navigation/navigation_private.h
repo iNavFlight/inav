@@ -92,6 +92,7 @@ typedef struct navigationFlags_s {
     bool isTerrainFollowEnabled;            // Does iNav use rangefinder for terrain following (adjusting baro altitude target according to rangefinders readings)
 
     bool forcedRTHActivated;
+    bool wpMissionPlanActive;               // Activation status of WP mission planner
 } navigationFlags_t;
 
 typedef struct {
@@ -356,6 +357,10 @@ typedef struct {
     navWaypoint_t               waypointList[NAV_MAX_WAYPOINTS];
     bool                        waypointListValid;
     int8_t                      waypointCount;
+
+    /* WP Mission planner */
+    int8_t                      wpMissionPlanStatus;        // WP save status for setting in flight WP mission planner  // CR32
+    int8_t                      wpPlanActiveWPIndex;
 
     navWaypointPosition_t       activeWaypoint;     // Local position and initial bearing, filled on waypoint activation
     int8_t                      activeWaypointIndex;

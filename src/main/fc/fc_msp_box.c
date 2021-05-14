@@ -91,6 +91,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXPREARM, "PREARM", 51 },
     { BOXTURTLE, "TURTLE", 52 },
     { BOXNAVCRUISE, "NAV CRUISE", 53 },
+    { BOXPLANWPMISSION, "WP PLANNER", 54 },
     { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
@@ -216,6 +217,7 @@ void initActiveBoxIds(void)
         activeBoxIds[activeBoxIdCount++] = BOXNAVRTH;
         activeBoxIds[activeBoxIdCount++] = BOXNAVWP;
         activeBoxIds[activeBoxIdCount++] = BOXHOMERESET;
+        activeBoxIds[activeBoxIdCount++] = BOXPLANWPMISSION;
 
         if (feature(FEATURE_GPS)) {
             activeBoxIds[activeBoxIdCount++] = BOXGCSNAV;
@@ -246,7 +248,7 @@ void initActiveBoxIds(void)
         if (!feature(FEATURE_FW_AUTOTRIM)) {
             activeBoxIds[activeBoxIdCount++] = BOXAUTOTRIM;
         }
-        
+
 #if defined(USE_AUTOTUNE_FIXED_WING)
         activeBoxIds[activeBoxIdCount++] = BOXAUTOTUNE;
 #endif

@@ -2757,6 +2757,31 @@ static bool osdDrawSingleElement(uint8_t item)
 #endif // USE_ADC
 #endif // USE_POWER_LIMITS
 
+    case OSD_MISSION:
+        {
+            if (IS_RC_MODE_ACTIVE(BOXPLANWPMISSION)) {
+                char buf[5];
+                switch (posControl.wpMissionPlanStatus) {
+                case WP_PLAN_WAIT:
+                    strcpy(buf, "WAIT");
+                    break;
+                case WP_PLAN_SAVE:
+                    strcpy(buf, "SAVE");
+                    break;
+                case WP_PLAN_OK:
+                    strcpy(buf, " OK ");
+                    break;
+                case WP_PLAN_FULL:
+                    strcpy(buf, "FULL");
+                }
+                tfp_sprintf(buff, "%s>%2uWP", buf, posControl.waypointCount);
+            } else {
+                tfp_sprintf(buff, "%2uWP     ", posControl.waypointCount);  // only show num WPs when planner mode off
+            }
+            displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
+            return true;
+        }
+
     default:
         return false;
     }
@@ -3872,6 +3897,9 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     }
                     if (FLIGHT_MODE(HEADFREE_MODE)) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_HEADFREE);
+                    }
+                    if (posControl.flags.wpMissionPlanActive) {
+                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_MISSION_PLANNER);
                     }
                 }
                 // Pick one of the available messages. Each message lasts
