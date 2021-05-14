@@ -3109,6 +3109,13 @@ groups:
         field: link_quality_alarm
         min: 0
         max: 100
+      - name: osd_rssi_dbm_alarm
+        condition: USE_SERIALRX_CRSF
+        description: "RSSI-dBm indicator blinks below this value [dBm]. 0 disables this alarm"
+        default_value: -100
+        field: rssi_dbm_alarm
+        min: -130
+        max: 0
       - name: osd_temp_label_align
         description: "Allows to chose between left and right alignment for the OSD temperature sensor labels. Valid values are `LEFT` and `RIGHT`"
         default_value: "LEFT"

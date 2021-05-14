@@ -312,6 +312,7 @@ typedef struct osdConfig_s {
 #ifdef USE_SERIALRX_CRSF
     int8_t snr_alarm; //CRSF SNR alarm in dB
     int8_t link_quality_alarm;
+    int8_t rssi_dbm_alarm; // in dBm
 #endif
 #ifdef USE_BARO
     int16_t baro_temp_alarm_min;
