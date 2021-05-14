@@ -206,6 +206,7 @@ typedef struct navConfig_s {
             uint8_t rth_alt_control_override;   // Override RTH Altitude and Climb First settings using Pitch and Roll stick
             uint8_t nav_overrides_motor_stop;   // Autonomous modes override motor_stop setting and user command to stop motor
             uint8_t safehome_usage_mode;        // Controls when safehomes are used
+            uint8_t mission_planner_resume;     // resume from last WP or start from first WP when Mission Planner mode is restarted
         } flags;
 
         uint8_t  pos_failure_timeout;           // Time to wait before switching to emergency landing (0 - disable)
@@ -227,7 +228,6 @@ typedef struct navConfig_s {
         uint16_t max_terrain_follow_altitude;   // Max altitude to be used in SURFACE TRACKING mode
         uint16_t safehome_max_distance;         // Max distance that a safehome is from the arming point
         uint16_t max_altitude;                  // Max altitude when in AltHold mode (not Surface Following)
-        uint16_t wp_planner_min_wp_distance;    // Min distance between waypoints set using WP mission planner (cm)
     } general;
 
     struct {

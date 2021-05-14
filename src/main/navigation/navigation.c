@@ -114,6 +114,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
             .rth_alt_control_override = SETTING_NAV_RTH_ALT_CONTROL_OVERRIDE_DEFAULT, // Override RTH Altitude and Climb First using Pitch and Roll stick
             .nav_overrides_motor_stop = SETTING_NAV_OVERRIDES_MOTOR_STOP_DEFAULT,
             .safehome_usage_mode = SETTING_SAFEHOME_USAGE_MODE_DEFAULT,
+            .mission_planner_resume = SETTING_NAV_MISSION_PLANNER_RESUME_DEFAULT,     // resume WP entry when Mission Planner mode is restarted
         },
 
         // General navigation parameters
@@ -136,7 +137,6 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .max_terrain_follow_altitude = SETTING_NAV_MAX_TERRAIN_FOLLOW_ALT_DEFAULT,    // max altitude in centimeters in terrain following mode
         .safehome_max_distance = SETTING_SAFEHOME_MAX_DISTANCE_DEFAULT,               // Max distance that a safehome is from the arming point
         .max_altitude = SETTING_NAV_MAX_ALTITUDE_DEFAULT,
-        .wp_planner_min_wp_distance = SETTING_NAV_WP_PLANNER_MIN_WP_DISTANCE_DEFAULT, // Min distance between waypoints set using mission planner
     },
 
     // MC-specific
@@ -3422,45 +3422,41 @@ void updateFlightBehaviorModifiers(void)
  * Uses the WP mode switch to save WP at current location (WP mode disabled when active)
  * Mission can be flown after mission planner mode switched off and saved after disarm. */
 
- void updateWpMissionPlanner(void)
- {
-    const bool gpsIsAvailable = sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 5;
-
-    if (gpsIsAvailable && IS_RC_MODE_ACTIVE(BOXPLANWPMISSION) && !FLIGHT_MODE(NAV_WP_MODE) && posControl.wpMissionPlanStatus != WP_PLAN_FULL) {
-        posControl.flags.wpMissionPlanActive = true;
-        waypointMissionPlanner();
-    } else {
-        posControl.wpPlanActiveWPIndex = IS_RC_MODE_ACTIVE(BOXPLANWPMISSION) ? posControl.wpPlanActiveWPIndex : 0;  // reset when mode deselected
+void updateWpMissionPlanner(void)
+{
+    if (IS_RC_MODE_ACTIVE(BOXPLANWPMISSION)) {
+        const bool positionTrusted = posControl.flags.estAltStatus == EST_TRUSTED && posControl.flags.estPosStatus == EST_TRUSTED && STATE(GPS_FIX);
+        if (positionTrusted && !FLIGHT_MODE(NAV_WP_MODE) && posControl.wpMissionPlanStatus != WP_PLAN_FULL) {
+            if (!posControl.flags.wpMissionPlanActive) {
+                posControl.wpPlanActiveWPIndex = navConfig()->general.flags.mission_planner_resume ? posControl.wpPlanActiveWPIndex : 0;
+            }
+            posControl.flags.wpMissionPlanActive = true;
+            waypointMissionPlanner();
+        } else {
+            posControl.wpMissionPlanStatus = posControl.wpMissionPlanStatus == WP_PLAN_FULL ? WP_PLAN_FULL : WP_PLAN_WAIT;
+        }
+    } else if (posControl.flags.wpMissionPlanActive) {
         posControl.flags.wpMissionPlanActive = false;
     }
- }
+}
 
 void waypointMissionPlanner(void)
 {
     static bool boxWPModeIsReset = true;
-    bool canSetWP = true;
-    gpsLocation_t wpLLH;
-    fpVector3_t tmpPosition;
 
     boxWPModeIsReset = !boxWPModeIsReset ? !IS_RC_MODE_ACTIVE(BOXNAVWP) : boxWPModeIsReset; // able to save new WP only when WP mode reset
+    posControl.wpMissionPlanStatus = boxWPModeIsReset ? boxWPModeIsReset : posControl.wpMissionPlanStatus;  // hold save status until WP mode reset
 
-    if (posControl.wpPlanActiveWPIndex) {
-        wpLLH.lat = posControl.waypointList[posControl.wpPlanActiveWPIndex - 1].lat;
-        wpLLH.lon = posControl.waypointList[posControl.wpPlanActiveWPIndex - 1].lon;
-        geoConvertGeodeticToLocal(&tmpPosition, &posControl.gpsOrigin, &wpLLH, GEO_ALT_RELATIVE);
-        // next WP only saved when more than a set distance from the last WP and WP mode reset
-        canSetWP = calculateDistanceToDestination(&tmpPosition) > navConfig()->general.wp_planner_min_wp_distance && boxWPModeIsReset;
-    }
-    posControl.wpMissionPlanStatus = boxWPModeIsReset ? canSetWP : posControl.wpMissionPlanStatus;  // hold status until WP mode reset
-
-    if (!canSetWP || !IS_RC_MODE_ACTIVE(BOXNAVWP)) {
+    if (!boxWPModeIsReset || !IS_RC_MODE_ACTIVE(BOXNAVWP)) {
         return;
     }
+    gpsLocation_t wpLLH;
+    geoConvertLocalToGeodetic(&wpLLH, &posControl.gpsOrigin, &navGetCurrentActualPositionAndVelocity()->pos);
 
     posControl.waypointList[posControl.wpPlanActiveWPIndex].action = 1;
-    posControl.waypointList[posControl.wpPlanActiveWPIndex].lat = gpsSol.llh.lat;
-    posControl.waypointList[posControl.wpPlanActiveWPIndex].lon = gpsSol.llh.lon;
-    posControl.waypointList[posControl.wpPlanActiveWPIndex].alt = gpsSol.llh.alt;
+    posControl.waypointList[posControl.wpPlanActiveWPIndex].lat = wpLLH.lat;
+    posControl.waypointList[posControl.wpPlanActiveWPIndex].lon = wpLLH.lon;
+    posControl.waypointList[posControl.wpPlanActiveWPIndex].alt = wpLLH.alt;
     posControl.waypointList[posControl.wpPlanActiveWPIndex].p1 = posControl.waypointList[posControl.wpPlanActiveWPIndex].p2 = 0;
     posControl.waypointList[posControl.wpPlanActiveWPIndex].p3 = 1;           // use absolute altitude datum
     posControl.waypointList[posControl.wpPlanActiveWPIndex].flag = 165;
