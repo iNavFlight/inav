@@ -3111,8 +3111,8 @@ groups:
         max: 100
       - name: osd_rssi_dbm_alarm
         condition: USE_SERIALRX_CRSF
-        description: "RSSI-dBm indicator blinks below this value [dBm]. 0 disables this alarm"
-        default_value: -100
+        description: "RSSI dBm indicator blinks below this value [dBm]. 0 disables this alarm"
+        default_value: 0
         field: rssi_dbm_alarm
         min: -130
         max: 0
