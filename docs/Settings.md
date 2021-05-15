@@ -384,8 +384,8 @@
 | nav_use_fw_yaw_control | OFF |  |  | Enables or Disables the use of the heading PID controller on fixed wing. Heading PID controller is always enabled for rovers and boats |
 | nav_use_midthr_for_althold | OFF |  |  | If set to OFF, the FC remembers your throttle stick position when enabling ALTHOLD and treats it as a neutral midpoint for holding altitude |
 | nav_user_control_mode | ATTI |  |  | Defines how Pitch/Roll input from RC receiver affects flight in POSHOLD mode: ATTI - pitch/roll controls attitude like in ANGLE mode; CRUISE - pitch/roll controls velocity in forward and right direction. |
-| nav_wp_multi_mission_index | 1 | 0 | 9 | Index of mission selected from multi mission WP entry. 1 is the first useable WP mission in the entry. Limited to a maximum of 9 missions. Loading mission index 0 resets all missions (no mission is loaded). |
 | nav_wp_load_on_boot | OFF |  |  | If set to ON, waypoints will be automatically loaded from EEPROM to the FC during startup. |
+| nav_wp_multi_mission_index | 1 | 0 | 9 | Index of mission selected from multi mission WP entry. 1 is the first useable WP mission in the entry. Limited to a maximum of 9 missions. Loading mission index 0 resets all missions (no mission is loaded). |
 | nav_wp_radius | 100 | 10 | 10000 | Waypoint radius [cm]. Waypoint would be considered reached if machine is within this radius |
 | nav_wp_safe_distance | 10000 |  | 65000 | First waypoint in the mission should be closer than this value [cm]. A value of 0 disables this check. |
 | opflow_hardware | NONE |  |  | Selection of OPFLOW hardware. |
