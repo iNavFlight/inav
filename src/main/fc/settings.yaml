@@ -3114,7 +3114,7 @@ groups:
         description: "RSSI dBm indicator blinks below this value [dBm]. 0 disables this alarm"
         default_value: 0
         field: rssi_dbm_alarm
-        min: -128
+        min: -130
         max: 0
       - name: osd_temp_label_align
         description: "Allows to chose between left and right alignment for the OSD temperature sensor labels. Valid values are `LEFT` and `RIGHT`"
