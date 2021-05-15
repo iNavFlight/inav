@@ -3204,7 +3204,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
 
         /* Pilot-triggered RTH (can override MANUAL), also fall-back for WP if there is no mission loaded
          * Prevent MANUAL falling back to RTH if selected during active mission (canActivateWaypoint is set false on MANUAL selection)
-         * Also Block WP RTH falling back if WP mission planner is active */
+         * Also prevent WP falling back to RTH if WP mission planner is active */
         const bool blockWPFallback = IS_RC_MODE_ACTIVE(BOXMANUAL) || posControl.flags.wpMissionPlannerActive;
         if (IS_RC_MODE_ACTIVE(BOXNAVRTH) || (IS_RC_MODE_ACTIVE(BOXNAVWP) && !canActivateWaypoint && !blockWPFallback)) {
             // Check for isExecutingRTH to prevent switching our from RTH in case of a brief GPS loss
