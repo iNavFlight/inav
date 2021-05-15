@@ -2868,7 +2868,7 @@ int getWaypointCount(void)
 #ifdef NAV_NON_VOLATILE_WAYPOINT_STORAGE
 bool loadNonVolatileWaypointList(void)
 {
-    if (ARMING_FLAG(ARMED))
+    if (ARMING_FLAG(ARMED) || posControl.wpPlannerActiveWPIndex)    // prevent EEPROM load if mission planner WP count > 0
         return false;
 
     // if waypoints are already loaded, just unload them.
@@ -3436,7 +3436,9 @@ void updateWpMissionPlanner(void)
         const bool positionTrusted = posControl.flags.estAltStatus == EST_TRUSTED && posControl.flags.estPosStatus == EST_TRUSTED && STATE(GPS_FIX);
         if (positionTrusted && posControl.wpMissionPlannerStatus != WP_PLAN_FULL) {
             if (!posControl.flags.wpMissionPlannerActive) {
+                // reset WP index if no resume when mode reselected ON
                 posControl.wpPlannerActiveWPIndex = navConfig()->general.flags.mission_planner_resume ? posControl.wpPlannerActiveWPIndex : 0;
+                posControl.waypointCount = posControl.wpPlannerActiveWPIndex;
             }
             posControl.flags.wpMissionPlannerActive = true;
             waypointMissionPlanner();
@@ -3452,7 +3454,7 @@ void waypointMissionPlanner(void)
 {
     static bool boxWPModeIsReset = true;
 
-    boxWPModeIsReset = !boxWPModeIsReset ? !IS_RC_MODE_ACTIVE(BOXNAVWP) : boxWPModeIsReset; // able to save new WP only when WP mode reset
+    boxWPModeIsReset = !boxWPModeIsReset ? !IS_RC_MODE_ACTIVE(BOXNAVWP) : boxWPModeIsReset; // only able to save new WP when WP mode reset
     posControl.wpMissionPlannerStatus = boxWPModeIsReset ? boxWPModeIsReset : posControl.wpMissionPlannerStatus;  // hold save status until WP mode reset
 
     if (!boxWPModeIsReset || !IS_RC_MODE_ACTIVE(BOXNAVWP)) {
