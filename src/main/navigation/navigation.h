@@ -524,6 +524,7 @@ bool navigationIsControllingThrottle(void);
 bool isFixedWingAutoThrottleManuallyIncreased(void);
 bool navigationIsFlyingAutonomousMode(void);
 bool navigationIsExecutingAnEmergencyLanding(void);
+bool navigationIsControllingAltitude(void);
 /* Returns true iff navConfig()->general.flags.rth_allow_landing is NAV_RTH_ALLOW_LANDING_ALWAYS
  * or if it's NAV_RTH_ALLOW_LANDING_FAILSAFE and failsafe mode is active.
  */

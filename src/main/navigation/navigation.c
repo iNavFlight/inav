@@ -3648,6 +3648,11 @@ bool navigationIsControllingThrottle(void)
     return navigationInAutomaticThrottleMode() && (getMotorStatus() != MOTOR_STOPPED_USER);
 }
 
+bool navigationIsControllingAltitude(void) {
+    navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
+    return (stateFlags & NAV_CTL_ALT);
+}
+
 bool navigationIsFlyingAutonomousMode(void)
 {
     navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
