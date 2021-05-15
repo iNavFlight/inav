@@ -31,11 +31,11 @@
 #define SYM_VOLT                  0x06 // 006 V
 #define SYM_MAH                   0x07 // 007 MAH
 
-//                                0x08 // 008 -
-//                                0x09 // 009 -
-//                                0x0A // 010 -
-//                                0x0B // 011 -
-//                                0x0C // 012 -
+#define SYM_AH_KM                 0x08 // 008 Ah/km
+#define SYM_AH_MI                 0x09 // 009 Ah/mi
+#define SYM_MAH_MI_0              0x0A // 010 mAh/mi left
+#define SYM_MAH_MI_1              0x0B // 010 mAh/mi left
+#define SYM_LQ                    0x0C // 012 LQ
 
 #define SYM_TEMP_F                0x0D // 013 °F
 #define SYM_TEMP_C                0x0E // 014 °C

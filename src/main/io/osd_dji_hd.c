@@ -125,7 +125,6 @@ PG_RESET_TEMPLATE(djiOsdConfig_t, djiOsdConfig,
     .use_name_for_messages  = SETTING_DJI_USE_NAME_FOR_MESSAGES_DEFAULT,
     .esc_temperature_source = SETTING_DJI_ESC_TEMP_SOURCE_DEFAULT,
     .proto_workarounds = SETTING_DJI_WORKAROUNDS_DEFAULT,
-    .speedSource = SETTING_DJI_SPEED_SOURCE_DEFAULT,
 );
 
 // External dependency on looptime
@@ -1004,21 +1003,7 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
             sbufWriteU32(dst, gpsSol.llh.lat);
             sbufWriteU32(dst, gpsSol.llh.lon);
             sbufWriteU16(dst, gpsSol.llh.alt / 100);
-
-            int reportedSpeed = 0;
-            if (djiOsdConfig()->speedSource == DJI_OSD_SPEED_GROUND) {
-                reportedSpeed = gpsSol.groundSpeed;
-            } else if (djiOsdConfig()->speedSource == DJI_OSD_SPEED_3D) {
-                reportedSpeed = osdGet3DSpeed();
-            } else if (djiOsdConfig()->speedSource == DJI_OSD_SPEED_AIR) {
-            #ifdef USE_PITOT
-                reportedSpeed = pitot.airSpeed;
-            #else
-                reportedSpeed = 0;
-            #endif
-            }
-
-            sbufWriteU16(dst, reportedSpeed);
+            sbufWriteU16(dst, osdGetSpeedFromSelectedSource());
             sbufWriteU16(dst, gpsSol.groundCourse);
             break;
 
@@ -1188,7 +1173,7 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
             break;
 
         case DJI_MSP_FILTER_CONFIG:
-            sbufWriteU8(dst, gyroConfig()->gyro_soft_lpf_hz);           // BF: gyroConfig()->gyro_lowpass_hz
+            sbufWriteU8(dst, gyroConfig()->gyro_main_lpf_hz);           // BF: gyroConfig()->gyro_lowpass_hz
             sbufWriteU16(dst, pidProfile()->dterm_lpf_hz);              // BF: currentPidProfile->dterm_lowpass_hz
             sbufWriteU16(dst, pidProfile()->yaw_lpf_hz);                // BF: currentPidProfile->yaw_lowpass_hz
             sbufWriteU16(dst, gyroConfig()->gyro_notch_hz);             // BF: gyroConfig()->gyro_soft_notch_hz_1
@@ -1200,8 +1185,8 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
             sbufWriteU8(dst, 0);                                        // BF: currentPidProfile->dterm_filter_type
             sbufWriteU8(dst, gyroConfig()->gyro_lpf);                   // BF: gyroConfig()->gyro_hardware_lpf);
             sbufWriteU8(dst, 0);                                        // BF: DEPRECATED: gyro_32khz_hardware_lpf
-            sbufWriteU16(dst, gyroConfig()->gyro_soft_lpf_hz);          // BF: gyroConfig()->gyro_lowpass_hz);
-            sbufWriteU16(dst, gyroConfig()->gyro_stage2_lowpass_hz);    // BF: gyroConfig()->gyro_lowpass2_hz);
+            sbufWriteU16(dst, gyroConfig()->gyro_main_lpf_hz);          // BF: gyroConfig()->gyro_lowpass_hz);
+            sbufWriteU16(dst, 0);                                       // BF: gyroConfig()->gyro_lowpass2_hz);
             sbufWriteU8(dst, 0);                                        // BF: gyroConfig()->gyro_lowpass_type);
             sbufWriteU8(dst, 0);                                        // BF: gyroConfig()->gyro_lowpass2_type);
             sbufWriteU16(dst, 0);                                       // BF: currentPidProfile->dterm_lowpass2_hz);

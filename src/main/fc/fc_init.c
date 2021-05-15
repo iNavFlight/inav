@@ -97,8 +97,9 @@
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
-#include "flight/servos.h"
+#include "flight/power_limits.h"
 #include "flight/rpm_filter.h"
+#include "flight/servos.h"
 #include "flight/secondary_imu.h"
 
 #include "io/asyncfatfs/asyncfatfs.h"
@@ -707,6 +708,10 @@ void init(void)
 
 #ifdef USE_I2C_IO_EXPANDER
     ioPortExpanderInit();
+#endif
+
+#ifdef USE_POWER_LIMITS
+    powerLimiterInit();
 #endif
 
     // Considering that the persistent reset reason is only used during init

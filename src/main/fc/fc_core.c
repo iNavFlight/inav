@@ -88,6 +88,7 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/imu.h"
 
 #include "flight/failsafe.h"
+#include "flight/power_limits.h"
 
 #include "config/feature.h"
 #include "common/vector.h"
@@ -118,6 +119,7 @@ typedef struct emergencyArmingState_s {
 
 timeDelta_t cycleTime = 0;         // this is the number in micro second to achieve a full loop, it can differ a little and is taken into account in the PID loop
 static timeUs_t flightTime = 0;
+static timeUs_t armTime = 0;
 
 EXTENDED_FASTRAM float dT;
 
@@ -169,7 +171,7 @@ int16_t getAxisRcCommand(int16_t rawData, int16_t rate, int16_t deadband)
     int16_t stickDeflection;
 
     stickDeflection = constrain(rawData - PWM_RANGE_MIDDLE, -500, 500);
-    stickDeflection = applyDeadband(stickDeflection, deadband);
+    stickDeflection = applyDeadbandRescaled(stickDeflection, deadband, -500, 500);
 
     return rcLookup(stickDeflection, rate);
 }
@@ -419,9 +421,9 @@ void disarm(disarmReason_t disarmReason)
         }
 #endif
 #ifdef USE_DSHOT
-        if (FLIGHT_MODE(FLIP_OVER_AFTER_CRASH)) {
+        if (FLIGHT_MODE(TURTLE_MODE)) {
             sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_NORMAL);
-            DISABLE_FLIGHT_MODE(FLIP_OVER_AFTER_CRASH);
+            DISABLE_FLIGHT_MODE(TURTLE_MODE);
         }
 #endif
         statsOnDisarm();
@@ -493,36 +495,37 @@ void tryArm(void)
 {
     updateArmingStatus();
 
+#ifdef USE_DSHOT
+    if (
+            STATE(MULTIROTOR) &&
+            IS_RC_MODE_ACTIVE(BOXTURTLE) &&
+            emergencyArmingCanOverrideArmingDisabled() &&
+            isMotorProtocolDshot() &&
+            !ARMING_FLAG(ARMED) &&
+            !FLIGHT_MODE(TURTLE_MODE)
+            ) {
+        sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_REVERSED);
+        ENABLE_ARMING_FLAG(ARMED);
+        enableFlightMode(TURTLE_MODE);
+        return;
+    }
+#endif
+
 #ifdef USE_PROGRAMMING_FRAMEWORK
     if (
-        !isArmingDisabled() || 
-        emergencyArmingIsEnabled() || 
+        !isArmingDisabled() ||
+        emergencyArmingIsEnabled() ||
         LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_ARMING_SAFETY)
     ) {
-#else 
+#else
     if (
-        !isArmingDisabled() || 
+        !isArmingDisabled() ||
         emergencyArmingIsEnabled()
     ) {
 #endif
         if (ARMING_FLAG(ARMED)) {
             return;
         }
-
-#ifdef USE_DSHOT
-        if (
-                STATE(MULTIROTOR) &&
-                IS_RC_MODE_ACTIVE(BOXFLIPOVERAFTERCRASH) &&
-                emergencyArmingCanOverrideArmingDisabled() &&
-                isMotorProtocolDshot() &&
-                !FLIGHT_MODE(FLIP_OVER_AFTER_CRASH)
-                ) {
-            sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_REVERSED);
-            ENABLE_ARMING_FLAG(ARMED);
-            enableFlightMode(FLIP_OVER_AFTER_CRASH);
-            return;
-        }
-#endif
 
 #if defined(USE_NAV)
         // If nav_extra_arming_safety was bypassed we always
@@ -837,10 +840,15 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
     if (ARMING_FLAG(ARMED) && (!STATE(FIXED_WING_LEGACY) || !isNavLaunchEnabled() || (isNavLaunchEnabled() && (isFixedWingLaunchDetected() || isFixedWingLaunchFinishedOrAborted())))) {
         flightTime += cycleTime;
+        armTime += cycleTime;
         updateAccExtremes();
     }
+    if (!ARMING_FLAG(ARMED)) {
+        armTime = 0;
+    }
 
-    taskGyro(currentTimeUs);
+    gyroFilter();
+
     imuUpdateAccelerometer();
     imuUpdateAttitude(currentTimeUs);
 
@@ -885,6 +893,10 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         // FIXME: throttle pitch comp for FW
     }
 
+#ifdef USE_POWER_LIMITS
+    powerLimiterApply(&rcCommand[THROTTLE]);
+#endif
+
     // Calculate stabilisation
     pidController(dT);
 
@@ -899,7 +911,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
     if (isMixerUsingServos()) {
         servoMixer(dT);
-        processServoAutotrim();
+        processServoAutotrim(dT);
     }
 
     //Servos should be filtered or written only when mixer is using servos or special feaures are enabled
@@ -954,6 +966,11 @@ void taskUpdateRxMain(timeUs_t currentTimeUs)
 float getFlightTime()
 {
     return (float)(flightTime / 1000) / 1000;
+}
+
+float getArmTime()
+{
+    return (float)(armTime / 1000) / 1000;
 }
 
 void fcReboot(bool bootLoader)
