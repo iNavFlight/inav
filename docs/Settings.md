@@ -128,6 +128,8 @@
 | fw_i_yaw | 10 | 0 | 200 | Fixed-wing rate stabilisation I-gain for YAW |
 | fw_iterm_limit_stick_position | 0.5 | 0 | 1 | Iterm is not allowed to grow when stick position is above threshold. This solves the problem of bounceback or followthrough when full stick deflection is applied on poorely tuned fixed wings. In other words, stabilization is partialy disabled when pilot is actively controlling the aircraft and active when sticks are not touched. `0` mean stick is in center position, `1` means it is fully deflected to either side |
 | fw_iterm_throw_limit | 165 | FW_ITERM_THROW_LIMIT_MIN | FW_ITERM_THROW_LIMIT_MAX | Limits max/min I-term value in stabilization PID controller in case of Fixed Wing. It solves the problem of servo saturation before take-off/throwing the airplane into the air. By default, error accumulated in I-term can not exceed 1/3 of servo throw (around 165us). Set 0 to disable completely. |
+| fw_level_pitch_deadband | 5 | 0 | 20 | Deadband for automatic leveling when AUTOLEVEL mode is used. |
+| fw_level_pitch_gain | 5 | 0 | 20 | I-gain for the pitch trim for self-leveling flight modes. Higher values means that AUTOTRIM will be faster but might introduce oscillations |
 | fw_level_pitch_trim | 0 | -10 | 10 | Pitch trim for self-leveling flight modes. In degrees. +5 means airplane nose should be raised 5 deg from level |
 | fw_loiter_direction | RIGHT |  |  | Direction of loitering: center point on right wing (clockwise - default), or center point on left wing (counterclockwise). If equal YAW then can be changed in flight using a yaw stick. |
 | fw_min_throttle_down_pitch | 0 | 0 | 450 | Automatic pitch down angle when throttle is at 0 in angle mode. Progressively applied between cruise throttle and zero throttle (decidegrees) |
@@ -383,6 +385,7 @@
 | nav_use_fw_yaw_control | OFF |  |  | Enables or Disables the use of the heading PID controller on fixed wing. Heading PID controller is always enabled for rovers and boats |
 | nav_use_midthr_for_althold | OFF |  |  | If set to OFF, the FC remembers your throttle stick position when enabling ALTHOLD and treats it as a neutral midpoint for holding altitude |
 | nav_user_control_mode | ATTI |  |  | Defines how Pitch/Roll input from RC receiver affects flight in POSHOLD mode: ATTI - pitch/roll controls attitude like in ANGLE mode; CRUISE - pitch/roll controls velocity in forward and right direction. |
+| nav_wp_load_on_boot | OFF |  |  | If set to ON, waypoints will be automatically loaded from EEPROM to the FC during startup. |
 | nav_wp_radius | 100 | 10 | 10000 | Waypoint radius [cm]. Waypoint would be considered reached if machine is within this radius |
 | nav_wp_safe_distance | 10000 |  | 65000 | First waypoint in the mission should be closer than this value [cm]. A value of 0 disables this check. |
 | opflow_hardware | NONE |  |  | Selection of OPFLOW hardware. |
