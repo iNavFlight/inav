@@ -152,7 +152,7 @@
 | gyro_abg_alpha | 0 | 0 | 1 | Alpha factor for Gyro Alpha-Beta-Gamma filter |
 | gyro_abg_boost | 0.35 | 0 | 2 | Boost factor for Gyro Alpha-Beta-Gamma filter |
 | gyro_abg_half_life | 0.5 | 0 | 10 | Sample half-life for Gyro Alpha-Beta-Gamma filter |
-| gyro_anti_aliasing_lpf_hz | 250 |  | 255 | Gyro processing anti-aliasing filter cutoff frequency. In normal operation this filter setting should never be changed. In Hz |
+| gyro_anti_aliasing_lpf_hz | 250 |  | 1000 | Gyro processing anti-aliasing filter cutoff frequency. In normal operation this filter setting should never be changed. In Hz |
 | gyro_anti_aliasing_lpf_type | PT1 |  |  | Specifies the type of the software LPF of the gyro signals. |
 | gyro_dyn_lpf_curve_expo | 5 | 1 | 10 | Expo value for the throttle-to-frequency mapping for Dynamic LPF |
 | gyro_dyn_lpf_max_hz | 500 | 40 | 1000 | Maximum frequency of the gyro Dynamic LPF |
