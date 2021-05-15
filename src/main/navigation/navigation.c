@@ -3160,7 +3160,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
 
         // Keep canActivateWaypoint flag at FALSE if there is no mission loaded
         // Also block WP mission if we are executing RTH or WP mission planner active
-        if (!isWaypointMissionValid() || isExecutingRTH || posControl.flags.wpMissionPlanActive) {
+        if (!isWaypointMissionValid() || isExecutingRTH || posControl.flags.wpMissionPlannerActive) {
             canActivateWaypoint = false;
         }
 
@@ -3197,7 +3197,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
 
         /* Pilot-triggered RTH, also fall-back for WP if there is no mission loaded
          * Block WP RTH fallback if WP mission planner active */
-        const bool blockWPFallback = posControl.flags.wpMissionPlanActive;
+        const bool blockWPFallback = IS_RC_MODE_ACTIVE(BOXMANUAL) || posControl.flags.wpMissionPlannerActive;
         if (IS_RC_MODE_ACTIVE(BOXNAVRTH) || (IS_RC_MODE_ACTIVE(BOXNAVWP) && !canActivateWaypoint && !blockWPFallback)) {
             // Check for isExecutingRTH to prevent switching our from RTH in case of a brief GPS loss
             // If don't keep this, loss of any of the canActivatePosHold && canActivateNavigation && canActivateAltHold
@@ -3424,19 +3424,19 @@ void updateFlightBehaviorModifiers(void)
 
 void updateWpMissionPlanner(void)
 {
-    if (IS_RC_MODE_ACTIVE(BOXPLANWPMISSION)) {
+    if (IS_RC_MODE_ACTIVE(BOXPLANWPMISSION) && !(FLIGHT_MODE(NAV_WP_MODE) || isWaypointMissionRTHActive())) {
         const bool positionTrusted = posControl.flags.estAltStatus == EST_TRUSTED && posControl.flags.estPosStatus == EST_TRUSTED && STATE(GPS_FIX);
-        if (positionTrusted && !FLIGHT_MODE(NAV_WP_MODE) && posControl.wpMissionPlanStatus != WP_PLAN_FULL) {
-            if (!posControl.flags.wpMissionPlanActive) {
-                posControl.wpPlanActiveWPIndex = navConfig()->general.flags.mission_planner_resume ? posControl.wpPlanActiveWPIndex : 0;
+        if (positionTrusted && posControl.wpMissionPlannerStatus != WP_PLAN_FULL) {
+            if (!posControl.flags.wpMissionPlannerActive) {
+                posControl.wpPlannerActiveWPIndex = navConfig()->general.flags.mission_planner_resume ? posControl.wpPlannerActiveWPIndex : 0;
             }
-            posControl.flags.wpMissionPlanActive = true;
+            posControl.flags.wpMissionPlannerActive = true;
             waypointMissionPlanner();
         } else {
-            posControl.wpMissionPlanStatus = posControl.wpMissionPlanStatus == WP_PLAN_FULL ? WP_PLAN_FULL : WP_PLAN_WAIT;
+            posControl.wpMissionPlannerStatus = posControl.wpMissionPlannerStatus == WP_PLAN_FULL ? WP_PLAN_FULL : WP_PLAN_WAIT;
         }
-    } else if (posControl.flags.wpMissionPlanActive) {
-        posControl.flags.wpMissionPlanActive = false;
+    } else if (posControl.flags.wpMissionPlannerActive) {
+        posControl.flags.wpMissionPlannerActive = false;
     }
 }
 
@@ -3445,7 +3445,7 @@ void waypointMissionPlanner(void)
     static bool boxWPModeIsReset = true;
 
     boxWPModeIsReset = !boxWPModeIsReset ? !IS_RC_MODE_ACTIVE(BOXNAVWP) : boxWPModeIsReset; // able to save new WP only when WP mode reset
-    posControl.wpMissionPlanStatus = boxWPModeIsReset ? boxWPModeIsReset : posControl.wpMissionPlanStatus;  // hold save status until WP mode reset
+    posControl.wpMissionPlannerStatus = boxWPModeIsReset ? boxWPModeIsReset : posControl.wpMissionPlannerStatus;  // hold save status until WP mode reset
 
     if (!boxWPModeIsReset || !IS_RC_MODE_ACTIVE(BOXNAVWP)) {
         return;
@@ -3453,22 +3453,22 @@ void waypointMissionPlanner(void)
     gpsLocation_t wpLLH;
     geoConvertLocalToGeodetic(&wpLLH, &posControl.gpsOrigin, &navGetCurrentActualPositionAndVelocity()->pos);
 
-    posControl.waypointList[posControl.wpPlanActiveWPIndex].action = 1;
-    posControl.waypointList[posControl.wpPlanActiveWPIndex].lat = wpLLH.lat;
-    posControl.waypointList[posControl.wpPlanActiveWPIndex].lon = wpLLH.lon;
-    posControl.waypointList[posControl.wpPlanActiveWPIndex].alt = wpLLH.alt;
-    posControl.waypointList[posControl.wpPlanActiveWPIndex].p1 = posControl.waypointList[posControl.wpPlanActiveWPIndex].p2 = 0;
-    posControl.waypointList[posControl.wpPlanActiveWPIndex].p3 = 1;           // use absolute altitude datum
-    posControl.waypointList[posControl.wpPlanActiveWPIndex].flag = 165;
+    posControl.waypointList[posControl.wpPlannerActiveWPIndex].action = 1;
+    posControl.waypointList[posControl.wpPlannerActiveWPIndex].lat = wpLLH.lat;
+    posControl.waypointList[posControl.wpPlannerActiveWPIndex].lon = wpLLH.lon;
+    posControl.waypointList[posControl.wpPlannerActiveWPIndex].alt = wpLLH.alt;
+    posControl.waypointList[posControl.wpPlannerActiveWPIndex].p1 = posControl.waypointList[posControl.wpPlannerActiveWPIndex].p2 = 0;
+    posControl.waypointList[posControl.wpPlannerActiveWPIndex].p3 = 1;           // use absolute altitude datum
+    posControl.waypointList[posControl.wpPlannerActiveWPIndex].flag = 165;
     posControl.waypointListValid = true;
 
-    if (posControl.wpPlanActiveWPIndex) {
-        posControl.waypointList[posControl.wpPlanActiveWPIndex - 1].flag = 0; // rollling reset of previous end of mission flag when new WP added
+    if (posControl.wpPlannerActiveWPIndex) {
+        posControl.waypointList[posControl.wpPlannerActiveWPIndex - 1].flag = 0; // rollling reset of previous end of mission flag when new WP added
     }
 
-    posControl.wpPlanActiveWPIndex += 1;
-    posControl.waypointCount = posControl.wpPlanActiveWPIndex;
-    posControl.wpMissionPlanStatus = posControl.waypointCount == NAV_MAX_WAYPOINTS ? WP_PLAN_FULL : WP_PLAN_OK;
+    posControl.wpPlannerActiveWPIndex += 1;
+    posControl.waypointCount = posControl.wpPlannerActiveWPIndex;
+    posControl.wpMissionPlannerStatus = posControl.waypointCount == NAV_MAX_WAYPOINTS ? WP_PLAN_FULL : WP_PLAN_OK;
     boxWPModeIsReset = false;
 }
 
@@ -3617,7 +3617,8 @@ void navigationInit(void)
     posControl.waypointCount = 0;
     posControl.activeWaypointIndex = 0;
     posControl.waypointListValid = false;
-    posControl.wpPlanActiveWPIndex = 0;
+    posControl.wpPlannerActiveWPIndex = 0;
+    posControl.flags.wpMissionPlannerActive = false;
 
     /* Set initial surface invalid */
     posControl.actualState.surfaceMin = -1.0f;

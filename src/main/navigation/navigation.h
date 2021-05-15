@@ -150,7 +150,7 @@ typedef enum {
     WP_PLAN_SAVE,
     WP_PLAN_OK,
     WP_PLAN_FULL,
-} wpMissionPlanStatus_e;
+} wpMissionPlannerStatus_e;
 
 typedef struct positionEstimationConfig_s {
     uint8_t automatic_mag_declination;

@@ -2761,7 +2761,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             if (IS_RC_MODE_ACTIVE(BOXPLANWPMISSION)) {
                 char buf[5];
-                switch (posControl.wpMissionPlanStatus) {
+                switch (posControl.wpMissionPlannerStatus) {
                 case WP_PLAN_WAIT:
                     strcpy(buf, "WAIT");
                     break;
@@ -3898,7 +3898,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     if (FLIGHT_MODE(HEADFREE_MODE)) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_HEADFREE);
                     }
-                    if (posControl.flags.wpMissionPlanActive) {
+                    if (posControl.flags.wpMissionPlannerActive) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_MISSION_PLANNER);
                     }
                 }
