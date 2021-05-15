@@ -214,7 +214,7 @@ groups:
         description: "Gyro processing anti-aliasing filter cutoff frequency. In normal operation this filter setting should never be changed. In Hz"
         default_value: 250
         field: gyro_anti_aliasing_lpf_hz
-        max: 255
+        max: 1000
       - name: gyro_anti_aliasing_lpf_type
         description: "Specifies the type of the software LPF of the gyro signals."
         default_value: "PT1"
