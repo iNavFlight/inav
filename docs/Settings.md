@@ -64,7 +64,6 @@
 | disarm_kill_switch | ON |  |  | Disarms the motors independently of throttle value. Setting to OFF reverts to the old behaviour of disarming only when the throttle is low. Only applies when arming and disarming with an AUX channel. |
 | display_force_sw_blink | OFF |  |  | OFF = OSD hardware blink / ON = OSD software blink. If OSD warning text/values are invisible, try setting this to ON |
 | dji_esc_temp_source | ESC |  |  | Re-purpose the ESC temperature field for IMU/BARO temperature |
-| dji_speed_source | GROUND |  |  | Sets the speed type displayed by the DJI OSD: GROUND, 3D, AIR |
 | dji_use_name_for_messages | ON |  |  | Re-purpose the craft name field for messages. Replace craft name with :WTSED for Warnings|Throttle|Speed|Efficiency|Trip distance |
 | dji_workarounds | 1 | 0 | 255 | Enables workarounds for different versions of MSP protocol used |
 | dshot_beeper_enabled | ON |  |  | Whether using DShot motors as beepers is enabled |
@@ -112,9 +111,10 @@
 | frsky_vfas_precision | 0 | FRSKY_VFAS_PRECISION_LOW | FRSKY_VFAS_PRECISION_HIGH | D-Series telemetry only: Set to 1 to send raw VBat value in 0.1V resolution for receivers that can handle it, or 0 (default) to use the standard method |
 | fw_autotune_ff_to_i_tc | 600 | 100 | 5000 | FF to I time (defines time for I to reach the same level of response as FF) [ms] |
 | fw_autotune_ff_to_p_gain | 10 | 0 | 100 | FF to P gain (strength relationship) [%] |
-| fw_autotune_overshoot_time | 100 | 50 | 500 | Time [ms] to detect sustained overshoot |
-| fw_autotune_threshold | 50 | 0 | 100 | Threshold [%] of max rate to consider overshoot/undershoot detection |
-| fw_autotune_undershoot_time | 200 | 50 | 500 | Time [ms] to detect sustained undershoot |
+| fw_autotune_max_rate_deflection | 80 | 50 | 100 | The target percentage of maximum mixer output used for determining the rates in `AUTO` and `LIMIT`. |
+| fw_autotune_min_stick | 50 | 0 | 100 | Minimum stick input [%] to consider overshoot/undershoot detection |
+| fw_autotune_p_to_d_gain | 0 | 0 | 200 | P to D gain (strength relationship) [%] |
+| fw_autotune_rate_adjustment | AUTO |  |  | `AUTO` and `LIMIT` adjust the rates to match the capabilities of the airplane, with `LIMIT` they are never increased above the starting rates setting. `FIXED` does not adjust the rates. Rates are not changed when tuning in `ANGLE` mode. |
 | fw_d_level | 75 | 0 | 200 | Fixed-wing attitude stabilisation HORIZON transition point |
 | fw_d_pitch | 0 | 0 | 200 | Fixed wing rate stabilisation D-gain for PITCH |
 | fw_d_roll | 0 | 0 | 200 | Fixed wing rate stabilisation D-gain for ROLL |
@@ -128,6 +128,8 @@
 | fw_i_yaw | 10 | 0 | 200 | Fixed-wing rate stabilisation I-gain for YAW |
 | fw_iterm_limit_stick_position | 0.5 | 0 | 1 | Iterm is not allowed to grow when stick position is above threshold. This solves the problem of bounceback or followthrough when full stick deflection is applied on poorely tuned fixed wings. In other words, stabilization is partialy disabled when pilot is actively controlling the aircraft and active when sticks are not touched. `0` mean stick is in center position, `1` means it is fully deflected to either side |
 | fw_iterm_throw_limit | 165 | FW_ITERM_THROW_LIMIT_MIN | FW_ITERM_THROW_LIMIT_MAX | Limits max/min I-term value in stabilization PID controller in case of Fixed Wing. It solves the problem of servo saturation before take-off/throwing the airplane into the air. By default, error accumulated in I-term can not exceed 1/3 of servo throw (around 165us). Set 0 to disable completely. |
+| fw_level_pitch_deadband | 5 | 0 | 20 | Deadband for automatic leveling when AUTOLEVEL mode is used. |
+| fw_level_pitch_gain | 5 | 0 | 20 | I-gain for the pitch trim for self-leveling flight modes. Higher values means that AUTOTRIM will be faster but might introduce oscillations |
 | fw_level_pitch_trim | 0 | -10 | 10 | Pitch trim for self-leveling flight modes. In degrees. +5 means airplane nose should be raised 5 deg from level |
 | fw_loiter_direction | RIGHT |  |  | Direction of loitering: center point on right wing (clockwise - default), or center point on left wing (counterclockwise). If equal YAW then can be changed in flight using a yaw stick. |
 | fw_min_throttle_down_pitch | 0 | 0 | 450 | Automatic pitch down angle when throttle is at 0 in angle mode. Progressively applied between cruise throttle and zero throttle (decidegrees) |
@@ -214,6 +216,17 @@
 | inav_w_z_surface_v | 6.1 | 0 | 100 |  |
 | iterm_windup | 50 | 0 | 90 | Used to prevent Iterm accumulation on during maneuvers. Iterm will be dampened when motors are reaching it's limit (when requested motor correction range is above percentage specified by this parameter) |
 | ledstrip_visual_beeper | OFF |  |  |  |
+| limit_attn_filter_cutoff | 1.2 |  | 100 | Throttle attenuation PI control output filter cutoff frequency |
+| limit_burst_current | 0 |  | 4000 | Burst current limit (dA): the current which is allowed during `limit_burst_current_time` after which `limit_cont_current` will be enforced, set to 0 to disable |
+| limit_burst_current_falldown_time | 0 |  | 3000 | Time slice at the end of the burst time during which the current limit will be ramped down from `limit_burst_current` back down to `limit_cont_current` |
+| limit_burst_current_time | 0 |  | 3000 | Allowed current burst time (ds) during which `limit_burst_current` is allowed and after which `limit_cont_current` will be enforced |
+| limit_burst_power | 0 |  | 40000 | Burst power limit (dW): the current which is allowed during `limit_burst_power_time` after which `limit_cont_power` will be enforced, set to 0 to disable |
+| limit_burst_power_falldown_time | 0 |  | 3000 | Time slice at the end of the burst time during which the power limit will be ramped down from `limit_burst_power` back down to `limit_cont_power` |
+| limit_burst_power_time | 0 |  | 3000 | Allowed power burst time (ds) during which `limit_burst_power` is allowed and after which `limit_cont_power` will be enforced |
+| limit_cont_current | 0 |  | 4000 | Continous current limit (dA), set to 0 to disable |
+| limit_cont_power | 0 |  | 40000 | Continous power limit (dW), set to 0 to disable |
+| limit_pi_i | 100 |  | 10000 | Throttle attenuation PI control I term |
+| limit_pi_p | 100 |  | 10000 | Throttle attenuation PI control P term |
 | log_level | ERROR |  |  | Defines serial debugging log level. See `docs/development/serial_printf_debugging.md` for usage. |
 | log_topics | 0 | 0 | 4294967295 | Defines serial debugging log topic. See `docs/development/serial_printf_debugging.md` for usage. |
 | looptime | 1000 |  | 9000 | This is the main loop time (in us). Changing this affects PID effect with some PID controllers (see PID section for details). A very conservative value of 3500us/285Hz should work for everyone. Setting it to zero does not limit loop time, so it will go as fast as possible. |
@@ -372,6 +385,7 @@
 | nav_use_midthr_for_althold | OFF |  |  | If set to OFF, the FC remembers your throttle stick position when enabling ALTHOLD and treats it as a neutral midpoint for holding altitude |
 | nav_user_control_mode | ATTI |  |  | Defines how Pitch/Roll input from RC receiver affects flight in POSHOLD mode: ATTI - pitch/roll controls attitude like in ANGLE mode; CRUISE - pitch/roll controls velocity in forward and right direction. |
 | nav_wp_mission_restart | RESUME |  |  | Sets restart behaviour for a WP mission when interrupted mid mission. START from first WP, RESUME from last active WP or SWITCH between START and RESUME each time WP Mode is reselected ON. SWITCH effectively allows resuming once only from a previous mid mission waypoint after which the mission will restart from the first waypoint. |
+| nav_wp_load_on_boot | OFF |  |  | If set to ON, waypoints will be automatically loaded from EEPROM to the FC during startup. |
 | nav_wp_radius | 100 | 10 | 10000 | Waypoint radius [cm]. Waypoint would be considered reached if machine is within this radius |
 | nav_wp_safe_distance | 10000 |  | 65000 | First waypoint in the mission should be closer than this value [cm]. A value of 0 disables this check. |
 | opflow_hardware | NONE |  |  | Selection of OPFLOW hardware. |
@@ -432,6 +446,7 @@
 | osd_sidebar_horizontal_offset | 0 | -128 | 127 | Sidebar horizontal offset from default position. Positive values move the sidebars closer to the edges. |
 | osd_sidebar_scroll_arrows | OFF |  |  |  |
 | osd_snr_alarm | 4 | -20 | 10 | Value below which Crossfire SNR Alarm pops-up. (dB) |
+| osd_speed_source | GROUND |  |  | Sets the speed type displayed by the DJI OSD and OSD canvas (FrSky Pixel): GROUND, 3D, AIR |
 | osd_stats_energy_unit | MAH |  |  | Unit used for the drawn energy in the OSD stats [MAH/WH] (milliAmpere hour/ Watt hour) |
 | osd_stats_min_voltage_unit | BATTERY |  |  | Display minimum voltage of the `BATTERY` or the average per `CELL` in the OSD stats. |
 | osd_telemetry | OFF |  |  | To enable OSD telemetry for antenna tracker. Possible values are `OFF`, `ON` and `TEST` |
