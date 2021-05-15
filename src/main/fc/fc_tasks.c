@@ -43,14 +43,15 @@
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
 
+#include "flight/dynamic_lpf.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
-#include "flight/wind_estimator.h"
-#include "flight/secondary_imu.h"
+#include "flight/power_limits.h"
 #include "flight/rpm_filter.h"
+#include "flight/secondary_imu.h"
 #include "flight/servos.h"
-#include "flight/dynamic_lpf.h"
+#include "flight/wind_estimator.h"
 
 #include "navigation/navigation.h"
 
@@ -112,18 +113,29 @@ void taskHandleSerial(timeUs_t currentTimeUs)
 void taskUpdateBattery(timeUs_t currentTimeUs)
 {
     static timeUs_t batMonitoringLastServiced = 0;
-    timeUs_t BatMonitoringTimeSinceLastServiced = cmpTimeUs(currentTimeUs, batMonitoringLastServiced);
+    timeDelta_t BatMonitoringTimeSinceLastServiced = cmpTimeUs(currentTimeUs, batMonitoringLastServiced);
 
-    if (isAmperageConfigured())
+    if (isAmperageConfigured()) {
         currentMeterUpdate(BatMonitoringTimeSinceLastServiced);
+#ifdef USE_POWER_LIMITS
+        currentLimiterUpdate(BatMonitoringTimeSinceLastServiced);
+#endif
+    }
+
 #ifdef USE_ADC
-    if (feature(FEATURE_VBAT))
+    if (feature(FEATURE_VBAT)) {
         batteryUpdate(BatMonitoringTimeSinceLastServiced);
+    }
+
     if (feature(FEATURE_VBAT) && isAmperageConfigured()) {
         powerMeterUpdate(BatMonitoringTimeSinceLastServiced);
         sagCompensatedVBatUpdate(currentTimeUs, BatMonitoringTimeSinceLastServiced);
+#if defined(USE_POWER_LIMITS) && defined(USE_ADC)
+        powerLimiterUpdate(BatMonitoringTimeSinceLastServiced);
+#endif
     }
 #endif
+
     batMonitoringLastServiced = currentTimeUs;
 }
 
@@ -292,9 +304,9 @@ void taskUpdateOsd(timeUs_t currentTimeUs)
 
 void taskUpdateAux(timeUs_t currentTimeUs)
 {
-    UNUSED(currentTimeUs);
     updatePIDCoefficients();
     dynamicLpfGyroTask();
+    updateFixedWingLevelTrim(currentTimeUs);
 }
 
 void fcTasksInit(void)
