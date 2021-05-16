@@ -3224,8 +3224,8 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
 
         // Pilot-activated waypoint mission. Fall-back to RTH in case of no mission loaded
         // Block activation if using WP Mission Planner
-        if (IS_RC_MODE_ACTIVE(BOXNAVWP)) {
-            if (FLIGHT_MODE(NAV_WP_MODE) || (!posControl.flags.wpMissionPlannerActive && canActivateWaypoint && canActivatePosHold && canActivateNavigation && canActivateAltHold && STATE(GPS_FIX_HOME)))
+        if (IS_RC_MODE_ACTIVE(BOXNAVWP) && !posControl.flags.wpMissionPlannerActive) {
+            if (FLIGHT_MODE(NAV_WP_MODE) || (canActivateWaypoint && canActivatePosHold && canActivateNavigation && canActivateAltHold && STATE(GPS_FIX_HOME)))
                 return NAV_FSM_EVENT_SWITCH_TO_WAYPOINT;
         }
         else {
@@ -3438,9 +3438,8 @@ void updateWpMissionPlanner(void)
         const bool positionTrusted = posControl.flags.estAltStatus == EST_TRUSTED && posControl.flags.estPosStatus == EST_TRUSTED && STATE(GPS_FIX);
 
         posControl.flags.wpMissionPlannerActive = true;
-        if (millis() - resetTimerStart < 1000) {
-            posControl.wpPlannerActiveWPIndex = navConfig()->general.flags.mission_planner_reset ? 0 : posControl.wpPlannerActiveWPIndex;
-            posControl.waypointCount = posControl.wpPlannerActiveWPIndex;
+        if (millis() - resetTimerStart < 1000 && navConfig()->general.flags.mission_planner_reset) {
+            posControl.waypointCount = posControl.wpPlannerActiveWPIndex = 0;
             posControl.wpMissionPlannerStatus = WP_PLAN_WAIT;
         }
         if (positionTrusted && posControl.wpMissionPlannerStatus != WP_PLAN_FULL) {
