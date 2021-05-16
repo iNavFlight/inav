@@ -1451,8 +1451,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_INITIALIZE(nav
   Using p3 minimises the risk of saving an invalid counter if a mission is aborted.
 */
         static bool missionRestart;
-        if (posControl.activeWaypointIndex == 0) {
+        if (posControl.activeWaypointIndex == 0 || posControl.flags.wpMissionFinished) {
             missionRestart = true;
+            posControl.flags.wpMissionFinished = false;
         } else if (navConfig()->general.flags.waypoint_mission_restart == WP_MISSION_SWITCH) {
             missionRestart = !missionRestart;
         } else {
@@ -1533,7 +1534,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
             return nextForNonGeoStates();
 
         case NAV_WP_ACTION_RTH:
-            posControl.activeWaypointIndex = 0;
+            posControl.flags.wpMissionFinished = true;
             return NAV_FSM_EVENT_SWITCH_TO_RTH;
     };
 
@@ -1674,7 +1675,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_FINISHED(navig
     UNUSED(previousState);
 
     clearJumpCounters();
-    posControl.activeWaypointIndex = 0;
+    posControl.flags.wpMissionFinished = true;
 
     // If no position sensor available - land immediately
     if ((posControl.flags.estPosStatus >= EST_USABLE) && (posControl.flags.estHeadingStatus >= EST_USABLE)) {

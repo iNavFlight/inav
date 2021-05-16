@@ -92,6 +92,7 @@ typedef struct navigationFlags_s {
     bool isTerrainFollowEnabled;            // Does iNav use rangefinder for terrain following (adjusting baro altitude target according to rangefinders readings)
 
     bool forcedRTHActivated;
+    bool wpMissionFinished;                 // Flags mission completed to end, ensures missions restart from beginning when resume option used
 } navigationFlags_t;
 
 typedef struct {
