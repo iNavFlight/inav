@@ -34,17 +34,13 @@ const timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3, CH2, PB5,   TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0),   // S2   UP1-2   D(1, 5, 5)
     DEF_TIM(TIM3, CH3, PB0,   TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0),   // S3   UP1-2   D(1, 7, 5)
     DEF_TIM(TIM3, CH4, PB1,   TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0),   // S4   UP1-2   D(1, 2, 5)
-
     DEF_TIM(TIM2, CH1, PA15,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0),   // S5   UP1-7   D(1, 5, 3) - clash with S2
     DEF_TIM(TIM2, CH2, PB3,   TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0),   // S6   UP1-7   D(1, 6, 3)
-
-    DEF_TIM(TIM4, CH1, PB6,   TIM_USE_MC_SERVO | TIM_USE_FW_MOTOR, 0, 0),   // S7   UP1-6   D(1, 0, 2)
-    DEF_TIM(TIM4, CH2, PB7,   TIM_USE_MC_SERVO | TIM_USE_FW_MOTOR, 0, 0),   // S8   UP1-6   D(1, 3, 2)
+    DEF_TIM(TIM4, CH1, PB6,   TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0),   // S7   UP1-6   D(1, 0, 2)
+    DEF_TIM(TIM4, CH2, PB7,   TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0),   // S8   UP1-6   D(1, 3, 2)
 
     DEF_TIM(TIM1, CH1, PA8,  TIM_USE_LED, 0, 2),                            // LED          D(2, 6, 0)
-
     DEF_TIM(TIM9, CH2, PA3,  TIM_USE_PPM, 0, 0),                            // PPM, RX2
-
     DEF_TIM(TIM5, CH3, PA2,  TIM_USE_PWM, 0, 0),                            // TX2 & softserial1
 };
 
