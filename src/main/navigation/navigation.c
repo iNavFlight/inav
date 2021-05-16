@@ -114,7 +114,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
             .rth_alt_control_override = SETTING_NAV_RTH_ALT_CONTROL_OVERRIDE_DEFAULT, // Override RTH Altitude and Climb First using Pitch and Roll stick
             .nav_overrides_motor_stop = SETTING_NAV_OVERRIDES_MOTOR_STOP_DEFAULT,
             .safehome_usage_mode = SETTING_SAFEHOME_USAGE_MODE_DEFAULT,
-            .mission_planner_resume = SETTING_NAV_MISSION_PLANNER_RESUME_DEFAULT,     // resume WP entry when Mission Planner mode is restarted
+            .mission_planner_reset = SETTING_NAV_MISSION_PLANNER_RESET_DEFAULT,       // Allow mode switch toggle to reset Mission Planner WPs
         },
 
         // General navigation parameters
@@ -3166,8 +3166,8 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         checkSafeHomeState(isExecutingRTH || posControl.flags.forcedRTHActivated);
 
         // Keep canActivateWaypoint flag at FALSE if there is no mission loaded
-        // Also block WP mission if we are executing RTH or WP mission planner active
-        if (!isWaypointMissionValid() || isExecutingRTH || posControl.flags.wpMissionPlannerActive) {
+        // Also block WP mission if we are executing RTH
+        if (!isWaypointMissionValid() || isExecutingRTH) {
             canActivateWaypoint = false;
         }
 
@@ -3223,8 +3223,9 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         }
 
         // Pilot-activated waypoint mission. Fall-back to RTH in case of no mission loaded
+        // Block activation if using WP Mission Planner
         if (IS_RC_MODE_ACTIVE(BOXNAVWP)) {
-            if (FLIGHT_MODE(NAV_WP_MODE) || (canActivateWaypoint && canActivatePosHold && canActivateNavigation && canActivateAltHold && STATE(GPS_FIX_HOME)))
+            if (FLIGHT_MODE(NAV_WP_MODE) || (!posControl.flags.wpMissionPlannerActive && canActivateWaypoint && canActivatePosHold && canActivateNavigation && canActivateAltHold && STATE(GPS_FIX_HOME)))
                 return NAV_FSM_EVENT_SWITCH_TO_WAYPOINT;
         }
         else {
@@ -3432,21 +3433,24 @@ void updateFlightBehaviorModifiers(void)
 
 void updateWpMissionPlanner(void)
 {
+    static timeMs_t resetTimerStart = 0;
     if (IS_RC_MODE_ACTIVE(BOXPLANWPMISSION) && !(FLIGHT_MODE(NAV_WP_MODE) || isWaypointMissionRTHActive())) {
         const bool positionTrusted = posControl.flags.estAltStatus == EST_TRUSTED && posControl.flags.estPosStatus == EST_TRUSTED && STATE(GPS_FIX);
+
+        posControl.flags.wpMissionPlannerActive = true;
+        if (millis() - resetTimerStart < 1000) {
+            posControl.wpPlannerActiveWPIndex = navConfig()->general.flags.mission_planner_reset ? 0 : posControl.wpPlannerActiveWPIndex;
+            posControl.waypointCount = posControl.wpPlannerActiveWPIndex;
+            posControl.wpMissionPlannerStatus = WP_PLAN_WAIT;
+        }
         if (positionTrusted && posControl.wpMissionPlannerStatus != WP_PLAN_FULL) {
-            if (!posControl.flags.wpMissionPlannerActive) {
-                // reset WP index if no resume when mode reselected ON
-                posControl.wpPlannerActiveWPIndex = navConfig()->general.flags.mission_planner_resume ? posControl.wpPlannerActiveWPIndex : 0;
-                posControl.waypointCount = posControl.wpPlannerActiveWPIndex;
-            }
-            posControl.flags.wpMissionPlannerActive = true;
             waypointMissionPlanner();
         } else {
             posControl.wpMissionPlannerStatus = posControl.wpMissionPlannerStatus == WP_PLAN_FULL ? WP_PLAN_FULL : WP_PLAN_WAIT;
         }
     } else if (posControl.flags.wpMissionPlannerActive) {
         posControl.flags.wpMissionPlannerActive = false;
+        resetTimerStart = millis();
     }
 }
 
