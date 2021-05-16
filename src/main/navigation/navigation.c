@@ -242,7 +242,7 @@ static bool isWaypointPositionReached(const fpVector3_t * pos, const bool isWayp
 static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint_t * waypoint, geoAltitudeConversionMode_e altConv);
 static navigationFSMEvent_t nextForNonGeoStates(void);
 static bool isWaypointMissionValid(void);
-void waypointMissionPlanner(void);
+void missionPlannerSetWaypoint(void);
 
 void initializeRTHSanityChecker(const fpVector3_t * pos);
 bool validateRTHSanityChecker(void);
@@ -3440,20 +3440,22 @@ void updateWpMissionPlanner(void)
         posControl.flags.wpMissionPlannerActive = true;
         if (millis() - resetTimerStart < 1000 && navConfig()->general.flags.mission_planner_reset) {
             posControl.waypointCount = posControl.wpPlannerActiveWPIndex = 0;
+            posControl.waypointListValid = false;
             posControl.wpMissionPlannerStatus = WP_PLAN_WAIT;
         }
         if (positionTrusted && posControl.wpMissionPlannerStatus != WP_PLAN_FULL) {
-            waypointMissionPlanner();
+            missionPlannerSetWaypoint();
         } else {
             posControl.wpMissionPlannerStatus = posControl.wpMissionPlannerStatus == WP_PLAN_FULL ? WP_PLAN_FULL : WP_PLAN_WAIT;
         }
     } else if (posControl.flags.wpMissionPlannerActive) {
         posControl.flags.wpMissionPlannerActive = false;
+        posControl.activeWaypointIndex = 0;
         resetTimerStart = millis();
     }
 }
 
-void waypointMissionPlanner(void)
+void missionPlannerSetWaypoint(void)
 {
     static bool boxWPModeIsReset = true;
 
