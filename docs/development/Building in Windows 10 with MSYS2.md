@@ -3,11 +3,13 @@
 This is a guide on how to use Windows MSYS2 distribution and building platform to build iNav firmware. This environment is very simple to manage and does not require installing docker for Windows which may get in the way of VMWare or any other virtualization software you already have running for other reasons. Another benefit of this approach is that the compiler runs natively on Windows, so performance is much better than compiling in a virtual environment or a container. You can also integrate with whatever IDE you are using to make code edits and work with github, which makes the entire development and testing workflow a lot more efficient. In addition to MSYS2, this build environment also uses Arm Embedded GCC tolkit from The xPack Project, which provides many benefits over the toolkits maintained by arm.com
 
 Some of those benefits are described here:
+
 https://xpack.github.io/arm-none-eabi-gcc/
 
 ## Setting up build environment
 
 Download MSYS2 for your architecture (most likely 64-bit)
+
 https://www.msys2.org/wiki/MSYS2-installation/
 
 Click on 64-bit, scroll all the way down for the latest release
@@ -49,6 +51,7 @@ cd /c/Workspace/xpack
 cat /c/Workspace/inav/cmake/arm-none-eabi-checks.cmake | grep "set(arm_none_eabi_gcc_version" | cut -d\" -f2
 ```
 This will give you the version you need for any given release or master branch. You can get to all the releases here and find the version you need
+
 https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/
 ```
 # for version 2.6.1, version needed is 9.2.1
