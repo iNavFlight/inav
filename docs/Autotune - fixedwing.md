@@ -1,14 +1,14 @@
 # Airplane Autotune instructions
 
-Airplane PIFF autotune is inspired by ArduPilot Plane firmware.
+Airplane PIDFF autotune is inspired by ArduPilot Plane firmware.
 
-Getting a good set of roll/pitch/yaw PIFF parameters for your aircraft is essential for stable flight. To help with this it is highly recommended that you use the AUTOTUNE system described below.
+Getting a good set of roll/pitch/yaw PIDFF parameters for your aircraft is essential for stable flight. To help with this it is highly recommended that you use the AUTOTUNE system described below.
 
 ## What AUTOTUNE does
 
 The AUTOTUNE mode is a flight mode that acts on top of normal ANGLE/HORIZON/ACRO mode and uses changes in flight attitude input by the pilot to learn the tuning values for roll, pitch and yaw tuning.
 
-In general pilot needs to activate AUTOTUNE mode while in the air and then fly the plane for a few minutes. While flying the pilot needs to input as many sharp attitude changes as possible so that the autotune code can learn how the aircraft responds and figure out PIFF gains.
+In general pilot needs to activate AUTOTUNE mode while in the air and then fly the plane for a few minutes. While flying the pilot needs to input as many sharp attitude changes as possible so that the autotune code can learn how the aircraft responds and figure out PIDFF gains.
 
 ## Before flying with AUTOTUNE
 
@@ -54,6 +54,6 @@ The more you fly the better it will get. Let autotune analyze how your airplane 
 
 ## Completing the tune
 
-Once you have tuned reasonable PIFF parameters with AUTOTUNE you should complete the tune by switching out of AUTOTUNE to ANGLE or MANUAL and landing the airplane.
+Once you have tuned reasonable PIDFF parameters with AUTOTUNE you should complete the tune by switching out of AUTOTUNE to ANGLE or MANUAL and landing the airplane.
 
 Note that AUTOTUNE mode doesn't automatically save parameters to EEPROM. You need to disarm and issue a [stick command](Controls.md) to save configuration parameters.

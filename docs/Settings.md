@@ -453,7 +453,7 @@
 | osd_time_alarm | 10 | 0 | 600 | Value above which to make the OSD flight time indicator blink (minutes) |
 | osd_units | METRIC |  |  | IMPERIAL, METRIC, UK |
 | osd_video_system | AUTO |  |  | Video system used. Possible values are `AUTO`, `PAL` and `NTSC` |
-| pid_type | AUTO |  |  | Allows to set type of PID controller used in control loop. Possible values: `NONE`, `PID`, `PIFF`, `AUTO`. Change only in case of experimental platforms like VTOL, tailsitters, rovers, boats, etc. Airplanes should always use `PIFF` and multirotors `PID` |
+| pid_type | AUTO |  |  | Allows to set type of PID controller used in control loop. Possible values: `NONE`, `PID`, `PIDFF`, `AUTO`. Change only in case of experimental platforms like VTOL, tailsitters, rovers, boats, etc. Airplanes should always use `PIDFF` and multirotors `PID` |
 | pidsum_limit | 500 | PID_SUM_LIMIT_MIN | PID_SUM_LIMIT_MAX | A limitation to overall amount of correction Flight PID can request on each axis (Roll/Pitch). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help |
 | pidsum_limit_yaw | 350 | PID_SUM_LIMIT_MIN | PID_SUM_LIMIT_MAX | A limitation to overall amount of correction Flight PID can request on each axis (Yaw). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help |
 | pinio_box1 | `BOX_PERMANENT_ID_NONE` | 0 | 255 | Mode assignment for PINIO#1 |

@@ -1,12 +1,12 @@
 # INAV PID Controller
 
-What you have to know about INAV PID/PIFF/PIDCD controllers:
+What you have to know about INAV PID/PIDFF/PIDCD controllers:
 
 1. INAV PID uses floating-point math
 1. Rate/Angular Velocity controllers work in dps [degrees per second]
 1. P, I, D and Multirotor CD gains are scaled like Betafligfht equivalents, but actual mechanics are different, and PID response might be different
 1. Depending on platform type, different controllers are used
-    1. Fixed-wing uses **PIFF**:
+    1. Fixed-wing uses **PIDFF**:
         1. Error is computed with a formula `const float rateError = pidState->rateTarget - pidState->gyroRate;`
         1. P-term with a formula `rateError * pidState->kP`
         1. Simple I-term without Iterm Relax. I-term limit based on stick position is used instead. I-term is no allowed to grow if stick (roll/pitch/yaw) is deflected above threshold defined in `fw_iterm_limit_stick_position`. `pidState->errorGyroIf += rateError * pidState->kI * dT;`
