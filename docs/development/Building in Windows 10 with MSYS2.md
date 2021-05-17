@@ -23,14 +23,14 @@ Once MSYS2 is installed, you can open up a new terminal window by running:
 You can also make a shortcut of this somewhere on your taskbar, desktop, etc, or even setup a shortcut key to open it up every time you need to get a terminal window. If you right click on the window you can customize the font and layout to make it more comfortable to work with. This is very similar to cygwin or any other terminal program you might have used before
 
 This is the best part:
-`
+```
 pacman -S git ruby make cmake gcc mingw-w64-x86_64-libwinpthread-git unzip wget
-`
+```
 
 Now, each release needs a different version of arm toolchain. To setup the xPack ARM toolchain, use the following process:
 
-First, get the release you want to build or master if you want the latest/greatest
-`
+First, setup your work path, get the release you want to build or master if you want the latest/greatest
+```
 mkdir /c/Workspace
 cd /c/Workspace
 # you can also check out your own fork here which makes contributing easier
@@ -39,28 +39,39 @@ cd inav
 # switch to release you want or skip next 2 lines if you want latest
 git fetch origin
 git checkout -b release_2.6.1 origin/release_2.6.1
+```
+Now create the build and xpack directories and get the toolkit version you need for your inav version
+```
 mkdir build
 cd build
 mkdir /c/Workspace/xpack
 cd /c/Workspace/xpack
-# now find the arm toolchain version you need for this inav release
 cat /c/Workspace/inav/cmake/arm-none-eabi-checks.cmake | grep "set(arm_none_eabi_gcc_version" | cut -d\" -f2
-# this will give you the version you need for any given release or master branch
-# you can get to all the releases here and find the version you need
-# https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/
+```
+This will give you the version you need for any given release or master branch. You can get to all the releases here and find the version you need
+https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/
+```
 # for version 2.6.1, version needed is 9.2.1
 wget https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/download/v9.2.1-1.1/xpack-arm-none-eabi-gcc-9.2.1-1.1-win32-x64.zip
 unzip xpack-arm-none-eabi-gcc-9.2.1-1.1-win32-x64.zip
-# this is important, put the toolkit first before your path so that it is
-# picked up ahead of any other versions that may be present on your system
+```
+This is important, put the toolkit first before your path so that it is  picked up ahead of any other versions that may be present on your system
+```
 export PATH=/c/Workspace/xpack/xpack-arm-none-eabi-gcc-9.2.1-1.1/bin:$PATH
 cd /c/Workspace/inav/build
-# you may need to run rm -rf * in build directory if you had any failed previous runs
-# now run cmake .. while inside the build directory
+```
+You may need to run rm -rf * in build directory if you had any failed previous runs now run cmake
+```
+# while inside the build directory
 cmake ..
-# once that's done you can compile the firmware for your controller
+```
+Once that's done you can compile the firmware for your controller
+```
 make DALRCF405
-# the generated hex file will be in /c/Workspace/inav/build folder
-`
+```
+To get a list of available targets in iNav, see the target src folder
+https://github.com/tednv/inav/tree/master/src/main/target
+
+The generated hex file will be in /c/Workspace/inav/build folder
 
 At the time of writting this document, I believe this is the fastest, easiest, and most efficient Windows build environment that is available. I have used this approach several years ago and was very happy with it building iNav 2.1 and 2.2, and now I'm getting back into it so figured I would share my method
