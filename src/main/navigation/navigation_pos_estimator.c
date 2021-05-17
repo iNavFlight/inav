@@ -164,7 +164,7 @@ static bool detectGPSGlitch(timeUs_t currentTimeUs)
         predictedGpsPosition.y = lastKnownGoodPosition.y + lastKnownGoodVelocity.y * dT;
 
         /* New pos is within predefined radius of predicted pos, radius is expanded exponentially */
-        gpsDistance = sqrtf(sq(predictedGpsPosition.x - lastKnownGoodPosition.x) + sq(predictedGpsPosition.y - lastKnownGoodPosition.y));
+        gpsDistance = fast_fsqrtf(sq(predictedGpsPosition.x - lastKnownGoodPosition.x) + sq(predictedGpsPosition.y - lastKnownGoodPosition.y));
         if (gpsDistance <= (INAV_GPS_GLITCH_RADIUS + 0.5f * INAV_GPS_GLITCH_ACCEL * dT * dT)) {
             isGlitching = false;
         }
@@ -640,7 +640,7 @@ static bool estimationCalculateCorrection_XY_GPS(estimationContext_t * ctx)
             const float gpsPosYResidual = posEstimator.gps.pos.y - posEstimator.est.pos.y;
             const float gpsVelXResidual = posEstimator.gps.vel.x - posEstimator.est.vel.x;
             const float gpsVelYResidual = posEstimator.gps.vel.y - posEstimator.est.vel.y;
-            const float gpsPosResidualMag = sqrtf(sq(gpsPosXResidual) + sq(gpsPosYResidual));
+            const float gpsPosResidualMag = fast_fsqrtf(sq(gpsPosXResidual) + sq(gpsPosYResidual));
 
             //const float gpsWeightScaler = scaleRangef(bellCurve(gpsPosResidualMag, INAV_GPS_ACCEPTANCE_EPE), 0.0f, 1.0f, 0.1f, 1.0f);
             const float gpsWeightScaler = 1.0f;

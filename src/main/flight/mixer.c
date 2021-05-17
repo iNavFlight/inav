@@ -347,8 +347,8 @@ static void applyTurtleModeToMotors(void) {
         float signRoll = rcCommand[ROLL] < 0 ? 1 : -1;
         float signYaw = (float)((rcCommand[YAW] < 0 ? 1 : -1) * (mixerConfig()->motorDirectionInverted ? 1 : -1));
 
-        float stickDeflectionLength = sqrtf(sq(stickDeflectionPitchAbs) + sq(stickDeflectionRollAbs));
-        float stickDeflectionExpoLength = sqrtf(sq(stickDeflectionPitchExpo) + sq(stickDeflectionRollExpo));
+        float stickDeflectionLength = fast_fsqrtf(sq(stickDeflectionPitchAbs) + sq(stickDeflectionRollAbs));
+        float stickDeflectionExpoLength = fast_fsqrtf(sq(stickDeflectionPitchExpo) + sq(stickDeflectionRollExpo));
 
         if (stickDeflectionYawAbs > MAX(stickDeflectionPitchAbs, stickDeflectionRollAbs)) {
             // If yaw is the dominant, disable pitch and roll
@@ -362,8 +362,8 @@ static void applyTurtleModeToMotors(void) {
         }
 
         const float cosPhi = (stickDeflectionLength > 0) ? (stickDeflectionPitchAbs + stickDeflectionRollAbs) /
-                                                           (sqrtf(2.0f) * stickDeflectionLength) : 0;
-        const float cosThreshold = sqrtf(3.0f) / 2.0f; // cos(PI/6.0f)
+                                                           (fast_fsqrtf(2.0f) * stickDeflectionLength) : 0;
+        const float cosThreshold = fast_fsqrtf(3.0f) / 2.0f; // cos(PI/6.0f)
 
         if (cosPhi < cosThreshold) {
             // Enforce either roll or pitch exclusively, if not on diagonal
