@@ -19,12 +19,15 @@
 #include <string.h>
 #include <math.h>
 
-#include "arm_math.h"
 #include "axis.h"
 #include "maths.h"
 #include "vector.h"
 #include "quaternion.h"
 #include "platform.h"
+
+#ifdef USE_ARM_MATH
+#include "arm_math.h"
+#endif 
 
 FILE_COMPILE_FOR_SPEED
 
@@ -520,8 +523,12 @@ float bellCurve(const float x, const float curveWidth)
     return powf(M_Ef, -sq(x) / (2.0f * sq(curveWidth)));
 }
 
-float fast_fsqrtf(const float value) {
+float fast_fsqrtf(const double value) {
+#ifdef USE_ARM_MATH
     float squirt;
     arm_sqrt_f32(value, &squirt);
-   return squirt;
+    return squirt;
+#else 
+    return sqrtf(value);
+#endif
 }

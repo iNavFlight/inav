@@ -176,4 +176,4 @@ float acos_approx(float x);
 void arraySubInt32(int32_t *dest, int32_t *array1, int32_t *array2, int count);
 
 float bellCurve(const float x, const float curveWidth);
-float fast_fsqrtf(const float value);
+float fast_fsqrtf(const double value);
