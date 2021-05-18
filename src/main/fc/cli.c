@@ -1391,7 +1391,7 @@ static void cliWaypoints(char *cmdline)
     } else if (sl_strcasecmp(cmdline, "save") == 0) {
         posControl.waypointListValid = false;
         for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {
-            if (!(posControl.waypointList[i].action == NAV_WP_ACTION_WAYPOINT || posControl.waypointList[i].action == NAV_WP_ACTION_JUMP || posControl.waypointList[i].action == NAV_WP_ACTION_RTH || posControl.waypointList[i].action == NAV_WP_ACTION_HOLD_TIME || posControl.waypointList[i].action == NAV_WP_ACTION_LAND || posControl.waypointList[i].action == NAV_WP_ACTION_SET_POI || posControl.waypointList[i].action == NAV_WP_ACTION_SET_HEAD)) break;
+            if (!(posControl.waypointList[i].action == NAV_WP_ACTION_WAYPOINT || posControl.waypointList[i].action == NAV_WP_ACTION_JUMP || posControl.waypointList[i].action == NAV_WP_ACTION_RTH || posControl.waypointList[i].action == NAV_WP_ACTION_HOLD_TIME || posControl.waypointList[i].action == NAV_WP_ACTION_LAND || posControl.waypointList[i].action == NAV_WP_ACTION_SET_POI || posControl.waypointList[i].action == NAV_WP_ACTION_SET_HEAD || posControl.waypointList[i].action == NAV_WP_ACTION_FBH)) break;
             if (posControl.waypointList[i].flag == NAV_WP_FLAG_LAST) {
                 posControl.waypointCount = i + 1;
                 posControl.waypointListValid = true;
@@ -1460,7 +1460,7 @@ static void cliWaypoints(char *cmdline)
 
             if (!(validArgumentCount == 6 || validArgumentCount == 8)) {
                 cliShowParseError();
-            } else if (!(action == 0 || action == NAV_WP_ACTION_WAYPOINT || action == NAV_WP_ACTION_RTH || action == NAV_WP_ACTION_JUMP || action == NAV_WP_ACTION_HOLD_TIME || action == NAV_WP_ACTION_LAND || action == NAV_WP_ACTION_SET_POI || action == NAV_WP_ACTION_SET_HEAD) || !(flag == 0 || flag == NAV_WP_FLAG_LAST)) {
+            } else if (!(action == 0 || action == NAV_WP_ACTION_WAYPOINT || action == NAV_WP_ACTION_RTH || action == NAV_WP_ACTION_JUMP || action == NAV_WP_ACTION_HOLD_TIME || action == NAV_WP_ACTION_LAND || action == NAV_WP_ACTION_SET_POI || action == NAV_WP_ACTION_SET_HEAD || action == NAV_WP_ACTION_FBH) || !(flag == 0 || flag == NAV_WP_FLAG_LAST)) {
                 cliShowParseError();
             } else {
                 posControl.waypointList[i].action = action;
@@ -2930,28 +2930,28 @@ static void printImu2Status(void)
     cliPrintLinef("Acc: %d", secondaryImuState.calibrationStatus.acc);
     cliPrintLinef("Mag: %d", secondaryImuState.calibrationStatus.mag);
     cliPrintLine("Calibration gains:");
-    
+
     cliPrintLinef(
-        "Gyro: %d %d %d", 
-        secondaryImuConfig()->calibrationOffsetGyro[X], 
-        secondaryImuConfig()->calibrationOffsetGyro[Y], 
+        "Gyro: %d %d %d",
+        secondaryImuConfig()->calibrationOffsetGyro[X],
+        secondaryImuConfig()->calibrationOffsetGyro[Y],
         secondaryImuConfig()->calibrationOffsetGyro[Z]
     );
     cliPrintLinef(
-        "Acc: %d %d %d", 
-        secondaryImuConfig()->calibrationOffsetAcc[X], 
-        secondaryImuConfig()->calibrationOffsetAcc[Y], 
+        "Acc: %d %d %d",
+        secondaryImuConfig()->calibrationOffsetAcc[X],
+        secondaryImuConfig()->calibrationOffsetAcc[Y],
         secondaryImuConfig()->calibrationOffsetAcc[Z]
     );
     cliPrintLinef(
-        "Mag: %d %d %d", 
-        secondaryImuConfig()->calibrationOffsetMag[X], 
-        secondaryImuConfig()->calibrationOffsetMag[Y], 
+        "Mag: %d %d %d",
+        secondaryImuConfig()->calibrationOffsetMag[X],
+        secondaryImuConfig()->calibrationOffsetMag[Y],
         secondaryImuConfig()->calibrationOffsetMag[Z]
     );
     cliPrintLinef(
-        "Radius: %d %d", 
-        secondaryImuConfig()->calibrationRadiusAcc, 
+        "Radius: %d %d",
+        secondaryImuConfig()->calibrationRadiusAcc,
         secondaryImuConfig()->calibrationRadiusMag
     );
 }
