@@ -742,7 +742,7 @@ void mavlinkSendHUDAndHeartbeat(void)
             mavSystemState = MAV_STATE_ACTIVE;
         }
     }
-    else if (isCalibrating()) {
+    else if (areSensorsCalibrating()) {
         mavSystemState = MAV_STATE_CALIBRATING;
     }
     else {
