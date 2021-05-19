@@ -4422,16 +4422,6 @@ RSSI dBm indicator blinks below this value [dBm]. 0 disables this alarm
 
 ---
 
-### osd_rtc_time_show_seconds
-
-Enable to show seconds in current time display.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF |  |  |
-
----
-
 ### osd_sidebar_height
 
 Height of sidebars in rows. 0 leaves only the level indicator arrows (Not for pixel OSD)
