@@ -36,6 +36,8 @@
 #include "io/osd_common.h"
 #include "io/osd_grid.h"
 
+#include "msp/msp_serial.h"
+
 #if defined(USE_OSD)
 
 #define CANVAS_DEFAULT_GRID_ELEMENT_WIDTH OSD_CHAR_WIDTH
@@ -116,12 +118,11 @@ void osdDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *canvas, c
         osdCanvasDrawArtificialHorizon(display, canvas, p, pitchAngle, rollAngle);
     } else {
 #endif
-#if defined(USE_MSP_DISPLAYPORT)
 
-#else
+    if (!msp_displayport_index) {
         osdDrawPointGetGrid(&gx, &gy, display, canvas, p);
         osdGridDrawArtificialHorizon(display, gx, gy, pitchAngle, rollAngle);
-#endif
+    }
 #if defined(USE_CANVAS)
     }
 #endif

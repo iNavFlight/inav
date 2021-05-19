@@ -110,6 +110,8 @@ FILE_COMPILE_FOR_SPEED
 #include "hardware_revision.h"
 #endif
 
+#include "msp/msp_serial.h"
+
 #define VIDEO_BUFFER_CHARS_PAL    480
 
 #define GFORCE_FILTER_TC 0.2
@@ -2539,6 +2541,19 @@ void osdDrawAllElement(void)
     osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
 }
 
+void osdDrawNextElement(void)
+{
+    static uint8_t elementIndex = 0;
+    // Prevent infinite loop when no elements are enabled
+    uint8_t index = elementIndex;
+    do {
+        elementIndex = osdIncElementIndex(elementIndex);
+    } while(!osdDrawSingleElement(elementIndex) && index != elementIndex);
+
+    // Draw artificial horizon last
+    osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
+}
+
 PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .rssi_alarm = 20,
     .time_alarm = 10,
@@ -3121,8 +3136,15 @@ static void osdRefresh(timeUs_t currentTimeUs)
 {
     osdFilterData(currentTimeUs);
 
+#ifdef USE_CMS
+    if (IS_RC_MODE_ACTIVE(BOXOSD) && (!cmsInMenu) && !(osdConfig()->osd_failsafe_switch_layout && FLIGHT_MODE(FAILSAFE_MODE))) {
+#else
+    if (IS_RC_MODE_ACTIVE(BOXOSD) && !(osdConfig()->osd_failsafe_switch_layout && FLIGHT_MODE(FAILSAFE_MODE))) {
+#endif
     displayClearScreen(osdDisplayPort);
     armState = ARMING_FLAG(ARMED);
+    return;
+    }
 
     // detect arm/disarm
     if (armState != ARMING_FLAG(ARMED)) {
@@ -3164,7 +3186,19 @@ static void osdRefresh(timeUs_t currentTimeUs)
 #ifdef USE_CMS
     if (!displayIsGrabbed(osdDisplayPort)) {
         displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
-        osdDrawAllElement();
+        if (!msp_displayport_index) {
+            if (fullRedraw) {
+                displayClearScreen(osdDisplayPort);
+                fullRedraw = false;
+            }
+            osdDrawNextElement();
+        }
+#ifdef USE_MSP_DISPLAYPORT
+        else {
+            displayClearScreen(osdDisplayPort);
+            osdDrawAllElement();
+        }
+#endif
         displayHeartbeat(osdDisplayPort);
         displayCommitTransaction(osdDisplayPort);
 #ifdef OSD_CALLS_CMS
@@ -3180,6 +3214,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
  */
 void osdUpdate(timeUs_t currentTimeUs)
 {
+    uint8_t factor = 1;
     static uint32_t counter = 0;
 
     // don't touch buffers if DMA transaction is in progress
@@ -3233,15 +3268,21 @@ void osdUpdate(timeUs_t currentTimeUs)
     }
 #endif
 
-#define DRAW_FREQ_DENOM     25  // 250HZ/25 = 10HZ
-#define STATS_FREQ_DENOM    50  // 250HZ/50 = 5HZ
+#define DRAW_FREQ_DENOM     4
+#define STATS_FREQ_DENOM    50
+
     counter++;
 
     if ((counter % STATS_FREQ_DENOM) == 0) {
         osdUpdateStats();
     }
 
-    if ((counter % DRAW_FREQ_DENOM) == 0) {
+    if (msp_displayport_index)
+        factor = 6;
+    else
+        factor = 1;
+
+    if ((counter % (DRAW_FREQ_DENOM * factor)) == 0) {
         // redraw values in buffer
         osdRefresh(currentTimeUs);
         displayDrawScreen(osdDisplayPort);

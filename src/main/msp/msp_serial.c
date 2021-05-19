@@ -43,7 +43,7 @@
 #include "config/parameter_group_ids.h"
 
 static mspPort_t mspPorts[MAX_MSP_PORT_COUNT];
-uint8_t msp_displayport_index;
+uint8_t msp_displayport_index = 0;
 
 void resetMspPort(mspPort_t *mspPortToReset, serialPort_t *serialPort)
 {
@@ -55,8 +55,10 @@ void resetMspPort(mspPort_t *mspPortToReset, serialPort_t *serialPort)
 void mspSerialAllocatePorts(void)
 {
     uint8_t portIndex = 0;
-    //FUNCTION_MSP_DISPLAYPORT detect
-    serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_MSP_DISPLAYPORT);
+    serialPortConfig_t *portConfig;
+    
+    #if defined(USE_MSP_DISPLAYPORT)
+    portConfig = findSerialPortConfig(FUNCTION_MSP_DISPLAYPORT);
     while (portConfig && portIndex < MAX_MSP_PORT_COUNT) {
         mspPort_t *mspPort = &mspPorts[portIndex];
         if (mspPort->port) {
@@ -74,6 +76,7 @@ void mspSerialAllocatePorts(void)
 
         portConfig = findNextSerialPortConfig(FUNCTION_MSP_DISPLAYPORT);
     }
+    #endif
 
     portConfig = findSerialPortConfig(FUNCTION_MSP);
     while (portConfig && portIndex < MAX_MSP_PORT_COUNT) {

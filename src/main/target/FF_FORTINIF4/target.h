@@ -98,7 +98,6 @@
 #define SERIAL_PORT_COUNT       6
 
 #define USE_CMS
-#define USE_MSP_DISPLAYPORT
 /*---------------------------------*/
 
 /*-------------SPIs----------------*/

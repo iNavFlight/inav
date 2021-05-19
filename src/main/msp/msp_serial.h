@@ -109,3 +109,4 @@ int mspSerialPushPort(uint16_t cmd, const uint8_t *data, int datalen, mspPort_t 
 int mspSerialPush(uint8_t cmd, const uint8_t *data, int datalen);
 uint32_t mspSerialTxBytesFree(void);
 mspPort_t * mspSerialPortFind(const struct serialPort_s *serialPort);
+extern uint8_t msp_displayport_index;
