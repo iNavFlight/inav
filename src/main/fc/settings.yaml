@@ -3271,6 +3271,11 @@ groups:
         field: main_voltage_decimals
         min: 1
         max: 2
+      - name: osd_rtc_time_show_seconds
+        description: "Enable to show seconds in current time display."
+        field: rtc_time_show_seconds
+        type: bool
+        default_value: OFF
       - name: osd_coordinate_digits
         field: coordinate_digits
         min: 8
