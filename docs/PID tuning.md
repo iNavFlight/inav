@@ -76,4 +76,4 @@ Note that very old INAV versions had more  PID controllers. These have been remo
 
 ### RC Rate
 
-An overall multiplier on the RC stick inputs for pitch, rol;, and yaw.
+An overall multiplier on the RC stick inputs for pitch, roll, and yaw.
