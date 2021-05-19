@@ -59,9 +59,9 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 23            | OVERRIDE_THROTTLE_SCALE       | Override throttle scale to the value defined by operand. Operand type `0` and value `50` means throttle will be scaled by 50%. |
 | 24            | SWAP_ROLL_YAW                 | basically, when activated, yaw stick will control roll and roll stick will control yaw. Required for tail-sitters VTOL during vertical-horizonral transition when body frame changes |
 | 25            | SET_VTX_POWER_LEVEL           | Sets VTX power level. Accepted values are `0-3` for SmartAudio and `0-4` for Tramp protocol |
-| 26            | INVERT_ROLL                   | Inverts ROLL axis input for PID/PIDFF controller |
-| 27            | INVERT_PITCH                  | Inverts PITCH axis input for PID/PIDFF controller  |
-| 28            | INVERT_YAW                    | Inverts YAW axis input for PID/PIDFF controller |
+| 26            | INVERT_ROLL                   | Inverts ROLL axis input for PID controller |
+| 27            | INVERT_PITCH                  | Inverts PITCH axis input for PID controller  |
+| 28            | INVERT_YAW                    | Inverts YAW axis input for PID controller |
 | 29            | OVERRIDE_THROTTLE             | Override throttle value that is fed to the motors by mixer. Operand is scaled in us. `1000` means throttle cut, `1500` means half throttle |
 | 30            | SET_VTX_BAND                  | Sets VTX band. Accepted values are `1-5` |
 | 31            | SET_VTX_CHANNEL               | Sets VTX channel. Accepted values are `1-8` |

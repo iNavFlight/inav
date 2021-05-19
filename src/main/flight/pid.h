@@ -78,7 +78,7 @@ typedef enum {
 // TODO(agh): PIDFF
 typedef enum {
     PID_TYPE_NONE = 0,  // Not used in the current platform/mixer/configuration
-    PID_TYPE_PID,   // Uses P, I and D terms
+    PID_TYPE_PIDCD,   // Uses P, I, D and CD terms
     PID_TYPE_PIDFF,  // Uses P, I, D and FF
     PID_TYPE_AUTO,  // Autodetect
 } pidType_e;

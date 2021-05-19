@@ -527,7 +527,7 @@ void updatePIDCoefficients()
     }
 
 #ifdef USE_ANTIGRAVITY
-    if (usedPidControllerType == PID_TYPE_PID) {
+    if (usedPidControllerType == PID_TYPE_PIDCD) {
         antigravityThrottleHpf = rcCommand[THROTTLE] - pt1FilterApply(&antigravityThrottleLpf, rcCommand[THROTTLE]);
         iTermAntigravityGain = scaleRangef(fabsf(antigravityThrottleHpf) * antigravityAccelerator, 0.0f, 1000.0f, 1.0f, antigravityGain);    
     }
@@ -568,7 +568,7 @@ void updatePIDCoefficients()
             pidState[axis].kFF = 0.0f;
 
             // Tracking anti-windup requires P/I/D to be all defined which is only true for MC
-            if ((pidBank()->pid[axis].P != 0) && (pidBank()->pid[axis].I != 0) && (usedPidControllerType == PID_TYPE_PID)) {
+            if ((pidBank()->pid[axis].P != 0) && (pidBank()->pid[axis].I != 0) && (usedPidControllerType == PID_TYPE_PIDCD)) {
                 pidState[axis].kT = 2.0f / ((pidState[axis].kP / pidState[axis].kI) + (pidState[axis].kD / pidState[axis].kP));
             } else {
                 pidState[axis].kT = 0;
@@ -1191,7 +1191,7 @@ pidType_e pidIndexGetType(pidIndex_e pidIndex)
     if (pidIndex == PID_SURFACE) {
         return PID_TYPE_NONE;
     }
-    return PID_TYPE_PID;
+    return PID_TYPE_PIDCD;
 }
 
 void pidInit(void)
@@ -1239,7 +1239,7 @@ void pidInit(void)
         ) {
             usedPidControllerType = PID_TYPE_PIDFF;
         } else {
-            usedPidControllerType = PID_TYPE_PID;
+            usedPidControllerType = PID_TYPE_PIDCD;
         }
     } else {
         usedPidControllerType = pidProfile()->pidControllerType;
@@ -1265,7 +1265,7 @@ void pidInit(void)
 
     if (usedPidControllerType == PID_TYPE_PIDFF) {
         pidControllerApplyFn = pidApplyFixedWingRateController;
-    } else if (usedPidControllerType == PID_TYPE_PID) {
+    } else if (usedPidControllerType == PID_TYPE_PIDCD) {
         pidControllerApplyFn = pidApplyMulticopterRateController;
     } else {
         pidControllerApplyFn = nullRateController;

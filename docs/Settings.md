@@ -127,7 +127,7 @@
 | fw_i_roll | 7 | 0 | 200 | Fixed-wing rate stabilisation I-gain for ROLL |
 | fw_i_yaw | 10 | 0 | 200 | Fixed-wing rate stabilisation I-gain for YAW |
 | fw_iterm_limit_stick_position | 0.5 | 0 | 1 | Iterm is not allowed to grow when stick position is above threshold. This solves the problem of bounceback or followthrough when full stick deflection is applied on poorely tuned fixed wings. In other words, stabilization is partialy disabled when pilot is actively controlling the aircraft and active when sticks are not touched. `0` mean stick is in center position, `1` means it is fully deflected to either side |
-| fw_iterm_throw_limit | 165 | FW_ITERM_THROW_LIMIT_MIN | FW_ITERM_THROW_LIMIT_MAX | Limits max/min I-term value in stabilization PID controller in case of Fixed Wing. It solves the problem of servo saturation before take-off/throwing the airplane into the air. By default, error accumulated in I-term can not exceed 1/3 of servo throw (around 165us). Set 0 to disable completely. |
+| fw_iterm_throw_limit | 165 | FW_ITERM_THROW_LIMIT_MIN | FW_ITERM_THROW_LIMIT_MAX | Limits max/min I-term value in stabilization PIDFF controller in case of Fixed Wing. It solves the problem of servo saturation before take-off/throwing the airplane into the air. By default, error accumulated in I-term can not exceed 1/3 of servo throw (around 165us). Set 0 to disable completely. |
 | fw_level_pitch_deadband | 5 | 0 | 20 | Deadband for automatic leveling when AUTOLEVEL mode is used. |
 | fw_level_pitch_gain | 5 | 0 | 20 | I-gain for the pitch trim for self-leveling flight modes. Higher values means that AUTOTRIM will be faster but might introduce oscillations |
 | fw_level_pitch_trim | 0 | -10 | 10 | Pitch trim for self-leveling flight modes. In degrees. +5 means airplane nose should be raised 5 deg from level |
@@ -137,7 +137,7 @@
 | fw_p_pitch | 5 | 0 | 200 | Fixed-wing rate stabilisation P-gain for PITCH |
 | fw_p_roll | 5 | 0 | 200 | Fixed-wing rate stabilisation P-gain for ROLL |
 | fw_p_yaw | 6 | 0 | 200 | Fixed-wing rate stabilisation P-gain for YAW |
-| fw_reference_airspeed | 1500 | 300 | 6000 | Reference airspeed. Set this to airspeed at which PIDs were tuned. Usually should be set to cruise airspeed. Also used for coordinated turn calculation if airspeed sensor is not present. |
+| fw_reference_airspeed | 1500 | 300 | 6000 | Reference airspeed. Set this to airspeed at which PIDFF were tuned. Usually should be set to cruise airspeed. Also used for coordinated turn calculation if airspeed sensor is not present. |
 | fw_tpa_time_constant | 0 | 0 | 5000 | TPA smoothing and delay time constant to reflect non-instant speed/throttle response of the plane. Planes with low thrust/weight ratio generally need higher time constant. Default is zero for compatibility with old setups |
 | fw_turn_assist_pitch_gain | 1 | 0 | 2 | Gain required to keep constant pitch angle during coordinated turns (in TURN_ASSIST mode). Value significantly different from 1.0 indicates a problem with the airspeed calibration (if present) or value of `fw_reference_airspeed` parameter |
 | fw_turn_assist_yaw_gain | 1 | 0 | 2 | Gain required to keep the yaw rate consistent with the turn rate for a coordinated turn (in TURN_ASSIST mode). Value significantly different from 1.0 indicates a problem with the airspeed calibration (if present) or value of `fw_reference_airspeed` parameter |
@@ -453,7 +453,7 @@
 | osd_time_alarm | 10 | 0 | 600 | Value above which to make the OSD flight time indicator blink (minutes) |
 | osd_units | METRIC |  |  | IMPERIAL, METRIC, UK |
 | osd_video_system | AUTO |  |  | Video system used. Possible values are `AUTO`, `PAL` and `NTSC` |
-| pid_type | AUTO |  |  | Allows to set type of PID controller used in control loop. Possible values: `NONE`, `PID`, `PIDFF`, `AUTO`. Change only in case of experimental platforms like VTOL, tailsitters, rovers, boats, etc. Airplanes should always use `PIDFF` and multirotors `PID` |
+| pid_type | AUTO |  |  | Allows to set type of PID controller used in control loop. Possible values: `NONE`, `PIDCD`, `PIDFF`, `AUTO`. Change only in case of experimental platforms like VTOL, tailsitters, rovers, boats, etc. Airplanes should always use `PIDFF` and multirotors `PIDCD` |
 | pidsum_limit | 500 | PID_SUM_LIMIT_MIN | PID_SUM_LIMIT_MAX | A limitation to overall amount of correction Flight PID can request on each axis (Roll/Pitch). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help |
 | pidsum_limit_yaw | 350 | PID_SUM_LIMIT_MIN | PID_SUM_LIMIT_MAX | A limitation to overall amount of correction Flight PID can request on each axis (Yaw). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help |
 | pinio_box1 | `BOX_PERMANENT_ID_NONE` | 0 | 255 | Mode assignment for PINIO#1 |
