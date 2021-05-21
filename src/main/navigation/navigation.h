@@ -264,6 +264,7 @@ typedef struct navConfig_s {
         uint16_t launch_idle_throttle;       // Throttle to keep at launch idle
         uint16_t launch_throttle;            // Launch throttle
         uint16_t launch_motor_timer;         // Time to wait before setting launch_throttle (ms)
+        uint16_t launch_idle_motor_timer;    // Time to wait before motor starts at_idle throttle (ms)
         uint16_t launch_motor_spinup_time;   // Time to speed-up motors from idle to launch_throttle (ESC desync prevention)
         uint16_t launch_end_time;            // Time to make the transition from launch angle to leveled and throttle transition from launch throttle to the stick position
         uint16_t launch_min_time;	           // Minimum time in launch mode to prevent possible bump of the sticks from leaving launch mode early
