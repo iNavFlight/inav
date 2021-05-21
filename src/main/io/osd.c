@@ -2775,8 +2775,14 @@ static bool osdDrawSingleElement(uint8_t item)
                     strcpy(buf, "FULL");
                 }
                 tfp_sprintf(buff, "%s>%2uWP", buf, posControl.waypointCount);
+            } else if (!ARMING_FLAG(ARMED)) {
+                if (posControl.wpPlannerActiveWPIndex){
+                    tfp_sprintf(buff, "PLAN>%2uWP", posControl.waypointCount);  // mission planner mision active
+                } else {
+                    tfp_sprintf(buff, "STOR>%2uWP", posControl.waypointCount);  // no mission planner, show eeprom WP load state
+                }
             } else {
-                tfp_sprintf(buff, "%2uWP     ", posControl.waypointCount);  // only show num WPs when planner mode off
+                tfp_sprintf(buff, "%2uWP     ", posControl.waypointCount);  // only show WP count when armed with planner mode off
             }
             displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
             return true;
