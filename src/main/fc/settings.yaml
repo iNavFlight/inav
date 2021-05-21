@@ -77,7 +77,7 @@ tables:
     enum: videoSystem_e
   - name: osd_telemetry
     values: ["OFF", "ON","TEST"]
-    enum: osd_telemetry_e    
+    enum: osd_telemetry_e
   - name: osd_alignment
     values: ["LEFT", "RIGHT"]
     enum: osd_alignment_e
