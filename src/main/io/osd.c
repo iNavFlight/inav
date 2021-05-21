@@ -2984,8 +2984,8 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     // OSD_VARIO_NUM at the right of OSD_VARIO
     osdLayoutsConfig->item_pos[0][OSD_VARIO_NUM] = OSD_POS(24, 7);
     osdLayoutsConfig->item_pos[0][OSD_HOME_DIR] = OSD_POS(14, 11);
-    osdLayoutsConfig->item_pos[0][OSD_ARTIFICIAL_HORIZON] = OSD_POS(8, 6) | OSD_VISIBLE_FLAG;
-    osdLayoutsConfig->item_pos[0][OSD_HORIZON_SIDEBARS] = OSD_POS(8, 6) | OSD_VISIBLE_FLAG;
+    osdLayoutsConfig->item_pos[0][OSD_ARTIFICIAL_HORIZON] = OSD_POS(8, 6);
+    osdLayoutsConfig->item_pos[0][OSD_HORIZON_SIDEBARS] = OSD_POS(8, 6);
 
     osdLayoutsConfig->item_pos[0][OSD_CRAFT_NAME] = OSD_POS(20, 2);
     osdLayoutsConfig->item_pos[0][OSD_VTX_CHANNEL] = OSD_POS(8, 6);
