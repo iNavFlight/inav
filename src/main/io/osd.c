@@ -1894,13 +1894,15 @@ static bool osdDrawSingleElement(uint8_t item)
             int8_t snrFiltered = pt1FilterApply4(&snrFilterState, rxLinkStatistics.uplinkSNR, 0.5f, MS2S(millis() - snrUpdated));
             snrUpdated = millis();
 
+            const char* showsnr = "-20";
+            const char* hidesnr = "   ";
             if (snrFiltered > osdConfig()->snr_alarm) {
                 if (cmsInMenu) {
                     buff[0] = SYM_SNR;
-                    tfp_sprintf(buff + 1, "%s%c", '-20', SYM_DB);
+                    tfp_sprintf(buff + 1, "%s%c", showsnr, SYM_DB);
                 } else {
                     buff[0] = SYM_BLANK;
-                    tfp_sprintf(buff + 1, "%s%c", '   ', SYM_BLANK);
+                    tfp_sprintf(buff + 1, "%s%c", hidesnr, SYM_BLANK);
                 }
             } else if (snrFiltered <= osdConfig()->snr_alarm) {
                 buff[0] = SYM_SNR;
