@@ -194,7 +194,7 @@ static bool osdDisplayHasCanvas;
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
-PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 3);
+PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 4);
 PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 0);
 
 static int digitCount(int32_t value)
@@ -2030,7 +2030,7 @@ static bool osdDrawSingleElement(uint8_t item)
             rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
             pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
 #endif
-            pitchAngle -= DEGREES_TO_RADIANS(osdConfig()->camera_uptilt);
+            pitchAngle -= osdConfig()->ahi_camera_uptilt_comp ? DEGREES_TO_RADIANS(osdConfig()->camera_uptilt) : 0;
             if (osdConfig()->ahi_reverse_roll) {
                 rollAngle = -rollAngle;
             }
@@ -2897,6 +2897,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .crosshairs_style = SETTING_OSD_CROSSHAIRS_STYLE_DEFAULT,
     .horizon_offset = SETTING_OSD_HORIZON_OFFSET_DEFAULT,
     .camera_uptilt = SETTING_OSD_CAMERA_UPTILT_DEFAULT,
+    .ahi_camera_uptilt_comp = SETTING_OSD_AHI_CAMERA_UPTILT_COMP_DEFAULT,
     .camera_fov_h = SETTING_OSD_CAMERA_FOV_H_DEFAULT,
     .camera_fov_v = SETTING_OSD_CAMERA_FOV_V_DEFAULT,
     .hud_margin_h = SETTING_OSD_HUD_MARGIN_H_DEFAULT,

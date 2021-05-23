@@ -391,6 +391,7 @@
 | opflow_hardware | NONE |  |  | Selection of OPFLOW hardware. |
 | opflow_scale | 10.5 | 0 | 10000 |  |
 | osd_ahi_bordered | OFF |  |  | Shows a border/corners around the AHI region (pixel OSD only) |
+| osd_ahi_camera_uptilt_comp | ON |  |  | When set to `ON`, the AHI position is adjusted by `osd_camera_uptilt`. For example, with a cammera uptilt of 30 degrees and this setting set to `ON`, the AHI will appear in the middle of the OSD when the aircraft is pitched forward 30 degrees. |
 | osd_ahi_height | 162 |  | 255 | AHI height in pixels (pixel OSD only) |
 | osd_ahi_max_pitch | 20 | 10 | 90 | Max pitch, in degrees, for OSD artificial horizon |
 | osd_ahi_reverse_roll | OFF |  |  |  |
@@ -402,7 +403,7 @@
 | osd_baro_temp_alarm_min | -200 | -550 | 1250 | Temperature under which the baro temperature OSD element will start blinking (decidegrees centigrade) |
 | osd_camera_fov_h | 135 | 60 | 150 | Horizontal field of view for the camera in degres |
 | osd_camera_fov_v | 85 | 30 | 120 | Vertical field of view for the camera in degres |
-| osd_camera_uptilt | 0 | -40 | 80 | Set the camera uptilt for the FPV camera in degres, positive is up, negative is down, relative to the horizontal |
+| osd_camera_uptilt | 0 | -40 | 80 | Set the camera uptilt for the FPV camera in degres, positive is up, negative is down, relative to the horizontal. Used for correct display of HUD items and AHI (when enabled). |
 | osd_coordinate_digits | 9 | 8 | 11 |  |
 | osd_crosshairs_style | DEFAULT |  |  | To set the visual type for the crosshair |
 | osd_crsf_lq_format | TYPE1 |  |  | To select LQ format |
