@@ -1341,3 +1341,8 @@ void updateFixedWingLevelTrim(timeUs_t currentTimeUs)
 
     previousArmingState = !!ARMING_FLAG(ARMED);
 }
+
+float getFixedWingLevelTrim(void)
+{
+    return STATE(AIRPLANE) ? fixedWingLevelTrim : 0;
+}
