@@ -3184,7 +3184,7 @@ groups:
         max: 80
       - name: osd_ahi_camera_uptilt_comp
         description: "When set to `ON`, the AHI position is adjusted by `osd_camera_uptilt`. For example, with a cammera uptilt of 30 degrees and this setting set to `ON`, the AHI will appear in the middle of the OSD when the aircraft is pitched forward 30 degrees."
-        default_value: ON
+        default_value: OFF
         field: ahi_camera_uptilt_comp
         type: bool
       - name: osd_camera_fov_h

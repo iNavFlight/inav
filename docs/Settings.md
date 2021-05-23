@@ -391,7 +391,7 @@
 | opflow_hardware | NONE |  |  | Selection of OPFLOW hardware. |
 | opflow_scale | 10.5 | 0 | 10000 |  |
 | osd_ahi_bordered | OFF |  |  | Shows a border/corners around the AHI region (pixel OSD only) |
-| osd_ahi_camera_uptilt_comp | ON |  |  | When set to `ON`, the AHI position is adjusted by `osd_camera_uptilt`. For example, with a cammera uptilt of 30 degrees and this setting set to `ON`, the AHI will appear in the middle of the OSD when the aircraft is pitched forward 30 degrees. |
+| osd_ahi_camera_uptilt_comp | OFF |  |  | When set to `ON`, the AHI position is adjusted by `osd_camera_uptilt`. For example, with a cammera uptilt of 30 degrees and this setting set to `ON`, the AHI will appear in the middle of the OSD when the aircraft is pitched forward 30 degrees. |
 | osd_ahi_height | 162 |  | 255 | AHI height in pixels (pixel OSD only) |
 | osd_ahi_max_pitch | 20 | 10 | 90 | Max pitch, in degrees, for OSD artificial horizon |
 | osd_ahi_reverse_roll | OFF |  |  |  |
