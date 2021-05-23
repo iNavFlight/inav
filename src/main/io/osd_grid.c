@@ -140,12 +140,24 @@ void osdGridDrawArtificialHorizon(displayPort_t *display, unsigned gx, unsigned 
         }
     }
 
+    int8_t ahiPitchAngleDatum;     // pitch datum AHI is drawn relative to (degrees)
+    int8_t ahiLineEndPitchOffset;  // AHI end of line offset in degrees when ahiPitchAngleDatum > 0
+
+    if (osdConfig()->ahi_pitch_interval) {
+        ahiPitchAngleDatum = osdConfig()->ahi_pitch_interval * (int8_t)(RADIANS_TO_DEGREES(pitchAngle) / osdConfig()->ahi_pitch_interval);
+        pitchAngle -= DEGREES_TO_RADIANS(ahiPitchAngleDatum);
+    } else {
+        ahiPitchAngleDatum = 0;
+    }
+
     if (fabsf(ky) < fabsf(kx)) {
 
         previous_orient = 0;
 
         for (int8_t dx = -OSD_AHI_WIDTH / 2; dx <= OSD_AHI_WIDTH / 2; dx++) {
-            float fy = (ratio * dx) * (ky / kx) + pitchAngle * pitch_rad_to_char + 0.49f;
+            ahiLineEndPitchOffset = ahiPitchAngleDatum && (dx == -OSD_AHI_WIDTH / 2 || dx == OSD_AHI_WIDTH / 2) ? -3 * ABS(ahiPitchAngleDatum) / ahiPitchAngleDatum : 0;
+            ahiLineEndPitchOffset = ABS(ahiPitchAngleDatum) / 30 >= 1 ? ahiLineEndPitchOffset * ABS(ahiPitchAngleDatum) / 30 : ahiLineEndPitchOffset;
+            float fy = (ratio * dx) * (ky / kx) + (pitchAngle + DEGREES_TO_RADIANS(ahiLineEndPitchOffset)) * pitch_rad_to_char + 0.49f;
             int8_t dy = floorf(fy);
             const uint8_t chX = elemPosX + dx, chY = elemPosY - dy;
             uint16_t c;
