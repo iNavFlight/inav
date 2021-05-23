@@ -293,8 +293,7 @@ typedef enum {
     NAV_WP_ACTION_SET_POI   = 0x05,
     NAV_WP_ACTION_JUMP      = 0x06,
     NAV_WP_ACTION_SET_HEAD  = 0x07,
-    NAV_WP_ACTION_LAND      = 0x08,
-    NAV_WP_ACTION_FBH       = 0x09
+    NAV_WP_ACTION_LAND      = 0x08
 } navWaypointActions_e;
 
 typedef enum {
