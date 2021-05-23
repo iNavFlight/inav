@@ -303,7 +303,8 @@ typedef enum {
 } navWaypointHeadings_e;
 
 typedef enum {
-    NAV_WP_FLAG_LAST = 0xA5
+    NAV_WP_FLAG_LAST = 0xA5,
+    NAV_WP_FLAG_HOME = 0x48
 } navWaypointFlags_e;
 
 typedef struct {
