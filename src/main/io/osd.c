@@ -1895,7 +1895,7 @@ static bool osdDrawSingleElement(uint8_t item)
             snrUpdated = millis();
 
             const char* showsnr = "-20";
-            const char* hidesnr = "     ";
+            const char* hidesnr = "   ";
             if (snrFiltered > osdConfig()->snr_alarm) {
                 if (cmsInMenu) {
                     buff[0] = SYM_SNR;
