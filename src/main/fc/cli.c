@@ -1460,7 +1460,7 @@ static void cliWaypoints(char *cmdline)
 
             if (!(validArgumentCount == 6 || validArgumentCount == 8)) {
                 cliShowParseError();
-            } else if (!(action == 0 || action == NAV_WP_ACTION_WAYPOINT || action == NAV_WP_ACTION_RTH || action == NAV_WP_ACTION_JUMP || action == NAV_WP_ACTION_HOLD_TIME || action == NAV_WP_ACTION_LAND || action == NAV_WP_ACTION_SET_POI || action == NAV_WP_ACTION_SET_HEAD) || !(flag == 0 || flag == NAV_WP_FLAG_LAST)) {
+            } else if (!(action == 0 || action == NAV_WP_ACTION_WAYPOINT || action == NAV_WP_ACTION_RTH || action == NAV_WP_ACTION_JUMP || action == NAV_WP_ACTION_HOLD_TIME || action == NAV_WP_ACTION_LAND || action == NAV_WP_ACTION_SET_POI || action == NAV_WP_ACTION_SET_HEAD) || !(flag == 0 || flag == NAV_WP_FLAG_LAST || flag == NAV_WP_FLAG_HOME)) {
                 cliShowParseError();
             } else {
                 posControl.waypointList[i].action = action;
@@ -2930,28 +2930,28 @@ static void printImu2Status(void)
     cliPrintLinef("Acc: %d", secondaryImuState.calibrationStatus.acc);
     cliPrintLinef("Mag: %d", secondaryImuState.calibrationStatus.mag);
     cliPrintLine("Calibration gains:");
-    
+
     cliPrintLinef(
-        "Gyro: %d %d %d", 
-        secondaryImuConfig()->calibrationOffsetGyro[X], 
-        secondaryImuConfig()->calibrationOffsetGyro[Y], 
+        "Gyro: %d %d %d",
+        secondaryImuConfig()->calibrationOffsetGyro[X],
+        secondaryImuConfig()->calibrationOffsetGyro[Y],
         secondaryImuConfig()->calibrationOffsetGyro[Z]
     );
     cliPrintLinef(
-        "Acc: %d %d %d", 
-        secondaryImuConfig()->calibrationOffsetAcc[X], 
-        secondaryImuConfig()->calibrationOffsetAcc[Y], 
+        "Acc: %d %d %d",
+        secondaryImuConfig()->calibrationOffsetAcc[X],
+        secondaryImuConfig()->calibrationOffsetAcc[Y],
         secondaryImuConfig()->calibrationOffsetAcc[Z]
     );
     cliPrintLinef(
-        "Mag: %d %d %d", 
-        secondaryImuConfig()->calibrationOffsetMag[X], 
-        secondaryImuConfig()->calibrationOffsetMag[Y], 
+        "Mag: %d %d %d",
+        secondaryImuConfig()->calibrationOffsetMag[X],
+        secondaryImuConfig()->calibrationOffsetMag[Y],
         secondaryImuConfig()->calibrationOffsetMag[Z]
     );
     cliPrintLinef(
-        "Radius: %d %d", 
-        secondaryImuConfig()->calibrationRadiusAcc, 
+        "Radius: %d %d",
+        secondaryImuConfig()->calibrationRadiusAcc,
         secondaryImuConfig()->calibrationRadiusMag
     );
 }

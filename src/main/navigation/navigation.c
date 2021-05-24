@@ -2901,7 +2901,7 @@ static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint
 {
     gpsLocation_t wpLLH;
 
-    /* Default to home position if lat & lon = 0 or flag = NAV_WP_FLAG_HOME
+    /* Default to home position if lat & lon = 0 or HOME flag set
      * Applicable to WAYPOINT, HOLD_TIME & LANDING WP types */
     if ((waypoint->lat == 0 && waypoint->lon == 0) || waypoint->flag == NAV_WP_FLAG_HOME) {
         wpLLH.lat = GPS_home.lat;
