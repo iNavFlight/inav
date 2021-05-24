@@ -497,8 +497,9 @@ void mavlinkSendRCChannelsAndRSSI(void)
         GET_CHANNEL_VALUE(6),
         // chan8_raw RC channel 8 value, in microseconds
         GET_CHANNEL_VALUE(7),
-        // rssi Receive signal strength indicator, 0: 0%, 255: 100%
-        scaleRange(getRSSI(), 0, 1023, 0, 255));
+        // rssi Receive signal strength indicator, 0: 0%, 254: 100%
+		//https://github.com/mavlink/mavlink/issues/1027
+        scaleRange(getRSSI(), 0, 1023, 0, 254));
 #undef GET_CHANNEL_VALUE
 
     mavlinkSendMessage();
