@@ -41,10 +41,10 @@
 #include "io/osd_common.h"
 #include "io/osd_grid.h"
 
+#include "msp/msp_serial.h"
+
 #include "navigation/navigation.h"
 #include "sensors/pitotmeter.h"
-
-#include "msp/msp_serial.h"
 
 
 #if defined(USE_OSD) || defined(USE_DJI_HD_OSD)
