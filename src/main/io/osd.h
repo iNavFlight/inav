@@ -332,6 +332,7 @@ typedef struct osdConfig_s {
     uint8_t crosshairs_style; // from osd_crosshairs_style_e
     int8_t horizon_offset;
     int8_t camera_uptilt;
+    bool ahi_camera_uptilt_comp;
     uint8_t camera_fov_h;
     uint8_t camera_fov_v;
     uint8_t hud_margin_h;

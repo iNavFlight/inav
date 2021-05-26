@@ -3892,6 +3892,16 @@ Shows a border/corners around the AHI region (pixel OSD only)
 
 ---
 
+### osd_ahi_camera_uptilt_comp
+
+When set to `ON`, the AHI position is adjusted by `osd_camera_uptilt`. For example, with a cammera uptilt of 30 degrees, the AHI will appear in the middle of the OSD when the aircraft is pitched forward 30 degrees. When set to `OFF`, the AHI will appear in the center of the OSD regardless of camera angle, but can still be shifted up and down using `osd_horizon_offset` (`osd_ahi_vertical_offset` for pixel-OSD).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF |  |  |
+
+---
+
 ### osd_ahi_height
 
 AHI height in pixels (pixel OSD only)
@@ -4004,7 +4014,7 @@ Vertical field of view for the camera in degres
 
 ### osd_camera_uptilt
 
-Set the camera uptilt for the FPV camera in degres, positive is up, negative is down, relative to the horizontal
+Set the camera uptilt for the FPV camera in degres, positive is up, negative is down, relative to the horizontal. Used for correct display of HUD items and AHI (when enabled).
 
 | Default | Min | Max |
 | --- | --- | --- |
