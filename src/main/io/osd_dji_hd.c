@@ -58,6 +58,7 @@
 #include "io/gps.h"
 #include "io/osd.h"
 #include "io/osd_dji_hd.h"
+#include "io/osd_common.h"
 
 #include "rx/rx.h"
 
@@ -68,6 +69,7 @@
 #include "sensors/acceleration.h"
 #include "sensors/esc_sensor.h"
 #include "sensors/temperature.h"
+#include "sensors/pitotmeter.h"
 
 #include "msp/msp.h"
 #include "msp/msp_protocol.h"
@@ -110,7 +112,7 @@
 })
 
 
-/* 
+/*
  * DJI HD goggles use MSPv1 compatible with Betaflight 4.1.0
  * DJI uses a subset of messages and assume fixed bit positions for flight modes
  *
@@ -118,11 +120,11 @@
  * but reuse the packet decoder to minimize code duplication
  */
 
-PG_REGISTER_WITH_RESET_TEMPLATE(djiOsdConfig_t, djiOsdConfig, PG_DJI_OSD_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(djiOsdConfig_t, djiOsdConfig, PG_DJI_OSD_CONFIG, 2);
 PG_RESET_TEMPLATE(djiOsdConfig_t, djiOsdConfig,
-    .use_name_for_messages  = true,
-    .esc_temperature_source = DJI_OSD_TEMP_ESC,
-    .proto_workarounds = DJI_OSD_USE_NON_STANDARD_MSP_ESC_SENSOR_DATA,
+    .use_name_for_messages  = SETTING_DJI_USE_NAME_FOR_MESSAGES_DEFAULT,
+    .esc_temperature_source = SETTING_DJI_ESC_TEMP_SOURCE_DEFAULT,
+    .proto_workarounds = SETTING_DJI_WORKAROUNDS_DEFAULT,
 );
 
 // External dependency on looptime
@@ -500,6 +502,10 @@ static const char * osdArmingDisabledReasonMessage(void)
             return OSD_MESSAGE_STR("CLI");
         case ARMING_DISABLED_PWM_OUTPUT_ERROR:
             return OSD_MESSAGE_STR("PWM ERR");
+        case ARMING_DISABLED_NO_PREARM:
+            return OSD_MESSAGE_STR("NO PREARM");
+        case ARMING_DISABLED_DSHOT_BEEPER:
+            return OSD_MESSAGE_STR("MOTOR BEEPER ACTIVE");
             // Cases without message
         case ARMING_DISABLED_CMS_MENU:
             FALLTHROUGH;
@@ -639,13 +645,6 @@ static int32_t osdConvertVelocityToUnit(int32_t vel)
     return -1;
 }
 
-static int16_t osdDJIGet3DSpeed(void)
-{
-    int16_t vert_speed = getEstimatedActualVelocity(Z);
-    int16_t hor_speed = gpsSol.groundSpeed;
-    return (int16_t)sqrtf(sq(hor_speed) + sq(vert_speed));
-}
-
 /**
  * Converts velocity into a string based on the current unit system.
  * @param alt Raw velocity (i.e. as taken from gpsSol.groundSpeed in centimeters/seconds)
@@ -670,7 +669,7 @@ static void osdDJIFormatThrottlePosition(char *buff, bool autoThr )
         thr = rcCommand[THROTTLE];
     }
 
-    tfp_sprintf(buff, "%3d%s", (constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN), "%THR");
+    tfp_sprintf(buff, "%3ld%s", (constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN), "%THR");
 }
 
 /**
@@ -687,7 +686,7 @@ static void osdDJIFormatDistanceStr(char *buff, int32_t dist)
             if (abs(centifeet) < FEET_PER_MILE * 100 / 2) {
                 // Show feet when dist < 0.5mi
                 tfp_sprintf(buff, "%d%s", (int)(centifeet / 100), "FT");
-            } 
+            }
             else {
                 // Show miles when dist >= 0.5mi
                 tfp_sprintf(buff, "%d.%02d%s", (int)(centifeet / (100*FEET_PER_MILE)),
@@ -724,7 +723,7 @@ static void osdDJIEfficiencyMahPerKM(char *buff)
     if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
         if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
             value = pt1FilterApply4(&eFilterState, ((float)getAmperage() / gpsSol.groundSpeed) / 0.0036f,
-                1, efficiencyTimeDelta * 1e-6f);
+                1, US2S(efficiencyTimeDelta));
 
             efficiencyUpdated = currentTimeUs;
         }
@@ -757,7 +756,7 @@ static void djiSerializeCraftNameOverride(sbuf_t *dst, const char * name)
     if (enabledElements[0] == 'W') {
         enabledElements += 1;
     }
-    
+
     int elemLen = strlen(enabledElements);
 
     if (elemLen > 0) {
@@ -766,7 +765,7 @@ static void djiSerializeCraftNameOverride(sbuf_t *dst, const char * name)
                 osdDJIFormatThrottlePosition(djibuf,true);
                 break;
             case 'S':
-                osdDJIFormatVelocityStr(djibuf, osdDJIGet3DSpeed());
+                osdDJIFormatVelocityStr(djibuf, osdGet3DSpeed());
                 break;
             case 'E':
                 osdDJIEfficiencyMahPerKM(djibuf);
@@ -827,14 +826,14 @@ static void djiSerializeCraftNameOverride(sbuf_t *dst, const char * name)
                     // during a lost aircraft recovery and blinking
                     // will cause it to be missing from some frames.
                 }
-            } 
+            }
             else {
                 if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
                     const char *navStateMessage = navigationStateMessage();
                     if (navStateMessage) {
                         messages[messageCount++] = navStateMessage;
                     }
-                } 
+                }
                 else if (STATE(FIXED_WING_LEGACY) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
                     messages[messageCount++] = "AUTOLAUNCH";
                 }
@@ -996,7 +995,7 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
             for (int i = 0; i < STICK_CHANNEL_COUNT; i++) {
                 sbufWriteU16(dst, rxGetChannelValue(i));
             }
-            break;            
+            break;
 
         case DJI_MSP_RAW_GPS:
             sbufWriteU8(dst, gpsSol.fixType);
@@ -1004,7 +1003,7 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
             sbufWriteU32(dst, gpsSol.llh.lat);
             sbufWriteU32(dst, gpsSol.llh.lon);
             sbufWriteU16(dst, gpsSol.llh.alt / 100);
-            sbufWriteU16(dst, gpsSol.groundSpeed);
+            sbufWriteU16(dst, osdGetSpeedFromSelectedSource());
             sbufWriteU16(dst, gpsSol.groundCourse);
             break;
 
@@ -1174,7 +1173,7 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
             break;
 
         case DJI_MSP_FILTER_CONFIG:
-            sbufWriteU8(dst, gyroConfig()->gyro_soft_lpf_hz);           // BF: gyroConfig()->gyro_lowpass_hz
+            sbufWriteU8(dst, gyroConfig()->gyro_main_lpf_hz);           // BF: gyroConfig()->gyro_lowpass_hz
             sbufWriteU16(dst, pidProfile()->dterm_lpf_hz);              // BF: currentPidProfile->dterm_lowpass_hz
             sbufWriteU16(dst, pidProfile()->yaw_lpf_hz);                // BF: currentPidProfile->yaw_lowpass_hz
             sbufWriteU16(dst, gyroConfig()->gyro_notch_hz);             // BF: gyroConfig()->gyro_soft_notch_hz_1
@@ -1186,8 +1185,8 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
             sbufWriteU8(dst, 0);                                        // BF: currentPidProfile->dterm_filter_type
             sbufWriteU8(dst, gyroConfig()->gyro_lpf);                   // BF: gyroConfig()->gyro_hardware_lpf);
             sbufWriteU8(dst, 0);                                        // BF: DEPRECATED: gyro_32khz_hardware_lpf
-            sbufWriteU16(dst, gyroConfig()->gyro_soft_lpf_hz);          // BF: gyroConfig()->gyro_lowpass_hz);
-            sbufWriteU16(dst, gyroConfig()->gyro_stage2_lowpass_hz);    // BF: gyroConfig()->gyro_lowpass2_hz);
+            sbufWriteU16(dst, gyroConfig()->gyro_main_lpf_hz);          // BF: gyroConfig()->gyro_lowpass_hz);
+            sbufWriteU16(dst, 0);                                       // BF: gyroConfig()->gyro_lowpass2_hz);
             sbufWriteU8(dst, 0);                                        // BF: gyroConfig()->gyro_lowpass_type);
             sbufWriteU8(dst, 0);                                        // BF: gyroConfig()->gyro_lowpass2_type);
             sbufWriteU16(dst, 0);                                       // BF: currentPidProfile->dterm_lowpass2_hz);
