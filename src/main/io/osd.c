@@ -1895,7 +1895,7 @@ static bool osdDrawSingleElement(uint8_t item)
             snrUpdated = millis();
 
             const char* showsnr = "-20";
-            const char* hidesnr = "     ";
+            const char* hidesnr = "   ";
             if (snrFiltered > osdConfig()->snr_alarm) {
                 if (cmsInMenu) {
                     buff[0] = SYM_SNR;
@@ -2031,6 +2031,7 @@ static bool osdDrawSingleElement(uint8_t item)
             pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
 #endif
             pitchAngle -= osdConfig()->ahi_camera_uptilt_comp ? DEGREES_TO_RADIANS(osdConfig()->camera_uptilt) : 0;
+            pitchAngle += DEGREES_TO_RADIANS(getFixedWingLevelTrim());
             if (osdConfig()->ahi_reverse_roll) {
                 rollAngle = -rollAngle;
             }
@@ -2985,17 +2986,17 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     // OSD_VARIO_NUM at the right of OSD_VARIO
     osdLayoutsConfig->item_pos[0][OSD_VARIO_NUM] = OSD_POS(24, 7);
     osdLayoutsConfig->item_pos[0][OSD_HOME_DIR] = OSD_POS(14, 11);
-    osdLayoutsConfig->item_pos[0][OSD_ARTIFICIAL_HORIZON] = OSD_POS(8, 6) | OSD_VISIBLE_FLAG;
-    osdLayoutsConfig->item_pos[0][OSD_HORIZON_SIDEBARS] = OSD_POS(8, 6) | OSD_VISIBLE_FLAG;
+    osdLayoutsConfig->item_pos[0][OSD_ARTIFICIAL_HORIZON] = OSD_POS(8, 6);
+    osdLayoutsConfig->item_pos[0][OSD_HORIZON_SIDEBARS] = OSD_POS(8, 6);
 
     osdLayoutsConfig->item_pos[0][OSD_CRAFT_NAME] = OSD_POS(20, 2);
     osdLayoutsConfig->item_pos[0][OSD_VTX_CHANNEL] = OSD_POS(8, 6);
 
 #ifdef USE_SERIALRX_CRSF
-    osdLayoutsConfig->item_pos[0][OSD_CRSF_RSSI_DBM] = OSD_POS(24, 12);
-    osdLayoutsConfig->item_pos[0][OSD_CRSF_LQ] = OSD_POS(24, 11);
-    osdLayoutsConfig->item_pos[0][OSD_CRSF_SNR_DB] = OSD_POS(25, 9);
-    osdLayoutsConfig->item_pos[0][OSD_CRSF_TX_POWER] = OSD_POS(25, 10);
+    osdLayoutsConfig->item_pos[0][OSD_CRSF_RSSI_DBM] = OSD_POS(23, 12);
+    osdLayoutsConfig->item_pos[0][OSD_CRSF_LQ] = OSD_POS(23, 11);
+    osdLayoutsConfig->item_pos[0][OSD_CRSF_SNR_DB] = OSD_POS(24, 9);
+    osdLayoutsConfig->item_pos[0][OSD_CRSF_TX_POWER] = OSD_POS(24, 10);
 #endif
 
     osdLayoutsConfig->item_pos[0][OSD_ONTIME] = OSD_POS(23, 8);

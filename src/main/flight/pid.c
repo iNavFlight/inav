@@ -625,22 +625,8 @@ static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float h
          * Positive fixedWingLevelTrim means nose should point upwards
          * Negative fixedWingLevelTrim means nose should point downwards
          */
-        angleTarget -= fixedWingLevelTrim;   
-        DEBUG_SET(DEBUG_AUTOLEVEL, 3, angleTarget * 10);
-    }
-
-        //PITCH trim applied by a AutoLevel flight mode and manual pitch trimming
-    if (axis == FD_PITCH && STATE(AIRPLANE)) {
-        /* 
-         * fixedWingLevelTrim has opposite sign to rcCommand.
-         * Positive rcCommand means nose should point downwards
-         * Negative rcCommand mean nose should point upwards
-         * This is counter intuitive and a natural way suggests that + should mean UP
-         * This is why fixedWingLevelTrim has opposite sign to rcCommand
-         * Positive fixedWingLevelTrim means nose should point upwards
-         * Negative fixedWingLevelTrim means nose should point downwards
-         */
         angleTarget -= DEGREES_TO_DECIDEGREES(fixedWingLevelTrim);   
+        DEBUG_SET(DEBUG_AUTOLEVEL, 3, angleTarget * 10);
     }
 
 #ifdef USE_SECONDARY_IMU
@@ -795,7 +781,7 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
         pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -pidProfile()->fixedWingItermThrowLimit, pidProfile()->fixedWingItermThrowLimit);
     }
 
-    axisPID[axis] = constrainf(newPTerm + newFFTerm + pidState->errorGyroIf, -pidState->pidSumLimit, +pidState->pidSumLimit);
+    axisPID[axis] = constrainf(newPTerm + newFFTerm + pidState->errorGyroIf + newDTerm, -pidState->pidSumLimit, +pidState->pidSumLimit);
 
 #ifdef USE_AUTOTUNE_FIXED_WING
     if (FLIGHT_MODE(AUTO_TUNE) && !FLIGHT_MODE(MANUAL_MODE)) {
@@ -1327,11 +1313,16 @@ void updateFixedWingLevelTrim(timeUs_t currentTimeUs)
      */
     pidControllerFlags_e flags = PID_LIMIT_INTEGRATOR;
 
-    //Iterm should freeze when pitch stick is deflected
+    //Iterm should freeze when sticks are deflected
+    bool areSticksDeflected = false;
+    for (int stick = ROLL; stick <= YAW; stick++) {
+        areSticksDeflected = areSticksDeflected ||
+            rxGetChannelValue(stick) > (PWM_RANGE_MIDDLE + pidProfile()->fixedWingLevelTrimDeadband) ||
+            rxGetChannelValue(stick) < (PWM_RANGE_MIDDLE - pidProfile()->fixedWingLevelTrimDeadband);
+    }
     if (
         !IS_RC_MODE_ACTIVE(BOXAUTOLEVEL) ||
-        rxGetChannelValue(PITCH) > (PWM_RANGE_MIDDLE + pidProfile()->fixedWingLevelTrimDeadband) ||
-        rxGetChannelValue(PITCH) < (PWM_RANGE_MIDDLE - pidProfile()->fixedWingLevelTrimDeadband) ||
+        areSticksDeflected ||
         (!FLIGHT_MODE(ANGLE_MODE) && !FLIGHT_MODE(HORIZON_MODE)) ||
         navigationIsControllingAltitude()
     ) {
@@ -1354,4 +1345,9 @@ void updateFixedWingLevelTrim(timeUs_t currentTimeUs)
     fixedWingLevelTrim = pidProfile()->fixedWingLevelTrim + (output * FIXED_WING_LEVEL_TRIM_MULTIPLIER);
 
     previousArmingState = !!ARMING_FLAG(ARMED);
+}
+
+float getFixedWingLevelTrim(void)
+{
+    return STATE(AIRPLANE) ? fixedWingLevelTrim : 0;
 }
