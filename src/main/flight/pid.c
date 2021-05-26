@@ -625,22 +625,8 @@ static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float h
          * Positive fixedWingLevelTrim means nose should point upwards
          * Negative fixedWingLevelTrim means nose should point downwards
          */
-        angleTarget -= fixedWingLevelTrim;   
-        DEBUG_SET(DEBUG_AUTOLEVEL, 3, angleTarget * 10);
-    }
-
-        //PITCH trim applied by a AutoLevel flight mode and manual pitch trimming
-    if (axis == FD_PITCH && STATE(AIRPLANE)) {
-        /* 
-         * fixedWingLevelTrim has opposite sign to rcCommand.
-         * Positive rcCommand means nose should point downwards
-         * Negative rcCommand mean nose should point upwards
-         * This is counter intuitive and a natural way suggests that + should mean UP
-         * This is why fixedWingLevelTrim has opposite sign to rcCommand
-         * Positive fixedWingLevelTrim means nose should point upwards
-         * Negative fixedWingLevelTrim means nose should point downwards
-         */
         angleTarget -= DEGREES_TO_DECIDEGREES(fixedWingLevelTrim);   
+        DEBUG_SET(DEBUG_AUTOLEVEL, 3, angleTarget * 10);
     }
 
 #ifdef USE_SECONDARY_IMU
@@ -1359,4 +1345,9 @@ void updateFixedWingLevelTrim(timeUs_t currentTimeUs)
     fixedWingLevelTrim = pidProfile()->fixedWingLevelTrim + (output * FIXED_WING_LEVEL_TRIM_MULTIPLIER);
 
     previousArmingState = !!ARMING_FLAG(ARMED);
+}
+
+float getFixedWingLevelTrim(void)
+{
+    return STATE(AIRPLANE) ? fixedWingLevelTrim : 0;
 }
