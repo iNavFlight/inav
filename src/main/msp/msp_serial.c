@@ -52,13 +52,12 @@ void resetMspPort(mspPort_t *mspPortToReset, serialPort_t *serialPort)
     mspPortToReset->port = serialPort;
 }
 
-void mspSerialAllocatePorts(void)
+#if defined(USE_MSP_DISPLAYPORT)
+void mspDisplayportAllocatePorts(void)
 {
     uint8_t portIndex = 0;
-    serialPortConfig_t *portConfig;
-    
-    #if defined(USE_MSP_DISPLAYPORT)
-    portConfig = findSerialPortConfig(FUNCTION_MSP_DISPLAYPORT);
+    serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_MSP_DISPLAYPORT);
+
     while (portConfig && portIndex < MAX_MSP_PORT_COUNT) {
         mspPort_t *mspPort = &mspPorts[portIndex];
         if (mspPort->port) {
@@ -76,9 +75,14 @@ void mspSerialAllocatePorts(void)
 
         portConfig = findNextSerialPortConfig(FUNCTION_MSP_DISPLAYPORT);
     }
-    #endif
+}
+#endif
 
-    portConfig = findSerialPortConfig(FUNCTION_MSP);
+void mspSerialAllocatePorts(void)
+{
+    uint8_t portIndex = 0;
+    serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_MSP);
+
     while (portConfig && portIndex < MAX_MSP_PORT_COUNT) {
         mspPort_t *mspPort = &mspPorts[portIndex];
         if (mspPort->port) {
@@ -542,6 +546,9 @@ void mspSerialInit(void)
     msp_displayport_index = 0;
     memset(mspPorts, 0, sizeof(mspPorts));
     mspSerialAllocatePorts();
+#if defined(USE_MSP_DISPLAYPORT)
+    mspDisplayportAllocatePorts();
+#endif
 }
 
 int mspSerialPushPort(uint16_t cmd, const uint8_t *data, int datalen, mspPort_t *mspPort, mspVersion_e version)
