@@ -98,6 +98,7 @@
 #define OSD_MSG_ALTITUDE_HOLD       "(ALTITUDE HOLD)"
 #define OSD_MSG_AUTOTRIM            "(AUTOTRIM)"
 #define OSD_MSG_AUTOTUNE            "(AUTOTUNE)"
+#define OSD_MSG_AUTOTUNE_ACRO       "SWITCH TO ACRO"
 #define OSD_MSG_HEADFREE            "(HEADFREE)"
 #define OSD_MSG_UNABLE_ARM          "UNABLE TO ARM"
 
