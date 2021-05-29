@@ -148,6 +148,24 @@
 #define USE_RANGEFINDER
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
 
+// *************** ADC *****************************
+#define USE_ADC
+#define ADC_INSTANCE                ADC1
+
+#define ADC_CHANNEL_1_PIN           PC0  //ADC123 VBAT1
+#define ADC_CHANNEL_2_PIN           PC1  //ADC123 CURR1
+#define ADC_CHANNEL_3_PIN           PC5  //ADC12  RSSI
+#define ADC_CHANNEL_4_PIN           PC4  //ADC12  AirS
+#define ADC_CHANNEL_5_PIN           PA4  //ADC12  VB2
+#define ADC_CHANNEL_6_PIN           PA7  //ADC12  CU2
+
+#define VBAT_ADC_CHANNEL            ADC_CHN_1
+#define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
+#define RSSI_ADC_CHANNEL            ADC_CHN_3
+#define AIRSPEED_ADC_CHANNEL        ADC_CHN_4
+
+#define CURRENT_METER_SCALE         250
+
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #define TARGET_IO_PORTA 0xffff
@@ -165,20 +183,6 @@
 #define USE_EXTI
 #define USE_MPU_DATA_READY_SIGNAL
 
-// *************** ADC *****************************
-#define USE_ADC
-#define ADC_INSTANCE                ADC1
-
-#define ADC_CHANNEL_1_PIN           PC2
-#define ADC_CHANNEL_2_PIN           PC3
-#define ADC_CHANNEL_3_PIN           PC1
-#define ADC_CHANNEL_4_PIN           PC0
-
-#define VBAT_ADC_CHANNEL            ADC_CHN_1
-#define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
-#define RSSI_ADC_CHANNEL            ADC_CHN_3
-#define AIRSPEED_ADC_CHANNEL        ADC_CHN_4
-
 // *************** PINIO ***************************
 #define USE_PINIO
 #define USE_PINIOBOX
@@ -190,6 +194,5 @@
 #define WS2811_PIN                  PA8
 
 #define DEFAULT_FEATURES            (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
-#define CURRENT_METER_SCALE         250
 
 #endif
