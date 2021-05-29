@@ -182,12 +182,12 @@ tables:
 
 constants:
   RPYL_PID_MIN: 0
-  RPYL_PID_MAX: 200
+  RPYL_PID_MAX: 300
 
   MANUAL_RATE_MIN: 0
   MANUAL_RATE_MAX: 100
 
-  ROLL_PITCH_RATE_MIN: 6
+  ROLL_PITCH_RATE_MIN: 4
   ROLL_PITCH_RATE_MAX: 180
 
 groups:
@@ -1289,7 +1289,7 @@ groups:
         description: "Defines rotation rate on YAW axis that UAV will try to archive on max. stick deflection. Rates are defined in tens of degrees (deca-degrees) per second [rate = dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure."
         default_value: 20
         field: stabilized.rates[FD_YAW]
-        min: 2
+        min: 1
         max: 180
       - name: manual_rc_expo
         description: "Exposition value used for the PITCH/ROLL axes by the `MANUAL` flight mode [0-100]"
