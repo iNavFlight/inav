@@ -179,10 +179,10 @@
 #define USE_ESC_SENSOR
 #define USE_SERIALSHOT
 
-#if 0
 #define USE_EXTI
 #define USE_MPU_DATA_READY_SIGNAL
 
+#if 0
 // *************** PINIO ***************************
 #define USE_PINIO
 #define USE_PINIOBOX
