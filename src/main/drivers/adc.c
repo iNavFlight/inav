@@ -57,7 +57,7 @@ static int adcFunctionMap[ADC_FUNCTION_COUNT];
 adc_config_t adcConfig[ADC_CHN_COUNT];  // index 0 is dummy for ADC_CHN_NONE
 volatile uint16_t adcValues[ADCDEV_COUNT][ADC_CHN_COUNT * ADC_AVERAGE_N_SAMPLES];
 
-uint8_t adcChannelByTag(ioTag_t ioTag)
+uint32_t adcChannelByTag(ioTag_t ioTag)
 {
     for (uint8_t i = 0; i < ARRAYLEN(adcTagMap); i++) {
         if (ioTag == adcTagMap[i].tag)
