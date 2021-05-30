@@ -722,3 +722,14 @@ bool isAdjustmentFunctionSelected(uint8_t adjustmentFunction) {
     }
     return false;
 }
+
+uint8_t getActiveAdjustmentFunctions(uint8_t *adjustmentFunctions) {
+    uint8_t adjustmentCount = 0;
+    for (uint8_t i = 0; i < MAX_SIMULTANEOUS_ADJUSTMENT_COUNT; i++) {
+        if (adjustmentStates[i].config) {
+            adjustmentCount++;
+            adjustmentFunctions[i] = adjustmentStates[i].config->adjustmentFunction;
+        }
+    }
+    return adjustmentCount;
+}
