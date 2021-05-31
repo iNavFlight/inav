@@ -224,21 +224,6 @@ STATIC_UNIT_TESTED void imuComputeQuaternionFromRPY(int16_t initialRoll, int16_t
 }
 #endif
 
-static bool imuUseFastGains(void)
-{
-    return !ARMING_FLAG(ARMED) && millis() < 20000;
-}
-
-static float imuGetPGainScaleFactor(void)
-{
-    if (imuUseFastGains()) {
-        return 10.0f;
-    }
-    else {
-        return 1.0f;
-    }
-}
-
 static void imuResetOrientationQuaternion(const fpVector3_t * accBF)
 {
     const float accNorm = sqrtf(vectorNormSquared(accBF));
@@ -574,8 +559,8 @@ static void imuCalculateEstimatedAttitude(float dT)
 
     fpVector3_t measuredMagBF = { .v = { mag.magADC[X], mag.magADC[Y], mag.magADC[Z] } };
 
-    const float magWeight = imuGetPGainScaleFactor() * 1.0f;
-    const float accWeight = imuGetPGainScaleFactor() * imuCalculateAccelerometerWeight(dT);
+    const float magWeight = 1.0f;
+    const float accWeight = imuCalculateAccelerometerWeight(dT);
     const bool useAcc = (accWeight > 0.001f);
 
     imuMahonyAHRSupdate(dT, &imuMeasuredRotationBF,
