@@ -89,6 +89,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
+#define MAVLINK_COMM_NUM_BUFFERS 1
 #include "common/mavlink.h"
 #pragma GCC diagnostic pop
 
@@ -326,7 +327,14 @@ void checkMAVLinkTelemetryState(void)
 static void mavlinkSendMessage(void)
 {
     uint8_t mavBuffer[MAVLINK_MAX_PACKET_LEN];
-    if (telemetryConfig()->mavlink.version == 1) mavSendMsg.magic = MAVLINK_STX_MAVLINK1;
+
+    mavlink_status_t* chan_state = mavlink_get_channel_status(MAVLINK_COMM_0);
+    if (telemetryConfig()->mavlink.version == 1) {
+        chan_state->flags |= MAVLINK_STATUS_FLAG_OUT_MAVLINK1;
+    } else {
+        chan_state->flags &= ~MAVLINK_STATUS_FLAG_OUT_MAVLINK1;
+    }
+
     int msgLength = mavlink_msg_to_send_buffer(mavBuffer, &mavSendMsg);
 
     for (int i = 0; i < msgLength; i++) {
