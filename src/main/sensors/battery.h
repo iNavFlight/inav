@@ -112,6 +112,8 @@ typedef struct batteryProfile_s {
         batCapacityUnit_e unit; // Describes unit of capacity.value, capacity.warning and capacity.critical
     } capacity;
 
+    uint8_t controlRateProfile;
+
 } batteryProfile_t;
 
 PG_DECLARE(batteryMetersConfig_t, batteryMetersConfig);

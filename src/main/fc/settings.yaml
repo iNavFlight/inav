@@ -194,6 +194,8 @@ constants:
   ROLL_PITCH_RATE_MIN: 4
   ROLL_PITCH_RATE_MAX: 180
 
+  MAX_CONTROL_RATE_PROFILE_COUNT: 3
+
 groups:
   - name: PG_GYRO_CONFIG
     type: gyroConfig_t
@@ -1131,6 +1133,12 @@ groups:
         field: capacity.unit
         table: bat_capacity_unit
         type: uint8_t
+      - name: controlrate_profile
+        description: "Control rate profile to switch to when the battery profile is selected, 0 to disable and keep the currently selected control rate profile"
+        default_value: 0
+        field: controlRateProfile
+        min: 0
+        max: MAX_CONTROL_RATE_PROFILE_COUNT
 
   - name: PG_MIXER_CONFIG
     type: mixerConfig_t
@@ -1230,7 +1238,7 @@ groups:
 
   - name: PG_CONTROL_RATE_PROFILES
     type: controlRateConfig_t
-    headers: ["fc/controlrate_profile.h"]
+    headers: ["fc/controlrate_profile_config_struct.h"]
     value_type: CONTROL_RATE_VALUE
     members:
       - name: thr_mid
