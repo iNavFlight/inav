@@ -2173,6 +2173,11 @@ groups:
         field: fw_max_rate_deflection
         min: 50
         max: 100
+      - name: fw_autotune_acceleration
+        description: "When set to `ON`, autotune will determine the max acceleration of the airplane and use these to limit the changes of the setpoints. This results in better stopping performance, but may slow down the servo movement."
+        field: fw_acceleration
+        default_value: OFF
+        type: bool
 
   - name: PG_POSITION_ESTIMATION_CONFIG
     type: positionEstimationConfig_t

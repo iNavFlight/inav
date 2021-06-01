@@ -180,6 +180,7 @@ typedef struct pidAutotuneConfig_s {
     uint16_t    fw_ff_to_i_time_constant;   // FF to I time (defines time for I to reach the same level of response as FF) [ms]
     uint8_t     fw_rate_adjustment;         // Adjust rate settings during autotune?
     uint8_t     fw_max_rate_deflection;     // Percentage of max mixer output used for calculating the rates
+    bool        fw_acceleration;            // Should the max acceleration of each axis be tuned?
 } pidAutotuneConfig_t;
 
 typedef enum {
@@ -227,7 +228,7 @@ void resetHeadingHoldTarget(int16_t heading);
 int16_t getHeadingHoldTarget(void);
 
 void autotuneUpdateState(void);
-void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRateDps, float reachedRateDps, float pidOutput);
+void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRateDps, float reachedRateDps, float acceleration, float pidOutput);
 
 pidType_e pidIndexGetType(pidIndex_e pidIndex);
 

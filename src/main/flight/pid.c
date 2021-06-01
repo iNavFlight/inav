@@ -742,6 +742,13 @@ static float applyDBoost(pidState_t *pidState, float dT) {
 }
 #endif
 
+static float gyroAcceleration(pidState_t *pidState, float dT) {
+    float acceleration = (pidState->gyroRate - pidState->previousRateGyro) / dT;
+    acceleration = dTermLpfFilterApplyFn((filter_t *) &pidState->dtermLpfState, acceleration);
+    acceleration = dTermLpf2FilterApplyFn((filter_t *) &pidState->dtermLpf2State, acceleration);
+    return acceleration;
+}
+
 static float dTermProcess(pidState_t *pidState, float dT) {
     // Calculate new D-term
     float newDTerm = 0;
@@ -749,16 +756,15 @@ static float dTermProcess(pidState_t *pidState, float dT) {
         // optimisation for when D is zero, often used by YAW axis
         newDTerm = 0;
     } else {
-        float delta = pidState->previousRateGyro - pidState->gyroRate;
-
-        delta = dTermLpfFilterApplyFn((filter_t *) &pidState->dtermLpfState, delta);
-        delta = dTermLpf2FilterApplyFn((filter_t *) &pidState->dtermLpf2State, delta);
+        float delta = -gyroAcceleration(pidState, dT);
 
         // Calculate derivative
-        newDTerm =  delta * (pidState->kD / dT) * applyDBoost(pidState, dT);
+        newDTerm = delta * pidState->kD * applyDBoost(pidState, dT);
     }
     return(newDTerm);
 }
+
+
 
 static void applyItermLimiting(pidState_t *pidState) {
     if (pidState->itermLimitActive) {
@@ -800,7 +806,8 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
 
 #ifdef USE_AUTOTUNE_FIXED_WING
     if (FLIGHT_MODE(AUTO_TUNE) && !FLIGHT_MODE(MANUAL_MODE)) {
-        autotuneFixedWingUpdate(axis, pidState->rateTarget, pidState->gyroRate, constrainf(newPTerm + newFFTerm, -pidState->pidSumLimit, +pidState->pidSumLimit));
+        autotuneFixedWingUpdate(axis, pidState->rateTarget, pidState->gyroRate, gyroAcceleration(pidState, dT),
+                                constrainf(newPTerm + newFFTerm, -pidState->pidSumLimit, +pidState->pidSumLimit));
     }
 #endif
 
