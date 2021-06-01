@@ -258,8 +258,9 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
 
         .itermWindupPointPercent = SETTING_ITERM_WINDUP_DEFAULT,
 
-        .axisAccelerationLimitYaw = SETTING_RATE_ACCEL_LIMIT_YAW_DEFAULT,
-        .axisAccelerationLimitRollPitch = SETTING_RATE_ACCEL_LIMIT_ROLL_PITCH_DEFAULT,
+        .axisAccelerationLimit[FD_ROLL] = SETTING_RATE_ACCEL_LIMIT_ROLL_DEFAULT,
+        .axisAccelerationLimit[FD_PITCH] = SETTING_RATE_ACCEL_LIMIT_PITCH_DEFAULT,
+        .axisAccelerationLimit[FD_YAW] = SETTING_RATE_ACCEL_LIMIT_YAW_DEFAULT,
 
         .heading_hold_rate_limit = SETTING_HEADING_HOLD_RATE_LIMIT_DEFAULT,
 
@@ -689,7 +690,7 @@ static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float h
 /* Apply angular acceleration limit to rate target to limit extreme stick inputs to respect physical capabilities of the machine */
 static void pidApplySetpointRateLimiting(pidState_t *pidState, flight_dynamics_index_t axis, float dT)
 {
-    const uint32_t axisAccelLimit = (axis == FD_YAW) ? pidProfile()->axisAccelerationLimitYaw : pidProfile()->axisAccelerationLimitRollPitch;
+    const uint32_t axisAccelLimit = pidProfile()->axisAccelerationLimit[axis];
 
     if (axisAccelLimit > AXIS_ACCEL_MIN_LIMIT) {
         pidState->rateTarget = rateLimitFilterApply4(&pidState->axisAccelFilter, pidState->rateTarget, (float)axisAccelLimit, dT);

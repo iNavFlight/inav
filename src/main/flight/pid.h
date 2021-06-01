@@ -117,8 +117,7 @@ typedef struct pidProfile_s {
 
     uint8_t itermWindupPointPercent;        // Experimental ITerm windup threshold, percent of motor saturation
 
-    uint32_t axisAccelerationLimitYaw;          // Max rate of change of yaw angular rate setpoint (deg/s^2 = dps/s)
-    uint32_t axisAccelerationLimitRollPitch;    // Max rate of change of roll/pitch angular rate setpoint (deg/s^2 = dps/s)
+    uint32_t axisAccelerationLimit[FLIGHT_DYNAMICS_INDEX_COUNT];     // Max rate of change angular rate setpoint (deg/s^2 = dps/s)
 
     int16_t max_angle_inclination[ANGLE_INDEX_COUNT];       // Max possible inclination (roll and pitch axis separately
 
