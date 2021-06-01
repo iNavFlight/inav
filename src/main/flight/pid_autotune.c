@@ -58,7 +58,7 @@
 #define AUTOTUNE_FIXED_WING_SAMPLES             1000    // Use averagea over the last 20 seconds
 #define AUTOTUNE_FIXED_WING_MIN_SAMPLES         250     // Start updating tune after 5 seconds
 
-PG_REGISTER_WITH_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig, PG_PID_AUTOTUNE_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig, PG_PID_AUTOTUNE_CONFIG, 3);
 
 PG_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig,
     .fw_min_stick = SETTING_FW_AUTOTUNE_MIN_STICK_DEFAULT,
@@ -140,7 +140,7 @@ void autotuneStart(void)
         tuneCurrent[axis].absReachedRateAccum = 0;
         tuneCurrent[axis].absPidOutputAccum = 0;
         tuneCurrent[axis].maxReachedAcceleration = 0;
-        tuneCurrent[axis].accelerationLimit = 50000;
+        tuneCurrent[axis].accelerationLimit = pidAutotuneConfig()->fw_acceleration ? 50000.0f : 0.0f;
         tuneCurrent[axis].updateCount = 0;
     }
 
