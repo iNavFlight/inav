@@ -98,7 +98,7 @@ void gyroIntExtiInit(gyroDev_t *gyro)
     }
 #endif
 
-#if defined (STM32F7)
+#if defined (STM32F7) || defined (STM32H7)
     IOInit(gyro->busDev->irqPin, OWNER_MPU, RESOURCE_EXTI, 0);
 
     EXTIHandlerInit(&gyro->exti, gyroIntExtiHandler);
