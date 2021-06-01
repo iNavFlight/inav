@@ -1098,7 +1098,7 @@ The target percentage of maximum mixer output used for determining the rates in 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 80 | 50 | 100 |
+| 90 | 50 | 100 |
 
 ---
 
