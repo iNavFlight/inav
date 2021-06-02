@@ -83,7 +83,7 @@ typedef struct {
     float   initialRate;
     float   rateFullStick;
     float   requiredFF;
-    uint32_t updateCount;
+    uint32_t sampleCount;
 } pidAutotuneData_t;
 
 #define AUTOTUNE_SAVE_PERIOD        5000        // Save interval is 5 seconds - when we turn off autotune we'll restore values from previous update at most 5 sec ago
@@ -131,7 +131,7 @@ void autotuneStart(void)
         tuneCurrent[axis].initialRate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
         tuneCurrent[axis].rateFullStick = 0.0f;
         tuneCurrent[axis].requiredFF = 0.0f;
-        tuneCurrent[axis].updateCount = 0;
+        tuneCurrent[axis].sampleCount = 0;
     }
 
     memcpy(tuneSaved, tuneCurrent, sizeof(pidAutotuneData_t) * XYZ_AXIS_COUNT);
@@ -212,12 +212,12 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
         requiredFF = absPidOutput / absReachedRate * FP_PID_RATE_FF_MULTIPLIER;
 
         // Calculate moving average over each 20ms sample
-        tuneCurrent[axis].updateCount++;
-        tuneCurrent[axis].rateFullStick += (rateFullStick - tuneCurrent[axis].rateFullStick) / MIN(tuneCurrent[axis].updateCount, (uint32_t)AUTOTUNE_FIXED_WING_SAMPLES);
-        tuneCurrent[axis].requiredFF += (requiredFF - tuneCurrent[axis].requiredFF) / MIN(tuneCurrent[axis].updateCount, (uint32_t)AUTOTUNE_FIXED_WING_SAMPLES);
+        tuneCurrent[axis].sampleCount++;
+        tuneCurrent[axis].rateFullStick += (rateFullStick - tuneCurrent[axis].rateFullStick) / MIN(tuneCurrent[axis].sampleCount, (uint32_t)AUTOTUNE_FIXED_WING_SAMPLES);
+        tuneCurrent[axis].requiredFF += (requiredFF - tuneCurrent[axis].requiredFF) / MIN(tuneCurrent[axis].sampleCount, (uint32_t)AUTOTUNE_FIXED_WING_SAMPLES);
 
         // We don't want changing rates and gains every 20ms so only make changes every 25 samples = 500ms
-        if ((tuneCurrent[axis].updateCount & 25) == 0 && tuneCurrent[axis].updateCount >= AUTOTUNE_FIXED_WING_MIN_SAMPLES) {
+        if ((tuneCurrent[axis].sampleCount & 25) == 0 && tuneCurrent[axis].sampleCount >= AUTOTUNE_FIXED_WING_MIN_SAMPLES) {
             if (pidAutotuneConfig()->fw_rate_adjustment != FIXED  && !FLIGHT_MODE(ANGLE_MODE)) { // Rate discovery is not possible in ANGLE mode
                 
                 // Rate update and constrain to safe value
