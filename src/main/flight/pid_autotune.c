@@ -81,7 +81,6 @@ typedef struct {
     float   gainFF;
     float   rate;
     float   initialRate;
-    float   absDesiredRateAccum;
     float   absReachedRateAccum;
     float   absPidOutputAccum;
     uint32_t updateCount;
@@ -130,7 +129,6 @@ void autotuneStart(void)
         tuneCurrent[axis].gainFF = pidBank()->pid[axis].FF;
         tuneCurrent[axis].rate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
         tuneCurrent[axis].initialRate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
-        tuneCurrent[axis].absDesiredRateAccum = 0;
         tuneCurrent[axis].absReachedRateAccum = 0;
         tuneCurrent[axis].absPidOutputAccum = 0;
         tuneCurrent[axis].updateCount = 0;
@@ -208,7 +206,6 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
     if ((stickInput > (pidAutotuneConfig()->fw_min_stick / 100.0f)) && correctDirection && (timeSincePreviousSample >= AUTOTUNE_FIXED_WING_SAMPLE_INTERVAL)) {
         // Record values every 20ms and calculate moving average over samples
         tuneCurrent[axis].updateCount++;
-        tuneCurrent[axis].absDesiredRateAccum += (absDesiredRate - tuneCurrent[axis].absDesiredRateAccum) / MIN(tuneCurrent[axis].updateCount, (uint32_t)AUTOTUNE_FIXED_WING_SAMPLES);
         tuneCurrent[axis].absReachedRateAccum += (absReachedRate - tuneCurrent[axis].absReachedRateAccum) / MIN(tuneCurrent[axis].updateCount, (uint32_t)AUTOTUNE_FIXED_WING_SAMPLES);
         tuneCurrent[axis].absPidOutputAccum += (absPidOutput - tuneCurrent[axis].absPidOutputAccum) / MIN(tuneCurrent[axis].updateCount, (uint32_t)AUTOTUNE_FIXED_WING_SAMPLES);;
 
