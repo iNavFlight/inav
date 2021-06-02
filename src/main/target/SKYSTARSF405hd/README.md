@@ -1,7 +1,7 @@
-# FLIGHT CONTROLLER MATEK F405-WING
+# FLIGHT CONTROLLER Skystars F405HD mini
 
-* Designed specifically for fixed wing INAV setups by MATEK
-* http://www.mateksys.com/?portfolio=f405-wing
+* Designed specifically for multirotors
+* https://oscarnet.eu
 
 ## HW info
 
@@ -11,6 +11,6 @@
 * BMP280
 * 6x UART
 * 1x Softserial
-* 2x I2C
-* 2x Motors & 7x Servos
-* 4x BEC + current sensor
+* 1x I2C
+* 4x Motors
+* 4x BEC
