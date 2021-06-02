@@ -422,7 +422,6 @@
 | osd_hud_margin_h | 3 | 0 | 4 | Left and right margins for the hud area |
 | osd_hud_margin_v | 3 | 1 | 3 | Top and bottom margins for the hud area |
 | osd_hud_radar_disp | 0 | 0 | 4 | Maximum count of nearby aircrafts or points of interest to display in the hud, as sent from an ESP32 LoRa module. Set to 0 to disable (show nothing). The nearby aircrafts will appear as markers A, B, C, etc |
-| osd_hud_radar_nearest | 0 | 0 | 4000 | To display an extra bar of informations at the bottom of the hud area for the closest radar aircraft found, if closest than the set value, in meters. Shows relative altitude (meters or feet, with an up or down arrow to indicate if above or below), speed (in m/s or f/s), and absolute heading (in °, 0 is north, 90 is east, 180 is south, 270 is west). Set to 0 (zero) to disable. |
 | osd_hud_radar_range_max | 4000 | 100 | 9990 | In meters, radar aircrafts further away than this will not be displayed in the hud |
 | osd_hud_radar_range_min | 3 | 1 | 30 | In meters, radar aircrafts closer than this will not be displayed in the hud |
 | osd_hud_wp_disp | 0 | 0 | 3 | How many navigation waypoints are displayed, set to 0 (zero) to disable. As sample, if set to 2, and you just passed the 3rd waypoint of the mission, you'll see markers for the 4th waypoint (marked 1) and the 5th waypoint (marked 2) |
