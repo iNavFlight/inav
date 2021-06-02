@@ -182,7 +182,7 @@ tables:
 
 constants:
   RPYL_PID_MIN: 0
-  RPYL_PID_MAX: 300
+  RPYL_PID_MAX: 255
 
   MANUAL_RATE_MIN: 0
   MANUAL_RATE_MAX: 100
