@@ -212,7 +212,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
         if ((tuneCurrent[axis].updateCount & 25) == 0 && tuneCurrent[axis].updateCount >= AUTOTUNE_FIXED_WING_MIN_SAMPLES) {
             if (pidAutotuneConfig()->fw_rate_adjustment != FIXED  && !FLIGHT_MODE(ANGLE_MODE)) { // Rate discovery is not possible in ANGLE mode
                 
-                // Target 80% control surface deflection to leave some room for P and I to work
+                // Target 80-90% control surface deflection to leave some room for P and I to work
                 float pidSumTarget = (pidAutotuneConfig()->fw_max_rate_deflection / 100.0f) * pidSumLimit;
 
                 // Theoretically achievable rate with target deflection
