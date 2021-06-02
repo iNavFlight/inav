@@ -1138,7 +1138,7 @@ Fixed-wing attitude stabilisation HORIZON transition point
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 75 | 0 | 300 |
+| 75 | 0 | 255 |
 
 ---
 
@@ -1148,7 +1148,7 @@ Fixed wing rate stabilisation D-gain for PITCH
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 300 |
+| 0 | 0 | 255 |
 
 ---
 
@@ -1158,7 +1158,7 @@ Fixed wing rate stabilisation D-gain for ROLL
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 300 |
+| 0 | 0 | 255 |
 
 ---
 
@@ -1168,7 +1168,7 @@ Fixed wing rate stabilisation D-gain for YAW
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 300 |
+| 0 | 0 | 255 |
 
 ---
 
@@ -1178,7 +1178,7 @@ Fixed-wing rate stabilisation FF-gain for PITCH
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 50 | 0 | 300 |
+| 50 | 0 | 255 |
 
 ---
 
@@ -1188,7 +1188,7 @@ Fixed-wing rate stabilisation FF-gain for ROLL
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 50 | 0 | 300 |
+| 50 | 0 | 255 |
 
 ---
 
@@ -1198,7 +1198,7 @@ Fixed-wing rate stabilisation FF-gain for YAW
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 60 | 0 | 300 |
+| 60 | 0 | 255 |
 
 ---
 
@@ -1208,7 +1208,7 @@ Fixed-wing attitude stabilisation low-pass filter cutoff
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 5 | 0 | 300 |
+| 5 | 0 | 255 |
 
 ---
 
@@ -1218,7 +1218,7 @@ Fixed-wing rate stabilisation I-gain for PITCH
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 7 | 0 | 300 |
+| 7 | 0 | 255 |
 
 ---
 
@@ -1228,7 +1228,7 @@ Fixed-wing rate stabilisation I-gain for ROLL
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 7 | 0 | 300 |
+| 7 | 0 | 255 |
 
 ---
 
@@ -1238,7 +1238,7 @@ Fixed-wing rate stabilisation I-gain for YAW
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 10 | 0 | 300 |
+| 10 | 0 | 255 |
 
 ---
 
@@ -1318,7 +1318,7 @@ Fixed-wing attitude stabilisation P-gain
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 20 | 0 | 300 |
+| 20 | 0 | 255 |
 
 ---
 
@@ -1328,7 +1328,7 @@ Fixed-wing rate stabilisation P-gain for PITCH
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 5 | 0 | 300 |
+| 5 | 0 | 255 |
 
 ---
 
@@ -1338,7 +1338,7 @@ Fixed-wing rate stabilisation P-gain for ROLL
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 5 | 0 | 300 |
+| 5 | 0 | 255 |
 
 ---
 
@@ -1348,7 +1348,7 @@ Fixed-wing rate stabilisation P-gain for YAW
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 6 | 0 | 300 |
+| 6 | 0 | 255 |
 
 ---
 
@@ -2568,7 +2568,7 @@ Multicopter Control Derivative gain for PITCH
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 60 | 0 | 300 |
+| 60 | 0 | 255 |
 
 ---
 
@@ -2578,7 +2578,7 @@ Multicopter Control Derivative gain for ROLL
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 60 | 0 | 300 |
+| 60 | 0 | 255 |
 
 ---
 
@@ -2588,7 +2588,7 @@ Multicopter Control Derivative gain for YAW
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 60 | 0 | 300 |
+| 60 | 0 | 255 |
 
 ---
 
@@ -2598,7 +2598,7 @@ Multicopter attitude stabilisation HORIZON transition point
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 75 | 0 | 300 |
+| 75 | 0 | 255 |
 
 ---
 
@@ -2608,7 +2608,7 @@ Multicopter rate stabilisation D-gain for PITCH
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 23 | 0 | 300 |
+| 23 | 0 | 255 |
 
 ---
 
@@ -2618,7 +2618,7 @@ Multicopter rate stabilisation D-gain for ROLL
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 23 | 0 | 300 |
+| 23 | 0 | 255 |
 
 ---
 
@@ -2628,7 +2628,7 @@ Multicopter rate stabilisation D-gain for YAW
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 300 |
+| 0 | 0 | 255 |
 
 ---
 
@@ -2638,7 +2638,7 @@ Multicopter attitude stabilisation low-pass filter cutoff
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 15 | 0 | 300 |
+| 15 | 0 | 255 |
 
 ---
 
@@ -2648,7 +2648,7 @@ Multicopter rate stabilisation I-gain for PITCH
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 30 | 0 | 300 |
+| 30 | 0 | 255 |
 
 ---
 
@@ -2658,7 +2658,7 @@ Multicopter rate stabilisation I-gain for ROLL
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 30 | 0 | 300 |
+| 30 | 0 | 255 |
 
 ---
 
@@ -2668,7 +2668,7 @@ Multicopter rate stabilisation I-gain for YAW
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 45 | 0 | 300 |
+| 45 | 0 | 255 |
 
 ---
 
@@ -2698,7 +2698,7 @@ Multicopter attitude stabilisation P-gain
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 20 | 0 | 300 |
+| 20 | 0 | 255 |
 
 ---
 
@@ -2708,7 +2708,7 @@ Multicopter rate stabilisation P-gain for PITCH
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 40 | 0 | 300 |
+| 40 | 0 | 255 |
 
 ---
 
@@ -2718,7 +2718,7 @@ Multicopter rate stabilisation P-gain for ROLL
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 40 | 0 | 300 |
+| 40 | 0 | 255 |
 
 ---
 
@@ -2728,7 +2728,7 @@ Multicopter rate stabilisation P-gain for YAW
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 85 | 0 | 300 |
+| 85 | 0 | 255 |
 
 ---
 
