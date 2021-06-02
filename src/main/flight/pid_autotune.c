@@ -81,8 +81,8 @@ typedef struct {
     float   gainFF;
     float   rate;
     float   initialRate;
-    float   absReachedRateAccum;
-    float   absPidOutputAccum;
+    float   rateFullStick;
+    float   requiredFF;
     uint32_t updateCount;
 } pidAutotuneData_t;
 
@@ -129,8 +129,8 @@ void autotuneStart(void)
         tuneCurrent[axis].gainFF = pidBank()->pid[axis].FF;
         tuneCurrent[axis].rate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
         tuneCurrent[axis].initialRate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
-        tuneCurrent[axis].absReachedRateAccum = 0;
-        tuneCurrent[axis].absPidOutputAccum = 0;
+        tuneCurrent[axis].rateFullStick = 0.0f;
+        tuneCurrent[axis].requiredFF = 0.0f;
         tuneCurrent[axis].updateCount = 0;
     }
 
@@ -177,16 +177,14 @@ static void blackboxLogAutotuneEvent(adjustmentFunction_e adjustmentFunction, in
 
 void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRate, float reachedRate, float pidOutput)
 {
-    float maxRateSetting = tuneCurrent[axis].rate;
-    float gainFF = tuneCurrent[axis].gainFF;
-    float maxDesiredRate = maxRateSetting;
+    float maxDesiredRate = tuneCurrent[axis].rate;
 
-    const float pidSumLimit = (axis == FD_YAW) ? pidProfile()->pidSumLimitYaw : pidProfile()->pidSumLimit;
     const float absDesiredRate = fabsf(desiredRate);
     const float absReachedRate = fabsf(reachedRate);
     const float absPidOutput = fabsf(pidOutput);
     const bool correctDirection = (desiredRate>0) == (reachedRate>0);
     float rateFullStick;
+    float requiredFF;
 
     bool gainsUpdated = false;
     bool ratesUpdated = false;
@@ -198,43 +196,45 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
     // Use different max rate in ANLGE mode
     if (FLIGHT_MODE(ANGLE_MODE)) {
         float maxDesiredRateInAngleMode = DECIDEGREES_TO_DEGREES(pidProfile()->max_angle_inclination[axis] * 1.0f) * pidBank()->pid[PID_LEVEL].P / FP_PID_LEVEL_P_MULTIPLIER;
-        maxDesiredRate = MIN(maxRateSetting, maxDesiredRateInAngleMode);
+        maxDesiredRate = MIN(tuneCurrent[axis].rate, maxDesiredRateInAngleMode);
     }
 
     const float stickInput = absDesiredRate / maxDesiredRate;
 
     if ((stickInput > (pidAutotuneConfig()->fw_min_stick / 100.0f)) && correctDirection && (timeSincePreviousSample >= AUTOTUNE_FIXED_WING_SAMPLE_INTERVAL)) {
-        // Record values every 20ms and calculate moving average over samples
-        tuneCurrent[axis].updateCount++;
-        tuneCurrent[axis].absReachedRateAccum += (absReachedRate - tuneCurrent[axis].absReachedRateAccum) / MIN(tuneCurrent[axis].updateCount, (uint32_t)AUTOTUNE_FIXED_WING_SAMPLES);
-        tuneCurrent[axis].absPidOutputAccum += (absPidOutput - tuneCurrent[axis].absPidOutputAccum) / MIN(tuneCurrent[axis].updateCount, (uint32_t)AUTOTUNE_FIXED_WING_SAMPLES);;
+        
+        // Theoretically achievable rate with target deflection based on current FF outout and observed rotation
+        const float pidSumLimit = (axis == FD_YAW) ? pidProfile()->pidSumLimitYaw : pidProfile()->pidSumLimit;
+        float pidSumTarget = (pidAutotuneConfig()->fw_max_rate_deflection / 100.0f) * pidSumLimit;
+        rateFullStick = pidSumTarget / absPidOutput * absReachedRate;
 
+        // FF gain required to achieve current rate target
+        requiredFF = absPidOutput / absReachedRate * FP_PID_RATE_FF_MULTIPLIER;
+
+        // Calculate moving average over each 20ms sample
+        tuneCurrent[axis].updateCount++;
+        tuneCurrent[axis].rateFullStick += (rateFullStick - tuneCurrent[axis].rateFullStick) / MIN(tuneCurrent[axis].updateCount, (uint32_t)AUTOTUNE_FIXED_WING_SAMPLES);
+        tuneCurrent[axis].requiredFF += (requiredFF - tuneCurrent[axis].requiredFF) / MIN(tuneCurrent[axis].updateCount, (uint32_t)AUTOTUNE_FIXED_WING_SAMPLES);
+
+        // We don't want changing rates and gains every 20ms so only make changes every 25 samples = 500ms
         if ((tuneCurrent[axis].updateCount & 25) == 0 && tuneCurrent[axis].updateCount >= AUTOTUNE_FIXED_WING_MIN_SAMPLES) {
             if (pidAutotuneConfig()->fw_rate_adjustment != FIXED  && !FLIGHT_MODE(ANGLE_MODE)) { // Rate discovery is not possible in ANGLE mode
                 
-                // Target 80-90% control surface deflection to leave some room for P and I to work
-                float pidSumTarget = (pidAutotuneConfig()->fw_max_rate_deflection / 100.0f) * pidSumLimit;
-
-                // Theoretically achievable rate with target deflection
-                rateFullStick = pidSumTarget / tuneCurrent[axis].absPidOutputAccum * tuneCurrent[axis].absReachedRateAccum;
-
-                // Rate update
-                if (rateFullStick > (maxRateSetting + 10.0f)) {
-                    maxRateSetting += 10.0f;
-                } else if (rateFullStick < (maxRateSetting - 10.0f)) {
-                    maxRateSetting -= 10.0f;
+                // Rate update and constrain to safe value
+                if (tuneCurrent[axis].rateFullStick > (tuneCurrent[axis].rate + 10.0f)) {
+                    tuneCurrent[axis].rate += 10.0f;
+                } else if (tuneCurrent[axis].rateFullStick < (tuneCurrent[axis].rate - 10.0f)) {
+                    tuneCurrent[axis].rate -= 10.0f;
                 }
-
-                // Constrain to safe values
                 uint16_t minRate = (axis == FD_YAW) ? AUTOTUNE_FIXED_WING_MIN_YAW_RATE : AUTOTUNE_FIXED_WING_MIN_ROLL_PITCH_RATE;
                 uint16_t maxRate = (pidAutotuneConfig()->fw_rate_adjustment == AUTO) ? AUTOTUNE_FIXED_WING_MAX_RATE : MAX(tuneCurrent[axis].initialRate, minRate);
-                tuneCurrent[axis].rate = constrainf(maxRateSetting, minRate, maxRate);
+                tuneCurrent[axis].rate = constrainf(tuneCurrent[axis].rate, minRate, maxRate);
                 ratesUpdated = true;
             }
 
-            // Update FF towards value needed to achieve current rate target
-            gainFF += (tuneCurrent[axis].absPidOutputAccum / tuneCurrent[axis].absReachedRateAccum * FP_PID_RATE_FF_MULTIPLIER - gainFF) * (AUTOTUNE_FIXED_WING_CONVERGENCE_RATE / 100.0f);
-            tuneCurrent[axis].gainFF = constrainf(gainFF, AUTOTUNE_FIXED_WING_MIN_FF, AUTOTUNE_FIXED_WING_MAX_FF);
+            // Update FF towards value needed to achieve rate targets
+            tuneCurrent[axis].gainFF += (tuneCurrent[axis].requiredFF - tuneCurrent[axis].gainFF) * (AUTOTUNE_FIXED_WING_CONVERGENCE_RATE / 100.0f);
+            tuneCurrent[axis].gainFF = constrainf(tuneCurrent[axis].gainFF, AUTOTUNE_FIXED_WING_MIN_FF, AUTOTUNE_FIXED_WING_MAX_FF);
             gainsUpdated = true;
         }
 
@@ -267,6 +267,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
                 blackboxLogAutotuneEvent(ADJUSTMENT_YAW_FF, tuneCurrent[axis].gainFF);
                 break;
         }
+        DEBUG_SET(DEBUG_AUTOTUNE, axis * 2, tuneCurrent[axis].requiredFF);
         gainsUpdated = false;
     }
 
@@ -288,7 +289,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
         }
 
         // Debug
-        DEBUG_SET(DEBUG_AUTOTUNE, axis, rateFullStick);
+        DEBUG_SET(DEBUG_AUTOTUNE, axis * 2 + 1, tuneCurrent[axis].rateFullStick);
         ratesUpdated = false;
     }
 }
