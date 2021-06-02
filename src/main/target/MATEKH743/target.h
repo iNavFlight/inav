@@ -18,8 +18,8 @@
 
 #pragma once
 
-#define TARGET_BOARD_IDENTIFIER "H765"
-#define USBD_PRODUCT_STRING     "MATEKH765"
+#define TARGET_BOARD_IDENTIFIER "H743"
+#define USBD_PRODUCT_STRING     "MATEKH743"
 
 #define LED0                    PE3
 #define LED1                    PE4
@@ -68,6 +68,9 @@
 #define USE_DUAL_GYRO
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 
+#define USE_EXTI
+#define USE_MPU_DATA_READY_SIGNAL
+
 // *************** SPI1 IMU1 *************************
 #define USE_SPI
 #define USE_SPI_DEVICE_1
@@ -89,12 +92,10 @@
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PB15
 
-/*
 #define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          PB12
-*/
 
 // *************** SPI3 SD BLACKBOX*******************
 /*
@@ -164,6 +165,17 @@
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
 #define AIRSPEED_ADC_CHANNEL        ADC_CHN_4
 
+// *************** PINIO ***************************
+#define USE_PINIO
+#define USE_PINIOBOX
+#define PINIO1_PIN                  PE4  // VTX power switcher
+#define PINIO2_PIN                  PE15 // 2xCamera switcher
+
+// *************** LEDSTRIP ************************
+#define USE_LED_STRIP
+#define WS2811_PIN                  PA8
+
+#define DEFAULT_FEATURES            (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
 #define CURRENT_METER_SCALE         250
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
@@ -178,21 +190,3 @@
 #define USE_DSHOT
 #define USE_ESC_SENSOR
 #define USE_SERIALSHOT
-
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
-
-#if 0
-// *************** PINIO ***************************
-#define USE_PINIO
-#define USE_PINIOBOX
-#define PINIO1_PIN                  PE4  // VTX power switcher
-#define PINIO2_PIN                  PE15 // 2xCamera switcher
-
-// *************** LEDSTRIP ************************
-#define USE_LED_STRIP
-#define WS2811_PIN                  PA8
-
-#define DEFAULT_FEATURES            (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
-
-#endif
