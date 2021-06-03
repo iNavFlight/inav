@@ -145,6 +145,14 @@ typedef enum {
     ON_FW_SPIRAL,
 } navRTHClimbFirst_e;
 
+typedef enum {
+    FW_LAUNCH_START,
+    FW_LAUNCH_DETECTED,
+    FW_LAUNCH_FLYING,
+    FW_LAUNCH_END_ABORT,
+    FW_LAUNCH_END_SUCCESS,
+} navFwLaunchStatus_e;
+
 typedef struct positionEstimationConfig_s {
     uint8_t automatic_mag_declination;
     uint8_t reset_altitude_type; // from nav_reset_type_e
@@ -533,8 +541,7 @@ bool navigationRTHAllowsLanding(void);
 bool isWaypointMissionRTHActive(void);
 
 bool isNavLaunchEnabled(void);
-bool isFixedWingLaunchDetected(void);
-bool isFixedWingLaunchFinishedOrAborted(void);
+uint8_t fixedWingLaunchStatus(void);
 const char * fixedWingLaunchStateMessage(void);
 
 float calculateAverageSpeed(void);

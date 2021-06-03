@@ -1719,7 +1719,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_WAIT(navigationF
     const timeUs_t currentTimeUs = micros();
     UNUSED(previousState);
 
-    if (isFixedWingLaunchDetected()) {
+    if (fixedWingLaunchStatus() == FW_LAUNCH_DETECTED) {
         enableFixedWingLaunchController(currentTimeUs);
         return NAV_FSM_EVENT_SUCCESS;   // NAV_STATE_LAUNCH_IN_PROGRESS
     }
@@ -1740,7 +1740,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_IN_PROGRESS(navi
 {
     UNUSED(previousState);
 
-    if (isFixedWingLaunchFinishedOrAborted()) {
+    if (fixedWingLaunchStatus() >= FW_LAUNCH_END_ABORT) {
         return NAV_FSM_EVENT_SUCCESS;
     }
 
@@ -2579,11 +2579,11 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAlti
     }
     else {
 
-        /* 
+        /*
          * If max altitude is set, reset climb rate if altitude is reached and climb rate is > 0
          * In other words, when altitude is reached, allow it only to shrink
          */
-        if (navConfig()->general.max_altitude > 0 && 
+        if (navConfig()->general.max_altitude > 0 &&
             altitudeToUse >= navConfig()->general.max_altitude &&
             desiredClimbRate > 0
         ) {

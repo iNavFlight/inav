@@ -455,9 +455,8 @@ void calculateFixedWingInitialHoldPosition(fpVector3_t * pos);
 
 /* Fixed-wing launch controller */
 void resetFixedWingLaunchController(timeUs_t currentTimeUs);
-bool isFixedWingLaunchDetected(void);
 void enableFixedWingLaunchController(timeUs_t currentTimeUs);
-bool isFixedWingLaunchFinishedOrAborted(void);
+uint8_t fixedWingLaunchStatus(void);
 void abortFixedWingLaunch(void);
 void applyFixedWingLaunchController(timeUs_t currentTimeUs);
 
