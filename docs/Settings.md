@@ -5558,7 +5558,7 @@ Battery voltage calibration value. 1100 = 11:1 voltage divider (10k:1k) x 100. A
 
 | Default | Min | Max |
 | --- | --- | --- |
-| _target default_ | VBAT_SCALE_MIN | VBAT_SCALE_MAX |
+| _target default_ | 0 | 65535 |
 
 ---
 

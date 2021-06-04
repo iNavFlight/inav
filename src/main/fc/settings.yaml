@@ -181,7 +181,7 @@ tables:
     values: ["OFF", "ON", "ON_FW_SPIRAL"]
   - name: djiRssiSource
     values: ["RSSI", "CRSF_LQ"]
-    enum: djiRssiSource_e    
+    enum: djiRssiSource_e
 
 
 constants:
@@ -195,6 +195,8 @@ constants:
   ROLL_PITCH_RATE_MAX: 180
 
   MAX_CONTROL_RATE_PROFILE_COUNT: 3
+  MAX_BATTERY_PROFILE_COUNT: 3
+
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -1005,7 +1007,7 @@ groups:
 
   - name: PG_BATTERY_METERS_CONFIG
     type: batteryMetersConfig_t
-    headers: ["sensors/battery.h"]
+    headers: ["sensors/battery_config_structs.h"]
     members:
       - name: vbat_meter_type
         description: "Vbat voltage source. Possible values: `NONE`, `ADC`, `ESC`. `ESC` required ESC telemetry enebled and running"
@@ -1019,8 +1021,8 @@ groups:
         default_value: :target
         field: voltage.scale
         condition: USE_ADC
-        min: VBAT_SCALE_MIN
-        max: VBAT_SCALE_MAX
+        min: 0
+        max: 65535
       - name: current_meter_scale
         description: "This sets the output voltage to current scaling for the current sensor in 0.1 mV/A steps. 400 is 40mV/A such as the ACS756 sensor outputs. 183 is the setting for the uberdistro with a 0.25mOhm shunt."
         default_value: :target
@@ -1071,7 +1073,7 @@ groups:
 
   - name: PG_BATTERY_PROFILES
     type: batteryProfile_t
-    headers: ["sensors/battery.h"]
+    headers: ["sensors/battery_config_structs.h"]
     value_type: BATTERY_CONFIG_VALUE
     members:
       - name: bat_cells
