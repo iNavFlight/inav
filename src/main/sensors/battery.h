@@ -51,6 +51,8 @@ PG_DECLARE_ARRAY(batteryProfile_t, MAX_BATTERY_PROFILE_COUNT, batteryProfiles);
 
 extern const batteryProfile_t *currentBatteryProfile;
 
+#define currentBatteryProfileMutable ((batteryProfile_t*)currentBatteryProfile)
+
 typedef enum {
     BATTERY_OK = 0,
     BATTERY_WARNING,

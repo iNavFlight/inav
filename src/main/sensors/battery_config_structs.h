@@ -88,12 +88,57 @@ typedef struct batteryProfile_s {
 #endif
 
     struct {
-        uint32_t value;         // mAh or mWh (see capacity.unit)
-        uint32_t warning;       // mAh or mWh (see capacity.unit)
-        uint32_t critical;      // mAh or mWh (see capacity.unit)
-        batCapacityUnit_e unit; // Describes unit of capacity.value, capacity.warning and capacity.critical
+        uint32_t value;                     // mAh or mWh (see capacity.unit)
+        uint32_t warning;                   // mAh or mWh (see capacity.unit)
+        uint32_t critical;                  // mAh or mWh (see capacity.unit)
+        batCapacityUnit_e unit;             // Describes unit of capacity.value, capacity.warning and capacity.critical
     } capacity;
 
     uint8_t controlRateProfile;
+
+    struct {
+        float throttleIdle;                 // Throttle IDLE value based on min_command, max_throttle, in percent
+        float throttleScale;                // Scaling factor for throttle.
+#ifdef USE_DSHOT
+        uint8_t turtleModePowerFactor;      // Power factor from 0 to 100% of flip over after crash
+#endif
+    } motor;
+
+    uint16_t failsafe_throttle;             // Throttle level used for landing - specify value between 1000..2000 (pwm pulse width for slightly below hover). center throttle = 1500.
+
+    uint16_t fwMinThrottleDownPitchAngle;
+
+    struct {
+
+        struct {
+            uint16_t hover_throttle;        // multicopter hover throttle
+        } mc;
+
+        struct {
+            uint16_t cruise_throttle;       // Cruise throttle
+            uint16_t min_throttle;          // Minimum allowed throttle in auto mode
+            uint16_t max_throttle;          // Maximum allowed throttle in auto mode
+            uint8_t  pitch_to_throttle;     // Pitch angle (in deg) to throttle gain (in 1/1000's of throttle) (*10)
+            uint16_t launch_idle_throttle;  // Throttle to keep at launch idle
+            uint16_t launch_throttle;       // Launch throttle
+        } fw;
+
+    } nav;
+
+#if defined(USE_POWER_LIMITS)
+    struct {
+        uint16_t continuousCurrent;         // dA
+        uint16_t burstCurrent;              // dA
+        uint16_t burstCurrentTime;          // ds
+        uint16_t burstCurrentFalldownTime;  // ds
+
+#ifdef USE_ADC
+        uint16_t continuousPower;           // dW
+        uint16_t burstPower;                // dW
+        uint16_t burstPowerTime;            // ds
+        uint16_t burstPowerFalldownTime;    // ds
+#endif // USE_ADC
+    } powerLimits;
+#endif // USE_POWER_LIMITS
 
 } batteryProfile_t;

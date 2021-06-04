@@ -867,10 +867,10 @@ static void osdDJIAdjustmentMessage(char *buff, uint8_t adjustmentFunction)
             tfp_sprintf(buff, "YFF %3d", pidBankMutable()->pid[PID_YAW].FF);
             break;
         case ADJUSTMENT_NAV_FW_CRUISE_THR:
-            tfp_sprintf(buff, "CR %4d", navConfigMutable()->fw.cruise_throttle);
+            tfp_sprintf(buff, "CR %4d", currentBatteryProfileMutable->nav.fw.cruise_throttle);
             break;
         case ADJUSTMENT_NAV_FW_PITCH2THR:
-            tfp_sprintf(buff, "P2T %3d", navConfigMutable()->fw.pitch_to_throttle);
+            tfp_sprintf(buff, "P2T %3d", currentBatteryProfileMutable->nav.fw.pitch_to_throttle);
             break;
         case ADJUSTMENT_ROLL_BOARD_ALIGNMENT:
             tfp_sprintf(buff, "RBA %3d", boardAlignment()->rollDeciDegrees);
@@ -927,7 +927,7 @@ static void osdDJIAdjustmentMessage(char *buff, uint8_t adjustmentFunction)
             tfp_sprintf(buff, "VZD %3d", pidBankMutable()->pid[PID_VEL_Z].D);
             break;
         case ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE:
-            tfp_sprintf(buff, "MTDPA %4d", mixerConfigMutable()->fwMinThrottleDownPitchAngle);
+            tfp_sprintf(buff, "MTDPA %4d", currentBatteryProfileMutable->fwMinThrottleDownPitchAngle);
             break;
         case ADJUSTMENT_TPA:
             tfp_sprintf(buff, "TPA %3d", currentControlRateProfile->throttle.dynPID);
