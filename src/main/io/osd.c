@@ -1242,7 +1242,7 @@ static void osdDisplayTelemetry(void)
     displayWrite(osdDisplayPort, 0, 0, trk_buffer);
     if (osdConfig()->telemetry>1){
       displayWrite(osdDisplayPort, 0, 3, trk_buffer);               // Test display because normal telemetry line is not visible
-    }    
+    }
 }
 #endif
 
@@ -2756,7 +2756,7 @@ void osdDrawNextElement(void)
     osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
     if (osdConfig()->telemetry>0){
       osdDisplayTelemetry();
-    }    
+    }
 }
 
 PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
@@ -3452,7 +3452,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
         } else {
             osdShowStatsPage1(); // show first page of statistics
             osdSetNextRefreshIn(STATS_SCREEN_DISPLAY_TIME);
-            statsPageAutoSwapCntl = 0;
+            statsPageAutoSwapCntl = osdConfig()->stats_page_auto_swap_time > 0 ? 0 : 2; // disable swapping pages when time = 0
         }
 
         armState = ARMING_FLAG(ARMED);

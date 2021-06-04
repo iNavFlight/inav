@@ -77,7 +77,7 @@ tables:
     enum: videoSystem_e
   - name: osd_telemetry
     values: ["OFF", "ON","TEST"]
-    enum: osd_telemetry_e    
+    enum: osd_telemetry_e
   - name: osd_alignment
     values: ["LEFT", "RIGHT"]
     enum: osd_alignment_e
@@ -2962,10 +2962,10 @@ groups:
         table: osd_stats_min_voltage_unit
         type: uint8_t
       - name: osd_stats_page_auto_swap_time
-        description: "Auto swap display time interval between disarm stats pages (seconds)."
+        description: "Auto swap display time interval between disarm stats pages (seconds). Disabled when set to 0."
         default_value: 3
         field: stats_page_auto_swap_time
-        min: 1
+        min: 0
         max: 10
       - name: osd_rssi_alarm
         description: "Value below which to make the OSD RSSI indicator blink"
