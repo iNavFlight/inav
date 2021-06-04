@@ -1502,7 +1502,8 @@ static bool osdDrawSingleElement(uint8_t item)
             static pt1Filter_t gsFilterState;
             const timeMs_t currentTimeMs = millis();
             static timeMs_t gsUpdatedTimeMs;
-            float glideSlope = pt1FilterApply4(&gsFilterState, horizontalSpeed / sinkRate, 0.5, MS2S(currentTimeMs - gsUpdatedTimeMs));
+            float glideSlope = horizontalSpeed / sinkRate;
+            glideSlope = pt1FilterApply4(&gsFilterState, isnormal(glideSlope) ? glideSlope : 200, 0.5, MS2S(currentTimeMs - gsUpdatedTimeMs));
             gsUpdatedTimeMs = currentTimeMs;
 
             buff[0] = SYM_GLIDESLOPE;
