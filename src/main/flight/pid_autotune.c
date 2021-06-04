@@ -47,14 +47,14 @@
 #include "flight/pid.h"
 
 #define AUTOTUNE_FIXED_WING_MIN_FF              10
-#define AUTOTUNE_FIXED_WING_MAX_FF              200
+#define AUTOTUNE_FIXED_WING_MAX_FF              300
 #define AUTOTUNE_FIXED_WING_MIN_ROLL_PITCH_RATE 40
 #define AUTOTUNE_FIXED_WING_MIN_YAW_RATE        10
 #define AUTOTUNE_FIXED_WING_MAX_RATE            720
 #define AUTOTUNE_FIXED_WING_CONVERGENCE_RATE    10
 #define AUTOTUNE_FIXED_WING_SAMPLE_INTERVAL     20      // ms
-#define AUTOTUNE_FIXED_WING_SAMPLES             1000    // Use averagea over the last 20 seconds
-#define AUTOTUNE_FIXED_WING_MIN_SAMPLES         250     // Start updating tune after 5 seconds
+#define AUTOTUNE_FIXED_WING_SAMPLES             1000    // Use average over the last 20 seconds of hard maneuvers
+#define AUTOTUNE_FIXED_WING_MIN_SAMPLES         250     // Start updating tune after 5 seconds of hard maneuvers
 
 PG_REGISTER_WITH_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig, PG_PID_AUTOTUNE_CONFIG, 2);
 
