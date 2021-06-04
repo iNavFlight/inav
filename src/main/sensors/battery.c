@@ -218,9 +218,7 @@ static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
     switch (batteryMetersConfig()->voltage.type) {
         case VOLTAGE_SENSOR_ADC:
             {
-                // calculate battery voltage based on ADC reading
-                // result is Vbatt in 0.01V steps. 3.3V = ADC Vref, 0xFFF = 12bit adc, 1100 = 11:1 voltage divider (10k:1k)
-                vbat = (uint64_t)adcGetChannel(ADC_BATTERY) * batteryMetersConfig()->voltage.scale * ADCVREF / (0xFFF * 1000);
+                vbat = getVBatSample();
                 break;
             }
 #if defined(USE_ESC_SENSOR)
@@ -375,6 +373,14 @@ bool isBatteryVoltageConfigured(void)
     return feature(FEATURE_VBAT);
 }
 
+#ifdef USE_ADC
+uint16_t getVBatSample(void) {
+    // calculate battery voltage based on ADC reading
+    // result is Vbatt in 0.01V steps. 3.3V = ADC Vref, 0xFFF = 12bit adc, 1100 = 11:1 voltage divider (10k:1k)
+    return (uint64_t)adcGetChannel(ADC_BATTERY) * batteryMetersConfig()->voltage.scale * ADCVREF / (0xFFF * 1000);
+}
+#endif
+
 uint16_t getBatteryVoltage(void)
 {
     if (batteryMetersConfig()->voltageSource == BAT_VOLTAGE_SAG_COMP) {
@@ -448,6 +454,12 @@ int16_t getAmperage(void)
     return amperage;
 }
 
+int16_t getAmperageSample(void)
+{
+    int32_t microvolts = ((uint32_t)adcGetChannel(ADC_CURRENT) * ADCVREF * 100) / 0xFFF * 10 - (int32_t)batteryMetersConfig()->current.offset * 100;
+    return microvolts / batteryMetersConfig()->current.scale; // current in 0.01A steps
+}
+
 int32_t getPower(void)
 {
     return power;
@@ -463,7 +475,6 @@ int32_t getMWhDrawn(void)
     return mWhDrawn;
 }
 
-
 void currentMeterUpdate(timeUs_t timeDelta)
 {
     static pt1Filter_t amperageFilterState;
@@ -472,9 +483,7 @@ void currentMeterUpdate(timeUs_t timeDelta)
     switch (batteryMetersConfig()->current.type) {
         case CURRENT_SENSOR_ADC:
             {
-                int32_t microvolts = ((uint32_t)adcGetChannel(ADC_CURRENT) * ADCVREF * 100) / 0xFFF * 10 - (int32_t)batteryMetersConfig()->current.offset * 100;
-                amperage = microvolts / batteryMetersConfig()->current.scale; // current in 0.01A steps
-                amperage = pt1FilterApply4(&amperageFilterState, amperage, AMPERAGE_LPF_FREQ, timeDelta * 1e-6f);
+                amperage = pt1FilterApply4(&amperageFilterState, getAmperageSample(), AMPERAGE_LPF_FREQ, timeDelta * 1e-6f);
                 break;
             }
         case CURRENT_SENSOR_VIRTUAL:

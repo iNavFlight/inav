@@ -93,8 +93,8 @@ tables:
       "FLOW", "SBUS", "FPORT", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "ERPM", "RPM_FILTER", "RPM_FREQ", "NAV_YAW", "DYNAMIC_FILTER", "DYNAMIC_FILTER_FREQUENCY",
-      "IRLOCK", "CD", "KALMAN_GAIN", "PID_MEASUREMENT", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574", "DYN_GYRO_LPF", "FW_D", "IMU2", "ALTITUDE",
-      "SMITH_COMPENSATOR"]
+      "IRLOCK", "CD", "KALMAN_GAIN", "PID_MEASUREMENT", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "FW_D", "IMU2", "ALTITUDE",
+      "GYRO_ALPHA_BETA_GAMMA", "SMITH_PREDICTOR", "AUTOTRIM", "AUTOTUNE"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -104,7 +104,7 @@ tables:
     values: ["DEFAULT", "AIRCRAFT", "TYPE3", "TYPE4", "TYPE5", "TYPE6", "TYPE7"]
     enum: osd_crosshairs_style_e
   - name: osd_sidebar_scroll
-    values: ["NONE", "ALTITUDE", "GROUND_SPEED", "HOME_DISTANCE"]
+    values: ["NONE", "ALTITUDE", "SPEED", "HOME_DISTANCE"]
     enum: osd_sidebar_scroll_e
   - name: nav_rth_allow_landing
     values: ["NEVER", "ALWAYS", "FS_ONLY"]
@@ -156,20 +156,23 @@ tables:
     values: ["AUTO", "ON", "OFF"]
   - name: osd_crsf_lq_format
     enum: osd_crsf_lq_format_e
-    values: ["TYPE1", "TYPE2"]
+    values: ["TYPE1", "TYPE2", "TYPE3"]
   - name: off_on
     values: ["OFF", "ON"]
   - name: djiOsdTempSource
     values: ["ESC", "IMU", "BARO"]
     enum: djiOsdTempSource_e
-  - name: djiOsdSpeedSource
+  - name: osdSpeedSource
     values: ["GROUND", "3D", "AIR"]
-    enum: djiOsdSpeedSource_e
+    enum: osdSpeedSource_e
   - name: nav_overrides_motor_stop
     enum: navOverridesMotorStop_e
     values: ["OFF_ALWAYS", "OFF", "AUTO_ONLY", "ALL_NAV"]
   - name: osd_plus_code_short
     values: ["0", "2", "4", "6"]
+  - name: autotune_rate_adjustment
+    enum: autotune_rate_adjustment_e
+    values: ["FIXED", "LIMIT", "AUTO"]
   - name: safehome_usage_mode
     values: ["OFF", "RTH", "RTH_FS"]
     enum: safehomeUsageMode_e
@@ -207,15 +210,15 @@ groups:
         default_value: "256HZ"
         field: gyro_lpf
         table: gyro_lpf
-      - name: gyro_lpf_hz
-        description: "Software-based filter to remove mechanical vibrations from the gyro signal. Value is cutoff frequency (Hz). For larger frames with bigger props set to lower value."
-        default_value: 60
-        field: gyro_soft_lpf_hz
-        max: 200
-      - name: gyro_lpf_type
-        description: "Specifies the type of the software LPF of the gyro signals. BIQUAD gives better filtering and more delay, PT1 less filtering and less delay, so use only on clean builds."
-        default_value: "BIQUAD"
-        field: gyro_soft_lpf_type
+      - name: gyro_anti_aliasing_lpf_hz
+        description: "Gyro processing anti-aliasing filter cutoff frequency. In normal operation this filter setting should never be changed. In Hz"
+        default_value: 250
+        field: gyro_anti_aliasing_lpf_hz
+        max: 255
+      - name: gyro_anti_aliasing_lpf_type
+        description: "Specifies the type of the software LPF of the gyro signals."
+        default_value: "PT1"
+        field: gyro_anti_aliasing_lpf_type
         table: filter_type
       - name: moron_threshold
         description: "When powering up, gyro bias is calculated. If the model is shaking/moving during this initial calibration, offsets are calculated incorrectly, and could lead to poor flying performance. This threshold means how much average gyro reading could differ before re-calibration is triggered."
@@ -231,16 +234,16 @@ groups:
         min: 1
         max: 500
         default_value: 1
-      - name: gyro_stage2_lowpass_hz
-        description: "Software based second stage lowpass filter for gyro. Value is cutoff frequency (Hz)"
-        default_value: 0
-        field: gyro_stage2_lowpass_hz
+      - name: gyro_main_lpf_hz
+        description: "Software based gyro main lowpass filter. Value is cutoff frequency (Hz)"
+        default_value: 60
+        field: gyro_main_lpf_hz
         min: 0
         max: 500
-      - name: gyro_stage2_lowpass_type
-        description: "Defines the type of stage 2 gyro LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation."
+      - name: gyro_main_lpf_type
+        description: "Defines the type of the main gyro LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation."
         default_value: BIQUAD
-        field: gyro_stage2_lowpass_type
+        field: gyro_main_lpf_type
         table: filter_type
       - name: gyro_use_dyn_lpf
         description: "Use Dynamic LPF instead of static gyro stage1 LPF. Dynamic Gyro LPF updates gyro LPF based on the throttle position."
@@ -296,6 +299,27 @@ groups:
         min: 0
         max: 1
         default_value: 0
+      - name: gyro_abg_alpha
+        description: "Alpha factor for Gyro Alpha-Beta-Gamma filter"
+        default_value: 0
+        field: alphaBetaGammaAlpha
+        condition: USE_ALPHA_BETA_GAMMA_FILTER
+        min: 0
+        max: 1
+      - name: gyro_abg_boost
+        description: "Boost factor for Gyro Alpha-Beta-Gamma filter"
+        default_value: 0.35
+        field: alphaBetaGammaBoost
+        condition: USE_ALPHA_BETA_GAMMA_FILTER
+        min: 0
+        max: 2
+      - name: gyro_abg_half_life
+        description: "Sample half-life for Gyro Alpha-Beta-Gamma filter"
+        default_value: 0.5
+        field: alphaBetaGammaHalfLife
+        condition: USE_ALPHA_BETA_GAMMA_FILTER
+        min: 0
+        max: 10
 
   - name: PG_ADC_CHANNEL_CONFIG
     type: adcChannelConfig_t
@@ -851,10 +875,10 @@ groups:
         min: 4
         max: 255
         default_value: 14
-      - name: flip_over_after_crash_power_factor
-        field: flipOverAfterPowerFactor
-        default_value: 65
-        description: "flip over after crash power factor"
+      - name: turtle_mode_power_factor
+        field: turtleModePowerFactor
+        default_value: 55
+        description: "Turtle mode power factor"
         condition: "USE_DSHOT"
         min: 0
         max: 100
@@ -1194,6 +1218,11 @@ groups:
         description: "On tricopter mix only, if this is set to ON, servo will always be correcting regardless of armed state. to disable this, set it to OFF."
         default_value: ON
         type: bool
+      - name: servo_autotrim_rotation_limit
+        description: "Servo midpoints are only updated when total aircraft rotation is less than this threshold [deg/s]. Only applies when using `feature FW_AUTOTRIM`."
+        default_value: 15
+        min: 1
+        max: 60
 
   - name: PG_CONTROL_RATE_PROFILES
     type: controlRateConfig_t
@@ -2083,27 +2112,27 @@ groups:
         condition: USE_SMITH_PREDICTOR
         min: 1
         max: 500
+      - name: fw_level_pitch_gain
+        description: "I-gain for the pitch trim for self-leveling flight modes. Higher values means that AUTOTRIM will be faster but might introduce oscillations"
+        default_value: 5
+        field: fixedWingLevelTrimGain
+        min: 0
+        max: 20
+      - name: fw_level_pitch_deadband
+        description: "Deadband for automatic leveling when AUTOLEVEL mode is used."
+        default_value: 5
+        field: fixedWingLevelTrimDeadband
+        min: 0
+        max: 20
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t
     condition: USE_AUTOTUNE_FIXED_WING
     members:
-      - name: fw_autotune_overshoot_time
-        description: "Time [ms] to detect sustained overshoot"
-        default_value: 100
-        field: fw_overshoot_time
-        min: 50
-        max: 500
-      - name: fw_autotune_undershoot_time
-        description: "Time [ms] to detect sustained undershoot"
-        default_value: 200
-        field: fw_undershoot_time
-        min: 50
-        max: 500
-      - name: fw_autotune_threshold
-        description: "Threshold [%] of max rate to consider overshoot/undershoot detection"
+      - name: fw_autotune_min_stick
+        description: "Minimum stick input [%] to consider overshoot/undershoot detection"
         default_value: 50
-        field: fw_max_rate_threshold
+        field: fw_min_stick
         min: 0
         max: 100
       - name: fw_autotune_ff_to_p_gain
@@ -2112,12 +2141,30 @@ groups:
         field: fw_ff_to_p_gain
         min: 0
         max: 100
+      - name: fw_autotune_p_to_d_gain
+        description: "P to D gain (strength relationship) [%]"
+        default_value: 0
+        field: fw_p_to_d_gain
+        min: 0
+        max: 200
       - name: fw_autotune_ff_to_i_tc
         description: "FF to I time (defines time for I to reach the same level of response as FF) [ms]"
         default_value: 600
         field: fw_ff_to_i_time_constant
         min: 100
         max: 5000
+      - name: fw_autotune_rate_adjustment
+        description: "`AUTO` and `LIMIT` adjust the rates to match the capabilities of the airplane, with `LIMIT` they are never increased above the starting rates setting. `FIXED` does not adjust the rates. Rates are not changed when tuning in `ANGLE` mode."
+        default_value: "AUTO"
+        field: fw_rate_adjustment
+        table: autotune_rate_adjustment
+        type: uint8_t
+      - name: fw_autotune_max_rate_deflection
+        description: "The target percentage of maximum mixer output used for determining the rates in `AUTO` and `LIMIT`."
+        default_value: 80
+        field: fw_max_rate_deflection
+        min: 50
+        max: 100
 
   - name: PG_POSITION_ESTIMATION_CONFIG
     type: positionEstimationConfig_t
@@ -2281,6 +2328,11 @@ groups:
         field: general.pos_failure_timeout
         min: 0
         max: 10
+      - name: nav_wp_load_on_boot
+        description: "If set to ON, waypoints will be automatically loaded from EEPROM to the FC during startup."
+        default_value: OFF
+        field: general.waypoint_load_on_boot
+        type: bool
       - name: nav_wp_radius
         description: "Waypoint radius [cm]. Waypoint would be considered reached if machine is within this radius"
         default_value: 100
@@ -2398,6 +2450,12 @@ groups:
         description: "Max allowed above the ground altitude for terrain following mode"
         max: 1000
         default_value: 100
+      - name: nav_max_altitude
+        field: general.max_altitude
+        description: "Max allowed altitude (above Home Point) that applies to all NAV modes (including Altitude Hold). 0 means limit is disabled"
+        default_value: 0
+        max: 65000
+        min: 0
       - name: nav_rth_altitude
         description: "Used in EXTRA, FIXED and AT_LEAST rth alt modes [cm] (Default 1000 means 10 meters)"
         default_value: 1000
@@ -2665,7 +2723,7 @@ groups:
         min: 0
         max: 60000
       - name: nav_fw_launch_climb_angle
-        description: "Climb angle for launch sequence (degrees), is also restrained by global max_angle_inclination_pit"
+        description: "Climb angle (attitude of model, not climb slope) for launch sequence (degrees), is also restrained by global max_angle_inclination_pit"
         default_value: 18
         field: fw.launch_climb_angle
         min: 5
@@ -3288,6 +3346,13 @@ groups:
         default_value: 0
         description: Same as left_sidebar_scroll_step, but for the right sidebar
 
+      - name: osd_sidebar_height
+        field: sidebar_height
+        min: 0
+        max: 5
+        default_value: 3
+        description: Height of sidebars in rows. 0 leaves only the level indicator arrows (Not for pixel OSD)
+
       - name: osd_home_position_arm_screen
         type: bool
         default_value: ON
@@ -3307,6 +3372,17 @@ groups:
         min: -36
         max: 36
 
+  - name: PG_OSD_COMMON_CONFIG
+    type: osdCommonConfig_t
+    headers: ["io/osd_common.h"]
+    condition: USE_OSD || USE_DJI_HD_OSD
+    members:
+      - name: osd_speed_source
+        description: "Sets the speed type displayed by the DJI OSD and OSD canvas (FrSky Pixel): GROUND, 3D, AIR"
+        default_value: "GROUND"
+        field: speedSource
+        table: osdSpeedSource
+        type: uint8_t
 
   - name: PG_SYSTEM_CONFIG
     type: systemConfig_t
@@ -3556,12 +3632,6 @@ groups:
           field: esc_temperature_source
           table: djiOsdTempSource
           type: uint8_t
-        - name: dji_speed_source
-          description: "Sets the speed type displayed by the DJI OSD: GROUND, 3D, AIR"
-          default_value: "GROUND"
-          field: speedSource
-          table: djiOsdSpeedSource
-          type: uint8_t
 
   - name: PG_BEEPER_CONFIG
     type: beeperConfig_t
@@ -3579,3 +3649,68 @@ groups:
         default_value: 1
         field: dshot_beeper_tone
         type: uint8_t
+
+  - name: PG_POWER_LIMITS_CONFIG
+    type: powerLimitsConfig_t
+    headers: ["flight/power_limits.h"]
+    condition: USE_POWER_LIMITS
+    members:
+      - name: limit_cont_current
+        description: "Continous current limit (dA), set to 0 to disable"
+        default_value: 0
+        field: continuousCurrent
+        max: 4000
+      - name: limit_burst_current
+        description: "Burst current limit (dA): the current which is allowed during `limit_burst_current_time` after which `limit_cont_current` will be enforced, set to 0 to disable"
+        default_value: 0
+        field: burstCurrent
+        max: 4000
+      - name: limit_burst_current_time
+        description: "Allowed current burst time (ds) during which `limit_burst_current` is allowed and after which `limit_cont_current` will be enforced"
+        default_value: 0
+        field: burstCurrentTime
+        max: 3000
+      - name: limit_burst_current_falldown_time
+        description: "Time slice at the end of the burst time during which the current limit will be ramped down from `limit_burst_current` back down to `limit_cont_current`"
+        default_value: 0
+        field: burstCurrentFalldownTime
+        max: 3000
+      - name: limit_cont_power
+        condition: USE_ADC
+        description: "Continous power limit (dW), set to 0 to disable"
+        default_value: 0
+        field: continuousPower
+        max: 40000
+      - name: limit_burst_power
+        condition: USE_ADC
+        description: "Burst power limit (dW): the current which is allowed during `limit_burst_power_time` after which `limit_cont_power` will be enforced, set to 0 to disable"
+        default_value: 0
+        field: burstPower
+        max: 40000
+      - name: limit_burst_power_time
+        condition: USE_ADC
+        description: "Allowed power burst time (ds) during which `limit_burst_power` is allowed and after which `limit_cont_power` will be enforced"
+        default_value: 0
+        field: burstPowerTime
+        max: 3000
+      - name: limit_burst_power_falldown_time
+        condition: USE_ADC
+        description: "Time slice at the end of the burst time during which the power limit will be ramped down from `limit_burst_power` back down to `limit_cont_power`"
+        default_value: 0
+        field: burstPowerFalldownTime
+        max: 3000
+      - name: limit_pi_p
+        description: "Throttle attenuation PI control P term"
+        default_value: 100
+        field: piP
+        max: 10000
+      - name: limit_pi_i
+        description: "Throttle attenuation PI control I term"
+        default_value: 100
+        field: piI
+        max: 10000
+      - name: limit_attn_filter_cutoff
+        description: "Throttle attenuation PI control output filter cutoff frequency"
+        default_value: 1.2
+        field: attnFilterCutoff
+        max: 100

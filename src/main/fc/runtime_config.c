@@ -155,8 +155,11 @@ flightModeForTelemetry_e getFlightModeForTelemetry(void)
     if (FLIGHT_MODE(NAV_POSHOLD_MODE))
         return FLM_POSITION_HOLD;
 
-    if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE))
+    if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE))
         return FLM_CRUISE;
+
+    if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE))
+        return FLM_COURSE_HOLD;
 
     if (FLIGHT_MODE(NAV_WP_MODE))
         return FLM_MISSION;

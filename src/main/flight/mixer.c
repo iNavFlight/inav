@@ -116,13 +116,12 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .throttleScale = SETTING_THROTTLE_SCALE_DEFAULT,
     .motorPoleCount = SETTING_MOTOR_POLES_DEFAULT,            // Most brushless motors that we use are 14 poles
 #ifdef USE_DSHOT
-    .flipOverAfterPowerFactor = SETTING_FLIP_OVER_AFTER_CRASH_POWER_FACTOR_DEFAULT,
+    .turtleModePowerFactor = SETTING_TURTLE_MODE_POWER_FACTOR_DEFAULT,
 #endif
 );
 
 PG_REGISTER_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer, PG_MOTOR_MIXER, 0);
 
-#define CRASH_OVER_AFTER_CRASH_FLIP_DEADBAND 20.0f
 #define CRASH_OVER_AFTER_CRASH_FLIP_STICK_MIN 0.15f
 
 typedef void (*motorRateLimitingApplyFnPtr)(const float dT);
@@ -328,10 +327,10 @@ static uint16_t handleOutputScaling(
     }
     return value;
 }
-static void applyFlipOverAfterCrashModeToMotors(void) {
+static void applyTurtleModeToMotors(void) {
 
     if (ARMING_FLAG(ARMED)) {
-        const float flipPowerFactor = ((float)motorConfig()->flipOverAfterPowerFactor)/100.0f;
+        const float flipPowerFactor = ((float)motorConfig()->turtleModePowerFactor)/100.0f;
         const float stickDeflectionPitchAbs = ABS(((float) rcCommand[PITCH]) / 500.0f);
         const float stickDeflectionRollAbs = ABS(((float) rcCommand[ROLL]) / 500.0f);
         const float stickDeflectionYawAbs = ABS(((float) rcCommand[YAW]) / 500.0f);
@@ -394,13 +393,7 @@ static void applyFlipOverAfterCrashModeToMotors(void) {
 
             motorOutputNormalised = MIN(1.0f, flipPower * motorOutputNormalised);
 
-            float motorOutput = (float)motorConfig()->mincommand + motorOutputNormalised * (float)motorConfig()->maxthrottle;
-
-            // Add a little bit to the motorOutputMin so props aren't spinning when sticks are centered
-            motorOutput = (motorOutput < (float)motorConfig()->mincommand + CRASH_OVER_AFTER_CRASH_FLIP_DEADBAND) ? DSHOT_DISARM_COMMAND : (
-                    motorOutput - CRASH_OVER_AFTER_CRASH_FLIP_DEADBAND);
-
-            motor[i] = motorOutput;
+            motor[i] = (int16_t)scaleRangef(motorOutputNormalised, 0, 1, motorConfig()->mincommand, motorConfig()->maxthrottle);
         }
     } else {
         // Disarmed mode
@@ -532,8 +525,8 @@ static int getReversibleMotorsThrottleDeadband(void)
 void FAST_CODE mixTable(const float dT)
 {
 #ifdef USE_DSHOT
-    if (FLIGHT_MODE(FLIP_OVER_AFTER_CRASH)) {
-        applyFlipOverAfterCrashModeToMotors();
+    if (FLIGHT_MODE(TURTLE_MODE)) {
+        applyTurtleModeToMotors();
         return;
     }
 #endif

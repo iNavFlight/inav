@@ -96,7 +96,7 @@ STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_rang
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 0);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 11);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 12);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -120,6 +120,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .pos_failure_timeout = SETTING_NAV_POSITION_TIMEOUT_DEFAULT,                  // 5 sec
         .waypoint_radius = SETTING_NAV_WP_RADIUS_DEFAULT,                             // 2m diameter
         .waypoint_safe_distance = SETTING_NAV_WP_SAFE_DISTANCE_DEFAULT,               // centimeters - first waypoint should be closer than this
+        .waypoint_load_on_boot = SETTING_NAV_WP_LOAD_ON_BOOT_DEFAULT,               // load waypoints automatically during boot
         .max_auto_speed = SETTING_NAV_AUTO_SPEED_DEFAULT,                             // 3 m/s = 10.8 km/h
         .max_auto_climb_rate = SETTING_NAV_AUTO_CLIMB_RATE_DEFAULT,                   // 5 m/s
         .max_manual_speed = SETTING_NAV_MANUAL_SPEED_DEFAULT,
@@ -135,7 +136,8 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .rth_abort_threshold = SETTING_NAV_RTH_ABORT_THRESHOLD_DEFAULT,               // centimeters - 500m should be safe for all aircraft
         .max_terrain_follow_altitude = SETTING_NAV_MAX_TERRAIN_FOLLOW_ALT_DEFAULT,    // max altitude in centimeters in terrain following mode
         .safehome_max_distance = SETTING_SAFEHOME_MAX_DISTANCE_DEFAULT,               // Max distance that a safehome is from the arming point
-        },
+        .max_altitude = SETTING_NAV_MAX_ALTITUDE_DEFAULT,
+    },
 
     // MC-specific
     .mc = {
@@ -236,7 +238,7 @@ void calculateInitialHoldPosition(fpVector3_t * pos);
 void calculateFarAwayTarget(fpVector3_t * farAwayPos, int32_t yaw, int32_t distance);
 void calculateNewCruiseTarget(fpVector3_t * origin, int32_t yaw, int32_t distance);
 static bool isWaypointPositionReached(const fpVector3_t * pos, const bool isWaypointHome);
-static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint_t * waypoint);
+static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint_t * waypoint, geoAltitudeConversionMode_e altConv);
 static navigationFSMEvent_t nextForNonGeoStates(void);
 static bool isWaypointMissionValid(void);
 
@@ -1502,7 +1504,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
             if (STATE(MULTIROTOR)) {
                 wpHeadingControl.mode = NAV_WP_HEAD_MODE_POI;
                 mapWaypointToLocalPosition(&wpHeadingControl.poi_pos,
-                                           &posControl.waypointList[posControl.activeWaypointIndex]);
+                                           &posControl.waypointList[posControl.activeWaypointIndex], GEO_ALT_RELATIVE);
             }
             return nextForNonGeoStates();
 
@@ -1875,6 +1877,13 @@ static fpVector3_t * rthGetHomeTargetPosition(rthTargetMode_e mode)
             break;
 
         case RTH_HOME_FINAL_LAND:
+            // if WP mission p2 > 0 use p2 value as landing elevation (in meters !) (otherwise default to takeoff home elevation)
+            if (FLIGHT_MODE(NAV_WP_MODE) && posControl.waypointList[posControl.activeWaypointIndex].action == NAV_WP_ACTION_LAND && posControl.waypointList[posControl.activeWaypointIndex].p2 != 0) {
+                posControl.rthState.homeTmpWaypoint.z = posControl.waypointList[posControl.activeWaypointIndex].p2 * 100;   // 100 -> m to cm
+                if (waypointMissionAltConvMode(posControl.waypointList[posControl.activeWaypointIndex].p3) == GEO_ALT_ABSOLUTE) {
+                    posControl.rthState.homeTmpWaypoint.z -= posControl.gpsOrigin.alt;  // correct to relative if absolute SL altitude datum used
+                }
+            }
             break;
     }
 
@@ -2569,6 +2578,18 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAlti
         posControl.desiredState.pos.z = altitudeToUse;
     }
     else {
+
+        /* 
+         * If max altitude is set, reset climb rate if altitude is reached and climb rate is > 0
+         * In other words, when altitude is reached, allow it only to shrink
+         */
+        if (navConfig()->general.max_altitude > 0 && 
+            altitudeToUse >= navConfig()->general.max_altitude &&
+            desiredClimbRate > 0
+        ) {
+            desiredClimbRate = 0;
+        }
+
         if (STATE(FIXED_WING_LEGACY)) {
             // Fixed wing climb rate controller is open-loop. We simply move the known altitude target
             float timeDelta = US2S(currentTimeUs - lastUpdateTimeUs);
@@ -2696,8 +2717,8 @@ static bool adjustPositionFromRCInput(void)
     }
     else {
 
-        const int16_t rcPitchAdjustment = applyDeadband(rcCommand[PITCH], rcControlsConfig()->pos_hold_deadband);
-        const int16_t rcRollAdjustment = applyDeadband(rcCommand[ROLL], rcControlsConfig()->pos_hold_deadband);
+        const int16_t rcPitchAdjustment = applyDeadbandRescaled(rcCommand[PITCH], rcControlsConfig()->pos_hold_deadband, -500, 500);
+        const int16_t rcRollAdjustment = applyDeadbandRescaled(rcCommand[ROLL], rcControlsConfig()->pos_hold_deadband, -500, 500);
 
         retValue = adjustMulticopterPositionFromRCInput(rcPitchAdjustment, rcRollAdjustment);
     }
@@ -2848,6 +2869,12 @@ bool loadNonVolatileWaypointList(void)
     if (ARMING_FLAG(ARMED))
         return false;
 
+    // if waypoints are already loaded, just unload them.
+    if (posControl.waypointCount > 0) {
+        resetWaypointList();
+        return false;
+    }
+
     resetWaypointList();
 
     for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {
@@ -2890,7 +2917,7 @@ void resetSafeHomes(void)
 }
 #endif
 
-static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint_t * waypoint)
+static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint_t * waypoint, geoAltitudeConversionMode_e altConv)
 {
     gpsLocation_t wpLLH;
 
@@ -2898,7 +2925,7 @@ static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint
     wpLLH.lon = waypoint->lon;
     wpLLH.alt = waypoint->alt;
 
-    geoConvertGeodeticToLocal(localPos, &posControl.gpsOrigin, &wpLLH, GEO_ALT_RELATIVE);
+    geoConvertGeodeticToLocal(localPos, &posControl.gpsOrigin, &wpLLH, altConv);
 }
 
 static void calculateAndSetActiveWaypointToLocalPosition(const fpVector3_t * pos)
@@ -2912,10 +2939,15 @@ static void calculateAndSetActiveWaypointToLocalPosition(const fpVector3_t * pos
     setDesiredPosition(&posControl.activeWaypoint.pos, posControl.activeWaypoint.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
 }
 
+geoAltitudeConversionMode_e waypointMissionAltConvMode(geoAltitudeDatumFlag_e datumFlag)
+{
+    return datumFlag == NAV_WP_MSL_DATUM ? GEO_ALT_ABSOLUTE : GEO_ALT_RELATIVE;
+}
+
 static void calculateAndSetActiveWaypoint(const navWaypoint_t * waypoint)
 {
     fpVector3_t localPos;
-    mapWaypointToLocalPosition(&localPos, waypoint);
+    mapWaypointToLocalPosition(&localPos, waypoint, waypointMissionAltConvMode(waypoint->p3));
     calculateAndSetActiveWaypointToLocalPosition(&localPos);
 }
 
@@ -3161,15 +3193,16 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
             }
         }
 
-        // RTH/Failsafe_RTH can override MANUAL
+        // Failsafe_RTH (can override MANUAL)
         if (posControl.flags.forcedRTHActivated) {
             // If we request forced RTH - attempt to activate it no matter what
             // This might switch to emergency landing controller if GPS is unavailable
             return NAV_FSM_EVENT_SWITCH_TO_RTH;
         }
 
-        // Pilot-triggered RTH, also fall-back for WP if there is no mission loaded
-        if (IS_RC_MODE_ACTIVE(BOXNAVRTH) || (IS_RC_MODE_ACTIVE(BOXNAVWP) && !canActivateWaypoint)) {
+        // Pilot-triggered RTH (can override MANUAL), also fall-back for WP if there is no mission loaded
+        // Prevent MANUAL falling back to RTH if selected during active mission (canActivateWaypoint is set false on MANUAL selection)
+        if (IS_RC_MODE_ACTIVE(BOXNAVRTH) || (IS_RC_MODE_ACTIVE(BOXNAVWP) && !canActivateWaypoint && !IS_RC_MODE_ACTIVE(BOXMANUAL))) {
             // Check for isExecutingRTH to prevent switching our from RTH in case of a brief GPS loss
             // If don't keep this, loss of any of the canActivatePosHold && canActivateNavigation && canActivateAltHold
             // will kick us out of RTH state machine via NAV_FSM_EVENT_SWITCH_TO_IDLE and will prevent any of the fall-back
@@ -3200,7 +3233,13 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
                 return NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D;
         }
 
-        // PH has priority over CRUISE
+        // CRUISE has priority over COURSE_HOLD and AH
+        if (IS_RC_MODE_ACTIVE(BOXNAVCRUISE)) {
+            if ((FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE)) || (canActivatePosHold && canActivateAltHold))
+                return NAV_FSM_EVENT_SWITCH_TO_CRUISE;
+        }
+
+        // PH has priority over COURSE_HOLD
         // CRUISE has priority on AH
         if (IS_RC_MODE_ACTIVE(BOXNAVCOURSEHOLD)) {
 
@@ -3290,8 +3329,8 @@ bool navigationTerrainFollowingEnabled(void)
 
 navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
 {
-    const bool navBoxModesEnabled = IS_RC_MODE_ACTIVE(BOXNAVRTH) || IS_RC_MODE_ACTIVE(BOXNAVWP) || IS_RC_MODE_ACTIVE(BOXNAVPOSHOLD) || (STATE(FIXED_WING_LEGACY) && IS_RC_MODE_ACTIVE(BOXNAVALTHOLD)) || (STATE(FIXED_WING_LEGACY) && IS_RC_MODE_ACTIVE(BOXNAVCOURSEHOLD));
-    const bool navLaunchComboModesEnabled = isNavLaunchEnabled() && (IS_RC_MODE_ACTIVE(BOXNAVRTH) || IS_RC_MODE_ACTIVE(BOXNAVWP) || IS_RC_MODE_ACTIVE(BOXNAVALTHOLD) || IS_RC_MODE_ACTIVE(BOXNAVCOURSEHOLD));
+    const bool navBoxModesEnabled = IS_RC_MODE_ACTIVE(BOXNAVRTH) || IS_RC_MODE_ACTIVE(BOXNAVWP) || IS_RC_MODE_ACTIVE(BOXNAVPOSHOLD) || (STATE(FIXED_WING_LEGACY) && IS_RC_MODE_ACTIVE(BOXNAVALTHOLD)) || (STATE(FIXED_WING_LEGACY) && (IS_RC_MODE_ACTIVE(BOXNAVCOURSEHOLD) || IS_RC_MODE_ACTIVE(BOXNAVCRUISE)));
+    const bool navLaunchComboModesEnabled = isNavLaunchEnabled() && (IS_RC_MODE_ACTIVE(BOXNAVRTH) || IS_RC_MODE_ACTIVE(BOXNAVWP) || IS_RC_MODE_ACTIVE(BOXNAVALTHOLD) || IS_RC_MODE_ACTIVE(BOXNAVCOURSEHOLD) || IS_RC_MODE_ACTIVE(BOXNAVCRUISE));
 
     if (usedBypass) {
         *usedBypass = false;
@@ -3321,7 +3360,7 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
     // Don't allow arming if first waypoint is farther than configured safe distance
     if ((posControl.waypointCount > 0) && (navConfig()->general.waypoint_safe_distance != 0)) {
         fpVector3_t startingWaypointPos;
-        mapWaypointToLocalPosition(&startingWaypointPos, &posControl.waypointList[0]);
+        mapWaypointToLocalPosition(&startingWaypointPos, &posControl.waypointList[0], GEO_ALT_RELATIVE);
 
         const bool navWpMissionStartTooFar = calculateDistanceToDestination(&startingWaypointPos) > navConfig()->general.waypoint_safe_distance;
 
@@ -3544,6 +3583,11 @@ void navigationInit(void)
     } else {
         DISABLE_STATE(FW_HEADING_USE_YAW);
     }
+
+#if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE)
+    if (navConfig()->general.waypoint_load_on_boot)
+        loadNonVolatileWaypointList();
+#endif
 }
 
 /*-----------------------------------------------------------
@@ -3615,6 +3659,11 @@ bool navigationIsControllingThrottle(void)
 {
     // Note that this makes a detour into mixer code to evaluate actual motor status
     return navigationInAutomaticThrottleMode() && (getMotorStatus() != MOTOR_STOPPED_USER);
+}
+
+bool navigationIsControllingAltitude(void) {
+    navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
+    return (stateFlags & NAV_CTL_ALT);
 }
 
 bool navigationIsFlyingAutonomousMode(void)
