@@ -3452,7 +3452,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
         } else {
             osdShowStatsPage1(); // show first page of statistics
             osdSetNextRefreshIn(STATS_SCREEN_DISPLAY_TIME);
-            statsPageAutoSwapCntl = osdConfig()->stats_page_auto_swap_time > 0 ? 0 : 2; //  disable swapping pages when time = 0
+            statsPageAutoSwapCntl = osdConfig()->stats_page_auto_swap_time > 0 ? 0 : 2; // disable swapping pages when time = 0
         }
 
         armState = ARMING_FLAG(ARMED);
