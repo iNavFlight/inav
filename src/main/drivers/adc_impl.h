@@ -22,10 +22,18 @@
 
 #if defined(STM32F4) || defined(STM32F7)
 #define ADC_TAG_MAP_COUNT 16
+#elif defined(STM32H7)
+#define ADC_TAG_MAP_COUNT 28
 #elif defined(STM32F3)
 #define ADC_TAG_MAP_COUNT 39
 #else
 #define ADC_TAG_MAP_COUNT 10
+#endif
+
+#if defined(STM32H7)
+#define ADC_VALUES_ALIGNMENT(def) __attribute__ ((section(".DMA_RAM"))) def __attribute__ ((aligned (32)))
+#else
+#define ADC_VALUES_ALIGNMENT(def) def 
 #endif
 
 typedef enum ADCDevice {
@@ -34,7 +42,7 @@ typedef enum ADCDevice {
 #if defined(STM32F3)
     ADCDEV_2,
     ADCDEV_MAX = ADCDEV_2,
-#elif defined(STM32F4) || defined(STM32F7)
+#elif defined(STM32F4) || defined(STM32F7) || defined(STM32H7)
     ADCDEV_2,
     ADCDEV_3,
     ADCDEV_MAX = ADCDEV_3,
@@ -46,20 +54,20 @@ typedef enum ADCDevice {
 
 typedef struct adcTagMap_s {
     ioTag_t tag;
-    uint8_t channel;
+    uint32_t channel;
 } adcTagMap_t;
 
 typedef struct adcDevice_s {
     ADC_TypeDef* ADCx;
     rccPeriphTag_t rccADC;
     rccPeriphTag_t rccDMA;
-#if defined(STM32F4) || defined(STM32F7)
+#if defined(STM32F4) || defined(STM32F7) || defined(STM32H7)
     DMA_Stream_TypeDef* DMAy_Streamx;
     uint32_t channel;
 #else
     DMA_Channel_TypeDef* DMAy_Channelx;
 #endif
-#if defined(STM32F7)
+#if defined(STM32F7) || defined(STM32H7)
     ADC_HandleTypeDef ADCHandle;
     DMA_HandleTypeDef DmaHandle;
 #endif
@@ -70,7 +78,7 @@ typedef struct adcDevice_s {
 typedef struct adc_config_s {
     ioTag_t tag;
     ADCDevice adcDevice;
-    uint8_t adcChannel;         // ADC1_INxx channel number
+    uint32_t adcChannel;         // ADC1_INxx channel number
     uint8_t dmaIndex;           // index into DMA buffer in case of sparse channels
     bool enabled;
     uint8_t sampleTime;
@@ -78,8 +86,8 @@ typedef struct adc_config_s {
 
 extern const adcTagMap_t adcTagMap[ADC_TAG_MAP_COUNT];
 extern adc_config_t adcConfig[ADC_CHN_COUNT];
-extern volatile uint16_t adcValues[ADCDEV_COUNT][ADC_CHN_COUNT * ADC_AVERAGE_N_SAMPLES];
+extern volatile ADC_VALUES_ALIGNMENT(uint16_t adcValues[ADCDEV_COUNT][ADC_CHN_COUNT * ADC_AVERAGE_N_SAMPLES]);
 
 void adcHardwareInit(drv_adc_config_t *init);
 ADCDevice adcDeviceByInstance(ADC_TypeDef *instance);
-uint8_t adcChannelByTag(ioTag_t ioTag);
+uint32_t adcChannelByTag(ioTag_t ioTag);

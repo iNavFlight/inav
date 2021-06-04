@@ -88,6 +88,8 @@
 #define _ABS_I(x, var) _ABS_II(x, var)
 #define ABS(x) _ABS_I(x, _CHOOSE_VAR(_abs, __COUNTER__))
 
+#define power3(x) ((x)*(x)*(x))
+
 // Floating point Euler angles.
 typedef struct fp_angles {
     float roll;
@@ -130,8 +132,9 @@ bool sensorCalibrationSolveForScale(sensorCalibrationState_t * state, float resu
 
 int gcd(int num, int denom);
 int32_t applyDeadband(int32_t value, int32_t deadband);
+int32_t applyDeadbandRescaled(int32_t value, int32_t deadband, int32_t min, int32_t max);
 
-int constrain(int amt, int low, int high);
+int32_t constrain(int32_t amt, int32_t low, int32_t high);
 float constrainf(float amt, float low, float high);
 
 void devClear(stdev_t *dev);

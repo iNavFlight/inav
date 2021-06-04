@@ -18,17 +18,14 @@
 
 #pragma once
 
-#define TARGET_BOARD_IDENTIFIER "H765"
-#define USBD_PRODUCT_STRING     "MATEKH765"
+#define TARGET_BOARD_IDENTIFIER "H743"
+#define USBD_PRODUCT_STRING     "MATEKH743"
 
 #define LED0                    PE3
 #define LED1                    PE4
 
 #define BEEPER                  PA15
 #define BEEPER_INVERTED
-
-
-
 
 // *************** UART *****************************
 #define USE_VCP
@@ -67,22 +64,12 @@
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART6
 
-
-
-#define MAX_PWM_OUTPUT_PORTS        15
-
-
-
-
-#define TARGET_IO_PORTA 0xffff
-#define TARGET_IO_PORTB 0xffff
-#define TARGET_IO_PORTC 0xffff
-#define TARGET_IO_PORTD 0xffff
-#define TARGET_IO_PORTE 0xffff
-
 // *************** IMU generic ***********************
 #define USE_DUAL_GYRO
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
+
+#define USE_EXTI
+#define USE_MPU_DATA_READY_SIGNAL
 
 // *************** SPI1 IMU1 *************************
 #define USE_SPI
@@ -105,12 +92,10 @@
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PB15
 
-/*
 #define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          PB12
-*/
 
 // *************** SPI3 SD BLACKBOX*******************
 /*
@@ -146,6 +131,7 @@
 #define BARO_I2C_BUS            BUS_I2C2
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
+#define USE_BARO_DPS310
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
@@ -157,26 +143,22 @@
 #define USE_MAG_LIS3MDL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
-
+#define BNO055_I2C_BUS          BUS_I2C2
 #define PITOT_I2C_BUS           BUS_I2C2
 
 #define USE_RANGEFINDER
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
 
-
-
-#if 0
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
-
 // *************** ADC *****************************
 #define USE_ADC
 #define ADC_INSTANCE                ADC1
 
-#define ADC_CHANNEL_1_PIN           PC2
-#define ADC_CHANNEL_2_PIN           PC3
-#define ADC_CHANNEL_3_PIN           PC1
-#define ADC_CHANNEL_4_PIN           PC0
+#define ADC_CHANNEL_1_PIN           PC0  //ADC123 VBAT1
+#define ADC_CHANNEL_2_PIN           PC1  //ADC123 CURR1
+#define ADC_CHANNEL_3_PIN           PC5  //ADC12  RSSI
+#define ADC_CHANNEL_4_PIN           PC4  //ADC12  AirS
+#define ADC_CHANNEL_5_PIN           PA4  //ADC12  VB2
+#define ADC_CHANNEL_6_PIN           PA7  //ADC12  CU2
 
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
@@ -198,7 +180,13 @@
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
+#define TARGET_IO_PORTA 0xffff
+#define TARGET_IO_PORTB 0xffff
+#define TARGET_IO_PORTC 0xffff
+#define TARGET_IO_PORTD 0xffff
+#define TARGET_IO_PORTE 0xffff
+
+#define MAX_PWM_OUTPUT_PORTS        15
 #define USE_DSHOT
 #define USE_ESC_SENSOR
 #define USE_SERIALSHOT
-#endif

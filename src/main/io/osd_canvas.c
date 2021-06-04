@@ -354,7 +354,7 @@ static bool osdCanvasDrawArtificialHorizonWidget(displayPort_t *display, display
         }
         if (!configured) {
             widgetAHIStyle_e ahiStyle = 0;
-            switch ((osd_ahi_style_e)osdConfig()->osd_ahi_style) {
+            switch ((osd_ahi_style_e)osdConfig()->ahi_style) {
                 case OSD_AHI_STYLE_DEFAULT:
                     ahiStyle = DISPLAY_WIDGET_AHI_STYLE_STAIRCASE;
                     break;
@@ -377,8 +377,13 @@ static bool osdCanvasDrawArtificialHorizonWidget(displayPort_t *display, display
             }
             configured = true;
         }
+        // The widget displays 270degs before fixing the bar at the top/bottom
+        // so that's 135degs each direction. Map that to the configured limit.
+        const float halfRange = 135.0f;
+        const float limit = halfRange / 180.0f * M_PIf;
+        float multiplier = osdConfig()->ahi_style == OSD_AHI_STYLE_DEFAULT ? 1.0f : halfRange / osdConfig()->ahi_max_pitch;
         widgetAHIData_t data = {
-            .pitch = pitchAngle,
+            .pitch = constrainf(pitchAngle * multiplier, -limit, limit),
             .roll = rollAngle,
         };
         if (displayWidgetsDrawAHI(&widgets, instance, &data)) {
@@ -408,7 +413,7 @@ void osdCanvasDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *can
     if ((now > nextDrawMinMs && totalError > 0.05f)|| now > nextDrawMaxMs) {
 
         if (!osdCanvasDrawArtificialHorizonWidget(display, canvas, p, pitchAngle, rollAngle)) {
-            switch ((osd_ahi_style_e)osdConfig()->osd_ahi_style) {
+            switch ((osd_ahi_style_e)osdConfig()->ahi_style) {
                 case OSD_AHI_STYLE_DEFAULT:
                 {
                     int x, y, w, h;
@@ -505,20 +510,23 @@ static int32_t osdCanvasSidebarGetValue(osd_sidebar_scroll_e scroll)
                     return osdGetAltitude();
             }
             break;
-        case OSD_SIDEBAR_SCROLL_GROUND_SPEED:
+        case OSD_SIDEBAR_SCROLL_SPEED:
+            {
 #if defined(USE_GPS)
-            switch ((osd_unit_e)osdConfig()->units) {
-                case OSD_UNIT_UK:
-                    FALLTHROUGH;
-                case OSD_UNIT_IMPERIAL:
-                    // cms/s to (mi/h) * 100
-                    return gpsSol.groundSpeed * 224 / 100;
-                case OSD_UNIT_METRIC:
-                    // cm/s to (km/h) * 100
-                    return gpsSol.groundSpeed * 36 / 10;
-            }
+                int speed = osdGetSpeedFromSelectedSource();
+                switch ((osd_unit_e)osdConfig()->units) {
+                    case OSD_UNIT_UK:
+                        FALLTHROUGH;
+                    case OSD_UNIT_IMPERIAL:
+                        // cms/s to (mi/h) * 100
+                        return speed * 224 / 100;
+                    case OSD_UNIT_METRIC:
+                        // cm/s to (km/h) * 100
+                        return speed * 36 / 10;
+                }
 #endif
-            break;
+                break;
+            }
         case OSD_SIDEBAR_SCROLL_HOME_DISTANCE:
 #if defined(USE_GPS)
             switch ((osd_unit_e)osdConfig()->units) {
@@ -542,7 +550,7 @@ static uint8_t osdCanvasSidebarGetOptions(int *width, osd_sidebar_scroll_e scrol
             break;
         case OSD_SIDEBAR_SCROLL_ALTITUDE:
             FALLTHROUGH;
-        case OSD_SIDEBAR_SCROLL_GROUND_SPEED:
+        case OSD_SIDEBAR_SCROLL_SPEED:
             FALLTHROUGH;
         case OSD_SIDEBAR_SCROLL_HOME_DISTANCE:
             *width = OSD_CHAR_WIDTH * 5; // 4 numbers + unit
@@ -583,7 +591,7 @@ static void osdCanvasSidebarGetUnit(osdUnit_t *unit, uint16_t *countsPerStep, os
                     break;
             }
             break;
-        case OSD_SIDEBAR_SCROLL_GROUND_SPEED:
+        case OSD_SIDEBAR_SCROLL_SPEED:
             switch ((osd_unit_e)osdConfig()->units) {
                 case OSD_UNIT_UK:
                     FALLTHROUGH;

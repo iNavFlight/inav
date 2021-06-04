@@ -85,7 +85,10 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
+#include "flight/power_limits.h"
 #include "flight/rth_estimator.h"
+#include "flight/secondary_imu.h"
+#include "flight/servos.h"
 #include "flight/wind_estimator.h"
 
 #include "navigation/navigation.h"
@@ -102,6 +105,7 @@ FILE_COMPILE_FOR_SPEED
 #include "sensors/pitotmeter.h"
 #include "sensors/temperature.h"
 #include "sensors/esc_sensor.h"
+#include "sensors/rangefinder.h"
 
 #include "programming/logic_condition.h"
 #include "programming/global_variables.h"
@@ -115,6 +119,8 @@ FILE_COMPILE_FOR_SPEED
 #define GFORCE_FILTER_TC 0.2
 
 #define DELAYED_REFRESH_RESUME_COMMAND (checkStickPosition(THR_HI) || checkStickPosition(PIT_HI))
+#define STATS_PAGE2 (checkStickPosition(ROL_HI))
+#define STATS_PAGE1 (checkStickPosition(ROL_LO))
 
 #define SPLASH_SCREEN_DISPLAY_TIME 4000 // ms
 #define ARMED_SCREEN_DISPLAY_TIME 1500 // ms
@@ -139,7 +145,7 @@ FILE_COMPILE_FOR_SPEED
 #define OSD_CENTER_LEN(x) ((osdDisplayPort->cols - x) / 2)
 #define OSD_CENTER_S(s) OSD_CENTER_LEN(strlen(s))
 
-#define OSD_MIN_FONT_VERSION 1
+#define OSD_MIN_FONT_VERSION 2
 
 static unsigned currentLayout = 0;
 static int layoutOverride = -1;
@@ -151,9 +157,11 @@ static float GForce, GForceAxis[XYZ_AXIS_COUNT];
 typedef struct statistic_s {
     uint16_t max_speed;
     uint16_t min_voltage; // /100
-    int16_t max_current; // /100
-    int16_t max_power; // /100
+    int16_t max_current;
+    int32_t max_power;
     int16_t min_rssi;
+    int16_t min_lq; // for CRSF
+    int16_t min_rssi_dbm; // for CRSF
     int32_t max_altitude;
     uint32_t max_distance;
 } statistic_t;
@@ -166,6 +174,7 @@ static bool refreshWaitForResumeCmdRelease;
 static bool fullRedraw = false;
 
 static uint8_t armState;
+static uint8_t statsPagesCheck = 0;
 
 typedef struct osdMapData_s {
     uint32_t scale;
@@ -185,7 +194,7 @@ static bool osdDisplayHasCanvas;
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
-PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 14);
+PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 2);
 PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 0);
 
 static int digitCount(int32_t value)
@@ -305,11 +314,11 @@ static void osdLeftAlignString(char *buff)
  * prefixed by a a symbol to indicate the unit used.
  * @param dist Distance in centimeters
  */
-static void osdFormatDistanceSymbol(char *buff, int32_t dist)
+static void osdFormatDistanceSymbol(char *buff, int32_t dist, uint8_t decimals)
 {
     switch ((osd_unit_e)osdConfig()->units) {
     case OSD_UNIT_IMPERIAL:
-        if (osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(dist), FEET_PER_MILE, 0, 3, 3)) {
+        if (osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(dist), FEET_PER_MILE, decimals, 3, 3)) {
             buff[3] = SYM_DIST_MI;
         } else {
             buff[3] = SYM_DIST_FT;
@@ -319,7 +328,7 @@ static void osdFormatDistanceSymbol(char *buff, int32_t dist)
     case OSD_UNIT_UK:
         FALLTHROUGH;
     case OSD_UNIT_METRIC:
-        if (osdFormatCentiNumber(buff, dist, METERS_PER_KILOMETER, 0, 3, 3)) {
+        if (osdFormatCentiNumber(buff, dist, METERS_PER_KILOMETER, decimals, 3, 3)) {
             buff[3] = SYM_DIST_KM;
         } else {
             buff[3] = SYM_DIST_M;
@@ -526,6 +535,27 @@ static uint16_t osdConvertRSSI(void)
     return constrain(getRSSI() * 100 / RSSI_MAX_VALUE, 0, 99);
 }
 
+static uint16_t osdGetCrsfLQ(void)
+{
+    int16_t statsLQ = rxLinkStatistics.uplinkLQ;
+    int16_t scaledLQ = scaleRange(constrain(statsLQ, 0, 100), 0, 100, 170, 300);
+    int16_t displayedLQ;
+    switch (osdConfig()->crsf_lq_format) {
+        case OSD_CRSF_LQ_TYPE1:
+        case OSD_CRSF_LQ_TYPE2:
+            displayedLQ = statsLQ;
+            break;
+        case OSD_CRSF_LQ_TYPE3:
+            displayedLQ = rxLinkStatistics.rfMode >= 2 ? scaledLQ : statsLQ;
+            break;
+    }
+    return displayedLQ;
+}
+
+static int16_t osdGetCrsfdBm(void)
+{
+    return rxLinkStatistics.uplinkRSSI;
+}
 /**
 * Displays a temperature postfixed with a symbol depending on the current unit system
 * @param label to display
@@ -712,6 +742,10 @@ static const char * osdArmingDisabledReasonMessage(void)
             return OSD_MESSAGE_STR(OSD_MSG_CLI_ACTIVE);
         case ARMING_DISABLED_PWM_OUTPUT_ERROR:
             return OSD_MESSAGE_STR(OSD_MSG_PWM_INIT_ERROR);
+        case ARMING_DISABLED_NO_PREARM:
+            return OSD_MESSAGE_STR(OSD_MSG_NO_PREARM);
+        case ARMING_DISABLED_DSHOT_BEEPER:
+            return OSD_MESSAGE_STR(OSD_MSG_DSHOT_BEEPER);
             // Cases without message
         case ARMING_DISABLED_CMS_MENU:
             FALLTHROUGH;
@@ -777,6 +811,15 @@ static const char * osdFailsafeInfoMessage(void)
     }
     return OSD_MESSAGE_STR(OSD_MSG_RC_RX_LINK_LOST);
 }
+#if defined(USE_SAFE_HOME)
+static const char * divertingToSafehomeMessage(void)
+{
+	if (NAV_Status.state != MW_NAV_STATE_HOVER_ABOVE_HOME && safehome_applied) {
+	    return OSD_MESSAGE_STR(OSD_MSG_DIVERT_SAFEHOME);
+	}
+	return NULL;
+}
+#endif
 
 static const char * navigationStateMessage(void)
 {
@@ -785,7 +828,7 @@ static const char * navigationStateMessage(void)
             break;
         case MW_NAV_STATE_RTH_START:
             return OSD_MESSAGE_STR(OSD_MSG_STARTING_RTH);
-        case MW_NAV_STATE_RTH_CLIMB:            
+        case MW_NAV_STATE_RTH_CLIMB:
             return OSD_MESSAGE_STR(OSD_MSG_RTH_CLIMB);
         case MW_NAV_STATE_RTH_ENROUTE:
             return OSD_MESSAGE_STR(OSD_MSG_HEADING_HOME);
@@ -812,6 +855,11 @@ static const char * navigationStateMessage(void)
             return OSD_MESSAGE_STR(OSD_MSG_LANDING);
         case MW_NAV_STATE_HOVER_ABOVE_HOME:
             if (STATE(FIXED_WING_LEGACY)) {
+#if defined(USE_SAFE_HOME)
+                if (safehome_applied) {
+                    return OSD_MESSAGE_STR(OSD_MSG_LOITERING_SAFEHOME);
+                }
+#endif
                 return OSD_MESSAGE_STR(OSD_MSG_LOITERING_HOME);
             }
             return OSD_MESSAGE_STR(OSD_MSG_HOVERING);
@@ -869,18 +917,21 @@ void osdCrosshairPosition(uint8_t *x, uint8_t *y)
  **/
 static void osdFormatThrottlePosition(char *buff, bool autoThr, textAttributes_t *elemAttr)
 {
-    const int minThrottle = getThrottleIdleValue();
     buff[0] = SYM_BLANK;
     buff[1] = SYM_THR;
-    int16_t thr = (constrain(rcCommand[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX ) - minThrottle) * 100 / (motorConfig()->maxthrottle - minThrottle);
     if (autoThr && navigationIsControllingThrottle()) {
         buff[0] = SYM_AUTO_THR0;
         buff[1] = SYM_AUTO_THR1;
-        thr = (constrain(rcCommand[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN);
-        if (isFixedWingAutoThrottleManuallyIncreased())
+        if (isFixedWingAutoThrottleManuallyIncreased()) {
             TEXT_ATTRIBUTES_ADD_BLINK(*elemAttr);
+        }
     }
-    tfp_sprintf(buff + 2, "%3d", thr);
+#ifdef USE_POWER_LIMITS
+    if (powerLimiterIsLimiting()) {
+        TEXT_ATTRIBUTES_ADD_BLINK(*elemAttr);
+    }
+#endif
+    tfp_sprintf(buff + 2, "%3d", getThrottlePercent());
 }
 
 /**
@@ -940,12 +991,36 @@ static inline int32_t osdGetAltitudeMsl(void)
 
 static bool osdIsHeadingValid(void)
 {
+#ifdef USE_SECONDARY_IMU
+    if (secondaryImuState.active && secondaryImuConfig()->useForOsdHeading) {
+        return true;
+    } else {
+        return isImuHeadingValid();
+    }
+#else
     return isImuHeadingValid();
+#endif
 }
 
 int16_t osdGetHeading(void)
 {
+#ifdef USE_SECONDARY_IMU
+    if (secondaryImuState.active && secondaryImuConfig()->useForOsdHeading) {
+        return secondaryImuState.eulerAngles.values.yaw;
+    } else {
+        return attitude.values.yaw;
+    }
+#else
     return attitude.values.yaw;
+#endif
+}
+
+int16_t osdPanServoHomeDirectionOffset(void)
+{
+    int8_t servoIndex = osdConfig()->pan_servo_index;
+    int16_t servoPosition = servo[servoIndex];
+    int16_t servoMiddle = servoParams(servoIndex)->middle;
+    return (int16_t)CENTIDEGREES_TO_DEGREES((servoPosition - servoMiddle) * osdConfig()->pan_servo_pwm2centideg);
 }
 
 // Returns a heading angle in degrees normalized to [0, 360).
@@ -1121,13 +1196,67 @@ static void osdDrawRadar(uint16_t *drawn, uint32_t *usedScale)
     osdDrawMap(reference, 0, SYM_ARROW_UP, GPS_distanceToHome, poiDirection, SYM_HOME, drawn, usedScale);
 }
 
-static int16_t osdGet3DSpeed(void)
+static uint16_t crc_accumulate(uint8_t data, uint16_t crcAccum)
 {
-    int16_t vert_speed = getEstimatedActualVelocity(Z);
-    int16_t hor_speed = gpsSol.groundSpeed;
-    return (int16_t)sqrtf(sq(hor_speed) + sq(vert_speed));
+    uint8_t tmp;
+    tmp = data ^ (uint8_t)(crcAccum & 0xff);
+    tmp ^= (tmp << 4);
+    crcAccum = (crcAccum >> 8) ^ (tmp << 8) ^ (tmp << 3) ^ (tmp >> 4);
+    return crcAccum;
 }
 
+
+static void osdDisplayTelemetry(void)
+{
+    uint32_t          trk_data;
+    uint16_t          trk_crc = 0;
+    char              trk_buffer[31];
+    static int16_t    trk_elevation = 127;
+    static uint16_t   trk_bearing   = 0;
+
+    if (ARMING_FLAG(ARMED)) {
+      if (STATE(GPS_FIX)){
+        if (GPS_distanceToHome > 5) {
+          trk_bearing = GPS_directionToHome;
+          trk_bearing += 360 + 180;
+          trk_bearing %= 360;
+          int32_t alt = CENTIMETERS_TO_METERS(osdGetAltitude());
+          float at = atan2(alt, GPS_distanceToHome);
+          trk_elevation = (float)at * 57.2957795; // 57.2957795 = 1 rad
+          trk_elevation += 37; // because elevation in telemetry should be from -37 to 90
+          if (trk_elevation < 0) {
+            trk_elevation = 0;
+          }
+        }
+      }
+    }
+    else{
+      trk_elevation = 127;
+      trk_bearing   = 0;
+    }
+
+    trk_data = 0;                                                // bit  0    - packet type 0 = bearing/elevation, 1 = 2 byte data packet
+    trk_data = trk_data | (uint32_t)(0x7F & trk_elevation) << 1; // bits 1-7  - elevation angle to target. NOTE number is abused. constrained value of -37 to 90 sent as 0 to 127.
+    trk_data = trk_data | (uint32_t)trk_bearing << 8;            // bits 8-17 - bearing angle to target. 0 = true north. 0 to 360
+    trk_crc = crc_accumulate(0xFF & trk_data, trk_crc);          // CRC First Byte  bits 0-7
+    trk_crc = crc_accumulate(0xFF & trk_bearing, trk_crc);       // CRC Second Byte bits 8-15
+    trk_crc = crc_accumulate(trk_bearing >> 8, trk_crc);         // CRC Third Byte  bits  16-17
+    trk_data = trk_data | (uint32_t)trk_crc << 17;               // bits 18-29 CRC & 0x3FFFF
+
+    for (uint8_t t_ctr = 0; t_ctr < 30; t_ctr++) {               // Prepare screen buffer and write data line.
+      if (trk_data & (uint32_t)1 << t_ctr){
+        trk_buffer[29 - t_ctr] = SYM_TELEMETRY_0;
+      }
+      else{
+        trk_buffer[29 - t_ctr] = SYM_TELEMETRY_1;
+      }
+    }
+    trk_buffer[30] = 0;
+    displayWrite(osdDisplayPort, 0, 0, trk_buffer);
+    if (osdConfig()->telemetry>1){
+      displayWrite(osdDisplayPort, 0, 3, trk_buffer);               // Test display because normal telemetry line is not visible
+    }
+}
 #endif
 
 static void osdFormatPidControllerOutput(char *buff, const char *label, const pidController_t *pidController, uint8_t scale, bool showDecimal) {
@@ -1164,7 +1293,49 @@ static void osdDisplayBatteryVoltage(uint8_t elemPosX, uint8_t elemPosY, uint16_
     displayWriteWithAttr(osdDisplayPort, elemPosX + 1, elemPosY, buff, elemAttr);
 }
 
-static void osdDisplayPIDValues(uint8_t elemPosX, uint8_t elemPosY, const char *str, pidIndex_e pidIndex, adjustmentFunction_e adjFuncP, adjustmentFunction_e adjFuncI, adjustmentFunction_e adjFuncD)
+static void osdDisplayFlightPIDValues(uint8_t elemPosX, uint8_t elemPosY, const char *str, pidIndex_e pidIndex, adjustmentFunction_e adjFuncP, adjustmentFunction_e adjFuncI, adjustmentFunction_e adjFuncD, adjustmentFunction_e adjFuncFF)
+{
+    textAttributes_t elemAttr;
+    char buff[4];
+
+    const pid8_t *pid = &pidBank()->pid[pidIndex];
+    pidType_e pidType = pidIndexGetType(pidIndex);
+
+    displayWrite(osdDisplayPort, elemPosX, elemPosY, str);
+
+    if (pidType == PID_TYPE_NONE) {
+        // PID is not used in this configuration. Draw dashes.
+        // XXX: Keep this in sync with the %3d format and spacing used below
+        displayWrite(osdDisplayPort, elemPosX + 6, elemPosY, "-   -   -   -");
+        return;
+    }
+
+    elemAttr = TEXT_ATTRIBUTES_NONE;
+    tfp_sprintf(buff, "%3d", pid->P);
+    if ((isAdjustmentFunctionSelected(adjFuncP)) || (((adjFuncP == ADJUSTMENT_ROLL_P) || (adjFuncP == ADJUSTMENT_PITCH_P)) && (isAdjustmentFunctionSelected(ADJUSTMENT_PITCH_ROLL_P))))
+        TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+    displayWriteWithAttr(osdDisplayPort, elemPosX + 4, elemPosY, buff, elemAttr);
+
+    elemAttr = TEXT_ATTRIBUTES_NONE;
+    tfp_sprintf(buff, "%3d", pid->I);
+    if ((isAdjustmentFunctionSelected(adjFuncI)) || (((adjFuncI == ADJUSTMENT_ROLL_I) || (adjFuncI == ADJUSTMENT_PITCH_I)) && (isAdjustmentFunctionSelected(ADJUSTMENT_PITCH_ROLL_I))))
+        TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+    displayWriteWithAttr(osdDisplayPort, elemPosX + 8, elemPosY, buff, elemAttr);
+
+    elemAttr = TEXT_ATTRIBUTES_NONE;
+    tfp_sprintf(buff, "%3d", pid->D);
+    if ((isAdjustmentFunctionSelected(adjFuncD)) || (((adjFuncD == ADJUSTMENT_ROLL_D) || (adjFuncD == ADJUSTMENT_PITCH_D)) && (isAdjustmentFunctionSelected(ADJUSTMENT_PITCH_ROLL_D))))
+        TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+    displayWriteWithAttr(osdDisplayPort, elemPosX + 12, elemPosY, buff, elemAttr);
+
+    elemAttr = TEXT_ATTRIBUTES_NONE;
+    tfp_sprintf(buff, "%3d", pid->FF);
+    if ((isAdjustmentFunctionSelected(adjFuncFF)) || (((adjFuncFF == ADJUSTMENT_ROLL_FF) || (adjFuncFF == ADJUSTMENT_PITCH_FF)) && (isAdjustmentFunctionSelected(ADJUSTMENT_PITCH_ROLL_FF))))
+        TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+    displayWriteWithAttr(osdDisplayPort, elemPosX + 16, elemPosY, buff, elemAttr);
+}
+
+static void osdDisplayNavPIDValues(uint8_t elemPosX, uint8_t elemPosY, const char *str, pidIndex_e pidIndex, adjustmentFunction_e adjFuncP, adjustmentFunction_e adjFuncI, adjustmentFunction_e adjFuncD)
 {
     textAttributes_t elemAttr;
     char buff[4];
@@ -1195,7 +1366,7 @@ static void osdDisplayPIDValues(uint8_t elemPosX, uint8_t elemPosY, const char *
 
     elemAttr = TEXT_ATTRIBUTES_NONE;
     tfp_sprintf(buff, "%3d", pidType == PID_TYPE_PIFF ? pid->FF : pid->D);
-    if ((isAdjustmentFunctionSelected(adjFuncD)) || (((adjFuncD == ADJUSTMENT_ROLL_D_FF) || (adjFuncD == ADJUSTMENT_PITCH_D_FF)) && (isAdjustmentFunctionSelected(ADJUSTMENT_PITCH_ROLL_D_FF))))
+    if ((isAdjustmentFunctionSelected(adjFuncD)) || (((adjFuncD == ADJUSTMENT_ROLL_D) || (adjFuncD == ADJUSTMENT_PITCH_D)) && (isAdjustmentFunctionSelected(ADJUSTMENT_PITCH_ROLL_D))))
         TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
     displayWriteWithAttr(osdDisplayPort, elemPosX + 12, elemPosY, buff, elemAttr);
 }
@@ -1307,6 +1478,9 @@ static bool osdDrawSingleElement(uint8_t item)
         buff[1] = SYM_SAT_R;
         tfp_sprintf(buff + 2, "%2d", gpsSol.numSat);
         if (!STATE(GPS_FIX)) {
+            if (getHwGPSStatus() == HW_SENSOR_UNAVAILABLE || getHwGPSStatus() == HW_SENSOR_UNHEALTHY) {
+                strcpy(buff + 2, "X!");
+            }
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         }
         break;
@@ -1337,7 +1511,11 @@ static bool osdDrawSingleElement(uint8_t item)
                 }
                 else
                 {
-                    int homeDirection = GPS_directionToHome - DECIDEGREES_TO_DEGREES(osdGetHeading());
+                    int16_t panHomeDirOffset = 0;
+                    if (!(osdConfig()->pan_servo_pwm2centideg == 0)){
+                        panHomeDirOffset = osdPanServoHomeDirectionOffset();
+                    }
+                    int homeDirection = GPS_directionToHome - DECIDEGREES_TO_DEGREES(osdGetHeading()) + panHomeDirOffset;
                     osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX, elemPosY), homeDirection);
                 }
             } else {
@@ -1371,7 +1549,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_HOME_DIST:
         {
             buff[0] = SYM_HOME;
-            osdFormatDistanceSymbol(&buff[1], GPS_distanceToHome * 100);
+            osdFormatDistanceSymbol(&buff[1], GPS_distanceToHome * 100, 0);
             uint16_t dist_alarm = osdConfig()->dist_alarm;
             if (dist_alarm > 0 && GPS_distanceToHome > dist_alarm) {
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
@@ -1381,7 +1559,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_TRIP_DIST:
         buff[0] = SYM_TOTAL;
-        osdFormatDistanceSymbol(buff + 1, getTotalTravelDistance());
+        osdFormatDistanceSymbol(buff + 1, getTotalTravelDistance(), 0);
         break;
 
     case OSD_HEADING:
@@ -1400,18 +1578,18 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
-    case OSD_CRUISE_HEADING_ERROR:
+    case OSD_COURSE_HOLD_ERROR:
         {
-            if (ARMING_FLAG(ARMED) && !FLIGHT_MODE(NAV_CRUISE_MODE)) {
+            if (ARMING_FLAG(ARMED) && !FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
                 displayWrite(osdDisplayPort, elemPosX, elemPosY, "     ");
                 return true;
             }
 
             buff[0] = SYM_HEADING;
 
-            if ((!ARMING_FLAG(ARMED)) || (FLIGHT_MODE(NAV_CRUISE_MODE) && isAdjustingPosition())) {
+            if ((!ARMING_FLAG(ARMED)) || (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && isAdjustingPosition())) {
                 buff[1] = buff[2] = buff[3] = '-';
-            } else if (FLIGHT_MODE(NAV_CRUISE_MODE)) {
+            } else if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
                 int16_t herr = lrintf(CENTIDEGREES_TO_DEGREES((float)navigationGetHeadingError()));
                 if (ABS(herr) > 99)
                     strcpy(buff + 1, ">99");
@@ -1424,11 +1602,11 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
-    case OSD_CRUISE_HEADING_ADJUSTMENT:
+    case OSD_COURSE_HOLD_ADJUSTMENT:
         {
             int16_t heading_adjust = lrintf(CENTIDEGREES_TO_DEGREES((float)getCruiseHeadingAdjustment()));
 
-            if (ARMING_FLAG(ARMED) && ((!FLIGHT_MODE(NAV_CRUISE_MODE)) || !(isAdjustingPosition() || isAdjustingHeading() || (heading_adjust != 0)))) {
+            if (ARMING_FLAG(ARMED) && ((!FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) || !(isAdjustingPosition() || isAdjustingHeading() || (heading_adjust != 0)))) {
                 displayWrite(osdDisplayPort, elemPosX, elemPosY, "      ");
                 return true;
             }
@@ -1437,7 +1615,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
             if (!ARMING_FLAG(ARMED)) {
                 buff[1] = buff[2] = buff[3] = buff[4] = '-';
-            } else if (FLIGHT_MODE(NAV_CRUISE_MODE)) {
+            } else if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
                 tfp_sprintf(buff + 1, "%4d", heading_adjust);
             }
 
@@ -1499,6 +1677,19 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+#ifdef USE_RANGEFINDER
+    case OSD_RANGEFINDER:
+        {
+            int32_t range = rangefinderGetLatestRawAltitude();
+            if (range < 0) {
+                buff[0] = '-';
+            } else {
+                osdFormatDistanceSymbol(buff, range, 1);
+            }
+        }
+        break;
+#endif
+
     case OSD_ONTIME:
         {
             osdFormatOnTime(buff);
@@ -1527,8 +1718,12 @@ static bool osdDrawSingleElement(uint8_t item)
             /*static int32_t updatedTimeSeconds = 0;*/
             timeUs_t currentTimeUs = micros();
             static int32_t timeSeconds = -1;
-            if (cmpTimeUs(currentTimeUs, updatedTimestamp) >= 1000000) {
+            if (cmpTimeUs(currentTimeUs, updatedTimestamp) >= MS2US(1000)) {
+#ifdef USE_WIND_ESTIMATOR
                 timeSeconds = calculateRemainingFlightTimeBeforeRTH(osdConfig()->estimations_wind_compensation);
+#else
+                timeSeconds = calculateRemainingFlightTimeBeforeRTH(false);
+#endif
                 updatedTimestamp = currentTimeUs;
             }
             if ((!ARMING_FLAG(ARMED)) || (timeSeconds == -1)) {
@@ -1554,8 +1749,12 @@ static bool osdDrawSingleElement(uint8_t item)
         static timeUs_t updatedTimestamp = 0;
         timeUs_t currentTimeUs = micros();
         static int32_t distanceMeters = -1;
-        if (cmpTimeUs(currentTimeUs, updatedTimestamp) >= 1000000) {
+        if (cmpTimeUs(currentTimeUs, updatedTimestamp) >= MS2US(1000)) {
+#ifdef USE_WIND_ESTIMATOR
             distanceMeters = calculateRemainingDistanceBeforeRTH(osdConfig()->estimations_wind_compensation);
+#else
+            distanceMeters = calculateRemainingDistanceBeforeRTH(false);
+#endif
             updatedTimestamp = currentTimeUs;
         }
         buff[0] = SYM_TRIP_DIST;
@@ -1570,7 +1769,7 @@ static bool osdDrawSingleElement(uint8_t item)
             buff[5] = '\0';
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         } else {
-            osdFormatDistanceSymbol(buff + 1, distanceMeters * 100);
+            osdFormatDistanceSymbol(buff + 1, distanceMeters * 100, 0);
             if (distanceMeters == 0)
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         }
@@ -1584,14 +1783,16 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "!FS!";
             else if (FLIGHT_MODE(MANUAL_MODE))
                 p = "MANU";
+            else if (FLIGHT_MODE(TURTLE_MODE))
+                p = "TURT";
             else if (FLIGHT_MODE(NAV_RTH_MODE))
-                p = "RTH ";
+                p = isWaypointMissionRTHActive() ? "WRTH" : "RTH ";
             else if (FLIGHT_MODE(NAV_POSHOLD_MODE))
                 p = "HOLD";
-            else if (FLIGHT_MODE(NAV_CRUISE_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE))
-                p = "3CRS";
-            else if (FLIGHT_MODE(NAV_CRUISE_MODE))
-                p = "CRS ";
+            else if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE))
+                p = "CRUZ";
+            else if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE))
+                p = "CRSH";
             else if (FLIGHT_MODE(NAV_WP_MODE))
                 p = " WP ";
             else if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && navigationRequiresAngleMode()) {
@@ -1645,39 +1846,36 @@ static bool osdDrawSingleElement(uint8_t item)
             return true;
         }
 
+#if defined(USE_SERIALRX_CRSF)
     case OSD_CRSF_RSSI_DBM:
-            if (rxLinkStatistics.activeAnt == 0) {
-              buff[0] = SYM_RSSI;
-              tfp_sprintf(buff + 1, "%4d%c", rxLinkStatistics.uplinkRSSI, SYM_DBM);
-              if (!failsafeIsReceivingRxData()){
-                  TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-              }
+        {
+            int16_t rssi = rxLinkStatistics.uplinkRSSI;
+            buff[0] = (rxLinkStatistics.activeAnt == 0) ? SYM_RSSI : SYM_2RSS; // Separate symbols for each antenna
+            if (rssi <= -100) {
+                tfp_sprintf(buff + 1, "%4d%c", rssi, SYM_DBM);
             } else {
-              buff[0] = SYM_2RSS;
-              tfp_sprintf(buff + 1, "%4d%c", rxLinkStatistics.uplinkRSSI, SYM_DBM);
-              if (!failsafeIsReceivingRxData()){
-                  TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-              }
+                tfp_sprintf(buff + 1, "%3d%c%c", rssi, SYM_DBM, ' ');
+            }
+            if (!failsafeIsReceivingRxData()){
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             }
             break;
-
-#if defined(USE_SERIALRX_CRSF)
-        case OSD_CRSF_LQ: {
-        buff[0] = SYM_BLANK;
-        int16_t statsLQ = rxLinkStatistics.uplinkLQ;
-        int16_t scaledLQ = scaleRange(constrain(statsLQ, 0, 100), 0, 100, 170, 300);
-            if (rxLinkStatistics.rfMode == 2) {
-                if (osdConfig()->crsf_lq_format == OSD_CRSF_LQ_TYPE1) {
-                    tfp_sprintf(buff, "%5d%s", scaledLQ, "%");
-                } else {
-                    tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
-                }
-            } else {
-                if (osdConfig()->crsf_lq_format == OSD_CRSF_LQ_TYPE1) {
-                    tfp_sprintf(buff, "%5d%s", rxLinkStatistics.uplinkLQ, "%");
-            } else {
-                    tfp_sprintf(buff, "%d:%3d%s", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ, "%");
-            }
+        }
+    case OSD_CRSF_LQ:
+        {
+            buff[0] = SYM_LQ;
+            int16_t statsLQ = rxLinkStatistics.uplinkLQ;
+            int16_t scaledLQ = scaleRange(constrain(statsLQ, 0, 100), 0, 100, 170, 300);
+            switch (osdConfig()->crsf_lq_format) {
+                case OSD_CRSF_LQ_TYPE1:
+                    tfp_sprintf(buff+1, "%3d", rxLinkStatistics.uplinkLQ);
+                    break;
+                case OSD_CRSF_LQ_TYPE2:
+                    tfp_sprintf(buff+1, "%d:%3d", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ);
+                    break;
+                case OSD_CRSF_LQ_TYPE3:
+                    tfp_sprintf(buff+1, "%3d", rxLinkStatistics.rfMode >= 2 ? scaledLQ : rxLinkStatistics.uplinkLQ);
+                    break;
             }
             if (!failsafeIsReceivingRxData()){
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
@@ -1687,31 +1885,40 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
-    case OSD_CRSF_SNR_DB: {
-        const char* showsnr = "-12";
-        const char* hidesnr = "     ";
-        int16_t osdSNR_Alarm = rxLinkStatistics.uplinkSNR;
-        if (osdSNR_Alarm <= osdConfig()->snr_alarm) {
-          buff[0] = SYM_SRN;
-          tfp_sprintf(buff + 1, "%3d%c", rxLinkStatistics.uplinkSNR, SYM_DB);
-        }
-        else if (osdSNR_Alarm > osdConfig()->snr_alarm) {
-            if (cmsInMenu) {
-                buff[0] = SYM_SRN;
-                tfp_sprintf(buff + 1, "%s%c", showsnr, SYM_DB);
-            } else {
-                buff[0] = SYM_BLANK;
-                tfp_sprintf(buff + 1, "%s%c", hidesnr, SYM_BLANK);
-            }
-        }
-        break;
-      }
-#endif
+    case OSD_CRSF_SNR_DB:
+        {
+            static pt1Filter_t snrFilterState;
+            static timeMs_t snrUpdated = 0;
+            int8_t snrFiltered = pt1FilterApply4(&snrFilterState, rxLinkStatistics.uplinkSNR, 0.5f, MS2S(millis() - snrUpdated));
+            snrUpdated = millis();
 
-    case OSD_CRSF_TX_POWER: {
-        tfp_sprintf(buff, "%4d%c", rxLinkStatistics.uplinkTXPower, SYM_MW);
-        break;
-    }
+            const char* showsnr = "-20";
+            const char* hidesnr = "     ";
+            if (snrFiltered > osdConfig()->snr_alarm) {
+                if (cmsInMenu) {
+                    buff[0] = SYM_SNR;
+                    tfp_sprintf(buff + 1, "%s%c", showsnr, SYM_DB);
+                } else {
+                    buff[0] = SYM_BLANK;
+                    tfp_sprintf(buff + 1, "%s%c", hidesnr, SYM_BLANK);
+                }
+            } else if (snrFiltered <= osdConfig()->snr_alarm) {
+                buff[0] = SYM_SNR;
+                if (snrFiltered <= -10) {
+                    tfp_sprintf(buff + 1, "%3d%c", snrFiltered, SYM_DB);
+                } else {
+                    tfp_sprintf(buff + 1, "%2d%c%c", snrFiltered, SYM_DB, ' ');
+                }
+            }
+            break;
+        }
+
+    case OSD_CRSF_TX_POWER:
+        {
+            tfp_sprintf(buff, "%4d%c", rxLinkStatistics.uplinkTXPower, SYM_MW);
+            break;
+        }
+#endif
 
     case OSD_CROSSHAIRS: // Hud is a sub-element of the crosshair
 
@@ -1765,19 +1972,20 @@ static bool osdDrawSingleElement(uint8_t item)
                 gpsLocation_t wp2;
                 int j;
 
-                tfp_sprintf(buff, "W%u/%u", posControl.activeWaypointIndex, posControl.waypointCount);
-                displayWrite(osdGetDisplayPort(), 13, osdConfig()->hud_margin_v - 1, buff);
-
                 for (int i = osdConfig()->hud_wp_disp - 1; i >= 0 ; i--) { // Display in reverse order so the next WP is always written on top
                     j = posControl.activeWaypointIndex + i;
-                    if (posControl.waypointList[j].lat != 0 && posControl.waypointList[j].lon != 0 && j <= posControl.waypointCount) {
+                    if (j > posControl.waypointCount - 1) { // limit to max WP index for mission
+                        break;
+                    }
+                    if (posControl.waypointList[j].lat != 0 && posControl.waypointList[j].lon != 0) {
                         wp2.lat = posControl.waypointList[j].lat;
                         wp2.lon = posControl.waypointList[j].lon;
                         wp2.alt = posControl.waypointList[j].alt;
                         fpVector3_t poi;
-                        geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &wp2, GEO_ALT_RELATIVE);
+                        geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &wp2, waypointMissionAltConvMode(posControl.waypointList[j].p3));
+                        int32_t altConvModeAltitude = waypointMissionAltConvMode(posControl.waypointList[j].p3) == GEO_ALT_ABSOLUTE ? osdGetAltitudeMsl() : osdGetAltitude();
                         while (j > 9) j -= 10; // Only the last digit displayed if WP>=10, no room for more
-                        osdHudDrawPoi(calculateDistanceToDestination(&poi) / 100, osdGetHeadingAngle(calculateBearingToDestination(&poi) / 100), (posControl.waypointList[j].alt - osdGetAltitude())/ 100, 2, SYM_WAYPOINT, 49 + j, i);
+                        osdHudDrawPoi(calculateDistanceToDestination(&poi) / 100, osdGetHeadingAngle(calculateBearingToDestination(&poi) / 100), (posControl.waypointList[j].alt - altConvModeAltitude)/ 100, 2, SYM_WAYPOINT, 49 + j, i);
                     }
                 }
             }
@@ -1805,9 +2013,22 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_ARTIFICIAL_HORIZON:
         {
-            float rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
-            float pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
+            float rollAngle;
+            float pitchAngle;
 
+#ifdef USE_SECONDARY_IMU
+            if (secondaryImuState.active && secondaryImuConfig()->useForOsdAHI) {
+                rollAngle = DECIDEGREES_TO_RADIANS(secondaryImuState.eulerAngles.values.roll);
+                pitchAngle = DECIDEGREES_TO_RADIANS(secondaryImuState.eulerAngles.values.pitch);
+            } else {
+                rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
+                pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
+            }
+#else
+            rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
+            pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
+#endif
+            pitchAngle -= DEGREES_TO_RADIANS(osdConfig()->camera_uptilt);
             if (osdConfig()->ahi_reverse_roll) {
                 rollAngle = -rollAngle;
             }
@@ -1860,35 +2081,35 @@ static bool osdDrawSingleElement(uint8_t item)
 #endif
 
     case OSD_ROLL_PIDS:
-        osdDisplayPIDValues(elemPosX, elemPosY, "ROL", PID_ROLL, ADJUSTMENT_ROLL_P, ADJUSTMENT_ROLL_I, ADJUSTMENT_ROLL_D_FF);
+        osdDisplayFlightPIDValues(elemPosX, elemPosY, "ROL", PID_ROLL, ADJUSTMENT_ROLL_P, ADJUSTMENT_ROLL_I, ADJUSTMENT_ROLL_D, ADJUSTMENT_ROLL_FF);
         return true;
 
     case OSD_PITCH_PIDS:
-        osdDisplayPIDValues(elemPosX, elemPosY, "PIT", PID_PITCH, ADJUSTMENT_PITCH_P, ADJUSTMENT_PITCH_I, ADJUSTMENT_PITCH_D_FF);
+        osdDisplayFlightPIDValues(elemPosX, elemPosY, "PIT", PID_PITCH, ADJUSTMENT_PITCH_P, ADJUSTMENT_PITCH_I, ADJUSTMENT_PITCH_D, ADJUSTMENT_PITCH_FF);
         return true;
 
     case OSD_YAW_PIDS:
-        osdDisplayPIDValues(elemPosX, elemPosY, "YAW", PID_YAW, ADJUSTMENT_YAW_P, ADJUSTMENT_YAW_I, ADJUSTMENT_YAW_D_FF);
+        osdDisplayFlightPIDValues(elemPosX, elemPosY, "YAW", PID_YAW, ADJUSTMENT_YAW_P, ADJUSTMENT_YAW_I, ADJUSTMENT_YAW_D, ADJUSTMENT_YAW_FF);
         return true;
 
     case OSD_LEVEL_PIDS:
-        osdDisplayPIDValues(elemPosX, elemPosY, "LEV", PID_LEVEL, ADJUSTMENT_LEVEL_P, ADJUSTMENT_LEVEL_I, ADJUSTMENT_LEVEL_D);
+        osdDisplayNavPIDValues(elemPosX, elemPosY, "LEV", PID_LEVEL, ADJUSTMENT_LEVEL_P, ADJUSTMENT_LEVEL_I, ADJUSTMENT_LEVEL_D);
         return true;
 
     case OSD_POS_XY_PIDS:
-        osdDisplayPIDValues(elemPosX, elemPosY, "PXY", PID_POS_XY, ADJUSTMENT_POS_XY_P, ADJUSTMENT_POS_XY_I, ADJUSTMENT_POS_XY_D);
+        osdDisplayNavPIDValues(elemPosX, elemPosY, "PXY", PID_POS_XY, ADJUSTMENT_POS_XY_P, ADJUSTMENT_POS_XY_I, ADJUSTMENT_POS_XY_D);
         return true;
 
     case OSD_POS_Z_PIDS:
-        osdDisplayPIDValues(elemPosX, elemPosY, "PZ", PID_POS_Z, ADJUSTMENT_POS_Z_P, ADJUSTMENT_POS_Z_I, ADJUSTMENT_POS_Z_D);
+        osdDisplayNavPIDValues(elemPosX, elemPosY, "PZ", PID_POS_Z, ADJUSTMENT_POS_Z_P, ADJUSTMENT_POS_Z_I, ADJUSTMENT_POS_Z_D);
         return true;
 
     case OSD_VEL_XY_PIDS:
-        osdDisplayPIDValues(elemPosX, elemPosY, "VXY", PID_VEL_XY, ADJUSTMENT_VEL_XY_P, ADJUSTMENT_VEL_XY_I, ADJUSTMENT_VEL_XY_D);
+        osdDisplayNavPIDValues(elemPosX, elemPosY, "VXY", PID_VEL_XY, ADJUSTMENT_VEL_XY_P, ADJUSTMENT_VEL_XY_I, ADJUSTMENT_VEL_XY_D);
         return true;
 
     case OSD_VEL_Z_PIDS:
-        osdDisplayPIDValues(elemPosX, elemPosY, "VZ", PID_VEL_Z, ADJUSTMENT_VEL_Z_P, ADJUSTMENT_VEL_Z_I, ADJUSTMENT_VEL_Z_D);
+        osdDisplayNavPIDValues(elemPosX, elemPosY, "VZ", PID_VEL_Z, ADJUSTMENT_VEL_Z_P, ADJUSTMENT_VEL_Z_I, ADJUSTMENT_VEL_Z_D);
         return true;
 
     case OSD_HEADING_P:
@@ -1972,7 +2193,7 @@ static bool osdDrawSingleElement(uint8_t item)
         return true;
 
     case OSD_NAV_FW_CRUISE_THR:
-        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "CRS", 0, navConfig()->fw.cruise_throttle, 4, 0, ADJUSTMENT_NAV_FW_CRUISE_THR);
+        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "CRZ", 0, navConfig()->fw.cruise_throttle, 4, 0, ADJUSTMENT_NAV_FW_CRUISE_THR);
         return true;
 
     case OSD_NAV_FW_PITCH2THR:
@@ -2034,8 +2255,8 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_POWER:
         {
-            osdFormatCentiNumber(buff, getPower(), 0, 2, 0, 3);
-            buff[3] = SYM_WATT;
+            bool kiloWatt = osdFormatCentiNumber(buff, getPower(), 1000, 2, 2, 3);
+            buff[3] = kiloWatt ? SYM_KILOWATT : SYM_WATT;
             buff[4] = '\0';
 
             uint8_t current_alarm = osdConfig()->current_alarm;
@@ -2062,7 +2283,7 @@ static bool osdDrawSingleElement(uint8_t item)
             dateTime_t dateTime;
             rtcGetDateTimeLocal(&dateTime);
             buff[0] = SYM_CLOCK;
-            tfp_sprintf(buff + 1, "%02u:%02u", dateTime.hours, dateTime.minutes);
+            tfp_sprintf(buff + 1, "%02u:%02u:%02u", dateTime.hours, dateTime.minutes, dateTime.seconds);
             break;
         }
 
@@ -2117,26 +2338,52 @@ static bool osdDrawSingleElement(uint8_t item)
             static pt1Filter_t eFilterState;
             static timeUs_t efficiencyUpdated = 0;
             int32_t value = 0;
+            bool moreThanAh = false;
             timeUs_t currentTimeUs = micros();
             timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
             if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
                 if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
                     value = pt1FilterApply4(&eFilterState, ((float)getAmperage() / gpsSol.groundSpeed) / 0.0036f,
-                        1, efficiencyTimeDelta * 1e-6f);
+                        1, US2S(efficiencyTimeDelta));
 
                     efficiencyUpdated = currentTimeUs;
                 } else {
                     value = eFilterState.state;
                 }
             }
-            if (value > 0 && gpsSol.groundSpeed > 100) {
-                tfp_sprintf(buff, "%3d", (int)value);
-            } else {
-                buff[0] = buff[1] = buff[2] = '-';
+            bool efficiencyValid = (value > 0) && (gpsSol.groundSpeed > 100);
+            switch (osdConfig()->units) {
+                case OSD_UNIT_UK:
+                    FALLTHROUGH;
+                case OSD_UNIT_IMPERIAL:
+                    moreThanAh = osdFormatCentiNumber(buff, value * METERS_PER_MILE / 10, 1000, 0, 2, 3);
+                    if (!moreThanAh) {
+                        tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_MI_0, SYM_MAH_MI_1);
+                    } else {
+                        tfp_sprintf(buff, "%s%c", buff, SYM_AH_MI);
+                    }
+                    if (!efficiencyValid) {
+                        buff[0] = buff[1] = buff[2] = '-';
+                        buff[3] = SYM_MAH_MI_0;
+                        buff[4] = SYM_MAH_MI_1;
+                        buff[5] = '\0';
+                    }
+                    break;
+                case OSD_UNIT_METRIC:
+                    moreThanAh = osdFormatCentiNumber(buff, value * 100, 1000, 0, 2, 3);
+                    if (!moreThanAh) {
+                        tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_KM_0, SYM_MAH_KM_1);
+                    } else {
+                        tfp_sprintf(buff, "%s%c", buff, SYM_AH_KM);
+                    }
+                    if (!efficiencyValid) {
+                        buff[0] = buff[1] = buff[2] = '-';
+                        buff[3] = SYM_MAH_KM_0;
+                        buff[4] = SYM_MAH_KM_1;
+                        buff[5] = '\0';
+                    }
+                    break;
             }
-            buff[3] = SYM_MAH_KM_0;
-            buff[4] = SYM_MAH_KM_1;
-            buff[5] = '\0';
             break;
         }
 
@@ -2152,21 +2399,30 @@ static bool osdDrawSingleElement(uint8_t item)
             if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
                 if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
                     value = pt1FilterApply4(&eFilterState, ((float)getPower() / gpsSol.groundSpeed) / 0.0036f,
-                        1, efficiencyTimeDelta * 1e-6f);
+                        1, US2S(efficiencyTimeDelta));
 
                     efficiencyUpdated = currentTimeUs;
                 } else {
                     value = eFilterState.state;
                 }
             }
-            if (value > 0 && gpsSol.groundSpeed > 100) {
-                osdFormatCentiNumber(buff, value / 10, 0, 2, 0, 3);
-            } else {
+            bool efficiencyValid = (value > 0) && (gpsSol.groundSpeed > 100);
+            switch (osdConfig()->units) {
+                case OSD_UNIT_UK:
+                    FALLTHROUGH;
+                case OSD_UNIT_IMPERIAL:
+                    osdFormatCentiNumber(buff, value * METERS_PER_MILE / 10000, 0, 2, 0, 3);
+                    buff[3] = SYM_WH_MI;
+                    break;
+                case OSD_UNIT_METRIC:
+                    osdFormatCentiNumber(buff, value / 10, 0, 2, 0, 3);
+                    buff[3] = SYM_WH_KM;
+                    break;
+            }
+            buff[4] = '\0';
+            if (!efficiencyValid) {
                 buff[0] = buff[1] = buff[2] = '-';
             }
-            buff[3] = SYM_WH_KM_0;
-            buff[4] = SYM_WH_KM_1;
-            buff[5] = '\0';
             break;
         }
 
@@ -2192,12 +2448,21 @@ static bool osdDrawSingleElement(uint8_t item)
             }
             break;
         }
-
     case OSD_DEBUG:
         {
-            // Longest representable string is -2147483648, hence 11 characters
+            /*
+             * Longest representable string is -2147483648 does not fit in the screen.
+             * Only 7 digits for negative and 8 digits for positive values allowed
+             */
             for (uint8_t bufferIndex = 0; bufferIndex < DEBUG32_VALUE_COUNT; ++elemPosY, bufferIndex += 2) {
-                tfp_sprintf(buff, "[%u]=%11ld [%u]=%11ld", bufferIndex, debug[bufferIndex], bufferIndex+1, debug[bufferIndex+1]);
+                tfp_sprintf(
+                    buff,
+                    "[%u]=%8ld [%u]=%8ld",
+                    bufferIndex,
+                    constrain(debug[bufferIndex], -9999999, 99999999),
+                    bufferIndex+1,
+                    constrain(debug[bufferIndex+1], -9999999, 99999999)
+                );
                 displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
             }
             break;
@@ -2433,27 +2698,65 @@ static bool osdDrawSingleElement(uint8_t item)
             char buff[4];
             textAttributes_t attr;
 
-            displayWrite(osdDisplayPort, elemPosX, elemPosY, "TPA BP");
-
+            displayWrite(osdDisplayPort, elemPosX, elemPosY, "TPA");
             attr = TEXT_ATTRIBUTES_NONE;
-            tfp_sprintf(buff, "TPA  %3d", currentControlRateProfile->throttle.dynPID);
+            tfp_sprintf(buff, "%3d", currentControlRateProfile->throttle.dynPID);
             if (isAdjustmentFunctionSelected(ADJUSTMENT_TPA)) {
                 TEXT_ATTRIBUTES_ADD_BLINK(attr);
             }
-            displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, attr);
+            displayWriteWithAttr(osdDisplayPort, elemPosX + 5, elemPosY, buff, attr);
 
+            displayWrite(osdDisplayPort, elemPosX, elemPosY + 1, "BP");
             attr = TEXT_ATTRIBUTES_NONE;
-            tfp_sprintf(buff, "BP  %4d", currentControlRateProfile->throttle.pa_breakpoint);
+            tfp_sprintf(buff, "%4d", currentControlRateProfile->throttle.pa_breakpoint);
             if (isAdjustmentFunctionSelected(ADJUSTMENT_TPA_BREAKPOINT)) {
                 TEXT_ATTRIBUTES_ADD_BLINK(attr);
             }
-            displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY + 1, buff, attr);
+            displayWriteWithAttr(osdDisplayPort, elemPosX + 4, elemPosY + 1, buff, attr);
 
             return true;
         }
+
     case OSD_NAV_FW_CONTROL_SMOOTHNESS:
         osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "CTL S", 0, navConfig()->fw.control_smoothness, 1, 0, ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS);
         return true;
+
+#ifdef USE_POWER_LIMITS
+    case OSD_PLIMIT_REMAINING_BURST_TIME:
+        osdFormatCentiNumber(buff, powerLimiterGetRemainingBurstTime() * 100, 0, 1, 0, 3);
+        buff[3] = 'S';
+        buff[4] = '\0';
+        break;
+
+    case OSD_PLIMIT_ACTIVE_CURRENT_LIMIT:
+        if (powerLimitsConfig()->continuousCurrent) {
+            osdFormatCentiNumber(buff, powerLimiterGetActiveCurrentLimit(), 0, 2, 0, 3);
+            buff[3] = SYM_AMP;
+            buff[4] = '\0';
+
+            if (powerLimiterIsLimitingCurrent()) {
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            }
+        }
+        break;
+
+#ifdef USE_ADC
+    case OSD_PLIMIT_ACTIVE_POWER_LIMIT:
+        {
+            if (powerLimitsConfig()->continuousPower) {
+                bool kiloWatt = osdFormatCentiNumber(buff, powerLimiterGetActivePowerLimit(), 1000, 2, 2, 3);
+                buff[3] = kiloWatt ? SYM_KILOWATT : SYM_WATT;
+                buff[4] = '\0';
+
+                if (powerLimiterIsLimitingPower()) {
+                    TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+                }
+            }
+            break;
+        }
+#endif // USE_ADC
+#endif // USE_POWER_LIMITS
+
     default:
         return false;
     }
@@ -2528,6 +2831,12 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
         }
     }
 
+#ifndef USE_POWER_LIMITS
+    if (elementIndex == OSD_NAV_FW_CONTROL_SMOOTHNESS) {
+        elementIndex = OSD_ITEM_COUNT;
+    }
+#endif
+
     if (elementIndex == OSD_ITEM_COUNT) {
         elementIndex = 0;
     }
@@ -2543,74 +2852,94 @@ void osdDrawNextElement(void)
         elementIndex = osdIncElementIndex(elementIndex);
     } while(!osdDrawSingleElement(elementIndex) && index != elementIndex);
 
-    // Draw artificial horizon last
+    // Draw artificial horizon + tracking telemtry last
     osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
+    if (osdConfig()->telemetry>0){
+      osdDisplayTelemetry();
+    }
 }
 
 PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
-    .rssi_alarm = 20,
-    .time_alarm = 10,
-    .alt_alarm = 100,
-    .dist_alarm = 1000,
-    .neg_alt_alarm = 5,
-    .current_alarm = 0,
-    .imu_temp_alarm_min = -200,
-    .imu_temp_alarm_max = 600,
-    .esc_temp_alarm_min = -200,
-    .esc_temp_alarm_max = 900,
-    .gforce_alarm = 5,
-    .gforce_axis_alarm_min = -5,
-    .gforce_axis_alarm_max = 5,
+    .rssi_alarm = SETTING_OSD_RSSI_ALARM_DEFAULT,
+    .time_alarm = SETTING_OSD_TIME_ALARM_DEFAULT,
+    .alt_alarm = SETTING_OSD_ALT_ALARM_DEFAULT,
+    .dist_alarm = SETTING_OSD_DIST_ALARM_DEFAULT,
+    .neg_alt_alarm = SETTING_OSD_NEG_ALT_ALARM_DEFAULT,
+    .current_alarm = SETTING_OSD_CURRENT_ALARM_DEFAULT,
+    .imu_temp_alarm_min = SETTING_OSD_IMU_TEMP_ALARM_MIN_DEFAULT,
+    .imu_temp_alarm_max = SETTING_OSD_IMU_TEMP_ALARM_MAX_DEFAULT,
+    .esc_temp_alarm_min = SETTING_OSD_ESC_TEMP_ALARM_MIN_DEFAULT,
+    .esc_temp_alarm_max = SETTING_OSD_ESC_TEMP_ALARM_MAX_DEFAULT,
+    .gforce_alarm = SETTING_OSD_GFORCE_ALARM_DEFAULT,
+    .gforce_axis_alarm_min = SETTING_OSD_GFORCE_AXIS_ALARM_MIN_DEFAULT,
+    .gforce_axis_alarm_max = SETTING_OSD_GFORCE_AXIS_ALARM_MAX_DEFAULT,
 #ifdef USE_BARO
-    .baro_temp_alarm_min = -200,
-    .baro_temp_alarm_max = 600,
+    .baro_temp_alarm_min = SETTING_OSD_BARO_TEMP_ALARM_MIN_DEFAULT,
+    .baro_temp_alarm_max = SETTING_OSD_BARO_TEMP_ALARM_MAX_DEFAULT,
 #endif
 #ifdef USE_SERIALRX_CRSF
-    .snr_alarm = 4,
-    .crsf_lq_format = OSD_CRSF_LQ_TYPE1,
-    .link_quality_alarm = 70,
+    .snr_alarm = SETTING_OSD_SNR_ALARM_DEFAULT,
+    .crsf_lq_format = SETTING_OSD_CRSF_LQ_FORMAT_DEFAULT,
+    .link_quality_alarm = SETTING_OSD_LINK_QUALITY_ALARM_DEFAULT,
 #endif
 #ifdef USE_TEMPERATURE_SENSOR
-    .temp_label_align = OSD_ALIGN_LEFT,
+    .temp_label_align = SETTING_OSD_TEMP_LABEL_ALIGN_DEFAULT,
 #endif
 
-    .video_system = VIDEO_SYSTEM_AUTO,
+    .video_system = SETTING_OSD_VIDEO_SYSTEM_DEFAULT,
+    .row_shiftdown = SETTING_OSD_ROW_SHIFTDOWN_DEFAULT,
 
-    .ahi_reverse_roll = 0,
-    .ahi_max_pitch = AH_MAX_PITCH_DEFAULT,
-    .crosshairs_style = OSD_CROSSHAIRS_STYLE_DEFAULT,
-    .horizon_offset = 0,
-    .camera_uptilt = 0,
-    .camera_fov_h = 135,
-    .camera_fov_v = 85,
-    .hud_margin_h = 3,
-    .hud_margin_v = 3,
-    .hud_homing = 0,
-    .hud_homepoint = 0,
-    .hud_radar_disp = 0,
-    .hud_radar_range_min = 3,
-    .hud_radar_range_max = 4000,
-    .hud_radar_nearest = 0,
-    .hud_wp_disp = 0,
-    .left_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE,
-    .right_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE,
-    .sidebar_scroll_arrows = 0,
-    .osd_home_position_arm_screen = true,
+    .ahi_reverse_roll = SETTING_OSD_AHI_REVERSE_ROLL_DEFAULT,
+    .ahi_max_pitch = SETTING_OSD_AHI_MAX_PITCH_DEFAULT,
+    .crosshairs_style = SETTING_OSD_CROSSHAIRS_STYLE_DEFAULT,
+    .horizon_offset = SETTING_OSD_HORIZON_OFFSET_DEFAULT,
+    .camera_uptilt = SETTING_OSD_CAMERA_UPTILT_DEFAULT,
+    .camera_fov_h = SETTING_OSD_CAMERA_FOV_H_DEFAULT,
+    .camera_fov_v = SETTING_OSD_CAMERA_FOV_V_DEFAULT,
+    .hud_margin_h = SETTING_OSD_HUD_MARGIN_H_DEFAULT,
+    .hud_margin_v = SETTING_OSD_HUD_MARGIN_V_DEFAULT,
+    .hud_homing = SETTING_OSD_HUD_HOMING_DEFAULT,
+    .hud_homepoint = SETTING_OSD_HUD_HOMEPOINT_DEFAULT,
+    .hud_radar_disp = SETTING_OSD_HUD_RADAR_DISP_DEFAULT,
+    .hud_radar_range_min = SETTING_OSD_HUD_RADAR_RANGE_MIN_DEFAULT,
+    .hud_radar_range_max = SETTING_OSD_HUD_RADAR_RANGE_MAX_DEFAULT,
+    .hud_radar_nearest = SETTING_OSD_HUD_RADAR_NEAREST_DEFAULT,
+    .hud_wp_disp = SETTING_OSD_HUD_WP_DISP_DEFAULT,
+    .left_sidebar_scroll = SETTING_OSD_LEFT_SIDEBAR_SCROLL_DEFAULT,
+    .right_sidebar_scroll = SETTING_OSD_RIGHT_SIDEBAR_SCROLL_DEFAULT,
+    .sidebar_scroll_arrows = SETTING_OSD_SIDEBAR_SCROLL_ARROWS_DEFAULT,
+    .sidebar_horizontal_offset = SETTING_OSD_SIDEBAR_HORIZONTAL_OFFSET_DEFAULT,
+    .left_sidebar_scroll_step = SETTING_OSD_LEFT_SIDEBAR_SCROLL_STEP_DEFAULT,
+    .right_sidebar_scroll_step = SETTING_OSD_RIGHT_SIDEBAR_SCROLL_STEP_DEFAULT,
+    .sidebar_height = SETTING_OSD_SIDEBAR_HEIGHT_DEFAULT,
+    .osd_home_position_arm_screen = SETTING_OSD_HOME_POSITION_ARM_SCREEN_DEFAULT,
+    .pan_servo_index = SETTING_OSD_PAN_SERVO_INDEX_DEFAULT,
+    .pan_servo_pwm2centideg = SETTING_OSD_PAN_SERVO_PWM2CENTIDEG_DEFAULT,
 
-    .units = OSD_UNIT_METRIC,
-    .main_voltage_decimals = 1,
+    .units = SETTING_OSD_UNITS_DEFAULT,
+    .main_voltage_decimals = SETTING_OSD_MAIN_VOLTAGE_DECIMALS_DEFAULT,
 
-    .estimations_wind_compensation = true,
-    .coordinate_digits = 9,
+#ifdef USE_WIND_ESTIMATOR
+    .estimations_wind_compensation = SETTING_OSD_ESTIMATIONS_WIND_COMPENSATION_DEFAULT,
+#endif
 
-    .osd_failsafe_switch_layout = false,
+    .coordinate_digits = SETTING_OSD_COORDINATE_DIGITS_DEFAULT,
 
-    .plus_code_digits = 11,
-    .plus_code_short = 0,
+    .osd_failsafe_switch_layout = SETTING_OSD_FAILSAFE_SWITCH_LAYOUT_DEFAULT,
 
-    .ahi_width = OSD_AHI_WIDTH * OSD_CHAR_WIDTH,
-    .ahi_height = OSD_AHI_HEIGHT * OSD_CHAR_HEIGHT,
-    .ahi_vertical_offset = -OSD_CHAR_HEIGHT,
+    .plus_code_digits = SETTING_OSD_PLUS_CODE_DIGITS_DEFAULT,
+    .plus_code_short = SETTING_OSD_PLUS_CODE_SHORT_DEFAULT,
+
+    .ahi_width = SETTING_OSD_AHI_WIDTH_DEFAULT,
+    .ahi_height = SETTING_OSD_AHI_HEIGHT_DEFAULT,
+    .ahi_vertical_offset = SETTING_OSD_AHI_VERTICAL_OFFSET_DEFAULT,
+    .ahi_bordered = SETTING_OSD_AHI_BORDERED_DEFAULT,
+    .ahi_style = SETTING_OSD_AHI_STYLE_DEFAULT,
+
+    .force_grid = SETTING_OSD_FORCE_GRID_DEFAULT,
+
+    .stats_energy_unit = SETTING_OSD_STATS_ENERGY_UNIT_DEFAULT,
+    .stats_min_voltage_unit = SETTING_OSD_STATS_MIN_VOLTAGE_UNIT_DEFAULT
 );
 
 void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
@@ -2631,8 +2960,8 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_THROTTLE_POS] = OSD_POS(1, 2) | OSD_VISIBLE_FLAG;
     osdLayoutsConfig->item_pos[0][OSD_THROTTLE_POS_AUTO_THR] = OSD_POS(6, 2);
     osdLayoutsConfig->item_pos[0][OSD_HEADING] = OSD_POS(12, 2);
-    osdLayoutsConfig->item_pos[0][OSD_CRUISE_HEADING_ERROR] = OSD_POS(12, 2);
-    osdLayoutsConfig->item_pos[0][OSD_CRUISE_HEADING_ADJUSTMENT] = OSD_POS(12, 2);
+    osdLayoutsConfig->item_pos[0][OSD_COURSE_HOLD_ERROR] = OSD_POS(12, 2);
+    osdLayoutsConfig->item_pos[0][OSD_COURSE_HOLD_ADJUSTMENT] = OSD_POS(12, 2);
     osdLayoutsConfig->item_pos[0][OSD_HEADING_GRAPH] = OSD_POS(18, 2);
     osdLayoutsConfig->item_pos[0][OSD_CURRENT_DRAW] = OSD_POS(2, 3) | OSD_VISIBLE_FLAG;
     osdLayoutsConfig->item_pos[0][OSD_MAH_DRAWN] = OSD_POS(1, 4) | OSD_VISIBLE_FLAG;
@@ -2754,6 +3083,12 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_RC_SOURCE] = OSD_POS(3, 4);
 #endif
 
+#ifdef USE_POWER_LIMITS
+    osdLayoutsConfig->item_pos[0][OSD_PLIMIT_REMAINING_BURST_TIME] = OSD_POS(3, 4);
+    osdLayoutsConfig->item_pos[0][OSD_PLIMIT_ACTIVE_CURRENT_LIMIT] = OSD_POS(3, 5);
+    osdLayoutsConfig->item_pos[0][OSD_PLIMIT_ACTIVE_POWER_LIMIT] = OSD_POS(3, 6);
+#endif
+
     // Under OSD_FLYMODE. TODO: Might not be visible on NTSC?
     osdLayoutsConfig->item_pos[0][OSD_MESSAGES] = OSD_POS(1, 13) | OSD_VISIBLE_FLAG;
 
@@ -2856,12 +3191,17 @@ static void osdCompleteAsyncInitialization(void)
             displayWrite(osdDisplayPort, STATS_LABEL_X_POS, ++y, "AVG EFFICIENCY:");
             if (statsConfig()->stats_total_dist) {
                 uint32_t avg_efficiency = statsConfig()->stats_total_energy / (statsConfig()->stats_total_dist / METERS_PER_KILOMETER); // mWh/km
-                osdFormatCentiNumber(string_buffer, avg_efficiency / 10, 0, 2, 0, 3);
-            } else
-                strcpy(string_buffer, "---");
-            string_buffer[3] = SYM_WH_KM_0;
-            string_buffer[4] = SYM_WH_KM_1;
-            string_buffer[5] = '\0';
+                if (osdConfig()->units == OSD_UNIT_IMPERIAL) {
+                    osdFormatCentiNumber(string_buffer, avg_efficiency / 10, 0, 2, 0, 3);
+                    string_buffer[3] = SYM_WH_MI;
+                } else {
+                    osdFormatCentiNumber(string_buffer, avg_efficiency / 10000 * METERS_PER_MILE, 0, 2, 0, 3);
+                    string_buffer[3] = SYM_WH_KM;
+                }
+            } else {
+                string_buffer[0] = string_buffer[1] = string_buffer[2] = '-';
+            }
+            string_buffer[4] = '\0';
             displayWrite(osdDisplayPort, STATS_VALUE_X_POS-3, y,  string_buffer);
         }
 #endif // USE_ADC
@@ -2897,12 +3237,14 @@ static void osdResetStats(void)
     stats.max_speed = 0;
     stats.min_voltage = 5000;
     stats.min_rssi = 99;
+    stats.min_lq = 300;
+    stats.min_rssi_dbm = 0;
     stats.max_altitude = 0;
 }
 
 static void osdUpdateStats(void)
 {
-    int16_t value;
+    int32_t value;
 
     if (feature(FEATURE_GPS)) {
         value = osdGet3DSpeed();
@@ -2917,11 +3259,11 @@ static void osdUpdateStats(void)
     if (stats.min_voltage > value)
         stats.min_voltage = value;
 
-    value = abs(getAmperage() / 100);
+    value = abs(getAmperage());
     if (stats.max_current < value)
         stats.max_current = value;
 
-    value = abs(getPower() / 100);
+    value = labs(getPower());
     if (stats.max_power < value)
         stats.max_power = value;
 
@@ -2929,22 +3271,30 @@ static void osdUpdateStats(void)
     if (stats.min_rssi > value)
         stats.min_rssi = value;
 
+    value = osdGetCrsfLQ();
+    if (stats.min_lq > value)
+        stats.min_lq = value;
+
+    value = osdGetCrsfdBm();
+    if (stats.min_rssi_dbm > value)
+        stats.min_rssi_dbm = value;
+
     stats.max_altitude = MAX(stats.max_altitude, osdGetAltitude());
 }
 
-/* Attention: NTSC screen only has 12 fully visible lines - it is FULL now! */
-static void osdShowStats(void)
+static void osdShowStatsPage1(void)
 {
     const char * disarmReasonStr[DISARM_REASON_COUNT] = { "UNKNOWN", "TIMEOUT", "STICKS", "SWITCH", "SWITCH", "KILLSW", "FAILSAFE", "NAV SYS" };
     uint8_t top = 1;    /* first fully visible line */
     const uint8_t statNameX = 1;
     const uint8_t statValuesX = 20;
     char buff[10];
+    statsPagesCheck = 1;
 
     displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
     displayClearScreen(osdDisplayPort);
-    if (osdDisplayIsPAL())
-        displayWrite(osdDisplayPort, statNameX, top++, "  --- STATS ---");
+
+    displayWrite(osdDisplayPort, statNameX, top++, "--- STATS ---      1/2 ->");
 
     if (feature(FEATURE_GPS)) {
         displayWrite(osdDisplayPort, statNameX, top, "MAX SPEED        :");
@@ -2965,66 +3315,24 @@ static void osdShowStats(void)
     osdFormatAltitudeStr(buff, stats.max_altitude);
     displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
-    displayWrite(osdDisplayPort, statNameX, top, "MIN BATTERY VOLT :");
-    osdFormatCentiNumber(buff, stats.min_voltage, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
-    strcat(buff, "V");
-    osdLeftAlignString(buff);
-    displayWrite(osdDisplayPort, statValuesX, top++, buff);
+    switch (rxConfig()->serialrx_provider) {
+        case SERIALRX_CRSF:
+            displayWrite(osdDisplayPort, statNameX, top, "MIN LQ           :");
+            itoa(stats.min_lq, buff, 10);
+            strcat(buff, "%");
+            displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
-    displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI         :");
-    itoa(stats.min_rssi, buff, 10);
-    strcat(buff, "%");
-    displayWrite(osdDisplayPort, statValuesX, top++, buff);
-
-    if (feature(FEATURE_CURRENT_METER)) {
-        displayWrite(osdDisplayPort, statNameX, top, "MAX CURRENT      :");
-        itoa(stats.max_current, buff, 10);
-        strcat(buff, "A");
-        displayWrite(osdDisplayPort, statValuesX, top++, buff);
-
-        displayWrite(osdDisplayPort, statNameX, top, "MAX POWER        :");
-        itoa(stats.max_power, buff, 10);
-        strcat(buff, "W");
-        displayWrite(osdDisplayPort, statValuesX, top++, buff);
-
-        if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
-            displayWrite(osdDisplayPort, statNameX, top, "USED MAH         :");
-            tfp_sprintf(buff, "%d%c", (int)getMAhDrawn(), SYM_MAH);
-        } else {
-            displayWrite(osdDisplayPort, statNameX, top, "USED WH          :");
-            osdFormatCentiNumber(buff, getMWhDrawn() / 10, 0, 2, 0, 3);
-            strcat(buff, "\xAB"); // SYM_WH
-        }
-        displayWrite(osdDisplayPort, statValuesX, top++, buff);
-
-        int32_t totalDistance = getTotalTravelDistance();
-        if (feature(FEATURE_GPS)) {
-            displayWrite(osdDisplayPort, statNameX, top, "AVG EFFICIENCY   :");
-            if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH)
-                tfp_sprintf(buff, "%d%c%c", (int)(getMAhDrawn() * 100000 / totalDistance),
-                    SYM_MAH_KM_0, SYM_MAH_KM_1);
-            else {
-                osdFormatCentiNumber(buff, getMWhDrawn() * 10000 / totalDistance, 0, 2, 0, 3);
-                buff[3] = SYM_WH_KM_0;
-                buff[4] = SYM_WH_KM_1;
-                buff[5] = '\0';
-            }
-            // If traveled distance is less than 100 meters efficiency numbers are useless and unreliable so display --- instead
-            if (totalDistance < 10000) {
-                buff[0] = buff[1] = buff[2] = '-';
-                if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH){
-                    buff[3] = SYM_MAH_KM_0;
-                    buff[4] = SYM_MAH_KM_1;
-                    buff[5] = '\0';
-                } else {
-                    buff[3] = SYM_WH_KM_0;
-                    buff[4] = SYM_WH_KM_1;
-                    buff[5] = '\0';
-                }
-            }
+            displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI         :");
+            itoa(stats.min_rssi_dbm, buff, 10);
+            tfp_sprintf(buff, "%s%c", buff, SYM_DBM);
+            displayWrite(osdDisplayPort, statValuesX, top++, buff);
+            break;
+        default:
+            displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI         :");
+            itoa(stats.min_rssi, buff, 10);
+            strcat(buff, "%");
             displayWrite(osdDisplayPort, statValuesX, top++, buff);
         }
-    }
 
     displayWrite(osdDisplayPort, statNameX, top, "FLY TIME         :");
     uint16_t flySeconds = getFlightTime();
@@ -3035,6 +3343,113 @@ static void osdShowStats(void)
     tfp_sprintf(buff, "%02u:%02u:%02u", flyHours, flyMinutes, flySeconds);
     displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
+    displayWrite(osdDisplayPort, statNameX, top, "DISARMED BY      :");
+    displayWrite(osdDisplayPort, statValuesX, top++, disarmReasonStr[getDisarmReason()]);
+    displayCommitTransaction(osdDisplayPort);
+}
+
+static void osdShowStatsPage2(void)
+{
+    uint8_t top = 1;    /* first fully visible line */
+    const uint8_t statNameX = 1;
+    const uint8_t statValuesX = 20;
+    char buff[10];
+    statsPagesCheck = 1;
+
+    displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
+    displayClearScreen(osdDisplayPort);
+
+    displayWrite(osdDisplayPort, statNameX, top++, "--- STATS ---   <- 2/2");
+
+    if (osdConfig()->stats_min_voltage_unit == OSD_STATS_MIN_VOLTAGE_UNIT_BATTERY) {
+        displayWrite(osdDisplayPort, statNameX, top, "MIN BATTERY VOLT :");
+        osdFormatCentiNumber(buff, stats.min_voltage, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
+    } else {
+        displayWrite(osdDisplayPort, statNameX, top, "MIN CELL VOLTAGE :");
+        osdFormatCentiNumber(buff, stats.min_voltage/getBatteryCellCount(), 0, 2, 0, 3);
+    }
+    tfp_sprintf(buff, "%s%c", buff, SYM_VOLT);
+    displayWrite(osdDisplayPort, statValuesX, top++, buff);
+
+    if (feature(FEATURE_CURRENT_METER)) {
+        displayWrite(osdDisplayPort, statNameX, top, "MAX CURRENT      :");
+        osdFormatCentiNumber(buff, stats.max_current, 0, 2, 0, 3);
+        tfp_sprintf(buff, "%s%c", buff, SYM_AMP);
+        displayWrite(osdDisplayPort, statValuesX, top++, buff);
+
+        displayWrite(osdDisplayPort, statNameX, top, "MAX POWER        :");
+        bool kiloWatt = osdFormatCentiNumber(buff, stats.max_power, 1000, 2, 2, 3);
+        buff[3] = kiloWatt ? SYM_KILOWATT : SYM_WATT;
+        buff[4] = '\0';
+        displayWrite(osdDisplayPort, statValuesX, top++, buff);
+
+        displayWrite(osdDisplayPort, statNameX, top, "USED CAPACITY    :");
+        if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
+            tfp_sprintf(buff, "%d%c", (int)getMAhDrawn(), SYM_MAH);
+        } else {
+            osdFormatCentiNumber(buff, getMWhDrawn() / 10, 0, 2, 0, 3);
+            tfp_sprintf(buff, "%s%c", buff, SYM_WH);
+        }
+        displayWrite(osdDisplayPort, statValuesX, top++, buff);
+
+        int32_t totalDistance = getTotalTravelDistance();
+        bool moreThanAh = false;
+        bool efficiencyValid = totalDistance >= 10000;
+        if (feature(FEATURE_GPS)) {
+            displayWrite(osdDisplayPort, statNameX, top, "AVG EFFICIENCY   :");
+            switch (osdConfig()->units) {
+                case OSD_UNIT_UK:
+                    FALLTHROUGH;
+                case OSD_UNIT_IMPERIAL:
+                    if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
+                        moreThanAh = osdFormatCentiNumber(buff, (int32_t)(getMAhDrawn() * 10000.0f * METERS_PER_MILE / totalDistance), 1000, 0, 2, 3);
+                        if (!moreThanAh) {
+                            tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_MI_0, SYM_MAH_MI_1);
+                        } else {
+                            tfp_sprintf(buff, "%s%c", buff, SYM_AH_MI);
+                        }
+                        if (!efficiencyValid) {
+                            buff[0] = buff[1] = buff[2] = '-';
+                            buff[3] = SYM_MAH_MI_0;
+                            buff[4] = SYM_MAH_MI_1;
+                            buff[5] = '\0';
+                        }
+                    } else {
+                        osdFormatCentiNumber(buff, (int32_t)(getMWhDrawn() * 10.0f * METERS_PER_MILE / totalDistance), 0, 2, 0, 3);
+                        tfp_sprintf(buff, "%s%c", buff, SYM_WH_MI);
+                        if (!efficiencyValid) {
+                            buff[0] = buff[1] = buff[2] = '-';
+                        }
+                    }
+                    break;
+                case OSD_UNIT_METRIC:
+                    if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
+                        moreThanAh = osdFormatCentiNumber(buff, (int32_t)(getMAhDrawn() * 10000000.0f / totalDistance), 1000, 0, 2, 3);
+                        if (!moreThanAh) {
+                            tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_KM_0, SYM_MAH_KM_1);
+                        } else {
+                            tfp_sprintf(buff, "%s%c", buff, SYM_AH_KM);
+                        }
+                        if (!efficiencyValid) {
+                            buff[0] = buff[1] = buff[2] = '-';
+                            buff[3] = SYM_MAH_KM_0;
+                            buff[4] = SYM_MAH_KM_1;
+                            buff[5] = '\0';
+                        }
+                    } else {
+                        osdFormatCentiNumber(buff, (int32_t)(getMWhDrawn() * 10000.0f / totalDistance), 0, 2, 0, 3);
+                        tfp_sprintf(buff, "%s%c", buff, SYM_WH_KM);
+                        if (!efficiencyValid) {
+                            buff[0] = buff[1] = buff[2] = '-';
+                        }
+                    }
+                    break;
+            }
+            osdLeftAlignString(buff);
+            displayWrite(osdDisplayPort, statValuesX, top++, buff);
+        }
+    }
+
     const float max_gforce = accGetMeasuredMaxG();
     displayWrite(osdDisplayPort, statNameX, top, "MAX G-FORCE      :");
     osdFormatCentiNumber(buff, max_gforce * 100, 0, 2, 0, 3);
@@ -3044,12 +3459,9 @@ static void osdShowStats(void)
     displayWrite(osdDisplayPort, statNameX, top, "MIN/MAX Z G-FORCE:");
     osdFormatCentiNumber(buff, acc_extremes[Z].min * 100, 0, 2, 0, 4);
     strcat(buff,"/");
-    displayWrite(osdDisplayPort, statValuesX, top, buff);
+    displayWrite(osdDisplayPort, statValuesX - 1, top, buff);
     osdFormatCentiNumber(buff, acc_extremes[Z].max * 100, 0, 2, 0, 3);
-    displayWrite(osdDisplayPort, statValuesX + 5, top++, buff);
-
-    displayWrite(osdDisplayPort, statNameX, top, "DISARMED BY      :");
-    displayWrite(osdDisplayPort, statValuesX, top++, disarmReasonStr[getDisarmReason()]);
+    displayWrite(osdDisplayPort, statValuesX + 4, top++, buff);
     displayCommitTransaction(osdDisplayPort);
 }
 
@@ -3062,8 +3474,8 @@ static void osdShowArmed(void)
     char versionBuf[30];
     char *date;
     char *time;
-    // We need 12 visible rows
-    uint8_t y = MIN((osdDisplayPort->rows / 2) - 1, osdDisplayPort->rows - 12 - 1);
+    // We need 12 visible rows, start row never < first fully visible row 1
+    uint8_t y = osdDisplayPort->rows > 13 ? (osdDisplayPort->rows - 12) / 2 : 1;
 
     displayClearScreen(osdDisplayPort);
     displayWrite(osdDisplayPort, 12, y, "ARMED");
@@ -3072,8 +3484,13 @@ static void osdShowArmed(void)
     if (strlen(systemConfig()->name) > 0) {
         osdFormatCraftName(craftNameBuf);
         displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(systemConfig() -> name)) / 2, y, craftNameBuf );
-        y += 2;
+        y += 1;
     }
+
+    if (posControl.waypointListValid && posControl.waypointCount > 0) {
+        displayWrite(osdDisplayPort, 7, y, "*MISSION LOADED*");
+    }
+    y += 1;
 
 #if defined(USE_GPS)
     if (feature(FEATURE_GPS)) {
@@ -3089,13 +3506,17 @@ static void osdShowArmed(void)
             }
             y += 4;
 #if defined (USE_SAFE_HOME)
-            if (isSafeHomeInUse()) {
-                textAttributes_t elemAttr = _TEXT_ATTRIBUTES_BLINK_BIT;
-                char buf2[12]; // format the distance first
-                osdFormatDistanceStr(buf2, safehome_distance);
-                tfp_sprintf(buf, "%c - %s -> SAFEHOME %u", SYM_HOME, buf2, safehome_used);
-                // write this message above the ARMED message to make it obvious
-                displayWriteWithAttr(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y - 8, buf, elemAttr);
+            if (safehome_distance) { // safehome found during arming
+                if (navConfig()->general.flags.safehome_usage_mode == SAFEHOME_USAGE_OFF) {
+                    strcpy(buf, "SAFEHOME FOUND; MODE OFF");
+				} else {
+					char buf2[12]; // format the distance first
+					osdFormatDistanceStr(buf2, safehome_distance);
+					tfp_sprintf(buf, "%c - %s -> SAFEHOME %u", SYM_HOME, buf2, safehome_index);
+				}
+				textAttributes_t elemAttr = _TEXT_ATTRIBUTES_BLINK_BIT;
+				// write this message above the ARMED message to make it obvious
+				displayWriteWithAttr(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y - 8, buf, elemAttr);
             }
 #endif
         } else {
@@ -3121,7 +3542,7 @@ static void osdShowArmed(void)
 
 static void osdFilterData(timeUs_t currentTimeUs) {
     static timeUs_t lastRefresh = 0;
-    float refresh_dT = cmpTimeUs(currentTimeUs, lastRefresh) * 1e-6;
+    float refresh_dT = US2S(cmpTimeUs(currentTimeUs, lastRefresh));
 
     GForce = sqrtf(vectorNormSquared(&imuMeasuredAccelBF)) / GRAVITY_MSS;
     for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; ++axis) GForceAxis[axis] = imuMeasuredAccelBF.v[axis] / GRAVITY_MSS;
@@ -3162,13 +3583,14 @@ static void osdRefresh(timeUs_t currentTimeUs)
             osdResetStats();
             osdShowArmed(); // reset statistic etc
             uint32_t delay = ARMED_SCREEN_DISPLAY_TIME;
+            statsPagesCheck = 0;
 #if defined(USE_SAFE_HOME)
-            if (isSafeHomeInUse())
+            if (safehome_distance)
                 delay *= 3;
 #endif
             osdSetNextRefreshIn(delay);
         } else {
-            osdShowStats(); // show statistic
+            osdShowStatsPage1(); // show first page of statistic
             osdSetNextRefreshIn(STATS_SCREEN_DISPLAY_TIME);
         }
 
@@ -3187,6 +3609,14 @@ static void osdRefresh(timeUs_t currentTimeUs)
         if ((currentTimeUs > resumeRefreshAt) || ((!refreshWaitForResumeCmdRelease) && DELAYED_REFRESH_RESUME_COMMAND)) {
             displayClearScreen(osdDisplayPort);
             resumeRefreshAt = 0;
+        } else if ((currentTimeUs > resumeRefreshAt) || ((!refreshWaitForResumeCmdRelease) && STATS_PAGE1)) {
+            if (statsPagesCheck == 1) {
+                osdShowStatsPage1();
+            }
+        } else if ((currentTimeUs > resumeRefreshAt) || ((!refreshWaitForResumeCmdRelease) && STATS_PAGE2)) {
+            if (statsPagesCheck == 1) {
+                osdShowStatsPage2();
+            }
         } else {
             displayHeartbeat(osdDisplayPort);
         }
@@ -3357,6 +3787,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 const char *failsafePhaseMessage = osdFailsafePhaseMessage();
                 const char *failsafeInfoMessage = osdFailsafeInfoMessage();
                 const char *navStateFSMessage = navigationStateMessage();
+
                 if (failsafePhaseMessage) {
                     messages[messageCount++] = failsafePhaseMessage;
                 }
@@ -3366,6 +3797,12 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 if (navStateFSMessage) {
                     messages[messageCount++] = navStateFSMessage;
                 }
+#if defined(USE_SAFE_HOME)
+                const char *safehomeMessage = divertingToSafehomeMessage();
+				if (safehomeMessage) {
+					messages[messageCount++] = safehomeMessage;
+				}
+#endif
                 if (messageCount > 0) {
                     message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
                     if (message == failsafeInfoMessage) {
@@ -3382,9 +3819,16 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 }
             } else {
                 if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
+                    if (isWaypointMissionRTHActive()) {
+                        // if RTH activated whilst WP mode selected, remind pilot to cancel WP mode to exit RTH
+                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_WP_RTH_CANCEL);
+                    }
+
                     if (NAV_Status.state == MW_NAV_STATE_WP_ENROUTE) {
                         // Countdown display for remaining Waypoints
-                        tfp_sprintf(messageBuf, "TO WP %u/%u", posControl.activeWaypointIndex + 1, posControl.waypointCount);                            
+                        char buf[6];
+                        osdFormatDistanceSymbol(buf, posControl.wpDistance, 0);
+                        tfp_sprintf(messageBuf, "TO WP %u/%u (%s)", posControl.activeWaypointIndex + 1, posControl.waypointCount, buf);
                         messages[messageCount++] = messageBuf;
                     } else if (NAV_Status.state == MW_NAV_STATE_HOLD_TIMED) {
                         // WP hold time countdown in seconds
@@ -3394,12 +3838,18 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                             tfp_sprintf(messageBuf, "HOLDING WP FOR %2u S", holdTimeRemaining);
                             messages[messageCount++] = messageBuf;
                         }
-                    } else {                            
-                        const char *navStateMessage = navigationStateMessage();                             
+                    } else {
+                        const char *navStateMessage = navigationStateMessage();
                         if (navStateMessage) {
                             messages[messageCount++] = navStateMessage;
                         }
                     }
+#if defined(USE_SAFE_HOME)
+					const char *safehomeMessage = divertingToSafehomeMessage();
+					if (safehomeMessage) {
+						messages[messageCount++] = safehomeMessage;
+					}
+#endif
                 } else if (STATE(FIXED_WING_LEGACY) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_AUTOLAUNCH);
                         const char *launchStateMessage = fixedWingLaunchStateMessage();

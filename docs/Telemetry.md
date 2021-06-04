@@ -123,7 +123,7 @@ The following sensors are transmitted
 * **0450** : 'Flight Path Vector' or 'Course over ground' in degrees*10
 ### Compatible SmartPort/INAV telemetry flight status
 
-To quickly and easily monitor these SmartPort sensors and flight modes, install [iNav LuaTelemetry](https://github.com/iNavFlight/LuaTelemetry) to your Taranis Q X7, X9D, X9D+ or X9E transmitter.
+To quickly and easily monitor these SmartPort sensors and flight modes, install [OpenTX Telemetry Widget](https://github.com/iNavFlight/OpenTX-Telemetry-Widget) to your Taranis Q X7, X9D, X9D+ or X9E transmitter.
 
 ## FrSky telemetry
 

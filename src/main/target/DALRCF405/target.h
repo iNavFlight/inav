@@ -96,6 +96,7 @@
 #define USE_MAG_LIS3MDL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
+#define BNO055_I2C_BUS          BUS_I2C1
 
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_HCSR04_I2C
@@ -150,3 +151,5 @@
 
 //TIMER
 #define MAX_PWM_OUTPUT_PORTS       10
+
+#define USE_DSHOT
