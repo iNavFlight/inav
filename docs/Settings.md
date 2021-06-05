@@ -448,7 +448,7 @@
 | osd_speed_source | GROUND |  |  | Sets the speed type displayed by the DJI OSD and OSD canvas (FrSky Pixel): GROUND, 3D, AIR |
 | osd_stats_energy_unit | MAH |  |  | Unit used for the drawn energy in the OSD stats [MAH/WH] (milliAmpere hour/ Watt hour) |
 | osd_stats_min_voltage_unit | BATTERY |  |  | Display minimum voltage of the `BATTERY` or the average per `CELL` in the OSD stats. |
-| osd_stats_page_auto_swap_time | 3 | 0 | 10 | Auto swap display time interval between disarm stats pages (seconds). Disabled when set to 0. |
+| osd_stats_page_auto_swap_time | 3 | 0 | 10 | Auto swap display time interval between disarm stats pages (seconds). Reverts to manual control when Roll stick used to change pages. Disabled when set to 0. |
 | osd_telemetry | OFF |  |  | To enable OSD telemetry for antenna tracker. Possible values are `OFF`, `ON` and `TEST` |
 | osd_temp_label_align | LEFT |  |  | Allows to chose between left and right alignment for the OSD temperature sensor labels. Valid values are `LEFT` and `RIGHT` |
 | osd_time_alarm | 10 | 0 | 600 | Value above which to make the OSD flight time indicator blink (minutes) |
