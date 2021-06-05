@@ -2774,7 +2774,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 case WP_PLAN_FULL:
                     strcpy(buf, "FULL");
                 }
-                tfp_sprintf(buff, "%s>%2uWP", buf, posControl.waypointCount);
+                tfp_sprintf(buff, "%s>%2uWP", buf, posControl.wpPlannerActiveWPIndex);
             } else if (!ARMING_FLAG(ARMED)) {
                 if (posControl.wpPlannerActiveWPIndex){
                     tfp_sprintf(buff, "PLAN>%2uWP", posControl.waypointCount);  // mission planner mision active
