@@ -482,6 +482,16 @@ Blackbox logging rate numerator. Use num/denom settings to decide if a frame sho
 
 ---
 
+### control_deadband
+
+Stick deadband in [r/c points], applied after r/c deadband and expo. Used to check if sticks are centered.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | 2 | 250 |
+
+---
+
 ### cpu_underclock
 
 This option is only available on certain architectures (F3 CPUs at the moment). It makes CPU clock lower to reduce interference to long-range RC systems working at 433MHz
@@ -4664,7 +4674,7 @@ Defines UAV platform type. Allowed values: "MULTIROTOR", "AIRPLANE", "HELICOPTER
 
 ### pos_hold_deadband
 
-Stick deadband in [r/c points], applied after r/c deadband and expo
+Stick deadband in [r/c points], applied after r/c deadband and expo. Used for adjustments in navigation modes.
 
 | Default | Min | Max |
 | --- | --- | --- |

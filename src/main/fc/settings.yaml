@@ -1505,7 +1505,12 @@ groups:
         min: 0
         max: 100
       - name: pos_hold_deadband
-        description: "Stick deadband in [r/c points], applied after r/c deadband and expo"
+        description: "Stick deadband in [r/c points], applied after r/c deadband and expo. Used for adjustments in navigation modes."
+        default_value: 10
+        min: 2
+        max: 250
+      - name: control_deadband
+        description: "Stick deadband in [r/c points], applied after r/c deadband and expo. Used to check if sticks are centered."
         default_value: 10
         min: 2
         max: 250
