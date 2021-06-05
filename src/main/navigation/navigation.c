@@ -2852,6 +2852,7 @@ void resetWaypointList(void)
     if (!ARMING_FLAG(ARMED)) {
         posControl.waypointCount = 0;
         posControl.waypointListValid = false;
+        posControl.loadedMultiMissionIndex = 0;
     }
 }
 
