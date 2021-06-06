@@ -132,10 +132,10 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
     // velocity error. We use PID controller on altitude error and calculate desired pitch angle
 
     // Update energies
-    const float demSPE = (posControl.desiredState.pos.z / 100.0f) * GRAVITY_MSS;
+    const float demSPE = (posControl.desiredState.pos.z * 0.01f) * GRAVITY_MSS;
     const float demSKE = 0.0f;
 
-    const float estSPE = (navGetCurrentActualPositionAndVelocity()->pos.z / 100.0f) * GRAVITY_MSS;
+    const float estSPE = (navGetCurrentActualPositionAndVelocity()->pos.z * 0.01f) * GRAVITY_MSS;
     const float estSKE = 0.0f;
 
     // speedWeight controls balance between potential and kinetic energy used for pitch controller
@@ -316,7 +316,7 @@ float processHeadingYawController(timeDelta_t deltaMicros, int32_t navHeadingErr
         -limit,
         limit,
         yawPidFlags
-        ) / 100.0f;
+        ) * 0.01f;
 
     DEBUG_SET(DEBUG_NAV_YAW, 0, posControl.pids.fw_heading.proportional);
     DEBUG_SET(DEBUG_NAV_YAW, 1, posControl.pids.fw_heading.integral);
