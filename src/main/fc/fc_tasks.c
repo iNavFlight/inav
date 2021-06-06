@@ -414,7 +414,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskName = "GYRO",
         .taskFunc = taskGyro,
         .desiredPeriod = TASK_PERIOD_US(TASK_GYRO_LOOPTIME),
-        .staticPriority = TASK_PRIORITY_HIGHER,
+        .staticPriority = TASK_PRIORITY_REALTIME,
     },
     [TASK_SERIAL] = {
         .taskName = "SERIAL",
