@@ -2033,7 +2033,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 rollAngle = -rollAngle;
             }
             osdDrawArtificialHorizon(osdDisplayPort, osdGetDisplayPortCanvas(),
-                 OSD_DRAW_POINT_GRID(elemPosX, elemPosY), rollAngle, pitchAngle);
+                 OSD_DRAW_POINT_GRID(elemPosX, elemPosY), constrainf(rollAngle, -80, 80), constrainf(pitchAngle, -80, 80));
             osdDrawSingleElement(OSD_HORIZON_SIDEBARS);
             osdDrawSingleElement(OSD_CROSSHAIRS);
 
