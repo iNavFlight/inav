@@ -1383,6 +1383,25 @@ static void osdDisplayAdjustableDecimalValue(uint8_t elemPosX, uint8_t elemPosY,
     displayWriteWithAttr(osdDisplayPort, elemPosX + strlen(str) + 1 + valueOffset, elemPosY, buff, elemAttr);
 }
 
+int8_t getGeoWaypointNumber(int8_t waypointIndex)
+{
+    static int8_t lastWaypointIndex = 1;
+    static int8_t geoWaypointIndex;
+
+    if (waypointIndex != lastWaypointIndex) {
+        lastWaypointIndex = geoWaypointIndex = waypointIndex;
+        for (uint8_t i = 0; i <= waypointIndex; i++) {
+            if (posControl.waypointList[i].action == NAV_WP_ACTION_SET_POI ||
+                posControl.waypointList[i].action == NAV_WP_ACTION_SET_HEAD ||
+                posControl.waypointList[i].action == NAV_WP_ACTION_JUMP) {
+                    geoWaypointIndex -= 1;
+            }
+        }
+    }
+
+    return geoWaypointIndex + 1;
+}
+
 static bool osdDrawSingleElement(uint8_t item)
 {
     uint16_t pos = osdLayoutsConfig()->item_pos[currentLayout][item];
@@ -1986,8 +2005,9 @@ static bool osdDrawSingleElement(uint8_t item)
                         fpVector3_t poi;
                         geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &wp2, waypointMissionAltConvMode(posControl.waypointList[j].p3));
                         int32_t altConvModeAltitude = waypointMissionAltConvMode(posControl.waypointList[j].p3) == GEO_ALT_ABSOLUTE ? osdGetAltitudeMsl() : osdGetAltitude();
-                        while (j > 9) j -= 10; // Only the last digit displayed if WP>=10, no room for more
-                        osdHudDrawPoi(calculateDistanceToDestination(&poi) / 100, osdGetHeadingAngle(calculateBearingToDestination(&poi) / 100), (posControl.waypointList[j].alt - altConvModeAltitude)/ 100, 2, SYM_WAYPOINT, 49 + j, i);
+                        j = getGeoWaypointNumber(j);
+                        while (j > 9) j -= 10; // Only the last digit displayed if WP>=10, no room for more (48 = ascii 0)
+                        osdHudDrawPoi(calculateDistanceToDestination(&poi) / 100, osdGetHeadingAngle(calculateBearingToDestination(&poi) / 100), (posControl.waypointList[j].alt - altConvModeAltitude)/ 100, 2, SYM_WAYPOINT, 48 + j, i);
                     }
                 }
             }
@@ -3833,7 +3853,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                         // Countdown display for remaining Waypoints
                         char buf[6];
                         osdFormatDistanceSymbol(buf, posControl.wpDistance, 0);
-                        tfp_sprintf(messageBuf, "TO WP %u/%u (%s)", posControl.activeWaypointIndex + 1, posControl.waypointCount, buf);
+                        tfp_sprintf(messageBuf, "TO WP %u/%u (%s)", getGeoWaypointNumber(posControl.activeWaypointIndex), posControl.geoWaypointCount, buf);
                         messages[messageCount++] = messageBuf;
                     } else if (NAV_Status.state == MW_NAV_STATE_HOLD_TIMED) {
                         // WP hold time countdown in seconds
