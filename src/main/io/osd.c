@@ -1386,21 +1386,20 @@ static void osdDisplayAdjustableDecimalValue(uint8_t elemPosX, uint8_t elemPosY,
 int8_t getGeoWaypointNumber(int8_t waypointIndex)
 {
     static int8_t lastWaypointIndex = 1;
-    static int8_t lastGeoWaypointIndex;
+    static int8_t geoWaypointIndex;
 
     if (waypointIndex != lastWaypointIndex) {
-        lastWaypointIndex = waypointIndex;
-        lastGeoWaypointIndex = waypointIndex;
+        lastWaypointIndex = geoWaypointIndex = waypointIndex;
         for (uint8_t i = 0; i <= waypointIndex; i++) {
             if (posControl.waypointList[i].action == NAV_WP_ACTION_SET_POI ||
                 posControl.waypointList[i].action == NAV_WP_ACTION_SET_HEAD ||
                 posControl.waypointList[i].action == NAV_WP_ACTION_JUMP) {
-                    lastGeoWaypointIndex -= 1;
+                    geoWaypointIndex -= 1;
             }
         }
     }
 
-    return lastGeoWaypointIndex + 1;
+    return geoWaypointIndex + 1;
 }
 
 static bool osdDrawSingleElement(uint8_t item)
