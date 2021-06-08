@@ -780,22 +780,22 @@ static void osdDJIAdjustmentMessage(char *buff, uint8_t adjustmentFunction)
 {
     switch (adjustmentFunction) {
         case ADJUSTMENT_RC_EXPO:
-            tfp_sprintf(buff, "RC EXP %d", currentControlRateProfile->stabilized.rcExpo8);
+            tfp_sprintf(buff, "RCE %d", currentControlRateProfile->stabilized.rcExpo8);
             break;
         case ADJUSTMENT_RC_YAW_EXPO:
-            tfp_sprintf(buff, "RC Y EXP %3d", currentControlRateProfile->stabilized.rcYawExpo8);
+            tfp_sprintf(buff, "RCYE %3d", currentControlRateProfile->stabilized.rcYawExpo8);
             break;
         case ADJUSTMENT_MANUAL_RC_EXPO:
-            tfp_sprintf(buff, "M RC EXP %3d", currentControlRateProfile->manual.rcExpo8);
+            tfp_sprintf(buff, "MRCE %3d", currentControlRateProfile->manual.rcExpo8);
             break;
         case ADJUSTMENT_MANUAL_RC_YAW_EXPO:
-            tfp_sprintf(buff, "M RC Y EXP %3d", currentControlRateProfile->manual.rcYawExpo8);
+            tfp_sprintf(buff, "MRCYE %3d", currentControlRateProfile->manual.rcYawExpo8);
             break;
         case ADJUSTMENT_THROTTLE_EXPO:
-            tfp_sprintf(buff, "THR EXP %3d", currentControlRateProfile->throttle.rcExpo8);
+            tfp_sprintf(buff, "TE %3d", currentControlRateProfile->throttle.rcExpo8);
             break;
         case ADJUSTMENT_PITCH_ROLL_RATE:
-            tfp_sprintf(buff, "PR %3d RR %3d", currentControlRateProfile->stabilized.rates[FD_PITCH], currentControlRateProfile->stabilized.rates[FD_ROLL]);
+            tfp_sprintf(buff, "PRR %3d %3d", currentControlRateProfile->stabilized.rates[FD_PITCH], currentControlRateProfile->stabilized.rates[FD_ROLL]);
             break;
         case ADJUSTMENT_PITCH_RATE:
             tfp_sprintf(buff, "PR %3d", currentControlRateProfile->stabilized.rates[FD_PITCH]);
@@ -804,22 +804,22 @@ static void osdDJIAdjustmentMessage(char *buff, uint8_t adjustmentFunction)
             tfp_sprintf(buff, "RR %3d", currentControlRateProfile->stabilized.rates[FD_ROLL]);
             break;
         case ADJUSTMENT_MANUAL_PITCH_ROLL_RATE:
-            tfp_sprintf(buff, "M PR %3d RR %3d", currentControlRateProfile->manual.rates[FD_PITCH], currentControlRateProfile->manual.rates[FD_ROLL]);
+            tfp_sprintf(buff, "MPRR %3d %3d", currentControlRateProfile->manual.rates[FD_PITCH], currentControlRateProfile->manual.rates[FD_ROLL]);
             break;
         case ADJUSTMENT_MANUAL_PITCH_RATE:
-            tfp_sprintf(buff, "M PR %3d", currentControlRateProfile->manual.rates[FD_PITCH]);
+            tfp_sprintf(buff, "MPR %3d", currentControlRateProfile->manual.rates[FD_PITCH]);
             break;
         case ADJUSTMENT_MANUAL_ROLL_RATE:
-            tfp_sprintf(buff, "M RR %3d", currentControlRateProfile->manual.rates[FD_ROLL]);
+            tfp_sprintf(buff, "MRR %3d", currentControlRateProfile->manual.rates[FD_ROLL]);
             break;
         case ADJUSTMENT_YAW_RATE:
             tfp_sprintf(buff, "YR %3d", currentControlRateProfile->stabilized.rates[FD_YAW]);
             break;
         case ADJUSTMENT_MANUAL_YAW_RATE:
-            tfp_sprintf(buff, "M YR %3d", currentControlRateProfile->manual.rates[FD_YAW]);
+            tfp_sprintf(buff, "MYR %3d", currentControlRateProfile->manual.rates[FD_YAW]);
             break;
         case ADJUSTMENT_PITCH_ROLL_P:
-            tfp_sprintf(buff, "PP %3d RP %3d", pidBankMutable()->pid[PID_PITCH].P, pidBankMutable()->pid[PID_ROLL].P);
+            tfp_sprintf(buff, "PRP %3d %3d", pidBankMutable()->pid[PID_PITCH].P, pidBankMutable()->pid[PID_ROLL].P);
             break;
         case ADJUSTMENT_PITCH_P:
             tfp_sprintf(buff, "PP %3d", pidBankMutable()->pid[PID_PITCH].P);
@@ -828,7 +828,7 @@ static void osdDJIAdjustmentMessage(char *buff, uint8_t adjustmentFunction)
             tfp_sprintf(buff, "RP %3d", pidBankMutable()->pid[PID_ROLL].P);
             break;
         case ADJUSTMENT_PITCH_ROLL_I:
-            tfp_sprintf(buff, "PI %3d RI %3d", pidBankMutable()->pid[PID_PITCH].I, pidBankMutable()->pid[PID_ROLL].I);
+            tfp_sprintf(buff, "PRI %3d %3d", pidBankMutable()->pid[PID_PITCH].I, pidBankMutable()->pid[PID_ROLL].I);
             break;
         case ADJUSTMENT_PITCH_I:
             tfp_sprintf(buff, "PI %3d", pidBankMutable()->pid[PID_PITCH].I);
@@ -837,10 +837,10 @@ static void osdDJIAdjustmentMessage(char *buff, uint8_t adjustmentFunction)
             tfp_sprintf(buff, "RI %3d", pidBankMutable()->pid[PID_ROLL].I);
             break;
         case ADJUSTMENT_PITCH_ROLL_D:
-            tfp_sprintf(buff, "PD %3d RD %3d", pidBankMutable()->pid[PID_PITCH].D, pidBankMutable()->pid[PID_ROLL].D);
+            tfp_sprintf(buff, "PRD %3d %3d", pidBankMutable()->pid[PID_PITCH].D, pidBankMutable()->pid[PID_ROLL].D);
             break;
         case ADJUSTMENT_PITCH_ROLL_FF:
-            tfp_sprintf(buff, "PFF %3d RFF %3d", pidBankMutable()->pid[PID_PITCH].FF, pidBankMutable()->pid[PID_ROLL].FF);
+            tfp_sprintf(buff, "PRFF %3d %3d", pidBankMutable()->pid[PID_PITCH].FF, pidBankMutable()->pid[PID_ROLL].FF);
             break;
         case ADJUSTMENT_PITCH_D:
             tfp_sprintf(buff, "PD %3d", pidBankMutable()->pid[PID_PITCH].D);
@@ -855,7 +855,7 @@ static void osdDJIAdjustmentMessage(char *buff, uint8_t adjustmentFunction)
             tfp_sprintf(buff, "RFF %3d", pidBankMutable()->pid[PID_ROLL].FF);
             break;
         case ADJUSTMENT_YAW_P:
-            tfp_sprintf(buff, "Y P %3d", pidBankMutable()->pid[PID_YAW].P);
+            tfp_sprintf(buff, "YP %3d", pidBankMutable()->pid[PID_YAW].P);
             break;
         case ADJUSTMENT_YAW_I:
             tfp_sprintf(buff, "YI  %3d", pidBankMutable()->pid[PID_YAW].I);
@@ -867,76 +867,76 @@ static void osdDJIAdjustmentMessage(char *buff, uint8_t adjustmentFunction)
             tfp_sprintf(buff, "YFF %3d", pidBankMutable()->pid[PID_YAW].FF);
             break;
         case ADJUSTMENT_NAV_FW_CRUISE_THR:
-            tfp_sprintf(buff, "CRS THR %4d", navConfigMutable()->fw.cruise_throttle);
+            tfp_sprintf(buff, "CR %4d", navConfigMutable()->fw.cruise_throttle);
             break;
         case ADJUSTMENT_NAV_FW_PITCH2THR:
-            tfp_sprintf(buff, "P2THR %3d", navConfigMutable()->fw.pitch_to_throttle);
+            tfp_sprintf(buff, "P2T %3d", navConfigMutable()->fw.pitch_to_throttle);
             break;
         case ADJUSTMENT_ROLL_BOARD_ALIGNMENT:
-            tfp_sprintf(buff, "BA R %3d", boardAlignment()->rollDeciDegrees);
+            tfp_sprintf(buff, "RBA %3d", boardAlignment()->rollDeciDegrees);
             break;
         case ADJUSTMENT_PITCH_BOARD_ALIGNMENT:
-            tfp_sprintf(buff, "BA P %3d", boardAlignment()->pitchDeciDegrees);
+            tfp_sprintf(buff, "PBA %3d", boardAlignment()->pitchDeciDegrees);
             break;
         case ADJUSTMENT_LEVEL_P:
-            tfp_sprintf(buff, "LVL P %3d", pidBankMutable()->pid[PID_LEVEL].P);
+            tfp_sprintf(buff, "LP %3d", pidBankMutable()->pid[PID_LEVEL].P);
             break;
         case ADJUSTMENT_LEVEL_I:
-            tfp_sprintf(buff, "LVL I %3d", pidBankMutable()->pid[PID_LEVEL].I);
+            tfp_sprintf(buff, "LI %3d", pidBankMutable()->pid[PID_LEVEL].I);
             break;
         case ADJUSTMENT_LEVEL_D:
-            tfp_sprintf(buff, "LVL D %3d", pidBankMutable()->pid[PID_LEVEL].D);
+            tfp_sprintf(buff, "LD %3d", pidBankMutable()->pid[PID_LEVEL].D);
             break;
         case ADJUSTMENT_POS_XY_P:
-            tfp_sprintf(buff, "POS XY P %3d", pidBankMutable()->pid[PID_POS_XY].P);
+            tfp_sprintf(buff, "PXYP %3d", pidBankMutable()->pid[PID_POS_XY].P);
             break;
         case ADJUSTMENT_POS_XY_I:
-            tfp_sprintf(buff, "POS XY I %3d", pidBankMutable()->pid[PID_POS_XY].I);
+            tfp_sprintf(buff, "PXYI %3d", pidBankMutable()->pid[PID_POS_XY].I);
             break;
         case ADJUSTMENT_POS_XY_D:
-            tfp_sprintf(buff, "POS XY D %3d", pidBankMutable()->pid[PID_POS_XY].D);
+            tfp_sprintf(buff, "PXYD %3d", pidBankMutable()->pid[PID_POS_XY].D);
             break;
         case ADJUSTMENT_POS_Z_P:
-            tfp_sprintf(buff, "POS Z P %3d", pidBankMutable()->pid[PID_POS_Z].P);
+            tfp_sprintf(buff, "PZP %3d", pidBankMutable()->pid[PID_POS_Z].P);
             break;
         case ADJUSTMENT_POS_Z_I:
-            tfp_sprintf(buff, "POS Z I %3d", pidBankMutable()->pid[PID_POS_Z].I);
+            tfp_sprintf(buff, "PZI %3d", pidBankMutable()->pid[PID_POS_Z].I);
             break;
         case ADJUSTMENT_POS_Z_D:
-            tfp_sprintf(buff, "POS Z D %3d", pidBankMutable()->pid[PID_POS_Z].D);
+            tfp_sprintf(buff, "PZD %3d", pidBankMutable()->pid[PID_POS_Z].D);
             break;
         case ADJUSTMENT_HEADING_P:
-            tfp_sprintf(buff, "HEAD P %3d", pidBankMutable()->pid[PID_HEADING].P);
+            tfp_sprintf(buff, "HP %3d", pidBankMutable()->pid[PID_HEADING].P);
             break;
         case ADJUSTMENT_VEL_XY_P:
-            tfp_sprintf(buff, "VEL XY P %3d", pidBankMutable()->pid[PID_VEL_XY].P);
+            tfp_sprintf(buff, "VXYP %3d", pidBankMutable()->pid[PID_VEL_XY].P);
             break;
         case ADJUSTMENT_VEL_XY_I:
-            tfp_sprintf(buff, "VEL XY I %3d", pidBankMutable()->pid[PID_VEL_XY].I);
+            tfp_sprintf(buff, "VXYI %3d", pidBankMutable()->pid[PID_VEL_XY].I);
             break;
         case ADJUSTMENT_VEL_XY_D:
-            tfp_sprintf(buff, "VEL XY D %3d", pidBankMutable()->pid[PID_VEL_XY].D);
+            tfp_sprintf(buff, "VXYD %3d", pidBankMutable()->pid[PID_VEL_XY].D);
             break;
         case ADJUSTMENT_VEL_Z_P:
-            tfp_sprintf(buff, "VEL Z P %3d", pidBankMutable()->pid[PID_VEL_Z].P);
+            tfp_sprintf(buff, "VZP %3d", pidBankMutable()->pid[PID_VEL_Z].P);
             break;
         case ADJUSTMENT_VEL_Z_I:
-            tfp_sprintf(buff, "VEL Z I %3d", pidBankMutable()->pid[PID_VEL_Z].I);
+            tfp_sprintf(buff, "VZI %3d", pidBankMutable()->pid[PID_VEL_Z].I);
             break;
         case ADJUSTMENT_VEL_Z_D:
-            tfp_sprintf(buff, "VEL Z D %3d", pidBankMutable()->pid[PID_VEL_Z].D);
+            tfp_sprintf(buff, "VZD %3d", pidBankMutable()->pid[PID_VEL_Z].D);
             break;
         case ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE:
-            tfp_sprintf(buff, "MIN THR DPA %4d", mixerConfigMutable()->fwMinThrottleDownPitchAngle);
+            tfp_sprintf(buff, "MTDPA %4d", mixerConfigMutable()->fwMinThrottleDownPitchAngle);
             break;
         case ADJUSTMENT_TPA:
             tfp_sprintf(buff, "TPA %3d", currentControlRateProfile->throttle.dynPID);
             break;
         case ADJUSTMENT_TPA_BREAKPOINT:
-            tfp_sprintf(buff, "TPA BP %4d", currentControlRateProfile->throttle.pa_breakpoint);
+            tfp_sprintf(buff, "TPABP %4d", currentControlRateProfile->throttle.pa_breakpoint);
             break;
         case ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS:
-            tfp_sprintf(buff, "CTR SMOTH %3d", navConfigMutable()->fw.control_smoothness);
+            tfp_sprintf(buff, "CSM %3d", navConfigMutable()->fw.control_smoothness);
             break;
         default:
             tfp_sprintf(buff, "UNSUPPORTED");
@@ -1008,6 +1008,10 @@ static bool djiFormatMessages(char *buff)
                 if (IS_RC_MODE_ACTIVE(BOXAUTOTUNE)) {
                     messages[messageCount++] = "(AUTOTUNE)";
                 }
+
+                if (IS_RC_MODE_ACTIVE(BOXAUTOLEVEL) {
+                    messages[messageCount++] = "(AUTOLEVEL)";
+                })
 
                 if (FLIGHT_MODE(HEADFREE_MODE)) {
                     messages[messageCount++] = "(HEADFREE)";
