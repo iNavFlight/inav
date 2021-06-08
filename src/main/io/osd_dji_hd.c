@@ -1009,9 +1009,9 @@ static bool djiFormatMessages(char *buff)
                     messages[messageCount++] = "(AUTOTUNE)";
                 }
 
-                if (IS_RC_MODE_ACTIVE(BOXAUTOLEVEL) {
+                if (IS_RC_MODE_ACTIVE(BOXAUTOLEVEL)) {
                     messages[messageCount++] = "(AUTOLEVEL)";
-                })
+                }
 
                 if (FLIGHT_MODE(HEADFREE_MODE)) {
                     messages[messageCount++] = "(HEADFREE)";
