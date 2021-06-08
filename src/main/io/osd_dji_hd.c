@@ -1001,7 +1001,7 @@ static bool djiFormatMessages(char *buff)
                     messages[messageCount++] = "(ALT HOLD)";
                 }
 
-                if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) {
+                if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM) && !feature(FEATURE_FW_AUTOTRIM)) {
                     messages[messageCount++] = "(AUTOTRIM)";
                 }
 
