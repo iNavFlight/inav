@@ -1514,6 +1514,27 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_GLIDESLOPE:
+        {
+            float horizontalSpeed = gpsSol.groundSpeed;
+            float sinkRate = -getEstimatedActualVelocity(Z);
+            static pt1Filter_t gsFilterState;
+            const timeMs_t currentTimeMs = millis();
+            static timeMs_t gsUpdatedTimeMs;
+            float glideSlope = horizontalSpeed / sinkRate;
+            glideSlope = pt1FilterApply4(&gsFilterState, isnormal(glideSlope) ? glideSlope : 200, 0.5, MS2S(currentTimeMs - gsUpdatedTimeMs));
+            gsUpdatedTimeMs = currentTimeMs;
+
+            buff[0] = SYM_GLIDESLOPE;
+            if (glideSlope > 0.0f && glideSlope < 100.0f) {
+                osdFormatCentiNumber(buff + 1, glideSlope * 100.0f, 0, 2, 0, 3);
+            } else {
+                buff[1] = buff[2] = buff[3] = '-';
+            }
+            buff[4] = '\0';
+            break;
+        }
+
     case OSD_GPS_LAT:
         osdFormatCoordinate(buff, SYM_LAT, gpsSol.llh.lat);
         break;
@@ -2981,6 +3002,7 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_MAIN_BATT_SAG_COMPENSATED_CELL_VOLTAGE] = OSD_POS(12, 1);
     osdLayoutsConfig->item_pos[0][OSD_GPS_SPEED] = OSD_POS(23, 1);
     osdLayoutsConfig->item_pos[0][OSD_3D_SPEED] = OSD_POS(23, 1);
+    osdLayoutsConfig->item_pos[0][OSD_GLIDESLOPE] = OSD_POS(23, 2);
 
     osdLayoutsConfig->item_pos[0][OSD_THROTTLE_POS] = OSD_POS(1, 2) | OSD_VISIBLE_FLAG;
     osdLayoutsConfig->item_pos[0][OSD_THROTTLE_POS_AUTO_THR] = OSD_POS(6, 2);
