@@ -962,9 +962,9 @@ static bool djiFormatMessages(char *buff)
     bool haveMessage = false;
     char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH+1)];
     if (ARMING_FLAG(ARMED)) {
-        // Aircraft is armed. We might have up to 5
+        // Aircraft is armed. We might have up to 6
         // messages to show.
-        char *messages[5];
+        char *messages[6];
         unsigned messageCount = 0;
 
         if (FLIGHT_MODE(FAILSAFE_MODE)) {
@@ -985,6 +985,10 @@ static bool djiFormatMessages(char *buff)
                 messages[messageCount++] = navStateFSMessage;
             }
         } else {
+            if (rxLinkStatistics.rfMode == 0) {
+                messages[messageCount++] = "CRSF LOW RF";
+            }
+
             if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
                 char *navStateMessage = navigationStateMessage();
                 if (navStateMessage) {
@@ -1241,21 +1245,18 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
             sbufWriteU8(dst,  constrain(getBatteryVoltage() / 10, 0, 255));
             sbufWriteU16(dst, constrain(getMAhDrawn(), 0, 0xFFFF)); // milliamp hours drawn from battery
 #ifdef USE_SERIALRX_CRSF
-            // Range of RSSI field: 0-99: 99 = 150 hz , 70 - 98 50 hz, <70 4 hz
+            // Range of RSSI field: 0-99: 99 = 150 hz , 0 - 98 50 hz / 4 hz
             if (djiOsdConfig()->rssi_source == DJI_CRSF_LQ) {
                 uint16_t scaledLq = 0;
-                if (rxLinkStatistics.rfMode == 2) {
+                if (rxLinkStatistics.rfMode >= 2) {
                     scaledLq = RSSI_MAX_VALUE;
-                } else if (rxLinkStatistics.rfMode == 1) {
-                    scaledLq = scaleRange(constrain(rxLinkStatistics.uplinkLQ, 0, 100), 0, 100, RSSI_BOUNDARY(70), RSSI_BOUNDARY(99));
-                } else if (rxLinkStatistics.rfMode == 0) {
-                    scaledLq = scaleRange(constrain(rxLinkStatistics.uplinkLQ, 0, 100), 0, 100, 0, RSSI_BOUNDARY(69));
+                } else {
+                    scaledLq = scaleRange(constrain(rxLinkStatistics.uplinkLQ, 0, 100), 0, 100, 0, RSSI_BOUNDARY(98));
                 }
                 sbufWriteU16(dst, scaledLq);
             } else {
-#else
-                sbufWriteU16(dst, getRSSI());
 #endif
+                sbufWriteU16(dst, getRSSI());
 #ifdef USE_SERIALRX_CRSF
             }
 #endif
