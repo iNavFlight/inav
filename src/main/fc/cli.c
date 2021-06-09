@@ -156,7 +156,7 @@ static const char * const featureNames[] = {
     "", "RSSI_ADC", "LED_STRIP", "DASHBOARD", "",
     "BLACKBOX", "", "TRANSPONDER", "AIRMODE",
     "SUPEREXPO", "VTX", "", "", "", "PWM_OUTPUT_ENABLE",
-    "OSD", "FW_LAUNCH", NULL
+    "OSD", "FW_LAUNCH", "FW_AUTOTRIM", NULL
 };
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status command output) */
@@ -2501,7 +2501,7 @@ static void cliFeature(char *cmdline)
     }
 }
 
-#ifdef BEEPER
+#if defined(BEEPER) || defined(USE_DSHOT)
 static void printBeeper(uint8_t dumpMask, const beeperConfig_t *beeperConfig, const beeperConfig_t *beeperConfigDefault)
 {
     const uint8_t beeperCount = beeperTableEntryCount();
@@ -3234,7 +3234,7 @@ static void cliStatus(char *cmdline)
 #endif
 
     cliPrintf("System load: %d", averageSystemLoadPercent);
-    const timeDelta_t pidTaskDeltaTime = getTaskDeltaTime(TASK_GYROPID);
+    const timeDelta_t pidTaskDeltaTime = getTaskDeltaTime(TASK_PID);
     const int pidRate = pidTaskDeltaTime == 0 ? 0 : (int)(1000000.0f / ((float)pidTaskDeltaTime));
     const int rxRate = getTaskDeltaTime(TASK_RX) == 0 ? 0 : (int)(1000000.0f / ((float)getTaskDeltaTime(TASK_RX)));
     const int systemRate = getTaskDeltaTime(TASK_SYSTEM) == 0 ? 0 : (int)(1000000.0f / ((float)getTaskDeltaTime(TASK_SYSTEM)));
@@ -3484,7 +3484,7 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintHashLine("feature");
         printFeature(dumpMask, &featureConfig_Copy, featureConfig());
 
-#ifdef BEEPER
+#if defined(BEEPER) || defined(USE_DSHOT)
         cliPrintHashLine("beeper");
         printBeeper(dumpMask, &beeperConfig_Copy, beeperConfig());
 #endif
@@ -3655,7 +3655,7 @@ const clicmd_t cmdTable[] = {
 #ifdef USE_CLI_BATCH
     CLI_COMMAND_DEF("batch", "start or end a batch of commands", "start | end", cliBatch),
 #endif
-#ifdef BEEPER
+#if defined(BEEPER) || defined(USE_DSHOT)
     CLI_COMMAND_DEF("beeper", "turn on/off beeper", "list\r\n"
             "\t<+|->[name]", cliBeeper),
 #endif

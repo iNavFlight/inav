@@ -47,7 +47,6 @@
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
-#define MAG_HMC5883_ALIGN       CW90_DEG
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310

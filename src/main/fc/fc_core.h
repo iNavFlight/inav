@@ -37,12 +37,14 @@ typedef enum disarmReason_e {
 void handleInflightCalibrationStickPosition(void);
 
 void disarm(disarmReason_t disarmReason);
+timeUs_t getLastDisarmTimeUs(void);
 void tryArm(void);
 disarmReason_t getDisarmReason(void);
 
 void emergencyArmingUpdate(bool armingSwitchIsOn);
 
-bool isCalibrating(void);
+bool areSensorsCalibrating(void);
 float getFlightTime(void);
+float getArmTime(void);
 
 void fcReboot(bool bootLoader);

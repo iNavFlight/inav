@@ -47,7 +47,6 @@
 #define USE_MAG_IST8310
 #define USE_MAG_IST8308
 #define USE_MAG_LIS3MDL
-#define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
 
@@ -103,8 +102,6 @@
 //#define USE_I2C_PULLUP
 
 //#define HIL
-
-#define MAG_GPS_ALIGN           CW180_DEG_FLIP
 
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PC0

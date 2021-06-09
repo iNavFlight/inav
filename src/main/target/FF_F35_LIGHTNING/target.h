@@ -42,7 +42,6 @@
 
 #define USE_MAG
 #define USE_MAG_MPU9250
-#define MAG_MPU9250_ALIGN       CW90_DEG_FLIP
 
 #define USE_BARO
 #define USE_BARO_BMP280

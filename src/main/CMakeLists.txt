@@ -105,6 +105,8 @@ main_sources(COMMON_SRC
     drivers/accgyro/accgyro_mpu9250.h
     drivers/accgyro/accgyro_bno055.c
     drivers/accgyro/accgyro_bno055.h
+    drivers/accgyro/accgyro_bno055_serial.c
+    drivers/accgyro/accgyro_bno055_serial.h
 
     drivers/adc.c
     drivers/adc.h
@@ -318,6 +320,8 @@ main_sources(COMMON_SRC
     flight/imu.h
     flight/kalman.c
     flight/kalman.h
+    flight/smith_predictor.c
+    flight/smith_predictor.h
     flight/rate_dynamics.c
     flight/rate_dynamics.h
     flight/mixer.c
@@ -325,6 +329,8 @@ main_sources(COMMON_SRC
     flight/pid.c
     flight/pid.h
     flight/pid_autotune.c
+    flight/power_limits.c
+    flight/power_limits.h
     flight/rth_estimator.c
     flight/rth_estimator.h
     flight/servos.c

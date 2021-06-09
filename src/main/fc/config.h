@@ -29,13 +29,8 @@
 #define ONESHOT_FEATURE_CHANGED_DELAY_ON_BOOT_MS 1500
 #define MAX_NAME_LENGTH 16
 
-typedef enum {
-    ASYNC_MODE_NONE,
-    ASYNC_MODE_GYRO,
-    ASYNC_MODE_ALL
-} asyncMode_e;
-
-typedef enum {
+#define TASK_GYRO_LOOPTIME 250 // Task gyro always runs at 4kHz
+ typedef enum {
     FEATURE_THR_VBAT_COMP = 1 << 0,
     FEATURE_VBAT = 1 << 1,
     FEATURE_TX_PROF_SEL = 1 << 2,       // Profile selection by TX stick command
@@ -67,6 +62,7 @@ typedef enum {
     FEATURE_PWM_OUTPUT_ENABLE = 1 << 28,
     FEATURE_OSD = 1 << 29,
     FEATURE_FW_LAUNCH = 1 << 30,
+    FEATURE_FW_AUTOTRIM = 1 << 31,
 } features_e;
 
 typedef struct systemConfig_s {
@@ -88,6 +84,8 @@ PG_DECLARE(systemConfig_t, systemConfig);
 typedef struct beeperConfig_s {
     uint32_t beeper_off_flags;
     uint32_t preferred_beeper_off_flags;
+    bool dshot_beeper_enabled;
+    uint8_t dshot_beeper_tone;
 } beeperConfig_t;
 
 PG_DECLARE(beeperConfig_t, beeperConfig);
@@ -140,3 +138,4 @@ void resetConfigs(void);
 void targetConfiguration(void);
 
 uint32_t getLooptime(void);
+uint32_t getGyroLooptime(void);
