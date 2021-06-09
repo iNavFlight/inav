@@ -87,11 +87,8 @@
 #define USE_ALPHA_BETA_GAMMA_FILTER
 #define USE_DYNAMIC_FILTERS
 #define USE_GYRO_KALMAN
-<<<<<<< HEAD
-#define USE_RATE_DYNAMICS
-=======
 #define USE_SMITH_PREDICTOR
->>>>>>> master
+#define USE_RATE_DYNAMICS
 #define USE_EXTENDED_CMS_MENUS
 #define USE_HOTT_TEXTMODE
 
