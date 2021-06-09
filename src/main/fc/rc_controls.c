@@ -100,7 +100,7 @@ bool areSticksInApModePosition(uint16_t ap_mode)
 
 bool areSticksDeflected(void)
 {
-    return ABS(rcCommand[ROLL]) > rcControlsConfig()->control_deadband || ABS(rcCommand[PITCH]) > rcControlsConfig()->control_deadband || ABS(rcCommand[YAW]) > rcControlsConfig()->control_deadband;
+    return (ABS(rcCommand[ROLL]) > rcControlsConfig()->control_deadband) || (ABS(rcCommand[PITCH]) > rcControlsConfig()->control_deadband) || (ABS(rcCommand[YAW]) > rcControlsConfig()->control_deadband);
 }
 
 throttleStatus_e FAST_CODE NOINLINE calculateThrottleStatus(throttleStatusType_e type)

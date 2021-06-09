@@ -2123,12 +2123,6 @@ groups:
         field: fixedWingLevelTrimGain
         min: 0
         max: 20
-      - name: fw_level_pitch_deadband
-        description: "Deadband for automatic leveling when AUTOLEVEL mode is used."
-        default_value: 5
-        field: fixedWingLevelTrimDeadband
-        min: 0
-        max: 20
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t

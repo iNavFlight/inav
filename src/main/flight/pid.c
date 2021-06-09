@@ -308,7 +308,6 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
 
         .fixedWingLevelTrim = SETTING_FW_LEVEL_PITCH_TRIM_DEFAULT,
         .fixedWingLevelTrimGain = SETTING_FW_LEVEL_PITCH_GAIN_DEFAULT,
-        .fixedWingLevelTrimDeadband = SETTING_FW_LEVEL_PITCH_DEADBAND_DEFAULT,
 
 #ifdef USE_SMITH_PREDICTOR
         .smithPredictorStrength = SETTING_SMITH_PREDICTOR_STRENGTH_DEFAULT,

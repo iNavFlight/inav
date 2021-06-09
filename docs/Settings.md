@@ -1272,16 +1272,6 @@ Limits max/min I-term value in stabilization PID controller in case of Fixed Win
 
 ---
 
-### fw_level_pitch_deadband
-
-Deadband for automatic leveling when AUTOLEVEL mode is used.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 5 | 0 | 20 |
-
----
-
 ### fw_level_pitch_gain
 
 I-gain for the pitch trim for self-leveling flight modes. Higher values means that AUTOTRIM will be faster but might introduce oscillations
