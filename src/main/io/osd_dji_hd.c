@@ -985,10 +985,11 @@ static bool djiFormatMessages(char *buff)
                 messages[messageCount++] = navStateFSMessage;
             }
         } else {
+#ifdef USE_SERIALRX_CRSF
             if (rxLinkStatistics.rfMode == 0) {
                 messages[messageCount++] = "CRSF LOW RF";
             }
-
+#endif
             if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
                 char *navStateMessage = navigationStateMessage();
                 if (navStateMessage) {
