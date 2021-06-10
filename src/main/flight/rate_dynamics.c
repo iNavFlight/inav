@@ -35,12 +35,7 @@ FAST_CODE static float calculateK(const float k, const float dT) {
         return 0;
     }
     // scale so it feels like running at 62.5hz (16ms) regardless of the current rx rate
-    const float rxRate = 1.0f / dT;
-    const float rxRateFactor = (rxRate / 62.5f) * rxRate;
-    const float freq = k / ((1.0f / rxRateFactor) * (1.0f - k));
-    const float RC = 1.0f / freq;
-
-    return dT / (RC + dT);
+    return k / (62.5f * dT * (1 - k) + k);
 }
 
 FAST_CODE int applyRateDynamics(int rcCommand, const int axis, const float dT) {
