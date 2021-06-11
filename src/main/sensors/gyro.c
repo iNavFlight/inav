@@ -263,7 +263,7 @@ static void initGyroFilter(filterApplyFnPtr *applyFn, filter_t state[], uint8_t 
 {
     *applyFn = nullFilterApply;
     if (cutoff > 0) {
-        switch (type) 
+        switch (type)
         {
             case FILTER_PT1:
                 *applyFn = (filterApplyFnPtr)pt1FilterApply;
@@ -285,10 +285,10 @@ static void gyroInitFilters(void)
 {
     STATIC_FASTRAM biquadFilter_t gyroFilterNotch_1[XYZ_AXIS_COUNT];
     notchFilter1ApplyFn = nullFilterApply;
-    
+
     //First gyro LPF running at full gyro frequency 8kHz
     initGyroFilter(&gyroLpfApplyFn, gyroLpfState, gyroConfig()->gyro_anti_aliasing_lpf_type, gyroConfig()->gyro_anti_aliasing_lpf_hz, getGyroLooptime());
-    
+
     //Second gyro LPF runnig and PID frequency - this filter is dynamic when gyro_use_dyn_lpf = ON
     initGyroFilter(&gyroLpf2ApplyFn, gyroLpf2State, gyroConfig()->gyro_main_lpf_type, gyroConfig()->gyro_main_lpf_hz, getLooptime());
 
@@ -302,21 +302,21 @@ static void gyroInitFilters(void)
     }
 
 #ifdef USE_ALPHA_BETA_GAMMA_FILTER
-    
+
     abgFilterApplyFn = (filterApplyFnPtr)nullFilterApply;
 
     if (gyroConfig()->alphaBetaGammaAlpha > 0) {
         abgFilterApplyFn = (filterApplyFnPtr)alphaBetaGammaFilterApply;
         for (int axis = 0; axis < 3; axis++) {
             alphaBetaGammaFilterInit(
-                &abgFilter[axis], 
-                gyroConfig()->alphaBetaGammaAlpha, 
-                gyroConfig()->alphaBetaGammaBoost, 
-                gyroConfig()->alphaBetaGammaHalfLife, 
+                &abgFilter[axis],
+                gyroConfig()->alphaBetaGammaAlpha,
+                gyroConfig()->alphaBetaGammaBoost,
+                gyroConfig()->alphaBetaGammaHalfLife,
                 getLooptime() * 1e-6f
             );
         }
-    } 
+    }
 #endif
 }
 
@@ -365,7 +365,7 @@ bool gyroInit(void)
     // Dynamic notch running at PID frequency
     dynamicGyroNotchFiltersInit(&dynamicGyroNotchState);
     gyroDataAnalyseStateInit(
-        &gyroAnalyseState, 
+        &gyroAnalyseState,
         gyroConfig()->dynamicGyroNotchMinHz,
         gyroConfig()->dynamicGyroNotchRange,
         getLooptime()
@@ -510,8 +510,8 @@ void FAST_CODE NOINLINE gyroFilter()
 
         if (gyroAnalyseState.filterUpdateExecute) {
             dynamicGyroNotchFiltersUpdate(
-                &dynamicGyroNotchState, 
-                gyroAnalyseState.filterUpdateAxis, 
+                &dynamicGyroNotchState,
+                gyroAnalyseState.filterUpdateAxis,
                 gyroAnalyseState.filterUpdateFrequency
             );
         }
@@ -539,7 +539,7 @@ void FAST_CODE NOINLINE gyroUpdate()
          * First gyro LPF is the only filter applied with the full gyro sampling speed
          */
         gyroADCf = gyroLpfApplyFn((filter_t *) &gyroLpfState[axis], gyroADCf);
-        
+
         gyro.gyroADCf[axis] = gyroADCf;
     }
 }
@@ -586,4 +586,9 @@ void gyroUpdateDynamicLpf(float cutoffFreq) {
             biquadFilterUpdate(&gyroLpf2State[axis].biquad, cutoffFreq, getLooptime(), BIQUAD_Q, FILTER_LPF);
         }
     }
+}
+
+float averageAbsGyroRates(void)
+{
+    return (fabsf(gyro.gyroADCf[ROLL]) + fabsf(gyro.gyroADCf[PITCH]) + fabsf(gyro.gyroADCf[YAW])) / 3.0f;
 }
