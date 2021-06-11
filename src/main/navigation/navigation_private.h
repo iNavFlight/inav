@@ -364,6 +364,8 @@ typedef struct {
     float                       wpDistance;        // Distance to active WP
     timeMs_t                    wpReachedTime;     // Time the waypoint was reached
 
+    uint32_t                    distanceToFirstWP; // Distance to first waypoint from arming location
+
     /* Internals & statistics */
     int16_t                     rcAdjustment[4];
     float                       totalTripDistance;
