@@ -92,6 +92,9 @@ typedef struct navigationFlags_s {
     bool isTerrainFollowEnabled;            // Does iNav use rangefinder for terrain following (adjusting baro altitude target according to rangefinders readings)
 
     bool forcedRTHActivated;
+
+    /* Landing detector */
+    bool resetLandingDetector;
 } navigationFlags_t;
 
 typedef struct {
@@ -389,8 +392,12 @@ const navEstimatedPosVel_t * navGetCurrentActualPositionAndVelocity(void);
 bool isThrustFacingDownwards(void);
 uint32_t calculateDistanceToDestination(const fpVector3_t * destinationPos);
 int32_t calculateBearingToDestination(const fpVector3_t * destinationPos);
-void resetLandingDetector(void);
+
 bool isLandingDetected(void);
+void resetLandingDetector(void);
+bool isFlightDetected(void);
+bool isFixedWingFlying(void);
+bool isMulticopterFlying(void);
 
 navigationFSMStateFlags_t navGetCurrentStateFlags(void);
 
@@ -428,11 +435,7 @@ bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcR
 
 void applyMulticopterNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
 
-void resetFixedWingLandingDetector(void);
-void resetMulticopterLandingDetector(void);
-
 bool isMulticopterLandingDetected(void);
-bool isFixedWingLandingDetected(void);
 
 void calculateMulticopterInitialHoldPosition(fpVector3_t * pos);
 
@@ -450,6 +453,8 @@ bool adjustFixedWingPositionFromRCInput(void);
 void applyFixedWingPositionController(timeUs_t currentTimeUs);
 float processHeadingYawController(timeDelta_t deltaMicros, int32_t navHeadingError, bool errorIsDecreasing);
 void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
+
+bool isFixedWingLandingDetected(void);
 
 void calculateFixedWingInitialHoldPosition(fpVector3_t * pos);
 

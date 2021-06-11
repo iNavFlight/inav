@@ -294,6 +294,7 @@
 | nav_emerg_landing_speed | 500 | 100 | 2000 | Rate of descent UAV will try to maintain when doing emergency descent sequence [cm/s] |
 | nav_extra_arming_safety | ON |  |  | If set to ON drone won't arm if no GPS fix and any navigation mode like RTH or POSHOLD is configured. ALLOW_BYPASS allows the user to momentarily disable this check by holding yaw high (left stick held at the bottom right in mode 2) when switch arming is used |
 | nav_fw_allow_manual_thr_increase | OFF |  |  | Enable the possibility to manually increase the throttle in auto throttle controlled modes for fixed wing |
+| nav_fw_auto_disarm_delay | 2000 | 100 | 10000 | Delay before plane disarms when `nav_disarm_on_landing` is set (ms) |
 | nav_fw_bank_angle | 35 | 5 | 80 | Max roll angle when rolling / turning in GPS assisted modes, is also restrained by global max_angle_inclination_rll |
 | nav_fw_climb_angle | 20 | 5 | 80 | Max pitch angle when climbing in GPS assisted modes, is also restrained by global max_angle_inclination_pit |
 | nav_fw_control_smoothness | 0 | 0 | 9 | How smoothly the autopilot controls the airplane to correct the navigation error |
@@ -341,7 +342,7 @@
 | nav_manual_speed | 500 | 10 | 2000 | Maximum velocity firmware is allowed when processing pilot input for POSHOLD/CRUISE control mode [cm/s] [Multirotor only] |
 | nav_max_altitude | 0 | 0 | 65000 | Max allowed altitude (above Home Point) that applies to all NAV modes (including Altitude Hold). 0 means limit is disabled |
 | nav_max_terrain_follow_alt | 100 |  | 1000 | Max allowed above the ground altitude for terrain following mode |
-| nav_mc_auto_disarm_delay | 2000 | 100 | 10000 | Delay before multi-rotor disarms when `nav_disarm_on_landing` is set (m/s) |
+| nav_mc_auto_disarm_delay | 2000 | 100 | 10000 | Delay before multi-rotor disarms when `nav_disarm_on_landing` is set (ms) |
 | nav_mc_bank_angle | 30 | 15 | 45 | Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude |
 | nav_mc_braking_bank_angle | 40 | 15 | 60 | max angle that MR is allowed to bank in BOOST mode |
 | nav_mc_braking_boost_disengage_speed | 100 | 0 | 1000 | BOOST will be disabled when speed goes below this value |
