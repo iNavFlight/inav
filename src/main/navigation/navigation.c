@@ -1728,7 +1728,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_WAIT(navigationF
     //allow to leave NAV_LAUNCH_MODE if it has being enabled as feature by moving sticks with low throttle.
     if (feature(FEATURE_FW_LAUNCH)) {
         throttleStatus_e throttleStatus = calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC);
-        if ((throttleStatus == THROTTLE_LOW) && (areSticksDeflectedMoreThanPosHoldDeadband())) {
+        if ((throttleStatus == THROTTLE_LOW) && (isRollPitchStickDeflected())) {
             abortFixedWingLaunch();
             return NAV_FSM_EVENT_SWITCH_TO_IDLE;
         }
