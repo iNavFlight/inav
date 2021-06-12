@@ -1283,6 +1283,44 @@ pidBank_t * pidBankMutable(void) {
     return usedPidControllerType == PID_TYPE_PIFF ? &pidProfileMutable()->bank_fw : &pidProfileMutable()->bank_mc;
 }
 
+float GetFixedWingAOAAntiStoll(void)
+{
+    if (!isGPSHeadingValid() || !ARMING_FLAG(ARMED))
+    {
+        return 0;
+    }
+
+    if ((!FLIGHT_MODE(ANGLE_MODE) && !FLIGHT_MODE(HORIZON_MODE)) || !navigationIsControllingAltitude())
+    {
+        return 0;
+    }
+
+    const float AOA_Actual_Value = DECIDEGREES_TO_DEGREES(attitude.raw[FD_PITCH]);
+
+    if (AOA_Actual_Value >= 0.0f)   
+    {
+        return 0;
+    }
+
+    const float gforce = sqrtf(sq(acc.accADCf[0]) + sq(acc.accADCf[1]) + sq(acc.accADCf[2]));
+
+    if (gforce < 1.5f)
+    {
+        return 0;
+    }
+
+    const float Critic_AOA = -50; //degrees
+    const float AOA_Initial_Gain = 10; //degrees
+    const float Pitch_Gain = rcCommand[PITCH] * 0.01f;
+
+    if (AOA_Actual_Value < Critic_AOA)
+    {
+        return AOA_Initial_Gain + Pitch_Gain;
+    }
+
+    return 0;
+}
+
 void updateFixedWingLevelTrim(timeUs_t currentTimeUs)
 {
     if (!STATE(AIRPLANE)) {
@@ -1335,7 +1373,7 @@ void updateFixedWingLevelTrim(timeUs_t currentTimeUs)
     );
 
     DEBUG_SET(DEBUG_AUTOLEVEL, 4, output);
-    fixedWingLevelTrim = pidProfile()->fixedWingLevelTrim + (output * FIXED_WING_LEVEL_TRIM_MULTIPLIER);
+    fixedWingLevelTrim = pidProfile()->fixedWingLevelTrim + (output * FIXED_WING_LEVEL_TRIM_MULTIPLIER) + GetFixedWingAOAAntiStoll();
 
     previousArmingState = !!ARMING_FLAG(ARMED);
 }
