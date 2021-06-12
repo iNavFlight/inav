@@ -92,20 +92,20 @@
 #define USE_SPI_DEVICE_2   //OSD
 #define USE_SPI_DEVICE_4   //ICM20689
 
-#define SPI1_NSS_PIN            PA4//
-#define SPI1_SCK_PIN            PA5//
-#define SPI1_MISO_PIN           PA6//
-#define SPI1_MOSI_PIN           PA7//
+#define SPI1_NSS_PIN            PA4
+#define SPI1_SCK_PIN            PA5
+#define SPI1_MISO_PIN           PA6
+#define SPI1_MOSI_PIN           PA7
 
-#define SPI2_NSS_PIN            PB12//
-#define SPI2_SCK_PIN            PB13///
-#define SPI2_MISO_PIN           PB14//
-#define SPI2_MOSI_PIN           PB15//
+#define SPI2_NSS_PIN            PB12
+#define SPI2_SCK_PIN            PB13
+#define SPI2_MISO_PIN           PB14
+#define SPI2_MOSI_PIN           PB15
 
-#define SPI4_NSS_PIN            PE4//
-#define SPI4_SCK_PIN            PE2//
-#define SPI4_MISO_PIN           PE5//
-#define SPI4_MOSI_PIN           PE6//
+#define SPI4_NSS_PIN            PE4
+#define SPI4_SCK_PIN            PE2
+#define SPI4_MISO_PIN           PE5
+#define SPI4_MOSI_PIN           PE6
 
 #define USE_OSD
 
@@ -128,13 +128,28 @@
 #define USE_I2C_DEVICE_2
 #define I2C2_SCL                PB10
 #define I2C2_SDA                PB11
+
+//External I2C bus is different than internal one
+#define MAG_I2C_BUS             BUS_I2C2
+#define TEMPERATURE_I2C_BUS     BUS_I2C2
+#define RANGEFINDER_I2C_BUS     BUS_I2C2
+#define DEFAULT_I2C_BUS         BUS_I2C2
+
+#else
+
+//External I2C bus is the same as interal one
+#define MAG_I2C_BUS             BUS_I2C1
+#define TEMPERATURE_I2C_BUS     BUS_I2C1
+#define RANGEFINDER_I2C_BUS     BUS_I2C1
+#define DEFAULT_I2C_BUS         BUS_I2C1
+
 #endif
+
 #define USE_BARO
 #define USE_BARO_BMP280
 #define BARO_I2C_BUS            BUS_I2C1
 
 #define USE_MAG
-#define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define USE_MAG_MAG3110
@@ -142,14 +157,10 @@
 #define USE_MAG_IST8308
 #define USE_MAG_LIS3MDL
 
-#define TEMPERATURE_I2C_BUS     BUS_I2C1
-
-#define RANGEFINDER_I2C_BUS     BUS_I2C1
-
 #define USE_ADC
-#define ADC_CHANNEL_1_PIN           PC2//
-#define ADC_CHANNEL_2_PIN           PC3//
-#define ADC_CHANNEL_3_PIN           PC5//
+#define ADC_CHANNEL_1_PIN           PC2
+#define ADC_CHANNEL_2_PIN           PC3
+#define ADC_CHANNEL_3_PIN           PC5
 
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_1
 #define VBAT_ADC_CHANNEL            ADC_CHN_2

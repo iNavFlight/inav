@@ -111,7 +111,7 @@ STATIC_FASTRAM alphaBetaGammaFilter_t abgFilter[XYZ_AXIS_COUNT];
 
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 13);
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 14);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_lpf = SETTING_GYRO_HARDWARE_LPF_DEFAULT,

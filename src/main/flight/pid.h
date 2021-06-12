@@ -165,7 +165,6 @@ typedef struct pidProfile_s {
 
     float fixedWingLevelTrim;
     float fixedWingLevelTrimGain;
-    float fixedWingLevelTrimDeadband;
 #ifdef USE_SMITH_PREDICTOR
     float smithPredictorStrength;
     float smithPredictorDelay;
@@ -233,3 +232,4 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
 pidType_e pidIndexGetType(pidIndex_e pidIndex);
 
 void updateFixedWingLevelTrim(timeUs_t currentTimeUs);
+float getFixedWingLevelTrim(void);
