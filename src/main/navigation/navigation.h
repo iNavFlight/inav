@@ -513,6 +513,7 @@ geoAltitudeConversionMode_e waypointMissionAltConvMode(geoAltitudeDatumFlag_e da
 
 /* Distance/bearing calculation */
 bool navCalculatePathToDestination(navDestinationPath_t *result, const fpVector3_t * destinationPos);
+uint32_t distanceToFirstWP(void);
 
 /* Failsafe-forced RTH mode */
 void activateForcedRTH(void);
