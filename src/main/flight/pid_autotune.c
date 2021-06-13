@@ -205,7 +205,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
         
         // Theoretically achievable rate with target deflection based on current FF outout and observed rotation
         const float pidSumLimit = (axis == FD_YAW) ? pidProfile()->pidSumLimitYaw : pidProfile()->pidSumLimit;
-        float pidSumTarget = (pidAutotuneConfig()->fw_max_rate_deflection / 100.0f) * pidSumLimit;
+        const float pidSumTarget = (pidAutotuneConfig()->fw_max_rate_deflection / 100.0f) * pidSumLimit;
         rateFullStick = pidSumTarget / absPidOutput * absReachedRate;
 
         // FF gain required to achieve current rate target
