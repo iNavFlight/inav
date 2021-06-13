@@ -449,29 +449,30 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
 */
 void osdFormatAltitudeSymbol(char *buff, int32_t alt)
 {
+    int digits = alt < 0 ? 4 : 3;
     switch ((osd_unit_e)osdConfig()->units) {
         case OSD_UNIT_UK:
             FALLTHROUGH;
         case OSD_UNIT_IMPERIAL:
-            if (osdFormatCentiNumber(buff , CENTIMETERS_TO_CENTIFEET(alt), 1000, 0, 2, 3)) {
+            if (osdFormatCentiNumber(buff , CENTIMETERS_TO_CENTIFEET(alt), 1000, 0, 2, digits)) {
                 // Scaled to kft
-                buff[3] = SYM_ALT_KFT;
+                buff[digits] = SYM_ALT_KFT;
             } else {
                 // Formatted in feet
-                buff[3] = SYM_ALT_FT;
+                buff[digits] = SYM_ALT_FT;
             }
-            buff[4] = '\0';
+            buff[digits + 1] = '\0';
             break;
         case OSD_UNIT_METRIC:
             // alt is alredy in cm
-            if (osdFormatCentiNumber(buff, alt, 1000, 0, 2, 3)) {
+            if (osdFormatCentiNumber(buff, alt, 1000, 0, 2, digits)) {
                 // Scaled to km
-                buff[3] = SYM_ALT_KM;
+                buff[digits] = SYM_ALT_KM;
             } else {
                 // Formatted in m
-                buff[3] = SYM_ALT_M;
+                buff[digits] = SYM_ALT_M;
             }
-            buff[4] = '\0';
+            buff[digits + 1] = '\0';
             break;
     }
 }
