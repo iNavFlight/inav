@@ -2933,8 +2933,15 @@ static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint
 {
     gpsLocation_t wpLLH;
 
-    wpLLH.lat = waypoint->lat;
-    wpLLH.lon = waypoint->lon;
+    /* Default to home position if lat & lon = 0 or HOME flag set
+     * Applicable to WAYPOINT, HOLD_TIME & LANDING WP types */
+    if ((waypoint->lat == 0 && waypoint->lon == 0) || waypoint->flag == NAV_WP_FLAG_HOME) {
+        wpLLH.lat = GPS_home.lat;
+        wpLLH.lon = GPS_home.lon;
+    } else {
+        wpLLH.lat = waypoint->lat;
+        wpLLH.lon = waypoint->lon;
+    }
     wpLLH.alt = waypoint->alt;
 
     geoConvertGeodeticToLocal(localPos, &posControl.gpsOrigin, &wpLLH, altConv);

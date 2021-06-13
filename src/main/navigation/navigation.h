@@ -306,6 +306,7 @@ typedef enum {
 } navWaypointHeadings_e;
 
 typedef enum {
+    NAV_WP_FLAG_HOME = 0x48,
     NAV_WP_FLAG_LAST = 0xA5
 } navWaypointFlags_e;
 
