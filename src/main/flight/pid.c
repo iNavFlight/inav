@@ -420,7 +420,7 @@ void pidReduceErrorAccumulators(int8_t delta, uint8_t axis)
 
 float getTotalRateTarget(void)
 {
-    return sqrtf(sq(pidState[FD_ROLL].rateTarget) + sq(pidState[FD_PITCH].rateTarget) + sq(pidState[FD_YAW].rateTarget));
+    return fast_fsqrtf(sq(pidState[FD_ROLL].rateTarget) + sq(pidState[FD_PITCH].rateTarget) + sq(pidState[FD_YAW].rateTarget));
 }
 
 float getAxisIterm(uint8_t axis) 

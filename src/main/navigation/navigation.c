@@ -1934,7 +1934,7 @@ void updateActualHorizontalPositionAndVelocity(bool estPosValid, bool estVelVali
     posControl.actualState.agl.vel.x = newVelX;
     posControl.actualState.agl.vel.y = newVelY;
 
-    posControl.actualState.velXY = sqrtf(sq(newVelX) + sq(newVelY));
+    posControl.actualState.velXY = fast_fsqrtf(sq(newVelX) + sq(newVelY));
 
     // CASE 1: POS & VEL valid
     if (estPosValid && estVelValid) {
@@ -2068,7 +2068,7 @@ const navEstimatedPosVel_t * navGetCurrentActualPositionAndVelocity(void)
  *-----------------------------------------------------------*/
 static uint32_t calculateDistanceFromDelta(float deltaX, float deltaY)
 {
-    return sqrtf(sq(deltaX) + sq(deltaY));
+    return fast_fsqrtf(sq(deltaX) + sq(deltaY));
 }
 
 static int32_t calculateBearingFromDelta(float deltaX, float deltaY)
@@ -3749,7 +3749,7 @@ static void GPS_distance_cm_bearing(int32_t currentLat1, int32_t currentLon1, in
     const float dLat = destinationLat2 - currentLat1; // difference of latitude in 1/10 000 000 degrees
     const float dLon = (float)(destinationLon2 - currentLon1) * GPS_scaleLonDown;
 
-    *dist = sqrtf(sq(dLat) + sq(dLon)) * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR;
+    *dist = fast_fsqrtf(sq(dLat) + sq(dLon)) * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR;
 
     *bearing = 9000.0f + RADIANS_TO_CENTIDEGREES(atan2_approx(-dLat, dLon));      // Convert the output radians to 100xdeg
 
