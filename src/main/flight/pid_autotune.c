@@ -182,7 +182,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
     const float absDesiredRate = fabsf(desiredRate);
     const float absReachedRate = fabsf(reachedRate);
     const float absPidOutput = fabsf(pidOutput);
-    const bool correctDirection = (desiredRate>0) == (reachedRate>0);
+    const bool correctDirection = (desiredRate > 0) == (reachedRate > 0);
     float rateFullStick;
     float requiredFF;
 
