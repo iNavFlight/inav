@@ -482,6 +482,16 @@ Blackbox logging rate numerator. Use num/denom settings to decide if a frame sho
 
 ---
 
+### control_deadband
+
+Stick deadband in [r/c points], applied after r/c deadband and expo. Used to check if sticks are centered.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | 2 | 250 |
+
+---
+
 ### cpu_underclock
 
 This option is only available on certain architectures (F3 CPUs at the moment). It makes CPU clock lower to reduce interference to long-range RC systems working at 433MHz
@@ -1138,7 +1148,7 @@ Fixed-wing attitude stabilisation HORIZON transition point
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 75 | 0 | 200 |
+| 75 | 0 | 255 |
 
 ---
 
@@ -1148,7 +1158,7 @@ Fixed wing rate stabilisation D-gain for PITCH
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 200 |
+| 0 | 0 | 255 |
 
 ---
 
@@ -1158,7 +1168,7 @@ Fixed wing rate stabilisation D-gain for ROLL
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 200 |
+| 0 | 0 | 255 |
 
 ---
 
@@ -1168,7 +1178,7 @@ Fixed wing rate stabilisation D-gain for YAW
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 200 |
+| 0 | 0 | 255 |
 
 ---
 
@@ -1178,7 +1188,7 @@ Fixed-wing rate stabilisation FF-gain for PITCH
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 50 | 0 | 200 |
+| 50 | 0 | 255 |
 
 ---
 
@@ -1188,7 +1198,7 @@ Fixed-wing rate stabilisation FF-gain for ROLL
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 50 | 0 | 200 |
+| 50 | 0 | 255 |
 
 ---
 
@@ -1198,7 +1208,7 @@ Fixed-wing rate stabilisation FF-gain for YAW
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 60 | 0 | 200 |
+| 60 | 0 | 255 |
 
 ---
 
@@ -1208,7 +1218,7 @@ Fixed-wing attitude stabilisation low-pass filter cutoff
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 5 | 0 | 200 |
+| 5 | 0 | 255 |
 
 ---
 
@@ -1218,7 +1228,7 @@ Fixed-wing rate stabilisation I-gain for PITCH
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 7 | 0 | 200 |
+| 7 | 0 | 255 |
 
 ---
 
@@ -1228,7 +1238,7 @@ Fixed-wing rate stabilisation I-gain for ROLL
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 7 | 0 | 200 |
+| 7 | 0 | 255 |
 
 ---
 
@@ -1238,7 +1248,7 @@ Fixed-wing rate stabilisation I-gain for YAW
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 10 | 0 | 200 |
+| 10 | 0 | 255 |
 
 ---
 
@@ -1259,16 +1269,6 @@ Limits max/min I-term value in stabilization PID controller in case of Fixed Win
 | Default | Min | Max |
 | --- | --- | --- |
 | 165 | FW_ITERM_THROW_LIMIT_MIN | FW_ITERM_THROW_LIMIT_MAX |
-
----
-
-### fw_level_pitch_deadband
-
-Deadband for automatic leveling when AUTOLEVEL mode is used.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 5 | 0 | 20 |
 
 ---
 
@@ -1318,7 +1318,7 @@ Fixed-wing attitude stabilisation P-gain
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 20 | 0 | 200 |
+| 20 | 0 | 255 |
 
 ---
 
@@ -1328,7 +1328,7 @@ Fixed-wing rate stabilisation P-gain for PITCH
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 5 | 0 | 200 |
+| 5 | 0 | 255 |
 
 ---
 
@@ -1338,7 +1338,7 @@ Fixed-wing rate stabilisation P-gain for ROLL
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 5 | 0 | 200 |
+| 5 | 0 | 255 |
 
 ---
 
@@ -1348,7 +1348,7 @@ Fixed-wing rate stabilisation P-gain for YAW
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 6 | 0 | 200 |
+| 6 | 0 | 255 |
 
 ---
 
@@ -2568,7 +2568,7 @@ Multicopter Control Derivative gain for PITCH
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 60 | 0 | 200 |
+| 60 | 0 | 255 |
 
 ---
 
@@ -2578,7 +2578,7 @@ Multicopter Control Derivative gain for ROLL
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 60 | 0 | 200 |
+| 60 | 0 | 255 |
 
 ---
 
@@ -2588,7 +2588,7 @@ Multicopter Control Derivative gain for YAW
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 60 | 0 | 200 |
+| 60 | 0 | 255 |
 
 ---
 
@@ -2598,7 +2598,7 @@ Multicopter attitude stabilisation HORIZON transition point
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 75 | 0 | 200 |
+| 75 | 0 | 255 |
 
 ---
 
@@ -2608,7 +2608,7 @@ Multicopter rate stabilisation D-gain for PITCH
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 23 | 0 | 200 |
+| 23 | 0 | 255 |
 
 ---
 
@@ -2618,7 +2618,7 @@ Multicopter rate stabilisation D-gain for ROLL
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 23 | 0 | 200 |
+| 23 | 0 | 255 |
 
 ---
 
@@ -2628,7 +2628,7 @@ Multicopter rate stabilisation D-gain for YAW
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 200 |
+| 0 | 0 | 255 |
 
 ---
 
@@ -2638,7 +2638,7 @@ Multicopter attitude stabilisation low-pass filter cutoff
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 15 | 0 | 200 |
+| 15 | 0 | 255 |
 
 ---
 
@@ -2648,7 +2648,7 @@ Multicopter rate stabilisation I-gain for PITCH
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 30 | 0 | 200 |
+| 30 | 0 | 255 |
 
 ---
 
@@ -2658,7 +2658,7 @@ Multicopter rate stabilisation I-gain for ROLL
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 30 | 0 | 200 |
+| 30 | 0 | 255 |
 
 ---
 
@@ -2668,7 +2668,7 @@ Multicopter rate stabilisation I-gain for YAW
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 45 | 0 | 200 |
+| 45 | 0 | 255 |
 
 ---
 
@@ -2698,7 +2698,7 @@ Multicopter attitude stabilisation P-gain
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 20 | 0 | 200 |
+| 20 | 0 | 255 |
 
 ---
 
@@ -2708,7 +2708,7 @@ Multicopter rate stabilisation P-gain for PITCH
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 40 | 0 | 200 |
+| 40 | 0 | 255 |
 
 ---
 
@@ -2718,7 +2718,7 @@ Multicopter rate stabilisation P-gain for ROLL
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 40 | 0 | 200 |
+| 40 | 0 | 255 |
 
 ---
 
@@ -2728,7 +2728,7 @@ Multicopter rate stabilisation P-gain for YAW
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 85 | 0 | 200 |
+| 85 | 0 | 255 |
 
 ---
 
@@ -4618,7 +4618,7 @@ Defines rotation rate on PITCH axis that UAV will try to archive on max. stick d
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 20 | 6 | 180 |
+| 20 | 4 | 180 |
 
 ---
 
@@ -4664,7 +4664,7 @@ Defines UAV platform type. Allowed values: "MULTIROTOR", "AIRPLANE", "HELICOPTER
 
 ### pos_hold_deadband
 
-Stick deadband in [r/c points], applied after r/c deadband and expo
+Stick deadband in [r/c points], applied after r/c deadband and expo. Used for adjustments in navigation modes.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4788,7 +4788,7 @@ Defines rotation rate on ROLL axis that UAV will try to archive on max. stick de
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 20 | 6 | 180 |
+| 20 | 4 | 180 |
 
 ---
 
@@ -5628,7 +5628,7 @@ Defines rotation rate on YAW axis that UAV will try to archive on max. stick def
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 20 | 2 | 180 |
+| 20 | 1 | 180 |
 
 ---
 

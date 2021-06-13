@@ -1383,6 +1383,25 @@ static void osdDisplayAdjustableDecimalValue(uint8_t elemPosX, uint8_t elemPosY,
     displayWriteWithAttr(osdDisplayPort, elemPosX + strlen(str) + 1 + valueOffset, elemPosY, buff, elemAttr);
 }
 
+int8_t getGeoWaypointNumber(int8_t waypointIndex)
+{
+    static int8_t lastWaypointIndex = 1;
+    static int8_t geoWaypointIndex;
+
+    if (waypointIndex != lastWaypointIndex) {
+        lastWaypointIndex = geoWaypointIndex = waypointIndex;
+        for (uint8_t i = 0; i <= waypointIndex; i++) {
+            if (posControl.waypointList[i].action == NAV_WP_ACTION_SET_POI ||
+                posControl.waypointList[i].action == NAV_WP_ACTION_SET_HEAD ||
+                posControl.waypointList[i].action == NAV_WP_ACTION_JUMP) {
+                    geoWaypointIndex -= 1;
+            }
+        }
+    }
+
+    return geoWaypointIndex + 1;
+}
+
 static bool osdDrawSingleElement(uint8_t item)
 {
     uint16_t pos = osdLayoutsConfig()->item_pos[currentLayout][item];
@@ -1492,6 +1511,27 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_3D_SPEED:
         {
             osdFormatVelocityStr(buff, osdGet3DSpeed(), true);
+            break;
+        }
+
+    case OSD_GLIDESLOPE:
+        {
+            float horizontalSpeed = gpsSol.groundSpeed;
+            float sinkRate = -getEstimatedActualVelocity(Z);
+            static pt1Filter_t gsFilterState;
+            const timeMs_t currentTimeMs = millis();
+            static timeMs_t gsUpdatedTimeMs;
+            float glideSlope = horizontalSpeed / sinkRate;
+            glideSlope = pt1FilterApply4(&gsFilterState, isnormal(glideSlope) ? glideSlope : 200, 0.5, MS2S(currentTimeMs - gsUpdatedTimeMs));
+            gsUpdatedTimeMs = currentTimeMs;
+
+            buff[0] = SYM_GLIDESLOPE;
+            if (glideSlope > 0.0f && glideSlope < 100.0f) {
+                osdFormatCentiNumber(buff + 1, glideSlope * 100.0f, 0, 2, 0, 3);
+            } else {
+                buff[1] = buff[2] = buff[3] = '-';
+            }
+            buff[4] = '\0';
             break;
         }
 
@@ -1986,8 +2026,9 @@ static bool osdDrawSingleElement(uint8_t item)
                         fpVector3_t poi;
                         geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &wp2, waypointMissionAltConvMode(posControl.waypointList[j].p3));
                         int32_t altConvModeAltitude = waypointMissionAltConvMode(posControl.waypointList[j].p3) == GEO_ALT_ABSOLUTE ? osdGetAltitudeMsl() : osdGetAltitude();
-                        while (j > 9) j -= 10; // Only the last digit displayed if WP>=10, no room for more
-                        osdHudDrawPoi(calculateDistanceToDestination(&poi) / 100, osdGetHeadingAngle(calculateBearingToDestination(&poi) / 100), (posControl.waypointList[j].alt - altConvModeAltitude)/ 100, 2, SYM_WAYPOINT, 49 + j, i);
+                        j = getGeoWaypointNumber(j);
+                        while (j > 9) j -= 10; // Only the last digit displayed if WP>=10, no room for more (48 = ascii 0)
+                        osdHudDrawPoi(calculateDistanceToDestination(&poi) / 100, osdGetHeadingAngle(calculateBearingToDestination(&poi) / 100), (posControl.waypointList[j].alt - altConvModeAltitude)/ 100, 2, SYM_WAYPOINT, 48 + j, i);
                     }
                 }
             }
@@ -2286,7 +2327,7 @@ static bool osdDrawSingleElement(uint8_t item)
             dateTime_t dateTime;
             rtcGetDateTimeLocal(&dateTime);
             buff[0] = SYM_CLOCK;
-            tfp_sprintf(buff + 1, "%02u:%02u", dateTime.hours, dateTime.minutes);
+            tfp_sprintf(buff + 1, "%02u:%02u:%02u", dateTime.hours, dateTime.minutes, dateTime.seconds);
             break;
         }
 
@@ -2961,6 +3002,7 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_MAIN_BATT_SAG_COMPENSATED_CELL_VOLTAGE] = OSD_POS(12, 1);
     osdLayoutsConfig->item_pos[0][OSD_GPS_SPEED] = OSD_POS(23, 1);
     osdLayoutsConfig->item_pos[0][OSD_3D_SPEED] = OSD_POS(23, 1);
+    osdLayoutsConfig->item_pos[0][OSD_GLIDESLOPE] = OSD_POS(23, 2);
 
     osdLayoutsConfig->item_pos[0][OSD_THROTTLE_POS] = OSD_POS(1, 2) | OSD_VISIBLE_FLAG;
     osdLayoutsConfig->item_pos[0][OSD_THROTTLE_POS_AUTO_THR] = OSD_POS(6, 2);
@@ -3833,7 +3875,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                         // Countdown display for remaining Waypoints
                         char buf[6];
                         osdFormatDistanceSymbol(buf, posControl.wpDistance, 0);
-                        tfp_sprintf(messageBuf, "TO WP %u/%u (%s)", posControl.activeWaypointIndex + 1, posControl.waypointCount, buf);
+                        tfp_sprintf(messageBuf, "TO WP %u/%u (%s)", getGeoWaypointNumber(posControl.activeWaypointIndex), posControl.geoWaypointCount, buf);
                         messages[messageCount++] = messageBuf;
                     } else if (NAV_Status.state == MW_NAV_STATE_HOLD_TIMED) {
                         // WP hold time countdown in seconds

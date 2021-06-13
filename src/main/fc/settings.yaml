@@ -182,12 +182,12 @@ tables:
 
 constants:
   RPYL_PID_MIN: 0
-  RPYL_PID_MAX: 200
+  RPYL_PID_MAX: 255
 
   MANUAL_RATE_MIN: 0
   MANUAL_RATE_MAX: 100
 
-  ROLL_PITCH_RATE_MIN: 6
+  ROLL_PITCH_RATE_MIN: 4
   ROLL_PITCH_RATE_MAX: 180
 
 groups:
@@ -1289,7 +1289,7 @@ groups:
         description: "Defines rotation rate on YAW axis that UAV will try to archive on max. stick deflection. Rates are defined in tens of degrees (deca-degrees) per second [rate = dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure."
         default_value: 20
         field: stabilized.rates[FD_YAW]
-        min: 2
+        min: 1
         max: 180
       - name: manual_rc_expo
         description: "Exposition value used for the PITCH/ROLL axes by the `MANUAL` flight mode [0-100]"
@@ -1505,7 +1505,12 @@ groups:
         min: 0
         max: 100
       - name: pos_hold_deadband
-        description: "Stick deadband in [r/c points], applied after r/c deadband and expo"
+        description: "Stick deadband in [r/c points], applied after r/c deadband and expo. Used for adjustments in navigation modes."
+        default_value: 10
+        min: 2
+        max: 250
+      - name: control_deadband
+        description: "Stick deadband in [r/c points], applied after r/c deadband and expo. Used to check if sticks are centered."
         default_value: 10
         min: 2
         max: 250
@@ -2116,12 +2121,6 @@ groups:
         description: "I-gain for the pitch trim for self-leveling flight modes. Higher values means that AUTOTRIM will be faster but might introduce oscillations"
         default_value: 5
         field: fixedWingLevelTrimGain
-        min: 0
-        max: 20
-      - name: fw_level_pitch_deadband
-        description: "Deadband for automatic leveling when AUTOLEVEL mode is used."
-        default_value: 5
-        field: fixedWingLevelTrimDeadband
         min: 0
         max: 20
 

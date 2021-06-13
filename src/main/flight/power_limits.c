@@ -192,7 +192,6 @@ void powerLimiterApply(int16_t *throttleCommand) {
         currentThrottleCommand = currentThrAttned;
     } else {
         wasLimitingCurrent = false;
-        currentThrAttnIntegrator = 0;
         pt1FilterReset(&currentThrAttnFilter, 0);
 
         currentThrottleCommand = *throttleCommand;
@@ -222,7 +221,6 @@ void powerLimiterApply(int16_t *throttleCommand) {
         powerThrottleCommand = powerThrAttned;
     } else {
         wasLimitingPower = false;
-        powerThrAttnIntegrator = 0;
         pt1FilterReset(&powerThrAttnFilter, 0);
 
         powerThrottleCommand = *throttleCommand;

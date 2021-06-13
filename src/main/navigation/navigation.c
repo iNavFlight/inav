@@ -1728,7 +1728,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_WAIT(navigationF
     //allow to leave NAV_LAUNCH_MODE if it has being enabled as feature by moving sticks with low throttle.
     if (feature(FEATURE_FW_LAUNCH)) {
         throttleStatus_e throttleStatus = calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC);
-        if ((throttleStatus == THROTTLE_LOW) && (areSticksDeflectedMoreThanPosHoldDeadband())) {
+        if ((throttleStatus == THROTTLE_LOW) && (isRollPitchStickDeflected())) {
             abortFixedWingLaunch();
             return NAV_FSM_EVENT_SWITCH_TO_IDLE;
         }
@@ -2833,13 +2833,23 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
     else if ((wpNumber >= 1) && (wpNumber <= NAV_MAX_WAYPOINTS) && !ARMING_FLAG(ARMED)) {
         if (wpData->action == NAV_WP_ACTION_WAYPOINT || wpData->action == NAV_WP_ACTION_JUMP || wpData->action == NAV_WP_ACTION_RTH || wpData->action == NAV_WP_ACTION_HOLD_TIME || wpData->action == NAV_WP_ACTION_LAND || wpData->action == NAV_WP_ACTION_SET_POI || wpData->action == NAV_WP_ACTION_SET_HEAD ) {
             // Only allow upload next waypoint (continue upload mission) or first waypoint (new mission)
+            static int8_t nonGeoWaypointCount = 0;
+
             if (wpNumber == (posControl.waypointCount + 1) || wpNumber == 1) {
                 posControl.waypointList[wpNumber - 1] = *wpData;
-                if(wpData->action == NAV_WP_ACTION_JUMP) {
-                    posControl.waypointList[wpNumber - 1].p1 -= 1; // make index (vice WP #)
+                if(wpData->action == NAV_WP_ACTION_SET_POI || wpData->action == NAV_WP_ACTION_SET_HEAD || wpData->action == NAV_WP_ACTION_JUMP) {
+                    nonGeoWaypointCount += 1;
+                    if(wpData->action == NAV_WP_ACTION_JUMP) {
+                        posControl.waypointList[wpNumber - 1].p1 -= 1; // make index (vice WP #)
+                    }
                 }
+
                 posControl.waypointCount = wpNumber;
                 posControl.waypointListValid = (wpData->flag == NAV_WP_FLAG_LAST);
+                posControl.geoWaypointCount = posControl.waypointCount - nonGeoWaypointCount;
+                if (posControl.waypointListValid) {
+                    nonGeoWaypointCount = 0;
+                }
             }
         }
     }
@@ -2851,6 +2861,7 @@ void resetWaypointList(void)
     if (!ARMING_FLAG(ARMED)) {
         posControl.waypointCount = 0;
         posControl.waypointListValid = false;
+        posControl.geoWaypointCount = 0;
     }
 }
 
