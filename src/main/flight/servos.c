@@ -490,6 +490,7 @@ void processServoAutotrimMode(void)
 #define SERVO_AUTOTRIM_CENTER_MIN       1300
 #define SERVO_AUTOTRIM_CENTER_MAX       1700
 #define SERVO_AUTOTRIM_UPDATE_SIZE      5
+#define SERVO_AUTOTRIM_ATIITUDE_LIMIT   50       // 5 degrees
 
 void processContinuousServoAutotrim(const float dT)
 {
@@ -497,21 +498,22 @@ void processContinuousServoAutotrim(const float dT)
     static servoAutotrimState_e trimState = AUTOTRIM_IDLE;    
     static uint32_t servoMiddleUpdateCount;
 
-    const float rotRateMagnitude = fast_fsqrtf(vectorNormSquared(&imuMeasuredRotationBF));
-    const float rotRateMagnitudeFiltered = pt1FilterApply4(&rotRateFilter, rotRateMagnitude, SERVO_AUTOTRIM_FILTER_CUTOFF, dT);
-    const float targetRateMagnitude = getTotalRateTarget();
-    const float targetRateMagnitudeFiltered = pt1FilterApply4(&targetRateFilter, targetRateMagnitude, SERVO_AUTOTRIM_FILTER_CUTOFF, dT);
+    const float rotRateMagnitudeFiltered = pt1FilterApply4(&rotRateFilter, fast_fsqrtf(vectorNormSquared(&imuMeasuredRotationBF)), SERVO_AUTOTRIM_FILTER_CUTOFF, dT);
+    const float targetRateMagnitudeFiltered = pt1FilterApply4(&targetRateFilter, getTotalRateTarget(), SERVO_AUTOTRIM_FILTER_CUTOFF, dT);
 
     if (ARMING_FLAG(ARMED)) {
         trimState = AUTOTRIM_COLLECTING;
         if ((millis() - lastUpdateTimeMs) > 500) {
             const bool planeIsFlyingStraight = rotRateMagnitudeFiltered <= DEGREES_TO_RADIANS(servoConfig()->servo_autotrim_rotation_limit);
             const bool noRotationCommanded = targetRateMagnitudeFiltered <= servoConfig()->servo_autotrim_rotation_limit;
-            const bool planeIsFlyingLevel = calculateCosTiltAngle() >= 0.878153032f;
+            const bool sticksAreCentered = !areSticksDeflected();
+            const bool planeIsFlyingLevel = ABS(attitude.values.pitch + DEGREES_TO_DECIDEGREES(getFixedWingLevelTrim())) <= SERVO_AUTOTRIM_ATIITUDE_LIMIT 
+                                            && ABS(attitude.values.roll) <= SERVO_AUTOTRIM_ATIITUDE_LIMIT;
             if (
                 planeIsFlyingStraight && 
                 noRotationCommanded && 
                 planeIsFlyingLevel &&
+                sticksAreCentered &&
                 !FLIGHT_MODE(MANUAL_MODE) && 
                 isGPSHeadingValid() // TODO: proper flying detection
             ) { 

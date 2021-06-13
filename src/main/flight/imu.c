@@ -504,7 +504,7 @@ static float imuCalculateAccelerometerWeight(const float dT)
     float accWeight_RateIgnore = 1.0f;
 
     if (ARMING_FLAG(ARMED) && STATE(FIXED_WING_LEGACY) && imuConfig()->acc_ignore_rate) {
-        const float rotRateMagnitude = fast_fsqrtf(vectorNormSquared(&imuMeasuredRotationBF));
+        const float rotRateMagnitude = fast_fsqrtf(sq(imuMeasuredRotationBF.y) + sq(imuMeasuredRotationBF.z));
         const float rotRateMagnitudeFiltered = pt1FilterApply4(&rotRateFilter, rotRateMagnitude, IMU_CENTRIFUGAL_LPF, dT);
 
         if (imuConfig()->acc_ignore_slope) {

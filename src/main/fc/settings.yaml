@@ -77,7 +77,7 @@ tables:
     enum: videoSystem_e
   - name: osd_telemetry
     values: ["OFF", "ON","TEST"]
-    enum: osd_telemetry_e    
+    enum: osd_telemetry_e
   - name: osd_alignment
     values: ["LEFT", "RIGHT"]
     enum: osd_alignment_e
@@ -182,12 +182,12 @@ tables:
 
 constants:
   RPYL_PID_MIN: 0
-  RPYL_PID_MAX: 200
+  RPYL_PID_MAX: 255
 
   MANUAL_RATE_MIN: 0
   MANUAL_RATE_MAX: 100
 
-  ROLL_PITCH_RATE_MIN: 6
+  ROLL_PITCH_RATE_MIN: 4
   ROLL_PITCH_RATE_MAX: 180
 
 groups:
@@ -214,7 +214,7 @@ groups:
         description: "Gyro processing anti-aliasing filter cutoff frequency. In normal operation this filter setting should never be changed. In Hz"
         default_value: 250
         field: gyro_anti_aliasing_lpf_hz
-        max: 255
+        max: 1000
       - name: gyro_anti_aliasing_lpf_type
         description: "Specifies the type of the software LPF of the gyro signals."
         default_value: "PT1"
@@ -1289,7 +1289,7 @@ groups:
         description: "Defines rotation rate on YAW axis that UAV will try to archive on max. stick deflection. Rates are defined in tens of degrees (deca-degrees) per second [rate = dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure."
         default_value: 20
         field: stabilized.rates[FD_YAW]
-        min: 2
+        min: 1
         max: 180
       - name: manual_rc_expo
         description: "Exposition value used for the PITCH/ROLL axes by the `MANUAL` flight mode [0-100]"
@@ -1505,7 +1505,12 @@ groups:
         min: 0
         max: 100
       - name: pos_hold_deadband
-        description: "Stick deadband in [r/c points], applied after r/c deadband and expo"
+        description: "Stick deadband in [r/c points], applied after r/c deadband and expo. Used for adjustments in navigation modes."
+        default_value: 10
+        min: 2
+        max: 250
+      - name: control_deadband
+        description: "Stick deadband in [r/c points], applied after r/c deadband and expo. Used to check if sticks are centered."
         default_value: 10
         min: 2
         max: 250
@@ -2118,12 +2123,6 @@ groups:
         field: fixedWingLevelTrimGain
         min: 0
         max: 20
-      - name: fw_level_pitch_deadband
-        description: "Deadband for automatic leveling when AUTOLEVEL mode is used."
-        default_value: 5
-        field: fixedWingLevelTrimDeadband
-        min: 0
-        max: 20
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t
@@ -2161,7 +2160,7 @@ groups:
         type: uint8_t
       - name: fw_autotune_max_rate_deflection
         description: "The target percentage of maximum mixer output used for determining the rates in `AUTO` and `LIMIT`."
-        default_value: 80
+        default_value: 90
         field: fw_max_rate_deflection
         min: 50
         max: 100
@@ -2687,6 +2686,12 @@ groups:
         field: fw.launch_idle_throttle
         min: 1000
         max: 2000
+      - name: nav_fw_launch_idle_motor_delay
+        description: "Delay between raising throttle and motor starting at idle throttle (ms)"
+        default_value: 0
+        field: fw.launch_idle_motor_timer
+        min: 0
+        max: 60000
       - name: nav_fw_launch_motor_delay
         description: "Delay between detected launch and launch sequence start and throttling up (ms)"
         default_value: 500
@@ -3126,6 +3131,13 @@ groups:
         field: link_quality_alarm
         min: 0
         max: 100
+      - name: osd_rssi_dbm_alarm
+        condition: USE_SERIALRX_CRSF
+        description: "RSSI dBm indicator blinks below this value [dBm]. 0 disables this alarm"
+        default_value: 0
+        field: rssi_dbm_alarm
+        min: -130
+        max: 0
       - name: osd_temp_label_align
         description: "Allows to chose between left and right alignment for the OSD temperature sensor labels. Valid values are `LEFT` and `RIGHT`"
         default_value: "LEFT"
@@ -3164,11 +3176,16 @@ groups:
         min: -2
         max: 2
       - name: osd_camera_uptilt
-        description: "Set the camera uptilt for the FPV camera in degres, positive is up, negative is down, relative to the horizontal"
+        description: "Set the camera uptilt for the FPV camera in degres, positive is up, negative is down, relative to the horizontal. Used for correct display of HUD items and AHI (when enabled)."
         default_value: 0
         field: camera_uptilt
         min: -40
         max: 80
+      - name: osd_ahi_camera_uptilt_comp
+        description: "When set to `ON`, the AHI position is adjusted by `osd_camera_uptilt`. For example, with a cammera uptilt of 30 degrees, the AHI will appear in the middle of the OSD when the aircraft is pitched forward 30 degrees. When set to `OFF`, the AHI will appear in the center of the OSD regardless of camera angle, but can still be shifted up and down using `osd_horizon_offset` (`osd_ahi_vertical_offset` for pixel-OSD)."
+        default_value: OFF
+        field: ahi_camera_uptilt_comp
+        type: bool
       - name: osd_camera_fov_h
         description: "Horizontal field of view for the camera in degres"
         default_value: 135
