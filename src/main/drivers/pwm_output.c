@@ -91,7 +91,7 @@ typedef struct {
     bool                requestTelemetry;
 } pwmOutputMotor_t;
 
-static pwmOutputPort_t pwmOutputPorts[MAX_PWM_OUTPUT_PORTS];
+static DMA_RAM pwmOutputPort_t pwmOutputPorts[MAX_PWM_OUTPUT_PORTS];
 
 static pwmOutputMotor_t        motors[MAX_MOTORS];
 static motorPwmProtocolTypes_e initMotorProtocol;
@@ -142,7 +142,7 @@ static pwmOutputPort_t *pwmOutAllocatePort(void)
         return NULL;
     }
 
-    pwmOutputPort_t *p = &pwmOutputPorts[allocatedOutputPortCount++];
+    volatile pwmOutputPort_t *p = &pwmOutputPorts[allocatedOutputPortCount++];
 
     p->tch = NULL;
     p->configured = false;
@@ -150,7 +150,7 @@ static pwmOutputPort_t *pwmOutAllocatePort(void)
     return p;
 }
 
-static pwmOutputPort_t *pwmOutConfigMotor(const timerHardware_t *timHw, uint32_t hz, uint16_t period, uint16_t value, bool enableOutput)
+volatile static pwmOutputPort_t *pwmOutConfigMotor(const timerHardware_t *timHw, uint32_t hz, uint16_t period, uint16_t value, bool enableOutput)
 {
     // Attempt to allocate TCH
     TCH_t * tch = timerGetTCH(timHw);
@@ -159,7 +159,7 @@ static pwmOutputPort_t *pwmOutConfigMotor(const timerHardware_t *timHw, uint32_t
     }
 
     // Allocate motor output port
-    pwmOutputPort_t *p = pwmOutAllocatePort();
+    volatile pwmOutputPort_t *p = pwmOutAllocatePort();
     if (p == NULL) {
         return NULL;
     }
@@ -232,7 +232,7 @@ static pwmOutputPort_t * motorConfigPwm(const timerHardware_t *timerHardware, fl
     const uint32_t timerHz = baseClockHz / prescaler;
     const uint32_t period = timerHz / motorPwmRateHz;
 
-    pwmOutputPort_t * port = pwmOutConfigMotor(timerHardware, timerHz, period, 0, enableOutput);
+    volatile pwmOutputPort_t * port = pwmOutConfigMotor(timerHardware, timerHz, period, 0, enableOutput);
 
     if (port) {
         port->pulseScale = ((sLen == 0) ? period : (sLen * timerHz)) / 1000.0f;
