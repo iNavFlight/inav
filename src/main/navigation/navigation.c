@@ -1035,7 +1035,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_COURSE_HOLD_IN_PROGRESS
         timeMs_t timeDifference = currentTimeMs - posControl.cruise.lastYawAdjustmentTime;
         if (timeDifference > 100) timeDifference = 0; // if adjustment was called long time ago, reset the time difference.
         float rateTarget = scaleRangef((float)rcCommand[YAW], -500.0f, 500.0f, -DEGREES_TO_CENTIDEGREES(navConfig()->fw.cruise_yaw_rate), DEGREES_TO_CENTIDEGREES(navConfig()->fw.cruise_yaw_rate));
-        float centidegsPerIteration = rateTarget * timeDifference / 1000.0f;
+        float centidegsPerIteration = rateTarget * timeDifference * 0.001f;
         posControl.cruise.yaw = wrap_36000(posControl.cruise.yaw - centidegsPerIteration);
         DEBUG_SET(DEBUG_CRUISE, 1, CENTIDEGREES_TO_DEGREES(posControl.cruise.yaw));
         posControl.cruise.lastYawAdjustmentTime = currentTimeMs;
@@ -2138,8 +2138,8 @@ bool isWaypointReached(const navWaypointPosition_t * waypoint, const bool isWayp
 static void updateHomePositionCompatibility(void)
 {
     geoConvertLocalToGeodetic(&GPS_home, &posControl.gpsOrigin, &posControl.rthState.homePosition.pos);
-    GPS_distanceToHome = posControl.homeDistance / 100;
-    GPS_directionToHome = posControl.homeDirection / 100;
+    GPS_distanceToHome = posControl.homeDistance * 0.01f;
+    GPS_directionToHome = posControl.homeDirection * 0.01f;
 }
 
 // Backdoor for RTH estimator
