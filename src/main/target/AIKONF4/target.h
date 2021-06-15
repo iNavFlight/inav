@@ -146,7 +146,6 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          SPI3_NSS_PIN

@@ -75,7 +75,6 @@
 #   define USE_MAG
 #endif
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PB14

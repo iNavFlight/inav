@@ -104,7 +104,6 @@
 #define SPI4_MISO_PIN           PE5
 #define SPI4_MOSI_PIN           PE6
 
-#define USE_OSD
 
 #ifndef KAKUTEF7HDV
 #define USE_MAX7456
@@ -180,3 +179,4 @@
 #define MAX_PWM_OUTPUT_PORTS       6
 
 #define BNO055_I2C_BUS          BUS_I2C1
+

@@ -115,7 +115,6 @@
 #define I2C_DEVICE              (I2CDEV_1)
 
 // OSD
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI1
 #define MAX7456_CS_PIN          PA14
