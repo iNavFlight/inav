@@ -96,7 +96,7 @@ STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_rang
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 0);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 12);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 13);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -142,7 +142,6 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
     // MC-specific
     .mc = {
         .max_bank_angle = SETTING_NAV_MC_BANK_ANGLE_DEFAULT,                          // degrees
-        .hover_throttle = SETTING_NAV_MC_HOVER_THR_DEFAULT,
         .auto_disarm_delay = SETTING_NAV_MC_AUTO_DISARM_DELAY_DEFAULT,                // milliseconds - time before disarming when auto disarm is enabled and landing is confirmed
 
 #ifdef USE_MR_BRAKING_MODE
@@ -166,12 +165,8 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .max_bank_angle = SETTING_NAV_FW_BANK_ANGLE_DEFAULT,                    // degrees
         .max_climb_angle = SETTING_NAV_FW_CLIMB_ANGLE_DEFAULT,                  // degrees
         .max_dive_angle = SETTING_NAV_FW_DIVE_ANGLE_DEFAULT,                    // degrees
-        .cruise_throttle = SETTING_NAV_FW_CRUISE_THR_DEFAULT,
         .cruise_speed = SETTING_NAV_FW_CRUISE_SPEED_DEFAULT,                    // cm/s
         .control_smoothness = SETTING_NAV_FW_CONTROL_SMOOTHNESS_DEFAULT,
-        .max_throttle = SETTING_NAV_FW_MAX_THR_DEFAULT,
-        .min_throttle = SETTING_NAV_FW_MIN_THR_DEFAULT,
-        .pitch_to_throttle = SETTING_NAV_FW_PITCH2THR_DEFAULT,                  // pwm units per degree of pitch (10pwm units ~ 1% throttle)
         .pitch_to_throttle_smooth = SETTING_NAV_FW_PITCH2THR_SMOOTHING_DEFAULT,
         .pitch_to_throttle_thresh = SETTING_NAV_FW_PITCH2THR_THRESHOLD_DEFAULT,
         .loiter_radius = SETTING_NAV_FW_LOITER_RADIUS_DEFAULT,                  // 75m
@@ -183,8 +178,6 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .launch_velocity_thresh = SETTING_NAV_FW_LAUNCH_VELOCITY_DEFAULT,       // 3 m/s
         .launch_accel_thresh = SETTING_NAV_FW_LAUNCH_ACCEL_DEFAULT,             // cm/s/s (1.9*G)
         .launch_time_thresh = SETTING_NAV_FW_LAUNCH_DETECT_TIME_DEFAULT,        // 40ms
-        .launch_throttle = SETTING_NAV_FW_LAUNCH_THR_DEFAULT,
-        .launch_idle_throttle = SETTING_NAV_FW_LAUNCH_IDLE_THR_DEFAULT,         // Motor idle or MOTOR_STOP
         .launch_motor_timer = SETTING_NAV_FW_LAUNCH_MOTOR_DELAY_DEFAULT,        // ms
         .launch_idle_motor_timer = SETTING_NAV_FW_LAUNCH_IDLE_MOTOR_DELAY_DEFAULT,   // ms
         .launch_motor_spinup_time = SETTING_NAV_FW_LAUNCH_SPINUP_TIME_DEFAULT,  // ms, time to gredually increase throttle from idle to launch

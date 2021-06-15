@@ -49,6 +49,7 @@
 #include "io/beeper.h"
 #include "io/vtx.h"
 
+#include "sensors/battery.h"
 #include "sensors/boardalignment.h"
 
 #include "rx/rx.h"
@@ -500,10 +501,10 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
             schedulePidGainsUpdate();
             break;
         case ADJUSTMENT_NAV_FW_CRUISE_THR:
-            applyAdjustmentU16(ADJUSTMENT_NAV_FW_CRUISE_THR, &navConfigMutable()->fw.cruise_throttle, delta, SETTING_NAV_FW_CRUISE_THR_MIN, SETTING_NAV_FW_CRUISE_THR_MAX);
+            applyAdjustmentU16(ADJUSTMENT_NAV_FW_CRUISE_THR, &currentBatteryProfileMutable->nav.fw.cruise_throttle, delta, SETTING_NAV_FW_CRUISE_THR_MIN, SETTING_NAV_FW_CRUISE_THR_MAX);
             break;
         case ADJUSTMENT_NAV_FW_PITCH2THR:
-            applyAdjustmentU8(ADJUSTMENT_NAV_FW_PITCH2THR, &navConfigMutable()->fw.pitch_to_throttle, delta, SETTING_NAV_FW_PITCH2THR_MIN, SETTING_NAV_FW_PITCH2THR_MAX);
+            applyAdjustmentU8(ADJUSTMENT_NAV_FW_PITCH2THR, &currentBatteryProfileMutable->nav.fw.pitch_to_throttle, delta, SETTING_NAV_FW_PITCH2THR_MIN, SETTING_NAV_FW_PITCH2THR_MAX);
             break;
         case ADJUSTMENT_ROLL_BOARD_ALIGNMENT:
             updateBoardAlignment(delta, 0);
@@ -578,7 +579,7 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
             navigationUsePIDs();
             break;
         case ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE:
-            applyAdjustmentU16(ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE, &mixerConfigMutable()->fwMinThrottleDownPitchAngle, delta, SETTING_FW_MIN_THROTTLE_DOWN_PITCH_MIN, SETTING_FW_MIN_THROTTLE_DOWN_PITCH_MAX);
+            applyAdjustmentU16(ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE, &currentBatteryProfileMutable->fwMinThrottleDownPitchAngle, delta, SETTING_FW_MIN_THROTTLE_DOWN_PITCH_MIN, SETTING_FW_MIN_THROTTLE_DOWN_PITCH_MAX);
             break;
 #if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP)
         case ADJUSTMENT_VTX_POWER_LEVEL:
