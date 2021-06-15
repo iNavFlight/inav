@@ -1755,10 +1755,11 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_REMAINING_FLIGHT_TIME_BEFORE_RTH:
         {
-            static timeUs_t updatedTimestamp = 0;
             /*static int32_t updatedTimeSeconds = 0;*/
-            timeUs_t currentTimeUs = micros();
             static int32_t timeSeconds = -1;
+#if defined(USE_ADC) && defined(USE_GPS)
+            static timeUs_t updatedTimestamp = 0;
+            timeUs_t currentTimeUs = micros();
             if (cmpTimeUs(currentTimeUs, updatedTimestamp) >= MS2US(1000)) {
 #ifdef USE_WIND_ESTIMATOR
                 timeSeconds = calculateRemainingFlightTimeBeforeRTH(osdConfig()->estimations_wind_compensation);
@@ -1767,10 +1768,13 @@ static bool osdDrawSingleElement(uint8_t item)
 #endif
                 updatedTimestamp = currentTimeUs;
             }
+#endif
             if ((!ARMING_FLAG(ARMED)) || (timeSeconds == -1)) {
                 buff[0] = SYM_FLY_M;
                 strcpy(buff + 1, "--:--");
+#if defined(USE_ADC) && defined(USE_GPS)
                 updatedTimestamp = 0;
+#endif
             } else if (timeSeconds == -2) {
                 // Wind is too strong to come back with cruise throttle
                 buff[0] = SYM_FLY_M;
@@ -1787,9 +1791,10 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_REMAINING_DISTANCE_BEFORE_RTH:;
+        static int32_t distanceMeters = -1;
+#if defined(USE_ADC) && defined(USE_GPS)
         static timeUs_t updatedTimestamp = 0;
         timeUs_t currentTimeUs = micros();
-        static int32_t distanceMeters = -1;
         if (cmpTimeUs(currentTimeUs, updatedTimestamp) >= MS2US(1000)) {
 #ifdef USE_WIND_ESTIMATOR
             distanceMeters = calculateRemainingDistanceBeforeRTH(osdConfig()->estimations_wind_compensation);
@@ -1798,6 +1803,7 @@ static bool osdDrawSingleElement(uint8_t item)
 #endif
             updatedTimestamp = currentTimeUs;
         }
+#endif
         buff[0] = SYM_TRIP_DIST;
         if ((!ARMING_FLAG(ARMED)) || (distanceMeters == -1)) {
             buff[4] = SYM_DIST_M;

@@ -73,7 +73,6 @@
 #define USE_FLASH_M25P16	
 
 /*** OSD ***/
-#define USE_OSD								
 #define USE_MAX7456							
 #define MAX7456_SPI_BUS         BUS_SPI2	
 #define MAX7456_CS_PIN          PB10		
@@ -172,3 +171,4 @@
 #define TARGET_IO_PORTD         (BIT(2))
 
 #define RANGEFINDER_I2C_BUS BUS_I2C1
+
