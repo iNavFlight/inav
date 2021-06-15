@@ -179,6 +179,10 @@ tables:
   - name: nav_rth_climb_first
     enum: navRTHClimbFirst_e
     values: ["OFF", "ON", "ON_FW_SPIRAL"]
+  - name: djiRssiSource
+    values: ["RSSI", "CRSF_LQ"]
+    enum: djiRssiSource_e    
+
 
 constants:
   RPYL_PID_MIN: 0
@@ -3634,7 +3638,7 @@ groups:
           max: UINT8_MAX
           default_value: 1
         - name: dji_use_name_for_messages
-          description: "Re-purpose the craft name field for messages. Replace craft name with :WTSED for Warnings|Throttle|Speed|Efficiency|Trip distance"
+          description: "Re-purpose the craft name field for messages."
           default_value: ON
           field: use_name_for_messages
           type: bool
@@ -3643,6 +3647,30 @@ groups:
           default_value: "ESC"
           field: esc_temperature_source
           table: djiOsdTempSource
+          type: uint8_t
+        - name: dji_message_speed_source
+          description: "Sets the speed type displayed by the DJI OSD in craft name: GROUND, 3D, AIR"
+          default_value: "3D"
+          field: messageSpeedSource
+          table: osdSpeedSource
+          type: uint8_t
+        - name: dji_rssi_source
+          description: "Source of the DJI RSSI field: RSSI, CRSF_LQ"
+          default_value: "RSSI"
+          field: rssi_source
+          table: djiRssiSource
+          type: uint8_t
+        - name: dji_use_adjustments
+          description: "Show inflight adjustments in craft name field"
+          default_value: OFF
+          type: bool
+          field: useAdjustments
+        - name: dji_cn_alternating_duration
+          description: "Alternating duration of craft name elements, in tenths of a second"
+          default_value: 30
+          min: 1
+          max: 150
+          field: craftNameAlternatingDuration
           type: uint8_t
 
   - name: PG_BEEPER_CONFIG

@@ -622,6 +622,16 @@ OFF = OSD hardware blink / ON = OSD software blink. If OSD warning text/values a
 
 ---
 
+### dji_cn_alternating_duration
+
+Alternating duration of craft name elements, in tenths of a second
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 30 | 1 | 150 |
+
+---
+
 ### dji_esc_temp_source
 
 Re-purpose the ESC temperature field for IMU/BARO temperature
@@ -632,9 +642,39 @@ Re-purpose the ESC temperature field for IMU/BARO temperature
 
 ---
 
+### dji_message_speed_source
+
+Sets the speed type displayed by the DJI OSD in craft name: GROUND, 3D, AIR
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3D |  |  |
+
+---
+
+### dji_rssi_source
+
+Source of the DJI RSSI field: RSSI, CRSF_LQ
+
+| Default | Min | Max |
+| --- | --- | --- |
+| RSSI |  |  |
+
+---
+
+### dji_use_adjustments
+
+Show inflight adjustments in craft name field
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF |  |  |
+
+---
+
 ### dji_use_name_for_messages
 
-Re-purpose the craft name field for messages. Replace craft name with :WTSED for Warnings|Throttle|Speed|Efficiency|Trip distance
+Re-purpose the craft name field for messages.
 
 | Default | Min | Max |
 | --- | --- | --- |
