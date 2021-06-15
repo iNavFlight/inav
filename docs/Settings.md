@@ -492,6 +492,16 @@ Stick deadband in [r/c points], applied after r/c deadband and expo. Used to che
 
 ---
 
+### controlrate_profile
+
+Control rate profile to switch to when the battery profile is selected, 0 to disable and keep the currently selected control rate profile
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 3 |
+
+---
+
 ### cpu_underclock
 
 This option is only available on certain architectures (F3 CPUs at the moment). It makes CPU clock lower to reduce interference to long-range RC systems working at 433MHz

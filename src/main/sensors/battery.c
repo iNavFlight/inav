@@ -36,6 +36,7 @@
 #include "drivers/time.h"
 
 #include "fc/config.h"
+#include "fc/controlrate_profile.h"
 #include "fc/fc_core.h"
 #include "fc/runtime_config.h"
 #include "fc/stats.h"
@@ -93,7 +94,7 @@ static int32_t mWhDrawn = 0;                    // energy (milliWatt hours) draw
 batteryState_e batteryState;
 const batteryProfile_t *currentBatteryProfile;
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(batteryProfile_t, MAX_BATTERY_PROFILE_COUNT, batteryProfiles, PG_BATTERY_PROFILES, 0);
+PG_REGISTER_ARRAY_WITH_RESET_FN(batteryProfile_t, MAX_BATTERY_PROFILE_COUNT, batteryProfiles, PG_BATTERY_PROFILES, 1);
 
 void pgResetFn_batteryProfiles(batteryProfile_t *instance)
 {
@@ -115,7 +116,9 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
                 .warning = SETTING_BATTERY_CAPACITY_WARNING_DEFAULT,
                 .critical = SETTING_BATTERY_CAPACITY_CRITICAL_DEFAULT,
                 .unit = SETTING_BATTERY_CAPACITY_UNIT_DEFAULT,
-            }
+            },
+
+            .controlRateProfile = 0,
         );
     }
 }
@@ -197,6 +200,9 @@ void setBatteryProfile(uint8_t profileIndex)
         profileIndex = 0;
     }
     currentBatteryProfile = batteryProfiles(profileIndex);
+    if ((currentBatteryProfile->controlRateProfile > 0) && (currentBatteryProfile->controlRateProfile < MAX_CONTROL_RATE_PROFILE_COUNT)) {
+        setConfigProfile(currentBatteryProfile->controlRateProfile - 1);
+    }
 }
 
 void activateBatteryProfile(void)
