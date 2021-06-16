@@ -31,7 +31,7 @@
 #endif
 
 #if defined(STM32H7)
-#define ADC_VALUES_ALIGNMENT(def) __attribute__ ((section(".DMA_RAM"))) def __attribute__ ((aligned (32)))
+#define ADC_VALUES_ALIGNMENT(def) DMA_RAM def __attribute__ ((aligned (32)))
 #else
 #define ADC_VALUES_ALIGNMENT(def) def 
 #endif
