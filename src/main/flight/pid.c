@@ -170,7 +170,7 @@ static EXTENDED_FASTRAM bool levelingEnabled = false;
 static EXTENDED_FASTRAM float fixedWingLevelTrim;
 static EXTENDED_FASTRAM pidController_t fixedWingLevelTrimController;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 2);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 3);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -302,8 +302,6 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
 
 #ifdef USE_GYRO_KALMAN
         .kalman_q = SETTING_SETPOINT_KALMAN_Q_DEFAULT,
-        .kalman_w = SETTING_SETPOINT_KALMAN_W_DEFAULT,
-        .kalman_sharpness = SETTING_SETPOINT_KALMAN_SHARPNESS_DEFAULT,
         .kalmanEnabled = SETTING_SETPOINT_KALMAN_ENABLED_DEFAULT,
 #endif
 
@@ -1260,7 +1258,7 @@ void pidInit(void)
     pidResetTPAFilter();
 #ifdef USE_GYRO_KALMAN
     if (pidProfile()->kalmanEnabled) {
-        gyroKalmanInitialize(pidProfile()->kalman_q, pidProfile()->kalman_w, pidProfile()->kalman_sharpness);
+        gyroKalmanInitialize(pidProfile()->kalman_q);
     }
 #endif
 

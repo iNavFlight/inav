@@ -30,45 +30,35 @@ FILE_COMPILE_FOR_SPEED
 
 kalman_t kalmanFilterStateRate[XYZ_AXIS_COUNT];
 
-static void gyroKalmanInitAxis(kalman_t *filter, uint16_t q, uint16_t w, uint16_t sharpness)
+static void gyroKalmanInitAxis(kalman_t *filter, uint16_t q)
 {
     memset(filter, 0, sizeof(kalman_t));
     filter->q = q * 0.03f; //add multiplier to make tuning easier
     filter->r = 88.0f;      //seeding R at 88.0f
     filter->p = 30.0f;      //seeding P at 30.0f
     filter->e = 1.0f;
-    filter->s = sharpness / 10.0f;
-    filter->w = w * 8;
+    filter->w = MAX_KALMAN_WINDOW_SIZE;         
     filter->inverseN = 1.0f / (float)(filter->w);
 }
 
-void gyroKalmanInitialize(uint16_t q, uint16_t w, uint16_t sharpness)
+void gyroKalmanInitialize(uint16_t q)
 {
-    gyroKalmanInitAxis(&kalmanFilterStateRate[X], q, w, sharpness);
-    gyroKalmanInitAxis(&kalmanFilterStateRate[Y], q, w, sharpness);
-    gyroKalmanInitAxis(&kalmanFilterStateRate[Z], q, w, sharpness);
+    gyroKalmanInitAxis(&kalmanFilterStateRate[X], q);
+    gyroKalmanInitAxis(&kalmanFilterStateRate[Y], q);
+    gyroKalmanInitAxis(&kalmanFilterStateRate[Z], q);
 }
 
 float kalman_process(kalman_t *kalmanState, float input, float target)
 {
-    float targetAbs = fabsf(target);
     //project the state ahead using acceleration
     kalmanState->x += (kalmanState->x - kalmanState->lastX);
 
-    //figure out how much to boost or reduce our error in the estimate based on setpoint target.
-    //this should be close to 0 as we approach the sepoint and really high the futher away we are from the setpoint.
     //update last state
     kalmanState->lastX = kalmanState->x;
 
     if (kalmanState->lastX != 0.0f)
     {
-        // calculate the error and add multiply sharpness boost
-        float errorMultiplier = fabsf(target - kalmanState->x) * kalmanState->s;
-
-        // give a boost to the setpoint, used to caluclate the kalman q, based on the error and setpoint/gyrodata
-        errorMultiplier = constrainf(errorMultiplier * fabsf(1.0f - (target / kalmanState->lastX)) + 1.0f, 1.0f, 50.0f);
-
-        kalmanState->e = fabsf(1.0f - (((targetAbs + 1.0f) * errorMultiplier) / fabsf(kalmanState->lastX)));
+        kalmanState->e = fabsf(1.0f - (target / kalmanState->lastX));
     }
 
     //prediction update

@@ -2181,20 +2181,6 @@ groups:
         condition: USE_GYRO_KALMAN
         min: 1
         max: 16000
-      - name: setpoint_kalman_w
-        description: "Window size for the setpoint Kalman filter. Wider the window, more samples are used to compute variance. In general, wider window results in smoother filter response"
-        default_value: 4
-        field: kalman_w
-        condition: USE_GYRO_KALMAN
-        min: 1
-        max: 40
-      - name: setpoint_kalman_sharpness
-        description: "Dynamic factor for the setpoint Kalman filter. In general, the higher the value, the more dynamic Kalman filter gets"
-        default_value: 100
-        field: kalman_sharpness
-        condition: USE_GYRO_KALMAN
-        min: 1
-        max: 16000
       - name: fw_level_pitch_trim
         description: "Pitch trim for self-leveling flight modes. In degrees. +5 means airplane nose should be raised 5 deg from level"
         default_value: 0
