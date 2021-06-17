@@ -48,7 +48,7 @@ void gyroKalmanInitialize(uint16_t q)
     gyroKalmanInitAxis(&kalmanFilterStateRate[Z], q);
 }
 
-float kalman_process(kalman_t *kalmanState, float input, float target)
+float kalman_process(kalman_t *kalmanState, float input)
 {
     //project the state ahead using acceleration
     kalmanState->x += (kalmanState->x - kalmanState->lastX);
@@ -58,7 +58,7 @@ float kalman_process(kalman_t *kalmanState, float input, float target)
 
     if (kalmanState->lastX != 0.0f)
     {
-        kalmanState->e = fabsf(1.0f - (target / kalmanState->lastX));
+        kalmanState->e = fabsf(1.0f - (kalmanState->setpoint / kalmanState->lastX));
     }
 
     //prediction update
@@ -98,13 +98,17 @@ static void updateAxisVariance(kalman_t *kalmanState, float rate)
     kalmanState->r = squirt * VARIANCE_SCALE;
 }
 
-float gyroKalmanUpdate(uint8_t axis, float input, float setpoint)
+float NOINLINE gyroKalmanUpdate(uint8_t axis, float input)
 {
     updateAxisVariance(&kalmanFilterStateRate[axis], input);
 
     DEBUG_SET(DEBUG_KALMAN_GAIN, axis, kalmanFilterStateRate[axis].k * 1000.0f); //Kalman gain
 
-    return kalman_process(&kalmanFilterStateRate[axis], input, setpoint);
+    return kalman_process(&kalmanFilterStateRate[axis], input);
+}
+
+void gyroKalmanUpdateSetpoint(uint8_t axis, float setpoint) {
+    kalmanFilterStateRate[axis].setpoint = setpoint;
 }
 
 #endif

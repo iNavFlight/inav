@@ -37,6 +37,8 @@ typedef struct kalman
     float lastX; //previous state
     float e;
 
+    float setpoint;
+    
     float axisVar;
     uint16_t windex;
     float axisWindow[MAX_KALMAN_WINDOW_SIZE + 1];
@@ -49,4 +51,5 @@ typedef struct kalman
 } kalman_t;
 
 void gyroKalmanInitialize(uint16_t q);
-float gyroKalmanUpdate(uint8_t axis, float input, float setpoint);
+float gyroKalmanUpdate(uint8_t axis, float input);
+void gyroKalmanUpdateSetpoint(uint8_t axis, float setpoint);
