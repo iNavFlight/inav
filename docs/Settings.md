@@ -5114,7 +5114,7 @@ Output frequency (in Hz) servo pins. When using tricopters or gimbal with digita
 
 ### setpoint_kalman_enabled
 
-Enable Kalman filter on the PID controller setpoint
+Enable Kalman filter on the gyro data
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5129,26 +5129,6 @@ Quality factor of the setpoint Kalman filter. Higher values means less filtering
 | Default | Min | Max |
 | --- | --- | --- |
 | 100 | 1 | 16000 |
-
----
-
-### setpoint_kalman_sharpness
-
-Dynamic factor for the setpoint Kalman filter. In general, the higher the value, the more dynamic Kalman filter gets
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 100 | 1 | 16000 |
-
----
-
-### setpoint_kalman_w
-
-Window size for the setpoint Kalman filter. Wider the window, more samples are used to compute variance. In general, wider window results in smoother filter response
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 4 | 1 | 40 |
 
 ---
 
