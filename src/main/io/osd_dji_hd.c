@@ -986,7 +986,7 @@ static bool djiFormatMessages(char *buff)
             }
         } else {
 #ifdef USE_SERIALRX_CRSF
-            if (rxLinkStatistics.rfMode == 0) {
+            if (djiOsdConfig()->rssi_source == DJI_CRSF_LQ && rxLinkStatistics.rfMode == 0) {
                 messages[messageCount++] = "CRSF LOW RF";
             }
 #endif
@@ -1156,19 +1156,17 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
 
         case DJI_MSP_NAME:
             {
-                const char * name = systemConfig()->name;
-
 #if defined(USE_OSD)
                 if (djiOsdConfig()->use_name_for_messages)  {
                     djiSerializeCraftNameOverride(dst);
-                }
-                else
+                } else {
 #endif
-                {
-                    int len = strlen(name);
-                    sbufWriteData(dst, name, MAX(len, 12));
-                    break;
+                    sbufWriteData(dst, systemConfig()->name, MAX((int)strlen(systemConfig()->name), OSD_MESSAGE_LENGTH));
+#if defined(USE_OSD)
                 }
+#endif
+
+                break;
             }
             break;
 
