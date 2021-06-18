@@ -23,7 +23,7 @@
 #include "sensors/gyro.h"
 #include "common/filter.h"
 
-#define MAX_KALMAN_WINDOW_SIZE 512
+#define MAX_KALMAN_WINDOW_SIZE 64
 
 #define VARIANCE_SCALE 0.67f
 
@@ -36,8 +36,9 @@ typedef struct kalman
     float x;     //state
     float lastX; //previous state
     float e;
-    float s;
 
+    float setpoint;
+    
     float axisVar;
     uint16_t windex;
     float axisWindow[MAX_KALMAN_WINDOW_SIZE + 1];
@@ -49,5 +50,6 @@ typedef struct kalman
     uint16_t w;
 } kalman_t;
 
-void gyroKalmanInitialize(uint16_t q, uint16_t w, uint16_t sharpness);
-float gyroKalmanUpdate(uint8_t axis, float input, float setpoint);
+void gyroKalmanInitialize(uint16_t q);
+float gyroKalmanUpdate(uint8_t axis, float input);
+void gyroKalmanUpdateSetpoint(uint8_t axis, float setpoint);

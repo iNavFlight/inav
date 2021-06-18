@@ -328,6 +328,19 @@ groups:
         condition: USE_ALPHA_BETA_GAMMA_FILTER
         min: 0
         max: 10
+      - name: setpoint_kalman_enabled
+        description: "Enable Kalman filter on the gyro data"
+        default_value: OFF
+        condition: USE_GYRO_KALMAN
+        field: kalmanEnabled
+        type: bool
+      - name: setpoint_kalman_q
+        description: "Quality factor of the setpoint Kalman filter. Higher values means less filtering and lower phase delay. On 3-7 inch multirotors can be usually increased to 200-300 or even higher of clean builds"
+        default_value: 100
+        field: kalman_q
+        condition: USE_GYRO_KALMAN
+        min: 1
+        max: 16000
 
   - name: PG_ADC_CHANNEL_CONFIG
     type: adcChannelConfig_t
@@ -2168,33 +2181,6 @@ groups:
         field: controlDerivativeLpfHz
         min: 0
         max: 200
-      - name: setpoint_kalman_enabled
-        description: "Enable Kalman filter on the PID controller setpoint"
-        default_value: OFF
-        condition: USE_GYRO_KALMAN
-        field: kalmanEnabled
-        type: bool
-      - name: setpoint_kalman_q
-        description: "Quality factor of the setpoint Kalman filter. Higher values means less filtering and lower phase delay. On 3-7 inch multirotors can be usually increased to 200-300 or even higher of clean builds"
-        default_value: 100
-        field: kalman_q
-        condition: USE_GYRO_KALMAN
-        min: 1
-        max: 16000
-      - name: setpoint_kalman_w
-        description: "Window size for the setpoint Kalman filter. Wider the window, more samples are used to compute variance. In general, wider window results in smoother filter response"
-        default_value: 4
-        field: kalman_w
-        condition: USE_GYRO_KALMAN
-        min: 1
-        max: 40
-      - name: setpoint_kalman_sharpness
-        description: "Dynamic factor for the setpoint Kalman filter. In general, the higher the value, the more dynamic Kalman filter gets"
-        default_value: 100
-        field: kalman_sharpness
-        condition: USE_GYRO_KALMAN
-        min: 1
-        max: 16000
       - name: fw_level_pitch_trim
         description: "Pitch trim for self-leveling flight modes. In degrees. +5 means airplane nose should be raised 5 deg from level"
         default_value: 0

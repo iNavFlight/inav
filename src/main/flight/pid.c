@@ -170,7 +170,7 @@ static EXTENDED_FASTRAM bool levelingEnabled = false;
 static EXTENDED_FASTRAM float fixedWingLevelTrim;
 static EXTENDED_FASTRAM pidController_t fixedWingLevelTrimController;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 2);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 4);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -299,13 +299,6 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .pidControllerType = SETTING_PID_TYPE_DEFAULT,
         .navFwPosHdgPidsumLimit = SETTING_NAV_FW_POS_HDG_PIDSUM_LIMIT_DEFAULT,
         .controlDerivativeLpfHz = SETTING_MC_CD_LPF_HZ_DEFAULT,
-
-#ifdef USE_GYRO_KALMAN
-        .kalman_q = SETTING_SETPOINT_KALMAN_Q_DEFAULT,
-        .kalman_w = SETTING_SETPOINT_KALMAN_W_DEFAULT,
-        .kalman_sharpness = SETTING_SETPOINT_KALMAN_SHARPNESS_DEFAULT,
-        .kalmanEnabled = SETTING_SETPOINT_KALMAN_ENABLED_DEFAULT,
-#endif
 
         .fixedWingLevelTrim = SETTING_FW_LEVEL_PITCH_TRIM_DEFAULT,
         .fixedWingLevelTrimGain = SETTING_FW_LEVEL_PITCH_GAIN_DEFAULT,
@@ -1112,9 +1105,7 @@ void FAST_CODE pidController(float dT)
         pidState[axis].rateTarget = constrainf(rateTarget, -GYRO_SATURATION_LIMIT, +GYRO_SATURATION_LIMIT);
 
 #ifdef USE_GYRO_KALMAN
-        if (pidProfile()->kalmanEnabled) {
-            pidState[axis].gyroRate = gyroKalmanUpdate(axis, pidState[axis].gyroRate, pidState[axis].rateTarget);
-        }
+        gyroKalmanUpdateSetpoint(axis, pidState[axis].rateTarget);
 #endif
 
 #ifdef USE_SMITH_PREDICTOR
@@ -1258,11 +1249,6 @@ void pidInit(void)
     }
 
     pidResetTPAFilter();
-#ifdef USE_GYRO_KALMAN
-    if (pidProfile()->kalmanEnabled) {
-        gyroKalmanInitialize(pidProfile()->kalman_q, pidProfile()->kalman_w, pidProfile()->kalman_sharpness);
-    }
-#endif
 
     fixedWingLevelTrim = pidProfile()->fixedWingLevelTrim;
 
