@@ -356,13 +356,14 @@ typedef struct {
     navWaypoint_t               waypointList[NAV_MAX_WAYPOINTS];
     bool                        waypointListValid;
     int8_t                      waypointCount;
+    bool                        wpMissionRestart;       // mission restart from first waypoint
 
-    navWaypointPosition_t       activeWaypoint;     // Local position and initial bearing, filled on waypoint activation
+    navWaypointPosition_t       activeWaypoint;         // Local position and initial bearing, filled on waypoint activation
     int8_t                      activeWaypointIndex;
-    float                       wpInitialAltitude; // Altitude at start of WP
-    float                       wpInitialDistance; // Distance when starting flight to WP
-    float                       wpDistance;        // Distance to active WP
-    timeMs_t                    wpReachedTime;     // Time the waypoint was reached
+    float                       wpInitialAltitude;      // Altitude at start of WP
+    float                       wpInitialDistance;      // Distance when starting flight to WP
+    float                       wpDistance;             // Distance to active WP
+    timeMs_t                    wpReachedTime;          // Time the waypoint was reached
 
     /* Internals & statistics */
     int16_t                     rcAdjustment[4];
