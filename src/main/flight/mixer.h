@@ -62,7 +62,6 @@ typedef struct mixerConfig_s {
     uint8_t platformType;
     bool hasFlaps;
     int16_t appliedMixerPreset;
-    uint16_t fwMinThrottleDownPitchAngle;
 } mixerConfig_t;
 
 PG_DECLARE(mixerConfig_t, mixerConfig);
@@ -84,10 +83,7 @@ typedef struct motorConfig_s {
     uint16_t motorAccelTimeMs;              // Time limit for motor to accelerate from 0 to 100% throttle [ms]
     uint16_t motorDecelTimeMs;              // Time limit for motor to decelerate from 0 to 100% throttle [ms]
     uint16_t digitalIdleOffsetValue;
-    float throttleIdle;                     // Throttle IDLE value based on min_command, max_throttle, in percent
-    float throttleScale;                    // Scaling factor for throttle.
     uint8_t motorPoleCount;                 // Magnetic poles in the motors for calculating actual RPM from eRPM provided by ESC telemetry
-    uint8_t turtleModePowerFactor;          // Power factor from 0 to 100% of flip over after crash
 } motorConfig_t;
 
 PG_DECLARE(motorConfig_t, motorConfig);
