@@ -3822,6 +3822,26 @@ If set to ON or ON_FW_SPIRAL aircraft will climb to nav_rth_altitude first befor
 
 ---
 
+### nav_rth_climb_first_stage_altitude
+
+The altitude [cm] at which climb first will transition to turn first. How the altitude is used is determined byt nav_rth_climb_first_stage_mode. Default=0; feature disabled.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 |  | 65000 |
+
+---
+
+### nav_rth_climb_first_stage_mode
+
+This determines how rth_climb_first_stage_altitude is used. Default is AT_LEAST.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| AT_LEAST |  |  |
+
+---
+
 ### nav_rth_climb_ignore_emerg
 
 If set to ON, aircraft will execute initial climb regardless of position sensor (GPS) status.
