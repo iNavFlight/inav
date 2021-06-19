@@ -26,7 +26,7 @@ Install Git, Make, gcc and Ruby
 -  `sudo apt-get install git make cmake ruby`
 
 Install python and python-yaml to allow updates to settings.md
--  `sudo apt-get install python python-yaml`
+-  `sudo apt-get install python3 python-yaml`
 
 ### CMAKE and Ubuntu 18_04
 
@@ -81,7 +81,7 @@ make MATEKF722
 ## Updating the documents
 ```
 cd /mnt/c/inav
-python src/utils/update_cli_docs.py
+python3 src/utils/update_cli_docs.py
 ```
 
 ## Flashing:
