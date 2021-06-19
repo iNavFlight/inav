@@ -20,13 +20,13 @@ Install Ubuntu:
 NOTE: from this point all commands are entered into the Ubunto shell command window
 
 Update the repo packages:
-1.  `sudo apt update`
+-  `sudo apt update`
 
 Install Git, Make, gcc and Ruby
-1.  `sudo apt-get install git`
-1.  `sudo apt-get install make`
-1.  `sudo apt-get install cmake`
-1.  `sudo apt-get install ruby`
+-  `sudo apt-get install git make cmake ruby`
+
+Install python and python-yaml to allow updates to settings.md
+-  `sudo apt-get install python python-yaml`
 
 ### CMAKE and Ubuntu 18_04
 
@@ -76,6 +76,12 @@ Then to build
 ```
 cd build
 make MATEKF722
+```
+
+## Updating the documents
+```
+cd /mnt/c/inav
+python src/utils/update_cli_docs.py
 ```
 
 ## Flashing:
