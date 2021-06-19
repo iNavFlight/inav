@@ -157,8 +157,8 @@ static uint8_t beep_multiBeeps[MAX_MULTI_BEEPS + 2];
 #define BEEPER_CONFIRMATION_BEEP_GAP_DURATION 20
 
 
-// Beeper off = 0 Beeper on = 1
-static uint8_t beeperIsOn = 0;
+// Beeper off = false Beeper on = true
+static bool beeperIsOn = 0;
 
 // Place in current sequence
 static uint16_t beeperPos = 0;
@@ -259,7 +259,7 @@ void beeperSilence(void)
     warningLedRefresh();
 
 
-    beeperIsOn = 0;
+    beeperIsOn = false;
 
     beeperNextToggleTime = 0;
     beeperPos = 0;
@@ -352,7 +352,7 @@ void beeperUpdate(timeUs_t currentTimeUs)
         }
 #endif
 
-        beeperIsOn = 1;
+        beeperIsOn = true;
         if (currentBeeperEntry->sequence[beeperPos] != 0) {
             if (!(getBeeperOffMask() & (1 << (currentBeeperEntry->mode - 1))))
                 BEEP_ON;
@@ -368,7 +368,7 @@ void beeperUpdate(timeUs_t currentTimeUs)
             }
         }
     } else {
-        beeperIsOn = 0;
+        beeperIsOn = false;
         if (currentBeeperEntry->sequence[beeperPos] != 0) {
             BEEP_OFF;
             warningLedDisable();
