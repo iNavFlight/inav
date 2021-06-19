@@ -106,36 +106,38 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
             .extra_arming_safety = SETTING_NAV_EXTRA_ARMING_SAFETY_DEFAULT,
             .user_control_mode = SETTING_NAV_USER_CONTROL_MODE_DEFAULT,
             .rth_alt_control_mode = SETTING_NAV_RTH_ALT_MODE_DEFAULT,
-            .rth_climb_first = SETTING_NAV_RTH_CLIMB_FIRST_DEFAULT,                   // Climb first, turn after reaching safe altitude
-            .rth_climb_ignore_emerg = SETTING_NAV_RTH_CLIMB_IGNORE_EMERG_DEFAULT,     // Ignore GPS loss on initial climb
+            .rth_climb_first = SETTING_NAV_RTH_CLIMB_FIRST_DEFAULT,                     // Climb first, turn after reaching safe altitude
+            .rth_climb_first_stage_mode = SETTING_NAV_CLIMB_FIRST_STAGE_TYPE_DEFAULT,   // To determine how rth_climb_first_stage_altitude is used
+            .rth_climb_ignore_emerg = SETTING_NAV_RTH_CLIMB_IGNORE_EMERG_DEFAULT,       // Ignore GPS loss on initial climb
             .rth_tail_first = SETTING_NAV_RTH_TAIL_FIRST_DEFAULT,
             .disarm_on_landing = SETTING_NAV_DISARM_ON_LANDING_DEFAULT,
             .rth_allow_landing = SETTING_NAV_RTH_ALLOW_LANDING_DEFAULT,
-            .rth_alt_control_override = SETTING_NAV_RTH_ALT_CONTROL_OVERRIDE_DEFAULT, // Override RTH Altitude and Climb First using Pitch and Roll stick
+            .rth_alt_control_override = SETTING_NAV_RTH_ALT_CONTROL_OVERRIDE_DEFAULT,   // Override RTH Altitude and Climb First using Pitch and Roll stick
             .nav_overrides_motor_stop = SETTING_NAV_OVERRIDES_MOTOR_STOP_DEFAULT,
             .safehome_usage_mode = SETTING_SAFEHOME_USAGE_MODE_DEFAULT,
         },
 
         // General navigation parameters
-        .pos_failure_timeout = SETTING_NAV_POSITION_TIMEOUT_DEFAULT,                  // 5 sec
-        .waypoint_radius = SETTING_NAV_WP_RADIUS_DEFAULT,                             // 2m diameter
-        .waypoint_safe_distance = SETTING_NAV_WP_SAFE_DISTANCE_DEFAULT,               // centimeters - first waypoint should be closer than this
-        .waypoint_load_on_boot = SETTING_NAV_WP_LOAD_ON_BOOT_DEFAULT,               // load waypoints automatically during boot
-        .max_auto_speed = SETTING_NAV_AUTO_SPEED_DEFAULT,                             // 3 m/s = 10.8 km/h
-        .max_auto_climb_rate = SETTING_NAV_AUTO_CLIMB_RATE_DEFAULT,                   // 5 m/s
+        .pos_failure_timeout = SETTING_NAV_POSITION_TIMEOUT_DEFAULT,                            // 5 sec
+        .waypoint_radius = SETTING_NAV_WP_RADIUS_DEFAULT,                                       // 2m diameter
+        .waypoint_safe_distance = SETTING_NAV_WP_SAFE_DISTANCE_DEFAULT,                         // centimeters - first waypoint should be closer than this
+        .waypoint_load_on_boot = SETTING_NAV_WP_LOAD_ON_BOOT_DEFAULT,                           // load waypoints automatically during boot
+        .max_auto_speed = SETTING_NAV_AUTO_SPEED_DEFAULT,                                       // 3 m/s = 10.8 km/h
+        .max_auto_climb_rate = SETTING_NAV_AUTO_CLIMB_RATE_DEFAULT,                             // 5 m/s
         .max_manual_speed = SETTING_NAV_MANUAL_SPEED_DEFAULT,
         .max_manual_climb_rate = SETTING_NAV_MANUAL_CLIMB_RATE_DEFAULT,
-        .land_slowdown_minalt = SETTING_NAV_LAND_SLOWDOWN_MINALT_DEFAULT,             // altitude in centimeters
-        .land_slowdown_maxalt = SETTING_NAV_LAND_SLOWDOWN_MAXALT_DEFAULT,             // altitude in meters
-        .land_minalt_vspd = SETTING_NAV_LAND_MINALT_VSPD_DEFAULT,                     // centimeters/s
-        .land_maxalt_vspd = SETTING_NAV_LAND_MAXALT_VSPD_DEFAULT,                     // centimeters/s
-        .emerg_descent_rate = SETTING_NAV_EMERG_LANDING_SPEED_DEFAULT,                // centimeters/s
-        .min_rth_distance = SETTING_NAV_MIN_RTH_DISTANCE_DEFAULT,                     // centimeters, if closer than this land immediately
-        .rth_altitude = SETTING_NAV_RTH_ALTITUDE_DEFAULT,                             // altitude in centimeters
-        .rth_home_altitude = SETTING_NAV_RTH_HOME_ALTITUDE_DEFAULT,                   // altitude in centimeters
-        .rth_abort_threshold = SETTING_NAV_RTH_ABORT_THRESHOLD_DEFAULT,               // centimeters - 500m should be safe for all aircraft
-        .max_terrain_follow_altitude = SETTING_NAV_MAX_TERRAIN_FOLLOW_ALT_DEFAULT,    // max altitude in centimeters in terrain following mode
-        .safehome_max_distance = SETTING_SAFEHOME_MAX_DISTANCE_DEFAULT,               // Max distance that a safehome is from the arming point
+        .land_slowdown_minalt = SETTING_NAV_LAND_SLOWDOWN_MINALT_DEFAULT,                       // altitude in centimeters
+        .land_slowdown_maxalt = SETTING_NAV_LAND_SLOWDOWN_MAXALT_DEFAULT,                       // altitude in meters
+        .land_minalt_vspd = SETTING_NAV_LAND_MINALT_VSPD_DEFAULT,                               // centimeters/s
+        .land_maxalt_vspd = SETTING_NAV_LAND_MAXALT_VSPD_DEFAULT,                               // centimeters/s
+        .emerg_descent_rate = SETTING_NAV_EMERG_LANDING_SPEED_DEFAULT,                          // centimeters/s
+        .min_rth_distance = SETTING_NAV_MIN_RTH_DISTANCE_DEFAULT,                               // centimeters, if closer than this land immediately
+        .rth_altitude = SETTING_NAV_RTH_ALTITUDE_DEFAULT,                                       // altitude in centimeters
+        .rth_home_altitude = SETTING_NAV_RTH_HOME_ALTITUDE_DEFAULT,                             // altitude in centimeters
+        .rth_climb_first_stage_altitude = SETTING_NAV_RTH_CLIMB_FIRST_STAGE_ALTITUDE_DEFAULT    // altitude in centimetres, 0= off
+        .rth_abort_threshold = SETTING_NAV_RTH_ABORT_THRESHOLD_DEFAULT,                         // centimeters - 500m should be safe for all aircraft
+        .max_terrain_follow_altitude = SETTING_NAV_MAX_TERRAIN_FOLLOW_ALT_DEFAULT,              // max altitude in centimeters in terrain following mode
+        .safehome_max_distance = SETTING_SAFEHOME_MAX_DISTANCE_DEFAULT,                         // Max distance that a safehome is from the arming point
         .max_altitude = SETTING_NAV_MAX_ALTITUDE_DEFAULT,
     },
 
@@ -1193,7 +1195,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
         const float rthAltitudeMargin = MAX(FW_RTH_CLIMB_MARGIN_MIN_CM, (rthClimbMarginPercent/100.0) * fabsf(posControl.rthState.rthInitialAltitude - posControl.rthState.homePosition.pos.z));
 
         // If we reached desired initial RTH altitude or we don't want to climb first
-        if (((navGetCurrentActualPositionAndVelocity()->pos.z - posControl.rthState.rthInitialAltitude) > -rthAltitudeMargin) || (navConfig()->general.flags.rth_climb_first == OFF) || rthAltControlStickOverrideCheck(ROLL)) {
+        if (((navGetCurrentActualPositionAndVelocity()->pos.z - posControl.rthState.rthInitialAltitude) > -rthAltitudeMargin) || (navConfig()->general.flags.rth_climb_first == OFF) || rthAltControlStickOverrideCheck(ROLL) || rthClimbStageActiveAndComplete()) {
 
             // Delayed initialization for RTH sanity check on airplanes - allow to finish climb first as it can take some distance
             if (STATE(FIXED_WING_LEGACY)) {
@@ -2451,6 +2453,30 @@ static bool rthAltControlStickOverrideCheck(unsigned axis)
 
     return false;
 }
+
+/* ---------------------------------------------------
+ * If climb stage is being used, see if it is time to 
+ * transiton in to turn.
+ * Limited to fixed wing only.
+ * --------------------------------------------------- */
+ bool rthClimbStageActiveAndComplete() {
+    if ((STATE(FIXED_WING_LEGACY) || STATE(AIRPLANE)) && (general.rth_climb_first_stage_altitude > 0)) {
+        switch (navConfig()->general.flags.rth_climb_first_stage_mode) {
+            case NAV_RTH_CLIMB_STAGE_AT_LEAST:
+                if (posControl.actualState.abs.pos.z >= general.rth_climb_first_stage_altitude) {
+                    return true;
+                }
+                break;
+            case NAV_RTH_CLIMB_STAGE_EXTRA:
+                if (posControl.actualState.abs.pos.z >= (posControl.rthState.rthInitialAltitude + general.rth_climb_first_stage_altitude)) {
+                    return true;
+                }
+                break; 
+        }
+    }
+
+    return false;
+ }
 
 /*-----------------------------------------------------------
  * Update flight statistics

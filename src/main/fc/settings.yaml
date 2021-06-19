@@ -63,6 +63,8 @@ tables:
     values: ["ATTI", "CRUISE"]
   - name: nav_rth_alt_mode
     values: ["CURRENT", "EXTRA", "FIXED", "MAX", "AT_LEAST", "AT_LEAST_LINEAR_DESCENT"]
+  - name: nav_rth_climb_first_stage_modes
+    values: ["AT_LEAST", "EXTRA"]
   - name: osd_unit
     values: ["IMPERIAL", "METRIC", "METRIC_MPH", "UK"]
     enum: osd_unit_e
@@ -2542,6 +2544,16 @@ groups:
         default_value: "ON"
         field: general.flags.rth_climb_first
         table: nav_rth_climb_first
+      - name: nav_rth_climb_first_stage_mode
+        description: "This determines how rth_climb_first_stage_altitude is used. Default is AT_LEAST."
+        default_value: "AT_LEAST"
+        field: general.flags.rth_climb_first_stage_mode
+        table: nav_rth_climb_first_stage_modes
+      - name: nav_rth_climb_first_stage_altitude
+        description: "The altitude [cm] at which climb first will transition to turn first. How the altitude is used is determined byt nav_rth_climb_first_stage_mode. Default=0; feature disabled."
+        default_value: 0
+        field: general.rth_climb_first_stage_altitude
+        max: 65000
       - name: nav_rth_climb_ignore_emerg
         description: "If set to ON, aircraft will execute initial climb regardless of position sensor (GPS) status."
         default_value: OFF

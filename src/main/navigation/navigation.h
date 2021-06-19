@@ -101,6 +101,11 @@ enum {
 };
 
 enum {
+    NAV_RTH_CLIMB_STAGE_AT_LEAST        = 0, // Will climb to at least the specified altitude before turning
+    NAV_RTH_CLIMB_STAGE_EXTRA           = 1, // Will climb the specified altitude before turning
+};
+
+enum {
     NAV_HEADING_CONTROL_NONE = 0,
     NAV_HEADING_CONTROL_AUTO,
     NAV_HEADING_CONTROL_MANUAL
@@ -192,6 +197,7 @@ typedef struct navConfig_s {
             uint8_t user_control_mode;          // NAV_GPS_ATTI or NAV_GPS_CRUISE
             uint8_t rth_alt_control_mode;       // Controls the logic for choosing the RTH altitude
             uint8_t rth_climb_first;            // Controls the logic for initial RTH climbout
+            uint8_t rth_climb_first_stage_mode  // To determine how rth_climb_first_stage_altitude is used
             uint8_t rth_tail_first;             // Return to home tail first
             uint8_t disarm_on_landing;          //
             uint8_t rth_allow_landing;          // Enable landing as last stage of RTH. Use constants in navRTHAllowLanding_e.
@@ -216,6 +222,7 @@ typedef struct navConfig_s {
         uint16_t emerg_descent_rate;            // emergency landing descent rate
         uint16_t rth_altitude;                  // altitude to maintain when RTH is active (depends on rth_alt_control_mode) (cm)
         uint16_t rth_home_altitude;             // altitude to go to during RTH after the craft reached home (cm)
+        uint16_t rth_climb_first_stage_altitude // Altitude to reach before transitioning from climb first to turn first    
         uint16_t min_rth_distance;              // 0 Disables. Minimal distance for RTH in cm, otherwise it will just autoland
         uint16_t rth_abort_threshold;           // Initiate emergency landing if during RTH we get this much [cm] away from home
         uint16_t max_terrain_follow_altitude;   // Max altitude to be used in SURFACE TRACKING mode
@@ -527,6 +534,8 @@ bool navigationIsControllingAltitude(void);
  */
 bool navigationRTHAllowsLanding(void);
 bool isWaypointMissionRTHActive(void);
+
+bool rthClimbStageActiveAndComplete(void);
 
 bool isNavLaunchEnabled(void);
 bool isFixedWingLaunchDetected(void);
