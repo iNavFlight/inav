@@ -328,7 +328,7 @@ void initActiveBoxIds(void)
 #endif
 }
 
-#define IS_ENABLED(mask) (mask == 0 ? 0 : 1)
+#define IS_ENABLED(mask) ((mask) == 0 ? 0 : 1)
 #define CHECK_ACTIVE_BOX(condition, index)    do { if (IS_ENABLED(condition)) { activeBoxes[index] = 1; } } while(0)
 
 void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)

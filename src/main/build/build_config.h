@@ -51,5 +51,11 @@
 #define EXTENDED_FASTRAM
 #endif
 
+#ifdef STM32H7
+#define DMA_RAM __attribute__ ((section(".DMA_RAM")))
+#else
+#define DMA_RAM
+#endif
+
 #define STATIC_FASTRAM              static FASTRAM
 #define STATIC_FASTRAM_UNIT_TESTED  STATIC_UNIT_TESTED FASTRAM

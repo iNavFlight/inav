@@ -143,7 +143,6 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
     // MC-specific
     .mc = {
         .max_bank_angle = SETTING_NAV_MC_BANK_ANGLE_DEFAULT,                          // degrees
-        .hover_throttle = SETTING_NAV_MC_HOVER_THR_DEFAULT,
         .auto_disarm_delay = SETTING_NAV_MC_AUTO_DISARM_DELAY_DEFAULT,                // milliseconds - time before disarming when auto disarm is enabled and landing is confirmed
 
 #ifdef USE_MR_BRAKING_MODE
@@ -167,12 +166,8 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .max_bank_angle = SETTING_NAV_FW_BANK_ANGLE_DEFAULT,                    // degrees
         .max_climb_angle = SETTING_NAV_FW_CLIMB_ANGLE_DEFAULT,                  // degrees
         .max_dive_angle = SETTING_NAV_FW_DIVE_ANGLE_DEFAULT,                    // degrees
-        .cruise_throttle = SETTING_NAV_FW_CRUISE_THR_DEFAULT,
         .cruise_speed = SETTING_NAV_FW_CRUISE_SPEED_DEFAULT,                    // cm/s
         .control_smoothness = SETTING_NAV_FW_CONTROL_SMOOTHNESS_DEFAULT,
-        .max_throttle = SETTING_NAV_FW_MAX_THR_DEFAULT,
-        .min_throttle = SETTING_NAV_FW_MIN_THR_DEFAULT,
-        .pitch_to_throttle = SETTING_NAV_FW_PITCH2THR_DEFAULT,                  // pwm units per degree of pitch (10pwm units ~ 1% throttle)
         .pitch_to_throttle_smooth = SETTING_NAV_FW_PITCH2THR_SMOOTHING_DEFAULT,
         .pitch_to_throttle_thresh = SETTING_NAV_FW_PITCH2THR_THRESHOLD_DEFAULT,
         .loiter_radius = SETTING_NAV_FW_LOITER_RADIUS_DEFAULT,                  // 75m
@@ -184,9 +179,8 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .launch_velocity_thresh = SETTING_NAV_FW_LAUNCH_VELOCITY_DEFAULT,       // 3 m/s
         .launch_accel_thresh = SETTING_NAV_FW_LAUNCH_ACCEL_DEFAULT,             // cm/s/s (1.9*G)
         .launch_time_thresh = SETTING_NAV_FW_LAUNCH_DETECT_TIME_DEFAULT,        // 40ms
-        .launch_throttle = SETTING_NAV_FW_LAUNCH_THR_DEFAULT,
-        .launch_idle_throttle = SETTING_NAV_FW_LAUNCH_IDLE_THR_DEFAULT,         // Motor idle or MOTOR_STOP
         .launch_motor_timer = SETTING_NAV_FW_LAUNCH_MOTOR_DELAY_DEFAULT,        // ms
+        .launch_idle_motor_timer = SETTING_NAV_FW_LAUNCH_IDLE_MOTOR_DELAY_DEFAULT,   // ms
         .launch_motor_spinup_time = SETTING_NAV_FW_LAUNCH_SPINUP_TIME_DEFAULT,  // ms, time to gredually increase throttle from idle to launch
         .launch_end_time = SETTING_NAV_FW_LAUNCH_END_TIME_DEFAULT,              // ms, time to gradually decrease/increase throttle and decrease pitch angle from launch to the current flight mode
         .launch_min_time = SETTING_NAV_FW_LAUNCH_MIN_TIME_DEFAULT,              // ms, min time in launch mode
@@ -1043,7 +1037,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_COURSE_HOLD_IN_PROGRESS
         timeMs_t timeDifference = currentTimeMs - posControl.cruise.lastYawAdjustmentTime;
         if (timeDifference > 100) timeDifference = 0; // if adjustment was called long time ago, reset the time difference.
         float rateTarget = scaleRangef((float)rcCommand[YAW], -500.0f, 500.0f, -DEGREES_TO_CENTIDEGREES(navConfig()->fw.cruise_yaw_rate), DEGREES_TO_CENTIDEGREES(navConfig()->fw.cruise_yaw_rate));
-        float centidegsPerIteration = rateTarget * timeDifference / 1000.0f;
+        float centidegsPerIteration = rateTarget * timeDifference * 0.001f;
         posControl.cruise.yaw = wrap_36000(posControl.cruise.yaw - centidegsPerIteration);
         DEBUG_SET(DEBUG_CRUISE, 1, CENTIDEGREES_TO_DEGREES(posControl.cruise.yaw));
         posControl.cruise.lastYawAdjustmentTime = currentTimeMs;
@@ -1729,7 +1723,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_WAIT(navigationF
     //allow to leave NAV_LAUNCH_MODE if it has being enabled as feature by moving sticks with low throttle.
     if (feature(FEATURE_FW_LAUNCH)) {
         throttleStatus_e throttleStatus = calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC);
-        if ((throttleStatus == THROTTLE_LOW) && (areSticksDeflectedMoreThanPosHoldDeadband())) {
+        if ((throttleStatus == THROTTLE_LOW) && (isRollPitchStickDeflected())) {
             abortFixedWingLaunch();
             return NAV_FSM_EVENT_SWITCH_TO_IDLE;
         }
@@ -1935,7 +1929,7 @@ void updateActualHorizontalPositionAndVelocity(bool estPosValid, bool estVelVali
     posControl.actualState.agl.vel.x = newVelX;
     posControl.actualState.agl.vel.y = newVelY;
 
-    posControl.actualState.velXY = sqrtf(sq(newVelX) + sq(newVelY));
+    posControl.actualState.velXY = fast_fsqrtf(sq(newVelX) + sq(newVelY));
 
     // CASE 1: POS & VEL valid
     if (estPosValid && estVelValid) {
@@ -2069,7 +2063,7 @@ const navEstimatedPosVel_t * navGetCurrentActualPositionAndVelocity(void)
  *-----------------------------------------------------------*/
 static uint32_t calculateDistanceFromDelta(float deltaX, float deltaY)
 {
-    return sqrtf(sq(deltaX) + sq(deltaY));
+    return fast_fsqrtf(sq(deltaX) + sq(deltaY));
 }
 
 static int32_t calculateBearingFromDelta(float deltaX, float deltaY)
@@ -2146,8 +2140,8 @@ bool isWaypointReached(const navWaypointPosition_t * waypoint, const bool isWayp
 static void updateHomePositionCompatibility(void)
 {
     geoConvertLocalToGeodetic(&GPS_home, &posControl.gpsOrigin, &posControl.rthState.homePosition.pos);
-    GPS_distanceToHome = posControl.homeDistance / 100;
-    GPS_directionToHome = posControl.homeDirection / 100;
+    GPS_distanceToHome = posControl.homeDistance * 0.01f;
+    GPS_directionToHome = posControl.homeDirection * 0.01f;
 }
 
 // Backdoor for RTH estimator
@@ -2834,13 +2828,23 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
     else if ((wpNumber >= 1) && (wpNumber <= NAV_MAX_WAYPOINTS) && !ARMING_FLAG(ARMED)) {
         if (wpData->action == NAV_WP_ACTION_WAYPOINT || wpData->action == NAV_WP_ACTION_JUMP || wpData->action == NAV_WP_ACTION_RTH || wpData->action == NAV_WP_ACTION_HOLD_TIME || wpData->action == NAV_WP_ACTION_LAND || wpData->action == NAV_WP_ACTION_SET_POI || wpData->action == NAV_WP_ACTION_SET_HEAD ) {
             // Only allow upload next waypoint (continue upload mission) or first waypoint (new mission)
+            static int8_t nonGeoWaypointCount = 0;
+
             if (wpNumber == (posControl.waypointCount + 1) || wpNumber == 1) {
                 posControl.waypointList[wpNumber - 1] = *wpData;
-                if(wpData->action == NAV_WP_ACTION_JUMP) {
-                    posControl.waypointList[wpNumber - 1].p1 -= 1; // make index (vice WP #)
+                if(wpData->action == NAV_WP_ACTION_SET_POI || wpData->action == NAV_WP_ACTION_SET_HEAD || wpData->action == NAV_WP_ACTION_JUMP) {
+                    nonGeoWaypointCount += 1;
+                    if(wpData->action == NAV_WP_ACTION_JUMP) {
+                        posControl.waypointList[wpNumber - 1].p1 -= 1; // make index (vice WP #)
+                    }
                 }
+
                 posControl.waypointCount = wpNumber;
                 posControl.waypointListValid = (wpData->flag == NAV_WP_FLAG_LAST);
+                posControl.geoWaypointCount = posControl.waypointCount - nonGeoWaypointCount;
+                if (posControl.waypointListValid) {
+                    nonGeoWaypointCount = 0;
+                }
             }
         }
     }
@@ -2852,6 +2856,7 @@ void resetWaypointList(void)
     if (!ARMING_FLAG(ARMED)) {
         posControl.waypointCount = 0;
         posControl.waypointListValid = false;
+        posControl.geoWaypointCount = 0;
     }
 }
 
@@ -2923,8 +2928,15 @@ static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint
 {
     gpsLocation_t wpLLH;
 
-    wpLLH.lat = waypoint->lat;
-    wpLLH.lon = waypoint->lon;
+    /* Default to home position if lat & lon = 0 or HOME flag set
+     * Applicable to WAYPOINT, HOLD_TIME & LANDING WP types */
+    if ((waypoint->lat == 0 && waypoint->lon == 0) || waypoint->flag == NAV_WP_FLAG_HOME) {
+        wpLLH.lat = GPS_home.lat;
+        wpLLH.lon = GPS_home.lon;
+    } else {
+        wpLLH.lat = waypoint->lat;
+        wpLLH.lon = waypoint->lon;
+    }
     wpLLH.alt = waypoint->alt;
 
     geoConvertGeodeticToLocal(localPos, &posControl.gpsOrigin, &wpLLH, altConv);
@@ -3800,7 +3812,7 @@ static void GPS_distance_cm_bearing(int32_t currentLat1, int32_t currentLon1, in
     const float dLat = destinationLat2 - currentLat1; // difference of latitude in 1/10 000 000 degrees
     const float dLon = (float)(destinationLon2 - currentLon1) * GPS_scaleLonDown;
 
-    *dist = sqrtf(sq(dLat) + sq(dLon)) * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR;
+    *dist = fast_fsqrtf(sq(dLat) + sq(dLon)) * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR;
 
     *bearing = 9000.0f + RADIANS_TO_CENTIDEGREES(atan2_approx(-dLat, dLon));      // Convert the output radians to 100xdeg
 
