@@ -119,7 +119,7 @@ Edit `./.vscode/tasks.json` to enable Building with `Ctrl + Shift + B` keyboard 
             "options": {
                 "cwd": "${workspaceFolder}/build"
             }
-        },
+        }
     ]
 }
 ```
