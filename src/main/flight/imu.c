@@ -241,7 +241,7 @@ static float imuGetPGainScaleFactor(void)
 
 static void imuResetOrientationQuaternion(const fpVector3_t * accBF)
 {
-    const float accNorm = sqrtf(vectorNormSquared(accBF));
+    const float accNorm = fast_fsqrtf(vectorNormSquared(accBF));
 
     orientation.q0 = accBF->z + accNorm;
     orientation.q1 = accBF->y;
@@ -436,12 +436,12 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
         // Proper quaternion from axis/angle involves computing sin/cos, but the formula becomes numerically unstable as Theta approaches zero.
         // For near-zero cases we use the first 3 terms of the Taylor series expansion for sin/cos. We check if fourth term is less than machine precision -
         // then we can safely use the "low angle" approximated version without loss of accuracy.
-        if (thetaMagnitudeSq < sqrtf(24.0f * 1e-6f)) {
+        if (thetaMagnitudeSq < fast_fsqrtf(24.0f * 1e-6f)) {
             quaternionScale(&deltaQ, &deltaQ, 1.0f - thetaMagnitudeSq / 6.0f);
             deltaQ.q0 = 1.0f - thetaMagnitudeSq / 2.0f;
         }
         else {
-            const float thetaMagnitude = sqrtf(thetaMagnitudeSq);
+            const float thetaMagnitude = fast_fsqrtf(thetaMagnitudeSq);
             quaternionScale(&deltaQ, &deltaQ, sin_approx(thetaMagnitude) / thetaMagnitude);
             deltaQ.q0 = cos_approx(thetaMagnitude);
         }
@@ -483,7 +483,7 @@ static float imuCalculateAccelerometerWeight(const float dT)
         accMagnitudeSq += acc.accADCf[axis] * acc.accADCf[axis];
     }
 
-    const float accWeight_Nearness = bellCurve(sqrtf(accMagnitudeSq) - 1.0f, MAX_ACC_NEARNESS);
+    const float accWeight_Nearness = bellCurve(fast_fsqrtf(accMagnitudeSq) - 1.0f, MAX_ACC_NEARNESS);
 
     // Experiment: if rotation rate on a FIXED_WING_LEGACY is higher than a threshold - centrifugal force messes up too much and we 
     // should not use measured accel for AHRS comp
@@ -504,7 +504,7 @@ static float imuCalculateAccelerometerWeight(const float dT)
     float accWeight_RateIgnore = 1.0f;
 
     if (ARMING_FLAG(ARMED) && STATE(FIXED_WING_LEGACY) && imuConfig()->acc_ignore_rate) {
-        const float rotRateMagnitude = sqrtf(vectorNormSquared(&imuMeasuredRotationBF));
+        const float rotRateMagnitude = fast_fsqrtf(sq(imuMeasuredRotationBF.y) + sq(imuMeasuredRotationBF.z));
         const float rotRateMagnitudeFiltered = pt1FilterApply4(&rotRateFilter, rotRateMagnitude, IMU_CENTRIFUGAL_LPF, dT);
 
         if (imuConfig()->acc_ignore_slope) {

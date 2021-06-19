@@ -19,6 +19,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
+#define MAVLINK_COMM_NUM_BUFFERS 1
 #include "common/mavlink.h"
 #pragma GCC diagnostic pop
 

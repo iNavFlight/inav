@@ -907,8 +907,8 @@ class Generator
                 unsigned = !$~[:unsigned].empty?
                 bitsize = $~[:bitsize].to_i
                 type_range = unsigned ? 0..(2**bitsize-1) : (-2**(bitsize-1)+1)..(2**(bitsize-1)-1)
-                min = type_range.min if min =~ /\AU?INT\d+_MIN\Z/
-                max = type_range.max if max =~ /\AU?INT\d+_MAX\Z/
+                min = type_range.min if min.to_s =~ /\AU?INT\d+_MIN\Z/
+                max = type_range.max if max.to_s =~ /\AU?INT\d+_MAX\Z/
                 raise "Member #{name} default value has an invalid type, integer or symbol expected" unless default_value.is_a? Integer or default_value.is_a? Symbol
                 raise "Member #{name} default value is outside type's storage range, min #{type_range.min}, max #{type_range.max}" unless default_value.is_a? Symbol or type_range === default_value
                 raise "Numeric member #{name} doesn't have maximum value defined" unless member.has_key? 'max'
