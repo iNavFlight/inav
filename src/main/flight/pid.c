@@ -68,6 +68,7 @@ FILE_COMPILE_FOR_SPEED
 #include "programming/logic_condition.h"
 
 typedef struct {
+    uint8_t axis;
     float kP;   // Proportional gain
     float kI;   // Integral gain
     float kD;   // Derivative gain
@@ -77,11 +78,6 @@ typedef struct {
 
     float gyroRate;
     float rateTarget;
-
-    // Buffer for derivative calculation
-#define PID_GYRO_RATE_BUF_LENGTH 5
-    float gyroRateBuf[PID_GYRO_RATE_BUF_LENGTH];
-    firFilter_t gyroRateFilter;
 
     // Rate integrator
     float errorGyroIf;
@@ -714,6 +710,8 @@ static float FAST_CODE applyDBoost(pidState_t *pidState, float dT) {
     dBoost = pt1FilterApply4(&pidState->dBoostLpf, dBoost, D_BOOST_LPF_HZ, dT);
     dBoost = constrainf(dBoost, 0.0f, dBoostFactor);
 
+    DEBUG_SET(DEBUG_ALWAYS, pidState->axis, dBoost * 100);
+
     return dBoost;
 }
 #else
@@ -1199,6 +1197,7 @@ void pidInit(void)
 #endif
 
     for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
+        pidState[axis].axis = axis;
         if (axis == FD_YAW) {
             pidState[axis].pidSumLimit = pidProfile()->pidSumLimitYaw;
             if (yawLpfHz) {
