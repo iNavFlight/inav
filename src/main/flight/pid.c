@@ -699,16 +699,20 @@ static float FAST_CODE applyDBoost(pidState_t *pidState, float dT) {
 
     float dBoost = 1.0f;
 
-    if (dBoostFactor > 1) {
-        const float dBoostGyroDelta = (pidState->gyroRate - pidState->previousRateGyro) / dT;
-        const float dBoostGyroAcceleration = fabsf(biquadFilterApply(&pidState->dBoostGyroLpf, dBoostGyroDelta));
-        const float dBoostRateAcceleration = fabsf((pidState->rateTarget - pidState->previousRateTarget) / dT);
+    const float dBoostGyroDelta = (pidState->gyroRate - pidState->previousRateGyro) / dT;
+    const float dBoostGyroAcceleration = fabsf(biquadFilterApply(&pidState->dBoostGyroLpf, dBoostGyroDelta));
+    const float dBoostRateAcceleration = fabsf((pidState->rateTarget - pidState->previousRateTarget) / dT);
 
-        const float acceleration = MAX(dBoostGyroAcceleration, dBoostRateAcceleration);
-        dBoost = scaleRangef(acceleration, 0.0f, dBoostMaxAtAlleceleration, 1.0f, dBoostFactor);
-        dBoost = pt1FilterApply4(&pidState->dBoostLpf, dBoost, D_BOOST_LPF_HZ, dT);
-        dBoost = constrainf(dBoost, 1.0f, dBoostFactor);
+    if (dBoostGyroAcceleration >= dBoostRateAcceleration) {
+        //Gyro is accelerating faster than setpoint, we want to smooth out
+        dBoost = scaleRangef(dBoostGyroAcceleration, 0.0f, dBoostMaxAtAlleceleration, 1.0f, dBoostFactor);
+    } else {
+        //Setpoint is accelerating, we want to boost response
+        dBoost = scaleRangef(dBoostRateAcceleration, 0.0f, dBoostMaxAtAlleceleration, 0.0f, 1.0f);
     }
+
+    dBoost = pt1FilterApply4(&pidState->dBoostLpf, dBoost, D_BOOST_LPF_HZ, dT);
+    dBoost = constrainf(dBoost, 0.0f, dBoostFactor);
 
     return dBoost;
 }
