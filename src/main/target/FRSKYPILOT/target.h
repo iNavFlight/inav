@@ -152,7 +152,6 @@
 #define UART5_AF                1
 
 // OSD
-#define USE_OSD
 #define USE_UART6
 #define UART6_TX_PIN            PC6
 #define UART6_RX_PIN            PC7
