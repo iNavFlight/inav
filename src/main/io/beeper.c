@@ -158,7 +158,7 @@ static uint8_t beep_multiBeeps[MAX_MULTI_BEEPS + 2];
 
 
 // Beeper off = false Beeper on = true
-static bool beeperIsOn = 0;
+static bool beeperIsOn = false;
 
 // Place in current sequence
 static uint16_t beeperPos = 0;
