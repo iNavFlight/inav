@@ -128,6 +128,7 @@
 
 #define USE_PWM_DRIVER_PCA9685
 
+#define USE_OSD
 #define USE_FRSKYOSD
 #define USE_DJI_HD_OSD
 #define USE_SMARTPORT_MASTER

@@ -21,44 +21,10 @@
 
 #include "config/parameter_group.h"
 
-#define MAX_CONTROL_RATE_PROFILE_COUNT 3
+#include "fc/controlrate_profile_config_struct.h"
+#include "fc/settings.h"
 
-typedef struct controlRateConfig_s {
-
-    struct {
-        uint8_t rcMid8;
-        uint8_t rcExpo8;
-        uint8_t dynPID;
-        uint16_t pa_breakpoint;                // Breakpoint where TPA is activated
-        uint16_t fixedWingTauMs;               // Time constant of airplane TPA PT1-filter
-    } throttle;
-
-    struct {
-        uint8_t rcExpo8;
-        uint8_t rcYawExpo8;
-        uint8_t rates[3];
-    } stabilized;
-
-    struct {
-        uint8_t rcExpo8;
-        uint8_t rcYawExpo8;
-        uint8_t rates[3];
-    } manual;
-
-    struct {
-        uint8_t fpvCamAngleDegrees;             // Camera angle to treat as "forward" base axis in ACRO (Roll and Yaw sticks will command rotation considering this axis)
-    } misc;
-#ifdef USE_RATE_DYNAMICS
-    struct {
-        uint8_t sensitivityCenter;
-        uint8_t sensitivityEnd;
-        uint8_t correctionCenter;
-        uint8_t correctionEnd;
-        uint8_t weightCenter;
-        uint8_t weightEnd;
-    } rateDynamics;
-#endif
-} controlRateConfig_t;
+#define MAX_CONTROL_RATE_PROFILE_COUNT SETTING_CONSTANT_MAX_CONTROL_RATE_PROFILE_COUNT
 
 PG_DECLARE_ARRAY(controlRateConfig_t, MAX_CONTROL_RATE_PROFILE_COUNT, controlRateProfiles);
 

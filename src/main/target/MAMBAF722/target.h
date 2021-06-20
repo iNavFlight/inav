@@ -156,7 +156,6 @@
 #define VBAT_SCALE_DEFAULT              1100
 
 // ******* OSD ********
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS                 BUS_SPI2
 #define MAX7456_CS_PIN                  SPI2_NSS_PIN
@@ -208,3 +207,4 @@
 #define BNO055_I2C_BUS              DEFAULT_I2C_BUS
 
 #endif
+

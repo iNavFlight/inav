@@ -81,7 +81,7 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | Operand Type  | Name      | Notes                                 |
 |----           |----       |----                                   |
 | 0             | VALUE     | Value derived from `value` field      |
-| 1             | RC_CHANNEL    | `value` points to RC channel number, indexed from 1   |
+| 1             | GET_RC_CHANNEL    | `value` points to RC channel number, indexed from 1   |
 | 2             | FLIGHT        | `value` points to flight parameter table              |
 | 3             | FLIGHT_MODE   | `value` points to flight modes table                  |
 | 4             | LC            | `value` points to other logic condition ID            |

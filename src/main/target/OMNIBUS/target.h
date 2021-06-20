@@ -103,7 +103,6 @@
 #define SDCARD_SPI_BUS          BUS_SPI2
 #define SDCARD_CS_PIN           SPI2_NSS_PIN
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS             BUS_SPI1
 #define MAX7456_CS_PIN              PB1

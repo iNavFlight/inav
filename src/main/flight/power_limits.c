@@ -45,22 +45,12 @@ FILE_COMPILE_FOR_SPEED
 
 #define LIMITING_THR_FILTER_TCONST 50
 
-PG_REGISTER_WITH_RESET_TEMPLATE(powerLimitsConfig_t, powerLimitsConfig, PG_POWER_LIMITS_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(powerLimitsConfig_t, powerLimitsConfig, PG_POWER_LIMITS_CONFIG, 1);
 
 PG_RESET_TEMPLATE(powerLimitsConfig_t, powerLimitsConfig,
-    .continuousCurrent = SETTING_LIMIT_CONT_CURRENT_DEFAULT,                            // dA
-    .burstCurrent = SETTING_LIMIT_BURST_CURRENT_DEFAULT,                                // dA
-    .burstCurrentTime = SETTING_LIMIT_BURST_CURRENT_TIME_DEFAULT,                       // dS
-    .burstCurrentFalldownTime = SETTING_LIMIT_BURST_CURRENT_FALLDOWN_TIME_DEFAULT,      // dS
-#ifdef USE_ADC
-    .continuousPower = SETTING_LIMIT_CONT_POWER_DEFAULT,                                // dW
-    .burstPower = SETTING_LIMIT_BURST_POWER_DEFAULT,                                    // dW
-    .burstPowerTime = SETTING_LIMIT_BURST_POWER_TIME_DEFAULT,                           // dS
-    .burstPowerFalldownTime = SETTING_LIMIT_BURST_POWER_FALLDOWN_TIME_DEFAULT,          // dS
-#endif
     .piP = SETTING_LIMIT_PI_P_DEFAULT,
     .piI = SETTING_LIMIT_PI_I_DEFAULT,
-    .attnFilterCutoff = SETTING_LIMIT_ATTN_FILTER_CUTOFF_DEFAULT,                       // Hz
+    .attnFilterCutoff = SETTING_LIMIT_ATTN_FILTER_CUTOFF_DEFAULT,   // Hz
 );
 
 static float burstCurrentReserve;               // cA.µs
@@ -84,29 +74,29 @@ static bool wasLimitingPower = false;
 #endif
 
 void powerLimiterInit(void) {
-    if (powerLimitsConfig()->burstCurrent < powerLimitsConfig()->continuousCurrent) {
-        powerLimitsConfigMutable()->burstCurrent = powerLimitsConfig()->continuousCurrent;
+    if (currentBatteryProfile->powerLimits.burstCurrent < currentBatteryProfile->powerLimits.continuousCurrent) {
+        currentBatteryProfileMutable->powerLimits.burstCurrent = currentBatteryProfile->powerLimits.continuousCurrent;
     }
 
-    activeCurrentLimit = powerLimitsConfig()->burstCurrent;
+    activeCurrentLimit = currentBatteryProfile->powerLimits.burstCurrent;
 
-    uint16_t currentBurstOverContinuous = powerLimitsConfig()->burstCurrent - powerLimitsConfig()->continuousCurrent;
-    burstCurrentReserve = burstCurrentReserveMax = currentBurstOverContinuous * powerLimitsConfig()->burstCurrentTime * 1e6;
-    burstCurrentReserveFalldown = currentBurstOverContinuous * powerLimitsConfig()->burstCurrentFalldownTime * 1e6;
+    uint16_t currentBurstOverContinuous = currentBatteryProfile->powerLimits.burstCurrent - currentBatteryProfile->powerLimits.continuousCurrent;
+    burstCurrentReserve = burstCurrentReserveMax = currentBurstOverContinuous * currentBatteryProfile->powerLimits.burstCurrentTime * 1e6;
+    burstCurrentReserveFalldown = currentBurstOverContinuous * currentBatteryProfile->powerLimits.burstCurrentFalldownTime * 1e6;
 
     pt1FilterInit(&currentThrAttnFilter, powerLimitsConfig()->attnFilterCutoff, 0);
     pt1FilterInitRC(&currentThrLimitingBaseFilter, LIMITING_THR_FILTER_TCONST, 0);
 
 #ifdef USE_ADC
-    if (powerLimitsConfig()->burstPower < powerLimitsConfig()->continuousPower) {
-        powerLimitsConfigMutable()->burstPower = powerLimitsConfig()->continuousPower;
+    if (currentBatteryProfile->powerLimits.burstPower < currentBatteryProfile->powerLimits.continuousPower) {
+        currentBatteryProfileMutable->powerLimits.burstPower = currentBatteryProfile->powerLimits.continuousPower;
     }
 
-    activePowerLimit = powerLimitsConfig()->burstPower;
+    activePowerLimit = currentBatteryProfile->powerLimits.burstPower;
 
-    uint16_t powerBurstOverContinuous = powerLimitsConfig()->burstPower - powerLimitsConfig()->continuousPower;
-    burstPowerReserve = burstPowerReserveMax = powerBurstOverContinuous * powerLimitsConfig()->burstPowerTime * 1e6;
-    burstPowerReserveFalldown = powerBurstOverContinuous * powerLimitsConfig()->burstPowerFalldownTime * 1e6;
+    uint16_t powerBurstOverContinuous = currentBatteryProfile->powerLimits.burstPower - currentBatteryProfile->powerLimits.continuousPower;
+    burstPowerReserve = burstPowerReserveMax = powerBurstOverContinuous * currentBatteryProfile->powerLimits.burstPowerTime * 1e6;
+    burstPowerReserveFalldown = powerBurstOverContinuous * currentBatteryProfile->powerLimits.burstPowerFalldownTime * 1e6;
 
     pt1FilterInit(&powerThrAttnFilter, powerLimitsConfig()->attnFilterCutoff, 0);
     pt1FilterInitRC(&powerThrLimitingBaseFilter, LIMITING_THR_FILTER_TCONST, 0);
@@ -118,7 +108,7 @@ static uint32_t calculateActiveLimit(int32_t value, uint32_t continuousLimit, ui
     float spentReserveChunk = continuousDiff * timeDelta;
     *burstReserve = constrainf(*burstReserve - spentReserveChunk, 0, burstReserveMax);
 
-    if (powerLimitsConfig()->burstCurrentFalldownTime) {
+    if (currentBatteryProfile->powerLimits.burstCurrentFalldownTime) {
         return scaleRangef(MIN(*burstReserve, burstReserveFalldown), 0, burstReserveFalldown, continuousLimit, burstLimit) * 10;
     }
 
@@ -127,7 +117,7 @@ static uint32_t calculateActiveLimit(int32_t value, uint32_t continuousLimit, ui
 
 void currentLimiterUpdate(timeDelta_t timeDelta) {
     activeCurrentLimit = calculateActiveLimit(getAmperage(),
-                            powerLimitsConfig()->continuousCurrent, powerLimitsConfig()->burstCurrent,
+                            currentBatteryProfile->powerLimits.continuousCurrent, currentBatteryProfile->powerLimits.burstCurrent,
                             &burstCurrentReserve, burstCurrentReserveFalldown, burstCurrentReserveMax,
                             timeDelta);
 }
@@ -135,7 +125,7 @@ void currentLimiterUpdate(timeDelta_t timeDelta) {
 #ifdef USE_ADC
 void powerLimiterUpdate(timeDelta_t timeDelta) {
     activePowerLimit = calculateActiveLimit(getPower(),
-                            powerLimitsConfig()->continuousPower, powerLimitsConfig()->burstPower,
+                            currentBatteryProfile->powerLimits.continuousPower, currentBatteryProfile->powerLimits.burstPower,
                             &burstPowerReserve, burstPowerReserveFalldown, burstPowerReserveMax,
                             timeDelta);
 }
@@ -192,7 +182,6 @@ void powerLimiterApply(int16_t *throttleCommand) {
         currentThrottleCommand = currentThrAttned;
     } else {
         wasLimitingCurrent = false;
-        currentThrAttnIntegrator = 0;
         pt1FilterReset(&currentThrAttnFilter, 0);
 
         currentThrottleCommand = *throttleCommand;
@@ -222,7 +211,6 @@ void powerLimiterApply(int16_t *throttleCommand) {
         powerThrottleCommand = powerThrAttned;
     } else {
         wasLimitingPower = false;
-        powerThrAttnIntegrator = 0;
         pt1FilterReset(&powerThrAttnFilter, 0);
 
         powerThrottleCommand = *throttleCommand;
@@ -256,18 +244,18 @@ bool powerLimiterIsLimitingPower(void) {
 
 // returns seconds
 float powerLimiterGetRemainingBurstTime(void) {
-    uint16_t currentBurstOverContinuous = powerLimitsConfig()->burstCurrent - powerLimitsConfig()->continuousCurrent;
+    uint16_t currentBurstOverContinuous = currentBatteryProfile->powerLimits.burstCurrent - currentBatteryProfile->powerLimits.continuousCurrent;
     float remainingCurrentBurstTime = burstCurrentReserve / currentBurstOverContinuous / 1e7;
 
 #ifdef USE_ADC
-    uint16_t powerBurstOverContinuous = powerLimitsConfig()->burstPower - powerLimitsConfig()->continuousPower;
+    uint16_t powerBurstOverContinuous = currentBatteryProfile->powerLimits.burstPower - currentBatteryProfile->powerLimits.continuousPower;
     float remainingPowerBurstTime = burstPowerReserve / powerBurstOverContinuous / 1e7;
 
-    if (!powerLimitsConfig()->continuousCurrent) {
+    if (!currentBatteryProfile->powerLimits.continuousCurrent) {
         return remainingPowerBurstTime;
     }
 
-    if (!powerLimitsConfig()->continuousPower) {
+    if (!currentBatteryProfile->powerLimits.continuousPower) {
         return remainingCurrentBurstTime;
     }
 
