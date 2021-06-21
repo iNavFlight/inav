@@ -237,8 +237,8 @@ void opflowUpdate(timeUs_t currentTimeUs)
             else if (opflow.flowQuality == OPFLOW_QUALITY_VALID) {
                 // Ongoing calibration - accumulate body and flow rotation magniture if opflow quality is good enough
                 const float invDt = 1.0e6 / opflow.dev.rawData.deltaTime;
-                opflowCalibrationBodyAcc += sqrtf(sq(opflow.bodyRate[X]) + sq(opflow.bodyRate[Y]));
-                opflowCalibrationFlowAcc += sqrtf(sq(opflow.dev.rawData.flowRateRaw[X]) + sq(opflow.dev.rawData.flowRateRaw[Y])) * invDt;
+                opflowCalibrationBodyAcc += fast_fsqrtf(sq(opflow.bodyRate[X]) + sq(opflow.bodyRate[Y]));
+                opflowCalibrationFlowAcc += fast_fsqrtf(sq(opflow.dev.rawData.flowRateRaw[X]) + sq(opflow.dev.rawData.flowRateRaw[Y])) * invDt;
             }
         }
 

@@ -31,11 +31,11 @@
 #define SYM_VOLT                  0x06 // 006 V
 #define SYM_MAH                   0x07 // 007 MAH
 
-//                                0x08 // 008 -
-//                                0x09 // 009 -
-//                                0x0A // 010 -
-//                                0x0B // 011 -
-//                                0x0C // 012 -
+#define SYM_AH_KM                 0x08 // 008 Ah/km
+#define SYM_AH_MI                 0x09 // 009 Ah/mi
+#define SYM_MAH_MI_0              0x0A // 010 mAh/mi left
+#define SYM_MAH_MI_1              0x0B // 010 mAh/mi left
+#define SYM_LQ                    0x0C // 012 LQ
 
 #define SYM_TEMP_F                0x0D // 013 °F
 #define SYM_TEMP_C                0x0E // 014 °C
@@ -109,7 +109,7 @@
 
 #define SYM_AH_CH_CENTER          0x7E // 126 Crossair center
 
-//                                0x7F // 127 -
+#define SYM_GLIDESLOPE            0x7F // 127 Glideslope
 
 #define SYM_AH_H_START            0x80 // 128 to 136 Horizontal AHI
 
@@ -119,8 +119,9 @@
 #define SYM_RPM                   0x8B // 139 RPM
 #define SYM_WAYPOINT              0x8C // 140 Waypoint
 #define SYM_AZIMUTH               0x8D // 141 Azimuth
-//                                0x8E // 142 -
-//                                0x8F // 143 -
+
+#define SYM_TELEMETRY_0           0x8E // 142 Antenna tracking telemetry
+#define SYM_TELEMETRY_1           0x8F // 143 Antenna tracking telemetry
 
 #define SYM_BATT_FULL             0x90 // 144 Battery full
 #define SYM_BATT_5                0x91 // 145 Battery

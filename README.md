@@ -1,11 +1,6 @@
 # INAV - navigation capable flight controller
 
-## F3 based flight controllers
-
-> STM32 F3 flight controllers like Omnibus F3 or SP Racing F3 are deprecated and soon they will reach the end of support in INAV. If you are still using F3 boards, please migrate to F4 or F7.
-
 ![INAV](http://static.rcgroups.net/forums/attachments/6/1/0/3/7/6/a9088858-102-inav.png)
-![Travis CI status](https://travis-ci.org/iNavFlight/inav.svg?branch=master)
 
 ## Features
 
@@ -16,9 +11,9 @@
 * Fully configurable mixer that allows to run any hardware you want: multirotor, fixed wing, rovers, boats and other experimental devices
 * Multiple sensor support: GPS, Pitot tube, sonar, lidar, temperature, ESC with BlHeli_32 telemetry
 * SmartAudio and IRC Tramp VTX support
-* DSHOT and Multishot ESCs
 * Blackbox flight recorder logging
 * On Screen Display (OSD) - both character and pixel style
+* DJI OSD integration: all elements, system messages and warnings
 * Telemetry: SmartPort, FPort, MAVlink, LTM
 * Multi-color RGB LED Strip support
 * Advanced gyro filtering: Matrix Filter and RPM filter

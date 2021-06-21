@@ -514,7 +514,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_3D_HOME_DISTANCE: //in m
-            return constrain(sqrtf(sq(GPS_distanceToHome) + sq(getEstimatedActualPosition(Z)/100)), 0, INT16_MAX);
+            return constrain(fast_fsqrtf(sq(GPS_distanceToHome) + sq(getEstimatedActualPosition(Z)/100)), 0, INT16_MAX);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_LQ:
@@ -559,8 +559,12 @@ static int logicConditionGetFlightModeOperandValue(int operand) {
             return (bool) FLIGHT_MODE(NAV_POSHOLD_MODE);
             break;
 
-        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_CRUISE:
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_COURSE_HOLD:
             return (bool) FLIGHT_MODE(NAV_COURSE_HOLD_MODE);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_CRUISE:
+            return (bool)(FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE));
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_ALTHOLD:
