@@ -242,7 +242,7 @@ main_sources(COMMON_SRC
     drivers/rangefinder/rangefinder_virtual.h
     drivers/rangefinder/rangefinder_us42.c
     drivers/rangefinder/rangefinder_us42.h
-    
+
     drivers/resource.c
     drivers/resource.h
     drivers/rcc.c
@@ -280,6 +280,7 @@ main_sources(COMMON_SRC
     fc/config.h
     fc/controlrate_profile.c
     fc/controlrate_profile.h
+    fc/controlrate_profile_config_struct.h
     fc/fc_core.c
     fc/fc_core.h
     fc/fc_init.c
@@ -440,6 +441,7 @@ main_sources(COMMON_SRC
     sensors/acceleration.h
     sensors/battery.c
     sensors/battery.h
+    sensors/battery_config_structs.h
     sensors/boardalignment.c
     sensors/boardalignment.h
     sensors/compass.c

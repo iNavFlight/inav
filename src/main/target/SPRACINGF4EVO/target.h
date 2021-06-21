@@ -143,7 +143,6 @@
 // PC4 - NC - Free for ADC12_IN14 / VTX CS
 // PC5 - NC - Free for ADC12_IN15 / VTX Enable / OSD VSYNC
 
-//#define USE_OSD
 //#define USE_MAX7456
 //#define USE_OSD_OVER_MSP_DISPLAYPORT
 
