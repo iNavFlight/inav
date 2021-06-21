@@ -27,6 +27,17 @@ typedef struct pt1Filter_s {
     float dT;
     float alpha;
 } pt1Filter_t;
+typedef struct pt2Filter_s {
+    float state;
+    float state1;
+    float k;
+} pt2Filter_t;
+typedef struct pt3Filter_s {
+    float state;
+    float state1;
+    float state2;
+    float k;
+} pt3Filter_t;
 
 /* this holds the data required to update samples thru a filter */
 typedef struct biquadFilter_s {
@@ -86,6 +97,22 @@ float pt1FilterApply(pt1Filter_t *filter, float input);
 float pt1FilterApply3(pt1Filter_t *filter, float input, float dT);
 float pt1FilterApply4(pt1Filter_t *filter, float input, float f_cut, float dt);
 void pt1FilterReset(pt1Filter_t *filter, float input);
+
+/*
+ * PT2 LowPassFilter
+ */
+float pt2FilterGain(float f_cut, float dT);
+void pt2FilterInit(pt2Filter_t *filter, float k);
+void pt2FilterUpdateCutoff(pt2Filter_t *filter, float k);
+float pt2FilterApply(pt2Filter_t *filter, float input);
+
+/*
+ * PT3 LowPassFilter
+ */
+float pt3FilterGain(float f_cut, float dT);
+void pt3FilterInit(pt3Filter_t *filter, float k);
+void pt3FilterUpdateCutoff(pt3Filter_t *filter, float k);
+float pt3FilterApply(pt3Filter_t *filter, float input);
 
 void rateLimitFilterInit(rateLimitFilter_t *filter);
 float rateLimitFilterApply4(rateLimitFilter_t *filter, float input, float rate_limit, float dT);
