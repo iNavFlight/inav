@@ -232,6 +232,7 @@ typedef enum {
     OSD_PLIMIT_REMAINING_BURST_TIME,
     OSD_PLIMIT_ACTIVE_CURRENT_LIMIT,
     OSD_PLIMIT_ACTIVE_POWER_LIMIT,
+    OSD_GLIDESLOPE,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -313,6 +314,7 @@ typedef struct osdConfig_s {
 #ifdef USE_SERIALRX_CRSF
     int8_t snr_alarm; //CRSF SNR alarm in dB
     int8_t link_quality_alarm;
+    int16_t rssi_dbm_alarm; // in dBm
 #endif
 #ifdef USE_BARO
     int16_t baro_temp_alarm_min;
@@ -332,6 +334,7 @@ typedef struct osdConfig_s {
     uint8_t crosshairs_style; // from osd_crosshairs_style_e
     int8_t horizon_offset;
     int8_t camera_uptilt;
+    bool ahi_camera_uptilt_comp;
     uint8_t camera_fov_h;
     uint8_t camera_fov_v;
     uint8_t hud_margin_h;

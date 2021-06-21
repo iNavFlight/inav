@@ -179,16 +179,24 @@ tables:
   - name: nav_rth_climb_first
     enum: navRTHClimbFirst_e
     values: ["OFF", "ON", "ON_FW_SPIRAL"]
+  - name: djiRssiSource
+    values: ["RSSI", "CRSF_LQ"]
+    enum: djiRssiSource_e
+
 
 constants:
   RPYL_PID_MIN: 0
-  RPYL_PID_MAX: 200
+  RPYL_PID_MAX: 255
 
   MANUAL_RATE_MIN: 0
   MANUAL_RATE_MAX: 100
 
-  ROLL_PITCH_RATE_MIN: 6
+  ROLL_PITCH_RATE_MIN: 4
   ROLL_PITCH_RATE_MAX: 180
+
+  MAX_CONTROL_RATE_PROFILE_COUNT: 3
+  MAX_BATTERY_PROFILE_COUNT: 3
+
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -214,7 +222,7 @@ groups:
         description: "Gyro processing anti-aliasing filter cutoff frequency. In normal operation this filter setting should never be changed. In Hz"
         default_value: 250
         field: gyro_anti_aliasing_lpf_hz
-        max: 255
+        max: 1000
       - name: gyro_anti_aliasing_lpf_type
         description: "Specifies the type of the software LPF of the gyro signals."
         default_value: "PT1"
@@ -320,6 +328,19 @@ groups:
         condition: USE_ALPHA_BETA_GAMMA_FILTER
         min: 0
         max: 10
+      - name: setpoint_kalman_enabled
+        description: "Enable Kalman filter on the gyro data"
+        default_value: OFF
+        condition: USE_GYRO_KALMAN
+        field: kalmanEnabled
+        type: bool
+      - name: setpoint_kalman_q
+        description: "Quality factor of the setpoint Kalman filter. Higher values means less filtering and lower phase delay. On 3-7 inch multirotors can be usually increased to 200-300 or even higher of clean builds"
+        default_value: 100
+        field: kalman_q
+        condition: USE_GYRO_KALMAN
+        min: 1
+        max: 16000
 
   - name: PG_ADC_CHANNEL_CONFIG
     type: adcChannelConfig_t
@@ -857,31 +878,12 @@ groups:
         default_value: "ONESHOT125"
         field: motorPwmProtocol
         table: motor_pwm_protocol
-      - name: throttle_scale
-        description: "Throttle scaling factor. `1` means no throttle scaling. `0.5` means throttle scaled down by 50%"
-        default_value: 1.0
-        field: throttleScale
-        min: 0
-        max: 1
-      - name: throttle_idle
-        description: "The percentage of the throttle range (`max_throttle` - `min_command`) above `min_command` used for minimum / idle throttle."
-        default_value: 15
-        field: throttleIdle
-        min: 0
-        max: 30
       - name: motor_poles
         field: motorPoleCount
         description: "The number of motor poles. Required to compute motor RPM"
         min: 4
         max: 255
         default_value: 14
-      - name: turtle_mode_power_factor
-        field: turtleModePowerFactor
-        default_value: 55
-        description: "Turtle mode power factor"
-        condition: "USE_DSHOT"
-        min: 0
-        max: 100
 
   - name: PG_FAILSAFE_CONFIG
     type: failsafeConfig_t
@@ -902,11 +904,6 @@ groups:
         default_value: 200
         min: 0
         max: 200
-      - name: failsafe_throttle
-        description: "Throttle level used for landing when failsafe is enabled. See [Failsafe documentation](Failsafe.md#failsafe_throttle)."
-        default_value: 1000
-        min: PWM_RANGE_MIN
-        max: PWM_RANGE_MAX
       - name: failsafe_throttle_low_delay
         description: "If failsafe activated when throttle is low for this much time - bypass failsafe and disarm, in 10th of seconds. 0 = No timeout"
         default_value: 0
@@ -999,7 +996,7 @@ groups:
 
   - name: PG_BATTERY_METERS_CONFIG
     type: batteryMetersConfig_t
-    headers: ["sensors/battery.h"]
+    headers: ["sensors/battery_config_structs.h"]
     members:
       - name: vbat_meter_type
         description: "Vbat voltage source. Possible values: `NONE`, `ADC`, `ESC`. `ESC` required ESC telemetry enebled and running"
@@ -1013,8 +1010,8 @@ groups:
         default_value: :target
         field: voltage.scale
         condition: USE_ADC
-        min: VBAT_SCALE_MIN
-        max: VBAT_SCALE_MAX
+        min: 0
+        max: 65535
       - name: current_meter_scale
         description: "This sets the output voltage to current scaling for the current sensor in 0.1 mV/A steps. 400 is 40mV/A such as the ACS756 sensor outputs. 183 is the setting for the uberdistro with a 0.25mOhm shunt."
         default_value: :target
@@ -1065,7 +1062,7 @@ groups:
 
   - name: PG_BATTERY_PROFILES
     type: batteryProfile_t
-    headers: ["sensors/battery.h"]
+    headers: ["sensors/battery_config_structs.h"]
     value_type: BATTERY_CONFIG_VALUE
     members:
       - name: bat_cells
@@ -1127,6 +1124,133 @@ groups:
         field: capacity.unit
         table: bat_capacity_unit
         type: uint8_t
+      - name: controlrate_profile
+        description: "Control rate profile to switch to when the battery profile is selected, 0 to disable and keep the currently selected control rate profile"
+        default_value: 0
+        field: controlRateProfile
+        min: 0
+        max: MAX_CONTROL_RATE_PROFILE_COUNT
+
+      - name: throttle_scale
+        description: "Throttle scaling factor. `1` means no throttle scaling. `0.5` means throttle scaled down by 50%"
+        default_value: 1.0
+        field: motor.throttleScale
+        min: 0
+        max: 1
+      - name: throttle_idle
+        description: "The percentage of the throttle range (`max_throttle` - `min_command`) above `min_command` used for minimum / idle throttle."
+        default_value: 15
+        field: motor.throttleIdle
+        min: 0
+        max: 30
+      - name: turtle_mode_power_factor
+        field: motor.turtleModePowerFactor
+        default_value: 55
+        description: "Turtle mode power factor"
+        condition: "USE_DSHOT"
+        min: 0
+        max: 100
+      - name: failsafe_throttle
+        description: "Throttle level used for landing when failsafe is enabled. See [Failsafe documentation](Failsafe.md#failsafe_throttle)."
+        default_value: 1000
+        min: PWM_RANGE_MIN
+        max: PWM_RANGE_MAX
+      - name: fw_min_throttle_down_pitch
+        description: "Automatic pitch down angle when throttle is at 0 in angle mode. Progressively applied between cruise throttle and zero throttle (decidegrees)"
+        default_value: 0
+        field: fwMinThrottleDownPitchAngle
+        min: 0
+        max: 450
+      - name: nav_mc_hover_thr
+        description: "Multicopter hover throttle hint for altitude controller. Should be set to approximate throttle value when drone is hovering."
+        default_value: 1500
+        field: nav.mc.hover_throttle
+        min: 1000
+        max: 2000
+      - name: nav_fw_cruise_thr
+        description: "Cruise throttle in GPS assisted modes, this includes RTH. Should be set high enough to avoid stalling. This values gives INAV a base for throttle when flying straight, and it will increase or decrease throttle based on pitch of airplane and the parameters below. In addition it will increase throttle if GPS speed gets below 7m/s ( hardcoded )"
+        default_value: 1400
+        field: nav.fw.cruise_throttle
+        min: 1000
+        max: 2000
+      - name: nav_fw_min_thr
+        description: "Minimum throttle for flying wing in GPS assisted modes"
+        default_value: 1200
+        field: nav.fw.min_throttle
+        min: 1000
+        max: 2000
+      - name: nav_fw_max_thr
+        description: "Maximum throttle for flying wing in GPS assisted modes"
+        default_value: 1700
+        field: nav.fw.max_throttle
+        min: 1000
+        max: 2000
+      - name: nav_fw_pitch2thr
+        description: "Amount of throttle applied related to pitch attitude in GPS assisted modes. Throttle = nav_fw_cruise_throttle - (nav_fw_pitch2thr * pitch_angle). (notice that pitch_angle is in degrees and is negative when climbing and positive when diving, and throttle value is constrained between nav_fw_min_thr and nav_fw_max_thr)"
+        default_value: 10
+        field: nav.fw.pitch_to_throttle
+        min: 0
+        max: 100
+      - name: nav_fw_launch_thr
+        description: "Launch throttle - throttle to be set during launch sequence (pwm units)"
+        default_value: 1700
+        field: nav.fw.launch_throttle
+        min: 1000
+        max: 2000
+      - name: nav_fw_launch_idle_thr
+        description: "Launch idle throttle - throttle to be set before launch sequence is initiated. If set below minimum throttle it will force motor stop or at idle throttle (depending if the MOTOR_STOP is enabled). If set above minimum throttle it will force throttle to this value (if MOTOR_STOP is enabled it will be handled according to throttle stick position)"
+        default_value: 1000
+        field: nav.fw.launch_idle_throttle
+        min: 1000
+        max: 2000
+      - name: limit_cont_current
+        description: "Continous current limit (dA), set to 0 to disable"
+        condition: USE_POWER_LIMITS
+        default_value: 0
+        field: powerLimits.continuousCurrent
+        max: 4000
+      - name: limit_burst_current
+        description: "Burst current limit (dA): the current which is allowed during `limit_burst_current_time` after which `limit_cont_current` will be enforced, set to 0 to disable"
+        condition: USE_POWER_LIMITS
+        default_value: 0
+        field: powerLimits.burstCurrent
+        max: 4000
+      - name: limit_burst_current_time
+        description: "Allowed current burst time (ds) during which `limit_burst_current` is allowed and after which `limit_cont_current` will be enforced"
+        condition: USE_POWER_LIMITS
+        default_value: 0
+        field: powerLimits.burstCurrentTime
+        max: 3000
+      - name: limit_burst_current_falldown_time
+        description: "Time slice at the end of the burst time during which the current limit will be ramped down from `limit_burst_current` back down to `limit_cont_current`"
+        condition: USE_POWER_LIMITS
+        default_value: 0
+        field: powerLimits.burstCurrentFalldownTime
+        max: 3000
+      - name: limit_cont_power
+        description: "Continous power limit (dW), set to 0 to disable"
+        condition: USE_POWER_LIMITS && USE_ADC
+        default_value: 0
+        field: powerLimits.continuousPower
+        max: 40000
+      - name: limit_burst_power
+        description: "Burst power limit (dW): the current which is allowed during `limit_burst_power_time` after which `limit_cont_power` will be enforced, set to 0 to disable"
+        condition: USE_POWER_LIMITS && USE_ADC
+        default_value: 0
+        field: powerLimits.burstPower
+        max: 40000
+      - name: limit_burst_power_time
+        description: "Allowed power burst time (ds) during which `limit_burst_power` is allowed and after which `limit_cont_power` will be enforced"
+        condition: USE_POWER_LIMITS && USE_ADC
+        default_value: 0
+        field: powerLimits.burstPowerTime
+        max: 3000
+      - name: limit_burst_power_falldown_time
+        description: "Time slice at the end of the burst time during which the power limit will be ramped down from `limit_burst_power` back down to `limit_cont_power`"
+        condition: USE_POWER_LIMITS && USE_ADC
+        default_value: 0
+        field: powerLimits.burstPowerFalldownTime
+        max: 3000
 
   - name: PG_MIXER_CONFIG
     type: mixerConfig_t
@@ -1153,12 +1277,6 @@ groups:
         field: appliedMixerPreset
         min: -1
         max: INT16_MAX
-      - name: fw_min_throttle_down_pitch
-        description: "Automatic pitch down angle when throttle is at 0 in angle mode. Progressively applied between cruise throttle and zero throttle (decidegrees)"
-        default_value: 0
-        field: fwMinThrottleDownPitchAngle
-        min: 0
-        max: 450
 
   - name: PG_REVERSIBLE_MOTORS_CONFIG
     type: reversibleMotorsConfig_t
@@ -1226,7 +1344,7 @@ groups:
 
   - name: PG_CONTROL_RATE_PROFILES
     type: controlRateConfig_t
-    headers: ["fc/controlrate_profile.h"]
+    headers: ["fc/controlrate_profile_config_struct.h"]
     value_type: CONTROL_RATE_VALUE
     members:
       - name: thr_mid
@@ -1289,7 +1407,7 @@ groups:
         description: "Defines rotation rate on YAW axis that UAV will try to archive on max. stick deflection. Rates are defined in tens of degrees (deca-degrees) per second [rate = dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure."
         default_value: 20
         field: stabilized.rates[FD_YAW]
-        min: 2
+        min: 1
         max: 180
       - name: manual_rc_expo
         description: "Exposition value used for the PITCH/ROLL axes by the `MANUAL` flight mode [0-100]"
@@ -1505,7 +1623,12 @@ groups:
         min: 0
         max: 100
       - name: pos_hold_deadband
-        description: "Stick deadband in [r/c points], applied after r/c deadband and expo"
+        description: "Stick deadband in [r/c points], applied after r/c deadband and expo. Used for adjustments in navigation modes."
+        default_value: 10
+        min: 2
+        max: 250
+      - name: control_deadband
+        description: "Stick deadband in [r/c points], applied after r/c deadband and expo. Used to check if sticks are centered."
         default_value: 10
         min: 2
         max: 250
@@ -2058,33 +2181,6 @@ groups:
         field: controlDerivativeLpfHz
         min: 0
         max: 200
-      - name: setpoint_kalman_enabled
-        description: "Enable Kalman filter on the PID controller setpoint"
-        default_value: OFF
-        condition: USE_GYRO_KALMAN
-        field: kalmanEnabled
-        type: bool
-      - name: setpoint_kalman_q
-        description: "Quality factor of the setpoint Kalman filter. Higher values means less filtering and lower phase delay. On 3-7 inch multirotors can be usually increased to 200-300 or even higher of clean builds"
-        default_value: 100
-        field: kalman_q
-        condition: USE_GYRO_KALMAN
-        min: 1
-        max: 16000
-      - name: setpoint_kalman_w
-        description: "Window size for the setpoint Kalman filter. Wider the window, more samples are used to compute variance. In general, wider window results in smoother filter response"
-        default_value: 4
-        field: kalman_w
-        condition: USE_GYRO_KALMAN
-        min: 1
-        max: 40
-      - name: setpoint_kalman_sharpness
-        description: "Dynamic factor for the setpoint Kalman filter. In general, the higher the value, the more dynamic Kalman filter gets"
-        default_value: 100
-        field: kalman_sharpness
-        condition: USE_GYRO_KALMAN
-        min: 1
-        max: 16000
       - name: fw_level_pitch_trim
         description: "Pitch trim for self-leveling flight modes. In degrees. +5 means airplane nose should be raised 5 deg from level"
         default_value: 0
@@ -2116,12 +2212,6 @@ groups:
         description: "I-gain for the pitch trim for self-leveling flight modes. Higher values means that AUTOTRIM will be faster but might introduce oscillations"
         default_value: 5
         field: fixedWingLevelTrimGain
-        min: 0
-        max: 20
-      - name: fw_level_pitch_deadband
-        description: "Deadband for automatic leveling when AUTOLEVEL mode is used."
-        default_value: 5
-        field: fixedWingLevelTrimDeadband
         min: 0
         max: 20
 
@@ -2161,7 +2251,7 @@ groups:
         type: uint8_t
       - name: fw_autotune_max_rate_deflection
         description: "The target percentage of maximum mixer output used for determining the rates in `AUTO` and `LIMIT`."
-        default_value: 80
+        default_value: 90
         field: fw_max_rate_deflection
         min: 50
         max: 100
@@ -2489,12 +2579,6 @@ groups:
         field: mc.max_bank_angle
         min: 15
         max: 45
-      - name: nav_mc_hover_thr
-        description: "Multicopter hover throttle hint for altitude controller. Should be set to approximate throttle value when drone is hovering."
-        default_value: 1500
-        field: mc.hover_throttle
-        min: 1000
-        max: 2000
       - name: nav_mc_auto_disarm_delay
         description: "Delay before multi-rotor disarms when `nav_disarm_on_landing` is set (m/s)"
         default_value: 2000
@@ -2576,24 +2660,6 @@ groups:
         default_value: ON
         field: mc.slowDownForTurning
         type: bool
-      - name: nav_fw_cruise_thr
-        description: "Cruise throttle in GPS assisted modes, this includes RTH. Should be set high enough to avoid stalling. This values gives INAV a base for throttle when flying straight, and it will increase or decrease throttle based on pitch of airplane and the parameters below. In addition it will increase throttle if GPS speed gets below 7m/s ( hardcoded )"
-        default_value: 1400
-        field: fw.cruise_throttle
-        min: 1000
-        max: 2000
-      - name: nav_fw_min_thr
-        description: "Minimum throttle for flying wing in GPS assisted modes"
-        default_value: 1200
-        field: fw.min_throttle
-        min: 1000
-        max: 2000
-      - name: nav_fw_max_thr
-        description: "Maximum throttle for flying wing in GPS assisted modes"
-        default_value: 1700
-        field: fw.max_throttle
-        min: 1000
-        max: 2000
       - name: nav_fw_bank_angle
         description: "Max roll angle when rolling / turning in GPS assisted modes, is also restrained by global max_angle_inclination_rll"
         default_value: 35
@@ -2612,12 +2678,6 @@ groups:
         field: fw.max_dive_angle
         min: 5
         max: 80
-      - name: nav_fw_pitch2thr
-        description: "Amount of throttle applied related to pitch attitude in GPS assisted modes. Throttle = nav_fw_cruise_throttle - (nav_fw_pitch2thr * pitch_angle). (notice that pitch_angle is in degrees and is negative when climbing and positive when diving, and throttle value is constrained between nav_fw_min_thr and nav_fw_max_thr)"
-        default_value: 10
-        field: fw.pitch_to_throttle
-        min: 0
-        max: 100
       - name: nav_fw_pitch2thr_smoothing
         description:  "How smoothly the autopilot makes pitch to throttle correction inside a deadband defined by pitch_to_throttle_thresh."
         default_value: 6
@@ -2681,18 +2741,12 @@ groups:
         field: fw.launch_time_thresh
         min: 10
         max: 1000
-      - name: nav_fw_launch_thr
-        description: "Launch throttle - throttle to be set during launch sequence (pwm units)"
-        default_value: 1700
-        field: fw.launch_throttle
-        min: 1000
-        max: 2000
-      - name: nav_fw_launch_idle_thr
-        description: "Launch idle throttle - throttle to be set before launch sequence is initiated. If set below minimum throttle it will force motor stop or at idle throttle (depending if the MOTOR_STOP is enabled). If set above minimum throttle it will force throttle to this value (if MOTOR_STOP is enabled it will be handled according to throttle stick position)"
-        default_value: 1000
-        field: fw.launch_idle_throttle
-        min: 1000
-        max: 2000
+      - name: nav_fw_launch_idle_motor_delay
+        description: "Delay between raising throttle and motor starting at idle throttle (ms)"
+        default_value: 0
+        field: fw.launch_idle_motor_timer
+        min: 0
+        max: 60000
       - name: nav_fw_launch_motor_delay
         description: "Delay between detected launch and launch sequence start and throttling up (ms)"
         default_value: 500
@@ -3132,6 +3186,13 @@ groups:
         field: link_quality_alarm
         min: 0
         max: 100
+      - name: osd_rssi_dbm_alarm
+        condition: USE_SERIALRX_CRSF
+        description: "RSSI dBm indicator blinks below this value [dBm]. 0 disables this alarm"
+        default_value: 0
+        field: rssi_dbm_alarm
+        min: -130
+        max: 0
       - name: osd_temp_label_align
         description: "Allows to chose between left and right alignment for the OSD temperature sensor labels. Valid values are `LEFT` and `RIGHT`"
         default_value: "LEFT"
@@ -3170,11 +3231,16 @@ groups:
         min: -2
         max: 2
       - name: osd_camera_uptilt
-        description: "Set the camera uptilt for the FPV camera in degres, positive is up, negative is down, relative to the horizontal"
+        description: "Set the camera uptilt for the FPV camera in degres, positive is up, negative is down, relative to the horizontal. Used for correct display of HUD items and AHI (when enabled)."
         default_value: 0
         field: camera_uptilt
         min: -40
         max: 80
+      - name: osd_ahi_camera_uptilt_comp
+        description: "When set to `ON`, the AHI position is adjusted by `osd_camera_uptilt`. For example, with a cammera uptilt of 30 degrees, the AHI will appear in the middle of the OSD when the aircraft is pitched forward 30 degrees. When set to `OFF`, the AHI will appear in the center of the OSD regardless of camera angle, but can still be shifted up and down using `osd_horizon_offset` (`osd_ahi_vertical_offset` for pixel-OSD)."
+        default_value: OFF
+        field: ahi_camera_uptilt_comp
+        type: bool
       - name: osd_camera_fov_h
         description: "Horizontal field of view for the camera in degres"
         default_value: 135
@@ -3623,7 +3689,7 @@ groups:
           max: UINT8_MAX
           default_value: 1
         - name: dji_use_name_for_messages
-          description: "Re-purpose the craft name field for messages. Replace craft name with :WTSED for Warnings|Throttle|Speed|Efficiency|Trip distance"
+          description: "Re-purpose the craft name field for messages."
           default_value: ON
           field: use_name_for_messages
           type: bool
@@ -3632,6 +3698,30 @@ groups:
           default_value: "ESC"
           field: esc_temperature_source
           table: djiOsdTempSource
+          type: uint8_t
+        - name: dji_message_speed_source
+          description: "Sets the speed type displayed by the DJI OSD in craft name: GROUND, 3D, AIR"
+          default_value: "3D"
+          field: messageSpeedSource
+          table: osdSpeedSource
+          type: uint8_t
+        - name: dji_rssi_source
+          description: "Source of the DJI RSSI field: RSSI, CRSF_LQ"
+          default_value: "RSSI"
+          field: rssi_source
+          table: djiRssiSource
+          type: uint8_t
+        - name: dji_use_adjustments
+          description: "Show inflight adjustments in craft name field"
+          default_value: OFF
+          type: bool
+          field: useAdjustments
+        - name: dji_cn_alternating_duration
+          description: "Alternating duration of craft name elements, in tenths of a second"
+          default_value: 30
+          min: 1
+          max: 150
+          field: craftNameAlternatingDuration
           type: uint8_t
 
   - name: PG_BEEPER_CONFIG
@@ -3656,50 +3746,6 @@ groups:
     headers: ["flight/power_limits.h"]
     condition: USE_POWER_LIMITS
     members:
-      - name: limit_cont_current
-        description: "Continous current limit (dA), set to 0 to disable"
-        default_value: 0
-        field: continuousCurrent
-        max: 4000
-      - name: limit_burst_current
-        description: "Burst current limit (dA): the current which is allowed during `limit_burst_current_time` after which `limit_cont_current` will be enforced, set to 0 to disable"
-        default_value: 0
-        field: burstCurrent
-        max: 4000
-      - name: limit_burst_current_time
-        description: "Allowed current burst time (ds) during which `limit_burst_current` is allowed and after which `limit_cont_current` will be enforced"
-        default_value: 0
-        field: burstCurrentTime
-        max: 3000
-      - name: limit_burst_current_falldown_time
-        description: "Time slice at the end of the burst time during which the current limit will be ramped down from `limit_burst_current` back down to `limit_cont_current`"
-        default_value: 0
-        field: burstCurrentFalldownTime
-        max: 3000
-      - name: limit_cont_power
-        condition: USE_ADC
-        description: "Continous power limit (dW), set to 0 to disable"
-        default_value: 0
-        field: continuousPower
-        max: 40000
-      - name: limit_burst_power
-        condition: USE_ADC
-        description: "Burst power limit (dW): the current which is allowed during `limit_burst_power_time` after which `limit_cont_power` will be enforced, set to 0 to disable"
-        default_value: 0
-        field: burstPower
-        max: 40000
-      - name: limit_burst_power_time
-        condition: USE_ADC
-        description: "Allowed power burst time (ds) during which `limit_burst_power` is allowed and after which `limit_cont_power` will be enforced"
-        default_value: 0
-        field: burstPowerTime
-        max: 3000
-      - name: limit_burst_power_falldown_time
-        condition: USE_ADC
-        description: "Time slice at the end of the burst time during which the power limit will be ramped down from `limit_burst_power` back down to `limit_cont_power`"
-        default_value: 0
-        field: burstPowerFalldownTime
-        max: 3000
       - name: limit_pi_p
         description: "Throttle attenuation PI control P term"
         default_value: 100

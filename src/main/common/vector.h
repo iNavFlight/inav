@@ -67,7 +67,7 @@ static inline float vectorNormSquared(const fpVector3_t * v)
 
 static inline fpVector3_t * vectorNormalize(fpVector3_t * result, const fpVector3_t * v)
 {
-    float length = sqrtf(vectorNormSquared(v));
+    float length = fast_fsqrtf(vectorNormSquared(v));
     if (length != 0) {
         result->x = v->x / length;
         result->y = v->y / length;

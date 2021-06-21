@@ -72,7 +72,7 @@ float getEstimatedHorizontalWindSpeed(uint16_t *angle)
         }
         *angle = RADIANS_TO_CENTIDEGREES(horizontalWindAngle);
     }
-    return sqrtf(sq(xWindSpeed) + sq(yWindSpeed));
+    return fast_fsqrtf(sq(xWindSpeed) + sq(yWindSpeed));
 }
 
 void updateWindEstimator(timeUs_t currentTimeUs)
@@ -133,7 +133,7 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         groundVelocityDiff[Z] = groundVelocity[X] - lastGroundVelocity[Z];
 
         // estimate airspeed it using equation 6
-        float V = (sqrtf(sq(groundVelocityDiff[0]) + sq(groundVelocityDiff[1]) + sq(groundVelocityDiff[2]))) / sqrtf(diffLengthSq);
+        float V = (fast_fsqrtf(sq(groundVelocityDiff[0]) + sq(groundVelocityDiff[1]) + sq(groundVelocityDiff[2]))) / fast_fsqrtf(diffLengthSq);
 
         fuselageDirectionSum[X] = fuselageDirection[X] + lastFuselageDirection[X];
         fuselageDirectionSum[Y] = fuselageDirection[Y] + lastFuselageDirection[Y];
@@ -155,8 +155,8 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         wind[Y] = (groundVelocitySum[Y] - V * (sintheta * fuselageDirectionSum[X] + costheta * fuselageDirectionSum[Y])) * 0.5f;// equation 11
         wind[Z] = (groundVelocitySum[Z] - V * fuselageDirectionSum[Z]) * 0.5f;// equation 12
 
-        float prevWindLength = sqrtf(sq(estimatedWind[X]) + sq(estimatedWind[Y]) + sq(estimatedWind[Z]));
-        float windLength = sqrtf(sq(wind[X]) + sq(wind[Y]) + sq(wind[Z]));
+        float prevWindLength = fast_fsqrtf(sq(estimatedWind[X]) + sq(estimatedWind[Y]) + sq(estimatedWind[Z]));
+        float windLength = fast_fsqrtf(sq(wind[X]) + sq(wind[Y]) + sq(wind[Z]));
 
         if (windLength < prevWindLength + 2000) {
             // TODO: Better filtering

@@ -66,7 +66,6 @@
 #define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PB5
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PA15
@@ -151,3 +150,5 @@
 
 //TIMER
 #define MAX_PWM_OUTPUT_PORTS       10
+
+#define USE_DSHOT

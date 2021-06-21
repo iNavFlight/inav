@@ -226,7 +226,6 @@ typedef struct navConfig_s {
 
     struct {
         uint8_t  max_bank_angle;                // multicopter max banking angle (deg)
-        uint16_t hover_throttle;                // multicopter hover throttle
         uint16_t auto_disarm_delay;             // multicopter safety delay for landing detector
 
 #ifdef USE_MR_BRAKING_MODE
@@ -249,12 +248,8 @@ typedef struct navConfig_s {
         uint8_t  max_bank_angle;             // Fixed wing max banking angle (deg)
         uint8_t  max_climb_angle;            // Fixed wing max banking angle (deg)
         uint8_t  max_dive_angle;             // Fixed wing max banking angle (deg)
-        uint16_t cruise_throttle;            // Cruise throttle
         uint16_t cruise_speed;               // Speed at cruise throttle (cm/s), used for time/distance left before RTH
         uint8_t control_smoothness;          // The amount of smoothing to apply to controls for navigation
-        uint16_t min_throttle;               // Minimum allowed throttle in auto mode
-        uint16_t max_throttle;               // Maximum allowed throttle in auto mode
-        uint8_t  pitch_to_throttle;          // Pitch angle (in deg) to throttle gain (in 1/1000's of throttle) (*10)
         uint16_t pitch_to_throttle_smooth;    // How smoothly the autopilot makes pitch to throttle correction inside a deadband defined by pitch_to_throttle_thresh.
         uint8_t  pitch_to_throttle_thresh;   // Threshold from average pitch where momentary pitch_to_throttle correction kicks in. [decidegrees]
         uint16_t loiter_radius;              // Loiter radius when executing PH on a fixed wing
@@ -262,9 +257,8 @@ typedef struct navConfig_s {
         uint16_t launch_velocity_thresh;     // Velocity threshold for swing launch detection
         uint16_t launch_accel_thresh;        // Acceleration threshold for launch detection (cm/s/s)
         uint16_t launch_time_thresh;         // Time threshold for launch detection (ms)
-        uint16_t launch_idle_throttle;       // Throttle to keep at launch idle
-        uint16_t launch_throttle;            // Launch throttle
         uint16_t launch_motor_timer;         // Time to wait before setting launch_throttle (ms)
+        uint16_t launch_idle_motor_timer;    // Time to wait before motor starts at_idle throttle (ms)
         uint16_t launch_motor_spinup_time;   // Time to speed-up motors from idle to launch_throttle (ESC desync prevention)
         uint16_t launch_end_time;            // Time to make the transition from launch angle to leveled and throttle transition from launch throttle to the stick position
         uint16_t launch_min_time;	           // Minimum time in launch mode to prevent possible bump of the sticks from leaving launch mode early
@@ -306,6 +300,7 @@ typedef enum {
 } navWaypointHeadings_e;
 
 typedef enum {
+    NAV_WP_FLAG_HOME = 0x48,
     NAV_WP_FLAG_LAST = 0xA5
 } navWaypointFlags_e;
 
