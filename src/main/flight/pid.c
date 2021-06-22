@@ -820,14 +820,8 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
 
     /*
      * Compute Control Derivative
-     * CD is enabled only when ANGLE and HORIZON modes are not enabled!
      */
-    float newCDTerm;
-    if (levelingEnabled) {
-        newCDTerm = 0.0F;
-    } else {
-        newCDTerm = rateTargetDeltaFiltered * (pidState->kCD / dT);
-    }
+    const float newCDTerm = rateTargetDeltaFiltered * (pidState->kCD / dT);
     DEBUG_SET(DEBUG_CD, axis, newCDTerm);
 
     // TODO: Get feedback from mixer on available correction range for each axis
