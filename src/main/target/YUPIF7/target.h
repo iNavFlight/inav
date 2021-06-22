@@ -44,7 +44,6 @@
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_HMC5883
-#define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
 #define USE_MAG_QMC5883
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
 #define BNO055_I2C_BUS          BUS_I2C1
@@ -116,7 +115,6 @@
 #define I2C_DEVICE              (I2CDEV_1)
 
 // OSD
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI1
 #define MAX7456_CS_PIN          PA14

@@ -83,14 +83,13 @@ PG_RESET_TEMPLATE(reversibleMotorsConfig_t, reversibleMotorsConfig,
     .neutral = SETTING_3D_NEUTRAL_DEFAULT
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(mixerConfig_t, mixerConfig, PG_MIXER_CONFIG, 3);
+PG_REGISTER_WITH_RESET_TEMPLATE(mixerConfig_t, mixerConfig, PG_MIXER_CONFIG, 4);
 
 PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
     .motorDirectionInverted = SETTING_MOTOR_DIRECTION_INVERTED_DEFAULT,
     .platformType = SETTING_PLATFORM_TYPE_DEFAULT,
     .hasFlaps = SETTING_HAS_FLAPS_DEFAULT,
     .appliedMixerPreset = SETTING_MODEL_PREVIEW_TYPE_DEFAULT, //This flag is not available in CLI and used by Configurator only
-    .fwMinThrottleDownPitchAngle = SETTING_FW_MIN_THROTTLE_DOWN_PITCH_DEFAULT
 );
 
 #ifdef BRUSHED_MOTORS
@@ -103,7 +102,7 @@ PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
 
 #define DEFAULT_MAX_THROTTLE    1850
 
-PG_REGISTER_WITH_RESET_TEMPLATE(motorConfig_t, motorConfig, PG_MOTOR_CONFIG, 7);
+PG_REGISTER_WITH_RESET_TEMPLATE(motorConfig_t, motorConfig, PG_MOTOR_CONFIG, 8);
 
 PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .motorPwmProtocol = SETTING_MOTOR_PWM_PROTOCOL_DEFAULT,
@@ -112,17 +111,11 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .mincommand = SETTING_MIN_COMMAND_DEFAULT,
     .motorAccelTimeMs = SETTING_MOTOR_ACCEL_TIME_DEFAULT,
     .motorDecelTimeMs = SETTING_MOTOR_DECEL_TIME_DEFAULT,
-    .throttleIdle = SETTING_THROTTLE_IDLE_DEFAULT,
-    .throttleScale = SETTING_THROTTLE_SCALE_DEFAULT,
     .motorPoleCount = SETTING_MOTOR_POLES_DEFAULT,            // Most brushless motors that we use are 14 poles
-#ifdef USE_DSHOT
-    .flipOverAfterPowerFactor = SETTING_FLIP_OVER_AFTER_CRASH_POWER_FACTOR_DEFAULT,
-#endif
 );
 
 PG_REGISTER_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer, PG_MOTOR_MIXER, 0);
 
-#define CRASH_OVER_AFTER_CRASH_FLIP_DEADBAND 20.0f
 #define CRASH_OVER_AFTER_CRASH_FLIP_STICK_MIN 0.15f
 
 typedef void (*motorRateLimitingApplyFnPtr)(const float dT);
@@ -131,7 +124,7 @@ static EXTENDED_FASTRAM motorRateLimitingApplyFnPtr motorRateLimitingApplyFn;
 int getThrottleIdleValue(void)
 {
     if (!throttleIdleValue) {
-        throttleIdleValue = motorConfig()->mincommand + (((motorConfig()->maxthrottle - motorConfig()->mincommand) / 100.0f) * motorConfig()->throttleIdle);
+        throttleIdleValue = motorConfig()->mincommand + (((motorConfig()->maxthrottle - motorConfig()->mincommand) / 100.0f) * currentBatteryProfile->motor.throttleIdle);
     }
 
     return throttleIdleValue;
@@ -328,10 +321,10 @@ static uint16_t handleOutputScaling(
     }
     return value;
 }
-static void applyFlipOverAfterCrashModeToMotors(void) {
+static void applyTurtleModeToMotors(void) {
 
     if (ARMING_FLAG(ARMED)) {
-        const float flipPowerFactor = ((float)motorConfig()->flipOverAfterPowerFactor)/100.0f;
+        const float flipPowerFactor = ((float)currentBatteryProfile->motor.turtleModePowerFactor)/100.0f;
         const float stickDeflectionPitchAbs = ABS(((float) rcCommand[PITCH]) / 500.0f);
         const float stickDeflectionRollAbs = ABS(((float) rcCommand[ROLL]) / 500.0f);
         const float stickDeflectionYawAbs = ABS(((float) rcCommand[YAW]) / 500.0f);
@@ -348,8 +341,8 @@ static void applyFlipOverAfterCrashModeToMotors(void) {
         float signRoll = rcCommand[ROLL] < 0 ? 1 : -1;
         float signYaw = (float)((rcCommand[YAW] < 0 ? 1 : -1) * (mixerConfig()->motorDirectionInverted ? 1 : -1));
 
-        float stickDeflectionLength = sqrtf(sq(stickDeflectionPitchAbs) + sq(stickDeflectionRollAbs));
-        float stickDeflectionExpoLength = sqrtf(sq(stickDeflectionPitchExpo) + sq(stickDeflectionRollExpo));
+        float stickDeflectionLength = fast_fsqrtf(sq(stickDeflectionPitchAbs) + sq(stickDeflectionRollAbs));
+        float stickDeflectionExpoLength = fast_fsqrtf(sq(stickDeflectionPitchExpo) + sq(stickDeflectionRollExpo));
 
         if (stickDeflectionYawAbs > MAX(stickDeflectionPitchAbs, stickDeflectionRollAbs)) {
             // If yaw is the dominant, disable pitch and roll
@@ -363,8 +356,8 @@ static void applyFlipOverAfterCrashModeToMotors(void) {
         }
 
         const float cosPhi = (stickDeflectionLength > 0) ? (stickDeflectionPitchAbs + stickDeflectionRollAbs) /
-                                                           (sqrtf(2.0f) * stickDeflectionLength) : 0;
-        const float cosThreshold = sqrtf(3.0f) / 2.0f; // cos(PI/6.0f)
+                                                           (fast_fsqrtf(2.0f) * stickDeflectionLength) : 0;
+        const float cosThreshold = fast_fsqrtf(3.0f) / 2.0f; // cos(PI/6.0f)
 
         if (cosPhi < cosThreshold) {
             // Enforce either roll or pitch exclusively, if not on diagonal
@@ -394,13 +387,7 @@ static void applyFlipOverAfterCrashModeToMotors(void) {
 
             motorOutputNormalised = MIN(1.0f, flipPower * motorOutputNormalised);
 
-            float motorOutput = (float)motorConfig()->mincommand + motorOutputNormalised * (float)motorConfig()->maxthrottle;
-
-            // Add a little bit to the motorOutputMin so props aren't spinning when sticks are centered
-            motorOutput = (motorOutput < (float)motorConfig()->mincommand + CRASH_OVER_AFTER_CRASH_FLIP_DEADBAND) ? DSHOT_DISARM_COMMAND : (
-                    motorOutput - CRASH_OVER_AFTER_CRASH_FLIP_DEADBAND);
-
-            motor[i] = motorOutput;
+            motor[i] = (int16_t)scaleRangef(motorOutputNormalised, 0, 1, motorConfig()->mincommand, motorConfig()->maxthrottle);
         }
     } else {
         // Disarmed mode
@@ -532,8 +519,8 @@ static int getReversibleMotorsThrottleDeadband(void)
 void FAST_CODE mixTable(const float dT)
 {
 #ifdef USE_DSHOT
-    if (FLIGHT_MODE(FLIP_OVER_AFTER_CRASH)) {
-        applyFlipOverAfterCrashModeToMotors();
+    if (FLIGHT_MODE(TURTLE_MODE)) {
+        applyTurtleModeToMotors();
         return;
     }
 #endif
@@ -609,9 +596,9 @@ void FAST_CODE mixTable(const float dT)
 
         // Throttle scaling to limit max throttle when battery is full
     #ifdef USE_PROGRAMMING_FRAMEWORK
-        mixerThrottleCommand = ((mixerThrottleCommand - throttleRangeMin) * getThrottleScale(motorConfig()->throttleScale)) + throttleRangeMin;
+        mixerThrottleCommand = ((mixerThrottleCommand - throttleRangeMin) * getThrottleScale(currentBatteryProfile->motor.throttleScale)) + throttleRangeMin;
     #else
-        mixerThrottleCommand = ((mixerThrottleCommand - throttleRangeMin) * motorConfig()->throttleScale) + throttleRangeMin;
+        mixerThrottleCommand = ((mixerThrottleCommand - throttleRangeMin) * currentBatteryProfile->motor.throttleScale) + throttleRangeMin;
     #endif
         // Throttle compensation based on battery voltage
         if (feature(FEATURE_THR_VBAT_COMP) && isAmperageConfigured() && feature(FEATURE_VBAT)) {

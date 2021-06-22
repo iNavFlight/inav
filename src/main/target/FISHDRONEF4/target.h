@@ -60,7 +60,6 @@
 #define USE_MAG_IST8308
 #define USE_MAG_QMC5883
 #define USE_MAG_LIS3MDL
-#define MAG_IST8310_ALIGN CW270_DEG
 
 // *************** Temperature sensor *****************
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
@@ -79,7 +78,6 @@
 #define SPI2_MISO_PIN   PC2
 #define SPI2_MOSI_PIN   PC3
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          SPI2_NSS_PIN

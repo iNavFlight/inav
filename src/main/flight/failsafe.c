@@ -51,6 +51,7 @@
 
 #include "rx/rx.h"
 
+#include "sensors/battery.h"
 #include "sensors/sensors.h"
 
 /*
@@ -66,13 +67,12 @@
 
 static failsafeState_t failsafeState;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(failsafeConfig_t, failsafeConfig, PG_FAILSAFE_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(failsafeConfig_t, failsafeConfig, PG_FAILSAFE_CONFIG, 2);
 
 PG_RESET_TEMPLATE(failsafeConfig_t, failsafeConfig,
     .failsafe_delay = SETTING_FAILSAFE_DELAY_DEFAULT,                                   // 0.5 sec
     .failsafe_recovery_delay = SETTING_FAILSAFE_RECOVERY_DELAY_DEFAULT,                 // 0.5 seconds (plus 200ms explicit delay)
     .failsafe_off_delay = SETTING_FAILSAFE_OFF_DELAY_DEFAULT,                           // 20sec
-    .failsafe_throttle = SETTING_FAILSAFE_THROTTLE_DEFAULT,                             // default throttle off.
     .failsafe_throttle_low_delay = SETTING_FAILSAFE_THROTTLE_LOW_DELAY_DEFAULT,                                   // default throttle low delay for "just disarm" on failsafe condition
     .failsafe_procedure = SETTING_FAILSAFE_PROCEDURE_DEFAULT,                           // default full failsafe procedure
     .failsafe_fw_roll_angle = SETTING_FAILSAFE_FW_ROLL_ANGLE_DEFAULT,                   // 20 deg left
@@ -218,7 +218,7 @@ bool failsafeRequiresMotorStop(void)
 {
     return failsafeState.active &&
            failsafeState.activeProcedure == FAILSAFE_PROCEDURE_AUTO_LANDING &&
-           failsafeConfig()->failsafe_throttle < getThrottleIdleValue();
+           currentBatteryProfile->failsafe_throttle < getThrottleIdleValue();
 }
 
 void failsafeStartMonitoring(void)
@@ -264,13 +264,13 @@ void failsafeApplyControlInput(void)
         autoRcCommand[ROLL] = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_roll_angle, pidProfile()->max_angle_inclination[FD_ROLL]);
         autoRcCommand[PITCH] = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_pitch_angle, pidProfile()->max_angle_inclination[FD_PITCH]);
         autoRcCommand[YAW] = -pidRateToRcCommand(failsafeConfig()->failsafe_fw_yaw_rate, currentControlRateProfile->stabilized.rates[FD_YAW]);
-        autoRcCommand[THROTTLE] = failsafeConfig()->failsafe_throttle;
+        autoRcCommand[THROTTLE] = currentBatteryProfile->failsafe_throttle;
     }
     else {
         for (int i = 0; i < 3; i++) {
             autoRcCommand[i] = 0;
         }
-        autoRcCommand[THROTTLE] = failsafeConfig()->failsafe_throttle;
+        autoRcCommand[THROTTLE] = currentBatteryProfile->failsafe_throttle;
     }
 
     // Apply channel values

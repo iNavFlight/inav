@@ -42,14 +42,12 @@
 
 #define USE_MAG
 #define USE_MAG_MPU9250
-#define MAG_MPU9250_ALIGN       CW90_DEG_FLIP
 
 #define USE_BARO
 #define USE_BARO_BMP280
 #define BMP280_CS_PIN           PC5
 #define BMP280_SPI_BUS          BUS_SPI3
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_CS_PIN          PA4
 #define MAX7456_SPI_BUS         BUS_SPI1

@@ -85,7 +85,6 @@
 #define SPI2_MOSI_PIN   	    PB15
 
 #define USE_MAG_RM3100
-#define MAG_RM3100_ALIGN        CW0_DEG_FLIP
 #define RM3100_CS_PIN           PB12
 #define RM3100_SPI_BUS          BUS_SPI2
 
