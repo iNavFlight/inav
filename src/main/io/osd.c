@@ -2397,8 +2397,6 @@ static bool osdDrawSingleElement(uint8_t item)
             }
             bool efficiencyValid = (value > 0) && (gpsSol.groundSpeed > 100);
             switch (osdConfig()->units) {
-                case OSD_UNIT_UK:
-                    FALLTHROUGH;
                 case OSD_UNIT_IMPERIAL:
                     moreThanAh = osdFormatCentiNumber(buff, value * METERS_PER_MILE / 10, 1000, 0, 2, 3);
                     if (!moreThanAh) {
@@ -2413,6 +2411,8 @@ static bool osdDrawSingleElement(uint8_t item)
                         buff[5] = '\0';
                     }
                     break;
+                case OSD_UNIT_UK:
+                    FALLTHROUGH;
                 case OSD_UNIT_METRIC:
                     moreThanAh = osdFormatCentiNumber(buff, value * 100, 1000, 0, 2, 3);
                     if (!moreThanAh) {
@@ -2452,12 +2452,12 @@ static bool osdDrawSingleElement(uint8_t item)
             }
             bool efficiencyValid = (value > 0) && (gpsSol.groundSpeed > 100);
             switch (osdConfig()->units) {
-                case OSD_UNIT_UK:
-                    FALLTHROUGH;
                 case OSD_UNIT_IMPERIAL:
                     osdFormatCentiNumber(buff, value * METERS_PER_MILE / 10000, 0, 2, 0, 3);
                     buff[3] = SYM_WH_MI;
                     break;
+                case OSD_UNIT_UK:
+                    FALLTHROUGH;
                 case OSD_UNIT_METRIC:
                     osdFormatCentiNumber(buff, value / 10, 0, 2, 0, 3);
                     buff[3] = SYM_WH_KM;
