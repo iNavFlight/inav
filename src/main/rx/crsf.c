@@ -241,7 +241,7 @@ STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
             rxLinkStatistics.uplinkTXPower = crsfPowerStates[linkStats->uplinkTXPower];
             rxLinkStatistics.activeAnt = linkStats->activeAntenna;
 
-            lqTrackerSet(rxRuntimeConfig->lqTracker, scaleRange(constrain(rxLinkStatistics.uplinkRSSI, -130, -30), -130, -30, 0, RSSI_MAX_VALUE));
+            lqTrackerSet(rxRuntimeConfig->lqTracker, scaleRange(constrain(rxLinkStatistics.uplinkRSSI, -120, -30), -120, -30, 0, RSSI_MAX_VALUE));
 
             // This is not RC channels frame, update channel value but don't indicate frame completion
             return RX_FRAME_PENDING;
