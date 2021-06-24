@@ -3240,7 +3240,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
             canActivateWaypoint = true;
         }
 
-        if (IS_RC_MODE_ACTIVE(BOXNAVPOSHOLD)) {
+        if (IS_RC_MODE_ACTIVE(BOXNAVPOSHOLD) && isFixedWingLaunchFinishedOrAborted()) {
             if (FLIGHT_MODE(NAV_POSHOLD_MODE) || (canActivatePosHold && canActivateAltHold))
                 return NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D;
         }
