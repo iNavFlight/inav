@@ -140,7 +140,7 @@ void imuConfigure(void)
     imuRuntimeConfig.dcm_kp_acc = imuConfig()->dcm_kp_acc / 10000.0f;
     imuRuntimeConfig.dcm_ki_acc = imuConfig()->dcm_ki_acc / 10000.0f;
     imuRuntimeConfig.dcm_kp_mag = imuConfig()->dcm_kp_mag / 10000.0f;
-    imuRuntimeConfig.dcm_ki_mag = imuConfig()->dcm_ki_mag / 10000.0f;
+    imuRuntimeConfig.dcm_ki_mag = imuConfig()->dcm_ki_mag > 0 ? imuConfig()->dcm_ki_mag / 10000.0f : 0;
     imuRuntimeConfig.small_angle = imuConfig()->small_angle;
 }
 
