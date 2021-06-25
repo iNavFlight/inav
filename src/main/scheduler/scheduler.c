@@ -271,7 +271,7 @@ void FAST_CODE NOINLINE scheduler(void)
 
         if (!forcedRealTimeTask && task->dynamicPriority > selectedTaskDynamicPriority) {
             selectedTaskDynamicPriority = task->dynamicPriority;
-            selectedTask = task;
+            selectedTask = task;e
         }
     }
 
