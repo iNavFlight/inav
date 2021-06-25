@@ -2220,7 +2220,7 @@ groups:
     condition: USE_AUTOTUNE_FIXED_WING
     members:
       - name: fw_autotune_min_stick
-        description: "Minimum stick input [%] to consider overshoot/undershoot detection"
+        description: "Minimum stick input [%], after applying deadband and expo, to consider overshoot/undershoot detection"
         default_value: 50
         field: fw_min_stick
         min: 0
@@ -2251,7 +2251,7 @@ groups:
         type: uint8_t
       - name: fw_autotune_max_rate_deflection
         description: "The target percentage of maximum mixer output used for determining the rates in `AUTO` and `LIMIT`."
-        default_value: 90
+        default_value: 80
         field: fw_max_rate_deflection
         min: 50
         max: 100
