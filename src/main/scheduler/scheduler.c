@@ -299,9 +299,7 @@ void FAST_CODE NOINLINE scheduler(void)
 #if defined(SCHEDULER_DEBUG)
         DEBUG_SET(DEBUG_SCHEDULER, 2, micros() - currentTimeUs - taskExecutionTime); // time spent in scheduler
 #endif
-    } 
-    
-    if (!selectedTask || forcedRealTimeTask) {
+    } else {
         // Execute system real-time callbacks and account for them to SYSTEM account
         const timeUs_t currentTimeBeforeTaskCall = micros();
         taskRunRealtimeCallbacks(currentTimeBeforeTaskCall);
