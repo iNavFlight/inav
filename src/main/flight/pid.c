@@ -138,7 +138,7 @@ static EXTENDED_FASTRAM float antigravityAccelerator;
 #endif
 
 #define D_BOOST_GYRO_LPF_HZ 80    // Biquad lowpass input cutoff to peak D around propwash frequencies
-#define D_BOOST_LPF_HZ 10         // PT1 lowpass cutoff to smooth the boost effect
+#define D_BOOST_LPF_HZ 7          // PT1 lowpass cutoff to smooth the boost effect
 
 #ifdef USE_D_BOOST
 static EXTENDED_FASTRAM float dBoostFactor;
