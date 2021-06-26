@@ -236,8 +236,13 @@ void resetFixedWingPositionController(void)
 
 static int8_t loiterDirection(void) {
     int8_t dir = 1; //NAV_LOITER_RIGHT
-    if (pidProfile()->loiter_direction == NAV_LOITER_LEFT) dir = -1;
+
+    if (pidProfile()->loiter_direction == NAV_LOITER_LEFT) {
+        dir = -1;
+    }
+
     if (pidProfile()->loiter_direction == NAV_LOITER_YAW) {
+
         if (rcCommand[YAW] < -250) { 
             loiterDirYaw = 1; //RIGHT //yaw is contrariwise
         }
@@ -248,7 +253,11 @@ static int8_t loiterDirection(void) {
 
         dir = loiterDirYaw;
     }
-    if (IS_RC_MODE_ACTIVE(BOXLOITERDIRCHN)) dir *= -1;
+
+    if (IS_RC_MODE_ACTIVE(BOXLOITERDIRCHN)) { 
+        dir *= -1;
+    }
+
     return dir;
 }
 
