@@ -2847,7 +2847,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #ifdef NAV_NON_VOLATILE_WAYPOINT_STORAGE
     case MSP_WP_MISSION_LOAD:
         sbufReadU8Safe(NULL, src);    // Mission ID (reserved)
-        if ((dataSize != 1) || (!loadNonVolatileWaypointList()))
+        if ((dataSize != 1) || (!loadNonVolatileWaypointList(false)))
             return MSP_RESULT_ERROR;
         break;
 
