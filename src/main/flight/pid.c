@@ -100,6 +100,7 @@ typedef struct {
 #ifdef USE_D_BOOST
     pt1Filter_t dBoostLpf;
     biquadFilter_t dBoostGyroLpf;
+    float dBoostTargetAcceleration;
 #endif
     uint16_t pidSumLimit;
     filterApply4FnPtr ptermFilterApplyFn;
@@ -704,7 +705,7 @@ static float FAST_CODE applyDBoost(pidState_t *pidState, float dT) {
         dBoost = scaleRangef(dBoostGyroAcceleration, 0.0f, dBoostMaxAtAlleceleration, 1.0f, dBoostFactor);
     } else {
         //Setpoint is accelerating, we want to boost response
-        dBoost = scaleRangef(dBoostRateAcceleration, 0.0f, dBoostMaxAtAlleceleration, 0.0f, 1.0f);
+        dBoost = scaleRangef(dBoostRateAcceleration, 0.0f, pidState->dBoostTargetAcceleration, 1.0f, 0.0f);
     }
 
     dBoost = pt1FilterApply4(&pidState->dBoostLpf, dBoost, D_BOOST_LPF_HZ, dT);
@@ -1197,6 +1198,13 @@ void pidInit(void)
 #endif
 
     for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
+
+    #ifdef USE_D_BOOST
+        // Rate * 10 * 10. First 10 is to convert stick to DPS. Second 10 is to convert target to acceleration. 
+        // We assume, max acceleration is when pilot deflects the stick fully in 100ms
+        pidState[axis].dBoostTargetAcceleration = currentControlRateProfile->stabilized.rates[axis] * 10 * 10;
+    #endif
+
         pidState[axis].axis = axis;
         if (axis == FD_YAW) {
             pidState[axis].pidSumLimit = pidProfile()->pidSumLimitYaw;
