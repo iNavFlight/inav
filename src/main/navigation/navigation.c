@@ -3596,7 +3596,7 @@ void navigationInit(void)
 
 #if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE)
     if (navConfig()->general.waypoint_load_on_boot)
-        loadNonVolatileWaypointList();
+        loadNonVolatileWaypointList(true);
 #endif
 }
 
