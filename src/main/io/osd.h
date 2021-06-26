@@ -238,7 +238,8 @@ typedef enum {
 typedef enum {
     OSD_UNIT_IMPERIAL,
     OSD_UNIT_METRIC,
-    OSD_UNIT_UK, // Show speed in mp/h, other values in metric
+    OSD_UNIT_METRIC_MPH, // Old UK units, all metric except speed in mph
+    OSD_UNIT_UK, // Show everything in imperial, temperature in C
 
     OSD_UNIT_MAX = OSD_UNIT_UK,
 } osd_unit_e;
