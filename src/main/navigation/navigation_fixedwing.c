@@ -655,24 +655,26 @@ void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags,
                     // Motor has been stopped by user. Update target altitude and bypass navigation pitch/throttle control
                     resetFixedWingAltitudeController();
                     setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, posControl.actualState.yaw, NAV_POS_UPDATE_Z);
-                } else
+                } else {
                     applyFixedWingAltitudeAndThrottleController(currentTimeUs);
+                }
             }
 
-            if (navStateFlags & NAV_CTL_POS)
+            if (navStateFlags & NAV_CTL_POS) {
                 applyFixedWingPositionController(currentTimeUs);
+            }
 
         } else {
             posControl.rcAdjustment[PITCH] = 0;
             posControl.rcAdjustment[ROLL] = 0;
         }
 
-        if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && posControl.flags.isAdjustingPosition){
+        if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && posControl.flags.isAdjustingPosition) {
             rcCommand[ROLL] = applyDeadbandRescaled(rcCommand[ROLL], rcControlsConfig()->pos_hold_deadband, -500, 500);
         }
 
         //if (navStateFlags & NAV_CTL_YAW)
-        if ((navStateFlags & NAV_CTL_ALT) || (navStateFlags & NAV_CTL_POS)){
+        if ((navStateFlags & NAV_CTL_ALT) || (navStateFlags & NAV_CTL_POS)) {
             applyFixedWingPitchRollThrottleController(navStateFlags, currentTimeUs);
         }
     }
