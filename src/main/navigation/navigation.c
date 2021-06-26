@@ -2874,11 +2874,13 @@ bool loadNonVolatileWaypointList(bool clearIfLoaded)
     if (ARMING_FLAG(ARMED))
         return false;
 
-    resetWaypointList();
-
+    // if forced and waypoints are already loaded, just unload them.
     if (clearIfLoaded && posControl.waypointCount > 0) {
+        resetWaypointList();
         return false;
     }
+
+    resetWaypointList();
 
     for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {
         // Load waypoint
