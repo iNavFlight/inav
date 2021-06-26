@@ -168,8 +168,6 @@
 
 #define CURRENT_METER_SCALE         300
 
-#define USE_OSD
-
 #define USE_LED_STRIP
 #define WS2811_PIN                      PA1
 

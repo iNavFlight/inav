@@ -6,7 +6,7 @@
 
 * STM32F411 CPU
 * OSD
-* BMP280 barometer
+* BMP280 barometer (DSP310 with new FCs from around June 2021)
 * Integrated PDB for 2 motors
 * 2 UART ports
 * 6 servos

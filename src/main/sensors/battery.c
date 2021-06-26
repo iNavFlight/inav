@@ -36,6 +36,7 @@
 #include "drivers/time.h"
 
 #include "fc/config.h"
+#include "fc/controlrate_profile.h"
 #include "fc/fc_core.h"
 #include "fc/runtime_config.h"
 #include "fc/stats.h"
@@ -93,7 +94,7 @@ static int32_t mWhDrawn = 0;                    // energy (milliWatt hours) draw
 batteryState_e batteryState;
 const batteryProfile_t *currentBatteryProfile;
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(batteryProfile_t, MAX_BATTERY_PROFILE_COUNT, batteryProfiles, PG_BATTERY_PROFILES, 0);
+PG_REGISTER_ARRAY_WITH_RESET_FN(batteryProfile_t, MAX_BATTERY_PROFILE_COUNT, batteryProfiles, PG_BATTERY_PROFILES, 1);
 
 void pgResetFn_batteryProfiles(batteryProfile_t *instance)
 {
@@ -115,7 +116,54 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
                 .warning = SETTING_BATTERY_CAPACITY_WARNING_DEFAULT,
                 .critical = SETTING_BATTERY_CAPACITY_CRITICAL_DEFAULT,
                 .unit = SETTING_BATTERY_CAPACITY_UNIT_DEFAULT,
+            },
+
+            .controlRateProfile = 0,
+
+            .motor = {
+                .throttleIdle = SETTING_THROTTLE_IDLE_DEFAULT,
+                .throttleScale = SETTING_THROTTLE_SCALE_DEFAULT,
+#ifdef USE_DSHOT
+                .turtleModePowerFactor = SETTING_TURTLE_MODE_POWER_FACTOR_DEFAULT,
+#endif
+            },
+
+            .failsafe_throttle = SETTING_FAILSAFE_THROTTLE_DEFAULT,                                 // default throttle off.
+
+            .fwMinThrottleDownPitchAngle = SETTING_FW_MIN_THROTTLE_DOWN_PITCH_DEFAULT,
+
+            .nav = {
+
+                .mc = {
+                    .hover_throttle = SETTING_NAV_MC_HOVER_THR_DEFAULT,
+                },
+
+                .fw = {
+                    .cruise_throttle = SETTING_NAV_FW_CRUISE_THR_DEFAULT,
+                    .max_throttle = SETTING_NAV_FW_MAX_THR_DEFAULT,
+                    .min_throttle = SETTING_NAV_FW_MIN_THR_DEFAULT,
+                    .pitch_to_throttle = SETTING_NAV_FW_PITCH2THR_DEFAULT,                          // pwm units per degree of pitch (10pwm units ~ 1% throttle)
+                    .launch_throttle = SETTING_NAV_FW_LAUNCH_THR_DEFAULT,
+                    .launch_idle_throttle = SETTING_NAV_FW_LAUNCH_IDLE_THR_DEFAULT,                 // Motor idle or MOTOR_STOP
+                }
+
+            },
+
+#if defined(USE_POWER_LIMITS)
+            .powerLimits = {
+                .continuousCurrent = SETTING_LIMIT_CONT_CURRENT_DEFAULT,                            // dA
+                .burstCurrent = SETTING_LIMIT_BURST_CURRENT_DEFAULT,                                // dA
+                .burstCurrentTime = SETTING_LIMIT_BURST_CURRENT_TIME_DEFAULT,                       // dS
+                .burstCurrentFalldownTime = SETTING_LIMIT_BURST_CURRENT_FALLDOWN_TIME_DEFAULT,      // dS
+#ifdef USE_ADC
+                .continuousPower = SETTING_LIMIT_CONT_POWER_DEFAULT,                                // dW
+                .burstPower = SETTING_LIMIT_BURST_POWER_DEFAULT,                                    // dW
+                .burstPowerTime = SETTING_LIMIT_BURST_POWER_TIME_DEFAULT,                           // dS
+                .burstPowerFalldownTime = SETTING_LIMIT_BURST_POWER_FALLDOWN_TIME_DEFAULT,          // dS
+#endif // USE_ADC
             }
+#endif // USE_POWER_LIMITS
+
         );
     }
 }
@@ -197,6 +245,9 @@ void setBatteryProfile(uint8_t profileIndex)
         profileIndex = 0;
     }
     currentBatteryProfile = batteryProfiles(profileIndex);
+    if ((currentBatteryProfile->controlRateProfile > 0) && (currentBatteryProfile->controlRateProfile < MAX_CONTROL_RATE_PROFILE_COUNT)) {
+        setConfigProfile(currentBatteryProfile->controlRateProfile - 1);
+    }
 }
 
 void activateBatteryProfile(void)
