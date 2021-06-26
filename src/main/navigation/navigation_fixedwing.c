@@ -238,8 +238,14 @@ static int8_t loiterDirection(void) {
     int8_t dir = 1; //NAV_LOITER_RIGHT
     if (pidProfile()->loiter_direction == NAV_LOITER_LEFT) dir = -1;
     if (pidProfile()->loiter_direction == NAV_LOITER_YAW) {
-        if (rcCommand[YAW] < -250) loiterDirYaw = 1; //RIGHT //yaw is contrariwise
-        if (rcCommand[YAW] > 250) loiterDirYaw = -1; //LEFT  //see annexCode in fc_core.c
+        if (rcCommand[YAW] < -250) { 
+            loiterDirYaw = 1; //RIGHT //yaw is contrariwise
+        }
+
+        if (rcCommand[YAW] > 250) { 
+            loiterDirYaw = -1; //LEFT  //see annexCode in fc_core.c
+        }
+
         dir = loiterDirYaw;
     }
     if (IS_RC_MODE_ACTIVE(BOXLOITERDIRCHN)) dir *= -1;
@@ -535,10 +541,11 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
 
         // Manual throttle increase
         if (navConfig()->fw.allow_manual_thr_increase && !FLIGHT_MODE(FAILSAFE_MODE)) {
-            if (rcCommand[THROTTLE] < PWM_RANGE_MIN + (PWM_RANGE_MAX - PWM_RANGE_MIN) * 0.95)
+            if (rcCommand[THROTTLE] < PWM_RANGE_MIN + (PWM_RANGE_MAX - PWM_RANGE_MIN) * 0.95){
                 correctedThrottleValue += MAX(0, rcCommand[THROTTLE] - currentBatteryProfile->nav.fw.cruise_throttle);
-            else
+            } else {
                 correctedThrottleValue = motorConfig()->maxthrottle;
+            }
             isAutoThrottleManuallyIncreased = (rcCommand[THROTTLE] > currentBatteryProfile->nav.fw.cruise_throttle);
         } else {
             isAutoThrottleManuallyIncreased = false;
@@ -651,12 +658,14 @@ void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags,
             posControl.rcAdjustment[ROLL] = 0;
         }
 
-        if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && posControl.flags.isAdjustingPosition)
+        if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && posControl.flags.isAdjustingPosition){
             rcCommand[ROLL] = applyDeadbandRescaled(rcCommand[ROLL], rcControlsConfig()->pos_hold_deadband, -500, 500);
+        }
 
         //if (navStateFlags & NAV_CTL_YAW)
-        if ((navStateFlags & NAV_CTL_ALT) || (navStateFlags & NAV_CTL_POS))
+        if ((navStateFlags & NAV_CTL_ALT) || (navStateFlags & NAV_CTL_POS)){
             applyFixedWingPitchRollThrottleController(navStateFlags, currentTimeUs);
+        }
     }
 }
 
