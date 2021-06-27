@@ -1147,7 +1147,7 @@ groups:
         field: motor.turtleModePowerFactor
         default_value: 55
         description: "Turtle mode power factor"
-        condition: "USE_DSHOT"
+        condition: USE_DSHOT
         min: 0
         max: 100
       - name: failsafe_throttle
