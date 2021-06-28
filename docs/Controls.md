@@ -40,7 +40,7 @@ The stick positions are combined to activate different functions:
 
 ![Stick Positions](assets/images/StickPositions.png)
 
-"Load/unload Mission" is a toogle. If no mission is loaded to RAM, the EEPROM mission is loaded; if a mission is in RAM, it is cleared. Successful loading is indicated by the `ACTION_SUCCESS` beep, otherwise the `ACTION_FAIL` beep is played.
+"Load/unload Mission" is a toggle. If no mission is loaded to RAM, the EEPROM mission is loaded; if a mission is in RAM, it is cleared. Successful loading is indicated by the `ACTION_SUCCESS` beep, otherwise the `ACTION_FAIL` beep is played.
 
 ## Yaw control
 
