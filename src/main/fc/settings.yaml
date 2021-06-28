@@ -2215,7 +2215,7 @@ groups:
         min: 0
         max: 20
       - name: tpa_airspeed_attenuation
-        description: "Calculate TPA based on AirSpeed (0 is disabled) ~ 1500 is a recommended value [cm/s]"
+        description: "Calculate PID Attenuation based on AirSpeed (0 is disabled) ~ 1500 is a recommended value [cm/s]"
         default_value: 0
         field: TPA_Scaling_Speed
         condition: USE_PITOT
