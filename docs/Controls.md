@@ -40,6 +40,8 @@ The stick positions are combined to activate different functions:
 
 ![Stick Positions](assets/images/StickPositions.png)
 
+"Load/unload Mission" is a toogle. If no mission is loaded to RAM, the EEPROM mission is loaded; if a mission is in RAM, it is cleared. Successful loading is indicated by the `ACTION_SUCCESS` beep, otherwise the `ACTION_FAIL` beep is played.
+
 ## Yaw control
 
 While arming/disarming with sticks, your yaw stick will be moving to extreme values. In order to prevent your craft from trying to yaw during arming/disarming while on the ground, your yaw input will not cause the craft to yaw when the throttle is LOW (i.e. below the `min_check` setting).
