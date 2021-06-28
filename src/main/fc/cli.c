@@ -119,6 +119,9 @@ uint8_t cliMode = 0;
 #include "sensors/opflow.h"
 #include "sensors/sensors.h"
 #include "sensors/temperature.h"
+#ifdef USE_ESC_SENSOR
+#include "sensors/esc_sensor.h"
+#endif
 
 #include "telemetry/frsky_d.h"
 #include "telemetry/telemetry.h"
@@ -3192,6 +3195,18 @@ static void cliStatus(char *cmdline)
         hardwareSensorStatusNames[getHwOpticalFlowStatus()],
         hardwareSensorStatusNames[getHwGPSStatus()]
     );
+
+#ifdef USE_ESC_SENSOR
+    uint8_t motorCount = getMotorCount();
+    if (STATE(ESC_SENSOR_ENABLED) && motorCount > 0) {
+        cliPrintLinef("ESC Temperature(s): Motor Count = %d", motorCount);
+        for (uint8_t i = 0; i < motorCount; i++) {
+            const escSensorData_t *escState = getEscTelemetry(i); //Get ESC telemetry
+            cliPrintf("ESC %d: %d\260C, ", i, escState->temperature);
+        }
+        cliPrintLinefeed();
+    }
+#endif
 
 #ifdef USE_SDCARD
     cliSdInfo(NULL);

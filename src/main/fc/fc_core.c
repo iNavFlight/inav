@@ -225,7 +225,7 @@ static void updateArmingStatus(void)
 
 	/* CHECK: pitch / roll sticks centered when NAV_LAUNCH_MODE enabled */
 	if (isNavLaunchEnabled()) {
-	  if (areSticksDeflected()) {
+	  if (isRollPitchStickDeflected()) {
 	    ENABLE_ARMING_FLAG(ARMING_DISABLED_ROLLPITCH_NOT_CENTERED);
 	  } else {
 	    DISABLE_ARMING_FLAG(ARMING_DISABLED_ROLLPITCH_NOT_CENTERED);
