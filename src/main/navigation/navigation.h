@@ -145,12 +145,10 @@ typedef enum {
     ON_FW_SPIRAL,
 } navRTHClimbFirst_e;
 
-typedef enum {
-    FW_LAUNCH_START,
-    FW_LAUNCH_DETECTED,
-    FW_LAUNCH_FLYING,
-    FW_LAUNCH_END_ABORT,
-    FW_LAUNCH_END_SUCCESS,
+typedef enum {  // keep aligned with fixedWingLaunchState_t
+    FW_LAUNCH_DETECTED = 4,
+    FW_LAUNCH_ABORTED = 9,
+    FW_LAUNCH_FLYING = 10,
 } navFwLaunchStatus_e;
 
 typedef struct positionEstimationConfig_s {
