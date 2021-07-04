@@ -2,23 +2,23 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   xmlns:dc="http://purl.org/dc/elements/1.1/"
-   xmlns:cc="http://creativecommons.org/ns#"
-   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-   xmlns:svg="http://www.w3.org/2000/svg"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    width="2478.5964mm"
    height="1400.9835mm"
    viewBox="0 0 8782.4284 4964.1146"
    id="svg2"
    version="1.1"
-   inkscape:version="0.92.4 (5da689c313, 2019-01-14)"
+   inkscape:version="1.1 (c4e8f9ed74, 2021-05-24)"
    sodipodi:docname="StickPositions.svg"
-   inkscape:export-filename="C:\Users\teckel.SSCORP\Downloads\StickPositions.png"
+   inkscape:export-filename="StickPositions.png"
    inkscape:export-xdpi="74.996788"
-   inkscape:export-ydpi="74.996788">
+   inkscape:export-ydpi="74.996788"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
   <defs
      id="defs4" />
   <sodipodi:namedview
@@ -29,15 +29,15 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.13995495"
-     inkscape:cx="3633.6202"
-     inkscape:cy="2120.4595"
+     inkscape:cx="2157.8372"
+     inkscape:cy="3265.3365"
      inkscape:document-units="px"
      inkscape:current-layer="g4157"
      showgrid="false"
-     inkscape:window-width="2560"
-     inkscape:window-height="1377"
-     inkscape:window-x="-8"
-     inkscape:window-y="-8"
+     inkscape:window-width="1920"
+     inkscape:window-height="1010"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
      inkscape:window-maximized="1"
      fit-margin-top="1"
      fit-margin-left="1"
@@ -49,7 +49,8 @@
      inkscape:guide-bbox="true"
      inkscape:snap-object-midpoints="true"
      inkscape:snap-others="false"
-     inkscape:object-nodes="true" />
+     inkscape:object-nodes="true"
+     inkscape:pagecheckerboard="0" />
   <metadata
      id="metadata7">
     <rdf:RDF>
@@ -58,7 +59,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -160,7 +161,7 @@
        x="533.55804"
        style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        xml:space="preserve"><tspan
-         style="font-size:286.5987854px;line-height:1.25;text-align:end;text-anchor:end"
+         style="font-size:286.599px;line-height:1.25;text-align:end;text-anchor:end"
          id="tspan4711"
          y="-1909.1018"
          x="533.55804"
@@ -205,7 +206,7 @@
          x="533.55804"
          y="-1488.6938"
          id="tspan4763"
-         style="font-size:286.5987854px;line-height:1.25;text-align:end;text-anchor:end">Profile 2</tspan></text>
+         style="font-size:286.599px;line-height:1.25;text-align:end;text-anchor:end">Profile 2</tspan></text>
     <rect
        ry="0"
        y="-1317.7664"
@@ -242,7 +243,7 @@
        x="533.55804"
        style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        xml:space="preserve"><tspan
-         style="font-size:286.5987854px;line-height:1.25;text-align:end;text-anchor:end"
+         style="font-size:286.599px;line-height:1.25;text-align:end;text-anchor:end"
          id="tspan4815"
          y="-1068.2856"
          x="533.55804"
@@ -287,7 +288,7 @@
          x="533.55811"
          y="583.57056"
          id="tspan4867"
-         style="font-size:286.5987854px;line-height:1.25;text-align:end;text-anchor:end">Calibrate Gyro</tspan></text>
+         style="font-size:286.599px;line-height:1.25;text-align:end;text-anchor:end">Calibrate Gyro</tspan></text>
     <rect
        style="display:inline;opacity:1;fill:none;fill-opacity:1;stroke:#808080;stroke-width:11.05660725;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        id="rect4875"
@@ -328,7 +329,7 @@
          x="533.55811"
          y="1003.9787"
          id="tspan4919"
-         style="font-size:286.5987854px;line-height:1.25;text-align:end;text-anchor:end">Calibrate Acc</tspan></text>
+         style="font-size:286.599px;line-height:1.25;text-align:end;text-anchor:end">Calibrate Acc</tspan></text>
     <rect
        ry="0"
        y="1171.4286"
@@ -365,7 +366,7 @@
        x="536.28436"
        style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        xml:space="preserve"><tspan
-         style="font-size:286.5987854px;line-height:1.25;text-align:end;text-anchor:end"
+         style="font-size:286.599px;line-height:1.25;text-align:end;text-anchor:end"
          id="tspan4971"
          y="1420.9093"
          x="536.2843"
@@ -408,7 +409,7 @@
        x="5680.7969"
        style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        xml:space="preserve"><tspan
-         style="font-size:286.5987854px;line-height:1.25;text-align:end;text-anchor:end"
+         style="font-size:286.599px;line-height:1.25;text-align:end;text-anchor:end"
          id="tspan5651"
          y="-1527.5551"
          x="5680.7969"
@@ -453,7 +454,7 @@
          x="5680.7969"
          y="-1107.1469"
          id="tspan5703"
-         style="font-size:286.5987854px;line-height:1.25;text-align:end;text-anchor:end">Trim Acc Left</tspan></text>
+         style="font-size:286.599px;line-height:1.25;text-align:end;text-anchor:end">Trim Acc Left</tspan></text>
     <rect
        style="display:inline;opacity:1;fill:none;fill-opacity:1;stroke:#808080;stroke-width:11.05660725;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        id="rect5711"
@@ -492,7 +493,7 @@
          x="5680.7969"
          y="-686.73877"
          id="tspan5755"
-         style="font-size:286.5987854px;line-height:1.25;text-align:end;text-anchor:end">Trim Acc Right</tspan></text>
+         style="font-size:286.599px;line-height:1.25;text-align:end;text-anchor:end">Trim Acc Right</tspan></text>
     <rect
        ry="0"
        y="-489.01691"
@@ -527,7 +528,7 @@
        x="5680.7969"
        style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        xml:space="preserve"><tspan
-         style="font-size:286.5987854px;line-height:1.25;text-align:end;text-anchor:end"
+         style="font-size:286.599px;line-height:1.25;text-align:end;text-anchor:end"
          id="tspan5807"
          y="-266.3306"
          x="5680.7969"
@@ -570,7 +571,7 @@
          x="5680.7969"
          y="154.07762"
          id="tspan5859"
-         style="font-size:286.5987854px;line-height:1.25;text-align:end;text-anchor:end">Trim Acc Backwards</tspan></text>
+         style="font-size:286.599px;line-height:1.25;text-align:end;text-anchor:end">Trim Acc Backwards</tspan></text>
     <rect
        ry="0"
        y="351.79944"
@@ -607,7 +608,7 @@
        x="5680.7969"
        style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        xml:space="preserve"><tspan
-         style="font-size:286.5987854px;line-height:1.25;text-align:end;text-anchor:end"
+         style="font-size:286.599px;line-height:1.25;text-align:end;text-anchor:end"
          id="tspan5911"
          y="574.48572"
          x="5680.7969"
@@ -648,11 +649,11 @@
        x="5680.7969"
        style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        xml:space="preserve"><tspan
-         style="font-size:286.5987854px;line-height:1.25;text-align:end;text-anchor:end"
+         style="font-size:286.599px;line-height:1.25;text-align:end;text-anchor:end"
          id="tspan5963"
          y="994.89398"
          x="5680.7969"
-         sodipodi:role="line">Load waypoint mission</tspan></text>
+         sodipodi:role="line">(Un)/load waypoint mission</tspan></text>
     <rect
        style="display:inline;opacity:1;fill:none;fill-opacity:1;stroke:#808080;stroke-width:11.05660725;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        id="rect5971"
@@ -695,7 +696,7 @@
          x="5680.7969"
          y="1415.3022"
          id="tspan6015"
-         style="font-size:286.5987854px;line-height:1.25;text-align:end;text-anchor:end">Save Setting</tspan></text>
+         style="font-size:286.599px;line-height:1.25;text-align:end;text-anchor:end">Save Setting</tspan></text>
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
@@ -706,7 +707,7 @@
          x="5690.6709"
          y="-1955.0773"
          id="tspan4219"
-         style="font-size:286.5987854px;line-height:1.25;text-align:end;text-anchor:end">Enter OSD Menu (CMS)</tspan></text>
+         style="font-size:286.599px;line-height:1.25;text-align:end;text-anchor:end">Enter OSD Menu (CMS)</tspan></text>
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
@@ -717,7 +718,7 @@
          x="2179.2812"
          y="-2663.0625"
          id="tspan7909"
-         style="font-size:352.85842896px;line-height:1.25;text-align:center;text-anchor:middle">Mode 2 Stick Functions</tspan></text>
+         style="font-size:352.858px;line-height:1.25;text-align:center;text-anchor:middle">Mode 2 Stick Functions</tspan></text>
     <rect
        style="display:inline;opacity:1;fill:none;fill-opacity:1;stroke:#808080;stroke-width:11.05660725;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        id="rect927"
@@ -752,7 +753,7 @@
          x="533.55811"
          y="-673.06989"
          id="tspan935"
-         style="font-size:286.5987854px;line-height:1.25;text-align:end;text-anchor:end">Battery profile 1</tspan></text>
+         style="font-size:286.599px;line-height:1.25;text-align:end;text-anchor:end">Battery profile 1</tspan></text>
     <rect
        style="display:inline;opacity:1;fill:none;fill-opacity:1;stroke:#808080;stroke-width:11.05660725;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        id="rect943"
@@ -773,7 +774,7 @@
        x="533.55804"
        style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        xml:space="preserve"><tspan
-         style="font-size:286.5987854px;line-height:1.25;text-align:end;text-anchor:end"
+         style="font-size:286.599px;line-height:1.25;text-align:end;text-anchor:end"
          id="tspan947"
          y="-252.66168"
          x="533.55811"
@@ -802,7 +803,7 @@
          x="533.55811"
          y="167.74652"
          id="tspan959"
-         style="font-size:286.5987854px;line-height:1.25;text-align:end;text-anchor:end">Battery profile 3</tspan></text>
+         style="font-size:286.599px;line-height:1.25;text-align:end;text-anchor:end">Battery profile 3</tspan></text>
     <path
        sodipodi:nodetypes="sssss"
        inkscape:connector-curvature="0"

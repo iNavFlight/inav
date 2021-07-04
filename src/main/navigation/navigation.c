@@ -2869,13 +2869,13 @@ int getWaypointCount(void)
 }
 
 #ifdef NAV_NON_VOLATILE_WAYPOINT_STORAGE
-bool loadNonVolatileWaypointList(void)
+bool loadNonVolatileWaypointList(bool clearIfLoaded)
 {
     if (ARMING_FLAG(ARMED))
         return false;
 
-    // if waypoints are already loaded, just unload them.
-    if (posControl.waypointCount > 0) {
+    // if forced and waypoints are already loaded, just unload them.
+    if (clearIfLoaded && posControl.waypointCount > 0) {
         resetWaypointList();
         return false;
     }
@@ -3598,7 +3598,7 @@ void navigationInit(void)
 
 #if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE)
     if (navConfig()->general.waypoint_load_on_boot)
-        loadNonVolatileWaypointList();
+        loadNonVolatileWaypointList(true);
 #endif
 }
 
