@@ -142,7 +142,7 @@ static inline fpQuaternion_t * quaternionConjugate(fpQuaternion_t * result, cons
 
 static inline fpQuaternion_t * quaternionNormalize(fpQuaternion_t * result, const fpQuaternion_t * q)
 {
-    float mod = sqrtf(quaternionNormSqared(q));
+    float mod = fast_fsqrtf(quaternionNormSqared(q));
     if (mod < 1e-6f) {
         // Length is too small - re-initialize to zero rotation
         result->q0 = 1;

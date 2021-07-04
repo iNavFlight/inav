@@ -181,6 +181,30 @@ static const CMS_Menu cmsx_menuFWSettings = {
     .entries = cmsx_menuFWSettingsEntries
 };
 
+static const OSD_Entry cmsx_menuMissionSettingsEntries[] =
+{
+    OSD_LABEL_ENTRY("-- MISSIONS --"),
+
+    OSD_SETTING_ENTRY("MC WP SLOWDOWN", SETTING_NAV_MC_WP_SLOWDOWN),
+    OSD_SETTING_ENTRY("MISSION FAILSAFE", SETTING_FAILSAFE_MISSION),
+    OSD_SETTING_ENTRY("WP LOAD ON BOOT", SETTING_NAV_WP_LOAD_ON_BOOT),
+    OSD_SETTING_ENTRY("WP REACHED RADIUS", SETTING_NAV_WP_RADIUS),
+    OSD_SETTING_ENTRY("WP SAFE DISTANCE", SETTING_NAV_WP_SAFE_DISTANCE),
+
+    OSD_BACK_AND_END_ENTRY,
+ };
+
+static const CMS_Menu cmsx_menuMissionSettings = {
+#ifdef CMS_MENU_DEBUG
+    .GUARD_text = "MENUMISSIONSETTINGS",
+    .GUARD_type = OME_MENU,
+#endif
+    .onEnter = NULL,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = cmsx_menuMissionSettingsEntries
+};
+
 static const OSD_Entry cmsx_menuNavigationEntries[] =
 {
     OSD_LABEL_ENTRY("-- NAVIGATION --"),
@@ -188,6 +212,7 @@ static const OSD_Entry cmsx_menuNavigationEntries[] =
     OSD_SUBMENU_ENTRY("BASIC SETTINGS", &cmsx_menuNavSettings),
     OSD_SUBMENU_ENTRY("RTH", &cmsx_menuRTH),
     OSD_SUBMENU_ENTRY("FIXED WING", &cmsx_menuFWSettings),
+    OSD_SUBMENU_ENTRY("MISSIONS", &cmsx_menuMissionSettings),
 
     OSD_BACK_AND_END_ENTRY,
 };

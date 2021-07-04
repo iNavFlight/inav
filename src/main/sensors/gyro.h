@@ -87,6 +87,10 @@ typedef struct gyroConfig_s {
     float alphaBetaGammaBoost;
     float alphaBetaGammaHalfLife;
 #endif
+#ifdef USE_GYRO_KALMAN
+    uint16_t kalman_q;
+    uint8_t kalmanEnabled;
+#endif
 } gyroConfig_t;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);

@@ -150,3 +150,5 @@
 
 //TIMER
 #define MAX_PWM_OUTPUT_PORTS       10
+
+#define USE_DSHOT
