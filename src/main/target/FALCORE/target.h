@@ -25,7 +25,6 @@
 #define USE_HARDWARE_PREBOOT_SETUP      // FALCORE board requires some hardware to be set up before booting and detecting sensors
 
 #define BEEPER                  PB4
-#define BEEPER_PWM
 #define BEEPER_PWM_FREQUENCY    2700
 
 #define MPU6500_CS_PIN          PC0
