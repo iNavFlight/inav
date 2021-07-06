@@ -774,7 +774,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, motorConfig()->maxthrottle);
         sbufWriteU16(dst, motorConfig()->mincommand);
 
-        sbufWriteU16(dst, failsafeConfig()->failsafe_throttle);
+        sbufWriteU16(dst, currentBatteryProfile->failsafe_throttle);
 
 #ifdef USE_GPS
         sbufWriteU8(dst, gpsConfig()->provider); // gps_type
@@ -815,7 +815,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, motorConfig()->maxthrottle);
         sbufWriteU16(dst, motorConfig()->mincommand);
 
-        sbufWriteU16(dst, failsafeConfig()->failsafe_throttle);
+        sbufWriteU16(dst, currentBatteryProfile->failsafe_throttle);
 
 #ifdef USE_GPS
         sbufWriteU8(dst, gpsConfig()->provider); // gps_type
@@ -1041,7 +1041,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP_FAILSAFE_CONFIG:
         sbufWriteU8(dst, failsafeConfig()->failsafe_delay);
         sbufWriteU8(dst, failsafeConfig()->failsafe_off_delay);
-        sbufWriteU16(dst, failsafeConfig()->failsafe_throttle);
+        sbufWriteU16(dst, currentBatteryProfile->failsafe_throttle);
         sbufWriteU8(dst, 0);    // was failsafe_kill_switch
         sbufWriteU16(dst, failsafeConfig()->failsafe_throttle_low_delay);
         sbufWriteU8(dst, failsafeConfig()->failsafe_procedure);
@@ -1322,7 +1322,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, navConfig()->general.max_manual_climb_rate);
         sbufWriteU8(dst, navConfig()->mc.max_bank_angle);
         sbufWriteU8(dst, navConfig()->general.flags.use_thr_mid_for_althold);
-        sbufWriteU16(dst, navConfig()->mc.hover_throttle);
+        sbufWriteU16(dst, currentBatteryProfile->nav.mc.hover_throttle);
         break;
 
     case MSP_RTH_AND_LAND_CONFIG:
@@ -1342,13 +1342,13 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_FW_CONFIG:
-        sbufWriteU16(dst, navConfig()->fw.cruise_throttle);
-        sbufWriteU16(dst, navConfig()->fw.min_throttle);
-        sbufWriteU16(dst, navConfig()->fw.max_throttle);
+        sbufWriteU16(dst, currentBatteryProfile->nav.fw.cruise_throttle);
+        sbufWriteU16(dst, currentBatteryProfile->nav.fw.min_throttle);
+        sbufWriteU16(dst, currentBatteryProfile->nav.fw.max_throttle);
         sbufWriteU8(dst, navConfig()->fw.max_bank_angle);
         sbufWriteU8(dst, navConfig()->fw.max_climb_angle);
         sbufWriteU8(dst, navConfig()->fw.max_dive_angle);
-        sbufWriteU8(dst, navConfig()->fw.pitch_to_throttle);
+        sbufWriteU8(dst, currentBatteryProfile->nav.fw.pitch_to_throttle);
         sbufWriteU16(dst, navConfig()->fw.loiter_radius);
         break;
 #endif
@@ -1664,7 +1664,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 {
     uint8_t tmp_u8;
     uint16_t tmp_u16;
-    batteryProfile_t *currentBatteryProfileMutable = (batteryProfile_t*)currentBatteryProfile;
 
     const unsigned int dataSize = sbufBytesRemaining(src);
 
@@ -1867,7 +1866,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         motorConfigMutable()->maxthrottle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
         motorConfigMutable()->mincommand = constrain(sbufReadU16(src), 0, PWM_RANGE_MAX);
 
-        failsafeConfigMutable()->failsafe_throttle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
+        currentBatteryProfileMutable->failsafe_throttle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
 
 #ifdef USE_GPS
         gpsConfigMutable()->provider = sbufReadU8(src); // gps_type
@@ -1915,7 +1914,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             motorConfigMutable()->maxthrottle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
             motorConfigMutable()->mincommand = constrain(sbufReadU16(src), 0, PWM_RANGE_MAX);
 
-            failsafeConfigMutable()->failsafe_throttle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
+            currentBatteryProfileMutable->failsafe_throttle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
 
 #ifdef USE_GPS
             gpsConfigMutable()->provider = sbufReadU8(src); // gps_type
@@ -2293,7 +2292,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             navConfigMutable()->general.max_manual_climb_rate = sbufReadU16(src);
             navConfigMutable()->mc.max_bank_angle = sbufReadU8(src);
             navConfigMutable()->general.flags.use_thr_mid_for_althold = sbufReadU8(src);
-            navConfigMutable()->mc.hover_throttle = sbufReadU16(src);
+            currentBatteryProfileMutable->nav.mc.hover_throttle = sbufReadU16(src);
         } else
             return MSP_RESULT_ERROR;
         break;
@@ -2319,13 +2318,13 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_FW_CONFIG:
         if (dataSize >= 12) {
-            navConfigMutable()->fw.cruise_throttle = sbufReadU16(src);
-            navConfigMutable()->fw.min_throttle = sbufReadU16(src);
-            navConfigMutable()->fw.max_throttle = sbufReadU16(src);
+            currentBatteryProfileMutable->nav.fw.cruise_throttle = sbufReadU16(src);
+            currentBatteryProfileMutable->nav.fw.min_throttle = sbufReadU16(src);
+            currentBatteryProfileMutable->nav.fw.max_throttle = sbufReadU16(src);
             navConfigMutable()->fw.max_bank_angle = sbufReadU8(src);
             navConfigMutable()->fw.max_climb_angle = sbufReadU8(src);
             navConfigMutable()->fw.max_dive_angle = sbufReadU8(src);
-            navConfigMutable()->fw.pitch_to_throttle = sbufReadU8(src);
+            currentBatteryProfileMutable->nav.fw.pitch_to_throttle = sbufReadU8(src);
             navConfigMutable()->fw.loiter_radius = sbufReadU16(src);
         } else
             return MSP_RESULT_ERROR;
@@ -2695,7 +2694,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         if (dataSize >= 20) {
             failsafeConfigMutable()->failsafe_delay = sbufReadU8(src);
             failsafeConfigMutable()->failsafe_off_delay = sbufReadU8(src);
-            failsafeConfigMutable()->failsafe_throttle = sbufReadU16(src);
+            currentBatteryProfileMutable->failsafe_throttle = sbufReadU16(src);
             sbufReadU8(src); // was failsafe_kill_switch
             failsafeConfigMutable()->failsafe_throttle_low_delay = sbufReadU16(src);
             failsafeConfigMutable()->failsafe_procedure = sbufReadU8(src);
@@ -2847,7 +2846,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #ifdef NAV_NON_VOLATILE_WAYPOINT_STORAGE
     case MSP_WP_MISSION_LOAD:
         sbufReadU8Safe(NULL, src);    // Mission ID (reserved)
-        if ((dataSize != 1) || (!loadNonVolatileWaypointList()))
+        if ((dataSize != 1) || (!loadNonVolatileWaypointList(false)))
             return MSP_RESULT_ERROR;
         break;
 

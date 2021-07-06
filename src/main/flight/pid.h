@@ -156,16 +156,8 @@ typedef struct pidProfile_s {
     uint16_t navFwPosHdgPidsumLimit;
     uint8_t controlDerivativeLpfHz;
 
-#ifdef USE_GYRO_KALMAN
-    uint16_t kalman_q;
-    uint16_t kalman_w;
-    uint16_t kalman_sharpness;
-    uint8_t kalmanEnabled;
-#endif
-
     float fixedWingLevelTrim;
     float fixedWingLevelTrimGain;
-    float fixedWingLevelTrimDeadband;
 #ifdef USE_SMITH_PREDICTOR
     float smithPredictorStrength;
     float smithPredictorDelay;
@@ -233,3 +225,4 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
 pidType_e pidIndexGetType(pidIndex_e pidIndex);
 
 void updateFixedWingLevelTrim(timeUs_t currentTimeUs);
+float getFixedWingLevelTrim(void);
