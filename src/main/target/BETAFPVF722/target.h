@@ -47,9 +47,13 @@
 
 // *************** I2C/Baro/Mag *********************
 #define USE_I2C
+
 #define USE_I2C_DEVICE_1
-#define I2C1_SCL                PB8        // SCL pad
-#define I2C1_SDA                PB9        // SDA pad
+#define I2C1_SCL                PB8
+#define I2C1_SDA                PB9
+
+#define USE_I2C_DEVICE_2
+#define I2C_DEVICE_2_SHARES_UART3
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
@@ -60,7 +64,7 @@
 #define USE_BARO_SPL06
 
 #define USE_MAG
-#define MAG_I2C_BUS             BUS_I2C1
+#define MAG_I2C_BUS             BUS_I2C2
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
@@ -68,10 +72,9 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
-#define TEMPERATURE_I2C_BUS     BUS_I2C1
-
-#define PITOT_I2C_BUS           BUS_I2C1
-
+#define TEMPERATURE_I2C_BUS     BUS_I2C2
+#define PITOT_I2C_BUS           BUS_I2C2
+#define RANGEFINDER_I2C_BUS     BUS_I2C2
 
 // *************** OSD*************************
 #define USE_SPI_DEVICE_3
@@ -116,8 +119,6 @@
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
-#define SERIALRX_UART           SERIAL_PORT_USART3
-
 
 // *************** ADC *****************************
 #define USE_ADC
