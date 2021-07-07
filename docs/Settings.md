@@ -452,6 +452,16 @@ If the remaining battery capacity goes below this threshold the beeper will emit
 
 ---
 
+### beeper_pwm_mode
+
+Allows disabling PWM mode for beeper on some targets. Switch from ON to OFF if the external beeper sound is weak. Do not switch from OFF to ON without checking if the board supports PWM beeper mode
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF |  |  |
+
+---
+
 ### blackbox_device
 
 Selection of where to write blackbox data

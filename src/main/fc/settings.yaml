@@ -3734,6 +3734,11 @@ groups:
         default_value: 1
         field: dshot_beeper_tone
         type: uint8_t
+      - name: beeper_pwm_mode
+        field: pwmMode
+        type: bool
+        default_value: OFF
+        description: "Allows disabling PWM mode for beeper on some targets. Switch from ON to OFF if the external beeper sound is weak. Do not switch from OFF to ON without checking if the board supports PWM beeper mode"
 
   - name: PG_POWER_LIMITS_CONFIG
     type: powerLimitsConfig_t

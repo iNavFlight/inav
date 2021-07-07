@@ -86,6 +86,7 @@ typedef struct beeperConfig_s {
     uint32_t preferred_beeper_off_flags;
     bool dshot_beeper_enabled;
     uint8_t dshot_beeper_tone;
+    bool pwmMode;
 } beeperConfig_t;
 
 PG_DECLARE(beeperConfig_t, beeperConfig);
