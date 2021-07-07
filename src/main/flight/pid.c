@@ -107,7 +107,7 @@ typedef struct {
     bool itermLimitActive;
     bool itermFreezeActive;
 
-    biquadFilter_t rateTargetFilter;
+    pt2Filter_t rateTargetFilter;
 
     smithPredictor_t smithPredictor;
 } pidState_t;
@@ -353,7 +353,7 @@ bool pidInitFilters(void)
 
     if (pidProfile()->controlDerivativeLpfHz) {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            biquadFilterInitLPF(&pidState[axis].rateTargetFilter, pidProfile()->controlDerivativeLpfHz, getLooptime());
+            pt2FilterInit(&pidState[axis].rateTargetFilter, pt2FilterGain(pidProfile()->controlDerivativeLpfHz, refreshRate * 1e-6f));
         }
     }
 
@@ -819,18 +819,12 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
     const float newDTerm = dTermProcess(pidState, dT);
 
     const float rateTargetDelta = pidState->rateTarget - pidState->previousRateTarget;
-    const float rateTargetDeltaFiltered = biquadFilterApply(&pidState->rateTargetFilter, rateTargetDelta);
+    const float rateTargetDeltaFiltered = pt2FilterApply(&pidState->rateTargetFilter, rateTargetDelta);
 
     /*
      * Compute Control Derivative
-     * CD is enabled only when ANGLE and HORIZON modes are not enabled!
      */
-    float newCDTerm;
-    if (levelingEnabled) {
-        newCDTerm = 0.0F;
-    } else {
-        newCDTerm = rateTargetDeltaFiltered * (pidState->kCD / dT);
-    }
+    const float newCDTerm = rateTargetDeltaFiltered * (pidState->kCD / dT);
     DEBUG_SET(DEBUG_CD, axis, newCDTerm);
 
     // TODO: Get feedback from mixer on available correction range for each axis

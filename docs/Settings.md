@@ -452,6 +452,16 @@ If the remaining battery capacity goes below this threshold the beeper will emit
 
 ---
 
+### beeper_pwm_mode
+
+Allows disabling PWM mode for beeper on some targets. Switch from ON to OFF if the external beeper sound is weak. Do not switch from OFF to ON without checking if the board supports PWM beeper mode
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF |  |  |
+
+---
+
 ### blackbox_device
 
 Selection of where to write blackbox data
@@ -1158,13 +1168,13 @@ The target percentage of maximum mixer output used for determining the rates in 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 90 | 50 | 100 |
+| 80 | 50 | 100 |
 
 ---
 
 ### fw_autotune_min_stick
 
-Minimum stick input [%] to consider overshoot/undershoot detection
+Minimum stick input [%], after applying deadband and expo, to start recording the plane's response to stick input.
 
 | Default | Min | Max |
 | --- | --- | --- |

@@ -652,10 +652,10 @@ static int32_t osdConvertVelocityToUnit(int32_t vel)
     switch (osdConfig()->units) {
         case OSD_UNIT_UK:
             FALLTHROUGH;
-
+        case OSD_UNIT_METRIC_MPH:
+            FALLTHROUGH;
         case OSD_UNIT_IMPERIAL:
             return (vel * 224) / 10000; // Convert to mph
-
         case OSD_UNIT_METRIC:
             return (vel * 36) / 1000;   // Convert to kmh
     }
@@ -692,6 +692,8 @@ void osdDJIFormatVelocityStr(char* buff)
     switch (osdConfig()->units) {
         case OSD_UNIT_UK:
             FALLTHROUGH;
+        case OSD_UNIT_METRIC_MPH:
+            FALLTHROUGH;
         case OSD_UNIT_IMPERIAL:
             tfp_sprintf(buff, "%s %3d MPH", sourceBuf, (int)osdConvertVelocityToUnit(vel));
             break;
@@ -719,6 +721,8 @@ static void osdDJIFormatDistanceStr(char *buff, int32_t dist)
     int32_t centifeet;
 
     switch (osdConfig()->units) {
+        case OSD_UNIT_UK:
+            FALLTHROUGH;
         case OSD_UNIT_IMPERIAL:
             centifeet = CENTIMETERS_TO_CENTIFEET(dist);
             if (abs(centifeet) < FEET_PER_MILE * 100 / 2) {
@@ -731,7 +735,7 @@ static void osdDJIFormatDistanceStr(char *buff, int32_t dist)
                 (abs(centifeet) % (100 * FEET_PER_MILE)) / FEET_PER_MILE, "Mi");
             }
             break;
-        case OSD_UNIT_UK:
+        case OSD_UNIT_METRIC_MPH:
             FALLTHROUGH;
         case OSD_UNIT_METRIC:
             if (abs(dist) < METERS_PER_KILOMETER * 100) {
