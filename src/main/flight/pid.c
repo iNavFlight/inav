@@ -141,7 +141,8 @@ static EXTENDED_FASTRAM float antigravityAccelerator;
 #define D_BOOST_LPF_HZ 7          // PT1 lowpass cutoff to smooth the boost effect
 
 #ifdef USE_D_BOOST
-static EXTENDED_FASTRAM float dBoostFactor;
+static EXTENDED_FASTRAM float dBoostMin;
+static EXTENDED_FASTRAM float dBoostMax;
 static EXTENDED_FASTRAM float dBoostMaxAtAlleceleration;
 #endif
 
@@ -282,7 +283,8 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .iterm_relax = SETTING_MC_ITERM_RELAX_DEFAULT,
 
 #ifdef USE_D_BOOST
-        .dBoostFactor = SETTING_D_BOOST_FACTOR_DEFAULT,
+        .dBoostMin = SETTING_D_BOOST_MIN_DEFAULT,
+        .dBoostMax = SETTING_D_BOOST_MAX_DEFAULT,
         .dBoostMaxAtAlleceleration = SETTING_D_BOOST_MAX_AT_ACCELERATION_DEFAULT,
         .dBoostGyroDeltaLpfHz = SETTING_D_BOOST_GYRO_DELTA_LPF_HZ_DEFAULT,
 #endif
@@ -702,14 +704,14 @@ static float FAST_CODE applyDBoost(pidState_t *pidState, float dT) {
 
     if (dBoostGyroAcceleration >= dBoostRateAcceleration) {
         //Gyro is accelerating faster than setpoint, we want to smooth out
-        dBoost = scaleRangef(dBoostGyroAcceleration, 0.0f, dBoostMaxAtAlleceleration, 1.0f, dBoostFactor);
+        dBoost = scaleRangef(dBoostGyroAcceleration, 0.0f, dBoostMaxAtAlleceleration, 1.0f, dBoostMax);
     } else {
         //Setpoint is accelerating, we want to boost response
-        dBoost = scaleRangef(dBoostRateAcceleration, 0.0f, pidState->dBoostTargetAcceleration, 1.0f, 0.0f);
+        dBoost = scaleRangef(dBoostRateAcceleration, 0.0f, pidState->dBoostTargetAcceleration, 1.0f, dBoostMin);
     }
 
     dBoost = pt1FilterApply4(&pidState->dBoostLpf, dBoost, D_BOOST_LPF_HZ, dT);
-    dBoost = constrainf(dBoost, 0.0f, dBoostFactor);
+    dBoost = constrainf(dBoost, dBoostMin, dBoostMax);
 
     DEBUG_SET(DEBUG_ALWAYS, pidState->axis, dBoost * 100);
 
@@ -1182,7 +1184,8 @@ void pidInit(void)
     motorItermWindupPoint = 1.0f - (pidProfile()->itermWindupPointPercent / 100.0f);
 
 #ifdef USE_D_BOOST
-    dBoostFactor = pidProfile()->dBoostFactor;
+    dBoostMin = pidProfile()->dBoostMin;
+    dBoostMax = pidProfile()->dBoostMax;
     dBoostMaxAtAlleceleration = pidProfile()->dBoostMaxAtAlleceleration;
 #endif
 
