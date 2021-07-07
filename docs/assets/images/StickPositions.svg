@@ -29,7 +29,7 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.13995495"
-     inkscape:cx="2157.8372"
+     inkscape:cx="6594.9793"
      inkscape:cy="3265.3365"
      inkscape:document-units="px"
      inkscape:current-layer="g4157"
@@ -628,6 +628,20 @@
        d="m 5992.6852,1082.4789 c 0,10.5728 -14.6765,19.1438 -32.7809,19.1438 -18.1044,0 -32.7809,-8.571 -32.7809,-19.1438 0,-10.5729 14.6765,-163.59574 32.7809,-163.59574 18.1044,0 32.7809,153.02284 32.7809,163.59574 z"
        style="display:inline;opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:8.07780743;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
     <rect
+       ry="0"
+       y="1145.4941"
+       x="5811.6289"
+       height="288.94339"
+       width="288.94339"
+       id="rect5919-7"
+       style="display:inline;fill:none;fill-opacity:1;stroke:#808080;stroke-width:11.0566;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <path
+       sodipodi:nodetypes="sssss"
+       inkscape:connector-curvature="0"
+       id="path5923-5"
+       d="m 5988.8813,1455.7655 c 0,10.5728 -14.6765,19.1438 -32.7809,19.1438 -18.1044,0 -32.7809,-8.571 -32.7809,-19.1438 0,-10.5729 14.6765,-163.5957 32.7809,-163.5957 18.1044,0 32.7809,153.0228 32.7809,163.5957 z"
+       style="display:inline;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:8.07781;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <rect
        style="display:inline;opacity:1;fill:none;fill-opacity:1;stroke:#808080;stroke-width:11.05660725;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        id="rect5941"
        width="288.94339"
@@ -653,48 +667,75 @@
          id="tspan5963"
          y="994.89398"
          x="5680.7969"
-         sodipodi:role="line">(Un)/load waypoint mission</tspan></text>
+         sodipodi:role="line">Load waypoint mission</tspan></text>
+    <text
+       id="text5961-3"
+       y="1369.7102"
+       x="5681.5464"
+       style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;display:inline;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       xml:space="preserve"><tspan
+         style="font-size:286.599px;line-height:1.25;text-align:end;text-anchor:end"
+         id="tspan5963-6"
+         y="1369.7102"
+         x="5681.5464"
+         sodipodi:role="line">Unload waypoint mission</tspan></text>
     <rect
-       style="display:inline;opacity:1;fill:none;fill-opacity:1;stroke:#808080;stroke-width:11.05660725;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       style="display:inline;opacity:1;fill:none;fill-opacity:1;stroke:#808080;stroke-width:11.0566;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        id="rect5971"
        width="288.94339"
        height="288.94339"
        x="5815.4326"
-       y="1192.6158"
+       y="1526.3658"
        ry="0" />
     <path
        sodipodi:nodetypes="sssss"
        inkscape:connector-curvature="0"
        id="path5977"
-       d="m 5863.6503,1478.825 c -7.4762,7.4762 -23.9146,3.1589 -36.7164,-9.6428 -12.8017,-12.8018 -17.119,-29.2402 -9.6428,-36.7164 7.4761,-7.4761 126.0574,-105.3017 138.8592,-92.5 12.8017,12.8018 -85.0239,131.3831 -92.5,138.8592 z"
-       style="display:inline;opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:8.07780743;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 5863.6503,1812.575 c -7.4762,7.4762 -23.9146,3.1589 -36.7164,-9.6428 -12.8017,-12.8018 -17.119,-29.2402 -9.6428,-36.7164 7.4761,-7.4761 126.0574,-105.3017 138.8592,-92.5 12.8017,12.8018 -85.0239,131.3831 -92.5,138.8592 z"
+       style="display:inline;opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:8.07781;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        inkscape:transform-center-y="73.935654"
        inkscape:transform-center-x="73.935653" />
     <rect
        ry="0"
-       y="1192.6158"
+       y="1526.3658"
        x="6221.147"
        height="288.94339"
        width="288.94339"
        id="rect5993"
-       style="display:inline;opacity:1;fill:none;fill-opacity:1;stroke:#808080;stroke-width:11.05660725;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+       style="display:inline;opacity:1;fill:none;fill-opacity:1;stroke:#808080;stroke-width:11.0566;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
     <path
        sodipodi:nodetypes="sssss"
        inkscape:connector-curvature="0"
        id="path6001"
-       d="m 6460.9887,1478.825 c 7.4761,7.4762 23.9146,3.1589 36.7163,-9.6428 12.8017,-12.8018 17.119,-29.2402 9.6428,-36.7164 -7.4761,-7.4761 -126.0574,-105.3017 -138.8591,-92.5 -12.8018,12.8018 85.0238,131.3831 92.5,138.8592 z"
-       style="display:inline;opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:8.07780743;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 6460.9887,1812.575 c 7.4761,7.4762 23.9146,3.1589 36.7163,-9.6428 12.8017,-12.8018 17.119,-29.2402 9.6428,-36.7164 -7.4761,-7.4761 -126.0574,-105.3017 -138.8591,-92.5 -12.8018,12.8018 85.0238,131.3831 92.5,138.8592 z"
+       style="display:inline;opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:8.07781;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       inkscape:transform-center-y="73.935654"
+       inkscape:transform-center-x="-73.935657" />
+    <rect
+       ry="0"
+       y="1140.2471"
+       x="6228.9062"
+       height="288.94339"
+       width="288.94339"
+       id="rect5993-3"
+       style="display:inline;fill:none;fill-opacity:1;stroke:#808080;stroke-width:11.0566;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <path
+       sodipodi:nodetypes="sssss"
+       inkscape:connector-curvature="0"
+       id="path6001-5"
+       d="m 6468.7482,1426.4562 c 7.4761,7.4762 23.9146,3.1589 36.7163,-9.6428 12.8017,-12.8018 17.119,-29.2402 9.6428,-36.7164 -7.4761,-7.4761 -126.0574,-105.3017 -138.8591,-92.5 -12.8018,12.8018 85.0238,131.3831 92.5,138.8592 z"
+       style="display:inline;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:8.07781;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        inkscape:transform-center-y="73.935654"
        inkscape:transform-center-x="-73.935657" />
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="5680.7969"
-       y="1415.3022"
+       x="5714.6821"
+       y="1775.6128"
        id="text6013"><tspan
          sodipodi:role="line"
-         x="5680.7969"
-         y="1415.3022"
+         x="5714.6821"
+         y="1775.6128"
          id="tspan6015"
          style="font-size:286.599px;line-height:1.25;text-align:end;text-anchor:end">Save Setting</tspan></text>
     <text
