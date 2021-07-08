@@ -31,11 +31,14 @@
 #define SYM_VOLT                  0x06 // 006 V
 #define SYM_MAH                   0x07 // 007 MAH
 
-#define SYM_AH_KM                 0x08 // 008 Ah/km
-#define SYM_AH_MI                 0x09 // 009 Ah/mi
-#define SYM_MAH_MI_0              0x0A // 010 mAh/mi left
-#define SYM_MAH_MI_1              0x0B // 011 mAh/mi right
-#define SYM_LQ                    0x0C // 012 LQ
+#define SYM_AH_KM                 0x08  // 008 Ah/km
+#define SYM_AH_MI                 0x09  // 009 Ah/mi
+#define SYM_AH_NM       		  0x120 // 288 Ah/NM
+#define SYM_MAH_MI_0              0x0A  // 010 mAh/mi left
+#define SYM_MAH_MI_1              0x0B  // 011 mAh/mi right
+#define SYM_MAH_NM_0              0x11E // 286 mAh/NM left
+#define SYM_MAH_NM_1              0x11F // 287 mAh/NM right
+#define SYM_LQ                    0x0C  // 012 LQ
 
 #define SYM_TEMP_F                0x0D // 013 °F
 #define SYM_TEMP_C                0x0E // 014 °C
@@ -113,8 +116,9 @@
 
 #define SYM_AH_H_START            0x80 // 128 to 136 Horizontal AHI
 
-#define SYM_3D_KMH                0x89 // 137 KM/H 3D
-#define SYM_3D_MPH                0x8A // 138 MPH 3D
+#define SYM_3D_KMH                0x89  // 137 KM/H 3D
+#define SYM_3D_MPH                0x8A  // 138 MPH 3D
+#define SYM_3D_KTS                0x11B // 283 Knots 3D
 
 #define SYM_RPM                   0x8B // 139 RPM
 #define SYM_WAYPOINT              0x8C // 140 Waypoint
@@ -131,45 +135,50 @@
 #define SYM_BATT_1                0x95 // 149 Battery
 #define SYM_BATT_EMPTY            0x96 // 150 Battery empty
 
-#define SYM_AIR                   0x97 // 151 Air speed
-//                                0x98 // 152 Home point map
-#define SYM_FTS                   0x99 // 153 FT/S
-#define SYM_AMP                   0x9A // 154 A
-#define SYM_ON_M                  0x9B // 155 On MN
-#define SYM_FLY_M                 0x9C // 156 FL MN
-#define SYM_MAH_KM_0              0x9D // 157 MAH/KM left
-#define SYM_MAH_KM_1              0x9E // 158 MAH/KM right
-#define SYM_MS                    0x9F // 159 M/S
-#define SYM_HOME_DIST 	          0xA0 // 160 DIS
-#define SYM_KMH                   0xA1 // 161 KM/H
+#define SYM_AIR                   0x97  // 151 Air speed
+//                                0x98  // 152 Home point map
+#define SYM_FTS                   0x99  // 153 FT/S
+#define SYM_100FTM                0x11D // 285 100 Feet per Min
+#define SYM_AMP                   0x9A  // 154 A
+#define SYM_ON_M                  0x9B  // 155 On MN
+#define SYM_FLY_M                 0x9C  // 156 FL MN
+#define SYM_MAH_KM_0              0x9D  // 157 MAH/KM left
+#define SYM_MAH_KM_1              0x9E  // 158 MAH/KM right
+#define SYM_MS                    0x9F  // 159 M/S
+#define SYM_HOME_DIST 	          0xA0  // 160 DIS
+#define SYM_KMH                   0xA1  // 161 KM/H
 
 #define SYM_VARIO_UP_2A           0xA2 // 162 Vario up up
 #define SYM_VARIO_UP_1A           0xA3 // 163 Vario up
 #define SYM_VARIO_DOWN_1A         0xA4 // 164 Vario down
 #define SYM_VARIO_DOWN_2A         0xA5 // 165 Vario down down
 
-#define SYM_LAT                   0xA6 // 166 GPS LAT
-#define SYM_LON                   0xA7 // 167 GPS LON
-#define SYM_DEGREES               0xA8 // 168 ° heading angle
-#define SYM_HEADING               0xA9 // 169 Compass Heading symbol
-#define SYM_ALT                   0xAA // 170 ALT
-#define SYM_WH                    0xAB // 171 WH
-#define SYM_WH_KM                 0xAC // 172 WH/KM
-#define SYM_WH_MI                 0xAD // 173 WH/MI
-#define SYM_WATT                  0xAE // 174 W
-#define SYM_SCALE                 0xAF // 175 Map scale
-#define SYM_MPH                   0xB0 // 176 MPH
-#define SYM_ALT_M                 0xB1 // 177 ALT M
-#define SYM_ALT_KM                0xB2 // 178 ALT KM
-#define SYM_ALT_FT                0xB3 // 179 ALT FT
-#define SYM_ALT_KFT               0xB4 // 180 DIS KFT
-#define SYM_DIST_M                0xB5 // 181 DIS M
-#define SYM_DIST_KM               0xB6 // 182 DIM KM
-#define SYM_DIST_FT               0xB7 // 183 DIS FT
-#define SYM_DIST_MI               0xB8 // 184 DIS MI
-#define SYM_M                     0xB9 // 185 M
-#define SYM_KM                    0xBA // 186 KM
-#define SYM_MI                    0xBB // 187 MI
+#define SYM_LAT                   0xA6  // 166 GPS LAT
+#define SYM_LON                   0xA7  // 167 GPS LON
+#define SYM_DEGREES               0xA8  // 168 ° heading angle
+#define SYM_HEADING               0xA9  // 169 Compass Heading symbol
+#define SYM_ALT                   0xAA  // 170 ALT
+#define SYM_WH                    0xAB  // 171 WH
+#define SYM_WH_KM                 0xAC  // 172 WH/KM
+#define SYM_WH_MI                 0xAD  // 173 WH/MI
+#define SYM_WH_NM       		  0x121 // 289 Wh/NM
+#define SYM_WATT                  0xAE  // 174 W
+#define SYM_SCALE                 0xAF  // 175 Map scale
+#define SYM_MPH                   0xB0  // 176 MPH
+#define SYM_KTS                   0x11C // 284 Knots
+#define SYM_ALT_M                 0xB1  // 177 ALT M
+#define SYM_ALT_KM                0xB2  // 178 ALT KM
+#define SYM_ALT_FT                0xB3  // 179 ALT FT
+#define SYM_ALT_KFT               0xB4  // 180 DIS KFT
+#define SYM_DIST_M                0xB5  // 181 DIS M
+#define SYM_DIST_KM               0xB6  // 182 DIM KM
+#define SYM_DIST_FT               0xB7  // 183 DIS FT
+#define SYM_DIST_MI               0xB8  // 184 DIS MI
+#define SYM_DIST_NM               0x119 // 281 DIS NM
+#define SYM_M                     0xB9  // 185 M
+#define SYM_KM                    0xBA  // 186 KM
+#define SYM_MI                    0xBB  // 187 MI
+#define SYM_NM                    0x11A // 282 NM
 
 #define SYM_CLOCK                 0xBC // 188 Clock
 #define SYM_HDP_L                 0xBD // 189 HDOP left
