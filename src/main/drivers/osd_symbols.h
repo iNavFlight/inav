@@ -36,8 +36,8 @@
 #define SYM_AH_NM       		  0x120 // 288 Ah/NM
 #define SYM_MAH_MI_0              0x0A  // 010 mAh/mi left
 #define SYM_MAH_MI_1              0x0B  // 011 mAh/mi right
-#define SYM_MAH_NM_0              0x11E // 286 mAh/NM left
-#define SYM_MAH_NM_1              0x11F // 287 mAh/NM right
+#define SYM_MAH_NM_0              0xDA  // 286 mAh/NM left
+#define SYM_MAH_NM_1              0xDB  // 287 mAh/NM right
 #define SYM_LQ                    0x0C  // 012 LQ
 
 #define SYM_TEMP_F                0x0D // 013 °F
@@ -118,7 +118,7 @@
 
 #define SYM_3D_KMH                0x89  // 137 KM/H 3D
 #define SYM_3D_MPH                0x8A  // 138 MPH 3D
-#define SYM_3D_KTS                0x11B // 283 Knots 3D
+#define SYM_3D_KTS                0x119 // 281 Knots 3D
 
 #define SYM_RPM                   0x8B // 139 RPM
 #define SYM_WAYPOINT              0x8C // 140 Waypoint
@@ -138,7 +138,7 @@
 #define SYM_AIR                   0x97  // 151 Air speed
 //                                0x98  // 152 Home point map
 #define SYM_FTS                   0x99  // 153 FT/S
-#define SYM_100FTM                0x11D // 285 100 Feet per Min
+#define SYM_100FTM                0xDC  // 220 100 Feet per Min
 #define SYM_AMP                   0x9A  // 154 A
 #define SYM_ON_M                  0x9B  // 155 On MN
 #define SYM_FLY_M                 0x9C  // 156 FL MN
@@ -165,7 +165,7 @@
 #define SYM_WATT                  0xAE  // 174 W
 #define SYM_SCALE                 0xAF  // 175 Map scale
 #define SYM_MPH                   0xB0  // 176 MPH
-#define SYM_KTS                   0x11C // 284 Knots
+#define SYM_KTS                   0xDE  // 222 Knots
 #define SYM_ALT_M                 0xB1  // 177 ALT M
 #define SYM_ALT_KM                0xB2  // 178 ALT KM
 #define SYM_ALT_FT                0xB3  // 179 ALT FT
@@ -174,11 +174,11 @@
 #define SYM_DIST_KM               0xB6  // 182 DIM KM
 #define SYM_DIST_FT               0xB7  // 183 DIS FT
 #define SYM_DIST_MI               0xB8  // 184 DIS MI
-#define SYM_DIST_NM               0x119 // 281 DIS NM
+#define SYM_DIST_NM               0xFE  // 254 DIS NM
 #define SYM_M                     0xB9  // 185 M
 #define SYM_KM                    0xBA  // 186 KM
 #define SYM_MI                    0xBB  // 187 MI
-#define SYM_NM                    0x11A // 282 NM
+#define SYM_NM                    0xDD  // 221 NM
 
 #define SYM_CLOCK                 0xBC // 188 Clock
 #define SYM_HDP_L                 0xBD // 189 HDOP left
@@ -196,12 +196,6 @@
 #define SYM_PITCH_UP              0xCF // 207 Pitch up
 
 #define SYM_ZERO_HALF_LEADING_DOT 0xD0 // 208 to 217 Numbers with leading dot
-
-#define SYM_AH_CH_AIRCRAFT0       0xDA // 218 Crossair aircraft left
-#define SYM_AH_CH_AIRCRAFT1       0xDB // 219 Crossair aircraft
-#define SYM_AH_CH_AIRCRAFT2       0xDC // 220 Crossair aircraft center
-#define SYM_AH_CH_AIRCRAFT3       0xDD // 221 Crossair aircraft
-#define SYM_AH_CH_AIRCRAFT4       0xDE // 222 Crossair aircraft right
 
 #define SYM_PITCH_DOWN            0xDF // 223 Pitch down
 
@@ -236,6 +230,12 @@
 #define SYM_AH_CH_TYPE5           0x196 // 406 to 408, crosshair 5
 #define SYM_AH_CH_TYPE6           0x199 // 409 to 411, crosshair 6
 #define SYM_AH_CH_TYPE7           0x19C // 412 to 414, crosshair 7
+
+#define SYM_AH_CH_AIRCRAFT0       0x1AE // 430 Crossair aircraft left
+#define SYM_AH_CH_AIRCRAFT1       0x1AF // 431 Crossair aircraft
+#define SYM_AH_CH_AIRCRAFT2       0x1B0 // 432 Crossair aircraft center
+#define SYM_AH_CH_AIRCRAFT3       0x1B1 // 433 Crossair aircraft
+#define SYM_AH_CH_AIRCRAFT4       0x1B2 // 434 Crossair aircraft right
 
 #define SYM_HUD_ARROWS_L1         0x1A2 // 418 1 arrow left
 #define SYM_HUD_ARROWS_L2         0x1A3 // 419 2 arrows left

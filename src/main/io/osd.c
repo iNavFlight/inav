@@ -421,7 +421,7 @@ static int32_t osdConvertVelocityToUnit(int32_t vel)
  * Converts velocity into a string based on the current unit system.
  * @param alt Raw velocity (i.e. as taken from gpsSol.groundSpeed in centimeters/seconds)
  */
-void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D)
+void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D, uint8_t elemPosX, uint8_t elemPosY)
 {
     switch ((osd_unit_e)osdConfig()->units) {
     case OSD_UNIT_UK:
@@ -435,7 +435,12 @@ void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D)
         tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), (_3D ? SYM_3D_KMH : SYM_KMH));
         break;
     case OSD_UNIT_GA:
-        tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), (_3D ? SYM_3D_KTS : SYM_KTS));
+        if (_3D) {
+            tfp_sprintf(buff, "%3d", (int)osdConvertVelocityToUnit(vel));
+            displayWriteChar(osdDisplayPort, elemPosX + 3, elemPosY, SYM_3D_KTS);
+        } else {
+            tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), SYM_KTS);
+        }
         break;
     }
 }
@@ -1569,12 +1574,12 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_GPS_SPEED:
-        osdFormatVelocityStr(buff, gpsSol.groundSpeed, false);
+        osdFormatVelocityStr(buff, gpsSol.groundSpeed, false, elemPosX, elemPosY);
         break;
 
     case OSD_3D_SPEED:
         {
-            osdFormatVelocityStr(buff, osdGet3DSpeed(), true);
+            osdFormatVelocityStr(buff, osdGet3DSpeed(), true, elemPosX, elemPosY);
             break;
         }
 
@@ -1869,13 +1874,27 @@ static bool osdDrawSingleElement(uint8_t item)
 #endif
         buff[0] = SYM_TRIP_DIST;
         if ((!ARMING_FLAG(ARMED)) || (distanceMeters == -1)) {
-            buff[4] = SYM_DIST_M;
+            buff[4] = SYM_BLANK;
             buff[5] = '\0';
             strcpy(buff + 1, "---");
         } else if (distanceMeters == -2) {
             // Wind is too strong to come back with cruise throttle
             buff[1] = buff[2] = buff[3] = SYM_WIND_HORIZONTAL;
-            buff[4] = SYM_DIST_M;
+            switch ((osd_unit_e)osdConfig()->units){
+                case OSD_UNIT_UK:
+                    FALLTHROUGH;
+                case OSD_UNIT_IMPERIAL:
+                    buff[4] = SYM_DIST_MI;
+                    break;
+                case OSD_UNIT_METRIC_MPH:
+                    FALLTHROUGH;
+                case OSD_UNIT_METRIC:
+                    buff[4] = SYM_DIST_KM;
+                    break;
+                case OSD_UNIT_GA:
+                    buff[4] = SYM_DIST_NM;
+                    break;
+            }
             buff[5] = '\0';
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         } else {
@@ -2391,7 +2410,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
         #ifdef USE_PITOT
             buff[0] = SYM_AIR;
-            osdFormatVelocityStr(buff + 1, pitot.airSpeed, false);
+            osdFormatVelocityStr(buff + 1, pitot.airSpeed, false, elemPosX, elemPosY);
         #else
             return false;
         #endif
@@ -2553,7 +2572,8 @@ static bool osdDrawSingleElement(uint8_t item)
                     break;
                 case OSD_UNIT_GA:
                     osdFormatCentiNumber(buff, value * METERS_PER_NAUTICALMILE / 10000, 0, 2, 0, 3);
-                    buff[3] = SYM_WH_NM;
+                    // buff[3] = SYM_WH_NM;
+                    displayWriteChar(osdDisplayPort, elemPosX +3, elemPosY, SYM_WH_NM);
                     break;
                 case OSD_UNIT_METRIC_MPH:
                     FALLTHROUGH;
@@ -3367,7 +3387,8 @@ static void osdCompleteAsyncInitialization(void)
                         break;
                     case OSD_UNIT_GA:
                         osdFormatCentiNumber(string_buffer, avg_efficiency / 10, 0, 2, 0, 3);
-                        string_buffer[3] = SYM_WH_NM;
+                        displayWriteChar(osdDisplayPort, STATS_LABEL_X_POS +3, y, SYM_WH_NM);
+                        // string_buffer[3] = SYM_WH_NM;
                         break;
                     default:
                     case OSD_UNIT_METRIC_MPH:
@@ -3477,7 +3498,7 @@ static void osdShowStatsPage1(void)
 
     if (feature(FEATURE_GPS)) {
         displayWrite(osdDisplayPort, statNameX, top, "MAX SPEED        :");
-        osdFormatVelocityStr(buff, stats.max_speed, true);
+        osdFormatVelocityStr(buff, stats.max_speed, true, statValuesX, top);
         osdLeftAlignString(buff);
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
 

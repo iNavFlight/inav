@@ -749,7 +749,7 @@ static void osdDJIFormatDistanceStr(char *buff, int32_t dist)
             else {
                 // Show miles when dist >= 0.5mi
                 tfp_sprintf(buff, "%d.%02d%s", (int)(centifeet / (100 * FEET_PER_NAUTICALMILE)),
-                (abs(centifeet) % (int)(100 * FEET_PER_NAUTICALMILE)) / FEET_PER_NAUTICALMILE, "NM");
+                (int)((abs(centifeet) % (int)(100 * FEET_PER_NAUTICALMILE)) / FEET_PER_NAUTICALMILE), "NM");
             }
             break;
         case OSD_UNIT_METRIC_MPH:
