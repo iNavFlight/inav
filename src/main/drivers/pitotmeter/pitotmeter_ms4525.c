@@ -112,7 +112,7 @@ bool ms4525Detect(pitotDev_t * pitot)
 {
     uint8_t rxbuf[4];
     bool ack = false;
-     uint8_t found_sensor = DEVHW_MS4525_ADDR1;
+    uint8_t found_sensor = DEVHW_MS4525_ADDR1;
     
     //search the sensor with 3 different addresses
     if (found_sensor == DEVHW_MS4525_ADDR1) {
