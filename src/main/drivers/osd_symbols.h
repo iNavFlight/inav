@@ -55,10 +55,10 @@
 //                                  0x23  // 035 ASCII #
 #define SYM_AH_MI                   0x24  // 036 Ah/mi
 //                                  0x25  // 037 ASCII %
-#define SYM_AH_NM       		    0x26  // 038 Ah/NM
-#define SYM_MAH_MI_0                0x27  // 039 mAh/mi left
+#define SYM_MAH_MI_0                0x26  // 038 mAh/mi left
+#define SYM_MAH_MI_1                0x27  // 039 mAh/mi right
 //                                  0x28  // 040 to 062 ASCII
-#define SYM_MAH_MI_1                0x3F  // 063 mAh/mi right
+#define SYM_AH_NM       		    0x3F  // 063 Ah/NM
 //                                  0x40  // 064 to 095 ASCII
 #define SYM_MAH_NM_0                0x60  // 096 mAh/NM left
 #define SYM_MAH_NM_1                0x61  // 097 mAh/NM right
