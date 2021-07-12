@@ -218,14 +218,12 @@ void initActiveBoxIds(void)
         activeBoxIds[activeBoxIdCount++] = BOXNAVRTH;
         activeBoxIds[activeBoxIdCount++] = BOXNAVWP;
         activeBoxIds[activeBoxIdCount++] = BOXHOMERESET;
+        activeBoxIds[activeBoxIdCount++] = BOXGCSNAV;
 
-        if (feature(FEATURE_GPS)) {
-            activeBoxIds[activeBoxIdCount++] = BOXGCSNAV;
-            if (STATE(AIRPLANE)) {
-                activeBoxIds[activeBoxIdCount++] = BOXNAVCOURSEHOLD;
-                activeBoxIds[activeBoxIdCount++] = BOXNAVCRUISE;
-                activeBoxIds[activeBoxIdCount++] = BOXSOARING;
-            }
+        if (STATE(AIRPLANE)) {
+            activeBoxIds[activeBoxIdCount++] = BOXNAVCOURSEHOLD;
+            activeBoxIds[activeBoxIdCount++] = BOXNAVCRUISE;
+            activeBoxIds[activeBoxIdCount++] = BOXSOARING;
         }
     }
 
