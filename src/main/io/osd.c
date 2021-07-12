@@ -145,7 +145,7 @@ FILE_COMPILE_FOR_SPEED
 #define OSD_CENTER_LEN(x) ((osdDisplayPort->cols - x) / 2)
 #define OSD_CENTER_S(s) OSD_CENTER_LEN(strlen(s))
 
-#define OSD_MIN_FONT_VERSION 2
+#define OSD_MIN_FONT_VERSION 3
 
 static unsigned currentLayout = 0;
 static int layoutOverride = -1;
@@ -421,7 +421,7 @@ static int32_t osdConvertVelocityToUnit(int32_t vel)
  * Converts velocity into a string based on the current unit system.
  * @param alt Raw velocity (i.e. as taken from gpsSol.groundSpeed in centimeters/seconds)
  */
-void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D, uint8_t elemPosX, uint8_t elemPosY)
+void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D)
 {
     switch ((osd_unit_e)osdConfig()->units) {
     case OSD_UNIT_UK:
@@ -435,12 +435,7 @@ void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D, uint8_t elemPosX, u
         tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), (_3D ? SYM_3D_KMH : SYM_KMH));
         break;
     case OSD_UNIT_GA:
-        if (_3D) {
-            tfp_sprintf(buff, "%3d", (int)osdConvertVelocityToUnit(vel));
-            displayWriteChar(osdDisplayPort, elemPosX + 3, elemPosY, SYM_3D_KTS);
-        } else {
-            tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), SYM_KTS);
-        }
+        tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), (_3D ? SYM_3D_KT : SYM_KT));
         break;
     }
 }
@@ -467,7 +462,7 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
             break;
         case OSD_UNIT_GA:
             centivalue = (ws * 0.019438444924406) * 100;
-            suffix = SYM_KTS;
+            suffix = SYM_KT;
             break;
         default:
         case OSD_UNIT_METRIC:
@@ -1109,8 +1104,8 @@ int osdGetHeadingAngle(int angle)
  * in-out used to store the last position where the craft was drawn to avoid
  * erasing all screen on each redraw.
  */
-static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t centerSym,
-                       uint32_t poiDistance, int16_t poiDirection, uint8_t poiSymbol,
+static void osdDrawMap(int referenceHeading, uint16_t referenceSym, uint16_t centerSym,
+                       uint32_t poiDistance, int16_t poiDirection, uint16_t poiSymbol,
                        uint16_t *drawn, uint32_t *usedScale)
 {
     // TODO: These need to be tested with several setups. We might
@@ -1574,12 +1569,12 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_GPS_SPEED:
-        osdFormatVelocityStr(buff, gpsSol.groundSpeed, false, elemPosX, elemPosY);
+        osdFormatVelocityStr(buff, gpsSol.groundSpeed, false);
         break;
 
     case OSD_3D_SPEED:
         {
-            osdFormatVelocityStr(buff, osdGet3DSpeed(), true, elemPosX, elemPosY);
+            osdFormatVelocityStr(buff, osdGet3DSpeed(), true);
             break;
         }
 
@@ -2410,7 +2405,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
         #ifdef USE_PITOT
             buff[0] = SYM_AIR;
-            osdFormatVelocityStr(buff + 1, pitot.airSpeed, false, elemPosX, elemPosY);
+            osdFormatVelocityStr(buff + 1, pitot.airSpeed, false);
         #else
             return false;
         #endif
@@ -2572,8 +2567,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     break;
                 case OSD_UNIT_GA:
                     osdFormatCentiNumber(buff, value * METERS_PER_NAUTICALMILE / 10000, 0, 2, 0, 3);
-                    // buff[3] = SYM_WH_NM;
-                    displayWriteChar(osdDisplayPort, elemPosX +3, elemPosY, SYM_WH_NM);
+                    buff[3] = SYM_WH_NM;
                     break;
                 case OSD_UNIT_METRIC_MPH:
                     FALLTHROUGH;
@@ -3319,12 +3313,15 @@ static void osdCompleteAsyncInitialization(void)
             y++;
         }
         y++;
-    } else {
-        if (!fontHasMetadata || metadata.version < OSD_MIN_FONT_VERSION) {
-            const char *m = "INVALID FONT";
-            displayWrite(osdDisplayPort, OSD_CENTER_S(m), 3, m);
-        }
+    } else if (!fontHasMetadata) {
+        const char *m = "INVALID FONT";
+        displayWrite(osdDisplayPort, OSD_CENTER_S(m), 3, m);
         y = 4;
+    }
+
+    if (fontHasMetadata && metadata.version < OSD_MIN_FONT_VERSION) {
+        const char *m = "INVALID FONT VERSION";
+        displayWrite(osdDisplayPort, OSD_CENTER_S(m), y++, m);
     }
 
     char string_buffer[30];
@@ -3387,8 +3384,7 @@ static void osdCompleteAsyncInitialization(void)
                         break;
                     case OSD_UNIT_GA:
                         osdFormatCentiNumber(string_buffer, avg_efficiency / 10, 0, 2, 0, 3);
-                        displayWriteChar(osdDisplayPort, STATS_LABEL_X_POS +3, y, SYM_WH_NM);
-                        // string_buffer[3] = SYM_WH_NM;
+                        string_buffer[3] = SYM_WH_NM;
                         break;
                     default:
                     case OSD_UNIT_METRIC_MPH:
@@ -3498,7 +3494,7 @@ static void osdShowStatsPage1(void)
 
     if (feature(FEATURE_GPS)) {
         displayWrite(osdDisplayPort, statNameX, top, "MAX SPEED        :");
-        osdFormatVelocityStr(buff, stats.max_speed, true, statValuesX, top);
+        osdFormatVelocityStr(buff, stats.max_speed, true);
         osdLeftAlignString(buff);
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
 

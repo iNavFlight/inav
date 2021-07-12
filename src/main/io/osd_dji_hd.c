@@ -700,7 +700,7 @@ void osdDJIFormatVelocityStr(char* buff)
             tfp_sprintf(buff, "%s %3d MPH", sourceBuf, (int)osdConvertVelocityToUnit(vel));
             break;
         case OSD_UNIT_GA:
-            tfp_sprintf(buff, "%s %3d KTS", sourceBuf, (int)osdConvertVelocityToUnit(vel));
+            tfp_sprintf(buff, "%s %3d KT", sourceBuf, (int)osdConvertVelocityToUnit(vel));
             break;
         case OSD_UNIT_METRIC:
             tfp_sprintf(buff, "%s %3d KPH", sourceBuf, (int)osdConvertVelocityToUnit(vel));

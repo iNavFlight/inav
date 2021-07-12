@@ -101,7 +101,7 @@ tables:
     values: ["OR", "AND"]
     enum: modeActivationOperator_e
   - name: osd_crosshairs_style
-    values: ["DEFAULT", "AIRCRAFT", "TYPE3", "TYPE4", "TYPE5", "TYPE6", "TYPE7"]
+    values: ["DEFAULT", "AIRCRAFT", "TYPE3", "TYPE4", "TYPE5", "TYPE6", "TYPE7", "TYPE8"]
     enum: osd_crosshairs_style_e
   - name: osd_sidebar_scroll
     values: ["NONE", "ALTITUDE", "SPEED", "HOME_DISTANCE"]

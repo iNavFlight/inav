@@ -438,7 +438,7 @@ void osdCanvasDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *can
 
 void osdCanvasDrawHeadingGraph(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, int heading)
 {
-    static const uint8_t graph[] = {
+    static const uint16_t graph[] = {
         SYM_HEADING_W,
         SYM_HEADING_LINE,
         SYM_HEADING_DIVIDED_LINE,
@@ -621,7 +621,7 @@ static void osdCanvasSidebarGetUnit(osdUnit_t *unit, uint16_t *countsPerStep, os
                     *countsPerStep = 5;
                     break;
                 case OSD_UNIT_GA:
-                    unit->symbol = SYM_KTS;
+                    unit->symbol = SYM_KT;
                     unit->divisor = 0;
                     unit->divided_symbol = 0;
                     *countsPerStep = 5;
