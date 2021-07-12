@@ -128,8 +128,7 @@ bool ms4525Detect(pitotDev_t * pitot)
     } else if (found_sensor == DEVHW_MS4525_ADDR3) {
         pitot->busDev = busDeviceInit(BUSTYPE_I2C, DEVHW_MS4525_ADDR3, 0, OWNER_AIRSPEED);
     }
-    
-    pitot->busDev = busDeviceInit(BUSTYPE_I2C, DEVHW_MS4525, 0, OWNER_AIRSPEED);
+
     if (pitot->busDev == NULL) {
         return false;
     }
