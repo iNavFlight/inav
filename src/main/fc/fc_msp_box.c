@@ -211,7 +211,6 @@ void initActiveBoxIds(void)
         }
         if (STATE(AIRPLANE)) {
             activeBoxIds[activeBoxIdCount++] = BOXLOITERDIRCHN;
-            activeBoxIds[activeBoxIdCount++] = BOXSOARING;
         }
     }
 
@@ -225,6 +224,7 @@ void initActiveBoxIds(void)
             if (STATE(AIRPLANE)) {
                 activeBoxIds[activeBoxIdCount++] = BOXNAVCOURSEHOLD;
                 activeBoxIds[activeBoxIdCount++] = BOXNAVCRUISE;
+                activeBoxIds[activeBoxIdCount++] = BOXSOARING;
             }
         }
     }
