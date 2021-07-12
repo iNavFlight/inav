@@ -61,6 +61,10 @@ extern uint8_t __config_end;
 #undef USE_PWM_SERVO_DRIVER
 #endif
 
+#ifndef BEEPER_PWM_FREQUENCY
+#define BEEPER_PWM_FREQUENCY    2500
+#endif
+
 #define USE_ARM_MATH // try to use FPU functions
 
 #if defined(SIMULATOR_BUILD) || defined(UNIT_TEST)

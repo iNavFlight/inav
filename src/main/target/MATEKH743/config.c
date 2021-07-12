@@ -15,21 +15,18 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdbool.h>
 #include <stdint.h>
 
-#include <platform.h>
+#include "platform.h"
 
-#include "io/serial.h"
-#include "rx/rx.h"
+#include "fc/fc_msp_box.h"
 #include "fc/config.h"
+
+#include "io/piniobox.h"
 
 void targetConfiguration(void)
 {
-    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART1)].functionMask = FUNCTION_TELEMETRY_SMARTPORT_MASTER;
-    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART6)].functionMask = FUNCTION_FRSKY_OSD;
-
-    rxConfigMutable()->serialrx_inverted = 1;
-
+    pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
+    pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
     beeperConfigMutable()->pwmMode = true;
 }

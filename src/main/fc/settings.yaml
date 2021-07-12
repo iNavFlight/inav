@@ -64,7 +64,7 @@ tables:
   - name: nav_rth_alt_mode
     values: ["CURRENT", "EXTRA", "FIXED", "MAX", "AT_LEAST", "AT_LEAST_LINEAR_DESCENT"]
   - name: osd_unit
-    values: ["IMPERIAL", "METRIC", "UK"]
+    values: ["IMPERIAL", "METRIC", "METRIC_MPH", "UK"]
     enum: osd_unit_e
   - name: osd_stats_energy_unit
     values: ["MAH", "WH"]
@@ -1147,7 +1147,7 @@ groups:
         field: motor.turtleModePowerFactor
         default_value: 55
         description: "Turtle mode power factor"
-        condition: "USE_DSHOT"
+        condition: USE_DSHOT
         min: 0
         max: 100
       - name: failsafe_throttle
@@ -2220,7 +2220,7 @@ groups:
     condition: USE_AUTOTUNE_FIXED_WING
     members:
       - name: fw_autotune_min_stick
-        description: "Minimum stick input [%] to consider overshoot/undershoot detection"
+        description: "Minimum stick input [%], after applying deadband and expo, to start recording the plane's response to stick input."
         default_value: 50
         field: fw_min_stick
         min: 0
@@ -2251,7 +2251,7 @@ groups:
         type: uint8_t
       - name: fw_autotune_max_rate_deflection
         description: "The target percentage of maximum mixer output used for determining the rates in `AUTO` and `LIMIT`."
-        default_value: 90
+        default_value: 80
         field: fw_max_rate_deflection
         min: 50
         max: 100
@@ -3734,6 +3734,11 @@ groups:
         default_value: 1
         field: dshot_beeper_tone
         type: uint8_t
+      - name: beeper_pwm_mode
+        field: pwmMode
+        type: bool
+        default_value: OFF
+        description: "Allows disabling PWM mode for beeper on some targets. Switch from ON to OFF if the external beeper sound is weak. Do not switch from OFF to ON without checking if the board supports PWM beeper mode"
 
   - name: PG_POWER_LIMITS_CONFIG
     type: powerLimitsConfig_t
