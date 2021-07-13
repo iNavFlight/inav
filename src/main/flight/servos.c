@@ -498,7 +498,7 @@ void processContinuousServoAutotrim(const float dT)
     static servoAutotrimState_e trimState = AUTOTRIM_IDLE;    
     static uint32_t servoMiddleUpdateCount;
 
-    const float rotRateMagnitudeFiltered = pt1FilterApply4(&rotRateFilter, sqrtf(vectorNormSquared(&imuMeasuredRotationBF)), SERVO_AUTOTRIM_FILTER_CUTOFF, dT);
+    const float rotRateMagnitudeFiltered = pt1FilterApply4(&rotRateFilter, fast_fsqrtf(vectorNormSquared(&imuMeasuredRotationBF)), SERVO_AUTOTRIM_FILTER_CUTOFF, dT);
     const float targetRateMagnitudeFiltered = pt1FilterApply4(&targetRateFilter, getTotalRateTarget(), SERVO_AUTOTRIM_FILTER_CUTOFF, dT);
 
     if (ARMING_FLAG(ARMED)) {

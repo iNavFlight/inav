@@ -119,6 +119,9 @@ uint8_t cliMode = 0;
 #include "sensors/opflow.h"
 #include "sensors/sensors.h"
 #include "sensors/temperature.h"
+#ifdef USE_ESC_SENSOR
+#include "sensors/esc_sensor.h"
+#endif
 
 #include "telemetry/frsky_d.h"
 #include "telemetry/telemetry.h"
@@ -1460,7 +1463,7 @@ static void cliWaypoints(char *cmdline)
 
             if (!(validArgumentCount == 6 || validArgumentCount == 8)) {
                 cliShowParseError();
-            } else if (!(action == 0 || action == NAV_WP_ACTION_WAYPOINT || action == NAV_WP_ACTION_RTH || action == NAV_WP_ACTION_JUMP || action == NAV_WP_ACTION_HOLD_TIME || action == NAV_WP_ACTION_LAND || action == NAV_WP_ACTION_SET_POI || action == NAV_WP_ACTION_SET_HEAD) || !(flag == 0 || flag == NAV_WP_FLAG_LAST)) {
+            } else if (!(action == 0 || action == NAV_WP_ACTION_WAYPOINT || action == NAV_WP_ACTION_RTH || action == NAV_WP_ACTION_JUMP || action == NAV_WP_ACTION_HOLD_TIME || action == NAV_WP_ACTION_LAND || action == NAV_WP_ACTION_SET_POI || action == NAV_WP_ACTION_SET_HEAD) || !(flag == 0 || flag == NAV_WP_FLAG_LAST || flag == NAV_WP_FLAG_HOME)) {
                 cliShowParseError();
             } else {
                 posControl.waypointList[i].action = action;
@@ -3192,6 +3195,18 @@ static void cliStatus(char *cmdline)
         hardwareSensorStatusNames[getHwOpticalFlowStatus()],
         hardwareSensorStatusNames[getHwGPSStatus()]
     );
+
+#ifdef USE_ESC_SENSOR
+    uint8_t motorCount = getMotorCount();
+    if (STATE(ESC_SENSOR_ENABLED) && motorCount > 0) {
+        cliPrintLinef("ESC Temperature(s): Motor Count = %d", motorCount);
+        for (uint8_t i = 0; i < motorCount; i++) {
+            const escSensorData_t *escState = getEscTelemetry(i); //Get ESC telemetry
+            cliPrintf("ESC %d: %d\260C, ", i, escState->temperature);
+        }
+        cliPrintLinefeed();
+    }
+#endif
 
 #ifdef USE_SDCARD
     cliSdInfo(NULL);

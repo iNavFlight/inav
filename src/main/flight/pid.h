@@ -156,13 +156,6 @@ typedef struct pidProfile_s {
     uint16_t navFwPosHdgPidsumLimit;
     uint8_t controlDerivativeLpfHz;
 
-#ifdef USE_GYRO_KALMAN
-    uint16_t kalman_q;
-    uint16_t kalman_w;
-    uint16_t kalman_sharpness;
-    uint8_t kalmanEnabled;
-#endif
-
     float fixedWingLevelTrim;
     float fixedWingLevelTrimGain;
 #ifdef USE_SMITH_PREDICTOR

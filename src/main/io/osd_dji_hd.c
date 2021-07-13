@@ -49,6 +49,7 @@
 #include "fc/fc_msp_box.h"
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
+#include "fc/rc_adjustments.h"
 
 #include "flight/imu.h"
 #include "flight/pid.h"
@@ -70,6 +71,7 @@
 #include "sensors/esc_sensor.h"
 #include "sensors/temperature.h"
 #include "sensors/pitotmeter.h"
+#include "sensors/boardalignment.h"
 
 #include "msp/msp.h"
 #include "msp/msp_protocol.h"
@@ -125,7 +127,24 @@ PG_RESET_TEMPLATE(djiOsdConfig_t, djiOsdConfig,
     .use_name_for_messages  = SETTING_DJI_USE_NAME_FOR_MESSAGES_DEFAULT,
     .esc_temperature_source = SETTING_DJI_ESC_TEMP_SOURCE_DEFAULT,
     .proto_workarounds = SETTING_DJI_WORKAROUNDS_DEFAULT,
+    .messageSpeedSource = SETTING_DJI_MESSAGE_SPEED_SOURCE_DEFAULT,
+    .rssi_source = SETTING_DJI_RSSI_SOURCE_DEFAULT,
+    .useAdjustments = SETTING_DJI_USE_ADJUSTMENTS_DEFAULT,
+    .craftNameAlternatingDuration = SETTING_DJI_CN_ALTERNATING_DURATION_DEFAULT
 );
+
+#define RSSI_BOUNDARY(PERCENT) (RSSI_MAX_VALUE / 100 * PERCENT)
+
+typedef enum {
+    DJI_OSD_CN_MESSAGES,
+    DJI_OSD_CN_THROTTLE,
+    DJI_OSD_CN_THROTTLE_AUTO_THR,
+    DJI_OSD_CN_AIR_SPEED,
+    DJI_OSD_CN_EFFICIENCY,
+    DJI_OSD_CN_DISTANCE,
+    DJI_OSD_CN_ADJUSTEMNTS,
+    DJI_OSD_CN_MAX_ELEMENTS
+} DjiCraftNameElements_t;
 
 // External dependency on looptime
 extern timeDelta_t cycleTime;
@@ -413,7 +432,7 @@ static void djiSerializeOSDConfigReply(sbuf_t *dst)
     //sbufWriteU8(dst, DJI_OSD_SCREEN_HEIGHT); // osdConfig()->camera_frame_height
 }
 
-static const char * osdArmingDisabledReasonMessage(void)
+static char * osdArmingDisabledReasonMessage(void)
 {
     switch (isArmingDisabledReason()) {
         case ARMING_DISABLED_FAILSAFE_SYSTEM:
@@ -522,7 +541,7 @@ static const char * osdArmingDisabledReasonMessage(void)
     return NULL;
 }
 
-static const char * osdFailsafePhaseMessage(void)
+static char * osdFailsafePhaseMessage(void)
 {
     // See failsafe.h for each phase explanation
     switch (failsafePhase()) {
@@ -563,7 +582,7 @@ static const char * osdFailsafePhaseMessage(void)
     return NULL;
 }
 
-static const char * osdFailsafeInfoMessage(void)
+static char * osdFailsafeInfoMessage(void)
 {
     if (failsafeIsReceivingRxData()) {
         // User must move sticks to exit FS mode
@@ -573,7 +592,7 @@ static const char * osdFailsafeInfoMessage(void)
     return OSD_MESSAGE_STR(RC_RX_LINK_LOST_MSG);
 }
 
-static const char * navigationStateMessage(void)
+static char * navigationStateMessage(void)
 {
     switch (NAV_Status.state) {
         case MW_NAV_STATE_NONE:
@@ -633,10 +652,10 @@ static int32_t osdConvertVelocityToUnit(int32_t vel)
     switch (osdConfig()->units) {
         case OSD_UNIT_UK:
             FALLTHROUGH;
-
+        case OSD_UNIT_METRIC_MPH:
+            FALLTHROUGH;
         case OSD_UNIT_IMPERIAL:
             return (vel * 224) / 10000; // Convert to mph
-
         case OSD_UNIT_METRIC:
             return (vel * 36) / 1000;   // Convert to kmh
     }
@@ -649,16 +668,37 @@ static int32_t osdConvertVelocityToUnit(int32_t vel)
  * Converts velocity into a string based on the current unit system.
  * @param alt Raw velocity (i.e. as taken from gpsSol.groundSpeed in centimeters/seconds)
  */
-void osdDJIFormatVelocityStr(char* buff, int32_t vel )
+void osdDJIFormatVelocityStr(char* buff)
 {
+    char sourceBuf[4];
+    int vel = 0;
+    switch (djiOsdConfig()->messageSpeedSource) {
+        case OSD_SPEED_SOURCE_GROUND:
+            strcpy(sourceBuf, "GRD");
+            vel = gpsSol.groundSpeed;
+            break;
+        case OSD_SPEED_SOURCE_3D:
+            strcpy(sourceBuf, "3D");
+            vel = osdGet3DSpeed();
+            break;
+        case OSD_SPEED_SOURCE_AIR:
+            strcpy(sourceBuf, "AIR");
+#ifdef USE_PITOT
+            vel = pitot.airSpeed;
+#endif
+            break;
+    }
+
     switch (osdConfig()->units) {
         case OSD_UNIT_UK:
             FALLTHROUGH;
+        case OSD_UNIT_METRIC_MPH:
+            FALLTHROUGH;
         case OSD_UNIT_IMPERIAL:
-            tfp_sprintf(buff, "%3d%s", (int)osdConvertVelocityToUnit(vel), "MPH");
+            tfp_sprintf(buff, "%s %3d MPH", sourceBuf, (int)osdConvertVelocityToUnit(vel));
             break;
         case OSD_UNIT_METRIC:
-            tfp_sprintf(buff, "%3d%s", (int)osdConvertVelocityToUnit(vel), "KMH");
+            tfp_sprintf(buff, "%s %3d KPH", sourceBuf, (int)osdConvertVelocityToUnit(vel));
             break;
     }
 }
@@ -681,6 +721,8 @@ static void osdDJIFormatDistanceStr(char *buff, int32_t dist)
     int32_t centifeet;
 
     switch (osdConfig()->units) {
+        case OSD_UNIT_UK:
+            FALLTHROUGH;
         case OSD_UNIT_IMPERIAL:
             centifeet = CENTIMETERS_TO_CENTIFEET(dist);
             if (abs(centifeet) < FEET_PER_MILE * 100 / 2) {
@@ -693,7 +735,7 @@ static void osdDJIFormatDistanceStr(char *buff, int32_t dist)
                 (abs(centifeet) % (100 * FEET_PER_MILE)) / FEET_PER_MILE, "Mi");
             }
             break;
-        case OSD_UNIT_UK:
+        case OSD_UNIT_METRIC_MPH:
             FALLTHROUGH;
         case OSD_UNIT_METRIC:
             if (abs(dist) < METERS_PER_KILOMETER * 100) {
@@ -726,175 +768,362 @@ static void osdDJIEfficiencyMahPerKM(char *buff)
                 1, US2S(efficiencyTimeDelta));
 
             efficiencyUpdated = currentTimeUs;
-        }
-        else {
+        } else {
             value = eFilterState.state;
         }
     }
 
     if (value > 0 && value <= 999) {
         tfp_sprintf(buff, "%3d%s", (int)value, "mAhKM");
-    }
-    else {
+    } else {
         tfp_sprintf(buff, "%s", "---mAhKM");
     }
 }
 
-static void djiSerializeCraftNameOverride(sbuf_t *dst, const char * name)
+static void osdDJIAdjustmentMessage(char *buff, uint8_t adjustmentFunction)
 {
-    // :W T S E D
-    //  | | | | Distance Trip
-    //  | | | Efficiency mA/KM
-    //  | | S 3dSpeed
-    //  | Throttle
-    //  Warnings
-    const char *message = " ";
-    const char *enabledElements = name + 1;
-    char djibuf[24];
-
-    // clear name from chars : and leading W
-    if (enabledElements[0] == 'W') {
-        enabledElements += 1;
-    }
-
-    int elemLen = strlen(enabledElements);
-
-    if (elemLen > 0) {
-        switch (enabledElements[OSD_ALTERNATING_CHOICES(3000, elemLen)]){
-            case 'T':
-                osdDJIFormatThrottlePosition(djibuf,true);
-                break;
-            case 'S':
-                osdDJIFormatVelocityStr(djibuf, osdGet3DSpeed());
-                break;
-            case 'E':
-                osdDJIEfficiencyMahPerKM(djibuf);
-                break;
-            case 'D':
-                osdDJIFormatDistanceStr(djibuf, getTotalTravelDistance());
-                break;
-            case 'W':
-                tfp_sprintf(djibuf, "%s", "MAKE_W_FIRST");
-                break;
-            default:
-                tfp_sprintf(djibuf, "%s", "UNKOWN_ELEM");
-                break;
-        }
-
-        if (djibuf[0] != '\0') {
-            message = djibuf;
-        }
-    }
-
-    if (name[1] == 'W') {
-        char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH+1)];
-        if (ARMING_FLAG(ARMED)) {
-            // Aircraft is armed. We might have up to 5
-            // messages to show.
-            const char *messages[5];
-            unsigned messageCount = 0;
-
-            if (FLIGHT_MODE(FAILSAFE_MODE)) {
-                // In FS mode while being armed too
-                const char *failsafePhaseMessage = osdFailsafePhaseMessage();
-                const char *failsafeInfoMessage = osdFailsafeInfoMessage();
-                const char *navStateFSMessage = navigationStateMessage();
-
-                if (failsafePhaseMessage) {
-                    messages[messageCount++] = failsafePhaseMessage;
-                }
-
-                if (failsafeInfoMessage) {
-                    messages[messageCount++] = failsafeInfoMessage;
-                }
-
-                if (navStateFSMessage) {
-                    messages[messageCount++] = navStateFSMessage;
-                }
-
-                if (messageCount > 0) {
-                    message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
-                    if (message == failsafeInfoMessage) {
-                        // failsafeInfoMessage is not useful for recovering
-                        // a lost model, but might help avoiding a crash.
-                        // Blink to grab user attention.
-                    //doesnt work   TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-                    }
-                    // We're shoing either failsafePhaseMessage or
-                    // navStateFSMessage. Don't BLINK here since
-                    // having this text available might be crucial
-                    // during a lost aircraft recovery and blinking
-                    // will cause it to be missing from some frames.
-                }
-            }
-            else {
-                if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
-                    const char *navStateMessage = navigationStateMessage();
-                    if (navStateMessage) {
-                        messages[messageCount++] = navStateMessage;
-                    }
-                }
-                else if (STATE(FIXED_WING_LEGACY) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
-                    messages[messageCount++] = "AUTOLAUNCH";
-                }
-                else {
-                    if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
-                        // ALTHOLD might be enabled alongside ANGLE/HORIZON/ACRO
-                        // when it doesn't require ANGLE mode (required only in FW
-                        // right now). If if requires ANGLE, its display is handled
-                        // by OSD_FLYMODE.
-                        messages[messageCount++] = "(ALT HOLD)";
-                    }
-                    if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) {
-                        messages[messageCount++] = "(AUTOTRIM)";
-                    }
-                    if (IS_RC_MODE_ACTIVE(BOXAUTOTUNE)) {
-                        messages[messageCount++] = "(AUTOTUNE)";
-                    }
-                    if (FLIGHT_MODE(HEADFREE_MODE)) {
-                        messages[messageCount++] = "(HEADFREE)";
-                    }
-                }
-                // Pick one of the available messages. Each message lasts
-                // a second.
-                if (messageCount > 0) {
-                    message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
-                }
-            }
-        }
-        else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
-            unsigned invalidIndex;
-            // Check if we're unable to arm for some reason
-            if (ARMING_FLAG(ARMING_DISABLED_INVALID_SETTING) && !settingsValidate(&invalidIndex)) {
-                if (OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
-                    const setting_t *setting = settingGet(invalidIndex);
-                    settingGetName(setting, messageBuf);
-                    for (int ii = 0; messageBuf[ii]; ii++) {
-                        messageBuf[ii] = sl_toupper(messageBuf[ii]);
-                    }
-                    message = messageBuf;
-                }
-                else {
-                    message = "ERR SETTING";
-                    // TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
-                }
-            }
-            else {
-                if (OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
-                    message = "CANT ARM";
-                    // TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
-                } else {
-                    // Show the reason for not arming
-                    message = osdArmingDisabledReasonMessage();
-                }
-            }
-        }
-    }
-
-    if (message[0] != '\0') {
-        sbufWriteData(dst, message, strlen(message));
+    switch (adjustmentFunction) {
+        case ADJUSTMENT_RC_EXPO:
+            tfp_sprintf(buff, "RCE %d", currentControlRateProfile->stabilized.rcExpo8);
+            break;
+        case ADJUSTMENT_RC_YAW_EXPO:
+            tfp_sprintf(buff, "RCYE %3d", currentControlRateProfile->stabilized.rcYawExpo8);
+            break;
+        case ADJUSTMENT_MANUAL_RC_EXPO:
+            tfp_sprintf(buff, "MRCE %3d", currentControlRateProfile->manual.rcExpo8);
+            break;
+        case ADJUSTMENT_MANUAL_RC_YAW_EXPO:
+            tfp_sprintf(buff, "MRCYE %3d", currentControlRateProfile->manual.rcYawExpo8);
+            break;
+        case ADJUSTMENT_THROTTLE_EXPO:
+            tfp_sprintf(buff, "TE %3d", currentControlRateProfile->throttle.rcExpo8);
+            break;
+        case ADJUSTMENT_PITCH_ROLL_RATE:
+            tfp_sprintf(buff, "PRR %3d %3d", currentControlRateProfile->stabilized.rates[FD_PITCH], currentControlRateProfile->stabilized.rates[FD_ROLL]);
+            break;
+        case ADJUSTMENT_PITCH_RATE:
+            tfp_sprintf(buff, "PR %3d", currentControlRateProfile->stabilized.rates[FD_PITCH]);
+            break;
+        case ADJUSTMENT_ROLL_RATE:
+            tfp_sprintf(buff, "RR %3d", currentControlRateProfile->stabilized.rates[FD_ROLL]);
+            break;
+        case ADJUSTMENT_MANUAL_PITCH_ROLL_RATE:
+            tfp_sprintf(buff, "MPRR %3d %3d", currentControlRateProfile->manual.rates[FD_PITCH], currentControlRateProfile->manual.rates[FD_ROLL]);
+            break;
+        case ADJUSTMENT_MANUAL_PITCH_RATE:
+            tfp_sprintf(buff, "MPR %3d", currentControlRateProfile->manual.rates[FD_PITCH]);
+            break;
+        case ADJUSTMENT_MANUAL_ROLL_RATE:
+            tfp_sprintf(buff, "MRR %3d", currentControlRateProfile->manual.rates[FD_ROLL]);
+            break;
+        case ADJUSTMENT_YAW_RATE:
+            tfp_sprintf(buff, "YR %3d", currentControlRateProfile->stabilized.rates[FD_YAW]);
+            break;
+        case ADJUSTMENT_MANUAL_YAW_RATE:
+            tfp_sprintf(buff, "MYR %3d", currentControlRateProfile->manual.rates[FD_YAW]);
+            break;
+        case ADJUSTMENT_PITCH_ROLL_P:
+            tfp_sprintf(buff, "PRP %3d %3d", pidBankMutable()->pid[PID_PITCH].P, pidBankMutable()->pid[PID_ROLL].P);
+            break;
+        case ADJUSTMENT_PITCH_P:
+            tfp_sprintf(buff, "PP %3d", pidBankMutable()->pid[PID_PITCH].P);
+            break;
+        case ADJUSTMENT_ROLL_P:
+            tfp_sprintf(buff, "RP %3d", pidBankMutable()->pid[PID_ROLL].P);
+            break;
+        case ADJUSTMENT_PITCH_ROLL_I:
+            tfp_sprintf(buff, "PRI %3d %3d", pidBankMutable()->pid[PID_PITCH].I, pidBankMutable()->pid[PID_ROLL].I);
+            break;
+        case ADJUSTMENT_PITCH_I:
+            tfp_sprintf(buff, "PI %3d", pidBankMutable()->pid[PID_PITCH].I);
+            break;
+        case ADJUSTMENT_ROLL_I:
+            tfp_sprintf(buff, "RI %3d", pidBankMutable()->pid[PID_ROLL].I);
+            break;
+        case ADJUSTMENT_PITCH_ROLL_D:
+            tfp_sprintf(buff, "PRD %3d %3d", pidBankMutable()->pid[PID_PITCH].D, pidBankMutable()->pid[PID_ROLL].D);
+            break;
+        case ADJUSTMENT_PITCH_ROLL_FF:
+            tfp_sprintf(buff, "PRFF %3d %3d", pidBankMutable()->pid[PID_PITCH].FF, pidBankMutable()->pid[PID_ROLL].FF);
+            break;
+        case ADJUSTMENT_PITCH_D:
+            tfp_sprintf(buff, "PD %3d", pidBankMutable()->pid[PID_PITCH].D);
+            break;
+        case ADJUSTMENT_PITCH_FF:
+            tfp_sprintf(buff, "PFF %3d", pidBankMutable()->pid[PID_PITCH].FF);
+            break;
+        case ADJUSTMENT_ROLL_D:
+            tfp_sprintf(buff, "RD %3d", pidBankMutable()->pid[PID_ROLL].D);
+            break;
+        case ADJUSTMENT_ROLL_FF:
+            tfp_sprintf(buff, "RFF %3d", pidBankMutable()->pid[PID_ROLL].FF);
+            break;
+        case ADJUSTMENT_YAW_P:
+            tfp_sprintf(buff, "YP %3d", pidBankMutable()->pid[PID_YAW].P);
+            break;
+        case ADJUSTMENT_YAW_I:
+            tfp_sprintf(buff, "YI  %3d", pidBankMutable()->pid[PID_YAW].I);
+            break;
+        case ADJUSTMENT_YAW_D:
+            tfp_sprintf(buff, "YD %3d", pidBankMutable()->pid[PID_YAW].D);
+            break;
+        case ADJUSTMENT_YAW_FF:
+            tfp_sprintf(buff, "YFF %3d", pidBankMutable()->pid[PID_YAW].FF);
+            break;
+        case ADJUSTMENT_NAV_FW_CRUISE_THR:
+            tfp_sprintf(buff, "CR %4d", currentBatteryProfileMutable->nav.fw.cruise_throttle);
+            break;
+        case ADJUSTMENT_NAV_FW_PITCH2THR:
+            tfp_sprintf(buff, "P2T %3d", currentBatteryProfileMutable->nav.fw.pitch_to_throttle);
+            break;
+        case ADJUSTMENT_ROLL_BOARD_ALIGNMENT:
+            tfp_sprintf(buff, "RBA %3d", boardAlignment()->rollDeciDegrees);
+            break;
+        case ADJUSTMENT_PITCH_BOARD_ALIGNMENT:
+            tfp_sprintf(buff, "PBA %3d", boardAlignment()->pitchDeciDegrees);
+            break;
+        case ADJUSTMENT_LEVEL_P:
+            tfp_sprintf(buff, "LP %3d", pidBankMutable()->pid[PID_LEVEL].P);
+            break;
+        case ADJUSTMENT_LEVEL_I:
+            tfp_sprintf(buff, "LI %3d", pidBankMutable()->pid[PID_LEVEL].I);
+            break;
+        case ADJUSTMENT_LEVEL_D:
+            tfp_sprintf(buff, "LD %3d", pidBankMutable()->pid[PID_LEVEL].D);
+            break;
+        case ADJUSTMENT_POS_XY_P:
+            tfp_sprintf(buff, "PXYP %3d", pidBankMutable()->pid[PID_POS_XY].P);
+            break;
+        case ADJUSTMENT_POS_XY_I:
+            tfp_sprintf(buff, "PXYI %3d", pidBankMutable()->pid[PID_POS_XY].I);
+            break;
+        case ADJUSTMENT_POS_XY_D:
+            tfp_sprintf(buff, "PXYD %3d", pidBankMutable()->pid[PID_POS_XY].D);
+            break;
+        case ADJUSTMENT_POS_Z_P:
+            tfp_sprintf(buff, "PZP %3d", pidBankMutable()->pid[PID_POS_Z].P);
+            break;
+        case ADJUSTMENT_POS_Z_I:
+            tfp_sprintf(buff, "PZI %3d", pidBankMutable()->pid[PID_POS_Z].I);
+            break;
+        case ADJUSTMENT_POS_Z_D:
+            tfp_sprintf(buff, "PZD %3d", pidBankMutable()->pid[PID_POS_Z].D);
+            break;
+        case ADJUSTMENT_HEADING_P:
+            tfp_sprintf(buff, "HP %3d", pidBankMutable()->pid[PID_HEADING].P);
+            break;
+        case ADJUSTMENT_VEL_XY_P:
+            tfp_sprintf(buff, "VXYP %3d", pidBankMutable()->pid[PID_VEL_XY].P);
+            break;
+        case ADJUSTMENT_VEL_XY_I:
+            tfp_sprintf(buff, "VXYI %3d", pidBankMutable()->pid[PID_VEL_XY].I);
+            break;
+        case ADJUSTMENT_VEL_XY_D:
+            tfp_sprintf(buff, "VXYD %3d", pidBankMutable()->pid[PID_VEL_XY].D);
+            break;
+        case ADJUSTMENT_VEL_Z_P:
+            tfp_sprintf(buff, "VZP %3d", pidBankMutable()->pid[PID_VEL_Z].P);
+            break;
+        case ADJUSTMENT_VEL_Z_I:
+            tfp_sprintf(buff, "VZI %3d", pidBankMutable()->pid[PID_VEL_Z].I);
+            break;
+        case ADJUSTMENT_VEL_Z_D:
+            tfp_sprintf(buff, "VZD %3d", pidBankMutable()->pid[PID_VEL_Z].D);
+            break;
+        case ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE:
+            tfp_sprintf(buff, "MTDPA %4d", currentBatteryProfileMutable->fwMinThrottleDownPitchAngle);
+            break;
+        case ADJUSTMENT_TPA:
+            tfp_sprintf(buff, "TPA %3d", currentControlRateProfile->throttle.dynPID);
+            break;
+        case ADJUSTMENT_TPA_BREAKPOINT:
+            tfp_sprintf(buff, "TPABP %4d", currentControlRateProfile->throttle.pa_breakpoint);
+            break;
+        case ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS:
+            tfp_sprintf(buff, "CSM %3d", navConfigMutable()->fw.control_smoothness);
+            break;
+        default:
+            tfp_sprintf(buff, "UNSUPPORTED");
+            break;
     }
 }
+
+static bool osdDJIFormatAdjustments(char *buff)
+{
+    uint8_t adjustmentFunctions[MAX_SIMULTANEOUS_ADJUSTMENT_COUNT];
+    uint8_t adjustmentCount = getActiveAdjustmentFunctions(adjustmentFunctions);
+
+    if (adjustmentCount > 0 && buff != NULL) {
+        osdDJIAdjustmentMessage(buff, adjustmentFunctions[OSD_ALTERNATING_CHOICES(DJI_ALTERNATING_DURATION_LONG, adjustmentCount)]);
+    }
+
+    return adjustmentCount > 0;
+}
+
+
+static bool djiFormatMessages(char *buff)
+{
+    bool haveMessage = false;
+    char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH+1)];
+    if (ARMING_FLAG(ARMED)) {
+        // Aircraft is armed. We might have up to 6
+        // messages to show.
+        char *messages[6];
+        unsigned messageCount = 0;
+
+        if (FLIGHT_MODE(FAILSAFE_MODE)) {
+            // In FS mode while being armed too
+            char *failsafePhaseMessage = osdFailsafePhaseMessage();
+            char *failsafeInfoMessage = osdFailsafeInfoMessage();
+            char *navStateFSMessage = navigationStateMessage();
+
+            if (failsafePhaseMessage) {
+                messages[messageCount++] = failsafePhaseMessage;
+            }
+
+            if (failsafeInfoMessage) {
+                messages[messageCount++] = failsafeInfoMessage;
+            }
+
+            if (navStateFSMessage) {
+                messages[messageCount++] = navStateFSMessage;
+            }
+        } else {
+#ifdef USE_SERIALRX_CRSF
+            if (djiOsdConfig()->rssi_source == DJI_CRSF_LQ && rxLinkStatistics.rfMode == 0) {
+                messages[messageCount++] = "CRSF LOW RF";
+            }
+#endif
+            if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
+                char *navStateMessage = navigationStateMessage();
+                if (navStateMessage) {
+                    messages[messageCount++] = navStateMessage;
+                }
+            } else if (STATE(FIXED_WING_LEGACY) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
+                messages[messageCount++] = "AUTOLAUNCH";
+            } else {
+                if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
+                    // ALTHOLD might be enabled alongside ANGLE/HORIZON/ACRO
+                    // when it doesn't require ANGLE mode (required only in FW
+                    // right now). If if requires ANGLE, its display is handled
+                    // by OSD_FLYMODE.
+                    messages[messageCount++] = "(ALT HOLD)";
+                }
+
+                if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM) && !feature(FEATURE_FW_AUTOTRIM)) {
+                    messages[messageCount++] = "(AUTOTRIM)";
+                }
+
+                if (IS_RC_MODE_ACTIVE(BOXAUTOTUNE)) {
+                    messages[messageCount++] = "(AUTOTUNE)";
+                }
+
+                if (IS_RC_MODE_ACTIVE(BOXAUTOLEVEL)) {
+                    messages[messageCount++] = "(AUTOLEVEL)";
+                }
+
+                if (FLIGHT_MODE(HEADFREE_MODE)) {
+                    messages[messageCount++] = "(HEADFREE)";
+                }
+
+                if (FLIGHT_MODE(MANUAL_MODE)) {
+                    messages[messageCount++] = "(MANUAL)";
+                }
+            }
+        }
+        // Pick one of the available messages. Each message lasts
+        // a second.
+        if (messageCount > 0) {
+           strcpy(buff, messages[OSD_ALTERNATING_CHOICES(DJI_ALTERNATING_DURATION_SHORT, messageCount)]);;
+           haveMessage = true;
+        }
+    } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
+        unsigned invalidIndex;
+        // Check if we're unable to arm for some reason
+        if (ARMING_FLAG(ARMING_DISABLED_INVALID_SETTING) && !settingsValidate(&invalidIndex)) {
+            if (OSD_ALTERNATING_CHOICES(DJI_ALTERNATING_DURATION_SHORT, 2) == 0) {
+                const setting_t *setting = settingGet(invalidIndex);
+                settingGetName(setting, messageBuf);
+                for (int ii = 0; messageBuf[ii]; ii++) {
+                    messageBuf[ii] = sl_toupper(messageBuf[ii]);
+                }
+                strcpy(buff, messageBuf);
+            } else {
+                strcpy(buff, "ERR SETTING");
+                // TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
+            }
+        } else {
+            if (OSD_ALTERNATING_CHOICES(DJI_ALTERNATING_DURATION_SHORT, 2) == 0) {
+                strcpy(buff, "CANT ARM");
+                // TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
+            } else {
+                // Show the reason for not arming
+                strcpy(buff, osdArmingDisabledReasonMessage());
+            }
+        }
+        haveMessage = true;
+    }
+    return haveMessage;
+}
+
+static void djiSerializeCraftNameOverride(sbuf_t *dst)
+{
+    char djibuf[DJI_CRAFT_NAME_LENGTH] = "\0";
+    uint16_t *osdLayoutConfig = (uint16_t*)(osdLayoutsConfig()->item_pos[0]);
+
+    if (!(OSD_VISIBLE(osdLayoutConfig[OSD_MESSAGES]) && djiFormatMessages(djibuf))
+        && !(djiOsdConfig()->useAdjustments && osdDJIFormatAdjustments(djibuf))) {
+
+        DjiCraftNameElements_t activeElements[DJI_OSD_CN_MAX_ELEMENTS];
+        uint8_t activeElementsCount = 0;
+
+        if (OSD_VISIBLE(osdLayoutConfig[OSD_THROTTLE_POS])) {
+            activeElements[activeElementsCount++] = DJI_OSD_CN_THROTTLE;
+        }
+
+        if (OSD_VISIBLE(osdLayoutConfig[OSD_THROTTLE_POS_AUTO_THR])) {
+            activeElements[activeElementsCount++] = DJI_OSD_CN_THROTTLE_AUTO_THR;
+        }
+
+        if (OSD_VISIBLE(osdLayoutConfig[OSD_3D_SPEED])) {
+            activeElements[activeElementsCount++] = DJI_OSD_CN_AIR_SPEED;
+        }
+
+        if (OSD_VISIBLE(osdLayoutConfig[OSD_EFFICIENCY_MAH_PER_KM])) {
+            activeElements[activeElementsCount++] = DJI_OSD_CN_EFFICIENCY;
+        }
+
+        if (OSD_VISIBLE(osdLayoutConfig[OSD_TRIP_DIST])) {
+            activeElements[activeElementsCount++] = DJI_OSD_CN_DISTANCE;
+        }
+
+        switch (activeElements[OSD_ALTERNATING_CHOICES(DJI_ALTERNATING_DURATION_LONG, activeElementsCount)])
+        {
+            case DJI_OSD_CN_THROTTLE:
+                osdDJIFormatThrottlePosition(djibuf, false);
+                break;
+            case DJI_OSD_CN_THROTTLE_AUTO_THR:
+                osdDJIFormatThrottlePosition(djibuf, true);
+                break;
+            case DJI_OSD_CN_AIR_SPEED:
+                osdDJIFormatVelocityStr(djibuf);
+                break;
+            case DJI_OSD_CN_EFFICIENCY:
+                osdDJIEfficiencyMahPerKM(djibuf);
+                break;
+            case DJI_OSD_CN_DISTANCE:
+                osdDJIFormatDistanceStr(djibuf, getTotalTravelDistance());
+                break;
+            default:
+                break;
+        }
+    }
+
+    if (djibuf[0] != '\0') {
+        sbufWriteData(dst, djibuf, strlen(djibuf));
+    }
+}
+
 #endif
 
 
@@ -931,26 +1160,17 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
 
         case DJI_MSP_NAME:
             {
-                const char * name = systemConfig()->name;
-
 #if defined(USE_OSD)
                 if (djiOsdConfig()->use_name_for_messages)  {
-                    if (name[0] == ':') {
-                        // If craft name starts with a semicolon - use it as a template for what we want to show
-                        djiSerializeCraftNameOverride(dst, name);
-                    }
-                    else {
-                        // Otherwise fall back to just warnings
-                        djiSerializeCraftNameOverride(dst, ":W");
-                    }
-                }
-                else
+                    djiSerializeCraftNameOverride(dst);
+                } else {
 #endif
-                {
-                    int len = strlen(name);
-                    sbufWriteData(dst, name, MAX(len, 12));
-                    break;
+                    sbufWriteData(dst, systemConfig()->name, MAX((int)strlen(systemConfig()->name), OSD_MESSAGE_LENGTH));
+#if defined(USE_OSD)
                 }
+#endif
+
+                break;
             }
             break;
 
@@ -1027,7 +1247,22 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
         case DJI_MSP_ANALOG:
             sbufWriteU8(dst,  constrain(getBatteryVoltage() / 10, 0, 255));
             sbufWriteU16(dst, constrain(getMAhDrawn(), 0, 0xFFFF)); // milliamp hours drawn from battery
-            sbufWriteU16(dst, getRSSI());
+#ifdef USE_SERIALRX_CRSF
+            // Range of RSSI field: 0-99: 99 = 150 hz , 0 - 98 50 hz / 4 hz
+            if (djiOsdConfig()->rssi_source == DJI_CRSF_LQ) {
+                uint16_t scaledLq = 0;
+                if (rxLinkStatistics.rfMode >= 2) {
+                    scaledLq = RSSI_MAX_VALUE;
+                } else {
+                    scaledLq = scaleRange(constrain(rxLinkStatistics.uplinkLQ, 0, 100), 0, 100, 0, RSSI_BOUNDARY(98));
+                }
+                sbufWriteU16(dst, scaledLq);
+            } else {
+#endif
+                sbufWriteU16(dst, getRSSI());
+#ifdef USE_SERIALRX_CRSF
+            }
+#endif
             sbufWriteU16(dst, constrain(getAmperage(), -0x8000, 0x7FFF)); // send amperage in 0.01 A steps, range is -320A to 320A
             sbufWriteU16(dst, getBatteryVoltage());
             break;

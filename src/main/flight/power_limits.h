@@ -25,23 +25,13 @@
 
 #include <common/time.h>
 
+#include "platform.h"
+
 #include "config/parameter_group.h"
 
 #if defined(USE_POWER_LIMITS)
 
 typedef struct {
-    uint16_t continuousCurrent;         // dA
-    uint16_t burstCurrent;              // dA
-    uint16_t burstCurrentTime;          // ds
-    uint16_t burstCurrentFalldownTime;  // ds
-
-#ifdef USE_ADC
-    uint16_t continuousPower;           // dW
-    uint16_t burstPower;                // dW
-    uint16_t burstPowerTime;            // ds
-    uint16_t burstPowerFalldownTime;    // ds
-#endif
-
     uint16_t piP;
     uint16_t piI;
 

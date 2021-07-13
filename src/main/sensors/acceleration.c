@@ -616,20 +616,20 @@ void updateAccExtremes(void)
         if (acc.accADCf[axis] > acc.extremes[axis].max) acc.extremes[axis].max = acc.accADCf[axis];
     }
 
-    float gforce = sqrtf(sq(acc.accADCf[0]) + sq(acc.accADCf[1]) + sq(acc.accADCf[2]));
+    float gforce = fast_fsqrtf(sq(acc.accADCf[0]) + sq(acc.accADCf[1]) + sq(acc.accADCf[2]));
     if (gforce > acc.maxG) acc.maxG = gforce;
 }
 
 void accGetVibrationLevels(fpVector3_t *accVibeLevels)
 {
-    accVibeLevels->x = sqrtf(acc.accVibeSq[X]);
-    accVibeLevels->y = sqrtf(acc.accVibeSq[Y]);
-    accVibeLevels->z = sqrtf(acc.accVibeSq[Z]);
+    accVibeLevels->x = fast_fsqrtf(acc.accVibeSq[X]);
+    accVibeLevels->y = fast_fsqrtf(acc.accVibeSq[Y]);
+    accVibeLevels->z = fast_fsqrtf(acc.accVibeSq[Z]);
 }
 
 float accGetVibrationLevel(void)
 {
-    return sqrtf(acc.accVibeSq[X] + acc.accVibeSq[Y] + acc.accVibeSq[Z]);
+    return fast_fsqrtf(acc.accVibeSq[X] + acc.accVibeSq[Y] + acc.accVibeSq[Z]);
 }
 
 uint32_t accGetClipCount(void)

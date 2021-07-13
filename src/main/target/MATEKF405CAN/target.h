@@ -25,7 +25,6 @@
 
 #define BEEPER                  PA8
 #define BEEPER_INVERTED
-#define BEEPER_PWM
 #define BEEPER_PWM_FREQUENCY    2500
 
 // *************** SPI1 Gyro & ACC *******************

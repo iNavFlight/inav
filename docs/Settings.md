@@ -452,6 +452,16 @@ If the remaining battery capacity goes below this threshold the beeper will emit
 
 ---
 
+### beeper_pwm_mode
+
+Allows disabling PWM mode for beeper on some targets. Switch from ON to OFF if the external beeper sound is weak. Do not switch from OFF to ON without checking if the board supports PWM beeper mode
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF |  |  |
+
+---
+
 ### blackbox_device
 
 Selection of where to write blackbox data
@@ -489,6 +499,16 @@ Stick deadband in [r/c points], applied after r/c deadband and expo. Used to che
 | Default | Min | Max |
 | --- | --- | --- |
 | 10 | 2 | 250 |
+
+---
+
+### controlrate_profile
+
+Control rate profile to switch to when the battery profile is selected, 0 to disable and keep the currently selected control rate profile
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 3 |
 
 ---
 
@@ -622,6 +642,16 @@ OFF = OSD hardware blink / ON = OSD software blink. If OSD warning text/values a
 
 ---
 
+### dji_cn_alternating_duration
+
+Alternating duration of craft name elements, in tenths of a second
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 30 | 1 | 150 |
+
+---
+
 ### dji_esc_temp_source
 
 Re-purpose the ESC temperature field for IMU/BARO temperature
@@ -632,9 +662,39 @@ Re-purpose the ESC temperature field for IMU/BARO temperature
 
 ---
 
+### dji_message_speed_source
+
+Sets the speed type displayed by the DJI OSD in craft name: GROUND, 3D, AIR
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3D |  |  |
+
+---
+
+### dji_rssi_source
+
+Source of the DJI RSSI field: RSSI, CRSF_LQ
+
+| Default | Min | Max |
+| --- | --- | --- |
+| RSSI |  |  |
+
+---
+
+### dji_use_adjustments
+
+Show inflight adjustments in craft name field
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF |  |  |
+
+---
+
 ### dji_use_name_for_messages
 
-Re-purpose the craft name field for messages. Replace craft name with :WTSED for Warnings|Throttle|Speed|Efficiency|Trip distance
+Re-purpose the craft name field for messages.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1108,13 +1168,13 @@ The target percentage of maximum mixer output used for determining the rates in 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 90 | 50 | 100 |
+| 80 | 50 | 100 |
 
 ---
 
 ### fw_autotune_min_stick
 
-Minimum stick input [%] to consider overshoot/undershoot detection
+Minimum stick input [%], after applying deadband and expo, to start recording the plane's response to stick input.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5064,7 +5124,7 @@ Output frequency (in Hz) servo pins. When using tricopters or gimbal with digita
 
 ### setpoint_kalman_enabled
 
-Enable Kalman filter on the PID controller setpoint
+Enable Kalman filter on the gyro data
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5079,26 +5139,6 @@ Quality factor of the setpoint Kalman filter. Higher values means less filtering
 | Default | Min | Max |
 | --- | --- | --- |
 | 100 | 1 | 16000 |
-
----
-
-### setpoint_kalman_sharpness
-
-Dynamic factor for the setpoint Kalman filter. In general, the higher the value, the more dynamic Kalman filter gets
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 100 | 1 | 16000 |
-
----
-
-### setpoint_kalman_w
-
-Window size for the setpoint Kalman filter. Wider the window, more samples are used to compute variance. In general, wider window results in smoother filter response
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 4 | 1 | 40 |
 
 ---
 
@@ -5508,7 +5548,7 @@ Battery voltage calibration value. 1100 = 11:1 voltage divider (10k:1k) x 100. A
 
 | Default | Min | Max |
 | --- | --- | --- |
-| _target default_ | VBAT_SCALE_MIN | VBAT_SCALE_MAX |
+| _target default_ | 0 | 65535 |
 
 ---
 

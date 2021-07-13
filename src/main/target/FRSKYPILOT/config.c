@@ -22,6 +22,7 @@
 
 #include "io/serial.h"
 #include "rx/rx.h"
+#include "fc/config.h"
 
 void targetConfiguration(void)
 {
@@ -29,4 +30,6 @@ void targetConfiguration(void)
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART6)].functionMask = FUNCTION_FRSKY_OSD;
 
     rxConfigMutable()->serialrx_inverted = 1;
+
+    beeperConfigMutable()->pwmMode = true;
 }
