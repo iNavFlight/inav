@@ -115,9 +115,6 @@
 #define SYM_MPH                     0x91  // 145 MPH
 #define SYM_KT                      0x92  // 146 Knots
 
-#define SYM_HEADING_DIVIDED_LINE    0x93  // 147 Heading Graphic
-#define SYM_HEADING_LINE            0x94  // 148 Heading Graphic
-
 #define SYM_THR                     0x95  // 149 Throttle
 #define SYM_TEMP_F                  0x96  // 150 °F
 #define SYM_TEMP_C                  0x97  // 151 °C
@@ -158,6 +155,8 @@
 #define SYM_HEADING_S               0xC9  // 201 Heading Graphic south
 #define SYM_HEADING_E               0xCA  // 202 Heading Graphic east
 #define SYM_HEADING_W               0xCB  // 203 Heading Graphic west
+#define SYM_HEADING_DIVIDED_LINE    0xCC  // 204 Heading Graphic
+#define SYM_HEADING_LINE            0xCD  // 205 Heading Graphic
 
 
 #define SYM_LOGO_START              0x101 // 257 to 280, INAV logo
