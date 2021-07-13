@@ -62,7 +62,7 @@ PG_RESET_TEMPLATE(pitotmeterConfig_t, pitotmeterConfig,
     .pitot_hardware = SETTING_PITOT_HARDWARE_DEFAULT,
     .pitot_lpf_milli_hz = SETTING_PITOT_LPF_MILLI_HZ_DEFAULT,
     .pitot_scale = SETTING_PITOT_SCALE_DEFAULT,
-    .airspeed_address = SETTING_MS4525_I2C_ADDRESS_DEFAULT
+    .airspeed_address = SETTING_AIRSPEED_ADDRESS_DEFAULT
 );
 
 bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
