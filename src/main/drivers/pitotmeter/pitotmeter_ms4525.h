@@ -17,4 +17,4 @@
 
 #pragma once
 
-bool ms4525Detect(pitotDev_t *pitot);
+bool ms4525Detect(pitotDev_t *pitot, uint8_t parse_i2c_addr_config);

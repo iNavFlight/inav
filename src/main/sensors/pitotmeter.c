@@ -74,7 +74,7 @@ bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
         case PITOT_AUTODETECT:
         case PITOT_MS4525:
 #ifdef USE_PITOT_MS4525
-            if (ms4525Detect(dev)) {
+            if (ms4525Detect(dev, pitotmeterConfig()->ms4525_i2c_address)) {
                 pitotHardware = PITOT_MS4525;
                 break;
             }
