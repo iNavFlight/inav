@@ -62,7 +62,7 @@ PG_RESET_TEMPLATE(pitotmeterConfig_t, pitotmeterConfig,
     .pitot_hardware = SETTING_PITOT_HARDWARE_DEFAULT,
     .pitot_lpf_milli_hz = SETTING_PITOT_LPF_MILLI_HZ_DEFAULT,
     .pitot_scale = SETTING_PITOT_SCALE_DEFAULT,
-    .ms4525_i2c_address = SETTING_MS4525_I2C_ADDRESS_DEFAULT
+    .ms4525_address = SETTING_MS4525_I2C_ADDRESS_DEFAULT
 );
 
 bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
@@ -74,7 +74,7 @@ bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
         case PITOT_AUTODETECT:
         case PITOT_MS4525:
 #ifdef USE_PITOT_MS4525
-            if (ms4525Detect(dev, pitotmeterConfig()->ms4525_i2c_address)) {
+            if (ms4525Detect(dev, pitotmeterConfig()->ms4525_address)) {
                 pitotHardware = PITOT_MS4525;
                 break;
             }
