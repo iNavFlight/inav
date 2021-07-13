@@ -49,21 +49,21 @@
 
 #include "build/debug.h"
 
+#define VCM5883_REGISTER_ADDR_CNTL1 0x0B
+#define VCM5883_REGISTER_ADDR_CNTL2 0x0A
+#define VCM5883_REGISTER_ADDR_CHIPID 0x0C
+#define VCM5883_REGISTER_ADDR_OUTPUT_X 0x00
+#define VCM5883_INITIAL_CONFIG 0b0100
+
 #define DETECTION_MAX_RETRY_COUNT   5
 static bool deviceDetect(magDev_t * mag)
 {
     for (int retryCount = 0; retryCount < DETECTION_MAX_RETRY_COUNT; retryCount++) {
-        busWrite(mag->busDev, 0x0A, 0b0100);
+        busWrite(mag->busDev, VCM5883_REGISTER_ADDR_CNTL2, 0b01000001);
         delay(30);
 
-        DEBUG_SET(DEBUG_ALWAYS, 1, 3);
-
         uint8_t sig = 0;
-        bool ack = busRead(mag->busDev, 0x0C, &sig);
-
-        DEBUG_SET(DEBUG_ALWAYS, 1, 5);
-        DEBUG_SET(DEBUG_ALWAYS, 2, ack);
-        DEBUG_SET(DEBUG_ALWAYS, 3, sig);
+        bool ack = busRead(mag->busDev, VCM5883_REGISTER_ADDR_CHIPID, &sig);
 
         if (ack && sig == 0x82) {
             return true;
@@ -73,29 +73,49 @@ static bool deviceDetect(magDev_t * mag)
     return false;
 }
 
+static bool vcm5883Init(magDev_t * mag) {
+    UNUSED(mag);
+    return true;
+}
+
+static bool vcm5883Read(magDev_t * mag)
+{
+    uint8_t buf[6];
+
+    // set magData to zero for case of failed read
+    mag->magADCRaw[X] = 0;
+    mag->magADCRaw[Y] = 0;
+    mag->magADCRaw[Z] = 0;
+
+    bool ack = busReadBuf(mag->busDev, VCM5883_REGISTER_ADDR_OUTPUT_X, buf, 6);
+    if (!ack) {
+        return false;
+    }
+
+    mag->magADCRaw[X] = (int16_t)(buf[1] << 8 | buf[0]);
+    mag->magADCRaw[Y] = (int16_t)(buf[3] << 8 | buf[2]);
+    mag->magADCRaw[Z] = (int16_t)(buf[5] << 8 | buf[4]);
+
+    return true;
+}
+
 bool vcm5883Detect(magDev_t * mag)
 {
-    DEBUG_SET(DEBUG_ALWAYS, 0, 1);
-
     mag->busDev = busDeviceInit(BUSTYPE_ANY, DEVHW_VCM5883, mag->magSensorToUse, OWNER_COMPASS);
     if (mag->busDev == NULL) {
         return false;
     }
-    DEBUG_SET(DEBUG_ALWAYS, 0, 2);
 
     if (!deviceDetect(mag)) {
         DEBUG_SET(DEBUG_ALWAYS, 0, 7);
         busDeviceDeInit(mag->busDev);
         return false;
     }
-    DEBUG_SET(DEBUG_ALWAYS, 0, 3);
 
-    // mag->init = qmc5883Init;
-    // mag->read = qmc5883Read;
+    mag->init = vcm5883Init;
+    mag->read = vcm5883Read;
 
-    return false;
-
-    // return true;
+    return true;
 }
 
 #endif
