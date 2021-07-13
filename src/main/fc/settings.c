@@ -41,11 +41,13 @@ static bool settingGetWord(char *buf, int idx)
 			}
 			char c;
 			if (chr < 27) {
-				c = 'a' + (chr - 1);
-			} else {
-				c = wordSymbols[chr - 27];
-			}
-			*bufPtr++ = c;
+                            c = 'a' + (chr - 1);
+			} else if (chr == 27) {
+                            c = '_';
+                        } else if (chr < 38) {
+                            c = '0' + (chr - 28);
+                        }
+                        *bufPtr++ = c;
 		} else {
 			if (chr == 0) {
 				// Word end

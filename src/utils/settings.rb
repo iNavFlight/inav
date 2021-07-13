@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# coding: utf-8
 
 # This file is part of INAV.
 #
@@ -37,7 +38,7 @@ require_relative 'compiler'
 DEBUG = false
 INFO = false
 
-SETTINGS_WORDS_BITS_PER_CHAR = 5
+SETTINGS_WORDS_BITS_PER_CHAR = 6
 
 def dputs(s)
     puts s if DEBUG
@@ -512,41 +513,32 @@ class Generator
         # Write word list
         buf << "static const uint8_t settingNamesWords[] = {\n"
         word_bits = SETTINGS_WORDS_BITS_PER_CHAR
-        # We need 27 symbols for a-z + null
-        rem_symbols = 2 ** word_bits - 27
-        symbols = Array.new
         acc = 0
         acc_bits = 0
         encode_byte = lambda do |c|
-            if c == 0
-                chr = 0 # XXX: Remove this if we go for explicit lengths
-            elsif c >= 'a'.ord && c <= 'z'.ord
-                chr = 1 + (c - 'a'.ord)
-            elsif c >= 'A'.ord && c <= 'Z'.ord
-                raise "Cannot encode uppercase character #{c.ord} (#{c})"
-            else
-                idx = symbols.index(c)
-                if idx.nil?
-                    if rem_symbols == 0
-                        raise "Cannot encode character #{c.ord} (#{c}), no symbols remaining"
-                    end
-                    rem_symbols -= 1
-                    idx = symbols.length
-                    symbols.push(c)
-                end
-                chr = 1 + ('z'.ord - 'a'.ord + 1) + idx
-            end
-            if acc_bits >= (8 - word_bits)
-                # Write
-                remaining = 8 - acc_bits
-                acc |= chr << (remaining - word_bits)
-                buf << "0x#{acc.to_s(16)},"
-                acc = (chr << (8 - (word_bits - remaining))) & 0xff
-            else
+          case c
+          when 0
+            chr = 0 # XXX: Remove this if we go for explicit lengths
+          when 'a'.ord..'z'.ord
+            chr = 1 + (c - 'a'.ord)
+          when '0'.ord..'9'.ord
+            chr = 28 + (c-'0'.ord)
+          when '_'.ord
+            chr = 27
+          else
+            raise "Cannot encode character #{c.chr} (#{c})"
+          end
+          if acc_bits >= (8 - word_bits)
+            # Write
+            remaining = 8 - acc_bits
+            acc |= chr << (remaining - word_bits)
+            buf << "0x#{acc.to_s(16)},"
+            acc = (chr << (8 - (word_bits - remaining))) & 0xff
+          else
                 # Accumulate for next byte
-                acc |= chr << (3 - acc_bits)
-            end
-            acc_bits = (acc_bits + word_bits) % 8
+            acc |= chr << (2 - acc_bits)
+          end
+          acc_bits = (acc_bits + word_bits) % 8
         end
         @name_encoder.words.each do |w|
             buf << "\t"
@@ -563,11 +555,6 @@ class Generator
         end
         buf << "};\n"
 
-        # Output symbol array
-        buf << "static const char wordSymbols[] = {"
-        symbols.each { |s| buf << "'#{s.chr}'," }
-        buf << "};\n"
-        # Write the tables
         table_names = ordered_table_names()
         table_names.each do |name|
             buf << "const char * const #{table_variable_name(name)}[] = {\n"
