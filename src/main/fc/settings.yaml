@@ -694,7 +694,7 @@ groups:
         max: 100
         default_value: 1.0
       - name: ms4525_i2c_address
-        description: "3 possible MS4525 I2C addresses (0 = 0x28, 1 = 0x36 or 2 = 0x46)"
+        description: "3 possible I2C addresses for AirSpeed ​​MS4525 (0 = 0x28, 1 = 0x36 or 2 = 0x46)"
         min: 0
         max: 2
         default_value: 0

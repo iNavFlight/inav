@@ -2904,7 +2904,7 @@ Output frequency (in Hz) for motor pins. Default is 400Hz for motor with motor_p
 
 ### ms4525_i2c_address
 
-3 possible MS4525 I2C addresses (0 = 0x28, 1 = 0x36 or 2 = 0x46)
+3 possible I2C addresses for AirSpeed ​​MS4525 (0 = 0x28, 1 = 0x36 or 2 = 0x46)
 
 | Default | Min | Max |
 | --- | --- | --- |
