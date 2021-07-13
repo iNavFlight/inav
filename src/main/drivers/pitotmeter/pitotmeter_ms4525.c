@@ -26,6 +26,7 @@
 #include "drivers/bus_i2c.h"
 #include "drivers/time.h"
 #include "drivers/pitotmeter/pitotmeter.h"
+#include "sensors/pitotmeter.h"
 
 // MS4525, Standard address 0x28
 #define MS4525_ADDR                 0x28
@@ -113,13 +114,7 @@ bool ms4525Detect(pitotDev_t * pitot)
     uint8_t rxbuf[4];
     bool ack = false;
 
-    for (uint8_t index = 0; index < 3; ++index) {
-        delay(10); //don't do it so fast
-        pitot->busDev = busDeviceInit(BUSTYPE_I2C, DEVHW_MS4525_0 + index, 0, OWNER_AIRSPEED);
-        if (pitot->busDev != NULL) { //sensor found
-            break;
-        }
-    }
+    pitot->busDev = busDeviceInit(BUSTYPE_I2C, DEVHW_MS4525_0 + pitotmeterConfig()->ms4525_i2c_address, 0, OWNER_AIRSPEED);
 
     if (pitot->busDev == NULL) {
         return false;

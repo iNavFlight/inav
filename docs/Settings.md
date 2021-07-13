@@ -2902,6 +2902,16 @@ Output frequency (in Hz) for motor pins. Default is 400Hz for motor with motor_p
 
 ---
 
+### ms4525_i2c_address
+
+3 possible MS4525 I2C addresses (0 = 0x28, 1 = 0x36 or 2 = 0x46)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 2 |
+
+---
+
 ### msp_override_channels
 
 Mask of RX channels that may be overridden by MSP `SET_RAW_RC`. Note that this requires custom firmware with `USE_RX_MSP` and `USE_MSP_RC_OVERRIDE` compile options and the `MSP RC Override` flight mode.
