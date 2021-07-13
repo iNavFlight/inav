@@ -2550,7 +2550,7 @@ groups:
         field: general.flags.rth_climb_first_stage_mode
         table: nav_rth_climb_first_stage_modes
       - name: nav_rth_climb_first_stage_altitude
-        description: "The altitude [cm] at which climb first will transition to turn first. How the altitude is used is determined byt nav_rth_climb_first_stage_mode. Default=0; feature disabled."
+        description: "The altitude [cm] at which climb first will transition to turn first. How the altitude is used is determined by nav_rth_climb_first_stage_mode. Default=0; feature disabled."
         default_value: 0
         field: general.rth_climb_first_stage_altitude
         max: 65000
