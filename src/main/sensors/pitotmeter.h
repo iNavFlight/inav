@@ -40,7 +40,7 @@ typedef struct pitotmeterConfig_s {
     uint8_t pitot_hardware;                 // Pitotmeter hardware to use
     uint16_t pitot_lpf_milli_hz;            // additional LPF to reduce pitot noise in [0.001Hz]
     float pitot_scale;                      // scale value
-    uint8_t ms4525_address;                 // i2c address
+    uint8_t airspeed_address;               // i2c address
 } pitotmeterConfig_t;
 
 PG_DECLARE(pitotmeterConfig_t, pitotmeterConfig);
