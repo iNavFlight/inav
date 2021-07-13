@@ -241,6 +241,11 @@ void osdHudDrawCrosshair(displayCanvas_t *canvas, uint8_t px, uint8_t py)
     displayWriteChar(osdGetDisplayPort(), px, py, crh_style_all[crh_crosshair * 3 + 1]);
     displayWriteChar(osdGetDisplayPort(), px + 1, py, crh_style_all[crh_crosshair * 3 + 2]);
 
+    if ((crh_style_all[crh_crosshair * 3]) == SYM_AH_CH_AIRCRAFT1) {
+        displayWriteChar(osdGetDisplayPort(), px - 2, py, SYM_AH_CH_AIRCRAFT0);
+        displayWriteChar(osdGetDisplayPort(), px + 2, py, SYM_AH_CH_AIRCRAFT4);
+    }
+
     if (canvas) {
         displayCanvasContextPop(canvas);
     }
