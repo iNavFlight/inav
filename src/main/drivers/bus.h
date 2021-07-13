@@ -119,6 +119,7 @@ typedef enum {
     DEVHW_MAG3110,
     DEVHW_LIS3MDL,
     DEVHW_RM3100,
+    DEVHW_VCM5883,
 
     /* Temp sensor chips */
     DEVHW_LM75_0,

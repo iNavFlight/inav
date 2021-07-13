@@ -79,6 +79,9 @@
 #endif
 
 #if (MCU_FLASH_SIZE > 256)
+
+#define USE_MAG_VCM5883
+
 #define USE_MR_BRAKING_MODE
 #define USE_PITOT
 #define USE_PITOT_ADC
