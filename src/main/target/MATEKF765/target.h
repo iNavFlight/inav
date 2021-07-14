@@ -56,6 +56,13 @@
 #define MPU6500_CS_PIN          PD7
 #define MPU6500_EXTI_PIN        PD4
 
+#if defined(MATEKF765SE)
+#define USE_IMU_ICM42605
+#define IMU_ICM42605_ALIGN      CW0_DEG_FLIP
+#define ICM42605_SPI_BUS        BUS_SPI4
+#define ICM42605_CS_PIN         PE11
+#define ICM42605_EXTI_PIN       PC13
+#endif
 
 #define USE_EXTI
 #define USE_MPU_DATA_READY_SIGNAL
@@ -103,12 +110,10 @@
 #define MAX7456_CS_PIN          PB12
 
 // *************** SPI4 ******************************
-/*
 #define USE_SPI_DEVICE_4
 #define SPI4_SCK_PIN            PE12
 #define SPI4_MISO_PIN           PE13
 #define SPI4_MOSI_PIN           PE14
-*/
 
 // *************** UART *****************************
 #define USE_VCP

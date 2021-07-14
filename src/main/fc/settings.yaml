@@ -4,7 +4,7 @@ tables:
   - name: gyro_lpf
     values: ["256HZ", "188HZ", "98HZ", "42HZ", "20HZ", "10HZ"]
   - name: acc_hardware
-    values: ["NONE", "AUTO", "ADXL345", "MPU6050", "MMA845x", "BMA280", "LSM303DLHC", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "FAKE"]
+    values: ["NONE", "AUTO", "ADXL345", "MPU6050", "MMA845x", "BMA280", "LSM303DLHC", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "FAKE"]
     enum: accelerationSensor_e
   - name: rangefinder_hardware
     values: ["NONE", "HCSR04", "SRF10", "INAV_I2C", "VL53L0X", "MSP", "UNUSED", "BENEWAKE", "VL53L1X", "US42"]
