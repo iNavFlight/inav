@@ -226,6 +226,7 @@ void osdHudDrawCrosshair(displayCanvas_t *canvas, uint8_t px, uint8_t py)
         SYM_AH_CH_TYPE5, SYM_AH_CH_TYPE5 + 1, SYM_AH_CH_TYPE5 + 2,
         SYM_AH_CH_TYPE6, SYM_AH_CH_TYPE6 + 1, SYM_AH_CH_TYPE6 + 2,
         SYM_AH_CH_TYPE7, SYM_AH_CH_TYPE7 + 1, SYM_AH_CH_TYPE7 + 2,
+        SYM_AH_CH_TYPE8, SYM_AH_CH_TYPE8 + 1, SYM_AH_CH_TYPE8 + 2,
     };
 
     // Center on the screen
@@ -239,6 +240,11 @@ void osdHudDrawCrosshair(displayCanvas_t *canvas, uint8_t px, uint8_t py)
     displayWriteChar(osdGetDisplayPort(), px - 1, py,crh_style_all[crh_crosshair * 3]);
     displayWriteChar(osdGetDisplayPort(), px, py, crh_style_all[crh_crosshair * 3 + 1]);
     displayWriteChar(osdGetDisplayPort(), px + 1, py, crh_style_all[crh_crosshair * 3 + 2]);
+
+    if ((crh_style_all[crh_crosshair * 3]) == SYM_AH_CH_AIRCRAFT1) {
+        displayWriteChar(osdGetDisplayPort(), px - 2, py, SYM_AH_CH_AIRCRAFT0);
+        displayWriteChar(osdGetDisplayPort(), px + 2, py, SYM_AH_CH_AIRCRAFT4);
+    }
 
     if (canvas) {
         displayCanvasContextPop(canvas);
