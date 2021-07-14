@@ -131,6 +131,11 @@
 #define UART4_TX_PIN            PD1
 #define UART4_RX_PIN            PD0
 
+#define USE_UART5
+#define UART5_TX_PIN            NONE
+#define UART5_RX_PIN            PB8
+#define UART5_AF                7
+
 #define USE_UART6
 #define UART6_TX_PIN            PC6
 #define UART6_RX_PIN            PC7
