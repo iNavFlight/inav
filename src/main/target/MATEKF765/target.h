@@ -154,7 +154,7 @@
 #define SOFTSERIAL_1_RX_PIN      PC6  //TX6 pad
 
 
-#define SERIAL_PORT_COUNT       9
+#define SERIAL_PORT_COUNT       10
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
