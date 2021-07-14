@@ -21,6 +21,8 @@
 
 #include "platform.h"
 
+#include "build/debug.h"
+
 #include "common/axis.h"
 #include "common/maths.h"
 #include "common/utils.h"
