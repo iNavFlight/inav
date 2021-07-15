@@ -581,6 +581,8 @@ main_sources(COMMON_SRC
     telemetry/ghst.h
     telemetry/hott.c
     telemetry/hott.h
+    telemetry/jetiexbus.c
+    telemetry/jetiexbus.h
     telemetry/ibus_shared.c
     telemetry/ibus_shared.h
     telemetry/ibus.c
