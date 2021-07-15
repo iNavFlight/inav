@@ -56,6 +56,8 @@
 #include "sensors/sensors.h"
 #include "sensors/acceleration.h"
 #include "sensors/boardalignment.h"
+#include "sensors/battery.h"
+
 
 // Multirotors:
 #define MR_RTH_CLIMB_OVERSHOOT_CM   100  // target this amount of cm *above* the target altitude to ensure it is actually reached (Vz > 0 at target alt)
@@ -2564,7 +2566,7 @@ void updateLandingStatus(void)
             disarm(DISARM_LANDING);
         } else if (!navigationIsFlyingAutonomousMode()) {
             // for multirotor only - reactivate landing detector without disarm when throttle raised toward hover throttle
-            landingDetectorIsActive = rxGetChannelValue(THROTTLE) < (0.5 * (navConfig()->mc.hover_throttle + getThrottleIdleValue()));
+            landingDetectorIsActive = rxGetChannelValue(THROTTLE) < (0.5 * (currentBatteryProfile->nav.mc.hover_throttle + getThrottleIdleValue()));
         }
     } else if (isLandingDetected()) {
         ENABLE_STATE(LANDING_DETECTED);

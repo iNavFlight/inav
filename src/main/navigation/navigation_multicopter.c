@@ -677,7 +677,7 @@ static void applyMulticopterPositionController(timeUs_t currentTimeUs)
 
 bool isMulticopterFlying(void)
 {
-    bool throttleCondition = rcCommand[THROTTLE] > navConfig()->mc.hover_throttle;
+    bool throttleCondition = rcCommand[THROTTLE] > currentBatteryProfile->nav.mc.hover_throttle;
     bool gyroCondition = averageAbsGyroRates() > 7.0f;
 
     return throttleCondition && gyroCondition;

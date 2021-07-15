@@ -245,18 +245,18 @@ static int8_t loiterDirection(void) {
 
     if (pidProfile()->loiter_direction == NAV_LOITER_YAW) {
 
-        if (rcCommand[YAW] < -250) { 
+        if (rcCommand[YAW] < -250) {
             loiterDirYaw = 1; //RIGHT //yaw is contrariwise
         }
 
-        if (rcCommand[YAW] > 250) { 
+        if (rcCommand[YAW] > 250) {
             loiterDirYaw = -1; //LEFT  //see annexCode in fc_core.c
         }
 
         dir = loiterDirYaw;
     }
 
-    if (IS_RC_MODE_ACTIVE(BOXLOITERDIRCHN)) { 
+    if (IS_RC_MODE_ACTIVE(BOXLOITERDIRCHN)) {
         dir *= -1;
     }
 
@@ -599,7 +599,7 @@ bool isFixedWingFlying(void)
 #ifdef USE_PITOT
     airspeed = pitot.airSpeed;
 #endif
-    bool throttleCondition = rcCommand[THROTTLE] > navConfig()->fw.cruise_throttle;
+    bool throttleCondition = rcCommand[THROTTLE] > currentBatteryProfile->nav.fw.cruise_throttle;
     bool velCondition = posControl.actualState.velXY > 250 || airspeed > 250;
 
     return isImuHeadingValid() && throttleCondition && velCondition;
