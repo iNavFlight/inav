@@ -187,6 +187,7 @@
 #define USE_TELEMETRY_IBUS
 #define USE_TELEMETRY_SMARTPORT
 #define USE_TELEMETRY_CRSF
+#define USE_TELEMETRY_JETIEXBUS
 // These are rather exotic serial protocols
 #define USE_RX_MSP
 //#define USE_MSP_RC_OVERRIDE
