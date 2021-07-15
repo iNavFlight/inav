@@ -45,7 +45,6 @@
 #define BMP280_SPI_BUS		BUS_SPI2
 #define BMP280_CS_PIN           PB3
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS		BUS_SPI2
 #define MAX7456_CS_PIN      PB12

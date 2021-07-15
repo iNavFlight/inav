@@ -91,7 +91,7 @@ typedef struct {
     bool                requestTelemetry;
 } pwmOutputMotor_t;
 
-static pwmOutputPort_t pwmOutputPorts[MAX_PWM_OUTPUT_PORTS];
+static DMA_RAM pwmOutputPort_t pwmOutputPorts[MAX_PWM_OUTPUT_PORTS];
 
 static pwmOutputMotor_t        motors[MAX_MOTORS];
 static motorPwmProtocolTypes_e initMotorProtocol;
@@ -105,11 +105,9 @@ static timeUs_t digitalMotorUpdateIntervalUs = 0;
 static timeUs_t digitalMotorLastUpdateUs;
 #endif
 
-#ifdef BEEPER_PWM
 static pwmOutputPort_t  beeperPwmPort;
 static pwmOutputPort_t *beeperPwm;
 static uint16_t beeperFrequency = 0;
-#endif
 
 static uint8_t allocatedOutputPortCount = 0;
 
@@ -634,7 +632,6 @@ void pwmWriteServo(uint8_t index, uint16_t value)
     }
 }
 
-#ifdef BEEPER_PWM
 void pwmWriteBeeper(bool onoffBeep)
 {
     if (beeperPwm == NULL)
@@ -666,4 +663,3 @@ void beeperPwmInit(ioTag_t tag, uint16_t frequency)
         pwmOutConfigTimer(beeperPwm, tch, PWM_TIMER_HZ, 1000000 / beeperFrequency, (1000000 / beeperFrequency) / 2);
     }
 }
-#endif

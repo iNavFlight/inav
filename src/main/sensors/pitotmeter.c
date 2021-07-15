@@ -223,7 +223,7 @@ STATIC_PROTOTHREAD(pitotThread)
             //
             // Therefore we shouldn't care about CAS/TAS and only calculate IAS since it's more indicative to the pilot and more useful in calculations
             // It also allows us to use pitot_scale to calibrate the dynamic pressure sensor scale
-            pitot.airSpeed = pitotmeterConfig()->pitot_scale * sqrtf(2.0f * fabsf(pitot.pressure - pitot.pressureZero) / AIR_DENSITY_SEA_LEVEL_15C) * 100;
+            pitot.airSpeed = pitotmeterConfig()->pitot_scale * fast_fsqrtf(2.0f * fabsf(pitot.pressure - pitot.pressureZero) / AIR_DENSITY_SEA_LEVEL_15C) * 100;
         } else {
             performPitotCalibrationCycle();
             pitot.airSpeed = 0;

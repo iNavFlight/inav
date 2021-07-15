@@ -57,7 +57,7 @@
 #define I2C2_SDA                        PB9
 #define DEFAULT_I2C_BUS                 BUS_I2C1
 
-#else 
+#else
 
 #define USE_I2C_DEVICE_2
 #define I2C2_SCL                        PB10        // SCL pad TX3
@@ -158,7 +158,6 @@
 #define VBAT_SCALE_DEFAULT              1100
 
 // ******* OSD ********
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS                 BUS_SPI2
 #define MAX7456_CS_PIN                  PB12
@@ -187,8 +186,8 @@
 #define TARGET_IO_PORTC                 0xffff
 #define TARGET_IO_PORTD                 (BIT(2))
 
-#define MAX_PWM_OUTPUT_PORTS            8
-#define TARGET_MOTOR_COUNT              4           
+#define MAX_PWM_OUTPUT_PORTS            4
+#define TARGET_MOTOR_COUNT              4
 
 // ESC-related features
 #define USE_DSHOT

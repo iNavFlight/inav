@@ -53,7 +53,6 @@
 #define OSD_MSG_SYS_OVERLOADED      "SYSTEM OVERLOADED"
 #define OSD_MSG_WAITING_GPS_FIX     "WAITING FOR GPS FIX"
 #define OSD_MSG_DISABLE_NAV_FIRST   "DISABLE NAVIGATION FIRST"
-#define OSD_MSG_1ST_WP_TOO_FAR      "FIRST WAYPOINT IS TOO FAR"
 #define OSD_MSG_JUMP_WP_MISCONFIG   "JUMP WAYPOINT MISCONFIGURED"
 #define OSD_MSG_MAG_NOT_CAL         "COMPASS NOT CALIBRATED"
 #define OSD_MSG_ACC_NOT_CAL         "ACCELEROMETER NOT CALIBRATED"
@@ -98,6 +97,7 @@
 #define OSD_MSG_ALTITUDE_HOLD       "(ALTITUDE HOLD)"
 #define OSD_MSG_AUTOTRIM            "(AUTOTRIM)"
 #define OSD_MSG_AUTOTUNE            "(AUTOTUNE)"
+#define OSD_MSG_AUTOTUNE_ACRO       "SWITCH TO ACRO"
 #define OSD_MSG_HEADFREE            "(HEADFREE)"
 #define OSD_MSG_UNABLE_ARM          "UNABLE TO ARM"
 
@@ -231,13 +231,15 @@ typedef enum {
     OSD_PLIMIT_REMAINING_BURST_TIME,
     OSD_PLIMIT_ACTIVE_CURRENT_LIMIT,
     OSD_PLIMIT_ACTIVE_POWER_LIMIT,
+    OSD_GLIDESLOPE,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
 typedef enum {
     OSD_UNIT_IMPERIAL,
     OSD_UNIT_METRIC,
-    OSD_UNIT_UK, // Show speed in mp/h, other values in metric
+    OSD_UNIT_METRIC_MPH, // Old UK units, all metric except speed in mph
+    OSD_UNIT_UK, // Show everything in imperial, temperature in C
 
     OSD_UNIT_MAX = OSD_UNIT_UK,
 } osd_unit_e;
@@ -312,6 +314,7 @@ typedef struct osdConfig_s {
 #ifdef USE_SERIALRX_CRSF
     int8_t snr_alarm; //CRSF SNR alarm in dB
     int8_t link_quality_alarm;
+    int16_t rssi_dbm_alarm; // in dBm
 #endif
 #ifdef USE_BARO
     int16_t baro_temp_alarm_min;
@@ -331,6 +334,7 @@ typedef struct osdConfig_s {
     uint8_t crosshairs_style; // from osd_crosshairs_style_e
     int8_t horizon_offset;
     int8_t camera_uptilt;
+    bool ahi_camera_uptilt_comp;
     uint8_t camera_fov_h;
     uint8_t camera_fov_v;
     uint8_t hud_margin_h;

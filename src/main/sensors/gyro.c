@@ -75,6 +75,7 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/gyroanalyse.h"
 #include "flight/rpm_filter.h"
 #include "flight/dynamic_gyro_notch.h"
+#include "flight/kalman.h"
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
@@ -111,7 +112,7 @@ STATIC_FASTRAM alphaBetaGammaFilter_t abgFilter[XYZ_AXIS_COUNT];
 
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 13);
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 15);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_lpf = SETTING_GYRO_HARDWARE_LPF_DEFAULT,
@@ -141,6 +142,10 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .alphaBetaGammaAlpha = SETTING_GYRO_ABG_ALPHA_DEFAULT,
     .alphaBetaGammaBoost = SETTING_GYRO_ABG_BOOST_DEFAULT,
     .alphaBetaGammaHalfLife = SETTING_GYRO_ABG_HALF_LIFE_DEFAULT,
+#endif
+#ifdef USE_GYRO_KALMAN
+    .kalman_q = SETTING_SETPOINT_KALMAN_Q_DEFAULT,
+    .kalmanEnabled = SETTING_SETPOINT_KALMAN_ENABLED_DEFAULT,
 #endif
 );
 
@@ -316,6 +321,11 @@ static void gyroInitFilters(void)
                 getLooptime() * 1e-6f
             );
         }
+    }
+#endif
+#ifdef USE_GYRO_KALMAN
+    if (gyroConfig()->kalmanEnabled) {
+        gyroKalmanInitialize(gyroConfig()->kalman_q);
     }
 #endif
 }
@@ -501,6 +511,12 @@ void FAST_CODE NOINLINE gyroFilter()
         }
 #endif
 
+#ifdef USE_GYRO_KALMAN
+        if (gyroConfig()->kalmanEnabled) {
+            gyroADCf = gyroKalmanUpdate(axis, gyroADCf);
+        }
+#endif
+
         gyro.gyroADCf[axis] = gyroADCf;
     }
 
@@ -517,6 +533,7 @@ void FAST_CODE NOINLINE gyroFilter()
         }
     }
 #endif
+
 }
 
 void FAST_CODE NOINLINE gyroUpdate()

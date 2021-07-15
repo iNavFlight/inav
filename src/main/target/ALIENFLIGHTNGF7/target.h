@@ -138,7 +138,6 @@
 #define I2C1_SCL                PB6
 #define I2C1_SDA                PB7
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PB12

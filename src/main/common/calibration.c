@@ -34,7 +34,7 @@ void zeroCalibrationStartS(zeroCalibrationScalar_t * s, timeMs_t window, float t
 {
     // Reset parameters and state
     s->params.state = ZERO_CALIBRATION_IN_PROGRESS;
-    s->params.startTimeMs = millis();
+    s->params.startTimeMs = 0;
     s->params.windowSizeMs = window;
     s->params.stdDevThreshold = threshold;
     s->params.allowFailure = allowFailure;
@@ -58,6 +58,13 @@ void zeroCalibrationAddValueS(zeroCalibrationScalar_t * s, const float v)
 {
     if (s->params.state != ZERO_CALIBRATION_IN_PROGRESS) {
         return;
+    }
+
+    // An unknown delay may have passed between `zeroCalibrationStartS` and first sample acquisition
+    // therefore our window measurement might be incorrect
+    // To account for that we reset the startTimeMs when acquiring the first sample
+    if (s->params.sampleCount == 0 && s->params.startTimeMs == 0) {
+        s->params.startTimeMs = millis();
     }
 
     // Add value
