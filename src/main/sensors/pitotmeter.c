@@ -49,7 +49,7 @@
 
 pitot_t pitot;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(pitotmeterConfig_t, pitotmeterConfig, PG_PITOTMETER_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(pitotmeterConfig_t, pitotmeterConfig, PG_PITOTMETER_CONFIG, 3);
 
 #define PITOT_HARDWARE_TIMEOUT_MS   500     // Accept 500ms of non-responsive sensor, report HW failure otherwise
 
@@ -61,7 +61,8 @@ PG_REGISTER_WITH_RESET_TEMPLATE(pitotmeterConfig_t, pitotmeterConfig, PG_PITOTME
 PG_RESET_TEMPLATE(pitotmeterConfig_t, pitotmeterConfig,
     .pitot_hardware = SETTING_PITOT_HARDWARE_DEFAULT,
     .pitot_lpf_milli_hz = SETTING_PITOT_LPF_MILLI_HZ_DEFAULT,
-    .pitot_scale = SETTING_PITOT_SCALE_DEFAULT
+    .pitot_scale = SETTING_PITOT_SCALE_DEFAULT,
+    .airspeed_address = SETTING_AIRSPEED_ADDRESS_DEFAULT
 );
 
 bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
@@ -73,7 +74,7 @@ bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
         case PITOT_AUTODETECT:
         case PITOT_MS4525:
 #ifdef USE_PITOT_MS4525
-            if (ms4525Detect(dev)) {
+            if (ms4525Detect(dev, pitotmeterConfig()->airspeed_address)) {
                 pitotHardware = PITOT_MS4525;
                 break;
             }

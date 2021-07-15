@@ -108,12 +108,13 @@ static void ms4525_calculate(pitotDev_t * pitot, float *pressure, float *tempera
     }
 }
 
-bool ms4525Detect(pitotDev_t * pitot)
+bool ms4525Detect(pitotDev_t * pitot, uint8_t parse_i2c_addr_config)
 {
     uint8_t rxbuf[4];
     bool ack = false;
 
-    pitot->busDev = busDeviceInit(BUSTYPE_I2C, DEVHW_MS4525, 0, OWNER_AIRSPEED);
+    pitot->busDev = busDeviceInit(BUSTYPE_I2C, DEVHW_MS4525_0 + parse_i2c_addr_config, 0, OWNER_AIRSPEED);
+
     if (pitot->busDev == NULL) {
         return false;
     }

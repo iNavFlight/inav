@@ -212,6 +212,16 @@ ADC channel to use for analog pitot tube (airspeed) sensor. If board doesn't hav
 
 ---
 
+### airspeed_address
+
+3 possible I2C addresses for AirSpeed ​​MS4525 (0 = 0x28, 1 = 0x36 or 2 = 0x46)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 2 |
+
+---
+
 ### align_acc
 
 When running on non-default hardware or adding support for new sensors/sensor boards, these values are used for sensor orientation. When carefully understood, these values can also be used to rotate (in 90deg steps) or flip the board. Possible values are: DEFAULT, CW0_DEG, CW90_DEG, CW180_DEG, CW270_DEG, CW0_DEG_FLIP, CW90_DEG_FLIP, CW180_DEG_FLIP, CW270_DEG_FLIP.
