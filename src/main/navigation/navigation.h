@@ -269,6 +269,7 @@ typedef struct navConfig_s {
         bool     allow_manual_thr_increase;
         bool    useFwNavYawControl;
         uint8_t yawControlDeadband;
+        uint16_t auto_disarm_delay;          // fixed wing disarm delay for landing detector
     } fw;
 } navConfig_t;
 
@@ -534,6 +535,8 @@ bool isFixedWingLaunchFinishedOrAborted(void);
 const char * fixedWingLaunchStateMessage(void);
 
 float calculateAverageSpeed(void);
+
+void updateLandingStatus(void);
 
 const navigationPIDControllers_t* getNavigationPIDControllers(void);
 

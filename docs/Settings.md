@@ -2982,6 +2982,16 @@ Enable the possibility to manually increase the throttle in auto throttle contro
 
 ---
 
+### nav_fw_auto_disarm_delay
+
+Delay before plane disarms when `nav_disarm_on_landing` is set (ms)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 2000 | 100 | 10000 |
+
+---
+
 ### nav_fw_bank_angle
 
 Max roll angle when rolling / turning in GPS assisted modes, is also restrained by global max_angle_inclination_rll
@@ -3464,7 +3474,7 @@ Max allowed above the ground altitude for terrain following mode
 
 ### nav_mc_auto_disarm_delay
 
-Delay before multi-rotor disarms when `nav_disarm_on_landing` is set (m/s)
+Delay before multi-rotor disarms when `nav_disarm_on_landing` is set (ms)
 
 | Default | Min | Max |
 | --- | --- | --- |
