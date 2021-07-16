@@ -719,7 +719,7 @@ bool isMulticopterLandingDetected(void)
         static int32_t landingThrSamples;
         bool isAtMinimalThrust = false;
 
-        if (landingDetectorStartedAt == 0) {
+        if (!landingDetectorStartedAt) {
             landingThrSum = landingThrSamples = 0;
             landingDetectorStartedAt = currentTimeUs;
         }
@@ -736,7 +736,7 @@ bool isMulticopterLandingDetected(void)
 
         possibleLandingDetected = isAtMinimalThrust && velCondition;
     } else {    // non autonomous and emergency landing
-        if (landingDetectorStartedAt != 0) {
+        if (landingDetectorStartedAt) {
             possibleLandingDetected = velCondition && gyroCondition;
         } else {
             landingDetectorStartedAt = currentTimeUs;
