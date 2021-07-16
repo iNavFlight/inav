@@ -555,6 +555,7 @@ class Generator
         end
         buf << "};\n"
 
+        # Write the tables
         table_names = ordered_table_names()
         table_names.each do |name|
             buf << "const char * const #{table_variable_name(name)}[] = {\n"
@@ -566,7 +567,6 @@ class Generator
             buf << "};\n"
         end
 
-        # Write the tables
         buf << "static const lookupTableEntry_t settingLookupTables[] = {\n"
         table_names.each do |name|
             vn = table_variable_name(name)
