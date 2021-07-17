@@ -131,6 +131,11 @@
 #define UART4_TX_PIN            PD1
 #define UART4_RX_PIN            PD0
 
+#define USE_UART5
+#define UART5_TX_PIN            NONE
+#define UART5_RX_PIN            PB8
+#define UART5_AF                7
+
 #define USE_UART6
 #define UART6_TX_PIN            PC6
 #define UART6_RX_PIN            PC7
@@ -149,7 +154,7 @@
 #define SOFTSERIAL_1_RX_PIN      PC6  //TX6 pad
 
 
-#define SERIAL_PORT_COUNT       9
+#define SERIAL_PORT_COUNT       10
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
