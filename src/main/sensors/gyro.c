@@ -416,9 +416,9 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
     // Check if calibration is complete after this cycle
     if (zeroCalibrationIsCompleteV(gyroCalibration)) {
         zeroCalibrationGetZeroV(gyroCalibration, &v);
-        dev->gyroZero[0] = v.v[X];
-        dev->gyroZero[1] = v.v[Y];
-        dev->gyroZero[2] = v.v[Z];
+        dev->gyroZero[X] = v.v[X];
+        dev->gyroZero[Y] = v.v[Y];
+        dev->gyroZero[Z] = v.v[Z];
 
         LOG_D(GYRO, "Gyro calibration complete (%d, %d, %d)", dev->gyroZero[X], dev->gyroZero[Y], dev->gyroZero[Z]);
         schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
