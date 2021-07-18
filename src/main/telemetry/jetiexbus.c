@@ -56,6 +56,11 @@
 
 #include "navigation/navigation.h"
 
+#ifdef USE_ESC_SENSOR
+#include "sensors/esc_sensor.h"
+#include "flight/mixer.h"
+#endif
+
 #define EXTEL_DATA_MSG      (0x40)
 #define EXTEL_UNMASK_TYPE   (0x3F)
 #define EXTEL_SYNC_LEN      1
@@ -138,7 +143,8 @@ const exBusSensor_t jetiExSensors[] = {
     {"GPS Altitude",    "m",        EX_TYPE_22b,   DECIMAL_MASK(2)},
     {"G-Force X",       "",         EX_TYPE_22b,   DECIMAL_MASK(3)},
     {"G-Force Y",       "",         EX_TYPE_22b,   DECIMAL_MASK(3)},
-    {"G-Force Z",       "",         EX_TYPE_22b,   DECIMAL_MASK(3)}
+    {"G-Force Z",       "",         EX_TYPE_22b,   DECIMAL_MASK(3)},
+    {"RPM",             "",         EX_TYPE_22b,   DECIMAL_MASK(0)}
 };
 
 // after every 15 sensors increment the step by 2 (e.g. ...EX_VAL15, EX_VAL16 = 17) to skip the device description
@@ -162,7 +168,8 @@ enum exSensors_e {
     EX_GPS_ALTITUDE,
     EX_GFORCE_X,
     EX_GFORCE_Y,
-    EX_GFORCE_Z
+    EX_GFORCE_Z,
+    EX_RPM,
 };
 
 union{
@@ -268,6 +275,12 @@ void initJetiExBusTelemetry(void)
 
     enableGpsTelemetry(feature(FEATURE_GPS));
 
+#ifdef USE_ESC_SENSOR
+    if (STATE(ESC_SENSOR_ENABLED) && getMotorCount() > 0) {
+        bitArraySet(&exSensorEnabled, EX_RPM);
+    }
+#endif
+
     firstActiveSensor = getNextActiveSensor(0);     // find the first active sensor
 }
 
@@ -305,6 +318,11 @@ uint32_t calcGpsDDMMmmm(int32_t value, bool isLong)
 
 int32_t getSensorValue(uint8_t sensor)
 {
+
+#ifdef USE_ESC_SENSOR
+    escSensorData_t * escSensor;
+#endif
+
     switch (sensor) {
     case EX_VOLTAGE:
         return telemetryConfig()->report_cell_voltage ? getBatteryAverageCellVoltage() : getBatteryVoltage();
@@ -389,6 +407,17 @@ int32_t getSensorValue(uint8_t sensor)
     case EX_GFORCE_Z:
         return acc.accADCf[Z] * 1000;
     break;
+
+#ifdef USE_ESC_SENSOR
+    case EX_RPM:
+        escSensor = escSensorGetData();
+        if (escSensor && escSensor->dataAge <= ESC_DATA_MAX_AGE) {
+            return escSensor->rpm;
+        } else {
+            return 0;
+        }
+    break;
+#endif
 
     default:
         return -1;
