@@ -54,6 +54,8 @@ const timerHardware_t timerHardware[] = {
 
     DEF_TIM(TIM8, CH2, PC7,   TIM_USE_PPM, 0, 0),        // RX6 PPM
     DEF_TIM(TIM8, CH1, PC6,   TIM_USE_ANY, 0, 0),        // TX6
+
+    DEF_TIM(TIM11, CH1, PB9,  TIM_USE_BEEPER, 0, 0),     // BEEPER PWM for MATEKF765SE
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

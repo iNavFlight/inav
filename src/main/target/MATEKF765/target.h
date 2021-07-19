@@ -21,8 +21,15 @@
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 #define USE_TARGET_CONFIG
 
-#define TARGET_BOARD_IDENTIFIER "M765"
-#define USBD_PRODUCT_STRING     "MATEKF765"
+#if defined(MATEKF765SE)
+  #define TARGET_BOARD_IDENTIFIER "M7SE"
+  #define USBD_PRODUCT_STRING     "MATEKF765SE"
+
+  #define BEEPER_PWM_FREQUENCY    2500
+#else
+  #define TARGET_BOARD_IDENTIFIER "M765"
+  #define USBD_PRODUCT_STRING     "MATEKF765"
+#endif
 
 #define LED0                    PD10
 #define LED1                    PD11
@@ -132,10 +139,6 @@
 #define UART3_TX_PIN            PD8
 #define UART3_RX_PIN            PD9
 
-#define USE_UART4
-#define UART4_TX_PIN            PD1
-#define UART4_RX_PIN            PD0
-
 #define USE_UART5
 #define UART5_TX_PIN            NONE
 #define UART5_RX_PIN            PB8
@@ -158,8 +161,15 @@
 #define SOFTSERIAL_1_TX_PIN      PC6  //TX6 pad
 #define SOFTSERIAL_1_RX_PIN      PC6  //TX6 pad
 
-
-#define SERIAL_PORT_COUNT       10
+#if defined(MATEKF765SE)
+  #define SERIAL_PORT_COUNT       9
+  // PD1 and PD0 are used for CAN
+#else
+  #define USE_UART4
+  #define UART4_TX_PIN            PD1
+  #define UART4_RX_PIN            PD0
+  #define SERIAL_PORT_COUNT       10
+#endif
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
@@ -199,7 +209,14 @@
 #define WS2811_PIN                  PA8
 
 #define DEFAULT_FEATURES            (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
-#define CURRENT_METER_SCALE         250
+
+#if defined(MATEKF765SE)
+  #define VBAT_SCALE_DEFAULT        2100
+  #define CURRENT_METER_SCALE       150
+#else
+  #define VBAT_SCALE_DEFAULT        1100
+  #define CURRENT_METER_SCALE       250
+#endif
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
@@ -209,7 +226,7 @@
 #define TARGET_IO_PORTD 0xffff
 #define TARGET_IO_PORTE 0xffff
 
-#define MAX_PWM_OUTPUT_PORTS        15
+#define MAX_PWM_OUTPUT_PORTS        16
 #define USE_DSHOT
 #define USE_ESC_SENSOR
 #define USE_SERIALSHOT
