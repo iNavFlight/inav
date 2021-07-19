@@ -2122,11 +2122,11 @@ groups:
         field: navFwPosHdgPidsumLimit
         min: PID_SUM_LIMIT_MIN
         max: PID_SUM_LIMIT_MAX
-      - name: mc_iterm_relax
+      - name: iterm_relax
         field: iterm_relax
         table: iterm_relax
         default_value: RP
-      - name: mc_iterm_relax_cutoff
+      - name: iterm_relax_cutoff
         field: iterm_relax_cutoff
         min: 1
         max: 100

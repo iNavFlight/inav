@@ -281,8 +281,8 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .navVelXyDtermAttenuation = SETTING_NAV_MC_VEL_XY_DTERM_ATTENUATION_DEFAULT,
         .navVelXyDtermAttenuationStart = SETTING_NAV_MC_VEL_XY_DTERM_ATTENUATION_START_DEFAULT,
         .navVelXyDtermAttenuationEnd = SETTING_NAV_MC_VEL_XY_DTERM_ATTENUATION_END_DEFAULT,
-        .iterm_relax_cutoff = SETTING_MC_ITERM_RELAX_CUTOFF_DEFAULT,
-        .iterm_relax = SETTING_MC_ITERM_RELAX_DEFAULT,
+        .iterm_relax_cutoff = SETTING_ITERM_RELAX_CUTOFF_DEFAULT,
+        .iterm_relax = SETTING_ITERM_RELAX_DEFAULT,
 
 #ifdef USE_D_BOOST
         .dBoostFactor = SETTING_D_BOOST_FACTOR_DEFAULT,
@@ -761,11 +761,13 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
     const float newFFTerm = pidState->rateTarget * pidState->kFF;
 
     DEBUG_SET(DEBUG_FW_D, axis, newDTerm);
+
+    float itermErrorRate = applyItermRelax(axis, pidState->rateTarget, rateError);
     /*
      * Integral should be updated only if axis Iterm is not frozen
      */
     if (!pidState->itermFreezeActive) {
-        pidState->errorGyroIf += rateError * pidState->kI * dT;
+        pidState->errorGyroIf += itermErrorRate * pidState->kI * dT;
     }
 
     applyItermLimiting(pidState);
@@ -1133,7 +1135,7 @@ void FAST_CODE pidController(float dT)
         pidApplyFpvCameraAngleMix(pidState, currentControlRateProfile->misc.fpvCamAngleDegrees);
     }
 
-    // Prevent strong Iterm accumulation during stick inputs
+    // Prevent iterm accumulation when motors are saturated
     antiWindupScaler = constrainf((1.0f - getMotorMixRange()) / motorItermWindupPoint, 0.0f, 1.0f);
 
     for (int axis = 0; axis < 3; axis++) {
