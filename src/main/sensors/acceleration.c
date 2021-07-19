@@ -452,9 +452,9 @@ static void performAcclerationCalibration(void)
     }
 
     if (!calibratedPosition[positionIndex]) {
-        v.v[0] = accADC[0];
-        v.v[1] = accADC[1];
-        v.v[2] = accADC[2];
+        v.v[X] = accADC[X];
+        v.v[Y] = accADC[Y];
+        v.v[Z] = accADC[Z];
 
         zeroCalibrationAddValueV(&zeroCalibration, &v);
 
@@ -489,9 +489,9 @@ static void performAcclerationCalibration(void)
         }
 
         if (!sensorCalibrationSolveForOffset(&calState, accTmp)) {
-            accTmp[0] = 0.0f;
-            accTmp[1] = 0.0f;
-            accTmp[2] = 0.0f;
+            accTmp[X] = 0.0f;
+            accTmp[Y] = 0.0f;
+            accTmp[Z] = 0.0f;
             calFailed = true;
         }
 
@@ -513,9 +513,9 @@ static void performAcclerationCalibration(void)
         }
 
         if (!sensorCalibrationSolveForScale(&calState, accTmp)) {
-            accTmp[0] = 1.0f;
-            accTmp[1] = 1.0f;
-            accTmp[2] = 1.0f;
+            accTmp[X] = 1.0f;
+            accTmp[Y] = 1.0f;
+            accTmp[Z] = 1.0f;
             calFailed = true;
         }
 

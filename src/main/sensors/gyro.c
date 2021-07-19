@@ -417,26 +417,26 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
     fpVector3_t v;
 
     // Consume gyro reading
-    v.v[0] = dev->gyroADCRaw[0];
-    v.v[1] = dev->gyroADCRaw[1];
-    v.v[2] = dev->gyroADCRaw[2];
+    v.v[X] = dev->gyroADCRaw[X];
+    v.v[Y] = dev->gyroADCRaw[Y];
+    v.v[Z] = dev->gyroADCRaw[Z];
 
     zeroCalibrationAddValueV(gyroCalibration, &v);
 
     // Check if calibration is complete after this cycle
     if (zeroCalibrationIsCompleteV(gyroCalibration)) {
         zeroCalibrationGetZeroV(gyroCalibration, &v);
-        dev->gyroZero[0] = v.v[0];
-        dev->gyroZero[1] = v.v[1];
-        dev->gyroZero[2] = v.v[2];
+        dev->gyroZero[X] = v.v[X];
+        dev->gyroZero[Y] = v.v[Y];
+        dev->gyroZero[Z] = v.v[Z];
 
-        LOG_D(GYRO, "Gyro calibration complete (%d, %d, %d)", dev->gyroZero[0], dev->gyroZero[1], dev->gyroZero[2]);
+        LOG_D(GYRO, "Gyro calibration complete (%d, %d, %d)", dev->gyroZero[X], dev->gyroZero[Y], dev->gyroZero[Z]);
         schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
     }
     else {
-        dev->gyroZero[0] = 0;
-        dev->gyroZero[1] = 0;
-        dev->gyroZero[2] = 0;
+        dev->gyroZero[X] = 0;
+        dev->gyroZero[Y] = 0;
+        dev->gyroZero[Z] = 0;
     }
 }
 
