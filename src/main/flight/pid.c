@@ -734,6 +734,22 @@ static void applyItermLimiting(pidState_t *pidState) {
     }
 }
 
+static float FAST_CODE applyItermRelax(const int axis, float currentPidSetpoint, float itermErrorRate)
+{
+    if (itermRelax) {
+        if (axis < FD_YAW || itermRelax == ITERM_RELAX_RPY) {
+
+            const float setpointLpf = pt1FilterApply(&windupLpf[axis], currentPidSetpoint);
+            const float setpointHpf = fabsf(currentPidSetpoint - setpointLpf);
+
+            const float itermRelaxFactor = MAX(0, 1 - setpointHpf / MC_ITERM_RELAX_SETPOINT_THRESHOLD);
+            return itermErrorRate * itermRelaxFactor;
+        }
+    }
+
+    return itermErrorRate;
+}
+
 static void nullRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT) {
     UNUSED(pidState);
     UNUSED(axis);
@@ -780,22 +796,6 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
 
     pidState->previousRateGyro = pidState->gyroRate;
 
-}
-
-static float FAST_CODE applyItermRelax(const int axis, float currentPidSetpoint, float itermErrorRate)
-{
-    if (itermRelax) {
-        if (axis < FD_YAW || itermRelax == ITERM_RELAX_RPY) {
-
-            const float setpointLpf = pt1FilterApply(&windupLpf[axis], currentPidSetpoint);
-            const float setpointHpf = fabsf(currentPidSetpoint - setpointLpf);
-
-            const float itermRelaxFactor = MAX(0, 1 - setpointHpf / MC_ITERM_RELAX_SETPOINT_THRESHOLD);
-            return itermErrorRate * itermRelaxFactor;
-        }
-    }
-
-    return itermErrorRate;
 }
 
 static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT)
