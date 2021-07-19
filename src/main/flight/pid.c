@@ -675,19 +675,6 @@ static void pidApplySetpointRateLimiting(pidState_t *pidState, flight_dynamics_i
     }
 }
 
-bool isFixedWingItermLimitActive(float stickPosition)
-{
-    /*
-     * Iterm anti windup whould be active only when pilot controls the rotation
-     * velocity directly, not when ANGLE or HORIZON are used
-     */
-    if (levelingEnabled) {
-        return false;
-    }
-
-    return fabsf(stickPosition) > pidProfile()->fixedWingItermLimitOnStickPosition;
-}
-
 static float pTermProcess(pidState_t *pidState, float rateError, float dT) {
     float newPTerm = rateError * pidState->kP;
 
@@ -1038,15 +1025,7 @@ static void pidApplyFpvCameraAngleMix(pidState_t *pidState, uint8_t fpvCameraAng
 
 void checkItermLimitingActive(pidState_t *pidState)
 {
-    bool shouldActivate;
-    if (usedPidControllerType == PID_TYPE_PIFF) {
-        shouldActivate = isFixedWingItermLimitActive(pidState->stickPosition);
-    } else
-    {
-        shouldActivate = mixerIsOutputSaturated();
-    }
-
-    pidState->itermLimitActive = STATE(ANTI_WINDUP) || shouldActivate;
+    pidState->itermLimitActive = STATE(ANTI_WINDUP) || (usedPidControllerType == PID_TYPE_PID && mixerIsOutputSaturated());
 }
 
 void checkItermFreezingActive(pidState_t *pidState, flight_dynamics_index_t axis)
