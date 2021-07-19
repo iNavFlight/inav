@@ -2182,6 +2182,26 @@ _// TODO_
 
 ---
 
+### iterm_relax
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| RP |  |  |
+
+---
+
+### iterm_relax_cutoff
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 15 | 1 | 100 |
+
+---
+
 ### iterm_windup
 
 Used to prevent Iterm accumulation on during maneuvers. Iterm will be dampened when motors are reaching it's limit (when requested motor correction range is above percentage specified by this parameter)
@@ -2729,26 +2749,6 @@ Multicopter rate stabilisation I-gain for YAW
 | Default | Min | Max |
 | --- | --- | --- |
 | 45 | 0 | 255 |
-
----
-
-### mc_iterm_relax
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| RP |  |  |
-
----
-
-### mc_iterm_relax_cutoff
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 15 | 1 | 100 |
 
 ---
 
