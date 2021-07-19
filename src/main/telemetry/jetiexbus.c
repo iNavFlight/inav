@@ -123,11 +123,11 @@ typedef struct exBusSensor_s {
 // after every 15 sensors a new header has to be inserted (e.g. "BF D2")
 const exBusSensor_t jetiExSensors[] = {
     {"INAV D1",         "",         EX_TYPE_DES,   0              },     // device descripton
-    {"Voltage",         "V",        EX_TYPE_22b,   DECIMAL_MASK(1)},
+    {"Voltage",         "V",        EX_TYPE_22b,   DECIMAL_MASK(2)},
     {"Current",         "A",        EX_TYPE_22b,   DECIMAL_MASK(2)},
     {"Altitude",        "m",        EX_TYPE_22b,   DECIMAL_MASK(2)},
     {"Capacity",        "mAh",      EX_TYPE_22b,   DECIMAL_MASK(0)},
-    {"Power",           "W",        EX_TYPE_22b,   DECIMAL_MASK(1)},
+    {"Power",           "W",        EX_TYPE_22b,   DECIMAL_MASK(0)},
     {"Roll angle",      "\xB0",     EX_TYPE_22b,   DECIMAL_MASK(1)},
     {"Pitch angle",     "\xB0",     EX_TYPE_22b,   DECIMAL_MASK(1)},
     {"Heading",         "\xB0",     EX_TYPE_22b,   DECIMAL_MASK(1)},
@@ -341,7 +341,7 @@ int32_t getSensorValue(uint8_t sensor)
         break;
 
     case EX_POWER:
-        return (getBatteryVoltage() * getAmperage() / 1000);
+        return (getBatteryVoltage() * getAmperage() / 10000);
         break;
 
     case EX_ROLL_ANGLE:
