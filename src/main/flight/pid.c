@@ -273,7 +273,6 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .fixedWingReferenceAirspeed = SETTING_FW_REFERENCE_AIRSPEED_DEFAULT,
         .fixedWingCoordinatedYawGain = SETTING_FW_TURN_ASSIST_YAW_GAIN_DEFAULT,
         .fixedWingCoordinatedPitchGain = SETTING_FW_TURN_ASSIST_PITCH_GAIN_DEFAULT,
-        .fixedWingItermLimitOnStickPosition = SETTING_FW_ITERM_LIMIT_STICK_POSITION_DEFAULT,
         .fixedWingYawItermBankFreeze = SETTING_FW_YAW_ITERM_FREEZE_BANK_ANGLE_DEFAULT,
 
         .loiter_direction = SETTING_FW_LOITER_DIRECTION_DEFAULT,

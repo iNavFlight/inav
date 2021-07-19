@@ -1907,12 +1907,6 @@ groups:
         field: fixedWingCoordinatedPitchGain
         min: 0
         max: 2
-      - name: fw_iterm_limit_stick_position
-        description: "Iterm is not allowed to grow when stick position is above threshold. This solves the problem of bounceback or followthrough when full stick deflection is applied on poorely tuned fixed wings. In other words, stabilization is partialy disabled when pilot is actively controlling the aircraft and active when sticks are not touched. `0` mean stick is in center position, `1` means it is fully deflected to either side"
-        default_value: 0.5
-        field: fixedWingItermLimitOnStickPosition
-        min: 0
-        max: 1
       - name: fw_yaw_iterm_freeze_bank_angle
         description: "Yaw Iterm is frozen when bank angle is above this threshold [degrees]. This solves the problem of the rudder counteracting turns by partially disabling yaw stabilization when making banked turns. Setting to 0 (the default) disables this feature. Only applies when autopilot is not active and TURN ASSIST is disabled."
         default_value: 0
@@ -2123,10 +2117,12 @@ groups:
         min: PID_SUM_LIMIT_MIN
         max: PID_SUM_LIMIT_MAX
       - name: iterm_relax
+        description: "`RP` enables I-term relax on roll and pitch axis, `RPY` also enables it on yaw axis. `OFF` disables I-term relax."
         field: iterm_relax
         table: iterm_relax
         default_value: RP
       - name: iterm_relax_cutoff
+        description: "I-term relax HPF cutoff frequency."
         field: iterm_relax_cutoff
         min: 1
         max: 100
