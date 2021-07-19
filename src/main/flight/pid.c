@@ -744,7 +744,7 @@ static float FAST_CODE applyItermRelax(const int axis, float currentPidSetpoint,
             const float itermRelaxFactor = MAX(0, 1 - setpointHpf / MC_ITERM_RELAX_SETPOINT_THRESHOLD);
 
             DEBUG_SET(DEBUG_ITERM_RELAX, axis * 2, currentPidSetpoint);
-            DEBUG_SET(DEBUG_ITERM_RELAX, axis * 2 + 1, itermRelaxFactor);
+            DEBUG_SET(DEBUG_ITERM_RELAX, axis * 2 + 1, itermRelaxFactor * 1000.0f);
 
             return itermErrorRate * itermRelaxFactor;
         }
