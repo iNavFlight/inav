@@ -1312,16 +1312,6 @@ Fixed-wing rate stabilisation I-gain for YAW
 
 ---
 
-### fw_iterm_limit_stick_position
-
-Iterm is not allowed to grow when stick position is above threshold. This solves the problem of bounceback or followthrough when full stick deflection is applied on poorely tuned fixed wings. In other words, stabilization is partialy disabled when pilot is actively controlling the aircraft and active when sticks are not touched. `0` mean stick is in center position, `1` means it is fully deflected to either side
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0.5 | 0 | 1 |
-
----
-
 ### fw_iterm_throw_limit
 
 Limits max/min I-term value in stabilization PID controller in case of Fixed Wing. It solves the problem of servo saturation before take-off/throwing the airplane into the air. By default, error accumulated in I-term can not exceed 1/3 of servo throw (around 165us). Set 0 to disable completely.
@@ -2184,7 +2174,7 @@ _// TODO_
 
 ### iterm_relax
 
-_// TODO_
+`RP` enables I-term relax on roll and pitch axis, `RPY` also enables it on yaw axis. `OFF` disables I-term relax.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2194,7 +2184,7 @@ _// TODO_
 
 ### iterm_relax_cutoff
 
-_// TODO_
+I-term relax HPF cutoff frequency.
 
 | Default | Min | Max |
 | --- | --- | --- |
