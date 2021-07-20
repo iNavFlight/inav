@@ -572,16 +572,6 @@ ADC , VIRTUAL, NONE. The virtual current sensor, once calibrated, estimates the 
 
 ---
 
-### d_boost_factor
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 1.25 | 1 | 3 |
-
----
-
 ### d_boost_gyro_delta_lpf_hz
 
 _// TODO_
@@ -592,6 +582,16 @@ _// TODO_
 
 ---
 
+### d_boost_max
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1.25 | 1 | 3 |
+
+---
+
 ### d_boost_max_at_acceleration
 
 _// TODO_
@@ -599,6 +599,16 @@ _// TODO_
 | Default | Min | Max |
 | --- | --- | --- |
 | 7500 | 1000 | 16000 |
+
+---
+
+### d_boost_min
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0.5 | 0 | 1 |
 
 ---
 
