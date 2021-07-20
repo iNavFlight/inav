@@ -53,6 +53,7 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/accgyro/accgyro_bmi088.h"
 #include "drivers/accgyro/accgyro_bmi160.h"
 #include "drivers/accgyro/accgyro_icm20689.h"
+#include "drivers/accgyro/accgyro_icm42605.h"
 #include "drivers/accgyro/accgyro_fake.h"
 #include "drivers/sensor.h"
 
@@ -268,6 +269,19 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         FALLTHROUGH;
 #endif
 
+#ifdef USE_IMU_ICM42605
+    case ACC_ICM42605:
+        if (icm42605AccDetect(dev)) {
+            accHardware = ACC_ICM42605;
+            break;
+        }
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (accHardwareToUse != ACC_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+#endif
+
 
 #ifdef USE_IMU_FAKE
     case ACC_FAKE:
@@ -438,9 +452,9 @@ static void performAcclerationCalibration(void)
     }
 
     if (!calibratedPosition[positionIndex]) {
-        v.v[0] = accADC[0];
-        v.v[1] = accADC[1];
-        v.v[2] = accADC[2];
+        v.v[X] = accADC[X];
+        v.v[Y] = accADC[Y];
+        v.v[Z] = accADC[Z];
 
         zeroCalibrationAddValueV(&zeroCalibration, &v);
 
@@ -475,9 +489,9 @@ static void performAcclerationCalibration(void)
         }
 
         if (!sensorCalibrationSolveForOffset(&calState, accTmp)) {
-            accTmp[0] = 0.0f;
-            accTmp[1] = 0.0f;
-            accTmp[2] = 0.0f;
+            accTmp[X] = 0.0f;
+            accTmp[Y] = 0.0f;
+            accTmp[Z] = 0.0f;
             calFailed = true;
         }
 
@@ -499,9 +513,9 @@ static void performAcclerationCalibration(void)
         }
 
         if (!sensorCalibrationSolveForScale(&calState, accTmp)) {
-            accTmp[0] = 1.0f;
-            accTmp[1] = 1.0f;
-            accTmp[2] = 1.0f;
+            accTmp[X] = 1.0f;
+            accTmp[Y] = 1.0f;
+            accTmp[Z] = 1.0f;
             calFailed = true;
         }
 
