@@ -33,6 +33,7 @@ typedef uint32_t config_streamer_buffer_align_type_t;
 
 typedef struct config_streamer_s {
     uintptr_t address;
+    uintptr_t end;
     int size;
     union {
         uint8_t b[CONFIG_STREAMER_BUFFER_SIZE];

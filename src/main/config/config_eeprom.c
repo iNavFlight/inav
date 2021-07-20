@@ -25,6 +25,7 @@
 #include "build/build_config.h"
 
 #include "common/crc.h"
+#include "common/utils.h"
 
 #include "config/config_eeprom.h"
 #include "config/config_streamer.h"
@@ -217,7 +218,9 @@ static bool writeSettingsToEEPROM(void)
         .format = EEPROM_CONF_VERSION,
     };
 
-    config_streamer_write(&streamer, (uint8_t *)&header, sizeof(header));
+    if (config_streamer_write(&streamer, (uint8_t *)&header, sizeof(header)) < 0) {
+        return false;
+    }
     uint16_t crc = updateCRC(0, (uint8_t *)&header, sizeof(header));
     PG_FOREACH(reg) {
         const uint16_t regSize = pgSize(reg);
@@ -231,9 +234,13 @@ static bool writeSettingsToEEPROM(void)
         if (pgIsSystem(reg)) {
             // write the only instance
             record.flags |= CR_CLASSICATION_SYSTEM;
-            config_streamer_write(&streamer, (uint8_t *)&record, sizeof(record));
+            if (config_streamer_write(&streamer, (uint8_t *)&record, sizeof(record)) < 0) {
+                return false;
+            }
             crc = updateCRC(crc, (uint8_t *)&record, sizeof(record));
-            config_streamer_write(&streamer, reg->address, regSize);
+            if (config_streamer_write(&streamer, reg->address, regSize) < 0) {
+                return false;
+            }
             crc = updateCRC(crc, reg->address, regSize);
         } else {
             // write one instance for each profile
@@ -241,10 +248,14 @@ static bool writeSettingsToEEPROM(void)
                 record.flags = 0;
 
                 record.flags |= ((profileIndex + 1) & CR_CLASSIFICATION_MASK);
-                config_streamer_write(&streamer, (uint8_t *)&record, sizeof(record));
+                if (config_streamer_write(&streamer, (uint8_t *)&record, sizeof(record)) < 0) {
+                    return false;
+                }
                 crc = updateCRC(crc, (uint8_t *)&record, sizeof(record));
                 const uint8_t *address = reg->address + (regSize * profileIndex);
-                config_streamer_write(&streamer, address, regSize);
+                if (config_streamer_write(&streamer, address, regSize) < 0) {
+                    return false;
+                }
                 crc = updateCRC(crc, address, regSize);
             }
         }
@@ -254,13 +265,19 @@ static bool writeSettingsToEEPROM(void)
         .terminator = 0,
     };
 
-    config_streamer_write(&streamer, (uint8_t *)&footer, sizeof(footer));
+    if (config_streamer_write(&streamer, (uint8_t *)&footer, sizeof(footer)) < 0) {
+        return false;
+    }
     crc = updateCRC(crc, (uint8_t *)&footer, sizeof(footer));
 
     // append checksum now
-    config_streamer_write(&streamer, (uint8_t *)&crc, sizeof(crc));
+    if (config_streamer_write(&streamer, (uint8_t *)&crc, sizeof(crc)) < 0) {
+        return false;
+    }
 
-    config_streamer_flush(&streamer);
+    if (config_streamer_flush(&streamer) < 0) {
+        return false;
+    }
 
     bool success = config_streamer_finish(&streamer) == 0;
 
