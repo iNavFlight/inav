@@ -383,11 +383,11 @@ static void osdFormatDistanceStr(char *buff, int32_t dist)
         break;
     case OSD_UNIT_GA:
          centifeet = CENTIMETERS_TO_CENTIFEET(dist);
-        if (abs(centifeet) < FEET_PER_NAUTICALMILE * 100 / 2) {
-            // Show feet when dist < 0.5NM
+        if (abs(centifeet) < 100000) {
+            // Show feet when dist < 1000ft
             tfp_sprintf(buff, "%d%c", (int)(centifeet / 100), SYM_FT);
         } else {
-            // Show nautical miles when dist >= 0.5NM
+            // Show nautical miles when dist >= 1000ft
             tfp_sprintf(buff, "%d.%02d%c", (int)(centifeet / (100 * FEET_PER_NAUTICALMILE)),
                 (int)((abs(centifeet) % (int)(100 * FEET_PER_NAUTICALMILE)) / FEET_PER_NAUTICALMILE), SYM_NM);
         }
@@ -2195,8 +2195,8 @@ static bool osdDrawSingleElement(uint8_t item)
                     sym = SYM_FTS;
                     break;
                 case OSD_UNIT_GA:
-                    //Convert to centi-100feet/min
-                    value = (CENTIMETERS_TO_CENTIFEET(value / 60) / 100);
+                    // Convert to centi-100feet/min
+                    value = CENTIMETERS_TO_FEET(value * 60);
                     sym = SYM_100FTM;
                     break;
                 default:

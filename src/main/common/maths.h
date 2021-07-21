@@ -56,8 +56,8 @@
 #define RADIANS_TO_CENTIDEGREES(angle) (((angle) * 100.0f) / RAD)
 #define CENTIDEGREES_TO_RADIANS(angle) (((angle) / 100.0f) * RAD)
 
-#define CENTIMETERS_TO_CENTIFEET(cm)            (cm * (328 / 100.0))
-#define CENTIMETERS_TO_FEET(cm)                 (cm * (328 / 10000.0))
+#define CENTIMETERS_TO_CENTIFEET(cm)            (cm / 0.3048)
+#define CENTIMETERS_TO_FEET(cm)                 (cm / 30.48)
 #define CENTIMETERS_TO_METERS(cm)               (cm / 100)
 
 #define METERS_TO_CENTIMETERS(m)                (m * 100)
