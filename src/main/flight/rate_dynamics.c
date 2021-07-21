@@ -26,6 +26,7 @@ FILE_COMPILE_FOR_SPEED
 #include "rate_dynamics.h"
 #include "fc/controlrate_profile.h"
 #include <math.h>
+#include "common/maths.h"
 
 static FASTRAM float lastRcCommandData[3];
 static FASTRAM float iterm[3];
