@@ -73,13 +73,14 @@ FAST_CODE int applyRateDynamics(int rcCommand, const int axis, const float dT) {
         iterm_centerStick = inverseRcCommandPercent * rcCommandError * calculateK(currentControlRateProfile->rateDynamics.correctionCenter / 100.0f, dT); // valid iterm values are between 0-95
         iterm_endStick = rcCommandPercent * rcCommandError * calculateK(currentControlRateProfile->rateDynamics.correctionEnd / 100.0f, dT);
         iterm[axis] += iterm_centerStick + iterm_endStick;
-        rcCommand = rcCommand + iterm[axis]; // add the iterm to the rcCommand
+        rcCommand += iterm[axis]; // add the iterm to the rcCommand
 
         dterm_centerStick = inverseRcCommandPercent * (lastRcCommandData[axis] - rcCommand) * calculateK(currentControlRateProfile->rateDynamics.weightCenter / 100.0f, dT); // valid dterm values are between 0-95
         dterm_endStick = rcCommandPercent * (lastRcCommandData[axis] - rcCommand) * calculateK(currentControlRateProfile->rateDynamics.weightEnd / 100.0f, dT);
         dterm = dterm_centerStick + dterm_endStick;
-        rcCommand = rcCommand + dterm; // add dterm to the rcCommand (this is real dterm)
+        rcCommand += dterm; // add dterm to the rcCommand (this is real dterm)
 
+        rcCommand = constrain(rcCommand, -500, 500);
         lastRcCommandData[axis] = rcCommand;
     }
     return rcCommand;
