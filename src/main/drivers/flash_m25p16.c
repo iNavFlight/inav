@@ -294,7 +294,10 @@ uint32_t m25p16_pageProgram(uint32_t address, const uint8_t *data, int length)
 
     m25p16_setCommandAddress(&command[1], address, isLargeFlash);
 
-    m25p16_waitForReady(DEFAULT_TIMEOUT_MILLIS);
+    if (m25p16_waitForReady(DEFAULT_TIMEOUT_MILLIS) == false) {
+        // timeout
+        return address;
+    }
 
     m25p16_writeEnable();
 
