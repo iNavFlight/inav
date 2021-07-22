@@ -407,7 +407,7 @@ static int32_t osdConvertVelocityToUnit(int32_t vel)
     case OSD_UNIT_METRIC_MPH:
         FALLTHROUGH;
     case OSD_UNIT_IMPERIAL:
-        return (vel * 224) / 10000; // Convert to mph
+        return (vel * 223.6936) / 10000; // Convert to mph
     case OSD_UNIT_METRIC:
         return (vel * 36) / 1000;   // Convert to kmh
     case OSD_UNIT_GA:
@@ -457,7 +457,7 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
         case OSD_UNIT_METRIC_MPH:
             FALLTHROUGH;
         case OSD_UNIT_IMPERIAL:
-            centivalue = (ws * 224) / 100;
+            centivalue = (ws * 223.6936) / 100;
             suffix = SYM_MPH;
             break;
         case OSD_UNIT_GA:

@@ -55,8 +55,7 @@
 //                                  0x23  // 035 ASCII #
 #define SYM_AH_MI                   0x24  // 036 Ah/mi
 //                                  0x25  // 037 ASCII %
-#define SYM_MAH_MI_0                0x26  // 038 mAh/mi left
-#define SYM_MAH_MI_1                0x27  // 039 mAh/mi right
+//                                  0x26  // 038 ASCII &
 //                                  0x28  // 040 to 062 ASCII
 #define SYM_AH_NM       		    0x3F  // 063 Ah/NM
 //                                  0x40  // 064 to 095 ASCII
@@ -115,6 +114,8 @@
 #define SYM_MPH                     0x91  // 145 MPH
 #define SYM_KT                      0x92  // 146 Knots
 
+#define SYM_MAH_MI_0                0x93  // 147 mAh/mi left
+#define SYM_MAH_MI_1                0x94  // 148 mAh/mi right
 #define SYM_THR                     0x95  // 149 Throttle
 #define SYM_TEMP_F                  0x96  // 150 °F
 #define SYM_TEMP_C                  0x97  // 151 °C
