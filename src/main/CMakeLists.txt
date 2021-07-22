@@ -83,6 +83,8 @@ main_sources(COMMON_SRC
     drivers/accgyro/accgyro_fake.h
     drivers/accgyro/accgyro_icm20689.c
     drivers/accgyro/accgyro_icm20689.h
+    drivers/accgyro/accgyro_icm42605.c
+    drivers/accgyro/accgyro_icm42605.h
     drivers/accgyro/accgyro_l3g4200d.c
     drivers/accgyro/accgyro_l3g4200d.h
     drivers/accgyro/accgyro_l3gd20.c
@@ -323,6 +325,8 @@ main_sources(COMMON_SRC
     flight/kalman.h
     flight/smith_predictor.c
     flight/smith_predictor.h
+    flight/rate_dynamics.c
+    flight/rate_dynamics.h
     flight/mixer.c
     flight/mixer.h
     flight/pid.c
@@ -581,6 +585,8 @@ main_sources(COMMON_SRC
     telemetry/ghst.h
     telemetry/hott.c
     telemetry/hott.h
+    telemetry/jetiexbus.c
+    telemetry/jetiexbus.h
     telemetry/ibus_shared.c
     telemetry/ibus_shared.h
     telemetry/ibus.c
