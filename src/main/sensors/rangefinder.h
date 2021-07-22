@@ -32,6 +32,7 @@ typedef enum {
     RANGEFINDER_BENEWAKE    = 7,
     RANGEFINDER_VL53L1X     = 8,
     RANGEFINDER_US42        = 9,
+    RANGEFINDER_TOF10102I2C = 10,
 } rangefinderType_e;
 
 typedef struct rangefinderConfig_s {

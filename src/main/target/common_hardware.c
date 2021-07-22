@@ -333,6 +333,15 @@
     #endif
 #endif
 
+#if defined(USE_RANGEFINDER_TOF10120_I2C) && (defined(TOF10120_I2C_BUS) || defined(RANGEFINDER_I2C_BUS))
+    #if !defined(TOF10120_I2C_BUS)
+        #define TOF10120_I2C_BUS RANGEFINDER_I2C_BUS
+    #endif
+    #if defined(TOF10120_I2C_BUS)
+    BUSDEV_REGISTER_I2C(busdev_tof10120,      DEVHW_TOF10120_I2C,   TOF10120_I2C_BUS,     0x52,               NONE,           DEVFLAGS_USE_RAW_REGISTERS,  0);
+    #endif
+#endif
+
 /** AIRSPEED SENSORS **/
 
 #if defined(PITOT_I2C_BUS) && !defined(MS4525_I2C_BUS)
