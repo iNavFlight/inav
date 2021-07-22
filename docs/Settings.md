@@ -2944,7 +2944,7 @@ Maximum climb/descent rate that UAV is allowed to reach during navigation modes.
 
 ### nav_auto_speed
 
-Maximum velocity firmware is allowed in full auto modes (RTH, WP) [cm/s] [Multirotor only]
+Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no specific WP speed set. [Multirotor only]
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3444,7 +3444,7 @@ Maximum climb/descent rate firmware is allowed when processing pilot input for A
 
 ### nav_manual_speed
 
-Maximum velocity firmware is allowed when processing pilot input for POSHOLD/CRUISE control mode [cm/s] [Multirotor only]
+Maximum speed allowed when processing pilot input for POSHOLD/CRUISE control mode [cm/s] [Multirotor only]
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3459,6 +3459,16 @@ Max allowed altitude (above Home Point) that applies to all NAV modes (including
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 65000 |
+
+---
+
+### nav_max_auto_speed
+
+Maximum speed allowed in fully autonomous modes (RTH, WP) [cm/s] [Multirotor only]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | 10 | 2000 |
 
 ---
 

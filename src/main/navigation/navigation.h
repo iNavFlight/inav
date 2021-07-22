@@ -205,7 +205,8 @@ typedef struct navConfig_s {
         uint16_t waypoint_radius;               // if we are within this distance to a waypoint then we consider it reached (distance is in cm)
         uint16_t waypoint_safe_distance;        // Waypoint mission sanity check distance
         bool     waypoint_load_on_boot;         // load waypoints automatically during boot
-        uint16_t max_auto_speed;                // autonomous navigation speed cm/sec
+        uint16_t auto_speed;                    // autonomous navigation speed cm/sec
+        uint16_t max_auto_speed;                // maximum allowed autonomous navigation speed cm/sec
         uint16_t max_auto_climb_rate;           // max vertical speed limitation cm/sec
         uint16_t max_manual_speed;              // manual velocity control max horizontal speed
         uint16_t max_manual_climb_rate;         // manual velocity control max vertical speed
