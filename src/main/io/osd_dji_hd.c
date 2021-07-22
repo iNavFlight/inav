@@ -655,11 +655,11 @@ static int32_t osdConvertVelocityToUnit(int32_t vel)
         case OSD_UNIT_METRIC_MPH:
             FALLTHROUGH;
         case OSD_UNIT_IMPERIAL:
-            return (vel * 223.6936) / 10000; // Convert to mph
+            return CMSEC_TO_CENTIMPH(vel) / 100; // Convert to mph
         case OSD_UNIT_GA:
-            return (vel * 0.019438444924406); // Convert to Knots
+            return CMSEC_TO_CENTIKNOTS(vel) / 100; // Convert to Knots
         case OSD_UNIT_METRIC:
-            return (vel * 36) / 1000;   // Convert to kmh
+            return CMSEC_TO_CENTIKPH(vel) / 100;   // Convert to kmh
     }
 
     // Unreachable

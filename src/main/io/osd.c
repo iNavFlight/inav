@@ -407,11 +407,11 @@ static int32_t osdConvertVelocityToUnit(int32_t vel)
     case OSD_UNIT_METRIC_MPH:
         FALLTHROUGH;
     case OSD_UNIT_IMPERIAL:
-        return (vel * 223.6936) / 10000; // Convert to mph
+        return CMSEC_TO_CENTIMPH(vel) / 100; // Convert to mph
     case OSD_UNIT_METRIC:
-        return (vel * 36) / 1000;   // Convert to kmh
+        return CMSEC_TO_CENTIKPH(vel) / 100;   // Convert to kmh
     case OSD_UNIT_GA:
-        return (vel * 0.019438444924406); // Convert to Knots
+        return CMSEC_TO_CENTIKNOTS(vel) / 100; // Convert to Knots
     }
     // Unreachable
     return -1;
@@ -457,16 +457,16 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
         case OSD_UNIT_METRIC_MPH:
             FALLTHROUGH;
         case OSD_UNIT_IMPERIAL:
-            centivalue = (ws * 223.6936) / 100;
+            centivalue = CMSEC_TO_CENTIMPH(ws);
             suffix = SYM_MPH;
             break;
         case OSD_UNIT_GA:
-            centivalue = (ws * 0.019438444924406) * 100;
+            centivalue = CMSEC_TO_CENTIKNOTS(ws);
             suffix = SYM_KT;
             break;
         default:
         case OSD_UNIT_METRIC:
-            centivalue = (ws * 36) / 10;
+            centivalue = CMSEC_TO_CENTIKPH(ws);
             suffix = SYM_KMH;
             break;
     }
