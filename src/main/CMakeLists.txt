@@ -353,8 +353,6 @@ main_sources(COMMON_SRC
 
     io/beeper.c
     io/beeper.h
-    io/esc_serialshot.c
-    io/esc_serialshot.h
     io/servo_sbus.c
     io/servo_sbus.h
     io/frsky_osd.c

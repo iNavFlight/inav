@@ -37,7 +37,6 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/io_pca9685.h"
 
 #include "io/pwmdriver_i2c.h"
-#include "io/esc_serialshot.h"
 #include "io/servo_sbus.h"
 #include "sensors/esc_sensor.h"
 
@@ -99,7 +98,7 @@ static pwmWriteFuncPtr         motorWritePtr = NULL;    // Function to write val
 static pwmOutputPort_t *       servos[MAX_SERVOS];
 static pwmWriteFuncPtr         servoWritePtr = NULL;    // Function to write value to motors
 
-#if defined(USE_DSHOT) || defined(USE_SERIALSHOT)
+#if defined(USE_DSHOT)
 static timeUs_t digitalMotorUpdateIntervalUs = 0;
 static timeUs_t digitalMotorLastUpdateUs;
 #endif
@@ -301,7 +300,7 @@ static uint16_t prepareDshotPacket(const uint16_t value, bool requestTelemetry)
 }
 #endif
 
-#if defined(USE_DSHOT) || defined(USE_SERIALSHOT)
+#if defined(USE_DSHOT)
 static void motorConfigDigitalUpdateInterval(uint16_t motorPwmRateHz)
 {
     digitalMotorUpdateIntervalUs = 1000000 / motorPwmRateHz;
@@ -322,14 +321,9 @@ bool isMotorProtocolDshot(void)
     return getMotorProtocolProperties(initMotorProtocol)->isDSHOT;
 }
 
-bool isMotorProtocolSerialShot(void)
-{
-    return getMotorProtocolProperties(initMotorProtocol)->isSerialShot;
-}
-
 bool isMotorProtocolDigital(void)
 {
-    return isMotorProtocolDshot() || isMotorProtocolSerialShot();
+    return isMotorProtocolDshot();
 }
 
 void pwmRequestMotorTelemetry(int motorIndex)
@@ -438,16 +432,6 @@ void pwmCompleteMotorUpdate(void) {
         }
     }
 #endif
-
-#ifdef USE_SERIALSHOT
-    if (isMotorProtocolSerialShot()) {
-        for (int index = 0; index < motorCount; index++) {
-            serialshotUpdateMotor(index, motors[index].value);
-        }
-
-        serialshotSendUpdate();
-    }
-#endif
 }
 
 #else // digital motor protocol
@@ -486,15 +470,6 @@ void pwmMotorPreconfigure(void)
         case PWM_TYPE_DSHOT600:
         case PWM_TYPE_DSHOT300:
         case PWM_TYPE_DSHOT150:
-            motorConfigDigitalUpdateInterval(motorConfig()->motorPwmRate);
-            motorWritePtr = pwmWriteDigital;
-            break;
-#endif
-
-#ifdef USE_SERIALSHOT
-        case PWM_TYPE_SERIALSHOT:
-            // Kick off SerialShot driver initalization
-            serialshotInitialize();
             motorConfigDigitalUpdateInterval(motorConfig()->motorPwmRate);
             motorWritePtr = pwmWriteDigital;
             break;
