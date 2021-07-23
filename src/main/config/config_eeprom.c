@@ -32,6 +32,7 @@
 #include "config/parameter_group.h"
 
 #include "drivers/system.h"
+#include "drivers/flash.h"
 
 #include "fc/config.h"
 
@@ -77,6 +78,31 @@ typedef struct {
     uint32_t word;
 } PG_PACKED packingTest_t;
 
+#if defined(CONFIG_IN_EXTERNAL_FLASH)
+bool loadEEPROMFromExternalFlash(void)
+{
+    const flashPartition_t *flashPartition = flashPartitionFindByType(FLASH_PARTITION_TYPE_CONFIG);
+    const flashGeometry_t *flashGeometry = flashGetGeometry();
+
+    uint32_t flashStartAddress = flashPartition->startSector * flashGeometry->sectorSize;
+
+    uint32_t totalBytesRead = 0;
+    int bytesRead = 0;
+
+    bool success = false;
+
+    do {
+        bytesRead = flashReadBytes(flashStartAddress + totalBytesRead, &eepromData[totalBytesRead], EEPROM_SIZE - totalBytesRead);
+        if (bytesRead > 0) {
+            totalBytesRead += bytesRead;
+            success = (totalBytesRead == EEPROM_SIZE);
+        }
+    } while (!success && bytesRead > 0);
+
+    return success;
+}
+#endif /* defined(CONFIG_IN_EXTERNAL_FLASH) */
+
 void initEEPROM(void)
 {
     // Verify that this architecture packs as expected.
@@ -87,6 +113,14 @@ void initEEPROM(void)
     BUILD_BUG_ON(sizeof(configHeader_t) != 1);
     BUILD_BUG_ON(sizeof(configFooter_t) != 2);
     BUILD_BUG_ON(sizeof(configRecord_t) != 6);
+
+#if defined(CONFIG_IN_EXTERNAL_FLASH)
+    bool eepromLoaded = loadEEPROMFromExternalFlash();
+    if (!eepromLoaded) {
+        // Flash read failed - just die now
+        failureMode(FAILURE_FLASH_READ_FAILED);
+    }
+#endif
 }
 
 static uint16_t updateCRC(uint16_t crc, const void *data, uint32_t length)
@@ -291,6 +325,10 @@ void writeConfigToEEPROM(void)
     for (int attempt = 0; attempt < 3 && !success; attempt++) {
         if (writeSettingsToEEPROM()) {
             success = true;
+#ifdef CONFIG_IN_EXTERNAL_FLASH
+            // copy it back from flash to the in-memory buffer.
+            success = loadEEPROMFromExternalFlash();
+#endif
         }
     }
 

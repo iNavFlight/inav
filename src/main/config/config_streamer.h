@@ -20,10 +20,15 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "drivers/flash_m25p16.h"
+
 // Streams data out to the EEPROM, padding to the write size as
 // needed, and updating the checksum as it goes.
 
-#if defined(STM32H7)
+#ifdef CONFIG_IN_EXTERNAL_FLASH
+#define CONFIG_STREAMER_BUFFER_SIZE M25P16_PAGESIZE // Must match flash device page size
+typedef uint32_t config_streamer_buffer_align_type_t;
+#elif defined(STM32H7)
 #define CONFIG_STREAMER_BUFFER_SIZE 32  // Flash word = 256-bits
 typedef uint64_t config_streamer_buffer_align_type_t;
 #else

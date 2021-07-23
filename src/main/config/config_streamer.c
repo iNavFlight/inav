@@ -19,6 +19,11 @@
 #include "platform.h"
 #include "drivers/system.h"
 #include "config/config_streamer.h"
+#include "build/build_config.h"
+
+#if !defined(CONFIG_IN_FLASH)
+SLOW_RAM uint8_t eepromData[EEPROM_SIZE];
+#endif
 
 // Helper functions
 extern void config_streamer_impl_unlock(void);
