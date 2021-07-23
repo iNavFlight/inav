@@ -199,17 +199,6 @@ static bool checkPwmTimerConflicts(const timerHardware_t *timHw)
 #endif
 #endif
 
-
-#ifdef USE_RANGEFINDER_HCSR04
-    // HC-SR04 has a dedicated connection to FC and require two pins
-    if (rangefinderConfig()->rangefinder_hardware == RANGEFINDER_HCSR04) {
-        const rangefinderHardwarePins_t *rangefinderHardwarePins = rangefinderGetHardwarePins();
-        if (rangefinderHardwarePins && (timHw->tag == rangefinderHardwarePins->triggerTag || timHw->tag == rangefinderHardwarePins->echoTag)) {
-            return true;
-        }
-    }
-#endif
-
     return false;
 }
 
