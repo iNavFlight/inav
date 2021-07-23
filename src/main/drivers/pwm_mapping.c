@@ -69,7 +69,6 @@ static const char * pwmInitErrorMsg[] = {
 static const motorProtocolProperties_t motorProtocolProperties[] = {
     [PWM_TYPE_STANDARD]     = { .usesHwTimer = true,    .isDSHOT = false,   .isSerialShot = false },
     [PWM_TYPE_ONESHOT125]   = { .usesHwTimer = true,    .isDSHOT = false,   .isSerialShot = false },
-    [PWM_TYPE_ONESHOT42]    = { .usesHwTimer = true,    .isDSHOT = false,   .isSerialShot = false },
     [PWM_TYPE_MULTISHOT]    = { .usesHwTimer = true,    .isDSHOT = false,   .isSerialShot = false },
     [PWM_TYPE_BRUSHED]      = { .usesHwTimer = true,    .isDSHOT = false,   .isSerialShot = false },
     [PWM_TYPE_DSHOT150]     = { .usesHwTimer = true,    .isDSHOT = true,    .isSerialShot = false },

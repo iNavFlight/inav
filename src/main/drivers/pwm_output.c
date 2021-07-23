@@ -481,7 +481,6 @@ void pwmMotorPreconfigure(void)
         case PWM_TYPE_STANDARD:
         case PWM_TYPE_BRUSHED:
         case PWM_TYPE_ONESHOT125:
-        case PWM_TYPE_ONESHOT42:
         case PWM_TYPE_MULTISHOT:
             motorWritePtr = pwmWriteStandard;
             break;
@@ -516,10 +515,6 @@ bool pwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, bo
 
     case PWM_TYPE_ONESHOT125:
         motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 125e-6f, 125e-6f, motorConfig()->motorPwmRate, enableOutput);
-        break;
-
-    case PWM_TYPE_ONESHOT42:
-        motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 42e-6f, 42e-6f, motorConfig()->motorPwmRate, enableOutput);
         break;
 
     case PWM_TYPE_MULTISHOT:

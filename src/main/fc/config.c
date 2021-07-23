@@ -265,9 +265,6 @@ void validateAndFixConfig(void)
     case PWM_TYPE_ONESHOT125:   // Limited to 3900 Hz
         motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 3900);
         break;
-    case PWM_TYPE_ONESHOT42:    // 2-8 kHz
-        motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 2000, 8000);
-        break;
     case PWM_TYPE_MULTISHOT:    // 2-16 kHz
         motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 2000, 16000);
         break;
