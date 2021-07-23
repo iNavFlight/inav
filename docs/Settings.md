@@ -2852,26 +2852,6 @@ When powering up, gyro bias is calculated. If the model is shaking/moving during
 
 ---
 
-### motor_accel_time
-
-Minimum time for the motor(s) to accelerate from 0 to 100% throttle (ms) [0-1000]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 1000 |
-
----
-
-### motor_decel_time
-
-Minimum time for the motor(s) to deccelerate from 100 to 0% throttle (ms) [0-1000]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 1000 |
-
----
-
 ### motor_direction_inverted
 
 Use if you need to inverse yaw motor direction.
