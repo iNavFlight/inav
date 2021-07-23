@@ -232,10 +232,6 @@ static bool m25p16_readIdentification(void)
  */
 bool m25p16_init(int flashNumToUse)
 {
-    if (busDev) {
-        return true;
-    }
-
     busDev = busDeviceInit(BUSTYPE_SPI, DEVHW_M25P16, flashNumToUse, OWNER_FLASH);
     if (busDev == NULL) {
         return false;
