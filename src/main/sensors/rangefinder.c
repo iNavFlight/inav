@@ -36,7 +36,6 @@
 #include "drivers/io.h"
 #include "drivers/time.h"
 #include "drivers/rangefinder/rangefinder.h"
-#include "drivers/rangefinder/rangefinder_hcsr04.h"
 #include "drivers/rangefinder/rangefinder_srf10.h"
 #include "drivers/rangefinder/rangefinder_hcsr04_i2c.h"
 #include "drivers/rangefinder/rangefinder_vl53l0x.h"
@@ -64,27 +63,12 @@ rangefinder_t rangefinder;
 #define RANGEFINDER_DYNAMIC_FACTOR              75
 
 #ifdef USE_RANGEFINDER
-PG_REGISTER_WITH_RESET_TEMPLATE(rangefinderConfig_t, rangefinderConfig, PG_RANGEFINDER_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(rangefinderConfig_t, rangefinderConfig, PG_RANGEFINDER_CONFIG, 2);
 
 PG_RESET_TEMPLATE(rangefinderConfig_t, rangefinderConfig,
     .rangefinder_hardware = SETTING_RANGEFINDER_HARDWARE_DEFAULT,
     .use_median_filtering = SETTING_RANGEFINDER_MEDIAN_FILTER_DEFAULT,
 );
-
-const rangefinderHardwarePins_t * rangefinderGetHardwarePins(void)
-{
-    static rangefinderHardwarePins_t rangefinderHardwarePins;
-
-#if defined(RANGEFINDER_HCSR04_TRIGGER_PIN)
-    rangefinderHardwarePins.triggerTag = IO_TAG(RANGEFINDER_HCSR04_TRIGGER_PIN);
-    rangefinderHardwarePins.echoTag = IO_TAG(RANGEFINDER_HCSR04_ECHO_PIN);
-#else
-    // No Trig/Echo hardware rangefinder
-    rangefinderHardwarePins.triggerTag = IO_TAG(NONE);
-    rangefinderHardwarePins.echoTag = IO_TAG(NONE);
-#endif
-    return &rangefinderHardwarePins;
-}
 
 /*
  * Detect which rangefinder is present
@@ -95,18 +79,6 @@ static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwar
     requestedSensors[SENSOR_INDEX_RANGEFINDER] = rangefinderHardwareToUse;
 
     switch (rangefinderHardwareToUse) {
-        case RANGEFINDER_HCSR04:
-#ifdef USE_RANGEFINDER_HCSR04
-            {
-                const rangefinderHardwarePins_t *rangefinderHardwarePins = rangefinderGetHardwarePins();
-                if (hcsr04Detect(dev, rangefinderHardwarePins)) {   // FIXME: Do actual detection if HC-SR04 is plugged in
-                    rangefinderHardware = RANGEFINDER_HCSR04;
-                    rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_HCSR04_TASK_PERIOD_MS));
-                }
-            }
-#endif
-            break;
-
         case RANGEFINDER_SRF10:
 #ifdef USE_RANGEFINDER_SRF10
             if (srf10Detect(dev)) {

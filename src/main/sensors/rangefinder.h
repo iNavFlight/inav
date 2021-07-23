@@ -23,15 +23,13 @@
 
 typedef enum {
     RANGEFINDER_NONE        = 0,
-    RANGEFINDER_HCSR04      = 1,
-    RANGEFINDER_SRF10       = 2,
-    RANGEFINDER_HCSR04I2C   = 3,
-    RANGEFINDER_VL53L0X     = 4,
-    RANGEFINDER_MSP         = 5,
-    RANGEFINDER_UNUSED      = 6,    // Was UIB
-    RANGEFINDER_BENEWAKE    = 7,
-    RANGEFINDER_VL53L1X     = 8,
-    RANGEFINDER_US42        = 9,
+    RANGEFINDER_SRF10       = 1,
+    RANGEFINDER_HCSR04I2C   = 2,
+    RANGEFINDER_VL53L0X     = 3,
+    RANGEFINDER_MSP         = 4,
+    RANGEFINDER_BENEWAKE    = 5,
+    RANGEFINDER_VL53L1X     = 6,
+    RANGEFINDER_US42        = 7,
 } rangefinderType_e;
 
 typedef struct rangefinderConfig_s {
@@ -50,8 +48,6 @@ typedef struct rangefinder_s {
 } rangefinder_t;
 
 extern rangefinder_t rangefinder;
-
-const rangefinderHardwarePins_t * rangefinderGetHardwarePins(void);
 
 bool rangefinderInit(void);
 
