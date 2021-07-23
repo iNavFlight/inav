@@ -109,17 +109,12 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .motorPwmRate = SETTING_MOTOR_PWM_RATE_DEFAULT,
     .maxthrottle = SETTING_MAX_THROTTLE_DEFAULT,
     .mincommand = SETTING_MIN_COMMAND_DEFAULT,
-    .motorAccelTimeMs = SETTING_MOTOR_ACCEL_TIME_DEFAULT,
-    .motorDecelTimeMs = SETTING_MOTOR_DECEL_TIME_DEFAULT,
     .motorPoleCount = SETTING_MOTOR_POLES_DEFAULT,            // Most brushless motors that we use are 14 poles
 );
 
 PG_REGISTER_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer, PG_MOTOR_MIXER, 0);
 
 #define CRASH_OVER_AFTER_CRASH_FLIP_STICK_MIN 0.15f
-
-typedef void (*motorRateLimitingApplyFnPtr)(const float dT);
-static EXTENDED_FASTRAM motorRateLimitingApplyFnPtr motorRateLimitingApplyFn;
 
 int getThrottleIdleValue(void)
 {
@@ -201,44 +196,6 @@ void nullMotorRateLimiting(const float dT)
     UNUSED(dT);
 }
 
-void applyMotorRateLimiting(const float dT)
-{
-    static float motorPrevious[MAX_SUPPORTED_MOTORS] = { 0 };
-
-    if (feature(FEATURE_REVERSIBLE_MOTORS)) {
-        // FIXME: Don't apply rate limiting in 3D mode
-        for (int i = 0; i < motorCount; i++) {
-            motorPrevious[i] = motor[i];
-        }
-    }
-    else {
-        // Calculate max motor step
-        const uint16_t motorRange = motorConfig()->maxthrottle - throttleIdleValue;
-        const float motorMaxInc = (motorConfig()->motorAccelTimeMs == 0) ? 2000 : motorRange * dT / (motorConfig()->motorAccelTimeMs * 1e-3f);
-        const float motorMaxDec = (motorConfig()->motorDecelTimeMs == 0) ? 2000 : motorRange * dT / (motorConfig()->motorDecelTimeMs * 1e-3f);
-
-        for (int i = 0; i < motorCount; i++) {
-            // Apply motor rate limiting
-            motorPrevious[i] = constrainf(motor[i], motorPrevious[i] - motorMaxDec, motorPrevious[i] + motorMaxInc);
-
-            // Handle throttle below min_throttle (motor start/stop)
-            if (motorPrevious[i] < throttleIdleValue) {
-                if (motor[i] < throttleIdleValue) {
-                    motorPrevious[i] = motor[i];
-                }
-                else {
-                    motorPrevious[i] = throttleIdleValue;
-                }
-            }
-        }
-    }
-
-    // Update motor values
-    for (int i = 0; i < motorCount; i++) {
-        motor[i] = motorPrevious[i];
-    }
-}
-
 void mixerInit(void)
 {
     computeMotorCount();
@@ -252,12 +209,6 @@ void mixerInit(void)
     throttleDeadbandHigh = PWM_RANGE_MIDDLE + rcControlsConfig()->mid_throttle_deadband;
 
     mixerResetDisarmedMotors();
-
-    if (motorConfig()->motorAccelTimeMs || motorConfig()->motorDecelTimeMs) {
-        motorRateLimitingApplyFn = applyMotorRateLimiting;
-    } else {
-        motorRateLimitingApplyFn = nullMotorRateLimiting;
-    }
 
     if (mixerConfig()->motorDirectionInverted) {
         motorYawMultiplier = -1;
@@ -516,7 +467,7 @@ static int getReversibleMotorsThrottleDeadband(void)
     return feature(FEATURE_MOTOR_STOP) ? reversibleMotorsConfig()->neutral : directionValue;
 }
 
-void FAST_CODE mixTable(const float dT)
+void FAST_CODE mixTable()
 {
 #ifdef USE_DSHOT
     if (FLIGHT_MODE(TURTLE_MODE)) {
@@ -649,9 +600,6 @@ void FAST_CODE mixTable(const float dT)
             motor[i] = motor_disarmed[i];
         }
     }
-
-    /* Apply motor acceleration/deceleration limit */
-    motorRateLimitingApplyFn(dT);
 }
 
 int16_t getThrottlePercent(void)
