@@ -861,18 +861,6 @@ groups:
         field: motorPwmRate
         min: 50
         max: 32000
-      - name: motor_accel_time
-        description: "Minimum time for the motor(s) to accelerate from 0 to 100% throttle (ms) [0-1000]"
-        default_value: 0
-        field: motorAccelTimeMs
-        min: 0
-        max: 1000
-      - name: motor_decel_time
-        description: "Minimum time for the motor(s) to deccelerate from 100 to 0% throttle (ms) [0-1000]"
-        default_value: 0
-        field: motorDecelTimeMs
-        min: 0
-        max: 1000
       - name: motor_pwm_protocol
         description: "Protocol that is used to send motor updates to ESCs. Possible values - STANDARD, ONESHOT125, ONESHOT42, MULTISHOT, DSHOT150, DSHOT300, DSHOT600, DSHOT1200, BRUSHED"
         default_value: "ONESHOT125"
