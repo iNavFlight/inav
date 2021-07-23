@@ -36,6 +36,8 @@ main_sources(STM32F4_SRC
     target/system_stm32f4xx.c
 
     config/config_streamer_stm32f4.c
+    config/config_streamer_ram.c
+    config/config_streamer_extflash.c
 
     drivers/adc_stm32f4xx.c
     drivers/adc_stm32f4xx.c

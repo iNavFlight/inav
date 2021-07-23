@@ -20,7 +20,7 @@
 #include "drivers/system.h"
 #include "config/config_streamer.h"
 
-#if defined(STM32H7) && !defined(CONFIG_IN_EXTERNAL_FLASH)
+#if defined(STM32H7) && !defined(CONFIG_IN_RAM) && !defined(CONFIG_IN_EXTERNAL_FLASH)
 
 #if defined(STM32H743xx)
 /* Sectors 0-7 of 128K each */
