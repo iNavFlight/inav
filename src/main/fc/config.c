@@ -284,9 +284,6 @@ void validateAndFixConfig(void)
     case PWM_TYPE_DSHOT600:
         motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 16000);
         break;
-    case PWM_TYPE_DSHOT1200:
-        motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 32000);
-        break;
 #endif
 #ifdef USE_SERIALSHOT
     case PWM_TYPE_SERIALSHOT:   // 2-4 kHz

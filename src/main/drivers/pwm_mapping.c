@@ -74,7 +74,6 @@ static const motorProtocolProperties_t motorProtocolProperties[] = {
     [PWM_TYPE_DSHOT150]     = { .usesHwTimer = true,    .isDSHOT = true,    .isSerialShot = false },
     [PWM_TYPE_DSHOT300]     = { .usesHwTimer = true,    .isDSHOT = true,    .isSerialShot = false },
     [PWM_TYPE_DSHOT600]     = { .usesHwTimer = true,    .isDSHOT = true,    .isSerialShot = false },
-    [PWM_TYPE_DSHOT1200]    = { .usesHwTimer = true,    .isDSHOT = true,    .isSerialShot = false },
     [PWM_TYPE_SERIALSHOT]   = { .usesHwTimer = false,   .isDSHOT = false,   .isSerialShot = true  },
 };
 

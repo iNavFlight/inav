@@ -50,7 +50,6 @@ FILE_COMPILE_FOR_SPEED
 #define MULTISHOT_20US_MULT (MULTISHOT_TIMER_HZ * 20 / 1000000.0f / 1000.0f)
 
 #ifdef USE_DSHOT
-#define MOTOR_DSHOT1200_HZ    24000000
 #define MOTOR_DSHOT600_HZ     12000000
 #define MOTOR_DSHOT300_HZ     6000000
 #define MOTOR_DSHOT150_HZ     3000000
@@ -245,8 +244,6 @@ static pwmOutputPort_t * motorConfigPwm(const timerHardware_t *timerHardware, fl
 uint32_t getDshotHz(motorPwmProtocolTypes_e pwmProtocolType)
 {
     switch (pwmProtocolType) {
-        case(PWM_TYPE_DSHOT1200):
-            return MOTOR_DSHOT1200_HZ;
         case(PWM_TYPE_DSHOT600):
             return MOTOR_DSHOT600_HZ;
         case(PWM_TYPE_DSHOT300):
@@ -486,7 +483,6 @@ void pwmMotorPreconfigure(void)
             break;
 
 #ifdef USE_DSHOT
-        case PWM_TYPE_DSHOT1200:
         case PWM_TYPE_DSHOT600:
         case PWM_TYPE_DSHOT300:
         case PWM_TYPE_DSHOT150:
@@ -522,7 +518,6 @@ bool pwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, bo
         break;
 
 #ifdef USE_DSHOT
-    case PWM_TYPE_DSHOT1200:
     case PWM_TYPE_DSHOT600:
     case PWM_TYPE_DSHOT300:
     case PWM_TYPE_DSHOT150:
