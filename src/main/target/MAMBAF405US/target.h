@@ -191,7 +191,6 @@
 
 // ESC-related features
 #define USE_DSHOT
-#define USE_SERIALSHOT
 #define USE_ESC_SENSOR
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
