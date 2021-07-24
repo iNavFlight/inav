@@ -375,7 +375,7 @@ void resetMulticopterPositionController(void)
 
 float _accel_cms = 100.0f; // max horizontal acceleration in cm/s/s
 float _speed_cms = 500.0f; // max horizontal speed in cm/s
-float kP_Gain = 1.0f;
+float kP_Gain = 1.0f;      // can we use "pidProfile()->bank_mc.pid[PID_POS_XY].P" here?
 
 // calc_leash_length - calculates the horizontal leash length given a maximum speed, acceleration and position kP gain
 float calc_leash_length(float speed_cms, float accel_cms, float kP)
@@ -449,7 +449,7 @@ void get_stopping_point_xy(fpVector3_t *stopping_point, fpVector3_t curr_pos, fp
   }
 
   // constrain stopping distance
-  stopping_dist = constrain_float(stopping_dist, 0, calc_leash_length(_speed_cms, _accel_cms, kP_Gain));
+  stopping_dist = constrainf(stopping_dist, 0, calc_leash_length(_speed_cms, _accel_cms, kP_Gain));
 
   // convert the stopping distance into a stopping point using velocity vector
   stopping_point->x = curr_pos.x + (stopping_dist * curr_vel.x / vel_total);
