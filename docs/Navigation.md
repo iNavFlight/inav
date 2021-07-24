@@ -36,17 +36,18 @@ PID meaning:
 
 ## NAV RTH - return to home mode
 
-Home for RTH is the position where vehicle was armed. This position may be offset by the CLI settings `nav_rth_home_offset_distance` and `nav_rth_home_offset_direction`. RTH requires accelerometer, compass and GPS sensors.
+Home for RTH is the position where vehicle was first armed. This position may be offset by the CLI settings `nav_rth_home_offset_distance` and `nav_rth_home_offset_direction`. This position may also be overridden with Safehomes. RTH requires accelerometer, compass and GPS sensors.
 
 If barometer is NOT present, RTH will fly directly to home, altitude control here is up to pilot.
 
-If barometer is present, RTH will maintain altitude during the return and when home is reached copter will attempt automated landing.
-When deciding what altitude to maintain, RTH has 4 different modes of operation (controlled by *nav_rth_alt_mode* and *nav_rth_altitude* cli variables):
+If barometer is present, RTH will maintain altitude during the return and when home is reached. A copter will attempt automated landing.
+When deciding what altitude to maintain, RTH has 6 different modes of operation (controlled by *nav_rth_alt_mode* and *nav_rth_altitude* cli variables):
 * 0 (NAV_RTH_NO_ALT) - keep current altitude during whole RTH sequence (*nav_rth_altitude* is ignored)
 * 1 (NAV_RTH_EXTRA_ALT) - climb to current altitude plus extra margin prior to heading home (*nav_rth_altitude* defines the extra altitude (cm))
 * 2 (NAV_RTH_CONST_ALT) - climb/descend to predefined altitude before heading home (*nav_rth_altitude* defined altitude above launch point (cm))
 * 3 (NAV_RTH_MAX_ALT) - track maximum altitude of the whole flight, climb to that altitude prior to the return (*nav_rth_altitude* is ignored)
 * 4 (NAV_RTH_AT_LEAST_ALT) - same as 2 (NAV_RTH_CONST_ALT), but only climb, do not descend
+* 5 (NAV_RTH_AT_LEAST_ALT_LINEAR_DESCENT) - Same as 4 (NAV_RTH_AT_LEAST_ALT). But, if above the RTH Altitude, the aircraft will gradually descend to the RTH Altitude. The target is to reach the RTH Altitude as it arrives at the home point. This is to save energy during the RTH.
 
 ## CLI command `wp` to manage waypoints
 

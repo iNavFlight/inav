@@ -2158,6 +2158,8 @@ static void updateDesiredRTHAltitude(void)
     if (ARMING_FLAG(ARMED)) {
         if (!((navGetStateFlags(posControl.navState) & NAV_AUTO_RTH)
           || ((navGetStateFlags(posControl.navState) & NAV_AUTO_WP) && posControl.waypointList[posControl.activeWaypointIndex].action == NAV_WP_ACTION_RTH))) {
+            posControl.rthState.rthStartAltitude = posControl.actualState.abs.pos.z;
+            
             switch (navConfig()->general.flags.rth_alt_control_mode) {
                 case NAV_RTH_NO_ALT:
                     posControl.rthState.rthInitialAltitude = posControl.actualState.abs.pos.z;
@@ -2191,6 +2193,7 @@ static void updateDesiredRTHAltitude(void)
             }
         }
     } else {
+        posControl.rthState.rthStartAltitude = posControl.actualState.abs.pos.z;
         posControl.rthState.rthInitialAltitude = posControl.actualState.abs.pos.z;
         posControl.rthState.rthFinalAltitude = posControl.actualState.abs.pos.z;
     }
@@ -2468,7 +2471,7 @@ static bool rthAltControlStickOverrideCheck(unsigned axis)
                 }
                 break;
             case NAV_RTH_CLIMB_STAGE_EXTRA:
-                if (posControl.actualState.abs.pos.z >= (posControl.rthState.rthInitialAltitude + navConfig()->general.rth_climb_first_stage_altitude)) {
+                if (posControl.actualState.abs.pos.z >= (posControl.rthState.rthStartAltitude + navConfig()->general.rth_climb_first_stage_altitude)) {
                     return true;
                 }
                 break; 
