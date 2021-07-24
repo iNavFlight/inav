@@ -1400,7 +1400,6 @@ static void cliWaypoints(char *cmdline)
                     posControl.waypointListValid = true;
                     multiMissionWPCounter = 0;
                     posControl.multiMissionCount = 0;
-                    navConfigMutable()->general.waypoint_multi_mission_index = 1;    // reset selected mission to 1 when new entries loaded
                     break;
                 } else {
                     posControl.multiMissionCount -= 1;

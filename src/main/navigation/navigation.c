@@ -2933,6 +2933,7 @@ bool saveNonVolatileWaypointList(void)
         getWaypoint(i + 1, nonVolatileWaypointListMutable(i));
     }
 
+    navConfigMutable()->general.waypoint_multi_mission_index = 1;    // reset selected mission to 1 when new entries saved
     saveConfigAndNotify();
 
     return true;
