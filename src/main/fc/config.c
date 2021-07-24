@@ -123,13 +123,14 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .name = SETTING_NAME_DEFAULT
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(beeperConfig_t, beeperConfig, PG_BEEPER_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(beeperConfig_t, beeperConfig, PG_BEEPER_CONFIG, 2);
 
 PG_RESET_TEMPLATE(beeperConfig_t, beeperConfig,
                   .beeper_off_flags = 0,
                   .preferred_beeper_off_flags = 0,
                   .dshot_beeper_enabled = SETTING_DSHOT_BEEPER_ENABLED_DEFAULT,
                   .dshot_beeper_tone = SETTING_DSHOT_BEEPER_TONE_DEFAULT,
+                  .pwmMode = SETTING_BEEPER_PWM_MODE_DEFAULT,
 );
 
 PG_REGISTER_WITH_RESET_TEMPLATE(adcChannelConfig_t, adcChannelConfig, PG_ADC_CHANNEL_CONFIG, 0);
@@ -264,9 +265,6 @@ void validateAndFixConfig(void)
     case PWM_TYPE_ONESHOT125:   // Limited to 3900 Hz
         motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 3900);
         break;
-    case PWM_TYPE_ONESHOT42:    // 2-8 kHz
-        motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 2000, 8000);
-        break;
     case PWM_TYPE_MULTISHOT:    // 2-16 kHz
         motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 2000, 16000);
         break;
@@ -285,14 +283,6 @@ void validateAndFixConfig(void)
     // It's more reasonable to use slower-speed DSHOT at higher rate for better reliability
     case PWM_TYPE_DSHOT600:
         motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 16000);
-        break;
-    case PWM_TYPE_DSHOT1200:
-        motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 32000);
-        break;
-#endif
-#ifdef USE_SERIALSHOT
-    case PWM_TYPE_SERIALSHOT:   // 2-4 kHz
-        motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 2000, 4000);
         break;
 #endif
     }

@@ -1,5 +1,5 @@
 /*
- * This file is part of INAV Project.
+ * This file is part of INAV.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -24,6 +24,4 @@
 
 #pragma once
 
-bool serialshotInitialize(void);
-void serialshotUpdateMotor(int index, uint16_t value);
-void serialshotSendUpdate(void);
+bool vcm5883Detect(magDev_t *mag);

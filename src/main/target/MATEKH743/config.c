@@ -15,10 +15,18 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include <stdint.h>
 
-#include "drivers/rangefinder/rangefinder.h"
+#include "platform.h"
 
-#define RANGEFINDER_HCSR04_TASK_PERIOD_MS 70
+#include "fc/fc_msp_box.h"
+#include "fc/config.h"
 
-bool hcsr04Detect(rangefinderDev_t *dev, const rangefinderHardwarePins_t * rangefinderHardwarePins);
+#include "io/piniobox.h"
+
+void targetConfiguration(void)
+{
+    pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
+    pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
+    beeperConfigMutable()->pwmMode = true;
+}

@@ -37,7 +37,6 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/io_pca9685.h"
 
 #include "io/pwmdriver_i2c.h"
-#include "io/esc_serialshot.h"
 #include "io/servo_sbus.h"
 #include "sensors/esc_sensor.h"
 
@@ -50,7 +49,6 @@ FILE_COMPILE_FOR_SPEED
 #define MULTISHOT_20US_MULT (MULTISHOT_TIMER_HZ * 20 / 1000000.0f / 1000.0f)
 
 #ifdef USE_DSHOT
-#define MOTOR_DSHOT1200_HZ    24000000
 #define MOTOR_DSHOT600_HZ     12000000
 #define MOTOR_DSHOT300_HZ     6000000
 #define MOTOR_DSHOT150_HZ     3000000
@@ -100,16 +98,14 @@ static pwmWriteFuncPtr         motorWritePtr = NULL;    // Function to write val
 static pwmOutputPort_t *       servos[MAX_SERVOS];
 static pwmWriteFuncPtr         servoWritePtr = NULL;    // Function to write value to motors
 
-#if defined(USE_DSHOT) || defined(USE_SERIALSHOT)
+#if defined(USE_DSHOT)
 static timeUs_t digitalMotorUpdateIntervalUs = 0;
 static timeUs_t digitalMotorLastUpdateUs;
 #endif
 
-#ifdef BEEPER_PWM
 static pwmOutputPort_t  beeperPwmPort;
 static pwmOutputPort_t *beeperPwm;
 static uint16_t beeperFrequency = 0;
-#endif
 
 static uint8_t allocatedOutputPortCount = 0;
 
@@ -247,8 +243,6 @@ static pwmOutputPort_t * motorConfigPwm(const timerHardware_t *timerHardware, fl
 uint32_t getDshotHz(motorPwmProtocolTypes_e pwmProtocolType)
 {
     switch (pwmProtocolType) {
-        case(PWM_TYPE_DSHOT1200):
-            return MOTOR_DSHOT1200_HZ;
         case(PWM_TYPE_DSHOT600):
             return MOTOR_DSHOT600_HZ;
         case(PWM_TYPE_DSHOT300):
@@ -306,7 +300,7 @@ static uint16_t prepareDshotPacket(const uint16_t value, bool requestTelemetry)
 }
 #endif
 
-#if defined(USE_DSHOT) || defined(USE_SERIALSHOT)
+#if defined(USE_DSHOT)
 static void motorConfigDigitalUpdateInterval(uint16_t motorPwmRateHz)
 {
     digitalMotorUpdateIntervalUs = 1000000 / motorPwmRateHz;
@@ -327,14 +321,9 @@ bool isMotorProtocolDshot(void)
     return getMotorProtocolProperties(initMotorProtocol)->isDSHOT;
 }
 
-bool isMotorProtocolSerialShot(void)
-{
-    return getMotorProtocolProperties(initMotorProtocol)->isSerialShot;
-}
-
 bool isMotorProtocolDigital(void)
 {
-    return isMotorProtocolDshot() || isMotorProtocolSerialShot();
+    return isMotorProtocolDshot();
 }
 
 void pwmRequestMotorTelemetry(int motorIndex)
@@ -443,16 +432,6 @@ void pwmCompleteMotorUpdate(void) {
         }
     }
 #endif
-
-#ifdef USE_SERIALSHOT
-    if (isMotorProtocolSerialShot()) {
-        for (int index = 0; index < motorCount; index++) {
-            serialshotUpdateMotor(index, motors[index].value);
-        }
-
-        serialshotSendUpdate();
-    }
-#endif
 }
 
 #else // digital motor protocol
@@ -483,25 +462,14 @@ void pwmMotorPreconfigure(void)
         case PWM_TYPE_STANDARD:
         case PWM_TYPE_BRUSHED:
         case PWM_TYPE_ONESHOT125:
-        case PWM_TYPE_ONESHOT42:
         case PWM_TYPE_MULTISHOT:
             motorWritePtr = pwmWriteStandard;
             break;
 
 #ifdef USE_DSHOT
-        case PWM_TYPE_DSHOT1200:
         case PWM_TYPE_DSHOT600:
         case PWM_TYPE_DSHOT300:
         case PWM_TYPE_DSHOT150:
-            motorConfigDigitalUpdateInterval(motorConfig()->motorPwmRate);
-            motorWritePtr = pwmWriteDigital;
-            break;
-#endif
-
-#ifdef USE_SERIALSHOT
-        case PWM_TYPE_SERIALSHOT:
-            // Kick off SerialShot driver initalization
-            serialshotInitialize();
             motorConfigDigitalUpdateInterval(motorConfig()->motorPwmRate);
             motorWritePtr = pwmWriteDigital;
             break;
@@ -520,16 +488,11 @@ bool pwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, bo
         motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 125e-6f, 125e-6f, motorConfig()->motorPwmRate, enableOutput);
         break;
 
-    case PWM_TYPE_ONESHOT42:
-        motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 42e-6f, 42e-6f, motorConfig()->motorPwmRate, enableOutput);
-        break;
-
     case PWM_TYPE_MULTISHOT:
         motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 5e-6f, 20e-6f, motorConfig()->motorPwmRate, enableOutput);
         break;
 
 #ifdef USE_DSHOT
-    case PWM_TYPE_DSHOT1200:
     case PWM_TYPE_DSHOT600:
     case PWM_TYPE_DSHOT300:
     case PWM_TYPE_DSHOT150:
@@ -634,7 +597,6 @@ void pwmWriteServo(uint8_t index, uint16_t value)
     }
 }
 
-#ifdef BEEPER_PWM
 void pwmWriteBeeper(bool onoffBeep)
 {
     if (beeperPwm == NULL)
@@ -666,4 +628,3 @@ void beeperPwmInit(ioTag_t tag, uint16_t frequency)
         pwmOutConfigTimer(beeperPwm, tch, PWM_TIMER_HZ, 1000000 / beeperFrequency, (1000000 / beeperFrequency) / 2);
     }
 }
-#endif

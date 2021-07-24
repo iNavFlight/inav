@@ -160,7 +160,6 @@
 #define MAX_PWM_OUTPUT_PORTS            6
 #define USE_DSHOT
 #define USE_ESC_SENSOR
-#define USE_SERIALSHOT
 
 #define USE_RANGEFINDER
 #define RANGEFINDER_I2C_BUS         BUS_I2C1

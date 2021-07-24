@@ -73,6 +73,10 @@
         BUSDEV_REGISTER_SPI(busdev_icm20689,    DEVHW_ICM20689,     ICM20689_SPI_BUS,   ICM20689_CS_PIN,    GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_ICM20689_ALIGN);
     #endif
 
+    #if defined(USE_IMU_ICM42605)
+        BUSDEV_REGISTER_SPI(busdev_icm42605,    DEVHW_ICM42605,     ICM42605_SPI_BUS,   ICM42605_CS_PIN,    GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_ICM42605_ALIGN);
+    #endif
+
     #if defined(USE_IMU_BMI160)
         #if defined(BMI160_SPI_BUS)
         BUSDEV_REGISTER_SPI(busdev_bmi160,      DEVHW_BMI160,       BMI160_SPI_BUS,     BMI160_CS_PIN,      GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_BMI160_ALIGN);
@@ -244,6 +248,14 @@
     BUSDEV_REGISTER_SPI(busdev_rm3100,      DEVHW_RM3100,       RM3100_SPI_BUS,     RM3100_CS_PIN,      NONE,           DEVFLAGS_NONE,  0);
     #endif
 #endif
+
+#if defined(USE_MAG_VCM5883)
+    #if !defined(VCM5883_I2C_BUS)
+        #define VCM5883_I2C_BUS MAG_I2C_BUS
+    #endif
+    BUSDEV_REGISTER_I2C(busdev_vcm5883,     DEVHW_VCM5883,      VCM5883_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE,  0);
+#endif
+
 #endif
 
 
