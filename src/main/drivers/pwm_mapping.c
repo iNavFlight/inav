@@ -67,16 +67,13 @@ static const char * pwmInitErrorMsg[] = {
 };
 
 static const motorProtocolProperties_t motorProtocolProperties[] = {
-    [PWM_TYPE_STANDARD]     = { .usesHwTimer = true,    .isDSHOT = false,   .isSerialShot = false },
-    [PWM_TYPE_ONESHOT125]   = { .usesHwTimer = true,    .isDSHOT = false,   .isSerialShot = false },
-    [PWM_TYPE_ONESHOT42]    = { .usesHwTimer = true,    .isDSHOT = false,   .isSerialShot = false },
-    [PWM_TYPE_MULTISHOT]    = { .usesHwTimer = true,    .isDSHOT = false,   .isSerialShot = false },
-    [PWM_TYPE_BRUSHED]      = { .usesHwTimer = true,    .isDSHOT = false,   .isSerialShot = false },
-    [PWM_TYPE_DSHOT150]     = { .usesHwTimer = true,    .isDSHOT = true,    .isSerialShot = false },
-    [PWM_TYPE_DSHOT300]     = { .usesHwTimer = true,    .isDSHOT = true,    .isSerialShot = false },
-    [PWM_TYPE_DSHOT600]     = { .usesHwTimer = true,    .isDSHOT = true,    .isSerialShot = false },
-    [PWM_TYPE_DSHOT1200]    = { .usesHwTimer = true,    .isDSHOT = true,    .isSerialShot = false },
-    [PWM_TYPE_SERIALSHOT]   = { .usesHwTimer = false,   .isDSHOT = false,   .isSerialShot = true  },
+    [PWM_TYPE_STANDARD]     = { .usesHwTimer = true,    .isDSHOT = false },
+    [PWM_TYPE_ONESHOT125]   = { .usesHwTimer = true,    .isDSHOT = false },
+    [PWM_TYPE_MULTISHOT]    = { .usesHwTimer = true,    .isDSHOT = false },
+    [PWM_TYPE_BRUSHED]      = { .usesHwTimer = true,    .isDSHOT = false },
+    [PWM_TYPE_DSHOT150]     = { .usesHwTimer = true,    .isDSHOT = true },
+    [PWM_TYPE_DSHOT300]     = { .usesHwTimer = true,    .isDSHOT = true },
+    [PWM_TYPE_DSHOT600]     = { .usesHwTimer = true,    .isDSHOT = true },
 };
 
 pwmInitError_e getPwmInitError(void)
@@ -197,17 +194,6 @@ static bool checkPwmTimerConflicts(const timerHardware_t *timHw)
         return true;
     }
 #endif
-#endif
-
-
-#ifdef USE_RANGEFINDER_HCSR04
-    // HC-SR04 has a dedicated connection to FC and require two pins
-    if (rangefinderConfig()->rangefinder_hardware == RANGEFINDER_HCSR04) {
-        const rangefinderHardwarePins_t *rangefinderHardwarePins = rangefinderGetHardwarePins();
-        if (rangefinderHardwarePins && (timHw->tag == rangefinderHardwarePins->triggerTag || timHw->tag == rangefinderHardwarePins->echoTag)) {
-            return true;
-        }
-    }
 #endif
 
     return false;

@@ -229,4 +229,3 @@
 #define MAX_PWM_OUTPUT_PORTS        16
 #define USE_DSHOT
 #define USE_ESC_SENSOR
-#define USE_SERIALSHOT
