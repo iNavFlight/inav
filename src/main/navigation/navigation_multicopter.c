@@ -370,6 +370,92 @@ void resetMulticopterPositionController(void)
     }
 }
 
+#define POSCONTROL_ACCELERATION_MIN 50.0f  // minimum horizontal acceleration in cm/s/s - used for sanity checking acceleration in leash length calculation
+#define POSCONTROL_LEASH_LENGTH_MIN 100.0f // minimum leash lengths in cm
+
+float _accel_cms = 100.0f; // max horizontal acceleration in cm/s/s
+float _speed_cms = 500.0f; // max horizontal speed in cm/s
+float kP_Gain = 1.0f;
+
+// calc_leash_length - calculates the horizontal leash length given a maximum speed, acceleration and position kP gain
+float calc_leash_length(float speed_cms, float accel_cms, float kP)
+{
+  float leash_length;
+
+  // sanity check acceleration and avoid divide by zero
+  if (accel_cms <= 0.0f)
+  {
+    accel_cms = POSCONTROL_ACCELERATION_MIN;
+  }
+
+  // avoid divide by zero
+  if (kP <= 0.0f)
+  {
+    return POSCONTROL_LEASH_LENGTH_MIN;
+  }
+
+  // calculate leash length
+  if (speed_cms <= accel_cms / kP)
+  {
+    // linear leash length based on speed close in
+    leash_length = speed_cms / kP;
+  }
+  else
+  {
+    // leash length grows at sqrt of speed further out
+    leash_length = (accel_cms / (2.0f * kP * kP)) + (speed_cms * speed_cms / (2.0f * accel_cms));
+  }
+
+  // ensure leash is at least 1m long
+  if (leash_length < POSCONTROL_LEASH_LENGTH_MIN)
+  {
+    leash_length = POSCONTROL_LEASH_LENGTH_MIN;
+  }
+
+  return leash_length;
+}
+
+// get_stopping_point_xy - calculates stopping point based on current position, velocity, vehicle acceleration
+void get_stopping_point_xy(fpVector3_t *stopping_point, fpVector3_t curr_pos, fpVector3_t curr_vel)
+{
+  float linear_distance; // the distance at which we swap from a linear to sqrt response
+  float linear_velocity; // the velocity above which we swap from a linear to sqrt response
+  float stopping_dist;   // the distance within the vehicle can stop
+  float kP = kP_Gain;
+
+  // calculate current velocity
+  float vel_total = sqrtf((curr_vel.x * curr_vel.x) + (curr_vel.y * curr_vel.y));
+
+  // avoid divide by zero by using current position if the velocity is below 10cm/s, kP is very low or acceleration is zero
+  if (kP <= 0.0f || _accel_cms <= 0.0f || vel_total == 0.0f)
+  {
+    stopping_point->x = curr_pos.x;
+    stopping_point->y = curr_pos.y;
+    return;
+  }
+
+  // calculate point at which velocity switches from linear to sqrt
+  linear_velocity = _accel_cms / kP;
+
+  // calculate distance within which we can stop
+  if (vel_total < linear_velocity)
+  {
+    stopping_dist = vel_total / kP;
+  }
+  else
+  {
+    linear_distance = _accel_cms / (2.0f * kP * kP);
+    stopping_dist = linear_distance + (vel_total * vel_total) / (2.0f * _accel_cms);
+  }
+
+  // constrain stopping distance
+  stopping_dist = constrain_float(stopping_dist, 0, calc_leash_length(_speed_cms, _accel_cms, kP_Gain));
+
+  // convert the stopping distance into a stopping point using velocity vector
+  stopping_point->x = curr_pos.x + (stopping_dist * curr_vel.x / vel_total);
+  stopping_point->y = curr_pos.y + (stopping_dist * curr_vel.y / vel_total);
+}
+
 bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcRollAdjustment)
 {
     // Process braking mode
@@ -385,10 +471,19 @@ bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcR
             // Rotate these velocities from body frame to to earth frame
             const float neuVelX = rcVelX * posControl.actualState.cosYaw - rcVelY * posControl.actualState.sinYaw;
             const float neuVelY = rcVelX * posControl.actualState.sinYaw + rcVelY * posControl.actualState.cosYaw;
+            
+            fpVector3_t new_desiredPos;
+            fpVector3_t get_new_pos_xy;
 
             // Calculate new position target, so Pos-to-Vel P-controller would yield desired velocity
-            posControl.desiredState.pos.x = navGetCurrentActualPositionAndVelocity()->pos.x + (neuVelX / posControl.pids.pos[X].param.kP);
-            posControl.desiredState.pos.y = navGetCurrentActualPositionAndVelocity()->pos.y + (neuVelY / posControl.pids.pos[Y].param.kP);
+            new_desiredPos.x = navGetCurrentActualPositionAndVelocity()->pos.x + (neuVelX / posControl.pids.pos[X].param.kP);
+            new_desiredPos.y = navGetCurrentActualPositionAndVelocity()->pos.y + (neuVelY / posControl.pids.pos[Y].param.kP);
+
+            get_stopping_point_xy(&get_new_pos_xy, new_desiredPos, navGetCurrentActualPositionAndVelocity()->vel);
+
+            //Set new position to Pos-Hold
+            posControl.desiredState.pos.x = new_desiredPos.x;
+            posControl.desiredState.pos.y = new_desiredPos.y;
         }
 
         return true;
