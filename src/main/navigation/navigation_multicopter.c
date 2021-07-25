@@ -471,19 +471,10 @@ bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcR
             // Rotate these velocities from body frame to to earth frame
             const float neuVelX = rcVelX * posControl.actualState.cosYaw - rcVelY * posControl.actualState.sinYaw;
             const float neuVelY = rcVelX * posControl.actualState.sinYaw + rcVelY * posControl.actualState.cosYaw;
-            
-            fpVector3_t new_desiredPos;
-            fpVector3_t get_new_pos_xy;
 
             // Calculate new position target, so Pos-to-Vel P-controller would yield desired velocity
-            new_desiredPos.x = navGetCurrentActualPositionAndVelocity()->pos.x + (neuVelX / posControl.pids.pos[X].param.kP);
-            new_desiredPos.y = navGetCurrentActualPositionAndVelocity()->pos.y + (neuVelY / posControl.pids.pos[Y].param.kP);
-
-            get_stopping_point_xy(&get_new_pos_xy, new_desiredPos, navGetCurrentActualPositionAndVelocity()->vel);
-
-            //Set new position to Pos-Hold
-            posControl.desiredState.pos.x = new_desiredPos.x;
-            posControl.desiredState.pos.y = new_desiredPos.y;
+            posControl.desiredState.pos.x = navGetCurrentActualPositionAndVelocity()->pos.x + (neuVelX / posControl.pids.pos[X].param.kP);
+            posControl.desiredState.pos.y = navGetCurrentActualPositionAndVelocity()->pos.y + (neuVelY / posControl.pids.pos[Y].param.kP);
         }
 
         return true;
@@ -492,8 +483,13 @@ bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcR
         // Adjusting finished - reset desired position to stay exactly where pilot released the stick
         if (posControl.flags.isAdjustingPosition) {
             fpVector3_t stopPosition;
+            fpVector3_t new_stopPosition;
+
             calculateMulticopterInitialHoldPosition(&stopPosition);
-            setDesiredPosition(&stopPosition, 0, NAV_POS_UPDATE_XY);
+
+            get_stopping_point_xy(&new_stopPosition, stopPosition, navGetCurrentActualPositionAndVelocity()->vel);
+
+            setDesiredPosition(&new_stopPosition, 0, NAV_POS_UPDATE_XY);
         }
 
         return false;
