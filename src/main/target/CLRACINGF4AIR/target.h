@@ -115,6 +115,7 @@
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
 #define BNO055_I2C_BUS          BUS_I2C2
+#define MAG_I2C_BUS             BUS_I2C2
 #endif
 
 #define USE_ADC

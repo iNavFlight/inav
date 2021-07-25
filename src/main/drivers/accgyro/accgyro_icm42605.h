@@ -1,24 +1,21 @@
 /*
- * This file is part of Cleanflight.
+ * This file is part of INAV.
  *
- * Cleanflight is free software: you can redistribute it and/or modify
+ * INAV is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Cleanflight is distributed in the hope that it will be useful,
+ * INAV is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
+ * along with INAV.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #pragma once
 
-#include "drivers/rangefinder/rangefinder.h"
-
-#define RANGEFINDER_HCSR04_TASK_PERIOD_MS 70
-
-bool hcsr04Detect(rangefinderDev_t *dev, const rangefinderHardwarePins_t * rangefinderHardwarePins);
+bool icm42605AccDetect(accDev_t *acc);
+bool icm42605GyroDetect(gyroDev_t *gyro);
