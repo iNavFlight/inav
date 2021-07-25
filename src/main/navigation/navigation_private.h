@@ -304,12 +304,12 @@ typedef struct {
 
 typedef struct {
     navigationHomeFlags_t   homeFlags;
-    navWaypointPosition_t   homePosition;       // Original home position and base altitude
-    float                   rthStartAltitude;   // Altitude at start of RTH
-    float                   rthInitialAltitude; // Altitude at start of RTH, can include added margins and extra height
-    float                   rthFinalAltitude;   // Altitude at end of RTH approach
-    float                   rthInitialDistance; // Distance when starting flight home
-    fpVector3_t             homeTmpWaypoint;    // Temporary storage for home target
+    navWaypointPosition_t   homePosition;           // Original home position and base altitude
+    float                   rthInitialAltitude;     // Altitude at start of RTH, can include added margins and extra height
+    float                   rthClimbStageAltitude;  // Altitude at end of the climb phase
+    float                   rthFinalAltitude;       // Altitude at end of RTH approach
+    float                   rthInitialDistance;     // Distance when starting flight home
+    fpVector3_t             homeTmpWaypoint;        // Temporary storage for home target
 } rthState_t;
 
 typedef enum {

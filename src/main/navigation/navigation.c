@@ -2158,7 +2158,14 @@ static void updateDesiredRTHAltitude(void)
     if (ARMING_FLAG(ARMED)) {
         if (!((navGetStateFlags(posControl.navState) & NAV_AUTO_RTH)
           || ((navGetStateFlags(posControl.navState) & NAV_AUTO_WP) && posControl.waypointList[posControl.activeWaypointIndex].action == NAV_WP_ACTION_RTH))) {
-            posControl.rthState.rthStartAltitude = posControl.actualState.abs.pos.z;
+            switch (navConfig()->general.flags.rth_climb_first_stage_mode) {
+                case NAV_RTH_CLIMB_STAGE_AT_LEAST:
+                    posControl.rthState.rthClimbStageAltitude = navConfig()->general.rth_climb_first_stage_altitude;
+                    break;
+                case NAV_RTH_CLIMB_STAGE_EXTRA:
+                    posControl.rthState.rthClimbStageAltitude = posControl.actualState.abs.pos.z + navConfig()->general.rth_climb_first_stage_altitude;
+                    break; 
+            }
             
             switch (navConfig()->general.flags.rth_alt_control_mode) {
                 case NAV_RTH_NO_ALT:
@@ -2193,7 +2200,7 @@ static void updateDesiredRTHAltitude(void)
             }
         }
     } else {
-        posControl.rthState.rthStartAltitude = posControl.actualState.abs.pos.z;
+        posControl.rthState.rthClimbStageAltitude = posControl.actualState.abs.pos.z;
         posControl.rthState.rthInitialAltitude = posControl.actualState.abs.pos.z;
         posControl.rthState.rthFinalAltitude = posControl.actualState.abs.pos.z;
     }
@@ -2464,17 +2471,8 @@ static bool rthAltControlStickOverrideCheck(unsigned axis)
  * --------------------------------------------------- */
  bool rthClimbStageActiveAndComplete() {
     if ((STATE(FIXED_WING_LEGACY) || STATE(AIRPLANE)) && (navConfig()->general.rth_climb_first_stage_altitude > 0)) {
-        switch (navConfig()->general.flags.rth_climb_first_stage_mode) {
-            case NAV_RTH_CLIMB_STAGE_AT_LEAST:
-                if (posControl.actualState.abs.pos.z >= navConfig()->general.rth_climb_first_stage_altitude) {
-                    return true;
-                }
-                break;
-            case NAV_RTH_CLIMB_STAGE_EXTRA:
-                if (posControl.actualState.abs.pos.z >= (posControl.rthState.rthStartAltitude + navConfig()->general.rth_climb_first_stage_altitude)) {
-                    return true;
-                }
-                break; 
+        if (posControl.actualState.abs.pos.z >= posControl.rthState.rthClimbStageAltitude) {
+            return true;
         }
     }
 
