@@ -754,11 +754,11 @@ Cutoff frequency for stage 2 D-term low pass filter
 
 ### dterm_lpf2_type
 
-Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation.
+Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`, `PT2`, `PT3`.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| BIQUAD |  |  |
+| PT1 |  |  |
 
 ---
 
@@ -768,17 +768,17 @@ Dterm low pass filter cutoff frequency. Default setting is very conservative and
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 40 | 0 | 500 |
+| 110 | 0 | 500 |
 
 ---
 
 ### dterm_lpf_type
 
-Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation.
+Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`, `PT2`, `PT3`.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| BIQUAD |  |  |
+| PT2 |  |  |
 
 ---
 
