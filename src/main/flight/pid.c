@@ -716,21 +716,8 @@ static float dTermProcess(pidState_t *pidState, float dT) {
     } else {
         float delta = pidState->previousRateGyro - pidState->gyroRate;
         
-        if (pidState->axis == FD_ROLL) {
-            DEBUG_SET(DEBUG_ALWAYS, 0, delta);
-        }
-
         delta = dTermLpfFilterApplyFn((filter_t *) &pidState->dtermLpfState, delta);
-        
-        if (pidState->axis == FD_ROLL) {
-            DEBUG_SET(DEBUG_ALWAYS, 1, delta);
-        }
-        
         delta = dTermLpf2FilterApplyFn((filter_t *) &pidState->dtermLpf2State, delta);
-
-        if (pidState->axis == FD_ROLL) {
-            DEBUG_SET(DEBUG_ALWAYS, 2, delta);
-        }
 
         // Calculate derivative
         newDTerm =  delta * (pidState->kD / dT) * applyDBoost(pidState, dT);
