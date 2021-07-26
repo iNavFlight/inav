@@ -382,3 +382,36 @@ FAST_CODE float alphaBetaGammaFilterApply(alphaBetaGammaFilter_t *filter, float 
 }
 
 #endif
+
+FUNCTION_COMPILE_FOR_SIZE
+void initFilter(const uint8_t filterType, filter_t *filter, const float cutoffFrequency, const uint32_t refreshRate) {
+    const float dT = refreshRate * 1e-6f;
+
+    if (cutoffFrequency) {
+        if (filterType == FILTER_PT1) {
+            pt1FilterInit(&filter->pt1, cutoffFrequency, dT);
+        } if (filterType == FILTER_PT2) {
+            pt2FilterInit(&filter->pt2, pt2FilterGain(cutoffFrequency, dT));
+        } if (filterType == FILTER_PT3) {
+            pt3FilterInit(&filter->pt3, pt3FilterGain(cutoffFrequency, dT));
+        } else {
+            biquadFilterInitLPF(&filter->biquad, cutoffFrequency, refreshRate);
+        }
+    }
+}
+
+FUNCTION_COMPILE_FOR_SIZE
+void assignFilterApplyFn(uint8_t filterType, float cutoffFrequency, filterApplyFnPtr *applyFn) {
+    *applyFn = nullFilterApply;
+    if (cutoffFrequency) {
+        if (filterType == FILTER_PT1) {
+            *applyFn = (filterApplyFnPtr) pt1FilterApply;
+        } if (filterType == FILTER_PT2) {
+            *applyFn = (filterApplyFnPtr) pt2FilterApply;
+        } if (filterType == FILTER_PT3) {
+            *applyFn = (filterApplyFnPtr) pt3FilterApply;
+        } else {
+            *applyFn = (filterApplyFnPtr) biquadFilterApply;
+        }
+    }
+}
