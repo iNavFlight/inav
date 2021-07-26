@@ -156,7 +156,8 @@ main_sources(STM32H7_SRC
     drivers/system_stm32h7xx.c
     drivers/serial_uart_stm32h7xx.c
     drivers/serial_uart_hal.c
-#    drivers/sdcard/sdmmc_sdio_h7xx.c
+    drivers/sdio.h
+    drivers/sdcard/sdmmc_sdio_h7xx.c
 )
 
 main_sources(STM32H7_MSC_SRC
