@@ -19,6 +19,7 @@ Following rangefinders are supported:
 * VL53L0X - simple laser rangefinder usable up to 75cm
 * UIB - experimental
 * MSP - experimental
+* TOF10120 - small & lightweight laser range sensor, usable up to 200cm
 
 ## Connections
 

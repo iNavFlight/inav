@@ -143,6 +143,7 @@ typedef enum {
     DEVHW_VL53L0X,
     DEVHW_VL53L1X,
     DEVHW_US42,
+    DEVHW_TOF10120_I2C,
 
     /* Other hardware */
     DEVHW_MS4525,       // Pitot meter
