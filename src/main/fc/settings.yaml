@@ -1903,7 +1903,7 @@ groups:
         field: dterm_lpf2_type
         table: filter_type
       - name: yaw_lpf_hz
-        description: "Yaw low pass filter cutoff frequency. Should be disabled (set to `0`)"
+        description: "Yaw low pass filter cutoff frequency."
         default_value: 100
         min: 0
         max: 200
