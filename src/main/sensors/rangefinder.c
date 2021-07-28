@@ -42,6 +42,7 @@
 #include "drivers/rangefinder/rangefinder_vl53l1x.h"
 #include "drivers/rangefinder/rangefinder_virtual.h"
 #include "drivers/rangefinder/rangefinder_us42.h"
+#include "drivers/rangefinder/rangefinder_tof10120_i2c.h"
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
@@ -138,6 +139,15 @@ static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwar
             if (us42Detect(dev)) {
                 rangefinderHardware = RANGEFINDER_US42;
                 rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_US42_TASK_PERIOD_MS));
+            }
+#endif
+            break;
+
+            case RANGEFINDER_TOF10102I2C:
+#ifdef USE_RANGEFINDER_TOF10120_I2C
+            if (tof10120Detect(dev)) {
+                rangefinderHardware = RANGEFINDER_TOF10102I2C;
+                rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_TOF10120_I2C_TASK_PERIOD_MS));
             }
 #endif
             break;
