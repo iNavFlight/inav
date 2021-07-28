@@ -232,8 +232,6 @@ main_sources(COMMON_SRC
     drivers/pinio.c
     drivers/pinio.h
 
-    drivers/rangefinder/rangefinder_hcsr04_i2c.c
-    drivers/rangefinder/rangefinder_hcsr04_i2c.h
     drivers/rangefinder/rangefinder_srf10.c
     drivers/rangefinder/rangefinder_srf10.h
     drivers/rangefinder/rangefinder_vl53l0x.c

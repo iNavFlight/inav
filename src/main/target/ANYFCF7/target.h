@@ -65,7 +65,6 @@
 #define PITOT_I2C_BUS           BUS_I2C2
 
 #define USE_RANGEFINDER
-#define USE_RANGEFINDER_HCSR04_I2C
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
 
 #define USE_VCP

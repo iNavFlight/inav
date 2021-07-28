@@ -24,12 +24,11 @@
 typedef enum {
     RANGEFINDER_NONE        = 0,
     RANGEFINDER_SRF10       = 1,
-    RANGEFINDER_HCSR04I2C   = 2,
-    RANGEFINDER_VL53L0X     = 3,
-    RANGEFINDER_MSP         = 4,
-    RANGEFINDER_BENEWAKE    = 5,
-    RANGEFINDER_VL53L1X     = 6,
-    RANGEFINDER_US42        = 7,
+    RANGEFINDER_VL53L0X     = 2,
+    RANGEFINDER_MSP         = 3,
+    RANGEFINDER_BENEWAKE    = 4,
+    RANGEFINDER_VL53L1X     = 5,
+    RANGEFINDER_US42        = 6,
 } rangefinderType_e;
 
 typedef struct rangefinderConfig_s {
