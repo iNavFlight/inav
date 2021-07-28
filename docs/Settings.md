@@ -5704,7 +5704,7 @@ These are values (in us) by how much RC input can be different before it's consi
 
 ### yaw_lpf_hz
 
-Yaw low pass filter cutoff frequency.
+Yaw P term low pass filter cutoff frequency.
 
 | Default | Min | Max |
 | --- | --- | --- |
