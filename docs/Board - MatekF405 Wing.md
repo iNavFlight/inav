@@ -1,6 +1,6 @@
 # Board - [MATEKSYS F405-Wing](https://inavflight.com/shop/p/MATEKF405WING)
 
-![Matek F405 Wing](https://quadmeup.com/wp-content/uploads/2018/12/DSC_0007.jpg)
+![Matek F405 Wing](http://www.mateksys.com/?portfolio=f405-wing)
 
 ## Specification:
 
