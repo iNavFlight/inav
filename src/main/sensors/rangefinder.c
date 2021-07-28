@@ -62,7 +62,7 @@ rangefinder_t rangefinder;
 #define RANGEFINDER_DYNAMIC_FACTOR              75
 
 #ifdef USE_RANGEFINDER
-PG_REGISTER_WITH_RESET_TEMPLATE(rangefinderConfig_t, rangefinderConfig, PG_RANGEFINDER_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(rangefinderConfig_t, rangefinderConfig, PG_RANGEFINDER_CONFIG, 3);
 
 PG_RESET_TEMPLATE(rangefinderConfig_t, rangefinderConfig,
     .rangefinder_hardware = SETTING_RANGEFINDER_HARDWARE_DEFAULT,
