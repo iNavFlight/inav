@@ -175,7 +175,6 @@
 #define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PC12
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PA15
@@ -231,6 +230,8 @@
 
 #if defined(OMNIBUSF4V6)
 #define PCA9685_I2C_BUS         BUS_I2C1
+#define BNO055_I2C_BUS          BUS_I2C1
 #else
 #define PCA9685_I2C_BUS         BUS_I2C2
+#define BNO055_I2C_BUS          BUS_I2C2
 #endif

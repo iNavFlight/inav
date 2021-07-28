@@ -26,7 +26,6 @@
 
 #include "sensors/sensors.h"
 
-
 // Type of magnetometer used/detected
 typedef enum {
     MAG_NONE = 0,
@@ -43,7 +42,8 @@ typedef enum {
     MAG_LIS3MDL = 11,
     MAG_MSP = 12,
     MAG_RM3100 = 13,
-    MAG_FAKE = 14,
+    MAG_VCM5883 = 14,
+    MAG_FAKE = 15,
     MAG_MAX = MAG_FAKE
 } magSensor_e;
 
@@ -54,6 +54,8 @@ typedef struct mag_s {
 
 extern mag_t mag;
 
+#ifdef USE_MAG
+
 typedef struct compassConfig_s {
     int16_t mag_declination;                // Get your magnetic declination from here : http://magnetic-declination.com/
                                             // For example, -6deg 37min, = -637 Japan, format is [sign]dddmm (degreesminutes) default is zero.
@@ -61,7 +63,9 @@ typedef struct compassConfig_s {
     uint8_t mag_hardware;                   // Which mag hardware to use on boards with more than one device
     flightDynamicsTrims_t magZero;
     int16_t magGain[XYZ_AXIS_COUNT];
+#ifdef USE_DUAL_MAG
     uint8_t mag_to_use;
+#endif
     uint8_t magCalibrationTimeLimit;        // Time for compass calibration (seconds)
     int16_t rollDeciDegrees;                // Alignment for external mag on the roll (X) axis (0.1deg)
     int16_t pitchDeciDegrees;               // Alignment for external mag on the pitch (Y) axis (0.1deg)
@@ -75,3 +79,6 @@ bool compassInit(void);
 void compassUpdate(timeUs_t currentTimeUs);
 bool compassIsReady(void);
 bool compassIsHealthy(void);
+bool compassIsCalibrationComplete(void);
+
+#endif

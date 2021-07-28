@@ -53,11 +53,13 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/accgyro/accgyro_bmi088.h"
 #include "drivers/accgyro/accgyro_bmi160.h"
 #include "drivers/accgyro/accgyro_icm20689.h"
+#include "drivers/accgyro/accgyro_icm42605.h"
 #include "drivers/accgyro/accgyro_fake.h"
 #include "drivers/sensor.h"
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
+#include "fc/settings.h"
 
 #include "io/beeper.h"
 
@@ -93,22 +95,22 @@ PG_REGISTER_WITH_RESET_FN(accelerometerConfig_t, accelerometerConfig, PG_ACCELER
 void pgResetFn_accelerometerConfig(accelerometerConfig_t *instance)
 {
     RESET_CONFIG_2(accelerometerConfig_t, instance,
-        .acc_align = ALIGN_DEFAULT,
-        .acc_hardware = ACC_AUTODETECT,
-        .acc_lpf_hz = 15,
-        .acc_notch_hz = 0,
-        .acc_notch_cutoff = 1,
-        .acc_soft_lpf_type = FILTER_BIQUAD
+        .acc_align = SETTING_ALIGN_ACC_DEFAULT,
+        .acc_hardware = SETTING_ACC_HARDWARE_DEFAULT,
+        .acc_lpf_hz = SETTING_ACC_LPF_HZ_DEFAULT,
+        .acc_notch_hz = SETTING_ACC_NOTCH_HZ_DEFAULT,
+        .acc_notch_cutoff = SETTING_ACC_NOTCH_CUTOFF_DEFAULT,
+        .acc_soft_lpf_type = SETTING_ACC_LPF_TYPE_DEFAULT
     );
     RESET_CONFIG_2(flightDynamicsTrims_t, &instance->accZero,
-        .raw[X] = 0,
-        .raw[Y] = 0,
-        .raw[Z] = 0
+        .raw[X] = SETTING_ACCZERO_X_DEFAULT,
+        .raw[Y] = SETTING_ACCZERO_Y_DEFAULT,
+        .raw[Z] = SETTING_ACCZERO_Z_DEFAULT
     );
     RESET_CONFIG_2(flightDynamicsTrims_t, &instance->accGain,
-         .raw[X] = 4096,
-         .raw[Y] = 4096,
-         .raw[Z] = 4096
+         .raw[X] = SETTING_ACCGAIN_X_DEFAULT,
+         .raw[Y] = SETTING_ACCGAIN_Y_DEFAULT,
+         .raw[Z] = SETTING_ACCGAIN_Z_DEFAULT
     );
 }
 
@@ -258,6 +260,19 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
     case ACC_ICM20689:
         if (icm20689AccDetect(dev)) {
             accHardware = ACC_ICM20689;
+            break;
+        }
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (accHardwareToUse != ACC_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+#endif
+
+#ifdef USE_IMU_ICM42605
+    case ACC_ICM42605:
+        if (icm42605AccDetect(dev)) {
+            accHardware = ACC_ICM42605;
             break;
         }
         /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
@@ -437,9 +452,9 @@ static void performAcclerationCalibration(void)
     }
 
     if (!calibratedPosition[positionIndex]) {
-        v.v[0] = accADC[0];
-        v.v[1] = accADC[1];
-        v.v[2] = accADC[2];
+        v.v[X] = accADC[X];
+        v.v[Y] = accADC[Y];
+        v.v[Z] = accADC[Z];
 
         zeroCalibrationAddValueV(&zeroCalibration, &v);
 
@@ -474,9 +489,9 @@ static void performAcclerationCalibration(void)
         }
 
         if (!sensorCalibrationSolveForOffset(&calState, accTmp)) {
-            accTmp[0] = 0.0f;
-            accTmp[1] = 0.0f;
-            accTmp[2] = 0.0f;
+            accTmp[X] = 0.0f;
+            accTmp[Y] = 0.0f;
+            accTmp[Z] = 0.0f;
             calFailed = true;
         }
 
@@ -498,9 +513,9 @@ static void performAcclerationCalibration(void)
         }
 
         if (!sensorCalibrationSolveForScale(&calState, accTmp)) {
-            accTmp[0] = 1.0f;
-            accTmp[1] = 1.0f;
-            accTmp[2] = 1.0f;
+            accTmp[X] = 1.0f;
+            accTmp[Y] = 1.0f;
+            accTmp[Z] = 1.0f;
             calFailed = true;
         }
 
@@ -615,20 +630,20 @@ void updateAccExtremes(void)
         if (acc.accADCf[axis] > acc.extremes[axis].max) acc.extremes[axis].max = acc.accADCf[axis];
     }
 
-    float gforce = sqrtf(sq(acc.accADCf[0]) + sq(acc.accADCf[1]) + sq(acc.accADCf[2]));
+    float gforce = fast_fsqrtf(sq(acc.accADCf[0]) + sq(acc.accADCf[1]) + sq(acc.accADCf[2]));
     if (gforce > acc.maxG) acc.maxG = gforce;
 }
 
 void accGetVibrationLevels(fpVector3_t *accVibeLevels)
 {
-    accVibeLevels->x = sqrtf(acc.accVibeSq[X]);
-    accVibeLevels->y = sqrtf(acc.accVibeSq[Y]);
-    accVibeLevels->z = sqrtf(acc.accVibeSq[Z]);
+    accVibeLevels->x = fast_fsqrtf(acc.accVibeSq[X]);
+    accVibeLevels->y = fast_fsqrtf(acc.accVibeSq[Y]);
+    accVibeLevels->z = fast_fsqrtf(acc.accVibeSq[Z]);
 }
 
 float accGetVibrationLevel(void)
 {
-    return sqrtf(acc.accVibeSq[X] + acc.accVibeSq[Y] + acc.accVibeSq[Z]);
+    return fast_fsqrtf(acc.accVibeSq[X] + acc.accVibeSq[Y] + acc.accVibeSq[Z]);
 }
 
 uint32_t accGetClipCount(void)

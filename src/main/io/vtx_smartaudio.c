@@ -43,6 +43,8 @@
 #include "drivers/time.h"
 #include "drivers/vtx_common.h"
 
+#include "fc/settings.h"
+
 #include "io/serial.h"
 #include "io/vtx.h"
 #include "io/vtx_control.h"
@@ -129,8 +131,8 @@ saPowerTable_t saPowerTable[VTX_SMARTAUDIO_MAX_POWER_COUNT] = {
 
 smartAudioDevice_t saDevice = {
     .version = SA_UNKNOWN,
-    .channel = -1,
-    .power = -1,
+    .channel = SETTING_VTX_CHANNEL_DEFAULT,
+    .power = SETTING_VTX_POWER_DEFAULT,
     .mode = 0,
     .freq = 0,
     .orfreq = 0,
@@ -688,7 +690,7 @@ bool vtxSmartAudioInit(void)
 {
     serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_VTX_SMARTAUDIO);
     if (portConfig) {
-        portOptions_t portOptions = SERIAL_BIDIR_NOPULL;
+        portOptions_t portOptions = SERIAL_STOPBITS_2 | SERIAL_BIDIR_NOPULL;
         portOptions = portOptions | (vtxConfig()->halfDuplex ? SERIAL_BIDIR | SERIAL_BIDIR_PP : SERIAL_UNIDIR);
         smartAudioSerialPort = openSerialPort(portConfig->identifier, FUNCTION_VTX_SMARTAUDIO, NULL, NULL, 4800, MODE_RXTX, portOptions);
     }

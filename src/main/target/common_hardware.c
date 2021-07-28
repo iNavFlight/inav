@@ -73,6 +73,10 @@
         BUSDEV_REGISTER_SPI(busdev_icm20689,    DEVHW_ICM20689,     ICM20689_SPI_BUS,   ICM20689_CS_PIN,    GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_ICM20689_ALIGN);
     #endif
 
+    #if defined(USE_IMU_ICM42605)
+        BUSDEV_REGISTER_SPI(busdev_icm42605,    DEVHW_ICM42605,     ICM42605_SPI_BUS,   ICM42605_CS_PIN,    GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_ICM42605_ALIGN);
+    #endif
+
     #if defined(USE_IMU_BMI160)
         #if defined(BMI160_SPI_BUS)
         BUSDEV_REGISTER_SPI(busdev_bmi160,      DEVHW_BMI160,       BMI160_SPI_BUS,     BMI160_CS_PIN,      GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_BMI160_ALIGN);
@@ -244,6 +248,14 @@
     BUSDEV_REGISTER_SPI(busdev_rm3100,      DEVHW_RM3100,       RM3100_SPI_BUS,     RM3100_CS_PIN,      NONE,           DEVFLAGS_NONE,  0);
     #endif
 #endif
+
+#if defined(USE_MAG_VCM5883)
+    #if !defined(VCM5883_I2C_BUS)
+        #define VCM5883_I2C_BUS MAG_I2C_BUS
+    #endif
+    BUSDEV_REGISTER_I2C(busdev_vcm5883,     DEVHW_VCM5883,      VCM5883_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE,  0);
+#endif
+
 #endif
 
 
@@ -310,6 +322,33 @@
     #endif
 #endif
 
+#if defined(USE_RANGEFINDER_VL53L1X)
+    #if !defined(VL53L1X_I2C_BUS) && defined(RANGEFINDER_I2C_BUS)
+        #define VL53L1X_I2C_BUS RANGEFINDER_I2C_BUS
+    #endif
+
+    #if defined(VL53L1X_I2C_BUS)
+    BUSDEV_REGISTER_I2C(busdev_vl53l1x,     DEVHW_VL53L1X,      VL53L1X_I2C_BUS,    0x29,               NONE,           DEVFLAGS_USE_RAW_REGISTERS,  0);
+    #endif
+#endif
+
+#if defined(USE_RANGEFINDER_US42)
+    #if !defined(US42_I2C_BUS) && defined(RANGEFINDER_I2C_BUS)
+        #define US42_I2C_BUS RANGEFINDER_I2C_BUS
+    #endif
+    #if defined(US42_I2C_BUS)
+    BUSDEV_REGISTER_I2C(busdev_us42,       DEVHW_US42,           US42_I2C_BUS,       0x70,               NONE,           DEVFLAGS_USE_RAW_REGISTERS, 0); // Requires null data to passthrough
+    #endif
+#endif
+
+#if defined(USE_RANGEFINDER_TOF10120_I2C) && (defined(TOF10120_I2C_BUS) || defined(RANGEFINDER_I2C_BUS))
+    #if !defined(TOF10120_I2C_BUS)
+        #define TOF10120_I2C_BUS RANGEFINDER_I2C_BUS
+    #endif
+    #if defined(TOF10120_I2C_BUS)
+    BUSDEV_REGISTER_I2C(busdev_tof10120,      DEVHW_TOF10120_I2C,   TOF10120_I2C_BUS,     0x52,               NONE,           DEVFLAGS_USE_RAW_REGISTERS,  0);
+    #endif
+#endif
 
 /** AIRSPEED SENSORS **/
 
@@ -383,6 +422,13 @@
     #endif
 
     BUSDEV_REGISTER_I2C(busdev_pcf8574,      DEVHW_PCF8574,       PCF8574_I2C_BUS,     0x20,               NONE,           DEVFLAGS_NONE, 0);
+#endif
+
+#ifdef USE_IMU_BNO055
+#ifndef BNO055_I2C_BUS
+    #define BNO055_I2C_BUS BUS_I2C1
+#endif
+    BUSDEV_REGISTER_I2C(busdev_bno055,      DEVHW_BNO055,       BNO055_I2C_BUS,     0x29,               NONE,           DEVFLAGS_NONE, 0);
 #endif
 
 #endif  // USE_TARGET_HARDWARE_DESCRIPTORS

@@ -79,7 +79,6 @@
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PB15
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI1
 #define MAX7456_CS_PIN          PA1
@@ -110,8 +109,8 @@
 //#define SBUS_TELEMETRY_UART     SERIAL_PORT_USART1 // XXX
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX | FEATURE_CURRENT_METER | FEATURE_TELEMETRY ) // XXX
 
-#define USE_SPEKTRUM_BIND
-#define BIND_PIN                UART2_RX_PIN
+//#define USE_SPEKTRUM_BIND
+//#define BIND_PIN                UART2_RX_PIN
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

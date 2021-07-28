@@ -42,7 +42,6 @@
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
-#define MAG_AK8975_ALIGN        CW0_DEG
 #define USE_MAG_AK8975
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
@@ -93,9 +92,7 @@
 #define BIND_PIN                PA3
 
 // #define USE_RANGEFINDER
-// #define USE_RANGEFINDER_HCSR04
-// #define RANGEFINDER_HCSR04_TRIGGER_PIN       PA2   // PWM6 (PA2) - only 3.3v ( add a 1K Ohms resistor )
-// #define RANGEFINDER_HCSR04_ECHO_PIN          PB1   // PWM7 (PB1) - only 3.3v ( add a 1K Ohms resistor )
+
 
 #define DEFAULT_RX_TYPE         RX_TYPE_PPM
 

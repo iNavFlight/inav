@@ -81,7 +81,6 @@
 #define M25P16_SPI_BUS          BUS_SPI2
 
 /*** OSD ***/
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PC3
@@ -125,6 +124,8 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
+#define BNO055_I2C_BUS          BUS_I2C1
+
 /*** ADC ***/
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PC0
@@ -157,3 +158,4 @@
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
+

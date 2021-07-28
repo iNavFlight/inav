@@ -66,7 +66,7 @@
 #define USE_MAG_LIS3MDL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
-
+#define BNO055_I2C_BUS          BUS_I2C1
 #define PITOT_I2C_BUS           BUS_I2C1
 
 // *************** SPI2 Flash ***********************
@@ -87,7 +87,6 @@
 #define SPI3_MISO_PIN           PB4
 #define SPI3_MOSI_PIN           PB5
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PD2
@@ -151,4 +150,3 @@
 #define MAX_PWM_OUTPUT_PORTS        5
 #define USE_DSHOT
 #define USE_ESC_SENSOR
-#define USE_SERIALSHOT

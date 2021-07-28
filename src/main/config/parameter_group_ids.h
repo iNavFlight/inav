@@ -116,7 +116,10 @@
 #define PG_SAFE_HOME_CONFIG 1026
 #define PG_DJI_OSD_CONFIG 1027
 #define PG_PROGRAMMING_PID 1028
-#define PG_INAV_END 1028
+#define PG_SECONDARY_IMU 1029
+#define PG_POWER_LIMITS_CONFIG 1030
+#define PG_OSD_COMMON_CONFIG 1031
+#define PG_INAV_END 1031
 
 // OSD configuration (subject to change)
 //#define PG_OSD_FONT_CONFIG 2047
@@ -131,4 +134,3 @@
 #define PG_ID_INVALID   0
 #define PG_ID_FIRST     PG_CF_START
 #define PG_ID_LAST      PG_INAV_END
-

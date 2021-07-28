@@ -72,11 +72,11 @@
 
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_HCSR04_I2C
+#define USE_RANGEFINDER_US42
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
-
 #define PITOT_I2C_BUS           BUS_I2C2
-
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
+#define BNO055_I2C_BUS          BUS_I2C2
 
 
 // *************** SPI2 OSD ***************************
@@ -85,7 +85,6 @@
 #define SPI2_MISO_PIN   	    PC2
 #define SPI2_MOSI_PIN   	    PC3
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_CS_PIN          PB12
 #define MAX7456_SPI_BUS         BUS_SPI2

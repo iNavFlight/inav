@@ -58,12 +58,18 @@ extern uint8_t __config_end;
 #undef USE_SERIALRX_SUMH
 #undef USE_SERIALRX_XBUS
 #undef USE_SERIALRX_JETIEXBUS
-#undef USE_PWM_SERVO_DRIVER
 #endif
+
+#ifndef BEEPER_PWM_FREQUENCY
+#define BEEPER_PWM_FREQUENCY    2500
+#endif
+
+#define USE_ARM_MATH // try to use FPU functions
 
 #if defined(SIMULATOR_BUILD) || defined(UNIT_TEST)
 // This feature uses 'arm_math.h', which does not exist for x86.
 #undef USE_DYNAMIC_FILTERS
+#undef USE_ARM_MATH
 #endif
 
 //Defines for compiler optimizations

@@ -44,6 +44,7 @@
 #include "fc/rc_curves.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
+#include "fc/settings.h"
 
 #include "flight/pid.h"
 #include "flight/failsafe.h"
@@ -64,29 +65,32 @@
 #define AIRMODE_DEADBAND 25
 #define MIN_RC_TICK_INTERVAL_MS             20
 #define DEFAULT_RC_SWITCH_DISARM_DELAY_MS   250     // Wait at least 250ms before disarming via switch
+#define DEFAULT_PREARM_TIMEOUT              10000   // Prearm is invalidated after 10 seconds
 
 stickPositions_e rcStickPositions;
 
 FASTRAM int16_t rcCommand[4];           // interval [1000;2000] for THROTTLE and [-500;+500] for ROLL/PITCH/YAW
 
-PG_REGISTER_WITH_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig, PG_RC_CONTROLS_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig, PG_RC_CONTROLS_CONFIG, 3);
 
 PG_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig,
-    .deadband = 5,
-    .yaw_deadband = 5,
-    .pos_hold_deadband = 10,
-    .alt_hold_deadband = 50,
-    .mid_throttle_deadband = 50,
-    .airmodeHandlingType = STICK_CENTER,
-    .airmodeThrottleThreshold = AIRMODE_THROTTLE_THRESHOLD,
+    .deadband = SETTING_DEADBAND_DEFAULT,
+    .yaw_deadband = SETTING_YAW_DEADBAND_DEFAULT,
+    .pos_hold_deadband = SETTING_POS_HOLD_DEADBAND_DEFAULT,
+    .control_deadband = SETTING_CONTROL_DEADBAND_DEFAULT,
+    .alt_hold_deadband = SETTING_ALT_HOLD_DEADBAND_DEFAULT,
+    .mid_throttle_deadband = SETTING_3D_DEADBAND_THROTTLE_DEFAULT,
+    .airmodeHandlingType = SETTING_AIRMODE_TYPE_DEFAULT,
+    .airmodeThrottleThreshold = SETTING_AIRMODE_THROTTLE_THRESHOLD_DEFAULT,
 );
 
 PG_REGISTER_WITH_RESET_TEMPLATE(armingConfig_t, armingConfig, PG_ARMING_CONFIG, 2);
 
 PG_RESET_TEMPLATE(armingConfig_t, armingConfig,
-    .fixed_wing_auto_arm = 0,
-    .disarm_kill_switch = 1,
-    .switchDisarmDelayMs = DEFAULT_RC_SWITCH_DISARM_DELAY_MS,
+    .fixed_wing_auto_arm = SETTING_FIXED_WING_AUTO_ARM_DEFAULT,
+    .disarm_kill_switch = SETTING_DISARM_KILL_SWITCH_DEFAULT,
+    .switchDisarmDelayMs = SETTING_SWITCH_DISARM_DELAY_DEFAULT,
+    .prearmTimeoutMs = SETTING_PREARM_TIMEOUT_DEFAULT,
 );
 
 bool areSticksInApModePosition(uint16_t ap_mode)
@@ -94,9 +98,14 @@ bool areSticksInApModePosition(uint16_t ap_mode)
     return ABS(rcCommand[ROLL]) < ap_mode && ABS(rcCommand[PITCH]) < ap_mode;
 }
 
-bool areSticksDeflectedMoreThanPosHoldDeadband(void)
+bool areSticksDeflected(void)
 {
-    return (ABS(rcCommand[ROLL]) > rcControlsConfig()->pos_hold_deadband) || (ABS(rcCommand[PITCH]) > rcControlsConfig()->pos_hold_deadband);
+    return (ABS(rcCommand[ROLL]) > rcControlsConfig()->control_deadband) || (ABS(rcCommand[PITCH]) > rcControlsConfig()->control_deadband) || (ABS(rcCommand[YAW]) > rcControlsConfig()->control_deadband);
+}
+
+bool isRollPitchStickDeflected(void)
+{
+    return (ABS(rcCommand[ROLL]) > rcControlsConfig()->control_deadband) || (ABS(rcCommand[PITCH]) > rcControlsConfig()->control_deadband);
 }
 
 throttleStatus_e FAST_CODE NOINLINE calculateThrottleStatus(throttleStatusType_e type)
@@ -251,8 +260,13 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
 
     // Load waypoint list
     if (rcSticks == THR_LO + YAW_CE + PIT_HI + ROL_HI) {
-        const bool success = loadNonVolatileWaypointList();
+        const bool success = loadNonVolatileWaypointList(false);
         beeper(success ? BEEPER_ACTION_SUCCESS : BEEPER_ACTION_FAIL);
+    }
+
+    if (rcSticks == THR_LO + YAW_CE + PIT_LO + ROL_HI) {
+        resetWaypointList();
+        beeper(BEEPER_ACTION_FAIL); // The above cannot fail, but traditionally, we play FAIL for not-loading
     }
 #endif
 

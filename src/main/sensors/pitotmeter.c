@@ -38,6 +38,7 @@
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
+#include "fc/settings.h"
 
 #include "scheduler/protothreads.h"
 
@@ -58,9 +59,9 @@ PG_REGISTER_WITH_RESET_TEMPLATE(pitotmeterConfig_t, pitotmeterConfig, PG_PITOTME
 #define PITOT_HARDWARE_DEFAULT    PITOT_NONE
 #endif
 PG_RESET_TEMPLATE(pitotmeterConfig_t, pitotmeterConfig,
-    .pitot_hardware = PITOT_HARDWARE_DEFAULT,
-    .pitot_lpf_milli_hz = 350,
-    .pitot_scale = 1.00f
+    .pitot_hardware = SETTING_PITOT_HARDWARE_DEFAULT,
+    .pitot_lpf_milli_hz = SETTING_PITOT_LPF_MILLI_HZ_DEFAULT,
+    .pitot_scale = SETTING_PITOT_SCALE_DEFAULT
 );
 
 bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
@@ -222,7 +223,7 @@ STATIC_PROTOTHREAD(pitotThread)
             //
             // Therefore we shouldn't care about CAS/TAS and only calculate IAS since it's more indicative to the pilot and more useful in calculations
             // It also allows us to use pitot_scale to calibrate the dynamic pressure sensor scale
-            pitot.airSpeed = pitotmeterConfig()->pitot_scale * sqrtf(2.0f * fabsf(pitot.pressure - pitot.pressureZero) / AIR_DENSITY_SEA_LEVEL_15C) * 100;
+            pitot.airSpeed = pitotmeterConfig()->pitot_scale * fast_fsqrtf(2.0f * fabsf(pitot.pressure - pitot.pressureZero) / AIR_DENSITY_SEA_LEVEL_15C) * 100;
         } else {
             performPitotCalibrationCycle();
             pitot.airSpeed = 0;

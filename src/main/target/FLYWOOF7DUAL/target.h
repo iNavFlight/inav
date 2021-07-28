@@ -73,7 +73,6 @@
 #define M25P16_SPI_BUS          BUS_SPI3
 
 /*** OSD ***/
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_CS_PIN          PB12
 #define MAX7456_SPI_BUS         BUS_SPI2
@@ -112,6 +111,8 @@
 #define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
+
+#define BNO055_I2C_BUS          BUS_I2C1
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1

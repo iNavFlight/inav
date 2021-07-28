@@ -106,7 +106,6 @@
 /*
  * OSD
  */
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PA15
@@ -161,15 +160,16 @@
 #define MAX_PWM_OUTPUT_PORTS            6
 #define USE_DSHOT
 #define USE_ESC_SENSOR
-#define USE_SERIALSHOT
 
 #define USE_RANGEFINDER
 #define RANGEFINDER_I2C_BUS         BUS_I2C1
 #define TEMPERATURE_I2C_BUS         BUS_I2C1
 #define PITOT_I2C_BUS               BUS_I2C1
+#define BNO055_I2C_BUS              BUS_I2C1
 
 /*** Used pins ***/
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
+

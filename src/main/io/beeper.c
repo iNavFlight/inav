@@ -45,6 +45,13 @@
 
 #include "config/feature.h"
 
+#ifdef USE_DSHOT
+#include "drivers/pwm_output.h"
+#include "fc/fc_core.h"
+#include "flight/mixer.h"
+static timeUs_t lastDshotBeeperCommandTimeUs;
+#endif
+
 #include "io/beeper.h"
 
 #define MAX_MULTI_BEEPS 20   //size limit for 'beep_multiBeeps[]'
@@ -125,6 +132,10 @@ static const uint8_t beep_launchModeBeep[] = {
 static const uint8_t beep_launchModeLowThrottleBeep[] = {
     5, 5, 5, 5, 3, 100, BEEPER_COMMAND_STOP
 };
+// 4 short beeps and a pause. Warning motor about to start at idle throttle
+static const uint8_t beep_launchModeIdleStartBeep[] = {
+    5, 5, 5, 5, 5, 5, 5, 80, BEEPER_COMMAND_STOP
+};
 // short beeps
 static const uint8_t beep_hardwareFailure[] = {
     10, 10, BEEPER_COMMAND_STOP
@@ -146,8 +157,8 @@ static uint8_t beep_multiBeeps[MAX_MULTI_BEEPS + 2];
 #define BEEPER_CONFIRMATION_BEEP_GAP_DURATION 20
 
 
-// Beeper off = 0 Beeper on = 1
-static uint8_t beeperIsOn = 0;
+// Beeper off = false Beeper on = true
+static bool beeperIsOn = false;
 
 // Place in current sequence
 static uint16_t beeperPos = 0;
@@ -189,11 +200,12 @@ typedef struct beeperTableEntry_s {
     { BEEPER_ENTRY(BEEPER_USB,                      18, NULL,                           "ON_USB") },
     { BEEPER_ENTRY(BEEPER_LAUNCH_MODE_ENABLED,      19, beep_launchModeBeep,            "LAUNCH_MODE") },
     { BEEPER_ENTRY(BEEPER_LAUNCH_MODE_LOW_THROTTLE, 20, beep_launchModeLowThrottleBeep, "LAUNCH_MODE_LOW_THROTTLE") },
-    { BEEPER_ENTRY(BEEPER_CAM_CONNECTION_OPEN,      21, beep_camOpenBeep,               "CAM_CONNECTION_OPEN") },
-    { BEEPER_ENTRY(BEEPER_CAM_CONNECTION_CLOSE,     22, beep_camCloseBeep,              "CAM_CONNECTION_CLOSED") },
+    { BEEPER_ENTRY(BEEPER_LAUNCH_MODE_IDLE_START,   21, beep_launchModeIdleStartBeep,   "LAUNCH_MODE_IDLE_START") },
+    { BEEPER_ENTRY(BEEPER_CAM_CONNECTION_OPEN,      22, beep_camOpenBeep,               "CAM_CONNECTION_OPEN") },
+    { BEEPER_ENTRY(BEEPER_CAM_CONNECTION_CLOSE,     23, beep_camCloseBeep,              "CAM_CONNECTION_CLOSED") },
 
-    { BEEPER_ENTRY(BEEPER_ALL,                      23, NULL,                           "ALL") },
-    { BEEPER_ENTRY(BEEPER_PREFERENCE,               24, NULL,                           "PREFERED") },
+    { BEEPER_ENTRY(BEEPER_ALL,                      24, NULL,                           "ALL") },
+    { BEEPER_ENTRY(BEEPER_PREFERENCE,               25, NULL,                           "PREFERED") },
 };
 
 static const beeperTableEntry_t *currentBeeperEntry = NULL;
@@ -247,7 +259,7 @@ void beeperSilence(void)
     warningLedRefresh();
 
 
-    beeperIsOn = 0;
+    beeperIsOn = false;
 
     beeperNextToggleTime = 0;
     beeperPos = 0;
@@ -331,7 +343,16 @@ void beeperUpdate(timeUs_t currentTimeUs)
     }
 
     if (!beeperIsOn) {
-        beeperIsOn = 1;
+#ifdef USE_DSHOT
+        if (isMotorProtocolDshot() && !areMotorsRunning() && beeperConfig()->dshot_beeper_enabled
+            && currentTimeUs - lastDshotBeeperCommandTimeUs > getDShotBeaconGuardDelayUs())
+        {
+            lastDshotBeeperCommandTimeUs = currentTimeUs;
+            sendDShotCommand(beeperConfig()->dshot_beeper_tone);
+        }
+#endif
+
+        beeperIsOn = true;
         if (currentBeeperEntry->sequence[beeperPos] != 0) {
             if (!(getBeeperOffMask() & (1 << (currentBeeperEntry->mode - 1))))
                 BEEP_ON;
@@ -347,7 +368,7 @@ void beeperUpdate(timeUs_t currentTimeUs)
             }
         }
     } else {
-        beeperIsOn = 0;
+        beeperIsOn = false;
         if (currentBeeperEntry->sequence[beeperPos] != 0) {
             BEEP_OFF;
             warningLedDisable();
@@ -407,3 +428,25 @@ int beeperTableEntryCount(void)
 {
     return (int)BEEPER_TABLE_ENTRY_COUNT;
 }
+
+#ifdef USE_DSHOT
+timeUs_t getDShotBeaconGuardDelayUs(void) {
+    // Based on Digital_Cmd_Spec.txt - all delays have 100ms added to ensure that the minimum time has passed.
+    switch (beeperConfig()->dshot_beeper_tone) {
+        case 1:
+        case 2:
+            return 260000 + 100000;
+        case 3:
+        case 4:
+            return 280000 + 100000;
+        case 5:
+        default:
+            return 1020000 + 100000;
+    }
+}
+
+timeUs_t getLastDshotBeeperCommandTimeUs(void)
+{
+    return lastDshotBeeperCommandTimeUs;
+}
+#endif

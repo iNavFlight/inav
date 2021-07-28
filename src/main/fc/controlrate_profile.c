@@ -29,43 +29,54 @@
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
 #include "fc/rc_curves.h"
+#include "fc/settings.h"
 
 const controlRateConfig_t *currentControlRateProfile;
 
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(controlRateConfig_t, MAX_CONTROL_RATE_PROFILE_COUNT, controlRateProfiles, PG_CONTROL_RATE_PROFILES, 3);
+PG_REGISTER_ARRAY_WITH_RESET_FN(controlRateConfig_t, MAX_CONTROL_RATE_PROFILE_COUNT, controlRateProfiles, PG_CONTROL_RATE_PROFILES, 4);
 
 void pgResetFn_controlRateProfiles(controlRateConfig_t *instance)
 {
     for (int i = 0; i < MAX_CONTROL_RATE_PROFILE_COUNT; i++) {
         RESET_CONFIG(controlRateConfig_t, &instance[i],
             .throttle = {
-                .rcMid8 = 50,
-                .rcExpo8 = 0,
-                .dynPID = 0,
-                .pa_breakpoint = 1500,
-                .fixedWingTauMs = 0
+                .rcMid8 = SETTING_THR_MID_DEFAULT,
+                .rcExpo8 = SETTING_THR_EXPO_DEFAULT,
+                .dynPID = SETTING_TPA_RATE_DEFAULT,
+                .pa_breakpoint = SETTING_TPA_BREAKPOINT_DEFAULT,
+                .fixedWingTauMs = SETTING_FW_TPA_TIME_CONSTANT_DEFAULT
             },
 
             .stabilized = {
-                .rcExpo8 = 70,
-                .rcYawExpo8 = 20,
-                .rates[FD_ROLL] = CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_DEFAULT,
-                .rates[FD_PITCH] = CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_DEFAULT,
-                .rates[FD_YAW] = CONTROL_RATE_CONFIG_YAW_RATE_DEFAULT,
+                .rcExpo8 = SETTING_RC_EXPO_DEFAULT,
+                .rcYawExpo8 = SETTING_RC_YAW_EXPO_DEFAULT,
+                .rates[FD_ROLL] = SETTING_ROLL_RATE_DEFAULT,
+                .rates[FD_PITCH] = SETTING_PITCH_RATE_DEFAULT,
+                .rates[FD_YAW] = SETTING_YAW_RATE_DEFAULT,
             },
 
             .manual = {
-                .rcExpo8 = 70,
-                .rcYawExpo8 = 20,
-                .rates[FD_ROLL] = 100,
-                .rates[FD_PITCH] = 100,
-                .rates[FD_YAW] = 100
+                .rcExpo8 = SETTING_MANUAL_RC_EXPO_DEFAULT,
+                .rcYawExpo8 = SETTING_MANUAL_RC_YAW_EXPO_DEFAULT,
+                .rates[FD_ROLL] = SETTING_MANUAL_ROLL_RATE_DEFAULT,
+                .rates[FD_PITCH] = SETTING_MANUAL_PITCH_RATE_DEFAULT,
+                .rates[FD_YAW] = SETTING_MANUAL_YAW_RATE_DEFAULT
             },
 
             .misc = {
-                .fpvCamAngleDegrees = 0,
+                .fpvCamAngleDegrees = SETTING_FPV_MIX_DEGREES_DEFAULT
+            },
+        #ifdef USE_RATE_DYNAMICS
+            .rateDynamics = {
+                .sensitivityCenter = SETTING_RATE_DYNAMICS_CENTER_SENSITIVITY_DEFAULT,
+                .sensitivityEnd = SETTING_RATE_DYNAMICS_END_SENSITIVITY_DEFAULT,
+                .correctionCenter = SETTING_RATE_DYNAMICS_CENTER_CORRECTION_DEFAULT,
+                .correctionEnd = SETTING_RATE_DYNAMICS_END_CORRECTION_DEFAULT,
+                .weightCenter = SETTING_RATE_DYNAMICS_CENTER_WEIGHT_DEFAULT,
+                .weightEnd = SETTING_RATE_DYNAMICS_END_WEIGHT_DEFAULT,
             }
+        #endif
         );
     }
 }

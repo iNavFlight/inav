@@ -25,11 +25,6 @@
 #define MAX_SUPPORTED_MOTORS 12
 #endif
 
-#define YAW_JUMP_PREVENTION_LIMIT_LOW 80
-#define YAW_JUMP_PREVENTION_LIMIT_HIGH 500
-
-#define FW_MIN_THROTTLE_DOWN_PITCH_ANGLE_MAX 450
-
 // Digital protocol has fixed values
 #define DSHOT_DISARM_COMMAND      0
 #define DSHOT_MIN_THROTTLE       48
@@ -67,7 +62,6 @@ typedef struct mixerConfig_s {
     uint8_t platformType;
     bool hasFlaps;
     int16_t appliedMixerPreset;
-    uint16_t fwMinThrottleDownPitchAngle;
 } mixerConfig_t;
 
 PG_DECLARE(mixerConfig_t, mixerConfig);
@@ -86,13 +80,8 @@ typedef struct motorConfig_s {
     uint16_t mincommand;                    // This is the value for the ESCs when they are not armed. In some cases, this value must be lowered down to 900 for some specific ESCs
     uint16_t motorPwmRate;                  // The update rate of motor outputs (50-498Hz)
     uint8_t  motorPwmProtocol;
-    uint16_t motorAccelTimeMs;              // Time limit for motor to accelerate from 0 to 100% throttle [ms]
-    uint16_t motorDecelTimeMs;              // Time limit for motor to decelerate from 0 to 100% throttle [ms]
     uint16_t digitalIdleOffsetValue;
-    float throttleIdle;                     // Throttle IDLE value based on min_command, max_throttle, in percent
-    float throttleScale;                    // Scaling factor for throttle.
     uint8_t motorPoleCount;                 // Magnetic poles in the motors for calculating actual RPM from eRPM provided by ESC telemetry
-    uint8_t flipOverAfterPowerFactor;       // Power factor from 0 to 100% of flip over after crash
 } motorConfig_t;
 
 PG_DECLARE(motorConfig_t, motorConfig);
@@ -124,10 +113,13 @@ void writeAllMotors(int16_t mc);
 void mixerInit(void);
 void mixerUpdateStateFlags(void);
 void mixerResetDisarmedMotors(void);
-void mixTable(const float dT);
+void mixTable(void);
 void writeMotors(void);
-void processServoAutotrim(void);
+void processServoAutotrim(const float dT);
+void processServoAutotrimMode(void);
+void processContinuousServoAutotrim(const float dT);
 void stopMotors(void);
 void stopPwmAllMotors(void);
 
 void loadPrimaryMotorMixer(void);
+bool areMotorsRunning(void);

@@ -29,7 +29,6 @@
 
 #define BEEPER                  PA0
 #define BEEPER_INVERTED
-#define BEEPER_PWM
 #define BEEPER_PWM_FREQUENCY    4000
 
 #define USE_SPI
@@ -123,7 +122,7 @@
 #define USE_MAG_LIS3MDL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C3
-
+#define BNO055_I2C_BUS          BUS_I2C3
 #define PITOT_I2C_BUS           BUS_I2C3
 
 #define USE_RANGEFINDER
@@ -152,7 +151,6 @@
 #define UART5_AF                1
 
 // OSD
-#define USE_OSD
 #define USE_UART6
 #define UART6_TX_PIN            PC6
 #define UART6_RX_PIN            PC7
@@ -200,6 +198,13 @@
 #define TARGET_IO_PORTD 0xffff
 #define TARGET_IO_PORTE 0xffff
 
-#define MAX_PWM_OUTPUT_PORTS 12
+#ifdef FRSKYPILOT_LED
+    #define USE_LED_STRIP
+    #define WS2811_PIN                      PA1 // S10 pad for iNav
+
+    #define MAX_PWM_OUTPUT_PORTS 9
+#else
+    #define MAX_PWM_OUTPUT_PORTS 12
+#endif
 
 #define USE_DSHOT

@@ -76,7 +76,6 @@
 #define SPI2_MISO_PIN   	    PB14
 #define SPI2_MOSI_PIN   	    PB15
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          PB10
@@ -162,6 +161,8 @@
 
 #define TEMPERATURE_I2C_BUS         DEFAULT_I2C_BUS
 
+#define BNO055_I2C_BUS              DEFAULT_I2C_BUS
+
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_MSP
 #define USE_RANGEFINDER_HCSR04_I2C
@@ -198,7 +199,6 @@
 
 #define USE_DSHOT
 #define USE_ESC_SENSOR
-#define USE_SERIALSHOT
 
 #define MAX_PWM_OUTPUT_PORTS       6
 

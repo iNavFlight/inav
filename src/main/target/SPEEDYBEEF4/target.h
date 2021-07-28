@@ -73,7 +73,6 @@
 #define USE_FLASH_M25P16	
 
 /*** OSD ***/
-#define USE_OSD								
 #define USE_MAX7456							
 #define MAX7456_SPI_BUS         BUS_SPI2	
 #define MAX7456_CS_PIN          PB10		
@@ -124,6 +123,8 @@
 #define SERIAL_PORT_COUNT       6
 #endif
 
+#define BNO055_I2C_BUS          BUS_I2C1
+
 /*** BARO & MAG ***/
 #define USE_BARO							
 #define BARO_I2C_BUS          	BUS_I2C1	
@@ -138,7 +139,6 @@
 #define USE_MAG_IST8310						
 #define USE_MAG_MAG3110						
 #define USE_MAG_LIS3MDL						
-#define MAG_HMC5883_ALIGN       CW90_DEG	
 
 /*** ADC ***/
 #define USE_ADC
@@ -169,3 +169,6 @@
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
+
+#define RANGEFINDER_I2C_BUS BUS_I2C1
+

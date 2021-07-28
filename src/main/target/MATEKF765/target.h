@@ -21,8 +21,15 @@
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 #define USE_TARGET_CONFIG
 
-#define TARGET_BOARD_IDENTIFIER "M765"
-#define USBD_PRODUCT_STRING     "MATEKF765"
+#if defined(MATEKF765SE)
+  #define TARGET_BOARD_IDENTIFIER "M7SE"
+  #define USBD_PRODUCT_STRING     "MATEKF765SE"
+
+  #define BEEPER_PWM_FREQUENCY    2500
+#else
+  #define TARGET_BOARD_IDENTIFIER "M765"
+  #define USBD_PRODUCT_STRING     "MATEKF765"
+#endif
 
 #define LED0                    PD10
 #define LED1                    PD11
@@ -56,6 +63,13 @@
 #define MPU6500_CS_PIN          PD7
 #define MPU6500_EXTI_PIN        PD4
 
+#if defined(MATEKF765SE)
+#define USE_IMU_ICM42605
+#define IMU_ICM42605_ALIGN      CW0_DEG_FLIP
+#define ICM42605_SPI_BUS        BUS_SPI4
+#define ICM42605_CS_PIN         PE11
+#define ICM42605_EXTI_PIN       PC13
+#endif
 
 #define USE_EXTI
 #define USE_MPU_DATA_READY_SIGNAL
@@ -86,7 +100,7 @@
 #define USE_MAG_LIS3MDL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
-
+#define BNO055_I2C_BUS          BUS_I2C2
 #define PITOT_I2C_BUS           BUS_I2C2
 
 #define USE_RANGEFINDER
@@ -98,18 +112,15 @@
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PB15
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          PB12
 
 // *************** SPI4 ******************************
-/*
 #define USE_SPI_DEVICE_4
 #define SPI4_SCK_PIN            PE12
 #define SPI4_MISO_PIN           PE13
 #define SPI4_MOSI_PIN           PE14
-*/
 
 // *************** UART *****************************
 #define USE_VCP
@@ -128,9 +139,10 @@
 #define UART3_TX_PIN            PD8
 #define UART3_RX_PIN            PD9
 
-#define USE_UART4
-#define UART4_TX_PIN            PD1
-#define UART4_RX_PIN            PD0
+#define USE_UART5
+#define UART5_TX_PIN            NONE
+#define UART5_RX_PIN            PB8
+#define UART5_AF                7
 
 #define USE_UART6
 #define UART6_TX_PIN            PC6
@@ -149,8 +161,15 @@
 #define SOFTSERIAL_1_TX_PIN      PC6  //TX6 pad
 #define SOFTSERIAL_1_RX_PIN      PC6  //TX6 pad
 
-
-#define SERIAL_PORT_COUNT       9
+#if defined(MATEKF765SE)
+  #define SERIAL_PORT_COUNT       9
+  // PD1 and PD0 are used for CAN
+#else
+  #define USE_UART4
+  #define UART4_TX_PIN            PD1
+  #define UART4_RX_PIN            PD0
+  #define SERIAL_PORT_COUNT       10
+#endif
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
@@ -190,7 +209,14 @@
 #define WS2811_PIN                  PA8
 
 #define DEFAULT_FEATURES            (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
-#define CURRENT_METER_SCALE         250
+
+#if defined(MATEKF765SE)
+  #define VBAT_SCALE_DEFAULT        2100
+  #define CURRENT_METER_SCALE       150
+#else
+  #define VBAT_SCALE_DEFAULT        1100
+  #define CURRENT_METER_SCALE       250
+#endif
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
@@ -200,7 +226,6 @@
 #define TARGET_IO_PORTD 0xffff
 #define TARGET_IO_PORTE 0xffff
 
-#define MAX_PWM_OUTPUT_PORTS        15
+#define MAX_PWM_OUTPUT_PORTS        16
 #define USE_DSHOT
 #define USE_ESC_SENSOR
-#define USE_SERIALSHOT
