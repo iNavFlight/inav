@@ -22,7 +22,5 @@
 
 #include "drivers/bus.h"
 
-uint8_t bmi270Detect(const extDevice_t *dev);
-bool bmi270SpiAccDetect(accDev_t *acc);
-bool bmi270SpiGyroDetect(gyroDev_t *gyro);
-uint8_t bmi270InterruptStatus(gyroDev_t *gyro);
+bool bmi270AccDetect(accDev_t *acc);
+bool bmi270GyroDetect(gyroDev_t *gyro);

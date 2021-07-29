@@ -39,19 +39,12 @@
 
 #include "drivers/sensor.h"
 #include "drivers/accgyro/accgyro.h"
-#include "drivers/accgyro/accgyro_spi_bmi270.h"
-
-// 10 MHz max SPI frequency
-#define BMI270_MAX_SPI_CLK_HZ 10000000
-
-#define BMI270_FIFO_FRAME_SIZE 6
+#include "drivers/accgyro/accgyro_bmi270.h"
 
 #define BMI270_CONFIG_SIZE 328
 
 // Declaration for the device config (microcode) that must be uploaded to the sensor
 extern const uint8_t bmi270_maximum_fifo_config_file[BMI270_CONFIG_SIZE];
-
-#define BMI270_CHIP_ID 0x24
 
 // BMI270 registers (not the complete list)
 typedef enum {
@@ -98,78 +91,81 @@ typedef enum {
     BMI270_REG_CMD = 0x7E,
 } bmi270Register_e;
 
-// BMI270 register configuration values
-typedef enum {
-    BMI270_VAL_CMD_SOFTRESET = 0xB6,
-    BMI270_VAL_CMD_FIFOFLUSH = 0xB0,
-    BMI270_VAL_PWR_CTRL = 0x0E,              // enable gyro, acc and temp sensors
-    BMI270_VAL_PWR_CONF = 0x02,              // disable advanced power save, enable FIFO self-wake
-    BMI270_VAL_ACC_CONF_ODR800 = 0x0B,       // set acc sample rate to 800hz
-    BMI270_VAL_ACC_CONF_ODR1600 = 0x0C,      // set acc sample rate to 1600hz
-    BMI270_VAL_ACC_CONF_BWP = 0x02,          // set acc filter in normal mode
-    BMI270_VAL_ACC_CONF_HP = 0x01,           // set acc in high performance mode
-    BMI270_VAL_ACC_RANGE_8G = 0x02,          // set acc to 8G full scale
-    BMI270_VAL_ACC_RANGE_16G = 0x03,         // set acc to 16G full scale
-    BMI270_VAL_GYRO_CONF_ODR3200 = 0x0D,     // set gyro sample rate to 3200hz
-    BMI270_VAL_GYRO_CONF_BWP = 0x02,         // set gyro filter in normal mode
-    BMI270_VAL_GYRO_CONF_NOISE_PERF = 0x01,  // set gyro in high performance noise mode
-    BMI270_VAL_GYRO_CONF_FILTER_PERF = 0x01, // set gyro in high performance filter mode
+#define BMI270_CHIP_ID 0x24
 
-    BMI270_VAL_GYRO_RANGE_2000DPS = 0x08,    // set gyro to 2000dps full scale
-                                             // for some reason you have to enable the ois_range bit (bit 3) for 2000dps as well
-                                             // or else the gyro scale will be 250dps when in prefiltered FIFO mode (not documented in datasheet!)
+#define BMI270_CMD_SOFTRESET 0xB6
 
-    BMI270_VAL_INT_MAP_DATA_DRDY_INT1 = 0x04,// enable the data ready interrupt pin 1
-    BMI270_VAL_INT_MAP_FIFO_WM_INT1 = 0x02,  // enable the FIFO watermark interrupt pin 1
-    BMI270_VAL_INT1_IO_CTRL_PINMODE = 0x0A,  // active high, push-pull, output enabled, input disabled 
-    BMI270_VAL_FIFO_CONFIG_0 = 0x00,         // don't stop when full, disable sensortime frame
-    BMI270_VAL_FIFO_CONFIG_1 = 0x80,         // only gyro data in FIFO, use headerless mode
-    BMI270_VAL_FIFO_DOWNS = 0x00,            // select unfiltered gyro data with no downsampling (6.4KHz samples)
-    BMI270_VAL_FIFO_WTM_0 = 0x06,            // set the FIFO watermark level to 1 gyro sample (6 bytes)
-    BMI270_VAL_FIFO_WTM_1 = 0x00,            // FIFO watermark MSB
-} bmi270ConfigValues_e;
+#define BMI270_PWR_CONF_HP 0x00
+#define BMI270_PWR_CTRL_GYR_EN 0x02
+#define BMI270_PWR_CTRL_ACC_EN 0x04
+#define BMI270_PWR_CTRL_TEMP_EN 0x08
 
-// BMI270 register reads are 16bits with the first byte a "dummy" value 0
-// that must be ignored. The result is in the second byte.
-static uint8_t bmi270RegisterRead(const extDevice_t *dev, bmi270Register_e registerId)
-{
-    uint8_t data[2] = { 0, 0 };
+#define BMI270_ACC_CONF_HP 0x80
+#define BMI270_ACC_RANGE_8G 0x02
+#define BMI270_ACC_RANGE_16G 0x03
 
-    if (spiReadRegMskBufRB(dev, registerId, data, 2)) {
-        return data[1];
-    } else {
-        return 0;
-    }
-}
+#define BMI270_GYRO_CONF_NOISE_PERF 0x40
+#define BMI270_GYRO_CONF_FILTER_PERF 0x80
+#define BMI270_GYRO_RANGE_2000DPS 0x08
 
-static void bmi270RegisterWrite(const extDevice_t *dev, bmi270Register_e registerId, uint8_t value, unsigned delayMs)
-{
-    spiWriteReg(dev, registerId, value);
-    if (delayMs) {
-        delay(delayMs);
-    }
-}
+#define BMI270_INT_MAP_DATA_DRDY_INT1 0x04
+#define BMI270_INT1_IO_CTRL_ACTIVE_HIGH 0x02
+#define BMI270_INT1_IO_CTRL_OUTPUT_EN 0x08
+
+#define BMI270_ODR_400 0x0A
+#define BMI270_ODR_800 0x0B
+#define BMI270_ODR_1600 0x0C
+#define BMI270_ODR_3200 0x0D
+
+#define BMI270_BWP_OSR4 0x00
+#define BMI270_BWP_OSR2 0x10
+#define BMI270_BWP_NORM 0x20
+
+typedef struct __attribute__ ((__packed__)) bmi270ContextData_s {
+    uint16_t    chipMagicNumber;
+    uint8_t     lastReadStatus;
+    uint8_t     __padding_dummy;
+    uint8_t     accRaw[6];
+    uint8_t     gyroRaw[6];
+} bmi270ContextData_t;
+
+STATIC_ASSERT(sizeof(bmi270ContextData_t) < BUS_SCRATCHPAD_MEMORY_SIZE, busDevice_scratchpad_memory_too_small);
+
+static const gyroFilterAndRateConfig_t gyroConfigs[] = {
+    { GYRO_LPF_256HZ,   3200,   { BMI270_BWP_NORM | BMI270_ODR_3200} },
+    { GYRO_LPF_256HZ,   1600,   { BMI270_BWP_NORM | BMI270_ODR_1600} },
+    { GYRO_LPF_256HZ,    800,   { BMI270_BWP_NORM | BMI270_ODR_800 } },
+
+    { GYRO_LPF_188HZ,    800,   { BMI270_BWP_OSR2 | BMI270_ODR_800 } },
+    { GYRO_LPF_188HZ,    400,   { BMI270_BWP_NORM | BMI270_ODR_400 } },
+
+    { GYRO_LPF_98HZ,     800,   { BMI270_BWP_OSR4   | BMI270_ODR_800 } },
+    { GYRO_LPF_98HZ,     400,   { BMI270_BWP_OSR2   | BMI270_ODR_400 } },
+
+    { GYRO_LPF_42HZ,     800,   { BMI270_BWP_OSR4   | BMI270_ODR_800 } },
+    { GYRO_LPF_42HZ,     400,   { BMI270_BWP_OSR4   | BMI270_ODR_400 } },
+};
 
 // Toggle the CS to switch the device into SPI mode.
 // Device switches initializes as I2C and switches to SPI on a low to high CS transition
 static void bmi270EnableSPI(busDevice_t *dev)
 {
-    IOLo(dev->busType_u.spi.csnPin);
+    IOLo(dev->busdev.spi.csnPin);
     delay(1);
-    IOHi(dev->busType_u.spi.csnPin);
+    IOHi(dev->busdev.spi.csnPin);
     delay(10);
 }
 
 
 static bool bmi270DeviceDetect(busDevice_t * busDev)
 {
-    uint8_t id;
+    uint8_t id[2];
 
     busSetSpeed(busDev, BUS_SPEED_INITIALIZATION);
     bmi270EnableSPI(busDev);
 
-    busRead(busDev, BMI270_REG_CHIP_ID, &id);
-    if (id == BMI270_CHIP_ID) {
+    busReadBuf(busDev, BMI270_REG_CHIP_ID, &id[0], 2);
+    if (id[1] == BMI270_CHIP_ID) {
         return true;
     }
 
@@ -186,25 +182,30 @@ static void bmi270UploadConfig(busDevice_t * busDev)
     // Transfer the config file
     uint8_t reg = BMI270_REG_INIT_DATA;
     busTransferDescriptor_t tfDesc[] = {
-       {.rxBuf = NULL, .txBuff=&reg, .length=1},
-       {.rxBuf = NULL, .txBuff=(uint8_t *)bmi270_maximum_fifo_config_file, .length=sizeof(bmi270_maximum_fifo_config_file)}
+       {.rxBuf = NULL, .txBuf=&reg, .length=1},
+       {.rxBuf = NULL, .txBuf=(uint8_t *)bmi270_maximum_fifo_config_file, .length=sizeof(bmi270_maximum_fifo_config_file)}
     };
 
-    spiBusTransferMultiple(busDev, &tfDesc, 2);
+    spiBusTransferMultiple(busDev, tfDesc, 2);
 
     delay(10);
     busWrite(busDev, BMI270_REG_INIT_CTRL, 1);
     delay(1);
 }
 
-static void bmi270Config(gyroDev_t *gyro)
+static void bmi270AccAndGyroInit(gyroDev_t *gyro)
 {
-    busDevice_t * busDev = &gyro->dev;
+    busDevice_t * busDev = gyro->busDev;
+
+    gyroIntExtiInit(gyro);
 
     // Perform a soft reset to set all configuration to default
     // Delay 100ms before continuing configuration
-    busWrite(busDev, BMI270_REG_CMD, BMI270_VAL_CMD_SOFTRESET);
+    busWrite(busDev, BMI270_REG_CMD, BMI270_CMD_SOFTRESET);
     delay(100);
+
+    // Use standard bus speed
+    busSetSpeed(busDev, BUS_SPEED_STANDARD);
 
     // Toggle the chip into SPI mode
     bmi270EnableSPI(busDev);
@@ -212,116 +213,101 @@ static void bmi270Config(gyroDev_t *gyro)
     bmi270UploadConfig(busDev);
 
     // Configure the accelerometer
-    busWrite(busDev, BMI270_REG_ACC_CONF, (BMI270_VAL_ACC_CONF_HP << 7) | (BMI270_VAL_ACC_CONF_BWP << 4) | BMI270_VAL_ACC_CONF_ODR800);
+    busWrite(busDev, BMI270_REG_ACC_CONF, BMI270_ODR_1600 | BMI270_BWP_OSR4 | BMI270_ACC_CONF_HP);
     delay(1);
 
     // Configure the accelerometer full-scale range
-    busWrite(busDev, BMI270_REG_ACC_RANGE, BMI270_VAL_ACC_RANGE_16G);
+    busWrite(busDev, BMI270_REG_ACC_RANGE, BMI270_ACC_RANGE_8G);
     delay(1);
 
     // Configure the gyro
-    busWrite(busDev, BMI270_REG_GYRO_CONF, (BMI270_VAL_GYRO_CONF_FILTER_PERF << 7) | (BMI270_VAL_GYRO_CONF_NOISE_PERF << 6) | (BMI270_VAL_GYRO_CONF_BWP << 4) | BMI270_VAL_GYRO_CONF_ODR3200);
+    // Figure out suitable filter configuration
+    const gyroFilterAndRateConfig_t * config = chooseGyroConfig(gyro->lpf, 1000000 / gyro->requestedSampleIntervalUs, &gyroConfigs[0], ARRAYLEN(gyroConfigs));
+
+    gyro->sampleRateIntervalUs = 1000000 / config->gyroRateHz;
+
+    busWrite(busDev, BMI270_REG_GYRO_CONF, config->gyroConfigValues[0] | BMI270_GYRO_CONF_NOISE_PERF | BMI270_GYRO_CONF_FILTER_PERF);
     delay(1);
 
-
     // Configure the gyro full-range scale
-    busWrite(busDev, BMI270_REG_GYRO_RANGE, BMI270_VAL_GYRO_RANGE_2000DPS);
+    busWrite(busDev, BMI270_REG_GYRO_RANGE, BMI270_GYRO_RANGE_2000DPS);
     delay(1);
 
     // Configure the gyro data ready interrupt
 #ifdef USE_MPU_DATA_READY_SIGNAL
-    busWrite(busDev, BMI270_REG_INT_MAP_DATA, BMI270_VAL_INT_MAP_DATA_DRDY_INT1);
+    busWrite(busDev, BMI270_REG_INT_MAP_DATA, BMI270_INT_MAP_DATA_DRDY_INT1);
     delay(1);
 #endif
 
     // Configure the behavior of the INT1 pin
-    busWrite(busDev, BMI270_REG_INT1_IO_CTRL, BMI270_VAL_INT1_IO_CTRL_PINMODE);
+    busWrite(busDev, BMI270_REG_INT1_IO_CTRL, BMI270_INT1_IO_CTRL_ACTIVE_HIGH | BMI270_INT1_IO_CTRL_OUTPUT_EN);
     delay(1);
 
     // Configure the device for  performance mode
-    busWrite(busDev, BMI270_REG_PWR_CONF, BMI270_VAL_PWR_CONF);
-    delay(1)
+    busWrite(busDev, BMI270_REG_PWR_CONF, BMI270_PWR_CONF_HP);
+    delay(1);
 
-    // Enable the gyro, accelerometer and temperature sensor - disable aux interface
-    busWrite(busDev, BMI270_REG_PWR_CTRL, BMI270_VAL_PWR_CTRL);
-    delay(1)
+    // Enable the gyro and accelerometer
+    busWrite(busDev, BMI270_REG_PWR_CTRL, BMI270_PWR_CTRL_GYR_EN | BMI270_PWR_CTRL_ACC_EN);
+    delay(1);
 }
 
-static bool bmi270AccRead(accDev_t *acc)
+
+static bool bmi270yroReadScratchpad(gyroDev_t *gyro)
 {
-    enum {
-        IDX_SKIP,
-        IDX_ACCEL_XOUT_L,
-        IDX_ACCEL_XOUT_H,
-        IDX_ACCEL_YOUT_L,
-        IDX_ACCEL_YOUT_H,
-        IDX_ACCEL_ZOUT_L,
-        IDX_ACCEL_ZOUT_H,
-        BUFFER_SIZE,
-    };
+    bmi270ContextData_t * ctx = busDeviceGetScratchpadMemory(gyro->busDev);
+    ctx->lastReadStatus = busReadBuf(gyro->busDev, BMI270_REG_ACC_DATA_X_LSB, &ctx->__padding_dummy, 6 + 6 + 1);
 
-    uint8_t bmi270_rx_buf[BUFFER_SIZE];
+    if (ctx->lastReadStatus) {
+        gyro->gyroADCRaw[X] = (int16_t)((ctx->gyroRaw[1] << 8) | ctx->gyroRaw[0]);
+        gyro->gyroADCRaw[Y] = (int16_t)((ctx->gyroRaw[3] << 8) | ctx->gyroRaw[2]);
+        gyro->gyroADCRaw[Z] = (int16_t)((ctx->gyroRaw[5] << 8) | ctx->gyroRaw[4]);
 
-    if (busReadBuf(acc->busDev, BMI270_REG_ACC_DATA_X_LSB, bmi270_rx_buf, BUFFER_SIZE)) {
-        acc->ADCRaw[X] = (int16_t)((bmi270_rx_buf[IDX_ACCEL_XOUT_H] << 8) | bmi270_rx_buf[IDX_ACCEL_XOUT_L]);
-        acc->ADCRaw[Y] = (int16_t)((bmi270_rx_buf[IDX_ACCEL_YOUT_H] << 8) | bmi270_rx_buf[IDX_ACCEL_YOUT_L]);
-        acc->ADCRaw[Z] = (int16_t)((bmi270_rx_buf[IDX_ACCEL_ZOUT_H] << 8) | bmi270_rx_buf[IDX_ACCEL_ZOUT_L]);
         return true;
     }
 
     return false;
 }
 
-static bool bmi270GyroRead(gyroDev_t *gyro)
+static bool bmi270AccReadScratchpad(accDev_t *acc)
 {
-    enum {
-        IDX_SKIP,
-        IDX_GYRO_XOUT_L,
-        IDX_GYRO_XOUT_H,
-        IDX_GYRO_YOUT_L,
-        IDX_GYRO_YOUT_H,
-        IDX_GYRO_ZOUT_L,
-        IDX_GYRO_ZOUT_H,
-        BUFFER_SIZE,
-    };
+    bmi270ContextData_t * ctx = busDeviceGetScratchpadMemory(acc->busDev);
 
-    uint8_t bmi270_rx_buf[BUFFER_SIZE];
-    if (busReadBuf(gyro->busDev, BMI270_REG_GYR_DATA_X_LSB, bmi270_rx_buf, BUFFER_SIZE)) {
-        gyro->gyroADCRaw[X] = (int16_t)((bmi270_rx_buf[IDX_GYRO_XOUT_H] << 8) | bmi270_rx_buf[IDX_GYRO_XOUT_L]);
-        gyro->gyroADCRaw[Y] = (int16_t)((bmi270_rx_buf[IDX_GYRO_YOUT_H] << 8) | bmi270_rx_buf[IDX_GYRO_YOUT_L]);
-        gyro->gyroADCRaw[Z] = (int16_t)((bmi270_rx_buf[IDX_GYRO_ZOUT_H] << 8) | bmi270_rx_buf[IDX_GYRO_ZOUT_L]);
+    if (ctx->lastReadStatus) {
+        acc->ADCRaw[X] = (int16_t)((ctx->accRaw[1] << 8) | ctx->accRaw[0]);
+        acc->ADCRaw[Y] = (int16_t)((ctx->accRaw[3] << 8) | ctx->accRaw[2]);
+        acc->ADCRaw[Z] = (int16_t)((ctx->accRaw[5] << 8) | ctx->accRaw[4]);
         return true;
     }
 
     return false;
 }
 
-
-static void bmi270SpiGyroInit(gyroDev_t *gyro)
+static void bmi270GyroInit(gyroDev_t *gyro)
 {
-    bmi270Config(gyro);
+    bmi270AccAndGyroInit(gyro);
 }
 
-static void bmi270SpiAccInit(accDev_t *acc)
+static void bmi270AccInit(accDev_t *acc)
 {
     // sensor is configured during gyro init
-    acc->acc_1G = 512 * 4;   // 16G sensor scale
+    acc->acc_1G = 4096;   // 8G sensor scale
 }
 
-bool bmi270SpiAccDetect(accDev_t *acc)
+bool bmi270AccDetect(accDev_t *acc)
 {
-    acc->busDev = busDeviceInit(BUSTYPE_SPI, DEVHW_BMI270, acc->imuSensorToUse, OWNER_MPU);
+    acc->busDev = busDeviceOpen(BUSTYPE_SPI, DEVHW_BMI270, acc->imuSensorToUse);
     if (acc->busDev == NULL) {
         return false;
     }
 
-    if (!bmi270DeviceDetect(acc->busDev)) {
-        busDeviceDeInit(acc->busDev);
+    bmi270ContextData_t * ctx = busDeviceGetScratchpadMemory(acc->busDev);
+    if (ctx->chipMagicNumber != 0xB270) {
         return false;
     }
 
-    acc->initFn = bmi270SpiAccInit;
-    acc->readFn = bmi270AccRead;
+    acc->initFn = bmi270AccInit;
+    acc->readFn = bmi270AccReadScratchpad;
 
     return true;
 }
@@ -339,10 +325,14 @@ bool bmi270GyroDetect(gyroDev_t *gyro)
         return false;
     }
 
-    gyro->initFn = bmi270SpiGyroInit;
-    gyro->readFn = bmi270GyroRead;
-    gyro->intStatusFn = bmi160CheckDataReady;
-    gyro->scale = 1.0f / 16.4f;
+    // Magic number for ACC detection to indicate that we have detected BMI270 gyro
+    bmi270ContextData_t * ctx = busDeviceGetScratchpadMemory(gyro->busDev);
+    ctx->chipMagicNumber = 0xB270;
+
+    gyro->initFn = bmi270GyroInit;
+    gyro->readFn = bmi270yroReadScratchpad;
+    gyro->intStatusFn = gyroCheckDataReady;
+    gyro->scale = 1.0f / 16.4f; // 2000 dps
     return true;
 }
 #endif // USE_IMU_BMI270
