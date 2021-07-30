@@ -1903,7 +1903,7 @@ groups:
         field: dterm_lpf2_type
         table: filter_type
       - name: yaw_lpf_hz
-        description: "Yaw P term low pass filter cutoff frequency. Should be disabled (set to 0) on small multirotors (7 inches and below)"
+        description: "Yaw P term low pass filter cutoff frequency. Should be disabled (set to `0`) on small multirotors (7 inches and below)"
         default_value: 0
         min: 0
         max: 200
