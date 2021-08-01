@@ -101,8 +101,8 @@ enum {
 };
 
 enum {
-    NAV_RTH_CLIMB_STAGE_AT_LEAST        = 0, // Will climb to at least the specified altitude before turning
-    NAV_RTH_CLIMB_STAGE_EXTRA           = 1, // Will climb the specified altitude before turning
+    NAV_RTH_CLIMB_STAGE_AT_LEAST        = 0, // Will climb to the lesser of rth_climb_first_stage_altitude or rth_altitude, before turning
+    NAV_RTH_CLIMB_STAGE_EXTRA           = 1, // Will climb the lesser of rth_climb_first_stage_altitude above the current altitude or to nav_rth_altitude, before turning
 };
 
 enum {
