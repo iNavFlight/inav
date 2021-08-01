@@ -2151,7 +2151,7 @@ float getFinalRTHAltitude(void)
 }
 
 /*-----------------------------------------------------------
- * Reset home position to current position
+ * Update the RTH Altitudes
  *-----------------------------------------------------------*/
 static void updateDesiredRTHAltitude(void)
 {
@@ -2160,7 +2160,7 @@ static void updateDesiredRTHAltitude(void)
           || ((navGetStateFlags(posControl.navState) & NAV_AUTO_WP) && posControl.waypointList[posControl.activeWaypointIndex].action == NAV_WP_ACTION_RTH))) {
             switch (navConfig()->general.flags.rth_climb_first_stage_mode) {
                 case NAV_RTH_CLIMB_STAGE_AT_LEAST:
-                    posControl.rthState.rthClimbStageAltitude = navConfig()->general.rth_climb_first_stage_altitude;
+                    posControl.rthState.rthClimbStageAltitude = posControl.rthState.homePosition.pos.z + navConfig()->general.rth_climb_first_stage_altitude;
                     break;
                 case NAV_RTH_CLIMB_STAGE_EXTRA:
                     posControl.rthState.rthClimbStageAltitude = posControl.actualState.abs.pos.z + navConfig()->general.rth_climb_first_stage_altitude;
