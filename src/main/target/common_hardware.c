@@ -303,15 +303,6 @@
     #endif
 #endif
 
-#if defined(USE_RANGEFINDER_HCSR04_I2C) && (defined(HCSR04_I2C_BUS) || defined(RANGEFINDER_I2C_BUS))
-    #if !defined(HCSR04_I2C_BUS)
-        #define HCSR04_I2C_BUS RANGEFINDER_I2C_BUS
-    #endif
-    #if defined(HCSR04_I2C_BUS)
-    BUSDEV_REGISTER_I2C(busdev_hcsr04,      DEVHW_HCSR04_I2C,   HCSR04_I2C_BUS,     0x14,               NONE,           DEVFLAGS_NONE,  0);
-    #endif
-#endif
-
 #if defined(USE_RANGEFINDER_VL53L0X)
     #if !defined(VL53L0X_I2C_BUS) && defined(RANGEFINDER_I2C_BUS)
         #define VL53L0X_I2C_BUS RANGEFINDER_I2C_BUS

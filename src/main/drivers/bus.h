@@ -140,7 +140,6 @@ typedef enum {
 
     /* Rangefinder modules */
     DEVHW_SRF10,
-    DEVHW_HCSR04_I2C,   // DIY-style adapter
     DEVHW_VL53L0X,
     DEVHW_VL53L1X,
     DEVHW_US42,
