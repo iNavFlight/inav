@@ -110,10 +110,6 @@ void secondaryImuInit(void)
         }
     }
 
-    if (!secondaryImuState.active) {
-        secondaryImuConfigMutable()->hardwareType = SECONDARY_IMU_NONE;
-    }
-
 }
 
 void secondaryImuProcess(void) {
