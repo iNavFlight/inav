@@ -1009,7 +1009,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_COURSE_HOLD_INITIALIZE(
     if (!STATE(FIXED_WING_LEGACY)) { return NAV_FSM_EVENT_ERROR; } // Only on FW for now
 
     DEBUG_SET(DEBUG_CRUISE, 0, 1);
-    if (checkForPositionSensorTimeout()) { return NAV_FSM_EVENT_SWITCH_TO_IDLE; }  // Switch to IDLE if we do not have an healty position. Try the next iteration.
+    if (checkForPositionSensorTimeout()) {
+        return NAV_FSM_EVENT_SWITCH_TO_IDLE;
+    }  // Switch to IDLE if we do not have an healty position. Try the next iteration.
 
     if (!(prevFlags & NAV_CTL_POS)) {
         resetPositionController();
@@ -1026,7 +1028,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_COURSE_HOLD_IN_PROGRESS
 {
     const timeMs_t currentTimeMs = millis();
 
-    if (checkForPositionSensorTimeout()) { return NAV_FSM_EVENT_SWITCH_TO_IDLE; } // Switch to IDLE if we do not have an healty position. Do the CRUISE init the next iteration.
+    if (checkForPositionSensorTimeout()) {
+        return NAV_FSM_EVENT_SWITCH_TO_IDLE;
+    } // Switch to IDLE if we do not have an healty position. Do the CRUISE init the next iteration.
 
     DEBUG_SET(DEBUG_CRUISE, 0, 2);
     DEBUG_SET(DEBUG_CRUISE, 2, 0);
@@ -1168,7 +1172,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigati
             return NAV_FSM_EVENT_SUCCESS;   // NAV_STATE_RTH_CLIMB_TO_SAFE_ALT
         }
     }
-    /* Position sensor failure timeout - land. Land immediately if timeout set to 0 and forced RTH */
+    /* Position sensor failure timeout - land. Land immediately if failsafe RTH and timeout disabled (set to 0) */
     else if (checkForPositionSensorTimeout() || (!navConfig()->general.pos_failure_timeout && posControl.flags.forcedRTHActivated)) {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
@@ -1189,7 +1193,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
 
     /* Position sensor failure timeout and not configured to ignore GPS loss - land */
     if ((posControl.flags.estHeadingStatus == EST_NONE) ||
-        (((posControl.flags.estPosStatus == EST_NONE) && checkForPositionSensorTimeout()) && !navConfig()->general.flags.rth_climb_ignore_emerg)) {
+        (checkForPositionSensorTimeout() && !navConfig()->general.flags.rth_climb_ignore_emerg)) {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
 
@@ -1257,6 +1261,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigatio
 
     rthAltControlStickOverrideCheck(PITCH);
 
+    /* If position sensors unavailable - land immediately */
     if ((posControl.flags.estHeadingStatus == EST_NONE) || !validateRTHSanityChecker()) {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
@@ -1291,9 +1296,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HOVER_PRIOR_TO_LAND
         return NAV_FSM_EVENT_SUCCESS;
     }
 
-    if ((posControl.flags.estHeadingStatus == EST_NONE) ||
-        ((posControl.flags.estPosStatus == EST_NONE) && checkForPositionSensorTimeout()) ||
-        !validateRTHSanityChecker()) {
+    /* If position sensors unavailable - land immediately (wait for timeout on GPS) */
+    if ((posControl.flags.estHeadingStatus == EST_NONE) || checkForPositionSensorTimeout() || !validateRTHSanityChecker()) {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
 
@@ -1314,9 +1318,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HOVER_ABOVE_HOME(na
 {
     UNUSED(previousState);
 
-    if (posControl.flags.estHeadingStatus == EST_NONE ||
-        ((posControl.flags.estPosStatus == EST_NONE) && checkForPositionSensorTimeout()) ||
-        !validateRTHSanityChecker()) {
+    /* If position sensors unavailable - land immediately (wait for timeout on GPS) */
+    if (posControl.flags.estHeadingStatus == EST_NONE || checkForPositionSensorTimeout() || !validateRTHSanityChecker()) {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
 
@@ -1353,10 +1356,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
         return NAV_FSM_EVENT_SUCCESS;
     }
 
-    // Continue to check for RTH sanity during landing
-    if (posControl.flags.estHeadingStatus == EST_NONE ||
-        ((posControl.flags.estPosStatus == EST_NONE) && checkForPositionSensorTimeout()) ||
-        !validateRTHSanityChecker()) {
+    /* If position sensors unavailable - land immediately (wait for timeout on GPS)
+     * Continue to check for RTH sanity during landing */
+    if (posControl.flags.estHeadingStatus == EST_NONE || checkForPositionSensorTimeout() || !validateRTHSanityChecker()) {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
 
@@ -1547,7 +1549,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_IN_PROGRESS(na
                 UNREACHABLE();
         }
     }
-    /* No pos sensor available for NAV_WAIT_FOR_GPS_TIMEOUT_MS - land */
+    /* If position sensors unavailable - land immediately (wait for timeout on GPS) */
     else if (checkForPositionSensorTimeout() || (posControl.flags.estHeadingStatus == EST_NONE)) {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
@@ -1586,7 +1588,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_HOLD_TIME(navi
     UNUSED(previousState);
 
     /* If position sensors unavailable - land immediately (wait for timeout on GPS) */
-    if (posControl.flags.estHeadingStatus == EST_NONE || ((posControl.flags.estPosStatus == EST_NONE) && checkForPositionSensorTimeout())) {
+    if (posControl.flags.estHeadingStatus == EST_NONE || checkForPositionSensorTimeout()) {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
 
@@ -1641,7 +1643,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_FINISHED(navig
     clearJumpCounters();
 
     /* If position sensors unavailable - land immediately (wait for timeout on GPS) */
-    if (posControl.flags.estHeadingStatus == EST_NONE || ((posControl.flags.estPosStatus == EST_NONE) && checkForPositionSensorTimeout())) {
+    if (posControl.flags.estHeadingStatus == EST_NONE || checkForPositionSensorTimeout()) {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
 
