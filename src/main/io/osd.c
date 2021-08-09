@@ -3991,9 +3991,6 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     if (FLIGHT_MODE(HEADFREE_MODE)) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_HEADFREE);
                     }
-                    if (posControl.navState == NAV_STATE_IDLE && (IS_RC_MODE_ACTIVE(BOXNAVRTH) || IS_RC_MODE_ACTIVE(BOXNAVWP))) {
-                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_NAV_SENSOR_LOSS);
-                    }
                 }
                 // Pick one of the available messages. Each message lasts
                 // a second.
