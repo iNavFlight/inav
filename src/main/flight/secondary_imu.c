@@ -95,10 +95,13 @@ void secondaryImuInit(void)
         calibrationData.radius[ACC] = secondaryImuConfig()->calibrationRadiusAcc;
         calibrationData.radius[MAG] = secondaryImuConfig()->calibrationRadiusMag;
 
+    requestedSensors[SENSOR_INDEX_IMU2] = secondaryImuConfig()->hardwareType;
+
     if (secondaryImuConfig()->hardwareType == SECONDARY_IMU_BNO055) {
         secondaryImuState.active = bno055Init(calibrationData, (secondaryImuConfig()->calibrationRadiusAcc && secondaryImuConfig()->calibrationRadiusMag));
 
         if (secondaryImuState.active) {
+            detectedSensors[SENSOR_INDEX_IMU2] = SECONDARY_IMU_BNO055;
             rescheduleTask(TASK_SECONDARY_IMU, TASK_PERIOD_HZ(10));
         }
 
@@ -106,8 +109,13 @@ void secondaryImuInit(void)
         secondaryImuState.active = bno055SerialInit(calibrationData, (secondaryImuConfig()->calibrationRadiusAcc && secondaryImuConfig()->calibrationRadiusMag));
 
         if (secondaryImuState.active) {
+            detectedSensors[SENSOR_INDEX_IMU2] = SECONDARY_IMU_BNO055_SERIAL;
             rescheduleTask(TASK_SECONDARY_IMU, TASK_PERIOD_HZ(50));
         }
+    }
+
+    if (!secondaryImuState.active) {
+        detectedSensors[SENSOR_INDEX_IMU2] = SECONDARY_IMU_NONE;
     }
 
 }
