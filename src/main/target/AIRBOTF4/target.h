@@ -110,7 +110,6 @@
 
 #define USE_RANGEFINDER
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
-#define USE_RANGEFINDER_HCSR04_I2C
 
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PC1

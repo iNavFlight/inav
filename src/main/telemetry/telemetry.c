@@ -117,7 +117,7 @@ void telemetryInit(void)
     initMAVLinkTelemetry();
 #endif
 
-#if defined(TELEMETRY_JETIEXBUS)
+#if defined(USE_TELEMETRY_JETIEXBUS)
     initJetiExBusTelemetry();
 #endif
 
@@ -187,7 +187,7 @@ void telemetryCheckState(void)
     checkMAVLinkTelemetryState();
 #endif
 
-#if defined(TELEMETRY_JETIEXBUS)
+#if defined(USE_TELEMETRY_JETIEXBUS)
     checkJetiExBusTelemetryState();
 #endif
 
@@ -235,7 +235,7 @@ void telemetryProcess(timeUs_t currentTimeUs)
     handleMAVLinkTelemetry(currentTimeUs);
 #endif
 
-#if defined(TELEMETRY_JETIEXBUS)
+#if defined(USE_TELEMETRY_JETIEXBUS)
     handleJetiExBusTelemetry();
 #endif
 

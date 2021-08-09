@@ -17,6 +17,6 @@
 
 #pragma once
 
-#define RANGEFINDER_HCSR04_i2C_TASK_PERIOD_MS 100
+#define RANGEFINDER_TOF10120_I2C_TASK_PERIOD_MS 100
 
-bool hcsr04i2c0Detect(rangefinderDev_t *dev);
+bool tof10120Detect(rangefinderDev_t *rangefinder);

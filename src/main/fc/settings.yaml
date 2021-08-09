@@ -4,16 +4,16 @@ tables:
   - name: gyro_lpf
     values: ["256HZ", "188HZ", "98HZ", "42HZ", "20HZ", "10HZ"]
   - name: acc_hardware
-    values: ["NONE", "AUTO", "ADXL345", "MPU6050", "MMA845x", "BMA280", "LSM303DLHC", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "FAKE"]
+    values: ["NONE", "AUTO", "ADXL345", "MPU6050", "MMA845x", "BMA280", "LSM303DLHC", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "FAKE"]
     enum: accelerationSensor_e
   - name: rangefinder_hardware
-    values: ["NONE", "HCSR04", "SRF10", "INAV_I2C", "VL53L0X", "MSP", "UNUSED", "BENEWAKE", "VL53L1X", "US42"]
+    values: ["NONE", "SRF10", "VL53L0X", "MSP", "BENEWAKE", "VL53L1X", "US42", "TOF10120_I2C"]
     enum: rangefinderType_e
   - name: secondary_imu_hardware
     values: ["NONE", "BNO055", "BNO055_SERIAL"]
     enum: secondaryImuType_e
   - name: mag_hardware
-    values: ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "MSP", "RM3100", FAKE"]
+    values: ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "MSP", "RM3100", "VCM5883", "FAKE"]
     enum: magSensor_e
   - name: opflow_hardware
     values: ["NONE", "CXOF", "MSP", "FAKE"]
@@ -35,7 +35,7 @@ tables:
   - name: blackbox_device
     values: ["SERIAL", "SPIFLASH", "SDCARD"]
   - name: motor_pwm_protocol
-    values: ["STANDARD", "ONESHOT125", "ONESHOT42", "MULTISHOT", "BRUSHED", "DSHOT150", "DSHOT300", "DSHOT600", "DSHOT1200", "SERIALSHOT"]
+    values: ["STANDARD", "ONESHOT125", "MULTISHOT", "BRUSHED", "DSHOT150", "DSHOT300", "DSHOT600"]
   - name: servo_protocol
     values: ["PWM", "SERVO_DRIVER", "SBUS", "SBUS_PWM"]
   - name: failsafe_procedure
@@ -94,7 +94,7 @@ tables:
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "ERPM", "RPM_FILTER", "RPM_FREQ", "NAV_YAW", "DYNAMIC_FILTER", "DYNAMIC_FILTER_FREQUENCY",
       "IRLOCK", "CD", "KALMAN_GAIN", "PID_MEASUREMENT", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "FW_D", "IMU2", "ALTITUDE",
-      "GYRO_ALPHA_BETA_GAMMA", "SMITH_PREDICTOR", "AUTOTRIM", "AUTOTUNE", "ITERM_RELAX"]
+      "GYRO_ALPHA_BETA_GAMMA", "SMITH_PREDICTOR", "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "ITERM_RELAX"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -129,6 +129,8 @@ tables:
     enum: vtxLowerPowerDisarm_e
   - name: filter_type
     values: ["PT1", "BIQUAD"]
+  - name: filter_type_full
+    values: ["PT1", "BIQUAD", "PT2", "PT3"]
   - name: log_level
     values: ["ERROR", "WARNING", "INFO", "VERBOSE", "DEBUG"]
   - name: iterm_relax
@@ -861,18 +863,6 @@ groups:
         field: motorPwmRate
         min: 50
         max: 32000
-      - name: motor_accel_time
-        description: "Minimum time for the motor(s) to accelerate from 0 to 100% throttle (ms) [0-1000]"
-        default_value: 0
-        field: motorAccelTimeMs
-        min: 0
-        max: 1000
-      - name: motor_decel_time
-        description: "Minimum time for the motor(s) to deccelerate from 100 to 0% throttle (ms) [0-1000]"
-        default_value: 0
-        field: motorDecelTimeMs
-        min: 0
-        max: 1000
       - name: motor_pwm_protocol
         description: "Protocol that is used to send motor updates to ESCs. Possible values - STANDARD, ONESHOT125, ONESHOT42, MULTISHOT, DSHOT150, DSHOT300, DSHOT600, DSHOT1200, BRUSHED"
         default_value: "ONESHOT125"
@@ -1444,6 +1434,48 @@ groups:
         min: 0
         max: 50
         default_value: 0
+      - name: rate_dynamics_center_sensitivity
+        field: rateDynamics.sensitivityCenter
+        default_value: 100
+        min: 25
+        max: 175
+        description: "The center stick sensitivity for Rate Dynamics"
+        condition: USE_RATE_DYNAMICS
+      - name: rate_dynamics_end_sensitivity
+        field: rateDynamics.sensitivityEnd
+        default_value: 100
+        min: 25
+        max: 175
+        description: "The end stick sensitivity for Rate Dynamics"
+        condition: USE_RATE_DYNAMICS
+      - name: rate_dynamics_center_correction
+        field: rateDynamics.correctionCenter
+        default_value: 10
+        min: 10
+        max: 95
+        description: "The center stick correction for Rate Dynamics"
+        condition: USE_RATE_DYNAMICS
+      - name: rate_dynamics_end_correction
+        field: rateDynamics.correctionEnd
+        default_value: 10
+        min: 10
+        max: 95
+        description: "The end  stick correction for Rate Dynamics"
+        condition: USE_RATE_DYNAMICS
+      - name: rate_dynamics_center_weight
+        field: rateDynamics.weightCenter
+        default_value: 0
+        min: 0
+        max: 95
+        description: "The center stick weight for Rate Dynamics"
+        condition: USE_RATE_DYNAMICS
+      - name: rate_dynamics_end_weight
+        field: rateDynamics.weightEnd
+        default_value: 0
+        min: 0
+        max: 95
+        description: "The end  stick weight for Rate Dynamics"
+        condition: USE_RATE_DYNAMICS
 
   - name: PG_SERIAL_CONFIG
     type: serialConfig_t
@@ -1854,24 +1886,24 @@ groups:
         max: 900
       - name: dterm_lpf_hz
         description: "Dterm low pass filter cutoff frequency. Default setting is very conservative and small multirotors should use higher value between 80 and 100Hz. 80 seems like a gold spot for 7-inch builds while 100 should work best with 5-inch machines. If motors are getting too hot, lower the value"
-        default_value: 40
+        default_value: 110
         min: 0
         max: 500
       - name: dterm_lpf_type
-        description: "Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation."
-        default_value: "BIQUAD"
+        description: "Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`, `PT2`, `PT3`."
+        default_value: "PT2"
         field: dterm_lpf_type
-        table: filter_type
+        table: filter_type_full
       - name: dterm_lpf2_hz
         description: "Cutoff frequency for stage 2 D-term low pass filter"
         default_value: 0
         min: 0
         max: 500
       - name: dterm_lpf2_type
-        description: "Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation."
-        default_value: "BIQUAD"
+        description: "Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`, `PT2`, `PT3`."
+        default_value: "PT1"
         field: dterm_lpf2_type
-        table: filter_type
+        table: filter_type_full
       - name: yaw_lpf_hz
         description: "Yaw low pass filter cutoff frequency. Should be disabled (set to `0`) on small multirotors (7 inches and below)"
         default_value: 0
@@ -2127,8 +2159,14 @@ groups:
         min: 1
         max: 100
         default_value: 15
-      - name: d_boost_factor
-        field: dBoostFactor
+      - name: d_boost_min
+        field: dBoostMin
+        condition: USE_D_BOOST
+        min: 0
+        max: 1
+        default_value: 0.5
+      - name: d_boost_max
+        field: dBoostMax
         condition: USE_D_BOOST
         min: 1
         max: 3

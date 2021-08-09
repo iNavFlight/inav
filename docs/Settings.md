@@ -572,16 +572,6 @@ ADC , VIRTUAL, NONE. The virtual current sensor, once calibrated, estimates the 
 
 ---
 
-### d_boost_factor
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 1.25 | 1 | 3 |
-
----
-
 ### d_boost_gyro_delta_lpf_hz
 
 _// TODO_
@@ -592,6 +582,16 @@ _// TODO_
 
 ---
 
+### d_boost_max
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1.25 | 1 | 3 |
+
+---
+
 ### d_boost_max_at_acceleration
 
 _// TODO_
@@ -599,6 +599,16 @@ _// TODO_
 | Default | Min | Max |
 | --- | --- | --- |
 | 7500 | 1000 | 16000 |
+
+---
+
+### d_boost_min
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0.5 | 0 | 1 |
 
 ---
 
@@ -744,11 +754,11 @@ Cutoff frequency for stage 2 D-term low pass filter
 
 ### dterm_lpf2_type
 
-Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation.
+Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`, `PT2`, `PT3`.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| BIQUAD |  |  |
+| PT1 |  |  |
 
 ---
 
@@ -758,17 +768,17 @@ Dterm low pass filter cutoff frequency. Default setting is very conservative and
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 40 | 0 | 500 |
+| 110 | 0 | 500 |
 
 ---
 
 ### dterm_lpf_type
 
-Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation.
+Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`, `PT2`, `PT3`.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| BIQUAD |  |  |
+| PT2 |  |  |
 
 ---
 
@@ -2832,26 +2842,6 @@ When powering up, gyro bias is calculated. If the model is shaking/moving during
 
 ---
 
-### motor_accel_time
-
-Minimum time for the motor(s) to accelerate from 0 to 100% throttle (ms) [0-1000]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 1000 |
-
----
-
-### motor_decel_time
-
-Minimum time for the motor(s) to deccelerate from 100 to 0% throttle (ms) [0-1000]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 1000 |
-
----
-
 ### motor_direction_inverted
 
 Use if you need to inverse yaw motor direction.
@@ -4769,6 +4759,66 @@ Limits acceleration of YAW rotation speed that can be requested by stick input. 
 | Default | Min | Max |
 | --- | --- | --- |
 | 10000 |  | 500000 |
+
+---
+
+### rate_dynamics_center_correction
+
+The center stick correction for Rate Dynamics
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | 10 | 95 |
+
+---
+
+### rate_dynamics_center_sensitivity
+
+The center stick sensitivity for Rate Dynamics
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 25 | 175 |
+
+---
+
+### rate_dynamics_center_weight
+
+The center stick weight for Rate Dynamics
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 95 |
+
+---
+
+### rate_dynamics_end_correction
+
+The end  stick correction for Rate Dynamics
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | 10 | 95 |
+
+---
+
+### rate_dynamics_end_sensitivity
+
+The end stick sensitivity for Rate Dynamics
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 25 | 175 |
+
+---
+
+### rate_dynamics_end_weight
+
+The end  stick weight for Rate Dynamics
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 95 |
 
 ---
 

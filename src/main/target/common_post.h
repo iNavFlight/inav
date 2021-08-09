@@ -58,7 +58,6 @@ extern uint8_t __config_end;
 #undef USE_SERIALRX_SUMH
 #undef USE_SERIALRX_XBUS
 #undef USE_SERIALRX_JETIEXBUS
-#undef USE_PWM_SERVO_DRIVER
 #endif
 
 #ifndef BEEPER_PWM_FREQUENCY
