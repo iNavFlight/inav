@@ -729,7 +729,7 @@ static float FAST_CODE applyItermRelax(const int axis, float currentPidSetpoint,
             const float setpointHpf = fabsf(currentPidSetpoint - setpointLpf);
 
             float setPointThreshold;
-            if (usedPidControllerType = PID_TYPE_PIFF) {
+            if (usedPidControllerType == PID_TYPE_PIFF) {
                 // on FW use 10% of rate setting as threshold
                 const float setPointThreshold = currentControlRateProfile->stabilized.rates[axis];
             } else {
