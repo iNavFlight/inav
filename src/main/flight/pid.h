@@ -51,7 +51,6 @@ FP-PID has been rescaled to match LuxFloat (and MWRewrite) from Cleanflight 1.13
 #define FP_PID_YAWHOLD_P_MULTIPLIER 80.0f
 
 #define MC_ITERM_RELAX_SETPOINT_THRESHOLD 40.0f
-#define MC_ITERM_RELAX_CUTOFF_DEFAULT 15
 
 #define ANTI_GRAVITY_THROTTLE_FILTER_CUTOFF 15  // The anti gravity throttle highpass filter cutoff
 

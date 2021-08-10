@@ -728,7 +728,15 @@ static float FAST_CODE applyItermRelax(const int axis, float currentPidSetpoint,
             const float setpointLpf = pt1FilterApply(&windupLpf[axis], currentPidSetpoint);
             const float setpointHpf = fabsf(currentPidSetpoint - setpointLpf);
 
-            const float itermRelaxFactor = MAX(0, 1 - setpointHpf / MC_ITERM_RELAX_SETPOINT_THRESHOLD);
+            float setPointThreshold;
+            if (usedPidControllerType = PID_TYPE_PIFF) {
+                // on FW use 10% of rate setting as threshold
+                const float setPointThreshold = currentControlRateProfile->stabilized.rates[axis];
+            } else {
+                const float setPointThreshold = MC_ITERM_RELAX_SETPOINT_THRESHOLD;
+            }
+
+            const float itermRelaxFactor = MAX(0, 1 - setpointHpf / setPointThreshold);
 
             DEBUG_SET(DEBUG_ITERM_RELAX, axis * 2, currentPidSetpoint);
             DEBUG_SET(DEBUG_ITERM_RELAX, axis * 2 + 1, itermRelaxFactor * 1000.0f);
