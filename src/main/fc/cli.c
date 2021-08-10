@@ -3186,14 +3186,15 @@ static void cliStatus(char *cmdline)
     cliPrintLinef("  PCLK2  = %d MHz", clocks.PCLK2_Frequency / 1000000);
 #endif
 
-    cliPrintLinef("Sensor status: GYRO=%s, ACC=%s, MAG=%s, BARO=%s, RANGEFINDER=%s, OPFLOW=%s, GPS=%s",
+    cliPrintLinef("Sensor status: GYRO=%s, ACC=%s, MAG=%s, BARO=%s, RANGEFINDER=%s, OPFLOW=%s, GPS=%s, IMU2=%s",
         hardwareSensorStatusNames[getHwGyroStatus()],
         hardwareSensorStatusNames[getHwAccelerometerStatus()],
         hardwareSensorStatusNames[getHwCompassStatus()],
         hardwareSensorStatusNames[getHwBarometerStatus()],
         hardwareSensorStatusNames[getHwRangefinderStatus()],
         hardwareSensorStatusNames[getHwOpticalFlowStatus()],
-        hardwareSensorStatusNames[getHwGPSStatus()]
+        hardwareSensorStatusNames[getHwGPSStatus()],
+        hardwareSensorStatusNames[getHwSecondaryImuStatus()]
     );
 
 #ifdef USE_ESC_SENSOR

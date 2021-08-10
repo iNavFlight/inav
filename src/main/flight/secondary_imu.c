@@ -227,3 +227,33 @@ void secondaryImuFetchCalibration(void) {
 void secondaryImuSetMagneticDeclination(float declination) { //Incoming units are degrees
     secondaryImuState.magDeclination = declination * 10.0f; //Internally declination is stored in decidegrees
 }
+
+bool isSecondaryImuHealthy(void) {
+    return secondaryImuState.active;
+}
+
+hardwareSensorStatus_e getHwSecondaryImuStatus(void)
+{
+#ifdef USE_SECONDARY_IMU
+    if (detectedSensors[SENSOR_INDEX_IMU2] != SECONDARY_IMU_NONE) {
+        if (isSecondaryImuHealthy()) {
+            return HW_SENSOR_OK;
+        }
+        else {
+            return HW_SENSOR_UNHEALTHY;
+        }
+    }
+    else {
+        if (requestedSensors[SENSOR_INDEX_IMU2] != SECONDARY_IMU_NONE) {
+            // Selected but not detected
+            return HW_SENSOR_UNAVAILABLE;
+        }
+        else {
+            // Not selected and not detected
+            return HW_SENSOR_NONE;
+        }
+    }
+#else
+    return HW_SENSOR_NONE;
+#endif
+}
