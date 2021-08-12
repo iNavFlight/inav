@@ -43,6 +43,11 @@
 #define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_DPS310
 
+#define USE_MAG
+#define MAG_I2C_BUS BUS_I2C2
+#define USE_MAG_HMC5883
+#define USE_MAG_QMC5883
+
 #define USE_VCP
 #define USE_USB_DETECT
 #define USB_DETECT_PIN   PC4
@@ -152,4 +157,4 @@
 #define TARGET_IO_PORTD 0xffff
 #define TARGET_IO_PORTE 0xffff
 
-#define USED_TIMERS  ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(8) | TIM_N(9) )
+#define USED_TIMERS  ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(5) | TIM_N(8) | TIM_N(9) )
