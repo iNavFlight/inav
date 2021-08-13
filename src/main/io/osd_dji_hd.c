@@ -1165,7 +1165,7 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
                     djiSerializeCraftNameOverride(dst);
                 } else {
 #endif
-                    sbufWriteData(dst, systemConfig()->name, MAX((int)strlen(systemConfig()->name), OSD_MESSAGE_LENGTH));
+                    sbufWriteData(dst, systemConfig()->name, (int)strlen(systemConfig()->name));
 #if defined(USE_OSD)
                 }
 #endif

@@ -248,6 +248,14 @@
     BUSDEV_REGISTER_SPI(busdev_rm3100,      DEVHW_RM3100,       RM3100_SPI_BUS,     RM3100_CS_PIN,      NONE,           DEVFLAGS_NONE,  0);
     #endif
 #endif
+
+#if defined(USE_MAG_VCM5883)
+    #if !defined(VCM5883_I2C_BUS)
+        #define VCM5883_I2C_BUS MAG_I2C_BUS
+    #endif
+    BUSDEV_REGISTER_I2C(busdev_vcm5883,     DEVHW_VCM5883,      VCM5883_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE,  0);
+#endif
+
 #endif
 
 
@@ -295,15 +303,6 @@
     #endif
 #endif
 
-#if defined(USE_RANGEFINDER_HCSR04_I2C) && (defined(HCSR04_I2C_BUS) || defined(RANGEFINDER_I2C_BUS))
-    #if !defined(HCSR04_I2C_BUS)
-        #define HCSR04_I2C_BUS RANGEFINDER_I2C_BUS
-    #endif
-    #if defined(HCSR04_I2C_BUS)
-    BUSDEV_REGISTER_I2C(busdev_hcsr04,      DEVHW_HCSR04_I2C,   HCSR04_I2C_BUS,     0x14,               NONE,           DEVFLAGS_NONE,  0);
-    #endif
-#endif
-
 #if defined(USE_RANGEFINDER_VL53L0X)
     #if !defined(VL53L0X_I2C_BUS) && defined(RANGEFINDER_I2C_BUS)
         #define VL53L0X_I2C_BUS RANGEFINDER_I2C_BUS
@@ -330,6 +329,15 @@
     #endif
     #if defined(US42_I2C_BUS)
     BUSDEV_REGISTER_I2C(busdev_us42,       DEVHW_US42,           US42_I2C_BUS,       0x70,               NONE,           DEVFLAGS_USE_RAW_REGISTERS, 0); // Requires null data to passthrough
+    #endif
+#endif
+
+#if defined(USE_RANGEFINDER_TOF10120_I2C) && (defined(TOF10120_I2C_BUS) || defined(RANGEFINDER_I2C_BUS))
+    #if !defined(TOF10120_I2C_BUS)
+        #define TOF10120_I2C_BUS RANGEFINDER_I2C_BUS
+    #endif
+    #if defined(TOF10120_I2C_BUS)
+    BUSDEV_REGISTER_I2C(busdev_tof10120,      DEVHW_TOF10120_I2C,   TOF10120_I2C_BUS,     0x52,               NONE,           DEVFLAGS_USE_RAW_REGISTERS,  0);
     #endif
 #endif
 

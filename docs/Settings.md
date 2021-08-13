@@ -754,11 +754,11 @@ Cutoff frequency for stage 2 D-term low pass filter
 
 ### dterm_lpf2_type
 
-Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation.
+Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`, `PT2`, `PT3`.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| BIQUAD |  |  |
+| PT1 |  |  |
 
 ---
 
@@ -768,17 +768,17 @@ Dterm low pass filter cutoff frequency. Default setting is very conservative and
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 40 | 0 | 500 |
+| 110 | 0 | 500 |
 
 ---
 
 ### dterm_lpf_type
 
-Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation.
+Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`, `PT2`, `PT3`.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| BIQUAD |  |  |
+| PT2 |  |  |
 
 ---
 
@@ -2852,26 +2852,6 @@ When powering up, gyro bias is calculated. If the model is shaking/moving during
 
 ---
 
-### motor_accel_time
-
-Minimum time for the motor(s) to accelerate from 0 to 100% throttle (ms) [0-1000]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 1000 |
-
----
-
-### motor_decel_time
-
-Minimum time for the motor(s) to deccelerate from 100 to 0% throttle (ms) [0-1000]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 1000 |
-
----
-
 ### motor_direction_inverted
 
 Use if you need to inverse yaw motor direction.
@@ -4559,6 +4539,16 @@ Display minimum voltage of the `BATTERY` or the average per `CELL` in the OSD st
 | Default | Min | Max |
 | --- | --- | --- |
 | BATTERY |  |  |
+
+---
+
+### osd_stats_page_auto_swap_time
+
+Auto swap display time interval between disarm stats pages (seconds). Reverts to manual control when Roll stick used to change pages. Disabled when set to 0.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3 | 0 | 10 |
 
 ---
 

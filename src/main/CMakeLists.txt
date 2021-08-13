@@ -164,6 +164,8 @@ main_sources(COMMON_SRC
     drivers/compass/compass_qmc5883l.h
     drivers/compass/compass_rm3100.c
     drivers/compass/compass_rm3100.h
+    drivers/compass/compass_vcm5883.c
+    drivers/compass/compass_vcm5883.h
     drivers/compass/compass_msp.c
     drivers/compass/compass_msp.h
 
@@ -230,10 +232,6 @@ main_sources(COMMON_SRC
     drivers/pinio.c
     drivers/pinio.h
 
-    drivers/rangefinder/rangefinder_hcsr04.c
-    drivers/rangefinder/rangefinder_hcsr04.h
-    drivers/rangefinder/rangefinder_hcsr04_i2c.c
-    drivers/rangefinder/rangefinder_hcsr04_i2c.h
     drivers/rangefinder/rangefinder_srf10.c
     drivers/rangefinder/rangefinder_srf10.h
     drivers/rangefinder/rangefinder_vl53l0x.c
@@ -244,6 +242,8 @@ main_sources(COMMON_SRC
     drivers/rangefinder/rangefinder_virtual.h
     drivers/rangefinder/rangefinder_us42.c
     drivers/rangefinder/rangefinder_us42.h
+    drivers/rangefinder/rangefinder_tof10120_i2c.c
+    drivers/rangefinder/rangefinder_tof10120_i2c.h
 
     drivers/resource.c
     drivers/resource.h
@@ -353,8 +353,6 @@ main_sources(COMMON_SRC
 
     io/beeper.c
     io/beeper.h
-    io/esc_serialshot.c
-    io/esc_serialshot.h
     io/servo_sbus.c
     io/servo_sbus.h
     io/frsky_osd.c
@@ -585,6 +583,8 @@ main_sources(COMMON_SRC
     telemetry/ghst.h
     telemetry/hott.c
     telemetry/hott.h
+    telemetry/jetiexbus.c
+    telemetry/jetiexbus.h
     telemetry/ibus_shared.c
     telemetry/ibus_shared.h
     telemetry/ibus.c

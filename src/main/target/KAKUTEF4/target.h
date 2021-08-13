@@ -171,7 +171,6 @@
 #define TARGET_IO_PORTD        (BIT(2))
 
 #define USE_DSHOT
-#define USE_SERIALSHOT
 #define USE_ESC_SENSOR
 
 #ifdef KAKUTEF4V2
