@@ -199,10 +199,10 @@ static bool NAZA_parse_gps(void)
         gpsSol.eph = gpsConstrainEPE(h_acc / 10);   // hAcc in cm
         gpsSol.epv = gpsConstrainEPE(v_acc / 10);   // vAcc in cm
         gpsSol.numSat = _buffernaza.nav.satellites;
-        gpsSol.groundSpeed = fast_fsqrtf(powf(gpsSol.velNED[X], 2)+powf(gpsSol.velNED[Y], 2)); //cm/s
+        gpsSol.groundSpeed = fast_fsqrtf(powf(gpsSol.velNED[X], 2) + powf(gpsSol.velNED[Y], 2)); //cm/s
 
         // calculate gps heading from VELNE
-        gpsSol.groundCourse = (uint16_t) (fmodf(RADIANS_TO_DECIDEGREES(atan2_approx(gpsSol.velNED[Y], gpsSol.velNED[X]))+3600.0f,3600.0f));
+        gpsSol.groundCourse = (uint16_t)(fmodf(RADIANS_TO_DECIDEGREES(atan2_approx(gpsSol.velNED[Y], gpsSol.velNED[X])) + 3600.0f, 3600.0f));
 
         gpsSol.flags.validVelNE = 1;
         gpsSol.flags.validVelD = 1;
