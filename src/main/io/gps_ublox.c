@@ -587,9 +587,9 @@ static bool gpsParceFrameUBLOX(void)
     case MSG_VELNED:
         gpsSol.groundSpeed = _buffer.velned.speed_2d;    // cm/s
         gpsSol.groundCourse = (uint16_t) (_buffer.velned.heading_2d / 10000);     // Heading 2D deg * 100000 rescaled to deg * 10
-        gpsSol.velNED[0] = _buffer.velned.ned_north;
-        gpsSol.velNED[1] = _buffer.velned.ned_east;
-        gpsSol.velNED[2] = _buffer.velned.ned_down;
+        gpsSol.velNED[X] = _buffer.velned.ned_north;
+        gpsSol.velNED[Y] = _buffer.velned.ned_east;
+        gpsSol.velNED[Z] = _buffer.velned.ned_down;
         gpsSol.flags.validVelNE = 1;
         gpsSol.flags.validVelD = 1;
         _new_speed = true;
