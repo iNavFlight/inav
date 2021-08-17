@@ -2807,7 +2807,7 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 #endif // USE_ADC
 #endif // USE_POWER_LIMITS
-
+#if defined(USE_NAV)
     case OSD_MISSION:
         {
             if (IS_RC_MODE_ACTIVE(BOXPLANWPMISSION)) {
@@ -2838,7 +2838,7 @@ static bool osdDrawSingleElement(uint8_t item)
             displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
             return true;
         }
-
+#endif  //USE NAV
     default:
         return false;
     }
@@ -3959,9 +3959,11 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     if (FLIGHT_MODE(HEADFREE_MODE)) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_HEADFREE);
                     }
+#if defined(USE_NAV)
                     if (posControl.flags.wpMissionPlannerActive) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_MISSION_PLANNER);
                     }
+#endif
                 }
                 // Pick one of the available messages. Each message lasts
                 // a second.
