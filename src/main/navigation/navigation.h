@@ -31,6 +31,8 @@
 
 #include "io/gps.h"
 
+void updateLandingStatus(void);
+
 /* GPS Home location data */
 extern gpsLocation_t        GPS_home;
 extern uint32_t             GPS_distanceToHome;        // distance to home point in meters
@@ -535,8 +537,6 @@ bool isFixedWingLaunchFinishedOrAborted(void);
 const char * fixedWingLaunchStateMessage(void);
 
 float calculateAverageSpeed(void);
-
-void updateLandingStatus(void);
 
 const navigationPIDControllers_t* getNavigationPIDControllers(void);
 
