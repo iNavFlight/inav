@@ -2808,7 +2808,7 @@ static bool osdDrawSingleElement(uint8_t item)
         osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "CTL S", 0, navConfig()->fw.control_smoothness, 1, 0, ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS);
         return true;
 
-#if defined(USE NAV)
+#if defined(USE_NAV)
     case OSD_MISSION:
         {
             if (ARMING_FLAG(ARMED)){
