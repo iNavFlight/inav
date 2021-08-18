@@ -156,6 +156,7 @@ static float GForce, GForceAxis[XYZ_AXIS_COUNT];
 
 typedef struct statistic_s {
     uint16_t max_speed;
+    uint16_t max_3D_speed;
     uint16_t min_voltage; // /100
     int16_t max_current;
     int32_t max_power;
@@ -421,7 +422,7 @@ static int32_t osdConvertVelocityToUnit(int32_t vel)
  * Converts velocity into a string based on the current unit system.
  * @param alt Raw velocity (i.e. as taken from gpsSol.groundSpeed in centimeters/seconds)
  */
-void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D)
+void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D, bool _max)
 {
     switch ((osd_unit_e)osdConfig()->units) {
     case OSD_UNIT_UK:
@@ -429,13 +430,25 @@ void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D)
     case OSD_UNIT_METRIC_MPH:
         FALLTHROUGH;
     case OSD_UNIT_IMPERIAL:
-        tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), (_3D ? SYM_3D_MPH : SYM_MPH));
+        if (_max) { 
+            tfp_sprintf(buff, "%3d%c%c", (int)osdConvertVelocityToUnit(vel), SYM_MAX, (_3D ? SYM_3D_MPH : SYM_MPH));
+        } else {
+            tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), (_3D ? SYM_3D_MPH : SYM_MPH));
+        }
         break;
     case OSD_UNIT_METRIC:
-        tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), (_3D ? SYM_3D_KMH : SYM_KMH));
+        if (_max) { 
+            tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), (_3D ? SYM_3D_KMH : SYM_KMH));
+        } else {
+            tfp_sprintf(buff, "%3d%c%c", (int)osdConvertVelocityToUnit(vel), SYM_MAX, (_3D ? SYM_3D_KMH : SYM_KMH));
+        }
         break;
     case OSD_UNIT_GA:
-        tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), (_3D ? SYM_3D_KT : SYM_KT));
+        if (_max) { 
+            tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), (_3D ? SYM_3D_KT : SYM_KT));
+        } else {
+            tfp_sprintf(buff, "%3d%c%c", (int)osdConvertVelocityToUnit(vel), SYM_MAX, (_3D ? SYM_3D_KT : SYM_KT));
+        }
         break;
     }
 }
@@ -1569,14 +1582,20 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_GPS_SPEED:
-        osdFormatVelocityStr(buff, gpsSol.groundSpeed, false);
+        osdFormatVelocityStr(buff, gpsSol.groundSpeed, false, false);
+        break;
+
+    case OSD_GPS_MAX_SPEED:
+        osdFormatVelocityStr(buff, stats.max_speed, false, true);
         break;
 
     case OSD_3D_SPEED:
-        {
-            osdFormatVelocityStr(buff, osdGet3DSpeed(), true);
-            break;
-        }
+        osdFormatVelocityStr(buff, osdGet3DSpeed(), true, false);
+        break;
+    
+    case OSD_3D_MAX_SPEED:
+        osdFormatVelocityStr(buff, stats.max_3D_speed, true, true);
+        break;
 
     case OSD_GLIDESLOPE:
         {
@@ -2406,7 +2425,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
         #ifdef USE_PITOT
             buff[0] = SYM_AIR;
-            osdFormatVelocityStr(buff + 1, pitot.airSpeed, false);
+            osdFormatVelocityStr(buff + 1, pitot.airSpeed, false, false);
         #else
             return false;
         #endif
@@ -3434,6 +3453,7 @@ static void osdResetStats(void)
     stats.max_current = 0;
     stats.max_power = 0;
     stats.max_speed = 0;
+    stats.max_3D_speed = 0;
     stats.min_voltage = 5000;
     stats.min_rssi = 99;
     stats.min_lq = 300;
@@ -3447,8 +3467,11 @@ static void osdUpdateStats(void)
 
     if (feature(FEATURE_GPS)) {
         value = osdGet3DSpeed();
-        if (stats.max_speed < value)
-            stats.max_speed = value;
+        if (stats.max_3D_speed < value)
+            stats.max_3D_speed = value;
+
+        if (stats.max_speed < gpsSol.groundSpeed)
+            stats.max_speed = gpsSol.groundSpeed;
 
         if (stats.max_distance < GPS_distanceToHome)
             stats.max_distance = GPS_distanceToHome;
@@ -3497,7 +3520,7 @@ static void osdShowStatsPage1(void)
 
     if (feature(FEATURE_GPS)) {
         displayWrite(osdDisplayPort, statNameX, top, "MAX SPEED        :");
-        osdFormatVelocityStr(buff, stats.max_speed, true);
+        osdFormatVelocityStr(buff, stats.max_3D_speed, true, false);
         osdLeftAlignString(buff);
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
 

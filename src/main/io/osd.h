@@ -231,6 +231,8 @@ typedef enum {
     OSD_PLIMIT_ACTIVE_CURRENT_LIMIT,
     OSD_PLIMIT_ACTIVE_POWER_LIMIT,
     OSD_GLIDESLOPE,
+    OSD_GPS_MAX_SPEED,
+    OSD_3D_MAX_SPEED,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -412,7 +414,7 @@ int32_t osdGetAltitude(void);
 void osdCrosshairPosition(uint8_t *x, uint8_t *y);
 bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length);
 void osdFormatAltitudeSymbol(char *buff, int32_t alt);
-void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D);
+void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D, bool _max);
 // Returns a heading angle in degrees normalized to [0, 360).
 int osdGetHeadingAngle(int angle);
 
