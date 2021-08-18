@@ -251,7 +251,7 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
     }
 
 
-#if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE)
+#if defined(USE_NAV) && defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE)
     // Save waypoint list
     if (rcSticks == THR_LO + YAW_CE + PIT_HI + ROL_LO) {
         const bool success = saveNonVolatileWaypointList();

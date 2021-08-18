@@ -2808,6 +2808,7 @@ static bool osdDrawSingleElement(uint8_t item)
         osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "CTL S", 0, navConfig()->fw.control_smoothness, 1, 0, ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS);
         return true;
 
+#if defined(USE NAV)
     case OSD_MISSION:
         {
             if (ARMING_FLAG(ARMED)){
@@ -2826,6 +2827,8 @@ static bool osdDrawSingleElement(uint8_t item)
             displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
             return true;
         }
+#endif  // USE_NAV
+
 #ifdef USE_POWER_LIMITS
     case OSD_PLIMIT_REMAINING_BURST_TIME:
         osdFormatCentiNumber(buff, powerLimiterGetRemainingBurstTime() * 100, 0, 1, 0, 3);
@@ -3618,11 +3621,12 @@ static void osdShowArmed(void)
         displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(systemConfig() -> name)) / 2, y, craftNameBuf );
         y += 1;
     }
-
+#if defined(USE_NAV)
     if (posControl.waypointListValid && posControl.waypointCount > 0) {
         tfp_sprintf(buf, "MISSION %u/%u (%u WP)", posControl.loadedMultiMissionIndex, posControl.multiMissionCount, posControl.waypointCount);
         displayWrite(osdDisplayPort, 6, y, buf);
     }
+#endif
     y += 1;
 
 #if defined(USE_GPS)
