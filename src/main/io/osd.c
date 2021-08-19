@@ -431,23 +431,23 @@ void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D, bool _max)
         FALLTHROUGH;
     case OSD_UNIT_IMPERIAL:
         if (_max) { 
-            tfp_sprintf(buff, "%3d%c%c", (int)osdConvertVelocityToUnit(vel), SYM_MAX, (_3D ? SYM_3D_MPH : SYM_MPH));
+            tfp_sprintf(buff, "%c%3d%c", SYM_MAX, (int)osdConvertVelocityToUnit(vel), (_3D ? SYM_3D_MPH : SYM_MPH));
         } else {
             tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), (_3D ? SYM_3D_MPH : SYM_MPH));
         }
         break;
     case OSD_UNIT_METRIC:
         if (_max) { 
-            tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), (_3D ? SYM_3D_KMH : SYM_KMH));
+            tfp_sprintf(buff, "%c%3d%c", SYM_MAX, (int)osdConvertVelocityToUnit(vel), (_3D ? SYM_3D_KMH : SYM_KMH));
         } else {
-            tfp_sprintf(buff, "%3d%c%c", (int)osdConvertVelocityToUnit(vel), SYM_MAX, (_3D ? SYM_3D_KMH : SYM_KMH));
+            tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), (_3D ? SYM_3D_KMH : SYM_KMH));
         }
         break;
     case OSD_UNIT_GA:
         if (_max) { 
-            tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), (_3D ? SYM_3D_KT : SYM_KT));
+            tfp_sprintf(buff, "%c%3d%c", SYM_MAX, (int)osdConvertVelocityToUnit(vel), (_3D ? SYM_3D_KT : SYM_KT));
         } else {
-            tfp_sprintf(buff, "%3d%c%c", (int)osdConvertVelocityToUnit(vel), SYM_MAX, (_3D ? SYM_3D_KT : SYM_KT));
+            tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), (_3D ? SYM_3D_KT : SYM_KT));
         }
         break;
     }
