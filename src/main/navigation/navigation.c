@@ -3083,8 +3083,9 @@ void applyWaypointNavigationAndAltitudeHold(void)
 
     // No navigation when disarmed
     if (!ARMING_FLAG(ARMED)) {
-        // If we are disarmed, abort forced RTH
+        // If we are disarmed, abort forced RTH or Emergency Landing
         posControl.flags.forcedRTHActivated = false;
+        posControl.flags.forcedEmergLandingActivated = false;
         return;
     }
 
@@ -3174,6 +3175,10 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         const bool canActivateNavigation = canActivateNavigationModes();
         const bool isExecutingRTH        = navGetStateFlags(posControl.navState) & NAV_AUTO_RTH;
         checkSafeHomeState(isExecutingRTH || posControl.flags.forcedRTHActivated);
+
+        if (posControl.flags.forcedEmergLandingActivated) {
+            return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
+        }
 
         // Keep canActivateWaypoint flag at FALSE if there is no mission loaded
         // Also block WP mission if we are executing RTH
@@ -3575,6 +3580,7 @@ void navigationInit(void)
     posControl.flags.estAglStatus = EST_NONE;
 
     posControl.flags.forcedRTHActivated = 0;
+    posControl.flags.forcedEmergLandingActivated = false;
     posControl.waypointCount = 0;
     posControl.activeWaypointIndex = 0;
     posControl.waypointListValid = false;
@@ -3650,6 +3656,38 @@ rthState_e getStateOfForcedRTH(void)
     }
     else {
         return RTH_IDLE;
+    }
+}
+
+/*-----------------------------------------------------------
+ * Ability to execute Emergency Landing on external event
+ *-----------------------------------------------------------*/
+void activateForcedEmergLanding(void)
+{
+    abortFixedWingLaunch();
+    posControl.flags.forcedEmergLandingActivated = true;
+    navProcessFSMEvents(selectNavEventFromBoxModeInput());
+}
+
+void abortForcedEmergLanding(void)
+{
+    // Disable failsafe emergency landing and make sure we back out of navigation mode to IDLE
+    // If any navigation mode was active prior to emergency landing it will be re-enabled with next RX update
+    posControl.flags.forcedEmergLandingActivated = false;
+    navProcessFSMEvents(NAV_FSM_EVENT_SWITCH_TO_IDLE);
+}
+
+emergLandState_e getStateOfForcedEmergLanding(void)
+{
+    /* If forced emergency landing activated and in EMERG state */
+    if (posControl.flags.forcedEmergLandingActivated && (navGetStateFlags(posControl.navState) & NAV_CTL_EMERG)) {
+        if (posControl.navState == NAV_STATE_EMERGENCY_LANDING_FINISHED) {
+            return EMERG_LAND_HAS_LANDED;
+        } else {
+            return EMERG_LAND_IN_PROGRESS;
+        }
+    } else {
+        return EMERG_LAND_IDLE;
     }
 }
 
