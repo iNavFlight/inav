@@ -157,6 +157,7 @@ static float GForce, GForceAxis[XYZ_AXIS_COUNT];
 typedef struct statistic_s {
     uint16_t max_speed;
     uint16_t max_3D_speed;
+    uint16_t max_air_speed;
     uint16_t min_voltage; // /100
     int16_t max_current;
     int32_t max_power;
@@ -2432,6 +2433,18 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_AIR_MAX_SPEED:
+        {
+        #ifdef USE_PITOT
+            buff[0] = SYM_MAX;
+            buff[1] = SYM_AIR;
+            osdFormatVelocityStr(buff + 2, stats.max_air_speed, false, false);
+        #else
+            return false;
+        #endif
+            break;
+        }
+
     case OSD_RTC_TIME:
         {
             // RTC not configured will show 00:00
@@ -3454,6 +3467,7 @@ static void osdResetStats(void)
     stats.max_power = 0;
     stats.max_speed = 0;
     stats.max_3D_speed = 0;
+    stats.max_air_speed = 0;
     stats.min_voltage = 5000;
     stats.min_rssi = 99;
     stats.min_lq = 300;
@@ -3472,6 +3486,9 @@ static void osdUpdateStats(void)
 
         if (stats.max_speed < gpsSol.groundSpeed)
             stats.max_speed = gpsSol.groundSpeed;
+
+        if (stats.max_air_speed < pitot.airSpeed)
+            stats.max_air_speed = pitot.airSpeed;
 
         if (stats.max_distance < GPS_distanceToHome)
             stats.max_distance = GPS_distanceToHome;
