@@ -651,7 +651,7 @@ void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags,
         applyFixedWingLaunchController(currentTimeUs);
     }
     else if (navStateFlags & NAV_CTL_EMERG) {
-        applyFixedWingEmergencyLandingController();
+        applyFixedWingEmergencyLandingController(currentTimeUs);
     }
     else {
 #ifdef NAV_FW_LIMIT_MIN_FLY_VELOCITY
