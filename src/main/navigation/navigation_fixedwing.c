@@ -243,18 +243,18 @@ static int8_t loiterDirection(void) {
 
     if (pidProfile()->loiter_direction == NAV_LOITER_YAW) {
 
-        if (rcCommand[YAW] < -250) { 
+        if (rcCommand[YAW] < -250) {
             loiterDirYaw = 1; //RIGHT //yaw is contrariwise
         }
 
-        if (rcCommand[YAW] > 250) { 
+        if (rcCommand[YAW] > 250) {
             loiterDirYaw = -1; //LEFT  //see annexCode in fc_core.c
         }
 
         dir = loiterDirYaw;
     }
 
-    if (IS_RC_MODE_ACTIVE(BOXLOITERDIRCHN)) { 
+    if (IS_RC_MODE_ACTIVE(BOXLOITERDIRCHN)) {
         dir *= -1;
     }
 
@@ -612,13 +612,23 @@ bool isFixedWingLandingDetected(void)
 /*-----------------------------------------------------------
  * FixedWing emergency landing
  *-----------------------------------------------------------*/
-void applyFixedWingEmergencyLandingController(void)
+void applyFixedWingEmergencyLandingController(timeUs_t currentTimeUs)
 {
-    // FIXME: Use altitude controller if available (similar to MC code)
     rcCommand[ROLL] = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_roll_angle, pidProfile()->max_angle_inclination[FD_ROLL]);
-    rcCommand[PITCH] = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_pitch_angle, pidProfile()->max_angle_inclination[FD_PITCH]);
     rcCommand[YAW] = -pidRateToRcCommand(failsafeConfig()->failsafe_fw_yaw_rate, currentControlRateProfile->stabilized.rates[FD_YAW]);
     rcCommand[THROTTLE] = currentBatteryProfile->failsafe_throttle;
+
+    if (posControl.flags.estAltStatus >= EST_USABLE) {
+        updateClimbRateToAltitudeController(-1.0f * navConfig()->general.emerg_descent_rate, ROC_TO_ALT_NORMAL);
+        applyFixedWingAltitudeAndThrottleController(currentTimeUs);
+
+        if (isPitchAdjustmentValid) {
+            int16_t pitchCorrection = constrain(posControl.rcAdjustment[PITCH], -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_dive_angle), DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle));
+            rcCommand[PITCH] = -pidAngleToRcCommand(pitchCorrection, pidProfile()->max_angle_inclination[FD_PITCH]);
+        }
+    } else {
+        rcCommand[PITCH] = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_pitch_angle, pidProfile()->max_angle_inclination[FD_PITCH]);
+    }
 }
 
 /*-----------------------------------------------------------
