@@ -1542,7 +1542,8 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_BATTERY_REMAINING_PERCENT:
-        tfp_sprintf(buff, "%3d%%", calculateBatteryPercentage());
+        osdFormatBatteryChargeSymbol(buff);
+        tfp_sprintf(buff + 1, "%3d%%", calculateBatteryPercentage());
         osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
         break;
 
