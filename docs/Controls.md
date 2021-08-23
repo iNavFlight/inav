@@ -38,6 +38,7 @@ The stick positions are combined to activate different functions:
 | Save setting                  | LOW      | LOW     | LOW    | HIGH   |
 | Enter OSD Menu (CMS)          | CENTER   | LOW     | HIGH   | CENTER |
 
+For graphical stick position in all transmitter modes, check out [this page](https://www.mrd-rc.com/tutorials-tools-and-testing/inav-flight/inav-stick-commands-for-all-transmitter-modes/).
 ![Stick Positions](assets/images/StickPositions.png)
 
 "Load/unload Mission" is a toggle. If no mission is loaded to RAM, the EEPROM mission is loaded; if a mission is in RAM, it is cleared. Successful loading is indicated by the `ACTION_SUCCESS` beep, otherwise the `ACTION_FAIL` beep is played.
