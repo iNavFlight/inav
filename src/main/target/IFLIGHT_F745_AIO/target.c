@@ -28,10 +28,10 @@ const timerHardware_t timerHardware[] = {
 
     DEF_TIM(TIM4,  CH1, PD12,  TIM_USE_LED,                 0, 0 ), // S6_IN DMA2_ST7
 
-    DEF_TIM(TIM3,  CH3, PB0,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,               0, 0 ), // S10_OUT 1 DMA1_ST7
-    DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,               0, 0 ), // S6_OUT  2 DMA1_ST0
-    DEF_TIM(TIM1,  CH1, PE9,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,               0, 0 ), // S2_OUT  3 DMA1_ST4
-    DEF_TIM(TIM1,  CH2, PE11,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,               0, 0 ), // S1_OUT  4 DMA1_ST1 DMA1_ST3
+    DEF_TIM(TIM3,  CH3, PB0,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,               0, 0 ), // M1 DMA1_ST7
+    DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,               0, 0 ), // M2 DMA1_ST2
+    DEF_TIM(TIM1,  CH1, PE9,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,               0, 2 ), // M3 DMA2_ST3
+    DEF_TIM(TIM1,  CH2, PE11,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,               0, 1 ), // M4 DMA2_ST2
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
