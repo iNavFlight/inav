@@ -3176,6 +3176,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         const bool isExecutingRTH        = navGetStateFlags(posControl.navState) & NAV_AUTO_RTH;
         checkSafeHomeState(isExecutingRTH || posControl.flags.forcedRTHActivated);
 
+        /* Emergency landing triggered by failsafe when Failsafe procedure set to Landing */
         if (posControl.flags.forcedEmergLandingActivated) {
             return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
         }
@@ -3671,7 +3672,7 @@ void activateForcedEmergLanding(void)
 
 void abortForcedEmergLanding(void)
 {
-    // Disable failsafe emergency landing and make sure we back out of navigation mode to IDLE
+    // Disable emergency landing and make sure we back out of navigation mode to IDLE
     // If any navigation mode was active prior to emergency landing it will be re-enabled with next RX update
     posControl.flags.forcedEmergLandingActivated = false;
     navProcessFSMEvents(NAV_FSM_EVENT_SWITCH_TO_IDLE);

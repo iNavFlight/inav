@@ -226,14 +226,19 @@ bool failsafeRequiresAngleMode(void)
            failsafeProcedureLogic[failsafeState.activeProcedure].forceAngleMode;
 }
 
-#if !defined(USE_NAV)
 bool failsafeRequiresMotorStop(void)
 {
+#if defined(USE_NAV)
+    return failsafeState.active &&
+           failsafeState.activeProcedure == FAILSAFE_PROCEDURE_AUTO_LANDING &&
+           posControl.flags.estAltStatus < EST_USABLE &&
+           currentBatteryProfile->failsafe_throttle < getThrottleIdleValue();
+#else
     return failsafeState.active &&
            failsafeState.activeProcedure == FAILSAFE_PROCEDURE_AUTO_LANDING &&
            currentBatteryProfile->failsafe_throttle < getThrottleIdleValue();
-}
 #endif
+}
 
 void failsafeStartMonitoring(void)
 {
@@ -454,7 +459,7 @@ void failsafeUpdateState(void)
 
                     switch (failsafeState.activeProcedure) {
                         case FAILSAFE_PROCEDURE_AUTO_LANDING:
-                            // Use Emergency Landing if Nav defined. Ootherwise stabilize, and set Throttle to specified level.
+                            // Use Emergency Landing if Nav defined. otherwise stabilize and set Throttle to specified level.
                             failsafeActivate(FAILSAFE_LANDING);
 #if defined(USE_NAV)
                             activateForcedEmergLanding();
