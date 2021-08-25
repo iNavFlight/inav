@@ -2513,15 +2513,28 @@ static void cliFeature(char *cmdline)
 #ifdef USE_BLACKBOX
 static void printBlackbox(uint8_t dumpMask, const blackboxConfig_t *config, const blackboxConfig_t *configDefault)
 {
-    uint32_t mask = config->includeFlags;
-    uint32_t defaultMask = configDefault->includeFlags;
 
-    for (uint8_t i = 0; ; i++) {
-        const char *formatOff = "blackbox -%s";
+    UNUSED(configDefault);
+
+    uint32_t mask = config->includeFlags;
+
+    for (uint8_t i = 0; ; i++) {  // reenable what we want.
+        if (blackboxIncludeFlagNames[i] == NULL) {
+            break;
+        }
+        
         const char *formatOn = "blackbox %s";
-        cliDefaultPrintLinef(dumpMask, ~(mask ^ defaultMask) & (1 << i), mask & (1 << i) ? formatOn : formatOff, blackboxIncludeFlagNames[i]);
-        cliDumpPrintLinef(dumpMask, ~(mask ^ defaultMask) & (1 << i), mask & (1 << i) ? formatOff : formatOn, blackboxIncludeFlagNames[i]);
+        const char *formatOff = "blackbox -%s";
+        
+        if (mask & (1 << i)) {
+            cliDumpPrintLinef(dumpMask, false, formatOn, blackboxIncludeFlagNames[i]);
+            cliDefaultPrintLinef(dumpMask, false, formatOn, blackboxIncludeFlagNames[i]);
+        } else {
+            cliDumpPrintLinef(dumpMask, false, formatOff, blackboxIncludeFlagNames[i]);
+            cliDefaultPrintLinef(dumpMask, false, formatOff, blackboxIncludeFlagNames[i]);
+        }
     }
+
 }
 
 static void cliBlackbox(char *cmdline)
@@ -2532,8 +2545,10 @@ static void cliBlackbox(char *cmdline)
     if (len == 0) {
         cliPrint("Enabled: ");
         for (uint8_t i = 0; ; i++) {
-            if (blackboxIncludeFlagNames[i] == NULL)
+            if (blackboxIncludeFlagNames[i] == NULL) {
                 break;
+            }
+
             if (mask & (1 << i))
                 cliPrintf("%s ", blackboxIncludeFlagNames[i]);
         }
@@ -2541,8 +2556,10 @@ static void cliBlackbox(char *cmdline)
     } else if (sl_strncasecmp(cmdline, "list", len) == 0) {
         cliPrint("Available: ");
         for (uint32_t i = 0; ; i++) {
-            if (blackboxIncludeFlagNames[i] == NULL)
+            if (blackboxIncludeFlagNames[i] == NULL) {
                 break;
+            }
+
             cliPrintf("%s ", blackboxIncludeFlagNames[i]);
         }
         cliPrintLinefeed();
