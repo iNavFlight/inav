@@ -459,7 +459,7 @@ void failsafeUpdateState(void)
 
                     switch (failsafeState.activeProcedure) {
                         case FAILSAFE_PROCEDURE_AUTO_LANDING:
-                            // Use Emergency Landing if Nav defined. otherwise stabilize and set Throttle to specified level.
+                            // Use Emergency Landing if Nav defined (otherwise stabilize and set Throttle to specified level).
                             failsafeActivate(FAILSAFE_LANDING);
 #if defined(USE_NAV)
                             activateForcedEmergLanding();
