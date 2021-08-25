@@ -162,6 +162,12 @@ static const char * const featureNames[] = {
     "OSD", "FW_LAUNCH", "FW_AUTOTRIM", NULL
 };
 
+#ifdef USE_BLACKBOX
+static const char * const blackboxIncludeFlagNames[] = {
+    "NAV", NULL
+};
+#endif
+
 /* Sensor names (used in lookup tables for *_hardware settings and in status command output) */
 // sync with gyroSensor_e
 static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6050", "L3G4200D", "MPU3050", "L3GD20", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"};
@@ -2504,6 +2510,77 @@ static void cliFeature(char *cmdline)
     }
 }
 
+#ifdef USE_BLACKBOX
+static void printBlackbox(uint8_t dumpMask, const blackboxConfig_t *config, const blackboxConfig_t *configDefault)
+{
+    uint32_t mask = config->includeFlags;
+    uint32_t defaultMask = configDefault->includeFlags;
+
+    for (uint8_t i = 0; ; i++) {
+        const char *formatOff = "blackbox -%s";
+        const char *formatOn = "blackbox %s";
+        cliDefaultPrintLinef(dumpMask, ~(mask ^ defaultMask) & (1 << i), mask & (1 << i) ? formatOn : formatOff, blackboxIncludeFlagNames[i]);
+        cliDumpPrintLinef(dumpMask, ~(mask ^ defaultMask) & (1 << i), mask & (1 << i) ? formatOff : formatOn, blackboxIncludeFlagNames[i]);
+    }
+}
+
+static void cliBlackbox(char *cmdline)
+{
+    uint32_t len = strlen(cmdline);
+    uint32_t mask = blackboxConfig()->includeFlags;
+
+    if (len == 0) {
+        cliPrint("Enabled: ");
+        for (uint8_t i = 0; ; i++) {
+            if (blackboxIncludeFlagNames[i] == NULL)
+                break;
+            if (mask & (1 << i))
+                cliPrintf("%s ", blackboxIncludeFlagNames[i]);
+        }
+        cliPrintLinefeed();
+    } else if (sl_strncasecmp(cmdline, "list", len) == 0) {
+        cliPrint("Available: ");
+        for (uint32_t i = 0; ; i++) {
+            if (blackboxIncludeFlagNames[i] == NULL)
+                break;
+            cliPrintf("%s ", blackboxIncludeFlagNames[i]);
+        }
+        cliPrintLinefeed();
+        return;
+    } else {
+        bool remove = false;
+        if (cmdline[0] == '-') {
+            // remove feature
+            remove = true;
+            cmdline++; // skip over -
+            len--;
+        }
+
+        for (uint32_t i = 0; ; i++) {
+            if (blackboxIncludeFlagNames[i] == NULL) {
+                cliPrintErrorLine("Invalid name");
+                break;
+            }
+
+            if (sl_strncasecmp(cmdline, blackboxIncludeFlagNames[i], len) == 0) {
+
+                mask = 1 << i;
+
+                if (remove) {
+                    blackboxIncludeFlagClear(mask);
+                    cliPrint("Disabled");
+                } else {
+                    blackboxIncludeFlagSet(mask);
+                    cliPrint("Enabled");
+                }
+                cliPrintLinef(" %s", blackboxIncludeFlagNames[i]);
+                break;
+            }
+        }
+    }
+}
+#endif
+
 #if defined(BEEPER) || defined(USE_DSHOT)
 static void printBeeper(uint8_t dumpMask, const beeperConfig_t *beeperConfig, const beeperConfig_t *beeperConfigDefault)
 {
@@ -3505,6 +3582,11 @@ static void printConfig(const char *cmdline, bool doDiff)
         printBeeper(dumpMask, &beeperConfig_Copy, beeperConfig());
 #endif
 
+#ifdef USE_BLACKBOX
+        cliPrintHashLine("blackbox");
+        printBlackbox(dumpMask, &blackboxConfig_Copy, blackboxConfig());
+#endif
+
         cliPrintHashLine("map");
         printMap(dumpMask, &rxConfig_Copy, rxConfig());
 
@@ -3698,6 +3780,11 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("feature", "configure features",
         "list\r\n"
         "\t<+|->[name]", cliFeature),
+#ifdef USE_BLACKBOX
+    CLI_COMMAND_DEF("blackbox", "configure blackbox fields",
+        "list\r\n"
+        "\t<+|->[name]", cliBlackbox),
+#endif
 #ifdef USE_FLASHFS
     CLI_COMMAND_DEF("flash_erase", "erase flash chip", NULL, cliFlashErase),
     CLI_COMMAND_DEF("flash_info", "show flash chip info", NULL, cliFlashInfo),

@@ -97,14 +97,25 @@
 #define BLACKBOX_INVERTED_CARD_DETECTION 0
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig, PG_BLACKBOX_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig, PG_BLACKBOX_CONFIG, 2);
 
 PG_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig,
     .device = DEFAULT_BLACKBOX_DEVICE,
     .rate_num = SETTING_BLACKBOX_RATE_NUM_DEFAULT,
     .rate_denom = SETTING_BLACKBOX_RATE_DENOM_DEFAULT,
     .invertedCardDetection = BLACKBOX_INVERTED_CARD_DETECTION,
+    .includeFlags = BLACBOX_FEATURE_NAV,
 );
+
+void blackboxIncludeFlagSet(uint32_t mask)
+{
+    blackboxConfigMutable()->includeFlags |= mask;
+}
+
+void blackboxIncludeFlagClear(uint32_t mask)
+{
+    blackboxConfigMutable()->includeFlags &= ~(mask);
+}
 
 #define BLACKBOX_SHUTDOWN_TIMEOUT_MILLIS 200
 static const int32_t blackboxSInterval = 4096;
