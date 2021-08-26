@@ -1077,31 +1077,38 @@ static void writeInterframe(void)
     blackboxWriteSignedVB(blackboxCurrent->navState - blackboxLast->navState);
 
     blackboxWriteSignedVB(blackboxCurrent->navFlags - blackboxLast->navFlags);
-    blackboxWriteSignedVB(blackboxCurrent->navEPH - blackboxLast->navEPH);
-    blackboxWriteSignedVB(blackboxCurrent->navEPV - blackboxLast->navEPV);
 
-    for (int x = 0; x < XYZ_AXIS_COUNT; x++) {
-        blackboxWriteSignedVB(blackboxCurrent->navPos[x] - blackboxLast->navPos[x]);
-    }
+    /*
+     * NAV_POS fields
+     */
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_NAV_POS)) {
+        blackboxWriteSignedVB(blackboxCurrent->navEPH - blackboxLast->navEPH);
+        blackboxWriteSignedVB(blackboxCurrent->navEPV - blackboxLast->navEPV);
 
-    for (int x = 0; x < XYZ_AXIS_COUNT; x++) {
-        blackboxWriteSignedVB(blackboxHistory[0]->navRealVel[x] - (blackboxHistory[1]->navRealVel[x] + blackboxHistory[2]->navRealVel[x]) / 2);
+        for (int x = 0; x < XYZ_AXIS_COUNT; x++) {
+            blackboxWriteSignedVB(blackboxCurrent->navPos[x] - blackboxLast->navPos[x]);
+        }
+
+        for (int x = 0; x < XYZ_AXIS_COUNT; x++) {
+            blackboxWriteSignedVB(blackboxHistory[0]->navRealVel[x] - (blackboxHistory[1]->navRealVel[x] + blackboxHistory[2]->navRealVel[x]) / 2);
+        }
+
+
+        for (int x = 0; x < XYZ_AXIS_COUNT; x++) {
+            blackboxWriteSignedVB(blackboxHistory[0]->navTargetVel[x] - (blackboxHistory[1]->navTargetVel[x] + blackboxHistory[2]->navTargetVel[x]) / 2);
+        }
+
+        for (int x = 0; x < XYZ_AXIS_COUNT; x++) {
+            blackboxWriteSignedVB(blackboxHistory[0]->navTargetPos[x] - blackboxLast->navTargetPos[x]);
+        }
+
+        blackboxWriteSignedVB(blackboxCurrent->navSurface - blackboxLast->navSurface);
     }
 
     for (int x = 0; x < XYZ_AXIS_COUNT; x++) {
         blackboxWriteSignedVB(blackboxHistory[0]->navAccNEU[x] - (blackboxHistory[1]->navAccNEU[x] + blackboxHistory[2]->navAccNEU[x]) / 2);
     }
-
-    for (int x = 0; x < XYZ_AXIS_COUNT; x++) {
-        blackboxWriteSignedVB(blackboxHistory[0]->navTargetVel[x] - (blackboxHistory[1]->navTargetVel[x] + blackboxHistory[2]->navTargetVel[x]) / 2);
-    }
-
-    for (int x = 0; x < XYZ_AXIS_COUNT; x++) {
-        blackboxWriteSignedVB(blackboxHistory[0]->navTargetPos[x] - blackboxLast->navTargetPos[x]);
-    }
-
-    blackboxWriteSignedVB(blackboxCurrent->navSurface - blackboxLast->navSurface);
-
+    
     //Rotate our history buffers
     blackboxHistory[2] = blackboxHistory[1];
     blackboxHistory[1] = blackboxHistory[0];
