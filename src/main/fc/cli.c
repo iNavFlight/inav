@@ -164,7 +164,7 @@ static const char * const featureNames[] = {
 
 #ifdef USE_BLACKBOX
 static const char * const blackboxIncludeFlagNames[] = {
-    "NAV", NULL
+    "NAV_ACC", "NAV_POS", "NAV_PID", "MAG", "ACC", NULL
 };
 #endif
 

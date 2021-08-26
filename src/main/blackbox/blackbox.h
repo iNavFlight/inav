@@ -22,7 +22,11 @@
 #include "config/parameter_group.h"
 
 typedef enum {
-    BLACBOX_FEATURE_NAV = 1 << 0,
+    BLACKBOX_FEATURE_NAV_ACC     = 1 << 0,
+    BLACKBOX_FEATURE_NAV_POS     = 1 << 1,
+    BLACKBOX_FEATURE_NAV_PID     = 1 << 2,
+    BLACKBOX_FEATURE_MAG         = 1 << 3,
+    BLACKBOX_FEATURE_ACC         = 1 << 4,
 } blackboxFeatureMask_e;
 
 
