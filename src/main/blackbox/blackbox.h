@@ -45,3 +45,4 @@ void blackboxFinish(void);
 bool blackboxMayEditConfig(void);
 void blackboxIncludeFlagSet(uint32_t mask);
 void blackboxIncludeFlagClear(uint32_t mask);
+bool blackboxIncludeFlag(uint32_t mask);

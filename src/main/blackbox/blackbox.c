@@ -117,6 +117,10 @@ void blackboxIncludeFlagClear(uint32_t mask)
     blackboxConfigMutable()->includeFlags &= ~(mask);
 }
 
+bool blackboxIncludeFlag(uint32_t mask) {
+    return (blackboxConfig()->includeFlags & mask) != 0;
+}
+
 #define BLACKBOX_SHUTDOWN_TIMEOUT_MILLIS 200
 static const int32_t blackboxSInterval = 4096;
 
