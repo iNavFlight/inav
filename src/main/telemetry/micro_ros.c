@@ -15,6 +15,8 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma GCC diagnostic ignored "-Wstrict-prototypes"
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
