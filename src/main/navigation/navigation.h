@@ -69,9 +69,6 @@ bool findNearestSafeHome(void);                  // Find nearest safehome
 #endif // defined(USE_SAFE_HOME)
 
 #if defined(USE_NAV)
-#if defined(USE_BLACKBOX)
-#define NAV_BLACKBOX
-#endif
 
 #ifndef NAV_MAX_WAYPOINTS
 #define NAV_MAX_WAYPOINTS 15
