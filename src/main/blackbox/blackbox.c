@@ -1698,15 +1698,18 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("rates", "%d,%d,%d",                     currentControlRateProfile->stabilized.rates[ROLL],
                                                                             currentControlRateProfile->stabilized.rates[PITCH],
                                                                             currentControlRateProfile->stabilized.rates[YAW]);
-        BLACKBOX_PRINT_HEADER_LINE("rollPID", "%d,%d,%d",                   pidBank()->pid[PID_ROLL].P,
+        BLACKBOX_PRINT_HEADER_LINE("rollPID", "%d,%d,%d,%d",                pidBank()->pid[PID_ROLL].P,
                                                                             pidBank()->pid[PID_ROLL].I,
-                                                                            pidBank()->pid[PID_ROLL].D);
-        BLACKBOX_PRINT_HEADER_LINE("pitchPID", "%d,%d,%d",                  pidBank()->pid[PID_PITCH].P,
+                                                                            pidBank()->pid[PID_ROLL].D,
+                                                                            pidBank()->pid[PID_ROLL].FF);
+        BLACKBOX_PRINT_HEADER_LINE("pitchPID", "%d,%d,%d,%d",               pidBank()->pid[PID_PITCH].P,
                                                                             pidBank()->pid[PID_PITCH].I,
-                                                                            pidBank()->pid[PID_PITCH].D);
-        BLACKBOX_PRINT_HEADER_LINE("yawPID", "%d,%d,%d",                    pidBank()->pid[PID_YAW].P,
+                                                                            pidBank()->pid[PID_PITCH].D,
+                                                                            pidBank()->pid[PID_PITCH].FF);
+        BLACKBOX_PRINT_HEADER_LINE("yawPID", "%d,%d,%d,%d",                 pidBank()->pid[PID_YAW].P,
                                                                             pidBank()->pid[PID_YAW].I,
-                                                                            pidBank()->pid[PID_YAW].D);
+                                                                            pidBank()->pid[PID_YAW].D,
+                                                                            pidBank()->pid[PID_YAW].FF);
         BLACKBOX_PRINT_HEADER_LINE("altPID", "%d,%d,%d",                    pidBank()->pid[PID_POS_Z].P,
                                                                             pidBank()->pid[PID_POS_Z].I,
                                                                             pidBank()->pid[PID_POS_Z].D);
