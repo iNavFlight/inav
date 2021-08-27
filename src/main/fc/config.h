@@ -30,7 +30,7 @@
 #define MAX_NAME_LENGTH 16
 
 #define TASK_GYRO_LOOPTIME 250 // Task gyro always runs at 4kHz
- typedef enum {
+typedef enum {
     FEATURE_THR_VBAT_COMP = 1 << 0,
     FEATURE_VBAT = 1 << 1,
     FEATURE_TX_PROF_SEL = 1 << 2,       // Profile selection by TX stick command
