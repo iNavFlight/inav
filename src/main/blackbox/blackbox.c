@@ -1405,6 +1405,7 @@ static void loadMainState(timeUs_t currentTimeUs)
         blackboxCurrent->axisPID_P[i] = axisPID_P[i];
         blackboxCurrent->axisPID_I[i] = axisPID_I[i];
         blackboxCurrent->axisPID_D[i] = axisPID_D[i];
+        blackboxCurrent->axisPID_FF[i] = axisPID_FF[i];
         blackboxCurrent->gyroADC[i] = lrintf(gyro.gyroADCf[i]);
         blackboxCurrent->accADC[i] = lrintf(acc.accADCf[i] * acc.dev.acc_1G);
 #ifdef USE_MAG
