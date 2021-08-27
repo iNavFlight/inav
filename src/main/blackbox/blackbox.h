@@ -27,6 +27,7 @@ typedef enum {
     BLACKBOX_FEATURE_NAV_PID     = 1 << 2,
     BLACKBOX_FEATURE_MAG         = 1 << 3,
     BLACKBOX_FEATURE_ACC         = 1 << 4,
+    BLACKBOX_FEATURE_ATTITUDE    = 1 << 5,
 } blackboxFeatureMask_e;
 
 

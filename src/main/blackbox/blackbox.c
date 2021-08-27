@@ -282,12 +282,12 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"gyroADC",     0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
     {"gyroADC",     1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
     {"gyroADC",     2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
-    {"accSmooth",   0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
-    {"accSmooth",   1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
-    {"accSmooth",   2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
-    {"attitude",    0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
-    {"attitude",    1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
-    {"attitude",    2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"accSmooth",   0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_ACC},
+    {"accSmooth",   1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_ACC},
+    {"accSmooth",   2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_ACC},
+    {"attitude",    0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_ATTITUDE},
+    {"attitude",    1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_ATTITUDE},
+    {"attitude",    2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_ATTITUDE},
     {"debug",       0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_DEBUG},
     {"debug",       1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_DEBUG},
     {"debug",       2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_DEBUG},
@@ -677,6 +677,9 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
     case FLIGHT_LOG_FIELD_CONDITION_ACC:
         return blackboxIncludeFlag(BLACKBOX_FEATURE_ACC);
 
+    case FLIGHT_LOG_FIELD_CONDITION_ATTITUDE:
+        return blackboxIncludeFlag(BLACKBOX_FEATURE_ATTITUDE);
+
     case FLIGHT_LOG_FIELD_CONDITION_NEVER:
         return false;
 
@@ -832,8 +835,14 @@ static void writeIntraframe(void)
     }
 
     blackboxWriteSigned16VBArray(blackboxCurrent->gyroADC, XYZ_AXIS_COUNT);
-    blackboxWriteSigned16VBArray(blackboxCurrent->accADC, XYZ_AXIS_COUNT);
-    blackboxWriteSigned16VBArray(blackboxCurrent->attitude, XYZ_AXIS_COUNT);
+    
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_ACC)) {
+        blackboxWriteSigned16VBArray(blackboxCurrent->accADC, XYZ_AXIS_COUNT);
+    }
+
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_ATTITUDE)) {
+        blackboxWriteSigned16VBArray(blackboxCurrent->attitude, XYZ_AXIS_COUNT);
+    }
 
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_DEBUG)) {
         blackboxWriteSignedVBArray(blackboxCurrent->debug, DEBUG32_VALUE_COUNT);
@@ -1065,8 +1074,15 @@ static void writeInterframe(void)
 
     //Since gyros, accs and motors are noisy, base their predictions on the average of the history:
     blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, gyroADC),   XYZ_AXIS_COUNT);
-    blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, accADC), XYZ_AXIS_COUNT);
-    blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, attitude), XYZ_AXIS_COUNT);
+
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_ACC)) {
+        blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, accADC), XYZ_AXIS_COUNT);
+    }
+
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_ATTITUDE)) {
+        blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, attitude), XYZ_AXIS_COUNT);
+    }
+    
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_DEBUG)) {
         blackboxWriteArrayUsingAveragePredictor32(offsetof(blackboxMainState_t, debug), DEBUG32_VALUE_COUNT);
     }
