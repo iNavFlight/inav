@@ -983,7 +983,8 @@ static void writeInterframe(void)
         }
     }
 
-    blackboxWriteSignedVBArray(blackboxCurrent->axisPID_F, XYZ_AXIS_COUNT);
+    arraySubInt32(deltas, blackboxCurrent->axisPID_F, blackboxLast->axisPID_F, XYZ_AXIS_COUNT);
+    blackboxWriteSignedVBArray(deltas, XYZ_AXIS_COUNT);
 
     if (testBlackboxCondition(CONDITION(FIXED_WING_NAV))) {
 
