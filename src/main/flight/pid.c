@@ -544,7 +544,7 @@ void updatePIDCoefficients()
             pidState[axis].kP  = pidBank()->pid[axis].P / FP_PID_RATE_P_MULTIPLIER * axisTPA;
             pidState[axis].kI  = pidBank()->pid[axis].I / FP_PID_RATE_I_MULTIPLIER;
             pidState[axis].kD  = pidBank()->pid[axis].D / FP_PID_RATE_D_MULTIPLIER * axisTPA;
-            pidState[axis].kCD = pidBank()->pid[axis].FF / FP_PID_RATE_D_FF_MULTIPLIER * axisTPA;
+            pidState[axis].kCD = (pidBank()->pid[axis].FF / FP_PID_RATE_D_FF_MULTIPLIER * axisTPA) / (getLooptime() * 0.000001f);
             pidState[axis].kFF = 0.0f;
 
             // Tracking anti-windup requires P/I/D to be all defined which is only true for MC
@@ -809,22 +809,10 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
     const float rateTargetDelta = pidState->rateTarget - pidState->previousRateTarget;
     const float rateTargetDeltaFiltered = pt3FilterApply(&pidState->rateTargetFilter, rateTargetDelta);
 
-    if (axis == FD_ROLL) {
-        DEBUG_SET(DEBUG_ALWAYS, 0, pidState->rateTarget);
-        DEBUG_SET(DEBUG_ALWAYS, 1, rateTargetDelta);
-        DEBUG_SET(DEBUG_ALWAYS, 2, rateTargetDeltaFiltered * 1000);
-        DEBUG_SET(DEBUG_ALWAYS, 3, dT * 1000000.0f);
-    }
-
-
     /*
      * Compute Control Derivative
      */
-    const float newCDTerm = rateTargetDeltaFiltered * (pidState->kCD / dT);
-
-    if (axis == FD_ROLL) {
-        DEBUG_SET(DEBUG_ALWAYS, 7, newCDTerm);
-    }
+    const float newCDTerm = rateTargetDeltaFiltered * pidState->kCD;
 
     // TODO: Get feedback from mixer on available correction range for each axis
     const float newOutput = newPTerm + newDTerm + pidState->errorGyroIf + newCDTerm;
