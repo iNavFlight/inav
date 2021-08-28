@@ -107,7 +107,7 @@ typedef struct {
     bool itermLimitActive;
     bool itermFreezeActive;
 
-    pt2Filter_t rateTargetFilter;
+    pt3Filter_t rateTargetFilter;
 
     smithPredictor_t smithPredictor;
 } pidState_t;
@@ -343,7 +343,7 @@ bool pidInitFilters(void)
 
     if (pidProfile()->controlDerivativeLpfHz) {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            pt2FilterInit(&pidState[axis].rateTargetFilter, pt2FilterGain(pidProfile()->controlDerivativeLpfHz, refreshRate * 1e-6f));
+            pt3FilterInit(&pidState[axis].rateTargetFilter, pt3FilterGain(pidProfile()->controlDerivativeLpfHz, refreshRate * 1e-6f));
         }
     }
 
@@ -807,12 +807,24 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
     const float newDTerm = dTermProcess(pidState, dT);
 
     const float rateTargetDelta = pidState->rateTarget - pidState->previousRateTarget;
-    const float rateTargetDeltaFiltered = pt2FilterApply(&pidState->rateTargetFilter, rateTargetDelta);
+    const float rateTargetDeltaFiltered = pt3FilterApply(&pidState->rateTargetFilter, rateTargetDelta);
+
+    if (axis == FD_ROLL) {
+        DEBUG_SET(DEBUG_ALWAYS, 0, pidState->rateTarget);
+        DEBUG_SET(DEBUG_ALWAYS, 1, rateTargetDelta);
+        DEBUG_SET(DEBUG_ALWAYS, 2, rateTargetDeltaFiltered * 1000);
+        DEBUG_SET(DEBUG_ALWAYS, 3, dT * 1000000.0f);
+    }
+
 
     /*
      * Compute Control Derivative
      */
     const float newCDTerm = rateTargetDeltaFiltered * (pidState->kCD / dT);
+
+    if (axis == FD_ROLL) {
+        DEBUG_SET(DEBUG_ALWAYS, 7, newCDTerm);
+    }
 
     // TODO: Get feedback from mixer on available correction range for each axis
     const float newOutput = newPTerm + newDTerm + pidState->errorGyroIf + newCDTerm;
