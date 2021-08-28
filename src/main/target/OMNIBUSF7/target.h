@@ -73,7 +73,6 @@
 #define UART1_RX_PIN PA10
 #define UART1_TX_PIN PA9
 
-//#define AVOID_UART2_FOR_PWM_PPM
 #define USE_UART2
 #define UART2_TX_PIN PA2 //not wired
 #define UART2_RX_PIN PA3

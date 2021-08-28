@@ -60,7 +60,6 @@ uint8_t cliMode = 0;
 #include "drivers/io_impl.h"
 #include "drivers/osd_symbols.h"
 #include "drivers/persistent.h"
-#include "drivers/rx_pwm.h"
 #include "drivers/sdcard/sdcard.h"
 #include "drivers/sensor.h"
 #include "drivers/serial.h"
