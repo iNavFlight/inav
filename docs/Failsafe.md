@@ -139,13 +139,13 @@ Throttle level used for landing.  Specify a value that causes the aircraft to de
 
 #### `failsafe_fw_roll_angle`
 
-This parameter defines amount of roll angle (in 1/10 deg units) to execute on failsafe. Negative = LEFT
+This parameter defines the amount of roll angle (in 1/10 deg units) to execute on failsafe. Negative = LEFT
 
 #### `failsafe_fw_pitch_angle`
 
-This parameter defines amount of pitch angle (in 1/10 deg units) to execute on `SET-THR` failsafe for an airplane. Negative = CLIMB
+This parameter defines the amount of pitch angle (in 1/10 deg units) to execute on failsafe for an airplane. Negative = CLIMB
 
 #### `failsafe_fw_yaw_rate`
 
-This parameter defines amount of yaw rate (in deg per second units) to execute on `SET-THR` failsafe for an airplane. Negative = LEFT
+This parameter defines the amount of yaw rate (in deg per second units) to execute on failsafe for an airplane. Negative = LEFT
 

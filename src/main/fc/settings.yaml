@@ -910,17 +910,17 @@ groups:
         min: 0
         max: 500
       - name: failsafe_fw_roll_angle
-        description: "Amount of banking when `LAND` failsafe is active on a fixed-wing machine. In 1/10 deg (deci-degrees). Negative values = left roll"
+        description: "Amount of banking when `LAND` (or old `SET-THR`) failsafe is active on a fixed-wing machine. In 1/10 deg (deci-degrees). Negative values = left roll"
         default_value: -200
         min: -800
         max: 800
       - name: failsafe_fw_pitch_angle
-        description: "Amount of dive/climb when `LAND` failsafe is active on a fixed-wing machine. In 1/10 deg (deci-degrees). Negative values = climb"
+        description: "Amount of dive/climb when `LAND` (or old `SET-THR`) failsafe is active on a fixed-wing machine. In 1/10 deg (deci-degrees). Negative values = climb"
         default_value: 100
         min: -800
         max: 800
       - name: failsafe_fw_yaw_rate
-        description: "Requested yaw rate to execute when `LAND` failsafe is active on a fixed-wing machine. In deg/s. Negative values = left turn"
+        description: "Requested yaw rate to execute when `LAND` (or old `SET-THR`) failsafe is active on a fixed-wing machine. In deg/s. Negative values = left turn"
         default_value: -45
         min: -1000
         max: 1000
