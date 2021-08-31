@@ -193,13 +193,6 @@ void validateAndFixConfig(void)
     // Disable unused features
     featureClear(FEATURE_UNUSED_1 | FEATURE_UNUSED_3 | FEATURE_UNUSED_4 | FEATURE_UNUSED_5 | FEATURE_UNUSED_6 | FEATURE_UNUSED_7 | FEATURE_UNUSED_8 | FEATURE_UNUSED_9 | FEATURE_UNUSED_10);
 
-#if !defined(USE_RX_PPM)
-    if (rxConfig()->receiverType == RX_TYPE_PPM) {
-        rxConfigMutable()->receiverType = RX_TYPE_NONE;
-    }
-#endif
-
-
 #if defined(USE_LED_STRIP) && (defined(USE_SOFTSERIAL1) || defined(USE_SOFTSERIAL2))
     if (featureConfigured(FEATURE_SOFTSERIAL) && featureConfigured(FEATURE_LED_STRIP)) {
         const timerHardware_t *ledTimerHardware = timerGetByTag(IO_TAG(WS2811_PIN), TIM_USE_ANY);
