@@ -160,7 +160,7 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
         poi_is_oos = 1; // POI is out of camera view for sure
     }
 
-    // Out-of-sight arrows and stacking
+    // Out-of-sight arrows
 
     if (poi_is_oos) {
         uint16_t d;
