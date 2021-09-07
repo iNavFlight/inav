@@ -104,7 +104,9 @@ PG_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig,
     .rate_num = SETTING_BLACKBOX_RATE_NUM_DEFAULT,
     .rate_denom = SETTING_BLACKBOX_RATE_DENOM_DEFAULT,
     .invertedCardDetection = BLACKBOX_INVERTED_CARD_DETECTION,
-    .includeFlags = BLACKBOX_FEATURE_NAV_PID | BLACKBOX_FEATURE_NAV_POS | BLACKBOX_FEATURE_MAG | BLACKBOX_FEATURE_ACC | BLACKBOX_FEATURE_ATTITUDE,
+    .includeFlags = BLACKBOX_FEATURE_NAV_PID | BLACKBOX_FEATURE_NAV_POS | 
+        BLACKBOX_FEATURE_MAG | BLACKBOX_FEATURE_ACC | BLACKBOX_FEATURE_ATTITUDE | 
+        BLACKBOX_FEATURE_RC_DATA | BLACKBOX_FEATURE_RC_COMMAND | BLACKBOX_FEATURE_MOTORS,
 );
 
 void blackboxIncludeFlagSet(uint32_t mask)
@@ -251,16 +253,16 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"mcSurfaceOut",-1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
 
     /* rcData are encoded together as a group: */
-    {"rcData",      0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16), CONDITION(ALWAYS)},
-    {"rcData",      1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16), CONDITION(ALWAYS)},
-    {"rcData",      2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16), CONDITION(ALWAYS)},
-    {"rcData",      3, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16), CONDITION(ALWAYS)},
+    {"rcData",      0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16), FLIGHT_LOG_FIELD_CONDITION_RC_DATA},
+    {"rcData",      1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16), FLIGHT_LOG_FIELD_CONDITION_RC_DATA},
+    {"rcData",      2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16), FLIGHT_LOG_FIELD_CONDITION_RC_DATA},
+    {"rcData",      3, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16), FLIGHT_LOG_FIELD_CONDITION_RC_DATA},
     /* rcCommands are encoded together as a group in P-frames: */
-    {"rcCommand",   0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16), CONDITION(ALWAYS)},
-    {"rcCommand",   1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16), CONDITION(ALWAYS)},
-    {"rcCommand",   2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16), CONDITION(ALWAYS)},
+    {"rcCommand",   0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16), FLIGHT_LOG_FIELD_CONDITION_RC_COMMAND},
+    {"rcCommand",   1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16), FLIGHT_LOG_FIELD_CONDITION_RC_COMMAND},
+    {"rcCommand",   2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16), FLIGHT_LOG_FIELD_CONDITION_RC_COMMAND},
     /* Throttle is always in the range [minthrottle..maxthrottle]: */
-    {"rcCommand",   3, UNSIGNED, .Ipredict = PREDICT(MINTHROTTLE), .Iencode = ENCODING(UNSIGNED_VB), .Ppredict = PREDICT(PREVIOUS),  .Pencode = ENCODING(TAG8_4S16), CONDITION(ALWAYS)},
+    {"rcCommand",   3, UNSIGNED, .Ipredict = PREDICT(MINTHROTTLE), .Iencode = ENCODING(UNSIGNED_VB), .Ppredict = PREDICT(PREVIOUS),  .Pencode = ENCODING(TAG8_4S16), FLIGHT_LOG_FIELD_CONDITION_RC_COMMAND},
 
     {"vbat",       -1, UNSIGNED, .Ipredict = PREDICT(VBATREF), .Iencode = ENCODING(NEG_14BIT),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB), FLIGHT_LOG_FIELD_CONDITION_VBAT},
     {"amperage",   -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB), FLIGHT_LOG_FIELD_CONDITION_AMPERAGE},
@@ -602,7 +604,7 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
     case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_6:
     case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_7:
     case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_8:
-        return getMotorCount() >= condition - FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_1 + 1;
+        return (getMotorCount() >= condition - FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_1 + 1) && blackboxIncludeFlag(BLACKBOX_FEATURE_MOTORS);
 
     case FLIGHT_LOG_FIELD_CONDITION_SERVOS:
         return isMixerUsingServos();
@@ -683,6 +685,12 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
 
     case FLIGHT_LOG_FIELD_CONDITION_ATTITUDE:
         return blackboxIncludeFlag(BLACKBOX_FEATURE_ATTITUDE);
+
+    case FLIGHT_LOG_FIELD_CONDITION_RC_COMMAND:
+        return blackboxIncludeFlag(BLACKBOX_FEATURE_RC_COMMAND);
+
+    case FLIGHT_LOG_FIELD_CONDITION_RC_DATA:
+        return blackboxIncludeFlag(BLACKBOX_FEATURE_RC_DATA);
 
     case FLIGHT_LOG_FIELD_CONDITION_NEVER:
         return false;
@@ -785,10 +793,14 @@ static void writeIntraframe(void)
     }
 
     // Write raw stick positions
-    blackboxWriteSigned16VBArray(blackboxCurrent->rcData, 4);
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_RC_DATA)) {
+        blackboxWriteSigned16VBArray(blackboxCurrent->rcData, 4);
+    }
 
     // Write roll, pitch and yaw first:
-    blackboxWriteSigned16VBArray(blackboxCurrent->rcCommand, 3);
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_RC_COMMAND)) {
+        blackboxWriteSigned16VBArray(blackboxCurrent->rcCommand, 3);
+    }
 
     /*
      * Write the throttle separately from the rest of the RC data so we can apply a predictor to it.
@@ -1024,18 +1036,22 @@ static void writeInterframe(void)
      */
 
     // rcData
-    for (int x = 0; x < 4; x++) {
-        deltas[x] = blackboxCurrent->rcData[x] - blackboxLast->rcData[x];
-    }
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_RC_DATA)) {
+        for (int x = 0; x < 4; x++) {
+            deltas[x] = blackboxCurrent->rcData[x] - blackboxLast->rcData[x];
+        }
 
-    blackboxWriteTag8_4S16(deltas);
+        blackboxWriteTag8_4S16(deltas);
+    }
 
     // rcCommand
-    for (int x = 0; x < 4; x++) {
-        deltas[x] = blackboxCurrent->rcCommand[x] - blackboxLast->rcCommand[x];
-    }
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_RC_COMMAND)) {
+        for (int x = 0; x < 4; x++) {
+            deltas[x] = blackboxCurrent->rcCommand[x] - blackboxLast->rcCommand[x];
+        }
 
-    blackboxWriteTag8_4S16(deltas);
+        blackboxWriteTag8_4S16(deltas);
+    }
 
     //Check for sensors that are updated periodically (so deltas are normally zero)
     int optionalFieldCount = 0;
