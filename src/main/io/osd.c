@@ -4033,13 +4033,13 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
             // messages to show.
             const char *messages[5];
             unsigned messageCount = 0;
+            const char *failsafeInfoMessage = NULL;
 
-            if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
+            if (FLIGHT_MODE(FAILSAFE_MODE) || FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
                 if (isWaypointMissionRTHActive()) {
                     // if RTH activated whilst WP mode selected, remind pilot to cancel WP mode to exit RTH
                     messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_WP_RTH_CANCEL);
                 }
-
                 if (navGetCurrentStateFlags() & NAV_AUTO_WP_DONE) {
                     messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_WP_FINISHED);
                 } else if (NAV_Status.state == MW_NAV_STATE_WP_ENROUTE) {
@@ -4054,8 +4054,8 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     int holdTimeRemaining = posControl.waypointList[posControl.activeWaypointIndex].p1 - (int)((currentTime - posControl.wpReachedTime)/1000);
                     if (holdTimeRemaining >=0) {
                         tfp_sprintf(messageBuf, "HOLDING WP FOR %2u S", holdTimeRemaining);
-                        messages[messageCount++] = messageBuf;
                     }
+                    messages[messageCount++] = messageBuf;
                 } else {
                     const char *navStateMessage = navigationStateMessage();
                     if (navStateMessage) {
@@ -4068,34 +4068,19 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     messages[messageCount++] = safehomeMessage;
                 }
 #endif
-            }
+                if (FLIGHT_MODE(FAILSAFE_MODE)) {
+                    // In FS mode while being armed too
+                    const char *failsafePhaseMessage = osdFailsafePhaseMessage();
+                    failsafeInfoMessage = osdFailsafeInfoMessage();
 
-            if (FLIGHT_MODE(FAILSAFE_MODE)) {
-                // In FS mode while being armed too
-                const char *failsafePhaseMessage = osdFailsafePhaseMessage();
-                const char *failsafeInfoMessage = osdFailsafeInfoMessage();
-
-                if (failsafePhaseMessage) {
-                    messages[messageCount++] = failsafePhaseMessage;
-                }
-                if (failsafeInfoMessage) {
-                    messages[messageCount++] = failsafeInfoMessage;
-                }
-                if (messageCount > 0) {
-                    message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
-                    if (message == failsafeInfoMessage) {
-                        // failsafeInfoMessage is not useful for recovering
-                        // a lost model, but might help avoiding a crash.
-                        // Blink to grab user attention.
-                        TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+                    if (failsafePhaseMessage) {
+                        messages[messageCount++] = failsafePhaseMessage;
                     }
-                    // We're shoing either failsafePhaseMessage or
-                    // navStateMessage. Don't BLINK here since
-                    // having this text available might be crucial
-                    // during a lost aircraft recovery and blinking
-                    // will cause it to be missing from some frames.
+                    if (failsafeInfoMessage) {
+                        messages[messageCount++] = failsafeInfoMessage;
+                    }
                 }
-            } else {
+            } else {    /* messages shown only when Failsafe, WP, RTH or Emergency Landing not active */
                 if (STATE(FIXED_WING_LEGACY) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
                     messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_AUTOLAUNCH);
                     const char *launchStateMessage = fixedWingLaunchStateMessage();
@@ -4123,11 +4108,20 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_HEADFREE);
                     }
                 }
-                // Pick one of the available messages. Each message lasts
-                // a second.
-                if (messageCount > 0) {
-                    message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
+            }
+            if (messageCount > 0) {
+                message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
+                if (message == failsafeInfoMessage) {
+                    // failsafeInfoMessage is not useful for recovering
+                    // a lost model, but might help avoiding a crash.
+                    // Blink to grab user attention.
+                    TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
                 }
+                // We're shoing either failsafePhaseMessage or
+                // navStateMessage. Don't BLINK here since
+                // having this text available might be crucial
+                // during a lost aircraft recovery and blinking
+                // will cause it to be missing from some frames.
             }
         } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
             unsigned invalidIndex;
