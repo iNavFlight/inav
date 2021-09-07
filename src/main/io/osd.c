@@ -4033,11 +4033,47 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
             // messages to show.
             const char *messages[5];
             unsigned messageCount = 0;
+
+            if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
+                if (isWaypointMissionRTHActive()) {
+                    // if RTH activated whilst WP mode selected, remind pilot to cancel WP mode to exit RTH
+                    messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_WP_RTH_CANCEL);
+                }
+
+                if (navGetCurrentStateFlags() & NAV_AUTO_WP_DONE) {
+                    messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_WP_FINISHED);
+                } else if (NAV_Status.state == MW_NAV_STATE_WP_ENROUTE) {
+                    // Countdown display for remaining Waypoints
+                    char buf[6];
+                    osdFormatDistanceSymbol(buf, posControl.wpDistance, 0);
+                    tfp_sprintf(messageBuf, "TO WP %u/%u (%s)", getGeoWaypointNumber(posControl.activeWaypointIndex), posControl.geoWaypointCount, buf);
+                    messages[messageCount++] = messageBuf;
+                } else if (NAV_Status.state == MW_NAV_STATE_HOLD_TIMED) {
+                    // WP hold time countdown in seconds
+                    timeMs_t currentTime = millis();
+                    int holdTimeRemaining = posControl.waypointList[posControl.activeWaypointIndex].p1 - (int)((currentTime - posControl.wpReachedTime)/1000);
+                    if (holdTimeRemaining >=0) {
+                        tfp_sprintf(messageBuf, "HOLDING WP FOR %2u S", holdTimeRemaining);
+                        messages[messageCount++] = messageBuf;
+                    }
+                } else {
+                    const char *navStateMessage = navigationStateMessage();
+                    if (navStateMessage) {
+                        messages[messageCount++] = navStateMessage;
+                    }
+                }
+#if defined(USE_SAFE_HOME)
+                const char *safehomeMessage = divertingToSafehomeMessage();
+                if (safehomeMessage) {
+                    messages[messageCount++] = safehomeMessage;
+                }
+#endif
+            }
+
             if (FLIGHT_MODE(FAILSAFE_MODE)) {
                 // In FS mode while being armed too
                 const char *failsafePhaseMessage = osdFailsafePhaseMessage();
                 const char *failsafeInfoMessage = osdFailsafeInfoMessage();
-                const char *navStateFSMessage = navigationStateMessage();
 
                 if (failsafePhaseMessage) {
                     messages[messageCount++] = failsafePhaseMessage;
@@ -4045,15 +4081,6 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 if (failsafeInfoMessage) {
                     messages[messageCount++] = failsafeInfoMessage;
                 }
-                if (navStateFSMessage) {
-                    messages[messageCount++] = navStateFSMessage;
-                }
-#if defined(USE_SAFE_HOME)
-                const char *safehomeMessage = divertingToSafehomeMessage();
-				if (safehomeMessage) {
-					messages[messageCount++] = safehomeMessage;
-				}
-#endif
                 if (messageCount > 0) {
                     message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
                     if (message == failsafeInfoMessage) {
@@ -4063,52 +4090,18 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                         TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
                     }
                     // We're shoing either failsafePhaseMessage or
-                    // navStateFSMessage. Don't BLINK here since
+                    // navStateMessage. Don't BLINK here since
                     // having this text available might be crucial
                     // during a lost aircraft recovery and blinking
                     // will cause it to be missing from some frames.
                 }
             } else {
-                if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
-                    if (isWaypointMissionRTHActive()) {
-                        // if RTH activated whilst WP mode selected, remind pilot to cancel WP mode to exit RTH
-                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_WP_RTH_CANCEL);
+                if (STATE(FIXED_WING_LEGACY) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
+                    messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_AUTOLAUNCH);
+                    const char *launchStateMessage = fixedWingLaunchStateMessage();
+                    if (launchStateMessage) {
+                        messages[messageCount++] = launchStateMessage;
                     }
-
-                    if (navGetCurrentStateFlags() & NAV_AUTO_WP_DONE) {
-                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_WP_FINISHED);
-                    } else if (NAV_Status.state == MW_NAV_STATE_WP_ENROUTE) {
-                        // Countdown display for remaining Waypoints
-                        char buf[6];
-                        osdFormatDistanceSymbol(buf, posControl.wpDistance, 0);
-                        tfp_sprintf(messageBuf, "TO WP %u/%u (%s)", getGeoWaypointNumber(posControl.activeWaypointIndex), posControl.geoWaypointCount, buf);
-                        messages[messageCount++] = messageBuf;
-                    } else if (NAV_Status.state == MW_NAV_STATE_HOLD_TIMED) {
-                        // WP hold time countdown in seconds
-                        timeMs_t currentTime = millis();
-                        int holdTimeRemaining = posControl.waypointList[posControl.activeWaypointIndex].p1 - (int)((currentTime - posControl.wpReachedTime)/1000);
-                        if (holdTimeRemaining >=0) {
-                            tfp_sprintf(messageBuf, "HOLDING WP FOR %2u S", holdTimeRemaining);
-                            messages[messageCount++] = messageBuf;
-                        }
-                    } else {
-                        const char *navStateMessage = navigationStateMessage();
-                        if (navStateMessage) {
-                            messages[messageCount++] = navStateMessage;
-                        }
-                    }
-#if defined(USE_SAFE_HOME)
-					const char *safehomeMessage = divertingToSafehomeMessage();
-					if (safehomeMessage) {
-						messages[messageCount++] = safehomeMessage;
-					}
-#endif
-                } else if (STATE(FIXED_WING_LEGACY) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
-                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_AUTOLAUNCH);
-                        const char *launchStateMessage = fixedWingLaunchStateMessage();
-                        if (launchStateMessage) {
-                            messages[messageCount++] = launchStateMessage;
-                        }
                 } else {
                     if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
                         // ALTHOLD might be enabled alongside ANGLE/HORIZON/ACRO
