@@ -138,3 +138,18 @@ appendWindowsPath=false
 8. `cd build`
 9. `cmake ..`
 9. `make {TARGET}` should be working again 
+
+### Building targets is very slow
+I was pretty shocked when my new i7 -10750 laptop took 25 minutes to build a single target. My old i3-4030 could do the same job in about 2.5 minutes. If you're also suffering from slow builds. Open an elevated PowerShell window and type
+```
+wsl -l -v
+```
+If you see your Linux distribution is using WSL 2, this is the problem. WSL 2 is quicker than WSL 1 for a lot of things. However, if your files are on a windows mounted drive in Linux, it is extremely slow. There are two options:
+1. Put your files on the Linux file system
+2. Change to WSL 1
+
+I opted for the latter. To do this, in the elevated PowerShell window, you can see the name of your distro. Mine is **Ubuntu-20.04**, so I'll use that in this example. Simply type
+```
+wsl --set-version Ubuntu-20.04 1
+```
+and your distro will be converted to WSL 1. Once finished, reboot your system. Next time you compile a build, it will be faster.

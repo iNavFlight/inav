@@ -58,8 +58,8 @@ static timeUs_t crsfFrameStartAt = 0;
 static uint8_t telemetryBuf[CRSF_FRAME_SIZE_MAX];
 static uint8_t telemetryBufLen = 0;
 
-// The power levels represented by uplinkTXPower above in mW (250mW added to full TX in v4.00 firmware)
-const uint16_t crsfPowerStates[] = {0, 10, 25, 100, 500, 1000, 2000, 250};
+// The power levels represented by uplinkTXPower above in mW (250mW added to full TX in v4.00 firmware, 50mW added for ExpressLRS)
+const uint16_t crsfPowerStates[] = {0, 10, 25, 100, 500, 1000, 2000, 250, 50};
 
 /*
  * CRSF protocol

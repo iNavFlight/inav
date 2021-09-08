@@ -56,11 +56,15 @@
 #define RADIANS_TO_CENTIDEGREES(angle) (((angle) * 100.0f) / RAD)
 #define CENTIDEGREES_TO_RADIANS(angle) (((angle) / 100.0f) * RAD)
 
-#define CENTIMETERS_TO_CENTIFEET(cm)            (cm * (328 / 100.0))
-#define CENTIMETERS_TO_FEET(cm)                 (cm * (328 / 10000.0))
+#define CENTIMETERS_TO_CENTIFEET(cm)            (cm / 0.3048)
+#define CENTIMETERS_TO_FEET(cm)                 (cm / 30.48)
 #define CENTIMETERS_TO_METERS(cm)               (cm / 100)
 
 #define METERS_TO_CENTIMETERS(m)                (m * 100)
+
+#define CMSEC_TO_CENTIMPH(cms)      (cms * 2.2369363)
+#define CMSEC_TO_CENTIKPH(cms)      (cms * 3.6)
+#define CMSEC_TO_CENTIKNOTS(cms)    (cms * 1.943845)
 
 // copied from https://code.google.com/p/cxutil/source/browse/include/cxutil/utility.h#70
 #define _CHOOSE2(binoper, lexpr, lvar, rexpr, rvar)         \

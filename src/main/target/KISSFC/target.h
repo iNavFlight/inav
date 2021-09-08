@@ -76,8 +76,6 @@
 
 #define MAX_PWM_OUTPUT_PORTS    12
 
-#define AVOID_UART2_FOR_PWM_PPM
-
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
