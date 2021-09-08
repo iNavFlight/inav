@@ -421,7 +421,9 @@ static int32_t osdConvertVelocityToUnit(int32_t vel)
 
 /**
  * Converts velocity into a string based on the current unit system.
- * @param alt Raw velocity (i.e. as taken from gpsSol.groundSpeed in centimeters/seconds)
+ * @param vel Raw velocity (i.e. as taken from gpsSol.groundSpeed in centimeters/seconds)
+ * @param _3D is a 3D velocity
+ * @param _max is a maximum velocity
  */
 void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D, bool _max)
 {
@@ -452,6 +454,14 @@ void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D, bool _max)
         }
         break;
     }
+}
+
+/**
+ * Returns the average velocity. This always uses stats, so can be called as an OSD element later if wanted, to show a real time average
+ */
+void osdFormatAverageVelocityStr(char* buff) {
+    uint32_t cmPerSec = getTotalTravelDistance() / getFlightTime();
+    osdFormatVelocityStr(buff, cmPerSec, false, false);
 }
 
 /**
@@ -3538,6 +3548,11 @@ static void osdShowStatsPage1(void)
     if (feature(FEATURE_GPS)) {
         displayWrite(osdDisplayPort, statNameX, top, "MAX SPEED        :");
         osdFormatVelocityStr(buff, stats.max_3D_speed, true, false);
+        osdLeftAlignString(buff);
+        displayWrite(osdDisplayPort, statValuesX, top++, buff);
+
+        displayWrite(osdDisplayPort, statNameX, top, "AVG SPEED        :");
+        osdFormatAverageVelocityStr(buff);
         osdLeftAlignString(buff);
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
