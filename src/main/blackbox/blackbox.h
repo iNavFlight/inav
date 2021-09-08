@@ -21,11 +21,22 @@
 
 #include "config/parameter_group.h"
 
+typedef enum {
+    BLACKBOX_FEATURE_NAV_ACC     = 1 << 0,
+    BLACKBOX_FEATURE_NAV_POS     = 1 << 1,
+    BLACKBOX_FEATURE_NAV_PID     = 1 << 2,
+    BLACKBOX_FEATURE_MAG         = 1 << 3,
+    BLACKBOX_FEATURE_ACC         = 1 << 4,
+    BLACKBOX_FEATURE_ATTITUDE    = 1 << 5,
+} blackboxFeatureMask_e;
+
+
 typedef struct blackboxConfig_s {
     uint16_t rate_num;
     uint16_t rate_denom;
     uint8_t device;
     uint8_t invertedCardDetection;
+    uint32_t includeFlags;
 } blackboxConfig_t;
 
 PG_DECLARE(blackboxConfig_t, blackboxConfig);
@@ -37,3 +48,6 @@ void blackboxUpdate(timeUs_t currentTimeUs);
 void blackboxStart(void);
 void blackboxFinish(void);
 bool blackboxMayEditConfig(void);
+void blackboxIncludeFlagSet(uint32_t mask);
+void blackboxIncludeFlagClear(uint32_t mask);
+bool blackboxIncludeFlag(uint32_t mask);

@@ -20,40 +20,41 @@
 #include "drivers/system.h"
 #include "config/config_streamer.h"
 
-#if defined(STM32F3) && !defined(CONFIG_IN_RAM) && !defined(CONFIG_IN_EXTERNAL_FLASH)
+#if defined(CONFIG_IN_RAM)
 
-#define FLASH_PAGE_SIZE     0x800
+static bool streamerLocked = true;
 
 void config_streamer_impl_unlock(void)
 {
-    FLASH_Unlock();
-    FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_PGERR | FLASH_FLAG_WRPERR);
+    streamerLocked = false;
 }
 
 void config_streamer_impl_lock(void)
 {
-    FLASH_Lock();
+    streamerLocked = true;
 }
 
 int config_streamer_impl_write_word(config_streamer_t *c, config_streamer_buffer_align_type_t *buffer)
 {
-    if (c->err != 0) {
-        return c->err;
+    if (streamerLocked) {
+        return -1;
     }
 
-    if (c->address % FLASH_PAGE_SIZE == 0) {
-        const FLASH_Status status = FLASH_ErasePage(c->address);
-        if (status != FLASH_COMPLETE) {
-            return -1;
-        }
+    if (c->address == (uintptr_t)&eepromData[0]) {
+        memset(eepromData, 0, sizeof(eepromData));
     }
 
-    const FLASH_Status status = FLASH_ProgramWord(c->address, *buffer);
-    if (status != FLASH_COMPLETE) {
-        return -2;
-    }
+    config_streamer_buffer_align_type_t *destAddr = (config_streamer_buffer_align_type_t *)c->address;
+    config_streamer_buffer_align_type_t *srcAddr = buffer;
+
+    uint8_t nRows = CONFIG_STREAMER_BUFFER_SIZE / sizeof(config_streamer_buffer_align_type_t);
+
+    do {
+        *destAddr++ = *srcAddr++;
+    } while(--nRows != 0);
 
     c->address += CONFIG_STREAMER_BUFFER_SIZE;
+
     return 0;
 }
 

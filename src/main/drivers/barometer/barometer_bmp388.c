@@ -197,7 +197,13 @@ static bool bmp388StartUP(baroDev_t *baro)
 
 static bool bmp388GetUP(baroDev_t *baro)
 {
-    busReadBuf(baro->busDev, BMP388_DATA_0_REG, sensor_data, BMP388_DATA_FRAME_SIZE + 1);
+    if (baro->busDev->busType == BUSTYPE_SPI) {
+        // In SPI mode, first byte read is a dummy byte
+        busReadBuf(baro->busDev, BMP388_DATA_0_REG, &sensor_data[0], BMP388_DATA_FRAME_SIZE + 1);
+    } else {
+        // In I2C mode, no dummy byte is read
+        busReadBuf(baro->busDev, BMP388_DATA_0_REG, &sensor_data[1], BMP388_DATA_FRAME_SIZE);
+    }
 
     bmp388_up = sensor_data[1] << 0 | sensor_data[2] << 8 | sensor_data[3] << 16;
     bmp388_ut = sensor_data[4] << 0 | sensor_data[5] << 8 | sensor_data[6] << 16;
@@ -289,14 +295,26 @@ STATIC_UNIT_TESTED bool bmp388Calculate(baroDev_t *baro, int32_t *pressure, int3
 #define DETECTION_MAX_RETRY_COUNT   5
 static bool deviceDetect(busDevice_t * busDev)
 {
-    for (int retry = 0; retry < DETECTION_MAX_RETRY_COUNT; retry++) {
-        uint8_t chipId[2];
+    uint8_t chipId[2];
+    uint8_t nRead;
+    uint8_t * pId;
 
+    if (busDev->busType == BUSTYPE_SPI) {
+        // In SPI mode, first byte read is a dummy byte
+        nRead = 2;
+        pId = &chipId[1];
+    } else {
+        // In I2C mode, no dummy byte is read
+        nRead = 1;
+        pId = &chipId[0];
+    }
+
+    for (int retry = 0; retry < DETECTION_MAX_RETRY_COUNT; retry++) {
         delay(100);
 
-        bool ack = busReadBuf(busDev, BMP388_CHIP_ID_REG, chipId, 2);
+        bool ack = busReadBuf(busDev, BMP388_CHIP_ID_REG, chipId, nRead);
 
-        if (ack && chipId[1] == BMP388_DEFAULT_CHIP_ID) {
+        if (ack && *pId == BMP388_DEFAULT_CHIP_ID) {
             return true;
         }
     };
@@ -318,11 +336,16 @@ bool bmp388Detect(baroDev_t *baro)
         return false;
     }
 
-    uint8_t calibration_buf[sizeof(bmp388_calib_param_t) + 1];
-
     // read calibration
-    busReadBuf(baro->busDev, BMP388_TRIMMING_NVM_PAR_T1_LSB_REG, calibration_buf, sizeof(bmp388_calib_param_t) + 1);
-    memcpy(&bmp388_cal, calibration_buf + 1, sizeof(bmp388_calib_param_t));
+    if (baro->busDev->busType == BUSTYPE_SPI) {
+        // In SPI mode, first byte read is a dummy byte
+        uint8_t calibration_buf[sizeof(bmp388_calib_param_t) + 1];
+        busReadBuf(baro->busDev, BMP388_TRIMMING_NVM_PAR_T1_LSB_REG, calibration_buf, sizeof(bmp388_calib_param_t) + 1);
+        memcpy(&bmp388_cal, calibration_buf + 1, sizeof(bmp388_calib_param_t));
+    } else {
+        // In I2C mode, no dummy byte is read
+        busReadBuf(baro->busDev, BMP388_TRIMMING_NVM_PAR_T1_LSB_REG, (uint8_t*)&bmp388_cal, sizeof(bmp388_calib_param_t));
+    }
 
     // set oversampling + power mode (forced), and start sampling
     busWrite(baro->busDev, BMP388_OSR_REG,

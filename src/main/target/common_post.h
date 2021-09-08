@@ -88,3 +88,18 @@ extern uint8_t __config_end;
 #define FILE_COMPILE_NORMAL
 #define FILE_COMPILE_FOR_SPEED
 #endif
+
+#if defined(CONFIG_IN_RAM) || defined(CONFIG_IN_EXTERNAL_FLASH)
+#ifndef EEPROM_SIZE
+#define EEPROM_SIZE     8192
+#endif
+extern uint8_t eepromData[EEPROM_SIZE];
+#define __config_start (*eepromData)
+#define __config_end (*ARRAYEND(eepromData))
+#else
+#ifndef CONFIG_IN_FLASH
+#define CONFIG_IN_FLASH
+#endif
+extern uint8_t __config_start;   // configured via linker script when building binaries.
+extern uint8_t __config_end;
+#endif

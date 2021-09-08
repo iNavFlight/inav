@@ -4,7 +4,7 @@ tables:
   - name: gyro_lpf
     values: ["256HZ", "188HZ", "98HZ", "42HZ", "20HZ", "10HZ"]
   - name: acc_hardware
-    values: ["NONE", "AUTO", "ADXL345", "MPU6050", "MMA845x", "BMA280", "LSM303DLHC", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "FAKE"]
+    values: ["NONE", "AUTO", "ADXL345", "MPU6050", "MMA845x", "BMA280", "LSM303DLHC", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"]
     enum: accelerationSensor_e
   - name: rangefinder_hardware
     values: ["NONE", "SRF10", "VL53L0X", "MSP", "BENEWAKE", "VL53L1X", "US42", "TOF10120_I2C"]
@@ -25,7 +25,7 @@ tables:
     values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE", "MSP"]
     enum: pitotSensor_e
   - name: receiver_type
-    values: ["NONE", "PPM", "SERIAL", "MSP", "SPI", "UNUSED"]
+    values: ["NONE", "SERIAL", "MSP", "SPI"]
     enum: rxReceiverType_e
   - name: serial_rx
     values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2", "GHST", "MAVLINK"]
@@ -93,7 +93,7 @@ tables:
       "FLOW", "SBUS", "FPORT", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "ERPM", "RPM_FILTER", "RPM_FREQ", "NAV_YAW", "DYNAMIC_FILTER", "DYNAMIC_FILTER_FREQUENCY",
-      "IRLOCK", "CD", "KALMAN_GAIN", "PID_MEASUREMENT", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "FW_D", "IMU2", "ALTITUDE",
+      "IRLOCK", "KALMAN_GAIN", "PID_MEASUREMENT", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "IMU2", "ALTITUDE",
       "GYRO_ALPHA_BETA_GAMMA", "SMITH_PREDICTOR", "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
@@ -1493,7 +1493,7 @@ groups:
     members:
       - name: imu_dcm_kp
         description: "Inertial Measurement Unit KP Gain for accelerometer measurements"
-        default_value: 2500
+        default_value: 1000
         field: dcm_kp_acc
         max: UINT16_MAX
       - name: imu_dcm_ki
@@ -1503,7 +1503,7 @@ groups:
         max: UINT16_MAX
       - name: imu_dcm_kp_mag
         description: "Inertial Measurement Unit KP Gain for compass measurements"
-        default_value: 10000
+        default_value: 5000
         field: dcm_kp_mag
         max: UINT16_MAX
       - name: imu_dcm_ki_mag

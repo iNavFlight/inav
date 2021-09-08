@@ -159,6 +159,7 @@
 #define SYM_HEADING_W               0xCB  // 203 Heading Graphic west
 #define SYM_HEADING_DIVIDED_LINE    0xCC  // 204 Heading Graphic
 #define SYM_HEADING_LINE            0xCD  // 205 Heading Graphic
+#define SYM_MAX                     0xCE  // 206 MAX symbol
 
 
 #define SYM_LOGO_START              0x101 // 257 to 280, INAV logo

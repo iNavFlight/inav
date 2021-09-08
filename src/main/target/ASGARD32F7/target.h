@@ -147,10 +147,6 @@
 #define DEFAULT_RX_TYPE                 RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER               SERIALRX_SBUS
 
-// Disable PWM & PPM inputs
-#undef USE_RX_PWM
-#undef USE_RX_PPM
-
 // Set default UARTs
 #define TELEMETRY_UART                  SERIAL_PORT_SOFTSERIAL1
 #define SERIALRX_UART                   SERIAL_PORT_USART1
