@@ -459,7 +459,7 @@ void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D, bool _max)
 /**
  * Returns the average velocity. This always uses stats, so can be called as an OSD element later if wanted, to show a real time average
  */
-void osdFormatAverageVelocityStr(char* buff) {
+void osdGenerateAverageVelocityStr(char* buff) {
     uint32_t cmPerSec = getTotalTravelDistance() / getFlightTime();
     osdFormatVelocityStr(buff, cmPerSec, false, false);
 }
@@ -3552,7 +3552,7 @@ static void osdShowStatsPage1(void)
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
         displayWrite(osdDisplayPort, statNameX, top, "AVG SPEED        :");
-        osdFormatAverageVelocityStr(buff);
+        osdGenerateAverageVelocityStr(buff);
         osdLeftAlignString(buff);
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
