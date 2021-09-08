@@ -107,7 +107,7 @@ typedef struct {
     bool itermLimitActive;
     bool itermFreezeActive;
 
-    pt2Filter_t rateTargetFilter;
+    pt3Filter_t rateTargetFilter;
 
     smithPredictor_t smithPredictor;
 } pidState_t;
@@ -343,7 +343,7 @@ bool pidInitFilters(void)
 
     if (pidProfile()->controlDerivativeLpfHz) {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            pt2FilterInit(&pidState[axis].rateTargetFilter, pt2FilterGain(pidProfile()->controlDerivativeLpfHz, refreshRate * 1e-6f));
+            pt3FilterInit(&pidState[axis].rateTargetFilter, pt3FilterGain(pidProfile()->controlDerivativeLpfHz, refreshRate * 1e-6f));
         }
     }
 
@@ -544,7 +544,7 @@ void updatePIDCoefficients()
             pidState[axis].kP  = pidBank()->pid[axis].P / FP_PID_RATE_P_MULTIPLIER * axisTPA;
             pidState[axis].kI  = pidBank()->pid[axis].I / FP_PID_RATE_I_MULTIPLIER;
             pidState[axis].kD  = pidBank()->pid[axis].D / FP_PID_RATE_D_MULTIPLIER * axisTPA;
-            pidState[axis].kCD = pidBank()->pid[axis].FF / FP_PID_RATE_D_FF_MULTIPLIER * axisTPA;
+            pidState[axis].kCD = (pidBank()->pid[axis].FF / FP_PID_RATE_D_FF_MULTIPLIER * axisTPA) / (getLooptime() * 0.000001f);
             pidState[axis].kFF = 0.0f;
 
             // Tracking anti-windup requires P/I/D to be all defined which is only true for MC
@@ -807,12 +807,12 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
     const float newDTerm = dTermProcess(pidState, dT);
 
     const float rateTargetDelta = pidState->rateTarget - pidState->previousRateTarget;
-    const float rateTargetDeltaFiltered = pt2FilterApply(&pidState->rateTargetFilter, rateTargetDelta);
+    const float rateTargetDeltaFiltered = pt3FilterApply(&pidState->rateTargetFilter, rateTargetDelta);
 
     /*
      * Compute Control Derivative
      */
-    const float newCDTerm = rateTargetDeltaFiltered * (pidState->kCD / dT);
+    const float newCDTerm = rateTargetDeltaFiltered * pidState->kCD;
 
     // TODO: Get feedback from mixer on available correction range for each axis
     const float newOutput = newPTerm + newDTerm + pidState->errorGyroIf + newCDTerm;
