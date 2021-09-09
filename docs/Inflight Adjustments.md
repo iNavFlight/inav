@@ -28,7 +28,6 @@ The following adjustments can be made in flight as well as on the ground.
 * Throttle Expo
 * Pitch, Roll, Yaw Rates
 * Pitch, Roll, Yaw PIDs
-* Rate profile
 * Manual rates
 * FW cruise_throttle, pitch2thr, min_throttle_down_pitch_angle 
 * Board alignment
@@ -62,7 +61,7 @@ Hint: With OpenTX transmitters you can combine two momentary OFF-ON switches to 
 
 The CLI command `adjrange` is used to configure adjustment ranges.
 
-12 adjustment ranges can be defined.
+20 adjustment ranges can be defined.
 4 adjustments can be made at the same time, each simultaneous adjustment requires an adjustment slot.
 
 Show the current ranges using:
@@ -77,12 +76,12 @@ Configure a range using:
 
 | Argument | Value | Meaning |
 | -------- | ----- |-------- |
-| Index | 0 - 11 | Select the adjustment range to configure |
+| Index | 0 - 19 | Select the adjustment range to configure |
 | Slot | 0 - 3 | Select the adjustment slot to use |
 | Range Channel | 0 based index, AUX1 = 0, AUX2 = 1 | The AUX channel to use to select an adjustment for a switch/pot |
 | Range Start | 900 - 2100. Steps of 25, e.g. 900, 925, 950... | Start of range |
 | Range End | 900 - 2100 | End of range |
-| Adjustment function | 0 - 11 | See Adjustment function table |
+| Adjustment function | 0 - 56 | See Adjustment function table |
 | Adjustment channel | 0 based index, AUX1 = 0, AUX2 = 1 | The channel that is controlled by a 3 Position switch/Pot |
 
 Range Start/End values should match the values sent by your receiver.
@@ -100,8 +99,8 @@ this reason ensure that you define enough ranges to cover the range channel's us
 
 ### Adjustment function
 
-| Value | Adjustment | Notes |
-| ----- | ---------- |------ |
+| Value | Adjustment |
+| ----- | ---------- |
 | 0     | None |
 | 1     | RC RATE |
 | 2     | RC_EXPO |
@@ -111,47 +110,54 @@ this reason ensure that you define enough ranges to cover the range channel's us
 | 6     | PITCH_ROLL_P |
 | 7     | PITCH_ROLL_I |
 | 8     | PITCH_ROLL_D |
-| 9     | YAW_P |
-| 10    | YAW_I |
-| 11    | YAW_D_FF |
-| 12    | RATE_PROFILE | Switch between 3 rate profiles using a 3 position switch. |
-| 13    | PITCH_RATE |
-| 14    | ROLL_RATE |
-| 15    | PITCH_P |
-| 16    | PITCH_I |
-| 17    | PITCH_D_FF |
-| 18    | ROLL_P |
-| 19    | ROLL_I |
-| 20    | ROLL_D_FF |
-| 21    | RC_YAW_EXPO |
-| 22    | MANUAL_RC_EXPO |
-| 23    | MANUAL_RC_YAW_EXPO |
-| 24    | MANUAL_PITCH_ROLL_RATE |
-| 25    | MANUAL_ROLL_RATE |
-| 26    | MANUAL_PITCH_RATE |
-| 27    | MANUAL_YAW_RATE |
-| 28    | NAV_FW_CRUISE_THROTTLE |
-| 29    | NAV_FW_PITCH2THR |
-| 30    | ROLL_BOARD_ALIGNMENT |
-| 31    | PITCH_BOARD_ALIGNMENT |
-| 32    | LEVEL_P |
-| 33    | LEVEL_I |
-| 34    | LEVEL_D |
-| 35    | POS_XY_P |
-| 36    | POS_XY_I |
-| 37    | POS_XY_D |
-| 38    | POS_Z_P |
-| 39    | POS_Z_I |
-| 40    | POS_Z_D |
-| 41    | HEADING_P |
-| 42    | VEL_XY_P |
-| 43    | VEL_XY_I |
-| 44    | VEL_XY_D |
-| 45    | VEL_Z_P |
-| 46    | VEL_Z_I |
-| 47    | VEL_Z_D |
-| 48    | FW_MIN_THROTTLE_DOWN_PITCH_ANGLE |
-| 49    | ADJUSTMENT_VTX_POWER_LEVEL |
+| 9     | PITCH_ROLL_FF |
+| 10    | PITCH_P |
+| 11    | PITCH_I |
+| 12    | PITCH_D |
+| 13    | PITCH_FF |
+| 14    | ROLL_P |
+| 15    | ROLL_I |
+| 16    | ROLL_D |
+| 17    | ROL_FF |
+| 18    | YAW_P |
+| 19    | YAW_I |
+| 20    | YAW_D |
+| 21    | YAW_FF
+| 22    | Unused |
+| 23    | PITCH_RATE |
+| 24    | ROLL_RATE |
+| 25    | RC_YAW_EXPO |
+| 26    | MANUAL_RC_EXPO |
+| 27    | MANUAL_RC_YAW_EXPO |
+| 28    | MANUAL_PITCH_ROLL_RATE |
+| 29    | MANUAL_ROLL_RATE |
+| 30    | MANUAL_PITCH_RATE |
+| 31    | MANUAL_YAW_RATE |
+| 32    | NAV_FW_CRUISE_THROTTLE |
+| 33    | NAV_FW_PITCH2THR |
+| 34    | ROLL_BOARD_ALIGNMENT |
+| 35    | PITCH_BOARD_ALIGNMENT |
+| 36    | LEVEL_P |
+| 37    | LEVEL_I |
+| 38    | LEVEL_D |
+| 39    | POS_XY_P |
+| 40    | POS_XY_I |
+| 41    | POS_XY_D |
+| 42    | POS_Z_P |
+| 43    | POS_Z_I |
+| 44    | POS_Z_D |
+| 45    | HEADING_P |
+| 46    | VEL_XY_P |
+| 47    | VEL_XY_I |
+| 48    | VEL_XY_D |
+| 49    | VEL_Z_P |
+| 50    | VEL_Z_I |
+| 51    | VEL_Z_D |
+| 52    | FW_MIN_THROTTLE_DOWN_PITCH_ANGLE |
+| 53    | ADJUSTMENT_VTX_POWER_LEVEL |
+| 54    | TPA |
+| 55    | TPA_BREAKPOINT |
+| 56    | NAV_FW_CONTROL_SMOOTHNESS |
 
 ## Examples
 
@@ -193,9 +199,9 @@ range.
 adjrange 3 2 1 900 1150 6 3
 adjrange 4 2 1 1150 1300 7 3
 adjrange 5 2 1 1300 1500 8 3
-adjrange 6 2 1 1500 1700 9 3
-adjrange 7 2 1 1700 1850 10 3
-adjrange 8 2 1 1850 2100 11 3
+adjrange 6 2 1 1500 1700 18 3
+adjrange 7 2 1 1700 1850 19 3
+adjrange 8 2 1 1850 2100 20 3
 ```
 
 explained:
@@ -210,37 +216,18 @@ explained:
 (1) in the range 1300-1500 then use adjustment Pitch/Roll D (8) when aux 4
 (3) is in the appropriate position.
 * configure adjrange 6 to use adjustment slot 3 (2) so that when aux2
-(1) in the range 1500-1700 then use adjustment Yaw P (9) when aux 4
+(1) in the range 1500-1700 then use adjustment Yaw P (18) when aux 4
 (3) is in the appropriate position.
 * configure adjrange 7 to use adjustment slot 3 (2) so that when aux2
-(1) in the range 1700-1850 then use adjustment Yaw I (10) when aux 4
+(1) in the range 1700-1850 then use adjustment Yaw I (19) when aux 4
 (3) is in the appropriate position.
 * configure adjrange 8 to use adjustment slot 3 (2) so that when aux2
-(1) in the range 1850-2100 then use adjustment Yaw D (11) when aux 4
+(1) in the range 1850-2100 then use adjustment Yaw D (20) when aux 4
 (3) is in the appropriate position.
-
-### Example 4 - Use a single 3 position switch to change between 3 different rate profiles
-
-adjrange 11 3 3 900 2100 12 3
-
-explained:
-
-* configure adjrange 11 to use adjustment slot 4 (3) so that when aux4
-(3) in the range 900-2100 then use adjustment Rate Profile (12) when aux 4
-(3) is in the appropriate position.
-
-When the switch is low, rate profile 0 is selcted.
-When the switch is medium, rate profile 1 is selcted.
-When the switch is high, rate profile 2 is selcted.
-
 
 ### Configurator examples
 
 The following 5 images show valid configurations.  In all cases the entire usable range for the Range Channel is used.
-
-![Configurator example 1](Screenshots/adjustments-rate-profile-selection-via-3pos.png)
-
----
 
 ![Configurator example 2](Screenshots/adjustments-pitch-and-roll-rate-adjustment-via-3pos.png)
 
