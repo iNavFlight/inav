@@ -74,6 +74,7 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 38            | RC_CHANNEL_OVERRIDE | Overrides channel set by `Operand A` to value of `Operand B` |
 | 39            | SET_HEADING_TARGET  | Sets heading-hold target to `Operand A`, in degrees. Value wraps-around. |
 | 40            | MOD           | Divide `Operand A` by `Operand B` and returns the remainder |
+| 41            | SET_PID_PROFILE   | Sets the active PID(FF)/RATE profile to `Operand A`. `Operand A` must be a valid profile number, currently from 1 to 3. If not, the profile will not change |
 
 
 ### Operands
@@ -127,6 +128,7 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 32            | CROSSFIRE LQ          | Crossfire Link quality as returned by the CRSF protocol   | 
 | 33            | CROSSFIRE SNR          | Crossfire SNR as returned by the CRSF protocol   |
 | 34            | GPS_VALID              | boolean `0`/`1`. True when the GPS has a valid 3D Fix                |
+| 35            | PID_PROFILE           | integer for the active PID(FF)/RATE profile `[1..MAX_PROFILE_COUNT]`  |
 
 #### ACTIVE_WAYPOINT_ACTION
 
