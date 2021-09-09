@@ -34,6 +34,7 @@
 #include "common/utils.h"
 #include "rx/rx.h"
 #include "common/maths.h"
+#include "fc/config.h"
 #include "fc/fc_core.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
@@ -333,6 +334,15 @@ static int logicConditionCompute(
             }
             break;
 
+        case LOGIC_CONDITION_SET_PID_PROFILE:
+            operandA--;
+            if ( getConfigProfile() != operandA  && (operandA >= 0 && operandA < MAX_PROFILE_COUNT)) {
+                return setConfigProfile(operandA);
+            } else {
+                return false;
+            }
+            break;
+
         default:
             return false;
             break; 
@@ -531,6 +541,10 @@ static int logicConditionGetFlightOperandValue(int operand) {
         #else
             return 0;
         #endif
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_PID_PROFILE: // int
+            return getConfigProfile() + 1;
             break;
 
         default:
