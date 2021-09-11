@@ -5424,11 +5424,31 @@ Can be used in ANGLE and HORIZON mode and will automatically boost throttle when
 
 ### tpa_airspeed_attenuation
 
-Calculate PID Attenuation based on AirSpeed (0 is disabled) ~ 1500 is a recommended value [cm/s]
+Calculate PIDFF Attenuation based on AirSpeed (0 is disabled) ~ 1500 is a recommended value. [cm/s]
 
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 3000 |
+
+---
+
+### tpa_airspeed_max
+
+Maximum airspeed demanded to calculate the PIDFF Attenuation based on AirSpeed. [cm/s]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 2200 | 500 | 10000 |
+
+---
+
+### tpa_airspeed_min
+
+Should be set to 20% higher than level flight stall speed to calculate the PIDFF Attenuation based on AirSpeed. [cm/s]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 900 | 500 | 10000 |
 
 ---
 

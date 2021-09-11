@@ -2214,7 +2214,6 @@ groups:
         field: fixedWingLevelTrimGain
         min: 0
         max: 20
-
       - name: tpa_airspeed_min
         description: "Should be set to 20% higher than level flight stall speed to calculate the PIDFF Attenuation based on AirSpeed. [cm/s]"
         default_value: 900
@@ -2222,7 +2221,6 @@ groups:
         condition: USE_PITOT
         min: 500
         max: 10000
-
       - name: tpa_airspeed_max
         description: "Maximum airspeed demanded to calculate the PIDFF Attenuation based on AirSpeed. [cm/s]"
         default_value: 2200
@@ -2230,7 +2228,6 @@ groups:
         condition: USE_PITOT
         min: 500
         max: 10000
-
       - name: tpa_airspeed_attenuation
         description: "Calculate PIDFF Attenuation based on AirSpeed (0 is disabled) ~ 1500 is a recommended value. [cm/s]"
         default_value: 0
