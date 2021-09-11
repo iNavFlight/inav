@@ -166,6 +166,8 @@ typedef struct pidProfile_s {
 
 #ifdef USE_PITOT
     float TPA_Scaling_Speed;
+    uint16_t TPA_Speed_Min;
+    uint16_t TPA_Speed_Max;
 #endif
 } pidProfile_t;
 

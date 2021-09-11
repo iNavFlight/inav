@@ -311,6 +311,8 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
 
 #ifdef USE_PITOT
         .TPA_Scaling_Speed = SETTING_TPA_AIRSPEED_ATTENUATION_DEFAULT,
+        .TPA_Speed_Min = SETTING_TPA_AIRSPEED_MIN_DEFAULT,
+        .TPA_Speed_Max = SETTING_TPA_AIRSPEED_MAX_DEFAULT,
 #endif
 );
 
@@ -459,9 +461,6 @@ float pidRcCommandToRate(int16_t stick, uint8_t rate)
 
 static float Get_PID_AirSpeed_Scaler(const float ScalingSpeed)
 {
-#define TPA_AIR_SPEED_MIN 9  //m/s ~ 32,4km/h
-#define TPA_AIR_SPEED_MAX 22 //m/s ~ 79,2km/h
-
     float AirSpeedValue = CENTIMETERS_TO_METERS(pitotCalculateAirSpeed()); //in m/s
     float AirSpeed_Scaler = 0.0f;
     if (AirSpeedValue > 0.0001f)
@@ -472,8 +471,8 @@ static float Get_PID_AirSpeed_Scaler(const float ScalingSpeed)
     {
       AirSpeed_Scaler = 2.0f;
     }
-    float AirSpeed_TPA_Scale_Min = MIN(0.5f, (0.5f * TPA_AIR_SPEED_MIN) / ScalingSpeed);
-    float AirSpeed_TPA_Scale_Max = MAX(2.0f, (1.5f * TPA_AIR_SPEED_MAX) / ScalingSpeed);
+    float AirSpeed_TPA_Scale_Min = MIN(0.5f, (0.5f * CENTIMETERS_TO_METERS(pidProfile()->TPA_Speed_Min)) / ScalingSpeed);
+    float AirSpeed_TPA_Scale_Max = MAX(2.0f, (1.5f * CENTIMETERS_TO_METERS(pidProfile()->TPA_Speed_Max)) / ScalingSpeed);
     AirSpeed_Scaler = constrainf(AirSpeed_Scaler, AirSpeed_TPA_Scale_Min, AirSpeed_TPA_Scale_Max);
     return AirSpeed_Scaler;
 }
