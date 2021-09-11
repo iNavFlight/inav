@@ -5434,7 +5434,7 @@ Calculate PIDFF Attenuation based on AirSpeed (0 is disabled) ~ 1500 is a recomm
 
 ### tpa_airspeed_max
 
-Maximum airspeed demanded to calculate the PIDFF Attenuation based on AirSpeed. [cm/s]
+Maximum AirSpeed demanded to calculate the PIDFF Attenuation. [cm/s]
 
 | Default | Min | Max |
 | --- | --- | --- |

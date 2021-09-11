@@ -2222,7 +2222,7 @@ groups:
         min: 500
         max: 10000
       - name: tpa_airspeed_max
-        description: "Maximum airspeed demanded to calculate the PIDFF Attenuation based on AirSpeed. [cm/s]"
+        description: "Maximum AirSpeed demanded to calculate the PIDFF Attenuation. [cm/s]"
         default_value: 2200
         field: TPA_Speed_Max
         condition: USE_PITOT
