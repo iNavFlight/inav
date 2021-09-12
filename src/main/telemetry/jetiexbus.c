@@ -144,7 +144,8 @@ const exBusSensor_t jetiExSensors[] = {
     {"G-Force X",       "",         EX_TYPE_22b,   DECIMAL_MASK(3)},
     {"G-Force Y",       "",         EX_TYPE_22b,   DECIMAL_MASK(3)},
     {"G-Force Z",       "",         EX_TYPE_22b,   DECIMAL_MASK(3)},
-    {"RPM",             "",         EX_TYPE_22b,   DECIMAL_MASK(0)}
+    {"RPM",             "",         EX_TYPE_22b,   DECIMAL_MASK(0)},
+    {"Trip Distance",   "m",        EX_TYPE_22b,   DECIMAL_MASK(0)}
 };
 
 // after every 15 sensors increment the step by 2 (e.g. ...EX_VAL15, EX_VAL16 = 17) to skip the device description
@@ -170,6 +171,7 @@ enum exSensors_e {
     EX_GFORCE_Y,
     EX_GFORCE_Z,
     EX_RPM,
+    EX_TRIP_DISTANCE,
 };
 
 union{
@@ -211,6 +213,7 @@ void enableGpsTelemetry(bool enable)
         bitArraySet(&exSensorEnabled, EX_GPS_DIRECTION_TO_HOME);
         bitArraySet(&exSensorEnabled, EX_GPS_HEADING);
         bitArraySet(&exSensorEnabled, EX_GPS_ALTITUDE);
+        bitArraySet(&exSensorEnabled, EX_TRIP_DISTANCE);
     } else {
         bitArrayClr(&exSensorEnabled, EX_GPS_SATS);
         bitArrayClr(&exSensorEnabled, EX_GPS_LONG);
@@ -220,6 +223,7 @@ void enableGpsTelemetry(bool enable)
         bitArrayClr(&exSensorEnabled, EX_GPS_DIRECTION_TO_HOME);
         bitArrayClr(&exSensorEnabled, EX_GPS_HEADING);
         bitArrayClr(&exSensorEnabled, EX_GPS_ALTITUDE);
+        bitArrayClr(&exSensorEnabled, EX_TRIP_DISTANCE);
     }
 }
 
@@ -418,6 +422,9 @@ int32_t getSensorValue(uint8_t sensor)
         }
     break;
 #endif
+
+    case EX_TRIP_DISTANCE:
+        return getTotalTravelDistance() / 100;
 
     default:
         return -1;

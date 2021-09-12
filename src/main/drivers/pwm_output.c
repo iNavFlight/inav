@@ -146,7 +146,7 @@ static pwmOutputPort_t *pwmOutAllocatePort(void)
     return p;
 }
 
-static pwmOutputPort_t *pwmOutConfigMotor(const timerHardware_t *timHw, uint32_t hz, uint16_t period, uint16_t value, bool enableOutput)
+static pwmOutputPort_t *pwmOutConfig(const timerHardware_t *timHw, resourceOwner_e owner, uint32_t hz, uint16_t period, uint16_t value, bool enableOutput)
 {
     // Attempt to allocate TCH
     TCH_t * tch = timerGetTCH(timHw);
@@ -161,7 +161,7 @@ static pwmOutputPort_t *pwmOutConfigMotor(const timerHardware_t *timHw, uint32_t
     }
 
     const IO_t io = IOGetByTag(timHw->tag);
-    IOInit(io, OWNER_MOTOR, RESOURCE_OUTPUT, allocatedOutputPortCount);
+    IOInit(io, owner, RESOURCE_OUTPUT, allocatedOutputPortCount);
 
     if (enableOutput) {
         IOConfigGPIOAF(io, IOCFG_AF_PP, timHw->alternateFunction);
@@ -228,7 +228,7 @@ static pwmOutputPort_t * motorConfigPwm(const timerHardware_t *timerHardware, fl
     const uint32_t timerHz = baseClockHz / prescaler;
     const uint32_t period = timerHz / motorPwmRateHz;
 
-    pwmOutputPort_t * port = pwmOutConfigMotor(timerHardware, timerHz, period, 0, enableOutput);
+    pwmOutputPort_t * port = pwmOutConfig(timerHardware, OWNER_MOTOR, timerHz, period, 0, enableOutput);
 
     if (port) {
         port->pulseScale = ((sLen == 0) ? period : (sLen * timerHz)) / 1000.0f;
@@ -256,7 +256,7 @@ uint32_t getDshotHz(motorPwmProtocolTypes_e pwmProtocolType)
 static pwmOutputPort_t * motorConfigDshot(const timerHardware_t * timerHardware, uint32_t dshotHz, bool enableOutput)
 {
     // Try allocating new port
-    pwmOutputPort_t * port = pwmOutConfigMotor(timerHardware, dshotHz, DSHOT_MOTOR_BITLENGTH, 0, enableOutput);
+    pwmOutputPort_t * port = pwmOutConfig(timerHardware, OWNER_MOTOR, dshotHz, DSHOT_MOTOR_BITLENGTH, 0, enableOutput);
 
     if (!port) {
         return NULL;
@@ -580,7 +580,7 @@ void pwmServoPreconfigure(void)
 
 bool pwmServoConfig(const timerHardware_t *timerHardware, uint8_t servoIndex, uint16_t servoPwmRate, uint16_t servoCenterPulse, bool enableOutput)
 {
-    pwmOutputPort_t * port = pwmOutConfigMotor(timerHardware, PWM_TIMER_HZ, PWM_TIMER_HZ / servoPwmRate, servoCenterPulse, enableOutput);
+    pwmOutputPort_t * port = pwmOutConfig(timerHardware, OWNER_SERVO, PWM_TIMER_HZ, PWM_TIMER_HZ / servoPwmRate, servoCenterPulse, enableOutput);
 
     if (port) {
         servos[servoIndex] = port;
