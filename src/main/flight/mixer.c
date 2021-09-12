@@ -604,7 +604,7 @@ void FAST_CODE mixTable()
 
 int16_t getThrottlePercent(void)
 {
-    int16_t thr = (constrain(rcCommand[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX ) - getThrottleIdleValue()) * 100 / (motorConfig()->maxthrottle - getThrottleIdleValue());
+    int16_t thr = scaleRange(constrain(rcCommand[THROTTLE], getThrottleIdleValue(), motorConfig()->maxthrottle), getThrottleIdleValue(), motorConfig()->maxthrottle, 0, 100);
     return thr;
 }
 
