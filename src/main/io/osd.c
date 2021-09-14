@@ -2025,11 +2025,12 @@ static bool osdDrawSingleElement(uint8_t item)
                     } else {
                         tfp_sprintf(buff+1, "%3d", rxLinkStatistics.uplinkLQ);
                     }
+                    break;
                 case OSD_CRSF_LQ_TYPE2:
                     if (!failsafeIsReceivingRxData()) {
                         tfp_sprintf(buff+1, "%s:%3d", " ", 0);
                     } else {
-                    tfp_sprintf(buff+1, "%d:%3d", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ);
+                        tfp_sprintf(buff+1, "%d:%3d", rxLinkStatistics.rfMode, rxLinkStatistics.uplinkLQ);
                     }
                     break;
                 case OSD_CRSF_LQ_TYPE3:
