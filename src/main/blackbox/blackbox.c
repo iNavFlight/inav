@@ -596,6 +596,9 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
     case FLIGHT_LOG_FIELD_CONDITION_ALWAYS:
         return true;
 
+    case FLIGHT_LOG_FIELD_CONDITION_MOTORS:
+        return blackboxIncludeFlag(BLACKBOX_FEATURE_MOTORS);
+
     case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_1:
     case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_2:
     case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_3:
@@ -800,13 +803,13 @@ static void writeIntraframe(void)
     // Write roll, pitch and yaw first:
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_RC_COMMAND)) {
         blackboxWriteSigned16VBArray(blackboxCurrent->rcCommand, 3);
-    }
 
-    /*
-     * Write the throttle separately from the rest of the RC data so we can apply a predictor to it.
-     * Throttle lies in range [minthrottle..maxthrottle]:
-     */
-    blackboxWriteUnsignedVB(blackboxCurrent->rcCommand[THROTTLE] - getThrottleIdleValue());
+        /*
+        * Write the throttle separately from the rest of the RC data so we can apply a predictor to it.
+        * Throttle lies in range [minthrottle..maxthrottle]:
+        */
+        blackboxWriteUnsignedVB(blackboxCurrent->rcCommand[THROTTLE] - getThrottleIdleValue());
+    }
 
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_VBAT)) {
         /*
@@ -865,13 +868,15 @@ static void writeIntraframe(void)
         blackboxWriteSignedVBArray(blackboxCurrent->debug, DEBUG32_VALUE_COUNT);
     }
 
-    //Motors can be below minthrottle when disarmed, but that doesn't happen much
-    blackboxWriteUnsignedVB(blackboxCurrent->motor[0] - getThrottleIdleValue());
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_MOTORS)) {
+        //Motors can be below minthrottle when disarmed, but that doesn't happen much
+        blackboxWriteUnsignedVB(blackboxCurrent->motor[0] - getThrottleIdleValue());
 
-    //Motors tend to be similar to each other so use the first motor's value as a predictor of the others
-    const int motorCount = getMotorCount();
-    for (int x = 1; x < motorCount; x++) {
-        blackboxWriteSignedVB(blackboxCurrent->motor[x] - blackboxCurrent->motor[0]);
+        //Motors tend to be similar to each other so use the first motor's value as a predictor of the others
+        const int motorCount = getMotorCount();
+        for (int x = 1; x < motorCount; x++) {
+            blackboxWriteSignedVB(blackboxCurrent->motor[x] - blackboxCurrent->motor[0]);
+        }
     }
 
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_SERVOS)) {
@@ -1110,7 +1115,10 @@ static void writeInterframe(void)
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_DEBUG)) {
         blackboxWriteArrayUsingAveragePredictor32(offsetof(blackboxMainState_t, debug), DEBUG32_VALUE_COUNT);
     }
-    blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, motor),     getMotorCount());
+
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_MOTORS)) {
+        blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, motor),     getMotorCount());
+    }
 
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_SERVOS)) {
         blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, servo),     MAX_SUPPORTED_SERVOS);
