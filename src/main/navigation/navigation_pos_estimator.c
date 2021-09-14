@@ -443,12 +443,10 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
             posEstimator.imu.accelNEU.z = 0;
         }
 
-#if defined(NAV_BLACKBOX)
         /* Update blackbox values */
         navAccNEU[X] = posEstimator.imu.accelNEU.x;
         navAccNEU[Y] = posEstimator.imu.accelNEU.y;
         navAccNEU[Z] = posEstimator.imu.accelNEU.z;
-#endif
     }
 }
 
@@ -785,10 +783,9 @@ static void publishEstimatedTopic(timeUs_t currentTimeUs)
             updateActualAltitudeAndClimbRate(false, posEstimator.est.pos.z, 0, posEstimator.est.aglAlt, 0, EST_NONE);
         }
 
-#if defined(NAV_BLACKBOX)
+        //Update Blackbox states
         navEPH = posEstimator.est.eph;
         navEPV = posEstimator.est.epv;
-#endif
     }
 }
 

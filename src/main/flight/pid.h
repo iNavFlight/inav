@@ -189,7 +189,7 @@ const pidBank_t * pidBank(void);
 pidBank_t * pidBankMutable(void);
 
 extern int16_t axisPID[];
-extern int32_t axisPID_P[], axisPID_I[], axisPID_D[], axisPID_Setpoint[];
+extern int32_t axisPID_P[], axisPID_I[], axisPID_D[], axisPID_F[], axisPID_Setpoint[];
 
 void pidInit(void);
 bool pidInitFilters(void);

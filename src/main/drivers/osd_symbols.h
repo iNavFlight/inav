@@ -56,6 +56,7 @@
 #define SYM_AH_MI                   0x24  // 036 Ah/mi
 //                                  0x25  // 037 ASCII %
 //                                  0x26  // 038 ASCII &
+#define SYM_VTX_POWER               0x27  // 039 VTx Power
 //                                  0x28  // 040 to 062 ASCII
 #define SYM_AH_NM       		    0x3F  // 063 Ah/NM
 //                                  0x40  // 064 to 095 ASCII
@@ -158,6 +159,7 @@
 #define SYM_HEADING_W               0xCB  // 203 Heading Graphic west
 #define SYM_HEADING_DIVIDED_LINE    0xCC  // 204 Heading Graphic
 #define SYM_HEADING_LINE            0xCD  // 205 Heading Graphic
+#define SYM_MAX                     0xCE  // 206 MAX symbol
 
 
 #define SYM_LOGO_START              0x101 // 257 to 280, INAV logo

@@ -351,7 +351,7 @@ void osdHudDrawExtras(uint8_t poi_id)
 
     displayWrite(osdGetDisplayPort(), minX + 4, lineY, buftmp);
 
-    osdFormatVelocityStr(buftmp, radar_pois[poi_id].speed, false);
+    osdFormatVelocityStr(buftmp, radar_pois[poi_id].speed, false, false);
     displayWrite(osdGetDisplayPort(), maxX - 9, lineY, buftmp);
 
     tfp_sprintf(buftmp, "%3d%c", radar_pois[poi_id].heading, SYM_HEADING);
