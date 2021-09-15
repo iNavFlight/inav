@@ -25,7 +25,7 @@
 
 #include "platform.h"
 
-uint8_t cliMode = 0;
+bool cliMode = false;
 
 #include "blackbox/blackbox.h"
 
@@ -2827,7 +2827,7 @@ static void cliExit(char *cmdline)
 
     *cliBuffer = '\0';
     bufferIndex = 0;
-    cliMode = 0;
+    cliMode = false;
     // incase a motor was left running during motortest, clear it here
     mixerResetDisarmedMotors();
     cliReboot();
@@ -4016,7 +4016,7 @@ void cliEnter(serialPort_t *serialPort)
         return;
     }
 
-    cliMode = 1;
+    cliMode = true;
     cliPort = serialPort;
     setPrintfSerialPort(cliPort);
     cliWriter = bufWriterInit(cliWriteBuffer, sizeof(cliWriteBuffer), (bufWrite_t)serialWriteBufShim, serialPort);
