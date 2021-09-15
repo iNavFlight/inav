@@ -3527,12 +3527,13 @@ static void osdUpdateStats(void)
     if (stats.min_rssi > value)
         stats.min_rssi = value;
 
-    value = osdGetCrsfLQ(); {
+    value = osdGetCrsfLQ();
     if (stats.min_lq > value)
         stats.min_lq = value;
+
     if (!failsafeIsReceivingRxData())
         stats.min_lq = 0;
-    }
+
     value = osdGetCrsfdBm();
     if (stats.min_rssi_dbm > value)
         stats.min_rssi_dbm = value;
