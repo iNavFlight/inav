@@ -2079,7 +2079,10 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_CRSF_TX_POWER:
         {
-            tfp_sprintf(buff, "%4d%c", rxLinkStatistics.uplinkTXPower, SYM_MW);
+            if (!failsafeIsReceivingRxData())
+                tfp_sprintf(buff, "%s%c", "    ", SYM_BLANK);
+            else
+                tfp_sprintf(buff, "%4d%c", rxLinkStatistics.uplinkTXPower, SYM_MW);
             break;
         }
 #endif
