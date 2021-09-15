@@ -66,7 +66,6 @@
 #define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PB5
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PA15
@@ -99,7 +98,6 @@
 #define BNO055_I2C_BUS          BUS_I2C1
 
 #define USE_RANGEFINDER
-#define USE_RANGEFINDER_HCSR04_I2C
 #define RANGEFINDER_I2C_BUS     DEFAULT_I2C_BUS
 
 #define PITOT_I2C_BUS           DEFAULT_I2C_BUS
@@ -151,3 +149,5 @@
 
 //TIMER
 #define MAX_PWM_OUTPUT_PORTS       10
+
+#define USE_DSHOT

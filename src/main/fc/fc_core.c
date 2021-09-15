@@ -45,6 +45,7 @@ FILE_COMPILE_FOR_SPEED
 #include "sensors/boardalignment.h"
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
+#include "sensors/compass.h"
 #include "sensors/pitotmeter.h"
 #include "sensors/gyro.h"
 #include "sensors/battery.h"
@@ -86,8 +87,11 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/servos.h"
 #include "flight/pid.h"
 #include "flight/imu.h"
+#include "flight/secondary_imu.h"
+#include "flight/rate_dynamics.h"
 
 #include "flight/failsafe.h"
+#include "flight/power_limits.h"
 
 #include "config/feature.h"
 #include "common/vector.h"
@@ -118,6 +122,7 @@ typedef struct emergencyArmingState_s {
 
 timeDelta_t cycleTime = 0;         // this is the number in micro second to achieve a full loop, it can differ a little and is taken into account in the PID loop
 static timeUs_t flightTime = 0;
+static timeUs_t armTime = 0;
 
 EXTENDED_FASTRAM float dT;
 
@@ -133,10 +138,16 @@ static emergencyArmingState_t emergencyArming;
 static bool prearmWasReset = false; // Prearm must be reset (RC Mode not active) before arming is possible
 static timeMs_t prearmActivationTime = 0;
 
-bool isCalibrating(void)
+bool areSensorsCalibrating(void)
 {
 #ifdef USE_BARO
     if (sensors(SENSOR_BARO) && !baroIsCalibrationComplete()) {
+        return true;
+    }
+#endif
+
+#ifdef USE_MAG
+    if (sensors(SENSOR_MAG) && !compassIsCalibrationComplete()) {
         return true;
     }
 #endif
@@ -169,7 +180,7 @@ int16_t getAxisRcCommand(int16_t rawData, int16_t rate, int16_t deadband)
     int16_t stickDeflection;
 
     stickDeflection = constrain(rawData - PWM_RANGE_MIDDLE, -500, 500);
-    stickDeflection = applyDeadband(stickDeflection, deadband);
+    stickDeflection = applyDeadbandRescaled(stickDeflection, deadband, -500, 500);
 
     return rcLookup(stickDeflection, rate);
 }
@@ -181,7 +192,7 @@ static void updateArmingStatus(void)
     } else {
         /* CHECK: Run-time calibration */
         static bool calibratingFinishedBeep = false;
-        if (isCalibrating()) {
+        if (areSensorsCalibrating()) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_SENSORS_CALIBRATING);
             calibratingFinishedBeep = false;
         }
@@ -214,7 +225,7 @@ static void updateArmingStatus(void)
 
 	/* CHECK: pitch / roll sticks centered when NAV_LAUNCH_MODE enabled */
 	if (isNavLaunchEnabled()) {
-	  if (areSticksDeflectedMoreThanPosHoldDeadband()) {
+	  if (isRollPitchStickDeflected()) {
 	    ENABLE_ARMING_FLAG(ARMING_DISABLED_ROLLPITCH_NOT_CENTERED);
 	  } else {
 	    DISABLE_ARMING_FLAG(ARMING_DISABLED_ROLLPITCH_NOT_CENTERED);
@@ -364,7 +375,7 @@ static bool emergencyArmingIsEnabled(void)
     return emergencyArmingIsTriggered() && emergencyArmingCanOverrideArmingDisabled();
 }
 
-void annexCode(void)
+void annexCode(float dT)
 {
     int32_t throttleValue;
 
@@ -383,6 +394,19 @@ void annexCode(void)
             rcCommand[ROLL] = rcCommand[ROLL] * currentControlRateProfile->manual.rates[FD_ROLL] / 100L;
             rcCommand[PITCH] = rcCommand[PITCH] * currentControlRateProfile->manual.rates[FD_PITCH] / 100L;
             rcCommand[YAW] = rcCommand[YAW] * currentControlRateProfile->manual.rates[FD_YAW] / 100L;
+        } else {
+            DEBUG_SET(DEBUG_RATE_DYNAMICS, 0, rcCommand[ROLL]);
+            rcCommand[ROLL] = applyRateDynamics(rcCommand[ROLL], ROLL, dT);
+            DEBUG_SET(DEBUG_RATE_DYNAMICS, 1, rcCommand[ROLL]);
+
+            DEBUG_SET(DEBUG_RATE_DYNAMICS, 2, rcCommand[PITCH]);
+            rcCommand[PITCH] = applyRateDynamics(rcCommand[PITCH], PITCH, dT);
+            DEBUG_SET(DEBUG_RATE_DYNAMICS, 3, rcCommand[PITCH]);
+
+            DEBUG_SET(DEBUG_RATE_DYNAMICS, 4, rcCommand[YAW]);
+            rcCommand[YAW] = applyRateDynamics(rcCommand[YAW], YAW, dT);
+            DEBUG_SET(DEBUG_RATE_DYNAMICS, 5, rcCommand[YAW]);
+            
         }
 
         //Compute THROTTLE command
@@ -419,9 +443,9 @@ void disarm(disarmReason_t disarmReason)
         }
 #endif
 #ifdef USE_DSHOT
-        if (FLIGHT_MODE(FLIP_OVER_AFTER_CRASH)) {
+        if (FLIGHT_MODE(TURTLE_MODE)) {
             sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_NORMAL);
-            DISABLE_FLIGHT_MODE(FLIP_OVER_AFTER_CRASH);
+            DISABLE_FLIGHT_MODE(TURTLE_MODE);
         }
 #endif
         statsOnDisarm();
@@ -493,36 +517,37 @@ void tryArm(void)
 {
     updateArmingStatus();
 
+#ifdef USE_DSHOT
+    if (
+            STATE(MULTIROTOR) &&
+            IS_RC_MODE_ACTIVE(BOXTURTLE) &&
+            emergencyArmingCanOverrideArmingDisabled() &&
+            isMotorProtocolDshot() &&
+            !ARMING_FLAG(ARMED) &&
+            !FLIGHT_MODE(TURTLE_MODE)
+            ) {
+        sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_REVERSED);
+        ENABLE_ARMING_FLAG(ARMED);
+        enableFlightMode(TURTLE_MODE);
+        return;
+    }
+#endif
+
 #ifdef USE_PROGRAMMING_FRAMEWORK
     if (
-        !isArmingDisabled() || 
-        emergencyArmingIsEnabled() || 
+        !isArmingDisabled() ||
+        emergencyArmingIsEnabled() ||
         LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_ARMING_SAFETY)
     ) {
-#else 
+#else
     if (
-        !isArmingDisabled() || 
+        !isArmingDisabled() ||
         emergencyArmingIsEnabled()
     ) {
 #endif
         if (ARMING_FLAG(ARMED)) {
             return;
         }
-
-#ifdef USE_DSHOT
-        if (
-                STATE(MULTIROTOR) &&
-                IS_RC_MODE_ACTIVE(BOXFLIPOVERAFTERCRASH) &&
-                emergencyArmingCanOverrideArmingDisabled() &&
-                isMotorProtocolDshot() &&
-                !FLIGHT_MODE(FLIP_OVER_AFTER_CRASH)
-                ) {
-            sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_REVERSED);
-            ENABLE_ARMING_FLAG(ARMED);
-            enableFlightMode(FLIP_OVER_AFTER_CRASH);
-            return;
-        }
-#endif
 
 #if defined(USE_NAV)
         // If nav_extra_arming_safety was bypassed we always
@@ -708,7 +733,7 @@ void processRx(timeUs_t currentTimeUs)
     // Handle passthrough mode
     if (STATE(FIXED_WING_LEGACY)) {
         if ((IS_RC_MODE_ACTIVE(BOXMANUAL) && !navigationRequiresAngleMode() && !failsafeRequiresAngleMode()) ||    // Normal activation of passthrough
-            (!ARMING_FLAG(ARMED) && isCalibrating())){                                                              // Backup - if we are not armed - enforce passthrough while calibrating
+            (!ARMING_FLAG(ARMED) && areSensorsCalibrating())){                                                              // Backup - if we are not armed - enforce passthrough while calibrating
             ENABLE_FLIGHT_MODE(MANUAL_MODE);
         } else {
             DISABLE_FLIGHT_MODE(MANUAL_MODE);
@@ -837,14 +862,19 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
     if (ARMING_FLAG(ARMED) && (!STATE(FIXED_WING_LEGACY) || !isNavLaunchEnabled() || (isNavLaunchEnabled() && (isFixedWingLaunchDetected() || isFixedWingLaunchFinishedOrAborted())))) {
         flightTime += cycleTime;
+        armTime += cycleTime;
         updateAccExtremes();
     }
+    if (!ARMING_FLAG(ARMED)) {
+        armTime = 0;
+    }
 
-    taskGyro(currentTimeUs);
+    gyroFilter();
+
     imuUpdateAccelerometer();
     imuUpdateAttitude(currentTimeUs);
 
-    annexCode();
+    annexCode(dT);
 
     if (rxConfig()->rcFilterFrequency) {
         rcInterpolationApply(isRXDataNew);
@@ -885,6 +915,10 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         // FIXME: throttle pitch comp for FW
     }
 
+#ifdef USE_POWER_LIMITS
+    powerLimiterApply(&rcCommand[THROTTLE]);
+#endif
+
     // Calculate stabilisation
     pidController(dT);
 
@@ -895,11 +929,11 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     }
 #endif
 
-    mixTable(dT);
+    mixTable();
 
     if (isMixerUsingServos()) {
         servoMixer(dT);
-        processServoAutotrim();
+        processServoAutotrim(dT);
     }
 
     //Servos should be filtered or written only when mixer is using servos or special feaures are enabled
@@ -954,6 +988,11 @@ void taskUpdateRxMain(timeUs_t currentTimeUs)
 float getFlightTime()
 {
     return (float)(flightTime / 1000) / 1000;
+}
+
+float getArmTime()
+{
+    return (float)(armTime / 1000) / 1000;
 }
 
 void fcReboot(bool bootLoader)

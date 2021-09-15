@@ -35,9 +35,11 @@ The stick positions are combined to activate different functions:
 | Trim Acc Backwards            | HIGH     | CENTER  | LOW    | CENTER |
 | Save current waypoint mission | LOW      | CENTER  | HIGH   | LOW    |
 | Load current waypoint mission | LOW      | CENTER  | HIGH   | HIGH   |
+| Unload waypoint mission       | LOW      | CENTER  | LOW    | HIGH   |
 | Save setting                  | LOW      | LOW     | LOW    | HIGH   |
 | Enter OSD Menu (CMS)          | CENTER   | LOW     | HIGH   | CENTER |
 
+For graphical stick position in all transmitter modes, check out [this page](https://www.mrd-rc.com/tutorials-tools-and-testing/inav-flight/inav-stick-commands-for-all-transmitter-modes/).
 ![Stick Positions](assets/images/StickPositions.png)
 
 ## Yaw control

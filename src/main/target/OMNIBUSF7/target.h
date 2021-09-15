@@ -73,7 +73,6 @@
 #define UART1_RX_PIN PA10
 #define UART1_TX_PIN PA9
 
-//#define AVOID_UART2_FOR_PWM_PPM
 #define USE_UART2
 #define UART2_TX_PIN PA2 //not wired
 #define UART2_RX_PIN PA3
@@ -126,7 +125,6 @@
 #define SPI4_MISO_PIN           PE5
 #define SPI4_MOSI_PIN           PE6
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          SPI2_NSS_PIN
@@ -149,7 +147,6 @@
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
-#define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
@@ -161,7 +158,6 @@
 #define BNO055_I2C_BUS          BUS_I2C2
 
 #define USE_RANGEFINDER
-#define USE_RANGEFINDER_HCSR04_I2C
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
 
 #define SENSORS_SET (SENSOR_ACC | SENSOR_BARO)

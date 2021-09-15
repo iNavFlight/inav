@@ -52,7 +52,9 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/accgyro/accgyro_bma280.h"
 #include "drivers/accgyro/accgyro_bmi088.h"
 #include "drivers/accgyro/accgyro_bmi160.h"
+#include "drivers/accgyro/accgyro_bmi270.h"
 #include "drivers/accgyro/accgyro_icm20689.h"
+#include "drivers/accgyro/accgyro_icm42605.h"
 #include "drivers/accgyro/accgyro_fake.h"
 #include "drivers/sensor.h"
 
@@ -268,6 +270,31 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         FALLTHROUGH;
 #endif
 
+#ifdef USE_IMU_ICM42605
+    case ACC_ICM42605:
+        if (icm42605AccDetect(dev)) {
+            accHardware = ACC_ICM42605;
+            break;
+        }
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (accHardwareToUse != ACC_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+#endif
+
+#ifdef USE_IMU_BMI270
+    case ACC_BMI270:
+        if (bmi270AccDetect(dev)) {
+            accHardware = ACC_BMI270;
+            break;
+        }
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (accHardwareToUse != ACC_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+#endif
 
 #ifdef USE_IMU_FAKE
     case ACC_FAKE:
@@ -438,9 +465,9 @@ static void performAcclerationCalibration(void)
     }
 
     if (!calibratedPosition[positionIndex]) {
-        v.v[0] = accADC[0];
-        v.v[1] = accADC[1];
-        v.v[2] = accADC[2];
+        v.v[X] = accADC[X];
+        v.v[Y] = accADC[Y];
+        v.v[Z] = accADC[Z];
 
         zeroCalibrationAddValueV(&zeroCalibration, &v);
 
@@ -475,9 +502,9 @@ static void performAcclerationCalibration(void)
         }
 
         if (!sensorCalibrationSolveForOffset(&calState, accTmp)) {
-            accTmp[0] = 0.0f;
-            accTmp[1] = 0.0f;
-            accTmp[2] = 0.0f;
+            accTmp[X] = 0.0f;
+            accTmp[Y] = 0.0f;
+            accTmp[Z] = 0.0f;
             calFailed = true;
         }
 
@@ -499,9 +526,9 @@ static void performAcclerationCalibration(void)
         }
 
         if (!sensorCalibrationSolveForScale(&calState, accTmp)) {
-            accTmp[0] = 1.0f;
-            accTmp[1] = 1.0f;
-            accTmp[2] = 1.0f;
+            accTmp[X] = 1.0f;
+            accTmp[Y] = 1.0f;
+            accTmp[Z] = 1.0f;
             calFailed = true;
         }
 
@@ -616,20 +643,20 @@ void updateAccExtremes(void)
         if (acc.accADCf[axis] > acc.extremes[axis].max) acc.extremes[axis].max = acc.accADCf[axis];
     }
 
-    float gforce = sqrtf(sq(acc.accADCf[0]) + sq(acc.accADCf[1]) + sq(acc.accADCf[2]));
+    float gforce = fast_fsqrtf(sq(acc.accADCf[0]) + sq(acc.accADCf[1]) + sq(acc.accADCf[2]));
     if (gforce > acc.maxG) acc.maxG = gforce;
 }
 
 void accGetVibrationLevels(fpVector3_t *accVibeLevels)
 {
-    accVibeLevels->x = sqrtf(acc.accVibeSq[X]);
-    accVibeLevels->y = sqrtf(acc.accVibeSq[Y]);
-    accVibeLevels->z = sqrtf(acc.accVibeSq[Z]);
+    accVibeLevels->x = fast_fsqrtf(acc.accVibeSq[X]);
+    accVibeLevels->y = fast_fsqrtf(acc.accVibeSq[Y]);
+    accVibeLevels->z = fast_fsqrtf(acc.accVibeSq[Z]);
 }
 
 float accGetVibrationLevel(void)
 {
-    return sqrtf(acc.accVibeSq[X] + acc.accVibeSq[Y] + acc.accVibeSq[Z]);
+    return fast_fsqrtf(acc.accVibeSq[X] + acc.accVibeSq[Y] + acc.accVibeSq[Z]);
 }
 
 uint32_t accGetClipCount(void)

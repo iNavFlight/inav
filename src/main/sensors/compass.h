@@ -42,7 +42,8 @@ typedef enum {
     MAG_LIS3MDL = 11,
     MAG_MSP = 12,
     MAG_RM3100 = 13,
-    MAG_FAKE = 14,
+    MAG_VCM5883 = 14,
+    MAG_FAKE = 15,
     MAG_MAX = MAG_FAKE
 } magSensor_e;
 
@@ -78,5 +79,6 @@ bool compassInit(void);
 void compassUpdate(timeUs_t currentTimeUs);
 bool compassIsReady(void);
 bool compassIsHealthy(void);
+bool compassIsCalibrationComplete(void);
 
 #endif

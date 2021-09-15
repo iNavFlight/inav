@@ -91,7 +91,9 @@ typedef struct navigationFlags_s {
     bool isGCSAssistedNavigationReset;      // GCS control was disabled - indicate that so code could take action accordingly
     bool isTerrainFollowEnabled;            // Does iNav use rangefinder for terrain following (adjusting baro altitude target according to rangefinders readings)
 
+    // Failsafe actions
     bool forcedRTHActivated;
+    bool forcedEmergLandingActivated;
 } navigationFlags_t;
 
 typedef struct {
@@ -141,7 +143,6 @@ typedef enum {
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_RTH_LAND = NAV_FSM_EVENT_STATE_SPECIFIC_1,
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_FINISHED = NAV_FSM_EVENT_STATE_SPECIFIC_2,
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_HOLD_TIME = NAV_FSM_EVENT_STATE_SPECIFIC_3,
-    NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_HOVER_ABOVE_HOME,
 
     NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD,
     NAV_FSM_EVENT_SWITCH_TO_CRUISE,
@@ -200,7 +201,7 @@ typedef enum {
 
     NAV_PERSISTENT_ID_WAYPOINT_HOLD_TIME                        = 35,
     NAV_PERSISTENT_ID_RTH_HOVER_ABOVE_HOME                      = 36,
-    NAV_PERSISTENT_ID_WAYPOINT_HOVER_ABOVE_HOME                 = 37,
+    NAV_PERSISTENT_ID_UNUSED_4                                  = 37, // was NAV_STATE_WAYPOINT_HOVER_ABOVE_HOME
 
 } navigationPersistentId_e;
 
@@ -232,7 +233,6 @@ typedef enum {
     NAV_STATE_WAYPOINT_NEXT,
     NAV_STATE_WAYPOINT_FINISHED,
     NAV_STATE_WAYPOINT_RTH_LAND,
-    NAV_STATE_WAYPOINT_HOVER_ABOVE_HOME,
 
     NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
     NAV_STATE_EMERGENCY_LANDING_IN_PROGRESS,
@@ -358,8 +358,9 @@ typedef struct {
     navWaypoint_t               waypointList[NAV_MAX_WAYPOINTS];
     bool                        waypointListValid;
     int8_t                      waypointCount;
+    int8_t                      geoWaypointCount;  // total geospatial WPs in mission
 
-    navWaypointPosition_t       activeWaypoint;     // Local position and initial bearing, filled on waypoint activation
+    navWaypointPosition_t       activeWaypoint;    // Local position and initial bearing, filled on waypoint activation
     int8_t                      activeWaypointIndex;
     float                       wpInitialAltitude; // Altitude at start of WP
     float                       wpInitialDistance; // Distance when starting flight to WP

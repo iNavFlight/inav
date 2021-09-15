@@ -51,6 +51,7 @@
 
 #include "rx/rx.h"
 
+#include "sensors/battery.h"
 #include "sensors/sensors.h"
 
 /*
@@ -66,13 +67,12 @@
 
 static failsafeState_t failsafeState;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(failsafeConfig_t, failsafeConfig, PG_FAILSAFE_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(failsafeConfig_t, failsafeConfig, PG_FAILSAFE_CONFIG, 2);
 
 PG_RESET_TEMPLATE(failsafeConfig_t, failsafeConfig,
     .failsafe_delay = SETTING_FAILSAFE_DELAY_DEFAULT,                                   // 0.5 sec
     .failsafe_recovery_delay = SETTING_FAILSAFE_RECOVERY_DELAY_DEFAULT,                 // 0.5 seconds (plus 200ms explicit delay)
     .failsafe_off_delay = SETTING_FAILSAFE_OFF_DELAY_DEFAULT,                           // 20sec
-    .failsafe_throttle = SETTING_FAILSAFE_THROTTLE_DEFAULT,                             // default throttle off.
     .failsafe_throttle_low_delay = SETTING_FAILSAFE_THROTTLE_LOW_DELAY_DEFAULT,                                   // default throttle low delay for "just disarm" on failsafe condition
     .failsafe_procedure = SETTING_FAILSAFE_PROCEDURE_DEFAULT,                           // default full failsafe procedure
     .failsafe_fw_roll_angle = SETTING_FAILSAFE_FW_ROLL_ANGLE_DEFAULT,                   // 20 deg left
@@ -87,7 +87,9 @@ PG_RESET_TEMPLATE(failsafeConfig_t, failsafeConfig,
 typedef enum {
     FAILSAFE_CHANNEL_HOLD,      // Hold last known good value
     FAILSAFE_CHANNEL_NEUTRAL,   // RPY = zero, THR = zero
+#if !defined(USE_NAV)
     FAILSAFE_CHANNEL_AUTO,      // Defined by failsafe configured values
+#endif
 } failsafeChannelBehavior_e;
 
 typedef struct {
@@ -98,14 +100,24 @@ typedef struct {
 
 static const failsafeProcedureLogic_t failsafeProcedureLogic[] = {
     [FAILSAFE_PROCEDURE_AUTO_LANDING] = {
-            .bypassNavigation = true,
             .forceAngleMode = true,
+#if defined(USE_NAV)
+            .bypassNavigation = false,
+            .channelBehavior = {
+                FAILSAFE_CHANNEL_NEUTRAL,       // ROLL
+                FAILSAFE_CHANNEL_NEUTRAL,       // PITCH
+                FAILSAFE_CHANNEL_NEUTRAL,       // YAW
+                FAILSAFE_CHANNEL_HOLD           // THROTTLE
+            }
+#else
+            .bypassNavigation = true,
             .channelBehavior = {
                 FAILSAFE_CHANNEL_AUTO,          // ROLL
                 FAILSAFE_CHANNEL_AUTO,          // PITCH
                 FAILSAFE_CHANNEL_AUTO,          // YAW
                 FAILSAFE_CHANNEL_AUTO           // THROTTLE
             }
+#endif
     },
 
     [FAILSAFE_PROCEDURE_DROP_IT] = {
@@ -216,9 +228,16 @@ bool failsafeRequiresAngleMode(void)
 
 bool failsafeRequiresMotorStop(void)
 {
+#if defined(USE_NAV)
     return failsafeState.active &&
            failsafeState.activeProcedure == FAILSAFE_PROCEDURE_AUTO_LANDING &&
-           failsafeConfig()->failsafe_throttle < getThrottleIdleValue();
+           posControl.flags.estAltStatus < EST_USABLE &&
+           currentBatteryProfile->failsafe_throttle < getThrottleIdleValue();
+#else
+    return failsafeState.active &&
+           failsafeState.activeProcedure == FAILSAFE_PROCEDURE_AUTO_LANDING &&
+           currentBatteryProfile->failsafe_throttle < getThrottleIdleValue();
+#endif
 }
 
 void failsafeStartMonitoring(void)
@@ -258,21 +277,22 @@ void failsafeUpdateRcCommandValues(void)
 
 void failsafeApplyControlInput(void)
 {
+#if !defined(USE_NAV)
     // Prepare FAILSAFE_CHANNEL_AUTO values for rcCommand
     int16_t autoRcCommand[4];
     if (STATE(FIXED_WING_LEGACY)) {
         autoRcCommand[ROLL] = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_roll_angle, pidProfile()->max_angle_inclination[FD_ROLL]);
         autoRcCommand[PITCH] = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_pitch_angle, pidProfile()->max_angle_inclination[FD_PITCH]);
         autoRcCommand[YAW] = -pidRateToRcCommand(failsafeConfig()->failsafe_fw_yaw_rate, currentControlRateProfile->stabilized.rates[FD_YAW]);
-        autoRcCommand[THROTTLE] = failsafeConfig()->failsafe_throttle;
+        autoRcCommand[THROTTLE] = currentBatteryProfile->failsafe_throttle;
     }
     else {
         for (int i = 0; i < 3; i++) {
             autoRcCommand[i] = 0;
         }
-        autoRcCommand[THROTTLE] = failsafeConfig()->failsafe_throttle;
+        autoRcCommand[THROTTLE] = currentBatteryProfile->failsafe_throttle;
     }
-
+#endif
     // Apply channel values
     for (int idx = 0; idx < 4; idx++) {
         switch (failsafeProcedureLogic[failsafeState.activeProcedure].channelBehavior[idx]) {
@@ -293,10 +313,11 @@ void failsafeApplyControlInput(void)
                         break;
                 }
                 break;
-
+#if !defined(USE_NAV)
             case FAILSAFE_CHANNEL_AUTO:
                 rcCommand[idx] = autoRcCommand[idx];
                 break;
+#endif
         }
     }
 }
@@ -438,8 +459,11 @@ void failsafeUpdateState(void)
 
                     switch (failsafeState.activeProcedure) {
                         case FAILSAFE_PROCEDURE_AUTO_LANDING:
-                            // Stabilize, and set Throttle to specified level
+                            // Use Emergency Landing if Nav defined (otherwise stabilize and set Throttle to specified level).
                             failsafeActivate(FAILSAFE_LANDING);
+#if defined(USE_NAV)
+                            activateForcedEmergLanding();
+#endif
                             break;
 
                         case FAILSAFE_PROCEDURE_DROP_IT:
@@ -513,16 +537,42 @@ void failsafeUpdateState(void)
 
             case FAILSAFE_LANDING:
                 if (receivingRxDataAndNotFailsafeMode && sticksAreMoving) {
+#if defined(USE_NAV)
+                    abortForcedEmergLanding();
+#endif
                     failsafeState.phase = FAILSAFE_RX_LOSS_RECOVERED;
                     reprocessState = true;
-                }
-                if (armed) {
-                    beeperMode = BEEPER_RX_LOST_LANDING;
-                }
-                if (failsafeShouldHaveCausedLandingByNow() || !armed) {
-                    failsafeState.receivingRxDataPeriodPreset = PERIOD_OF_30_SECONDS; // require 30 seconds of valid rxData
-                    failsafeState.phase = FAILSAFE_LANDED;
-                    reprocessState = true;
+                } else {
+                    if (armed) {
+                        beeperMode = BEEPER_RX_LOST_LANDING;
+                    }
+#if defined(USE_NAV)
+                    bool emergLanded = false;
+                    switch (getStateOfForcedEmergLanding()) {
+                        case EMERG_LAND_IN_PROGRESS:
+                            break;
+
+                        case EMERG_LAND_HAS_LANDED:
+                            emergLanded = true;
+                            break;
+
+                        case EMERG_LAND_IDLE:
+                        default:
+                            // If emergency landing was somehow aborted during failsafe - fallback to FAILSAFE_PROCEDURE_DROP_IT
+                            abortForcedEmergLanding();
+                            failsafeSetActiveProcedure(FAILSAFE_PROCEDURE_DROP_IT);
+                            failsafeActivate(FAILSAFE_LANDED);
+                            reprocessState = true;
+                            break;
+                    }
+                    if (emergLanded || failsafeShouldHaveCausedLandingByNow() || !armed) {
+#else
+                    if (failsafeShouldHaveCausedLandingByNow() || !armed) {
+#endif
+                        failsafeState.receivingRxDataPeriodPreset = PERIOD_OF_30_SECONDS; // require 30 seconds of valid rxData
+                        failsafeState.phase = FAILSAFE_LANDED;
+                        reprocessState = true;
+                    }
                 }
                 break;
 

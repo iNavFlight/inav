@@ -50,7 +50,6 @@
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PB15
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          PB12
@@ -77,8 +76,13 @@
 #endif
 
 #define USE_SOFTSERIAL2
+#ifdef MATEKF411SE_SS2_CH6
+#define SOFTSERIAL_2_TX_PIN     PB8 // CH6 pad
+#define SOFTSERIAL_2_RX_PIN     PB8
+#else
 #define SOFTSERIAL_2_TX_PIN     PA2 // TX2 pad
 #define SOFTSERIAL_2_RX_PIN     PA2
+#endif
 
 #define SERIAL_PORT_COUNT       5
 
@@ -117,7 +121,6 @@
 
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_MSP
-#define USE_RANGEFINDER_HCSR04_I2C
 #define RANGEFINDER_I2C_BUS     BUS_I2C1
 
 // *************** ADC *****************************
@@ -159,7 +162,6 @@
 
 #define USE_DSHOT
 #define USE_ESC_SENSOR
-#define USE_SERIALSHOT
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #define TARGET_IO_PORTA         0xffff

@@ -60,7 +60,6 @@
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
 #define USE_MAG_MPU9250
-#define MAG_MPU9250_ALIGN       CW0_DEG
 #define USE_MAG_AK8963
 #define USE_MAG_AK8975
 #define USE_MAG_HMC5883
@@ -75,7 +74,6 @@
 #define USE_UART2 // Receiver - RX (PA3)
 #define USE_UART3 // Not connected - 10/RX (PB11) 11/TX (PB10)
 #define SERIAL_PORT_COUNT       4
-#define AVOID_UART2_FOR_PWM_PPM
 
 #define UART1_TX_PIN            PB6
 #define UART1_RX_PIN            PB7

@@ -63,7 +63,6 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
 #include "drivers/pwm_output.h"
-#include "drivers/rx_pwm.h"
 #include "drivers/sensor.h"
 #include "drivers/serial.h"
 #include "drivers/serial_softserial.h"
@@ -97,8 +96,9 @@
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
-#include "flight/servos.h"
+#include "flight/power_limits.h"
 #include "flight/rpm_filter.h"
+#include "flight/servos.h"
 #include "flight/secondary_imu.h"
 
 #include "io/asyncfatfs/asyncfatfs.h"
@@ -216,6 +216,13 @@ void init(void)
     detectBrushedESC();
 #endif
 
+#ifdef CONFIG_IN_EXTERNAL_FLASH
+    // Reset config to defaults. Note: Default flash config must be functional for config in external flash to work.
+    pgResetAll(0);
+
+    flashDeviceInitialized = flashInit();
+#endif
+
     initEEPROM();
     ensureEEPROMContainsValidData();
     readEEPROM();
@@ -269,15 +276,7 @@ void init(void)
 
     timerInit();  // timer must be initialized before any channel is allocated
 
-#if defined(AVOID_UART2_FOR_PWM_PPM)
-    serialInit(feature(FEATURE_SOFTSERIAL),
-            (rxConfig()->receiverType == RX_TYPE_PPM) ? SERIAL_PORT_USART2 : SERIAL_PORT_NONE);
-#elif defined(AVOID_UART3_FOR_PWM_PPM)
-    serialInit(feature(FEATURE_SOFTSERIAL),
-            (rxConfig()->receiverType == RX_TYPE_PPM) ? SERIAL_PORT_USART3 : SERIAL_PORT_NONE);
-#else
-    serialInit(feature(FEATURE_SOFTSERIAL), SERIAL_PORT_NONE);
-#endif
+    serialInit(feature(FEATURE_SOFTSERIAL));
 
     // Initialize MSP serial ports here so LOG can share a port with MSP.
     // XXX: Don't call mspFcInit() yet, since it initializes the boxes and needs
@@ -359,22 +358,13 @@ void init(void)
     // Initialize buses
     busInit();
 
+#ifdef CONFIG_IN_EXTERNAL_FLASH
+    // busInit re-configures the SPI pins. Init flash again so it is ready to write settings
+    flashDeviceInitialized = flashInit();
+#endif
+
 #ifdef USE_HARDWARE_REVISION_DETECTION
     updateHardwareRevision();
-#endif
-
-#if defined(USE_RANGEFINDER_HCSR04) && defined(USE_SOFTSERIAL1)
-#if defined(FURYF3) || defined(OMNIBUS) || defined(SPRACINGF3MINI)
-    if ((rangefinderConfig()->rangefinder_hardware == RANGEFINDER_HCSR04) && feature(FEATURE_SOFTSERIAL)) {
-        serialRemovePort(SERIAL_PORT_SOFTSERIAL1);
-    }
-#endif
-#endif
-
-#if defined(USE_RANGEFINDER_HCSR04) && defined(USE_SOFTSERIAL2) && defined(SPRACINGF3)
-    if ((rangefinderConfig()->rangefinder_hardware == RANGEFINDER_HCSR04) && feature(FEATURE_SOFTSERIAL)) {
-        serialRemovePort(SERIAL_PORT_SOFTSERIAL2);
-    }
 #endif
 
 #ifdef USE_USB_MSC
@@ -707,6 +697,10 @@ void init(void)
 
 #ifdef USE_I2C_IO_EXPANDER
     ioPortExpanderInit();
+#endif
+
+#ifdef USE_POWER_LIMITS
+    powerLimiterInit();
 #endif
 
     // Considering that the persistent reset reason is only used during init

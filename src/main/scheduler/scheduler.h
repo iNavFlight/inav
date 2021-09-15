@@ -27,7 +27,7 @@ typedef enum {
     TASK_PRIORITY_MEDIUM = 3,
     TASK_PRIORITY_MEDIUM_HIGH = 4,
     TASK_PRIORITY_HIGH = 5,
-    TASK_PRIORITY_REALTIME = 6,
+    TASK_PRIORITY_REALTIME = 18,
     TASK_PRIORITY_MAX = 255
 } cfTaskPriority_e;
 
@@ -51,7 +51,8 @@ typedef struct {
 typedef enum {
     /* Actual tasks */
     TASK_SYSTEM = 0,
-    TASK_GYROPID,
+    TASK_PID,
+    TASK_GYRO,
     TASK_RX,
     TASK_SERIAL,
     TASK_BATTERY,
