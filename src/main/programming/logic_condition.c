@@ -337,7 +337,13 @@ static int logicConditionCompute(
         case LOGIC_CONDITION_SET_PID_PROFILE:
             operandA--;
             if ( getConfigProfile() != operandA  && (operandA >= 0 && operandA < MAX_PROFILE_COUNT)) {
-                return setConfigProfile(operandA);
+                bool profileChanged = false;
+                if (setConfigProfile(operandA)) {
+                    pidInit();
+                    pidInitFilters();
+                    profileChanged = true;
+                }
+                return profileChanged;
             } else {
                 return false;
             }
