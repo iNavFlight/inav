@@ -421,7 +421,9 @@ static int32_t osdConvertVelocityToUnit(int32_t vel)
 
 /**
  * Converts velocity into a string based on the current unit system.
- * @param alt Raw velocity (i.e. as taken from gpsSol.groundSpeed in centimeters/seconds)
+ * @param vel Raw velocity (i.e. as taken from gpsSol.groundSpeed in centimeters/seconds)
+ * @param _3D is a 3D velocity
+ * @param _max is a maximum velocity
  */
 void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D, bool _max)
 {
@@ -452,6 +454,14 @@ void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D, bool _max)
         }
         break;
     }
+}
+
+/**
+ * Returns the average velocity. This always uses stats, so can be called as an OSD element later if wanted, to show a real time average
+ */
+static void osdGenerateAverageVelocityStr(char* buff) {
+    uint32_t cmPerSec = getTotalTravelDistance() / getFlightTime();
+    osdFormatVelocityStr(buff, cmPerSec, false, false);
 }
 
 /**
@@ -1556,7 +1566,8 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_BATTERY_REMAINING_PERCENT:
-        tfp_sprintf(buff, "%3d%%", calculateBatteryPercentage());
+        osdFormatBatteryChargeSymbol(buff);
+        tfp_sprintf(buff + 1, "%3d%%", calculateBatteryPercentage());
         osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
         break;
 
@@ -1985,9 +1996,12 @@ static bool osdDrawSingleElement(uint8_t item)
             vtxDeviceOsdInfo_t osdInfo;
             vtxCommonGetOsdInfo(vtxCommonDevice(), &osdInfo);
 
+            tfp_sprintf(buff, "%c", SYM_VTX_POWER);
+            displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
+
             tfp_sprintf(buff, "%c", osdInfo.powerIndexLetter);
             if (isAdjustmentFunctionSelected(ADJUSTMENT_VTX_POWER_LEVEL)) TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-            displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
+            displayWriteWithAttr(osdDisplayPort, elemPosX+1, elemPosY, buff, elemAttr);
             return true;
         }
 
@@ -3538,6 +3552,11 @@ static void osdShowStatsPage1(void)
     if (feature(FEATURE_GPS)) {
         displayWrite(osdDisplayPort, statNameX, top, "MAX SPEED        :");
         osdFormatVelocityStr(buff, stats.max_3D_speed, true, false);
+        osdLeftAlignString(buff);
+        displayWrite(osdDisplayPort, statValuesX, top++, buff);
+
+        displayWrite(osdDisplayPort, statNameX, top, "AVG SPEED        :");
+        osdGenerateAverageVelocityStr(buff);
         osdLeftAlignString(buff);
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
 

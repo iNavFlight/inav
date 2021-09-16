@@ -37,7 +37,7 @@
 #define USE_EXTI
 #define USE_MPU_DATA_READY_SIGNAL
 
-// *************** SPI1 IMU1 *************************
+// *************** SPI1 IMU0 MPU6000 ****************
 #define USE_SPI
 #define USE_SPI_DEVICE_1
 #define SPI1_SCK_PIN            PA5
@@ -46,12 +46,12 @@
 
 #define USE_IMU_MPU6000
 
-#define IMU1_ALIGN              CW0_DEG_FLIP
-#define IMU1_SPI_BUS            BUS_SPI1
-#define IMU1_CS_PIN             PC15
-#define IMU1_EXTI_PIN           PB2
+#define IMU_MPU6000_ALIGN       CW0_DEG_FLIP
+#define MPU6000_SPI_BUS          BUS_SPI1
+#define MPU6000_CS_PIN          PC15
+#define MPU6000_EXTI_PIN        PB2
 
-// *************** SPI4 IMU2 *************************
+// *************** SPI4 IMU1  ICM20602 **************
 #define USE_SPI_DEVICE_4
 #define SPI4_SCK_PIN            PE12
 #define SPI4_MISO_PIN           PE13
@@ -59,10 +59,19 @@
 
 #define USE_IMU_MPU6500
 
-#define IMU2_ALIGN              CW0_DEG_FLIP
-#define IMU2_SPI_BUS            BUS_SPI4
-#define IMU2_CS_PIN             PE11
-#define IMU2_EXTI_PIN           PE15
+#define IMU_MPU6500_ALIGN       CW0_DEG_FLIP
+#define MPU6500_SPI_BUS         BUS_SPI4
+#define MPU6500_CS_PIN          PE11
+#define MPU6500_EXTI_PIN        PE15
+
+// *************** SPI4 IMU2 ICM42605 **************
+#define USE_IMU_ICM42605
+
+#define IMU_ICM42605_ALIGN      CW90_DEG_FLIP
+#define ICM42605_SPI_BUS        BUS_SPI4
+#define ICM42605_CS_PIN         PC13
+#define ICM42605_EXTI_PIN       PC14
+
 
 // *************** SPI2 OSD ***********************
 #define USE_SPI_DEVICE_2

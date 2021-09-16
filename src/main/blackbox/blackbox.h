@@ -22,12 +22,15 @@
 #include "config/parameter_group.h"
 
 typedef enum {
-    BLACKBOX_FEATURE_NAV_ACC     = 1 << 0,
-    BLACKBOX_FEATURE_NAV_POS     = 1 << 1,
-    BLACKBOX_FEATURE_NAV_PID     = 1 << 2,
-    BLACKBOX_FEATURE_MAG         = 1 << 3,
-    BLACKBOX_FEATURE_ACC         = 1 << 4,
-    BLACKBOX_FEATURE_ATTITUDE    = 1 << 5,
+    BLACKBOX_FEATURE_NAV_ACC        = 1 << 0,
+    BLACKBOX_FEATURE_NAV_POS        = 1 << 1,
+    BLACKBOX_FEATURE_NAV_PID        = 1 << 2,
+    BLACKBOX_FEATURE_MAG            = 1 << 3,
+    BLACKBOX_FEATURE_ACC            = 1 << 4,
+    BLACKBOX_FEATURE_ATTITUDE       = 1 << 5,
+    BLACKBOX_FEATURE_RC_DATA        = 1 << 6,
+    BLACKBOX_FEATURE_RC_COMMAND     = 1 << 7,
+    BLACKBOX_FEATURE_MOTORS         = 1 << 8,
 } blackboxFeatureMask_e;
 
 
