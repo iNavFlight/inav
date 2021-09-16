@@ -334,7 +334,7 @@ static int logicConditionCompute(
             }
             break;
 
-        case LOGIC_CONDITION_SET_PID_PROFILE:
+        case LOGIC_CONDITION_SET_PROFILE:
             operandA--;
             if ( getConfigProfile() != operandA  && (operandA >= 0 && operandA < MAX_PROFILE_COUNT)) {
                 bool profileChanged = false;
@@ -549,7 +549,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
         #endif
             break;
 
-        case LOGIC_CONDITION_OPERAND_FLIGHT_PID_PROFILE: // int
+        case LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_PROFILE: // int
             return getConfigProfile() + 1;
             break;
 
