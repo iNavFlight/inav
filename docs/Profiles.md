@@ -20,7 +20,7 @@ The CLI `profile` command can also be used:
 profile <index>
 ```
 
-The values contained within a profile can be seen by using the CLI `dump rates` command.
+The values contained within a profile can be seen by using the CLI `dump profile` command.
 
 e.g
 ```
