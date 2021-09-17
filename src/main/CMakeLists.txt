@@ -88,8 +88,6 @@ main_sources(COMMON_SRC
     drivers/accgyro/accgyro_l3gd20.h
     drivers/accgyro/accgyro_lsm303dlhc.c
     drivers/accgyro/accgyro_lsm303dlhc.h
-    drivers/accgyro/accgyro_mma845x.c
-    drivers/accgyro/accgyro_mma845x.h
     drivers/accgyro/accgyro_mpu.c
     drivers/accgyro/accgyro_mpu.h
     drivers/accgyro/accgyro_mpu3050.c
