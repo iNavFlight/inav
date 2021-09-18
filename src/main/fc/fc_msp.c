@@ -2286,7 +2286,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     case MSP_SET_NAV_POSHOLD:
         if (dataSize >= 13) {
             navConfigMutable()->general.flags.user_control_mode = sbufReadU8(src);
-            navConfigMutable()->general.auto_speed = sbufReadU16(src);
             navConfigMutable()->general.max_auto_speed = sbufReadU16(src);
             navConfigMutable()->general.max_auto_climb_rate = sbufReadU16(src);
             navConfigMutable()->general.max_manual_speed = sbufReadU16(src);
