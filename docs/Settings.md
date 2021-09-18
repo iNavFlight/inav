@@ -1152,26 +1152,6 @@ D-Series telemetry only: Set to 1 to send raw VBat value in 0.1V resolution for 
 
 ---
 
-### fw_autotune_ff_to_i_tc
-
-FF to I time (defines time for I to reach the same level of response as FF) [ms]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 600 | 100 | 5000 |
-
----
-
-### fw_autotune_ff_to_p_gain
-
-FF to P gain (strength relationship) [%]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 10 | 0 | 100 |
-
----
-
 ### fw_autotune_max_rate_deflection
 
 The target percentage of maximum mixer output used for determining the rates in `AUTO` and `LIMIT`.
@@ -1189,16 +1169,6 @@ Minimum stick input [%], after applying deadband and expo, to start recording th
 | Default | Min | Max |
 | --- | --- | --- |
 | 50 | 0 | 100 |
-
----
-
-### fw_autotune_p_to_d_gain
-
-P to D gain (strength relationship) [%]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 200 |
 
 ---
 

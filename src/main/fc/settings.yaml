@@ -2263,24 +2263,6 @@ groups:
         field: fw_min_stick
         min: 0
         max: 100
-      - name: fw_autotune_ff_to_p_gain
-        description: "FF to P gain (strength relationship) [%]"
-        default_value: 10
-        field: fw_ff_to_p_gain
-        min: 0
-        max: 100
-      - name: fw_autotune_p_to_d_gain
-        description: "P to D gain (strength relationship) [%]"
-        default_value: 0
-        field: fw_p_to_d_gain
-        min: 0
-        max: 200
-      - name: fw_autotune_ff_to_i_tc
-        description: "FF to I time (defines time for I to reach the same level of response as FF) [ms]"
-        default_value: 600
-        field: fw_ff_to_i_time_constant
-        min: 100
-        max: 5000
       - name: fw_autotune_rate_adjustment
         description: "`AUTO` and `LIMIT` adjust the rates to match the capabilities of the airplane, with `LIMIT` they are never increased above the starting rates setting. `FIXED` does not adjust the rates. Rates are not changed when tuning in `ANGLE` mode."
         default_value: "AUTO"
