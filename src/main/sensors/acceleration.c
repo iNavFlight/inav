@@ -45,11 +45,7 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/accgyro/accgyro_mpu9250.h"
 
 #include "drivers/accgyro/accgyro_lsm303dlhc.h"
-#include "drivers/accgyro/accgyro_l3g4200d.h"
 #include "drivers/accgyro/accgyro_l3gd20.h"
-#include "drivers/accgyro/accgyro_adxl345.h"
-#include "drivers/accgyro/accgyro_mma845x.h"
-#include "drivers/accgyro/accgyro_bma280.h"
 #include "drivers/accgyro/accgyro_bmi088.h"
 #include "drivers/accgyro/accgyro_bmi160.h"
 #include "drivers/accgyro/accgyro_bmi270.h"
@@ -126,19 +122,6 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
     switch (accHardwareToUse) {
     case ACC_AUTODETECT:
         FALLTHROUGH;
-#ifdef USE_IMU_ADXL345
-    case ACC_ADXL345: {
-        if (adxl345Detect(dev)) {
-            accHardware = ACC_ADXL345;
-            break;
-        }
-        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
-        if (accHardwareToUse != ACC_AUTODETECT) {
-            break;
-        }
-    }
-    FALLTHROUGH;
-#endif
 
 #ifdef USE_IMU_LSM303DLHC
     case ACC_LSM303DLHC:
@@ -157,32 +140,6 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
     case ACC_MPU6050: // MPU6050
         if (mpu6050AccDetect(dev)) {
             accHardware = ACC_MPU6050;
-            break;
-        }
-        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
-        if (accHardwareToUse != ACC_AUTODETECT) {
-            break;
-        }
-        FALLTHROUGH;
-#endif
-
-#ifdef USE_IMU_MMA8452
-    case ACC_MMA8452: // MMA8452
-        if (mma8452Detect(dev)) {
-            accHardware = ACC_MMA8452;
-            break;
-        }
-        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
-        if (accHardwareToUse != ACC_AUTODETECT) {
-            break;
-        }
-        FALLTHROUGH;
-#endif
-
-#ifdef USE_IMU_BMA280
-    case ACC_BMA280: // BMA280
-        if (bma280Detect(dev)) {
-            accHardware = ACC_BMA280;
             break;
         }
         /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
