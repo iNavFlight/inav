@@ -72,9 +72,6 @@ typedef enum {
 } pidAutotuneState_e;
 
 typedef struct {
-    float   gainP;
-    float   gainI;
-    float   gainD;
     float   gainFF;
     float   rate;
     float   initialRate;
@@ -95,9 +92,6 @@ static timeMs_t             lastGainsUpdateTime;
 void autotuneUpdateGains(pidAutotuneData_t * data)
 {
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        pidBankMutable()->pid[axis].P = lrintf(data[axis].gainP);
-        pidBankMutable()->pid[axis].I = lrintf(data[axis].gainI);
-        pidBankMutable()->pid[axis].D = lrintf(data[axis].gainD);
         pidBankMutable()->pid[axis].FF = lrintf(data[axis].gainFF);
         ((controlRateConfig_t *)currentControlRateProfile)->stabilized.rates[axis] = lrintf(data[axis].rate/10.0f);
     }
@@ -121,9 +115,6 @@ void autotuneCheckUpdateGains(void)
 void autotuneStart(void)
 {
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        tuneCurrent[axis].gainP = pidBank()->pid[axis].P;
-        tuneCurrent[axis].gainI = pidBank()->pid[axis].I;
-        tuneCurrent[axis].gainD = pidBank()->pid[axis].D;
         tuneCurrent[axis].gainFF = pidBank()->pid[axis].FF;
         tuneCurrent[axis].rate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
         tuneCurrent[axis].initialRate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
