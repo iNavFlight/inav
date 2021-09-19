@@ -113,6 +113,9 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .current_profile_index = 0,
     .current_battery_profile_index = 0,
     .debug_mode = SETTING_DEBUG_MODE_DEFAULT,
+#ifdef USE_DEV_TOOLS    // CR53
+    .groundTestMode = SETTING_GROUND_TEST_MODE_DEFAULT,     // disables motors, set heading trusted for FW (for dev use)
+#endif      // CR53
 #ifdef USE_I2C
     .i2c_speed = SETTING_I2C_SPEED_DEFAULT,
 #endif

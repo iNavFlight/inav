@@ -594,6 +594,11 @@ void FAST_CODE mixTable()
             if (currentMotorStatus != MOTOR_RUNNING) {
                 motor[i] = motorValueWhenStopped;
             }
+#ifdef USE_DEV_TOOLS
+            if (systemConfig()->groundTestMode) {
+                motor[i] = motorZeroCommand;
+            }
+#endif
         }
     } else {
         for (int i = 0; i < motorCount; i++) {

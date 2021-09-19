@@ -4188,6 +4188,12 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     }
                 }
             }
+#ifdef USE_DEV_TOOLS
+            if (systemConfig()->groundTestMode) {
+                messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_GRD_TEST_MODE);
+            }
+#endif
+            // Pick one of the available messages.
             if (messageCount > 0) {
                 message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
                 if (message == failsafeInfoMessage) {

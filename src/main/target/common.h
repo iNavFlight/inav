@@ -46,6 +46,8 @@
 #define USE_SERIALRX_FPORT
 #define USE_SERIALRX_FPORT2
 
+#define USE_DEV_TOOLS           // functions for dev use only. Undefine for release builds. CR53
+
 #define COMMON_DEFAULT_FEATURES (FEATURE_TX_PROF_SEL)
 
 #if defined(STM32F3)
@@ -79,7 +81,7 @@
 
 #if (MCU_FLASH_SIZE > 256)
 
-#if defined(MAG_I2C_BUS) || defined(VCM5883_I2C_BUS)    
+#if defined(MAG_I2C_BUS) || defined(VCM5883_I2C_BUS)
 #define USE_MAG_VCM5883
 #endif
 
