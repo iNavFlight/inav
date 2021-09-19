@@ -3507,14 +3507,12 @@ groups:
         description: "Defines debug values exposed in debug variables (developer / debugging setting)"
         default_value: "NONE"
         table: debug_modes
-        # CR53
       - name: ground_test_mode
         description: "For developer ground test use. Disables motors, sets heading status = Trusted on FW."
         condition: USE_DEV_TOOLS
         default_value: OFF
         field: groundTestMode
         type: bool
-        # CR53
       - name: throttle_tilt_comp_str
         description: "Can be used in ANGLE and HORIZON mode and will automatically boost throttle when banking. Setting is in percentage, 0=disabled."
         default_value: 0

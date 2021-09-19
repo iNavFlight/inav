@@ -46,7 +46,7 @@
 #define USE_SERIALRX_FPORT
 #define USE_SERIALRX_FPORT2
 
-#define USE_DEV_TOOLS           // functions for dev use only. Undefine for release builds. CR53
+#define USE_DEV_TOOLS           // functions for dev use only. Undefine for release builds.
 
 #define COMMON_DEFAULT_FEATURES (FEATURE_TX_PROF_SEL)
 
