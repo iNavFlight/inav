@@ -1542,6 +1542,16 @@ Enable use of Galileo satellites. This is at the expense of other regional const
 
 ---
 
+### ground_test_mode
+
+For developer ground test use. Disables motors, sets heading status = Trusted on FW.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF |  |  |
+
+---
+
 ### gyro_abg_alpha
 
 Alpha factor for Gyro Alpha-Beta-Gamma filter
