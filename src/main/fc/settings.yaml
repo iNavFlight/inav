@@ -4,7 +4,7 @@ tables:
   - name: gyro_lpf
     values: ["256HZ", "188HZ", "98HZ", "42HZ", "20HZ", "10HZ"]
   - name: acc_hardware
-    values: ["NONE", "AUTO", "ADXL345", "MPU6050", "MMA845x", "BMA280", "LSM303DLHC", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"]
+    values: ["NONE", "AUTO", "MPU6050", "LSM303DLHC", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"]
     enum: accelerationSensor_e
   - name: rangefinder_hardware
     values: ["NONE", "SRF10", "VL53L0X", "MSP", "BENEWAKE", "VL53L1X", "US42", "TOF10120_I2C"]
@@ -1905,7 +1905,7 @@ groups:
         field: dterm_lpf2_type
         table: filter_type_full
       - name: yaw_lpf_hz
-        description: "Yaw low pass filter cutoff frequency. Should be disabled (set to `0`) on small multirotors (7 inches and below)"
+        description: "Yaw P term low pass filter cutoff frequency. Should be disabled (set to `0`) on small multirotors (7 inches and below)"
         default_value: 0
         min: 0
         max: 200

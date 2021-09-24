@@ -76,14 +76,10 @@ typedef enum {
     DEVHW_NONE = 0,
 
     /* Dedicated ACC chips */
-    DEVHW_BMA280,
-    DEVHW_ADXL345,
-    DEVHW_MMA8452,
     DEVHW_LSM303DLHC,
 
     /* Dedicated GYRO chips */
     DEVHW_L3GD20,
-    DEVHW_L3G4200,
 
     /* Combined ACC/GYRO chips */
     DEVHW_MPU3050,
