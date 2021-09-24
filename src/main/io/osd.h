@@ -326,6 +326,10 @@ typedef struct osdConfig_s {
 #ifdef USE_TEMPERATURE_SENSOR
     osd_alignment_e temp_label_align;
 #endif
+#ifdef USE_PITOT
+    float airspeed_alarm_min;
+    float airspeed_alarm_max;
+#endif
 
     videoSystem_e video_system;
     uint8_t row_shiftdown;
