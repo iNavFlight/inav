@@ -357,7 +357,7 @@ static int getDShotCommandRepeats(dshotCommands_e cmd) {
     switch (cmd) {
         case DSHOT_CMD_SPIN_DIRECTION_NORMAL:
         case DSHOT_CMD_SPIN_DIRECTION_REVERSED:
-            repeats = 6;
+            repeats = 10;
             break;
         default:
             break;
