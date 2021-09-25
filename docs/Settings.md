@@ -4012,6 +4012,26 @@ AHI width in pixels (pixel OSD only)
 
 ---
 
+### osd_airspeed_alarm_max
+
+Airspeed above which the airspeed OSD element will start blinking (cm/s)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 27000 |
+
+---
+
+### osd_airspeed_alarm_min
+
+Airspeed under which the airspeed OSD element will start blinking (cm/s)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 27000 |
+
+---
+
 ### osd_alt_alarm
 
 Value above which to make the OSD relative altitude indicator blink (meters)
