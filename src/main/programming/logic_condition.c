@@ -730,7 +730,7 @@ int16_t getRcChannelOverride(uint8_t channel, int16_t originalValue) {
 }
 
 uint32_t getLoiterRadius(uint32_t loiterRadius) {
-    if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_LOITER_RADIUS)) {
+    if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_LOITER_RADIUS) && FLIGHT_MODE(NAV_POSHOLD_MODE)) {
         return constrain(logicConditionValuesByType[LOGIC_CONDITION_LOITER_OVERRIDE], loiterRadius, 100000);
     } else {
         return loiterRadius;
