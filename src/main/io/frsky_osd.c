@@ -65,6 +65,7 @@ typedef enum
     OSD_CMD_TRANSACTION_COMMIT = 17,
     OSD_CMD_TRANSACTION_BEGIN_PROFILED = 18,
     OSD_CMD_TRANSACTION_BEGIN_RESET_DRAWING = 19,
+    OSD_CMD_TRANSACTION_COMMIT_CHECKSUM = 20,
 
     OSD_CMD_DRAWING_SET_STROKE_COLOR = 22,
     OSD_CMD_DRAWING_SET_FILL_COLOR = 23,
@@ -238,6 +239,7 @@ typedef struct frskyOSDState_s {
         uint8_t data[FRSKY_OSD_SEND_BUFFER_SIZE];
         uint8_t pos;
     } sendBuffer;
+    uint8_t transactionCrc;
     struct {
         uint8_t state;
         uint8_t crc;
@@ -274,6 +276,13 @@ typedef struct frskyOSDState_s {
 static frskyOSDState_t state;
 
 static bool frskyOSDDispatchResponse(void);
+
+static bool frskyOSDCanUseCommitChecksum(void)
+{
+    // Do a proper check here once we have a released version
+    // with this feature.
+    return true;
+}
 
 static uint8_t frskyOSDChecksum(uint8_t crc, uint8_t c)
 {
@@ -687,6 +696,7 @@ void frskyOSDBeginTransaction(frskyOSDTransactionOptions_e opts)
     } else {
         frskyOSDSendAsyncCommand(OSD_CMD_TRANSACTION_BEGIN, NULL, 0);
     }
+    state.transactionCrc = 0;
 }
 
 void frskyOSDCommitTransaction(void)
@@ -702,7 +712,11 @@ void frskyOSDCommitTransaction(void)
             return;
         }
     }
-    frskyOSDSendAsyncCommand(OSD_CMD_TRANSACTION_COMMIT, NULL, 0);
+    if (frskyOSDCanUseCommitChecksum()) {
+        frskyOSDSendAsyncCommand(OSD_CMD_TRANSACTION_COMMIT_CHECKSUM, &state.transactionCrc, sizeof(state.transactionCrc));
+    } else {
+        frskyOSDSendAsyncCommand(OSD_CMD_TRANSACTION_COMMIT, NULL, 0);
+    }
     frskyOSDFlushSendBuffer();
 }
 
@@ -723,6 +737,7 @@ void frskyOSDFlushSendBuffer(void)
         }
         frskyOSDProcessCommandU8(NULL, crc);
         state.sendBuffer.pos = 0;
+        state.transactionCrc = crc8_dvb_s2(state.transactionCrc, crc);
     }
 }
 
