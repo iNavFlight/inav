@@ -71,7 +71,7 @@ Airplanes
 
 Buzzer is supported with additional switching MOSFET transistor when connected to PWM Output #9. 
 
-![Buzzer](assets/images/anyfcf7_buzzer_pwm9.png)
+![Buzzer](../assets/images/anyfcf7_buzzer_pwm9.png)
 
 ## SD Card Detection
 
