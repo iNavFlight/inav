@@ -1401,7 +1401,7 @@ groups:
         max: 180
       - name: manual_rc_expo
         description: "Exposition value used for the PITCH/ROLL axes by the `MANUAL` flight mode [0-100]"
-        default_value: 70
+        default_value: 35
         field: manual.rcExpo8
         min: 0
         max: 100
