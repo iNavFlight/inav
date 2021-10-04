@@ -30,8 +30,6 @@
 #include "common/maths.h"
 #include "common/filter.h"
 
-#include "drivers/time.h"
-
 #include "sensors/sensors.h"
 #include "sensors/acceleration.h"
 #include "sensors/boardalignment.h"
@@ -46,6 +44,7 @@
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 
+#include "navigation/tecs.h"
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
 
@@ -53,8 +52,7 @@
 
 #include "sensors/battery.h"
 
-// Base frequencies for smoothing pitch and roll
-#define NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ     2.0f
+// Base frequencies for smoothing roll
 #define NAV_FW_BASE_ROLL_CUTOFF_FREQUENCY_HZ     10.0f
 
 // If we are going slower than NAV_FW_MIN_VEL_SPEED_BOOST - boost throttle to fight against the wind
@@ -71,15 +69,6 @@ static float throttleSpeedAdjustment = 0;
 static bool isAutoThrottleManuallyIncreased = false;
 static int32_t navHeadingError;
 static int8_t loiterDirYaw = 1;
-
-// Calculates the cutoff frequency for smoothing out roll/pitch commands
-// control_smoothness valid range from 0 to 9
-// resulting cutoff_freq ranging from baseFreq downwards to ~0.11Hz
-static float getSmoothnessCutoffFreq(float baseFreq)
-{
-    uint16_t smoothness = 10 - navConfig()->fw.control_smoothness;
-    return 0.001f * baseFreq * (float)(smoothness*smoothness*smoothness) + 0.1f;
-}
 
 // Calculates the cutoff frequency for smoothing out pitchToThrottleCorrection
 // pitch_to_throttle_smooth valid range from 0 to 9
@@ -123,48 +112,6 @@ bool adjustFixedWingAltitudeFromRCInput(void)
         }
         return false;
     }
-}
-
-// Position to velocity controller for Z axis
-static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
-{
-    static pt1Filter_t velzFilterState;
-
-    // On a fixed wing we might not have a reliable climb rate source (if no BARO available), so we can't apply PID controller to
-    // velocity error. We use PID controller on altitude error and calculate desired pitch angle
-
-    // Update energies
-    const float demSPE = (posControl.desiredState.pos.z * 0.01f) * GRAVITY_MSS;
-    const float demSKE = 0.0f;
-
-    const float estSPE = (navGetCurrentActualPositionAndVelocity()->pos.z * 0.01f) * GRAVITY_MSS;
-    const float estSKE = 0.0f;
-
-    // speedWeight controls balance between potential and kinetic energy used for pitch controller
-    //  speedWeight = 1.0 : pitch will only control airspeed and won't control altitude
-    //  speedWeight = 0.5 : pitch will be used to control both airspeed and altitude
-    //  speedWeight = 0.0 : pitch will only control altitude
-    const float speedWeight = 0.0f; // no speed sensing for now
-
-    const float demSEB = demSPE * (1.0f - speedWeight) - demSKE * speedWeight;
-    const float estSEB = estSPE * (1.0f - speedWeight) - estSKE * speedWeight;
-
-    // SEB to pitch angle gain to account for airspeed (with respect to specified reference (tuning) speed
-    const float pitchGainInv = 1.0f / 1.0f;
-
-    // Here we use negative values for dive for better clarity
-    const float maxClimbDeciDeg = DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle);
-    const float minDiveDeciDeg = -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_dive_angle);
-
-    // PID controller to translate energy balance error [J] into pitch angle [decideg]
-    float targetPitchAngle = navPidApply3(&posControl.pids.fw_alt, demSEB, estSEB, US2S(deltaMicros), minDiveDeciDeg, maxClimbDeciDeg, 0, pitchGainInv, 1.0f);
-
-    // Apply low-pass filter to prevent rapid correction
-    targetPitchAngle = pt1FilterApply4(&velzFilterState, targetPitchAngle, getSmoothnessCutoffFreq(NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ), US2S(deltaMicros));
-
-    // Reconstrain pitch angle ( >0 - climb, <0 - dive)
-    targetPitchAngle = constrainf(targetPitchAngle, minDiveDeciDeg, maxClimbDeciDeg);
-    posControl.rcAdjustment[PITCH] = targetPitchAngle;
 }
 
 void applyFixedWingAltitudeAndThrottleController(timeUs_t currentTimeUs)
