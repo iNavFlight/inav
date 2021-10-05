@@ -19,5 +19,9 @@
 
 #include "drivers/time.h"
 
+// Base frequencies for smoothing roll and pitch
+#define NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ    2.0f
+#define NAV_FW_BASE_ROLL_CUTOFF_FREQUENCY_HZ     10.0f
+
 float getSmoothnessCutoffFreq(float baseFreq);
 void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros);

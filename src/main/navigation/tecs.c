@@ -32,10 +32,15 @@
 
 #include "navigation/navigation_private.h"
 
+#include "sensors/battery.h"
+
 // tecs:Total Energy Control System
 
-// Base frequencies for smoothing pitch
-#define NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ     2.0f
+// dem:Demanded
+// est:Estimated
+// SPE:Specific Potentital Energy
+// SKE:Specific Kinetic Energy
+// SEB:Specific Energy Balance 
 
 // Calculates the cutoff frequency for smoothing out roll/pitch commands
 // control_smoothness valid range from 0 to 9
@@ -43,7 +48,37 @@
 float getSmoothnessCutoffFreq(float baseFreq)
 {
     uint16_t smoothness = 10 - navConfig()->fw.control_smoothness;
-    return 0.001f * baseFreq * (float)(smoothness*smoothness*smoothness) + 0.1f;
+    return 0.001f * baseFreq * (float)(smoothness * smoothness * smoothness) + 0.1f;
+}
+
+// Calculates the cutoff frequency for smoothing out pitchToThrottleCorrection
+// pitch_to_throttle_smooth valid range from 0 to 9
+// resulting cutoff_freq ranging from baseFreq downwards to ~0.01Hz
+static float getPitchToThrottleSmoothnessCutoffFreq(float baseFreq)
+{
+    uint16_t smoothness = 10 - navConfig()->fw.pitch_to_throttle_smooth;
+    return 0.001f * baseFreq * (float)(smoothness * smoothness * smoothness) + 0.01f;
+}
+
+int16_t fixedWingPitchToThrottleCorrection(int16_t pitch, timeUs_t currentTimeUs)
+{
+    static timeUs_t previousTimePitchToThrCorr = 0;
+    const timeDeltaLarge_t deltaMicrosPitchToThrCorr = currentTimeUs -  previousTimePitchToThrCorr;
+    previousTimePitchToThrCorr = currentTimeUs;
+
+    static pt1Filter_t pitchToThrFilterState;
+
+    // Apply low-pass filter to pitch angle to smooth throttle correction
+    int16_t filteredPitch = (int16_t)pt1FilterApply4(&pitchToThrFilterState, pitch, getPitchToThrottleSmoothnessCutoffFreq(NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ), US2S(deltaMicrosPitchToThrCorr));
+
+    if (ABS(pitch - filteredPitch) > navConfig()->fw.pitch_to_throttle_thresh) {
+        // Unfiltered throttle correction outside of pitch deadband
+        return DECIDEGREES_TO_DEGREES(pitch) * currentBatteryProfile->nav.fw.pitch_to_throttle;
+    }
+    else {
+        // Filtered throttle correction inside of pitch deadband
+        return DECIDEGREES_TO_DEGREES(filteredPitch) * currentBatteryProfile->nav.fw.pitch_to_throttle;
+    }
 }
 
 // Position to velocity controller for Z axis
@@ -62,9 +97,9 @@ void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
     const float estSKE = 0.0f;
 
     // speedWeight controls balance between potential and kinetic energy used for pitch controller
-    //  speedWeight = 1.0 : pitch will only control airspeed and won't control altitude
-    //  speedWeight = 0.5 : pitch will be used to control both airspeed and altitude
-    //  speedWeight = 0.0 : pitch will only control altitude
+    // speedWeight = 1.0 : pitch will only control airspeed and won't control altitude
+    // speedWeight = 0.5 : pitch will be used to control both airspeed and altitude
+    // speedWeight = 0.0 : pitch will only control altitude
     const float speedWeight = 0.0f; // no speed sensing for now
 
     const float demSEB = demSPE * (1.0f - speedWeight) - demSKE * speedWeight;

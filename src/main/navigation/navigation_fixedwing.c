@@ -52,9 +52,6 @@
 
 #include "sensors/battery.h"
 
-// Base frequencies for smoothing roll
-#define NAV_FW_BASE_ROLL_CUTOFF_FREQUENCY_HZ     10.0f
-
 // If we are going slower than NAV_FW_MIN_VEL_SPEED_BOOST - boost throttle to fight against the wind
 #define NAV_FW_THROTTLE_SPEED_BOOST_GAIN        1.5f
 #define NAV_FW_MIN_VEL_SPEED_BOOST              700.0f      // 7 m/s
@@ -69,15 +66,6 @@ static float throttleSpeedAdjustment = 0;
 static bool isAutoThrottleManuallyIncreased = false;
 static int32_t navHeadingError;
 static int8_t loiterDirYaw = 1;
-
-// Calculates the cutoff frequency for smoothing out pitchToThrottleCorrection
-// pitch_to_throttle_smooth valid range from 0 to 9
-// resulting cutoff_freq ranging from baseFreq downwards to ~0.01Hz
-static float getPitchToThrottleSmoothnessCutoffFreq(float baseFreq)
-{
-    uint16_t smoothness = 10 - navConfig()->fw.pitch_to_throttle_smooth;
-    return 0.001f * baseFreq * (float)(smoothness*smoothness*smoothness) + 0.01f;
-}
 
 /*-----------------------------------------------------------
  * Altitude controller
@@ -432,27 +420,6 @@ int16_t applyFixedWingMinSpeedController(timeUs_t currentTimeUs)
     }
 
     return throttleSpeedAdjustment;
-}
-
-int16_t fixedWingPitchToThrottleCorrection(int16_t pitch, timeUs_t currentTimeUs)
-{
-    static timeUs_t previousTimePitchToThrCorr = 0;
-    const timeDeltaLarge_t deltaMicrosPitchToThrCorr = currentTimeUs -  previousTimePitchToThrCorr;
-    previousTimePitchToThrCorr = currentTimeUs;
-
-    static pt1Filter_t pitchToThrFilterState;
-
-    // Apply low-pass filter to pitch angle to smooth throttle correction
-    int16_t filteredPitch = (int16_t)pt1FilterApply4(&pitchToThrFilterState, pitch, getPitchToThrottleSmoothnessCutoffFreq(NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ), US2S(deltaMicrosPitchToThrCorr));
-
-    if (ABS(pitch - filteredPitch) > navConfig()->fw.pitch_to_throttle_thresh) {
-        // Unfiltered throttle correction outside of pitch deadband
-        return DECIDEGREES_TO_DEGREES(pitch) * currentBatteryProfile->nav.fw.pitch_to_throttle;
-    }
-    else {
-        // Filtered throttle correction inside of pitch deadband
-        return DECIDEGREES_TO_DEGREES(filteredPitch) * currentBatteryProfile->nav.fw.pitch_to_throttle;
-    }
 }
 
 void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs)
