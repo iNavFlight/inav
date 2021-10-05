@@ -34,6 +34,8 @@
 
 #include "sensors/battery.h"
 
+#include "navigation/tecs.h"
+
 // tecs:Total Energy Control System
 
 // dem:Demanded
