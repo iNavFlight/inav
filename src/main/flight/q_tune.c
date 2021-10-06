@@ -39,6 +39,7 @@ typedef struct currentSample_s {
 } currentSample_t;
 
 typedef struct samples_s {
+    timeUs_t lastExecution;
     uint8_t index;
     float setpointRaw[Q_TUNE_WINDOW_LENGTH];
     float measurementRaw[Q_TUNE_WINDOW_LENGTH];
@@ -75,6 +76,7 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
     if (!initialized) {
         for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
             samples[i].index = 0;
+            samples[i].lastExecution = 0;
             pt1FilterInit(&samples[i].setpointFilter, Q_TUNE_LPF_HZ, Q_TUNE_UPDATE_US * 1e-6f);
             pt1FilterInit(&samples[i].measurementFilter, Q_TUNE_LPF_HZ, Q_TUNE_UPDATE_US * 1e-6f);
         }
@@ -121,16 +123,12 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
 
     // Step 3 - Write blackbox data
     DEBUG_SET(DEBUG_Q_TUNE, 0, samples[FD_ROLL].error[samples[FD_ROLL].index]);
-    DEBUG_SET(DEBUG_Q_TUNE, 1, samples[FD_ROLL].setpointFiltered[samples[FD_ROLL].index]);
-    DEBUG_SET(DEBUG_Q_TUNE, 2, samples[FD_ROLL].measurementFiltered[samples[FD_ROLL].index]);
-    DEBUG_SET(DEBUG_Q_TUNE, 3, samples[FD_ROLL].setpointVariance);
-    DEBUG_SET(DEBUG_Q_TUNE, 4, samples[FD_ROLL].measurementVariance);
-    DEBUG_SET(DEBUG_Q_TUNE, 5, samples[FD_ROLL].errorVariance);
-    DEBUG_SET(DEBUG_Q_TUNE, 6, samples[FD_ROLL].errorRms);
-    DEBUG_SET(DEBUG_Q_TUNE, 7, samples[FD_ROLL].errorStdDev);
+    DEBUG_SET(DEBUG_Q_TUNE, 1, samples[FD_ROLL].errorVariance);
+    DEBUG_SET(DEBUG_Q_TUNE, 2, samples[FD_ROLL].errorRms);
+    DEBUG_SET(DEBUG_Q_TUNE, 3, samples[FD_ROLL].errorStdDev);
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
-        samples->index = (samples[i].index + 1) % Q_TUNE_WINDOW_LENGTH;
+        samples[i].index = (samples[i].index + 1) % Q_TUNE_WINDOW_LENGTH;
     }
 }
 
