@@ -30,6 +30,7 @@ FILE_COMPILE_FOR_SPEED
 
 #include "common/filter.h"
 #include "build/debug.h"
+#include "fc/controlrate_profile.h"
 
 #define Q_TUNE_WINDOW_LENGTH 20
 
@@ -41,6 +42,7 @@ typedef struct currentSample_s {
 typedef struct samples_s {
     timeUs_t lastExecution;
     uint8_t index;
+    float rate;
     float setpointRaw[Q_TUNE_WINDOW_LENGTH];
     float measurementRaw[Q_TUNE_WINDOW_LENGTH];
     float setpointFiltered[Q_TUNE_WINDOW_LENGTH];
@@ -79,6 +81,13 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
             samples[i].lastExecution = 0;
             pt1FilterInit(&samples[i].setpointFilter, Q_TUNE_LPF_HZ, Q_TUNE_UPDATE_US * 1e-6f);
             pt1FilterInit(&samples[i].measurementFilter, Q_TUNE_LPF_HZ, Q_TUNE_UPDATE_US * 1e-6f);
+            if (i == FD_ROLL) {
+                samples[i].rate = currentControlRateProfile->stabilized.rates[FD_ROLL] * 10.0f;
+            } else if (i == FD_PITCH) {
+                samples[i].rate = currentControlRateProfile->stabilized.rates[FD_PITCH] * 10.0f;
+            } else if (i == FD_YAW) {
+                samples[i].rate = currentControlRateProfile->stabilized.rates[FD_YAW] * 10.0f;
+            }
         }
 
         initialized = true;
@@ -92,8 +101,8 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
         samples_t *axisSample = &samples[i];
 
         // Step 2 - fill in the data
-        axisSample->setpointRaw[samples->index] = sample->setpoint;
-        axisSample->measurementRaw[samples->index] = sample->measurement;
+        axisSample->setpointRaw[samples->index] = sample->setpoint / axisSample->rate;
+        axisSample->measurementRaw[samples->index] = sample->measurement / axisSample->rate;
 
         // Step 3 - filter the data
         axisSample->setpointFiltered[axisSample->index] = pt1FilterApply(&axisSample->setpointFilter, axisSample->setpointRaw[axisSample->index]);
@@ -122,10 +131,10 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
     }
 
     // Step 3 - Write blackbox data
-    DEBUG_SET(DEBUG_Q_TUNE, 0, samples[FD_ROLL].error[samples[FD_ROLL].index]);
-    DEBUG_SET(DEBUG_Q_TUNE, 1, samples[FD_ROLL].errorVariance);
-    DEBUG_SET(DEBUG_Q_TUNE, 2, samples[FD_ROLL].errorRms);
-    DEBUG_SET(DEBUG_Q_TUNE, 3, samples[FD_ROLL].errorStdDev);
+    DEBUG_SET(DEBUG_Q_TUNE, 0, samples[FD_ROLL].error[samples[FD_ROLL].index] * 1000.0f);
+    DEBUG_SET(DEBUG_Q_TUNE, 1, samples[FD_ROLL].errorVariance * 1000.0f);
+    DEBUG_SET(DEBUG_Q_TUNE, 2, samples[FD_ROLL].errorRms * 1000.0f);
+    DEBUG_SET(DEBUG_Q_TUNE, 3, samples[FD_ROLL].errorStdDev * 1000.0f);
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
         samples[i].index = (samples[i].index + 1) % Q_TUNE_WINDOW_LENGTH;
