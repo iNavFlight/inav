@@ -124,6 +124,9 @@ typedef enum {
 #ifdef USE_SECONDARY_IMU
     TASK_SECONDARY_IMU,
 #endif
+#ifdef USE_Q_TUNE
+    TASK_Q_TUNE,
+#endif
     /* Count of real tasks */
     TASK_COUNT,
 

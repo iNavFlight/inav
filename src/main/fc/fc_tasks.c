@@ -52,6 +52,7 @@
 #include "flight/secondary_imu.h"
 #include "flight/servos.h"
 #include "flight/wind_estimator.h"
+#include "flight/q_tune.h"
 
 #include "navigation/navigation.h"
 
@@ -395,6 +396,9 @@ void fcTasksInit(void)
 #ifdef USE_SECONDARY_IMU
     setTaskEnabled(TASK_SECONDARY_IMU, secondaryImuConfig()->hardwareType != SECONDARY_IMU_NONE && secondaryImuState.active);
 #endif
+#ifdef USE_Q_TUNE
+    setTaskEnabled(TASK_Q_TUNE, true);
+#endif
 }
 
 cfTask_t cfTasks[TASK_COUNT] = {
@@ -636,6 +640,14 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskName = "RPM",
         .taskFunc = rpmFilterUpdateTask,
         .desiredPeriod = TASK_PERIOD_HZ(RPM_FILTER_UPDATE_RATE_HZ),          // 300Hz @3,33ms
+        .staticPriority = TASK_PRIORITY_LOW,
+    },
+#endif
+#ifdef USE_Q_TUNE
+    [TASK_Q_TUNE] = {
+        .taskName = "QTUNE",
+        .taskFunc = qTuneProcessTask,
+        .desiredPeriod = TASK_PERIOD_HZ(Q_TUNE_UPDATE_RATE_HZ),          // 20Hz @50ms
         .staticPriority = TASK_PRIORITY_LOW,
     },
 #endif

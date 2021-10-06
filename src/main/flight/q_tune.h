@@ -18,5 +18,12 @@
  */
 
 #include "common/axis.h" 
+#include "common/time.h"
+
+#define Q_TUNE_UPDATE_RATE_HZ 20
+#define Q_TUNE_LPF_HZ 10
+
+#define Q_TUNE_UPDATE_US (1000000 / Q_TUNE_UPDATE_RATE_HZ)
 
 void qTunePushSample(const flight_dynamics_index_t axis, const float setpoint, const float measurement);
+void qTuneProcessTask(timeUs_t currentTimeUs);

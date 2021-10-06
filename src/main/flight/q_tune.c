@@ -27,6 +27,8 @@ FILE_COMPILE_FOR_SPEED
 #include "q_tune.h"
 #include <math.h>
 
+#include "common/filter.h"
+
 #define Q_TUNE_WINDOW_LENGTH 20
 
 typedef struct currentSample_s {
@@ -41,6 +43,8 @@ typedef struct samples_s {
     float setpointFiltered[Q_TUNE_WINDOW_LENGTH];
     float measurementFiltered[Q_TUNE_WINDOW_LENGTH];
     float error[Q_TUNE_WINDOW_LENGTH];
+    pt1Filter_t setpointFilter;
+    pt1Filter_t measurementFilter;
 } samples_t;
 
 static currentSample_t currentSample[XYZ_AXIS_COUNT];
@@ -49,6 +53,46 @@ static samples_t samples[XYZ_AXIS_COUNT];
 void qTunePushSample(const flight_dynamics_index_t axis, const float setpoint, const float measurement) {
     currentSample[axis].setpoint = setpoint;
     currentSample[axis].measurement = measurement;
+}
+
+void qTuneProcessTask(timeUs_t currentTimeUs) {
+    UNUSED(currentTimeUs);
+
+    static bool initialized = false;
+    if (!initialized) {
+        for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
+            samples[i].index = 0;
+            pt1FilterInit(&samples[i].setpointFilter, Q_TUNE_LPF_HZ, Q_TUNE_UPDATE_US * 1e-6f);
+            pt1FilterInit(&samples[i].measurementFilter, Q_TUNE_LPF_HZ, Q_TUNE_UPDATE_US * 1e-6f);
+        }
+
+        initialized = true;
+    }
+
+    // Step 1 - pick last sample and start filling in the data
+
+    for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
+        currentSample_t *sample = &currentSample[i];
+
+        if (sample->setpoint != 0.0f) {
+            samples_t *samples = &samples[i];
+
+            // Step 2 - fill in the data
+            samples->setpointRaw[samples->index] = sample->setpoint;
+            samples->measurementRaw[samples->index] = sample->measurement;
+
+            // Step 3 - filter the data
+            samples->setpointFiltered[samples->index] = pt1FilterApply(&samples->setpointFilter, samples->setpointRaw[samples->index]);
+            samples->measurementFiltered[samples->index] = pt1FilterApply(&samples->measurementFilter, samples->measurementRaw[samples->index]);
+
+            // Step 4 - calculate the error
+            samples->error[samples->index] = samples->setpointFiltered[samples->index] - samples->measurementFiltered[samples->index];
+
+            // Step 5 - increment the index
+            samples->index = (samples->index + 1) % Q_TUNE_WINDOW_LENGTH;
+        }
+    }
+
 }
 
 #endif
