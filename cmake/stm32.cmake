@@ -26,6 +26,10 @@ set(CMSIS_DSP_SRC
     CommonTables/arm_common_tables.c
     ComplexMathFunctions/arm_cmplx_mag_f32.c
     StatisticsFunctions/arm_max_f32.c
+    StatisticsFunctions/arm_var_f32.c
+    StatisticsFunctions/arm_rms_f32.c
+    StatisticsFunctions/arm_mean_f32.c
+    StatisticsFunctions/arm_std_f32.c
 )
 list(TRANSFORM CMSIS_DSP_SRC PREPEND "${CMSIS_DSP_DIR}/Source/")
 

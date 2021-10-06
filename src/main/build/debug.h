@@ -87,5 +87,6 @@ typedef enum {
     DEBUG_AUTOTRIM,
     DEBUG_AUTOTUNE,
     DEBUG_RATE_DYNAMICS,
+    DEBUG_Q_TUNE,
     DEBUG_COUNT
 } debugType_e;
