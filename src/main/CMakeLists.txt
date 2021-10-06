@@ -320,6 +320,8 @@ main_sources(COMMON_SRC
     flight/smith_predictor.h
     flight/rate_dynamics.c
     flight/rate_dynamics.h
+    flight/q_tune.c
+    flight/q_tune.h
     flight/mixer.c
     flight/mixer.h
     flight/pid.c

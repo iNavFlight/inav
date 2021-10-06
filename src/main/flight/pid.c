@@ -49,6 +49,7 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/secondary_imu.h"
 #include "flight/kalman.h"
 #include "flight/smith_predictor.h"
+#include "flight/q_tune.h"
 
 #include "io/gps.h"
 
@@ -802,6 +803,9 @@ static float FAST_CODE applyItermRelax(const int axis, float currentPidSetpoint,
 
 static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT)
 {
+#ifdef USE_Q_TUNE
+    qTunePushSample(axis, pidState->rateTarget, pidState->gyroRate);
+#endif
     const float rateError = pidState->rateTarget - pidState->gyroRate;
     const float newPTerm = pTermProcess(pidState, rateError, dT);
     const float newDTerm = dTermProcess(pidState, dT);

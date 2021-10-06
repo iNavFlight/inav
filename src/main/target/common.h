@@ -79,6 +79,8 @@
 
 #if (MCU_FLASH_SIZE > 256)
 
+#define USE_Q_TUNE
+
 #if defined(MAG_I2C_BUS) || defined(VCM5883_I2C_BUS)    
 #define USE_MAG_VCM5883
 #endif
