@@ -23,6 +23,6 @@
 
 #define Q_TUNE_UPDATE_US (1000000 / Q_TUNE_UPDATE_RATE_HZ)
 
-void qTunePushSample(const flight_dynamics_index_t axis, const float setpoint, const float measurement);
+void qTunePushSample(const flight_dynamics_index_t axis, const float setpoint, const float measurement, const float iTerm);
 void qTuneProcessTask(timeUs_t currentTimeUs);
 void qTunePushGyroPeakFrequency(const flight_dynamics_index_t axis, const float frequency);

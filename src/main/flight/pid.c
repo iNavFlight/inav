@@ -803,9 +803,7 @@ static float FAST_CODE applyItermRelax(const int axis, float currentPidSetpoint,
 
 static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT)
 {
-#ifdef USE_Q_TUNE
-    qTunePushSample(axis, pidState->rateTarget, pidState->gyroRate);
-#endif
+
     const float rateError = pidState->rateTarget - pidState->gyroRate;
     const float newPTerm = pTermProcess(pidState, rateError, dT);
     const float newDTerm = dTermProcess(pidState, dT);
@@ -833,6 +831,10 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
 
     // Don't grow I-term if motors are at their limit
     applyItermLimiting(pidState);
+
+#ifdef USE_Q_TUNE
+    qTunePushSample(axis, pidState->rateTarget, pidState->gyroRate, pidState->errorGyroIf);
+#endif
 
     axisPID[axis] = newOutputLimited;
 
