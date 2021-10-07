@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License 
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
- * The code in this file is a derivative work of EmuFlight distribution https://github.com/emuflight/EmuFlight/
- * 
  */
 
 #include "platform.h"
@@ -32,11 +30,12 @@ FILE_COMPILE_FOR_SPEED
 #include "build/debug.h"
 #include "fc/controlrate_profile.h"
 
-#define Q_TUNE_WINDOW_LENGTH 20
+#define Q_TUNE_WINDOW_LENGTH 150
 
 typedef struct currentSample_s {
     float setpoint;
     float measurement;
+    float gyroFrequency;
 } currentSample_t;
 
 typedef struct samples_s {
@@ -47,6 +46,7 @@ typedef struct samples_s {
     float measurementRaw[Q_TUNE_WINDOW_LENGTH];
     float setpointFiltered[Q_TUNE_WINDOW_LENGTH];
     float measurementFiltered[Q_TUNE_WINDOW_LENGTH];
+    float gyroFrequency;
     float error[Q_TUNE_WINDOW_LENGTH];
     pt1Filter_t setpointFilter;
     pt1Filter_t measurementFilter;
@@ -69,6 +69,10 @@ static samples_t samples[XYZ_AXIS_COUNT];
 void qTunePushSample(const flight_dynamics_index_t axis, const float setpoint, const float measurement) {
     currentSample[axis].setpoint = setpoint;
     currentSample[axis].measurement = measurement;
+}
+
+void qTunePushGyroPeakFrequency(const flight_dynamics_index_t axis, const float frequency) {
+    currentSample[axis].gyroFrequency = frequency;
 }
 
 void qTuneProcessTask(timeUs_t currentTimeUs) {
@@ -96,11 +100,18 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
     // Step 1 - pick last sample and start filling in the data
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
+
+        //FIXME For now we exclude YAW from processing
+        if (i == FD_YAW) {
+            continue;
+        }
+
         currentSample_t *sample = &currentSample[i];
 
         samples_t *axisSample = &samples[i];
 
         // Step 2 - fill in the data
+        axisSample->gyroFrequency = sample->gyroFrequency;
         axisSample->setpointRaw[samples->index] = sample->setpoint / axisSample->rate;
         axisSample->measurementRaw[samples->index] = sample->measurement / axisSample->rate;
 
@@ -135,6 +146,7 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
     DEBUG_SET(DEBUG_Q_TUNE, 1, samples[FD_ROLL].errorVariance * 1000.0f);
     DEBUG_SET(DEBUG_Q_TUNE, 2, samples[FD_ROLL].errorRms * 1000.0f);
     DEBUG_SET(DEBUG_Q_TUNE, 3, samples[FD_ROLL].errorStdDev * 1000.0f);
+    DEBUG_SET(DEBUG_Q_TUNE, 4, samples[FD_ROLL].gyroFrequency);
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
         samples[i].index = (samples[i].index + 1) % Q_TUNE_WINDOW_LENGTH;

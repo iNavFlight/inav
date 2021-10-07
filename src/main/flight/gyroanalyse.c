@@ -268,6 +268,7 @@ static NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
             } else {
                 centerFreq = state->prevCenterFreq[state->updateAxis];
             }
+            state->detectedFrequencyRaw[state->updateAxis] = centerFreq;
             centerFreq = fmax(centerFreq, state->minFrequency);
             centerFreq = biquadFilterApply(&state->detectedFrequencyFilter[state->updateAxis], centerFreq);
             state->prevCenterFreq[state->updateAxis] = state->centerFreq[state->updateAxis];

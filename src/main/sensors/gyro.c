@@ -74,6 +74,7 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/rpm_filter.h"
 #include "flight/dynamic_gyro_notch.h"
 #include "flight/kalman.h"
+#include "flight/q_tune.h"
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
@@ -530,6 +531,12 @@ void FAST_CODE NOINLINE gyroFilter()
 #ifdef USE_DYNAMIC_FILTERS
     if (dynamicGyroNotchState.enabled) {
         gyroDataAnalyse(&gyroAnalyseState);
+
+    #ifdef USE_Q_TUNE
+        for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
+            qTunePushGyroPeakFrequency(i, gyroAnalyseState.detectedFrequencyRaw[i]);
+        }
+    #endif
 
         if (gyroAnalyseState.filterUpdateExecute) {
             dynamicGyroNotchFiltersUpdate(

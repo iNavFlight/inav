@@ -51,6 +51,7 @@ typedef struct gyroAnalyseState_s {
     biquadFilter_t detectedFrequencyFilter[XYZ_AXIS_COUNT];
     uint16_t centerFreq[XYZ_AXIS_COUNT];
     uint16_t prevCenterFreq[XYZ_AXIS_COUNT];
+    float detectedFrequencyRaw[XYZ_AXIS_COUNT];
     bool filterUpdateExecute;
     uint8_t filterUpdateAxis;
     uint16_t filterUpdateFrequency;
