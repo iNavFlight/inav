@@ -65,6 +65,8 @@ typedef struct samples_s {
     float errorStdDev;
     float iTermRms;
     float iTermStdDev;
+    float setpointPrevious;
+    float setpointDerivative;
 } samples_t;
 
 static currentSample_t currentSample[XYZ_AXIS_COUNT];
@@ -88,8 +90,8 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
         for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
             samples[i].index = 0;
             samples[i].lastExecution = 0;
-            pt1FilterInit(&samples[i].setpointFilter, Q_TUNE_LPF_HZ, Q_TUNE_UPDATE_US * 1e-6f);
-            pt1FilterInit(&samples[i].measurementFilter, Q_TUNE_LPF_HZ, Q_TUNE_UPDATE_US * 1e-6f);
+            pt1FilterInit(&samples[i].setpointFilter, Q_TUNE_SETPOINT_LPF_HZ, Q_TUNE_UPDATE_US * 1e-6f);
+            pt1FilterInit(&samples[i].measurementFilter, Q_TUNE_MEASUREMENT_LPF_HZ, Q_TUNE_UPDATE_US * 1e-6f);
             if (i == FD_ROLL) {
                 samples[i].rate = currentControlRateProfile->stabilized.rates[FD_ROLL] * 10.0f;
             } else if (i == FD_PITCH) {
@@ -125,7 +127,6 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
         axisSample->setpointFiltered[axisSample->index] = pt1FilterApply(&axisSample->setpointFilter, axisSample->setpointRaw[axisSample->index]);
         axisSample->measurementFiltered[axisSample->index] = pt1FilterApply(&axisSample->measurementFilter, axisSample->measurementRaw[axisSample->index]);
 
-
         // Step 4 - calculate the error
         axisSample->error[axisSample->index] = axisSample->setpointFiltered[axisSample->index] - axisSample->measurementFiltered[axisSample->index];
     
@@ -152,6 +153,10 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
 
         arm_std_f32(axisSample->iTerm, Q_TUNE_WINDOW_LENGTH, &out);
         axisSample->iTermStdDev = out;
+
+        // Step 6 - calculate setpoint Derivative
+        axisSample->setpointDerivative = axisSample->setpointFiltered[axisSample->index] - axisSample->setpointPrevious;
+        axisSample->setpointPrevious = axisSample->setpointFiltered[axisSample->index];
     }
 
     // Step 3 - Write blackbox data
@@ -162,6 +167,7 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
     DEBUG_SET(DEBUG_Q_TUNE, 4, samples[FD_ROLL].gyroFrequency);
     DEBUG_SET(DEBUG_Q_TUNE, 5, samples[FD_ROLL].iTermStdDev * 10000.0f);
     DEBUG_SET(DEBUG_Q_TUNE, 6, samples[FD_ROLL].iTermRms * 10000.0f);
+    DEBUG_SET(DEBUG_Q_TUNE, 7, samples[FD_ROLL].setpointDerivative * Q_TUNE_UPDATE_RATE_HZ * 1000.0f);
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
         samples[i].index = (samples[i].index + 1) % Q_TUNE_WINDOW_LENGTH;

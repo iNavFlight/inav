@@ -19,7 +19,8 @@
 #include "common/time.h"
 
 #define Q_TUNE_UPDATE_RATE_HZ 150
-#define Q_TUNE_LPF_HZ 75
+#define Q_TUNE_MEASUREMENT_LPF_HZ 75
+#define Q_TUNE_SETPOINT_LPF_HZ 10
 
 #define Q_TUNE_UPDATE_US (1000000 / Q_TUNE_UPDATE_RATE_HZ)
 
