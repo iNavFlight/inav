@@ -69,9 +69,6 @@ bool findNearestSafeHome(void);                  // Find nearest safehome
 #endif // defined(USE_SAFE_HOME)
 
 #if defined(USE_NAV)
-#if defined(USE_BLACKBOX)
-#define NAV_BLACKBOX
-#endif
 
 #ifndef NAV_MAX_WAYPOINTS
 #define NAV_MAX_WAYPOINTS 15
@@ -522,6 +519,11 @@ void activateForcedRTH(void);
 void abortForcedRTH(void);
 rthState_e getStateOfForcedRTH(void);
 
+/* Failsafe-forced Emergency Landing mode */
+void activateForcedEmergLanding(void);
+void abortForcedEmergLanding(void);
+emergLandState_e getStateOfForcedEmergLanding(void);
+
 /* Getter functions which return data about the state of the navigation system */
 bool navigationInAutomaticThrottleMode(void);
 bool navigationIsControllingThrottle(void);
@@ -579,6 +581,6 @@ extern int16_t navAccNEU[3];
 #define getEstimatedActualVelocity(axis) (0)
 #define navigationIsControllingThrottle() (0)
 #define navigationRTHAllowsLanding() (0)
-#define navigationGetHomeHeading(0)
+#define navigationGetHomeHeading() (0)
 
 #endif

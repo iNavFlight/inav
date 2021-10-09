@@ -1,7 +1,5 @@
 # Board - [MATEKSYS F405-Wing](https://inavflight.com/shop/p/MATEKF405WING)
 
-![Matek F405 Wing](https://quadmeup.com/wp-content/uploads/2018/12/DSC_0007.jpg)
-
 ## Specification:
 
 * STM32F405 CPU
