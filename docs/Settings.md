@@ -2478,7 +2478,7 @@ Exposition value used for the PITCH/ROLL axes by the `MANUAL` flight mode [0-100
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 70 | 0 | 100 |
+| 35 | 0 | 100 |
 
 ---
 
