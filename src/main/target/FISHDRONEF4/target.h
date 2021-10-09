@@ -78,7 +78,6 @@
 #define SPI2_MISO_PIN   PC2
 #define SPI2_MOSI_PIN   PC3
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          SPI2_NSS_PIN
@@ -148,9 +147,6 @@
 
 // *************** RANGEFINDER *****************************
 // #define USE_RANGEFINDER
-// #define USE_RANGEFINDER_HCSR04
-// #define RANGEFINDER_HCSR04_TRIGGER_PIN       PB10
-// #define RANGEFINDER_HCSR04_ECHO_PIN          PB11
 // #define USE_RANGEFINDER_SRF10
 
 // *************** NAV *****************************

@@ -25,6 +25,10 @@
 #include "quaternion.h"
 #include "platform.h"
 
+#ifdef USE_ARM_MATH
+#include "arm_math.h"
+#endif 
+
 FILE_COMPILE_FOR_SPEED
 
 // http://lolengine.net/blog/2011/12/21/better-function-approximations
@@ -95,7 +99,7 @@ float atan2_approx(float y, float x)
 float acos_approx(float x)
 {
     float xa = fabsf(x);
-    float result = sqrtf(1.0f - xa) * (1.5707288f + xa * (-0.2121144f + xa * (0.0742610f + (-0.0187293f * xa))));
+    float result = fast_fsqrtf(1.0f - xa) * (1.5707288f + xa * (-0.2121144f + xa * (0.0742610f + (-0.0187293f * xa))));
     if (x < 0.0f)
         return M_PIf - result;
     else
@@ -200,7 +204,7 @@ float devVariance(stdev_t *dev)
 
 float devStandardDeviation(stdev_t *dev)
 {
-    return sqrtf(devVariance(dev));
+    return fast_fsqrtf(devVariance(dev));
 }
 
 float degreesToRadians(int16_t degrees)
@@ -508,7 +512,7 @@ bool sensorCalibrationSolveForScale(sensorCalibrationState_t * state, float resu
     sensorCalibration_SolveLGS(state->XtX, beta, state->XtY);
 
     for (int i = 0; i < 3; i++) {
-        result[i] = sqrtf(beta[i]);
+        result[i] = fast_fsqrtf(beta[i]);
     }
 
     return sensorCalibrationValidateResult(result);
@@ -517,4 +521,18 @@ bool sensorCalibrationSolveForScale(sensorCalibrationState_t * state, float resu
 float bellCurve(const float x, const float curveWidth)
 {
     return powf(M_Ef, -sq(x) / (2.0f * sq(curveWidth)));
+}
+
+float fast_fsqrtf(const double value) {
+    float ret = 0.0f;
+#ifdef USE_ARM_MATH
+    arm_sqrt_f32(value, &ret);
+#else 
+    ret = sqrtf(value);
+#endif
+    if (isnan(ret))
+    {
+        return 0;
+    }
+    return ret;
 }

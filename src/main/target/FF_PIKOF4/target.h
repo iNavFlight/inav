@@ -73,7 +73,6 @@
 
 #if defined(FF_PIKOF4OSD)
 /*-------------OSD-----------------*/
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI1
 #define MAX7456_CS_PIN          PA4

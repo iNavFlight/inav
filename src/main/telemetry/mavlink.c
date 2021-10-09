@@ -89,6 +89,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
+#define MAVLINK_COMM_NUM_BUFFERS 1
 #include "common/mavlink.h"
 #pragma GCC diagnostic pop
 
@@ -326,7 +327,14 @@ void checkMAVLinkTelemetryState(void)
 static void mavlinkSendMessage(void)
 {
     uint8_t mavBuffer[MAVLINK_MAX_PACKET_LEN];
-    if (telemetryConfig()->mavlink.version == 1) mavSendMsg.magic = MAVLINK_STX_MAVLINK1;
+
+    mavlink_status_t* chan_state = mavlink_get_channel_status(MAVLINK_COMM_0);
+    if (telemetryConfig()->mavlink.version == 1) {
+        chan_state->flags |= MAVLINK_STATUS_FLAG_OUT_MAVLINK1;
+    } else {
+        chan_state->flags &= ~MAVLINK_STATUS_FLAG_OUT_MAVLINK1;
+    }
+
     int msgLength = mavlink_msg_to_send_buffer(mavBuffer, &mavSendMsg);
 
     for (int i = 0; i < msgLength; i++) {
@@ -502,8 +510,9 @@ void mavlinkSendRCChannelsAndRSSI(void)
         GET_CHANNEL_VALUE(6),
         // chan8_raw RC channel 8 value, in microseconds
         GET_CHANNEL_VALUE(7),
-        // rssi Receive signal strength indicator, 0: 0%, 255: 100%
-        scaleRange(getRSSI(), 0, 1023, 0, 255));
+        // rssi Receive signal strength indicator, 0: 0%, 254: 100%
+		//https://github.com/mavlink/mavlink/issues/1027
+        scaleRange(getRSSI(), 0, 1023, 0, 254));
 #undef GET_CHANNEL_VALUE
 
     mavlinkSendMessage();
@@ -655,7 +664,7 @@ void mavlinkSendHUDAndHeartbeat(void)
     }
 #endif
 
-    
+
     int16_t thr = rxGetChannelValue(THROTTLE);
     if (navigationIsControllingThrottle()) {
         thr = rcCommand[THROTTLE];
@@ -768,7 +777,7 @@ void mavlinkSendBatteryTemperatureStatusText(void)
                 if (cell < MAVLINK_MSG_BATTERY_STATUS_FIELD_VOLTAGES_LEN) {
                     batteryVoltages[cell] = getBatteryAverageCellVoltage() * 10;
                 } else {
-                    batteryVoltagesExt[cell] = getBatteryAverageCellVoltage() * 10;
+                    batteryVoltagesExt[cell-MAVLINK_MSG_BATTERY_STATUS_FIELD_VOLTAGES_LEN] = getBatteryAverageCellVoltage() * 10;
                 }
             }
         }

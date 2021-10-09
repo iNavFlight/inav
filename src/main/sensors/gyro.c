@@ -47,14 +47,12 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/accgyro/accgyro_mpu9250.h"
 
 #include "drivers/accgyro/accgyro_lsm303dlhc.h"
-#include "drivers/accgyro/accgyro_l3g4200d.h"
 #include "drivers/accgyro/accgyro_l3gd20.h"
-#include "drivers/accgyro/accgyro_adxl345.h"
-#include "drivers/accgyro/accgyro_mma845x.h"
-#include "drivers/accgyro/accgyro_bma280.h"
 #include "drivers/accgyro/accgyro_bmi088.h"
 #include "drivers/accgyro/accgyro_bmi160.h"
+#include "drivers/accgyro/accgyro_bmi270.h"
 #include "drivers/accgyro/accgyro_icm20689.h"
+#include "drivers/accgyro/accgyro_icm42605.h"
 #include "drivers/accgyro/accgyro_fake.h"
 #include "drivers/io.h"
 
@@ -75,6 +73,7 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/gyroanalyse.h"
 #include "flight/rpm_filter.h"
 #include "flight/dynamic_gyro_notch.h"
+#include "flight/kalman.h"
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
@@ -111,7 +110,7 @@ STATIC_FASTRAM alphaBetaGammaFilter_t abgFilter[XYZ_AXIS_COUNT];
 
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 13);
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 15);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_lpf = SETTING_GYRO_HARDWARE_LPF_DEFAULT,
@@ -142,6 +141,10 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .alphaBetaGammaBoost = SETTING_GYRO_ABG_BOOST_DEFAULT,
     .alphaBetaGammaHalfLife = SETTING_GYRO_ABG_HALF_LIFE_DEFAULT,
 #endif
+#ifdef USE_GYRO_KALMAN
+    .kalman_q = SETTING_SETPOINT_KALMAN_Q_DEFAULT,
+    .kalmanEnabled = SETTING_SETPOINT_KALMAN_ENABLED_DEFAULT,
+#endif
 );
 
 STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHardware)
@@ -156,15 +159,6 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     case GYRO_MPU6050:
         if (mpu6050GyroDetect(dev)) {
             gyroHardware = GYRO_MPU6050;
-            break;
-        }
-        FALLTHROUGH;
-#endif
-
-#ifdef USE_IMU_L3G4200D
-    case GYRO_L3G4200D:
-        if (l3g4200dDetect(dev)) {
-            gyroHardware = GYRO_L3G4200D;
             break;
         }
         FALLTHROUGH;
@@ -237,6 +231,24 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     case GYRO_ICM20689:
         if (icm20689GyroDetect(dev)) {
             gyroHardware = GYRO_ICM20689;
+            break;
+        }
+        FALLTHROUGH;
+#endif
+
+#ifdef USE_IMU_ICM42605
+    case GYRO_ICM42605:
+        if (icm42605GyroDetect(dev)) {
+            gyroHardware = GYRO_ICM42605;
+            break;
+        }
+        FALLTHROUGH;
+#endif
+
+#ifdef USE_IMU_BMI270
+    case GYRO_BMI270:
+        if (bmi270GyroDetect(dev)) {
+            gyroHardware = GYRO_BMI270;
             break;
         }
         FALLTHROUGH;
@@ -318,6 +330,11 @@ static void gyroInitFilters(void)
         }
     } 
 #endif
+#ifdef USE_GYRO_KALMAN
+    if (gyroConfig()->kalmanEnabled) {
+        gyroKalmanInitialize(gyroConfig()->kalman_q);
+    }
+#endif
 }
 
 bool gyroInit(void)
@@ -397,26 +414,26 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
     fpVector3_t v;
 
     // Consume gyro reading
-    v.v[0] = dev->gyroADCRaw[0];
-    v.v[1] = dev->gyroADCRaw[1];
-    v.v[2] = dev->gyroADCRaw[2];
+    v.v[X] = dev->gyroADCRaw[X];
+    v.v[Y] = dev->gyroADCRaw[Y];
+    v.v[Z] = dev->gyroADCRaw[Z];
 
     zeroCalibrationAddValueV(gyroCalibration, &v);
 
     // Check if calibration is complete after this cycle
     if (zeroCalibrationIsCompleteV(gyroCalibration)) {
         zeroCalibrationGetZeroV(gyroCalibration, &v);
-        dev->gyroZero[0] = v.v[0];
-        dev->gyroZero[1] = v.v[1];
-        dev->gyroZero[2] = v.v[2];
+        dev->gyroZero[X] = v.v[X];
+        dev->gyroZero[Y] = v.v[Y];
+        dev->gyroZero[Z] = v.v[Z];
 
-        LOG_D(GYRO, "Gyro calibration complete (%d, %d, %d)", dev->gyroZero[0], dev->gyroZero[1], dev->gyroZero[2]);
+        LOG_D(GYRO, "Gyro calibration complete (%d, %d, %d)", dev->gyroZero[X], dev->gyroZero[Y], dev->gyroZero[Z]);
         schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
     }
     else {
-        dev->gyroZero[0] = 0;
-        dev->gyroZero[1] = 0;
-        dev->gyroZero[2] = 0;
+        dev->gyroZero[X] = 0;
+        dev->gyroZero[Y] = 0;
+        dev->gyroZero[Z] = 0;
     }
 }
 
@@ -501,6 +518,12 @@ void FAST_CODE NOINLINE gyroFilter()
         }
 #endif
 
+#ifdef USE_GYRO_KALMAN
+        if (gyroConfig()->kalmanEnabled) {
+            gyroADCf = gyroKalmanUpdate(axis, gyroADCf);
+        }
+#endif
+
         gyro.gyroADCf[axis] = gyroADCf;
     }
 
@@ -517,6 +540,7 @@ void FAST_CODE NOINLINE gyroFilter()
         }
     }
 #endif
+
 }
 
 void FAST_CODE NOINLINE gyroUpdate()

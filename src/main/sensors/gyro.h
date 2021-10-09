@@ -28,7 +28,6 @@ typedef enum {
     GYRO_NONE = 0,
     GYRO_AUTODETECT,
     GYRO_MPU6050,
-    GYRO_L3G4200D,
     GYRO_MPU3050,
     GYRO_L3GD20,
     GYRO_MPU6000,
@@ -37,6 +36,8 @@ typedef enum {
     GYRO_BMI160,
     GYRO_ICM20689,
     GYRO_BMI088,
+    GYRO_ICM42605,
+    GYRO_BMI270,
     GYRO_FAKE
 } gyroSensor_e;
 
@@ -63,7 +64,7 @@ typedef struct gyroConfig_s {
     uint8_t  gyroMovementCalibrationThreshold; // people keep forgetting that moving model while init results in wrong gyro offsets. and then they never reset gyro. so this is now on by default.
     uint16_t looptime;                      // imu loop time in us
     uint8_t  gyro_lpf;                      // gyro LPF setting - values are driver specific, in case of invalid number, a reasonable default ~30-40HZ is chosen.
-    uint8_t  gyro_anti_aliasing_lpf_hz;
+    uint16_t  gyro_anti_aliasing_lpf_hz;
     uint8_t  gyro_anti_aliasing_lpf_type;
 #ifdef USE_DUAL_GYRO
     uint8_t  gyro_to_use;
@@ -86,6 +87,10 @@ typedef struct gyroConfig_s {
     float alphaBetaGammaAlpha;
     float alphaBetaGammaBoost;
     float alphaBetaGammaHalfLife;
+#endif
+#ifdef USE_GYRO_KALMAN
+    uint16_t kalman_q;
+    uint8_t kalmanEnabled;
 #endif
 } gyroConfig_t;
 
