@@ -2478,7 +2478,7 @@ Exposition value used for the PITCH/ROLL axes by the `MANUAL` flight mode [0-100
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 70 | 0 | 100 |
+| 35 | 0 | 100 |
 
 ---
 
@@ -5714,7 +5714,7 @@ These are values (in us) by how much RC input can be different before it's consi
 
 ### yaw_lpf_hz
 
-Yaw low pass filter cutoff frequency. Should be disabled (set to `0`) on small multirotors (7 inches and below)
+Yaw P term low pass filter cutoff frequency. Should be disabled (set to `0`) on small multirotors (7 inches and below)
 
 | Default | Min | Max |
 | --- | --- | --- |

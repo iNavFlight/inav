@@ -30,7 +30,7 @@ These boards are well tested with INAV and are known to be of good quality and r
 It's possible to find more supported and tested boards [here](https://github.com/iNavFlight/inav/wiki/Welcome-to-INAV,-useful-links-and-products)
 ### Boards documentation
 
-See the [docs](https://github.com/iNavFlight/inav/tree/master/docs) folder for additional information regards to many targets in INAV, to example help in finding pinout and features. _Feel free to help improve the docs._
+See the [docs/boards](https://github.com/iNavFlight/inav/tree/master/docs/boards) folder for additional information regards to many targets in INAV, to example help in finding pinout and features. _Feel free to help improve the docs._
 
 ### Boards based on F4/F7 CPUs
 
@@ -38,7 +38,7 @@ These boards are powerful and in general support everything INAV is capable of. 
 
 ### Boards based on F3 CPUs
 
-Boards based on F3 boards will be supported for as long as practical, sometimes with reduced features due to lack of resources. No new features will be added so F3 boards are not recommended for new builds.
+Boards based on STM32F3 MCUs are no longer supported by latest INAV version. Last release is 2.6.1.
 
 ### Boards based on F1 CPUs
 
