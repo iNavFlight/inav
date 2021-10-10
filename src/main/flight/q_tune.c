@@ -30,26 +30,27 @@ FILE_COMPILE_FOR_SPEED
 #include "build/debug.h"
 #include "fc/controlrate_profile.h"
 
-#define Q_TUNE_WINDOW_LENGTH 150
+#define Q_TUNE_SHORT_BUFFER_PERIOD_MS 350
+#define Q_TUNE_LONG_BUFFER_PERIOD_MS  800
+
+#define Q_TUNE_SHORT_BUFFER_LENGTH Q_TUNE_UPDATE_RATE_HZ * Q_TUNE_SHORT_BUFFER_PERIOD_MS / 1000
+#define Q_TUNE_LONG_BUFFER_LENGTH Q_TUNE_UPDATE_RATE_HZ * Q_TUNE_LONG_BUFFER_PERIOD_MS / 1000
 
 typedef struct currentSample_s {
     float setpoint;
     float measurement;
-    float gyroFrequency;
     float iTerm;
 } currentSample_t;
 
 typedef struct samples_s {
     timeUs_t lastExecution;
-    uint8_t index;
+    uint8_t indexShort;
+    uint8_t indexLong;
     float rate;
-    float setpointRaw[Q_TUNE_WINDOW_LENGTH];
-    float measurementRaw[Q_TUNE_WINDOW_LENGTH];
-    float setpointFiltered[Q_TUNE_WINDOW_LENGTH];
-    float measurementFiltered[Q_TUNE_WINDOW_LENGTH];
-    float iTerm[Q_TUNE_WINDOW_LENGTH];
-    float gyroFrequency;
-    float error[Q_TUNE_WINDOW_LENGTH];
+    float setpointFiltered[Q_TUNE_SHORT_BUFFER_LENGTH];
+    float measurementFiltered[Q_TUNE_SHORT_BUFFER_LENGTH];
+    float error[Q_TUNE_SHORT_BUFFER_LENGTH];
+    float iTerm[Q_TUNE_LONG_BUFFER_PERIOD_MS];
     pt1Filter_t setpointFilter;
     pt1Filter_t measurementFilter;
     float setpointMean;
@@ -58,10 +59,7 @@ typedef struct samples_s {
     float measurementStdDev;
     float setpointRms;
     float measurementRms;
-    float setpointVariance;
-    float measurementVariance;
     float errorRms;
-    float errorVariance;
     float errorStdDev;
     float iTermRms;
     float iTermStdDev;
@@ -78,17 +76,14 @@ void qTunePushSample(const flight_dynamics_index_t axis, const float setpoint, c
     currentSample[axis].iTerm = iTerm;
 }
 
-void qTunePushGyroPeakFrequency(const flight_dynamics_index_t axis, const float frequency) {
-    currentSample[axis].gyroFrequency = frequency;
-}
-
 void qTuneProcessTask(timeUs_t currentTimeUs) {
     UNUSED(currentTimeUs);
 
     static bool initialized = false;
     if (!initialized) {
         for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
-            samples[i].index = 0;
+            samples[i].indexShort = 0;
+            samples[i].indexLong = 0;
             samples[i].lastExecution = 0;
             pt1FilterInit(&samples[i].setpointFilter, Q_TUNE_SETPOINT_LPF_HZ, Q_TUNE_UPDATE_US * 1e-6f);
             pt1FilterInit(&samples[i].measurementFilter, Q_TUNE_MEASUREMENT_LPF_HZ, Q_TUNE_UPDATE_US * 1e-6f);
@@ -104,7 +99,7 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
         initialized = true;
     }
 
-    // Step 1 - pick last sample and start filling in the data
+    // Pick last sample and start filling in the data
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
 
@@ -117,60 +112,47 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
 
         samples_t *axisSample = &samples[i];
 
-        // Step 2 - fill in the data
-        axisSample->gyroFrequency = sample->gyroFrequency;
-        axisSample->setpointRaw[samples->index] = sample->setpoint / axisSample->rate;
-        axisSample->measurementRaw[samples->index] = sample->measurement / axisSample->rate;
-        axisSample->iTerm[samples->index] = sample->iTerm / axisSample->rate;
+        // Store and normalize iTerm
+        axisSample->iTerm[samples->indexShort] = sample->iTerm / axisSample->rate;
 
-        // Step 3 - filter the data
-        axisSample->setpointFiltered[axisSample->index] = pt1FilterApply(&axisSample->setpointFilter, axisSample->setpointRaw[axisSample->index]);
-        axisSample->measurementFiltered[axisSample->index] = pt1FilterApply(&axisSample->measurementFilter, axisSample->measurementRaw[axisSample->index]);
+        // filter the data with normalized stepoint and measurement
+        axisSample->setpointFiltered[axisSample->indexShort] = pt1FilterApply(&axisSample->setpointFilter, sample->setpoint / axisSample->rate);
+        axisSample->measurementFiltered[axisSample->indexShort] = pt1FilterApply(&axisSample->measurementFilter, sample->measurement / axisSample->rate);
 
-        // Step 4 - calculate the error
-        axisSample->error[axisSample->index] = axisSample->setpointFiltered[axisSample->index] - axisSample->measurementFiltered[axisSample->index];
+        // calculate the error
+        axisSample->error[axisSample->indexShort] = axisSample->setpointFiltered[axisSample->indexShort] - axisSample->measurementFiltered[axisSample->indexShort];
     
-        // Step 5 compute variance, RMS and other factors
+        // compute variance, RMS and other factors
         float out;
 
-        arm_var_f32(axisSample->setpointFiltered, Q_TUNE_WINDOW_LENGTH, &out);
-        axisSample->setpointVariance = out;
-
-        arm_var_f32(axisSample->measurementFiltered, Q_TUNE_WINDOW_LENGTH, &out);
-        axisSample->measurementVariance = out;
-
-        arm_var_f32(axisSample->error, Q_TUNE_WINDOW_LENGTH, &out);
-        axisSample->errorVariance = out;
-
-        arm_rms_f32(axisSample->error, Q_TUNE_WINDOW_LENGTH, &out);
+        arm_rms_f32(axisSample->error, Q_TUNE_SHORT_BUFFER_LENGTH, &out);
         axisSample->errorRms = out;
 
-        arm_std_f32(axisSample->error, Q_TUNE_WINDOW_LENGTH, &out);
+        arm_std_f32(axisSample->error, Q_TUNE_SHORT_BUFFER_LENGTH, &out);
         axisSample->errorStdDev = out;
 
-        arm_rms_f32(axisSample->iTerm, Q_TUNE_WINDOW_LENGTH, &out);
+        arm_rms_f32(axisSample->iTerm, Q_TUNE_SHORT_BUFFER_LENGTH, &out);
         axisSample->iTermRms = out;
 
-        arm_std_f32(axisSample->iTerm, Q_TUNE_WINDOW_LENGTH, &out);
+        arm_std_f32(axisSample->iTerm, Q_TUNE_SHORT_BUFFER_LENGTH, &out);
         axisSample->iTermStdDev = out;
 
         // Step 6 - calculate setpoint Derivative
-        axisSample->setpointDerivative = axisSample->setpointFiltered[axisSample->index] - axisSample->setpointPrevious;
-        axisSample->setpointPrevious = axisSample->setpointFiltered[axisSample->index];
+        axisSample->setpointDerivative = axisSample->setpointFiltered[axisSample->indexShort] - axisSample->setpointPrevious;
+        axisSample->setpointPrevious = axisSample->setpointFiltered[axisSample->indexShort];
     }
 
     // Step 3 - Write blackbox data
-    DEBUG_SET(DEBUG_Q_TUNE, 0, samples[FD_ROLL].error[samples[FD_ROLL].index] * 1000.0f);
-    DEBUG_SET(DEBUG_Q_TUNE, 1, samples[FD_ROLL].errorVariance * 10000.0f);
-    DEBUG_SET(DEBUG_Q_TUNE, 2, samples[FD_ROLL].errorRms * 10000.0f);
-    DEBUG_SET(DEBUG_Q_TUNE, 3, samples[FD_ROLL].errorStdDev * 10000.0f);
-    DEBUG_SET(DEBUG_Q_TUNE, 4, samples[FD_ROLL].gyroFrequency);
-    DEBUG_SET(DEBUG_Q_TUNE, 5, samples[FD_ROLL].iTermStdDev * 10000.0f);
-    DEBUG_SET(DEBUG_Q_TUNE, 6, samples[FD_ROLL].iTermRms * 10000.0f);
-    DEBUG_SET(DEBUG_Q_TUNE, 7, samples[FD_ROLL].setpointDerivative * Q_TUNE_UPDATE_RATE_HZ * 1000.0f);
+    DEBUG_SET(DEBUG_Q_TUNE, 0, samples[FD_ROLL].error[samples[FD_ROLL].indexShort] * 1000.0f);
+    DEBUG_SET(DEBUG_Q_TUNE, 1, samples[FD_ROLL].errorRms * 10000.0f);
+    DEBUG_SET(DEBUG_Q_TUNE, 2, samples[FD_ROLL].errorStdDev * 10000.0f);
+    DEBUG_SET(DEBUG_Q_TUNE, 4, samples[FD_ROLL].iTermRms * 10000.0f);
+    DEBUG_SET(DEBUG_Q_TUNE, 3, samples[FD_ROLL].iTermStdDev * 10000.0f);
+    DEBUG_SET(DEBUG_Q_TUNE, 5, samples[FD_ROLL].setpointDerivative * Q_TUNE_UPDATE_RATE_HZ * 1000.0f);
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
-        samples[i].index = (samples[i].index + 1) % Q_TUNE_WINDOW_LENGTH;
+        samples[i].indexShort = (samples[i].indexShort + 1) % Q_TUNE_SHORT_BUFFER_LENGTH;
+        samples[i].indexLong = (samples[i].indexLong + 1) % Q_TUNE_LONG_BUFFER_PERIOD_MS;
     }
 }
 

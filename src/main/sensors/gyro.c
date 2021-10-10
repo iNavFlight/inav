@@ -532,12 +532,6 @@ void FAST_CODE NOINLINE gyroFilter()
     if (dynamicGyroNotchState.enabled) {
         gyroDataAnalyse(&gyroAnalyseState);
 
-    #ifdef USE_Q_TUNE
-        for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
-            qTunePushGyroPeakFrequency(i, gyroAnalyseState.detectedFrequencyRaw[i]);
-        }
-    #endif
-
         if (gyroAnalyseState.filterUpdateExecute) {
             dynamicGyroNotchFiltersUpdate(
                 &dynamicGyroNotchState, 
