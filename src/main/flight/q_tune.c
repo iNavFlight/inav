@@ -33,8 +33,8 @@ FILE_COMPILE_FOR_SPEED
 #define Q_TUNE_SHORT_BUFFER_PERIOD_MS 350
 #define Q_TUNE_LONG_BUFFER_PERIOD_MS  800
 
-#define Q_TUNE_SHORT_BUFFER_LENGTH Q_TUNE_UPDATE_RATE_HZ * Q_TUNE_SHORT_BUFFER_PERIOD_MS / 1000
-#define Q_TUNE_LONG_BUFFER_LENGTH Q_TUNE_UPDATE_RATE_HZ * Q_TUNE_LONG_BUFFER_PERIOD_MS / 1000
+#define Q_TUNE_SHORT_BUFFER_LENGTH 52 // Q_TUNE_UPDATE_RATE_HZ * Q_TUNE_SHORT_BUFFER_PERIOD_MS / 1000
+#define Q_TUNE_LONG_BUFFER_LENGTH 120  // Q_TUNE_UPDATE_RATE_HZ * Q_TUNE_LONG_BUFFER_PERIOD_MS / 1000
 
 typedef struct currentSample_s {
     float setpoint;
@@ -44,13 +44,13 @@ typedef struct currentSample_s {
 
 typedef struct samples_s {
     timeUs_t lastExecution;
-    uint8_t indexShort;
-    uint8_t indexLong;
+    uint16_t indexShort;
+    uint16_t indexLong;
     float rate;
     float setpointFiltered[Q_TUNE_SHORT_BUFFER_LENGTH];
     float measurementFiltered[Q_TUNE_SHORT_BUFFER_LENGTH];
     float error[Q_TUNE_SHORT_BUFFER_LENGTH];
-    float iTerm[Q_TUNE_LONG_BUFFER_PERIOD_MS];
+    float iTerm[Q_TUNE_LONG_BUFFER_LENGTH];
     pt1Filter_t setpointFilter;
     pt1Filter_t measurementFilter;
     float setpointMean;
@@ -113,7 +113,7 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
         samples_t *axisSample = &samples[i];
 
         // Store and normalize iTerm
-        axisSample->iTerm[samples->indexShort] = sample->iTerm / axisSample->rate;
+        axisSample->iTerm[samples->indexLong] = sample->iTerm / axisSample->rate;
 
         // filter the data with normalized stepoint and measurement
         axisSample->setpointFiltered[axisSample->indexShort] = pt1FilterApply(&axisSample->setpointFilter, sample->setpoint / axisSample->rate);
@@ -131,10 +131,10 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
         arm_std_f32(axisSample->error, Q_TUNE_SHORT_BUFFER_LENGTH, &out);
         axisSample->errorStdDev = out;
 
-        arm_rms_f32(axisSample->iTerm, Q_TUNE_SHORT_BUFFER_LENGTH, &out);
+        arm_rms_f32(axisSample->iTerm, Q_TUNE_LONG_BUFFER_LENGTH, &out);
         axisSample->iTermRms = out;
 
-        arm_std_f32(axisSample->iTerm, Q_TUNE_SHORT_BUFFER_LENGTH, &out);
+        arm_std_f32(axisSample->iTerm, Q_TUNE_LONG_BUFFER_LENGTH, &out);
         axisSample->iTermStdDev = out;
 
         // Step 6 - calculate setpoint Derivative
@@ -146,13 +146,13 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
     DEBUG_SET(DEBUG_Q_TUNE, 0, samples[FD_ROLL].error[samples[FD_ROLL].indexShort] * 1000.0f);
     DEBUG_SET(DEBUG_Q_TUNE, 1, samples[FD_ROLL].errorRms * 10000.0f);
     DEBUG_SET(DEBUG_Q_TUNE, 2, samples[FD_ROLL].errorStdDev * 10000.0f);
-    DEBUG_SET(DEBUG_Q_TUNE, 4, samples[FD_ROLL].iTermRms * 10000.0f);
-    DEBUG_SET(DEBUG_Q_TUNE, 3, samples[FD_ROLL].iTermStdDev * 10000.0f);
+    DEBUG_SET(DEBUG_Q_TUNE, 3, samples[FD_ROLL].iTermRms * 10000.0f);
+    DEBUG_SET(DEBUG_Q_TUNE, 4, samples[FD_ROLL].iTermStdDev * 10000.0f);
     DEBUG_SET(DEBUG_Q_TUNE, 5, samples[FD_ROLL].setpointDerivative * Q_TUNE_UPDATE_RATE_HZ * 1000.0f);
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
         samples[i].indexShort = (samples[i].indexShort + 1) % Q_TUNE_SHORT_BUFFER_LENGTH;
-        samples[i].indexLong = (samples[i].indexLong + 1) % Q_TUNE_LONG_BUFFER_PERIOD_MS;
+        samples[i].indexLong = (samples[i].indexLong + 1) % Q_TUNE_LONG_BUFFER_LENGTH;
     }
 }
 
