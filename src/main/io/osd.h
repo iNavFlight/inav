@@ -232,6 +232,9 @@ typedef enum {
     OSD_PLIMIT_ACTIVE_CURRENT_LIMIT,
     OSD_PLIMIT_ACTIVE_POWER_LIMIT,
     OSD_GLIDESLOPE,
+    OSD_GPS_MAX_SPEED,
+    OSD_3D_MAX_SPEED,
+    OSD_AIR_MAX_SPEED,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -240,8 +243,9 @@ typedef enum {
     OSD_UNIT_METRIC,
     OSD_UNIT_METRIC_MPH, // Old UK units, all metric except speed in mph
     OSD_UNIT_UK, // Show everything in imperial, temperature in C
+    OSD_UNIT_GA, // General Aviation: Knots, Nautical Miles, Feet, Degrees C
 
-    OSD_UNIT_MAX = OSD_UNIT_UK,
+    OSD_UNIT_MAX = OSD_UNIT_GA,
 } osd_unit_e;
 
 typedef enum {
@@ -354,6 +358,7 @@ typedef struct osdConfig_s {
     uint8_t units; // from osd_unit_e
     uint8_t stats_energy_unit; // from osd_stats_energy_unit_e
     uint8_t stats_min_voltage_unit; // from osd_stats_min_voltage_unit_e
+    uint8_t stats_page_auto_swap_time;   // stats page auto swap interval time (seconds)
 
 #ifdef USE_WIND_ESTIMATOR
     bool    estimations_wind_compensation; // use wind compensation for estimated remaining flight/distance
@@ -411,7 +416,7 @@ int32_t osdGetAltitude(void);
 void osdCrosshairPosition(uint8_t *x, uint8_t *y);
 bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length);
 void osdFormatAltitudeSymbol(char *buff, int32_t alt);
-void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D);
+void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D, bool _max);
 // Returns a heading angle in degrees normalized to [0, 360).
 int osdGetHeadingAngle(int angle);
 

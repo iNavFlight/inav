@@ -47,13 +47,10 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/accgyro/accgyro_mpu9250.h"
 
 #include "drivers/accgyro/accgyro_lsm303dlhc.h"
-#include "drivers/accgyro/accgyro_l3g4200d.h"
 #include "drivers/accgyro/accgyro_l3gd20.h"
-#include "drivers/accgyro/accgyro_adxl345.h"
-#include "drivers/accgyro/accgyro_mma845x.h"
-#include "drivers/accgyro/accgyro_bma280.h"
 #include "drivers/accgyro/accgyro_bmi088.h"
 #include "drivers/accgyro/accgyro_bmi160.h"
+#include "drivers/accgyro/accgyro_bmi270.h"
 #include "drivers/accgyro/accgyro_icm20689.h"
 #include "drivers/accgyro/accgyro_icm42605.h"
 #include "drivers/accgyro/accgyro_fake.h"
@@ -167,15 +164,6 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
         FALLTHROUGH;
 #endif
 
-#ifdef USE_IMU_L3G4200D
-    case GYRO_L3G4200D:
-        if (l3g4200dDetect(dev)) {
-            gyroHardware = GYRO_L3G4200D;
-            break;
-        }
-        FALLTHROUGH;
-#endif
-
 #ifdef USE_IMU_MPU3050
     case GYRO_MPU3050:
         if (mpu3050Detect(dev)) {
@@ -252,6 +240,15 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     case GYRO_ICM42605:
         if (icm42605GyroDetect(dev)) {
             gyroHardware = GYRO_ICM42605;
+            break;
+        }
+        FALLTHROUGH;
+#endif
+
+#ifdef USE_IMU_BMI270
+    case GYRO_BMI270:
+        if (bmi270GyroDetect(dev)) {
+            gyroHardware = GYRO_BMI270;
             break;
         }
         FALLTHROUGH;

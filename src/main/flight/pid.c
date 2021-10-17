@@ -107,7 +107,7 @@ typedef struct {
     bool itermLimitActive;
     bool itermFreezeActive;
 
-    pt2Filter_t rateTargetFilter;
+    pt3Filter_t rateTargetFilter;
 
     smithPredictor_t smithPredictor;
 } pidState_t;
@@ -123,7 +123,11 @@ STATIC_FASTRAM bool pidGainsUpdateRequired;
 FASTRAM int16_t axisPID[FLIGHT_DYNAMICS_INDEX_COUNT];
 
 #ifdef USE_BLACKBOX
-int32_t axisPID_P[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_I[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_D[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_Setpoint[FLIGHT_DYNAMICS_INDEX_COUNT];
+int32_t axisPID_P[FLIGHT_DYNAMICS_INDEX_COUNT];
+int32_t axisPID_I[FLIGHT_DYNAMICS_INDEX_COUNT];
+int32_t axisPID_D[FLIGHT_DYNAMICS_INDEX_COUNT];
+int32_t axisPID_F[FLIGHT_DYNAMICS_INDEX_COUNT];
+int32_t axisPID_Setpoint[FLIGHT_DYNAMICS_INDEX_COUNT];
 #endif
 
 static EXTENDED_FASTRAM pidState_t pidState[FLIGHT_DYNAMICS_INDEX_COUNT];
@@ -309,6 +313,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
 #endif
 );
 
+FUNCTION_COMPILE_FOR_SIZE
 bool pidInitFilters(void)
 {
     const uint32_t refreshRate = getLooptime();
@@ -317,26 +322,9 @@ bool pidInitFilters(void)
         return false;
     }
 
-    // Init other filters
-    if (pidProfile()->dterm_lpf_hz) {
-        for (int axis = 0; axis < 3; ++ axis) {
-            if (pidProfile()->dterm_lpf_type == FILTER_PT1) {
-                pt1FilterInit(&pidState[axis].dtermLpfState.pt1, pidProfile()->dterm_lpf_hz, refreshRate * 1e-6f);
-            } else {
-                biquadFilterInitLPF(&pidState[axis].dtermLpfState.biquad, pidProfile()->dterm_lpf_hz, refreshRate);
-            }
-        }
-    }
-
-    // Init other filters
-    if (pidProfile()->dterm_lpf2_hz) {
-        for (int axis = 0; axis < 3; ++ axis) {
-            if (pidProfile()->dterm_lpf2_type == FILTER_PT1) {
-                pt1FilterInit(&pidState[axis].dtermLpf2State.pt1, pidProfile()->dterm_lpf2_hz, refreshRate * 1e-6f);
-            } else {
-                biquadFilterInitLPF(&pidState[axis].dtermLpf2State.biquad, pidProfile()->dterm_lpf2_hz, refreshRate);
-            }
-        }
+    for (int axis = 0; axis < 3; ++ axis) {
+        initFilter(pidProfile()->dterm_lpf_type, &pidState[axis].dtermLpfState, pidProfile()->dterm_lpf_hz, refreshRate);
+        initFilter(pidProfile()->dterm_lpf2_type, &pidState[axis].dtermLpf2State, pidProfile()->dterm_lpf2_hz, refreshRate);
     }
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
@@ -355,7 +343,7 @@ bool pidInitFilters(void)
 
     if (pidProfile()->controlDerivativeLpfHz) {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            pt2FilterInit(&pidState[axis].rateTargetFilter, pt2FilterGain(pidProfile()->controlDerivativeLpfHz, refreshRate * 1e-6f));
+            pt3FilterInit(&pidState[axis].rateTargetFilter, pt3FilterGain(pidProfile()->controlDerivativeLpfHz, refreshRate * 1e-6f));
         }
     }
 
@@ -556,7 +544,7 @@ void updatePIDCoefficients()
             pidState[axis].kP  = pidBank()->pid[axis].P / FP_PID_RATE_P_MULTIPLIER * axisTPA;
             pidState[axis].kI  = pidBank()->pid[axis].I / FP_PID_RATE_I_MULTIPLIER;
             pidState[axis].kD  = pidBank()->pid[axis].D / FP_PID_RATE_D_MULTIPLIER * axisTPA;
-            pidState[axis].kCD = pidBank()->pid[axis].FF / FP_PID_RATE_D_FF_MULTIPLIER * axisTPA;
+            pidState[axis].kCD = (pidBank()->pid[axis].FF / FP_PID_RATE_D_FF_MULTIPLIER * axisTPA) / (getLooptime() * 0.000001f);
             pidState[axis].kFF = 0.0f;
 
             // Tracking anti-windup requires P/I/D to be all defined which is only true for MC
@@ -713,8 +701,6 @@ static float FAST_CODE applyDBoost(pidState_t *pidState, float dT) {
     dBoost = pt1FilterApply4(&pidState->dBoostLpf, dBoost, D_BOOST_LPF_HZ, dT);
     dBoost = constrainf(dBoost, dBoostMin, dBoostMax);
 
-    DEBUG_SET(DEBUG_ALWAYS, pidState->axis, dBoost * 100);
-
     return dBoost;
 }
 #else
@@ -733,7 +719,7 @@ static float dTermProcess(pidState_t *pidState, float dT) {
         newDTerm = 0;
     } else {
         float delta = pidState->previousRateGyro - pidState->gyroRate;
-
+        
         delta = dTermLpfFilterApplyFn((filter_t *) &pidState->dtermLpfState, delta);
         delta = dTermLpf2FilterApplyFn((filter_t *) &pidState->dtermLpf2State, delta);
 
@@ -765,7 +751,6 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
     const float newDTerm = dTermProcess(pidState, dT);
     const float newFFTerm = pidState->rateTarget * pidState->kFF;
 
-    DEBUG_SET(DEBUG_FW_D, axis, newDTerm);
     /*
      * Integral should be updated only if axis Iterm is not frozen
      */
@@ -791,6 +776,7 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
     axisPID_P[axis] = newPTerm;
     axisPID_I[axis] = pidState->errorGyroIf;
     axisPID_D[axis] = newDTerm;
+    axisPID_F[axis] = newFFTerm;
     axisPID_Setpoint[axis] = pidState->rateTarget;
 #endif
 
@@ -821,13 +807,12 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
     const float newDTerm = dTermProcess(pidState, dT);
 
     const float rateTargetDelta = pidState->rateTarget - pidState->previousRateTarget;
-    const float rateTargetDeltaFiltered = pt2FilterApply(&pidState->rateTargetFilter, rateTargetDelta);
+    const float rateTargetDeltaFiltered = pt3FilterApply(&pidState->rateTargetFilter, rateTargetDelta);
 
     /*
      * Compute Control Derivative
      */
-    const float newCDTerm = rateTargetDeltaFiltered * (pidState->kCD / dT);
-    DEBUG_SET(DEBUG_CD, axis, newCDTerm);
+    const float newCDTerm = rateTargetDeltaFiltered * pidState->kCD;
 
     // TODO: Get feedback from mixer on available correction range for each axis
     const float newOutput = newPTerm + newDTerm + pidState->errorGyroIf + newCDTerm;
@@ -851,6 +836,7 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
     axisPID_P[axis] = newPTerm;
     axisPID_I[axis] = pidState->errorGyroIf;
     axisPID_D[axis] = newDTerm;
+    axisPID_F[axis] = newCDTerm;
     axisPID_Setpoint[axis] = pidState->rateTarget;
 #endif
 
@@ -1230,23 +1216,8 @@ void pidInit(void)
         usedPidControllerType = pidProfile()->pidControllerType;
     }
 
-    dTermLpfFilterApplyFn = nullFilterApply;
-    if (pidProfile()->dterm_lpf_hz) {
-        if (pidProfile()->dterm_lpf_type == FILTER_PT1) {
-            dTermLpfFilterApplyFn = (filterApplyFnPtr) pt1FilterApply;
-        } else {
-            dTermLpfFilterApplyFn = (filterApplyFnPtr) biquadFilterApply;
-        }
-    }
-
-    dTermLpf2FilterApplyFn = nullFilterApply;
-    if (pidProfile()->dterm_lpf2_hz) {
-        if (pidProfile()->dterm_lpf2_type == FILTER_PT1) {
-            dTermLpf2FilterApplyFn = (filterApplyFnPtr) pt1FilterApply;
-        } else {
-            dTermLpf2FilterApplyFn = (filterApplyFnPtr) biquadFilterApply;
-        }
-    }
+    assignFilterApplyFn(pidProfile()->dterm_lpf_type, pidProfile()->dterm_lpf_hz, &dTermLpfFilterApplyFn);
+    assignFilterApplyFn(pidProfile()->dterm_lpf2_type, pidProfile()->dterm_lpf2_hz, &dTermLpf2FilterApplyFn);
 
     if (usedPidControllerType == PID_TYPE_PIFF) {
         pidControllerApplyFn = pidApplyFixedWingRateController;

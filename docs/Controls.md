@@ -39,6 +39,7 @@ The stick positions are combined to activate different functions:
 | Save setting                  | LOW      | LOW     | LOW    | HIGH   |
 | Enter OSD Menu (CMS)          | CENTER   | LOW     | HIGH   | CENTER |
 
+For graphical stick position in all transmitter modes, check out [this page](https://www.mrd-rc.com/tutorials-tools-and-testing/inav-flight/inav-stick-commands-for-all-transmitter-modes/).
 ![Stick Positions](assets/images/StickPositions.png)
 
 ## Yaw control

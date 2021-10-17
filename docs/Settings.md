@@ -754,11 +754,11 @@ Cutoff frequency for stage 2 D-term low pass filter
 
 ### dterm_lpf2_type
 
-Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation.
+Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`, `PT2`, `PT3`.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| BIQUAD |  |  |
+| PT1 |  |  |
 
 ---
 
@@ -768,17 +768,17 @@ Dterm low pass filter cutoff frequency. Default setting is very conservative and
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 40 | 0 | 500 |
+| 110 | 0 | 500 |
 
 ---
 
 ### dterm_lpf_type
 
-Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation.
+Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`, `PT2`, `PT3`.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| BIQUAD |  |  |
+| PT2 |  |  |
 
 ---
 
@@ -914,7 +914,7 @@ Time in deciseconds to wait before activating failsafe when signal is lost. See 
 
 ### failsafe_fw_pitch_angle
 
-Amount of dive/climb when `SET-THR` failsafe is active on a fixed-wing machine. In 1/10 deg (deci-degrees). Negative values = climb
+Amount of dive/climb when `LAND` (or old `SET-THR`) failsafe is active on a fixed-wing machine. In 1/10 deg (deci-degrees). Negative values = climb
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -924,7 +924,7 @@ Amount of dive/climb when `SET-THR` failsafe is active on a fixed-wing machine. 
 
 ### failsafe_fw_roll_angle
 
-Amount of banking when `SET-THR` failsafe is active on a fixed-wing machine. In 1/10 deg (deci-degrees). Negative values = left roll
+Amount of banking when `LAND` (or old `SET-THR`) failsafe is active on a fixed-wing machine. In 1/10 deg (deci-degrees). Negative values = left roll
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -934,7 +934,7 @@ Amount of banking when `SET-THR` failsafe is active on a fixed-wing machine. In 
 
 ### failsafe_fw_yaw_rate
 
-Requested yaw rate to execute when `SET-THR` failsafe is active on a fixed-wing machine. In deg/s. Negative values = left turn
+Requested yaw rate to execute when `LAND` (or old `SET-THR`) failsafe is active on a fixed-wing machine. In deg/s. Negative values = left turn
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1018,7 +1018,7 @@ What failsafe procedure to initiate in Stage 2. See [Failsafe documentation](Fai
 
 | Default | Min | Max |
 | --- | --- | --- |
-| SET-THR |  |  |
+| LAND |  |  |
 
 ---
 
@@ -1678,7 +1678,7 @@ _// TODO_
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 1 |
+| 0 | 0 | 2 |
 
 ---
 
@@ -1948,7 +1948,7 @@ Inertial Measurement Unit KP Gain for accelerometer measurements
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 2500 |  | 65535 |
+| 1000 |  | 65535 |
 
 ---
 
@@ -1958,7 +1958,7 @@ Inertial Measurement Unit KP Gain for compass measurements
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 10000 |  | 65535 |
+| 5000 |  | 65535 |
 
 ---
 
@@ -2478,7 +2478,7 @@ Exposition value used for the PITCH/ROLL axes by the `MANUAL` flight mode [0-100
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 70 | 0 | 100 |
+| 35 | 0 | 100 |
 
 ---
 
@@ -4552,6 +4552,16 @@ Display minimum voltage of the `BATTERY` or the average per `CELL` in the OSD st
 
 ---
 
+### osd_stats_page_auto_swap_time
+
+Auto swap display time interval between disarm stats pages (seconds). Reverts to manual control when Roll stick used to change pages. Disabled when set to 0.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3 | 0 | 10 |
+
+---
+
 ### osd_telemetry
 
 To enable OSD telemetry for antenna tracker. Possible values are `OFF`, `ON` and `TEST`
@@ -5714,7 +5724,7 @@ These are values (in us) by how much RC input can be different before it's consi
 
 ### yaw_lpf_hz
 
-Yaw low pass filter cutoff frequency. Should be disabled (set to `0`) on small multirotors (7 inches and below)
+Yaw P term low pass filter cutoff frequency. Should be disabled (set to `0`) on small multirotors (7 inches and below)
 
 | Default | Min | Max |
 | --- | --- | --- |

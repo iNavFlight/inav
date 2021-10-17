@@ -664,7 +664,7 @@ void mavlinkSendHUDAndHeartbeat(void)
     }
 #endif
 
-    
+
     int16_t thr = rxGetChannelValue(THROTTLE);
     if (navigationIsControllingThrottle()) {
         thr = rcCommand[THROTTLE];
@@ -777,7 +777,7 @@ void mavlinkSendBatteryTemperatureStatusText(void)
                 if (cell < MAVLINK_MSG_BATTERY_STATUS_FIELD_VOLTAGES_LEN) {
                     batteryVoltages[cell] = getBatteryAverageCellVoltage() * 10;
                 } else {
-                    batteryVoltagesExt[cell] = getBatteryAverageCellVoltage() * 10;
+                    batteryVoltagesExt[cell-MAVLINK_MSG_BATTERY_STATUS_FIELD_VOLTAGES_LEN] = getBatteryAverageCellVoltage() * 10;
                 }
             }
         }
