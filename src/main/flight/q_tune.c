@@ -25,6 +25,7 @@ FILE_COMPILE_FOR_SPEED
 #include "q_tune.h"
 #include <math.h>
 #include "arm_math.h"
+#include "common/maths.h"
 
 #include "common/filter.h"
 #include "build/debug.h"
@@ -33,8 +34,8 @@ FILE_COMPILE_FOR_SPEED
 #define Q_TUNE_SHORT_BUFFER_PERIOD_MS 350
 #define Q_TUNE_LONG_BUFFER_PERIOD_MS  800
 
-#define Q_TUNE_SHORT_BUFFER_LENGTH 52 // Q_TUNE_UPDATE_RATE_HZ * Q_TUNE_SHORT_BUFFER_PERIOD_MS / 1000
-#define Q_TUNE_LONG_BUFFER_LENGTH 120  // Q_TUNE_UPDATE_RATE_HZ * Q_TUNE_LONG_BUFFER_PERIOD_MS / 1000
+#define Q_TUNE_SHORT_BUFFER_LENGTH 64 // Q_TUNE_UPDATE_RATE_HZ * Q_TUNE_SHORT_BUFFER_PERIOD_MS / 1000
+#define Q_TUNE_LONG_BUFFER_LENGTH 128  // Q_TUNE_UPDATE_RATE_HZ * Q_TUNE_LONG_BUFFER_PERIOD_MS / 1000
 
 typedef struct currentSample_s {
     float setpoint;
@@ -65,6 +66,12 @@ typedef struct samples_s {
     float iTermStdDev;
     float setpointPrevious;
     float setpointDerivative;
+
+    arm_rfft_fast_instance_f32 iTermFft;
+    arm_rfft_fast_instance_f32 errorFft;
+
+    float errorFrequency;
+    float iTermFrequency;
 } samples_t;
 
 static currentSample_t currentSample[XYZ_AXIS_COUNT];
@@ -76,12 +83,41 @@ void qTunePushSample(const flight_dynamics_index_t axis, const float setpoint, c
     currentSample[axis].iTerm = iTerm;
 }
 
+static float getSampleFrequency(arm_rfft_fast_instance_f32 *structure, float buffer[], const uint16_t bufferLength) {
+
+    //RFFT transform
+    float rfft_output[bufferLength];
+    float test_output[bufferLength];
+
+    arm_rfft_fast_f32(structure, buffer, rfft_output, 0);
+
+    //Calculate magnitude of imaginary coefficients
+    arm_cmplx_mag_f32(rfft_output, test_output, bufferLength / 2);
+    
+    float maxvalue;
+    uint32_t maxindex;
+
+    //Clear the first bin
+    test_output[0] = 0;
+
+    //Obtain peak frequency
+    arm_max_f32(test_output, bufferLength / 2, &maxvalue, &maxindex);
+
+    const float peakFrequency = maxindex * Q_TUNE_UPDATE_RATE_HZ / bufferLength;
+    
+    return peakFrequency;
+}
+
 void qTuneProcessTask(timeUs_t currentTimeUs) {
     UNUSED(currentTimeUs);
 
     static bool initialized = false;
     if (!initialized) {
         for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
+
+            arm_rfft_fast_init_f32(&samples[i].iTermFft, Q_TUNE_LONG_BUFFER_LENGTH);
+            arm_rfft_fast_init_f32(&samples[i].errorFft, Q_TUNE_SHORT_BUFFER_LENGTH);
+
             samples[i].indexShort = 0;
             samples[i].indexLong = 0;
             samples[i].lastExecution = 0;
@@ -140,6 +176,17 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
         // Step 6 - calculate setpoint Derivative
         axisSample->setpointDerivative = axisSample->setpointFiltered[axisSample->indexShort] - axisSample->setpointPrevious;
         axisSample->setpointPrevious = axisSample->setpointFiltered[axisSample->indexShort];
+
+        // float errorMul[Q_TUNE_SHORT_BUFFER_LENGTH];
+        // arm_scale_f32(axisSample->error, 100.0f, errorMul, Q_TUNE_SHORT_BUFFER_LENGTH);
+
+        float dataBuffer[Q_TUNE_LONG_BUFFER_LENGTH];
+
+        memcpy(dataBuffer, axisSample->iTerm, sizeof(axisSample->iTerm));
+        axisSample->iTermFrequency = getSampleFrequency(&axisSample->iTermFft, dataBuffer, Q_TUNE_LONG_BUFFER_LENGTH);
+
+        memcpy(dataBuffer, axisSample->error, sizeof(axisSample->error));
+        axisSample->errorFrequency = getSampleFrequency(&axisSample->errorFft, dataBuffer, Q_TUNE_SHORT_BUFFER_LENGTH);
     }
 
     // Step 3 - Write blackbox data
@@ -149,6 +196,8 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
     DEBUG_SET(DEBUG_Q_TUNE, 3, samples[FD_ROLL].iTermRms * 10000.0f);
     DEBUG_SET(DEBUG_Q_TUNE, 4, samples[FD_ROLL].iTermStdDev * 10000.0f);
     DEBUG_SET(DEBUG_Q_TUNE, 5, samples[FD_ROLL].setpointDerivative * Q_TUNE_UPDATE_RATE_HZ * 1000.0f);
+    DEBUG_SET(DEBUG_Q_TUNE, 6, samples[FD_ROLL].errorFrequency);
+    DEBUG_SET(DEBUG_Q_TUNE, 7, samples[FD_ROLL].iTermFrequency);
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
         samples[i].indexShort = (samples[i].indexShort + 1) % Q_TUNE_SHORT_BUFFER_LENGTH;

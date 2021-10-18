@@ -18,6 +18,7 @@ set(CMSIS_DSP_INCLUDE_DIR "${CMSIS_DSP_DIR}/Include")
 
 set(CMSIS_DSP_SRC
     BasicMathFunctions/arm_mult_f32.c
+    BasicMathFunctions/arm_scale_f32.c
     TransformFunctions/arm_rfft_fast_f32.c
     TransformFunctions/arm_cfft_f32.c
     TransformFunctions/arm_rfft_fast_init_f32.c
