@@ -3340,7 +3340,6 @@ groups:
         description: "How many navigation waypoints are displayed, set to 0 (zero) to disable. As sample, if set to 2, and you just passed the 3rd waypoint of the mission, you'll see markers for the 4th waypoint (marked 1) and the 5th waypoint (marked 2)"
         default_value: 0
         field: hud_wp_disp
-
         min: 0
         max: 3
       - name: osd_left_sidebar_scroll
@@ -3475,6 +3474,13 @@ groups:
         default_value: 0
         min: -36
         max: 36
+
+      - name: osd_esc_rpm_precision
+        description: Number of characters used to display the RPM value.
+        field: esc_rpm_precision
+        min: 3
+        max: 6
+        default_value: 3
 
   - name: PG_OSD_COMMON_CONFIG
     type: osdCommonConfig_t

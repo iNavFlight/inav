@@ -4122,6 +4122,16 @@ Value above which to make the OSD distance from home indicator blink (meters)
 
 ---
 
+### osd_esc_rpm_precision
+
+Number of characters used to display the RPM value.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3 | 3 | 6 |
+
+---
+
 ### osd_esc_temp_alarm_max
 
 Temperature above which the IMU temperature OSD element will start blinking (decidegrees centigrade)
