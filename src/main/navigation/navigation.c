@@ -2887,7 +2887,7 @@ void selectMultiMissionIndex(int8_t increment)
 }
 
 #ifdef NAV_NON_VOLATILE_WAYPOINT_STORAGE
-bool loadNonVolatileWaypointList(bool clearIfLoaded)
+bool loadNonVolatileWaypointList(bool clearIfLoaded, bool mspActive)
 {
     if (ARMING_FLAG(ARMED))
         return false;
@@ -2903,9 +2903,9 @@ bool loadNonVolatileWaypointList(bool clearIfLoaded)
     posControl.multiMissionCount = 0;
     int8_t WPCounter = 0;
 
-    // when in CLI mode load all WPs in EEPROM so all multi mission WPs are visible
+    // when in CLI or MSP modes load all WPs in EEPROM so all multi mission WPs are available
     for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {
-        if ((posControl.multiMissionCount + 1 == navConfig()->general.waypoint_multi_mission_index) || cliMode) {
+        if ((posControl.multiMissionCount + 1 == navConfig()->general.waypoint_multi_mission_index) || cliMode || mspActive) {
             // Load waypoints
             setWaypoint(i + 1 - WPCounter, nonVolatileWaypointList(i));
         } else {
@@ -2915,7 +2915,6 @@ bool loadNonVolatileWaypointList(bool clearIfLoaded)
         // Check if this is the last waypoint
         if (nonVolatileWaypointList(i)->flag == NAV_WP_FLAG_LAST) {
             posControl.multiMissionCount += 1;  // count up number missions in multi mission WP entry
-            posControl.multiMissionTotalWPCount = i + 1;
             if (i != NAV_MAX_WAYPOINTS - 1) {
                 if (nonVolatileWaypointList(i + 1)->flag == NAV_WP_FLAG_LAST && nonVolatileWaypointList(i + 1)->action == NAV_WP_ACTION_RTH) {
                     break;      // end of multi mission file if successive NAV_WP_FLAG_LAST and default action (RTH)
@@ -3638,7 +3637,7 @@ void navigationInit(void)
     if (!navConfig()->general.waypoint_load_on_boot) {
         navConfigMutable()->general.waypoint_multi_mission_index = 0;
     }
-    loadNonVolatileWaypointList(false);
+    loadNonVolatileWaypointList(false, false);
     // set index to 1 if saved mission index > available missions
     navConfigMutable()->general.waypoint_multi_mission_index = savedMultiMissionIndex > posControl.multiMissionCount ? 1 : savedMultiMissionIndex;
 #endif

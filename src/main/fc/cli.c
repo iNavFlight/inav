@@ -1397,7 +1397,7 @@ static void cliWaypoints(char *cmdline)
     } else if (sl_strcasecmp(cmdline, "reset") == 0) {
         resetWaypointList();
     } else if (sl_strcasecmp(cmdline, "load") == 0) {
-        loadNonVolatileWaypointList(true);
+        loadNonVolatileWaypointList(true, false);
     } else if (sl_strcasecmp(cmdline, "save") == 0) {
         posControl.waypointListValid = false;
         for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {
@@ -2540,10 +2540,10 @@ static void printBlackbox(uint8_t dumpMask, const blackboxConfig_t *config, cons
         if (blackboxIncludeFlagNames[i] == NULL) {
             break;
         }
-        
+
         const char *formatOn = "blackbox %s";
         const char *formatOff = "blackbox -%s";
-        
+
         if (mask & (1 << i)) {
             cliDumpPrintLinef(dumpMask, false, formatOn, blackboxIncludeFlagNames[i]);
             cliDefaultPrintLinef(dumpMask, false, formatOn, blackboxIncludeFlagNames[i]);

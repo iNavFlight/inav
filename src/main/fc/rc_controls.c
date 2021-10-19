@@ -260,7 +260,7 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
 
     // Load waypoint list
     if (rcSticks == THR_LO + YAW_CE + PIT_HI + ROL_HI) {
-        const bool success = loadNonVolatileWaypointList(false);
+        const bool success = loadNonVolatileWaypointList(false, false);
         beeper(success ? BEEPER_ACTION_SUCCESS : BEEPER_ACTION_FAIL);
     }
 
