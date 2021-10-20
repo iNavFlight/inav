@@ -144,9 +144,6 @@ tables:
   - name: rssi_source
     values: ["NONE", "AUTO", "ADC", "CHANNEL", "PROTOCOL", "MSP"]
     enum: rssiSource_e
-  - name: dynamicFilterRangeTable
-    values: ["HIGH", "MEDIUM", "LOW"]
-    enum: dynamicFilterRange_e
   - name: pidTypeTable
     values: ["NONE", "PID", "PIFF", "AUTO"]
     enum: pidType_e

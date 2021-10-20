@@ -41,16 +41,6 @@ typedef enum {
     GYRO_FAKE
 } gyroSensor_e;
 
-typedef enum {
-    DYN_NOTCH_RANGE_HIGH = 0,
-    DYN_NOTCH_RANGE_MEDIUM,
-    DYN_NOTCH_RANGE_LOW
-} dynamicFilterRange_e;
-
-#define DYN_NOTCH_RANGE_HZ_HIGH 2000
-#define DYN_NOTCH_RANGE_HZ_MEDIUM 1333
-#define DYN_NOTCH_RANGE_HZ_LOW 1000
-
 typedef struct gyro_s {
     bool initialized;
     uint32_t targetLooptime;
