@@ -25,8 +25,7 @@
 #include "arm_math.h"
 #include "common/filter.h"
 
-// max for F3 targets
-#define FFT_WINDOW_SIZE 32
+#define FFT_WINDOW_SIZE 64
 
 typedef struct gyroAnalyseState_s {
     // accumulator for oversampled data => no aliasing and less noise
