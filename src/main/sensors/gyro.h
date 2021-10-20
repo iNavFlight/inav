@@ -78,7 +78,6 @@ typedef struct gyroConfig_s {
     uint16_t gyroDynamicLpfMaxHz;
     uint8_t gyroDynamicLpfCurveExpo;
 #ifdef USE_DYNAMIC_FILTERS
-    uint8_t dynamicGyroNotchRange;
     uint16_t dynamicGyroNotchQ;
     uint16_t dynamicGyroNotchMinHz;
     uint8_t dynamicGyroNotchEnabled;

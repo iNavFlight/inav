@@ -280,16 +280,10 @@ groups:
         max: 10
       - name: dynamic_gyro_notch_enabled
         description: "Enable/disable dynamic gyro notch also known as Matrix Filter"
-        default_value: OFF
+        default_value: ON
         field: dynamicGyroNotchEnabled
         condition: USE_DYNAMIC_FILTERS
         type: bool
-      - name: dynamic_gyro_notch_range
-        description: "Range for dynamic gyro notches. `MEDIUM` for 5\", `HIGH` for 3\" and `MEDIUM`/`LOW` for 7\" and bigger propellers"
-        default_value: "MEDIUM"
-        field: dynamicGyroNotchRange
-        condition: USE_DYNAMIC_FILTERS
-        table: dynamicFilterRangeTable
       - name: dynamic_gyro_notch_q
         description: "Q factor for dynamic notches"
         default_value: 120
@@ -298,8 +292,8 @@ groups:
         min: 1
         max: 1000
       - name: dynamic_gyro_notch_min_hz
-        description: "Minimum frequency for dynamic notches. Default value of `150` works best with 5\" multirors. Should be lowered with increased size of propellers. Values around `100` work fine on 7\" drones. 10\" can go down to `60` - `70`"
-        default_value: 150
+        description: "Minimum frequency for dynamic notches. Default value of `150` works best with 5\" multirotors. Should be lowered with increased size of propellers. Values around `100` work fine on 7\" drones. 10\" can go down to `60` - `70`"
+        default_value: 50
         field: dynamicGyroNotchMinHz
         condition: USE_DYNAMIC_FILTERS
         min: 30

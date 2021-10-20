@@ -131,7 +131,6 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyroDynamicLpfMaxHz = SETTING_GYRO_DYN_LPF_MAX_HZ_DEFAULT,
     .gyroDynamicLpfCurveExpo = SETTING_GYRO_DYN_LPF_CURVE_EXPO_DEFAULT,
 #ifdef USE_DYNAMIC_FILTERS
-    .dynamicGyroNotchRange = SETTING_DYNAMIC_GYRO_NOTCH_RANGE_DEFAULT,
     .dynamicGyroNotchQ = SETTING_DYNAMIC_GYRO_NOTCH_Q_DEFAULT,
     .dynamicGyroNotchMinHz = SETTING_DYNAMIC_GYRO_NOTCH_MIN_HZ_DEFAULT,
     .dynamicGyroNotchEnabled = SETTING_DYNAMIC_GYRO_NOTCH_ENABLED_DEFAULT,
@@ -384,7 +383,6 @@ bool gyroInit(void)
     gyroDataAnalyseStateInit(
         &gyroAnalyseState, 
         gyroConfig()->dynamicGyroNotchMinHz,
-        gyroConfig()->dynamicGyroNotchRange,
         getLooptime()
     );
 #endif

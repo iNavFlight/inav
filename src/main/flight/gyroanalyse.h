@@ -69,7 +69,6 @@ STATIC_ASSERT(FFT_WINDOW_SIZE <= (uint8_t) -1, window_size_greater_than_underlyi
 void gyroDataAnalyseStateInit(
     gyroAnalyseState_t *state, 
     uint16_t minFrequency,
-    uint8_t range,
     uint32_t targetLooptimeUs
 );
 void gyroDataAnalysePush(gyroAnalyseState_t *gyroAnalyse, int axis, float sample);
