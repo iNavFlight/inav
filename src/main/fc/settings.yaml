@@ -332,7 +332,7 @@ groups:
         max: 10
       - name: setpoint_kalman_enabled
         description: "Enable Kalman filter on the gyro data"
-        default_value: OFF
+        default_value: ON
         condition: USE_GYRO_KALMAN
         field: kalmanEnabled
         type: bool
