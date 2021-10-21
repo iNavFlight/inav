@@ -67,7 +67,6 @@ typedef struct samples_s {
     float setpointPrevious;
     float setpointDerivative;
 
-    arm_rfft_fast_instance_f32 iTermFft;
     arm_rfft_fast_instance_f32 errorFft;
 
     float errorFrequency;
@@ -115,7 +114,6 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
     if (!initialized) {
         for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
 
-            arm_rfft_fast_init_f32(&samples[i].iTermFft, Q_TUNE_LONG_BUFFER_LENGTH);
             arm_rfft_fast_init_f32(&samples[i].errorFft, Q_TUNE_SHORT_BUFFER_LENGTH);
 
             samples[i].indexShort = 0;
@@ -182,9 +180,6 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
 
         float dataBuffer[Q_TUNE_LONG_BUFFER_LENGTH];
 
-        memcpy(dataBuffer, axisSample->iTerm, sizeof(axisSample->iTerm));
-        axisSample->iTermFrequency = getSampleFrequency(&axisSample->iTermFft, dataBuffer, Q_TUNE_LONG_BUFFER_LENGTH);
-
         memcpy(dataBuffer, axisSample->error, sizeof(axisSample->error));
         axisSample->errorFrequency = getSampleFrequency(&axisSample->errorFft, dataBuffer, Q_TUNE_SHORT_BUFFER_LENGTH);
     }
@@ -197,7 +192,6 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
     DEBUG_SET(DEBUG_Q_TUNE, 4, samples[FD_ROLL].iTermStdDev * 10000.0f);
     DEBUG_SET(DEBUG_Q_TUNE, 5, samples[FD_ROLL].setpointDerivative * Q_TUNE_UPDATE_RATE_HZ * 1000.0f);
     DEBUG_SET(DEBUG_Q_TUNE, 6, samples[FD_ROLL].errorFrequency);
-    DEBUG_SET(DEBUG_Q_TUNE, 7, samples[FD_ROLL].iTermFrequency);
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
         samples[i].indexShort = (samples[i].indexShort + 1) % Q_TUNE_SHORT_BUFFER_LENGTH;
