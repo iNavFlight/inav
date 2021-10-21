@@ -48,7 +48,7 @@ typedef struct samples_s {
     uint16_t indexShort;
     uint16_t indexLong;
     float rate;
-    float setpointFiltered[Q_TUNE_SHORT_BUFFER_LENGTH];
+    float setpointFiltered;
     float measurementFiltered[Q_TUNE_SHORT_BUFFER_LENGTH];
     float error[Q_TUNE_SHORT_BUFFER_LENGTH];
     float iTerm[Q_TUNE_LONG_BUFFER_LENGTH];
@@ -150,11 +150,11 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
         axisSample->iTerm[samples->indexLong] = sample->iTerm / axisSample->rate;
 
         // filter the data with normalized stepoint and measurement
-        axisSample->setpointFiltered[axisSample->indexShort] = pt1FilterApply(&axisSample->setpointFilter, sample->setpoint / axisSample->rate);
+        axisSample->setpointFiltered = pt1FilterApply(&axisSample->setpointFilter, sample->setpoint / axisSample->rate);
         axisSample->measurementFiltered[axisSample->indexShort] = pt1FilterApply(&axisSample->measurementFilter, sample->measurement / axisSample->rate);
 
         // calculate the error
-        axisSample->error[axisSample->indexShort] = axisSample->setpointFiltered[axisSample->indexShort] - axisSample->measurementFiltered[axisSample->indexShort];
+        axisSample->error[axisSample->indexShort] = axisSample->setpointFiltered - axisSample->measurementFiltered[axisSample->indexShort];
     
         // compute variance, RMS and other factors
         float out;
@@ -172,8 +172,8 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
         axisSample->iTermStdDev = out;
 
         // Step 6 - calculate setpoint Derivative
-        axisSample->setpointDerivative = axisSample->setpointFiltered[axisSample->indexShort] - axisSample->setpointPrevious;
-        axisSample->setpointPrevious = axisSample->setpointFiltered[axisSample->indexShort];
+        axisSample->setpointDerivative = axisSample->setpointFiltered - axisSample->setpointPrevious;
+        axisSample->setpointPrevious = axisSample->setpointFiltered;
 
         // float errorMul[Q_TUNE_SHORT_BUFFER_LENGTH];
         // arm_scale_f32(axisSample->error, 100.0f, errorMul, Q_TUNE_SHORT_BUFFER_LENGTH);
