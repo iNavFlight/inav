@@ -83,11 +83,6 @@ typedef struct gyroConfig_s {
     uint16_t dynamicGyroNotchMinHz;
     uint8_t dynamicGyroNotchEnabled;
 #endif
-#ifdef USE_ALPHA_BETA_GAMMA_FILTER
-    float alphaBetaGammaAlpha;
-    float alphaBetaGammaBoost;
-    float alphaBetaGammaHalfLife;
-#endif
 #ifdef USE_GYRO_KALMAN
     uint16_t kalman_q;
     uint8_t kalmanEnabled;
