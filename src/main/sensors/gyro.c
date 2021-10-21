@@ -103,7 +103,7 @@ EXTENDED_FASTRAM dynamicGyroNotchState_t dynamicGyroNotchState;
 
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 16);
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 0);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_lpf = SETTING_GYRO_HARDWARE_LPF_DEFAULT,
