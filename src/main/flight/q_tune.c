@@ -49,7 +49,7 @@ typedef struct samples_s {
     uint16_t indexLong;
     float rate;
     float setpointFiltered;
-    float measurementFiltered[Q_TUNE_SHORT_BUFFER_LENGTH];
+    float measurementFiltered;
     float error[Q_TUNE_SHORT_BUFFER_LENGTH];
     float iTerm[Q_TUNE_LONG_BUFFER_LENGTH];
     pt1Filter_t setpointFilter;
@@ -151,10 +151,10 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
 
         // filter the data with normalized stepoint and measurement
         axisSample->setpointFiltered = pt1FilterApply(&axisSample->setpointFilter, sample->setpoint / axisSample->rate);
-        axisSample->measurementFiltered[axisSample->indexShort] = pt1FilterApply(&axisSample->measurementFilter, sample->measurement / axisSample->rate);
+        axisSample->measurementFiltered = pt1FilterApply(&axisSample->measurementFilter, sample->measurement / axisSample->rate);
 
         // calculate the error
-        axisSample->error[axisSample->indexShort] = axisSample->setpointFiltered - axisSample->measurementFiltered[axisSample->indexShort];
+        axisSample->error[axisSample->indexShort] = axisSample->setpointFiltered - axisSample->measurementFiltered;
     
         // compute variance, RMS and other factors
         float out;
