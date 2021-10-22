@@ -2886,8 +2886,24 @@ void selectMultiMissionIndex(int8_t increment)
     navConfigMutable()->general.waypoint_multi_mission_index = constrain(navConfigMutable()->general.waypoint_multi_mission_index + increment, 0, posControl.multiMissionCount);
 }
 
+void setMultiMissionOnArm(void)
+{
+    if (posControl.multiMissionCount > 1) {
+        posControl.waypointCount = posControl.loadedMultiMissionWPCount;
+
+        for (int8_t i = 0; i < NAV_MAX_WAYPOINTS; i++) {
+            posControl.waypointList[i] = posControl.waypointList[i + posControl.loadedMultiMissionStartWP];
+            if (i == posControl.waypointCount - 1) {
+                break;
+            }
+        }
+
+        posControl.loadedMultiMissionStartWP = 0;
+    }
+}
+
 #ifdef NAV_NON_VOLATILE_WAYPOINT_STORAGE
-bool loadNonVolatileWaypointList(bool clearIfLoaded, bool mspActive)
+bool loadNonVolatileWaypointList(bool clearIfLoaded)
 {
     if (ARMING_FLAG(ARMED))
         return false;
@@ -2901,17 +2917,23 @@ bool loadNonVolatileWaypointList(bool clearIfLoaded, bool mspActive)
     resetWaypointList();
 
     posControl.multiMissionCount = 0;
-    int8_t WPCounter = 0;
-
-    // when in CLI or MSP modes load all WPs in EEPROM so all multi mission WPs are available
+    posControl.loadedMultiMissionStartWP = -1;
+    int8_t multiMissionGeoWPCount;
     for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {
-        if ((posControl.multiMissionCount + 1 == navConfig()->general.waypoint_multi_mission_index) || cliMode || mspActive) {
-            // Load waypoints
-            setWaypoint(i + 1 - WPCounter, nonVolatileWaypointList(i));
-        } else {
-            WPCounter = i + 1;  // count WPs not in selected multi mission entry to ensure set WP numbering starts at 1
-        }
+        if (navConfig()->general.waypoint_multi_mission_index) {
+            setWaypoint(i + 1, nonVolatileWaypointList(i));
 
+            if ((posControl.multiMissionCount + 1 == navConfig()->general.waypoint_multi_mission_index)) {
+                // Find start and end of selected mission
+                if (posControl.loadedMultiMissionStartWP == -1) {
+                    posControl.loadedMultiMissionStartWP = i;
+                    multiMissionGeoWPCount = posControl.geoWaypointCount;
+                } else if (posControl.waypointList[i].flag == NAV_WP_FLAG_LAST) {
+                    posControl.loadedMultiMissionWPCount = i - posControl.loadedMultiMissionStartWP + 1;
+                    multiMissionGeoWPCount = posControl.geoWaypointCount - multiMissionGeoWPCount + 1;
+                }
+            }
+        }
         // Check if this is the last waypoint
         if (nonVolatileWaypointList(i)->flag == NAV_WP_FLAG_LAST) {
             posControl.multiMissionCount += 1;  // count up number missions in multi mission WP entry
@@ -2922,8 +2944,8 @@ bool loadNonVolatileWaypointList(bool clearIfLoaded, bool mspActive)
             }
         }
     }
-
-    posControl.loadedMultiMissionIndex = posControl.multiMissionCount > 0 ? navConfig()->general.waypoint_multi_mission_index : 0;
+    posControl.geoWaypointCount = multiMissionGeoWPCount;
+    posControl.loadedMultiMissionIndex = posControl.multiMissionCount ? navConfig()->general.waypoint_multi_mission_index : 0;
 
     // Mission sanity check failed - reset the list
     if (!posControl.waypointListValid) {
@@ -3393,7 +3415,7 @@ bool navigationTerrainFollowingEnabled(void)
 uint32_t distanceToFirstWP(void)
 {
     fpVector3_t startingWaypointPos;
-    mapWaypointToLocalPosition(&startingWaypointPos, &posControl.waypointList[0], GEO_ALT_RELATIVE);
+    mapWaypointToLocalPosition(&startingWaypointPos, &posControl.waypointList[posControl.loadedMultiMissionStartWP], GEO_ALT_RELATIVE);
     return calculateDistanceToDestination(&startingWaypointPos);
 }
 
@@ -3441,8 +3463,8 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
          * Can't jump beyond WP list
          * Only jump to geo-referenced WP types
          */
-    if (posControl.waypointCount > 0) {
-        for (uint8_t wp = 0; wp < posControl.waypointCount ; wp++){
+    if (posControl.waypointCount && !posControl.loadedMultiMissionStartWP) {
+        for (uint8_t wp = 0; wp < posControl.waypointCount; wp++){
             if (posControl.waypointList[wp].action == NAV_WP_ACTION_JUMP){
                 if((wp == 0) || ((posControl.waypointList[wp].p1 > (wp-2)) && (posControl.waypointList[wp].p1 < (wp+2)) ) || (posControl.waypointList[wp].p1 >=  posControl.waypointCount) || (posControl.waypointList[wp].p2 < -1)) {
                     return NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR;
@@ -3637,7 +3659,7 @@ void navigationInit(void)
     if (!navConfig()->general.waypoint_load_on_boot) {
         navConfigMutable()->general.waypoint_multi_mission_index = 0;
     }
-    loadNonVolatileWaypointList(false, false);
+    loadNonVolatileWaypointList(true);
     // set index to 1 if saved mission index > available missions
     navConfigMutable()->general.waypoint_multi_mission_index = savedMultiMissionIndex > posControl.multiMissionCount ? 1 : savedMultiMissionIndex;
 #endif
