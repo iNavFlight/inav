@@ -52,8 +52,11 @@ typedef struct samples_s {
     float measurementFiltered;
     float error[Q_TUNE_SHORT_BUFFER_LENGTH];
     float iTerm[Q_TUNE_LONG_BUFFER_LENGTH];
+
     pt1Filter_t setpointFilter;
     pt1Filter_t measurementFilter;
+    pt1Filter_t pt1ErrorHpfFilter;
+
     float setpointMean;
     float measurementMean;
     float setpointStdDev;
@@ -121,6 +124,8 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
             samples[i].lastExecution = 0;
             pt1FilterInit(&samples[i].setpointFilter, Q_TUNE_SETPOINT_LPF_HZ, Q_TUNE_UPDATE_US * 1e-6f);
             pt1FilterInit(&samples[i].measurementFilter, Q_TUNE_MEASUREMENT_LPF_HZ, Q_TUNE_UPDATE_US * 1e-6f);
+            pt1FilterInit(&samples[i].pt1ErrorHpfFilter, Q_TUNE_ERROR_HPF_HZ, Q_TUNE_UPDATE_US * 1e-6f);
+
             if (i == FD_ROLL) {
                 samples[i].rate = currentControlRateProfile->stabilized.rates[FD_ROLL] * 10.0f;
             } else if (i == FD_PITCH) {
@@ -154,7 +159,11 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
         axisSample->measurementFiltered = pt1FilterApply(&axisSample->measurementFilter, sample->measurement / axisSample->rate);
 
         // calculate the error
-        axisSample->error[axisSample->indexShort] = axisSample->setpointFiltered - axisSample->measurementFiltered;
+
+        float error = axisSample->setpointFiltered - axisSample->measurementFiltered;
+        error = error - pt1FilterApply(&axisSample->pt1ErrorHpfFilter, error);  // Value - LPF = HPF
+
+        axisSample->error[axisSample->indexShort] = error;
     
         // compute variance, RMS and other factors
         float out;
