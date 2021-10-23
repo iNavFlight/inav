@@ -64,13 +64,13 @@ typedef struct samples_s {
     float errorStdDev;
     float iTermRms;
     float iTermStdDev;
+
     float setpointPrevious;
     float setpointDerivative;
 
     arm_rfft_fast_instance_f32 errorFft;
 
     float errorFrequency;
-    float iTermFrequency;
 } samples_t;
 
 static currentSample_t currentSample[XYZ_AXIS_COUNT];
