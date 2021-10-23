@@ -71,6 +71,7 @@ typedef struct samples_s {
     arm_rfft_fast_instance_f32 errorFft;
 
     float errorFrequency;
+    float errorFrequencyEnergy;
 } samples_t;
 
 static currentSample_t currentSample[XYZ_AXIS_COUNT];
@@ -82,7 +83,7 @@ void qTunePushSample(const flight_dynamics_index_t axis, const float setpoint, c
     currentSample[axis].iTerm = iTerm;
 }
 
-static float getSampleFrequency(arm_rfft_fast_instance_f32 *structure, float buffer[], const uint16_t bufferLength) {
+static void getSampleFrequency(float *frequency, float *energy, arm_rfft_fast_instance_f32 *structure, float buffer[], const uint16_t bufferLength) {
 
     //RFFT transform
     float rfft_output[bufferLength];
@@ -102,9 +103,8 @@ static float getSampleFrequency(arm_rfft_fast_instance_f32 *structure, float buf
     //Obtain peak frequency
     arm_max_f32(test_output, bufferLength / 2, &maxvalue, &maxindex);
 
-    const float peakFrequency = maxindex * Q_TUNE_UPDATE_RATE_HZ / bufferLength;
-    
-    return peakFrequency;
+    *frequency = (float) maxindex * Q_TUNE_UPDATE_RATE_HZ / bufferLength;
+    *energy = maxvalue;   
 }
 
 void qTuneProcessTask(timeUs_t currentTimeUs) {
@@ -175,13 +175,10 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
         axisSample->setpointDerivative = axisSample->setpointFiltered - axisSample->setpointPrevious;
         axisSample->setpointPrevious = axisSample->setpointFiltered;
 
-        // float errorMul[Q_TUNE_SHORT_BUFFER_LENGTH];
-        // arm_scale_f32(axisSample->error, 100.0f, errorMul, Q_TUNE_SHORT_BUFFER_LENGTH);
-
         float dataBuffer[Q_TUNE_LONG_BUFFER_LENGTH];
 
         memcpy(dataBuffer, axisSample->error, sizeof(axisSample->error));
-        axisSample->errorFrequency = getSampleFrequency(&axisSample->errorFft, dataBuffer, Q_TUNE_SHORT_BUFFER_LENGTH);
+        getSampleFrequency(&axisSample->errorFrequency, &axisSample->errorFrequencyEnergy, &axisSample->errorFft, dataBuffer, Q_TUNE_SHORT_BUFFER_LENGTH);
     }
 
     // Step 3 - Write blackbox data
@@ -192,6 +189,7 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
     DEBUG_SET(DEBUG_Q_TUNE, 4, samples[FD_ROLL].iTermStdDev * 10000.0f);
     DEBUG_SET(DEBUG_Q_TUNE, 5, samples[FD_ROLL].setpointDerivative * Q_TUNE_UPDATE_RATE_HZ * 1000.0f);
     DEBUG_SET(DEBUG_Q_TUNE, 6, samples[FD_ROLL].errorFrequency);
+    DEBUG_SET(DEBUG_Q_TUNE, 7, samples[FD_ROLL].errorFrequencyEnergy);
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
         samples[i].indexShort = (samples[i].indexShort + 1) % Q_TUNE_SHORT_BUFFER_LENGTH;
