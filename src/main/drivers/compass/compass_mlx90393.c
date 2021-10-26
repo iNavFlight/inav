@@ -80,7 +80,7 @@
 #define RES_XYZ_OSR_FLT_REG_VALUE   0x001D
 
 
-static void mlx_write_register(magDev_t * mag, uint8_t reg_val, uint16_t value) {
+static void mlx90393WriteRegister(magDev_t * mag, uint8_t reg_val, uint16_t value) {
 
     uint8_t buf[REG_BUF_LEN] = {0};
 
@@ -142,9 +142,9 @@ static bool mlx90393Init(magDev_t * mag)
     busRead(mag->busDev, MLX90393_EXIT_MODE, &sig);
 
     // Writing Registers
-    mlx_write_register(mag, GAIN_SEL_HALLCONF_REG, GAIN_SEL_HALLCONF_REG_VALUE);
-    mlx_write_register(mag, TCMP_EN_REG, TCMP_EN_REG_VALUE);
-    mlx_write_register(mag, RES_XYZ_OSR_FLT_REG, RES_XYZ_OSR_FLT_REG_VALUE);
+    mlx90393WriteRegister(mag, GAIN_SEL_HALLCONF_REG, GAIN_SEL_HALLCONF_REG_VALUE);
+    mlx90393WriteRegister(mag, TCMP_EN_REG, TCMP_EN_REG_VALUE);
+    mlx90393WriteRegister(mag, RES_XYZ_OSR_FLT_REG, RES_XYZ_OSR_FLT_REG_VALUE);
 
     // Start burst mode
     busRead(mag->busDev, MLX90393_START_BURST_MODE | MLX90393_MEASURE_3D, &sig);
