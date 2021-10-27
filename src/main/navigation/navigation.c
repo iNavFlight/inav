@@ -2909,7 +2909,7 @@ bool loadNonVolatileWaypointList(bool clearIfLoaded)
         return false;
 
     // if forced and waypoints are already loaded, just unload them. (Only unload if selected multi mission index is same as loaded mission index)
-    if (clearIfLoaded && navConfig()->general.waypoint_multi_mission_index == posControl.loadedMultiMissionIndex && clearIfLoaded && posControl.waypointCount > 0) {
+    if (clearIfLoaded && navConfig()->general.waypoint_multi_mission_index == posControl.loadedMultiMissionIndex && posControl.waypointCount > 0) {
         resetWaypointList();
         return false;
     }

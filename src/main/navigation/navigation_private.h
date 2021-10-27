@@ -361,8 +361,8 @@ typedef struct {
     int8_t                      geoWaypointCount;           // total geospatial WPs in mission
 
     int8_t                      multiMissionCount;          // number of missions in multi mission entry
-    int8_t                      loadedMultiMissionIndex;    // index of currently loaded mission
-    int8_t                      loadedMultiMissionStartWP;  // selected mission start WP
+    int8_t                      loadedMultiMissionIndex;    // index of selected multi mission
+    int8_t                      loadedMultiMissionStartWP;  // selected multi mission start WP
     int8_t                      loadedMultiMissionWPCount;  // number of WPs in selected multi mission
 
     navWaypointPosition_t       activeWaypoint;    // Local position and initial bearing, filled on waypoint activation
