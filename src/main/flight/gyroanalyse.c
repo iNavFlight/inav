@@ -117,9 +117,7 @@ void gyroDataAnalyse(gyroAnalyseState_t *state)
 }
 
 void stage_rfft_f32(arm_rfft_fast_instance_f32 *S, float32_t *p, float32_t *pOut);
-void arm_cfft_radix8by2_f32(arm_cfft_instance_f32 *S, float32_t *p1);
 void arm_cfft_radix8by4_f32(arm_cfft_instance_f32 *S, float32_t *p1);
-void arm_radix8_butterfly_f32(float32_t *pSrc, uint16_t fftLen, const float32_t *pCoef, uint16_t twidCoefModifier);
 void arm_bitreversal_32(uint32_t *pSrc, const uint16_t bitRevLen, const uint16_t *pBitRevTable);
 
 static uint8_t findPeakBinIndex(gyroAnalyseState_t *state) {
@@ -155,20 +153,8 @@ static NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
     switch (state->updateStep) {
         case STEP_ARM_CFFT_F32:
         {
-            switch (FFT_BIN_COUNT) {
-            case 16:
-                // 16us
-                arm_cfft_radix8by2_f32(Sint, state->fftData);
-                break;
-            case 32:
-                // 35us
-                arm_cfft_radix8by4_f32(Sint, state->fftData);
-                break;
-            case 64:
-                // 70us
-                arm_radix8_butterfly_f32(state->fftData, FFT_BIN_COUNT, Sint->pTwiddle, 1);
-                break;
-            }
+            // Important this works only with FFT windows size of 64 elements!
+            arm_cfft_radix8by4_f32(Sint, state->fftData);
             break;
         }
         case STEP_BITREVERSAL:

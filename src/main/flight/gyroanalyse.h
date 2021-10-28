@@ -25,6 +25,10 @@
 #include "arm_math.h"
 #include "common/filter.h"
 
+/*
+ * Current code works only with 64 window size. Changing it do a different size would require
+ * adapting the gyroDataAnalyseUpdate in STEP_ARM_CFFT_F32 step
+ */
 #define FFT_WINDOW_SIZE 64
 
 typedef struct gyroAnalyseState_s {
