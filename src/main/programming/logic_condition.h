@@ -122,7 +122,7 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_LQ,                                 // 32
     LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_SNR,                                // 33
     LOGIC_CONDITION_OPERAND_FLIGHT_GPS_VALID, // 0/1                        // 34
-    LOGIC_CONDITION_OPERAND_FLIGHT_LOITER_RADIUS                            // 35
+    LOGIC_CONDITION_OPERAND_FLIGHT_LOITER_RADIUS,                           // 35
     LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_PROFILE, //int                    // 36
 
 } logicFlightOperands_e;
