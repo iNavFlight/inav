@@ -132,6 +132,23 @@ static uint8_t findPeakBinIndex(gyroAnalyseState_t *state) {
     return peakBinIndex;
 }
 
+static float computeParabolaMean(gyroAnalyseState_t *state, uint8_t peakBinIndex) {
+    float preciseBin = peakBinIndex;
+
+    // Height of peak bin (y1) and shoulder bins (y0, y2)
+    const float y0 = state->fftData[peakBinIndex - 1];
+    const float y1 = state->fftData[peakBinIndex];
+    const float y2 = state->fftData[peakBinIndex - 1];
+
+    // Estimate true peak position aka. preciseBin (fit parabola y(x) over y0, y1 and y2, solve dy/dx=0 for x)
+    const float denom = 2.0f * (y0 - 2 * y1 + y2);
+    if (denom != 0.0f) {
+        preciseBin += (y0 - y2) / denom;
+    }
+
+    return preciseBin;
+}
+
 /*
  * Analyse last gyro data from the last FFT_WINDOW_SIZE milliseconds
  */
@@ -189,19 +206,7 @@ static NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
             /*
              * Calculate center frequency using the parabola method
              */
-            float preciseBin = peakBin;
-
-            // Height of peak bin (y1) and shoulder bins (y0, y2)
-            const float y0 = state->fftData[peakBin - 1];
-            const float y1 = state->fftData[peakBin];
-            const float y2 = state->fftData[peakBin - 1];
-
-            // Estimate true peak position aka. preciseBin (fit parabola y(x) over y0, y1 and y2, solve dy/dx=0 for x)
-            const float denom = 2.0f * (y0 - 2 * y1 + y2);
-            if (denom != 0.0f) {
-                preciseBin += (y0 - y2) / denom;
-            }
-
+            float preciseBin = computeParabolaMean(state, peakBin);
             float peakFrequency = preciseBin * state->fftResolution;
 
             peakFrequency = biquadFilterApply(&state->detectedFrequencyFilter[state->updateAxis], peakFrequency);
