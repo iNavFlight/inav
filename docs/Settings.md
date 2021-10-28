@@ -1542,36 +1542,6 @@ Enable use of Galileo satellites. This is at the expense of other regional const
 
 ---
 
-### gyro_abg_alpha
-
-Alpha factor for Gyro Alpha-Beta-Gamma filter
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 1 |
-
----
-
-### gyro_abg_boost
-
-Boost factor for Gyro Alpha-Beta-Gamma filter
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0.35 | 0 | 2 |
-
----
-
-### gyro_abg_half_life
-
-Sample half-life for Gyro Alpha-Beta-Gamma filter
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0.5 | 0 | 10 |
-
----
-
 ### gyro_anti_aliasing_lpf_hz
 
 Gyro processing anti-aliasing filter cutoff frequency. In normal operation this filter setting should never be changed. In Hz
@@ -5188,7 +5158,7 @@ Enable Kalman filter on the gyro data
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| ON |  |  |
 
 ---
 
