@@ -140,7 +140,6 @@
 #define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PB5
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PA15
@@ -232,4 +231,3 @@
 #endif
 #define USE_DSHOT
 #define USE_ESC_SENSOR
-#define USE_SERIALSHOT

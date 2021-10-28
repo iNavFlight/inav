@@ -33,7 +33,7 @@ function(enable_settings exe name)
     add_custom_command(
         OUTPUT ${output}
         COMMAND
-            ${CMAKE_COMMAND} -E env CFLAGS="${cflags}" TARGET=${name} PATH=$ENV{PATH} SETTINGS_CXX=${args_SETTINGS_CXX}
+            ${CMAKE_COMMAND} -E env CFLAGS="${cflags}" TARGET=${name} PATH="$ENV{PATH}" SETTINGS_CXX=${args_SETTINGS_CXX}
             ${RUBY_EXECUTABLE} ${SETTINGS_GENERATOR} ${MAIN_DIR} ${SETTINGS_FILE} -o "${dir}"
         DEPENDS ${SETTINGS_GENERATOR} ${SETTINGS_FILE}
     )

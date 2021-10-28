@@ -60,25 +60,11 @@ FILE_COMPILE_FOR_SPEED
 void gyroDataAnalyseStateInit(
     gyroAnalyseState_t *state, 
     uint16_t minFrequency,
-    uint8_t range,
     uint32_t targetLooptimeUs
 ) {
-    state->fftSamplingRateHz = DYN_NOTCH_RANGE_HZ_LOW;
     state->minFrequency = minFrequency;
 
-    if (range == DYN_NOTCH_RANGE_HIGH) {
-        state->fftSamplingRateHz = DYN_NOTCH_RANGE_HZ_HIGH;
-    }
-    else if (range == DYN_NOTCH_RANGE_MEDIUM) {
-        state->fftSamplingRateHz = DYN_NOTCH_RANGE_HZ_MEDIUM;
-    }
-
-    // If we get at least 3 samples then use the default FFT sample frequency
-    // otherwise we need to calculate a FFT sample frequency to ensure we get 3 samples (gyro loops < 4K)
-    const int gyroLoopRateHz = lrintf((1.0f / targetLooptimeUs) * 1e6f);
-    
-    state->fftSamplingRateHz = MIN((gyroLoopRateHz / 3), state->fftSamplingRateHz);
-
+    state->fftSamplingRateHz = lrintf(1e6f / targetLooptimeUs / 3); // Looptime divided by 3
     state->fftResolution = (float)state->fftSamplingRateHz / FFT_WINDOW_SIZE;
 
     state->fftStartBin = state->minFrequency / lrintf(state->fftResolution);

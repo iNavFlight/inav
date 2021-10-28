@@ -67,9 +67,9 @@ typedef struct {
 
 } __attribute__((packed)) setting_t;
 
-static inline setting_type_e SETTING_TYPE(const setting_t *s) { return s->type &  SETTING_TYPE_MASK; }
-static inline setting_section_e SETTING_SECTION(const setting_t *s) { return s->type & SETTING_SECTION_MASK; }
-static inline setting_mode_e SETTING_MODE(const setting_t *s) { return s->type & SETTING_MODE_MASK; }
+static inline setting_type_e SETTING_TYPE(const setting_t *s) { return (setting_type_e)(s->type &  SETTING_TYPE_MASK); }
+static inline setting_section_e SETTING_SECTION(const setting_t *s) { return (setting_section_e)(s->type & SETTING_SECTION_MASK); }
+static inline setting_mode_e SETTING_MODE(const setting_t *s) { return (setting_mode_e)(s->type & SETTING_MODE_MASK); }
 
 void settingGetName(const setting_t *val, char *buf);
 bool settingNameContains(const setting_t *val, char *buf, const char *cmdline);

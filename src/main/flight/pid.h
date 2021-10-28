@@ -142,7 +142,8 @@ typedef struct pidProfile_s {
     uint8_t iterm_relax;                    // Enable iterm suppression during stick input
 
 #ifdef USE_D_BOOST
-    float dBoostFactor;
+    float dBoostMin;
+    float dBoostMax;
     float dBoostMaxAtAlleceleration;
     uint8_t dBoostGyroDeltaLpfHz;
 #endif
@@ -156,16 +157,8 @@ typedef struct pidProfile_s {
     uint16_t navFwPosHdgPidsumLimit;
     uint8_t controlDerivativeLpfHz;
 
-#ifdef USE_GYRO_KALMAN
-    uint16_t kalman_q;
-    uint16_t kalman_w;
-    uint16_t kalman_sharpness;
-    uint8_t kalmanEnabled;
-#endif
-
     float fixedWingLevelTrim;
     float fixedWingLevelTrimGain;
-    float fixedWingLevelTrimDeadband;
 #ifdef USE_SMITH_PREDICTOR
     float smithPredictorStrength;
     float smithPredictorDelay;
@@ -196,7 +189,7 @@ const pidBank_t * pidBank(void);
 pidBank_t * pidBankMutable(void);
 
 extern int16_t axisPID[];
-extern int32_t axisPID_P[], axisPID_I[], axisPID_D[], axisPID_Setpoint[];
+extern int32_t axisPID_P[], axisPID_I[], axisPID_D[], axisPID_F[], axisPID_Setpoint[];
 
 void pidInit(void);
 bool pidInitFilters(void);
@@ -233,3 +226,4 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
 pidType_e pidIndexGetType(pidIndex_e pidIndex);
 
 void updateFixedWingLevelTrim(timeUs_t currentTimeUs);
+float getFixedWingLevelTrim(void);

@@ -47,14 +47,14 @@
 #include "flight/pid.h"
 
 #define AUTOTUNE_FIXED_WING_MIN_FF              10
-#define AUTOTUNE_FIXED_WING_MAX_FF              200
+#define AUTOTUNE_FIXED_WING_MAX_FF              255
 #define AUTOTUNE_FIXED_WING_MIN_ROLL_PITCH_RATE 40
 #define AUTOTUNE_FIXED_WING_MIN_YAW_RATE        10
 #define AUTOTUNE_FIXED_WING_MAX_RATE            720
 #define AUTOTUNE_FIXED_WING_CONVERGENCE_RATE    10
 #define AUTOTUNE_FIXED_WING_SAMPLE_INTERVAL     20      // ms
-#define AUTOTUNE_FIXED_WING_SAMPLES             1000    // Use averagea over the last 20 seconds
-#define AUTOTUNE_FIXED_WING_MIN_SAMPLES         250     // Start updating tune after 5 seconds
+#define AUTOTUNE_FIXED_WING_SAMPLES             1000    // Use average over the last 20 seconds of hard maneuvers
+#define AUTOTUNE_FIXED_WING_MIN_SAMPLES         250     // Start updating tune after 5 seconds of hard maneuvers
 
 PG_REGISTER_WITH_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig, PG_PID_AUTOTUNE_CONFIG, 2);
 
@@ -248,13 +248,14 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
     if (gainsUpdated) {
         // Set P-gain to 10% of FF gain (quite agressive - FIXME)
         tuneCurrent[axis].gainP = tuneCurrent[axis].gainFF * (pidAutotuneConfig()->fw_ff_to_p_gain / 100.0f);
+        tuneCurrent[axis].gainP = constrainf(tuneCurrent[axis].gainP, 1.0f, 20.0f);
 
         // Set D-gain relative to P-gain (0 for now)
         tuneCurrent[axis].gainD = tuneCurrent[axis].gainP * (pidAutotuneConfig()->fw_p_to_d_gain / 100.0f);
 
         // Set integrator gain to reach the same response as FF gain in 0.667 second
         tuneCurrent[axis].gainI = (tuneCurrent[axis].gainFF / FP_PID_RATE_FF_MULTIPLIER) * (1000.0f / pidAutotuneConfig()->fw_ff_to_i_time_constant) * FP_PID_RATE_I_MULTIPLIER;
-        tuneCurrent[axis].gainI = constrainf(tuneCurrent[axis].gainI, 2.0f, 50.0f);
+        tuneCurrent[axis].gainI = constrainf(tuneCurrent[axis].gainI, 2.0f, 30.0f);
         autotuneUpdateGains(tuneCurrent);
 
         switch (axis) {

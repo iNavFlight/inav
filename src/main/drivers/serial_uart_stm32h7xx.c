@@ -50,8 +50,8 @@ typedef struct uartDevice_s {
 #ifdef USE_UART1
 #define UART_PIN_AF_UART1_PA9       GPIO_AF7_USART1
 #define UART_PIN_AF_UART1_PA10      GPIO_AF7_USART1
-#define UART_PIN_AF_UART1_PB6       GPIO_AF4_USART1
-#define UART_PIN_AF_UART1_PB7       GPIO_AF4_USART1
+#define UART_PIN_AF_UART1_PB6       GPIO_AF7_USART1
+#define UART_PIN_AF_UART1_PB7       GPIO_AF7_USART1
 #define UART_PIN_AF_UART1_PB14      GPIO_AF4_USART1
 #define UART_PIN_AF_UART1_PB15      GPIO_AF4_USART1
 
@@ -330,6 +330,10 @@ uartPort_t *serialUART(UARTDevice_e device, uint32_t baudRate, portMode_t mode, 
     s->USARTx = uart->dev;
 
     s->Handle.Instance = uart->dev;
+
+    if (uart->rcc) {
+        RCC_ClockCmd(uart->rcc, ENABLE);
+    }
 
     IO_t tx = IOGetByTag(uart->tx);
     IO_t rx = IOGetByTag(uart->rx);
