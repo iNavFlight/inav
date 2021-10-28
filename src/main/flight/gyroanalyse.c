@@ -76,9 +76,6 @@ void gyroDataAnalyseStateInit(
 
     arm_rfft_fast_init_f32(&state->fftInstance, FFT_WINDOW_SIZE);
 
-//    recalculation of filters takes 4 calls per axis => each filter gets updated every DYN_NOTCH_CALC_TICKS calls
-//    at 4khz gyro loop rate this means 4khz / 4 / 3 = 333Hz => update every 3ms
-//    for gyro rate > 16kHz, we have update frequency of 1kHz => 1ms
     const float looptime = MAX(1000000u / state->fftSamplingRateHz, targetLooptimeUs * DYN_NOTCH_CALC_TICKS);
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         // any init value
@@ -124,6 +121,18 @@ void arm_cfft_radix8by2_f32(arm_cfft_instance_f32 *S, float32_t *p1);
 void arm_cfft_radix8by4_f32(arm_cfft_instance_f32 *S, float32_t *p1);
 void arm_radix8_butterfly_f32(float32_t *pSrc, uint16_t fftLen, const float32_t *pCoef, uint16_t twidCoefModifier);
 void arm_bitreversal_32(uint32_t *pSrc, const uint16_t bitRevLen, const uint16_t *pBitRevTable);
+
+static uint8_t findPeakBinIndex(gyroAnalyseState_t *state) {
+    uint8_t peakBinIndex = state->fftStartBin;
+    float peakValue = 0;
+    for (int i = state->fftStartBin; i < FFT_BIN_COUNT; i++) {
+        if (state->fftData[i] > peakValue) {
+            peakValue = state->fftData[i];
+            peakBinIndex = i;
+        }
+    }
+    return peakBinIndex;
+}
 
 /*
  * Analyse last gyro data from the last FFT_WINDOW_SIZE milliseconds
@@ -185,27 +194,11 @@ static NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
         }
         case STEP_CALC_FREQUENCIES:
         {
-            bool fftIncreased = false;
-            float peakValue = 0;
-            uint8_t binStart = 0;
-            uint8_t peakBin = 0;
-            //for bins after initial decline, identify start bin and max bin 
-            for (int i = state->fftStartBin; i < FFT_BIN_COUNT; i++) {
-                if (fftIncreased || (state->fftData[i] > state->fftData[i - 1])) {
-                    if (!fftIncreased) {
-                        binStart = i; // first up-step bin
-                        fftIncreased = true;
-                    }
-                    if (state->fftData[i] > peakValue) {
-                        peakValue = state->fftData[i];
-                        peakBin = i;  // tallest bin
-                    }
-                }
-            }
-            
+           
+            uint8_t peakBin = findPeakBinIndex(state);
+
             // Failsafe to ensure the last bin is not a peak bin
             peakBin = constrain(peakBin, state->fftStartBin, FFT_BIN_COUNT - 1);
-            peakValue = state->fftData[peakBin];
 
             /*
              * Calculate center frequency using the parabola method
