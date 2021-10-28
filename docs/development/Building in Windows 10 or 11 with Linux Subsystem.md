@@ -138,3 +138,28 @@ appendWindowsPath=false
 8. `cd build`
 9. `cmake ..`
 9. `make {TARGET}` should be working again 
+
+### Building targets is very slow
+I was pretty shocked when my new i7 -10750 laptop took 25 minutes to build a single target. My old i3-4030 could do the same job in about 2.5 minutes. If you're also suffering from slow builds. Open an elevated PowerShell window and type
+```
+wsl -l -v
+```
+If you see your Linux distribution is using WSL 2, this is the problem. WSL 2 is quicker than WSL 1 for a lot of things. However, if your files are on a windows mounted drive in Linux, it is extremely slow. There are two options:
+1. Put your files on the Linux file system
+2. Change to WSL 1
+
+#### Using the Linux file system (recommended)
+To use the Linux file system, make sure the distro is running. Open File Explorer and navigate to `\\wsl$`. In that path you will find your distros listed. At this point, map a network drive to your distro. Inside the distro, you can find your home directory at `/home/~username~/`. Create your GitHub folders here.
+
+If after this you have problems with writing to the directories from within VSCode. Open the application for your distro and type
+```
+sudo chown -R ~username~ GitHub
+```
+`~Username~` is your root distro user that you created and `GitHub` should be the root folder for your GitHub repositories.
+
+#### To switch back to WSL 1
+To do this, in the elevated PowerShell window, you can see the name of your distro. Mine is **Ubuntu-20.04**, so I'll use that in this example. Simply type
+```
+wsl --set-version Ubuntu-20.04 1
+```
+and your distro will be converted to WSL 1. Once finished, reboot your system. Next time you compile a build, it will be faster.

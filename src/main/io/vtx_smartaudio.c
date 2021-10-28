@@ -492,14 +492,9 @@ static void saReceiveFramer(uint8_t c)
 
 static void saSendFrame(uint8_t *buf, int len)
 {
-    switch (smartAudioSerialPort->identifier) {
-        case SERIAL_PORT_SOFTSERIAL1:
-        case SERIAL_PORT_SOFTSERIAL2:
-            break;
-        default:
-            serialWrite(smartAudioSerialPort, 0x00); // Generate 1st start bit
-            break;
-    }
+    // TBS SA definition requires that the line is low before frame is sent
+    // (for both soft and hard serial). It can be done by sending first 0x00
+    serialWrite(smartAudioSerialPort, 0x00);
 
     for (int i = 0 ; i < len ; i++) {
         serialWrite(smartAudioSerialPort, buf[i]);
@@ -690,7 +685,7 @@ bool vtxSmartAudioInit(void)
 {
     serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_VTX_SMARTAUDIO);
     if (portConfig) {
-        portOptions_t portOptions = SERIAL_BIDIR_NOPULL;
+        portOptions_t portOptions = SERIAL_STOPBITS_2 | SERIAL_BIDIR_NOPULL;
         portOptions = portOptions | (vtxConfig()->halfDuplex ? SERIAL_BIDIR | SERIAL_BIDIR_PP : SERIAL_UNIDIR);
         smartAudioSerialPort = openSerialPort(portConfig->identifier, FUNCTION_VTX_SMARTAUDIO, NULL, NULL, 4800, MODE_RXTX, portOptions);
     }

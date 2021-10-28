@@ -73,7 +73,6 @@
 #define UART1_RX_PIN PA10
 #define UART1_TX_PIN PA9
 
-//#define AVOID_UART2_FOR_PWM_PPM
 #define USE_UART2
 #define UART2_TX_PIN PA2 //not wired
 #define UART2_RX_PIN PA3
@@ -159,7 +158,6 @@
 #define BNO055_I2C_BUS          BUS_I2C2
 
 #define USE_RANGEFINDER
-#define USE_RANGEFINDER_HCSR04_I2C
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
 
 #define SENSORS_SET (SENSOR_ACC | SENSOR_BARO)

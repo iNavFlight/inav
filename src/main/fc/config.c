@@ -107,7 +107,7 @@ PG_RESET_TEMPLATE(featureConfig_t, featureConfig,
     .enabledFeatures = DEFAULT_FEATURES | COMMON_DEFAULT_FEATURES
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 3);
+PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 5);
 
 PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .current_profile_index = 0,
@@ -193,13 +193,6 @@ void validateAndFixConfig(void)
     // Disable unused features
     featureClear(FEATURE_UNUSED_1 | FEATURE_UNUSED_3 | FEATURE_UNUSED_4 | FEATURE_UNUSED_5 | FEATURE_UNUSED_6 | FEATURE_UNUSED_7 | FEATURE_UNUSED_8 | FEATURE_UNUSED_9 | FEATURE_UNUSED_10);
 
-#if !defined(USE_RX_PPM)
-    if (rxConfig()->receiverType == RX_TYPE_PPM) {
-        rxConfigMutable()->receiverType = RX_TYPE_NONE;
-    }
-#endif
-
-
 #if defined(USE_LED_STRIP) && (defined(USE_SOFTSERIAL1) || defined(USE_SOFTSERIAL2))
     if (featureConfigured(FEATURE_SOFTSERIAL) && featureConfigured(FEATURE_LED_STRIP)) {
         const timerHardware_t *ledTimerHardware = timerGetByTag(IO_TAG(WS2811_PIN), TIM_USE_ANY);
@@ -265,9 +258,6 @@ void validateAndFixConfig(void)
     case PWM_TYPE_ONESHOT125:   // Limited to 3900 Hz
         motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 3900);
         break;
-    case PWM_TYPE_ONESHOT42:    // 2-8 kHz
-        motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 2000, 8000);
-        break;
     case PWM_TYPE_MULTISHOT:    // 2-16 kHz
         motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 2000, 16000);
         break;
@@ -286,14 +276,6 @@ void validateAndFixConfig(void)
     // It's more reasonable to use slower-speed DSHOT at higher rate for better reliability
     case PWM_TYPE_DSHOT600:
         motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 16000);
-        break;
-    case PWM_TYPE_DSHOT1200:
-        motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 32000);
-        break;
-#endif
-#ifdef USE_SERIALSHOT
-    case PWM_TYPE_SERIALSHOT:   // 2-4 kHz
-        motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 2000, 4000);
         break;
 #endif
     }

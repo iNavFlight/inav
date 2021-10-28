@@ -53,8 +53,10 @@
 
 #ifdef STM32H7
 #define DMA_RAM __attribute__ ((section(".DMA_RAM")))
+#define SLOW_RAM __attribute__ ((section(".SLOW_RAM")))
 #else
 #define DMA_RAM
+#define SLOW_RAM
 #endif
 
 #define STATIC_FASTRAM              static FASTRAM

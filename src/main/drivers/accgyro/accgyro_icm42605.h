@@ -17,6 +17,5 @@
 
 #pragma once
 
-#define RANGEFINDER_HCSR04_i2C_TASK_PERIOD_MS 100
-
-bool hcsr04i2c0Detect(rangefinderDev_t *dev);
+bool icm42605AccDetect(accDev_t *acc);
+bool icm42605GyroDetect(gyroDev_t *gyro);

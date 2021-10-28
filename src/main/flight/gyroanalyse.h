@@ -25,8 +25,7 @@
 #include "arm_math.h"
 #include "common/filter.h"
 
-// max for F3 targets
-#define FFT_WINDOW_SIZE 32
+#define FFT_WINDOW_SIZE 64
 
 typedef struct gyroAnalyseState_s {
     // accumulator for oversampled data => no aliasing and less noise
@@ -69,7 +68,6 @@ STATIC_ASSERT(FFT_WINDOW_SIZE <= (uint8_t) -1, window_size_greater_than_underlyi
 void gyroDataAnalyseStateInit(
     gyroAnalyseState_t *state, 
     uint16_t minFrequency,
-    uint8_t range,
     uint32_t targetLooptimeUs
 );
 void gyroDataAnalysePush(gyroAnalyseState_t *gyroAnalyse, int axis, float sample);
