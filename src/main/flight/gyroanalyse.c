@@ -54,8 +54,6 @@ FILE_COMPILE_FOR_SPEED
 #define FFT_BIN_COUNT             (FFT_WINDOW_SIZE / 2)
 // smoothing frequency for FFT centre frequency
 #define DYN_NOTCH_SMOOTH_FREQ_HZ  50
-// we need 4 steps for each axis
-#define DYN_NOTCH_CALC_TICKS      (XYZ_AXIS_COUNT * 4)
 
 void gyroDataAnalyseStateInit(
     gyroAnalyseState_t *state, 
@@ -76,12 +74,15 @@ void gyroDataAnalyseStateInit(
 
     arm_rfft_fast_init_f32(&state->fftInstance, FFT_WINDOW_SIZE);
 
-    const float looptime = MAX(1000000u / state->fftSamplingRateHz, targetLooptimeUs * DYN_NOTCH_CALC_TICKS);
+    // Frequency filter is executed every 12 cycles. 4 steps per cycle, 3 axises
+    const uint32_t filterUpdateUs = targetLooptimeUs * 12; //TODO reflect this in actual number of steps
+    
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         // any init value
         state->centerFreq[axis] = state->maxFrequency;
         state->prevCenterFreq[axis] = state->maxFrequency;
-        biquadFilterInitLPF(&state->detectedFrequencyFilter[axis], DYN_NOTCH_SMOOTH_FREQ_HZ, looptime);
+
+        biquadFilterInitLPF(&state->detectedFrequencyFilter[axis], DYN_NOTCH_SMOOTH_FREQ_HZ, filterUpdateUs);
     }
 }
 
@@ -106,14 +107,7 @@ void gyroDataAnalyse(gyroAnalyseState_t *state)
 
     state->circularBufferIdx = (state->circularBufferIdx + 1) % FFT_WINDOW_SIZE;
 
-    // We need DYN_NOTCH_CALC_TICKS tick to update all axis with newly sampled value
-    state->updateTicks = DYN_NOTCH_CALC_TICKS;
-
-    // calculate FFT and update filters
-    if (state->updateTicks > 0) {
-        gyroDataAnalyseUpdate(state);
-        --state->updateTicks;
-    }
+    gyroDataAnalyseUpdate(state);
 }
 
 void stage_rfft_f32(arm_rfft_fast_instance_f32 *S, float32_t *p, float32_t *pOut);
