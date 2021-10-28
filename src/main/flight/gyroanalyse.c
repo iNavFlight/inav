@@ -46,6 +46,14 @@ FILE_COMPILE_FOR_SPEED
 
 #include "gyroanalyse.h"
 
+enum {
+    STEP_ARM_CFFT_F32,
+    STEP_BITREVERSAL_AND_STAGE_RFFT_F32,
+    STEP_MAGNITUDE_AND_FREQUENCY,
+    STEP_UPDATE_FILTERS_AND_HANNING,
+    STEP_COUNT
+};
+
 // The FFT splits the frequency domain into an number of bins
 // A sampling frequency of 1000 and max frequency of 500 at a window size of 32 gives 16 frequency bins each 31.25Hz wide
 // Eg [0,31), [31,62), [62, 93) etc
@@ -75,8 +83,8 @@ void gyroDataAnalyseStateInit(
     arm_rfft_fast_init_f32(&state->fftInstance, FFT_WINDOW_SIZE);
 
     // Frequency filter is executed every 12 cycles. 4 steps per cycle, 3 axises
-    const uint32_t filterUpdateUs = targetLooptimeUs * 12; //TODO reflect this in actual number of steps
-    
+    const uint32_t filterUpdateUs = targetLooptimeUs * STEP_COUNT * XYZ_AXIS_COUNT;
+
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         // any init value
         state->centerFreq[axis] = state->maxFrequency;
@@ -148,16 +156,6 @@ static float computeParabolaMean(gyroAnalyseState_t *state, uint8_t peakBinIndex
  */
 static NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
 {
-    enum {
-        STEP_ARM_CFFT_F32,
-        STEP_BITREVERSAL,
-        STEP_STAGE_RFFT_F32,
-        STEP_ARM_CMPLX_MAG_F32,
-        STEP_CALC_FREQUENCIES,
-        STEP_UPDATE_FILTERS,
-        STEP_HANNING,
-        STEP_COUNT
-    };
 
     arm_cfft_instance_f32 *Sint = &(state->fftInstance.Sint);
 
@@ -168,30 +166,18 @@ static NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
             arm_cfft_radix8by4_f32(Sint, state->fftData);
             break;
         }
-        case STEP_BITREVERSAL:
+        case STEP_BITREVERSAL_AND_STAGE_RFFT_F32:
         {
-            // 6us
             arm_bitreversal_32((uint32_t*) state->fftData, Sint->bitRevLength, Sint->pBitRevTable);
-            state->updateStep++;
-            FALLTHROUGH;
-        }
-        case STEP_STAGE_RFFT_F32:
-        {
-            // 14us
-            // this does not work in place => fftData AND rfftData needed
             stage_rfft_f32(&state->fftInstance, state->fftData, state->rfftData);
             break;
         }
-        case STEP_ARM_CMPLX_MAG_F32:
+        case STEP_MAGNITUDE_AND_FREQUENCY:
         {
             // 8us
             arm_cmplx_mag_f32(state->rfftData, state->fftData, FFT_BIN_COUNT);
-            state->updateStep++;
-            FALLTHROUGH;
-        }
-        case STEP_CALC_FREQUENCIES:
-        {
-           
+
+            //Find peak frequency           
             uint8_t peakBin = findPeakBinIndex(state);
 
             // Failsafe to ensure the last bin is not a peak bin
@@ -210,7 +196,7 @@ static NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
             state->centerFreq[state->updateAxis] = peakFrequency;
             break;
         }
-        case STEP_UPDATE_FILTERS:
+        case STEP_UPDATE_FILTERS_AND_HANNING:
         {
             // 7us
             // calculate cutoffFreq and notch Q, update notch filter  =1.8+((A2-150)*0.004)
@@ -223,12 +209,9 @@ static NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
                 state->filterUpdateFrequency = state->centerFreq[state->updateAxis];
             }
 
+            //Switch to the next axis
             state->updateAxis = (state->updateAxis + 1) % XYZ_AXIS_COUNT;
-            state->updateStep++;
-            FALLTHROUGH;
-        }
-        case STEP_HANNING:
-        {
+            
             // apply hanning window to gyro samples and store result in fftData
             // hanning starts and ends with 0, could be skipped for minor speed improvement
             arm_mult_f32(state->downsampledGyroData[state->updateAxis], state->hanningWindow, state->fftData, FFT_WINDOW_SIZE);
