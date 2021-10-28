@@ -341,6 +341,7 @@ static int logicConditionCompute(
                 if (setConfigProfile(operandA)) {
                     pidInit();
                     pidInitFilters();
+                    schedulePidGainsUpdate();
                     profileChanged = true;
                 }
                 return profileChanged;

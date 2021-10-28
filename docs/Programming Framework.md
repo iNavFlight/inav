@@ -74,7 +74,7 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 38            | RC_CHANNEL_OVERRIDE | Overrides channel set by `Operand A` to value of `Operand B` |
 | 39            | SET_HEADING_TARGET  | Sets heading-hold target to `Operand A`, in degrees. Value wraps-around. |
 | 40            | MOD           | Divide `Operand A` by `Operand B` and returns the remainder |
-| 41            | SET_PROFILE   | Sets the active config profile (PIDFF/Rates/Filters/etc) to `Operand A`. `Operand A` must be a valid profile number, currently from 1 to 3. If not, the profile will not change |
+| 42            | SET_PROFILE   | Sets the active config profile (PIDFF/Rates/Filters/etc) to `Operand A`. `Operand A` must be a valid profile number, currently from 1 to 3. If not, the profile will not change |
 
 
 ### Operands
