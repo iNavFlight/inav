@@ -186,9 +186,9 @@ static NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
         case STEP_CALC_FREQUENCIES:
         {
             bool fftIncreased = false;
-            float dataMax = 0;
+            float peakValue = 0;
             uint8_t binStart = 0;
-            uint8_t binMax = 0;
+            uint8_t peakBin = 0;
             //for bins after initial decline, identify start bin and max bin 
             for (int i = state->fftStartBin; i < FFT_BIN_COUNT; i++) {
                 if (fftIncreased || (state->fftData[i] > state->fftData[i - 1])) {
@@ -196,51 +196,40 @@ static NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
                         binStart = i; // first up-step bin
                         fftIncreased = true;
                     }
-                    if (state->fftData[i] > dataMax) {
-                        dataMax = state->fftData[i];
-                        binMax = i;  // tallest bin
+                    if (state->fftData[i] > peakValue) {
+                        peakValue = state->fftData[i];
+                        peakBin = i;  // tallest bin
                     }
                 }
             }
-            // accumulate fftSum and fftWeightedSum from peak bin, and shoulder bins either side of peak
-            float cubedData = state->fftData[binMax] * state->fftData[binMax] * state->fftData[binMax];
-            float fftSum = cubedData;
-            float fftWeightedSum = cubedData * (binMax + 1);
-            // accumulate upper shoulder
-            for (int i = binMax; i < FFT_BIN_COUNT - 1; i++) {
-                if (state->fftData[i] > state->fftData[i + 1]) {
-                    cubedData = state->fftData[i] * state->fftData[i] * state->fftData[i];
-                    fftSum += cubedData;
-                    fftWeightedSum += cubedData * (i + 1);
-                } else {
-                break;
-                }
+            
+            // Failsafe to ensure the last bin is not a peak bin
+            peakBin = constrain(peakBin, state->fftStartBin, FFT_BIN_COUNT - 1);
+            peakValue = state->fftData[peakBin];
+
+            /*
+             * Calculate center frequency using the parabola method
+             */
+            float preciseBin = peakBin;
+
+            // Height of peak bin (y1) and shoulder bins (y0, y2)
+            const float y0 = state->fftData[peakBin - 1];
+            const float y1 = state->fftData[peakBin];
+            const float y2 = state->fftData[peakBin - 1];
+
+            // Estimate true peak position aka. preciseBin (fit parabola y(x) over y0, y1 and y2, solve dy/dx=0 for x)
+            const float denom = 2.0f * (y0 - 2 * y1 + y2);
+            if (denom != 0.0f) {
+                preciseBin += (y0 - y2) / denom;
             }
-            // accumulate lower shoulder
-            for (int i = binMax; i > binStart + 1; i--) {
-                if (state->fftData[i] > state->fftData[i - 1]) {
-                    cubedData = state->fftData[i] * state->fftData[i] * state->fftData[i];
-                    fftSum += cubedData;
-                    fftWeightedSum += cubedData * (i + 1);
-                } else {
-                break;
-                }
-            }
-            // get weighted center of relevant frequency range (this way we have a better resolution than 31.25Hz)
-            float centerFreq = state->maxFrequency;
-            float fftMeanIndex = 0;
-             // idx was shifted by 1 to start at 1, not 0
-            if (fftSum > 0) {
-                fftMeanIndex = (fftWeightedSum / fftSum) - 1;
-                // the index points at the center frequency of each bin so index 0 is actually 16.125Hz
-                centerFreq = fftMeanIndex * state->fftResolution;
-            } else {
-                centerFreq = state->prevCenterFreq[state->updateAxis];
-            }
-            centerFreq = fmax(centerFreq, state->minFrequency);
-            centerFreq = biquadFilterApply(&state->detectedFrequencyFilter[state->updateAxis], centerFreq);
+
+            float peakFrequency = preciseBin * state->fftResolution;
+
+            peakFrequency = biquadFilterApply(&state->detectedFrequencyFilter[state->updateAxis], peakFrequency);
+            peakFrequency = constrainf(peakFrequency, state->minFrequency, state->maxFrequency);
+
             state->prevCenterFreq[state->updateAxis] = state->centerFreq[state->updateAxis];
-            state->centerFreq[state->updateAxis] = centerFreq;
+            state->centerFreq[state->updateAxis] = peakFrequency;
             break;
         }
         case STEP_UPDATE_FILTERS:
