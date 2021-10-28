@@ -74,10 +74,6 @@ void gyroDataAnalyseStateInit(
         state->hanningWindow[i] = (0.5f - 0.5f * cos_approx(2 * M_PIf * i / (FFT_WINDOW_SIZE - 1)));
     }
 
-    const uint16_t samplingFrequency = 1000000 / targetLooptimeUs;
-    state->maxSampleCount = samplingFrequency / state->fftSamplingRateHz;
-    state->maxSampleCountRcp = 1.f / state->maxSampleCount;
-
     arm_rfft_fast_init_f32(&state->fftInstance, FFT_WINDOW_SIZE);
 
 //    recalculation of filters takes 4 calls per axis => each filter gets updated every DYN_NOTCH_CALC_TICKS calls
@@ -94,7 +90,7 @@ void gyroDataAnalyseStateInit(
 
 void gyroDataAnalysePush(gyroAnalyseState_t *state, const int axis, const float sample)
 {
-    state->oversampledGyroAccumulator[axis] += sample;
+    state->currentSample[axis] = sample;
 }
 
 static void gyroDataAnalyseUpdate(gyroAnalyseState_t *state);
@@ -106,27 +102,15 @@ void gyroDataAnalyse(gyroAnalyseState_t *state)
 {
     state->filterUpdateExecute = false; //This will be changed to true only if new data is present
 
-    // samples should have been pushed by `gyroDataAnalysePush`
-    // if gyro sampling is > 1kHz, accumulate multiple samples
-    state->sampleCount++;
-
-    // this runs at 1kHz
-    if (state->sampleCount == state->maxSampleCount) {
-        state->sampleCount = 0;
-
-        // calculate mean value of accumulated samples
-        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            float sample = state->oversampledGyroAccumulator[axis] * state->maxSampleCountRcp;
-            state->downsampledGyroData[axis][state->circularBufferIdx] = sample;
-
-            state->oversampledGyroAccumulator[axis] = 0;
-        }
-
-        state->circularBufferIdx = (state->circularBufferIdx + 1) % FFT_WINDOW_SIZE;
-
-        // We need DYN_NOTCH_CALC_TICKS tick to update all axis with newly sampled value
-        state->updateTicks = DYN_NOTCH_CALC_TICKS;
+    // calculate mean value of accumulated samples
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        state->downsampledGyroData[axis][state->circularBufferIdx] = state->currentSample[axis];
     }
+
+    state->circularBufferIdx = (state->circularBufferIdx + 1) % FFT_WINDOW_SIZE;
+
+    // We need DYN_NOTCH_CALC_TICKS tick to update all axis with newly sampled value
+    state->updateTicks = DYN_NOTCH_CALC_TICKS;
 
     // calculate FFT and update filters
     if (state->updateTicks > 0) {
@@ -278,14 +262,9 @@ static NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
         }
         case STEP_HANNING:
         {
-            // 5us
             // apply hanning window to gyro samples and store result in fftData
             // hanning starts and ends with 0, could be skipped for minor speed improvement
-            const uint8_t ringBufIdx = FFT_WINDOW_SIZE - state->circularBufferIdx;
-            arm_mult_f32(&state->downsampledGyroData[state->updateAxis][state->circularBufferIdx], &state->hanningWindow[0], &state->fftData[0], ringBufIdx);
-            if (state->circularBufferIdx > 0) {
-                arm_mult_f32(&state->downsampledGyroData[state->updateAxis][0], &state->hanningWindow[ringBufIdx], &state->fftData[ringBufIdx], state->circularBufferIdx);
-            }
+            arm_mult_f32(state->downsampledGyroData[state->updateAxis], state->hanningWindow, state->fftData, FFT_WINDOW_SIZE);
         }
     }
 
