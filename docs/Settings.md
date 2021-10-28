@@ -788,17 +788,17 @@ Enable/disable dynamic gyro notch also known as Matrix Filter
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| ON |  |  |
 
 ---
 
 ### dynamic_gyro_notch_min_hz
 
-Minimum frequency for dynamic notches. Default value of `150` works best with 5" multirors. Should be lowered with increased size of propellers. Values around `100` work fine on 7" drones. 10" can go down to `60` - `70`
+Minimum frequency for dynamic notches. Default value of `150` works best with 5" multirotors. Should be lowered with increased size of propellers. Values around `100` work fine on 7" drones. 10" can go down to `60` - `70`
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 150 | 30 | 1000 |
+| 50 | 30 | 1000 |
 
 ---
 
@@ -809,16 +809,6 @@ Q factor for dynamic notches
 | Default | Min | Max |
 | --- | --- | --- |
 | 120 | 1 | 1000 |
-
----
-
-### dynamic_gyro_notch_range
-
-Range for dynamic gyro notches. `MEDIUM` for 5", `HIGH` for 3" and `MEDIUM`/`LOW` for 7" and bigger propellers
-
-| Default | Min | Max |
-| --- | --- | --- |
-| MEDIUM |  |  |
 
 ---
 
@@ -4089,6 +4079,16 @@ Value above which to make the OSD distance from home indicator blink (meters)
 | Default | Min | Max |
 | --- | --- | --- |
 | 1000 | 0 | 50000 |
+
+---
+
+### osd_esc_rpm_precision
+
+Number of characters used to display the RPM value.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3 | 3 | 6 |
 
 ---
 

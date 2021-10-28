@@ -83,10 +83,10 @@ void pgResetFn_logicConditions(logicCondition_t *instance)
 logicConditionState_t logicConditionStates[MAX_LOGIC_CONDITIONS];
 
 static int logicConditionCompute(
-    int currentVaue,
+    int32_t currentVaue,
     logicOperation_e operation,
-    int operandA,
-    int operandB
+    int32_t operandA,
+    int32_t operandB
 ) {
     int temporaryValue;
     vtxDeviceCapability_t vtxDeviceCapability;
@@ -177,20 +177,20 @@ static int logicConditionCompute(
             break;
 
         case LOGIC_CONDITION_ADD:
-            return constrain(operandA + operandB, INT16_MIN, INT16_MAX);
+            return constrain(operandA + operandB, INT32_MIN, INT32_MAX);
             break;
 
         case LOGIC_CONDITION_SUB:
-            return constrain(operandA - operandB, INT16_MIN, INT16_MAX);
+            return constrain(operandA - operandB, INT32_MIN, INT32_MAX);
             break;
 
         case LOGIC_CONDITION_MUL:
-            return constrain(operandA * operandB, INT16_MIN, INT16_MAX);
+            return constrain(operandA * operandB, INT32_MIN, INT32_MAX);
             break;
 
         case LOGIC_CONDITION_DIV:
             if (operandB != 0) {
-                return constrain(operandA / operandB, INT16_MIN, INT16_MAX);
+                return constrain(operandA / operandB, INT32_MIN, INT32_MAX);
             } else {
                 return operandA;
             }
@@ -328,7 +328,7 @@ static int logicConditionCompute(
 
         case LOGIC_CONDITION_MODULUS:
             if (operandB != 0) {
-                return constrain(operandA % operandB, INT16_MIN, INT16_MAX);
+                return constrain(operandA % operandB, INT32_MIN, INT32_MAX);
             } else {
                 return operandA;
             }
@@ -350,6 +350,12 @@ static int logicConditionCompute(
             }
             break;
 
+        case LOGIC_CONDITION_LOITER_OVERRIDE:
+            logicConditionValuesByType[LOGIC_CONDITION_LOITER_OVERRIDE] = constrain(operandA, 0, 100000);
+            LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_LOITER_RADIUS);
+            return true;
+            break;
+            
         default:
             return false;
             break; 
@@ -554,6 +560,9 @@ static int logicConditionGetFlightOperandValue(int operand) {
             return getConfigProfile() + 1;
             break;
 
+        case LOGIC_CONDITION_OPERAND_FLIGHT_LOITER_RADIUS:
+            return getLoiterRadius(navConfig()->fw.loiter_radius);
+
         default:
             return 0;
             break;
@@ -740,4 +749,17 @@ int16_t getRcChannelOverride(uint8_t channel, int16_t originalValue) {
     } else {
         return originalValue;
     }
+}
+
+uint32_t getLoiterRadius(uint32_t loiterRadius) {
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_LOITER_RADIUS) && 
+        !(FLIGHT_MODE(FAILSAFE_MODE) || FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding())) {
+        return constrain(logicConditionValuesByType[LOGIC_CONDITION_LOITER_OVERRIDE], loiterRadius, 100000);
+    } else {
+        return loiterRadius;
+    }
+#else
+    return loiterRadius;
+#endif
 }

@@ -260,6 +260,13 @@
     BUSDEV_REGISTER_I2C(busdev_vcm5883,     DEVHW_VCM5883,      VCM5883_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE,  0);
 #endif
 
+#if defined(USE_MAG_MLX90393)
+    #if !defined(MLX90393_I2C_BUS)
+        #define MLX90393_I2C_BUS MAG_I2C_BUS
+    #endif
+    BUSDEV_REGISTER_I2C(busdev_mlx90393,     DEVHW_MLX90393,      MLX90393_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE,  0);
+#endif
+
 #endif
 
 

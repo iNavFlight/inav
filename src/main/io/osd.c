@@ -1037,17 +1037,37 @@ static void osdFormatRpm(char *buff, uint32_t rpm)
 {
     buff[0] = SYM_RPM;
     if (rpm) {
-        if (rpm >= 1000) {
-            osdFormatCentiNumber(buff + 1, rpm / 10, 0, 1, 1, 2);
-            buff[3] = 'K';
-            buff[4] = '\0';
+        if ( digitCount(rpm) > osdConfig()->esc_rpm_precision) {
+            uint8_t rpmMaxDecimals = (osdConfig()->esc_rpm_precision - 3);
+            osdFormatCentiNumber(buff + 1, rpm / 10, 0, rpmMaxDecimals, rpmMaxDecimals, osdConfig()->esc_rpm_precision-1);
+            buff[osdConfig()->esc_rpm_precision] = 'K';
+            buff[osdConfig()->esc_rpm_precision+1] = '\0';
         }
         else {
-            tfp_sprintf(buff + 1, "%3lu", rpm);
+            switch(osdConfig()->esc_rpm_precision) {
+                case 6:
+                    tfp_sprintf(buff + 1, "%6lu", rpm);
+                    break;
+                case 5:
+                    tfp_sprintf(buff + 1, "%5lu", rpm);
+                    break;
+                case 4:
+                    tfp_sprintf(buff + 1, "%4lu", rpm);
+                    break;
+                case 3:
+                default:
+                    tfp_sprintf(buff + 1, "%3lu", rpm);
+                    break;
+            }
+
+            
         }
     }
     else {
-        strcpy(buff + 1, "---");
+        uint8_t buffPos = 1;
+        while (buffPos <=( osdConfig()->esc_rpm_precision)) {
+            strcpy(buff + buffPos++, "-");
+        }
     }
 }
 #endif
@@ -3153,6 +3173,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .osd_home_position_arm_screen = SETTING_OSD_HOME_POSITION_ARM_SCREEN_DEFAULT,
     .pan_servo_index = SETTING_OSD_PAN_SERVO_INDEX_DEFAULT,
     .pan_servo_pwm2centideg = SETTING_OSD_PAN_SERVO_PWM2CENTIDEG_DEFAULT,
+    .esc_rpm_precision = SETTING_OSD_ESC_RPM_PRECISION_DEFAULT,
 
     .units = SETTING_OSD_UNITS_DEFAULT,
     .main_voltage_decimals = SETTING_OSD_MAIN_VOLTAGE_DECIMALS_DEFAULT,
