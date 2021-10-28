@@ -64,12 +64,11 @@ void gyroDataAnalyseStateInit(
 ) {
     state->minFrequency = minFrequency;
 
-    state->fftSamplingRateHz = lrintf(1e6f / targetLooptimeUs / 3); // Looptime divided by 3
-    state->fftResolution = (float)state->fftSamplingRateHz / FFT_WINDOW_SIZE;
+    state->fftSamplingRateHz = 1e6f / targetLooptimeUs;
+    state->maxFrequency = state->fftSamplingRateHz / 2; //Nyquist
+    state->fftResolution = (float)state->maxFrequency / FFT_BIN_COUNT;
 
     state->fftStartBin = state->minFrequency / lrintf(state->fftResolution);
-
-    state->maxFrequency = state->fftSamplingRateHz / 2; //Nyquist
 
     for (int i = 0; i < FFT_WINDOW_SIZE; i++) {
         state->hanningWindow[i] = (0.5f - 0.5f * cos_approx(2 * M_PIf * i / (FFT_WINDOW_SIZE - 1)));
