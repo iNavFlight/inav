@@ -63,6 +63,13 @@ enum {
 // smoothing frequency for FFT centre frequency
 #define DYN_NOTCH_SMOOTH_FREQ_HZ  50
 
+/*
+ * Slow down gyro sample acquisition. This lowers the max frequency but increases the resolution.
+ * On default 500us looptime and denominator 1, max frequency is 1000Hz with a resolution of 31.25Hz
+ * On default 500us looptime and denominator 2, max frequency is 500Hz with a resolution of 15.6Hz
+ */
+#define FFT_SAMPLING_DENOMINATOR 2
+
 void gyroDataAnalyseStateInit(
     gyroAnalyseState_t *state, 
     uint16_t minFrequency,
@@ -70,8 +77,8 @@ void gyroDataAnalyseStateInit(
 ) {
     state->minFrequency = minFrequency;
 
-    state->fftSamplingRateHz = 1e6f / targetLooptimeUs;
-    state->maxFrequency = state->fftSamplingRateHz / 2; //Nyquist
+    state->fftSamplingRateHz = 1e6f / targetLooptimeUs / FFT_SAMPLING_DENOMINATOR;
+    state->maxFrequency = state->fftSamplingRateHz / 2; //max possible frequency is half the sampling rate
     state->fftResolution = (float)state->maxFrequency / FFT_BIN_COUNT;
 
     state->fftStartBin = state->minFrequency / lrintf(state->fftResolution);
@@ -108,12 +115,18 @@ void gyroDataAnalyse(gyroAnalyseState_t *state)
 {
     state->filterUpdateExecute = false; //This will be changed to true only if new data is present
 
-    // calculate mean value of accumulated samples
-    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        state->downsampledGyroData[axis][state->circularBufferIdx] = state->currentSample[axis];
+    static uint8_t samplingIndex = 0;
+
+    if (samplingIndex == 0) {
+        // calculate mean value of accumulated samples
+        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            state->downsampledGyroData[axis][state->circularBufferIdx] = state->currentSample[axis];
+        }
+
+        state->circularBufferIdx = (state->circularBufferIdx + 1) % FFT_WINDOW_SIZE;
     }
 
-    state->circularBufferIdx = (state->circularBufferIdx + 1) % FFT_WINDOW_SIZE;
+    samplingIndex = (samplingIndex + 1) % FFT_SAMPLING_DENOMINATOR;
 
     gyroDataAnalyseUpdate(state);
 }
