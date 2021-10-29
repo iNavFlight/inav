@@ -71,7 +71,8 @@ typedef enum {
     LOGIC_CONDITION_SET_HEADING_TARGET          = 39,
     LOGIC_CONDITION_MODULUS                     = 40,
     LOGIC_CONDITION_LOITER_OVERRIDE             = 41,
-    LOGIC_CONDITION_LAST                        = 42,
+    LOGIC_CONDITION_SET_PROFILE                 = 42,
+    LOGIC_CONDITION_LAST                        = 43,
 } logicOperation_e;
 
 typedef enum logicOperandType_s {
@@ -121,7 +122,8 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_LQ,                                 // 32
     LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_SNR,                                // 33
     LOGIC_CONDITION_OPERAND_FLIGHT_GPS_VALID, // 0/1                        // 34
-    LOGIC_CONDITION_OPERAND_FLIGHT_LOITER_RADIUS                            // 35
+    LOGIC_CONDITION_OPERAND_FLIGHT_LOITER_RADIUS,                           // 35
+    LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_PROFILE, //int                    // 36
 
 } logicFlightOperands_e;
 

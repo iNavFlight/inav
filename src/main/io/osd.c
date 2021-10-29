@@ -2287,6 +2287,11 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 #endif
 
+    case OSD_ACTIVE_PROFILE:
+        tfp_sprintf(buff, "%c%u", SYM_PROFILE, (getConfigProfile() + 1));
+        displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
+        break;
+    
     case OSD_ROLL_PIDS:
         osdDisplayFlightPIDValues(elemPosX, elemPosY, "ROL", PID_ROLL, ADJUSTMENT_ROLL_P, ADJUSTMENT_ROLL_I, ADJUSTMENT_ROLL_D, ADJUSTMENT_ROLL_FF);
         return true;

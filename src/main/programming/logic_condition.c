@@ -34,6 +34,7 @@
 #include "common/utils.h"
 #include "rx/rx.h"
 #include "common/maths.h"
+#include "fc/config.h"
 #include "fc/fc_core.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
@@ -333,11 +334,28 @@ static int logicConditionCompute(
             }
             break;
 
+        case LOGIC_CONDITION_SET_PROFILE:
+            operandA--;
+            if ( getConfigProfile() != operandA  && (operandA >= 0 && operandA < MAX_PROFILE_COUNT)) {
+                bool profileChanged = false;
+                if (setConfigProfile(operandA)) {
+                    pidInit();
+                    pidInitFilters();
+                    schedulePidGainsUpdate();
+                    profileChanged = true;
+                }
+                return profileChanged;
+            } else {
+                return false;
+            }
+            break;
+
         case LOGIC_CONDITION_LOITER_OVERRIDE:
             logicConditionValuesByType[LOGIC_CONDITION_LOITER_OVERRIDE] = constrain(operandA, 0, 100000);
             LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_LOITER_RADIUS);
             return true;
             break;
+            
         default:
             return false;
             break; 
@@ -536,6 +554,10 @@ static int logicConditionGetFlightOperandValue(int operand) {
         #else
             return 0;
         #endif
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_PROFILE: // int
+            return getConfigProfile() + 1;
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_LOITER_RADIUS:
