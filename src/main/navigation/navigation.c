@@ -3560,7 +3560,6 @@ void updateWaypointsAndNavigationMode(void)
     // Update WP mission planner
     updateWpMissionPlanner();
 
-#if defined(NAV_BLACKBOX)
     //Update Blackbox data
     navCurrentState = (int16_t)posControl.navPersistentId;
 }
