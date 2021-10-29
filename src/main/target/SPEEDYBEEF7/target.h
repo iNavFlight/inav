@@ -73,7 +73,6 @@
 
 // OSD -- SPI2
 #define USE_SPI_DEVICE_2
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          PB12

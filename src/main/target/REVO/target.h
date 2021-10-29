@@ -31,7 +31,6 @@
 
 #define USE_DSHOT
 #define USE_ESC_SENSOR
-#define USE_SERIALSHOT
 
 // MPU6000 interrupts
 #define USE_EXTI

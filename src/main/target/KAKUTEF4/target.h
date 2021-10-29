@@ -47,6 +47,10 @@
 #define MPU6500_CS_PIN          PC4
 #define MPU6500_SPI_BUS         BUS_SPI1
 
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW270_DEG
+#define MPU6000_CS_PIN          PC4
+#define MPU6000_SPI_BUS         BUS_SPI1
 
 #ifdef KAKUTEF4V2
 #   define USE_I2C
@@ -75,7 +79,6 @@
 #   define USE_MAG
 #endif
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PB14
@@ -168,7 +171,6 @@
 #define TARGET_IO_PORTD        (BIT(2))
 
 #define USE_DSHOT
-#define USE_SERIALSHOT
 #define USE_ESC_SENSOR
 
 #ifdef KAKUTEF4V2

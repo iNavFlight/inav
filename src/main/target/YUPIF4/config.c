@@ -59,4 +59,5 @@ void targetConfiguration(void)
     pidProfileMutable()->bank_mc.pid[PID_LEVEL].I = 10;
     pidProfileMutable()->bank_mc.pid[PID_LEVEL].D = 75;
 
+    beeperConfigMutable()->pwmMode = true;
 }

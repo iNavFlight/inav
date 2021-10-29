@@ -9,12 +9,13 @@ Failsafe is a state the flight controller is meant to enter when the radio recei
 If the failsafe happens while the flight controller is disarmed, it only prevent arming. If it happens while armed, the failsafe policy configured in `failsafe_procedure` is engaged. The available procedures are:
 
 * __DROP:__ Just kill the motors and disarm (crash the craft).
-* __SET-THR:__ Enable auto-level mode (for multirotor) or enter preconfigured roll/pitch/yaw spiral down (for airplanes) and set the throttle to a predefined value (`failsafe_throttle`) for a predefined time (`failsafe_off_delay`). This is meant to get the craft to a safe-ish landing (or more realistically, a controlled crash), it doesn't require any extra sensor other than gyros and accelerometers.
-* __RTH:__ (Return To Home) One of the key features of inav, it automatically navigates the craft back to the home position and (optionally) lands it. Similarly to all other automated navigation methods, it requires GPS for any type of craft, plus compass and barometer for multicopters.
+* __LAND:__ (replaces **SET-THR** from INAV V3.1.0) Performs an Emergency Landing. Enables auto-level mode (for multirotor) or enters a preconfigured roll/pitch/yaw spiral down (for airplanes). If altitude sensors are working an actively controlled descent is performed using the Emergency Landing descent speed (`nav_emerg_landing_speed`). If altitude sensors are unavailable descent is performed with the throttle set to a predefined value (`failsafe_throttle`). The descent can be limited to a predefined time (`failsafe_off_delay`) after which the craft disarms. This is meant to get the craft to a safe-ish landing (or more realistically, a controlled crash), Other than using altitude sensors for an actively controlled descent it doesn't require any extra sensors other than gyros and accelerometers.
+* __SET-THR:__ (Pre INAV V3.1.0) Same as **LAND** except it doesn't use an Emergency Landing but is limited instead to just setting the throttle to a predefined value (`failsafe_throttle`) to perform a descent. It doesn't require any extra sensors other than gyros and accelerometers.
+* __RTH:__ (Return To Home) One of the key features of INAV, it automatically navigates the craft back to the home position and (optionally) lands it. Similarly to all other automated navigation methods, it requires GPS for any type of craft, plus compass and barometer for multicopters.
 * __NONE:__ Do nothing. This is meant to let the craft perform a fully automated flight (eg. waypoint flight) outside of radio range. Highly unsafe when used with manual flight.
 
 Note that:
-* Should the failsafe disarm the flight controller (**DROP**, **SET-THR** after `failsafe_off_delay` or **RTH** with `nav_disarm_on_landing` ON), the flight controller will be disarmed and re-arming will be locked until the signal from the receiver is restored for 30 seconds AND the arming switch is in the OFF position (when an arm switch is in use).
+* Should the failsafe disarm the flight controller (**DROP**, **LAND/SET-THR** after `failsafe_off_delay` or **RTH** with `nav_disarm_on_landing` ON), the flight controller will be disarmed and re-arming will be locked until the signal from the receiver is restored for 30 seconds AND the arming switch is in the OFF position (when an arm switch is in use).
 
 * Prior to starting failsafe it is checked if the throttle position has been below `min_throttle` for the last `failsafe_throttle_low_delay` seconds. If it was, the craft is assumed to be on the ground and is simply disarmed. This feature can be disabled completely by setting `failsafe_throttle_low_delay` to zero, which may be necessary to do if the craft may fly long with zero throttle (eg. gliders).
 
@@ -22,9 +23,9 @@ Note that:
 
 * If the craft is landed but armed, the failsafe may make the motors and props spin again and even make the craft take off (in case of **RTH** failsafe). Take expecially care of this when using `MOTOR_STOP` feature. **Props will spin up without warning**. Have a look at the `failsafe_throttle_low_delay` setting explained above to learn when this could happen.
 
-* If any required navigation sensor becomes unavailable during a Return to Home (eg. loss of GPS fix), an emergency landing similar to **SET-THR** but with barometer support will be performed after a short timeout. An emergency landing would also be performed right when the failsafe is triggered if any required sensor is reported as unavailable.
+* If any required navigation sensor becomes unavailable during a Return to Home (eg. loss of GPS fix), an emergency landing, as used by the **LAND** procedure, will be performed after a short timeout. An emergency landing would also be performed right when the failsafe is triggered if any required sensor is reported as unavailable.
 
-* **SET-THR** doesn't control the descend in any other way than setting a fixed throttle. Thus, appropriate testing must be performed to find the right throttle value. Consider that a constant throttle setting will yield different thrusts depending on battery voltage, so when you evaluate the throttle value do it with a loaded battery. Failure to do so may cause a flyaway.
+* The **SET-THR** procedure doesn't control descent in any way other than setting a fixed throttle. This is also the case for the **LAND** procedure when altitude sensors are unavailable. Thus, appropriate testing must be performed to find the right throttle value. Consider that a constant throttle setting will yield different thrusts depending on battery voltage, so when you evaluate the throttle value do it with a loaded battery. Failure to do so may cause a flyaway.
 
 * When the failsafe mode is aborted (RC signal restored/failsafe switch set to OFF), the current stick positions will be enforced immediately. Be ready to react quickly.
 
@@ -48,7 +49,7 @@ Failsafe delays are configured in 0.1 second units. Distances are in centimeters
 
 #### `failsafe_procedure`
 
-Selects the failsafe procedure. Valid procedures are **DROP**, **SET-THR**, **RTH** and **NONE**. See above for a description of each one.
+Selects the failsafe procedure. Valid procedures are **DROP**, **LAND/SET-THR**, **RTH** and **NONE**. See above for a description of each one.
 
 #### `failsafe_delay`
 
@@ -122,11 +123,15 @@ Enables landing when home position is reached. If OFF the craft will hover indef
 
 Instructs the flight controller to disarm the craft when landing is detected
 
-### Parameters relevant to **SET-THR** failsafe procedure
+### Parameters relevant to **LAND/SET-THR** failsafe procedure
 
 #### `failsafe_off_delay`
 
 Delay after failsafe activates before motors finally turn off.  This is the amount of time 'failsafe_throttle' is active.  If you fly at higher altitudes you may need more time to descend safely. Set to zero to keep `failsafe_throttle` active indefinitely.
+
+#### `nav_emerg_landing_speed`
+
+(**LAND** only) Actively controlled descent speed when altitude sensors are available. If altitude sensors aren't available landing descent falls back to using the fixed thottle setting `failsafe_throttle` so ensure this is also set correctly.
 
 #### `failsafe_throttle`
 
@@ -134,13 +139,13 @@ Throttle level used for landing.  Specify a value that causes the aircraft to de
 
 #### `failsafe_fw_roll_angle`
 
-This parameter defines amount of roll angle (in 1/10 deg units) to execute on failsafe. Negative = LEFT
+This parameter defines the amount of roll angle (in 1/10 deg units) to execute on failsafe. Negative = LEFT
 
 #### `failsafe_fw_pitch_angle`
 
-This parameter defines amount of pitch angle (in 1/10 deg units) to execute on `SET-THR` failsafe for an airplane. Negative = CLIMB
+This parameter defines the amount of pitch angle (in 1/10 deg units) to execute on failsafe for an airplane. Negative = CLIMB
 
 #### `failsafe_fw_yaw_rate`
 
-This parameter defines amount of yaw rate (in deg per second units) to execute on `SET-THR` failsafe for an airplane. Negative = LEFT
+This parameter defines the amount of yaw rate (in deg per second units) to execute on failsafe for an airplane. Negative = LEFT
 

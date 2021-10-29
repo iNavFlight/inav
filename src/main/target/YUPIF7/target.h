@@ -25,7 +25,6 @@
 #define CAMERA_CONTROL_PIN      PB7
 
 #define BEEPER                  PB14
-#define BEEPER_PWM
 #define BEEPER_INVERTED
 #define BEEPER_PWM_FREQUENCY    3150
 
@@ -115,7 +114,6 @@
 #define I2C_DEVICE              (I2CDEV_1)
 
 // OSD
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI1
 #define MAX7456_CS_PIN          PA14

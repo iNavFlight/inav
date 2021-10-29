@@ -4,16 +4,16 @@ tables:
   - name: gyro_lpf
     values: ["256HZ", "188HZ", "98HZ", "42HZ", "20HZ", "10HZ"]
   - name: acc_hardware
-    values: ["NONE", "AUTO", "ADXL345", "MPU6050", "MMA845x", "BMA280", "LSM303DLHC", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "FAKE"]
+    values: ["NONE", "AUTO", "MPU6050", "LSM303DLHC", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"]
     enum: accelerationSensor_e
   - name: rangefinder_hardware
-    values: ["NONE", "HCSR04", "SRF10", "INAV_I2C", "VL53L0X", "MSP", "UNUSED", "BENEWAKE", "VL53L1X", "US42"]
+    values: ["NONE", "SRF10", "VL53L0X", "MSP", "BENEWAKE", "VL53L1X", "US42", "TOF10120_I2C"]
     enum: rangefinderType_e
   - name: secondary_imu_hardware
     values: ["NONE", "BNO055", "BNO055_SERIAL"]
     enum: secondaryImuType_e
   - name: mag_hardware
-    values: ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "MSP", "RM3100", FAKE"]
+    values: ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "MSP", "RM3100", "VCM5883", "MLX90393", "FAKE"]
     enum: magSensor_e
   - name: opflow_hardware
     values: ["NONE", "CXOF", "MSP", "FAKE"]
@@ -25,7 +25,7 @@ tables:
     values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE", "MSP"]
     enum: pitotSensor_e
   - name: receiver_type
-    values: ["NONE", "PPM", "SERIAL", "MSP", "SPI", "UNUSED"]
+    values: ["NONE", "SERIAL", "MSP", "SPI"]
     enum: rxReceiverType_e
   - name: serial_rx
     values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2", "GHST", "MAVLINK"]
@@ -35,11 +35,11 @@ tables:
   - name: blackbox_device
     values: ["SERIAL", "SPIFLASH", "SDCARD"]
   - name: motor_pwm_protocol
-    values: ["STANDARD", "ONESHOT125", "ONESHOT42", "MULTISHOT", "BRUSHED", "DSHOT150", "DSHOT300", "DSHOT600", "DSHOT1200", "SERIALSHOT"]
+    values: ["STANDARD", "ONESHOT125", "MULTISHOT", "BRUSHED", "DSHOT150", "DSHOT300", "DSHOT600"]
   - name: servo_protocol
     values: ["PWM", "SERVO_DRIVER", "SBUS", "SBUS_PWM"]
   - name: failsafe_procedure
-    values: ["SET-THR", "DROP", "RTH", "NONE"]
+    values: ["LAND", "DROP", "RTH", "NONE"]
   - name: current_sensor
     values: ["NONE", "ADC", "VIRTUAL", "ESC"]
     enum: currentSensor_e
@@ -64,7 +64,7 @@ tables:
   - name: nav_rth_alt_mode
     values: ["CURRENT", "EXTRA", "FIXED", "MAX", "AT_LEAST", "AT_LEAST_LINEAR_DESCENT"]
   - name: osd_unit
-    values: ["IMPERIAL", "METRIC", "UK"]
+    values: ["IMPERIAL", "METRIC", "METRIC_MPH", "UK", "GA"]
     enum: osd_unit_e
   - name: osd_stats_energy_unit
     values: ["MAH", "WH"]
@@ -93,15 +93,15 @@ tables:
       "FLOW", "SBUS", "FPORT", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "ERPM", "RPM_FILTER", "RPM_FREQ", "NAV_YAW", "DYNAMIC_FILTER", "DYNAMIC_FILTER_FREQUENCY",
-      "IRLOCK", "CD", "KALMAN_GAIN", "PID_MEASUREMENT", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "FW_D", "IMU2", "ALTITUDE",
-      "GYRO_ALPHA_BETA_GAMMA", "SMITH_PREDICTOR", "AUTOTRIM", "AUTOTUNE"]
+      "IRLOCK", "KALMAN_GAIN", "PID_MEASUREMENT", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "IMU2", "ALTITUDE",
+      "SMITH_PREDICTOR", "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
     values: ["OR", "AND"]
     enum: modeActivationOperator_e
   - name: osd_crosshairs_style
-    values: ["DEFAULT", "AIRCRAFT", "TYPE3", "TYPE4", "TYPE5", "TYPE6", "TYPE7"]
+    values: ["DEFAULT", "AIRCRAFT", "TYPE3", "TYPE4", "TYPE5", "TYPE6", "TYPE7", "TYPE8"]
     enum: osd_crosshairs_style_e
   - name: osd_sidebar_scroll
     values: ["NONE", "ALTITUDE", "SPEED", "HOME_DISTANCE"]
@@ -129,6 +129,8 @@ tables:
     enum: vtxLowerPowerDisarm_e
   - name: filter_type
     values: ["PT1", "BIQUAD"]
+  - name: filter_type_full
+    values: ["PT1", "BIQUAD", "PT2", "PT3"]
   - name: log_level
     values: ["ERROR", "WARNING", "INFO", "VERBOSE", "DEBUG"]
   - name: iterm_relax
@@ -142,9 +144,6 @@ tables:
   - name: rssi_source
     values: ["NONE", "AUTO", "ADC", "CHANNEL", "PROTOCOL", "MSP"]
     enum: rssiSource_e
-  - name: dynamicFilterRangeTable
-    values: ["HIGH", "MEDIUM", "LOW"]
-    enum: dynamicFilterRange_e
   - name: pidTypeTable
     values: ["NONE", "PID", "PIFF", "AUTO"]
     enum: pidType_e
@@ -278,16 +277,10 @@ groups:
         max: 10
       - name: dynamic_gyro_notch_enabled
         description: "Enable/disable dynamic gyro notch also known as Matrix Filter"
-        default_value: OFF
+        default_value: ON
         field: dynamicGyroNotchEnabled
         condition: USE_DYNAMIC_FILTERS
         type: bool
-      - name: dynamic_gyro_notch_range
-        description: "Range for dynamic gyro notches. `MEDIUM` for 5\", `HIGH` for 3\" and `MEDIUM`/`LOW` for 7\" and bigger propellers"
-        default_value: "MEDIUM"
-        field: dynamicGyroNotchRange
-        condition: USE_DYNAMIC_FILTERS
-        table: dynamicFilterRangeTable
       - name: dynamic_gyro_notch_q
         description: "Q factor for dynamic notches"
         default_value: 120
@@ -296,8 +289,8 @@ groups:
         min: 1
         max: 1000
       - name: dynamic_gyro_notch_min_hz
-        description: "Minimum frequency for dynamic notches. Default value of `150` works best with 5\" multirors. Should be lowered with increased size of propellers. Values around `100` work fine on 7\" drones. 10\" can go down to `60` - `70`"
-        default_value: 150
+        description: "Minimum frequency for dynamic notches. Default value of `150` works best with 5\" multirotors. Should be lowered with increased size of propellers. Values around `100` work fine on 7\" drones. 10\" can go down to `60` - `70`"
+        default_value: 50
         field: dynamicGyroNotchMinHz
         condition: USE_DYNAMIC_FILTERS
         min: 30
@@ -305,32 +298,11 @@ groups:
       - name: gyro_to_use
         condition: USE_DUAL_GYRO
         min: 0
-        max: 1
-        default_value: 0
-      - name: gyro_abg_alpha
-        description: "Alpha factor for Gyro Alpha-Beta-Gamma filter"
-        default_value: 0
-        field: alphaBetaGammaAlpha
-        condition: USE_ALPHA_BETA_GAMMA_FILTER
-        min: 0
-        max: 1
-      - name: gyro_abg_boost
-        description: "Boost factor for Gyro Alpha-Beta-Gamma filter"
-        default_value: 0.35
-        field: alphaBetaGammaBoost
-        condition: USE_ALPHA_BETA_GAMMA_FILTER
-        min: 0
         max: 2
-      - name: gyro_abg_half_life
-        description: "Sample half-life for Gyro Alpha-Beta-Gamma filter"
-        default_value: 0.5
-        field: alphaBetaGammaHalfLife
-        condition: USE_ALPHA_BETA_GAMMA_FILTER
-        min: 0
-        max: 10
+        default_value: 0
       - name: setpoint_kalman_enabled
         description: "Enable Kalman filter on the gyro data"
-        default_value: OFF
+        default_value: ON
         condition: USE_GYRO_KALMAN
         field: kalmanEnabled
         type: bool
@@ -861,18 +833,6 @@ groups:
         field: motorPwmRate
         min: 50
         max: 32000
-      - name: motor_accel_time
-        description: "Minimum time for the motor(s) to accelerate from 0 to 100% throttle (ms) [0-1000]"
-        default_value: 0
-        field: motorAccelTimeMs
-        min: 0
-        max: 1000
-      - name: motor_decel_time
-        description: "Minimum time for the motor(s) to deccelerate from 100 to 0% throttle (ms) [0-1000]"
-        default_value: 0
-        field: motorDecelTimeMs
-        min: 0
-        max: 1000
       - name: motor_pwm_protocol
         description: "Protocol that is used to send motor updates to ESCs. Possible values - STANDARD, ONESHOT125, ONESHOT42, MULTISHOT, DSHOT150, DSHOT300, DSHOT600, DSHOT1200, BRUSHED"
         default_value: "ONESHOT125"
@@ -911,7 +871,7 @@ groups:
         max: 300
       - name: failsafe_procedure
         description: "What failsafe procedure to initiate in Stage 2. See [Failsafe documentation](Failsafe.md#failsafe_throttle)."
-        default_value: "SET-THR"
+        default_value: "LAND"
         table: failsafe_procedure
       - name: failsafe_stick_threshold
         description: "Threshold for stick motion to consider failsafe condition resolved. If non-zero failsafe won't clear even if RC link is restored - you have to move sticks to exit failsafe."
@@ -920,17 +880,17 @@ groups:
         min: 0
         max: 500
       - name: failsafe_fw_roll_angle
-        description: "Amount of banking when `SET-THR` failsafe is active on a fixed-wing machine. In 1/10 deg (deci-degrees). Negative values = left roll"
+        description: "Amount of banking when `LAND` (or old `SET-THR`) failsafe is active on a fixed-wing machine. In 1/10 deg (deci-degrees). Negative values = left roll"
         default_value: -200
         min: -800
         max: 800
       - name: failsafe_fw_pitch_angle
-        description: "Amount of dive/climb when `SET-THR` failsafe is active on a fixed-wing machine. In 1/10 deg (deci-degrees). Negative values = climb"
+        description: "Amount of dive/climb when `LAND` (or old `SET-THR`) failsafe is active on a fixed-wing machine. In 1/10 deg (deci-degrees). Negative values = climb"
         default_value: 100
         min: -800
         max: 800
       - name: failsafe_fw_yaw_rate
-        description: "Requested yaw rate to execute when `SET-THR` failsafe is active on a fixed-wing machine. In deg/s. Negative values = left turn"
+        description: "Requested yaw rate to execute when `LAND` (or old `SET-THR`) failsafe is active on a fixed-wing machine. In deg/s. Negative values = left turn"
         default_value: -45
         min: -1000
         max: 1000
@@ -1147,7 +1107,7 @@ groups:
         field: motor.turtleModePowerFactor
         default_value: 55
         description: "Turtle mode power factor"
-        condition: "USE_DSHOT"
+        condition: USE_DSHOT
         min: 0
         max: 100
       - name: failsafe_throttle
@@ -1411,7 +1371,7 @@ groups:
         max: 180
       - name: manual_rc_expo
         description: "Exposition value used for the PITCH/ROLL axes by the `MANUAL` flight mode [0-100]"
-        default_value: 70
+        default_value: 35
         field: manual.rcExpo8
         min: 0
         max: 100
@@ -1444,6 +1404,48 @@ groups:
         min: 0
         max: 50
         default_value: 0
+      - name: rate_dynamics_center_sensitivity
+        field: rateDynamics.sensitivityCenter
+        default_value: 100
+        min: 25
+        max: 175
+        description: "The center stick sensitivity for Rate Dynamics"
+        condition: USE_RATE_DYNAMICS
+      - name: rate_dynamics_end_sensitivity
+        field: rateDynamics.sensitivityEnd
+        default_value: 100
+        min: 25
+        max: 175
+        description: "The end stick sensitivity for Rate Dynamics"
+        condition: USE_RATE_DYNAMICS
+      - name: rate_dynamics_center_correction
+        field: rateDynamics.correctionCenter
+        default_value: 10
+        min: 10
+        max: 95
+        description: "The center stick correction for Rate Dynamics"
+        condition: USE_RATE_DYNAMICS
+      - name: rate_dynamics_end_correction
+        field: rateDynamics.correctionEnd
+        default_value: 10
+        min: 10
+        max: 95
+        description: "The end  stick correction for Rate Dynamics"
+        condition: USE_RATE_DYNAMICS
+      - name: rate_dynamics_center_weight
+        field: rateDynamics.weightCenter
+        default_value: 0
+        min: 0
+        max: 95
+        description: "The center stick weight for Rate Dynamics"
+        condition: USE_RATE_DYNAMICS
+      - name: rate_dynamics_end_weight
+        field: rateDynamics.weightEnd
+        default_value: 0
+        min: 0
+        max: 95
+        description: "The end  stick weight for Rate Dynamics"
+        condition: USE_RATE_DYNAMICS
 
   - name: PG_SERIAL_CONFIG
     type: serialConfig_t
@@ -1461,7 +1463,7 @@ groups:
     members:
       - name: imu_dcm_kp
         description: "Inertial Measurement Unit KP Gain for accelerometer measurements"
-        default_value: 2500
+        default_value: 1000
         field: dcm_kp_acc
         max: UINT16_MAX
       - name: imu_dcm_ki
@@ -1471,7 +1473,7 @@ groups:
         max: UINT16_MAX
       - name: imu_dcm_kp_mag
         description: "Inertial Measurement Unit KP Gain for compass measurements"
-        default_value: 10000
+        default_value: 5000
         field: dcm_kp_mag
         max: UINT16_MAX
       - name: imu_dcm_ki_mag
@@ -1854,26 +1856,26 @@ groups:
         max: 900
       - name: dterm_lpf_hz
         description: "Dterm low pass filter cutoff frequency. Default setting is very conservative and small multirotors should use higher value between 80 and 100Hz. 80 seems like a gold spot for 7-inch builds while 100 should work best with 5-inch machines. If motors are getting too hot, lower the value"
-        default_value: 40
+        default_value: 110
         min: 0
         max: 500
       - name: dterm_lpf_type
-        description: "Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation."
-        default_value: "BIQUAD"
+        description: "Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`, `PT2`, `PT3`."
+        default_value: "PT2"
         field: dterm_lpf_type
-        table: filter_type
+        table: filter_type_full
       - name: dterm_lpf2_hz
         description: "Cutoff frequency for stage 2 D-term low pass filter"
         default_value: 0
         min: 0
         max: 500
       - name: dterm_lpf2_type
-        description: "Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation."
-        default_value: "BIQUAD"
+        description: "Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`, `PT2`, `PT3`."
+        default_value: "PT1"
         field: dterm_lpf2_type
-        table: filter_type
+        table: filter_type_full
       - name: yaw_lpf_hz
-        description: "Yaw low pass filter cutoff frequency. Should be disabled (set to `0`) on small multirotors (7 inches and below)"
+        description: "Yaw P term low pass filter cutoff frequency. Should be disabled (set to `0`) on small multirotors (7 inches and below)"
         default_value: 0
         min: 0
         max: 200
@@ -2131,8 +2133,14 @@ groups:
         min: 1
         max: 100
         default_value: 15
-      - name: d_boost_factor
-        field: dBoostFactor
+      - name: d_boost_min
+        field: dBoostMin
+        condition: USE_D_BOOST
+        min: 0
+        max: 1
+        default_value: 0.5
+      - name: d_boost_max
+        field: dBoostMax
         condition: USE_D_BOOST
         min: 1
         max: 3
@@ -2220,7 +2228,7 @@ groups:
     condition: USE_AUTOTUNE_FIXED_WING
     members:
       - name: fw_autotune_min_stick
-        description: "Minimum stick input [%] to consider overshoot/undershoot detection"
+        description: "Minimum stick input [%], after applying deadband and expo, to start recording the plane's response to stick input."
         default_value: 50
         field: fw_min_stick
         min: 0
@@ -2251,7 +2259,7 @@ groups:
         type: uint8_t
       - name: fw_autotune_max_rate_deflection
         description: "The target percentage of maximum mixer output used for determining the rates in `AUTO` and `LIMIT`."
-        default_value: 90
+        default_value: 80
         field: fw_max_rate_deflection
         min: 50
         max: 100
@@ -2435,8 +2443,14 @@ groups:
         field: general.waypoint_safe_distance
         max: 65000
       - name: nav_auto_speed
-        description: "Maximum velocity firmware is allowed in full auto modes (RTH, WP) [cm/s] [Multirotor only]"
+        description: "Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no specific WP speed set. [Multirotor only]"
         default_value: 300
+        field: general.auto_speed
+        min: 10
+        max: 2000
+      - name: nav_max_auto_speed
+        description: "Maximum speed allowed in fully autonomous modes (RTH, WP) [cm/s] [Multirotor only]"
+        default_value: 1000
         field: general.max_auto_speed
         min: 10
         max: 2000
@@ -2447,7 +2461,7 @@ groups:
         min: 10
         max: 2000
       - name: nav_manual_speed
-        description: "Maximum velocity firmware is allowed when processing pilot input for POSHOLD/CRUISE control mode [cm/s] [Multirotor only]"
+        description: "Maximum speed allowed when processing pilot input for POSHOLD/CRUISE control mode [cm/s] [Multirotor only]"
         default_value: 500
         field: general.max_manual_speed
         min: 10
@@ -3078,7 +3092,12 @@ groups:
         field: stats_min_voltage_unit
         table: osd_stats_min_voltage_unit
         type: uint8_t
-
+      - name: osd_stats_page_auto_swap_time
+        description: "Auto swap display time interval between disarm stats pages (seconds). Reverts to manual control when Roll stick used to change pages. Disabled when set to 0."
+        default_value: 3
+        field: stats_page_auto_swap_time
+        min: 0
+        max: 10
       - name: osd_rssi_alarm
         description: "Value below which to make the OSD RSSI indicator blink"
         default_value: 20
@@ -3302,7 +3321,6 @@ groups:
         description: "How many navigation waypoints are displayed, set to 0 (zero) to disable. As sample, if set to 2, and you just passed the 3rd waypoint of the mission, you'll see markers for the 4th waypoint (marked 1) and the 5th waypoint (marked 2)"
         default_value: 0
         field: hud_wp_disp
-
         min: 0
         max: 3
       - name: osd_left_sidebar_scroll
@@ -3437,6 +3455,13 @@ groups:
         default_value: 0
         min: -36
         max: 36
+
+      - name: osd_esc_rpm_precision
+        description: Number of characters used to display the RPM value.
+        field: esc_rpm_precision
+        min: 3
+        max: 6
+        default_value: 3
 
   - name: PG_OSD_COMMON_CONFIG
     type: osdCommonConfig_t
@@ -3739,6 +3764,11 @@ groups:
         default_value: 1
         field: dshot_beeper_tone
         type: uint8_t
+      - name: beeper_pwm_mode
+        field: pwmMode
+        type: bool
+        default_value: OFF
+        description: "Allows disabling PWM mode for beeper on some targets. Switch from ON to OFF if the external beeper sound is weak. Do not switch from OFF to ON without checking if the board supports PWM beeper mode"
 
   - name: PG_POWER_LIMITS_CONFIG
     type: powerLimitsConfig_t

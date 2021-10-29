@@ -69,9 +69,6 @@ bool findNearestSafeHome(void);                  // Find nearest safehome
 #endif // defined(USE_SAFE_HOME)
 
 #if defined(USE_NAV)
-#if defined(USE_BLACKBOX)
-#define NAV_BLACKBOX
-#endif
 
 #ifndef NAV_MAX_WAYPOINTS
 #define NAV_MAX_WAYPOINTS 15
@@ -213,7 +210,8 @@ typedef struct navConfig_s {
         uint16_t waypoint_radius;               // if we are within this distance to a waypoint then we consider it reached (distance is in cm)
         uint16_t waypoint_safe_distance;        // Waypoint mission sanity check distance
         bool     waypoint_load_on_boot;         // load waypoints automatically during boot
-        uint16_t max_auto_speed;                // autonomous navigation speed cm/sec
+        uint16_t auto_speed;                    // autonomous navigation speed cm/sec
+        uint16_t max_auto_speed;                // maximum allowed autonomous navigation speed cm/sec
         uint16_t max_auto_climb_rate;           // max vertical speed limitation cm/sec
         uint16_t max_manual_speed;              // manual velocity control max horizontal speed
         uint16_t max_manual_climb_rate;         // manual velocity control max vertical speed
@@ -469,7 +467,7 @@ bool isWaypointListValid(void);
 void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData);
 void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData);
 void resetWaypointList(void);
-bool loadNonVolatileWaypointList(void);
+bool loadNonVolatileWaypointList(bool);
 bool saveNonVolatileWaypointList(void);
 
 float getFinalRTHAltitude(void);
@@ -516,11 +514,17 @@ geoAltitudeConversionMode_e waypointMissionAltConvMode(geoAltitudeDatumFlag_e da
 
 /* Distance/bearing calculation */
 bool navCalculatePathToDestination(navDestinationPath_t *result, const fpVector3_t * destinationPos);
+uint32_t distanceToFirstWP(void);
 
 /* Failsafe-forced RTH mode */
 void activateForcedRTH(void);
 void abortForcedRTH(void);
 rthState_e getStateOfForcedRTH(void);
+
+/* Failsafe-forced Emergency Landing mode */
+void activateForcedEmergLanding(void);
+void abortForcedEmergLanding(void);
+emergLandState_e getStateOfForcedEmergLanding(void);
 
 /* Getter functions which return data about the state of the navigation system */
 bool navigationInAutomaticThrottleMode(void);
@@ -577,6 +581,6 @@ extern int16_t navAccNEU[3];
 #define getEstimatedActualVelocity(axis) (0)
 #define navigationIsControllingThrottle() (0)
 #define navigationRTHAllowsLanding() (0)
-#define navigationGetHomeHeading(0)
+#define navigationGetHomeHeading() (0)
 
 #endif
