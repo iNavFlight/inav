@@ -87,8 +87,9 @@ typedef struct samples_s {
 
     arm_rfft_fast_instance_f32 errorFft;
 
-    float errorFrequency;
-    float errorFrequencyEnergy;
+    float fftPeakFrequency;
+    float fftPeakValue;
+    float fftMean;
     
     timeUs_t hiFreqEvenStartUs;
 
@@ -127,7 +128,7 @@ static void hiFrequencyDetector(samples_t * data, timeUs_t currentTimeUs) {
 
         if (
             !qTuneState(data->state, Q_TUNE_STATE_HI_FREQ_START) && 
-            data->errorFrequency >= Q_TUNE_HI_FREQ_THRESHOLD &&
+            data->fftPeakFrequency >= Q_TUNE_HI_FREQ_THRESHOLD &&
             currentTimeUs - data->hiFreqEvenStartUs > Q_TUNE_HI_FREQ_EVENT_PERIOD_US    // At least so many us between two events
         ) {
             // Osciallation started
@@ -139,7 +140,7 @@ static void hiFrequencyDetector(samples_t * data, timeUs_t currentTimeUs) {
         ) {
             //Oscillation continues for at least Q_TUNE_HI_FREQ_EVENT_THRESHOLD_US us
             qTuneEnableState(&data->state, Q_TUNE_STATE_HI_FREQ_OSCILLATION);
-        } else if (data->errorFrequency < Q_TUNE_HI_FREQ_THRESHOLD) {
+        } else if (data->fftPeakFrequency < Q_TUNE_HI_FREQ_THRESHOLD) {
             //Oscillation ended
             qTuneDisableState(&data->state, Q_TUNE_STATE_HI_FREQ_START);
             qTuneDisableState(&data->state, Q_TUNE_STATE_HI_FREQ_OSCILLATION);
@@ -151,7 +152,7 @@ static void hiFrequencyDetector(samples_t * data, timeUs_t currentTimeUs) {
     }
 }
 
-static void getSampleFrequency(float *frequency, float *energy, arm_rfft_fast_instance_f32 *structure, float buffer[], const uint16_t bufferLength) {
+static void getSampleFrequency(float *frequency, float *energy, float *mean, arm_rfft_fast_instance_f32 *structure, float buffer[], const uint16_t bufferLength) {
 
     //RFFT transform
     float rfft_output[bufferLength];
@@ -164,6 +165,7 @@ static void getSampleFrequency(float *frequency, float *energy, arm_rfft_fast_in
     
     float maxvalue;
     uint32_t maxindex;
+    float sampleMean;
 
     //Clear the first bin
     test_output[0] = 0;
@@ -171,8 +173,12 @@ static void getSampleFrequency(float *frequency, float *energy, arm_rfft_fast_in
     //Obtain peak frequency
     arm_max_f32(test_output, bufferLength / 2, &maxvalue, &maxindex);
 
+    //Obtain mean value
+    arm_mean_f32(test_output, bufferLength / 2, &sampleMean);
+
     *frequency = (float) maxindex * Q_TUNE_UPDATE_RATE_HZ / bufferLength;
-    *energy = maxvalue;   
+    *energy = maxvalue;
+    *mean = sampleMean;
 }
 
 void qTuneProcessTask(timeUs_t currentTimeUs) {
@@ -254,7 +260,14 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
         float dataBuffer[Q_TUNE_LONG_BUFFER_LENGTH];
 
         memcpy(dataBuffer, axisSample->error, sizeof(axisSample->error));
-        getSampleFrequency(&axisSample->errorFrequency, &axisSample->errorFrequencyEnergy, &axisSample->errorFft, dataBuffer, Q_TUNE_SHORT_BUFFER_LENGTH);
+        getSampleFrequency(
+            &axisSample->fftPeakFrequency, 
+            &axisSample->fftPeakValue,
+            &axisSample->fftMean,
+            &axisSample->errorFft, 
+            dataBuffer, 
+            Q_TUNE_SHORT_BUFFER_LENGTH
+        );
     
         hiFrequencyDetector(axisSample, currentTimeUs);
     
@@ -262,14 +275,15 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
 
     // Step 3 - Write blackbox data
     DEBUG_SET(DEBUG_Q_TUNE, 0, samples[FD_ROLL].error[samples[FD_ROLL].indexShort] * 1000.0f);
-    DEBUG_SET(DEBUG_Q_TUNE, 1, samples[FD_ROLL].errorRms * 10000.0f);
-    DEBUG_SET(DEBUG_Q_TUNE, 2, samples[FD_ROLL].errorStdDev * 10000.0f);
-    DEBUG_SET(DEBUG_Q_TUNE, 3, samples[FD_ROLL].state);
+    DEBUG_SET(DEBUG_Q_TUNE, 1, samples[FD_ROLL].state);
+    DEBUG_SET(DEBUG_Q_TUNE, 2, samples[FD_ROLL].fftPeakFrequency);
+    DEBUG_SET(DEBUG_Q_TUNE, 3, samples[FD_ROLL].fftPeakValue * 10000.0f);
+    DEBUG_SET(DEBUG_Q_TUNE, 4, samples[FD_ROLL].fftMean * 10000.0f);
+    // DEBUG_SET(DEBUG_Q_TUNE, 1, samples[FD_ROLL].errorRms * 10000.0f);
+    // DEBUG_SET(DEBUG_Q_TUNE, 2, samples[FD_ROLL].errorStdDev * 10000.0f);
     // DEBUG_SET(DEBUG_Q_TUNE, 3, samples[FD_ROLL].iTermRms * 10000.0f);
     // DEBUG_SET(DEBUG_Q_TUNE, 4, samples[FD_ROLL].iTermStdDev * 10000.0f);
-    DEBUG_SET(DEBUG_Q_TUNE, 5, samples[FD_ROLL].setpointDerivative * Q_TUNE_UPDATE_RATE_HZ * 1000.0f);
-    DEBUG_SET(DEBUG_Q_TUNE, 6, samples[FD_ROLL].errorFrequency);
-    DEBUG_SET(DEBUG_Q_TUNE, 7, samples[FD_ROLL].errorFrequencyEnergy * 10000.0f);
+    // DEBUG_SET(DEBUG_Q_TUNE, 5, samples[FD_ROLL].setpointDerivative * Q_TUNE_UPDATE_RATE_HZ * 1000.0f);
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
         samples[i].indexShort = (samples[i].indexShort + 1) % Q_TUNE_SHORT_BUFFER_LENGTH;
