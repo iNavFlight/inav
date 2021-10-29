@@ -31,6 +31,7 @@ FILE_COMPILE_FOR_SPEED
 #include "build/debug.h"
 #include "fc/controlrate_profile.h"
 #include "fc/rc_controls.h"
+#include "flight/pid.h"
 
 #define Q_TUNE_SHORT_BUFFER_PERIOD_MS 350
 #define Q_TUNE_LONG_BUFFER_PERIOD_MS  800
@@ -279,6 +280,8 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
     DEBUG_SET(DEBUG_Q_TUNE, 2, samples[FD_ROLL].fftPeakFrequency);
     DEBUG_SET(DEBUG_Q_TUNE, 3, samples[FD_ROLL].fftPeakValue * 10000.0f);
     DEBUG_SET(DEBUG_Q_TUNE, 4, samples[FD_ROLL].fftMean * 10000.0f);
+    DEBUG_SET(DEBUG_Q_TUNE, 5, pidBank()->pid[FD_ROLL].P);
+    
     // DEBUG_SET(DEBUG_Q_TUNE, 1, samples[FD_ROLL].errorRms * 10000.0f);
     // DEBUG_SET(DEBUG_Q_TUNE, 2, samples[FD_ROLL].errorStdDev * 10000.0f);
     // DEBUG_SET(DEBUG_Q_TUNE, 3, samples[FD_ROLL].iTermRms * 10000.0f);
