@@ -36,13 +36,12 @@
 #include "drivers/io.h"
 #include "drivers/time.h"
 #include "drivers/rangefinder/rangefinder.h"
-#include "drivers/rangefinder/rangefinder_hcsr04.h"
 #include "drivers/rangefinder/rangefinder_srf10.h"
-#include "drivers/rangefinder/rangefinder_hcsr04_i2c.h"
 #include "drivers/rangefinder/rangefinder_vl53l0x.h"
 #include "drivers/rangefinder/rangefinder_vl53l1x.h"
 #include "drivers/rangefinder/rangefinder_virtual.h"
 #include "drivers/rangefinder/rangefinder_us42.h"
+#include "drivers/rangefinder/rangefinder_tof10120_i2c.h"
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
@@ -64,27 +63,12 @@ rangefinder_t rangefinder;
 #define RANGEFINDER_DYNAMIC_FACTOR              75
 
 #ifdef USE_RANGEFINDER
-PG_REGISTER_WITH_RESET_TEMPLATE(rangefinderConfig_t, rangefinderConfig, PG_RANGEFINDER_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(rangefinderConfig_t, rangefinderConfig, PG_RANGEFINDER_CONFIG, 3);
 
 PG_RESET_TEMPLATE(rangefinderConfig_t, rangefinderConfig,
     .rangefinder_hardware = SETTING_RANGEFINDER_HARDWARE_DEFAULT,
     .use_median_filtering = SETTING_RANGEFINDER_MEDIAN_FILTER_DEFAULT,
 );
-
-const rangefinderHardwarePins_t * rangefinderGetHardwarePins(void)
-{
-    static rangefinderHardwarePins_t rangefinderHardwarePins;
-
-#if defined(RANGEFINDER_HCSR04_TRIGGER_PIN)
-    rangefinderHardwarePins.triggerTag = IO_TAG(RANGEFINDER_HCSR04_TRIGGER_PIN);
-    rangefinderHardwarePins.echoTag = IO_TAG(RANGEFINDER_HCSR04_ECHO_PIN);
-#else
-    // No Trig/Echo hardware rangefinder
-    rangefinderHardwarePins.triggerTag = IO_TAG(NONE);
-    rangefinderHardwarePins.echoTag = IO_TAG(NONE);
-#endif
-    return &rangefinderHardwarePins;
-}
 
 /*
  * Detect which rangefinder is present
@@ -95,32 +79,11 @@ static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwar
     requestedSensors[SENSOR_INDEX_RANGEFINDER] = rangefinderHardwareToUse;
 
     switch (rangefinderHardwareToUse) {
-        case RANGEFINDER_HCSR04:
-#ifdef USE_RANGEFINDER_HCSR04
-            {
-                const rangefinderHardwarePins_t *rangefinderHardwarePins = rangefinderGetHardwarePins();
-                if (hcsr04Detect(dev, rangefinderHardwarePins)) {   // FIXME: Do actual detection if HC-SR04 is plugged in
-                    rangefinderHardware = RANGEFINDER_HCSR04;
-                    rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_HCSR04_TASK_PERIOD_MS));
-                }
-            }
-#endif
-            break;
-
         case RANGEFINDER_SRF10:
 #ifdef USE_RANGEFINDER_SRF10
             if (srf10Detect(dev)) {
                 rangefinderHardware = RANGEFINDER_SRF10;
                 rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_SRF10_TASK_PERIOD_MS));
-            }
-#endif
-            break;
-
-            case RANGEFINDER_HCSR04I2C:
-#ifdef USE_RANGEFINDER_HCSR04_I2C
-            if (hcsr04i2c0Detect(dev)) {
-                rangefinderHardware = RANGEFINDER_HCSR04I2C;
-                rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_HCSR04_i2C_TASK_PERIOD_MS));
             }
 #endif
             break;
@@ -166,6 +129,15 @@ static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwar
             if (us42Detect(dev)) {
                 rangefinderHardware = RANGEFINDER_US42;
                 rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_US42_TASK_PERIOD_MS));
+            }
+#endif
+            break;
+
+            case RANGEFINDER_TOF10102I2C:
+#ifdef USE_RANGEFINDER_TOF10120_I2C
+            if (tof10120Detect(dev)) {
+                rangefinderHardware = RANGEFINDER_TOF10102I2C;
+                rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_TOF10120_I2C_TASK_PERIOD_MS));
             }
 #endif
             break;

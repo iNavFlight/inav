@@ -91,7 +91,9 @@ typedef struct navigationFlags_s {
     bool isGCSAssistedNavigationReset;      // GCS control was disabled - indicate that so code could take action accordingly
     bool isTerrainFollowEnabled;            // Does iNav use rangefinder for terrain following (adjusting baro altitude target according to rangefinders readings)
 
+    // Failsafe actions
     bool forcedRTHActivated;
+    bool forcedEmergLandingActivated;
 } navigationFlags_t;
 
 typedef struct {

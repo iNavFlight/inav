@@ -39,7 +39,6 @@
 #define I2C2_OVERCLOCK false
 #define USE_I2C_PULLUP          // Enable built-in pullups on all boards in case external ones are too week
 
-#define USE_RX_PPM
 #define USE_SERIAL_RX
 #define USE_SERIALRX_SPEKTRUM   // Cheap and fairly common protocol
 #define USE_SERIALRX_SBUS       // Very common protocol
@@ -79,17 +78,20 @@
 #endif
 
 #if (MCU_FLASH_SIZE > 256)
+
+#if defined(MAG_I2C_BUS) || defined(VCM5883_I2C_BUS)
+#define USE_MAG_VCM5883
+#endif
+
 #define USE_MR_BRAKING_MODE
 #define USE_PITOT
 #define USE_PITOT_ADC
-#define USE_PITOT_VIRTUAL
 
-#define USE_ALPHA_BETA_GAMMA_FILTER
 #define USE_DYNAMIC_FILTERS
 #define USE_GYRO_KALMAN
 #define USE_SMITH_PREDICTOR
+#define USE_RATE_DYNAMICS
 #define USE_EXTENDED_CMS_MENUS
-#define USE_HOTT_TEXTMODE
 
 // NAZA GPS support for F4+ only
 #define USE_GPS_PROTO_NAZA
@@ -100,8 +102,8 @@
 #define USE_RANGEFINDER_BENEWAKE
 #define USE_RANGEFINDER_VL53L0X
 #define USE_RANGEFINDER_VL53L1X
-#define USE_RANGEFINDER_HCSR04_I2C
 #define USE_RANGEFINDER_US42
+#define USE_RANGEFINDER_TOF10120_I2C
 
 // Allow default optic flow boards
 #define USE_OPFLOW
@@ -125,8 +127,7 @@
 #define DASHBOARD_ARMED_BITMAP
 #define USE_OLED_UG2864
 
-#define USE_PWM_DRIVER_PCA9685
-
+#define USE_OSD
 #define USE_FRSKYOSD
 #define USE_DJI_HD_OSD
 #define USE_SMARTPORT_MASTER
@@ -144,14 +145,10 @@
 #define USE_GPS_PROTO_MTK
 
 #define USE_TELEMETRY_SIM
-#define USE_TELEMETRY_HOTT
 #define USE_TELEMETRY_MAVLINK
 #define USE_MSP_OVER_TELEMETRY
 
 #define USE_SERIALRX_SRXL2     // Spektrum SRXL2 protocol
-#define USE_SERIALRX_SUMD
-#define USE_SERIALRX_SUMH
-#define USE_SERIALRX_XBUS
 #define USE_SERIALRX_JETIEXBUS
 #define USE_SERIALRX_MAVLINK
 #define USE_TELEMETRY_SRXL
@@ -186,20 +183,19 @@
 #define USE_TELEMETRY_IBUS
 #define USE_TELEMETRY_SMARTPORT
 #define USE_TELEMETRY_CRSF
+#define USE_TELEMETRY_JETIEXBUS
 // These are rather exotic serial protocols
 #define USE_RX_MSP
 //#define USE_MSP_RC_OVERRIDE
 #define USE_SERIALRX_CRSF
-#define USE_PWM_SERVO_DRIVER
 #define USE_SERIAL_PASSTHROUGH
-#define NAV_MAX_WAYPOINTS       60
+#define NAV_MAX_WAYPOINTS       120
 #define USE_RCDEVICE
 
 //Enable VTX control
 #define USE_VTX_CONTROL
 #define USE_VTX_SMARTAUDIO
 #define USE_VTX_TRAMP
-#define USE_VTX_FFPV
 
 #ifndef STM32F3 //F3 series does not have enoug RAM to support logic conditions
 #define USE_PROGRAMMING_FRAMEWORK
@@ -214,5 +210,21 @@
 #else // MCU_FLASH_SIZE < 128
 
 #define SKIP_TASK_STATISTICS
+
+#endif
+
+//Designed to free space of F722 and F411 MCUs
+#if (MCU_FLASH_SIZE > 512)
+
+#define USE_VTX_FFPV
+#define USE_PITOT_VIRTUAL
+#define USE_PWM_DRIVER_PCA9685
+#define USE_PWM_SERVO_DRIVER
+
+#define USE_SERIALRX_SUMD
+#define USE_SERIALRX_SUMH
+#define USE_SERIALRX_XBUS
+#define USE_TELEMETRY_HOTT
+#define USE_HOTT_TEXTMODE
 
 #endif

@@ -27,6 +27,17 @@ typedef struct pt1Filter_s {
     float dT;
     float alpha;
 } pt1Filter_t;
+typedef struct pt2Filter_s {
+    float state;
+    float state1;
+    float k;
+} pt2Filter_t;
+typedef struct pt3Filter_s {
+    float state;
+    float state1;
+    float state2;
+    float k;
+} pt3Filter_t;
 
 /* this holds the data required to update samples thru a filter */
 typedef struct biquadFilter_s {
@@ -36,12 +47,16 @@ typedef struct biquadFilter_s {
 
 typedef union { 
     biquadFilter_t biquad; 
-    pt1Filter_t pt1; 
+    pt1Filter_t pt1;
+    pt2Filter_t pt2;
+    pt3Filter_t pt3;
 } filter_t;
 
 typedef enum {
     FILTER_PT1 = 0,
-    FILTER_BIQUAD
+    FILTER_BIQUAD,
+    FILTER_PT2,
+    FILTER_PT3
 } filterType_e;
 
 typedef enum {
@@ -87,6 +102,22 @@ float pt1FilterApply3(pt1Filter_t *filter, float input, float dT);
 float pt1FilterApply4(pt1Filter_t *filter, float input, float f_cut, float dt);
 void pt1FilterReset(pt1Filter_t *filter, float input);
 
+/*
+ * PT2 LowPassFilter
+ */
+float pt2FilterGain(float f_cut, float dT);
+void pt2FilterInit(pt2Filter_t *filter, float k);
+void pt2FilterUpdateCutoff(pt2Filter_t *filter, float k);
+float pt2FilterApply(pt2Filter_t *filter, float input);
+
+/*
+ * PT3 LowPassFilter
+ */
+float pt3FilterGain(float f_cut, float dT);
+void pt3FilterInit(pt3Filter_t *filter, float k);
+void pt3FilterUpdateCutoff(pt3Filter_t *filter, float k);
+float pt3FilterApply(pt3Filter_t *filter, float input);
+
 void rateLimitFilterInit(rateLimitFilter_t *filter);
 float rateLimitFilterApply4(rateLimitFilter_t *filter, float input, float rate_limit, float dT);
 
@@ -101,3 +132,6 @@ void biquadFilterUpdate(biquadFilter_t *filter, float filterFreq, uint32_t refre
 
 void alphaBetaGammaFilterInit(alphaBetaGammaFilter_t *filter, float alpha, float boostGain, float halfLife, float dT);
 float alphaBetaGammaFilterApply(alphaBetaGammaFilter_t *filter, float input);
+
+void initFilter(uint8_t filterType, filter_t *filter, float cutoffFrequency, uint32_t refreshRate);
+void assignFilterApplyFn(uint8_t filterType, float cutoffFrequency, filterApplyFnPtr *applyFn);

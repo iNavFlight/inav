@@ -452,6 +452,16 @@ If the remaining battery capacity goes below this threshold the beeper will emit
 
 ---
 
+### beeper_pwm_mode
+
+Allows disabling PWM mode for beeper on some targets. Switch from ON to OFF if the external beeper sound is weak. Do not switch from OFF to ON without checking if the board supports PWM beeper mode
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF |  |  |
+
+---
+
 ### blackbox_device
 
 Selection of where to write blackbox data
@@ -562,16 +572,6 @@ ADC , VIRTUAL, NONE. The virtual current sensor, once calibrated, estimates the 
 
 ---
 
-### d_boost_factor
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 1.25 | 1 | 3 |
-
----
-
 ### d_boost_gyro_delta_lpf_hz
 
 _// TODO_
@@ -582,6 +582,16 @@ _// TODO_
 
 ---
 
+### d_boost_max
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1.25 | 1 | 3 |
+
+---
+
 ### d_boost_max_at_acceleration
 
 _// TODO_
@@ -589,6 +599,16 @@ _// TODO_
 | Default | Min | Max |
 | --- | --- | --- |
 | 7500 | 1000 | 16000 |
+
+---
+
+### d_boost_min
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0.5 | 0 | 1 |
 
 ---
 
@@ -734,11 +754,11 @@ Cutoff frequency for stage 2 D-term low pass filter
 
 ### dterm_lpf2_type
 
-Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation.
+Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`, `PT2`, `PT3`.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| BIQUAD |  |  |
+| PT1 |  |  |
 
 ---
 
@@ -748,17 +768,17 @@ Dterm low pass filter cutoff frequency. Default setting is very conservative and
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 40 | 0 | 500 |
+| 110 | 0 | 500 |
 
 ---
 
 ### dterm_lpf_type
 
-Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation.
+Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`, `PT2`, `PT3`.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| BIQUAD |  |  |
+| PT2 |  |  |
 
 ---
 
@@ -768,17 +788,17 @@ Enable/disable dynamic gyro notch also known as Matrix Filter
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| ON |  |  |
 
 ---
 
 ### dynamic_gyro_notch_min_hz
 
-Minimum frequency for dynamic notches. Default value of `150` works best with 5" multirors. Should be lowered with increased size of propellers. Values around `100` work fine on 7" drones. 10" can go down to `60` - `70`
+Minimum frequency for dynamic notches. Default value of `150` works best with 5" multirotors. Should be lowered with increased size of propellers. Values around `100` work fine on 7" drones. 10" can go down to `60` - `70`
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 150 | 30 | 1000 |
+| 50 | 30 | 1000 |
 
 ---
 
@@ -789,16 +809,6 @@ Q factor for dynamic notches
 | Default | Min | Max |
 | --- | --- | --- |
 | 120 | 1 | 1000 |
-
----
-
-### dynamic_gyro_notch_range
-
-Range for dynamic gyro notches. `MEDIUM` for 5", `HIGH` for 3" and `MEDIUM`/`LOW` for 7" and bigger propellers
-
-| Default | Min | Max |
-| --- | --- | --- |
-| MEDIUM |  |  |
 
 ---
 
@@ -894,7 +904,7 @@ Time in deciseconds to wait before activating failsafe when signal is lost. See 
 
 ### failsafe_fw_pitch_angle
 
-Amount of dive/climb when `SET-THR` failsafe is active on a fixed-wing machine. In 1/10 deg (deci-degrees). Negative values = climb
+Amount of dive/climb when `LAND` (or old `SET-THR`) failsafe is active on a fixed-wing machine. In 1/10 deg (deci-degrees). Negative values = climb
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -904,7 +914,7 @@ Amount of dive/climb when `SET-THR` failsafe is active on a fixed-wing machine. 
 
 ### failsafe_fw_roll_angle
 
-Amount of banking when `SET-THR` failsafe is active on a fixed-wing machine. In 1/10 deg (deci-degrees). Negative values = left roll
+Amount of banking when `LAND` (or old `SET-THR`) failsafe is active on a fixed-wing machine. In 1/10 deg (deci-degrees). Negative values = left roll
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -914,7 +924,7 @@ Amount of banking when `SET-THR` failsafe is active on a fixed-wing machine. In 
 
 ### failsafe_fw_yaw_rate
 
-Requested yaw rate to execute when `SET-THR` failsafe is active on a fixed-wing machine. In deg/s. Negative values = left turn
+Requested yaw rate to execute when `LAND` (or old `SET-THR`) failsafe is active on a fixed-wing machine. In deg/s. Negative values = left turn
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -998,7 +1008,7 @@ What failsafe procedure to initiate in Stage 2. See [Failsafe documentation](Fai
 
 | Default | Min | Max |
 | --- | --- | --- |
-| SET-THR |  |  |
+| LAND |  |  |
 
 ---
 
@@ -1158,13 +1168,13 @@ The target percentage of maximum mixer output used for determining the rates in 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 90 | 50 | 100 |
+| 80 | 50 | 100 |
 
 ---
 
 ### fw_autotune_min_stick
 
-Minimum stick input [%] to consider overshoot/undershoot detection
+Minimum stick input [%], after applying deadband and expo, to start recording the plane's response to stick input.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1522,36 +1532,6 @@ Enable use of Galileo satellites. This is at the expense of other regional const
 
 ---
 
-### gyro_abg_alpha
-
-Alpha factor for Gyro Alpha-Beta-Gamma filter
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 1 |
-
----
-
-### gyro_abg_boost
-
-Boost factor for Gyro Alpha-Beta-Gamma filter
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0.35 | 0 | 2 |
-
----
-
-### gyro_abg_half_life
-
-Sample half-life for Gyro Alpha-Beta-Gamma filter
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0.5 | 0 | 10 |
-
----
-
 ### gyro_anti_aliasing_lpf_hz
 
 Gyro processing anti-aliasing filter cutoff frequency. In normal operation this filter setting should never be changed. In Hz
@@ -1658,7 +1638,7 @@ _// TODO_
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 1 |
+| 0 | 0 | 2 |
 
 ---
 
@@ -1928,7 +1908,7 @@ Inertial Measurement Unit KP Gain for accelerometer measurements
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 2500 |  | 65535 |
+| 1000 |  | 65535 |
 
 ---
 
@@ -1938,7 +1918,7 @@ Inertial Measurement Unit KP Gain for compass measurements
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 10000 |  | 65535 |
+| 5000 |  | 65535 |
 
 ---
 
@@ -2458,7 +2438,7 @@ Exposition value used for the PITCH/ROLL axes by the `MANUAL` flight mode [0-100
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 70 | 0 | 100 |
+| 35 | 0 | 100 |
 
 ---
 
@@ -2832,26 +2812,6 @@ When powering up, gyro bias is calculated. If the model is shaking/moving during
 
 ---
 
-### motor_accel_time
-
-Minimum time for the motor(s) to accelerate from 0 to 100% throttle (ms) [0-1000]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 1000 |
-
----
-
-### motor_decel_time
-
-Minimum time for the motor(s) to deccelerate from 100 to 0% throttle (ms) [0-1000]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 1000 |
-
----
-
 ### motor_direction_inverted
 
 Use if you need to inverse yaw motor direction.
@@ -2924,7 +2884,7 @@ Maximum climb/descent rate that UAV is allowed to reach during navigation modes.
 
 ### nav_auto_speed
 
-Maximum velocity firmware is allowed in full auto modes (RTH, WP) [cm/s] [Multirotor only]
+Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no specific WP speed set. [Multirotor only]
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3424,7 +3384,7 @@ Maximum climb/descent rate firmware is allowed when processing pilot input for A
 
 ### nav_manual_speed
 
-Maximum velocity firmware is allowed when processing pilot input for POSHOLD/CRUISE control mode [cm/s] [Multirotor only]
+Maximum speed allowed when processing pilot input for POSHOLD/CRUISE control mode [cm/s] [Multirotor only]
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3439,6 +3399,16 @@ Max allowed altitude (above Home Point) that applies to all NAV modes (including
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 65000 |
+
+---
+
+### nav_max_auto_speed
+
+Maximum speed allowed in fully autonomous modes (RTH, WP) [cm/s] [Multirotor only]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | 10 | 2000 |
 
 ---
 
@@ -4132,6 +4102,16 @@ Value above which to make the OSD distance from home indicator blink (meters)
 
 ---
 
+### osd_esc_rpm_precision
+
+Number of characters used to display the RPM value.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3 | 3 | 6 |
+
+---
+
 ### osd_esc_temp_alarm_max
 
 Temperature above which the IMU temperature OSD element will start blinking (decidegrees centigrade)
@@ -4552,6 +4532,16 @@ Display minimum voltage of the `BATTERY` or the average per `CELL` in the OSD st
 
 ---
 
+### osd_stats_page_auto_swap_time
+
+Auto swap display time interval between disarm stats pages (seconds). Reverts to manual control when Roll stick used to change pages. Disabled when set to 0.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3 | 0 | 10 |
+
+---
+
 ### osd_telemetry
 
 To enable OSD telemetry for antenna tracker. Possible values are `OFF`, `ON` and `TEST`
@@ -4779,6 +4769,66 @@ Limits acceleration of YAW rotation speed that can be requested by stick input. 
 | Default | Min | Max |
 | --- | --- | --- |
 | 10000 |  | 500000 |
+
+---
+
+### rate_dynamics_center_correction
+
+The center stick correction for Rate Dynamics
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | 10 | 95 |
+
+---
+
+### rate_dynamics_center_sensitivity
+
+The center stick sensitivity for Rate Dynamics
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 25 | 175 |
+
+---
+
+### rate_dynamics_center_weight
+
+The center stick weight for Rate Dynamics
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 95 |
+
+---
+
+### rate_dynamics_end_correction
+
+The end  stick correction for Rate Dynamics
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | 10 | 95 |
+
+---
+
+### rate_dynamics_end_sensitivity
+
+The end stick sensitivity for Rate Dynamics
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 25 | 175 |
+
+---
+
+### rate_dynamics_end_weight
+
+The end  stick weight for Rate Dynamics
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 95 |
 
 ---
 
@@ -5128,7 +5178,7 @@ Enable Kalman filter on the gyro data
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| ON |  |  |
 
 ---
 
@@ -5654,7 +5704,7 @@ These are values (in us) by how much RC input can be different before it's consi
 
 ### yaw_lpf_hz
 
-Yaw low pass filter cutoff frequency. Should be disabled (set to `0`) on small multirotors (7 inches and below)
+Yaw P term low pass filter cutoff frequency. Should be disabled (set to `0`) on small multirotors (7 inches and below)
 
 | Default | Min | Max |
 | --- | --- | --- |

@@ -652,12 +652,14 @@ static int32_t osdConvertVelocityToUnit(int32_t vel)
     switch (osdConfig()->units) {
         case OSD_UNIT_UK:
             FALLTHROUGH;
-
+        case OSD_UNIT_METRIC_MPH:
+            FALLTHROUGH;
         case OSD_UNIT_IMPERIAL:
-            return (vel * 224) / 10000; // Convert to mph
-
+            return CMSEC_TO_CENTIMPH(vel) / 100; // Convert to mph
+        case OSD_UNIT_GA:
+            return CMSEC_TO_CENTIKNOTS(vel) / 100; // Convert to Knots
         case OSD_UNIT_METRIC:
-            return (vel * 36) / 1000;   // Convert to kmh
+            return CMSEC_TO_CENTIKPH(vel) / 100;   // Convert to kmh
     }
 
     // Unreachable
@@ -692,8 +694,13 @@ void osdDJIFormatVelocityStr(char* buff)
     switch (osdConfig()->units) {
         case OSD_UNIT_UK:
             FALLTHROUGH;
+        case OSD_UNIT_METRIC_MPH:
+            FALLTHROUGH;
         case OSD_UNIT_IMPERIAL:
             tfp_sprintf(buff, "%s %3d MPH", sourceBuf, (int)osdConvertVelocityToUnit(vel));
+            break;
+        case OSD_UNIT_GA:
+            tfp_sprintf(buff, "%s %3d KT", sourceBuf, (int)osdConvertVelocityToUnit(vel));
             break;
         case OSD_UNIT_METRIC:
             tfp_sprintf(buff, "%s %3d KPH", sourceBuf, (int)osdConvertVelocityToUnit(vel));
@@ -719,6 +726,8 @@ static void osdDJIFormatDistanceStr(char *buff, int32_t dist)
     int32_t centifeet;
 
     switch (osdConfig()->units) {
+        case OSD_UNIT_UK:
+            FALLTHROUGH;
         case OSD_UNIT_IMPERIAL:
             centifeet = CENTIMETERS_TO_CENTIFEET(dist);
             if (abs(centifeet) < FEET_PER_MILE * 100 / 2) {
@@ -731,7 +740,19 @@ static void osdDJIFormatDistanceStr(char *buff, int32_t dist)
                 (abs(centifeet) % (100 * FEET_PER_MILE)) / FEET_PER_MILE, "Mi");
             }
             break;
-        case OSD_UNIT_UK:
+        case OSD_UNIT_GA:
+            centifeet = CENTIMETERS_TO_CENTIFEET(dist);
+            if (abs(centifeet) < FEET_PER_NAUTICALMILE * 100 / 2) {
+                // Show feet when dist < 0.5mi
+                tfp_sprintf(buff, "%d%s", (int)(centifeet / 100), "FT");
+            }
+            else {
+                // Show miles when dist >= 0.5mi
+                tfp_sprintf(buff, "%d.%02d%s", (int)(centifeet / (100 * FEET_PER_NAUTICALMILE)),
+                (int)((abs(centifeet) % (int)(100 * FEET_PER_NAUTICALMILE)) / FEET_PER_NAUTICALMILE), "NM");
+            }
+            break;
+        case OSD_UNIT_METRIC_MPH:
             FALLTHROUGH;
         case OSD_UNIT_METRIC:
             if (abs(dist) < METERS_PER_KILOMETER * 100) {
@@ -986,7 +1007,7 @@ static bool djiFormatMessages(char *buff)
             }
         } else {
 #ifdef USE_SERIALRX_CRSF
-            if (rxLinkStatistics.rfMode == 0) {
+            if (djiOsdConfig()->rssi_source == DJI_CRSF_LQ && rxLinkStatistics.rfMode == 0) {
                 messages[messageCount++] = "CRSF LOW RF";
             }
 #endif
@@ -1156,19 +1177,17 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
 
         case DJI_MSP_NAME:
             {
-                const char * name = systemConfig()->name;
-
 #if defined(USE_OSD)
                 if (djiOsdConfig()->use_name_for_messages)  {
                     djiSerializeCraftNameOverride(dst);
-                }
-                else
+                } else {
 #endif
-                {
-                    int len = strlen(name);
-                    sbufWriteData(dst, name, MAX(len, 12));
-                    break;
+                    sbufWriteData(dst, systemConfig()->name, (int)strlen(systemConfig()->name));
+#if defined(USE_OSD)
                 }
+#endif
+
+                break;
             }
             break;
 

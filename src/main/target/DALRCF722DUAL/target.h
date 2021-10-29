@@ -103,7 +103,6 @@
 #define SPI3_MISO_PIN           PB4
 #define SPI3_MOSI_PIN           PB5
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          SPI2_NSS_PIN
@@ -139,7 +138,6 @@
 
 #define MAX_PWM_OUTPUT_PORTS    6
 #define USE_DSHOT
-#define USE_SERIALSHOT
 #define USE_ESC_SENSOR
 
 #define TARGET_IO_PORTA         0xffff
