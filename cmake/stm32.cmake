@@ -194,7 +194,7 @@ endfunction()
 
 function(add_hex_target name exe hex)
     add_custom_target(${name} ALL
-        cmake -E env PATH=$ENV{PATH}
+        cmake -E env PATH="$ENV{PATH}"
         # TODO: Overriding the start address with --set-start 0x08000000
         # seems to be required due to some incorrect assumptions about .hex
         # files in the configurator. Verify wether that's the case and fix
@@ -206,7 +206,7 @@ endfunction()
 
 function(add_bin_target name exe bin)
     add_custom_target(${name}
-        cmake -E env PATH=$ENV{PATH}
+        cmake -E env PATH="$ENV{PATH}"
         ${CMAKE_OBJCOPY} -Obinary $<TARGET_FILE:${exe}> ${bin}
         BYPRODUCTS ${bin}
     )
