@@ -1060,7 +1060,7 @@ static void osdFormatRpm(char *buff, uint32_t rpm)
                     break;
             }
 
-            
+
         }
     }
     else {
@@ -2291,7 +2291,7 @@ static bool osdDrawSingleElement(uint8_t item)
         tfp_sprintf(buff, "%c%u", SYM_PROFILE, (getConfigProfile() + 1));
         displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
         break;
-    
+
     case OSD_ROLL_PIDS:
         osdDisplayFlightPIDValues(elemPosX, elemPosY, "ROL", PID_ROLL, ADJUSTMENT_ROLL_P, ADJUSTMENT_ROLL_I, ADJUSTMENT_ROLL_D, ADJUSTMENT_ROLL_FF);
         return true;
@@ -2981,17 +2981,22 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_MISSION:
         {
             if (ARMING_FLAG(ARMED)){
-                tfp_sprintf(buff, "M%u       ", posControl.loadedMultiMissionIndex);    // only show selected mission index when armed
-            } else {
-                if (navConfig()->general.waypoint_multi_mission_index != posControl.loadedMultiMissionIndex && posControl.multiMissionCount > 0) {
+                // Limit field size when Armed, only show selected mission
+                tfp_sprintf(buff, "M%u       ", posControl.loadedMultiMissionIndex);
+            } else if (posControl.multiMissionCount && navConfig()->general.waypoint_multi_mission_index){
+                if (navConfig()->general.waypoint_multi_mission_index != posControl.loadedMultiMissionIndex) {
                     tfp_sprintf(buff, "M%u/%u>LOAD", navConfig()->general.waypoint_multi_mission_index, posControl.multiMissionCount);
                 } else {
-                    if (posControl.waypointListValid && posControl.loadedMultiMissionWPCount > 0) {
-                        tfp_sprintf(buff, "M%u/%u>%2uWP", posControl.loadedMultiMissionIndex, posControl.multiMissionCount, posControl.loadedMultiMissionWPCount);
+                    // wpCount source for selected mission changes when Armed/Disarmed
+                    int8_t wpCount = posControl.loadedMultiMissionWPCount ? posControl.loadedMultiMissionWPCount : posControl.waypointCount;
+                    if (posControl.waypointListValid && wpCount > 0) {
+                        tfp_sprintf(buff, "M%u/%u>%2uWP", posControl.loadedMultiMissionIndex, posControl.multiMissionCount, wpCount);
                     } else {
                         tfp_sprintf(buff, "M0/%u> 0WP", posControl.multiMissionCount);
                     }
                 }
+            } else {    // multi_mission_index 0 reserved for non NVM missions
+                tfp_sprintf(buff, "GSTN>%2uWP", posControl.waypointCount);
             }
             displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
             return true;
@@ -4240,10 +4245,10 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
             }
         } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
             unsigned invalidIndex;
-            
+
             // Check if we're unable to arm for some reason
             if (ARMING_FLAG(ARMING_DISABLED_INVALID_SETTING) && !settingsValidate(&invalidIndex)) {
-                
+
                     const setting_t *setting = settingGet(invalidIndex);
                     settingGetName(setting, messageBuf);
                     for (int ii = 0; messageBuf[ii]; ii++) {
@@ -4251,18 +4256,18 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     }
                     invertedInfoMessage = messageBuf;
                     messages[messageCount++] = invertedInfoMessage;
-                
+
                     invertedInfoMessage = OSD_MESSAGE_STR(OSD_MSG_INVALID_SETTING);
                     messages[messageCount++] = invertedInfoMessage;
-                
+
             } else {
-                
+
                     invertedInfoMessage = OSD_MESSAGE_STR(OSD_MSG_UNABLE_ARM);
                     messages[messageCount++] = invertedInfoMessage;
-                
+
                     // Show the reason for not arming
                     messages[messageCount++] = osdArmingDisabledReasonMessage();
-                
+
             }
         } else if (!ARMING_FLAG(ARMED)) {
             if (isWaypointListValid()) {

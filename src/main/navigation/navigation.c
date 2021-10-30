@@ -2842,6 +2842,9 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
             static int8_t nonGeoWaypointCount = 0;
 
             if (wpNumber == (posControl.waypointCount + 1) || wpNumber == 1) {
+                if (wpNumber == 1) {
+                    resetWaypointList();
+                }
                 posControl.waypointList[wpNumber - 1] = *wpData;
                 if(wpData->action == NAV_WP_ACTION_SET_POI || wpData->action == NAV_WP_ACTION_SET_HEAD || wpData->action == NAV_WP_ACTION_JUMP) {
                     nonGeoWaypointCount += 1;
@@ -2869,6 +2872,8 @@ void resetWaypointList(void)
         posControl.waypointListValid = false;
         posControl.geoWaypointCount = 0;
         posControl.loadedMultiMissionIndex = 0;
+        posControl.loadedMultiMissionStartWP = 0;
+        posControl.loadedMultiMissionWPCount = 0;
     }
 }
 
@@ -2900,55 +2905,64 @@ void setMultiMissionOnArm(void)
         }
 
         posControl.loadedMultiMissionStartWP = 0;
+        posControl.loadedMultiMissionWPCount = 0;
     }
+}
+
+bool checkMissionCount(int8_t waypoint)
+{
+    if (nonVolatileWaypointList(waypoint)->flag == NAV_WP_FLAG_LAST) {
+        posControl.multiMissionCount += 1;  // count up no missions in multi mission WP file
+        if (waypoint != NAV_MAX_WAYPOINTS - 1) {
+            return (nonVolatileWaypointList(waypoint + 1)->flag == NAV_WP_FLAG_LAST &&
+                    nonVolatileWaypointList(waypoint + 1)->action ==NAV_WP_ACTION_RTH);
+            // end of multi mission file if successive NAV_WP_FLAG_LAST and default action (RTH)
+        }
+    }
+    return false;
 }
 
 #ifdef NAV_NON_VOLATILE_WAYPOINT_STORAGE
 bool loadNonVolatileWaypointList(bool clearIfLoaded)
 {
-    if (ARMING_FLAG(ARMED))
-        return false;
-
-    // if forced and waypoints are already loaded, just unload them. (Only unload if selected multi mission index is same as loaded mission index)
-    if (clearIfLoaded && navConfig()->general.waypoint_multi_mission_index == posControl.loadedMultiMissionIndex && posControl.waypointCount > 0) {
-        resetWaypointList();
+    // multi_mission_index 0 reserved for non NVM missions - don't load
+    if (ARMING_FLAG(ARMED) || !navConfig()->general.waypoint_multi_mission_index) {
         return false;
     }
 
-    resetWaypointList();
+    // if forced and waypoints are already loaded, just unload them.
+    if (clearIfLoaded && posControl.waypointCount > 0) {
+        resetWaypointList();
+        return false;
+    }
 
     /* Reset multi mission index to 1 if exceeds number of available missions */
     if (navConfig()->general.waypoint_multi_mission_index > posControl.multiMissionCount) {
         navConfigMutable()->general.waypoint_multi_mission_index = 1;
     }
     posControl.multiMissionCount = 0;
-    posControl.loadedMultiMissionStartWP = -1;
     posControl.loadedMultiMissionWPCount = 0;
     int8_t loadedMultiMissionGeoWPCount;
 
     for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {
-        if (navConfig()->general.waypoint_multi_mission_index) {
-            setWaypoint(i + 1, nonVolatileWaypointList(i));     // load waypoints
+        setWaypoint(i + 1, nonVolatileWaypointList(i));
 
-            if ((posControl.multiMissionCount + 1 == navConfig()->general.waypoint_multi_mission_index)) {
-                // Find start and end of selected mission
-                if (posControl.loadedMultiMissionStartWP == -1) {
-                    posControl.loadedMultiMissionStartWP = i;
-                    loadedMultiMissionGeoWPCount = posControl.geoWaypointCount;
-                } else if (posControl.waypointList[i].flag == NAV_WP_FLAG_LAST) {
-                    posControl.loadedMultiMissionWPCount = i - posControl.loadedMultiMissionStartWP + 1;
-                    loadedMultiMissionGeoWPCount = posControl.geoWaypointCount - loadedMultiMissionGeoWPCount + 1;
-                }
+        if ((posControl.multiMissionCount + 1 == navConfig()->general.waypoint_multi_mission_index)) {
+            // store details of selected mission
+            if (posControl.loadedMultiMissionWPCount == 0) {    // mission start WP
+                posControl.loadedMultiMissionWPCount = 1;   // start marker only, value here unimportant (but not 0)
+                posControl.loadedMultiMissionStartWP = i;
+                loadedMultiMissionGeoWPCount = posControl.geoWaypointCount;
+            }
+            if (posControl.waypointList[i].flag == NAV_WP_FLAG_LAST) {  // mission end WP
+                posControl.loadedMultiMissionWPCount = i - posControl.loadedMultiMissionStartWP + 1;
+                loadedMultiMissionGeoWPCount = posControl.geoWaypointCount - loadedMultiMissionGeoWPCount + 1;
             }
         }
-        // Check if this is the last waypoint
-        if (nonVolatileWaypointList(i)->flag == NAV_WP_FLAG_LAST) {
-            posControl.multiMissionCount += 1;  // count up number missions in multi mission WP entry
-            if (i != NAV_MAX_WAYPOINTS - 1) {
-                if (nonVolatileWaypointList(i + 1)->flag == NAV_WP_FLAG_LAST && nonVolatileWaypointList(i + 1)->action == NAV_WP_ACTION_RTH) {
-                    break;      // end of multi mission file if successive NAV_WP_FLAG_LAST and default action (RTH)
-                }
-            }
+
+        // count up number of missions
+        if (checkMissionCount(i)) {
+            break;
         }
     }
 
@@ -2956,7 +2970,7 @@ bool loadNonVolatileWaypointList(bool clearIfLoaded)
     posControl.loadedMultiMissionIndex = posControl.multiMissionCount ? navConfig()->general.waypoint_multi_mission_index : 0;
 
     // Mission sanity check failed - reset the list
-    // Also reset if no multi mission found to load (shouldn't happen)
+    // Also reset if no multi mission loaded
     if (!posControl.waypointListValid || !posControl.loadedMultiMissionWPCount) {
         resetWaypointList();
     }
@@ -3662,18 +3676,8 @@ void navigationInit(void)
     posControl.waypointCount = 0;
     posControl.activeWaypointIndex = 0;
     posControl.waypointListValid = false;
-#if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE)
-    uint8_t savedMultiMissionIndex = navConfig()->general.waypoint_multi_mission_index;
-
-    /* check number missions loaded by loading waypoint list.
-     * Set index to 0 so no mission is loaded during check if waypoint_load_on_boot option is OFF */
-    if (!navConfig()->general.waypoint_load_on_boot) {
-        navConfigMutable()->general.waypoint_multi_mission_index = 0;
-    }
-    loadNonVolatileWaypointList(true);
-    // set index to 1 if saved mission index > available missions
-    navConfigMutable()->general.waypoint_multi_mission_index = savedMultiMissionIndex > posControl.multiMissionCount ? 1 : savedMultiMissionIndex;
-#endif
+    posControl.multiMissionCount = 0;
+    posControl.loadedMultiMissionStartWP = 0;
 
     /* Set initial surface invalid */
     posControl.actualState.surfaceMin = -1.0f;
@@ -3693,6 +3697,22 @@ void navigationInit(void)
     } else {
         DISABLE_STATE(FW_HEADING_USE_YAW);
     }
+#if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE)
+    /* configure WP missions at boot */
+    for (int8_t i = 0; i < NAV_MAX_WAYPOINTS; i++) {    // check number missions in NVM
+        if (checkMissionCount(i)) {
+            break;
+        }
+    }
+    // set index to 1 if saved mission index > available missions
+    if (navConfig()->general.waypoint_multi_mission_index > posControl.multiMissionCount) {
+        navConfigMutable()->general.waypoint_multi_mission_index = 1;
+    }
+    /* load mission on boot */
+    if (navConfig()->general.waypoint_load_on_boot) {
+        loadNonVolatileWaypointList(false);
+    }
+#endif
 }
 
 /*-----------------------------------------------------------
