@@ -161,6 +161,8 @@ main_sources(COMMON_SRC
     drivers/compass/compass_rm3100.h
     drivers/compass/compass_vcm5883.c
     drivers/compass/compass_vcm5883.h
+    drivers/compass/compass_mlx90393.c
+    drivers/compass/compass_mlx90393.h
     drivers/compass/compass_msp.c
     drivers/compass/compass_msp.h
 
