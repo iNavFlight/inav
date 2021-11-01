@@ -166,8 +166,18 @@ Please note that this is *not* the motor PWM5/PWM6 pins, but small surface mount
 
 ### Omnibus F4 v3/v4/v5 SoftwareSerial Connections
 
-The SOFTSERIAL1 is an uni-directional port mapped to UART6-TX pin.
+Softserial mappings can be selected by choosing between different build targets.
+Some of these can be used for Smartport, FPort, or other inverted protocols.
+
+OMNIBUSF4V3: Softserial1 on UART6-TX pin.
+OMNIBUSF4V3_S6_SS: Softserial1 RX or TX on S6 (motor 6)
+OMNIBUSF4V3_S5_S6_2SS: Softserial1 on S5 RX or TX (motor 5) and Softserial2 on S6 (motor 6)
+OMNIBUSF4V3_S5S6_SS: Softserial1 on S5/RX and S6/TX
+
+With the OMNIBUSF4V3 target, SOFTSERIAL1 is an uni-directional port mapped to UART6-TX pin.
 When enabled, the UART6 is still available as hardware port but it's then RX-only port (good for e.g. receiving S.BUS input). TX instead is controlled in software and can be used for transmitting one-way telemetry (e.g. LTM). Please note that UART6-TX line passes programmable inverter on those boards, so it is a pure output-only port. SmartPort/FPort telemetry requires bi-directional communication, so it is not possible on this port without hardware modification (bypassing the inverter).
+
+SmartPort / FPort is possible without a hardware inverter by using one of the OMNIBUSF4V3___SS builds and connecting SmartPort to the motor 5 or 6 pad.
 
 ## Where to buy:
 
