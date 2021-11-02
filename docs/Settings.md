@@ -3864,7 +3864,7 @@ If set to ON, waypoints will be automatically loaded from EEPROM to the FC durin
 
 ### nav_wp_multi_mission_index
 
-Index of mission selected from multi mission WP entry. 1 is the first useable WP mission in the entry. Limited to a maximum of 9 missions. Loading mission index 0 resets all missions (no mission is loaded).
+Index of mission selected from multi mission WP entry loaded in flight controller. 1 is the first useable WP mission in the entry. Limited to a maximum of 9 missions. Set index to 0 to display missions loaded via telemetry in OSD Mission field.
 
 | Default | Min | Max |
 | --- | --- | --- |

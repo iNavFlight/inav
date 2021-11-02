@@ -2889,7 +2889,9 @@ int getWaypointCount(void)
 
 void selectMultiMissionIndex(int8_t increment)
 {
-    navConfigMutable()->general.waypoint_multi_mission_index = constrain(navConfigMutable()->general.waypoint_multi_mission_index + increment, 0, posControl.multiMissionCount);
+    if (posControl.multiMissionCount > 1) {     // stick selection only active when multi mission loaded
+        navConfigMutable()->general.waypoint_multi_mission_index = constrain(navConfigMutable()->general.waypoint_multi_mission_index + increment, 0, posControl.multiMissionCount);
+    }
 }
 
 void setMultiMissionOnArm(void)

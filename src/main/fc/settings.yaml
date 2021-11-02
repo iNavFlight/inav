@@ -2443,7 +2443,7 @@ groups:
         field: general.waypoint_safe_distance
         max: 65000
       - name: nav_wp_multi_mission_index
-        description: "Index of mission selected from multi mission WP entry. 1 is the first useable WP mission in the entry. Limited to a maximum of 9 missions. Loading mission index 0 resets all missions (no mission is loaded)."
+        description: "Index of mission selected from multi mission WP entry loaded in flight controller. 1 is the first useable WP mission in the entry. Limited to a maximum of 9 missions. Set index to 0 to display missions loaded via telemetry in OSD Mission field."
         default_value: 1
         field: general.waypoint_multi_mission_index
         min: 0
