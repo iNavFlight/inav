@@ -2995,8 +2995,8 @@ static bool osdDrawSingleElement(uint8_t item)
                         tfp_sprintf(buff, "M0/%u> 0WP", posControl.multiMissionCount);
                     }
                 }
-            } else {    // multi_mission_index 0 reserved for non NVM missions
-                tfp_sprintf(buff, "GSTN>%2uWP", posControl.waypointCount);
+            } else {    // multi_mission_index 0 - show active WP count
+                tfp_sprintf(buff, "WP CNT>%2u", posControl.waypointCount);
             }
             displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
             return true;
