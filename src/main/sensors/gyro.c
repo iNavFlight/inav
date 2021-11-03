@@ -103,14 +103,7 @@ EXTENDED_FASTRAM dynamicGyroNotchState_t dynamicGyroNotchState;
 
 #endif
 
-#ifdef USE_ALPHA_BETA_GAMMA_FILTER
-
-STATIC_FASTRAM filterApplyFnPtr abgFilterApplyFn;
-STATIC_FASTRAM alphaBetaGammaFilter_t abgFilter[XYZ_AXIS_COUNT];
-
-#endif
-
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 15);
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 0);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_lpf = SETTING_GYRO_HARDWARE_LPF_DEFAULT,
@@ -131,15 +124,9 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyroDynamicLpfMaxHz = SETTING_GYRO_DYN_LPF_MAX_HZ_DEFAULT,
     .gyroDynamicLpfCurveExpo = SETTING_GYRO_DYN_LPF_CURVE_EXPO_DEFAULT,
 #ifdef USE_DYNAMIC_FILTERS
-    .dynamicGyroNotchRange = SETTING_DYNAMIC_GYRO_NOTCH_RANGE_DEFAULT,
     .dynamicGyroNotchQ = SETTING_DYNAMIC_GYRO_NOTCH_Q_DEFAULT,
     .dynamicGyroNotchMinHz = SETTING_DYNAMIC_GYRO_NOTCH_MIN_HZ_DEFAULT,
     .dynamicGyroNotchEnabled = SETTING_DYNAMIC_GYRO_NOTCH_ENABLED_DEFAULT,
-#endif
-#ifdef USE_ALPHA_BETA_GAMMA_FILTER
-    .alphaBetaGammaAlpha = SETTING_GYRO_ABG_ALPHA_DEFAULT,
-    .alphaBetaGammaBoost = SETTING_GYRO_ABG_BOOST_DEFAULT,
-    .alphaBetaGammaHalfLife = SETTING_GYRO_ABG_HALF_LIFE_DEFAULT,
 #endif
 #ifdef USE_GYRO_KALMAN
     .kalman_q = SETTING_SETPOINT_KALMAN_Q_DEFAULT,
@@ -313,23 +300,6 @@ static void gyroInitFilters(void)
         }
     }
 
-#ifdef USE_ALPHA_BETA_GAMMA_FILTER
-    
-    abgFilterApplyFn = (filterApplyFnPtr)nullFilterApply;
-
-    if (gyroConfig()->alphaBetaGammaAlpha > 0) {
-        abgFilterApplyFn = (filterApplyFnPtr)alphaBetaGammaFilterApply;
-        for (int axis = 0; axis < 3; axis++) {
-            alphaBetaGammaFilterInit(
-                &abgFilter[axis], 
-                gyroConfig()->alphaBetaGammaAlpha, 
-                gyroConfig()->alphaBetaGammaBoost, 
-                gyroConfig()->alphaBetaGammaHalfLife, 
-                getLooptime() * 1e-6f
-            );
-        }
-    } 
-#endif
 #ifdef USE_GYRO_KALMAN
     if (gyroConfig()->kalmanEnabled) {
         gyroKalmanInitialize(gyroConfig()->kalman_q);
@@ -384,7 +354,6 @@ bool gyroInit(void)
     gyroDataAnalyseStateInit(
         &gyroAnalyseState, 
         gyroConfig()->dynamicGyroNotchMinHz,
-        gyroConfig()->dynamicGyroNotchRange,
         getLooptime()
     );
 #endif
@@ -502,12 +471,6 @@ void FAST_CODE NOINLINE gyroFilter()
 
         gyroADCf = gyroLpf2ApplyFn((filter_t *) &gyroLpf2State[axis], gyroADCf);
         gyroADCf = notchFilter1ApplyFn(notchFilter1[axis], gyroADCf);
-
-#ifdef USE_ALPHA_BETA_GAMMA_FILTER
-        DEBUG_SET(DEBUG_GYRO_ALPHA_BETA_GAMMA, axis, gyroADCf);
-        gyroADCf = abgFilterApplyFn(&abgFilter[axis], gyroADCf);
-        DEBUG_SET(DEBUG_GYRO_ALPHA_BETA_GAMMA, axis + 3, gyroADCf);
-#endif
 
 #ifdef USE_DYNAMIC_FILTERS
         if (dynamicGyroNotchState.enabled) {

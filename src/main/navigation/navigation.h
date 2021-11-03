@@ -208,7 +208,8 @@ typedef struct navConfig_s {
         uint16_t waypoint_radius;                   // if we are within this distance to a waypoint then we consider it reached (distance is in cm)
         uint16_t waypoint_safe_distance;            // Waypoint mission sanity check distance
         bool     waypoint_load_on_boot;             // load waypoints automatically during boot
-        uint16_t max_auto_speed;                    // autonomous navigation speed cm/sec
+        uint16_t auto_speed;                        // autonomous navigation speed cm/sec
+        uint16_t max_auto_speed;                    // maximum allowed autonomous navigation speed cm/sec
         uint16_t max_auto_climb_rate;               // max vertical speed limitation cm/sec
         uint16_t max_manual_speed;                  // manual velocity control max horizontal speed
         uint16_t max_manual_climb_rate;             // manual velocity control max vertical speed
@@ -219,7 +220,7 @@ typedef struct navConfig_s {
         uint16_t emerg_descent_rate;                // emergency landing descent rate
         uint16_t rth_altitude;                      // altitude to maintain when RTH is active (depends on rth_alt_control_mode) (cm)
         uint16_t rth_home_altitude;                 // altitude to go to during RTH after the craft reached home (cm)
-        uint16_t rth_climb_first_stage_altitude;    // Altitude to reach before transitioning from climb first to turn first    
+        uint16_t rth_climb_first_stage_altitude;    // Altitude to reach before transitioning from climb first to turn first
         uint16_t min_rth_distance;                  // 0 Disables. Minimal distance for RTH in cm, otherwise it will just autoland
         uint16_t rth_abort_threshold;               // Initiate emergency landing if during RTH we get this much [cm] away from home
         uint16_t max_terrain_follow_altitude;       // Max altitude to be used in SURFACE TRACKING mode
