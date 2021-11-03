@@ -61,8 +61,6 @@ void targetConfiguration(void)
     gyroConfigMutable()->looptime = 1000;
     gyroConfigMutable()->gyro_lpf = 0;              // 256 Hz
     gyroConfigMutable()->gyro_main_lpf_hz = 90;
-    gyroConfigMutable()->gyro_notch_hz = 150;
-    gyroConfigMutable()->gyro_notch_cutoff = 80;
 
     accelerometerConfigMutable()->acc_hardware = ACC_MPU6500;
     accelerometerConfigMutable()->acc_lpf_hz = 15;
