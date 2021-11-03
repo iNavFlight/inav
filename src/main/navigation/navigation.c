@@ -1945,21 +1945,21 @@ void updateActualHorizontalPositionAndVelocity(bool estPosValid, bool estVelVali
     if (estPosValid && estVelValid) {
         posControl.flags.estPosStatus = EST_TRUSTED;
         posControl.flags.estVelStatus = EST_TRUSTED;
-        posControl.flags.horizontalPositionDataNew = 1;
+        posControl.flags.horizontalPositionDataNew = true;
         posControl.lastValidPositionTimeMs = millis();
     }
     // CASE 1: POS invalid, VEL valid
     else if (!estPosValid && estVelValid) {
         posControl.flags.estPosStatus = EST_USABLE;     // Pos usable, but not trusted
         posControl.flags.estVelStatus = EST_TRUSTED;
-        posControl.flags.horizontalPositionDataNew = 1;
+        posControl.flags.horizontalPositionDataNew = true;
         posControl.lastValidPositionTimeMs = millis();
     }
     // CASE 3: can't use pos/vel data
     else {
         posControl.flags.estPosStatus = EST_NONE;
         posControl.flags.estVelStatus = EST_NONE;
-        posControl.flags.horizontalPositionDataNew = 0;
+        posControl.flags.horizontalPositionDataNew = false;
     }
 
     //Update blackbox data
@@ -1993,13 +1993,13 @@ void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, flo
 
         posControl.flags.estAglStatus = surfaceStatus;  // Could be TRUSTED or USABLE
         posControl.flags.estAltStatus = EST_TRUSTED;
-        posControl.flags.verticalPositionDataNew = 1;
+        posControl.flags.verticalPositionDataNew = true;
         posControl.lastValidAltitudeTimeMs = millis();
     }
     else {
         posControl.flags.estAltStatus = EST_NONE;
         posControl.flags.estAglStatus = EST_NONE;
-        posControl.flags.verticalPositionDataNew = 0;
+        posControl.flags.verticalPositionDataNew = false;
     }
 
     if (ARMING_FLAG(ARMED)) {
@@ -2054,8 +2054,6 @@ void updateActualHeading(bool headingValid, int32_t newHeading)
     /* Precompute sin/cos of yaw angle */
     posControl.actualState.sinYaw = sin_approx(CENTIDEGREES_TO_RADIANS(newHeading));
     posControl.actualState.cosYaw = cos_approx(CENTIDEGREES_TO_RADIANS(newHeading));
-
-    posControl.flags.headingDataNew = 1;
 }
 
 /*-----------------------------------------------------------
@@ -3115,10 +3113,10 @@ void applyWaypointNavigationAndAltitudeHold(void)
 
     /* Consume position data */
     if (posControl.flags.horizontalPositionDataConsumed)
-        posControl.flags.horizontalPositionDataNew = 0;
+        posControl.flags.horizontalPositionDataNew = false;
 
     if (posControl.flags.verticalPositionDataConsumed)
-        posControl.flags.verticalPositionDataNew = 0;
+        posControl.flags.verticalPositionDataNew = false;
 
     //Update blackbox data
     if (posControl.flags.isAdjustingPosition)       navFlags |= (1 << 6);
@@ -3588,9 +3586,8 @@ void navigationInit(void)
     /* Initial state */
     posControl.navState = NAV_STATE_IDLE;
 
-    posControl.flags.horizontalPositionDataNew = 0;
-    posControl.flags.verticalPositionDataNew = 0;
-    posControl.flags.headingDataNew = 0;
+    posControl.flags.horizontalPositionDataNew = false;
+    posControl.flags.verticalPositionDataNew = false;
 
     posControl.flags.estAltStatus = EST_NONE;
     posControl.flags.estPosStatus = EST_NONE;
