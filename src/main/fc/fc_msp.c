@@ -1238,8 +1238,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, gyroConfig()->gyro_main_lpf_hz);
         sbufWriteU16(dst, pidProfile()->dterm_lpf_hz);
         sbufWriteU16(dst, pidProfile()->yaw_lpf_hz);
-        sbufWriteU16(dst, gyroConfig()->gyro_notch_hz);
-        sbufWriteU16(dst, gyroConfig()->gyro_notch_cutoff);
+        sbufWriteU16(dst, 0); //Was gyroConfig()->gyro_notch_hz
+        sbufWriteU16(dst, 1); //Was  gyroConfig()->gyro_notch_cutoff
         sbufWriteU16(dst, 0); //BF: pidProfile()->dterm_notch_hz
         sbufWriteU16(dst, 1); //pidProfile()->dterm_notch_cutoff
 
@@ -2176,8 +2176,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             pidProfileMutable()->dterm_lpf_hz = constrain(sbufReadU16(src), 0, 500);
             pidProfileMutable()->yaw_lpf_hz = constrain(sbufReadU16(src), 0, 255);
             if (dataSize >= 9) {
-                gyroConfigMutable()->gyro_notch_hz = constrain(sbufReadU16(src), 0, 500);
-                gyroConfigMutable()->gyro_notch_cutoff = constrain(sbufReadU16(src), 1, 500);
+                sbufReadU16(src); //Was gyroConfigMutable()->gyro_notch_hz
+                sbufReadU16(src); //Was gyroConfigMutable()->gyro_notch_cutoff
             } else {
                 return MSP_RESULT_ERROR;
             }
