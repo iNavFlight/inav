@@ -25,6 +25,7 @@ profile <index>
 You can change profiles using the programming frame work. This allows a lot of flexability in how you change profiles.
 
 For example, using a simple switch on channel 15.
+
 [![For example, using a simple switch](https://i.imgur.com/SS9CaaOl.png)](https://i.imgur.com/SS9CaaO.png)
 
 Or using the speed to change profiles. In this example: 
