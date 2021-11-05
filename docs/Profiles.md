@@ -5,7 +5,7 @@ A profile is a set of configuration settings.
 Currently three profiles are supported. The default profile is profile `1`.
 
 ## Changing profiles
-
+### Stick Commands
 Profiles can be selected using a GUI or the following stick combinations:
 
 | Profile | Throttle | Yaw   | Pitch  | Roll   |
@@ -14,12 +14,28 @@ Profiles can be selected using a GUI or the following stick combinations:
 | 2       | Down     | Left  | Up     | Middle |
 | 3       | Down     | Left  | Middle | Right  |
 
-The CLI `profile` command can also be used:
+### CLI
+The CLI `profile` command can also be used to change profiles:
 
 ```
 profile <index>
 ```
 
+### Programming (4.0.0 onwards)
+You can change profiles using the programming frame work. This allows a lot of flexability in how you change profiles.
+
+For example, using a simple switch on channel 15.
+[![For example, using a simple switch](https://i.imgur.com/SS9CaaOl.png)](https://i.imgur.com/SS9CaaO.png)
+
+Or using the speed to change profiles. In this example: 
+- when lower than 25 cm/s (basically not flying), profiles are not effected.
+- Below 2682 cm/s (60 mph | 97 Km/h) use Profile 1
+- Above 5364 cm/s (120 mph | 193 Km/h) use Profile 3
+- Between 2683 and 5364 cm/s, use Profile 2
+
+[![Using speed to change profiles](https://i.imgur.com/WjkuhhWl.png)](https://i.imgur.com/WjkuhhW.png)
+
+## Profile Contents
 The values contained within a profile can be seen by using the CLI `dump profile` command.
 
 e.g
