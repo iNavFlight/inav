@@ -61,12 +61,7 @@ FILE_COMPILE_FOR_SPEED
 #include "sensors/sensors.h"
 
 
-/**
- * In Cleanflight accelerometer is aligned in the following way:
- *      X-axis = Forward
- *      Y-axis = Left
- *      Z-axis = Up
- * Our INAV uses different convention
+/*
  *      X-axis = North/Forward
  *      Y-axis = East/Right
  *      Z-axis = Up
