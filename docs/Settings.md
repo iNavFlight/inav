@@ -3854,7 +3854,7 @@ Sets restart behaviour for a WP mission when interrupted mid mission. START from
 
 ### nav_wp_multi_mission_index
 
-Index of mission selected from multi mission WP entry loaded in flight controller. 1 is the first useable WP mission in the entry. Limited to a maximum of 9 missions. Set index to 0 to display missions loaded via telemetry in OSD Mission field.
+Index of mission selected from multi mission WP entry loaded in flight controller. 1 is the first useable WP mission in the entry. Limited to a maximum of 9 missions. Set index to 0 to display current active WP count in OSD Mission field.
 
 | Default | Min | Max |
 | --- | --- | --- |
