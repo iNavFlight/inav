@@ -173,9 +173,6 @@
 #define SDCARD_SDIO_DEVICE      SDIODEV_1
 #define SDCARD_SDIO_4BIT
 
-
-
-#define SDCARD_SDIO_DMA         DMA_TAG(2,3,4)
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
 // *************** ADC *****************************
