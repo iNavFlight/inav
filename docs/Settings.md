@@ -3852,6 +3852,16 @@ Sets restart behaviour for a WP mission when interrupted mid mission. START from
 
 ---
 
+### nav_wp_multi_mission_index
+
+Index of mission selected from multi mission WP entry loaded in flight controller. 1 is the first useable WP mission in the entry. Limited to a maximum of 9 missions. Set index to 0 to display missions loaded via telemetry in OSD Mission field.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 9 |
+
+---
+
 ### nav_wp_radius
 
 Waypoint radius [cm]. Waypoint would be considered reached if machine is within this radius
