@@ -121,13 +121,11 @@ static sdioPin_t sdioPin[SDIO_PIN_COUNT];
 
 void sdioPinConfigure(void)
 {
-    SDIODevice device = SDIO_CFG_TO_DEV(SDCARD_SDIO_DEVICE);
-
-    if (device == SDIOINVALID) {
+    if (SDCARD_SDIO_DEVICE == SDIOINVALID) {
         return;
     }
 
-    sdioHardware = &sdioPinHardware[device];
+    sdioHardware = &sdioPinHardware[SDCARD_SDIO_DEVICE];
 
     sdioPin[SDIO_PIN_CK] = sdioHardware[SDCARD_SDIO_DEVICE].sdioPinCK[0];
     sdioPin[SDIO_PIN_CMD] = sdioHardware[SDCARD_SDIO_DEVICE].sdioPinCMD[0];
