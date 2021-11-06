@@ -34,7 +34,7 @@
 	<xs:simpleType>
           <xs:restriction base="xs:integer">
 	    <xs:minInclusive value="0"/>
-	    <xs:maxInclusive value="19"/>
+	    <xs:maxInclusive value="20"/>
 	  </xs:restriction>
 	</xs:simpleType>
       </xs:attribute>
@@ -119,6 +119,7 @@
       <xs:attribute name="parameter3" type="xs:integer"/>
       <!--
 	   flag is not strictly required unless the WP is "Flyby Home"
+	   or the are multiple mission segments 'multi-mission', inav 4.0
       -->
       <xs:attribute name="flag" use="optional" type="xs:integer"/>
     </xs:complexType>
