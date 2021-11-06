@@ -40,7 +40,7 @@ Home for RTH is the position where vehicle was first armed. This position may be
 
 If barometer is NOT present, RTH will fly directly to home, altitude control here is up to pilot.
 
-If barometer is present, RTH will maintain altitude during the return and when home is reached. A copter will attempt automated landing.
+If barometer is present, RTH will maintain altitude during the return. When home is reached, a copter will attempt automated landing. An airplane will either loiter around the home position, or attempt an automated landing, depending on your settings.
 When deciding what altitude to maintain, RTH has 6 different modes of operation (controlled by *nav_rth_alt_mode* and *nav_rth_altitude* cli variables):
 * 0 (NAV_RTH_NO_ALT) - keep current altitude during whole RTH sequence (*nav_rth_altitude* is ignored)
 * 1 (NAV_RTH_EXTRA_ALT) - climb to current altitude plus extra margin prior to heading home (*nav_rth_altitude* defines the extra altitude (cm))
