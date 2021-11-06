@@ -234,15 +234,6 @@ groups:
         default_value: 32
         field: gyroMovementCalibrationThreshold
         max: 128
-      - name: gyro_notch_hz
-        field: gyro_notch_hz
-        max: 500
-        default_value: 0
-      - name: gyro_notch_cutoff
-        field: gyro_notch_cutoff
-        min: 1
-        max: 500
-        default_value: 1
       - name: gyro_main_lpf_hz
         description: "Software based gyro main lowpass filter. Value is cutoff frequency (Hz)"
         default_value: 60
@@ -2444,6 +2435,12 @@ groups:
         default_value: 10000
         field: general.waypoint_safe_distance
         max: 65000
+      - name: nav_wp_multi_mission_index
+        description: "Index of mission selected from multi mission WP entry loaded in flight controller. 1 is the first useable WP mission in the entry. Limited to a maximum of 9 missions. Set index to 0 to display missions loaded via telemetry in OSD Mission field."
+        default_value: 1
+        field: general.waypoint_multi_mission_index
+        min: 0
+        max: 9
       - name: nav_auto_speed
         description: "Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no specific WP speed set. [Multirotor only]"
         default_value: 300

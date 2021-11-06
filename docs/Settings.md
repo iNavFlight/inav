@@ -1612,26 +1612,6 @@ Defines the type of the main gyro LPF filter. Possible values: `PT1`, `BIQUAD`. 
 
 ---
 
-### gyro_notch_cutoff
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 1 | 1 | 500 |
-
----
-
-### gyro_notch_hz
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 |  | 500 |
-
----
-
 ### gyro_to_use
 
 _// TODO_
@@ -3879,6 +3859,16 @@ If set to ON, waypoints will be automatically loaded from EEPROM to the FC durin
 | Default | Min | Max |
 | --- | --- | --- |
 | OFF |  |  |
+
+---
+
+### nav_wp_multi_mission_index
+
+Index of mission selected from multi mission WP entry loaded in flight controller. 1 is the first useable WP mission in the entry. Limited to a maximum of 9 missions. Set index to 0 to display missions loaded via telemetry in OSD Mission field.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 9 |
 
 ---
 
