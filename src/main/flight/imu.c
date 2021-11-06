@@ -396,7 +396,7 @@ STATIC_UNIT_TESTED void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF
 
         static bool         vVelEF_initialized;
         static fpVector3_t  vVelEF_prev;
-        static fpVector3_t  vVelEF_AccIntegal;      // Integrated accelerometer value in EF
+        static fpVector3_t  vVelEF_AccIntegral;      // Integrated accelerometer value in EF
         static float        vVelEF_integralTime;
         static fpVector3_t  vVelEF_errorVector;
 
@@ -409,7 +409,7 @@ STATIC_UNIT_TESTED void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF
             // Rotate ACC from BF to EF and accumulate
             quaternionRotateVectorInv(&vAccEF, accBF, &orientation);
             vectorScale(&vAccEF, &vAccEF, dt);
-            vectorAdd(&vVelEF_AccIntegal, &vVelEF_AccIntegal, &vAccEF);
+            vectorAdd(&vVelEF_AccIntegral, &vVelEF_AccIntegral, &vAccEF);
             vVelEF_integralTime += dt;
 
             // Now if we got a GPS update we can calculate error vector according to
@@ -430,7 +430,7 @@ STATIC_UNIT_TESTED void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF
                 if (sqrtf(vectorNormSquared(&vTmp1)) > 0.01f) {
                     // Calculate acceleration by taking a derivative of acceleration integral
                     // This effectively calculates average acceleration, but in a way that's more immune to jitter
-                    vectorScale(&vTmp2, &vVelEF_AccIntegal, 1.0f / vVelEF_integralTime);
+                    vectorScale(&vTmp2, &vVelEF_AccIntegral, 1.0f / vVelEF_integralTime);
 
                     // At this point:
                     //   vTmp1 - average G-A vector in Earth frame as seen by the accelerometer
@@ -452,7 +452,7 @@ STATIC_UNIT_TESTED void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF
                 }
 
                 // Get ready for next GPS update
-                vectorZero(&vVelEF_AccIntegal);
+                vectorZero(&vVelEF_AccIntegral);
                 vVelEF_prev = *velEF;
                 vVelEF_integralTime = 0;
             }
@@ -461,7 +461,7 @@ STATIC_UNIT_TESTED void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF
         }
         else if (velEF && !vVelEF_initialized && velEFNew) {
             // Initial update - acquiring GPS
-            vectorZero(&vVelEF_AccIntegal);
+            vectorZero(&vVelEF_AccIntegral);
             vectorZero(&vVelEF_errorVector);
             vVelEF_prev = *velEF;
             vVelEF_integralTime = 0;
