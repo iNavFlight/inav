@@ -232,15 +232,6 @@ groups:
         default_value: 32
         field: gyroMovementCalibrationThreshold
         max: 128
-      - name: gyro_notch_hz
-        field: gyro_notch_hz
-        max: 500
-        default_value: 0
-      - name: gyro_notch_cutoff
-        field: gyro_notch_cutoff
-        min: 1
-        max: 500
-        default_value: 1
       - name: gyro_main_lpf_hz
         description: "Software based gyro main lowpass filter. Value is cutoff frequency (Hz)"
         default_value: 60

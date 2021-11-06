@@ -1612,26 +1612,6 @@ Defines the type of the main gyro LPF filter. Possible values: `PT1`, `BIQUAD`. 
 
 ---
 
-### gyro_notch_cutoff
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 1 | 1 | 500 |
-
----
-
-### gyro_notch_hz
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 |  | 500 |
-
----
-
 ### gyro_to_use
 
 _// TODO_
