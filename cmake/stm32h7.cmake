@@ -189,8 +189,6 @@ function(target_stm32h7xx)
 
         OPENOCD_TARGET stm32h7x
 
-        DISABLE_MSC # This should be temporary
-
 #        BOOTLOADER
 
         ${ARGN}
