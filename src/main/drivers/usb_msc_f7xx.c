@@ -109,8 +109,6 @@ uint8_t mscStart(void)
 
     USBD_Start(&USBD_Device);
 
-    persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_NONE);
-
     // NVIC configuration for SYSTick
     NVIC_DisableIRQ(SysTick_IRQn);
     NVIC_SetPriority(SysTick_IRQn, 0);
