@@ -2980,23 +2980,43 @@ static bool osdDrawSingleElement(uint8_t item)
 #if defined(USE_NAV)
     case OSD_MISSION:
         {
-            if (ARMING_FLAG(ARMED)){
-                // Limit field size when Armed, only show selected mission
-                tfp_sprintf(buff, "M%u       ", posControl.loadedMultiMissionIndex);
-            } else if (posControl.multiMissionCount && navConfig()->general.waypoint_multi_mission_index){
-                if (navConfig()->general.waypoint_multi_mission_index != posControl.loadedMultiMissionIndex) {
-                    tfp_sprintf(buff, "M%u/%u>LOAD", navConfig()->general.waypoint_multi_mission_index, posControl.multiMissionCount);
-                } else {
-                    // wpCount source for selected mission changes when Armed/Disarmed
-                    int8_t wpCount = posControl.loadedMultiMissionWPCount ? posControl.loadedMultiMissionWPCount : posControl.waypointCount;
-                    if (posControl.waypointListValid && wpCount > 0) {
-                        tfp_sprintf(buff, "M%u/%u>%2uWP", posControl.loadedMultiMissionIndex, posControl.multiMissionCount, wpCount);
-                    } else {
-                        tfp_sprintf(buff, "M0/%u> 0WP", posControl.multiMissionCount);
-                    }
+            if (IS_RC_MODE_ACTIVE(BOXPLANWPMISSION)) {
+                char buf[5];
+                switch (posControl.wpMissionPlannerStatus) {
+                case WP_PLAN_WAIT:
+                    strcpy(buf, "WAIT");
+                    break;
+                case WP_PLAN_SAVE:
+                    strcpy(buf, "SAVE");
+                    break;
+                case WP_PLAN_OK:
+                    strcpy(buf, " OK ");
+                    break;
+                case WP_PLAN_FULL:
+                    strcpy(buf, "FULL");
                 }
-            } else {    // multi_mission_index 0 - show active WP count
-                tfp_sprintf(buff, "WP CNT>%2u", posControl.waypointCount);
+                tfp_sprintf(buff, "%s>%2uWP", buf, posControl.wpPlannerActiveWPIndex);
+            } else if (posControl.wpPlannerActiveWPIndex){
+                tfp_sprintf(buff, "PLAN>%2uWP", posControl.waypointCount);  // mission planner mision active
+            } else {
+                if (ARMING_FLAG(ARMED)){
+                    // Limit field size when Armed, only show selected mission
+                    tfp_sprintf(buff, "M%u       ", posControl.loadedMultiMissionIndex);
+                } else if (posControl.multiMissionCount && navConfig()->general.waypoint_multi_mission_index){
+                    if (navConfig()->general.waypoint_multi_mission_index != posControl.loadedMultiMissionIndex) {
+                        tfp_sprintf(buff, "M%u/%u>LOAD", navConfig()->general.waypoint_multi_mission_index, posControl.multiMissionCount);
+                    } else {
+                        // wpCount source for selected mission changes after Arming (until next mission load)
+                        int8_t wpCount = posControl.loadedMultiMissionWPCount ? posControl.loadedMultiMissionWPCount : posControl.waypointCount;
+                        if (posControl.waypointListValid && wpCount > 0) {
+                            tfp_sprintf(buff, "M%u/%u>%2uWP", posControl.loadedMultiMissionIndex, posControl.multiMissionCount, wpCount);
+                        } else {
+                            tfp_sprintf(buff, "M0/%u> 0WP", posControl.multiMissionCount);
+                        }
+                    }
+                } else {    // multi_mission_index 0 - show active WP count
+                    tfp_sprintf(buff, "WP CNT>%2u", posControl.waypointCount);
+                }
             }
             displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
             return true;
@@ -3038,38 +3058,7 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 #endif // USE_ADC
 #endif // USE_POWER_LIMITS
-#if defined(USE_NAV)
-    case OSD_MISSION:
-        {
-            if (IS_RC_MODE_ACTIVE(BOXPLANWPMISSION)) {
-                char buf[5];
-                switch (posControl.wpMissionPlannerStatus) {
-                case WP_PLAN_WAIT:
-                    strcpy(buf, "WAIT");
-                    break;
-                case WP_PLAN_SAVE:
-                    strcpy(buf, "SAVE");
-                    break;
-                case WP_PLAN_OK:
-                    strcpy(buf, " OK ");
-                    break;
-                case WP_PLAN_FULL:
-                    strcpy(buf, "FULL");
-                }
-                tfp_sprintf(buff, "%s>%2uWP", buf, posControl.wpPlannerActiveWPIndex);
-            } else if (!ARMING_FLAG(ARMED)) {
-                if (posControl.wpPlannerActiveWPIndex){
-                    tfp_sprintf(buff, "PLAN>%2uWP", posControl.waypointCount);  // mission planner mision active
-                } else {
-                    tfp_sprintf(buff, "STOR>%2uWP", posControl.waypointCount);  // no mission planner, show eeprom WP load state
-                }
-            } else {
-                tfp_sprintf(buff, "%2uWP     ", posControl.waypointCount);  // only show WP count when armed with planner mode off
-            }
-            displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
-            return true;
-        }
-#endif  //USE NAV
+
     default:
         return false;
     }
