@@ -298,7 +298,7 @@ static void imuCheckAndResetOrientationQuaternion(const fpQuaternion_t * quat, c
 #endif
 }
 
-static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVector3_t * accBF, const fpVector3_t * magBF, bool useCOG, float courseOverGround, float accWScaler, float magWScaler, const fpVector3_t * velEF, bool velEFNew)
+STATIC_UNIT_TESTED void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVector3_t * accBF, const fpVector3_t * magBF, bool useCOG, float courseOverGround, float accWScaler, float magWScaler, const fpVector3_t * velEF, bool velEFNew)
 {
     STATIC_FASTRAM fpVector3_t vGyroDriftEstimate = { 0 };
 

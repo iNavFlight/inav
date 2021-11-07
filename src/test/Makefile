@@ -198,8 +198,13 @@ $(OBJECT_DIR)/flight_imu_unittest.o : \
 $(OBJECT_DIR)/flight_imu_unittest : \
 	$(OBJECT_DIR)/flight/imu.o \
 	$(OBJECT_DIR)/flight_imu_unittest.o \
-    $(OBJECT_DIR)/common/filter.o \
+	$(OBJECT_DIR)/build/debug.o \
 	$(OBJECT_DIR)/common/maths.o \
+	$(OBJECT_DIR)/common/calibration.o \
+	$(OBJECT_DIR)/common/filter.o \
+	$(OBJECT_DIR)/drivers/accgyro/accgyro_fake.o \
+	$(OBJECT_DIR)/sensors/gyro.o \
+	$(OBJECT_DIR)/sensors/boardalignment.o \
 	$(OBJECT_DIR)/gtest_main.a
 
 	$(CXX) $(CXX_FLAGS) $^ -o $(OBJECT_DIR)/$@
