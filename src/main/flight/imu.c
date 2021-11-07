@@ -660,7 +660,8 @@ static void imuCalculateEstimatedAttitude(float dT)
 #endif
 
     bool useGPSVelEF = isImuHeadingValid() && sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat>8 && gpsSol.flags.validVelNE && gpsSol.flags.validVelD;
-    fpVector3_t gpsVelEF = { .v = { gpsSol.velNED[X], gpsSol.velNED[Y], gpsSol.velNED[Z] } };
+    // Earth frame of IMU has y pointing west instead of east
+    fpVector3_t gpsVelEF = { .v = { gpsSol.velNED[X], -gpsSol.velNED[Y], gpsSol.velNED[Z] } };
     fpVector3_t measuredMagBF = { .v = { mag.magADC[X], mag.magADC[Y], mag.magADC[Z] } };
 
     const float magWeight = imuGetPGainScaleFactor() * 1.0f;
