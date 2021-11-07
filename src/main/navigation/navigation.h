@@ -142,6 +142,12 @@ typedef enum {
     ON_FW_SPIRAL,
 } navRTHClimbFirst_e;
 
+typedef enum {
+    WP_MISSION_START,
+    WP_MISSION_RESUME,
+    WP_MISSION_SWITCH,
+} navMissionRestart_e;
+
 typedef struct positionEstimationConfig_s {
     uint8_t automatic_mag_declination;
     uint8_t reset_altitude_type; // from nav_reset_type_e
@@ -197,13 +203,16 @@ typedef struct navConfig_s {
             uint8_t nav_overrides_motor_stop;   // Autonomous modes override motor_stop setting and user command to stop motor
             uint8_t safehome_usage_mode;        // Controls when safehomes are used
             uint8_t soaring_motor_stop;         // stop motor when Soaring mode enabled
+            uint8_t waypoint_mission_restart;   // Waypoint mission restart action
         } flags;
 
         uint8_t  pos_failure_timeout;           // Time to wait before switching to emergency landing (0 - disable)
         uint16_t waypoint_radius;               // if we are within this distance to a waypoint then we consider it reached (distance is in cm)
         uint16_t waypoint_safe_distance;        // Waypoint mission sanity check distance
+        uint8_t  waypoint_multi_mission_index;  // Index of mission to be loaded in multi mission entry
         bool     waypoint_load_on_boot;         // load waypoints automatically during boot
-        uint16_t max_auto_speed;                // autonomous navigation speed cm/sec
+        uint16_t auto_speed;                    // autonomous navigation speed cm/sec
+        uint16_t max_auto_speed;                // maximum allowed autonomous navigation speed cm/sec
         uint16_t max_auto_climb_rate;           // max vertical speed limitation cm/sec
         uint16_t max_manual_speed;              // manual velocity control max horizontal speed
         uint16_t max_manual_climb_rate;         // manual velocity control max vertical speed
@@ -460,8 +469,10 @@ bool isWaypointListValid(void);
 void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData);
 void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData);
 void resetWaypointList(void);
-bool loadNonVolatileWaypointList(bool);
+bool loadNonVolatileWaypointList(bool clearIfLoaded);
 bool saveNonVolatileWaypointList(void);
+void selectMultiMissionIndex(int8_t increment);
+void setMultiMissionOnArm(void);
 
 float getFinalRTHAltitude(void);
 int16_t fixedWingPitchToThrottleCorrection(int16_t pitch, timeUs_t currentTimeUs);

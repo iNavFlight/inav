@@ -25,14 +25,15 @@
 #include "arm_math.h"
 #include "common/filter.h"
 
+/*
+ * Current code works only with 64 window size. Changing it do a different size would require
+ * adapting the gyroDataAnalyseUpdate in STEP_ARM_CFFT_F32 step
+ */
 #define FFT_WINDOW_SIZE 64
 
 typedef struct gyroAnalyseState_s {
     // accumulator for oversampled data => no aliasing and less noise
-    uint8_t sampleCount;
-    uint8_t maxSampleCount;
-    float maxSampleCountRcp;
-    float oversampledGyroAccumulator[XYZ_AXIS_COUNT];
+    float currentSample[XYZ_AXIS_COUNT];
 
     // downsampled gyro data circular buffer for frequency analysis
     uint8_t circularBufferIdx;
