@@ -2483,6 +2483,11 @@ static bool osdDrawSingleElement(uint8_t item)
         #ifdef USE_PITOT
             buff[0] = SYM_AIR;
             osdFormatVelocityStr(buff + 1, pitot.airSpeed, false, false);
+
+            if ((osdConfig()->airspeed_alarm_min != 0 && pitot.airSpeed < osdConfig()->airspeed_alarm_min) ||
+                (osdConfig()->airspeed_alarm_max != 0 && pitot.airSpeed > osdConfig()->airspeed_alarm_max)) {
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            }
         #else
             return false;
         #endif
@@ -2980,23 +2985,43 @@ static bool osdDrawSingleElement(uint8_t item)
 #if defined(USE_NAV)
     case OSD_MISSION:
         {
-            if (ARMING_FLAG(ARMED)){
-                // Limit field size when Armed, only show selected mission
-                tfp_sprintf(buff, "M%u       ", posControl.loadedMultiMissionIndex);
-            } else if (posControl.multiMissionCount && navConfig()->general.waypoint_multi_mission_index){
-                if (navConfig()->general.waypoint_multi_mission_index != posControl.loadedMultiMissionIndex) {
-                    tfp_sprintf(buff, "M%u/%u>LOAD", navConfig()->general.waypoint_multi_mission_index, posControl.multiMissionCount);
-                } else {
-                    // wpCount source for selected mission changes when Armed/Disarmed
-                    int8_t wpCount = posControl.loadedMultiMissionWPCount ? posControl.loadedMultiMissionWPCount : posControl.waypointCount;
-                    if (posControl.waypointListValid && wpCount > 0) {
-                        tfp_sprintf(buff, "M%u/%u>%2uWP", posControl.loadedMultiMissionIndex, posControl.multiMissionCount, wpCount);
-                    } else {
-                        tfp_sprintf(buff, "M0/%u> 0WP", posControl.multiMissionCount);
-                    }
+            if (IS_RC_MODE_ACTIVE(BOXPLANWPMISSION)) {
+                char buf[5];
+                switch (posControl.wpMissionPlannerStatus) {
+                case WP_PLAN_WAIT:
+                    strcpy(buf, "WAIT");
+                    break;
+                case WP_PLAN_SAVE:
+                    strcpy(buf, "SAVE");
+                    break;
+                case WP_PLAN_OK:
+                    strcpy(buf, " OK ");
+                    break;
+                case WP_PLAN_FULL:
+                    strcpy(buf, "FULL");
                 }
-            } else {    // multi_mission_index 0 - show active WP count
-                tfp_sprintf(buff, "WP CNT>%2u", posControl.waypointCount);
+                tfp_sprintf(buff, "%s>%2uWP", buf, posControl.wpPlannerActiveWPIndex);
+            } else if (posControl.wpPlannerActiveWPIndex){
+                tfp_sprintf(buff, "PLAN>%2uWP", posControl.waypointCount);  // mission planner mision active
+            } else {
+                if (ARMING_FLAG(ARMED)){
+                    // Limit field size when Armed, only show selected mission
+                    tfp_sprintf(buff, "M%u       ", posControl.loadedMultiMissionIndex);
+                } else if (posControl.multiMissionCount && navConfig()->general.waypoint_multi_mission_index){
+                    if (navConfig()->general.waypoint_multi_mission_index != posControl.loadedMultiMissionIndex) {
+                        tfp_sprintf(buff, "M%u/%u>LOAD", navConfig()->general.waypoint_multi_mission_index, posControl.multiMissionCount);
+                    } else {
+                        // wpCount source for selected mission changes after Arming (until next mission load)
+                        int8_t wpCount = posControl.loadedMultiMissionWPCount ? posControl.loadedMultiMissionWPCount : posControl.waypointCount;
+                        if (posControl.waypointListValid && wpCount > 0) {
+                            tfp_sprintf(buff, "M%u/%u>%2uWP", posControl.loadedMultiMissionIndex, posControl.multiMissionCount, wpCount);
+                        } else {
+                            tfp_sprintf(buff, "M0/%u> 0WP", posControl.multiMissionCount);
+                        }
+                    }
+                } else {    // multi_mission_index 0 - show active WP count
+                    tfp_sprintf(buff, "WP CNT>%2u", posControl.waypointCount);
+                }
             }
             displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
             return true;
@@ -3167,6 +3192,10 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
 #endif
 #ifdef USE_TEMPERATURE_SENSOR
     .temp_label_align = SETTING_OSD_TEMP_LABEL_ALIGN_DEFAULT,
+#endif
+#ifdef USE_PITOT
+    .airspeed_alarm_min = SETTING_OSD_AIRSPEED_ALARM_MIN_DEFAULT,
+    .airspeed_alarm_max = SETTING_OSD_AIRSPEED_ALARM_MAX_DEFAULT,
 #endif
 
     .video_system = SETTING_OSD_VIDEO_SYSTEM_DEFAULT,
@@ -4244,6 +4273,11 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     if (FLIGHT_MODE(SOARING_MODE)) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_NAV_SOARING);
                     }
+#if defined(USE_NAV)
+                    if (posControl.flags.wpMissionPlannerActive) {
+                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_MISSION_PLANNER);
+                    }
+#endif
                 }
             }
         } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {

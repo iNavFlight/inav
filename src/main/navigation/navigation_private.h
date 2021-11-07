@@ -93,6 +93,8 @@ typedef struct navigationFlags_s {
     // Failsafe actions
     bool forcedRTHActivated;
     bool forcedEmergLandingActivated;
+
+    bool wpMissionPlannerActive;               // Activation status of WP mission planner
 } navigationFlags_t;
 
 typedef struct {
@@ -360,6 +362,11 @@ typedef struct {
     int8_t                      geoWaypointCount;           // total geospatial WPs in mission
     bool                        wpMissionRestart;           // mission restart from first waypoint
 
+    /* WP Mission planner */
+    int8_t                      wpMissionPlannerStatus;     // WP save status for setting in flight WP mission planner
+    int8_t                      wpPlannerActiveWPIndex;
+
+    /* Multi Missions */
     int8_t                      multiMissionCount;          // number of missions in multi mission entry
     int8_t                      loadedMultiMissionIndex;    // index of selected multi mission
     int8_t                      loadedMultiMissionStartWP;  // selected multi mission start WP
