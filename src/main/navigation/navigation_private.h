@@ -358,18 +358,19 @@ typedef struct {
     bool                        waypointListValid;
     int8_t                      waypointCount;
     int8_t                      geoWaypointCount;           // total geospatial WPs in mission
+    bool                        wpMissionRestart;           // mission restart from first waypoint
 
     int8_t                      multiMissionCount;          // number of missions in multi mission entry
     int8_t                      loadedMultiMissionIndex;    // index of selected multi mission
     int8_t                      loadedMultiMissionStartWP;  // selected multi mission start WP
     int8_t                      loadedMultiMissionWPCount;  // number of WPs in selected multi mission
 
-    navWaypointPosition_t       activeWaypoint;    // Local position and initial bearing, filled on waypoint activation
+    navWaypointPosition_t       activeWaypoint;     // Local position and initial bearing, filled on waypoint activation
     int8_t                      activeWaypointIndex;
-    float                       wpInitialAltitude; // Altitude at start of WP
-    float                       wpInitialDistance; // Distance when starting flight to WP
-    float                       wpDistance;        // Distance to active WP
-    timeMs_t                    wpReachedTime;     // Time the waypoint was reached
+    float                       wpInitialAltitude;  // Altitude at start of WP
+    float                       wpInitialDistance;  // Distance when starting flight to WP
+    float                       wpDistance;         // Distance to active WP
+    timeMs_t                    wpReachedTime;      // Time the waypoint was reached
 
     /* Internals & statistics */
     int16_t                     rcAdjustment[4];
