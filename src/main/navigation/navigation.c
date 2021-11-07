@@ -3566,6 +3566,11 @@ void missionPlannerSetWaypoint(void)
     if (!boxWPModeIsReset || !IS_RC_MODE_ACTIVE(BOXNAVWP)) {
         return;
     }
+
+    if (!posControl.wpPlannerActiveWPIndex) {   // reset existing mission data before adding first WP
+        resetWaypointList();
+    }
+
     gpsLocation_t wpLLH;
     geoConvertLocalToGeodetic(&wpLLH, &posControl.gpsOrigin, &navGetCurrentActualPositionAndVelocity()->pos);
 
