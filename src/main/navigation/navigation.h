@@ -143,6 +143,13 @@ typedef enum {
 } navRTHClimbFirst_e;
 
 typedef enum {
+    WP_PLAN_WAIT,
+    WP_PLAN_SAVE,
+    WP_PLAN_OK,
+    WP_PLAN_FULL,
+} wpMissionPlannerStatus_e;
+
+typedef enum {
     WP_MISSION_START,
     WP_MISSION_RESUME,
     WP_MISSION_SWITCH,
@@ -202,6 +209,7 @@ typedef struct navConfig_s {
             uint8_t rth_alt_control_override;   // Override RTH Altitude and Climb First settings using Pitch and Roll stick
             uint8_t nav_overrides_motor_stop;   // Autonomous modes override motor_stop setting and user command to stop motor
             uint8_t safehome_usage_mode;        // Controls when safehomes are used
+            uint8_t mission_planner_reset;      // Allow WP Mission Planner reset using mode toggle (resets WPs to 0)
             uint8_t waypoint_mission_restart;   // Waypoint mission restart action
         } flags;
 
