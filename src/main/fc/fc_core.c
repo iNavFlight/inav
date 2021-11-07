@@ -406,7 +406,7 @@ void annexCode(float dT)
             DEBUG_SET(DEBUG_RATE_DYNAMICS, 4, rcCommand[YAW]);
             rcCommand[YAW] = applyRateDynamics(rcCommand[YAW], YAW, dT);
             DEBUG_SET(DEBUG_RATE_DYNAMICS, 5, rcCommand[YAW]);
-            
+
         }
 
         //Compute THROTTLE command
@@ -515,6 +515,8 @@ void releaseSharedTelemetryPorts(void) {
 
 void tryArm(void)
 {
+    setMultiMissionOnArm();
+
     updateArmingStatus();
 
 #ifdef USE_DSHOT

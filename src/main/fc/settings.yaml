@@ -178,6 +178,9 @@ tables:
   - name: nav_rth_climb_first
     enum: navRTHClimbFirst_e
     values: ["OFF", "ON", "ON_FW_SPIRAL"]
+  - name: nav_wp_mission_restart
+    enum: navMissionRestart_e
+    values: ["START", "RESUME", "SWITCH"]
   - name: djiRssiSource
     values: ["RSSI", "CRSF_LQ"]
     enum: djiRssiSource_e
@@ -2433,6 +2436,17 @@ groups:
         default_value: 10000
         field: general.waypoint_safe_distance
         max: 65000
+      - name: nav_wp_mission_restart
+        description: "Sets restart behaviour for a WP mission when interrupted mid mission. START from first WP, RESUME from last active WP or SWITCH between START and RESUME each time WP Mode is reselected ON. SWITCH effectively allows resuming once only from a previous mid mission waypoint after which the mission will restart from the first waypoint."
+        default_value: "RESUME"
+        field: general.flags.waypoint_mission_restart
+        table: nav_wp_mission_restart
+      - name: nav_wp_multi_mission_index
+        description: "Index of mission selected from multi mission WP entry loaded in flight controller. 1 is the first useable WP mission in the entry. Limited to a maximum of 9 missions. Set index to 0 to display current active WP count in OSD Mission field."
+        default_value: 1
+        field: general.waypoint_multi_mission_index
+        min: 0
+        max: 9
       - name: nav_auto_speed
         description: "Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no specific WP speed set. [Multirotor only]"
         default_value: 300
