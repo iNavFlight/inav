@@ -3218,7 +3218,20 @@ groups:
         condition: USE_TEMPERATURE_SENSOR
         table: osd_alignment
         type: uint8_t
-
+      - name: osd_airspeed_alarm_min
+        condition: USE_PITOT
+        description: "Airspeed under which the airspeed OSD element will start blinking (cm/s)"
+        default_value: 0
+        field: airspeed_alarm_min
+        min: 0
+        max: 27000 # (1000km/h * 1000 * 100 / 60 / 60)
+      - name: osd_airspeed_alarm_max
+        condition: USE_PITOT
+        description: "Airspeed above which the airspeed OSD element will start blinking (cm/s)"
+        default_value: 0
+        field: airspeed_alarm_max
+        min: 0
+        max: 27000 # (1000km/h * 1000 * 100 / 60 / 60)
       - name: osd_ahi_reverse_roll
         field: ahi_reverse_roll
         type: bool
