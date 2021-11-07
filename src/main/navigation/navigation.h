@@ -69,9 +69,6 @@ bool findNearestSafeHome(void);                  // Find nearest safehome
 #endif // defined(USE_SAFE_HOME)
 
 #if defined(USE_NAV)
-#if defined(USE_BLACKBOX)
-#define NAV_BLACKBOX
-#endif
 
 #ifndef NAV_MAX_WAYPOINTS
 #define NAV_MAX_WAYPOINTS 15
@@ -145,6 +142,19 @@ typedef enum {
     ON_FW_SPIRAL,
 } navRTHClimbFirst_e;
 
+typedef enum {
+    WP_PLAN_WAIT,
+    WP_PLAN_SAVE,
+    WP_PLAN_OK,
+    WP_PLAN_FULL,
+} wpMissionPlannerStatus_e;
+
+typedef enum {
+    WP_MISSION_START,
+    WP_MISSION_RESUME,
+    WP_MISSION_SWITCH,
+} navMissionRestart_e;
+
 typedef struct positionEstimationConfig_s {
     uint8_t automatic_mag_declination;
     uint8_t reset_altitude_type; // from nav_reset_type_e
@@ -199,13 +209,17 @@ typedef struct navConfig_s {
             uint8_t rth_alt_control_override;   // Override RTH Altitude and Climb First settings using Pitch and Roll stick
             uint8_t nav_overrides_motor_stop;   // Autonomous modes override motor_stop setting and user command to stop motor
             uint8_t safehome_usage_mode;        // Controls when safehomes are used
+            uint8_t mission_planner_reset;      // Allow WP Mission Planner reset using mode toggle (resets WPs to 0)
+            uint8_t waypoint_mission_restart;   // Waypoint mission restart action
         } flags;
 
         uint8_t  pos_failure_timeout;           // Time to wait before switching to emergency landing (0 - disable)
         uint16_t waypoint_radius;               // if we are within this distance to a waypoint then we consider it reached (distance is in cm)
         uint16_t waypoint_safe_distance;        // Waypoint mission sanity check distance
+        uint8_t  waypoint_multi_mission_index;  // Index of mission to be loaded in multi mission entry
         bool     waypoint_load_on_boot;         // load waypoints automatically during boot
-        uint16_t max_auto_speed;                // autonomous navigation speed cm/sec
+        uint16_t auto_speed;                    // autonomous navigation speed cm/sec
+        uint16_t max_auto_speed;                // maximum allowed autonomous navigation speed cm/sec
         uint16_t max_auto_climb_rate;           // max vertical speed limitation cm/sec
         uint16_t max_manual_speed;              // manual velocity control max horizontal speed
         uint16_t max_manual_climb_rate;         // manual velocity control max vertical speed
@@ -461,8 +475,10 @@ bool isWaypointListValid(void);
 void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData);
 void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData);
 void resetWaypointList(void);
-bool loadNonVolatileWaypointList(void);
+bool loadNonVolatileWaypointList(bool clearIfLoaded);
 bool saveNonVolatileWaypointList(void);
+void selectMultiMissionIndex(int8_t increment);
+void setMultiMissionOnArm(void);
 
 float getFinalRTHAltitude(void);
 int16_t fixedWingPitchToThrottleCorrection(int16_t pitch, timeUs_t currentTimeUs);
@@ -508,11 +524,17 @@ geoAltitudeConversionMode_e waypointMissionAltConvMode(geoAltitudeDatumFlag_e da
 
 /* Distance/bearing calculation */
 bool navCalculatePathToDestination(navDestinationPath_t *result, const fpVector3_t * destinationPos);
+uint32_t distanceToFirstWP(void);
 
 /* Failsafe-forced RTH mode */
 void activateForcedRTH(void);
 void abortForcedRTH(void);
 rthState_e getStateOfForcedRTH(void);
+
+/* Failsafe-forced Emergency Landing mode */
+void activateForcedEmergLanding(void);
+void abortForcedEmergLanding(void);
+emergLandState_e getStateOfForcedEmergLanding(void);
 
 /* Getter functions which return data about the state of the navigation system */
 bool navigationInAutomaticThrottleMode(void);
@@ -569,6 +591,6 @@ extern int16_t navAccNEU[3];
 #define getEstimatedActualVelocity(axis) (0)
 #define navigationIsControllingThrottle() (0)
 #define navigationRTHAllowsLanding() (0)
-#define navigationGetHomeHeading(0)
+#define navigationGetHomeHeading() (0)
 
 #endif

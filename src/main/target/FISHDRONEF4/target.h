@@ -147,9 +147,6 @@
 
 // *************** RANGEFINDER *****************************
 // #define USE_RANGEFINDER
-// #define USE_RANGEFINDER_HCSR04
-// #define RANGEFINDER_HCSR04_TRIGGER_PIN       PB10
-// #define RANGEFINDER_HCSR04_ECHO_PIN          PB11
 // #define USE_RANGEFINDER_SRF10
 
 // *************** NAV *****************************

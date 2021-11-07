@@ -55,7 +55,6 @@
 #define USE_UART2 // Input - RX (PA3)
 #define USE_UART3 // Servo out - 10/RX (PB11) 11/TX (PB10)
 #define SERIAL_PORT_COUNT       4
-#define AVOID_UART2_FOR_PWM_PPM
 
 #define UART1_TX_PIN            PB6
 #define UART1_RX_PIN            PB7
@@ -92,11 +91,9 @@
 #define BIND_PIN                PA3
 
 // #define USE_RANGEFINDER
-// #define USE_RANGEFINDER_HCSR04
-// #define RANGEFINDER_HCSR04_TRIGGER_PIN       PA2   // PWM6 (PA2) - only 3.3v ( add a 1K Ohms resistor )
-// #define RANGEFINDER_HCSR04_ECHO_PIN          PB1   // PWM7 (PB1) - only 3.3v ( add a 1K Ohms resistor )
 
-#define DEFAULT_RX_TYPE         RX_TYPE_PPM
+
+#define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 
 // Number of available PWM outputs
 #define MAX_PWM_OUTPUT_PORTS    10

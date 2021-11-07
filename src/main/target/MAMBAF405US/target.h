@@ -57,7 +57,7 @@
 #define I2C2_SDA                        PB9
 #define DEFAULT_I2C_BUS                 BUS_I2C1
 
-#else 
+#else
 
 #define USE_I2C_DEVICE_2
 #define I2C2_SCL                        PB10        // SCL pad TX3
@@ -186,12 +186,11 @@
 #define TARGET_IO_PORTC                 0xffff
 #define TARGET_IO_PORTD                 (BIT(2))
 
-#define MAX_PWM_OUTPUT_PORTS            8
-#define TARGET_MOTOR_COUNT              4           
+#define MAX_PWM_OUTPUT_PORTS            4
+#define TARGET_MOTOR_COUNT              4
 
 // ESC-related features
 #define USE_DSHOT
-#define USE_SERIALSHOT
 #define USE_ESC_SENSOR
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
@@ -199,4 +198,3 @@
 #define PITOT_I2C_BUS                   DEFAULT_I2C_BUS
 #define RANGEFINDER_I2C_BUS             DEFAULT_I2C_BUS
 #define BNO055_I2C_BUS                  DEFAULT_I2C_BUS
-

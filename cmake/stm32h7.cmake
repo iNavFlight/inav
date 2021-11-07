@@ -142,6 +142,8 @@ main_sources(STM32H7_SRC
     target/system_stm32h7xx.c
 
     config/config_streamer_stm32h7.c
+    config/config_streamer_ram.c
+    config/config_streamer_extflash.c
 
     drivers/adc_stm32h7xx.c
     drivers/bus_i2c_hal.c

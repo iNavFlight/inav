@@ -5,6 +5,8 @@
 
 #include "build/build_config.h"
 
+#ifdef USE_PWM_DRIVER_PCA9685
+
 #include "common/time.h"
 #include "common/maths.h"
 
@@ -141,3 +143,5 @@ bool pca9685Initialize(void)
 
     return true;
 }
+
+#endif
