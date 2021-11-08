@@ -3588,7 +3588,7 @@ void missionPlannerSetWaypoint(void)
     }
 
     posControl.wpPlannerActiveWPIndex += 1;
-    posControl.waypointCount = posControl.wpPlannerActiveWPIndex;
+    posControl.waypointCount = posControl.geoWaypointCount = posControl.wpPlannerActiveWPIndex;
     posControl.wpMissionPlannerStatus = posControl.waypointCount == NAV_MAX_WAYPOINTS ? WP_PLAN_FULL : WP_PLAN_OK;
     boxWPModeIsReset = false;
 }
