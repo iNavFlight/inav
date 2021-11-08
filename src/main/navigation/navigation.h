@@ -98,6 +98,11 @@ enum {
 };
 
 enum {
+    NAV_RTH_CLIMB_STAGE_AT_LEAST        = 0, // Will climb to the lesser of rth_climb_first_stage_altitude or rth_altitude, before turning
+    NAV_RTH_CLIMB_STAGE_EXTRA           = 1, // Will climb the lesser of rth_climb_first_stage_altitude above the current altitude or to nav_rth_altitude, before turning
+};
+
+enum {
     NAV_HEADING_CONTROL_NONE = 0,
     NAV_HEADING_CONTROL_AUTO,
     NAV_HEADING_CONTROL_MANUAL
@@ -202,6 +207,7 @@ typedef struct navConfig_s {
             uint8_t user_control_mode;          // NAV_GPS_ATTI or NAV_GPS_CRUISE
             uint8_t rth_alt_control_mode;       // Controls the logic for choosing the RTH altitude
             uint8_t rth_climb_first;            // Controls the logic for initial RTH climbout
+            uint8_t rth_climb_first_stage_mode;  // To determine how rth_climb_first_stage_altitude is used
             uint8_t rth_tail_first;             // Return to home tail first
             uint8_t disarm_on_landing;          //
             uint8_t rth_allow_landing;          // Enable landing as last stage of RTH. Use constants in navRTHAllowLanding_e.
@@ -209,32 +215,34 @@ typedef struct navConfig_s {
             uint8_t rth_alt_control_override;   // Override RTH Altitude and Climb First settings using Pitch and Roll stick
             uint8_t nav_overrides_motor_stop;   // Autonomous modes override motor_stop setting and user command to stop motor
             uint8_t safehome_usage_mode;        // Controls when safehomes are used
+            uint8_t soaring_motor_stop;         // stop motor when Soaring mode enabled
             uint8_t mission_planner_reset;      // Allow WP Mission Planner reset using mode toggle (resets WPs to 0)
             uint8_t waypoint_mission_restart;   // Waypoint mission restart action
         } flags;
 
-        uint8_t  pos_failure_timeout;           // Time to wait before switching to emergency landing (0 - disable)
-        uint16_t waypoint_radius;               // if we are within this distance to a waypoint then we consider it reached (distance is in cm)
-        uint16_t waypoint_safe_distance;        // Waypoint mission sanity check distance
-        uint8_t  waypoint_multi_mission_index;  // Index of mission to be loaded in multi mission entry
-        bool     waypoint_load_on_boot;         // load waypoints automatically during boot
-        uint16_t auto_speed;                    // autonomous navigation speed cm/sec
-        uint16_t max_auto_speed;                // maximum allowed autonomous navigation speed cm/sec
-        uint16_t max_auto_climb_rate;           // max vertical speed limitation cm/sec
-        uint16_t max_manual_speed;              // manual velocity control max horizontal speed
-        uint16_t max_manual_climb_rate;         // manual velocity control max vertical speed
-        uint16_t land_minalt_vspd;              // Final RTH landing descent rate under minalt
-        uint16_t land_maxalt_vspd;              // RTH landing descent rate target at maxalt
-        uint16_t land_slowdown_minalt;          // Altitude to stop lowering descent rate during RTH descend
-        uint16_t land_slowdown_maxalt;          // Altitude to start lowering descent rate during RTH descend
-        uint16_t emerg_descent_rate;            // emergency landing descent rate
-        uint16_t rth_altitude;                  // altitude to maintain when RTH is active (depends on rth_alt_control_mode) (cm)
-        uint16_t rth_home_altitude;             // altitude to go to during RTH after the craft reached home (cm)
-        uint16_t min_rth_distance;              // 0 Disables. Minimal distance for RTH in cm, otherwise it will just autoland
-        uint16_t rth_abort_threshold;           // Initiate emergency landing if during RTH we get this much [cm] away from home
-        uint16_t max_terrain_follow_altitude;   // Max altitude to be used in SURFACE TRACKING mode
-        uint16_t safehome_max_distance;         // Max distance that a safehome is from the arming point
-        uint16_t max_altitude;                  // Max altitude when in AltHold mode (not Surface Following)
+        uint8_t  pos_failure_timeout;               // Time to wait before switching to emergency landing (0 - disable)
+        uint16_t waypoint_radius;                   // if we are within this distance to a waypoint then we consider it reached (distance is in cm)
+        uint16_t waypoint_safe_distance;            // Waypoint mission sanity check distance
+        uint8_t  waypoint_multi_mission_index;      // Index of mission to be loaded in multi mission entry
+        bool     waypoint_load_on_boot;             // load waypoints automatically during boot
+        uint16_t auto_speed;                        // autonomous navigation speed cm/sec
+        uint16_t max_auto_speed;                    // maximum allowed autonomous navigation speed cm/sec
+        uint16_t max_auto_climb_rate;               // max vertical speed limitation cm/sec
+        uint16_t max_manual_speed;                  // manual velocity control max horizontal speed
+        uint16_t max_manual_climb_rate;             // manual velocity control max vertical speed
+        uint16_t land_minalt_vspd;                  // Final RTH landing descent rate under minalt
+        uint16_t land_maxalt_vspd;                  // RTH landing descent rate target at maxalt
+        uint16_t land_slowdown_minalt;              // Altitude to stop lowering descent rate during RTH descend
+        uint16_t land_slowdown_maxalt;              // Altitude to start lowering descent rate during RTH descend
+        uint16_t emerg_descent_rate;                // emergency landing descent rate
+        uint16_t rth_altitude;                      // altitude to maintain when RTH is active (depends on rth_alt_control_mode) (cm)
+        uint16_t rth_home_altitude;                 // altitude to go to during RTH after the craft reached home (cm)
+        uint16_t rth_climb_first_stage_altitude;    // Altitude to reach before transitioning from climb first to turn first
+        uint16_t min_rth_distance;                  // 0 Disables. Minimal distance for RTH in cm, otherwise it will just autoland
+        uint16_t rth_abort_threshold;               // Initiate emergency landing if during RTH we get this much [cm] away from home
+        uint16_t max_terrain_follow_altitude;       // Max altitude to be used in SURFACE TRACKING mode
+        uint16_t safehome_max_distance;             // Max distance that a safehome is from the arming point
+        uint16_t max_altitude;                      // Max altitude when in AltHold mode (not Surface Following)
     } general;
 
     struct {
@@ -281,8 +289,9 @@ typedef struct navConfig_s {
         uint8_t  launch_max_angle;           // Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg]
         uint8_t  cruise_yaw_rate;            // Max yaw rate (dps) when CRUISE MODE is enabled
         bool     allow_manual_thr_increase;
-        bool    useFwNavYawControl;
-        uint8_t yawControlDeadband;
+        bool     useFwNavYawControl;
+        uint8_t  yawControlDeadband;
+        uint8_t  soaring_pitch_deadband;     // soaring mode pitch angle deadband (deg)
     } fw;
 } navConfig_t;
 
@@ -548,6 +557,8 @@ bool navigationIsControllingAltitude(void);
  */
 bool navigationRTHAllowsLanding(void);
 bool isWaypointMissionRTHActive(void);
+
+bool rthClimbStageActiveAndComplete(void);
 
 bool isNavLaunchEnabled(void);
 bool isFixedWingLaunchDetected(void);

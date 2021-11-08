@@ -63,6 +63,8 @@ tables:
     values: ["ATTI", "CRUISE"]
   - name: nav_rth_alt_mode
     values: ["CURRENT", "EXTRA", "FIXED", "MAX", "AT_LEAST", "AT_LEAST_LINEAR_DESCENT"]
+  - name: nav_rth_climb_first_stage_modes
+    values: ["AT_LEAST", "EXTRA"]
   - name: osd_unit
     values: ["IMPERIAL", "METRIC", "METRIC_MPH", "UK", "GA"]
     enum: osd_unit_e
@@ -2518,11 +2520,32 @@ groups:
         default_value: "ALL_NAV"
         field: general.flags.nav_overrides_motor_stop
         table: nav_overrides_motor_stop
+      - name: nav_fw_soaring_motor_stop
+        description: "Stops motor when Soaring mode enabled."
+        default_value: OFF
+        field: general.flags.soaring_motor_stop
+        type: bool
+      - name: nav_fw_soaring_pitch_deadband
+        description: "Pitch Angle deadband when soaring mode enabled (deg). Angle mode inactive within deadband allowing pitch to free float whilst soaring."
+        default_value: 5
+        field: fw.soaring_pitch_deadband
+        min: 0
+        max: 15
       - name: nav_rth_climb_first
         description: "If set to ON or ON_FW_SPIRAL aircraft will climb to nav_rth_altitude first before turning to head home. If set to OFF aircraft will turn and head home immediately climbing on the way. For a fixed wing ON will use a linear climb, ON_FW_SPIRAL will use a loiter turning climb with climb rate set by nav_auto_climb_rate, turn rate set by nav_fw_loiter_radius (ON_FW_SPIRAL is a fixed wing setting and behaves the same as ON for a multirotor)"
         default_value: "ON"
         field: general.flags.rth_climb_first
         table: nav_rth_climb_first
+      - name: nav_rth_climb_first_stage_mode
+        description: "This determines how rth_climb_first_stage_altitude is used. Default is AT_LEAST."
+        default_value: "AT_LEAST"
+        field: general.flags.rth_climb_first_stage_mode
+        table: nav_rth_climb_first_stage_modes
+      - name: nav_rth_climb_first_stage_altitude
+        description: "The altitude [cm] at which climb first will transition to turn first. How the altitude is used, is determined by nav_rth_climb_first_stage_mode. Default=0; feature disabled."
+        default_value: 0
+        field: general.rth_climb_first_stage_altitude
+        max: 65000
       - name: nav_rth_climb_ignore_emerg
         description: "If set to ON, aircraft will execute initial climb regardless of position sensor (GPS) status."
         default_value: OFF
