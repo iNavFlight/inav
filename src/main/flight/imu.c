@@ -298,7 +298,7 @@ static void imuCheckAndResetOrientationQuaternion(const fpQuaternion_t * quat, c
 #endif
 }
 
-static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVector3_t * accBF, const fpVector3_t * magBF, bool useCOG, float courseOverGround, float accWScaler, float magWScaler, const fpVector3_t * velEF, bool velEFNew)
+STATIC_UNIT_TESTED void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVector3_t * accBF, const fpVector3_t * magBF, bool useCOG, float courseOverGround, float accWScaler, float magWScaler, const fpVector3_t * velEF, bool velEFNew)
 {
     STATIC_FASTRAM fpVector3_t vGyroDriftEstimate = { 0 };
 
@@ -396,7 +396,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
 
         static bool         vVelEF_initialized;
         static fpVector3_t  vVelEF_prev;
-        static fpVector3_t  vVelEF_AccIntegal;      // Integrated accelerometer value in EF
+        static fpVector3_t  vVelEF_AccIntegral;      // Integrated accelerometer value in EF
         static float        vVelEF_integralTime;
         static fpVector3_t  vVelEF_errorVector;
 
@@ -409,7 +409,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
             // Rotate ACC from BF to EF and accumulate
             quaternionRotateVectorInv(&vAccEF, accBF, &orientation);
             vectorScale(&vAccEF, &vAccEF, dt);
-            vectorAdd(&vVelEF_AccIntegal, &vVelEF_AccIntegal, &vAccEF);
+            vectorAdd(&vVelEF_AccIntegral, &vVelEF_AccIntegral, &vAccEF);
             vVelEF_integralTime += dt;
 
             // Now if we got a GPS update we can calculate error vector according to
@@ -430,7 +430,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
                 if (sqrtf(vectorNormSquared(&vTmp1)) > 0.01f) {
                     // Calculate acceleration by taking a derivative of acceleration integral
                     // This effectively calculates average acceleration, but in a way that's more immune to jitter
-                    vectorScale(&vTmp2, &vVelEF_AccIntegal, 1.0f / vVelEF_integralTime);
+                    vectorScale(&vTmp2, &vVelEF_AccIntegral, 1.0f / vVelEF_integralTime);
 
                     // At this point:
                     //   vTmp1 - average G-A vector in Earth frame as seen by the accelerometer
@@ -452,7 +452,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
                 }
 
                 // Get ready for next GPS update
-                vectorZero(&vVelEF_AccIntegal);
+                vectorZero(&vVelEF_AccIntegral);
                 vVelEF_prev = *velEF;
                 vVelEF_integralTime = 0;
             }
@@ -461,7 +461,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
         }
         else if (velEF && !vVelEF_initialized && velEFNew) {
             // Initial update - acquiring GPS
-            vectorZero(&vVelEF_AccIntegal);
+            vectorZero(&vVelEF_AccIntegral);
             vectorZero(&vVelEF_errorVector);
             vVelEF_prev = *velEF;
             vVelEF_integralTime = 0;
@@ -660,7 +660,8 @@ static void imuCalculateEstimatedAttitude(float dT)
 #endif
 
     bool useGPSVelEF = isImuHeadingValid() && sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat>8 && gpsSol.flags.validVelNE && gpsSol.flags.validVelD;
-    fpVector3_t gpsVelEF = { .v = { gpsSol.velNED[X], gpsSol.velNED[Y], gpsSol.velNED[Z] } };
+    // Earth frame of IMU has y pointing west instead of east
+    fpVector3_t gpsVelEF = { .v = { gpsSol.velNED[X], -gpsSol.velNED[Y], gpsSol.velNED[Z] } };
     fpVector3_t measuredMagBF = { .v = { mag.magADC[X], mag.magADC[Y], mag.magADC[Z] } };
 
     const float magWeight = imuGetPGainScaleFactor() * 1.0f;
