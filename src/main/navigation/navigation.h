@@ -215,6 +215,7 @@ typedef struct navConfig_s {
             uint8_t rth_alt_control_override;   // Override RTH Altitude and Climb First settings using Pitch and Roll stick
             uint8_t nav_overrides_motor_stop;   // Autonomous modes override motor_stop setting and user command to stop motor
             uint8_t safehome_usage_mode;        // Controls when safehomes are used
+            uint8_t soaring_motor_stop;         // stop motor when Soaring mode enabled
             uint8_t mission_planner_reset;      // Allow WP Mission Planner reset using mode toggle (resets WPs to 0)
             uint8_t waypoint_mission_restart;   // Waypoint mission restart action
         } flags;
@@ -288,8 +289,9 @@ typedef struct navConfig_s {
         uint8_t  launch_max_angle;           // Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg]
         uint8_t  cruise_yaw_rate;            // Max yaw rate (dps) when CRUISE MODE is enabled
         bool     allow_manual_thr_increase;
-        bool    useFwNavYawControl;
-        uint8_t yawControlDeadband;
+        bool     useFwNavYawControl;
+        uint8_t  yawControlDeadband;
+        uint8_t  soaring_pitch_deadband;     // soaring mode pitch angle deadband (deg)
     } fw;
 } navConfig_t;
 
