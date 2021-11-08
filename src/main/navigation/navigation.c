@@ -3143,8 +3143,8 @@ void applyWaypointNavigationAndAltitudeHold(void)
     }
 
     /* Reset flags */
-    posControl.flags.horizontalPositionDataConsumed = 0;
-    posControl.flags.verticalPositionDataConsumed = 0;
+    posControl.flags.horizontalPositionDataConsumed = false;
+    posControl.flags.verticalPositionDataConsumed = false;
 
     /* Process controllers */
     navigationFSMStateFlags_t navStateFlags = navGetStateFlags(posControl.navState);
@@ -3644,7 +3644,7 @@ void navigationInit(void)
     posControl.flags.estHeadingStatus = EST_NONE;
     posControl.flags.estAglStatus = EST_NONE;
 
-    posControl.flags.forcedRTHActivated = 0;
+    posControl.flags.forcedRTHActivated = false;
     posControl.flags.forcedEmergLandingActivated = false;
     posControl.waypointCount = 0;
     posControl.activeWaypointIndex = 0;
