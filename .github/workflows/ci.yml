@@ -15,6 +15,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Setup environment
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: true
         run: |
           # This is the hash of the commit for the PR
           # when the action is triggered by PR, empty otherwise
