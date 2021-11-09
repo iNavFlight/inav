@@ -71,7 +71,6 @@ typedef enum {
 typedef struct navigationFlags_s {
     bool horizontalPositionDataNew;
     bool verticalPositionDataNew;
-    bool headingDataNew;
 
     bool horizontalPositionDataConsumed;
     bool verticalPositionDataConsumed;
@@ -91,7 +90,11 @@ typedef struct navigationFlags_s {
     bool isGCSAssistedNavigationReset;      // GCS control was disabled - indicate that so code could take action accordingly
     bool isTerrainFollowEnabled;            // Does iNav use rangefinder for terrain following (adjusting baro altitude target according to rangefinders readings)
 
+    // Failsafe actions
     bool forcedRTHActivated;
+    bool forcedEmergLandingActivated;
+
+    bool wpMissionPlannerActive;               // Activation status of WP mission planner
 } navigationFlags_t;
 
 typedef struct {
@@ -304,11 +307,12 @@ typedef struct {
 
 typedef struct {
     navigationHomeFlags_t   homeFlags;
-    navWaypointPosition_t   homePosition;       // Original home position and base altitude
-    float                   rthInitialAltitude; // Altitude at start of RTH
-    float                   rthFinalAltitude;   // Altitude at end of RTH approach
-    float                   rthInitialDistance; // Distance when starting flight home
-    fpVector3_t             homeTmpWaypoint;    // Temporary storage for home target
+    navWaypointPosition_t   homePosition;           // Original home position and base altitude
+    float                   rthInitialAltitude;     // Altitude at start of RTH, can include added margins and extra height
+    float                   rthClimbStageAltitude;  // Altitude at end of the climb phase
+    float                   rthFinalAltitude;       // Altitude at end of RTH approach
+    float                   rthInitialDistance;     // Distance when starting flight home
+    fpVector3_t             homeTmpWaypoint;        // Temporary storage for home target
 } rthState_t;
 
 typedef enum {
@@ -356,14 +360,25 @@ typedef struct {
     navWaypoint_t               waypointList[NAV_MAX_WAYPOINTS];
     bool                        waypointListValid;
     int8_t                      waypointCount;
-    int8_t                      geoWaypointCount;  // total geospatial WPs in mission
+    int8_t                      geoWaypointCount;           // total geospatial WPs in mission
+    bool                        wpMissionRestart;           // mission restart from first waypoint
 
-    navWaypointPosition_t       activeWaypoint;    // Local position and initial bearing, filled on waypoint activation
+    /* WP Mission planner */
+    int8_t                      wpMissionPlannerStatus;     // WP save status for setting in flight WP mission planner
+    int8_t                      wpPlannerActiveWPIndex;
+
+    /* Multi Missions */
+    int8_t                      multiMissionCount;          // number of missions in multi mission entry
+    int8_t                      loadedMultiMissionIndex;    // index of selected multi mission
+    int8_t                      loadedMultiMissionStartWP;  // selected multi mission start WP
+    int8_t                      loadedMultiMissionWPCount;  // number of WPs in selected multi mission
+
+    navWaypointPosition_t       activeWaypoint;     // Local position and initial bearing, filled on waypoint activation
     int8_t                      activeWaypointIndex;
-    float                       wpInitialAltitude; // Altitude at start of WP
-    float                       wpInitialDistance; // Distance when starting flight to WP
-    float                       wpDistance;        // Distance to active WP
-    timeMs_t                    wpReachedTime;     // Time the waypoint was reached
+    float                       wpInitialAltitude;  // Altitude at start of WP
+    float                       wpInitialDistance;  // Distance when starting flight to WP
+    float                       wpDistance;         // Distance to active WP
+    timeMs_t                    wpReachedTime;      // Time the waypoint was reached
 
     /* Internals & statistics */
     int16_t                     rcAdjustment[4];

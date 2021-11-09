@@ -92,6 +92,8 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXTURTLE, "TURTLE", 52 },
     { BOXNAVCRUISE, "NAV CRUISE", 53 },
     { BOXAUTOLEVEL, "AUTO LEVEL", 54 },
+    { BOXPLANWPMISSION, "WP PLANNER", 55 },
+    { BOXSOARING, "SOARING", 56 },
     { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
@@ -217,13 +219,13 @@ void initActiveBoxIds(void)
         activeBoxIds[activeBoxIdCount++] = BOXNAVRTH;
         activeBoxIds[activeBoxIdCount++] = BOXNAVWP;
         activeBoxIds[activeBoxIdCount++] = BOXHOMERESET;
+        activeBoxIds[activeBoxIdCount++] = BOXGCSNAV;
+        activeBoxIds[activeBoxIdCount++] = BOXPLANWPMISSION;
 
-        if (feature(FEATURE_GPS)) {
-            activeBoxIds[activeBoxIdCount++] = BOXGCSNAV;
-            if (STATE(AIRPLANE)) {
-                activeBoxIds[activeBoxIdCount++] = BOXNAVCOURSEHOLD;
-                activeBoxIds[activeBoxIdCount++] = BOXNAVCRUISE;
-            }
+        if (STATE(AIRPLANE)) {
+            activeBoxIds[activeBoxIdCount++] = BOXNAVCOURSEHOLD;
+            activeBoxIds[activeBoxIdCount++] = BOXNAVCRUISE;
+            activeBoxIds[activeBoxIdCount++] = BOXSOARING;
         }
     }
 
@@ -247,7 +249,7 @@ void initActiveBoxIds(void)
         if (!feature(FEATURE_FW_AUTOTRIM)) {
             activeBoxIds[activeBoxIdCount++] = BOXAUTOTRIM;
         }
-        
+
 #if defined(USE_AUTOTUNE_FIXED_WING)
         activeBoxIds[activeBoxIdCount++] = BOXAUTOTUNE;
 #endif
@@ -385,6 +387,8 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE)),   BOXMSPRCOVERRIDE);
 #endif
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXAUTOLEVEL)),       BOXAUTOLEVEL);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXPLANWPMISSION)),   BOXPLANWPMISSION);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXSOARING)),         BOXSOARING);
 
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
     for (uint32_t i = 0; i < activeBoxIdCount; i++) {

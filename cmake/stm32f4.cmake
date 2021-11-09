@@ -36,6 +36,8 @@ main_sources(STM32F4_SRC
     target/system_stm32f4xx.c
 
     config/config_streamer_stm32f4.c
+    config/config_streamer_ram.c
+    config/config_streamer_extflash.c
 
     drivers/adc_stm32f4xx.c
     drivers/adc_stm32f4xx.c
@@ -124,6 +126,7 @@ exclude_basenames(STM32F411_OR_F427_STDPERIPH_SRC ${STM32F411_OR_F427_STDPERIPH_
 set(STM32F411_COMPILE_DEFINITIONS
     STM32F411xE
     MCU_FLASH_SIZE=512
+    OPTIMIZATION -Os
 )
 
 function(target_stm32f411xe name)
@@ -132,9 +135,9 @@ function(target_stm32f411xe name)
         STARTUP startup_stm32f411xe.s
         SOURCES ${STM32F411_OR_F427_STDPERIPH_SRC}
         COMPILE_DEFINITIONS ${STM32F411_COMPILE_DEFINITIONS}
-        LINKER_SCRIPT stm32_flash_f411xe
+	LINKER_SCRIPT stm32_flash_f411xe
         SVD STM32F411
-        ${ARGN}
+	${ARGN}
     )
 endfunction()
 

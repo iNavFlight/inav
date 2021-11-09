@@ -39,8 +39,11 @@
 #define AVAILABLE_FIRMWARE_SPACE (FLASH_END - FIRMWARE_START_ADDRESS)
 
 extern uint8_t __firmware_start; // set via linker
+
+#if defined(CONFIG_IN_FLASH)
 extern uint8_t __config_start;
 extern uint8_t __config_end;
+#endif
 
 typedef struct {
     uint32_t magic;

@@ -25,7 +25,7 @@
 
 #include "platform.h"
 
-uint8_t cliMode = 0;
+bool cliMode = false;
 
 #include "blackbox/blackbox.h"
 
@@ -60,7 +60,6 @@ uint8_t cliMode = 0;
 #include "drivers/io_impl.h"
 #include "drivers/osd_symbols.h"
 #include "drivers/persistent.h"
-#include "drivers/rx_pwm.h"
 #include "drivers/sdcard/sdcard.h"
 #include "drivers/sensor.h"
 #include "drivers/serial.h"
@@ -119,6 +118,9 @@ uint8_t cliMode = 0;
 #include "sensors/opflow.h"
 #include "sensors/sensors.h"
 #include "sensors/temperature.h"
+#ifdef USE_ESC_SENSOR
+#include "sensors/esc_sensor.h"
+#endif
 
 #include "telemetry/frsky_d.h"
 #include "telemetry/telemetry.h"
@@ -159,9 +161,15 @@ static const char * const featureNames[] = {
     "OSD", "FW_LAUNCH", "FW_AUTOTRIM", NULL
 };
 
+#ifdef USE_BLACKBOX
+static const char * const blackboxIncludeFlagNames[] = {
+    "NAV_ACC", "NAV_POS", "NAV_PID", "MAG", "ACC", "ATTI", "RC_DATA", "RC_COMMAND", "MOTORS", NULL
+};
+#endif
+
 /* Sensor names (used in lookup tables for *_hardware settings and in status command output) */
 // sync with gyroSensor_e
-static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6050", "L3G4200D", "MPU3050", "L3GD20", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "FAKE"};
+static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6050", "MPU3050", "L3GD20", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"};
 
 // sync this with sensors_e
 static const char * const sensorTypeNames[] = {
@@ -473,7 +481,12 @@ static void dumpPgValue(const setting_t *value, uint8_t dumpMask)
         settingGetName(value, name);
         if (dumpMask & SHOW_DEFAULTS && !equalsDefault) {
             cliPrintf(defaultFormat, name);
-            printValuePointer(value, defaultValuePointer, 0);
+            // if the craftname has a leading space, then enclose the name in quotes
+            if (strcmp(name, "name") == 0 && ((const char *)valuePointer)[0] == ' ') {
+                cliPrintf("\"%s\"", (const char *)valuePointer);
+            } else {
+                printValuePointer(value, valuePointer, 0);
+            }
             cliPrintLinefeed();
         }
         cliPrintf(format, name);
@@ -1382,20 +1395,28 @@ static void printWaypoints(uint8_t dumpMask, const navWaypoint_t *navWaypoint, c
 
 static void cliWaypoints(char *cmdline)
 {
+    static int8_t multiMissionWPCounter = 0;
+
     if (isEmpty(cmdline)) {
         printWaypoints(DUMP_MASTER, posControl.waypointList, NULL);
     } else if (sl_strcasecmp(cmdline, "reset") == 0) {
         resetWaypointList();
     } else if (sl_strcasecmp(cmdline, "load") == 0) {
-        loadNonVolatileWaypointList();
+        loadNonVolatileWaypointList(true);
     } else if (sl_strcasecmp(cmdline, "save") == 0) {
         posControl.waypointListValid = false;
         for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {
             if (!(posControl.waypointList[i].action == NAV_WP_ACTION_WAYPOINT || posControl.waypointList[i].action == NAV_WP_ACTION_JUMP || posControl.waypointList[i].action == NAV_WP_ACTION_RTH || posControl.waypointList[i].action == NAV_WP_ACTION_HOLD_TIME || posControl.waypointList[i].action == NAV_WP_ACTION_LAND || posControl.waypointList[i].action == NAV_WP_ACTION_SET_POI || posControl.waypointList[i].action == NAV_WP_ACTION_SET_HEAD)) break;
             if (posControl.waypointList[i].flag == NAV_WP_FLAG_LAST) {
-                posControl.waypointCount = i + 1;
-                posControl.waypointListValid = true;
-                break;
+                if (posControl.multiMissionCount == 1) {
+                    posControl.waypointCount = i + 1;
+                    posControl.waypointListValid = true;
+                    multiMissionWPCounter = 0;
+                    posControl.multiMissionCount = 0;
+                    break;
+                } else {
+                    posControl.multiMissionCount -= 1;
+                }
             }
         }
         if (posControl.waypointListValid) {
@@ -1410,7 +1431,7 @@ static void cliWaypoints(char *cmdline)
         uint8_t validArgumentCount = 0;
         const char *ptr = cmdline;
         i = fastA2I(ptr);
-        if (i >= 0 && i < NAV_MAX_WAYPOINTS) {
+        if (i + multiMissionWPCounter >= 0 && i + multiMissionWPCounter < NAV_MAX_WAYPOINTS) {
             ptr = nextArg(ptr);
             if (ptr) {
                 action = fastA2I(ptr);
@@ -1463,14 +1484,25 @@ static void cliWaypoints(char *cmdline)
             } else if (!(action == 0 || action == NAV_WP_ACTION_WAYPOINT || action == NAV_WP_ACTION_RTH || action == NAV_WP_ACTION_JUMP || action == NAV_WP_ACTION_HOLD_TIME || action == NAV_WP_ACTION_LAND || action == NAV_WP_ACTION_SET_POI || action == NAV_WP_ACTION_SET_HEAD) || !(flag == 0 || flag == NAV_WP_FLAG_LAST || flag == NAV_WP_FLAG_HOME)) {
                 cliShowParseError();
             } else {
-                posControl.waypointList[i].action = action;
-                posControl.waypointList[i].lat = lat;
-                posControl.waypointList[i].lon = lon;
-                posControl.waypointList[i].alt = alt;
-                posControl.waypointList[i].p1 = p1;
-                posControl.waypointList[i].p2 = p2;
-                posControl.waypointList[i].p3 = p3;
-                posControl.waypointList[i].flag = flag;
+                if (i + multiMissionWPCounter == 0) {
+                    posControl.multiMissionCount = 0;
+                }
+
+                posControl.waypointList[i + multiMissionWPCounter].action = action;
+                posControl.waypointList[i + multiMissionWPCounter].lat = lat;
+                posControl.waypointList[i + multiMissionWPCounter].lon = lon;
+                posControl.waypointList[i + multiMissionWPCounter].alt = alt;
+                posControl.waypointList[i + multiMissionWPCounter].p1 = p1;
+                posControl.waypointList[i + multiMissionWPCounter].p2 = p2;
+                posControl.waypointList[i + multiMissionWPCounter].p3 = p3;
+                posControl.waypointList[i + multiMissionWPCounter].flag = flag;
+
+                // Process WP entries made up of multiple successive WP missions (multiple NAV_WP_FLAG_LAST entries)
+                // Individial missions loaded at runtime, mission selected nav_waypoint_multi_mission_index
+                if (flag == NAV_WP_FLAG_LAST) {
+                    multiMissionWPCounter += i + 1;
+                    posControl.multiMissionCount += 1;
+                }
             }
         } else {
             cliShowArgumentRangeError("wp index", 0, NAV_MAX_WAYPOINTS - 1);
@@ -2501,6 +2533,94 @@ static void cliFeature(char *cmdline)
     }
 }
 
+#ifdef USE_BLACKBOX
+static void printBlackbox(uint8_t dumpMask, const blackboxConfig_t *config, const blackboxConfig_t *configDefault)
+{
+
+    UNUSED(configDefault);
+
+    uint32_t mask = config->includeFlags;
+
+    for (uint8_t i = 0; ; i++) {  // reenable what we want.
+        if (blackboxIncludeFlagNames[i] == NULL) {
+            break;
+        }
+
+        const char *formatOn = "blackbox %s";
+        const char *formatOff = "blackbox -%s";
+
+        if (mask & (1 << i)) {
+            cliDumpPrintLinef(dumpMask, false, formatOn, blackboxIncludeFlagNames[i]);
+            cliDefaultPrintLinef(dumpMask, false, formatOn, blackboxIncludeFlagNames[i]);
+        } else {
+            cliDumpPrintLinef(dumpMask, false, formatOff, blackboxIncludeFlagNames[i]);
+            cliDefaultPrintLinef(dumpMask, false, formatOff, blackboxIncludeFlagNames[i]);
+        }
+    }
+
+}
+
+static void cliBlackbox(char *cmdline)
+{
+    uint32_t len = strlen(cmdline);
+    uint32_t mask = blackboxConfig()->includeFlags;
+
+    if (len == 0) {
+        cliPrint("Enabled: ");
+        for (uint8_t i = 0; ; i++) {
+            if (blackboxIncludeFlagNames[i] == NULL) {
+                break;
+            }
+
+            if (mask & (1 << i))
+                cliPrintf("%s ", blackboxIncludeFlagNames[i]);
+        }
+        cliPrintLinefeed();
+    } else if (sl_strncasecmp(cmdline, "list", len) == 0) {
+        cliPrint("Available: ");
+        for (uint32_t i = 0; ; i++) {
+            if (blackboxIncludeFlagNames[i] == NULL) {
+                break;
+            }
+
+            cliPrintf("%s ", blackboxIncludeFlagNames[i]);
+        }
+        cliPrintLinefeed();
+        return;
+    } else {
+        bool remove = false;
+        if (cmdline[0] == '-') {
+            // remove feature
+            remove = true;
+            cmdline++; // skip over -
+            len--;
+        }
+
+        for (uint32_t i = 0; ; i++) {
+            if (blackboxIncludeFlagNames[i] == NULL) {
+                cliPrintErrorLine("Invalid name");
+                break;
+            }
+
+            if (sl_strncasecmp(cmdline, blackboxIncludeFlagNames[i], len) == 0) {
+
+                mask = 1 << i;
+
+                if (remove) {
+                    blackboxIncludeFlagClear(mask);
+                    cliPrint("Disabled");
+                } else {
+                    blackboxIncludeFlagSet(mask);
+                    cliPrint("Enabled");
+                }
+                cliPrintLinef(" %s", blackboxIncludeFlagNames[i]);
+                break;
+            }
+        }
+    }
+}
+#endif
+
 #if defined(BEEPER) || defined(USE_DSHOT)
 static void printBeeper(uint8_t dumpMask, const beeperConfig_t *beeperConfig, const beeperConfig_t *beeperConfigDefault)
 {
@@ -2731,7 +2851,7 @@ static void cliExit(char *cmdline)
 
     *cliBuffer = '\0';
     bufferIndex = 0;
-    cliMode = 0;
+    cliMode = false;
     // incase a motor was left running during motortest, clear it here
     mixerResetDisarmedMotors();
     cliReboot();
@@ -3013,7 +3133,13 @@ static void cliGet(char *cmdline)
         val = settingGet(i);
         if (settingNameContains(val, name, cmdline)) {
             cliPrintf("%s = ", name);
-            cliPrintVar(val, 0);
+            if (strcmp(name, "name") == 0) {
+                // if the craftname has a leading space, then enclose the name in quotes
+                const char * v = (const char *)settingGetValuePointer(val);
+                cliPrintf(v[0] == ' ' ? "\"%s\"" : "%s", v);
+            } else {
+                cliPrintVar(val, 0);
+            }
             cliPrintLinefeed();
             cliPrintVarRange(val);
             cliPrintLinefeed();
@@ -3071,7 +3197,12 @@ static void cliSet(char *cmdline)
             if (settingNameIsExactMatch(val, name, cmdline, variableNameLength)) {
                 const setting_type_e type = SETTING_TYPE(val);
                 if (type == VAR_STRING) {
-                    settingSetString(val, eqptr, strlen(eqptr));
+                    // if setting the craftname, remove any quotes around the name.  This allows leading spaces in the name
+                    if (strcmp(name, "name") == 0 && eqptr[0] == '"' && eqptr[strlen(eqptr)-1] == '"') {
+                        settingSetString(val, eqptr + 1, strlen(eqptr)-2);
+                    } else {
+                        settingSetString(val, eqptr, strlen(eqptr));
+                    }
                     return;
                 }
                 const setting_mode_e mode = SETTING_MODE(val);
@@ -3183,15 +3314,28 @@ static void cliStatus(char *cmdline)
     cliPrintLinef("  PCLK2  = %d MHz", clocks.PCLK2_Frequency / 1000000);
 #endif
 
-    cliPrintLinef("Sensor status: GYRO=%s, ACC=%s, MAG=%s, BARO=%s, RANGEFINDER=%s, OPFLOW=%s, GPS=%s",
+    cliPrintLinef("Sensor status: GYRO=%s, ACC=%s, MAG=%s, BARO=%s, RANGEFINDER=%s, OPFLOW=%s, GPS=%s, IMU2=%s",
         hardwareSensorStatusNames[getHwGyroStatus()],
         hardwareSensorStatusNames[getHwAccelerometerStatus()],
         hardwareSensorStatusNames[getHwCompassStatus()],
         hardwareSensorStatusNames[getHwBarometerStatus()],
         hardwareSensorStatusNames[getHwRangefinderStatus()],
         hardwareSensorStatusNames[getHwOpticalFlowStatus()],
-        hardwareSensorStatusNames[getHwGPSStatus()]
+        hardwareSensorStatusNames[getHwGPSStatus()],
+        hardwareSensorStatusNames[getHwSecondaryImuStatus()]
     );
+
+#ifdef USE_ESC_SENSOR
+    uint8_t motorCount = getMotorCount();
+    if (STATE(ESC_SENSOR_ENABLED) && motorCount > 0) {
+        cliPrintLinef("ESC Temperature(s): Motor Count = %d", motorCount);
+        for (uint8_t i = 0; i < motorCount; i++) {
+            const escSensorData_t *escState = getEscTelemetry(i); //Get ESC telemetry
+            cliPrintf("ESC %d: %d\260C, ", i, escState->temperature);
+        }
+        cliPrintLinefeed();
+    }
+#endif
 
 #ifdef USE_SDCARD
     cliSdInfo(NULL);
@@ -3489,6 +3633,11 @@ static void printConfig(const char *cmdline, bool doDiff)
         printBeeper(dumpMask, &beeperConfig_Copy, beeperConfig());
 #endif
 
+#ifdef USE_BLACKBOX
+        cliPrintHashLine("blackbox");
+        printBlackbox(dumpMask, &blackboxConfig_Copy, blackboxConfig());
+#endif
+
         cliPrintHashLine("map");
         printMap(dumpMask, &rxConfig_Copy, rxConfig());
 
@@ -3682,6 +3831,11 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("feature", "configure features",
         "list\r\n"
         "\t<+|->[name]", cliFeature),
+#ifdef USE_BLACKBOX
+    CLI_COMMAND_DEF("blackbox", "configure blackbox fields",
+        "list\r\n"
+        "\t<+|->[name]", cliBlackbox),
+#endif
 #ifdef USE_FLASHFS
     CLI_COMMAND_DEF("flash_erase", "erase flash chip", NULL, cliFlashErase),
     CLI_COMMAND_DEF("flash_info", "show flash chip info", NULL, cliFlashInfo),
@@ -3897,7 +4051,7 @@ void cliEnter(serialPort_t *serialPort)
         return;
     }
 
-    cliMode = 1;
+    cliMode = true;
     cliPort = serialPort;
     setPrintfSerialPort(cliPort);
     cliWriter = bufWriterInit(cliWriteBuffer, sizeof(cliWriteBuffer), (bufWrite_t)serialWriteBufShim, serialPort);

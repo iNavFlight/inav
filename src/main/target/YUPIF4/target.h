@@ -40,7 +40,6 @@
 #if defined(YUPIF4MINI)
 // #define BEEPER_INVERTED
 #else
-#define BEEPER_PWM
 #define BEEPER_INVERTED
 #define BEEPER_PWM_FREQUENCY    3150
 #endif

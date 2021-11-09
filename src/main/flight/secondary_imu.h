@@ -29,6 +29,7 @@
 #include "sensors/sensors.h"
 #include "drivers/accgyro/accgyro_bno055.h"
 #include "drivers/accgyro/accgyro_bno055_serial.h"
+#include "sensors/diagnostics.h"
 
 typedef enum {
     SECONDARY_IMU_NONE          = 0,
@@ -67,3 +68,5 @@ void secondaryImuInit(void);
 void taskSecondaryImu(timeUs_t currentTimeUs);
 void secondaryImuFetchCalibration(void);
 void secondaryImuSetMagneticDeclination(float declination);
+bool isSecondaryImuHealthy(void);
+hardwareSensorStatus_e getHwSecondaryImuStatus(void);

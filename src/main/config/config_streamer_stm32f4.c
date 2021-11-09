@@ -20,7 +20,7 @@
 #include "drivers/system.h"
 #include "config/config_streamer.h"
 
-#if defined(STM32F4)
+#if defined(STM32F4) && !defined(CONFIG_IN_RAM) && !defined(CONFIG_IN_EXTERNAL_FLASH)
 
 /*
 Sector 0    0x08000000 - 0x08003FFF 16 Kbytes

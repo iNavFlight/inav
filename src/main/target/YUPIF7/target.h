@@ -25,7 +25,6 @@
 #define CAMERA_CONTROL_PIN      PB7
 
 #define BEEPER                  PB14
-#define BEEPER_PWM
 #define BEEPER_INVERTED
 #define BEEPER_PWM_FREQUENCY    3150
 
