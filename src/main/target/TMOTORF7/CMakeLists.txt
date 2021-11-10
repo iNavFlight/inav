@@ -1,2 +1,2 @@
-target_stm32f722xe(TMOTORF7)
-target_stm32f722xe(TMOTORF7HD)
+target_stm32f722xe(TMOTORF7 SKIP_RELEASES)
+target_stm32f722xe(TMOTORF7HD SKIP_RELEASES)
