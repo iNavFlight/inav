@@ -41,6 +41,8 @@
 #define MAX_BATTERY_PROFILE_COUNT SETTING_CONSTANT_MAX_BATTERY_PROFILE_COUNT
 #endif
 
+#define BATT_LOW_VOLT_TIMEOUT_MS 10000 // low voltage of 10 seconds
+
 typedef struct {
   uint8_t profile_index;
   uint16_t max_voltage;

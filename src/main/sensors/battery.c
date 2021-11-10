@@ -300,6 +300,8 @@ static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
 
 void batteryUpdate(timeUs_t timeDelta)
 {
+    static uint32_t low_voltage_start_ms; 
+
     /* battery has just been connected*/
     if (batteryState == BATTERY_NOT_PRESENT && vbat > VBATT_PRESENT_THRESHOLD) {
 
@@ -360,28 +362,40 @@ void batteryUpdate(timeUs_t timeDelta)
         }
 
         if (batteryUseCapacityThresholds) {
-            if (batteryRemainingCapacity == 0)
+            if (batteryRemainingCapacity == 0) {
                 batteryState = BATTERY_CRITICAL;
-            else if (batteryRemainingCapacity <= currentBatteryProfile->capacity.warning - currentBatteryProfile->capacity.critical)
+            } else if (batteryRemainingCapacity <= currentBatteryProfile->capacity.warning - currentBatteryProfile->capacity.critical) {
                 batteryState = BATTERY_WARNING;
+            }
         } else {
             uint16_t stateVoltage = getBatteryVoltage();
+            uint32_t tnow = millis();
             switch (batteryState)
             {
                 case BATTERY_OK:
-                    if (stateVoltage <= (batteryWarningVoltage - VBATT_HYSTERESIS))
-                        batteryState = BATTERY_WARNING;
+                    if (stateVoltage <= (batteryWarningVoltage - VBATT_HYSTERESIS)) {
+                        // this is the first time our voltage has dropped below minimum so start timer
+                        if (low_voltage_start_ms == 0) {
+                            low_voltage_start_ms = tnow;
+                        } else if (tnow - low_voltage_start_ms > BATT_LOW_VOLT_TIMEOUT_MS) {
+                            batteryState = BATTERY_WARNING;
+                        }
+                    } else {
+                        // acceptable voltage so reset timer
+                        low_voltage_start_ms = 0;
+                    }
                     break;
                 case BATTERY_WARNING:
                     if (stateVoltage <= (batteryCriticalVoltage - VBATT_HYSTERESIS)) {
                         batteryState = BATTERY_CRITICAL;
-                    } else if (stateVoltage > (batteryWarningVoltage + VBATT_HYSTERESIS)){
+                    } else if (stateVoltage > (batteryWarningVoltage + VBATT_HYSTERESIS)) {
                         batteryState = BATTERY_OK;
                     }
                     break;
                 case BATTERY_CRITICAL:
-                    if (stateVoltage > (batteryCriticalVoltage + VBATT_HYSTERESIS))
+                    if (stateVoltage > (batteryCriticalVoltage + VBATT_HYSTERESIS)) {
                         batteryState = BATTERY_WARNING;
+                    }
                     break;
                 default:
                     break;
