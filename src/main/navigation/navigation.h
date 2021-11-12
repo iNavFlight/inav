@@ -147,6 +147,12 @@ typedef enum {
     ON_FW_SPIRAL,
 } navRTHClimbFirst_e;
 
+typedef enum {  // keep aligned with fixedWingLaunchState_t
+    FW_LAUNCH_DETECTED = 4,
+    FW_LAUNCH_ABORTED = 9,
+    FW_LAUNCH_FLYING = 10,
+} navFwLaunchStatus_e;
+
 typedef enum {
     WP_PLAN_WAIT,
     WP_PLAN_SAVE,
@@ -561,8 +567,7 @@ bool isWaypointMissionRTHActive(void);
 bool rthClimbStageActiveAndComplete(void);
 
 bool isNavLaunchEnabled(void);
-bool isFixedWingLaunchDetected(void);
-bool isFixedWingLaunchFinishedOrAborted(void);
+uint8_t fixedWingLaunchStatus(void);
 const char * fixedWingLaunchStateMessage(void);
 
 float calculateAverageSpeed(void);
