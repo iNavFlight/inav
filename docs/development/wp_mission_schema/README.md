@@ -44,11 +44,11 @@ The format is defined the XSD schema here.
 <mission>
   <!--mw planner 0.01-->
   <version value="42"></version>
-  <meta save-date="2021-11-12T14:22:05+0000" zoom="14" cx="-3.2627249" cy="54.5710168" generator="mwp (mwptools)"><details><distance units="m" value="3130"></distance></details></meta>
+  <meta save-date="2021-11-12T14:22:05+0000" zoom="14" cx="-3.2627249" cy="54.5710168" home-x="-3.2989342" home-y="54.5707123" generator="mwp (mwptools)"><details><distance units="m" value="3130"></distance></details></meta>
   <missionitem no="1" action="WAYPOINT" lat="54.5722109" lon="-3.2869291" alt="50" parameter1="0" parameter2="0" parameter3="0" flag="0"></missionitem>
   <missionitem no="2" action="WAYPOINT" lat="54.5708178" lon="-3.2642698" alt="50" parameter1="0" parameter2="0" parameter3="0" flag="0"></missionitem>
   <missionitem no="3" action="WAYPOINT" lat="54.5698227" lon="-3.2385206" alt="50" parameter1="0" parameter2="0" parameter3="0" flag="165"></missionitem>
-  <meta save-date="2021-11-12T14:22:05+0000" zoom="15" cx="-3.2778311" cy="54.5568837" generator="mwp (mwptools)"><details><distance units="m" value="9029"></distance><nav-speed units="m/s" value="10"></nav-speed><fly-time units="s" value="929"></fly-time><loiter-time units="s" value="0"></loiter-time></details></meta>
+  <meta save-date="2021-11-12T14:22:05+0000" zoom="15" cx="-3.2778311" cy="54.5568837" home-x="-3.2983737" home-y="54.5622331" generator="mwp (mwptools)"><details><distance units="m" value="9029"></distance><nav-speed units="m/s" value="10"></nav-speed><fly-time units="s" value="929"></fly-time><loiter-time units="s" value="0"></loiter-time></details></meta>
   <missionitem no="1" action="WAYPOINT" lat="54.5599696" lon="-3.2958555" alt="50" parameter1="0" parameter2="0" parameter3="0" flag="0"></missionitem>
   <missionitem no="2" action="WAYPOINT" lat="54.5537978" lon="-3.2958555" alt="50" parameter1="0" parameter2="0" parameter3="0" flag="0"></missionitem>
   <missionitem no="3" action="WAYPOINT" lat="54.5547933" lon="-3.2864141" alt="50" parameter1="0" parameter2="0" parameter3="0" flag="0"></missionitem>
