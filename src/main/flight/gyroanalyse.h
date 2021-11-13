@@ -55,7 +55,7 @@ typedef struct gyroAnalyseState_s {
 
     float fftMeanValue;
 
-    pt2Filter_t detectedFrequencyFilter[XYZ_AXIS_COUNT][DYN_NOTCH_PEAK_COUNT];
+    pt1Filter_t detectedFrequencyFilter[XYZ_AXIS_COUNT][DYN_NOTCH_PEAK_COUNT];
     float centerFrequency[XYZ_AXIS_COUNT][DYN_NOTCH_PEAK_COUNT];
     
     peak_t peaks[DYN_NOTCH_PEAK_COUNT];

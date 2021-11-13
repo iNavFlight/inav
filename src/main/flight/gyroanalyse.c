@@ -96,7 +96,7 @@ void gyroDataAnalyseStateInit(
         
         for (int i = 0; i < DYN_NOTCH_PEAK_COUNT; i++) {
             state->centerFrequency[axis][i] = state->maxFrequency;
-            pt2FilterInit(&state->detectedFrequencyFilter[axis][i], pt2FilterGain(DYN_NOTCH_SMOOTH_FREQ_HZ, filterUpdateUs * 1e-6f));
+            pt1FilterInit(&state->detectedFrequencyFilter[axis][i], DYN_NOTCH_SMOOTH_FREQ_HZ, filterUpdateUs * 1e-6f);
         }
 
     }
@@ -247,7 +247,7 @@ static NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
                     const int bin = constrain(state->peaks[i].bin, state->fftStartBin, FFT_BIN_COUNT - 1);
                     float frequency = computeParabolaMean(state, bin) * state->fftResolution;
 
-                    state->centerFrequency[state->updateAxis][i] = pt2FilterApply(&state->detectedFrequencyFilter[state->updateAxis][i], frequency);
+                    state->centerFrequency[state->updateAxis][i] = pt1FilterApply(&state->detectedFrequencyFilter[state->updateAxis][i], frequency);
                 } else {
                     state->centerFrequency[state->updateAxis][i] = 0.0f;
                 }
