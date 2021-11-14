@@ -61,7 +61,7 @@ enum {
 // NB  FFT_WINDOW_SIZE is set to 32 in gyroanalyse.h
 #define FFT_BIN_COUNT             (FFT_WINDOW_SIZE / 2)
 // smoothing frequency for FFT centre frequency
-#define DYN_NOTCH_SMOOTH_FREQ_HZ  35
+#define DYN_NOTCH_SMOOTH_FREQ_HZ  25
 
 /*
  * Slow down gyro sample acquisition. This lowers the max frequency but increases the resolution.
