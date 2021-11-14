@@ -45,15 +45,12 @@ typedef struct gyroAnalyseState_s {
     float downsampledGyroData[XYZ_AXIS_COUNT][FFT_WINDOW_SIZE];
 
     // update state machine step information
-    uint8_t updateTicks;
     uint8_t updateStep;
     uint8_t updateAxis;
 
     arm_rfft_fast_instance_f32 fftInstance;
     float fftData[FFT_WINDOW_SIZE];
     float rfftData[FFT_WINDOW_SIZE];
-
-    float fftMeanValue;
 
     pt1Filter_t detectedFrequencyFilter[XYZ_AXIS_COUNT][DYN_NOTCH_PEAK_COUNT];
     float centerFrequency[XYZ_AXIS_COUNT][DYN_NOTCH_PEAK_COUNT];

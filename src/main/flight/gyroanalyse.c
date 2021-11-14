@@ -179,13 +179,6 @@ static NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
             // 8us
             arm_cmplx_mag_f32(state->rfftData, state->fftData, FFT_BIN_COUNT);
 
-            //Compute mean - needed to work with only peaks above the noise floor
-            state->fftMeanValue = 0;
-            for (int bin = (state->fftStartBin + 1); bin < FFT_BIN_COUNT; bin++) {   
-                state->fftMeanValue += state->fftData[bin];
-            }
-            state->fftMeanValue /= FFT_BIN_COUNT - state->fftStartBin - 1;
-
             //Zero the data structure
             for (int i = 0; i < DYN_NOTCH_PEAK_COUNT; i++) {
                 state->peaks[i].bin = 0;
@@ -198,7 +191,6 @@ static NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
                  * Peak is defined if the current bin is greater than the previous bin and the next bin
                  */
                 if (
-                    state->fftData[bin] > state->fftMeanValue && 
                     state->fftData[bin] > state->fftData[bin - 1] && 
                     state->fftData[bin] > state->fftData[bin + 1]
                 ) {
