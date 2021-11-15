@@ -185,12 +185,12 @@ void initActiveBoxIds(void)
 
     activeBoxIds[activeBoxIdCount++] = BOXHEADINGHOLD;
 
-    if (sensors(SENSOR_ACC) || sensors(SENSOR_MAG)) {
+    if ((sensors(SENSOR_ACC) || sensors(SENSOR_MAG)) && STATE(MULTIROTOR)) {
         activeBoxIds[activeBoxIdCount++] = BOXHEADFREE;
         activeBoxIds[activeBoxIdCount++] = BOXHEADADJ;
     }
 
-    if (STATE(ALTITUDE_CONTROL)) {
+    if (STATE(ALTITUDE_CONTROL) && STATE(MULTIROTOR)) {
         activeBoxIds[activeBoxIdCount++] = BOXFPVANGLEMIX;
     }
 
