@@ -3003,6 +3003,7 @@ bool loadNonVolatileWaypointList(bool clearIfLoaded)
         if (nonVolatileWaypointList(i)->flag == NAV_WP_FLAG_LAST) {
             break;
         }
+    }
     // Mission sanity check failed - reset the list
     if (!posControl.waypointListValid) {
 #endif
@@ -3542,10 +3543,9 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
          * Can't jump to immediately adjacent WPs (pointless)
          * Can't jump beyond WP list
          * Only jump to geo-referenced WP types
-         *
-#ifdef USE_MULTI_MISSION
-         * Only perform check when mission loaded at start of posControl.waypointList
          */
+#ifdef USE_MULTI_MISSION
+         // Only perform check when mission loaded at start of posControl.waypointList
     if (posControl.waypointCount && !posControl.loadedMultiMissionStartWP) {
 #else
     if (posControl.waypointCount) {
