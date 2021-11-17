@@ -21,8 +21,6 @@
 
 #include "platform.h"
 
-#if defined(USE_NAV)
-
 #include "build/build_config.h"
 #include "build/debug.h"
 
@@ -700,5 +698,3 @@ int32_t navigationGetHeadingError(void)
 {
     return navHeadingError;
 }
-
-#endif  // NAV

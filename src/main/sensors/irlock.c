@@ -44,7 +44,7 @@
 
 #define IRLOCK_TIMEOUT 100
 
-#if defined(USE_NAV) && defined(USE_IRLOCK)
+#if defined(USE_IRLOCK)
 
 enum {
     DEBUG_IRLOCK_DETECTED,

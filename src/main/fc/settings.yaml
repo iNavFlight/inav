@@ -1885,7 +1885,6 @@ groups:
         description: "Direction of loitering: center point on right wing (clockwise - default), or center point on left wing (counterclockwise). If equal YAW then can be changed in flight using a yaw stick."
         default_value: "RIGHT"
         field: loiter_direction
-        condition: USE_NAV
         table: direction
       - name: fw_reference_airspeed
         description: "Reference airspeed. Set this to airspeed at which PIDs were tuned. Usually should be set to cruise airspeed. Also used for coordinated turn calculation if airspeed sensor is not present."
@@ -1954,21 +1953,18 @@ groups:
       - name: nav_mc_pos_z_p
         description: "P gain of altitude PID controller (Multirotor)"
         field: bank_mc.pid[PID_POS_Z].P
-        condition: USE_NAV
         min: 0
         max: 255
         default_value: 50
       - name: nav_mc_vel_z_p
         description: "P gain of velocity PID controller"
         field: bank_mc.pid[PID_VEL_Z].P
-        condition: USE_NAV
         min: 0
         max: 255
         default_value: 100
       - name: nav_mc_vel_z_i
         description: "I gain of velocity PID controller"
         field: bank_mc.pid[PID_VEL_Z].I
-        condition: USE_NAV
         min: 0
         max: 255
         default_value: 50
@@ -1976,41 +1972,35 @@ groups:
         description: "D gain of velocity PID controller"
         default_value: 10
         field: bank_mc.pid[PID_VEL_Z].D
-        condition: USE_NAV
         min: 0
         max: 255
         default_value: 10
       - name: nav_mc_pos_xy_p
         description: "Controls how fast the drone will fly towards the target position. This is a multiplier to convert displacement to target velocity"
         field: bank_mc.pid[PID_POS_XY].P
-        condition: USE_NAV
         min: 0
         max: 255
         default_value: 65
       - name: nav_mc_vel_xy_p
         description: "P gain of Position-Rate (Velocity to Acceleration) PID controller. Higher P means stronger response when position error occurs. Too much P might cause \"nervous\" behavior and oscillations"
         field: bank_mc.pid[PID_VEL_XY].P
-        condition: USE_NAV
         min: 0
         max: 255
         default_value: 40
       - name: nav_mc_vel_xy_i
         description: "I gain of Position-Rate (Velocity to Acceleration) PID controller. Used for drift compensation (caused by wind for example). Higher I means stronger response to drift. Too much I gain might cause target overshot"
         field: bank_mc.pid[PID_VEL_XY].I
-        condition: USE_NAV
         min: 0
         max: 255
         default_value: 15
       - name: nav_mc_vel_xy_d
         description: "D gain of Position-Rate (Velocity to Acceleration) PID controller. It can damp P and I. Increasing D might help when drone overshoots target."
         field: bank_mc.pid[PID_VEL_XY].D
-        condition: USE_NAV
         min: 0
         max: 255
         default_value: 100
       - name: nav_mc_vel_xy_ff
         field: bank_mc.pid[PID_VEL_XY].FF
-        condition: USE_NAV
         min: 0
         max: 255
         default_value: 40
@@ -2018,7 +2008,6 @@ groups:
         description: "P gain of Heading Hold controller (Multirotor)"
         default_value: 60
         field: bank_mc.pid[PID_HEADING].P
-        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_vel_xy_dterm_lpf_hz
@@ -2048,70 +2037,60 @@ groups:
         description: "P gain of altitude PID controller (Fixedwing)"
         default_value: 40
         field: bank_fw.pid[PID_POS_Z].P
-        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_z_i
         description: "I gain of altitude PID controller (Fixedwing)"
         default_value: 5
         field: bank_fw.pid[PID_POS_Z].I
-        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_z_d
         description: "D gain of altitude PID controller (Fixedwing)"
         default_value: 10
         field: bank_fw.pid[PID_POS_Z].D
-        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_xy_p
         description: "P gain of 2D trajectory PID controller. Play with this to get a straight line between waypoints or a straight RTH"
         default_value: 75
         field: bank_fw.pid[PID_POS_XY].P
-        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_xy_i
         description: "I gain of 2D trajectory PID controller. Too high and there will be overshoot in trajectory. Better start tuning with zero"
         default_value: 5
         field: bank_fw.pid[PID_POS_XY].I
-        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_xy_d
         description: "D gain of 2D trajectory PID controller. Too high and there will be overshoot in trajectory. Better start tuning with zero"
         default_value: 8
         field: bank_fw.pid[PID_POS_XY].D
-        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_heading_p
         description: "P gain of Heading Hold controller (Fixedwing)"
         default_value: 60
         field: bank_fw.pid[PID_HEADING].P
-        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_hdg_p
         description: "P gain of heading PID controller. (Fixedwing, rovers, boats)"
         default_value: 30
         field: bank_fw.pid[PID_POS_HEADING].P
-        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_hdg_i
         description: "I gain of heading trajectory PID controller. (Fixedwing, rovers, boats)"
         default_value: 2
         field: bank_fw.pid[PID_POS_HEADING].I
-        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_hdg_d
         description: "D gain of heading trajectory PID controller. (Fixedwing, rovers, boats)"
         default_value: 0
         field: bank_fw.pid[PID_POS_HEADING].D
-        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_hdg_pidsum_limit
@@ -2244,7 +2223,6 @@ groups:
 
   - name: PG_POSITION_ESTIMATION_CONFIG
     type: positionEstimationConfig_t
-    condition: USE_NAV
     members:
       - name: inav_auto_mag_decl
         description: "Automatic setting of magnetic declination based on GPS position. When used manual magnetic declination is ignored."
@@ -2376,7 +2354,6 @@ groups:
   - name: PG_NAV_CONFIG
     type: navConfig_t
     headers: ["navigation/navigation.h"]
-    condition: USE_NAV
     members:
       - name: nav_disarm_on_landing
         description: "If set to ON, iNav disarms the FC after landing"
@@ -2668,14 +2645,12 @@ groups:
         description: "Used for stoping distance calculation. Stop position is computed as _speed_ * _nav_mc_pos_deceleration_time_ from the place where sticks are released. Braking mode overrides this setting"
         default_value: 120
         field: mc.posDecelerationTime
-        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_pos_expo
         description: "Expo for PosHold control"
         default_value: 10
         field: mc.posResponseExpo
-        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_wp_slowdown

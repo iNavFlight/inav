@@ -349,11 +349,7 @@ static void telemetryRX(void)
         if (sensors(SENSOR_GPS)) {
             uint16_t gpsspeed =  (gpsSol.groundSpeed*9L)/250L;
             int16_t course = (gpsSol.groundCourse/10 + 360)%360;
-#ifdef USE_NAV
             int32_t alt = getEstimatedActualPosition(Z);
-#else
-            int32_t alt = baro.BaroAlt;
-#endif
             uint16_t tim = 0;
 
             rfTxBuffer[0] = 0x47;
