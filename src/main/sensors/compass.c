@@ -68,7 +68,7 @@
 
 mag_t mag; // mag access functions
 
-//#ifdef USE_MAG
+#ifdef USE_MAG
 
 PG_REGISTER_WITH_RESET_TEMPLATE(compassConfig_t, compassConfig, PG_COMPASS_CONFIG, 6);
 
@@ -657,4 +657,4 @@ void compass_permotor_update(void)
     }
 }
 
-//#endif
+#endif
