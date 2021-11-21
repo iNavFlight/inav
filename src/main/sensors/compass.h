@@ -70,6 +70,8 @@ typedef struct compassConfig_s {
     int16_t rollDeciDegrees;                // Alignment for external mag on the roll (X) axis (0.1deg)
     int16_t pitchDeciDegrees;               // Alignment for external mag on the pitch (Y) axis (0.1deg)
     int16_t yawDeciDegrees;                 // Alignment for external mag on the yaw (Z) axis (0.1deg)
+    float comp_permotor_expo;               // Exponential correction for per-motor
+    float permotor_offset[XYZ_AXIS_COUNT];  // Per-Motor offset calced
 } compassConfig_t;
 
 PG_DECLARE(compassConfig_t, compassConfig);
@@ -80,5 +82,7 @@ void compassUpdate(timeUs_t currentTimeUs);
 bool compassIsReady(void);
 bool compassIsHealthy(void);
 bool compassIsCalibrationComplete(void);
+
+void compass_permotor_update(void);
 
 #endif

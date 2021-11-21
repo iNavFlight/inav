@@ -48,22 +48,28 @@
 #include "drivers/time.h"
 
 #include "fc/config.h"
+#include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
+
+#include "flight/mixer.h"
 
 #include "io/gps.h"
 #include "io/beeper.h"
 
+#include "rx/rx.h"
+
+#include "sensors/battery.h"
 #include "sensors/boardalignment.h"
 #include "sensors/compass.h"
 #include "sensors/gyro.h"
 #include "sensors/sensors.h"
 
-mag_t mag;                   // mag access functions
+mag_t mag; // mag access functions
 
-#ifdef USE_MAG
+//#ifdef USE_MAG
 
-PG_REGISTER_WITH_RESET_TEMPLATE(compassConfig_t, compassConfig, PG_COMPASS_CONFIG, 5);
+PG_REGISTER_WITH_RESET_TEMPLATE(compassConfig_t, compassConfig, PG_COMPASS_CONFIG, 6);
 
 PG_RESET_TEMPLATE(compassConfig_t, compassConfig,
     .mag_align = SETTING_ALIGN_MAG_DEFAULT,
@@ -77,9 +83,26 @@ PG_RESET_TEMPLATE(compassConfig_t, compassConfig,
     .pitchDeciDegrees = SETTING_ALIGN_MAG_PITCH_DEFAULT,
     .yawDeciDegrees = SETTING_ALIGN_MAG_YAW_DEFAULT,
     .magGain = {SETTING_MAGGAIN_X_DEFAULT, SETTING_MAGGAIN_Y_DEFAULT, SETTING_MAGGAIN_Z_DEFAULT},
+    .comp_permotor_expo = SETTING_PERMOTOR_EXPO_DEFAULT,
+    .permotor_offset = {SETTING_PERMOTOR_X_DEFAULT, SETTING_PERMOTOR_Y_DEFAULT, SETTING_PERMOTOR_Z_DEFAULT},
 );
 
 static uint8_t magUpdatedAtLeastOnce = 0;
+
+fpVector3_t compass_initital_field;
+fpVector3_t compass_field_sum[4];
+fpVector3_t calced_compensation[4]; 
+
+bool calibration_running;
+bool calibration_running_once;
+
+uint16_t calibration_count[4];
+
+float output_sum[4];
+
+uint32_t motor_start_ms[4];
+
+uint32_t compass_permotor_timeout = 0;
 
 bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 {
@@ -446,8 +469,15 @@ void compassUpdate(timeUs_t currentTimeUs)
         }
     }
     else {
+        if (IS_RC_MODE_ACTIVE(BOXPERMOTOR)) {
+            compass_permotor_update();
+        } else {
+            calibration_running_once = false;
+        }
+
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             mag.magADC[axis] = (mag.magADC[axis] - compassConfig()->magZero.raw[axis]) * 1024 / compassConfig()->magGain[axis];
+            mag.magADC[axis] += compassConfig()->permotor_offset[axis];
         }
     }
 
@@ -474,4 +504,143 @@ void compassUpdate(timeUs_t currentTimeUs)
 
     magUpdatedAtLeastOnce = 1;
 }
-#endif
+
+static float motor_scaled_output(uint8_t motor_numb)
+{
+    // convert to range 0.0f ~ 1.0f
+    float scaled_output = ((2.0 * ((float)motor[motor_numb] - rxConfig()->mincheck) / (rxConfig()->maxcheck - rxConfig()->mincheck) - 1.0) + 1) * 0.5f;
+
+    if (scaled_output <= 0.0f) {
+        return 0.0f;
+    }
+
+    // scale for voltage
+    scaled_output *= getBatteryVoltage() / 100;
+
+    // apply expo correction
+    scaled_output = powf(scaled_output, compassConfig()->comp_permotor_expo);
+
+    return scaled_output;
+}
+
+/*
+  Calculate total offset for per-motor compensation
+  Works only with quadricopters
+ */
+void compass_permotor_update(void)
+{
+
+    if (!STATE(MULTIROTOR) && getMotorCount() > 3) { // work only in quadcopter
+        return;
+    }
+    
+    if (ARMING_FLAG(ARMED)) { // don't work in flight
+        return;
+    }
+
+    if (motor_disarmed[0] < 1400) { // check if the user has put at least 40% throttle on the engines 
+        return;
+    }
+
+    uint32_t now = millis();
+
+    if (!calibration_running) {
+
+        if (!calibration_running_once) {
+            calibration_running = true;
+            calibration_running_once = true;
+        }
+
+        for (uint8_t i = 0; i < 4; i++) {
+            compass_field_sum[i].x = 0.0f;
+            compass_field_sum[i].y = 0.0f;
+            compass_field_sum[i].z = 0.0f;
+            output_sum[i] = 0.0f;
+            calibration_count[i] = 0;
+            motor_start_ms[i] = 0;
+        }
+
+        compass_permotor_timeout = now;
+
+        compass_initital_field.x = mag.magADC[X];
+        compass_initital_field.y = mag.magADC[Y];
+        compass_initital_field.z = mag.magADC[Z];
+    
+        return;
+    }
+
+    // accumulate per-motor sums
+    for (uint8_t i = 0; i < 4; i++) {
+        float scaled_output = motor_scaled_output(i);
+
+        if (scaled_output <= 0.0f) {
+            // motor is off
+            motor_start_ms[i] = 0;
+            continue;
+        }
+
+        if (motor_start_ms[i] == 0) {
+            motor_start_ms[i] = now;
+        }
+
+        if (now - motor_start_ms[i] < 500) {
+            // motor must run for 0.5s to settle
+            continue;
+        }
+
+        // accumulate a sample
+        compass_field_sum[i].x += mag.magADC[X];
+        compass_field_sum[i].y += mag.magADC[Y];
+        compass_field_sum[i].z += mag.magADC[Z];
+        output_sum[i] += scaled_output;
+        calibration_count[i]++;
+    }
+
+    if (now - compass_permotor_timeout >= 10000) { // waits to reach the maximum time of the function to finish
+
+        for (uint8_t i = 0; i < 4; i++) {
+
+            if (calibration_count[i] == 0) {
+                continue;
+            }
+
+            // calculate effective output
+            float output = output_sum[i] / calibration_count[i];
+
+            // calculate amount that field changed from initial field
+            fpVector3_t field_changed;
+            field_changed.x = compass_initital_field.x - (compass_field_sum[i].x / calibration_count[i]);
+            field_changed.y = compass_initital_field.y - (compass_field_sum[i].y / calibration_count[i]);
+            field_changed.z = compass_initital_field.z - (compass_field_sum[i].z / calibration_count[i]);
+
+            if (output <= 0.0f) {
+                continue;
+            }
+
+            calced_compensation[i].x = field_changed.x / output;
+            calced_compensation[i].y = field_changed.y / output;
+            calced_compensation[i].z = field_changed.z / output;
+
+            float scaled_output = motor_scaled_output(i);
+
+            compassConfigMutable()->permotor_offset[X] += calced_compensation[i].x * scaled_output;
+            compassConfigMutable()->permotor_offset[Y] += calced_compensation[i].y * scaled_output;
+            compassConfigMutable()->permotor_offset[Z] += calced_compensation[i].z * scaled_output;
+        }
+
+        LED0_OFF;
+
+        saveConfigAndNotify();
+        calibration_running = false;
+    }
+    else
+    {
+        LED0_ON;
+
+        if (compass_permotor_timeout == 0) { // is this the first time the "compass_permotor_timeout" has been used? yes...
+            compass_permotor_timeout = now;
+        }
+    }
+}
+
+//#endif

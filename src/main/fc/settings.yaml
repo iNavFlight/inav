@@ -656,6 +656,30 @@ groups:
         field: yawDeciDegrees
         min: -1800
         max: 3600
+      - name: permotor_expo
+        description: "This is the exponential correction for the power output of the motor for per-motor compass correction"
+        default_value: 0.65
+        field: comp_permotor_expo
+        min: 0
+        max: 2
+      - name: permotor_x
+        description: "Magnetometer X offset calced by per-motor"
+        default_value: 0
+        field: permotor_offset[X]
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: permotor_y
+        description: "Magnetometer Y offset calced by per-motor"
+        default_value: 0
+        field: permotor_offset[Y]
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: permotor_z
+        description: "Magnetometer Z offset calced by per-motor"
+        default_value: 0
+        field: permotor_offset[Z]
+        min: INT16_MIN
+        max: INT16_MAX
 
   - name: PG_BAROMETER_CONFIG
     type: barometerConfig_t

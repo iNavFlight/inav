@@ -4602,6 +4602,46 @@ Video system used. Possible values are `AUTO`, `PAL` and `NTSC`
 
 ---
 
+### permotor_expo
+
+This is the exponential correction for the power output of the motor for per-motor compass correction
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0.65 | 0 | 2 |
+
+---
+
+### permotor_x
+
+Magnetometer X offset calced by per-motor
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -32768 | 32767 |
+
+---
+
+### permotor_y
+
+Magnetometer Y offset calced by per-motor
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -32768 | 32767 |
+
+---
+
+### permotor_z
+
+Magnetometer Z offset calced by per-motor
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -32768 | 32767 |
+
+---
+
 ### pid_type
 
 Allows to set type of PID controller used in control loop. Possible values: `NONE`, `PID`, `PIFF`, `AUTO`. Change only in case of experimental platforms like VTOL, tailsitters, rovers, boats, etc. Airplanes should always use `PIFF` and multirotors `PID`
