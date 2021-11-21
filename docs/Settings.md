@@ -788,17 +788,17 @@ Enable/disable dynamic gyro notch also known as Matrix Filter
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| ON |  |  |
 
 ---
 
 ### dynamic_gyro_notch_min_hz
 
-Minimum frequency for dynamic notches. Default value of `150` works best with 5" multirors. Should be lowered with increased size of propellers. Values around `100` work fine on 7" drones. 10" can go down to `60` - `70`
+Minimum frequency for dynamic notches. Default value of `150` works best with 5" multirotors. Should be lowered with increased size of propellers. Values around `100` work fine on 7" drones. 10" can go down to `60` - `70`
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 150 | 30 | 1000 |
+| 50 | 30 | 1000 |
 
 ---
 
@@ -809,16 +809,6 @@ Q factor for dynamic notches
 | Default | Min | Max |
 | --- | --- | --- |
 | 120 | 1 | 1000 |
-
----
-
-### dynamic_gyro_notch_range
-
-Range for dynamic gyro notches. `MEDIUM` for 5", `HIGH` for 3" and `MEDIUM`/`LOW` for 7" and bigger propellers
-
-| Default | Min | Max |
-| --- | --- | --- |
-| MEDIUM |  |  |
 
 ---
 
@@ -1152,26 +1142,6 @@ D-Series telemetry only: Set to 1 to send raw VBat value in 0.1V resolution for 
 
 ---
 
-### fw_autotune_ff_to_i_tc
-
-FF to I time (defines time for I to reach the same level of response as FF) [ms]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 600 | 100 | 5000 |
-
----
-
-### fw_autotune_ff_to_p_gain
-
-FF to P gain (strength relationship) [%]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 10 | 0 | 100 |
-
----
-
 ### fw_autotune_max_rate_deflection
 
 The target percentage of maximum mixer output used for determining the rates in `AUTO` and `LIMIT`.
@@ -1189,16 +1159,6 @@ Minimum stick input [%], after applying deadband and expo, to start recording th
 | Default | Min | Max |
 | --- | --- | --- |
 | 50 | 0 | 100 |
-
----
-
-### fw_autotune_p_to_d_gain
-
-P to D gain (strength relationship) [%]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 200 |
 
 ---
 
@@ -1542,36 +1502,6 @@ Enable use of Galileo satellites. This is at the expense of other regional const
 
 ---
 
-### gyro_abg_alpha
-
-Alpha factor for Gyro Alpha-Beta-Gamma filter
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 1 |
-
----
-
-### gyro_abg_boost
-
-Boost factor for Gyro Alpha-Beta-Gamma filter
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0.35 | 0 | 2 |
-
----
-
-### gyro_abg_half_life
-
-Sample half-life for Gyro Alpha-Beta-Gamma filter
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0.5 | 0 | 10 |
-
----
-
 ### gyro_anti_aliasing_lpf_hz
 
 Gyro processing anti-aliasing filter cutoff frequency. In normal operation this filter setting should never be changed. In Hz
@@ -1649,26 +1579,6 @@ Defines the type of the main gyro LPF filter. Possible values: `PT1`, `BIQUAD`. 
 | Default | Min | Max |
 | --- | --- | --- |
 | BIQUAD |  |  |
-
----
-
-### gyro_notch_cutoff
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 1 | 1 | 500 |
-
----
-
-### gyro_notch_hz
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 |  | 500 |
 
 ---
 
@@ -2478,7 +2388,7 @@ Exposition value used for the PITCH/ROLL axes by the `MANUAL` flight mode [0-100
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 70 | 0 | 100 |
+| 35 | 0 | 100 |
 
 ---
 
@@ -2924,7 +2834,7 @@ Maximum climb/descent rate that UAV is allowed to reach during navigation modes.
 
 ### nav_auto_speed
 
-Maximum velocity firmware is allowed in full auto modes (RTH, WP) [cm/s] [Multirotor only]
+Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no specific WP speed set. [Multirotor only]
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3362,6 +3272,26 @@ P gain of altitude PID controller (Fixedwing)
 
 ---
 
+### nav_fw_soaring_motor_stop
+
+Stops motor when Soaring mode enabled.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF |  |  |
+
+---
+
+### nav_fw_soaring_pitch_deadband
+
+Pitch Angle deadband when soaring mode enabled (deg). Angle mode inactive within deadband allowing pitch to free float whilst soaring.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 0 | 15 |
+
+---
+
 ### nav_fw_yaw_deadband
 
 Deadband for heading trajectory PID controller. When heading error is below the deadband, controller assumes that vehicle is on course
@@ -3424,7 +3354,7 @@ Maximum climb/descent rate firmware is allowed when processing pilot input for A
 
 ### nav_manual_speed
 
-Maximum velocity firmware is allowed when processing pilot input for POSHOLD/CRUISE control mode [cm/s] [Multirotor only]
+Maximum speed allowed when processing pilot input for POSHOLD/CRUISE control mode [cm/s] [Multirotor only]
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3439,6 +3369,16 @@ Max allowed altitude (above Home Point) that applies to all NAV modes (including
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 65000 |
+
+---
+
+### nav_max_auto_speed
+
+Maximum speed allowed in fully autonomous modes (RTH, WP) [cm/s] [Multirotor only]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | 10 | 2000 |
 
 ---
 
@@ -3742,6 +3682,16 @@ Minimum distance from homepoint when RTH full procedure will be activated [cm]. 
 
 ---
 
+### nav_mission_planner_reset
+
+With Reset ON WP Mission Planner waypoint count can be reset to 0 by toggling the mode switch ON-OFF-ON.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| ON |  |  |
+
+---
+
 ### nav_overrides_motor_stop
 
 When set to OFF the navigation system will not take over the control of the motor if the throttle is low (motor will stop). When set to OFF_ALWAYS the navigation system will not take over the control of the motor if the throttle was low even when failsafe is triggered. When set to AUTO_ONLY the navigation system will only take over the control of the throttle in autonomous navigation modes (NAV WP and NAV RTH). When set to ALL_NAV (default) the navigation system will take over the control of the motor completely and never allow the motor to stop even when the throttle is low. This setting only has an effect on NAV modes which take control of the throttle when combined with MOTOR_STOP and is likely to cause a stall if fw_min_throttle_down_pitch isn't set correctly or the pitch estimation is wrong for fixed wing models when not set to ALL_NAV
@@ -3822,6 +3772,26 @@ If set to ON or ON_FW_SPIRAL aircraft will climb to nav_rth_altitude first befor
 
 ---
 
+### nav_rth_climb_first_stage_altitude
+
+The altitude [cm] at which climb first will transition to turn first. How the altitude is used, is determined by nav_rth_climb_first_stage_mode. Default=0; feature disabled.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 |  | 65000 |
+
+---
+
+### nav_rth_climb_first_stage_mode
+
+This determines how rth_climb_first_stage_altitude is used. Default is AT_LEAST.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| AT_LEAST |  |  |
+
+---
+
 ### nav_rth_climb_ignore_emerg
 
 If set to ON, aircraft will execute initial climb regardless of position sensor (GPS) status.
@@ -3889,6 +3859,26 @@ If set to ON, waypoints will be automatically loaded from EEPROM to the FC durin
 | Default | Min | Max |
 | --- | --- | --- |
 | OFF |  |  |
+
+---
+
+### nav_wp_mission_restart
+
+Sets restart behaviour for a WP mission when interrupted mid mission. START from first WP, RESUME from last active WP or SWITCH between START and RESUME each time WP Mode is reselected ON. SWITCH effectively allows resuming once only from a previous mid mission waypoint after which the mission will restart from the first waypoint.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| RESUME |  |  |
+
+---
+
+### nav_wp_multi_mission_index
+
+Index of mission selected from multi mission WP entry loaded in flight controller. 1 is the first useable WP mission in the entry. Limited to a maximum of 9 missions. Set index to 0 to display current active WP count in OSD Mission field.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 9 |
 
 ---
 
@@ -4012,6 +4002,26 @@ AHI width in pixels (pixel OSD only)
 
 ---
 
+### osd_airspeed_alarm_max
+
+Airspeed above which the airspeed OSD element will start blinking (cm/s)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 27000 |
+
+---
+
+### osd_airspeed_alarm_min
+
+Airspeed under which the airspeed OSD element will start blinking (cm/s)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 27000 |
+
+---
+
 ### osd_alt_alarm
 
 Value above which to make the OSD relative altitude indicator blink (meters)
@@ -4119,6 +4129,16 @@ Value above which to make the OSD distance from home indicator blink (meters)
 | Default | Min | Max |
 | --- | --- | --- |
 | 1000 | 0 | 50000 |
+
+---
+
+### osd_esc_rpm_precision
+
+Number of characters used to display the RPM value.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3 | 3 | 6 |
 
 ---
 
@@ -5228,7 +5248,7 @@ Enable Kalman filter on the gyro data
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| ON |  |  |
 
 ---
 

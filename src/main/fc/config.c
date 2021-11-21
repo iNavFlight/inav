@@ -107,7 +107,7 @@ PG_RESET_TEMPLATE(featureConfig_t, featureConfig,
     .enabledFeatures = DEFAULT_FEATURES | COMMON_DEFAULT_FEATURES
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 4);
+PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 5);
 
 PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .current_profile_index = 0,
@@ -183,9 +183,6 @@ uint32_t getGyroLooptime(void) {
 
 void validateAndFixConfig(void)
 {
-    if (gyroConfig()->gyro_notch_cutoff >= gyroConfig()->gyro_notch_hz) {
-        gyroConfigMutable()->gyro_notch_hz = 0;
-    }
     if (accelerometerConfig()->acc_notch_cutoff >= accelerometerConfig()->acc_notch_hz) {
         accelerometerConfigMutable()->acc_notch_hz = 0;
     }

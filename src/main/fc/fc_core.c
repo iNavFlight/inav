@@ -406,7 +406,7 @@ void annexCode(float dT)
             DEBUG_SET(DEBUG_RATE_DYNAMICS, 4, rcCommand[YAW]);
             rcCommand[YAW] = applyRateDynamics(rcCommand[YAW], YAW, dT);
             DEBUG_SET(DEBUG_RATE_DYNAMICS, 5, rcCommand[YAW]);
-            
+
         }
 
         //Compute THROTTLE command
@@ -515,6 +515,8 @@ void releaseSharedTelemetryPorts(void) {
 
 void tryArm(void)
 {
+    setMultiMissionOnArm();
+
     updateArmingStatus();
 
 #ifdef USE_DSHOT
@@ -589,10 +591,11 @@ void tryArm(void)
 
         //beep to indicate arming
 #ifdef USE_NAV
-        if (navigationPositionEstimateIsHealthy())
+        if (navigationPositionEstimateIsHealthy()) {
             beeper(BEEPER_ARMING_GPS_FIX);
-        else
+        } else {
             beeper(BEEPER_ARMING);
+        }
 #else
         beeper(BEEPER_ARMING);
 #endif
@@ -614,8 +617,9 @@ void processRx(timeUs_t currentTimeUs)
 
     // in 3D mode, we need to be able to disarm by switch at any time
     if (feature(FEATURE_REVERSIBLE_MOTORS)) {
-        if (!IS_RC_MODE_ACTIVE(BOXARM))
+        if (!IS_RC_MODE_ACTIVE(BOXARM)) {
             disarm(DISARM_SWITCH_3D);
+        }
     }
 
     updateRSSI(currentTimeUs);
@@ -860,7 +864,11 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 
-    if (ARMING_FLAG(ARMED) && (!STATE(FIXED_WING_LEGACY) || !isNavLaunchEnabled() || (isNavLaunchEnabled() && (isFixedWingLaunchDetected() || isFixedWingLaunchFinishedOrAborted())))) {
+#if defined(USE_NAV)
+    if (ARMING_FLAG(ARMED) && (!STATE(FIXED_WING_LEGACY) || !isNavLaunchEnabled() || (isNavLaunchEnabled() && fixedWingLaunchStatus() >= FW_LAUNCH_DETECTED))) {
+#else
+    if (ARMING_FLAG(ARMED)) {
+#endif
         flightTime += cycleTime;
         armTime += cycleTime;
         updateAccExtremes();

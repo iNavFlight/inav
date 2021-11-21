@@ -1037,17 +1037,37 @@ static void osdFormatRpm(char *buff, uint32_t rpm)
 {
     buff[0] = SYM_RPM;
     if (rpm) {
-        if (rpm >= 1000) {
-            osdFormatCentiNumber(buff + 1, rpm / 10, 0, 1, 1, 2);
-            buff[3] = 'K';
-            buff[4] = '\0';
+        if ( digitCount(rpm) > osdConfig()->esc_rpm_precision) {
+            uint8_t rpmMaxDecimals = (osdConfig()->esc_rpm_precision - 3);
+            osdFormatCentiNumber(buff + 1, rpm / 10, 0, rpmMaxDecimals, rpmMaxDecimals, osdConfig()->esc_rpm_precision-1);
+            buff[osdConfig()->esc_rpm_precision] = 'K';
+            buff[osdConfig()->esc_rpm_precision+1] = '\0';
         }
         else {
-            tfp_sprintf(buff + 1, "%3lu", rpm);
+            switch(osdConfig()->esc_rpm_precision) {
+                case 6:
+                    tfp_sprintf(buff + 1, "%6lu", rpm);
+                    break;
+                case 5:
+                    tfp_sprintf(buff + 1, "%5lu", rpm);
+                    break;
+                case 4:
+                    tfp_sprintf(buff + 1, "%4lu", rpm);
+                    break;
+                case 3:
+                default:
+                    tfp_sprintf(buff + 1, "%3lu", rpm);
+                    break;
+            }
+
+
         }
     }
     else {
-        strcpy(buff + 1, "---");
+        uint8_t buffPos = 1;
+        while (buffPos <=( osdConfig()->esc_rpm_precision)) {
+            strcpy(buff + buffPos++, "-");
+        }
     }
 }
 #endif
@@ -2267,6 +2287,11 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 #endif
 
+    case OSD_ACTIVE_PROFILE:
+        tfp_sprintf(buff, "%c%u", SYM_PROFILE, (getConfigProfile() + 1));
+        displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
+        break;
+
     case OSD_ROLL_PIDS:
         osdDisplayFlightPIDValues(elemPosX, elemPosY, "ROL", PID_ROLL, ADJUSTMENT_ROLL_P, ADJUSTMENT_ROLL_I, ADJUSTMENT_ROLL_D, ADJUSTMENT_ROLL_FF);
         return true;
@@ -2458,6 +2483,11 @@ static bool osdDrawSingleElement(uint8_t item)
         #ifdef USE_PITOT
             buff[0] = SYM_AIR;
             osdFormatVelocityStr(buff + 1, pitot.airSpeed, false, false);
+
+            if ((osdConfig()->airspeed_alarm_min != 0 && pitot.airSpeed < osdConfig()->airspeed_alarm_min) ||
+                (osdConfig()->airspeed_alarm_max != 0 && pitot.airSpeed > osdConfig()->airspeed_alarm_max)) {
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            }
         #else
             return false;
         #endif
@@ -2952,6 +2982,52 @@ static bool osdDrawSingleElement(uint8_t item)
         osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "CTL S", 0, navConfig()->fw.control_smoothness, 1, 0, ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS);
         return true;
 
+#if defined(USE_NAV)
+    case OSD_MISSION:
+        {
+            if (IS_RC_MODE_ACTIVE(BOXPLANWPMISSION)) {
+                char buf[5];
+                switch (posControl.wpMissionPlannerStatus) {
+                case WP_PLAN_WAIT:
+                    strcpy(buf, "WAIT");
+                    break;
+                case WP_PLAN_SAVE:
+                    strcpy(buf, "SAVE");
+                    break;
+                case WP_PLAN_OK:
+                    strcpy(buf, " OK ");
+                    break;
+                case WP_PLAN_FULL:
+                    strcpy(buf, "FULL");
+                }
+                tfp_sprintf(buff, "%s>%2uWP", buf, posControl.wpPlannerActiveWPIndex);
+            } else if (posControl.wpPlannerActiveWPIndex){
+                tfp_sprintf(buff, "PLAN>%2uWP", posControl.waypointCount);  // mission planner mision active
+            } else {
+                if (ARMING_FLAG(ARMED)){
+                    // Limit field size when Armed, only show selected mission
+                    tfp_sprintf(buff, "M%u       ", posControl.loadedMultiMissionIndex);
+                } else if (posControl.multiMissionCount && navConfig()->general.waypoint_multi_mission_index){
+                    if (navConfig()->general.waypoint_multi_mission_index != posControl.loadedMultiMissionIndex) {
+                        tfp_sprintf(buff, "M%u/%u>LOAD", navConfig()->general.waypoint_multi_mission_index, posControl.multiMissionCount);
+                    } else {
+                        // wpCount source for selected mission changes after Arming (until next mission load)
+                        int8_t wpCount = posControl.loadedMultiMissionWPCount ? posControl.loadedMultiMissionWPCount : posControl.waypointCount;
+                        if (posControl.waypointListValid && wpCount > 0) {
+                            tfp_sprintf(buff, "M%u/%u>%2uWP", posControl.loadedMultiMissionIndex, posControl.multiMissionCount, wpCount);
+                        } else {
+                            tfp_sprintf(buff, "M0/%u> 0WP", posControl.multiMissionCount);
+                        }
+                    }
+                } else {    // multi_mission_index 0 - show active WP count
+                    tfp_sprintf(buff, "WP CNT>%2u", posControl.waypointCount);
+                }
+            }
+            displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
+            return true;
+        }
+#endif  // USE_NAV
+
 #ifdef USE_POWER_LIMITS
     case OSD_PLIMIT_REMAINING_BURST_TIME:
         osdFormatCentiNumber(buff, powerLimiterGetRemainingBurstTime() * 100, 0, 1, 0, 3);
@@ -3117,6 +3193,10 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
 #ifdef USE_TEMPERATURE_SENSOR
     .temp_label_align = SETTING_OSD_TEMP_LABEL_ALIGN_DEFAULT,
 #endif
+#ifdef USE_PITOT
+    .airspeed_alarm_min = SETTING_OSD_AIRSPEED_ALARM_MIN_DEFAULT,
+    .airspeed_alarm_max = SETTING_OSD_AIRSPEED_ALARM_MAX_DEFAULT,
+#endif
 
     .video_system = SETTING_OSD_VIDEO_SYSTEM_DEFAULT,
     .row_shiftdown = SETTING_OSD_ROW_SHIFTDOWN_DEFAULT,
@@ -3148,6 +3228,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .osd_home_position_arm_screen = SETTING_OSD_HOME_POSITION_ARM_SCREEN_DEFAULT,
     .pan_servo_index = SETTING_OSD_PAN_SERVO_INDEX_DEFAULT,
     .pan_servo_pwm2centideg = SETTING_OSD_PAN_SERVO_PWM2CENTIDEG_DEFAULT,
+    .esc_rpm_precision = SETTING_OSD_ESC_RPM_PRECISION_DEFAULT,
 
     .units = SETTING_OSD_UNITS_DEFAULT,
     .main_voltage_decimals = SETTING_OSD_MAIN_VOLTAGE_DECIMALS_DEFAULT,
@@ -3236,6 +3317,7 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_REMAINING_FLIGHT_TIME_BEFORE_RTH] = OSD_POS(23, 7);
     osdLayoutsConfig->item_pos[0][OSD_REMAINING_DISTANCE_BEFORE_RTH] = OSD_POS(23, 6);
 
+    osdLayoutsConfig->item_pos[0][OSD_MISSION] = OSD_POS(0, 10);
     osdLayoutsConfig->item_pos[0][OSD_GPS_SATS] = OSD_POS(0, 11) | OSD_VISIBLE_FLAG;
     osdLayoutsConfig->item_pos[0][OSD_GPS_HDOP] = OSD_POS(0, 10);
 
@@ -3793,10 +3875,12 @@ static void osdShowArmed(void)
         displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(systemConfig() -> name)) / 2, y, craftNameBuf );
         y += 1;
     }
-
+#if defined(USE_NAV)
     if (posControl.waypointListValid && posControl.waypointCount > 0) {
-        displayWrite(osdDisplayPort, 7, y, "*MISSION LOADED*");
+        tfp_sprintf(buf, "MISSION %u/%u (%u WP)", posControl.loadedMultiMissionIndex, posControl.multiMissionCount, posControl.waypointCount);
+        displayWrite(osdDisplayPort, 6, y, buf);
     }
+#endif
     y += 1;
 
 #if defined(USE_GPS)
@@ -4107,13 +4191,13 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
     if (buff != NULL) {
         const char *message = NULL;
         char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH+1)];
-        if (ARMING_FLAG(ARMED)) {
-            // Aircraft is armed. We might have up to 5
-            // messages to show.
-            const char *messages[5];
-            unsigned messageCount = 0;
-            const char *failsafeInfoMessage = NULL;
+        // We might have up to 5 messages to show.
+        const char *messages[5];
+        unsigned messageCount = 0;
+        const char *failsafeInfoMessage = NULL;
+        const char *invertedInfoMessage = NULL;
 
+        if (ARMING_FLAG(ARMED)) {
             if (FLIGHT_MODE(FAILSAFE_MODE) || FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
                 if (isWaypointMissionRTHActive()) {
                     // if RTH activated whilst WP mode selected, remind pilot to cancel WP mode to exit RTH
@@ -4186,47 +4270,65 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     if (FLIGHT_MODE(HEADFREE_MODE)) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_HEADFREE);
                     }
+                    if (FLIGHT_MODE(SOARING_MODE)) {
+                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_NAV_SOARING);
+                    }
+#if defined(USE_NAV)
+                    if (posControl.flags.wpMissionPlannerActive) {
+                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_MISSION_PLANNER);
+                    }
+#endif
                 }
-            }
-            if (messageCount > 0) {
-                message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
-                if (message == failsafeInfoMessage) {
-                    // failsafeInfoMessage is not useful for recovering
-                    // a lost model, but might help avoiding a crash.
-                    // Blink to grab user attention.
-                    TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-                }
-                // We're shoing either failsafePhaseMessage or
-                // navStateMessage. Don't BLINK here since
-                // having this text available might be crucial
-                // during a lost aircraft recovery and blinking
-                // will cause it to be missing from some frames.
             }
         } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
             unsigned invalidIndex;
+
             // Check if we're unable to arm for some reason
             if (ARMING_FLAG(ARMING_DISABLED_INVALID_SETTING) && !settingsValidate(&invalidIndex)) {
-                if (OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
+
                     const setting_t *setting = settingGet(invalidIndex);
                     settingGetName(setting, messageBuf);
                     for (int ii = 0; messageBuf[ii]; ii++) {
                         messageBuf[ii] = sl_toupper(messageBuf[ii]);
                     }
-                    message = messageBuf;
-                } else {
-                    message = OSD_MESSAGE_STR(OSD_MSG_INVALID_SETTING);
-                    TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
-                }
+                    invertedInfoMessage = messageBuf;
+                    messages[messageCount++] = invertedInfoMessage;
+
+                    invertedInfoMessage = OSD_MESSAGE_STR(OSD_MSG_INVALID_SETTING);
+                    messages[messageCount++] = invertedInfoMessage;
+
             } else {
-                if (OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
-                    message = OSD_MESSAGE_STR(OSD_MSG_UNABLE_ARM);
-                    TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
-                } else {
+
+                    invertedInfoMessage = OSD_MESSAGE_STR(OSD_MSG_UNABLE_ARM);
+                    messages[messageCount++] = invertedInfoMessage;
+
                     // Show the reason for not arming
-                    message = osdArmingDisabledReasonMessage();
-                }
+                    messages[messageCount++] = osdArmingDisabledReasonMessage();
+
+            }
+        } else if (!ARMING_FLAG(ARMED)) {
+            if (isWaypointListValid()) {
+                messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_WP_MISSION_LOADED);
             }
         }
+
+        if (messageCount > 0) {
+            message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
+            if (message == failsafeInfoMessage) {
+                // failsafeInfoMessage is not useful for recovering
+                // a lost model, but might help avoiding a crash.
+                // Blink to grab user attention.
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            } else if (message == invertedInfoMessage) {
+                TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
+            }
+            // We're shoing either failsafePhaseMessage or
+            // navStateMessage. Don't BLINK here since
+            // having this text available might be crucial
+            // during a lost aircraft recovery and blinking
+            // will cause it to be missing from some frames.
+        }
+
         osdFormatMessage(buff, buff_size, message, isCenteredText);
     }
     return elemAttr;

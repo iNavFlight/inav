@@ -85,7 +85,9 @@
 #define OSD_MSG_HEADING_HOME        "EN ROUTE TO HOME"
 #define OSD_MSG_WP_FINISHED         "WP END>HOLDING POSITION"
 #define OSD_MSG_PREPARE_NEXT_WP     "PREPARING FOR NEXT WAYPOINT"
+#define OSD_MSG_MISSION_PLANNER     "(WP MISSION PLANNER)"
 #define OSD_MSG_WP_RTH_CANCEL       "CANCEL WP TO EXIT RTH"
+#define OSD_MSG_WP_MISSION_LOADED   "* MISSION LOADED *"
 #define OSD_MSG_EMERG_LANDING       "EMERGENCY LANDING"
 #define OSD_MSG_LANDING             "LANDING"
 #define OSD_MSG_LOITERING_HOME      "LOITERING AROUND HOME"
@@ -98,6 +100,7 @@
 #define OSD_MSG_AUTOTUNE            "(AUTOTUNE)"
 #define OSD_MSG_AUTOTUNE_ACRO       "SWITCH TO ACRO"
 #define OSD_MSG_HEADFREE            "(HEADFREE)"
+#define OSD_MSG_NAV_SOARING         "(SOARING)"
 #define OSD_MSG_UNABLE_ARM          "UNABLE TO ARM"
 
 #if defined(USE_SAFE_HOME)
@@ -234,6 +237,8 @@ typedef enum {
     OSD_GPS_MAX_SPEED,
     OSD_3D_MAX_SPEED,
     OSD_AIR_MAX_SPEED,
+    OSD_ACTIVE_PROFILE,
+    OSD_MISSION,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -326,6 +331,10 @@ typedef struct osdConfig_s {
 #ifdef USE_TEMPERATURE_SENSOR
     osd_alignment_e temp_label_align;
 #endif
+#ifdef USE_PITOT
+    float airspeed_alarm_min;
+    float airspeed_alarm_max;
+#endif
 
     videoSystem_e video_system;
     uint8_t row_shiftdown;
@@ -383,6 +392,7 @@ typedef struct osdConfig_s {
     uint8_t crsf_lq_format;
     uint8_t sidebar_height;             // sidebar height in rows, 0 turns off sidebars leaving only level indicator arrows
     uint8_t telemetry; 				    // use telemetry on displayed pixel line 0
+    uint8_t esc_rpm_precision;          // Number of characters used for the RPM numbers.
 
 } osdConfig_t;
 

@@ -49,6 +49,8 @@
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
 
+#include "programming/logic_condition.h"
+
 #include "rx/rx.h"
 
 #include "sensors/battery.h"
@@ -186,7 +188,7 @@ void applyFixedWingAltitudeAndThrottleController(timeUs_t currentTimeUs)
             }
 
             // Indicate that information is no longer usable
-            posControl.flags.verticalPositionDataConsumed = 1;
+            posControl.flags.verticalPositionDataConsumed = true;
         }
 
         isPitchAdjustmentValid = true;
@@ -243,18 +245,18 @@ static int8_t loiterDirection(void) {
 
     if (pidProfile()->loiter_direction == NAV_LOITER_YAW) {
 
-        if (rcCommand[YAW] < -250) { 
+        if (rcCommand[YAW] < -250) {
             loiterDirYaw = 1; //RIGHT //yaw is contrariwise
         }
 
-        if (rcCommand[YAW] > 250) { 
+        if (rcCommand[YAW] > 250) {
             loiterDirYaw = -1; //LEFT  //see annexCode in fc_core.c
         }
 
         dir = loiterDirYaw;
     }
 
-    if (IS_RC_MODE_ACTIVE(BOXLOITERDIRCHN)) { 
+    if (IS_RC_MODE_ACTIVE(BOXLOITERDIRCHN)) {
         dir *= -1;
     }
 
@@ -271,10 +273,12 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
     // Limit minimum forward velocity to 1 m/s
     float trackingDistance = trackingPeriod * MAX(posControl.actualState.velXY, 100.0f);
 
+    uint32_t navLoiterRadius = getLoiterRadius(navConfig()->fw.loiter_radius);
+
     // If angular visibility of a waypoint is less than 30deg, don't calculate circular loiter, go straight to the target
     #define TAN_15DEG    0.26795f
     bool needToCalculateCircularLoiter = (isApproachingLastWaypoint() || isWaypointWait())
-                                            && (distanceToActualTarget <= (navConfig()->fw.loiter_radius / TAN_15DEG))
+                                            && (distanceToActualTarget <= (navLoiterRadius / TAN_15DEG))
                                             && (distanceToActualTarget > 50.0f)
                                             && !FLIGHT_MODE(NAV_COURSE_HOLD_MODE);
 
@@ -283,8 +287,8 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
         // We are closing in on a waypoint, calculate circular loiter
         float loiterAngle = atan2_approx(-posErrorY, -posErrorX) + DEGREES_TO_RADIANS(loiterDirection() * 45.0f);
 
-        float loiterTargetX = posControl.desiredState.pos.x + navConfig()->fw.loiter_radius * cos_approx(loiterAngle);
-        float loiterTargetY = posControl.desiredState.pos.y + navConfig()->fw.loiter_radius * sin_approx(loiterAngle);
+        float loiterTargetX = posControl.desiredState.pos.x + navLoiterRadius * cos_approx(loiterAngle);
+        float loiterTargetY = posControl.desiredState.pos.y + navLoiterRadius * sin_approx(loiterAngle);
 
         // We have temporary loiter target. Recalculate distance and position error
         posErrorX = loiterTargetX - navGetCurrentActualPositionAndVelocity()->pos.x;
@@ -436,7 +440,7 @@ void applyFixedWingPositionController(timeUs_t currentTimeUs)
             }
 
             // Indicate that information is no longer usable
-            posControl.flags.horizontalPositionDataConsumed = 1;
+            posControl.flags.horizontalPositionDataConsumed = true;
         }
 
         isRollAdjustmentValid = true;
@@ -476,7 +480,7 @@ int16_t applyFixedWingMinSpeedController(timeUs_t currentTimeUs)
             }
 
             // Indicate that information is no longer usable
-            posControl.flags.horizontalPositionDataConsumed = 1;
+            posControl.flags.horizontalPositionDataConsumed = true;
         }
     }
     else {
@@ -612,13 +616,21 @@ bool isFixedWingLandingDetected(void)
 /*-----------------------------------------------------------
  * FixedWing emergency landing
  *-----------------------------------------------------------*/
-void applyFixedWingEmergencyLandingController(void)
+void applyFixedWingEmergencyLandingController(timeUs_t currentTimeUs)
 {
-    // FIXME: Use altitude controller if available (similar to MC code)
     rcCommand[ROLL] = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_roll_angle, pidProfile()->max_angle_inclination[FD_ROLL]);
-    rcCommand[PITCH] = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_pitch_angle, pidProfile()->max_angle_inclination[FD_PITCH]);
     rcCommand[YAW] = -pidRateToRcCommand(failsafeConfig()->failsafe_fw_yaw_rate, currentControlRateProfile->stabilized.rates[FD_YAW]);
     rcCommand[THROTTLE] = currentBatteryProfile->failsafe_throttle;
+
+    if (posControl.flags.estAltStatus >= EST_USABLE) {
+        updateClimbRateToAltitudeController(-1.0f * navConfig()->general.emerg_descent_rate, ROC_TO_ALT_NORMAL);
+        applyFixedWingAltitudeAndThrottleController(currentTimeUs);
+
+        int16_t pitchCorrection = constrain(posControl.rcAdjustment[PITCH], -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_dive_angle), DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle));
+        rcCommand[PITCH] = -pidAngleToRcCommand(pitchCorrection, pidProfile()->max_angle_inclination[FD_PITCH]);
+    } else {
+        rcCommand[PITCH] = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_pitch_angle, pidProfile()->max_angle_inclination[FD_PITCH]);
+    }
 }
 
 /*-----------------------------------------------------------
@@ -641,7 +653,7 @@ void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags,
         applyFixedWingLaunchController(currentTimeUs);
     }
     else if (navStateFlags & NAV_CTL_EMERG) {
-        applyFixedWingEmergencyLandingController();
+        applyFixedWingEmergencyLandingController(currentTimeUs);
     }
     else {
 #ifdef NAV_FW_LIMIT_MIN_FLY_VELOCITY
@@ -651,8 +663,8 @@ void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags,
         if (true) {
 #endif
             if (navStateFlags & NAV_CTL_ALT) {
-                if (getMotorStatus() == MOTOR_STOPPED_USER) {
-                    // Motor has been stopped by user. Update target altitude and bypass navigation pitch/throttle control
+                if (getMotorStatus() == MOTOR_STOPPED_USER || FLIGHT_MODE(SOARING_MODE)) {
+                    // Motor has been stopped by user or soaring mode enabled to override altitude control
                     resetFixedWingAltitudeController();
                     setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, posControl.actualState.yaw, NAV_POS_UPDATE_Z);
                 } else {
@@ -676,6 +688,10 @@ void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags,
         //if (navStateFlags & NAV_CTL_YAW)
         if ((navStateFlags & NAV_CTL_ALT) || (navStateFlags & NAV_CTL_POS)) {
             applyFixedWingPitchRollThrottleController(navStateFlags, currentTimeUs);
+        }
+
+        if (FLIGHT_MODE(SOARING_MODE) && navConfig()->general.flags.soaring_motor_stop) {
+            ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);
         }
     }
 }

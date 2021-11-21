@@ -82,7 +82,6 @@ typedef enum {
     DEVHW_L3GD20,
 
     /* Combined ACC/GYRO chips */
-    DEVHW_MPU3050,
     DEVHW_MPU6000,
     DEVHW_MPU6050,
     DEVHW_MPU6500,
@@ -118,6 +117,7 @@ typedef enum {
     DEVHW_LIS3MDL,
     DEVHW_RM3100,
     DEVHW_VCM5883,
+    DEVHW_MLX90393,
 
     /* Temp sensor chips */
     DEVHW_LM75_0,

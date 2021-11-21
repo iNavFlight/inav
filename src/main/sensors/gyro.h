@@ -28,7 +28,6 @@ typedef enum {
     GYRO_NONE = 0,
     GYRO_AUTODETECT,
     GYRO_MPU6050,
-    GYRO_MPU3050,
     GYRO_L3GD20,
     GYRO_MPU6000,
     GYRO_MPU6500,
@@ -40,16 +39,6 @@ typedef enum {
     GYRO_BMI270,
     GYRO_FAKE
 } gyroSensor_e;
-
-typedef enum {
-    DYN_NOTCH_RANGE_HIGH = 0,
-    DYN_NOTCH_RANGE_MEDIUM,
-    DYN_NOTCH_RANGE_LOW
-} dynamicFilterRange_e;
-
-#define DYN_NOTCH_RANGE_HZ_HIGH 2000
-#define DYN_NOTCH_RANGE_HZ_MEDIUM 1333
-#define DYN_NOTCH_RANGE_HZ_LOW 1000
 
 typedef struct gyro_s {
     bool initialized;
@@ -69,8 +58,6 @@ typedef struct gyroConfig_s {
 #ifdef USE_DUAL_GYRO
     uint8_t  gyro_to_use;
 #endif
-    uint16_t gyro_notch_hz;
-    uint16_t gyro_notch_cutoff;
     uint16_t gyro_main_lpf_hz;
     uint8_t gyro_main_lpf_type;
     uint8_t useDynamicLpf;
@@ -78,15 +65,9 @@ typedef struct gyroConfig_s {
     uint16_t gyroDynamicLpfMaxHz;
     uint8_t gyroDynamicLpfCurveExpo;
 #ifdef USE_DYNAMIC_FILTERS
-    uint8_t dynamicGyroNotchRange;
     uint16_t dynamicGyroNotchQ;
     uint16_t dynamicGyroNotchMinHz;
     uint8_t dynamicGyroNotchEnabled;
-#endif
-#ifdef USE_ALPHA_BETA_GAMMA_FILTER
-    float alphaBetaGammaAlpha;
-    float alphaBetaGammaBoost;
-    float alphaBetaGammaHalfLife;
 #endif
 #ifdef USE_GYRO_KALMAN
     uint16_t kalman_q;

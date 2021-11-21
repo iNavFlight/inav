@@ -74,10 +74,6 @@
 #error "Replace GYRO_ICM20689_ALIGN and ACC_ICM20689_ALIGN with IMU_ICM20689_ALIGN"
 #endif
 
-#if defined (GYRO_MPU3050_ALIGN)
-#error "Replace GYRO_MPU3050_ALIGN with IMU_MPU3050_ALIGN"
-#endif
-
 #if defined (GYRO_L3GD20_ALIGN)
 #error "Replace GYRO_L3GD20_ALIGN with IMU_L3GD20_ALIGN"
 #endif
