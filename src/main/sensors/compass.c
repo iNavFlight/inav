@@ -89,9 +89,9 @@ PG_RESET_TEMPLATE(compassConfig_t, compassConfig,
 
 static uint8_t magUpdatedAtLeastOnce = 0;
 
-fpVector3_t compass_initital_field;
-fpVector3_t compass_field_sum[4];
-fpVector3_t calced_compensation[4]; 
+fpVector3_t permotor_initital_field;
+fpVector3_t permotor_field_sum[4];
+fpVector3_t permotor_compensation[4]; 
 
 bool permotor_cal_running;
 bool permotor_cal_running_once;
@@ -102,7 +102,7 @@ float permotor_output_sum[4];
 
 uint32_t permotor_start_ms[4];
 
-uint32_t compass_permotor_timeout = 0;
+uint32_t permotor_timeout = 0;
 
 bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 {
@@ -542,7 +542,7 @@ void compass_permotor_update(void)
         return;
     }
 
-    uint32_t now = millis();
+    uint32_t time_now = millis();
 
     if (!permotor_cal_running) {
 
@@ -552,19 +552,19 @@ void compass_permotor_update(void)
         }
 
         for (uint8_t i = 0; i < 4; i++) {
-            compass_field_sum[i].x = 0.0f;
-            compass_field_sum[i].y = 0.0f;
-            compass_field_sum[i].z = 0.0f;
+            permotor_field_sum[i].x = 0.0f;
+            permotor_field_sum[i].y = 0.0f;
+            permotor_field_sum[i].z = 0.0f;
             permotor_output_sum[i] = 0.0f;
             permotor_cal_count[i] = 0;
             permotor_start_ms[i] = 0;
         }
 
-        compass_permotor_timeout = now;
+        permotor_timeout = time_now;
 
-        compass_initital_field.x = mag.magADC[X];
-        compass_initital_field.y = mag.magADC[Y];
-        compass_initital_field.z = mag.magADC[Z];
+        permotor_initital_field.x = mag.magADC[X];
+        permotor_initital_field.y = mag.magADC[Y];
+        permotor_initital_field.z = mag.magADC[Z];
     
         return;
     }
@@ -580,23 +580,23 @@ void compass_permotor_update(void)
         }
 
         if (permotor_start_ms[i] == 0) {
-            permotor_start_ms[i] = now;
+            permotor_start_ms[i] = time_now;
         }
 
-        if (now - permotor_start_ms[i] < 500) {
+        if (time_now - permotor_start_ms[i] < 500) {
             // motor must run for 0.5s to settle
             continue;
         }
 
         // accumulate a sample
-        compass_field_sum[i].x += mag.magADC[X];
-        compass_field_sum[i].y += mag.magADC[Y];
-        compass_field_sum[i].z += mag.magADC[Z];
+        permotor_field_sum[i].x += mag.magADC[X];
+        permotor_field_sum[i].y += mag.magADC[Y];
+        permotor_field_sum[i].z += mag.magADC[Z];
         permotor_output_sum[i] += scaled_output;
         permotor_cal_count[i]++;
     }
 
-    if (now - compass_permotor_timeout >= 10000) { // waits to reach the maximum time of the function to finish
+    if (time_now - permotor_timeout >= 10000) { // waits to reach the maximum time of the function to finish
 
         for (uint8_t i = 0; i < 4; i++) {
 
@@ -609,23 +609,23 @@ void compass_permotor_update(void)
 
             // calculate amount that field changed from initial field
             fpVector3_t field_changed;
-            field_changed.x = compass_initital_field.x - (compass_field_sum[i].x / permotor_cal_count[i]);
-            field_changed.y = compass_initital_field.y - (compass_field_sum[i].y / permotor_cal_count[i]);
-            field_changed.z = compass_initital_field.z - (compass_field_sum[i].z / permotor_cal_count[i]);
+            field_changed.x = permotor_initital_field.x - (permotor_field_sum[i].x / permotor_cal_count[i]);
+            field_changed.y = permotor_initital_field.y - (permotor_field_sum[i].y / permotor_cal_count[i]);
+            field_changed.z = permotor_initital_field.z - (permotor_field_sum[i].z / permotor_cal_count[i]);
 
             if (output <= 0.0f) {
                 continue;
             }
 
-            calced_compensation[i].x = field_changed.x / output;
-            calced_compensation[i].y = field_changed.y / output;
-            calced_compensation[i].z = field_changed.z / output;
+            permotor_compensation[i].x = field_changed.x / output;
+            permotor_compensation[i].y = field_changed.y / output;
+            permotor_compensation[i].z = field_changed.z / output;
 
             float scaled_output = motor_scaled_output(i);
 
-            compassConfigMutable()->permotor_offset[X] += calced_compensation[i].x * scaled_output;
-            compassConfigMutable()->permotor_offset[Y] += calced_compensation[i].y * scaled_output;
-            compassConfigMutable()->permotor_offset[Z] += calced_compensation[i].z * scaled_output;
+            compassConfigMutable()->permotor_offset[X] += permotor_compensation[i].x * scaled_output;
+            compassConfigMutable()->permotor_offset[Y] += permotor_compensation[i].y * scaled_output;
+            compassConfigMutable()->permotor_offset[Z] += permotor_compensation[i].z * scaled_output;
         }
 
         LED0_OFF;
@@ -637,8 +637,8 @@ void compass_permotor_update(void)
     {
         LED0_ON;
 
-        if (compass_permotor_timeout == 0) { // is this the first time the "compass_permotor_timeout" has been used? yes...
-            compass_permotor_timeout = now;
+        if (permotor_timeout == 0) { // is this the first time the "compass_permotor_timeout" has been used? yes...
+            permotor_timeout = time_now;
         }
     }
 }
