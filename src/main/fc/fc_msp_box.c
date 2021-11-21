@@ -238,7 +238,7 @@ void initActiveBoxIds(void)
 
 #endif
 
-    if (sensors(SENSOR_MAG) && STATE(MULTIROTOR)) {
+    if (sensors(SENSOR_MAG) && STATE(MULTIROTOR) && getMotorCount() < 4) { // work only in quadcopter
         activeBoxIds[activeBoxIdCount++] = BOXPERMOTOR;
     }
 

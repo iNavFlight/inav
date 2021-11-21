@@ -544,10 +544,6 @@ static float motor_scaled_output(uint8_t motor_numb)
 void compass_permotor_update(void)
 {
 
-    if (!STATE(MULTIROTOR) && getMotorCount() > 3) { // work only in quadcopter
-        return;
-    }
-    
     if (ARMING_FLAG(ARMED)) { // don't work in flight
         return;
     }
