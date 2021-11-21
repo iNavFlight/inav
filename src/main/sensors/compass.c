@@ -93,14 +93,14 @@ fpVector3_t compass_initital_field;
 fpVector3_t compass_field_sum[4];
 fpVector3_t calced_compensation[4]; 
 
-bool calibration_running;
-bool calibration_running_once;
+bool permotor_cal_running;
+bool permotor_cal_running_once;
 
-uint16_t calibration_count[4];
+uint16_t permotor_cal_count[4];
 
-float output_sum[4];
+float permotor_output_sum[4];
 
-uint32_t motor_start_ms[4];
+uint32_t permotor_start_ms[4];
 
 uint32_t compass_permotor_timeout = 0;
 
@@ -472,7 +472,7 @@ void compassUpdate(timeUs_t currentTimeUs)
         if (IS_RC_MODE_ACTIVE(BOXPERMOTOR)) {
             compass_permotor_update();
         } else {
-            calibration_running_once = false;
+            permotor_cal_running_once = false;
         }
 
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
@@ -544,20 +544,20 @@ void compass_permotor_update(void)
 
     uint32_t now = millis();
 
-    if (!calibration_running) {
+    if (!permotor_cal_running) {
 
-        if (!calibration_running_once) {
-            calibration_running = true;
-            calibration_running_once = true;
+        if (!permotor_cal_running_once) {
+            permotor_cal_running = true;
+            permotor_cal_running_once = true;
         }
 
         for (uint8_t i = 0; i < 4; i++) {
             compass_field_sum[i].x = 0.0f;
             compass_field_sum[i].y = 0.0f;
             compass_field_sum[i].z = 0.0f;
-            output_sum[i] = 0.0f;
-            calibration_count[i] = 0;
-            motor_start_ms[i] = 0;
+            permotor_output_sum[i] = 0.0f;
+            permotor_cal_count[i] = 0;
+            permotor_start_ms[i] = 0;
         }
 
         compass_permotor_timeout = now;
@@ -575,15 +575,15 @@ void compass_permotor_update(void)
 
         if (scaled_output <= 0.0f) {
             // motor is off
-            motor_start_ms[i] = 0;
+            permotor_start_ms[i] = 0;
             continue;
         }
 
-        if (motor_start_ms[i] == 0) {
-            motor_start_ms[i] = now;
+        if (permotor_start_ms[i] == 0) {
+            permotor_start_ms[i] = now;
         }
 
-        if (now - motor_start_ms[i] < 500) {
+        if (now - permotor_start_ms[i] < 500) {
             // motor must run for 0.5s to settle
             continue;
         }
@@ -592,26 +592,26 @@ void compass_permotor_update(void)
         compass_field_sum[i].x += mag.magADC[X];
         compass_field_sum[i].y += mag.magADC[Y];
         compass_field_sum[i].z += mag.magADC[Z];
-        output_sum[i] += scaled_output;
-        calibration_count[i]++;
+        permotor_output_sum[i] += scaled_output;
+        permotor_cal_count[i]++;
     }
 
     if (now - compass_permotor_timeout >= 10000) { // waits to reach the maximum time of the function to finish
 
         for (uint8_t i = 0; i < 4; i++) {
 
-            if (calibration_count[i] == 0) {
+            if (permotor_cal_count[i] == 0) {
                 continue;
             }
 
             // calculate effective output
-            float output = output_sum[i] / calibration_count[i];
+            float output = permotor_output_sum[i] / permotor_cal_count[i];
 
             // calculate amount that field changed from initial field
             fpVector3_t field_changed;
-            field_changed.x = compass_initital_field.x - (compass_field_sum[i].x / calibration_count[i]);
-            field_changed.y = compass_initital_field.y - (compass_field_sum[i].y / calibration_count[i]);
-            field_changed.z = compass_initital_field.z - (compass_field_sum[i].z / calibration_count[i]);
+            field_changed.x = compass_initital_field.x - (compass_field_sum[i].x / permotor_cal_count[i]);
+            field_changed.y = compass_initital_field.y - (compass_field_sum[i].y / permotor_cal_count[i]);
+            field_changed.z = compass_initital_field.z - (compass_field_sum[i].z / permotor_cal_count[i]);
 
             if (output <= 0.0f) {
                 continue;
@@ -631,7 +631,7 @@ void compass_permotor_update(void)
         LED0_OFF;
 
         saveConfigAndNotify();
-        calibration_running = false;
+        permotor_cal_running = false;
     }
     else
     {
