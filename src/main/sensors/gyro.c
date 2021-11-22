@@ -80,7 +80,7 @@ FILE_COMPILE_FOR_SPEED
 
 FASTRAM gyro_t gyro; // gyro sensor object
 
-#define MAX_GYRO_COUNT          1
+#define MAX_GYRO_COUNT 1
 
 STATIC_UNIT_TESTED gyroDev_t gyroDev[MAX_GYRO_COUNT];  // Not in FASTRAM since it may hold DMA buffers
 STATIC_FASTRAM int16_t gyroTemperature[MAX_GYRO_COUNT];
@@ -376,7 +376,8 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
             gyroConfigMutable()->gyro_zero_cal[X] = dev->gyroZero[X];
             gyroConfigMutable()->gyro_zero_cal[Y] = dev->gyroZero[Y];
             gyroConfigMutable()->gyro_zero_cal[Z] = dev->gyroZero[Z];
-            saveConfigAndNotify();
+            // save gyro calibration
+            writeEEPROM();
 
             LOG_D(GYRO, "Gyro calibration complete (%d, %d, %d)", dev->gyroZero[X], dev->gyroZero[Y], dev->gyroZero[Z]);
             schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
