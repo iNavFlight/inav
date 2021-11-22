@@ -99,7 +99,7 @@ EXTENDED_FASTRAM dynamicGyroNotchState_t dynamicGyroNotchState;
 
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 2);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_lpf = SETTING_GYRO_HARDWARE_LPF_DEFAULT,
@@ -126,6 +126,8 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .kalman_q = SETTING_SETPOINT_KALMAN_Q_DEFAULT,
     .kalmanEnabled = SETTING_SETPOINT_KALMAN_ENABLED_DEFAULT,
 #endif
+    .init_gyro_cal_enabled = SETTING_INIT_GYRO_CAL_DEFAULT,
+    .gyro_zero_cal = {SETTING_GYRO_ZERO_X_DEFAULT, SETTING_GYRO_ZERO_Y_DEFAULT, SETTING_GYRO_ZERO_Z_DEFAULT},
 );
 
 STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHardware)
@@ -355,27 +357,39 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
 {
     fpVector3_t v;
 
-    // Consume gyro reading
-    v.v[X] = dev->gyroADCRaw[X];
-    v.v[Y] = dev->gyroADCRaw[Y];
-    v.v[Z] = dev->gyroADCRaw[Z];
+    if (gyroConfig()->init_gyro_cal_enabled) {
+        // Consume gyro reading
+        v.v[X] = dev->gyroADCRaw[X];
+        v.v[Y] = dev->gyroADCRaw[Y];
+        v.v[Z] = dev->gyroADCRaw[Z];
 
-    zeroCalibrationAddValueV(gyroCalibration, &v);
+        zeroCalibrationAddValueV(gyroCalibration, &v);
 
-    // Check if calibration is complete after this cycle
-    if (zeroCalibrationIsCompleteV(gyroCalibration)) {
-        zeroCalibrationGetZeroV(gyroCalibration, &v);
-        dev->gyroZero[X] = v.v[X];
-        dev->gyroZero[Y] = v.v[Y];
-        dev->gyroZero[Z] = v.v[Z];
+        // Check if calibration is complete after this cycle
+        if (zeroCalibrationIsCompleteV(gyroCalibration)) {
+            zeroCalibrationGetZeroV(gyroCalibration, &v);
+            dev->gyroZero[X] = v.v[X];
+            dev->gyroZero[Y] = v.v[Y];
+            dev->gyroZero[Z] = v.v[Z];
+            
+            // store the gyro calibration in the flash memory
+            gyroConfigMutable()->gyro_zero_cal[X] = dev->gyroZero[X];
+            gyroConfigMutable()->gyro_zero_cal[Y] = dev->gyroZero[Y];
+            gyroConfigMutable()->gyro_zero_cal[Z] = dev->gyroZero[Z];
+            saveConfigAndNotify();
 
-        LOG_D(GYRO, "Gyro calibration complete (%d, %d, %d)", dev->gyroZero[X], dev->gyroZero[Y], dev->gyroZero[Z]);
-        schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
-    }
-    else {
-        dev->gyroZero[X] = 0;
-        dev->gyroZero[Y] = 0;
-        dev->gyroZero[Z] = 0;
+            LOG_D(GYRO, "Gyro calibration complete (%d, %d, %d)", dev->gyroZero[X], dev->gyroZero[Y], dev->gyroZero[Z]);
+            schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
+        } else {
+            dev->gyroZero[X] = 0;
+            dev->gyroZero[Y] = 0;
+            dev->gyroZero[Z] = 0;
+        }
+    } else {
+        gyroCalibration[0].params.state = ZERO_CALIBRATION_DONE; // calibration ended
+        dev->gyroZero[X] = gyroConfig()->gyro_zero_cal[X];
+        dev->gyroZero[Y] = gyroConfig()->gyro_zero_cal[Y];
+        dev->gyroZero[Z] = gyroConfig()->gyro_zero_cal[Z];
     }
 }
 
