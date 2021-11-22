@@ -388,6 +388,7 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
         }
     } else { // skip gyro calibration and use values ​​read from storage
         gyroCalibration[0].params.state = ZERO_CALIBRATION_DONE; // calibration ended
+        // pass the calibration values
         dev->gyroZero[X] = gyroConfig()->gyro_zero_cal[X];
         dev->gyroZero[Y] = gyroConfig()->gyro_zero_cal[Y];
         dev->gyroZero[Z] = gyroConfig()->gyro_zero_cal[Z];
