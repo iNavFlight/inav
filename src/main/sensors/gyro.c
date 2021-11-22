@@ -371,14 +371,6 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
             dev->gyroZero[X] = v.v[X];
             dev->gyroZero[Y] = v.v[Y];
             dev->gyroZero[Z] = v.v[Z];
-            
-            // store the gyro calibration in the flash memory
-            gyroConfigMutable()->gyro_zero_cal[X] = dev->gyroZero[X];
-            gyroConfigMutable()->gyro_zero_cal[Y] = dev->gyroZero[Y];
-            gyroConfigMutable()->gyro_zero_cal[Z] = dev->gyroZero[Z];
-            // save gyro calibration
-            writeEEPROM();
-            readEEPROM();
 
             LOG_D(GYRO, "Gyro calibration complete (%d, %d, %d)", dev->gyroZero[X], dev->gyroZero[Y], dev->gyroZero[Z]);
             schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
@@ -429,6 +421,13 @@ static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroC
             return true;
         } else {
             performGyroCalibration(gyroDev, gyroCal);
+            
+            // save gyro calibration
+            gyroConfigMutable()->gyro_zero_cal[X] = gyroDev->gyroZero[X];
+            gyroConfigMutable()->gyro_zero_cal[Y] = gyroDev->gyroZero[Y];
+            gyroConfigMutable()->gyro_zero_cal[Z] = gyroDev->gyroZero[Z];
+            writeEEPROM();
+            readEEPROM();
 
             // Reset gyro values to zero to prevent other code from using uncalibrated data
             gyroADCf[X] = 0.0f;
