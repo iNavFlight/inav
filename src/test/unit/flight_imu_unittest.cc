@@ -28,8 +28,6 @@ extern "C" {
     #include "fc/runtime_config.h"
 
     #include "io/gps.h"
-
-    #include "fc/config.h"
     
     #include "flight/imu.h"
 }
