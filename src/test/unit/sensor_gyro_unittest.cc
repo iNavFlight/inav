@@ -146,6 +146,4 @@ timeDelta_t getLooptime(void) {return gyro.targetLooptime;}
 timeDelta_t getGyroLooptime(void) {return gyro.targetLooptime;}
 void sensorsSet(uint32_t) {}
 void schedulerResetTaskStatistics(cfTaskId_e) {}
-void readEEPROM(void) {}
-void writeEEPROM(void) {}
 }
