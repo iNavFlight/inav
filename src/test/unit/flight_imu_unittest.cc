@@ -28,7 +28,7 @@ extern "C" {
     #include "fc/runtime_config.h"
 
     #include "io/gps.h"
-    
+
     #include "flight/imu.h"
 }
 
@@ -137,6 +137,4 @@ void resetHeadingHoldTarget(int16_t heading)
     UNUSED(heading);
 }
 bool isGPSHeadingValid(void) { return true; }
-void readEEPROM(void) {}
-void writeEEPROM(void) {}
 }

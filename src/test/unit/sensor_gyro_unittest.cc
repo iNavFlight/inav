@@ -32,6 +32,7 @@ extern "C" {
     #include "common/utils.h"
     #include "drivers/accgyro/accgyro_fake.h"
     #include "drivers/logging_codes.h"
+    #include "fc/config.h"
     #include "io/beeper.h"
     #include "scheduler/scheduler.h"
     #include "sensors/gyro.h"
@@ -146,4 +147,6 @@ timeDelta_t getLooptime(void) {return gyro.targetLooptime;}
 timeDelta_t getGyroLooptime(void) {return gyro.targetLooptime;}
 void sensorsSet(uint32_t) {}
 void schedulerResetTaskStatistics(cfTaskId_e) {}
+void readEEPROM(void) {}
+void writeEEPROM(void) {}
 }
