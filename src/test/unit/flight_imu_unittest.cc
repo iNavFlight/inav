@@ -110,8 +110,6 @@ bool sensors(uint32_t mask)
     return false;
 };
 uint32_t millis(void) { return 0; }
-timeDelta_t getLooptime(void) { return gyro.targetLooptime; }
-timeDelta_t getGyroLooptime(void) { return gyro.targetLooptime; }
 void schedulerResetTaskStatistics(cfTaskId_e) {}
 void sensorsSet(uint32_t) {}
 bool compassIsHealthy(void) { return true; }
