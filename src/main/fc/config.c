@@ -173,11 +173,11 @@ __attribute__((weak)) void targetConfiguration(void)
 #define SECOND_PORT_INDEX 1
 #endif
 
-uint32_t getLooptime(void) {
+timeDelta_t getLooptime(void) {
     return gyroConfig()->looptime;
 }
 
-uint32_t getGyroLooptime(void) {
+timeDelta_t getGyroLooptime(void) {
     return gyro.targetLooptime;
 }
 
