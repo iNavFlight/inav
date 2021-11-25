@@ -138,7 +138,6 @@ TEST(SensorGyro, Update)
 
 extern "C" {
 static timeMs_t milliTime = 0;
-
 timeMs_t millis(void) {return milliTime++;}
 uint32_t micros(void) {return 0;}
 void beeper(beeperMode_e) {}
