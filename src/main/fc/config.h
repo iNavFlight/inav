@@ -137,5 +137,5 @@ void createDefaultConfig(void);
 void resetConfigs(void);
 void targetConfiguration(void);
 
-timeDelta_t getLooptime(void);
-timeDelta_t getGyroLooptime(void);
+uint32_t getLooptime(void);
+uint32_t getGyroLooptime(void);
