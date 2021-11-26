@@ -371,12 +371,12 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
             dev->gyroZero[X] = v.v[X];
             dev->gyroZero[Y] = v.v[Y];
             dev->gyroZero[Z] = v.v[Z];
-            
+            /*
             gyro.getZero[X] = dev->gyroZero[X];
             gyro.getZero[Y] = dev->gyroZero[Y];
             gyro.getZero[Z] = dev->gyroZero[Z];
             gyro.ok_to_save_cal = true;
-
+            */
             LOG_D(GYRO, "Gyro calibration complete (%d, %d, %d)", dev->gyroZero[X], dev->gyroZero[Y], dev->gyroZero[Z]);
             schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
         } else {
