@@ -82,6 +82,8 @@ FASTRAM gyro_t gyro; // gyro sensor object
 
 #define MAX_GYRO_COUNT 1
 
+static bool ok_to_save_gyro_cal = false;
+
 STATIC_UNIT_TESTED gyroDev_t gyroDev[MAX_GYRO_COUNT];  // Not in FASTRAM since it may hold DMA buffers
 STATIC_FASTRAM int16_t gyroTemperature[MAX_GYRO_COUNT];
 STATIC_FASTRAM_UNIT_TESTED zeroCalibrationVector_t gyroCalibration[MAX_GYRO_COUNT];
@@ -372,12 +374,7 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
             dev->gyroZero[Y] = v.v[Y];
             dev->gyroZero[Z] = v.v[Z];
             
-            // save gyro calibration
-            gyroConfigMutable()->gyro_zero_cal[X] = gyroDev->gyroZero[X];
-            gyroConfigMutable()->gyro_zero_cal[Y] = gyroDev->gyroZero[Y];
-            gyroConfigMutable()->gyro_zero_cal[Z] = gyroDev->gyroZero[Z];
-            writeEEPROM();
-            readEEPROM();
+            ok_to_save_gyro_cal = true;
 
             LOG_D(GYRO, "Gyro calibration complete (%d, %d, %d)", dev->gyroZero[X], dev->gyroZero[Y], dev->gyroZero[Z]);
             schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
@@ -560,5 +557,17 @@ void gyroUpdateDynamicLpf(float cutoffFreq) {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             biquadFilterUpdate(&gyroLpf2State[axis].biquad, cutoffFreq, getLooptime(), BIQUAD_Q, FILTER_LPF);
         }
+    }
+}
+
+void save_gyro_cal_externally(void) { // fixes Test Unit compilation error
+    if (ok_to_save_gyro_cal) {
+        // save gyro calibration
+        gyroConfigMutable()->gyro_zero_cal[X] = gyroDev->gyroZero[X];
+        gyroConfigMutable()->gyro_zero_cal[Y] = gyroDev->gyroZero[Y];
+        gyroConfigMutable()->gyro_zero_cal[Z] = gyroDev->gyroZero[Z];
+        writeEEPROM();
+        readEEPROM();
+        ok_to_save_gyro_cal = false;
     }
 }

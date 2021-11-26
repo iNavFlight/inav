@@ -28,8 +28,6 @@ extern "C" {
     #include "fc/runtime_config.h"
 
     #include "io/gps.h"
-    
-    #include "fc/config.h"
 
     #include "flight/imu.h"
 }
@@ -110,8 +108,8 @@ bool sensors(uint32_t mask)
     return false;
 };
 uint32_t millis(void) { return 0; }
-uint32_t getLooptime(void) { return gyro.targetLooptime; }
-uint32_t getGyroLooptime(void) { return gyro.targetLooptime; }
+timeDelta_t getLooptime(void) { return gyro.targetLooptime; }
+timeDelta_t getGyroLooptime(void) { return gyro.targetLooptime; }
 void schedulerResetTaskStatistics(cfTaskId_e) {}
 void sensorsSet(uint32_t) {}
 bool compassIsHealthy(void) { return true; }
@@ -139,6 +137,4 @@ void resetHeadingHoldTarget(int16_t heading)
     UNUSED(heading);
 }
 bool isGPSHeadingValid(void) { return true; }
-void readEEPROM(void) {}
-void writeEEPROM(void) {}
 }

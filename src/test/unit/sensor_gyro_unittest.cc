@@ -32,7 +32,6 @@ extern "C" {
     #include "common/utils.h"
     #include "drivers/accgyro/accgyro_fake.h"
     #include "drivers/logging_codes.h"
-    #include "fc/config.h"
     #include "io/beeper.h"
     #include "scheduler/scheduler.h"
     #include "sensors/gyro.h"
@@ -142,10 +141,8 @@ timeMs_t millis(void) {return milliTime++;}
 uint32_t micros(void) {return 0;}
 void beeper(beeperMode_e) {}
 uint8_t detectedSensors[] = { GYRO_NONE, ACC_NONE };
-uint32_t getLooptime(void) {return gyro.targetLooptime;}
-uint32_t getGyroLooptime(void) {return gyro.targetLooptime;}
+timeDelta_t getLooptime(void) {return gyro.targetLooptime;}
+timeDelta_t getGyroLooptime(void) {return gyro.targetLooptime;}
 void sensorsSet(uint32_t) {}
 void schedulerResetTaskStatistics(cfTaskId_e) {}
-void readEEPROM(void) {}
-void writeEEPROM(void) {}
 }

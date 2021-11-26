@@ -29,6 +29,7 @@
 #define MAX_NAME_LENGTH 16
 
 #define TASK_GYRO_LOOPTIME 250 // Task gyro always runs at 4kHz
+
 typedef enum {
     FEATURE_THR_VBAT_COMP = 1 << 0,
     FEATURE_VBAT = 1 << 1,

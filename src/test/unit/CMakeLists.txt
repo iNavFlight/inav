@@ -11,7 +11,7 @@ set_property(SOURCE bitarray_unittest.cc PROPERTY depends "common/bitarray.c")
 
 set_property(SOURCE flight_imu_unittest.cc PROPERTY depends     "build/debug.c"
     "common/maths.c" "common/calibration.c" "common/filter.c"
-    "drivers/accgyro/accgyro_fake.c" "fc/config.h" "flight/imu.c" "sensors/boardalignment.c"
+    "drivers/accgyro/accgyro_fake.c" "flight/imu.c" "sensors/boardalignment.c"
     "sensors/gyro.c")
 
 set_property(SOURCE maths_unittest.cc PROPERTY depends "common/maths.c")
@@ -25,7 +25,7 @@ set_property(SOURCE rcdevice_unittest.cc PROPERTY depends
 
 set_property(SOURCE sensor_gyro_unittest.cc PROPERTY depends
     "build/debug.c" "common/maths.c" "common/calibration.c" "common/filter.c"
-    "drivers/accgyro/accgyro_fake.c" "fc/config.h" "sensors/gyro.c" "sensors/boardalignment.c")
+    "drivers/accgyro/accgyro_fake.c" "sensors/gyro.c" "sensors/boardalignment.c")
 
 set_property(SOURCE telemetry_hott_unittest.cc PROPERTY depends
     "telemetry/hott.c" "common/gps_conversion.c" "common/string_light.c")

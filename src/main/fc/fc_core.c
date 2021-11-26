@@ -841,6 +841,9 @@ void FAST_CODE taskGyro(timeUs_t currentTimeUs) {
 
     /* Update actual hardware readings */
     gyroUpdate();
+    
+    // saves gyro calibration in storage outside of "gyroUpdate" to avoid compilation errors
+    save_gyro_cal_externally();
 
 #ifdef USE_OPFLOW
     if (sensors(SENSOR_OPFLOW)) {
