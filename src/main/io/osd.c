@@ -3189,6 +3189,8 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .crsf_lq_format = SETTING_OSD_CRSF_LQ_FORMAT_DEFAULT,
     .link_quality_alarm = SETTING_OSD_LINK_QUALITY_ALARM_DEFAULT,
     .rssi_dbm_alarm = SETTING_OSD_RSSI_DBM_ALARM_DEFAULT,
+    .rssi_dbm_max = SETTING_OSD_RSSI_DBM_MAX_DEFAULT,
+    .rssi_dbm_min = SETTING_OSD_RSSI_DBM_MIN_DEFAULT,
 #endif
 #ifdef USE_TEMPERATURE_SENSOR
     .temp_label_align = SETTING_OSD_TEMP_LABEL_ALIGN_DEFAULT,

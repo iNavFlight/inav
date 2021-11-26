@@ -3486,6 +3486,22 @@ groups:
         max: 6
         default_value: 3
 
+      - name: osd_rssi_dbm_max
+        condition: USE_SERIALRX_CRSF
+        description: "RSSI dBm upper end of curve. Perfect rssi (max) = 100%"
+        default_value: -30
+        field: rssi_dbm_max
+        min: -50
+        max: 0
+
+      - name: osd_rssi_dbm_min
+        condition: USE_SERIALRX_CRSF
+        description: "RSSI dBm lower end of curve or RX sensitivity level. Worst rssi (min) = 0%"
+        default_value: -120
+        field: rssi_dbm_min
+        min: -130
+        max: 0
+
   - name: PG_OSD_COMMON_CONFIG
     type: osdCommonConfig_t
     headers: ["io/osd_common.h"]

@@ -36,6 +36,7 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/serial_uart.h"
 
 #include "io/serial.h"
+#include "io/osd.h"
 
 #include "rx/rx.h"
 #include "rx/crsf.h"
@@ -241,8 +242,15 @@ STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
             rxLinkStatistics.uplinkTXPower = crsfPowerStates[linkStats->uplinkTXPower];
             rxLinkStatistics.activeAnt = linkStats->activeAntenna;
 
-            if (rxLinkStatistics.uplinkLQ > 0)
-                lqTrackerSet(rxRuntimeConfig->lqTracker, scaleRange(constrain(rxLinkStatistics.uplinkRSSI, -120, -30), -120, -30, 0, RSSI_MAX_VALUE));
+            if (rxLinkStatistics.uplinkLQ > 0) {
+                int16_t uplinkStrength;   // RSSI dBm converted to %
+                uplinkStrength = constrain((100 * ((osdConfig()->rssi_dbm_max - osdConfig()->rssi_dbm_min) * (osdConfig()->rssi_dbm_max  - osdConfig()->rssi_dbm_min)) - (osdConfig()->rssi_dbm_max  - rxLinkStatistics.uplinkRSSI) * (100 * (osdConfig()->rssi_dbm_max  - rxLinkStatistics.uplinkRSSI))) / ((osdConfig()->rssi_dbm_max  - osdConfig()->rssi_dbm_min) * (osdConfig()->rssi_dbm_max  - osdConfig()->rssi_dbm_min)),0,100);
+                if (rxLinkStatistics.uplinkRSSI >= osdConfig()->rssi_dbm_max )
+                    uplinkStrength = 99;
+                else if (rxLinkStatistics.uplinkRSSI < osdConfig()->rssi_dbm_min)
+                    uplinkStrength = 0;
+                lqTrackerSet(rxRuntimeConfig->lqTracker, scaleRange(uplinkStrength, 0, 99, 0, RSSI_MAX_VALUE));
+            }
             else
                 lqTrackerSet(rxRuntimeConfig->lqTracker, 0);
 
