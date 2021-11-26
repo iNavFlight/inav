@@ -357,7 +357,7 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
 {
     fpVector3_t v;
 
-    if (gyroConfig()->init_gyro_cal_enabled) {
+    //if (gyroConfig()->init_gyro_cal_enabled) {
         // Consume gyro reading
         v.v[X] = dev->gyroADCRaw[X];
         v.v[Y] = dev->gyroADCRaw[Y];
@@ -371,12 +371,12 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
             dev->gyroZero[X] = v.v[X];
             dev->gyroZero[Y] = v.v[Y];
             dev->gyroZero[Z] = v.v[Z];
-            /*
+            
             gyro.getZero[X] = dev->gyroZero[X];
             gyro.getZero[Y] = dev->gyroZero[Y];
             gyro.getZero[Z] = dev->gyroZero[Z];
             gyro.ok_to_save_cal = true;
-            */
+            
             LOG_D(GYRO, "Gyro calibration complete (%d, %d, %d)", dev->gyroZero[X], dev->gyroZero[Y], dev->gyroZero[Z]);
             schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
         } else {
@@ -384,13 +384,13 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
             dev->gyroZero[Y] = 0;
             dev->gyroZero[Z] = 0;
         }
-    } else { // skip gyro calibration and use values ​​read from storage
+    /*} else { // skip gyro calibration and use values ​​read from storage
         gyroCalibration[0].params.state = ZERO_CALIBRATION_DONE; // calibration ended
         // pass the calibration values
         dev->gyroZero[X] = gyroConfig()->gyro_zero_cal[X];
         dev->gyroZero[Y] = gyroConfig()->gyro_zero_cal[Y];
         dev->gyroZero[Z] = gyroConfig()->gyro_zero_cal[Z];
-    }
+    }*/
 }
 
 /*
