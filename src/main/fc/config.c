@@ -465,6 +465,18 @@ void setConfigBatteryProfileAndWriteEEPROM(uint8_t profileIndex)
     beeperConfirmationBeeps(profileIndex + 1);
 }
 
+void setCalibrationGyroAndWriteEEPROM(void) { // fixes Test Unit compilation error
+    if (gyro.ok_to_save_cal) {
+        // save gyro calibration
+        gyroConfigMutable()->gyro_zero_cal[X] = gyro.getZero[X];
+        gyroConfigMutable()->gyro_zero_cal[Y] = gyro.getZero[Y];
+        gyroConfigMutable()->gyro_zero_cal[Z] = gyro.getZero[Z];
+        writeEEPROM();
+        readEEPROM();
+        gyro.ok_to_save_cal = false;
+    }
+}
+
 void beeperOffSet(uint32_t mask)
 {
     beeperConfigMutable()->beeper_off_flags |= mask;

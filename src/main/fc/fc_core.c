@@ -885,7 +885,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     annexCode(dT);
 
     // saves gyro calibration in storage outside of "gyroUpdate" to avoid compilation errors
-    save_gyro_cal_externally();
+    setCalibrationGyroAndWriteEEPROM();
 
     if (rxConfig()->rcFilterFrequency) {
         rcInterpolationApply(isRXDataNew);
