@@ -355,7 +355,8 @@ bool gyroIsCalibrationComplete(void)
 
 STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVector_t *gyroCalibration)
 {
-    if (gyroConfig()->init_gyro_cal_enabled) {
+#ifndef USE_IMU_FAKE
+    if (!gyroConfig()->init_gyro_cal_enabled) {
         gyroCalibration[0].params.state = ZERO_CALIBRATION_DONE; // calibration ended
         // pass the calibration values
         dev->gyroZero[X] = gyroConfig()->gyro_zero_cal[X];
@@ -363,6 +364,7 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
         dev->gyroZero[Z] = gyroConfig()->gyro_zero_cal[Z];
         return; // skip gyro calibration and use values ​​read from storage
     }
+#endif
 
     fpVector3_t v;
 
