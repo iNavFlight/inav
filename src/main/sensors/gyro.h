@@ -42,8 +42,6 @@ typedef enum {
 
 typedef struct gyro_s {
     bool initialized;
-    bool ok_to_save_cal;
-    int16_t getZero[XYZ_AXIS_COUNT];
     uint32_t targetLooptime;
     float gyroADCf[XYZ_AXIS_COUNT];
 } gyro_t;

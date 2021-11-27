@@ -19,6 +19,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "common/axis.h"
 #include "common/time.h"
 #include "config/parameter_group.h"
 #include "drivers/adc.h"
@@ -131,7 +132,7 @@ uint8_t getConfigBatteryProfile(void);
 bool setConfigBatteryProfile(uint8_t profileIndex);
 void setConfigBatteryProfileAndWriteEEPROM(uint8_t profileIndex);
 
-void setCalibrationGyroAndWriteEEPROM(void);
+void setCalibrationGyroAndWriteEEPROM(int16_t getGyroZero[XYZ_AXIS_COUNT]);
 
 bool canSoftwareSerialBeUsed(void);
 void applyAndSaveBoardAlignmentDelta(int16_t roll, int16_t pitch);

@@ -355,7 +355,7 @@ bool gyroIsCalibrationComplete(void)
 
 STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVector_t *gyroCalibration)
 {
-#ifndef USE_IMU_FAKE
+#ifndef USE_IMU_FAKE // fixes Test Unit compilation error
     if (!gyroConfig()->init_gyro_cal_enabled) {
         gyroCalibration[0].params.state = ZERO_CALIBRATION_DONE; // calibration ended
         // pass the calibration values
@@ -381,12 +381,11 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
         dev->gyroZero[X] = v.v[X];
         dev->gyroZero[Y] = v.v[Y];
         dev->gyroZero[Z] = v.v[Z];
-            
-        gyro.getZero[X] = dev->gyroZero[X];
-        gyro.getZero[Y] = dev->gyroZero[Y];
-        gyro.getZero[Z] = dev->gyroZero[Z];
-        gyro.ok_to_save_cal = true;
-            
+
+#ifndef USE_IMU_FAKE // fixes Test Unit compilation error
+        setCalibrationGyroAndWriteEEPROM(dev->gyroZero);
+#endif
+
         LOG_D(GYRO, "Gyro calibration complete (%d, %d, %d)", dev->gyroZero[X], dev->gyroZero[Y], dev->gyroZero[Z]);
         schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
     } else {
