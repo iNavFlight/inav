@@ -529,10 +529,10 @@ static int16_t get_stall_prevention(int16_t navigation_roll)
     float max_load_factor = pitot.airSpeed / MAX(navConfig()->fw.airspeed_min, 100);
 
     if (max_load_factor <= 1) { 
-        // air speed is below minimum speed, roll will be limited to 25 degrees
+        // airspeed is below minimum speed, roll will be limited to 25 degrees
         navigation_roll = constrain(navigation_roll, -250, 250);
     } else { 
-        // calculates a new roll limit according to the aerodynamic limit
+        // calculates a new roll limit according to the max load factor
         int32_t roll_limit_deg = RADIANS_TO_DECIDEGREES(acos_approx(sq(1.0f / max_load_factor)));
         if (roll_limit_deg < 250) {
             roll_limit_deg = 250;
