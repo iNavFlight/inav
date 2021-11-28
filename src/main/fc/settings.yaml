@@ -2832,7 +2832,7 @@ groups:
         min: 0
         max: 90
       - name: fw_stall_prevention
-        description: "Stops motor when Soaring mode enabled."
+        description: "Set to 'ON', the stall prevention system will be activated when the autopilot is also active."
         default_value: OFF
         field: fw.stall_prevention
         type: bool

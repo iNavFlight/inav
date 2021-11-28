@@ -1404,7 +1404,7 @@ Reference airspeed. Set this to airspeed at which PIDs were tuned. Usually shoul
 
 ### fw_stall_prevention
 
-Stops motor when Soaring mode enabled.
+Set to 'ON', the stall prevention system will be activated when the autopilot is also active.
 
 | Default | Min | Max |
 | --- | --- | --- |
