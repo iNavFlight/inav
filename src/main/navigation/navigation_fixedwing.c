@@ -519,7 +519,7 @@ static int16_t get_stall_prevention(int16_t navigation_roll)
 #ifdef USE_PITOT
     
     if (!pitotIsHealthy()) {
-        return avigation_roll;
+        return navigation_roll;
     }
 
     if (!navConfig()->fw.stall_prevention) {
