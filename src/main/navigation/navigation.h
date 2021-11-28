@@ -298,6 +298,8 @@ typedef struct navConfig_s {
         bool     useFwNavYawControl;
         uint8_t  yawControlDeadband;
         uint8_t  soaring_pitch_deadband;     // soaring mode pitch angle deadband (deg)
+        bool stall_prevention;
+        uint16_t airspeed_min;
     } fw;
 } navConfig_t;
 

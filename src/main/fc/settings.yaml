@@ -2731,7 +2731,6 @@ groups:
         field: fw.control_smoothness
         min: 0
         max: 9
-
       - name: nav_fw_land_dive_angle
         description: "Dive angle that airplane will use during final landing phase. During dive phase, motor is stopped or IDLE and roll control is locked to 0 degrees"
         default_value: 2
@@ -2739,7 +2738,6 @@ groups:
         condition: NAV_FIXED_WING_LANDING
         min: -20
         max: 20
-
       - name: nav_fw_launch_velocity
         description: "Forward velocity threshold for swing-launch detection [cm/s]"
         default_value: 300
@@ -2833,6 +2831,17 @@ groups:
         field: fw.yawControlDeadband
         min: 0
         max: 90
+      - name: fw_stall_prevention
+        description: "Stops motor when Soaring mode enabled."
+        default_value: OFF
+        field: fw.stall_prevention
+        type: bool
+      - name: fw_min_vel_speed
+        description: "Minimum AirSpeed demanded. Beware, low values ​​can cause your aircraft to stall."
+        default_value: 900
+        field: fw.airspeed_min
+        min: 500
+        max: 10000
 
   - name: PG_TELEMETRY_CONFIG
     type: telemetryConfig_t

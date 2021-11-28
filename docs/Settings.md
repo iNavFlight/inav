@@ -1342,6 +1342,16 @@ Automatic pitch down angle when throttle is at 0 in angle mode. Progressively ap
 
 ---
 
+### fw_min_vel_speed
+
+Minimum AirSpeed demanded. Beware, low values ​​can cause your aircraft to stall.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 900 | 500 | 10000 |
+
+---
+
 ### fw_p_level
 
 Fixed-wing attitude stabilisation P-gain
@@ -1389,6 +1399,16 @@ Reference airspeed. Set this to airspeed at which PIDs were tuned. Usually shoul
 | Default | Min | Max |
 | --- | --- | --- |
 | 1500 | 300 | 6000 |
+
+---
+
+### fw_stall_prevention
+
+Stops motor when Soaring mode enabled.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF |  |  |
 
 ---
 

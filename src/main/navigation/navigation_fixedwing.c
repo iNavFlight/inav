@@ -54,6 +54,7 @@
 #include "rx/rx.h"
 
 #include "sensors/battery.h"
+#include "sensors/pitotmeter.h"
 
 // Base frequencies for smoothing pitch and roll
 #define NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ     2.0f
@@ -512,6 +513,38 @@ int16_t fixedWingPitchToThrottleCorrection(int16_t pitch, timeUs_t currentTimeUs
     }
 }
 
+static int16_t get_stall_prevention(int16_t navigation_roll)
+{
+
+#ifdef USE_PITOT
+    
+    if (!pitotIsHealthy()) {
+        return avigation_roll;
+    }
+
+    if (!navConfig()->fw.stall_prevention) {
+        return navigation_roll;
+    }
+    
+    float max_load_factor = pitot.airSpeed / MAX(navConfig()->fw.airspeed_min, 100);
+
+    if (max_load_factor <= 1) { 
+        // air speed is below minimum speed, roll will be limited to 25 degrees
+        navigation_roll = constrain(navigation_roll, -250, 250);
+    } else { 
+        // calculates a new roll limit according to the aerodynamic limit
+        int32_t roll_limit_deg = RADIANS_TO_DECIDEGREES(acos_approx(sq(1.0f / max_load_factor)));
+        if (roll_limit_deg < 250) {
+            roll_limit_deg = 250;
+        }
+        navigation_roll = constrain(navigation_roll, -roll_limit_deg, roll_limit_deg);
+    } 
+
+#endif
+
+    return navigation_roll;
+}
+
 void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs)
 {
     int16_t minThrottleCorrection = currentBatteryProfile->nav.fw.min_throttle - currentBatteryProfile->nav.fw.cruise_throttle;
@@ -520,7 +553,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
     if (isRollAdjustmentValid && (navStateFlags & NAV_CTL_POS)) {
         // ROLL >0 right, <0 left
         int16_t rollCorrection = constrain(posControl.rcAdjustment[ROLL], -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_bank_angle), DEGREES_TO_DECIDEGREES(navConfig()->fw.max_bank_angle));
-        rcCommand[ROLL] = pidAngleToRcCommand(rollCorrection, pidProfile()->max_angle_inclination[FD_ROLL]);
+        rcCommand[ROLL] = pidAngleToRcCommand(get_stall_prevention(rollCorrection), pidProfile()->max_angle_inclination[FD_ROLL]);
     }
 
     if (isYawAdjustmentValid && (navStateFlags & NAV_CTL_POS)) {
