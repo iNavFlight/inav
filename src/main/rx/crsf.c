@@ -244,7 +244,6 @@ STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 
             if (rxLinkStatistics.uplinkLQ > 0) {
                 int16_t uplinkStrength;   // RSSI dBm converted to %
-                uplinkStrength = constrain((100 * ((osdConfig()->rssi_dbm_max - osdConfig()->rssi_dbm_min) * (osdConfig()->rssi_dbm_max  - osdConfig()->rssi_dbm_min)) - (osdConfig()->rssi_dbm_max  - rxLinkStatistics.uplinkRSSI) * (100 * (osdConfig()->rssi_dbm_max  - rxLinkStatistics.uplinkRSSI))) / ((osdConfig()->rssi_dbm_max  - osdConfig()->rssi_dbm_min) * (osdConfig()->rssi_dbm_max  - osdConfig()->rssi_dbm_min)),0,100);
                 if (rxLinkStatistics.uplinkRSSI >= osdConfig()->rssi_dbm_max )
                     uplinkStrength = 99;
                 else if (rxLinkStatistics.uplinkRSSI < osdConfig()->rssi_dbm_min)
