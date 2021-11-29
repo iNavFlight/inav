@@ -3088,8 +3088,8 @@ bool isApproachingHoldPosition(void)
     if (FLIGHT_MODE(NAV_WP_MODE)) {     // WP mode last WP hold and Timed hold positions
         return isLastMissionWaypoint() || NAV_Status.state == MW_NAV_STATE_HOLD_TIMED;
     }
-    // RTH spiral climb and Home positions and POSHOLD (Course Hold excluded, no loiter required)
-    return (navGetCurrentStateFlags() & NAV_CTL_POS) && !FLIGHT_MODE(NAV_COURSE_HOLD_MODE);
+    // RTH spiral climb and Home positions and POSHOLD position
+    return FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_POSHOLD_MODE);
 }
 
 float getActiveWaypointSpeed(void)
