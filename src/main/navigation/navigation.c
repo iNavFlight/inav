@@ -1642,11 +1642,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_NEXT(navigatio
 {
     UNUSED(previousState);
 
-    const bool isLastWaypoint = (posControl.waypointList[posControl.activeWaypointIndex].flag == NAV_WP_FLAG_LAST) ||
-                          (posControl.activeWaypointIndex >= (posControl.waypointCount - 1));
-
-    if (isLastWaypoint) {
-        // Last waypoint reached
+    if (isLastMissionWaypoint()) {      // Last waypoint reached
         return NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_FINISHED;
     }
     else {
@@ -3059,37 +3055,21 @@ static void calculateAndSetActiveWaypoint(const navWaypoint_t * waypoint)
     calculateAndSetActiveWaypointToLocalPosition(&localPos);
 }
 
-/**
- * Returns TRUE if we are in WP mode and executing last waypoint on the list, or in RTH mode, or in PH mode
- *  In RTH mode our only and last waypoint is home
- *  In PH mode our waypoint is hold position */
-bool isApproachingLastWaypoint(void)
+/* Checks if active waypoint is last in mission */
+bool isLastMissionWaypoint(void)
 {
-    if (navGetStateFlags(posControl.navState) & NAV_AUTO_WP) {
-        if (posControl.waypointCount == 0) {
-            /* No waypoints */
-            return true;
-        }
-        else if ((posControl.activeWaypointIndex == (posControl.waypointCount - 1)) ||
-                 (posControl.waypointList[posControl.activeWaypointIndex].flag == NAV_WP_FLAG_LAST)) {
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-    else if (navGetStateFlags(posControl.navState) & NAV_CTL_POS) {
-        // If POS controller is active we are in Poshold or RTH mode - assume last waypoint
-        return true;
-    }
-    else {
-        return false;
-    }
+    return FLIGHT_MODE(NAV_WP_MODE) && (posControl.activeWaypointIndex >= (posControl.waypointCount - 1) ||
+            (posControl.waypointList[posControl.activeWaypointIndex].flag == NAV_WP_FLAG_LAST));
 }
 
-bool isWaypointWait(void)
+/* Checks if approaching hold position requiring fixed wing circling loiter */
+bool isApproachingHoldPosition(void)
 {
-    return NAV_Status.state == MW_NAV_STATE_HOLD_TIMED;
+    if (FLIGHT_MODE(NAV_WP_MODE)) {     // WP mode last WP hold and Timed hold positions
+        return isLastMissionWaypoint() || NAV_Status.state == MW_NAV_STATE_HOLD_TIMED;
+    }
+    // RTH spiral climb and Home positions and POSHOLD (Course Hold excluded, no loiter required)
+    return (navGetCurrentStateFlags() & NAV_CTL_POS) && !FLIGHT_MODE(NAV_COURSE_HOLD_MODE);
 }
 
 float getActiveWaypointSpeed(void)
