@@ -3602,6 +3602,11 @@ groups:
         default_value: ON
         field: smartAudioEarlyAkkWorkaroundEnable
         type: bool
+      - name: vtx_smartaudio_alternate_softserial_method
+        description: "Enable the alternate softserial method. This is the method used in iNav 3.0 and ealier."
+        default_value: ON
+        field: smartAudioAltSoftSerialMethod
+        type: bool
 
   - name: PG_VTX_SETTINGS_CONFIG
     type: vtxSettingsConfig_t
