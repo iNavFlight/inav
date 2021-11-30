@@ -58,7 +58,7 @@
 #include "sensors/acceleration.h"
 #include "sensors/boardalignment.h"
 
-
+#define WP_ALTITUDE_MARGIN_CM   100      // WP altitude capture tolerance, used when WP altitude setting enforced when WP reached
 // Multirotors:
 #define MR_RTH_CLIMB_OVERSHOOT_CM   100  // target this amount of cm *above* the target altitude to ensure it is actually reached (Vz > 0 at target alt)
 #define MR_RTH_CLIMB_MARGIN_MIN_CM  100  // start cruising home this amount of cm *before* reaching the cruise altitude (while continuing the ascend)
@@ -97,7 +97,7 @@ STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_rang
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 1);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 14);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 15);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -117,8 +117,9 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
             .nav_overrides_motor_stop = SETTING_NAV_OVERRIDES_MOTOR_STOP_DEFAULT,
             .safehome_usage_mode = SETTING_SAFEHOME_USAGE_MODE_DEFAULT,
             .mission_planner_reset = SETTING_NAV_MISSION_PLANNER_RESET_DEFAULT,       // Allow mode switch toggle to reset Mission Planner WPs
-            .waypoint_mission_restart = SETTING_NAV_WP_MISSION_RESTART_DEFAULT,           // WP mission restart action
+            .waypoint_mission_restart = SETTING_NAV_WP_MISSION_RESTART_DEFAULT,       // WP mission restart action
             .soaring_motor_stop = SETTING_NAV_FW_SOARING_MOTOR_STOP_DEFAULT,          // stops motor when Saoring mode enabled
+            .waypoint_capture_altitude = SETTING_NAV_WP_CAPTURE_ALTITUDE_DEFAULT,     // Forces set wp altitude to be achieved
         },
 
         // General navigation parameters
@@ -241,6 +242,7 @@ void calculateInitialHoldPosition(fpVector3_t * pos);
 void calculateFarAwayTarget(fpVector3_t * farAwayPos, int32_t yaw, int32_t distance);
 void calculateNewCruiseTarget(fpVector3_t * origin, int32_t yaw, int32_t distance);
 static bool isWaypointPositionReached(const fpVector3_t * pos, const bool isWaypointHome);
+bool isWaypointAltitudeReached(void);
 static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint_t * waypoint, geoAltitudeConversionMode_e altConv);
 static navigationFSMEvent_t nextForNonGeoStates(void);
 static bool isWaypointMissionValid(void);
@@ -1480,6 +1482,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
             calculateAndSetActiveWaypoint(&posControl.waypointList[posControl.activeWaypointIndex]);
             posControl.wpInitialDistance = calculateDistanceToDestination(&posControl.activeWaypoint.pos);
             posControl.wpInitialAltitude = posControl.actualState.abs.pos.z;
+            posControl.wpAltitudeReached = false;
             return NAV_FSM_EVENT_SUCCESS;       // will switch to NAV_STATE_WAYPOINT_IN_PROGRESS
 
                 // We use p3 as the volatile jump counter (p2 is the static value)
@@ -1581,9 +1584,17 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_REACHED(naviga
 {
     UNUSED(previousState);
 
+    if (navConfig()->general.flags.waypoint_capture_altitude) {
+        posControl.wpAltitudeReached = isWaypointAltitudeReached();
+    }
+
     switch ((navWaypointActions_e)posControl.waypointList[posControl.activeWaypointIndex].action) {
         case NAV_WP_ACTION_WAYPOINT:
-            return NAV_FSM_EVENT_SUCCESS;   // NAV_STATE_WAYPOINT_NEXT
+            if (navConfig()->general.flags.waypoint_capture_altitude && !posControl.wpAltitudeReached) {
+                return NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_HOLD_TIME;
+            } else {
+                return NAV_FSM_EVENT_SUCCESS;   // NAV_STATE_WAYPOINT_NEXT
+            }
 
         case NAV_WP_ACTION_JUMP:
         case NAV_WP_ACTION_SET_HEAD:
@@ -1612,13 +1623,30 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_HOLD_TIME(navi
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
 
+    if (navConfig()->general.flags.waypoint_capture_altitude && !posControl.wpAltitudeReached) {
+        // Adjust altitude to waypoint setting
+        if (STATE(AIRPLANE)) {
+            int8_t altitudeChangeDirection = posControl.activeWaypoint.pos.z > navGetCurrentActualPositionAndVelocity()->pos.z ? 1 : -1;
+            updateClimbRateToAltitudeController(altitudeChangeDirection * navConfig()->general.max_auto_climb_rate, ROC_TO_ALT_NORMAL);
+        } else {
+            setDesiredPosition(&posControl.activeWaypoint.pos, 0, NAV_POS_UPDATE_Z);
+        }
+
+        posControl.wpAltitudeReached = isWaypointAltitudeReached();
+
+        if (posControl.wpAltitudeReached) {
+            posControl.wpReachedTime = millis();
+        } else {
+            return NAV_FSM_EVENT_NONE;
+        }
+    }
+
     timeMs_t currentTime = millis();
 
     if (posControl.waypointList[posControl.activeWaypointIndex].p1 <= 0 ||
         (posControl.wpReachedTime != 0 && currentTime - posControl.wpReachedTime >= (timeMs_t)posControl.waypointList[posControl.activeWaypointIndex].p1*1000L)) {
         return NAV_FSM_EVENT_SUCCESS;
     }
-
 
     return NAV_FSM_EVENT_NONE;      // will re-process state in >10ms
 }
@@ -2134,6 +2162,11 @@ bool isWaypointReached(const navWaypointPosition_t * waypoint, const bool isWayp
     return isWaypointPositionReached(&waypoint->pos, isWaypointHome);
 }
 
+bool isWaypointAltitudeReached(void)
+{
+    return ABS(navGetCurrentActualPositionAndVelocity()->pos.z - posControl.activeWaypoint.pos.z) < WP_ALTITUDE_MARGIN_CM;
+}
+
 static void updateHomePositionCompatibility(void)
 {
     geoConvertLocalToGeodetic(&GPS_home, &posControl.gpsOrigin, &posControl.rthState.homePosition.pos);
@@ -2595,7 +2628,7 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAlti
         lastUpdateTimeUs = currentTimeUs;
         posControl.desiredState.pos.z = altitudeToUse;
     }
-    else {
+    else {      // ROC_TO_ALT_NORMAL
 
         /*
          * If max altitude is set, reset climb rate if altitude is reached and climb rate is > 0
