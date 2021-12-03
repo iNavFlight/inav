@@ -1,0 +1,2 @@
+target_stm32f411xe(JHEF411)
+target_stm32f411xe(JHEF411_SS)
