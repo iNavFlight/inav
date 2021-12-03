@@ -109,6 +109,7 @@
 #include "io/displayport_frsky_osd.h"
 #include "io/displayport_msp.h"
 #include "io/displayport_max7456.h"
+#include "io/displayport_hdzero_osd.h"
 #include "io/displayport_srxl.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
@@ -287,6 +288,10 @@ void init(void)
 #if defined(USE_DJI_HD_OSD)
     // DJI OSD uses a special flavour of MSP (subset of Betaflight 4.1.1 MSP) - process as part of serial task
     djiOsdSerialInit();
+#endif
+
+#ifdef USE_HDZERO_OSD
+    hdzeroOsdSerialInit();
 #endif
 
 #if defined(USE_SMARTPORT_MASTER)
@@ -551,6 +556,11 @@ void init(void)
 #if defined(USE_FRSKYOSD)
         if (!osdDisplayPort) {
             osdDisplayPort = frskyOSDDisplayPortInit(osdConfig()->video_system);
+        }
+#endif
+#ifdef USE_HDZERO_OSD
+        if (!osdDisplayPort) {
+            osdDisplayPort = hdzeroOsdDisplayPortInit();
         }
 #endif
 #if defined(USE_MAX7456)

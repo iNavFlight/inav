@@ -40,6 +40,8 @@
 #include "fc/fc_core.h"
 #include "fc/fc_msp.h"
 #include "fc/fc_tasks.h"
+
+#include "../io/displayport_hdzero_osd.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
 
@@ -107,6 +109,10 @@ void taskHandleSerial(timeUs_t currentTimeUs)
 #if defined(USE_DJI_HD_OSD)
     // DJI OSD uses a special flavour of MSP (subset of Betaflight 4.1.1 MSP) - process as part of serial task
     djiOsdSerialProcess();
+#endif
+
+#ifdef USE_HDZERO_OSD
+    hdzeroOsdSerialProcess(ARMING_FLAG(ARMED) ? MSP_SKIP_NON_MSP_DATA : MSP_EVALUATE_NON_MSP_DATA, mspFcProcessCommand);
 #endif
 }
 

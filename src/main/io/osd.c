@@ -969,7 +969,7 @@ static void osdFormatMessage(char *buff, size_t size, const char *message, bool 
         strncpy(buff + rem / 2, message, MIN((int)size - rem / 2, (int)messageLength));
     }
     // Ensure buff is zero terminated
-    buff[size - 1] = '\0';
+    buff[size] = '\0';
 }
 
 /**
@@ -3160,11 +3160,11 @@ void osdDrawNextElement(void)
     } while(!osdDrawSingleElement(elementIndex) && index != elementIndex);
 
     // Draw artificial horizon + tracking telemtry last
-    osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
-    if (osdConfig()->telemetry>0){
-      osdDisplayTelemetry();
+		osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
+		if (osdConfig()->telemetry>0){
+		  osdDisplayTelemetry();
+		}
     }
-}
 
 PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .rssi_alarm = SETTING_OSD_RSSI_ALARM_DEFAULT,
@@ -3562,7 +3562,7 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
     if (!osdDisplayPortToUse)
         return;
 
-    BUILD_BUG_ON(OSD_POS_MAX != OSD_POS(31,31));
+    BUILD_BUG_ON(OSD_POS_MAX != OSD_POS(63,63));
 
     osdDisplayPort = osdDisplayPortToUse;
 
@@ -4121,11 +4121,11 @@ void osdUpdate(timeUs_t currentTimeUs)
         osdUpdateStats();
     }
 
-    if ((counter & DRAW_FREQ_DENOM) == 0) {
-        // redraw values in buffer
+    if (counter % DRAW_FREQ_DENOM == 0) {
+        // redraw values in buffer one at a time
         osdRefresh(currentTimeUs);
-    } else {
-        // rest of time redraw screen
+    } else if (counter % DRAW_FREQ_DENOM == 1) {
+        // redraw screen
         displayDrawScreen(osdDisplayPort);
     }
 

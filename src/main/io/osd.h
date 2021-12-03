@@ -29,20 +29,52 @@
 #endif
 #define OSD_LAYOUT_COUNT (OSD_ALTERNATE_LAYOUT_COUNT + 1)
 
+#if 1
+
+// 00vb yyyy yyxx xxxx
+// (visible)(blink)(yCoord)(xCoord)
+
+#define OSD_VISIBLE_FLAG    0x2000
+#define OSD_VISIBLE(x)      ((x) & OSD_VISIBLE_FLAG)
+
+#define OSD_POS(x,y)        ((x) | ((y) << 6))
+#define OSD_POSSD(x,y)      (((x)<<1) | ((y) << 6))
+#define OSD_X(x)            ((x) & 0x003F)
+#define OSD_Y(x)            (((x) >> 6) & 0x003F)
+#define OSD_POS_MAX         0xFFF
+
+#else
+
+// 0000 vbyy yyyx xxxx
+// (visible)(blink)(yCoord)(xCoord)
+
 #define OSD_VISIBLE_FLAG    0x0800
 #define OSD_VISIBLE(x)      ((x) & OSD_VISIBLE_FLAG)
+
 #define OSD_POS(x,y)        ((x) | ((y) << 5))
 #define OSD_X(x)            ((x) & 0x001F)
 #define OSD_Y(x)            (((x) >> 5) & 0x001F)
 #define OSD_POS_MAX         0x3FF
+
+#endif
+
 #define OSD_POS_MAX_CLI     (OSD_POS_MAX | OSD_VISIBLE_FLAG)
 
+#ifdef USE_HDZERO_OSD // TODO: Fix me
 #define OSD_HOMING_LIM_H1 6
 #define OSD_HOMING_LIM_H2 16
 #define OSD_HOMING_LIM_H3 38
 #define OSD_HOMING_LIM_V1 5
 #define OSD_HOMING_LIM_V2 10
 #define OSD_HOMING_LIM_V3 15
+#else
+#define OSD_HOMING_LIM_H1 6
+#define OSD_HOMING_LIM_H2 16
+#define OSD_HOMING_LIM_H3 38
+#define OSD_HOMING_LIM_V1 5
+#define OSD_HOMING_LIM_V2 10
+#define OSD_HOMING_LIM_V3 15
+#endif
 
 // Message defines to be use in OSD and/or telemetry exports
 #define OSD_MSG_RC_RX_LINK_LOST     "!RC RX LINK LOST!"
