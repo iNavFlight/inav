@@ -446,7 +446,7 @@ static void updatePositionVelocityController_MC(const float maxSpeed)
      */
     if (
         (navGetCurrentStateFlags() & NAV_AUTO_WP &&
-        !isApproachingHoldPosition() &&
+        !isNavHoldPositionActive() &&
         newVelTotal < maxSpeed &&
         !navConfig()->mc.slowDownForTurning
         ) || newVelTotal > maxSpeed

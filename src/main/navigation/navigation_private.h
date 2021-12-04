@@ -418,7 +418,7 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAlti
 
 bool isWaypointReached(const navWaypointPosition_t * waypoint, const bool isWaypointHome);
 bool isWaypointMissed(const navWaypointPosition_t * waypoint);
-bool isApproachingHoldPosition(void);
+bool isNavHoldPositionActive(void);
 bool isLastMissionWaypoint(void);
 float getActiveWaypointSpeed(void);
 
