@@ -3062,8 +3062,8 @@ bool isLastMissionWaypoint(void)
             (posControl.waypointList[posControl.activeWaypointIndex].flag == NAV_WP_FLAG_LAST));
 }
 
-/* Checks if approaching hold position requiring fixed wing circling loiter */
-bool isApproachingHoldPosition(void)
+/* Checks if Nav hold position is active */
+bool isNavHoldPositionActive(void)
 {
     if (FLIGHT_MODE(NAV_WP_MODE)) {     // WP mode last WP hold and Timed hold positions
         return isLastMissionWaypoint() || NAV_Status.state == MW_NAV_STATE_HOLD_TIMED;
