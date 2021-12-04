@@ -341,10 +341,12 @@ void gyroStartCalibration(void)
     if (!gyro.initialized) {
         return;
     }
-     
+
+#ifndef USE_IMU_FAKE // fixes Test Unit compilation error     
     if (!gyroConfig()->init_gyro_cal_enabled) {
         return;
     }
+#endif
 
     zeroCalibrationStartV(&gyroCalibration[0], CALIBRATING_GYRO_TIME_MS, gyroConfig()->gyroMovementCalibrationThreshold, false);
 }
@@ -355,9 +357,11 @@ bool gyroIsCalibrationComplete(void)
         return true;
     }
     
+#ifndef USE_IMU_FAKE // fixes Test Unit compilation error
     if (!gyroConfig()->init_gyro_cal_enabled) {
         return true;
     }
+#endif
 
     return zeroCalibrationIsCompleteV(&gyroCalibration[0]) && zeroCalibrationIsSuccessfulV(&gyroCalibration[0]);
 }
@@ -519,7 +523,7 @@ void FAST_CODE NOINLINE gyroUpdate()
         // At this point gyro.gyroADCf contains unfiltered gyro value [deg/s]
         float gyroADCf = gyro.gyroADCf[axis];
 
-        //DEBUG_SET(DEBUG_GYRO, axis, lrintf(gyroADCf));
+        DEBUG_SET(DEBUG_GYRO, axis, lrintf(gyroADCf));
 
         /*
          * First gyro LPF is the only filter applied with the full gyro sampling speed

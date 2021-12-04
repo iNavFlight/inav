@@ -362,11 +362,11 @@ static void restartGravityCalibration(void)
 }
 
 static bool gravityCalibrationComplete(void)
-{
+{ 
     if (!gyroConfig()->init_gyro_cal_enabled) {
         return true;
     }
-
+    
     return zeroCalibrationIsCompleteS(&posEstimator.imu.gravityCalibration);
 }
 
