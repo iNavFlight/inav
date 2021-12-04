@@ -2142,6 +2142,16 @@ If defined to 'OFF', it will ignore the gyroscope calibration done at each start
 
 ---
 
+### ins_gravity_cmss
+
+Calculated 1G of Acc axis Z to use in INS
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0.0 | 0 | 1000 |
+
+---
+
 ### iterm_windup
 
 Used to prevent Iterm accumulation on during maneuvers. Iterm will be dampened when motors are reaching it's limit (when requested motor correction range is above percentage specified by this parameter)

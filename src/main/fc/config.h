@@ -132,7 +132,8 @@ uint8_t getConfigBatteryProfile(void);
 bool setConfigBatteryProfile(uint8_t profileIndex);
 void setConfigBatteryProfileAndWriteEEPROM(uint8_t profileIndex);
 
-void setCalibrationGyroAndWriteEEPROM(int16_t getGyroZero[XYZ_AXIS_COUNT]);
+void setGyroCalibrationAndWriteEEPROM(int16_t getGyroZero[XYZ_AXIS_COUNT]);
+void setGravityCalibrationAndWriteEEPROM(float getGravity);
 
 bool canSoftwareSerialBeUsed(void);
 void applyAndSaveBoardAlignmentDelta(int16_t roll, int16_t pitch);

@@ -99,7 +99,7 @@ EXTENDED_FASTRAM dynamicGyroNotchState_t dynamicGyroNotchState;
 
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 3);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_lpf = SETTING_GYRO_HARDWARE_LPF_DEFAULT,
@@ -128,6 +128,7 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
 #endif
     .init_gyro_cal_enabled = SETTING_INIT_GYRO_CAL_DEFAULT,
     .gyro_zero_cal = {SETTING_GYRO_ZERO_X_DEFAULT, SETTING_GYRO_ZERO_Y_DEFAULT, SETTING_GYRO_ZERO_Z_DEFAULT},
+    .gravity_cmss_cal = SETTING_INS_GRAVITY_CMSS_DEFAULT,
 );
 
 STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHardware)
@@ -340,6 +341,10 @@ void gyroStartCalibration(void)
     if (!gyro.initialized) {
         return;
     }
+     
+    if (!gyroConfig()->init_gyro_cal_enabled) {
+        return;
+    }
 
     zeroCalibrationStartV(&gyroCalibration[0], CALIBRATING_GYRO_TIME_MS, gyroConfig()->gyroMovementCalibrationThreshold, false);
 }
@@ -349,23 +354,16 @@ bool gyroIsCalibrationComplete(void)
     if (!gyro.initialized) {
         return true;
     }
+    
+    if (!gyroConfig()->init_gyro_cal_enabled) {
+        return true;
+    }
 
     return zeroCalibrationIsCompleteV(&gyroCalibration[0]) && zeroCalibrationIsSuccessfulV(&gyroCalibration[0]);
 }
 
 STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVector_t *gyroCalibration)
 {
-#ifndef USE_IMU_FAKE // fixes Test Unit compilation error
-    if (!gyroConfig()->init_gyro_cal_enabled) {
-        gyroCalibration[0].params.state = ZERO_CALIBRATION_DONE; // calibration ended
-        // pass the calibration values
-        dev->gyroZero[X] = gyroConfig()->gyro_zero_cal[X];
-        dev->gyroZero[Y] = gyroConfig()->gyro_zero_cal[Y];
-        dev->gyroZero[Z] = gyroConfig()->gyro_zero_cal[Z];
-        return; // skip gyro calibration and use values ​​read from storage
-    }
-#endif
-
     fpVector3_t v;
 
     // Consume gyro reading
@@ -383,7 +381,7 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
         dev->gyroZero[Z] = v.v[Z];
 
 #ifndef USE_IMU_FAKE // fixes Test Unit compilation error
-        setCalibrationGyroAndWriteEEPROM(dev->gyroZero);
+        setGyroCalibrationAndWriteEEPROM(dev->gyroZero);
 #endif
 
         LOG_D(GYRO, "Gyro calibration complete (%d, %d, %d)", dev->gyroZero[X], dev->gyroZero[Y], dev->gyroZero[Z]);
@@ -407,8 +405,21 @@ void gyroGetMeasuredRotationRate(fpVector3_t *measuredRotationRate)
 
 static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroCalibrationVector_t * gyroCal, float * gyroADCf)
 {
+
     // range: +/- 8192; +/- 2000 deg/sec
     if (gyroDev->readFn(gyroDev)) {
+
+#ifndef USE_IMU_FAKE // fixes Test Unit compilation error
+    if (!gyroConfig()->init_gyro_cal_enabled) {
+        // marks that the gyro calibration has ended
+        gyroCalibration[0].params.state = ZERO_CALIBRATION_DONE;
+        // pass the calibration values
+        gyroDev->gyroZero[X] = gyroConfig()->gyro_zero_cal[X];
+        gyroDev->gyroZero[Y] = gyroConfig()->gyro_zero_cal[Y];
+        gyroDev->gyroZero[Z] = gyroConfig()->gyro_zero_cal[Z];
+    }
+#endif
+
         if (zeroCalibrationIsCompleteV(gyroCal)) {
             int32_t gyroADCtmp[XYZ_AXIS_COUNT];
 
@@ -508,7 +519,7 @@ void FAST_CODE NOINLINE gyroUpdate()
         // At this point gyro.gyroADCf contains unfiltered gyro value [deg/s]
         float gyroADCf = gyro.gyroADCf[axis];
 
-        DEBUG_SET(DEBUG_GYRO, axis, lrintf(gyroADCf));
+        //DEBUG_SET(DEBUG_GYRO, axis, lrintf(gyroADCf));
 
         /*
          * First gyro LPF is the only filter applied with the full gyro sampling speed
