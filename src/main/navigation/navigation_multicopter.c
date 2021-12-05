@@ -423,7 +423,7 @@ void calculateMulticopterInitialHoldPosition(fpVector3_t *stopping_point)
   curr_vel.y = navGetCurrentActualPositionAndVelocity()->vel.y * posControl.posDecelerationTime;
   curr_vel.z = 0.0f; //z speed is not needed
 
-  float vel_total = fast_sqrtf((curr_vel.x * curr_vel.x) + (curr_vel.y * curr_vel.y));
+  float vel_total = fast_fsqrtf((curr_vel.x * curr_vel.x) + (curr_vel.y * curr_vel.y));
 
   // avoid divide by zero by using current position if the velocity is below 10cm/s, kP_Gain is very low or acceleration is zero
   if (kP_Gain <= 0.0f || accel_cms <= 0.0f || vel_total == 0.0f) {
