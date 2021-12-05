@@ -370,90 +370,85 @@ void resetMulticopterPositionController(void)
     }
 }
 
-#define POSCONTROL_ACCELERATION_MIN 50.0f  // minimum horizontal acceleration in cm/s/s - used for sanity checking acceleration in leash length calculation
-#define POSCONTROL_LEASH_LENGTH_MIN 100.0f // minimum leash lengths in cm
+#define POS_CONTROL_ACCELERATION_MIN 50.0f  // minimum horizontal acceleration in cm/s/s - used for sanity checking acceleration in leash length calculation
+#define POS_CONTROL_LEASH_LENGTH_MIN 100.0f // minimum leash lengths in cm
 
-float _accel_cms = 100.0f; // max horizontal acceleration in cm/s/s
-float _speed_cms = 500.0f; // max horizontal speed in cm/s
-float kP_Gain = 1.0f;      // can we use "pidProfile()->bank_mc.pid[PID_POS_XY].P" here?
+float accel_cms = 100.0f; // max horizontal acceleration in cm/s/s
+float speed_cms = 500.0f; // max horizontal speed in cm/s
+float kP_Gain = 1.0f;     // proportional gain to calculate leash length
 
-// calc_leash_length - calculates the horizontal leash length given a maximum speed, acceleration and position kP gain
-float calc_leash_length(float speed_cms, float accel_cms, float kP)
+// calculates the horizontal leash length given a maximum speed, acceleration and kP gain
+static float calc_leash_length(void)
 {
   float leash_length;
 
   // sanity check acceleration and avoid divide by zero
-  if (accel_cms <= 0.0f)
-  {
-    accel_cms = POSCONTROL_ACCELERATION_MIN;
+  if (accel_cms <= 0.0f) {
+    accel_cms = POS_CONTROL_ACCELERATION_MIN;
   }
 
   // avoid divide by zero
-  if (kP <= 0.0f)
-  {
-    return POSCONTROL_LEASH_LENGTH_MIN;
+  if (kP_Gain <= 0.0f) {
+    return POS_CONTROL_LEASH_LENGTH_MIN;
   }
 
   // calculate leash length
-  if (speed_cms <= accel_cms / kP)
-  {
+  if (speed_cms <= accel_cms / kP_Gain) {
     // linear leash length based on speed close in
-    leash_length = speed_cms / kP;
-  }
-  else
-  {
+    leash_length = speed_cms / kP_Gain;
+  } else {
     // leash length grows at sqrt of speed further out
-    leash_length = (accel_cms / (2.0f * kP * kP)) + (speed_cms * speed_cms / (2.0f * accel_cms));
+    leash_length = (accel_cms / (2.0f * kP_Gain * kP_Gain)) + (speed_cms * speed_cms / (2.0f * accel_cms));
   }
 
   // ensure leash is at least 1m long
-  if (leash_length < POSCONTROL_LEASH_LENGTH_MIN)
-  {
-    leash_length = POSCONTROL_LEASH_LENGTH_MIN;
+  if (leash_length < POS_CONTROL_LEASH_LENGTH_MIN) {
+    leash_length = POS_CONTROL_LEASH_LENGTH_MIN;
   }
 
   return leash_length;
 }
 
-// get_stopping_point_xy - calculates stopping point based on current position, velocity, vehicle acceleration
-void get_stopping_point_xy(fpVector3_t *stopping_point, fpVector3_t curr_pos, fpVector3_t curr_vel)
+// calculates stopping point based on current position, velocity and vehicle acceleration
+void calculateMulticopterInitialHoldPosition(fpVector3_t *stopping_point)
 {
   float linear_distance; // the distance at which we swap from a linear to sqrt response
   float linear_velocity; // the velocity above which we swap from a linear to sqrt response
   float stopping_dist;   // the distance within the vehicle can stop
-  float kP = kP_Gain;
-
+ 
   // calculate current velocity
-  float vel_total = sqrtf((curr_vel.x * curr_vel.x) + (curr_vel.y * curr_vel.y));
+  fpVector3_t curr_vel;
 
-  // avoid divide by zero by using current position if the velocity is below 10cm/s, kP is very low or acceleration is zero
-  if (kP <= 0.0f || _accel_cms <= 0.0f || vel_total == 0.0f)
-  {
-    stopping_point->x = curr_pos.x;
-    stopping_point->y = curr_pos.y;
+  curr_vel.x = navGetCurrentActualPositionAndVelocity()->vel.x * posControl.posDecelerationTime;
+  curr_vel.y = navGetCurrentActualPositionAndVelocity()->vel.y * posControl.posDecelerationTime;
+  curr_vel.z = 0.0f; //z speed is not needed
+
+  float vel_total = fast_sqrtf((curr_vel.x * curr_vel.x) + (curr_vel.y * curr_vel.y));
+
+  // avoid divide by zero by using current position if the velocity is below 10cm/s, kP_Gain is very low or acceleration is zero
+  if (kP_Gain <= 0.0f || accel_cms <= 0.0f || vel_total == 0.0f) {
+    stopping_point->x = navGetCurrentActualPositionAndVelocity()->pos.x;
+    stopping_point->y = navGetCurrentActualPositionAndVelocity()->pos.y;
     return;
   }
 
   // calculate point at which velocity switches from linear to sqrt
-  linear_velocity = _accel_cms / kP;
+  linear_velocity = accel_cms / kP_Gain;
 
   // calculate distance within which we can stop
-  if (vel_total < linear_velocity)
-  {
-    stopping_dist = vel_total / kP;
-  }
-  else
-  {
-    linear_distance = _accel_cms / (2.0f * kP * kP);
-    stopping_dist = linear_distance + (vel_total * vel_total) / (2.0f * _accel_cms);
+  if (vel_total < linear_velocity) {
+    stopping_dist = vel_total / kP_Gain;
+  } else {
+    linear_distance = accel_cms / (2.0f * kP_Gain * kP_Gain);
+    stopping_dist = linear_distance + (vel_total * vel_total) / (2.0f * accel_cms);
   }
 
   // constrain stopping distance
-  stopping_dist = constrainf(stopping_dist, 0, calc_leash_length(_speed_cms, _accel_cms, kP_Gain));
+  stopping_dist = constrainf(stopping_dist, 0, calc_leash_length());
 
   // convert the stopping distance into a stopping point using velocity vector
-  stopping_point->x = curr_pos.x + (stopping_dist * curr_vel.x / vel_total);
-  stopping_point->y = curr_pos.y + (stopping_dist * curr_vel.y / vel_total);
+  stopping_point->x = navGetCurrentActualPositionAndVelocity()->pos.x + (stopping_dist * curr_vel.x / vel_total);
+  stopping_point->y = navGetCurrentActualPositionAndVelocity()->pos.y + (stopping_dist * curr_vel.y / vel_total);
 }
 
 bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcRollAdjustment)
@@ -482,12 +477,9 @@ bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcR
     else {
         // Adjusting finished - reset desired position to stay exactly where pilot released the stick
         if (posControl.flags.isAdjustingPosition) {
-            fpVector3_t stopPosition;
-            fpVector3_t new_stopPosition;
+             fpVector3_t new_stopPosition;
 
-            calculateMulticopterInitialHoldPosition(&stopPosition);
-
-            get_stopping_point_xy(&new_stopPosition, stopPosition, navGetCurrentActualPositionAndVelocity()->vel);
+            calculateMulticopterInitialHoldPosition(&new_stopPosition);
 
             setDesiredPosition(&new_stopPosition, 0, NAV_POS_UPDATE_XY);
         }
@@ -874,18 +866,6 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
 
     // Update throttle controller
     rcCommand[THROTTLE] = constrain((int16_t)currentBatteryProfile->nav.mc.hover_throttle + posControl.rcAdjustment[THROTTLE], getThrottleIdleValue(), motorConfig()->maxthrottle);
-}
-
-/*-----------------------------------------------------------
- * Calculate loiter target based on current position and velocity
- *-----------------------------------------------------------*/
-void calculateMulticopterInitialHoldPosition(fpVector3_t * pos)
-{
-    const float stoppingDistanceX = navGetCurrentActualPositionAndVelocity()->vel.x * posControl.posDecelerationTime;
-    const float stoppingDistanceY = navGetCurrentActualPositionAndVelocity()->vel.y * posControl.posDecelerationTime;
-
-    pos->x = navGetCurrentActualPositionAndVelocity()->pos.x + stoppingDistanceX;
-    pos->y = navGetCurrentActualPositionAndVelocity()->pos.y + stoppingDistanceY;
 }
 
 void resetMulticopterHeadingController(void)

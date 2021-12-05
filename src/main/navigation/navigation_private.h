@@ -435,7 +435,8 @@ void resetMulticopterLandingDetector(void);
 bool isMulticopterLandingDetected(void);
 bool isFixedWingLandingDetected(void);
 
-void calculateMulticopterInitialHoldPosition(fpVector3_t * pos);
+// calculates stopping point based on current position, velocity and vehicle acceleration
+void calculateMulticopterInitialHoldPosition(fpVector3_t *stopping_point);
 
 /* Fixed-wing specific functions */
 void setupFixedWingAltitudeController(void);
