@@ -28,7 +28,6 @@
 
 #define BEEPER                  PA15
 #define BEEPER_INVERTED
-// #define BEEPER_PWM_FREQUENCY    2500
 
 // *************** IMU generic ***********************
 #define USE_DUAL_GYRO
@@ -44,34 +43,23 @@
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PA7
 
-#define USE_IMU_MPU6000
-
-#define IMU_MPU6000_ALIGN       CW180_DEG
-#define MPU6000_SPI_BUS         BUS_SPI1
-#define MPU6000_CS_PIN          PA4
-#define MPU6000_EXTI_PIN        PC4
-
-// *************** SPI4 IMU1  MPU6000 - not used**************
+// SPI4 is used on the second MPU6000 gyro, we do not use it at the moment
 // #define USE_SPI_DEVICE_4
 // #define SPI4_SCK_PIN            PE12
 // #define SPI4_MISO_PIN           PE13
 // #define SPI4_MOSI_PIN           PE14
 
-// #define USE_IMU_MPU6500
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW180_DEG
+#define MPU6000_SPI_BUS         BUS_SPI1
+#define MPU6000_CS_PIN          PA4
+#define MPU6000_EXTI_PIN        PC4
 
-// #define IMU_MPU6500_ALIGN       CW0_DEG_FLIP
-// #define MPU6500_SPI_BUS         BUS_SPI4
-// #define MPU6500_CS_PIN          PE11
-// #define MPU6500_EXTI_PIN        PE15
-
-// *************** SPI4 IMU2 ICM42605 **************
-// #define USE_IMU_ICM42605
-
-// #define IMU_ICM42605_ALIGN      CW90_DEG_FLIP
-// #define ICM42605_SPI_BUS        BUS_SPI4
-// #define ICM42605_CS_PIN         PC13
-// #define ICM42605_EXTI_PIN       PC14
-
+#define USE_IMU_BMI270
+#define IMU_BMI270_ALIGN        CW0_DEG
+#define BMI270_SPI_BUS          BUS_SPI1
+#define BMI270_CS_PIN           PA4
+#define BMI270_EXTI_PIN         PC4
 
 // *************** SPI2 OSD ***********************
 #define USE_SPI_DEVICE_2
@@ -82,17 +70,6 @@
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          PB12
-
-// *************** SPI3 SPARE for external RM3100 ***********
-// #define USE_SPI_DEVICE_3
-// #define SPI3_SCK_PIN            PB3
-// #define SPI3_MISO_PIN           PB4
-// #define SPI3_MOSI_PIN           PB5
-
-// #define USE_MAG_RM3100
-// #define RM3100_CS_PIN           PE2   //CS2 pad
-// //                              PD4   //CS1 pad
-// #define RM3100_SPI_BUS          BUS_SPI3
 
 // *************** I2C /Baro/Mag *********************
 #define USE_I2C
@@ -125,7 +102,7 @@
 #define PITOT_I2C_BUS           BUS_I2C2
 
 #define USE_RANGEFINDER
-#define RANGEFINDER_I2C_BUS     BUS_I2C1
+#define RANGEFINDER_I2C_BUS     BUS_I2C2
 
 //FIXME DONE HETE
 // *************** UART *****************************
@@ -168,12 +145,6 @@
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART6
-
-// *************** SDIO SD BLACKBOX*******************
-// #define USE_SDCARD
-// #define USE_SDCARD_SDIO
-// #define SDCARD_SDIO_DEVICE      SDIODEV_1
-// #define SDCARD_SDIO_4BIT
 
 // #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
