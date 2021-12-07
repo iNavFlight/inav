@@ -89,22 +89,22 @@
 #define USE_BARO_SPL06
 
 #define USE_MAG
-#define MAG_I2C_BUS             BUS_I2C2
+#define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
 #define USE_MAG_IST8308
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
+#define USE_MAG_VCM5883
 
-#define TEMPERATURE_I2C_BUS     BUS_I2C2
-#define BNO055_I2C_BUS          BUS_I2C2
-#define PITOT_I2C_BUS           BUS_I2C2
+#define TEMPERATURE_I2C_BUS     BUS_I2C1
+#define BNO055_I2C_BUS          BUS_I2C1
+#define PITOT_I2C_BUS           BUS_I2C1
 
 #define USE_RANGEFINDER
-#define RANGEFINDER_I2C_BUS     BUS_I2C2
+#define RANGEFINDER_I2C_BUS     BUS_I2C1
 
-//FIXME DONE HETE
 // *************** UART *****************************
 #define USE_VCP
 
@@ -146,18 +146,14 @@
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART6
 
-// #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
-
 // *************** ADC *****************************
 #define USE_ADC
 #define ADC_INSTANCE                ADC1
 
-#define ADC_CHANNEL_1_PIN           PC0  //ADC123 VBAT1
-#define ADC_CHANNEL_2_PIN           PC1  //ADC123 CURR1
-#define ADC_CHANNEL_3_PIN           PC5  //ADC12  RSSI
-#define ADC_CHANNEL_4_PIN           PC4  //ADC12  AirS
-#define ADC_CHANNEL_5_PIN           PA4  //ADC12  VB2
-#define ADC_CHANNEL_6_PIN           PA7  //ADC12  CU2
+#define ADC_CHANNEL_1_PIN           PC1
+#define ADC_CHANNEL_2_PIN           PC3
+#define ADC_CHANNEL_3_PIN           PC2
+#define ADC_CHANNEL_4_PIN           PC0
 
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
@@ -167,14 +163,13 @@
 // *************** PINIO ***************************
 #define USE_PINIO
 #define USE_PINIOBOX
-#define PINIO1_PIN                  PD10  // VTX power switcher
-#define PINIO2_PIN                  PD11  // 2xCamera switcher
+#define PINIO1_PIN                  PC5
 
 // *************** LEDSTRIP ************************
 #define USE_LED_STRIP
 #define WS2811_PIN                  PA8
 
-#define DEFAULT_FEATURES            (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
+#define DEFAULT_FEATURES            (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL)
 #define CURRENT_METER_SCALE         250
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
