@@ -26,7 +26,7 @@
 #define LED0                    PE5
 #define LED1                    PE4
 
-#define BEEPER                  PA15
+#define BEEPER                  PE3
 #define BEEPER_INVERTED
 
 // *************** IMU generic ***********************
@@ -56,7 +56,7 @@
 #define MPU6000_EXTI_PIN        PC4
 
 #define USE_IMU_BMI270
-#define IMU_BMI270_ALIGN        CW0_DEG
+#define IMU_BMI270_ALIGN        CW180_DEG
 #define BMI270_SPI_BUS          BUS_SPI1
 #define BMI270_CS_PIN           PA4
 #define BMI270_EXTI_PIN         PC4
