@@ -3072,6 +3072,9 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         }
         break;
+    case MSP2_INAV_SEND_CHUNK_SIZE:
+        mspSendChunkSize = sbufReadU16(src);
+        break;
 
     default:
         return MSP_RESULT_ERROR;

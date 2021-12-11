@@ -83,6 +83,15 @@ typedef struct __attribute__((packed)) {
 #define MSP_MAX_HEADER_SIZE     9
 
 struct serialPort_s;
+
+typedef struct mspChunk_s {
+    uint8_t *dataBuf;
+    uint8_t *crcBuf;
+    uint8_t crcSize;
+    uint16_t sendChunkSize;
+    uint16_t pendingDataSize;
+} mspChunk_t;
+
 typedef struct mspPort_s {
     struct serialPort_s *port; // null when port unused.
     timeMs_t lastActivityMs;
@@ -96,8 +105,11 @@ typedef struct mspPort_s {
     uint16_t cmdMSP;
     uint8_t checksum1;
     uint8_t checksum2;
+    mspChunk_t chunk;
 } mspPort_t;
 
+
+extern uint16_t mspSendChunkSize;
 
 void mspSerialInit(void);
 void resetMspPort(mspPort_t *mspPortToReset, serialPort_t *serialPort);
