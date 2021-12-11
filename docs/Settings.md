@@ -5712,6 +5712,16 @@ VTX RF power level to use. The exact number of mw depends on the VTX hardware.
 
 ---
 
+### vtx_smartaudio_alternate_softserial_method
+
+Enable the alternate softserial method. This is the method used in iNav 3.0 and ealier.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| ON |  |  |
+
+---
+
 ### vtx_smartaudio_early_akk_workaround
 
 Enable workaround for early AKK SAudio-enabled VTX bug.
