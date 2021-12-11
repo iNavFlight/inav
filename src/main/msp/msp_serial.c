@@ -38,7 +38,7 @@
 #include "msp/msp_serial.h"
 
 static mspPort_t mspPorts[MAX_MSP_PORT_COUNT];
-
+uint16_t mspSendChunkSize = 0;
 
 void resetMspPort(mspPort_t *mspPortToReset, serialPort_t *serialPort)
 {
@@ -266,7 +266,7 @@ static uint8_t mspSerialChecksumBuf(uint8_t checksum, const uint8_t *data, int l
 }
 
 #define JUMBO_FRAME_SIZE_LIMIT 255
-static int mspSerialSendFrame(mspPort_t *msp, const uint8_t * hdr, int hdrLen, const uint8_t * data, int dataLen, const uint8_t * crc, int crcLen)
+static int mspSerialSendFrame(mspPort_t *msp, const uint8_t * hdr, int hdrLen, uint8_t * data, int dataLen, uint8_t * crc, int crcLen)
 {
     // MSP port might be turned into a CLI port, which will make
     // msp->port become NULL.
@@ -287,13 +287,21 @@ static int mspSerialSendFrame(mspPort_t *msp, const uint8_t * hdr, int hdrLen, c
     if (!isSerialTransmitBufferEmpty(port) && ((int)serialTxBytesFree(port) < totalFrameLength))
         return 0;
 
-    // Transmit frame
     serialBeginWrite(port);
     serialWriteBuf(port, hdr, hdrLen);
-    serialWriteBuf(port, data, dataLen);
-    serialWriteBuf(port, crc, crcLen);
+    // BLE dont't like large frames, send in chunks
+    if (msp->chunk.sendChunkSize && totalFrameLength > msp->chunk.sendChunkSize) {
+        uint16_t chunkPayloadLen =  msp->chunk.sendChunkSize - hdrLen;
+        serialWriteBuf(port, data, chunkPayloadLen);
+        msp->chunk.pendingDataSize = dataLen - chunkPayloadLen;
+        msp->chunk.dataBuf = data + chunkPayloadLen;
+        msp->chunk.crcBuf = crc;
+        msp->chunk.crcSize = crcLen;
+    } else {
+        serialWriteBuf(port, data, dataLen);
+        serialWriteBuf(port, crc, crcLen);     
+    }
     serialEndWrite(port);
-
     return totalFrameLength;
 }
 
@@ -410,6 +418,10 @@ static mspPostProcessFnPtr mspSerialProcessReceivedCommand(mspPort_t *msp, mspPr
 
     mspPostProcessFnPtr mspPostProcessFn = NULL;
     const mspResult_e status = mspProcessCommandFn(&command, &reply, &mspPostProcessFn);
+    if (mspSendChunkSize) {
+        msp->chunk.sendChunkSize = mspSendChunkSize;
+        mspSendChunkSize = 0;
+    }
 
     if (status != MSP_RESULT_NO_REPLY) {
         sbufSwitchToReader(&reply.buf, outBufHead); // change streambuf direction
@@ -461,6 +473,30 @@ static void mspProcessPendingRequest(mspPort_t * mspPort)
 void mspSerialProcessOnePort(mspPort_t * const mspPort, mspEvaluateNonMspData_e evaluateNonMspData, mspProcessCommandFnPtr mspProcessCommandFn)
 {
     mspPostProcessFnPtr mspPostProcessFn = NULL;
+
+    // Send pending chunks first
+    if (mspPort->chunk.sendChunkSize && mspPort->chunk.pendingDataSize) {        
+        serialBeginWrite(mspPort->port);      
+        uint16_t sendSize = mspPort->chunk.pendingDataSize + mspPort->chunk.crcSize;
+        if (sendSize > mspPort->chunk.sendChunkSize) {
+           if (mspPort->chunk.pendingDataSize < mspPort->chunk.sendChunkSize) {
+               sendSize = mspPort->chunk.pendingDataSize;
+            } else {
+                sendSize = mspPort->chunk.sendChunkSize;
+            }
+           serialWriteBuf(mspPort->port, mspPort->chunk.dataBuf, sendSize);
+           serialEndWrite(mspPort->port);
+           mspPort->chunk.dataBuf += sendSize;
+           mspPort->chunk.pendingDataSize -= sendSize;
+           mspPort->lastActivityMs = millis();
+           return;
+        } else { 
+            serialWriteBuf(mspPort->port, mspPort->chunk.dataBuf, mspPort->chunk.pendingDataSize);
+            serialWriteBuf(mspPort->port, mspPort->chunk.crcBuf, mspPort->chunk.crcSize);
+            mspPort->chunk.pendingDataSize = 0;
+        }      
+        serialEndWrite(mspPort->port);
+    } 
 
     if (serialRxBytesWaiting(mspPort->port)) {
         // There are bytes incoming - abort pending request
