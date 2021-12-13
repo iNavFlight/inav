@@ -38,10 +38,13 @@
 #define OSD_VISIBLE(x)      ((x) & OSD_VISIBLE_FLAG)
 
 #define OSD_POS(x,y)        ((x) | ((y) << 6))
-#define OSD_POSSD(x,y)      (((x)<<1) | ((y) << 6))
 #define OSD_X(x)            ((x) & 0x003F)
 #define OSD_Y(x)            (((x) >> 6) & 0x003F)
 #define OSD_POS_MAX         0xFFF
+
+// For DJI compatibility
+#define OSD_VISIBLE_FLAG_SD 0x0800
+#define OSD_POS_SD(x,y)     ((x) | ((y) << 5))
 
 #else
 
@@ -60,21 +63,12 @@
 
 #define OSD_POS_MAX_CLI     (OSD_POS_MAX | OSD_VISIBLE_FLAG)
 
-#ifdef USE_HDZERO_OSD // TODO: Fix me
 #define OSD_HOMING_LIM_H1 6
 #define OSD_HOMING_LIM_H2 16
 #define OSD_HOMING_LIM_H3 38
 #define OSD_HOMING_LIM_V1 5
 #define OSD_HOMING_LIM_V2 10
 #define OSD_HOMING_LIM_V3 15
-#else
-#define OSD_HOMING_LIM_H1 6
-#define OSD_HOMING_LIM_H2 16
-#define OSD_HOMING_LIM_H3 38
-#define OSD_HOMING_LIM_V1 5
-#define OSD_HOMING_LIM_V2 10
-#define OSD_HOMING_LIM_V3 15
-#endif
 
 // Message defines to be use in OSD and/or telemetry exports
 #define OSD_MSG_RC_RX_LINK_LOST     "!RC RX LINK LOST!"
