@@ -99,6 +99,20 @@ EXTENDED_FASTRAM dynamicGyroNotchState_t dynamicGyroNotchState;
 
 #endif
 
+#ifdef USE_GYRO_FFT_FILTER
+
+#define GYRO_FFT_WINDOW_SIZE 32
+#define GYRO_FFT_BIN_COUNT (GYRO_FFT_WINDOW_SIZE / 2)
+
+arm_rfft_fast_instance_f32 gyroFFT[XYZ_AXIS_COUNT];
+arm_rfft_fast_instance_f32 gyroIFFT[XYZ_AXIS_COUNT];
+
+// float gyroFFTBuffer[XYZ_AXIS_COUNT][GYRO_FFT_WINDOW_SIZE];
+// float gyroIFFTBuffer[XYZ_AXIS_COUNT][GYRO_FFT_WINDOW_SIZE];
+float gyroBuffer[XYZ_AXIS_COUNT][GYRO_FFT_WINDOW_SIZE];
+
+#endif
+
 PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 1);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
@@ -278,6 +292,11 @@ static void gyroInitFilters(void)
         gyroKalmanInitialize(gyroConfig()->kalman_q);
     }
 #endif
+
+    for (uint8_t i = 0; i < XYZ_AXIS_COUNT; i++) {
+        arm_rfft_fast_init_f32(&gyroFFT[i], GYRO_FFT_WINDOW_SIZE);
+        arm_rfft_fast_init_f32(&gyroIFFT[i], GYRO_FFT_WINDOW_SIZE);
+    }
 }
 
 bool gyroInit(void)
@@ -499,6 +518,19 @@ void FAST_CODE NOINLINE gyroUpdate()
          */
         gyroADCf = gyroLpfApplyFn((filter_t *) &gyroLpfState[axis], gyroADCf);
         
+        //FIXME Add buffer
+        
+        float fftBuffer[GYRO_FFT_WINDOW_SIZE];
+        float outputBuffer[GYRO_FFT_WINDOW_SIZE];
+        arm_rfft_fast_f32(&gyroFFT[axis], gyroBuffer[axis], fftBuffer, 0);
+
+        //FIXME cut frequencies above threshold
+
+        //Inverse FFT
+        arm_rfft_fast_f32(&gyroIFFT[axis], fftBuffer, outputBuffer, 1);
+
+        //FIXME get sample from the buffer
+
         gyro.gyroADCf[axis] = gyroADCf;
     }
 }

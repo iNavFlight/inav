@@ -228,3 +228,7 @@
 #define USE_HOTT_TEXTMODE
 
 #endif
+
+#ifdef STM32H7
+#define USE_GYRO_FFT_FILTER
+#endif
