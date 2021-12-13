@@ -63,6 +63,8 @@ tables:
     values: ["ATTI", "CRUISE"]
   - name: nav_rth_alt_mode
     values: ["CURRENT", "EXTRA", "FIXED", "MAX", "AT_LEAST", "AT_LEAST_LINEAR_DESCENT"]
+  - name: nav_rth_climb_first_stage_modes
+    values: ["AT_LEAST", "EXTRA"]
   - name: osd_unit
     values: ["IMPERIAL", "METRIC", "METRIC_MPH", "UK", "GA"]
     enum: osd_unit_e
@@ -178,6 +180,9 @@ tables:
   - name: nav_rth_climb_first
     enum: navRTHClimbFirst_e
     values: ["OFF", "ON", "ON_FW_SPIRAL"]
+  - name: nav_wp_mission_restart
+    enum: navMissionRestart_e
+    values: ["START", "RESUME", "SWITCH"]
   - name: djiRssiSource
     values: ["RSSI", "CRSF_LQ"]
     enum: djiRssiSource_e
@@ -232,15 +237,6 @@ groups:
         default_value: 32
         field: gyroMovementCalibrationThreshold
         max: 128
-      - name: gyro_notch_hz
-        field: gyro_notch_hz
-        max: 500
-        default_value: 0
-      - name: gyro_notch_cutoff
-        field: gyro_notch_cutoff
-        min: 1
-        max: 500
-        default_value: 1
       - name: gyro_main_lpf_hz
         description: "Software based gyro main lowpass filter. Value is cutoff frequency (Hz)"
         default_value: 60
@@ -2233,24 +2229,6 @@ groups:
         field: fw_min_stick
         min: 0
         max: 100
-      - name: fw_autotune_ff_to_p_gain
-        description: "FF to P gain (strength relationship) [%]"
-        default_value: 10
-        field: fw_ff_to_p_gain
-        min: 0
-        max: 100
-      - name: fw_autotune_p_to_d_gain
-        description: "P to D gain (strength relationship) [%]"
-        default_value: 0
-        field: fw_p_to_d_gain
-        min: 0
-        max: 200
-      - name: fw_autotune_ff_to_i_tc
-        description: "FF to I time (defines time for I to reach the same level of response as FF) [ms]"
-        default_value: 600
-        field: fw_ff_to_i_time_constant
-        min: 100
-        max: 5000
       - name: fw_autotune_rate_adjustment
         description: "`AUTO` and `LIMIT` adjust the rates to match the capabilities of the airplane, with `LIMIT` they are never increased above the starting rates setting. `FIXED` does not adjust the rates. Rates are not changed when tuning in `ANGLE` mode."
         default_value: "AUTO"
@@ -2442,6 +2420,17 @@ groups:
         default_value: 10000
         field: general.waypoint_safe_distance
         max: 65000
+      - name: nav_wp_mission_restart
+        description: "Sets restart behaviour for a WP mission when interrupted mid mission. START from first WP, RESUME from last active WP or SWITCH between START and RESUME each time WP Mode is reselected ON. SWITCH effectively allows resuming once only from a previous mid mission waypoint after which the mission will restart from the first waypoint."
+        default_value: "RESUME"
+        field: general.flags.waypoint_mission_restart
+        table: nav_wp_mission_restart
+      - name: nav_wp_multi_mission_index
+        description: "Index of mission selected from multi mission WP entry loaded in flight controller. 1 is the first useable WP mission in the entry. Limited to a maximum of 9 missions. Set index to 0 to display current active WP count in OSD Mission field."
+        default_value: 1
+        field: general.waypoint_multi_mission_index
+        min: 0
+        max: 9
       - name: nav_auto_speed
         description: "Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no specific WP speed set. [Multirotor only]"
         default_value: 300
@@ -2513,11 +2502,32 @@ groups:
         default_value: "ALL_NAV"
         field: general.flags.nav_overrides_motor_stop
         table: nav_overrides_motor_stop
+      - name: nav_fw_soaring_motor_stop
+        description: "Stops motor when Soaring mode enabled."
+        default_value: OFF
+        field: general.flags.soaring_motor_stop
+        type: bool
+      - name: nav_fw_soaring_pitch_deadband
+        description: "Pitch Angle deadband when soaring mode enabled (deg). Angle mode inactive within deadband allowing pitch to free float whilst soaring."
+        default_value: 5
+        field: fw.soaring_pitch_deadband
+        min: 0
+        max: 15
       - name: nav_rth_climb_first
         description: "If set to ON or ON_FW_SPIRAL aircraft will climb to nav_rth_altitude first before turning to head home. If set to OFF aircraft will turn and head home immediately climbing on the way. For a fixed wing ON will use a linear climb, ON_FW_SPIRAL will use a loiter turning climb with climb rate set by nav_auto_climb_rate, turn rate set by nav_fw_loiter_radius (ON_FW_SPIRAL is a fixed wing setting and behaves the same as ON for a multirotor)"
         default_value: "ON"
         field: general.flags.rth_climb_first
         table: nav_rth_climb_first
+      - name: nav_rth_climb_first_stage_mode
+        description: "This determines how rth_climb_first_stage_altitude is used. Default is AT_LEAST."
+        default_value: "AT_LEAST"
+        field: general.flags.rth_climb_first_stage_mode
+        table: nav_rth_climb_first_stage_modes
+      - name: nav_rth_climb_first_stage_altitude
+        description: "The altitude [cm] at which climb first will transition to turn first. How the altitude is used, is determined by nav_rth_climb_first_stage_mode. Default=0; feature disabled."
+        default_value: 0
+        field: general.rth_climb_first_stage_altitude
+        max: 65000
       - name: nav_rth_climb_ignore_emerg
         description: "If set to ON, aircraft will execute initial climb regardless of position sensor (GPS) status."
         default_value: OFF
@@ -2581,6 +2591,11 @@ groups:
         default_value: "RTH"
         field: general.flags.safehome_usage_mode
         table: safehome_usage_mode
+      - name: nav_mission_planner_reset
+        description: "With Reset ON WP Mission Planner waypoint count can be reset to 0 by toggling the mode switch ON-OFF-ON."
+        default_value: ON
+        field: general.flags.mission_planner_reset
+        type: bool
       - name: nav_mc_bank_angle
         description: "Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude"
         default_value: 30
@@ -3213,7 +3228,20 @@ groups:
         condition: USE_TEMPERATURE_SENSOR
         table: osd_alignment
         type: uint8_t
-
+      - name: osd_airspeed_alarm_min
+        condition: USE_PITOT
+        description: "Airspeed under which the airspeed OSD element will start blinking (cm/s)"
+        default_value: 0
+        field: airspeed_alarm_min
+        min: 0
+        max: 27000 # (1000km/h * 1000 * 100 / 60 / 60)
+      - name: osd_airspeed_alarm_max
+        condition: USE_PITOT
+        description: "Airspeed above which the airspeed OSD element will start blinking (cm/s)"
+        default_value: 0
+        field: airspeed_alarm_max
+        min: 0
+        max: 27000 # (1000km/h * 1000 * 100 / 60 / 60)
       - name: osd_ahi_reverse_roll
         field: ahi_reverse_roll
         type: bool
@@ -3572,6 +3600,11 @@ groups:
         description: "Enable workaround for early AKK SAudio-enabled VTX bug."
         default_value: ON
         field: smartAudioEarlyAkkWorkaroundEnable
+        type: bool
+      - name: vtx_smartaudio_alternate_softserial_method
+        description: "Enable the alternate softserial method. This is the method used in iNav 3.0 and ealier."
+        default_value: ON
+        field: smartAudioAltSoftSerialMethod
         type: bool
 
   - name: PG_VTX_SETTINGS_CONFIG

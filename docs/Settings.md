@@ -1142,26 +1142,6 @@ D-Series telemetry only: Set to 1 to send raw VBat value in 0.1V resolution for 
 
 ---
 
-### fw_autotune_ff_to_i_tc
-
-FF to I time (defines time for I to reach the same level of response as FF) [ms]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 600 | 100 | 5000 |
-
----
-
-### fw_autotune_ff_to_p_gain
-
-FF to P gain (strength relationship) [%]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 10 | 0 | 100 |
-
----
-
 ### fw_autotune_max_rate_deflection
 
 The target percentage of maximum mixer output used for determining the rates in `AUTO` and `LIMIT`.
@@ -1179,16 +1159,6 @@ Minimum stick input [%], after applying deadband and expo, to start recording th
 | Default | Min | Max |
 | --- | --- | --- |
 | 50 | 0 | 100 |
-
----
-
-### fw_autotune_p_to_d_gain
-
-P to D gain (strength relationship) [%]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 200 |
 
 ---
 
@@ -1609,26 +1579,6 @@ Defines the type of the main gyro LPF filter. Possible values: `PT1`, `BIQUAD`. 
 | Default | Min | Max |
 | --- | --- | --- |
 | BIQUAD |  |  |
-
----
-
-### gyro_notch_cutoff
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 1 | 1 | 500 |
-
----
-
-### gyro_notch_hz
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 |  | 500 |
 
 ---
 
@@ -3322,6 +3272,26 @@ P gain of altitude PID controller (Fixedwing)
 
 ---
 
+### nav_fw_soaring_motor_stop
+
+Stops motor when Soaring mode enabled.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF |  |  |
+
+---
+
+### nav_fw_soaring_pitch_deadband
+
+Pitch Angle deadband when soaring mode enabled (deg). Angle mode inactive within deadband allowing pitch to free float whilst soaring.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 0 | 15 |
+
+---
+
 ### nav_fw_yaw_deadband
 
 Deadband for heading trajectory PID controller. When heading error is below the deadband, controller assumes that vehicle is on course
@@ -3712,6 +3682,16 @@ Minimum distance from homepoint when RTH full procedure will be activated [cm]. 
 
 ---
 
+### nav_mission_planner_reset
+
+With Reset ON WP Mission Planner waypoint count can be reset to 0 by toggling the mode switch ON-OFF-ON.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| ON |  |  |
+
+---
+
 ### nav_overrides_motor_stop
 
 When set to OFF the navigation system will not take over the control of the motor if the throttle is low (motor will stop). When set to OFF_ALWAYS the navigation system will not take over the control of the motor if the throttle was low even when failsafe is triggered. When set to AUTO_ONLY the navigation system will only take over the control of the throttle in autonomous navigation modes (NAV WP and NAV RTH). When set to ALL_NAV (default) the navigation system will take over the control of the motor completely and never allow the motor to stop even when the throttle is low. This setting only has an effect on NAV modes which take control of the throttle when combined with MOTOR_STOP and is likely to cause a stall if fw_min_throttle_down_pitch isn't set correctly or the pitch estimation is wrong for fixed wing models when not set to ALL_NAV
@@ -3792,6 +3772,26 @@ If set to ON or ON_FW_SPIRAL aircraft will climb to nav_rth_altitude first befor
 
 ---
 
+### nav_rth_climb_first_stage_altitude
+
+The altitude [cm] at which climb first will transition to turn first. How the altitude is used, is determined by nav_rth_climb_first_stage_mode. Default=0; feature disabled.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 |  | 65000 |
+
+---
+
+### nav_rth_climb_first_stage_mode
+
+This determines how rth_climb_first_stage_altitude is used. Default is AT_LEAST.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| AT_LEAST |  |  |
+
+---
+
 ### nav_rth_climb_ignore_emerg
 
 If set to ON, aircraft will execute initial climb regardless of position sensor (GPS) status.
@@ -3859,6 +3859,26 @@ If set to ON, waypoints will be automatically loaded from EEPROM to the FC durin
 | Default | Min | Max |
 | --- | --- | --- |
 | OFF |  |  |
+
+---
+
+### nav_wp_mission_restart
+
+Sets restart behaviour for a WP mission when interrupted mid mission. START from first WP, RESUME from last active WP or SWITCH between START and RESUME each time WP Mode is reselected ON. SWITCH effectively allows resuming once only from a previous mid mission waypoint after which the mission will restart from the first waypoint.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| RESUME |  |  |
+
+---
+
+### nav_wp_multi_mission_index
+
+Index of mission selected from multi mission WP entry loaded in flight controller. 1 is the first useable WP mission in the entry. Limited to a maximum of 9 missions. Set index to 0 to display current active WP count in OSD Mission field.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 9 |
 
 ---
 
@@ -3979,6 +3999,26 @@ AHI width in pixels (pixel OSD only)
 | Default | Min | Max |
 | --- | --- | --- |
 | 132 |  | 255 |
+
+---
+
+### osd_airspeed_alarm_max
+
+Airspeed above which the airspeed OSD element will start blinking (cm/s)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 27000 |
+
+---
+
+### osd_airspeed_alarm_min
+
+Airspeed under which the airspeed OSD element will start blinking (cm/s)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 27000 |
 
 ---
 
@@ -5669,6 +5709,16 @@ VTX RF power level to use. The exact number of mw depends on the VTX hardware.
 | Default | Min | Max |
 | --- | --- | --- |
 | 1 | VTX_SETTINGS_MIN_POWER | VTX_SETTINGS_MAX_POWER |
+
+---
+
+### vtx_smartaudio_alternate_softserial_method
+
+Enable the alternate softserial method. This is the method used in iNav 3.0 and ealier.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| ON |  |  |
 
 ---
 

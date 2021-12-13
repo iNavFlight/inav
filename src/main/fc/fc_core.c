@@ -406,7 +406,7 @@ void annexCode(float dT)
             DEBUG_SET(DEBUG_RATE_DYNAMICS, 4, rcCommand[YAW]);
             rcCommand[YAW] = applyRateDynamics(rcCommand[YAW], YAW, dT);
             DEBUG_SET(DEBUG_RATE_DYNAMICS, 5, rcCommand[YAW]);
-            
+
         }
 
         //Compute THROTTLE command
@@ -515,6 +515,8 @@ void releaseSharedTelemetryPorts(void) {
 
 void tryArm(void)
 {
+    setMultiMissionOnArm();
+
     updateArmingStatus();
 
 #ifdef USE_DSHOT
@@ -862,7 +864,11 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 
-    if (ARMING_FLAG(ARMED) && (!STATE(FIXED_WING_LEGACY) || !isNavLaunchEnabled() || (isNavLaunchEnabled() && (isFixedWingLaunchDetected() || isFixedWingLaunchFinishedOrAborted())))) {
+#if defined(USE_NAV)
+    if (ARMING_FLAG(ARMED) && (!STATE(FIXED_WING_LEGACY) || !isNavLaunchEnabled() || (isNavLaunchEnabled() && fixedWingLaunchStatus() >= FW_LAUNCH_DETECTED))) {
+#else
+    if (ARMING_FLAG(ARMED)) {
+#endif
         flightTime += cycleTime;
         armTime += cycleTime;
         updateAccExtremes();

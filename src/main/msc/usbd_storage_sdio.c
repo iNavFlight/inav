@@ -156,7 +156,11 @@ static int8_t STORAGE_Init (uint8_t lun)
 
 	UNUSED(lun);
 	LED0_OFF;
+#if defined(STM32H7) // H7 uses IDMA
+	SD_Initialize_LL(0);
+#else
 	SD_Initialize_LL(SDIO_DMA);
+#endif
 	if (SD_Init() != 0) return 1;
 	LED0_ON;
 	return 0;

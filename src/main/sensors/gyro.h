@@ -28,7 +28,6 @@ typedef enum {
     GYRO_NONE = 0,
     GYRO_AUTODETECT,
     GYRO_MPU6050,
-    GYRO_MPU3050,
     GYRO_L3GD20,
     GYRO_MPU6000,
     GYRO_MPU6500,
@@ -59,8 +58,6 @@ typedef struct gyroConfig_s {
 #ifdef USE_DUAL_GYRO
     uint8_t  gyro_to_use;
 #endif
-    uint16_t gyro_notch_hz;
-    uint16_t gyro_notch_cutoff;
     uint16_t gyro_main_lpf_hz;
     uint8_t gyro_main_lpf_type;
     uint8_t useDynamicLpf;

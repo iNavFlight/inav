@@ -15,6 +15,14 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include <stdint.h>
+#include "platform.h"
 
-bool mpu3050Detect(gyroDev_t *gyro);
+#include "fc/fc_msp_box.h"
+
+#include "io/piniobox.h"
+
+void targetConfiguration(void)
+{
+    pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
+}
