@@ -28,12 +28,6 @@
 
 #include "platform.h"
 
-// TODO: Remove these before committing
-#define USE_OSD
-#define USE_HDZERO_OSD
-
-#define STATS
-
 #if defined(USE_OSD) && defined(USE_HDZERO_OSD)
 
 #include "common/utils.h"
@@ -109,25 +103,12 @@ static int clearScreen(displayPort_t *displayPort)
 	return 1;
 }
 
-#ifdef STATS
-static void displayFrequency(displayPort_t *displayPort)
-{
-	static timeMs_t lastTime = 0;
-	timeMs_t now = millis();
-	char buff[6];
-
-	int freq = 1000/(now-lastTime);
-	lastTime = now;
-
-	tfp_sprintf(buff, "%02dHZ", freq);
-	writeString(displayPort, 46, 17, buff, 0);
-}
-#endif
-
 /*
- * Write one line at a time, skipping blank lines
+ * Write up to three populated rows at a time, skipping blank lines.
+ * This gives a refresh rate to the VTX of approximately 10 to 62Hz
+ * depending on how much data is displayed.
  */
-static int drawScreen(displayPort_t *displayPort) // 62hz
+static int drawScreen(displayPort_t *displayPort) // 62.5hz
 {
 	int charsOut = 0;
 	static uint8_t row = 0, clearSent = 0;
@@ -135,14 +116,7 @@ static int drawScreen(displayPort_t *displayPort) // 62hz
 	uint16_t lineIdx, idx, end;
 	uint8_t len, col, page, aPage;
 
-#ifdef STATS
-	if (row == 0)
-	{
-		displayFrequency(displayPort);
-	}
-#endif
-
-	uint8_t linesToPrint = 3; // 62 / (18/3) = 10Hz fullpage refresh min
+	uint8_t rowsToPrint = 3;
 	do
 	{
 		// Find a row with something to print
@@ -198,7 +172,7 @@ static int drawScreen(displayPort_t *displayPort) // 62hz
 			charsOut += output(displayPort, MSP_DISPLAYPORT, subcmd, len);
 		}
 	}
-	while (++row < ROWS && --linesToPrint);
+	while (++row < ROWS && --rowsToPrint);
 
 	if (row >= ROWS)
 	{
@@ -235,7 +209,7 @@ static int screenSize(const displayPort_t *displayPort)
     return SCREENSIZE;
 }
 
-// Intercept writeString and write to a buffer instead (1st page of font file)
+// Intercept writeString and write to a buffer instead (1st page of font file only)
 static int writeString(displayPort_t *displayPort, uint8_t col, uint8_t row, const char *string, textAttributes_t attr)
 {
     UNUSED(displayPort);
