@@ -361,7 +361,7 @@ static void djiSerializeOSDConfigReply(sbuf_t *dst)
             // However INAV supports co-ords of 0-63 and has 3 layouts, while BF has co-ords 0-31 and visibility profiles.
             // Re-encode for co-ords of 0-31 and map the layout to all three BF profiles.
             uint16_t itemPos = osdLayoutsConfig()->item_pos[0][inavOSDIdx];
-            uint16_t itemPosSD = OSD_POS_SD(OSD_X(itemPosHD), OSD_Y(itemPosHD));
+            uint16_t itemPosSD = OSD_POS_SD(OSD_X(itemPos), OSD_Y(itemPos));
 
             // Workarounds for certain OSD element positions
             // INAV calculates these dynamically, while DJI expects the config to have defined coordinates
