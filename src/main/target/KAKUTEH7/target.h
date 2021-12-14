@@ -127,7 +127,6 @@
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART1
 
-//FIXME up to here
 // *************** ADC *****************************
 #define USE_ADC
 #define ADC_INSTANCE                ADC1
