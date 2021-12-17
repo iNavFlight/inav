@@ -274,8 +274,8 @@ static bool bmi270AccReadScratchpad(accDev_t *acc)
     bmi270ContextData_t * ctx = busDeviceGetScratchpadMemory(acc->busDev);
 
     if (ctx->lastReadStatus) {
-        acc->ADCRaw[X] = (int16_t)((ctx->accRaw[1] << 8) | ctx->accRaw[0]);
-        acc->ADCRaw[Y] = (int16_t)((ctx->accRaw[3] << 8) | ctx->accRaw[2]);
+        acc->ADCRaw[X] = -(int16_t)((ctx->accRaw[1] << 8) | ctx->accRaw[0]);
+        acc->ADCRaw[Y] = -(int16_t)((ctx->accRaw[3] << 8) | ctx->accRaw[2]);
         acc->ADCRaw[Z] = (int16_t)((ctx->accRaw[5] << 8) | ctx->accRaw[4]);
         return true;
     }
