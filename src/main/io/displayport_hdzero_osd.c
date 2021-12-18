@@ -63,11 +63,6 @@ static bool hdzeroVtxReady;
 static uint8_t screen[SCREENSIZE];
 static uint8_t fontPage[SCREENSIZE/8+1]; // page bits for each character (to address 512 char font)
 
-static int setHdMode(displayPort_t *displayPort);
-static void resync(displayPort_t *displayPort);
-static int writeString(displayPort_t *displayPort, uint8_t col, uint8_t row, const char *string, textAttributes_t attr);
-static bool readChar(displayPort_t *displayPort, uint8_t col, uint8_t row, uint16_t *c, textAttributes_t *attr);
-
 extern uint8_t cliMode;
 
 static int output(displayPort_t *displayPort, uint8_t cmd, uint8_t *subcmd, int len)
