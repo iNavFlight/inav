@@ -303,7 +303,7 @@ static bool getFontMetadata(displayFontMetadata_t *metadata, const displayPort_t
     UNUSED(displayPort);
 
     metadata->charCount = 512;
-    metadata->version = 1;
+    metadata->version = 3;
 
     return true;
 }
