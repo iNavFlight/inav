@@ -367,22 +367,21 @@ static void djiSerializeOSDConfigReply(sbuf_t *dst)
             // INAV calculates these dynamically, while DJI expects the config to have defined coordinates
             switch(inavOSDIdx) {
                 case OSD_CROSSHAIRS:
-                    itemPosSD = (itemPosSD & (~OSD_POS_MAX)) | OSD_POS_SD(13, 6);
+                    itemPosSD = OSD_POS_SD(15, 8);
                     break;
 
                 case OSD_ARTIFICIAL_HORIZON:
-                    itemPosSD = (itemPosSD & (~OSD_POS_MAX)) | OSD_POS_SD(14, 2);
+                    itemPosSD = OSD_POS_SD(9, 8);
                     break;
 
                 case OSD_HORIZON_SIDEBARS:
-                    itemPosSD = (itemPosSD & (~OSD_POS_MAX)) | OSD_POS_SD(14, 5);
+                    itemPosSD = OSD_POS_SD(16, 7);
                     break;
             }
 
             // Enforce visibility in 3 BF OSD profiles
             if (OSD_VISIBLE(itemPos)) {
-            	itemPosSD |= OSD_VISIBLE_FLAG_SD;
-                itemPosSD |= 0x3000;
+            	itemPosSD |= (0x3000 | OSD_VISIBLE_FLAG_SD);
             }
 
             sbufWriteU16(dst, itemPosSD);
