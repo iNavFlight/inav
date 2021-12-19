@@ -5,13 +5,14 @@
 * For Omnibus F4 Pro (with BMP280 baro, current sensor and SD Card) use **OMNIBUSF4PRO** target (LED strip on dedicated connection)
 * For Onnibus F4 Pro clones (Banggood, AliExpress, eBay, etc.) use **OMNIBUSF4PRO_LEDSTRIPM5** target (LED strip on M5 pin)
 * For Omnibus F4 Pro Corner use **OMNIBUSF4PRO** target
+* For Omnibus F4 AIO, see targets listed below
 
 ## Features
 
 * STM32F405 CPU
 * Integrated Accelerometer/Gyro MPU6000 or MPU6500 via SPI bus
 * 6 motor outputs
-* 3 UART ports (UART1, UART3, UART6)
+* 3-5 UART ports (UART1, UART3, UART6)
 * External I2C bus, pins shared with UART3, cannot be used simultaneously
 * Inverter for SBUS
 * Blackbox via SDCard or integrated 128mbit flash memory
@@ -50,6 +51,14 @@ More target options:
 * SBUS inverter connected to UART6
 * PPM and UART6 cannot be used together, there is no jumper to disconnect PPM input from UART6 RX
 * Uses target **OMNIBUSF4V3**
+
+### Omnibus F4 v6
+
+* Adds more UARTs (total of 5)
+* Softserial 1 is on TX1 for Smartport
+* Note that in multirotor configuration, servos are not enabled on S5 and S6
+* Uses target **OMNIBUSF4V6**
+
 
 ### [Omnibus F4 Pro](https://inavflight.com/shop/p/OMNIBUSF4PRO)
 
