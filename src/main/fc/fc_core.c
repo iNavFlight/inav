@@ -515,8 +515,9 @@ void releaseSharedTelemetryPorts(void) {
 
 void tryArm(void)
 {
+#ifdef USE_MULTI_MISSION
     setMultiMissionOnArm();
-
+#endif
     updateArmingStatus();
 
 #ifdef USE_DSHOT

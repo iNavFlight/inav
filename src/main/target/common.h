@@ -191,6 +191,7 @@
 #define USE_SERIAL_PASSTHROUGH
 #define NAV_MAX_WAYPOINTS       120
 #define USE_RCDEVICE
+#define USE_MULTI_MISSION
 
 //Enable VTX control
 #define USE_VTX_CONTROL
