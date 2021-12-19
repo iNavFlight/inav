@@ -28,6 +28,8 @@
 
 #include "platform.h"
 
+#define USE_OSD
+#define USE_HDZERO_OSD
 #if defined(USE_OSD) && defined(USE_HDZERO_OSD)
 
 #include "common/utils.h"
@@ -61,7 +63,7 @@ static bool hdzeroVtxReady;
 #define COLS 50
 #define SCREENSIZE (ROWS*COLS)
 static uint8_t screen[SCREENSIZE];
-static uint8_t fontPage[SCREENSIZE/8+1]; // page bits for each character (to address 512 char font)
+static uint8_t fontPage[SCREENSIZE / 8 + 1]; // page bits for each character (to address 512 char font)
 
 extern uint8_t cliMode;
 
@@ -70,9 +72,7 @@ static int output(displayPort_t *displayPort, uint8_t cmd, uint8_t *subcmd, int 
     UNUSED(displayPort);
 
     if (cliMode)
-    {
         return 0;
-    }
 
     return mspSerialPushPort(cmd, subcmd, len, &hdzeroMspPort, MSP_V1);
 }
@@ -91,11 +91,11 @@ static int release(displayPort_t *displayPort)
 
 static int clearScreen(displayPort_t *displayPort)
 {
-	UNUSED(displayPort);
+    UNUSED(displayPort);
 
-	memset(screen, SYM_BLANK, sizeof(screen));
-	memset(fontPage, 0, sizeof(fontPage));
-	return 1;
+    memset(screen, SYM_BLANK, sizeof(screen));
+    memset(fontPage, 0, sizeof(fontPage));
+    return 1;
 }
 
 /*
@@ -105,92 +105,75 @@ static int clearScreen(displayPort_t *displayPort)
  */
 static int drawScreen(displayPort_t *displayPort) // 62.5hz
 {
-	int charsOut = 0;
-	static uint8_t row = 0, clearSent = 0;
-	uint8_t subcmd[COLS + 4];
-	uint16_t lineIdx, idx, end;
-	uint8_t len, col, page, aPage;
+    static uint8_t row = 0, clearSent = 0;
+    uint8_t subcmd[COLS + 4], len, col, page, aPage, rowsToPrint;
+    uint16_t lineIdx, idx, end;
+    int charsOut = 0;
 
-	uint8_t rowsToPrint = 3;
-	do
-	{
-		// Find a row with something to print
-		do
-		{
-			// Strip leading and trailing spaces for the selected row
-			lineIdx = row*COLS;
-			idx = lineIdx;
-			end = idx + COLS - 1;
+    rowsToPrint = 3;
+    do {
+        // Find a row with something to print
+        do {
+            // Strip leading and trailing spaces for the selected row
+            lineIdx = row * COLS;
+            idx = lineIdx;
+            end = idx + COLS - 1;
 
-			while ((screen[idx] == SYM_BLANK || screen[end] == SYM_BLANK) && idx <= end)
-			{
-				if (screen[idx] == SYM_BLANK)
-				{
-					idx++;
-				}
+            while ((screen[idx] == SYM_BLANK || screen[end] == SYM_BLANK) && idx <= end) {
+                if (screen[idx] == SYM_BLANK)
+                    idx++;
+                if (screen[end] == SYM_BLANK)
+                    end--;
+            }
+        } while (idx > end && ++row < ROWS);
 
-				if (screen[end] == SYM_BLANK)
-				{
-					end--;
-				}
-			}
-		}
-		while (idx > end && ++row < ROWS);
+        while (idx <= end) {
+            if (!clearSent) {
+                // Start the transaction
+                subcmd[0] = MSP_CLEAR_SCREEN;
+                charsOut += output(displayPort, MSP_DISPLAYPORT, subcmd, 1);
+                clearSent = 1;
+            }
 
-		while (idx <= end)
-		{
-			if (!clearSent)
-			{
-				// Start the transaction
-				subcmd[0] = MSP_CLEAR_SCREEN;
-				charsOut += output(displayPort, MSP_DISPLAYPORT, subcmd, 1);
-				clearSent = 1;
-			}
+            // Split the line up into strings from the same font page and output them.
+            // (note spaces are printed to save overhead on small elements)
+            len = 4;
+            col = idx - lineIdx;
+            page = (fontPage[idx >> 3] >> (idx & 0x07)) & FONT_PAGE_ATTRIBUTE;
 
-			// Split the line up into strings from the same font page and output them.
-			// (note spaces are printed to save overhead on small elements)
-			len = 4;
-			col = idx-lineIdx;
-			page = (fontPage[idx >> 3] >> (idx & 0x07)) & FONT_PAGE_ATTRIBUTE;
+            do {
+                subcmd[len++] = screen[idx++];
+                aPage = (fontPage[idx >> 3] >> (idx & 0x07)) & FONT_PAGE_ATTRIBUTE;
+            } while (idx <= end && (aPage == page || screen[idx] == SYM_BLANK));
 
-			do
-			{
-				subcmd[len++] = screen[idx++];
-				aPage = (fontPage[idx >> 3] >> (idx & 0x07)) & FONT_PAGE_ATTRIBUTE;
-			}
-			while (idx <= end && (aPage == page || screen[idx] == SYM_BLANK));
+            subcmd[0] = MSP_WRITE_STRING;
+            subcmd[1] = row;
+            subcmd[2] = col;
+            subcmd[3] = page;
+            charsOut += output(displayPort, MSP_DISPLAYPORT, subcmd, len);
+        }
+    } while (++row < ROWS && --rowsToPrint);
 
-			subcmd[0] = MSP_WRITE_STRING;
-			subcmd[1] = row;
-			subcmd[2] = col;
-			subcmd[3] = page;
-			charsOut += output(displayPort, MSP_DISPLAYPORT, subcmd, len);
-		}
-	}
-	while (++row < ROWS && --rowsToPrint);
+    if (row >= ROWS) {
+        // End the transaction if required and reset the counters
+        if (clearSent > 0) {
+            subcmd[0] = MSP_DRAW_SCREEN;
+            charsOut += output(displayPort, MSP_DISPLAYPORT, subcmd, 1);
+        }
+        row = clearSent = 0;
+    }
 
-	if (row >= ROWS)
-	{
-		// End the transaction if required and reset the counters
-		if (clearSent > 0)
-		{
-			subcmd[0] = MSP_DRAW_SCREEN;
-			charsOut += output(displayPort, MSP_DISPLAYPORT, subcmd, 1);
-		}
-		row = clearSent = 0;
-	}
-
-	return charsOut;
+    return charsOut;
 }
 
 static int setHdMode(displayPort_t *displayPort)
 {
-	uint8_t subcmd[3];
-	subcmd[0] = MSP_SET_HD;
-	subcmd[1] = 0; // future font index
-	subcmd[2] = 1; // 0 SD 1 HD
+    uint8_t subcmd[3];
+    subcmd[0] = MSP_SET_HD;
+    subcmd[1] = 0; // future font index
+    subcmd[2] = 1; // 0 SD 1 HD
 
-	return output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
+    return output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
 }
 
 static int grab(displayPort_t *displayPort)
@@ -200,7 +183,8 @@ static int grab(displayPort_t *displayPort)
 
 static int screenSize(const displayPort_t *displayPort)
 {
-	UNUSED(displayPort);
+    UNUSED(displayPort);
+
     return SCREENSIZE;
 }
 
@@ -210,32 +194,29 @@ static int writeString(displayPort_t *displayPort, uint8_t col, uint8_t row, con
     UNUSED(displayPort);
     UNUSED(attr);
 
-	uint16_t pos = (row * COLS) + col;
-	if (pos >= SCREENSIZE)
-	{
-		return 0;
-	}
+    uint16_t i, pos, len, end, idx;
 
-	uint16_t len = strlen(string);
+    pos = (row * COLS) + col;
+    if (pos >= SCREENSIZE)
+        return 0;
 
-	// Allow word wrap and truncate of past the screen end
-	uint16_t end = pos + len - 1;
-	if (end >= SCREENSIZE)
-	{
-		len = end-SCREENSIZE;
-	}
+    len = strlen(string);
 
-	// Copy the string into the screen buffer
-	memcpy(screen + pos, string, len);
+    // Allow word wrap and truncate of past the screen end
+    end = pos + len - 1;
+    if (end >= SCREENSIZE)
+        len = end - SCREENSIZE;
 
-	// Clear the page bits for all the characters in the string
-	for (uint16_t i = 0; i < len; i++)
-	{
-		uint16_t idx = pos+i;
-		fontPage[idx >> 3] &= ~(1 << (idx & 0x07));
-	}
+    // Copy the string into the screen buffer
+    memcpy(screen + pos, string, len);
 
-	return (int)len;
+    // Clear the page bits for all the characters in the string
+    for (i = 0; i < len; i++) {
+        idx = pos + i;
+        fontPage[idx >> 3] &= ~(1 << (idx & 0x07));
+    }
+
+    return (int) len;
 }
 
 // Write character to screen and page buffers (supports 512 char fonts)
@@ -244,70 +225,66 @@ static int writeChar(displayPort_t *displayPort, uint8_t col, uint8_t row, uint1
     UNUSED(displayPort);
     UNUSED(attr);
 
-	uint16_t pos = (row * COLS) + col;
-	if (pos >= SCREENSIZE)
-	{
-		return 0;
-	}
+    uint16_t pos, idx;
+    uint8_t bitmask;
 
-	// Copy character into screen buffer
-	screen[pos] = c;
+    pos = (row * COLS) + col;
+    if (pos >= SCREENSIZE)
+        return 0;
 
-	uint16_t idx = pos >> 3;
-	uint8_t bitmask = 1 << (pos & 0x07);
+    // Copy character into screen buffer
+    screen[pos] = c;
 
-	// Save index of the character's font page
-	if (c & 0x0100)
-	{
-		fontPage[idx] |= bitmask;
-	}
-	else
-	{
-		fontPage[idx] &= ~bitmask;
-	}
+    idx = pos >> 3;
+    bitmask = 1 << (pos & 0x07);
 
-	return 1;
+    // Save index of the character's font page
+    if (c & 0x0100)
+        fontPage[idx] |= bitmask;
+    else
+        fontPage[idx] &= ~bitmask;
+
+    return (int) 1;
 }
 
 static bool readChar(displayPort_t *displayPort, uint8_t col, uint8_t row, uint16_t *c, textAttributes_t *attr)
 {
     UNUSED(displayPort);
 
-    uint16_t pos = (row * COLS) + col;
-	if (pos >= SCREENSIZE)
-	{
-		*c = SYM_BLANK;
-	}
-	else
-	{
-	    uint16_t chr = (fontPage[pos >> 3] >> (pos & 0x07)) & FONT_PAGE_ATTRIBUTE;
-	    *c = (chr << 8) | screen[pos];
-	}
+    uint16_t pos, chr;
 
-	if (attr)
-	{
-		*attr = TEXT_ATTRIBUTES_NONE;
-	}
+    pos = (row * COLS) + col;
+    if (pos >= SCREENSIZE)
+        *c = SYM_BLANK;
+    else {
+        chr = (fontPage[pos >> 3] >> (pos & 0x07)) & FONT_PAGE_ATTRIBUTE;
+        *c = (chr << 8) | screen[pos];
+    }
 
-	return true;
+    if (attr)
+        *attr = TEXT_ATTRIBUTES_NONE;
+
+    return true;
 }
 
 static bool isTransferInProgress(const displayPort_t *displayPort)
 {
     UNUSED(displayPort);
+
     return false;
 }
 
 static void resync(displayPort_t *displayPort)
 {
-	displayPort->rows = ROWS;
-	displayPort->cols = COLS;
-	setHdMode(displayPort);
+    displayPort->rows = ROWS;
+    displayPort->cols = COLS;
+    setHdMode(displayPort);
 }
 
 static uint32_t txBytesFree(const displayPort_t *displayPort)
 {
     UNUSED(displayPort);
+
     return mspSerialTxBytesFree();
 }
 
@@ -321,13 +298,12 @@ static textAttributes_t supportedTextAttributes(const displayPort_t *displayPort
     return attr;
 }
 
-// TODO: Is this needed?
 static bool getFontMetadata(displayFontMetadata_t *metadata, const displayPort_t *displayPort)
 {
-	UNUSED(displayPort);
+    UNUSED(displayPort);
 
     metadata->charCount = 512;
-    metadata->version = 3;
+    metadata->version = 1;
 
     return true;
 }
@@ -335,7 +311,8 @@ static bool getFontMetadata(displayFontMetadata_t *metadata, const displayPort_t
 static bool isReady(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-	return hdzeroVtxReady;
+
+    return hdzeroVtxReady;
 }
 
 static const displayPortVTable_t hdzeroOsdVTable = {
@@ -353,42 +330,37 @@ static const displayPortVTable_t hdzeroOsdVTable = {
     .txBytesFree = txBytesFree,
     .supportedTextAttributes = supportedTextAttributes,
     .getFontMetadata = getFontMetadata,
-	.isReady = isReady,
+    .isReady = isReady,
 };
 
 void hdzeroOsdSerialInit(void)
 {
-	memset(&hdzeroMspPort, 0, sizeof(mspPort_t));
+    memset(&hdzeroMspPort, 0, sizeof(mspPort_t));
 
     serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_HDZERO_OSD);
 
-    if (portConfig)
-    {
-        serialPort_t *port = openSerialPort(portConfig->identifier, FUNCTION_HDZERO_OSD,
-        		NULL, NULL, baudRates[portConfig->msp_baudrateIndex], MODE_RXTX, SERIAL_NOT_INVERTED);
-
+    if (portConfig) {
+        serialPort_t *port = openSerialPort(portConfig->identifier, FUNCTION_HDZERO_OSD, NULL, NULL,
+                baudRates[portConfig->msp_baudrateIndex], MODE_RXTX, SERIAL_NOT_INVERTED);
         if (port)
-        {
             resetMspPort(&hdzeroMspPort, port);
-        }
     }
 }
 
-displayPort_t *hdzeroOsdDisplayPortInit(void)
+displayPort_t* hdzeroOsdDisplayPortInit(void)
 {
-	memset(screen, SYM_BLANK, sizeof(screen));
-	memset(fontPage, 0, sizeof(fontPage));
+    memset(screen, SYM_BLANK, sizeof(screen));
+    memset(fontPage, 0, sizeof(fontPage));
     displayInit(&hdzeroOsdDisplayPort, &hdzeroOsdVTable);
     return &hdzeroOsdDisplayPort;
 }
 
 void hdzeroOsdSerialProcess(mspEvaluateNonMspData_e evaluateNonMspData, mspProcessCommandFnPtr mspProcessCommandFn)
 {
-    if (hdzeroMspPort.port)
-    {
-		// Process normal MSP command
-		mspSerialProcessOnePort(&hdzeroMspPort, evaluateNonMspData, mspProcessCommandFn);
-		hdzeroVtxReady = true;
+    if (hdzeroMspPort.port) {
+        // Process normal MSP command
+        mspSerialProcessOnePort(&hdzeroMspPort, evaluateNonMspData, mspProcessCommandFn);
+        hdzeroVtxReady = true;
     }
 }
 
