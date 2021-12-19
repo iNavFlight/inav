@@ -67,6 +67,12 @@
 #define UART2_TX_PIN            PA2
 #define UART2_RX_PIN            PA3
 
+#ifdef MATEKF411SE_DJI
+#define USE_SOFTSERIAL1         // remove second SS in favor of DJI
+#define SOFTSERIAL_1_TX_PIN     PB9 // ST1 pad
+#define SOFTSERIAL_1_RX_PIN     PB8 // CH6 pad
+#define SERIAL_PORT_COUNT       4
+#else 
 #define USE_SOFTSERIAL1
 #define SOFTSERIAL_1_TX_PIN     PB9 // ST1 pad
 #ifdef MATEKF411SE_FD_SFTSRL1
@@ -85,6 +91,7 @@
 #endif
 
 #define SERIAL_PORT_COUNT       5
+#endif
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
