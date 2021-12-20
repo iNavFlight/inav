@@ -28,8 +28,6 @@
 
 #include "platform.h"
 
-#define USE_OSD
-#define USE_HDZERO_OSD
 #if defined(USE_OSD) && defined(USE_HDZERO_OSD)
 
 #include "common/utils.h"
