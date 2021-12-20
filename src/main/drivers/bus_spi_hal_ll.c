@@ -88,6 +88,30 @@ static const uint32_t spiDivisorMapSlow[] = {
 };
 #endif
 
+#if defined(STM32H7)
+static spiDevice_t spiHardwareMap[SPIDEV_COUNT] = {
+#ifdef USE_SPI_DEVICE_1
+    { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .af = GPIO_AF5_SPI1, .divisorMap = spiDivisorMapFast },
+#else
+    { .dev = NULL },    // No SPI1
+#endif
+#ifdef USE_SPI_DEVICE_2
+    { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1L(SPI2), .af = GPIO_AF5_SPI2, .divisorMap = spiDivisorMapSlow },
+#else
+    { .dev = NULL },    // No SPI2
+#endif
+#ifdef USE_SPI_DEVICE_3
+    { .dev = SPI3, .nss = IO_TAG(SPI3_NSS_PIN), .sck = IO_TAG(SPI3_SCK_PIN), .miso = IO_TAG(SPI3_MISO_PIN), .mosi = IO_TAG(SPI3_MOSI_PIN), .rcc = RCC_APB1L(SPI3), .af = GPIO_AF6_SPI3, .divisorMap = spiDivisorMapSlow },
+#else
+    { .dev = NULL },    // No SPI3
+#endif
+#ifdef USE_SPI_DEVICE_4
+    { .dev = SPI4, .nss = IO_TAG(SPI4_NSS_PIN), .sck = IO_TAG(SPI4_SCK_PIN), .miso = IO_TAG(SPI4_MISO_PIN), .mosi = IO_TAG(SPI4_MOSI_PIN), .rcc = RCC_APB2(SPI4), .af = GPIO_AF5_SPI4, .divisorMap = spiDivisorMapSlow }
+#else
+    { .dev = NULL }     // No SPI4
+#endif
+};
+#else
 static spiDevice_t spiHardwareMap[] = {
 #ifdef USE_SPI_DEVICE_1
     { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .af = GPIO_AF5_SPI1, .divisorMap = spiDivisorMapFast },
@@ -110,6 +134,7 @@ static spiDevice_t spiHardwareMap[] = {
     { .dev = NULL }     // No SPI4
 #endif
 };
+#endif
 
 SPIDevice spiDeviceByInstance(SPI_TypeDef *instance)
 {
@@ -187,12 +212,21 @@ bool spiInitDevice(SPIDevice device, bool leadingEdge)
         .CRCPoly = 7,
         .CRCCalculation = SPI_CRCCALCULATION_DISABLE,
     };
+
+#if defined(STM32H7)
+    // Prevent glitching when SPI is disabled
+    LL_SPI_EnableGPIOControl(spi->dev);
+
+    LL_SPI_SetFIFOThreshold(spi->dev, LL_SPI_FIFO_TH_01DATA);
+    LL_SPI_Init(spi->dev, &init);
+#else
     LL_SPI_SetRxFIFOThreshold(spi->dev, SPI_RXFIFO_THRESHOLD_QF);
 
     LL_SPI_Init(spi->dev, &init);
     LL_SPI_Enable(spi->dev);
 
     SET_BIT(spi->dev->CR2, SPI_RXFIFO_THRESHOLD);
+#endif
 
     if (spi->nss) {
         IOHi(IOGetByTag(spi->nss));
@@ -204,26 +238,11 @@ bool spiInitDevice(SPIDevice device, bool leadingEdge)
 
 uint8_t spiTransferByte(SPI_TypeDef *instance, uint8_t txByte)
 {
-    uint16_t spiTimeout = 1000;
-
-    while (!LL_SPI_IsActiveFlag_TXE(instance)) {
-        if ((spiTimeout--) == 0) {
-            spiTimeoutUserCallback(instance);
-            return 0xFF;
-        }
+    uint8_t value = 0xFF;
+    if (!spiTransfer(instance, &value, &txByte, 1)) {
+        return 0xFF;
     }
-
-    LL_SPI_TransmitData8(instance, txByte);
-
-    spiTimeout = 1000;
-    while (!LL_SPI_IsActiveFlag_RXNE(instance)) {
-        if ((spiTimeout--) == 0) {
-            spiTimeoutUserCallback(instance);
-            return 0xFF;
-        }
-    }
-
-    return (uint8_t)LL_SPI_ReceiveData8(instance);
+    return value;
 }
 
 /**
@@ -231,11 +250,48 @@ uint8_t spiTransferByte(SPI_TypeDef *instance, uint8_t txByte)
  */
 bool spiIsBusBusy(SPI_TypeDef *instance)
 {
+#if defined(STM32H7)
+    // H7 doesnt really have a busy flag. its should be done when the transfer is.
+    return false;
+#else
     return (LL_SPI_GetTxFIFOLevel(instance) != LL_SPI_TX_FIFO_EMPTY) || LL_SPI_IsActiveFlag_BSY(instance);
+#endif
 }
 
 bool spiTransfer(SPI_TypeDef *instance, uint8_t *rxData, const uint8_t *txData, int len)
 {
+#if defined(STM32H7)
+    LL_SPI_SetTransferSize(instance, len);
+    LL_SPI_Enable(instance);
+    LL_SPI_StartMasterTransfer(instance);
+    while (len) {
+        int spiTimeout = 1000;
+        while(!LL_SPI_IsActiveFlag_TXP(instance)) {
+            if ((spiTimeout--) == 0) {
+                spiTimeoutUserCallback(instance);
+                return false;
+            }
+        }
+        uint8_t b = txData ? *(txData++) : 0xFF;
+        LL_SPI_TransmitData8(instance, b);
+
+        spiTimeout = 1000;
+        while (!LL_SPI_IsActiveFlag_RXP(instance)) {
+            if ((spiTimeout--) == 0) {
+                spiTimeoutUserCallback(instance);
+                return false;
+            }
+        }
+        b = LL_SPI_ReceiveData8(instance);
+        if (rxData) {
+            *(rxData++) = b;
+        }
+        --len;
+    }
+    while (!LL_SPI_IsActiveFlag_EOT(instance));
+    LL_SPI_ClearFlag_TXTF(instance);
+    LL_SPI_Disable(instance);
+#else
     SET_BIT(instance->CR2, SPI_RXFIFO_THRESHOLD);
 
     while (len) {
@@ -262,6 +318,7 @@ bool spiTransfer(SPI_TypeDef *instance, uint8_t *rxData, const uint8_t *txData, 
         }
         --len;
     }
+#endif
 
     return true;
 }
