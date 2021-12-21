@@ -32,8 +32,6 @@
 #include "build/build_config.h"
 #include "build/debug.h"
 
-#if defined(USE_NAV)
-
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
 #include "navigation/navigation_pos_estimator_private.h"
@@ -123,6 +121,3 @@ bool estimationCalculateCorrection_XY_FLOW(estimationContext_t * ctx)
     return false;
 #endif
 }
-
-
-#endif  // NAV

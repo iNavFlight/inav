@@ -90,8 +90,6 @@ PG_REGISTER_ARRAY(navSafeHome_t, MAX_SAFE_HOMES, safeHomeConfig, PG_SAFE_HOME_CO
 
 #endif
 
-#if defined(USE_NAV)
-
 // waypoint 254, 255 are special waypoints
 STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_range);
 
@@ -3987,70 +3985,3 @@ bool isAdjustingHeading(void) {
 int32_t getCruiseHeadingAdjustment(void) {
     return wrap_18000(posControl.cruise.yaw - posControl.cruise.previousYaw);
 }
-
-#else // NAV
-
-#ifdef USE_GPS
-/* Fallback if navigation is not compiled in - handle GPS home coordinates */
-static float GPS_scaleLonDown;
-static float GPS_totalTravelDistance = 0;
-
-static void GPS_distance_cm_bearing(int32_t currentLat1, int32_t currentLon1, int32_t destinationLat2, int32_t destinationLon2, uint32_t *dist, int32_t *bearing)
-{
-    const float dLat = destinationLat2 - currentLat1; // difference of latitude in 1/10 000 000 degrees
-    const float dLon = (float)(destinationLon2 - currentLon1) * GPS_scaleLonDown;
-
-    *dist = fast_fsqrtf(sq(dLat) + sq(dLon)) * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR;
-
-    *bearing = 9000.0f + RADIANS_TO_CENTIDEGREES(atan2_approx(-dLat, dLon));      // Convert the output radians to 100xdeg
-
-    if (*bearing < 0)
-        *bearing += 36000;
-}
-
-void onNewGPSData(void)
-{
-    static timeMs_t previousTimeMs = 0;
-    const timeMs_t currentTimeMs = millis();
-    const timeDelta_t timeDeltaMs = currentTimeMs - previousTimeMs;
-    previousTimeMs = currentTimeMs;
-
-    if (!(sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 5))
-        return;
-
-    if (ARMING_FLAG(ARMED)) {
-        /* Update home distance and direction */
-        if (STATE(GPS_FIX_HOME)) {
-            uint32_t dist;
-            int32_t dir;
-            GPS_distance_cm_bearing(gpsSol.llh.lat, gpsSol.llh.lon, GPS_home.lat, GPS_home.lon, &dist, &dir);
-            GPS_distanceToHome = dist / 100;
-            GPS_directionToHome = lrintf(dir / 100.0f);
-        } else {
-            GPS_distanceToHome = 0;
-            GPS_directionToHome = 0;
-        }
-
-        /* Update trip distance */
-        GPS_totalTravelDistance += gpsSol.groundSpeed * MS2S(timeDeltaMs);
-    }
-    else {
-        // Set home position to current GPS coordinates
-        ENABLE_STATE(GPS_FIX_HOME);
-        GPS_home.lat = gpsSol.llh.lat;
-        GPS_home.lon = gpsSol.llh.lon;
-        GPS_home.alt = gpsSol.llh.alt;
-        GPS_distanceToHome = 0;
-        GPS_directionToHome = 0;
-        GPS_scaleLonDown = cos_approx((fabsf((float)gpsSol.llh.lat) / 10000000.0f) * 0.0174532925f);
-    }
-}
-
-int32_t getTotalTravelDistance(void)
-{
-    return lrintf(GPS_totalTravelDistance);
-}
-
-#endif
-
-#endif  // NAV

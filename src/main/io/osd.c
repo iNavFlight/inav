@@ -757,7 +757,6 @@ static const char * osdArmingDisabledReasonMessage(void)
         case ARMING_DISABLED_SYSTEM_OVERLOADED:
             return OSD_MESSAGE_STR(OSD_MSG_SYS_OVERLOADED);
         case ARMING_DISABLED_NAVIGATION_UNSAFE:
-#if defined(USE_NAV)
             // Check the exact reason
             switch (navigationIsBlockingArming(NULL)) {
                 char buf[6];
@@ -774,7 +773,6 @@ static const char * osdArmingDisabledReasonMessage(void)
                 case NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR:
                     return OSD_MESSAGE_STR(OSD_MSG_JUMP_WP_MISCONFIG);
             }
-#endif
             break;
         case ARMING_DISABLED_COMPASS_NOT_CALIBRATED:
             return OSD_MESSAGE_STR(OSD_MSG_MAG_NOT_CAL);
@@ -850,11 +848,9 @@ static const char * osdFailsafePhaseMessage(void)
 {
     // See failsafe.h for each phase explanation
     switch (failsafePhase()) {
-#ifdef USE_NAV
         case FAILSAFE_RETURN_TO_HOME:
             // XXX: Keep this in sync with OSD_FLYMODE.
             return OSD_MESSAGE_STR(OSD_MSG_RTH_FS);
-#endif
         case FAILSAFE_LANDING:
             // This should be considered an emergengy landing
             return OSD_MESSAGE_STR(OSD_MSG_EMERG_LANDING_FS);
@@ -1074,24 +1070,12 @@ static void osdFormatRpm(char *buff, uint32_t rpm)
 
 int32_t osdGetAltitude(void)
 {
-#if defined(USE_NAV)
     return getEstimatedActualPosition(Z);
-#elif defined(USE_BARO)
-    return baro.alt;
-#else
-    return 0;
-#endif
 }
 
 static inline int32_t osdGetAltitudeMsl(void)
 {
-#if defined(USE_NAV)
     return getEstimatedActualPosition(Z)+GPS_home.alt;
-#elif defined(USE_BARO)
-    return baro.alt+GPS_home.alt;
-#else
-    return 0;
-#endif
 }
 
 static bool osdIsHeadingValid(void)
@@ -2975,7 +2959,6 @@ static bool osdDrawSingleElement(uint8_t item)
         osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "CTL S", 0, navConfig()->fw.control_smoothness, 1, 0, ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS);
         return true;
 
-#if defined(USE_NAV)
     case OSD_MISSION:
         {
             if (IS_RC_MODE_ACTIVE(BOXPLANWPMISSION)) {
@@ -3022,7 +3005,6 @@ static bool osdDrawSingleElement(uint8_t item)
             displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
             return true;
         }
-#endif  // USE_NAV
 
 #ifdef USE_POWER_LIMITS
     case OSD_PLIMIT_REMAINING_BURST_TIME:
@@ -3870,7 +3852,6 @@ static void osdShowArmed(void)
         displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(systemConfig() -> name)) / 2, y, craftNameBuf );
         y += 1;
     }
-#if defined(USE_NAV)
     if (posControl.waypointListValid && posControl.waypointCount > 0) {
 #ifdef USE_MULTI_MISSION
         tfp_sprintf(buf, "MISSION %u/%u (%u WP)", posControl.loadedMultiMissionIndex, posControl.multiMissionCount, posControl.waypointCount);
@@ -3879,7 +3860,6 @@ static void osdShowArmed(void)
         displayWrite(osdDisplayPort, 7, y, "*MISSION LOADED*");
 #endif
     }
-#endif
     y += 1;
 
 #if defined(USE_GPS)
@@ -4272,11 +4252,9 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     if (FLIGHT_MODE(SOARING_MODE)) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_NAV_SOARING);
                     }
-#if defined(USE_NAV)
                     if (posControl.flags.wpMissionPlannerActive) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_MISSION_PLANNER);
                     }
-#endif
                 }
             }
         } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
