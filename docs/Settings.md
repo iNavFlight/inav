@@ -388,7 +388,7 @@ Selection of baro hardware. See Wiki Sensor auto detect and hardware failure det
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ON | OFF | ON |
 
 ---
 
@@ -458,7 +458,7 @@ Allows disabling PWM mode for beeper on some targets. Switch from ON to OFF if t
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -518,7 +518,7 @@ This option is only available on certain architectures (F3 CPUs at the moment). 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -638,7 +638,7 @@ Disarms the motors independently of throttle value. Setting to OFF reverts to th
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ON | OFF | ON |
 
 ---
 
@@ -648,7 +648,7 @@ OFF = OSD hardware blink / ON = OSD software blink. If OSD warning text/values a
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -698,7 +698,7 @@ Show inflight adjustments in craft name field
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -708,7 +708,7 @@ Re-purpose the craft name field for messages.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ON | OFF | ON |
 
 ---
 
@@ -728,7 +728,7 @@ Whether using DShot motors as beepers is enabled
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ON | OFF | ON |
 
 ---
 
@@ -788,7 +788,7 @@ Enable/disable dynamic gyro notch also known as Matrix Filter
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ON | OFF | ON |
 
 ---
 
@@ -838,7 +838,7 @@ _// TODO_
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -868,7 +868,7 @@ _// TODO_
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -888,7 +888,7 @@ Enable when BLHeli32 Auto Telemetry function is used. Disable in every other cas
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -938,7 +938,7 @@ Enable or disable the lights when the `FAILSAFE` flight mode is enabled. The tar
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ON | OFF | ON |
 
 ---
 
@@ -988,7 +988,7 @@ If set to `OFF` the failsafe procedure won't be triggered and the mission will c
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ON | OFF | ON |
 
 ---
 
@@ -1058,7 +1058,7 @@ Auto-arm fixed wing aircraft on throttle above min_check, and disarming with sti
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -1118,7 +1118,7 @@ S.Port and D-Series telemetry: Send pitch and roll degrees*10 instead of raw acc
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -1438,7 +1438,7 @@ Automatic configuration of GPS baudrate(The specified baudrate in configured in 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ON | OFF | ON |
 
 ---
 
@@ -1448,7 +1448,7 @@ Enable automatic configuration of UBlox GPS receivers.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ON | OFF | ON |
 
 ---
 
@@ -1498,7 +1498,7 @@ Enable use of Galileo satellites. This is at the expense of other regional const
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -1598,7 +1598,7 @@ Use Dynamic LPF instead of static gyro stage1 LPF. Dynamic Gyro LPF updates gyro
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -1638,7 +1638,7 @@ Defines is UAV is capable of having flaps. If ON and AIRPLANE `platform_type` is
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -1818,7 +1818,7 @@ If set to ON, Secondary IMU data will be used for Analog OSD Artificial Horizon
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -1828,7 +1828,7 @@ If set to ON, Secondary IMU data will be used for Analog OSD heading
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -1838,7 +1838,7 @@ If set to ON, Secondary IMU data will be used for Angle, Horizon and all other m
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -1908,7 +1908,7 @@ Defines if inav will dead-reckon over short GPS outages. May also be useful for 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -1918,7 +1918,7 @@ Automatic setting of magnetic declination based on GPS position. When used manua
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ON | OFF | ON |
 
 ---
 
@@ -1988,7 +1988,7 @@ _// TODO_
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -1998,7 +1998,7 @@ Defined if iNav should use velocity data provided by GPS module for doing positi
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ON | OFF | ON |
 
 ---
 
@@ -2138,7 +2138,7 @@ If defined to 'OFF', it will ignore the gyroscope calibration done at each start
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ON | OFF | ON |
 
 ---
 
@@ -2168,7 +2168,7 @@ _// TODO_
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -2818,7 +2818,7 @@ Use if you need to inverse yaw motor direction.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -2898,7 +2898,7 @@ If set to ON, iNav disarms the FC after landing
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -2928,7 +2928,7 @@ Enable the possibility to manually increase the throttle in auto throttle contro
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -3328,7 +3328,7 @@ Stops motor when Soaring mode enabled.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -3718,7 +3718,7 @@ When ON, NAV engine will slow down when switching to the next waypoint. This pri
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ON | OFF | ON |
 
 ---
 
@@ -3738,7 +3738,7 @@ With Reset ON WP Mission Planner waypoint count can be reset to 0 by toggling th
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ON | OFF | ON |
 
 ---
 
@@ -3788,7 +3788,7 @@ If set to ON RTH altitude and CLIMB FIRST settings can be overridden during the 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -3848,7 +3848,7 @@ If set to ON, aircraft will execute initial climb regardless of position sensor 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -3868,7 +3868,7 @@ If set to ON drone will return tail-first. Obviously meaningless for airplanes.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -3878,7 +3878,7 @@ Enables or Disables the use of the heading PID controller on fixed wing. Heading
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -3888,7 +3888,7 @@ If set to OFF, the FC remembers your throttle stick position when enabling ALTHO
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -3908,7 +3908,7 @@ If set to ON, waypoints will be automatically loaded from EEPROM to the FC durin
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -3978,7 +3978,7 @@ Shows a border/corners around the AHI region (pixel OSD only)
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -3988,7 +3988,7 @@ When set to `ON`, the AHI position is adjusted by `osd_camera_uptilt`. For examp
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -4018,7 +4018,7 @@ _// TODO_
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -4218,7 +4218,7 @@ Use wind estimation for remaining flight time/distance estimation
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ON | OFF | ON |
 
 ---
 
@@ -4228,7 +4228,7 @@ If enabled the OSD automatically switches to the first layout during failsafe
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -4238,7 +4238,7 @@ Force OSD to work in grid mode even if the OSD device supports pixel level acces
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -4278,7 +4278,7 @@ Should home position coordinates be displayed on the arming screen.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ON | OFF | ON |
 
 ---
 
@@ -4298,7 +4298,7 @@ To 3D-display the home point location in the hud
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -4308,7 +4308,7 @@ To display little arrows around the crossair showing where the home point is in 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -4568,7 +4568,7 @@ _// TODO_
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -4828,7 +4828,7 @@ Selection of rangefinder hardware.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -4968,7 +4968,7 @@ S.Port, D-Series, and IBUS telemetry: Send the average cell voltage if set to ON
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -4988,7 +4988,7 @@ Enables gyro RPM filtere. Set to `ON` only when ESC telemetry is working and rot
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -5188,7 +5188,7 @@ Reverse the serial inversion of the serial RX protocol. When this value is OFF, 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -5258,7 +5258,7 @@ Enable Kalman filter on the gyro data
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ON | OFF | ON |
 
 ---
 
@@ -5348,7 +5348,7 @@ _// TODO_
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ON | OFF | ON |
 
 ---
 
@@ -5358,7 +5358,7 @@ _// TODO_
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -5408,7 +5408,7 @@ _// TODO_
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ON | OFF | ON |
 
 ---
 
@@ -5428,7 +5428,7 @@ General switch of the statistics recording feature (a.k.a. odometer)
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -5478,7 +5478,7 @@ S.Port telemetry only: Turn UART into UNIDIR for usage on F1 and F4 target. See 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ON | OFF | ON |
 
 ---
 
@@ -5488,7 +5488,7 @@ Determines if the telemetry protocol default signal inversion is reversed. This 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -5498,7 +5498,7 @@ Which aux channel to use to change serial output & baud rate (MSP / Telemetry). 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
@@ -5588,7 +5588,7 @@ On tricopter mix only, if this is set to ON, servo will always be correcting reg
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ON | OFF | ON |
 
 ---
 
@@ -5718,7 +5718,7 @@ Use half duplex UART to communicate with the VTX, using only a TX pin in the FC.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ON | OFF | ON |
 
 ---
 
@@ -5768,7 +5768,7 @@ Enable workaround for early AKK SAudio-enabled VTX bug.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ON | OFF | ON |
 
 ---
 
