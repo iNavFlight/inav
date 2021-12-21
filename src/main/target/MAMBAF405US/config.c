@@ -48,6 +48,10 @@
 #include "io/piniobox.h"
 
 void targetConfiguration(void)
+    
+    batteryMetersConfigMutable()->voltage.scale = 1100;
+    batteryMetersConfigMutable()->current.scale = 183;
+
 {
 #ifdef MAMBAF405US
     // MSP @ 19200 on SERIAL4
