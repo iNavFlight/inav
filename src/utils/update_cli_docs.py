@@ -63,8 +63,6 @@ def generate_md_from_yaml(settings_yaml):
                     # Replace booleans with "ON"/"OFF"
                     if type(member[key]) == bool:
                         member[key] = "ON" if member[key] else "OFF"
-                        member["min"] = "OFF"
-                        member["max"] = "ON"
                     # Replace zero placeholder with actual zero
                     elif member[key] == ":zero":
                         member[key] = 0
