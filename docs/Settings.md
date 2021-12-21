@@ -2144,7 +2144,7 @@ If defined to 'OFF', it will ignore the gyroscope calibration done at each start
 
 ### ins_gravity_cmss
 
-Calculated 1G of Acc axis Z to use in INS
+Calculated 1G of acc axis Z to use in INS
 
 | Default | Min | Max |
 | --- | --- | --- |
