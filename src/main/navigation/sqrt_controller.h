@@ -26,7 +26,7 @@ float derivative_max; // maximum derivative of output
 } sqrt_controller_t;
 
 
-// return the sqrt_controller calced
+// proportional controller with piecewise sqrt sections to constrainf second derivative
 float get_sqrt_controller(sqrt_controller_t *sqrt_controller_pointer, float target, float measurement, float deltaTime);
 
 // sets the maximum error to limit output and first and second derivative of output
