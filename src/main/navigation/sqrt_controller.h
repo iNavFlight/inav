@@ -17,7 +17,7 @@
 
 #pragma once
 
-typedef struct {
+typedef struct sqrt_controller_s {
 float kp;             // proportional gain
 float error;          // proportional error calced
 float error_min;      // error limit in negative direction

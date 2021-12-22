@@ -55,18 +55,18 @@
 /*-----------------------------------------------------------
  * Altitude controller for multicopter aircraft
  *-----------------------------------------------------------*/
-static sqrt_controller_t alt_hold_sqrt_controller;
 static int16_t rcCommandAdjustedThrottle;
 static int16_t altHoldThrottleRCZero = 1500;
 static pt1Filter_t altholdThrottleFilterState;
 static bool prepareForTakeoffOnReset = false;
+static sqrt_controller_t alt_hold_sqrt_controller;
 
 // Position to velocity controller for Z axis
 static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
 {
     alt_hold_sqrt_controller.kp = posControl.pids.pos[Z].param.kP;
 
-    float targetVel = get_sqrt_controller(&alt_hold_sqrt_controller, posControl.desiredState.pos.z, navGetCurrentActualPositionAndVelocity()->pos.z, 1.0f / getGyroLooptime());
+    float targetVel = get_sqrt_controller(&alt_hold_sqrt_controller, posControl.desiredState.pos.z, navGetCurrentActualPositionAndVelocity()->pos.z, (float)(1.0f / getGyroLooptime()));
 
     // hard limit desired target velocity to max_climb_rate
     if (posControl.flags.isAdjustingAltitude) {

@@ -21,8 +21,6 @@
 
 #include "platform.h"
 
-//#if defined(USE_NAV)
-
 #include "common/maths.h"
 
 #include "navigation/sqrt_controller.h"
@@ -127,5 +125,3 @@ void sqrt_controller_set_limits(sqrt_controller_t *sqrt_controller_pointer, floa
         sqrt_controller_pointer->error_max = inv_sqrt_controller(&sqrt_controller_pointer, output_max);
     }
 }
-
-//#endif
