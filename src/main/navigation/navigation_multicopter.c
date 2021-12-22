@@ -203,7 +203,7 @@ void resetMulticopterAltitudeController(void)
     posControl.desiredState.vel.z = posToUse->vel.z;   // Gradually transition from current climb
     pt1FilterReset(&altholdThrottleFilterState, 0.0f);
 
-    sqrt_controller_set_limits(&alt_hold_sqrt_controller, -fabsf(navConfig()->general.max_manual_climb_rate), navConfig()->general.max_manual_climb_rate, navConfig()->general.max_auto_climb_rate);
+    sqrt_controller_set_limits(&alt_hold_sqrt_controller, -fabsf((float)navConfig()->general.max_manual_climb_rate), (float)navConfig()->general.max_manual_climb_rate, (float)navConfig()->general.max_auto_climb_rate);
 }
 
 static void applyMulticopterAltitudeController(timeUs_t currentTimeUs)
