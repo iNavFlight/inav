@@ -4614,7 +4614,7 @@ IMPERIAL, METRIC, UK
 
 ### osd_video_system
 
-Video system used. Possible values are `AUTO`, `PAL` and `NTSC`
+Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, and `HD`
 
 | Default | Min | Max |
 | --- | --- | --- |
