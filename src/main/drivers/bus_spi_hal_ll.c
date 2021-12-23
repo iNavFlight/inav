@@ -251,6 +251,7 @@ uint8_t spiTransferByte(SPI_TypeDef *instance, uint8_t txByte)
 bool spiIsBusBusy(SPI_TypeDef *instance)
 {
 #if defined(STM32H7)
+    UNUSED(instance);
     // H7 doesnt really have a busy flag. its should be done when the transfer is.
     return false;
 #else
