@@ -5728,7 +5728,7 @@ Enable the alternate softserial method. This is the method used in iNav 3.0 and 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ON | OFF | ON |
 
 ---
 
