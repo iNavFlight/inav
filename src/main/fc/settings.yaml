@@ -3572,6 +3572,7 @@ groups:
         default_value: 0
         max: INT32_MAX
       - name: stats_total_energy
+        description: "Total energy consumption [in mWh]. The value is updated on every disarm when \"stats\" are enabled."
         max: INT32_MAX
         condition: USE_ADC
         default_value: 0

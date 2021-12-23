@@ -5414,7 +5414,7 @@ Total flight distance [in meters]. The value is updated on every disarm when "st
 
 ### stats_total_energy
 
-_// TODO_
+Total energy consumption [in mWh]. The value is updated on every disarm when "stats" are enabled.
 
 | Default | Min | Max |
 | --- | --- | --- |
