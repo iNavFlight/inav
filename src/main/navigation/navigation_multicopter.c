@@ -60,13 +60,18 @@ static int16_t altHoldThrottleRCZero = 1500;
 static pt1Filter_t altholdThrottleFilterState;
 static bool prepareForTakeoffOnReset = false;
 static sqrt_controller_t alt_hold_sqrt_controller;
+static float accel_desired_z = 0.0f;
 
 // Position to velocity controller for Z axis
 static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
 {
     alt_hold_sqrt_controller.kp = posControl.pids.pos[Z].param.kP;
+    
+    float pos_desired_z = posControl.desiredState.pos.z;
 
-    float targetVel = get_sqrt_controller(&alt_hold_sqrt_controller, posControl.desiredState.pos.z, navGetCurrentActualPositionAndVelocity()->pos.z, (float)(1.0f / getGyroLooptime()));
+    float targetVel = get_sqrt_controller(&alt_hold_sqrt_controller, &pos_desired_z, navGetCurrentActualPositionAndVelocity()->pos.z, (float)(1.0f / getGyroLooptime()));
+
+    posControl.desiredState.pos.z = pos_desired_z;
 
     // hard limit desired target velocity to max_climb_rate
     if (posControl.flags.isAdjustingAltitude) {
@@ -75,6 +80,9 @@ static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
     else {
         targetVel = constrainf(targetVel, -navConfig()->general.max_auto_climb_rate, navConfig()->general.max_auto_climb_rate);
     }
+    
+    // add feed forward component
+    //targetVel += posControl.desiredState.vel.z;
 
     posControl.pids.pos[Z].output_constrained = targetVel;
 
@@ -108,7 +116,20 @@ static void updateAltitudeThrottleController_MC(timeDelta_t deltaMicros)
     const int16_t thrAdjustmentMin = (int16_t)getThrottleIdleValue() - (int16_t)currentBatteryProfile->nav.mc.hover_throttle;
     const int16_t thrAdjustmentMax = (int16_t)motorConfig()->maxthrottle - (int16_t)currentBatteryProfile->nav.mc.hover_throttle;
 
-    posControl.rcAdjustment[THROTTLE] = navPidApply2(&posControl.pids.vel[Z], posControl.desiredState.vel.z, navGetCurrentActualPositionAndVelocity()->vel.z, US2S(deltaMicros), thrAdjustmentMin, thrAdjustmentMax, 0);
+    float accel_target_z = navPidApply2(&posControl.pids.vel[Z], posControl.desiredState.vel.z, navGetCurrentActualPositionAndVelocity()->vel.z, US2S(deltaMicros), thrAdjustmentMin, thrAdjustmentMax, 0);
+    
+    float accel_max_z = 0.0f;
+
+    if (posControl.flags.isAdjustingAltitude) {
+        accel_max_z = navConfig()->general.max_manual_climb_rate;
+    } else {
+        accel_max_z = navConfig()->general.max_auto_climb_rate;
+    }
+
+    // add feed forward component
+    //accel_target_z += constrainf(accel_desired_z, -accel_max_z, accel_max_z);
+
+    posControl.rcAdjustment[THROTTLE] = accel_target_z;
 
     posControl.rcAdjustment[THROTTLE] = pt1FilterApply4(&altholdThrottleFilterState, posControl.rcAdjustment[THROTTLE], NAV_THROTTLE_CUTOFF_FREQENCY_HZ, US2S(deltaMicros));
     posControl.rcAdjustment[THROTTLE] = constrain(posControl.rcAdjustment[THROTTLE], thrAdjustmentMin, thrAdjustmentMax);
@@ -204,6 +225,8 @@ void resetMulticopterAltitudeController(void)
     pt1FilterReset(&altholdThrottleFilterState, 0.0f);
 
     sqrt_controller_set_limits(&alt_hold_sqrt_controller, -fabsf((float)navConfig()->general.max_manual_climb_rate), (float)navConfig()->general.max_manual_climb_rate, (float)navConfig()->general.max_auto_climb_rate);
+    
+    accel_desired_z = -(navGetCurrentActualPositionAndVelocity()->vel.z + GRAVITY_CMSS);
 }
 
 static void applyMulticopterAltitudeController(timeUs_t currentTimeUs)

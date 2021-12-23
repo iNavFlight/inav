@@ -54,19 +54,19 @@ static float inv_sqrt_controller(float kp, float derivative_max, float output)
 }
 
 // proportional controller with piecewise sqrt sections to constrainf second derivative
-float get_sqrt_controller(sqrt_controller_t *sqrt_controller_pointer, float target, float measurement, float deltaTime)
+float get_sqrt_controller(sqrt_controller_t *sqrt_controller_pointer, float *target, float measurement, float deltaTime)
 {
     float correction_rate;
 
     // calculate distance p_error
-    sqrt_controller_pointer->error = target - measurement;
+    sqrt_controller_pointer->error = *target - measurement;
 
     if ((sqrt_controller_pointer->error_min < 0.0f) && (sqrt_controller_pointer->error < sqrt_controller_pointer->error_min)) {
         sqrt_controller_pointer->error = sqrt_controller_pointer->error_min;
-        target = measurement + sqrt_controller_pointer->error;
+        *target = measurement + sqrt_controller_pointer->error;
     } else if ((sqrt_controller_pointer->error_max > 0.0f) && (sqrt_controller_pointer->error > sqrt_controller_pointer->error_max)) {
         sqrt_controller_pointer->error = sqrt_controller_pointer->error_max;
-        target = measurement + sqrt_controller_pointer->error;
+        *target = measurement + sqrt_controller_pointer->error;
     }
 
     if ((sqrt_controller_pointer->derivative_max < 0.0f) || sqrt_controller_pointer->derivative_max == 0.0f) {
