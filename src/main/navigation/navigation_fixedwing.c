@@ -21,8 +21,6 @@
 
 #include "platform.h"
 
-#if defined(USE_NAV)
-
 #include "build/build_config.h"
 #include "build/debug.h"
 
@@ -277,10 +275,9 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
 
     // If angular visibility of a waypoint is less than 30deg, don't calculate circular loiter, go straight to the target
     #define TAN_15DEG    0.26795f
-    bool needToCalculateCircularLoiter = (isApproachingLastWaypoint() || isWaypointWait())
-                                            && (distanceToActualTarget <= (navLoiterRadius / TAN_15DEG))
-                                            && (distanceToActualTarget > 50.0f)
-                                            && !FLIGHT_MODE(NAV_COURSE_HOLD_MODE);
+    bool needToCalculateCircularLoiter = isNavHoldPositionActive() &&
+                                            (distanceToActualTarget <= (navLoiterRadius / TAN_15DEG)) &&
+                                            (distanceToActualTarget > 50.0f);
 
     // Calculate virtual position for straight movement
     if (needToCalculateCircularLoiter) {
@@ -700,5 +697,3 @@ int32_t navigationGetHeadingError(void)
 {
     return navHeadingError;
 }
-
-#endif  // NAV

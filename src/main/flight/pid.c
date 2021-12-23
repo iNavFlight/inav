@@ -739,7 +739,7 @@ static float dTermProcess(pidState_t *pidState, float dT) {
         newDTerm = 0;
     } else {
         float delta = pidState->previousRateGyro - pidState->gyroRate;
-        
+
         delta = dTermLpfFilterApplyFn((filter_t *) &pidState->dtermLpfState, delta);
         delta = dTermLpf2FilterApplyFn((filter_t *) &pidState->dtermLpf2State, delta);
 
@@ -892,7 +892,6 @@ static uint8_t getHeadingHoldState(void)
         return HEADING_HOLD_DISABLED;
     }
 
-#if defined(USE_NAV)
     int navHeadingState = navigationGetHeadingControlState();
     // NAV will prevent MAG_MODE from activating, but require heading control
     if (navHeadingState != NAV_HEADING_CONTROL_NONE) {
@@ -901,9 +900,7 @@ static uint8_t getHeadingHoldState(void)
             return HEADING_HOLD_ENABLED;
         }
     }
-    else
-#endif
-    if (ABS(rcCommand[YAW]) == 0 && FLIGHT_MODE(HEADING_MODE)) {
+    else if (ABS(rcCommand[YAW]) == 0 && FLIGHT_MODE(HEADING_MODE)) {
         return HEADING_HOLD_ENABLED;
     } else {
         return HEADING_HOLD_UPDATE_HEADING;
@@ -1209,7 +1206,7 @@ void pidInit(void)
     for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
 
     #ifdef USE_D_BOOST
-        // Rate * 10 * 10. First 10 is to convert stick to DPS. Second 10 is to convert target to acceleration. 
+        // Rate * 10 * 10. First 10 is to convert stick to DPS. Second 10 is to convert target to acceleration.
         // We assume, max acceleration is when pilot deflects the stick fully in 100ms
         pidState[axis].dBoostTargetAcceleration = currentControlRateProfile->stabilized.rates[axis] * 10 * 10;
     #endif

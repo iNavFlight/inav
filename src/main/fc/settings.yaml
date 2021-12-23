@@ -4,7 +4,7 @@ tables:
   - name: gyro_lpf
     values: ["256HZ", "188HZ", "98HZ", "42HZ", "20HZ", "10HZ"]
   - name: acc_hardware
-    values: ["NONE", "AUTO", "MPU6050", "LSM303DLHC", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"]
+    values: ["NONE", "AUTO", "MPU6050", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"]
     enum: accelerationSensor_e
   - name: rangefinder_hardware
     values: ["NONE", "SRF10", "VL53L0X", "MSP", "BENEWAKE", "VL53L1X", "US42", "TOF10120_I2C"]
@@ -1914,7 +1914,6 @@ groups:
         description: "Direction of loitering: center point on right wing (clockwise - default), or center point on left wing (counterclockwise). If equal YAW then can be changed in flight using a yaw stick."
         default_value: "RIGHT"
         field: loiter_direction
-        condition: USE_NAV
         table: direction
       - name: fw_reference_airspeed
         description: "Reference airspeed. Set this to airspeed at which PIDs were tuned. Usually should be set to cruise airspeed. Also used for coordinated turn calculation if airspeed sensor is not present."
@@ -1983,21 +1982,18 @@ groups:
       - name: nav_mc_pos_z_p
         description: "P gain of altitude PID controller (Multirotor)"
         field: bank_mc.pid[PID_POS_Z].P
-        condition: USE_NAV
         min: 0
         max: 255
         default_value: 50
       - name: nav_mc_vel_z_p
         description: "P gain of velocity PID controller"
         field: bank_mc.pid[PID_VEL_Z].P
-        condition: USE_NAV
         min: 0
         max: 255
         default_value: 100
       - name: nav_mc_vel_z_i
         description: "I gain of velocity PID controller"
         field: bank_mc.pid[PID_VEL_Z].I
-        condition: USE_NAV
         min: 0
         max: 255
         default_value: 50
@@ -2005,41 +2001,35 @@ groups:
         description: "D gain of velocity PID controller"
         default_value: 10
         field: bank_mc.pid[PID_VEL_Z].D
-        condition: USE_NAV
         min: 0
         max: 255
         default_value: 10
       - name: nav_mc_pos_xy_p
         description: "Controls how fast the drone will fly towards the target position. This is a multiplier to convert displacement to target velocity"
         field: bank_mc.pid[PID_POS_XY].P
-        condition: USE_NAV
         min: 0
         max: 255
         default_value: 65
       - name: nav_mc_vel_xy_p
         description: "P gain of Position-Rate (Velocity to Acceleration) PID controller. Higher P means stronger response when position error occurs. Too much P might cause \"nervous\" behavior and oscillations"
         field: bank_mc.pid[PID_VEL_XY].P
-        condition: USE_NAV
         min: 0
         max: 255
         default_value: 40
       - name: nav_mc_vel_xy_i
         description: "I gain of Position-Rate (Velocity to Acceleration) PID controller. Used for drift compensation (caused by wind for example). Higher I means stronger response to drift. Too much I gain might cause target overshot"
         field: bank_mc.pid[PID_VEL_XY].I
-        condition: USE_NAV
         min: 0
         max: 255
         default_value: 15
       - name: nav_mc_vel_xy_d
         description: "D gain of Position-Rate (Velocity to Acceleration) PID controller. It can damp P and I. Increasing D might help when drone overshoots target."
         field: bank_mc.pid[PID_VEL_XY].D
-        condition: USE_NAV
         min: 0
         max: 255
         default_value: 100
       - name: nav_mc_vel_xy_ff
         field: bank_mc.pid[PID_VEL_XY].FF
-        condition: USE_NAV
         min: 0
         max: 255
         default_value: 40
@@ -2047,7 +2037,6 @@ groups:
         description: "P gain of Heading Hold controller (Multirotor)"
         default_value: 60
         field: bank_mc.pid[PID_HEADING].P
-        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_vel_xy_dterm_lpf_hz
@@ -2077,70 +2066,60 @@ groups:
         description: "P gain of altitude PID controller (Fixedwing)"
         default_value: 40
         field: bank_fw.pid[PID_POS_Z].P
-        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_z_i
         description: "I gain of altitude PID controller (Fixedwing)"
         default_value: 5
         field: bank_fw.pid[PID_POS_Z].I
-        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_z_d
         description: "D gain of altitude PID controller (Fixedwing)"
         default_value: 10
         field: bank_fw.pid[PID_POS_Z].D
-        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_xy_p
         description: "P gain of 2D trajectory PID controller. Play with this to get a straight line between waypoints or a straight RTH"
         default_value: 75
         field: bank_fw.pid[PID_POS_XY].P
-        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_xy_i
         description: "I gain of 2D trajectory PID controller. Too high and there will be overshoot in trajectory. Better start tuning with zero"
         default_value: 5
         field: bank_fw.pid[PID_POS_XY].I
-        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_xy_d
         description: "D gain of 2D trajectory PID controller. Too high and there will be overshoot in trajectory. Better start tuning with zero"
         default_value: 8
         field: bank_fw.pid[PID_POS_XY].D
-        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_heading_p
         description: "P gain of Heading Hold controller (Fixedwing)"
         default_value: 60
         field: bank_fw.pid[PID_HEADING].P
-        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_hdg_p
         description: "P gain of heading PID controller. (Fixedwing, rovers, boats)"
         default_value: 30
         field: bank_fw.pid[PID_POS_HEADING].P
-        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_hdg_i
         description: "I gain of heading trajectory PID controller. (Fixedwing, rovers, boats)"
         default_value: 2
         field: bank_fw.pid[PID_POS_HEADING].I
-        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_hdg_d
         description: "D gain of heading trajectory PID controller. (Fixedwing, rovers, boats)"
         default_value: 0
         field: bank_fw.pid[PID_POS_HEADING].D
-        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_hdg_pidsum_limit
@@ -2273,7 +2252,6 @@ groups:
 
   - name: PG_POSITION_ESTIMATION_CONFIG
     type: positionEstimationConfig_t
-    condition: USE_NAV
     members:
       - name: inav_auto_mag_decl
         description: "Automatic setting of magnetic declination based on GPS position. When used manual magnetic declination is ignored."
@@ -2405,7 +2383,6 @@ groups:
   - name: PG_NAV_CONFIG
     type: navConfig_t
     headers: ["navigation/navigation.h"]
-    condition: USE_NAV
     members:
       - name: nav_disarm_on_landing
         description: "If set to ON, iNav disarms the FC after landing"
@@ -2458,6 +2435,7 @@ groups:
         description: "Index of mission selected from multi mission WP entry loaded in flight controller. 1 is the first useable WP mission in the entry. Limited to a maximum of 9 missions. Set index to 0 to display current active WP count in OSD Mission field."
         default_value: 1
         field: general.waypoint_multi_mission_index
+        condition: USE_MULTI_MISSION
         min: 0
         max: 9
       - name: nav_auto_speed
@@ -2697,14 +2675,12 @@ groups:
         description: "Used for stoping distance calculation. Stop position is computed as _speed_ * _nav_mc_pos_deceleration_time_ from the place where sticks are released. Braking mode overrides this setting"
         default_value: 120
         field: mc.posDecelerationTime
-        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_pos_expo
         description: "Expo for PosHold control"
         default_value: 10
         field: mc.posResponseExpo
-        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_wp_slowdown
@@ -3250,6 +3226,20 @@ groups:
         field: rssi_dbm_alarm
         min: -130
         max: 0
+      - name: osd_rssi_dbm_max
+        condition: USE_SERIALRX_CRSF
+        description: "RSSI dBm upper end of curve. Perfect rssi (max) = 100%"
+        default_value: -30
+        field: rssi_dbm_max
+        min: -50
+        max: 0
+      - name: osd_rssi_dbm_min
+        condition: USE_SERIALRX_CRSF
+        description: "RSSI dBm lower end of curve or RX sensitivity level. Worst rssi (min) = 0%"
+        default_value: -120
+        field: rssi_dbm_min
+        min: -130
+        max: 0
       - name: osd_temp_label_align
         description: "Allows to chose between left and right alignment for the OSD temperature sensor labels. Valid values are `LEFT` and `RIGHT`"
         default_value: "LEFT"
@@ -3363,12 +3353,6 @@ groups:
         field: hud_radar_range_max
         min: 100
         max: 9990
-      - name: osd_hud_radar_nearest
-        description: "To display an extra bar of informations at the bottom of the hud area for the closest radar aircraft found, if closest than the set value, in meters. Shows relative altitude (meters or feet, with an up or down arrow to indicate if above or below), speed (in m/s or f/s), and absolute heading (in °, 0 is north, 90 is east, 180 is south, 270 is west). Set to 0 (zero) to disable."
-        default_value: 0
-        field: hud_radar_nearest
-        min: 0
-        max: 4000
       - name: osd_hud_wp_disp
         description: "How many navigation waypoints are displayed, set to 0 (zero) to disable. As sample, if set to 2, and you just passed the 3rd waypoint of the mission, you'll see markers for the 4th waypoint (marked 1) and the 5th waypoint (marked 2)"
         default_value: 0
@@ -3629,6 +3613,11 @@ groups:
         description: "Enable workaround for early AKK SAudio-enabled VTX bug."
         default_value: ON
         field: smartAudioEarlyAkkWorkaroundEnable
+        type: bool
+      - name: vtx_smartaudio_alternate_softserial_method
+        description: "Enable the alternate softserial method. This is the method used in iNav 3.0 and ealier."
+        default_value: ON
+        field: smartAudioAltSoftSerialMethod
         type: bool
 
   - name: PG_VTX_SETTINGS_CONFIG

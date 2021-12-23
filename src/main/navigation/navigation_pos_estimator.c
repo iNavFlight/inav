@@ -22,8 +22,6 @@
 
 #include "platform.h"
 
-#if defined(USE_NAV)
-
 #include "build/build_config.h"
 #include "build/debug.h"
 
@@ -217,7 +215,7 @@ void onNewGPSData(void)
         if(STATE(GPS_FIX_HOME)){
             static bool magDeclinationSet = false;
             if (positionEstimationConfig()->automatic_mag_declination && !magDeclinationSet) {
-                const float declination = geoCalculateMagDeclination(&newLLH); 
+                const float declination = geoCalculateMagDeclination(&newLLH);
                 imuSetMagneticDeclination(declination);
 #ifdef USE_SECONDARY_IMU
                 secondaryImuSetMagneticDeclination(declination);
@@ -876,5 +874,3 @@ bool navIsCalibrationComplete(void)
 {
     return gravityCalibrationComplete();
 }
-
-#endif

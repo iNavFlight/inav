@@ -581,9 +581,7 @@ void init(void)
 #endif
 
 
-#ifdef USE_NAV
     navigationInit();
-#endif
 
 #ifdef USE_LED_STRIP
     ledStripInit();
