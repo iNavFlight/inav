@@ -29,7 +29,7 @@
 static float inv_sqrt_controller(sqrt_controller_t inv_sqrt_controller_pointer, float output)
 {
     if ((inv_sqrt_controller_pointer.derivative_max > 0.0f) && (inv_sqrt_controller_pointer.kp == 0.0f)) {
-        return (output * output) / (2.0 * inv_sqrt_controller_pointer.derivative_max);
+        return (output * output) / (2.0f * inv_sqrt_controller_pointer.derivative_max);
     }
 
     if (((inv_sqrt_controller_pointer.derivative_max < 0.0f) ||(inv_sqrt_controller_pointer.derivative_max == 0.0f)) && (inv_sqrt_controller_pointer.kp != 0.0f)) {
