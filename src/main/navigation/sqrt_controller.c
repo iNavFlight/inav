@@ -26,30 +26,30 @@
 #include "navigation/sqrt_controller.h"
 
 // inverse of the sqrt controller. Calculates the input (aka error) to the sqrt_controller required to achieve a given output
-static float inv_sqrt_controller(sqrt_controller_t inv_sqrt_controller_pointer, float output)
+static float inv_sqrt_controller(float kp, float derivative_max, float output)
 {
-    if ((inv_sqrt_controller_pointer.derivative_max > 0.0f) && (inv_sqrt_controller_pointer.kp == 0.0f)) {
-        return (output * output) / (2.0f * inv_sqrt_controller_pointer.derivative_max);
+    if ((derivative_max > 0.0f) && (kp == 0.0f)) {
+        return (output * output) / (2.0f * derivative_max);
     }
 
-    if (((inv_sqrt_controller_pointer.derivative_max < 0.0f) ||(inv_sqrt_controller_pointer.derivative_max == 0.0f)) && (inv_sqrt_controller_pointer.kp != 0.0f)) {
-        return output / inv_sqrt_controller_pointer.kp;
+    if (((derivative_max < 0.0f) ||(derivative_max == 0.0f)) && (kp != 0.0f)) {
+        return output / kp;
     }
 
-    if (((inv_sqrt_controller_pointer.derivative_max < 0.0f) || (inv_sqrt_controller_pointer.derivative_max == 0.0f)) && (inv_sqrt_controller_pointer.kp == 0.0f)) {
+    if (((derivative_max < 0.0f) || (derivative_max == 0.0f)) && (kp == 0.0f)) {
         return 0.0f;
     }
 
     // calculate the velocity at which we switch from calculating the stopping point using a linear function to a sqrt function
-    const float linear_velocity = inv_sqrt_controller_pointer.derivative_max / inv_sqrt_controller_pointer.kp;
+    const float linear_velocity = derivative_max / kp;
 
     if (fabsf(output) < linear_velocity) {
         // if our current velocity is below the cross-over point we use a linear function
-        return output / inv_sqrt_controller_pointer.kp;
+        return output / kp;
     }
 
-    const float linear_dist = inv_sqrt_controller_pointer.derivative_max / sq(inv_sqrt_controller_pointer.kp);
-    const float stopping_dist = (linear_dist * 0.5f) + sq(output) / (2.0f * inv_sqrt_controller_pointer.derivative_max);
+    const float linear_dist = derivative_max / sq(kp);
+    const float stopping_dist = (linear_dist * 0.5f) + sq(output) / (2.0f * derivative_max);
     return (output > 0.0f) ? stopping_dist : -stopping_dist;
 }
 
@@ -114,10 +114,10 @@ void sqrt_controller_set_limits(sqrt_controller_t *sqrt_controller_pointer, floa
     }
 
     if ((output_min > 0.0f) && (sqrt_controller_pointer->kp > 0.0f)) {
-        sqrt_controller_pointer->error_min = inv_sqrt_controller(*sqrt_controller_pointer, output_min);
+        sqrt_controller_pointer->error_min = inv_sqrt_controller(sqrt_controller_pointer->kp, sqrt_controller_pointer->derivative_max, output_min);
     }
 
     if ((output_max > 0.0f) && (sqrt_controller_pointer->kp > 0.0f)) {
-        sqrt_controller_pointer->error_max = inv_sqrt_controller(*sqrt_controller_pointer, output_max);
+        sqrt_controller_pointer->error_max = inv_sqrt_controller(sqrt_controller_pointer->kp, sqrt_controller_pointer->derivative_max, output_max);
     }
 }
