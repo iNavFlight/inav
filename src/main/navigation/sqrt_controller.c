@@ -26,30 +26,30 @@
 #include "navigation/sqrt_controller.h"
 
 // inverse of the sqrt controller. Calculates the input (aka error) to the sqrt_controller required to achieve a given output
-static float inv_sqrt_controller(sqrt_controller_t *inv_sqrt_controller_pointer, float output)
+static float inv_sqrt_controller(sqrt_controller_t inv_sqrt_controller_pointer, float output)
 {
-    if ((inv_sqrt_controller_pointer->derivative_max > 0.0f) && (inv_sqrt_controller_pointer->kp == 0)) {
-        return (output * output) / (2.0 * inv_sqrt_controller_pointer->derivative_max);
+    if ((inv_sqrt_controller_pointer.derivative_max > 0.0f) && (inv_sqrt_controller_pointer.kp == 0.0f)) {
+        return (output * output) / (2.0 * inv_sqrt_controller_pointer.derivative_max);
     }
 
-    if (((inv_sqrt_controller_pointer->derivative_max < 0.0f) ||(inv_sqrt_controller_pointer->derivative_max == 0)) && (inv_sqrt_controller_pointer->kp != 0)) {
-        return output / inv_sqrt_controller_pointer->kp;
+    if (((inv_sqrt_controller_pointer.derivative_max < 0.0f) ||(inv_sqrt_controller_pointer.derivative_max == 0.0f)) && (inv_sqrt_controller_pointer.kp != 0.0f)) {
+        return output / inv_sqrt_controller_pointer.kp;
     }
 
-    if (((inv_sqrt_controller_pointer->derivative_max < 0.0f) || (inv_sqrt_controller_pointer->derivative_max == 0)) && (inv_sqrt_controller_pointer->kp == 0)) {
-        return 0.0;
+    if (((inv_sqrt_controller_pointer.derivative_max < 0.0f) || (inv_sqrt_controller_pointer.derivative_max == 0.0f)) && (inv_sqrt_controller_pointer.kp == 0.0f)) {
+        return 0.0f;
     }
 
     // calculate the velocity at which we switch from calculating the stopping point using a linear function to a sqrt function
-    const float linear_velocity = inv_sqrt_controller_pointer->derivative_max / inv_sqrt_controller_pointer->kp;
+    const float linear_velocity = inv_sqrt_controller_pointer.derivative_max / inv_sqrt_controller_pointer.kp;
 
     if (fabsf(output) < linear_velocity) {
         // if our current velocity is below the cross-over point we use a linear function
-        return output / inv_sqrt_controller_pointer->kp;
+        return output / inv_sqrt_controller_pointer.kp;
     }
 
-    const float linear_dist = inv_sqrt_controller_pointer->derivative_max / sq(inv_sqrt_controller_pointer->kp);
-    const float stopping_dist = (linear_dist * 0.5f) + sq(output) / (2.0 * inv_sqrt_controller_pointer->derivative_max);
+    const float linear_dist = inv_sqrt_controller_pointer.derivative_max / sq(inv_sqrt_controller_pointer.kp);
+    const float stopping_dist = (linear_dist * 0.5f) + sq(output) / (2.0f * inv_sqrt_controller_pointer.derivative_max);
     return (output > 0.0f) ? stopping_dist : -stopping_dist;
 }
 
@@ -69,31 +69,31 @@ float get_sqrt_controller(sqrt_controller_t *sqrt_controller_pointer, float targ
         target = measurement + sqrt_controller_pointer->error;
     }
 
-    if ((sqrt_controller_pointer->derivative_max < 0.0f) || sqrt_controller_pointer->derivative_max == 0) {
+    if ((sqrt_controller_pointer->derivative_max < 0.0f) || sqrt_controller_pointer->derivative_max == 0.0f) {
         // second order limit is zero or negative.
         correction_rate = sqrt_controller_pointer->error * sqrt_controller_pointer->kp;
-    } else if (sqrt_controller_pointer->kp == 0) {
+    } else if (sqrt_controller_pointer->kp == 0.0f) {
         // P term is zero but we have a second order limit.
         if (sqrt_controller_pointer->error > 0.0f) {
-            correction_rate = fast_fsqrtf(2.0 * sqrt_controller_pointer->derivative_max * (sqrt_controller_pointer->error));
+            correction_rate = fast_fsqrtf(2.0f * sqrt_controller_pointer->derivative_max * (sqrt_controller_pointer->error));
         } else if (sqrt_controller_pointer->error < 0.0f) {
-            correction_rate = -fast_fsqrtf(2.0 * sqrt_controller_pointer->derivative_max * (-sqrt_controller_pointer->error));
+            correction_rate = -fast_fsqrtf(2.0f * sqrt_controller_pointer->derivative_max * (-sqrt_controller_pointer->error));
         } else {
-            correction_rate = 0.0;
+            correction_rate = 0.0f;
         }
     } else {
         // Both the P and second order limit have been defined.
         const float linear_dist = sqrt_controller_pointer->derivative_max / sq(sqrt_controller_pointer->kp);
         if (sqrt_controller_pointer->error > linear_dist) {
-            correction_rate = fast_fsqrtf(2.0 * sqrt_controller_pointer->derivative_max * (sqrt_controller_pointer->error - (linear_dist / 2.0)));
+            correction_rate = fast_fsqrtf(2.0f * sqrt_controller_pointer->derivative_max * (sqrt_controller_pointer->error - (linear_dist / 2.0f)));
         } else if (sqrt_controller_pointer->error < -linear_dist) {
-            correction_rate = -fast_fsqrtf(2.0 * sqrt_controller_pointer->derivative_max * (-sqrt_controller_pointer->error - (linear_dist / 2.0)));
+            correction_rate = -fast_fsqrtf(2.0f * sqrt_controller_pointer->derivative_max * (-sqrt_controller_pointer->error - (linear_dist / 2.0f)));
         } else {
             correction_rate = sqrt_controller_pointer->error * sqrt_controller_pointer->kp;
         }
     }
 
-    if (deltaTime != 0) {
+    if (deltaTime != 0.0f) {
         // this ensures we do not get small oscillations by over shooting the error correction in the last time step.
         return constrainf(correction_rate, -fabsf(sqrt_controller_pointer->error) / deltaTime, fabsf(sqrt_controller_pointer->error) / deltaTime);
     } 
@@ -114,10 +114,10 @@ void sqrt_controller_set_limits(sqrt_controller_t *sqrt_controller_pointer, floa
     }
 
     if ((output_min > 0.0f) && (sqrt_controller_pointer->kp > 0.0f)) {
-        sqrt_controller_pointer->error_min = inv_sqrt_controller(&sqrt_controller_pointer, output_min);
+        sqrt_controller_pointer->error_min = inv_sqrt_controller(*sqrt_controller_pointer, output_min);
     }
 
     if ((output_max > 0.0f) && (sqrt_controller_pointer->kp > 0.0f)) {
-        sqrt_controller_pointer->error_max = inv_sqrt_controller(&sqrt_controller_pointer, output_max);
+        sqrt_controller_pointer->error_max = inv_sqrt_controller(*sqrt_controller_pointer, output_max);
     }
 }

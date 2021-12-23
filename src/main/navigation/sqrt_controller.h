@@ -17,12 +17,12 @@
 
 #pragma once
 
-typedef struct sqrt_controller_s {
-float kp;             // proportional gain
-float error;          // proportional error calced
-float error_min;      // error limit in negative direction
-float error_max;      // error limit in positive direction
-float derivative_max; // maximum derivative of output
+typedef struct sqrt_controller_s { 
+    float kp;             // proportional gain
+    float error;          // proportional error calced
+    float error_min;      // error limit in negative direction
+    float error_max;      // error limit in positive direction
+    float derivative_max; // maximum derivative of output
 } sqrt_controller_t;
 
 
