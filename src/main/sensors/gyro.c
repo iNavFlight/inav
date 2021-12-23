@@ -458,8 +458,8 @@ void FAST_CODE NOINLINE gyroFilter()
         if (gyroAnalyseState.filterUpdateExecute) {
             dynamicGyroNotchFiltersUpdate(
                 &dynamicGyroNotchState, 
-                gyroAnalyseState.filterUpdateAxis, 
-                gyroAnalyseState.filterUpdateFrequency
+                gyroAnalyseState.filterUpdateAxis,
+                gyroAnalyseState.centerFrequency[gyroAnalyseState.filterUpdateAxis]
             );
         }
     }
