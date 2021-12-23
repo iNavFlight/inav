@@ -4482,6 +4482,26 @@ RSSI dBm indicator blinks below this value [dBm]. 0 disables this alarm
 
 ---
 
+### osd_rssi_dbm_max
+
+RSSI dBm upper end of curve. Perfect rssi (max) = 100%
+
+| Default | Min | Max |
+| --- | --- | --- |
+| -30 | -50 | 0 |
+
+---
+
+### osd_rssi_dbm_min
+
+RSSI dBm lower end of curve or RX sensitivity level. Worst rssi (min) = 0%
+
+| Default | Min | Max |
+| --- | --- | --- |
+| -120 | -130 | 0 |
+
+---
+
 ### osd_sidebar_height
 
 Height of sidebars in rows. 0 leaves only the level indicator arrows (Not for pixel OSD)
