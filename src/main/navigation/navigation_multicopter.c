@@ -118,6 +118,7 @@ static void updateAltitudeThrottleController_MC(timeDelta_t deltaMicros)
 
     float accel_target_z = navPidApply2(&posControl.pids.vel[Z], posControl.desiredState.vel.z, navGetCurrentActualPositionAndVelocity()->vel.z, US2S(deltaMicros), thrAdjustmentMin, thrAdjustmentMax, 0);
     
+/*
     float accel_max_z = 0.0f;
 
     if (posControl.flags.isAdjustingAltitude) {
@@ -127,7 +128,8 @@ static void updateAltitudeThrottleController_MC(timeDelta_t deltaMicros)
     }
 
     // add feed forward component
-    //accel_target_z += constrainf(accel_desired_z, -accel_max_z, accel_max_z);
+    accel_target_z += constrainf(accel_desired_z, -accel_max_z, accel_max_z);
+*/
 
     posControl.rcAdjustment[THROTTLE] = accel_target_z;
 
