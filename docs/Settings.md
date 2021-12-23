@@ -2138,7 +2138,7 @@ If defined to 'OFF', it will ignore the gyroscope calibration done at each start
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ON | OFF | ON |
 
 ---
 
