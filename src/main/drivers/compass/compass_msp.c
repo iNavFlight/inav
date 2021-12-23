@@ -45,7 +45,7 @@
 
 #define MSP_MAG_TIMEOUT_MS      250     // Less than 4Hz updates is considered a failure
 
-static int32_t mspMagData[XYZ_AXIS_COUNT];
+static float mspMagData[XYZ_AXIS_COUNT];
 static timeMs_t mspMagLastUpdateMs;
 
 static bool mspMagInit(magDev_t *magDev)

@@ -72,7 +72,7 @@ FASTRAM acc_t acc;                       // acc access functions
 
 STATIC_FASTRAM zeroCalibrationVector_t zeroCalibration;
 
-STATIC_FASTRAM int32_t accADC[XYZ_AXIS_COUNT];
+STATIC_FASTRAM float accADC[XYZ_AXIS_COUNT];
 
 STATIC_FASTRAM filter_t accFilter[XYZ_AXIS_COUNT];
 STATIC_FASTRAM filterApplyFnPtr accSoftLpfFilterApplyFn;
@@ -300,7 +300,7 @@ bool accInit(uint32_t targetLooptime)
 }
 
 static bool calibratedPosition[6];
-static int32_t accSamples[6][3];
+static float accSamples[6][3];
 
 uint8_t accGetCalibrationAxisFlags(void)
 {
@@ -319,10 +319,10 @@ uint8_t accGetCalibrationAxisFlags(void)
     return flags;
 }
 
-static int getPrimaryAxisIndex(int32_t accADCData[3])
+static int getPrimaryAxisIndex(float accADCData[3])
 {
     // Work on a copy so we don't mess with accADC data
-    int32_t sample[3];
+    float sample[3];
 
     applySensorAlignment(sample, accADCData, acc.dev.accAlign);
 
@@ -457,7 +457,7 @@ static void performAcclerationCalibration(void)
         sensorCalibrationResetState(&calState);
 
         for (int axis = 0; axis < 6; axis++) {
-            int32_t accSample[3];
+            float accSample[3];
 
             accSample[X] = accSamples[axis][X] - accelerometerConfig()->accZero.raw[X];
             accSample[Y] = accSamples[axis][Y] - accelerometerConfig()->accZero.raw[Y];

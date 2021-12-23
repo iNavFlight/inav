@@ -358,7 +358,7 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
         dev->gyroZero[Y] = v.v[Y];
         dev->gyroZero[Z] = v.v[Z];
 
-        LOG_D(GYRO, "Gyro calibration complete (%d, %d, %d)", dev->gyroZero[X], dev->gyroZero[Y], dev->gyroZero[Z]);
+        LOG_D(GYRO, "Gyro calibration complete (%d, %d, %d)", (int)dev->gyroZero[X], (int)dev->gyroZero[Y], (int)dev->gyroZero[Z]);
         schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
     }
     else {
@@ -383,21 +383,17 @@ static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroC
     // range: +/- 8192; +/- 2000 deg/sec
     if (gyroDev->readFn(gyroDev)) {
         if (zeroCalibrationIsCompleteV(gyroCal)) {
-            int32_t gyroADCtmp[XYZ_AXIS_COUNT];
+            float gyroADCtmp[XYZ_AXIS_COUNT];
 
-            // Copy gyro value into int32_t (to prevent overflow) and then apply calibration and alignment
-            gyroADCtmp[X] = (int32_t)gyroDev->gyroADCRaw[X] - (int32_t)gyroDev->gyroZero[X];
-            gyroADCtmp[Y] = (int32_t)gyroDev->gyroADCRaw[Y] - (int32_t)gyroDev->gyroZero[Y];
-            gyroADCtmp[Z] = (int32_t)gyroDev->gyroADCRaw[Z] - (int32_t)gyroDev->gyroZero[Z];
+            //Apply zero calibration
+            arm_sub_f32(gyroDev->gyroADCRaw, gyroDev->gyroZero, gyroADCtmp, 3);
 
             // Apply sensor alignment
             applySensorAlignment(gyroADCtmp, gyroADCtmp, gyroDev->gyroAlign);
             applyBoardAlignment(gyroADCtmp);
 
             // Convert to deg/s and store in unified data
-            gyroADCf[X] = (float)gyroADCtmp[X] * gyroDev->scale;
-            gyroADCf[Y] = (float)gyroADCtmp[Y] * gyroDev->scale;
-            gyroADCf[Z] = (float)gyroADCtmp[Z] * gyroDev->scale;
+            arm_scale_f32(gyroADCtmp, gyroDev->scale, gyroADCf, 3);
 
             return true;
         } else {
