@@ -492,9 +492,13 @@ static void saReceiveFramer(uint8_t c)
 
 static void saSendFrame(uint8_t *buf, int len)
 {
-    // TBS SA definition requires that the line is low before frame is sent
-    // (for both soft and hard serial). It can be done by sending first 0x00
-    serialWrite(smartAudioSerialPort, 0x00);
+    if ( (vtxConfig()->smartAudioAltSoftSerialMethod && 
+          (smartAudioSerialPort->identifier == SERIAL_PORT_SOFTSERIAL1 || smartAudioSerialPort->identifier == SERIAL_PORT_SOFTSERIAL2))
+         == false) {
+        // TBS SA definition requires that the line is low before frame is sent
+        // (for both soft and hard serial). It can be done by sending first 0x00
+        serialWrite(smartAudioSerialPort, 0x00);
+    }
 
     for (int i = 0 ; i < len ; i++) {
         serialWrite(smartAudioSerialPort, buf[i]);

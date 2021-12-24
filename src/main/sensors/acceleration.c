@@ -38,14 +38,11 @@ FILE_COMPILE_FOR_SPEED
 
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_mpu.h"
-#include "drivers/accgyro/accgyro_mpu3050.h"
 #include "drivers/accgyro/accgyro_mpu6000.h"
 #include "drivers/accgyro/accgyro_mpu6050.h"
 #include "drivers/accgyro/accgyro_mpu6500.h"
 #include "drivers/accgyro/accgyro_mpu9250.h"
 
-#include "drivers/accgyro/accgyro_lsm303dlhc.h"
-#include "drivers/accgyro/accgyro_l3gd20.h"
 #include "drivers/accgyro/accgyro_bmi088.h"
 #include "drivers/accgyro/accgyro_bmi160.h"
 #include "drivers/accgyro/accgyro_bmi270.h"
@@ -87,7 +84,7 @@ static EXTENDED_FASTRAM pt1Filter_t accVibeFilter[XYZ_AXIS_COUNT];
 static EXTENDED_FASTRAM filterApplyFnPtr accNotchFilterApplyFn;
 static EXTENDED_FASTRAM void *accNotchFilter[XYZ_AXIS_COUNT];
 
-PG_REGISTER_WITH_RESET_FN(accelerometerConfig_t, accelerometerConfig, PG_ACCELEROMETER_CONFIG, 3);
+PG_REGISTER_WITH_RESET_FN(accelerometerConfig_t, accelerometerConfig, PG_ACCELEROMETER_CONFIG, 4);
 
 void pgResetFn_accelerometerConfig(accelerometerConfig_t *instance)
 {
@@ -122,19 +119,6 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
     switch (accHardwareToUse) {
     case ACC_AUTODETECT:
         FALLTHROUGH;
-
-#ifdef USE_IMU_LSM303DLHC
-    case ACC_LSM303DLHC:
-        if (lsm303dlhcAccDetect(dev)) {
-            accHardware = ACC_LSM303DLHC;
-            break;
-        }
-        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
-        if (accHardwareToUse != ACC_AUTODETECT) {
-            break;
-        }
-        FALLTHROUGH;
-#endif
 
 #ifdef USE_IMU_MPU6050
     case ACC_MPU6050: // MPU6050

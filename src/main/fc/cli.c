@@ -169,7 +169,7 @@ static const char * const blackboxIncludeFlagNames[] = {
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status command output) */
 // sync with gyroSensor_e
-static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6050", "MPU3050", "L3GD20", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"};
+static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6050", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"};
 
 // sync this with sensors_e
 static const char * const sensorTypeNames[] = {
@@ -1351,7 +1351,7 @@ static void cliSafeHomes(char *cmdline)
 }
 
 #endif
-#if defined(USE_NAV) && defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE) && defined(NAV_NON_VOLATILE_WAYPOINT_CLI)
+#if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE) && defined(NAV_NON_VOLATILE_WAYPOINT_CLI)
 static void printWaypoints(uint8_t dumpMask, const navWaypoint_t *navWaypoint, const navWaypoint_t *defaultNavWaypoint)
 {
     cliPrintLinef("#wp %d %svalid", posControl.waypointCount, posControl.waypointListValid ? "" : "in"); //int8_t bool
@@ -1395,8 +1395,9 @@ static void printWaypoints(uint8_t dumpMask, const navWaypoint_t *navWaypoint, c
 
 static void cliWaypoints(char *cmdline)
 {
+#ifdef USE_MULTI_MISSION
     static int8_t multiMissionWPCounter = 0;
-
+#endif
     if (isEmpty(cmdline)) {
         printWaypoints(DUMP_MASTER, posControl.waypointList, NULL);
     } else if (sl_strcasecmp(cmdline, "reset") == 0) {
@@ -1408,6 +1409,7 @@ static void cliWaypoints(char *cmdline)
         for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {
             if (!(posControl.waypointList[i].action == NAV_WP_ACTION_WAYPOINT || posControl.waypointList[i].action == NAV_WP_ACTION_JUMP || posControl.waypointList[i].action == NAV_WP_ACTION_RTH || posControl.waypointList[i].action == NAV_WP_ACTION_HOLD_TIME || posControl.waypointList[i].action == NAV_WP_ACTION_LAND || posControl.waypointList[i].action == NAV_WP_ACTION_SET_POI || posControl.waypointList[i].action == NAV_WP_ACTION_SET_HEAD)) break;
             if (posControl.waypointList[i].flag == NAV_WP_FLAG_LAST) {
+#ifdef USE_MULTI_MISSION
                 if (posControl.multiMissionCount == 1) {
                     posControl.waypointCount = i + 1;
                     posControl.waypointListValid = true;
@@ -1417,6 +1419,11 @@ static void cliWaypoints(char *cmdline)
                 } else {
                     posControl.multiMissionCount -= 1;
                 }
+#else
+                posControl.waypointCount = i + 1;
+                posControl.waypointListValid = true;
+                break;
+#endif
             }
         }
         if (posControl.waypointListValid) {
@@ -1431,7 +1438,11 @@ static void cliWaypoints(char *cmdline)
         uint8_t validArgumentCount = 0;
         const char *ptr = cmdline;
         i = fastA2I(ptr);
+#ifdef USE_MULTI_MISSION
         if (i + multiMissionWPCounter >= 0 && i + multiMissionWPCounter < NAV_MAX_WAYPOINTS) {
+#else
+        if (i >= 0 && i < NAV_MAX_WAYPOINTS) {
+#endif
             ptr = nextArg(ptr);
             if (ptr) {
                 action = fastA2I(ptr);
@@ -1484,6 +1495,7 @@ static void cliWaypoints(char *cmdline)
             } else if (!(action == 0 || action == NAV_WP_ACTION_WAYPOINT || action == NAV_WP_ACTION_RTH || action == NAV_WP_ACTION_JUMP || action == NAV_WP_ACTION_HOLD_TIME || action == NAV_WP_ACTION_LAND || action == NAV_WP_ACTION_SET_POI || action == NAV_WP_ACTION_SET_HEAD) || !(flag == 0 || flag == NAV_WP_FLAG_LAST || flag == NAV_WP_FLAG_HOME)) {
                 cliShowParseError();
             } else {
+#ifdef USE_MULTI_MISSION
                 if (i + multiMissionWPCounter == 0) {
                     posControl.multiMissionCount = 0;
                 }
@@ -1503,6 +1515,16 @@ static void cliWaypoints(char *cmdline)
                     multiMissionWPCounter += i + 1;
                     posControl.multiMissionCount += 1;
                 }
+#else
+                posControl.waypointList[i].action = action;
+                posControl.waypointList[i].lat = lat;
+                posControl.waypointList[i].lon = lon;
+                posControl.waypointList[i].alt = alt;
+                posControl.waypointList[i].p1 = p1;
+                posControl.waypointList[i].p2 = p2;
+                posControl.waypointList[i].p3 = p3;
+                posControl.waypointList[i].flag = flag;
+#endif
             }
         } else {
             cliShowArgumentRangeError("wp index", 0, NAV_MAX_WAYPOINTS - 1);
@@ -3669,7 +3691,7 @@ static void printConfig(const char *cmdline, bool doDiff)
         printTempSensor(dumpMask, tempSensorConfig_CopyArray, tempSensorConfig(0));
 #endif
 
-#if defined(USE_NAV) && defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE) && defined(NAV_NON_VOLATILE_WAYPOINT_CLI)
+#if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE) && defined(NAV_NON_VOLATILE_WAYPOINT_CLI)
         cliPrintHashLine("wp");
         printWaypoints(dumpMask, posControl.waypointList, nonVolatileWaypointList(0));
 #endif
@@ -3910,7 +3932,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("temp_sensor", "change temp sensor settings", NULL, cliTempSensor),
 #endif
     CLI_COMMAND_DEF("version", "show version", NULL, cliVersion),
-#if defined(USE_NAV) && defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE) && defined(NAV_NON_VOLATILE_WAYPOINT_CLI)
+#if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE) && defined(NAV_NON_VOLATILE_WAYPOINT_CLI)
     CLI_COMMAND_DEF("wp", "waypoint list", NULL, cliWaypoints),
 #endif
 #ifdef USE_OSD

@@ -32,19 +32,6 @@
     #define MPU_ADDRESS 0x68
     #endif
 
-    #if defined(USE_IMU_L3GD20)
-        #if defined(GYRO_L3GD20_ALIGN)
-            #define GYRO_0_ALIGN    GYRO_L3GD20_ALIGN
-        #else
-            #define GYRO_0_ALIGN    ALIGN_DEFAULT
-        #endif
-        BUSDEV_REGISTER_SPI(busdev_l3gd20,      DEVHW_L3GD20,       L3GD20_SPI_BUS,     L3GD20_CS_PIN,      NONE,           DEVFLAGS_NONE,  IMU_L3GD20_ALIGN);
-    #endif
-
-    #if defined(USE_IMU_LSM303DLHC)
-        BUSDEV_REGISTER_I2C(busdev_lsm303,      DEVHW_LSM303DLHC,   LSM303DLHC_I2C_BUS, 0x19,               NONE,           DEVFLAGS_NONE,  IMU_LSM303DLHC_ALIGN);
-    #endif
-
     #if defined(USE_IMU_MPU6000)
         BUSDEV_REGISTER_SPI(busdev_mpu6000,     DEVHW_MPU6000,      MPU6000_SPI_BUS,    MPU6000_CS_PIN,     GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_MPU6000_ALIGN);
     #endif

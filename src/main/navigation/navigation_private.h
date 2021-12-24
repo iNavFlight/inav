@@ -19,8 +19,6 @@
 
 #define DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR    1.113195f  // MagicEarthNumber from APM
 
-#if defined(USE_NAV)
-
 #include "common/axis.h"
 #include "common/maths.h"
 #include "common/filter.h"
@@ -366,13 +364,13 @@ typedef struct {
     /* WP Mission planner */
     int8_t                      wpMissionPlannerStatus;     // WP save status for setting in flight WP mission planner
     int8_t                      wpPlannerActiveWPIndex;
-
+#ifdef USE_MULTI_MISSION
     /* Multi Missions */
     int8_t                      multiMissionCount;          // number of missions in multi mission entry
     int8_t                      loadedMultiMissionIndex;    // index of selected multi mission
     int8_t                      loadedMultiMissionStartWP;  // selected multi mission start WP
     int8_t                      loadedMultiMissionWPCount;  // number of WPs in selected multi mission
-
+#endif
     navWaypointPosition_t       activeWaypoint;     // Local position and initial bearing, filled on waypoint activation
     int8_t                      activeWaypointIndex;
     float                       wpInitialAltitude;  // Altitude at start of WP
@@ -418,8 +416,8 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAlti
 
 bool isWaypointReached(const navWaypointPosition_t * waypoint, const bool isWaypointHome);
 bool isWaypointMissed(const navWaypointPosition_t * waypoint);
-bool isWaypointWait(void);
-bool isApproachingLastWaypoint(void);
+bool isNavHoldPositionActive(void);
+bool isLastMissionWaypoint(void);
 float getActiveWaypointSpeed(void);
 
 void updateActualHeading(bool headingValid, int32_t newHeading);
@@ -479,5 +477,3 @@ void applyFixedWingLaunchController(timeUs_t currentTimeUs);
  * Rover specific functions
  */
 void applyRoverBoatNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
-
-#endif
