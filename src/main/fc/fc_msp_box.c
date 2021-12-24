@@ -233,9 +233,9 @@ void initActiveBoxIds(void)
     }
 
 #ifdef USE_MR_BRAKING_MODE
-        if (mixerConfig()->platformType == PLATFORM_MULTIROTOR) {
-            activeBoxIds[activeBoxIdCount++] = BOXBRAKING;
-        }
+    if (mixerConfig()->platformType == PLATFORM_MULTIROTOR) {
+        activeBoxIds[activeBoxIdCount++] = BOXBRAKING;
+    }
 #endif
 #endif  // GPS
     if (STATE(ALTITUDE_CONTROL) && navReadyAltControl) {
