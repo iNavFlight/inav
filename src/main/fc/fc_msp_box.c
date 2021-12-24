@@ -200,7 +200,7 @@ void initActiveBoxIds(void)
     }
 
     bool navReadyAltControl = false;
-    if (STATE(ALTITUDE_CONTROL) && sensors(SENSOR_BARO)) {
+    if (sensors(SENSOR_BARO)) {
         navReadyAltControl = true;
     }
 #ifdef USE_GPS
@@ -208,21 +208,21 @@ void initActiveBoxIds(void)
         navReadyAltControl = true;
     }
 
-    const bool navReadyBaseline = sensors(SENSOR_ACC) && feature(FEATURE_GPS);
-    const bool navReadyMultirotor = STATE(MULTIROTOR) && (getHwCompassStatus() != HW_SENSOR_NONE) && navReadyBaseline;
+    bool navReadyPosControl = sensors(SENSOR_ACC) && feature(FEATURE_GPS);
+    if (STATE(MULTIROTOR)) {
+        navReadyPosControl = navReadyPosControl && getHwCompassStatus() != HW_SENSOR_NONE;
+    }
     const bool navFlowDeadReckoning = sensors(SENSOR_OPFLOW) && sensors(SENSOR_ACC) && positionEstimationConfig()->allow_dead_reckoning;
 
-    if (navReadyAltControl && (navReadyMultirotor || navReadyBaseline || navFlowDeadReckoning)) {
-        if (!STATE(ROVER) && !STATE(BOAT)) {
-            activeBoxIds[activeBoxIdCount++] = BOXNAVPOSHOLD;
-        }
+    if (STATE(ALTITUDE_CONTROL) && navReadyAltControl && (navReadyPosControl || navFlowDeadReckoning)) {
+        activeBoxIds[activeBoxIdCount++] = BOXNAVPOSHOLD;
         if (STATE(AIRPLANE)) {
             activeBoxIds[activeBoxIdCount++] = BOXLOITERDIRCHN;
         }
     }
 
-    if (navReadyMultirotor || navReadyBaseline) {
-        if (navReadyAltControl) {
+    if (navReadyPosControl) {
+        if (!STATE(ALTITUDE_CONTROL) || (STATE(ALTITUDE_CONTROL) && navReadyAltControl)) {
             activeBoxIds[activeBoxIdCount++] = BOXNAVRTH;
             activeBoxIds[activeBoxIdCount++] = BOXNAVWP;
             activeBoxIds[activeBoxIdCount++] = BOXHOMERESET;
@@ -231,7 +231,9 @@ void initActiveBoxIds(void)
             if (STATE(AIRPLANE)) {
                 activeBoxIds[activeBoxIdCount++] = BOXNAVCRUISE;
             }
-        } else if (STATE(AIRPLANE)) {
+        }
+
+        if (STATE(AIRPLANE)) {
             activeBoxIds[activeBoxIdCount++] = BOXNAVCOURSEHOLD;
             activeBoxIds[activeBoxIdCount++] = BOXSOARING;
         }
@@ -243,7 +245,7 @@ void initActiveBoxIds(void)
         }
 #endif
 #endif  // GPS
-    if (navReadyAltControl) {
+    if (STATE(ALTITUDE_CONTROL) && navReadyAltControl) {
         activeBoxIds[activeBoxIdCount++] = BOXNAVALTHOLD;
     }
 
