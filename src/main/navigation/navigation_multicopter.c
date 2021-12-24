@@ -228,7 +228,7 @@ void resetMulticopterAltitudeController(void)
 
     sqrt_controller_set_limits(&alt_hold_sqrt_controller, -fabsf((float)navConfig()->general.max_manual_climb_rate), (float)navConfig()->general.max_manual_climb_rate, (float)navConfig()->general.max_auto_climb_rate);
     
-    accel_desired_z = -(navGetCurrentActualPositionAndVelocity()->vel.z + GRAVITY_CMSS);
+    accel_desired_z = -(posToUse->vel.z + GRAVITY_CMSS);
 }
 
 static void applyMulticopterAltitudeController(timeUs_t currentTimeUs)
