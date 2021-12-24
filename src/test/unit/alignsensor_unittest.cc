@@ -106,7 +106,7 @@ static void testCW(sensor_align_e rotation, int32_t angle)
     src[Y] = 0;
     src[Z] = 0;
     
-    int32_t matrix[3][3];
+    float matrix[3][3];
     initZAxisRotation(matrix, angle);
     rotateVector(matrix, src, test);
 
