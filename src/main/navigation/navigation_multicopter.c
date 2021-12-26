@@ -55,6 +55,9 @@
 /*-----------------------------------------------------------
  * Altitude controller for multicopter aircraft
  *-----------------------------------------------------------*/
+
+#define Z_CONTROLLER_GAIN 0.25f
+
 static int16_t rcCommandAdjustedThrottle;
 static int16_t altHoldThrottleRCZero = 1500;
 static pt1Filter_t altholdThrottleFilterState;
@@ -70,6 +73,7 @@ static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
     float pos_desired_z = posControl.desiredState.pos.z;
 
     float targetVel = get_sqrt_controller(&alt_hold_sqrt_controller, &pos_desired_z, navGetCurrentActualPositionAndVelocity()->pos.z, (float)(1.0f / getGyroLooptime()));
+    //targetVel *= Z_CONTROLLER_GAIN;
 
     posControl.desiredState.pos.z = pos_desired_z;
 
@@ -117,7 +121,8 @@ static void updateAltitudeThrottleController_MC(timeDelta_t deltaMicros)
     const int16_t thrAdjustmentMax = (int16_t)motorConfig()->maxthrottle - (int16_t)currentBatteryProfile->nav.mc.hover_throttle;
 
     float accel_target_z = navPidApply2(&posControl.pids.vel[Z], posControl.desiredState.vel.z, navGetCurrentActualPositionAndVelocity()->vel.z, US2S(deltaMicros), thrAdjustmentMin, thrAdjustmentMax, 0);
-    
+    //accel_target_z *= Z_CONTROLLER_GAIN;
+
 /*
     float accel_max_z = 0.0f;
 
