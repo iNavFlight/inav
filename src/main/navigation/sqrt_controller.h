@@ -19,15 +19,11 @@
 
 typedef struct sqrt_controller_s { 
     float kp;             // proportional gain
-    float error;          // proportional error calced
+    float error;          // error calced
     float error_min;      // error limit in negative direction
     float error_max;      // error limit in positive direction
     float derivative_max; // maximum derivative of output
 } sqrt_controller_t;
 
-
-// proportional controller with piecewise sqrt sections to constrainf second derivative
 float get_sqrt_controller(sqrt_controller_t *sqrt_controller_pointer, float *target, float measurement, float deltaTime);
-
-// sets the maximum error to limit output and first and second derivative of output
 void sqrt_controller_set_limits(sqrt_controller_t *sqrt_controller_pointer, float output_min, float output_max, float derivative_out_max);

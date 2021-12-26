@@ -523,7 +523,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
 
     const float setpointX = posControl.desiredState.vel.x;
     const float setpointY = posControl.desiredState.vel.y;
-    const float setpointXY = fast_fsqrtf(powf(setpointX, 2)+powf(setpointY, 2));
+    const float setpointXY = fast_fsqrtf(powf(setpointX, 2) + powf(setpointY, 2));
 
     // Calculate velocity error
     const float velErrorX = setpointX - measurementX;
