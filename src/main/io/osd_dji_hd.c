@@ -1476,10 +1476,6 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
                     pidBankMutable()->pid[djiPidIndexMap[i]].D = sbufReadU8(src);
                 }
                 schedulePidGainsUpdate();
-#if defined(USE_NAV)
-                // This is currently unnecessary, DJI HD doesn't set any NAV PIDs
-                //navigationUsePIDs();
-#endif
             }
             else {
                 reply->result = MSP_RESULT_ERROR;

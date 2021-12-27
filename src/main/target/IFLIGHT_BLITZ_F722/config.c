@@ -15,7 +15,15 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include <stdint.h>
+#include "platform.h"
 
-bool lsm303dlhcAccDetect(accDev_t *acc);
+#include "config/config_master.h"
+#include "config/feature.h"
 
+
+
+void targetConfiguration(void)
+{
+
+}

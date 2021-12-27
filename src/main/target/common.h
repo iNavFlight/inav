@@ -66,7 +66,6 @@
 #define USE_GPS
 #define USE_GPS_PROTO_UBLOX
 #define USE_GPS_PROTO_MSP
-#define USE_NAV
 #define USE_TELEMETRY
 #define USE_TELEMETRY_LTM
 #define USE_TELEMETRY_FRSKY
@@ -192,6 +191,7 @@
 #define USE_SERIAL_PASSTHROUGH
 #define NAV_MAX_WAYPOINTS       120
 #define USE_RCDEVICE
+#define USE_MULTI_MISSION
 
 //Enable VTX control
 #define USE_VTX_CONTROL

@@ -231,7 +231,7 @@ void taskUpdateRangefinder(timeUs_t currentTimeUs)
 }
 #endif
 
-#if defined(USE_NAV) && defined(USE_IRLOCK)
+#if defined(USE_IRLOCK)
 void taskUpdateIrlock(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
