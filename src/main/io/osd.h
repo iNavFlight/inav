@@ -239,6 +239,8 @@ typedef enum {
     OSD_AIR_MAX_SPEED,
     OSD_ACTIVE_PROFILE,
     OSD_MISSION,
+    OSD_GLIDE_TIME_REMAINING,
+    OSD_GLIDE_RANGE,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 

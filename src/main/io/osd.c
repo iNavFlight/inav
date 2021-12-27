@@ -1078,6 +1078,16 @@ static inline int32_t osdGetAltitudeMsl(void)
     return getEstimatedActualPosition(Z)+GPS_home.alt;
 }
 
+uint16_t osdGetRemainingGlideTime(void) {
+    int32_t value = getEstimatedActualVelocity(Z);
+    if (value < 0) {
+        value = osdGetAltitude() / abs(value);
+    } else {
+        value = 0;
+    }
+    return value;
+}
+
 static bool osdIsHeadingValid(void)
 {
 #ifdef USE_SECONDARY_IMU
@@ -2260,6 +2270,28 @@ static bool osdDrawSingleElement(uint8_t item)
             osdFormatCentiNumber(buff, value, 0, 1, 0, 3);
             buff[3] = sym;
             buff[4] = '\0';
+            break;
+        }
+    case OSD_GLIDE_TIME_REMAINING: 
+        {
+            uint16_t glideSeconds = osdGetRemainingGlideTime();
+            buff[0] = SYM_GLIDE_MINS;
+            if (glideSeconds > 0) {
+                tfp_sprintf(buff + 1, "%i", (int)round(glideSeconds / 60));
+            } else {
+                buff[1] = '-';
+                buff[2] = '-';
+                buff[3] = '-';
+            }
+            buff[4] = '\0';
+            break;
+        }
+    case OSD_GLIDE_RANGE:
+        {
+            uint16_t glideSeconds = osdGetRemainingGlideTime();
+            uint32_t glideRangeCM = glideSeconds * gpsSol.groundSpeed;
+            buff[0] = SYM_GLIDE_DIST;
+            osdFormatDistanceSymbol(buff + 1, glideRangeCM, 0);
             break;
         }
 #endif
