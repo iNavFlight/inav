@@ -1079,13 +1079,19 @@ static inline int32_t osdGetAltitudeMsl(void)
 }
 
 uint16_t osdGetRemainingGlideTime(void) {
-    int32_t value = getEstimatedActualVelocity(Z);
+    float value = getEstimatedActualVelocity(Z);
+    static pt1Filter_t glideTimeFilterState;
+    const  timeMs_t curTimeMs = millis();
+    static timeMs_t glideTimeUpdatedMs;
+    value = pt1FilterApply4(&glideTimeFilterState, isnormal(value) ? value : 0, 0.5, MS2S(curTimeMs - glideTimeUpdatedMs));
+    glideTimeUpdatedMs = curTimeMs;
+    
     if (value < 0) {
-        value = osdGetAltitude() / abs(value);
+        value = osdGetAltitude() / abs((int)value);
     } else {
         value = 0;
     }
-    return value;
+    return (uint16_t)round(value);
 }
 
 static bool osdIsHeadingValid(void)
@@ -2279,9 +2285,7 @@ static bool osdDrawSingleElement(uint8_t item)
             if (glideSeconds > 0) {
                 tfp_sprintf(buff + 1, "%i", (int)round(glideSeconds / 60));
             } else {
-                buff[1] = '-';
-                buff[2] = '-';
-                buff[3] = '-';
+               tfp_sprintf(buff + 1, "%s", "INF");
             }
             buff[4] = '\0';
             break;
@@ -2289,9 +2293,14 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_GLIDE_RANGE:
         {
             uint16_t glideSeconds = osdGetRemainingGlideTime();
-            uint32_t glideRangeCM = glideSeconds * gpsSol.groundSpeed;
             buff[0] = SYM_GLIDE_DIST;
-            osdFormatDistanceSymbol(buff + 1, glideRangeCM, 0);
+            if (glideSeconds > 0) {
+                uint32_t glideRangeCM = glideSeconds * gpsSol.groundSpeed;
+                osdFormatDistanceStr(buff + 1, glideRangeCM);
+            } else {
+                tfp_sprintf(buff + 1, "%s", "INF");
+                buff[4] = '\0';
+            }
             break;
         }
 #endif
