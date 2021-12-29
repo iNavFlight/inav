@@ -99,14 +99,12 @@ EXTENDED_FASTRAM dynamicGyroNotchState_t dynamicGyroNotchState;
 
 #ifdef USE_GYRO_FFT_FILTER
 
-#define GYRO_FFT_WINDOW_SIZE 32
+#define GYRO_FFT_WINDOW_SIZE 64
 #define GYRO_FFT_BIN_COUNT (GYRO_FFT_WINDOW_SIZE / 2)
 
 arm_rfft_fast_instance_f32 gyroFFT[XYZ_AXIS_COUNT];
 arm_rfft_fast_instance_f32 gyroIFFT[XYZ_AXIS_COUNT];
 
-// float gyroFFTBuffer[XYZ_AXIS_COUNT][GYRO_FFT_WINDOW_SIZE];
-// float gyroIFFTBuffer[XYZ_AXIS_COUNT][GYRO_FFT_WINDOW_SIZE];
 float gyroBuffer[XYZ_AXIS_COUNT][GYRO_FFT_WINDOW_SIZE];
 
 #endif
@@ -282,10 +280,12 @@ static void gyroInitFilters(void)
     }
 #endif
 
+#ifdef USE_GYRO_FFT_FILTER
     for (uint8_t i = 0; i < XYZ_AXIS_COUNT; i++) {
         arm_rfft_fast_init_f32(&gyroFFT[i], GYRO_FFT_WINDOW_SIZE);
         arm_rfft_fast_init_f32(&gyroIFFT[i], GYRO_FFT_WINDOW_SIZE);
     }
+#endif
 }
 
 bool gyroInit(void)
@@ -507,18 +507,52 @@ void FAST_CODE NOINLINE gyroUpdate()
          */
         gyroADCf = gyroLpfApplyFn((filter_t *) &gyroLpfState[axis], gyroADCf);
         
-        //FIXME Add buffer
-        
+    #ifdef USE_GYRO_FFT_FILTER
+        float temp;
+        if (axis == 0) {
+            DEBUG_SET(DEBUG_ALWAYS, 0, gyroADCf);
+            temp = gyroADCf;
+        }
+
+        // Circular buffer that shift 1 position left at every cycle
+        // memmove(&gyroBuffer[axis][0], &gyroBuffer[axis][1], (GYRO_FFT_WINDOW_SIZE - 1) * sizeof(float));
+        //FIXME switch to memmove
+        // Copy N-1 elements to the left of the buffer
+        for (int i = 0; i < GYRO_FFT_WINDOW_SIZE - 1; i++) {
+            gyroBuffer[axis][i] = gyroBuffer[axis][i + 1];
+        }
+
+        // Put new value at the end of the buffer
+        gyroBuffer[axis][GYRO_FFT_WINDOW_SIZE - 1] = gyroADCf;
+
+        float inputBuffer[GYRO_FFT_WINDOW_SIZE];
         float fftBuffer[GYRO_FFT_WINDOW_SIZE];
         float outputBuffer[GYRO_FFT_WINDOW_SIZE];
-        arm_rfft_fast_f32(&gyroFFT[axis], gyroBuffer[axis], fftBuffer, 0);
 
-        //FIXME cut frequencies above threshold
+        //Make a copy of input buffer as arm_rfft_fast_f32 destroys the input buffer
+        memcpy(inputBuffer, gyroBuffer[axis], GYRO_FFT_WINDOW_SIZE * sizeof(float));
 
-        //Inverse FFT
+        // Convert to frequency domain with FFT
+        arm_rfft_fast_f32(&gyroFFT[axis], inputBuffer, fftBuffer, 0);
+
+        //FIXME there should be a faster way to do so
+        //Zero above threshold. In this version we keep 2 bins so should act as a LPF at 125Hz
+        for (int i = 4; i < GYRO_FFT_WINDOW_SIZE; i++) {
+            fftBuffer[i] = 0;
+        }
+
+        //Convert to time domain with IFFT
         arm_rfft_fast_f32(&gyroIFFT[axis], fftBuffer, outputBuffer, 1);
 
-        //FIXME get sample from the buffer
+        //Copy the last element as the currect output value
+        gyroADCf = outputBuffer[GYRO_FFT_WINDOW_SIZE - 1];
+
+        if (axis == 0) {
+            DEBUG_SET(DEBUG_ALWAYS, 1, gyroADCf);
+            DEBUG_SET(DEBUG_ALWAYS, 2, gyroADCf - temp);
+        }
+
+    #endif
 
         gyro.gyroADCf[axis] = gyroADCf;
     }
