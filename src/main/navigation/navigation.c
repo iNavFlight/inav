@@ -3491,8 +3491,8 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
         return NAV_ARMING_BLOCKER_NONE;
     }
     
-    if (!isImuHeadingValid()) {
-        return NAV_ARMING_BLOCKER_COMPASS_FAIL;
+    if (!sensors(SENSOR_MAG) && !STATE(COMPASS_CALIBRATED) && STATE(MULTIROTOR)) {
+        return NAV_ARMING_BLOCKER_BAD_COMPASS;
     }
 
     // Apply extra arming safety only if pilot has any of GPS modes configured
