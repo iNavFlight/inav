@@ -72,7 +72,7 @@ static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
     
     float pos_desired_z = posControl.desiredState.pos.z;
 
-    float targetVel = get_sqrt_controller(&alt_hold_sqrt_controller, &pos_desired_z, navGetCurrentActualPositionAndVelocity()->pos.z, (float)(1.0f / getGyroLooptime()));
+    float targetVel = get_sqrt_controller(&alt_hold_sqrt_controller, &pos_desired_z, navGetCurrentActualPositionAndVelocity()->pos.z, US2S(deltaMicros));
     //targetVel *= Z_CONTROLLER_GAIN;
 
     posControl.desiredState.pos.z = pos_desired_z;
