@@ -3490,6 +3490,10 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
     if (navConfig()->general.flags.extra_arming_safety == NAV_EXTRA_ARMING_SAFETY_OFF) {
         return NAV_ARMING_BLOCKER_NONE;
     }
+    
+    if (!isImuHeadingValid()) {
+        return NAV_ARMING_BLOCKER_COMPASS_FAIL;
+    }
 
     // Apply extra arming safety only if pilot has any of GPS modes configured
     if ((isUsingNavigationModes() || failsafeMayRequireNavigationMode()) && !((posControl.flags.estPosStatus >= EST_USABLE) && STATE(GPS_FIX_HOME))) {

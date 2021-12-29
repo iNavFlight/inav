@@ -772,6 +772,8 @@ static const char * osdArmingDisabledReasonMessage(void)
                     return message = messageBuf;
                 case NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR:
                     return OSD_MESSAGE_STR(OSD_MSG_JUMP_WP_MISCONFIG);
+                case NAV_ARMING_BLOCKER_COMPASS_FAIL;
+                    return OSD_MESSAGE_STR(OSD_MSG_BAD_COMPASS);
             }
             break;
         case ARMING_DISABLED_COMPASS_NOT_CALIBRATED:

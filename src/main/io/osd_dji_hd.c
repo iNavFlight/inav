@@ -467,6 +467,8 @@ static char * osdArmingDisabledReasonMessage(void)
                     return OSD_MESSAGE_STR("1ST WYP TOO FAR");
                 case NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR:
                     return OSD_MESSAGE_STR("WYP MISCONFIGURED");
+                case NAV_ARMING_BLOCKER_COMPASS_FAIL;
+                    return OSD_MESSAGE_STR("BAD COMPASS");
             }
             break;
         case ARMING_DISABLED_COMPASS_NOT_CALIBRATED:
