@@ -45,8 +45,6 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/accgyro/accgyro_mpu6500.h"
 #include "drivers/accgyro/accgyro_mpu9250.h"
 
-#include "drivers/accgyro/accgyro_lsm303dlhc.h"
-#include "drivers/accgyro/accgyro_l3gd20.h"
 #include "drivers/accgyro/accgyro_bmi088.h"
 #include "drivers/accgyro/accgyro_bmi160.h"
 #include "drivers/accgyro/accgyro_bmi270.h"
@@ -113,7 +111,7 @@ float gyroBuffer[XYZ_AXIS_COUNT][GYRO_FFT_WINDOW_SIZE];
 
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 2);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_lpf = SETTING_GYRO_HARDWARE_LPF_DEFAULT,
@@ -154,15 +152,6 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     case GYRO_MPU6050:
         if (mpu6050GyroDetect(dev)) {
             gyroHardware = GYRO_MPU6050;
-            break;
-        }
-        FALLTHROUGH;
-#endif
-
-#ifdef USE_IMU_L3GD20
-    case GYRO_L3GD20:
-        if (l3gd20Detect(dev)) {
-            gyroHardware = GYRO_L3GD20;
             break;
         }
         FALLTHROUGH;
@@ -488,8 +477,8 @@ void FAST_CODE NOINLINE gyroFilter()
         if (gyroAnalyseState.filterUpdateExecute) {
             dynamicGyroNotchFiltersUpdate(
                 &dynamicGyroNotchState, 
-                gyroAnalyseState.filterUpdateAxis, 
-                gyroAnalyseState.filterUpdateFrequency
+                gyroAnalyseState.filterUpdateAxis,
+                gyroAnalyseState.centerFrequency[gyroAnalyseState.filterUpdateAxis]
             );
         }
     }

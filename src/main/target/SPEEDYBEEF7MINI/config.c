@@ -15,6 +15,19 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include <stdint.h>
 
-bool l3gd20Detect(gyroDev_t *gyro);
+#include "platform.h"
+
+#include "fc/fc_msp_box.h"
+
+#include "io/piniobox.h"
+#include "io/serial.h"
+
+void targetConfiguration(void)
+{
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART6)].functionMask = FUNCTION_MSP;
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART6)].msp_baudrateIndex = BAUD_115200;
+
+    pinioBoxConfigMutable()->permanentId[0] = BOXARM;
+}

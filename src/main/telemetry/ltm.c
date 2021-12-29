@@ -130,11 +130,7 @@ void ltm_gframe(sbuf_t *dst)
         ltm_gs = gpsSol.groundSpeed / 100;
     }
 
-#if defined(USE_NAV)
     ltm_alt = getEstimatedActualPosition(Z); // cm
-#else
-    ltm_alt = sensors(SENSOR_GPS) ? gpsSol.llh.alt : 0; // cm
-#endif
 
     sbufWriteU8(dst, 'G');
     sbufWriteU32(dst, ltm_lat);
@@ -251,7 +247,6 @@ void ltm_xframe(sbuf_t *dst)
     ltm_x_counter++; // overflow is OK
 }
 
-#if defined(USE_NAV)
 /** OSD additional data frame, ~4 Hz rate, navigation system status
  */
 void ltm_nframe(sbuf_t *dst)
@@ -264,7 +259,6 @@ void ltm_nframe(sbuf_t *dst)
     sbufWriteU8(dst, NAV_Status.error);
     sbufWriteU8(dst, NAV_Status.flags);
 }
-#endif
 
 #define LTM_BIT_AFRAME  (1 << 0)
 #define LTM_BIT_GFRAME  (1 << 1)
@@ -367,13 +361,11 @@ static void process_ltm(void)
         ltm_finalise(dst);
     }
 
-#if defined(USE_NAV)
     if (current_schedule & LTM_BIT_NFRAME) {
         ltm_initialise_packet(dst);
         ltm_nframe(dst);
         ltm_finalise(dst);
     }
-#endif
 
     ltm_scheduler = (ltm_scheduler + 1) % 10;
 }
@@ -491,11 +483,9 @@ int getLtmFrame(uint8_t *frame, ltm_frame_e ltmFrameType)
     case LTM_XFRAME:
         ltm_xframe(sbuf);
         break;
-#if defined(USE_NAV)
     case LTM_NFRAME:
         ltm_nframe(sbuf);
         break;
-#endif
     }
     sbufSwitchToReader(sbuf, ltmFrame);
     const int frameSize = sbufBytesRemaining(sbuf);

@@ -41,9 +41,7 @@ const timerHardware_t timerHardware[] = {
     DEF_TIM(TIM8, CH3, PC8, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR, 0, 6),   // S7
     DEF_TIM(TIM8, CH4, PC9, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR, 0, 7),   // S8
 
-    
     DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_LED, 0, 8),    // LED_2812
-    DEF_TIM(TIM2,  CH1, PA15, TIM_USE_BEEPER, 0, 0),  // BEEPER PWM
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

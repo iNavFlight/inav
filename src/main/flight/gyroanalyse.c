@@ -61,7 +61,7 @@ enum {
 // NB  FFT_WINDOW_SIZE is set to 32 in gyroanalyse.h
 #define FFT_BIN_COUNT             (FFT_WINDOW_SIZE / 2)
 // smoothing frequency for FFT centre frequency
-#define DYN_NOTCH_SMOOTH_FREQ_HZ  50
+#define DYN_NOTCH_SMOOTH_FREQ_HZ  25
 
 /*
  * Slow down gyro sample acquisition. This lowers the max frequency but increases the resolution.
@@ -93,11 +93,12 @@ void gyroDataAnalyseStateInit(
     const uint32_t filterUpdateUs = targetLooptimeUs * STEP_COUNT * XYZ_AXIS_COUNT;
 
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        // any init value
-        state->centerFreq[axis] = state->maxFrequency;
-        state->prevCenterFreq[axis] = state->maxFrequency;
+        
+        for (int i = 0; i < DYN_NOTCH_PEAK_COUNT; i++) {
+            state->centerFrequency[axis][i] = state->maxFrequency;
+            pt1FilterInit(&state->detectedFrequencyFilter[axis][i], DYN_NOTCH_SMOOTH_FREQ_HZ, filterUpdateUs * 1e-6f);
+        }
 
-        biquadFilterInitLPF(&state->detectedFrequencyFilter[axis], DYN_NOTCH_SMOOTH_FREQ_HZ, filterUpdateUs);
     }
 }
 
@@ -134,18 +135,6 @@ void gyroDataAnalyse(gyroAnalyseState_t *state)
 void stage_rfft_f32(arm_rfft_fast_instance_f32 *S, float32_t *p, float32_t *pOut);
 void arm_cfft_radix8by4_f32(arm_cfft_instance_f32 *S, float32_t *p1);
 void arm_bitreversal_32(uint32_t *pSrc, const uint16_t bitRevLen, const uint16_t *pBitRevTable);
-
-static uint8_t findPeakBinIndex(gyroAnalyseState_t *state) {
-    uint8_t peakBinIndex = state->fftStartBin;
-    float peakValue = 0;
-    for (int i = state->fftStartBin; i < FFT_BIN_COUNT; i++) {
-        if (state->fftData[i] > peakValue) {
-            peakValue = state->fftData[i];
-            peakBinIndex = i;
-        }
-    }
-    return peakBinIndex;
-}
 
 static float computeParabolaMean(gyroAnalyseState_t *state, uint8_t peakBinIndex) {
     float preciseBin = peakBinIndex;
@@ -190,37 +179,77 @@ static NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
             // 8us
             arm_cmplx_mag_f32(state->rfftData, state->fftData, FFT_BIN_COUNT);
 
-            //Find peak frequency           
-            uint8_t peakBin = findPeakBinIndex(state);
+            //Zero the data structure
+            for (int i = 0; i < DYN_NOTCH_PEAK_COUNT; i++) {
+                state->peaks[i].bin = 0;
+                state->peaks[i].value = 0.0f;
+            }
 
-            // Failsafe to ensure the last bin is not a peak bin
-            peakBin = constrain(peakBin, state->fftStartBin, FFT_BIN_COUNT - 1);
+            // Find peaks
+            for (int bin = (state->fftStartBin + 1); bin < FFT_BIN_COUNT - 1; bin++) {
+                /*
+                 * Peak is defined if the current bin is greater than the previous bin and the next bin
+                 */
+                if (
+                    state->fftData[bin] > state->fftData[bin - 1] && 
+                    state->fftData[bin] > state->fftData[bin + 1]
+                ) {
+                    /*
+                     * We are only interested in N biggest peaks
+                     * Check previously found peaks and update the structure if necessary
+                     */
+                    for (int p = 0; p < DYN_NOTCH_PEAK_COUNT; p++) {
+                        if (state->fftData[bin] > state->peaks[p].value) {
+                            for (int k = DYN_NOTCH_PEAK_COUNT - 1; k > p; k--) {
+                                state->peaks[k] = state->peaks[k - 1];
+                            }
+                            state->peaks[p].bin = bin;
+                            state->peaks[p].value = state->fftData[bin];
+                            break;
+                        }
+                    }
+                    bin++; // If bin is peak, next bin can't be peak => jump it
+                }
+            }
 
-            /*
-             * Calculate center frequency using the parabola method
-             */
-            float preciseBin = computeParabolaMean(state, peakBin);
-            float peakFrequency = preciseBin * state->fftResolution;
+            // Sort N biggest peaks in ascending bin order (example: 3, 8, 25, 0, 0, ..., 0)
+            for (int p = DYN_NOTCH_PEAK_COUNT - 1; p > 0; p--) {
+                for (int k = 0; k < p; k++) {
+                    // Swap peaks but ignore swapping void peaks (bin = 0). This leaves
+                    // void peaks at the end of peaks array without moving them
+                    if (state->peaks[k].bin > state->peaks[k + 1].bin && state->peaks[k + 1].bin != 0) {
+                        peak_t temp = state->peaks[k];
+                        state->peaks[k] = state->peaks[k + 1];
+                        state->peaks[k + 1] = temp;
+                    }
+                }
+            }
 
-            peakFrequency = biquadFilterApply(&state->detectedFrequencyFilter[state->updateAxis], peakFrequency);
-            peakFrequency = constrainf(peakFrequency, state->minFrequency, state->maxFrequency);
-
-            state->prevCenterFreq[state->updateAxis] = state->centerFreq[state->updateAxis];
-            state->centerFreq[state->updateAxis] = peakFrequency;
             break;
         }
         case STEP_UPDATE_FILTERS_AND_HANNING:
         {
-            // 7us
-            // calculate cutoffFreq and notch Q, update notch filter  =1.8+((A2-150)*0.004)
-            if (state->prevCenterFreq[state->updateAxis] != state->centerFreq[state->updateAxis]) {
-                /*
-                 * Filters will be updated inside dynamicGyroNotchFiltersUpdate()
-                 */
-                state->filterUpdateExecute = true;
-                state->filterUpdateAxis = state->updateAxis;
-                state->filterUpdateFrequency = state->centerFreq[state->updateAxis];
+
+            /*
+             * Update frequencies
+             */
+            for (int i = 0; i < DYN_NOTCH_PEAK_COUNT; i++) {
+
+                if (state->peaks[i].bin > 0) {
+                    const int bin = constrain(state->peaks[i].bin, state->fftStartBin, FFT_BIN_COUNT - 1);
+                    float frequency = computeParabolaMean(state, bin) * state->fftResolution;
+
+                    state->centerFrequency[state->updateAxis][i] = pt1FilterApply(&state->detectedFrequencyFilter[state->updateAxis][i], frequency);
+                } else {
+                    state->centerFrequency[state->updateAxis][i] = 0.0f;
+                }
             }
+
+            /*
+             * Filters will be updated inside dynamicGyroNotchFiltersUpdate()
+             */
+            state->filterUpdateExecute = true;
+            state->filterUpdateAxis = state->updateAxis;
 
             //Switch to the next axis
             state->updateAxis = (state->updateAxis + 1) % XYZ_AXIS_COUNT;
