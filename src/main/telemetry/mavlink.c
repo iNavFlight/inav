@@ -580,11 +580,7 @@ void mavlinkSendPosition(timeUs_t currentTimeUs)
         // alt Altitude in 1E3 meters (millimeters) above MSL
         gpsSol.llh.alt * 10,
         // relative_alt Altitude above ground in meters, expressed as * 1000 (millimeters)
-#if defined(USE_NAV)
         getEstimatedActualPosition(Z) * 10,
-#else
-        gpsSol.llh.alt * 10,
-#endif
         // [cm/s] Ground X Speed (Latitude, positive north)
         getEstimatedActualVelocity(X),
         // [cm/s] Ground Y Speed (Longitude, positive east)
@@ -654,17 +650,9 @@ void mavlinkSendHUDAndHeartbeat(void)
 #endif
 
     // select best source for altitude
-#if defined(USE_NAV)
     mavAltitude = getEstimatedActualPosition(Z) / 100.0f;
     mavClimbRate = getEstimatedActualVelocity(Z) / 100.0f;
-#elif defined(USE_GPS)
-    if (sensors(SENSOR_GPS)) {
-        // No surface or baro, just display altitude above MLS
-        mavAltitude = gpsSol.llh.alt;
-    }
-#endif
 
-    
     int16_t thr = rxGetChannelValue(THROTTLE);
     if (navigationIsControllingThrottle()) {
         thr = rcCommand[THROTTLE];
@@ -777,7 +765,7 @@ void mavlinkSendBatteryTemperatureStatusText(void)
                 if (cell < MAVLINK_MSG_BATTERY_STATUS_FIELD_VOLTAGES_LEN) {
                     batteryVoltages[cell] = getBatteryAverageCellVoltage() * 10;
                 } else {
-                    batteryVoltagesExt[cell] = getBatteryAverageCellVoltage() * 10;
+                    batteryVoltagesExt[cell-MAVLINK_MSG_BATTERY_STATUS_FIELD_VOLTAGES_LEN] = getBatteryAverageCellVoltage() * 10;
                 }
             }
         }

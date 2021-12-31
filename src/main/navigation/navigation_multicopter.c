@@ -21,8 +21,6 @@
 
 #include "platform.h"
 
-#if defined(USE_NAV)
-
 #include "build/build_config.h"
 #include "build/debug.h"
 
@@ -98,9 +96,7 @@ static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
         posControl.desiredState.vel.z = targetVel;
     }
 
-#if defined(NAV_BLACKBOX)
     navDesiredVelocity[Z] = constrain(lrintf(posControl.desiredState.vel.z), -32678, 32767);
-#endif
 }
 
 static void updateAltitudeThrottleController_MC(timeDelta_t deltaMicros)
@@ -237,7 +233,7 @@ static void applyMulticopterAltitudeController(timeUs_t currentTimeUs)
         }
 
         // Indicate that information is no longer usable
-        posControl.flags.verticalPositionDataConsumed = 1;
+        posControl.flags.verticalPositionDataConsumed = true;
     }
 
     // Update throttle controller
@@ -448,7 +444,7 @@ static void updatePositionVelocityController_MC(const float maxSpeed)
      */
     if (
         (navGetCurrentStateFlags() & NAV_AUTO_WP &&
-        !isApproachingLastWaypoint() &&
+        !isNavHoldPositionActive() &&
         newVelTotal < maxSpeed &&
         !navConfig()->mc.slowDownForTurning
         ) || newVelTotal > maxSpeed
@@ -467,10 +463,8 @@ static void updatePositionVelocityController_MC(const float maxSpeed)
     posControl.desiredState.vel.x = newVelX * velHeadFactor * velExpoFactor;
     posControl.desiredState.vel.y = newVelY * velHeadFactor * velExpoFactor;
 
-#if defined(NAV_BLACKBOX)
     navDesiredVelocity[X] = constrain(lrintf(posControl.desiredState.vel.x), -32678, 32767);
     navDesiredVelocity[Y] = constrain(lrintf(posControl.desiredState.vel.y), -32678, 32767);
-#endif
 }
 
 static float computeNormalizedVelocity(const float value, const float maxValue)
@@ -658,7 +652,7 @@ static void applyMulticopterPositionController(timeUs_t currentTimeUs)
             }
 
             // Indicate that information is no longer usable
-            posControl.flags.horizontalPositionDataConsumed = 1;
+            posControl.flags.horizontalPositionDataConsumed = true;
         }
     }
     else {
@@ -778,7 +772,7 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
         }
 
         // Indicate that information is no longer usable
-        posControl.flags.verticalPositionDataConsumed = 1;
+        posControl.flags.verticalPositionDataConsumed = true;
     }
 
     // Update throttle controller
@@ -823,4 +817,3 @@ void applyMulticopterNavigationController(navigationFSMStateFlags_t navStateFlag
             applyMulticopterHeadingController();
     }
 }
-#endif  // NAV

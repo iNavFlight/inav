@@ -87,6 +87,8 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/servos.h"
 #include "flight/pid.h"
 #include "flight/imu.h"
+#include "flight/secondary_imu.h"
+#include "flight/rate_dynamics.h"
 
 #include "flight/failsafe.h"
 #include "flight/power_limits.h"
@@ -156,11 +158,9 @@ bool areSensorsCalibrating(void)
     }
 #endif
 
-#ifdef USE_NAV
     if (!navIsCalibrationComplete()) {
         return true;
     }
-#endif
 
     if (!accIsCalibrationComplete() && sensors(SENSOR_ACC)) {
         return true;
@@ -246,7 +246,6 @@ static void updateArmingStatus(void)
             DISABLE_ARMING_FLAG(ARMING_DISABLED_SYSTEM_OVERLOADED);
         }
 
-#if defined(USE_NAV)
         /* CHECK: Navigation safety */
         if (navigationIsBlockingArming(NULL) != NAV_ARMING_BLOCKER_NONE) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_NAVIGATION_UNSAFE);
@@ -254,7 +253,6 @@ static void updateArmingStatus(void)
         else {
             DISABLE_ARMING_FLAG(ARMING_DISABLED_NAVIGATION_UNSAFE);
         }
-#endif
 
 #if defined(USE_MAG)
         /* CHECK: */
@@ -373,7 +371,7 @@ static bool emergencyArmingIsEnabled(void)
     return emergencyArmingIsTriggered() && emergencyArmingCanOverrideArmingDisabled();
 }
 
-void annexCode(void)
+void annexCode(float dT)
 {
     int32_t throttleValue;
 
@@ -392,6 +390,19 @@ void annexCode(void)
             rcCommand[ROLL] = rcCommand[ROLL] * currentControlRateProfile->manual.rates[FD_ROLL] / 100L;
             rcCommand[PITCH] = rcCommand[PITCH] * currentControlRateProfile->manual.rates[FD_PITCH] / 100L;
             rcCommand[YAW] = rcCommand[YAW] * currentControlRateProfile->manual.rates[FD_YAW] / 100L;
+        } else {
+            DEBUG_SET(DEBUG_RATE_DYNAMICS, 0, rcCommand[ROLL]);
+            rcCommand[ROLL] = applyRateDynamics(rcCommand[ROLL], ROLL, dT);
+            DEBUG_SET(DEBUG_RATE_DYNAMICS, 1, rcCommand[ROLL]);
+
+            DEBUG_SET(DEBUG_RATE_DYNAMICS, 2, rcCommand[PITCH]);
+            rcCommand[PITCH] = applyRateDynamics(rcCommand[PITCH], PITCH, dT);
+            DEBUG_SET(DEBUG_RATE_DYNAMICS, 3, rcCommand[PITCH]);
+
+            DEBUG_SET(DEBUG_RATE_DYNAMICS, 4, rcCommand[YAW]);
+            rcCommand[YAW] = applyRateDynamics(rcCommand[YAW], YAW, dT);
+            DEBUG_SET(DEBUG_RATE_DYNAMICS, 5, rcCommand[YAW]);
+
         }
 
         //Compute THROTTLE command
@@ -500,6 +511,9 @@ void releaseSharedTelemetryPorts(void) {
 
 void tryArm(void)
 {
+#ifdef USE_MULTI_MISSION
+    setMultiMissionOnArm();
+#endif
     updateArmingStatus();
 
 #ifdef USE_DSHOT
@@ -534,7 +548,6 @@ void tryArm(void)
             return;
         }
 
-#if defined(USE_NAV)
         // If nav_extra_arming_safety was bypassed we always
         // allow bypassing it even without the sticks set
         // in the correct position to allow re-arming quickly
@@ -544,7 +557,6 @@ void tryArm(void)
         if (usedBypass) {
             ENABLE_STATE(NAV_EXTRA_ARMING_SAFETY_BYPASSED);
         }
-#endif
 
         lastDisarmReason = DISARM_NONE;
 
@@ -573,14 +585,11 @@ void tryArm(void)
 #endif
 
         //beep to indicate arming
-#ifdef USE_NAV
-        if (navigationPositionEstimateIsHealthy())
+        if (navigationPositionEstimateIsHealthy()) {
             beeper(BEEPER_ARMING_GPS_FIX);
-        else
+        } else {
             beeper(BEEPER_ARMING);
-#else
-        beeper(BEEPER_ARMING);
-#endif
+        }
 
         statsOnArm();
 
@@ -599,8 +608,9 @@ void processRx(timeUs_t currentTimeUs)
 
     // in 3D mode, we need to be able to disarm by switch at any time
     if (feature(FEATURE_REVERSIBLE_MOTORS)) {
-        if (!IS_RC_MODE_ACTIVE(BOXARM))
+        if (!IS_RC_MODE_ACTIVE(BOXARM)) {
             disarm(DISARM_SWITCH_3D);
+        }
     }
 
     updateRSSI(currentTimeUs);
@@ -845,7 +855,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 
-    if (ARMING_FLAG(ARMED) && (!STATE(FIXED_WING_LEGACY) || !isNavLaunchEnabled() || (isNavLaunchEnabled() && (isFixedWingLaunchDetected() || isFixedWingLaunchFinishedOrAborted())))) {
+    if (ARMING_FLAG(ARMED) && (!STATE(FIXED_WING_LEGACY) || !isNavLaunchEnabled() || (isNavLaunchEnabled() && fixedWingLaunchStatus() >= FW_LAUNCH_DETECTED))) {
         flightTime += cycleTime;
         armTime += cycleTime;
         updateAccExtremes();
@@ -859,24 +869,20 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     imuUpdateAccelerometer();
     imuUpdateAttitude(currentTimeUs);
 
-    annexCode();
+    annexCode(dT);
 
     if (rxConfig()->rcFilterFrequency) {
         rcInterpolationApply(isRXDataNew);
     }
 
-#if defined(USE_NAV)
     if (isRXDataNew) {
         updateWaypointsAndNavigationMode();
     }
-#endif
 
     isRXDataNew = false;
 
-#if defined(USE_NAV)
     updatePositionEstimator();
     applyWaypointNavigationAndAltitudeHold();
-#endif
 
     // Apply throttle tilt compensation
     if (!STATE(FIXED_WING_LEGACY)) {
@@ -914,7 +920,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     }
 #endif
 
-    mixTable(dT);
+    mixTable();
 
     if (isMixerUsingServos()) {
         servoMixer(dT);

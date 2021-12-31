@@ -20,11 +20,15 @@
 #include "platform.h"
 
 #include "fc/fc_msp_box.h"
-
+#include "fc/config.h"
 #include "io/piniobox.h"
 
 void targetConfiguration(void)
 {
     pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
     pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
+
+    #if defined(MATEKF765SE)
+    beeperConfigMutable()->pwmMode = true;
+    #endif
 }

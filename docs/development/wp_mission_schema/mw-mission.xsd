@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- XSchema for MW / iNav missions
+     This file is part of inav
+     usage  e.g. xmllint -​-noout -​-schema mw-mission.xsd example.mission
+     Updated 2021-11-12 for 'meta' substitution.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:element name="mission">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="version"/>
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+          <xs:element ref="missionitem"/>
+          <xs:element ref="mwp"/>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="version">
+    <xs:complexType>
+      <xs:attribute name="value" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="missionitem">
+    <xs:complexType>
+      <xs:attribute name="action" use="required">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="UNASSIGNED"/>
+            <xs:enumeration value="WAYPOINT"/>
+            <xs:enumeration value="POSHOLD_UNLIM"/>
+            <xs:enumeration value="POSHOLD_TIME"/>
+            <xs:enumeration value="RTH"/>
+            <xs:enumeration value="SET_POI"/>
+            <xs:enumeration value="JUMP"/>
+            <xs:enumeration value="SET_HEAD"/>
+            <xs:enumeration value="LAND"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <!-- no min,max as may be AMSL -->
+      <xs:attribute name="alt" use="required" type="xs:integer"/>
+      <!--
+           flag is not strictly required unless the WP is "Flyby Home"
+           or the are multiple mission segments 'multi-mission', inav 4.0
+      -->
+      <xs:attribute name="flag" use="optional" type="xs:integer"/>
+      <!--
+          Locations are decimal degrees, WGS84 (EPSG:4326)
+      -->
+      <xs:attribute name="lat" use="required">
+        <xs:simpleType>
+          <xs:restriction base="xs:decimal">
+            <xs:minInclusive value="-90"/>
+            <xs:maxInclusive value="90"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="lon" use="required">
+        <xs:simpleType>
+          <xs:restriction base="xs:decimal">
+            <xs:minInclusive value="-180"/>
+            <xs:maxInclusive value="180"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <!-- not really needed, but for historic compatibility ... -->
+      <xs:attribute name="no" use="required" type="xs:integer"/>
+      <xs:attribute name="parameter1" use="required" type="xs:integer"/>
+      <xs:attribute name="parameter2" use="required" type="xs:integer"/>
+      <xs:attribute name="parameter3" use="required" type="xs:integer"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="mwp">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="details"  minOccurs="0"/>
+      </xs:sequence>
+      <xs:attribute name="cx" type="xs:decimal"/>
+      <xs:attribute name="cy" type="xs:decimal"/>
+      <xs:attribute name="generator"/>
+      <xs:attribute name="home-x" type="xs:decimal"/>
+      <xs:attribute name="home-y" type="xs:decimal"/>
+      <xs:attribute name="save-date"/>
+      <xs:attribute name="zoom">
+        <xs:simpleType>
+          <xs:restriction base="xs:integer">
+            <xs:minInclusive value="0"/>
+            <xs:maxInclusive value="20"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="details">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="distance"/>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="nav-speed"/>
+          <xs:element ref="fly-time"/>
+          <xs:element ref="loiter-time"/>
+        </xs:sequence>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="distance">
+    <xs:complexType>
+      <xs:attribute name="units" use="required" type="xs:NCName"/>
+      <xs:attribute name="value" use="required" type="xs:integer"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="nav-speed">
+    <xs:complexType>
+      <xs:attribute name="units" use="required"/>
+      <xs:attribute name="value" use="required" type="xs:integer"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="fly-time">
+    <xs:complexType>
+      <xs:attribute name="units" use="required" type="xs:NCName"/>
+      <xs:attribute name="value" use="required" type="xs:integer"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="loiter-time">
+    <xs:complexType>
+      <xs:attribute name="units" use="required" type="xs:NCName"/>
+      <xs:attribute name="value" use="required" type="xs:integer"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="meta" substitutionGroup="mwp"/>
+  <xs:element name="MISSION" substitutionGroup="mission"/>
+  <xs:element name="MISSIONITEM" substitutionGroup="missionitem"/>
+  <xs:element name="VERSION" substitutionGroup="version"/>
+</xs:schema>

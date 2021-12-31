@@ -118,6 +118,7 @@
 #define USE_BARO_MS5611
 #define USE_BARO_BMP085
 #define USE_BARO_DPS310
+#define USE_BARO_SPL06
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
 #define BNO055_I2C_BUS          BUS_I2C1
@@ -160,7 +161,6 @@
 #define USE_DSHOT
 #define USE_ESC_SENSOR
 
-#define USE_SERIALSHOT
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #define TARGET_IO_PORTA         0xffff

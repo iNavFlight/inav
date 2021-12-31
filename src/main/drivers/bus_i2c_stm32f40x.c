@@ -121,7 +121,7 @@ typedef struct i2cBusState_s {
     I2CDevice       device;
     bool            initialized;
     i2cState_t      state;
-    uint32_t        timeout;
+    timeUs_t        timeout;
 
     /* Active transfer */
     bool                        allowRawAccess;

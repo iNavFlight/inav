@@ -524,11 +524,15 @@ float bellCurve(const float x, const float curveWidth)
 }
 
 float fast_fsqrtf(const double value) {
+    float ret = 0.0f;
 #ifdef USE_ARM_MATH
-    float squirt;
-    arm_sqrt_f32(value, &squirt);
-    return squirt;
+    arm_sqrt_f32(value, &ret);
 #else 
-    return sqrtf(value);
+    ret = sqrtf(value);
 #endif
+    if (isnan(ret))
+    {
+        return 0;
+    }
+    return ret;
 }

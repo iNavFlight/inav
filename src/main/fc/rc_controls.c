@@ -260,8 +260,27 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
 
     // Load waypoint list
     if (rcSticks == THR_LO + YAW_CE + PIT_HI + ROL_HI) {
-        const bool success = loadNonVolatileWaypointList();
+        const bool success = loadNonVolatileWaypointList(false);
         beeper(success ? BEEPER_ACTION_SUCCESS : BEEPER_ACTION_FAIL);
+    }
+#ifdef USE_MULTI_MISSION
+    // Increment multi mission index up
+    if (rcSticks == THR_LO + YAW_CE + PIT_CE + ROL_HI) {
+        selectMultiMissionIndex(1);
+        rcDelayCommand = 0;
+        return;
+    }
+
+    // Decrement multi mission index down
+    if (rcSticks == THR_LO + YAW_CE + PIT_CE + ROL_LO) {
+        selectMultiMissionIndex(-1);
+        rcDelayCommand = 0;
+        return;
+    }
+#endif
+    if (rcSticks == THR_LO + YAW_CE + PIT_LO + ROL_HI) {
+        resetWaypointList();
+        beeper(BEEPER_ACTION_FAIL); // The above cannot fail, but traditionally, we play FAIL for not-loading
     }
 #endif
 

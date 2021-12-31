@@ -31,9 +31,6 @@
 
 #include "rx/rx.h"
 
-
-#define PITCH_LOOKUP_LENGTH 7
-#define YAW_LOOKUP_LENGTH 7
 #define THROTTLE_LOOKUP_LENGTH 11
 
 static EXTENDED_FASTRAM int16_t lookupThrottleRC[THROTTLE_LOOKUP_LENGTH];    // lookup table for expo & mid THROTTLE

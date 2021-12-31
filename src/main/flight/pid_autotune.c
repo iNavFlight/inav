@@ -60,9 +60,6 @@ PG_REGISTER_WITH_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig, PG_PID_A
 
 PG_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig,
     .fw_min_stick = SETTING_FW_AUTOTUNE_MIN_STICK_DEFAULT,
-    .fw_ff_to_p_gain = SETTING_FW_AUTOTUNE_FF_TO_P_GAIN_DEFAULT,
-    .fw_ff_to_i_time_constant = SETTING_FW_AUTOTUNE_FF_TO_I_TC_DEFAULT,
-    .fw_p_to_d_gain = SETTING_FW_AUTOTUNE_P_TO_D_GAIN_DEFAULT,
     .fw_rate_adjustment = SETTING_FW_AUTOTUNE_RATE_ADJUSTMENT_DEFAULT,
     .fw_max_rate_deflection = SETTING_FW_AUTOTUNE_MAX_RATE_DEFLECTION_DEFAULT,
 );
@@ -75,9 +72,6 @@ typedef enum {
 } pidAutotuneState_e;
 
 typedef struct {
-    float   gainP;
-    float   gainI;
-    float   gainD;
     float   gainFF;
     float   rate;
     float   initialRate;
@@ -98,9 +92,6 @@ static timeMs_t             lastGainsUpdateTime;
 void autotuneUpdateGains(pidAutotuneData_t * data)
 {
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        pidBankMutable()->pid[axis].P = lrintf(data[axis].gainP);
-        pidBankMutable()->pid[axis].I = lrintf(data[axis].gainI);
-        pidBankMutable()->pid[axis].D = lrintf(data[axis].gainD);
         pidBankMutable()->pid[axis].FF = lrintf(data[axis].gainFF);
         ((controlRateConfig_t *)currentControlRateProfile)->stabilized.rates[axis] = lrintf(data[axis].rate/10.0f);
     }
@@ -124,9 +115,6 @@ void autotuneCheckUpdateGains(void)
 void autotuneStart(void)
 {
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        tuneCurrent[axis].gainP = pidBank()->pid[axis].P;
-        tuneCurrent[axis].gainI = pidBank()->pid[axis].I;
-        tuneCurrent[axis].gainD = pidBank()->pid[axis].D;
         tuneCurrent[axis].gainFF = pidBank()->pid[axis].FF;
         tuneCurrent[axis].rate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
         tuneCurrent[axis].initialRate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
@@ -246,15 +234,6 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
     }
 
     if (gainsUpdated) {
-        // Set P-gain to 10% of FF gain (quite agressive - FIXME)
-        tuneCurrent[axis].gainP = tuneCurrent[axis].gainFF * (pidAutotuneConfig()->fw_ff_to_p_gain / 100.0f);
-
-        // Set D-gain relative to P-gain (0 for now)
-        tuneCurrent[axis].gainD = tuneCurrent[axis].gainP * (pidAutotuneConfig()->fw_p_to_d_gain / 100.0f);
-
-        // Set integrator gain to reach the same response as FF gain in 0.667 second
-        tuneCurrent[axis].gainI = (tuneCurrent[axis].gainFF / FP_PID_RATE_FF_MULTIPLIER) * (1000.0f / pidAutotuneConfig()->fw_ff_to_i_time_constant) * FP_PID_RATE_I_MULTIPLIER;
-        tuneCurrent[axis].gainI = constrainf(tuneCurrent[axis].gainI, 2.0f, 50.0f);
         autotuneUpdateGains(tuneCurrent);
 
         switch (axis) {
