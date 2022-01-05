@@ -112,7 +112,7 @@ void taskHandleSerial(timeUs_t currentTimeUs)
 #endif
 
 #ifdef USE_HDZERO_OSD
-    hdzeroOsdSerialProcess(ARMING_FLAG(ARMED) ? MSP_SKIP_NON_MSP_DATA : MSP_EVALUATE_NON_MSP_DATA, mspFcProcessCommand);
+    hdzeroOsdSerialProcess(mspFcProcessCommand);
 #endif
 }
 

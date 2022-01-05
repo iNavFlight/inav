@@ -28,11 +28,14 @@
 
 #include "platform.h"
 
+FILE_COMPILE_FOR_SPEED
+
 #if defined(USE_OSD) && defined(USE_HDZERO_OSD)
 
 #include "common/utils.h"
 #include "common/printf.h"
 #include "common/time.h"
+#include "common/bitarray.h"
 
 #include "drivers/display.h"
 #include "drivers/display_font_metadata.h"
@@ -43,25 +46,28 @@
 
 #include "displayport_hdzero_osd.h"
 
-#define MSP_HEARTBEAT 0
-#define MSP_RELEASE 1
+#define FONT_VERSION 3
+
 #define MSP_CLEAR_SCREEN 2
 #define MSP_WRITE_STRING 3
 #define MSP_DRAW_SCREEN 4
-#define MSP_SET_HD 5
+#define MSP_SET_OPTIONS 5
+#define MAX_UPDATES 5
+#define VTX_TIMEOUT 1000 // 1 second timer
 
-#define FONT_PAGE_ATTRIBUTE 0x01
-
-static mspPort_t hdzeroMspPort;
-static displayPort_t hdzeroOsdDisplayPort;
-static bool hdzeroVtxReady;
+static mspProcessCommandFnPtr mspProcessCommand;
+static mspPort_t hdZeroMspPort;
+static displayPort_t hdZeroOsdDisplayPort;
+static bool vtxReady, vtxReset;
+static timeMs_t vtxHeartbeat;
 
 // HD screen size
 #define ROWS 18
 #define COLS 50
 #define SCREENSIZE (ROWS*COLS)
-static uint8_t screen[SCREENSIZE];
-static uint8_t fontPage[SCREENSIZE / 8 + 1]; // page bits for each character (to address 512 char font)
+static uint8_t screen[SCREENSIZE] ALIGNED(4);
+static BITARRAY_DECLARE(fontPage, SCREENSIZE) ALIGNED(4); // font page for each character on the screen
+static BITARRAY_DECLARE(dirty, SCREENSIZE) ALIGNED(4); // change status for each character on the screen
 
 extern uint8_t cliMode;
 
@@ -69,207 +75,156 @@ static int output(displayPort_t *displayPort, uint8_t cmd, uint8_t *subcmd, int 
 {
     UNUSED(displayPort);
 
-    if (cliMode)
-        return 0;
+    int sent = 0;
 
-    return mspSerialPushPort(cmd, subcmd, len, &hdzeroMspPort, MSP_V1);
-}
-
-static int heartbeat(displayPort_t *displayPort)
-{
-    uint8_t subcmd[] = { MSP_HEARTBEAT };
-    return output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
-}
-
-static int release(displayPort_t *displayPort)
-{
-    uint8_t subcmd[] = { MSP_RELEASE };
-    return output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
-}
-
-static int clearScreen(displayPort_t *displayPort)
-{
-    UNUSED(displayPort);
-
-    memset(screen, SYM_BLANK, sizeof(screen));
-    memset(fontPage, 0, sizeof(fontPage));
-    return 1;
-}
-
-/*
- * Write up to three populated rows at a time, skipping blank lines.
- * This gives a refresh rate to the VTX of approximately 10 to 62Hz
- * depending on how much data is displayed.
- */
-static int drawScreen(displayPort_t *displayPort) // 62.5hz
-{
-    static uint8_t row = 0, clearSent = 0;
-    uint8_t subcmd[COLS + 4], len, col, page, aPage, rowsToPrint;
-    uint16_t lineIdx, idx, end;
-    int charsOut = 0;
-
-    rowsToPrint = 3;
-    do {
-        // Find a row with something to print
-        do {
-            // Strip leading and trailing spaces for the selected row
-            lineIdx = row * COLS;
-            idx = lineIdx;
-            end = idx + COLS - 1;
-
-            while ((screen[idx] == SYM_BLANK || screen[end] == SYM_BLANK) && idx <= end) {
-                if (screen[idx] == SYM_BLANK)
-                    idx++;
-                if (screen[end] == SYM_BLANK)
-                    end--;
-            }
-        } while (idx > end && ++row < ROWS);
-
-        while (idx <= end) {
-            if (!clearSent) {
-                // Start the transaction
-                subcmd[0] = MSP_CLEAR_SCREEN;
-                charsOut += output(displayPort, MSP_DISPLAYPORT, subcmd, 1);
-                clearSent = 1;
-            }
-
-            // Split the line up into strings from the same font page and output them.
-            // (note spaces are printed to save overhead on small elements)
-            len = 4;
-            col = idx - lineIdx;
-            page = (fontPage[idx >> 3] >> (idx & 0x07)) & FONT_PAGE_ATTRIBUTE;
-
-            do {
-                subcmd[len++] = screen[idx++];
-                aPage = (fontPage[idx >> 3] >> (idx & 0x07)) & FONT_PAGE_ATTRIBUTE;
-            } while (idx <= end && (aPage == page || screen[idx] == SYM_BLANK));
-
-            subcmd[0] = MSP_WRITE_STRING;
-            subcmd[1] = row;
-            subcmd[2] = col;
-            subcmd[3] = page;
-            charsOut += output(displayPort, MSP_DISPLAYPORT, subcmd, len);
-        }
-    } while (++row < ROWS && --rowsToPrint);
-
-    if (row >= ROWS) {
-        // End the transaction if required and reset the counters
-        if (clearSent > 0) {
-            subcmd[0] = MSP_DRAW_SCREEN;
-            charsOut += output(displayPort, MSP_DISPLAYPORT, subcmd, 1);
-        }
-        row = clearSent = 0;
+    if (!cliMode && vtxReady) {
+        sent = mspSerialPushPort(cmd, subcmd, len, &hdZeroMspPort, MSP_V1);
+#ifdef STATS
+        dataSent += sent;
+#endif
     }
 
-    return charsOut;
+    return sent;
+}
+
+static void checkVtxPresent(void)
+{
+    if (vtxReady && (millis()-vtxHeartbeat) > VTX_TIMEOUT) {
+        vtxReady = false;
+    }
 }
 
 static int setHdMode(displayPort_t *displayPort)
 {
-    uint8_t subcmd[3];
-    subcmd[0] = MSP_SET_HD;
-    subcmd[1] = 0; // future font index
-    subcmd[2] = 1; // 0 SD 1 HD
-
+    checkVtxPresent();
+    uint8_t subcmd[] = { MSP_SET_OPTIONS, 0, 1 }; // font selection, mode (SD/HD)
     return output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
 }
 
-static int grab(displayPort_t *displayPort)
+static void hdZeroInit(void)
 {
-    return heartbeat(displayPort);
+    memset(screen, SYM_BLANK, sizeof(screen));
+    BITARRAY_CLR_ALL(fontPage);
+    BITARRAY_CLR_ALL(dirty);
 }
 
-static int screenSize(const displayPort_t *displayPort)
+static int clearScreen(displayPort_t *displayPort)
 {
-    UNUSED(displayPort);
+    uint8_t subcmd[] = { MSP_CLEAR_SCREEN };
 
-    return SCREENSIZE;
-}
-
-// Intercept writeString and write to a buffer instead (1st page of font file only)
-static int writeString(displayPort_t *displayPort, uint8_t col, uint8_t row, const char *string, textAttributes_t attr)
-{
-    UNUSED(displayPort);
-    UNUSED(attr);
-
-    uint16_t i, pos, len, end, idx;
-
-    pos = (row * COLS) + col;
-    if (pos >= SCREENSIZE)
-        return 0;
-
-    len = strlen(string);
-
-    // Allow word wrap and truncate of past the screen end
-    end = pos + len - 1;
-    if (end >= SCREENSIZE)
-        len = end - SCREENSIZE;
-
-    // Copy the string into the screen buffer
-    memcpy(screen + pos, string, len);
-
-    // Clear the page bits for all the characters in the string
-    for (i = 0; i < len; i++) {
-        idx = pos + i;
-        fontPage[idx >> 3] &= ~(1 << (idx & 0x07));
-    }
-
-    return (int) len;
-}
-
-// Write character to screen and page buffers (supports 512 char fonts)
-static int writeChar(displayPort_t *displayPort, uint8_t col, uint8_t row, uint16_t c, textAttributes_t attr)
-{
-    UNUSED(displayPort);
-    UNUSED(attr);
-
-    uint16_t pos, idx;
-    uint8_t bitmask;
-
-    pos = (row * COLS) + col;
-    if (pos >= SCREENSIZE)
-        return 0;
-
-    // Copy character into screen buffer
-    screen[pos] = c;
-
-    idx = pos >> 3;
-    bitmask = 1 << (pos & 0x07);
-
-    // Save index of the character's font page
-    if (c & 0x0100)
-        fontPage[idx] |= bitmask;
-    else
-        fontPage[idx] &= ~bitmask;
-
-    return (int) 1;
+    hdZeroInit();
+    setHdMode(displayPort);
+    return output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
 }
 
 static bool readChar(displayPort_t *displayPort, uint8_t col, uint8_t row, uint16_t *c, textAttributes_t *attr)
 {
     UNUSED(displayPort);
 
-    uint16_t pos, chr;
-
-    pos = (row * COLS) + col;
-    if (pos >= SCREENSIZE)
-        *c = SYM_BLANK;
-    else {
-        chr = (fontPage[pos >> 3] >> (pos & 0x07)) & FONT_PAGE_ATTRIBUTE;
-        *c = (chr << 8) | screen[pos];
+    uint16_t pos = (row * COLS) + col;
+    if (pos >= SCREENSIZE) {
+        return false;
     }
 
-    if (attr)
+    *c = screen[pos];
+    if (bitArrayGet(fontPage, pos))
+    {
+        *c |= 0x100;
+    }
+
+    if (attr) {
         *attr = TEXT_ATTRIBUTES_NONE;
+    }
 
     return true;
 }
 
-static bool isTransferInProgress(const displayPort_t *displayPort)
+static int setChar(const uint16_t pos, const uint16_t c)
+{
+    if (pos < SCREENSIZE) {
+        uint8_t ch = c & 0xFF;
+        bool page = (c >> 8);
+        if (screen[pos] != ch || bitArrayGet(fontPage, pos) !=  page) {
+            screen[pos] = ch;
+            (page) ? bitArraySet(fontPage, pos) : bitArrayClr(fontPage, pos);
+            bitArraySet(dirty, pos);
+        }
+    }
+    return 0;
+}
+
+static int writeChar(displayPort_t *displayPort, uint8_t col, uint8_t row, uint16_t c, textAttributes_t attr)
 {
     UNUSED(displayPort);
+    UNUSED(attr);
 
-    return false;
+    return setChar((row * COLS) + col, c);
+}
+
+static int writeString(displayPort_t *displayPort, uint8_t col, uint8_t row, const char *string, textAttributes_t attr)
+{
+    UNUSED(displayPort);
+    UNUSED(attr);
+
+    uint16_t pos = (row * COLS) + col;
+    while (*string)
+    {
+        setChar(pos++, *string++);
+    }
+    return 0;
+}
+
+/**
+ * Write only changed characters to the VTX
+ */
+static int drawScreen(displayPort_t *displayPort) // 62.5hz or 16ms
+{
+    uint8_t subcmd[COLS + 4];
+    uint8_t updateCount = 0;
+
+    subcmd[0] = MSP_WRITE_STRING;
+
+    int next = BITARRAY_FIND_FIRST_SET(dirty, 0);
+    while (next >= 0 && updateCount < MAX_UPDATES) {
+        // Look for sequential dirty characters on the same line for the same font page
+        int pos = next;
+        uint8_t row = pos / COLS;
+        uint8_t col = pos % COLS;
+        int endOfLine = row * COLS + COLS;
+        bool page = bitArrayGet(fontPage, pos);
+
+        uint8_t len = 4;
+        do {
+            bitArrayClr(dirty, pos);
+            subcmd[len++] = screen[pos++];
+
+            if (bitArrayGet(dirty, pos)) {
+                next = pos;
+            }
+        } while (next == pos && next < endOfLine && bitArrayGet(fontPage, next) == page);
+
+        subcmd[1] = row;
+        subcmd[2] = col;
+        subcmd[3] = page;
+        output(displayPort, MSP_DISPLAYPORT, subcmd, len);
+        updateCount++;
+        next = BITARRAY_FIND_FIRST_SET(dirty, pos);
+    }
+
+    if (updateCount > 0)
+    {
+        subcmd[0] = MSP_DRAW_SCREEN;
+        output(displayPort, MSP_DISPLAYPORT, subcmd, 1);
+    }
+
+    checkVtxPresent();
+
+    if (vtxReset) {
+        clearScreen(displayPort);
+        vtxReset = false;
+    }
+
+    return 0;
 }
 
 static void resync(displayPort_t *displayPort)
@@ -279,38 +234,60 @@ static void resync(displayPort_t *displayPort)
     setHdMode(displayPort);
 }
 
+static int screenSize(const displayPort_t *displayPort)
+{
+    UNUSED(displayPort);
+    return SCREENSIZE;
+}
+
 static uint32_t txBytesFree(const displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-
     return mspSerialTxBytesFree();
-}
-
-static textAttributes_t supportedTextAttributes(const displayPort_t *displayPort)
-{
-    UNUSED(displayPort);
-
-    textAttributes_t attr = TEXT_ATTRIBUTES_NONE;
-    //TEXT_ATTRIBUTES_ADD_INVERTED(attr);
-    //TEXT_ATTRIBUTES_ADD_SOLID_BG(attr);
-    return attr;
 }
 
 static bool getFontMetadata(displayFontMetadata_t *metadata, const displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-
     metadata->charCount = 512;
-    metadata->version = 3;
-
+    metadata->version = FONT_VERSION;
     return true;
+}
+
+static textAttributes_t supportedTextAttributes(const displayPort_t *displayPort)
+{
+    UNUSED(displayPort);
+    return TEXT_ATTRIBUTES_NONE;
+}
+
+static bool isTransferInProgress(const displayPort_t *displayPort)
+{
+    UNUSED(displayPort);
+    return false;
 }
 
 static bool isReady(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
+    return vtxReady;
+}
 
-    return hdzeroVtxReady;
+static int grab(displayPort_t *displayPort)
+{
+    UNUSED(displayPort);
+    return 0;
+}
+
+static int heartbeat(displayPort_t *displayPort)
+{
+    UNUSED(displayPort);
+    return 0;
+}
+
+static int release(displayPort_t *displayPort)
+{
+    UNUSED(displayPort);
+    return 0;
 }
 
 static const displayPortVTable_t hdzeroOsdVTable = {
@@ -333,32 +310,48 @@ static const displayPortVTable_t hdzeroOsdVTable = {
 
 void hdzeroOsdSerialInit(void)
 {
-    memset(&hdzeroMspPort, 0, sizeof(mspPort_t));
+    memset(&hdZeroMspPort, 0, sizeof(mspPort_t));
 
     serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_HDZERO_OSD);
-
     if (portConfig) {
         serialPort_t *port = openSerialPort(portConfig->identifier, FUNCTION_HDZERO_OSD, NULL, NULL,
                 baudRates[portConfig->msp_baudrateIndex], MODE_RXTX, SERIAL_NOT_INVERTED);
-        if (port)
-            resetMspPort(&hdzeroMspPort, port);
+        if (port) {
+            resetMspPort(&hdZeroMspPort, port);
+        }
     }
 }
 
 displayPort_t* hdzeroOsdDisplayPortInit(void)
 {
-    memset(screen, SYM_BLANK, sizeof(screen));
-    memset(fontPage, 0, sizeof(fontPage));
-    displayInit(&hdzeroOsdDisplayPort, &hdzeroOsdVTable);
-    return &hdzeroOsdDisplayPort;
+    hdZeroInit();
+    displayInit(&hdZeroOsdDisplayPort, &hdzeroOsdVTable);
+    return &hdZeroOsdDisplayPort;
 }
 
-void hdzeroOsdSerialProcess(mspEvaluateNonMspData_e evaluateNonMspData, mspProcessCommandFnPtr mspProcessCommandFn)
+/*
+ * Intercept MSP processor.
+ * VTX sends an MSP command every 125ms or so.
+ * VTX will have be marked as not ready if no commands received within VTX_TIMEOUT.
+ */
+static mspResult_e hdZeroProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn)
 {
-    if (hdzeroMspPort.port) {
-        // Process normal MSP command
-        mspSerialProcessOnePort(&hdzeroMspPort, evaluateNonMspData, mspProcessCommandFn);
-        hdzeroVtxReady = true;
+    if (!vtxReady) {
+        vtxReset = true;
+    }
+
+    vtxReady = true;
+    vtxHeartbeat = millis();
+
+    // Process MSP command
+    return mspProcessCommand(cmd, reply, mspPostProcessFn);
+}
+
+void hdzeroOsdSerialProcess(mspProcessCommandFnPtr mspProcessCommandFn)
+{
+    if (hdZeroMspPort.port) {
+        mspProcessCommand = mspProcessCommandFn;
+        mspSerialProcessOnePort(&hdZeroMspPort, MSP_SKIP_NON_MSP_DATA, hdZeroProcessMspCommand);
     }
 }
 

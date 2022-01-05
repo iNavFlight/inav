@@ -31,4 +31,4 @@ typedef struct displayPort_s displayPort_t;
 
 void hdzeroOsdSerialInit(void);
 displayPort_t *hdzeroOsdDisplayPortInit(void);
-void hdzeroOsdSerialProcess(mspEvaluateNonMspData_e evaluateNonMspData, mspProcessCommandFnPtr mspProcessCommandFn);
+void hdzeroOsdSerialProcess(mspProcessCommandFnPtr mspProcessCommandFn);
