@@ -52,7 +52,7 @@ FILE_COMPILE_FOR_SPEED
 #define MSP_WRITE_STRING 3
 #define MSP_DRAW_SCREEN 4
 #define MSP_SET_OPTIONS 5
-#define MAX_UPDATES 5
+#define MAX_UPDATES 10
 #define VTX_TIMEOUT 1000 // 1 second timer
 
 static mspProcessCommandFnPtr mspProcessCommand;
@@ -65,9 +65,9 @@ static timeMs_t vtxHeartbeat;
 #define ROWS 18
 #define COLS 50
 #define SCREENSIZE (ROWS*COLS)
-static uint8_t screen[SCREENSIZE] ALIGNED(4);
-static BITARRAY_DECLARE(fontPage, SCREENSIZE) ALIGNED(4); // font page for each character on the screen
-static BITARRAY_DECLARE(dirty, SCREENSIZE) ALIGNED(4); // change status for each character on the screen
+static uint8_t screen[SCREENSIZE];
+static BITARRAY_DECLARE(fontPage, SCREENSIZE); // font page for each character on the screen
+static BITARRAY_DECLARE(dirty, SCREENSIZE); // change status for each character on the screen
 
 extern uint8_t cliMode;
 
@@ -79,9 +79,6 @@ static int output(displayPort_t *displayPort, uint8_t cmd, uint8_t *subcmd, int 
 
     if (!cliMode && vtxReady) {
         sent = mspSerialPushPort(cmd, subcmd, len, &hdZeroMspPort, MSP_V1);
-#ifdef STATS
-        dataSent += sent;
-#endif
     }
 
     return sent;
