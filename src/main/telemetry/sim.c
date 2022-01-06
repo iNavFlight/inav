@@ -280,7 +280,7 @@ static void readSimResponse(void)
             simModuleState = SIM_MODULE_REGISTERED;
         } else {
             simModuleState = SIM_MODULE_NOT_REGISTERED;
-        }        
+        }
     } else if (responseCode == SIM_RESPONSE_CODE_CMT) {
         // +CMT: <oa>,[<alpha>],<scts>[,<tooa>,<fo>,<pid>,<dcs>,<sca>,<tosca>,<length>]<CR><LF><data>
         // +CMT: "+3581234567","","19/02/12,14:57:24+08"
@@ -295,11 +295,7 @@ static void readSimResponse(void)
 
 static int16_t getAltitudeMeters(void)
 {
-#if defined(USE_NAV)
     return getEstimatedActualPosition(Z) / 100;
-#else
-    return sensors(SENSOR_GPS) ? gpsSol.llh.alt / 100 : 0;
-#endif
 }
 
 static void transmit(void)
@@ -443,7 +439,7 @@ void handleSimTelemetry()
         break;
         case SIM_STATE_INIT_ENTER_PIN:
         sendATCommand("AT+CPIN=");
-        sendATCommand((char*)telemetryConfig()->simPin);        
+        sendATCommand((char*)telemetryConfig()->simPin);
         sendATCommand("\r");
         simTelemetryState = SIM_STATE_SET_MODES;
         break;
