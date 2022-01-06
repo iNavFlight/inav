@@ -60,7 +60,7 @@ FILE_COMPILE_FOR_SPEED
 
 #define DSHOT_DMA_BUFFER_SIZE   18 /* resolution + frame reset (2us) */
 
-#define DSHOT_COMMAND_INTERVAL_US 1000
+#define DSHOT_COMMAND_INTERVAL_US 10000
 #define DSHOT_COMMAND_QUEUE_LENGTH 8
 #define DHSOT_COMMAND_QUEUE_SIZE   DSHOT_COMMAND_QUEUE_LENGTH * sizeof(dshotCommands_e)
 #endif
@@ -373,12 +373,14 @@ static void executeDShotCommands(void){
         const int isTherePendingCommands = !circularBufferIsEmpty(&commandsCircularBuffer);
 
         if (isTherePendingCommands) {
+            timeUs_t lastCommandSent = micros() + DSHOT_COMMAND_INTERVAL_US;
             //Load the command
             dshotCommands_e cmd;
             circularBufferPopHead(&commandsCircularBuffer, (uint8_t *) &cmd);
 
             currentExecutingCommand.cmd = cmd;
             currentExecutingCommand.remainingRepeats = getDShotCommandRepeats(cmd);
+            while (lastCommandSent - micros() > 0);
         }
         else {
             return;
