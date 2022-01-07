@@ -292,7 +292,7 @@ typedef struct {
 
 typedef struct {
     timeMs_t        lastCheckTime;
-    fpVector3_t     initialPosition;
+    bool            rthSanityOK;
     float           minimalDistanceToHome;
 } rthSanityChecker_t;
 
