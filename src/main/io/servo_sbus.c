@@ -67,12 +67,12 @@ bool sbusServoInitialize(void)
     {
         return portConfig->functionMask & FUNCTION_RX_SERIAL;
     }
-        if (servoserialCheckRxPortShared(portConfig)) {
-                servoSbusPort = telemetrySharedPort;
-        } else {	
+    if (servoserialCheckRxPortShared(portConfig)) {
+        servoSbusPort = telemetrySharedPort;
+    } else {	
         servoSbusPort = openSerialPort(portConfig->identifier, FUNCTION_SERVO_SERIAL, NULL, NULL, SERVO_SBUS_UART_BAUD, MODE_TX, SERVO_SBUS_OPTIONS);
         if (!servoSbusPort) {
-                return false;
+            return false;
         }
     }
 
