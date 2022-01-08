@@ -2264,6 +2264,70 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 #endif
 
+    case OSD_SWITCH_INDICATOR_0:
+        {
+            buff[0] = osdConfig()->osd_switch_indicator0_char[0];
+            int rxValue = rxGetChannelValue(osdConfig()->osd_switch_indicator0_channnel - 1);
+
+            if ( rxValue < 1333) {
+                buff[1] = SYM_SWITCH_INDICATOR_LOW;
+            } else if ( rxValue > 1666) {
+                buff[1] = SYM_SWITCH_INDICATOR_HIGH;
+            } else {
+                buff[1] = SYM_SWITCH_INDICATOR_MID;
+            }
+            buff[3] = '\0';
+        }
+        break;
+
+    case OSD_SWITCH_INDICATOR_1:
+        {
+            buff[0] = osdConfig()->osd_switch_indicator1_char[0];
+            int rxValue = rxGetChannelValue(osdConfig()->osd_switch_indicator1_channnel - 1);
+
+            if ( rxValue < 1333) {
+                buff[1] = SYM_SWITCH_INDICATOR_LOW;
+            } else if ( rxValue > 1666) {
+                buff[1] = SYM_SWITCH_INDICATOR_HIGH;
+            } else {
+                buff[1] = SYM_SWITCH_INDICATOR_MID;
+            }
+            buff[3] = '\0';
+        }
+        break;
+
+    case OSD_SWITCH_INDICATOR_2:
+        {
+            buff[0] = osdConfig()->osd_switch_indicator2_char[0];
+            int rxValue = rxGetChannelValue(osdConfig()->osd_switch_indicator2_channnel - 1);
+
+            if ( rxValue < 1333) {
+                buff[1] = SYM_SWITCH_INDICATOR_LOW;
+            } else if ( rxValue > 1666) {
+                buff[1] = SYM_SWITCH_INDICATOR_HIGH;
+            } else {
+                buff[1] = SYM_SWITCH_INDICATOR_MID;
+            }
+            buff[3] = '\0';
+        }
+        break;
+
+    case OSD_SWITCH_INDICATOR_3:
+        {
+            buff[0] = osdConfig()->osd_switch_indicator3_char[0];
+            int rxValue = rxGetChannelValue(osdConfig()->osd_switch_indicator3_channnel - 1);
+
+            if ( rxValue < 1333) {
+                buff[1] = SYM_SWITCH_INDICATOR_LOW;
+            } else if ( rxValue > 1666) {
+                buff[1] = SYM_SWITCH_INDICATOR_HIGH;
+            } else {
+                buff[1] = SYM_SWITCH_INDICATOR_MID;
+            }
+            buff[3] = '\0';
+        }
+        break;
+
     case OSD_ACTIVE_PROFILE:
         tfp_sprintf(buff, "%c%u", SYM_PROFILE, (getConfigProfile() + 1));
         displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
@@ -3208,6 +3272,14 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .pan_servo_index = SETTING_OSD_PAN_SERVO_INDEX_DEFAULT,
     .pan_servo_pwm2centideg = SETTING_OSD_PAN_SERVO_PWM2CENTIDEG_DEFAULT,
     .esc_rpm_precision = SETTING_OSD_ESC_RPM_PRECISION_DEFAULT,
+    .osd_switch_indicator0_char = SETTING_OSD_SWITCH_INDICATOR0_CHAR_DEFAULT,
+    .osd_switch_indicator0_channnel = SETTING_OSD_SWITCH_INDICATOR0_CHANNNEL_DEFAULT,
+    .osd_switch_indicator1_char = SETTING_OSD_SWITCH_INDICATOR1_CHAR_DEFAULT,
+    .osd_switch_indicator1_channnel = SETTING_OSD_SWITCH_INDICATOR1_CHANNNEL_DEFAULT,
+    .osd_switch_indicator2_char = SETTING_OSD_SWITCH_INDICATOR2_CHAR_DEFAULT,
+    .osd_switch_indicator2_channnel = SETTING_OSD_SWITCH_INDICATOR2_CHANNNEL_DEFAULT,
+    .osd_switch_indicator3_char = SETTING_OSD_SWITCH_INDICATOR3_CHAR_DEFAULT,
+    .osd_switch_indicator3_channnel = SETTING_OSD_SWITCH_INDICATOR3_CHANNNEL_DEFAULT,
 
     .units = SETTING_OSD_UNITS_DEFAULT,
     .main_voltage_decimals = SETTING_OSD_MAIN_VOLTAGE_DECIMALS_DEFAULT,
@@ -3369,6 +3441,11 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_GVAR_1] = OSD_POS(1, 2);
     osdLayoutsConfig->item_pos[0][OSD_GVAR_2] = OSD_POS(1, 3);
     osdLayoutsConfig->item_pos[0][OSD_GVAR_3] = OSD_POS(1, 4);
+
+    osdLayoutsConfig->item_pos[0][OSD_SWITCH_INDICATOR_0] = OSD_POS(2, 7);
+    osdLayoutsConfig->item_pos[0][OSD_SWITCH_INDICATOR_1] = OSD_POS(2, 8);
+    osdLayoutsConfig->item_pos[0][OSD_SWITCH_INDICATOR_2] = OSD_POS(2, 9);
+    osdLayoutsConfig->item_pos[0][OSD_SWITCH_INDICATOR_3] = OSD_POS(2, 10);
 
 #if defined(USE_ESC_SENSOR)
     osdLayoutsConfig->item_pos[0][OSD_ESC_RPM] = OSD_POS(1, 2);

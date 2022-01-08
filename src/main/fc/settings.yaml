@@ -3470,6 +3470,62 @@ groups:
         max: 6
         default_value: 3
 
+      - name: osd_switch_indicator0_char
+        description: Character to use for OSD switch incicator 0
+        field: osd_switch_indicator0_char
+        type: string
+        max: 1
+        default_value: A
+
+      - name: osd_switch_indicator0_channnel
+        description: RC Channel to use for OSD switch indicator 0
+        field: osd_switch_indicator0_channnel
+        min: 5
+        max: MAX_SUPPORTED_RC_CHANNEL_COUNT
+        default_value: 5
+
+      - name: osd_switch_indicator1_char
+        description: Character to use for OSD switch incicator 0
+        field: osd_switch_indicator1_char
+        type: string
+        max: 1
+        default_value: A
+
+      - name: osd_switch_indicator1_channnel
+        description: RC Channel to use for OSD switch indicator 0
+        field: osd_switch_indicator1_channnel
+        min: 5
+        max: MAX_SUPPORTED_RC_CHANNEL_COUNT
+        default_value: 5
+
+      - name: osd_switch_indicator2_char
+        description: Character to use for OSD switch incicator 0
+        field: osd_switch_indicator2_char
+        type: string
+        max: 1
+        default_value: A
+
+      - name: osd_switch_indicator2_channnel
+        description: RC Channel to use for OSD switch indicator 0
+        field: osd_switch_indicator2_channnel
+        min: 5
+        max: MAX_SUPPORTED_RC_CHANNEL_COUNT
+        default_value: 5
+
+      - name: osd_switch_indicator3_char
+        description: Character to use for OSD switch incicator 0
+        field: osd_switch_indicator3_char
+        type: string
+        max: 1
+        default_value: A
+
+      - name: osd_switch_indicator3_channnel
+        description: RC Channel to use for OSD switch indicator 0
+        field: osd_switch_indicator3_channnel
+        min: 5
+        max: MAX_SUPPORTED_RC_CHANNEL_COUNT
+        default_value: 5
+
   - name: PG_OSD_COMMON_CONFIG
     type: osdCommonConfig_t
     headers: ["io/osd_common.h"]

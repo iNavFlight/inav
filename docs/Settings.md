@@ -4582,6 +4582,86 @@ Auto swap display time interval between disarm stats pages (seconds). Reverts to
 
 ---
 
+### osd_switch_indicator0_channnel
+
+RC Channel to use for OSD switch indicator 0
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 5 | MAX_SUPPORTED_RC_CHANNEL_COUNT |
+
+---
+
+### osd_switch_indicator0_char
+
+Character to use for OSD switch incicator 0
+
+| Default | Min | Max |
+| --- | --- | --- |
+| A |  | 1 |
+
+---
+
+### osd_switch_indicator1_channnel
+
+RC Channel to use for OSD switch indicator 0
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 5 | MAX_SUPPORTED_RC_CHANNEL_COUNT |
+
+---
+
+### osd_switch_indicator1_char
+
+Character to use for OSD switch incicator 0
+
+| Default | Min | Max |
+| --- | --- | --- |
+| A |  | 1 |
+
+---
+
+### osd_switch_indicator2_channnel
+
+RC Channel to use for OSD switch indicator 0
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 5 | MAX_SUPPORTED_RC_CHANNEL_COUNT |
+
+---
+
+### osd_switch_indicator2_char
+
+Character to use for OSD switch incicator 0
+
+| Default | Min | Max |
+| --- | --- | --- |
+| A |  | 1 |
+
+---
+
+### osd_switch_indicator3_channnel
+
+RC Channel to use for OSD switch indicator 0
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 5 | MAX_SUPPORTED_RC_CHANNEL_COUNT |
+
+---
+
+### osd_switch_indicator3_char
+
+Character to use for OSD switch incicator 0
+
+| Default | Min | Max |
+| --- | --- | --- |
+| A |  | 1 |
+
+---
+
 ### osd_telemetry
 
 To enable OSD telemetry for antenna tracker. Possible values are `OFF`, `ON` and `TEST`
