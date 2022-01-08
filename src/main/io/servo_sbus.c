@@ -39,6 +39,8 @@
 #include "io/servo_sbus.h"
 #include "rx/sbus_channels.h"
 
+#include "telemetry/telemetry.h"
+
 #if defined(USE_SERVO_SBUS)
 
 #define SERVO_SBUS_UART_BAUD            100000
@@ -62,16 +64,16 @@ bool sbusServoInitialize(void)
     }
 
     bool servoserialCheckRxPortShared(const serialPortConfig_t *portConfig)
-	{
-		return portConfig->functionMask & FUNCTION_RX_SERIAL;
-	}
-	if (servoserialCheckRxPortShared(portConfig)) {
-		servoSbusPort = telemetrySharedPort;
-	} else {	
-		servoSbusPort = openSerialPort(portConfig->identifier, FUNCTION_SERVO_SERIAL, NULL, NULL, SERVO_SBUS_UART_BAUD, MODE_TX, SERVO_SBUS_OPTIONS);
-		if (!servoSbusPort) {
-			return false;
-		}
+    {
+        return portConfig->functionMask & FUNCTION_RX_SERIAL;
+    }
+        if (servoserialCheckRxPortShared(portConfig)) {
+                servoSbusPort = telemetrySharedPort;
+        } else {	
+        servoSbusPort = openSerialPort(portConfig->identifier, FUNCTION_SERVO_SERIAL, NULL, NULL, SERVO_SBUS_UART_BAUD, MODE_TX, SERVO_SBUS_OPTIONS);
+        if (!servoSbusPort) {
+                return false;
+        }
     }
 
     // SBUS V1 magical values
