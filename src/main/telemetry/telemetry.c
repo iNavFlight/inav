@@ -143,7 +143,7 @@ void telemetryInit(void)
 #endif
 
 #ifdef USE_SERVO_SBUS
-	pwmServoPreconfigure();
+    pwmServoPreconfigure();
 #endif
 
     telemetryCheckState();
