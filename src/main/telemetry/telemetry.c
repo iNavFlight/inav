@@ -29,6 +29,7 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/serial.h"
+#include "drivers/pwm_output.h"
 
 #include "fc/config.h"
 #include "fc/rc_controls.h"
@@ -139,6 +140,10 @@ void telemetryInit(void)
 
 #ifdef USE_TELEMETRY_GHST
     initGhstTelemetry();
+#endif
+
+#ifdef USE_SERVO_SBUS
+	pwmServoPreconfigure();
 #endif
 
     telemetryCheckState();
