@@ -60,7 +60,7 @@ FILE_COMPILE_FOR_SPEED
 
 #define DSHOT_DMA_BUFFER_SIZE   18 /* resolution + frame reset (2us) */
 
-#define DSHOT_COMMAND_INTERVAL_US 1000
+#define DSHOT_COMMAND_INTERVAL_US 10000
 #define DSHOT_COMMAND_QUEUE_LENGTH 8
 #define DHSOT_COMMAND_QUEUE_SIZE   DSHOT_COMMAND_QUEUE_LENGTH * sizeof(dshotCommands_e)
 #endif
@@ -366,30 +366,28 @@ static int getDShotCommandRepeats(dshotCommands_e cmd) {
     return repeats;
 }
 
+timeUs_t lastCommandSent = 0;
+
 static void executeDShotCommands(void){
 
     if(currentExecutingCommand.remainingRepeats == 0) {
-
-        const int isTherePendingCommands = !circularBufferIsEmpty(&commandsCircularBuffer);
-
-        if (isTherePendingCommands) {
+       const int isTherePendingCommands = !circularBufferIsEmpty(&commandsCircularBuffer);
+        if (isTherePendingCommands && (micros() - lastCommandSent > DSHOT_COMMAND_INTERVAL_US)){
             //Load the command
             dshotCommands_e cmd;
             circularBufferPopHead(&commandsCircularBuffer, (uint8_t *) &cmd);
-
             currentExecutingCommand.cmd = cmd;
-            currentExecutingCommand.remainingRepeats = getDShotCommandRepeats(cmd);
-        }
-        else {
-            return;
-        }
+            currentExecutingCommand.remainingRepeats = getDShotCommandRepeats(cmd);           
+        } else {
+        return;
+        }  
     }
-
     for (uint8_t i = 0; i < getMotorCount(); i++) {
-        motors[i].requestTelemetry = true;
-        motors[i].value = currentExecutingCommand.cmd;
+         motors[i].requestTelemetry = true;
+         motors[i].value = currentExecutingCommand.cmd;
     }
-    currentExecutingCommand.remainingRepeats--;
+    currentExecutingCommand.remainingRepeats--; 
+    lastCommandSent = micros();
 }
 #endif
 
