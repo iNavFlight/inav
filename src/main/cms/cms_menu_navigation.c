@@ -26,8 +26,6 @@
 
 #include "platform.h"
 
-#if defined(USE_NAV)
-
 #include <stdlib.h>
 #include <string.h>
 
@@ -196,8 +194,9 @@ static const OSD_Entry cmsx_menuMissionSettingsEntries[] =
     OSD_SETTING_ENTRY("WP REACHED RADIUS", SETTING_NAV_WP_RADIUS),
     OSD_SETTING_ENTRY("WP CAPTURE ALTITUDE", SETTING_NAV_WP_CAPTURE_ALTITUDE),
     OSD_SETTING_ENTRY("WP SAFE DISTANCE", SETTING_NAV_WP_SAFE_DISTANCE),
+#ifdef USE_MULTI_MISSION
     OSD_SETTING_ENTRY("MULTI MISSION NUMBER", SETTING_NAV_WP_MULTI_MISSION_INDEX),
-
+#endif
     OSD_BACK_AND_END_ENTRY,
  };
 
@@ -234,5 +233,3 @@ const CMS_Menu cmsx_menuNavigation = {
     .onGlobalExit = NULL,
     .entries = cmsx_menuNavigationEntries
 };
-
- #endif

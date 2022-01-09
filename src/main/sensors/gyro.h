@@ -24,11 +24,15 @@
 #include "config/parameter_group.h"
 #include "drivers/sensor.h"
 
+/*
+ * Number of peaks to detect with Dynamic Notch Filter aka Matrixc Filter. This is equal to the number of dynamic notch filters
+ */
+#define DYN_NOTCH_PEAK_COUNT 3
+
 typedef enum {
     GYRO_NONE = 0,
     GYRO_AUTODETECT,
     GYRO_MPU6050,
-    GYRO_L3GD20,
     GYRO_MPU6000,
     GYRO_MPU6500,
     GYRO_MPU9250,

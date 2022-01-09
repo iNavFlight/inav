@@ -21,8 +21,6 @@
 
 #include "platform.h"
 
-#if defined(USE_NAV)
-
 #include "build/build_config.h"
 #include "build/debug.h"
 
@@ -446,7 +444,7 @@ static void updatePositionVelocityController_MC(const float maxSpeed)
      */
     if (
         (navGetCurrentStateFlags() & NAV_AUTO_WP &&
-        !isApproachingLastWaypoint() &&
+        !isNavHoldPositionActive() &&
         newVelTotal < maxSpeed &&
         !navConfig()->mc.slowDownForTurning
         ) || newVelTotal > maxSpeed
@@ -819,4 +817,3 @@ void applyMulticopterNavigationController(navigationFSMStateFlags_t navStateFlag
             applyMulticopterHeadingController();
     }
 }
-#endif  // NAV

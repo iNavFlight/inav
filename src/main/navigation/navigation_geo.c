@@ -21,8 +21,6 @@
 
 #include "platform.h"
 
-#if defined(USE_NAV)
-
 #include "build/build_config.h"
 #include "build/debug.h"
 
@@ -169,6 +167,3 @@ bool geoConvertLocalToGeodetic(gpsLocation_t *llh, const gpsOrigin_t * origin, c
     llh->alt += lrintf(pos->z);
     return origin->valid;
 }
-
-
-#endif  // NAV
