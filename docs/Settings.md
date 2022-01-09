@@ -3858,7 +3858,7 @@ Forces craft to achieve the set WP altitude as well as position before moving to
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF |  |  |
+| OFF | OFF | ON |
 
 ---
 
