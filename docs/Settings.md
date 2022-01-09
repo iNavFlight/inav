@@ -188,7 +188,7 @@ Defines airmode THROTTLE activation threshold when `airmode_type` **THROTTLE_THR
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1300 | 1000 | 2000 |
+| 1150 | 1000 | 2000 |
 
 ---
 
