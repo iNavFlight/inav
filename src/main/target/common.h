@@ -76,6 +76,10 @@
 #define SCHEDULER_DELAY_LIMIT           100
 #endif
 
+#if (MCU_FLASH_SIZE > 512)
+#define USE_TELEMETRY_MICRO_ROS
+#endif
+
 #if (MCU_FLASH_SIZE > 256)
 
 #if defined(MAG_I2C_BUS) || defined(VCM5883_I2C_BUS)
