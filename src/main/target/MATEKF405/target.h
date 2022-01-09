@@ -147,6 +147,7 @@
 #define USE_BARO_MS5611
 #define USE_BARO_BMP085
 #define USE_BARO_DPS310
+#define USE_BARO_SPL06
 
 #define USE_MAG
 #define MAG_I2C_BUS                 DEFAULT_I2C_BUS
@@ -165,7 +166,6 @@
 
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_MSP
-#define USE_RANGEFINDER_HCSR04_I2C
 #define RANGEFINDER_I2C_BUS     DEFAULT_I2C_BUS
 
 #define PITOT_I2C_BUS               DEFAULT_I2C_BUS
@@ -199,7 +199,6 @@
 
 #define USE_DSHOT
 #define USE_ESC_SENSOR
-#define USE_SERIALSHOT
 
 #define MAX_PWM_OUTPUT_PORTS       6
 

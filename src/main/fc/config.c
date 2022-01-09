@@ -107,7 +107,7 @@ PG_RESET_TEMPLATE(featureConfig_t, featureConfig,
     .enabledFeatures = DEFAULT_FEATURES | COMMON_DEFAULT_FEATURES
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 3);
+PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 5);
 
 PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .current_profile_index = 0,
@@ -144,13 +144,11 @@ PG_RESET_TEMPLATE(adcChannelConfig_t, adcChannelConfig,
     }
 );
 
-#ifdef USE_NAV
 void validateNavConfig(void)
 {
     // Make sure minAlt is not more than maxAlt, maxAlt cannot be set lower than 500.
     navConfigMutable()->general.land_slowdown_minalt = MIN(navConfig()->general.land_slowdown_minalt, navConfig()->general.land_slowdown_maxalt - 100);
 }
-#endif
 
 
 // Stubs to handle target-specific configs
@@ -183,22 +181,12 @@ uint32_t getGyroLooptime(void) {
 
 void validateAndFixConfig(void)
 {
-    if (gyroConfig()->gyro_notch_cutoff >= gyroConfig()->gyro_notch_hz) {
-        gyroConfigMutable()->gyro_notch_hz = 0;
-    }
     if (accelerometerConfig()->acc_notch_cutoff >= accelerometerConfig()->acc_notch_hz) {
         accelerometerConfigMutable()->acc_notch_hz = 0;
     }
 
     // Disable unused features
     featureClear(FEATURE_UNUSED_1 | FEATURE_UNUSED_3 | FEATURE_UNUSED_4 | FEATURE_UNUSED_5 | FEATURE_UNUSED_6 | FEATURE_UNUSED_7 | FEATURE_UNUSED_8 | FEATURE_UNUSED_9 | FEATURE_UNUSED_10);
-
-#if !defined(USE_RX_PPM)
-    if (rxConfig()->receiverType == RX_TYPE_PPM) {
-        rxConfigMutable()->receiverType = RX_TYPE_NONE;
-    }
-#endif
-
 
 #if defined(USE_LED_STRIP) && (defined(USE_SOFTSERIAL1) || defined(USE_SOFTSERIAL2))
     if (featureConfigured(FEATURE_SOFTSERIAL) && featureConfigured(FEATURE_LED_STRIP)) {
@@ -242,10 +230,8 @@ void validateAndFixConfig(void)
         pgResetCopy(serialConfigMutable(), PG_SERIAL_CONFIG);
     }
 
-#if defined(USE_NAV)
     // Ensure sane values of navConfig settings
     validateNavConfig();
-#endif
 
     // Limitations of different protocols
 #if !defined(USE_DSHOT)
@@ -265,9 +251,6 @@ void validateAndFixConfig(void)
     case PWM_TYPE_ONESHOT125:   // Limited to 3900 Hz
         motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 3900);
         break;
-    case PWM_TYPE_ONESHOT42:    // 2-8 kHz
-        motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 2000, 8000);
-        break;
     case PWM_TYPE_MULTISHOT:    // 2-16 kHz
         motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 2000, 16000);
         break;
@@ -286,14 +269,6 @@ void validateAndFixConfig(void)
     // It's more reasonable to use slower-speed DSHOT at higher rate for better reliability
     case PWM_TYPE_DSHOT600:
         motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 16000);
-        break;
-    case PWM_TYPE_DSHOT1200:
-        motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 32000);
-        break;
-#endif
-#ifdef USE_SERIALSHOT
-    case PWM_TYPE_SERIALSHOT:   // 2-4 kHz
-        motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 2000, 4000);
         break;
 #endif
     }
@@ -373,9 +348,7 @@ static void activateConfig(void)
 
     pidInit();
 
-#ifdef USE_NAV
     navigationUsePIDs();
-#endif
 }
 
 void readEEPROM(void)

@@ -16,6 +16,8 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get -y install ninja-build
       - name: Setup environment
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: true
         run: |
           # This is the hash of the commit for the PR
           # when the action is triggered by PR, empty otherwise

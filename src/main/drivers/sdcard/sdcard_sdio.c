@@ -241,11 +241,12 @@ static sdcardOperationStatus_e sdcard_endWriteBlocks(void)
  */
 static bool sdcardSdio_poll(void)
 {
+#if !defined(STM32H7) // H7 uses IDMA
     if (!sdcard.dma) {
         sdcard.state = SDCARD_STATE_NOT_PRESENT;
         return false;
     }
-
+#endif
     doMore:
     switch (sdcard.state) {
         case SDCARD_STATE_RESET:
@@ -545,6 +546,7 @@ static bool sdcardSdio_readBlock(uint32_t blockIndex, uint8_t *buffer, sdcard_op
  */
 void sdcardSdio_init(void)
 {
+#if !defined(STM32H7) // H7 uses IDMA
     sdcard.dma = dmaGetByTag(SDCARD_SDIO_DMA);
 
     if (!sdcard.dma) {
@@ -564,7 +566,12 @@ void sdcardSdio_init(void)
         sdcard.state = SDCARD_STATE_NOT_PRESENT;
         return;
     }
-
+#else
+    if (!SD_Initialize_LL(0)) {
+        sdcard.state = SDCARD_STATE_NOT_PRESENT;
+        return;
+    }
+#endif
     // We don't support hot insertion
     if (!sdcard_isInserted()) {
         sdcard.state = SDCARD_STATE_NOT_PRESENT;

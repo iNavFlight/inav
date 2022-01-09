@@ -105,9 +105,9 @@ int16_t servo[MAX_SUPPORTED_SERVOS];
 
 static uint8_t servoRuleCount = 0;
 static servoMixer_t currentServoMixer[MAX_SERVO_RULES];
-static int servoOutputEnabled;
+static bool servoOutputEnabled;
 
-static uint8_t mixerUsesServos;
+static bool mixerUsesServos;
 static uint8_t minServoIndex;
 static uint8_t maxServoIndex;
 
@@ -151,8 +151,8 @@ void servosInit(void)
 
     // If there are servo rules after all, update variables
     if (servoRuleCount > 0) {
-        servoOutputEnabled = 1;
-        mixerUsesServos = 1;
+        servoOutputEnabled = true;
+        mixerUsesServos = true;
     }
 
     for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
@@ -490,7 +490,7 @@ void processServoAutotrimMode(void)
 #define SERVO_AUTOTRIM_CENTER_MIN       1300
 #define SERVO_AUTOTRIM_CENTER_MAX       1700
 #define SERVO_AUTOTRIM_UPDATE_SIZE      5
-#define SERVO_AUTOTRIM_ATIITUDE_LIMIT   50       // 5 degrees
+#define SERVO_AUTOTRIM_ATTITUDE_LIMIT   50       // 5 degrees
 
 void processContinuousServoAutotrim(const float dT)
 {
@@ -507,8 +507,8 @@ void processContinuousServoAutotrim(const float dT)
             const bool planeIsFlyingStraight = rotRateMagnitudeFiltered <= DEGREES_TO_RADIANS(servoConfig()->servo_autotrim_rotation_limit);
             const bool noRotationCommanded = targetRateMagnitudeFiltered <= servoConfig()->servo_autotrim_rotation_limit;
             const bool sticksAreCentered = !areSticksDeflected();
-            const bool planeIsFlyingLevel = ABS(attitude.values.pitch + DEGREES_TO_DECIDEGREES(getFixedWingLevelTrim())) <= SERVO_AUTOTRIM_ATIITUDE_LIMIT 
-                                            && ABS(attitude.values.roll) <= SERVO_AUTOTRIM_ATIITUDE_LIMIT;
+            const bool planeIsFlyingLevel = ABS(attitude.values.pitch + DEGREES_TO_DECIDEGREES(getFixedWingLevelTrim())) <= SERVO_AUTOTRIM_ATTITUDE_LIMIT 
+                                            && ABS(attitude.values.roll) <= SERVO_AUTOTRIM_ATTITUDE_LIMIT;
             if (
                 planeIsFlyingStraight && 
                 noRotationCommanded && 

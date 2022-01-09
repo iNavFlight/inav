@@ -184,3 +184,8 @@
 #define TARGET_IO_PORTE 0xffff
 
 #define MAX_PWM_OUTPUT_PORTS       8
+
+// *************** PINIO ***************************
+#define USE_PINIO
+#define USE_PINIOBOX
+#define PINIO1_PIN                  PC0
