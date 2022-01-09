@@ -2211,6 +2211,7 @@ void initializeRTHSanityChecker(void)
     posControl.rthSanityChecker.lastCheckTime = currentTimeMs;
     posControl.rthSanityChecker.rthSanityOK = true;
     posControl.rthSanityChecker.minimalDistanceToHome = calculateDistanceToDestination(&posControl.rthState.homePosition.pos);
+    posControl.rthSanityChecker.lastDistanceToHome = posControl.rthSanityChecker.minimalDistanceToHome;
 }
 
 bool validateRTHSanityChecker(void)
@@ -2227,13 +2228,16 @@ bool validateRTHSanityChecker(void)
         const float currentDistanceToHome = calculateDistanceToDestination(&posControl.rthState.homePosition.pos);
         posControl.rthSanityChecker.lastCheckTime = currentTimeMs;
 
-        // 100 cm deadband on movement toward home to avoid excessive switching at sanity distance margin
-        if (posControl.rthSanityChecker.minimalDistanceToHome - currentDistanceToHome > 100) {
-            posControl.rthSanityChecker.minimalDistanceToHome = currentDistanceToHome;
+        if (posControl.rthSanityChecker.lastDistanceToHome - currentDistanceToHome > 100){
+            if (currentDistanceToHome < posControl.rthSanityChecker.minimalDistanceToHome) {
+                posControl.rthSanityChecker.minimalDistanceToHome = currentDistanceToHome;
+            }
+            posControl.rthSanityChecker.lastDistanceToHome = currentDistanceToHome;
             posControl.rthSanityChecker.rthSanityOK = true;
-        } else {
+        } else if (currentDistanceToHome > posControl.rthSanityChecker.lastDistanceToHome){
             // If while doing RTH we got even farther away from home - RTH is doing something crazy
             posControl.rthSanityChecker.rthSanityOK = (currentDistanceToHome - posControl.rthSanityChecker.minimalDistanceToHome) < navConfig()->general.rth_abort_threshold;
+            posControl.rthSanityChecker.lastDistanceToHome = currentDistanceToHome;
         }
     }
 

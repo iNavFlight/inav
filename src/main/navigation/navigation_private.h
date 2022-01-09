@@ -294,6 +294,7 @@ typedef struct {
     timeMs_t        lastCheckTime;
     bool            rthSanityOK;
     float           minimalDistanceToHome;
+    float           lastDistanceToHome;
 } rthSanityChecker_t;
 
 typedef struct {

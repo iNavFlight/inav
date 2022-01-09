@@ -3714,11 +3714,11 @@ If GPS fails wait for this much seconds before switching to emergency landing mo
 
 ### nav_rth_abort_threshold
 
-RTH sanity checking feature will notice if distance to home is increasing during RTH and once amount of increase exceeds the threshold defined by this parameter, instead of continuing RTH machine will enter emergency landing, self-level and go down safely. Default is 500m which is safe enough for both multirotor machines and airplanes. [cm]
+RTH sanity checking feature will notice if distance to home is increasing during RTH and once amount of increase exceeds the threshold defined by this parameter, instead of continuing RTH machine will enter emergency landing, self-level and go down safely. Default is 500m which is safe enough for both multirotor machines and airplanes. Set to 0 to disable. [cm]
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 50000 |  | 65000 |
+| 50000 | 0 | 65000 |
 
 ---
 
