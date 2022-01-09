@@ -308,6 +308,8 @@ typedef struct osdLayoutsConfig_s {
 
 PG_DECLARE(osdLayoutsConfig_t, osdLayoutsConfig);
 
+#define OSD_SWITCH_INDICATOR_NAME_LENGTH 4
+
 typedef struct osdConfig_s {
     // Alarms
     uint8_t rssi_alarm; // rssi %
@@ -398,13 +400,13 @@ typedef struct osdConfig_s {
     uint8_t sidebar_height;                     // sidebar height in rows, 0 turns off sidebars leaving only level indicator arrows
     uint8_t telemetry; 				            // use telemetry on displayed pixel line 0
     uint8_t esc_rpm_precision;                  // Number of characters used for the RPM numbers.
-    char    osd_switch_indicator0_char[2];      // Character to use for switch indicator 0.
+    char    osd_switch_indicator0_name[OSD_SWITCH_INDICATOR_NAME_LENGTH + 1];      // Name to use for switch indicator 0.
     uint8_t osd_switch_indicator0_channnel;     // RC Channel to use for switch indicator 0.
-    char    osd_switch_indicator1_char[2];      // Character to use for switch indicator 1.
+    char    osd_switch_indicator1_name[OSD_SWITCH_INDICATOR_NAME_LENGTH + 1];      // Name to use for switch indicator 1.
     uint8_t osd_switch_indicator1_channnel;     // RC Channel to use for switch indicator 1.
-    char    osd_switch_indicator2_char[2];      // Character to use for switch indicator 2.
+    char    osd_switch_indicator2_name[OSD_SWITCH_INDICATOR_NAME_LENGTH + 1];      // Name to use for switch indicator 2.
     uint8_t osd_switch_indicator2_channnel;     // RC Channel to use for switch indicator 2.
-    char    osd_switch_indicator3_char[2];      // Character to use for switch indicator 3.
+    char    osd_switch_indicator3_name[OSD_SWITCH_INDICATOR_NAME_LENGTH + 1];      // Name to use for switch indicator 3.
     uint8_t osd_switch_indicator3_channnel;     // RC Channel to use for switch indicator 3.
 
 } osdConfig_t;

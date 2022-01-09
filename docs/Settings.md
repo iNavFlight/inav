@@ -4592,13 +4592,13 @@ RC Channel to use for OSD switch indicator 0
 
 ---
 
-### osd_switch_indicator0_char
+### osd_switch_indicator0_name
 
 Character to use for OSD switch incicator 0
 
 | Default | Min | Max |
 | --- | --- | --- |
-| A |  | 1 |
+| FLAP |  | 5 |
 
 ---
 
@@ -4612,13 +4612,13 @@ RC Channel to use for OSD switch indicator 0
 
 ---
 
-### osd_switch_indicator1_char
+### osd_switch_indicator1_name
 
 Character to use for OSD switch incicator 0
 
 | Default | Min | Max |
 | --- | --- | --- |
-| A |  | 1 |
+| GEAR |  | 5 |
 
 ---
 
@@ -4632,13 +4632,13 @@ RC Channel to use for OSD switch indicator 0
 
 ---
 
-### osd_switch_indicator2_char
+### osd_switch_indicator2_name
 
 Character to use for OSD switch incicator 0
 
 | Default | Min | Max |
 | --- | --- | --- |
-| A |  | 1 |
+| CAM |  | 5 |
 
 ---
 
@@ -4652,13 +4652,13 @@ RC Channel to use for OSD switch indicator 0
 
 ---
 
-### osd_switch_indicator3_char
+### osd_switch_indicator3_name
 
 Character to use for OSD switch incicator 0
 
 | Default | Min | Max |
 | --- | --- | --- |
-| A |  | 1 |
+| LIGT |  | 5 |
 
 ---
 

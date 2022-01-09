@@ -1496,6 +1496,33 @@ int8_t getGeoWaypointNumber(int8_t waypointIndex)
     return geoWaypointIndex + 1;
 }
 
+void osdDisplaySwitchIndicator(const char *swName, int rcValue, char *buff) {
+    int8_t charRemainder = OSD_SWITCH_INDICATOR_NAME_LENGTH;
+    int8_t ptr = 0;
+
+    for (ptr = strlen(swName); ptr > 0; ptr--) {
+        buff[--charRemainder] = swName[ptr-1];
+    }
+
+    buff[5] = (48 + charRemainder);
+
+    if (charRemainder > 0) {
+        for (ptr = 0; ptr < charRemainder; ptr++) {
+            buff[ptr] = SYM_BLANK;
+        }
+    }
+
+    if ( rcValue < 1333) {
+        buff[OSD_SWITCH_INDICATOR_NAME_LENGTH] = SYM_SWITCH_INDICATOR_LOW;
+    } else if ( rcValue > 1666) {
+        buff[OSD_SWITCH_INDICATOR_NAME_LENGTH] = SYM_SWITCH_INDICATOR_HIGH;
+    } else {
+        buff[OSD_SWITCH_INDICATOR_NAME_LENGTH] = SYM_SWITCH_INDICATOR_MID;
+    }
+    
+    buff[OSD_SWITCH_INDICATOR_NAME_LENGTH + 1] = '\0';
+}
+
 static bool osdDrawSingleElement(uint8_t item)
 {
     uint16_t pos = osdLayoutsConfig()->item_pos[currentLayout][item];
@@ -2265,67 +2292,19 @@ static bool osdDrawSingleElement(uint8_t item)
 #endif
 
     case OSD_SWITCH_INDICATOR_0:
-        {
-            buff[0] = osdConfig()->osd_switch_indicator0_char[0];
-            int rxValue = rxGetChannelValue(osdConfig()->osd_switch_indicator0_channnel - 1);
-
-            if ( rxValue < 1333) {
-                buff[1] = SYM_SWITCH_INDICATOR_LOW;
-            } else if ( rxValue > 1666) {
-                buff[1] = SYM_SWITCH_INDICATOR_HIGH;
-            } else {
-                buff[1] = SYM_SWITCH_INDICATOR_MID;
-            }
-            buff[3] = '\0';
-        }
+        osdDisplaySwitchIndicator(osdConfig()->osd_switch_indicator0_name, rxGetChannelValue(osdConfig()->osd_switch_indicator0_channnel - 1), buff);
         break;
 
     case OSD_SWITCH_INDICATOR_1:
-        {
-            buff[0] = osdConfig()->osd_switch_indicator1_char[0];
-            int rxValue = rxGetChannelValue(osdConfig()->osd_switch_indicator1_channnel - 1);
-
-            if ( rxValue < 1333) {
-                buff[1] = SYM_SWITCH_INDICATOR_LOW;
-            } else if ( rxValue > 1666) {
-                buff[1] = SYM_SWITCH_INDICATOR_HIGH;
-            } else {
-                buff[1] = SYM_SWITCH_INDICATOR_MID;
-            }
-            buff[3] = '\0';
-        }
+        osdDisplaySwitchIndicator(osdConfig()->osd_switch_indicator1_name, rxGetChannelValue(osdConfig()->osd_switch_indicator1_channnel - 1), buff);
         break;
 
     case OSD_SWITCH_INDICATOR_2:
-        {
-            buff[0] = osdConfig()->osd_switch_indicator2_char[0];
-            int rxValue = rxGetChannelValue(osdConfig()->osd_switch_indicator2_channnel - 1);
-
-            if ( rxValue < 1333) {
-                buff[1] = SYM_SWITCH_INDICATOR_LOW;
-            } else if ( rxValue > 1666) {
-                buff[1] = SYM_SWITCH_INDICATOR_HIGH;
-            } else {
-                buff[1] = SYM_SWITCH_INDICATOR_MID;
-            }
-            buff[3] = '\0';
-        }
+        osdDisplaySwitchIndicator(osdConfig()->osd_switch_indicator2_name, rxGetChannelValue(osdConfig()->osd_switch_indicator2_channnel - 1), buff);
         break;
 
     case OSD_SWITCH_INDICATOR_3:
-        {
-            buff[0] = osdConfig()->osd_switch_indicator3_char[0];
-            int rxValue = rxGetChannelValue(osdConfig()->osd_switch_indicator3_channnel - 1);
-
-            if ( rxValue < 1333) {
-                buff[1] = SYM_SWITCH_INDICATOR_LOW;
-            } else if ( rxValue > 1666) {
-                buff[1] = SYM_SWITCH_INDICATOR_HIGH;
-            } else {
-                buff[1] = SYM_SWITCH_INDICATOR_MID;
-            }
-            buff[3] = '\0';
-        }
+        osdDisplaySwitchIndicator(osdConfig()->osd_switch_indicator3_name, rxGetChannelValue(osdConfig()->osd_switch_indicator3_channnel - 1), buff);
         break;
 
     case OSD_ACTIVE_PROFILE:
@@ -3272,13 +3251,13 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .pan_servo_index = SETTING_OSD_PAN_SERVO_INDEX_DEFAULT,
     .pan_servo_pwm2centideg = SETTING_OSD_PAN_SERVO_PWM2CENTIDEG_DEFAULT,
     .esc_rpm_precision = SETTING_OSD_ESC_RPM_PRECISION_DEFAULT,
-    .osd_switch_indicator0_char = SETTING_OSD_SWITCH_INDICATOR0_CHAR_DEFAULT,
+    .osd_switch_indicator0_name = SETTING_OSD_SWITCH_INDICATOR0_NAME_DEFAULT,
     .osd_switch_indicator0_channnel = SETTING_OSD_SWITCH_INDICATOR0_CHANNNEL_DEFAULT,
-    .osd_switch_indicator1_char = SETTING_OSD_SWITCH_INDICATOR1_CHAR_DEFAULT,
+    .osd_switch_indicator1_name = SETTING_OSD_SWITCH_INDICATOR1_NAME_DEFAULT,
     .osd_switch_indicator1_channnel = SETTING_OSD_SWITCH_INDICATOR1_CHANNNEL_DEFAULT,
-    .osd_switch_indicator2_char = SETTING_OSD_SWITCH_INDICATOR2_CHAR_DEFAULT,
+    .osd_switch_indicator2_name = SETTING_OSD_SWITCH_INDICATOR2_NAME_DEFAULT,
     .osd_switch_indicator2_channnel = SETTING_OSD_SWITCH_INDICATOR2_CHANNNEL_DEFAULT,
-    .osd_switch_indicator3_char = SETTING_OSD_SWITCH_INDICATOR3_CHAR_DEFAULT,
+    .osd_switch_indicator3_name = SETTING_OSD_SWITCH_INDICATOR3_NAME_DEFAULT,
     .osd_switch_indicator3_channnel = SETTING_OSD_SWITCH_INDICATOR3_CHANNNEL_DEFAULT,
 
     .units = SETTING_OSD_UNITS_DEFAULT,
