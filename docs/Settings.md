@@ -4582,29 +4582,9 @@ Auto swap display time interval between disarm stats pages (seconds). Reverts to
 
 ---
 
-### osd_switch_indicator0_channnel
+### osd_switch_indicator_one_channnel
 
-RC Channel to use for OSD switch indicator 0
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 5 | 5 | MAX_SUPPORTED_RC_CHANNEL_COUNT |
-
----
-
-### osd_switch_indicator0_name
-
-Character to use for OSD switch incicator 0
-
-| Default | Min | Max |
-| --- | --- | --- |
-| FLAP |  | 5 |
-
----
-
-### osd_switch_indicator1_channnel
-
-RC Channel to use for OSD switch indicator 0
+RC Channel to use for OSD switch indicator 1.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4612,9 +4592,9 @@ RC Channel to use for OSD switch indicator 0
 
 ---
 
-### osd_switch_indicator1_name
+### osd_switch_indicator_one_name
 
-Character to use for OSD switch incicator 0
+Character to use for OSD switch incicator 1.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4622,9 +4602,9 @@ Character to use for OSD switch incicator 0
 
 ---
 
-### osd_switch_indicator2_channnel
+### osd_switch_indicator_three_channnel
 
-RC Channel to use for OSD switch indicator 0
+RC Channel to use for OSD switch indicator 3.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4632,9 +4612,29 @@ RC Channel to use for OSD switch indicator 0
 
 ---
 
-### osd_switch_indicator2_name
+### osd_switch_indicator_three_name
 
-Character to use for OSD switch incicator 0
+Character to use for OSD switch incicator 3.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| LIGT |  | 5 |
+
+---
+
+### osd_switch_indicator_two_channnel
+
+RC Channel to use for OSD switch indicator 2.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 5 | MAX_SUPPORTED_RC_CHANNEL_COUNT |
+
+---
+
+### osd_switch_indicator_two_name
+
+Character to use for OSD switch incicator 2.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4642,9 +4642,9 @@ Character to use for OSD switch incicator 0
 
 ---
 
-### osd_switch_indicator3_channnel
+### osd_switch_indicator_zero_channnel
 
-RC Channel to use for OSD switch indicator 0
+RC Channel to use for OSD switch indicator 0.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4652,13 +4652,13 @@ RC Channel to use for OSD switch indicator 0
 
 ---
 
-### osd_switch_indicator3_name
+### osd_switch_indicator_zero_name
 
-Character to use for OSD switch incicator 0
+Character to use for OSD switch incicator 0.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| LIGT |  | 5 |
+| FLAP |  | 5 |
 
 ---
 
