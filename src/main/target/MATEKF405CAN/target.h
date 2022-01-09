@@ -25,7 +25,6 @@
 
 #define BEEPER                  PA8
 #define BEEPER_INVERTED
-#define BEEPER_PWM
 #define BEEPER_PWM_FREQUENCY    2500
 
 // *************** SPI1 Gyro & ACC *******************
@@ -57,6 +56,7 @@
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 #define USE_BARO_DPS310
+#define USE_BARO_SPL06
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
@@ -69,7 +69,6 @@
 #define USE_MAG_LIS3MDL
 
 #define USE_RANGEFINDER
-#define USE_RANGEFINDER_HCSR04_I2C
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
 
 #define PITOT_I2C_BUS           BUS_I2C2
@@ -85,7 +84,6 @@
 #define SPI2_MOSI_PIN   	    PB15
 
 #define USE_MAG_RM3100
-#define MAG_RM3100_ALIGN        CW0_DEG_FLIP
 #define RM3100_CS_PIN           PB12
 #define RM3100_SPI_BUS          BUS_SPI2
 

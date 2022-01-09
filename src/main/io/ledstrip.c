@@ -485,11 +485,11 @@ static void applyLedFixedLayers(void)
     }
 }
 
-static void applyLedHsv(uint32_t mask, const hsvColor_t *color)
+static void applyLedHsv(uint32_t mask, uint32_t ledOperation, const hsvColor_t *color)
 {
     for (int ledIndex = 0; ledIndex < ledCounts.count; ledIndex++) {
         const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[ledIndex];
-        if ((*ledConfig & mask) == mask)
+        if ((*ledConfig & mask) == ledOperation)
             setLedHsv(ledIndex, color);
     }
 }
@@ -548,7 +548,7 @@ static void applyLedWarningLayer(bool updateNow, timeUs_t *timer)
             }
         }
         if (warningColor)
-            applyLedHsv(LED_MOV_OVERLAY(LED_FLAG_OVERLAY(LED_OVERLAY_WARNING)), warningColor);
+            applyLedHsv(LED_OVERLAY_MASK, LED_MOV_OVERLAY(LED_FLAG_OVERLAY(LED_OVERLAY_WARNING)), warningColor);
     }
 }
 
@@ -582,7 +582,7 @@ static void applyLedBatteryLayer(bool updateNow, timeUs_t *timer)
 
     if (!flash) {
        const hsvColor_t *bgc = getSC(LED_SCOLOR_BACKGROUND);
-       applyLedHsv(LED_MOV_FUNCTION(LED_FUNCTION_BATTERY), bgc);
+       applyLedHsv(LED_FUNCTION_MASK, LED_MOV_FUNCTION(LED_FUNCTION_BATTERY), bgc);
     }
 }
 
@@ -612,7 +612,7 @@ static void applyLedRssiLayer(bool updateNow, timeUs_t *timer)
 
     if (!flash) {
        const hsvColor_t *bgc = getSC(LED_SCOLOR_BACKGROUND);
-       applyLedHsv(LED_MOV_FUNCTION(LED_FUNCTION_RSSI), bgc);
+       applyLedHsv(LED_FUNCTION_MASK, LED_MOV_FUNCTION(LED_FUNCTION_RSSI), bgc);
     }
 }
 
@@ -649,7 +649,7 @@ static void applyLedGpsLayer(bool updateNow, timeUs_t *timer)
         }
     }
 
-    applyLedHsv(LED_MOV_FUNCTION(LED_FUNCTION_GPS), gpsColor);
+    applyLedHsv(LED_FUNCTION_MASK, LED_MOV_FUNCTION(LED_FUNCTION_GPS), gpsColor);
 }
 
 #endif

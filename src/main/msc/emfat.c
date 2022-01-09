@@ -388,8 +388,8 @@ void read_boot_sector(const emfat_t *emfat, uint8_t *sect)
     bs->volume_id[1] = 14;
     bs->volume_id[2] = 13;
     bs->volume_id[3] = 8;
-    memcpy(bs->volume_label, "NO NAME     ", 12);
-    memcpy(bs->file_system_type, "FAT32   ", 8);
+    memcpy(bs->volume_label, "NO NAME    ", VOL_LABEL_LEN);
+    memcpy(bs->file_system_type, "FAT32   ", FILE_SYS_TYPE_LENGTH);
     sect[SECT - 2] = 0x55;
     sect[SECT - 1] = 0xAA;
 }
@@ -525,8 +525,9 @@ void fill_entry(dir_entry *entry, const char *name, uint8_t attr, uint32_t clust
         l2 = l2 > FILE_NAME_EXTN_LEN ? FILE_NAME_EXTN_LEN : l2;
     }
 
-    memset(entry->name, ' ', FILE_NAME_SHRT_LEN + FILE_NAME_EXTN_LEN);
+    memset(entry->name, ' ', FILE_NAME_SHRT_LEN);
     memcpy(entry->name, name, l1);
+    memset(entry->extn, ' ', FILE_NAME_EXTN_LEN);
     memcpy(entry->extn, name + dot_pos + 1, l2);
 
     for (i = 0; i < FILE_NAME_SHRT_LEN; i++) {

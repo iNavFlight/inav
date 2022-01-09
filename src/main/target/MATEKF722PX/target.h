@@ -54,6 +54,7 @@
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 #define USE_BARO_DPS310
+#define USE_BARO_SPL06
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
@@ -169,7 +170,5 @@
 #define TARGET_IO_PORTD 0xffff
 
 #define MAX_PWM_OUTPUT_PORTS        10
-#define USE_OSD
 #define USE_DSHOT
-#define USE_SERIALSHOT
 #define USE_ESC_SENSOR

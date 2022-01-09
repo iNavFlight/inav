@@ -26,15 +26,19 @@
 
 FILE_COMPILE_FOR_SIZE
 
-#ifdef USE_NAV
-
 #include "build/debug.h"
+
 #include "common/utils.h"
+
 #include "fc/rc_controls.h"
 #include "fc/config.h"
+
 #include "flight/mixer.h"
+
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
+
+#include "sensors/battery.h"
 
 static bool isYawAdjustmentValid = false;
 static int32_t navHeadingError;
@@ -96,7 +100,7 @@ void applyRoverBoatPositionController(timeUs_t currentTimeUs)
             }
 
             // Indicate that information is no longer usable
-            posControl.flags.horizontalPositionDataConsumed = 1;
+            posControl.flags.horizontalPositionDataConsumed = true;
         }
 
         isYawAdjustmentValid = true;
@@ -125,7 +129,7 @@ void applyRoverBoatPitchRollThrottleController(navigationFSMStateFlags_t navStat
                 rcCommand[YAW] = posControl.rcAdjustment[YAW];
             }
 
-            rcCommand[THROTTLE] = constrain(navConfig()->fw.cruise_throttle, motorConfig()->mincommand, motorConfig()->maxthrottle);
+            rcCommand[THROTTLE] = constrain(currentBatteryProfile->nav.fw.cruise_throttle, motorConfig()->mincommand, motorConfig()->maxthrottle);
         }
     }
 }
@@ -136,11 +140,9 @@ void applyRoverBoatNavigationController(navigationFSMStateFlags_t navStateFlags,
         rcCommand[ROLL] = 0;
         rcCommand[PITCH] = 0;
         rcCommand[YAW] = 0;
-        rcCommand[THROTTLE] = failsafeConfig()->failsafe_throttle;
+        rcCommand[THROTTLE] = currentBatteryProfile->failsafe_throttle;
     } else if (navStateFlags & NAV_CTL_POS) {
         applyRoverBoatPositionController(currentTimeUs);
         applyRoverBoatPitchRollThrottleController(navStateFlags, currentTimeUs);
     }
 }
-
-#endif

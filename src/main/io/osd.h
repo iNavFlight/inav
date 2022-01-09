@@ -53,7 +53,6 @@
 #define OSD_MSG_SYS_OVERLOADED      "SYSTEM OVERLOADED"
 #define OSD_MSG_WAITING_GPS_FIX     "WAITING FOR GPS FIX"
 #define OSD_MSG_DISABLE_NAV_FIRST   "DISABLE NAVIGATION FIRST"
-#define OSD_MSG_1ST_WP_TOO_FAR      "FIRST WAYPOINT IS TOO FAR"
 #define OSD_MSG_JUMP_WP_MISCONFIG   "JUMP WAYPOINT MISCONFIGURED"
 #define OSD_MSG_MAG_NOT_CAL         "COMPASS NOT CALIBRATED"
 #define OSD_MSG_ACC_NOT_CAL         "ACCELEROMETER NOT CALIBRATED"
@@ -84,10 +83,11 @@
 #define OSD_MSG_STARTING_RTH        "STARTING RTH"
 #define OSD_MSG_RTH_CLIMB           "ADJUSTING RTH ALTITUDE"
 #define OSD_MSG_HEADING_HOME        "EN ROUTE TO HOME"
-#define OSD_MSG_HOLDING_WAYPOINT    "HOLDING WAYPOINT"
-#define OSD_MSG_TO_WP               "TO WP"
+#define OSD_MSG_WP_FINISHED         "WP END>HOLDING POSITION"
 #define OSD_MSG_PREPARE_NEXT_WP     "PREPARING FOR NEXT WAYPOINT"
-#define OSD_MSG_WP_RTH_CANCEL       "CANCEL WP MODE TO EXIT RTH"
+#define OSD_MSG_MISSION_PLANNER     "(WP MISSION PLANNER)"
+#define OSD_MSG_WP_RTH_CANCEL       "CANCEL WP TO EXIT RTH"
+#define OSD_MSG_WP_MISSION_LOADED   "* MISSION LOADED *"
 #define OSD_MSG_EMERG_LANDING       "EMERGENCY LANDING"
 #define OSD_MSG_LANDING             "LANDING"
 #define OSD_MSG_LOITERING_HOME      "LOITERING AROUND HOME"
@@ -98,7 +98,9 @@
 #define OSD_MSG_ALTITUDE_HOLD       "(ALTITUDE HOLD)"
 #define OSD_MSG_AUTOTRIM            "(AUTOTRIM)"
 #define OSD_MSG_AUTOTUNE            "(AUTOTUNE)"
+#define OSD_MSG_AUTOTUNE_ACRO       "SWITCH TO ACRO"
 #define OSD_MSG_HEADFREE            "(HEADFREE)"
+#define OSD_MSG_NAV_SOARING         "(SOARING)"
 #define OSD_MSG_UNABLE_ARM          "UNABLE TO ARM"
 
 #if defined(USE_SAFE_HOME)
@@ -228,15 +230,26 @@ typedef enum {
     OSD_NAV_FW_CONTROL_SMOOTHNESS,
     OSD_VERSION,
     OSD_RANGEFINDER,
+    OSD_PLIMIT_REMAINING_BURST_TIME,
+    OSD_PLIMIT_ACTIVE_CURRENT_LIMIT,
+    OSD_PLIMIT_ACTIVE_POWER_LIMIT,
+    OSD_GLIDESLOPE,
+    OSD_GPS_MAX_SPEED,
+    OSD_3D_MAX_SPEED,
+    OSD_AIR_MAX_SPEED,
+    OSD_ACTIVE_PROFILE,
+    OSD_MISSION,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
 typedef enum {
     OSD_UNIT_IMPERIAL,
     OSD_UNIT_METRIC,
-    OSD_UNIT_UK, // Show speed in mp/h, other values in metric
+    OSD_UNIT_METRIC_MPH, // Old UK units, all metric except speed in mph
+    OSD_UNIT_UK, // Show everything in imperial, temperature in C
+    OSD_UNIT_GA, // General Aviation: Knots, Nautical Miles, Feet, Degrees C
 
-    OSD_UNIT_MAX = OSD_UNIT_UK,
+    OSD_UNIT_MAX = OSD_UNIT_GA,
 } osd_unit_e;
 
 typedef enum {
@@ -262,7 +275,7 @@ typedef enum {
 typedef enum {
     OSD_SIDEBAR_SCROLL_NONE,
     OSD_SIDEBAR_SCROLL_ALTITUDE,
-    OSD_SIDEBAR_SCROLL_GROUND_SPEED,
+    OSD_SIDEBAR_SCROLL_SPEED,
     OSD_SIDEBAR_SCROLL_HOME_DISTANCE,
 
     OSD_SIDEBAR_SCROLL_MAX = OSD_SIDEBAR_SCROLL_HOME_DISTANCE,
@@ -281,6 +294,7 @@ typedef enum {
 typedef enum {
     OSD_CRSF_LQ_TYPE1,
     OSD_CRSF_LQ_TYPE2,
+    OSD_CRSF_LQ_TYPE3
 } osd_crsf_lq_format_e;
 
 typedef struct osdLayoutsConfig_s {
@@ -308,6 +322,9 @@ typedef struct osdConfig_s {
 #ifdef USE_SERIALRX_CRSF
     int8_t snr_alarm; //CRSF SNR alarm in dB
     int8_t link_quality_alarm;
+    int16_t rssi_dbm_alarm; // in dBm
+    int16_t rssi_dbm_max;  // Perfect RSSI. Set to High end of curve. RSSI at 100%
+    int16_t rssi_dbm_min;   // Worst RSSI. Set to low end of curve or RX sensitivity level. RSSI at 0%
 #endif
 #ifdef USE_BARO
     int16_t baro_temp_alarm_min;
@@ -315,6 +332,10 @@ typedef struct osdConfig_s {
 #endif
 #ifdef USE_TEMPERATURE_SENSOR
     osd_alignment_e temp_label_align;
+#endif
+#ifdef USE_PITOT
+    float airspeed_alarm_min;
+    float airspeed_alarm_max;
 #endif
 
     videoSystem_e video_system;
@@ -327,6 +348,7 @@ typedef struct osdConfig_s {
     uint8_t crosshairs_style; // from osd_crosshairs_style_e
     int8_t horizon_offset;
     int8_t camera_uptilt;
+    bool ahi_camera_uptilt_comp;
     uint8_t camera_fov_h;
     uint8_t camera_fov_v;
     uint8_t hud_margin_h;
@@ -336,7 +358,6 @@ typedef struct osdConfig_s {
     uint8_t hud_radar_disp;
     uint16_t hud_radar_range_min;
     uint16_t hud_radar_range_max;
-    uint16_t hud_radar_nearest;
     uint8_t hud_wp_disp;
 
     uint8_t left_sidebar_scroll; // from osd_sidebar_scroll_e
@@ -346,6 +367,7 @@ typedef struct osdConfig_s {
     uint8_t units; // from osd_unit_e
     uint8_t stats_energy_unit; // from osd_stats_energy_unit_e
     uint8_t stats_min_voltage_unit; // from osd_stats_min_voltage_unit_e
+    uint8_t stats_page_auto_swap_time;   // stats page auto swap interval time (seconds)
 
 #ifdef USE_WIND_ESTIMATOR
     bool    estimations_wind_compensation; // use wind compensation for estimated remaining flight/distance
@@ -371,7 +393,8 @@ typedef struct osdConfig_s {
     uint8_t crsf_lq_format;
     uint16_t system_msg_display_time;   // system message display time for multiple messages (ms)
     uint8_t sidebar_height;             // sidebar height in rows, 0 turns off sidebars leaving only level indicator arrows
-    uint8_t telemetry; 				          // use telemetry on displayed pixel line 0
+    uint8_t telemetry; 				    // use telemetry on displayed pixel line 0
+    uint8_t esc_rpm_precision;          // Number of characters used for the RPM numbers.
 
 } osdConfig_t;
 
@@ -404,7 +427,7 @@ int32_t osdGetAltitude(void);
 void osdCrosshairPosition(uint8_t *x, uint8_t *y);
 bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length);
 void osdFormatAltitudeSymbol(char *buff, int32_t alt);
-void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D);
+void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D, bool _max);
 // Returns a heading angle in degrees normalized to [0, 360).
 int osdGetHeadingAngle(int angle);
 

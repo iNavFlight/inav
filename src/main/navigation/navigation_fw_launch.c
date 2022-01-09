@@ -22,8 +22,6 @@
 
 #include "platform.h"
 
-#if defined(USE_NAV)
-
 #include "build/build_config.h"
 #include "build/debug.h"
 
@@ -50,17 +48,21 @@
 
 #include "io/gps.h"
 
+#include "sensors/battery.h"
+
 #define SWING_LAUNCH_MIN_ROTATION_RATE      DEGREES_TO_RADIANS(100)     // expect minimum 100dps rotation rate
 #define LAUNCH_MOTOR_IDLE_SPINUP_TIME 1500                              // ms
 #define UNUSED(x) ((void)(x))
 #define FW_LAUNCH_MESSAGE_TEXT_WAIT_THROTTLE "RAISE THE THROTTLE"
-#define FW_LAUNCH_MESSAGE_TEXT_WAIT_DETECTION "READY"
+#define FW_LAUNCH_MESSAGE_TEXT_WAIT_IDLE "WAITING FOR IDLE"
+#define FW_LAUNCH_MESSAGE_TEXT_WAIT_DETECTION "READY TO LAUNCH"
 #define FW_LAUNCH_MESSAGE_TEXT_IN_PROGRESS "MOVE THE STICKS TO ABORT"
 #define FW_LAUNCH_MESSAGE_TEXT_FINISHING "FINISHING"
 
 typedef enum {
     FW_LAUNCH_MESSAGE_TYPE_NONE = 0,
     FW_LAUNCH_MESSAGE_TYPE_WAIT_THROTTLE,
+    FW_LAUNCH_MESSAGE_TYPE_WAIT_IDLE,
     FW_LAUNCH_MESSAGE_TYPE_WAIT_DETECTION,
     FW_LAUNCH_MESSAGE_TYPE_IN_PROGRESS,
     FW_LAUNCH_MESSAGE_TYPE_FINISHING
@@ -75,21 +77,23 @@ typedef enum {
     FW_LAUNCH_EVENT_COUNT
 } fixedWingLaunchEvent_t;
 
-typedef enum {
-    FW_LAUNCH_STATE_IDLE = 0,
-    FW_LAUNCH_STATE_WAIT_THROTTLE,
+typedef enum {  // if changed update navFwLaunchStatus_e
+    FW_LAUNCH_STATE_WAIT_THROTTLE = 0,
+    FW_LAUNCH_STATE_IDLE_MOTOR_DELAY,
     FW_LAUNCH_STATE_MOTOR_IDLE,
     FW_LAUNCH_STATE_WAIT_DETECTION,
-    FW_LAUNCH_STATE_DETECTED,
+    FW_LAUNCH_STATE_DETECTED,   // 4
     FW_LAUNCH_STATE_MOTOR_DELAY,
     FW_LAUNCH_STATE_MOTOR_SPINUP,
     FW_LAUNCH_STATE_IN_PROGRESS,
     FW_LAUNCH_STATE_FINISH,
+    FW_LAUNCH_STATE_ABORTED,    // 9
+    FW_LAUNCH_STATE_FLYING,     // 10
     FW_LAUNCH_STATE_COUNT
 } fixedWingLaunchState_t;
 
-static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IDLE(timeUs_t currentTimeUs);
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_THROTTLE(timeUs_t currentTimeUs);
+static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IDLE_MOTOR_DELAY(timeUs_t currentTimeUs);
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_MOTOR_IDLE(timeUs_t currentTimeUs);
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_DETECTION(timeUs_t currentTimeUs);
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_DETECTED(timeUs_t currentTimeUs);
@@ -97,6 +101,8 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_MOTOR_DELAY(timeUs_t
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_MOTOR_SPINUP(timeUs_t currentTimeUs);
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IN_PROGRESS(timeUs_t currentTimeUs);
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_FINISH(timeUs_t currentTimeUs);
+static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_ABORTED(timeUs_t currentTimeUs);
+static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_FLYING(timeUs_t currentTimeUs);
 
 typedef struct fixedWingLaunchStateDescriptor_s {
     fixedWingLaunchEvent_t (*onEntry)(timeUs_t currentTimeUs);
@@ -111,24 +117,26 @@ typedef struct fixedWingLaunchData_s {
 } fixedWingLaunchData_t;
 
 static EXTENDED_FASTRAM fixedWingLaunchData_t fwLaunch;
+static bool idleMotorAboutToStart;
 
 static const fixedWingLaunchStateDescriptor_t launchStateMachine[FW_LAUNCH_STATE_COUNT] = {
-
-    [FW_LAUNCH_STATE_IDLE] = {
-        .onEntry                                    = fwLaunchState_FW_LAUNCH_STATE_IDLE,
-        .onEvent = {
-
-        },
-        .messageType                                = FW_LAUNCH_MESSAGE_TYPE_NONE
-    },
 
     [FW_LAUNCH_STATE_WAIT_THROTTLE] = {
         .onEntry                                    = fwLaunchState_FW_LAUNCH_STATE_WAIT_THROTTLE,
         .onEvent = {
-            [FW_LAUNCH_EVENT_SUCCESS]               = FW_LAUNCH_STATE_MOTOR_IDLE,
+            [FW_LAUNCH_EVENT_SUCCESS]               = FW_LAUNCH_STATE_IDLE_MOTOR_DELAY,
             [FW_LAUNCH_EVENT_GOTO_DETECTION]        = FW_LAUNCH_STATE_WAIT_DETECTION
         },
         .messageType                                = FW_LAUNCH_MESSAGE_TYPE_WAIT_THROTTLE
+    },
+
+    [FW_LAUNCH_STATE_IDLE_MOTOR_DELAY] = {
+        .onEntry                                    = fwLaunchState_FW_LAUNCH_STATE_IDLE_MOTOR_DELAY,
+        .onEvent = {
+            [FW_LAUNCH_EVENT_SUCCESS]               = FW_LAUNCH_STATE_MOTOR_IDLE,
+            [FW_LAUNCH_EVENT_THROTTLE_LOW]          = FW_LAUNCH_STATE_WAIT_THROTTLE
+        },
+        .messageType                                = FW_LAUNCH_MESSAGE_TYPE_WAIT_IDLE
     },
 
     [FW_LAUNCH_STATE_MOTOR_IDLE] = {
@@ -137,7 +145,7 @@ static const fixedWingLaunchStateDescriptor_t launchStateMachine[FW_LAUNCH_STATE
             [FW_LAUNCH_EVENT_SUCCESS]               = FW_LAUNCH_STATE_WAIT_DETECTION,
             [FW_LAUNCH_EVENT_THROTTLE_LOW]          = FW_LAUNCH_STATE_WAIT_THROTTLE
         },
-        .messageType                                = FW_LAUNCH_MESSAGE_TYPE_WAIT_THROTTLE
+        .messageType                                = FW_LAUNCH_MESSAGE_TYPE_WAIT_IDLE
     },
 
     [FW_LAUNCH_STATE_WAIT_DETECTION] = {
@@ -161,7 +169,7 @@ static const fixedWingLaunchStateDescriptor_t launchStateMachine[FW_LAUNCH_STATE
         .onEntry                                    = fwLaunchState_FW_LAUNCH_STATE_MOTOR_DELAY,
         .onEvent = {
             [FW_LAUNCH_EVENT_SUCCESS]               = FW_LAUNCH_STATE_MOTOR_SPINUP,
-            [FW_LAUNCH_EVENT_ABORT]                 = FW_LAUNCH_STATE_IDLE
+            [FW_LAUNCH_EVENT_ABORT]                 = FW_LAUNCH_STATE_ABORTED
         },
         .messageType                                = FW_LAUNCH_MESSAGE_TYPE_IN_PROGRESS
     },
@@ -170,7 +178,7 @@ static const fixedWingLaunchStateDescriptor_t launchStateMachine[FW_LAUNCH_STATE
         .onEntry                                    = fwLaunchState_FW_LAUNCH_STATE_MOTOR_SPINUP,
         .onEvent = {
             [FW_LAUNCH_EVENT_SUCCESS]               = FW_LAUNCH_STATE_IN_PROGRESS,
-            [FW_LAUNCH_EVENT_ABORT]                 = FW_LAUNCH_STATE_IDLE
+            [FW_LAUNCH_EVENT_ABORT]                 = FW_LAUNCH_STATE_ABORTED
         },
         .messageType                                = FW_LAUNCH_MESSAGE_TYPE_IN_PROGRESS
     },
@@ -179,7 +187,7 @@ static const fixedWingLaunchStateDescriptor_t launchStateMachine[FW_LAUNCH_STATE
         .onEntry                                    = fwLaunchState_FW_LAUNCH_STATE_IN_PROGRESS,
         .onEvent = {
             [FW_LAUNCH_EVENT_SUCCESS]               = FW_LAUNCH_STATE_FINISH,
-            [FW_LAUNCH_EVENT_ABORT]                 = FW_LAUNCH_STATE_IDLE
+            [FW_LAUNCH_EVENT_ABORT]                 = FW_LAUNCH_STATE_ABORTED
         },
         .messageType                                = FW_LAUNCH_MESSAGE_TYPE_IN_PROGRESS
     },
@@ -187,10 +195,25 @@ static const fixedWingLaunchStateDescriptor_t launchStateMachine[FW_LAUNCH_STATE
     [FW_LAUNCH_STATE_FINISH] = {
         .onEntry                                    = fwLaunchState_FW_LAUNCH_STATE_FINISH,
         .onEvent = {
-            [FW_LAUNCH_EVENT_SUCCESS]               = FW_LAUNCH_STATE_IDLE,
-            [FW_LAUNCH_EVENT_ABORT]                 = FW_LAUNCH_STATE_IDLE
+            [FW_LAUNCH_EVENT_SUCCESS]               = FW_LAUNCH_STATE_FLYING
         },
         .messageType                                = FW_LAUNCH_MESSAGE_TYPE_FINISHING
+    },
+
+        [FW_LAUNCH_STATE_ABORTED] = {
+        .onEntry                                    = fwLaunchState_FW_LAUNCH_STATE_ABORTED,
+        .onEvent = {
+
+        },
+        .messageType                                = FW_LAUNCH_MESSAGE_TYPE_NONE
+    },
+
+        [FW_LAUNCH_STATE_FLYING] = {
+        .onEntry                                    = fwLaunchState_FW_LAUNCH_STATE_FLYING,
+        .onEvent = {
+
+        },
+        .messageType                                = FW_LAUNCH_MESSAGE_TYPE_NONE
     }
 };
 
@@ -211,13 +234,13 @@ static void setCurrentState(fixedWingLaunchState_t nextState, timeUs_t currentTi
 
 static bool isThrottleIdleEnabled(void)
 {
-    return navConfig()->fw.launch_idle_throttle > getThrottleIdleValue();
+    return currentBatteryProfile->nav.fw.launch_idle_throttle > getThrottleIdleValue();
 }
 
 static void applyThrottleIdleLogic(bool forceMixerIdle)
 {
     if (isThrottleIdleEnabled() && !forceMixerIdle) {
-        rcCommand[THROTTLE] = navConfig()->fw.launch_idle_throttle;
+        rcCommand[THROTTLE] = currentBatteryProfile->nav.fw.launch_idle_throttle;
     }
     else {
         ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);           // If MOTOR_STOP is enabled mixer will keep motor stopped
@@ -237,7 +260,7 @@ static inline bool isLaunchMaxAltitudeReached(void)
 
 static inline bool areSticksMoved(timeMs_t initialTime, timeUs_t currentTimeUs)
 {
-    return (initialTime + currentStateElapsedMs(currentTimeUs)) > navConfig()->fw.launch_min_time && areSticksDeflectedMoreThanPosHoldDeadband();
+    return (initialTime + currentStateElapsedMs(currentTimeUs)) > navConfig()->fw.launch_min_time && isRollPitchStickDeflected();
 }
 
 static void resetPidsIfNeeded(void) {
@@ -257,13 +280,6 @@ static void updateRcCommand(void)
 }
 
 /* onEntry state handlers */
-
-static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IDLE(timeUs_t currentTimeUs)
-{
-    UNUSED(currentTimeUs);
-
-    return FW_LAUNCH_EVENT_NONE;
-}
 
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_THROTTLE(timeUs_t currentTimeUs)
 {
@@ -287,6 +303,24 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_THROTTLE(timeUs
     return FW_LAUNCH_EVENT_NONE;
 }
 
+static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IDLE_MOTOR_DELAY(timeUs_t currentTimeUs)
+{
+    if (isThrottleLow()) {
+        return FW_LAUNCH_EVENT_THROTTLE_LOW; // go back to FW_LAUNCH_STATE_WAIT_THROTTLE
+    }
+
+    applyThrottleIdleLogic(true);
+
+    if (currentStateElapsedMs(currentTimeUs) > navConfig()->fw.launch_idle_motor_timer) {
+        idleMotorAboutToStart = false;
+        return FW_LAUNCH_EVENT_SUCCESS;
+    }
+    // 5 second warning motor about to start at idle, changes Beeper sound
+    idleMotorAboutToStart = navConfig()->fw.launch_idle_motor_timer - currentStateElapsedMs(currentTimeUs) < 5000;
+
+    return FW_LAUNCH_EVENT_NONE;
+}
+
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_MOTOR_IDLE(timeUs_t currentTimeUs)
 {
     if (isThrottleLow()) {
@@ -299,7 +333,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_MOTOR_IDLE(timeUs_t 
         return FW_LAUNCH_EVENT_SUCCESS;
     }
     else {
-        rcCommand[THROTTLE] = scaleRangef(elapsedTimeMs, 0.0f, LAUNCH_MOTOR_IDLE_SPINUP_TIME, getThrottleIdleValue(), navConfig()->fw.launch_idle_throttle);
+        rcCommand[THROTTLE] = scaleRangef(elapsedTimeMs, 0.0f, LAUNCH_MOTOR_IDLE_SPINUP_TIME, getThrottleIdleValue(), currentBatteryProfile->nav.fw.launch_idle_throttle);
         fwLaunch.pitchAngle = scaleRangef(elapsedTimeMs, 0.0f, LAUNCH_MOTOR_IDLE_SPINUP_TIME, 0, navConfig()->fw.launch_climb_angle);
     }
 
@@ -336,6 +370,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_DETECTION(timeU
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_DETECTED(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
+
     // waiting for the navigation to move it to next step FW_LAUNCH_STATE_MOTOR_DELAY
     applyThrottleIdleLogic(false);
 
@@ -347,7 +382,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_MOTOR_DELAY(timeUs_t
     applyThrottleIdleLogic(false);
 
     if (areSticksMoved(0, currentTimeUs)) {
-        return FW_LAUNCH_EVENT_ABORT; // jump to FW_LAUNCH_STATE_IDLE
+        return FW_LAUNCH_EVENT_ABORT; // jump to FW_LAUNCH_STATE_ABORTED
     }
 
     if (currentStateElapsedMs(currentTimeUs) > navConfig()->fw.launch_motor_timer) {
@@ -360,19 +395,19 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_MOTOR_DELAY(timeUs_t
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_MOTOR_SPINUP(timeUs_t currentTimeUs)
 {
     if (areSticksMoved(navConfig()->fw.launch_motor_timer, currentTimeUs)) {
-        return FW_LAUNCH_EVENT_ABORT; // jump to FW_LAUNCH_STATE_IDLE
+        return FW_LAUNCH_EVENT_ABORT; // jump to FW_LAUNCH_STATE_ABORTED
     }
 
     const timeMs_t elapsedTimeMs = currentStateElapsedMs(currentTimeUs);
     const uint16_t motorSpinUpMs = navConfig()->fw.launch_motor_spinup_time;
-    const uint16_t launchThrottle = navConfig()->fw.launch_throttle;
+    const uint16_t launchThrottle = constrain(currentBatteryProfile->nav.fw.launch_throttle, getThrottleIdleValue(), motorConfig()->maxthrottle);
 
     if (elapsedTimeMs > motorSpinUpMs) {
         rcCommand[THROTTLE] = launchThrottle;
         return FW_LAUNCH_EVENT_SUCCESS;
     }
     else {
-        const uint16_t minIdleThrottle = MAX(getThrottleIdleValue(), navConfig()->fw.launch_idle_throttle);
+        const uint16_t minIdleThrottle = MAX(getThrottleIdleValue(), currentBatteryProfile->nav.fw.launch_idle_throttle);
         rcCommand[THROTTLE] = scaleRangef(elapsedTimeMs, 0.0f, motorSpinUpMs,  minIdleThrottle, launchThrottle);
     }
 
@@ -381,14 +416,14 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_MOTOR_SPINUP(timeUs_
 
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IN_PROGRESS(timeUs_t currentTimeUs)
 {
-    rcCommand[THROTTLE] = navConfig()->fw.launch_throttle;
+    rcCommand[THROTTLE] = constrain(currentBatteryProfile->nav.fw.launch_throttle, getThrottleIdleValue(), motorConfig()->maxthrottle);
 
     if (isLaunchMaxAltitudeReached()) {
         return FW_LAUNCH_EVENT_SUCCESS; // cancel the launch and do the FW_LAUNCH_STATE_FINISH state
     }
 
     if (areSticksMoved(navConfig()->fw.launch_motor_timer + navConfig()->fw.launch_motor_spinup_time, currentTimeUs)) {
-        return FW_LAUNCH_EVENT_ABORT; // cancel the launch and do the FW_LAUNCH_STATE_IDLE state
+        return FW_LAUNCH_EVENT_ABORT; // cancel the launch and do the FW_LAUNCH_STATE_ABORTED state
     }
 
     if (currentStateElapsedMs(currentTimeUs) > navConfig()->fw.launch_timeout) {
@@ -403,17 +438,29 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_FINISH(timeUs_t curr
     const timeMs_t elapsedTimeMs = currentStateElapsedMs(currentTimeUs);
     const timeMs_t endTimeMs = navConfig()->fw.launch_end_time;
 
-    if (areSticksDeflectedMoreThanPosHoldDeadband()) {
-        return FW_LAUNCH_EVENT_ABORT; // cancel the launch and do the FW_LAUNCH_STATE_IDLE state
-    }
-    if (elapsedTimeMs > endTimeMs) {
-        return FW_LAUNCH_EVENT_SUCCESS;
+    if (elapsedTimeMs > endTimeMs || isRollPitchStickDeflected()) {
+        return FW_LAUNCH_EVENT_SUCCESS;     // End launch go to FW_LAUNCH_STATE_FLYING state
     }
     else {
         // make a smooth transition from the launch state to the current state for throttle and the pitch angle
-        rcCommand[THROTTLE] = scaleRangef(elapsedTimeMs, 0.0f, endTimeMs,  navConfig()->fw.launch_throttle, rcCommand[THROTTLE]);
+        const uint16_t launchThrottle = constrain(currentBatteryProfile->nav.fw.launch_throttle, getThrottleIdleValue(), motorConfig()->maxthrottle);
+        rcCommand[THROTTLE] = scaleRangef(elapsedTimeMs, 0.0f, endTimeMs,  launchThrottle, rcCommand[THROTTLE]);
         fwLaunch.pitchAngle = scaleRangef(elapsedTimeMs, 0.0f, endTimeMs, navConfig()->fw.launch_climb_angle, rcCommand[PITCH]);
     }
+
+    return FW_LAUNCH_EVENT_NONE;
+}
+
+static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_ABORTED(timeUs_t currentTimeUs)
+{
+    UNUSED(currentTimeUs);
+
+    return FW_LAUNCH_EVENT_NONE;
+}
+
+static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_FLYING(timeUs_t currentTimeUs)
+{
+    UNUSED(currentTimeUs);
 
     return FW_LAUNCH_EVENT_NONE;
 }
@@ -441,7 +488,11 @@ void applyFixedWingLaunchController(timeUs_t currentTimeUs)
         beeper(BEEPER_LAUNCH_MODE_LOW_THROTTLE);
     }
     else {
-        beeper(BEEPER_LAUNCH_MODE_ENABLED);
+        if (idleMotorAboutToStart) {
+            beeper(BEEPER_LAUNCH_MODE_IDLE_START);
+        } else {
+            beeper(BEEPER_LAUNCH_MODE_ENABLED);
+        }
     }
 }
 
@@ -450,24 +501,19 @@ void resetFixedWingLaunchController(timeUs_t currentTimeUs)
     setCurrentState(FW_LAUNCH_STATE_WAIT_THROTTLE, currentTimeUs);
 }
 
-bool isFixedWingLaunchDetected(void)
-{
-    return fwLaunch.currentState >= FW_LAUNCH_STATE_DETECTED;
-}
-
 void enableFixedWingLaunchController(timeUs_t currentTimeUs)
 {
     setCurrentState(FW_LAUNCH_STATE_MOTOR_DELAY, currentTimeUs);
 }
 
-bool isFixedWingLaunchFinishedOrAborted(void)
+uint8_t fixedWingLaunchStatus(void)
 {
-    return fwLaunch.currentState == FW_LAUNCH_STATE_IDLE;
+    return fwLaunch.currentState;
 }
 
 void abortFixedWingLaunch(void)
 {
-    setCurrentState(FW_LAUNCH_STATE_IDLE, 0);
+    setCurrentState(FW_LAUNCH_STATE_ABORTED, 0);
 }
 
 const char * fixedWingLaunchStateMessage(void)
@@ -475,6 +521,9 @@ const char * fixedWingLaunchStateMessage(void)
     switch (launchStateMachine[fwLaunch.currentState].messageType) {
         case FW_LAUNCH_MESSAGE_TYPE_WAIT_THROTTLE:
             return FW_LAUNCH_MESSAGE_TEXT_WAIT_THROTTLE;
+
+        case FW_LAUNCH_MESSAGE_TYPE_WAIT_IDLE:
+            return FW_LAUNCH_MESSAGE_TEXT_WAIT_IDLE;
 
         case FW_LAUNCH_MESSAGE_TYPE_WAIT_DETECTION:
             return FW_LAUNCH_MESSAGE_TEXT_WAIT_DETECTION;
@@ -489,5 +538,3 @@ const char * fixedWingLaunchStateMessage(void)
             return NULL;
     }
 }
-
-#endif

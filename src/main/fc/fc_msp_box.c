@@ -91,6 +91,9 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXPREARM, "PREARM", 51 },
     { BOXTURTLE, "TURTLE", 52 },
     { BOXNAVCRUISE, "NAV CRUISE", 53 },
+    { BOXAUTOLEVEL, "AUTO LEVEL", 54 },
+    { BOXPLANWPMISSION, "WP PLANNER", 55 },
+    { BOXSOARING, "SOARING", 56 },
     { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
@@ -182,12 +185,12 @@ void initActiveBoxIds(void)
 
     activeBoxIds[activeBoxIdCount++] = BOXHEADINGHOLD;
 
-    if (sensors(SENSOR_ACC) || sensors(SENSOR_MAG)) {
+    if ((sensors(SENSOR_ACC) || sensors(SENSOR_MAG)) && STATE(MULTIROTOR)) {
         activeBoxIds[activeBoxIdCount++] = BOXHEADFREE;
         activeBoxIds[activeBoxIdCount++] = BOXHEADADJ;
     }
 
-    if (STATE(ALTITUDE_CONTROL)) {
+    if (STATE(ALTITUDE_CONTROL) && STATE(MULTIROTOR)) {
         activeBoxIds[activeBoxIdCount++] = BOXFPVANGLEMIX;
     }
 
@@ -197,7 +200,9 @@ void initActiveBoxIds(void)
 #ifdef USE_GPS
     if (STATE(ALTITUDE_CONTROL) && (sensors(SENSOR_BARO) || (feature(FEATURE_GPS) && (STATE(AIRPLANE) || positionEstimationConfig()->use_gps_no_baro)))) {
         activeBoxIds[activeBoxIdCount++] = BOXNAVALTHOLD;
-        activeBoxIds[activeBoxIdCount++] = BOXSURFACE;
+        if (STATE(MULTIROTOR)) {
+            activeBoxIds[activeBoxIdCount++] = BOXSURFACE;
+        }
     }
 
     const bool navReadyMultirotor = STATE(MULTIROTOR) && (getHwCompassStatus() != HW_SENSOR_NONE) && sensors(SENSOR_ACC) && feature(FEATURE_GPS);
@@ -216,13 +221,13 @@ void initActiveBoxIds(void)
         activeBoxIds[activeBoxIdCount++] = BOXNAVRTH;
         activeBoxIds[activeBoxIdCount++] = BOXNAVWP;
         activeBoxIds[activeBoxIdCount++] = BOXHOMERESET;
+        activeBoxIds[activeBoxIdCount++] = BOXGCSNAV;
+        activeBoxIds[activeBoxIdCount++] = BOXPLANWPMISSION;
 
-        if (feature(FEATURE_GPS)) {
-            activeBoxIds[activeBoxIdCount++] = BOXGCSNAV;
-            if (STATE(AIRPLANE)) {
-                activeBoxIds[activeBoxIdCount++] = BOXNAVCOURSEHOLD;
-                activeBoxIds[activeBoxIdCount++] = BOXNAVCRUISE;
-            }
+        if (STATE(AIRPLANE)) {
+            activeBoxIds[activeBoxIdCount++] = BOXNAVCOURSEHOLD;
+            activeBoxIds[activeBoxIdCount++] = BOXNAVCRUISE;
+            activeBoxIds[activeBoxIdCount++] = BOXSOARING;
         }
     }
 
@@ -242,10 +247,17 @@ void initActiveBoxIds(void)
         if (!feature(FEATURE_FW_LAUNCH)) {
            activeBoxIds[activeBoxIdCount++] = BOXNAVLAUNCH;
         }
-        activeBoxIds[activeBoxIdCount++] = BOXAUTOTRIM;
+
+        if (!feature(FEATURE_FW_AUTOTRIM)) {
+            activeBoxIds[activeBoxIdCount++] = BOXAUTOTRIM;
+        }
+
 #if defined(USE_AUTOTUNE_FIXED_WING)
         activeBoxIds[activeBoxIdCount++] = BOXAUTOTUNE;
 #endif
+        if (sensors(SENSOR_BARO)) {
+            activeBoxIds[activeBoxIdCount++] = BOXAUTOLEVEL;
+        }
     }
 
     /*
@@ -318,7 +330,7 @@ void initActiveBoxIds(void)
 #endif
 }
 
-#define IS_ENABLED(mask) (mask == 0 ? 0 : 1)
+#define IS_ENABLED(mask) ((mask) == 0 ? 0 : 1)
 #define CHECK_ACTIVE_BOX(condition, index)    do { if (IS_ENABLED(condition)) { activeBoxes[index] = 1; } } while(0)
 
 void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
@@ -348,7 +360,7 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_ALTHOLD_MODE)),         BOXNAVALTHOLD);
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_POSHOLD_MODE)),         BOXNAVPOSHOLD);
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_COURSE_HOLD_MODE)),     BOXNAVCOURSEHOLD);
-    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) && IS_ENABLED(FLIGHT_MODE(NAV_COURSE_HOLD_MODE)),     BOXNAVCRUISE);
+    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) && IS_ENABLED(FLIGHT_MODE(NAV_ALTHOLD_MODE)),     BOXNAVCRUISE);
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_RTH_MODE)),             BOXNAVRTH);
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_WP_MODE)),              BOXNAVWP);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXAIRMODE)),         BOXAIRMODE);
@@ -376,6 +388,9 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE)),   BOXMSPRCOVERRIDE);
 #endif
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXAUTOLEVEL)),       BOXAUTOLEVEL);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXPLANWPMISSION)),   BOXPLANWPMISSION);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXSOARING)),         BOXSOARING);
 
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
     for (uint32_t i = 0; i < activeBoxIdCount; i++) {

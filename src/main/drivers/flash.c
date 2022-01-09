@@ -196,7 +196,15 @@ static void flashConfigurePartitions(void)
 #endif
 
 #if defined(CONFIG_IN_EXTERNAL_FLASH)
-    createPartition(FLASH_PARTITION_TYPE_CONFIG, EEPROM_SIZE, &endSector);
+    uint32_t configSize = EEPROM_SIZE;
+    flashSector_t configSectors = (configSize / flashGeometry->sectorSize);
+
+    if (configSize % flashGeometry->sectorSize > 0) {
+        configSectors++; // needs a portion of a sector.
+    }
+    configSize = configSectors * flashGeometry->sectorSize;
+
+    createPartition(FLASH_PARTITION_TYPE_CONFIG, configSize, &endSector);
 #endif
 
 #ifdef USE_FLASHFS

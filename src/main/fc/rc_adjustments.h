@@ -144,3 +144,4 @@ void updateAdjustmentStates(bool canUseRxData);
 struct controlRateConfig_s;
 void processRcAdjustments(struct controlRateConfig_s *controlRateConfig, bool canUseRxData);
 bool isAdjustmentFunctionSelected(uint8_t adjustmentFunction);
+uint8_t getActiveAdjustmentFunctions(uint8_t *adjustmentFunctions);

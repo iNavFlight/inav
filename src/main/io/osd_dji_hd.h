@@ -62,16 +62,19 @@
 #define DJI_MSP_SET_PID                 202
 #define DJI_MSP_SET_RC_TUNING           204
 
+#define DJI_CRAFT_NAME_LENGTH           24
+#define DJI_ALTERNATING_DURATION_LONG   (djiOsdConfig()->craftNameAlternatingDuration * 100)
+#define DJI_ALTERNATING_DURATION_SHORT  1000
+
 enum djiOsdTempSource_e {
     DJI_OSD_TEMP_ESC    = 0,
     DJI_OSD_TEMP_CORE   = 1,
     DJI_OSD_TEMP_BARO   = 2
 };
 
-enum djiOsdSpeedSource_e {
-    DJI_OSD_SPEED_GROUND    = 0,
-    DJI_OSD_SPEED_3D        = 1,
-    DJI_OSD_SPEED_AIR       = 2
+enum djiRssiSource_e {
+    DJI_RSSI = 0,
+    DJI_CRSF_LQ = 1
 };
 
 enum djiOsdProtoWorkarounds_e {
@@ -82,7 +85,10 @@ typedef struct djiOsdConfig_s {
     uint8_t use_name_for_messages;
     uint8_t esc_temperature_source;
     uint8_t proto_workarounds;
-    uint8_t speedSource;
+    uint8_t messageSpeedSource;
+    uint8_t rssi_source;
+    uint8_t useAdjustments;
+    uint8_t craftNameAlternatingDuration;
 } djiOsdConfig_t;
 
 PG_DECLARE(djiOsdConfig_t, djiOsdConfig);

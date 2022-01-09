@@ -40,7 +40,6 @@
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
-#define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
@@ -66,7 +65,6 @@
 #define PITOT_I2C_BUS           BUS_I2C2
 
 #define USE_RANGEFINDER
-#define USE_RANGEFINDER_HCSR04_I2C
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
 
 #define USE_VCP
@@ -126,7 +124,6 @@
 #define SPI4_MISO_PIN           PE13
 #define SPI4_MOSI_PIN           PE14
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          SPI3_NSS_PIN
@@ -142,11 +139,8 @@
 #define USE_I2C_DEVICE_4
 #define USE_I2C_DEVICE_2
 
-#define MAG_GPS_ALIGN           CW180_DEG_FLIP
-
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
-#define USE_NAV
 #define NAV_GPS_GLITCH_DETECTION
 
 #define USE_ADC
