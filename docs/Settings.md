@@ -4582,6 +4582,16 @@ Auto swap display time interval between disarm stats pages (seconds). Reverts to
 
 ---
 
+### osd_system_msg_display_time
+
+System message display cycle time for multiple messages (milliseconds).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | 500 | 5000 |
+
+---
+
 ### osd_telemetry
 
 To enable OSD telemetry for antenna tracker. Possible values are `OFF`, `ON` and `TEST`
