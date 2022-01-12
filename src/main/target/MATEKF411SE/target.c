@@ -37,6 +37,12 @@ const timerHardware_t timerHardware[] = {
     DEF_TIM(TIM4,  CH3, PB8,  TIM_USE_ANY, 0, 0), //CH6 pad - softserial 2
 #endif
 
+#ifndef MATEKF411SE_SS1DUP_ST1_CH6
+    DEF_TIM(TIM4,  CH3, PB8,  TIM_USE_MC_SERVO | TIM_USE_FW_SERVO, 0, 0), // S6  D(1,7,2)
+
+    DEF_TIM(TIM5,  CH3, PA2,  TIM_USE_ANY, 0, 0), //TX2 pad - softserial_tx2
+#endif
+
     DEF_TIM(TIM11, CH1, PB9,  TIM_USE_ANY, 0, 0), //ST1 pad -softserial_tx1    
 
     DEF_TIM(TIM9,  CH2, PA3,  TIM_USE_PPM, 0, 0), //RX2 Pad -PPM
