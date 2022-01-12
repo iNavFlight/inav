@@ -536,3 +536,15 @@ float fast_fsqrtf(const double value) {
     }
     return ret;
 }
+
+// function to calculate the normalization (pythagoras) of a 2-dimensional vector
+float calc_length_pythagorean_2D(const float firstElement, const float secondElement)
+{
+  return fast_fsqrtf(sq(firstElement) + sq(secondElement));
+}
+
+// function to calculate the normalization (pythagoras) of a 3-dimensional vector
+float calc_length_pythagorean_3D(const float firstElement, const float secondElement, const float thirdElement)
+{
+  return fast_fsqrtf(sq(firstElement) + sq(secondElement) + sq(thirdElement));
+}

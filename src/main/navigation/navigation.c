@@ -1928,7 +1928,7 @@ void updateActualHorizontalPositionAndVelocity(bool estPosValid, bool estVelVali
     posControl.actualState.agl.vel.x = newVelX;
     posControl.actualState.agl.vel.y = newVelY;
 
-    posControl.actualState.velXY = fast_fsqrtf(sq(newVelX) + sq(newVelY));
+    posControl.actualState.velXY = calc_length_pythagorean_2D(newVelX, newVelY);
 
     // CASE 1: POS & VEL valid
     if (estPosValid && estVelValid) {
@@ -2058,7 +2058,7 @@ const navEstimatedPosVel_t * navGetCurrentActualPositionAndVelocity(void)
  *-----------------------------------------------------------*/
 static uint32_t calculateDistanceFromDelta(float deltaX, float deltaY)
 {
-    return fast_fsqrtf(sq(deltaX) + sq(deltaY));
+    return calc_length_pythagorean_2D(deltaX, deltaY);
 }
 
 static int32_t calculateBearingFromDelta(float deltaX, float deltaY)
