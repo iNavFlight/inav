@@ -3344,7 +3344,11 @@ static void cliStatus(char *cmdline)
         hardwareSensorStatusNames[getHwRangefinderStatus()],
         hardwareSensorStatusNames[getHwOpticalFlowStatus()],
         hardwareSensorStatusNames[getHwGPSStatus()],
+#ifdef USE_SECONDARY_IMU
         hardwareSensorStatusNames[getHwSecondaryImuStatus()]
+#else
+        hardwareSensorStatusNames[0]
+#endif
     );
 
 #ifdef USE_ESC_SENSOR
