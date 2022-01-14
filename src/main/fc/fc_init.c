@@ -290,10 +290,6 @@ void init(void)
     djiOsdSerialInit();
 #endif
 
-#ifdef USE_HDZERO_OSD
-    hdzeroOsdSerialInit();
-#endif
-
 #if defined(USE_SMARTPORT_MASTER)
     smartportMasterInit();
 #endif

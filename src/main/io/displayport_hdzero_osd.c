@@ -52,13 +52,14 @@ FILE_COMPILE_FOR_SPEED
 #define MSP_WRITE_STRING 3
 #define MSP_DRAW_SCREEN 4
 #define MSP_SET_OPTIONS 5
-#define MAX_UPDATES 10
+#define DRAW_FREQ_DENOM 4
+#define UPDATES_PER_CALL 10
 #define VTX_TIMEOUT 1000 // 1 second timer
 
 static mspProcessCommandFnPtr mspProcessCommand;
 static mspPort_t hdZeroMspPort;
 static displayPort_t hdZeroOsdDisplayPort;
-static bool vtxReady, vtxReset;
+static bool vtxSeen, vtxActive, vtxReset;
 static timeMs_t vtxHeartbeat;
 
 // HD screen size
@@ -77,7 +78,7 @@ static int output(displayPort_t *displayPort, uint8_t cmd, uint8_t *subcmd, int 
 
     int sent = 0;
 
-    if (!cliMode && vtxReady) {
+    if (!cliMode && vtxActive) {
         sent = mspSerialPushPort(cmd, subcmd, len, &hdZeroMspPort, MSP_V1);
     }
 
@@ -86,8 +87,8 @@ static int output(displayPort_t *displayPort, uint8_t cmd, uint8_t *subcmd, int 
 
 static void checkVtxPresent(void)
 {
-    if (vtxReady && (millis()-vtxHeartbeat) > VTX_TIMEOUT) {
-        vtxReady = false;
+    if (vtxActive && (millis()-vtxHeartbeat) > VTX_TIMEOUT) {
+        vtxActive = false;
     }
 }
 
@@ -174,51 +175,54 @@ static int writeString(displayPort_t *displayPort, uint8_t col, uint8_t row, con
 /**
  * Write only changed characters to the VTX
  */
-static int drawScreen(displayPort_t *displayPort) // 62.5hz or 16ms
+static int drawScreen(displayPort_t *displayPort) // 250Hz
 {
-    uint8_t subcmd[COLS + 4];
-    uint8_t updateCount = 0;
+    static uint8_t counter = 0;
 
-    subcmd[0] = MSP_WRITE_STRING;
+    if ((counter++ % DRAW_FREQ_DENOM) == 0) { // 62.5Hz
+        uint8_t subcmd[COLS + 4];
+        uint8_t updateCount = 0;
+        subcmd[0] = MSP_WRITE_STRING;
 
-    int next = BITARRAY_FIND_FIRST_SET(dirty, 0);
-    while (next >= 0 && updateCount < MAX_UPDATES) {
-        // Look for sequential dirty characters on the same line for the same font page
-        int pos = next;
-        uint8_t row = pos / COLS;
-        uint8_t col = pos % COLS;
-        int endOfLine = row * COLS + COLS;
-        bool page = bitArrayGet(fontPage, pos);
+        int next = BITARRAY_FIND_FIRST_SET(dirty, 0);
+        while (next >= 0 && updateCount < UPDATES_PER_CALL) {
+            // Look for sequential dirty characters on the same line for the same font page
+            int pos = next;
+            uint8_t row = pos / COLS;
+            uint8_t col = pos % COLS;
+            int endOfLine = row * COLS + COLS;
+            bool page = bitArrayGet(fontPage, pos);
 
-        uint8_t len = 4;
-        do {
-            bitArrayClr(dirty, pos);
-            subcmd[len++] = screen[pos++];
+            uint8_t len = 4;
+            do {
+                bitArrayClr(dirty, pos);
+                subcmd[len++] = screen[pos++];
 
-            if (bitArrayGet(dirty, pos)) {
-                next = pos;
-            }
-        } while (next == pos && next < endOfLine && bitArrayGet(fontPage, next) == page);
+                if (bitArrayGet(dirty, pos)) {
+                    next = pos;
+                }
+            } while (next == pos && next < endOfLine && bitArrayGet(fontPage, next) == page);
 
-        subcmd[1] = row;
-        subcmd[2] = col;
-        subcmd[3] = page;
-        output(displayPort, MSP_DISPLAYPORT, subcmd, len);
-        updateCount++;
-        next = BITARRAY_FIND_FIRST_SET(dirty, pos);
-    }
+            subcmd[1] = row;
+            subcmd[2] = col;
+            subcmd[3] = page;
+            output(displayPort, MSP_DISPLAYPORT, subcmd, len);
+            updateCount++;
+            next = BITARRAY_FIND_FIRST_SET(dirty, pos);
+        }
 
-    if (updateCount > 0)
-    {
-        subcmd[0] = MSP_DRAW_SCREEN;
-        output(displayPort, MSP_DISPLAYPORT, subcmd, 1);
-    }
+        if (updateCount > 0)
+        {
+            subcmd[0] = MSP_DRAW_SCREEN;
+            output(displayPort, MSP_DISPLAYPORT, subcmd, 1);
+        }
 
-    checkVtxPresent();
+        checkVtxPresent();
 
-    if (vtxReset) {
-        clearScreen(displayPort);
-        vtxReset = false;
+        if (vtxReset) {
+            clearScreen(displayPort);
+            vtxReset = false;
+        }
     }
 
     return 0;
@@ -266,7 +270,7 @@ static bool isTransferInProgress(const displayPort_t *displayPort)
 static bool isReady(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-    return vtxReady;
+    return vtxActive;
 }
 
 static int grab(displayPort_t *displayPort)
@@ -305,7 +309,7 @@ static const displayPortVTable_t hdzeroOsdVTable = {
     .isReady = isReady,
 };
 
-void hdzeroOsdSerialInit(void)
+bool hdzeroOsdSerialInit(void)
 {
     memset(&hdZeroMspPort, 0, sizeof(mspPort_t));
 
@@ -315,15 +319,21 @@ void hdzeroOsdSerialInit(void)
                 baudRates[portConfig->msp_baudrateIndex], MODE_RXTX, SERIAL_NOT_INVERTED);
         if (port) {
             resetMspPort(&hdZeroMspPort, port);
+            return true;
         }
     }
+
+    return false;
 }
 
 displayPort_t* hdzeroOsdDisplayPortInit(void)
 {
-    hdZeroInit();
-    displayInit(&hdZeroOsdDisplayPort, &hdzeroOsdVTable);
-    return &hdZeroOsdDisplayPort;
+    if (hdzeroOsdSerialInit()) {
+        hdZeroInit();
+        displayInit(&hdZeroOsdDisplayPort, &hdzeroOsdVTable);
+        return &hdZeroOsdDisplayPort;
+    }
+    return NULL;
 }
 
 /*
@@ -333,11 +343,11 @@ displayPort_t* hdzeroOsdDisplayPortInit(void)
  */
 static mspResult_e hdZeroProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn)
 {
-    if (!vtxReady) {
+    if (vtxSeen && !vtxActive) {
         vtxReset = true;
     }
 
-    vtxReady = true;
+    vtxSeen = vtxActive = true;
     vtxHeartbeat = millis();
 
     // Process MSP command

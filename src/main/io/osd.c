@@ -4102,11 +4102,11 @@ void osdUpdate(timeUs_t currentTimeUs)
         osdUpdateStats();
     }
 
-    if (counter % DRAW_FREQ_DENOM == 0) {
-        // redraw values in buffer one at a time
+    if ((counter % DRAW_FREQ_DENOM) == 0) {
+        // redraw values in buffer
         osdRefresh(currentTimeUs);
-    } else if (counter % DRAW_FREQ_DENOM == 1) {
-        // redraw screen
+    } else {
+        // rest of time redraw screen
         displayDrawScreen(osdDisplayPort);
     }
 

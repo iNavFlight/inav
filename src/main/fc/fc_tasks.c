@@ -40,8 +40,6 @@
 #include "fc/fc_core.h"
 #include "fc/fc_msp.h"
 #include "fc/fc_tasks.h"
-
-#include "../io/displayport_hdzero_osd.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
 
@@ -69,6 +67,7 @@
 #include "io/smartport_master.h"
 #include "io/vtx.h"
 #include "io/osd_dji_hd.h"
+#include "io/displayport_hdzero_osd.h"
 #include "io/servo_sbus.h"
 
 #include "msp/msp_serial.h"
@@ -112,6 +111,7 @@ void taskHandleSerial(timeUs_t currentTimeUs)
 #endif
 
 #ifdef USE_HDZERO_OSD
+	// Capture HDZero messages to determine if VTX is connected
     hdzeroOsdSerialProcess(mspFcProcessCommand);
 #endif
 }
