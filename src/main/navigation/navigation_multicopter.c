@@ -61,7 +61,6 @@ static int16_t altHoldThrottleRCZero = 1500;
 static pt1Filter_t altholdThrottleFilterState;
 static bool prepareForTakeoffOnReset = false;
 static sqrt_controller_t alt_hold_sqrt_controller;
-static float accel_target_z = 0.0f;
 static float accel_integrator_max = 500.0f;
 
 // Position to velocity controller for Z axis
