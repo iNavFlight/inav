@@ -121,6 +121,8 @@ main_sources(COMMON_SRC
     drivers/barometer/barometer_spl06.h
     drivers/barometer/barometer_msp.c
     drivers/barometer/barometer_msp.h
+    drivers/barometer/barometer_2smpb_02b.c
+    drivers/barometer/barometer_2smpb_02b.h
 
     drivers/buf_writer.c
     drivers/buf_writer.h
