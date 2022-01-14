@@ -376,6 +376,7 @@ typedef struct navigationPIDControllers_s {
     /* Multicopter PIDs */
     pidController_t   pos[XYZ_AXIS_COUNT];
     pidController_t vel[XYZ_AXIS_COUNT];
+    pidController_t accel;
     pidController_t surface;
 
     /* Fixed-wing PIDs */

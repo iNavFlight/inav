@@ -3730,6 +3730,16 @@ void navigationUsePIDs(void)
                                         0.0f,
                                         NAV_DTERM_CUT_HZ
     );
+    
+    #define DEFAULT_ACCEL_P 0.5f
+    #define DEFAULT_ACCEL_I 1.0f
+
+    navPidInit(&posControl.pids.accel,  DEFAULT_ACCEL_P,
+                                        DEFAULT_ACCEL_I,
+                                        0.0f,
+                                        0.0f,
+                                        NAV_DTERM_CUT_HZ
+    );
 
     // Initialize surface tracking PID
     navPidInit(&posControl.pids.surface, 2.0f,

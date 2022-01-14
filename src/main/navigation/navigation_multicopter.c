@@ -56,14 +56,13 @@
  * Altitude controller for multicopter aircraft
  *-----------------------------------------------------------*/
 
-#define Z_CONTROLLER_GAIN 0.25f
-
 static int16_t rcCommandAdjustedThrottle;
 static int16_t altHoldThrottleRCZero = 1500;
 static pt1Filter_t altholdThrottleFilterState;
 static bool prepareForTakeoffOnReset = false;
 static sqrt_controller_t alt_hold_sqrt_controller;
-static float accel_desired_z = 0.0f;
+static float accel_target_z = 0.0f;
+static float accel_integrator_max = 500.0f;
 
 // Position to velocity controller for Z axis
 static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
@@ -73,24 +72,15 @@ static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
     float pos_desired_z = posControl.desiredState.pos.z;
 
     float targetVel = get_sqrt_controller(&alt_hold_sqrt_controller, &pos_desired_z, navGetCurrentActualPositionAndVelocity()->pos.z, US2S(deltaMicros));
-    targetVel *= Z_CONTROLLER_GAIN;
 
     posControl.desiredState.pos.z = pos_desired_z;
-
-/*
 
     // hard limit desired target velocity to max_climb_rate
     if (posControl.flags.isAdjustingAltitude) {
         targetVel = constrainf(targetVel, -navConfig()->general.max_manual_climb_rate, navConfig()->general.max_manual_climb_rate);
-    }
-    else {
+    } else {
         targetVel = constrainf(targetVel, -navConfig()->general.max_auto_climb_rate, navConfig()->general.max_auto_climb_rate);
     }
-
-*/
-
-    // add feed forward component
-    targetVel += posControl.desiredState.vel.z;
 
     posControl.pids.pos[Z].output_constrained = targetVel;
 
@@ -124,9 +114,8 @@ static void updateAltitudeThrottleController_MC(timeDelta_t deltaMicros)
     const int16_t thrAdjustmentMin = (int16_t)getThrottleIdleValue() - (int16_t)currentBatteryProfile->nav.mc.hover_throttle;
     const int16_t thrAdjustmentMax = (int16_t)motorConfig()->maxthrottle - (int16_t)currentBatteryProfile->nav.mc.hover_throttle;
 
-    float accel_target_z = navPidApply2(&posControl.pids.vel[Z], posControl.desiredState.vel.z, navGetCurrentActualPositionAndVelocity()->vel.z, US2S(deltaMicros), thrAdjustmentMin, thrAdjustmentMax, 0);
-    accel_target_z *= Z_CONTROLLER_GAIN;
-
+    float velocity_controller = navPidApply2(&posControl.pids.vel[Z], posControl.desiredState.vel.z, navGetCurrentActualPositionAndVelocity()->vel.z, US2S(deltaMicros), thrAdjustmentMin, thrAdjustmentMax, 0);
+    
     float accel_max_z = 0.0f;
 
     if (posControl.flags.isAdjustingAltitude) {
@@ -135,11 +124,23 @@ static void updateAltitudeThrottleController_MC(timeDelta_t deltaMicros)
         accel_max_z = navConfig()->general.max_auto_climb_rate;
     }
 
-    // add feed forward component
-    accel_target_z += constrainf(accel_desired_z, -accel_max_z, accel_max_z);
+    velocity_controller = constrainf(velocity_controller, -accel_max_z, accel_max_z);
 
+    const float thr_hover_converted = scaleRangef((float)currentBatteryProfile->nav.mc.hover_throttle, 1000.0f, 2000.0f, 200.0f, 800.0f);
 
-    posControl.rcAdjustment[THROTTLE] = accel_target_z;
+    // ensure imax is always large enough to overpower hover throttle
+    if (posControl.pids.accel.integrator > accel_integrator_max) {
+        accel_integrator_max = posControl.pids.accel.integrator;
+    }
+
+    if (thr_hover_converted > accel_integrator_max) {
+        accel_integrator_max = thr_hover_converted;
+    }
+    
+    float acceleration_controller = navPidApply2(&posControl.pids.accel, velocity_controller, navGetCurrentActualPositionAndVelocity()->vel.z,
+                                    US2S(deltaMicros), -accel_integrator_max, accel_integrator_max, PID_LIMIT_INTEGRATOR);
+
+    posControl.rcAdjustment[THROTTLE] = acceleration_controller;
 
     posControl.rcAdjustment[THROTTLE] = pt1FilterApply4(&altholdThrottleFilterState, posControl.rcAdjustment[THROTTLE], NAV_THROTTLE_CUTOFF_FREQENCY_HZ, US2S(deltaMicros));
     posControl.rcAdjustment[THROTTLE] = constrain(posControl.rcAdjustment[THROTTLE], thrAdjustmentMin, thrAdjustmentMax);
@@ -225,18 +226,23 @@ void setupMulticopterAltitudeController(void)
 
 void resetMulticopterAltitudeController(void)
 {
-    const navEstimatedPosVel_t * posToUse = navGetCurrentActualPositionAndVelocity();
+    const navEstimatedPosVel_t *posToUse = navGetCurrentActualPositionAndVelocity();
 
     navPidReset(&posControl.pids.vel[Z]);
+    navPidReset(&posControl.pids.accel);
     navPidReset(&posControl.pids.surface);
+
     posControl.rcAdjustment[THROTTLE] = 0;
 
     posControl.desiredState.vel.z = posToUse->vel.z;   // Gradually transition from current climb
+
     pt1FilterReset(&altholdThrottleFilterState, 0.0f);
+    pt1FilterReset(&posControl.pids.vel[Z].dterm_filter_state, 0.0f);
+    pt1FilterReset(&posControl.pids.accel.dterm_filter_state, 0.0f);
 
     sqrt_controller_set_limits(&alt_hold_sqrt_controller, -fabsf((float)navConfig()->general.max_manual_climb_rate), (float)navConfig()->general.max_manual_climb_rate, (float)navConfig()->general.max_auto_climb_rate);
     
-    accel_desired_z = -(posToUse->vel.z + GRAVITY_CMSS);
+    accel_integrator_max = (float)currentBatteryProfile->nav.mc.hover_throttle - (float)rcCommand[THROTTLE];
 }
 
 static void applyMulticopterAltitudeController(timeUs_t currentTimeUs)
@@ -252,11 +258,12 @@ static void applyMulticopterAltitudeController(timeUs_t currentTimeUs)
         if (deltaMicrosPositionUpdate < MAX_POSITION_UPDATE_INTERVAL_US) {
             // If we are preparing for takeoff - start with lowset possible climb rate, adjust alt target and make sure throttle doesn't jump
             if (prepareForTakeoffOnReset) {
-                const navEstimatedPosVel_t * posToUse = navGetCurrentActualPositionAndVelocity();
+                const navEstimatedPosVel_t *posToUse = navGetCurrentActualPositionAndVelocity();
 
                 posControl.desiredState.vel.z = -navConfig()->general.max_manual_climb_rate;
                 posControl.desiredState.pos.z = posToUse->pos.z - (navConfig()->general.max_manual_climb_rate / posControl.pids.pos[Z].param.kP);
                 posControl.pids.vel[Z].integrator = -500.0f;
+                posControl.pids.accel.integrator = -500;
                 pt1FilterReset(&altholdThrottleFilterState, -500.0f);
                 prepareForTakeoffOnReset = false;
             }
