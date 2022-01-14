@@ -73,13 +73,15 @@ static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
     float targetVel = get_sqrt_controller(&alt_hold_sqrt_controller, &pos_desired_z, navGetCurrentActualPositionAndVelocity()->pos.z, US2S(deltaMicros));
 
     posControl.desiredState.pos.z = pos_desired_z;
-
+    
+/*
     // hard limit desired target velocity to max_climb_rate
     if (posControl.flags.isAdjustingAltitude) {
         targetVel = constrainf(targetVel, -navConfig()->general.max_manual_climb_rate, navConfig()->general.max_manual_climb_rate);
     } else {
         targetVel = constrainf(targetVel, -navConfig()->general.max_auto_climb_rate, navConfig()->general.max_auto_climb_rate);
     }
+*/
 
     posControl.pids.pos[Z].output_constrained = targetVel;
 
