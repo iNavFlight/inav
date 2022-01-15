@@ -43,6 +43,10 @@ Tool for Blackbox logs analysis is available [here](https://github.com/iNavFligh
 
 Users of OpenTX radios (Taranis, Horus, Jumper, Radiomaster, Nirvana) can use INAV OpenTX Telemetry Widget screen. Software and installation instruction are available here: [https://github.com/iNavFlight/OpenTX-Telemetry-Widget](https://github.com/iNavFlight/OpenTX-Telemetry-Widget)
 
+### INAV magnetometer alignment helper
+
+[INAV Magnetometer Alignment helper](https://kernel-machine.github.io/INavMagAlignHelper/) allows to align INAV magnetometer despite position and orientation. This simplifies the process of INAV setup on multirotors with tilted GPS modules.
+
 ## Installation
 
 See: https://github.com/iNavFlight/inav/blob/master/docs/Installation.md
