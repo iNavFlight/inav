@@ -1260,7 +1260,8 @@ void pidInit(void)
         (float)pidProfile()->fixedWingLevelTrimGain / 100000.0f,
         0.0f,
         0.0f,
-        2.0f
+        2.0f,
+        0.0f
     );
 
 }

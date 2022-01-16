@@ -1949,7 +1949,6 @@ groups:
         min: HEADING_HOLD_RATE_LIMIT_MIN
         max: HEADING_HOLD_RATE_LIMIT_MAX
         default_value: 90
-
       - name: nav_mc_pos_z_p
         description: "P gain of altitude PID controller (Multirotor)"
         field: bank_mc.pid[PID_POS_Z].P
@@ -1970,7 +1969,6 @@ groups:
         default_value: 50
       - name: nav_mc_vel_z_d
         description: "D gain of velocity PID controller"
-        default_value: 10
         field: bank_mc.pid[PID_VEL_Z].D
         min: 0
         max: 255
