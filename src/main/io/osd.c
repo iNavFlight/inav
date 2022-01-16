@@ -1504,8 +1504,6 @@ void osdDisplaySwitchIndicator(const char *swName, int rcValue, char *buff) {
         buff[--charRemainder] = swName[ptr-1];
     }
 
-    buff[5] = (48 + charRemainder);
-
     if (charRemainder > 0) {
         for (ptr = 0; ptr < charRemainder; ptr++) {
             buff[ptr] = SYM_BLANK;
