@@ -33,7 +33,9 @@
 #define NAV_THROTTLE_CUTOFF_FREQENCY_HZ     4       // low-pass filter on throttle output
 #define NAV_FW_CONTROL_MONITORING_RATE      2
 #define NAV_DTERM_CUT_HZ                    10.0f
-#define NAV_ACCELERATION_XY_MAX             980.0f  // cm/s/s       // approx 45 deg lean angle
+#define NAV_ACCELERATION_XY_MAX             980.0f  // cm/s/s //approx 45 deg lean angle
+#define POS_CONTROL_ACCELERATION_MIN        50.0f  // minimum horizontal acceleration in cm/s/s - used for sanity checking acceleration in leash length calculation
+#define POS_CONTROL_LEASH_LENGTH_MIN        100.0f // minimum leash lengths in cm
 
 #define INAV_SURFACE_MAX_DISTANCE           40
 
@@ -436,7 +438,7 @@ bool isMulticopterLandingDetected(void);
 bool isFixedWingLandingDetected(void);
 
 // calculates stopping point based on current position, velocity and vehicle acceleration
-void calculateMulticopterInitialHoldPosition(fpVector3_t *stopping_point);
+void calculateMulticopterInitialHoldPositionXY(fpVector3_t *stopping_point, float leash_kP_Gain, float accel_cms, float speed_cms);
 
 /* Fixed-wing specific functions */
 void setupFixedWingAltitudeController(void);
