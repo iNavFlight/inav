@@ -75,18 +75,7 @@ typedef enum {
 typedef enum {
     DEVHW_NONE = 0,
 
-    /* Dedicated ACC chips */
-    DEVHW_BMA280,
-    DEVHW_ADXL345,
-    DEVHW_MMA8452,
-    DEVHW_LSM303DLHC,
-
-    /* Dedicated GYRO chips */
-    DEVHW_L3GD20,
-    DEVHW_L3G4200,
-
     /* Combined ACC/GYRO chips */
-    DEVHW_MPU3050,
     DEVHW_MPU6000,
     DEVHW_MPU6050,
     DEVHW_MPU6500,
@@ -95,6 +84,7 @@ typedef enum {
     DEVHW_BMI088_ACC,
     DEVHW_ICM20689,
     DEVHW_ICM42605,
+    DEVHW_BMI270,
 
     /* Combined ACC/GYRO/MAG chips */
     DEVHW_MPU9250,
@@ -121,6 +111,7 @@ typedef enum {
     DEVHW_LIS3MDL,
     DEVHW_RM3100,
     DEVHW_VCM5883,
+    DEVHW_MLX90393,
 
     /* Temp sensor chips */
     DEVHW_LM75_0,
@@ -140,10 +131,10 @@ typedef enum {
 
     /* Rangefinder modules */
     DEVHW_SRF10,
-    DEVHW_HCSR04_I2C,   // DIY-style adapter
     DEVHW_VL53L0X,
     DEVHW_VL53L1X,
     DEVHW_US42,
+    DEVHW_TOF10120_I2C,
 
     /* Other hardware */
     DEVHW_MS4525,       // Pitot meter

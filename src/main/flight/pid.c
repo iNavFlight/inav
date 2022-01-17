@@ -107,7 +107,7 @@ typedef struct {
     bool itermLimitActive;
     bool itermFreezeActive;
 
-    pt2Filter_t rateTargetFilter;
+    pt3Filter_t rateTargetFilter;
 
     smithPredictor_t smithPredictor;
 } pidState_t;
@@ -123,7 +123,11 @@ STATIC_FASTRAM bool pidGainsUpdateRequired;
 FASTRAM int16_t axisPID[FLIGHT_DYNAMICS_INDEX_COUNT];
 
 #ifdef USE_BLACKBOX
-int32_t axisPID_P[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_I[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_D[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_Setpoint[FLIGHT_DYNAMICS_INDEX_COUNT];
+int32_t axisPID_P[FLIGHT_DYNAMICS_INDEX_COUNT];
+int32_t axisPID_I[FLIGHT_DYNAMICS_INDEX_COUNT];
+int32_t axisPID_D[FLIGHT_DYNAMICS_INDEX_COUNT];
+int32_t axisPID_F[FLIGHT_DYNAMICS_INDEX_COUNT];
+int32_t axisPID_Setpoint[FLIGHT_DYNAMICS_INDEX_COUNT];
 #endif
 
 static EXTENDED_FASTRAM pidState_t pidState[FLIGHT_DYNAMICS_INDEX_COUNT];
@@ -309,6 +313,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
 #endif
 );
 
+FUNCTION_COMPILE_FOR_SIZE
 bool pidInitFilters(void)
 {
     const uint32_t refreshRate = getLooptime();
@@ -317,26 +322,9 @@ bool pidInitFilters(void)
         return false;
     }
 
-    // Init other filters
-    if (pidProfile()->dterm_lpf_hz) {
-        for (int axis = 0; axis < 3; ++ axis) {
-            if (pidProfile()->dterm_lpf_type == FILTER_PT1) {
-                pt1FilterInit(&pidState[axis].dtermLpfState.pt1, pidProfile()->dterm_lpf_hz, refreshRate * 1e-6f);
-            } else {
-                biquadFilterInitLPF(&pidState[axis].dtermLpfState.biquad, pidProfile()->dterm_lpf_hz, refreshRate);
-            }
-        }
-    }
-
-    // Init other filters
-    if (pidProfile()->dterm_lpf2_hz) {
-        for (int axis = 0; axis < 3; ++ axis) {
-            if (pidProfile()->dterm_lpf2_type == FILTER_PT1) {
-                pt1FilterInit(&pidState[axis].dtermLpf2State.pt1, pidProfile()->dterm_lpf2_hz, refreshRate * 1e-6f);
-            } else {
-                biquadFilterInitLPF(&pidState[axis].dtermLpf2State.biquad, pidProfile()->dterm_lpf2_hz, refreshRate);
-            }
-        }
+    for (int axis = 0; axis < 3; ++ axis) {
+        initFilter(pidProfile()->dterm_lpf_type, &pidState[axis].dtermLpfState, pidProfile()->dterm_lpf_hz, refreshRate);
+        initFilter(pidProfile()->dterm_lpf2_type, &pidState[axis].dtermLpf2State, pidProfile()->dterm_lpf2_hz, refreshRate);
     }
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
@@ -355,7 +343,7 @@ bool pidInitFilters(void)
 
     if (pidProfile()->controlDerivativeLpfHz) {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            pt2FilterInit(&pidState[axis].rateTargetFilter, pt2FilterGain(pidProfile()->controlDerivativeLpfHz, refreshRate * 1e-6f));
+            pt3FilterInit(&pidState[axis].rateTargetFilter, pt3FilterGain(pidProfile()->controlDerivativeLpfHz, refreshRate * 1e-6f));
         }
     }
 
@@ -556,7 +544,7 @@ void updatePIDCoefficients()
             pidState[axis].kP  = pidBank()->pid[axis].P / FP_PID_RATE_P_MULTIPLIER * axisTPA;
             pidState[axis].kI  = pidBank()->pid[axis].I / FP_PID_RATE_I_MULTIPLIER;
             pidState[axis].kD  = pidBank()->pid[axis].D / FP_PID_RATE_D_MULTIPLIER * axisTPA;
-            pidState[axis].kCD = pidBank()->pid[axis].FF / FP_PID_RATE_D_FF_MULTIPLIER * axisTPA;
+            pidState[axis].kCD = (pidBank()->pid[axis].FF / FP_PID_RATE_D_FF_MULTIPLIER * axisTPA) / (getLooptime() * 0.000001f);
             pidState[axis].kFF = 0.0f;
 
             // Tracking anti-windup requires P/I/D to be all defined which is only true for MC
@@ -590,6 +578,17 @@ static float calcHorizonRateMagnitude(void)
     }
 
     return horizonRateMagnitude;
+}
+
+/* ANGLE freefloat deadband (degs).Angle error only starts to increase if atttiude outside deadband. */
+int16_t angleFreefloatDeadband(int16_t deadband, flight_dynamics_index_t axis)
+{
+    int16_t levelDatum = axis == FD_PITCH ? attitude.raw[axis] + DEGREES_TO_DECIDEGREES(fixedWingLevelTrim) : attitude.raw[axis];
+    if (ABS(levelDatum) > deadband) {
+        return levelDatum > 0 ? deadband - levelDatum : -(levelDatum + deadband);
+    } else {
+        return 0;
+    }
 }
 
 static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float horizonRateMagnitude, float dT)
@@ -633,10 +632,19 @@ static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float h
         actual = attitude.raw[axis];
     }
 
-    const float angleErrorDeg = DECIDEGREES_TO_DEGREES(angleTarget - actual);
+    float angleErrorDeg = DECIDEGREES_TO_DEGREES(angleTarget - actual);
 #else
-    const float angleErrorDeg = DECIDEGREES_TO_DEGREES(angleTarget - attitude.raw[axis]);
+    float angleErrorDeg = DECIDEGREES_TO_DEGREES(angleTarget - attitude.raw[axis]);
 #endif
+
+    // Soaring mode deadband inactive if pitch/roll stick not centered to allow RC stick adjustment
+    if (FLIGHT_MODE(SOARING_MODE) && axis == FD_PITCH && calculateRollPitchCenterStatus() == CENTERED) {
+        angleErrorDeg = DECIDEGREES_TO_DEGREES((float)angleFreefloatDeadband(DEGREES_TO_DECIDEGREES(navConfig()->fw.soaring_pitch_deadband), FD_PITCH));
+        if (!angleErrorDeg) {
+            pidState->errorGyroIf = 0.0f;
+            pidState->errorGyroIfLimit = 0.0f;
+        }
+    }
 
     float angleRateTarget = constrainf(angleErrorDeg * (pidBank()->pid[PID_LEVEL].P / FP_PID_LEVEL_P_MULTIPLIER), -currentControlRateProfile->stabilized.rates[axis] * 10.0f, currentControlRateProfile->stabilized.rates[axis] * 10.0f);
 
@@ -713,8 +721,6 @@ static float FAST_CODE applyDBoost(pidState_t *pidState, float dT) {
     dBoost = pt1FilterApply4(&pidState->dBoostLpf, dBoost, D_BOOST_LPF_HZ, dT);
     dBoost = constrainf(dBoost, dBoostMin, dBoostMax);
 
-    DEBUG_SET(DEBUG_ALWAYS, pidState->axis, dBoost * 100);
-
     return dBoost;
 }
 #else
@@ -765,7 +771,6 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
     const float newDTerm = dTermProcess(pidState, dT);
     const float newFFTerm = pidState->rateTarget * pidState->kFF;
 
-    DEBUG_SET(DEBUG_FW_D, axis, newDTerm);
     /*
      * Integral should be updated only if axis Iterm is not frozen
      */
@@ -781,6 +786,12 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
 
     axisPID[axis] = constrainf(newPTerm + newFFTerm + pidState->errorGyroIf + newDTerm, -pidState->pidSumLimit, +pidState->pidSumLimit);
 
+    if (FLIGHT_MODE(SOARING_MODE) && axis == FD_PITCH && calculateRollPitchCenterStatus() == CENTERED) {
+        if (!angleFreefloatDeadband(DEGREES_TO_DECIDEGREES(navConfig()->fw.soaring_pitch_deadband), FD_PITCH)) {
+            axisPID[FD_PITCH] = 0;  // center pitch servo if pitch attitude within soaring mode deadband
+        }
+    }
+
 #ifdef USE_AUTOTUNE_FIXED_WING
     if (FLIGHT_MODE(AUTO_TUNE) && !FLIGHT_MODE(MANUAL_MODE)) {
         autotuneFixedWingUpdate(axis, pidState->rateTarget, pidState->gyroRate, constrainf(newPTerm + newFFTerm, -pidState->pidSumLimit, +pidState->pidSumLimit));
@@ -791,6 +802,7 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
     axisPID_P[axis] = newPTerm;
     axisPID_I[axis] = pidState->errorGyroIf;
     axisPID_D[axis] = newDTerm;
+    axisPID_F[axis] = newFFTerm;
     axisPID_Setpoint[axis] = pidState->rateTarget;
 #endif
 
@@ -821,13 +833,12 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
     const float newDTerm = dTermProcess(pidState, dT);
 
     const float rateTargetDelta = pidState->rateTarget - pidState->previousRateTarget;
-    const float rateTargetDeltaFiltered = pt2FilterApply(&pidState->rateTargetFilter, rateTargetDelta);
+    const float rateTargetDeltaFiltered = pt3FilterApply(&pidState->rateTargetFilter, rateTargetDelta);
 
     /*
      * Compute Control Derivative
      */
-    const float newCDTerm = rateTargetDeltaFiltered * (pidState->kCD / dT);
-    DEBUG_SET(DEBUG_CD, axis, newCDTerm);
+    const float newCDTerm = rateTargetDeltaFiltered * pidState->kCD;
 
     // TODO: Get feedback from mixer on available correction range for each axis
     const float newOutput = newPTerm + newDTerm + pidState->errorGyroIf + newCDTerm;
@@ -851,6 +862,7 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
     axisPID_P[axis] = newPTerm;
     axisPID_I[axis] = pidState->errorGyroIf;
     axisPID_D[axis] = newDTerm;
+    axisPID_F[axis] = newCDTerm;
     axisPID_Setpoint[axis] = pidState->rateTarget;
 #endif
 
@@ -880,7 +892,6 @@ static uint8_t getHeadingHoldState(void)
         return HEADING_HOLD_DISABLED;
     }
 
-#if defined(USE_NAV)
     int navHeadingState = navigationGetHeadingControlState();
     // NAV will prevent MAG_MODE from activating, but require heading control
     if (navHeadingState != NAV_HEADING_CONTROL_NONE) {
@@ -889,9 +900,7 @@ static uint8_t getHeadingHoldState(void)
             return HEADING_HOLD_ENABLED;
         }
     }
-    else
-#endif
-    if (ABS(rcCommand[YAW]) == 0 && FLIGHT_MODE(HEADING_MODE)) {
+    else if (ABS(rcCommand[YAW]) == 0 && FLIGHT_MODE(HEADING_MODE)) {
         return HEADING_HOLD_ENABLED;
     } else {
         return HEADING_HOLD_UPDATE_HEADING;
@@ -1197,7 +1206,7 @@ void pidInit(void)
     for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
 
     #ifdef USE_D_BOOST
-        // Rate * 10 * 10. First 10 is to convert stick to DPS. Second 10 is to convert target to acceleration. 
+        // Rate * 10 * 10. First 10 is to convert stick to DPS. Second 10 is to convert target to acceleration.
         // We assume, max acceleration is when pilot deflects the stick fully in 100ms
         pidState[axis].dBoostTargetAcceleration = currentControlRateProfile->stabilized.rates[axis] * 10 * 10;
     #endif
@@ -1230,23 +1239,8 @@ void pidInit(void)
         usedPidControllerType = pidProfile()->pidControllerType;
     }
 
-    dTermLpfFilterApplyFn = nullFilterApply;
-    if (pidProfile()->dterm_lpf_hz) {
-        if (pidProfile()->dterm_lpf_type == FILTER_PT1) {
-            dTermLpfFilterApplyFn = (filterApplyFnPtr) pt1FilterApply;
-        } else {
-            dTermLpfFilterApplyFn = (filterApplyFnPtr) biquadFilterApply;
-        }
-    }
-
-    dTermLpf2FilterApplyFn = nullFilterApply;
-    if (pidProfile()->dterm_lpf2_hz) {
-        if (pidProfile()->dterm_lpf2_type == FILTER_PT1) {
-            dTermLpf2FilterApplyFn = (filterApplyFnPtr) pt1FilterApply;
-        } else {
-            dTermLpf2FilterApplyFn = (filterApplyFnPtr) biquadFilterApply;
-        }
-    }
+    assignFilterApplyFn(pidProfile()->dterm_lpf_type, pidProfile()->dterm_lpf_hz, &dTermLpfFilterApplyFn);
+    assignFilterApplyFn(pidProfile()->dterm_lpf2_type, pidProfile()->dterm_lpf2_hz, &dTermLpf2FilterApplyFn);
 
     if (usedPidControllerType == PID_TYPE_PIFF) {
         pidControllerApplyFn = pidApplyFixedWingRateController;
@@ -1312,6 +1306,7 @@ void updateFixedWingLevelTrim(timeUs_t currentTimeUs)
         !IS_RC_MODE_ACTIVE(BOXAUTOLEVEL) ||
         areSticksDeflected() ||
         (!FLIGHT_MODE(ANGLE_MODE) && !FLIGHT_MODE(HORIZON_MODE)) ||
+        FLIGHT_MODE(SOARING_MODE) ||
         navigationIsControllingAltitude()
     ) {
         flags |= PID_FREEZE_INTEGRATOR;

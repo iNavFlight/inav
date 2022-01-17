@@ -50,8 +50,8 @@ typedef struct uartDevice_s {
 #ifdef USE_UART1
 #define UART_PIN_AF_UART1_PA9       GPIO_AF7_USART1
 #define UART_PIN_AF_UART1_PA10      GPIO_AF7_USART1
-#define UART_PIN_AF_UART1_PB6       GPIO_AF4_USART1
-#define UART_PIN_AF_UART1_PB7       GPIO_AF4_USART1
+#define UART_PIN_AF_UART1_PB6       GPIO_AF7_USART1
+#define UART_PIN_AF_UART1_PB7       GPIO_AF7_USART1
 #define UART_PIN_AF_UART1_PB14      GPIO_AF4_USART1
 #define UART_PIN_AF_UART1_PB15      GPIO_AF4_USART1
 
@@ -164,9 +164,13 @@ static uartDevice_t uart7 =
 {
     .dev = UART7,
     .rx = IO_TAG(UART7_RX_PIN),
+#ifdef UART7_TX_PIN
     .tx = IO_TAG(UART7_TX_PIN),
+#endif
     .af_rx = UART_PIN_AF_HELPER(7, UART7_RX_PIN),
+#ifdef UART7_TX_PIN
     .af_tx = UART_PIN_AF_HELPER(7, UART7_TX_PIN),
+#endif
     .rcc = RCC_APB1L(UART7),
     .irq = UART7_IRQn,
 };

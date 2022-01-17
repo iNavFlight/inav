@@ -115,7 +115,6 @@
 
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_MSP
-#define USE_RANGEFINDER_HCSR04_I2C
 #define RANGEFINDER_I2C_BUS     BUS_I2C1
 
 // *************** ADC *****************************

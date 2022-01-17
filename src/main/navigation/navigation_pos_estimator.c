@@ -22,8 +22,6 @@
 
 #include "platform.h"
 
-#if defined(USE_NAV)
-
 #include "build/build_config.h"
 #include "build/debug.h"
 
@@ -216,7 +214,7 @@ void onNewGPSData(void)
         if(STATE(GPS_FIX_HOME)){
             static bool magDeclinationSet = false;
             if (positionEstimationConfig()->automatic_mag_declination && !magDeclinationSet) {
-                const float declination = geoCalculateMagDeclination(&newLLH); 
+                const float declination = geoCalculateMagDeclination(&newLLH);
                 imuSetMagneticDeclination(declination);
 #ifdef USE_SECONDARY_IMU
                 secondaryImuSetMagneticDeclination(declination);
@@ -246,8 +244,8 @@ void onNewGPSData(void)
                 /* Use VELNED provided by GPS if available, calculate from coordinates otherwise */
                 float gpsScaleLonDown = constrainf(cos_approx((ABS(gpsSol.llh.lat) / 10000000.0f) * 0.0174532925f), 0.01f, 1.0f);
                 if (positionEstimationConfig()->use_gps_velned && gpsSol.flags.validVelNE) {
-                    posEstimator.gps.vel.x = gpsSol.velNED[0];
-                    posEstimator.gps.vel.y = gpsSol.velNED[1];
+                    posEstimator.gps.vel.x = gpsSol.velNED[X];
+                    posEstimator.gps.vel.y = gpsSol.velNED[Y];
                 }
                 else {
                     posEstimator.gps.vel.x = (posEstimator.gps.vel.x + (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (gpsSol.llh.lat - previousLat) / dT)) / 2.0f;
@@ -255,7 +253,7 @@ void onNewGPSData(void)
                 }
 
                 if (positionEstimationConfig()->use_gps_velned && gpsSol.flags.validVelD) {
-                    posEstimator.gps.vel.z = - gpsSol.velNED[2];   // NEU
+                    posEstimator.gps.vel.z = -gpsSol.velNED[Z];   // NEU
                 }
                 else {
                     posEstimator.gps.vel.z = (posEstimator.gps.vel.z + (gpsSol.llh.alt - previousAlt) / dT) / 2.0f;
@@ -443,12 +441,10 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
             posEstimator.imu.accelNEU.z = 0;
         }
 
-#if defined(NAV_BLACKBOX)
         /* Update blackbox values */
         navAccNEU[X] = posEstimator.imu.accelNEU.x;
         navAccNEU[Y] = posEstimator.imu.accelNEU.y;
         navAccNEU[Z] = posEstimator.imu.accelNEU.z;
-#endif
     }
 }
 
@@ -785,10 +781,9 @@ static void publishEstimatedTopic(timeUs_t currentTimeUs)
             updateActualAltitudeAndClimbRate(false, posEstimator.est.pos.z, 0, posEstimator.est.aglAlt, 0, EST_NONE);
         }
 
-#if defined(NAV_BLACKBOX)
+        //Update Blackbox states
         navEPH = posEstimator.est.eph;
         navEPV = posEstimator.est.epv;
-#endif
     }
 }
 
@@ -864,5 +859,3 @@ bool navIsCalibrationComplete(void)
 {
     return gravityCalibrationComplete();
 }
-
-#endif

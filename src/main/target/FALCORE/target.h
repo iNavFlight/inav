@@ -56,7 +56,6 @@
 #define USE_UART4
 #define USE_UART5
 #define SERIAL_PORT_COUNT       5
-#define AVOID_UART2_FOR_PWM_PPM
 
 #define UART1_TX_PIN            PC4
 #define UART1_RX_PIN            PC5

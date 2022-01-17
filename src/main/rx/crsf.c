@@ -36,6 +36,7 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/serial_uart.h"
 
 #include "io/serial.h"
+#include "io/osd.h"
 
 #include "rx/rx.h"
 #include "rx/crsf.h"
@@ -58,8 +59,8 @@ static timeUs_t crsfFrameStartAt = 0;
 static uint8_t telemetryBuf[CRSF_FRAME_SIZE_MAX];
 static uint8_t telemetryBufLen = 0;
 
-// The power levels represented by uplinkTXPower above in mW (250mW added to full TX in v4.00 firmware)
-const uint16_t crsfPowerStates[] = {0, 10, 25, 100, 500, 1000, 2000, 250};
+// The power levels represented by uplinkTXPower above in mW (250mW added to full TX in v4.00 firmware, 50mW added for ExpressLRS)
+const uint16_t crsfPowerStates[] = {0, 10, 25, 100, 500, 1000, 2000, 250, 50};
 
 /*
  * CRSF protocol
@@ -241,7 +242,17 @@ STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
             rxLinkStatistics.uplinkTXPower = crsfPowerStates[linkStats->uplinkTXPower];
             rxLinkStatistics.activeAnt = linkStats->activeAntenna;
 
-            lqTrackerSet(rxRuntimeConfig->lqTracker, scaleRange(constrain(rxLinkStatistics.uplinkRSSI, -120, -30), -120, -30, 0, RSSI_MAX_VALUE));
+            if (rxLinkStatistics.uplinkLQ > 0) {
+                int16_t uplinkStrength;   // RSSI dBm converted to %
+                uplinkStrength = constrain((100 * sq((osdConfig()->rssi_dbm_max - osdConfig()->rssi_dbm_min)) - (100 * sq((osdConfig()->rssi_dbm_max  - rxLinkStatistics.uplinkRSSI)))) / sq((osdConfig()->rssi_dbm_max - osdConfig()->rssi_dbm_min)),0,100);
+                if (rxLinkStatistics.uplinkRSSI >= osdConfig()->rssi_dbm_max )
+                    uplinkStrength = 99;
+                else if (rxLinkStatistics.uplinkRSSI < osdConfig()->rssi_dbm_min)
+                    uplinkStrength = 0;
+                lqTrackerSet(rxRuntimeConfig->lqTracker, scaleRange(uplinkStrength, 0, 99, 0, RSSI_MAX_VALUE));
+            }
+            else
+                lqTrackerSet(rxRuntimeConfig->lqTracker, 0);
 
             // This is not RC channels frame, update channel value but don't indicate frame completion
             return RX_FRAME_PENDING;

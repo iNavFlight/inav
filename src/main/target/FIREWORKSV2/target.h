@@ -123,7 +123,6 @@
 #else
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
 #endif
-#define USE_RANGEFINDER_HCSR04_I2C
 
 #define USE_VCP
 #define VBUS_SENSING_PIN        PC5

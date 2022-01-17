@@ -47,12 +47,16 @@ typedef struct biquadFilter_s {
 
 typedef union { 
     biquadFilter_t biquad; 
-    pt1Filter_t pt1; 
+    pt1Filter_t pt1;
+    pt2Filter_t pt2;
+    pt3Filter_t pt3;
 } filter_t;
 
 typedef enum {
     FILTER_PT1 = 0,
-    FILTER_BIQUAD
+    FILTER_BIQUAD,
+    FILTER_PT2,
+    FILTER_PT3
 } filterType_e;
 
 typedef enum {
@@ -128,3 +132,6 @@ void biquadFilterUpdate(biquadFilter_t *filter, float filterFreq, uint32_t refre
 
 void alphaBetaGammaFilterInit(alphaBetaGammaFilter_t *filter, float alpha, float boostGain, float halfLife, float dT);
 float alphaBetaGammaFilterApply(alphaBetaGammaFilter_t *filter, float input);
+
+void initFilter(uint8_t filterType, filter_t *filter, float cutoffFrequency, uint32_t refreshRate);
+void assignFilterApplyFn(uint8_t filterType, float cutoffFrequency, filterApplyFnPtr *applyFn);

@@ -107,7 +107,6 @@ bool vcm5883Detect(magDev_t * mag)
     }
 
     if (!deviceDetect(mag)) {
-        DEBUG_SET(DEBUG_ALWAYS, 0, 7);
         busDeviceDeInit(mag->busDev);
         return false;
     }

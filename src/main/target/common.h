@@ -39,7 +39,6 @@
 #define I2C2_OVERCLOCK false
 #define USE_I2C_PULLUP          // Enable built-in pullups on all boards in case external ones are too week
 
-#define USE_RX_PPM
 #define USE_SERIAL_RX
 #define USE_SERIALRX_SPEKTRUM   // Cheap and fairly common protocol
 #define USE_SERIALRX_SBUS       // Very common protocol
@@ -67,7 +66,6 @@
 #define USE_GPS
 #define USE_GPS_PROTO_UBLOX
 #define USE_GPS_PROTO_MSP
-#define USE_NAV
 #define USE_TELEMETRY
 #define USE_TELEMETRY_LTM
 #define USE_TELEMETRY_FRSKY
@@ -80,7 +78,7 @@
 
 #if (MCU_FLASH_SIZE > 256)
 
-#if defined(MAG_I2C_BUS) || defined(VCM5883_I2C_BUS)    
+#if defined(MAG_I2C_BUS) || defined(VCM5883_I2C_BUS)
 #define USE_MAG_VCM5883
 #endif
 
@@ -88,7 +86,6 @@
 #define USE_PITOT
 #define USE_PITOT_ADC
 
-#define USE_ALPHA_BETA_GAMMA_FILTER
 #define USE_DYNAMIC_FILTERS
 #define USE_GYRO_KALMAN
 #define USE_SMITH_PREDICTOR
@@ -104,8 +101,8 @@
 #define USE_RANGEFINDER_BENEWAKE
 #define USE_RANGEFINDER_VL53L0X
 #define USE_RANGEFINDER_VL53L1X
-#define USE_RANGEFINDER_HCSR04_I2C
 #define USE_RANGEFINDER_US42
+#define USE_RANGEFINDER_TOF10120_I2C
 
 // Allow default optic flow boards
 #define USE_OPFLOW
@@ -191,8 +188,9 @@
 //#define USE_MSP_RC_OVERRIDE
 #define USE_SERIALRX_CRSF
 #define USE_SERIAL_PASSTHROUGH
-#define NAV_MAX_WAYPOINTS       60
+#define NAV_MAX_WAYPOINTS       120
 #define USE_RCDEVICE
+#define USE_MULTI_MISSION
 
 //Enable VTX control
 #define USE_VTX_CONTROL
