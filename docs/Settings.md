@@ -88,7 +88,7 @@ Software-based filter to remove mechanical vibrations from the accelerometer mea
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 15 | 0 | 200 |
+| 15 | 0 | 99 |
 
 ---
 
