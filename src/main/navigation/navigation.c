@@ -2507,9 +2507,9 @@ void calculateInitialHoldPosition(fpVector3_t * pos)
     } 
     else {
         calculateMulticopterInitialHoldPositionXY(pos, 
-                                                (float)pidProfile()->bank_mc.pid[PID_POS_XY].P / 100.0f, 
+                                                (float)pidProfile()->bank_mc.pid[PID_POS_XY].P / 60.0f, 
                                                 100.0f,
-                                                navConfig()->general.max_auto_speed);
+                                                (float)navConfig()->general.max_auto_speed);
     }
 }
 
