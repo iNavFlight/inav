@@ -366,7 +366,7 @@ groups:
         description: "Software-based filter to remove mechanical vibrations from the accelerometer measurements. Value is cutoff frequency (Hz). For larger frames with bigger props set to lower value."
         default_value: 15
         min: 0
-        max: 200
+        max: 99
       - name: acc_lpf_type
         description: "Specifies the type of the software LPF of the acc signals. BIQUAD gives better filtering and more delay, PT1 less filtering and less delay, so use only on clean builds."
         default_value: "BIQUAD"
