@@ -97,7 +97,7 @@ STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_rang
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 1);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 14);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 15);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -147,6 +147,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .max_terrain_follow_altitude = SETTING_NAV_MAX_TERRAIN_FOLLOW_ALT_DEFAULT,              // max altitude in centimeters in terrain following mode
         .safehome_max_distance = SETTING_SAFEHOME_MAX_DISTANCE_DEFAULT,                         // Max distance that a safehome is from the arming point
         .max_altitude = SETTING_NAV_MAX_ALTITUDE_DEFAULT,
+        .max_horizontal_accel = SETTING_NAV_HORIZONTAL_ACCEL_DEFAULT,                           // Max horizontal acceleration in autonomus navigation cm/s
     },
 
     // MC-specific
@@ -2508,7 +2509,7 @@ void calculateInitialHoldPosition(fpVector3_t * pos)
     else {
         calculateMulticopterInitialHoldPositionXY(pos, 
                                                 (float)pidProfile()->bank_mc.pid[PID_POS_XY].P / 60.0f, 
-                                                100.0f,
+                                                (float)navConfig()->general.max_horizontal_accel,
                                                 (float)navConfig()->general.max_auto_speed);
     }
 }

@@ -3302,6 +3302,16 @@ Deadband for heading trajectory PID controller. When heading error is below the 
 
 ---
 
+### nav_horizontal_accel
+
+Maximum multicopter horizontal acceleration in autonomus navigation [cm/s] [Multirotor only]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 100 | 1000 |
+
+---
+
 ### nav_land_maxalt_vspd
 
 Vertical descent velocity above nav_land_slowdown_maxalt during the RTH landing phase. [cm/s]

@@ -469,7 +469,7 @@ bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcR
             fpVector3_t new_stopPosition;
             calculateMulticopterInitialHoldPositionXY(&new_stopPosition, 
                                                     (float)pidProfile()->bank_mc.pid[PID_POS_XY].P / 60.0f, 
-                                                    100.0f,
+                                                    (float)navConfig()->general.max_horizontal_accel,
                                                     (float)navConfig()->general.max_manual_speed);
             setDesiredPosition(&new_stopPosition, 0, NAV_POS_UPDATE_XY);
         }

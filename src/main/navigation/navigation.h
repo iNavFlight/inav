@@ -249,6 +249,7 @@ typedef struct navConfig_s {
         uint16_t max_terrain_follow_altitude;       // Max altitude to be used in SURFACE TRACKING mode
         uint16_t safehome_max_distance;             // Max distance that a safehome is from the arming point
         uint16_t max_altitude;                      // Max altitude when in AltHold mode (not Surface Following)
+        uint16_t max_horizontal_accel;              // Max horizontal acceleration in autonomus navigation cm/s
     } general;
 
     struct {

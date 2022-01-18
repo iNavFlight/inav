@@ -1949,7 +1949,6 @@ groups:
         min: HEADING_HOLD_RATE_LIMIT_MIN
         max: HEADING_HOLD_RATE_LIMIT_MAX
         default_value: 90
-
       - name: nav_mc_pos_z_p
         description: "P gain of altitude PID controller (Multirotor)"
         field: bank_mc.pid[PID_POS_Z].P
@@ -2548,6 +2547,12 @@ groups:
         default_value: 0
         max: 65000
         min: 0
+      - name: nav_horizontal_accel
+        field: general.max_horizontal_accel
+        description: "Maximum multicopter horizontal acceleration in autonomus navigation [cm/s] [Multirotor only]"
+        default_value: 100
+        min: 100
+        max: 1000
       - name: nav_rth_altitude
         description: "Used in EXTRA, FIXED and AT_LEAST rth alt modes [cm] (Default 1000 means 10 meters)"
         default_value: 1000
@@ -2707,7 +2712,6 @@ groups:
         field: fw.control_smoothness
         min: 0
         max: 9
-
       - name: nav_fw_land_dive_angle
         description: "Dive angle that airplane will use during final landing phase. During dive phase, motor is stopped or IDLE and roll control is locked to 0 degrees"
         default_value: 2
@@ -2715,7 +2719,6 @@ groups:
         condition: NAV_FIXED_WING_LANDING
         min: -20
         max: 20
-
       - name: nav_fw_launch_velocity
         description: "Forward velocity threshold for swing-launch detection [cm/s]"
         default_value: 300
