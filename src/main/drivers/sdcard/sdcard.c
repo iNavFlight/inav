@@ -75,9 +75,7 @@ bool sdcard_isInserted(void)
         return result;
 #endif
     }
-    else {
-        return true;
-    }
+    return true;
 }
 
 /**
@@ -102,54 +100,48 @@ bool sdcard_readBlock(uint32_t blockIndex, uint8_t *buffer, sdcard_operationComp
 {
     if (sdcardVTable) {
         return sdcardVTable->readBlock(blockIndex, buffer, callback, callbackData);
-    } else {
-        return false;
     }
+    return false;
 }
 
 sdcardOperationStatus_e sdcard_beginWriteBlocks(uint32_t blockIndex, uint32_t blockCount)
 {
     if (sdcardVTable) {
         return sdcardVTable->beginWriteBlocks(blockIndex, blockCount);
-    } else {
-        return false;
     }
+    return false;
 }
 
 sdcardOperationStatus_e sdcard_writeBlock(uint32_t blockIndex, uint8_t *buffer, sdcard_operationCompleteCallback_c callback, uint32_t callbackData)
 {
     if (sdcardVTable) {
         return sdcardVTable->writeBlock(blockIndex, buffer, callback, callbackData);
-    } else {
-        return false;
-    }
+    } 
+    return false;
 }
 
 bool sdcard_poll(void)
 {
     if (sdcardVTable) {
         return sdcardVTable->poll();
-    } else {
-        return false;
     }
+    return false;
 }
 
 bool sdcard_isFunctional(void)
 {
     if (sdcardVTable) {
         return sdcardVTable->isFunctional();
-    } else {
-        return false;
     }
+    return false;
 }
 
 bool sdcard_isInitialized(void)
 {
     if (sdcardVTable) {
         return sdcardVTable->isInitialized();
-    } else {
-        return false;
-    }
+    } 
+    return false;
 }
 
 const sdcardMetadata_t* sdcard_getMetadata(void)
@@ -157,9 +149,7 @@ const sdcardMetadata_t* sdcard_getMetadata(void)
     if (sdcardVTable) {
         return sdcardVTable->getMetadata();
     }
-    else {
-        return NULL;
-    }
+    return NULL;
 }
 
 #endif

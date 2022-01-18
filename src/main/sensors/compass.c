@@ -362,9 +362,7 @@ bool compassIsCalibrationComplete(void)
     if (STATE(COMPASS_CALIBRATED)) {
         return true;
     }
-    else {
-        return false;
-    }
+    return false;
 }
 
 void compassUpdate(timeUs_t currentTimeUs)

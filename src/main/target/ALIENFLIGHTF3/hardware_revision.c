@@ -66,7 +66,5 @@ const extiConfig_t *selectMPUIntExtiConfigByHardwareRevision(void)
     if (hardwareRevision == AFF3_REV_1) {
         return &alienFlightF3V1MPUIntExtiConfig;
     }
-    else {
-        return &alienFlightF3V2MPUIntExtiConfig;
-    }
+    return &alienFlightF3V2MPUIntExtiConfig;
 }

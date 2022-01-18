@@ -518,9 +518,7 @@ ioTag_t pwmGetMotorPinTag(int motorIndex)
     if (motors[motorIndex].pwmPort) {
         return motors[motorIndex].pwmPort->tch->timHw->tag;
     }
-    else {
-        return IOTAG_NONE;
-    }
+    return IOTAG_NONE;
 }
 
 static void pwmServoWriteStandard(uint8_t index, uint16_t value)

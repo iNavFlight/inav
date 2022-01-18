@@ -165,9 +165,7 @@ int getServoCount(void)
     if (servoRuleCount) {
         return 1 + maxServoIndex - minServoIndex;
     }
-    else {
-        return 0;
-    }
+    return 0;
 }
 
 void loadCustomServoMixer(void)

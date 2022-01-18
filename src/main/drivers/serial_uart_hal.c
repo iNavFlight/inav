@@ -252,9 +252,8 @@ bool isUartIdle(serialPort_t *instance)
     if(__HAL_UART_GET_FLAG(&s->Handle, UART_FLAG_IDLE)) {
         __HAL_UART_CLEAR_IDLEFLAG(&s->Handle);
         return true;
-    } else {
-        return false;
     }
+    return false;
 }
 
 const struct serialPortVTable uartVTable[] = {

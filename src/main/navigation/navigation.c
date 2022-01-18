@@ -1635,9 +1635,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_RTH_LAND(navig
         navOnEnteringState_NAV_STATE_RTH_FINISHING(previousState);
         return NAV_FSM_EVENT_SUCCESS;
     }
-    else {
-        return NAV_FSM_EVENT_NONE;
-    }
+    return NAV_FSM_EVENT_NONE;
 }
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_NEXT(navigationFSMState_t previousState)
@@ -2122,9 +2120,7 @@ static bool isWaypointPositionReached(const fpVector3_t * pos, const bool isWayp
         return (posControl.wpDistance <= navConfig()->general.waypoint_radius)
                 || (posControl.wpDistance <= (navConfig()->fw.loiter_radius * 1.10f));  // 10% margin of desired circular loiter radius
     }
-    else {
-        return (posControl.wpDistance <= navConfig()->general.waypoint_radius);
-    }
+    return (posControl.wpDistance <= navConfig()->general.waypoint_radius);
 }
 
 bool isWaypointReached(const navWaypointPosition_t * waypoint, const bool isWaypointHome)
@@ -2652,9 +2648,7 @@ static bool adjustAltitudeFromRCInput(void)
     if (STATE(FIXED_WING_LEGACY)) {
         return adjustFixedWingAltitudeFromRCInput();
     }
-    else {
-        return adjustMulticopterAltitudeFromRCInput();
-    }
+    return adjustMulticopterAltitudeFromRCInput();
 }
 
 /*-----------------------------------------------------------
@@ -2705,9 +2699,7 @@ static bool adjustHeadingFromRCInput(void)
     if (STATE(FIXED_WING_LEGACY)) {
         return adjustFixedWingHeadingFromRCInput();
     }
-    else {
-        return adjustMulticopterHeadingFromRCInput();
-    }
+    return adjustMulticopterHeadingFromRCInput();
 }
 
 /*-----------------------------------------------------------
@@ -3433,9 +3425,7 @@ bool navigationRequiresTurnAssistance(void)
         // For airplanes turn assistant is always required when controlling position
         return (currentState & (NAV_CTL_POS | NAV_CTL_ALT));
     }
-    else {
-        return false;
-    }
+    return false;
 }
 
 /**
@@ -3457,9 +3447,7 @@ int8_t navigationGetHeadingControlState(void)
             return NAV_HEADING_CONTROL_AUTO;
         }
     }
-    else {
-        return NAV_HEADING_CONTROL_NONE;
-    }
+    return NAV_HEADING_CONTROL_NONE;
 }
 
 bool navigationTerrainFollowingEnabled(void)
@@ -3870,9 +3858,7 @@ rthState_e getStateOfForcedRTH(void)
             return RTH_IN_PROGRESS;
         }
     }
-    else {
-        return RTH_IDLE;
-    }
+    return RTH_IDLE;
 }
 
 /*-----------------------------------------------------------

@@ -236,9 +236,8 @@ static bool sdcardSpi_readOCRRegister(uint32_t *result)
     if (status == 0) {
         *result = (response[0] << 24) | (response[1] << 16) | (response[2] << 8) | response[3];
         return true;
-    } else {
-        return false;
     }
+    return false;
 }
 
 typedef enum {

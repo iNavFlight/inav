@@ -352,9 +352,7 @@ uint16_t encodeTimeout(uint16_t timeout_mclks)
 
         return (ms_byte << 8) | (ls_byte & 0xFF);
     }
-    else {
-        return 0;
-    }
+    return 0;
 }
 
 // Set the return signal rate limit check value in units of MCPS (mega counts
@@ -424,9 +422,7 @@ uint8_t getVcselPulsePeriod(busDevice_t * busDev, vcselPeriodType_e type)
     else if (type == VcselPeriodFinalRange) {
         return decodeVcselPeriod(readReg(busDev, VL53L0X_REG_FINAL_RANGE_CONFIG_VCSEL_PERIOD));
     }
-    else {
-        return 255;
-    }
+    return 255;
 }
 
 // Get sequence step timeouts
@@ -1141,9 +1137,7 @@ int32_t vl53l0x_GetDistance(rangefinderDev_t *dev)
             return RANGEFINDER_NO_NEW_DATA;
         }
     }
-    else {
-        return RANGEFINDER_HARDWARE_FAILURE;
-    }
+    return RANGEFINDER_HARDWARE_FAILURE;
 }
 
 static bool deviceDetect(busDevice_t * busDev)

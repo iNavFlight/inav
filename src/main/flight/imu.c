@@ -229,9 +229,7 @@ static float imuGetPGainScaleFactor(void)
     if (imuUseFastGains()) {
         return 10.0f;
     }
-    else {
-        return 1.0f;
-    }
+    return 1.0f;
 }
 
 static void imuResetOrientationQuaternion(const fpVector3_t * accBF)

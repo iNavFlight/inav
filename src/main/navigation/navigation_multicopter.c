@@ -254,9 +254,7 @@ bool adjustMulticopterHeadingFromRCInput(void)
 
         return true;
     }
-    else {
-        return false;
-    }
+    return false;
 }
 
 /*-----------------------------------------------------------
@@ -726,9 +724,7 @@ bool isMulticopterLandingDetected(void)
         landingTimer = currentTimeUs;
         return false;
     }
-    else {
-        return ((currentTimeUs - landingTimer) > (navConfig()->mc.auto_disarm_delay * 1000)) ? true : false;
-    }
+    return ((currentTimeUs - landingTimer) > (navConfig()->mc.auto_disarm_delay * 1000)) ? true : false;
 }
 
 /*-----------------------------------------------------------

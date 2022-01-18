@@ -253,9 +253,8 @@ bool isUartIdle(serialPort_t *instance)
     if(USART_GetFlagStatus(s->USARTx, USART_FLAG_IDLE)) {
         uartClearIdleFlag(s);
         return true;
-    } else {
-        return false;
-    }
+    } 
+    return false;
 }
 
 const struct serialPortVTable uartVTable[] = {

@@ -102,9 +102,7 @@ static bool updateTimer(navigationTimer_t * tim, timeUs_t interval, timeUs_t cur
         tim->lastTriggeredTime = currentTimeUs;
         return true;
     }
-    else {
-        return false;
-    }
+    return false;
 }
 
 static bool shouldResetReferenceAltitude(void)

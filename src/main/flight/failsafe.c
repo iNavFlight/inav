@@ -329,9 +329,7 @@ static bool failsafeCheckStickMotion(void)
 
         return totalRcDelta >= failsafeConfig()->failsafe_stick_motion_threshold;
     }
-    else {
-        return true;
-    }
+    return true;
 }
 
 static failsafeProcedure_e failsafeChooseFailsafeProcedure(void)

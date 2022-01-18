@@ -89,9 +89,7 @@ static int getTelemetryMotorCount(void)
     if (escSensorConfig()->listenOnly) {
         return 1;
     }
-    else {
-        return getMotorCount();
-    }
+    return getMotorCount();
 }
 
 static void escSensorSelectNextMotor(void)
@@ -201,9 +199,7 @@ escSensorData_t * escSensorGetData(void)
     if (escSensorDataCombined.dataAge >= ESC_DATA_INVALID) {
         return NULL;
     }
-    else {
-        return &escSensorDataCombined;
-    }
+    return &escSensorDataCombined;
 }
 
 bool escSensorInitialize(void)

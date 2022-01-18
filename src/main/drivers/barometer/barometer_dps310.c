@@ -140,9 +140,7 @@ static int32_t getTwosComplement(uint32_t raw, uint8_t length)
     if (raw & ((int)1 << (length - 1))) {
         return ((int32_t)raw) - ((int32_t)1 << length);
     }
-    else {
-        return raw;
-    }
+    return raw;
 }
 
 static bool deviceConfigure(busDevice_t * busDev)

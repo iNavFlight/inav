@@ -154,9 +154,7 @@ static int32_t benewakeRangefinderGetDistance(void)
         hasNewData = false;
         return (sensorData > 0) ? (sensorData) : RANGEFINDER_OUT_OF_RANGE;
     }
-    else {
-        return RANGEFINDER_NO_NEW_DATA;
-    }
+    return RANGEFINDER_NO_NEW_DATA;
 }
 
 virtualRangefinderVTable_t rangefinderBenewakeVtable = {

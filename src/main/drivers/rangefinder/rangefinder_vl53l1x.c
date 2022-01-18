@@ -1648,9 +1648,7 @@ int32_t vl53l1x_GetDistance(rangefinderDev_t *dev)
             return RANGEFINDER_NO_NEW_DATA;
         }
     }
-    else {
-        return RANGEFINDER_HARDWARE_FAILURE;
-    }
+    return RANGEFINDER_HARDWARE_FAILURE;
 }
 
 static bool deviceDetect(busDevice_t * busDev)

@@ -299,9 +299,8 @@ static bool cliDumpPrintLinef(uint8_t dumpMask, bool equalsDefault, const char *
         cliPrintLinefva(format, va);
         va_end(va);
         return true;
-    } else {
-        return false;
     }
+    return false;
 }
 
 static void cliWrite(uint8_t ch)
@@ -319,9 +318,8 @@ static bool cliDefaultPrintLinef(uint8_t dumpMask, bool equalsDefault, const cha
         cliPrintLinefva(format, va);
         va_end(va);
         return true;
-    } else {
-        return false;
     }
+    return false;
 }
 
 static void cliPrintf(const char *format, ...)

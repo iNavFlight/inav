@@ -143,9 +143,7 @@ static int32_t srf10_get_distance(rangefinderDev_t *dev)
     if (isSensorResponding) {
         return srf10measurementCm;
     }
-    else {
-        return RANGEFINDER_HARDWARE_FAILURE;
-    }
+    return RANGEFINDER_HARDWARE_FAILURE;
 }
 
 static bool deviceDetect(busDevice_t * busDev)
