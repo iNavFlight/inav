@@ -30,6 +30,8 @@
 
 FILE_COMPILE_FOR_SPEED
 
+//#define HDZERO_STATS
+
 #if defined(USE_OSD) && defined(USE_HDZERO_OSD)
 
 #include "common/utils.h"
@@ -52,8 +54,8 @@ FILE_COMPILE_FOR_SPEED
 #define MSP_WRITE_STRING 3
 #define MSP_DRAW_SCREEN 4
 #define MSP_SET_OPTIONS 5
-#define DRAW_FREQ_DENOM 4
-#define UPDATES_PER_CALL 10
+#define DRAW_FREQ_DENOM 4 // 60Hz
+#define TX_BUFFER_SIZE 1024
 #define VTX_TIMEOUT 1000 // 1 second timer
 
 static mspProcessCommandFnPtr mspProcessCommand;
@@ -72,6 +74,11 @@ static BITARRAY_DECLARE(dirty, SCREENSIZE); // change status for each character 
 
 extern uint8_t cliMode;
 
+#ifdef HDZERO_STATS
+static uint32_t dataSent;
+static uint8_t resetCount;
+#endif
+
 static int output(displayPort_t *displayPort, uint8_t cmd, uint8_t *subcmd, int len)
 {
     UNUSED(displayPort);
@@ -81,6 +88,10 @@ static int output(displayPort_t *displayPort, uint8_t cmd, uint8_t *subcmd, int 
     if (!cliMode && vtxActive) {
         sent = mspSerialPushPort(cmd, subcmd, len, &hdZeroMspPort, MSP_V1);
     }
+
+#ifdef HDZERO_STATS
+    dataSent += sent;
+#endif
 
     return sent;
 }
@@ -125,8 +136,7 @@ static bool readChar(displayPort_t *displayPort, uint8_t col, uint8_t row, uint1
     }
 
     *c = screen[pos];
-    if (bitArrayGet(fontPage, pos))
-    {
+    if (bitArrayGet(fontPage, pos)) {
         *c |= 0x100;
     }
 
@@ -165,12 +175,45 @@ static int writeString(displayPort_t *displayPort, uint8_t col, uint8_t row, con
     UNUSED(attr);
 
     uint16_t pos = (row * COLS) + col;
-    while (*string)
-    {
+    while (*string) {
         setChar(pos++, *string++);
     }
     return 0;
 }
+
+#ifdef HDZERO_STATS
+static void printStats(displayPort_t *displayPort, uint32_t updates)
+{
+    static timeMs_t lastTime;
+    static uint32_t maxDataSent, maxBufferUsed, maxUpdates;
+    timeMs_t currentTime = millis();
+    char lineBuffer[100];
+
+    if (updates > maxUpdates) {
+        maxUpdates = updates; // updates sent per displayWrite
+    }
+
+    uint32_t bufferUsed = TX_BUFFER_SIZE - serialTxBytesFree(hdZeroMspPort.port);
+    if (bufferUsed > maxBufferUsed) {
+        maxBufferUsed = bufferUsed; // serial buffer used after displayWrite
+    }
+
+    uint32_t diff = (currentTime - lastTime);
+    if (diff > 1000) { // Data sampled in 1 second
+        if (dataSent > maxDataSent) {
+            maxDataSent = dataSent; // bps (max 11520 allowed)
+        }
+
+        dataSent = 0;
+        lastTime = currentTime;
+    }
+
+
+    tfp_sprintf(lineBuffer, "R:%2d %4ld %5ld(%5ld) U:%2ld(%2ld) B:%3ld(%4ld,%4ld)", resetCount, (millis()-vtxHeartbeat),
+            dataSent, maxDataSent, updates, maxUpdates, bufferUsed, maxBufferUsed, hdZeroMspPort.port->txBufferSize);
+    writeString(displayPort, 0, 17, lineBuffer, 0);
+}
+#endif
 
 /**
  * Write only changed characters to the VTX
@@ -179,13 +222,13 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
 {
     static uint8_t counter = 0;
 
-    if ((counter++ % DRAW_FREQ_DENOM) == 0) { // 62.5Hz
+    if ((counter++ % DRAW_FREQ_DENOM) == 0) {
         uint8_t subcmd[COLS + 4];
         uint8_t updateCount = 0;
         subcmd[0] = MSP_WRITE_STRING;
 
         int next = BITARRAY_FIND_FIRST_SET(dirty, 0);
-        while (next >= 0 && updateCount < UPDATES_PER_CALL) {
+        while (next >= 0) {
             // Look for sequential dirty characters on the same line for the same font page
             int pos = next;
             uint8_t row = pos / COLS;
@@ -211,15 +254,20 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
             next = BITARRAY_FIND_FIRST_SET(dirty, pos);
         }
 
-        if (updateCount > 0)
-        {
+        if (updateCount > 0) {
             subcmd[0] = MSP_DRAW_SCREEN;
             output(displayPort, MSP_DISPLAYPORT, subcmd, 1);
         }
 
+#ifdef HDZERO_STATS
+        printStats(displayPort, updateCount);
+#endif
         checkVtxPresent();
 
         if (vtxReset) {
+#ifdef HDZERO_STATS
+            resetCount++;
+#endif
             clearScreen(displayPort);
             vtxReset = false;
         }
@@ -311,14 +359,23 @@ static const displayPortVTable_t hdzeroOsdVTable = {
 
 bool hdzeroOsdSerialInit(void)
 {
+    static volatile uint8_t txBuffer[TX_BUFFER_SIZE];
     memset(&hdZeroMspPort, 0, sizeof(mspPort_t));
 
     serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_HDZERO_OSD);
     if (portConfig) {
         serialPort_t *port = openSerialPort(portConfig->identifier, FUNCTION_HDZERO_OSD, NULL, NULL,
                 baudRates[portConfig->msp_baudrateIndex], MODE_RXTX, SERIAL_NOT_INVERTED);
+
         if (port) {
+            // Use a bigger TX buffer size to accommodate the configuration menus
+            port->txBuffer = txBuffer;
+            port->txBufferSize = TX_BUFFER_SIZE;
+            port->txBufferTail = 0;
+            port->txBufferHead = 0;
+
             resetMspPort(&hdZeroMspPort, port);
+
             return true;
         }
     }
