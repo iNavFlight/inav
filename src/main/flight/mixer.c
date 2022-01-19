@@ -541,7 +541,7 @@ void FAST_CODE mixTable()
         motorValueWhenStopped = getReversibleMotorsThrottleDeadband();
         mixerThrottleCommand = constrain(rcCommand[THROTTLE], throttleRangeMin, throttleRangeMax);
 
-        #ifdef USE_DSHOT
+#ifdef USE_DSHOT
         if(isMotorProtocolDigital() && feature(FEATURE_REVERSIBLE_MOTORS) && reversibleMotorsThrottleState == MOTOR_DIRECTION_BACKWARD) {
             /*
              * We need to start the throttle output from stick input to start in the middle of the stick at the low and.
@@ -550,7 +550,7 @@ void FAST_CODE mixTable()
             int throttleDistanceToMax = throttleRangeMax - rcCommand[THROTTLE];
             mixerThrottleCommand = throttleRangeMin + throttleDistanceToMax;
         }
-        #endif
+#endif
     } else {
         mixerThrottleCommand = rcCommand[THROTTLE];
         throttleRangeMin = throttleIdleValue;
