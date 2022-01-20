@@ -2818,7 +2818,7 @@ Craft name
 
 | Default | Min | Max |
 | --- | --- | --- |
-| _empty_ |  |  |
+| _empty_ |  | MAX_NAME_LENGTH |
 
 ---
 
