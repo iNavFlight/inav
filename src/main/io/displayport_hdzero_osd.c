@@ -365,7 +365,7 @@ bool hdzeroOsdSerialInit(void)
     serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_HDZERO_OSD);
     if (portConfig) {
         serialPort_t *port = openSerialPort(portConfig->identifier, FUNCTION_HDZERO_OSD, NULL, NULL,
-                baudRates[portConfig->msp_baudrateIndex], MODE_RXTX, SERIAL_NOT_INVERTED);
+                baudRates[portConfig->peripheral_baudrateIndex], MODE_RXTX, SERIAL_NOT_INVERTED);
 
         if (port) {
             // Use a bigger TX buffer size to accommodate the configuration menus
