@@ -3518,6 +3518,11 @@ groups:
         min: 5
         max: MAX_SUPPORTED_RC_CHANNEL_COUNT
         default_value: 5
+      - name: osd_switch_indicators_align_left
+        description: "Align text to left of switch indicators"
+        field: osd_switch_indicators_align_left
+        type: bool
+        default_value: ON
 
   - name: PG_OSD_COMMON_CONFIG
     type: osdCommonConfig_t

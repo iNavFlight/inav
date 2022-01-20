@@ -408,7 +408,7 @@ typedef struct osdConfig_s {
     uint8_t osd_switch_indicator2_channnel;     // RC Channel to use for switch indicator 2.
     char    osd_switch_indicator3_name[OSD_SWITCH_INDICATOR_NAME_LENGTH + 1];      // Name to use for switch indicator 3.
     uint8_t osd_switch_indicator3_channnel;     // RC Channel to use for switch indicator 3.
-
+    bool    osd_switch_indicators_align_left;   // Align switch indicator name to left of the switch.
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);

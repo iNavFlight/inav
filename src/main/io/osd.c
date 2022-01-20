@@ -1497,28 +1497,37 @@ int8_t getGeoWaypointNumber(int8_t waypointIndex)
 }
 
 void osdDisplaySwitchIndicator(const char *swName, int rcValue, char *buff) {
-    int8_t charRemainder = OSD_SWITCH_INDICATOR_NAME_LENGTH;
     int8_t ptr = 0;
 
-    for (ptr = strlen(swName); ptr > 0; ptr--) {
-        buff[--charRemainder] = swName[ptr-1];
-    }
-
-    if (charRemainder > 0) {
-        for (ptr = 0; ptr < charRemainder; ptr++) {
-            buff[ptr] = SYM_BLANK;
+    if (osdConfig()->osd_switch_indicators_align_left) {
+        for (ptr = 0; ptr < constrain(strlen(swName), 0, OSD_SWITCH_INDICATOR_NAME_LENGTH); ptr++) {
+            buff[ptr] = swName[ptr];
         }
-    }
 
-    if ( rcValue < 1333) {
-        buff[OSD_SWITCH_INDICATOR_NAME_LENGTH] = SYM_SWITCH_INDICATOR_LOW;
-    } else if ( rcValue > 1666) {
-        buff[OSD_SWITCH_INDICATOR_NAME_LENGTH] = SYM_SWITCH_INDICATOR_HIGH;
+        if ( rcValue < 1333) {
+            buff[ptr++] = SYM_SWITCH_INDICATOR_LOW;
+        } else if ( rcValue > 1666) {
+            buff[ptr++] = SYM_SWITCH_INDICATOR_HIGH;
+        } else {
+            buff[ptr++] = SYM_SWITCH_INDICATOR_MID;
+        }
     } else {
-        buff[OSD_SWITCH_INDICATOR_NAME_LENGTH] = SYM_SWITCH_INDICATOR_MID;
+        if ( rcValue < 1333) {
+            buff[ptr++] = SYM_SWITCH_INDICATOR_LOW;
+        } else if ( rcValue > 1666) {
+            buff[ptr++] = SYM_SWITCH_INDICATOR_HIGH;
+        } else {
+            buff[ptr++] = SYM_SWITCH_INDICATOR_MID;
+        }
+
+        for (ptr = 1; ptr < constrain(strlen(swName), 0, OSD_SWITCH_INDICATOR_NAME_LENGTH) + 1; ptr++) {
+            buff[ptr] = swName[ptr-1];
+        }
+
+        ptr++;
     }
     
-    buff[OSD_SWITCH_INDICATOR_NAME_LENGTH + 1] = '\0';
+    buff[ptr] = '\0';
 }
 
 static bool osdDrawSingleElement(uint8_t item)
@@ -3257,6 +3266,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .osd_switch_indicator2_channnel = SETTING_OSD_SWITCH_INDICATOR_TWO_CHANNNEL_DEFAULT,
     .osd_switch_indicator3_name = SETTING_OSD_SWITCH_INDICATOR_THREE_NAME_DEFAULT,
     .osd_switch_indicator3_channnel = SETTING_OSD_SWITCH_INDICATOR_THREE_CHANNNEL_DEFAULT,
+    .osd_switch_indicators_align_left = SETTING_OSD_SWITCH_INDICATORS_ALIGN_LEFT_DEFAULT,
 
     .units = SETTING_OSD_UNITS_DEFAULT,
     .main_voltage_decimals = SETTING_OSD_MAIN_VOLTAGE_DECIMALS_DEFAULT,
