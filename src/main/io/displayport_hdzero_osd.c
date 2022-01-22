@@ -71,6 +71,7 @@ static timeMs_t vtxHeartbeat;
 static uint8_t screen[SCREENSIZE];
 static BITARRAY_DECLARE(fontPage, SCREENSIZE); // font page for each character on the screen
 static BITARRAY_DECLARE(dirty, SCREENSIZE); // change status for each character on the screen
+static bool screenCleared;
 
 extern uint8_t cliMode;
 
@@ -123,6 +124,7 @@ static int clearScreen(displayPort_t *displayPort)
 
     hdZeroInit();
     setHdMode(displayPort);
+    screenCleared = true;
     return output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
 }
 
@@ -254,7 +256,10 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
             next = BITARRAY_FIND_FIRST_SET(dirty, pos);
         }
 
-        if (updateCount > 0) {
+        if (updateCount > 0 || screenCleared) {
+            if (screenCleared) {
+                screenCleared = false;
+            }
             subcmd[0] = MSP_DRAW_SCREEN;
             output(displayPort, MSP_DISPLAYPORT, subcmd, 1);
         }
