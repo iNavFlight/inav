@@ -1760,11 +1760,10 @@ static void navProcessFSMEvents(navigationFSMEvent_t injectedEvent)
     navigationFSMState_t previousState;
     static timeMs_t lastStateProcessTime = 0;
 
-    /* If timeout event defined and timeout reached - switch state */
-    if ((navFSM[posControl.navState].timeoutMs > 0) && (navFSM[posControl.navState].onEvent[NAV_FSM_EVENT_TIMEOUT] != NAV_STATE_UNDEFINED) &&
-            ((currentMillis - lastStateProcessTime) >= navFSM[posControl.navState].timeoutMs)) {
+    /* Inject new event */
+    if (injectedEvent != NAV_FSM_EVENT_NONE && navFSM[posControl.navState].onEvent[injectedEvent] != NAV_STATE_UNDEFINED) {
         /* Update state */
-        previousState = navSetNewFSMState(navFSM[posControl.navState].onEvent[NAV_FSM_EVENT_TIMEOUT]);
+        previousState = navSetNewFSMState(navFSM[posControl.navState].onEvent[injectedEvent]);
 
         /* Call new state's entry function */
         while (navFSM[posControl.navState].onEntry) {
@@ -1781,10 +1780,11 @@ static void navProcessFSMEvents(navigationFSMEvent_t injectedEvent)
         lastStateProcessTime  = currentMillis;
     }
 
-    /* Inject new event */
-    if (injectedEvent != NAV_FSM_EVENT_NONE && navFSM[posControl.navState].onEvent[injectedEvent] != NAV_STATE_UNDEFINED) {
+    /* If timeout event defined and timeout reached - switch state */
+    if ((navFSM[posControl.navState].timeoutMs > 0) && (navFSM[posControl.navState].onEvent[NAV_FSM_EVENT_TIMEOUT] != NAV_STATE_UNDEFINED) &&
+            ((currentMillis - lastStateProcessTime) >= navFSM[posControl.navState].timeoutMs)) {
         /* Update state */
-        previousState = navSetNewFSMState(navFSM[posControl.navState].onEvent[injectedEvent]);
+        previousState = navSetNewFSMState(navFSM[posControl.navState].onEvent[NAV_FSM_EVENT_TIMEOUT]);
 
         /* Call new state's entry function */
         while (navFSM[posControl.navState].onEntry) {
@@ -2211,7 +2211,6 @@ void initializeRTHSanityChecker(void)
     posControl.rthSanityChecker.lastCheckTime = currentTimeMs;
     posControl.rthSanityChecker.rthSanityOK = true;
     posControl.rthSanityChecker.minimalDistanceToHome = calculateDistanceToDestination(&posControl.rthState.homePosition.pos);
-    posControl.rthSanityChecker.lastDistanceToHome = posControl.rthSanityChecker.minimalDistanceToHome;
 }
 
 bool validateRTHSanityChecker(void)
@@ -2228,16 +2227,11 @@ bool validateRTHSanityChecker(void)
         const float currentDistanceToHome = calculateDistanceToDestination(&posControl.rthState.homePosition.pos);
         posControl.rthSanityChecker.lastCheckTime = currentTimeMs;
 
-        if (posControl.rthSanityChecker.lastDistanceToHome - currentDistanceToHome > 100){
-            if (currentDistanceToHome < posControl.rthSanityChecker.minimalDistanceToHome) {
-                posControl.rthSanityChecker.minimalDistanceToHome = currentDistanceToHome;
-            }
-            posControl.rthSanityChecker.lastDistanceToHome = currentDistanceToHome;
-            posControl.rthSanityChecker.rthSanityOK = true;
-        } else if (currentDistanceToHome > posControl.rthSanityChecker.lastDistanceToHome){
+        if (currentDistanceToHome < posControl.rthSanityChecker.minimalDistanceToHome) {
+            posControl.rthSanityChecker.minimalDistanceToHome = currentDistanceToHome;
+        } else {
             // If while doing RTH we got even farther away from home - RTH is doing something crazy
             posControl.rthSanityChecker.rthSanityOK = (currentDistanceToHome - posControl.rthSanityChecker.minimalDistanceToHome) < navConfig()->general.rth_abort_threshold;
-            posControl.rthSanityChecker.lastDistanceToHome = currentDistanceToHome;
         }
     }
 
@@ -3282,17 +3276,17 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         /* Keep Emergency landing mode active once triggered. Is cancelled when landing in progress if position sensors working again.
          * If failsafe not active landing also cancelled if WP or RTH deselected or if Manual or Althold modes selected.
          * Remains active if landing finished regardless of sensor status or flight mode selection
-         * If RTH Sanity Check caused emergency landing, keep checking sanity status, end landing if heading home */
-        bool autonomousNavNotPossible = !(canActivateNavigation && canActivateAltHold && STATE(GPS_FIX_HOME));
-        bool emergLandingCancel = IS_RC_MODE_ACTIVE(BOXMANUAL) || (IS_RC_MODE_ACTIVE(BOXNAVALTHOLD) && canActivateAltHold) ||
-                                  !(IS_RC_MODE_ACTIVE(BOXNAVWP) || IS_RC_MODE_ACTIVE(BOXNAVRTH));
-        bool rthSanityFailureIsActive = millis() - posControl.rthSanityChecker.lastCheckTime < 100 ? !validateRTHSanityChecker() : false;
-
+         * RTH Sanity check emergency landing remains active so long as RTH remains selected */
         if (navigationIsExecutingAnEmergencyLanding()) {
-            if ((rthSanityFailureIsActive || autonomousNavNotPossible) && (!emergLandingCancel || FLIGHT_MODE(FAILSAFE_MODE))) {
+            bool autonomousNavIsPossible = canActivateNavigation && canActivateAltHold && STATE(GPS_FIX_HOME);
+            bool emergLandingCancel = (!autonomousNavIsPossible && !(IS_RC_MODE_ACTIVE(BOXNAVWP) || IS_RC_MODE_ACTIVE(BOXNAVRTH))) ||
+                                      (autonomousNavIsPossible && !IS_RC_MODE_ACTIVE(BOXNAVRTH));
+
+            if ((!posControl.rthSanityChecker.rthSanityOK || !autonomousNavIsPossible) && (!emergLandingCancel || FLIGHT_MODE(FAILSAFE_MODE))) {
                 return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
             }
         }
+        posControl.rthSanityChecker.rthSanityOK = true;
 
         // Keep canActivateWaypoint flag at FALSE if there is no mission loaded
         // Also block WP mission if we are executing RTH
