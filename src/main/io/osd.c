@@ -2283,9 +2283,16 @@ static bool osdDrawSingleElement(uint8_t item)
             uint16_t glideSeconds = osdGetRemainingGlideTime();
             buff[0] = SYM_GLIDE_MINS;
             if (glideSeconds > 0) {
-                tfp_sprintf(buff + 1, "%i", (int)round(glideSeconds / 60));
+                buff[2] = SYM_BLANK; 
+                buff[3] = SYM_BLANK;
+                if (glideSeconds < 60) {
+                    tfp_sprintf(buff + 1, "%c%d", SYM_ZERO_HALF_TRAILING_DOT, glideSeconds);
+                } else {
+                    tfp_sprintf(buff + 1, "%d", (glideSeconds/60));
+                    //ui2a(glideSeconds / 60, 10, 0, buff + 1);
+                }
             } else {
-               tfp_sprintf(buff + 1, "%s", "INF");
+               tfp_sprintf(buff + 1, "%s", "---");
             }
             buff[4] = '\0';
             break;
@@ -2296,10 +2303,10 @@ static bool osdDrawSingleElement(uint8_t item)
             buff[0] = SYM_GLIDE_DIST;
             if (glideSeconds > 0) {
                 uint32_t glideRangeCM = glideSeconds * gpsSol.groundSpeed;
-                osdFormatDistanceStr(buff + 1, glideRangeCM);
+                osdFormatDistanceSymbol(buff + 1, glideRangeCM, 0);
             } else {
-                tfp_sprintf(buff + 1, "%s", "INF");
-                buff[4] = '\0';
+                tfp_sprintf(buff + 1, "%s%c", "---", SYM_BLANK);
+                buff[5] = '\0';
             }
             break;
         }
