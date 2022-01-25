@@ -3510,6 +3510,7 @@ groups:
       - name: name
         description: "Craft name"
         default_value: ""
+        max: MAX_NAME_LENGTH
 
   - name: PG_MODE_ACTIVATION_OPERATOR_CONFIG
     type: modeActivationOperatorConfig_t
