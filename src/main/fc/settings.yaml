@@ -75,7 +75,7 @@ tables:
     values: ["BATTERY", "CELL"]
     enum: osd_stats_min_voltage_unit_e
   - name: osd_video_system
-    values: ["AUTO", "PAL", "NTSC"]
+    values: ["AUTO", "PAL", "NTSC", "HD"]
     enum: videoSystem_e
   - name: osd_telemetry
     values: ["OFF", "ON","TEST"]
@@ -3049,7 +3049,7 @@ groups:
         type: uint8_t
         default_value: "OFF"
       - name: osd_video_system
-        description: "Video system used. Possible values are `AUTO`, `PAL` and `NTSC`"
+        description: "Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, and `HD`"
         default_value: "AUTO"
         table: osd_video_system
         field: video_system
