@@ -1648,7 +1648,7 @@ groups:
         table: airmodeHandlingType
       - name: airmode_throttle_threshold
         description: "Defines airmode THROTTLE activation threshold when `airmode_type` **THROTTLE_THRESHOLD** is used"
-        default_value: 1300
+        default_value: 1150
         field: airmodeThrottleThreshold
         min: 1000
         max: 2000
