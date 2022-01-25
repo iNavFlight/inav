@@ -68,8 +68,6 @@ bool findNearestSafeHome(void);                  // Find nearest safehome
 
 #endif // defined(USE_SAFE_HOME)
 
-#if defined(USE_NAV)
-
 #ifndef NAV_MAX_WAYPOINTS
 #define NAV_MAX_WAYPOINTS 15
 #endif
@@ -601,15 +599,3 @@ extern uint16_t navFlags;
 extern uint16_t navEPH;
 extern uint16_t navEPV;
 extern int16_t navAccNEU[3];
-
-#else
-
-#define navigationRequiresAngleMode() (0)
-#define navigationGetHeadingControlState() (0)
-#define navigationRequiresThrottleTiltCompensation() (0)
-#define getEstimatedActualVelocity(axis) (0)
-#define navigationIsControllingThrottle() (0)
-#define navigationRTHAllowsLanding() (0)
-#define navigationGetHomeHeading() (0)
-
-#endif

@@ -357,33 +357,34 @@ static void djiSerializeOSDConfigReply(sbuf_t *dst)
         const bool itemIsSupported = ((djiOSDItemIndexMap[i].depFeature == 0) || feature(djiOSDItemIndexMap[i].depFeature));
 
         if (inavOSDIdx >= 0 && itemIsSupported) {
-            // Position & visibility encoded in 16 bits. Position encoding is the same between BF/DJI and INAV
-            // However visibility is different. INAV has 3 layouts, while BF only has visibility profiles
-            // Here we use only one OSD layout mapped to first OSD BF profile
+            // Position & visibility are encoded in 16 bits, and is the same between BF/DJI.
+            // However INAV supports co-ords of 0-63 and has 3 layouts, while BF has co-ords 0-31 and visibility profiles.
+            // Re-encode for co-ords of 0-31 and map the layout to all three BF profiles.
             uint16_t itemPos = osdLayoutsConfig()->item_pos[0][inavOSDIdx];
+            uint16_t itemPosSD = OSD_POS_SD(OSD_X(itemPos), OSD_Y(itemPos));
 
             // Workarounds for certain OSD element positions
             // INAV calculates these dynamically, while DJI expects the config to have defined coordinates
             switch(inavOSDIdx) {
                 case OSD_CROSSHAIRS:
-                    itemPos = (itemPos & (~OSD_POS_MAX)) | OSD_POS(13, 6);
+                    itemPosSD = OSD_POS_SD(15, 8);
                     break;
 
                 case OSD_ARTIFICIAL_HORIZON:
-                    itemPos = (itemPos & (~OSD_POS_MAX)) | OSD_POS(14, 2);
+                    itemPosSD = OSD_POS_SD(9, 8);
                     break;
 
                 case OSD_HORIZON_SIDEBARS:
-                    itemPos = (itemPos & (~OSD_POS_MAX)) | OSD_POS(14, 5);
+                    itemPosSD = OSD_POS_SD(16, 7);
                     break;
             }
 
             // Enforce visibility in 3 BF OSD profiles
             if (OSD_VISIBLE(itemPos)) {
-                itemPos |= 0x3000;
+            	itemPosSD |= (0x3000 | OSD_VISIBLE_FLAG_SD);
             }
 
-            sbufWriteU16(dst, itemPos);
+            sbufWriteU16(dst, itemPosSD);
         }
         else {
             // Hide OSD elements unsupported by INAV
@@ -1475,10 +1476,6 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
                     pidBankMutable()->pid[djiPidIndexMap[i]].D = sbufReadU8(src);
                 }
                 schedulePidGainsUpdate();
-#if defined(USE_NAV)
-                // This is currently unnecessary, DJI HD doesn't set any NAV PIDs
-                //navigationUsePIDs();
-#endif
             }
             else {
                 reply->result = MSP_RESULT_ERROR;

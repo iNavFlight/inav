@@ -84,14 +84,8 @@ main_sources(COMMON_SRC
     drivers/accgyro/accgyro_icm20689.h
     drivers/accgyro/accgyro_icm42605.c
     drivers/accgyro/accgyro_icm42605.h
-    drivers/accgyro/accgyro_l3gd20.c
-    drivers/accgyro/accgyro_l3gd20.h
-    drivers/accgyro/accgyro_lsm303dlhc.c
-    drivers/accgyro/accgyro_lsm303dlhc.h
     drivers/accgyro/accgyro_mpu.c
     drivers/accgyro/accgyro_mpu.h
-    drivers/accgyro/accgyro_mpu3050.c
-    drivers/accgyro/accgyro_mpu3050.h
     drivers/accgyro/accgyro_mpu6000.c
     drivers/accgyro/accgyro_mpu6000.h
     drivers/accgyro/accgyro_mpu6050.c
@@ -502,6 +496,8 @@ main_sources(COMMON_SRC
     io/displayport_msp.h
     io/displayport_oled.c
     io/displayport_oled.h
+    io/displayport_hdzero_osd.c
+    io/displayport_hdzero_osd.h
     io/displayport_srxl.c
     io/displayport_srxl.h
     io/displayport_hott.c

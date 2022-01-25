@@ -19,8 +19,6 @@
 
 #define DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR    1.113195f  // MagicEarthNumber from APM
 
-#if defined(USE_NAV)
-
 #include "common/axis.h"
 #include "common/maths.h"
 #include "common/filter.h"
@@ -479,5 +477,3 @@ void applyFixedWingLaunchController(timeUs_t currentTimeUs);
  * Rover specific functions
  */
 void applyRoverBoatNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
-
-#endif

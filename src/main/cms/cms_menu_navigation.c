@@ -26,8 +26,6 @@
 
 #include "platform.h"
 
-#if defined(USE_NAV)
-
 #include <stdlib.h>
 #include <string.h>
 
@@ -234,5 +232,3 @@ const CMS_Menu cmsx_menuNavigation = {
     .onGlobalExit = NULL,
     .entries = cmsx_menuNavigationEntries
 };
-
- #endif

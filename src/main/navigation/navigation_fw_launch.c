@@ -22,8 +22,6 @@
 
 #include "platform.h"
 
-#if defined(USE_NAV)
-
 #include "build/build_config.h"
 #include "build/debug.h"
 
@@ -540,5 +538,3 @@ const char * fixedWingLaunchStateMessage(void)
             return NULL;
     }
 }
-
-#endif

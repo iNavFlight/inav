@@ -21,8 +21,6 @@
 
 #include "platform.h"
 
-#if defined(USE_NAV)
-
 #include "build/build_config.h"
 #include "build/debug.h"
 
@@ -235,7 +233,7 @@ static void applyMulticopterAltitudeController(timeUs_t currentTimeUs)
         }
 
         // Indicate that information is no longer usable
-        posControl.flags.verticalPositionDataConsumed = 1;
+        posControl.flags.verticalPositionDataConsumed = true;
     }
 
     // Update throttle controller
@@ -654,7 +652,7 @@ static void applyMulticopterPositionController(timeUs_t currentTimeUs)
             }
 
             // Indicate that information is no longer usable
-            posControl.flags.horizontalPositionDataConsumed = 1;
+            posControl.flags.horizontalPositionDataConsumed = true;
         }
     }
     else {
@@ -774,7 +772,7 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
         }
 
         // Indicate that information is no longer usable
-        posControl.flags.verticalPositionDataConsumed = 1;
+        posControl.flags.verticalPositionDataConsumed = true;
     }
 
     // Update throttle controller
@@ -819,4 +817,3 @@ void applyMulticopterNavigationController(navigationFSMStateFlags_t navStateFlag
             applyMulticopterHeadingController();
     }
 }
-#endif  // NAV

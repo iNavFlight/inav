@@ -67,6 +67,7 @@
 #include "io/smartport_master.h"
 #include "io/vtx.h"
 #include "io/osd_dji_hd.h"
+#include "io/displayport_hdzero_osd.h"
 #include "io/servo_sbus.h"
 
 #include "msp/msp_serial.h"
@@ -107,6 +108,11 @@ void taskHandleSerial(timeUs_t currentTimeUs)
 #if defined(USE_DJI_HD_OSD)
     // DJI OSD uses a special flavour of MSP (subset of Betaflight 4.1.1 MSP) - process as part of serial task
     djiOsdSerialProcess();
+#endif
+
+#ifdef USE_HDZERO_OSD
+	// Capture HDZero messages to determine if VTX is connected
+    hdzeroOsdSerialProcess(mspFcProcessCommand);
 #endif
 }
 
@@ -225,7 +231,7 @@ void taskUpdateRangefinder(timeUs_t currentTimeUs)
 }
 #endif
 
-#if defined(USE_NAV) && defined(USE_IRLOCK)
+#if defined(USE_IRLOCK)
 void taskUpdateIrlock(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
