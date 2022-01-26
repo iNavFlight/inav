@@ -3273,13 +3273,15 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
             return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
         }
 
-        /* Keep Emergency landing mode active once triggered. Is cancelled when landing in progress if position sensors working again.
-         * If failsafe not active landing also cancelled if WP or RTH deselected or if Manual or Althold modes selected.
-         * Remains active if landing finished regardless of sensor status or flight mode selection
-         * RTH Sanity check emergency landing remains active so long as RTH remains selected */
+        /* Keep Emergency landing mode active once triggered.
+         * If caused by sensor failure - landing auto cancelled if sensors working again or when WP and RTH deselected or if Althold selected.
+         * If caused by RTH Sanity Checking - landing cancelled if RTH deselected.
+         * Remains active if failsafe active regardless of mode selections */
+         // CR61
         if (navigationIsExecutingAnEmergencyLanding()) {
             bool autonomousNavIsPossible = canActivateNavigation && canActivateAltHold && STATE(GPS_FIX_HOME);
-            bool emergLandingCancel = (!autonomousNavIsPossible && !(IS_RC_MODE_ACTIVE(BOXNAVWP) || IS_RC_MODE_ACTIVE(BOXNAVRTH))) ||
+            bool emergLandingCancel = (!autonomousNavIsPossible &&
+                                      ((IS_RC_MODE_ACTIVE(BOXNAVALTHOLD) && canActivateAltHold) || !(IS_RC_MODE_ACTIVE(BOXNAVWP) || IS_RC_MODE_ACTIVE(BOXNAVRTH)))) ||
                                       (autonomousNavIsPossible && !IS_RC_MODE_ACTIVE(BOXNAVRTH));
 
             if ((!posControl.rthSanityChecker.rthSanityOK || !autonomousNavIsPossible) && (!emergLandingCancel || FLIGHT_MODE(FAILSAFE_MODE))) {
