@@ -3487,12 +3487,11 @@ groups:
         description: "Defines debug values exposed in debug variables (developer / debugging setting)"
         default_value: "NONE"
         table: debug_modes
-      - name: throttle_tilt_comp_str
-        description: "Can be used in ANGLE and HORIZON mode and will automatically boost throttle when banking. Setting is in percentage, 0=disabled."
-        default_value: 0
-        field: throttle_tilt_compensation_strength
-        min: 0
-        max: 100
+      - name: throttle_angle_boost
+        description: "Can be used in ANGLE and HORIZON mode and will automatically boost throttle when banking."
+        default_value: ON
+        field: throttle_angle_boost_enabled
+        type: bool
       - name: name
         description: "Craft name"
         default_value: ""

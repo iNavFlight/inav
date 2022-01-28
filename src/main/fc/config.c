@@ -119,7 +119,7 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
 #ifdef USE_UNDERCLOCK
     .cpuUnderclock = SETTING_CPU_UNDERCLOCK_DEFAULT,
 #endif
-    .throttle_tilt_compensation_strength = SETTING_THROTTLE_TILT_COMP_STR_DEFAULT,      // 0-100, 0 - disabled
+    .throttle_angle_boost_enabled = SETTING_THROTTLE_ANGLE_BOOST_DEFAULT,
     .name = SETTING_NAME_DEFAULT
 );
 

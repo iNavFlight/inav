@@ -840,14 +840,53 @@ void FAST_CODE taskGyro(timeUs_t currentTimeUs) {
 #endif
 }
 
-static float calculateThrottleTiltCompensationFactor(uint8_t throttleTiltCompensationStrength)
+// Optimized quaternion rotation
+fpVector3_t matrix_rotation_with_argument(fpQuaternion_t quat, fpVector3_t v)
 {
-    if (throttleTiltCompensationStrength) {
-        float tiltCompFactor = 1.0f / constrainf(calculateCosTiltAngle(), 0.6f, 1.0f);  // max tilt about 50 deg
-        return 1.0f + (tiltCompFactor - 1.0f) * (throttleTiltCompensationStrength / 100.f);
-    } else {
-        return 1.0f;
+    fpVector3_t ret;
+    fpVector3_t quat_vec_union;
+
+    ret.x = v.x;
+    ret.y = v.y;
+    ret.z = v.z;
+
+    quat_vec_union.x = quat.q1 * v.z - quat.q3 * v.y;
+    quat_vec_union.y = quat.q3 * v.x - quat.q1 * v.z;
+    quat_vec_union.z = quat.q1 * v.y - quat.q1 * v.x;
+
+    quat_vec_union.x += quat_vec_union.x;
+    quat_vec_union.y += quat_vec_union.y;
+    quat_vec_union.z += quat_vec_union.z;
+    ret.x += quat.q0 * quat_vec_union.x + quat.q1 * quat_vec_union.z - quat.q3 * quat_vec_union.y;
+    ret.y += quat.q0 * quat_vec_union.y + quat.q3 * quat_vec_union.x - quat.q1 * quat_vec_union.z;
+    ret.z += quat.q0 * quat_vec_union.z + quat.q1 * quat_vec_union.y - quat.q1 * quat_vec_union.x;
+
+    return ret;
+}
+
+static int16_t get_throttle_boosted(int16_t throttle_input)
+{
+    if (systemConfig()->throttle_angle_boost_enabled) {
+        
+        fpVector3_t thrust_vector_up = { .v = { 0.0f, 0.0f, -1.0f } }; // the direction of thrust
+        fpVector3_t body_thrust; // current impulse in the inertial frame
+   
+        body_thrust = matrix_rotation_with_argument(orientation, thrust_vector_up);
+
+        imuTransformVectorEarthToBody(&body_thrust);
+
+        float body_thrust_dot = (thrust_vector_up.x * body_thrust.x) + (thrust_vector_up.y * body_thrust.y) + (thrust_vector_up.z * body_thrust.z);
+        float thrust_angle = acos_approx(constrainf(body_thrust_dot, -1.0f, 1.0f));
+        float inverted_factor = constrainf(calculateCosTiltAngle(), 0.0f, 1.0f);
+        float cos_tilt_target = cos_approx(thrust_angle);
+        float boost_factor = 1.0f / constrainf(cos_tilt_target, 0.1f, 1.0f);
+
+        float throttle_out = (float)throttle_input * inverted_factor * boost_factor;
+
+        return (int16_t)constrainf(throttle_out, getThrottleIdleValue(), motorConfig()->maxthrottle);
     }
+
+    return throttle_input;
 }
 
 void taskMainPidLoop(timeUs_t currentTimeUs)
@@ -886,21 +925,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
     // Apply throttle tilt compensation
     if (!STATE(FIXED_WING_LEGACY)) {
-        int16_t thrTiltCompStrength = 0;
-
-        if (navigationRequiresThrottleTiltCompensation()) {
-            thrTiltCompStrength = 100;
-        }
-        else if (systemConfig()->throttle_tilt_compensation_strength && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE))) {
-            thrTiltCompStrength = systemConfig()->throttle_tilt_compensation_strength;
-        }
-
-        if (thrTiltCompStrength) {
-            rcCommand[THROTTLE] = constrain(getThrottleIdleValue()
-                                            + (rcCommand[THROTTLE] - getThrottleIdleValue()) * calculateThrottleTiltCompensationFactor(thrTiltCompStrength),
-                                            getThrottleIdleValue(),
-                                            motorConfig()->maxthrottle);
-        }
+       rcCommand[THROTTLE] = get_throttle_boosted(rcCommand[THROTTLE]);
     }
     else {
         // FIXME: throttle pitch comp for FW

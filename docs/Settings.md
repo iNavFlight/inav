@@ -5472,6 +5472,16 @@ Throttle value when the stick is set to mid-position. Used in the throttle curve
 
 ---
 
+### throttle_angle_boost
+
+Can be used in ANGLE and HORIZON mode and will automatically boost throttle when banking.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| ON | OFF | ON |
+
+---
+
 ### throttle_idle
 
 The percentage of the throttle range (`max_throttle` - `min_command`) above `min_command` used for minimum / idle throttle.
@@ -5489,16 +5499,6 @@ Throttle scaling factor. `1` means no throttle scaling. `0.5` means throttle sca
 | Default | Min | Max |
 | --- | --- | --- |
 | 1.0 | 0 | 1 |
-
----
-
-### throttle_tilt_comp_str
-
-Can be used in ANGLE and HORIZON mode and will automatically boost throttle when banking. Setting is in percentage, 0=disabled.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 100 |
 
 ---
 
@@ -5708,7 +5708,7 @@ Enable the alternate softserial method. This is the method used in iNav 3.0 and 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ON | OFF | ON |
 
 ---
 
