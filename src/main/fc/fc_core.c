@@ -863,10 +863,12 @@ fpVector3_t *optimizedQuaternionRotateVectorInv(fpVector3_t * result, fpVector3_
     return result;
 }
 
-static void multicopterUpdateThrottleBoosted(float throttle_input)
+static void multicopterUpdateThrottleBoosted(void)
 {
     if (systemConfig()->throttle_angle_boost_enabled) {
         
+        float throttle_input = (float)rcCommand[THROTTLE];
+
         fpVector3_t thrust_vector_up = { .v = { 0.0f, 0.0f, -1.0f } }; // the direction of thrust
         fpVector3_t body_thrust; // current impulse in the inertial frame
    
@@ -921,7 +923,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
     // Apply throttle boost
     if (!STATE(FIXED_WING_LEGACY)) {
-        multicopterUpdateThrottleBoosted(rcCommand[THROTTLE]);
+        multicopterUpdateThrottleBoosted();
     }
     else {
         // FIXME: throttle pitch comp for FW
