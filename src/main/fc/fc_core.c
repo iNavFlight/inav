@@ -846,6 +846,10 @@ static void multirotorUpdateThrottleBoosted(void)
         return; // Exit immediately if multirotor mode is not active
     }
 
+    if (!FLIGHT_MODE(ANGLE_MODE) && !FLIGHT_MODE(HORIZON_MODE)) {
+        return; // Exit immediately if acro mode is active
+    }
+    
     if (systemConfig()->throttle_angle_boost_enabled) {
         
         float throttle_input = (float)rcCommand[THROTTLE];
