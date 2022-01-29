@@ -391,17 +391,17 @@ void annexCode(float dT)
             rcCommand[PITCH] = rcCommand[PITCH] * currentControlRateProfile->manual.rates[FD_PITCH] / 100L;
             rcCommand[YAW] = rcCommand[YAW] * currentControlRateProfile->manual.rates[FD_YAW] / 100L;
         } else {
-            //DEBUG_SET(DEBUG_RATE_DYNAMICS, 0, rcCommand[ROLL]);
+            DEBUG_SET(DEBUG_RATE_DYNAMICS, 0, rcCommand[ROLL]);
             rcCommand[ROLL] = applyRateDynamics(rcCommand[ROLL], ROLL, dT);
-            //DEBUG_SET(DEBUG_RATE_DYNAMICS, 1, rcCommand[ROLL]);
+            DEBUG_SET(DEBUG_RATE_DYNAMICS, 1, rcCommand[ROLL]);
 
-            //DEBUG_SET(DEBUG_RATE_DYNAMICS, 2, rcCommand[PITCH]);
+            DEBUG_SET(DEBUG_RATE_DYNAMICS, 2, rcCommand[PITCH]);
             rcCommand[PITCH] = applyRateDynamics(rcCommand[PITCH], PITCH, dT);
-            //DEBUG_SET(DEBUG_RATE_DYNAMICS, 3, rcCommand[PITCH]);
+            DEBUG_SET(DEBUG_RATE_DYNAMICS, 3, rcCommand[PITCH]);
 
-            //DEBUG_SET(DEBUG_RATE_DYNAMICS, 4, rcCommand[YAW]);
+            DEBUG_SET(DEBUG_RATE_DYNAMICS, 4, rcCommand[YAW]);
             rcCommand[YAW] = applyRateDynamics(rcCommand[YAW], YAW, dT);
-            //DEBUG_SET(DEBUG_RATE_DYNAMICS, 5, rcCommand[YAW]);
+            DEBUG_SET(DEBUG_RATE_DYNAMICS, 5, rcCommand[YAW]);
 
         }
 
