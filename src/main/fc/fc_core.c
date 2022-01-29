@@ -840,29 +840,6 @@ void FAST_CODE taskGyro(timeUs_t currentTimeUs) {
 #endif
 }
 
-fpVector3_t *optimizedQuaternionRotateVectorInv(fpVector3_t * result, fpVector3_t * vec, fpQuaternion_t * ref)
-{
-    fpVector3_t vectQuat;
-
-    result->x = vec->x;
-    result->y = vec->y;
-    result->z = vec->z;
-
-    vectQuat.x = ref->q2 * vec->z - ref->q3 * vec->y;
-    vectQuat.y = ref->q3 * vec->x - ref->q1 * vec->z;
-    vectQuat.z = ref->q1 * vec->y - ref->q2 * vec->x;
-
-    vectQuat.x += vectQuat.x;
-    vectQuat.y += vectQuat.y;
-    vectQuat.z += vectQuat.z;
-
-    result->x += ref->q0 * vectQuat.x + ref->q2 * vectQuat.z - ref->q3 * vectQuat.y;
-    result->y += ref->q0 * vectQuat.y + ref->q3 * vectQuat.x - ref->q1 * vectQuat.z;
-    result->z += ref->q0 * vectQuat.z + ref->q1 * vectQuat.y - ref->q2 * vectQuat.x;
-
-    return result;
-}
-
 static void multicopterUpdateThrottleBoosted(void)
 {
     if (systemConfig()->throttle_angle_boost_enabled) {
@@ -872,7 +849,6 @@ static void multicopterUpdateThrottleBoosted(void)
         fpVector3_t thrust_vector_up = { .v = { 0.0f, 0.0f, -1.0f } }; // the direction of thrust
         fpVector3_t body_thrust; // current impulse in the inertial frame
    
-        //optimizedQuaternionRotateVectorInv(&body_thrust, &thrust_vector_up, &orientation);
         quaternionRotateVectorInv(&body_thrust, &thrust_vector_up, &orientation);
 
         imuTransformVectorBodyToEarth(&body_thrust);
