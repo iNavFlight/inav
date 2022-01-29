@@ -122,6 +122,7 @@ bool cliMode = false;
 #include "sensors/esc_sensor.h"
 #endif
 
+#include "msp/msp_serial.h"
 #include "telemetry/frsky_d.h"
 #include "telemetry/telemetry.h"
 #include "build/debug.h"
@@ -137,9 +138,9 @@ static serialPort_t *cliPort;
 
 static bufWriter_t *cliWriter;
 static uint8_t cliWriteBuffer[sizeof(*cliWriter) + 128];
-
 static char cliBuffer[64];
 static uint32_t bufferIndex = 0;
+static bool sendDelay = 0;
 
 #if defined(USE_ASSERT)
 static void cliAssert(char *cmdline);
@@ -198,7 +199,8 @@ static const char * const *sensorHardwareNames[] = {
 #ifdef USE_RANGEFINDER
         table_rangefinder_hardware,
 #else
-        NULL,
+        NULL,''
+
 #endif
 #ifdef USE_PITOT
         table_pitot_hardware,
@@ -215,7 +217,11 @@ static const char * const *sensorHardwareNames[] = {
 static void cliPrint(const char *str)
 {
     while (*str) {
-        bufWriterAppend(cliWriter, *str++);
+        bufWriterAppend(cliWriter, *str++); 
+    }
+    // Add some delay for BLE, so that the ble adapter can flush its buffer
+    if (sendDelay) {
+        delay(30);
     }
 }
 
@@ -4067,7 +4073,7 @@ void cliProcess(void)
     }
 }
 
-void cliEnter(serialPort_t *serialPort)
+void cliEnter(serialPort_t *serialPort, bool delay)
 {
     if (cliMode) {
         return;
@@ -4077,6 +4083,7 @@ void cliEnter(serialPort_t *serialPort)
     cliPort = serialPort;
     setPrintfSerialPort(cliPort);
     cliWriter = bufWriterInit(cliWriteBuffer, sizeof(cliWriteBuffer), (bufWrite_t)serialWriteBufShim, serialPort);
+    sendDelay = delay;
 
 #ifndef CLI_MINIMAL_VERBOSITY
     cliPrintLine("\r\nEntering CLI Mode, type 'exit' to return, or 'help'");

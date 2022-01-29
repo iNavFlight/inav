@@ -88,7 +88,8 @@ typedef struct mspChunk_s {
     uint8_t *dataBuf;
     uint8_t *crcBuf;
     uint8_t crcSize;
-    uint16_t sendChunkSize;
+    uint16_t sendSize;
+    uint16_t sendDelay;
     uint16_t pendingDataSize;
 } mspChunk_t;
 
@@ -110,6 +111,7 @@ typedef struct mspPort_s {
 
 
 extern uint16_t mspSendChunkSize;
+extern uint16_t mspChunkDelay;
 
 void mspSerialInit(void);
 void resetMspPort(mspPort_t *mspPortToReset, serialPort_t *serialPort);

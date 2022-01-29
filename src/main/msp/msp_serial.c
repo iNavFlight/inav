@@ -39,6 +39,7 @@
 
 static mspPort_t mspPorts[MAX_MSP_PORT_COUNT];
 uint16_t mspSendChunkSize = 0;
+uint16_t mspChunkDelay = 0;
 
 void resetMspPort(mspPort_t *mspPortToReset, serialPort_t *serialPort)
 {
@@ -290,18 +291,20 @@ static int mspSerialSendFrame(mspPort_t *msp, const uint8_t * hdr, int hdrLen, u
     serialBeginWrite(port);
     serialWriteBuf(port, hdr, hdrLen);
     // BLE dont't like large frames, send in chunks
-    if (msp->chunk.sendChunkSize && totalFrameLength > msp->chunk.sendChunkSize) {
-        uint16_t chunkPayloadLen =  msp->chunk.sendChunkSize - hdrLen;
+    if (msp->chunk.sendSize && totalFrameLength > msp->chunk.sendSize) {
+        uint16_t chunkPayloadLen =  msp->chunk.sendSize - hdrLen;
         serialWriteBuf(port, data, chunkPayloadLen);
         msp->chunk.pendingDataSize = dataLen - chunkPayloadLen;
         msp->chunk.dataBuf = data + chunkPayloadLen;
         msp->chunk.crcBuf = crc;
         msp->chunk.crcSize = crcLen;
+        
     } else {
         serialWriteBuf(port, data, dataLen);
         serialWriteBuf(port, crc, crcLen);     
     }
     serialEndWrite(port);
+    msp->lastActivityMs = millis();
     return totalFrameLength;
 }
 
@@ -419,8 +422,10 @@ static mspPostProcessFnPtr mspSerialProcessReceivedCommand(mspPort_t *msp, mspPr
     mspPostProcessFnPtr mspPostProcessFn = NULL;
     const mspResult_e status = mspProcessCommandFn(&command, &reply, &mspPostProcessFn);
     if (mspSendChunkSize) {
-        msp->chunk.sendChunkSize = mspSendChunkSize;
+        msp->chunk.sendSize = mspSendChunkSize;
+        msp->chunk.sendDelay = mspChunkDelay;
         mspSendChunkSize = 0;
+        mspChunkDelay = 0;
     }
 
     if (status != MSP_RESULT_NO_REPLY) {
@@ -460,7 +465,7 @@ static void mspProcessPendingRequest(mspPort_t * mspPort)
         case MSP_PENDING_CLI:
             if (!cliMode) {
                 // When we enter CLI mode - disable this MSP port. Don't care about preserving the port since CLI can only be exited via reboot
-                cliEnter(mspPort->port);
+                cliEnter(mspPort->port, mspPort->chunk.sendDelay);
                 mspPort->port = NULL;
             }
             break;
@@ -475,21 +480,24 @@ void mspSerialProcessOnePort(mspPort_t * const mspPort, mspEvaluateNonMspData_e 
     mspPostProcessFnPtr mspPostProcessFn = NULL;
 
     // Send pending chunks first
-    if (mspPort->chunk.sendChunkSize && mspPort->chunk.pendingDataSize) {        
+    if (mspPort->chunk.sendSize && mspPort->chunk.pendingDataSize) {        
+        if (millis() - mspPort->lastActivityMs < mspPort->chunk.sendDelay ) { // Add some delay between the chunks, othewise it will be send as one  
+            return;
+        }
         serialBeginWrite(mspPort->port);      
         uint16_t sendSize = mspPort->chunk.pendingDataSize + mspPort->chunk.crcSize;
-        if (sendSize > mspPort->chunk.sendChunkSize) {
-           if (mspPort->chunk.pendingDataSize < mspPort->chunk.sendChunkSize) {
-               sendSize = mspPort->chunk.pendingDataSize;
+        if (sendSize > mspPort->chunk.sendSize) {
+        if (mspPort->chunk.pendingDataSize < mspPort->chunk.sendSize) {
+            sendSize = mspPort->chunk.pendingDataSize;
             } else {
-                sendSize = mspPort->chunk.sendChunkSize;
+                sendSize = mspPort->chunk.sendSize;
             }
-           serialWriteBuf(mspPort->port, mspPort->chunk.dataBuf, sendSize);
-           serialEndWrite(mspPort->port);
-           mspPort->chunk.dataBuf += sendSize;
-           mspPort->chunk.pendingDataSize -= sendSize;
-           mspPort->lastActivityMs = millis();
-           return;
+        serialWriteBuf(mspPort->port, mspPort->chunk.dataBuf, sendSize);
+        serialEndWrite(mspPort->port);
+        mspPort->chunk.dataBuf += sendSize;
+        mspPort->chunk.pendingDataSize -= sendSize;
+        mspPort->lastActivityMs = millis();
+        return;
         } else { 
             serialWriteBuf(mspPort->port, mspPort->chunk.dataBuf, mspPort->chunk.pendingDataSize);
             serialWriteBuf(mspPort->port, mspPort->chunk.crcBuf, mspPort->chunk.crcSize);
