@@ -122,7 +122,6 @@ bool cliMode = false;
 #include "sensors/esc_sensor.h"
 #endif
 
-#include "msp/msp_serial.h"
 #include "telemetry/frsky_d.h"
 #include "telemetry/telemetry.h"
 #include "build/debug.h"
@@ -138,9 +137,10 @@ static serialPort_t *cliPort;
 
 static bufWriter_t *cliWriter;
 static uint8_t cliWriteBuffer[sizeof(*cliWriter) + 128];
+
 static char cliBuffer[64];
 static uint32_t bufferIndex = 0;
-static bool sendDelay = 0;
+static bool sendDelay = false;
 
 #if defined(USE_ASSERT)
 static void cliAssert(char *cmdline);
@@ -199,7 +199,7 @@ static const char * const *sensorHardwareNames[] = {
 #ifdef USE_RANGEFINDER
         table_rangefinder_hardware,
 #else
-        NULL,''
+        NULL,
 
 #endif
 #ifdef USE_PITOT
