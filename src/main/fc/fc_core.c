@@ -840,18 +840,22 @@ void FAST_CODE taskGyro(timeUs_t currentTimeUs) {
 #endif
 }
 
-static void multicopterUpdateThrottleBoosted(void)
+static void multirotorUpdateThrottleBoosted(void)
 {
+    if (!STATE(MULTIROTOR)) {
+        return; // Exit immediately if multirotor mode is not active
+    }
+
     if (systemConfig()->throttle_angle_boost_enabled) {
         
         float throttle_input = (float)rcCommand[THROTTLE];
 
-        fpVector3_t thrust_vector_up = { .v = { 0.0f, 0.0f, -1.0f } }; // the direction of thrust
-        fpVector3_t body_thrust; // current impulse in the inertial frame
+        fpVector3_t thrust_vector_up = { .v = { 0.0f, 0.0f, -1.0f } }; // The direction of thrust
+        fpVector3_t body_thrust; // Current impulse in the inertial frame
    
         quaternionRotateVectorInv(&body_thrust, &thrust_vector_up, &orientation);
 
-        imuTransformVectorBodyToEarth(&body_thrust);
+        imuTransformVectorBodyToEarth(&body_thrust); 
 
         float body_thrust_dot = (thrust_vector_up.x * body_thrust.x) + (thrust_vector_up.y * body_thrust.y) + (thrust_vector_up.z * body_thrust.z);
         float thrust_angle = acos_approx(constrainf(body_thrust_dot, -1.0f, 1.0f));
@@ -897,13 +901,8 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     updatePositionEstimator();
     applyWaypointNavigationAndAltitudeHold();
 
-    // Apply throttle boost
-    if (!STATE(FIXED_WING_LEGACY)) {
-        multicopterUpdateThrottleBoosted();
-    }
-    else {
-        // FIXME: throttle pitch comp for FW
-    }
+    // Updadate multirotor throttle boost
+    multirotorUpdateThrottleBoosted();
 
 #ifdef USE_POWER_LIMITS
     powerLimiterApply(&rcCommand[THROTTLE]);
