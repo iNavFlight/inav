@@ -404,14 +404,14 @@ uint16_t packSensorStatus(void)
 {
     // Sensor bits
     uint16_t sensorStatus =
-            IS_ENABLED(sensors(SENSOR_ACC))     << 0 |
-            IS_ENABLED(sensors(SENSOR_BARO))    << 1 |
-            IS_ENABLED(sensors(SENSOR_MAG))     << 2 |
-            IS_ENABLED(sensors(SENSOR_GPS))     << 3 |
-            IS_ENABLED(sensors(SENSOR_RANGEFINDER))   << 4 |
-            IS_ENABLED(sensors(SENSOR_OPFLOW))  << 5 |
-            IS_ENABLED(sensors(SENSOR_PITOT))   << 6 |
-            IS_ENABLED(sensors(SENSOR_TEMP))   << 7;
+            IS_ENABLED(sensors(SENSOR_ACC))         << 0 |
+            IS_ENABLED(sensors(SENSOR_BARO))        << 1 |
+            IS_ENABLED(sensors(SENSOR_MAG))         << 2 |
+            IS_ENABLED(sensors(SENSOR_GPS))         << 3 |
+            IS_ENABLED(sensors(SENSOR_RANGEFINDER)) << 4 |
+            IS_ENABLED(sensors(SENSOR_OPFLOW))      << 5 |
+            IS_ENABLED(sensors(SENSOR_PITOT))       << 6 |
+            IS_ENABLED(sensors(SENSOR_TEMP))        << 7;
 
     // Hardware failure indication bit
     if (!isHardwareHealthy()) {
