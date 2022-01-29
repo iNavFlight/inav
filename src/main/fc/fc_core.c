@@ -391,17 +391,17 @@ void annexCode(float dT)
             rcCommand[PITCH] = rcCommand[PITCH] * currentControlRateProfile->manual.rates[FD_PITCH] / 100L;
             rcCommand[YAW] = rcCommand[YAW] * currentControlRateProfile->manual.rates[FD_YAW] / 100L;
         } else {
-            DEBUG_SET(DEBUG_RATE_DYNAMICS, 0, rcCommand[ROLL]);
+            //DEBUG_SET(DEBUG_RATE_DYNAMICS, 0, rcCommand[ROLL]);
             rcCommand[ROLL] = applyRateDynamics(rcCommand[ROLL], ROLL, dT);
-            DEBUG_SET(DEBUG_RATE_DYNAMICS, 1, rcCommand[ROLL]);
+            //DEBUG_SET(DEBUG_RATE_DYNAMICS, 1, rcCommand[ROLL]);
 
-            DEBUG_SET(DEBUG_RATE_DYNAMICS, 2, rcCommand[PITCH]);
+            //DEBUG_SET(DEBUG_RATE_DYNAMICS, 2, rcCommand[PITCH]);
             rcCommand[PITCH] = applyRateDynamics(rcCommand[PITCH], PITCH, dT);
-            DEBUG_SET(DEBUG_RATE_DYNAMICS, 3, rcCommand[PITCH]);
+            //DEBUG_SET(DEBUG_RATE_DYNAMICS, 3, rcCommand[PITCH]);
 
-            DEBUG_SET(DEBUG_RATE_DYNAMICS, 4, rcCommand[YAW]);
+            //DEBUG_SET(DEBUG_RATE_DYNAMICS, 4, rcCommand[YAW]);
             rcCommand[YAW] = applyRateDynamics(rcCommand[YAW], YAW, dT);
-            DEBUG_SET(DEBUG_RATE_DYNAMICS, 5, rcCommand[YAW]);
+            //DEBUG_SET(DEBUG_RATE_DYNAMICS, 5, rcCommand[YAW]);
 
         }
 
@@ -840,53 +840,49 @@ void FAST_CODE taskGyro(timeUs_t currentTimeUs) {
 #endif
 }
 
-// Optimized quaternion rotation
-fpVector3_t matrix_rotation_with_argument(fpQuaternion_t quat, fpVector3_t v)
+fpVector3_t *optimizedQuaternionRotateVectorInv(fpVector3_t * result, fpVector3_t * vec, fpQuaternion_t * ref)
 {
-    fpVector3_t ret;
-    fpVector3_t quat_vec_union;
+    fpVector3_t vectQuat;
 
-    ret.x = v.x;
-    ret.y = v.y;
-    ret.z = v.z;
+    result->x = vec->x;
+    result->y = vec->y;
+    result->z = vec->z;
 
-    quat_vec_union.x = quat.q1 * v.z - quat.q3 * v.y;
-    quat_vec_union.y = quat.q3 * v.x - quat.q1 * v.z;
-    quat_vec_union.z = quat.q1 * v.y - quat.q1 * v.x;
+    vectQuat.x = ref->q2 * vec->z - ref->q3 * vec->y;
+    vectQuat.y = ref->q3 * vec->x - ref->q1 * vec->z;
+    vectQuat.z = ref->q1 * vec->y - ref->q2 * vec->x;
 
-    quat_vec_union.x += quat_vec_union.x;
-    quat_vec_union.y += quat_vec_union.y;
-    quat_vec_union.z += quat_vec_union.z;
-    ret.x += quat.q0 * quat_vec_union.x + quat.q1 * quat_vec_union.z - quat.q3 * quat_vec_union.y;
-    ret.y += quat.q0 * quat_vec_union.y + quat.q3 * quat_vec_union.x - quat.q1 * quat_vec_union.z;
-    ret.z += quat.q0 * quat_vec_union.z + quat.q1 * quat_vec_union.y - quat.q1 * quat_vec_union.x;
+    vectQuat.x += vectQuat.x;
+    vectQuat.y += vectQuat.y;
+    vectQuat.z += vectQuat.z;
 
-    return ret;
+    result->x += ref->q0 * vectQuat.x + ref->q2 * vectQuat.z - ref->q3 * vectQuat.y;
+    result->y += ref->q0 * vectQuat.y + ref->q3 * vectQuat.x - ref->q1 * vectQuat.z;
+    result->z += ref->q0 * vectQuat.z + ref->q1 * vectQuat.y - ref->q2 * vectQuat.x;
+
+    return result;
 }
 
-static int16_t get_throttle_boosted(int16_t throttle_input)
+static void multicopterUpdateThrottleBoosted(float throttle_input)
 {
     if (systemConfig()->throttle_angle_boost_enabled) {
         
         fpVector3_t thrust_vector_up = { .v = { 0.0f, 0.0f, -1.0f } }; // the direction of thrust
         fpVector3_t body_thrust; // current impulse in the inertial frame
    
-        body_thrust = matrix_rotation_with_argument(orientation, thrust_vector_up);
+        //optimizedQuaternionRotateVectorInv(&body_thrust, &thrust_vector_up, &orientation);
+        quaternionRotateVectorInv(&body_thrust, &thrust_vector_up, &orientation);
 
-        imuTransformVectorEarthToBody(&body_thrust);
+        imuTransformVectorBodyToEarth(&body_thrust);
 
         float body_thrust_dot = (thrust_vector_up.x * body_thrust.x) + (thrust_vector_up.y * body_thrust.y) + (thrust_vector_up.z * body_thrust.z);
         float thrust_angle = acos_approx(constrainf(body_thrust_dot, -1.0f, 1.0f));
         float inverted_factor = constrainf(calculateCosTiltAngle(), 0.0f, 1.0f);
-        float cos_tilt_target = cos_approx(thrust_angle);
-        float boost_factor = 1.0f / constrainf(cos_tilt_target, 0.1f, 1.0f);
+        float cosine_tilt_target = cos_approx(thrust_angle);
+        float boost_factor = 1.0f / constrainf(cosine_tilt_target, 0.1f, 1.0f);
 
-        float throttle_out = (float)throttle_input * inverted_factor * boost_factor;
-
-        return (int16_t)constrainf(throttle_out, getThrottleIdleValue(), motorConfig()->maxthrottle);
+        rcCommand[THROTTLE] = (int16_t)constrainf(throttle_input * inverted_factor * boost_factor, getThrottleIdleValue(), motorConfig()->maxthrottle);
     }
-
-    return throttle_input;
 }
 
 void taskMainPidLoop(timeUs_t currentTimeUs)
@@ -923,9 +919,9 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     updatePositionEstimator();
     applyWaypointNavigationAndAltitudeHold();
 
-    // Apply throttle tilt compensation
+    // Apply throttle boost
     if (!STATE(FIXED_WING_LEGACY)) {
-       rcCommand[THROTTLE] = get_throttle_boosted(rcCommand[THROTTLE]);
+        multicopterUpdateThrottleBoosted(rcCommand[THROTTLE]);
     }
     else {
         // FIXME: throttle pitch comp for FW
