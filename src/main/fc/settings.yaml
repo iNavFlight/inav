@@ -709,7 +709,7 @@ groups:
         field: sbusSyncInterval
         min: 500
         max: 10000
-        default_value: 3000
+        default_value: 4000
       - name: rc_filter_frequency
         description: "RC data biquad filter cutoff frequency. Lower cutoff frequencies result in smoother response at expense of command control delay. Practical values are 20-50. Set to zero to disable entirely and use unsmoothed RC stick values"
         default_value: 50

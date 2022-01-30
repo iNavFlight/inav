@@ -5098,7 +5098,7 @@ _// TODO_
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 3000 | 500 | 10000 |
+| 4000 | 500 | 10000 |
 
 ---
 
@@ -5708,7 +5708,7 @@ Enable the alternate softserial method. This is the method used in iNav 3.0 and 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ON | OFF | ON |
 
 ---
 
