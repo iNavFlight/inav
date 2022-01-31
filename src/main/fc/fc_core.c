@@ -842,6 +842,10 @@ void FAST_CODE taskGyro(timeUs_t currentTimeUs) {
 
 static void multirotorUpdateThrottleBoosted(void)
 {
+    if (systemConfig()->throttle_angle_boost_enabled) {
+        return; // Exit immediately if the angle boost is not active
+    }
+
     if (!STATE(MULTIROTOR)) {
         return; // Exit immediately if multirotor mode is not active
     }
@@ -850,25 +854,21 @@ static void multirotorUpdateThrottleBoosted(void)
         return; // Exit immediately if acro mode is active
     }
     
-    if (systemConfig()->throttle_angle_boost_enabled) {
-        
-        float throttle_input = (float)rcCommand[THROTTLE];
-
-        fpVector3_t thrust_vector_up = { .v = { 0.0f, 0.0f, -1.0f } }; // The direction of thrust
-        fpVector3_t body_thrust; // Current impulse in the inertial frame
+    fpVector3_t thrust_vector_up = { .v = { 0.0f, 0.0f, -1.0f } }; // The direction of thrust
+    fpVector3_t body_thrust; // Current impulse in the inertial frame
    
-        quaternionRotateVectorInv(&body_thrust, &thrust_vector_up, &orientation);
+    quaternionRotateVectorInv(&body_thrust, &thrust_vector_up, &orientation);
 
-        imuTransformVectorBodyToEarth(&body_thrust); 
+    imuTransformVectorBodyToEarth(&body_thrust); 
+    
+    float throttle_input = (float)rcCommand[THROTTLE];
+    float body_thrust_dot = (thrust_vector_up.x * body_thrust.x) + (thrust_vector_up.y * body_thrust.y) + (thrust_vector_up.z * body_thrust.z);
+    float thrust_angle = acos_approx(constrainf(body_thrust_dot, -1.0f, 1.0f));
+    float inverted_factor = constrainf(calculateCosTiltAngle(), 0.0f, 1.0f);
+    float cosine_tilt_target = cos_approx(thrust_angle);
+    float boost_factor = 1.0f / constrainf(cosine_tilt_target, 0.1f, 1.0f);
 
-        float body_thrust_dot = (thrust_vector_up.x * body_thrust.x) + (thrust_vector_up.y * body_thrust.y) + (thrust_vector_up.z * body_thrust.z);
-        float thrust_angle = acos_approx(constrainf(body_thrust_dot, -1.0f, 1.0f));
-        float inverted_factor = constrainf(calculateCosTiltAngle(), 0.0f, 1.0f);
-        float cosine_tilt_target = cos_approx(thrust_angle);
-        float boost_factor = 1.0f / constrainf(cosine_tilt_target, 0.1f, 1.0f);
-
-        rcCommand[THROTTLE] = (int16_t)constrainf(throttle_input * inverted_factor * boost_factor, getThrottleIdleValue(), motorConfig()->maxthrottle);
-    }
+    rcCommand[THROTTLE] = (int16_t)constrainf(throttle_input * inverted_factor * boost_factor, getThrottleIdleValue(), motorConfig()->maxthrottle);
 }
 
 void taskMainPidLoop(timeUs_t currentTimeUs)
