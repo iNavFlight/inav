@@ -2015,7 +2015,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_CRSF_RSSI_DBM:
         {
             int16_t rssi = rxLinkStatistics.uplinkRSSI;
-            buff[0] = (rxLinkStatistics.activeAnt == 0) ? SYM_RSSI : SYM_2RSS; // Separate symbols for each antenna
+            buff[0] = (rxLinkStatistics.activeAntenna == 0) ? SYM_RSSI : SYM_2RSS; // Separate symbols for each antenna
             if (rssi <= -100) {
                 tfp_sprintf(buff + 1, "%4d%c", rssi, SYM_DBM);
             } else {
