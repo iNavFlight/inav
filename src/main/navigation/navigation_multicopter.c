@@ -263,6 +263,10 @@ bool adjustMulticopterHeadingFromRCInput(void)
  * XY-position controller for multicopter aircraft
  *-----------------------------------------------------------*/
 static float lastAccelTargetX = 0.0f, lastAccelTargetY = 0.0f;
+static bool resetAccelToLeanXY = true;
+static fpVector3_t accelTargetJerkLimited;
+static pt1Filter_t accelTargetFilter[2];
+static fpVector3_t accelTargetFiltered;
 
 void resetMulticopterBrakingMode(void)
 {
@@ -364,6 +368,7 @@ void resetMulticopterPositionController(void)
         lastAccelTargetX = 0.0f;
         lastAccelTargetY = 0.0f;
     }
+    resetAccelToLeanXY = true;
 }
 
 bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcRollAdjustment)
@@ -513,7 +518,8 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     // Apply additional jerk limiting of 1700 cm/s^3 (~100 deg/s), almost any copter should be able to achieve this rate
     // This will assure that we wont't saturate out LEVEL and RATE PID controller
 
-    float maxAccelChange = US2S(deltaMicros) * 1700.0f;
+    float maxAccelChange = US2S(deltaMicros) * MC_POS_CONTROL_JERK_LIMIT_CMSSS;
+
     //When braking, raise jerk limit even if we are not boosting acceleration
 #ifdef USE_MR_BRAKING_MODE
     if (STATE(NAV_CRUISE_BRAKING)) {
@@ -566,6 +572,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
         1.0f,   // Total gain scale
         dtermScale    // Additional dTerm scale
     );
+
     float newAccelY = navPidApply3(
         &posControl.pids.vel[Y],
         setpointY,
@@ -577,6 +584,33 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
         1.0f,   // Total gain scale
         dtermScale    // Additional dTerm scale
     );
+    
+    if (resetAccelToLeanXY) {
+        accelTargetJerkLimited.x = accelLimitX;
+        accelTargetJerkLimited.y = accelLimitY;
+        pt1FilterReset(&accelTargetFilter[X], accelLimitX);
+        pt1FilterReset(&accelTargetFilter[Y], accelLimitX);
+        resetAccelToLeanXY = false;
+    }
+
+    fpVector3_t accelChange = { .v = {newAccelX - accelTargetJerkLimited.x, newAccelY - accelTargetJerkLimited.y, 0.0f}};
+
+    float accelChangeLength = fast_fsqrtf(sq(accelChange.x) + sq(accelChange.y));
+    
+    if (accelChangeLength > maxAccelChange) {
+        accelChange.x *= maxAccelChange / accelChangeLength;
+        accelChange.y *= maxAccelChange / accelChangeLength;
+    }
+
+    accelTargetJerkLimited.x += accelChange.x;
+    accelTargetJerkLimited.y += accelChange.y;
+    
+    // LowPass Filter on NE accel
+    accelTargetFiltered.x = pt1FilterApply4(&accelTargetFilter[X], accelTargetJerkLimited.x, 2.0f, US2S(deltaMicros));
+    accelTargetFiltered.y = pt1FilterApply4(&accelTargetFilter[Y], accelTargetJerkLimited.y, 2.0f, US2S(deltaMicros));
+    
+    newAccelX = accelTargetFiltered.x;
+    newAccelY = accelTargetFiltered.y;
 
     int32_t maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.max_bank_angle);
 

@@ -35,6 +35,8 @@
 
 #define INAV_SURFACE_MAX_DISTANCE           40
 
+#define MC_POS_CONTROL_JERK_LIMIT_CMSSS 1700.0f         // jerk limit on horizontal acceleration (cm/s^3)
+
 #define MAX_POSITION_UPDATE_INTERVAL_US     HZ2US(MIN_POSITION_UPDATE_RATE_HZ)        // convenience macro
 _Static_assert(MAX_POSITION_UPDATE_INTERVAL_US <= TIMEDELTA_MAX, "deltaMicros can overflow!");
 
