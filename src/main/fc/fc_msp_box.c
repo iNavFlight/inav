@@ -103,7 +103,7 @@ static uint8_t activeBoxIds[CHECKBOX_ITEM_COUNT];
 uint8_t activeBoxIdCount = 0;
 
 #define RESET_BOX_ID_COUNT activeBoxIdCount = 0
-#define ACTIVE_THIS_BOX(box) activeBoxIds[activeBoxIdCount++] = box 
+#define ADD_BOX_MODE(box) activeBoxIds[activeBoxIdCount++] = box 
 
 const box_t *findBoxByActiveBoxId(uint8_t activeBoxId)
 {
@@ -173,38 +173,38 @@ void initActiveBoxIds(void)
     memset(activeBoxIds, 0xFF, sizeof(activeBoxIds));
 
     RESET_BOX_ID_COUNT;
-    ACTIVE_THIS_BOX(BOXARM);
-    ACTIVE_THIS_BOX(BOXPREARM);
+    ADD_BOX_MODE(BOXARM);
+    ADD_BOX_MODE(BOXPREARM);
 
     if (sensors(SENSOR_ACC) && STATE(ALTITUDE_CONTROL)) {
-        ACTIVE_THIS_BOX(BOXANGLE);
-        ACTIVE_THIS_BOX(BOXHORIZON);
-        ACTIVE_THIS_BOX(BOXTURNASSIST);
+        ADD_BOX_MODE(BOXANGLE);
+        ADD_BOX_MODE(BOXHORIZON);
+        ADD_BOX_MODE(BOXTURNASSIST);
     }
 
     if (!feature(FEATURE_AIRMODE) && STATE(ALTITUDE_CONTROL)) {
-        ACTIVE_THIS_BOX(BOXAIRMODE);
+        ADD_BOX_MODE(BOXAIRMODE);
     }
 
-    ACTIVE_THIS_BOX(BOXHEADINGHOLD);
+    ADD_BOX_MODE(BOXHEADINGHOLD);
 
     if ((sensors(SENSOR_ACC) || sensors(SENSOR_MAG)) && STATE(MULTIROTOR)) {
-        ACTIVE_THIS_BOX(BOXHEADFREE);
-        ACTIVE_THIS_BOX(BOXHEADADJ);
+        ADD_BOX_MODE(BOXHEADFREE);
+        ADD_BOX_MODE(BOXHEADADJ);
     }
 
     if (STATE(ALTITUDE_CONTROL) && STATE(MULTIROTOR)) {
-        ACTIVE_THIS_BOX(BOXFPVANGLEMIX);
+        ADD_BOX_MODE(BOXFPVANGLEMIX);
     }
 
     //Camstab mode is enabled always
-    ACTIVE_THIS_BOX(BOXCAMSTAB);
+    ADD_BOX_MODE(BOXCAMSTAB);
 
 #ifdef USE_GPS
     if (STATE(ALTITUDE_CONTROL) && (sensors(SENSOR_BARO) || (feature(FEATURE_GPS) && (STATE(AIRPLANE) || positionEstimationConfig()->use_gps_no_baro)))) {
-        ACTIVE_THIS_BOX(BOXNAVALTHOLD);
+        ADD_BOX_MODE(BOXNAVALTHOLD);
         if (STATE(MULTIROTOR)) {
-            ACTIVE_THIS_BOX(BOXSURFACE);
+            ADD_BOX_MODE(BOXSURFACE);
         }
     }
 
@@ -213,53 +213,53 @@ void initActiveBoxIds(void)
     const bool navFlowDeadReckoning = sensors(SENSOR_OPFLOW) && sensors(SENSOR_ACC) && positionEstimationConfig()->allow_dead_reckoning;
     if (navFlowDeadReckoning || navReadyMultirotor || navReadyOther) {
         if (!STATE(ROVER) && !STATE(BOAT)) {
-            ACTIVE_THIS_BOX(BOXNAVPOSHOLD);
+            ADD_BOX_MODE(BOXNAVPOSHOLD);
         }
         if (STATE(AIRPLANE)) {
-            ACTIVE_THIS_BOX(BOXLOITERDIRCHN);
+            ADD_BOX_MODE(BOXLOITERDIRCHN);
         }
     }
 
     if (navReadyMultirotor || navReadyOther) {
-        ACTIVE_THIS_BOX(BOXNAVRTH);
-        ACTIVE_THIS_BOX(BOXNAVWP);
-        ACTIVE_THIS_BOX(BOXHOMERESET);
-        ACTIVE_THIS_BOX(BOXGCSNAV);
-        ACTIVE_THIS_BOX(BOXPLANWPMISSION);
+        ADD_BOX_MODE(BOXNAVRTH);
+        ADD_BOX_MODE(BOXNAVWP);
+        ADD_BOX_MODE(BOXHOMERESET);
+        ADD_BOX_MODE(BOXGCSNAV);
+        ADD_BOX_MODE(BOXPLANWPMISSION);
 
         if (STATE(AIRPLANE)) {
-            ACTIVE_THIS_BOX(BOXNAVCOURSEHOLD);
-            ACTIVE_THIS_BOX(BOXNAVCRUISE);
-            ACTIVE_THIS_BOX(BOXSOARING);
+            ADD_BOX_MODE(BOXNAVCOURSEHOLD);
+            ADD_BOX_MODE(BOXNAVCRUISE);
+            ADD_BOX_MODE(BOXSOARING);
         }
     }
 
 #ifdef USE_MR_BRAKING_MODE
     if (mixerConfig()->platformType == PLATFORM_MULTIROTOR) {
-        ACTIVE_THIS_BOX(BOXBRAKING);
+        ADD_BOX_MODE(BOXBRAKING);
     }
 #endif
 
 #endif
 
     if (STATE(AIRPLANE) || STATE(ROVER) || STATE(BOAT)) {
-        ACTIVE_THIS_BOX(BOXMANUAL);
+        ADD_BOX_MODE(BOXMANUAL);
     }
 
     if (STATE(AIRPLANE)) {
         if (!feature(FEATURE_FW_LAUNCH)) {
-           ACTIVE_THIS_BOX(BOXNAVLAUNCH);
+           ADD_BOX_MODE(BOXNAVLAUNCH);
         }
 
         if (!feature(FEATURE_FW_AUTOTRIM)) {
-            ACTIVE_THIS_BOX(BOXAUTOTRIM);
+            ADD_BOX_MODE(BOXAUTOTRIM);
         }
 
 #if defined(USE_AUTOTUNE_FIXED_WING)
-        ACTIVE_THIS_BOX(BOXAUTOTUNE);
+        ADD_BOX_MODE(BOXAUTOTUNE);
 #endif
         if (sensors(SENSOR_BARO)) {
-            ACTIVE_THIS_BOX(BOXAUTOLEVEL);
+            ADD_BOX_MODE(BOXAUTOLEVEL);
         }
     }
 
@@ -268,69 +268,69 @@ void initActiveBoxIds(void)
      * flying wing can cause bad thing
      */
     if (STATE(FLAPERON_AVAILABLE)) {
-        ACTIVE_THIS_BOX(BOXFLAPERON);
+        ADD_BOX_MODE(BOXFLAPERON);
     }
 
-    ACTIVE_THIS_BOX(BOXBEEPERON);
+    ADD_BOX_MODE(BOXBEEPERON);
 
 #ifdef USE_LIGHTS
-    ACTIVE_THIS_BOX(BOXLIGHTS);
+    ADD_BOX_MODE(BOXLIGHTS);
 #endif
 
 #ifdef USE_LED_STRIP
     if (feature(FEATURE_LED_STRIP)) {
-        ACTIVE_THIS_BOX(BOXLEDLOW);
+        ADD_BOX_MODE(BOXLEDLOW);
     }
 #endif
 
-    ACTIVE_THIS_BOX(BOXOSD);
+    ADD_BOX_MODE(BOXOSD);
 
 #ifdef USE_TELEMETRY
     if (feature(FEATURE_TELEMETRY) && telemetryConfig()->telemetry_switch) {
-        ACTIVE_THIS_BOX(BOXTELEMETRY);
+        ADD_BOX_MODE(BOXTELEMETRY);
     }
 #endif
 
 #ifdef USE_BLACKBOX
     if (feature(FEATURE_BLACKBOX)) {
-        ACTIVE_THIS_BOX(BOXBLACKBOX);
+        ADD_BOX_MODE(BOXBLACKBOX);
     }
 #endif
 
-    ACTIVE_THIS_BOX(BOXKILLSWITCH);
-    ACTIVE_THIS_BOX(BOXFAILSAFE);
+    ADD_BOX_MODE(BOXKILLSWITCH);
+    ADD_BOX_MODE(BOXFAILSAFE);
 
 #ifdef USE_RCDEVICE
-    ACTIVE_THIS_BOX(BOXCAMERA1);
-    ACTIVE_THIS_BOX(BOXCAMERA2);
-    ACTIVE_THIS_BOX(BOXCAMERA3);
+    ADD_BOX_MODE(BOXCAMERA1);
+    ADD_BOX_MODE(BOXCAMERA2);
+    ADD_BOX_MODE(BOXCAMERA3);
 #endif
 
 #ifdef USE_PINIOBOX
     // USER modes are only used for PINIO at the moment
-    ACTIVE_THIS_BOX(BOXUSER1);
-    ACTIVE_THIS_BOX(BOXUSER2);
+    ADD_BOX_MODE(BOXUSER1);
+    ADD_BOX_MODE(BOXUSER2);
 #endif
 
 #if defined(USE_OSD) && defined(OSD_LAYOUT_COUNT)
 #if OSD_LAYOUT_COUNT > 0
-    ACTIVE_THIS_BOX(BOXOSDALT1);
+    ADD_BOX_MODE(BOXOSDALT1);
 #if OSD_LAYOUT_COUNT > 1
-    ACTIVE_THIS_BOX(BOXOSDALT2);
+    ADD_BOX_MODE(BOXOSDALT2);
 #if OSD_LAYOUT_COUNT > 2
-    ACTIVE_THIS_BOX(BOXOSDALT3);
+    ADD_BOX_MODE(BOXOSDALT3);
 #endif
 #endif
 #endif
 #endif
 
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
-    ACTIVE_THIS_BOX(BOXMSPRCOVERRIDE);
+    ADD_BOX_MODE(BOXMSPRCOVERRIDE);
 #endif
 
 #ifdef USE_DSHOT
     if(STATE(MULTIROTOR) && isMotorProtocolDshot()) {
-        ACTIVE_THIS_BOX(BOXTURTLE);
+        ADD_BOX_MODE(BOXTURTLE);
     }
 #endif
 }
