@@ -102,8 +102,8 @@ static uint8_t activeBoxIds[CHECKBOX_ITEM_COUNT];
 // this is the number of filled indexes in above array
 uint8_t activeBoxIdCount = 0;
 
-#define RESET_BOX_ID_COUNT activeBoxIdCount = 0;
-#define ACTIVE_THIS_BOX(box) activeBoxIds[activeBoxIdCount++] = box; 
+#define RESET_BOX_ID_COUNT activeBoxIdCount = 0
+#define ACTIVE_THIS_BOX(box) activeBoxIds[activeBoxIdCount++] = box 
 
 const box_t *findBoxByActiveBoxId(uint8_t activeBoxId)
 {
