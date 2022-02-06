@@ -1051,7 +1051,7 @@ static bool djiFormatMessages(char *buff)
         // Pick one of the available messages. Each message lasts
         // a second.
         if (messageCount > 0) {
-           strcpy(buff, messages[OSD_ALTERNATING_CHOICES(DJI_ALTERNATING_DURATION_SHORT, messageCount)]);;
+           strcpy(buff, messages[OSD_ALTERNATING_CHOICES(DJI_ALTERNATING_DURATION_SHORT, messageCount)]);
            haveMessage = true;
         }
     } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
