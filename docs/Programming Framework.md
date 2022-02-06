@@ -76,6 +76,10 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 40            | MOD           | Divide `Operand A` by `Operand B` and returns the remainder |
 | 41			| LOITER_RADIUS_OVERRIDE | Sets the loiter radius to `Operand A` [`0` : `100000`] in cm. If the value is lower than the loiter radius set in the **Advanced Tuning**, that will be used. |
 | 42            | SET_PROFILE   | Sets the active config profile (PIDFF/Rates/Filters/etc) to `Operand A`. `Operand A` must be a valid profile number, currently from 1 to 3. If not, the profile will not change |
+| 43			| CONSTRAIN_MIN		| Ensures that `Operand A` cannot be less than `Operand B` |
+| 44			| CONSTRAIN_MAX		| Ensures that `Operand A` cannot be greater than `Operand B` |
+| 45			| MIN				| Finds the lowest value of `Operand A` and `Operand B` |
+| 46			| MAX				| Finds the highest value of `Operand A` and `Operand B` |
 
 ### Operands
 
