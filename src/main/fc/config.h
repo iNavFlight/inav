@@ -74,7 +74,7 @@ typedef struct systemConfig_s {
 #ifdef USE_UNDERCLOCK
     uint8_t cpuUnderclock;
 #endif
-    uint8_t throttle_angle_boost_enabled;
+    bool throttle_angle_boost_enabled;
     char name[MAX_NAME_LENGTH + 1];
 } systemConfig_t;
 
