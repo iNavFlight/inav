@@ -72,11 +72,9 @@ typedef enum {
     LOGIC_CONDITION_MODULUS                     = 40,
     LOGIC_CONDITION_LOITER_OVERRIDE             = 41,
     LOGIC_CONDITION_SET_PROFILE                 = 42,
-    LOGIC_CONDITION_CONSTRAIN_MIN               = 43,
-    LOGIC_CONDITION_CONSTRAIN_MAX               = 44,
-    LOGIC_CONDITION_MIN                         = 45,
-    LOGIC_CONDITION_MAX                         = 46,
-    LOGIC_CONDITION_LAST                        = 47,
+    LOGIC_CONDITION_MIN                         = 43,
+    LOGIC_CONDITION_MAX                         = 44,
+    LOGIC_CONDITION_LAST                        = 45,
 } logicOperation_e;
 
 typedef enum logicOperandType_s {

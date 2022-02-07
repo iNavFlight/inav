@@ -304,14 +304,6 @@ static int logicConditionCompute(
             return tan_approx(DEGREES_TO_RADIANS(operandA)) * temporaryValue; 
         break;
 
-        case LOGIC_CONDITION_CONSTRAIN_MIN:
-            return (operandA < operandB) ? operandB : operandA;
-        break;
-
-        case LOGIC_CONDITION_CONSTRAIN_MAX:
-            return (operandA > operandB) ? operandB : operandA;
-        break;
-
         case LOGIC_CONDITION_MIN:
             return (operandA < operandB) ? operandA : operandB;
         break;
