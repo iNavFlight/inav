@@ -303,6 +303,14 @@ static int logicConditionCompute(
             temporaryValue = (operandB == 0) ? 500 : operandB;
             return tan_approx(DEGREES_TO_RADIANS(operandA)) * temporaryValue; 
         break;
+
+        case LOGIC_CONDITION_MIN:
+            return (operandA < operandB) ? operandA : operandB;
+        break;
+
+        case LOGIC_CONDITION_MAX:
+            return (operandA > operandB) ? operandA : operandB;
+        break;
     
         case LOGIC_CONDITION_MAP_INPUT:
             return scaleRange(constrain(operandA, 0, operandB), 0, operandB, 0, 1000);
