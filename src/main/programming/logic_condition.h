@@ -173,6 +173,7 @@ typedef struct logicCondition_s {
     logicOperand_t operandA;
     logicOperand_t operandB;
     uint8_t flags;
+    uint8_t codeGroup;
 } logicCondition_t;
 
 PG_DECLARE_ARRAY(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions);

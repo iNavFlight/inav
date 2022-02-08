@@ -75,7 +75,8 @@ void pgResetFn_logicConditions(logicCondition_t *instance)
                 .type = LOGIC_CONDITION_OPERAND_TYPE_VALUE,
                 .value = 0
             },
-            .flags = 0
+            .flags = 0,
+            .codeGroup = 0
         );
     }
 }

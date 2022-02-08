@@ -1874,7 +1874,7 @@ static void cliServoMix(char *cmdline)
 
 static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions, const logicCondition_t *defaultLogicConditions)
 {
-    const char *format = "logic %d %d %d %d %d %d %d %d %d";
+    const char *format = "logic %d %d %d %d %d %d %d %d %d %d";
     for (uint32_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
         const logicCondition_t logic = logicConditions[i];
 
@@ -1889,7 +1889,8 @@ static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions
                 logic.operandA.value == defaultValue.operandA.value &&
                 logic.operandB.type == defaultValue.operandB.type &&
                 logic.operandB.value == defaultValue.operandB.value &&
-                logic.flags == defaultValue.flags;
+                logic.flags == defaultValue.flags &&
+                logic.codeGroup == defaultValue.codeGroup;
 
             cliDefaultPrintLinef(dumpMask, equalsDefault, format,
                 i,
@@ -1900,7 +1901,8 @@ static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions
                 logic.operandA.value,
                 logic.operandB.type,
                 logic.operandB.value,
-                logic.flags
+                logic.flags, 
+                logic.codeGroup
             );
         }
         cliDumpPrintLinef(dumpMask, equalsDefault, format,
@@ -1912,14 +1914,15 @@ static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions
             logic.operandA.value,
             logic.operandB.type,
             logic.operandB.value,
-            logic.flags
+            logic.flags,
+            logic.codeGroup
         );
     }
 }
 
 static void cliLogic(char *cmdline) {
     char * saveptr;
-    int args[9], check = 0;
+    int args[10], check = 0;
     uint8_t len = strlen(cmdline);
 
     if (len == 0) {
@@ -1937,6 +1940,7 @@ static void cliLogic(char *cmdline) {
             OPERAND_B_TYPE,
             OPERAND_B_VALUE,
             FLAGS,
+            CODE_GROUP,
             ARGS_COUNT
             };
         char *ptr = strtok_r(cmdline, " ", &saveptr);
@@ -1960,7 +1964,8 @@ static void cliLogic(char *cmdline) {
             args[OPERAND_A_VALUE] >= -1000000 && args[OPERAND_A_VALUE] <= 1000000 &&
             args[OPERAND_B_TYPE] >= 0 && args[OPERAND_B_TYPE] < LOGIC_CONDITION_OPERAND_TYPE_LAST &&
             args[OPERAND_B_VALUE] >= -1000000 && args[OPERAND_B_VALUE] <= 1000000 &&
-            args[FLAGS] >= 0 && args[FLAGS] <= 255
+            args[FLAGS] >= 0 && args[FLAGS] <= 255 &&
+            args[CODE_GROUP] >= 0 && args[CODE_GROUP] <= 9
 
         ) {
             logicConditionsMutable(i)->enabled = args[ENABLED];
@@ -1971,6 +1976,7 @@ static void cliLogic(char *cmdline) {
             logicConditionsMutable(i)->operandB.type = args[OPERAND_B_TYPE];
             logicConditionsMutable(i)->operandB.value = args[OPERAND_B_VALUE];
             logicConditionsMutable(i)->flags = args[FLAGS];
+            logicConditionsMutable(i)->codeGroup = args[CODE_GROUP];
 
             cliLogic("");
         } else {
