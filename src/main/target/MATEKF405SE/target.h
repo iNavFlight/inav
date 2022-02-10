@@ -171,11 +171,20 @@
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
+// *************** PINIO ***************************
+#ifdef MATEKF405SE_PINIO
+#define USE_PINIO
+#define USE_PINIOBOX
+#define PINIO1_PIN              PA8 // S9
+#define MAX_PWM_OUTPUT_PORTS       8
+#else
+#define MAX_PWM_OUTPUT_PORTS       9
+#endif
+
+
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
-
-#define MAX_PWM_OUTPUT_PORTS       9
 
 #define PCA9685_I2C_BUS         BUS_I2C2

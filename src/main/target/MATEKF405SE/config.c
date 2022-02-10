@@ -23,10 +23,14 @@
 #include "io/serial.h"
 #include "telemetry/telemetry.h"
 
+#include "io/piniobox.h"
+
 // alternative defaults settings for MATEKF405SE targets
 void targetConfiguration(void)
 {
-    
+    #ifdef MATEKF405SE_PINIO
+        pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
+    #endif
     serialConfigMutable()->portConfigs[1].functionMask = FUNCTION_MSP;
     serialConfigMutable()->portConfigs[1].msp_baudrateIndex = BAUD_57600;
 
