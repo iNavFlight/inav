@@ -1,5 +1,5 @@
 /*
- * This file is part of INAV.
+ * This file is part of INAV Project.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -22,46 +22,12 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
-#include <stdbool.h>
-#include "platform.h"
-#include "drivers/io_port_expander.h"
-#include "drivers/io_pcf8574.h"
+#pragma once
 
-#ifdef USE_I2C_IO_EXPANDER
+#include "drivers/osd.h"
+#include "msp/msp_serial.h"
 
-static ioPortExpanderState_t ioPortExpanderState;
+typedef struct displayPort_s displayPort_t;
 
-void ioPortExpanderInit(void)
-{
-
-    ioPortExpanderState.active = pcf8574Init();
-
-    if (ioPortExpanderState.active) {
-        ioPortExpanderState.state = 0x00;
-        pcf8574Write(ioPortExpanderState.state); //Set all ports to OFF
-    }
-
-}
-
-void ioPortExpanderSet(uint8_t pin, uint8_t value)
-{
-    if (pin > 7) {
-        return;
-    }
-
-    //Cast to 0/1
-    value = (bool) value;
-
-    ioPortExpanderState.state ^= (-value ^ ioPortExpanderState.state) & (1UL << pin);
-    ioPortExpanderState.shouldSync = true;
-}
-
-void ioPortExpanderSync(void)
-{
-    if (ioPortExpanderState.active && ioPortExpanderState.shouldSync) {
-        pcf8574Write(ioPortExpanderState.state);
-        ioPortExpanderState.shouldSync = false;
-    }
-}
-
-#endif
+displayPort_t *hdzeroOsdDisplayPortInit(void);
+void hdzeroOsdSerialProcess(mspProcessCommandFnPtr mspProcessCommandFn);
