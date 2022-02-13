@@ -2248,6 +2248,11 @@ static void cliFlashInfo(char *cmdline)
     UNUSED(cmdline);
 
     const flashGeometry_t *layout = flashGetGeometry();
+    
+    if (layout->totalSize == 0) {
+        cliPrintLine("Flash not available");
+        return;
+    }
 
     cliPrintLinef("Flash sectors=%u, sectorSize=%u, pagesPerSector=%u, pageSize=%u, totalSize=%u",
             layout->sectors, layout->sectorSize, layout->pagesPerSector, layout->pageSize, layout->totalSize);
@@ -2277,6 +2282,13 @@ static void cliFlashErase(char *cmdline)
 {
     UNUSED(cmdline);
 
+    const flashGeometry_t *layout = flashGetGeometry();
+    
+    if (layout->totalSize == 0) {
+        cliPrintLine("Flash not available");
+        return;
+    }
+    
     cliPrintLine("Erasing...");
     flashfsEraseCompletely();
 
