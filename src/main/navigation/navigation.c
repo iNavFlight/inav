@@ -3142,6 +3142,7 @@ static void processNavigationRCAdjustments(void)
             if (!STATE(FIXED_WING_LEGACY)) {
                 resetMulticopterBrakingMode();
             }
+            posControl.flags.isAdjustingPosition = false;
         }
     }
     else {
