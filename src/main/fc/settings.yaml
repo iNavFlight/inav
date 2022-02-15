@@ -309,6 +309,35 @@ groups:
         condition: USE_GYRO_KALMAN
         min: 1
         max: 16000
+      - name: init_gyro_cal
+        description: "If defined to 'OFF', it will ignore the gyroscope calibration done at each startup. Instead, the gyroscope last calibration from when you calibrated will be used. It also means you don't have to keep the UAV stationary during a startup."
+        default_value: ON
+        field: init_gyro_cal_enabled
+        type: bool
+      - name: gyro_zero_x
+        description: "Calculated gyro zero calibration of axis X"
+        default_value: 0
+        field: gyro_zero_cal[X]
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: gyro_zero_y
+        description: "Calculated gyro zero calibration of axis Y"
+        default_value: 0
+        field: gyro_zero_cal[Y]
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: gyro_zero_z
+        description: "Calculated gyro zero calibration of axis Z"
+        default_value: 0
+        field: gyro_zero_cal[Z]
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: ins_gravity_cmss
+        description: "Calculated 1G of Acc axis Z to use in INS"
+        default_value: 0.0
+        field: gravity_cmss_cal
+        min: 0
+        max: 1000
 
   - name: PG_ADC_CHANNEL_CONFIG
     type: adcChannelConfig_t

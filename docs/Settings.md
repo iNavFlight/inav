@@ -1602,6 +1602,36 @@ Use Dynamic LPF instead of static gyro stage1 LPF. Dynamic Gyro LPF updates gyro
 
 ---
 
+### gyro_zero_x
+
+Calculated gyro zero calibration of axis X
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -32768 | 32767 |
+
+---
+
+### gyro_zero_y
+
+Calculated gyro zero calibration of axis Y
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -32768 | 32767 |
+
+---
+
+### gyro_zero_z
+
+Calculated gyro zero calibration of axis Z
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -32768 | 32767 |
+
+---
+
 ### has_flaps
 
 Defines is UAV is capable of having flaps. If ON and AIRPLANE `platform_type` is used, **FLAPERON** flight mode will be available for the pilot
@@ -2099,6 +2129,26 @@ _// TODO_
 | Default | Min | Max |
 | --- | --- | --- |
 | 6.1 | 0 | 100 |
+
+---
+
+### init_gyro_cal
+
+If defined to 'OFF', it will ignore the gyroscope calibration done at each startup. Instead, the gyroscope last calibration from when you calibrated will be used. It also means you don't have to keep the UAV stationary during a startup.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| ON | OFF | ON |
+
+---
+
+### ins_gravity_cmss
+
+Calculated 1G of Acc axis Z to use in INS
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0.0 | 0 | 1000 |
 
 ---
 
