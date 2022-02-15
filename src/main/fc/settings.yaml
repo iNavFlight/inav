@@ -2421,6 +2421,11 @@ groups:
         field: general.waypoint_radius
         min: 10
         max: 10000
+      - name: nav_wp_enforce_altitude
+        description: "Forces craft to achieve the set WP altitude as well as position before moving to next WP. Position is held and altitude adjusted as required before moving on."
+        default_value: OFF
+        field: general.flags.waypoint_enforce_altitude
+        type: bool
       - name: nav_wp_safe_distance
         description: "First waypoint in the mission should be closer than this value [cm]. A value of 0 disables this check."
         default_value: 10000
