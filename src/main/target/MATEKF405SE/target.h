@@ -177,6 +177,12 @@
 #define USE_PINIOBOX
 #define PINIO1_PIN              PA8 // S9
 #define MAX_PWM_OUTPUT_PORTS       8
+#elif MATEKF405SE_PINIO2
+#define USE_PINIO
+#define USE_PINIOBOX
+#define PINIO2_PIN              PB15 // S8
+#define PINIO1_PIN              PA8  // S9
+#define MAX_PWM_OUTPUT_PORTS       7
 #else
 #define MAX_PWM_OUTPUT_PORTS       9
 #endif

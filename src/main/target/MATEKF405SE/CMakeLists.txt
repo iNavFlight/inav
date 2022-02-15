@@ -1,2 +1,3 @@
 target_stm32f405xg(MATEKF405SE)
 target_stm32f405xg(MATEKF405SE_PINIO)
+target_stm32f405xg(MATEKF405SE_PINIO2)
