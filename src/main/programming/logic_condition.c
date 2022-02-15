@@ -431,6 +431,11 @@ static int logicConditionGetFlightOperandValue(int operand) {
         case LOGIC_CONDITION_OPERAND_FLIGHT_CELL_VOLTAGE: // V / 10
             return getBatteryAverageCellVoltage();
             break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_BATT_CELLS:
+            return getBatteryCellCount();
+            break;
+
         case LOGIC_CONDITION_OPERAND_FLIGHT_CURRENT: // Amp / 100
             return getAmperage();
             break;

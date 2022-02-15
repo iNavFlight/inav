@@ -94,6 +94,7 @@
 #define OSD_MSG_HEADING_HOME        "EN ROUTE TO HOME"
 #define OSD_MSG_WP_FINISHED         "WP END>HOLDING POSITION"
 #define OSD_MSG_PREPARE_NEXT_WP     "PREPARING FOR NEXT WAYPOINT"
+#define OSD_MSG_ADJUSTING_WP_ALT    "ADJUSTING WP ALTITUDE"
 #define OSD_MSG_MISSION_PLANNER     "(WP MISSION PLANNER)"
 #define OSD_MSG_WP_RTH_CANCEL       "CANCEL WP TO EXIT RTH"
 #define OSD_MSG_WP_MISSION_LOADED   "* MISSION LOADED *"
@@ -400,6 +401,7 @@ typedef struct osdConfig_s {
     uint8_t pan_servo_index;            // Index of the pan servo used for home direction offset
     int8_t pan_servo_pwm2centideg;      // Centidegrees of servo rotation per us pwm
     uint8_t crsf_lq_format;
+    uint16_t system_msg_display_time;   // system message display time for multiple messages (ms)
     uint8_t sidebar_height;             // sidebar height in rows, 0 turns off sidebars leaving only level indicator arrows
     uint8_t telemetry; 				    // use telemetry on displayed pixel line 0
     uint8_t esc_rpm_precision;          // Number of characters used for the RPM numbers.
