@@ -985,12 +985,12 @@ void taskUpdateRxMain(timeUs_t currentTimeUs)
 // returns seconds
 float getFlightTime()
 {
-    return (float)(flightTime / 1000) / 1000;
+    return US2S(flightTime);
 }
 
 float getArmTime()
 {
-    return (float)(armTime / 1000) / 1000;
+    return US2S(armTime);
 }
 
 void fcReboot(bool bootLoader)

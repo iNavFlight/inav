@@ -572,7 +572,7 @@ uint32_t softSerialTxBytesFree(const serialPort_t *instance)
 
     softSerial_t *s = (softSerial_t *)instance;
 
-    uint8_t bytesUsed = (s->port.txBufferHead - s->port.txBufferTail) & (s->port.txBufferSize - 1);
+    uint32_t bytesUsed = (s->port.txBufferHead - s->port.txBufferTail) & (s->port.txBufferSize - 1);
 
     return (s->port.txBufferSize - 1) - bytesUsed;
 }

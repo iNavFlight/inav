@@ -35,6 +35,12 @@
 
 #define INAV_SURFACE_MAX_DISTANCE           40
 
+#define MC_LAND_CHECK_VEL_XY_MOVING 100.0f // cm/s
+#define MC_LAND_CHECK_VEL_Z_MOVING 25.0f   // cm/s
+#define MC_LAND_THR_SUM_RATE 1             // hz
+#define MC_LAND_DESCEND_THROTTLE 40        // uS
+#define MC_LAND_SAFE_SURFACE 5.0f          // cm
+
 #define MAX_POSITION_UPDATE_INTERVAL_US     HZ2US(MIN_POSITION_UPDATE_RATE_HZ)        // convenience macro
 _Static_assert(MAX_POSITION_UPDATE_INTERVAL_US <= TIMEDELTA_MAX, "deltaMicros can overflow!");
 

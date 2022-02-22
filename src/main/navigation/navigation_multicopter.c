@@ -494,7 +494,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
 
     const float setpointX = posControl.desiredState.vel.x;
     const float setpointY = posControl.desiredState.vel.y;
-    const float setpointXY = fast_fsqrtf(powf(setpointX, 2)+powf(setpointY, 2));
+    const float setpointXY = fast_fsqrtf(sq(setpointX) + sq(setpointY));
 
     // Calculate velocity error
     const float velErrorX = setpointX - measurementX;
@@ -697,7 +697,8 @@ bool isMulticopterLandingDetected(void)
     }
 
     // check vertical and horizontal velocities are low (cm/s)
-    bool velCondition = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < 25.0f && posControl.actualState.velXY < 100.0f;
+    bool velCondition = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < MC_LAND_CHECK_VEL_Z_MOVING &&
+                        posControl.actualState.velXY < MC_LAND_CHECK_VEL_XY_MOVING;
     // check gyro rates are low (degs/s)
     bool gyroCondition = averageAbsGyroRates() < 2.0f;
 
@@ -718,7 +719,7 @@ bool isMulticopterLandingDetected(void)
             landingDetectorStartedAt = currentTimeUs;
         }
         if (!landingThrSamples) {
-            if (currentTimeUs - landingDetectorStartedAt < 1000000) {   // Wait for 1 second so throttle has stabilized.
+            if (currentTimeUs - landingDetectorStartedAt < USECS_PER_SEC(MC_LAND_THR_STABILISE_DELAY)) {   // Wait for 1 second so throttle has stabilized.
                 return false;
             } else {
                 landingDetectorStartedAt = currentTimeUs;
@@ -726,7 +727,7 @@ bool isMulticopterLandingDetected(void)
         }
         landingThrSamples += 1;
         landingThrSum += rcCommandAdjustedThrottle;
-        isAtMinimalThrust = rcCommandAdjustedThrottle < (landingThrSum / landingThrSamples - 40);
+        isAtMinimalThrust = rcCommandAdjustedThrottle < (landingThrSum / landingThrSamples - MC_LAND_DESCEND_THROTTLE);
 
         possibleLandingDetected = isAtMinimalThrust && velCondition;
     } else {    // non autonomous and emergency landing
@@ -743,11 +744,11 @@ bool isMulticopterLandingDetected(void)
         // TODO: Come up with a clever way to let sonar increase detection performance, not just add extra safety.
         // TODO: Out of range sonar may give reading that looks like we landed, find a way to check if sonar is healthy.
         // surfaceMin is our ground reference. If we are less than 5cm above the ground - we are likely landed
-        possibleLandingDetected = possibleLandingDetected && (posControl.actualState.agl.pos.z <= (posControl.actualState.surfaceMin + 5.0f));
+        possibleLandingDetected = possibleLandingDetected && (posControl.actualState.agl.pos.z <= (posControl.actualState.surfaceMin + MC_LAND_SAFE_SURFACE));
     }
 
     if (possibleLandingDetected) {
-        timeUs_t safetyTimeDelay = 1000 * (2000 + navConfig()->mc.auto_disarm_delay);  // check conditions stable for 2s + optional extra delay
+        timeUs_t safetyTimeDelay = MS2US(2000 + navConfig()->mc.auto_disarm_delay);  // check conditions stable for 2s + optional extra delay
         return (currentTimeUs - landingDetectorStartedAt > safetyTimeDelay);
     } else {
         landingDetectorStartedAt = currentTimeUs;

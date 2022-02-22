@@ -29,12 +29,21 @@
 #endif
 #define OSD_LAYOUT_COUNT (OSD_ALTERNATE_LAYOUT_COUNT + 1)
 
-#define OSD_VISIBLE_FLAG    0x0800
+// 00vb yyyy yyxx xxxx
+// (visible)(blink)(yCoord)(xCoord)
+
+#define OSD_VISIBLE_FLAG    0x2000
 #define OSD_VISIBLE(x)      ((x) & OSD_VISIBLE_FLAG)
-#define OSD_POS(x,y)        ((x) | ((y) << 5))
-#define OSD_X(x)            ((x) & 0x001F)
-#define OSD_Y(x)            (((x) >> 5) & 0x001F)
-#define OSD_POS_MAX         0x3FF
+
+#define OSD_POS(x,y)        (((x) & 0x3F) | (((y) & 0x3F) << 6))
+#define OSD_X(x)            ((x) & 0x3F)
+#define OSD_Y(x)            (((x) >> 6) & 0x3F)
+#define OSD_POS_MAX         0xFFF
+
+// For DJI compatibility
+#define OSD_VISIBLE_FLAG_SD 0x0800
+#define OSD_POS_SD(x,y)     (((x) & 0x1F) | (((y) & 0x1F) << 5))
+
 #define OSD_POS_MAX_CLI     (OSD_POS_MAX | OSD_VISIBLE_FLAG)
 
 #define OSD_HOMING_LIM_H1 6
@@ -391,6 +400,7 @@ typedef struct osdConfig_s {
     uint8_t pan_servo_index;            // Index of the pan servo used for home direction offset
     int8_t pan_servo_pwm2centideg;      // Centidegrees of servo rotation per us pwm
     uint8_t crsf_lq_format;
+    uint16_t system_msg_display_time;   // system message display time for multiple messages (ms)
     uint8_t sidebar_height;             // sidebar height in rows, 0 turns off sidebars leaving only level indicator arrows
     uint8_t telemetry; 				    // use telemetry on displayed pixel line 0
     uint8_t esc_rpm_precision;          // Number of characters used for the RPM numbers.
