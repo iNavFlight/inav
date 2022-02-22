@@ -188,48 +188,49 @@ void initActiveBoxIds(void)
 
     ADD_ACTIVE_BOX(BOXHEADINGHOLD);
 
-    if ((sensors(SENSOR_ACC) || sensors(SENSOR_MAG)) && STATE(MULTIROTOR)) {
-        ADD_ACTIVE_BOX(BOXHEADFREE);
-        ADD_ACTIVE_BOX(BOXHEADADJ);
-    }
-
-    if (STATE(ALTITUDE_CONTROL) && STATE(MULTIROTOR)) {
-        ADD_ACTIVE_BOX(BOXFPVANGLEMIX);
-    }
-
     //Camstab mode is enabled always
     ADD_ACTIVE_BOX(BOXCAMSTAB);
 
-#ifdef USE_GPS
-    if (STATE(ALTITUDE_CONTROL) && (sensors(SENSOR_BARO) || (feature(FEATURE_GPS) && (STATE(AIRPLANE) || positionEstimationConfig()->use_gps_no_baro)))) {
-        ADD_ACTIVE_BOX(BOXNAVALTHOLD);
-        if (STATE(MULTIROTOR)) {
+    if (STATE(MULTIROTOR)) {
+        if ((sensors(SENSOR_ACC) || sensors(SENSOR_MAG))) {
+            ADD_ACTIVE_BOX(BOXHEADFREE);
+            ADD_ACTIVE_BOX(BOXHEADADJ);
+        }
+        if (sensors(SENSOR_BARO) && sensors(SENSOR_RANGEFINDER) && sensors(SENSOR_OPFLOW)) {
             ADD_ACTIVE_BOX(BOXSURFACE);
         }
+        ADD_ACTIVE_BOX(BOXFPVANGLEMIX);
     }
 
-    const bool navReadyMultirotor = STATE(MULTIROTOR) && (getHwCompassStatus() != HW_SENSOR_NONE) && sensors(SENSOR_ACC) && feature(FEATURE_GPS);
-    const bool navReadyOther = !STATE(MULTIROTOR) && sensors(SENSOR_ACC) && feature(FEATURE_GPS);
+    bool navReadyAltControl = sensors(SENSOR_BARO);
+#ifdef USE_GPS
+    navReadyAltControl = navReadyAltControl || (feature(FEATURE_GPS) && (STATE(AIRPLANE) || positionEstimationConfig()->use_gps_no_baro));
+
     const bool navFlowDeadReckoning = sensors(SENSOR_OPFLOW) && sensors(SENSOR_ACC) && positionEstimationConfig()->allow_dead_reckoning;
-    if (navFlowDeadReckoning || navReadyMultirotor || navReadyOther) {
-        if (!STATE(ROVER) && !STATE(BOAT)) {
-            ADD_ACTIVE_BOX(BOXNAVPOSHOLD);
-        }
+    bool navReadyPosControl = sensors(SENSOR_ACC) && feature(FEATURE_GPS);
+    if (STATE(MULTIROTOR)) {
+        navReadyPosControl = navReadyPosControl && getHwCompassStatus() != HW_SENSOR_NONE;
+    }
+
+    if (STATE(ALTITUDE_CONTROL) && navReadyAltControl && (navReadyPosControl || navFlowDeadReckoning)) {
+        ADD_ACTIVE_BOX(BOXNAVPOSHOLD);
         if (STATE(AIRPLANE)) {
             ADD_ACTIVE_BOX(BOXLOITERDIRCHN);
         }
     }
 
-    if (navReadyMultirotor || navReadyOther) {
-        ADD_ACTIVE_BOX(BOXNAVRTH);
-        ADD_ACTIVE_BOX(BOXNAVWP);
-        ADD_ACTIVE_BOX(BOXHOMERESET);
-        ADD_ACTIVE_BOX(BOXGCSNAV);
-        ADD_ACTIVE_BOX(BOXPLANWPMISSION);
+    if (navReadyPosControl) {
+        if (!STATE(ALTITUDE_CONTROL) || (STATE(ALTITUDE_CONTROL) && navReadyAltControl)) {
+            ADD_ACTIVE_BOX(BOXNAVRTH);
+            ADD_ACTIVE_BOX(BOXNAVWP);
+            ADD_ACTIVE_BOX(BOXHOMERESET);
+            ADD_ACTIVE_BOX(BOXGCSNAV);
+            ADD_ACTIVE_BOX(BOXPLANWPMISSION);
+        }
 
         if (STATE(AIRPLANE)) {
-            ADD_ACTIVE_BOX(BOXNAVCOURSEHOLD);
             ADD_ACTIVE_BOX(BOXNAVCRUISE);
+            ADD_ACTIVE_BOX(BOXNAVCOURSEHOLD);
             ADD_ACTIVE_BOX(BOXSOARING);
         }
     }
@@ -239,8 +240,10 @@ void initActiveBoxIds(void)
         ADD_ACTIVE_BOX(BOXBRAKING);
     }
 #endif
-
-#endif
+#endif  // GPS
+    if (STATE(ALTITUDE_CONTROL) && navReadyAltControl) {
+        ADD_ACTIVE_BOX(BOXNAVALTHOLD);
+    }
 
     if (STATE(AIRPLANE) || STATE(ROVER) || STATE(BOAT)) {
         ADD_ACTIVE_BOX(BOXMANUAL);

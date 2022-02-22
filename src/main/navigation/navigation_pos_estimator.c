@@ -49,6 +49,7 @@
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
 #include "sensors/compass.h"
+#include "sensors/gyro.h"
 #include "sensors/pitotmeter.h"
 #include "sensors/opflow.h"
 
@@ -351,11 +352,19 @@ void updatePositionEstimator_PitotTopic(timeUs_t currentTimeUs)
  */
 static void restartGravityCalibration(void)
 {
+    if (!gyroConfig()->init_gyro_cal_enabled) {
+        return;
+    }
+
     zeroCalibrationStartS(&posEstimator.imu.gravityCalibration, CALIBRATING_GRAVITY_TIME_MS, positionEstimationConfig()->gravity_calibration_tolerance, false);
 }
 
 static bool gravityCalibrationComplete(void)
-{
+{ 
+    if (!gyroConfig()->init_gyro_cal_enabled) {
+        return true;
+    }
+    
     return zeroCalibrationIsCompleteS(&posEstimator.imu.gravityCalibration);
 }
 
@@ -391,9 +400,9 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
     posEstimator.imu.lastUpdateTime = currentTimeUs;
 
     if (!isImuReady()) {
-        posEstimator.imu.accelNEU.x = 0;
-        posEstimator.imu.accelNEU.y = 0;
-        posEstimator.imu.accelNEU.z = 0;
+        posEstimator.imu.accelNEU.x = 0.0f;
+        posEstimator.imu.accelNEU.y = 0.0f;
+        posEstimator.imu.accelNEU.z = 0.0f;
 
         restartGravityCalibration();
     }
@@ -422,13 +431,19 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
         posEstimator.imu.accelNEU.z = accelBF.z;
 
         /* When unarmed, assume that accelerometer should measure 1G. Use that to correct accelerometer gain */
-        if (!ARMING_FLAG(ARMED) && !gravityCalibrationComplete()) {
-            zeroCalibrationAddValueS(&posEstimator.imu.gravityCalibration, posEstimator.imu.accelNEU.z);
+        if (gyroConfig()->init_gyro_cal_enabled) {
+            if (!ARMING_FLAG(ARMED) && !gravityCalibrationComplete()) {
+                zeroCalibrationAddValueS(&posEstimator.imu.gravityCalibration, posEstimator.imu.accelNEU.z);
 
-            if (gravityCalibrationComplete()) {
-                zeroCalibrationGetZeroS(&posEstimator.imu.gravityCalibration, &posEstimator.imu.calibratedGravityCMSS);
-                LOG_D(POS_ESTIMATOR, "Gravity calibration complete (%d)", (int)lrintf(posEstimator.imu.calibratedGravityCMSS));
+                if (gravityCalibrationComplete()) {
+                    zeroCalibrationGetZeroS(&posEstimator.imu.gravityCalibration, &posEstimator.imu.calibratedGravityCMSS);
+                    setGravityCalibrationAndWriteEEPROM(posEstimator.imu.calibratedGravityCMSS);
+                    LOG_D(POS_ESTIMATOR, "Gravity calibration complete (%d)", (int)lrintf(posEstimator.imu.calibratedGravityCMSS));
+                }
             }
+        } else {
+            posEstimator.imu.gravityCalibration.params.state = ZERO_CALIBRATION_DONE;
+            posEstimator.imu.calibratedGravityCMSS = gyroConfig()->gravity_cmss_cal;
         }
 
         /* If calibration is incomplete - report zero acceleration */
@@ -436,9 +451,9 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
             posEstimator.imu.accelNEU.z -= posEstimator.imu.calibratedGravityCMSS;
         }
         else {
-            posEstimator.imu.accelNEU.x = 0;
-            posEstimator.imu.accelNEU.y = 0;
-            posEstimator.imu.accelNEU.z = 0;
+            posEstimator.imu.accelNEU.x = 0.0f;
+            posEstimator.imu.accelNEU.y = 0.0f;
+            posEstimator.imu.accelNEU.z = 0.0f;
         }
 
         /* Update blackbox values */

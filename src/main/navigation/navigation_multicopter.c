@@ -493,7 +493,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
 
     const float setpointX = posControl.desiredState.vel.x;
     const float setpointY = posControl.desiredState.vel.y;
-    const float setpointXY = fast_fsqrtf(powf(setpointX, 2)+powf(setpointY, 2));
+    const float setpointXY = fast_fsqrtf(sq(setpointX) + sq(setpointY));
 
     // Calculate velocity error
     const float velErrorX = setpointX - measurementX;
@@ -696,20 +696,20 @@ bool isMulticopterLandingDetected(void)
     }
 
     // Average climb rate should be low enough
-    bool verticalMovement = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) > 25.0f;
+    bool verticalMovement = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) > MC_LAND_CHECK_VEL_Z_MOVING;
 
     // check if we are moving horizontally
-    bool horizontalMovement = posControl.actualState.velXY > 100.0f;
+    bool horizontalMovement = posControl.actualState.velXY > MC_LAND_CHECK_VEL_XY_MOVING;
 
     // We have likely landed if throttle is 40 units below average descend throttle
     // We use rcCommandAdjustedThrottle to keep track of NAV corrected throttle (isLandingDetected is executed
     // from processRx() and rcCommand at that moment holds rc input, not adjusted values from NAV core)
     // Wait for 1 second so throttle has stabilized.
     bool isAtMinimalThrust = false;
-    if (currentTimeUs - landingDetectorStartedAt > 1000 * 1000) {
+    if (currentTimeUs - landingDetectorStartedAt > HZ2US(MC_LAND_THR_SUM_RATE)) {
         landingThrSamples += 1;
         landingThrSum += rcCommandAdjustedThrottle;
-        isAtMinimalThrust = rcCommandAdjustedThrottle < (landingThrSum / landingThrSamples - 40);
+        isAtMinimalThrust = rcCommandAdjustedThrottle < (landingThrSum / landingThrSamples - MC_LAND_DESCEND_THROTTLE);
     }
 
     bool possibleLandingDetected = isAtMinimalThrust && !verticalMovement && !horizontalMovement;
@@ -719,7 +719,7 @@ bool isMulticopterLandingDetected(void)
         // TODO: Come up with a clever way to let sonar increase detection performance, not just add extra safety.
         // TODO: Out of range sonar may give reading that looks like we landed, find a way to check if sonar is healthy.
         // surfaceMin is our ground reference. If we are less than 5cm above the ground - we are likely landed
-        possibleLandingDetected = possibleLandingDetected && (posControl.actualState.agl.pos.z <= (posControl.actualState.surfaceMin + 5.0f));
+        possibleLandingDetected = possibleLandingDetected && (posControl.actualState.agl.pos.z <= (posControl.actualState.surfaceMin + MC_LAND_SAFE_SURFACE));
     }
 
     if (!possibleLandingDetected) {
@@ -727,7 +727,7 @@ bool isMulticopterLandingDetected(void)
         return false;
     }
     else {
-        return ((currentTimeUs - landingTimer) > (navConfig()->mc.auto_disarm_delay * 1000)) ? true : false;
+        return ((currentTimeUs - landingTimer) > MS2US(navConfig()->mc.auto_disarm_delay)) ? true : false;
     }
 }
 

@@ -66,6 +66,8 @@
 #define CMSEC_TO_CENTIKPH(cms)      (cms * 3.6)
 #define CMSEC_TO_CENTIKNOTS(cms)    (cms * 1.943845)
 
+#define C_TO_KELVIN(temp) (temp + 273.15f)
+
 // copied from https://code.google.com/p/cxutil/source/browse/include/cxutil/utility.h#70
 #define _CHOOSE2(binoper, lexpr, lvar, rexpr, rvar)         \
     ( __extension__ ({                                      \

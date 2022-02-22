@@ -227,7 +227,11 @@ bool isHardwareHealthy(void)
     const hardwareSensorStatus_e pitotStatus = getHwPitotmeterStatus();
     const hardwareSensorStatus_e gpsStatus = getHwGPSStatus();
     const hardwareSensorStatus_e opflowStatus = getHwOpticalFlowStatus();
+#ifdef USE_SECONDARY_IMU
     const hardwareSensorStatus_e imu2Status = getHwSecondaryImuStatus();
+#else
+    const hardwareSensorStatus_e imu2Status = HW_SENSOR_NONE;
+#endif
 
     // Sensor is considered failing if it's either unavailable (selected but not detected) or unhealthy (returning invalid readings)
     if (gyroStatus == HW_SENSOR_UNAVAILABLE || gyroStatus == HW_SENSOR_UNHEALTHY)

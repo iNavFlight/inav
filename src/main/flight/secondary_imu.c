@@ -22,6 +22,9 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
+#include "platform.h"
+#ifdef USE_SECONDARY_IMU
+
 #include "stdint.h"
 
 #include "build/debug.h"
@@ -257,3 +260,5 @@ hardwareSensorStatus_e getHwSecondaryImuStatus(void)
     return HW_SENSOR_NONE;
 #endif
 }
+
+#endif
