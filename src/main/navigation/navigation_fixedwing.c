@@ -266,7 +266,7 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
     float posErrorX = posControl.desiredState.pos.x - navGetCurrentActualPositionAndVelocity()->pos.x;
     float posErrorY = posControl.desiredState.pos.y - navGetCurrentActualPositionAndVelocity()->pos.y;
 
-    float distanceToActualTarget = fast_fsqrtf(sq(posErrorX) + sq(posErrorY));
+    float distanceToActualTarget = calc_length_pythagorean_2D(posErrorX, posErrorY);
 
     // Limit minimum forward velocity to 1 m/s
     float trackingDistance = trackingPeriod * MAX(posControl.actualState.velXY, 100.0f);
@@ -290,7 +290,7 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
         // We have temporary loiter target. Recalculate distance and position error
         posErrorX = loiterTargetX - navGetCurrentActualPositionAndVelocity()->pos.x;
         posErrorY = loiterTargetY - navGetCurrentActualPositionAndVelocity()->pos.y;
-        distanceToActualTarget = fast_fsqrtf(sq(posErrorX) + sq(posErrorY));
+        distanceToActualTarget = calc_length_pythagorean_2D(posErrorX, posErrorY);
     }
 
     // Calculate virtual waypoint

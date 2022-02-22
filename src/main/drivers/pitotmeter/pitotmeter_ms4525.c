@@ -97,7 +97,7 @@ static void ms4525_calculate(pitotDev_t * pitot, float *pressure, float *tempera
     //float dP = ctx->ms4525_up * 10.0f * 0.1052120688f;
     const float dP_psi = -((ctx->ms4525_up - 0.1f * 16383) * (P_max - P_min) / (0.8f * 16383) + P_min);
     float dP = dP_psi * PSI_to_Pa;
-    float T  = (float)(200.0f * (int32_t)ctx->ms4525_ut) / 2047.0f - 50.0f + 273.15f;
+    float T  = C_TO_KELVIN((float)(200.0f * (int32_t)ctx->ms4525_ut) / 2047.0f - 50.0f);
 
     if (pressure) {
         *pressure = dP;    // Pa

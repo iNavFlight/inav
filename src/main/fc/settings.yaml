@@ -75,7 +75,7 @@ tables:
     values: ["BATTERY", "CELL"]
     enum: osd_stats_min_voltage_unit_e
   - name: osd_video_system
-    values: ["AUTO", "PAL", "NTSC"]
+    values: ["AUTO", "PAL", "NTSC", "HD"]
     enum: videoSystem_e
   - name: osd_telemetry
     values: ["OFF", "ON","TEST"]
@@ -309,6 +309,35 @@ groups:
         condition: USE_GYRO_KALMAN
         min: 1
         max: 16000
+      - name: init_gyro_cal
+        description: "If defined to 'OFF', it will ignore the gyroscope calibration done at each startup. Instead, the gyroscope last calibration from when you calibrated will be used. It also means you don't have to keep the UAV stationary during a startup."
+        default_value: ON
+        field: init_gyro_cal_enabled
+        type: bool
+      - name: gyro_zero_x
+        description: "Calculated gyro zero calibration of axis X"
+        default_value: 0
+        field: gyro_zero_cal[X]
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: gyro_zero_y
+        description: "Calculated gyro zero calibration of axis Y"
+        default_value: 0
+        field: gyro_zero_cal[Y]
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: gyro_zero_z
+        description: "Calculated gyro zero calibration of axis Z"
+        default_value: 0
+        field: gyro_zero_cal[Z]
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: ins_gravity_cmss
+        description: "Calculated 1G of Acc axis Z to use in INS"
+        default_value: 0.0
+        field: gravity_cmss_cal
+        min: 0
+        max: 1000
 
   - name: PG_ADC_CHANNEL_CONFIG
     type: adcChannelConfig_t
@@ -1648,7 +1677,7 @@ groups:
         table: airmodeHandlingType
       - name: airmode_throttle_threshold
         description: "Defines airmode THROTTLE activation threshold when `airmode_type` **THROTTLE_THRESHOLD** is used"
-        default_value: 1300
+        default_value: 1150
         field: airmodeThrottleThreshold
         min: 1000
         max: 2000
@@ -2390,6 +2419,11 @@ groups:
         field: general.waypoint_radius
         min: 10
         max: 10000
+      - name: nav_wp_enforce_altitude
+        description: "Forces craft to achieve the set WP altitude as well as position before moving to next WP. Position is held and altitude adjusted as required before moving on."
+        default_value: OFF
+        field: general.flags.waypoint_enforce_altitude
+        type: bool
       - name: nav_wp_safe_distance
         description: "First waypoint in the mission should be closer than this value [cm]. A value of 0 disables this check."
         default_value: 10000
@@ -3047,7 +3081,7 @@ groups:
         type: uint8_t
         default_value: "OFF"
       - name: osd_video_system
-        description: "Video system used. Possible values are `AUTO`, `PAL` and `NTSC`"
+        description: "Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, and `HD`"
         default_value: "AUTO"
         table: osd_video_system
         field: video_system
@@ -3193,6 +3227,20 @@ groups:
         description: "RSSI dBm indicator blinks below this value [dBm]. 0 disables this alarm"
         default_value: 0
         field: rssi_dbm_alarm
+        min: -130
+        max: 0
+      - name: osd_rssi_dbm_max
+        condition: USE_SERIALRX_CRSF
+        description: "RSSI dBm upper end of curve. Perfect rssi (max) = 100%"
+        default_value: -30
+        field: rssi_dbm_max
+        min: -50
+        max: 0
+      - name: osd_rssi_dbm_min
+        condition: USE_SERIALRX_CRSF
+        description: "RSSI dBm lower end of curve or RX sensitivity level. Worst rssi (min) = 0%"
+        default_value: -120
+        field: rssi_dbm_min
         min: -130
         max: 0
       - name: osd_temp_label_align
@@ -3454,6 +3502,13 @@ groups:
         max: 6
         default_value: 3
 
+      - name: osd_system_msg_display_time
+        description: System message display cycle time for multiple messages (milliseconds).
+        field: system_msg_display_time
+        default_value: 1000
+        min: 500
+        max: 5000
+
   - name: PG_OSD_COMMON_CONFIG
     type: osdCommonConfig_t
     headers: ["io/osd_common.h"]
@@ -3494,6 +3549,7 @@ groups:
       - name: name
         description: "Craft name"
         default_value: ""
+        max: MAX_NAME_LENGTH
 
   - name: PG_MODE_ACTIVATION_OPERATOR_CONFIG
     type: modeActivationOperatorConfig_t
@@ -3525,6 +3581,7 @@ groups:
         default_value: 0
         max: INT32_MAX
       - name: stats_total_energy
+        description: "Total energy consumption [in mWh]. The value is updated on every disarm when \"stats\" are enabled."
         max: INT32_MAX
         condition: USE_ADC
         default_value: 0

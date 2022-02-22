@@ -37,6 +37,12 @@
 
 #define INAV_SURFACE_MAX_DISTANCE           40
 
+#define MC_LAND_CHECK_VEL_XY_MOVING 100.0f // cm/s
+#define MC_LAND_CHECK_VEL_Z_MOVING 25.0f   // cm/s
+#define MC_LAND_THR_SUM_RATE 1             // hz
+#define MC_LAND_DESCEND_THROTTLE 40        // uS
+#define MC_LAND_SAFE_SURFACE 5.0f          // cm
+
 #define MAX_POSITION_UPDATE_INTERVAL_US     HZ2US(MIN_POSITION_UPDATE_RATE_HZ)        // convenience macro
 _Static_assert(MAX_POSITION_UPDATE_INTERVAL_US <= TIMEDELTA_MAX, "deltaMicros can overflow!");
 
@@ -373,12 +379,13 @@ typedef struct {
     int8_t                      loadedMultiMissionStartWP;  // selected multi mission start WP
     int8_t                      loadedMultiMissionWPCount;  // number of WPs in selected multi mission
 #endif
-    navWaypointPosition_t       activeWaypoint;     // Local position and initial bearing, filled on waypoint activation
+    navWaypointPosition_t       activeWaypoint;             // Local position and initial bearing, filled on waypoint activation
     int8_t                      activeWaypointIndex;
-    float                       wpInitialAltitude;  // Altitude at start of WP
-    float                       wpInitialDistance;  // Distance when starting flight to WP
-    float                       wpDistance;         // Distance to active WP
-    timeMs_t                    wpReachedTime;      // Time the waypoint was reached
+    float                       wpInitialAltitude;          // Altitude at start of WP
+    float                       wpInitialDistance;          // Distance when starting flight to WP
+    float                       wpDistance;                 // Distance to active WP
+    timeMs_t                    wpReachedTime;              // Time the waypoint was reached
+    bool                        wpAltitudeReached;          // WP altitude achieved
 
     /* Internals & statistics */
     int16_t                     rcAdjustment[4];

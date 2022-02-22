@@ -27,6 +27,7 @@ SerialRX and PPM receivers should be connected to dedicated _PPM SBUS_ connector
 ## Motors
 
 This board has only 4 motor/servo outputs. Can be used in airplanes only on Flywing Wings
+(Not to be confused with the OMNIBUSF7NXT, which has six outputs).
 
 ## Buzzer / Beeper
 
