@@ -719,7 +719,7 @@ bool isMulticopterLandingDetected(void)
             landingDetectorStartedAt = currentTimeUs;
         }
         if (!landingThrSamples) {
-            if (currentTimeUs - landingDetectorStartedAt < USECS_PER_SEC(MC_LAND_THR_STABILISE_DELAY)) {   // Wait for 1 second so throttle has stabilized.
+            if (currentTimeUs - landingDetectorStartedAt < (USECS_PER_SEC * MC_LAND_THR_STABILISE_DELAY)) {   // Wait for 1 second so throttle has stabilized.
                 return false;
             } else {
                 landingDetectorStartedAt = currentTimeUs;
