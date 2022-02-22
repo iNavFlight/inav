@@ -26,8 +26,6 @@
 
 FILE_COMPILE_FOR_SIZE
 
-#ifdef USE_NAV
-
 #include "build/debug.h"
 
 #include "common/utils.h"
@@ -148,5 +146,3 @@ void applyRoverBoatNavigationController(navigationFSMStateFlags_t navStateFlags,
         applyRoverBoatPitchRollThrottleController(navStateFlags, currentTimeUs);
     }
 }
-
-#endif

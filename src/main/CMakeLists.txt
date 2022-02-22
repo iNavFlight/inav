@@ -84,10 +84,6 @@ main_sources(COMMON_SRC
     drivers/accgyro/accgyro_icm20689.h
     drivers/accgyro/accgyro_icm42605.c
     drivers/accgyro/accgyro_icm42605.h
-    drivers/accgyro/accgyro_l3gd20.c
-    drivers/accgyro/accgyro_l3gd20.h
-    drivers/accgyro/accgyro_lsm303dlhc.c
-    drivers/accgyro/accgyro_lsm303dlhc.h
     drivers/accgyro/accgyro_mpu.c
     drivers/accgyro/accgyro_mpu.h
     drivers/accgyro/accgyro_mpu6000.c
@@ -125,6 +121,8 @@ main_sources(COMMON_SRC
     drivers/barometer/barometer_spl06.h
     drivers/barometer/barometer_msp.c
     drivers/barometer/barometer_msp.h
+    drivers/barometer/barometer_2smpb_02b.c
+    drivers/barometer/barometer_2smpb_02b.h
 
     drivers/buf_writer.c
     drivers/buf_writer.h
@@ -500,6 +498,8 @@ main_sources(COMMON_SRC
     io/displayport_msp.h
     io/displayport_oled.c
     io/displayport_oled.h
+    io/displayport_hdzero_osd.c
+    io/displayport_hdzero_osd.h
     io/displayport_srxl.c
     io/displayport_srxl.h
     io/displayport_hott.c

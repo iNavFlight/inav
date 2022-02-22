@@ -137,6 +137,17 @@
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
 
+// *************** LED *****************************
+#define USE_LED_STRIP
+#define WS2811_PIN PB0
+
+// ********** Optiical Flow adn Lidar **************
+#define USE_RANGEFINDER
+#define USE_RANGEFINDER_MSP
+#define USE_OPFLOW
+#define USE_OPFLOW_MSP
+
+
 
 #define DEFAULT_FEATURES            (FEATURE_TX_PROF_SEL | FEATURE_CURRENT_METER | FEATURE_TELEMETRY | FEATURE_VBAT | FEATURE_OSD | FEATURE_BLACKBOX)
 #define USE_DSHOT
