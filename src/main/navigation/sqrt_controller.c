@@ -26,7 +26,7 @@
 #include "navigation/sqrt_controller.h"
 
 // inverse of the sqrt controller. Calculates the input (aka error) to the sqrt_controller required to achieve a given output
-static float inv_sqrt_controller(float kp, float derivative_max, float output)
+static float sqrtControllerInverse(float kp, float derivative_max, float output)
 {
     if ((derivative_max > 0.0f) && (kp == 0.0f)) {
         return (output * output) / (2.0f * derivative_max);
@@ -54,7 +54,7 @@ static float inv_sqrt_controller(float kp, float derivative_max, float output)
 }
 
 // proportional controller with piecewise sqrt sections to constrainf second derivative
-float get_sqrt_controller(sqrt_controller_t *sqrt_controller_pointer, float *target, float measurement, float deltaTime)
+float sqrtControllerApply(sqrt_controller_t *sqrt_controller_pointer, float *target, float measurement, float deltaTime)
 {
     float correction_rate;
 
@@ -102,9 +102,17 @@ float get_sqrt_controller(sqrt_controller_t *sqrt_controller_pointer, float *tar
 }
 
 // sets the maximum error to limit output and first and second derivative of output
-void sqrt_controller_set_limits(sqrt_controller_t *sqrt_controller_pointer, float output_min, float output_max, float derivative_out_max)
+void sqrtControllerInit(
+    sqrt_controller_t *sqrt_controller_pointer,
+    const float kp,
+    const float output_min,
+    const float output_max,
+    const float derivative_out_max
+)
 {
     // reset the variables
+    sqrt_controller_pointer->kp = kp;
+
     sqrt_controller_pointer->derivative_max = 0.0f;
     sqrt_controller_pointer->error_min = 0.0f;
     sqrt_controller_pointer->error_max = 0.0f;
@@ -114,10 +122,10 @@ void sqrt_controller_set_limits(sqrt_controller_t *sqrt_controller_pointer, floa
     }
 
     if ((output_min > 0.0f) && (sqrt_controller_pointer->kp > 0.0f)) {
-        sqrt_controller_pointer->error_min = inv_sqrt_controller(sqrt_controller_pointer->kp, sqrt_controller_pointer->derivative_max, output_min);
+        sqrt_controller_pointer->error_min = sqrtControllerInverse(sqrt_controller_pointer->kp, sqrt_controller_pointer->derivative_max, output_min);
     }
 
     if ((output_max > 0.0f) && (sqrt_controller_pointer->kp > 0.0f)) {
-        sqrt_controller_pointer->error_max = inv_sqrt_controller(sqrt_controller_pointer->kp, sqrt_controller_pointer->derivative_max, output_max);
+        sqrt_controller_pointer->error_max = sqrtControllerInverse(sqrt_controller_pointer->kp, sqrt_controller_pointer->derivative_max, output_max);
     }
 }

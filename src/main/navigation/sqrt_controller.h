@@ -25,5 +25,11 @@ typedef struct sqrt_controller_s {
     float derivative_max; // maximum derivative of output
 } sqrt_controller_t;
 
-float get_sqrt_controller(sqrt_controller_t *sqrt_controller_pointer, float *target, float measurement, float deltaTime);
-void sqrt_controller_set_limits(sqrt_controller_t *sqrt_controller_pointer, float output_min, float output_max, float derivative_out_max);
+float sqrtControllerApply(sqrt_controller_t *sqrt_controller_pointer, float *target, float measurement, float deltaTime);
+void sqrtControllerInit(
+    sqrt_controller_t *sqrt_controller_pointer,
+    const float kp,
+    const float output_min, 
+    const float output_max, 
+    const float derivative_out_max
+);

@@ -65,11 +65,14 @@ static sqrt_controller_t alt_hold_sqrt_controller;
 // Position to velocity controller for Z axis
 static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
 {
-    alt_hold_sqrt_controller.kp = posControl.pids.pos[Z].param.kP;
-    
     float pos_desired_z = posControl.desiredState.pos.z;
 
-    float targetVel = get_sqrt_controller(&alt_hold_sqrt_controller, &pos_desired_z, navGetCurrentActualPositionAndVelocity()->pos.z, US2S(deltaMicros));
+    float targetVel = sqrtControllerApply(
+        &alt_hold_sqrt_controller,
+        &pos_desired_z,
+        navGetCurrentActualPositionAndVelocity()->pos.z,
+        US2S(deltaMicros)
+    );
 
     posControl.desiredState.pos.z = pos_desired_z;
     
@@ -232,7 +235,13 @@ void resetMulticopterAltitudeController(void)
         nav_speed_down = navConfig()->general.max_manual_climb_rate;
     }
 
-    sqrt_controller_set_limits(&alt_hold_sqrt_controller, -fabsf(nav_speed_down), nav_speed_up, nav_accel_z);
+    sqrtControllerInit(
+        &alt_hold_sqrt_controller,
+        posControl.pids.pos[Z].param.kP,
+        -fabsf(nav_speed_down), 
+        nav_speed_up, 
+        nav_accel_z
+    );
 }
 
 static void applyMulticopterAltitudeController(timeUs_t currentTimeUs)
