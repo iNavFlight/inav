@@ -183,3 +183,5 @@ void arraySubInt32(int32_t *dest, int32_t *array1, int32_t *array2, int count);
 
 float bellCurve(const float x, const float curveWidth);
 float fast_fsqrtf(const double value);
+float calc_length_pythagorean_2D(const float firstElement, const float secondElement);
+float calc_length_pythagorean_3D(const float firstElement, const float secondElement, const float thirdElement);

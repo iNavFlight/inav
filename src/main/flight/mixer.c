@@ -292,8 +292,8 @@ static void applyTurtleModeToMotors(void) {
         float signRoll = rcCommand[ROLL] < 0 ? 1 : -1;
         float signYaw = (float)((rcCommand[YAW] < 0 ? 1 : -1) * (mixerConfig()->motorDirectionInverted ? 1 : -1));
 
-        float stickDeflectionLength = fast_fsqrtf(sq(stickDeflectionPitchAbs) + sq(stickDeflectionRollAbs));
-        float stickDeflectionExpoLength = fast_fsqrtf(sq(stickDeflectionPitchExpo) + sq(stickDeflectionRollExpo));
+        float stickDeflectionLength = calc_length_pythagorean_2D(stickDeflectionPitchAbs, stickDeflectionRollAbs);
+        float stickDeflectionExpoLength = calc_length_pythagorean_2D(stickDeflectionPitchExpo, stickDeflectionRollExpo);
 
         if (stickDeflectionYawAbs > MAX(stickDeflectionPitchAbs, stickDeflectionRollAbs)) {
             // If yaw is the dominant, disable pitch and roll

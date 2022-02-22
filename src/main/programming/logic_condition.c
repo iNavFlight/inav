@@ -550,7 +550,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_3D_HOME_DISTANCE: //in m
-            return constrain(fast_fsqrtf(sq(GPS_distanceToHome) + sq(getEstimatedActualPosition(Z)/100)), 0, INT16_MAX);
+            return constrain(calc_length_pythagorean_2D(GPS_distanceToHome, getEstimatedActualPosition(Z) / 100.0f), 0, INT16_MAX);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_LQ:
