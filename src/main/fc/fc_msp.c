@@ -1062,21 +1062,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteData(dst, rxConfig()->rcmap, MAX_MAPPABLE_RX_INPUTS);
         break;
 
-    case MSP_BF_CONFIG:
-        sbufWriteU8(dst, 3); // mixerMode no longer supported, send 3 (QuadX) as fallback
-
-        sbufWriteU32(dst, featureMask());
-
-        sbufWriteU8(dst, rxConfig()->serialrx_provider);
-
-        sbufWriteU16(dst, boardAlignment()->rollDeciDegrees);
-        sbufWriteU16(dst, boardAlignment()->pitchDeciDegrees);
-        sbufWriteU16(dst, boardAlignment()->yawDeciDegrees);
-
-        sbufWriteU16(dst, batteryMetersConfig()->current.scale);
-        sbufWriteU16(dst, batteryMetersConfig()->current.offset);
-        break;
-
     case MSP_CF_SERIAL_CONFIG:
         for (int i = 0; i < SERIAL_PORT_COUNT; i++) {
             if (!serialIsPortAvailable(serialConfig()->portConfigs[i].identifier)) {
@@ -2687,26 +2672,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             for (int i = 0; i < MAX_MAPPABLE_RX_INPUTS; i++) {
                 rxConfigMutable()->rcmap[i] = sbufReadU8(src);
             }
-        } else
-            return MSP_RESULT_ERROR;
-        break;
-
-    case MSP_SET_BF_CONFIG:
-        if (dataSize >= 16) {
-            sbufReadU8(src); // mixerMode no longer supported, just swallow
-            mixerUpdateStateFlags();    // Required for correct preset functionality
-
-            featureClearAll();
-            featureSet(sbufReadU32(src)); // features bitmap
-
-            rxConfigMutable()->serialrx_provider = sbufReadU8(src); // serialrx_type
-
-            boardAlignmentMutable()->rollDeciDegrees = sbufReadU16(src); // board_align_roll
-            boardAlignmentMutable()->pitchDeciDegrees = sbufReadU16(src); // board_align_pitch
-            boardAlignmentMutable()->yawDeciDegrees = sbufReadU16(src); // board_align_yaw
-
-            batteryMetersConfigMutable()->current.scale = sbufReadU16(src);
-            batteryMetersConfigMutable()->current.offset = sbufReadU16(src);
         } else
             return MSP_RESULT_ERROR;
         break;
