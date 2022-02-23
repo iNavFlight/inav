@@ -229,55 +229,6 @@ TEST_F(SerialMspUnitTest, TestMspProcessReceivedCommand)
     checksum = FLIGHT_CONTROLLER_VERSION_LENGTH ^ MSP_FC_VERSION;
     checksum ^= FC_VERSION_MAJOR ^ FC_VERSION_MINOR ^ FC_VERSION_PATCH_LEVEL;
     EXPECT_EQ(checksum, serialBuffer.mspResponse.payload[3]);
-
-    // check the MSP_PID_CONTROLLER is written out correctly
-    serialWritePos = 0;
-    serialReadPos = 0;
-    currentProfile = &profile;
-    currentProfile->pidProfile.pidController = PID_CONTROLLER_MWREWRITE;
-    currentPort->cmdMSP = MSP_PID_CONTROLLER;
-    mspProcessReceivedCommand();
-    EXPECT_EQ('$', serialBuffer.mspResponse.header.dollar);
-    EXPECT_EQ('M', serialBuffer.mspResponse.header.m);
-    EXPECT_EQ('>', serialBuffer.mspResponse.header.direction);
-    EXPECT_EQ(1, serialBuffer.mspResponse.header.size);
-    EXPECT_EQ(MSP_PID_CONTROLLER, serialBuffer.mspResponse.header.type);
-    EXPECT_EQ(PID_CONTROLLER_MWREWRITE, serialBuffer.mspResponse.payload[0]);
-    checksum = 1 ^ MSP_PID_CONTROLLER ^ PID_CONTROLLER_MWREWRITE;
-    EXPECT_EQ(checksum, serialBuffer.mspResponse.payload[1]);
-}
-
-TEST_F(SerialMspUnitTest, Test_PID_CONTROLLER)
-{
-    // Use the MSP to write out the PID values
-    currentProfile = &profile;
-    currentProfile->pidProfile.pidController = PID_CONTROLLER_MWREWRITE;
-    serialWritePos = 0;
-    serialReadPos = 0;
-    currentPort->cmdMSP = MSP_PID_CONTROLLER;
-    mspProcessReceivedCommand();
-    EXPECT_EQ(PID_CONTROLLER_MWREWRITE, serialBuffer.mspResponse.payload[0]);
-
-    // set the pidController to a different value so we can check if it gets read back properly
-    currentProfile->pidProfile.pidController = PID_CONTROLLER_LUX_FLOAT;
-
-    // Now use the MSP to read back the picController and check if it is the same
-    // spoof a change from the written MSP_PID_CONTROLLER to the readable MSP_SET_PID_CONTROLLER
-    currentPort->cmdMSP = MSP_SET_PID_CONTROLLER;
-    serialBuffer.mspResponse.header.direction = '<';
-    serialBuffer.mspResponse.header.type = currentPort->cmdMSP;
-    // force the checksum
-    serialBuffer.mspResponse.payload[1] ^= MSP_PID_CONTROLLER;
-    serialBuffer.mspResponse.payload[1] ^= MSP_SET_PID_CONTROLLER;
-    // copy the command data into the current port inBuf so it can be processed
-    memcpy(currentPort->inBuf, serialBuffer.buf, MSP_PORT_INBUF_SIZE);
-
-    // set the offset into the payload
-    currentPort->indRX = offsetof(struct mspResonse_s, payload);
-    mspProcessReceivedCommand();
-
-    // check the pidController value has been read correctly
-    EXPECT_EQ(PID_CONTROLLER_MWREWRITE, currentProfile->pidProfile.pidController);
 }
 
 TEST_F(SerialMspUnitTest, Test_PIDValuesInt)

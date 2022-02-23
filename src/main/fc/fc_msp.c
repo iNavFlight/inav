@@ -398,14 +398,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteData(dst, shortGitRevision, GIT_SHORT_REVISION_LENGTH);
         break;
 
-    // DEPRECATED - Use MSP_API_VERSION
-    case MSP_IDENT:
-        sbufWriteU8(dst, MW_VERSION);
-        sbufWriteU8(dst, 3); //We no longer have mixerMode, just sent 3 (QuadX) as fallback
-        sbufWriteU8(dst, MSP_PROTOCOL_VERSION);
-        sbufWriteU32(dst, CAP_PLATFORM_32BIT | CAP_DYNBALANCE | CAP_FLAPS | CAP_NAVCAP | CAP_EXTAUX); // "capability"
-        break;
-
 #ifdef HIL
     case MSP_HIL_STATE:
         sbufWriteU16(dst, hilToSIM.pidCommand[ROLL]);
@@ -729,10 +721,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         for (const char *c = pidnames; *c; c++) {
             sbufWriteU8(dst, *c);
         }
-        break;
-
-    case MSP_PID_CONTROLLER:
-        sbufWriteU8(dst, 2);      // FIXME: Report as LuxFloat
         break;
 
     case MSP_MODE_RANGES:
@@ -1670,10 +1658,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             gyroConfigMutable()->looptime = tmp_u16;
         else
             return MSP_RESULT_ERROR;
-        break;
-
-    case MSP_SET_PID_CONTROLLER:
-        // FIXME: Do nothing
         break;
 
     case MSP_SET_PID:

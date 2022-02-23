@@ -26,7 +26,6 @@
  * if the API doesn't match EXACTLY.
  *
  * Consumers of the API (API clients) SHOULD first attempt to get a response from the MSP_API_VERSION command.
- * If no response is obtained then client MAY try the legacy MSP_IDENT command.
  *
  * API consumers should ALWAYS handle communication failures gracefully and attempt to continue
  * without the information if possible.  Clients MAY log/display a suitable message.
@@ -164,9 +163,6 @@
 
 #define MSP_SONAR_ALTITUDE              58 //out message get surface altitude [cm]
 
-#define MSP_PID_CONTROLLER              59
-#define MSP_SET_PID_CONTROLLER          60
-
 #define MSP_ARMING_CONFIG               61 //out message         Returns auto_disarm_delay and disarm_kill_switch parameters
 #define MSP_SET_ARMING_CONFIG           62 //in message          Sets auto_disarm_delay and disarm_kill_switch parameters
 
@@ -187,10 +183,6 @@
 
 #define MSP_FAILSAFE_CONFIG             75 //out message         Returns FC Fail-Safe settings
 #define MSP_SET_FAILSAFE_CONFIG         76 //in message          Sets FC Fail-Safe settings
-
-// DEPRECATED
-//#define MSP_RXFAIL_CONFIG               77 //out message         Returns RXFAIL settings
-//#define MSP_SET_RXFAIL_CONFIG           78 //in message          Sets RXFAIL settings
 
 #define MSP_SDCARD_SUMMARY              79 //out message         Get the state of the SD card
 
@@ -239,10 +231,6 @@
 //
 // Multwii original MSP commands
 //
-
-// DEPRECATED - See MSP_API_VERSION and MSP_MIXER
-#define MSP_IDENT                100    //out message         mixerMode + multiwii version + protocol version + capability variable
-
 
 #define MSP_STATUS               101    //out message         cycletime & errors_count & sensor present & box activation & current setting number
 #define MSP_RAW_IMU              102    //out message         9 DOF
