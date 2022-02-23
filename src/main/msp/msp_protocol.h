@@ -183,10 +183,6 @@
 
 #define MSP_REBOOT                      68 //in message reboot settings
 
-// DEPRECATED - Use MSP_BUILD_INFO instead
-#define MSP_BF_BUILD_INFO               69 //out message build date as well as some space for future expansion
-
-
 #define MSP_DATAFLASH_SUMMARY           70 //out message - get description of dataflash chip
 #define MSP_DATAFLASH_READ              71 //out message - get content of dataflash chip
 #define MSP_DATAFLASH_ERASE             72 //in message - erase dataflash chip

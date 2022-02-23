@@ -1188,12 +1188,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
         break;
 
-    case MSP_BF_BUILD_INFO:
-        sbufWriteData(dst, buildDate, 11); // MMM DD YYYY as ascii, MMM = Jan/Feb... etc
-        sbufWriteU32(dst, 0); // future exp
-        sbufWriteU32(dst, 0); // future exp
-        break;
-
     case MSP_3D:
         sbufWriteU16(dst, reversibleMotorsConfig()->deadband_low);
         sbufWriteU16(dst, reversibleMotorsConfig()->deadband_high);
