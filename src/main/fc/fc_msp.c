@@ -700,14 +700,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
-    case MSP_PID:
-        for (int i = 0; i < PID_ITEM_COUNT; i++) {
-            sbufWriteU8(dst, constrain(pidBank()->pid[i].P, 0, 255));
-            sbufWriteU8(dst, constrain(pidBank()->pid[i].I, 0, 255));
-            sbufWriteU8(dst, constrain(pidBank()->pid[i].D, 0, 255));
-        }
-        break;
-
     case MSP2_PID:
         for (int i = 0; i < PID_ITEM_COUNT; i++) {
             sbufWriteU8(dst, constrain(pidBank()->pid[i].P, 0, 255));
@@ -1657,19 +1649,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         if (sbufReadU16Safe(&tmp_u16, src))
             gyroConfigMutable()->looptime = tmp_u16;
         else
-            return MSP_RESULT_ERROR;
-        break;
-
-    case MSP_SET_PID:
-        if (dataSize >= PID_ITEM_COUNT * 3) {
-            for (int i = 0; i < PID_ITEM_COUNT; i++) {
-                pidBankMutable()->pid[i].P = sbufReadU8(src);
-                pidBankMutable()->pid[i].I = sbufReadU8(src);
-                pidBankMutable()->pid[i].D = sbufReadU8(src);
-            }
-            schedulePidGainsUpdate();
-            navigationUsePIDs();
-        } else
             return MSP_RESULT_ERROR;
         break;
 
