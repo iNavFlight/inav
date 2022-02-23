@@ -73,7 +73,7 @@
 #include "telemetry/telemetry.h"
 
 
-PG_REGISTER_WITH_RESET_FN(ledStripConfig_t, ledStripConfig, PG_LED_STRIP_CONFIG, 0);
+PG_REGISTER_WITH_RESET_FN(ledStripConfig_t, ledStripConfig, PG_LED_STRIP_CONFIG, 1);
 
 static bool ledStripInitialised = false;
 static bool ledStripEnabled = true;
