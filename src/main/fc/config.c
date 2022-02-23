@@ -459,6 +459,22 @@ void setConfigBatteryProfileAndWriteEEPROM(uint8_t profileIndex)
     beeperConfirmationBeeps(profileIndex + 1);
 }
 
+void setGyroCalibrationAndWriteEEPROM(int16_t getGyroZero[XYZ_AXIS_COUNT]) {
+    gyroConfigMutable()->gyro_zero_cal[X] = getGyroZero[X];
+    gyroConfigMutable()->gyro_zero_cal[Y] = getGyroZero[Y];
+    gyroConfigMutable()->gyro_zero_cal[Z] = getGyroZero[Z];
+    // save the calibration
+    writeEEPROM();
+    readEEPROM();
+}
+
+void setGravityCalibrationAndWriteEEPROM(float getGravity) {
+    gyroConfigMutable()->gravity_cmss_cal = getGravity;
+    // save the calibration
+    writeEEPROM();
+    readEEPROM();
+}
+
 void beeperOffSet(uint32_t mask)
 {
     beeperConfigMutable()->beeper_off_flags |= mask;

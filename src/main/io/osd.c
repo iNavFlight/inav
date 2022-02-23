@@ -196,8 +196,8 @@ static bool osdDisplayHasCanvas;
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
-PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 5);
-PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 6);
+PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 1);
 
 static int digitCount(int32_t value)
 {
@@ -965,7 +965,7 @@ static void osdFormatMessage(char *buff, size_t size, const char *message, bool 
         strncpy(buff + rem / 2, message, MIN((int)size - rem / 2, (int)messageLength));
     }
     // Ensure buff is zero terminated
-    buff[size - 1] = '\0';
+    buff[size] = '\0';
 }
 
 /**
@@ -2049,7 +2049,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_CRSF_RSSI_DBM:
         {
             int16_t rssi = rxLinkStatistics.uplinkRSSI;
-            buff[0] = (rxLinkStatistics.activeAnt == 0) ? SYM_RSSI : SYM_2RSS; // Separate symbols for each antenna
+            buff[0] = (rxLinkStatistics.activeAntenna == 0) ? SYM_RSSI : SYM_2RSS; // Separate symbols for each antenna
             if (rssi <= -100) {
                 tfp_sprintf(buff + 1, "%4d%c", rssi, SYM_DBM);
             } else {
@@ -3188,11 +3188,11 @@ void osdDrawNextElement(void)
     } while(!osdDrawSingleElement(elementIndex) && index != elementIndex);
 
     // Draw artificial horizon + tracking telemtry last
-    osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
-    if (osdConfig()->telemetry>0){
-      osdDisplayTelemetry();
+		osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
+		if (osdConfig()->telemetry>0){
+		  osdDisplayTelemetry();
+		}
     }
-}
 
 PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .rssi_alarm = SETTING_OSD_RSSI_ALARM_DEFAULT,
@@ -3267,7 +3267,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .osd_switch_indicator3_name = SETTING_OSD_SWITCH_INDICATOR_THREE_NAME_DEFAULT,
     .osd_switch_indicator3_channnel = SETTING_OSD_SWITCH_INDICATOR_THREE_CHANNNEL_DEFAULT,
     .osd_switch_indicators_align_left = SETTING_OSD_SWITCH_INDICATORS_ALIGN_LEFT_DEFAULT,
-
+    .system_msg_display_time = SETTING_OSD_SYSTEM_MSG_DISPLAY_TIME_DEFAULT,
     .units = SETTING_OSD_UNITS_DEFAULT,
     .main_voltage_decimals = SETTING_OSD_MAIN_VOLTAGE_DECIMALS_DEFAULT,
 
@@ -3605,7 +3605,7 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
     if (!osdDisplayPortToUse)
         return;
 
-    BUILD_BUG_ON(OSD_POS_MAX != OSD_POS(31,31));
+    BUILD_BUG_ON(OSD_POS_MAX != OSD_POS(63,63));
 
     osdDisplayPort = osdDisplayPortToUse;
 
@@ -4166,7 +4166,7 @@ void osdUpdate(timeUs_t currentTimeUs)
         osdUpdateStats();
     }
 
-    if ((counter & DRAW_FREQ_DENOM) == 0) {
+    if ((counter % DRAW_FREQ_DENOM) == 0) {
         // redraw values in buffer
         osdRefresh(currentTimeUs);
     } else {
@@ -4229,6 +4229,18 @@ displayCanvas_t *osdGetDisplayPortCanvas(void)
     return NULL;
 }
 
+timeMs_t systemMessageCycleTime(unsigned messageCount, const char **messages){
+    uint8_t i = 0;
+    float factor = 1.0f;
+    while (i < messageCount) {
+        if ((float)strlen(messages[i]) / 15.0f > factor) {
+            factor = (float)strlen(messages[i]) / 15.0f;
+        }
+        i++;
+    }
+    return osdConfig()->system_msg_display_time * factor;
+}
+
 textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenteredText)
 {
     textAttributes_t elemAttr = TEXT_ATTRIBUTES_NONE;
@@ -4257,13 +4269,17 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     tfp_sprintf(messageBuf, "TO WP %u/%u (%s)", getGeoWaypointNumber(posControl.activeWaypointIndex), posControl.geoWaypointCount, buf);
                     messages[messageCount++] = messageBuf;
                 } else if (NAV_Status.state == MW_NAV_STATE_HOLD_TIMED) {
-                    // WP hold time countdown in seconds
-                    timeMs_t currentTime = millis();
-                    int holdTimeRemaining = posControl.waypointList[posControl.activeWaypointIndex].p1 - (int)((currentTime - posControl.wpReachedTime)/1000);
-                    if (holdTimeRemaining >=0) {
+                    if (navConfig()->general.flags.waypoint_enforce_altitude && !posControl.wpAltitudeReached) {
+                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ADJUSTING_WP_ALT);
+                    } else {
+                        // WP hold time countdown in seconds
+                        timeMs_t currentTime = millis();
+                        int holdTimeRemaining = posControl.waypointList[posControl.activeWaypointIndex].p1 - (int)(MS2S(currentTime - posControl.wpReachedTime));
+                        holdTimeRemaining = holdTimeRemaining >= 0 ? holdTimeRemaining : 0;
                         tfp_sprintf(messageBuf, "HOLDING WP FOR %2u S", holdTimeRemaining);
+
+                        messages[messageCount++] = messageBuf;
                     }
-                    messages[messageCount++] = messageBuf;
                 } else {
                     const char *navStateMessage = navigationStateMessage();
                     if (navStateMessage) {
@@ -4356,7 +4372,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
         }
 
         if (messageCount > 0) {
-            message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
+            message = messages[OSD_ALTERNATING_CHOICES(systemMessageCycleTime(messageCount, messages), messageCount)];
             if (message == failsafeInfoMessage) {
                 // failsafeInfoMessage is not useful for recovering
                 // a lost model, but might help avoiding a crash.
