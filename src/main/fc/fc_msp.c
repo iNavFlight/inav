@@ -1042,20 +1042,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteData(dst, rxConfig()->rcmap, MAX_MAPPABLE_RX_INPUTS);
         break;
 
-    case MSP_CF_SERIAL_CONFIG:
-        for (int i = 0; i < SERIAL_PORT_COUNT; i++) {
-            if (!serialIsPortAvailable(serialConfig()->portConfigs[i].identifier)) {
-                continue;
-            };
-            sbufWriteU8(dst, serialConfig()->portConfigs[i].identifier);
-            sbufWriteU16(dst, serialConfig()->portConfigs[i].functionMask);
-            sbufWriteU8(dst, serialConfig()->portConfigs[i].msp_baudrateIndex);
-            sbufWriteU8(dst, serialConfig()->portConfigs[i].gps_baudrateIndex);
-            sbufWriteU8(dst, serialConfig()->portConfigs[i].telemetry_baudrateIndex);
-            sbufWriteU8(dst, serialConfig()->portConfigs[i].peripheral_baudrateIndex);
-        }
-        break;
-
     case MSP2_COMMON_SERIAL_CONFIG:
         for (int i = 0; i < SERIAL_PORT_COUNT; i++) {
             if (!serialIsPortAvailable(serialConfig()->portConfigs[i].identifier)) {
@@ -2637,34 +2623,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             }
         } else
             return MSP_RESULT_ERROR;
-        break;
-
-    case MSP_SET_CF_SERIAL_CONFIG:
-        {
-            uint8_t portConfigSize = sizeof(uint8_t) + sizeof(uint16_t) + (sizeof(uint8_t) * 4);
-
-            if (dataSize % portConfigSize != 0) {
-                return MSP_RESULT_ERROR;
-            }
-
-            uint8_t remainingPortsInPacket = dataSize / portConfigSize;
-
-            while (remainingPortsInPacket--) {
-                uint8_t identifier = sbufReadU8(src);
-
-                serialPortConfig_t *portConfig = serialFindPortConfiguration(identifier);
-                if (!portConfig) {
-                    return MSP_RESULT_ERROR;
-                }
-
-                portConfig->identifier = identifier;
-                portConfig->functionMask = sbufReadU16(src);
-                portConfig->msp_baudrateIndex = constrain(sbufReadU8(src), BAUD_MIN, BAUD_MAX);
-                portConfig->gps_baudrateIndex = constrain(sbufReadU8(src), BAUD_MIN, BAUD_MAX);
-                portConfig->telemetry_baudrateIndex = constrain(sbufReadU8(src), BAUD_MIN, BAUD_MAX);
-                portConfig->peripheral_baudrateIndex = constrain(sbufReadU8(src), BAUD_MIN, BAUD_MAX);
-            }
-        }
         break;
 
     case MSP2_COMMON_SET_SERIAL_CONFIG:

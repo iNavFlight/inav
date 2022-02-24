@@ -155,8 +155,8 @@
 #define MSP_SET_ADJUSTMENT_RANGE        53
 
 // private - only to be used by the configurator, the commands are likely to change
-#define MSP_CF_SERIAL_CONFIG            54
-#define MSP_SET_CF_SERIAL_CONFIG        55
+#define MSP_CF_SERIAL_CONFIG            54   //Deprecated and not used
+#define MSP_SET_CF_SERIAL_CONFIG        55   //Deprecated and not used
 
 #define MSP_VOLTAGE_METER_CONFIG        56
 #define MSP_SET_VOLTAGE_METER_CONFIG    57
