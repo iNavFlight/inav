@@ -24,7 +24,7 @@
 #define LED_CONFIGURABLE_COLOR_COUNT   16
 #define LED_MODE_COUNT                  6
 #define LED_DIRECTION_COUNT             6
-#define LED_BASEFUNCTION_COUNT          7
+#define LED_BASEFUNCTION_COUNT          8
 #define LED_OVERLAY_COUNT               6
 #define LED_SPECIAL_COLOR_COUNT        11
 
@@ -124,6 +124,7 @@ typedef enum {
     LED_FUNCTION_RSSI,
     LED_FUNCTION_GPS,
     LED_FUNCTION_THRUST_RING,
+    LED_FUNCTION_CHANNEL,
 } ledBaseFunctionId_e;
 
 typedef enum {
