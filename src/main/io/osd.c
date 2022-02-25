@@ -1539,9 +1539,9 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_MAH_DRAWN:
-        tfp_sprintf(buff, "%4d", (int)getMAhDrawn());
-        buff[4] = SYM_MAH;
-        buff[5] = '\0';
+        osdFormatCentiNumber(buff, getMAhDrawn(), 0, (osdConfig()->mAh_used_precision - 3), 0, osdConfig()->mAh_used_precision);
+        buff[(osdConfig()->mAh_used_precision + 1)] = SYM_MAH;
+        buff[(osdConfig()->mAh_used_precision + 2)] = '\0';
         osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
         break;
 
@@ -3208,6 +3208,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .pan_servo_index = SETTING_OSD_PAN_SERVO_INDEX_DEFAULT,
     .pan_servo_pwm2centideg = SETTING_OSD_PAN_SERVO_PWM2CENTIDEG_DEFAULT,
     .esc_rpm_precision = SETTING_OSD_ESC_RPM_PRECISION_DEFAULT,
+    .mAh_used_precision = SETTING_OSD_MAH_USED_PRECISION_DEFAULT,
     .system_msg_display_time = SETTING_OSD_SYSTEM_MSG_DISPLAY_TIME_DEFAULT,
     .units = SETTING_OSD_UNITS_DEFAULT,
     .main_voltage_decimals = SETTING_OSD_MAIN_VOLTAGE_DECIMALS_DEFAULT,

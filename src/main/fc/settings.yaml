@@ -3504,6 +3504,13 @@ groups:
         max: 6
         default_value: 3
 
+      - name: osd_mah_used_precision
+        descripption: Number of digits used to display mAh used.
+        field: mAh_used_precision
+        min: 4
+        max: 5
+        default_value: 4
+
       - name: osd_system_msg_display_time
         description: System message display cycle time for multiple messages (milliseconds).
         field: system_msg_display_time

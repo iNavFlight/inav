@@ -4432,6 +4432,16 @@ LQ % indicator blinks below this value. For Crossfire use 70%, for Tracer use 50
 
 ---
 
+### osd_mah_used_precision
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 4 | 4 | 5 |
+
+---
+
 ### osd_main_voltage_decimals
 
 Number of decimals for the battery voltages displayed in the OSD [1-2].

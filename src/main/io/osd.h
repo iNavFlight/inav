@@ -405,7 +405,7 @@ typedef struct osdConfig_s {
     uint8_t sidebar_height;             // sidebar height in rows, 0 turns off sidebars leaving only level indicator arrows
     uint8_t telemetry; 				    // use telemetry on displayed pixel line 0
     uint8_t esc_rpm_precision;          // Number of characters used for the RPM numbers.
-
+    uint8_t mAh_used_precision;         // Number of numbers used for mAh drawn. Plently of packs now are > 9999 mAh
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);
