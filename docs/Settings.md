@@ -2148,7 +2148,7 @@ Calculated 1G of Acc axis Z to use in INS
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0.0 | 0 | 1000 |
+| 0.0 | 0 | 2000 |
 
 ---
 

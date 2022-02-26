@@ -337,7 +337,7 @@ groups:
         default_value: 0.0
         field: gravity_cmss_cal
         min: 0
-        max: 1000
+        max: 2000
 
   - name: PG_ADC_CHANNEL_CONFIG
     type: adcChannelConfig_t
