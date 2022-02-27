@@ -29,8 +29,11 @@
 #endif
 #define OSD_LAYOUT_COUNT (OSD_ALTERNATE_LAYOUT_COUNT + 1)
 
-#define OSD_VISIBLE_FLAG    0x0800
-#define OSD_INFOCYCLE_FLAG  0x0400
+// 0ivb yyyy yyxx xxxx
+// (infocycle)(visible)(blink)(yCoord)(xCoord)
+
+#define OSD_VISIBLE_FLAG    0x2000
+#define OSD_INFOCYCLE_FLAG  0x4000
 #define OSD_VISIBLE(x)      ((x) & OSD_VISIBLE_FLAG)
 #define OSD_INFOCYCLE(x)    ((x) & OSD_INFOCYCLE_FLAG)
 #define OSD_POS(x,y)        ((x) | ((y) << 5))
