@@ -41,6 +41,8 @@
 #include "drivers/compass/compass_mpu9250.h"
 #include "drivers/compass/compass_lis3mdl.h"
 #include "drivers/compass/compass_rm3100.h"
+#include "drivers/compass/compass_vcm5883.h"
+#include "drivers/compass/compass_mlx90393.h"
 #include "drivers/compass/compass_msp.h"
 #include "drivers/io.h"
 #include "drivers/light_led.h"
@@ -62,7 +64,7 @@ mag_t mag;                   // mag access functions
 
 #ifdef USE_MAG
 
-PG_REGISTER_WITH_RESET_TEMPLATE(compassConfig_t, compassConfig, PG_COMPASS_CONFIG, 4);
+PG_REGISTER_WITH_RESET_TEMPLATE(compassConfig_t, compassConfig, PG_COMPASS_CONFIG, 5);
 
 PG_RESET_TEMPLATE(compassConfig_t, compassConfig,
     .mag_align = SETTING_ALIGN_MAG_DEFAULT,
@@ -246,6 +248,32 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         }
         FALLTHROUGH;
 
+    case MAG_VCM5883:
+#ifdef USE_MAG_VCM5883
+        if (vcm5883Detect(dev)) {
+            magHardware = MAG_VCM5883;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (magHardwareToUse != MAG_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
+    case MAG_MLX90393:
+#ifdef USE_MAG_MLX90393
+        if (mlx90393Detect(dev)) {
+            magHardware = MAG_MLX90393;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (magHardwareToUse != MAG_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
     case MAG_FAKE:
 #ifdef USE_FAKE_MAG
         if (fakeMagDetect(dev)) {
@@ -327,6 +355,16 @@ bool compassIsHealthy(void)
 bool compassIsReady(void)
 {
     return magUpdatedAtLeastOnce;
+}
+
+bool compassIsCalibrationComplete(void)
+{
+    if (STATE(COMPASS_CALIBRATED)) {
+        return true;
+    }
+    else {
+        return false;
+    }
 }
 
 void compassUpdate(timeUs_t currentTimeUs)

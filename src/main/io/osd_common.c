@@ -195,6 +195,6 @@ int16_t osdGet3DSpeed(void)
 {
     int16_t vert_speed = getEstimatedActualVelocity(Z);
     int16_t hor_speed = gpsSol.groundSpeed;
-    return (int16_t)sqrtf(sq(hor_speed) + sq(vert_speed));
+    return (int16_t)calc_length_pythagorean_2D(hor_speed, vert_speed);
 }
 #endif

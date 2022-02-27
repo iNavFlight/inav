@@ -20,7 +20,7 @@
 #include "drivers/system.h"
 #include "config/config_streamer.h"
 
-#if defined(STM32F3)
+#if defined(STM32F3) && !defined(CONFIG_IN_RAM) && !defined(CONFIG_IN_EXTERNAL_FLASH)
 
 #define FLASH_PAGE_SIZE     0x800
 

@@ -74,14 +74,17 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 38            | RC_CHANNEL_OVERRIDE | Overrides channel set by `Operand A` to value of `Operand B` |
 | 39            | SET_HEADING_TARGET  | Sets heading-hold target to `Operand A`, in degrees. Value wraps-around. |
 | 40            | MOD           | Divide `Operand A` by `Operand B` and returns the remainder |
-
+| 41			| LOITER_RADIUS_OVERRIDE | Sets the loiter radius to `Operand A` [`0` : `100000`] in cm. If the value is lower than the loiter radius set in the **Advanced Tuning**, that will be used. |
+| 42            | SET_PROFILE   | Sets the active config profile (PIDFF/Rates/Filters/etc) to `Operand A`. `Operand A` must be a valid profile number, currently from 1 to 3. If not, the profile will not change |
+| 43			| MIN				| Finds the lowest value of `Operand A` and `Operand B` |
+| 44			| MAX				| Finds the highest value of `Operand A` and `Operand B` |
 
 ### Operands
 
 | Operand Type  | Name      | Notes                                 |
 |----           |----       |----                                   |
 | 0             | VALUE     | Value derived from `value` field      |
-| 1             | RC_CHANNEL    | `value` points to RC channel number, indexed from 1   |
+| 1             | GET_RC_CHANNEL    | `value` points to RC channel number, indexed from 1   |
 | 2             | FLIGHT        | `value` points to flight parameter table              |
 | 3             | FLIGHT_MODE   | `value` points to flight modes table                  |
 | 4             | LC            | `value` points to other logic condition ID            |
@@ -125,8 +128,10 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 30            | ACTIVE_WAYPOINT_ACTION | See ACTIVE_WAYPOINT_ACTION paragraph |
 | 31            | 3D HOME_DISTANCE      | in `meters`, calculated from HOME_DISTANCE and ALTITUDE using Pythagorean theorem |
 | 32            | CROSSFIRE LQ          | Crossfire Link quality as returned by the CRSF protocol   | 
-| 33            | CROSSFIRE SNR          | Crossfire SNR as returned by the CRSF protocol   |
-| 34            | GPS_VALID              | boolean `0`/`1`. True when the GPS has a valid 3D Fix                |
+| 33            | CROSSFIRE SNR         | Crossfire SNR as returned by the CRSF protocol   |
+| 34            | GPS_VALID             | boolean `0`/`1`. True when the GPS has a valid 3D Fix |
+| 35			| LOITER_RADIUS			| The current loiter radius in cm. |
+| 36            | ACTIVE_PROFILE          | integer for the active config profile `[1..MAX_PROFILE_COUNT]`  |
 
 #### ACTIVE_WAYPOINT_ACTION
 

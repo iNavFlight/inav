@@ -89,6 +89,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
+#define MAVLINK_COMM_NUM_BUFFERS 1
 #include "common/mavlink.h"
 #pragma GCC diagnostic pop
 
@@ -326,7 +327,14 @@ void checkMAVLinkTelemetryState(void)
 static void mavlinkSendMessage(void)
 {
     uint8_t mavBuffer[MAVLINK_MAX_PACKET_LEN];
-    if (telemetryConfig()->mavlink.version == 1) mavSendMsg.magic = MAVLINK_STX_MAVLINK1;
+
+    mavlink_status_t* chan_state = mavlink_get_channel_status(MAVLINK_COMM_0);
+    if (telemetryConfig()->mavlink.version == 1) {
+        chan_state->flags |= MAVLINK_STATUS_FLAG_OUT_MAVLINK1;
+    } else {
+        chan_state->flags &= ~MAVLINK_STATUS_FLAG_OUT_MAVLINK1;
+    }
+
     int msgLength = mavlink_msg_to_send_buffer(mavBuffer, &mavSendMsg);
 
     for (int i = 0; i < msgLength; i++) {
@@ -502,8 +510,9 @@ void mavlinkSendRCChannelsAndRSSI(void)
         GET_CHANNEL_VALUE(6),
         // chan8_raw RC channel 8 value, in microseconds
         GET_CHANNEL_VALUE(7),
-        // rssi Receive signal strength indicator, 0: 0%, 255: 100%
-        scaleRange(getRSSI(), 0, 1023, 0, 255));
+        // rssi Receive signal strength indicator, 0: 0%, 254: 100%
+		//https://github.com/mavlink/mavlink/issues/1027
+        scaleRange(getRSSI(), 0, 1023, 0, 254));
 #undef GET_CHANNEL_VALUE
 
     mavlinkSendMessage();
@@ -571,11 +580,7 @@ void mavlinkSendPosition(timeUs_t currentTimeUs)
         // alt Altitude in 1E3 meters (millimeters) above MSL
         gpsSol.llh.alt * 10,
         // relative_alt Altitude above ground in meters, expressed as * 1000 (millimeters)
-#if defined(USE_NAV)
         getEstimatedActualPosition(Z) * 10,
-#else
-        gpsSol.llh.alt * 10,
-#endif
         // [cm/s] Ground X Speed (Latitude, positive north)
         getEstimatedActualVelocity(X),
         // [cm/s] Ground Y Speed (Longitude, positive east)
@@ -645,17 +650,9 @@ void mavlinkSendHUDAndHeartbeat(void)
 #endif
 
     // select best source for altitude
-#if defined(USE_NAV)
     mavAltitude = getEstimatedActualPosition(Z) / 100.0f;
     mavClimbRate = getEstimatedActualVelocity(Z) / 100.0f;
-#elif defined(USE_GPS)
-    if (sensors(SENSOR_GPS)) {
-        // No surface or baro, just display altitude above MLS
-        mavAltitude = gpsSol.llh.alt;
-    }
-#endif
 
-    
     int16_t thr = rxGetChannelValue(THROTTLE);
     if (navigationIsControllingThrottle()) {
         thr = rcCommand[THROTTLE];
@@ -733,7 +730,7 @@ void mavlinkSendHUDAndHeartbeat(void)
             mavSystemState = MAV_STATE_ACTIVE;
         }
     }
-    else if (isCalibrating()) {
+    else if (areSensorsCalibrating()) {
         mavSystemState = MAV_STATE_CALIBRATING;
     }
     else {
@@ -768,7 +765,7 @@ void mavlinkSendBatteryTemperatureStatusText(void)
                 if (cell < MAVLINK_MSG_BATTERY_STATUS_FIELD_VOLTAGES_LEN) {
                     batteryVoltages[cell] = getBatteryAverageCellVoltage() * 10;
                 } else {
-                    batteryVoltagesExt[cell] = getBatteryAverageCellVoltage() * 10;
+                    batteryVoltagesExt[cell-MAVLINK_MSG_BATTERY_STATUS_FIELD_VOLTAGES_LEN] = getBatteryAverageCellVoltage() * 10;
                 }
             }
         }

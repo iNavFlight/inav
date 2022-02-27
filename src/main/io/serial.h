@@ -55,7 +55,8 @@ typedef enum {
     FUNCTION_DJI_HD_OSD                 = (1 << 21), // 2097152
     FUNCTION_SERVO_SERIAL               = (1 << 22), // 4194304
     FUNCTION_TELEMETRY_SMARTPORT_MASTER = (1 << 23), // 8388608
-    FUNCTION_IMU2                     = (1 << 24), // 16777216
+    FUNCTION_IMU2                       = (1 << 24), // 16777216
+	FUNCTION_HDZERO_OSD                 = (1 << 25), // 33554432
 } serialPortFunction_e;
 
 typedef enum {
@@ -138,7 +139,7 @@ typedef void serialConsumer(uint8_t);
 //
 // configuration
 //
-void serialInit(bool softserialEnabled, serialPortIdentifier_e serialPortToDisable);
+void serialInit(bool softserialEnabled);
 void serialRemovePort(serialPortIdentifier_e identifier);
 uint8_t serialGetAvailablePortCount(void);
 bool serialIsPortAvailable(serialPortIdentifier_e identifier);

@@ -183,26 +183,21 @@ static bool NAZA_parse_gps(void)
         uint32_t v_acc = decodeLong(_buffernaza.nav.v_acc, mask); // mm
         //uint32_t test = decodeLong(_buffernaza.nav.reserved, mask);
 
-        gpsSol.velNED[0] = decodeLong(_buffernaza.nav.ned_north, mask);  // cm/s
-        gpsSol.velNED[1] = decodeLong(_buffernaza.nav.ned_east, mask);   // cm/s
-        gpsSol.velNED[2] = decodeLong(_buffernaza.nav.ned_down, mask);   // cm/s
+        gpsSol.velNED[X] = decodeLong(_buffernaza.nav.ned_north, mask);  // cm/s
+        gpsSol.velNED[Y] = decodeLong(_buffernaza.nav.ned_east, mask);   // cm/s
+        gpsSol.velNED[Z] = decodeLong(_buffernaza.nav.ned_down, mask);   // cm/s
 
 
         uint16_t pdop = decodeShort(_buffernaza.nav.pdop, mask); // pdop
-        //uint16_t vdop = decodeShort(_buffernaza.nav.vdop, mask); // vdop
-        //uint16_t ndop = decodeShort(_buffernaza.nav.ndop, mask);
-        //uint16_t edop = decodeShort(_buffernaza.nav.edop, mask);
-        //gpsSol.hdop = sqrtf(powf(ndop,2)+powf(edop,2));
-        //gpsSol.vdop = decodeShort(_buffernaza.nav.vdop, mask); // vdop
 
         gpsSol.hdop = gpsConstrainEPE(pdop);        // PDOP
         gpsSol.eph = gpsConstrainEPE(h_acc / 10);   // hAcc in cm
         gpsSol.epv = gpsConstrainEPE(v_acc / 10);   // vAcc in cm
         gpsSol.numSat = _buffernaza.nav.satellites;
-        gpsSol.groundSpeed = sqrtf(powf(gpsSol.velNED[0], 2)+powf(gpsSol.velNED[1], 2)); //cm/s
+        gpsSol.groundSpeed = fast_fsqrtf(sq(gpsSol.velNED[X]) + sq(gpsSol.velNED[Y])); //cm/s
 
         // calculate gps heading from VELNE
-        gpsSol.groundCourse = (uint16_t) (fmodf(RADIANS_TO_DECIDEGREES(atan2_approx(gpsSol.velNED[1], gpsSol.velNED[0]))+3600.0f,3600.0f));
+        gpsSol.groundCourse = (uint16_t)(fmodf(RADIANS_TO_DECIDEGREES(atan2_approx(gpsSol.velNED[Y], gpsSol.velNED[X])) + 3600.0f, 3600.0f));
 
         gpsSol.flags.validVelNE = 1;
         gpsSol.flags.validVelD = 1;

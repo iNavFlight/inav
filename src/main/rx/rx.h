@@ -51,6 +51,8 @@
 
 #define RSSI_MAX_VALUE 1023
 
+#define PPM_RCVR_TIMEOUT            0
+
 typedef enum {
     RX_FRAME_PENDING = 0,                       // No new data available from receiver
     RX_FRAME_COMPLETE = (1 << 0),               // There is new data available
@@ -61,11 +63,9 @@ typedef enum {
 
 typedef enum {
     RX_TYPE_NONE        = 0,
-    RX_TYPE_PPM         = 1,
-    RX_TYPE_SERIAL      = 2,
-    RX_TYPE_MSP         = 3,
-    RX_TYPE_SPI         = 4,
-    RX_TYPE_UNUSED_1    = 5
+    RX_TYPE_SERIAL      = 1,
+    RX_TYPE_MSP         = 2,
+    RX_TYPE_SPI         = 3
 } rxReceiverType_e;
 
 typedef enum {
@@ -162,7 +162,6 @@ typedef struct rxRuntimeConfig_s {
     uint8_t channelCount;                  // number of rc channels as reported by current input driver
     timeUs_t rxRefreshRate;
     timeUs_t rxSignalTimeout;
-    bool requireFiltering;
     rcReadRawDataFnPtr rcReadRawFn;
     rcFrameStatusFnPtr rcFrameStatusFn;
     rcProcessFrameFnPtr rcProcessFrameFn;
@@ -192,7 +191,7 @@ typedef struct rxLinkStatistics_s {
     int8_t      uplinkSNR;      // The SNR of the uplink in dB
     uint8_t     rfMode;         // A protocol specific measure of the transmission bandwidth [2 = 150Hz, 1 = 50Hz, 0 = 4Hz]
     uint16_t    uplinkTXPower;  // power in mW
-    uint8_t     activeAnt;
+    uint8_t     activeAntenna;
 } rxLinkStatistics_t;
 
 extern rxRuntimeConfig_t rxRuntimeConfig; //!!TODO remove this extern, only needed once for channelCount
@@ -228,5 +227,5 @@ uint16_t rxGetRefreshRate(void);
 
 // Processed RC channel value. These values might include
 // filtering and some extra processing like value holding
-// during failsafe. 
+// during failsafe.
 int16_t rxGetChannelValue(unsigned channelNumber);

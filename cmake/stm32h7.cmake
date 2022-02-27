@@ -114,7 +114,7 @@ set(STM32H7_HAL_SRC
 #    stm32h7xx_ll_rng.c
 #    stm32h7xx_ll_rtc.c
     stm32h7xx_ll_sdmmc.c
-#    stm32h7xx_ll_spi.c
+    stm32h7xx_ll_spi.c
 #    stm32h7xx_ll_swpmi.c
     stm32h7xx_ll_tim.c
 #    stm32h7xx_ll_usart.c
@@ -142,11 +142,13 @@ main_sources(STM32H7_SRC
     target/system_stm32h7xx.c
 
     config/config_streamer_stm32h7.c
+    config/config_streamer_ram.c
+    config/config_streamer_extflash.c
 
-#    drivers/adc_stm32h7xx.c
+    drivers/adc_stm32h7xx.c
     drivers/bus_i2c_hal.c
-#    drivers/dma_stm32h7xx.c
-    drivers/bus_spi_hal.c
+    drivers/dma_stm32h7xx.c
+    drivers/bus_spi_hal_ll.c
     drivers/memprot.h
     drivers/memprot_hal.c
     drivers/memprot_stm32h7xx.c
@@ -156,7 +158,8 @@ main_sources(STM32H7_SRC
     drivers/system_stm32h7xx.c
     drivers/serial_uart_stm32h7xx.c
     drivers/serial_uart_hal.c
-#    drivers/sdcard/sdmmc_sdio_h7xx.c
+    drivers/sdio.h
+    drivers/sdcard/sdmmc_sdio_h7xx.c
 )
 
 main_sources(STM32H7_MSC_SRC
@@ -185,8 +188,6 @@ function(target_stm32h7xx)
         OPTIMIZATION -O2
 
         OPENOCD_TARGET stm32h7x
-
-        DISABLE_MSC # This should be temporary
 
 #        BOOTLOADER
 

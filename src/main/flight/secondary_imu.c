@@ -22,6 +22,9 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
+#include "platform.h"
+#ifdef USE_SECONDARY_IMU
+
 #include "stdint.h"
 
 #include "build/debug.h"
@@ -95,10 +98,13 @@ void secondaryImuInit(void)
         calibrationData.radius[ACC] = secondaryImuConfig()->calibrationRadiusAcc;
         calibrationData.radius[MAG] = secondaryImuConfig()->calibrationRadiusMag;
 
+    requestedSensors[SENSOR_INDEX_IMU2] = secondaryImuConfig()->hardwareType;
+
     if (secondaryImuConfig()->hardwareType == SECONDARY_IMU_BNO055) {
         secondaryImuState.active = bno055Init(calibrationData, (secondaryImuConfig()->calibrationRadiusAcc && secondaryImuConfig()->calibrationRadiusMag));
 
         if (secondaryImuState.active) {
+            detectedSensors[SENSOR_INDEX_IMU2] = SECONDARY_IMU_BNO055;
             rescheduleTask(TASK_SECONDARY_IMU, TASK_PERIOD_HZ(10));
         }
 
@@ -106,12 +112,13 @@ void secondaryImuInit(void)
         secondaryImuState.active = bno055SerialInit(calibrationData, (secondaryImuConfig()->calibrationRadiusAcc && secondaryImuConfig()->calibrationRadiusMag));
 
         if (secondaryImuState.active) {
+            detectedSensors[SENSOR_INDEX_IMU2] = SECONDARY_IMU_BNO055_SERIAL;
             rescheduleTask(TASK_SECONDARY_IMU, TASK_PERIOD_HZ(50));
         }
     }
 
     if (!secondaryImuState.active) {
-        secondaryImuConfigMutable()->hardwareType = SECONDARY_IMU_NONE;
+        detectedSensors[SENSOR_INDEX_IMU2] = SECONDARY_IMU_NONE;
     }
 
 }
@@ -223,3 +230,35 @@ void secondaryImuFetchCalibration(void) {
 void secondaryImuSetMagneticDeclination(float declination) { //Incoming units are degrees
     secondaryImuState.magDeclination = declination * 10.0f; //Internally declination is stored in decidegrees
 }
+
+bool isSecondaryImuHealthy(void) {
+    return secondaryImuState.active;
+}
+
+hardwareSensorStatus_e getHwSecondaryImuStatus(void)
+{
+#ifdef USE_SECONDARY_IMU
+    if (detectedSensors[SENSOR_INDEX_IMU2] != SECONDARY_IMU_NONE) {
+        if (isSecondaryImuHealthy()) {
+            return HW_SENSOR_OK;
+        }
+        else {
+            return HW_SENSOR_UNHEALTHY;
+        }
+    }
+    else {
+        if (requestedSensors[SENSOR_INDEX_IMU2] != SECONDARY_IMU_NONE) {
+            // Selected but not detected
+            return HW_SENSOR_UNAVAILABLE;
+        }
+        else {
+            // Not selected and not detected
+            return HW_SENSOR_NONE;
+        }
+    }
+#else
+    return HW_SENSOR_NONE;
+#endif
+}
+
+#endif

@@ -1,11 +1,13 @@
 # INAV - navigation capable flight controller
 
-## F3 based flight controllers
-
-> STM32 F3 flight controllers like Omnibus F3 or SP Racing F3 are deprecated and soon they will reach the end of support in INAV. If you are still using F3 boards, please migrate to F4 or F7.
-
 ![INAV](http://static.rcgroups.net/forums/attachments/6/1/0/3/7/6/a9088858-102-inav.png)
-![Travis CI status](https://travis-ci.org/iNavFlight/inav.svg?branch=master)
+
+# INAV Community
+
+* [INAV Discord Server](https://discord.gg/peg2hhbYwN)
+* [INAV Official on Facebook](https://www.facebook.com/groups/INAVOfficial)
+* [RC Groups Support](https://www.rcgroups.com/forums/showthread.php?2495732-Cleanflight-iNav-(navigation-rewrite)-project)
+* [INAV Official on Telegram](https://t.me/INAVFlight)
 
 ## Features
 
@@ -16,9 +18,9 @@
 * Fully configurable mixer that allows to run any hardware you want: multirotor, fixed wing, rovers, boats and other experimental devices
 * Multiple sensor support: GPS, Pitot tube, sonar, lidar, temperature, ESC with BlHeli_32 telemetry
 * SmartAudio and IRC Tramp VTX support
-* DSHOT and Multishot ESCs
 * Blackbox flight recorder logging
 * On Screen Display (OSD) - both character and pixel style
+* DJI OSD integration: all elements, system messages and warnings
 * Telemetry: SmartPort, FPort, MAVlink, LTM
 * Multi-color RGB LED Strip support
 * Advanced gyro filtering: Matrix Filter and RPM filter
@@ -41,20 +43,26 @@ Tool for Blackbox logs analysis is available [here](https://github.com/iNavFligh
 
 Users of OpenTX radios (Taranis, Horus, Jumper, Radiomaster, Nirvana) can use INAV OpenTX Telemetry Widget screen. Software and installation instruction are available here: [https://github.com/iNavFlight/OpenTX-Telemetry-Widget](https://github.com/iNavFlight/OpenTX-Telemetry-Widget)
 
+### INAV magnetometer alignment helper
+
+[INAV Magnetometer Alignment helper](https://kernel-machine.github.io/INavMagAlignHelper/) allows to align INAV magnetometer despite position and orientation. This simplifies the process of INAV setup on multirotors with tilted GPS modules.
+
+### OSD layout Copy, Move, or Replace helper tool
+
+[Easy INAV OSD switcher tool](https://www.mrd-rc.com/tutorials-tools-and-testing/useful-tools/inav-osd-switcher-tool/) allows you to easily switch your OSD layouts around in iNav. Choose the from and to OSD layouts, and the method of transfering the layouts.
+
 ## Installation
 
 See: https://github.com/iNavFlight/inav/blob/master/docs/Installation.md
 
 ## Documentation, support and learning resources
+* [Target documentation](https://github.com/iNavFlight/inav/tree/master/docs/boards)
 * [Fixed Wing Guide](docs/INAV_Fixed_Wing_Setup_Guide.pdf)
 * [Autolaunch Guide](docs/INAV_Autolaunch.pdf)
 * [Modes Guide](docs/INAV_Modes.pdf)
 * [Wing Tuning Masterclass](docs/INAV_Wing_Tuning_Masterclass.pdf)
 * [Official documentation](https://github.com/iNavFlight/inav/tree/master/docs)
 * [Official Wiki](https://github.com/iNavFlight/inav/wiki)
-* [INAV Official on Telegram](https://t.me/INAVFlight)
-* [INAV Official on Facebook](https://www.facebook.com/groups/INAVOfficial)
-* [RC Groups Support](https://www.rcgroups.com/forums/showthread.php?2495732-Cleanflight-iNav-(navigation-rewrite)-project)
 * [Video series by Painless360](https://www.youtube.com/playlist?list=PLYsWjANuAm4qdXEGFSeUhOZ10-H8YTSnH)
 * [Video series by Paweł Spychalski](https://www.youtube.com/playlist?list=PLOUQ8o2_nCLloACrA6f1_daCjhqY2x0fB)
 

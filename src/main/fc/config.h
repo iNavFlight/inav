@@ -19,10 +19,10 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "common/axis.h"
 #include "common/time.h"
 #include "config/parameter_group.h"
 #include "drivers/adc.h"
-#include "drivers/rx_pwm.h"
 #include "fc/stats.h"
 
 #define MAX_PROFILE_COUNT 3
@@ -30,7 +30,8 @@
 #define MAX_NAME_LENGTH 16
 
 #define TASK_GYRO_LOOPTIME 250 // Task gyro always runs at 4kHz
- typedef enum {
+
+typedef enum {
     FEATURE_THR_VBAT_COMP = 1 << 0,
     FEATURE_VBAT = 1 << 1,
     FEATURE_TX_PROF_SEL = 1 << 2,       // Profile selection by TX stick command
@@ -86,6 +87,7 @@ typedef struct beeperConfig_s {
     uint32_t preferred_beeper_off_flags;
     bool dshot_beeper_enabled;
     uint8_t dshot_beeper_tone;
+    bool pwmMode;
 } beeperConfig_t;
 
 PG_DECLARE(beeperConfig_t, beeperConfig);
@@ -129,6 +131,9 @@ void setConfigProfileAndWriteEEPROM(uint8_t profileIndex);
 uint8_t getConfigBatteryProfile(void);
 bool setConfigBatteryProfile(uint8_t profileIndex);
 void setConfigBatteryProfileAndWriteEEPROM(uint8_t profileIndex);
+
+void setGyroCalibrationAndWriteEEPROM(int16_t getGyroZero[XYZ_AXIS_COUNT]);
+void setGravityCalibrationAndWriteEEPROM(float getGravity);
 
 bool canSoftwareSerialBeUsed(void);
 void applyAndSaveBoardAlignmentDelta(int16_t roll, int16_t pitch);

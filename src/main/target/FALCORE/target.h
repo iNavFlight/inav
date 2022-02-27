@@ -25,7 +25,6 @@
 #define USE_HARDWARE_PREBOOT_SETUP      // FALCORE board requires some hardware to be set up before booting and detecting sensors
 
 #define BEEPER                  PB4
-#define BEEPER_PWM
 #define BEEPER_PWM_FREQUENCY    2700
 
 #define MPU6500_CS_PIN          PC0
@@ -57,7 +56,6 @@
 #define USE_UART4
 #define USE_UART5
 #define SERIAL_PORT_COUNT       5
-#define AVOID_UART2_FOR_PWM_PPM
 
 #define UART1_TX_PIN            PC4
 #define UART1_RX_PIN            PC5
@@ -118,9 +116,6 @@
 #define BIND_PIN                PA3
 
 #define USE_RANGEFINDER
-#define USE_RANGEFINDER_HCSR04
-#define RANGEFINDER_HCSR04_TRIGGER_PIN       PA7
-#define RANGEFINDER_HCSR04_ECHO_PIN          PA2
 
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX | FEATURE_VBAT | FEATURE_GPS | FEATURE_TELEMETRY | FEATURE_LED_STRIP)
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL

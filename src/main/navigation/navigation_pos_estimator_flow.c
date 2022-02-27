@@ -32,8 +32,6 @@
 #include "build/build_config.h"
 #include "build/debug.h"
 
-#if defined(USE_NAV)
-
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
 #include "navigation/navigation_pos_estimator_private.h"
@@ -109,7 +107,7 @@ bool estimationCalculateCorrection_XY_FLOW(estimationContext_t * ctx)
         ctx->estPosCorr.x = flowResidualX * positionEstimationConfig()->w_xy_flow_p * ctx->dt;
         ctx->estPosCorr.y = flowResidualY * positionEstimationConfig()->w_xy_flow_p * ctx->dt;
 
-        ctx->newEPH = updateEPE(posEstimator.est.eph, ctx->dt, sqrtf(sq(flowResidualX) + sq(flowResidualY)), positionEstimationConfig()->w_xy_flow_p);
+        ctx->newEPH = updateEPE(posEstimator.est.eph, ctx->dt, calc_length_pythagorean_2D(flowResidualX, flowResidualY), positionEstimationConfig()->w_xy_flow_p);
     }
 
     DEBUG_SET(DEBUG_FLOW, 0, RADIANS_TO_DEGREES(posEstimator.flow.flowRate[X]));
@@ -123,6 +121,3 @@ bool estimationCalculateCorrection_XY_FLOW(estimationContext_t * ctx)
     return false;
 #endif
 }
-
-
-#endif  // NAV

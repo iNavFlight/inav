@@ -128,7 +128,6 @@
 #define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PC12
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          PA15
@@ -170,7 +169,6 @@
 
 #define USE_DSHOT
 #define USE_ESC_SENSOR
-#define USE_SERIALSHOT
 
 // Number of available PWM outputs
 #define MAX_PWM_OUTPUT_PORTS    6

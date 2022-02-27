@@ -89,7 +89,7 @@ void mspGPSReceiveNewData(const uint8_t * bufferPtr)
     gpsSol.velNED[X] = pkt->nedVelNorth;
     gpsSol.velNED[Y] = pkt->nedVelEast;
     gpsSol.velNED[Z] = pkt->nedVelDown;
-    gpsSol.groundSpeed = sqrtf(sq((float)pkt->nedVelNorth) + sq((float)pkt->nedVelEast));
+    gpsSol.groundSpeed = calc_length_pythagorean_2D((float)pkt->nedVelNorth, (float)pkt->nedVelEast);
     gpsSol.groundCourse = pkt->groundCourse / 10;   // in deg * 10
     gpsSol.eph = gpsConstrainEPE(pkt->horizontalPosAccuracy / 10);
     gpsSol.epv = gpsConstrainEPE(pkt->verticalPosAccuracy / 10);

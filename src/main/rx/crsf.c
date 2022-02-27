@@ -36,6 +36,7 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/serial_uart.h"
 
 #include "io/serial.h"
+#include "io/osd.h"
 
 #include "rx/rx.h"
 #include "rx/crsf.h"
@@ -47,6 +48,7 @@ FILE_COMPILE_FOR_SPEED
 #define CRSF_DIGITAL_CHANNEL_MIN 172
 #define CRSF_DIGITAL_CHANNEL_MAX 1811
 #define CRSF_PAYLOAD_OFFSET offsetof(crsfFrameDef_t, type)
+#define CRSF_POWER_COUNT 9
 
 STATIC_UNIT_TESTED bool crsfFrameDone = false;
 STATIC_UNIT_TESTED crsfFrame_t crsfFrame;
@@ -58,8 +60,7 @@ static timeUs_t crsfFrameStartAt = 0;
 static uint8_t telemetryBuf[CRSF_FRAME_SIZE_MAX];
 static uint8_t telemetryBufLen = 0;
 
-// The power levels represented by uplinkTXPower above in mW (250mW added to full TX in v4.00 firmware)
-const uint16_t crsfPowerStates[] = {0, 10, 25, 100, 500, 1000, 2000, 250};
+const uint16_t crsfTxPowerStatesmW[CRSF_POWER_COUNT] = {0, 10, 25, 100, 500, 1000, 2000, 250, 50};
 
 /*
  * CRSF protocol
@@ -121,7 +122,6 @@ typedef struct crsfPayloadLinkStatistics_s {
     uint8_t     downlinkRSSI;
     uint8_t     downlinkLQ;
     int8_t      downlinkSNR;
-    uint8_t     activeAnt;
 } __attribute__ ((__packed__)) crsfPayloadLinkStatistics_t;
 
 typedef struct crsfPayloadLinkStatistics_s crsfPayloadLinkStatistics_t;
@@ -232,17 +232,27 @@ STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
             }
             crsfFrame.frame.frameLength = CRSF_FRAME_LINK_STATISTICS_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC;
 
-            // Inject link quality into channel 17.
             const crsfPayloadLinkStatistics_t* linkStats = (crsfPayloadLinkStatistics_t*)&crsfFrame.frame.payload;
-            crsfChannelData[16] = scaleRange(constrain(linkStats->uplinkLQ, 0, 100), 0, 100, 191, 1791);    // will map to [1000;2000] range
-            lqTrackerSet(rxRuntimeConfig->lqTracker, scaleRange(constrain(linkStats->uplinkLQ, 0, 100), 0, 100, 0, RSSI_MAX_VALUE));
+            const uint8_t crsftxpowerindex = (linkStats->uplinkTXPower < CRSF_POWER_COUNT) ? linkStats->uplinkTXPower : 0;
 
             rxLinkStatistics.uplinkRSSI = -1* (linkStats->activeAntenna ? linkStats->uplinkRSSIAnt2 : linkStats->uplinkRSSIAnt1);
             rxLinkStatistics.uplinkLQ = linkStats->uplinkLQ;
             rxLinkStatistics.uplinkSNR = linkStats->uplinkSNR;
             rxLinkStatistics.rfMode = linkStats->rfMode;
-            rxLinkStatistics.uplinkTXPower = crsfPowerStates[linkStats->uplinkTXPower];
-            rxLinkStatistics.activeAnt = linkStats->activeAntenna;
+            rxLinkStatistics.uplinkTXPower = crsfTxPowerStatesmW[crsftxpowerindex];
+            rxLinkStatistics.activeAntenna = linkStats->activeAntenna;
+
+            if (rxLinkStatistics.uplinkLQ > 0) {
+                int16_t uplinkStrength;   // RSSI dBm converted to %
+                uplinkStrength = constrain((100 * sq((osdConfig()->rssi_dbm_max - osdConfig()->rssi_dbm_min)) - (100 * sq((osdConfig()->rssi_dbm_max  - rxLinkStatistics.uplinkRSSI)))) / sq((osdConfig()->rssi_dbm_max - osdConfig()->rssi_dbm_min)),0,100);
+                if (rxLinkStatistics.uplinkRSSI >= osdConfig()->rssi_dbm_max )
+                    uplinkStrength = 99;
+                else if (rxLinkStatistics.uplinkRSSI < osdConfig()->rssi_dbm_min)
+                    uplinkStrength = 0;
+                lqTrackerSet(rxRuntimeConfig->lqTracker, scaleRange(uplinkStrength, 0, 99, 0, RSSI_MAX_VALUE));
+            }
+            else
+                lqTrackerSet(rxRuntimeConfig->lqTracker, 0);
 
             // This is not RC channels frame, update channel value but don't indicate frame completion
             return RX_FRAME_PENDING;

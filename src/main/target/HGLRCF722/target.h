@@ -92,7 +92,6 @@
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PB15
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          PB12
@@ -176,5 +175,5 @@
 
 #define MAX_PWM_OUTPUT_PORTS        8
 #define USE_DSHOT
-#define USE_SERIALSHOT
 #define USE_ESC_SENSOR
+

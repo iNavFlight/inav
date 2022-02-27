@@ -19,8 +19,6 @@
 
 #define DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR    1.113195f  // MagicEarthNumber from APM
 
-#if defined(USE_NAV)
-
 #include "common/axis.h"
 #include "common/maths.h"
 #include "common/filter.h"
@@ -36,6 +34,12 @@
 #define NAV_ACCELERATION_XY_MAX             980.0f  // cm/s/s       // approx 45 deg lean angle
 
 #define INAV_SURFACE_MAX_DISTANCE           40
+
+#define MC_LAND_CHECK_VEL_XY_MOVING 100.0f // cm/s
+#define MC_LAND_CHECK_VEL_Z_MOVING 25.0f   // cm/s
+#define MC_LAND_THR_SUM_RATE 1             // hz
+#define MC_LAND_DESCEND_THROTTLE 40        // uS
+#define MC_LAND_SAFE_SURFACE 5.0f          // cm
 
 #define MAX_POSITION_UPDATE_INTERVAL_US     HZ2US(MIN_POSITION_UPDATE_RATE_HZ)        // convenience macro
 _Static_assert(MAX_POSITION_UPDATE_INTERVAL_US <= TIMEDELTA_MAX, "deltaMicros can overflow!");
@@ -71,7 +75,6 @@ typedef enum {
 typedef struct navigationFlags_s {
     bool horizontalPositionDataNew;
     bool verticalPositionDataNew;
-    bool headingDataNew;
 
     bool horizontalPositionDataConsumed;
     bool verticalPositionDataConsumed;
@@ -91,7 +94,11 @@ typedef struct navigationFlags_s {
     bool isGCSAssistedNavigationReset;      // GCS control was disabled - indicate that so code could take action accordingly
     bool isTerrainFollowEnabled;            // Does iNav use rangefinder for terrain following (adjusting baro altitude target according to rangefinders readings)
 
+    // Failsafe actions
     bool forcedRTHActivated;
+    bool forcedEmergLandingActivated;
+
+    bool wpMissionPlannerActive;               // Activation status of WP mission planner
 } navigationFlags_t;
 
 typedef struct {
@@ -304,11 +311,12 @@ typedef struct {
 
 typedef struct {
     navigationHomeFlags_t   homeFlags;
-    navWaypointPosition_t   homePosition;       // Original home position and base altitude
-    float                   rthInitialAltitude; // Altitude at start of RTH
-    float                   rthFinalAltitude;   // Altitude at end of RTH approach
-    float                   rthInitialDistance; // Distance when starting flight home
-    fpVector3_t             homeTmpWaypoint;    // Temporary storage for home target
+    navWaypointPosition_t   homePosition;           // Original home position and base altitude
+    float                   rthInitialAltitude;     // Altitude at start of RTH, can include added margins and extra height
+    float                   rthClimbStageAltitude;  // Altitude at end of the climb phase
+    float                   rthFinalAltitude;       // Altitude at end of RTH approach
+    float                   rthInitialDistance;     // Distance when starting flight home
+    fpVector3_t             homeTmpWaypoint;        // Temporary storage for home target
 } rthState_t;
 
 typedef enum {
@@ -356,13 +364,26 @@ typedef struct {
     navWaypoint_t               waypointList[NAV_MAX_WAYPOINTS];
     bool                        waypointListValid;
     int8_t                      waypointCount;
+    int8_t                      geoWaypointCount;           // total geospatial WPs in mission
+    bool                        wpMissionRestart;           // mission restart from first waypoint
 
-    navWaypointPosition_t       activeWaypoint;     // Local position and initial bearing, filled on waypoint activation
+    /* WP Mission planner */
+    int8_t                      wpMissionPlannerStatus;     // WP save status for setting in flight WP mission planner
+    int8_t                      wpPlannerActiveWPIndex;
+#ifdef USE_MULTI_MISSION
+    /* Multi Missions */
+    int8_t                      multiMissionCount;          // number of missions in multi mission entry
+    int8_t                      loadedMultiMissionIndex;    // index of selected multi mission
+    int8_t                      loadedMultiMissionStartWP;  // selected multi mission start WP
+    int8_t                      loadedMultiMissionWPCount;  // number of WPs in selected multi mission
+#endif
+    navWaypointPosition_t       activeWaypoint;             // Local position and initial bearing, filled on waypoint activation
     int8_t                      activeWaypointIndex;
-    float                       wpInitialAltitude; // Altitude at start of WP
-    float                       wpInitialDistance; // Distance when starting flight to WP
-    float                       wpDistance;        // Distance to active WP
-    timeMs_t                    wpReachedTime;     // Time the waypoint was reached
+    float                       wpInitialAltitude;          // Altitude at start of WP
+    float                       wpInitialDistance;          // Distance when starting flight to WP
+    float                       wpDistance;                 // Distance to active WP
+    timeMs_t                    wpReachedTime;              // Time the waypoint was reached
+    bool                        wpAltitudeReached;          // WP altitude achieved
 
     /* Internals & statistics */
     int16_t                     rcAdjustment[4];
@@ -402,8 +423,8 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAlti
 
 bool isWaypointReached(const navWaypointPosition_t * waypoint, const bool isWaypointHome);
 bool isWaypointMissed(const navWaypointPosition_t * waypoint);
-bool isWaypointWait(void);
-bool isApproachingLastWaypoint(void);
+bool isNavHoldPositionActive(void);
+bool isLastMissionWaypoint(void);
 float getActiveWaypointSpeed(void);
 
 void updateActualHeading(bool headingValid, int32_t newHeading);
@@ -455,9 +476,7 @@ void calculateFixedWingInitialHoldPosition(fpVector3_t * pos);
 
 /* Fixed-wing launch controller */
 void resetFixedWingLaunchController(timeUs_t currentTimeUs);
-bool isFixedWingLaunchDetected(void);
 void enableFixedWingLaunchController(timeUs_t currentTimeUs);
-bool isFixedWingLaunchFinishedOrAborted(void);
 void abortFixedWingLaunch(void);
 void applyFixedWingLaunchController(timeUs_t currentTimeUs);
 
@@ -465,5 +484,3 @@ void applyFixedWingLaunchController(timeUs_t currentTimeUs);
  * Rover specific functions
  */
 void applyRoverBoatNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
-
-#endif
