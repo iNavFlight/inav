@@ -3727,14 +3727,16 @@ void navigationUsePIDs(void)
             0.0f,
             0.0f,
             0.0f,
-            NAV_DTERM_CUT_HZ
+            NAV_DTERM_CUT_HZ,
+            0.0f
         );
 
         navPidInit(&posControl.pids.vel[axis], (float)pidProfile()->bank_mc.pid[PID_VEL_XY].P / 20.0f,
                                                (float)pidProfile()->bank_mc.pid[PID_VEL_XY].I / 100.0f,
                                                (float)pidProfile()->bank_mc.pid[PID_VEL_XY].D / 100.0f,
                                                (float)pidProfile()->bank_mc.pid[PID_VEL_XY].FF / 100.0f,
-                                               pidProfile()->navVelXyDTermLpfHz
+                                               pidProfile()->navVelXyDTermLpfHz,
+                                               0.0f
         );
     }
 
@@ -3756,14 +3758,16 @@ void navigationUsePIDs(void)
         0.0f,
         0.0f,
         0.0f,
-        NAV_DTERM_CUT_HZ
+        NAV_DTERM_CUT_HZ,
+        0.0f
     );
 
     navPidInit(&posControl.pids.vel[Z], (float)pidProfile()->bank_mc.pid[PID_VEL_Z].P / 66.7f,
                                         (float)pidProfile()->bank_mc.pid[PID_VEL_Z].I / 20.0f,
                                         (float)pidProfile()->bank_mc.pid[PID_VEL_Z].D / 100.0f,
                                         0.0f,
-                                        NAV_DTERM_CUT_HZ
+                                        NAV_VEL_Z_DERIVATIVE_CUT_HZ,
+                                        NAV_VEL_Z_ERROR_CUT_HZ
     );
 
     // Initialize surface tracking PID
@@ -3771,7 +3775,8 @@ void navigationUsePIDs(void)
                                          0.0f,
                                          0.0f,
                                          0.0f,
-                                         NAV_DTERM_CUT_HZ
+                                         NAV_DTERM_CUT_HZ,
+                                         0.0f
     );
 
     /** Airplane PIDs */
@@ -3780,21 +3785,24 @@ void navigationUsePIDs(void)
                                         (float)pidProfile()->bank_fw.pid[PID_POS_XY].I / 100.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_XY].D / 100.0f,
                                         0.0f,
-                                        NAV_DTERM_CUT_HZ
+                                        NAV_DTERM_CUT_HZ,
+                                        0.0f
     );
 
     navPidInit(&posControl.pids.fw_alt, (float)pidProfile()->bank_fw.pid[PID_POS_Z].P / 10.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_Z].I / 10.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_Z].D / 10.0f,
                                         0.0f,
-                                        NAV_DTERM_CUT_HZ
+                                        NAV_DTERM_CUT_HZ,
+                                        0.0f
     );
 
     navPidInit(&posControl.pids.fw_heading, (float)pidProfile()->bank_fw.pid[PID_POS_HEADING].P / 10.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_HEADING].I / 10.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_HEADING].D / 100.0f,
                                         0.0f,
-                                        2.0f
+                                        2.0f,
+                                        0.0f
     );
 }
 
