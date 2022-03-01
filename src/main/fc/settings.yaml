@@ -3508,7 +3508,7 @@ groups:
         descripption: Number of digits used to display mAh used.
         field: mAh_used_precision
         min: 4
-        max: 5
+        max: 6
         default_value: 4
 
       - name: osd_system_msg_display_time
