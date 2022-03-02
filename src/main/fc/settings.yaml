@@ -3505,7 +3505,7 @@ groups:
         default_value: 3
 
       - name: osd_mah_used_precision
-        descripption: Number of digits used to display mAh used.
+        description: Number of digits used to display mAh used.
         field: mAh_used_precision
         min: 4
         max: 6

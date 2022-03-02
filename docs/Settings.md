@@ -4434,7 +4434,7 @@ LQ % indicator blinks below this value. For Crossfire use 70%, for Tracer use 50
 
 ### osd_mah_used_precision
 
-_// TODO_
+Number of digits used to display mAh used.
 
 | Default | Min | Max |
 | --- | --- | --- |
