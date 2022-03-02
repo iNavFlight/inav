@@ -1539,14 +1539,13 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_MAH_DRAWN: {
-        osdFormatCentiNumber(buff, getMAhDrawn() * 100, 1000, 0, (osdConfig()->mAh_used_precision - 2), osdConfig()->mAh_used_precision);
-        /*if (osdFormatCentiNumber(buff, getMAhDrawn() * 100, 1000, 0, (osdConfig()->mAh_used_precision - 2), osdConfig()->mAh_used_precision)) {
-           // Scaled to ten thousand mAh
-           buff[osdConfig()->mAh_used_precision] = SYM_KMAH;
+        if (osdFormatCentiNumber(buff, getMAhDrawn() * 100, 1000, 0, (osdConfig()->mAh_used_precision - 2), osdConfig()->mAh_used_precision)) {
+           // Shown in mAh
+           buff[osdConfig()->mAh_used_precision] = SYM_AH;
         } else {
-          // Full mAh shown */
+          // Shown in Ah
             buff[osdConfig()->mAh_used_precision] = SYM_MAH;
-        //}
+        }
         buff[(osdConfig()->mAh_used_precision + 1)] = '\0';
         osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
         break;
