@@ -98,7 +98,7 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 | `msc` | Enter USB Mass storage mode. See [USB MSC documentation](USB_Mass_Storage_(MSC)_mode.md) for usage information. |
 | `osd_layout` | Get or set the layout of OSD items |
 | `pid` | Configurable PID controllers |
-| `play_sound` | <index>, or none for next item |
+| `play_sound` | `<index>`, or none for next item |
 | `profile` | Change profile |
 | `resource` | View currently used resources |
 | `rxrange` | Configure rx channel ranges |
