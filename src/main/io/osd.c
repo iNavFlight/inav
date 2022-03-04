@@ -32,7 +32,7 @@
 #include "platform.h"
 
 FILE_COMPILE_FOR_SPEED
-
+#define USE_OSD
 #ifdef USE_OSD
 
 #include "build/debug.h"
@@ -115,6 +115,7 @@ FILE_COMPILE_FOR_SPEED
 #endif
 
 #define VIDEO_BUFFER_CHARS_PAL    480
+#define VIDEO_BUFFER_CHARS_HD     900
 
 #define GFORCE_FILTER_TC 0.2
 
@@ -215,6 +216,11 @@ static int digitCount(int32_t value)
 bool osdDisplayIsPAL(void)
 {
     return displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_PAL;
+}
+
+bool osdDisplayIsHD(void)
+{
+    return displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_HD;
 }
 
 /**
@@ -3453,18 +3459,21 @@ static void osdCompleteAsyncInitialization(void)
 
     char string_buffer[30];
     tfp_sprintf(string_buffer, "INAV VERSION: %s", FC_VERSION_STRING);
-    displayWrite(osdDisplayPort, 5, y++, string_buffer);
+    uint8_t xPos = osdDisplayIsHD() ? 7 : 5;
+    displayWrite(osdDisplayPort, xPos, y++, string_buffer);
 #ifdef USE_CMS
-    displayWrite(osdDisplayPort, 7, y++,  CMS_STARTUP_HELP_TEXT1);
-    displayWrite(osdDisplayPort, 11, y++, CMS_STARTUP_HELP_TEXT2);
-    displayWrite(osdDisplayPort, 11, y++, CMS_STARTUP_HELP_TEXT3);
+    displayWrite(osdDisplayPort, xPos+2, y++,  CMS_STARTUP_HELP_TEXT1);
+    displayWrite(osdDisplayPort, xPos+6, y++, CMS_STARTUP_HELP_TEXT2);
+    displayWrite(osdDisplayPort, xPos+6, y++, CMS_STARTUP_HELP_TEXT3);
 #endif
-
 #ifdef USE_STATS
-#define STATS_LABEL_X_POS 4
-#define STATS_VALUE_X_POS 24
+
+
+    uint8_t statNameX = osdDisplayIsHD() ? 7 : 4;
+    uint8_t statValueX = osdDisplayIsHD() ? 27 : 24;
+
     if (statsConfig()->stats_enabled) {
-        displayWrite(osdDisplayPort, STATS_LABEL_X_POS, ++y, "ODOMETER:");
+        displayWrite(osdDisplayPort, statNameX, ++y, "ODOMETER:");
         switch (osdConfig()->units) {
             case OSD_UNIT_UK:
                 FALLTHROUGH;
@@ -3485,21 +3494,21 @@ static void osdCompleteAsyncInitialization(void)
                 break;
         }
         string_buffer[6] = '\0';
-        displayWrite(osdDisplayPort, STATS_VALUE_X_POS-5, y,  string_buffer);
+        displayWrite(osdDisplayPort, statValueX-5, y,  string_buffer);
 
-        displayWrite(osdDisplayPort, STATS_LABEL_X_POS, ++y, "TOTAL TIME:");
+        displayWrite(osdDisplayPort, statNameX, ++y, "TOTAL TIME:");
         uint32_t tot_mins = statsConfig()->stats_total_time / 60;
         tfp_sprintf(string_buffer, "%2d:%02dHM", (int)(tot_mins / 60), (int)(tot_mins % 60));
-        displayWrite(osdDisplayPort, STATS_VALUE_X_POS-5, y,  string_buffer);
+        displayWrite(osdDisplayPort, statValueX-5, y,  string_buffer);
 
 #ifdef USE_ADC
         if (feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER)) {
-            displayWrite(osdDisplayPort, STATS_LABEL_X_POS, ++y, "TOTAL ENERGY:");
+            displayWrite(osdDisplayPort, statNameX, ++y, "TOTAL ENERGY:");
             osdFormatCentiNumber(string_buffer, statsConfig()->stats_total_energy / 10, 0, 2, 0, 4);
             strcat(string_buffer, "\xAB"); // SYM_WH
-            displayWrite(osdDisplayPort, STATS_VALUE_X_POS-4, y,  string_buffer);
+            displayWrite(osdDisplayPort, statValueX-4, y,  string_buffer);
 
-            displayWrite(osdDisplayPort, STATS_LABEL_X_POS, ++y, "AVG EFFICIENCY:");
+            displayWrite(osdDisplayPort, statNameX, ++y, "AVG EFFICIENCY:");
             if (statsConfig()->stats_total_dist) {
                 uint32_t avg_efficiency = statsConfig()->stats_total_energy / (statsConfig()->stats_total_dist / METERS_PER_KILOMETER); // mWh/km
                 switch (osdConfig()->units) {
@@ -3525,7 +3534,7 @@ static void osdCompleteAsyncInitialization(void)
                 string_buffer[0] = string_buffer[1] = string_buffer[2] = '-';
             }
             string_buffer[4] = '\0';
-            displayWrite(osdDisplayPort, STATS_VALUE_X_POS-3, y,  string_buffer);
+            displayWrite(osdDisplayPort, statValueX-3, y,  string_buffer);
         }
 #endif // USE_ADC
     }
@@ -3620,8 +3629,8 @@ static void osdShowStatsPage1(void)
 {
     const char * disarmReasonStr[DISARM_REASON_COUNT] = { "UNKNOWN", "TIMEOUT", "STICKS", "SWITCH", "SWITCH", "KILLSW", "FAILSAFE", "NAV SYS" };
     uint8_t top = 1;    /* first fully visible line */
-    const uint8_t statNameX = 1;
-    const uint8_t statValuesX = 20;
+    const uint8_t statNameX = osdDisplayIsHD() ? 7 : 1;
+    const uint8_t statValuesX = osdDisplayIsHD() ? 33 : 20;
     char buff[10];
     statsPagesCheck = 1;
 
@@ -3695,8 +3704,8 @@ static void osdShowStatsPage1(void)
 static void osdShowStatsPage2(void)
 {
     uint8_t top = 1;    /* first fully visible line */
-    const uint8_t statNameX = 1;
-    const uint8_t statValuesX = 20;
+    const uint8_t statNameX = osdDisplayIsHD() ? 7 : 1;
+    const uint8_t statValuesX = osdDisplayIsHD() ? 33 : 20;
     char buff[10];
     statsPagesCheck = 1;
 
@@ -3846,7 +3855,8 @@ static void osdShowArmed(void)
     uint8_t y = osdDisplayPort->rows > 13 ? (osdDisplayPort->rows - 12) / 2 : 1;
 
     displayClearScreen(osdDisplayPort);
-    displayWrite(osdDisplayPort, 12, y, "ARMED");
+    strcpy(buf, "ARMED");
+    displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y, buf);
     y += 2;
 
     if (strlen(systemConfig()->name) > 0) {
@@ -3857,9 +3867,10 @@ static void osdShowArmed(void)
     if (posControl.waypointListValid && posControl.waypointCount > 0) {
 #ifdef USE_MULTI_MISSION
         tfp_sprintf(buf, "MISSION %u/%u (%u WP)", posControl.loadedMultiMissionIndex, posControl.multiMissionCount, posControl.waypointCount);
-        displayWrite(osdDisplayPort, 6, y, buf);
+        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y, buf);
 #else
-        displayWrite(osdDisplayPort, 7, y, "*MISSION LOADED*");
+        strcpy(buf, "*MISSION LOADED*");
+        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y, buf);
 #endif
     }
     y += 1;
@@ -4212,6 +4223,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                         timeMs_t currentTime = millis();
                         int holdTimeRemaining = posControl.waypointList[posControl.activeWaypointIndex].p1 - (int)(MS2S(currentTime - posControl.wpReachedTime));
                         holdTimeRemaining = holdTimeRemaining >= 0 ? holdTimeRemaining : 0;
+
                         tfp_sprintf(messageBuf, "HOLDING WP FOR %2u S", holdTimeRemaining);
 
                         messages[messageCount++] = messageBuf;
