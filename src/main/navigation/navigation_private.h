@@ -31,15 +31,11 @@
 #define NAV_THROTTLE_CUTOFF_FREQENCY_HZ     4       // low-pass filter on throttle output
 #define NAV_FW_CONTROL_MONITORING_RATE      2
 #define NAV_DTERM_CUT_HZ                    10.0f
-<<<<<<< HEAD
 #define NAV_ACCELERATION_XY_MAX             980.0f  // cm/s/s //approx 45 deg lean angle
 #define POS_CONTROL_ACCELERATION_MIN        50.0f  // minimum horizontal acceleration in cm/s/s - used for sanity checking acceleration in leash length calculation
 #define POS_CONTROL_LEASH_LENGTH_MIN        100.0f // minimum leash lengths in cm
-=======
 #define NAV_VEL_Z_DERIVATIVE_CUT_HZ 5.0f
 #define NAV_VEL_Z_ERROR_CUT_HZ 5.0f
-#define NAV_ACCELERATION_XY_MAX             980.0f  // cm/s/s       // approx 45 deg lean angle
->>>>>>> master
 
 #define INAV_SURFACE_MAX_DISTANCE           40
 
