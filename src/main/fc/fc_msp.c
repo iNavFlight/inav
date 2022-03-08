@@ -398,14 +398,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteData(dst, shortGitRevision, GIT_SHORT_REVISION_LENGTH);
         break;
 
-    // DEPRECATED - Use MSP_API_VERSION
-    case MSP_IDENT:
-        sbufWriteU8(dst, MW_VERSION);
-        sbufWriteU8(dst, 3); //We no longer have mixerMode, just sent 3 (QuadX) as fallback
-        sbufWriteU8(dst, MSP_PROTOCOL_VERSION);
-        sbufWriteU32(dst, CAP_PLATFORM_32BIT | CAP_DYNBALANCE | CAP_FLAPS | CAP_NAVCAP | CAP_EXTAUX); // "capability"
-        break;
-
 #ifdef HIL
     case MSP_HIL_STATE:
         sbufWriteU16(dst, hilToSIM.pidCommand[ROLL]);
@@ -425,7 +417,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, getHwRangefinderStatus());
         sbufWriteU8(dst, getHwPitotmeterStatus());
         sbufWriteU8(dst, getHwOpticalFlowStatus());
+#ifdef USE_SECONDARY_IMU
         sbufWriteU8(dst, getHwSecondaryImuStatus());
+#else
+        sbufWriteU8(dst, 0);
+#endif
         break;
 
     case MSP_ACTIVEBOXES:
@@ -704,14 +700,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
-    case MSP_PID:
-        for (int i = 0; i < PID_ITEM_COUNT; i++) {
-            sbufWriteU8(dst, constrain(pidBank()->pid[i].P, 0, 255));
-            sbufWriteU8(dst, constrain(pidBank()->pid[i].I, 0, 255));
-            sbufWriteU8(dst, constrain(pidBank()->pid[i].D, 0, 255));
-        }
-        break;
-
     case MSP2_PID:
         for (int i = 0; i < PID_ITEM_COUNT; i++) {
             sbufWriteU8(dst, constrain(pidBank()->pid[i].P, 0, 255));
@@ -725,10 +713,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         for (const char *c = pidnames; *c; c++) {
             sbufWriteU8(dst, *c);
         }
-        break;
-
-    case MSP_PID_CONTROLLER:
-        sbufWriteU8(dst, 2);      // FIXME: Report as LuxFloat
         break;
 
     case MSP_MODE_RANGES:
@@ -1058,35 +1042,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteData(dst, rxConfig()->rcmap, MAX_MAPPABLE_RX_INPUTS);
         break;
 
-    case MSP_BF_CONFIG:
-        sbufWriteU8(dst, 3); // mixerMode no longer supported, send 3 (QuadX) as fallback
-
-        sbufWriteU32(dst, featureMask());
-
-        sbufWriteU8(dst, rxConfig()->serialrx_provider);
-
-        sbufWriteU16(dst, boardAlignment()->rollDeciDegrees);
-        sbufWriteU16(dst, boardAlignment()->pitchDeciDegrees);
-        sbufWriteU16(dst, boardAlignment()->yawDeciDegrees);
-
-        sbufWriteU16(dst, batteryMetersConfig()->current.scale);
-        sbufWriteU16(dst, batteryMetersConfig()->current.offset);
-        break;
-
-    case MSP_CF_SERIAL_CONFIG:
-        for (int i = 0; i < SERIAL_PORT_COUNT; i++) {
-            if (!serialIsPortAvailable(serialConfig()->portConfigs[i].identifier)) {
-                continue;
-            };
-            sbufWriteU8(dst, serialConfig()->portConfigs[i].identifier);
-            sbufWriteU16(dst, serialConfig()->portConfigs[i].functionMask);
-            sbufWriteU8(dst, serialConfig()->portConfigs[i].msp_baudrateIndex);
-            sbufWriteU8(dst, serialConfig()->portConfigs[i].gps_baudrateIndex);
-            sbufWriteU8(dst, serialConfig()->portConfigs[i].telemetry_baudrateIndex);
-            sbufWriteU8(dst, serialConfig()->portConfigs[i].peripheral_baudrateIndex);
-        }
-        break;
-
     case MSP2_COMMON_SERIAL_CONFIG:
         for (int i = 0; i < SERIAL_PORT_COUNT; i++) {
             if (!serialIsPortAvailable(serialConfig()->portConfigs[i].identifier)) {
@@ -1182,12 +1137,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #else
         sbufWriteU8(dst, OSD_DRIVER_NONE); // OSD not supported
 #endif
-        break;
-
-    case MSP_BF_BUILD_INFO:
-        sbufWriteData(dst, buildDate, 11); // MMM DD YYYY as ascii, MMM = Jan/Feb... etc
-        sbufWriteU32(dst, 0); // future exp
-        sbufWriteU32(dst, 0); // future exp
         break;
 
     case MSP_3D:
@@ -1686,23 +1635,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         if (sbufReadU16Safe(&tmp_u16, src))
             gyroConfigMutable()->looptime = tmp_u16;
         else
-            return MSP_RESULT_ERROR;
-        break;
-
-    case MSP_SET_PID_CONTROLLER:
-        // FIXME: Do nothing
-        break;
-
-    case MSP_SET_PID:
-        if (dataSize >= PID_ITEM_COUNT * 3) {
-            for (int i = 0; i < PID_ITEM_COUNT; i++) {
-                pidBankMutable()->pid[i].P = sbufReadU8(src);
-                pidBankMutable()->pid[i].I = sbufReadU8(src);
-                pidBankMutable()->pid[i].D = sbufReadU8(src);
-            }
-            schedulePidGainsUpdate();
-            navigationUsePIDs();
-        } else
             return MSP_RESULT_ERROR;
         break;
 
@@ -2691,54 +2623,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             }
         } else
             return MSP_RESULT_ERROR;
-        break;
-
-    case MSP_SET_BF_CONFIG:
-        if (dataSize >= 16) {
-            sbufReadU8(src); // mixerMode no longer supported, just swallow
-            mixerUpdateStateFlags();    // Required for correct preset functionality
-
-            featureClearAll();
-            featureSet(sbufReadU32(src)); // features bitmap
-
-            rxConfigMutable()->serialrx_provider = sbufReadU8(src); // serialrx_type
-
-            boardAlignmentMutable()->rollDeciDegrees = sbufReadU16(src); // board_align_roll
-            boardAlignmentMutable()->pitchDeciDegrees = sbufReadU16(src); // board_align_pitch
-            boardAlignmentMutable()->yawDeciDegrees = sbufReadU16(src); // board_align_yaw
-
-            batteryMetersConfigMutable()->current.scale = sbufReadU16(src);
-            batteryMetersConfigMutable()->current.offset = sbufReadU16(src);
-        } else
-            return MSP_RESULT_ERROR;
-        break;
-
-    case MSP_SET_CF_SERIAL_CONFIG:
-        {
-            uint8_t portConfigSize = sizeof(uint8_t) + sizeof(uint16_t) + (sizeof(uint8_t) * 4);
-
-            if (dataSize % portConfigSize != 0) {
-                return MSP_RESULT_ERROR;
-            }
-
-            uint8_t remainingPortsInPacket = dataSize / portConfigSize;
-
-            while (remainingPortsInPacket--) {
-                uint8_t identifier = sbufReadU8(src);
-
-                serialPortConfig_t *portConfig = serialFindPortConfiguration(identifier);
-                if (!portConfig) {
-                    return MSP_RESULT_ERROR;
-                }
-
-                portConfig->identifier = identifier;
-                portConfig->functionMask = sbufReadU16(src);
-                portConfig->msp_baudrateIndex = constrain(sbufReadU8(src), BAUD_MIN, BAUD_MAX);
-                portConfig->gps_baudrateIndex = constrain(sbufReadU8(src), BAUD_MIN, BAUD_MAX);
-                portConfig->telemetry_baudrateIndex = constrain(sbufReadU8(src), BAUD_MIN, BAUD_MAX);
-                portConfig->peripheral_baudrateIndex = constrain(sbufReadU8(src), BAUD_MIN, BAUD_MAX);
-            }
-        }
         break;
 
     case MSP2_COMMON_SET_SERIAL_CONFIG:

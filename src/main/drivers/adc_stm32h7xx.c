@@ -51,7 +51,6 @@ static adcDevice_t adcHardware[ADCDEV_COUNT] = {
         .enabled = false, 
         .usedChannelCount = 0
     },
-    /* currently not used
     { 
         .ADCx = ADC2,
         .rccADC = RCC_AHB1(ADC12),
@@ -60,8 +59,18 @@ static adcDevice_t adcHardware[ADCDEV_COUNT] = {
         .channel = DMA_REQUEST_ADC2,
         .enabled = false, 
         .usedChannelCount = 0
+    },
+#if !(defined(STM32H7A3xx) || defined(STM32H7A3xxQ)) // These MCUs do not support ADC3
+    { 
+        .ADCx = ADC3,
+        .rccADC = RCC_AHB4(ADC3),
+        .rccDMA = RCC_AHB1(DMA2),
+        .DMAy_Streamx = DMA2_Stream2,
+        .channel = DMA_REQUEST_ADC3,
+        .enabled = false, 
+        .usedChannelCount = 0
     }
-    */
+#endif // ADC3
 };
 
 adcDevice_t adcDevice[ADCDEV_COUNT];
@@ -113,6 +122,9 @@ ADCDevice adcDeviceByInstance(ADC_TypeDef *instance)
 
     if (instance == ADC2)
         return ADCDEV_2;
+
+    if (instance == ADC3)
+        return ADCDEV_3;
 
     return ADCINVALID;
 }

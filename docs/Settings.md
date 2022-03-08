@@ -188,7 +188,7 @@ Defines airmode THROTTLE activation threshold when `airmode_type` **THROTTLE_THR
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1300 | 1000 | 2000 |
+| 1150 | 1000 | 2000 |
 
 ---
 
@@ -1602,6 +1602,36 @@ Use Dynamic LPF instead of static gyro stage1 LPF. Dynamic Gyro LPF updates gyro
 
 ---
 
+### gyro_zero_x
+
+Calculated gyro zero calibration of axis X
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -32768 | 32767 |
+
+---
+
+### gyro_zero_y
+
+Calculated gyro zero calibration of axis Y
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -32768 | 32767 |
+
+---
+
+### gyro_zero_z
+
+Calculated gyro zero calibration of axis Z
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -32768 | 32767 |
+
+---
+
 ### has_flaps
 
 Defines is UAV is capable of having flaps. If ON and AIRPLANE `platform_type` is used, **FLAPERON** flight mode will be available for the pilot
@@ -2099,6 +2129,26 @@ _// TODO_
 | Default | Min | Max |
 | --- | --- | --- |
 | 6.1 | 0 | 100 |
+
+---
+
+### init_gyro_cal
+
+If defined to 'OFF', it will ignore the gyroscope calibration done at each startup. Instead, the gyroscope last calibration from when you calibrated will be used. It also means you don't have to keep the UAV stationary during a startup.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| ON | OFF | ON |
+
+---
+
+### ins_gravity_cmss
+
+Calculated 1G of Acc axis Z to use in INS
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0.0 | 0 | 2000 |
 
 ---
 
@@ -2818,7 +2868,7 @@ Craft name
 
 | Default | Min | Max |
 | --- | --- | --- |
-| _empty_ |  |  |
+| _empty_ |  | MAX_NAME_LENGTH |
 
 ---
 
@@ -3862,6 +3912,16 @@ Defines how Pitch/Roll input from RC receiver affects flight in POSHOLD mode: AT
 
 ---
 
+### nav_wp_enforce_altitude
+
+Forces craft to achieve the set WP altitude as well as position before moving to next WP. Position is held and altitude adjusted as required before moving on.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### nav_wp_load_on_boot
 
 If set to ON, waypoints will be automatically loaded from EEPROM to the FC during startup.
@@ -4592,6 +4652,16 @@ Auto swap display time interval between disarm stats pages (seconds). Reverts to
 
 ---
 
+### osd_system_msg_display_time
+
+System message display cycle time for multiple messages (milliseconds).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | 500 | 5000 |
+
+---
+
 ### osd_telemetry
 
 To enable OSD telemetry for antenna tracker. Possible values are `OFF`, `ON` and `TEST`
@@ -4634,7 +4704,7 @@ IMPERIAL, METRIC, UK
 
 ### osd_video_system
 
-Video system used. Possible values are `AUTO`, `PAL` and `NTSC`
+Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, and `HD`
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5414,7 +5484,7 @@ Total flight distance [in meters]. The value is updated on every disarm when "st
 
 ### stats_total_energy
 
-_// TODO_
+Total energy consumption [in mWh]. The value is updated on every disarm when "stats" are enabled.
 
 | Default | Min | Max |
 | --- | --- | --- |
