@@ -60,40 +60,66 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 
 ## CLI Command Reference
 
-| `Command`        | Description                                    |
-|------------------|------------------------------------------------|
-| `1wire <esc>`    | passthrough 1wire to the specified esc         |
-| `adjrange`       | show/set adjustment ranges settings            |
-| `aux`            | show/set aux settings                          |
-| `beeper`         | show/set beeper (buzzer) [usage](Buzzer.md)    |
-| `bind_rx`        | Initiate binding for RX_SPI or SRXL2 receivers |
-| `mmix`           | design custom motor mixer                      |
-| `smix`           | design custom servo mixer                      |
-| `color`          | configure colors                               |
-| `defaults`       | reset to defaults and reboot                   |
-| `dump`           | print configurable settings in a pastable form |
-| `diff`           | print only settings that have been modified    |
-| `exit`           |                                                |
-| `feature`        | list or -val or val                            |
-| `get`            | get variable value                             |
-| `gpspassthrough` | passthrough gps to serial                      |
-| `help`           |                                                |
-| `led`            | configure leds                                 |
-| `map`            | mapping of rc channel order                    |
-| `motor`          | get/set motor output value                     |
-| `msc`            | Enter USB Mass storage mode. See [USB MSC documentation](USB_Mass_Storage_(MSC)_mode.md) for usage information.|
-| `play_sound`     | index, or none for next                        |
-| `profile`        | index (0 to 2)                                 |
-| `rxrange`        | configure rx channel ranges (end-points) |
-| `safehome`      | Define safe home locations. See the [safehome documentation](Safehomes.md) for usage information. |
-| `save`           | save and reboot                                |
-| `serial`         | Configure serial ports                         |
-| `serialpassthrough <id> <baud> <mode>`| where `id` is the zero based port index, `baud` is a standard baud rate, and mode is `rx`, `tx`, or both (`rxtx`) |
-| `set`            | name=value or blank or * for list              |
-| `status`         | show system status                             |
-| `temp_sensor`    | list or configure temperature sensor(s). See [temperature sensors documentation](Temperature sensors.md) for more information. |
-| `wp`             | list or configure waypoints. See more in the [navigation documentation](Navigation.md#cli-command-wp-to-manage-waypoints). |
-| `version`        | Displays version information,                  |
+| `Command` | Description |
+|-----------| ----------- |
+| `adjrange` | Configure adjustment ranges |
+| `assert` |  |
+| `aux` | Configure modes |
+| `batch` | Start or end a batch of commands |
+| `battery_profile` | Change battery profile |
+| `beeper` | Show/set beeper (buzzer) [usage](Buzzer.md) |
+| `bind_rx` | Initiate binding for RX SPI or SRXL2 |
+| `blackbox` | Configure blackbox fields |
+| `bootlog` | Show boot events |
+| `color` | Configure colors |
+| `defaults` | Reset to defaults and reboot |
+| `dfu` | DFU mode on reboot |
+| `diff` | List configuration changes from default |
+| `dump` | Dump configuration |
+| `eleres_bind` |  |
+| `exit` |  |
+| `feature` | List or enable <val> or disable <-val> |
+| `flash_erase` | Erase flash chip |
+| `flash_info` | Show flash chip info |
+| `flash_read` |  |
+| `flash_write` |  |
+| `get` | Get variable value |
+| `gpspassthrough` | Passthrough gps to serial |
+| `gvar` | Configure global variables |
+| `help` | Displays CLI help and command parameters / options |
+| `imu2` | Secondary IMU |
+| `led` | Configure leds |
+| `logic` | Configure logic conditions |
+| `map` | Configure rc channel order |
+| `memory` | View memory usage |
+| `mmix` | Custom motor mixer |
+| `mode_color` | Configure mode and special colors |
+| `motor` | Get/set motor |
+| `msc` | Enter USB Mass storage mode. See [USB MSC documentation](USB_Mass_Storage_(MSC)_mode.md) for usage information. |
+| `osd_layout` | Get or set the layout of OSD items |
+| `pid` | Configurable PID controllers |
+| `play_sound` | `<index>`, or none for next item |
+| `profile` | Change profile |
+| `resource` | View currently used resources |
+| `rxrange` | Configure rx channel ranges |
+| `safehome` | Define safe home locations. See the [safehome documentation](Safehomes.md) for usage information. |
+| `save` | Save and reboot |
+| `sd_info` | Sdcard info |
+| `serial` | Configure serial ports. [Usage](Serial.md) |
+| `serialpassthrough` | Passthrough serial data to port, with `<id> <baud> <mode>`, where `id` is the zero based port index, `baud` is a standard baud rate, and mode is `rx`, `tx`, or both (`rxtx`) |
+| `servo` | Configure servos |
+| `set` | Change setting with name=value or blank or * for list |
+| `smix` | Custom servo mixer |
+| `status` | Show status |
+| `tasks` | Show task stats |
+| `temp_sensor` | List or configure temperature sensor(s). See [temperature sensors documentation](Temperature-sensors.md) for more information. |
+| `version` | Show version |
+| `wp` | List or configure waypoints. See the [navigation documentation](Navigation.md#cli-command-wp-to-manage-waypoints). |
+
+Notes:
+
+* Available commands depend upon hardware specific and debug build options. Not all commands are available in every FC.
+* The above list shows the output available in the CLI `help` command. This may also show additional information.
 
 ### serial
 
@@ -121,6 +147,14 @@ A shorter form is also supported to enable and disable a single function using `
 | LOG                   | 15            | 32768 |
 | RANGEFINDER           | 16            | 65536 |
 | VTX_FFPV              | 17            | 131072 |
+| ESCSERIAL             | 18            | 262144 |
+| TELEMETRY_SIM         | 19            | 524288 |
+| FRSKY_OSD             | 20            | 1048576 |
+| DJI_HD_OSD            | 21            | 2097152 |
+| SERVO_SERIAL          | 22            | 4194304 |
+| TELEMETRY_SMARTPORT_MASTER | 23       | 8388608 |
+| IMU2                  | 24            | 16777216 |
+| HDZERO                | 25            | 33554432 |
 
 Thus, to enable MSP and LTM on a port, one would use the function **value** of 17 (1 << 0)+(1<<4), aka 1+16, aka 17.
 

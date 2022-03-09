@@ -303,6 +303,14 @@ static int logicConditionCompute(
             temporaryValue = (operandB == 0) ? 500 : operandB;
             return tan_approx(DEGREES_TO_RADIANS(operandA)) * temporaryValue; 
         break;
+
+        case LOGIC_CONDITION_MIN:
+            return (operandA < operandB) ? operandA : operandB;
+        break;
+
+        case LOGIC_CONDITION_MAX:
+            return (operandA > operandB) ? operandA : operandB;
+        break;
     
         case LOGIC_CONDITION_MAP_INPUT:
             return scaleRange(constrain(operandA, 0, operandB), 0, operandB, 0, 1000);
@@ -423,6 +431,11 @@ static int logicConditionGetFlightOperandValue(int operand) {
         case LOGIC_CONDITION_OPERAND_FLIGHT_CELL_VOLTAGE: // V / 10
             return getBatteryAverageCellVoltage();
             break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_BATT_CELLS:
+            return getBatteryCellCount();
+            break;
+
         case LOGIC_CONDITION_OPERAND_FLIGHT_CURRENT: // Amp / 100
             return getAmperage();
             break;
@@ -537,7 +550,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_3D_HOME_DISTANCE: //in m
-            return constrain(fast_fsqrtf(sq(GPS_distanceToHome) + sq(getEstimatedActualPosition(Z)/100)), 0, INT16_MAX);
+            return constrain(calc_length_pythagorean_2D(GPS_distanceToHome, getEstimatedActualPosition(Z) / 100.0f), 0, INT16_MAX);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_LQ:

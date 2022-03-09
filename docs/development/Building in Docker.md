@@ -20,6 +20,12 @@ Where `<TARGET>` must be replaced with the name of the target that you want to b
 ./build.sh MATEKF405SE
 ```
 
+Run the script with no arguments to get more details on its usage:
+
+```
+./build.sh
+```
+
 ## Windows 10
 
 Docker on Windows requires full paths for mounting volumes in `docker run` commands. For example: `c:\Users\pspyc\Documents\Projects\inav` becomes `//c/Users/pspyc/Documents/Projects/inav` .

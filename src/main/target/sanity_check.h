@@ -45,7 +45,7 @@
 #error "Replace USE_GYRO_xxx and USE_ACC_xxx with USE_IMU_xxx"
 #endif
 
-#if defined (USE_ACC_LSM303DLHC) || defined (USE_ACC_BMI160)
+#if defined (USE_ACC_BMI160)
 #error "Replace USE_GYRO_xxx and USE_ACC_xxx with USE_IMU_xxx"
 #endif
 
@@ -73,12 +73,3 @@
 #if defined (GYRO_ICM20689_ALIGN) || defined (ACC_ICM20689_ALIGN)
 #error "Replace GYRO_ICM20689_ALIGN and ACC_ICM20689_ALIGN with IMU_ICM20689_ALIGN"
 #endif
-
-#if defined (GYRO_L3GD20_ALIGN)
-#error "Replace GYRO_L3GD20_ALIGN with IMU_L3GD20_ALIGN"
-#endif
-
-#if defined (ACC_LSM303DLHC_ALIGN)
-#error "Replace ACC_LSM303DLHC_ALIGN with IMU_LSM303DLHC_ALIGN"
-#endif
-

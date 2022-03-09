@@ -1,0 +1,1 @@
+target_stm32f745xg(FOXEERF745AIO)
