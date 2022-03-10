@@ -3295,6 +3295,9 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
     } else if (cmdMSP == MSP_SET_PASSTHROUGH) {
         mspFcSetPassthroughCommand(dst, src, mspPostProcessFn);
         ret = MSP_RESULT_ACK;
+    } else if (cmdMSP == MSP_SET_INAV_PID && strncmp((char *)&src->ptr, "applied_defaults", 16)) {
+        // in case we received "applied_defaults" via MSPv1 with incorrect cmdMSP (correct is 0x1007) - skip it
+        ret = MSP_RESULT_ERROR;
     } else {
         if (!mspFCProcessInOutCommand(cmdMSP, dst, src, &ret)) {
             ret = mspFcProcessInCommand(cmdMSP, src);
