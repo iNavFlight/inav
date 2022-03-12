@@ -2200,7 +2200,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP_SET_RTH_AND_LAND_CONFIG:
-        if (dataSize == 19) {
+        if (dataSize == 21) {
             navConfigMutable()->general.min_rth_distance = sbufReadU16(src);
             navConfigMutable()->general.flags.rth_climb_first = sbufReadU8(src);
             navConfigMutable()->general.flags.rth_climb_ignore_emerg = sbufReadU8(src);
