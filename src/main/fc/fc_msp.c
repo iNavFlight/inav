@@ -2328,7 +2328,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #ifdef USE_BLACKBOX
     case MSP2_SET_BLACKBOX_CONFIG:
         // Don't allow config to be updated while Blackbox is logging
-        if ((dataSize >= 9) && blackboxMayEditConfig()) {
+        if ((dataSize == 9) && blackboxMayEditConfig()) {
             blackboxConfigMutable()->device = sbufReadU8(src);
             blackboxConfigMutable()->rate_num = sbufReadU16(src);
             blackboxConfigMutable()->rate_denom = sbufReadU16(src);
