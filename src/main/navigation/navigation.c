@@ -59,8 +59,10 @@
 #include "sensors/sensors.h"
 #include "sensors/acceleration.h"
 #include "sensors/boardalignment.h"
+#include "sensors/battery.h"
 
 #define WP_ALTITUDE_MARGIN_CM   100      // WP enforce altitude tolerance, used when WP altitude setting enforced when WP reached
+
 // Multirotors:
 #define MR_RTH_CLIMB_OVERSHOOT_CM   100  // target this amount of cm *above* the target altitude to ensure it is actually reached (Vz > 0 at target alt)
 #define MR_RTH_CLIMB_MARGIN_MIN_CM  100  // start cruising home this amount of cm *before* reaching the cruise altitude (while continuing the ascend)
@@ -254,6 +256,7 @@ void missionPlannerSetWaypoint(void);
 void initializeRTHSanityChecker(const fpVector3_t * pos);
 bool validateRTHSanityChecker(void);
 void updateHomePosition(void);
+bool abortLaunchAllowed(void);
 
 static bool rthAltControlStickOverrideCheck(unsigned axis);
 
@@ -1746,13 +1749,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_WAIT(navigationF
         return NAV_FSM_EVENT_SUCCESS;   // NAV_STATE_LAUNCH_IN_PROGRESS
     }
 
-    //allow to leave NAV_LAUNCH_MODE if it has being enabled as feature by moving sticks with low throttle.
-    if (feature(FEATURE_FW_LAUNCH)) {
-        throttleStatus_e throttleStatus = calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC);
-        if ((throttleStatus == THROTTLE_LOW) && (isRollPitchStickDeflected())) {
-            abortFixedWingLaunch();
-            return NAV_FSM_EVENT_SWITCH_TO_IDLE;
-        }
+    // abort NAV_LAUNCH_MODE by moving sticks with low throttle or throttle stick < launch idle throttle
+    if (abortLaunchAllowed() && isRollPitchStickDeflected()) {
+        abortFixedWingLaunch();
+        return NAV_FSM_EVENT_SWITCH_TO_IDLE;
     }
 
     return NAV_FSM_EVENT_NONE;
@@ -3344,13 +3344,13 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
                 }
             }
             else {
-                // If we were in LAUNCH mode - force switch to IDLE only if the throttle is low
+                // If we were in LAUNCH mode - force switch to IDLE only if the throttle is low or throttle stick < launch idle throttle
                 if (FLIGHT_MODE(NAV_LAUNCH_MODE)) {
-                    throttleStatus_e throttleStatus = calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC);
-                    if (throttleStatus != THROTTLE_LOW)
-                        return NAV_FSM_EVENT_NONE;
-                    else
+                    if (abortLaunchAllowed()) {
                         return NAV_FSM_EVENT_SWITCH_TO_IDLE;
+                    } else {
+                        return NAV_FSM_EVENT_NONE;
+                    }
                 }
             }
 
@@ -3999,6 +3999,13 @@ bool navigationRTHAllowsLanding(void)
 bool isNavLaunchEnabled(void)
 {
     return IS_RC_MODE_ACTIVE(BOXNAVLAUNCH) || feature(FEATURE_FW_LAUNCH);
+}
+
+bool abortLaunchAllowed(void)
+{
+    // allow NAV_LAUNCH_MODE to be aborted if throttle is low or throttle stick position is < launch idle throttle setting
+    throttleStatus_e throttleStatus = calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC);
+    return throttleStatus == THROTTLE_LOW || throttleStickMixedValue() < currentBatteryProfile->nav.fw.launch_idle_throttle;
 }
 
 int32_t navigationGetHomeHeading(void)
