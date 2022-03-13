@@ -2251,7 +2251,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU16(src);
 #endif
 #ifdef USE_OPFLOW
-            if (dataSize == 20) {
+            if (dataSize >= 20) {
                 opticalFlowConfigMutable()->opflow_scale = sbufReadU16(src) / 256.0f;
             }
 #endif
@@ -2752,14 +2752,17 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP2_INAV_SET_MIXER:
-        mixerConfigMutable()->motorDirectionInverted = sbufReadU8(src);
-        sbufReadU16(src); // Was yaw_jump_prevention_limit
-        mixerConfigMutable()->platformType = sbufReadU8(src);
-        mixerConfigMutable()->hasFlaps = sbufReadU8(src);
-        mixerConfigMutable()->appliedMixerPreset = sbufReadU16(src);
-        sbufReadU8(src); //Read and ignore MAX_SUPPORTED_MOTORS
-        sbufReadU8(src); //Read and ignore MAX_SUPPORTED_SERVOS
-        mixerUpdateStateFlags();
+        if (dataSize == 9) {
+	    mixerConfigMutable()->motorDirectionInverted = sbufReadU8(src);
+	    sbufReadU16(src); // Was yaw_jump_prevention_limit
+	    mixerConfigMutable()->platformType = sbufReadU8(src);
+	    mixerConfigMutable()->hasFlaps = sbufReadU8(src);
+	    mixerConfigMutable()->appliedMixerPreset = sbufReadU16(src);
+	    sbufReadU8(src); //Read and ignore MAX_SUPPORTED_MOTORS
+	    sbufReadU8(src); //Read and ignore MAX_SUPPORTED_SERVOS
+	    mixerUpdateStateFlags();
+	} else
+            return MSP_RESULT_ERROR;
         break;
 
 #if defined(USE_OSD)
