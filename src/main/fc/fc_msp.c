@@ -1107,6 +1107,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, blackboxConfig()->device);
         sbufWriteU16(dst, blackboxConfig()->rate_num);
         sbufWriteU16(dst, blackboxConfig()->rate_denom);
+        sbufWriteU32(dst,blackboxConfig()->includeFlags);
 #else
         sbufWriteU8(dst, 0); // Blackbox not supported
         sbufWriteU8(dst, 0);
@@ -2327,10 +2328,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #ifdef USE_BLACKBOX
     case MSP2_SET_BLACKBOX_CONFIG:
         // Don't allow config to be updated while Blackbox is logging
-        if ((dataSize >= 5) && blackboxMayEditConfig()) {
+        if ((dataSize >= 9) && blackboxMayEditConfig()) {
             blackboxConfigMutable()->device = sbufReadU8(src);
             blackboxConfigMutable()->rate_num = sbufReadU16(src);
             blackboxConfigMutable()->rate_denom = sbufReadU16(src);
+            blackboxConfigMutable()->includeFlags = sbufReadU32(src);
         } else
             return MSP_RESULT_ERROR;
         break;
