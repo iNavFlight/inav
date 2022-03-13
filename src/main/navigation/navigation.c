@@ -206,6 +206,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .useFwNavYawControl = SETTING_NAV_USE_FW_YAW_CONTROL_DEFAULT,
         .yawControlDeadband = SETTING_NAV_FW_YAW_DEADBAND_DEFAULT,
         .soaring_pitch_deadband = SETTING_NAV_FW_SOARING_PITCH_DEADBAND_DEFAULT,// pitch angle mode deadband when Saoring mode enabled
+        .auto_disarm_delay = SETTING_NAV_FW_AUTO_DISARM_DELAY_DEFAULT,          // ms - time delay to disarm when auto disarm after landing enabled
     }
 );
 
@@ -1320,7 +1321,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HOVER_PRIOR_TO_LAND
     // If position ok OR within valid timeout - continue
     // Wait until target heading is reached for MR (with 15 deg margin for error), or continue for Fixed Wing
     if ((ABS(wrap_18000(posControl.rthState.homePosition.yaw - posControl.actualState.yaw)) < DEGREES_TO_CENTIDEGREES(15)) || STATE(FIXED_WING_LEGACY)) {
-        resetLandingDetector();
+        resetLandingDetector();     // force reset landing detector just in case
         updateClimbRateToAltitudeController(0, ROC_TO_ALT_RESET);
         return navigationRTHAllowsLanding() ? NAV_FSM_EVENT_SUCCESS : NAV_FSM_EVENT_SWITCH_TO_RTH_HOVER_ABOVE_HOME; // success = land
     } else {
@@ -1368,7 +1369,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
         return NAV_FSM_EVENT_SUCCESS;
     }
 
-    if (!ARMING_FLAG(ARMED) || isLandingDetected()) {
+    if (!ARMING_FLAG(ARMED) || STATE(LANDING_DETECTED)) {
         return NAV_FSM_EVENT_SUCCESS;
     }
 
@@ -1404,7 +1405,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_FINISHING(navigatio
     UNUSED(previousState);
 
     //On ROVER and BOAT disarm immediately
-    if (!STATE(ALTITUDE_CONTROL) || navConfig()->general.flags.disarm_on_landing) {
+    if (!STATE(ALTITUDE_CONTROL)) {
         disarm(DISARM_NAVIGATION);
     }
 
@@ -1713,20 +1714,23 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_EMERGENCY_LANDING_INITI
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_EMERGENCY_LANDING_IN_PROGRESS(navigationFSMState_t previousState)
 {
-    // TODO:
     UNUSED(previousState);
+
+    if (STATE(LANDING_DETECTED)) {
+        return NAV_FSM_EVENT_SUCCESS;
+    }
+
     return NAV_FSM_EVENT_NONE;
 }
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_EMERGENCY_LANDING_FINISHED(navigationFSMState_t previousState)
 {
-    // TODO:
     UNUSED(previousState);
 
-    // Prevent I-terms growing when already landed
-    pidResetErrorAccumulators();
+    rcCommand[THROTTLE] = getThrottleIdleValue();
+    ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);
 
-    return NAV_FSM_EVENT_SUCCESS;
+    return NAV_FSM_EVENT_NONE;
 }
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_INITIALIZE(navigationFSMState_t previousState)
@@ -2589,28 +2593,56 @@ void calculateNewCruiseTarget(fpVector3_t * origin, int32_t yaw, int32_t distanc
 /*-----------------------------------------------------------
  * NAV land detector
  *-----------------------------------------------------------*/
-void resetLandingDetector(void)
+void updateLandingStatus(void)
 {
-    if (STATE(FIXED_WING_LEGACY)) { // FIXED_WING_LEGACY
-        resetFixedWingLandingDetector();
+    if (STATE(AIRPLANE) && !navConfig()->general.flags.disarm_on_landing) {
+        return;     // no point using this with a fixed wing if not set to disarm
     }
-    else {
-        resetMulticopterLandingDetector();
+
+    static bool landingDetectorIsActive;
+
+    if (!ARMING_FLAG(ARMED)) {
+        resetLandingDetector();
+        landingDetectorIsActive = false;
+        if (!IS_RC_MODE_ACTIVE(BOXARM)) {
+            DISABLE_ARMING_FLAG(ARMING_DISABLED_LANDING_DETECTED);
+        }
+        return;
+    }
+
+    if (!landingDetectorIsActive) {
+        if (isFlightDetected()) {
+            landingDetectorIsActive = true;
+            resetLandingDetector();
+        }
+    } else if (STATE(LANDING_DETECTED)) {
+        pidResetErrorAccumulators();
+        if (navConfig()->general.flags.disarm_on_landing) {
+            ENABLE_ARMING_FLAG(ARMING_DISABLED_LANDING_DETECTED);
+            disarm(DISARM_LANDING);
+        } else if (!navigationIsFlyingAutonomousMode()) {
+            // for multirotor only - reactivate landing detector without disarm when throttle raised toward hover throttle
+            landingDetectorIsActive = rxGetChannelValue(THROTTLE) < (0.5 * (currentBatteryProfile->nav.mc.hover_throttle + getThrottleIdleValue()));
+        }
+    } else if (isLandingDetected()) {
+        ENABLE_STATE(LANDING_DETECTED);
     }
 }
 
 bool isLandingDetected(void)
 {
-    bool landingDetected;
+    return STATE(AIRPLANE) ? isFixedWingLandingDetected() : isMulticopterLandingDetected();
+}
 
-    if (STATE(FIXED_WING_LEGACY)) { // FIXED_WING_LEGACY
-        landingDetected = isFixedWingLandingDetected();
-    }
-    else {
-        landingDetected = isMulticopterLandingDetected();
-    }
+void resetLandingDetector(void)
+{
+    DISABLE_STATE(LANDING_DETECTED);
+    posControl.flags.resetLandingDetector = true;
+}
 
-    return landingDetected;
+bool isFlightDetected(void)
+{
+    return STATE(AIRPLANE) ? isFixedWingFlying() : isMulticopterFlying();
 }
 
 /*-----------------------------------------------------------
