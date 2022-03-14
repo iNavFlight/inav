@@ -32,7 +32,7 @@
 #include "platform.h"
 
 FILE_COMPILE_FOR_SPEED
-#define USE_OSD
+
 #ifdef USE_OSD
 
 #include "build/debug.h"
