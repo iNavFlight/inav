@@ -40,7 +40,6 @@ Edit file `./.vscode/c_cpp_properties.json` to setup enabled `defines`
             "cStandard": "c11",
             "cppStandard": "c++17",
             "defines": [
-                "USE_NAV",
                 "NAV_FIXED_WING_LANDING",
                 "USE_OSD",
                 "USE_GYRO_NOTCH_1",

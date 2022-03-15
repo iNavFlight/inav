@@ -24,12 +24,15 @@
 #include "config/parameter_group.h"
 #include "drivers/sensor.h"
 
+/*
+ * Number of peaks to detect with Dynamic Notch Filter aka Matrixc Filter. This is equal to the number of dynamic notch filters
+ */
+#define DYN_NOTCH_PEAK_COUNT 3
+
 typedef enum {
     GYRO_NONE = 0,
     GYRO_AUTODETECT,
     GYRO_MPU6050,
-    GYRO_MPU3050,
-    GYRO_L3GD20,
     GYRO_MPU6000,
     GYRO_MPU6500,
     GYRO_MPU9250,
@@ -74,6 +77,9 @@ typedef struct gyroConfig_s {
     uint16_t kalman_q;
     uint8_t kalmanEnabled;
 #endif
+    bool init_gyro_cal_enabled;
+    int16_t gyro_zero_cal[XYZ_AXIS_COUNT];
+    float gravity_cmss_cal;
 } gyroConfig_t;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);
@@ -88,3 +94,4 @@ bool gyroReadTemperature(void);
 int16_t gyroGetTemperature(void);
 int16_t gyroRateDps(int axis);
 void gyroUpdateDynamicLpf(float cutoffFreq);
+float averageAbsGyroRates(void);

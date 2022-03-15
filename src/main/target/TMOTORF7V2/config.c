@@ -15,6 +15,23 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include <stdbool.h>
+#include <stdint.h>
 
-bool l3gd20Detect(gyroDev_t *gyro);
+#include "platform.h"
+
+#include "fc/fc_msp_box.h"
+
+#include "io/piniobox.h"
+#include "io/serial.h"
+
+#define BLUETOOTH_MSP_BAUDRATE      BAUD_19200
+
+void targetConfiguration(void)
+{
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART5)].functionMask = FUNCTION_MSP;
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART5)].msp_baudrateIndex = BLUETOOTH_MSP_BAUDRATE;
+
+    pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
+    pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
+}

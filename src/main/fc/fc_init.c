@@ -109,6 +109,7 @@
 #include "io/displayport_frsky_osd.h"
 #include "io/displayport_msp.h"
 #include "io/displayport_max7456.h"
+#include "io/displayport_hdzero_osd.h"
 #include "io/displayport_srxl.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
@@ -553,6 +554,11 @@ void init(void)
             osdDisplayPort = frskyOSDDisplayPortInit(osdConfig()->video_system);
         }
 #endif
+#ifdef USE_HDZERO_OSD
+        if (!osdDisplayPort) {
+            osdDisplayPort = hdzeroOsdDisplayPortInit();
+        }
+#endif
 #if defined(USE_MAX7456)
         // If there is a max7456 chip for the OSD and we have no
         // external OSD initialized, use it.
@@ -581,9 +587,7 @@ void init(void)
 #endif
 
 
-#ifdef USE_NAV
     navigationInit();
-#endif
 
 #ifdef USE_LED_STRIP
     ledStripInit();

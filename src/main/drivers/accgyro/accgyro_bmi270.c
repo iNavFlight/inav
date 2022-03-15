@@ -323,6 +323,7 @@ bool bmi270AccDetect(accDev_t *acc)
 
     acc->initFn = bmi270AccInit;
     acc->readFn = bmi270AccReadScratchpad;
+    acc->accAlign = acc->busDev->param;
 
     return true;
 }
@@ -349,6 +350,7 @@ bool bmi270GyroDetect(gyroDev_t *gyro)
     gyro->temperatureFn = bmi270TemperatureRead;
     gyro->intStatusFn = gyroCheckDataReady;
     gyro->scale = 1.0f / 16.4f; // 2000 dps
+    gyro->gyroAlign = gyro->busDev->param;
     return true;
 }
 #endif // USE_IMU_BMI270

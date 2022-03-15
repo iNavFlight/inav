@@ -68,8 +68,6 @@ bool findNearestSafeHome(void);                  // Find nearest safehome
 
 #endif // defined(USE_SAFE_HOME)
 
-#if defined(USE_NAV)
-
 #ifndef NAV_MAX_WAYPOINTS
 #define NAV_MAX_WAYPOINTS 15
 #endif
@@ -147,6 +145,12 @@ typedef enum {
     ON_FW_SPIRAL,
 } navRTHClimbFirst_e;
 
+typedef enum {  // keep aligned with fixedWingLaunchState_t
+    FW_LAUNCH_DETECTED = 4,
+    FW_LAUNCH_ABORTED = 9,
+    FW_LAUNCH_FLYING = 10,
+} navFwLaunchStatus_e;
+
 typedef enum {
     WP_PLAN_WAIT,
     WP_PLAN_SAVE,
@@ -218,12 +222,15 @@ typedef struct navConfig_s {
             uint8_t soaring_motor_stop;         // stop motor when Soaring mode enabled
             uint8_t mission_planner_reset;      // Allow WP Mission Planner reset using mode toggle (resets WPs to 0)
             uint8_t waypoint_mission_restart;   // Waypoint mission restart action
+            uint8_t waypoint_enforce_altitude;  // Forces waypoint altitude to be achieved
         } flags;
 
         uint8_t  pos_failure_timeout;               // Time to wait before switching to emergency landing (0 - disable)
         uint16_t waypoint_radius;                   // if we are within this distance to a waypoint then we consider it reached (distance is in cm)
         uint16_t waypoint_safe_distance;            // Waypoint mission sanity check distance
+#ifdef USE_MULTI_MISSION
         uint8_t  waypoint_multi_mission_index;      // Index of mission to be loaded in multi mission entry
+#endif
         bool     waypoint_load_on_boot;             // load waypoints automatically during boot
         uint16_t auto_speed;                        // autonomous navigation speed cm/sec
         uint16_t max_auto_speed;                    // maximum allowed autonomous navigation speed cm/sec
@@ -271,7 +278,7 @@ typedef struct navConfig_s {
         uint8_t  max_dive_angle;             // Fixed wing max banking angle (deg)
         uint16_t cruise_speed;               // Speed at cruise throttle (cm/s), used for time/distance left before RTH
         uint8_t control_smoothness;          // The amount of smoothing to apply to controls for navigation
-        uint16_t pitch_to_throttle_smooth;    // How smoothly the autopilot makes pitch to throttle correction inside a deadband defined by pitch_to_throttle_thresh.
+        uint16_t pitch_to_throttle_smooth;   // How smoothly the autopilot makes pitch to throttle correction inside a deadband defined by pitch_to_throttle_thresh.
         uint8_t  pitch_to_throttle_thresh;   // Threshold from average pitch where momentary pitch_to_throttle correction kicks in. [decidegrees]
         uint16_t loiter_radius;              // Loiter radius when executing PH on a fixed wing
         int8_t land_dive_angle;
@@ -282,7 +289,7 @@ typedef struct navConfig_s {
         uint16_t launch_idle_motor_timer;    // Time to wait before motor starts at_idle throttle (ms)
         uint16_t launch_motor_spinup_time;   // Time to speed-up motors from idle to launch_throttle (ESC desync prevention)
         uint16_t launch_end_time;            // Time to make the transition from launch angle to leveled and throttle transition from launch throttle to the stick position
-        uint16_t launch_min_time;	           // Minimum time in launch mode to prevent possible bump of the sticks from leaving launch mode early
+        uint16_t launch_min_time;	         // Minimum time in launch mode to prevent possible bump of the sticks from leaving launch mode early
         uint16_t launch_timeout;             // Launch timeout to disable launch mode and swith to normal flight (ms)
         uint16_t launch_max_altitude;        // cm, altitude where to consider launch ended
         uint8_t  launch_climb_angle;         // Target climb angle for launch (deg)
@@ -292,6 +299,7 @@ typedef struct navConfig_s {
         bool     useFwNavYawControl;
         uint8_t  yawControlDeadband;
         uint8_t  soaring_pitch_deadband;     // soaring mode pitch angle deadband (deg)
+        uint16_t auto_disarm_delay;          // fixed wing disarm delay for landing detector
     } fw;
 } navConfig_t;
 
@@ -368,7 +376,7 @@ typedef struct navDestinationPath_s {
 
 typedef struct navigationPIDControllers_s {
     /* Multicopter PIDs */
-    pidController_t   pos[XYZ_AXIS_COUNT];
+    pidController_t pos[XYZ_AXIS_COUNT];
     pidController_t vel[XYZ_AXIS_COUNT];
     pidController_t surface;
 
@@ -486,9 +494,10 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData);
 void resetWaypointList(void);
 bool loadNonVolatileWaypointList(bool clearIfLoaded);
 bool saveNonVolatileWaypointList(void);
+#ifdef USE_MULTI_MISSION
 void selectMultiMissionIndex(int8_t increment);
 void setMultiMissionOnArm(void);
-
+#endif
 float getFinalRTHAltitude(void);
 int16_t fixedWingPitchToThrottleCorrection(int16_t pitch, timeUs_t currentTimeUs);
 
@@ -561,11 +570,12 @@ bool isWaypointMissionRTHActive(void);
 bool rthClimbStageActiveAndComplete(void);
 
 bool isNavLaunchEnabled(void);
-bool isFixedWingLaunchDetected(void);
-bool isFixedWingLaunchFinishedOrAborted(void);
+uint8_t fixedWingLaunchStatus(void);
 const char * fixedWingLaunchStateMessage(void);
 
 float calculateAverageSpeed(void);
+
+void updateLandingStatus(void);
 
 const navigationPIDControllers_t* getNavigationPIDControllers(void);
 
@@ -593,15 +603,3 @@ extern uint16_t navFlags;
 extern uint16_t navEPH;
 extern uint16_t navEPV;
 extern int16_t navAccNEU[3];
-
-#else
-
-#define navigationRequiresAngleMode() (0)
-#define navigationGetHeadingControlState() (0)
-#define navigationRequiresThrottleTiltCompensation() (0)
-#define getEstimatedActualVelocity(axis) (0)
-#define navigationIsControllingThrottle() (0)
-#define navigationRTHAllowsLanding() (0)
-#define navigationGetHomeHeading() (0)
-
-#endif
