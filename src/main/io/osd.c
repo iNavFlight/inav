@@ -697,6 +697,18 @@ static void osdFormatCoordinate(char *buff, char sym, int32_t val)
     // up to 4 for number + 1 for the symbol + null terminator + fill the rest with decimals
     const int coordinateLength = osdConfig()->coordinate_digits + 1;
 
+	if (val != 0) {
+		switch (sym) {
+			case SYM_LAT:
+				val = val + osdConfig()->gps_shift_lat * 100000;
+				break;
+			case SYM_LON:
+				val = val + osdConfig()->gps_shift_lon * 100000;
+				break;
+			default:
+				break;
+		}
+	}
     buff[0] = sym;
     int32_t integerPart = val / GPS_DEGREES_DIVIDER;
     // Latitude maximum integer width is 3 (-90) while
@@ -1641,7 +1653,7 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_GPS_LON:
-        osdFormatCoordinate(buff, SYM_LON, gpsSol.llh.lon);
+		osdFormatCoordinate(buff, SYM_LON, gpsSol.llh.lon);
         break;
 
     case OSD_HOME_DIR:

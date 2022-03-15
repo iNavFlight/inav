@@ -393,6 +393,8 @@ typedef struct osdConfig_s {
     uint8_t ahi_width;                  // In pixels, only used by the AHI widget
     uint8_t ahi_height;                 // In pixels, only used by the AHI widget
     int8_t  ahi_vertical_offset;        // Offset from center in pixels. Positive moves the AHI down. Widget only.
+    int16_t gps_shift_lat;
+    int16_t gps_shift_lon;
     int8_t sidebar_horizontal_offset;   // Horizontal offset from default position. Units are grid slots for grid OSDs, pixels for pixel based OSDs. Positive values move sidebars closer to the edges.
     uint8_t left_sidebar_scroll_step;   // How many units each sidebar step represents. 0 means the default value for the scroll type.
     uint8_t right_sidebar_scroll_step;  // Same as left_sidebar_scroll_step, but for the right sidebar.
