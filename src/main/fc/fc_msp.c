@@ -534,18 +534,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 #ifdef USE_PROGRAMMING_FRAMEWORK
-    case MSP2_INAV_LOGIC_CONDITIONS:
-        for (int i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
-            sbufWriteU8(dst, logicConditions(i)->enabled);
-            sbufWriteU8(dst, logicConditions(i)->activatorId);
-            sbufWriteU8(dst, logicConditions(i)->operation);
-            sbufWriteU8(dst, logicConditions(i)->operandA.type);
-            sbufWriteU32(dst, logicConditions(i)->operandA.value);
-            sbufWriteU8(dst, logicConditions(i)->operandB.type);
-            sbufWriteU32(dst, logicConditions(i)->operandB.value);
-            sbufWriteU8(dst, logicConditions(i)->flags);
-        }
-        break;
     case MSP2_INAV_LOGIC_CONDITIONS_STATUS:
         for (int i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
             sbufWriteU32(dst, logicConditionGetValue(i));
@@ -1544,6 +1532,23 @@ static mspResult_e mspFcSafeHomeOutCommand(sbuf_t *dst, sbuf_t *src)
         return MSP_RESULT_ACK;
     } else {
          return MSP_RESULT_ERROR;
+    }
+}
+
+static mspResult_e mspFcLogicConditionCommand(sbuf_t *dst, sbuf_t *src) {
+    const uint8_t idx = sbufReadU8(src);
+    if (idx < MAX_LOGIC_CONDITIONS) {
+        sbufWriteU8(dst, logicConditions(idx)->enabled);
+        sbufWriteU8(dst, logicConditions(idx)->activatorId);
+        sbufWriteU8(dst, logicConditions(idx)->operation);
+        sbufWriteU8(dst, logicConditions(idx)->operandA.type);
+        sbufWriteU32(dst, logicConditions(idx)->operandA.value);
+        sbufWriteU8(dst, logicConditions(idx)->operandB.type);
+        sbufWriteU32(dst, logicConditions(idx)->operandB.value);
+        sbufWriteU8(dst, logicConditions(idx)->flags);
+        return MSP_RESULT_ACK;
+    } else {
+        return MSP_RESULT_ERROR;
     }
 }
 
@@ -3225,6 +3230,11 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         break;
 #endif
 
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    case MSP2_INAV_LOGIC_CONDITIONS:
+        *ret = mspFcLogicConditionCommand(dst, src);
+        break;
+#endif
     case MSP2_INAV_SAFEHOME:
          *ret = mspFcSafeHomeOutCommand(dst, src);
          break;
