@@ -76,7 +76,7 @@ static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
     );
 
     posControl.desiredState.pos.z = pos_desired_z;
-    
+
     // hard limit desired target velocity to max_climb_rate
     float vel_max_z = 0.0f;
 
@@ -119,11 +119,11 @@ static void updateAltitudeThrottleController_MC(timeDelta_t deltaMicros)
     // Calculate min and max throttle boundaries (to compensate for integral windup)
     const int16_t thrAdjustmentMin = (int16_t)getThrottleIdleValue() - (int16_t)currentBatteryProfile->nav.mc.hover_throttle;
     const int16_t thrAdjustmentMax = (int16_t)motorConfig()->maxthrottle - (int16_t)currentBatteryProfile->nav.mc.hover_throttle;
-    
+
     float velocity_controller = navPidApply2(&posControl.pids.vel[Z], posControl.desiredState.vel.z, navGetCurrentActualPositionAndVelocity()->vel.z, US2S(deltaMicros), thrAdjustmentMin, thrAdjustmentMax, 0);
-    
+
     posControl.rcAdjustment[THROTTLE] = pt1FilterApply4(&altholdThrottleFilterState, velocity_controller, NAV_THROTTLE_CUTOFF_FREQENCY_HZ, US2S(deltaMicros));
-    
+
     posControl.rcAdjustment[THROTTLE] = constrain(posControl.rcAdjustment[THROTTLE], thrAdjustmentMin, thrAdjustmentMax);
 
     posControl.rcAdjustment[THROTTLE] = constrain((int16_t)currentBatteryProfile->nav.mc.hover_throttle + posControl.rcAdjustment[THROTTLE], getThrottleIdleValue(), motorConfig()->maxthrottle);
@@ -224,7 +224,7 @@ void resetMulticopterAltitudeController(void)
     pt1FilterReset(&altholdThrottleFilterState, 0.0f);
     pt1FilterReset(&posControl.pids.vel[Z].error_filter_state, 0.0f);
     pt1FilterReset(&posControl.pids.vel[Z].dterm_filter_state, 0.0f);
-    
+
     if (FLIGHT_MODE(FAILSAFE_MODE) || FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
         const float maxSpeed = getActiveWaypointSpeed();
         nav_speed_up = maxSpeed;
@@ -239,8 +239,8 @@ void resetMulticopterAltitudeController(void)
     sqrtControllerInit(
         &alt_hold_sqrt_controller,
         posControl.pids.pos[Z].param.kP,
-        -fabsf(nav_speed_down), 
-        nav_speed_up, 
+        -fabsf(nav_speed_down),
+        nav_speed_up,
         nav_accel_z
     );
 }
@@ -546,7 +546,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     // Calculate XY-acceleration limit according to velocity error limit
     float accelLimitX, accelLimitY;
     const float velErrorMagnitude = calc_length_pythagorean_2D(velErrorX, velErrorY);
-    
+
     if (velErrorMagnitude > 0.1f) {
         accelLimitX = maxAccelLimit / velErrorMagnitude * fabsf(velErrorX);
         accelLimitY = maxAccelLimit / velErrorMagnitude * fabsf(velErrorY);
@@ -726,6 +726,7 @@ bool isMulticopterFlying(void)
  *-----------------------------------------------------------*/
 bool isMulticopterLandingDetected(void)
 {
+    DEBUG_SET(DEBUG_LANDING, 4, 0);
     static timeUs_t landingDetectorStartedAt;
     const bool throttleIsLow = calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC) == THROTTLE_LOW;
 
@@ -745,6 +746,8 @@ bool isMulticopterLandingDetected(void)
                         posControl.actualState.velXY < MC_LAND_CHECK_VEL_XY_MOVING;
     // check gyro rates are low (degs/s)
     bool gyroCondition = averageAbsGyroRates() < 2.0f;
+    DEBUG_SET(DEBUG_LANDING, 2, velCondition);
+    DEBUG_SET(DEBUG_LANDING, 3, gyroCondition);
 
     bool possibleLandingDetected = false;
     const timeUs_t currentTimeUs = micros();
@@ -753,6 +756,7 @@ bool isMulticopterLandingDetected(void)
         // We have likely landed if throttle is 40 units below average descend throttle
         // We use rcCommandAdjustedThrottle to keep track of NAV corrected throttle (isLandingDetected is executed
         // from processRx() and rcCommand at that moment holds rc input, not adjusted values from NAV core)
+        DEBUG_SET(DEBUG_LANDING, 4, 1);
 
         static int32_t landingThrSum;
         static int32_t landingThrSamples;
@@ -774,7 +778,11 @@ bool isMulticopterLandingDetected(void)
         isAtMinimalThrust = rcCommandAdjustedThrottle < (landingThrSum / landingThrSamples - MC_LAND_DESCEND_THROTTLE);
 
         possibleLandingDetected = isAtMinimalThrust && velCondition;
+
+        DEBUG_SET(DEBUG_LANDING, 6, rcCommandAdjustedThrottle);
+        DEBUG_SET(DEBUG_LANDING, 7, landingThrSum / landingThrSamples - MC_LAND_DESCEND_THROTTLE);
     } else {    // non autonomous and emergency landing
+        DEBUG_SET(DEBUG_LANDING, 4, 2);
         if (landingDetectorStartedAt) {
             possibleLandingDetected = velCondition && gyroCondition;
         } else {
@@ -790,6 +798,7 @@ bool isMulticopterLandingDetected(void)
         // surfaceMin is our ground reference. If we are less than 5cm above the ground - we are likely landed
         possibleLandingDetected = possibleLandingDetected && (posControl.actualState.agl.pos.z <= (posControl.actualState.surfaceMin + MC_LAND_SAFE_SURFACE));
     }
+    DEBUG_SET(DEBUG_LANDING, 5, possibleLandingDetected);
 
     if (possibleLandingDetected) {
         timeUs_t safetyTimeDelay = MS2US(2000 + navConfig()->mc.auto_disarm_delay);  // check conditions stable for 2s + optional extra delay
