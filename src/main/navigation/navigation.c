@@ -3334,7 +3334,6 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
          * If caused by sensor failure - landing auto cancelled if sensors working again or when WP and RTH deselected or if Althold selected.
          * If caused by RTH Sanity Checking - landing cancelled if RTH deselected.
          * Remains active if failsafe active regardless of mode selections */
-         // CR61
         if (navigationIsExecutingAnEmergencyLanding()) {
             bool autonomousNavIsPossible = canActivateNavigation && canActivateAltHold && STATE(GPS_FIX_HOME);
             bool emergLandingCancel = (!autonomousNavIsPossible &&
