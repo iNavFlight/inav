@@ -45,6 +45,7 @@ typedef enum {
     ARMING_DISABLED_PWM_OUTPUT_ERROR                = (1 << 27),
     ARMING_DISABLED_NO_PREARM                       = (1 << 28),
     ARMING_DISABLED_DSHOT_BEEPER                    = (1 << 29),
+    ARMING_DISABLED_LANDING_DETECTED                = (1 << 30),
 
     ARMING_DISABLED_ALL_FLAGS                       = (ARMING_DISABLED_FAILSAFE_SYSTEM | ARMING_DISABLED_NOT_LEVEL | ARMING_DISABLED_SENSORS_CALIBRATING |
                                                        ARMING_DISABLED_SYSTEM_OVERLOADED | ARMING_DISABLED_NAVIGATION_UNSAFE |
@@ -53,7 +54,8 @@ typedef enum {
                                                        ARMING_DISABLED_BOXKILLSWITCH | ARMING_DISABLED_RC_LINK | ARMING_DISABLED_THROTTLE | ARMING_DISABLED_CLI |
                                                        ARMING_DISABLED_CMS_MENU | ARMING_DISABLED_OSD_MENU | ARMING_DISABLED_ROLLPITCH_NOT_CENTERED |
                                                        ARMING_DISABLED_SERVO_AUTOTRIM | ARMING_DISABLED_OOM | ARMING_DISABLED_INVALID_SETTING |
-                                                       ARMING_DISABLED_PWM_OUTPUT_ERROR | ARMING_DISABLED_NO_PREARM | ARMING_DISABLED_DSHOT_BEEPER),
+                                                       ARMING_DISABLED_PWM_OUTPUT_ERROR | ARMING_DISABLED_NO_PREARM | ARMING_DISABLED_DSHOT_BEEPER |
+                                                       ARMING_DISABLED_LANDING_DETECTED),
 } armingFlag_e;
 
 // Arming blockers that can be overriden by emergency arming.
@@ -135,6 +137,7 @@ typedef enum {
     SET_REVERSIBLE_MOTORS_FORWARD       = (1 << 23),
     FW_HEADING_USE_YAW                  = (1 << 24),
     ANTI_WINDUP_DEACTIVATED             = (1 << 25),
+    LANDING_DETECTED                    = (1 << 26),
 } stateFlags_t;
 
 #define DISABLE_STATE(mask) (stateFlags &= ~(mask))

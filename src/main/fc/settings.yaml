@@ -96,7 +96,7 @@ tables:
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "ERPM", "RPM_FILTER", "RPM_FREQ", "NAV_YAW", "DYNAMIC_FILTER", "DYNAMIC_FILTER_FREQUENCY",
       "IRLOCK", "KALMAN_GAIN", "PID_MEASUREMENT", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "IMU2", "ALTITUDE",
-      "SMITH_PREDICTOR", "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS"]
+      "SMITH_PREDICTOR", "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -309,6 +309,35 @@ groups:
         condition: USE_GYRO_KALMAN
         min: 1
         max: 16000
+      - name: init_gyro_cal
+        description: "If defined to 'OFF', it will ignore the gyroscope calibration done at each startup. Instead, the gyroscope last calibration from when you calibrated will be used. It also means you don't have to keep the UAV stationary during a startup."
+        default_value: ON
+        field: init_gyro_cal_enabled
+        type: bool
+      - name: gyro_zero_x
+        description: "Calculated gyro zero calibration of axis X"
+        default_value: 0
+        field: gyro_zero_cal[X]
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: gyro_zero_y
+        description: "Calculated gyro zero calibration of axis Y"
+        default_value: 0
+        field: gyro_zero_cal[Y]
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: gyro_zero_z
+        description: "Calculated gyro zero calibration of axis Z"
+        default_value: 0
+        field: gyro_zero_cal[Z]
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: ins_gravity_cmss
+        description: "Calculated 1G of Acc axis Z to use in INS"
+        default_value: 0.0
+        field: gravity_cmss_cal
+        min: 0
+        max: 2000
 
   - name: PG_ADC_CHANNEL_CONFIG
     type: adcChannelConfig_t
@@ -1648,7 +1677,7 @@ groups:
         table: airmodeHandlingType
       - name: airmode_throttle_threshold
         description: "Defines airmode THROTTLE activation threshold when `airmode_type` **THROTTLE_THRESHOLD** is used"
-        default_value: 1300
+        default_value: 1150
         field: airmodeThrottleThreshold
         min: 1000
         max: 2000
@@ -1949,7 +1978,6 @@ groups:
         min: HEADING_HOLD_RATE_LIMIT_MIN
         max: HEADING_HOLD_RATE_LIMIT_MAX
         default_value: 90
-
       - name: nav_mc_pos_z_p
         description: "P gain of altitude PID controller (Multirotor)"
         field: bank_mc.pid[PID_POS_Z].P
@@ -1970,7 +1998,6 @@ groups:
         default_value: 50
       - name: nav_mc_vel_z_d
         description: "D gain of velocity PID controller"
-        default_value: 10
         field: bank_mc.pid[PID_VEL_Z].D
         min: 0
         max: 255
@@ -2392,6 +2419,11 @@ groups:
         field: general.waypoint_radius
         min: 10
         max: 10000
+      - name: nav_wp_enforce_altitude
+        description: "Forces craft to achieve the set WP altitude as well as position before moving to next WP. Position is held and altitude adjusted as required before moving on."
+        default_value: OFF
+        field: general.flags.waypoint_enforce_altitude
+        type: bool
       - name: nav_wp_safe_distance
         description: "First waypoint in the mission should be closer than this value [cm]. A value of 0 disables this check."
         default_value: 10000
@@ -2582,7 +2614,7 @@ groups:
         min: 15
         max: 45
       - name: nav_mc_auto_disarm_delay
-        description: "Delay before multi-rotor disarms when `nav_disarm_on_landing` is set (m/s)"
+        description: "Delay before multi-rotor disarms when `nav_disarm_on_landing` is set (ms)"
         default_value: 2000
         field: mc.auto_disarm_delay
         min: 100
@@ -2660,6 +2692,12 @@ groups:
         default_value: ON
         field: mc.slowDownForTurning
         type: bool
+      - name: nav_fw_auto_disarm_delay
+        description: "Delay before plane disarms when `nav_disarm_on_landing` is set (ms)"
+        default_value: 2000
+        field: fw.auto_disarm_delay
+        min: 100
+        max: 10000
       - name: nav_fw_bank_angle
         description: "Max roll angle when rolling / turning in GPS assisted modes, is also restrained by global max_angle_inclination_rll"
         default_value: 35
@@ -3471,6 +3509,13 @@ groups:
         max: 6
         default_value: 3
 
+      - name: osd_system_msg_display_time
+        description: System message display cycle time for multiple messages (milliseconds).
+        field: system_msg_display_time
+        default_value: 1000
+        min: 500
+        max: 5000
+
   - name: PG_OSD_COMMON_CONFIG
     type: osdCommonConfig_t
     headers: ["io/osd_common.h"]
@@ -3511,6 +3556,7 @@ groups:
       - name: name
         description: "Craft name"
         default_value: ""
+        max: MAX_NAME_LENGTH
 
   - name: PG_MODE_ACTIVATION_OPERATOR_CONFIG
     type: modeActivationOperatorConfig_t
@@ -3542,6 +3588,7 @@ groups:
         default_value: 0
         max: INT32_MAX
       - name: stats_total_energy
+        description: "Total energy consumption [in mWh]. The value is updated on every disarm when \"stats\" are enabled."
         max: INT32_MAX
         condition: USE_ADC
         default_value: 0

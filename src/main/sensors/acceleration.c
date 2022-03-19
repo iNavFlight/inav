@@ -584,7 +584,7 @@ void updateAccExtremes(void)
         if (acc.accADCf[axis] > acc.extremes[axis].max) acc.extremes[axis].max = acc.accADCf[axis];
     }
 
-    float gforce = fast_fsqrtf(sq(acc.accADCf[0]) + sq(acc.accADCf[1]) + sq(acc.accADCf[2]));
+    float gforce = calc_length_pythagorean_3D(acc.accADCf[X], acc.accADCf[Y], acc.accADCf[Z]);
     if (gforce > acc.maxG) acc.maxG = gforce;
 }
 

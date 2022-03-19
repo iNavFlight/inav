@@ -401,7 +401,7 @@ void pidReduceErrorAccumulators(int8_t delta, uint8_t axis)
 
 float getTotalRateTarget(void)
 {
-    return fast_fsqrtf(sq(pidState[FD_ROLL].rateTarget) + sq(pidState[FD_PITCH].rateTarget) + sq(pidState[FD_YAW].rateTarget));
+    return calc_length_pythagorean_3D(pidState[FD_ROLL].rateTarget, pidState[FD_PITCH].rateTarget, pidState[FD_YAW].rateTarget);
 }
 
 float getAxisIterm(uint8_t axis)
@@ -1260,7 +1260,8 @@ void pidInit(void)
         (float)pidProfile()->fixedWingLevelTrimGain / 100000.0f,
         0.0f,
         0.0f,
-        2.0f
+        2.0f,
+        0.0f
     );
 
 }
