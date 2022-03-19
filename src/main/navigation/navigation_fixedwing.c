@@ -612,6 +612,7 @@ bool isFixedWingFlying(void)
  *-----------------------------------------------------------*/
 bool isFixedWingLandingDetected(void)
 {
+    DEBUG_SET(DEBUG_LANDING, 4, 0);
     static bool fixAxisCheck = false;
     const bool throttleIsLow = calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC) == THROTTLE_LOW;
 
@@ -623,6 +624,7 @@ bool isFixedWingLandingDetected(void)
     if (!startCondition || posControl.flags.resetLandingDetector) {
         return fixAxisCheck = posControl.flags.resetLandingDetector = false;
     }
+    DEBUG_SET(DEBUG_LANDING, 4, 1);
 
     static timeMs_t fwLandingTimerStartAt;
     static int16_t fwLandSetRollDatum;
@@ -634,8 +636,12 @@ bool isFixedWingLandingDetected(void)
     bool velCondition = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < 50.0f && posControl.actualState.velXY < 100.0f;
     // Check angular rates are low (degs/s)
     bool gyroCondition = averageAbsGyroRates() < 2.0f;
+    DEBUG_SET(DEBUG_LANDING, 2, velCondition);
+    DEBUG_SET(DEBUG_LANDING, 3, gyroCondition);
 
     if (velCondition && gyroCondition){
+        DEBUG_SET(DEBUG_LANDING, 4, 2);
+        DEBUG_SET(DEBUG_LANDING, 5, fixAxisCheck);
         if (!fixAxisCheck) {        // capture roll and pitch angles to be used as datums to check for absolute change
             fwLandSetRollDatum = attitude.values.roll;  //0.1 deg increments
             fwLandSetPitchDatum = attitude.values.pitch;
@@ -644,6 +650,8 @@ bool isFixedWingLandingDetected(void)
         } else {
             bool isRollAxisStatic = ABS(fwLandSetRollDatum - attitude.values.roll) < 5;
             bool isPitchAxisStatic = ABS(fwLandSetPitchDatum - attitude.values.pitch) < 5;
+            DEBUG_SET(DEBUG_LANDING, 6, isRollAxisStatic);
+            DEBUG_SET(DEBUG_LANDING, 7, isPitchAxisStatic);
             if (isRollAxisStatic && isPitchAxisStatic) {
                 // Probably landed, low horizontal and vertical velocities and no axis rotation in Roll and Pitch
                 timeMs_t safetyTimeDelay = 2000 + navConfig()->fw.auto_disarm_delay;

@@ -2601,6 +2601,9 @@ void updateLandingStatus(void)
 
     static bool landingDetectorIsActive;
 
+    DEBUG_SET(DEBUG_LANDING, 0, landingDetectorIsActive);
+    DEBUG_SET(DEBUG_LANDING, 1, STATE(LANDING_DETECTED));
+
     if (!ARMING_FLAG(ARMED)) {
         resetLandingDetector();
         landingDetectorIsActive = false;
