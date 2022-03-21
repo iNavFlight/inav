@@ -127,7 +127,7 @@ void sqrtControllerInit(
         sqrt_controller_pointer->derivative_max = derivative_out_max;
     }
 
-    if ((output_min > 0.0f) && (sqrt_controller_pointer->kp > 0.0f)) {
+    if ((output_min < 0.0f) && (sqrt_controller_pointer->kp > 0.0f)) {
         sqrt_controller_pointer->error_min = sqrtControllerInverse(sqrt_controller_pointer->kp, sqrt_controller_pointer->derivative_max, output_min);
     }
 
