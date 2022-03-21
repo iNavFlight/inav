@@ -2564,10 +2564,11 @@ groups:
         field: general.flags.rth_alt_control_override
         type: bool
       - name: nav_rth_abort_threshold
-        description: "RTH sanity checking feature will notice if distance to home is increasing during RTH and once amount of increase exceeds the threshold defined by this parameter, instead of continuing RTH machine will enter emergency landing, self-level and go down safely. Default is 500m which is safe enough for both multirotor machines and airplanes. [cm]"
+        description: "RTH sanity checking feature will notice if distance to home is increasing during RTH and once amount of increase exceeds the threshold defined by this parameter, instead of continuing RTH machine will enter emergency landing, self-level and go down safely. Default is 500m which is safe enough for both multirotor machines and airplanes. Set to 0 to disable. [cm]"
         default_value: 50000
         field: general.rth_abort_threshold
         max: 65000
+        min: 0
       - name: nav_max_terrain_follow_alt
         field: general.max_terrain_follow_altitude
         default_value: "100"
