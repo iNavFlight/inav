@@ -2323,6 +2323,11 @@ void setHomePosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlags_t
     // Update target RTH altitude as a waypoint above home
     updateDesiredRTHAltitude();
 
+    // Reset RTH sanity checker for new home position if RTH active
+    if (FLIGHT_MODE(NAV_RTH_MODE)) {
+        initializeRTHSanityChecker();
+    }
+
     updateHomePositionCompatibility();
     ENABLE_STATE(GPS_FIX_HOME);
 }
