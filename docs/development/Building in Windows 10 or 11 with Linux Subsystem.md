@@ -148,7 +148,17 @@ If you see your Linux distribution is using WSL 2, this is the problem. WSL 2 is
 1. Put your files on the Linux file system
 2. Change to WSL 1
 
-I opted for the latter. To do this, in the elevated PowerShell window, you can see the name of your distro. Mine is **Ubuntu-20.04**, so I'll use that in this example. Simply type
+#### Using the Linux file system (recommended)
+To use the Linux file system, make sure the distro is running. Open File Explorer and navigate to `\\wsl$`. In that path you will find your distros listed. At this point, map a network drive to your distro. Inside the distro, you can find your home directory at `/home/~username~/`. Create your GitHub folders here.
+
+If after this you have problems with writing to the directories from within VSCode. Open the application for your distro and type
+```
+sudo chown -R ~username~ GitHub
+```
+`~Username~` is your root distro user that you created and `GitHub` should be the root folder for your GitHub repositories.
+
+#### To switch back to WSL 1
+To do this, in the elevated PowerShell window, you can see the name of your distro. Mine is **Ubuntu-20.04**, so I'll use that in this example. Simply type
 ```
 wsl --set-version Ubuntu-20.04 1
 ```

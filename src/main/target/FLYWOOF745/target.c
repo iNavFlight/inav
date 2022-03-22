@@ -27,6 +27,7 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
 #include "drivers/bus.h"
+#include "drivers/pinio.h"
 
 const timerHardware_t timerHardware[] = {
     DEF_TIM(TIM1, CH3, PE13, TIM_USE_PPM,                                               0, 1), // PPM, DMA2_ST6

@@ -283,6 +283,21 @@ static bool bmi270AccReadScratchpad(accDev_t *acc)
     return false;
 }
 
+static bool bmi270TemperatureRead(gyroDev_t *gyro, int16_t * data)
+{
+    uint8_t buffer[3];
+
+    bool readStatus = busReadBuf(gyro->busDev, BMI270_REG_TEMPERATURE_LSB, &buffer[0], sizeof(buffer));
+
+    if (readStatus) {
+        // Convert to degC*10: degC = raw / 512 + 23
+        *data = 230 + ((10 * (int32_t)((int16_t)((buffer[2] << 8) | buffer[1]))) >> 9);
+        return true;
+    }
+
+    return false;
+}
+
 static void bmi270GyroInit(gyroDev_t *gyro)
 {
     bmi270AccAndGyroInit(gyro);
@@ -308,6 +323,7 @@ bool bmi270AccDetect(accDev_t *acc)
 
     acc->initFn = bmi270AccInit;
     acc->readFn = bmi270AccReadScratchpad;
+    acc->accAlign = acc->busDev->param;
 
     return true;
 }
@@ -331,8 +347,10 @@ bool bmi270GyroDetect(gyroDev_t *gyro)
 
     gyro->initFn = bmi270GyroInit;
     gyro->readFn = bmi270yroReadScratchpad;
+    gyro->temperatureFn = bmi270TemperatureRead;
     gyro->intStatusFn = gyroCheckDataReady;
     gyro->scale = 1.0f / 16.4f; // 2000 dps
+    gyro->gyroAlign = gyro->busDev->param;
     return true;
 }
 #endif // USE_IMU_BMI270

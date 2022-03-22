@@ -1,1 +1,0 @@
-target_stm32f303xc(CHEBUZZF3 SKIP_RELEASES)

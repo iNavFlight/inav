@@ -30,7 +30,7 @@
 #define IRLOCK_FRAME_SYNC ((uint32_t)(IRLOCK_OBJECT_SYNC | (IRLOCK_OBJECT_SYNC << 16)))
 
 
-#if defined(USE_NAV) && defined(USE_IRLOCK)
+#if defined(USE_IRLOCK)
 
 static bool irlockHealthy = false;
 

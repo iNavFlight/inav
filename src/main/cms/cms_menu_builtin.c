@@ -101,9 +101,7 @@ static const OSD_Entry menuFeaturesEntries[] =
     OSD_LABEL_ENTRY("--- FEATURES ---"),
     OSD_SUBMENU_ENTRY("BLACKBOX", &cmsx_menuBlackbox),
     OSD_SUBMENU_ENTRY("MIXER & SERVOS", &cmsx_menuMixerServo),
-#if defined(USE_NAV)
     OSD_SUBMENU_ENTRY("NAVIGATION", &cmsx_menuNavigation),
-#endif
 #if defined(USE_VTX_CONTROL)
     OSD_SUBMENU_ENTRY("VTX", &cmsx_menuVtxControl),
 #endif // VTX_CONTROL

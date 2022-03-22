@@ -75,14 +75,7 @@ typedef enum {
 typedef enum {
     DEVHW_NONE = 0,
 
-    /* Dedicated ACC chips */
-    DEVHW_LSM303DLHC,
-
-    /* Dedicated GYRO chips */
-    DEVHW_L3GD20,
-
     /* Combined ACC/GYRO chips */
-    DEVHW_MPU3050,
     DEVHW_MPU6000,
     DEVHW_MPU6050,
     DEVHW_MPU6500,
@@ -105,6 +98,7 @@ typedef enum {
     DEVHW_SPL06,
     DEVHW_BMP388,
     DEVHW_DPS310,
+    DEVHW_B2SMPB,
 
     /* Compass chips */
     DEVHW_HMC5883,
@@ -118,6 +112,7 @@ typedef enum {
     DEVHW_LIS3MDL,
     DEVHW_RM3100,
     DEVHW_VCM5883,
+    DEVHW_MLX90393,
 
     /* Temp sensor chips */
     DEVHW_LM75_0,

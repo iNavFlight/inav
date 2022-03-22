@@ -32,19 +32,6 @@
     #define MPU_ADDRESS 0x68
     #endif
 
-    #if defined(USE_IMU_L3GD20)
-        #if defined(GYRO_L3GD20_ALIGN)
-            #define GYRO_0_ALIGN    GYRO_L3GD20_ALIGN
-        #else
-            #define GYRO_0_ALIGN    ALIGN_DEFAULT
-        #endif
-        BUSDEV_REGISTER_SPI(busdev_l3gd20,      DEVHW_L3GD20,       L3GD20_SPI_BUS,     L3GD20_CS_PIN,      NONE,           DEVFLAGS_NONE,  IMU_L3GD20_ALIGN);
-    #endif
-
-    #if defined(USE_IMU_LSM303DLHC)
-        BUSDEV_REGISTER_I2C(busdev_lsm303,      DEVHW_LSM303DLHC,   LSM303DLHC_I2C_BUS, 0x19,               NONE,           DEVFLAGS_NONE,  IMU_LSM303DLHC_ALIGN);
-    #endif
-
     #if defined(USE_IMU_MPU6000)
         BUSDEV_REGISTER_SPI(busdev_mpu6000,     DEVHW_MPU6000,      MPU6000_SPI_BUS,    MPU6000_CS_PIN,     GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_MPU6000_ALIGN);
     #endif
@@ -177,6 +164,16 @@
     #endif
 #endif
 
+#if defined(USE_BARO_B2SMPB)
+    #if defined(B2SMPB_SPI_BUS)
+    BUSDEV_REGISTER_SPI(busdev_b2smpb,     DEVHW_B2SMPB,        B2SMPB_SPI_BUS,     B2SMPB_CS_PIN,       NONE,           DEVFLAGS_NONE, 0);
+    #elif defined(B2SMPB_I2C_BUS) || defined(BARO_I2C_BUS)
+    #if !defined(B2SMPB_I2C_BUS)
+        #define B2SMPB_I2C_BUS BARO_I2C_BUS
+    #endif
+    BUSDEV_REGISTER_I2C(busdev_b2smpb,     DEVHW_B2SMPB,        B2SMPB_I2C_BUS,      0x70,                NONE,           DEVFLAGS_NONE, 0);
+    #endif
+#endif
 
 /** COMPASS SENSORS **/
 #if !defined(USE_TARGET_MAG_HARDWARE_DESCRIPTORS)
@@ -258,6 +255,13 @@
         #define VCM5883_I2C_BUS MAG_I2C_BUS
     #endif
     BUSDEV_REGISTER_I2C(busdev_vcm5883,     DEVHW_VCM5883,      VCM5883_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE,  0);
+#endif
+
+#if defined(USE_MAG_MLX90393)
+    #if !defined(MLX90393_I2C_BUS)
+        #define MLX90393_I2C_BUS MAG_I2C_BUS
+    #endif
+    BUSDEV_REGISTER_I2C(busdev_mlx90393,     DEVHW_MLX90393,      MLX90393_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE,  0);
 #endif
 
 #endif

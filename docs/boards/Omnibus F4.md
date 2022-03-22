@@ -5,13 +5,14 @@
 * For Omnibus F4 Pro (with BMP280 baro, current sensor and SD Card) use **OMNIBUSF4PRO** target (LED strip on dedicated connection)
 * For Onnibus F4 Pro clones (Banggood, AliExpress, eBay, etc.) use **OMNIBUSF4PRO_LEDSTRIPM5** target (LED strip on M5 pin)
 * For Omnibus F4 Pro Corner use **OMNIBUSF4PRO** target
+* For Omnibus F4 AIO, see targets listed below
 
 ## Features
 
 * STM32F405 CPU
 * Integrated Accelerometer/Gyro MPU6000 or MPU6500 via SPI bus
 * 6 motor outputs
-* 3 UART ports (UART1, UART3, UART6)
+* 3-5 UART ports (UART1, UART3, UART6)
 * External I2C bus, pins shared with UART3, cannot be used simultaneously
 * Inverter for SBUS
 * Blackbox via SDCard or integrated 128mbit flash memory
@@ -50,6 +51,14 @@ More target options:
 * SBUS inverter connected to UART6
 * PPM and UART6 cannot be used together, there is no jumper to disconnect PPM input from UART6 RX
 * Uses target **OMNIBUSF4V3**
+
+### Omnibus F4 v6
+
+* Adds more UARTs (total of 5)
+* Softserial 1 is on TX1 for Smartport
+* Note that in multirotor configuration, servos are not enabled on S5 and S6
+* Uses target **OMNIBUSF4V6**
+
 
 ### [Omnibus F4 Pro](https://inavflight.com/shop/p/OMNIBUSF4PRO)
 
@@ -155,19 +164,29 @@ This board allows for single **SoftwareSerial** port on small soldering pads loc
 Please note that this is *not* the motor PWM5/PWM6 pins, but small surface mount pads CH5/CH6.
 
 ### Omnibus F4 Pro SoftwareSerial Connections
-![Omnibus F4 Pro SoftwareSerial Connections](assets/images/omnibusf4pro_ss.jpg)
+![Omnibus F4 Pro SoftwareSerial Connections](../assets/images/omnibusf4pro_ss.jpg)
 
 | Pad   | SoftwareSerial Role   |
 | ----  | ----                  |
 | CH5   | RX                    |
 | CH6   | TX                    |
 
-![Omnibus F4 Pro SmartPort using SoftwareSerial](assets/images/omnibusf4pro_ss.png)
+![Omnibus F4 Pro SmartPort using SoftwareSerial](../assets/images/omnibusf4pro_ss.png)
 
 ### Omnibus F4 v3/v4/v5 SoftwareSerial Connections
 
-The SOFTSERIAL1 is an uni-directional port mapped to UART6-TX pin.
+Softserial mappings can be selected by choosing between different build targets.
+Some of these can be used for Smartport, FPort, or other inverted protocols.
+
+OMNIBUSF4V3: Softserial1 on UART6-TX pin.
+OMNIBUSF4V3_S6_SS: Softserial1 RX or TX on S6 (motor 6)
+OMNIBUSF4V3_S5_S6_2SS: Softserial1 on S5 RX or TX (motor 5) and Softserial2 on S6 (motor 6)
+OMNIBUSF4V3_S5S6_SS: Softserial1 on S5/RX and S6/TX
+
+With the OMNIBUSF4V3 target, SOFTSERIAL1 is an uni-directional port mapped to UART6-TX pin.
 When enabled, the UART6 is still available as hardware port but it's then RX-only port (good for e.g. receiving S.BUS input). TX instead is controlled in software and can be used for transmitting one-way telemetry (e.g. LTM). Please note that UART6-TX line passes programmable inverter on those boards, so it is a pure output-only port. SmartPort/FPort telemetry requires bi-directional communication, so it is not possible on this port without hardware modification (bypassing the inverter).
+
+SmartPort / FPort is possible without a hardware inverter by using one of the OMNIBUSF4V3___SS builds and connecting SmartPort to the motor 5 or 6 pad.
 
 ## Where to buy:
 
@@ -181,22 +200,22 @@ Following diagrams applies to _Pro_ version with integrated current meter and JS
 
 ## Board layout
 
-![Omnibus F4 Pro Board Layout](assets/images/omnibusf4pro.png)
+![Omnibus F4 Pro Board Layout](../assets/images/omnibusf4pro.png)
 
 ## Flying wing motor and servos
 
-![Omnibus F4 Pro Flying Wing Setup](assets/images/omnibusf4pro_flyingwing_setup.png)
+![Omnibus F4 Pro Flying Wing Setup](../assets/images/omnibusf4pro_flyingwing_setup.png)
 
 ## RX setup
 
-![Omnibus F4 Pro RX Setup](assets/images/omnibusf4pro_rx.png)
+![Omnibus F4 Pro RX Setup](../assets/images/omnibusf4pro_rx.png)
 
 ## FPV setup
 
-![Omnibus F4 Pro FPV Setup](assets/images/omnibusf4pro_fpv_setup.png)
+![Omnibus F4 Pro FPV Setup](../assets/images/omnibusf4pro_fpv_setup.png)
 
 ## GPS setup
 
-![Omnibus F4 Pro GPS Setup](assets/images/omnibusf4pro_gps_setup.png)
+![Omnibus F4 Pro GPS Setup](../assets/images/omnibusf4pro_gps_setup.png)
 
 _Diagrams created by Albert Kravcov (skaman82)_

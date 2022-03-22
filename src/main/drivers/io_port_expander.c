@@ -60,7 +60,7 @@ void ioPortExpanderSync(void)
 {
     if (ioPortExpanderState.active && ioPortExpanderState.shouldSync) {
         pcf8574Write(ioPortExpanderState.state);
-        ioPortExpanderState.shouldSync = false;;
+        ioPortExpanderState.shouldSync = false;
     }
 }
 

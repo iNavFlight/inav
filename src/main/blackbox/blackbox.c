@@ -104,8 +104,8 @@ PG_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig,
     .rate_num = SETTING_BLACKBOX_RATE_NUM_DEFAULT,
     .rate_denom = SETTING_BLACKBOX_RATE_DENOM_DEFAULT,
     .invertedCardDetection = BLACKBOX_INVERTED_CARD_DETECTION,
-    .includeFlags = BLACKBOX_FEATURE_NAV_PID | BLACKBOX_FEATURE_NAV_POS | 
-        BLACKBOX_FEATURE_MAG | BLACKBOX_FEATURE_ACC | BLACKBOX_FEATURE_ATTITUDE | 
+    .includeFlags = BLACKBOX_FEATURE_NAV_PID | BLACKBOX_FEATURE_NAV_POS |
+        BLACKBOX_FEATURE_MAG | BLACKBOX_FEATURE_ACC | BLACKBOX_FEATURE_ATTITUDE |
         BLACKBOX_FEATURE_RC_DATA | BLACKBOX_FEATURE_RC_COMMAND | BLACKBOX_FEATURE_MOTORS,
 );
 
@@ -653,18 +653,11 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
 #endif
 
     case FLIGHT_LOG_FIELD_CONDITION_FIXED_WING_NAV:
-#ifdef USE_NAV
+
         return STATE(FIXED_WING_LEGACY) && blackboxIncludeFlag(BLACKBOX_FEATURE_NAV_PID);
-#else
-        return false;
-#endif
 
     case FLIGHT_LOG_FIELD_CONDITION_MC_NAV:
-#ifdef USE_NAV
         return !STATE(FIXED_WING_LEGACY) && blackboxIncludeFlag(BLACKBOX_FEATURE_NAV_PID);
-#else
-        return false;
-#endif
 
     case FLIGHT_LOG_FIELD_CONDITION_RSSI:
         // Assumes blackboxStart() is called after rxInit(), which should be true since
@@ -855,7 +848,7 @@ static void writeIntraframe(void)
     }
 
     blackboxWriteSigned16VBArray(blackboxCurrent->gyroADC, XYZ_AXIS_COUNT);
-    
+
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_ACC)) {
         blackboxWriteSigned16VBArray(blackboxCurrent->accADC, XYZ_AXIS_COUNT);
     }
@@ -1111,7 +1104,7 @@ static void writeInterframe(void)
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_ATTITUDE)) {
         blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, attitude), XYZ_AXIS_COUNT);
     }
-    
+
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_DEBUG)) {
         blackboxWriteArrayUsingAveragePredictor32(offsetof(blackboxMainState_t, debug), DEBUG32_VALUE_COUNT);
     }
@@ -1266,7 +1259,7 @@ static void loadSlowState(blackboxSlowState_t *slow)
 #endif
 
 #ifdef USE_ESC_SENSOR
-    escSensorData_t * escSensor = escSensorGetData(); 
+    escSensorData_t * escSensor = escSensorGetData();
     slow->escRPM = escSensor->rpm;
     slow->escTemperature = escSensor->temperature;
 #endif
@@ -1468,9 +1461,7 @@ static void loadMainState(timeUs_t currentTimeUs)
 
     blackboxCurrent->time = currentTimeUs;
 
-#ifdef USE_NAV
     const navigationPIDControllers_t *nav_pids = getNavigationPIDControllers();
-#endif
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
         blackboxCurrent->axisPID_Setpoint[i] = axisPID_Setpoint[i];
@@ -1483,7 +1474,6 @@ static void loadMainState(timeUs_t currentTimeUs)
 #ifdef USE_MAG
         blackboxCurrent->magADC[i] = mag.magADC[i];
 #endif
-#ifdef USE_NAV
         if (!STATE(FIXED_WING_LEGACY)) {
             // log requested velocity in cm/s
             blackboxCurrent->mcPosAxisP[i] = lrintf(nav_pids->pos[i].output_constrained);
@@ -1495,10 +1485,8 @@ static void loadMainState(timeUs_t currentTimeUs)
             blackboxCurrent->mcVelAxisPID[3][i] = lrintf(nav_pids->vel[i].feedForward);
             blackboxCurrent->mcVelAxisOutput[i] = lrintf(nav_pids->vel[i].output_constrained);
         }
-#endif
     }
 
-#ifdef USE_NAV
     if (STATE(FIXED_WING_LEGACY)) {
 
         // log requested pitch in decidegrees
@@ -1519,7 +1507,6 @@ static void loadMainState(timeUs_t currentTimeUs)
         blackboxCurrent->mcSurfacePID[2] = lrintf(nav_pids->surface.derivative / 10);
         blackboxCurrent->mcSurfacePIDOutput = lrintf(nav_pids->surface.output_constrained / 10);
     }
-#endif
 
     for (int i = 0; i < 4; i++) {
         blackboxCurrent->rcData[i] = rxGetChannelValue(i);
@@ -1809,14 +1796,9 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("gyro_lpf_hz", "%d",                     gyroConfig()->gyro_main_lpf_hz);
         BLACKBOX_PRINT_HEADER_LINE("gyro_lpf_type", "%d",                   gyroConfig()->gyro_main_lpf_type);
 #ifdef USE_DYNAMIC_FILTERS
-        BLACKBOX_PRINT_HEADER_LINE("dynamicGyroNotchRange", "%d",           gyroConfig()->dynamicGyroNotchRange);
         BLACKBOX_PRINT_HEADER_LINE("dynamicGyroNotchQ", "%d",               gyroConfig()->dynamicGyroNotchQ);
         BLACKBOX_PRINT_HEADER_LINE("dynamicGyroNotchMinHz", "%d",           gyroConfig()->dynamicGyroNotchMinHz);
 #endif
-        BLACKBOX_PRINT_HEADER_LINE("gyro_notch_hz", "%d,%d",                gyroConfig()->gyro_notch_hz,
-                                                                            0);
-        BLACKBOX_PRINT_HEADER_LINE("gyro_notch_cutoff", "%d,%d",            gyroConfig()->gyro_notch_cutoff,
-                                                                            1);
         BLACKBOX_PRINT_HEADER_LINE("acc_lpf_hz", "%d",                      accelerometerConfig()->acc_lpf_hz);
         BLACKBOX_PRINT_HEADER_LINE("acc_hardware", "%d",                    accelerometerConfig()->acc_hardware);
 #ifdef USE_BARO
