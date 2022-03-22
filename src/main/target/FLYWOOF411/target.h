@@ -110,11 +110,7 @@
 #endif
 
 #define USE_UART2
-#ifdef FLYWOOF411_V2
 #define UART2_TX_PIN            PA2
-#else
-#define UART2_TX_PIN            NONE    //PA2
-#endif
 #define UART2_RX_PIN            PA3
 
 #define USE_SOFTSERIAL1
