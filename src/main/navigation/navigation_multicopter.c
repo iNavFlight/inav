@@ -65,17 +65,13 @@ static sqrt_controller_t alt_hold_sqrt_controller;
 // Position to velocity controller for Z axis
 static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
 {
-    float pos_desired_z = posControl.desiredState.pos.z;
-
     float targetVel = sqrtControllerApply(
         &alt_hold_sqrt_controller,
-        &pos_desired_z,
+        posControl.desiredState.pos.z,
         navGetCurrentActualPositionAndVelocity()->pos.z,
         US2S(deltaMicros)
     );
 
-    posControl.desiredState.pos.z = pos_desired_z;
-    
     // hard limit desired target velocity to max_climb_rate
     float vel_max_z = 0.0f;
 

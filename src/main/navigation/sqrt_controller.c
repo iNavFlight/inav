@@ -25,7 +25,12 @@
 
 #include "navigation/sqrt_controller.h"
 
-// inverse of the sqrt controller. Calculates the input (aka error) to the sqrt_controller required to achieve a given output
+/*
+    Square Root Controller calculates the correction based on a proportional controller (kP). 
+    Used only in AutoPilot System for Vertical (Z) control.
+*/
+
+// Inverse of the sqrt controller. Calculates the input (aka error) to the sqrt_controller required to achieve a given output
 static float sqrtControllerInverse(float kp, float derivative_max, float output)
 {
     if ((derivative_max > 0.0f) && (kp == 0.0f)) {
@@ -40,11 +45,11 @@ static float sqrtControllerInverse(float kp, float derivative_max, float output)
         return 0.0f;
     }
 
-    // calculate the velocity at which we switch from calculating the stopping point using a linear function to a sqrt function
+    // Calculate the velocity at which we switch from calculating the stopping point using a linear function to a sqrt function
     const float linear_velocity = derivative_max / kp;
 
     if (fabsf(output) < linear_velocity) {
-        // if our current velocity is below the cross-over point we use a linear function
+        // If our current velocity is below the cross-over point we use a linear function
         return output / kp;
     }
 
@@ -53,27 +58,25 @@ static float sqrtControllerInverse(float kp, float derivative_max, float output)
     return (output > 0.0f) ? stopping_dist : -stopping_dist;
 }
 
-// proportional controller with piecewise sqrt sections to constrainf second derivative
-float sqrtControllerApply(sqrt_controller_t *sqrt_controller_pointer, float *target, float measurement, float deltaTime)
+// Proportional controller with piecewise sqrt sections to constrainf derivative
+float sqrtControllerApply(sqrt_controller_t *sqrt_controller_pointer, float target, float measurement, float deltaTime)
 {
     float correction_rate;
 
-    // calculate distance p_error
-    sqrt_controller_pointer->error = *target - measurement;
+    // Calculate distance error
+    sqrt_controller_pointer->error = target - measurement;
 
     if ((sqrt_controller_pointer->error_min < 0.0f) && (sqrt_controller_pointer->error < sqrt_controller_pointer->error_min)) {
         sqrt_controller_pointer->error = sqrt_controller_pointer->error_min;
-        *target = measurement + sqrt_controller_pointer->error;
     } else if ((sqrt_controller_pointer->error_max > 0.0f) && (sqrt_controller_pointer->error > sqrt_controller_pointer->error_max)) {
         sqrt_controller_pointer->error = sqrt_controller_pointer->error_max;
-        *target = measurement + sqrt_controller_pointer->error;
     }
 
     if ((sqrt_controller_pointer->derivative_max < 0.0f) || sqrt_controller_pointer->derivative_max == 0.0f) {
-        // second order limit is zero or negative.
+        // Derivative Max is zero or negative.
         correction_rate = sqrt_controller_pointer->error * sqrt_controller_pointer->kp;
     } else if (sqrt_controller_pointer->kp == 0.0f) {
-        // P term is zero but we have a second order limit.
+        // P term is zero but we have a Derivative Max.
         if (sqrt_controller_pointer->error > 0.0f) {
             correction_rate = fast_fsqrtf(2.0f * sqrt_controller_pointer->derivative_max * (sqrt_controller_pointer->error));
         } else if (sqrt_controller_pointer->error < 0.0f) {
@@ -82,7 +85,7 @@ float sqrtControllerApply(sqrt_controller_t *sqrt_controller_pointer, float *tar
             correction_rate = 0.0f;
         }
     } else {
-        // Both the P and second order limit have been defined.
+        // Both the Proportional and Derivative Max have been defined.
         const float linear_dist = sqrt_controller_pointer->derivative_max / sq(sqrt_controller_pointer->kp);
         if (sqrt_controller_pointer->error > linear_dist) {
             correction_rate = fast_fsqrtf(2.0f * sqrt_controller_pointer->derivative_max * (sqrt_controller_pointer->error - (linear_dist / 2.0f)));
@@ -94,14 +97,14 @@ float sqrtControllerApply(sqrt_controller_t *sqrt_controller_pointer, float *tar
     }
 
     if (deltaTime != 0.0f) {
-        // this ensures we do not get small oscillations by over shooting the error correction in the last time step.
+        // This ensures we do not get small oscillations by over shooting the error correction in the last time step.
         return constrainf(correction_rate, -fabsf(sqrt_controller_pointer->error) / deltaTime, fabsf(sqrt_controller_pointer->error) / deltaTime);
     } 
 
     return correction_rate; 
 }
 
-// sets the maximum error to limit output and first and second derivative of output
+// Sets the maximum error to limit output and derivative of output
 void sqrtControllerInit(
     sqrt_controller_t *sqrt_controller_pointer,
     const float kp,
@@ -110,9 +113,8 @@ void sqrtControllerInit(
     const float derivative_out_max
 )
 {
-    // reset the variables
+    // Reset the variables
     sqrt_controller_pointer->kp = kp;
-
     sqrt_controller_pointer->derivative_max = 0.0f;
     sqrt_controller_pointer->error_min = 0.0f;
     sqrt_controller_pointer->error_max = 0.0f;
