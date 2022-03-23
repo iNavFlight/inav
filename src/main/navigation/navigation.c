@@ -3251,8 +3251,6 @@ void applyWaypointNavigationAndAltitudeHold(void)
     navTargetPosition[X] = lrintf(posControl.desiredState.pos.x);
     navTargetPosition[Y] = lrintf(posControl.desiredState.pos.y);
     navTargetPosition[Z] = lrintf(posControl.desiredState.pos.z);
-
-    DEBUG_SET(DEBUG_CRUISE, 0, posControl.desiredState.pos.z);
 }
 
 /*-----------------------------------------------------------
