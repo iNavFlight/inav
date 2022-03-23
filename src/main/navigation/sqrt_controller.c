@@ -56,12 +56,6 @@ static float sqrtControllerInverse(float kp, float derivative_max, float output)
 // proportional controller with piecewise sqrt sections to constrainf second derivative
 float sqrtControllerApply(sqrt_controller_t *sqrt_controller_pointer, float *target, float measurement, float deltaTime)
 {
-
-    // In case kP is zero, we can't calculate the error, so we return 0.
-    if (sqrt_controller_pointer->kp == 0.0f) {
-        return 0.0f;
-    }
-
     float correction_rate;
 
     // calculate distance p_error
