@@ -1653,7 +1653,7 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_GPS_LON:
-		osdFormatCoordinate(buff, SYM_LON, gpsSol.llh.lon);
+        osdFormatCoordinate(buff, SYM_LON, gpsSol.llh.lon);
         break;
 
     case OSD_HOME_DIR:
