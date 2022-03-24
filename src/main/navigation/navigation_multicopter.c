@@ -60,13 +60,13 @@ static int16_t rcCommandAdjustedThrottle;
 static int16_t altHoldThrottleRCZero = 1500;
 static pt1Filter_t altholdThrottleFilterState;
 static bool prepareForTakeoffOnReset = false;
-static sqrt_controller_t alt_hold_sqrt_controller;
+static sqrt_controller_t pos_z_sqrt_controller;
 
 // Position to velocity controller for Z axis
 static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
 {
     float targetVel = sqrtControllerApply(
-        &alt_hold_sqrt_controller,
+        &pos_z_sqrt_controller,
         posControl.desiredState.pos.z,
         navGetCurrentActualPositionAndVelocity()->pos.z,
         US2S(deltaMicros)
@@ -232,7 +232,7 @@ void resetMulticopterAltitudeController(void)
     }
 
     sqrtControllerInit(
-        &alt_hold_sqrt_controller,
+        &pos_z_sqrt_controller,
         posControl.pids.pos[Z].param.kP,
         -fabsf(nav_speed_down), 
         nav_speed_up, 
