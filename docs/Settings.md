@@ -4222,6 +4222,26 @@ Value under which the OSD axis g force indicators will blink (g)
 
 ---
 
+### osd_gps_shift_lat
+
+Value to shift GPS latitude (lat + osd_gps_shift_lat/100)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 9999 | -9999 |
+
+---
+
+### osd_gps_shift_lon
+
+Value to shift GPS longitude (lon + osd_gps_shift_lon/100)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 9999 | -9999 |
+
+---
+
 ### osd_home_position_arm_screen
 
 Should home position coordinates be displayed on the arming screen.

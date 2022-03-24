@@ -3138,6 +3138,18 @@ groups:
         field: gforce_axis_alarm_max
         min: -20
         max: 20
+      - name: osd_gps_shift_lat
+        description: "Value to shift GPS latitude (lat + osd_gps_shift_lat/100)"
+        default_value: 0
+        field: gps_shift_lat
+        min: -9999
+        max: 9999
+      - name: osd_gps_shift_lon
+        description: "Value to shift GPS longitude (lon + osd_gps_shift_lon/100)"
+        default_value: 0
+        field: gps_shift_lon
+        min: -9999
+        max: 9999
       - name: osd_imu_temp_alarm_min
         description: "Temperature under which the IMU temperature OSD element will start blinking (decidegrees centigrade)"
         default_value: -200
