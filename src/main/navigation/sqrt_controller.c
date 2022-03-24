@@ -58,7 +58,7 @@ static float sqrtControllerInverse(float kp, float derivative_max, float output)
     return (output > 0.0f) ? stopping_dist : -stopping_dist;
 }
 
-// Proportional controller with piecewise sqrt sections to constrainf derivative
+// Proportional controller with piecewise sqrt sections to constrain derivative
 float sqrtControllerApply(sqrt_controller_t *sqrt_controller_pointer, float target, float measurement, float deltaTime)
 {
     float correction_rate;
