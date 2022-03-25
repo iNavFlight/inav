@@ -122,7 +122,9 @@ tables:
     enum: smartportFuelUnit_e
   - name: platform_type
     values: ["MULTIROTOR", "AIRPLANE", "HELICOPTER", "TRICOPTER", "ROVER", "BOAT"]
-    enum: flyingPlatformType_e
+  - name: output_mode
+    values: ["AUTO", "MOTORS", "SERVOS"]
+    enum: outputMode_e
   - name: tz_automatic_dst
     values: ["OFF", "EU", "USA"]
     enum: tz_automatic_dst_e
@@ -1262,6 +1264,11 @@ groups:
         field: appliedMixerPreset
         min: -1
         max: INT16_MAX
+      - name: output_mode
+        description: "Output function assignment mode. AUTO assigns outputs according to the default mapping, SERVOS assigns all outputs to servos, MOTORS assigns all outputs to motors"
+        default_value: "AUTO"
+        field: outputMode
+        table: output_mode
 
   - name: PG_REVERSIBLE_MOTORS_CONFIG
     type: reversibleMotorsConfig_t
