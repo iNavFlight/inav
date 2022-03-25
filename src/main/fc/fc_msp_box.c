@@ -102,6 +102,9 @@ static uint8_t activeBoxIds[CHECKBOX_ITEM_COUNT];
 // this is the number of filled indexes in above array
 uint8_t activeBoxIdCount = 0;
 
+#define RESET_BOX_ID_COUNT activeBoxIdCount = 0
+#define ADD_ACTIVE_BOX(box) activeBoxIds[activeBoxIdCount++] = box 
+
 const box_t *findBoxByActiveBoxId(uint8_t activeBoxId)
 {
     for (uint8_t boxIndex = 0; boxIndex < sizeof(boxes) / sizeof(box_t); boxIndex++) {
@@ -169,34 +172,34 @@ void initActiveBoxIds(void)
     // calculate used boxes based on features and fill availableBoxes[] array
     memset(activeBoxIds, 0xFF, sizeof(activeBoxIds));
 
-    activeBoxIdCount = 0;
-    activeBoxIds[activeBoxIdCount++] = BOXARM;
-    activeBoxIds[activeBoxIdCount++] = BOXPREARM;
+    RESET_BOX_ID_COUNT;
+    ADD_ACTIVE_BOX(BOXARM);
+    ADD_ACTIVE_BOX(BOXPREARM);
 
     if (sensors(SENSOR_ACC) && STATE(ALTITUDE_CONTROL)) {
-        activeBoxIds[activeBoxIdCount++] = BOXANGLE;
-        activeBoxIds[activeBoxIdCount++] = BOXHORIZON;
-        activeBoxIds[activeBoxIdCount++] = BOXTURNASSIST;
+        ADD_ACTIVE_BOX(BOXANGLE);
+        ADD_ACTIVE_BOX(BOXHORIZON);
+        ADD_ACTIVE_BOX(BOXTURNASSIST);
     }
 
     if (!feature(FEATURE_AIRMODE) && STATE(ALTITUDE_CONTROL)) {
-        activeBoxIds[activeBoxIdCount++] = BOXAIRMODE;
+        ADD_ACTIVE_BOX(BOXAIRMODE);
     }
 
-    activeBoxIds[activeBoxIdCount++] = BOXHEADINGHOLD;
+    ADD_ACTIVE_BOX(BOXHEADINGHOLD);
 
     //Camstab mode is enabled always
-    activeBoxIds[activeBoxIdCount++] = BOXCAMSTAB;
+    ADD_ACTIVE_BOX(BOXCAMSTAB);
 
     if (STATE(MULTIROTOR)) {
         if ((sensors(SENSOR_ACC) || sensors(SENSOR_MAG))) {
-            activeBoxIds[activeBoxIdCount++] = BOXHEADFREE;
-            activeBoxIds[activeBoxIdCount++] = BOXHEADADJ;
+            ADD_ACTIVE_BOX(BOXHEADFREE);
+            ADD_ACTIVE_BOX(BOXHEADADJ);
         }
         if (sensors(SENSOR_BARO) && sensors(SENSOR_RANGEFINDER) && sensors(SENSOR_OPFLOW)) {
-            activeBoxIds[activeBoxIdCount++] = BOXSURFACE;
+            ADD_ACTIVE_BOX(BOXSURFACE);
         }
-        activeBoxIds[activeBoxIdCount++] = BOXFPVANGLEMIX;
+        ADD_ACTIVE_BOX(BOXFPVANGLEMIX);
     }
 
     bool navReadyAltControl = sensors(SENSOR_BARO);
@@ -210,56 +213,56 @@ void initActiveBoxIds(void)
     }
 
     if (STATE(ALTITUDE_CONTROL) && navReadyAltControl && (navReadyPosControl || navFlowDeadReckoning)) {
-        activeBoxIds[activeBoxIdCount++] = BOXNAVPOSHOLD;
+        ADD_ACTIVE_BOX(BOXNAVPOSHOLD);
         if (STATE(AIRPLANE)) {
-            activeBoxIds[activeBoxIdCount++] = BOXLOITERDIRCHN;
+            ADD_ACTIVE_BOX(BOXLOITERDIRCHN);
         }
     }
 
     if (navReadyPosControl) {
         if (!STATE(ALTITUDE_CONTROL) || (STATE(ALTITUDE_CONTROL) && navReadyAltControl)) {
-            activeBoxIds[activeBoxIdCount++] = BOXNAVRTH;
-            activeBoxIds[activeBoxIdCount++] = BOXNAVWP;
-            activeBoxIds[activeBoxIdCount++] = BOXHOMERESET;
-            activeBoxIds[activeBoxIdCount++] = BOXGCSNAV;
-            activeBoxIds[activeBoxIdCount++] = BOXPLANWPMISSION;
+            ADD_ACTIVE_BOX(BOXNAVRTH);
+            ADD_ACTIVE_BOX(BOXNAVWP);
+            ADD_ACTIVE_BOX(BOXHOMERESET);
+            ADD_ACTIVE_BOX(BOXGCSNAV);
+            ADD_ACTIVE_BOX(BOXPLANWPMISSION);
         }
 
         if (STATE(AIRPLANE)) {
-            activeBoxIds[activeBoxIdCount++] = BOXNAVCRUISE;
-            activeBoxIds[activeBoxIdCount++] = BOXNAVCOURSEHOLD;
-            activeBoxIds[activeBoxIdCount++] = BOXSOARING;
+            ADD_ACTIVE_BOX(BOXNAVCRUISE);
+            ADD_ACTIVE_BOX(BOXNAVCOURSEHOLD);
+            ADD_ACTIVE_BOX(BOXSOARING);
         }
     }
 
 #ifdef USE_MR_BRAKING_MODE
     if (mixerConfig()->platformType == PLATFORM_MULTIROTOR) {
-        activeBoxIds[activeBoxIdCount++] = BOXBRAKING;
+        ADD_ACTIVE_BOX(BOXBRAKING);
     }
 #endif
 #endif  // GPS
     if (STATE(ALTITUDE_CONTROL) && navReadyAltControl) {
-        activeBoxIds[activeBoxIdCount++] = BOXNAVALTHOLD;
+        ADD_ACTIVE_BOX(BOXNAVALTHOLD);
     }
 
     if (STATE(AIRPLANE) || STATE(ROVER) || STATE(BOAT)) {
-        activeBoxIds[activeBoxIdCount++] = BOXMANUAL;
+        ADD_ACTIVE_BOX(BOXMANUAL);
     }
 
     if (STATE(AIRPLANE)) {
         if (!feature(FEATURE_FW_LAUNCH)) {
-           activeBoxIds[activeBoxIdCount++] = BOXNAVLAUNCH;
+           ADD_ACTIVE_BOX(BOXNAVLAUNCH);
         }
 
         if (!feature(FEATURE_FW_AUTOTRIM)) {
-            activeBoxIds[activeBoxIdCount++] = BOXAUTOTRIM;
+            ADD_ACTIVE_BOX(BOXAUTOTRIM);
         }
 
 #if defined(USE_AUTOTUNE_FIXED_WING)
-        activeBoxIds[activeBoxIdCount++] = BOXAUTOTUNE;
+        ADD_ACTIVE_BOX(BOXAUTOTUNE);
 #endif
         if (sensors(SENSOR_BARO)) {
-            activeBoxIds[activeBoxIdCount++] = BOXAUTOLEVEL;
+            ADD_ACTIVE_BOX(BOXAUTOLEVEL);
         }
     }
 
@@ -268,68 +271,70 @@ void initActiveBoxIds(void)
      * flying wing can cause bad thing
      */
     if (STATE(FLAPERON_AVAILABLE)) {
-        activeBoxIds[activeBoxIdCount++] = BOXFLAPERON;
+        ADD_ACTIVE_BOX(BOXFLAPERON);
     }
 
-    activeBoxIds[activeBoxIdCount++] = BOXBEEPERON;
+    ADD_ACTIVE_BOX(BOXBEEPERON);
 
 #ifdef USE_LIGHTS
-    activeBoxIds[activeBoxIdCount++] = BOXLIGHTS;
+    ADD_ACTIVE_BOX(BOXLIGHTS);
 #endif
 
 #ifdef USE_LED_STRIP
     if (feature(FEATURE_LED_STRIP)) {
-        activeBoxIds[activeBoxIdCount++] = BOXLEDLOW;
+        ADD_ACTIVE_BOX(BOXLEDLOW);
     }
 #endif
 
-    activeBoxIds[activeBoxIdCount++] = BOXOSD;
+    ADD_ACTIVE_BOX(BOXOSD);
 
 #ifdef USE_TELEMETRY
-    if (feature(FEATURE_TELEMETRY) && telemetryConfig()->telemetry_switch)
-        activeBoxIds[activeBoxIdCount++] = BOXTELEMETRY;
+    if (feature(FEATURE_TELEMETRY) && telemetryConfig()->telemetry_switch) {
+        ADD_ACTIVE_BOX(BOXTELEMETRY);
+    }
 #endif
 
 #ifdef USE_BLACKBOX
-    if (feature(FEATURE_BLACKBOX)){
-        activeBoxIds[activeBoxIdCount++] = BOXBLACKBOX;
+    if (feature(FEATURE_BLACKBOX)) {
+        ADD_ACTIVE_BOX(BOXBLACKBOX);
     }
 #endif
 
-    activeBoxIds[activeBoxIdCount++] = BOXKILLSWITCH;
-    activeBoxIds[activeBoxIdCount++] = BOXFAILSAFE;
+    ADD_ACTIVE_BOX(BOXKILLSWITCH);
+    ADD_ACTIVE_BOX(BOXFAILSAFE);
 
 #ifdef USE_RCDEVICE
-    activeBoxIds[activeBoxIdCount++] = BOXCAMERA1;
-    activeBoxIds[activeBoxIdCount++] = BOXCAMERA2;
-    activeBoxIds[activeBoxIdCount++] = BOXCAMERA3;
+    ADD_ACTIVE_BOX(BOXCAMERA1);
+    ADD_ACTIVE_BOX(BOXCAMERA2);
+    ADD_ACTIVE_BOX(BOXCAMERA3);
 #endif
 
 #ifdef USE_PINIOBOX
     // USER modes are only used for PINIO at the moment
-    activeBoxIds[activeBoxIdCount++] = BOXUSER1;
-    activeBoxIds[activeBoxIdCount++] = BOXUSER2;
+    ADD_ACTIVE_BOX(BOXUSER1);
+    ADD_ACTIVE_BOX(BOXUSER2);
 #endif
 
 #if defined(USE_OSD) && defined(OSD_LAYOUT_COUNT)
 #if OSD_LAYOUT_COUNT > 0
-    activeBoxIds[activeBoxIdCount++] = BOXOSDALT1;
+    ADD_ACTIVE_BOX(BOXOSDALT1);
 #if OSD_LAYOUT_COUNT > 1
-    activeBoxIds[activeBoxIdCount++] = BOXOSDALT2;
+    ADD_ACTIVE_BOX(BOXOSDALT2);
 #if OSD_LAYOUT_COUNT > 2
-    activeBoxIds[activeBoxIdCount++] = BOXOSDALT3;
+    ADD_ACTIVE_BOX(BOXOSDALT3);
 #endif
 #endif
 #endif
 #endif
 
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
-    activeBoxIds[activeBoxIdCount++] = BOXMSPRCOVERRIDE;
+    ADD_ACTIVE_BOX(BOXMSPRCOVERRIDE);
 #endif
 
 #ifdef USE_DSHOT
-    if(STATE(MULTIROTOR) && isMotorProtocolDshot())
-        activeBoxIds[activeBoxIdCount++] = BOXTURTLE;
+    if(STATE(MULTIROTOR) && isMotorProtocolDshot()) {
+        ADD_ACTIVE_BOX(BOXTURTLE);
+    }
 #endif
 }
 
@@ -407,14 +412,14 @@ uint16_t packSensorStatus(void)
 {
     // Sensor bits
     uint16_t sensorStatus =
-            IS_ENABLED(sensors(SENSOR_ACC))     << 0 |
-            IS_ENABLED(sensors(SENSOR_BARO))    << 1 |
-            IS_ENABLED(sensors(SENSOR_MAG))     << 2 |
-            IS_ENABLED(sensors(SENSOR_GPS))     << 3 |
-            IS_ENABLED(sensors(SENSOR_RANGEFINDER))   << 4 |
-            IS_ENABLED(sensors(SENSOR_OPFLOW))  << 5 |
-            IS_ENABLED(sensors(SENSOR_PITOT))   << 6 |
-            IS_ENABLED(sensors(SENSOR_TEMP))   << 7;
+            IS_ENABLED(sensors(SENSOR_ACC))         << 0 |
+            IS_ENABLED(sensors(SENSOR_BARO))        << 1 |
+            IS_ENABLED(sensors(SENSOR_MAG))         << 2 |
+            IS_ENABLED(sensors(SENSOR_GPS))         << 3 |
+            IS_ENABLED(sensors(SENSOR_RANGEFINDER)) << 4 |
+            IS_ENABLED(sensors(SENSOR_OPFLOW))      << 5 |
+            IS_ENABLED(sensors(SENSOR_PITOT))       << 6 |
+            IS_ENABLED(sensors(SENSOR_TEMP))        << 7;
 
     // Hardware failure indication bit
     if (!isHardwareHealthy()) {

@@ -31,13 +31,15 @@
 #define NAV_THROTTLE_CUTOFF_FREQENCY_HZ     4       // low-pass filter on throttle output
 #define NAV_FW_CONTROL_MONITORING_RATE      2
 #define NAV_DTERM_CUT_HZ                    10.0f
+#define NAV_VEL_Z_DERIVATIVE_CUT_HZ 5.0f
+#define NAV_VEL_Z_ERROR_CUT_HZ 5.0f
 #define NAV_ACCELERATION_XY_MAX             980.0f  // cm/s/s       // approx 45 deg lean angle
 
 #define INAV_SURFACE_MAX_DISTANCE           40
 
 #define MC_LAND_CHECK_VEL_XY_MOVING 100.0f // cm/s
 #define MC_LAND_CHECK_VEL_Z_MOVING 25.0f   // cm/s
-#define MC_LAND_THR_SUM_RATE 1             // hz
+#define MC_LAND_THR_STABILISE_DELAY 1      // seconds
 #define MC_LAND_DESCEND_THROTTLE 40        // uS
 #define MC_LAND_SAFE_SURFACE 5.0f          // cm
 
@@ -99,6 +101,9 @@ typedef struct navigationFlags_s {
     bool forcedEmergLandingActivated;
 
     bool wpMissionPlannerActive;               // Activation status of WP mission planner
+
+    /* Landing detector */
+    bool resetLandingDetector;
 } navigationFlags_t;
 
 typedef struct {
@@ -410,8 +415,12 @@ const navEstimatedPosVel_t * navGetCurrentActualPositionAndVelocity(void);
 bool isThrustFacingDownwards(void);
 uint32_t calculateDistanceToDestination(const fpVector3_t * destinationPos);
 int32_t calculateBearingToDestination(const fpVector3_t * destinationPos);
-void resetLandingDetector(void);
+
 bool isLandingDetected(void);
+void resetLandingDetector(void);
+bool isFlightDetected(void);
+bool isFixedWingFlying(void);
+bool isMulticopterFlying(void);
 
 navigationFSMStateFlags_t navGetCurrentStateFlags(void);
 
@@ -449,11 +458,7 @@ bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcR
 
 void applyMulticopterNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
 
-void resetFixedWingLandingDetector(void);
-void resetMulticopterLandingDetector(void);
-
 bool isMulticopterLandingDetected(void);
-bool isFixedWingLandingDetected(void);
 
 void calculateMulticopterInitialHoldPosition(fpVector3_t * pos);
 
@@ -471,6 +476,8 @@ bool adjustFixedWingPositionFromRCInput(void);
 void applyFixedWingPositionController(timeUs_t currentTimeUs);
 float processHeadingYawController(timeDelta_t deltaMicros, int32_t navHeadingError, bool errorIsDecreasing);
 void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
+
+bool isFixedWingLandingDetected(void);
 
 void calculateFixedWingInitialHoldPosition(fpVector3_t * pos);
 

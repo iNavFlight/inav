@@ -48,7 +48,9 @@ typedef enum {
 typedef struct {
     bool reset;
     pidControllerParam_t param;
+    pt1Filter_t error_filter_state;
     pt1Filter_t dterm_filter_state;     // last derivative for low-pass filter
+    float errorLpfHz;
     float dTermLpfHz;                   // dTerm low pass filter cutoff frequency
     float integrator;                   // integrator value
     float last_input;                   // last input for derivative
@@ -73,4 +75,4 @@ float navPidApply3(
     const float dTermScaler
 );
 void navPidReset(pidController_t *pid);
-void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD, float _kFF, float _dTermLpfHz);
+void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD, float _kFF, float _dTermLpfHz, float _errorLpfHz);
