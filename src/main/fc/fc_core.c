@@ -158,11 +158,9 @@ bool areSensorsCalibrating(void)
     }
 #endif
 
-#ifdef USE_NAV
     if (!navIsCalibrationComplete()) {
         return true;
     }
-#endif
 
     if (!accIsCalibrationComplete() && sensors(SENSOR_ACC)) {
         return true;
@@ -248,7 +246,6 @@ static void updateArmingStatus(void)
             DISABLE_ARMING_FLAG(ARMING_DISABLED_SYSTEM_OVERLOADED);
         }
 
-#if defined(USE_NAV)
         /* CHECK: Navigation safety */
         if (navigationIsBlockingArming(NULL) != NAV_ARMING_BLOCKER_NONE) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_NAVIGATION_UNSAFE);
@@ -256,7 +253,6 @@ static void updateArmingStatus(void)
         else {
             DISABLE_ARMING_FLAG(ARMING_DISABLED_NAVIGATION_UNSAFE);
         }
-#endif
 
 #if defined(USE_MAG)
         /* CHECK: */
@@ -377,8 +373,6 @@ static bool emergencyArmingIsEnabled(void)
 
 void annexCode(float dT)
 {
-    int32_t throttleValue;
-
     if (failsafeShouldApplyControlInput()) {
         // Failsafe will apply rcCommand for us
         failsafeApplyControlInput();
@@ -410,9 +404,7 @@ void annexCode(float dT)
         }
 
         //Compute THROTTLE command
-        throttleValue = constrain(rxGetChannelValue(THROTTLE), rxConfig()->mincheck, PWM_RANGE_MAX);
-        throttleValue = (uint32_t)(throttleValue - rxConfig()->mincheck) * PWM_RANGE_MIN / (PWM_RANGE_MAX - rxConfig()->mincheck);       // [MINCHECK;2000] -> [0;1000]
-        rcCommand[THROTTLE] = rcLookupThrottle(throttleValue);
+        rcCommand[THROTTLE] = throttleStickMixedValue();
 
         // Signal updated rcCommand values to Failsafe system
         failsafeUpdateRcCommandValues();
@@ -515,8 +507,9 @@ void releaseSharedTelemetryPorts(void) {
 
 void tryArm(void)
 {
+#ifdef USE_MULTI_MISSION
     setMultiMissionOnArm();
-
+#endif
     updateArmingStatus();
 
 #ifdef USE_DSHOT
@@ -551,7 +544,6 @@ void tryArm(void)
             return;
         }
 
-#if defined(USE_NAV)
         // If nav_extra_arming_safety was bypassed we always
         // allow bypassing it even without the sticks set
         // in the correct position to allow re-arming quickly
@@ -561,7 +553,6 @@ void tryArm(void)
         if (usedBypass) {
             ENABLE_STATE(NAV_EXTRA_ARMING_SAFETY_BYPASSED);
         }
-#endif
 
         lastDisarmReason = DISARM_NONE;
 
@@ -590,15 +581,11 @@ void tryArm(void)
 #endif
 
         //beep to indicate arming
-#ifdef USE_NAV
         if (navigationPositionEstimateIsHealthy()) {
             beeper(BEEPER_ARMING_GPS_FIX);
         } else {
             beeper(BEEPER_ARMING);
         }
-#else
-        beeper(BEEPER_ARMING);
-#endif
 
         statsOnArm();
 
@@ -864,11 +851,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 
-#if defined(USE_NAV)
     if (ARMING_FLAG(ARMED) && (!STATE(FIXED_WING_LEGACY) || !isNavLaunchEnabled() || (isNavLaunchEnabled() && fixedWingLaunchStatus() >= FW_LAUNCH_DETECTED))) {
-#else
-    if (ARMING_FLAG(ARMED)) {
-#endif
         flightTime += cycleTime;
         armTime += cycleTime;
         updateAccExtremes();
@@ -888,18 +871,14 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         rcInterpolationApply(isRXDataNew);
     }
 
-#if defined(USE_NAV)
     if (isRXDataNew) {
         updateWaypointsAndNavigationMode();
     }
-#endif
 
     isRXDataNew = false;
 
-#if defined(USE_NAV)
     updatePositionEstimator();
     applyWaypointNavigationAndAltitudeHold();
-#endif
 
     // Apply throttle tilt compensation
     if (!STATE(FIXED_WING_LEGACY)) {
@@ -953,6 +932,11 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         writeMotors();
     }
 
+    // Check if landed, FW and MR
+    if (STATE(ALTITUDE_CONTROL)) {
+        updateLandingStatus();
+    }
+
 #ifdef USE_BLACKBOX
     if (!cliMode && feature(FEATURE_BLACKBOX)) {
         blackboxUpdate(micros());
@@ -995,12 +979,12 @@ void taskUpdateRxMain(timeUs_t currentTimeUs)
 // returns seconds
 float getFlightTime()
 {
-    return (float)(flightTime / 1000) / 1000;
+    return US2S(flightTime);
 }
 
 float getArmTime()
 {
-    return (float)(armTime / 1000) / 1000;
+    return US2S(armTime);
 }
 
 void fcReboot(bool bootLoader)

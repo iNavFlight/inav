@@ -144,13 +144,11 @@ PG_RESET_TEMPLATE(adcChannelConfig_t, adcChannelConfig,
     }
 );
 
-#ifdef USE_NAV
 void validateNavConfig(void)
 {
     // Make sure minAlt is not more than maxAlt, maxAlt cannot be set lower than 500.
     navConfigMutable()->general.land_slowdown_minalt = MIN(navConfig()->general.land_slowdown_minalt, navConfig()->general.land_slowdown_maxalt - 100);
 }
-#endif
 
 
 // Stubs to handle target-specific configs
@@ -232,10 +230,8 @@ void validateAndFixConfig(void)
         pgResetCopy(serialConfigMutable(), PG_SERIAL_CONFIG);
     }
 
-#if defined(USE_NAV)
     // Ensure sane values of navConfig settings
     validateNavConfig();
-#endif
 
     // Limitations of different protocols
 #if !defined(USE_DSHOT)
@@ -352,9 +348,7 @@ static void activateConfig(void)
 
     pidInit();
 
-#ifdef USE_NAV
     navigationUsePIDs();
-#endif
 }
 
 void readEEPROM(void)
@@ -463,6 +457,22 @@ void setConfigBatteryProfileAndWriteEEPROM(uint8_t profileIndex)
         readEEPROM();
     }
     beeperConfirmationBeeps(profileIndex + 1);
+}
+
+void setGyroCalibrationAndWriteEEPROM(int16_t getGyroZero[XYZ_AXIS_COUNT]) {
+    gyroConfigMutable()->gyro_zero_cal[X] = getGyroZero[X];
+    gyroConfigMutable()->gyro_zero_cal[Y] = getGyroZero[Y];
+    gyroConfigMutable()->gyro_zero_cal[Z] = getGyroZero[Z];
+    // save the calibration
+    writeEEPROM();
+    readEEPROM();
+}
+
+void setGravityCalibrationAndWriteEEPROM(float getGravity) {
+    gyroConfigMutable()->gravity_cmss_cal = getGravity;
+    // save the calibration
+    writeEEPROM();
+    readEEPROM();
 }
 
 void beeperOffSet(uint32_t mask)

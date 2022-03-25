@@ -17,7 +17,7 @@
 
 #pragma once
 
-#if defined(USE_NAV) && defined(USE_IRLOCK)
+#if defined(USE_IRLOCK)
 
 void irlockInit(void);
 bool irlockHasBeenDetected(void);

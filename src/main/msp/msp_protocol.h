@@ -26,7 +26,6 @@
  * if the API doesn't match EXACTLY.
  *
  * Consumers of the API (API clients) SHOULD first attempt to get a response from the MSP_API_VERSION command.
- * If no response is obtained then client MAY try the legacy MSP_IDENT command.
  *
  * API consumers should ALWAYS handle communication failures gracefully and attempt to continue
  * without the information if possible.  Clients MAY log/display a suitable message.
@@ -156,16 +155,13 @@
 #define MSP_SET_ADJUSTMENT_RANGE        53
 
 // private - only to be used by the configurator, the commands are likely to change
-#define MSP_CF_SERIAL_CONFIG            54
-#define MSP_SET_CF_SERIAL_CONFIG        55
+#define MSP_CF_SERIAL_CONFIG            54   //Deprecated and not used
+#define MSP_SET_CF_SERIAL_CONFIG        55   //Deprecated and not used
 
 #define MSP_VOLTAGE_METER_CONFIG        56
 #define MSP_SET_VOLTAGE_METER_CONFIG    57
 
 #define MSP_SONAR_ALTITUDE              58 //out message get surface altitude [cm]
-
-#define MSP_PID_CONTROLLER              59
-#define MSP_SET_PID_CONTROLLER          60
 
 #define MSP_ARMING_CONFIG               61 //out message         Returns auto_disarm_delay and disarm_kill_switch parameters
 #define MSP_SET_ARMING_CONFIG           62 //in message          Sets auto_disarm_delay and disarm_kill_switch parameters
@@ -176,16 +172,7 @@
 #define MSP_RX_MAP                      64 //out message get channel map (also returns number of channels total)
 #define MSP_SET_RX_MAP                  65 //in message set rx map, numchannels to set comes from MSP_RX_MAP
 
-// FIXME - Provided for backwards compatibility with configurator code until configurator is updated.
-// DEPRECATED - DO NOT USE "MSP_BF_CONFIG" and MSP_SET_BF_CONFIG.  In Cleanflight, isolated commands already exist and should be used instead.
-#define MSP_BF_CONFIG                   66 //out message baseflight-specific settings that aren't covered elsewhere
-#define MSP_SET_BF_CONFIG               67 //in message baseflight-specific settings save
-
 #define MSP_REBOOT                      68 //in message reboot settings
-
-// DEPRECATED - Use MSP_BUILD_INFO instead
-#define MSP_BF_BUILD_INFO               69 //out message build date as well as some space for future expansion
-
 
 #define MSP_DATAFLASH_SUMMARY           70 //out message - get description of dataflash chip
 #define MSP_DATAFLASH_READ              71 //out message - get content of dataflash chip
@@ -196,10 +183,6 @@
 
 #define MSP_FAILSAFE_CONFIG             75 //out message         Returns FC Fail-Safe settings
 #define MSP_SET_FAILSAFE_CONFIG         76 //in message          Sets FC Fail-Safe settings
-
-// DEPRECATED
-//#define MSP_RXFAIL_CONFIG               77 //out message         Returns RXFAIL settings
-//#define MSP_SET_RXFAIL_CONFIG           78 //in message          Sets RXFAIL settings
 
 #define MSP_SDCARD_SUMMARY              79 //out message         Get the state of the SD card
 
@@ -249,10 +232,6 @@
 // Multwii original MSP commands
 //
 
-// DEPRECATED - See MSP_API_VERSION and MSP_MIXER
-#define MSP_IDENT                100    //out message         mixerMode + multiwii version + protocol version + capability variable
-
-
 #define MSP_STATUS               101    //out message         cycletime & errors_count & sensor present & box activation & current setting number
 #define MSP_RAW_IMU              102    //out message         9 DOF
 #define MSP_SERVO                103    //out message         servos
@@ -264,7 +243,6 @@
 #define MSP_ALTITUDE             109    //out message         altitude, variometer
 #define MSP_ANALOG               110    //out message         vbat, powermetersum, rssi if available on RX
 #define MSP_RC_TUNING            111    //out message         rc rate, rc expo, rollpitch rate, yaw rate, dyn throttle PID
-#define MSP_PID                  112    //out message         P I D coeff (9 are used currently)
 #define MSP_ACTIVEBOXES          113    //out message         Active box flags (full width, more than 32 bits)
 #define MSP_MISC                 114    //out message         powermeter trig
 #define MSP_MOTOR_PINS           115    //out message         which pins are in use for motors & servos, for GUI
@@ -282,7 +260,6 @@
 
 #define MSP_SET_RAW_RC           200    //in message          8 rc chan
 #define MSP_SET_RAW_GPS          201    //in message          fix, numsat, lat, lon, alt, speed
-#define MSP_SET_PID              202    //in message          P I D coeff (9 are used currently)
 #define MSP_SET_BOX              203    //in message          BOX setup (number is dependant of your setup)
 #define MSP_SET_RC_TUNING        204    //in message          rc rate, rc expo, rollpitch rate, yaw rate, dyn throttle PID, yaw expo
 #define MSP_ACC_CALIBRATION      205    //in message          no param

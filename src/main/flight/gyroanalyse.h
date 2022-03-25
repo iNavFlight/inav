@@ -31,6 +31,11 @@
  */
 #define FFT_WINDOW_SIZE 64
 
+typedef struct peak_s {
+    int bin;
+    float value;
+} peak_t;
+
 typedef struct gyroAnalyseState_s {
     // accumulator for oversampled data => no aliasing and less noise
     float currentSample[XYZ_AXIS_COUNT];
@@ -40,7 +45,6 @@ typedef struct gyroAnalyseState_s {
     float downsampledGyroData[XYZ_AXIS_COUNT][FFT_WINDOW_SIZE];
 
     // update state machine step information
-    uint8_t updateTicks;
     uint8_t updateStep;
     uint8_t updateAxis;
 
@@ -48,13 +52,15 @@ typedef struct gyroAnalyseState_s {
     float fftData[FFT_WINDOW_SIZE];
     float rfftData[FFT_WINDOW_SIZE];
 
-    biquadFilter_t detectedFrequencyFilter[XYZ_AXIS_COUNT];
-    uint16_t centerFreq[XYZ_AXIS_COUNT];
-    uint16_t prevCenterFreq[XYZ_AXIS_COUNT];
-    float detectedFrequencyRaw[XYZ_AXIS_COUNT];
+    pt1Filter_t detectedFrequencyFilter[XYZ_AXIS_COUNT][DYN_NOTCH_PEAK_COUNT];
+    float centerFrequency[XYZ_AXIS_COUNT][DYN_NOTCH_PEAK_COUNT];
+    
+    peak_t peaks[DYN_NOTCH_PEAK_COUNT];
+
     bool filterUpdateExecute;
     uint8_t filterUpdateAxis;
     uint16_t filterUpdateFrequency;
+
     uint16_t fftSamplingRateHz;
     uint8_t fftStartBin;
     float fftResolution;

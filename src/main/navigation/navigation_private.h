@@ -19,8 +19,6 @@
 
 #define DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR    1.113195f  // MagicEarthNumber from APM
 
-#if defined(USE_NAV)
-
 #include "common/axis.h"
 #include "common/maths.h"
 #include "common/filter.h"
@@ -33,9 +31,17 @@
 #define NAV_THROTTLE_CUTOFF_FREQENCY_HZ     4       // low-pass filter on throttle output
 #define NAV_FW_CONTROL_MONITORING_RATE      2
 #define NAV_DTERM_CUT_HZ                    10.0f
+#define NAV_VEL_Z_DERIVATIVE_CUT_HZ 5.0f
+#define NAV_VEL_Z_ERROR_CUT_HZ 5.0f
 #define NAV_ACCELERATION_XY_MAX             980.0f  // cm/s/s       // approx 45 deg lean angle
 
 #define INAV_SURFACE_MAX_DISTANCE           40
+
+#define MC_LAND_CHECK_VEL_XY_MOVING 100.0f // cm/s
+#define MC_LAND_CHECK_VEL_Z_MOVING 25.0f   // cm/s
+#define MC_LAND_THR_STABILISE_DELAY 1      // seconds
+#define MC_LAND_DESCEND_THROTTLE 40        // uS
+#define MC_LAND_SAFE_SURFACE 5.0f          // cm
 
 #define MAX_POSITION_UPDATE_INTERVAL_US     HZ2US(MIN_POSITION_UPDATE_RATE_HZ)        // convenience macro
 _Static_assert(MAX_POSITION_UPDATE_INTERVAL_US <= TIMEDELTA_MAX, "deltaMicros can overflow!");
@@ -95,6 +101,9 @@ typedef struct navigationFlags_s {
     bool forcedEmergLandingActivated;
 
     bool wpMissionPlannerActive;               // Activation status of WP mission planner
+
+    /* Landing detector */
+    bool resetLandingDetector;
 } navigationFlags_t;
 
 typedef struct {
@@ -294,7 +303,7 @@ typedef struct {
 
 typedef struct {
     timeMs_t        lastCheckTime;
-    fpVector3_t     initialPosition;
+    bool            rthSanityOK;
     float           minimalDistanceToHome;
 } rthSanityChecker_t;
 
@@ -366,19 +375,20 @@ typedef struct {
     /* WP Mission planner */
     int8_t                      wpMissionPlannerStatus;     // WP save status for setting in flight WP mission planner
     int8_t                      wpPlannerActiveWPIndex;
-
+#ifdef USE_MULTI_MISSION
     /* Multi Missions */
     int8_t                      multiMissionCount;          // number of missions in multi mission entry
     int8_t                      loadedMultiMissionIndex;    // index of selected multi mission
     int8_t                      loadedMultiMissionStartWP;  // selected multi mission start WP
     int8_t                      loadedMultiMissionWPCount;  // number of WPs in selected multi mission
-
-    navWaypointPosition_t       activeWaypoint;     // Local position and initial bearing, filled on waypoint activation
+#endif
+    navWaypointPosition_t       activeWaypoint;             // Local position and initial bearing, filled on waypoint activation
     int8_t                      activeWaypointIndex;
-    float                       wpInitialAltitude;  // Altitude at start of WP
-    float                       wpInitialDistance;  // Distance when starting flight to WP
-    float                       wpDistance;         // Distance to active WP
-    timeMs_t                    wpReachedTime;      // Time the waypoint was reached
+    float                       wpInitialAltitude;          // Altitude at start of WP
+    float                       wpInitialDistance;          // Distance when starting flight to WP
+    float                       wpDistance;                 // Distance to active WP
+    timeMs_t                    wpReachedTime;              // Time the waypoint was reached
+    bool                        wpAltitudeReached;          // WP altitude achieved
 
     /* Internals & statistics */
     int16_t                     rcAdjustment[4];
@@ -405,8 +415,12 @@ const navEstimatedPosVel_t * navGetCurrentActualPositionAndVelocity(void);
 bool isThrustFacingDownwards(void);
 uint32_t calculateDistanceToDestination(const fpVector3_t * destinationPos);
 int32_t calculateBearingToDestination(const fpVector3_t * destinationPos);
-void resetLandingDetector(void);
+
 bool isLandingDetected(void);
+void resetLandingDetector(void);
+bool isFlightDetected(void);
+bool isFixedWingFlying(void);
+bool isMulticopterFlying(void);
 
 navigationFSMStateFlags_t navGetCurrentStateFlags(void);
 
@@ -444,11 +458,7 @@ bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcR
 
 void applyMulticopterNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
 
-void resetFixedWingLandingDetector(void);
-void resetMulticopterLandingDetector(void);
-
 bool isMulticopterLandingDetected(void);
-bool isFixedWingLandingDetected(void);
 
 void calculateMulticopterInitialHoldPosition(fpVector3_t * pos);
 
@@ -467,6 +477,8 @@ void applyFixedWingPositionController(timeUs_t currentTimeUs);
 float processHeadingYawController(timeDelta_t deltaMicros, int32_t navHeadingError, bool errorIsDecreasing);
 void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
 
+bool isFixedWingLandingDetected(void);
+
 void calculateFixedWingInitialHoldPosition(fpVector3_t * pos);
 
 /* Fixed-wing launch controller */
@@ -479,5 +491,3 @@ void applyFixedWingLaunchController(timeUs_t currentTimeUs);
  * Rover specific functions
  */
 void applyRoverBoatNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
-
-#endif

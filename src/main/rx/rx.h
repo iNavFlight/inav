@@ -191,7 +191,7 @@ typedef struct rxLinkStatistics_s {
     int8_t      uplinkSNR;      // The SNR of the uplink in dB
     uint8_t     rfMode;         // A protocol specific measure of the transmission bandwidth [2 = 150Hz, 1 = 50Hz, 0 = 4Hz]
     uint16_t    uplinkTXPower;  // power in mW
-    uint8_t     activeAnt;
+    uint8_t     activeAntenna;
 } rxLinkStatistics_t;
 
 extern rxRuntimeConfig_t rxRuntimeConfig; //!!TODO remove this extern, only needed once for channelCount
@@ -227,5 +227,5 @@ uint16_t rxGetRefreshRate(void);
 
 // Processed RC channel value. These values might include
 // filtering and some extra processing like value holding
-// during failsafe. 
+// during failsafe.
 int16_t rxGetChannelValue(unsigned channelNumber);
