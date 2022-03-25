@@ -28,7 +28,7 @@
 #include "drivers/io.h"
 #include "drivers/timer.h"
 
-const timerHardware_t timerHardware[] = {
+timerHardware_t timerHardware[] = {
     DEF_TIM(TIM8, CH2, PC7, TIM_USE_PPM,   0, 0), // PPM IN
 
     DEF_TIM(TIM3, CH3, PB0, TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR, 0, 0), // S1_OUT - DMA1_ST7
