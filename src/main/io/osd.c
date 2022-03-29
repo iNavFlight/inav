@@ -1088,9 +1088,10 @@ static inline int32_t osdGetAltitudeMsl(void)
 
 uint16_t osdGetRemainingGlideTime(void) {
     float value = getEstimatedActualVelocity(Z);
-    static pt1Filter_t glideTimeFilterState;
+    static pt1Filter_t velocityZFilterState, glideTimeFilterState;
     const  timeMs_t curTimeMs = millis();
-    static timeMs_t glideTimeUpdatedMs;
+    static timeMs_t velocityZTimeUpdatedMs, glideTimeUpdatedMs;
+
     value = pt1FilterApply4(&glideTimeFilterState, isnormal(value) ? value : 0, 0.5, MS2S(curTimeMs - glideTimeUpdatedMs));
     glideTimeUpdatedMs = curTimeMs;
     
@@ -1099,6 +1100,10 @@ uint16_t osdGetRemainingGlideTime(void) {
     } else {
         value = 0;
     }
+
+    value = pt1FilterApply4(&velocityZFilterState, isnormal(value) ? value : 0, 0.5, MS2S(curTimeMs - velocityZTimeUpdatedMs));
+    velocityZTimeUpdatedMs = curTimeMs;
+
     return (uint16_t)round(value);
 }
 
