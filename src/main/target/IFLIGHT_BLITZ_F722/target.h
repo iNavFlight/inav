@@ -36,6 +36,11 @@
 #define USE_MPU_DATA_READY_SIGNAL
 #define GYRO_INT_EXTI           PC4
 
+#define USE_IMU_BMI270
+#define IMU_BMI270_ALIGN       CW0_DEG
+#define BMI270_CS_PIN          PA4
+#define BMI270_SPI_BUS         BUS_SPI1
+
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW0_DEG
 #define MPU6000_CS_PIN          PA4

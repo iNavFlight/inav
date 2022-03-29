@@ -126,6 +126,15 @@ throttleStatus_e FAST_CODE NOINLINE calculateThrottleStatus(throttleStatusType_e
     return THROTTLE_HIGH;
 }
 
+int16_t throttleStickMixedValue(void)
+{
+    int16_t throttleValue;
+
+    throttleValue = constrain(rxGetChannelValue(THROTTLE), rxConfig()->mincheck, PWM_RANGE_MAX);
+    throttleValue = (uint16_t)(throttleValue - rxConfig()->mincheck) * PWM_RANGE_MIN / (PWM_RANGE_MAX - rxConfig()->mincheck);  // [MINCHECK;2000] -> [0;1000]
+    return rcLookupThrottle(throttleValue);
+}
+
 rollPitchStatus_e calculateRollPitchCenterStatus(void)
 {
     if (((rxGetChannelValue(PITCH) < (PWM_RANGE_MIDDLE + AIRMODE_DEADBAND)) && (rxGetChannelValue(PITCH) > (PWM_RANGE_MIDDLE -AIRMODE_DEADBAND)))

@@ -33,6 +33,8 @@
 #include "sensors/sensors.h"
 #include "sensors/acceleration.h"
 #include "sensors/boardalignment.h"
+#include "sensors/gyro.h"
+#include "sensors/pitotmeter.h"
 
 #include "flight/pid.h"
 #include "flight/imu.h"
@@ -266,7 +268,7 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
     float posErrorX = posControl.desiredState.pos.x - navGetCurrentActualPositionAndVelocity()->pos.x;
     float posErrorY = posControl.desiredState.pos.y - navGetCurrentActualPositionAndVelocity()->pos.y;
 
-    float distanceToActualTarget = fast_fsqrtf(sq(posErrorX) + sq(posErrorY));
+    float distanceToActualTarget = calc_length_pythagorean_2D(posErrorX, posErrorY);
 
     // Limit minimum forward velocity to 1 m/s
     float trackingDistance = trackingPeriod * MAX(posControl.actualState.velXY, 100.0f);
@@ -290,7 +292,7 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
         // We have temporary loiter target. Recalculate distance and position error
         posErrorX = loiterTargetX - navGetCurrentActualPositionAndVelocity()->pos.x;
         posErrorY = loiterTargetY - navGetCurrentActualPositionAndVelocity()->pos.y;
-        distanceToActualTarget = fast_fsqrtf(sq(posErrorX) + sq(posErrorY));
+        distanceToActualTarget = calc_length_pythagorean_2D(posErrorX, posErrorY);
     }
 
     // Calculate virtual waypoint
@@ -592,21 +594,73 @@ bool isFixedWingAutoThrottleManuallyIncreased()
     return isAutoThrottleManuallyIncreased;
 }
 
+bool isFixedWingFlying(void)
+{
+    float airspeed = 0;
+#ifdef USE_PITOT
+    airspeed = pitot.airSpeed;
+#endif
+    bool throttleCondition = rcCommand[THROTTLE] > currentBatteryProfile->nav.fw.cruise_throttle;
+    bool velCondition = posControl.actualState.velXY > 250 || airspeed > 250;
+    bool launchCondition = isNavLaunchEnabled() && fixedWingLaunchStatus() == FW_LAUNCH_FLYING;
+
+    return (isImuHeadingValid() && throttleCondition && velCondition) || launchCondition;
+}
+
 /*-----------------------------------------------------------
  * FixedWing land detector
  *-----------------------------------------------------------*/
-static timeUs_t landingTimerUs;
-
-void resetFixedWingLandingDetector(void)
-{
-    landingTimerUs = micros();
-}
-
 bool isFixedWingLandingDetected(void)
 {
-    timeUs_t currentTimeUs = micros();
+    DEBUG_SET(DEBUG_LANDING, 4, 0);
+    static bool fixAxisCheck = false;
+    const bool throttleIsLow = calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC) == THROTTLE_LOW;
 
-    landingTimerUs = currentTimeUs;
+    // Basic condition to start looking for landing
+    bool startCondition = (navGetCurrentStateFlags() & (NAV_CTL_LAND | NAV_CTL_EMERG))
+                          || FLIGHT_MODE(FAILSAFE_MODE)
+                          || (!navigationIsControllingThrottle() && throttleIsLow);
+
+    if (!startCondition || posControl.flags.resetLandingDetector) {
+        return fixAxisCheck = posControl.flags.resetLandingDetector = false;
+    }
+    DEBUG_SET(DEBUG_LANDING, 4, 1);
+
+    static timeMs_t fwLandingTimerStartAt;
+    static int16_t fwLandSetRollDatum;
+    static int16_t fwLandSetPitchDatum;
+
+    timeMs_t currentTimeMs = millis();
+
+    // Check horizontal and vertical volocities are low (cm/s)
+    bool velCondition = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < 50.0f && posControl.actualState.velXY < 100.0f;
+    // Check angular rates are low (degs/s)
+    bool gyroCondition = averageAbsGyroRates() < 2.0f;
+    DEBUG_SET(DEBUG_LANDING, 2, velCondition);
+    DEBUG_SET(DEBUG_LANDING, 3, gyroCondition);
+
+    if (velCondition && gyroCondition){
+        DEBUG_SET(DEBUG_LANDING, 4, 2);
+        DEBUG_SET(DEBUG_LANDING, 5, fixAxisCheck);
+        if (!fixAxisCheck) {        // capture roll and pitch angles to be used as datums to check for absolute change
+            fwLandSetRollDatum = attitude.values.roll;  //0.1 deg increments
+            fwLandSetPitchDatum = attitude.values.pitch;
+            fixAxisCheck = true;
+            fwLandingTimerStartAt = currentTimeMs;
+        } else {
+            bool isRollAxisStatic = ABS(fwLandSetRollDatum - attitude.values.roll) < 5;
+            bool isPitchAxisStatic = ABS(fwLandSetPitchDatum - attitude.values.pitch) < 5;
+            DEBUG_SET(DEBUG_LANDING, 6, isRollAxisStatic);
+            DEBUG_SET(DEBUG_LANDING, 7, isPitchAxisStatic);
+            if (isRollAxisStatic && isPitchAxisStatic) {
+                // Probably landed, low horizontal and vertical velocities and no axis rotation in Roll and Pitch
+                timeMs_t safetyTimeDelay = 2000 + navConfig()->fw.auto_disarm_delay;
+                return currentTimeMs - fwLandingTimerStartAt > safetyTimeDelay; // check conditions stable for 2s + optional extra delay
+            } else {
+                fixAxisCheck = false;
+            }
+        }
+    }
     return false;
 }
 

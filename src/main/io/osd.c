@@ -115,6 +115,7 @@ FILE_COMPILE_FOR_SPEED
 #endif
 
 #define VIDEO_BUFFER_CHARS_PAL    480
+#define VIDEO_BUFFER_CHARS_HD     900
 
 #define GFORCE_FILTER_TC 0.2
 
@@ -196,8 +197,8 @@ static bool osdDisplayHasCanvas;
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
-PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 5);
-PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 6);
+PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 1);
 
 static int digitCount(int32_t value)
 {
@@ -215,6 +216,11 @@ static int digitCount(int32_t value)
 bool osdDisplayIsPAL(void)
 {
     return displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_PAL;
+}
+
+bool osdDisplayIsHD(void)
+{
+    return displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_HD;
 }
 
 /**
@@ -830,6 +836,8 @@ static const char * osdArmingDisabledReasonMessage(void)
         case ARMING_DISABLED_DSHOT_BEEPER:
             return OSD_MESSAGE_STR(OSD_MSG_DSHOT_BEEPER);
             // Cases without message
+        case ARMING_DISABLED_LANDING_DETECTED:
+            FALLTHROUGH;
         case ARMING_DISABLED_CMS_MENU:
             FALLTHROUGH;
         case ARMING_DISABLED_OSD_MENU:
@@ -965,7 +973,7 @@ static void osdFormatMessage(char *buff, size_t size, const char *message, bool 
         strncpy(buff + rem / 2, message, MIN((int)size - rem / 2, (int)messageLength));
     }
     // Ensure buff is zero terminated
-    buff[size - 1] = '\0';
+    buff[size] = '\0';
 }
 
 /**
@@ -2031,7 +2039,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_CRSF_RSSI_DBM:
         {
             int16_t rssi = rxLinkStatistics.uplinkRSSI;
-            buff[0] = (rxLinkStatistics.activeAnt == 0) ? SYM_RSSI : SYM_2RSS; // Separate symbols for each antenna
+            buff[0] = (rxLinkStatistics.activeAntenna == 0) ? SYM_RSSI : SYM_2RSS; // Separate symbols for each antenna
             if (rssi <= -100) {
                 tfp_sprintf(buff + 1, "%4d%c", rssi, SYM_DBM);
             } else {
@@ -3186,11 +3194,11 @@ void osdDrawNextElement(void)
     } while(!osdDrawSingleElement(elementIndex) && index != elementIndex);
 
     // Draw artificial horizon + tracking telemtry last
-    osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
-    if (osdConfig()->telemetry>0){
-      osdDisplayTelemetry();
+		osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
+		if (osdConfig()->telemetry>0){
+		  osdDisplayTelemetry();
+		}
     }
-}
 
 PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .rssi_alarm = SETTING_OSD_RSSI_ALARM_DEFAULT,
@@ -3256,7 +3264,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .pan_servo_index = SETTING_OSD_PAN_SERVO_INDEX_DEFAULT,
     .pan_servo_pwm2centideg = SETTING_OSD_PAN_SERVO_PWM2CENTIDEG_DEFAULT,
     .esc_rpm_precision = SETTING_OSD_ESC_RPM_PRECISION_DEFAULT,
-
+    .system_msg_display_time = SETTING_OSD_SYSTEM_MSG_DISPLAY_TIME_DEFAULT,
     .units = SETTING_OSD_UNITS_DEFAULT,
     .main_voltage_decimals = SETTING_OSD_MAIN_VOLTAGE_DECIMALS_DEFAULT,
 
@@ -3501,18 +3509,21 @@ static void osdCompleteAsyncInitialization(void)
 
     char string_buffer[30];
     tfp_sprintf(string_buffer, "INAV VERSION: %s", FC_VERSION_STRING);
-    displayWrite(osdDisplayPort, 5, y++, string_buffer);
+    uint8_t xPos = osdDisplayIsHD() ? 7 : 5;
+    displayWrite(osdDisplayPort, xPos, y++, string_buffer);
 #ifdef USE_CMS
-    displayWrite(osdDisplayPort, 7, y++,  CMS_STARTUP_HELP_TEXT1);
-    displayWrite(osdDisplayPort, 11, y++, CMS_STARTUP_HELP_TEXT2);
-    displayWrite(osdDisplayPort, 11, y++, CMS_STARTUP_HELP_TEXT3);
+    displayWrite(osdDisplayPort, xPos+2, y++,  CMS_STARTUP_HELP_TEXT1);
+    displayWrite(osdDisplayPort, xPos+6, y++, CMS_STARTUP_HELP_TEXT2);
+    displayWrite(osdDisplayPort, xPos+6, y++, CMS_STARTUP_HELP_TEXT3);
 #endif
-
 #ifdef USE_STATS
-#define STATS_LABEL_X_POS 4
-#define STATS_VALUE_X_POS 24
+
+
+    uint8_t statNameX = osdDisplayIsHD() ? 7 : 4;
+    uint8_t statValueX = osdDisplayIsHD() ? 27 : 24;
+
     if (statsConfig()->stats_enabled) {
-        displayWrite(osdDisplayPort, STATS_LABEL_X_POS, ++y, "ODOMETER:");
+        displayWrite(osdDisplayPort, statNameX, ++y, "ODOMETER:");
         switch (osdConfig()->units) {
             case OSD_UNIT_UK:
                 FALLTHROUGH;
@@ -3533,21 +3544,21 @@ static void osdCompleteAsyncInitialization(void)
                 break;
         }
         string_buffer[6] = '\0';
-        displayWrite(osdDisplayPort, STATS_VALUE_X_POS-5, y,  string_buffer);
+        displayWrite(osdDisplayPort, statValueX-5, y,  string_buffer);
 
-        displayWrite(osdDisplayPort, STATS_LABEL_X_POS, ++y, "TOTAL TIME:");
+        displayWrite(osdDisplayPort, statNameX, ++y, "TOTAL TIME:");
         uint32_t tot_mins = statsConfig()->stats_total_time / 60;
         tfp_sprintf(string_buffer, "%2d:%02dHM", (int)(tot_mins / 60), (int)(tot_mins % 60));
-        displayWrite(osdDisplayPort, STATS_VALUE_X_POS-5, y,  string_buffer);
+        displayWrite(osdDisplayPort, statValueX-5, y,  string_buffer);
 
 #ifdef USE_ADC
         if (feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER)) {
-            displayWrite(osdDisplayPort, STATS_LABEL_X_POS, ++y, "TOTAL ENERGY:");
+            displayWrite(osdDisplayPort, statNameX, ++y, "TOTAL ENERGY:");
             osdFormatCentiNumber(string_buffer, statsConfig()->stats_total_energy / 10, 0, 2, 0, 4);
             strcat(string_buffer, "\xAB"); // SYM_WH
-            displayWrite(osdDisplayPort, STATS_VALUE_X_POS-4, y,  string_buffer);
+            displayWrite(osdDisplayPort, statValueX-4, y,  string_buffer);
 
-            displayWrite(osdDisplayPort, STATS_LABEL_X_POS, ++y, "AVG EFFICIENCY:");
+            displayWrite(osdDisplayPort, statNameX, ++y, "AVG EFFICIENCY:");
             if (statsConfig()->stats_total_dist) {
                 uint32_t avg_efficiency = statsConfig()->stats_total_energy / (statsConfig()->stats_total_dist / METERS_PER_KILOMETER); // mWh/km
                 switch (osdConfig()->units) {
@@ -3573,7 +3584,7 @@ static void osdCompleteAsyncInitialization(void)
                 string_buffer[0] = string_buffer[1] = string_buffer[2] = '-';
             }
             string_buffer[4] = '\0';
-            displayWrite(osdDisplayPort, STATS_VALUE_X_POS-3, y,  string_buffer);
+            displayWrite(osdDisplayPort, statValueX-3, y,  string_buffer);
         }
 #endif // USE_ADC
     }
@@ -3589,7 +3600,7 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
     if (!osdDisplayPortToUse)
         return;
 
-    BUILD_BUG_ON(OSD_POS_MAX != OSD_POS(31,31));
+    BUILD_BUG_ON(OSD_POS_MAX != OSD_POS(63,63));
 
     osdDisplayPort = osdDisplayPortToUse;
 
@@ -3666,10 +3677,10 @@ static void osdUpdateStats(void)
 
 static void osdShowStatsPage1(void)
 {
-    const char * disarmReasonStr[DISARM_REASON_COUNT] = { "UNKNOWN", "TIMEOUT", "STICKS", "SWITCH", "SWITCH", "KILLSW", "FAILSAFE", "NAV SYS" };
+    const char * disarmReasonStr[DISARM_REASON_COUNT] = { "UNKNOWN", "TIMEOUT", "STICKS", "SWITCH", "SWITCH", "KILLSW", "FAILSAFE", "NAV SYS", "LANDING"};
     uint8_t top = 1;    /* first fully visible line */
-    const uint8_t statNameX = 1;
-    const uint8_t statValuesX = 20;
+    const uint8_t statNameX = osdDisplayIsHD() ? 7 : 1;
+    const uint8_t statValuesX = osdDisplayIsHD() ? 33 : 20;
     char buff[10];
     statsPagesCheck = 1;
 
@@ -3743,8 +3754,8 @@ static void osdShowStatsPage1(void)
 static void osdShowStatsPage2(void)
 {
     uint8_t top = 1;    /* first fully visible line */
-    const uint8_t statNameX = 1;
-    const uint8_t statValuesX = 20;
+    const uint8_t statNameX = osdDisplayIsHD() ? 7 : 1;
+    const uint8_t statValuesX = osdDisplayIsHD() ? 33 : 20;
     char buff[10];
     statsPagesCheck = 1;
 
@@ -3894,7 +3905,8 @@ static void osdShowArmed(void)
     uint8_t y = osdDisplayPort->rows > 13 ? (osdDisplayPort->rows - 12) / 2 : 1;
 
     displayClearScreen(osdDisplayPort);
-    displayWrite(osdDisplayPort, 12, y, "ARMED");
+    strcpy(buf, "ARMED");
+    displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y, buf);
     y += 2;
 
     if (strlen(systemConfig()->name) > 0) {
@@ -3905,9 +3917,10 @@ static void osdShowArmed(void)
     if (posControl.waypointListValid && posControl.waypointCount > 0) {
 #ifdef USE_MULTI_MISSION
         tfp_sprintf(buf, "MISSION %u/%u (%u WP)", posControl.loadedMultiMissionIndex, posControl.multiMissionCount, posControl.waypointCount);
-        displayWrite(osdDisplayPort, 6, y, buf);
+        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y, buf);
 #else
-        displayWrite(osdDisplayPort, 7, y, "*MISSION LOADED*");
+        strcpy(buf, "*MISSION LOADED*");
+        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y, buf);
 #endif
     }
     y += 1;
@@ -4150,7 +4163,7 @@ void osdUpdate(timeUs_t currentTimeUs)
         osdUpdateStats();
     }
 
-    if ((counter & DRAW_FREQ_DENOM) == 0) {
+    if ((counter % DRAW_FREQ_DENOM) == 0) {
         // redraw values in buffer
         osdRefresh(currentTimeUs);
     } else {
@@ -4213,6 +4226,18 @@ displayCanvas_t *osdGetDisplayPortCanvas(void)
     return NULL;
 }
 
+timeMs_t systemMessageCycleTime(unsigned messageCount, const char **messages){
+    uint8_t i = 0;
+    float factor = 1.0f;
+    while (i < messageCount) {
+        if ((float)strlen(messages[i]) / 15.0f > factor) {
+            factor = (float)strlen(messages[i]) / 15.0f;
+        }
+        i++;
+    }
+    return osdConfig()->system_msg_display_time * factor;
+}
+
 textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenteredText)
 {
     textAttributes_t elemAttr = TEXT_ATTRIBUTES_NONE;
@@ -4241,13 +4266,18 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     tfp_sprintf(messageBuf, "TO WP %u/%u (%s)", getGeoWaypointNumber(posControl.activeWaypointIndex), posControl.geoWaypointCount, buf);
                     messages[messageCount++] = messageBuf;
                 } else if (NAV_Status.state == MW_NAV_STATE_HOLD_TIMED) {
-                    // WP hold time countdown in seconds
-                    timeMs_t currentTime = millis();
-                    int holdTimeRemaining = posControl.waypointList[posControl.activeWaypointIndex].p1 - (int)((currentTime - posControl.wpReachedTime)/1000);
-                    if (holdTimeRemaining >=0) {
+                    if (navConfig()->general.flags.waypoint_enforce_altitude && !posControl.wpAltitudeReached) {
+                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ADJUSTING_WP_ALT);
+                    } else {
+                        // WP hold time countdown in seconds
+                        timeMs_t currentTime = millis();
+                        int holdTimeRemaining = posControl.waypointList[posControl.activeWaypointIndex].p1 - (int)(MS2S(currentTime - posControl.wpReachedTime));
+                        holdTimeRemaining = holdTimeRemaining >= 0 ? holdTimeRemaining : 0;
+
                         tfp_sprintf(messageBuf, "HOLDING WP FOR %2u S", holdTimeRemaining);
+
+                        messages[messageCount++] = messageBuf;
                     }
-                    messages[messageCount++] = messageBuf;
                 } else {
                     const char *navStateMessage = navigationStateMessage();
                     if (navStateMessage) {
@@ -4305,6 +4335,9 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     if (posControl.flags.wpMissionPlannerActive) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_MISSION_PLANNER);
                     }
+                    if (STATE(LANDING_DETECTED)) {
+                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_LANDED);
+                    }
                 }
             }
         } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
@@ -4340,7 +4373,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
         }
 
         if (messageCount > 0) {
-            message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
+            message = messages[OSD_ALTERNATING_CHOICES(systemMessageCycleTime(messageCount, messages), messageCount)];
             if (message == failsafeInfoMessage) {
                 // failsafeInfoMessage is not useful for recovering
                 // a lost model, but might help avoiding a crash.

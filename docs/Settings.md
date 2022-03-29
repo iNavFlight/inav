@@ -188,7 +188,7 @@ Defines airmode THROTTLE activation threshold when `airmode_type` **THROTTLE_THR
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1300 | 1000 | 2000 |
+| 1150 | 1000 | 2000 |
 
 ---
 
@@ -1602,6 +1602,36 @@ Use Dynamic LPF instead of static gyro stage1 LPF. Dynamic Gyro LPF updates gyro
 
 ---
 
+### gyro_zero_x
+
+Calculated gyro zero calibration of axis X
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -32768 | 32767 |
+
+---
+
+### gyro_zero_y
+
+Calculated gyro zero calibration of axis Y
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -32768 | 32767 |
+
+---
+
+### gyro_zero_z
+
+Calculated gyro zero calibration of axis Z
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -32768 | 32767 |
+
+---
+
 ### has_flaps
 
 Defines is UAV is capable of having flaps. If ON and AIRPLANE `platform_type` is used, **FLAPERON** flight mode will be available for the pilot
@@ -2099,6 +2129,26 @@ _// TODO_
 | Default | Min | Max |
 | --- | --- | --- |
 | 6.1 | 0 | 100 |
+
+---
+
+### init_gyro_cal
+
+If defined to 'OFF', it will ignore the gyroscope calibration done at each startup. Instead, the gyroscope last calibration from when you calibrated will be used. It also means you don't have to keep the UAV stationary during a startup.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| ON | OFF | ON |
+
+---
+
+### ins_gravity_cmss
+
+Calculated 1G of Acc axis Z to use in INS
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0.0 | 0 | 2000 |
 
 ---
 
@@ -2818,7 +2868,7 @@ Craft name
 
 | Default | Min | Max |
 | --- | --- | --- |
-| _empty_ |  |  |
+| _empty_ |  | MAX_NAME_LENGTH |
 
 ---
 
@@ -2879,6 +2929,16 @@ Enable the possibility to manually increase the throttle in auto throttle contro
 | Default | Min | Max |
 | --- | --- | --- |
 | OFF | OFF | ON |
+
+---
+
+### nav_fw_auto_disarm_delay
+
+Delay before plane disarms when `nav_disarm_on_landing` is set (ms)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 2000 | 100 | 10000 |
 
 ---
 
@@ -3394,7 +3454,7 @@ Max allowed above the ground altitude for terrain following mode
 
 ### nav_mc_auto_disarm_delay
 
-Delay before multi-rotor disarms when `nav_disarm_on_landing` is set (m/s)
+Delay before multi-rotor disarms when `nav_disarm_on_landing` is set (ms)
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3714,11 +3774,11 @@ If GPS fails wait for this much seconds before switching to emergency landing mo
 
 ### nav_rth_abort_threshold
 
-RTH sanity checking feature will notice if distance to home is increasing during RTH and once amount of increase exceeds the threshold defined by this parameter, instead of continuing RTH machine will enter emergency landing, self-level and go down safely. Default is 500m which is safe enough for both multirotor machines and airplanes. [cm]
+RTH sanity checking feature will notice if distance to home is increasing during RTH and once amount of increase exceeds the threshold defined by this parameter, instead of continuing RTH machine will enter emergency landing, self-level and go down safely. Default is 500m which is safe enough for both multirotor machines and airplanes. Set to 0 to disable. [cm]
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 50000 |  | 65000 |
+| 50000 | 0 | 65000 |
 
 ---
 
@@ -3849,6 +3909,16 @@ Defines how Pitch/Roll input from RC receiver affects flight in POSHOLD mode: AT
 | Default | Min | Max |
 | --- | --- | --- |
 | ATTI |  |  |
+
+---
+
+### nav_wp_enforce_altitude
+
+Forces craft to achieve the set WP altitude as well as position before moving to next WP. Position is held and altitude adjusted as required before moving on.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
 
 ---
 
@@ -4582,6 +4652,16 @@ Auto swap display time interval between disarm stats pages (seconds). Reverts to
 
 ---
 
+### osd_system_msg_display_time
+
+System message display cycle time for multiple messages (milliseconds).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | 500 | 5000 |
+
+---
+
 ### osd_telemetry
 
 To enable OSD telemetry for antenna tracker. Possible values are `OFF`, `ON` and `TEST`
@@ -4624,7 +4704,7 @@ IMPERIAL, METRIC, UK
 
 ### osd_video_system
 
-Video system used. Possible values are `AUTO`, `PAL` and `NTSC`
+Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, and `HD`
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5404,7 +5484,7 @@ Total flight distance [in meters]. The value is updated on every disarm when "st
 
 ### stats_total_energy
 
-_// TODO_
+Total energy consumption [in mWh]. The value is updated on every disarm when "stats" are enabled.
 
 | Default | Min | Max |
 | --- | --- | --- |

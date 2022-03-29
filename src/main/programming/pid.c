@@ -105,7 +105,8 @@ void programmingPidInit(void)
             programmingPids(i)->gains.I / 1000.0f,
             programmingPids(i)->gains.D / 1000.0f,
             programmingPids(i)->gains.FF / 1000.0f,
-            5.0f
+            5.0f,
+            0.0f
         );
     }
 }

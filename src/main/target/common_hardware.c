@@ -164,6 +164,16 @@
     #endif
 #endif
 
+#if defined(USE_BARO_B2SMPB)
+    #if defined(B2SMPB_SPI_BUS)
+    BUSDEV_REGISTER_SPI(busdev_b2smpb,     DEVHW_B2SMPB,        B2SMPB_SPI_BUS,     B2SMPB_CS_PIN,       NONE,           DEVFLAGS_NONE, 0);
+    #elif defined(B2SMPB_I2C_BUS) || defined(BARO_I2C_BUS)
+    #if !defined(B2SMPB_I2C_BUS)
+        #define B2SMPB_I2C_BUS BARO_I2C_BUS
+    #endif
+    BUSDEV_REGISTER_I2C(busdev_b2smpb,     DEVHW_B2SMPB,        B2SMPB_I2C_BUS,      0x70,                NONE,           DEVFLAGS_NONE, 0);
+    #endif
+#endif
 
 /** COMPASS SENSORS **/
 #if !defined(USE_TARGET_MAG_HARDWARE_DESCRIPTORS)

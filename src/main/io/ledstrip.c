@@ -73,7 +73,7 @@
 #include "telemetry/telemetry.h"
 
 
-PG_REGISTER_WITH_RESET_FN(ledStripConfig_t, ledStripConfig, PG_LED_STRIP_CONFIG, 0);
+PG_REGISTER_WITH_RESET_FN(ledStripConfig_t, ledStripConfig, PG_LED_STRIP_CONFIG, 1);
 
 static bool ledStripInitialised = false;
 static bool ledStripEnabled = true;
@@ -220,7 +220,7 @@ static const hsvColor_t* getSC(ledSpecialColorIds_e index)
 }
 
 static const char directionCodes[LED_DIRECTION_COUNT] = { 'N', 'E', 'S', 'W', 'U', 'D' };
-static const char baseFunctionCodes[LED_BASEFUNCTION_COUNT]   = { 'C', 'F', 'A', 'L', 'S', 'G', 'R' };
+static const char baseFunctionCodes[LED_BASEFUNCTION_COUNT]   = { 'C', 'F', 'A', 'L', 'S', 'G', 'R', 'H' };
 static const char overlayCodes[LED_OVERLAY_COUNT]   = { 'T', 'O', 'B', 'N', 'I', 'W' };
 
 #define CHUNK_BUFFER_SIZE 11
@@ -438,6 +438,7 @@ static void applyLedFixedLayers(void)
 
         int fn = ledGetFunction(ledConfig);
         int hOffset = HSV_HUE_MAX;
+        uint8_t channel = 0;
 
         switch (fn) {
             case LED_FUNCTION_COLOR:
@@ -468,6 +469,18 @@ static void applyLedFixedLayers(void)
             case LED_FUNCTION_RSSI:
                 color = HSV(RED);
                 hOffset += scaleRange(getRSSI() * 100, 0, 1023, -30, 120);
+                break;
+
+            case LED_FUNCTION_CHANNEL:
+                channel = ledGetColor(ledConfig) - 1;
+                color = HSV(RED);
+                hOffset = scaleRange(rxGetChannelValue(channel), PWM_RANGE_MIN, PWM_RANGE_MAX, -1, 360);
+                // add black and white to range of colors
+                if (hOffset < 0) {
+                    color = HSV(BLACK);
+                } else if (hOffset > HSV_HUE_MAX) {
+                    color = HSV(WHITE);
+                }
                 break;
 
             default:

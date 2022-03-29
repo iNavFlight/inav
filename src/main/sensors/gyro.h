@@ -77,6 +77,9 @@ typedef struct gyroConfig_s {
     uint16_t kalman_q;
     uint8_t kalmanEnabled;
 #endif
+    bool init_gyro_cal_enabled;
+    int16_t gyro_zero_cal[XYZ_AXIS_COUNT];
+    float gravity_cmss_cal;
 } gyroConfig_t;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);
@@ -91,3 +94,4 @@ bool gyroReadTemperature(void);
 int16_t gyroGetTemperature(void);
 int16_t gyroRateDps(int axis);
 void gyroUpdateDynamicLpf(float cutoffFreq);
+float averageAbsGyroRates(void);
