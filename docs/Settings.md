@@ -4412,6 +4412,16 @@ Temperature under which the IMU temperature OSD element will start blinking (dec
 
 ---
 
+### osd_infocycle_interval_time
+
+Display time for each item in the OSD Info Cycle field (milliseconds).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | 500 | 5000 |
+
+---
+
 ### osd_left_sidebar_scroll
 
 _// TODO_

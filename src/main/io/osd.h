@@ -29,11 +29,13 @@
 #endif
 #define OSD_LAYOUT_COUNT (OSD_ALTERNATE_LAYOUT_COUNT + 1)
 
-// 00vb yyyy yyxx xxxx
-// (visible)(blink)(yCoord)(xCoord)
+// 0ivb yyyy yyxx xxxx
+// (infocycle)(visible)(blink)(yCoord)(xCoord)
 
 #define OSD_VISIBLE_FLAG    0x2000
+#define OSD_INFOCYCLE_FLAG  0x4000
 #define OSD_VISIBLE(x)      ((x) & OSD_VISIBLE_FLAG)
+#define OSD_INFOCYCLE(x)    ((x) & OSD_INFOCYCLE_FLAG)
 
 #define OSD_POS(x,y)        (((x) & 0x3F) | (((y) & 0x3F) << 6))
 #define OSD_X(x)            ((x) & 0x3F)
@@ -240,6 +242,7 @@ typedef enum {
     OSD_NAV_FW_CONTROL_SMOOTHNESS,
     OSD_VERSION,
     OSD_RANGEFINDER,
+    OSD_INFO_CYCLE,
     OSD_PLIMIT_REMAINING_BURST_TIME,
     OSD_PLIMIT_ACTIVE_CURRENT_LIMIT,
     OSD_PLIMIT_ACTIVE_POWER_LIMIT,
@@ -405,6 +408,7 @@ typedef struct osdConfig_s {
     uint8_t sidebar_height;             // sidebar height in rows, 0 turns off sidebars leaving only level indicator arrows
     uint8_t telemetry; 				    // use telemetry on displayed pixel line 0
     uint8_t esc_rpm_precision;          // Number of characters used for the RPM numbers.
+    uint16_t infocycle_interval_time;   // Info Cycle item display time interval (ms)
 
 } osdConfig_t;
 
