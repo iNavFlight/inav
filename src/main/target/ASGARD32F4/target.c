@@ -30,7 +30,7 @@
 #include "drivers/timer.h"
 #include "drivers/bus.h"
 
-const timerHardware_t timerHardware[] = {
+timerHardware_t timerHardware[] = {
     // DEF_TIM(TIM1,  CH1, PA8, TIM_USE_PPM,        0, 0), // PPM  - timer clash with SS1_TX
 
     DEF_TIM(TIM8,  CH3, PC8, TIM_USE_MC_MOTOR,   1, 1), // M1 - D(2, 4, 7)

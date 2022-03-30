@@ -23,7 +23,7 @@
 #include "drivers/sensor.h"
 #include "drivers/pwm_mapping.h"
 
-const timerHardware_t timerHardware[] = {
+timerHardware_t timerHardware[] = {
 
     DEF_TIM(TIM1,  CH1, PA8, TIM_USE_LED, 0, 0),      // LED STRIP - D(2, 6, 0)
 

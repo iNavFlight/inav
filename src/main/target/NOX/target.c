@@ -23,7 +23,7 @@
 #include "drivers/dma.h"
 #include "drivers/timer.h"
 
-const timerHardware_t timerHardware[] = {
+timerHardware_t timerHardware[] = {
     DEF_TIM(TIM2, CH3, PB10, TIM_USE_PPM,  0, 0),   //PPM
     DEF_TIM(TIM2, CH1, PA0,  TIM_USE_LED,  0, 0), //2812LED
 

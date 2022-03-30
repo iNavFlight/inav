@@ -4712,6 +4712,16 @@ Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, and `HD`
 
 ---
 
+### output_mode
+
+Output function assignment mode. AUTO assigns outputs according to the default mapping, SERVOS assigns all outputs to servos, MOTORS assigns all outputs to motors
+
+| Default | Min | Max |
+| --- | --- | --- |
+| AUTO |  |  |
+
+---
+
 ### pid_type
 
 Allows to set type of PID controller used in control loop. Possible values: `NONE`, `PID`, `PIFF`, `AUTO`. Change only in case of experimental platforms like VTOL, tailsitters, rovers, boats, etc. Airplanes should always use `PIFF` and multirotors `PID`

@@ -36,7 +36,7 @@ BUSDEV_REGISTER_I2C_TAG(busdev_mag3110,     DEVHW_MAG3110,      MAG_I2C_BUS,    
 // PixRacer has built-in HMC5983 compass on the same SPI bus as MPU9250
 BUSDEV_REGISTER_SPI_TAG(busdev_hmc5983_spi, DEVHW_HMC5883,      MPU9250_SPI_BUS,    PE15,               NONE,                   1,  DEVFLAGS_NONE,    0);
 
-const timerHardware_t timerHardware[] = {
+timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3, CH3, PB0,  TIM_USE_PPM,         0, 0 ),   // PPM shared uart6 pc7
 
     DEF_TIM(TIM1, CH4, PE14,    TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,         0, 0 ),   // S1_OUT

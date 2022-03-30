@@ -24,7 +24,7 @@
 #include "drivers/pwm_mapping.h"
 
 
-const timerHardware_t timerHardware[] = {
+timerHardware_t timerHardware[] = {
     DEF_TIM(TIM9, CH1, PA2,   TIM_USE_PPM,   0, 0), // PPM IN
 #ifdef FLYWOOF411_V2
     DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR, 0, 1),      // S1 - D(2,1)

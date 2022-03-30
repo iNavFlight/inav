@@ -24,7 +24,7 @@
 
 #define TIM_EN      TIMER_OUTPUT_ENABLED
 
-const timerHardware_t timerHardware[] = {
+timerHardware_t timerHardware[] = {
 #if defined(FF_PIKOF4OSD)
     DEF_TIM(TIM2,  CH4, PA3,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,  0, 0 ),
     DEF_TIM(TIM3,  CH3, PB1,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,  0, 0 ),
