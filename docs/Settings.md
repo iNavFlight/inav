@@ -3774,11 +3774,11 @@ If GPS fails wait for this much seconds before switching to emergency landing mo
 
 ### nav_rth_abort_threshold
 
-RTH sanity checking feature will notice if distance to home is increasing during RTH and once amount of increase exceeds the threshold defined by this parameter, instead of continuing RTH machine will enter emergency landing, self-level and go down safely. Default is 500m which is safe enough for both multirotor machines and airplanes. [cm]
+RTH sanity checking feature will notice if distance to home is increasing during RTH and once amount of increase exceeds the threshold defined by this parameter, instead of continuing RTH machine will enter emergency landing, self-level and go down safely. Default is 500m which is safe enough for both multirotor machines and airplanes. Set to 0 to disable. [cm]
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 50000 |  | 65000 |
+| 50000 | 0 | 65000 |
 
 ---
 
@@ -4705,6 +4705,16 @@ IMPERIAL, METRIC, UK
 ### osd_video_system
 
 Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, and `HD`
+
+| Default | Min | Max |
+| --- | --- | --- |
+| AUTO |  |  |
+
+---
+
+### output_mode
+
+Output function assignment mode. AUTO assigns outputs according to the default mapping, SERVOS assigns all outputs to servos, MOTORS assigns all outputs to motors
 
 | Default | Min | Max |
 | --- | --- | --- |

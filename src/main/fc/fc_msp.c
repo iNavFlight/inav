@@ -1472,8 +1472,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP2_INAV_OUTPUT_MAPPING:
         for (uint8_t i = 0; i < timerHardwareCount; ++i)
-            if (!(timerHardware[i].usageFlags & (TIM_USE_PPM | TIM_USE_PWM)))
+            if (!(timerHardware[i].usageFlags & (TIM_USE_PPM | TIM_USE_PWM))) {
                 sbufWriteU8(dst, timerHardware[i].usageFlags);
+            }
         break;
 
     case MSP2_INAV_MC_BRAKING:

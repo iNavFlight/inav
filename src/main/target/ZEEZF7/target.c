@@ -24,7 +24,7 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
 
-const timerHardware_t timerHardware[] = {
+timerHardware_t timerHardware[] = {
 #ifdef ZEEZF7V2
     DEF_TIM(TIM4, CH2,  PB7, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR, 0, 0), // S1
     DEF_TIM(TIM4, CH1,  PB6, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR, 0, 0), // S2

@@ -26,7 +26,7 @@
 #include "drivers/timer.h"
 #include "drivers/bus.h"
 
-const timerHardware_t timerHardware[] = {
+timerHardware_t timerHardware[] = {
     DEF_TIM(TIM4, CH2, PB7,  TIM_USE_PPM,   0, 0),  // PPM
 
     DEF_TIM(TIM1, CH1, PA8,     TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 1),  // S1

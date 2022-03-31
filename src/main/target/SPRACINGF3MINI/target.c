@@ -22,7 +22,7 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
 
-const timerHardware_t timerHardware[] = {
+timerHardware_t timerHardware[] = {
     // PPM Pad
 #ifdef SPRACINGF3MINI_MKII_REVA
     DEF_TIM(TIM3,  CH2, PB5,  TIM_USE_PPM,                       0), // PPM - PB5

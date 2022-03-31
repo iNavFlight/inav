@@ -141,8 +141,6 @@
 
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
-#define NAV_GPS_GLITCH_DETECTION
-
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PC0
 #define ADC_CHANNEL_2_PIN               PC1
