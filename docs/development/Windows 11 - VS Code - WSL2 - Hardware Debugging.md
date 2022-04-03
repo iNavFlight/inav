@@ -92,7 +92,13 @@ sudo udevadm control --reload-rules
 ## Debugging
 - Connect SWD from ST-Link to FC board (at least GND, SWDIO and SWCLK should be connected, but connecting Vref to +3.3V pad and RESET accordingly will improve debugging stability a lot!)
 - Power FC (can be powered from USB)
-- Use VS Code Run -> Start Debugging (F5) menu
+- Select (Debug) CMake configuration
+- Build required target from VSCode
+- Use VS Code Run -> Start Debugging (F5) menu (make sure debugging target is "Cortex Debug")
+
+**NOTE:** sometimes "autobuild" script is not performed well, it is recommended to repeat last two steps every time you change code and need "reflash-debug"
+
+**NOTE:** after long and/or intensive debugging OpenOCD can crash, in this case just reopen VSCode, replug ST-Link USB, reattach USB to WSL and start debug session again
 
 # Troubleshooting
 - OpenOCD shows Permission denied during "Flashing":
