@@ -133,9 +133,9 @@ void pgResetFn_serialConfig(serialConfig_t *serialConfig)
 #endif
 
 #ifdef SMARTAUDIO_UART
-    serialPortConfig_t *gpsUartConfig = serialFindPortConfiguration(SMARTAUDIO_UART);
-    if (SMARTAUDIO_UART) {
-        gpsUartConfig->functionMask = FUNCTION_VTX_SMARTAUDIO;
+    serialPortConfig_t *smartAudioUartConfig = serialFindPortConfiguration(SMARTAUDIO_UART);
+    if (smartAudioUartConfig) {
+        smartAudioUartConfig->functionMask = FUNCTION_VTX_SMARTAUDIO;
     }
 #endif
 
