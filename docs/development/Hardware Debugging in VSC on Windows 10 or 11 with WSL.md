@@ -1,4 +1,4 @@
-# Hardware Debugging in Visual Stdio Code and WSL
+# Hardware Debugging in Visual Studio Code and WSL
 
 Real debugging makes life easier, here is a configuration for VSCode with WSL for Windows 10/11.
 
