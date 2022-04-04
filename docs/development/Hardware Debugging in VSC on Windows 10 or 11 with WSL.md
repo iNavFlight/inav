@@ -68,7 +68,7 @@ In order for GDB and OpenOCD to be able to communicate with each other, the host
 `export WSL_HOST_IP=$(cat /etc/resolv.conf | sed -rn 's|nameserver (.*)|\1|p')`
 
 Actually, the trick is quite simple:
-In launch.json set `servertype` to `external' and `gdbTarget` to `windows-host-ip:3333`, the .cfg file must of course be passed when starting openOCD in windows and the connection must be bound to 0.0.0.0.
+In launch.json set `servertype` to `external` and `gdbTarget` to `windows-host-ip:3333`, the .cfg file must of course be passed when starting openOCD in windows and the connection must be bound to 0.0.0.0.
 
 ## VSCode configuration files
 
