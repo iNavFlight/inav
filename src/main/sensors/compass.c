@@ -42,6 +42,7 @@
 #include "drivers/compass/compass_lis3mdl.h"
 #include "drivers/compass/compass_rm3100.h"
 #include "drivers/compass/compass_vcm5883.h"
+#include "drivers/compass/compass_mlx90393.h"
 #include "drivers/compass/compass_msp.h"
 #include "drivers/io.h"
 #include "drivers/light_led.h"
@@ -251,6 +252,19 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 #ifdef USE_MAG_VCM5883
         if (vcm5883Detect(dev)) {
             magHardware = MAG_VCM5883;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (magHardwareToUse != MAG_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
+    case MAG_MLX90393:
+#ifdef USE_MAG_MLX90393
+        if (mlx90393Detect(dev)) {
+            magHardware = MAG_MLX90393;
             break;
         }
 #endif

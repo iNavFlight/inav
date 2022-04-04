@@ -169,7 +169,7 @@ static const char * const blackboxIncludeFlagNames[] = {
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status command output) */
 // sync with gyroSensor_e
-static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6050", "MPU3050", "L3GD20", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"};
+static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6050", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"};
 
 // sync this with sensors_e
 static const char * const sensorTypeNames[] = {
@@ -481,7 +481,12 @@ static void dumpPgValue(const setting_t *value, uint8_t dumpMask)
         settingGetName(value, name);
         if (dumpMask & SHOW_DEFAULTS && !equalsDefault) {
             cliPrintf(defaultFormat, name);
-            printValuePointer(value, defaultValuePointer, 0);
+            // if the craftname has a leading space, then enclose the name in quotes
+            if (strcmp(name, "name") == 0 && ((const char *)valuePointer)[0] == ' ') {
+                cliPrintf("\"%s\"", (const char *)valuePointer);
+            } else {
+                printValuePointer(value, valuePointer, 0);
+            }
             cliPrintLinefeed();
         }
         cliPrintf(format, name);
@@ -1346,7 +1351,7 @@ static void cliSafeHomes(char *cmdline)
 }
 
 #endif
-#if defined(USE_NAV) && defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE) && defined(NAV_NON_VOLATILE_WAYPOINT_CLI)
+#if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE) && defined(NAV_NON_VOLATILE_WAYPOINT_CLI)
 static void printWaypoints(uint8_t dumpMask, const navWaypoint_t *navWaypoint, const navWaypoint_t *defaultNavWaypoint)
 {
     cliPrintLinef("#wp %d %svalid", posControl.waypointCount, posControl.waypointListValid ? "" : "in"); //int8_t bool
@@ -1390,6 +1395,9 @@ static void printWaypoints(uint8_t dumpMask, const navWaypoint_t *navWaypoint, c
 
 static void cliWaypoints(char *cmdline)
 {
+#ifdef USE_MULTI_MISSION
+    static int8_t multiMissionWPCounter = 0;
+#endif
     if (isEmpty(cmdline)) {
         printWaypoints(DUMP_MASTER, posControl.waypointList, NULL);
     } else if (sl_strcasecmp(cmdline, "reset") == 0) {
@@ -1401,9 +1409,21 @@ static void cliWaypoints(char *cmdline)
         for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {
             if (!(posControl.waypointList[i].action == NAV_WP_ACTION_WAYPOINT || posControl.waypointList[i].action == NAV_WP_ACTION_JUMP || posControl.waypointList[i].action == NAV_WP_ACTION_RTH || posControl.waypointList[i].action == NAV_WP_ACTION_HOLD_TIME || posControl.waypointList[i].action == NAV_WP_ACTION_LAND || posControl.waypointList[i].action == NAV_WP_ACTION_SET_POI || posControl.waypointList[i].action == NAV_WP_ACTION_SET_HEAD)) break;
             if (posControl.waypointList[i].flag == NAV_WP_FLAG_LAST) {
+#ifdef USE_MULTI_MISSION
+                if (posControl.multiMissionCount == 1) {
+                    posControl.waypointCount = i + 1;
+                    posControl.waypointListValid = true;
+                    multiMissionWPCounter = 0;
+                    posControl.multiMissionCount = 0;
+                    break;
+                } else {
+                    posControl.multiMissionCount -= 1;
+                }
+#else
                 posControl.waypointCount = i + 1;
                 posControl.waypointListValid = true;
                 break;
+#endif
             }
         }
         if (posControl.waypointListValid) {
@@ -1418,7 +1438,11 @@ static void cliWaypoints(char *cmdline)
         uint8_t validArgumentCount = 0;
         const char *ptr = cmdline;
         i = fastA2I(ptr);
+#ifdef USE_MULTI_MISSION
+        if (i + multiMissionWPCounter >= 0 && i + multiMissionWPCounter < NAV_MAX_WAYPOINTS) {
+#else
         if (i >= 0 && i < NAV_MAX_WAYPOINTS) {
+#endif
             ptr = nextArg(ptr);
             if (ptr) {
                 action = fastA2I(ptr);
@@ -1471,6 +1495,27 @@ static void cliWaypoints(char *cmdline)
             } else if (!(action == 0 || action == NAV_WP_ACTION_WAYPOINT || action == NAV_WP_ACTION_RTH || action == NAV_WP_ACTION_JUMP || action == NAV_WP_ACTION_HOLD_TIME || action == NAV_WP_ACTION_LAND || action == NAV_WP_ACTION_SET_POI || action == NAV_WP_ACTION_SET_HEAD) || !(flag == 0 || flag == NAV_WP_FLAG_LAST || flag == NAV_WP_FLAG_HOME)) {
                 cliShowParseError();
             } else {
+#ifdef USE_MULTI_MISSION
+                if (i + multiMissionWPCounter == 0) {
+                    posControl.multiMissionCount = 0;
+                }
+
+                posControl.waypointList[i + multiMissionWPCounter].action = action;
+                posControl.waypointList[i + multiMissionWPCounter].lat = lat;
+                posControl.waypointList[i + multiMissionWPCounter].lon = lon;
+                posControl.waypointList[i + multiMissionWPCounter].alt = alt;
+                posControl.waypointList[i + multiMissionWPCounter].p1 = p1;
+                posControl.waypointList[i + multiMissionWPCounter].p2 = p2;
+                posControl.waypointList[i + multiMissionWPCounter].p3 = p3;
+                posControl.waypointList[i + multiMissionWPCounter].flag = flag;
+
+                // Process WP entries made up of multiple successive WP missions (multiple NAV_WP_FLAG_LAST entries)
+                // Individial missions loaded at runtime, mission selected nav_waypoint_multi_mission_index
+                if (flag == NAV_WP_FLAG_LAST) {
+                    multiMissionWPCounter += i + 1;
+                    posControl.multiMissionCount += 1;
+                }
+#else
                 posControl.waypointList[i].action = action;
                 posControl.waypointList[i].lat = lat;
                 posControl.waypointList[i].lon = lon;
@@ -1479,6 +1524,7 @@ static void cliWaypoints(char *cmdline)
                 posControl.waypointList[i].p2 = p2;
                 posControl.waypointList[i].p3 = p3;
                 posControl.waypointList[i].flag = flag;
+#endif
             }
         } else {
             cliShowArgumentRangeError("wp index", 0, NAV_MAX_WAYPOINTS - 1);
@@ -2202,6 +2248,11 @@ static void cliFlashInfo(char *cmdline)
     UNUSED(cmdline);
 
     const flashGeometry_t *layout = flashGetGeometry();
+    
+    if (layout->totalSize == 0) {
+        cliPrintLine("Flash not available");
+        return;
+    }
 
     cliPrintLinef("Flash sectors=%u, sectorSize=%u, pagesPerSector=%u, pageSize=%u, totalSize=%u",
             layout->sectors, layout->sectorSize, layout->pagesPerSector, layout->pageSize, layout->totalSize);
@@ -2231,6 +2282,13 @@ static void cliFlashErase(char *cmdline)
 {
     UNUSED(cmdline);
 
+    const flashGeometry_t *layout = flashGetGeometry();
+    
+    if (layout->totalSize == 0) {
+        cliPrintLine("Flash not available");
+        return;
+    }
+    
     cliPrintLine("Erasing...");
     flashfsEraseCompletely();
 
@@ -2521,10 +2579,10 @@ static void printBlackbox(uint8_t dumpMask, const blackboxConfig_t *config, cons
         if (blackboxIncludeFlagNames[i] == NULL) {
             break;
         }
-        
+
         const char *formatOn = "blackbox %s";
         const char *formatOff = "blackbox -%s";
-        
+
         if (mask & (1 << i)) {
             cliDumpPrintLinef(dumpMask, false, formatOn, blackboxIncludeFlagNames[i]);
             cliDefaultPrintLinef(dumpMask, false, formatOn, blackboxIncludeFlagNames[i]);
@@ -3109,7 +3167,13 @@ static void cliGet(char *cmdline)
         val = settingGet(i);
         if (settingNameContains(val, name, cmdline)) {
             cliPrintf("%s = ", name);
-            cliPrintVar(val, 0);
+            if (strcmp(name, "name") == 0) {
+                // if the craftname has a leading space, then enclose the name in quotes
+                const char * v = (const char *)settingGetValuePointer(val);
+                cliPrintf(v[0] == ' ' ? "\"%s\"" : "%s", v);
+            } else {
+                cliPrintVar(val, 0);
+            }
             cliPrintLinefeed();
             cliPrintVarRange(val);
             cliPrintLinefeed();
@@ -3167,7 +3231,12 @@ static void cliSet(char *cmdline)
             if (settingNameIsExactMatch(val, name, cmdline, variableNameLength)) {
                 const setting_type_e type = SETTING_TYPE(val);
                 if (type == VAR_STRING) {
-                    settingSetString(val, eqptr, strlen(eqptr));
+                    // if setting the craftname, remove any quotes around the name.  This allows leading spaces in the name
+                    if (strcmp(name, "name") == 0 && eqptr[0] == '"' && eqptr[strlen(eqptr)-1] == '"') {
+                        settingSetString(val, eqptr + 1, strlen(eqptr)-2);
+                    } else {
+                        settingSetString(val, eqptr, strlen(eqptr));
+                    }
                     return;
                 }
                 const setting_mode_e mode = SETTING_MODE(val);
@@ -3287,7 +3356,11 @@ static void cliStatus(char *cmdline)
         hardwareSensorStatusNames[getHwRangefinderStatus()],
         hardwareSensorStatusNames[getHwOpticalFlowStatus()],
         hardwareSensorStatusNames[getHwGPSStatus()],
+#ifdef USE_SECONDARY_IMU
         hardwareSensorStatusNames[getHwSecondaryImuStatus()]
+#else
+        hardwareSensorStatusNames[0]
+#endif
     );
 
 #ifdef USE_ESC_SENSOR
@@ -3634,7 +3707,7 @@ static void printConfig(const char *cmdline, bool doDiff)
         printTempSensor(dumpMask, tempSensorConfig_CopyArray, tempSensorConfig(0));
 #endif
 
-#if defined(USE_NAV) && defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE) && defined(NAV_NON_VOLATILE_WAYPOINT_CLI)
+#if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE) && defined(NAV_NON_VOLATILE_WAYPOINT_CLI)
         cliPrintHashLine("wp");
         printWaypoints(dumpMask, posControl.waypointList, nonVolatileWaypointList(0));
 #endif
@@ -3875,7 +3948,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("temp_sensor", "change temp sensor settings", NULL, cliTempSensor),
 #endif
     CLI_COMMAND_DEF("version", "show version", NULL, cliVersion),
-#if defined(USE_NAV) && defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE) && defined(NAV_NON_VOLATILE_WAYPOINT_CLI)
+#if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE) && defined(NAV_NON_VOLATILE_WAYPOINT_CLI)
     CLI_COMMAND_DEF("wp", "waypoint list", NULL, cliWaypoints),
 #endif
 #ifdef USE_OSD

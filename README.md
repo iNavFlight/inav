@@ -43,11 +43,20 @@ Tool for Blackbox logs analysis is available [here](https://github.com/iNavFligh
 
 Users of OpenTX radios (Taranis, Horus, Jumper, Radiomaster, Nirvana) can use INAV OpenTX Telemetry Widget screen. Software and installation instruction are available here: [https://github.com/iNavFlight/OpenTX-Telemetry-Widget](https://github.com/iNavFlight/OpenTX-Telemetry-Widget)
 
+### INAV magnetometer alignment helper
+
+[INAV Magnetometer Alignment helper](https://kernel-machine.github.io/INavMagAlignHelper/) allows to align INAV magnetometer despite position and orientation. This simplifies the process of INAV setup on multirotors with tilted GPS modules.
+
+### OSD layout Copy, Move, or Replace helper tool
+
+[Easy INAV OSD switcher tool](https://www.mrd-rc.com/tutorials-tools-and-testing/useful-tools/inav-osd-switcher-tool/) allows you to easily switch your OSD layouts around in iNav. Choose the from and to OSD layouts, and the method of transfering the layouts.
+
 ## Installation
 
 See: https://github.com/iNavFlight/inav/blob/master/docs/Installation.md
 
 ## Documentation, support and learning resources
+* [Target documentation](https://github.com/iNavFlight/inav/tree/master/docs/boards)
 * [Fixed Wing Guide](docs/INAV_Fixed_Wing_Setup_Guide.pdf)
 * [Autolaunch Guide](docs/INAV_Autolaunch.pdf)
 * [Modes Guide](docs/INAV_Modes.pdf)

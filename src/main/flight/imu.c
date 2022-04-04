@@ -61,12 +61,7 @@ FILE_COMPILE_FOR_SPEED
 #include "sensors/sensors.h"
 
 
-/**
- * In Cleanflight accelerometer is aligned in the following way:
- *      X-axis = Forward
- *      Y-axis = Left
- *      Z-axis = Up
- * Our INAV uses different convention
+/*
  *      X-axis = North/Forward
  *      Y-axis = East/Right
  *      Z-axis = Up
@@ -504,7 +499,7 @@ static float imuCalculateAccelerometerWeight(const float dT)
     float accWeight_RateIgnore = 1.0f;
 
     if (ARMING_FLAG(ARMED) && STATE(FIXED_WING_LEGACY) && imuConfig()->acc_ignore_rate) {
-        const float rotRateMagnitude = fast_fsqrtf(sq(imuMeasuredRotationBF.y) + sq(imuMeasuredRotationBF.z));
+        const float rotRateMagnitude = calc_length_pythagorean_2D(imuMeasuredRotationBF.y, imuMeasuredRotationBF.z);
         const float rotRateMagnitudeFiltered = pt1FilterApply4(&rotRateFilter, rotRateMagnitude, IMU_CENTRIFUGAL_LPF, dT);
 
         if (imuConfig()->acc_ignore_slope) {

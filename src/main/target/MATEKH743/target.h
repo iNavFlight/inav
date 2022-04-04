@@ -109,6 +109,7 @@
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 #define USE_BARO_DPS310
+#define USE_BARO_SPL06
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
@@ -168,11 +169,12 @@
 #define SERIALRX_UART           SERIAL_PORT_USART6
 
 // *************** SDIO SD BLACKBOX*******************
-//#define USE_SDCARD
-//#define USE_SDCARD_SDIO
-//#define SDCARD_SDIO_DMA         DMA_TAG(2,3,4)
-//#define SDCARD_SDIO_4BIT
-//#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
+#define USE_SDCARD
+#define USE_SDCARD_SDIO
+#define SDCARD_SDIO_DEVICE      SDIODEV_1
+#define SDCARD_SDIO_4BIT
+
+#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
 // *************** ADC *****************************
 #define USE_ADC

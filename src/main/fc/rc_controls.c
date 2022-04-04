@@ -126,6 +126,15 @@ throttleStatus_e FAST_CODE NOINLINE calculateThrottleStatus(throttleStatusType_e
     return THROTTLE_HIGH;
 }
 
+int16_t throttleStickMixedValue(void)
+{
+    int16_t throttleValue;
+
+    throttleValue = constrain(rxGetChannelValue(THROTTLE), rxConfig()->mincheck, PWM_RANGE_MAX);
+    throttleValue = (uint16_t)(throttleValue - rxConfig()->mincheck) * PWM_RANGE_MIN / (PWM_RANGE_MAX - rxConfig()->mincheck);  // [MINCHECK;2000] -> [0;1000]
+    return rcLookupThrottle(throttleValue);
+}
+
 rollPitchStatus_e calculateRollPitchCenterStatus(void)
 {
     if (((rxGetChannelValue(PITCH) < (PWM_RANGE_MIDDLE + AIRMODE_DEADBAND)) && (rxGetChannelValue(PITCH) > (PWM_RANGE_MIDDLE -AIRMODE_DEADBAND)))
@@ -263,7 +272,21 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
         const bool success = loadNonVolatileWaypointList(false);
         beeper(success ? BEEPER_ACTION_SUCCESS : BEEPER_ACTION_FAIL);
     }
+#ifdef USE_MULTI_MISSION
+    // Increment multi mission index up
+    if (rcSticks == THR_LO + YAW_CE + PIT_CE + ROL_HI) {
+        selectMultiMissionIndex(1);
+        rcDelayCommand = 0;
+        return;
+    }
 
+    // Decrement multi mission index down
+    if (rcSticks == THR_LO + YAW_CE + PIT_CE + ROL_LO) {
+        selectMultiMissionIndex(-1);
+        rcDelayCommand = 0;
+        return;
+    }
+#endif
     if (rcSticks == THR_LO + YAW_CE + PIT_LO + ROL_HI) {
         resetWaypointList();
         beeper(BEEPER_ACTION_FAIL); // The above cannot fail, but traditionally, we play FAIL for not-loading

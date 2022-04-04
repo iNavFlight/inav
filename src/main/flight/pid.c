@@ -401,7 +401,7 @@ void pidReduceErrorAccumulators(int8_t delta, uint8_t axis)
 
 float getTotalRateTarget(void)
 {
-    return fast_fsqrtf(sq(pidState[FD_ROLL].rateTarget) + sq(pidState[FD_PITCH].rateTarget) + sq(pidState[FD_YAW].rateTarget));
+    return calc_length_pythagorean_3D(pidState[FD_ROLL].rateTarget, pidState[FD_PITCH].rateTarget, pidState[FD_YAW].rateTarget);
 }
 
 float getAxisIterm(uint8_t axis)
@@ -580,6 +580,17 @@ static float calcHorizonRateMagnitude(void)
     return horizonRateMagnitude;
 }
 
+/* ANGLE freefloat deadband (degs).Angle error only starts to increase if atttiude outside deadband. */
+int16_t angleFreefloatDeadband(int16_t deadband, flight_dynamics_index_t axis)
+{
+    int16_t levelDatum = axis == FD_PITCH ? attitude.raw[axis] + DEGREES_TO_DECIDEGREES(fixedWingLevelTrim) : attitude.raw[axis];
+    if (ABS(levelDatum) > deadband) {
+        return levelDatum > 0 ? deadband - levelDatum : -(levelDatum + deadband);
+    } else {
+        return 0;
+    }
+}
+
 static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float horizonRateMagnitude, float dT)
 {
     // This is ROLL/PITCH, run ANGLE/HORIZON controllers
@@ -621,10 +632,19 @@ static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float h
         actual = attitude.raw[axis];
     }
 
-    const float angleErrorDeg = DECIDEGREES_TO_DEGREES(angleTarget - actual);
+    float angleErrorDeg = DECIDEGREES_TO_DEGREES(angleTarget - actual);
 #else
-    const float angleErrorDeg = DECIDEGREES_TO_DEGREES(angleTarget - attitude.raw[axis]);
+    float angleErrorDeg = DECIDEGREES_TO_DEGREES(angleTarget - attitude.raw[axis]);
 #endif
+
+    // Soaring mode deadband inactive if pitch/roll stick not centered to allow RC stick adjustment
+    if (FLIGHT_MODE(SOARING_MODE) && axis == FD_PITCH && calculateRollPitchCenterStatus() == CENTERED) {
+        angleErrorDeg = DECIDEGREES_TO_DEGREES((float)angleFreefloatDeadband(DEGREES_TO_DECIDEGREES(navConfig()->fw.soaring_pitch_deadband), FD_PITCH));
+        if (!angleErrorDeg) {
+            pidState->errorGyroIf = 0.0f;
+            pidState->errorGyroIfLimit = 0.0f;
+        }
+    }
 
     float angleRateTarget = constrainf(angleErrorDeg * (pidBank()->pid[PID_LEVEL].P / FP_PID_LEVEL_P_MULTIPLIER), -currentControlRateProfile->stabilized.rates[axis] * 10.0f, currentControlRateProfile->stabilized.rates[axis] * 10.0f);
 
@@ -719,7 +739,7 @@ static float dTermProcess(pidState_t *pidState, float dT) {
         newDTerm = 0;
     } else {
         float delta = pidState->previousRateGyro - pidState->gyroRate;
-        
+
         delta = dTermLpfFilterApplyFn((filter_t *) &pidState->dtermLpfState, delta);
         delta = dTermLpf2FilterApplyFn((filter_t *) &pidState->dtermLpf2State, delta);
 
@@ -765,6 +785,12 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
     }
 
     axisPID[axis] = constrainf(newPTerm + newFFTerm + pidState->errorGyroIf + newDTerm, -pidState->pidSumLimit, +pidState->pidSumLimit);
+
+    if (FLIGHT_MODE(SOARING_MODE) && axis == FD_PITCH && calculateRollPitchCenterStatus() == CENTERED) {
+        if (!angleFreefloatDeadband(DEGREES_TO_DECIDEGREES(navConfig()->fw.soaring_pitch_deadband), FD_PITCH)) {
+            axisPID[FD_PITCH] = 0;  // center pitch servo if pitch attitude within soaring mode deadband
+        }
+    }
 
 #ifdef USE_AUTOTUNE_FIXED_WING
     if (FLIGHT_MODE(AUTO_TUNE) && !FLIGHT_MODE(MANUAL_MODE)) {
@@ -866,7 +892,6 @@ static uint8_t getHeadingHoldState(void)
         return HEADING_HOLD_DISABLED;
     }
 
-#if defined(USE_NAV)
     int navHeadingState = navigationGetHeadingControlState();
     // NAV will prevent MAG_MODE from activating, but require heading control
     if (navHeadingState != NAV_HEADING_CONTROL_NONE) {
@@ -875,9 +900,7 @@ static uint8_t getHeadingHoldState(void)
             return HEADING_HOLD_ENABLED;
         }
     }
-    else
-#endif
-    if (ABS(rcCommand[YAW]) == 0 && FLIGHT_MODE(HEADING_MODE)) {
+    else if (ABS(rcCommand[YAW]) == 0 && FLIGHT_MODE(HEADING_MODE)) {
         return HEADING_HOLD_ENABLED;
     } else {
         return HEADING_HOLD_UPDATE_HEADING;
@@ -1183,7 +1206,7 @@ void pidInit(void)
     for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
 
     #ifdef USE_D_BOOST
-        // Rate * 10 * 10. First 10 is to convert stick to DPS. Second 10 is to convert target to acceleration. 
+        // Rate * 10 * 10. First 10 is to convert stick to DPS. Second 10 is to convert target to acceleration.
         // We assume, max acceleration is when pilot deflects the stick fully in 100ms
         pidState[axis].dBoostTargetAcceleration = currentControlRateProfile->stabilized.rates[axis] * 10 * 10;
     #endif
@@ -1237,7 +1260,8 @@ void pidInit(void)
         (float)pidProfile()->fixedWingLevelTrimGain / 100000.0f,
         0.0f,
         0.0f,
-        2.0f
+        2.0f,
+        0.0f
     );
 
 }
@@ -1283,6 +1307,7 @@ void updateFixedWingLevelTrim(timeUs_t currentTimeUs)
         !IS_RC_MODE_ACTIVE(BOXAUTOLEVEL) ||
         areSticksDeflected() ||
         (!FLIGHT_MODE(ANGLE_MODE) && !FLIGHT_MODE(HORIZON_MODE)) ||
+        FLIGHT_MODE(SOARING_MODE) ||
         navigationIsControllingAltitude()
     ) {
         flags |= PID_FREEZE_INTEGRATOR;

@@ -136,7 +136,7 @@ extern timHardwareContext_t * timerCtx[HARDWARE_TIMER_DEFINITION_COUNT];
 extern const timerDef_t timerDefinitions[HARDWARE_TIMER_DEFINITION_COUNT];
 
 // Per target timer output definitions
-extern const timerHardware_t timerHardware[];
+extern timerHardware_t timerHardware[];
 extern const int timerHardwareCount;
 
 typedef enum {

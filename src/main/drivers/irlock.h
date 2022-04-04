@@ -20,7 +20,7 @@
 #include "drivers/sensor.h"
 #include "drivers/io_types.h"
 
-#if defined(USE_NAV) && defined(USE_IRLOCK)
+#if defined(USE_IRLOCK)
 
 #define IRLOCK_RES_X 320
 #define IRLOCK_RES_Y 200

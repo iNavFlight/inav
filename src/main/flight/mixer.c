@@ -83,13 +83,14 @@ PG_RESET_TEMPLATE(reversibleMotorsConfig_t, reversibleMotorsConfig,
     .neutral = SETTING_3D_NEUTRAL_DEFAULT
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(mixerConfig_t, mixerConfig, PG_MIXER_CONFIG, 4);
+PG_REGISTER_WITH_RESET_TEMPLATE(mixerConfig_t, mixerConfig, PG_MIXER_CONFIG, 5);
 
 PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
     .motorDirectionInverted = SETTING_MOTOR_DIRECTION_INVERTED_DEFAULT,
     .platformType = SETTING_PLATFORM_TYPE_DEFAULT,
     .hasFlaps = SETTING_HAS_FLAPS_DEFAULT,
     .appliedMixerPreset = SETTING_MODEL_PREVIEW_TYPE_DEFAULT, //This flag is not available in CLI and used by Configurator only
+    .outputMode = SETTING_OUTPUT_MODE_DEFAULT,
 );
 
 #ifdef BRUSHED_MOTORS
@@ -292,8 +293,8 @@ static void applyTurtleModeToMotors(void) {
         float signRoll = rcCommand[ROLL] < 0 ? 1 : -1;
         float signYaw = (float)((rcCommand[YAW] < 0 ? 1 : -1) * (mixerConfig()->motorDirectionInverted ? 1 : -1));
 
-        float stickDeflectionLength = fast_fsqrtf(sq(stickDeflectionPitchAbs) + sq(stickDeflectionRollAbs));
-        float stickDeflectionExpoLength = fast_fsqrtf(sq(stickDeflectionPitchExpo) + sq(stickDeflectionRollExpo));
+        float stickDeflectionLength = calc_length_pythagorean_2D(stickDeflectionPitchAbs, stickDeflectionRollAbs);
+        float stickDeflectionExpoLength = calc_length_pythagorean_2D(stickDeflectionPitchExpo, stickDeflectionRollExpo);
 
         if (stickDeflectionYawAbs > MAX(stickDeflectionPitchAbs, stickDeflectionRollAbs)) {
             // If yaw is the dominant, disable pitch and roll
@@ -540,6 +541,17 @@ void FAST_CODE mixTable()
 
         motorValueWhenStopped = getReversibleMotorsThrottleDeadband();
         mixerThrottleCommand = constrain(rcCommand[THROTTLE], throttleRangeMin, throttleRangeMax);
+
+#ifdef USE_DSHOT
+        if(isMotorProtocolDigital() && feature(FEATURE_REVERSIBLE_MOTORS) && reversibleMotorsThrottleState == MOTOR_DIRECTION_BACKWARD) {
+            /*
+             * We need to start the throttle output from stick input to start in the middle of the stick at the low and.
+             * Without this, it's starting at the high side.
+             */
+            int throttleDistanceToMax = throttleRangeMax - rcCommand[THROTTLE];
+            mixerThrottleCommand = throttleRangeMin + throttleDistanceToMax;
+        }
+#endif
     } else {
         mixerThrottleCommand = rcCommand[THROTTLE];
         throttleRangeMin = throttleIdleValue;

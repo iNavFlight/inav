@@ -30,6 +30,8 @@ Note that inav requires `cmake` version 3.13 or later; any distro that provides 
 
 Note also that Ubuntu 18.04 LTS does NOT provide a modern enough `cmake`; it is recommended that you upgrade to Ubuntu 20.04 LTS which does.
 
+Note that you may prefer to use `ninja` rather than `make` as the build manager. This is described [below](#building-with-ninja).
+
 ### Ubuntu / Debian
 ```
 # make sure the system is updated first
@@ -106,7 +108,8 @@ make MATEKF405
 One can also build multiple targets from a single `make` command:
 
 ```
-make MATEKF405 MATEKF722
+# parallel build using all but 1 CPU core
+make -j $(($(nproc)-1)) MATEKF405 MATEKF722
 ```
 
 The resultant hex file are in the `build` directory.
@@ -137,6 +140,25 @@ make clean_MATEKF405  clean_MATEKF722
 
 It is unlikely that the typical user will need to employ these options, other than perhaps to change between the embedded ARM and distro compilers.
 
+## Building with ninja
+
+`cmake` is not a build system, rather it generates build files for a build manager. The examples above use `make` as the build manager; this has been the legacy way of building inav. It is also possible to use other build systems; one popular cross-platform tool is [ninja](https://ninja-build.org/) which is both lightweight and executes parallel builds by default.
+
+* Install `ninja` from the distro tool (apt, dnf, pacman as appropriate)
+* Configure `cmake` to use `ninja` as the build system
+
+  ```
+  cd buid
+  # add other cmake options as required.
+  cmake -GNinja ..
+  ```
+
+* Then use `ninja` in place of `make` to perform the build
+
+  ```
+  ninja MATEKF405 MATEKF722
+  ```
+
 ## Updating and rebuilding
 
 In order to update your local firmware build:
@@ -148,7 +170,8 @@ In order to update your local firmware build:
 $ cd inav
 $ git pull
 $ cd build
-$ make <TARGET>
+$ ninja <TARGET>
+$ ## or make <TARGET>
 ```
 
 ## Advanced Usage

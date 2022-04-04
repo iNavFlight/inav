@@ -26,7 +26,7 @@
 // MPU6050
 #define MPU_RA_WHO_AM_I_LEGACY          0x00
 
-#define MPUx0x0_WHO_AM_I_CONST              (0x68) // MPU3050, 6000 and 6050
+#define MPUx0x0_WHO_AM_I_CONST              (0x68) // MPU6000 and 6050
 #define MPU6000_WHO_AM_I_CONST              (0x68)
 #define MPU6500_WHO_AM_I_CONST              (0x70)
 #define MPU9250_WHO_AM_I_CONST              (0x71)

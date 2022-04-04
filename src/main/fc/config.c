@@ -107,7 +107,7 @@ PG_RESET_TEMPLATE(featureConfig_t, featureConfig,
     .enabledFeatures = DEFAULT_FEATURES | COMMON_DEFAULT_FEATURES
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 4);
+PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 5);
 
 PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .current_profile_index = 0,
@@ -144,13 +144,11 @@ PG_RESET_TEMPLATE(adcChannelConfig_t, adcChannelConfig,
     }
 );
 
-#ifdef USE_NAV
 void validateNavConfig(void)
 {
     // Make sure minAlt is not more than maxAlt, maxAlt cannot be set lower than 500.
     navConfigMutable()->general.land_slowdown_minalt = MIN(navConfig()->general.land_slowdown_minalt, navConfig()->general.land_slowdown_maxalt - 100);
 }
-#endif
 
 
 // Stubs to handle target-specific configs
@@ -183,9 +181,6 @@ uint32_t getGyroLooptime(void) {
 
 void validateAndFixConfig(void)
 {
-    if (gyroConfig()->gyro_notch_cutoff >= gyroConfig()->gyro_notch_hz) {
-        gyroConfigMutable()->gyro_notch_hz = 0;
-    }
     if (accelerometerConfig()->acc_notch_cutoff >= accelerometerConfig()->acc_notch_hz) {
         accelerometerConfigMutable()->acc_notch_hz = 0;
     }
@@ -235,10 +230,8 @@ void validateAndFixConfig(void)
         pgResetCopy(serialConfigMutable(), PG_SERIAL_CONFIG);
     }
 
-#if defined(USE_NAV)
     // Ensure sane values of navConfig settings
     validateNavConfig();
-#endif
 
     // Limitations of different protocols
 #if !defined(USE_DSHOT)
@@ -355,9 +348,7 @@ static void activateConfig(void)
 
     pidInit();
 
-#ifdef USE_NAV
     navigationUsePIDs();
-#endif
 }
 
 void readEEPROM(void)
@@ -466,6 +457,22 @@ void setConfigBatteryProfileAndWriteEEPROM(uint8_t profileIndex)
         readEEPROM();
     }
     beeperConfirmationBeeps(profileIndex + 1);
+}
+
+void setGyroCalibrationAndWriteEEPROM(int16_t getGyroZero[XYZ_AXIS_COUNT]) {
+    gyroConfigMutable()->gyro_zero_cal[X] = getGyroZero[X];
+    gyroConfigMutable()->gyro_zero_cal[Y] = getGyroZero[Y];
+    gyroConfigMutable()->gyro_zero_cal[Z] = getGyroZero[Z];
+    // save the calibration
+    writeEEPROM();
+    readEEPROM();
+}
+
+void setGravityCalibrationAndWriteEEPROM(float getGravity) {
+    gyroConfigMutable()->gravity_cmss_cal = getGravity;
+    // save the calibration
+    writeEEPROM();
+    readEEPROM();
 }
 
 void beeperOffSet(uint32_t mask)

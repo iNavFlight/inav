@@ -15,6 +15,15 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include <stdint.h>
+#include "platform.h"
 
-bool mpu3050Detect(gyroDev_t *gyro);
+#include "config/config_master.h"
+#include "config/feature.h"
+
+
+
+void targetConfiguration(void)
+{
+
+}

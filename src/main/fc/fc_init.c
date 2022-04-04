@@ -82,6 +82,7 @@
 #include "msc/emfat_file.h"
 #endif
 #include "drivers/sdcard/sdcard.h"
+#include "drivers/sdio.h"
 #include "drivers/io_port_expander.h"
 
 #include "fc/cli.h"
@@ -108,6 +109,7 @@
 #include "io/displayport_frsky_osd.h"
 #include "io/displayport_msp.h"
 #include "io/displayport_max7456.h"
+#include "io/displayport_hdzero_osd.h"
 #include "io/displayport_srxl.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
@@ -367,6 +369,11 @@ void init(void)
     updateHardwareRevision();
 #endif
 
+#if defined(USE_SDCARD_SDIO) && defined(STM32H7)
+    sdioPinConfigure();
+    SDIO_GPIO_Init();
+#endif
+
 #ifdef USE_USB_MSC
     /* MSC mode will start after init, but will not allow scheduler to run,
      * so there is no bottleneck in reading and writing data
@@ -547,6 +554,11 @@ void init(void)
             osdDisplayPort = frskyOSDDisplayPortInit(osdConfig()->video_system);
         }
 #endif
+#ifdef USE_HDZERO_OSD
+        if (!osdDisplayPort) {
+            osdDisplayPort = hdzeroOsdDisplayPortInit();
+        }
+#endif
 #if defined(USE_MAX7456)
         // If there is a max7456 chip for the OSD and we have no
         // external OSD initialized, use it.
@@ -575,9 +587,7 @@ void init(void)
 #endif
 
 
-#ifdef USE_NAV
     navigationInit();
-#endif
 
 #ifdef USE_LED_STRIP
     ledStripInit();
