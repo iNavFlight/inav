@@ -609,6 +609,7 @@ bool vtxTrampInit(void)
     if (portConfig) {
         portOptions_t portOptions = 0;
         portOptions = portOptions | (vtxConfig()->halfDuplex ? SERIAL_BIDIR : SERIAL_UNIDIR);
+        portOptions = portOptions | (vtxConfig()->softSerialShortStop ? SERIAL_SHORTSTOP : SERIAL_LONGSTOP);
         vtxState.port = openSerialPort(portConfig->identifier, FUNCTION_VTX_TRAMP, NULL, NULL, 9600, MODE_RXTX, portOptions);
     }
 

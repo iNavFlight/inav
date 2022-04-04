@@ -3651,6 +3651,11 @@ groups:
         default_value: ON
         field: smartAudioAltSoftSerialMethod
         type: bool
+      - name: vtx_softserial_shortstop
+        description: "Enable the 3x shorter stopbit on softserial. Need for some IRC Tramp VTXes."
+        default_value: OFF
+        field: softSerialShortStop
+        type: bool
 
   - name: PG_VTX_SETTINGS_CONFIG
     type: vtxSettingsConfig_t
