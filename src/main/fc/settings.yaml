@@ -3656,7 +3656,7 @@ groups:
     members:
       - name: vtx_band
         description: "Configure the VTX band. Set to zero to use `vtx_freq`. Bands: 1: A, 2: B, 3: E, 4: F, 5: Race."
-        default_value: 4
+        default_value: 1
         field: band
         min: VTX_SETTINGS_NO_BAND
         max: VTX_SETTINGS_MAX_BAND
