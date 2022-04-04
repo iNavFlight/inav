@@ -5748,7 +5748,7 @@ Configure the VTX band. Set to zero to use `vtx_freq`. Bands: 1: A, 2: B, 3: E, 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 4 | VTX_SETTINGS_NO_BAND | VTX_SETTINGS_MAX_BAND |
+| 1 | VTX_SETTINGS_NO_BAND | VTX_SETTINGS_MAX_BAND |
 
 ---
 
