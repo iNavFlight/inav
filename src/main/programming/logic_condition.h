@@ -74,7 +74,9 @@ typedef enum {
     LOGIC_CONDITION_SET_PROFILE                 = 42,
     LOGIC_CONDITION_MIN                         = 43,
     LOGIC_CONDITION_MAX                         = 44,
-    LOGIC_CONDITION_LAST                        = 45,
+    LOGIC_CONDITION_FLIGTH_AXIS_ANGLE_OVERRIDE  = 45,
+    LOGIC_CONDITION_FLIGTH_AXIS_RATE_OVERRIDE   = 46,
+    LOGIC_CONDITION_LAST                        = 47,
 } logicOperation_e;
 
 typedef enum logicOperandType_s {
@@ -156,6 +158,7 @@ typedef enum {
     LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_OSD_LAYOUT = (1 << 7),
     LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_RC_CHANNEL = (1 << 8),
     LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_LOITER_RADIUS = (1 << 9),
+    LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_FLIGHT_AXIS = (1 << 10),
 } logicConditionsGlobalFlags_t;
 
 typedef enum {
@@ -187,6 +190,13 @@ typedef struct rcChannelOverride_s {
     uint8_t active;
     int value;
 } rcChannelOverride_t;
+
+typedef struct flightAxisOverride_s {
+    uint8_t rateTargetActive;
+    uint8_t angleTargetActive;
+    int angleTarget;
+    int rateTarget;
+} flightAxisOverride_t;
 
 extern int logicConditionValuesByType[LOGIC_CONDITION_LAST];
 extern uint64_t logicConditionsGlobalFlags;

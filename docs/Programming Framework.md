@@ -46,7 +46,7 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 10            | NAND          |                                   |
 | 11            | NOR           |                                   |
 | 12            | NOT           |                                   |         
-| 13            | STICKY        | `Operand A` is activation operator, `Operand B` is deactivation operator. After activation, operator will return `true` until Operand B is evaluated as `true`|         
+| 13            | STICKY        | `Operand A` is the activation operator, `Operand B` is the deactivation operator. After activation, the operator will return `true` until Operand B is evaluated as `true`|         
 | 14            | ADD           | Add `Operand A` to `Operand B` and returns the result |
 | 15            | SUB           | Substract `Operand B` from `Operand A` and returns the result |
 | 16            | MUL           | Multiply `Operand A` by `Operand B` and returns the result |
@@ -78,6 +78,8 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 42            | SET_PROFILE   | Sets the active config profile (PIDFF/Rates/Filters/etc) to `Operand A`. `Operand A` must be a valid profile number, currently from 1 to 3. If not, the profile will not change |
 | 43			| MIN				| Finds the lowest value of `Operand A` and `Operand B` |
 | 44			| MAX				| Finds the highest value of `Operand A` and `Operand B` |
+| 45			| FLIGTH_AXIS_ANGLE_OVERRIDE	| Sets the target attitude angle for axis. In other words, when active, it enforces Angle mode (Heading Hold for Yaw) on this axis (Angle mode does not have to be active). `Operand A` defines the axis: `0` - Roll, `1` - Pitch, `2` - Yaw. `Operand B` defines the angle in degrees |
+| 46			| FLIGTH_AXIS_RATE_OVERRIDE	| Sets the target rate (rotation speed) for axis. `Operand A` defines the axis: `0` - Roll, `1` - Pitch, `2` - Yaw. `Operand B` defines the rate in degrees per second |
 
 ### Operands
 
