@@ -358,7 +358,6 @@ bool busRead(const busDevice_t * dev, uint8_t reg, uint8_t * data)
 #else
             return false;
 #endif
-
         default:
             return false;
     }
@@ -396,7 +395,6 @@ bool busIsBusy(const busDevice_t * dev)
             UNUSED(dev);
             return false;
 #endif
-
         case BUSTYPE_I2C:
             // Not implemented for I2C, respond as always free
             return false;

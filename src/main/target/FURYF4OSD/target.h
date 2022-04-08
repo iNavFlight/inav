@@ -67,7 +67,6 @@
 #define SPI2_MISO_PIN   	      PB14
 #define SPI2_MOSI_PIN   	      PB15
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          PB12
@@ -120,6 +119,7 @@
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 #define USE_BARO_BMP085
+#define USE_BARO_DPS310
 
 #define USE_MAG
 #define MAG_I2C_BUS                 DEFAULT_I2C_BUS
@@ -133,10 +133,10 @@
 #define USE_MAG_LIS3MDL
 
 #define TEMPERATURE_I2C_BUS         DEFAULT_I2C_BUS
+#define BNO055_I2C_BUS              DEFAULT_I2C_BUS
 
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_MSP
-#define USE_RANGEFINDER_HCSR04_I2C
 #define RANGEFINDER_I2C_BUS     DEFAULT_I2C_BUS
 
 #define PITOT_I2C_BUS               DEFAULT_I2C_BUS

@@ -20,7 +20,7 @@
 
 #define USE_HARDWARE_REVISION_DETECTION
 #define HW_PIN                  PC13
-#define BRUSHED_ESC_AUTODETECT
+#define USE_BRUSHED_ESC_AUTODETECT
 
 #define USBD_PRODUCT_STRING "AlienFlight F4"
 
@@ -61,9 +61,8 @@
 #define USE_MAG_IST8308
 #define USE_MAG_LIS3MDL
 
-#define MAG_MPU9250_ALIGN       CW0_DEG
-
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
+#define BNO055_I2C_BUS          BUS_I2C1
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1

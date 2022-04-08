@@ -79,7 +79,7 @@ static void sumdDataReceive(uint16_t c, void *rxCallbackData)
     static uint8_t sumdIndex;
 
     sumdTime = micros();
-    if (cmpTimeUs(sumdTime, sumdTimeLast) > 4000)
+    if (cmpTimeUs(sumdTime, sumdTimeLast) > MS2US(4))
         sumdIndex = 0;
     sumdTimeLast = sumdTime;
 
@@ -189,7 +189,7 @@ bool sumdInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
         NULL,
         SUMD_BAUDRATE,
         portShared ? MODE_RXTX : MODE_RX,
-        SERIAL_NOT_INVERTED | (rxConfig->halfDuplex ? SERIAL_BIDIR : 0)
+        SERIAL_NOT_INVERTED | (tristateWithDefaultOffIsActive(rxConfig->halfDuplex) ? SERIAL_BIDIR : 0)
         );
 
 #ifdef USE_TELEMETRY

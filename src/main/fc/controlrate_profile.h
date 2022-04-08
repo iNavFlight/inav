@@ -21,52 +21,10 @@
 
 #include "config/parameter_group.h"
 
-#define MAX_CONTROL_RATE_PROFILE_COUNT 3
-/*
-Max and min available values for rates are now stored as absolute
-tenths of degrees-per-second [dsp/10]
-That means, max. rotation rate 180 equals 1800dps
+#include "fc/controlrate_profile_config_struct.h"
+#include "fc/settings.h"
 
-New defaults of 200dps for pitch,roll and yaw are more less
-equivalent of rates 0 from previous versions of iNav, Cleanflight, Baseflight
-and so on.
-*/
-#define CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MAX  180
-#define CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MIN  6
-#define CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_DEFAULT  20
-#define CONTROL_RATE_CONFIG_YAW_RATE_MAX         180
-#define CONTROL_RATE_CONFIG_YAW_RATE_MIN         2
-#define CONTROL_RATE_CONFIG_YAW_RATE_DEFAULT     20
-
-#define CONTROL_RATE_CONFIG_TPA_MAX              100
-
-typedef struct controlRateConfig_s {
-
-    struct {
-        uint8_t rcMid8;
-        uint8_t rcExpo8;
-        uint8_t dynPID;
-        uint16_t pa_breakpoint;                // Breakpoint where TPA is activated
-        uint16_t fixedWingTauMs;               // Time constant of airplane TPA PT1-filter
-    } throttle;
-
-    struct {
-        uint8_t rcExpo8;
-        uint8_t rcYawExpo8;
-        uint8_t rates[3];
-    } stabilized;
-
-    struct {
-        uint8_t rcExpo8;
-        uint8_t rcYawExpo8;
-        uint8_t rates[3];
-    } manual;
-
-    struct {
-        uint8_t fpvCamAngleDegrees;             // Camera angle to treat as "forward" base axis in ACRO (Roll and Yaw sticks will command rotation considering this axis)
-    } misc;
-
-} controlRateConfig_t;
+#define MAX_CONTROL_RATE_PROFILE_COUNT SETTING_CONSTANT_MAX_CONTROL_RATE_PROFILE_COUNT
 
 PG_DECLARE_ARRAY(controlRateConfig_t, MAX_CONTROL_RATE_PROFILE_COUNT, controlRateProfiles);
 

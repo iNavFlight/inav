@@ -35,7 +35,7 @@
 #include "common/maths.h"
 #include "common/memory.h"
 #include "common/printf.h"
-#include "common/global_variables.h"
+#include "programming/global_variables.h"
 
 #include "config/config_eeprom.h"
 #include "config/feature.h"
@@ -63,7 +63,6 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
 #include "drivers/pwm_output.h"
-#include "drivers/rx_pwm.h"
 #include "drivers/sensor.h"
 #include "drivers/serial.h"
 #include "drivers/serial_softserial.h"
@@ -83,6 +82,8 @@
 #include "msc/emfat_file.h"
 #endif
 #include "drivers/sdcard/sdcard.h"
+#include "drivers/sdio.h"
+#include "drivers/io_port_expander.h"
 
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -90,13 +91,16 @@
 #include "fc/fc_tasks.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
+#include "fc/firmware_update.h"
 
 #include "flight/failsafe.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
-#include "flight/servos.h"
+#include "flight/power_limits.h"
 #include "flight/rpm_filter.h"
+#include "flight/servos.h"
+#include "flight/secondary_imu.h"
 
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/beeper.h"
@@ -105,6 +109,8 @@
 #include "io/displayport_frsky_osd.h"
 #include "io/displayport_msp.h"
 #include "io/displayport_max7456.h"
+#include "io/displayport_hdzero_osd.h"
+#include "io/displayport_srxl.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
 #include "io/ledstrip.h"
@@ -114,6 +120,7 @@
 #include "io/rcdevice_cam.h"
 #include "io/serial.h"
 #include "io/displayport_msp.h"
+#include "io/smartport_master.h"
 #include "io/vtx.h"
 #include "io/vtx_control.h"
 #include "io/vtx_smartaudio.h"
@@ -138,12 +145,11 @@
 #include "sensors/pitotmeter.h"
 #include "sensors/rangefinder.h"
 #include "sensors/sensors.h"
+#include "sensors/esc_sensor.h"
 
 #include "scheduler/scheduler.h"
 
 #include "telemetry/telemetry.h"
-
-#include "uav_interconnect/uav_interconnect.h"
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
@@ -199,6 +205,8 @@ void init(void)
     // Initialize system and CPU clocks to their initial values
     systemInit();
 
+    __enable_irq();
+
     // initialize IO (needed for all IO operations)
     IOInitGlobal();
 
@@ -206,16 +214,27 @@ void init(void)
     detectHardwareRevision();
 #endif
 
-#ifdef BRUSHED_ESC_AUTODETECT
+#ifdef USE_BRUSHED_ESC_AUTODETECT
     detectBrushedESC();
+#endif
+
+#ifdef CONFIG_IN_EXTERNAL_FLASH
+    // Reset config to defaults. Note: Default flash config must be functional for config in external flash to work.
+    pgResetAll(0);
+
+    flashDeviceInitialized = flashInit();
 #endif
 
     initEEPROM();
     ensureEEPROMContainsValidData();
     readEEPROM();
 
+#ifdef USE_UNDERCLOCK
     // Re-initialize system clock to their final values (if necessary)
     systemClockSetup(systemConfig()->cpuUnderclock);
+#else
+    systemClockSetup(false);
+#endif
 
 #ifdef USE_I2C
     i2cSetSpeed(systemConfig()->i2c_speed);
@@ -259,15 +278,7 @@ void init(void)
 
     timerInit();  // timer must be initialized before any channel is allocated
 
-#if defined(AVOID_UART2_FOR_PWM_PPM)
-    serialInit(feature(FEATURE_SOFTSERIAL),
-            (rxConfig()->receiverType == RX_TYPE_PPM) ? SERIAL_PORT_USART2 : SERIAL_PORT_NONE);
-#elif defined(AVOID_UART3_FOR_PWM_PPM)
-    serialInit(feature(FEATURE_SOFTSERIAL),
-            (rxConfig()->receiverType == RX_TYPE_PPM) ? SERIAL_PORT_USART3 : SERIAL_PORT_NONE);
-#else
-    serialInit(feature(FEATURE_SOFTSERIAL), SERIAL_PORT_NONE);
-#endif
+    serialInit(feature(FEATURE_SOFTSERIAL));
 
     // Initialize MSP serial ports here so LOG can share a port with MSP.
     // XXX: Don't call mspFcInit() yet, since it initializes the boxes and needs
@@ -279,13 +290,17 @@ void init(void)
     djiOsdSerialInit();
 #endif
 
+#if defined(USE_SMARTPORT_MASTER)
+    smartportMasterInit();
+#endif
+
 #if defined(USE_LOG)
     // LOG might use serial output, so we only can init it after serial port is ready
     // From this point on we can use LOG_*() to produce real-time debugging information
     logInit();
 #endif
 
-#ifdef USE_LOGIC_CONDITIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
     gvInit();
 #endif
 
@@ -313,6 +328,13 @@ void init(void)
 
     systemState |= SYSTEM_STATE_MOTORS_READY;
 
+#ifdef USE_ESC_SENSOR
+    // DSHOT supports a dedicated wire ESC telemetry. Kick off the ESC-sensor receiver initialization
+    // We may, however, do listen_only, so need to init this anyway
+    // Initialize escSensor after having done it with outputs
+    escSensorInitialize();
+#endif
+
 #ifdef BEEPER
     beeperDevConfig_t beeperDevConfig = {
         .ioTag = IO_TAG(BEEPER),
@@ -338,22 +360,18 @@ void init(void)
     // Initialize buses
     busInit();
 
+#ifdef CONFIG_IN_EXTERNAL_FLASH
+    // busInit re-configures the SPI pins. Init flash again so it is ready to write settings
+    flashDeviceInitialized = flashInit();
+#endif
+
 #ifdef USE_HARDWARE_REVISION_DETECTION
     updateHardwareRevision();
 #endif
 
-#if defined(USE_RANGEFINDER_HCSR04) && defined(USE_SOFTSERIAL1)
-#if defined(FURYF3) || defined(OMNIBUS) || defined(SPRACINGF3MINI)
-    if ((rangefinderConfig()->rangefinder_hardware == RANGEFINDER_HCSR04) && feature(FEATURE_SOFTSERIAL)) {
-        serialRemovePort(SERIAL_PORT_SOFTSERIAL1);
-    }
-#endif
-#endif
-
-#if defined(USE_RANGEFINDER_HCSR04) && defined(USE_SOFTSERIAL2) && defined(SPRACINGF3)
-    if ((rangefinderConfig()->rangefinder_hardware == RANGEFINDER_HCSR04) && feature(FEATURE_SOFTSERIAL)) {
-        serialRemovePort(SERIAL_PORT_SOFTSERIAL2);
-    }
+#if defined(USE_SDCARD_SDIO) && defined(STM32H7)
+    sdioPinConfigure();
+    SDIO_GPIO_Init();
 #endif
 
 #ifdef USE_USB_MSC
@@ -536,6 +554,11 @@ void init(void)
             osdDisplayPort = frskyOSDDisplayPortInit(osdConfig()->video_system);
         }
 #endif
+#ifdef USE_HDZERO_OSD
+        if (!osdDisplayPort) {
+            osdDisplayPort = hdzeroOsdDisplayPortInit();
+        }
+#endif
 #if defined(USE_MAX7456)
         // If there is a max7456 chip for the OSD and we have no
         // external OSD initialized, use it.
@@ -552,8 +575,9 @@ void init(void)
     }
 #endif
 
-#ifdef USE_UAV_INTERCONNECT
-    uavInterconnectBusInit();
+#if defined(USE_CMS) && defined(USE_SPEKTRUM_CMS_TELEMETRY) && defined(USE_TELEMETRY_SRXL)
+    // Register the srxl Textgen telemetry sensor as a displayport device
+    cmsDisplayPortRegister(displayPortSrxlInit());
 #endif
 
 #ifdef USE_GPS
@@ -563,9 +587,7 @@ void init(void)
 #endif
 
 
-#ifdef USE_NAV
     navigationInit();
-#endif
 
 #ifdef USE_LED_STRIP
     ledStripInit();
@@ -582,6 +604,15 @@ void init(void)
 #endif
 
 #ifdef USE_BLACKBOX
+
+    //Do not allow blackbox to be run faster that 1kHz. It can cause UAV to drop dead when digital ESC protocol is used
+    const uint32_t blackboxLooptime =  getLooptime() * blackboxConfig()->rate_denom / blackboxConfig()->rate_num;
+
+    if (blackboxLooptime < 1000) {
+        blackboxConfigMutable()->rate_num = 1;
+        blackboxConfigMutable()->rate_denom = ceil(1000 / getLooptime());
+    }
+
     // SDCARD and FLASHFS are used only for blackbox
     // Make sure we only init what's necessary for blackbox
     switch (blackboxConfig()->device) {
@@ -643,19 +674,21 @@ void init(void)
     if (feature(FEATURE_VBAT | FEATURE_CURRENT_METER))
         batteryInit();
 
-#ifdef USE_PWM_SERVO_DRIVER
-    if (feature(FEATURE_PWM_SERVO_DRIVER)) {
-        pwmDriverInitialize();
-    }
-#endif
-
 #ifdef USE_RCDEVICE
     rcdeviceInit();
 #endif // USE_RCDEVICE
 
+#ifdef USE_DSHOT
+    initDShotCommands();
+#endif
+
     // Latch active features AGAIN since some may be modified by init().
     latchActiveFeatures();
     motorControlEnable = true;
+
+#ifdef USE_SECONDARY_IMU
+    secondaryImuInit();
+#endif
     fcTasksInit();
 
 #ifdef USE_OSD
@@ -670,6 +703,14 @@ void init(void)
         rpmFiltersInit();
         setTaskEnabled(TASK_RPM_FILTER, true);
     }
+#endif
+
+#ifdef USE_I2C_IO_EXPANDER
+    ioPortExpanderInit();
+#endif
+
+#ifdef USE_POWER_LIMITS
+    powerLimiterInit();
 #endif
 
     // Considering that the persistent reset reason is only used during init

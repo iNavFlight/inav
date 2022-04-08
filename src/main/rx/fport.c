@@ -255,7 +255,7 @@ static uint8_t fportFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
         if (frameLength != bufferLength - 2) {
             reportFrameError(DEBUG_FPORT_ERROR_SIZE);
         } else {
-            if (!frskyChecksumIsGood(&rxBuffer[rxBufferReadIndex].data[0], bufferLength)) {
+            if (!frskyCheckSumIsGood(&rxBuffer[rxBufferReadIndex].data[0], bufferLength)) {
                 reportFrameError(DEBUG_FPORT_ERROR_CHECKSUM);
             } else {
                 fportFrame_t *frame = (fportFrame_t *)&rxBuffer[rxBufferReadIndex].data[1];
@@ -394,7 +394,9 @@ bool fportRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
         NULL,
         FPORT_BAUDRATE,
         MODE_RXTX,
-        FPORT_PORT_OPTIONS | (rxConfig->serialrx_inverted ? SERIAL_INVERTED : 0) | (rxConfig->halfDuplex ? SERIAL_BIDIR : 0)
+        FPORT_PORT_OPTIONS |
+            (rxConfig->serialrx_inverted ? 0 : SERIAL_INVERTED) |
+            (tristateWithDefaultOnIsActive(rxConfig->halfDuplex) ? SERIAL_BIDIR : 0)
     );
 
     if (fportPort) {

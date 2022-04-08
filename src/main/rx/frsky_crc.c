@@ -26,22 +26,28 @@ FILE_COMPILE_FOR_SPEED
 void frskyCheckSumStep(uint16_t *checksum, uint8_t byte)
 {
     *checksum += byte;
-    *checksum += (*checksum >> 8);
-    *checksum &= 0xFF;
 }
 
 void frskyCheckSumFini(uint16_t *checksum)
 {
+    while (*checksum > 0xFF) {
+        *checksum = (*checksum & 0xFF) + (*checksum >> 8);
+    }
+
     *checksum = 0xFF - *checksum;
 }
 
-bool frskyChecksumIsGood(uint8_t *data, uint8_t length)
+uint8_t frskyCheckSum(uint8_t *data, uint8_t length)
 {
     uint16_t checksum = 0;
     for (unsigned i = 0; i < length; i++) {
         frskyCheckSumStep(&checksum, *data++);
     }
-
-    return checksum == FRSKY_CHECKSUM_GOOD_VALUE;
+    frskyCheckSumFini(&checksum);
+    return checksum;
 }
 
+bool frskyCheckSumIsGood(uint8_t *data, uint8_t length)
+{
+    return !frskyCheckSum(data, length);
+}

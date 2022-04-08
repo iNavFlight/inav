@@ -22,9 +22,11 @@
 
 #include "drivers/time.h"
 #include "drivers/io.h"
+
 #include "drivers/timer.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
+#include "fc/config.h"
 
 #include "sound_beeper.h"
 
@@ -41,13 +43,18 @@ void systemBeep(bool onoff)
 {
 #if !defined(BEEPER)
     UNUSED(onoff);
-#elif defined(BEEPER_PWM)
-    pwmWriteBeeper(onoff);
-    beeperState = onoff;
 #else
-    IOWrite(beeperIO, beeperInverted ? onoff : !onoff);
-    beeperState = onoff;
+
+    if (beeperConfig()->pwmMode) {
+        pwmWriteBeeper(onoff);
+        beeperState = onoff;
+    } else {
+        IOWrite(beeperIO, beeperInverted ? onoff : !onoff);
+        beeperState = onoff;
+    }
+
 #endif
+
 }
 
 void systemBeepToggle(void)
@@ -67,11 +74,11 @@ void beeperInit(const beeperDevConfig_t *config)
 
     if (beeperIO) {
         IOInit(beeperIO, OWNER_BEEPER, RESOURCE_OUTPUT, 0);
-#if defined(BEEPER_PWM)
-        beeperPwmInit(config->ioTag, BEEPER_PWM_FREQUENCY);
-#else
-        IOConfigGPIO(beeperIO, config->isOD ? IOCFG_OUT_OD : IOCFG_OUT_PP);
-#endif
+        if (beeperConfig()->pwmMode) {
+            beeperPwmInit(config->ioTag, BEEPER_PWM_FREQUENCY);
+        } else {
+            IOConfigGPIO(beeperIO, config->isOD ? IOCFG_OUT_OD : IOCFG_OUT_PP);
+        }
     }
 
     systemBeep(false);

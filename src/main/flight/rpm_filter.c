@@ -38,20 +38,21 @@
 #include "flight/mixer.h"
 #include "sensors/esc_sensor.h"
 #include "fc/config.h"
+#include "fc/settings.h"
 
 #ifdef USE_RPM_FILTER
 
-#define RPM_TO_HZ 60.0f
+#define HZ_TO_RPM 1/60.0f
 #define RPM_FILTER_RPM_LPF_HZ 150
 #define RPM_FILTER_HARMONICS 3
 
 PG_REGISTER_WITH_RESET_TEMPLATE(rpmFilterConfig_t, rpmFilterConfig, PG_RPM_FILTER_CONFIG, 1);
 
 PG_RESET_TEMPLATE(rpmFilterConfig_t, rpmFilterConfig,
-                  .gyro_filter_enabled = 0,
-                  .gyro_harmonics = 1,
-                  .gyro_min_hz = 100,
-                  .gyro_q = 500, );
+                  .gyro_filter_enabled = SETTING_RPM_GYRO_FILTER_ENABLED_DEFAULT,
+                  .gyro_harmonics = SETTING_RPM_GYRO_HARMONICS_DEFAULT,
+                  .gyro_min_hz = SETTING_RPM_GYRO_MIN_HZ_DEFAULT,
+                  .gyro_q = SETTING_RPM_GYRO_Q_DEFAULT, );
 
 typedef struct
 {
@@ -66,7 +67,6 @@ typedef float (*rpmFilterApplyFnPtr)(rpmFilterBank_t *filter, uint8_t axis, floa
 typedef void (*rpmFilterUpdateFnPtr)(rpmFilterBank_t *filterBank, uint8_t motor, float baseFrequency);
 
 static EXTENDED_FASTRAM pt1Filter_t motorFrequencyFilter[MAX_SUPPORTED_MOTORS];
-static EXTENDED_FASTRAM float erpmToHz;
 static EXTENDED_FASTRAM rpmFilterBank_t gyroRpmFilters;
 static EXTENDED_FASTRAM rpmFilterApplyFnPtr rpmGyroApplyFn;
 static EXTENDED_FASTRAM rpmFilterUpdateFnPtr rpmGyroUpdateFn;
@@ -163,7 +163,6 @@ void rpmFiltersInit(void)
     {
         pt1FilterInit(&motorFrequencyFilter[i], RPM_FILTER_RPM_LPF_HZ, RPM_FILTER_UPDATE_RATE_US * 1e-6f);
     }
-    erpmToHz = ERPM_PER_LSB / (motorConfig()->motorPoleCount / 2) / RPM_TO_HZ;
 
     rpmGyroUpdateFn = (rpmFilterUpdateFnPtr)nullRpmFilterUpdate;
 
@@ -190,7 +189,7 @@ void rpmFilterUpdateTask(timeUs_t currentTimeUs)
     for (uint8_t i = 0; i < motorCount; i++)
     {
         const escSensorData_t *escState = getEscTelemetry(i); //Get ESC telemetry
-        const float baseFrequency = pt1FilterApply(&motorFrequencyFilter[i], escState->rpm * erpmToHz); //Filter motor frequency
+        const float baseFrequency = pt1FilterApply(&motorFrequencyFilter[i], escState->rpm * HZ_TO_RPM); //Filter motor frequency
 
         if (i < 4) {
             DEBUG_SET(DEBUG_RPM_FREQ, i, (int)baseFrequency);

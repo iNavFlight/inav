@@ -28,13 +28,13 @@
 #include "drivers/io.h"
 #include "drivers/timer.h"
 
-const timerHardware_t timerHardware[] = {
+timerHardware_t timerHardware[] = {
     DEF_TIM(TIM8, CH2, PC7, TIM_USE_PPM,   0, 0), // PPM IN
 
-    DEF_TIM(TIM3, CH3, PB0, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR, 0, 0), // S1_OUT - DMA1_ST7
-    DEF_TIM(TIM3, CH4, PB1, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR, 0, 0), // S2_OUT - DMA1_ST2
-    DEF_TIM(TIM2, CH4, PA3, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 1), // S3_OUT - DMA1_ST6
-    DEF_TIM(TIM2, CH3, PA2, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0), // S4_OUT - DMA1_ST1
+    DEF_TIM(TIM3, CH3, PB0, TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR, 0, 0), // S1_OUT - DMA1_ST7
+    DEF_TIM(TIM3, CH4, PB1, TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR, 0, 0), // S2_OUT - DMA1_ST2
+    DEF_TIM(TIM2, CH4, PA3, TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO, 0, 1), // S3_OUT - DMA1_ST6
+    DEF_TIM(TIM5, CH3, PA2, TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO, 0, 0), // S4_OUT - DMA1_ST1
 
 #if defined(KAKUTEF4V2)
     DEF_TIM(TIM8, CH3, PC8, TIM_USE_LED,   0, 0), // LED_STRIP - DMA2_ST2

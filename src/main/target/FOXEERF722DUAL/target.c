@@ -24,13 +24,19 @@
 #include "drivers/pwm_mapping.h"
 
 BUSDEV_REGISTER_SPI_TAG(busdev_mpu6000,     DEVHW_MPU6000,      MPU6000_SPI_BUS,    MPU6000_CS_PIN,     MPU6000_EXTI_PIN,       0,  DEVFLAGS_NONE,  IMU_MPU6000_ALIGN);
+#if defined(FOXEERF722DUAL)
 BUSDEV_REGISTER_SPI_TAG(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_SPI_BUS,    MPU6500_CS_PIN,     MPU6500_EXTI_PIN,       1,  DEVFLAGS_NONE,  IMU_MPU6500_ALIGN);
+#endif
 
-const timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM4,  CH2, PB7,  TIM_USE_PPM,                          0, 0),  // PPM&SBUS  
+timerHardware_t timerHardware[] = {
+    DEF_TIM(TIM4,  CH2, PB7,  TIM_USE_PPM,                          0, 0),  // PPM&SBUS
 
     DEF_TIM(TIM1,  CH2, PA9,  TIM_USE_MC_MOTOR  | TIM_USE_FW_MOTOR, 0, 1),  // S1 - D(2, 1, 6)
+    #if defined(FOXEERF722V2)
+    DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_MC_MOTOR  | TIM_USE_FW_MOTOR, 0, 1),  // S2 - D(2, 1, 6)
+    #else
     DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_MC_MOTOR  | TIM_USE_FW_MOTOR, 0, 0),  // S2 - D(2, 6, 0)
+    #endif
     DEF_TIM(TIM8,  CH4, PC9,  TIM_USE_MC_MOTOR  | TIM_USE_FW_SERVO, 0, 0),  // S3 - D(2, 7, 7)
     DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_MC_MOTOR  | TIM_USE_FW_SERVO, 0, 0),  // S4 - D(2, 4, 7)
     DEF_TIM(TIM3,  CH1, PC6,  TIM_USE_MC_MOTOR  | TIM_USE_FW_SERVO, 0, 0),  // S5 - D(1, 4, 5)

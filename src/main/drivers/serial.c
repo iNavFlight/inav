@@ -111,3 +111,11 @@ bool serialIsConnected(const serialPort_t *instance)
     // If API is not defined - assume connected
     return true;
 }
+
+bool serialIsIdle(serialPort_t *instance)
+{
+    if (instance->vTable->isIdle)
+        return instance->vTable->isIdle(instance);
+    else
+        return false;
+}

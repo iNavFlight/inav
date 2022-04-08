@@ -49,6 +49,7 @@ typedef enum portOptions_t {
     SERIAL_BIDIR_OD      = 0 << 4,
     SERIAL_BIDIR_PP      = 1 << 4,
     SERIAL_BIDIR_NOPULL  = 1 << 5, // disable pulls in BIDIR RX mode
+    SERIAL_BIDIR_UP      = 0 << 5, // enable pullup in BIDIR mode
 } portOptions_t;
 
 typedef void (*serialReceiveCallbackPtr)(uint16_t data, void *rxCallbackData);   // used by serial drivers to return frames to app
@@ -95,6 +96,8 @@ struct serialPortVTable {
 
     bool (*isConnected)(const serialPort_t *instance);
 
+    bool (*isIdle)(serialPort_t *instance);
+
     // Optional functions used to buffer large writes.
     void (*beginWrite)(serialPort_t *instance);
     void (*endWrite)(serialPort_t *instance);
@@ -111,6 +114,7 @@ bool isSerialTransmitBufferEmpty(const serialPort_t *instance);
 void serialPrint(serialPort_t *instance, const char *str);
 uint32_t serialGetBaudRate(serialPort_t *instance);
 bool serialIsConnected(const serialPort_t *instance);
+bool serialIsIdle(serialPort_t *instance);
 
 // A shim that adapts the bufWriter API to the serialWriteBuf() API.
 void serialWriteBufShim(void *instance, const uint8_t *data, int count);

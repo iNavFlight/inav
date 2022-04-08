@@ -75,7 +75,7 @@ static long cmsx_osdElementOnChange(displayPort_t *displayPort, const void *ptr)
 {
     UNUSED(ptr);
 
-    uint16_t *pos = &osdConfigMutable()->item_pos[osdCurrentLayout][osdCurrentItem];
+    uint16_t *pos = &osdLayoutsConfigMutable()->item_pos[osdCurrentLayout][osdCurrentItem];
     *pos = OSD_POS(osdCurrentElementColumn, osdCurrentElementRow);
     if (osdCurrentElementVisible) {
         *pos |= OSD_VISIBLE_FLAG;
@@ -125,7 +125,7 @@ static CMS_Menu cmsx_menuOsdElementActions = {
 static long osdElemActionsOnEnter(const OSD_Entry *from)
 {
     osdCurrentItem = from->itemId;
-    uint16_t pos = osdConfig()->item_pos[osdCurrentLayout][osdCurrentItem];
+    uint16_t pos = osdLayoutsConfig()->item_pos[osdCurrentLayout][osdCurrentItem];
     osdCurrentElementColumn = OSD_X(pos);
     osdCurrentElementRow = OSD_Y(pos);
     osdCurrentElementVisible = OSD_VISIBLE(pos) ? 1 : 0;
@@ -139,11 +139,41 @@ static long osdElemActionsOnEnter(const OSD_Entry *from)
 
 #define OSD_ELEMENT_ENTRY(name, osd_item_id)    OSD_ITEM_ENTRY(name, osd_item_id)
 
+static const OSD_Entry menuCrsfRxEntries[]=
+{
+    OSD_LABEL_ENTRY("-- CRSF RX --"),
+
+    OSD_SETTING_ENTRY("LQ FORMAT", SETTING_OSD_CRSF_LQ_FORMAT),
+    OSD_SETTING_ENTRY("LQ ALARM LEVEL", SETTING_OSD_LINK_QUALITY_ALARM),
+    OSD_SETTING_ENTRY("SNR ALARM LEVEL", SETTING_OSD_SNR_ALARM),
+    OSD_SETTING_ENTRY("RX SENSITIVITY", SETTING_OSD_RSSI_DBM_MIN),
+    OSD_ELEMENT_ENTRY("RX RSSI DBM", OSD_CRSF_RSSI_DBM),
+    OSD_ELEMENT_ENTRY("RX LQ", OSD_CRSF_LQ),
+    OSD_ELEMENT_ENTRY("RX SNR ALARM", OSD_CRSF_SNR_DB),
+    OSD_ELEMENT_ENTRY("TX POWER", OSD_CRSF_TX_POWER),
+
+    OSD_BACK_AND_END_ENTRY,
+};
+
+const CMS_Menu cmsx_menuCrsf = {
+#ifdef CMS_MENU_DEBUG
+    .GUARD_text = "MENUCRF",
+    .GUARD_type = OME_MENU,
+#endif
+    .onEnter = NULL,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = menuCrsfRxEntries,
+};
+
 static const OSD_Entry menuOsdElemsEntries[] =
 {
     OSD_LABEL_ENTRY("--- OSD ITEMS ---"),
 
     OSD_ELEMENT_ENTRY("RSSI", OSD_RSSI_VALUE),
+#ifdef USE_SERIALRX_CRSF
+    OSD_SUBMENU_ENTRY("CRSF RX", &cmsx_menuCrsf),
+#endif // CRSF Menu
     OSD_ELEMENT_ENTRY("MAIN BATTERY", OSD_MAIN_BATT_VOLTAGE),
     OSD_ELEMENT_ENTRY("MAIN BATT SC", OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE),
     OSD_ELEMENT_ENTRY("CELL VOLTAGE", OSD_MAIN_BATT_CELL_VOLTAGE),
@@ -184,11 +214,12 @@ static const OSD_Entry menuOsdElemsEntries[] =
     OSD_ELEMENT_ENTRY("GPS HDOP", OSD_GPS_HDOP),
     OSD_ELEMENT_ENTRY("3D SPEED", OSD_3D_SPEED),
     OSD_ELEMENT_ENTRY("PLUS CODE", OSD_PLUS_CODE),
+    OSD_ELEMENT_ENTRY("AZIMUTH", OSD_AZIMUTH),
 #endif // GPS
     OSD_ELEMENT_ENTRY("HEADING", OSD_HEADING),
     OSD_ELEMENT_ENTRY("HEADING GR.", OSD_HEADING_GRAPH),
-    OSD_ELEMENT_ENTRY("CRS HEAD. ERR", OSD_CRUISE_HEADING_ERROR),
-    OSD_ELEMENT_ENTRY("CRS HEAD. ADJ", OSD_CRUISE_HEADING_ADJUSTMENT),
+    OSD_ELEMENT_ENTRY("CRS HLD ERR", OSD_COURSE_HOLD_ERROR),
+    OSD_ELEMENT_ENTRY("CRS HLD ADJ", OSD_COURSE_HOLD_ADJUSTMENT),
 #if defined(USE_BARO) || defined(USE_GPS)
     OSD_ELEMENT_ENTRY("VARIO", OSD_VARIO),
     OSD_ELEMENT_ENTRY("VARIO NUM", OSD_VARIO_NUM),
@@ -245,9 +276,11 @@ static const OSD_Entry menuOsdElemsEntries[] =
     OSD_ELEMENT_ENTRY("WIND VERT", OSD_WIND_SPEED_VERTICAL),
 
     OSD_ELEMENT_ENTRY("G-FORCE", OSD_GFORCE),
-    OSD_ELEMENT_ENTRY("G-FORCE X", OSD_GFORCE),
-    OSD_ELEMENT_ENTRY("G-FORCE Y", OSD_GFORCE),
-    OSD_ELEMENT_ENTRY("G-FORCE Z", OSD_GFORCE),
+    OSD_ELEMENT_ENTRY("G-FORCE X", OSD_GFORCE_X),
+    OSD_ELEMENT_ENTRY("G-FORCE Y", OSD_GFORCE_Y),
+    OSD_ELEMENT_ENTRY("G-FORCE Z", OSD_GFORCE_Z),
+
+    OSD_ELEMENT_ENTRY("VTX POWER", OSD_VTX_POWER),
 
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     OSD_ELEMENT_ENTRY("RC SOURCE", OSD_RC_SOURCE),
@@ -257,8 +290,6 @@ static const OSD_Entry menuOsdElemsEntries[] =
 #ifdef USE_BARO
     OSD_ELEMENT_ENTRY("BARO TEMP", OSD_BARO_TEMPERATURE),
 #endif
-
-    OSD_ELEMENT_ENTRY("VTX POWER", OSD_VTX_POWER),
 
 #ifdef USE_TEMPERATURE_SENSOR
     OSD_ELEMENT_ENTRY("SENSOR 0 TEMP", OSD_TEMP_SENSOR_0_TEMPERATURE),
@@ -271,10 +302,28 @@ static const OSD_Entry menuOsdElemsEntries[] =
     OSD_ELEMENT_ENTRY("SENSOR 7 TEMP", OSD_TEMP_SENSOR_7_TEMPERATURE),
 #endif
 
+    OSD_ELEMENT_ENTRY("GVAR 0", OSD_GVAR_0),
+    OSD_ELEMENT_ENTRY("GVAR 1", OSD_GVAR_1),
+    OSD_ELEMENT_ENTRY("GVAR 2", OSD_GVAR_2),
+    OSD_ELEMENT_ENTRY("GVAR 3", OSD_GVAR_3),
+
+    OSD_ELEMENT_ENTRY("TPA", OSD_TPA),
+    OSD_ELEMENT_ENTRY("FW CTRL SMOOTH", OSD_NAV_FW_CONTROL_SMOOTHNESS),
+    OSD_ELEMENT_ENTRY("VERSION", OSD_VERSION),
+    OSD_ELEMENT_ENTRY("RANGEFINDER", OSD_RANGEFINDER),
+
 #ifdef USE_ESC_SENSOR
     OSD_ELEMENT_ENTRY("ESC RPM", OSD_ESC_RPM),
     OSD_ELEMENT_ENTRY("ESC TEMPERATURE", OSD_ESC_TEMPERATURE),
 #endif
+
+#ifdef USE_POWER_LIMITS
+    OSD_ELEMENT_ENTRY("PLIM BURST TIME", OSD_PLIMIT_REMAINING_BURST_TIME),
+    OSD_ELEMENT_ENTRY("PLIM CURR LIMIT", OSD_PLIMIT_ACTIVE_CURRENT_LIMIT),
+#ifdef USE_ADC
+    OSD_ELEMENT_ENTRY("PLIM POWER LIMIT", OSD_PLIMIT_ACTIVE_POWER_LIMIT),
+#endif // USE_ADC
+#endif // USE_POWER_LIMITS
 
     OSD_BACK_AND_END_ENTRY,
 };
@@ -378,7 +427,6 @@ static const OSD_Entry menuOsdHud2Entries[] = {
     OSD_SETTING_ENTRY("RADAR MAX AIRCRAFT", SETTING_OSD_HUD_RADAR_DISP),
     OSD_SETTING_ENTRY("RADAR MIN RANGE", SETTING_OSD_HUD_RADAR_RANGE_MIN),
     OSD_SETTING_ENTRY("RADAR MAX RANGE", SETTING_OSD_HUD_RADAR_RANGE_MAX),
-    OSD_SETTING_ENTRY("RADAR DET. NEAREST", SETTING_OSD_HUD_RADAR_NEAREST),
     OSD_SETTING_ENTRY("NEXT WAYPOINTS", SETTING_OSD_HUD_WP_DISP),
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,

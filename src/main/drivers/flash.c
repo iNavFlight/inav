@@ -30,12 +30,16 @@
 
 #include "flash.h"
 #include "flash_m25p16.h"
+
+#include "common/time.h"
+
 #include "drivers/bus_spi.h"
 #include "drivers/io.h"
 #include "drivers/time.h"
 
 static flashPartitionTable_t flashPartitionTable;
 static int flashPartitions = 0;
+
 
 #ifdef USE_SPI
 static bool flashSpiInit(void)
@@ -64,10 +68,10 @@ bool flashIsReady(void)
     return false;
 }
 
-bool flashWaitForReady(void)
+bool flashWaitForReady(timeMs_t timeoutMillis)
 {
 #ifdef USE_FLASH_M25P16
-    return m25p16_waitForReady(10);
+    return m25p16_waitForReady(timeoutMillis);
 #endif
     return false;
 }
@@ -182,17 +186,25 @@ static void flashConfigurePartitions(void)
     }
 
 #if defined(FIRMWARE_SIZE)
-    createPartition(FLASH_PARTITION_TYPE_FIRMWARE, FIRMWARE_SIZE*1024, &endSector);
+    createPartition(FLASH_PARTITION_TYPE_FIRMWARE, FIRMWARE_SIZE * 1024, &endSector);
 #endif
 
 #if defined(MSP_FIRMWARE_UPDATE)
     createPartition(FLASH_PARTITION_TYPE_FIRMWARE_UPDATE_META, flashGeometry->sectorSize, &endSector);
-    createPartition(FLASH_PARTITION_TYPE_UPDATE_FIRMWARE, FLASH_SIZE*1024, &endSector);
-    createPartition(FLASH_PARTITION_TYPE_FULL_BACKUP, FLASH_SIZE*1024, &endSector);
+    createPartition(FLASH_PARTITION_TYPE_UPDATE_FIRMWARE, MCU_FLASH_SIZE * 1024, &endSector);
+    createPartition(FLASH_PARTITION_TYPE_FULL_BACKUP, MCU_FLASH_SIZE * 1024, &endSector);
 #endif
 
 #if defined(CONFIG_IN_EXTERNAL_FLASH)
-    createPartition(FLASH_PARTITION_TYPE_CONFIG, EEPROM_SIZE, &endSector);
+    uint32_t configSize = EEPROM_SIZE;
+    flashSector_t configSectors = (configSize / flashGeometry->sectorSize);
+
+    if (configSize % flashGeometry->sectorSize > 0) {
+        configSectors++; // needs a portion of a sector.
+    }
+    configSize = configSectors * flashGeometry->sectorSize;
+
+    createPartition(FLASH_PARTITION_TYPE_CONFIG, configSize, &endSector);
 #endif
 
 #ifdef USE_FLASHFS
@@ -281,8 +293,19 @@ uint32_t flashPartitionSize(flashPartition_t *partition)
 
 void flashPartitionErase(flashPartition_t *partition)
 {
-    for (uint16_t sector = partition->startSector; sector <= partition->endSector; ++sector) {
-        flashEraseSector(sector);
+    const flashGeometry_t * const geometry = flashGetGeometry();
+
+    // if there's a single FLASHFS partition and it uses the entire flash then do a full erase
+    const bool doFullErase = (flashPartitionCount() == 1) && (FLASH_PARTITION_SECTOR_COUNT(partition) == geometry->sectors);
+    if (doFullErase) {
+        flashEraseCompletely();
+        return;
+    }
+
+    for (unsigned i = partition->startSector; i <= partition->endSector; i++) {
+        uint32_t flashAddress = geometry->sectorSize * i;
+        flashEraseSector(flashAddress);
+        flashWaitForReady(0);
     }
 }
 #endif // USE_FLASH_CHIP

@@ -103,6 +103,7 @@
 #define TEMPERATURE_I2C_BUS     DEFAULT_I2C_BUS
 #define PITOT_I2C_BUS           DEFAULT_I2C_BUS
 #define PCA9685_I2C_BUS         DEFAULT_I2C_BUS
+#define BNO055_I2C_BUS          DEFAULT_I2C_BUS
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
@@ -145,7 +146,6 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          SPI3_NSS_PIN

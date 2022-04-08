@@ -25,31 +25,30 @@ Smartport devices are using _inverted_ serial protocol and as such can not be di
 
 | CPU family  | Direct connection   | Receiver _uninverted_ hack  | SoftwareSerial  | Additional hardware inverter  |
 | -----       | -----               | -----                       | -----           | -----                         |
-| STM32F1     | no possible (*)     | possible                    | possible        | possible                      |
-| STM32F3     | possible            | not required                | possible        | not required                  |
 | STM32F4     | not possible (*)    | possible                    | possible        | possible                      |
 | STM32F7     | possible            | not required                | possible        | not required                  |
+| STM32H7     | possible            | not required                | possible        | not required                  |
 
 > * possible if flight controller has dedicated, additional, hardware inverter
 
 Smartport uses _57600bps_ serial speed.
 
-### Direct connection for F3/F7
+### Direct connection for F7/H7
 
-Only TX serial pin has to be connected to Smartport receiver. Disable `telemetry_inverted`.
+Only TX serial pin has to be connected to Smartport receiver.
 
 ```
 set telemetry_inverted = OFF
-set telemetry_uart_unidir = OFF
+set telemetry_halfduplex = ON
 ```
 
-### Receiver univerted hack
+### Receiver uninverted hack
 
 Some receivers (X4R, XSR and so on) can be hacked to get _uninverted_ Smartport signal. In this case connect uninverted signal to TX pad of chosen serial port and enable `telemetry_inverted`.
 
 ```
 set telemetry_inverted = ON
-set telemetry_uart_unidir = OFF
+set telemetry_halfduplex = ON
 ```
 
 ### Software Serial
@@ -58,9 +57,10 @@ Software emulated serial port allows to connect to Smartport receivers without a
 
 ```
 set telemetry_inverted = OFF
+set telemetry_halfduplex = ON
 ```
 
-If solution above is not working, there is an alternative RX and TX lines have to be bridged using
+If the solution above is not working, there is an alternative RX and TX lines have to be bridged using
 1kOhm resistor (confirmed working with 100Ohm, 1kOhm and 10kOhm)
 
 ```
@@ -73,7 +73,7 @@ set telemetry_inverted = OFF
 
 ### SmartPort (S.Port) with external hardware inverter
 
-It is possible to use DIY UART inverter to connect SmartPort receivers to F1 and F4 based flight controllers. This method does not require hardware hack of S.Port receiver.
+It is possible to use DIY UART inverter to connect SmartPort receivers to F1 and F4 based flight controllers. This method does not require a hardware hack of S.Port receiver.
 
 #### SmartPort inverter using bipolar transistors
 ![Inverter](assets/images/smartport_inverter.png)
@@ -83,10 +83,10 @@ It is possible to use DIY UART inverter to connect SmartPort receivers to F1 and
 
 **Warning** Chosen UART has to be 5V tolerant. If not, use 3.3V power supply instead (not tested)
 
-When external inverter is used, following configuration has to be applied:
+When the external inverter is used, following configuration has to be applied:
 
 ```
-set telemetry_uart_unidir = ON
+set telemetry_halfduplex = OFF
 set telemetry_inverted = ON
 ```
 
@@ -121,9 +121,10 @@ The following sensors are transmitted
 * **0430** : if `frsky_pitch_roll = ON` set this will be pitch degrees*10
 * **0440** : if `frsky_pitch_roll = ON` set this will be roll degrees*10
 * **0450** : 'Flight Path Vector' or 'Course over ground' in degrees*10
+* **0460** : Azimuth in degrees*10
 ### Compatible SmartPort/INAV telemetry flight status
 
-To quickly and easily monitor these SmartPort sensors and flight modes, install [iNav LuaTelemetry](https://github.com/iNavFlight/LuaTelemetry) to your Taranis Q X7, X9D, X9D+ or X9E transmitter.
+To quickly and easily monitor these SmartPort sensors and flight modes, install [OpenTX Telemetry Widget](https://github.com/iNavFlight/OpenTX-Telemetry-Widget) to your Taranis Q X7, X9D, X9D+ or X9E transmitter.
 
 ## FrSky telemetry
 
@@ -176,7 +177,7 @@ Use the latest Graupner firmware for your transmitter and receiver.
 
 Older HoTT transmitters required the EAM and GPS modules to be enabled in the telemetry menu of the transmitter. (e.g. on MX-20)
 
-You can use a single connection, connect HoTT RX/TX only to serial TX, leave serial RX open and make sure the setting `telemetry_uart_unidir` is OFF.
+You can use a single connection, connect HoTT RX/TX only to serial TX, leave serial RX open and make sure the setting `telemetry_halfduplex` is OFF.
 
 The following information is deprecated, use only for compatibility:
 Serial ports use two wires but HoTT uses a single wire so some electronics are required so that the signals don't get mixed up.  The TX and RX pins of
@@ -195,7 +196,7 @@ The diode should be arranged to allow the data signals to flow the right way
 
 1N4148 diodes have been tested and work with the GR-24.
 
-When using the diode enable `telemetry_uart_unidir`, go to CLI and type `set telemetry_uart_unidir = ON`, don't forget a `save` afterwards.
+When using the diode enable `telemetry_halfduplex`, go to CLI and type `set telemetry_halfduplex = ON`, don't forget a `save` afterwards.
 
 As noticed by Skrebber the GR-12 (and probably GR-16/24, too) are based on a PIC 24FJ64GA-002, which has 5V tolerant digital pins.
 

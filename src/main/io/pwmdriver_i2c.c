@@ -7,6 +7,9 @@
 #include "fc/runtime_config.h"
 
 #include "config/feature.h"
+#include "platform.h"
+
+#ifdef USE_PWM_SERVO_DRIVER
 
 #define PWM_DRIVER_IMPLEMENTATION_COUNT 1
 #define PWM_DRIVER_MAX_CYCLE 4
@@ -50,6 +53,10 @@ void pwmDriverInitialize(void) {
 }
 
 void pwmDriverSync(void) {
+    if (!STATE(PWM_DRIVER_AVAILABLE)) {
+        return;
+    }
+
     static uint8_t cycle = 0;
 
     (pwmDrivers[driverImplementationIndex].syncFunction)(cycle);
@@ -59,3 +66,5 @@ void pwmDriverSync(void) {
         cycle = 0;
     }
 }
+
+#endif

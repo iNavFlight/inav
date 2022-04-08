@@ -104,7 +104,6 @@
 #define SPI4_MISO_PIN           PE5
 #define SPI4_MOSI_PIN           PE6
 
-#define USE_OSD
 
 #ifndef KAKUTEF7HDV
 #define USE_MAX7456
@@ -134,19 +133,22 @@
 
 #define USE_BARO
 #define USE_BARO_BMP280
+#define USE_BARO_MS5611
 #define BARO_I2C_BUS            BUS_I2C1
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_HMC5883
-#define MAG_HMC5883_ALIGN       CW180_DEG
 #define USE_MAG_QMC5883
 #define USE_MAG_MAG3110
 #define USE_MAG_IST8310
 #define USE_MAG_IST8308
 #define USE_MAG_LIS3MDL
+#define USE_MAG_MLX90393
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
+
+#define RANGEFINDER_I2C_BUS     BUS_I2C1
 
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN           PC2
@@ -176,3 +178,6 @@
 #define TARGET_IO_PORTE 0xffff
 
 #define MAX_PWM_OUTPUT_PORTS       6
+
+#define BNO055_I2C_BUS          BUS_I2C1
+

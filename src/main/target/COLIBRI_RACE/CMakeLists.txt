@@ -1,0 +1,1 @@
+target_stm32f303xc(COLIBRI_RACE SKIP_RELEASES)

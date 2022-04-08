@@ -29,6 +29,26 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "config/parameter_group.h"
+
+#if defined(USE_OSD) || defined(USE_DJI_HD_OSD)
+
+typedef enum {
+    OSD_SPEED_SOURCE_GROUND    = 0,
+    OSD_SPEED_SOURCE_3D        = 1,
+    OSD_SPEED_SOURCE_AIR       = 2
+} osdSpeedSource_e;
+
+typedef struct {
+    osdSpeedSource_e speedSource;
+} osdCommonConfig_t;
+
+PG_DECLARE(osdCommonConfig_t, osdCommonConfig);
+
+int osdGetSpeedFromSelectedSource(void);
+
+#endif // defined(USE_OSD) || defined(USE_DJI_HD_OSD)
+
 #define OSD_VARIO_CM_S_PER_ARROW 50 // 1 arrow = 50cm/s
 #define OSD_VARIO_HEIGHT_ROWS 5
 
@@ -40,6 +60,9 @@
 
 #define OSD_HEADING_GRAPH_WIDTH 9
 #define OSD_HEADING_GRAPH_DECIDEGREES_PER_CHAR 225
+
+#define OSD_AH_SIDEBAR_WIDTH_POS 7
+#define OSD_AH_SIDEBAR_HEIGHT_POS 3
 
 typedef struct displayPort_s displayPort_t;
 typedef struct displayCanvas_s displayCanvas_t;
@@ -73,8 +96,13 @@ void osdDrawVario(displayPort_t *display, displayCanvas_t *canvas, const osdDraw
 // Draws an arrow at the given point, where 0 degrees points to the top of the viewport and
 // positive angles result in clockwise rotation. If eraseBefore is true, the rect surrouing
 // the arrow will be erased first (need for e.g. the home arrow, since it uses multiple symbols)
-void osdDrawDirArrow(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float degrees, bool eraseBefore);
+void osdDrawDirArrow(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float degrees);
 void osdDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float rollAngle, float pitchAngle);
 // Draws a heading graph with heading given as 0.1 degree steps i.e. [0, 3600). It uses 9 horizontal
 // grid slots.
 void osdDrawHeadingGraph(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, int heading);
+void osdDrawSidebars(displayPort_t *display, displayCanvas_t *canvas);
+
+#ifdef USE_GPS
+int16_t osdGet3DSpeed(void);
+#endif

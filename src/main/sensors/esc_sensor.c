@@ -35,6 +35,7 @@
 #include "common/maths.h"
 #include "common/crc.h"
 
+#include "config/feature.h"
 #include "config/config_reset.h"
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
@@ -43,7 +44,9 @@
 #include "drivers/pwm_output.h"
 #include "sensors/esc_sensor.h"
 #include "io/serial.h"
+#include "fc/config.h"
 #include "fc/runtime_config.h"
+#include "fc/settings.h"
 
 
 #if defined(USE_ESC_SENSOR)
@@ -75,14 +78,30 @@ static escSensorData_t  escSensorData[MAX_SUPPORTED_MOTORS];
 static escSensorData_t  escSensorDataCombined;
 static bool             escSensorDataNeedsUpdate;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(escSensorConfig_t, escSensorConfig, PG_ESC_SENSOR_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(escSensorConfig_t, escSensorConfig, PG_ESC_SENSOR_CONFIG, 1);
 PG_RESET_TEMPLATE(escSensorConfig_t, escSensorConfig,
-    .currentOffset = 0,
+    .currentOffset = 0, // UNUSED
+    .listenOnly = SETTING_ESC_SENSOR_LISTEN_ONLY_DEFAULT,
 );
+
+static int getTelemetryMotorCount(void)
+{
+    if (escSensorConfig()->listenOnly) {
+        return 1;
+    }
+    else {
+        return getMotorCount();
+    }
+}
 
 static void escSensorSelectNextMotor(void)
 {
-    escSensorMotor = (escSensorMotor + 1) % getMotorCount();
+    if (escSensorConfig()->listenOnly) {
+        escSensorMotor = 0;
+    }
+    else {
+        escSensorMotor = (escSensorMotor + 1) % getTelemetryMotorCount();
+    }
 }
 
 static void escSensorIncreaseDataAge(void)
@@ -154,7 +173,7 @@ escSensorData_t * escSensorGetData(void)
 
         // Combine data only from active sensors, ignore stale sensors
         int usedEscSensorCount = 0;
-        for (int i = 0; i < getMotorCount(); i++) {
+        for (int i = 0; i < getTelemetryMotorCount(); i++) {
             if (escSensorData[i].dataAge < ESC_DATA_INVALID) {
                 usedEscSensorCount++;
                 escSensorDataCombined.dataAge = MAX(escSensorDataCombined.dataAge, escSensorData[i].dataAge);
@@ -167,7 +186,7 @@ escSensorData_t * escSensorGetData(void)
 
         // Make sure we calculate our sensor values only from non-stale values
         if (usedEscSensorCount) {
-            escSensorDataCombined.current = (uint32_t)escSensorDataCombined.current * getMotorCount() / usedEscSensorCount + escSensorConfig()->currentOffset;
+            escSensorDataCombined.current = (uint32_t)escSensorDataCombined.current * getTelemetryMotorCount() / usedEscSensorCount + escSensorConfig()->currentOffset;
             escSensorDataCombined.voltage = (uint32_t)escSensorDataCombined.voltage / usedEscSensorCount;
             escSensorDataCombined.rpm = (float)escSensorDataCombined.rpm / usedEscSensorCount;
         }
@@ -190,6 +209,12 @@ escSensorData_t * escSensorGetData(void)
 bool escSensorInitialize(void)
 {
     escSensorDataNeedsUpdate = true;
+    escSensorPort = NULL;
+
+    // Fail immediately if motor output are disabled or motor outputs are not configured
+    if (!feature(FEATURE_PWM_OUTPUT_ENABLE) || getMotorCount() == 0) {
+        return false;
+    }
 
     // FUNCTION_ESCSERIAL is shared between SERIALSHOT and ESC_SENSOR telemetry
     // They are mutually exclusive
@@ -229,7 +254,9 @@ void escSensorUpdate(timeUs_t currentTimeUs)
             break;
 
         case ESC_SENSOR_READY:
-            pwmRequestMotorTelemetry(escSensorMotor);
+            if (!escSensorConfig()->listenOnly) {
+                pwmRequestMotorTelemetry(escSensorMotor);
+            }
             bufferPosition = 0;
             escTriggerTimeMs = currentTimeMs;
             escSensorState = ESC_SENSOR_WAITING;
@@ -238,6 +265,7 @@ void escSensorUpdate(timeUs_t currentTimeUs)
         case ESC_SENSOR_WAITING:
             if ((currentTimeMs - escTriggerTimeMs) >= ESC_REQUEST_TIMEOUT_MS) {
                 // Timed out. Select next motor and move on
+                escSensorIncreaseDataAge();
                 escSensorSelectNextMotor();
                 escSensorState = ESC_SENSOR_READY;
             }

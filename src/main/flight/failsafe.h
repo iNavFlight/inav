@@ -30,7 +30,6 @@
 
 
 typedef struct failsafeConfig_s {
-    uint16_t failsafe_throttle;                 // Throttle level used for landing - specify value between 1000..2000 (pwm pulse width for slightly below hover). center throttle = 1500.
     uint16_t failsafe_throttle_low_delay;       // Time throttle stick must have been below 'min_check' to "JustDisarm" instead of "full failsafe procedure" (TENTH_SECOND)
     uint8_t failsafe_delay;                     // Guard time for failsafe activation after signal lost. 1 step = 0.1sec - 1sec in example (10)
     uint8_t failsafe_recovery_delay;            // Time from RC link recovery to failsafe abort. 1 step = 0.1sec - 1sec in example (10)
@@ -49,20 +48,21 @@ typedef struct failsafeConfig_s {
 PG_DECLARE(failsafeConfig_t, failsafeConfig);
 
 typedef enum {
+    FAILSAFE_IDLE = 0,
     /* Failsafe mode is not active. All other
      * phases indicate that the failsafe flight
      * mode is active.
      */
-    FAILSAFE_IDLE = 0,
+    FAILSAFE_RX_LOSS_DETECTED,
     /* In this phase, the connection from the receiver
      * has been confirmed as lost and it will either
      * transition into FAILSAFE_RX_LOSS_RECOVERED if the
-     * RX link is recovered inmmediately or one of the
+     * RX link is recovered immediately or one of the
      * recovery phases otherwise (as configured via
      * failsafe_procedure) or into FAILSAFE_RX_LOSS_IDLE
      * if failsafe_procedure is NONE.
      */
-    FAILSAFE_RX_LOSS_DETECTED,
+    FAILSAFE_RX_LOSS_IDLE,
     /* This phase will just do nothing else than wait
      * until the RX connection is re-established and the
      * sticks are moved more than the failsafe_stick_threshold
@@ -70,8 +70,7 @@ typedef enum {
      * Note that this phase is only used when
      * failsafe_procedure = NONE.
      */
-    FAILSAFE_RX_LOSS_IDLE,
-#if defined(USE_NAV)
+    FAILSAFE_RETURN_TO_HOME,
     /* Failsafe is executing RTH. This phase is the first one
      * enabled when failsafe_procedure = RTH if an RTH is
      * deemed possible (RTH might not be activated if e.g.
@@ -79,36 +78,36 @@ typedef enum {
      * sensors are not working at the moment). If RTH can't
      * be started, this phase will transition to FAILSAFE_LANDING.
      */
-    FAILSAFE_RETURN_TO_HOME,
-#endif
-    /* Failsafe mode is performing a simplified landing procedure.
+    FAILSAFE_LANDING,
+    /* Performs NAV Emergency Landing using controlled descent rate if
+     * altitude sensors available.
+     * Otherwise Emergency Landing performs a simplified landing procedure.
      * This is done by setting throttle and roll/pitch/yaw controls
      * to a pre-configured values that will allow aircraft
      * to reach ground in somewhat safe "controlled crash" way.
      * This is the first recovery phase enabled when
-     * failsafe_procedure = SET-THR. Once timeout expires or if a
+     * failsafe_procedure = LAND. Once timeout expires or if a
      * "controlled crash" can't be executed, this phase will
      * transition to FAILSAFE_LANDED.
      */
-    FAILSAFE_LANDING,
+    FAILSAFE_LANDED,
     /* Failsafe has either detected that the model has landed and disabled
      * the motors or either decided to drop the model because it couldn't
      * perform an emergency landing. It will disarm, prevent re-arming
      * and transition into FAILSAFE_RX_LOSS_MONITORING immediately. This is
      * the first recovery phase enabled when failsafe_procedure = DROP.
      */
-    FAILSAFE_LANDED,
+    FAILSAFE_RX_LOSS_MONITORING,
     /* This phase will wait until the RX connection is
      * working for some time and if and only if switch arming
      * is used and the switch is in the unarmed position
      * will allow rearming again.
      */
-    FAILSAFE_RX_LOSS_MONITORING,
+    FAILSAFE_RX_LOSS_RECOVERED
     /* This phase indicates that the RX link has been re-established and
      * it will immediately transition out of failsafe mode (phase will
      * transition to FAILSAFE_IDLE.)
      */
-    FAILSAFE_RX_LOSS_RECOVERED
 } failsafePhase_e;
 
 typedef enum {
@@ -128,6 +127,12 @@ typedef enum {
     RTH_IN_PROGRESS,            // RTH is active
     RTH_HAS_LANDED              // RTH is active and has landed.
 } rthState_e;
+
+typedef enum {
+    EMERG_LAND_IDLE = 0,        // Emergency landing is waiting
+    EMERG_LAND_IN_PROGRESS,     // Emergency landing is active
+    EMERG_LAND_HAS_LANDED       // Emergency landing is active and has landed.
+} emergLandState_e;
 
 typedef struct failsafeState_s {
     int16_t events;

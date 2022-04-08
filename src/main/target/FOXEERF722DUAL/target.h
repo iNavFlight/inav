@@ -31,7 +31,10 @@
 // We use dual IMU sensors, they have to be described in the target file
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 #define USE_MPU_DATA_READY_SIGNAL
+
+#ifdef FOXEERF722DUAL
 #define USE_DUAL_GYRO
+#endif
 
 // MPU6000
 #define USE_IMU_MPU6000
@@ -41,11 +44,13 @@
 #define MPU6000_EXTI_PIN        PC4
 
 // ICM20602 - handled by MPU6500 driver
+#ifdef FOXEERF722DUAL
 #define USE_IMU_MPU6500
 #define IMU_MPU6500_ALIGN       CW180_DEG
 #define MPU6500_CS_PIN          PB1
 #define MPU6500_SPI_BUS         BUS_SPI1
 #define MPU6500_EXTI_PIN        PB0
+#endif
 
 /*** SPI/I2C bus ***/
 #define USE_SPI
@@ -76,7 +81,6 @@
 #define M25P16_SPI_BUS          BUS_SPI2
 
 /*** OSD ***/
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PC3
@@ -120,6 +124,8 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
+#define BNO055_I2C_BUS          BUS_I2C1
+
 /*** ADC ***/
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PC0
@@ -152,3 +158,4 @@
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
+

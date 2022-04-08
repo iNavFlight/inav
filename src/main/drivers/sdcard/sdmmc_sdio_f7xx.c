@@ -485,7 +485,7 @@ static SD_Error_t SD_InitializeCard(void)
             SD_GetResponse(SD_Handle.CID);
         }
 
-        if ((SD_CardType == SD_STD_CAPACITY_V1_1) || (SD_CardType == SD_STD_CAPACITY_V2_0) || 
+        if ((SD_CardType == SD_STD_CAPACITY_V1_1) || (SD_CardType == SD_STD_CAPACITY_V2_0) ||
             (SD_CardType == SD_SECURE_DIGITAL_IO_COMBO) || (SD_CardType == SD_HIGH_CAPACITY)) {
             // Send CMD3 SET_REL_ADDR with argument 0
             // SD Card publishes its RCA.
@@ -1000,7 +1000,7 @@ SD_Error_t SD_GetStatus(void)
         }
     }
     else {
-        ErrorState = SD_CARD_ERROR;
+        ErrorState = SD_ERROR;
     }
 
     return ErrorState;
@@ -1385,14 +1385,19 @@ bool SD_Init(void)
     // Initialize SDMMC1 peripheral interface with default configuration for SD card initialization
     MODIFY_REG(SDMMC1->CLKCR, CLKCR_CLEAR_MASK, (uint32_t) SDMMC_INIT_CLK_DIV);
 
+    delay(100);
+
     // Identify card operating voltage
     if ((ErrorState = SD_PowerON()) == SD_OK) {
+        delay(100);
         // Initialize the present card and put them in idle state
         if ((ErrorState = SD_InitializeCard()) == SD_OK) {
+            delay(100);
             // Read CSD/CID MSD registers
             if ((ErrorState = SD_GetCardInfo()) == SD_OK) {
                 // Select the Card - Send CMD7 SDMMC_SEL_DESEL_CARD
                 ErrorState = SD_TransmitCommand((SD_CMD_SEL_DESEL_CARD | SD_CMD_RESPONSE_SHORT), SD_CardRCA, 1);
+                delay(100);
                 MODIFY_REG(SDMMC1->CLKCR, CLKCR_CLEAR_MASK, (uint32_t) SDMMC_CLK_DIV); // Configure SDMMC1 peripheral interface
             }
         }
@@ -1400,12 +1405,14 @@ bool SD_Init(void)
 
     // Configure SD Bus width
     if (ErrorState == SD_OK) {
+        delay(100);
         // Enable wide operation
 #ifdef SDCARD_SDIO_4BIT
         ErrorState = SD_WideBusOperationConfig(SD_BUS_WIDE_4B);
 #else
         ErrorState = SD_WideBusOperationConfig(SD_BUS_WIDE_1B);
 #endif
+        delay(100);
     }
 
     // Configure the SDCARD device

@@ -21,7 +21,7 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
 
-const timerHardware_t timerHardware[] = {
+timerHardware_t timerHardware[] = {
     DEF_TIM(TIM9, CH2, PA3,  TIM_USE_PPM,   0, 0), // PPM
 
 #ifdef MATEKF405_SERVOS6
@@ -40,7 +40,7 @@ const timerHardware_t timerHardware[] = {
 #else
     DEF_TIM(TIM1, CH1, PA8,  TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO, 0, 0), // S6  UP(2,5)
 #endif
-    DEF_TIM(TIM4, CH3, PB8,  TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR, 0, 0), // S7  D(1,7)!S5 UP(2,6)
+    DEF_TIM(TIM4, CH3, PB8,  TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_MOTOR, 0, 0), // S7  D(1,7)!S5 UP(2,6)
 
     DEF_TIM(TIM5, CH3, PA2,  TIM_USE_PWM,                                            0, 0), // TX2
 

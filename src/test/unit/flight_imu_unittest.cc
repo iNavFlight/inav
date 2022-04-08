@@ -18,7 +18,6 @@
 #include <stdint.h>
 
 #include <limits.h>
-#include <math.h>
 
 extern "C" {
     #include "sensors/gyro.h"
@@ -191,9 +190,9 @@ void sensorsSet(uint32_t) {}
 bool compassIsHealthy(void) { return true; }
 void accGetVibrationLevels(fpVector3_t *accVibeLevels)
 {
-    accVibeLevels->x = sqrtf(acc.accVibeSq[X]);
-    accVibeLevels->y = sqrtf(acc.accVibeSq[Y]);
-    accVibeLevels->z = sqrtf(acc.accVibeSq[Z]);
+    accVibeLevels->x = fast_fsqrtf(acc.accVibeSq[X]);
+    accVibeLevels->y = fast_fsqrtf(acc.accVibeSq[Y]);
+    accVibeLevels->z = fast_fsqrtf(acc.accVibeSq[Z]);
 }
 void accGetMeasuredAcceleration(fpVector3_t *measuredAcc)
 {

@@ -228,9 +228,17 @@ static vtxProtoResponseType_e vtxProtoProcessResponse(void)
             vtxState.capabilities.freqMin = vtxState.recvPkt[2] | (vtxState.recvPkt[3] << 8);
             vtxState.capabilities.freqMax = vtxState.recvPkt[4] | (vtxState.recvPkt[5] << 8);
             vtxState.capabilities.powerMax = vtxState.recvPkt[6] | (vtxState.recvPkt[7] << 8);
+
             if (vtxState.capabilities.freqMin != 0 && vtxState.capabilities.freqMin < vtxState.capabilities.freqMax) {
-                // Update max power metadata so OSD settings would match VTX capabiolities
+                // Some TRAMP VTXes may report max power incorrectly (i.e. 200mW for a 600mW VTX)
+                // Make use of vtxSettingsConfig()->maxPowerOverride to override
+                if (vtxSettingsConfig()->maxPowerOverride != 0) {
+                    vtxState.capabilities.powerMax = vtxSettingsConfig()->maxPowerOverride;
+                }
+
+                // Update max power metadata so OSD settings would match VTX capabilities
                 vtxProtoUpdatePowerMetadata(vtxState.capabilities.powerMax);
+
                 return VTX_RESPONSE_TYPE_CAPABILITIES;
             }
             break;
@@ -268,7 +276,7 @@ static void impl_Process(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
     UNUSED(currentTimeUs);
 
     if (!vtxState.port) {
-        return false;
+        return;
     }
 
     switch((int)vtxState.protoState) {
@@ -403,7 +411,7 @@ static void impl_SetBandAndChannel(vtxDevice_t * vtxDevice, uint8_t band, uint8_
     uint16_t newFreqMhz  = vtx58_Bandchan2Freq(band, channel);
 
     if (newFreqMhz < vtxState.capabilities.freqMin || newFreqMhz > vtxState.capabilities.freqMax) {
-        return false;
+        return;
     }
 
     // Cache band and channel

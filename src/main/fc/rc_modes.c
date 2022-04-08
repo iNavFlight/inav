@@ -19,6 +19,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "platform.h"
+
 #include "rc_modes.h"
 
 #include "common/bitarray.h"
@@ -32,13 +34,12 @@
 #include "fc/config.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
+#include "fc/settings.h"
 
 #include "rx/rx.h"
 
 static uint8_t specifiedConditionCountPerMode[CHECKBOX_ITEM_COUNT];
-#ifdef USE_NAV
 static bool isUsingNAVModes = false;
-#endif
 
 boxBitmask_t rcModeActivationMask; // one bit per mode defined in boxId_e
 
@@ -54,6 +55,10 @@ boxBitmask_t rcModeActivationMask; // one bit per mode defined in boxId_e
 PG_REGISTER_ARRAY(modeActivationCondition_t, MAX_MODE_ACTIVATION_CONDITION_COUNT, modeActivationConditions, PG_MODE_ACTIVATION_PROFILE, 0);
 PG_REGISTER(modeActivationOperatorConfig_t, modeActivationOperatorConfig, PG_MODE_ACTIVATION_OPERATOR_CONFIG, 0);
 
+PG_RESET_TEMPLATE(modeActivationOperatorConfig_t, modeActivationOperatorConfig,
+    .modeActivationOperator = SETTING_MODE_RANGE_LOGIC_OPERATOR_DEFAULT
+);
+
 static void processAirmodeAirplane(void) {
     if (feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE)) {
         ENABLE_STATE(AIRMODE_ACTIVE);
@@ -63,7 +68,7 @@ static void processAirmodeAirplane(void) {
 }
 
 static void processAirmodeMultirotor(void) {
-    if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
+    if ((rcControlsConfig()->airmodeHandlingType == STICK_CENTER) || (rcControlsConfig()->airmodeHandlingType == STICK_CENTER_ONCE)) {
         if (feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE)) {
             ENABLE_STATE(AIRMODE_ACTIVE);
         } else {
@@ -77,7 +82,7 @@ static void processAirmodeMultirotor(void) {
              */
             DISABLE_STATE(AIRMODE_ACTIVE);
         } else if (
-            !STATE(AIRMODE_ACTIVE) && 
+            !STATE(AIRMODE_ACTIVE) &&
             rcCommand[THROTTLE] > rcControlsConfig()->airmodeThrottleThreshold &&
             (feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE))
         ) {
@@ -112,13 +117,10 @@ void processAirmode(void) {
 
 }
 
-#if defined(USE_NAV)
 bool isUsingNavigationModes(void)
 {
     return isUsingNAVModes;
 }
-#endif
-
 
 bool IS_RC_MODE_ACTIVE(boxId_e boxId)
 {
@@ -132,13 +134,7 @@ void rcModeUpdate(boxBitmask_t *newState)
 
 bool isModeActivationConditionPresent(boxId_e modeId)
 {
-    for (int index = 0; index < MAX_MODE_ACTIVATION_CONDITION_COUNT; index++) {
-        if (modeActivationConditions(index)->modeId == modeId && IS_RANGE_USABLE(&modeActivationConditions(index)->range)) {
-            return true;
-        }
-    }
-
-    return false;
+    return specifiedConditionCountPerMode[modeId] > 0;
 }
 
 bool isRangeActive(uint8_t auxChannelIndex, const channelRange_t *range)
@@ -207,12 +203,11 @@ void updateUsedModeActivationConditionFlags(void)
         }
     }
 
-#ifdef USE_NAV
     isUsingNAVModes = isModeActivationConditionPresent(BOXNAVPOSHOLD) ||
                         isModeActivationConditionPresent(BOXNAVRTH) ||
+                        isModeActivationConditionPresent(BOXNAVCOURSEHOLD) ||
                         isModeActivationConditionPresent(BOXNAVCRUISE) ||
                         isModeActivationConditionPresent(BOXNAVWP);
-#endif
 }
 
 void configureModeActivationCondition(int macIndex, boxId_e modeId, uint8_t auxChannelIndex, uint16_t startPwm, uint16_t endPwm)

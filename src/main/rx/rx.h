@@ -21,6 +21,8 @@
 #include <stdbool.h>
 
 #include "common/time.h"
+#include "common/tristate.h"
+
 #include "config/parameter_group.h"
 
 #define STICK_CHANNEL_COUNT 4
@@ -49,6 +51,8 @@
 
 #define RSSI_MAX_VALUE 1023
 
+#define PPM_RCVR_TIMEOUT            0
+
 typedef enum {
     RX_FRAME_PENDING = 0,                       // No new data available from receiver
     RX_FRAME_COMPLETE = (1 << 0),               // There is new data available
@@ -59,11 +63,9 @@ typedef enum {
 
 typedef enum {
     RX_TYPE_NONE        = 0,
-    RX_TYPE_PPM         = 1,
-    RX_TYPE_SERIAL      = 2,
-    RX_TYPE_MSP         = 3,
-    RX_TYPE_SPI         = 4,
-    RX_TYPE_UIB         = 5
+    RX_TYPE_SERIAL      = 1,
+    RX_TYPE_MSP         = 2,
+    RX_TYPE_SPI         = 3
 } rxReceiverType_e;
 
 typedef enum {
@@ -79,6 +81,10 @@ typedef enum {
     SERIALRX_CRSF = 9,
     SERIALRX_FPORT = 10,
     SERIALRX_SBUS_FAST = 11,
+    SERIALRX_FPORT2 = 12,
+    SERIALRX_SRXL2 = 13,
+    SERIALRX_GHST = 14,
+    SERIALRX_MAVLINK = 15,
 } rxSerialReceiverType_e;
 
 #define MAX_SUPPORTED_RC_PPM_CHANNEL_COUNT          16
@@ -108,12 +114,16 @@ typedef struct rxConfig_s {
     uint8_t rcmap[MAX_MAPPABLE_RX_INPUTS];  // mapping of radio channels to internal RPYTA+ order
     uint8_t serialrx_provider;              // Type of UART-based receiver (rxSerialReceiverType_e enum). Only used if receiverType is RX_TYPE_SERIAL
     uint8_t serialrx_inverted;              // Flip the default inversion of the protocol - e.g. sbus (Futaba, FrSKY) is inverted if this is false, uninverted if it's true. Support for uninverted OpenLRS (and modified FrSKY) receivers.
-    uint8_t halfDuplex;                     // allow rx to operate in half duplex mode on F4, ignored for F1 and F3.
+    uint8_t halfDuplex;                     // allow rx to operate in half duplex mode. From tristate_e.
+#ifdef USE_RX_SPI
     uint8_t rx_spi_protocol;                // type of SPI receiver protocol (rx_spi_protocol_e enum). Only used if receiverType is RX_TYPE_SPI
     uint32_t rx_spi_id;
     uint8_t rx_spi_rf_channel_count;
+#endif
+#ifdef USE_SPEKTRUM_BIND
     uint8_t spektrum_sat_bind;              // number of bind pulses for Spektrum satellite receivers
     uint8_t spektrum_sat_bind_autoreset;    // whenever we will reset (exit) binding mode after hard reboot
+#endif
     uint8_t rssi_channel;
     uint8_t rssiMin;                        // minimum RSSI sent by the RX - [RSSI_VISIBLE_VALUE_MIN, RSSI_VISIBLE_VALUE_MAX]
     uint8_t rssiMax;                        // maximum RSSI sent by the RX - [RSSI_VISIBLE_VALUE_MIN, RSSI_VISIBLE_VALUE_MAX]
@@ -125,6 +135,10 @@ typedef struct rxConfig_s {
     uint8_t rcFilterFrequency;              // RC filter cutoff frequency (smoothness vs response sharpness)
     uint16_t mspOverrideChannels;           // Channels to override with MSP RC when BOXMSPRCOVERRIDE is active
     uint8_t rssi_source;
+#ifdef USE_SERIALRX_SRXL2
+    uint8_t srxl2_unit_id;
+    uint8_t srxl2_baud_fast;
+#endif
 } rxConfig_t;
 
 PG_DECLARE(rxConfig_t, rxConfig);
@@ -148,7 +162,6 @@ typedef struct rxRuntimeConfig_s {
     uint8_t channelCount;                  // number of rc channels as reported by current input driver
     timeUs_t rxRefreshRate;
     timeUs_t rxSignalTimeout;
-    bool requireFiltering;
     rcReadRawDataFnPtr rcReadRawFn;
     rcFrameStatusFnPtr rcFrameStatusFn;
     rcProcessFrameFnPtr rcProcessFrameFn;
@@ -172,8 +185,17 @@ typedef enum {
     RSSI_SOURCE_MSP,
 } rssiSource_e;
 
-extern rxRuntimeConfig_t rxRuntimeConfig; //!!TODO remove this extern, only needed once for channelCount
+typedef struct rxLinkStatistics_s {
+    int16_t     uplinkRSSI;     // RSSI value in dBm
+    uint8_t     uplinkLQ;       // A protocol specific measure of the link quality in [0..100]
+    int8_t      uplinkSNR;      // The SNR of the uplink in dB
+    uint8_t     rfMode;         // A protocol specific measure of the transmission bandwidth [2 = 150Hz, 1 = 50Hz, 0 = 4Hz]
+    uint16_t    uplinkTXPower;  // power in mW
+    uint8_t     activeAntenna;
+} rxLinkStatistics_t;
 
+extern rxRuntimeConfig_t rxRuntimeConfig; //!!TODO remove this extern, only needed once for channelCount
+extern rxLinkStatistics_t rxLinkStatistics;
 void lqTrackerReset(rxLinkQualityTracker_e * lqTracker);
 void lqTrackerAccumulate(rxLinkQualityTracker_e * lqTracker, uint16_t rawValue);
 void lqTrackerSet(rxLinkQualityTracker_e * lqTracker, uint16_t rawValue);
@@ -205,10 +227,5 @@ uint16_t rxGetRefreshRate(void);
 
 // Processed RC channel value. These values might include
 // filtering and some extra processing like value holding
-// during failsafe. Most callers should use this instead
-// of rxGetRawChannelValue()
+// during failsafe.
 int16_t rxGetChannelValue(unsigned channelNumber);
-
-// Raw RC channel data as received by the RX. Should only
-// be used by very low level subsystems, like blackbox.
-int16_t rxGetRawChannelValue(unsigned channelNumber);

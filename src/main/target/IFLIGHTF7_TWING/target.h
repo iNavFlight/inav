@@ -40,7 +40,7 @@
 
 #define USE_IMU_MPU6500
 #define IMU_0_ALIGN       CW90_DEG
-#define IMU_1_ALIGN       CW90_DEG
+#define IMU_1_ALIGN       CW0_DEG
 
 #define MPU6500_0_CS_PIN        PC3
 #define MPU6500_0_SPI_BUS       BUS_SPI1
@@ -63,6 +63,7 @@
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C2
 #define USE_BARO_BMP280
+#define USE_BARO_DPS310
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
@@ -79,6 +80,7 @@
 
 #define USE_RANGEFINDER
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
+#define BNO055_I2C_BUS          BUS_I2C2
 
 // *************** FLASH **************************
 #define M25P16_CS_PIN           PB9
@@ -98,7 +100,6 @@
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PB15
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          PB12

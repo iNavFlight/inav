@@ -17,6 +17,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "platform.h"
 
@@ -28,24 +29,12 @@
 #include "drivers/system.h"
 #include "drivers/time.h"
 
-#ifndef EXTI_CALLBACK_HANDLER_COUNT
-#define EXTI_CALLBACK_HANDLER_COUNT 1
+#if defined(STM32F3) || defined(STM32F4) || defined(STM32F7) || defined(STM32H7)
+// See "RM CoreSight Architecture Specification"
+// B2.3.10  "LSR and LAR, Software Lock Status Register and Software Lock Access Register"
+// "E1.2.11  LAR, Lock Access Register"
+#define DWT_LAR_UNLOCK_VALUE 0xC5ACCE55
 #endif
-
-extiCallbackHandlerConfig_t extiHandlerConfigs[EXTI_CALLBACK_HANDLER_COUNT];
-
-void registerExtiCallbackHandler(IRQn_Type irqn, extiCallbackHandlerFunc *fn)
-{
-    for (int index = 0; index < EXTI_CALLBACK_HANDLER_COUNT; index++) {
-        extiCallbackHandlerConfig_t *candidate = &extiHandlerConfigs[index];
-        if (!candidate->fn) {
-            candidate->fn = fn;
-            candidate->irqn = irqn;
-            return;
-        }
-    }
-    failureMode(FAILURE_DEVELOPER); // EXTI_CALLBACK_HANDLER_COUNT is too low for the amount of handlers required.
-}
 
 // cached value of RCC->CSR
 uint32_t cachedRccCsrValue;
@@ -53,17 +42,27 @@ uint32_t cachedRccCsrValue;
 void cycleCounterInit(void)
 {
     extern uint32_t usTicks; // From drivers/time.h
+
 #if defined(USE_HAL_DRIVER)
-    usTicks = HAL_RCC_GetSysClockFreq() / 1000000;
+    // We assume that SystemCoreClock is already set to a correct value by init code
+    usTicks = SystemCoreClock / 1000000;
 #else
     RCC_ClocksTypeDef clocks;
     RCC_GetClocksFreq(&clocks);
     usTicks = clocks.SYSCLK_Frequency / 1000000;
-
 #endif
 
     // Enable DWT for precision time measurement
     CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+
+#if defined(STM32F7) || defined(STM32H7)
+    DWT->LAR = DWT_LAR_UNLOCK_VALUE;
+#elif defined(STM32F3) || defined(STM32F4)
+    volatile uint32_t *DWTLAR = (uint32_t *)(DWT_BASE + 0x0FB0);
+    *(DWTLAR) = DWT_LAR_UNLOCK_VALUE;
+#endif
+
+    DWT->CYCCNT = 0;
     DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 }
 
@@ -85,10 +84,15 @@ void systemReset(void)
     NVIC_SystemReset();
 }
 
+void systemResetRequest(uint32_t requestId)
+{
+    persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, requestId);
+    systemReset();
+}
+
 void systemResetToBootloader(void)
 {
-    persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_BOOTLOADER_REQUEST_ROM);
-    systemReset();
+    systemResetRequest(RESET_BOOTLOADER_REQUEST_ROM);
 }
 
 typedef void resetHandler_t(void);
@@ -163,4 +167,15 @@ void failureMode(failureMode_e mode)
     systemResetToBootloader();
 #endif
 #endif //UNIT_TEST
+}
+
+void initialiseMemorySections(void)
+{
+#ifdef USE_ITCM_RAM
+    /* Load functions into ITCM RAM */
+    extern uint8_t tcm_code_start;
+    extern uint8_t tcm_code_end;
+    extern uint8_t tcm_code;
+    memcpy(&tcm_code_start, &tcm_code, (size_t) (&tcm_code_end - &tcm_code_start));
+#endif
 }

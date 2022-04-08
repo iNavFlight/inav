@@ -38,25 +38,22 @@ FILE_COMPILE_FOR_SPEED
 
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_mpu.h"
-#include "drivers/accgyro/accgyro_mpu3050.h"
 #include "drivers/accgyro/accgyro_mpu6000.h"
 #include "drivers/accgyro/accgyro_mpu6050.h"
 #include "drivers/accgyro/accgyro_mpu6500.h"
 #include "drivers/accgyro/accgyro_mpu9250.h"
 
-#include "drivers/accgyro/accgyro_lsm303dlhc.h"
-#include "drivers/accgyro/accgyro_l3g4200d.h"
-#include "drivers/accgyro/accgyro_l3gd20.h"
-#include "drivers/accgyro/accgyro_adxl345.h"
-#include "drivers/accgyro/accgyro_mma845x.h"
-#include "drivers/accgyro/accgyro_bma280.h"
+#include "drivers/accgyro/accgyro_bmi088.h"
 #include "drivers/accgyro/accgyro_bmi160.h"
+#include "drivers/accgyro/accgyro_bmi270.h"
 #include "drivers/accgyro/accgyro_icm20689.h"
+#include "drivers/accgyro/accgyro_icm42605.h"
 #include "drivers/accgyro/accgyro_fake.h"
 #include "drivers/sensor.h"
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
+#include "fc/settings.h"
 
 #include "io/beeper.h"
 
@@ -87,27 +84,27 @@ static EXTENDED_FASTRAM pt1Filter_t accVibeFilter[XYZ_AXIS_COUNT];
 static EXTENDED_FASTRAM filterApplyFnPtr accNotchFilterApplyFn;
 static EXTENDED_FASTRAM void *accNotchFilter[XYZ_AXIS_COUNT];
 
-PG_REGISTER_WITH_RESET_FN(accelerometerConfig_t, accelerometerConfig, PG_ACCELEROMETER_CONFIG, 3);
+PG_REGISTER_WITH_RESET_FN(accelerometerConfig_t, accelerometerConfig, PG_ACCELEROMETER_CONFIG, 4);
 
 void pgResetFn_accelerometerConfig(accelerometerConfig_t *instance)
 {
     RESET_CONFIG_2(accelerometerConfig_t, instance,
-        .acc_align = ALIGN_DEFAULT,
-        .acc_hardware = ACC_AUTODETECT,
-        .acc_lpf_hz = 15,
-        .acc_notch_hz = 0,
-        .acc_notch_cutoff = 1,
-        .acc_soft_lpf_type = FILTER_BIQUAD
+        .acc_align = SETTING_ALIGN_ACC_DEFAULT,
+        .acc_hardware = SETTING_ACC_HARDWARE_DEFAULT,
+        .acc_lpf_hz = SETTING_ACC_LPF_HZ_DEFAULT,
+        .acc_notch_hz = SETTING_ACC_NOTCH_HZ_DEFAULT,
+        .acc_notch_cutoff = SETTING_ACC_NOTCH_CUTOFF_DEFAULT,
+        .acc_soft_lpf_type = SETTING_ACC_LPF_TYPE_DEFAULT
     );
     RESET_CONFIG_2(flightDynamicsTrims_t, &instance->accZero,
-        .raw[X] = 0,
-        .raw[Y] = 0,
-        .raw[Z] = 0
+        .raw[X] = SETTING_ACCZERO_X_DEFAULT,
+        .raw[Y] = SETTING_ACCZERO_Y_DEFAULT,
+        .raw[Z] = SETTING_ACCZERO_Z_DEFAULT
     );
     RESET_CONFIG_2(flightDynamicsTrims_t, &instance->accGain,
-         .raw[X] = 4096,
-         .raw[Y] = 4096,
-         .raw[Z] = 4096
+         .raw[X] = SETTING_ACCGAIN_X_DEFAULT,
+         .raw[Y] = SETTING_ACCGAIN_Y_DEFAULT,
+         .raw[Z] = SETTING_ACCGAIN_Z_DEFAULT
     );
 }
 
@@ -122,63 +119,11 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
     switch (accHardwareToUse) {
     case ACC_AUTODETECT:
         FALLTHROUGH;
-#ifdef USE_IMU_ADXL345
-    case ACC_ADXL345: {
-        if (adxl345Detect(dev)) {
-            accHardware = ACC_ADXL345;
-            break;
-        }
-        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
-        if (accHardwareToUse != ACC_AUTODETECT) {
-            break;
-        }
-    }
-    FALLTHROUGH;
-#endif
-
-#ifdef USE_IMU_LSM303DLHC
-    case ACC_LSM303DLHC:
-        if (lsm303dlhcAccDetect(dev)) {
-            accHardware = ACC_LSM303DLHC;
-            break;
-        }
-        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
-        if (accHardwareToUse != ACC_AUTODETECT) {
-            break;
-        }
-        FALLTHROUGH;
-#endif
 
 #ifdef USE_IMU_MPU6050
     case ACC_MPU6050: // MPU6050
         if (mpu6050AccDetect(dev)) {
             accHardware = ACC_MPU6050;
-            break;
-        }
-        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
-        if (accHardwareToUse != ACC_AUTODETECT) {
-            break;
-        }
-        FALLTHROUGH;
-#endif
-
-#ifdef USE_IMU_MMA8452
-    case ACC_MMA8452: // MMA8452
-        if (mma8452Detect(dev)) {
-            accHardware = ACC_MMA8452;
-            break;
-        }
-        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
-        if (accHardwareToUse != ACC_AUTODETECT) {
-            break;
-        }
-        FALLTHROUGH;
-#endif
-
-#ifdef USE_IMU_BMA280
-    case ACC_BMA280: // BMA280
-        if (bma280Detect(dev)) {
-            accHardware = ACC_BMA280;
             break;
         }
         /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
@@ -240,6 +185,19 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         FALLTHROUGH;
 #endif
 
+#if defined(USE_IMU_BMI088)
+    case ACC_BMI088:
+        if (bmi088AccDetect(dev)) {
+            accHardware = ACC_BMI088;
+            break;
+        }
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (accHardwareToUse != ACC_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+#endif
+
 #ifdef USE_IMU_ICM20689
     case ACC_ICM20689:
         if (icm20689AccDetect(dev)) {
@@ -253,6 +211,31 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         FALLTHROUGH;
 #endif
 
+#ifdef USE_IMU_ICM42605
+    case ACC_ICM42605:
+        if (icm42605AccDetect(dev)) {
+            accHardware = ACC_ICM42605;
+            break;
+        }
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (accHardwareToUse != ACC_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+#endif
+
+#ifdef USE_IMU_BMI270
+    case ACC_BMI270:
+        if (bmi270AccDetect(dev)) {
+            accHardware = ACC_BMI270;
+            break;
+        }
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (accHardwareToUse != ACC_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+#endif
 
 #ifdef USE_IMU_FAKE
     case ACC_FAKE:
@@ -423,9 +406,9 @@ static void performAcclerationCalibration(void)
     }
 
     if (!calibratedPosition[positionIndex]) {
-        v.v[0] = accADC[0];
-        v.v[1] = accADC[1];
-        v.v[2] = accADC[2];
+        v.v[X] = accADC[X];
+        v.v[Y] = accADC[Y];
+        v.v[Z] = accADC[Z];
 
         zeroCalibrationAddValueV(&zeroCalibration, &v);
 
@@ -460,9 +443,9 @@ static void performAcclerationCalibration(void)
         }
 
         if (!sensorCalibrationSolveForOffset(&calState, accTmp)) {
-            accTmp[0] = 0.0f;
-            accTmp[1] = 0.0f;
-            accTmp[1] = 0.0f;
+            accTmp[X] = 0.0f;
+            accTmp[Y] = 0.0f;
+            accTmp[Z] = 0.0f;
             calFailed = true;
         }
 
@@ -484,9 +467,9 @@ static void performAcclerationCalibration(void)
         }
 
         if (!sensorCalibrationSolveForScale(&calState, accTmp)) {
-            accTmp[0] = 1.0f;
-            accTmp[1] = 1.0f;
-            accTmp[1] = 1.0f;
+            accTmp[X] = 1.0f;
+            accTmp[Y] = 1.0f;
+            accTmp[Z] = 1.0f;
             calFailed = true;
         }
 
@@ -601,20 +584,20 @@ void updateAccExtremes(void)
         if (acc.accADCf[axis] > acc.extremes[axis].max) acc.extremes[axis].max = acc.accADCf[axis];
     }
 
-    float gforce = sqrtf(sq(acc.accADCf[0]) + sq(acc.accADCf[1]) + sq(acc.accADCf[2]));
+    float gforce = calc_length_pythagorean_3D(acc.accADCf[X], acc.accADCf[Y], acc.accADCf[Z]);
     if (gforce > acc.maxG) acc.maxG = gforce;
 }
 
 void accGetVibrationLevels(fpVector3_t *accVibeLevels)
 {
-    accVibeLevels->x = sqrtf(acc.accVibeSq[X]);
-    accVibeLevels->y = sqrtf(acc.accVibeSq[Y]);
-    accVibeLevels->z = sqrtf(acc.accVibeSq[Z]);
+    accVibeLevels->x = fast_fsqrtf(acc.accVibeSq[X]);
+    accVibeLevels->y = fast_fsqrtf(acc.accVibeSq[Y]);
+    accVibeLevels->z = fast_fsqrtf(acc.accVibeSq[Z]);
 }
 
 float accGetVibrationLevel(void)
 {
-    return sqrtf(acc.accVibeSq[X] + acc.accVibeSq[Y] + acc.accVibeSq[Z]);
+    return fast_fsqrtf(acc.accVibeSq[X] + acc.accVibeSq[Y] + acc.accVibeSq[Z]);
 }
 
 uint32_t accGetClipCount(void)

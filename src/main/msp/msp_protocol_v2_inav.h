@@ -61,8 +61,22 @@
 #define MSP2_INAV_SET_GLOBAL_FUNCTIONS          0x2025
 #define MSP2_INAV_LOGIC_CONDITIONS_STATUS       0x2026
 #define MSP2_INAV_GVAR_STATUS                   0x2027
+#define MSP2_INAV_PROGRAMMING_PID               0x2028
+#define MSP2_INAV_SET_PROGRAMMING_PID           0x2029
+#define MSP2_INAV_PROGRAMMING_PID_STATUS        0x202A
 
 #define MSP2_PID                                0x2030
 #define MSP2_SET_PID                            0x2031
 
 #define MSP2_INAV_OPFLOW_CALIBRATION            0x2032
+
+#define MSP2_INAV_FWUPDT_PREPARE                0x2033
+#define MSP2_INAV_FWUPDT_STORE                  0x2034
+#define MSP2_INAV_FWUPDT_EXEC                   0x2035
+#define MSP2_INAV_FWUPDT_ROLLBACK_PREPARE       0x2036
+#define MSP2_INAV_FWUPDT_ROLLBACK_EXEC          0x2037
+
+#define MSP2_INAV_SAFEHOME                      0x2038
+#define MSP2_INAV_SET_SAFEHOME                  0x2039
+
+#define MSP2_INAV_MISC2                         0x203A

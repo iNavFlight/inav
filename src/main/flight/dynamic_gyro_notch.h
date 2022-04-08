@@ -27,24 +27,22 @@
 #include <stdint.h>
 #include "common/axis.h"
 #include "common/filter.h"
+#include "sensors/gyro.h"
 
 #define DYNAMIC_NOTCH_DEFAULT_CENTER_HZ 350
-#define DYNAMIC_NOTCH_DEFAULT_CUTOFF_HZ 300
 
 typedef struct dynamicGyroNotchState_s {
-    uint16_t frequency[XYZ_AXIS_COUNT];
+    // uint16_t frequency[XYZ_AXIS_COUNT];
     float dynNotchQ;
     float dynNotch1Ctr;
     float dynNotch2Ctr;
     uint32_t looptime;
     uint8_t enabled;
-    /*
-     * Dynamic gyro filter can be 3x1, 3x2 or 3x3 depending on filter type
-     */
-    biquadFilter_t filters[XYZ_AXIS_COUNT][XYZ_AXIS_COUNT];
-    filterApplyFnPtr filtersApplyFn;
+    
+    biquadFilter_t filters[XYZ_AXIS_COUNT][DYN_NOTCH_PEAK_COUNT];
+    filterApplyFnPtr filtersApplyFn[XYZ_AXIS_COUNT][DYN_NOTCH_PEAK_COUNT];
 } dynamicGyroNotchState_t;
 
 void dynamicGyroNotchFiltersInit(dynamicGyroNotchState_t *state);
-void dynamicGyroNotchFiltersUpdate(dynamicGyroNotchState_t *state, int axis, uint16_t frequency);
+void dynamicGyroNotchFiltersUpdate(dynamicGyroNotchState_t *state, int axis, float frequency[]);
 float dynamicGyroNotchFiltersApply(dynamicGyroNotchState_t *state, int axis, float input);

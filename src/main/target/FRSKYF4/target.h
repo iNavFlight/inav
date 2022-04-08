@@ -37,7 +37,6 @@
 #define BMP280_SPI_BUS          BUS_SPI3
 #define BMP280_CS_PIN           PB3
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PA15
@@ -91,9 +90,6 @@
 #define ADC_CHANNEL_2_PIN               PC2
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
 #define VBAT_ADC_CHANNEL                ADC_CHN_2
-
-#undef USE_RX_PWM
-#undef USE_RX_PPM
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_OSD | FEATURE_TELEMETRY)

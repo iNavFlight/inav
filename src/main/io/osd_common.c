@@ -28,13 +28,52 @@
 
 #include "common/utils.h"
 
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+
 #include "drivers/display.h"
 #include "drivers/display_canvas.h"
 #include "drivers/osd.h"
 
+#include "fc/settings.h"
+
 #include "io/osd_canvas.h"
 #include "io/osd_common.h"
 #include "io/osd_grid.h"
+
+#include "navigation/navigation.h"
+#include "sensors/pitotmeter.h"
+
+
+#if defined(USE_OSD) || defined(USE_DJI_HD_OSD)
+
+PG_REGISTER_WITH_RESET_TEMPLATE(osdCommonConfig_t, osdCommonConfig, PG_OSD_COMMON_CONFIG, 0);
+
+PG_RESET_TEMPLATE(osdCommonConfig_t, osdCommonConfig,
+    .speedSource = SETTING_OSD_SPEED_SOURCE_DEFAULT
+);
+
+int osdGetSpeedFromSelectedSource(void) {
+    int speed = 0;
+    switch (osdCommonConfig()->speedSource) {
+        case OSD_SPEED_SOURCE_GROUND:
+            speed = gpsSol.groundSpeed;
+            break;
+        case OSD_SPEED_SOURCE_3D:
+            speed = osdGet3DSpeed();
+            break;
+        case OSD_SPEED_SOURCE_AIR:
+            #ifdef USE_PITOT
+            speed = pitot.airSpeed;
+            #endif
+            break;
+    }
+    return speed;
+}
+
+#endif // defined(USE_OSD) || defined(USE_DJI_HD_OSD)
+
+#if defined(USE_OSD)
 
 #define CANVAS_DEFAULT_GRID_ELEMENT_WIDTH OSD_CHAR_WIDTH
 #define CANVAS_DEFAULT_GRID_ELEMENT_HEIGHT OSD_CHAR_HEIGHT
@@ -88,17 +127,14 @@ void osdDrawVario(displayPort_t *display, displayCanvas_t *canvas, const osdDraw
 #endif
 }
 
-void osdDrawDirArrow(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float degrees, bool eraseBefore)
+void osdDrawDirArrow(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float degrees)
 {
-#if !defined(USE_CANVAS)
-    UNUSED(eraseBefore);
-#endif
     uint8_t gx;
     uint8_t gy;
 
 #if defined(USE_CANVAS)
     if (canvas) {
-        osdCanvasDrawDirArrow(display, canvas, p, degrees, eraseBefore);
+        osdCanvasDrawDirArrow(display, canvas, p, degrees);
     } else {
 #endif
         osdDrawPointGetGrid(&gx, &gy, display, canvas, p);
@@ -139,3 +175,26 @@ void osdDrawHeadingGraph(displayPort_t *display, displayCanvas_t *canvas, const 
     }
 #endif
 }
+
+void osdDrawSidebars(displayPort_t *display, displayCanvas_t *canvas)
+{
+#if defined(USE_CANVAS)
+    if (osdCanvasDrawSidebars(display, canvas))  {
+        return;
+    }
+#else
+    UNUSED(canvas);
+#endif
+    osdGridDrawSidebars(display);
+}
+
+#endif
+
+#ifdef USE_GPS
+int16_t osdGet3DSpeed(void)
+{
+    int16_t vert_speed = getEstimatedActualVelocity(Z);
+    int16_t hor_speed = gpsSol.groundSpeed;
+    return (int16_t)calc_length_pythagorean_2D(hor_speed, vert_speed);
+}
+#endif

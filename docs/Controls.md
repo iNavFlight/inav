@@ -2,9 +2,12 @@
 
 ## Arming
 
-When armed, the aircraft is ready to fly and the motors will spin when throttle is applied.  The motors will spin at a slow speed when armed (this feature may be disabled by setting MOTOR_STOP, but for safety reasons, that is not recommended).
+When armed, the aircraft is ready to fly and the motors will spin when throttle is applied.  With multirotors, the motors will spin at a slow speed when armed (this feature may be disabled by setting MOTOR_STOP, but for safety reasons, that is not recommended).
 
-By default, arming and disarming is done using stick positions.  (NOTE: this feature is disabled when using a switch to arm.)
+Arming and disarming is done using a switch, set up on the modes page.  (NOTE: Stick arming was removed in iNav 2.2)
+
+**YAW STICK ARMING OVERRIDE:**
+Arming is disabled when Nav modes are configured and no GPS lock is available or if a WP mission is loaded but the first WP is farther than the `nav_wp_safe_distance` setting. This Arming block can be bypassed if need be by setting `nav_extra_arming_safety` to `ALLOW_BYPASS` and moving the Yaw stick to the high position when the Arm switch is used. This bypasses GPS Arm blocking pre INAV 4.0.0 and both GPS and "First WP too far" Arm blocking from INAV 4.0.0.
 
 ## Stick Positions
 
@@ -35,9 +38,14 @@ The stick positions are combined to activate different functions:
 | Trim Acc Backwards            | HIGH     | CENTER  | LOW    | CENTER |
 | Save current waypoint mission | LOW      | CENTER  | HIGH   | LOW    |
 | Load current waypoint mission | LOW      | CENTER  | HIGH   | HIGH   |
+| Unload waypoint mission       | LOW      | CENTER  | LOW    | HIGH   |
+| Increase WP mission index     | LOW      | CENTER  | CENTER | HIGH   |
+| Decrease WP mission index     | LOW      | CENTER  | CENTER | LOW    |
+| Bypass Nav Arm disable        | LOW      | HIGH    | CENTER | CENTER |
 | Save setting                  | LOW      | LOW     | LOW    | HIGH   |
 | Enter OSD Menu (CMS)          | CENTER   | LOW     | HIGH   | CENTER |
 
+For graphical stick position in all transmitter modes, check out [this page](https://www.mrd-rc.com/tutorials-tools-and-testing/inav-flight/inav-stick-commands-for-all-transmitter-modes/).
 ![Stick Positions](assets/images/StickPositions.png)
 
 ## Yaw control

@@ -18,7 +18,7 @@
 #pragma once
 
 #include "config/parameter_group.h"
-#include "common/logic_condition.h"
+#include "programming/logic_condition.h"
 
 #define MAX_SUPPORTED_SERVOS 16
 
@@ -58,6 +58,10 @@ typedef enum {
     INPUT_GVAR_1                    = 31,
     INPUT_GVAR_2                    = 32,
     INPUT_GVAR_3                    = 33,
+    INPUT_GVAR_4                    = 34,
+    INPUT_GVAR_5                    = 35,
+    INPUT_GVAR_6                    = 36,
+    INPUT_GVAR_7                    = 37,
 
     INPUT_SOURCE_COUNT
 } inputSource_e;
@@ -105,7 +109,7 @@ typedef struct servoMixer_s {
     uint8_t inputSource;                    // input channel for this rule
     int16_t rate;                           // range [-1000;+1000] ; can be used to adjust a rate 0-1000% and a direction
     uint8_t speed;                          // reduces the speed of the rule, 0=unlimited speed
-#ifdef USE_LOGIC_CONDITIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
     int8_t conditionId;
 #endif
 } servoMixer_t;
@@ -132,8 +136,10 @@ typedef struct servoConfig_s {
     uint16_t servoPwmRate;                  // The update rate of servo outputs (50-498Hz)
     int16_t servo_lowpass_freq;             // lowpass servo filter frequency selection; 1/1000ths of loop freq
     uint16_t flaperon_throw_offset;
-    uint8_t __reserved;
+    uint8_t servo_protocol;                 // See servoProtocolType_e
     uint8_t tri_unarmed_servo;              // send tail servo correction pulses even when unarmed
+    uint8_t servo_autotrim_rotation_limit;  // Max rotation for servo midpoints to be updated
+    uint8_t servo_autotrim_iterm_threshold; // How much of the Iterm is carried over to the servo midpoints on each update
 } servoConfig_t;
 
 PG_DECLARE(servoConfig_t, servoConfig);

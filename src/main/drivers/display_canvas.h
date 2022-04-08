@@ -29,6 +29,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+typedef struct displayWidgets_s displayWidgets_t;
+
 typedef enum {
     DISPLAY_CANVAS_BITMAP_OPT_INVERT_COLORS = 1 << 0,
     DISPLAY_CANVAS_BITMAP_OPT_SOLID_BACKGROUND = 1 << 1,
@@ -100,8 +102,9 @@ typedef struct displayCanvasVTable_s {
 
     void (*contextPush)(displayCanvas_t *displayCanvas);
     void (*contextPop)(displayCanvas_t *displayCanvas);
-} displayCanvasVTable_t;
 
+    bool (*getWidgets)(displayWidgets_t *widgets, const displayCanvas_t *displayCanvas);
+} displayCanvasVTable_t;
 
 void displayCanvasSetStrokeColor(displayCanvas_t *displayCanvas, displayCanvasColor_e color);
 void displayCanvasSetFillColor(displayCanvas_t *displayCanvas, displayCanvasColor_e color);
@@ -141,3 +144,5 @@ void displayCanvasCtmRotate(displayCanvas_t *displayCanvas, float r);
 
 void displayCanvasContextPush(displayCanvas_t *displayCanvas);
 void displayCanvasContextPop(displayCanvas_t *displayCanvas);
+
+bool displayCanvasGetWidgets(displayWidgets_t *widgets, const displayCanvas_t *displayCanvas);

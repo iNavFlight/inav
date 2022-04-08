@@ -62,6 +62,8 @@
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 
+#define BNO055_I2C_BUS          BUS_I2C1
+
 #define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG
 #define USE_MAG_HMC5883
@@ -165,8 +167,6 @@
 #define RSSI_ADC_CHANNEL                    ADC_CHN_3
 
 #define CURRENT_METER_SCALE         300
-
-#define USE_OSD
 
 #define USE_LED_STRIP
 #define WS2811_PIN                      PA1

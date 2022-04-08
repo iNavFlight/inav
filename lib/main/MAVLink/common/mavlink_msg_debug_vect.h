@@ -3,14 +3,14 @@
 
 #define MAVLINK_MSG_ID_DEBUG_VECT 250
 
-MAVPACKED(
+
 typedef struct __mavlink_debug_vect_t {
- uint64_t time_usec; /*< Timestamp*/
- float x; /*< x*/
- float y; /*< y*/
- float z; /*< z*/
- char name[10]; /*< Name*/
-}) mavlink_debug_vect_t;
+ uint64_t time_usec; /*< [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.*/
+ float x; /*<  x*/
+ float y; /*<  y*/
+ float z; /*<  z*/
+ char name[10]; /*<  Name*/
+} mavlink_debug_vect_t;
 
 #define MAVLINK_MSG_ID_DEBUG_VECT_LEN 30
 #define MAVLINK_MSG_ID_DEBUG_VECT_MIN_LEN 30
@@ -27,22 +27,22 @@ typedef struct __mavlink_debug_vect_t {
     250, \
     "DEBUG_VECT", \
     5, \
-    {  { "time_usec", NULL, MAVLINK_TYPE_UINT64_T, 0, 0, offsetof(mavlink_debug_vect_t, time_usec) }, \
+    {  { "name", NULL, MAVLINK_TYPE_CHAR, 10, 20, offsetof(mavlink_debug_vect_t, name) }, \
+         { "time_usec", NULL, MAVLINK_TYPE_UINT64_T, 0, 0, offsetof(mavlink_debug_vect_t, time_usec) }, \
          { "x", NULL, MAVLINK_TYPE_FLOAT, 0, 8, offsetof(mavlink_debug_vect_t, x) }, \
          { "y", NULL, MAVLINK_TYPE_FLOAT, 0, 12, offsetof(mavlink_debug_vect_t, y) }, \
          { "z", NULL, MAVLINK_TYPE_FLOAT, 0, 16, offsetof(mavlink_debug_vect_t, z) }, \
-         { "name", NULL, MAVLINK_TYPE_CHAR, 10, 20, offsetof(mavlink_debug_vect_t, name) }, \
          } \
 }
 #else
 #define MAVLINK_MESSAGE_INFO_DEBUG_VECT { \
     "DEBUG_VECT", \
     5, \
-    {  { "time_usec", NULL, MAVLINK_TYPE_UINT64_T, 0, 0, offsetof(mavlink_debug_vect_t, time_usec) }, \
+    {  { "name", NULL, MAVLINK_TYPE_CHAR, 10, 20, offsetof(mavlink_debug_vect_t, name) }, \
+         { "time_usec", NULL, MAVLINK_TYPE_UINT64_T, 0, 0, offsetof(mavlink_debug_vect_t, time_usec) }, \
          { "x", NULL, MAVLINK_TYPE_FLOAT, 0, 8, offsetof(mavlink_debug_vect_t, x) }, \
          { "y", NULL, MAVLINK_TYPE_FLOAT, 0, 12, offsetof(mavlink_debug_vect_t, y) }, \
          { "z", NULL, MAVLINK_TYPE_FLOAT, 0, 16, offsetof(mavlink_debug_vect_t, z) }, \
-         { "name", NULL, MAVLINK_TYPE_CHAR, 10, 20, offsetof(mavlink_debug_vect_t, name) }, \
          } \
 }
 #endif
@@ -53,11 +53,11 @@ typedef struct __mavlink_debug_vect_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param name Name
- * @param time_usec Timestamp
- * @param x x
- * @param y y
- * @param z z
+ * @param name  Name
+ * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
+ * @param x  x
+ * @param y  y
+ * @param z  z
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_debug_vect_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -91,11 +91,11 @@ static inline uint16_t mavlink_msg_debug_vect_pack(uint8_t system_id, uint8_t co
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param name Name
- * @param time_usec Timestamp
- * @param x x
- * @param y y
- * @param z z
+ * @param name  Name
+ * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
+ * @param x  x
+ * @param y  y
+ * @param z  z
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_debug_vect_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -155,11 +155,11 @@ static inline uint16_t mavlink_msg_debug_vect_encode_chan(uint8_t system_id, uin
  * @brief Send a debug_vect message
  * @param chan MAVLink channel to send the message
  *
- * @param name Name
- * @param time_usec Timestamp
- * @param x x
- * @param y y
- * @param z z
+ * @param name  Name
+ * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
+ * @param x  x
+ * @param y  y
+ * @param z  z
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -236,7 +236,7 @@ static inline void mavlink_msg_debug_vect_send_buf(mavlink_message_t *msgbuf, ma
 /**
  * @brief Get field name from debug_vect message
  *
- * @return Name
+ * @return  Name
  */
 static inline uint16_t mavlink_msg_debug_vect_get_name(const mavlink_message_t* msg, char *name)
 {
@@ -246,7 +246,7 @@ static inline uint16_t mavlink_msg_debug_vect_get_name(const mavlink_message_t* 
 /**
  * @brief Get field time_usec from debug_vect message
  *
- * @return Timestamp
+ * @return [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
  */
 static inline uint64_t mavlink_msg_debug_vect_get_time_usec(const mavlink_message_t* msg)
 {
@@ -256,7 +256,7 @@ static inline uint64_t mavlink_msg_debug_vect_get_time_usec(const mavlink_messag
 /**
  * @brief Get field x from debug_vect message
  *
- * @return x
+ * @return  x
  */
 static inline float mavlink_msg_debug_vect_get_x(const mavlink_message_t* msg)
 {
@@ -266,7 +266,7 @@ static inline float mavlink_msg_debug_vect_get_x(const mavlink_message_t* msg)
 /**
  * @brief Get field y from debug_vect message
  *
- * @return y
+ * @return  y
  */
 static inline float mavlink_msg_debug_vect_get_y(const mavlink_message_t* msg)
 {
@@ -276,7 +276,7 @@ static inline float mavlink_msg_debug_vect_get_y(const mavlink_message_t* msg)
 /**
  * @brief Get field z from debug_vect message
  *
- * @return z
+ * @return  z
  */
 static inline float mavlink_msg_debug_vect_get_z(const mavlink_message_t* msg)
 {

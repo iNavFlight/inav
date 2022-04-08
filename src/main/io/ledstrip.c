@@ -73,7 +73,7 @@
 #include "telemetry/telemetry.h"
 
 
-PG_REGISTER_WITH_RESET_FN(ledStripConfig_t, ledStripConfig, PG_LED_STRIP_CONFIG, 0);
+PG_REGISTER_WITH_RESET_FN(ledStripConfig_t, ledStripConfig, PG_LED_STRIP_CONFIG, 1);
 
 static bool ledStripInitialised = false;
 static bool ledStripEnabled = true;
@@ -220,7 +220,7 @@ static const hsvColor_t* getSC(ledSpecialColorIds_e index)
 }
 
 static const char directionCodes[LED_DIRECTION_COUNT] = { 'N', 'E', 'S', 'W', 'U', 'D' };
-static const char baseFunctionCodes[LED_BASEFUNCTION_COUNT]   = { 'C', 'F', 'A', 'L', 'S', 'G', 'R' };
+static const char baseFunctionCodes[LED_BASEFUNCTION_COUNT]   = { 'C', 'F', 'A', 'L', 'S', 'G', 'R', 'H' };
 static const char overlayCodes[LED_OVERLAY_COUNT]   = { 'T', 'O', 'B', 'N', 'I', 'W' };
 
 #define CHUNK_BUFFER_SIZE 11
@@ -438,6 +438,7 @@ static void applyLedFixedLayers(void)
 
         int fn = ledGetFunction(ledConfig);
         int hOffset = HSV_HUE_MAX;
+        uint8_t channel = 0;
 
         switch (fn) {
             case LED_FUNCTION_COLOR:
@@ -470,6 +471,18 @@ static void applyLedFixedLayers(void)
                 hOffset += scaleRange(getRSSI() * 100, 0, 1023, -30, 120);
                 break;
 
+            case LED_FUNCTION_CHANNEL:
+                channel = ledGetColor(ledConfig) - 1;
+                color = HSV(RED);
+                hOffset = scaleRange(rxGetChannelValue(channel), PWM_RANGE_MIN, PWM_RANGE_MAX, -1, 360);
+                // add black and white to range of colors
+                if (hOffset < 0) {
+                    color = HSV(BLACK);
+                } else if (hOffset > HSV_HUE_MAX) {
+                    color = HSV(WHITE);
+                }
+                break;
+
             default:
                 break;
         }
@@ -485,11 +498,11 @@ static void applyLedFixedLayers(void)
     }
 }
 
-static void applyLedHsv(uint32_t mask, const hsvColor_t *color)
+static void applyLedHsv(uint32_t mask, uint32_t ledOperation, const hsvColor_t *color)
 {
     for (int ledIndex = 0; ledIndex < ledCounts.count; ledIndex++) {
         const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[ledIndex];
-        if ((*ledConfig & mask) == mask)
+        if ((*ledConfig & mask) == ledOperation)
             setLedHsv(ledIndex, color);
     }
 }
@@ -548,7 +561,7 @@ static void applyLedWarningLayer(bool updateNow, timeUs_t *timer)
             }
         }
         if (warningColor)
-            applyLedHsv(LED_MOV_OVERLAY(LED_FLAG_OVERLAY(LED_OVERLAY_WARNING)), warningColor);
+            applyLedHsv(LED_OVERLAY_MASK, LED_MOV_OVERLAY(LED_FLAG_OVERLAY(LED_OVERLAY_WARNING)), warningColor);
     }
 }
 
@@ -582,7 +595,7 @@ static void applyLedBatteryLayer(bool updateNow, timeUs_t *timer)
 
     if (!flash) {
        const hsvColor_t *bgc = getSC(LED_SCOLOR_BACKGROUND);
-       applyLedHsv(LED_MOV_FUNCTION(LED_FUNCTION_BATTERY), bgc);
+       applyLedHsv(LED_FUNCTION_MASK, LED_MOV_FUNCTION(LED_FUNCTION_BATTERY), bgc);
     }
 }
 
@@ -612,7 +625,7 @@ static void applyLedRssiLayer(bool updateNow, timeUs_t *timer)
 
     if (!flash) {
        const hsvColor_t *bgc = getSC(LED_SCOLOR_BACKGROUND);
-       applyLedHsv(LED_MOV_FUNCTION(LED_FUNCTION_RSSI), bgc);
+       applyLedHsv(LED_FUNCTION_MASK, LED_MOV_FUNCTION(LED_FUNCTION_RSSI), bgc);
     }
 }
 
@@ -649,7 +662,7 @@ static void applyLedGpsLayer(bool updateNow, timeUs_t *timer)
         }
     }
 
-    applyLedHsv(LED_MOV_FUNCTION(LED_FUNCTION_GPS), gpsColor);
+    applyLedHsv(LED_FUNCTION_MASK, LED_MOV_FUNCTION(LED_FUNCTION_GPS), gpsColor);
 }
 
 #endif
@@ -935,7 +948,7 @@ void ledStripUpdate(timeUs_t currentTimeUs)
     for (timId_e timId = 0; timId < timTimerCount; timId++) {
         // sanitize timer value, so that it can be safely incremented. Handles inital timerVal value.
         // max delay is limited to 5s
-        int32_t delta = cmpTimeUs(currentTimeUs, timerVal[timId]);
+        timeDelta_t delta = cmpTimeUs(currentTimeUs, timerVal[timId]);
         if (delta < 0 && delta > -LED_STRIP_MS(5000))
             continue;  // not ready yet
         timActive |= 1 << timId;

@@ -40,7 +40,6 @@
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
-#define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
@@ -49,6 +48,7 @@
 #define USE_MAG_LIS3MDL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
+#define BNO055_I2C_BUS          BUS_I2C2
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C2
@@ -111,7 +111,6 @@
 #define USE_FLASH_M25P16
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          SPI3_NSS_PIN

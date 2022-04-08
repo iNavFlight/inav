@@ -49,6 +49,7 @@
 #include "io/serial.h"
 
 #include "fc/cli.h"
+#include "fc/settings.h"
 
 #include "msp/msp_serial.h"
 
@@ -132,9 +133,9 @@ void pgResetFn_serialConfig(serialConfig_t *serialConfig)
 #endif
 
 #ifdef SMARTAUDIO_UART
-    serialPortConfig_t *gpsUartConfig = serialFindPortConfiguration(SMARTAUDIO_UART);
-    if (SMARTAUDIO_UART) {
-        gpsUartConfig->functionMask = FUNCTION_VTX_SMARTAUDIO;
+    serialPortConfig_t *smartAudioUartConfig = serialFindPortConfiguration(SMARTAUDIO_UART);
+    if (smartAudioUartConfig) {
+        smartAudioUartConfig->functionMask = FUNCTION_VTX_SMARTAUDIO;
     }
 #endif
 
@@ -147,7 +148,7 @@ void pgResetFn_serialConfig(serialConfig_t *serialConfig)
     }
 #endif
 
-    serialConfig->reboot_character = 'R';
+    serialConfig->reboot_character = SETTING_REBOOT_CHARACTER_DEFAULT;
 }
 
 baudRate_e lookupBaudRateIndex(uint32_t baudRate)
@@ -440,7 +441,7 @@ void closeSerialPort(serialPort_t *serialPort)
     serialPortUsage->serialPort = NULL;
 }
 
-void serialInit(bool softserialEnabled, serialPortIdentifier_e serialPortToDisable)
+void serialInit(bool softserialEnabled)
 {
     uint8_t index;
 
@@ -450,12 +451,6 @@ void serialInit(bool softserialEnabled, serialPortIdentifier_e serialPortToDisab
     for (index = 0; index < SERIAL_PORT_COUNT; index++) {
         serialPortUsageList[index].identifier = serialPortIdentifiers[index];
 
-        if (serialPortToDisable != SERIAL_PORT_NONE) {
-            if (serialPortUsageList[index].identifier == serialPortToDisable) {
-                serialPortUsageList[index].identifier = SERIAL_PORT_NONE;
-                serialPortCount--;
-            }
-        }
         if (!softserialEnabled) {
             if (0
 #ifdef USE_SOFTSERIAL1
@@ -542,6 +537,8 @@ void serialPassthrough(serialPort_t *left, serialPort_t *right, serialConsumer
         if (serialRxBytesWaiting(left)) {
             LED0_ON;
             uint8_t c = serialRead(left);
+            // Make sure there is space in the tx buffer
+            while (!serialTxBytesFree(right));
             serialWrite(right, c);
             leftC(c);
             LED0_OFF;
@@ -549,6 +546,8 @@ void serialPassthrough(serialPort_t *left, serialPort_t *right, serialConsumer
          if (serialRxBytesWaiting(right)) {
              LED0_ON;
              uint8_t c = serialRead(right);
+             // Make sure there is space in the tx buffer
+             while (!serialTxBytesFree(left));
              serialWrite(left, c);
              rightC(c);
              LED0_OFF;

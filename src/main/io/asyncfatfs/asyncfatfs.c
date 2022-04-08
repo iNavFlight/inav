@@ -435,7 +435,11 @@ typedef struct afatfs_t {
     } initState;
 #endif
 
+#ifdef STM32H7
+    uint8_t *cache;
+#else
     uint8_t cache[AFATFS_SECTOR_SIZE * AFATFS_NUM_CACHE_SECTORS];
+#endif
     afatfsCacheBlockDescriptor_t cacheDescriptor[AFATFS_NUM_CACHE_SECTORS];
     uint32_t cacheTimer;
 
@@ -480,6 +484,10 @@ typedef struct afatfs_t {
     uint32_t rootDirectoryCluster; // Present on FAT32 and set to zero for FAT16
     uint32_t rootDirectorySectors; // Zero on FAT32, for FAT16 the number of sectors that the root directory occupies
 } afatfs_t;
+
+#ifdef STM32H7
+static uint8_t afatfs_cache[AFATFS_SECTOR_SIZE * AFATFS_NUM_CACHE_SECTORS] __attribute__((aligned(32)));
+#endif
 
 static afatfs_t afatfs;
 
@@ -1694,6 +1702,8 @@ static afatfsOperationStatus_e afatfs_appendSuperclusterContinue(afatfsFile_t *f
             // Update the fileSize/firstCluster in the directory entry for the file
             status = afatfs_saveDirectoryEntry(file, AFATFS_SAVE_DIRECTORY_NORMAL);
         break;
+        default:
+            status = AFATFS_OPERATION_FAILURE;
     }
 
     if ((status == AFATFS_OPERATION_FAILURE || status == AFATFS_OPERATION_SUCCESS) && file->operation.operation == AFATFS_FILE_OPERATION_APPEND_SUPERCLUSTER) {
@@ -2108,6 +2118,25 @@ afatfsOperationStatus_e afatfs_fseek(afatfsFilePtr_t file, int32_t offset, afatf
 }
 
 /**
+ * Attempt to seek the file cursor from the given point (`whence`) by the given offset, just like C's fseek().
+ *
+ * AFATFS_SEEK_SET with offset 0 will always return AFATFS_OPERATION_SUCCESS.
+ *
+ * Returns:
+ *     AFATFS_OPERATION_SUCCESS     - The seek was completed immediately
+ *     AFATFS_OPERATION_IN_PROGRESS - The seek was queued and will complete later. Feel free to attempt read/write
+ *                                    operations on the file, they'll fail until the seek is complete.
+ */
+afatfsOperationStatus_e afatfs_fseekSync(afatfsFilePtr_t file, int32_t offset, afatfsSeek_e whence)
+{
+    while (afatfs_fileIsBusy(file)) {
+        afatfs_poll();
+    }
+
+    return afatfs_fseek(file, offset, whence);
+}
+
+/**
  * Get the byte-offset of the file's cursor from the start of the file.
  *
  * Returns true on success, or false if the file is busy (try again later).
@@ -2468,6 +2497,8 @@ static afatfsOperationStatus_e afatfs_ftruncateContinue(afatfsFilePtr_t file, bo
 
             return AFATFS_OPERATION_SUCCESS;
         break;
+        default:
+            status = AFATFS_OPERATION_FAILURE;
     }
 
     if (status == AFATFS_OPERATION_FAILURE && file->operation.operation == AFATFS_FILE_OPERATION_TRUNCATE) {
@@ -2536,7 +2567,9 @@ static void afatfs_createFileContinue(afatfsFile_t *file)
     afatfsCreateFile_t *opState = &file->operation.state.createFile;
     fatDirectoryEntry_t *entry;
     afatfsOperationStatus_e status;
+#ifndef BOOTLOADER
     dateTime_t now;
+#endif
 
     doMore:
 
@@ -2568,8 +2601,18 @@ static void afatfs_createFileContinue(afatfsFile_t *file)
                                 opState->phase = AFATFS_CREATEFILE_PHASE_FAILURE;
                                 goto doMore;
                             }
+                        } else if (entry->attrib & FAT_FILE_ATTRIBUTE_VOLUME_ID) {
+                            break;
                         } else if (strncmp(entry->filename, (char*) opState->filename, FAT_FILENAME_LENGTH) == 0) {
-                            // We found a file with this name!
+                            // We found a file or directory with this name!
+
+                            // Do not open file as dir or dir as file
+                            if (((entry->attrib ^ file->attrib) & FAT_FILE_ATTRIBUTE_DIRECTORY) != 0) {
+                                afatfs_findLast(&afatfs.currentDirectory);
+                                opState->phase = AFATFS_CREATEFILE_PHASE_FAILURE;
+                                goto doMore;
+                            }
+
                             afatfs_fileLoadDirectoryEntry(file, entry);
 
                             afatfs_findLast(&afatfs.currentDirectory);
@@ -2596,13 +2639,17 @@ static void afatfs_createFileContinue(afatfsFile_t *file)
 
                 memcpy(entry->filename, opState->filename, FAT_FILENAME_LENGTH);
                 entry->attrib = file->attrib;
+#ifndef BOOTLOADER
                 if (rtcGetDateTimeLocal(&now)) {
                     entry->creationDate = FAT_MAKE_DATE(now.year, now.month, now.day);
                     entry->creationTime = FAT_MAKE_TIME(now.hours, now.minutes, now.seconds);
                 } else {
+#endif
                     entry->creationDate = AFATFS_DEFAULT_FILE_DATE;
                     entry->creationTime = AFATFS_DEFAULT_FILE_TIME;
+#ifndef BOOTLOADER
                 }
+#endif
                 entry->lastWriteDate = entry->creationDate;
                 entry->lastWriteTime = entry->creationTime;
 
@@ -2868,6 +2915,20 @@ bool afatfs_fclose(afatfsFilePtr_t file, afatfsCallback_t callback)
 }
 
 /**
+ * Close `file` immediately
+ */
+void afatfs_fcloseSync(afatfsFilePtr_t file)
+{
+    for(unsigned i = 0; i < 1000; ++i) {
+        afatfs_poll();
+    }
+    afatfs_fclose(file, NULL);
+    for(unsigned i = 0; i < 1000; ++i) {
+        afatfs_poll();
+    }
+}
+
+/**
  * Create a new directory with the given name, or open the directory if it already exists.
  *
  * The directory will be passed to the callback, or NULL if the creation failed.
@@ -2998,6 +3059,11 @@ bool afatfs_fopen(const char *filename, const char *mode, afatfsFileCallback_t c
     return file != NULL;
 }
 
+uint32_t afatfs_fileSize(afatfsFilePtr_t file)
+{
+    return file->logicalSize;
+}
+
 /**
  * Write a single character to the file at the current cursor position. If the cache is too busy to accept the write,
  * it is silently dropped.
@@ -3088,6 +3154,39 @@ uint32_t afatfs_fwrite(afatfsFilePtr_t file, const uint8_t *buffer, uint32_t len
 }
 
 /**
+ * Attempt to write `len` bytes from `buffer` into the `file`.
+ *
+ * Returns the number of bytes actually written
+ *
+ * Fewer bytes than requested will be read when EOF is reached before all the bytes could be read
+ */
+uint32_t afatfs_fwriteSync(afatfsFilePtr_t file, uint8_t *data, uint32_t length)
+{
+    uint32_t written = 0;
+
+    while (true) {
+        uint32_t leftToWrite = length - written;
+        uint32_t justWritten = afatfs_fwrite(file, data + written, leftToWrite);
+        /*if (justWritten != leftToWrite) LOG_E(SYSTEM, "%ld -> %ld", length, written);*/
+        written += justWritten;
+
+        if (written < length) {
+
+            if (afatfs_isFull()) {
+                break;
+            }
+
+            afatfs_poll();
+
+        } else {
+            break;
+        }
+    }
+
+    return written;
+}
+
+/**
  * Attempt to read `len` bytes from `file` into the `buffer`.
  *
  * Returns the number of bytes actually read.
@@ -3154,6 +3253,38 @@ uint32_t afatfs_fread(afatfsFilePtr_t file, uint8_t *buffer, uint32_t len)
     }
 
     return readBytes;
+}
+
+/**
+ * Attempt to read `len` bytes from `file` into the `buffer`.
+ *
+ * Returns the number of bytes actually read.
+ *
+ * Fewer bytes than requested will be read when EOF is reached before all the bytes could be read
+ */
+uint32_t afatfs_freadSync(afatfsFilePtr_t file, uint8_t *buffer, uint32_t length)
+{
+    uint32_t bytesRead = 0;
+
+    while (true) {
+        uint32_t leftToRead = length - bytesRead;
+        uint32_t readNow = afatfs_fread(file, buffer, leftToRead);
+        bytesRead += readNow;
+        buffer += readNow;
+        if (bytesRead < length) {
+
+            if (afatfs_feof(file)) {
+                break;
+            }
+
+            afatfs_poll();
+
+        } else {
+            break;
+        }
+    }
+
+    return bytesRead;
 }
 
 /**
@@ -3493,6 +3624,9 @@ afatfsError_e afatfs_getLastError(void)
 
 void afatfs_init(void)
 {
+#ifdef STM32H7
+    afatfs.cache = afatfs_cache;
+#endif
     afatfs.filesystemState = AFATFS_FILESYSTEM_STATE_INITIALIZATION;
     afatfs.initPhase = AFATFS_INITIALIZATION_READ_MBR;
     afatfs.lastClusterAllocated = FAT_SMALLEST_LEGAL_CLUSTER_NUMBER;

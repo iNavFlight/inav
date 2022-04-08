@@ -29,17 +29,7 @@
 
 typedef uint16_t captureCompare_t;        // 16 bit on both 103 and 303, just register access must be 32bit sometimes (use timCCR_t)
 
-#if defined(STM32F4)
-typedef uint32_t timCCR_t;
-typedef uint32_t timCCER_t;
-typedef uint32_t timSR_t;
-typedef uint32_t timCNT_t;
-#elif defined(STM32F7)
-typedef uint32_t timCCR_t;
-typedef uint32_t timCCER_t;
-typedef uint32_t timSR_t;
-typedef uint32_t timCNT_t;
-#elif defined(STM32F3)
+#if defined(STM32F3) || defined(STM32F4) || defined(STM32F7) || defined(STM32H7)
 typedef uint32_t timCCR_t;
 typedef uint32_t timCCER_t;
 typedef uint32_t timSR_t;
@@ -49,6 +39,18 @@ typedef uint32_t timCCR_t;
 typedef uint32_t timCCER_t;
 typedef uint32_t timSR_t;
 typedef uint32_t timCNT_t;
+#else
+#error "Unknown CPU defined"
+#endif
+
+#if defined(STM32F3)
+#define HARDWARE_TIMER_DEFINITION_COUNT 17
+#elif defined(STM32F4)
+#define HARDWARE_TIMER_DEFINITION_COUNT 14
+#elif defined(STM32F7)
+#define HARDWARE_TIMER_DEFINITION_COUNT 14
+#elif defined(STM32H7)
+#define HARDWARE_TIMER_DEFINITION_COUNT 14
 #else
 #error "Unknown CPU defined"
 #endif
@@ -129,22 +131,12 @@ typedef struct timHardwareContext_s {
     TCH_t               ch[CC_CHANNELS_PER_TIMER];
 } timHardwareContext_t;
 
-#if defined(STM32F3)
-#define HARDWARE_TIMER_DEFINITION_COUNT 17
-#elif defined(STM32F4)
-#define HARDWARE_TIMER_DEFINITION_COUNT 14
-#elif defined(STM32F7)
-#define HARDWARE_TIMER_DEFINITION_COUNT 14
-#else
-#error "Unknown CPU defined"
-#endif
-
 // Per MCU timer definitions
 extern timHardwareContext_t * timerCtx[HARDWARE_TIMER_DEFINITION_COUNT];
 extern const timerDef_t timerDefinitions[HARDWARE_TIMER_DEFINITION_COUNT];
 
 // Per target timer output definitions
-extern const timerHardware_t timerHardware[];
+extern timerHardware_t timerHardware[];
 extern const int timerHardwareCount;
 
 typedef enum {
@@ -165,7 +157,7 @@ typedef enum {
     TYPE_TIMER
 } channelType_t;
 
-uint8_t timerClockDivisor(TIM_TypeDef *tim);
+uint32_t timerClock(TIM_TypeDef *tim);
 uint32_t timerGetBaseClockHW(const timerHardware_t * timHw);
 
 const timerHardware_t * timerGetByUsageFlag(timerUsageFlag_e flag);
