@@ -122,7 +122,9 @@ tables:
     enum: smartportFuelUnit_e
   - name: platform_type
     values: ["MULTIROTOR", "AIRPLANE", "HELICOPTER", "TRICOPTER", "ROVER", "BOAT"]
-    enum: flyingPlatformType_e
+  - name: output_mode
+    values: ["AUTO", "MOTORS", "SERVOS"]
+    enum: outputMode_e
   - name: tz_automatic_dst
     values: ["OFF", "EU", "USA"]
     enum: tz_automatic_dst_e
@@ -1262,6 +1264,11 @@ groups:
         field: appliedMixerPreset
         min: -1
         max: INT16_MAX
+      - name: output_mode
+        description: "Output function assignment mode. AUTO assigns outputs according to the default mapping, SERVOS assigns all outputs to servos, MOTORS assigns all outputs to motors"
+        default_value: "AUTO"
+        field: outputMode
+        table: output_mode
 
   - name: PG_REVERSIBLE_MOTORS_CONFIG
     type: reversibleMotorsConfig_t
@@ -2564,10 +2571,11 @@ groups:
         field: general.flags.rth_alt_control_override
         type: bool
       - name: nav_rth_abort_threshold
-        description: "RTH sanity checking feature will notice if distance to home is increasing during RTH and once amount of increase exceeds the threshold defined by this parameter, instead of continuing RTH machine will enter emergency landing, self-level and go down safely. Default is 500m which is safe enough for both multirotor machines and airplanes. [cm]"
+        description: "RTH sanity checking feature will notice if distance to home is increasing during RTH and once amount of increase exceeds the threshold defined by this parameter, instead of continuing RTH machine will enter emergency landing, self-level and go down safely. Default is 500m which is safe enough for both multirotor machines and airplanes. Set to 0 to disable. [cm]"
         default_value: 50000
         field: general.rth_abort_threshold
         max: 65000
+        min: 0
       - name: nav_max_terrain_follow_alt
         field: general.max_terrain_follow_altitude
         default_value: "100"
@@ -3546,6 +3554,12 @@ groups:
         description: "Defines debug values exposed in debug variables (developer / debugging setting)"
         default_value: "NONE"
         table: debug_modes
+      - name: ground_test_mode
+        description: "For developer ground test use. Disables motors, sets heading status = Trusted on FW."
+        condition: USE_DEV_TOOLS
+        default_value: OFF
+        field: groundTestMode
+        type: bool
       - name: throttle_tilt_comp_str
         description: "Can be used in ANGLE and HORIZON mode and will automatically boost throttle when banking. Setting is in percentage, 0=disabled."
         default_value: 0

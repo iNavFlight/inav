@@ -33,7 +33,7 @@
 BUSDEV_REGISTER_SPI_TAG(busdev_mpu6500_1,     DEVHW_MPU6500,      MPU6500_1_SPI_BUS,    MPU6500_1_CS_PIN,     GYRO_1_EXTI_PIN,  0,  DEVFLAGS_NONE,  IMU_1_ALIGN);
 BUSDEV_REGISTER_SPI_TAG(busdev_mpu6500_2,     DEVHW_MPU6500,      MPU6500_2_SPI_BUS,    MPU6500_2_CS_PIN,     GYRO_2_EXTI_PIN,  0,  DEVFLAGS_NONE,  IMU_2_ALIGN);
 
-const timerHardware_t timerHardware[] = {
+timerHardware_t timerHardware[] = {
 
     DEF_TIM(TIM9,  CH2, PA3,  TIM_USE_PPM | TIM_USE_PWM,   0, 0), // PPM / PWM1 / UART2 RX
     DEF_TIM(TIM9,  CH1, PA2,  TIM_USE_PWM,                 0, 0), // PPM / PWM2 / UART2 TX
