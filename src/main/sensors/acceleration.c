@@ -523,6 +523,9 @@ float accGetMeasuredMaxG(void)
 
 void accUpdate(void)
 {
+    if (ARMING_FLAG(SIMULATOR_MODE)) {
+        return;
+    }
     if (!acc.dev.readFn(&acc.dev)) {
         return;
     }

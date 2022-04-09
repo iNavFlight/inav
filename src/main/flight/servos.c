@@ -101,6 +101,7 @@ void pgResetFn_servoParams(servoParam_t *instance)
     }
 }
 
+int16_t input[INPUT_SOURCE_COUNT]; // Range [-500:+500]
 int16_t servo[MAX_SUPPORTED_SERVOS];
 
 static uint8_t servoRuleCount = 0;
@@ -245,8 +246,6 @@ void writeServos(void)
 
 void servoMixer(float dT)
 {
-    int16_t input[INPUT_SOURCE_COUNT]; // Range [-500:+500]
-
     if (FLIGHT_MODE(MANUAL_MODE)) {
         input[INPUT_STABILIZED_ROLL] = rcCommand[ROLL];
         input[INPUT_STABILIZED_PITCH] = rcCommand[PITCH];
@@ -585,4 +584,13 @@ void setServoOutputEnabled(bool flag)
 bool isMixerUsingServos(void)
 {
     return mixerUsesServos;
+}
+
+int16_t getServoValue(uint32_t n)
+{
+    if (n >= MAX_SUPPORTED_SERVOS) {
+        return;
+    }
+
+    return servo[n];
 }

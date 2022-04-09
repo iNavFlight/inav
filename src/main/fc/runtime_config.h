@@ -21,6 +21,7 @@
 typedef enum {
     ARMED                                           = (1 << 2),
     WAS_EVER_ARMED                                  = (1 << 3),
+    SIMULATOR_MODE                                  = (1 << 4),
 
     ARMING_DISABLED_FAILSAFE_SYSTEM                 = (1 << 7),
     ARMING_DISABLED_NOT_LEVEL                       = (1 << 8),

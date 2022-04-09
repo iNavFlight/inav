@@ -150,6 +150,7 @@ typedef struct servoMetadata_s {
 } servoMetadata_t;
 
 extern int16_t servo[MAX_SUPPORTED_SERVOS];
+extern int16_t input[INPUT_SOURCE_COUNT]; // Range [-500:+500]
 
 bool isServoOutputEnabled(void);
 void setServoOutputEnabled(bool flag);
@@ -160,3 +161,4 @@ void servoMixer(float dT);
 void servoComputeScalingFactors(uint8_t servoIndex);
 void servosInit(void);
 int getServoCount(void);
+int16_t getServoValue(uint32_t n);

@@ -98,6 +98,7 @@
 #include "msp/msp_serial.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_pos_estimator_private.h"
 
 #include "rx/rx.h"
 #include "rx/msp.h"
@@ -603,11 +604,13 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_ALTITUDE:
-        sbufWriteU32(dst, lrintf(getEstimatedActualPosition(Z)));
-        sbufWriteU16(dst, lrintf(getEstimatedActualVelocity(Z)));
 #if defined(USE_BARO)
-        sbufWriteU32(dst, baroGetLatestAltitude());
+        sbufWriteU32(dst, baro.BaroAlt);
+        sbufWriteU32(dst, baro.BaroMslAlt);
+        sbufWriteU32(dst, baro.baroPressure);
 #else
+        sbufWriteU32(dst, 0);
+        sbufWriteU32(dst, 0);
         sbufWriteU32(dst, 0);
 #endif
         break;
@@ -2450,7 +2453,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #ifdef USE_GPS
     case MSP_SET_RAW_GPS:
         if (dataSize == 14) {
-            if (sbufReadU8(src)) {
+            gpsSol.fixType = sbufReadU8(src);
+            if (gpsSol.fixType) {
                 ENABLE_STATE(GPS_FIX);
             } else {
                 DISABLE_STATE(GPS_FIX);
@@ -3165,6 +3169,11 @@ static bool mspParameterGroupsCommand(sbuf_t *dst, sbuf_t *src)
 
 bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResult_e *ret)
 {
+    uint8_t tmp_u8;
+//    uint16_t tmp_u16;
+
+    const unsigned int dataSize = sbufBytesRemaining(src);
+
     switch (cmdMSP) {
 
     case MSP_WP:
@@ -3230,6 +3239,75 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
          *ret = mspFcSafeHomeOutCommand(dst, src);
          break;
 
+    case MSP_SIMULATOR:
+        tmp_u8 = sbufReadU8(src);
+        if (tmp_u8 == 1) {
+            if (! ARMING_FLAG(SIMULATOR_MODE)) {
+                baroStartCalibration(); // just once
+            }
+            ENABLE_ARMING_FLAG(SIMULATOR_MODE);
+        } else {
+            DISABLE_ARMING_FLAG(SIMULATOR_MODE);
+        }
+        if (dataSize >= 14) {
+            gpsSol.fixType = sbufReadU8(src);
+            if (gpsSol.fixType) {
+                ENABLE_STATE(GPS_FIX);
+            } else {
+                DISABLE_STATE(GPS_FIX);
+            }
+            gpsSol.flags.hasNewData = true;
+            gpsSol.flags.validVelNE = 0;
+            gpsSol.flags.validVelD = 0;
+            gpsSol.flags.validEPE = 0;
+            gpsSol.numSat = sbufReadU8(src);
+            gpsSol.llh.lat = sbufReadU32(src);
+            gpsSol.llh.lon = sbufReadU32(src);
+            gpsSol.llh.alt = sbufReadU32(src);
+            gpsSol.groundSpeed = sbufReadU16(src);
+            gpsSol.groundCourse = sbufReadU16(src);
+            gpsSol.velNED[X] = gpsSol.groundSpeed * cos_approx(DECIDEGREES_TO_RADIANS(gpsSol.groundCourse));
+            gpsSol.velNED[Y] = gpsSol.groundSpeed * sin_approx(DECIDEGREES_TO_RADIANS(gpsSol.groundCourse));
+            gpsSol.velNED[Z] = 0;
+            gpsSol.eph = 100;
+            gpsSol.epv = 100;
+            // Feed data to navigation
+            sensorsSet(SENSOR_GPS);
+            onNewGPSData();
+
+            attitude.values.roll = sbufReadU16(src)-1800;
+            attitude.values.pitch = sbufReadU16(src)-1800;
+            attitude.values.yaw = sbufReadU16(src);
+//            posEstimator.est.pos.x = attitude.values.roll;
+//            posEstimator.est.pos.y = attitude.values.pitch;
+//            posEstimator.est.pos.z = gpsSol.llh.alt;
+
+            acc.accADCf[X] = (float)sbufReadU16(src) / 1000 - 32;// / GRAVITY_CMSS;
+            acc.accADCf[Y] = (float)sbufReadU16(src) / 1000 - 32;// / GRAVITY_CMSS;
+            acc.accADCf[Z] = (float)sbufReadU16(src) / 1000 - 32;// / GRAVITY_CMSS;
+
+            gyro.gyroADCf[X] = (float)sbufReadU16(src) / 100 - 320;
+            gyro.gyroADCf[Y] = (float)sbufReadU16(src) / 100 - 320;
+            gyro.gyroADCf[Z] = (float)sbufReadU16(src) / 100 - 320;
+
+            baro.baroPressure = sbufReadU32(src);
+        } else {
+            DISABLE_STATE(GPS_FIX);
+        }
+
+//        sbufWriteU16(dst, motor[0]);
+//        sbufWriteU16(dst, servo[1]);
+//        sbufWriteU16(dst, servo[2]);
+//        sbufWriteU16(dst, servo[3]);
+//        sbufWriteU16(dst, servo[4]);
+
+        sbufWriteU16(dst, input[INPUT_STABILIZED_ROLL] + 500);
+        sbufWriteU16(dst, input[INPUT_STABILIZED_PITCH] + 500);
+        sbufWriteU16(dst, input[INPUT_STABILIZED_YAW] + 500);
+        sbufWriteU16(dst, input[INPUT_STABILIZED_THROTTLE] + 500);
+
+        *ret = MSP_RESULT_ACK;
+        break;
     default:
         // Not handled
         return false;

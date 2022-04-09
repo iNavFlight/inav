@@ -924,11 +924,11 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     }
 
     //Servos should be filtered or written only when mixer is using servos or special feaures are enabled
-    if (isServoOutputEnabled()) {
+    if (isServoOutputEnabled() && ! ARMING_FLAG(SIMULATOR_MODE)) {
         writeServos();
     }
 
-    if (motorControlEnable) {
+    if (motorControlEnable && ! ARMING_FLAG(SIMULATOR_MODE)) {
         writeMotors();
     }
 

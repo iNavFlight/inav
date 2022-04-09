@@ -287,6 +287,7 @@
 #define MSP_DEBUGMSG             253    //out message         debug string buffer
 #define MSP_DEBUG                254    //out message         debug1,debug2,debug3,debug4
 #define MSP_V2_FRAME             255    //MSPv2 payload indicator
+#define MSP_SIMULATOR            256    //Set simulator state
 
 // Additional commands that are not compatible with MultiWii
 #define MSP_STATUS_EX            150    //out message         cycletime, errors_count, CPU load, sensor present etc

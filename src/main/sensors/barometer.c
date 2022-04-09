@@ -322,10 +322,13 @@ uint32_t baroUpdate(void)
             if (baro.dev.start_ut) {
                 baro.dev.start_ut(&baro.dev);
             }
-            baro.dev.calculate(&baro.dev, &baro.baroPressure, &baro.baroTemperature);
-            if (barometerConfig()->use_median_filtering) {
-                baro.baroPressure = applyBarometerMedianFilter(baro.baroPressure);
+            if (! ARMING_FLAG(SIMULATOR_MODE)) {
+                baro.dev.calculate(&baro.dev, &baro.baroPressure, &baro.baroTemperature);
+                if (barometerConfig()->use_median_filtering) {
+                    baro.baroPressure = applyBarometerMedianFilter(baro.baroPressure);
+                }
             }
+
             state = BAROMETER_NEEDS_SAMPLES;
             return baro.dev.ut_delay;
         break;
@@ -365,16 +368,12 @@ int32_t baroCalculateAltitude(void)
         }
 
         baro.BaroAlt = 0;
+        baro.BaroMslAlt = 0;
     }
     else {
-#ifdef HIL
-        if (hilActive) {
-            baro.BaroAlt = hilToFC.baroAlt;
-            return baro.BaroAlt;
-        }
-#endif
         // calculates height from ground via baro readings
-        baro.BaroAlt = pressureToAltitude(baro.baroPressure) - baroGroundAltitude;
+        baro.BaroMslAlt = pressureToAltitude(baro.baroPressure);
+        baro.BaroAlt = baro.BaroMslAlt - baroGroundAltitude;
    }
 
     return baro.BaroAlt;
