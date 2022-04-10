@@ -189,6 +189,11 @@ bool spiInitDevice(SPIDevice device, bool leadingEdge)
         IOConfigGPIOAF(IOGetByTag(spi->sck), SPI_IO_AF_SCK_CFG_HIGH, spi->af);
     }
     IOConfigGPIOAF(IOGetByTag(spi->miso), SPI_IO_AF_MISO_CFG, spi->af);
+
+    // If MOSI pin for SPI3 is PB2 -> AF7, not AF6
+    if (spiDeviceByInstance(spi->dev) == SPIDEV_3 && IO_TAG(SPI3_MOSI_PIN) == IO_TAG(PB2)) {
+        spi->af = GPIO_AF7_SPI3;
+    }
     IOConfigGPIOAF(IOGetByTag(spi->mosi), SPI_IO_AF_CFG, spi->af);
 
     if (spi->nss) {
