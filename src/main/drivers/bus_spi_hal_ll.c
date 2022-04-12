@@ -130,9 +130,9 @@ static spiDevice_t spiHardwareMap[SPIDEV_COUNT] = {
 #endif
 
 #ifdef USE_SPI_DEVICE_4
-#if defined(SPI3_SCK_AF) || defined(SPI3_MISO_AF) || defined(SPI3_MOSI_AF)
-#if !defined(SPI3_SCK_AF) || !defined(SPI3_MISO_AF) || !defined(SPI3_MOSI_AF)
-#error SPI3: SCK, MISO and MOSI AFs should be defined together in target.h!
+#if defined(SPI4_SCK_AF) || defined(SPI4_MISO_AF) || defined(SPI4_MOSI_AF)
+#if !defined(SPI4_SCK_AF) || !defined(SPI4_MISO_AF) || !defined(SPI4_MOSI_AF)
+#error SPI4: SCK, MISO and MOSI AFs should be defined together in target.h!
 #endif
     { .dev = SPI4, .nss = IO_TAG(SPI4_NSS_PIN), .sck = IO_TAG(SPI4_SCK_PIN), .miso = IO_TAG(SPI4_MISO_PIN), .mosi = IO_TAG(SPI4_MOSI_PIN), .rcc = RCC_APB2(SPI4), .sckAF = SPI4_SCK_AF, .misoAF = SPI4_MISO_AF, .mosiAF = SPI4_MOSI_AF, .divisorMap = spiDivisorMapSlow }
 #else
