@@ -591,8 +591,7 @@ int16_t angleFreefloatDeadband(int16_t deadband, flight_dynamics_index_t axis)
     }
 }
 
-static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float horizonRateMagnitude, float dT)
-{
+static float computePidLevelTarget(flight_dynamics_index_t axis) {
     // This is ROLL/PITCH, run ANGLE/HORIZON controllers
     float angleTarget = pidRcCommandToAngle(rcCommand[axis], pidProfile()->max_angle_inclination[axis]);
 
@@ -620,6 +619,12 @@ static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float h
         DEBUG_SET(DEBUG_AUTOLEVEL, 3, angleTarget * 10);
     }
 
+    return angleTarget;
+}
+
+static void pidLevel(const float angleTarget, pidState_t *pidState, flight_dynamics_index_t axis, float horizonRateMagnitude, float dT)
+{
+    
 #ifdef USE_SECONDARY_IMU
     float actual;
     if (secondaryImuState.active && secondaryImuConfig()->useForStabilized) {
@@ -1126,14 +1131,15 @@ void FAST_CODE pidController(float dT)
     }
 
     // Step 3: Run control for ANGLE_MODE, HORIZON_MODE, and HEADING_LOCK
-    if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE)) {
-        const float horizonRateMagnitude = calcHorizonRateMagnitude();
-        pidLevel(&pidState[FD_ROLL], FD_ROLL, horizonRateMagnitude, dT);
-        pidLevel(&pidState[FD_PITCH], FD_PITCH, horizonRateMagnitude, dT);
-        canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with ANGLE/HORIZON
-        levelingEnabled = true;
-    } else {
-        levelingEnabled = false;
+    const float horizonRateMagnitude = calcHorizonRateMagnitude();
+    levelingEnabled = false;
+    for (uint8_t axis = FD_ROLL; axis <= FD_PITCH; axis++) {
+        if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || isFlightAxisAngleOverrideActive(axis)) {
+            float angleTarget = getFlightAxisAngleOverride(axis, computePidLevelTarget(axis));
+            pidLevel(angleTarget, &pidState[axis], axis, horizonRateMagnitude, dT);
+            canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with ANGLE/HORIZON
+            levelingEnabled = true;
+        }       
     }
 
     if ((FLIGHT_MODE(TURN_ASSISTANT) || navigationRequiresTurnAssistance()) && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || navigationRequiresTurnAssistance())) {

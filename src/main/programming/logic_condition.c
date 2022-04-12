@@ -817,3 +817,35 @@ uint32_t getLoiterRadius(uint32_t loiterRadius) {
     return loiterRadius;
 #endif
 }
+
+float getFlightAxisAngleOverride(uint8_t axis, float angle) {
+    if (flightAxisOverride[axis].angleTargetActive) {
+        return flightAxisOverride[axis].angleTarget;
+    } else {
+        return angle;
+    }
+}
+
+float getFlightAxisRateOverride(uint8_t axis, float rate) {
+    if (flightAxisOverride[axis].rateTargetActive) {
+        return flightAxisOverride[axis].rateTarget;
+    } else {
+        return rate;
+    }
+}
+
+bool isFlightAxisAngleOverrideActive(uint8_t axis) {
+    if (flightAxisOverride[axis].angleTargetActive) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool isFlightAxisRateOverrideActive(uint8_t axis) {
+    if (flightAxisOverride[axis].rateTargetActive) {
+        return true;
+    } else {
+        return false;
+    }
+}
