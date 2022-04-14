@@ -213,9 +213,7 @@ void pwmDisableMotors(void)
 
 void pwmEnableMotors(void)
 {
-    if (! ARMING_FLAG(SIMULATOR_MODE)) {
-        pwmMotorsEnabled = true;
-    }
+    pwmMotorsEnabled = true;
 }
 
 bool isMotorBrushed(uint16_t motorPwmRateHz)

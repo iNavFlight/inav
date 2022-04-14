@@ -152,7 +152,7 @@ static bool logHasOutput(void)
 
 static bool logIsEnabled(logTopic_e topic, unsigned level)
 {
-    return logHasOutput() && (level <= logConfig()->level || (logConfig()->topics & (1 << topic)));
+    return logHasOutput() && (level <= logConfig()->level && (logConfig()->topics & (1 << topic)));
 }
 
 void _logf(logTopic_e topic, unsigned level, const char *fmt, ...)
