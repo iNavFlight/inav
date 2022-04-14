@@ -21,6 +21,7 @@
 #include <string.h>
 #include <math.h>
 
+#include "common/log.h"
 #include "platform.h"
 
 #include "blackbox/blackbox.h"

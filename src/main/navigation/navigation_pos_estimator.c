@@ -537,6 +537,9 @@ static void estimationPredict(estimationContext_t * ctx)
         posEstimator.est.pos.z += posEstimator.imu.accelNEU.z * sq(ctx->dt) / 2.0f * accWeight;
         posEstimator.est.vel.z += posEstimator.imu.accelNEU.z * ctx->dt * sq(accWeight);
     }
+    if (ARMING_FLAG(SIMULATOR_MODE)) {
+        posEstimator.est.pos.z = baro.BaroAlt;
+    }
 
     /* Prediction step: XY-axis */
     if ((ctx->newFlags & EST_XY_VALID)) {
@@ -848,17 +851,16 @@ void initializePositionEstimator(void)
     pt1FilterInit(&posEstimator.surface.avgFilter, INAV_SURFACE_AVERAGE_HZ, 0.0f);
 }
 
+static bool isInitialized = false;
+
 /**
  * Update estimator
  *  Update rate: loop rate (>100Hz)
  */
 void updatePositionEstimator(void)
 {
-    if (ARMING_FLAG(SIMULATOR_MODE)) {
-        posEstimator.est.pos.z = baro.BaroAlt;
-        //return;
-    }
-    static bool isInitialized = false;
+    // todo: why this const is inside function?
+//    static bool isInitialized = false;
 
     if (!isInitialized) {
         initializePositionEstimator();
