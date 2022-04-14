@@ -1098,6 +1098,12 @@ void FAST_CODE pidController(float dT)
     bool canUseFpvCameraMix = true;
     uint8_t headingHoldState = getHeadingHoldState();
 
+    // In case Yaw override is active, we engage the Heading Hold state
+    if (isFlightAxisAngleOverrideActive(FD_YAW)) {
+        headingHoldState = HEADING_HOLD_ENABLED;
+        headingHoldTarget = getFlightAxisAngleOverride(FD_YAW, 0);
+    }
+
     if (headingHoldState == HEADING_HOLD_UPDATE_HEADING) {
         updateHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
     }
