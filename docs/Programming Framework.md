@@ -31,30 +31,30 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 
 ### Operations
 
-| Operation ID  | Name      | Notes                                 |
-|----           |----       |----                                   |
-| 0             | TRUE      | Always evaluates as true              |
-| 1             | EQUAL     | Evaluates `false` if `false` or `0`   |
-| 2             | GREATER_THAN  |                                   |
-| 3             | LOWER_THAN    |                                   |
-| 4             | LOW           | `true` if `<1333`                 |
-| 5             | MID           | `true` if `>=1333 and <=1666`     |
-| 6             | HIGH          | `true` if `>1666`                 |
-| 7             | AND           |                                   |
-| 8             | OR            |                                   |
-| 9             | XOR           |                                   |
-| 10            | NAND          |                                   |
-| 11            | NOR           |                                   |
-| 12            | NOT           |                                   |         
-| 13            | STICKY        | `Operand A` is activation operator, `Operand B` is deactivation operator. After activation, operator will return `true` until Operand B is evaluated as `true`|         
-| 14            | ADD           | Add `Operand A` to `Operand B` and returns the result |
-| 15            | SUB           | Substract `Operand B` from `Operand A` and returns the result |
-| 16            | MUL           | Multiply `Operand A` by `Operand B` and returns the result |
-| 17            | DIV           | Divide `Operand A` by `Operand B` and returns the result |
-| 18            | GVAR SET      | Store value from `Operand B` into the Global Variable addressed by `Operand B`. Bear in mind, that operand `Global Variable` means: Value stored in Global Variable of an index! To store in GVAR 1 use `Value 1` not `Global Variable 1` |
-| 19            | GVAR INC      | Increase the GVAR indexed by `Operand A` with value from `Operand B`  |
-| 20            | GVAR DEC      | Decrease the GVAR indexed by `Operand A` with value from `Operand B`  |
-| 21            | IO PORT SET   | Set I2C IO Expander pin `Operand A` to value of `Operand B`. `Operand A` accepts values `0-7` and `Operand B` accepts `0` and `1` |
+| Operation ID  | Name                          | Notes |
+|---------------|-------------------------------|-------|
+| 0             | TRUE                          | Always evaluates as true |
+| 1             | EQUAL                         | Evaluates `false` if `false` or `0` |
+| 2             | GREATER_THAN                  | `true` if `Operand A` is a higher value than `Operand B` |
+| 3             | LOWER_THAN                    | `true` if `Operand A` is a lower value than `Operand B` |
+| 4             | LOW                           | `true` if `<1333` |
+| 5             | MID                           | `true` if `>=1333 and <=1666` |
+| 6             | HIGH                          | `true` if `>1666` |
+| 7             | AND                           | `true` if `Operand A` and `Operand B` are the same value or both `true` |
+| 8             | OR                            | `true` if `Operand A` and/or `OperandB` is `true` |
+| 9             | XOR                           | `true` if `Operand A` or `Operand B` is `true`, but not both |
+| 10            | NAND                          | `false` if `Operand A` and `Operand B` are both `true`|
+| 11            | NOR                           | `true` if `Operand A` and `Operand B` are both `false` |
+| 12            | NOT                           | The boolean opposite to `Operand A` |         
+| 13            | STICKY                        | `Operand A` is activation operator, `Operand B` is deactivation operator. After activation, operator will return `true` until Operand B is evaluated as `true`|         
+| 14            | ADD                           | Add `Operand A` to `Operand B` and returns the result |
+| 15            | SUB                           | Substract `Operand B` from `Operand A` and returns the result |
+| 16            | MUL                           | Multiply `Operand A` by `Operand B` and returns the result |
+| 17            | DIV                           | Divide `Operand A` by `Operand B` and returns the result |
+| 18            | GVAR SET                      | Store value from `Operand B` into the Global Variable addressed by `Operand B`. Bear in mind, that operand `Global Variable` means: Value stored in Global Variable of an index! To store in GVAR 1 use `Value 1` not `Global Variable 1` |
+| 19            | GVAR INC                      | Increase the GVAR indexed by `Operand A` with value from `Operand B`  |
+| 20            | GVAR DEC                      | Decrease the GVAR indexed by `Operand A` with value from `Operand B`  |
+| 21            | IO PORT SET                   | Set I2C IO Expander pin `Operand A` to value of `Operand B`. `Operand A` accepts values `0-7` and `Operand B` accepts `0` and `1` |
 | 22            | OVERRIDE_ARMING_SAFETY        | Allows to arm on any angle even without GPS fix              |
 | 23            | OVERRIDE_THROTTLE_SCALE       | Override throttle scale to the value defined by operand. Operand type `0` and value `50` means throttle will be scaled by 50%. |
 | 24            | SWAP_ROLL_YAW                 | basically, when activated, yaw stick will control roll and roll stick will control yaw. Required for tail-sitters VTOL during vertical-horizonral transition when body frame changes |
@@ -66,109 +66,108 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 30            | SET_VTX_BAND                  | Sets VTX band. Accepted values are `1-5` |
 | 31            | SET_VTX_CHANNEL               | Sets VTX channel. Accepted values are `1-8` |
 | 32            | SET_OSD_LAYOUT                | Sets OSD layout. Accepted values are `0-3` |
-| 33            | SIN                | Computes SIN of `Operand A` value in degrees. Output is multiplied by `Operand B` value. If `Operand B` is `0`, result is multiplied by `500` |
-| 34            | COS                | Computes COS of `Operand A` value in degrees. Output is multiplied by `Operand B` value. If `Operand B` is `0`, result is multiplied by `500` |
-| 35            | TAN                | Computes TAN of `Operand A` value in degrees. Output is multiplied by `Operand B` value. If `Operand B` is `0`, result is multiplied by `500` |
-| 36            | MAP_INPUT          | Scales `Operand A` from [`0` : `Operand B`] to [`0` : `1000`]. Note: input will be constrained and then scaled |
-| 37            | MAP_OUTPUT         | Scales `Operand A` from [`0` : `1000`] to [`0` : `Operand B`]. Note: input will be constrained and then scaled |
-| 38            | RC_CHANNEL_OVERRIDE | Overrides channel set by `Operand A` to value of `Operand B` |
-| 39            | SET_HEADING_TARGET  | Sets heading-hold target to `Operand A`, in degrees. Value wraps-around. |
-| 40            | MOD           | Divide `Operand A` by `Operand B` and returns the remainder |
-| 41			| LOITER_RADIUS_OVERRIDE | Sets the loiter radius to `Operand A` [`0` : `100000`] in cm. If the value is lower than the loiter radius set in the **Advanced Tuning**, that will be used. |
-| 42            | SET_PROFILE   | Sets the active config profile (PIDFF/Rates/Filters/etc) to `Operand A`. `Operand A` must be a valid profile number, currently from 1 to 3. If not, the profile will not change |
-| 43			| MIN				| Finds the lowest value of `Operand A` and `Operand B` |
-| 44			| MAX				| Finds the highest value of `Operand A` and `Operand B` |
-
+| 33            | SIN                           | Computes SIN of `Operand A` value in degrees. Output is multiplied by `Operand B` value. If `Operand B` is `0`, result is multiplied by `500` |
+| 34            | COS                           | Computes COS of `Operand A` value in degrees. Output is multiplied by `Operand B` value. If `Operand B` is `0`, result is multiplied by `500` |
+| 35            | TAN                           | Computes TAN of `Operand A` value in degrees. Output is multiplied by `Operand B` value. If `Operand B` is `0`, result is multiplied by `500` |
+| 36            | MAP_INPUT                     | Scales `Operand A` from [`0` : `Operand B`] to [`0` : `1000`]. Note: input will be constrained and then scaled |
+| 37            | MAP_OUTPUT                    | Scales `Operand A` from [`0` : `1000`] to [`0` : `Operand B`]. Note: input will be constrained and then scaled |
+| 38            | RC_CHANNEL_OVERRIDE           | Overrides channel set by `Operand A` to value of `Operand B` |
+| 39            | SET_HEADING_TARGET            | Sets heading-hold target to `Operand A`, in degrees. Value wraps-around. |
+| 40            | MOD                           | Divide `Operand A` by `Operand B` and returns the remainder |
+| 41            | LOITER_RADIUS_OVERRIDE        | Sets the loiter radius to `Operand A` [`0` : `100000`] in cm. If the value is lower than the loiter radius set in the **Advanced Tuning**, that will be used. |
+| 42            | SET_PROFILE                   | Sets the active config profile (PIDFF/Rates/Filters/etc) to `Operand A`. `Operand A` must be a valid profile number, currently from 1 to 3. If not, the profile will not change |
+| 43            | MIN                           | Finds the lowest value of `Operand A` and `Operand B` |
+| 44            | MAX                           | Finds the highest value of `Operand A` and `Operand B` |
 ### Operands
 
-| Operand Type  | Name      | Notes                                 |
-|----           |----       |----                                   |
-| 0             | VALUE     | Value derived from `value` field      |
-| 1             | GET_RC_CHANNEL    | `value` points to RC channel number, indexed from 1   |
-| 2             | FLIGHT        | `value` points to flight parameter table              |
-| 3             | FLIGHT_MODE   | `value` points to flight modes table                  |
-| 4             | LC            | `value` points to other logic condition ID            |
-| 5             | GVAR          | Value stored in Global Variable indexed by `value`. `GVAR 1` means: value in GVAR 1 |
-| 5             | PID          | Output of a Programming PID indexed by `value`. `PID 1` means: value in PID 1 |
+| Operand Type  | Name                  | Notes |
+|---------------|-----------------------|-------|
+| 0             | VALUE                 | Value derived from `value` field |
+| 1             | GET_RC_CHANNEL        | `value` points to RC channel number, indexed from 1 |
+| 2             | FLIGHT                | `value` points to flight parameter table |
+| 3             | FLIGHT_MODE           | `value` points to flight modes table |
+| 4             | LC                    | `value` points to other logic condition ID |
+| 5             | GVAR                  | Value stored in Global Variable indexed by `value`. `GVAR 1` means: value in GVAR 1 |
+| 5             | PID                   | Output of a Programming PID indexed by `value`. `PID 1` means: value in PID 1 |
 
 #### FLIGHT
 
-| Operand Value | Name          | Notes                                 |
-|----           |----           |----                                   |
-| 0             | ARM_TIMER     | in `seconds`                          |
-| 1             | HOME_DISTANCE | in `meters`                           |
-| 2             | TRIP_DISTANCE | in `meters`                           |
-| 3             | RSSI          |                                       |
-| 4             | VBAT          | in `Volts * 100`, eg. `12.1V` is `1210` |
-| 5             | CELL_VOLTAGE  | in `Volts * 100`, eg. `12.1V` is `1210` |
-| 6             | CURRENT       | in `Amps * 100`, eg. `9A` is `900`    |
-| 7             | MAH_DRAWN     | in `mAh`                              |
-| 8             | GPS_SATS      |                                       |
-| 9             | GROUD_SPEED   | in `cm/s`                             |
-| 10            | 3D_SPEED      | in `cm/s`                             |
-| 11            | AIR_SPEED     | in `cm/s`                             |
-| 12            | ALTITUDE      | in `cm`                               |
-| 13            | VERTICAL_SPEED |  in `cm/s`                           |
-| 14            | TROTTLE_POS   | in `%`                                |
-| 15            | ATTITUDE_ROLL | in `degrees`                          |
-| 16            | ATTITUDE_PITCH | in `degrees`                         |
-| 17            | IS_ARMED              | boolean `0`/`1`               |
-| 18            | IS_AUTOLAUNCH         | boolean `0`/`1`               |
-| 19            | IS_ALTITUDE_CONTROL   | boolean `0`/`1`               |
-| 20            | IS_POSITION_CONTROL   | boolean `0`/`1`               |
-| 21            | IS_EMERGENCY_LANDING  | boolean `0`/`1`               |
-| 22            | IS_RTH                | boolean `0`/`1`               |
-| 23            | IS_WP                 | boolean `0`/`1`               |
-| 24            | IS_LANDING            | boolean `0`/`1`               |
-| 25            | IS_FAILSAFE           | boolean `0`/`1`               |
-| 26            | STABILIZED_ROLL       | Roll PID controller output `[-500:500]`   |
-| 27            | STABILIZED_PITCH      | Pitch PID controller output `[-500:500]`  |
-| 28            | STABILIZED_YAW        | Yaw PID controller output `[-500:500]`    |
-| 29            | ACTIVE_WAYPOINT_INDEX | Indexed from `1`. To verify WP is in progress, use `IS_WP` |
-| 30            | ACTIVE_WAYPOINT_ACTION | See ACTIVE_WAYPOINT_ACTION paragraph |
-| 31            | 3D HOME_DISTANCE      | in `meters`, calculated from HOME_DISTANCE and ALTITUDE using Pythagorean theorem |
-| 32            | CROSSFIRE LQ          | Crossfire Link quality as returned by the CRSF protocol   | 
-| 33            | CROSSFIRE SNR         | Crossfire SNR as returned by the CRSF protocol   |
-| 34            | GPS_VALID             | boolean `0`/`1`. True when the GPS has a valid 3D Fix |
-| 35			| LOITER_RADIUS			| The current loiter radius in cm. |
-| 36            | ACTIVE_PROFILE          | integer for the active config profile `[1..MAX_PROFILE_COUNT]`  |
+| Operand Value | Name                          | Notes |
+|---------------|-------------------------------|-------|
+| 0             | ARM_TIMER                     | in `seconds` |
+| 1             | HOME_DISTANCE                 | in `meters` |
+| 2             | TRIP_DISTANCE                 | in `meters` |
+| 3             | RSSI                          |  |
+| 4             | VBAT                          | in `Volts * 100`, eg. `12.1V` is `1210` |
+| 5             | CELL_VOLTAGE                  | in `Volts * 100`, eg. `12.1V` is `1210` |
+| 6             | CURRENT                       | in `Amps * 100`, eg. `9A` is `900` |
+| 7             | MAH_DRAWN                     | in `mAh`                              |
+| 8             | GPS_SATS                      |  |
+| 9             | GROUD_SPEED                   | in `cm/s` |
+| 10            | 3D_SPEED                      | in `cm/s` |
+| 11            | AIR_SPEED                     | in `cm/s` |
+| 12            | ALTITUDE                      | in `cm` |
+| 13            | VERTICAL_SPEED                | in `cm/s` |
+| 14            | TROTTLE_POS                   | in `%` |
+| 15            | ATTITUDE_ROLL                 | in `degrees` |
+| 16            | ATTITUDE_PITCH                | in `degrees` |
+| 17            | IS_ARMED                      | boolean `0`/`1` |
+| 18            | IS_AUTOLAUNCH                 | boolean `0`/`1` |
+| 19            | IS_ALTITUDE_CONTROL           | boolean `0`/`1` |
+| 20            | IS_POSITION_CONTROL           | boolean `0`/`1` |
+| 21            | IS_EMERGENCY_LANDING          | boolean `0`/`1` |
+| 22            | IS_RTH                        | boolean `0`/`1` |
+| 23            | IS_WP                         | boolean `0`/`1` |
+| 24            | IS_LANDING                    | boolean `0`/`1` |
+| 25            | IS_FAILSAFE                   | boolean `0`/`1` |
+| 26            | STABILIZED_ROLL               | Roll PID controller output `[-500:500]` |
+| 27            | STABILIZED_PITCH              | Pitch PID controller output `[-500:500]` |
+| 28            | STABILIZED_YAW                | Yaw PID controller output `[-500:500]` |
+| 29            | ACTIVE_WAYPOINT_INDEX         | Indexed from `1`. To verify WP is in progress, use `IS_WP` |
+| 30            | ACTIVE_WAYPOINT_ACTION        | See ACTIVE_WAYPOINT_ACTION paragraph |
+| 31            | 3D HOME_DISTANCE              | in `meters`, calculated from HOME_DISTANCE and ALTITUDE using Pythagorean theorem |
+| 32            | CROSSFIRE LQ                  | Crossfire Link quality as returned by the CRSF protocol | 
+| 33            | CROSSFIRE SNR                 | Crossfire SNR as returned by the CRSF protocol |
+| 34            | GPS_VALID                     | boolean `0`/`1`. True when the GPS has a valid 3D Fix |
+| 35            | LOITER_RADIUS                 | The current loiter radius in cm. |
+| 36            | ACTIVE_PROFILE                | integer for the active config profile `[1..MAX_PROFILE_COUNT]` |
 
 #### ACTIVE_WAYPOINT_ACTION
 
-| Action        |  Value   |
-|----           |----      |
-| WAYPOINT      | 1      |
-| HOLD_TIME     | 3      |
-| RTH           | 4      |
-| SET_POI       | 5      |
-| JUMP          | 6      |
-| SET_HEAD      | 7      |
-| LAND          | 8      |
+| Action        | Value |
+|---------------|-------|
+| WAYPOINT      | 1     |
+| HOLD_TIME     | 3     |
+| RTH           | 4     |
+| SET_POI       | 5     |
+| JUMP          | 6     |
+| SET_HEAD      | 7     |
+| LAND          | 8     |
 
 
 #### FLIGHT_MODE
 
-| Operand Value | Name          | Notes                                 |
-|----           |----           |----                                   |
-| 0             | FAILSAFE      |                                       |
-| 1             | MANUAL        |                                       |
-| 2             | RTH           |                                       |
-| 3             | POSHOLD       |                                       |
-| 4             | CRUISE        |                                       |
-| 5             | ALTHOLD       |                                       |
-| 6             | ANGLE         |                                       |
-| 7             | HORIZON       |                                       |
-| 8             | AIR           |                                       |
-| 9             | USER1         |                                       |
-| 10            | USER2         |                                       |
+| Operand Value | Name      | Notes |
+|---------------|-----------|-------|
+| 0             | FAILSAFE  |  |
+| 1             | MANUAL    |  |
+| 2             | RTH       |  |
+| 3             | POSHOLD   |  |
+| 4             | CRUISE    |  |
+| 5             | ALTHOLD   |  |
+| 6             | ANGLE     |  |
+| 7             | HORIZON   |  |
+| 8             | AIR       |  |
+| 9             | USER1     |  |
+| 10            | USER2     |  |
 
     
 ### Flags
 
 All flags are reseted on ARM and DISARM event.
 
-| bit   | Decimal   | Function              |
-|----   |----       |----                   |
+| bit   | Decimal   | Function  |
+|-------|-----------|-----------|
 | 0     | 1         | Latch - after activation LC will stay active until LATCH flag is reseted |
 
 ## Global variables
