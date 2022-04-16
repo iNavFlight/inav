@@ -19,7 +19,7 @@
 
 #define USE_TARGET_CONFIG
 
-#define TARGET_BOARD_IDENTIFIER         "M7X8"
+#define TARGET_BOARD_IDENTIFIER         "M72A"
 #define USBD_PRODUCT_STRING             "MAMBAF722_2022A"
 
 // ******** Board LEDs  **********************
