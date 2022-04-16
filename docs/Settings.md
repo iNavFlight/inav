@@ -5842,6 +5842,16 @@ Enable workaround for early AKK SAudio-enabled VTX bug.
 
 ---
 
+### vtx_softserial_shortstop
+
+Enable the 3x shorter stopbit on softserial. Need for some IRC Tramp VTXes.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### yaw_deadband
 
 These are values (in us) by how much RC input can be different before it's considered valid. For transmitters with jitter on outputs, this value can be increased. Defaults are zero, but can be increased up to 10 or so if rc inputs twitch while idle.
