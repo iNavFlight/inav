@@ -3279,9 +3279,6 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
             attitude.values.roll = sbufReadU16(src)-1800;
             attitude.values.pitch = sbufReadU16(src)-1800;
             attitude.values.yaw = sbufReadU16(src);
-//            posEstimator.est.pos.x = attitude.values.roll;
-//            posEstimator.est.pos.y = attitude.values.pitch;
-//            posEstimator.est.pos.z = gpsSol.llh.alt;
 
             acc.accADCf[X] = (float)sbufReadU16(src) / 1000 - 32;// / GRAVITY_CMSS;
             acc.accADCf[Y] = (float)sbufReadU16(src) / 1000 - 32;// / GRAVITY_CMSS;
@@ -3295,12 +3292,6 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         } else {
             DISABLE_STATE(GPS_FIX);
         }
-
-//        sbufWriteU16(dst, motor[0]);
-//        sbufWriteU16(dst, servo[1]);
-//        sbufWriteU16(dst, servo[2]);
-//        sbufWriteU16(dst, servo[3]);
-//        sbufWriteU16(dst, servo[4]);
 
         sbufWriteU16(dst, input[INPUT_STABILIZED_ROLL] + 500);
         sbufWriteU16(dst, input[INPUT_STABILIZED_PITCH] + 500);

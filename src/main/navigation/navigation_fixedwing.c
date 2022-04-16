@@ -536,6 +536,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         if (navStateFlags & NAV_CTL_LAND) {
             // During LAND we do not allow to raise THROTTLE when nose is up to reduce speed
             throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, 0);
+            throttleCorrection = minThrottleCorrection;
         } else {
 #endif
             throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, maxThrottleCorrection);

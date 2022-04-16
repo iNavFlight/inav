@@ -564,6 +564,9 @@ void processContinuousServoAutotrim(const float dT)
 }
 
 void processServoAutotrim(const float dT) {
+    if (ARMING_FLAG(SIMULATOR_MODE)) {
+        return;
+    }
     if (feature(FEATURE_FW_AUTOTRIM)) {
         processContinuousServoAutotrim(dT);
     } else {

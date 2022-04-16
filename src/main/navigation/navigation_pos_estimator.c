@@ -526,9 +526,6 @@ static uint32_t calculateCurrentValidityFlags(timeUs_t currentTimeUs)
 
 static void estimationPredict(estimationContext_t * ctx)
 {
-    if (ARMING_FLAG(SIMULATOR_MODE)) {
-        //return; // posEstimator.est.* was set into fc_msp
-    }
     const float accWeight = navGetAccelerometerWeight();
 
     /* Prediction step: Z-axis */
