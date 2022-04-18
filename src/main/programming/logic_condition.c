@@ -59,6 +59,7 @@ PG_REGISTER_ARRAY_WITH_RESET_FN(logicCondition_t, MAX_LOGIC_CONDITIONS, logicCon
 EXTENDED_FASTRAM uint64_t logicConditionsGlobalFlags;
 EXTENDED_FASTRAM int logicConditionValuesByType[LOGIC_CONDITION_LAST];
 EXTENDED_FASTRAM rcChannelOverride_t rcChannelOverrides[MAX_SUPPORTED_RC_CHANNEL_COUNT];
+EXTENDED_FASTRAM flightAxisOverride_t flightAxisOverride[XYZ_AXIS_COUNT];
 
 void pgResetFn_logicConditions(logicCondition_t *instance)
 {
@@ -363,7 +364,42 @@ static int logicConditionCompute(
             LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_LOITER_RADIUS);
             return true;
             break;
-            
+
+        case LOGIC_CONDITION_FLIGTH_AXIS_ANGLE_OVERRIDE:
+            if (operandA >= 0 && operandA <= 2) {
+
+                flightAxisOverride[operandA].angleTargetActive = true;
+                int target = DEGREES_TO_DECIDEGREES(operandB);
+                if (operandA == 0) {
+                    //ROLL
+                    target = constrain(target, -pidProfile()->max_angle_inclination[FD_ROLL], pidProfile()->max_angle_inclination[FD_ROLL]);
+                } else if (operandA == 1) {
+                    //PITCH
+                    target = constrain(target, -pidProfile()->max_angle_inclination[FD_PITCH], pidProfile()->max_angle_inclination[FD_PITCH]);
+                } else if (operandA == 2) {
+                    //YAW
+                    target = (constrain(target, 0, 3600));
+                }
+                flightAxisOverride[operandA].angleTarget = target;
+                LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_FLIGHT_AXIS);
+
+                return true;
+            } else {
+                return false;
+            }
+            break;
+
+        case LOGIC_CONDITION_FLIGTH_AXIS_RATE_OVERRIDE:
+            if (operandA >= 0 && operandA <= 2) {
+                flightAxisOverride[operandA].rateTargetActive = true;
+                flightAxisOverride[operandA].rateTarget = constrain(operandB, -2000, 2000);
+                LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_FLIGHT_AXIS);
+                return true;
+            } else {
+                return false;
+            }
+            break;    
+        
         default:
             return false;
             break; 
@@ -710,6 +746,11 @@ void logicConditionUpdateTask(timeUs_t currentTimeUs) {
         rcChannelOverrides[i].active = false;
     }
 
+    for (uint8_t i = 0; i < XYZ_AXIS_COUNT; i++) {
+        flightAxisOverride[i].rateTargetActive = false;
+        flightAxisOverride[i].angleTargetActive = false;
+    }
+
     for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
         logicConditionProcess(i);
     }
@@ -775,4 +816,36 @@ uint32_t getLoiterRadius(uint32_t loiterRadius) {
 #else
     return loiterRadius;
 #endif
+}
+
+float getFlightAxisAngleOverride(uint8_t axis, float angle) {
+    if (flightAxisOverride[axis].angleTargetActive) {
+        return flightAxisOverride[axis].angleTarget;
+    } else {
+        return angle;
+    }
+}
+
+float getFlightAxisRateOverride(uint8_t axis, float rate) {
+    if (flightAxisOverride[axis].rateTargetActive) {
+        return flightAxisOverride[axis].rateTarget;
+    } else {
+        return rate;
+    }
+}
+
+bool isFlightAxisAngleOverrideActive(uint8_t axis) {
+    if (flightAxisOverride[axis].angleTargetActive) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool isFlightAxisRateOverrideActive(uint8_t axis) {
+    if (flightAxisOverride[axis].rateTargetActive) {
+        return true;
+    } else {
+        return false;
+    }
 }
