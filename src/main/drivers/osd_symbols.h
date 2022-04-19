@@ -161,6 +161,9 @@
 #define SYM_HEADING_LINE            0xCD  // 205 Heading Graphic
 #define SYM_MAX                     0xCE  // 206 MAX symbol
 #define SYM_PROFILE                 0xCF  // 207 Profile symbol
+#define SYM_SWITCH_INDICATOR_LOW    0xD0  // 208 Switch High
+#define SYM_SWITCH_INDICATOR_MID    0xD1  // 209 Switch Mid
+#define SYM_SWITCH_INDICATOR_HIGH   0xD2  // 210 Switch Low
 #define SYM_AH                      0xD3  // 211 Amphours symbol
 
 #define SYM_LOGO_START              0x101 // 257 to 280, INAV logo

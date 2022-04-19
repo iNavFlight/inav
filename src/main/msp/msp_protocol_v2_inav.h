@@ -80,3 +80,4 @@
 #define MSP2_INAV_SET_SAFEHOME                  0x2039
 
 #define MSP2_INAV_MISC2                         0x203A
+#define MSP2_INAV_LOGIC_CONDITIONS_SINGLE       0x203B

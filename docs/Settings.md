@@ -1502,6 +1502,16 @@ Enable use of Galileo satellites. This is at the expense of other regional const
 
 ---
 
+### ground_test_mode
+
+For developer ground test use. Disables motors, sets heading status = Trusted on FW.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### gyro_anti_aliasing_lpf_hz
 
 Gyro processing anti-aliasing filter cutoff frequency. In normal operation this filter setting should never be changed. In Hz
@@ -4662,6 +4672,96 @@ Auto swap display time interval between disarm stats pages (seconds). Reverts to
 
 ---
 
+### osd_switch_indicator_one_channnel
+
+RC Channel to use for OSD switch indicator 1.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 5 | MAX_SUPPORTED_RC_CHANNEL_COUNT |
+
+---
+
+### osd_switch_indicator_one_name
+
+Character to use for OSD switch incicator 1.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| GEAR |  | 5 |
+
+---
+
+### osd_switch_indicator_three_channnel
+
+RC Channel to use for OSD switch indicator 3.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 5 | MAX_SUPPORTED_RC_CHANNEL_COUNT |
+
+---
+
+### osd_switch_indicator_three_name
+
+Character to use for OSD switch incicator 3.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| LIGT |  | 5 |
+
+---
+
+### osd_switch_indicator_two_channnel
+
+RC Channel to use for OSD switch indicator 2.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 5 | MAX_SUPPORTED_RC_CHANNEL_COUNT |
+
+---
+
+### osd_switch_indicator_two_name
+
+Character to use for OSD switch incicator 2.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| CAM |  | 5 |
+
+---
+
+### osd_switch_indicator_zero_channnel
+
+RC Channel to use for OSD switch indicator 0.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 5 | MAX_SUPPORTED_RC_CHANNEL_COUNT |
+
+---
+
+### osd_switch_indicator_zero_name
+
+Character to use for OSD switch incicator 0.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| FLAP |  | 5 |
+
+---
+
+### osd_switch_indicators_align_left
+
+Align text to left of switch indicators
+
+| Default | Min | Max |
+| --- | --- | --- |
+| ON | OFF | ON |
+
+---
+
 ### osd_system_msg_display_time
 
 System message display cycle time for multiple messages (milliseconds).
@@ -4715,6 +4815,16 @@ IMPERIAL, METRIC, UK
 ### osd_video_system
 
 Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, and `HD`
+
+| Default | Min | Max |
+| --- | --- | --- |
+| AUTO |  |  |
+
+---
+
+### output_mode
+
+Output function assignment mode. AUTO assigns outputs according to the default mapping, SERVOS assigns all outputs to servos, MOTORS assigns all outputs to motors
 
 | Default | Min | Max |
 | --- | --- | --- |

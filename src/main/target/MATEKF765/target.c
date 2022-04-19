@@ -33,7 +33,7 @@ BUSDEV_REGISTER_SPI_TAG(busdev_imu1,    DEVHW_MPU6500,      MPU6500_SPI_BUS,    
 BUSDEV_REGISTER_SPI_TAG(busdev_imu3,    DEVHW_ICM42605,     ICM42605_SPI_BUS,   ICM42605_CS_PIN,    ICM42605_EXTI_PIN,      0,  DEVFLAGS_NONE,  IMU_ICM42605_ALIGN);
 #endif
 
-const timerHardware_t timerHardware[] = {
+timerHardware_t timerHardware[] = {
     DEF_TIM(TIM2,  CH1, PA0,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR, 0, 0),   // S1  UP(1,7), D(1,5,3)
     DEF_TIM(TIM2,  CH2, PA1,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR, 0, 0),   // S2  UP(1,7), D(1,6,3)
 

@@ -122,7 +122,9 @@ tables:
     enum: smartportFuelUnit_e
   - name: platform_type
     values: ["MULTIROTOR", "AIRPLANE", "HELICOPTER", "TRICOPTER", "ROVER", "BOAT"]
-    enum: flyingPlatformType_e
+  - name: output_mode
+    values: ["AUTO", "MOTORS", "SERVOS"]
+    enum: outputMode_e
   - name: tz_automatic_dst
     values: ["OFF", "EU", "USA"]
     enum: tz_automatic_dst_e
@@ -1262,6 +1264,11 @@ groups:
         field: appliedMixerPreset
         min: -1
         max: INT16_MAX
+      - name: output_mode
+        description: "Output function assignment mode. AUTO assigns outputs according to the default mapping, SERVOS assigns all outputs to servos, MOTORS assigns all outputs to motors"
+        default_value: "AUTO"
+        field: outputMode
+        table: output_mode
 
   - name: PG_REVERSIBLE_MOTORS_CONFIG
     type: reversibleMotorsConfig_t
@@ -3516,6 +3523,59 @@ groups:
         max: 6
         default_value: 4
 
+      - name: osd_switch_indicator_zero_name
+        description: "Character to use for OSD switch incicator 0."
+        field: osd_switch_indicator0_name
+        type: string
+        max: 5
+        default_value: "FLAP"
+      - name: osd_switch_indicator_one_name
+        description: "Character to use for OSD switch incicator 1."
+        field: osd_switch_indicator1_name
+        type: string
+        max: 5
+        default_value: "GEAR"
+      - name: osd_switch_indicator_two_name
+        description: "Character to use for OSD switch incicator 2."
+        field: osd_switch_indicator2_name
+        type: string
+        max: 5
+        default_value: "CAM"
+      - name: osd_switch_indicator_three_name
+        description: "Character to use for OSD switch incicator 3."
+        field: osd_switch_indicator3_name
+        type: string
+        max: 5
+        default_value: "LIGT"
+      - name: osd_switch_indicator_zero_channnel
+        description: "RC Channel to use for OSD switch indicator 0."
+        field: osd_switch_indicator0_channnel
+        min: 5
+        max: MAX_SUPPORTED_RC_CHANNEL_COUNT
+        default_value: 5
+      - name: osd_switch_indicator_one_channnel
+        description: "RC Channel to use for OSD switch indicator 1."
+        field: osd_switch_indicator1_channnel
+        min: 5
+        max: MAX_SUPPORTED_RC_CHANNEL_COUNT
+        default_value: 5
+      - name: osd_switch_indicator_two_channnel
+        description: "RC Channel to use for OSD switch indicator 2."
+        field: osd_switch_indicator2_channnel
+        min: 5
+        max: MAX_SUPPORTED_RC_CHANNEL_COUNT
+        default_value: 5
+      - name: osd_switch_indicator_three_channnel
+        description: "RC Channel to use for OSD switch indicator 3."
+        field: osd_switch_indicator3_channnel
+        min: 5
+        max: MAX_SUPPORTED_RC_CHANNEL_COUNT
+        default_value: 5
+      - name: osd_switch_indicators_align_left
+        description: "Align text to left of switch indicators"
+        field: osd_switch_indicators_align_left
+        type: bool
+        default_value: ON
       - name: osd_system_msg_display_time
         description: System message display cycle time for multiple messages (milliseconds).
         field: system_msg_display_time
@@ -3554,6 +3614,12 @@ groups:
         description: "Defines debug values exposed in debug variables (developer / debugging setting)"
         default_value: "NONE"
         table: debug_modes
+      - name: ground_test_mode
+        description: "For developer ground test use. Disables motors, sets heading status = Trusted on FW."
+        condition: USE_DEV_TOOLS
+        default_value: OFF
+        field: groundTestMode
+        type: bool
       - name: throttle_tilt_comp_str
         description: "Can be used in ANGLE and HORIZON mode and will automatically boost throttle when banking. Setting is in percentage, 0=disabled."
         default_value: 0
