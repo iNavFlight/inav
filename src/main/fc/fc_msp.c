@@ -3240,6 +3240,20 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
          *ret = mspFcSafeHomeOutCommand(dst, src);
          break;
 
+    case MSP_TELEMETRY:
+        sbufWriteU8(dst, ARMING_FLAG(ARMED)); // arming status
+        sbufWriteU8(dst, 0); // arming status
+        sbufWriteU32(dst, flightModeFlags);
+        // "1" for error messages
+        sbufWriteU8(dst, 2); // home position
+        sbufWriteU16(dst, GPS_distanceToHome);
+        sbufWriteU16(dst, GPS_directionToHome);
+        sbufWriteU32(dst, baro.BaroAlt);
+        sbufWriteU8(dst, 3); // throttle
+        sbufWriteU8(dst, getThrottlePercent());
+
+        *ret = MSP_RESULT_ACK;
+        break;
     case MSP_SIMULATOR:
         tmp_u8 = sbufReadU8(src);
         if (tmp_u8 == 1) {
