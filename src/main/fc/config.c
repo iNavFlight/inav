@@ -239,7 +239,7 @@ void validateAndFixConfig(void)
     // Limitations of different protocols
 #if !defined(USE_DSHOT)
     if (motorConfig()->motorPwmProtocol > PWM_TYPE_BRUSHED) {
-        motorConfigMutable()->motorPwmProtocol = PWM_TYPE_STANDARD;
+        motorConfigMutable()->motorPwmProtocol = PWM_TYPE_MULTISHOT;
     }
 #endif
 
