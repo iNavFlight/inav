@@ -2322,6 +2322,66 @@ static bool osdDrawSingleElement(uint8_t item)
             buff[4] = '\0';
             break;
         }
+    case OSD_CLIMB_EFFICIENCY:
+        {
+            // amperage is in centi amps, vertical speed is in cms/s. We want
+            // mah/dist only to show when vertical speed > 1m/s.
+            static pt1Filter_t eFilterState;
+            static timeUs_t efficiencyUpdated = 0;
+            int32_t value = 0;
+            bool moreThanAh = false;
+            timeUs_t currentTimeUs = micros();
+            timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
+            if (getEstimatedActualVelocity(Z) > 0) {
+                if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
+                    value = pt1FilterApply4(&eFilterState, ((float)getAmperage() / getEstimatedActualVelocity(Z)) / 0.0036f, 1, US2S(efficiencyTimeDelta));
+
+                    efficiencyUpdated = currentTimeUs;
+                } else {
+                    value = eFilterState.state;
+                }
+            }
+            bool efficiencyValid = (value > 0) && (getEstimatedActualVelocity(Z) > 100);
+            switch (osdConfig()->units) {
+                case OSD_UNIT_UK:
+                    FALLTHROUGH;
+                case OSD_UNIT_GA:
+                    FALLTHROUGH;
+                case OSD_UNIT_IMPERIAL:
+                    // mAh/foot
+                    moreThanAh = osdFormatCentiNumber(buff, value * METERS_PER_FOOT / 10, 1, 0, 2, 3);
+                    if (!moreThanAh) {
+                        tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_V_FT_0, SYM_MAH_V_FT_1);
+                    } else {
+                        tfp_sprintf(buff, "%s%c", buff, SYM_AH_MI);
+                    }
+                    if (!efficiencyValid) {
+                        buff[0] = buff[1] = buff[2] = '-';
+                        buff[3] = SYM_MAH_MI_0;
+                        buff[4] = SYM_MAH_MI_1;
+                        buff[5] = '\0';
+                    }
+                    break;
+                case OSD_UNIT_METRIC_MPH:
+                    FALLTHROUGH;
+                case OSD_UNIT_METRIC:
+                    // mAh/metre
+                    moreThanAh = osdFormatCentiNumber(buff, value * 100, 1, 0, 2, 3);
+                    if (!moreThanAh) {
+                        tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_V_M_0, SYM_MAH_V_M_1);
+                    } else {
+                        tfp_sprintf(buff, "%s%c", buff, SYM_AH_KM);
+                    }
+                    if (!efficiencyValid) {
+                        buff[0] = buff[1] = buff[2] = '-';
+                        buff[3] = SYM_MAH_KM_0;
+                        buff[4] = SYM_MAH_KM_1;
+                        buff[5] = '\0';
+                    }
+                    break;
+            }
+            break;
+        }
     case OSD_GLIDE_TIME_REMAINING: 
         {
             uint16_t glideSeconds = osdGetRemainingGlideTime();
