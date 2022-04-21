@@ -14,7 +14,7 @@ https://github.com/iNavFlight/blackbox-log-viewer
 You can also use the `blackbox_decode` tool to turn the logs into CSV files for analysis, or render your flight log as a
 video using the `blackbox_render` tool. Those tools can be found in this repository:
 
-https://github.com/cleanflight/blackbox-tools
+https://github.com/iNavFlight/blackbox-tools
 
 ## Logged data
 The blackbox records flight data on every iteration of the flight control loop. It records the current time in

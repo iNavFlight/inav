@@ -34,7 +34,7 @@ BUSDEV_REGISTER_I2C(    busdev_mag3110, DEVHW_MAG3110,  MAG_I2C_BUS,        0x0E
 
 BUSDEV_REGISTER_SPI(    busdev_max7456, DEVHW_MAX7456,  MAX7456_SPI_BUS,    MAX7456_CS_PIN, NONE,                   DEVFLAGS_USE_RAW_REGISTERS,  0);
 
-const timerHardware_t timerHardware[] = {
+timerHardware_t timerHardware[] = {
 
     DEF_TIM(TIM2, CH4, PA3,  TIM_USE_PPM,           0, 0 ), // UART2_RX, joined with PE13
     // DEF_TIM(TIM1, CH3, PE13, TIM_USE_NONE,          0, 0 ), // RC1 / PPM, unusable

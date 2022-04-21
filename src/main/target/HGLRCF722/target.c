@@ -34,8 +34,9 @@
 #include "drivers/sensor.h"
 
 BUSDEV_REGISTER_SPI_TAG(busdev_mpu6000,     DEVHW_MPU6000,      MPU6000_SPI_BUS,    MPU6000_CS_PIN,     MPU6000_EXTI_PIN,       0,  DEVFLAGS_NONE,  IMU_MPU6000_ALIGN);
+BUSDEV_REGISTER_SPI_TAG(busdev_bmi270,      DEVHW_BMI270,       BMI270_SPI_BUS,     BMI270_CS_PIN,      BMI270_EXTI_PIN,        0,  DEVFLAGS_NONE,  IMU_BMI270_ALIGN);
 
-const timerHardware_t timerHardware[] = {
+timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3, CH1, PB4,   TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0),   // S1   UP1-2   D(1, 4, 5)
     DEF_TIM(TIM3, CH2, PB5,   TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0),   // S2   UP1-2   D(1, 5, 5)
     DEF_TIM(TIM3, CH3, PB0,   TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0),   // S3   UP1-2   D(1, 7, 5)

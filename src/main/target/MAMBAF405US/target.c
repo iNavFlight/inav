@@ -24,7 +24,7 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/bus.h"
 
-const timerHardware_t timerHardware[] = {
+timerHardware_t timerHardware[] = {
     DEF_TIM(TIM11,  CH1,  PB9,   TIM_USE_PPM,       0, 0 ),     // PPM IN
 
 #ifdef MAMBAF405US_I2C

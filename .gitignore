@@ -19,6 +19,8 @@ cov-int*
 /patches/
 /tools/
 /downloads/
+/debug/
+/release/
 
 # script-generated files
 docs/Manual.pdf
