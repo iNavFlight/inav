@@ -3892,6 +3892,16 @@ If set to ON drone will return tail-first. Obviously meaningless for airplanes.
 
 ---
 
+### nav_rth_trackback_distance
+
+Maximum distance over which trackback points are recorded for RTH trackback option [m]. Set to 0 to disable RTH trackback.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 2000 |
+
+---
+
 ### nav_use_fw_yaw_control
 
 Enables or Disables the use of the heading PID controller on fixed wing. Heading PID controller is always enabled for rovers and boats

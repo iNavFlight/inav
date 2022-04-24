@@ -2598,6 +2598,12 @@ groups:
         default_value: 0
         field: general.rth_home_altitude
         max: 65000
+      - name: nav_rth_trackback_distance
+        description: "Maximum distance over which trackback points are recorded for RTH trackback option [m]. Set to 0 to disable RTH trackback."
+        default_value: 0
+        field: general.rth_trackback_distance
+        max: 2000
+        min: 0
       - name: safehome_max_distance
         description: "In order for a safehome to be used, it must be less than this distance (in cm) from the arming point."
         default_value: 20000
