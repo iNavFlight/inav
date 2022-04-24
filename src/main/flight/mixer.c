@@ -83,13 +83,14 @@ PG_RESET_TEMPLATE(reversibleMotorsConfig_t, reversibleMotorsConfig,
     .neutral = SETTING_3D_NEUTRAL_DEFAULT
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(mixerConfig_t, mixerConfig, PG_MIXER_CONFIG, 4);
+PG_REGISTER_WITH_RESET_TEMPLATE(mixerConfig_t, mixerConfig, PG_MIXER_CONFIG, 5);
 
 PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
     .motorDirectionInverted = SETTING_MOTOR_DIRECTION_INVERTED_DEFAULT,
     .platformType = SETTING_PLATFORM_TYPE_DEFAULT,
     .hasFlaps = SETTING_HAS_FLAPS_DEFAULT,
     .appliedMixerPreset = SETTING_MODEL_PREVIEW_TYPE_DEFAULT, //This flag is not available in CLI and used by Configurator only
+    .outputMode = SETTING_OUTPUT_MODE_DEFAULT,
 );
 
 #ifdef BRUSHED_MOTORS
@@ -605,6 +606,11 @@ void FAST_CODE mixTable()
             if (currentMotorStatus != MOTOR_RUNNING) {
                 motor[i] = motorValueWhenStopped;
             }
+#ifdef USE_DEV_TOOLS
+            if (systemConfig()->groundTestMode) {
+                motor[i] = motorZeroCommand;
+            }
+#endif
         }
     } else {
         for (int i = 0; i < motorCount; i++) {

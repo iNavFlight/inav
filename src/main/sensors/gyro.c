@@ -239,7 +239,7 @@ static void initGyroFilter(filterApplyFnPtr *applyFn, filter_t state[], uint8_t 
 {
     *applyFn = nullFilterApply;
     if (cutoff > 0) {
-        switch (type) 
+        switch (type)
         {
             case FILTER_PT1:
                 *applyFn = (filterApplyFnPtr)pt1FilterApply;
@@ -261,7 +261,7 @@ static void gyroInitFilters(void)
 {
     //First gyro LPF running at full gyro frequency 8kHz
     initGyroFilter(&gyroLpfApplyFn, gyroLpfState, gyroConfig()->gyro_anti_aliasing_lpf_type, gyroConfig()->gyro_anti_aliasing_lpf_hz, getGyroLooptime());
-    
+
     //Second gyro LPF runnig and PID frequency - this filter is dynamic when gyro_use_dyn_lpf = ON
     initGyroFilter(&gyroLpf2ApplyFn, gyroLpf2State, gyroConfig()->gyro_main_lpf_type, gyroConfig()->gyro_main_lpf_hz, getLooptime());
 
@@ -317,7 +317,7 @@ bool gyroInit(void)
     // Dynamic notch running at PID frequency
     dynamicGyroNotchFiltersInit(&dynamicGyroNotchState);
     gyroDataAnalyseStateInit(
-        &gyroAnalyseState, 
+        &gyroAnalyseState,
         gyroConfig()->dynamicGyroNotchMinHz,
         getLooptime()
     );
@@ -331,7 +331,7 @@ void gyroStartCalibration(void)
         return;
     }
 
-#ifndef USE_IMU_FAKE // fixes Test Unit compilation error     
+#ifndef USE_IMU_FAKE // fixes Test Unit compilation error
     if (!gyroConfig()->init_gyro_cal_enabled) {
         return;
     }
@@ -345,7 +345,7 @@ bool gyroIsCalibrationComplete(void)
     if (!gyro.initialized) {
         return true;
     }
-    
+
 #ifndef USE_IMU_FAKE // fixes Test Unit compilation error
     if (!gyroConfig()->init_gyro_cal_enabled) {
         return true;
@@ -488,7 +488,7 @@ void FAST_CODE NOINLINE gyroFilter()
 
         if (gyroAnalyseState.filterUpdateExecute) {
             dynamicGyroNotchFiltersUpdate(
-                &dynamicGyroNotchState, 
+                &dynamicGyroNotchState,
                 gyroAnalyseState.filterUpdateAxis,
                 gyroAnalyseState.centerFrequency[gyroAnalyseState.filterUpdateAxis]
             );
@@ -518,7 +518,7 @@ void FAST_CODE NOINLINE gyroUpdate()
          * First gyro LPF is the only filter applied with the full gyro sampling speed
          */
         gyroADCf = gyroLpfApplyFn((filter_t *) &gyroLpfState[axis], gyroADCf);
-        
+
         gyro.gyroADCf[axis] = gyroADCf;
     }
 }
@@ -565,4 +565,9 @@ void gyroUpdateDynamicLpf(float cutoffFreq) {
             biquadFilterUpdate(&gyroLpf2State[axis].biquad, cutoffFreq, getLooptime(), BIQUAD_Q, FILTER_LPF);
         }
     }
+}
+
+float averageAbsGyroRates(void)
+{
+    return (fabsf(gyro.gyroADCf[ROLL]) + fabsf(gyro.gyroADCf[PITCH]) + fabsf(gyro.gyroADCf[YAW])) / 3.0f;
 }

@@ -46,6 +46,8 @@
 #define USE_SERIALRX_FPORT
 #define USE_SERIALRX_FPORT2
 
+//#define USE_DEV_TOOLS           // tools for dev use only. Undefine for release builds.
+
 #define COMMON_DEFAULT_FEATURES (FEATURE_TX_PROF_SEL)
 
 #if defined(STM32F3)
@@ -178,7 +180,6 @@
 #define USE_STATS
 #define USE_CMS
 #define CMS_MENU_OSD
-#define NAV_GPS_GLITCH_DETECTION
 #define NAV_NON_VOLATILE_WAYPOINT_STORAGE
 #define USE_TELEMETRY_IBUS
 #define USE_TELEMETRY_SMARTPORT

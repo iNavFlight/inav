@@ -10,10 +10,9 @@ Telemetry is enabled using the 'TELEMETRY' feature.
 feature TELEMETRY
 ```
 
-Multiple telemetry providers are currently supported, FrSky, Graupner
-HoTT V4, SmartPort (S.Port) and LightTelemetry (LTM)
+Multiple telemetry providers are currently supported, FrSky, Graupner HoTT V4, SmartPort (S.Port), LightTelemetry (LTM). MAVLink, IBUS, Crossfire and GSM SMS.
 
-All telemetry systems use serial ports, configure serial ports to use the telemetry system required.
+All telemetry systems use serial ports, configure serial ports to use the telemetry system required. Multiple telemetry streams may be enabled, but only one of each type, e.g. Smartport + LTM or MAVLink + CRSF.
 
 ## SmartPort (S.Port) telemetry
 
@@ -25,31 +24,30 @@ Smartport devices are using _inverted_ serial protocol and as such can not be di
 
 | CPU family  | Direct connection   | Receiver _uninverted_ hack  | SoftwareSerial  | Additional hardware inverter  |
 | -----       | -----               | -----                       | -----           | -----                         |
-| STM32F1     | no possible (*)     | possible                    | possible        | possible                      |
-| STM32F3     | possible            | not required                | possible        | not required                  |
 | STM32F4     | not possible (*)    | possible                    | possible        | possible                      |
 | STM32F7     | possible            | not required                | possible        | not required                  |
+| STM32H7     | possible            | not required                | possible        | not required                  |
 
 > * possible if flight controller has dedicated, additional, hardware inverter
 
 Smartport uses _57600bps_ serial speed.
 
-### Direct connection for F3/F7
+### Direct connection for F7/H7
 
-Only TX serial pin has to be connected to Smartport receiver. Disable `telemetry_inverted`.
+Only TX serial pin has to be connected to Smartport receiver.
 
 ```
 set telemetry_inverted = OFF
-set telemetry_uart_unidir = OFF
+set telemetry_halfduplex = ON
 ```
 
-### Receiver univerted hack
+### Receiver uninverted hack
 
 Some receivers (X4R, XSR and so on) can be hacked to get _uninverted_ Smartport signal. In this case connect uninverted signal to TX pad of chosen serial port and enable `telemetry_inverted`.
 
 ```
 set telemetry_inverted = ON
-set telemetry_uart_unidir = OFF
+set telemetry_halfduplex = ON
 ```
 
 ### Software Serial
@@ -58,9 +56,10 @@ Software emulated serial port allows to connect to Smartport receivers without a
 
 ```
 set telemetry_inverted = OFF
+set telemetry_halfduplex = ON
 ```
 
-If solution above is not working, there is an alternative RX and TX lines have to be bridged using
+If the solution above is not working, there is an alternative RX and TX lines have to be bridged using
 1kOhm resistor (confirmed working with 100Ohm, 1kOhm and 10kOhm)
 
 ```
@@ -73,7 +72,7 @@ set telemetry_inverted = OFF
 
 ### SmartPort (S.Port) with external hardware inverter
 
-It is possible to use DIY UART inverter to connect SmartPort receivers to F1 and F4 based flight controllers. This method does not require hardware hack of S.Port receiver.
+It is possible to use DIY UART inverter to connect SmartPort receivers to F1 and F4 based flight controllers. This method does not require a hardware hack of S.Port receiver.
 
 #### SmartPort inverter using bipolar transistors
 ![Inverter](assets/images/smartport_inverter.png)
@@ -83,10 +82,10 @@ It is possible to use DIY UART inverter to connect SmartPort receivers to F1 and
 
 **Warning** Chosen UART has to be 5V tolerant. If not, use 3.3V power supply instead (not tested)
 
-When external inverter is used, following configuration has to be applied:
+When the external inverter is used, following configuration has to be applied:
 
 ```
-set telemetry_uart_unidir = ON
+set telemetry_halfduplex = OFF
 set telemetry_inverted = ON
 ```
 
@@ -177,7 +176,7 @@ Use the latest Graupner firmware for your transmitter and receiver.
 
 Older HoTT transmitters required the EAM and GPS modules to be enabled in the telemetry menu of the transmitter. (e.g. on MX-20)
 
-You can use a single connection, connect HoTT RX/TX only to serial TX, leave serial RX open and make sure the setting `telemetry_uart_unidir` is OFF.
+You can use a single connection, connect HoTT RX/TX only to serial TX, leave serial RX open and make sure the setting `telemetry_halfduplex` is OFF.
 
 The following information is deprecated, use only for compatibility:
 Serial ports use two wires but HoTT uses a single wire so some electronics are required so that the signals don't get mixed up.  The TX and RX pins of
@@ -196,7 +195,7 @@ The diode should be arranged to allow the data signals to flow the right way
 
 1N4148 diodes have been tested and work with the GR-24.
 
-When using the diode enable `telemetry_uart_unidir`, go to CLI and type `set telemetry_uart_unidir = ON`, don't forget a `save` afterwards.
+When using the diode enable `telemetry_halfduplex`, go to CLI and type `set telemetry_halfduplex = ON`, don't forget a `save` afterwards.
 
 As noticed by Skrebber the GR-12 (and probably GR-16/24, too) are based on a PIC 24FJ64GA-002, which has 5V tolerant digital pins.
 
@@ -204,50 +203,38 @@ Note: The SoftSerial ports may not be 5V tolerant on your board.  Verify if you 
 
 ## LightTelemetry (LTM)
 
-LTM is a lightweight streaming telemetry protocol supported by a
-number of OSDs, ground stations and antenna trackers.
+LTM is a lightweight streaming telemetry protocol supported by a number of OSDs, ground stations and antenna trackers.
 
 The INAV implementation of LTM implements the following frames:
 
-* G-FRAME: GPS information (lat, long, ground speed, altitude, sat
-  info)
+* G-FRAME: GPS information (lat, long, ground speed, altitude, sat info)
 * A-FRAME: Attitude (pitch, roll, heading)
-* S-FRAME: Status (voltage, current+, RSSI, airspeed+, status). Item
-  suffixed '+' not implemented in INAV.
+* S-FRAME: Status (voltage, current+, RSSI, airspeed+, status). Item suffixed '+' not implemented in INAV.
 * O-FRAME: Origin (home position, lat, long, altitude, fix)
 
 In addition, in  iNav:
 
-* N-FRAME: Navigation information (GPS mode, Nav mode, Nav action,
-  Waypoint number, Nav Error, Nav Flags).
+* N-FRAME: Navigation information (GPS mode, Nav mode, Nav action, Waypoint number, Nav Error, Nav Flags).
 * X-FRAME: Extra information. Currently HDOP is reported.
 
-LTM is transmit only, and can work at any supported baud rate. It is
-designed to operate over 2400 baud (9600 in INAV) and does not
-benefit from higher rates. It is thus usable on soft serial.
+LTM is transmit only, and can work at any supported baud rate. It is designed to operate over 2400 baud (9600 in INAV) and does not benefit from higher rates. It is thus usable on soft serial.
 
-A CLI variable `ltm_update_rate` may be used to configure the update
-rate and hence band-width used by LTM, with the following enumerations:
+A CLI variable `ltm_update_rate` may be used to configure the update rate and hence band-width used by LTM, with the following enumerations:
 
 * NORMAL: Legacy rate, currently 303 bytes/second (requires 4800 bps)
 * MEDIUM: 164 bytes/second (requires 2400 bps)
 * SLOW: 105 bytes/second (requires 1200 bps)
 
-For many telemetry devices, there is direction correlation between the
-air-speed of the radio link and range; thus a lower value may
-facilitate longer range links.
+For many telemetry devices, there is direction correlation between the air-speed of the radio link and range; thus a lower value may facilitate longer range links.
 
-More information about the fields, encoding and enumerations may be
-found at https://github.com/iNavFlight/inav/wiki/Lightweight-Telemetry-(LTM).
+More information about the fields, encoding and enumerations may be found [on the wiki](https://github.com/iNavFlight/inav/wiki/Lightweight-Telemetry-(LTM)).
 
 
 ## MAVLink telemetry
 
-MAVLink is a very lightweight, header-only message marshalling library for micro air vehicles.
-INAV supports MAVLink for compatibility with ground stations, OSDs and antenna trackers built
-for PX4, PIXHAWK, APM and Parrot AR.Drone platforms.
+MAVLink is a lightweight header-only message marshalling library for micro air vehicles. INAV supports MAVLink for compatibility with ground stations, OSDs and antenna trackers built for PX4, PIXHAWK, APM and Parrot AR.Drone platforms.
 
-MAVLink implementation in INAV is transmit-only and usable on low baud rates and can be used over soft serial.
+MAVLink implementation in INAV is transmit-only and usable on low baud rates and can be used over soft serial (requires 19200 baud). MAVLink V1 and V2 are supported.
 
 
 ## Cellular telemetry via text messages
@@ -375,7 +362,7 @@ sensor 10 is of type GALT,
 sensor 12 is of type GPS_LON,
 sensor 13 is of type GPS_LAT,
 sensor 14 is of type ACC_X,
-sensor 15 is of type ACC_Y, 
+sensor 15 is of type ACC_Y,
 sensor 16 is of type SPEED.
 
 4.This same as 3, but support 4 byte sensors. (fix_updater_03_16_21_33_1 from https://github.com/qba667/FlySkyI6/tree/master/release):

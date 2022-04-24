@@ -1502,6 +1502,16 @@ Enable use of Galileo satellites. This is at the expense of other regional const
 
 ---
 
+### ground_test_mode
+
+For developer ground test use. Disables motors, sets heading status = Trusted on FW.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### gyro_anti_aliasing_lpf_hz
 
 Gyro processing anti-aliasing filter cutoff frequency. In normal operation this filter setting should never be changed. In Hz
@@ -2932,6 +2942,16 @@ Enable the possibility to manually increase the throttle in auto throttle contro
 
 ---
 
+### nav_fw_auto_disarm_delay
+
+Delay before plane disarms when `nav_disarm_on_landing` is set (ms)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 2000 | 100 | 10000 |
+
+---
+
 ### nav_fw_bank_angle
 
 Max roll angle when rolling / turning in GPS assisted modes, is also restrained by global max_angle_inclination_rll
@@ -3444,7 +3464,7 @@ Max allowed above the ground altitude for terrain following mode
 
 ### nav_mc_auto_disarm_delay
 
-Delay before multi-rotor disarms when `nav_disarm_on_landing` is set (m/s)
+Delay before multi-rotor disarms when `nav_disarm_on_landing` is set (ms)
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3764,11 +3784,11 @@ If GPS fails wait for this much seconds before switching to emergency landing mo
 
 ### nav_rth_abort_threshold
 
-RTH sanity checking feature will notice if distance to home is increasing during RTH and once amount of increase exceeds the threshold defined by this parameter, instead of continuing RTH machine will enter emergency landing, self-level and go down safely. Default is 500m which is safe enough for both multirotor machines and airplanes. [cm]
+RTH sanity checking feature will notice if distance to home is increasing during RTH and once amount of increase exceeds the threshold defined by this parameter, instead of continuing RTH machine will enter emergency landing, self-level and go down safely. Default is 500m which is safe enough for both multirotor machines and airplanes. Set to 0 to disable. [cm]
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 50000 |  | 65000 |
+| 50000 | 0 | 65000 |
 
 ---
 
@@ -4642,6 +4662,96 @@ Auto swap display time interval between disarm stats pages (seconds). Reverts to
 
 ---
 
+### osd_switch_indicator_one_channnel
+
+RC Channel to use for OSD switch indicator 1.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 5 | MAX_SUPPORTED_RC_CHANNEL_COUNT |
+
+---
+
+### osd_switch_indicator_one_name
+
+Character to use for OSD switch incicator 1.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| GEAR |  | 5 |
+
+---
+
+### osd_switch_indicator_three_channnel
+
+RC Channel to use for OSD switch indicator 3.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 5 | MAX_SUPPORTED_RC_CHANNEL_COUNT |
+
+---
+
+### osd_switch_indicator_three_name
+
+Character to use for OSD switch incicator 3.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| LIGT |  | 5 |
+
+---
+
+### osd_switch_indicator_two_channnel
+
+RC Channel to use for OSD switch indicator 2.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 5 | MAX_SUPPORTED_RC_CHANNEL_COUNT |
+
+---
+
+### osd_switch_indicator_two_name
+
+Character to use for OSD switch incicator 2.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| CAM |  | 5 |
+
+---
+
+### osd_switch_indicator_zero_channnel
+
+RC Channel to use for OSD switch indicator 0.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 5 | MAX_SUPPORTED_RC_CHANNEL_COUNT |
+
+---
+
+### osd_switch_indicator_zero_name
+
+Character to use for OSD switch incicator 0.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| FLAP |  | 5 |
+
+---
+
+### osd_switch_indicators_align_left
+
+Align text to left of switch indicators
+
+| Default | Min | Max |
+| --- | --- | --- |
+| ON | OFF | ON |
+
+---
+
 ### osd_system_msg_display_time
 
 System message display cycle time for multiple messages (milliseconds).
@@ -4695,6 +4805,16 @@ IMPERIAL, METRIC, UK
 ### osd_video_system
 
 Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, and `HD`
+
+| Default | Min | Max |
+| --- | --- | --- |
+| AUTO |  |  |
+
+---
+
+### output_mode
+
+Output function assignment mode. AUTO assigns outputs according to the default mapping, SERVOS assigns all outputs to servos, MOTORS assigns all outputs to motors
 
 | Default | Min | Max |
 | --- | --- | --- |
