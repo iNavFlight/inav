@@ -3894,7 +3894,7 @@ If set to ON drone will return tail-first. Obviously meaningless for airplanes.
 
 ### nav_rth_trackback_distance
 
-Maximum distance over which trackback points are recorded for RTH trackback option [m]. Set to 0 to disable RTH trackback.
+Maximum distance over which trackback points are recorded for RTH trackback option [m]. Trackback disabled when set to 0. Limited to max 50 points so 1000m records points approx every 20m
 
 | Default | Min | Max |
 | --- | --- | --- |

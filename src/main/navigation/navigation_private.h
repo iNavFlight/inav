@@ -43,7 +43,7 @@
 #define MC_LAND_DESCEND_THROTTLE            40      // uS
 #define MC_LAND_SAFE_SURFACE                5.0f    // cm
 
-#define NAV_RTH_TRACKBACK_POINTS            60      // max number RTH trackback points
+#define NAV_RTH_TRACKBACK_POINTS            50      // max number RTH trackback points
 
 #define MAX_POSITION_UPDATE_INTERVAL_US     HZ2US(MIN_POSITION_UPDATE_RATE_HZ)        // convenience macro
 _Static_assert(MAX_POSITION_UPDATE_INTERVAL_US <= TIMEDELTA_MAX, "deltaMicros can overflow!");

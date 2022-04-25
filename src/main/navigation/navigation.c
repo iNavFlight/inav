@@ -2576,6 +2576,14 @@ static bool rthAltControlStickOverrideCheck(unsigned axis)
     return false;
  }
 
+/* --------------------------------------------------------------------------------
+ * == RTH Trackback ==
+ * Saves track during flight which is used during Failsafe RTH to back track
+ * along arrival route in attempt to regain Rx signal.
+ * Desired distance of trackback set by user but limited to fixed number of points
+ * so longer distances reduce accuracy of track.
+ * Reverts to normal RTH heading direct to home when end of track reached.
+ * --------------------------------------------------------------------------------- */
 static void updateRthTrackback(void)
 {
     if (!navConfig()->general.rth_trackback_distance || !ARMING_FLAG(ARMED) || posControl.flags.forcedRTHActivated) return;
@@ -2584,20 +2592,20 @@ static void updateRthTrackback(void)
     // max points limit reached. Cyclically overwrite older points from then on.
     if (posControl.flags.estPosStatus >= EST_USABLE && posControl.flags.estAltStatus >= EST_USABLE) {
         bool saveTrackpoint = false;
-        static int16_t lastCOG = 0;
+        static int16_t lastTBCourse = 0;
 
         // only start recording when some distance from home
         if (posControl.activeRthTBPointIndex < 0) {
             saveTrackpoint = posControl.homeDistance > 5000;
         } else {
             const bool distChange = calculateDistanceToDestination(&posControl.rthTBPointsList[posControl.activeRthTBPointIndex]) > (METERS_TO_CENTIMETERS(navConfig()->general.rth_trackback_distance) / NAV_RTH_TRACKBACK_POINTS);
-            const bool courseChange = ABS((wrap_18000(10 * gpsSol.groundCourse) - wrap_18000(10 * lastCOG)) / 100) > 45;    // degrees
-            const bool altChange = fabsf(posControl.rthTBPointsList[posControl.activeRthTBPointIndex].z - posControl.actualState.abs.pos.z) > 1000;
+            const bool courseChange = ABS((wrap_18000(10 * gpsSol.groundCourse) - wrap_18000(10 * lastTBCourse)) / 100) > 90;    // degrees
+            const bool altChange = fabsf(posControl.rthTBPointsList[posControl.activeRthTBPointIndex].z - posControl.actualState.abs.pos.z) > 1000; // cm
 
             saveTrackpoint = distChange || courseChange || altChange;
         }
 
-        // when trackpoint array full overwrite from start of array using 'rthTBWrapAroundCounter' to track overwrite position
+        // when trackpoint store full overwrite from start using 'rthTBWrapAroundCounter' to track overwrite position
         if (saveTrackpoint) {
             if (posControl.activeRthTBPointIndex == (NAV_RTH_TRACKBACK_POINTS - 1)) {
                 posControl.rthTBWrapAroundCounter = posControl.activeRthTBPointIndex = 0;
@@ -2609,7 +2617,7 @@ static void updateRthTrackback(void)
             }
             posControl.rthTBPointsList[posControl.activeRthTBPointIndex] = posControl.actualState.abs.pos;
             posControl.rthTBLastSavedIndex = posControl.activeRthTBPointIndex;
-            lastCOG = gpsSol.groundCourse;
+            lastTBCourse = gpsSol.groundCourse;
         }
     }
 }
