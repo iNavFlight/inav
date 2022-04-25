@@ -2324,21 +2324,21 @@ static bool osdDrawSingleElement(uint8_t item)
         }
     case OSD_CLIMB_EFFICIENCY:
         {
-            // amperage is in centi amps, vertical speed is in cms/s. We want
-            // mah/dist only to show when vertical speed > 1m/s.
-            static pt1Filter_t eFilterState;
-            static timeUs_t efficiencyUpdated = 0;
+            // amperage is in centi amps (10mA), vertical speed is in cms/s. We want
+            // Ah/dist only to show when vertical speed > 1m/s.
+            static pt1Filter_t veFilterState;
+            static timeUs_t vEfficiencyUpdated = 0;
             int32_t value = 0;
-            bool moreThanAh = false;
             timeUs_t currentTimeUs = micros();
-            timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
+            timeDelta_t vEfficiencyTimeDelta = cmpTimeUs(currentTimeUs, vEfficiencyUpdated);
             if (getEstimatedActualVelocity(Z) > 0) {
-                if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
-                    value = pt1FilterApply4(&eFilterState, ((float)getAmperage() / getEstimatedActualVelocity(Z)) / 0.0036f, 1, US2S(efficiencyTimeDelta));
+                if (vEfficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
+                                                            // Amps / m/s
+                    value = pt1FilterApply4(&veFilterState, ((float)getAmperage() / 100.0f) / (getEstimatedActualVelocity(Z) / 0.01f), 1, US2S(vEfficiencyTimeDelta));
 
-                    efficiencyUpdated = currentTimeUs;
+                    vEfficiencyUpdated = currentTimeUs;
                 } else {
-                    value = eFilterState.state;
+                    value = veFilterState.state;
                 }
             }
             bool efficiencyValid = (value > 0) && (getEstimatedActualVelocity(Z) > 100);
@@ -2349,16 +2349,13 @@ static bool osdDrawSingleElement(uint8_t item)
                     FALLTHROUGH;
                 case OSD_UNIT_IMPERIAL:
                     // mAh/foot
-                    moreThanAh = osdFormatCentiNumber(buff, value * METERS_PER_FOOT / 10, 1, 0, 2, 3);
-                    if (!moreThanAh) {
-                        tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_V_FT_0, SYM_MAH_V_FT_1);
-                    } else {
-                        tfp_sprintf(buff, "%s%c", buff, SYM_AH_MI);
-                    }
+                    osdFormatCentiNumber(buff, value * METERS_PER_FOOT, 1, 2, 2, 3);
+                    tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_V_FT_0, SYM_MAH_V_FT_1);
+                    
                     if (!efficiencyValid) {
                         buff[0] = buff[1] = buff[2] = '-';
-                        buff[3] = SYM_MAH_MI_0;
-                        buff[4] = SYM_MAH_MI_1;
+                        buff[3] = SYM_MAH_V_FT_0;
+                        buff[4] = SYM_MAH_V_FT_1;
                         buff[5] = '\0';
                     }
                     break;
@@ -2366,16 +2363,13 @@ static bool osdDrawSingleElement(uint8_t item)
                     FALLTHROUGH;
                 case OSD_UNIT_METRIC:
                     // mAh/metre
-                    moreThanAh = osdFormatCentiNumber(buff, value * 100, 1, 0, 2, 3);
-                    if (!moreThanAh) {
-                        tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_V_M_0, SYM_MAH_V_M_1);
-                    } else {
-                        tfp_sprintf(buff, "%s%c", buff, SYM_AH_KM);
-                    }
+                    osdFormatCentiNumber(buff, value, 1, 2, 2, 3);
+                    tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_V_M_0, SYM_MAH_V_M_1);
+                    
                     if (!efficiencyValid) {
                         buff[0] = buff[1] = buff[2] = '-';
-                        buff[3] = SYM_MAH_KM_0;
-                        buff[4] = SYM_MAH_KM_1;
+                        buff[3] = SYM_MAH_V_M_0;
+                        buff[4] = SYM_MAH_V_M_1;
                         buff[5] = '\0';
                     }
                     break;
