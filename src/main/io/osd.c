@@ -2350,12 +2350,12 @@ static bool osdDrawSingleElement(uint8_t item)
                 case OSD_UNIT_IMPERIAL:
                     // mAh/foot
                     osdFormatCentiNumber(buff, value * METERS_PER_FOOT, 1, 2, 2, 3);
-                    tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_V_FT_0, SYM_MAH_V_FT_1);
+                    tfp_sprintf(buff, "%s%c%c", buff, SYM_AH_V_FT_0, SYM_AH_V_FT_1);
                     
                     if (!efficiencyValid) {
                         buff[0] = buff[1] = buff[2] = '-';
-                        buff[3] = SYM_MAH_V_FT_0;
-                        buff[4] = SYM_MAH_V_FT_1;
+                        buff[3] = SYM_AH_V_FT_0;
+                        buff[4] = SYM_AH_V_FT_1;
                         buff[5] = '\0';
                     }
                     break;
@@ -2364,12 +2364,12 @@ static bool osdDrawSingleElement(uint8_t item)
                 case OSD_UNIT_METRIC:
                     // mAh/metre
                     osdFormatCentiNumber(buff, value, 1, 2, 2, 3);
-                    tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_V_M_0, SYM_MAH_V_M_1);
+                    tfp_sprintf(buff, "%s%c%c", buff, SYM_AH_V_M_0, SYM_AH_V_M_1);
                     
                     if (!efficiencyValid) {
                         buff[0] = buff[1] = buff[2] = '-';
-                        buff[3] = SYM_MAH_V_M_0;
-                        buff[4] = SYM_MAH_V_M_1;
+                        buff[3] = SYM_AH_V_M_0;
+                        buff[4] = SYM_AH_V_M_1;
                         buff[5] = '\0';
                     }
                     break;
