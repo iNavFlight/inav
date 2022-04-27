@@ -146,7 +146,8 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
     //  speedWeight = 1.0 : pitch will only control airspeed and won't control altitude
     //  speedWeight = 0.5 : pitch will be used to control both airspeed and altitude
     //  speedWeight = 0.0 : pitch will only control altitude
-    const float speedWeight = 0.0f; // no speed sensing for now
+    const float speedWeight = 0.7f; // no speed sensing for now
+//    const float speedWeight = 1.0f - constrainf(fabs(demSPE - estSPE) / GRAVITY_MSS, 0.0f, 1.0f); // no speed sensing for now
 
     const float demSEB = demSPE * (1.0f - speedWeight) - demSKE * speedWeight;
     const float estSEB = estSPE * (1.0f - speedWeight) - estSKE * speedWeight;

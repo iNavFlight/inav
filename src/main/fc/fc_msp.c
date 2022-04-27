@@ -99,6 +99,7 @@
 #include "msp/msp_serial.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_private.h"
 #include "navigation/navigation_pos_estimator_private.h"
 
 #include "rx/rx.h"
@@ -3244,33 +3245,48 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         sbufWriteU8(dst, ARMING_FLAG(ARMED)); // arming status
         sbufWriteU8(dst, 0); // arming status
         sbufWriteU32(dst, flightModeFlags);
-        // "1" for error messages
+
+        sbufWriteU8(dst, 1); // messages
+        char buff[50] = {" "};
+        osdGetSystemMessage(buff, sizeof(buff), false);
+        const char *c = buff;
+        while (*c) {
+            sbufWriteU8(dst, *c++);
+        }
+        sbufWriteU8(dst, '\0'); // last symbol
+
         sbufWriteU8(dst, 2); // home position
         sbufWriteU16(dst, GPS_distanceToHome);
         sbufWriteU16(dst, GPS_directionToHome);
         sbufWriteU32(dst, baro.BaroAlt);
         sbufWriteU8(dst, 3); // throttle
         sbufWriteU8(dst, getThrottlePercent());
+        sbufWriteU8(dst, 4); // vario
+        sbufWriteU16(dst, getEstimatedActualVelocity(Z) + 32000);
 
         *ret = MSP_RESULT_ACK;
         break;
     case MSP_SIMULATOR:
         tmp_u8 = sbufReadU8(src);
-        if (tmp_u8 == 1) {
+        if (tmp_u8 >= 1) {
             if (! ARMING_FLAG(SIMULATOR_MODE)) {
                 baroStartCalibration(); // just once
             }
             ENABLE_ARMING_FLAG(SIMULATOR_MODE);
+
+            switch (tmp_u8) {
+                case 0x02: // RST HOME
+                    setHomePosition(&navGetCurrentActualPositionAndVelocity()->pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, NAV_HOME_VALID_ALL);
+                    baroStartCalibration();
+                    break;
+                case 0x03:
+                    break;
+            }
         } else {
             DISABLE_ARMING_FLAG(SIMULATOR_MODE);
         }
         if (dataSize >= 14) {
             gpsSol.fixType = sbufReadU8(src);
-            if (gpsSol.fixType) {
-                ENABLE_STATE(GPS_FIX);
-            } else {
-                DISABLE_STATE(GPS_FIX);
-            }
             gpsSol.flags.hasNewData = true;
             gpsSol.flags.validVelNE = 0;
             gpsSol.flags.validVelD = 0;
@@ -3287,8 +3303,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
             gpsSol.eph = 100;
             gpsSol.epv = 100;
             // Feed data to navigation
-            sensorsSet(SENSOR_GPS);
-            onNewGPSData();
+            gpsProcessNewSolutionData();
 
             attitude.values.roll = sbufReadU16(src)-1800;
             attitude.values.pitch = sbufReadU16(src)-1800;
