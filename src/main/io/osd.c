@@ -2334,7 +2334,7 @@ static bool osdDrawSingleElement(uint8_t item)
             if (getEstimatedActualVelocity(Z) > 0) {
                 if (vEfficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
                                                             // Amps / m/s
-                    value = pt1FilterApply4(&veFilterState, ((float)getAmperage() / 100.0f) / (getEstimatedActualVelocity(Z) / 0.01f), 1, US2S(vEfficiencyTimeDelta));
+                    value = pt1FilterApply4(&veFilterState, ((float)getAmperage() / 100.0f) / (getEstimatedActualVelocity(Z) / 100.0f), 1, US2S(vEfficiencyTimeDelta));
 
                     vEfficiencyUpdated = currentTimeUs;
                 } else {
@@ -2349,10 +2349,10 @@ static bool osdDrawSingleElement(uint8_t item)
                     FALLTHROUGH;
                 case OSD_UNIT_IMPERIAL:
                     // mAh/foot
-                    osdFormatCentiNumber(buff, value * METERS_PER_FOOT, 1, 2, 2, 3);
-                    tfp_sprintf(buff, "%s%c%c", buff, SYM_AH_V_FT_0, SYM_AH_V_FT_1);
-                    
-                    if (!efficiencyValid) {
+                    if (efficiencyValid) {
+                        osdFormatCentiNumber(buff, value * METERS_PER_FOOT, 1, 2, 2, 3);
+                        tfp_sprintf(buff, "%s%c%c", buff, SYM_AH_V_FT_0, SYM_AH_V_FT_1);
+                    } else {
                         buff[0] = buff[1] = buff[2] = '-';
                         buff[3] = SYM_AH_V_FT_0;
                         buff[4] = SYM_AH_V_FT_1;
@@ -2363,10 +2363,10 @@ static bool osdDrawSingleElement(uint8_t item)
                     FALLTHROUGH;
                 case OSD_UNIT_METRIC:
                     // mAh/metre
-                    osdFormatCentiNumber(buff, value, 1, 2, 2, 3);
-                    tfp_sprintf(buff, "%s%c%c", buff, SYM_AH_V_M_0, SYM_AH_V_M_1);
-                    
-                    if (!efficiencyValid) {
+                    if (efficiencyValid) {
+                        osdFormatCentiNumber(buff, value, 1, 2, 2, 3);
+                        tfp_sprintf(buff, "%s%c%c", buff, SYM_AH_V_M_0, SYM_AH_V_M_1);
+                    } else {
                         buff[0] = buff[1] = buff[2] = '-';
                         buff[3] = SYM_AH_V_M_0;
                         buff[4] = SYM_AH_V_M_1;
