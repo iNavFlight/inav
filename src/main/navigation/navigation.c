@@ -2146,6 +2146,7 @@ static int16_t getCourseOverGround(void)   // returns degrees
      * Otherwise use gyro YAW for multirotor, apply rcCommand based YAW correction */
     if (isGPSHeadingValid()) {
         return DECIDEGREES_TO_DEGREES(gpsSol.groundCourse);
+
     } else if (STATE(MULTIROTOR) && sensors(SENSOR_MAG) && posControl.flags.estHeadingStatus == EST_TRUSTED) {
         return CENTIDEGREES_TO_DEGREES(wrap_36000(posControl.actualState.yaw + RADIANS_TO_CENTIDEGREES(atan2_approx(rcCommand[ROLL], rcCommand[PITCH]))));
     }
