@@ -69,7 +69,13 @@ typedef struct SPIDevice_s {
     ioTag_t mosi;
     ioTag_t miso;
     rccPeriphTag_t rcc;
+#if defined(STM32F7) || defined(STM32H7)
+    uint8_t sckAF;
+    uint8_t misoAF;
+    uint8_t mosiAF;
+#else
     uint8_t af;
+#endif
     const uint32_t * divisorMap;
     volatile uint16_t errorCount;
     bool initDone;

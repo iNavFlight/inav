@@ -3516,6 +3516,59 @@ groups:
         max: 6
         default_value: 3
 
+      - name: osd_switch_indicator_zero_name
+        description: "Character to use for OSD switch incicator 0."
+        field: osd_switch_indicator0_name
+        type: string
+        max: 5
+        default_value: "FLAP"
+      - name: osd_switch_indicator_one_name
+        description: "Character to use for OSD switch incicator 1."
+        field: osd_switch_indicator1_name
+        type: string
+        max: 5
+        default_value: "GEAR"
+      - name: osd_switch_indicator_two_name
+        description: "Character to use for OSD switch incicator 2."
+        field: osd_switch_indicator2_name
+        type: string
+        max: 5
+        default_value: "CAM"
+      - name: osd_switch_indicator_three_name
+        description: "Character to use for OSD switch incicator 3."
+        field: osd_switch_indicator3_name
+        type: string
+        max: 5
+        default_value: "LIGT"
+      - name: osd_switch_indicator_zero_channnel
+        description: "RC Channel to use for OSD switch indicator 0."
+        field: osd_switch_indicator0_channnel
+        min: 5
+        max: MAX_SUPPORTED_RC_CHANNEL_COUNT
+        default_value: 5
+      - name: osd_switch_indicator_one_channnel
+        description: "RC Channel to use for OSD switch indicator 1."
+        field: osd_switch_indicator1_channnel
+        min: 5
+        max: MAX_SUPPORTED_RC_CHANNEL_COUNT
+        default_value: 5
+      - name: osd_switch_indicator_two_channnel
+        description: "RC Channel to use for OSD switch indicator 2."
+        field: osd_switch_indicator2_channnel
+        min: 5
+        max: MAX_SUPPORTED_RC_CHANNEL_COUNT
+        default_value: 5
+      - name: osd_switch_indicator_three_channnel
+        description: "RC Channel to use for OSD switch indicator 3."
+        field: osd_switch_indicator3_channnel
+        min: 5
+        max: MAX_SUPPORTED_RC_CHANNEL_COUNT
+        default_value: 5
+      - name: osd_switch_indicators_align_left
+        description: "Align text to left of switch indicators"
+        field: osd_switch_indicators_align_left
+        type: bool
+        default_value: ON
       - name: osd_system_msg_display_time
         description: System message display cycle time for multiple messages (milliseconds).
         field: system_msg_display_time
@@ -3650,6 +3703,11 @@ groups:
         description: "Enable the alternate softserial method. This is the method used in iNav 3.0 and ealier."
         default_value: ON
         field: smartAudioAltSoftSerialMethod
+        type: bool
+      - name: vtx_softserial_shortstop
+        description: "Enable the 3x shorter stopbit on softserial. Need for some IRC Tramp VTXes."
+        default_value: OFF
+        field: softSerialShortStop
         type: bool
 
   - name: PG_VTX_SETTINGS_CONFIG

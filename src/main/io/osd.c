@@ -1504,6 +1504,40 @@ int8_t getGeoWaypointNumber(int8_t waypointIndex)
     return geoWaypointIndex + 1;
 }
 
+void osdDisplaySwitchIndicator(const char *swName, int rcValue, char *buff) {
+    int8_t ptr = 0;
+
+    if (osdConfig()->osd_switch_indicators_align_left) {
+        for (ptr = 0; ptr < constrain(strlen(swName), 0, OSD_SWITCH_INDICATOR_NAME_LENGTH); ptr++) {
+            buff[ptr] = swName[ptr];
+        }
+
+        if ( rcValue < 1333) {
+            buff[ptr++] = SYM_SWITCH_INDICATOR_LOW;
+        } else if ( rcValue > 1666) {
+            buff[ptr++] = SYM_SWITCH_INDICATOR_HIGH;
+        } else {
+            buff[ptr++] = SYM_SWITCH_INDICATOR_MID;
+        }
+    } else {
+        if ( rcValue < 1333) {
+            buff[ptr++] = SYM_SWITCH_INDICATOR_LOW;
+        } else if ( rcValue > 1666) {
+            buff[ptr++] = SYM_SWITCH_INDICATOR_HIGH;
+        } else {
+            buff[ptr++] = SYM_SWITCH_INDICATOR_MID;
+        }
+
+        for (ptr = 1; ptr < constrain(strlen(swName), 0, OSD_SWITCH_INDICATOR_NAME_LENGTH) + 1; ptr++) {
+            buff[ptr] = swName[ptr-1];
+        }
+
+        ptr++;
+    }
+    
+    buff[ptr] = '\0';
+}
+
 static bool osdDrawSingleElement(uint8_t item)
 {
     uint16_t pos = osdLayoutsConfig()->item_pos[currentLayout][item];
@@ -2271,6 +2305,22 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 #endif
+
+    case OSD_SWITCH_INDICATOR_0:
+        osdDisplaySwitchIndicator(osdConfig()->osd_switch_indicator0_name, rxGetChannelValue(osdConfig()->osd_switch_indicator0_channnel - 1), buff);
+        break;
+
+    case OSD_SWITCH_INDICATOR_1:
+        osdDisplaySwitchIndicator(osdConfig()->osd_switch_indicator1_name, rxGetChannelValue(osdConfig()->osd_switch_indicator1_channnel - 1), buff);
+        break;
+
+    case OSD_SWITCH_INDICATOR_2:
+        osdDisplaySwitchIndicator(osdConfig()->osd_switch_indicator2_name, rxGetChannelValue(osdConfig()->osd_switch_indicator2_channnel - 1), buff);
+        break;
+
+    case OSD_SWITCH_INDICATOR_3:
+        osdDisplaySwitchIndicator(osdConfig()->osd_switch_indicator3_name, rxGetChannelValue(osdConfig()->osd_switch_indicator3_channnel - 1), buff);
+        break;
 
     case OSD_ACTIVE_PROFILE:
         tfp_sprintf(buff, "%c%u", SYM_PROFILE, (getConfigProfile() + 1));
@@ -3216,6 +3266,15 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .pan_servo_index = SETTING_OSD_PAN_SERVO_INDEX_DEFAULT,
     .pan_servo_pwm2centideg = SETTING_OSD_PAN_SERVO_PWM2CENTIDEG_DEFAULT,
     .esc_rpm_precision = SETTING_OSD_ESC_RPM_PRECISION_DEFAULT,
+    .osd_switch_indicator0_name = SETTING_OSD_SWITCH_INDICATOR_ZERO_NAME_DEFAULT,
+    .osd_switch_indicator0_channnel = SETTING_OSD_SWITCH_INDICATOR_ZERO_CHANNNEL_DEFAULT,
+    .osd_switch_indicator1_name = SETTING_OSD_SWITCH_INDICATOR_ONE_NAME_DEFAULT,
+    .osd_switch_indicator1_channnel = SETTING_OSD_SWITCH_INDICATOR_ONE_CHANNNEL_DEFAULT,
+    .osd_switch_indicator2_name = SETTING_OSD_SWITCH_INDICATOR_TWO_NAME_DEFAULT,
+    .osd_switch_indicator2_channnel = SETTING_OSD_SWITCH_INDICATOR_TWO_CHANNNEL_DEFAULT,
+    .osd_switch_indicator3_name = SETTING_OSD_SWITCH_INDICATOR_THREE_NAME_DEFAULT,
+    .osd_switch_indicator3_channnel = SETTING_OSD_SWITCH_INDICATOR_THREE_CHANNNEL_DEFAULT,
+    .osd_switch_indicators_align_left = SETTING_OSD_SWITCH_INDICATORS_ALIGN_LEFT_DEFAULT,
     .system_msg_display_time = SETTING_OSD_SYSTEM_MSG_DISPLAY_TIME_DEFAULT,
     .units = SETTING_OSD_UNITS_DEFAULT,
     .main_voltage_decimals = SETTING_OSD_MAIN_VOLTAGE_DECIMALS_DEFAULT,
@@ -3377,6 +3436,11 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_GVAR_1] = OSD_POS(1, 2);
     osdLayoutsConfig->item_pos[0][OSD_GVAR_2] = OSD_POS(1, 3);
     osdLayoutsConfig->item_pos[0][OSD_GVAR_3] = OSD_POS(1, 4);
+
+    osdLayoutsConfig->item_pos[0][OSD_SWITCH_INDICATOR_0] = OSD_POS(2, 7);
+    osdLayoutsConfig->item_pos[0][OSD_SWITCH_INDICATOR_1] = OSD_POS(2, 8);
+    osdLayoutsConfig->item_pos[0][OSD_SWITCH_INDICATOR_2] = OSD_POS(2, 9);
+    osdLayoutsConfig->item_pos[0][OSD_SWITCH_INDICATOR_3] = OSD_POS(2, 10);
 
 #if defined(USE_ESC_SENSOR)
     osdLayoutsConfig->item_pos[0][OSD_ESC_RPM] = OSD_POS(1, 2);

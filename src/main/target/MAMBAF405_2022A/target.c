@@ -15,30 +15,25 @@
  * along with INAV.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+
 #include <stdint.h>
 
 #include "platform.h"
-
-#include "drivers/bus.h"
 #include "drivers/io.h"
-#include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
-#include "drivers/pinio.h"
-#include "drivers/sensor.h"
+#include "drivers/pwm_mapping.h"
+#include "drivers/bus.h"
 
 timerHardware_t timerHardware[] = {
 
-    DEF_TIM(TIM3, CH3, PB0,     TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR, 0, 0),   // S1
-    DEF_TIM(TIM3, CH4, PB1,     TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR, 0, 1),   // S2
-    DEF_TIM(TIM2, CH2, PB3,     TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 2),   // S3
-    DEF_TIM(TIM2, CH3, PB10,    TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 3),   // S4
+    DEF_TIM(TIM1,   CH2,  PA9,   TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,  0, 1 ),     // S1 pin A9: DMA2 Stream 6 Channel 0
+    DEF_TIM(TIM1,   CH1,  PA8,   TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,  0, 1 ),     // S2 pin A8: DMA2 Stream 6 Channel 0
+    DEF_TIM(TIM8,   CH4,  PC9,   TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,  0, 0 ),     // S3 pin C9: DMA2 Stream 7 Channel 7
+    DEF_TIM(TIM8,   CH3,  PC8,   TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,  0, 1 ),     // S4 pin C8: DMA2 Stream 2 Channel 0
+    DEF_TIM(TIM3,   CH3,  PB0,   TIM_USE_MC_SERVO | TIM_USE_FW_MOTOR,  1, 0 ),     // S4 pin C8: DMA2 Stream 2 Channel 0
+    DEF_TIM(TIM3,   CH4,  PB1,   TIM_USE_MC_SERVO | TIM_USE_FW_MOTOR,  1, 0 ),     // S4 pin C8: DMA2 Stream 2 Channel 0
 
-    DEF_TIM(TIM5, CH1, PA0,     TIM_USE_MC_SERVO | TIM_USE_FW_SERVO, 0, 4),   // S5  
-    DEF_TIM(TIM5, CH3, PA2,     TIM_USE_MC_SERVO | TIM_USE_FW_SERVO, 0, 5),   // S6
-    DEF_TIM(TIM8, CH3, PC8,     TIM_USE_MC_SERVO | TIM_USE_FW_SERVO, 0, 6),   // S7
-    DEF_TIM(TIM8, CH4, PC9,     TIM_USE_MC_SERVO | TIM_USE_FW_SERVO, 0, 7),   // S8
-   
-    DEF_TIM(TIM4,  CH1, PD12,   TIM_USE_LED, 0, 9),    // LED_2812
+    DEF_TIM(TIM2,   CH2,  PB3,   TIM_USE_LED,       0, 0 ),     // LED_STRIP – D(1, 6, 3)
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

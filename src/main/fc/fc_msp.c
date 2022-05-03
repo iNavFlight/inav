@@ -1548,6 +1548,23 @@ static mspResult_e mspFcSafeHomeOutCommand(sbuf_t *dst, sbuf_t *src)
     }
 }
 
+static mspResult_e mspFcLogicConditionCommand(sbuf_t *dst, sbuf_t *src) {
+    const uint8_t idx = sbufReadU8(src);
+    if (idx < MAX_LOGIC_CONDITIONS) {
+        sbufWriteU8(dst, logicConditions(idx)->enabled);
+        sbufWriteU8(dst, logicConditions(idx)->activatorId);
+        sbufWriteU8(dst, logicConditions(idx)->operation);
+        sbufWriteU8(dst, logicConditions(idx)->operandA.type);
+        sbufWriteU32(dst, logicConditions(idx)->operandA.value);
+        sbufWriteU8(dst, logicConditions(idx)->operandB.type);
+        sbufWriteU32(dst, logicConditions(idx)->operandB.value);
+        sbufWriteU8(dst, logicConditions(idx)->flags);
+        return MSP_RESULT_ACK;
+    } else {
+        return MSP_RESULT_ERROR;
+    }
+}
+
 static void mspFcWaypointOutCommand(sbuf_t *dst, sbuf_t *src)
 {
     const uint8_t msp_wp_no = sbufReadU8(src);    // get the wp number
@@ -3226,6 +3243,11 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         break;
 #endif
 
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    case MSP2_INAV_LOGIC_CONDITIONS_SINGLE:
+        *ret = mspFcLogicConditionCommand(dst, src);
+        break;
+#endif
     case MSP2_INAV_SAFEHOME:
          *ret = mspFcSafeHomeOutCommand(dst, src);
          break;

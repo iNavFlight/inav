@@ -3200,13 +3200,9 @@ static void processNavigationRCAdjustments(void)
     }
 
     if (navStateFlags & NAV_RC_POS) {
-        if (!FLIGHT_MODE(FAILSAFE_MODE)) {
-            posControl.flags.isAdjustingPosition = adjustPositionFromRCInput();
-        }
-        else {
-            if (!STATE(FIXED_WING_LEGACY)) {
-                resetMulticopterBrakingMode();
-            }
+        posControl.flags.isAdjustingPosition = adjustPositionFromRCInput() && !FLIGHT_MODE(FAILSAFE_MODE);
+        if (STATE(MULTIROTOR) && FLIGHT_MODE(FAILSAFE_MODE)) {
+            resetMulticopterBrakingMode();
         }
     }
     else {

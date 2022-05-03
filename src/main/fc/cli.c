@@ -140,6 +140,7 @@ static uint8_t cliWriteBuffer[sizeof(*cliWriter) + 128];
 
 static char cliBuffer[64];
 static uint32_t bufferIndex = 0;
+static uint16_t cliDelayMs = 0;
 
 #if defined(USE_ASSERT)
 static void cliAssert(char *cmdline);
@@ -222,6 +223,9 @@ static void cliPrint(const char *str)
 static void cliPrintLinefeed(void)
 {
     cliPrint("\r\n");
+    if (cliDelayMs) {
+        delay(cliDelayMs);
+    }
 }
 
 static void cliPrintLine(const char *str)
@@ -1671,6 +1675,25 @@ static void cliModeColor(char *cmdline)
     }
 }
 #endif
+
+static void cliDelay(char* cmdLine) {
+    int ms = 0;
+    if (isEmpty(cmdLine)) {
+        cliDelayMs = 0;
+        cliPrintLine("CLI delay deactivated");
+        return;
+    }
+    
+    ms = fastA2I(cmdLine);
+    if (ms) {
+        cliDelayMs = ms;
+        cliPrintLinef("CLI delay set to %d ms", ms);
+
+    } else {
+        cliShowParseError();
+    }
+    
+}
 
 static void printServo(uint8_t dumpMask, const servoParam_t *servoParam, const servoParam_t *defaultServoParam)
 {
@@ -3856,6 +3879,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("color", "configure colors", NULL, cliColor),
     CLI_COMMAND_DEF("mode_color", "configure mode and special colors", NULL, cliModeColor),
 #endif
+    CLI_COMMAND_DEF("cli_delay", "CLI Delay", "Delay in ms", cliDelay),
     CLI_COMMAND_DEF("defaults", "reset to defaults and reboot", NULL, cliDefaults),
     CLI_COMMAND_DEF("dfu", "DFU mode on reboot", NULL, cliDfu),
     CLI_COMMAND_DEF("diff", "list configuration changes from default",
