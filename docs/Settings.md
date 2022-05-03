@@ -3894,11 +3894,21 @@ If set to ON drone will return tail-first. Obviously meaningless for airplanes.
 
 ### nav_rth_trackback_distance
 
-Maximum distance over which trackback points are recorded for RTH trackback option [m]. Trackback disabled when set to 0. Limited to max 50 points so 1000m records points approx every 20m
+Maximum distance allowed for RTH trackback. Normal RTH is executed once this distance is exceeded [m].
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 2000 |
+| 500 | 50 | 2000 |
+
+---
+
+### nav_rth_trackback_mode
+
+Useage modes for RTH Trackback. OFF = disabled, ON = Normal and Failsafe RTH, FS = Failsafe RTH only.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF |  |  |
 
 ---
 

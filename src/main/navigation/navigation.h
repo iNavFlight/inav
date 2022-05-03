@@ -164,6 +164,12 @@ typedef enum {
     WP_MISSION_SWITCH,
 } navMissionRestart_e;
 
+typedef enum {
+    RTH_TRACKBACK_OFF,
+    RTH_TRACKBACK_ON,
+    RTH_TRACKBACK_FS,
+} rthTrackbackMode_e;
+
 typedef struct positionEstimationConfig_s {
     uint8_t automatic_mag_declination;
     uint8_t reset_altitude_type; // from nav_reset_type_e
@@ -223,6 +229,7 @@ typedef struct navConfig_s {
             uint8_t mission_planner_reset;      // Allow WP Mission Planner reset using mode toggle (resets WPs to 0)
             uint8_t waypoint_mission_restart;   // Waypoint mission restart action
             uint8_t waypoint_enforce_altitude;  // Forces waypoint altitude to be achieved
+            uint8_t rth_trackback_mode;         // Useage mode setting for RTH trackback
         } flags;
 
         uint8_t  pos_failure_timeout;               // Time to wait before switching to emergency landing (0 - disable)
