@@ -222,13 +222,13 @@ Inverts ROLL and PITCH input when Logic Condition `0` evaluates as `true`. Movin
 
 `logic 0 1 0 29 0 1000 0 0 0`
 
-Sets Thhrottle output to `0%` when Logic Condition `0` evaluates as `true`
+Sets throttle output to `0%` when Logic Condition `0` evaluates as `true`
 
 ### Set throttle to 50% and keep other throttle bindings active
 
 `logic 0 1 0 29 0 1500 0 0 0`
 
-Sets Thhrottle output to about `50%` when Logic Condition `0` evaluates as `true`
+Sets throttle output to about `50%` when Logic Condition `0` evaluates as `true`
 
 ### Set throttle control to different RC channel
 
