@@ -2655,7 +2655,7 @@ static void updateRthTrackback(void)
                 // Check distance change
                 // Distance based trackpoint only logged if multiple distance increments occur without altitude or course change
                 saveTrackpoint = distanceCounter == distanceFactor ? true : saveTrackpoint;
-                distanceCounter = saveTrackpoint ? 0 : distanceCounter + 1;
+                distanceCounter++;
 
                 previousTBTripDist = posControl.totalTripDistance;
             }
@@ -2674,6 +2674,7 @@ static void updateRthTrackback(void)
 
             posControl.rthTBPointsList[posControl.activeRthTBPointIndex] = posControl.actualState.abs.pos;
             posControl.rthTBLastSavedIndex = posControl.activeRthTBPointIndex;
+            distanceCounter = 0;
         }
     }
 }
