@@ -3519,6 +3519,13 @@ groups:
         max: 6
         default_value: 3
 
+      - name: osd_mah_used_precision
+        description: Number of digits used to display mAh used.
+        field: mAh_used_precision
+        min: 4
+        max: 6
+        default_value: 4
+
       - name: osd_switch_indicator_zero_name
         description: "Character to use for OSD switch incicator 0."
         field: osd_switch_indicator0_name
