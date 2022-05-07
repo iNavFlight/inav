@@ -47,6 +47,7 @@ PG_RESET_TEMPLATE(vtxConfig_t, vtxConfig,
       .smartAudioEarlyAkkWorkaroundEnable = SETTING_VTX_SMARTAUDIO_EARLY_AKK_WORKAROUND_DEFAULT,
       .smartAudioAltSoftSerialMethod = SETTING_VTX_SMARTAUDIO_ALTERNATE_SOFTSERIAL_METHOD_DEFAULT,
       .softSerialShortStop = SETTING_VTX_SOFTSERIAL_SHORTSTOP_DEFAULT,
+      .smartAudioStopBits = SETTING_VTX_SMARTAUDIO_STOPBITS_DEFAULT,
 );
 
 static uint8_t locked = 0;
