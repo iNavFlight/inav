@@ -131,6 +131,9 @@ tables:
   - name: vtx_low_power_disarm
     values: ["OFF", "ON", "UNTIL_FIRST_ARM"]
     enum: vtxLowerPowerDisarm_e
+  - name: vtx_frequency_groups
+    values: ["FREQUENCYGROUP_5G8", "FREQUENCYGROUP_2G4", "FREQUENCYGROUP_1G3"]
+    enum: vtxFrequencyGroups_e
   - name: filter_type
     values: ["PT1", "BIQUAD"]
   - name: filter_type_full
@@ -3717,7 +3720,7 @@ groups:
     members:
       - name: vtx_band
         description: "Configure the VTX band. Set to zero to use `vtx_freq`. Bands: 1: A, 2: B, 3: E, 4: F, 5: Race."
-        default_value: 4
+        default_value: 1
         field: band
         min: VTX_SETTINGS_NO_BAND
         max: VTX_SETTINGS_MAX_BAND
@@ -3750,6 +3753,13 @@ groups:
         field: maxPowerOverride
         min: 0
         max: 10000
+      - name: vtx_frequency_group
+        field: frequencyGroup
+        description: "VTx Frequency group to use. Frequency groups: FREQUENCYGROUP_5G8: 5.8GHz, FREQUENCYGROUP_2G4: 2.4GHz, FREQUENCYGROUP_1G3: 1.3GHz."
+        table: vtx_frequency_groups
+        min: 0
+        max: 2
+        default_value: FREQUENCYGROUP_5G8
 
   - name: PG_PINIOBOX_CONFIG
     type: pinioBoxConfig_t

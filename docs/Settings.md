@@ -5848,7 +5848,7 @@ Configure the VTX band. Set to zero to use `vtx_freq`. Bands: 1: A, 2: B, 3: E, 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 4 | VTX_SETTINGS_NO_BAND | VTX_SETTINGS_MAX_BAND |
+| 1 | VTX_SETTINGS_NO_BAND | VTX_SETTINGS_MAX_BAND |
 
 ---
 
@@ -5859,6 +5859,16 @@ Channel to use within the configured `vtx_band`. Valid values are [1, 8].
 | Default | Min | Max |
 | --- | --- | --- |
 | 1 | VTX_SETTINGS_MIN_CHANNEL | VTX_SETTINGS_MAX_CHANNEL |
+
+---
+
+### vtx_frequency_group
+
+VTx Frequency group to use. Frequency groups: FREQUENCYGROUP_5G8: 5.8GHz, FREQUENCYGROUP_2G4: 2.4GHz, FREQUENCYGROUP_1G3: 1.3GHz.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| FREQUENCYGROUP_5G8 | 0 | 2 |
 
 ---
 

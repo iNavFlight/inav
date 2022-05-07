@@ -25,11 +25,15 @@
 #include "platform.h"
 #include "build/debug.h"
 
-#define VTX_STRING_BAND_COUNT  5
-#define VTX_STRING_CHAN_COUNT  8
-#define VTX_STRING_POWER_COUNT 5
+#define VTX_STRING_5G8_BAND_COUNT  5
+#define VTX_STRING_5G8_CHAN_COUNT  8
+#define VTX_STRING_5G8_POWER_COUNT 5
 
-const uint16_t vtx58frequencyTable[VTX_STRING_BAND_COUNT][VTX_STRING_CHAN_COUNT] =
+#define VTX_STRING_1G3_BAND_COUNT  2
+#define VTX_STRING_1G3_CHAN_COUNT  8
+#define VTX_STRING_1G3_POWER_COUNT 3
+
+const uint16_t vtx58frequencyTable[VTX_STRING_5G8_BAND_COUNT][VTX_STRING_5G8_CHAN_COUNT] =
 {
     { 5865, 5845, 5825, 5805, 5785, 5765, 5745, 5725 }, // A
     { 5733, 5752, 5771, 5790, 5809, 5828, 5847, 5866 }, // B
@@ -38,7 +42,7 @@ const uint16_t vtx58frequencyTable[VTX_STRING_BAND_COUNT][VTX_STRING_CHAN_COUNT]
     { 5658, 5695, 5732, 5769, 5806, 5843, 5880, 5917 }, // R
 };
 
-const char * const vtx58BandNames[VTX_STRING_BAND_COUNT + 1] = {
+const char * const vtx58BandNames[VTX_STRING_5G8_BAND_COUNT + 1] = {
     "-",
     "A",
     "B",
@@ -47,14 +51,36 @@ const char * const vtx58BandNames[VTX_STRING_BAND_COUNT + 1] = {
     "R",
 };
 
-const char vtx58BandLetter[VTX_STRING_BAND_COUNT + 1] = "-ABEFR";
+const char vtx58BandLetter[VTX_STRING_5G8_BAND_COUNT + 1] = "-ABEFR";
 
-const char * const vtx58ChannelNames[VTX_STRING_CHAN_COUNT + 1] = {
+const char * const vtx58ChannelNames[VTX_STRING_5G8_CHAN_COUNT + 1] = {
     "-", "1", "2", "3", "4", "5", "6", "7", "8",
 };
 
-const char * const vtx58DefaultPowerNames[VTX_STRING_POWER_COUNT + 1] = {
+const char * const vtx58DefaultPowerNames[VTX_STRING_5G8_POWER_COUNT + 1] = {
     "---", "PL1", "PL2", "PL3", "PL4", "PL5"
+};
+
+const uint16_t vtx1G3frequencyTable[VTX_STRING_1G3_BAND_COUNT][VTX_STRING_1G3_CHAN_COUNT] =
+{
+    { 1080, 1120, 1160, 1200, 1240, 1280, 1320, 1360 }, // A
+    { 1080, 1120, 1160, 1200, 1258, 1280, 1320, 1360 }, // B
+};
+
+const char * const vtx1G3BandNames[VTX_STRING_1G3_BAND_COUNT + 1] = {
+    "-",
+    "A",
+    "B",
+};
+
+const char vtx1G3BandLetter[VTX_STRING_1G3_BAND_COUNT + 1] = "-AB";
+
+const char * const vtx1G3ChannelNames[VTX_STRING_1G3_CHAN_COUNT + 1] = {
+    "-", "1", "2", "3", "4", "5", "6", "7", "8",
+};
+
+const char * const vtx1G3DefaultPowerNames[VTX_STRING_1G3_POWER_COUNT + 1] = {
+    "---", "PL1", "PL2", "PL3"
 };
 
 bool vtx58_Freq2Bandchan(uint16_t freq, uint8_t *pBand, uint8_t *pChannel)
@@ -80,15 +106,28 @@ bool vtx58_Freq2Bandchan(uint16_t freq, uint8_t *pBand, uint8_t *pChannel)
     return false;
 }
 
-//Converts band and channel values to a frequency (in MHz) value.
+// Converts band and channel values to a frequency (in MHz) value.
 // band: Band value (1 to 5).
 // channel:  Channel value (1 to 8).
 // Returns frequency value (in MHz), or 0 if band/channel out of range.
 uint16_t vtx58_Bandchan2Freq(uint8_t band, uint8_t channel)
 {
-    if (band > 0 && band <= VTX_STRING_BAND_COUNT &&
-                          channel > 0 && channel <= VTX_STRING_CHAN_COUNT) {
+    if (band > 0 && band <= VTX_STRING_5G8_BAND_COUNT &&
+                          channel > 0 && channel <= VTX_STRING_5G8_CHAN_COUNT) {
         return vtx58frequencyTable[band - 1][channel - 1];
+    }
+    return 0;
+}
+
+// Converts band and channel values to a frequency (in MHz) value.
+// band: Band value (1 to 2).
+// channel:  Channel value (1 to 8).
+// Returns frequency value (in MHz), or 0 if band/channel out of range.
+uint16_t vtx1G3_Bandchan2Freq(uint8_t band, uint8_t channel)
+{
+    if (band > 0 && band <= VTX_STRING_1G3_BAND_COUNT &&
+                          channel > 0 && channel <= VTX_STRING_1G3_CHAN_COUNT) {
+        return vtx1G3frequencyTable[band - 1][channel - 1];
     }
     return 0;
 }

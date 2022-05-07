@@ -53,6 +53,7 @@ PG_RESET_TEMPLATE(vtxSettingsConfig_t, vtxSettingsConfig,
     .pitModeChan = SETTING_VTX_PIT_MODE_CHAN_DEFAULT,
     .lowPowerDisarm = SETTING_VTX_LOW_POWER_DISARM_DEFAULT,
     .maxPowerOverride = SETTING_VTX_MAX_POWER_OVERRIDE_DEFAULT,
+    .frequencyGroup = SETTING_VTX_FREQUENCY_GROUP_DEFAULT,
 );
 
 typedef enum {
