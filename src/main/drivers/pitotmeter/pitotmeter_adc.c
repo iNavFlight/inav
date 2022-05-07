@@ -59,7 +59,7 @@ static void adcPitotCalculate(pitotDev_t *pitot, float *pressure, float *tempera
     if (pressure)
         *pressure = (voltage * PITOT_ADC_VOLTAGE_SCALER - PITOT_ADC_VOLTAGE_ZERO) * PITOT_ADC_VOLTAGE_TO_PRESSURE;
     if (temperature)
-        *temperature = 288.15f;     // Temperature at standard sea level (288.15 K)
+        *temperature = SSL_AIR_TEMPERATURE; // Temperature at standard sea level
 }
 
 bool adcPitotDetect(pitotDev_t *pitot)
