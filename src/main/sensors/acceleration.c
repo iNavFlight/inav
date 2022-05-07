@@ -84,12 +84,11 @@ static EXTENDED_FASTRAM pt1Filter_t accVibeFilter[XYZ_AXIS_COUNT];
 static EXTENDED_FASTRAM filterApplyFnPtr accNotchFilterApplyFn;
 static EXTENDED_FASTRAM void *accNotchFilter[XYZ_AXIS_COUNT];
 
-PG_REGISTER_WITH_RESET_FN(accelerometerConfig_t, accelerometerConfig, PG_ACCELEROMETER_CONFIG, 4);
+PG_REGISTER_WITH_RESET_FN(accelerometerConfig_t, accelerometerConfig, PG_ACCELEROMETER_CONFIG, 5);
 
 void pgResetFn_accelerometerConfig(accelerometerConfig_t *instance)
 {
     RESET_CONFIG_2(accelerometerConfig_t, instance,
-        .acc_align = SETTING_ALIGN_ACC_DEFAULT,
         .acc_hardware = SETTING_ACC_HARDWARE_DEFAULT,
         .acc_lpf_hz = SETTING_ACC_LPF_HZ_DEFAULT,
         .acc_notch_hz = SETTING_ACC_NOTCH_HZ_DEFAULT,
@@ -291,11 +290,6 @@ bool accInit(uint32_t targetLooptime)
         acc.extremes[axis].max = -100;
     }
 
-    // At this poinrt acc.dev.accAlign was set up by the driver from the busDev record
-    // If configuration says different - override
-    if (accelerometerConfig()->acc_align != ALIGN_DEFAULT) {
-        acc.dev.accAlign = accelerometerConfig()->acc_align;
-    }
     return true;
 }
 
