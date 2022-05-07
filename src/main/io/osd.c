@@ -1580,13 +1580,18 @@ static bool osdDrawSingleElement(uint8_t item)
         }
         break;
 
-    case OSD_MAH_DRAWN:
-        tfp_sprintf(buff, "%4d", (int)getMAhDrawn());
-        buff[4] = SYM_MAH;
-        buff[5] = '\0';
+    case OSD_MAH_DRAWN: {
+        if (osdFormatCentiNumber(buff, getMAhDrawn() * 100, 1000, 0, (osdConfig()->mAh_used_precision - 2), osdConfig()->mAh_used_precision)) {
+           // Shown in mAh
+           buff[osdConfig()->mAh_used_precision] = SYM_AH;
+        } else {
+          // Shown in Ah
+            buff[osdConfig()->mAh_used_precision] = SYM_MAH;
+        }
+        buff[(osdConfig()->mAh_used_precision + 1)] = '\0';
         osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
         break;
-
+    }
     case OSD_WH_DRAWN:
         osdFormatCentiNumber(buff, getMWhDrawn() / 10, 0, 2, 0, 3);
         osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
@@ -3266,6 +3271,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .pan_servo_index = SETTING_OSD_PAN_SERVO_INDEX_DEFAULT,
     .pan_servo_pwm2centideg = SETTING_OSD_PAN_SERVO_PWM2CENTIDEG_DEFAULT,
     .esc_rpm_precision = SETTING_OSD_ESC_RPM_PRECISION_DEFAULT,
+    .mAh_used_precision = SETTING_OSD_MAH_USED_PRECISION_DEFAULT,
     .osd_switch_indicator0_name = SETTING_OSD_SWITCH_INDICATOR_ZERO_NAME_DEFAULT,
     .osd_switch_indicator0_channnel = SETTING_OSD_SWITCH_INDICATOR_ZERO_CHANNNEL_DEFAULT,
     .osd_switch_indicator1_name = SETTING_OSD_SWITCH_INDICATOR_ONE_NAME_DEFAULT,

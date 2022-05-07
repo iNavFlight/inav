@@ -33,6 +33,7 @@ typedef struct vtxConfig_s {
     uint8_t halfDuplex;
     uint8_t smartAudioEarlyAkkWorkaroundEnable;
     bool    smartAudioAltSoftSerialMethod;
+    bool    softSerialShortStop;
 } vtxConfig_t;
 
 PG_DECLARE(vtxConfig_t, vtxConfig);

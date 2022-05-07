@@ -46,21 +46,45 @@ Note: Tests are written in C++ and linked with with firmware's C code.
 
 ### Running the tests.
 
-The tests and test build system is very simple and based off the googletest example files, it will be improved in due course. From the root folder of the project simply do:
+The tests and test build system is very simple and based off the googletest example files, it may be improved in due course. From the root folder of the project simply do:
+
+Test are configured from the top level directory. It is recommended to use a separate test directory, here named `testing`.
 
 ```
-make test
+mkdir testing
+cd testing
+# define NULL toolchain ...
+cmake -DTOOLCHAIN= ..
+# Run the tests
+make check
 ```
 
-This will build a set of executable files in the `obj/test` folder, one for each `*_unittest.cc` file.
+This will build a set of executable files in the `src/test/unit` folder (below `testing`), one for each `*_unittest.cc` file.
 
-After they have been executed by the make invocation, you can still run them on the command line to execute the tests and to see the test report.
+After they have been executed by the make invocation, you can still run them on the command line to execute the tests and to see the test report, for example:
 
-You can also step-debug the tests in eclipse and you can use the GoogleTest test runner to make building and re-running the tests simple.
+```
+src/test/unit/time_unittest
+Running main() from /home/jrh/Projects/fc/inav/testing/src/test/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from TimeUnittest
+[ RUN      ] TimeUnittest.TestMillis
+[       OK ] TimeUnittest.TestMillis (0 ms)
+[ RUN      ] TimeUnittest.TestMicros
+[       OK ] TimeUnittest.TestMicros (0 ms)
+[----------] 2 tests from TimeUnittest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 2 tests.
+```
+
+You can also step-debug the tests in `gdb` (or IDE debugger).
 
 The tests are currently always compiled with debugging information enabled, there may be additional warnings, if you see any warnings please attempt to fix them and submit pull requests with the fixes.
 
-Tests are verified and working with GCC 4.9.2.
+Tests are verified and working with (native) GCC 11.20.
 
 ## Using git and github
 
