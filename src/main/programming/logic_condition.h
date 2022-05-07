@@ -129,7 +129,9 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_LOITER_RADIUS,                           // 35
     LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_PROFILE, //int                    // 36
     LOGIC_CONDITION_OPERAND_FLIGHT_BATT_CELLS,                              // 37
-
+    LOGIC_CONDITION_OPERAND_FLIGHT_AGL_STATUS, //0,1,2                      // 38
+    LOGIC_CONDITION_OPERAND_FLIGHT_AGL, //0,1,2                             // 39
+    LOGIC_CONDITION_OPERAND_FLIGHT_RANGEFINDER_RAW, //int                   // 40
 } logicFlightOperands_e;
 
 typedef enum {

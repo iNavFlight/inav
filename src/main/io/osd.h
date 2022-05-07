@@ -418,6 +418,7 @@ typedef struct osdConfig_s {
     uint8_t telemetry; 				            // use telemetry on displayed pixel line 0
     uint8_t esc_rpm_precision;                  // Number of characters used for the RPM numbers.
     uint16_t system_msg_display_time;           // system message display time for multiple messages (ms)
+    uint8_t mAh_used_precision;                 // Number of numbers used for mAh drawn. Plently of packs now are > 9999 mAh
     char    osd_switch_indicator0_name[OSD_SWITCH_INDICATOR_NAME_LENGTH + 1];      // Name to use for switch indicator 0.
     uint8_t osd_switch_indicator0_channnel;     // RC Channel to use for switch indicator 0.
     char    osd_switch_indicator1_name[OSD_SWITCH_INDICATOR_NAME_LENGTH + 1];      // Name to use for switch indicator 1.

@@ -133,6 +133,10 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 34            | GPS_VALID                     | boolean `0`/`1`. True when the GPS has a valid 3D Fix |
 | 35            | LOITER_RADIUS                 | The current loiter radius in cm. |
 | 36            | ACTIVE_PROFILE                | integer for the active config profile `[1..MAX_PROFILE_COUNT]` |
+| 37            | BATT_CELLS                    | Number of battery cells detected |
+| 38            | AGL_STATUS                    | boolean `1` when AGL can be trusted, `0` when AGL estimate can not be trusted |
+| 39            | AGL                           | integer Above The Groud Altitude in `cm` |
+| 40            | RANGEFINDER_RAW               | integer raw distance provided by the rangefinder in `cm` |
 
 #### ACTIVE_WAYPOINT_ACTION
 
