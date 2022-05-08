@@ -5932,6 +5932,16 @@ Enable workaround for early AKK SAudio-enabled VTX bug.
 
 ---
 
+### vtx_smartaudio_stopbits
+
+Set stopbit count for serial (TBS Sixty9 SmartAudio 2.1 require value of 1 bit)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 2 | 1 | 2 |
+
+---
+
 ### vtx_softserial_shortstop
 
 Enable the 3x shorter stopbit on softserial. Need for some IRC Tramp VTXes.

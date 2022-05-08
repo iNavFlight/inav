@@ -3707,6 +3707,12 @@ groups:
         default_value: OFF
         field: softSerialShortStop
         type: bool
+      - name: vtx_smartaudio_stopbits
+        description: "Set stopbit count for serial (TBS Sixty9 SmartAudio 2.1 require value of 1 bit)"
+        default_value: 2
+        field: smartAudioStopBits
+        min: 1
+        max: 2
 
   - name: PG_VTX_SETTINGS_CONFIG
     type: vtxSettingsConfig_t
