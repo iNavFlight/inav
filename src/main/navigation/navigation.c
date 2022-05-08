@@ -2140,20 +2140,6 @@ void updateActualHeading(bool headingValid, int32_t newHeading)
     posControl.actualState.cosYaw = cos_approx(CENTIDEGREES_TO_RADIANS(newHeading));
 }
 
-static int16_t getCourseOverGround(void)   // returns degrees
-{
-    /* Use GPS course over ground if available including for multirotor.
-     * Otherwise use gyro YAW for multirotor, apply rcCommand based YAW correction */
-    if (isGPSHeadingValid()) {
-        return DECIDEGREES_TO_DEGREES(gpsSol.groundCourse);
-
-    } else if (STATE(MULTIROTOR) && sensors(SENSOR_MAG) && posControl.flags.estHeadingStatus == EST_TRUSTED) {
-        return CENTIDEGREES_TO_DEGREES(wrap_36000(posControl.actualState.yaw + RADIANS_TO_CENTIDEGREES(atan2_approx(rcCommand[ROLL], rcCommand[PITCH]))));
-    }
-
-    return -1;    // no reliable COG
-}
-
 /*-----------------------------------------------------------
  * Returns pointer to currently used position (ABS or AGL) depending on surface tracking status
  *-----------------------------------------------------------*/
@@ -2605,10 +2591,10 @@ static bool rthAltControlStickOverrideCheck(unsigned axis)
  * along arrival route rather than immediately heading directly toward home.
  * Max desired trackback distance set by user or limited by number of available points.
  * Reverts to normal RTH heading direct to home when end of track reached.
- * Trackpoints logged with precedence for course/altitude changes. Distance changes
+ * Trackpoints logged with precedence for course/altitude changes. Distance based changes
  * only logged if no course/altitude changes logged over an extended distance.
  * --------------------------------------------------------------------------------- */
-static void updateRthTrackback(void)
+ static void updateRthTrackback(void)
 {
     if (navConfig()->general.flags.rth_trackback_mode == RTH_TRACKBACK_OFF || FLIGHT_MODE(NAV_RTH_MODE) || !ARMING_FLAG(ARMED)) {
         return;
@@ -2621,7 +2607,6 @@ static void updateRthTrackback(void)
         static int16_t previousTBCourse;        // degrees
         static int16_t previousTBAltitude;      // meters
         static uint8_t distanceCounter = 0;
-        uint8_t distanceFactor = 4;             // default 5 distance increments
         bool saveTrackpoint = false;
 
         // start recording when some distance from home, 50m seems reasonable.
@@ -2632,31 +2617,33 @@ static void updateRthTrackback(void)
             previousTBAltitude = CENTIMETERS_TO_METERS(posControl.actualState.abs.pos.z);
             previousTBTripDist = posControl.totalTripDistance;
         } else {
-            // Check altitude change
-            if (ABS(previousTBAltitude - CENTIMETERS_TO_METERS(posControl.actualState.abs.pos.z)) > 10) {   // 10 meter limit
+            // Altitude change
+            if (ABS(previousTBAltitude - CENTIMETERS_TO_METERS(posControl.actualState.abs.pos.z)) > 10) {   // meters
                 saveTrackpoint = true;
                 previousTBAltitude = CENTIMETERS_TO_METERS(posControl.actualState.abs.pos.z);
             }
 
-            // Minimum distance increment used between course change track points.
-            const bool distanceIncrement = posControl.totalTripDistance - previousTBTripDist > METERS_TO_CENTIMETERS(10);
+            if (isGPSHeadingValid()) {
+                // Minimum distance increment between course change track points if GPS course valid - set to 10m
+                const bool distanceIncrement = posControl.totalTripDistance - previousTBTripDist > METERS_TO_CENTIMETERS(10);
 
-            if (distanceIncrement) {
-                // Check course change
-                const int16_t courseOverGround = (getCourseOverGround());  // degrees
-                if (courseOverGround >= 0) {
-                    if (ABS(wrap_18000(DEGREES_TO_CENTIDEGREES(courseOverGround - previousTBCourse))) > DEGREES_TO_CENTIDEGREES(45)) {
+                if (distanceIncrement) {
+                    // Course change
+                    if (ABS(wrap_18000(DEGREES_TO_CENTIDEGREES(DECIDEGREES_TO_DEGREES(gpsSol.groundCourse) - previousTBCourse))) > DEGREES_TO_CENTIDEGREES(45)) {
                         saveTrackpoint = true;
-                        previousTBCourse = courseOverGround;
+                        previousTBCourse = DECIDEGREES_TO_DEGREES(gpsSol.groundCourse);
                     }
-                    distanceFactor = 9;     // 10 distance increments used if COG available (reduced to 5 if not to maintain track accuracy)
+
+                    // Distance change
+                    // Distance based trackpoint logged if 10 distance increments occur without altitude or course change
+                    saveTrackpoint = distanceCounter >= 9 ? true : saveTrackpoint;
+                    distanceCounter++;
+
+                    previousTBTripDist = posControl.totalTripDistance;
                 }
-
-                // Check distance change
-                // Distance based trackpoint only logged if multiple distance increments occur without altitude or course change
-                saveTrackpoint = distanceCounter == distanceFactor ? true : saveTrackpoint;
-                distanceCounter++;
-
+            } else {
+                // if no reliable course revert to basic distance logging based on direct distance from last point - set to 20m
+                saveTrackpoint = calculateDistanceToDestination(&posControl.rthTBPointsList[posControl.activeRthTBPointIndex]) > METERS_TO_CENTIMETERS(20);
                 previousTBTripDist = posControl.totalTripDistance;
             }
         }
