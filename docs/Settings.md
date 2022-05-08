@@ -212,16 +212,6 @@ ADC channel to use for analog pitot tube (airspeed) sensor. If board doesn't hav
 
 ---
 
-### align_acc
-
-When running on non-default hardware or adding support for new sensors/sensor boards, these values are used for sensor orientation. When carefully understood, these values can also be used to rotate (in 90deg steps) or flip the board. Possible values are: DEFAULT, CW0_DEG, CW90_DEG, CW180_DEG, CW270_DEG, CW0_DEG_FLIP, CW90_DEG_FLIP, CW180_DEG_FLIP, CW270_DEG_FLIP.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| DEFAULT |  |  |
-
----
-
 ### align_board_pitch
 
 Arbitrary board rotation in deci-degrees (0.1 degree), to allow mounting it sideways / upside down / rotated etc
@@ -249,16 +239,6 @@ Arbitrary board rotation in deci-degrees (0.1 degree), to allow mounting it side
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | -1800 | 3600 |
-
----
-
-### align_gyro
-
-When running on non-default hardware or adding support for new sensors/sensor boards, these values are used for sensor orientation. When carefully understood, these values can also be used to rotate (in 90deg steps) or flip the board. Possible values are: DEFAULT, CW0_DEG, CW90_DEG, CW180_DEG, CW270_DEG, CW0_DEG_FLIP, CW90_DEG_FLIP, CW180_DEG_FLIP, CW270_DEG_FLIP.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| DEFAULT |  |  |
 
 ---
 
