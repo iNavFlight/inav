@@ -289,7 +289,7 @@ groups:
         field: dynamicGyroNotchMinHz
         condition: USE_DYNAMIC_FILTERS
         min: 30
-        max: 1000
+        max: 250
       - name: gyro_to_use
         condition: USE_DUAL_GYRO
         min: 0
