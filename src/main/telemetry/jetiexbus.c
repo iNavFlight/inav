@@ -507,15 +507,13 @@ void handleJetiExBusTelemetry(void)
 {
     static uint16_t framesLost = 0; // only for debug
     static uint8_t item = 0;
-    uint32_t timeDiff;
+    const timeUs_t now = microsISR();
 
     // Check if we shall reset frame position due to time
     if (jetiExBusRequestState == EXBUS_STATE_RECEIVED) {
 
         // to prevent timing issues from request to answer - max. 4ms
-        timeDiff = micros() - jetiTimeStampRequest;
-
-        if (timeDiff > 3000) {   // include reserved time
+        if (cmpTimeUs(now, jetiTimeStampRequest) > 3000) {
             jetiExBusRequestState = EXBUS_STATE_ZERO;
             framesLost++;
             return;

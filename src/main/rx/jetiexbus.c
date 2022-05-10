@@ -78,7 +78,7 @@
 
 serialPort_t *jetiExBusPort;
 
-uint32_t jetiTimeStampRequest = 0;
+timeUs_t jetiTimeStampRequest = 0;
 
 static uint8_t jetiExBusFramePosition;
 static uint8_t jetiExBusFrameLength;
