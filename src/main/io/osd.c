@@ -2383,16 +2383,14 @@ static bool osdDrawSingleElement(uint8_t item)
         }
     case OSD_GLIDE_TIME_REMAINING: 
         {
-            uint16_t glideSeconds = osdGetRemainingGlideTime();
+            uint16_t glideTime = osdGetRemainingGlideTime();
             buff[0] = SYM_GLIDE_MINS;
-            if (glideSeconds > 0) {
-                buff[2] = SYM_BLANK; 
-                buff[3] = SYM_BLANK;
-                if (glideSeconds < 60) {
-                    tfp_sprintf(buff + 1, "%c%d", SYM_ZERO_HALF_TRAILING_DOT, glideSeconds);
+            if (glideTime > 0) {
+                if (glideTime < 60) {
+                    tfp_sprintf(buff + 1, "%c%02d", SYM_ZERO_HALF_TRAILING_DOT, glideTime);
                 } else {
-                    tfp_sprintf(buff + 1, "%d", (glideSeconds/60));
-                    //ui2a(glideSeconds / 60, 10, 0, buff + 1);
+                    glideTime = floor(glideTime/60);
+                    tfp_sprintf(buff + 1, "%3d", glideTime);
                 }
             } else {
                tfp_sprintf(buff + 1, "%s", "---");
