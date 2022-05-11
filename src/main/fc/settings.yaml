@@ -3370,7 +3370,7 @@ groups:
       - name: osd_hud_radar_distance_difference_display_time
         description: "Time in seconds to display the distance difference in radar"
         field: hud_radar_distance_difference_display_time
-        min: 0
+        min: 1
         max: 10
         default_value: 3
       - name: osd_hud_wp_disp

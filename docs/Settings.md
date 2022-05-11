@@ -4368,7 +4368,7 @@ Time in seconds to display the distance difference in radar
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 3 | 0 | 10 |
+| 3 | 1 | 10 |
 
 ---
 
