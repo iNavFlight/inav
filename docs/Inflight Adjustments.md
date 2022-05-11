@@ -158,6 +158,7 @@ this reason ensure that you define enough ranges to cover the range channel's us
 | 54    | TPA |
 | 55    | TPA_BREAKPOINT |
 | 56    | NAV_FW_CONTROL_SMOOTHNESS |
+| 57    | FW_TPA_TIME_CONSTANT |
 
 ## Examples
 
