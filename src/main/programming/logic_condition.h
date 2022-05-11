@@ -26,7 +26,7 @@
 #include "config/parameter_group.h"
 #include "common/time.h"
 
-#define MAX_LOGIC_CONDITIONS 32
+#define MAX_LOGIC_CONDITIONS 64
 
 typedef enum {
     LOGIC_CONDITION_TRUE                        = 0,
