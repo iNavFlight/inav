@@ -778,7 +778,7 @@ Minimum frequency for dynamic notches. Default value of `150` works best with 5"
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 50 | 30 | 1000 |
+| 50 | 30 | 250 |
 
 ---
 
@@ -5408,7 +5408,7 @@ Quality factor of the setpoint Kalman filter. Higher values means less filtering
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 100 | 1 | 16000 |
+| 100 | 1 | 1000 |
 
 ---
 

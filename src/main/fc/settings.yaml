@@ -289,7 +289,7 @@ groups:
         field: dynamicGyroNotchMinHz
         condition: USE_DYNAMIC_FILTERS
         min: 30
-        max: 1000
+        max: 250
       - name: gyro_to_use
         condition: USE_DUAL_GYRO
         min: 0
@@ -307,7 +307,7 @@ groups:
         field: kalman_q
         condition: USE_GYRO_KALMAN
         min: 1
-        max: 16000
+        max: 1000
       - name: init_gyro_cal
         description: "If defined to 'OFF', it will ignore the gyroscope calibration done at each startup. Instead, the gyroscope last calibration from when you calibrated will be used. It also means you don't have to keep the UAV stationary during a startup."
         default_value: ON
