@@ -1355,7 +1355,7 @@ groups:
         min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
       - name: fw_tpa_time_constant
-        description: "TPA smoothing and delay time constant to reflect non-instant speed/throttle response of the plane. Planes with low thrust/weight ratio generally need higher time constant. Default is zero for compatibility with old setups"
+        description: "TPA smoothing and delay time constant to reflect non-instant speed/throttle response of the plane. Default is zero for compatibility with old setups. See **PID Attenuation and scaling** Wiki for full details."
         default_value: 0
         field: throttle.fixedWingTauMs
         min: 0
