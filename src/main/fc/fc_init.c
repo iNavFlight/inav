@@ -83,7 +83,6 @@
 #endif
 #include "drivers/sdcard/sdcard.h"
 #include "drivers/sdio.h"
-#include "drivers/io_port_expander.h"
 
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -703,10 +702,6 @@ void init(void)
         rpmFiltersInit();
         setTaskEnabled(TASK_RPM_FILTER, true);
     }
-#endif
-
-#ifdef USE_I2C_IO_EXPANDER
-    ioPortExpanderInit();
 #endif
 
 #ifdef USE_POWER_LIMITS

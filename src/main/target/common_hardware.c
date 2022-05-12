@@ -406,23 +406,6 @@
     BUSDEV_REGISTER_I2C(busdev_irlock,      DEVHW_IRLOCK,       IRLOCK_I2C_BUS,     0x54,               NONE,           DEVFLAGS_USE_RAW_REGISTERS);
 #endif
 
-#if defined(USE_I2C) && defined(USE_I2C_IO_EXPANDER)
-
-    #if !defined(PCF8574_I2C_BUS) && defined(EXTERNAL_I2C_BUS)
-        #define PCF8574_I2C_BUS EXTERNAL_I2C_BUS
-    #endif
-
-    #if !defined(PCF8574_I2C_BUS) && defined(DEFAULT_I2C_BUS)
-        #define PCF8574_I2C_BUS DEFAULT_I2C_BUS
-    #endif
-
-    #if !defined(PCF8574_I2C_BUS)
-        #define PCF8574_I2C_BUS BUS_I2C1
-    #endif
-
-    BUSDEV_REGISTER_I2C(busdev_pcf8574,      DEVHW_PCF8574,       PCF8574_I2C_BUS,     0x20,               NONE,           DEVFLAGS_NONE, 0);
-#endif
-
 #ifdef USE_IMU_BNO055
 #ifndef BNO055_I2C_BUS
     #define BNO055_I2C_BUS BUS_I2C1

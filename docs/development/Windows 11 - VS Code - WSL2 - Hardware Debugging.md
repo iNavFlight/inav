@@ -253,8 +253,6 @@ sudo udevadm control --reload-rules
                 "USE_SECONDARY_IMU",
                 "USE_DSHOT",
                 "FLASH_SIZE 480",
-                "USE_I2C_IO_EXPANDER",
-                "USE_PCF8574",
                 "USE_ESC_SENSOR"
             ],
             "configurationProvider": "ms-vscode.cmake-tools"

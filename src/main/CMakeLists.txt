@@ -182,10 +182,6 @@ main_sources(COMMON_SRC
     drivers/io.h
     drivers/io_pca9685.c
     drivers/io_pca9685.h
-    drivers/io_pcf8574.c
-    drivers/io_pcf8574.h
-    drivers/io_port_expander.c
-    drivers/io_port_expander.h
     drivers/irlock.c
     drivers/irlock.h
     drivers/light_led.c

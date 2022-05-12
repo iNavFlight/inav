@@ -45,7 +45,6 @@
 #include "sensors/rangefinder.h"
 #include "flight/imu.h"
 #include "flight/pid.h"
-#include "drivers/io_port_expander.h"
 #include "io/osd_common.h"
 #include "sensors/diagnostics.h"
 
@@ -282,13 +281,6 @@ static int logicConditionCompute(
             LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_OSD_LAYOUT);
             return operandA;
             break;
-
-#ifdef USE_I2C_IO_EXPANDER
-        case LOGIC_CONDITION_PORT_SET:
-            ioPortExpanderSet((uint8_t)operandA, (uint8_t)operandB);
-            return operandB;
-            break;
-#endif
 
         case LOGIC_CONDITION_SIN:
             temporaryValue = (operandB == 0) ? 500 : operandB;
@@ -767,10 +759,6 @@ void logicConditionUpdateTask(timeUs_t currentTimeUs) {
     for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
         logicConditionProcess(i);
     }
-
-#ifdef USE_I2C_IO_EXPANDER
-    ioPortExpanderSync();
-#endif
 }
 
 void logicConditionReset(void) {

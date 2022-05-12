@@ -141,8 +141,6 @@
 #define USE_D_BOOST
 #define USE_ANTIGRAVITY
 
-#define USE_I2C_IO_EXPANDER
-
 #define USE_GPS_PROTO_NMEA
 #define USE_GPS_PROTO_MTK
 
