@@ -12,6 +12,8 @@ To use the Matek 1G3SE with IRC Tramp. You will need to enter the CLI command `s
 
 If you have problems getting SmartAudio working. There are a couple of CLI parameters you can try changing to see if they help.
 
-There is a workaround for early AKK VTx modules. This is enabled by default. You could try disabling this setting [`vtx_smartaudio_early_akk_workaround`](https://github.com/iNavFlight/inav/blob/master/docs/Settings.md#vtx_smartaudio_early_akk_workaround) to OFF.
+- There is a workaround for early AKK VTx modules. This is enabled by default. You could try disabling this setting [`vtx_smartaudio_early_akk_workaround`](https://github.com/iNavFlight/inav/blob/master/docs/Settings.md#vtx_smartaudio_early_akk_workaround) to OFF.
 
-If you are using softserial, you can try using the alternate method by setting [`vtx_smartaudio_alternate_softserial_method`](https://github.com/iNavFlight/inav/blob/master/docs/Settings.md#vtx_smartaudio_alternate_softserial_method) to OFF.
+- If you are using softserial, you can try using the alternate method by setting [`vtx_smartaudio_alternate_softserial_method`](https://github.com/iNavFlight/inav/blob/master/docs/Settings.md#vtx_smartaudio_alternate_softserial_method) to OFF.
+
+- If you are using TBS Sixty9 VTX you may consider to set count of stop bits to 1, using `set vtx_smartaudio_stopbits = 1`
