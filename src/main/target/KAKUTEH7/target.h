@@ -174,6 +174,7 @@
 
 #ifdef KAKUTEH7MINI
 #define PINIO1_PIN                  PB11
+#define PINIO1_FLAGS				PINIO_FLAGS_INVERTED
 #else
 #define PINIO1_PIN                  PE13
 #endif
