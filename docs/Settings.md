@@ -4362,9 +4362,9 @@ Maximum count of nearby aircrafts or points of interest to display in the hud, a
 
 ---
 
-### osd_hud_radar_distance_difference_display_time
+### osd_hud_radar_distance_display_time
 
-Time in seconds to display the distance difference in radar
+Time in seconds to display the distance in radar
 
 | Default | Min | Max |
 | --- | --- | --- |
