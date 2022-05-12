@@ -16,4 +16,4 @@ If you have problems getting SmartAudio working. There are a couple of CLI param
 
 - If you are using softserial, you can try using the alternate method by setting [`vtx_smartaudio_alternate_softserial_method`](https://github.com/iNavFlight/inav/blob/master/docs/Settings.md#vtx_smartaudio_alternate_softserial_method) to OFF.
 
-- If you are using TBS Sixty9 VTX you may consider to set count of stop bits to 1, using `set vtx_smartaudio_stopbits = 1`
+- If you are using TBS Sixty9 VTX you may consider to set count of stop bits to 1, using [`set vtx_smartaudio_stopbits = 1`](https://github.com/iNavFlight/inav/blob/master/docs/Settings.md#vtx_smartaudio_stopbits)
