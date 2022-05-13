@@ -289,6 +289,10 @@ static const adjustmentConfig_t defaultAdjustmentConfigs[ADJUSTMENT_FUNCTION_COU
         .adjustmentFunction = ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS,
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_FW_TPA_TIME_CONSTANT,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 5 }}
     }
 };
 
@@ -596,6 +600,9 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
             break;
         case ADJUSTMENT_TPA_BREAKPOINT:
             applyAdjustmentU16(ADJUSTMENT_TPA_BREAKPOINT, &controlRateConfig->throttle.pa_breakpoint, delta, PWM_RANGE_MIN, PWM_RANGE_MAX);
+            break;
+        case ADJUSTMENT_FW_TPA_TIME_CONSTANT: 
+            applyAdjustmentU16(ADJUSTMENT_FW_TPA_TIME_CONSTANT, &controlRateConfig->throttle.fixedWingTauMs, delta, SETTING_FW_TPA_TIME_CONSTANT_MIN, SETTING_FW_TPA_TIME_CONSTANT_MAX);
             break;
         case ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS:
             applyAdjustmentU8(ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS, &navConfigMutable()->fw.control_smoothness, delta, SETTING_NAV_FW_CONTROL_SMOOTHNESS_MIN, SETTING_NAV_FW_CONTROL_SMOOTHNESS_MAX);

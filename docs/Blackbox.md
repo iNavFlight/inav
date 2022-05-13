@@ -5,7 +5,7 @@
 ## Introduction
 
 This feature transmits your flight data information on every control loop iteration over a serial port to an external
-logging device to be recorded, or to a dataflash chip which is present on some flight controllers.
+logging device to be recorded, SD card, or to a dataflash chip which is present on some flight controllers.
 
 After your flight, you can view the resulting logs using the interactive log viewer:
 
@@ -61,11 +61,11 @@ will work with the Blackbox, in order to reduce the number of dropped frames it 
 higher performance [OpenLog Blackbox firmware][]. The special Blackbox variant of the OpenLog firmware also ensures that
 the OpenLog is using INAV compatible settings, and defaults to 115200 baud.
 
-You can find the Blackbox version of the OpenLog firmware [here](https://github.com/cleanflight/blackbox-firmware),
+You can find the Blackbox version of the OpenLog firmware [here](https://github.com/iNavFlight/openlog-blackbox-firmware),
 along with instructions for installing it onto your OpenLog.
 
 [OpenLog serial data logger]: https://www.sparkfun.com/products/9530
-[OpenLog Blackbox firmware]: https://github.com/cleanflight/blackbox-firmware
+[OpenLog Blackbox firmware]: https://github.com/iNavFlight/openlog-blackbox-firmware
 
 #### microSDHC
 
@@ -155,8 +155,6 @@ tubing instead.
 Some flight controllers have an onboard SPI NOR dataflash chip which can be used to store flight logs instead of using
 an OpenLog.
 
-The SPRacingF3 has a 8 megabyte dataflash chip onboard which allows for longer recording times.
-
 These chips are also supported:
 
 * Micron/ST M25P16 - 16 Mbit / 2 MByte
@@ -205,6 +203,25 @@ To maximize your recording time, you could drop the rate all the way down to 1/3
 would result in a logging rate of about 10-20Hz and about 650 bytes/second of data. At that logging rate, a 2MB
 dataflash chip can store around 50 minutes of flight data, though the level of detail is severely reduced and you could
 not diagnose flight problems like vibration or PID setting issues.
+
+The CLI command `blackbox` allows setting which Blackbox fields are recorded to conserve space and bandwidth. Possible fields are:
+
+* NAV_ACC - Navigation accelerometer readouts
+* NAV_PID - Navigation PID debug
+* NAV_POS - Current and target position and altitude
+* MAG - Magnetometer raw values
+* ACC - Accelerometer raw values
+* ATTI - Attitude as computed by INAV position estimator
+* RC_DATA - RC channels 1-4 as returned by the radio receiver
+* RC_COMMAND - RC_DATA converted to [-500:500] scale with expo and headband
+* MOTORS - motor output
+
+Usage:
+
+* `blackbox` currently enabled Blackbox fields
+* `blackbox list` all available fields
+* `blackbox -MOTORS` disable MOTORS logging
+* `blackbox MOTOR` enable MOTORS logging
 
 ## Usage
 

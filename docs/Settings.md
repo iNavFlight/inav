@@ -212,16 +212,6 @@ ADC channel to use for analog pitot tube (airspeed) sensor. If board doesn't hav
 
 ---
 
-### align_acc
-
-When running on non-default hardware or adding support for new sensors/sensor boards, these values are used for sensor orientation. When carefully understood, these values can also be used to rotate (in 90deg steps) or flip the board. Possible values are: DEFAULT, CW0_DEG, CW90_DEG, CW180_DEG, CW270_DEG, CW0_DEG_FLIP, CW90_DEG_FLIP, CW180_DEG_FLIP, CW270_DEG_FLIP.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| DEFAULT |  |  |
-
----
-
 ### align_board_pitch
 
 Arbitrary board rotation in deci-degrees (0.1 degree), to allow mounting it sideways / upside down / rotated etc
@@ -249,16 +239,6 @@ Arbitrary board rotation in deci-degrees (0.1 degree), to allow mounting it side
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | -1800 | 3600 |
-
----
-
-### align_gyro
-
-When running on non-default hardware or adding support for new sensors/sensor boards, these values are used for sensor orientation. When carefully understood, these values can also be used to rotate (in 90deg steps) or flip the board. Possible values are: DEFAULT, CW0_DEG, CW90_DEG, CW180_DEG, CW270_DEG, CW0_DEG_FLIP, CW90_DEG_FLIP, CW180_DEG_FLIP, CW270_DEG_FLIP.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| DEFAULT |  |  |
 
 ---
 
@@ -798,7 +778,7 @@ Minimum frequency for dynamic notches. Default value of `150` works best with 5"
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 50 | 30 | 1000 |
+| 50 | 30 | 250 |
 
 ---
 
@@ -1394,11 +1374,11 @@ Reference airspeed. Set this to airspeed at which PIDs were tuned. Usually shoul
 
 ### fw_tpa_time_constant
 
-TPA smoothing and delay time constant to reflect non-instant speed/throttle response of the plane. Planes with low thrust/weight ratio generally need higher time constant. Default is zero for compatibility with old setups
+TPA smoothing and delay time constant to reflect non-instant speed/throttle response of the plane. See **PID Attenuation and scaling** Wiki for full details.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 5000 |
+| 1500 | 0 | 5000 |
 
 ---
 
@@ -5428,7 +5408,7 @@ Quality factor of the setpoint Kalman filter. Higher values means less filtering
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 100 | 1 | 16000 |
+| 100 | 1 | 1000 |
 
 ---
 
@@ -5949,6 +5929,16 @@ Enable workaround for early AKK SAudio-enabled VTX bug.
 | Default | Min | Max |
 | --- | --- | --- |
 | ON | OFF | ON |
+
+---
+
+### vtx_smartaudio_stopbits
+
+Set stopbit count for serial (TBS Sixty9 SmartAudio 2.1 require value of 1 bit)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 2 | 1 | 2 |
 
 ---
 
