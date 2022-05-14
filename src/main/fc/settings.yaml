@@ -37,7 +37,7 @@ tables:
   - name: motor_pwm_protocol
     values: ["STANDARD", "ONESHOT125", "MULTISHOT", "BRUSHED", "DSHOT150", "DSHOT300", "DSHOT600"]
   - name: servo_protocol
-    values: ["PWM", "SERVO_DRIVER", "SBUS", "SBUS_PWM"]
+    values: ["PWM", "SBUS", "SBUS_PWM"]
   - name: failsafe_procedure
     values: ["LAND", "DROP", "RTH", "NONE"]
   - name: current_sensor
@@ -1288,7 +1288,7 @@ groups:
     headers: ["flight/servos.h"]
     members:
       - name: servo_protocol
-        description: "An option to chose the protocol/option that would be used to output servo data. Possible options `PWM` (FC servo outputs), `SERVO_DRIVER` (I2C PCA9685 peripheral), `SBUS` (S.Bus protocol output via a configured serial port)"
+        description: "An option to chose the protocol/option that would be used to output servo data. Possible options `PWM` (FC servo outputs), `SBUS` (S.Bus protocol output via a configured serial port)"
         default_value: "PWM"
         field: servo_protocol
         table: servo_protocol

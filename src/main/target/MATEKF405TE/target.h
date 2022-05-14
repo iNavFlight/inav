@@ -107,7 +107,6 @@
 #define PITOT_I2C_BUS           BUS_I2C1
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
 #define BNO055_I2C_BUS          BUS_I2C1
-#define PCA9685_I2C_BUS         BUS_I2C1
 
 // *************** UART *****************************
 #define USE_VCP

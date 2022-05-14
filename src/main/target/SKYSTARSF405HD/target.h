@@ -135,7 +135,6 @@
 #define RANGEFINDER_I2C_BUS     DEFAULT_I2C_BUS
 
 #define PITOT_I2C_BUS           DEFAULT_I2C_BUS
-#define PCA9685_I2C_BUS         DEFAULT_I2C_BUS
 
 // *************** ADC *****************************
 #define USE_ADC
