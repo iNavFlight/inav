@@ -3019,22 +3019,12 @@ static bool osdDrawSingleElement(uint8_t item)
         }
     case OSD_TPA_TIME_CONSTANT:
         {
-           /* char buff[7];
-            textAttributes_t attr;
-
- if (isAdjustmentFunctionSelected(ADJUSTMENT_FW_TPA_TIME_CONSTANT)) {
-            displayWrite(osdDisplayPort, elemPosX, elemPosY, "TC OK");
- } else {
-     displayWrite(osdDisplayPort, elemPosX, elemPosY, "TPA TC");
- }
-            
-            attr = TEXT_ATTRIBUTES_NONE;
-            tfp_sprintf(buff, "%4d", currentControlRateProfile->throttle.fixedWingTauMs);
-            if (isAdjustmentFunctionSelected(ADJUSTMENT_FW_TPA_TIME_CONSTANT)) {
-                TEXT_ATTRIBUTES_ADD_BLINK(attr);
-            }
-            displayWriteWithAttr(osdDisplayPort, elemPosX + 7, elemPosY, buff, attr);*/
             osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "TPA TC", 0, currentControlRateProfile->throttle.fixedWingTauMs, 4, 0, ADJUSTMENT_FW_TPA_TIME_CONSTANT);
+            return true;
+        }
+    case OSD_FW_LEVEL_TRIM:
+        {
+            osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "LEVEL", 0, pidProfileMutable()->fixedWingLevelTrim, 3, 1, ADJUSTMENT_FW_LEVEL_TRIM);
             return true;
         }
 
