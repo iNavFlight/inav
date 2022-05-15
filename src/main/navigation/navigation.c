@@ -563,6 +563,10 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_RTH_INITIALIZE]  = NAV_STATE_RTH_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]         = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_IDLE]                      = NAV_STATE_IDLE,
+            [NAV_FSM_EVENT_SWITCH_TO_ALTHOLD]                   = NAV_STATE_ALTHOLD_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D]                = NAV_STATE_POSHOLD_3D_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD]               = NAV_STATE_COURSE_HOLD_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_CRUISE]                    = NAV_STATE_CRUISE_INITIALIZE,
         }
     },
 
@@ -4169,7 +4173,8 @@ emergLandState_e getStateOfForcedEmergLanding(void)
 
 bool isWaypointMissionRTHActive(void)
 {
-    return FLIGHT_MODE(NAV_RTH_MODE) && IS_RC_MODE_ACTIVE(BOXNAVWP) && !(IS_RC_MODE_ACTIVE(BOXNAVRTH) || posControl.flags.forcedRTHActivated);
+    return (navGetStateFlags(posControl.navState) & NAV_AUTO_RTH) && IS_RC_MODE_ACTIVE(BOXNAVWP) &&
+           !(IS_RC_MODE_ACTIVE(BOXNAVRTH) || posControl.flags.forcedRTHActivated);
 }
 
 bool navigationIsExecutingAnEmergencyLanding(void)
