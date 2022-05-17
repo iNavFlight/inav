@@ -180,8 +180,6 @@ main_sources(COMMON_SRC
     drivers/flash_m25p16.h
     drivers/io.c
     drivers/io.h
-    drivers/io_pca9685.c
-    drivers/io_pca9685.h
     drivers/io_pcf8574.c
     drivers/io_pcf8574.h
     drivers/io_port_expander.c
@@ -354,8 +352,6 @@ main_sources(COMMON_SRC
     io/lights.h
     io/piniobox.c
     io/piniobox.h
-    io/pwmdriver_i2c.c
-    io/pwmdriver_i2c.h
     io/serial.c
     io/serial.h
     io/serial_4way.c

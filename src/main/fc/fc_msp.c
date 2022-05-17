@@ -1154,8 +1154,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_SENSOR_ALIGNMENT:
-        sbufWriteU8(dst, gyroConfig()->gyro_align);
-        sbufWriteU8(dst, accelerometerConfig()->acc_align);
+        sbufWriteU8(dst, 0); // was gyroConfig()->gyro_align
+        sbufWriteU8(dst, 0); // was accelerometerConfig()->acc_align
 #ifdef USE_MAG
         sbufWriteU8(dst, compassConfig()->mag_align);
 #else
@@ -2061,8 +2061,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_SENSOR_ALIGNMENT:
         if (dataSize == 4) {
-            gyroConfigMutable()->gyro_align = sbufReadU8(src);
-            accelerometerConfigMutable()->acc_align = sbufReadU8(src);
+            sbufReadU8(src); // was gyroConfigMutable()->gyro_align
+            sbufReadU8(src); // was accelerometerConfigMutable()->acc_align
 #ifdef USE_MAG
             compassConfigMutable()->mag_align = sbufReadU8(src);
 #else

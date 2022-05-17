@@ -78,7 +78,6 @@
 #define USE_RANGEFINDER
 #define RANGEFINDER_I2C_BUS     BUS_I2C1
 
-#define PCA9685_I2C_BUS         BUS_I2C1
 #define BNO055_I2C_BUS          BUS_I2C1
 
 // *************** OSD *****************************

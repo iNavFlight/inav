@@ -34,9 +34,6 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/timer.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
-#include "drivers/io_pca9685.h"
-
-#include "io/pwmdriver_i2c.h"
 #include "io/servo_sbus.h"
 #include "sensors/esc_sensor.h"
 
@@ -535,16 +532,6 @@ static void sbusPwmWriteStandard(uint8_t index, uint16_t value)
 }
 #endif
 
-#ifdef USE_PWM_SERVO_DRIVER
-static void pwmServoWriteExternalDriver(uint8_t index, uint16_t value)
-{
-    // If PCA9685 is not detected, we do not want to write servo output anywhere
-    if (STATE(PWM_DRIVER_AVAILABLE)) {
-        pwmDriverSetPulse(index, value);
-    }
-}
-#endif
-
 void pwmServoPreconfigure(void)
 {
     // Protocol-specific configuration
@@ -553,13 +540,6 @@ void pwmServoPreconfigure(void)
         case SERVO_TYPE_PWM:
             servoWritePtr = pwmServoWriteStandard;
             break;
-
-#ifdef USE_PWM_SERVO_DRIVER
-        case SERVO_TYPE_SERVO_DRIVER:
-            pwmDriverInitialize();
-            servoWritePtr = pwmServoWriteExternalDriver;
-            break;
-#endif
 
 #ifdef USE_SERVO_SBUS
         case SERVO_TYPE_SBUS:

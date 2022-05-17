@@ -87,7 +87,7 @@ typedef enum {
 #ifdef USE_LED_STRIP
     TASK_LEDSTRIP,
 #endif
-#if defined(USE_PWM_SERVO_DRIVER) || defined(USE_SERVO_SBUS)
+#if defined(USE_SERVO_SBUS)
     TASK_PWMDRIVER,
 #endif
 #ifdef STACK_CHECK

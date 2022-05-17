@@ -289,6 +289,14 @@ static const adjustmentConfig_t defaultAdjustmentConfigs[ADJUSTMENT_FUNCTION_COU
         .adjustmentFunction = ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS,
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_FW_TPA_TIME_CONSTANT,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 5 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_FW_LEVEL_TRIM,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
     }
 };
 
@@ -597,9 +605,21 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
         case ADJUSTMENT_TPA_BREAKPOINT:
             applyAdjustmentU16(ADJUSTMENT_TPA_BREAKPOINT, &controlRateConfig->throttle.pa_breakpoint, delta, PWM_RANGE_MIN, PWM_RANGE_MAX);
             break;
+        case ADJUSTMENT_FW_TPA_TIME_CONSTANT: 
+            applyAdjustmentU16(ADJUSTMENT_FW_TPA_TIME_CONSTANT, &controlRateConfig->throttle.fixedWingTauMs, delta, SETTING_FW_TPA_TIME_CONSTANT_MIN, SETTING_FW_TPA_TIME_CONSTANT_MAX);
+            break;
         case ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS:
             applyAdjustmentU8(ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS, &navConfigMutable()->fw.control_smoothness, delta, SETTING_NAV_FW_CONTROL_SMOOTHNESS_MIN, SETTING_NAV_FW_CONTROL_SMOOTHNESS_MAX);
             break;
+        case ADJUSTMENT_FW_LEVEL_TRIM:
+        {
+            float newValue = pidProfileMutable()->fixedWingLevelTrim + (delta / 10.0f);
+            if (newValue > SETTING_FW_LEVEL_PITCH_TRIM_MAX) {newValue = (float)SETTING_FW_LEVEL_PITCH_TRIM_MAX;}
+            else if (newValue < SETTING_FW_LEVEL_PITCH_TRIM_MIN) {newValue = (float)SETTING_FW_LEVEL_PITCH_TRIM_MIN;}
+            pidProfileMutable()->fixedWingLevelTrim = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_FW_LEVEL_TRIM, (int)(newValue * 10.0f));
+            break;
+        }
         default:
             break;
     };
