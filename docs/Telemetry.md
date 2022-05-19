@@ -114,7 +114,7 @@ The following sensors are transmitted
   * **C** : number of satellites locked (digit C & D are the number of locked satellites)
   * **D** : number of satellites locked (if 14 satellites are locked, C = 1 & D = 4)
 * **GAlt** : GPS altitude, sea level is zero.
-* **ASpd** : true air speed, from pitot sensor.
+* **ASpd** : true air speed, from pitot sensor. This is _Knots * 10_
 * **A4** : average cell value. Warning : unlike FLVSS and MLVSS sensors, you do not get actual lowest value of a cell, but an average : (total lipo voltage) / (number of cells)
 * **0420** : distance to GPS home fix, in meters
 * **0430** : if `frsky_pitch_roll = ON` set this will be pitch degrees*10
