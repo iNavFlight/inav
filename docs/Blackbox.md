@@ -213,7 +213,7 @@ The CLI command `blackbox` allows setting which Blackbox fields are recorded to 
 * ACC - Accelerometer raw values
 * ATTI - Attitude as computed by INAV position estimator
 * RC_DATA - RC channels 1-4 as returned by the radio receiver
-* RC_COMMAND - RC_DATA converted to [-500:500] scale with expo and headband
+* RC_COMMAND - RC_DATA converted to [-500:500] scale (for A,E,R) with expo and deadband
 * MOTORS - motor output
 
 Usage:
@@ -276,4 +276,4 @@ another software package.
 
 You'll find those tools along with instructions for using them in this repository:
 
-https://github.com/iNavFlight/blackbox-log-viewer
+https://github.com/iNavFlight/blackbox-tools
