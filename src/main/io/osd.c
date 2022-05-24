@@ -2312,19 +2312,19 @@ static bool osdDrawSingleElement(uint8_t item)
 #endif
 
     case OSD_SWITCH_INDICATOR_0:
-        osdDisplaySwitchIndicator(osdConfig()->osd_switch_indicator0_name, rxGetChannelValue(osdConfig()->osd_switch_indicator0_channnel - 1), buff);
+        osdDisplaySwitchIndicator(osdConfig()->osd_switch_indicator0_name, rxGetChannelValue(osdConfig()->osd_switch_indicator0_channel - 1), buff);
         break;
 
     case OSD_SWITCH_INDICATOR_1:
-        osdDisplaySwitchIndicator(osdConfig()->osd_switch_indicator1_name, rxGetChannelValue(osdConfig()->osd_switch_indicator1_channnel - 1), buff);
+        osdDisplaySwitchIndicator(osdConfig()->osd_switch_indicator1_name, rxGetChannelValue(osdConfig()->osd_switch_indicator1_channel - 1), buff);
         break;
 
     case OSD_SWITCH_INDICATOR_2:
-        osdDisplaySwitchIndicator(osdConfig()->osd_switch_indicator2_name, rxGetChannelValue(osdConfig()->osd_switch_indicator2_channnel - 1), buff);
+        osdDisplaySwitchIndicator(osdConfig()->osd_switch_indicator2_name, rxGetChannelValue(osdConfig()->osd_switch_indicator2_channel - 1), buff);
         break;
 
     case OSD_SWITCH_INDICATOR_3:
-        osdDisplaySwitchIndicator(osdConfig()->osd_switch_indicator3_name, rxGetChannelValue(osdConfig()->osd_switch_indicator3_channnel - 1), buff);
+        osdDisplaySwitchIndicator(osdConfig()->osd_switch_indicator3_name, rxGetChannelValue(osdConfig()->osd_switch_indicator3_channel - 1), buff);
         break;
 
     case OSD_ACTIVE_PROFILE:
@@ -3283,13 +3283,13 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .esc_rpm_precision = SETTING_OSD_ESC_RPM_PRECISION_DEFAULT,
     .mAh_used_precision = SETTING_OSD_MAH_USED_PRECISION_DEFAULT,
     .osd_switch_indicator0_name = SETTING_OSD_SWITCH_INDICATOR_ZERO_NAME_DEFAULT,
-    .osd_switch_indicator0_channnel = SETTING_OSD_SWITCH_INDICATOR_ZERO_CHANNNEL_DEFAULT,
+    .osd_switch_indicator0_channel = SETTING_OSD_SWITCH_INDICATOR_ZERO_CHANNEL_DEFAULT,
     .osd_switch_indicator1_name = SETTING_OSD_SWITCH_INDICATOR_ONE_NAME_DEFAULT,
-    .osd_switch_indicator1_channnel = SETTING_OSD_SWITCH_INDICATOR_ONE_CHANNNEL_DEFAULT,
+    .osd_switch_indicator1_channel = SETTING_OSD_SWITCH_INDICATOR_ONE_CHANNEL_DEFAULT,
     .osd_switch_indicator2_name = SETTING_OSD_SWITCH_INDICATOR_TWO_NAME_DEFAULT,
-    .osd_switch_indicator2_channnel = SETTING_OSD_SWITCH_INDICATOR_TWO_CHANNNEL_DEFAULT,
+    .osd_switch_indicator2_channel = SETTING_OSD_SWITCH_INDICATOR_TWO_CHANNEL_DEFAULT,
     .osd_switch_indicator3_name = SETTING_OSD_SWITCH_INDICATOR_THREE_NAME_DEFAULT,
-    .osd_switch_indicator3_channnel = SETTING_OSD_SWITCH_INDICATOR_THREE_CHANNNEL_DEFAULT,
+    .osd_switch_indicator3_channel = SETTING_OSD_SWITCH_INDICATOR_THREE_CHANNEL_DEFAULT,
     .osd_switch_indicators_align_left = SETTING_OSD_SWITCH_INDICATORS_ALIGN_LEFT_DEFAULT,
     .system_msg_display_time = SETTING_OSD_SYSTEM_MSG_DISPLAY_TIME_DEFAULT,
     .units = SETTING_OSD_UNITS_DEFAULT,

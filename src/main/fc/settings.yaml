@@ -3538,27 +3538,27 @@ groups:
         type: string
         max: 5
         default_value: "LIGT"
-      - name: osd_switch_indicator_zero_channnel
+      - name: osd_switch_indicator_zero_channel
         description: "RC Channel to use for OSD switch indicator 0."
-        field: osd_switch_indicator0_channnel
+        field: osd_switch_indicator0_channel
         min: 5
         max: MAX_SUPPORTED_RC_CHANNEL_COUNT
         default_value: 5
-      - name: osd_switch_indicator_one_channnel
+      - name: osd_switch_indicator_one_channel
         description: "RC Channel to use for OSD switch indicator 1."
-        field: osd_switch_indicator1_channnel
+        field: osd_switch_indicator1_channel
         min: 5
         max: MAX_SUPPORTED_RC_CHANNEL_COUNT
         default_value: 5
-      - name: osd_switch_indicator_two_channnel
+      - name: osd_switch_indicator_two_channel
         description: "RC Channel to use for OSD switch indicator 2."
-        field: osd_switch_indicator2_channnel
+        field: osd_switch_indicator2_channel
         min: 5
         max: MAX_SUPPORTED_RC_CHANNEL_COUNT
         default_value: 5
-      - name: osd_switch_indicator_three_channnel
+      - name: osd_switch_indicator_three_channel
         description: "RC Channel to use for OSD switch indicator 3."
-        field: osd_switch_indicator3_channnel
+        field: osd_switch_indicator3_channel
         min: 5
         max: MAX_SUPPORTED_RC_CHANNEL_COUNT
         default_value: 5
