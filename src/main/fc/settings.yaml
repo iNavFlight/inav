@@ -3361,6 +3361,18 @@ groups:
         field: hud_radar_range_max
         min: 100
         max: 9990
+      - name: osd_hud_radar_alt_difference_display_time
+        description: "Time in seconds to display the altitude difference in radar"
+        field: hud_radar_alt_difference_display_time
+        min: 0
+        max: 10
+        default_value: 3
+      - name: osd_hud_radar_distance_display_time
+        description: "Time in seconds to display the distance in radar"
+        field: hud_radar_distance_display_time
+        min: 1
+        max: 10
+        default_value: 3
       - name: osd_hud_wp_disp
         description: "How many navigation waypoints are displayed, set to 0 (zero) to disable. As sample, if set to 2, and you just passed the 3rd waypoint of the mission, you'll see markers for the 4th waypoint (marked 1) and the 5th waypoint (marked 2)"
         default_value: 0
