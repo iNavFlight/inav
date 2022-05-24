@@ -419,13 +419,13 @@ typedef struct osdConfig_s {
     uint16_t system_msg_display_time;           // system message display time for multiple messages (ms)
     uint8_t mAh_used_precision;                 // Number of numbers used for mAh drawn. Plently of packs now are > 9999 mAh
     char    osd_switch_indicator0_name[OSD_SWITCH_INDICATOR_NAME_LENGTH + 1];      // Name to use for switch indicator 0.
-    uint8_t osd_switch_indicator0_channnel;     // RC Channel to use for switch indicator 0.
+    uint8_t osd_switch_indicator0_channel;     // RC Channel to use for switch indicator 0.
     char    osd_switch_indicator1_name[OSD_SWITCH_INDICATOR_NAME_LENGTH + 1];      // Name to use for switch indicator 1.
-    uint8_t osd_switch_indicator1_channnel;     // RC Channel to use for switch indicator 1.
+    uint8_t osd_switch_indicator1_channel;     // RC Channel to use for switch indicator 1.
     char    osd_switch_indicator2_name[OSD_SWITCH_INDICATOR_NAME_LENGTH + 1];      // Name to use for switch indicator 2.
-    uint8_t osd_switch_indicator2_channnel;     // RC Channel to use for switch indicator 2.
+    uint8_t osd_switch_indicator2_channel;     // RC Channel to use for switch indicator 2.
     char    osd_switch_indicator3_name[OSD_SWITCH_INDICATOR_NAME_LENGTH + 1];      // Name to use for switch indicator 3.
-    uint8_t osd_switch_indicator3_channnel;     // RC Channel to use for switch indicator 3.
+    uint8_t osd_switch_indicator3_channel;     // RC Channel to use for switch indicator 3.
     bool    osd_switch_indicators_align_left;   // Align switch indicator name to left of the switch.
 } osdConfig_t;
 

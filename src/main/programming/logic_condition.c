@@ -366,7 +366,7 @@ static int logicConditionCompute(
             return true;
             break;
 
-        case LOGIC_CONDITION_FLIGTH_AXIS_ANGLE_OVERRIDE:
+        case LOGIC_CONDITION_FLIGHT_AXIS_ANGLE_OVERRIDE:
             if (operandA >= 0 && operandA <= 2) {
 
                 flightAxisOverride[operandA].angleTargetActive = true;
@@ -390,7 +390,7 @@ static int logicConditionCompute(
             }
             break;
 
-        case LOGIC_CONDITION_FLIGTH_AXIS_RATE_OVERRIDE:
+        case LOGIC_CONDITION_FLIGHT_AXIS_RATE_OVERRIDE:
             if (operandA >= 0 && operandA <= 2) {
                 flightAxisOverride[operandA].rateTargetActive = true;
                 flightAxisOverride[operandA].rateTarget = constrain(operandB, -2000, 2000);

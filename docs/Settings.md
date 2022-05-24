@@ -4652,7 +4652,7 @@ Auto swap display time interval between disarm stats pages (seconds). Reverts to
 
 ---
 
-### osd_switch_indicator_one_channnel
+### osd_switch_indicator_one_channel
 
 RC Channel to use for OSD switch indicator 1.
 
@@ -4672,7 +4672,7 @@ Character to use for OSD switch incicator 1.
 
 ---
 
-### osd_switch_indicator_three_channnel
+### osd_switch_indicator_three_channel
 
 RC Channel to use for OSD switch indicator 3.
 
@@ -4692,7 +4692,7 @@ Character to use for OSD switch incicator 3.
 
 ---
 
-### osd_switch_indicator_two_channnel
+### osd_switch_indicator_two_channel
 
 RC Channel to use for OSD switch indicator 2.
 
@@ -4712,7 +4712,7 @@ Character to use for OSD switch incicator 2.
 
 ---
 
-### osd_switch_indicator_zero_channnel
+### osd_switch_indicator_zero_channel
 
 RC Channel to use for OSD switch indicator 0.
 
