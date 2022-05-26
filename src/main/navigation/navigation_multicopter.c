@@ -63,6 +63,8 @@ static pt1Filter_t altholdThrottleFilterState;
 static bool prepareForTakeoffOnReset = false;
 static sqrt_controller_t alt_hold_sqrt_controller;
 
+static pt1Filter_t mcPosXYAccelerationFilterState[2];
+
 // Position to velocity controller for Z axis
 static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
 {
@@ -403,6 +405,8 @@ void resetMulticopterPositionController(void)
         posControl.rcAdjustment[axis] = 0;
         lastAccelTargetX = 0.0f;
         lastAccelTargetY = 0.0f;
+
+        pt1FilterReset(&mcPosXYAccelerationFilterState[axis], 0.0f);
     }
 }
 
@@ -526,6 +530,15 @@ static float computeVelocityScale(
     return constrainf(scale, 0, attenuationFactor);
 }
 
+
+/**
+ * This controller translated desired linear velocity into required acceleration
+ * Acceleration is approximated to the roll and pitch angle that multirotor should achieve (attitude)
+ * 
+ * @param deltaMicros - time since last call in microseconds
+ * @param maxAccelLimit - maximum acceleration in cm/s/s
+ * @param maxSpeed - maximum speed in cm/s
+ */
 static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxAccelLimit, const float maxSpeed)
 {
     const float measurementX = navGetCurrentActualPositionAndVelocity()->vel.x;
@@ -575,14 +588,14 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
      * acceleration and deceleration
      * Scale down dTerm with 2D speed
      */
-    const float setpointScale = computeVelocityScale(
+    const float dTermSetpointScale = computeVelocityScale(
         setpointXY,
         maxSpeed,
         multicopterPosXyCoefficients.dTermAttenuation,
         multicopterPosXyCoefficients.dTermAttenuationStart,
         multicopterPosXyCoefficients.dTermAttenuationEnd
     );
-    const float measurementScale = computeVelocityScale(
+    const float dTermMeasurementScale = computeVelocityScale(
         posControl.actualState.velXY,
         maxSpeed,
         multicopterPosXyCoefficients.dTermAttenuation,
@@ -591,7 +604,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     );
 
     //Choose smaller attenuation factor and convert from attenuation to scale
-    const float dtermScale = 1.0f - MIN(setpointScale, measurementScale);
+    const float dtermScale = 1.0f - MIN(dTermSetpointScale, dTermMeasurementScale);
 
     // Apply PID with output limiting and I-term anti-windup
     // Pre-calculated accelLimit and the logic of navPidApply2 function guarantee that our newAccel won't exceed maxAccelLimit
@@ -621,6 +634,12 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
 
     int32_t maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.max_bank_angle);
 
+    float mcPosXYAccelerationFilterLpf = 2.0f;
+    const float setpointNormalized = computeNormalizedVelocity(setpointXY, maxSpeed);
+    const float measurementNormalized = computeNormalizedVelocity(posControl.actualState.velXY, maxSpeed);
+
+    //FIXME start from here
+
 #ifdef USE_MR_BRAKING_MODE
     //Boost required accelerations
     if (STATE(NAV_CRUISE_BRAKING_BOOST) && multicopterPosXyCoefficients.breakingBoostFactor > 0.0f) {
@@ -646,9 +665,16 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     }
 #endif
 
+    /*
+     * Apply the dynamic LPF on acceleration target
+     * LPF Fcut is dynamic: higher on lower speed and goes down when speed is high
+     */
+    float accelerationXFiltered = pt1FilterApply4(&mcPosXYAccelerationFilterState[X], newAccelX, mcPosXYAccelerationFilterLpf, US2S(deltaMicros));
+    float accelerationYFiltered = pt1FilterApply4(&mcPosXYAccelerationFilterState[Y], newAccelY, mcPosXYAccelerationFilterLpf, US2S(deltaMicros));
+
     // Save last acceleration target
-    lastAccelTargetX = newAccelX;
-    lastAccelTargetY = newAccelY;
+    lastAccelTargetX = accelerationXFiltered;
+    lastAccelTargetY = accelerationYFiltered;
 
     // Rotate acceleration target into forward-right frame (aircraft)
     const float accelForward = newAccelX * posControl.actualState.cosYaw + newAccelY * posControl.actualState.sinYaw;
