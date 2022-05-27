@@ -322,7 +322,7 @@ int fastA2I(const char *s)
     }
 
     while ((digit = a2d(*s)) >= 0) {
-        if (digit > 10)
+        if (digit > 9)
             break;
         num = num * 10 + digit;
         s++;
