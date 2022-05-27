@@ -330,3 +330,20 @@ int fastA2I(const char *s)
 
     return sign * num;
 }
+
+int ascii2hex(const char *s) {
+    int num = 0;
+    int digit;
+
+    while (white_space(*s)) {
+        s++;
+    }
+
+    while ((digit = a2d(*s)) >= 0) {
+        if (digit < 0 || digit > 15)
+            break;
+        num = num * 16 + digit;
+        s++;
+    }
+    return num;
+}
