@@ -823,9 +823,13 @@ STATIC_PROTOTHREAD(gpsConfigure)
     // Configure UBX binary messages
     gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
 
-    // u-Blox 9
-    // M9N does not support some of the UBX 6/7/8 messages, so we have to configure it using special sequence
-    if (gpsState.hwVersion >= 190000) {
+    // M9N & M10 does not support some of the UBX 6/7/8 messages, so we have to configure it using special sequence
+    // ublox_6   hwVersion 00040007
+    // ublox_7   hwVersion 00070000
+    // ublox_M8  hwVersion 00080000
+    // ublox_M9  hwVersion 00190000
+    // ublox_M10 hwVersion 000A0000
+    if (gpsState.hwVersion > 80000) {
         configureMSG(MSG_CLASS_UBX, MSG_POSLLH, 0);
         ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
