@@ -45,7 +45,7 @@ http://www.lemon-rx.com/shop/index.php?route=product/product&product_id=118
 
 #### Spektrum pesudo RSSI
 
-As of iNav 1.6, a pseudo RSSI, based on satellite fade count is supported and reported as normal iNav RSSI (0-1023 range). In order to use this feature, the following is necessary:obj/inav_2.2.2_SPRACINGF3EVO.hex
+As of iNav 1.6, a pseudo RSSI, based on satellite fade count is supported and reported as normal iNav RSSI (0-1023 range). In order to use this feature, the following is necessary:
 
 * Bind the satellite receiver using a physical RX; the bind function provided by the flight controller is not sufficient.
 * The CLI variable `rssi_channel` is set to channel 9:
@@ -59,7 +59,7 @@ This pseudo-RSSI should work on all makes of Spektrum satellite RX; it is tested
 16 channels via serial currently supported.  See below how to set up your transmitter.
 
 * You probably need an inverter between the receiver output and the flight controller. However, some flight controllers have this built in and doesn't need one.
-* Some OpenLRS receivers produce obj/inav_2.2.2_SPRACINGF3EVO.hexa non-inverted SBUS signal. It is possible to switch SBUS inversion off using CLI command `set sbus_inversion = OFF` when using an F3 based flight controller.
+* Some OpenLRS receivers produce a non-inverted SBUS signal. It is possible to switch SBUS inversion off using CLI command `set sbus_inversion = OFF` when using an F3 based flight controller.
 * Softserial ports cannot be used with SBUS because it runs at too high of a bitrate (1Mbps).  Refer to the chapter specific to your board to determine which port(s) may be used.
 * You will need to configure the channel mapping in the GUI (Receiver tab) or CLI (`map` command). Note that channels above 8 are mapped "straight", with no remapping.
 
@@ -170,7 +170,7 @@ The flash is avaliable here: https://github.com/benb0jangles/FlySky-i6-Mod-
 ```
 After flash "10ch Timer Mod i6 Updater", it is passible to get RSSI signal on selected Aux channel from FS-i6 Err sensor.
 
-It is possible to use IBUS RX and IBUS telemetry on only one port of the hardware UART. More information in Telemetry.md.obj/inav_2.2.2_SPRACINGF3EVO.hex
+It is possible to use IBUS RX and IBUS telemetry on only one port of the hardware UART. More information in Telemetry.md.
 
 ### SRXL2
 
