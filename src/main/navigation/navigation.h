@@ -140,9 +140,9 @@ typedef enum {
 } navOverridesMotorStop_e;
 
 typedef enum {
-    OFF,
-    ON,
-    ON_FW_SPIRAL,
+    RTH_CLIMB_OFF,
+    RTH_CLIMB_ON,
+    RTH_CLIMB_ON_FW_SPIRAL,
 } navRTHClimbFirst_e;
 
 typedef enum {  // keep aligned with fixedWingLaunchState_t
