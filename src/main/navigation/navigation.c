@@ -152,7 +152,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .max_terrain_follow_altitude = SETTING_NAV_MAX_TERRAIN_FOLLOW_ALT_DEFAULT,              // max altitude in centimeters in terrain following mode
         .safehome_max_distance = SETTING_SAFEHOME_MAX_DISTANCE_DEFAULT,                         // Max distance that a safehome is from the arming point
         .max_altitude = SETTING_NAV_MAX_ALTITUDE_DEFAULT,
-        .rth_trackback_distance = SETTING_NAV_RTH_TRACKBACK_DISTANCE_DEFAULT,                   // Max distance to record RTH trackback points
+        .rth_trackback_distance = SETTING_NAV_RTH_TRACKBACK_DISTANCE_DEFAULT,                   // Max distance allowed for RTH trackback
     },
 
     // MC-specific
@@ -262,6 +262,8 @@ void updateHomePosition(void);
 bool abortLaunchAllowed(void);
 
 static bool rthAltControlStickOverrideCheck(unsigned axis);
+
+static void updateRthTrackback(bool forceSaveTrackPoint);
 static fpVector3_t * rthGetTrackbackPos(void);
 
 /*************************************************************************************************/
@@ -1197,6 +1199,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigati
                                    (navConfig()->general.flags.rth_trackback_mode == RTH_TRACKBACK_FS && posControl.flags.forcedRTHActivated);
 
             if (trackbackActive && posControl.activeRthTBPointIndex >= 0 && !isWaypointMissionRTHActive()) {
+                updateRthTrackback(true);       // save final trackpoint for altitude and max trackback distance reference
                 posControl.flags.rthTrackbackActive = true;
                 calculateAndSetActiveWaypointToLocalPosition(rthGetTrackbackPos());
                 return NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_RTH_TRACKBACK;
@@ -2598,7 +2601,7 @@ static bool rthAltControlStickOverrideCheck(unsigned axis)
  * Trackpoints logged with precedence for course/altitude changes. Distance based changes
  * only logged if no course/altitude changes logged over an extended distance.
  * --------------------------------------------------------------------------------- */
- static void updateRthTrackback(void)
+ static void updateRthTrackback(bool forceSaveTrackPoint)
 {
     if (navConfig()->general.flags.rth_trackback_mode == RTH_TRACKBACK_OFF || FLIGHT_MODE(NAV_RTH_MODE) || !ARMING_FLAG(ARMED)) {
         return;
@@ -2611,7 +2614,7 @@ static bool rthAltControlStickOverrideCheck(unsigned axis)
         static int16_t previousTBCourse;        // degrees
         static int16_t previousTBAltitude;      // meters
         static uint8_t distanceCounter = 0;
-        bool saveTrackpoint = false;
+        bool saveTrackpoint = forceSaveTrackPoint;
         bool GPSCourseIsValid = isGPSHeadingValid();
 
         // start recording when some distance from home, 50m seems reasonable.
@@ -2619,7 +2622,6 @@ static bool rthAltControlStickOverrideCheck(unsigned axis)
             saveTrackpoint = posControl.homeDistance > METERS_TO_CENTIMETERS(50);
 
             previousTBCourse = CENTIDEGREES_TO_DEGREES(posControl.actualState.yaw);
-            previousTBAltitude = CENTIMETERS_TO_METERS(posControl.actualState.abs.pos.z);
             previousTBTripDist = posControl.totalTripDistance;
         } else {
             // Minimum distance increment between course change track points when GPS course valid - set to 10m
@@ -2635,7 +2637,7 @@ static bool rthAltControlStickOverrideCheck(unsigned axis)
                 } else if (distanceCounter >= 9) {
                     // Distance based trackpoint logged if 10 distance increments occur without altitude or course change
                     // and deviation from projected course path > 20m
-                    int32_t distToPrevPoint = calculateDistanceToDestination(&posControl.rthTBPointsList[posControl.activeRthTBPointIndex]);
+                    float distToPrevPoint = calculateDistanceToDestination(&posControl.rthTBPointsList[posControl.activeRthTBPointIndex]);
 
                     fpVector3_t virtualCoursePoint;
                     virtualCoursePoint.x = posControl.rthTBPointsList[posControl.activeRthTBPointIndex].x + distToPrevPoint * cos_approx(DEGREES_TO_RADIANS(previousTBCourse));
@@ -3922,7 +3924,7 @@ void updateWaypointsAndNavigationMode(void)
     updateWpMissionPlanner();
 
     // Update RTH trackback
-    updateRthTrackback();
+    updateRthTrackback(false);
 
     //Update Blackbox data
     navCurrentState = (int16_t)posControl.navPersistentId;
