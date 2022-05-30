@@ -53,7 +53,6 @@
 #include "drivers/exti.h"
 #include "drivers/flash_m25p16.h"
 #include "drivers/io.h"
-#include "drivers/io_pca9685.h"
 #include "drivers/flash.h"
 #include "drivers/light_led.h"
 #include "drivers/nvic.h"
@@ -75,7 +74,6 @@
 #include "drivers/uart_inverter.h"
 #include "drivers/io.h"
 #include "drivers/exti.h"
-#include "drivers/io_pca9685.h"
 #include "drivers/vtx_common.h"
 #ifdef USE_USB_MSC
 #include "drivers/usb_msc.h"
@@ -114,7 +112,6 @@
 #include "io/flashfs.h"
 #include "io/gps.h"
 #include "io/ledstrip.h"
-#include "io/pwmdriver_i2c.h"
 #include "io/osd.h"
 #include "io/osd_dji_hd.h"
 #include "io/rcdevice_cam.h"

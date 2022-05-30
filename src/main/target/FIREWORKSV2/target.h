@@ -228,9 +228,7 @@
 #define TARGET_IO_PORTD         0xffff
 
 #if defined(OMNIBUSF4V6)
-#define PCA9685_I2C_BUS         BUS_I2C1
 #define BNO055_I2C_BUS          BUS_I2C1
 #else
-#define PCA9685_I2C_BUS         BUS_I2C2
 #define BNO055_I2C_BUS          BUS_I2C2
 #endif

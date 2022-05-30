@@ -78,8 +78,8 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 42            | SET_PROFILE                   | Sets the active config profile (PIDFF/Rates/Filters/etc) to `Operand A`. `Operand A` must be a valid profile number, currently from 1 to 3. If not, the profile will not change |
 | 43            | MIN                           | Finds the lowest value of `Operand A` and `Operand B` |
 | 44            | MAX                           | Finds the highest value of `Operand A` and `Operand B` |
-| 45			| FLIGTH_AXIS_ANGLE_OVERRIDE	| Sets the target attitude angle for axis. In other words, when active, it enforces Angle mode (Heading Hold for Yaw) on this axis (Angle mode does not have to be active). `Operand A` defines the axis: `0` - Roll, `1` - Pitch, `2` - Yaw. `Operand B` defines the angle in degrees |
-| 46			| FLIGTH_AXIS_RATE_OVERRIDE	    | Sets the target rate (rotation speed) for axis. `Operand A` defines the axis: `0` - Roll, `1` - Pitch, `2` - Yaw. `Operand B` defines the rate in degrees per second |
+| 45			| FLIGHT_AXIS_ANGLE_OVERRIDE	| Sets the target attitude angle for axis. In other words, when active, it enforces Angle mode (Heading Hold for Yaw) on this axis (Angle mode does not have to be active). `Operand A` defines the axis: `0` - Roll, `1` - Pitch, `2` - Yaw. `Operand B` defines the angle in degrees |
+| 46			| FLIGHT_AXIS_RATE_OVERRIDE	    | Sets the target rate (rotation speed) for axis. `Operand A` defines the axis: `0` - Roll, `1` - Pitch, `2` - Yaw. `Operand B` defines the rate in degrees per second |
 ### Operands
 
 | Operand Type  | Name                  | Notes |
@@ -133,6 +133,10 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 34            | GPS_VALID                     | boolean `0`/`1`. True when the GPS has a valid 3D Fix |
 | 35            | LOITER_RADIUS                 | The current loiter radius in cm. |
 | 36            | ACTIVE_PROFILE                | integer for the active config profile `[1..MAX_PROFILE_COUNT]` |
+| 37            | BATT_CELLS                    | Number of battery cells detected |
+| 38            | AGL_STATUS                    | boolean `1` when AGL can be trusted, `0` when AGL estimate can not be trusted |
+| 39            | AGL                           | integer Above The Groud Altitude in `cm` |
+| 40            | RANGEFINDER_RAW               | integer raw distance provided by the rangefinder in `cm` |
 
 #### ACTIVE_WAYPOINT_ACTION
 

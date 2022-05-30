@@ -26,7 +26,7 @@
 #include "config/parameter_group.h"
 #include "common/time.h"
 
-#define MAX_LOGIC_CONDITIONS 32
+#define MAX_LOGIC_CONDITIONS 64
 
 typedef enum {
     LOGIC_CONDITION_TRUE                        = 0,
@@ -74,8 +74,8 @@ typedef enum {
     LOGIC_CONDITION_SET_PROFILE                 = 42,
     LOGIC_CONDITION_MIN                         = 43,
     LOGIC_CONDITION_MAX                         = 44,
-    LOGIC_CONDITION_FLIGTH_AXIS_ANGLE_OVERRIDE  = 45,
-    LOGIC_CONDITION_FLIGTH_AXIS_RATE_OVERRIDE   = 46,
+    LOGIC_CONDITION_FLIGHT_AXIS_ANGLE_OVERRIDE  = 45,
+    LOGIC_CONDITION_FLIGHT_AXIS_RATE_OVERRIDE   = 46,
     LOGIC_CONDITION_LAST                        = 47,
 } logicOperation_e;
 
@@ -129,7 +129,9 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_LOITER_RADIUS,                           // 35
     LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_PROFILE, //int                    // 36
     LOGIC_CONDITION_OPERAND_FLIGHT_BATT_CELLS,                              // 37
-
+    LOGIC_CONDITION_OPERAND_FLIGHT_AGL_STATUS, //0,1,2                      // 38
+    LOGIC_CONDITION_OPERAND_FLIGHT_AGL, //0,1,2                             // 39
+    LOGIC_CONDITION_OPERAND_FLIGHT_RANGEFINDER_RAW, //int                   // 40
 } logicFlightOperands_e;
 
 typedef enum {

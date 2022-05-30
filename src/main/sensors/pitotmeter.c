@@ -167,7 +167,7 @@ bool pitotIsCalibrationComplete(void)
 
 void pitotStartCalibration(void)
 {
-    zeroCalibrationStartS(&pitot.zeroCalibration, CALIBRATING_PITOT_TIME_MS, P0 * 0.00001f, false);
+    zeroCalibrationStartS(&pitot.zeroCalibration, CALIBRATING_PITOT_TIME_MS, SSL_AIR_PRESSURE * 0.00001f, false);
 }
 
 static void performPitotCalibrationCycle(void)
@@ -223,7 +223,7 @@ STATIC_PROTOTHREAD(pitotThread)
             //
             // Therefore we shouldn't care about CAS/TAS and only calculate IAS since it's more indicative to the pilot and more useful in calculations
             // It also allows us to use pitot_scale to calibrate the dynamic pressure sensor scale
-            pitot.airSpeed = pitotmeterConfig()->pitot_scale * fast_fsqrtf(2.0f * fabsf(pitot.pressure - pitot.pressureZero) / AIR_DENSITY_SEA_LEVEL_15C) * 100;
+            pitot.airSpeed = pitotmeterConfig()->pitot_scale * fast_fsqrtf(2.0f * fabsf(pitot.pressure - pitot.pressureZero) / SSL_AIR_DENSITY) * 100;
         } else {
             performPitotCalibrationCycle();
             pitot.airSpeed = 0;

@@ -38,6 +38,8 @@ typedef enum portOptions_t {
     SERIAL_PARITY_EVEN   = 1 << 2,
     SERIAL_UNIDIR        = 0 << 3,
     SERIAL_BIDIR         = 1 << 3,
+    SERIAL_LONGSTOP      = 0 << 4,
+    SERIAL_SHORTSTOP     = 1 << 4,
 
     /*
      * Note on SERIAL_BIDIR_PP

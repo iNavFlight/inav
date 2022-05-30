@@ -37,6 +37,8 @@
 
 #define INAV_SURFACE_MAX_DISTANCE           40
 
+#define MC_POS_CONTROL_JERK_LIMIT_CMSSS     1700.0f // jerk limit on horizontal acceleration (cm/s^3)
+
 #define MC_LAND_CHECK_VEL_XY_MOVING         100.0f  // cm/s
 #define MC_LAND_CHECK_VEL_Z_MOVING          25.0f   // cm/s
 #define MC_LAND_THR_STABILISE_DELAY         1       // seconds
