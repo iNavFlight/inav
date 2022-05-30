@@ -2386,16 +2386,19 @@ static bool osdDrawSingleElement(uint8_t item)
             uint16_t glideTime = osdGetRemainingGlideTime();
             buff[0] = SYM_GLIDE_MINS;
             if (glideTime > 0) {
-                if (glideTime < 60) {
-                    tfp_sprintf(buff + 1, "%c%02d", SYM_ZERO_HALF_TRAILING_DOT, glideTime);
+                // Maximum value we can show in minutes is 99 minutes and 59 seconds. It is extremely unlikely that glide
+                // time will be longer than 99 minutes. If it is, it will show 99:^^
+                if (glideTime > (99 * 60) + 59) {
+                    tfp_sprintf(buff + 1, "%02d:", (int)(glideTime / 60));
+                    buff[4] = SYM_DIRECTION;
+                    buff[5] = SYM_DIRECTION;
                 } else {
-                    glideTime = floor(glideTime/60);
-                    tfp_sprintf(buff + 1, "%3d", glideTime);
+                    tfp_sprintf(buff + 1, "%02d:%02d", (int)(glideTime / 60), (int)(glideTime % 60));
                 }
             } else {
-               tfp_sprintf(buff + 1, "%s", "---");
+               tfp_sprintf(buff + 1, "%s", "--:--");
             }
-            buff[4] = '\0';
+            buff[6] = '\0';
             break;
         }
     case OSD_GLIDE_RANGE:
