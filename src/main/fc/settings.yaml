@@ -1556,7 +1556,7 @@ groups:
         field: appliedDefaults
         type: uint8_t
         min: 0
-        max: 3
+        max: 4
 
   - name: PG_RPM_FILTER_CONFIG
     headers: ["flight/rpm_filter.h"]
