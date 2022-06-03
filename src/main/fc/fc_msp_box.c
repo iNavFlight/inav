@@ -49,13 +49,13 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXARM, "ARM", 0 },
     { BOXANGLE, "ANGLE", 1 },
     { BOXHORIZON, "HORIZON", 2 },
-    { BOXNAVALTHOLD, "NAV ALTHOLD", 3 },   // old BARO
+    { BOXNAVALTHOLD, "NAV ALTHOLD", 3 },
     { BOXHEADINGHOLD, "HEADING HOLD", 5 },
     { BOXHEADFREE, "HEADFREE", 6 },
     { BOXHEADADJ, "HEADADJ", 7 },
     { BOXCAMSTAB, "CAMSTAB", 8 },
-    { BOXNAVRTH, "NAV RTH", 10 },         // old GPS HOME
-    { BOXNAVPOSHOLD, "NAV POSHOLD", 11 },     // old GPS HOLD
+    { BOXNAVRTH, "NAV RTH", 10 },
+    { BOXNAVPOSHOLD, "NAV POSHOLD", 11 },
     { BOXMANUAL, "MANUAL", 12 },
     { BOXBEEPERON, "BEEPER", 13 },
     { BOXLEDLOW, "LEDS OFF", 15 },
