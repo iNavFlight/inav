@@ -962,13 +962,13 @@ What failsafe procedure to initiate in Stage 2 when craft is closer to home than
 
 ---
 
-### failsafe_mission
+### failsafe_mission_delay
 
-If set to `OFF` the failsafe procedure won't be triggered and the mission will continue if the FC is in WP (automatic mission) mode
+Applies when a WP mission is in progress. Sets the time delay in seconds between failsafe activating and the defined Failsafe procedure triggering. If set to 0 the Failsafe procedure won't be triggered at all and the mission will continue until the end.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON | OFF | ON |
+| 1 | 0 | 600 |
 
 ---
 
