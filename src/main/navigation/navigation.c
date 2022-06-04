@@ -2631,11 +2631,11 @@ static bool rthAltControlStickOverrideCheck(unsigned axis)
             if (ABS(previousTBAltitude - CENTIMETERS_TO_METERS(posControl.actualState.abs.pos.z)) > 10) {   // meters
                 saveTrackpoint = true;
             } else if (distanceIncrement && GPSCourseIsValid) {
-                // Course change
+                // Course change - set to 45 degrees
                 if (ABS(wrap_18000(DEGREES_TO_CENTIDEGREES(DECIDEGREES_TO_DEGREES(gpsSol.groundCourse) - previousTBCourse))) > DEGREES_TO_CENTIDEGREES(45)) {
                     saveTrackpoint = true;
                 } else if (distanceCounter >= 9) {
-                    // Distance based trackpoint logged if 10 distance increments occur without altitude or course change
+                    // Distance based trackpoint logged if at least 10 distance increments occur without altitude or course change
                     // and deviation from projected course path > 20m
                     float distToPrevPoint = calculateDistanceToDestination(&posControl.rthTBPointsList[posControl.activeRthTBPointIndex]);
 
@@ -2648,19 +2648,19 @@ static bool rthAltControlStickOverrideCheck(unsigned axis)
                 distanceCounter++;
                 previousTBTripDist = posControl.totalTripDistance;
             } else if (!GPSCourseIsValid) {
-                // if no reliable course revert to basic distance logging based on direct distance from last point set to 20m
+                // if no reliable course revert to basic distance logging based on direct distance from last point - set to 20m
                 saveTrackpoint = calculateDistanceToDestination(&posControl.rthTBPointsList[posControl.activeRthTBPointIndex]) > METERS_TO_CENTIMETERS(20);
                 previousTBTripDist = posControl.totalTripDistance;
             }
         }
 
-        // when trackpoint array full overwrite from start of array using 'rthTBWrapAroundCounter' to track overwrite position
+        // when trackpoint store full, overwrite from start of store using 'rthTBWrapAroundCounter' to track overwrite position
         if (saveTrackpoint) {
-            if (posControl.activeRthTBPointIndex == (NAV_RTH_TRACKBACK_POINTS - 1)) {
+            if (posControl.activeRthTBPointIndex == (NAV_RTH_TRACKBACK_POINTS - 1)) {   // wraparound to start
                 posControl.rthTBWrapAroundCounter = posControl.activeRthTBPointIndex = 0;
             } else {
                 posControl.activeRthTBPointIndex++;
-                if (posControl.rthTBWrapAroundCounter > -1) {
+                if (posControl.rthTBWrapAroundCounter > -1) {   // track wraparound overwrite position after store first filled
                     posControl.rthTBWrapAroundCounter = posControl.activeRthTBPointIndex;
                 }
             }
