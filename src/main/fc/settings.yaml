@@ -921,10 +921,11 @@ groups:
         description: "What failsafe procedure to initiate in Stage 2 when craft is closer to home than failsafe_min_distance. See [Failsafe documentation](Failsafe.md#failsafe_throttle)."
         default_value: "DROP"
         table: failsafe_procedure
-      - name: failsafe_mission
-        description: "If set to `OFF` the failsafe procedure won't be triggered and the mission will continue if the FC is in WP (automatic mission) mode"
-        default_value: ON
-        type: bool
+      - name: failsafe_mission_delay
+        description: "Applies when a WP mission is in progress. Sets the time delay in seconds between failsafe activating and the defined Failsafe procedure triggering. If set to 0 the Failsafe procedure won't be triggered at all and the mission will continue until the end."
+        default_value: 1
+        min: 0
+        max: 600
 
   - name: PG_LIGHTS_CONFIG
     type: lightsConfig_t

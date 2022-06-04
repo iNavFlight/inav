@@ -73,7 +73,7 @@ PG_RESET_TEMPLATE(failsafeConfig_t, failsafeConfig,
     .failsafe_delay = SETTING_FAILSAFE_DELAY_DEFAULT,                                   // 0.5 sec
     .failsafe_recovery_delay = SETTING_FAILSAFE_RECOVERY_DELAY_DEFAULT,                 // 0.5 seconds (plus 200ms explicit delay)
     .failsafe_off_delay = SETTING_FAILSAFE_OFF_DELAY_DEFAULT,                           // 20sec
-    .failsafe_throttle_low_delay = SETTING_FAILSAFE_THROTTLE_LOW_DELAY_DEFAULT,                                   // default throttle low delay for "just disarm" on failsafe condition
+    .failsafe_throttle_low_delay = SETTING_FAILSAFE_THROTTLE_LOW_DELAY_DEFAULT,         // default throttle low delay for "just disarm" on failsafe condition
     .failsafe_procedure = SETTING_FAILSAFE_PROCEDURE_DEFAULT,                           // default full failsafe procedure
     .failsafe_fw_roll_angle = SETTING_FAILSAFE_FW_ROLL_ANGLE_DEFAULT,                   // 20 deg left
     .failsafe_fw_pitch_angle = SETTING_FAILSAFE_FW_PITCH_ANGLE_DEFAULT,                 // 10 deg dive (yes, positive means dive)
@@ -81,7 +81,7 @@ PG_RESET_TEMPLATE(failsafeConfig_t, failsafeConfig,
     .failsafe_stick_motion_threshold = SETTING_FAILSAFE_STICK_THRESHOLD_DEFAULT,
     .failsafe_min_distance = SETTING_FAILSAFE_MIN_DISTANCE_DEFAULT,                     // No minimum distance for failsafe by default
     .failsafe_min_distance_procedure = SETTING_FAILSAFE_MIN_DISTANCE_PROCEDURE_DEFAULT, // default minimum distance failsafe procedure
-    .failsafe_mission = SETTING_FAILSAFE_MISSION_DEFAULT,                               // Enable failsafe in WP mode or not
+    .failsafe_mission_delay = SETTING_FAILSAFE_MISSION_DELAY_DEFAULT,                   // Time delay before Failsafe triggered during WP mission (s)
 );
 
 typedef enum {
@@ -336,8 +336,18 @@ static bool failsafeCheckStickMotion(void)
 
 static failsafeProcedure_e failsafeChooseFailsafeProcedure(void)
 {
-    if ((FLIGHT_MODE(NAV_WP_MODE) || isWaypointMissionRTHActive()) && !failsafeConfig()->failsafe_mission) {
-        return FAILSAFE_PROCEDURE_NONE;
+    static timeMs_t wpModeDelayedFailsafeStart = 0;
+    if ((FLIGHT_MODE(NAV_WP_MODE) || isWaypointMissionRTHActive())) {
+        if (!wpModeDelayedFailsafeStart) {
+            wpModeDelayedFailsafeStart = millis();
+        } else {
+            if ((millis() - wpModeDelayedFailsafeStart <  (MILLIS_PER_SECOND * failsafeConfig()->failsafe_mission_delay)) ||
+                !failsafeConfig()->failsafe_mission_delay) {
+                return FAILSAFE_PROCEDURE_NONE;
+            } else {
+                wpModeDelayedFailsafeStart = 0;
+            }
+        }
     }
 
     // Craft is closer than minimum failsafe procedure distance (if set to non-zero)
