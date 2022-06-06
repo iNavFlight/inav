@@ -341,8 +341,8 @@ static failsafeProcedure_e failsafeChooseFailsafeProcedure(void)
         if (!wpModeDelayedFailsafeStart) {
             wpModeDelayedFailsafeStart = millis();
         } else {
-            if ((millis() - wpModeDelayedFailsafeStart <  (MILLIS_PER_SECOND * failsafeConfig()->failsafe_mission_delay)) ||
-                !failsafeConfig()->failsafe_mission_delay) {
+            if (failsafeConfig()->failsafe_mission_delay == -1 ||
+                (millis() - wpModeDelayedFailsafeStart <  (MILLIS_PER_SECOND * (uint16_t)failsafeConfig()->failsafe_mission_delay))) {
                 return FAILSAFE_PROCEDURE_NONE;
             } else {
                 wpModeDelayedFailsafeStart = 0;

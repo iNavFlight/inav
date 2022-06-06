@@ -964,11 +964,11 @@ What failsafe procedure to initiate in Stage 2 when craft is closer to home than
 
 ### failsafe_mission_delay
 
-Applies when a WP mission is in progress. Sets the time delay in seconds between failsafe activating and the defined Failsafe procedure triggering. If set to 0 the Failsafe procedure won't be triggered at all and the mission will continue until the end.
+Applies when a WP mission is in progress. Sets the time delay in seconds between failsafe activating and the defined Failsafe procedure triggering. If set to -1 the Failsafe procedure won't be triggered at all and the mission will continue until the end.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1 | 0 | 600 |
+| 0 | -1 | 600 |
 
 ---
 
