@@ -91,9 +91,6 @@ static gpsProviderDescriptor_t  gpsProviders[GPS_PROVIDER_COUNT] = {
     { false, 0, false,  NULL, NULL },
 #endif
 
-    /* Stub */
-    { false, 0, false,  NULL, NULL },
-
     /* NAZA GPS module */
 #ifdef USE_GPS_PROTO_NAZA
     { false, MODE_RX, true, &gpsRestartNAZA, &gpsHandleNAZA },
