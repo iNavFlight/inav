@@ -17,8 +17,6 @@
 
 #pragma once
 
-#define DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR    1.113195f  // MagicEarthNumber from APM
-
 #include "common/axis.h"
 #include "common/maths.h"
 #include "common/filter.h"
@@ -27,25 +25,30 @@
 #include "fc/runtime_config.h"
 #include "navigation/navigation.h"
 
-#define MIN_POSITION_UPDATE_RATE_HZ         5       // Minimum position update rate at which XYZ controllers would be applied
-#define NAV_THROTTLE_CUTOFF_FREQENCY_HZ     4       // low-pass filter on throttle output
+#define DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR 1.113195f  // MagicEarthNumber from APM
+
+#define MIN_POSITION_UPDATE_RATE_HZ         5       // minimum position update rate at which XYZ controllers would be applied
+#define NAV_THROTTLE_CUTOFF_FREQENCY_HZ     4       // pow-pass filter on throttle output
 #define NAV_FW_CONTROL_MONITORING_RATE      2
 #define NAV_DTERM_CUT_HZ                    10.0f
-#define NAV_VEL_Z_DERIVATIVE_CUT_HZ 5.0f
-#define NAV_VEL_Z_ERROR_CUT_HZ 5.0f
-#define NAV_ACCELERATION_XY_MAX             980.0f  // cm/s/s       // approx 45 deg lean angle
+#define NAV_VEL_Z_DERIVATIVE_CUT_HZ         5.0f
+#define NAV_VEL_Z_ERROR_CUT_HZ              5.0f
+#define NAV_ACCELERATION_XY_MAX             980.0f  // cm/s/s; approx 45 deg lean angle
 
 #define INAV_SURFACE_MAX_DISTANCE           40
 
-#define MC_POS_CONTROL_JERK_LIMIT_CMSSS 1700.0f // jerk limit on horizontal acceleration (cm/s^3)
+#define MC_POS_CONTROL_JERK_LIMIT_CMSSS     1700.0f // jerk limit on horizontal acceleration (cm/s^3)
 
-#define MC_LAND_CHECK_VEL_XY_MOVING 100.0f // cm/s
-#define MC_LAND_CHECK_VEL_Z_MOVING 25.0f   // cm/s
-#define MC_LAND_THR_STABILISE_DELAY 1      // seconds
-#define MC_LAND_DESCEND_THROTTLE 40        // uS
-#define MC_LAND_SAFE_SURFACE 5.0f          // cm
+#define MC_ALTITUDE_STOPPING_DIST_DOWN_MAX  200.0f // max stopping distance (in cm) vertically while descending
+#define MC_ALTITUDE_STOPPING_DIST_UP_MAX    300.0f // max stopping distance (in cm) vertically while climbing
 
-#define MAX_POSITION_UPDATE_INTERVAL_US     HZ2US(MIN_POSITION_UPDATE_RATE_HZ)        // convenience macro
+#define MC_LAND_CHECK_VEL_XY_MOVING         100.0f // cm/s
+#define MC_LAND_CHECK_VEL_Z_MOVING          25.0f  // cm/s
+#define MC_LAND_THR_STABILISE_DELAY         1      // seconds
+#define MC_LAND_DESCEND_THROTTLE            40     // uS
+#define MC_LAND_SAFE_SURFACE                5.0f   // cm
+
+#define MAX_POSITION_UPDATE_INTERVAL_US     HZ2US(MIN_POSITION_UPDATE_RATE_HZ) // convenience macro
 _Static_assert(MAX_POSITION_UPDATE_INTERVAL_US <= TIMEDELTA_MAX, "deltaMicros can overflow!");
 
 typedef enum {
@@ -462,7 +465,8 @@ void applyMulticopterNavigationController(navigationFSMStateFlags_t navStateFlag
 
 bool isMulticopterLandingDetected(void);
 
-void calculateMulticopterInitialHoldPosition(fpVector3_t * pos);
+void calculateMulticopterStoppingPositionXY(fpVector3_t *stopping_position);
+void calculateMulticopterStoppingPositionZ(fpVector3_t *stopping_position);
 
 /* Fixed-wing specific functions */
 void setupFixedWingAltitudeController(void);

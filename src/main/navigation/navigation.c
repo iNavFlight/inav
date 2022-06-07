@@ -53,6 +53,7 @@
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
+#include "navigation/sqrt_controller.h"
 
 #include "rx/rx.h"
 
@@ -389,6 +390,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_CRUISE]               = NAV_STATE_CRUISE_INITIALIZE,
         }
     },
+
     /** CRUISE_HOLD mode ************************************************/
     [NAV_STATE_COURSE_HOLD_INITIALIZE] = {
         .persistentId = NAV_PERSISTENT_ID_COURSE_HOLD_INITIALIZE,
@@ -426,7 +428,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         }
     },
 
-        [NAV_STATE_COURSE_HOLD_ADJUSTING] = {
+    [NAV_STATE_COURSE_HOLD_ADJUSTING] = {
         .persistentId = NAV_PERSISTENT_ID_COURSE_HOLD_ADJUSTING,
         .onEntry = navOnEnteringState_NAV_STATE_COURSE_HOLD_ADJUSTING,
         .timeoutMs = 10,
@@ -2538,7 +2540,7 @@ void calculateInitialHoldPosition(fpVector3_t * pos)
         calculateFixedWingInitialHoldPosition(pos);
     }
     else {
-        calculateMulticopterInitialHoldPosition(pos);
+        calculateMulticopterStoppingPositionXY(pos);
     }
 }
 
@@ -2557,6 +2559,10 @@ void setDesiredPosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlag
     if ((useMask & NAV_POS_UPDATE_Z) != 0) {
         updateClimbRateToAltitudeController(0, ROC_TO_ALT_RESET);   // Reset RoC/RoD -> altitude controller
         posControl.desiredState.pos.z = pos->z;
+
+        if (navigationIsFlyingAutonomousMode() && STATE(MULTIROTOR)) {
+            calculateMulticopterStoppingPositionZ(&posControl.desiredState.pos);
+        }
     }
 
     // Heading

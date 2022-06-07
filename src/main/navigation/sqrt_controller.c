@@ -58,6 +58,29 @@ static float sqrtControllerInverse(float kp, float derivative_max, float output)
     return (output > 0.0f) ? stopping_dist : -stopping_dist;
 }
 
+// Sets the maximum error to limit output and derivative of output
+void sqrtControllerInit(sqrt_controller_t *sqrt_controller_pointer,const float kp,const float output_min,const float output_max,const float derivative_out_max)
+{
+
+    // Reset the variables
+    sqrt_controller_pointer->kp = kp;
+    sqrt_controller_pointer->derivative_max = 0.0f;
+    sqrt_controller_pointer->error_min = 0.0f;
+    sqrt_controller_pointer->error_max = 0.0f;
+
+    if (derivative_out_max > 0.0f) {
+        sqrt_controller_pointer->derivative_max = derivative_out_max;
+    }
+
+    if ((output_min < 0.0f) && (sqrt_controller_pointer->kp > 0.0f)) {
+        sqrt_controller_pointer->error_min = sqrtControllerInverse(sqrt_controller_pointer->kp, sqrt_controller_pointer->derivative_max, output_min);
+    }
+
+    if ((output_max > 0.0f) && (sqrt_controller_pointer->kp > 0.0f)) {
+        sqrt_controller_pointer->error_max = sqrtControllerInverse(sqrt_controller_pointer->kp, sqrt_controller_pointer->derivative_max, output_max);
+    }
+}
+
 // Proportional controller with piecewise sqrt sections to constrain derivative
 float sqrtControllerApply(sqrt_controller_t *sqrt_controller_pointer, float target, float measurement, float deltaTime)
 {
@@ -104,25 +127,8 @@ float sqrtControllerApply(sqrt_controller_t *sqrt_controller_pointer, float targ
     return correction_rate; 
 }
 
-// Sets the maximum error to limit output and derivative of output
-void sqrtControllerInit(sqrt_controller_t *sqrt_controller_pointer,const float kp,const float output_min,const float output_max,const float derivative_out_max)
+// Calculates the stopping distance for the square root controller based deceleration path
+float sqrtControllerCalcStoppingDistance(float kP, float velocity, float accelMax)
 {
-
-    // Reset the variables
-    sqrt_controller_pointer->kp = kp;
-    sqrt_controller_pointer->derivative_max = 0.0f;
-    sqrt_controller_pointer->error_min = 0.0f;
-    sqrt_controller_pointer->error_max = 0.0f;
-
-    if (derivative_out_max > 0.0f) {
-        sqrt_controller_pointer->derivative_max = derivative_out_max;
-    }
-
-    if ((output_min < 0.0f) && (sqrt_controller_pointer->kp > 0.0f)) {
-        sqrt_controller_pointer->error_min = sqrtControllerInverse(sqrt_controller_pointer->kp, sqrt_controller_pointer->derivative_max, output_min);
-    }
-
-    if ((output_max > 0.0f) && (sqrt_controller_pointer->kp > 0.0f)) {
-        sqrt_controller_pointer->error_max = sqrtControllerInverse(sqrt_controller_pointer->kp, sqrt_controller_pointer->derivative_max, output_max);
-    }
+    return sqrtControllerInverse(kP, accelMax, velocity);
 }

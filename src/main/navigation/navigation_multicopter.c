@@ -60,14 +60,17 @@
 static int16_t rcCommandAdjustedThrottle;
 static int16_t altHoldThrottleRCZero = 1500;
 static pt1Filter_t altholdThrottleFilterState;
+static sqrt_controller_t pos_z_sqrt_controller;
 static bool prepareForTakeoffOnReset = false;
-static sqrt_controller_t alt_hold_sqrt_controller;
+static float nav_speed_up = 0.0f;
+static float nav_speed_down = 0.0f;
+static float nav_accel_z = 0.0f;
 
 // Position to velocity controller for Z axis
 static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
 {
     float targetVel = sqrtControllerApply(
-        &alt_hold_sqrt_controller,
+        &pos_z_sqrt_controller,
         posControl.desiredState.pos.z,
         navGetCurrentActualPositionAndVelocity()->pos.z,
         US2S(deltaMicros)
@@ -206,9 +209,6 @@ void setupMulticopterAltitudeController(void)
 void resetMulticopterAltitudeController(void)
 {
     const navEstimatedPosVel_t *posToUse = navGetCurrentActualPositionAndVelocity();
-    float nav_speed_up = 0.0f;
-    float nav_speed_down = 0.0f;
-    float nav_accel_z = 0.0f;
 
     navPidReset(&posControl.pids.vel[Z]);
     navPidReset(&posControl.pids.surface);
@@ -233,7 +233,7 @@ void resetMulticopterAltitudeController(void)
     }
 
     sqrtControllerInit(
-        &alt_hold_sqrt_controller,
+        &pos_z_sqrt_controller,
         posControl.pids.pos[Z].param.kP,
         -fabsf(nav_speed_down),
         nav_speed_up,
@@ -302,7 +302,10 @@ bool adjustMulticopterHeadingFromRCInput(void)
 /*-----------------------------------------------------------
  * XY-position controller for multicopter aircraft
  *-----------------------------------------------------------*/
-static float lastAccelTargetX = 0.0f, lastAccelTargetY = 0.0f;
+static float lastAccelTargetX = 0.0f;
+static float lastAccelTargetY = 0.0f;
+static float nav_speed_xy = 0.0f;
+static float nav_accel_xy = 0.0f;
 
 void resetMulticopterBrakingMode(void)
 {
@@ -404,6 +407,14 @@ void resetMulticopterPositionController(void)
         lastAccelTargetX = 0.0f;
         lastAccelTargetY = 0.0f;
     }
+
+    if (navigationIsFlyingAutonomousMode()) {
+        nav_speed_xy = navConfig()-> general.max_auto_speed;
+        nav_accel_xy = 400.0f;
+    } else {
+        nav_speed_xy = navConfig()->general.max_manual_speed;
+        nav_accel_xy = 200.0f;
+    }
 }
 
 bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcRollAdjustment)
@@ -432,8 +443,8 @@ bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcR
     else {
         // Adjusting finished - reset desired position to stay exactly where pilot released the stick
         if (posControl.flags.isAdjustingPosition) {
-            fpVector3_t stopPosition;
-            calculateMulticopterInitialHoldPosition(&stopPosition);
+            fpVector3_t stopPosition = { .v = { navGetCurrentActualPositionAndVelocity()->pos.x, navGetCurrentActualPositionAndVelocity()->pos.y, 0.0f } };
+            calculateMulticopterStoppingPositionXY(&stopPosition);
             setDesiredPosition(&stopPosition, 0, NAV_POS_UPDATE_XY);
         }
 
@@ -853,16 +864,45 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
     rcCommand[THROTTLE] = posControl.rcAdjustment[THROTTLE];
 }
 
-/*-----------------------------------------------------------
- * Calculate loiter target based on current position and velocity
- *-----------------------------------------------------------*/
-void calculateMulticopterInitialHoldPosition(fpVector3_t * pos)
+/*----------------------------------------------------------------
+ * Calculate loiter target based on current position xy and velocity
+ *----------------------------------------------------------------*/
+void calculateMulticopterStoppingPositionXY(fpVector3_t *stopping_position)
 {
-    const float stoppingDistanceX = navGetCurrentActualPositionAndVelocity()->vel.x * posControl.posDecelerationTime;
-    const float stoppingDistanceY = navGetCurrentActualPositionAndVelocity()->vel.y * posControl.posDecelerationTime;
+    fpVector3_t current_vel = { .v = { posControl.desiredState.pos.x - navGetCurrentActualPositionAndVelocity()->pos.x,
+                                       posControl.desiredState.pos.y - navGetCurrentActualPositionAndVelocity()->pos.y,
+                                       0.0f } };
 
-    pos->x = navGetCurrentActualPositionAndVelocity()->pos.x + stoppingDistanceX;
-    pos->y = navGetCurrentActualPositionAndVelocity()->pos.y + stoppingDistanceY;
+    // Calculate current velocity
+    float vel_total = calc_length_pythagorean_2D(current_vel.x, current_vel.y);
+
+    if (vel_total < 0.0f) {
+        return;
+    }
+
+    const float kP = (float)pidProfile()->bank_mc.pid[PID_POS_XY].P / 100.0f;
+
+    const float stopping_distance = sqrtControllerCalcStoppingDistance(kP, constrainf(vel_total, 0.0f, nav_speed_xy), nav_accel_xy);
+
+    if (stopping_distance < 0.0f) {
+        return;
+    }
+
+    // Convert the stopping distance into a stopping point using velocity vector
+    const float stopping_gain = stopping_distance / vel_total;
+    stopping_position->x += (current_vel.x * stopping_gain);
+    stopping_position->y += (current_vel.y * stopping_gain);
+}
+
+/*----------------------------------------------------------------
+ * Calculate altitude target based on current position z and velocity
+ *----------------------------------------------------------------*/
+void calculateMulticopterStoppingPositionZ(fpVector3_t *stopping_position)
+{
+    // Avoid divide by zero by using current position if kP is very low or acceleration is zero
+    if (posControl.pids.pos[Z].param.kP > 0.0f || nav_accel_z > 0.0f) {
+        stopping_position->z += constrainf(sqrtControllerCalcStoppingDistance(posControl.pids.pos[Z].param.kP, navGetCurrentActualPositionAndVelocity()->vel.z, nav_accel_z), - MC_ALTITUDE_STOPPING_DIST_DOWN_MAX, MC_ALTITUDE_STOPPING_DIST_UP_MAX);
+    }
 }
 
 void resetMulticopterHeadingController(void)
