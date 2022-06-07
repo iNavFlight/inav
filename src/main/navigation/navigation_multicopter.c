@@ -874,7 +874,7 @@ void calculateMulticopterStoppingPositionXY(fpVector3_t *stopping_position)
                                        0.0f } };
 
     // Calculate current velocity
-    float vel_total = calc_length_pythagorean_2D(current_vel.x, current_vel.y);
+    const float vel_total = calc_length_pythagorean_2D(current_vel.x, current_vel.y);
 
     if (vel_total < 0.0f) {
         return;
