@@ -3582,6 +3582,26 @@ Expo for PosHold control
 
 ---
 
+### nav_mc_pos_moving_lpf_hz
+
+Minimum acceleration LPF cutoff [Hz] for speed-2-acceleration controller. This is the LPF cutoff when moving at max. speed
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 5 |
+
+---
+
+### nav_mc_pos_stationary_lpf_hz
+
+Minimum acceleration LPF cutoff [Hz] for speed-2-acceleration controller. This is the LPF cutoff when stationary or requesting stationary position
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 1 | 20 |
+
+---
+
 ### nav_mc_pos_xy_p
 
 Controls how fast the drone will fly towards the target position. This is a multiplier to convert displacement to target velocity
