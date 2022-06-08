@@ -417,6 +417,15 @@ void resetMulticopterPositionController(void)
     }
 }
 
+void calculateMulticopterInitialHoldPosition(fpVector3_t * pos)
+{
+    const float stoppingDistanceX = navGetCurrentActualPositionAndVelocity()->vel.x * posControl.posDecelerationTime;
+    const float stoppingDistanceY = navGetCurrentActualPositionAndVelocity()->vel.y * posControl.posDecelerationTime;
+
+    pos->x = navGetCurrentActualPositionAndVelocity()->pos.x + stoppingDistanceX;
+    pos->y = navGetCurrentActualPositionAndVelocity()->pos.y + stoppingDistanceY;
+}
+
 bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcRollAdjustment)
 {
     // Process braking mode
@@ -445,6 +454,17 @@ bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcR
         if (posControl.flags.isAdjustingPosition) {
             fpVector3_t stopPosition = { .v = { navGetCurrentActualPositionAndVelocity()->pos.x, navGetCurrentActualPositionAndVelocity()->pos.y, 0.0f } };
             calculateMulticopterStoppingPositionXY(&stopPosition);
+
+/**/
+            DEBUG_SET(DEBUG_CRUISE, 0, stopPosition.x);
+            DEBUG_SET(DEBUG_CRUISE, 1, stopPosition.y);
+             
+            fpVector3_t stopPosition2;
+            calculateMulticopterInitialHoldPosition(&stopPosition2);
+
+            DEBUG_SET(DEBUG_CRUISE, 2, stopPosition2.x);
+            DEBUG_SET(DEBUG_CRUISE, 3, stopPosition2.y);
+/**/
             setDesiredPosition(&stopPosition, 0, NAV_POS_UPDATE_XY);
         }
 
@@ -869,12 +889,8 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
  *----------------------------------------------------------------*/
 void calculateMulticopterStoppingPositionXY(fpVector3_t *stopping_position)
 {
-    fpVector3_t current_vel = { .v = { posControl.desiredState.pos.x - navGetCurrentActualPositionAndVelocity()->pos.x,
-                                       posControl.desiredState.pos.y - navGetCurrentActualPositionAndVelocity()->pos.y,
-                                       0.0f } };
-
-    // Calculate current velocity
-    const float vel_total = calc_length_pythagorean_2D(current_vel.x, current_vel.y);
+    // Calculate total current velocity
+    const float vel_total = calc_length_pythagorean_2D(navGetCurrentActualPositionAndVelocity()->vel.x, navGetCurrentActualPositionAndVelocity()->vel.y);
 
     if (vel_total < 0.0f) {
         return;
@@ -890,8 +906,8 @@ void calculateMulticopterStoppingPositionXY(fpVector3_t *stopping_position)
 
     // Convert the stopping distance into a stopping point using velocity vector
     const float stopping_gain = stopping_distance / vel_total;
-    stopping_position->x += (current_vel.x * stopping_gain);
-    stopping_position->y += (current_vel.y * stopping_gain);
+    stopping_position->x += (navGetCurrentActualPositionAndVelocity()->vel.x * stopping_gain);
+    stopping_position->y += (navGetCurrentActualPositionAndVelocity()->vel.y * stopping_gain);
 }
 
 /*----------------------------------------------------------------
