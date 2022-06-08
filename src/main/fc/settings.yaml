@@ -146,7 +146,7 @@ tables:
   - name: airmodeHandlingType
     values: ["STICK_CENTER", "THROTTLE_THRESHOLD", "STICK_CENTER_ONCE"]
   - name: nav_extra_arming_safety
-    values: ["OFF", "ON", "ALLOW_BYPASS"]
+    values: ["ON", "ALLOW_BYPASS"]
     enum: navExtraArmingSafety_e
   - name: rssi_source
     values: ["NONE", "AUTO", "ADC", "CHANNEL", "PROTOCOL", "MSP"]
