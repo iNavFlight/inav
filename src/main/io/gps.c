@@ -120,7 +120,7 @@ static gpsProviderDescriptor_t  gpsProviders[GPS_PROVIDER_COUNT] = {
 #endif
 };
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gpsConfig_t, gpsConfig, PG_GPS_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(gpsConfig_t, gpsConfig, PG_GPS_CONFIG, 1);
 
 PG_RESET_TEMPLATE(gpsConfig_t, gpsConfig,
     .provider = SETTING_GPS_PROVIDER_DEFAULT,
