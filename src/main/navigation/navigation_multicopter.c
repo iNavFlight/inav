@@ -636,12 +636,14 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
 
     const float setpointNormalized = computeNormalizedVelocity(setpointXY, maxSpeed);
     const float measurementNormalized = computeNormalizedVelocity(posControl.actualState.velXY, maxSpeed);
-
     const float speedScale = MIN(setpointNormalized, measurementNormalized);
 
-    float mcPosXYAccelerationFilterLpf = scaleRangef(speedScale, 0, 1, 20.0f, 2.0f);
-    
-    //FIXME start from here
+    float mcPosXYAccelerationFilterLpf = scaleRangef(speedScale, 0, 1, navConfig()->mc.pos_stationary_lpf_hz, navConfig()->mc.pos_moving_lpf_hz);
+    mcPosXYAccelerationFilterLpf = constrainf(mcPosXYAccelerationFilterLpf, 0.1f, navConfig()->mc.pos_stationary_lpf_hz);
+
+    DEBUG_SET(DEBUG_ALWAYS, 0, setpointNormalized * 100.0f);
+    DEBUG_SET(DEBUG_ALWAYS, 1, measurementNormalized * 100.0f);
+    DEBUG_SET(DEBUG_ALWAYS, 2, mcPosXYAccelerationFilterLpf * 100.0f);
 
 #ifdef USE_MR_BRAKING_MODE
     //Boost required accelerations
@@ -674,6 +676,9 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
      */
     float accelerationXFiltered = pt1FilterApply4(&mcPosXYAccelerationFilterState[X], newAccelX, mcPosXYAccelerationFilterLpf, US2S(deltaMicros));
     float accelerationYFiltered = pt1FilterApply4(&mcPosXYAccelerationFilterState[Y], newAccelY, mcPosXYAccelerationFilterLpf, US2S(deltaMicros));
+
+    DEBUG_SET(DEBUG_ALWAYS, 3, accelerationXFiltered * 100.0f);
+    DEBUG_SET(DEBUG_ALWAYS, 4, accelerationYFiltered * 100.0f);
 
     // Save last acceleration target
     lastAccelTargetX = accelerationXFiltered;
