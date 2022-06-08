@@ -634,10 +634,13 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
 
     int32_t maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.max_bank_angle);
 
-    float mcPosXYAccelerationFilterLpf = 2.0f;
     const float setpointNormalized = computeNormalizedVelocity(setpointXY, maxSpeed);
     const float measurementNormalized = computeNormalizedVelocity(posControl.actualState.velXY, maxSpeed);
 
+    const float speedScale = MIN(setpointNormalized, measurementNormalized);
+
+    float mcPosXYAccelerationFilterLpf = scaleRangef(speedScale, 0, 1, 20.0f, 2.0f);
+    
     //FIXME start from here
 
 #ifdef USE_MR_BRAKING_MODE
