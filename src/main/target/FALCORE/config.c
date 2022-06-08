@@ -81,7 +81,6 @@ void targetConfiguration(void)
 
     motorConfigMutable()->maxthrottle = 2000;
     motorConfigMutable()->mincommand = 980;
-    motorConfigMutable()->motorPwmRate = 2000;
     motorConfigMutable()->motorPwmProtocol = PWM_TYPE_ONESHOT125;
 
     failsafeConfigMutable()->failsafe_delay = 5;
