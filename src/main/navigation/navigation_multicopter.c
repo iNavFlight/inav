@@ -417,15 +417,6 @@ void resetMulticopterPositionController(void)
     }
 }
 
-void calculateMulticopterInitialHoldPosition(fpVector3_t * pos)
-{
-    const float stoppingDistanceX = navGetCurrentActualPositionAndVelocity()->vel.x * posControl.posDecelerationTime;
-    const float stoppingDistanceY = navGetCurrentActualPositionAndVelocity()->vel.y * posControl.posDecelerationTime;
-
-    pos->x = navGetCurrentActualPositionAndVelocity()->pos.x + stoppingDistanceX;
-    pos->y = navGetCurrentActualPositionAndVelocity()->pos.y + stoppingDistanceY;
-}
-
 bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcRollAdjustment)
 {
     // Process braking mode
@@ -454,17 +445,6 @@ bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcR
         if (posControl.flags.isAdjustingPosition) {
             fpVector3_t stopPosition = { .v = { navGetCurrentActualPositionAndVelocity()->pos.x, navGetCurrentActualPositionAndVelocity()->pos.y, 0.0f } };
             calculateMulticopterStoppingPositionXY(&stopPosition);
-
-/**/
-            DEBUG_SET(DEBUG_CRUISE, 0, stopPosition.x);
-            DEBUG_SET(DEBUG_CRUISE, 1, stopPosition.y);
-             
-            fpVector3_t stopPosition2;
-            calculateMulticopterInitialHoldPosition(&stopPosition2);
-
-            DEBUG_SET(DEBUG_CRUISE, 2, stopPosition2.x);
-            DEBUG_SET(DEBUG_CRUISE, 3, stopPosition2.y);
-/**/
             setDesiredPosition(&stopPosition, 0, NAV_POS_UPDATE_XY);
         }
 
