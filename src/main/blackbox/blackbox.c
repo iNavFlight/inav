@@ -97,16 +97,18 @@
 #define BLACKBOX_INVERTED_CARD_DETECTION 0
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig, PG_BLACKBOX_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig, PG_BLACKBOX_CONFIG, 3);
 
 PG_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig,
     .device = DEFAULT_BLACKBOX_DEVICE,
     .rate_num = SETTING_BLACKBOX_RATE_NUM_DEFAULT,
     .rate_denom = SETTING_BLACKBOX_RATE_DENOM_DEFAULT,
     .invertedCardDetection = BLACKBOX_INVERTED_CARD_DETECTION,
-    .includeFlags = BLACKBOX_FEATURE_NAV_PID | BLACKBOX_FEATURE_NAV_POS |
-        BLACKBOX_FEATURE_MAG | BLACKBOX_FEATURE_ACC | BLACKBOX_FEATURE_ATTITUDE |
-        BLACKBOX_FEATURE_RC_DATA | BLACKBOX_FEATURE_RC_COMMAND | BLACKBOX_FEATURE_MOTORS,
+    .includeFlags = BLACKBOX_FEATURE_NAV_ACC | BLACKBOX_FEATURE_NAV_POS    |
+                    BLACKBOX_FEATURE_NAV_PID | BLACKBOX_FEATURE_MAG        |
+                    BLACKBOX_FEATURE_ACC     | BLACKBOX_FEATURE_ATTITUDE   |
+                    BLACKBOX_FEATURE_RC_DATA | BLACKBOX_FEATURE_RC_COMMAND |
+                    BLACKBOX_FEATURE_MOTORS,
 );
 
 void blackboxIncludeFlagSet(uint32_t mask)
@@ -127,7 +129,6 @@ bool blackboxIncludeFlag(uint32_t mask) {
 static const int32_t blackboxSInterval = 4096;
 
 // Some macros to make writing FLIGHT_LOG_FIELD_* constants shorter:
-
 #define PREDICT(x) CONCAT(FLIGHT_LOG_FIELD_PREDICTOR_, x)
 #define ENCODING(x) CONCAT(FLIGHT_LOG_FIELD_ENCODING_, x)
 #define CONDITION(x) CONCAT(FLIGHT_LOG_FIELD_CONDITION_, x)
