@@ -30,6 +30,7 @@
 
 #include "flash.h"
 #include "flash_m25p16.h"
+#include "flash_w25n01g.h"
 
 #include "common/time.h"
 
@@ -47,6 +48,11 @@ static bool flashSpiInit(void)
 #ifdef USE_FLASH_M25P16
     return m25p16_init(0);
 #endif
+
+#ifdef USE_FLASH_W25N01G
+    return w25n01g_init(0);
+#endif
+
     return false;
 }
 #endif // USE_SPI
@@ -65,6 +71,11 @@ bool flashIsReady(void)
 #ifdef USE_FLASH_M25P16
     return m25p16_isReady();
 #endif
+
+#ifdef USE_FLASH_W25N01G
+    return w25n01g_isReady();
+#endif
+
     return false;
 }
 
@@ -81,12 +92,20 @@ void flashEraseSector(uint32_t address)
 #ifdef USE_FLASH_M25P16
     return m25p16_eraseSector(address);
 #endif
+
+#ifdef USE_FLASH_W25N01G
+    return w25n01g_eraseSector(address);
+#endif
 }
 
 void flashEraseCompletely(void)
 {
 #ifdef USE_FLASH_M25P16
     return m25p16_eraseCompletely();
+#endif
+
+#ifdef USE_FLASH_W25N01G
+    return w25n01g_eraseCompletely();
 #endif
 }
 
@@ -118,6 +137,10 @@ uint32_t flashPageProgram(uint32_t address, const uint8_t *data, int length)
 #ifdef USE_FLASH_M25P16
     return m25p16_pageProgram(address, data, length);
 #endif
+
+#ifdef USE_FLASH_W25N01G
+    return w25n01g_pageProgram(address, data, length);
+#endif
 }
 
 int flashReadBytes(uint32_t address, uint8_t *buffer, int length)
@@ -125,6 +148,11 @@ int flashReadBytes(uint32_t address, uint8_t *buffer, int length)
 #ifdef USE_FLASH_M25P16
     return m25p16_readBytes(address, buffer, length);
 #endif
+
+#ifdef USE_FLASH_W25N01G
+    return w25n01g_readBytes(address, buffer, length);
+#endif
+
     return 0;
 }
 
@@ -136,6 +164,10 @@ const flashGeometry_t *flashGetGeometry(void)
 {
 #ifdef USE_FLASH_M25P16
     return m25p16_getGeometry();
+#endif
+
+#ifdef USE_FLASH_W25N01G
+    return w25n01g_getGeometry();
 #endif
 
     return NULL;

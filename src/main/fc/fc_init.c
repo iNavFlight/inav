@@ -51,7 +51,6 @@
 #include "drivers/bus.h"
 #include "drivers/dma.h"
 #include "drivers/exti.h"
-#include "drivers/flash_m25p16.h"
 #include "drivers/io.h"
 #include "drivers/flash.h"
 #include "drivers/light_led.h"
@@ -383,7 +382,6 @@ void init(void)
         if (blackboxConfig()->device == BLACKBOX_DEVICE_FLASH) {
 #ifdef USE_FLASH_M25P16
             // Must initialise the device to read _anything_
-            /*m25p16_init(0);*/
             if (!flashDeviceInitialized) {
                 flashDeviceInitialized = flashInit();
             }
