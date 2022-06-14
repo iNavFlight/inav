@@ -2451,6 +2451,12 @@ groups:
         field: general.max_auto_speed
         min: 10
         max: 2000
+      - name: nav_auto_accel_xy
+        description: "Maximum horizontal acceleration in fully autonomous modes (RTH, WP) [cm/s/s]. Used for WP mode when no specific WP speed set. [Multirotor only]"
+        default_value: 250
+        field: general.auto_accel_xy
+        min: 50
+        max: 500
       - name: nav_auto_climb_rate
         description: "Maximum climb/descent rate that UAV is allowed to reach during navigation modes. [cm/s]"
         default_value: 500
@@ -2463,6 +2469,12 @@ groups:
         field: general.max_manual_speed
         min: 10
         max: 2000
+      - name: nav_manual_accel_xy
+        description: "Maximum horizontal acceleration in POSHOLD/CRUISE control mode [cm/s/s] [Multirotor only]"
+        default_value: 100
+        field: general.manual_accel_xy
+        min: 50
+        max: 500
       - name: nav_manual_climb_rate
         description: "Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s]"
         default_value: 200

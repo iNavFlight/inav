@@ -136,9 +136,11 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .waypoint_load_on_boot = SETTING_NAV_WP_LOAD_ON_BOOT_DEFAULT,                           // load waypoints automatically during boot
         .auto_speed = SETTING_NAV_AUTO_SPEED_DEFAULT,                                           // speed in autonomous modes (3 m/s = 10.8 km/h)
         .max_auto_speed = SETTING_NAV_MAX_AUTO_SPEED_DEFAULT,                                   // max allowed speed autonomous modes
+        .auto_accel_xy = SETTING_NAV_AUTO_ACCEL_XY_DEFAULT,                                     // maximum allowed manual navigation accel cm/sec/sec
         .max_auto_climb_rate = SETTING_NAV_AUTO_CLIMB_RATE_DEFAULT,                             // 5 m/s
-        .max_manual_speed = SETTING_NAV_MANUAL_SPEED_DEFAULT,
-        .max_manual_climb_rate = SETTING_NAV_MANUAL_CLIMB_RATE_DEFAULT,
+        .max_manual_speed = SETTING_NAV_MANUAL_SPEED_DEFAULT,                                   // manual velocity control max horizontal speed
+        .manual_accel_xy = SETTING_NAV_MANUAL_ACCEL_XY_DEFAULT,                                 // maximum allowed manual navigation accel cm/sec/sec
+        .max_manual_climb_rate = SETTING_NAV_MANUAL_CLIMB_RATE_DEFAULT,                         // manual velocity control max vertical speed
         .land_slowdown_minalt = SETTING_NAV_LAND_SLOWDOWN_MINALT_DEFAULT,                       // altitude in centimeters
         .land_slowdown_maxalt = SETTING_NAV_LAND_SLOWDOWN_MAXALT_DEFAULT,                       // altitude in meters
         .land_minalt_vspd = SETTING_NAV_LAND_MINALT_VSPD_DEFAULT,                               // centimeters/s

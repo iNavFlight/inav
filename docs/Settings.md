@@ -2862,6 +2862,16 @@ Craft name
 
 ---
 
+### nav_auto_accel_xy
+
+Maximum horizontal acceleration in fully autonomous modes (RTH, WP) [cm/s/s]. Used for WP mode when no specific WP speed set. [Multirotor only]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 250 | 50 | 500 |
+
+---
+
 ### nav_auto_climb_rate
 
 Maximum climb/descent rate that UAV is allowed to reach during navigation modes. [cm/s]
@@ -3389,6 +3399,16 @@ Defines at what altitude the descent velocity should start to be `nav_land_minal
 | Default | Min | Max |
 | --- | --- | --- |
 | 500 | 50 | 1000 |
+
+---
+
+### nav_manual_accel_xy
+
+Maximum horizontal acceleration in POSHOLD/CRUISE control mode [cm/s/s] [Multirotor only]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 50 | 500 |
 
 ---
 

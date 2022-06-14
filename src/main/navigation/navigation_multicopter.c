@@ -410,10 +410,10 @@ void resetMulticopterPositionController(void)
 
     if (navigationIsFlyingAutonomousMode()) {
         nav_speed_xy = navConfig()-> general.max_auto_speed;
-        nav_accel_xy = 400.0f;
+        nav_accel_xy = navConfig()->general.auto_accel_xy;
     } else {
         nav_speed_xy = navConfig()->general.max_manual_speed;
-        nav_accel_xy = 200.0f;
+        nav_accel_xy = navConfig()->general.manual_accel_xy;
     }
 }
 
@@ -443,7 +443,7 @@ bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcR
     else {
         // Adjusting finished - reset desired position to stay exactly where pilot released the stick
         if (posControl.flags.isAdjustingPosition) {
-            fpVector3_t stopPosition = { .v = { navGetCurrentActualPositionAndVelocity()->pos.x, navGetCurrentActualPositionAndVelocity()->pos.y, 0.0f } };
+            fpVector3_t stopPosition;
             calculateMulticopterStoppingPositionXY(&stopPosition);
             setDesiredPosition(&stopPosition, 0, NAV_POS_UPDATE_XY);
         }
@@ -864,11 +864,14 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
     rcCommand[THROTTLE] = posControl.rcAdjustment[THROTTLE];
 }
 
-/*----------------------------------------------------------------
- * Calculate loiter target based on current position xy and velocity
- *----------------------------------------------------------------*/
+/*-------------------------------------------------------------------*
+ * Calculate loiter target based on current position XY and Velocity *
+ *-------------------------------------------------------------------*/
 void calculateMulticopterStoppingPositionXY(fpVector3_t *stopping_position)
 {
+    stopping_position->x = navGetCurrentActualPositionAndVelocity()->pos.x;
+    stopping_position->y = navGetCurrentActualPositionAndVelocity()->pos.y;
+
     // Calculate total current velocity
     const float vel_total = calc_length_pythagorean_2D(navGetCurrentActualPositionAndVelocity()->vel.x, navGetCurrentActualPositionAndVelocity()->vel.y);
 
@@ -890,9 +893,9 @@ void calculateMulticopterStoppingPositionXY(fpVector3_t *stopping_position)
     stopping_position->y += (navGetCurrentActualPositionAndVelocity()->vel.y * stopping_gain);
 }
 
-/*----------------------------------------------------------------
- * Calculate altitude target based on current position z and velocity
- *----------------------------------------------------------------*/
+/*--------------------------------------------------------------------*
+ * Calculate altitude target based on current position Z and Velocity *
+ *--------------------------------------------------------------------*/
 void calculateMulticopterStoppingPositionZ(fpVector3_t *stopping_position)
 {
     // Avoid divide by zero by using current position if kP is very low or acceleration is zero

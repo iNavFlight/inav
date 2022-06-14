@@ -234,8 +234,10 @@ typedef struct navConfig_s {
         bool     waypoint_load_on_boot;             // load waypoints automatically during boot
         uint16_t auto_speed;                        // autonomous navigation speed cm/sec
         uint16_t max_auto_speed;                    // maximum allowed autonomous navigation speed cm/sec
+        uint16_t auto_accel_xy;                     // maximum allowed autonomous navigation accel cm/sec/sec
         uint16_t max_auto_climb_rate;               // max vertical speed limitation cm/sec
         uint16_t max_manual_speed;                  // manual velocity control max horizontal speed
+        uint16_t manual_accel_xy;                   // maximum allowed manual navigation accel cm/sec/sec
         uint16_t max_manual_climb_rate;             // manual velocity control max vertical speed
         uint16_t land_minalt_vspd;                  // Final RTH landing descent rate under minalt
         uint16_t land_maxalt_vspd;                  // RTH landing descent rate target at maxalt
