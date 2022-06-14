@@ -150,6 +150,9 @@ static float computeParabolaMean(gyroAnalyseState_t *state, uint8_t peakBinIndex
         preciseBin += (y0 - y2) / denom;
     }
 
+    //Cap precise bin to prevent off values if parabola is not fitted correctly
+    preciseBin = constrainf(preciseBin, -0.5f, 0.5f);
+
     return preciseBin;
 }
 
