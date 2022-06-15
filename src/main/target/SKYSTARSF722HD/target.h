@@ -17,9 +17,9 @@
 
 #pragma once
 
-#define TARGET_BOARD_IDENTIFIER "SS4D"
+#define TARGET_BOARD_IDENTIFIER "SS7D"
 
-#define USBD_PRODUCT_STRING  "SkystarsF405HD"
+#define USBD_PRODUCT_STRING  "SkystarsF722HD"
 
 #define LED0                    PC14 // green
 #define LED1                    PC15 // blue
