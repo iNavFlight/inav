@@ -1,1 +1,1 @@
-target_stm32f405xg(FF_FORTINIF4)
+target_stm32f405xg(FF_FORTINIF4 SKIP_RELEASES)
