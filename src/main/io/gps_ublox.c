@@ -961,27 +961,6 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
 
     // Change baud rate
     if (gpsState.gpsConfig->autoBaud != GPS_AUTOBAUD_OFF) {
-#if 0
-        // Autobaud logic:
-        //  0. Wait for TX buffer to be empty
-        ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
-
-        //  1. Set serial port to baud rate specified by [autoBaudrateIndex]
-        serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.autoBaudrateIndex]]);
-        gpsState.autoBaudrateIndex = (gpsState.autoBaudrateIndex + 1) % GPS_BAUDRATE_COUNT;
-
-        //  2. Send an $UBX command to switch the baud rate specified by portConfig [baudrateIndex]
-        serialPrint(gpsState.gpsPort, baudInitDataNMEA[gpsState.baudrateIndex]);
-
-        //  3. Wait for command to be received and processed by GPS
-        ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
-
-        //  4. Switch to [baudrateIndex]
-        serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.baudrateIndex]]);
-
-        //  5. Attempt to configure the GPS
-        ptDelayMs(GPS_BAUD_CHANGE_DELAY);
-#else
         //  0. Wait for TX buffer to be empty
         ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
 
@@ -998,9 +977,7 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
             // 4. Extra wait to make sure GPS processed the command
             ptDelayMs(GPS_BAUD_CHANGE_DELAY);
         }
-
         serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.baudrateIndex]]);
-#endif
     }
     else {
         // No auto baud - set port baud rate to [baudrateIndex]
