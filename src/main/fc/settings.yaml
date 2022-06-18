@@ -2824,6 +2824,11 @@ groups:
         field: fw.launch_climb_angle
         min: 5
         max: 45
+      - name: nav_fw_launch_manual_throttle
+        description: "Allow launch with manually controlled throttle. INAV only levels wings and controls climb angle during launch. Throttle is controlled directly by throttle stick movement. Launch timers start when throttle stick is raised above idle."
+        default_value: OFF
+        field: fw.launch_manual_throttle
+        type: bool
       - name: nav_fw_cruise_yaw_rate
         description: "Max YAW rate when NAV CRUISE mode is enabled (0=disable control via yaw stick) [dps]"
         default_value: 20
