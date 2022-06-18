@@ -3243,7 +3243,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 
     case MSP_TELEMETRY:
         sbufWriteU8(dst, ARMING_FLAG(ARMED)); // arming status
-        sbufWriteU8(dst, 0); // arming status
+        sbufWriteU8(dst, 0); // modes
         sbufWriteU32(dst, flightModeFlags);
 
         sbufWriteU8(dst, 1); // messages
@@ -3284,6 +3284,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
             }
         } else {
             DISABLE_ARMING_FLAG(SIMULATOR_MODE);
+            baroStartCalibration(); // just once
         }
         if (dataSize >= 14) {
             gpsSol.fixType = sbufReadU8(src);
