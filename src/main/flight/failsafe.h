@@ -148,6 +148,7 @@ typedef struct failsafeState_s {
     timeMs_t landingShouldBeFinishedAt;
     timeMs_t receivingRxDataPeriod;         // period for the required period of valid rxData
     timeMs_t receivingRxDataPeriodPreset;   // preset for the required period of valid rxData
+    timeMs_t wpModeDelayedFailsafeStart;    // waypoint mission delayed failsafe timer start time
     failsafeProcedure_e activeProcedure;
     failsafePhase_e phase;
     failsafeRxLinkState_e rxLinkState;

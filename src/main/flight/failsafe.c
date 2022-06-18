@@ -67,7 +67,7 @@
 
 static failsafeState_t failsafeState;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(failsafeConfig_t, failsafeConfig, PG_FAILSAFE_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(failsafeConfig_t, failsafeConfig, PG_FAILSAFE_CONFIG, 3);
 
 PG_RESET_TEMPLATE(failsafeConfig_t, failsafeConfig,
     .failsafe_delay = SETTING_FAILSAFE_DELAY_DEFAULT,                                   // 0.5 sec
@@ -82,6 +82,7 @@ PG_RESET_TEMPLATE(failsafeConfig_t, failsafeConfig,
     .failsafe_min_distance = SETTING_FAILSAFE_MIN_DISTANCE_DEFAULT,                     // No minimum distance for failsafe by default
     .failsafe_min_distance_procedure = SETTING_FAILSAFE_MIN_DISTANCE_PROCEDURE_DEFAULT, // default minimum distance failsafe procedure
     .failsafe_mission_delay = SETTING_FAILSAFE_MISSION_DELAY_DEFAULT,                   // Time delay before Failsafe triggered during WP mission (s)
+    .failsafe_mission_delay = SETTING_FAILSAFE_MISSION_DELAY_DEFAULT,                   // WP mode failsafe procedure initiation delay
 );
 
 typedef enum {
@@ -336,16 +337,14 @@ static bool failsafeCheckStickMotion(void)
 
 static failsafeProcedure_e failsafeChooseFailsafeProcedure(void)
 {
-    static timeMs_t wpModeDelayedFailsafeStart = 0;
-    if ((FLIGHT_MODE(NAV_WP_MODE) || isWaypointMissionRTHActive())) {
-        if (!wpModeDelayedFailsafeStart) {
-            wpModeDelayedFailsafeStart = millis();
+    if ((FLIGHT_MODE(NAV_WP_MODE) || isWaypointMissionRTHActive()) && failsafeConfig()->failsafe_mission_delay) {
+        if (!failsafeState.wpModeDelayedFailsafeStart) {
+            failsafeState.wpModeDelayedFailsafeStart = millis();
+            return FAILSAFE_PROCEDURE_NONE;
         } else {
-            if (failsafeConfig()->failsafe_mission_delay == -1 ||
-                (millis() - wpModeDelayedFailsafeStart <  (MILLIS_PER_SECOND * (uint16_t)failsafeConfig()->failsafe_mission_delay))) {
+            if ((millis() - failsafeState.wpModeDelayedFailsafeStart < (MILLIS_PER_SECOND * (uint16_t)failsafeConfig()->failsafe_mission_delay)) ||
+                failsafeConfig()->failsafe_mission_delay == -1) {
                 return FAILSAFE_PROCEDURE_NONE;
-            } else {
-                wpModeDelayedFailsafeStart = 0;
             }
         }
     }
@@ -403,6 +402,7 @@ void failsafeUpdateState(void)
                             failsafeState.receivingRxDataPeriodPreset = PERIOD_OF_3_SECONDS; // require 3 seconds of valid rxData
                         } else {
                             failsafeState.phase = FAILSAFE_RX_LOSS_DETECTED;
+                            failsafeState.wpModeDelayedFailsafeStart = 0;
                         }
                         reprocessState = true;
                     }
@@ -457,6 +457,9 @@ void failsafeUpdateState(void)
             case FAILSAFE_RX_LOSS_IDLE:
                 if (receivingRxDataAndNotFailsafeMode && sticksAreMoving) {
                     failsafeState.phase = FAILSAFE_RX_LOSS_RECOVERED;
+                    reprocessState = true;
+                } else if (failsafeChooseFailsafeProcedure() != FAILSAFE_PROCEDURE_NONE) {  // trigger new failsafe procedure if changed
+                    failsafeState.phase = FAILSAFE_RX_LOSS_DETECTED;
                     reprocessState = true;
                 }
                 break;
