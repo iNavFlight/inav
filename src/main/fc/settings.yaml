@@ -2825,7 +2825,7 @@ groups:
         min: 5
         max: 45
       - name: nav_fw_launch_manual_throttle
-        description: "Allow launch with manually controlled throttle. INAV only levels wings and controls climb angle during launch. Throttle is controlled directly by throttle stick movement. Launch timers start when throttle stick is raised above idle."
+        description: "Allows launch with manually controlled throttle. INAV only levels wings and controls climb angle during launch. Throttle is controlled directly by throttle stick movement. Launch timers start when throttle stick is raised above idle."
         default_value: OFF
         field: fw.launch_manual_throttle
         type: bool

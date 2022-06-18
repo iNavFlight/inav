@@ -3082,6 +3082,16 @@ Launch idle throttle - throttle to be set before launch sequence is initiated. I
 
 ---
 
+### nav_fw_launch_manual_throttle
+
+Allows launch with manually controlled throttle. INAV only levels wings and controls climb angle during launch. Throttle is controlled directly by throttle stick movement. Launch timers start when throttle stick is raised above idle.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### nav_fw_launch_max_altitude
 
 Altitude (centimeters) at which LAUNCH mode will be turned off and regular flight mode will take over [0-60000].
