@@ -82,7 +82,6 @@ PG_RESET_TEMPLATE(failsafeConfig_t, failsafeConfig,
     .failsafe_min_distance = SETTING_FAILSAFE_MIN_DISTANCE_DEFAULT,                     // No minimum distance for failsafe by default
     .failsafe_min_distance_procedure = SETTING_FAILSAFE_MIN_DISTANCE_PROCEDURE_DEFAULT, // default minimum distance failsafe procedure
     .failsafe_mission_delay = SETTING_FAILSAFE_MISSION_DELAY_DEFAULT,                   // Time delay before Failsafe triggered during WP mission (s)
-    .failsafe_mission_delay = SETTING_FAILSAFE_MISSION_DELAY_DEFAULT,                   // WP mode failsafe procedure initiation delay
 );
 
 typedef enum {
@@ -341,11 +340,9 @@ static failsafeProcedure_e failsafeChooseFailsafeProcedure(void)
         if (!failsafeState.wpModeDelayedFailsafeStart) {
             failsafeState.wpModeDelayedFailsafeStart = millis();
             return FAILSAFE_PROCEDURE_NONE;
-        } else {
-            if ((millis() - failsafeState.wpModeDelayedFailsafeStart < (MILLIS_PER_SECOND * (uint16_t)failsafeConfig()->failsafe_mission_delay)) ||
-                failsafeConfig()->failsafe_mission_delay == -1) {
-                return FAILSAFE_PROCEDURE_NONE;
-            }
+        } else if ((millis() - failsafeState.wpModeDelayedFailsafeStart < (MILLIS_PER_SECOND * (uint16_t)failsafeConfig()->failsafe_mission_delay)) ||
+                   failsafeConfig()->failsafe_mission_delay == -1) {
+            return FAILSAFE_PROCEDURE_NONE;
         }
     }
 
