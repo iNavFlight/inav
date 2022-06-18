@@ -26,6 +26,9 @@
 #if defined(KAKUTEF4V2)
 #   define TARGET_BOARD_IDENTIFIER "KTV2"
 #   define USBD_PRODUCT_STRING "KakuteF4-V2"
+#elif defined(KAKUTEF4V23)
+#   define TARGET_BOARD_IDENTIFIER "KT23"
+#   define USBD_PRODUCT_STRING "KakuteF4-V2.3"
 #else
 #   define TARGET_BOARD_IDENTIFIER "KTV1"
 #   define USBD_PRODUCT_STRING "KakuteF4-V1"
@@ -33,7 +36,10 @@
 
 #define LED0                    PB5
 #define LED1                    PB4
-#define LED2                    PB6
+
+#if !defined(KAKUTEF4V23)
+#   define LED2                 PB6
+#endif
 
 #define BEEPER                  PC9
 #define BEEPER_INVERTED
@@ -52,7 +58,7 @@
 #define MPU6000_CS_PIN          PC4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
-#ifdef KAKUTEF4V2
+#if defined(KAKUTEF4V2) || defined(KAKUTEF4V23)
 #   define USE_I2C
 #   define USE_I2C_DEVICE_1
 #   define I2C1_SCL                PB8        // SCL pad
@@ -68,7 +74,7 @@
 #   define USE_MAG_LIS3MDL
 
 #   define TEMPERATURE_I2C_BUS     BUS_I2C1
-#define BNO055_I2C_BUS             BUS_I2C1
+#   define BNO055_I2C_BUS          BUS_I2C1
 
 #   define USE_BARO
 #   define BARO_I2C_BUS            BUS_I2C1
@@ -109,7 +115,7 @@
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
 
-#ifdef KAKUTEF4V2
+#if defined(KAKUTEF4V2) || defined(KAKUTEF4V23)
 #   define USE_UART4
 #   define UART4_RX_PIN            PA1
 #   define UART4_TX_PIN            PA0
