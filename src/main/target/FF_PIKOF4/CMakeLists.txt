@@ -1,2 +1,2 @@
-target_stm32f405xg(FF_PIKOF4)
-target_stm32f405xg(FF_PIKOF4OSD)
+target_stm32f405xg(FF_PIKOF4 SKIP_RELEASES)
+target_stm32f405xg(FF_PIKOF4OSD SKIP_RELEASES)

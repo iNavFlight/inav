@@ -29,16 +29,6 @@
 #include "drivers/flash_m25p16.h"
 #include "hardware_revision.h"
 
-#if 0
-static const char * const hardwareRevisionNames[] = {
-    "Unknown",
-    "BlueJay rev1",
-    "BlueJay rev2",
-    "BlueJay rev3",
-    "BlueJay rev3a"
-};
-#endif
-
 uint8_t hardwareRevision = UNKNOWN;
 
 void detectHardwareRevision(void)

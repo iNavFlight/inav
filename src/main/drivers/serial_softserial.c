@@ -381,7 +381,9 @@ void processTxState(softSerial_t *softSerial)
             serialOutputPortActivate(softSerial);
         }
 
-        return;
+        if ((softSerial->port.options & SERIAL_SHORTSTOP) == 0) {
+            return;
+        }
     }
 
     if (softSerial->bitsLeftToTransmit) {
@@ -390,7 +392,10 @@ void processTxState(softSerial_t *softSerial)
 
         setTxSignal(softSerial, mask);
         softSerial->bitsLeftToTransmit--;
-        return;
+
+        if (((softSerial->port.options & SERIAL_SHORTSTOP) == 0) || softSerial->bitsLeftToTransmit) {
+            return;
+        }
     }
 
     softSerial->isTransmittingData = false;

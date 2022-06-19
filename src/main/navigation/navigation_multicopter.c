@@ -533,7 +533,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
 
     const float setpointX = posControl.desiredState.vel.x;
     const float setpointY = posControl.desiredState.vel.y;
-    const float setpointXY = fast_fsqrtf(sq(setpointX) + sq(setpointY));
+    const float setpointXY = calc_length_pythagorean_2D(setpointX, setpointY);
 
     // Calculate velocity error
     const float velErrorX = setpointX - measurementX;
@@ -554,7 +554,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     // Apply additional jerk limiting of 1700 cm/s^3 (~100 deg/s), almost any copter should be able to achieve this rate
     // This will assure that we wont't saturate out LEVEL and RATE PID controller
 
-    float maxAccelChange = US2S(deltaMicros) * 1700.0f;
+    float maxAccelChange = US2S(deltaMicros) * MC_POS_CONTROL_JERK_LIMIT_CMSSS;
     //When braking, raise jerk limit even if we are not boosting acceleration
 #ifdef USE_MR_BRAKING_MODE
     if (STATE(NAV_CRUISE_BRAKING)) {

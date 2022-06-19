@@ -1159,8 +1159,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_SENSOR_ALIGNMENT:
-        sbufWriteU8(dst, gyroConfig()->gyro_align);
-        sbufWriteU8(dst, accelerometerConfig()->acc_align);
+        sbufWriteU8(dst, 0); // was gyroConfig()->gyro_align
+        sbufWriteU8(dst, 0); // was accelerometerConfig()->acc_align
 #ifdef USE_MAG
         sbufWriteU8(dst, compassConfig()->mag_align);
 #else
@@ -1550,6 +1550,23 @@ static mspResult_e mspFcSafeHomeOutCommand(sbuf_t *dst, sbuf_t *src)
         return MSP_RESULT_ACK;
     } else {
          return MSP_RESULT_ERROR;
+    }
+}
+
+static mspResult_e mspFcLogicConditionCommand(sbuf_t *dst, sbuf_t *src) {
+    const uint8_t idx = sbufReadU8(src);
+    if (idx < MAX_LOGIC_CONDITIONS) {
+        sbufWriteU8(dst, logicConditions(idx)->enabled);
+        sbufWriteU8(dst, logicConditions(idx)->activatorId);
+        sbufWriteU8(dst, logicConditions(idx)->operation);
+        sbufWriteU8(dst, logicConditions(idx)->operandA.type);
+        sbufWriteU32(dst, logicConditions(idx)->operandA.value);
+        sbufWriteU8(dst, logicConditions(idx)->operandB.type);
+        sbufWriteU32(dst, logicConditions(idx)->operandB.value);
+        sbufWriteU8(dst, logicConditions(idx)->flags);
+        return MSP_RESULT_ACK;
+    } else {
+        return MSP_RESULT_ERROR;
     }
 }
 
@@ -2049,8 +2066,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_SENSOR_ALIGNMENT:
         if (dataSize == 4) {
-            gyroConfigMutable()->gyro_align = sbufReadU8(src);
-            accelerometerConfigMutable()->acc_align = sbufReadU8(src);
+            sbufReadU8(src); // was gyroConfigMutable()->gyro_align
+            sbufReadU8(src); // was accelerometerConfigMutable()->acc_align
 #ifdef USE_MAG
             compassConfigMutable()->mag_align = sbufReadU8(src);
 #else
@@ -3237,6 +3254,11 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         break;
 #endif
 
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    case MSP2_INAV_LOGIC_CONDITIONS_SINGLE:
+        *ret = mspFcLogicConditionCommand(dst, src);
+        break;
+#endif
     case MSP2_INAV_SAFEHOME:
          *ret = mspFcSafeHomeOutCommand(dst, src);
          break;

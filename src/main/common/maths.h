@@ -71,6 +71,12 @@
 
 #define C_TO_KELVIN(temp) (temp + 273.15f)
 
+// Standard Sea Level values
+// Ref:https://en.wikipedia.org/wiki/Standard_sea_level
+#define SSL_AIR_DENSITY         1.225f // kg/m^3
+#define SSL_AIR_PRESSURE 101325.01576f // Pascal
+#define SSL_AIR_TEMPERATURE    288.15f // K
+
 // copied from https://code.google.com/p/cxutil/source/browse/include/cxutil/utility.h#70
 #define _CHOOSE2(binoper, lexpr, lvar, rexpr, rvar)         \
     ( __extension__ ({                                      \

@@ -89,14 +89,14 @@ typedef enum {
     ANGLE_MODE            = (1 << 0),
     HORIZON_MODE          = (1 << 1),
     HEADING_MODE          = (1 << 2),
-    NAV_ALTHOLD_MODE      = (1 << 3), // old BARO
-    NAV_RTH_MODE          = (1 << 4), // old GPS_HOME
-    NAV_POSHOLD_MODE      = (1 << 5), // old GPS_HOLD
+    NAV_ALTHOLD_MODE      = (1 << 3),
+    NAV_RTH_MODE          = (1 << 4),
+    NAV_POSHOLD_MODE      = (1 << 5),
     HEADFREE_MODE         = (1 << 6),
     NAV_LAUNCH_MODE       = (1 << 7),
     MANUAL_MODE           = (1 << 8),
     FAILSAFE_MODE         = (1 << 9),
-    AUTO_TUNE             = (1 << 10), // old G-Tune
+    AUTO_TUNE             = (1 << 10),
     NAV_WP_MODE           = (1 << 11),
     NAV_COURSE_HOLD_MODE  = (1 << 12),
     FLAPERON              = (1 << 13),
@@ -122,7 +122,6 @@ typedef enum {
     NAV_MOTOR_STOP_OR_IDLE              = (1 << 7),     // navigation requests MOTOR_STOP or motor idle regardless of throttle stick, will only activate if MOTOR_STOP feature is available
     COMPASS_CALIBRATED                  = (1 << 8),
     ACCELEROMETER_CALIBRATED            = (1 << 9),
-    PWM_DRIVER_AVAILABLE                = (1 << 10),
     NAV_CRUISE_BRAKING                  = (1 << 11),
     NAV_CRUISE_BRAKING_BOOST            = (1 << 12),
     NAV_CRUISE_BRAKING_LOCKED           = (1 << 13),

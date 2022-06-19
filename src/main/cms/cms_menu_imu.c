@@ -304,11 +304,6 @@ static const OSD_Entry cmsx_menuRateProfileEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- RATE --", profileIndexString),
 
-#if 0
-    { "RC RATE",     OME_FLOAT,  NULL, &(OSD_FLOAT_t){ &rateProfile.rcRate8,    0, 255, 1, 10 }, 0 },
-    { "RC YAW RATE", OME_FLOAT,  NULL, &(OSD_FLOAT_t){ &rateProfile.rcYawRate8, 0, 255, 1, 10 }, 0 },
-#endif
-
     OSD_SETTING_ENTRY_TYPE("ROLL RATE", SETTING_ROLL_RATE, CMS_DATA_TYPE_ANGULAR_RATE),
     OSD_SETTING_ENTRY_TYPE("PITCH RATE", SETTING_PITCH_RATE, CMS_DATA_TYPE_ANGULAR_RATE),
     OSD_SETTING_ENTRY_TYPE("YAW RATE", SETTING_YAW_RATE, CMS_DATA_TYPE_ANGULAR_RATE),

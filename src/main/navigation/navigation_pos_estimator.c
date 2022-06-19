@@ -815,6 +815,14 @@ bool isGPSGlitchDetected(void)
 }
 #endif
 
+float getEstimatedAglPosition(void) {
+    return posEstimator.est.aglAlt;
+}
+
+bool isEstimatedAglTrusted(void) {
+    return (posEstimator.est.aglQual == SURFACE_QUAL_HIGH) ? true : false;
+}
+
 /**
  * Initialize position estimator
  *  Should be called once before any update occurs

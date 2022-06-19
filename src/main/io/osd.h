@@ -253,6 +253,12 @@ typedef enum {
     OSD_AIR_MAX_SPEED,
     OSD_ACTIVE_PROFILE,
     OSD_MISSION,
+    OSD_SWITCH_INDICATOR_0,
+    OSD_SWITCH_INDICATOR_1,
+    OSD_SWITCH_INDICATOR_2,
+    OSD_SWITCH_INDICATOR_3,
+    OSD_TPA_TIME_CONSTANT,
+    OSD_FW_LEVEL_TRIM,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -318,6 +324,8 @@ typedef struct osdLayoutsConfig_s {
 
 PG_DECLARE(osdLayoutsConfig_t, osdLayoutsConfig);
 
+#define OSD_SWITCH_INDICATOR_NAME_LENGTH 4
+
 typedef struct osdConfig_s {
     // Alarms
     uint8_t rssi_alarm; // rssi %
@@ -372,6 +380,8 @@ typedef struct osdConfig_s {
     uint8_t hud_radar_disp;
     uint16_t hud_radar_range_min;
     uint16_t hud_radar_range_max;
+    uint8_t hud_radar_alt_difference_display_time;
+    uint8_t hud_radar_distance_display_time;
     uint8_t hud_wp_disp;
 
     uint8_t left_sidebar_scroll; // from osd_sidebar_scroll_e
@@ -389,27 +399,36 @@ typedef struct osdConfig_s {
 
     uint8_t coordinate_digits;
 
-    bool osd_failsafe_switch_layout;
+    bool    osd_failsafe_switch_layout;
     uint8_t plus_code_digits; // Number of digits to use in OSD_PLUS_CODE
     uint8_t plus_code_short;
     uint8_t ahi_style;
-    uint8_t force_grid;                 // Force a pixel based OSD to use grid mode.
-    uint8_t ahi_bordered;               // Only used by the AHI widget
-    uint8_t ahi_width;                  // In pixels, only used by the AHI widget
-    uint8_t ahi_height;                 // In pixels, only used by the AHI widget
-    int8_t  ahi_vertical_offset;        // Offset from center in pixels. Positive moves the AHI down. Widget only.
-    int8_t sidebar_horizontal_offset;   // Horizontal offset from default position. Units are grid slots for grid OSDs, pixels for pixel based OSDs. Positive values move sidebars closer to the edges.
-    uint8_t left_sidebar_scroll_step;   // How many units each sidebar step represents. 0 means the default value for the scroll type.
-    uint8_t right_sidebar_scroll_step;  // Same as left_sidebar_scroll_step, but for the right sidebar.
-    bool osd_home_position_arm_screen;
-    uint8_t pan_servo_index;            // Index of the pan servo used for home direction offset
-    int8_t pan_servo_pwm2centideg;      // Centidegrees of servo rotation per us pwm
+    uint8_t force_grid;                         // Force a pixel based OSD to use grid mode.
+    uint8_t ahi_bordered;                       // Only used by the AHI widget
+    uint8_t ahi_width;                          // In pixels, only used by the AHI widget
+    uint8_t ahi_height;                         // In pixels, only used by the AHI widget
+    int8_t  ahi_vertical_offset;                // Offset from center in pixels. Positive moves the AHI down. Widget only.
+    int8_t  sidebar_horizontal_offset;          // Horizontal offset from default position. Units are grid slots for grid OSDs, pixels for pixel based OSDs. Positive values move sidebars closer to the edges.
+    uint8_t left_sidebar_scroll_step;           // How many units each sidebar step represents. 0 means the default value for the scroll type.
+    uint8_t right_sidebar_scroll_step;          // Same as left_sidebar_scroll_step, but for the right sidebar.
+    bool    osd_home_position_arm_screen;
+    uint8_t pan_servo_index;                    // Index of the pan servo used for home direction offset
+    int8_t  pan_servo_pwm2centideg;             // Centidegrees of servo rotation per us pwm
     uint8_t crsf_lq_format;
-    uint16_t system_msg_display_time;   // system message display time for multiple messages (ms)
-    uint8_t sidebar_height;             // sidebar height in rows, 0 turns off sidebars leaving only level indicator arrows
-    uint8_t telemetry; 				    // use telemetry on displayed pixel line 0
-    uint8_t esc_rpm_precision;          // Number of characters used for the RPM numbers.
-
+    uint8_t sidebar_height;                     // sidebar height in rows, 0 turns off sidebars leaving only level indicator arrows
+    uint8_t telemetry; 				            // use telemetry on displayed pixel line 0
+    uint8_t esc_rpm_precision;                  // Number of characters used for the RPM numbers.
+    uint16_t system_msg_display_time;           // system message display time for multiple messages (ms)
+    uint8_t mAh_used_precision;                 // Number of numbers used for mAh drawn. Plently of packs now are > 9999 mAh
+    char    osd_switch_indicator0_name[OSD_SWITCH_INDICATOR_NAME_LENGTH + 1];      // Name to use for switch indicator 0.
+    uint8_t osd_switch_indicator0_channel;     // RC Channel to use for switch indicator 0.
+    char    osd_switch_indicator1_name[OSD_SWITCH_INDICATOR_NAME_LENGTH + 1];      // Name to use for switch indicator 1.
+    uint8_t osd_switch_indicator1_channel;     // RC Channel to use for switch indicator 1.
+    char    osd_switch_indicator2_name[OSD_SWITCH_INDICATOR_NAME_LENGTH + 1];      // Name to use for switch indicator 2.
+    uint8_t osd_switch_indicator2_channel;     // RC Channel to use for switch indicator 2.
+    char    osd_switch_indicator3_name[OSD_SWITCH_INDICATOR_NAME_LENGTH + 1];      // Name to use for switch indicator 3.
+    uint8_t osd_switch_indicator3_channel;     // RC Channel to use for switch indicator 3.
+    bool    osd_switch_indicators_align_left;   // Align switch indicator name to left of the switch.
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);

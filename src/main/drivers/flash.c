@@ -90,29 +90,6 @@ void flashEraseCompletely(void)
 #endif
 }
 
-#if 0
-void flashPageProgramBegin(uint32_t address)
-{
-#ifdef USE_FLASH_M25P16
-    return m25p16_pageProgramBegin(address);
-#endif
-}
-
-void flashPageProgramContinue(const uint8_t *data, int length)
-{
-#ifdef USE_FLASH_M25P16
-    return m25p16_pageProgramContinue(data, length);
-#endif
-}
-
-void flashPageProgramFinish(void)
-{
-#ifdef USE_FLASH_M25P16
-    return m25p16_pageProgramFinish();
-#endif
-}
-#endif
-
 uint32_t flashPageProgram(uint32_t address, const uint8_t *data, int length)
 {
 #ifdef USE_FLASH_M25P16

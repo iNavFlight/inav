@@ -37,7 +37,7 @@ tables:
   - name: motor_pwm_protocol
     values: ["STANDARD", "ONESHOT125", "MULTISHOT", "BRUSHED", "DSHOT150", "DSHOT300", "DSHOT600"]
   - name: servo_protocol
-    values: ["PWM", "SERVO_DRIVER", "SBUS", "SBUS_PWM"]
+    values: ["PWM", "SBUS", "SBUS_PWM"]
   - name: failsafe_procedure
     values: ["LAND", "DROP", "RTH", "NONE"]
   - name: current_sensor
@@ -47,7 +47,7 @@ tables:
     values: ["NONE", "ADC", "ESC"]
     enum: voltageSensor_e
   - name: gps_provider
-    values: ["NMEA", "UBLOX", "UNUSED", "NAZA", "UBLOX7", "MTK", "MSP"]
+    values: ["NMEA", "UBLOX", "NAZA", "UBLOX7", "MTK", "MSP"]
     enum: gpsProvider_e
   - name: gps_sbas_mode
     values: ["AUTO", "EGNOS", "WAAS", "MSAS", "GAGAN", "NONE"]
@@ -131,6 +131,9 @@ tables:
   - name: vtx_low_power_disarm
     values: ["OFF", "ON", "UNTIL_FIRST_ARM"]
     enum: vtxLowerPowerDisarm_e
+  - name: vtx_frequency_groups
+    values: ["FREQUENCYGROUP_5G8", "FREQUENCYGROUP_2G4", "FREQUENCYGROUP_1G3"]
+    enum: vtxFrequencyGroups_e
   - name: filter_type
     values: ["PT1", "BIQUAD"]
   - name: filter_type_full
@@ -213,12 +216,6 @@ groups:
         description: "This is the main loop time (in us). Changing this affects PID effect with some PID controllers (see PID section for details). A very conservative value of 3500us/285Hz should work for everyone. Setting it to zero does not limit loop time, so it will go as fast as possible."
         default_value: 1000
         max: 9000
-      - name: align_gyro
-        description: "When running on non-default hardware or adding support for new sensors/sensor boards, these values are used for sensor orientation. When carefully understood, these values can also be used to rotate (in 90deg steps) or flip the board. Possible values are: DEFAULT, CW0_DEG, CW90_DEG, CW180_DEG, CW270_DEG, CW0_DEG_FLIP, CW90_DEG_FLIP, CW180_DEG_FLIP, CW270_DEG_FLIP."
-        default_value: "DEFAULT"
-        field: gyro_align
-        type: uint8_t
-        table: alignment
       - name: gyro_hardware_lpf
         description: "Hardware lowpass filter for gyro. This value should never be changed without a very strong reason! If you have to set gyro lpf below 256HZ, it means the frame is vibrating too much, and that should be fixed first."
         default_value: "256HZ"
@@ -292,7 +289,7 @@ groups:
         field: dynamicGyroNotchMinHz
         condition: USE_DYNAMIC_FILTERS
         min: 30
-        max: 1000
+        max: 250
       - name: gyro_to_use
         condition: USE_DUAL_GYRO
         min: 0
@@ -310,7 +307,7 @@ groups:
         field: kalman_q
         condition: USE_GYRO_KALMAN
         min: 1
-        max: 16000
+        max: 1000
       - name: init_gyro_cal
         description: "If defined to 'OFF', it will ignore the gyroscope calibration done at each startup. Instead, the gyroscope last calibration from when you calibrated will be used. It also means you don't have to keep the UAV stationary during a startup."
         default_value: ON
@@ -383,12 +380,6 @@ groups:
         min: 1
         max: 255
         default_value: 1
-      - name: align_acc
-        description: "When running on non-default hardware or adding support for new sensors/sensor boards, these values are used for sensor orientation. When carefully understood, these values can also be used to rotate (in 90deg steps) or flip the board. Possible values are: DEFAULT, CW0_DEG, CW90_DEG, CW180_DEG, CW270_DEG, CW0_DEG_FLIP, CW90_DEG_FLIP, CW180_DEG_FLIP, CW270_DEG_FLIP."
-        default_value: "DEFAULT"
-        field: acc_align
-        type: uint8_t
-        table: alignment
       - name: acc_hardware
         description: "Selection of acc hardware. See Wiki Sensor auto detect and hardware failure detection for more info"
         default_value: "AUTO"
@@ -1297,7 +1288,7 @@ groups:
     headers: ["flight/servos.h"]
     members:
       - name: servo_protocol
-        description: "An option to chose the protocol/option that would be used to output servo data. Possible options `PWM` (FC servo outputs), `SERVO_DRIVER` (I2C PCA9685 peripheral), `SBUS` (S.Bus protocol output via a configured serial port)"
+        description: "An option to chose the protocol/option that would be used to output servo data. Possible options `PWM` (FC servo outputs), `SBUS` (S.Bus protocol output via a configured serial port)"
         default_value: "PWM"
         field: servo_protocol
         table: servo_protocol
@@ -1364,8 +1355,8 @@ groups:
         min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
       - name: fw_tpa_time_constant
-        description: "TPA smoothing and delay time constant to reflect non-instant speed/throttle response of the plane. Planes with low thrust/weight ratio generally need higher time constant. Default is zero for compatibility with old setups"
-        default_value: 0
+        description: "TPA smoothing and delay time constant to reflect non-instant speed/throttle response of the plane. See **PID Attenuation and scaling** Wiki for full details."
+        default_value: 1500
         field: throttle.fixedWingTauMs
         min: 0
         max: 5000
@@ -3370,6 +3361,18 @@ groups:
         field: hud_radar_range_max
         min: 100
         max: 9990
+      - name: osd_hud_radar_alt_difference_display_time
+        description: "Time in seconds to display the altitude difference in radar"
+        field: hud_radar_alt_difference_display_time
+        min: 0
+        max: 10
+        default_value: 3
+      - name: osd_hud_radar_distance_display_time
+        description: "Time in seconds to display the distance in radar"
+        field: hud_radar_distance_display_time
+        min: 1
+        max: 10
+        default_value: 3
       - name: osd_hud_wp_disp
         description: "How many navigation waypoints are displayed, set to 0 (zero) to disable. As sample, if set to 2, and you just passed the 3rd waypoint of the mission, you'll see markers for the 4th waypoint (marked 1) and the 5th waypoint (marked 2)"
         default_value: 0
@@ -3516,6 +3519,66 @@ groups:
         max: 6
         default_value: 3
 
+      - name: osd_mah_used_precision
+        description: Number of digits used to display mAh used.
+        field: mAh_used_precision
+        min: 4
+        max: 6
+        default_value: 4
+
+      - name: osd_switch_indicator_zero_name
+        description: "Character to use for OSD switch incicator 0."
+        field: osd_switch_indicator0_name
+        type: string
+        max: 5
+        default_value: "FLAP"
+      - name: osd_switch_indicator_one_name
+        description: "Character to use for OSD switch incicator 1."
+        field: osd_switch_indicator1_name
+        type: string
+        max: 5
+        default_value: "GEAR"
+      - name: osd_switch_indicator_two_name
+        description: "Character to use for OSD switch incicator 2."
+        field: osd_switch_indicator2_name
+        type: string
+        max: 5
+        default_value: "CAM"
+      - name: osd_switch_indicator_three_name
+        description: "Character to use for OSD switch incicator 3."
+        field: osd_switch_indicator3_name
+        type: string
+        max: 5
+        default_value: "LIGT"
+      - name: osd_switch_indicator_zero_channel
+        description: "RC Channel to use for OSD switch indicator 0."
+        field: osd_switch_indicator0_channel
+        min: 5
+        max: MAX_SUPPORTED_RC_CHANNEL_COUNT
+        default_value: 5
+      - name: osd_switch_indicator_one_channel
+        description: "RC Channel to use for OSD switch indicator 1."
+        field: osd_switch_indicator1_channel
+        min: 5
+        max: MAX_SUPPORTED_RC_CHANNEL_COUNT
+        default_value: 5
+      - name: osd_switch_indicator_two_channel
+        description: "RC Channel to use for OSD switch indicator 2."
+        field: osd_switch_indicator2_channel
+        min: 5
+        max: MAX_SUPPORTED_RC_CHANNEL_COUNT
+        default_value: 5
+      - name: osd_switch_indicator_three_channel
+        description: "RC Channel to use for OSD switch indicator 3."
+        field: osd_switch_indicator3_channel
+        min: 5
+        max: MAX_SUPPORTED_RC_CHANNEL_COUNT
+        default_value: 5
+      - name: osd_switch_indicators_align_left
+        description: "Align text to left of switch indicators"
+        field: osd_switch_indicators_align_left
+        type: bool
+        default_value: ON
       - name: osd_system_msg_display_time
         description: System message display cycle time for multiple messages (milliseconds).
         field: system_msg_display_time
@@ -3651,6 +3714,17 @@ groups:
         default_value: ON
         field: smartAudioAltSoftSerialMethod
         type: bool
+      - name: vtx_softserial_shortstop
+        description: "Enable the 3x shorter stopbit on softserial. Need for some IRC Tramp VTXes."
+        default_value: OFF
+        field: softSerialShortStop
+        type: bool
+      - name: vtx_smartaudio_stopbits
+        description: "Set stopbit count for serial (TBS Sixty9 SmartAudio 2.1 require value of 1 bit)"
+        default_value: 2
+        field: smartAudioStopBits
+        min: 1
+        max: 2
 
   - name: PG_VTX_SETTINGS_CONFIG
     type: vtxSettingsConfig_t
@@ -3659,7 +3733,7 @@ groups:
     members:
       - name: vtx_band
         description: "Configure the VTX band. Set to zero to use `vtx_freq`. Bands: 1: A, 2: B, 3: E, 4: F, 5: Race."
-        default_value: 4
+        default_value: 1
         field: band
         min: VTX_SETTINGS_NO_BAND
         max: VTX_SETTINGS_MAX_BAND
@@ -3692,6 +3766,13 @@ groups:
         field: maxPowerOverride
         min: 0
         max: 10000
+      - name: vtx_frequency_group
+        field: frequencyGroup
+        description: "VTx Frequency group to use. Frequency groups: FREQUENCYGROUP_5G8: 5.8GHz, FREQUENCYGROUP_2G4: 2.4GHz, FREQUENCYGROUP_1G3: 1.3GHz."
+        table: vtx_frequency_groups
+        min: 0
+        max: 2
+        default_value: FREQUENCYGROUP_5G8
 
   - name: PG_PINIOBOX_CONFIG
     type: pinioBoxConfig_t

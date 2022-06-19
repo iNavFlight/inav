@@ -236,11 +236,6 @@ static void saAutobaud(void)
         return;
     }
 
-#if 0
-    LOG_D(VTX, "autobaud: %d rcvd %d/%d (%d)",
-        sa_smartbaud, saStat.pktrcvd, saStat.pktsent, ((saStat.pktrcvd * 100) / saStat.pktsent)));
-#endif
-
     if (((saStat.pktrcvd * 100) / saStat.pktsent) >= 70) {
         // This is okay
         saStat.pktsent = 0; // Should be more moderate?
@@ -642,13 +637,6 @@ void saSetPitFreq(uint16_t freq)
     saSetFreq(freq | SA_FREQ_SETPIT);
 }
 
-#if 0
-static void saGetPitFreq(void)
-{
-    saDoDevSetFreq(SA_FREQ_GETPIT);
-}
-#endif
-
 static bool saValidateBandAndChannel(uint8_t band, uint8_t channel)
 {
     return (band >= VTX_SMARTAUDIO_MIN_BAND && band <= VTX_SMARTAUDIO_MAX_BAND &&
@@ -689,7 +677,7 @@ bool vtxSmartAudioInit(void)
 {
     serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_VTX_SMARTAUDIO);
     if (portConfig) {
-        portOptions_t portOptions = SERIAL_STOPBITS_2 | SERIAL_BIDIR_NOPULL;
+        portOptions_t portOptions = (vtxConfig()->smartAudioStopBits == 2 ? SERIAL_STOPBITS_2 : SERIAL_STOPBITS_1) | SERIAL_BIDIR_NOPULL;
         portOptions = portOptions | (vtxConfig()->halfDuplex ? SERIAL_BIDIR | SERIAL_BIDIR_PP : SERIAL_UNIDIR);
         smartAudioSerialPort = openSerialPort(portConfig->identifier, FUNCTION_VTX_SMARTAUDIO, NULL, NULL, 4800, MODE_RXTX, portOptions);
     }

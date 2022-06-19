@@ -34,9 +34,6 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/timer.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
-#include "drivers/io_pca9685.h"
-
-#include "io/pwmdriver_i2c.h"
 #include "io/servo_sbus.h"
 #include "sensors/esc_sensor.h"
 
@@ -60,7 +57,7 @@ FILE_COMPILE_FOR_SPEED
 
 #define DSHOT_DMA_BUFFER_SIZE   18 /* resolution + frame reset (2us) */
 
-#define DSHOT_COMMAND_INTERVAL_US 1000
+#define DSHOT_COMMAND_INTERVAL_US 10000
 #define DSHOT_COMMAND_QUEUE_LENGTH 8
 #define DHSOT_COMMAND_QUEUE_SIZE   DSHOT_COMMAND_QUEUE_LENGTH * sizeof(dshotCommands_e)
 #endif
@@ -98,11 +95,6 @@ static pwmWriteFuncPtr         motorWritePtr = NULL;    // Function to write val
 static pwmOutputPort_t *       servos[MAX_SERVOS];
 static pwmWriteFuncPtr         servoWritePtr = NULL;    // Function to write value to motors
 
-#if defined(USE_DSHOT)
-static timeUs_t digitalMotorUpdateIntervalUs = 0;
-static timeUs_t digitalMotorLastUpdateUs;
-#endif
-
 static pwmOutputPort_t  beeperPwmPort;
 static pwmOutputPort_t *beeperPwm;
 static uint16_t beeperFrequency = 0;
@@ -112,6 +104,10 @@ static uint8_t allocatedOutputPortCount = 0;
 static bool pwmMotorsEnabled = true;
 
 #ifdef USE_DSHOT
+static timeUs_t digitalMotorUpdateIntervalUs = 0;
+static timeUs_t digitalMotorLastUpdateUs;
+static timeUs_t lastCommandSent = 0;
+    
 static circularBuffer_t commandsCircularBuffer;
 static uint8_t commandsBuff[DHSOT_COMMAND_QUEUE_SIZE];
 static currentExecutingCommand_t currentExecutingCommand;
@@ -367,29 +363,27 @@ static int getDShotCommandRepeats(dshotCommands_e cmd) {
 }
 
 static void executeDShotCommands(void){
+    
+    timeUs_t tNow = micros();
 
     if(currentExecutingCommand.remainingRepeats == 0) {
-
-        const int isTherePendingCommands = !circularBufferIsEmpty(&commandsCircularBuffer);
-
-        if (isTherePendingCommands) {
+       const int isTherePendingCommands = !circularBufferIsEmpty(&commandsCircularBuffer);
+        if (isTherePendingCommands && (tNow - lastCommandSent > DSHOT_COMMAND_INTERVAL_US)){
             //Load the command
             dshotCommands_e cmd;
             circularBufferPopHead(&commandsCircularBuffer, (uint8_t *) &cmd);
-
             currentExecutingCommand.cmd = cmd;
-            currentExecutingCommand.remainingRepeats = getDShotCommandRepeats(cmd);
-        }
-        else {
-            return;
-        }
+            currentExecutingCommand.remainingRepeats = getDShotCommandRepeats(cmd);           
+        } else {
+        return;
+        }  
     }
-
     for (uint8_t i = 0; i < getMotorCount(); i++) {
-        motors[i].requestTelemetry = true;
-        motors[i].value = currentExecutingCommand.cmd;
+         motors[i].requestTelemetry = true;
+         motors[i].value = currentExecutingCommand.cmd;
     }
-    currentExecutingCommand.remainingRepeats--;
+    currentExecutingCommand.remainingRepeats--; 
+    lastCommandSent = tNow;
 }
 #endif
 
@@ -538,16 +532,6 @@ static void sbusPwmWriteStandard(uint8_t index, uint16_t value)
 }
 #endif
 
-#ifdef USE_PWM_SERVO_DRIVER
-static void pwmServoWriteExternalDriver(uint8_t index, uint16_t value)
-{
-    // If PCA9685 is not detected, we do not want to write servo output anywhere
-    if (STATE(PWM_DRIVER_AVAILABLE)) {
-        pwmDriverSetPulse(index, value);
-    }
-}
-#endif
-
 void pwmServoPreconfigure(void)
 {
     // Protocol-specific configuration
@@ -556,13 +540,6 @@ void pwmServoPreconfigure(void)
         case SERVO_TYPE_PWM:
             servoWritePtr = pwmServoWriteStandard;
             break;
-
-#ifdef USE_PWM_SERVO_DRIVER
-        case SERVO_TYPE_SERVO_DRIVER:
-            pwmDriverInitialize();
-            servoWritePtr = pwmServoWriteExternalDriver;
-            break;
-#endif
 
 #ifdef USE_SERVO_SBUS
         case SERVO_TYPE_SBUS:

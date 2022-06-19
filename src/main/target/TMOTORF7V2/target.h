@@ -86,6 +86,9 @@
 #define SPI3_SCK_PIN            PC10
 #define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PB2
+#define SPI3_SCK_AF             GPIO_AF6_SPI3
+#define SPI3_MISO_AF            GPIO_AF6_SPI3
+#define SPI3_MOSI_AF            GPIO_AF7_SPI3
 
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
