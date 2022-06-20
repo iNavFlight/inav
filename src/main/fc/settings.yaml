@@ -47,7 +47,7 @@ tables:
     values: ["NONE", "ADC", "ESC"]
     enum: voltageSensor_e
   - name: gps_provider
-    values: ["NMEA", "UBLOX", "UNUSED", "NAZA", "UBLOX7", "MSP"]
+    values: ["NMEA", "UBLOX", "NAZA", "UBLOX7", "MTK", "MSP"]
     enum: gpsProvider_e
   - name: gps_sbas_mode
     values: ["AUTO", "EGNOS", "WAAS", "MSAS", "GAGAN", "NONE"]

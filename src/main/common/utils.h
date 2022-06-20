@@ -78,11 +78,6 @@ http://resnet.uoregon.edu/~gurney_j/jmpc/bitwise.html
      + LOG2_32BIT((v)*1L >>16*((v)/2L>>31 > 0) \
                          >>16*((v)/2L>>31 > 0)))
 
-#if 0
-// ISO C version, but no type checking
-#define container_of(ptr, type, member) \
-                      ((type *) ((char *)(ptr) - offsetof(type, member)))
-#else
 // non ISO variant from linux kernel; checks ptr type, but triggers 'ISO C forbids braced-groups within expressions [-Wpedantic]'
 //  __extension__ is here to disable this warning
 #define container_of(ptr, type, member)  ( __extension__ ({     \
@@ -100,9 +95,6 @@ static inline int32_t cmp32(uint32_t a, uint32_t b) { return a-b; }
 static inline void  memcpy_fn ( void * destination, const void * source, size_t num ) { memcpy(destination, source, num); };
 #else
 void * memcpy_fn ( void * destination, const void * source, size_t num ) asm("memcpy");
-#endif
-
-
 #endif
 
 #if __GNUC__ > 6
