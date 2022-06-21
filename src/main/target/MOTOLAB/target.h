@@ -106,8 +106,6 @@
 //#undef USE_GPS
 #undef USE_GPS_PROTO_NMEA
 //#undef USE_GPS_PROTO_UBLOX
-#undef USE_GPS_PROTO_I2C_NAV
-#undef USE_GPS_PROTO_NAZA
 
 // Number of available PWM outputs
 #define MAX_PWM_OUTPUT_PORTS    8
