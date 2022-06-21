@@ -76,10 +76,10 @@ gpsSolutionData_t gpsSol;
 // Map gpsBaudRate_e index to baudRate_e
 baudRate_e gpsToSerialBaudRate[GPS_BAUDRATE_COUNT] = { BAUD_115200, BAUD_57600, BAUD_38400, BAUD_19200, BAUD_9600, BAUD_230400 };
 
-static gpsProviderDescriptor_t  gpsProviders[GPS_PROVIDER_COUNT] = {
+static gpsProviderDescriptor_t gpsProviders[GPS_PROVIDER_COUNT] = {
     /* NMEA GPS */
 #ifdef USE_GPS_PROTO_NMEA
-    { false, MODE_RX, false, &gpsRestartNMEA_MTK, &gpsHandleNMEA },
+    { false, MODE_RX, false, &gpsRestartNMEA, &gpsHandleNMEA },
 #else
     { false, 0, false,  NULL, NULL },
 #endif
@@ -101,13 +101,6 @@ static gpsProviderDescriptor_t  gpsProviders[GPS_PROVIDER_COUNT] = {
     /* UBLOX7PLUS binary */
 #ifdef USE_GPS_PROTO_UBLOX
     { false, MODE_RXTX, false, &gpsRestartUBLOX, &gpsHandleUBLOX },
-#else
-    { false, 0, false,  NULL, NULL },
-#endif
-
-    /* MTK GPS */
-#ifdef USE_GPS_PROTO_MTK
-    { false, MODE_RXTX, false, &gpsRestartNMEA_MTK, &gpsHandleMTK },
 #else
     { false, 0, false,  NULL, NULL },
 #endif

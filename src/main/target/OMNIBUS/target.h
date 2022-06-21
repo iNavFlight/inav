@@ -58,8 +58,6 @@
 // #define USE_MAG_AK8975
 
 // Disable certain features to save flash space
-#undef USE_GPS_PROTO_MTK
-
 #define USB_CABLE_DETECTION
 #define USB_DETECT_PIN          PB5
 

@@ -36,7 +36,6 @@ typedef enum {
     GPS_UBLOX,
     GPS_NAZA,
     GPS_UBLOX7PLUS,
-    GPS_MTK,
     GPS_MSP,
     GPS_PROVIDER_COUNT
 } gpsProvider_e;
