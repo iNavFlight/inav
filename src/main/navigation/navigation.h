@@ -119,9 +119,8 @@ typedef enum {
 } navRTHAllowLanding_e;
 
 typedef enum {
-    NAV_EXTRA_ARMING_SAFETY_OFF = 0,
-    NAV_EXTRA_ARMING_SAFETY_ON = 1,
-    NAV_EXTRA_ARMING_SAFETY_ALLOW_BYPASS = 2, // Allow disabling by holding THR+YAW low
+    NAV_EXTRA_ARMING_SAFETY_ON = 0,
+    NAV_EXTRA_ARMING_SAFETY_ALLOW_BYPASS = 1, // Allow disabling by holding THR + YAW high
 } navExtraArmingSafety_e;
 
 typedef enum {
