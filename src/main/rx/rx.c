@@ -71,7 +71,7 @@
 
 //#define DEBUG_RX_SIGNAL_LOSS
 
-const char rcChannelLetters[] = "AERT";
+const char rcChannelLetters[] = "AERT1234";
 
 static uint16_t rssi = 0;                  // range: [0;1023]
 static timeUs_t lastMspRssiUpdateUs = 0;
@@ -124,7 +124,7 @@ PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 10);
 #define RX_MIN_USEX 885
 PG_RESET_TEMPLATE(rxConfig_t, rxConfig,
     .receiverType = DEFAULT_RX_TYPE,
-    .rcmap = {0, 1, 3, 2},      // Default to AETR map
+    .rcmap = {0, 1, 3, 2, 4, 5, 6, 7},      // Default to AETR1234 map
     .halfDuplex = SETTING_SERIALRX_HALFDUPLEX_DEFAULT,
     .serialrx_provider = SERIALRX_PROVIDER,
 #ifdef USE_RX_SPI

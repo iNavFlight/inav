@@ -95,7 +95,7 @@ typedef enum {
 
 extern const char rcChannelLetters[];
 
-#define MAX_MAPPABLE_RX_INPUTS 4
+#define MAX_MAPPABLE_RX_INPUTS 8
 
 #define MAX_INVALID_RX_PULSE_TIME    300
 
