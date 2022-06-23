@@ -155,8 +155,8 @@ static void w25n01g_performOneByteCommand(uint8_t command)
 
 static void w25n01g_performCommandWithPageAddress(uint8_t command, uint32_t pageAddress)
 {
-    const uint8_t cmd[] = { command, 0, (pageAddress >> 8) & 0xff, (pageAddress >> 0) & 0xff};
-    busTransfer(busDev, NULL, &cmd, sizeof(cmd));
+    uint8_t cmd[4] = { command, 0, (pageAddress >> 8) & 0xff, (pageAddress >> 0) & 0xff};
+    busTransfer(busDev, NULL, cmd, sizeof(cmd));
 }
 
 static uint8_t w25n01g_readRegister(uint8_t reg)
@@ -171,8 +171,8 @@ static uint8_t w25n01g_readRegister(uint8_t reg)
 
 static void w25n01g_writeRegister(uint8_t reg, uint8_t data)
 {
-    const uint8_t cmd[3] = { W25N01G_INSTRUCTION_WRITE_STATUS_REG, reg, data };
-    busTransfer(busDev, NULL, &cmd, sizeof(cmd));
+    uint8_t cmd[3] = { W25N01G_INSTRUCTION_WRITE_STATUS_REG, reg, data };
+    busTransfer(busDev, NULL, cmd, sizeof(cmd));
 }
 
 static void w25n01g_deviceReset(void)
@@ -263,8 +263,6 @@ bool w25n01g_detect(uint32_t chipID)
     // There will be a least chance of running out of replacement blocks.
     // If it ever run out, the device becomes unusable.
 
-    w25n01g_deviceInit();
-
     return true;
 }
 
@@ -292,10 +290,10 @@ static void w25n01g_programDataLoad(uint16_t columnAddress, const uint8_t *data,
 {
     w25n01g_waitForReady();
 
-    const uint8_t cmd[] = { W25N01G_INSTRUCTION_PROGRAM_DATA_LOAD, columnAddress >> 8, columnAddress & 0xff };
+    uint8_t cmd[3] = { W25N01G_INSTRUCTION_PROGRAM_DATA_LOAD, columnAddress >> 8, columnAddress & 0xff };
 
     busTransfer(busDev, cmd, NULL, sizeof(cmd));
-    busTransfer(busDev, data, NULL, length);
+    busTransfer(busDev, (uint8_t *)data, NULL, length);
 
     w25n01g_setTimeout(W25N01G_TIMEOUT_PAGE_PROGRAM_MS);
 }
@@ -304,10 +302,10 @@ static void w25n01g_randomProgramDataLoad(uint16_t columnAddress, const uint8_t 
 {
     w25n01g_waitForReady();
 
-    const uint8_t cmd[] = { W25N01G_INSTRUCTION_RANDOM_PROGRAM_DATA_LOAD, columnAddress >> 8, columnAddress & 0xff };
+    uint8_t cmd[3] = { W25N01G_INSTRUCTION_RANDOM_PROGRAM_DATA_LOAD, columnAddress >> 8, columnAddress & 0xff };
 
-    spiTransfer(busDev, cmd, NULL, sizeof(cmd));
-    spiTransfer(busDev, data, NULL, length);
+    busTransfer(busDev, cmd, NULL, sizeof(cmd));
+    busTransfer(busDev, (uint8_t *)data, NULL, length);
 
     w25n01g_setTimeout(W25N01G_TIMEOUT_PAGE_PROGRAM_MS);
 }
@@ -375,9 +373,9 @@ void w25n01g_pageProgramContinue(const uint8_t *data, int length)
     w25n01g_writeEnable();
     isProgramming = false;
     if (!bufferDirty) {
-        w25n01g_programDataLoad(W25N01G_LINEAR_TO_COLUMN(programLoadAddress), data, length);
+        w25n01g_programDataLoad(W25N01G_LINEAR_TO_COLUMN(programLoadAddress), (uint8_t *)data, length);
     } else {
-        w25n01g_randomProgramDataLoad(W25N01G_LINEAR_TO_COLUMN(programLoadAddress), data, length);
+        w25n01g_randomProgramDataLoad(W25N01G_LINEAR_TO_COLUMN(programLoadAddress), (uint8_t *)data, length);
     }
     // XXX Test if write enable is reset after each data loading.
     bufferDirty = true;
@@ -413,7 +411,7 @@ void w25n01g_pageProgramFinish(void)
 uint32_t w25n01g_pageProgram(uint32_t address, const uint8_t *data, int length)
 {
     w25n01g_pageProgramBegin(address);
-    w25n01g_pageProgramContinue(data, length);
+    w25n01g_pageProgramContinue((uint8_t *)data, length);
     w25n01g_pageProgramFinish();
 
     return address + length;
@@ -553,20 +551,13 @@ bool w25n01g_init(int flashNumToUse)
         return false;
     }
     
-    uint8_t out[] = { W25N01G_INSTRUCTION_RDID, 0, 0, 0 };
-    uint8_t in[4];
+    uint8_t in[4] = { 0 };
     uint32_t chipID;
 
     delay(50); // short delay required after initialisation of SPI device instance.
 
-    /* Just in case transfer fails and writes nothing, so we don't try to verify the ID against random garbage
-     * from the stack:
-     */
-    in[1] = 0;
+    busReadBuf(busDev, W25N01G_INSTRUCTION_RDID, in, sizeof(in));
 
-    busTransfer(busDev, in, out, sizeof(out));
-
-    // Manufacturer, memory type, and capacity
     chipID = (in[1] << 16) | (in[2] << 8) | (in[3]);
 
     return w25n01g_detect(chipID);
