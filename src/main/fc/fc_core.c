@@ -265,26 +265,7 @@ static void updateArmingStatus(void)
 #endif
 
         /* CHECK: */
-        if (
-            sensors(SENSOR_ACC) && 
-            !STATE(ACCELEROMETER_CALIBRATED) &&
-            // Require ACC calibration only if any of the setting might require it
-            (
-                isModeActivationConditionPresent(BOXNAVPOSHOLD) ||
-                isModeActivationConditionPresent(BOXNAVRTH) ||
-                isModeActivationConditionPresent(BOXNAVWP) ||
-                isModeActivationConditionPresent(BOXANGLE) ||
-                isModeActivationConditionPresent(BOXHORIZON) ||
-                isModeActivationConditionPresent(BOXNAVALTHOLD) ||
-                isModeActivationConditionPresent(BOXHEADINGHOLD) ||
-                isModeActivationConditionPresent(BOXNAVLAUNCH) ||
-                isModeActivationConditionPresent(BOXTURNASSIST) ||
-                isModeActivationConditionPresent(BOXNAVCOURSEHOLD) ||
-                isModeActivationConditionPresent(BOXSOARING) ||
-                failsafeConfig()->failsafe_procedure != FAILSAFE_PROCEDURE_DROP_IT
-
-            )
-        ) {
+        if (sensors(SENSOR_ACC) && !STATE(ACCELEROMETER_CALIBRATED)) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_ACCELEROMETER_NOT_CALIBRATED);
         }
         else {
