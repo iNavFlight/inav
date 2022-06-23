@@ -94,9 +94,6 @@
 #define USE_RATE_DYNAMICS
 #define USE_EXTENDED_CMS_MENUS
 
-// NAZA GPS support for F4+ only
-#define USE_GPS_PROTO_NAZA
-
 // Allow default rangefinders
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_MSP
