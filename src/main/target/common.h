@@ -82,9 +82,6 @@
 #define USE_RATE_DYNAMICS
 #define USE_EXTENDED_CMS_MENUS
 
-// NAZA GPS support for F4+ only
-#define USE_GPS_PROTO_NAZA
-
 // Allow default rangefinders
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_MSP
@@ -132,7 +129,6 @@
 #define USE_I2C_IO_EXPANDER
 
 #define USE_GPS_PROTO_NMEA
-#define USE_GPS_PROTO_MTK
 
 #define USE_TELEMETRY_SIM
 #define USE_TELEMETRY_MAVLINK
