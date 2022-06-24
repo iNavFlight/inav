@@ -93,6 +93,7 @@
 #include "io/serial_4way.h"
 #include "io/vtx.h"
 #include "io/vtx_string.h"
+#include "io/gps_private.h"  //for MSP_SIMULATOR
 
 #include "msp/msp.h"
 #include "msp/msp_protocol.h"
@@ -3186,6 +3187,133 @@ static bool mspParameterGroupsCommand(sbuf_t *dst, sbuf_t *src)
     return true;
 }
 
+void mspWriteSimulatorOSD(sbuf_t *dst)
+{
+	//RLE encoding
+	//scan displayBuffer iteratively
+	//no more than 80+3+2 bytes output in single run
+	//0 and 255 are special symbols
+	//255 - font bank switch
+	//0  - font bank switch, blink switch and character repeat
+
+	static uint8_t osdPos_y = 0;
+	static uint8_t osdPos_x = 0;
+
+	displayPort_t *osdDisplayPort = osdGetDisplayPort();
+	
+	if (osdDisplayPort && osdDisplayPort->cols == 30 && (osdDisplayPort->rows == 13 || osdDisplayPort->rows == 16))
+	{
+		sbufWriteU8(dst, osdPos_y | (osdDisplayPort->rows == 16 ? 128: 0));
+		sbufWriteU8(dst, osdPos_x);
+
+		int bytesCount = 0;
+
+		uint16_t c = 0;
+		textAttributes_t attr = 0;
+		bool highBank = false;
+		bool blink = false;
+		int count = 0;
+
+		int processedRows = 16;
+
+		while (bytesCount < 80) //whole replay should be less 155 bytes at worst. 
+		{
+			bool blink1;
+			uint16_t lastChar;
+
+			count = 0;
+			while ( true )
+			{
+				displayReadCharWithAttr(osdDisplayPort, osdPos_x, osdPos_y, &c, &attr);
+				if (c == 0 || c == 255) c = 32;
+
+				//REVIEW: displayReadCharWithAttr() should return mode with _TEXT_ATTRIBUTES_BLINK_BIT !
+				//for max7456 it returns mode with MAX7456_MODE_BLINK instead (wrong)
+				//because max7456ReadChar() does not decode from MAX7456_MODE_BLINK to _TEXT_ATTRIBUTES_BLINK_BIT
+				//it should!
+
+				//bool blink2 = TEXT_ATTRIBUTES_HAVE_BLINK(attr);
+				bool blink2 = attr & (1<<4); //MAX7456_MODE_BLINK
+
+				if (count == 0)
+				{
+					lastChar = c;
+					blink1 = blink2;
+				}
+				else if (lastChar != c || blink2 != blink1 || count == 63)
+				{
+					break;
+				}
+
+				count++;
+
+				osdPos_x++;
+				if (osdPos_x == 30)
+				{
+					osdPos_x = 0;
+					osdPos_y++;
+					processedRows--;
+					if (osdPos_y == 16)
+					{
+						osdPos_y = 0;
+					}
+				}
+			}
+
+			uint8_t cmd = 0;
+			if (blink1 != blink)
+			{
+				cmd |= 128;//switch blink attr
+				blink = blink1;
+			}
+
+			bool highBank1 = lastChar > 255;
+			if (highBank1 != highBank)
+			{
+				cmd |= 64;//switch bank attr
+				highBank = highBank1;
+			}
+
+			if (count == 1 && cmd == 64)
+			{
+				sbufWriteU8(dst, 255);  //short command for bank switch
+				sbufWriteU8(dst, lastChar & 0xff);
+				bytesCount += 2;
+			}
+			else if (count > 2 || cmd !=0 )
+			{
+				cmd |= count;  //long command for blink/bank switch and symbol repeat
+				sbufWriteU8(dst, 0); 
+				sbufWriteU8(dst, cmd);
+				sbufWriteU8(dst, lastChar & 0xff);
+				bytesCount += 3;
+			}
+			else if (count == 2)  //cmd == 0 here
+			{
+				sbufWriteU8(dst, lastChar & 0xff);  
+				sbufWriteU8(dst, lastChar & 0xff);
+				bytesCount+=2;
+			}
+			else
+			{
+				sbufWriteU8(dst, lastChar & 0xff);
+				bytesCount++;
+			}
+
+			if ( processedRows <= 0 )
+			{
+				break;
+			}
+		}
+		sbufWriteU8(dst, 0);  //command 0 with length=0 -> stop
+		sbufWriteU8(dst, 0);
+	}
+	else
+	{
+		sbufWriteU8(dst, 255);
+	}
+}
+
 bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResult_e *ret)
 {
     uint8_t tmp_u8;
@@ -3289,28 +3417,24 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         *ret = MSP_RESULT_ACK;
         break;
     case MSP_SIMULATOR:
-        tmp_u8 = sbufReadU8(src);
-        if (tmp_u8 >= 1) {
-            if (! ARMING_FLAG(SIMULATOR_MODE)) {
-                baroStartCalibration(); // just once
-            }
-            ENABLE_ARMING_FLAG(SIMULATOR_MODE);
+		tmp_u8 = sbufReadU8(src); //MSP_SIMULATOR version
+		if (tmp_u8 != 1) break;
 
-            switch (tmp_u8) {
-                case 0x02: // RST HOME
-                    setHomePosition(&navGetCurrentActualPositionAndVelocity()->pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, NAV_HOME_VALID_ALL);
-                    baroStartCalibration();
-                    break;
-                case 0x03:
-                    break;
-            }
+		tmp_u8 = sbufReadU8(src);
+        if (tmp_u8 & 1) {
+            if (!ARMING_FLAG(SIMULATOR_MODE)) {
+                baroStartCalibration(); // just once
+				ENABLE_ARMING_FLAG(SIMULATOR_MODE);
+			}
         } else {
             DISABLE_ARMING_FLAG(SIMULATOR_MODE);
             baroStartCalibration(); // just once
         }
         if (dataSize >= 14) {
+#ifdef USE_GPS
             gpsSol.fixType = sbufReadU8(src);
-            gpsSol.flags.hasNewData = true;
+			gpsSol.hdop = gpsSol.fixType == GPS_NO_FIX ? 9999 : 100;
+			gpsSol.flags.hasNewData = true;
             gpsSol.flags.validVelNE = 0;
             gpsSol.flags.validVelD = 0;
             gpsSol.flags.validEPE = 0;
@@ -3327,7 +3451,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
             gpsSol.epv = 100;
             // Feed data to navigation
             gpsProcessNewSolutionData();
-
+#endif
             attitude.values.roll = sbufReadU16(src)-1800;
             attitude.values.pitch = sbufReadU16(src)-1800;
             attitude.values.yaw = sbufReadU16(src);
@@ -3349,6 +3473,8 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         sbufWriteU16(dst, input[INPUT_STABILIZED_PITCH] + 500);
         sbufWriteU16(dst, input[INPUT_STABILIZED_YAW] + 500);
         sbufWriteU16(dst, input[INPUT_STABILIZED_THROTTLE] + 500);
+
+		mspWriteSimulatorOSD(dst);
 
         *ret = MSP_RESULT_ACK;
         break;
