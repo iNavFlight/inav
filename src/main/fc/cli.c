@@ -2796,10 +2796,10 @@ static void cliMap(char *cmdline)
 
     if (len == MAX_MAPPABLE_RX_INPUTS) {
         // uppercase it
-        for (uint32_t i = 0; i < len; i++) {
+        for (uint32_t i = 0; i < MAX_MAPPABLE_RX_INPUTS; i++) {
             cmdline[i] = sl_toupper((unsigned char)cmdline[i]);
         }
-        for (uint32_t i = 0; i < len; i++) {
+        for (uint32_t i = 0; i < MAX_MAPPABLE_RX_INPUTS; i++) {
             if (strchr(rcChannelLetters, cmdline[i]) && !strchr(cmdline + i + 1, cmdline[i])) {
                 continue;
             }
