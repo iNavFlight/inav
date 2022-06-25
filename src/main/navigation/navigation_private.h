@@ -47,6 +47,8 @@
 
 #define NAV_RTH_TRACKBACK_POINTS            50      // max number RTH trackback points
 
+#define LAUNCH_ABORT_STICK_DEADBAND         250     // pitch/roll stick deflection for lanch abort (us)
+
 #define MAX_POSITION_UPDATE_INTERVAL_US     HZ2US(MIN_POSITION_UPDATE_RATE_HZ)        // convenience macro
 _Static_assert(MAX_POSITION_UPDATE_INTERVAL_US <= TIMEDELTA_MAX, "deltaMicros can overflow!");
 
