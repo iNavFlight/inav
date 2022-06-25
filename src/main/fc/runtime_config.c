@@ -176,3 +176,5 @@ flightModeForTelemetry_e getFlightModeForTelemetry(void)
 
     return STATE(AIRMODE_ACTIVE) ? FLM_ACRO_AIR : FLM_ACRO;
 }
+
+simulatorData_t simulatorData = { flags: 0, debugIndex: 0 };

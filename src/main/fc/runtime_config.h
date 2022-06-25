@@ -165,6 +165,20 @@ typedef enum {
 
 flightModeForTelemetry_e getFlightModeForTelemetry(void);
 
+
+typedef enum {
+	SIMU_ENABLE				= (1 << 0),
+	SIMU_SIMULATE_BATTERY	= (1 << 1),
+	SIMU_MUTE_BEEPER		= (1 << 2)
+} simulatorFlags_t;
+
+typedef struct {
+	simulatorFlags_t flags;
+	uint8_t debugIndex;
+} simulatorData_t;
+
+extern simulatorData_t simulatorData;
+
 uint32_t enableFlightMode(flightModeFlags_e mask);
 uint32_t disableFlightMode(flightModeFlags_e mask);
 

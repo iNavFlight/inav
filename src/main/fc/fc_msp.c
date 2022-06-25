@@ -3421,61 +3421,73 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 		if (tmp_u8 != 1) break;
 
 		tmp_u8 = sbufReadU8(src);
-        if (tmp_u8 & 1) {
-            if (!ARMING_FLAG(SIMULATOR_MODE)) {
-                baroStartCalibration(); // just once
+        if ((tmp_u8 & SIMU_ENABLE) == 0) {
+			DISABLE_ARMING_FLAG(SIMULATOR_MODE);
+			baroStartCalibration(); // just once
+			simulatorData.flags = 0;
+		}
+		else {
+			simulatorData.flags = tmp_u8;
+
+			if (!ARMING_FLAG(SIMULATOR_MODE)) {
+				baroStartCalibration(); // just once
 				ENABLE_ARMING_FLAG(SIMULATOR_MODE);
+				LOG_D(SYSTEM, "Simulator enabled");
 			}
-        } else {
-            DISABLE_ARMING_FLAG(SIMULATOR_MODE);
-            baroStartCalibration(); // just once
-        }
-        if (dataSize >= 14) {
-#ifdef USE_GPS
-            gpsSol.fixType = sbufReadU8(src);
-			gpsSol.hdop = gpsSol.fixType == GPS_NO_FIX ? 9999 : 100;
-			gpsSol.flags.hasNewData = true;
-            gpsSol.flags.validVelNE = 0;
-            gpsSol.flags.validVelD = 0;
-            gpsSol.flags.validEPE = 0;
-            gpsSol.numSat = sbufReadU8(src);
-            gpsSol.llh.lat = sbufReadU32(src);
-            gpsSol.llh.lon = sbufReadU32(src);
-            gpsSol.llh.alt = sbufReadU32(src);
-            gpsSol.groundSpeed = sbufReadU16(src);
-            gpsSol.groundCourse = sbufReadU16(src);
-            gpsSol.velNED[X] = gpsSol.groundSpeed * cos_approx(DECIDEGREES_TO_RADIANS(gpsSol.groundCourse));
-            gpsSol.velNED[Y] = gpsSol.groundSpeed * sin_approx(DECIDEGREES_TO_RADIANS(gpsSol.groundCourse));
-            gpsSol.velNED[Z] = 0;
-            gpsSol.eph = 100;
-            gpsSol.epv = 100;
-            // Feed data to navigation
-            gpsProcessNewSolutionData();
-#endif
-            attitude.values.roll = sbufReadU16(src)-1800;
-            attitude.values.pitch = sbufReadU16(src)-1800;
-            attitude.values.yaw = sbufReadU16(src);
 
-            acc.accADCf[X] = (float)sbufReadU16(src) / 1000 - 32;// / GRAVITY_CMSS;
-            acc.accADCf[Y] = (float)sbufReadU16(src) / 1000 - 32;// / GRAVITY_CMSS;
-            acc.accADCf[Z] = (float)sbufReadU16(src) / 1000 - 32;// / GRAVITY_CMSS;
+			if (dataSize >= 14) {
+				gpsSol.fixType = sbufReadU8(src);
+				gpsSol.hdop = gpsSol.fixType == GPS_NO_FIX ? 9999 : 100;
+				gpsSol.flags.hasNewData = true;
+				gpsSol.flags.validVelNE = 0;
+				gpsSol.flags.validVelD = 0;
+				gpsSol.flags.validEPE = 0;
+				gpsSol.numSat = sbufReadU8(src);
+				gpsSol.llh.lat = sbufReadU32(src);
+				gpsSol.llh.lon = sbufReadU32(src);
+				gpsSol.llh.alt = sbufReadU32(src);
+				gpsSol.groundSpeed = sbufReadU16(src);
+				gpsSol.groundCourse = sbufReadU16(src);
+				gpsSol.velNED[X] = gpsSol.groundSpeed * cos_approx(DECIDEGREES_TO_RADIANS(gpsSol.groundCourse));
+				gpsSol.velNED[Y] = gpsSol.groundSpeed * sin_approx(DECIDEGREES_TO_RADIANS(gpsSol.groundCourse));
+				gpsSol.velNED[Z] = 0;
+				gpsSol.eph = 100;
+				gpsSol.epv = 100;
+				// Feed data to navigation
+				gpsProcessNewSolutionData();
 
-            gyro.gyroADCf[X] = (float)sbufReadU16(src) / 100 - 320;
-            gyro.gyroADCf[Y] = (float)sbufReadU16(src) / 100 - 320;
-            gyro.gyroADCf[Z] = (float)sbufReadU16(src) / 100 - 320;
+				attitude.values.roll = sbufReadU16(src) - 1800;
+				attitude.values.pitch = sbufReadU16(src) - 1800;
+				attitude.values.yaw = sbufReadU16(src);
 
-            baro.baroPressure = sbufReadU32(src);
-        } else {
-            DISABLE_STATE(GPS_FIX);
-        }
+				acc.accADCf[X] = (float)sbufReadU16(src) / 1000 - 32;// / GRAVITY_CMSS;
+				acc.accADCf[Y] = (float)sbufReadU16(src) / 1000 - 32;// / GRAVITY_CMSS;
+				acc.accADCf[Z] = (float)sbufReadU16(src) / 1000 - 32;// / GRAVITY_CMSS;
 
-        sbufWriteU16(dst, input[INPUT_STABILIZED_ROLL] + 500);
-        sbufWriteU16(dst, input[INPUT_STABILIZED_PITCH] + 500);
-        sbufWriteU16(dst, input[INPUT_STABILIZED_YAW] + 500);
-        sbufWriteU16(dst, input[INPUT_STABILIZED_THROTTLE] + 500);
+				gyro.gyroADCf[X] = (float)sbufReadU16(src) / 100 - 320;
+				gyro.gyroADCf[Y] = (float)sbufReadU16(src) / 100 - 320;
+				gyro.gyroADCf[Z] = (float)sbufReadU16(src) / 100 - 320;
 
-		mspWriteSimulatorOSD(dst);
+				baro.baroPressure = sbufReadU32(src);
+			}
+			else {
+				DISABLE_STATE(GPS_FIX);
+			}
 
+			sbufWriteU16(dst, input[INPUT_STABILIZED_ROLL] + 500);
+			sbufWriteU16(dst, input[INPUT_STABILIZED_PITCH] + 500);
+			sbufWriteU16(dst, input[INPUT_STABILIZED_YAW] + 500);
+			sbufWriteU16(dst, input[INPUT_STABILIZED_THROTTLE] + 500);
+
+			simulatorData.debugIndex++;
+			if (simulatorData.debugIndex == 8){
+				simulatorData.debugIndex = 0;
+			}
+			sbufWriteU8(dst, simulatorData.debugIndex);
+			sbufWriteU32(dst, debug[simulatorData.debugIndex]);
+
+			mspWriteSimulatorOSD(dst);
+		}
         *ret = MSP_RESULT_ACK;
         break;
     default:
