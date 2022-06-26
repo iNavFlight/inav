@@ -280,6 +280,10 @@ bool flashInit(void)
     memset(&flashPartitionTable, 0, sizeof(flashPartitionTable));
 
     bool haveFlash = flashDeviceInit();
+    
+    if (!haveFlash) {
+        return false;
+    }
 
     if (haveFlash) {
         flashConfigurePartitions();
