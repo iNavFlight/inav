@@ -3446,8 +3446,8 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				gpsSol.llh.lat = sbufReadU32(src);
 				gpsSol.llh.lon = sbufReadU32(src);
 				gpsSol.llh.alt = sbufReadU32(src);
-				gpsSol.groundSpeed = sbufReadU16(src);
-				gpsSol.groundCourse = sbufReadU16(src);
+				gpsSol.groundSpeed = (int16_t)sbufReadU16(src);
+				gpsSol.groundCourse = (int16_t)sbufReadU16(src);
 				gpsSol.velNED[X] = gpsSol.groundSpeed * cos_approx(DECIDEGREES_TO_RADIANS(gpsSol.groundCourse));
 				gpsSol.velNED[Y] = gpsSol.groundSpeed * sin_approx(DECIDEGREES_TO_RADIANS(gpsSol.groundCourse));
 				gpsSol.velNED[Z] = 0;
@@ -3456,17 +3456,17 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				// Feed data to navigation
 				gpsProcessNewSolutionData();
 
-				attitude.values.roll = sbufReadU16(src) - 1800;
-				attitude.values.pitch = sbufReadU16(src) - 1800;
-				attitude.values.yaw = sbufReadU16(src);
+				attitude.values.roll = (int16_t)sbufReadU16(src);
+				attitude.values.pitch = (int16_t)sbufReadU16(src);
+				attitude.values.yaw = (int16_t)sbufReadU16(src);
 
-				acc.accADCf[X] = (float)sbufReadU16(src) / 1000 - 32;// / GRAVITY_CMSS;
-				acc.accADCf[Y] = (float)sbufReadU16(src) / 1000 - 32;// / GRAVITY_CMSS;
-				acc.accADCf[Z] = (float)sbufReadU16(src) / 1000 - 32;// / GRAVITY_CMSS;
+				acc.accADCf[X] = ((int16_t)sbufReadU16(src)) / 1000.0f;// acceleration in 1G units
+				acc.accADCf[Y] = ((int16_t)sbufReadU16(src)) / 1000.0f;
+				acc.accADCf[Z] = ((int16_t)sbufReadU16(src)) / 1000.0f;
 
-				gyro.gyroADCf[X] = (float)sbufReadU16(src) / 100 - 320;
-				gyro.gyroADCf[Y] = (float)sbufReadU16(src) / 100 - 320;
-				gyro.gyroADCf[Z] = (float)sbufReadU16(src) / 100 - 320;
+				gyro.gyroADCf[X] = ((int16_t)sbufReadU16(src)) / 16.0f;
+				gyro.gyroADCf[Y] = ((int16_t)sbufReadU16(src)) / 16.0f;
+				gyro.gyroADCf[Z] = ((int16_t)sbufReadU16(src)) / 16.0f;
 
 				baro.baroPressure = sbufReadU32(src);
 			}
