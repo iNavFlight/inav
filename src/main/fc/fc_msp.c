@@ -3474,10 +3474,10 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				DISABLE_STATE(GPS_FIX);
 			}
 
-			sbufWriteU16(dst, input[INPUT_STABILIZED_ROLL] + 500);
-			sbufWriteU16(dst, input[INPUT_STABILIZED_PITCH] + 500);
-			sbufWriteU16(dst, input[INPUT_STABILIZED_YAW] + 500);
-			sbufWriteU16(dst, input[INPUT_STABILIZED_THROTTLE] + 500);
+			sbufWriteU16(dst, (uint16_t)input[INPUT_STABILIZED_ROLL]);
+			sbufWriteU16(dst, (uint16_t)input[INPUT_STABILIZED_PITCH]);
+			sbufWriteU16(dst, (uint16_t)input[INPUT_STABILIZED_YAW]);
+			sbufWriteU16(dst, (uint16_t)input[INPUT_STABILIZED_THROTTLE]);
 
 			simulatorData.debugIndex++;
 			if (simulatorData.debugIndex == 8){
