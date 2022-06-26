@@ -29,11 +29,7 @@
 #define NOINLINE
 #endif
 
-#if defined(STM32F3)
-#define DYNAMIC_HEAP_SIZE   1024
-#else
 #define DYNAMIC_HEAP_SIZE   2048
-#endif
 
 #define I2C1_OVERCLOCK false
 #define I2C2_OVERCLOCK false
@@ -49,14 +45,6 @@
 //#define USE_DEV_TOOLS           // tools for dev use only. Undefine for release builds.
 
 #define COMMON_DEFAULT_FEATURES (FEATURE_TX_PROF_SEL)
-
-#if defined(STM32F3)
-#define USE_UNDERCLOCK
-//save flash for F3 targets
-#define CLI_MINIMAL_VERBOSITY
-#define SKIP_CLI_COMMAND_HELP
-#define SKIP_CLI_RESOURCES
-#endif
 
 #if defined(STM32F4) || defined(STM32F7)
 #define USE_SERVO_SBUS
@@ -195,10 +183,8 @@
 #define USE_VTX_SMARTAUDIO
 #define USE_VTX_TRAMP
 
-#ifndef STM32F3 //F3 series does not have enoug RAM to support logic conditions
 #define USE_PROGRAMMING_FRAMEWORK
 #define USE_CLI_BATCH
-#endif
 
 //Enable DST calculations
 #define RTC_AUTOMATIC_DST
