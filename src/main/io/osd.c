@@ -4305,7 +4305,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     // Countdown display for RTH minutes
                     char buf[6];
                     osdFormatDistanceSymbol(buf, GPS_distanceToHome * 60 * 60 * 3.6/ gpsSol.groundSpeed , 0);
-                    tfp_sprintf(messageBuf, "EN ROUTE TO HOME (%)", buf);
+                    tfp_sprintf(messageBuf, "EN ROUTE TO HOME (%s)", buf);
                     messages[messageCount++] = messageBuf;
                 } else if (NAV_Status.state == MW_NAV_STATE_HOLD_TIMED) {
                     if (navConfig()->general.flags.waypoint_enforce_altitude && !posControl.wpAltitudeReached) {
