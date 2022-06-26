@@ -3435,7 +3435,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				LOG_D(SYSTEM, "Simulator enabled");
 			}
 
-			if (dataSize >= 14) {
+			if (dataSize >= 14 && isImuReady()) {
 				gpsSol.fixType = sbufReadU8(src);
 				gpsSol.hdop = gpsSol.fixType == GPS_NO_FIX ? 9999 : 100;
 				gpsSol.flags.hasNewData = true;
@@ -3463,6 +3463,9 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				acc.accADCf[X] = ((int16_t)sbufReadU16(src)) / 1000.0f;// acceleration in 1G units
 				acc.accADCf[Y] = ((int16_t)sbufReadU16(src)) / 1000.0f;
 				acc.accADCf[Z] = ((int16_t)sbufReadU16(src)) / 1000.0f;
+				acc.accVibeSq[X] = 0;
+				acc.accVibeSq[Y] = 0;
+				acc.accVibeSq[Z] = 0;
 
 				gyro.gyroADCf[X] = ((int16_t)sbufReadU16(src)) / 16.0f;
 				gyro.gyroADCf[Y] = ((int16_t)sbufReadU16(src)) / 16.0f;
@@ -3473,21 +3476,22 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 			else {
 				DISABLE_STATE(GPS_FIX);
 			}
-
-			sbufWriteU16(dst, (uint16_t)input[INPUT_STABILIZED_ROLL]);
-			sbufWriteU16(dst, (uint16_t)input[INPUT_STABILIZED_PITCH]);
-			sbufWriteU16(dst, (uint16_t)input[INPUT_STABILIZED_YAW]);
-			sbufWriteU16(dst, (uint16_t)input[INPUT_STABILIZED_THROTTLE]);
-
-			simulatorData.debugIndex++;
-			if (simulatorData.debugIndex == 8){
-				simulatorData.debugIndex = 0;
-			}
-			sbufWriteU8(dst, simulatorData.debugIndex);
-			sbufWriteU32(dst, debug[simulatorData.debugIndex]);
-
-			mspWriteSimulatorOSD(dst);
 		}
+
+		sbufWriteU16(dst, (uint16_t)input[INPUT_STABILIZED_ROLL]);
+		sbufWriteU16(dst, (uint16_t)input[INPUT_STABILIZED_PITCH]);
+		sbufWriteU16(dst, (uint16_t)input[INPUT_STABILIZED_YAW]);
+		sbufWriteU16(dst, (uint16_t)input[INPUT_STABILIZED_THROTTLE]);
+
+		simulatorData.debugIndex++;
+		if (simulatorData.debugIndex == 8){
+			simulatorData.debugIndex = 0;
+		}
+		sbufWriteU8(dst, simulatorData.debugIndex);
+		sbufWriteU32(dst, debug[simulatorData.debugIndex]);
+
+		mspWriteSimulatorOSD(dst);
+
         *ret = MSP_RESULT_ACK;
         break;
     default:

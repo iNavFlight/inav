@@ -498,6 +498,8 @@ void FAST_CODE NOINLINE gyroFilter()
 void FAST_CODE NOINLINE gyroUpdate()
 {
     if (ARMING_FLAG(SIMULATOR_MODE)) {
+		//output: gyro.gyroADCf[axis]
+		//unused: dev->gyroADCRaw[], dev->gyroZero[];
         return;
     }
 

@@ -518,6 +518,8 @@ float accGetMeasuredMaxG(void)
 void accUpdate(void)
 {
     if (ARMING_FLAG(SIMULATOR_MODE)) {
+		//output: acc.accADCf
+		//unused: acc.dev.ADCRaw[], acc.accClipCount, acc.accVibeSq[]
         return;
     }
     if (!acc.dev.readFn(&acc.dev)) {
