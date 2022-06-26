@@ -1414,7 +1414,7 @@ Yaw Iterm is frozen when bank angle is above this threshold [degrees]. This solv
 
 ### gps_auto_baud
 
-Automatic configuration of GPS baudrate(The specified baudrate in configured in ports will be used) when used with UBLOX GPS. When used with NAZA/DJI it will automatic detect GPS baudrate and change to it, ignoring the selected baudrate set in ports
+Automatic configuration of GPS baudrate(The specified baudrate in configured in ports will be used) when used with UBLOX GPS
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2834,11 +2834,11 @@ Protocol that is used to send motor updates to ESCs. Possible values - STANDARD,
 
 ### motor_pwm_rate
 
-Output frequency (in Hz) for motor pins. Default is 400Hz for motor with motor_pwm_protocol set to STANDARD. For *SHOT (e.g. ONESHOT125) values of 1000 and 2000 have been tested by the development team and are supported. It may be possible to use higher values. For BRUSHED values of 8000 and above should be used. Setting to 8000 will use brushed mode at 8kHz switching frequency. Up to 32kHz is supported for brushed. Default is 16000 for boards with brushed motors. Note, that in brushed mode, minthrottle is offset to zero. For brushed mode, set max_throttle to 2000.
+Output frequency (in Hz) for motor pins.  Applies only to brushed motors. 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 400 | 50 | 32000 |
+| 16000 | 50 | 32000 |
 
 ---
 

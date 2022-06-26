@@ -74,9 +74,6 @@ extern void gpsHandleUBLOX(void);
 extern void gpsRestartNMEA(void);
 extern void gpsHandleNMEA(void);
 
-extern void gpsRestartNAZA(void);
-extern void gpsHandleNAZA(void);
-
 extern void gpsRestartMSP(void);
 extern void gpsHandleMSP(void);
 
