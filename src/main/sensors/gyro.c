@@ -505,7 +505,8 @@ void FAST_CODE NOINLINE gyroUpdate()
         // At this point gyro.gyroADCf contains unfiltered gyro value [deg/s]
         float gyroADCf = gyro.gyroADCf[axis];
 
-        DEBUG_SET(DEBUG_GYRO, axis, lrintf(gyroADCf));
+        // Set raw gyro for blackbox purposes
+        gyro.gyroRaw[axis] = gyroADCf;
 
         /*
          * First gyro LPF is the only filter applied with the full gyro sampling speed
