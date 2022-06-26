@@ -36,6 +36,5 @@ void targetConfiguration(void)
 {
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(TELEMETRY_UART)].functionMask = FUNCTION_TELEMETRY_SMARTPORT;
     motorConfigMutable()->motorPwmProtocol = PWM_TYPE_MULTISHOT;
-    motorConfigMutable()->motorPwmRate = 4000;
     motorConfigMutable()->maxthrottle = 1950;
 }

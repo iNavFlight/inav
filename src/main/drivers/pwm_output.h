@@ -56,3 +56,5 @@ void beeperPwmInit(ioTag_t tag, uint16_t frequency);
 
 void sendDShotCommand(dshotCommands_e cmd);
 void initDShotCommands(void);
+
+uint32_t getEscUpdateFrequency(void);

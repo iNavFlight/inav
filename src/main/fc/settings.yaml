@@ -19,7 +19,7 @@ tables:
     values: ["NONE", "CXOF", "MSP", "FAKE"]
     enum: opticalFlowSensor_e
   - name: baro_hardware
-    values: ["NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "LPS25H", "SPL06", "BMP388", "DPS310", "MSP", "FAKE"]
+    values: ["NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "LPS25H", "SPL06", "BMP388", "DPS310", "B2SMPB", "MSP", "FAKE"]
     enum: baroSensor_e
   - name: pitot_hardware
     values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE", "MSP"]
@@ -848,8 +848,8 @@ groups:
         min: 0
         max: PWM_RANGE_MAX
       - name: motor_pwm_rate
-        description: "Output frequency (in Hz) for motor pins. Default is 400Hz for motor with motor_pwm_protocol set to STANDARD. For *SHOT (e.g. ONESHOT125) values of 1000 and 2000 have been tested by the development team and are supported. It may be possible to use higher values. For BRUSHED values of 8000 and above should be used. Setting to 8000 will use brushed mode at 8kHz switching frequency. Up to 32kHz is supported for brushed. Default is 16000 for boards with brushed motors. Note, that in brushed mode, minthrottle is offset to zero. For brushed mode, set max_throttle to 2000."
-        default_value: 400
+        description: "Output frequency (in Hz) for motor pins.  Applies only to brushed motors. "
+        default_value: 16000
         field: motorPwmRate
         min: 50
         max: 32000
