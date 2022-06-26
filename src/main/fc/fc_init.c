@@ -187,7 +187,7 @@ void flashLedsAndBeep(void)
 
 void init(void)
 {
-#if defined(USE_FLASHFS) && defined(USE_FLASH_M25P16)
+#if defined(USE_FLASHFS)
     bool flashDeviceInitialized = false;
 #endif
 
@@ -380,12 +380,10 @@ void init(void)
         // it to identify the log files *before* starting the USB device to
         // prevent timeouts of the mass storage device.
         if (blackboxConfig()->device == BLACKBOX_DEVICE_FLASH) {
-#ifdef USE_FLASH_M25P16
             // Must initialise the device to read _anything_
             if (!flashDeviceInitialized) {
                 flashDeviceInitialized = flashInit();
             }
-#endif
             emfat_init_files();
         }
 #endif
@@ -613,11 +611,9 @@ void init(void)
     switch (blackboxConfig()->device) {
 #ifdef USE_FLASHFS
         case BLACKBOX_DEVICE_FLASH:
-#ifdef USE_FLASH_M25P16
             if (!flashDeviceInitialized) {
                 flashDeviceInitialized = flashInit();
             }
-#endif
             flashfsInit();
             break;
 #endif

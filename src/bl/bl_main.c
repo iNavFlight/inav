@@ -139,7 +139,7 @@ static bool dataBackendInit(void)
         return false;
     }
 
-#elif defined(USE_FLASHFS) && defined(USE_FLASH_M25P16)
+#elif defined(USE_FLASHFS)
     if (!flashInit()) {
         return false;
     }
@@ -440,7 +440,10 @@ flashFailed:
 bool dataflashChipEraseUpdatePartition(void)
 {
     flashPartition_t *flashDataPartition = flashPartitionFindByType(FLASH_PARTITION_TYPE_UPDATE_FIRMWARE);
-    if (!flashDataPartition) return false;
+
+    if (!flashDataPartition) {
+        return false;
+    }
 
     const flashGeometry_t *flashGeometry = flashGetGeometry();
 

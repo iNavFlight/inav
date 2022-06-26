@@ -38,139 +38,112 @@
 #include "drivers/io.h"
 #include "drivers/time.h"
 
-static flashPartitionTable_t flashPartitionTable;
-static int flashPartitions = 0;
+typedef struct
+{
+    bool (*init)(int);
+    bool (*isReady)(void);
+    bool (*waitForReady)(timeMs_t timeoutMillis);
+    void (*eraseSector)(uint32_t address);
+    void (*eraseCompletely)(void);
+    uint32_t (*pageProgram)(uint32_t address, const uint8_t *data, int length);
+    int (*readBytes)(uint32_t address, uint8_t *buffer, int length);
+    const flashGeometry_t *(*getGeometry)(void);
+    bool detected;
+} flashDriver_t;
 
+static flashDriver_t flashDrivers[] = {
 
 #ifdef USE_SPI
-static bool flashSpiInit(void)
-{
+
 #ifdef USE_FLASH_M25P16
-    return m25p16_init(0);
+    {.init = m25p16_init,
+     .isReady = m25p16_isReady,
+     .waitForReady = m25p16_waitForReady,
+     .eraseSector = m25p16_eraseSector,
+     .eraseCompletely = m25p16_eraseCompletely,
+     .pageProgram = m25p16_pageProgram,
+     .readBytes = m25p16_readBytes,
+     .getGeometry = m25p16_getGeometry,
+     .detected = true
+    },
 #endif
 
 #ifdef USE_FLASH_W25N01G
-    return w25n01g_init(0);
+    {.init = w25n01g_init,
+     .isReady = w25n01g_isReady,
+     .waitForReady = w25n01g_waitForReady,
+     .eraseSector = w25n01g_eraseSector,
+     .eraseCompletely = w25n01g_eraseCompletely,
+     .pageProgram = w25n01g_pageProgram,
+     .readBytes = w25n01g_readBytes,
+     .getGeometry = w25n01g_getGeometry,
+     .detected = true
+    },
 #endif
 
-    return false;
-}
-#endif // USE_SPI
+#endif
 
-bool flashDeviceInit(void)
+};
+
+static flashDriver_t *flash;
+
+static bool flashDeviceInit(void)
 {
-#ifdef USE_SPI
-    return flashSpiInit();
-#endif
-
-    return false;
+    for (uint32_t idx = 0; idx <= sizeof(flashDrivers) / sizeof(flashDrivers[0]); idx++)
+    {
+        flash->detected = flashDrivers[idx].init(0);
+        if (flash->detected)
+        {
+            flash = &flashDrivers[idx];
+            break;
+        }
+    }
+    return flash->detected;
 }
 
 bool flashIsReady(void)
 {
-#ifdef USE_FLASH_M25P16
-    return m25p16_isReady();
-#endif
+    if (!flash->detected) {
+        return false;
+    }
 
-#ifdef USE_FLASH_W25N01G
-    return w25n01g_isReady();
-#endif
-
-    return false;
+    return flash->isReady();
 }
 
 bool flashWaitForReady(timeMs_t timeoutMillis)
 {
-#ifdef USE_FLASH_M25P16
-    return m25p16_waitForReady(timeoutMillis);
-#endif
-    return false;
+    return flash->waitForReady(timeoutMillis);
 }
 
 void flashEraseSector(uint32_t address)
 {
-#ifdef USE_FLASH_M25P16
-    return m25p16_eraseSector(address);
-#endif
-
-#ifdef USE_FLASH_W25N01G
-    return w25n01g_eraseSector(address);
-#endif
+    flash->eraseSector(address);
 }
 
 void flashEraseCompletely(void)
 {
-#ifdef USE_FLASH_M25P16
-    return m25p16_eraseCompletely();
-#endif
-
-#ifdef USE_FLASH_W25N01G
-    return w25n01g_eraseCompletely();
-#endif
+    flash->eraseCompletely();
 }
-
-#if 0
-void flashPageProgramBegin(uint32_t address)
-{
-#ifdef USE_FLASH_M25P16
-    return m25p16_pageProgramBegin(address);
-#endif
-}
-
-void flashPageProgramContinue(const uint8_t *data, int length)
-{
-#ifdef USE_FLASH_M25P16
-    return m25p16_pageProgramContinue(data, length);
-#endif
-}
-
-void flashPageProgramFinish(void)
-{
-#ifdef USE_FLASH_M25P16
-    return m25p16_pageProgramFinish();
-#endif
-}
-#endif
 
 uint32_t flashPageProgram(uint32_t address, const uint8_t *data, int length)
 {
-#ifdef USE_FLASH_M25P16
-    return m25p16_pageProgram(address, data, length);
-#endif
-
-#ifdef USE_FLASH_W25N01G
-    return w25n01g_pageProgram(address, data, length);
-#endif
+    return flash->pageProgram(address, data, length);
 }
 
 int flashReadBytes(uint32_t address, uint8_t *buffer, int length)
 {
-#ifdef USE_FLASH_M25P16
-    return m25p16_readBytes(address, buffer, length);
-#endif
-
-#ifdef USE_FLASH_W25N01G
-    return w25n01g_readBytes(address, buffer, length);
-#endif
-
-    return 0;
-}
-
-void flashFlush(void)
-{
+    return flash->readBytes(address, buffer, length);
 }
 
 const flashGeometry_t *flashGetGeometry(void)
 {
-#ifdef USE_FLASH_M25P16
-    return m25p16_getGeometry();
-#endif
+    static flashGeometry_t fgNone = {0};
 
-#ifdef USE_FLASH_W25N01G
-    return w25n01g_getGeometry();
-#endif
+    if (!flash->detected) {
+        return &fgNone;
+    }
 
-    return NULL;
+    return flash->getGeometry();
 }
 
 /*
@@ -185,6 +158,9 @@ const flashGeometry_t *flashGetGeometry(void)
  * XXX There is existing blackbox/flash FS code the relies on this!!!
  * XXX This restriction can and will be fixed by creating a set of flash operation functions that take partition as an additional parameter.
  */
+
+static flashPartitionTable_t flashPartitionTable;
+static int flashPartitions = 0;
 
 static __attribute__((unused)) void createPartition(flashPartitionType_e type, uint32_t size, flashSector_t *endSector)
 {
@@ -303,9 +279,13 @@ const char *flashPartitionGetTypeName(flashPartitionType_e type)
 
 bool flashInit(void)
 {
-    memset(&flashPartitionTable, 0x00, sizeof(flashPartitionTable));
+    memset(&flashPartitionTable, 0, sizeof(flashPartitionTable));
 
     bool haveFlash = flashDeviceInit();
+    
+    if (!haveFlash) {
+        return false;
+    }
 
     flashConfigurePartitions();
 
