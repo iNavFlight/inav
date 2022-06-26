@@ -3472,6 +3472,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				gyro.gyroADCf[Z] = ((int16_t)sbufReadU16(src)) / 16.0f;
 
 				baro.baroPressure = sbufReadU32(src);
+				baro.baroTemperature = 2500;
 			}
 			else {
 				DISABLE_STATE(GPS_FIX);

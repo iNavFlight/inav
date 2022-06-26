@@ -323,6 +323,7 @@ uint32_t baroUpdate(void)
                 baro.dev.start_ut(&baro.dev);
             }
             if (! ARMING_FLAG(SIMULATOR_MODE)) {
+				//output: baro.baroPressure, baro.baroTemperature
                 baro.dev.calculate(&baro.dev, &baro.baroPressure, &baro.baroTemperature);
                 if (barometerConfig()->use_median_filtering) {
                     baro.baroPressure = applyBarometerMedianFilter(baro.baroPressure);
