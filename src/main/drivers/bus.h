@@ -90,7 +90,6 @@ typedef enum {
     DEVHW_MPU9250,
 
     /* Barometer chips */
-    DEVHW_BMP085,
     DEVHW_BMP280,
     DEVHW_MS5611,
     DEVHW_MS5607,

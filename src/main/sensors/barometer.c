@@ -32,7 +32,6 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/barometer/barometer.h"
-#include "drivers/barometer/barometer_bmp085.h"
 #include "drivers/barometer/barometer_bmp280.h"
 #include "drivers/barometer/barometer_bmp388.h"
 #include "drivers/barometer/barometer_lps25h.h"
@@ -81,13 +80,6 @@ bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
 
     switch (baroHardwareToUse) {
     case BARO_AUTODETECT:
-    case BARO_BMP085:
-#ifdef USE_BARO_BMP085
-        if (bmp085Detect(dev)) {
-            baroHardware = BARO_BMP085;
-            break;
-        }
-#endif
         /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
         if (baroHardwareToUse != BARO_AUTODETECT) {
             break;

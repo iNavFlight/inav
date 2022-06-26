@@ -57,7 +57,6 @@
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_MS5611
-#define USE_BARO_BMP085
 #define USE_BARO_BMP280
 
 #define M25P16_CS_PIN           PB3

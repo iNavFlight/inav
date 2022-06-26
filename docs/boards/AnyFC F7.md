@@ -79,7 +79,7 @@ Buzzer is supported with additional switching MOSFET transistor when connected t
 
 ## Barometer
 
-**AnyFC F7** clones comes without MS5611 barometer installed. If you want to use external barometer of any kind (BMP280, BMP085, MS5611) you have to use target `ANYFCF7_EXTERNAL_BARO`. This target enables barometer detection on external I2C bus.
+**AnyFC F7** clones comes without MS5611 barometer installed. If you want to use external barometer of any kind (BMP280 or MS5611) you have to use target `ANYFCF7_EXTERNAL_BARO`. This target enables barometer detection on external I2C bus.
 
 # AnyFC F7 Pro from Banggood
 

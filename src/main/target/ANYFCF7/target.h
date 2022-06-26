@@ -55,7 +55,6 @@
 #ifdef ANYFCF7_EXTERNAL_BARO
     #define BARO_I2C_BUS        BUS_I2C2
     #define USE_BARO_MS5611
-    #define USE_BARO_BMP085
     #define USE_BARO_BMP280
 #else
     #define BARO_I2C_BUS        BUS_I2C4

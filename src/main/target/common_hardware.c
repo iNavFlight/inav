@@ -89,13 +89,6 @@
 
 /** BAROMETERS **/
 
-#if defined(USE_BARO_BMP085)
-    #if !defined(BMP085_I2C_BUS)
-        #define BMP085_I2C_BUS BARO_I2C_BUS
-    #endif
-    BUSDEV_REGISTER_I2C(busdev_bmp085,      DEVHW_BMP085,       BMP085_I2C_BUS,     0x77,               NONE,           DEVFLAGS_NONE,      0);
-#endif
-
 #if defined(USE_BARO_BMP280)
     #if defined(BMP280_SPI_BUS)
     BUSDEV_REGISTER_SPI(busdev_bmp280,      DEVHW_BMP280,       BMP280_SPI_BUS,     BMP280_CS_PIN,      NONE,           DEVFLAGS_NONE,      0);
