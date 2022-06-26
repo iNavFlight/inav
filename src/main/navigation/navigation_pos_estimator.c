@@ -537,9 +537,11 @@ static void estimationPredict(estimationContext_t * ctx)
         posEstimator.est.pos.z += posEstimator.imu.accelNEU.z * sq(ctx->dt) / 2.0f * accWeight;
         posEstimator.est.vel.z += posEstimator.imu.accelNEU.z * ctx->dt * sq(accWeight);
     }
+	/*
     if (ARMING_FLAG(SIMULATOR_MODE)) {
         posEstimator.est.pos.z = baro.BaroAlt;
     }
+	*/
 
     /* Prediction step: XY-axis */
     if ((ctx->newFlags & EST_XY_VALID)) {
