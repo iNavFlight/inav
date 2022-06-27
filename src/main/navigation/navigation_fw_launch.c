@@ -260,7 +260,7 @@ static inline bool isLaunchMaxAltitudeReached(void)
 
 static inline bool areSticksMoved(timeMs_t initialTime, timeUs_t currentTimeUs)
 {
-    return (initialTime + currentStateElapsedMs(currentTimeUs)) > navConfig()->fw.launch_min_time && isRollPitchStickDeflected();
+    return (initialTime + currentStateElapsedMs(currentTimeUs)) >= navConfig()->fw.launch_min_time && isRollPitchStickDeflected();
 }
 
 static inline bool isProbablyNotFlying(void)
