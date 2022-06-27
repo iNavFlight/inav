@@ -3052,6 +3052,7 @@ groups:
         type: bool
         default_value: OFF
       - name: eleres_telemetry_power
+        description: "For eLeReS recievers, power level of telemetry"
         field: eleresTelemetryPower
         min: 0
         max: 7
@@ -3281,6 +3282,7 @@ groups:
         min: 0
         max: 27000 # (1000km/h * 1000 * 100 / 60 / 60)
       - name: osd_ahi_reverse_roll
+        description: "Switches the artificial horizon in the OSD to instead be a bank indicator, by reversing the direction of its movement."
         field: ahi_reverse_roll
         type: bool
         default_value: OFF
