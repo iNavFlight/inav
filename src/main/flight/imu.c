@@ -573,8 +573,7 @@ static void imuCalculateEstimatedAttitude(float dT)
     const float accWeight = imuGetPGainScaleFactor() * imuCalculateAccelerometerWeight(dT);
     const bool useAcc = (accWeight > 0.001f);
 
-    if (ARMING_FLAG(SIMULATOR_MODE)) {
-        // todo: after imuMahonyAHRSupdate, ground course is divided by 10 =(
+    if (ARMING_FLAG(SIMULATOR_MODE) && ((simulatorData.flags & SIMU_USE_SENSORS) == 0 )) {
         return;
     }
 

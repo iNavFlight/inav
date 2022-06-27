@@ -3420,45 +3420,91 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 		tmp_u8 = sbufReadU8(src); //MSP_SIMULATOR version
 		if (tmp_u8 != 1) break;
 
-		tmp_u8 = sbufReadU8(src);
-        if ((tmp_u8 & SIMU_ENABLE) == 0) {
-			DISABLE_ARMING_FLAG(SIMULATOR_MODE);
-			baroStartCalibration(); // just once
-			simulatorData.flags = 0;
-		}
-		else {
-			simulatorData.flags = tmp_u8;
+		simulatorData.flags = sbufReadU8(src);
+        if ((simulatorData.flags & SIMU_ENABLE) == 0) {
 
-			if (!ARMING_FLAG(SIMULATOR_MODE)) {
-				baroStartCalibration(); // just once
+			if (ARMING_FLAG(SIMULATOR_MODE)) { // just once
+				DISABLE_ARMING_FLAG(SIMULATOR_MODE);
+
+				baroStartCalibration();
+
+				simulatorData.flags = 0;
+				//review: many states were affected. reboot?
+			}
+		}
+		else if (!areSensorsCalibrating()) {
+			if (!ARMING_FLAG(SIMULATOR_MODE)) { // just once
+				baroStartCalibration(); 
+
+				//todo: magnetometer emulation support
+				sensorsClear(SENSOR_MAG);
+				mag.magADC[X] = 0;
+				mag.magADC[Y] = 0;
+				mag.magADC[Z] = 0;
+
 				ENABLE_ARMING_FLAG(SIMULATOR_MODE);
 				LOG_D(SYSTEM, "Simulator enabled");
 			}
 
-			if (dataSize >= 14 && isImuReady()) {
-				gpsSol.fixType = sbufReadU8(src);
-				gpsSol.hdop = gpsSol.fixType == GPS_NO_FIX ? 9999 : 100;
-				gpsSol.flags.hasNewData = true;
-				gpsSol.flags.validVelNE = 0;
-				gpsSol.flags.validVelD = 0;
-				gpsSol.flags.validEPE = 0;
-				gpsSol.numSat = sbufReadU8(src);
-				gpsSol.llh.lat = sbufReadU32(src);
-				gpsSol.llh.lon = sbufReadU32(src);
-				gpsSol.llh.alt = sbufReadU32(src);
-				gpsSol.groundSpeed = (int16_t)sbufReadU16(src);
-				gpsSol.groundCourse = (int16_t)sbufReadU16(src);
-				gpsSol.velNED[X] = gpsSol.groundSpeed * cos_approx(DECIDEGREES_TO_RADIANS(gpsSol.groundCourse));
-				gpsSol.velNED[Y] = gpsSol.groundSpeed * sin_approx(DECIDEGREES_TO_RADIANS(gpsSol.groundCourse));
-				gpsSol.velNED[Z] = 0;
-				gpsSol.eph = 100;
-				gpsSol.epv = 100;
-				// Feed data to navigation
-				gpsProcessNewSolutionData();
+			if (dataSize >= 14) {
 
-				attitude.values.roll = (int16_t)sbufReadU16(src);
-				attitude.values.pitch = (int16_t)sbufReadU16(src);
-				attitude.values.yaw = (int16_t)sbufReadU16(src);
+				if (feature(FEATURE_GPS)) {
+					gpsSol.fixType = sbufReadU8(src);
+					gpsSol.hdop = gpsSol.fixType == GPS_NO_FIX ? 9999 : 100;
+					gpsSol.flags.hasNewData = true;
+					gpsSol.flags.validVelNE = 0;
+					gpsSol.flags.validVelD = 0;
+					gpsSol.flags.validEPE = 0;
+					gpsSol.numSat = sbufReadU8(src);
+
+					if (gpsSol.fixType != GPS_NO_FIX) {
+						gpsSol.llh.lat = sbufReadU32(src);
+						gpsSol.llh.lon = sbufReadU32(src);
+						gpsSol.llh.alt = sbufReadU32(src);
+						gpsSol.groundSpeed = (int16_t)sbufReadU16(src);
+						gpsSol.groundCourse = (int16_t)sbufReadU16(src);
+						gpsSol.velNED[X] = gpsSol.groundSpeed * cos_approx(DECIDEGREES_TO_RADIANS(gpsSol.groundCourse));
+						gpsSol.velNED[Y] = gpsSol.groundSpeed * sin_approx(DECIDEGREES_TO_RADIANS(gpsSol.groundCourse));
+						gpsSol.velNED[Z] = 0;
+						gpsSol.eph = 100;
+						gpsSol.epv = 100;
+
+						ENABLE_STATE(GPS_FIX);
+
+						// Feed data to navigation
+						gpsProcessNewSolutionData();
+					}
+					else {
+						sbufReadU32(src);
+						sbufReadU32(src);
+						sbufReadU32(src);
+						sbufReadU16(src);
+						sbufReadU16(src);
+
+						DISABLE_STATE(GPS_FIX);
+					}
+				}
+				else {
+					sbufReadU8(src);
+					sbufReadU8(src);
+					sbufReadU32(src);
+					sbufReadU32(src);
+					sbufReadU32(src);
+					sbufReadU16(src);
+					sbufReadU16(src);
+				}
+
+				if ((simulatorData.flags & SIMU_USE_SENSORS) == 0) {
+					attitude.values.roll = (int16_t)sbufReadU16(src);
+					attitude.values.pitch = (int16_t)sbufReadU16(src);
+					attitude.values.yaw = (int16_t)sbufReadU16(src);
+				}
+				else
+				{
+					sbufReadU16(src);
+					sbufReadU16(src);
+					sbufReadU16(src);
+				}
 
 				acc.accADCf[X] = ((int16_t)sbufReadU16(src)) / 1000.0f;// acceleration in 1G units
 				acc.accADCf[Y] = ((int16_t)sbufReadU16(src)) / 1000.0f;
@@ -3471,8 +3517,15 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				gyro.gyroADCf[Y] = ((int16_t)sbufReadU16(src)) / 16.0f;
 				gyro.gyroADCf[Z] = ((int16_t)sbufReadU16(src)) / 16.0f;
 
-				baro.baroPressure = sbufReadU32(src);
-				baro.baroTemperature = 2500;
+				if (sensors(SENSOR_BARO))
+				{
+					baro.baroPressure = sbufReadU32(src);
+					baro.baroTemperature = 2500;
+				}
+				else {
+					baro.baroPressure = sbufReadU32(src);
+				}
+
 			}
 			else {
 				DISABLE_STATE(GPS_FIX);
@@ -3482,12 +3535,14 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 		sbufWriteU16(dst, (uint16_t)input[INPUT_STABILIZED_ROLL]);
 		sbufWriteU16(dst, (uint16_t)input[INPUT_STABILIZED_PITCH]);
 		sbufWriteU16(dst, (uint16_t)input[INPUT_STABILIZED_YAW]);
-		sbufWriteU16(dst, (uint16_t)input[INPUT_STABILIZED_THROTTLE]);
+		sbufWriteU16(dst, (uint16_t)(ARMING_FLAG(ARMED) ? input[INPUT_STABILIZED_THROTTLE] : -500));
 
 		simulatorData.debugIndex++;
 		if (simulatorData.debugIndex == 8){
 			simulatorData.debugIndex = 0;
 		}
+
+		simulatorData.debugIndex |= (mixerConfig()->platformType == PLATFORM_AIRPLANE) ? 128 : 0;
 		sbufWriteU8(dst, simulatorData.debugIndex);
 		sbufWriteU32(dst, debug[simulatorData.debugIndex]);
 

@@ -362,7 +362,8 @@ bool gpsUpdate(void)
     if (ARMING_FLAG(SIMULATOR_MODE)) {
         gpsUpdateTime();
         gpsSetState(GPS_RUNNING);
-        return gpsSol.flags.hasNewData;
+		sensorsSet(SENSOR_GPS);
+		return gpsSol.flags.hasNewData;
     }
 #ifdef USE_FAKE_GPS
     return gpsFakeGPSUpdate();
