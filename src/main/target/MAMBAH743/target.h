@@ -105,17 +105,6 @@
 #define USE_FLASH_W25N01G
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
-// *************** SPI3 SPARE for external RM3100 ***********
-#define USE_SPI_DEVICE_3
-#define SPI3_SCK_PIN            PB3
-#define SPI3_MISO_PIN           PB4
-#define SPI3_MOSI_PIN           PB5
-
-#define USE_MAG_RM3100
-#define RM3100_CS_PIN           PE2   //CS2 pad
-//                              PD4   //CS1 pad
-#define RM3100_SPI_BUS          BUS_SPI3
-
 // *************** I2C /Baro/Mag *********************
 #define USE_I2C
 #define USE_I2C_DEVICE_1
