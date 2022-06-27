@@ -80,7 +80,6 @@
 
 #define USE_RANGEFINDER
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
-#define BNO055_I2C_BUS          BUS_I2C2
 
 // *************** FLASH **************************
 #define M25P16_CS_PIN           PB9
