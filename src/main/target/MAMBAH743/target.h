@@ -29,11 +29,6 @@
 #define BEEPER_INVERTED
 
 // *************** IMU generic ***********************
-#define USE_DUAL_GYRO
-#define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
-
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
 
 // *************** SPI1 IMU0 MPU6000 ****************
 #define USE_SPI
@@ -44,9 +39,7 @@
 
 // SPI4 is used on the second MPU6000 gyro, we do not use it at the moment
 // #define USE_SPI_DEVICE_4
-// #define SPI4_SCK_PIN            PE12
-// #define SPI4_MISO_PIN           PE13
-// #define SPI4_MOSI_PIN           PE14
+// #define SPI4_MOSI_PIN PE14
 
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN CW180_DEG
@@ -114,8 +107,6 @@
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
-#define USE_MAG_IST8308
-#define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 #define USE_MAG_VCM5883
 
@@ -194,9 +185,6 @@
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
-#define TARGET_IO_PORTA 0xffff
-#define TARGET_IO_PORTB 0xffff
-#define TARGET_IO_PORTC 0xffff
 #define TARGET_IO_PORTD 0xffff
 #define TARGET_IO_PORTE 0xffff
 

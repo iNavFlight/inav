@@ -63,6 +63,7 @@ void flashEraseSector(uint32_t address);
 void flashEraseCompletely(void);
 uint32_t flashPageProgram(uint32_t address, const uint8_t *data, int length);
 int flashReadBytes(uint32_t address, uint8_t *buffer, int length);
+void flashFlush(void);
 const flashGeometry_t *flashGetGeometry(void);
 
 //
