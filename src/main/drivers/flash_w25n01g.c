@@ -137,7 +137,7 @@ static bool couldBeBusy = false;
 
 static timeMs_t timeoutAt = 0;
 
-static bool w25n01g_waitForReady(void);
+static bool w25n01g_waitForReadyInternal(void);
 
 static void w25n01g_setTimeout(timeMs_t timeoutMillis)
 {
@@ -179,7 +179,7 @@ static void w25n01g_deviceReset(void)
 {
     w25n01g_performOneByteCommand(W25N01G_INSTRUCTION_DEVICE_RESET);
     w25n01g_setTimeout(W25N01G_TIMEOUT_RESET_MS);
-    w25n01g_waitForReady();
+    w25n01g_waitForReadyInternal();
     // Protection for upper 1/32 (BP[3:0] = 0101, TB=0), WP-E on; to protect bad block replacement area
     // DON'T DO THIS. This will prevent writes through the bblut as well.
     // w25n01g_writeRegister(busdev, W25N01G_PROT_REG, W25N01G_PROT_PB0_ENABLE|W25N01G_PROT_PB2_ENABLE|W25N01G_PROT_WP_E_ENABLE);
@@ -199,7 +199,7 @@ bool w25n01g_isReady(void)
     return !couldBeBusy;
 }
 
-static bool w25n01g_waitForReady(void)
+static bool w25n01g_waitForReadyInternal(void)
 {
     while (!w25n01g_isReady()) {
         timeMs_t now = millis();
@@ -209,6 +209,12 @@ static bool w25n01g_waitForReady(void)
     }
     timeoutAt = 0;
     return true;
+}
+
+bool w25n01g_waitForReady(timeMs_t timeoutMillis)
+{
+    w25n01g_setTimeout(timeoutMillis);
+    return w25n01g_waitForReadyInternal();
 }
 
 /**
@@ -271,7 +277,7 @@ bool w25n01g_detect(uint32_t chipID)
  */
 void w25n01g_eraseSector(uint32_t address)
 {
-    w25n01g_waitForReady();
+    w25n01g_waitForReadyInternal();
     w25n01g_writeEnable();
     w25n01g_performCommandWithPageAddress(W25N01G_INSTRUCTION_BLOCK_ERASE, W25N01G_LINEAR_TO_PAGE(address));
     w25n01g_setTimeout(W25N01G_TIMEOUT_BLOCK_ERASE_MS);
@@ -288,7 +294,7 @@ void w25n01g_eraseCompletely(void)
 
 static void w25n01g_programDataLoad(uint16_t columnAddress, const uint8_t *data, int length)
 {
-    w25n01g_waitForReady();
+    w25n01g_waitForReadyInternal();
 
     uint8_t cmd[3] = { W25N01G_INSTRUCTION_PROGRAM_DATA_LOAD, columnAddress >> 8, columnAddress & 0xff };
 
@@ -300,7 +306,7 @@ static void w25n01g_programDataLoad(uint16_t columnAddress, const uint8_t *data,
 
 static void w25n01g_randomProgramDataLoad(uint16_t columnAddress, const uint8_t *data, int length)
 {
-    w25n01g_waitForReady();
+    w25n01g_waitForReadyInternal();
 
     uint8_t cmd[3] = { W25N01G_INSTRUCTION_RANDOM_PROGRAM_DATA_LOAD, columnAddress >> 8, columnAddress & 0xff };
 
@@ -312,7 +318,7 @@ static void w25n01g_randomProgramDataLoad(uint16_t columnAddress, const uint8_t 
 
 static void w25n01g_programExecute(uint32_t pageAddress)
 {
-    w25n01g_waitForReady();
+    w25n01g_waitForReadyInternal();
     w25n01g_performCommandWithPageAddress(W25N01G_INSTRUCTION_PROGRAM_EXECUTE, pageAddress);
     w25n01g_setTimeout(W25N01G_TIMEOUT_PAGE_PROGRAM_MS);
 }
@@ -354,7 +360,7 @@ void w25n01g_pageProgramBegin(uint32_t address)
 {
     if (bufferDirty) {
         if (address != programLoadAddress) {
-            w25n01g_waitForReady();
+            w25n01g_waitForReadyInternal();
             isProgramming = false;
             w25n01g_writeEnable();
             w25n01g_programExecute(W25N01G_LINEAR_TO_PAGE(programStartAddress));
@@ -369,7 +375,7 @@ void w25n01g_pageProgramBegin(uint32_t address)
 void w25n01g_pageProgramContinue(const uint8_t *data, int length)
 {
     // Check for page boundary overrun
-    w25n01g_waitForReady();
+    w25n01g_waitForReadyInternal();
     w25n01g_writeEnable();
     isProgramming = false;
     if (!bufferDirty) {
@@ -458,13 +464,13 @@ int w25n01g_readBytes(uint32_t address, uint8_t *buffer, int length)
     uint32_t targetPage = W25N01G_LINEAR_TO_PAGE(address);
 
     if (currentPage != targetPage) {
-        if (!w25n01g_waitForReady()) {
+        if (!w25n01g_waitForReadyInternal()) {
             return 0;
         }
         currentPage = UINT32_MAX;
         w25n01g_performCommandWithPageAddress(W25N01G_INSTRUCTION_PAGE_DATA_READ, targetPage);
         w25n01g_setTimeout(W25N01G_TIMEOUT_PAGE_READ_MS);
-        if (!w25n01g_waitForReady()) {
+        if (!w25n01g_waitForReadyInternal()) {
             return 0;
         }
         currentPage = targetPage;
@@ -489,7 +495,7 @@ int w25n01g_readBytes(uint32_t address, uint8_t *buffer, int length)
 
     w25n01g_setTimeout(W25N01G_TIMEOUT_PAGE_READ_MS);
 
-    if (!w25n01g_waitForReady()) {
+    if (!w25n01g_waitForReadyInternal()) {
         return 0;
     }
 
@@ -513,7 +519,7 @@ int w25n01g_readBytes(uint32_t address, uint8_t *buffer, int length)
 
 int w25n01g_readExtensionBytes(uint32_t address, uint8_t *buffer, int length)
 {
-    if (!w25n01g_waitForReady()) {
+    if (!w25n01g_waitForReadyInternal()) {
         return 0;
     }
 

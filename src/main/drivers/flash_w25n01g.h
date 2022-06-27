@@ -34,5 +34,6 @@ uint32_t w25n01g_pageProgram(uint32_t address, const uint8_t *data, int length);
 int w25n01g_readBytes(uint32_t address, uint8_t *buffer, int length);
 
 bool w25n01g_isReady(void);
+bool w25n01g_waitForReady(timeMs_t timeoutMillis);
 
 const flashGeometry_t* w25n01g_getGeometry(void);
