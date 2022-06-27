@@ -4044,7 +4044,7 @@ Max pitch, in degrees, for OSD artificial horizon
 
 ### osd_ahi_reverse_roll
 
-_// TODO_
+Switches the artificial horizon in the OSD to instead be a bank indicator, by reversing the direction of its movement. 
 
 | Default | Min | Max |
 | --- | --- | --- |
