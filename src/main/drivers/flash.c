@@ -40,13 +40,14 @@
 
 typedef struct
 {
-    bool (*init)(int);
+    bool (*init)(int flashNumToUse);
     bool (*isReady)(void);
     bool (*waitForReady)(timeMs_t timeoutMillis);
     void (*eraseSector)(uint32_t address);
     void (*eraseCompletely)(void);
     uint32_t (*pageProgram)(uint32_t address, const uint8_t *data, int length);
     int (*readBytes)(uint32_t address, uint8_t *buffer, int length);
+    void (*flush)(void);
     const flashGeometry_t *(*getGeometry)(void);
     bool detected;
 } flashDriver_t;
@@ -64,6 +65,7 @@ static flashDriver_t flashDrivers[] = {
      .pageProgram = m25p16_pageProgram,
      .readBytes = m25p16_readBytes,
      .getGeometry = m25p16_getGeometry,
+     .flush = NULL,
      .detected = true
     },
 #endif
@@ -77,6 +79,7 @@ static flashDriver_t flashDrivers[] = {
      .pageProgram = w25n01g_pageProgram,
      .readBytes = w25n01g_readBytes,
      .getGeometry = w25n01g_getGeometry,
+     .flush = w25n01g_flush,
      .detected = true
     },
 #endif
@@ -133,6 +136,11 @@ uint32_t flashPageProgram(uint32_t address, const uint8_t *data, int length)
 int flashReadBytes(uint32_t address, uint8_t *buffer, int length)
 {
     return flash->readBytes(address, buffer, length);
+}
+
+void flashFlush(void)
+{
+    flash->flush();
 }
 
 const flashGeometry_t *flashGetGeometry(void)

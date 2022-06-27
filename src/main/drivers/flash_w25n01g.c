@@ -247,6 +247,7 @@ bool w25n01g_detect(uint32_t chipID)
         return false;
     }
 
+    geometry.flashType = FLASH_TYPE_NAND;
     geometry.sectorSize = geometry.pagesPerSector * geometry.pageSize;
     geometry.totalSize = geometry.sectorSize * geometry.sectors;
     
@@ -296,10 +297,10 @@ static void w25n01g_programDataLoad(uint16_t columnAddress, const uint8_t *data,
 {
     w25n01g_waitForReadyInternal();
 
-    uint8_t cmd[3] = { W25N01G_INSTRUCTION_PROGRAM_DATA_LOAD, columnAddress >> 8, columnAddress & 0xff };
+    uint8_t cmd[3] = {W25N01G_INSTRUCTION_PROGRAM_DATA_LOAD, columnAddress >> 8, columnAddress & 0xff};
 
-    busTransfer(busDev, cmd, NULL, sizeof(cmd));
-    busTransfer(busDev, (uint8_t *)data, NULL, length);
+    busTransferDescriptor_t transferDescr[] = {{.length = sizeof(cmd), .rxBuf = NULL, .txBuf = cmd}, {.length = length, .rxBuf = NULL, .txBuf = (uint8_t *)data}};
+    busTransferMultiple(busDev, transferDescr, sizeof(transferDescr) / sizeof(transferDescr[0]));
 
     w25n01g_setTimeout(W25N01G_TIMEOUT_PAGE_PROGRAM_MS);
 }
@@ -308,10 +309,10 @@ static void w25n01g_randomProgramDataLoad(uint16_t columnAddress, const uint8_t 
 {
     w25n01g_waitForReadyInternal();
 
-    uint8_t cmd[3] = { W25N01G_INSTRUCTION_RANDOM_PROGRAM_DATA_LOAD, columnAddress >> 8, columnAddress & 0xff };
+    uint8_t cmd[3] = {W25N01G_INSTRUCTION_RANDOM_PROGRAM_DATA_LOAD, columnAddress >> 8, columnAddress & 0xff};
 
-    busTransfer(busDev, cmd, NULL, sizeof(cmd));
-    busTransfer(busDev, (uint8_t *)data, NULL, length);
+    busTransferDescriptor_t transferDescr[] = {{.length = sizeof(cmd), .rxBuf = NULL, .txBuf = cmd}, {.length = length, .rxBuf = NULL, .txBuf = (uint8_t *)data}};
+    busTransferMultiple(busDev, transferDescr, sizeof(transferDescr) / sizeof(transferDescr[0]));
 
     w25n01g_setTimeout(W25N01G_TIMEOUT_PAGE_PROGRAM_MS);
 }
@@ -490,8 +491,9 @@ int w25n01g_readBytes(uint32_t address, uint8_t *buffer, int length)
     cmd[1] = (column >> 8) & 0xff;
     cmd[2] = (column >> 0) & 0xff;
     cmd[3] = 0;
-    busTransfer(busDev, cmd, NULL, sizeof(cmd));
-    busTransfer(busDev, NULL, buffer, length);
+
+    busTransferDescriptor_t readDescr[] = {{.length = sizeof(cmd), .rxBuf = NULL, .txBuf = cmd}, {.length = length, .rxBuf = buffer, .txBuf = NULL}};
+    busTransferMultiple(busDev, readDescr, sizeof(readDescr) / sizeof(readDescr[0]));
 
     w25n01g_setTimeout(W25N01G_TIMEOUT_PAGE_READ_MS);
 
@@ -532,8 +534,9 @@ int w25n01g_readExtensionBytes(uint32_t address, uint8_t *buffer, int length)
     cmd[1] = (column >> 8) & 0xff;
     cmd[2] = (column >> 0) & 0xff;
     cmd[3] = 0;
-    busTransfer(busDev, cmd, NULL, sizeof(cmd));
-    busTransfer(busDev, NULL, buffer, length);
+
+    busTransferDescriptor_t readDescr[] = {{.length = sizeof(cmd), .rxBuf = NULL, .txBuf = cmd}, {.length = length, .rxBuf = buffer, .txBuf = NULL}};
+    busTransferMultiple(busDev, readDescr, sizeof(readDescr) / sizeof(readDescr[0]));
 
     w25n01g_setTimeout(W25N01G_TIMEOUT_PAGE_READ_MS);
 

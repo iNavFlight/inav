@@ -28,12 +28,18 @@
 
 typedef uint16_t flashSector_t;
 
+typedef enum {
+    FLASH_TYPE_NOR = 0,
+    FLASH_TYPE_NAND
+} flashType_e;
+
 typedef struct flashGeometry_s {
     flashSector_t sectors; // Count of the number of erasable blocks on the device
-    uint16_t pageSize; // In bytes
-    uint32_t sectorSize; // This is just pagesPerSector * pageSize
-    uint32_t totalSize;  // This is just sectorSize * sectors
+    uint16_t pageSize;     // In bytes
+    uint32_t sectorSize;   // This is just pagesPerSector * pageSize
+    uint32_t totalSize;    // This is just sectorSize * sectors
     uint16_t pagesPerSector;
+    flashType_e flashType;
 } flashGeometry_t;
 
 bool flashInit(void);
@@ -49,6 +55,7 @@ void flashPageProgramFinish(void);
 #endif
 uint32_t flashPageProgram(uint32_t address, const uint8_t *data, int length);
 int flashReadBytes(uint32_t address, uint8_t *buffer, int length);
+void flashFlush(void);
 const flashGeometry_t *flashGetGeometry(void);
 
 //

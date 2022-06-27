@@ -31,6 +31,8 @@ void w25n01g_eraseCompletely(void);
 
 uint32_t w25n01g_pageProgram(uint32_t address, const uint8_t *data, int length);
 
+void w25n01g_flush(void);
+
 int w25n01g_readBytes(uint32_t address, uint8_t *buffer, int length);
 
 bool w25n01g_isReady(void);
