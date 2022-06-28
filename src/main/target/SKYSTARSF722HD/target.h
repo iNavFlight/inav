@@ -17,17 +17,17 @@
 
 #pragma once
 
-#define TARGET_BOARD_IDENTIFIER "SS4D"
+#define TARGET_BOARD_IDENTIFIER "SS7D"
 
-#define USBD_PRODUCT_STRING  "SkystarsF405HD"
+#define USBD_PRODUCT_STRING  "SkystarsF722HD"
 
 #define LED0                    PC14 // green
 #define LED1                    PC15 // blue
 
-#define BEEPER                  PC13
+#define BEEPER                  PB2
 #define BEEPER_INVERTED
 
-// *************** Gyro & ACC **********************
+// *************** Gyro & Acc **********************
 #define USE_SPI
 #define USE_SPI_DEVICE_1
 
@@ -35,21 +35,15 @@
 #define SPI1_MISO_PIN	        PA6
 #define SPI1_MOSI_PIN	        PA7
 
+#define BMI270_CS_PIN           PA4
+#define BMI270_SPI_BUS          BUS_SPI1
+
 #define USE_EXTI
 #define GYRO_INT_EXTI           PC4
 #define USE_MPU_DATA_READY_SIGNAL
 
-#define USE_IMU_MPU6000
-#define IMU_MPU6000_ALIGN       CW180_DEG_FLIP
-#define MPU6000_SPI_BUS         BUS_SPI1
-#define MPU6000_CS_PIN          PA4
-//#define MPU6000_EXTI_PIN        GYRO_INT_EXTI
-
 #define USE_IMU_BMI270
-#define IMU_BMI270_ALIGN        CW180_DEG_FLIP
-#define BMI270_SPI_BUS          BUS_SPI1
-#define BMI270_CS_PIN           PA4
-#define BMI270_EXTI_PIN         GYRO_INT_EXTI
+#define IMU_BMI270_ALIGN        CW90_DEG_FLIP
 
 // *************** M25P256 flash ********************
 #define USE_FLASHFS
@@ -78,7 +72,7 @@
 #define USE_BARO
 #define USE_BARO_BMP280
 #define BMP280_SPI_BUS          BUS_SPI2
-#define BMP280_CS_PIN           PC5
+#define BMP280_CS_PIN           PB1
 
 // *************** UART *****************************
 #define USE_VCP
@@ -144,17 +138,17 @@
 
 // *************** ADC *****************************
 #define USE_ADC
-#define ADC_CHANNEL_1_PIN           PC0
-#define ADC_CHANNEL_2_PIN           PC1
-#define ADC_CHANNEL_3_PIN           PC2
+#define ADC_CHANNEL_1_PIN           PC1
+#define ADC_CHANNEL_2_PIN           PC2
+#define ADC_CHANNEL_3_PIN           PC3
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
-#define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
-#define RSSI_ADC_CHANNEL            ADC_CHN_3
+#define RSSI_ADC_CHANNEL            ADC_CHN_2
+#define CURRENT_METER_ADC_CHANNEL   ADC_CHN_3
 
 #define DEFAULT_FEATURES        (FEATURE_OSD | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY )
 
 #define USE_LED_STRIP
-#define WS2811_PIN                  PC8
+#define WS2811_PIN                  PB3
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

@@ -13,13 +13,13 @@ tables:
     values: ["NONE", "BNO055", "BNO055_SERIAL"]
     enum: secondaryImuType_e
   - name: mag_hardware
-    values: ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "MSP", "RM3100", "VCM5883", "MLX90393", "FAKE"]
+    values: ["NONE", "AUTO", "HMC5883", "AK8975", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "MSP", "RM3100", "VCM5883", "MLX90393", "FAKE"]
     enum: magSensor_e
   - name: opflow_hardware
     values: ["NONE", "CXOF", "MSP", "FAKE"]
     enum: opticalFlowSensor_e
   - name: baro_hardware
-    values: ["NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "LPS25H", "SPL06", "BMP388", "DPS310", "MSP", "FAKE"]
+    values: ["NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "LPS25H", "SPL06", "BMP388", "DPS310", "B2SMPB", "MSP", "FAKE"]
     enum: baroSensor_e
   - name: pitot_hardware
     values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE", "MSP"]
@@ -47,7 +47,7 @@ tables:
     values: ["NONE", "ADC", "ESC"]
     enum: voltageSensor_e
   - name: gps_provider
-    values: ["NMEA", "UBLOX", "UNUSED", "NAZA", "UBLOX7", "MTK", "MSP"]
+    values: ["NMEA", "UBLOX", "UBLOX7", "MSP"]
     enum: gpsProvider_e
   - name: gps_sbas_mode
     values: ["AUTO", "EGNOS", "WAAS", "MSAS", "GAGAN", "NONE"]
@@ -91,14 +91,12 @@ tables:
   - name: i2c_speed
     values: ["400KHZ", "800KHZ", "100KHZ", "200KHZ"]
   - name: debug_modes
-    values: ["NONE", "GYRO", "AGL", "FLOW_RAW",
+    values: ["NONE", "AGL", "FLOW_RAW",
       "FLOW", "SBUS", "FPORT", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "ERPM", "RPM_FILTER", "RPM_FREQ", "NAV_YAW", "DYNAMIC_FILTER", "DYNAMIC_FILTER_FREQUENCY",
       "IRLOCK", "KALMAN_GAIN", "PID_MEASUREMENT", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "IMU2", "ALTITUDE",
       "SMITH_PREDICTOR", "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING"]
-  - name: async_mode
-    values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
     values: ["OR", "AND"]
     enum: modeActivationOperator_e
@@ -146,7 +144,7 @@ tables:
   - name: airmodeHandlingType
     values: ["STICK_CENTER", "THROTTLE_THRESHOLD", "STICK_CENTER_ONCE"]
   - name: nav_extra_arming_safety
-    values: ["OFF", "ON", "ALLOW_BYPASS"]
+    values: ["ON", "ALLOW_BYPASS"]
     enum: navExtraArmingSafety_e
   - name: rssi_source
     values: ["NONE", "AUTO", "ADC", "CHANNEL", "PROTOCOL", "MSP"]
@@ -191,7 +189,9 @@ tables:
   - name: djiRssiSource
     values: ["RSSI", "CRSF_LQ"]
     enum: djiRssiSource_e
-
+  - name: rth_trackback_mode
+    values: ["OFF", "ON", "FS"]
+    enum: rthTrackbackMode_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -846,8 +846,8 @@ groups:
         min: 0
         max: PWM_RANGE_MAX
       - name: motor_pwm_rate
-        description: "Output frequency (in Hz) for motor pins. Default is 400Hz for motor with motor_pwm_protocol set to STANDARD. For *SHOT (e.g. ONESHOT125) values of 1000 and 2000 have been tested by the development team and are supported. It may be possible to use higher values. For BRUSHED values of 8000 and above should be used. Setting to 8000 will use brushed mode at 8kHz switching frequency. Up to 32kHz is supported for brushed. Default is 16000 for boards with brushed motors. Note, that in brushed mode, minthrottle is offset to zero. For brushed mode, set max_throttle to 2000."
-        default_value: 400
+        description: "Output frequency (in Hz) for motor pins.  Applies only to brushed motors. "
+        default_value: 16000
         field: motorPwmRate
         min: 50
         max: 32000
@@ -1617,7 +1617,7 @@ groups:
         field: autoConfig
         type: bool
       - name: gps_auto_baud
-        description: "Automatic configuration of GPS baudrate(The specified baudrate in configured in ports will be used) when used with UBLOX GPS. When used with NAZA/DJI it will automatic detect GPS baudrate and change to it, ignoring the selected baudrate set in ports"
+        description: "Automatic configuration of GPS baudrate(The specified baudrate in configured in ports will be used) when used with UBLOX GPS"
         default_value: ON
         field: autoBaud
         type: bool
@@ -2589,6 +2589,17 @@ groups:
         default_value: 0
         field: general.rth_home_altitude
         max: 65000
+      - name: nav_rth_trackback_mode
+        description: "Useage modes for RTH Trackback. OFF = disabled, ON = Normal and Failsafe RTH, FS = Failsafe RTH only."
+        default_value: "OFF"
+        field: general.flags.rth_trackback_mode
+        table: rth_trackback_mode
+      - name: nav_rth_trackback_distance
+        description: "Maximum distance allowed for RTH trackback. Normal RTH is executed once this distance is exceeded [m]."
+        default_value: 500
+        field: general.rth_trackback_distance
+        max: 2000
+        min: 50
       - name: safehome_max_distance
         description: "In order for a safehome to be used, it must be less than this distance (in cm) from the arming point."
         default_value: 20000

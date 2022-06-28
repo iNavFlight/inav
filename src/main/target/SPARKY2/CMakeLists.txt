@@ -1,1 +1,1 @@
-target_stm32f405xg(SPARKY2)
+target_stm32f405xg(SPARKY2 SKIP_RELEASES)
