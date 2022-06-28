@@ -1005,15 +1005,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, 0); // for compatibility with betaflight (rcInterpolation)
         sbufWriteU8(dst, 0); // for compatibility with betaflight (rcInterpolationInterval)
         sbufWriteU16(dst, 0); // for compatibility with betaflight (airModeActivateThreshold)
-#ifdef USE_RX_SPI
-        sbufWriteU8(dst, rxConfig()->rx_spi_protocol);
-        sbufWriteU32(dst, rxConfig()->rx_spi_id);
-        sbufWriteU8(dst, rxConfig()->rx_spi_rf_channel_count);
-#else
         sbufWriteU8(dst, 0);
         sbufWriteU32(dst, 0);
         sbufWriteU8(dst, 0);
-#endif
         sbufWriteU8(dst, 0); // for compatibility with betaflight (fpvCamAngleDegrees)
         sbufWriteU8(dst, rxConfig()->receiverType);
         break;
@@ -2592,15 +2586,9 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU8(src); // for compatibility with betaflight (rcInterpolation)
             sbufReadU8(src); // for compatibility with betaflight (rcInterpolationInterval)
             sbufReadU16(src); // for compatibility with betaflight (airModeActivateThreshold)
-#ifdef USE_RX_SPI
-            rxConfigMutable()->rx_spi_protocol = sbufReadU8(src);
-            rxConfigMutable()->rx_spi_id = sbufReadU32(src);
-            rxConfigMutable()->rx_spi_rf_channel_count = sbufReadU8(src);
-#else
             sbufReadU8(src);
             sbufReadU32(src);
             sbufReadU8(src);
-#endif
             sbufReadU8(src); // for compatibility with betaflight (fpvCamAngleDegrees)
             rxConfigMutable()->receiverType = sbufReadU8(src);              // Won't be modified if buffer is not large enough
         } else

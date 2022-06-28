@@ -25,13 +25,10 @@ tables:
     values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE", "MSP"]
     enum: pitotSensor_e
   - name: receiver_type
-    values: ["NONE", "SERIAL", "MSP", "SPI"]
+    values: ["NONE", "SERIAL", "MSP"]
     enum: rxReceiverType_e
   - name: serial_rx
     values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2", "GHST", "MAVLINK"]
-  - name: rx_spi_protocol
-    values: ["ELERES"]
-    enum: rx_spi_protocol_e
   - name: blackbox_device
     values: ["SERIAL", "SPIFLASH", "SDCARD"]
   - name: motor_pwm_protocol
@@ -748,20 +745,6 @@ groups:
         default_value: OFF
         condition: USE_SERIAL_RX
         type: bool
-      - name: rx_spi_protocol
-        condition: USE_RX_SPI
-        table: rx_spi_protocol
-        default_value: :target
-      - name: rx_spi_id
-        condition: USE_RX_SPI
-        min: 0
-        max: 0
-        default_value: :zero
-      - name: rx_spi_rf_channel_count
-        condition: USE_RX_SPI
-        min: 0
-        max: 8
-        default_value: :zero
       - name: spektrum_sat_bind
         description: "0 = disabled. Used to bind the spektrum satellite to RX"
         condition: USE_SPEKTRUM_BIND
@@ -3037,43 +3020,6 @@ groups:
         min: 1
         max: 2
         default_value: 2
-  - name: PG_ELERES_CONFIG
-    type: eleresConfig_t
-    headers: ["rx/eleres.h"]
-    condition: USE_RX_ELERES
-    members:
-      - name: eleres_freq
-        field: eleresFreq
-        min: 415
-        max: 450
-        default_value: 435
-      - name: eleres_telemetry_en
-        field: eleresTelemetryEn
-        type: bool
-        default_value: OFF
-      - name: eleres_telemetry_power
-        field: eleresTelemetryPower
-        min: 0
-        max: 7
-        default_value: 7
-      - name: eleres_loc_en
-        field: eleresLocEn
-        type: bool
-        default_value: OFF
-      - name: eleres_loc_power
-        field: eleresLocPower
-        min: 0
-        max: 7
-        default_value: 7
-      - name: eleres_loc_delay
-        field: eleresLocDelay
-        min: 30
-        max: 1800
-        default_value: 240
-      - name: eleres_signature
-        field: eleresSignature
-        max: UINT32_MAX
-        default_value: :zero
 
   - name: PG_LED_STRIP_CONFIG
     type: ledStripConfig_t
