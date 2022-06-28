@@ -237,8 +237,6 @@ void validateAndFixConfig(void)
     }
 #endif
 
-    motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 500, 32000);
-    
     // Call target-specific validation function
     validateAndFixTargetConfig();
 
