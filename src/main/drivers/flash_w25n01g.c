@@ -251,9 +251,9 @@ bool w25n01g_detect(uint32_t chipID)
     geometry.sectorSize = geometry.pagesPerSector * geometry.pageSize;
     geometry.totalSize = geometry.sectorSize * geometry.sectors;
     
-    flashPartitionSet(FLASH_PARTITION_TYPE_BADBLOCK_MANAGEMENT,
+    /*flashPartitionSet(FLASH_PARTITION_TYPE_BADBLOCK_MANAGEMENT,
             W25N01G_BB_MANAGEMENT_START_BLOCK,
-            W25N01G_BB_MANAGEMENT_START_BLOCK + W25N01G_BB_MANAGEMENT_BLOCKS - 1);
+            W25N01G_BB_MANAGEMENT_START_BLOCK + W25N01G_BB_MANAGEMENT_BLOCKS - 1);*/
 
     couldBeBusy = true; // Just for luck we'll assume the chip could be busy even though it isn't specced to be
 
