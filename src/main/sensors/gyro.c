@@ -442,9 +442,11 @@ static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroC
 
 void FAST_CODE NOINLINE gyroFilter()
 {
+	/*
     if (ARMING_FLAG(SIMULATOR_MODE)) {
         return;
     }
+	*/
 
     if (!gyro.initialized) {
         return;
