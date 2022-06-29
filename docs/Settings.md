@@ -854,7 +854,7 @@ _// TODO_
 
 ### eleres_telemetry_power
 
-_// TODO_
+For eLeReS recievers, power level of telemetry
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1414,7 +1414,7 @@ Yaw Iterm is frozen when bank angle is above this threshold [degrees]. This solv
 
 ### gps_auto_baud
 
-Automatic configuration of GPS baudrate(The specified baudrate in configured in ports will be used) when used with UBLOX GPS. When used with NAZA/DJI it will automatic detect GPS baudrate and change to it, ignoring the selected baudrate set in ports
+Automatic configuration of GPS baudrate(The specified baudrate in configured in ports will be used) when used with UBLOX GPS
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2834,11 +2834,11 @@ Protocol that is used to send motor updates to ESCs. Possible values - STANDARD,
 
 ### motor_pwm_rate
 
-Output frequency (in Hz) for motor pins. Default is 400Hz for motor with motor_pwm_protocol set to STANDARD. For *SHOT (e.g. ONESHOT125) values of 1000 and 2000 have been tested by the development team and are supported. It may be possible to use higher values. For BRUSHED values of 8000 and above should be used. Setting to 8000 will use brushed mode at 8kHz switching frequency. Up to 32kHz is supported for brushed. Default is 16000 for boards with brushed motors. Note, that in brushed mode, minthrottle is offset to zero. For brushed mode, set max_throttle to 2000.
+Output frequency (in Hz) for motor pins.  Applies only to brushed motors. 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 400 | 50 | 32000 |
+| 16000 | 50 | 32000 |
 
 ---
 
@@ -3892,6 +3892,26 @@ If set to ON drone will return tail-first. Obviously meaningless for airplanes.
 
 ---
 
+### nav_rth_trackback_distance
+
+Maximum distance allowed for RTH trackback. Normal RTH is executed once this distance is exceeded [m].
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 500 | 50 | 2000 |
+
+---
+
+### nav_rth_trackback_mode
+
+Useage modes for RTH Trackback. OFF = disabled, ON = Normal and Failsafe RTH, FS = Failsafe RTH only.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF |  |  |
+
+---
+
 ### nav_use_fw_yaw_control
 
 Enables or Disables the use of the heading PID controller on fixed wing. Heading PID controller is always enabled for rovers and boats
@@ -4044,7 +4064,7 @@ Max pitch, in degrees, for OSD artificial horizon
 
 ### osd_ahi_reverse_roll
 
-_// TODO_
+Switches the artificial horizon in the OSD to instead be a bank indicator, by reversing the direction of its movement.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4362,6 +4382,16 @@ Top and bottom margins for the hud area
 
 ---
 
+### osd_hud_radar_alt_difference_display_time
+
+Time in seconds to display the altitude difference in radar
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3 | 0 | 10 |
+
+---
+
 ### osd_hud_radar_disp
 
 Maximum count of nearby aircrafts or points of interest to display in the hud, as sent from an ESP32 LoRa module. Set to 0 to disable (show nothing). The nearby aircrafts will appear as markers A, B, C, etc
@@ -4369,6 +4399,16 @@ Maximum count of nearby aircrafts or points of interest to display in the hud, a
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 4 |
+
+---
+
+### osd_hud_radar_distance_display_time
+
+Time in seconds to display the distance in radar
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3 | 1 | 10 |
 
 ---
 
@@ -4672,7 +4712,7 @@ Auto swap display time interval between disarm stats pages (seconds). Reverts to
 
 ---
 
-### osd_switch_indicator_one_channnel
+### osd_switch_indicator_one_channel
 
 RC Channel to use for OSD switch indicator 1.
 
@@ -4692,7 +4732,7 @@ Character to use for OSD switch incicator 1.
 
 ---
 
-### osd_switch_indicator_three_channnel
+### osd_switch_indicator_three_channel
 
 RC Channel to use for OSD switch indicator 3.
 
@@ -4712,7 +4752,7 @@ Character to use for OSD switch incicator 3.
 
 ---
 
-### osd_switch_indicator_two_channnel
+### osd_switch_indicator_two_channel
 
 RC Channel to use for OSD switch indicator 2.
 
@@ -4732,7 +4772,7 @@ Character to use for OSD switch incicator 2.
 
 ---
 
-### osd_switch_indicator_zero_channnel
+### osd_switch_indicator_zero_channel
 
 RC Channel to use for OSD switch indicator 0.
 

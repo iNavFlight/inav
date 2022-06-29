@@ -335,24 +335,6 @@ static void blackboxLogInflightAdjustmentEvent(adjustmentFunction_e adjustmentFu
 #endif
 }
 
-#if 0
-static void blackboxLogInflightAdjustmentEventFloat(adjustmentFunction_e adjustmentFunction, float newFloatValue)
-{
-#ifndef USE_BLACKBOX
-    UNUSED(adjustmentFunction);
-    UNUSED(newFloatValue);
-#else
-    if (feature(FEATURE_BLACKBOX)) {
-        flightLogEvent_inflightAdjustment_t eventData;
-        eventData.adjustmentFunction = adjustmentFunction;
-        eventData.newFloatValue = newFloatValue;
-        eventData.floatFlag = true;
-        blackboxLogEvent(FLIGHT_LOG_EVENT_INFLIGHT_ADJUSTMENT, (flightLogEventData_t*)&eventData);
-    }
-#endif
-}
-#endif
-
 static void applyAdjustmentU8(adjustmentFunction_e adjustmentFunction, uint8_t *val, int delta, int low, int high)
 {
     int newValue = constrain((int)(*val) + delta, low, high);

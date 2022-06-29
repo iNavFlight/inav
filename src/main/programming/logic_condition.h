@@ -74,8 +74,8 @@ typedef enum {
     LOGIC_CONDITION_SET_PROFILE                 = 42,
     LOGIC_CONDITION_MIN                         = 43,
     LOGIC_CONDITION_MAX                         = 44,
-    LOGIC_CONDITION_FLIGTH_AXIS_ANGLE_OVERRIDE  = 45,
-    LOGIC_CONDITION_FLIGTH_AXIS_RATE_OVERRIDE   = 46,
+    LOGIC_CONDITION_FLIGHT_AXIS_ANGLE_OVERRIDE  = 45,
+    LOGIC_CONDITION_FLIGHT_AXIS_RATE_OVERRIDE   = 46,
     LOGIC_CONDITION_LAST                        = 47,
 } logicOperation_e;
 

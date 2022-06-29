@@ -71,6 +71,7 @@ More target options:
 * Integrated current meter
 * Uses target **OMNIBUSF4PRO**
 * Omnibus F4 Pro clones (Banggood, AliExpress, eBay, etc.) use **OMNIBUSF4PRO_LEDSTRIPM5** target (LED strip on M5 pin instead of incorrectly wired dedicated connection)
+* If you want to power your servos from the servo rail you will have to bridge the 5v to another 5v pad from the board or take it from the esc
 
 ### Omnibus F4 Pro Corner
 

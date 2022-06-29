@@ -202,7 +202,9 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
 
     // Distance
 
-    if (((millis() / 1000) % 7 == 0 || (millis() / 1000) % 7 == 1) && poiType > 0) { // For Radar and WPs, display the difference in altitude for 2 seconds, then distance for 5 seconds
+    if (poiType > 0 && 
+        ((millis() / 1000) % (osdConfig()->hud_radar_alt_difference_display_time + osdConfig()->hud_radar_distance_display_time) < (osdConfig()->hud_radar_alt_difference_display_time % (osdConfig()->hud_radar_alt_difference_display_time + osdConfig()->hud_radar_distance_display_time)))
+       ) { // For Radar and WPs, display the difference in altitude, then distance. Time is pilot defined
         altc = constrain(poiAltitude, -99 , 99);
 
         switch ((osd_unit_e)osdConfig()->units) {

@@ -1,1 +1,1 @@
-target_stm32f405xg(ANYFC)
+target_stm32f405xg(ANYFC SKIP_RELEASES)
