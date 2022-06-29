@@ -2688,14 +2688,20 @@ groups:
         description: "Minimum acceleration LPF cutoff [Hz] for speed-2-acceleration controller. This is the LPF cutoff when moving at max. speed"
         default_value: 1
         field: mc.pos_moving_lpf_hz
-        min: 0
-        max: 5
+        min: 1
+        max: 10
       - name: nav_mc_pos_stationary_lpf_hz
         description: "Minimum acceleration LPF cutoff [Hz] for speed-2-acceleration controller. This is the LPF cutoff when stationary or requesting stationary position"
         default_value: 5
         field: mc.pos_stationary_lpf_hz
         min: 1
-        max: 20
+        max: 40
+      - name: nav_mc_pos_acc_filter_smooth_lpf_hz
+        description: "Lowpass filter cutoff frequency for position controller acceleration filter"
+        default_value: 5
+        field: mc.pos_acc_filter_smooth_lpf_hz
+        min: 1
+        max: 40
       - name: nav_mc_pos_deceleration_time
         description: "Used for stoping distance calculation. Stop position is computed as _speed_ * _nav_mc_pos_deceleration_time_ from the place where sticks are released. Braking mode overrides this setting"
         default_value: 120

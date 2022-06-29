@@ -3588,7 +3588,7 @@ Minimum acceleration LPF cutoff [Hz] for speed-2-acceleration controller. This i
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1 | 0 | 5 |
+| 1 | 1 | 10 |
 
 ---
 
@@ -3598,7 +3598,7 @@ Minimum acceleration LPF cutoff [Hz] for speed-2-acceleration controller. This i
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 5 | 1 | 20 |
+| 5 | 1 | 40 |
 
 ---
 
@@ -4989,6 +4989,16 @@ Defines UAV platform type. Allowed values: "MULTIROTOR", "AIRPLANE", "HELICOPTER
 | Default | Min | Max |
 | --- | --- | --- |
 | MULTIROTOR |  |  |
+
+---
+
+### pos_acc_filter_smooth_lpf_hz
+
+Lowpass filter cutoff frequency for position controller acceleration filter
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 1 | 40 |
 
 ---
 

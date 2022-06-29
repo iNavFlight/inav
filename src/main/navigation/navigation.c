@@ -100,7 +100,7 @@ STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_rang
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 1);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 1);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -171,7 +171,8 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .braking_bank_angle = SETTING_NAV_MC_BRAKING_BANK_ANGLE_DEFAULT,                        // Max braking angle
 #endif
         .pos_moving_lpf_hz = SETTING_NAV_MC_POS_MOVING_LPF_HZ_DEFAULT,
-        .pos_stationary_lpf_hz = SETTING_NAV_MC_POS_STATIONARY_LPF_HZ_DEFAULT,
+        .pos_stationary_lpf_hz = SETTING_NAV_MC_POS_ACC_FILTER_SMOOTH_LPF_HZ_DEFAULT,
+        .pos_acc_filter_smooth_lpf_hz = SETTING_NAV_MC_POS_ACC_FILTER_SMOOTH_LPF_HZ_DEFAULT,
         .posDecelerationTime = SETTING_NAV_MC_POS_DECELERATION_TIME_DEFAULT,          // posDecelerationTime * 100
         .posResponseExpo = SETTING_NAV_MC_POS_EXPO_DEFAULT,                           // posResponseExpo * 100
         .slowDownForTurning = SETTING_NAV_MC_WP_SLOWDOWN_DEFAULT,

@@ -275,6 +275,7 @@ typedef struct navConfig_s {
 #endif
         float pos_moving_lpf_hz;
         float pos_stationary_lpf_hz;
+        float pos_acc_filter_smooth_lpf_hz;
         uint8_t posDecelerationTime;            // Brake time parameter
         uint8_t posResponseExpo;                // Position controller expo (taret vel expo for MC)
         bool slowDownForTurning;             // Slow down during WP missions when changing heading on next waypoint

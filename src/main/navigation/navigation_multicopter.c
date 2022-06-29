@@ -64,6 +64,7 @@ static bool prepareForTakeoffOnReset = false;
 static sqrt_controller_t alt_hold_sqrt_controller;
 
 static pt1Filter_t mcPosXYAccelerationFilterState[2];
+static pt1Filter_t mcPosAccelerationFilterLpfState;
 
 // Position to velocity controller for Z axis
 static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
@@ -645,6 +646,11 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     DEBUG_SET(DEBUG_ALWAYS, 1, measurementNormalized * 100.0f);
     DEBUG_SET(DEBUG_ALWAYS, 2, mcPosXYAccelerationFilterLpf * 100.0f);
 
+    // Smoothen the acceleration LPF to avoid rapid changes
+    mcPosXYAccelerationFilterLpf = pt1FilterApply4(&mcPosAccelerationFilterLpfState, mcPosXYAccelerationFilterLpf, navConfig()->mc.pos_acc_filter_smooth_lpf_hz, US2S(deltaMicros));
+
+    DEBUG_SET(DEBUG_ALWAYS, 3, mcPosXYAccelerationFilterLpf * 100.0f);
+
 #ifdef USE_MR_BRAKING_MODE
     //Boost required accelerations
     if (STATE(NAV_CRUISE_BRAKING_BOOST) && multicopterPosXyCoefficients.breakingBoostFactor > 0.0f) {
@@ -670,8 +676,8 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     }
 #endif
 
-    DEBUG_SET(DEBUG_ALWAYS, 3, newAccelX * 100.0f);
-    DEBUG_SET(DEBUG_ALWAYS, 4, newAccelY * 100.0f);
+    DEBUG_SET(DEBUG_ALWAYS, 4, newAccelX * 100.0f);
+    DEBUG_SET(DEBUG_ALWAYS, 5, newAccelY * 100.0f);
 
     /*
      * Apply the dynamic LPF on acceleration target
@@ -680,8 +686,8 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     float accelerationXFiltered = pt1FilterApply4(&mcPosXYAccelerationFilterState[X], newAccelX, mcPosXYAccelerationFilterLpf, US2S(deltaMicros));
     float accelerationYFiltered = pt1FilterApply4(&mcPosXYAccelerationFilterState[Y], newAccelY, mcPosXYAccelerationFilterLpf, US2S(deltaMicros));
 
-    DEBUG_SET(DEBUG_ALWAYS, 5, accelerationXFiltered * 100.0f);
-    DEBUG_SET(DEBUG_ALWAYS, 6, accelerationYFiltered * 100.0f);
+    DEBUG_SET(DEBUG_ALWAYS, 6, accelerationXFiltered * 100.0f);
+    DEBUG_SET(DEBUG_ALWAYS, 7, accelerationYFiltered * 100.0f);
 
     // Save last acceleration target
     lastAccelTargetX = accelerationXFiltered;
