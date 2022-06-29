@@ -3542,8 +3542,8 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 			simulatorData.debugIndex = 0;
 		}
 
-		simulatorData.debugIndex |= (mixerConfig()->platformType == PLATFORM_AIRPLANE) ? 128 : 0;
-		sbufWriteU8(dst, simulatorData.debugIndex);
+		tmp_u8 = simulatorData.debugIndex | ((mixerConfig()->platformType == PLATFORM_AIRPLANE) ? 128 : 0);
+		sbufWriteU8(dst, tmp_u8 );
 		sbufWriteU32(dst, debug[simulatorData.debugIndex]);
 
 		mspWriteSimulatorOSD(dst);
