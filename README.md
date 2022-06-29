@@ -56,6 +56,8 @@ Users of OpenTX radios (Taranis, Horus, Jumper, Radiomaster, Nirvana) can use IN
 See: https://github.com/iNavFlight/inav/blob/master/docs/Installation.md
 
 ## Documentation, support and learning resources
+* [INAV 5 on a flying wing full tutorial](https://www.youtube.com/playlist?list=PLOUQ8o2_nCLkZlulvqsX_vRMfXd5zM7Ha)
+* [INAV on a multirotor drone tutorial](https://www.youtube.com/playlist?list=PLOUQ8o2_nCLkfcKsWobDLtBNIBzwlwRC8)
 * [Target documentation](https://github.com/iNavFlight/inav/tree/master/docs/boards)
 * [Fixed Wing Guide](docs/INAV_Fixed_Wing_Setup_Guide.pdf)
 * [Autolaunch Guide](docs/INAV_Autolaunch.pdf)
