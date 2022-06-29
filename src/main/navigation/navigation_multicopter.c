@@ -638,7 +638,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     const float measurementNormalized = computeNormalizedVelocity(posControl.actualState.velXY, maxSpeed);
     const float speedScale = MIN(setpointNormalized, measurementNormalized);
 
-    float mcPosXYAccelerationFilterLpf = scaleRangef(speedScale, 0, 1, navConfig()->mc.pos_stationary_lpf_hz, navConfig()->mc.pos_moving_lpf_hz);
+    float mcPosXYAccelerationFilterLpf = scaleRangef(speedScale, 0.0f, 1.0f, navConfig()->mc.pos_stationary_lpf_hz, navConfig()->mc.pos_moving_lpf_hz);
     mcPosXYAccelerationFilterLpf = constrainf(mcPosXYAccelerationFilterLpf, 0.1f, navConfig()->mc.pos_stationary_lpf_hz);
 
     DEBUG_SET(DEBUG_ALWAYS, 0, setpointNormalized * 100.0f);
