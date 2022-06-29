@@ -670,6 +670,9 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     }
 #endif
 
+    DEBUG_SET(DEBUG_ALWAYS, 3, newAccelX * 100.0f);
+    DEBUG_SET(DEBUG_ALWAYS, 4, newAccelY * 100.0f);
+
     /*
      * Apply the dynamic LPF on acceleration target
      * LPF Fcut is dynamic: higher on lower speed and goes down when speed is high
@@ -677,8 +680,8 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     float accelerationXFiltered = pt1FilterApply4(&mcPosXYAccelerationFilterState[X], newAccelX, mcPosXYAccelerationFilterLpf, US2S(deltaMicros));
     float accelerationYFiltered = pt1FilterApply4(&mcPosXYAccelerationFilterState[Y], newAccelY, mcPosXYAccelerationFilterLpf, US2S(deltaMicros));
 
-    DEBUG_SET(DEBUG_ALWAYS, 3, accelerationXFiltered * 100.0f);
-    DEBUG_SET(DEBUG_ALWAYS, 4, accelerationYFiltered * 100.0f);
+    DEBUG_SET(DEBUG_ALWAYS, 5, accelerationXFiltered * 100.0f);
+    DEBUG_SET(DEBUG_ALWAYS, 6, accelerationYFiltered * 100.0f);
 
     // Save last acceleration target
     lastAccelTargetX = accelerationXFiltered;
