@@ -94,8 +94,6 @@ main_sources(COMMON_SRC
     drivers/accgyro/accgyro_mpu6500.h
     drivers/accgyro/accgyro_mpu9250.c
     drivers/accgyro/accgyro_mpu9250.h
-    drivers/accgyro/accgyro_bno055.c
-    drivers/accgyro/accgyro_bno055.h
     drivers/accgyro/accgyro_bno055_serial.c
     drivers/accgyro/accgyro_bno055_serial.h
 

@@ -181,7 +181,6 @@
 #define RANGEFINDER_I2C_BUS         DEFAULT_I2C_BUS
 #define TEMPERATURE_I2C_BUS         DEFAULT_I2C_BUS
 #define PITOT_I2C_BUS               DEFAULT_I2C_BUS
-#define BNO055_I2C_BUS              DEFAULT_I2C_BUS
 
 // *************** PINIO ***************************
 #define USE_PINIO
