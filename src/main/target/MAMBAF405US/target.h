@@ -175,7 +175,6 @@
 #define WS2811_PIN                      PB3
 
 // ******* FEATURES ********
-#define DEFAULT_RX_FEATURE              FEATURE_RX_SERIAL
 #define SERIALRX_UART                   SERIAL_PORT_USART1
 #define SERIALRX_PROVIDER               SERIALRX_SBUS
 
