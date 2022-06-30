@@ -28,7 +28,7 @@ tables:
     values: ["NONE", "SERIAL", "MSP", "SPI"]
     enum: rxReceiverType_e
   - name: serial_rx
-    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2", "GHST", "MAVLINK"]
+    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2", "GHST", "MAVLINK"]
   - name: rx_spi_protocol
     values: ["ELERES"]
     enum: rx_spi_protocol_e

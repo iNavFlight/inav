@@ -416,8 +416,6 @@ main_sources(COMMON_SRC
     rx/sumd.h
     rx/sumh.c
     rx/sumh.h
-    rx/xbus.c
-    rx/xbus.h
 
     scheduler/scheduler.c
     scheduler/scheduler.h

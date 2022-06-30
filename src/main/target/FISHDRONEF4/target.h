@@ -110,7 +110,6 @@
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
 
-// provide for xBUS Receiver
 #define USE_UART2
 #define UART2_RX_PIN            PA3
 #define UART2_TX_PIN            PA2
