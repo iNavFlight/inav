@@ -64,8 +64,7 @@ typedef enum {
 typedef enum {
     RX_TYPE_NONE        = 0,
     RX_TYPE_SERIAL      = 1,
-    RX_TYPE_MSP         = 2,
-    RX_TYPE_SPI         = 3
+    RX_TYPE_MSP         = 2
 } rxReceiverType_e;
 
 typedef enum {
@@ -74,8 +73,6 @@ typedef enum {
     SERIALRX_SBUS = 2,
     SERIALRX_SUMD = 3,
     SERIALRX_SUMH = 4,
-    SERIALRX_XBUS_MODE_B = 5,
-    SERIALRX_XBUS_MODE_B_RJ01 = 6,
     SERIALRX_IBUS = 7,
     SERIALRX_JETIEXBUS = 8,
     SERIALRX_CRSF = 9,
@@ -115,11 +112,6 @@ typedef struct rxConfig_s {
     uint8_t serialrx_provider;              // Type of UART-based receiver (rxSerialReceiverType_e enum). Only used if receiverType is RX_TYPE_SERIAL
     uint8_t serialrx_inverted;              // Flip the default inversion of the protocol - e.g. sbus (Futaba, FrSKY) is inverted if this is false, uninverted if it's true. Support for uninverted OpenLRS (and modified FrSKY) receivers.
     uint8_t halfDuplex;                     // allow rx to operate in half duplex mode. From tristate_e.
-#ifdef USE_RX_SPI
-    uint8_t rx_spi_protocol;                // type of SPI receiver protocol (rx_spi_protocol_e enum). Only used if receiverType is RX_TYPE_SPI
-    uint32_t rx_spi_id;
-    uint8_t rx_spi_rf_channel_count;
-#endif
 #ifdef USE_SPEKTRUM_BIND
     uint8_t spektrum_sat_bind;              // number of bind pulses for Spektrum satellite receivers
     uint8_t spektrum_sat_bind_autoreset;    // whenever we will reset (exit) binding mode after hard reboot

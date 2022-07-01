@@ -792,76 +792,6 @@ Q factor for dynamic notches
 
 ---
 
-### eleres_freq
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 435 | 415 | 450 |
-
----
-
-### eleres_loc_delay
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 240 | 30 | 1800 |
-
----
-
-### eleres_loc_en
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
-
----
-
-### eleres_loc_power
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 7 | 0 | 7 |
-
----
-
-### eleres_signature
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 |  | 4294967295 |
-
----
-
-### eleres_telemetry_en
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
-
----
-
-### eleres_telemetry_power
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 7 | 0 | 7 |
-
----
-
 ### esc_sensor_listen_only
 
 Enable when BLHeli32 Auto Telemetry function is used. Disable in every other case
@@ -1414,7 +1344,7 @@ Yaw Iterm is frozen when bank angle is above this threshold [degrees]. This solv
 
 ### gps_auto_baud
 
-Automatic configuration of GPS baudrate(The specified baudrate in configured in ports will be used) when used with UBLOX GPS. When used with NAZA/DJI it will automatic detect GPS baudrate and change to it, ignoring the selected baudrate set in ports
+Automatic configuration of GPS baudrate(The specified baudrate in configured in ports will be used) when used with UBLOX GPS
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2834,11 +2764,11 @@ Protocol that is used to send motor updates to ESCs. Possible values - STANDARD,
 
 ### motor_pwm_rate
 
-Output frequency (in Hz) for motor pins. Default is 400Hz for motor with motor_pwm_protocol set to STANDARD. For *SHOT (e.g. ONESHOT125) values of 1000 and 2000 have been tested by the development team and are supported. It may be possible to use higher values. For BRUSHED values of 8000 and above should be used. Setting to 8000 will use brushed mode at 8kHz switching frequency. Up to 32kHz is supported for brushed. Default is 16000 for boards with brushed motors. Note, that in brushed mode, minthrottle is offset to zero. For brushed mode, set max_throttle to 2000.
+Output frequency (in Hz) for motor pins.  Applies only to brushed motors. 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 400 | 50 | 32000 |
+| 16000 | 50 | 32000 |
 
 ---
 
@@ -3872,6 +3802,26 @@ If set to ON drone will return tail-first. Obviously meaningless for airplanes.
 
 ---
 
+### nav_rth_trackback_distance
+
+Maximum distance allowed for RTH trackback. Normal RTH is executed once this distance is exceeded [m].
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 500 | 50 | 2000 |
+
+---
+
+### nav_rth_trackback_mode
+
+Useage modes for RTH Trackback. OFF = disabled, ON = Normal and Failsafe RTH, FS = Failsafe RTH only.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF |  |  |
+
+---
+
 ### nav_use_fw_yaw_control
 
 Enables or Disables the use of the heading PID controller on fixed wing. Heading PID controller is always enabled for rovers and boats
@@ -4024,7 +3974,7 @@ Max pitch, in degrees, for OSD artificial horizon
 
 ### osd_ahi_reverse_roll
 
-_// TODO_
+Switches the artificial horizon in the OSD to instead be a bank indicator, by reversing the direction of its movement.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5259,36 +5209,6 @@ Defines the shortest pulse width value used when ensuring the channel value is v
 | Default | Min | Max |
 | --- | --- | --- |
 | 885 | PWM_PULSE_MIN | PWM_PULSE_MAX |
-
----
-
-### rx_spi_id
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 0 |
-
----
-
-### rx_spi_protocol
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| _target default_ |  |  |
-
----
-
-### rx_spi_rf_channel_count
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 8 |
 
 ---
 

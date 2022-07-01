@@ -119,9 +119,8 @@ typedef enum {
 } navRTHAllowLanding_e;
 
 typedef enum {
-    NAV_EXTRA_ARMING_SAFETY_OFF = 0,
-    NAV_EXTRA_ARMING_SAFETY_ON = 1,
-    NAV_EXTRA_ARMING_SAFETY_ALLOW_BYPASS = 2, // Allow disabling by holding THR+YAW low
+    NAV_EXTRA_ARMING_SAFETY_ON = 0,
+    NAV_EXTRA_ARMING_SAFETY_ALLOW_BYPASS = 1, // Allow disabling by holding THR + YAW high
 } navExtraArmingSafety_e;
 
 typedef enum {
@@ -140,9 +139,9 @@ typedef enum {
 } navOverridesMotorStop_e;
 
 typedef enum {
-    OFF,
-    ON,
-    ON_FW_SPIRAL,
+    RTH_CLIMB_OFF,
+    RTH_CLIMB_ON,
+    RTH_CLIMB_ON_FW_SPIRAL,
 } navRTHClimbFirst_e;
 
 typedef enum {  // keep aligned with fixedWingLaunchState_t
@@ -163,6 +162,12 @@ typedef enum {
     WP_MISSION_RESUME,
     WP_MISSION_SWITCH,
 } navMissionRestart_e;
+
+typedef enum {
+    RTH_TRACKBACK_OFF,
+    RTH_TRACKBACK_ON,
+    RTH_TRACKBACK_FS,
+} rthTrackbackMode_e;
 
 typedef struct positionEstimationConfig_s {
     uint8_t automatic_mag_declination;
@@ -223,6 +228,7 @@ typedef struct navConfig_s {
             uint8_t mission_planner_reset;      // Allow WP Mission Planner reset using mode toggle (resets WPs to 0)
             uint8_t waypoint_mission_restart;   // Waypoint mission restart action
             uint8_t waypoint_enforce_altitude;  // Forces waypoint altitude to be achieved
+            uint8_t rth_trackback_mode;         // Useage mode setting for RTH trackback
         } flags;
 
         uint8_t  pos_failure_timeout;               // Time to wait before switching to emergency landing (0 - disable)
@@ -250,6 +256,7 @@ typedef struct navConfig_s {
         uint16_t max_terrain_follow_altitude;       // Max altitude to be used in SURFACE TRACKING mode
         uint16_t safehome_max_distance;             // Max distance that a safehome is from the arming point
         uint16_t max_altitude;                      // Max altitude when in AltHold mode (not Surface Following)
+        uint16_t rth_trackback_distance;            // RTH trackback maximum distance [m]
     } general;
 
     struct {

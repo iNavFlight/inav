@@ -101,7 +101,6 @@ bool cliMode = false;
 
 #include "rx/rx.h"
 #include "rx/spektrum.h"
-#include "rx/eleres.h"
 #include "rx/srxl2.h"
 
 #include "scheduler/scheduler.h"
@@ -164,7 +163,7 @@ static const char * const featureNames[] = {
 
 #ifdef USE_BLACKBOX
 static const char * const blackboxIncludeFlagNames[] = {
-    "NAV_ACC", "NAV_POS", "NAV_PID", "MAG", "ACC", "ATTI", "RC_DATA", "RC_COMMAND", "MOTORS", NULL
+    "NAV_ACC", "NAV_POS", "NAV_PID", "MAG", "ACC", "ATTI", "RC_DATA", "RC_COMMAND", "MOTORS", "GYRO_RAW", NULL
 };
 #endif
 
@@ -2790,35 +2789,39 @@ static void printMap(uint8_t dumpMask, const rxConfig_t *rxConfig, const rxConfi
 static void cliMap(char *cmdline)
 {
     uint32_t len;
-    char out[5];
+    char out[MAX_MAPPABLE_RX_INPUTS + 1];
 
     len = strlen(cmdline);
 
-    if (len == 4) {
+    if (len == MAX_MAPPABLE_RX_INPUTS) {
         // uppercase it
-        for (uint32_t i = 0; i < 4; i++)
+        for (uint32_t i = 0; i < MAX_MAPPABLE_RX_INPUTS; i++) {
             cmdline[i] = sl_toupper((unsigned char)cmdline[i]);
-        for (uint32_t i = 0; i < 4; i++) {
-            if (strchr(rcChannelLetters, cmdline[i]) && !strchr(cmdline + i + 1, cmdline[i]))
+        }
+        for (uint32_t i = 0; i < MAX_MAPPABLE_RX_INPUTS; i++) {
+            if (strchr(rcChannelLetters, cmdline[i]) && !strchr(cmdline + i + 1, cmdline[i])) {
                 continue;
+            }
             cliShowParseError();
             return;
         }
         parseRcChannels(cmdline);
-    } else if (len != 0)
+    } else if (len != 0) {
         cliShowParseError();
+    }
     cliPrint("Map: ");
     uint32_t i;
-    for (i = 0; i < 4; i++)
+    for (i = 0; i < MAX_MAPPABLE_RX_INPUTS; i++){
         out[rxConfig()->rcmap[i]] = rcChannelLetters[i];
+    }
     out[i] = '\0';
     cliPrintLinef("%s", out);
 }
 
 static const char *checkCommand(const char *cmdLine, const char *command)
 {
-    if (!sl_strncasecmp(cmdLine, command, strlen(command))   // command names match
-        && !sl_isalnum((unsigned)cmdLine[strlen(command)])) {   // next characted in bufffer is not alphanumeric (command is correctly terminated)
+    if (!sl_strncasecmp(cmdLine, command, strlen(command))    // command names match
+        && !sl_isalnum((unsigned)cmdLine[strlen(command)])) { // next characted in bufffer is not alphanumeric (command is correctly terminated)
         return cmdLine + strlen(command) + 1;
     } else {
         return 0;
@@ -2848,27 +2851,7 @@ static void cliDfu(char *cmdline)
     cliRebootEx(true);
 }
 
-#ifdef USE_RX_ELERES
-static void cliEleresBind(char *cmdline)
-{
-    UNUSED(cmdline);
-
-    if (!(rxConfig()->receiverType == RX_TYPE_SPI && rxConfig()->rx_spi_protocol == RFM22_ELERES)) {
-        cliPrintLine("Eleres not active. Please enable feature ELERES and restart IMU");
-        return;
-    }
-
-    cliPrintLine("Waiting for correct bind signature....");
-    bufWriterFlush(cliWriter);
-    if (eleresBind()) {
-        cliPrintLine("Bind timeout!");
-    } else {
-        cliPrintLine("Bind OK!\r\nPlease restart your transmitter.");
-    }
-}
-#endif // USE_RX_ELERES
-
-#if defined(USE_RX_SPI) || defined (USE_SERIALRX_SRXL2)
+#if defined (USE_SERIALRX_SRXL2)
 void cliRxBind(char *cmdline){
     UNUSED(cmdline);
     if (rxConfig()->receiverType == RX_TYPE_SERIAL) {
@@ -2884,16 +2867,6 @@ void cliRxBind(char *cmdline){
 #endif
         }
     }
-#if defined(USE_RX_SPI)
-    else if (rxConfig()->receiverType == RX_TYPE_SPI) {
-        switch (rxConfig()->rx_spi_protocol) {
-        default:
-            cliPrint("Not supported.");
-            break;
-        }
-
-    }
-#endif
 }
 #endif
 
@@ -3869,7 +3842,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("beeper", "turn on/off beeper", "list\r\n"
             "\t<+|->[name]", cliBeeper),
 #endif
-#if defined(USE_RX_SPI) || defined (USE_SERIALRX_SRXL2)
+#if defined (USE_SERIALRX_SRXL2)
     CLI_COMMAND_DEF("bind_rx", "initiate binding for RX SPI or SRXL2", NULL, cliRxBind),
 #endif
 #if defined(USE_BOOTLOG)

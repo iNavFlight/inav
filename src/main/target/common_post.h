@@ -52,14 +52,6 @@ extern uint8_t __config_end;
     #define USE_RPM_FILTER
 #endif
 
-#ifdef STM32F3
-#undef USE_WIND_ESTIMATOR
-#undef USE_SERIALRX_SUMD
-#undef USE_SERIALRX_SUMH
-#undef USE_SERIALRX_XBUS
-#undef USE_SERIALRX_JETIEXBUS
-#endif
-
 #ifndef BEEPER_PWM_FREQUENCY
 #define BEEPER_PWM_FREQUENCY    2500
 #endif
@@ -73,21 +65,12 @@ extern uint8_t __config_end;
 #endif
 
 //Defines for compiler optimizations
-#ifndef STM32F3
 #define FUNCTION_COMPILE_FOR_SIZE __attribute__((optimize("-Os")))
 #define FUNCTION_COMPILE_NORMAL __attribute__((optimize("-O2")))
 #define FUNCTION_COMPILE_FOR_SPEED __attribute__((optimize("-Ofast")))
 #define FILE_COMPILE_FOR_SIZE _Pragma("GCC optimize(\"Os\")")
 #define FILE_COMPILE_NORMAL _Pragma("GCC optimize(\"O2\")")
 #define FILE_COMPILE_FOR_SPEED _Pragma("GCC optimize(\"Ofast\")")
-#else
-#define FUNCTION_COMPILE_FOR_SIZE
-#define FUNCTION_COMPILE_NORMAL
-#define FUNCTION_COMPILE_FOR_SPEED
-#define FILE_COMPILE_FOR_SIZE
-#define FILE_COMPILE_NORMAL
-#define FILE_COMPILE_FOR_SPEED
-#endif
 
 #if defined(CONFIG_IN_RAM) || defined(CONFIG_IN_EXTERNAL_FLASH)
 #ifndef EEPROM_SIZE
