@@ -6,12 +6,13 @@
 
 * [INAV Discord Server](https://discord.gg/peg2hhbYwN)
 * [INAV Official on Facebook](https://www.facebook.com/groups/INAVOfficial)
-* [RC Groups Support](https://www.rcgroups.com/forums/showthread.php?2495732-Cleanflight-iNav-(navigation-rewrite)-project)
 * [INAV Official on Telegram](https://t.me/INAVFlight)
 
 ## Features
 
-* Runs on the most popular F4 and F7 flight controllers
+* Runs on the most popular F4, F7 and H7 flight controllers
+* On Screen Display (OSD) - both character and pixel style
+* DJI OSD integration: all elements, system messages and warnings
 * Outstanding performance out of the box
 * Position Hold, Altitude Hold, Return To Home and Missions
 * Excellent support for fixed wing UAVs: airplanes, flying wings 
@@ -19,11 +20,9 @@
 * Multiple sensor support: GPS, Pitot tube, sonar, lidar, temperature, ESC with BlHeli_32 telemetry
 * SmartAudio and IRC Tramp VTX support
 * Blackbox flight recorder logging
-* On Screen Display (OSD) - both character and pixel style
-* DJI OSD integration: all elements, system messages and warnings
 * Telemetry: SmartPort, FPort, MAVlink, LTM
 * Multi-color RGB LED Strip support
-* Advanced gyro filtering: Matrix Filter and RPM filter
+* Advanced gyro filtering
 * Logic Conditions, Global Functions and Global Variables: you can program INAV with a GUI
 * And many more!
 
@@ -56,15 +55,16 @@ Users of OpenTX radios (Taranis, Horus, Jumper, Radiomaster, Nirvana) can use IN
 See: https://github.com/iNavFlight/inav/blob/master/docs/Installation.md
 
 ## Documentation, support and learning resources
-* [Target documentation](https://github.com/iNavFlight/inav/tree/master/docs/boards)
+* [INAV 5 on a flying wing full tutorial](https://www.youtube.com/playlist?list=PLOUQ8o2_nCLkZlulvqsX_vRMfXd5zM7Ha)
+* [INAV on a multirotor drone tutorial](https://www.youtube.com/playlist?list=PLOUQ8o2_nCLkfcKsWobDLtBNIBzwlwRC8)
 * [Fixed Wing Guide](docs/INAV_Fixed_Wing_Setup_Guide.pdf)
 * [Autolaunch Guide](docs/INAV_Autolaunch.pdf)
 * [Modes Guide](docs/INAV_Modes.pdf)
 * [Wing Tuning Masterclass](docs/INAV_Wing_Tuning_Masterclass.pdf)
 * [Official documentation](https://github.com/iNavFlight/inav/tree/master/docs)
 * [Official Wiki](https://github.com/iNavFlight/inav/wiki)
-* [Video series by Painless360](https://www.youtube.com/playlist?list=PLYsWjANuAm4qdXEGFSeUhOZ10-H8YTSnH)
 * [Video series by Paweł Spychalski](https://www.youtube.com/playlist?list=PLOUQ8o2_nCLloACrA6f1_daCjhqY2x0fB)
+* [Target documentation](https://github.com/iNavFlight/inav/tree/master/docs/boards)
 
 ## Contributing
 
@@ -90,7 +90,6 @@ Before creating new issues please check to see if there is an existing one, sear
 ## Developers
 
 Please refer to the development section in the [docs/development](https://github.com/iNavFlight/inav/tree/master/docs/development) folder.
-
 
 ## INAV Releases
 https://github.com/iNavFlight/inav/releases

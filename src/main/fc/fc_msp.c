@@ -161,10 +161,9 @@ typedef enum {
 } mspFlashfsFlags_e;
 
 typedef enum {
-    MSP_PASSTHROUGH_SERIAL_ID = 0xFD,
+    MSP_PASSTHROUGH_SERIAL_ID          = 0xFD,
     MSP_PASSTHROUGH_SERIAL_FUNCTION_ID = 0xFE,
-
-    MSP_PASSTHROUGH_ESC_4WAY = 0xFF,
+    MSP_PASSTHROUGH_ESC_4WAY           = 0xFF,
  } mspPassthroughType_e;
 
 static uint8_t mspPassthroughMode;
