@@ -342,11 +342,11 @@ typedef enum {
 } navWaypointFlags_e;
 
 typedef struct {
-    uint8_t action;
     int32_t lat;
     int32_t lon;
     int32_t alt;
     int16_t p1, p2, p3;
+    uint8_t action;
     uint8_t flag;
 } navWaypoint_t;
 
