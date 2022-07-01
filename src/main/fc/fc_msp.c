@@ -3448,26 +3448,52 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 
 			if (dataSize >= 14) {
 
-				if (feature(FEATURE_GPS)) {
+				if (feature(FEATURE_GPS) && ((simulatorData.flags & SIMU_HAS_NEW_GPS_DATA)!=0) ) {
 					gpsSol.fixType = sbufReadU8(src);
 					gpsSol.hdop = gpsSol.fixType == GPS_NO_FIX ? 9999 : 100;
 					gpsSol.flags.hasNewData = true;
-					gpsSol.flags.validVelNE = 0;
-					gpsSol.flags.validVelD = 0;
-					gpsSol.flags.validEPE = 0;
 					gpsSol.numSat = sbufReadU8(src);
 
 					if (gpsSol.fixType != GPS_NO_FIX) {
+						gpsSol.flags.validVelNE = 1;
+						gpsSol.flags.validVelD = 1;
+						gpsSol.flags.validEPE = 1;
+
 						gpsSol.llh.lat = sbufReadU32(src);
 						gpsSol.llh.lon = sbufReadU32(src);
 						gpsSol.llh.alt = sbufReadU32(src);
 						gpsSol.groundSpeed = (int16_t)sbufReadU16(src);
 						gpsSol.groundCourse = (int16_t)sbufReadU16(src);
-						gpsSol.velNED[X] = gpsSol.groundSpeed * cos_approx(DECIDEGREES_TO_RADIANS(gpsSol.groundCourse));
-						gpsSol.velNED[Y] = gpsSol.groundSpeed * sin_approx(DECIDEGREES_TO_RADIANS(gpsSol.groundCourse));
-						gpsSol.velNED[Z] = 0;
+
+						//gpsSol.velNED[X] = gpsSol.groundSpeed * cos_approx(DECIDEGREES_TO_RADIANS(gpsSol.groundCourse));
+						//gpsSol.velNED[Y] = gpsSol.groundSpeed * sin_approx(DECIDEGREES_TO_RADIANS(gpsSol.groundCourse));
+						//gpsSol.velNED[Z] = 0;
+
+						gpsSol.velNED[X] = (int16_t)sbufReadU16(src);
+						gpsSol.velNED[Y] = (int16_t)sbufReadU16(src);
+						gpsSol.velNED[Z] = (int16_t)sbufReadU16(src);
+
 						gpsSol.eph = 100;
 						gpsSol.epv = 100;
+
+						/*
+						//------------------------
+						gpsSol.flags.validVelNE = 0;
+						gpsSol.flags.validVelD = 0;
+						gpsSol.flags.validEPE = 0;
+
+						debug[0] = gpsSol.velNED[X];
+						debug[1] = gpsSol.velNED[Y];
+						debug[2] = gpsSol.velNED[Z];
+
+						debug[3] = posEstimator.gps.vel.x;
+						debug[4] = posEstimator.gps.vel.y;
+						debug[5] = posEstimator.gps.vel.z;
+
+						debug[6] = gpsSol.groundSpeed * cos_approx(DECIDEGREES_TO_RADIANS(gpsSol.groundCourse));
+						debug[7] = gpsSol.groundSpeed * sin_approx(DECIDEGREES_TO_RADIANS(gpsSol.groundCourse));
+						//------------------------
+						*/
 
 						ENABLE_STATE(GPS_FIX);
 
@@ -3475,23 +3501,12 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 						gpsProcessNewSolutionData();
 					}
 					else {
-						sbufReadU32(src);
-						sbufReadU32(src);
-						sbufReadU32(src);
-						sbufReadU16(src);
-						sbufReadU16(src);
-
+						sbufAdvance(src, 4 + 4 + 4 + 2 + 2 + 2 * 3);
 						DISABLE_STATE(GPS_FIX);
 					}
 				}
 				else {
-					sbufReadU8(src);
-					sbufReadU8(src);
-					sbufReadU32(src);
-					sbufReadU32(src);
-					sbufReadU32(src);
-					sbufReadU16(src);
-					sbufReadU16(src);
+					sbufAdvance(src, 1 + 1 + 4 + 4 + 4 + 2 + 2 + 2 * 3);
 				}
 
 				if ((simulatorData.flags & SIMU_USE_SENSORS) == 0) {
@@ -3501,9 +3516,17 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				}
 				else
 				{
-					sbufReadU16(src);
-					sbufReadU16(src);
-					sbufReadU16(src);
+					sbufAdvance(src, 2*3);
+					
+					/*
+					debug[0] = (int16_t)sbufReadU16(src);
+					debug[1] = (int16_t)sbufReadU16(src);
+					debug[2] = (int16_t)sbufReadU16(src);
+
+					debug[3] = attitude.values.roll;
+					debug[4] = attitude.values.pitch;
+					debug[5] = attitude.values.yaw;
+					*/
 				}
 
 				acc.accADCf[X] = ((int16_t)sbufReadU16(src)) / 1000.0f;// acceleration in 1G units
@@ -3523,9 +3546,8 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 					baro.baroTemperature = 2500;
 				}
 				else {
-					baro.baroPressure = sbufReadU32(src);
+					sbufAdvance(src,4);
 				}
-
 			}
 			else {
 				DISABLE_STATE(GPS_FIX);
@@ -3542,7 +3564,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 			simulatorData.debugIndex = 0;
 		}
 
-		tmp_u8 = simulatorData.debugIndex | ((mixerConfig()->platformType == PLATFORM_AIRPLANE) ? 128 : 0);
+		tmp_u8 = simulatorData.debugIndex | ((mixerConfig()->platformType == PLATFORM_AIRPLANE) ? 128 : 0) | (ARMING_FLAG(ARMED) ? 64 : 0);
 		sbufWriteU8(dst, tmp_u8 );
 		sbufWriteU32(dst, debug[simulatorData.debugIndex]);
 

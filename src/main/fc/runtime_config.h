@@ -170,7 +170,8 @@ typedef enum {
 	SIMU_ENABLE				= (1 << 0),
 	SIMU_SIMULATE_BATTERY	= (1 << 1),
 	SIMU_MUTE_BEEPER		= (1 << 2),
-	SIMU_USE_SENSORS		= (1 << 3)
+	SIMU_USE_SENSORS		= (1 << 3),
+	SIMU_HAS_NEW_GPS_DATA	= (1 << 4)
 } simulatorFlags_t;
 
 typedef struct {

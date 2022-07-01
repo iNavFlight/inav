@@ -455,10 +455,17 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
 
 STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
 {
-    /* Compute pitch/roll angles */
-    attitude.values.roll = RADIANS_TO_DECIDEGREES(atan2_approx(rMat[2][1], rMat[2][2]));
-    attitude.values.pitch = RADIANS_TO_DECIDEGREES((0.5f * M_PIf) - acos_approx(-rMat[2][0]));
-    attitude.values.yaw = RADIANS_TO_DECIDEGREES(-atan2_approx(rMat[1][0], rMat[0][0]));
+	if (ARMING_FLAG(SIMULATOR_MODE) && ((simulatorData.flags & SIMU_USE_SENSORS) == 0)) {
+		imuComputeQuaternionFromRPY(attitude.values.roll, attitude.values.pitch, attitude.values.yaw);
+		imuComputeRotationMatrix();
+	}
+	else
+	{
+		/* Compute pitch/roll angles */
+		attitude.values.roll = RADIANS_TO_DECIDEGREES(atan2_approx(rMat[2][1], rMat[2][2]));
+		attitude.values.pitch = RADIANS_TO_DECIDEGREES((0.5f * M_PIf) - acos_approx(-rMat[2][0]));
+		attitude.values.yaw = RADIANS_TO_DECIDEGREES(-atan2_approx(rMat[1][0], rMat[0][0]));
+	}
 
     if (attitude.values.yaw < 0)
         attitude.values.yaw += 3600;
@@ -572,10 +579,6 @@ static void imuCalculateEstimatedAttitude(float dT)
     const float magWeight = imuGetPGainScaleFactor() * 1.0f;
     const float accWeight = imuGetPGainScaleFactor() * imuCalculateAccelerometerWeight(dT);
     const bool useAcc = (accWeight > 0.001f);
-
-    if (ARMING_FLAG(SIMULATOR_MODE) && ((simulatorData.flags & SIMU_USE_SENSORS) == 0 )) {
-        return;
-    }
 
     imuMahonyAHRSupdate(dT, &imuMeasuredRotationBF,
                             useAcc ? &imuMeasuredAccelBF : NULL,

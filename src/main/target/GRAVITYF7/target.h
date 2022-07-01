@@ -31,6 +31,8 @@
 #define BEEPER                              PC13
 #define BEEPER_INVERTED
 
+#define USE_PITOT_VIRTUAL
+
 
 // MPU6000
 #define USE_IMU_MPU6000
