@@ -30,7 +30,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "io/serial.h"
-#include "drivers/accgyro/accgyro_bno055.h"
 #include "build/debug.h"
 #include "drivers/time.h"
 #include "flight/secondary_imu.h"

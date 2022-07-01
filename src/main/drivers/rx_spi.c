@@ -68,7 +68,7 @@ void rxSpiDeviceInit()
 #ifdef RX_CE_PIN
     // CE as OUTPUT
     IOInit(IOGetByTag(IO_TAG(RX_CE_PIN)), OWNER_RX_SPI, RESOURCE_RX_CE, rxSPIDevice + 1);
-#if defined(STM32F3) || defined(STM32F4)
+#if defined(STM32F4)
     IOConfigGPIOAF(IOGetByTag(IO_TAG(RX_CE_PIN)), SPI_IO_CS_CFG, 0);
 #endif
     RX_CE_LO();

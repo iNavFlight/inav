@@ -42,6 +42,7 @@
 #include "navigation/navigation.h"
 #include "sensors/battery.h"
 #include "sensors/pitotmeter.h"
+#include "sensors/rangefinder.h"
 #include "flight/imu.h"
 #include "flight/pid.h"
 #include "drivers/io_port_expander.h"
@@ -54,7 +55,7 @@
 #include "io/vtx.h"
 #include "drivers/vtx_common.h"
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions, PG_LOGIC_CONDITIONS, 2);
+PG_REGISTER_ARRAY_WITH_RESET_FN(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions, PG_LOGIC_CONDITIONS, 3);
 
 EXTENDED_FASTRAM uint64_t logicConditionsGlobalFlags;
 EXTENDED_FASTRAM int logicConditionValuesByType[LOGIC_CONDITION_LAST];
@@ -365,7 +366,7 @@ static int logicConditionCompute(
             return true;
             break;
 
-        case LOGIC_CONDITION_FLIGTH_AXIS_ANGLE_OVERRIDE:
+        case LOGIC_CONDITION_FLIGHT_AXIS_ANGLE_OVERRIDE:
             if (operandA >= 0 && operandA <= 2) {
 
                 flightAxisOverride[operandA].angleTargetActive = true;
@@ -389,7 +390,7 @@ static int logicConditionCompute(
             }
             break;
 
-        case LOGIC_CONDITION_FLIGTH_AXIS_RATE_OVERRIDE:
+        case LOGIC_CONDITION_FLIGHT_AXIS_RATE_OVERRIDE:
             if (operandA >= 0 && operandA <= 2) {
                 flightAxisOverride[operandA].rateTargetActive = true;
                 flightAxisOverride[operandA].rateTarget = constrain(operandB, -2000, 2000);
@@ -611,6 +612,18 @@ static int logicConditionGetFlightOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_LOITER_RADIUS:
             return getLoiterRadius(navConfig()->fw.loiter_radius);
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_AGL_STATUS:
+            return isEstimatedAglTrusted();
+            break;
+    
+        case LOGIC_CONDITION_OPERAND_FLIGHT_AGL:
+            return getEstimatedAglPosition();
+            break;    
+        
+        case LOGIC_CONDITION_OPERAND_FLIGHT_RANGEFINDER_RAW:
+            return rangefinderGetLatestRawAltitude();
+            break; 
 
         default:
             return 0;

@@ -99,7 +99,6 @@
 #define USE_MAG_AK8975
 
 #define TEMPERATURE_I2C_BUS     I2C_EXT_BUS
-#define BNO055_I2C_BUS          I2C_EXT_BUS
 
 #define USE_BARO
 
@@ -281,5 +280,3 @@
 #ifdef OMNIBUSF4PRO
 #define CURRENT_METER_SCALE   265
 #endif
-
-#define PCA9685_I2C_BUS         I2C_EXT_BUS

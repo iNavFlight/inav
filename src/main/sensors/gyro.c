@@ -97,13 +97,12 @@ EXTENDED_FASTRAM dynamicGyroNotchState_t dynamicGyroNotchState;
 
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 3);
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 4);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_lpf = SETTING_GYRO_HARDWARE_LPF_DEFAULT,
     .gyro_anti_aliasing_lpf_hz = SETTING_GYRO_ANTI_ALIASING_LPF_HZ_DEFAULT,
     .gyro_anti_aliasing_lpf_type = SETTING_GYRO_ANTI_ALIASING_LPF_TYPE_DEFAULT,
-    .gyro_align = SETTING_ALIGN_GYRO_DEFAULT,
     .gyroMovementCalibrationThreshold = SETTING_MORON_THRESHOLD_DEFAULT,
     .looptime = SETTING_LOOPTIME_DEFAULT,
 #ifdef USE_DUAL_GYRO
@@ -304,13 +303,7 @@ bool gyroInit(void)
 
     // initFn will initialize sampleRateIntervalUs to actual gyro sampling rate (if driver supports it). Calculate target looptime using that value
     gyro.targetLooptime = gyroDev[0].sampleRateIntervalUs;
-
-    // At this poinrt gyroDev[0].gyroAlign was set up by the driver from the busDev record
-    // If configuration says different - override
-    if (gyroConfig()->gyro_align != ALIGN_DEFAULT) {
-        gyroDev[0].gyroAlign = gyroConfig()->gyro_align;
-    }
-
+ 
     gyroInitFilters();
 
 #ifdef USE_DYNAMIC_FILTERS
@@ -512,7 +505,8 @@ void FAST_CODE NOINLINE gyroUpdate()
         // At this point gyro.gyroADCf contains unfiltered gyro value [deg/s]
         float gyroADCf = gyro.gyroADCf[axis];
 
-        DEBUG_SET(DEBUG_GYRO, axis, lrintf(gyroADCf));
+        // Set raw gyro for blackbox purposes
+        gyro.gyroRaw[axis] = gyroADCf;
 
         /*
          * First gyro LPF is the only filter applied with the full gyro sampling speed

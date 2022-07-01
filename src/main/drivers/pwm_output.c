@@ -34,9 +34,6 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/timer.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
-#include "drivers/io_pca9685.h"
-
-#include "io/pwmdriver_i2c.h"
 #include "io/servo_sbus.h"
 #include "sensors/esc_sensor.h"
 
@@ -467,10 +464,40 @@ void pwmMotorPreconfigure(void)
         case PWM_TYPE_DSHOT600:
         case PWM_TYPE_DSHOT300:
         case PWM_TYPE_DSHOT150:
-            motorConfigDigitalUpdateInterval(motorConfig()->motorPwmRate);
+            motorConfigDigitalUpdateInterval(getEscUpdateFrequency());
             motorWritePtr = pwmWriteDigital;
             break;
 #endif
+    }
+}
+
+/**
+ * This function return the PWM frequency based on ESC protocol. We allow customer rates only for Brushed motors
+ */ 
+uint32_t getEscUpdateFrequency(void) {
+    switch (initMotorProtocol) {
+        case PWM_TYPE_BRUSHED:
+            return motorConfig()->motorPwmRate;
+
+        case PWM_TYPE_STANDARD:
+            return 400;
+
+        case PWM_TYPE_MULTISHOT:
+            return 2000;
+
+        case PWM_TYPE_DSHOT150:
+            return 4000;
+
+        case PWM_TYPE_DSHOT300:
+            return 8000;
+
+        case PWM_TYPE_DSHOT600:
+            return 16000;
+
+        case PWM_TYPE_ONESHOT125:
+        default:
+            return 1000;
+
     }
 }
 
@@ -478,15 +505,15 @@ bool pwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, bo
 {
     switch (initMotorProtocol) {
     case PWM_TYPE_BRUSHED:
-        motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 0.0f, 0.0f, motorConfig()->motorPwmRate, enableOutput);
+        motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 0.0f, 0.0f, getEscUpdateFrequency(), enableOutput);
         break;
 
     case PWM_TYPE_ONESHOT125:
-        motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 125e-6f, 125e-6f, motorConfig()->motorPwmRate, enableOutput);
+        motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 125e-6f, 125e-6f, getEscUpdateFrequency(), enableOutput);
         break;
 
     case PWM_TYPE_MULTISHOT:
-        motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 5e-6f, 20e-6f, motorConfig()->motorPwmRate, enableOutput);
+        motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 5e-6f, 20e-6f, getEscUpdateFrequency(), enableOutput);
         break;
 
 #ifdef USE_DSHOT
@@ -498,7 +525,7 @@ bool pwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, bo
 #endif
 
     case PWM_TYPE_STANDARD:
-        motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 1e-3f, 1e-3f, motorConfig()->motorPwmRate, enableOutput);
+        motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 1e-3f, 1e-3f, getEscUpdateFrequency(), enableOutput);
         break;
 
     default:
@@ -535,16 +562,6 @@ static void sbusPwmWriteStandard(uint8_t index, uint16_t value)
 }
 #endif
 
-#ifdef USE_PWM_SERVO_DRIVER
-static void pwmServoWriteExternalDriver(uint8_t index, uint16_t value)
-{
-    // If PCA9685 is not detected, we do not want to write servo output anywhere
-    if (STATE(PWM_DRIVER_AVAILABLE)) {
-        pwmDriverSetPulse(index, value);
-    }
-}
-#endif
-
 void pwmServoPreconfigure(void)
 {
     // Protocol-specific configuration
@@ -553,13 +570,6 @@ void pwmServoPreconfigure(void)
         case SERVO_TYPE_PWM:
             servoWritePtr = pwmServoWriteStandard;
             break;
-
-#ifdef USE_PWM_SERVO_DRIVER
-        case SERVO_TYPE_SERVO_DRIVER:
-            pwmDriverInitialize();
-            servoWritePtr = pwmServoWriteExternalDriver;
-            break;
-#endif
 
 #ifdef USE_SERVO_SBUS
         case SERVO_TYPE_SBUS:

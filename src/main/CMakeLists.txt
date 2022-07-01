@@ -94,8 +94,6 @@ main_sources(COMMON_SRC
     drivers/accgyro/accgyro_mpu6500.h
     drivers/accgyro/accgyro_mpu9250.c
     drivers/accgyro/accgyro_mpu9250.h
-    drivers/accgyro/accgyro_bno055.c
-    drivers/accgyro/accgyro_bno055.h
     drivers/accgyro/accgyro_bno055_serial.c
     drivers/accgyro/accgyro_bno055_serial.h
 
@@ -180,8 +178,6 @@ main_sources(COMMON_SRC
     drivers/flash_m25p16.h
     drivers/io.c
     drivers/io.h
-    drivers/io_pca9685.c
-    drivers/io_pca9685.h
     drivers/io_pcf8574.c
     drivers/io_pcf8574.h
     drivers/io_port_expander.c
@@ -354,8 +350,6 @@ main_sources(COMMON_SRC
     io/lights.h
     io/piniobox.c
     io/piniobox.h
-    io/pwmdriver_i2c.c
-    io/pwmdriver_i2c.h
     io/serial.c
     io/serial.h
     io/serial_4way.c
@@ -422,8 +416,6 @@ main_sources(COMMON_SRC
     rx/sumd.h
     rx/sumh.c
     rx/sumh.h
-    rx/xbus.c
-    rx/xbus.h
 
     scheduler/scheduler.c
     scheduler/scheduler.h
@@ -510,7 +502,6 @@ main_sources(COMMON_SRC
     io/gps.h
     io/gps_ublox.c
     io/gps_nmea.c
-    io/gps_naza.c
     io/gps_msp.c
     io/gps_private.h
     io/ledstrip.c
