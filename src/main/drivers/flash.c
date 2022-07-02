@@ -76,26 +76,26 @@ static flashDriver_t flashDrivers[] = {
 
 static flashDriver_t *flash;
 
-static bool flashDetected = false;
-
 static bool flashDeviceInit(void)
 {
+    bool detected = false;
+
     for (uint32_t idx = 0; idx <= sizeof(flashDrivers) / sizeof(flashDrivers[0]); idx++)
     {
-        flashDetected = flashDrivers[idx].init(0);
-        if (flashDetected)
+        detected = flashDrivers[idx].init(0);
+        if (detected)
         {
             flash = &flashDrivers[idx];
             break;
         }
     }
-    return flashDetected;
+    return detected;
 }
 
 bool flashIsReady(void)
 {
     // prevent the machine cycle from crashing if there is no external flash memory
-    if (!flashDetected) {
+    if (flash == NULL) {
         return false;
     }
 
@@ -137,7 +137,7 @@ const flashGeometry_t *flashGetGeometry(void)
     static flashGeometry_t fgNone = {0};
 
     // prevent the machine cycle from crashing if there is no external flash memory
-    if (!flashDetected) {
+    if (flash == NULL) {
         return &fgNone;
     }
 
