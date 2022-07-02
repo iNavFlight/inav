@@ -353,6 +353,8 @@ void flashfsFlushSync(void)
 
     // We've written our entire buffer now:
     flashfsClearBuffer();
+
+    flashFlush();
 }
 
 void flashfsSeekAbs(uint32_t offset)

@@ -42,6 +42,20 @@ typedef struct flashGeometry_s {
     flashType_e flashType;
 } flashGeometry_t;
 
+typedef struct
+{
+    bool (*init)(int flashNumToUse);
+    bool (*isReady)(void);
+    bool (*waitForReady)(timeMs_t timeoutMillis);
+    void (*eraseSector)(uint32_t address);
+    void (*eraseCompletely)(void);
+    uint32_t (*pageProgram)(uint32_t address, const uint8_t *data, int length);
+    int (*readBytes)(uint32_t address, uint8_t *buffer, int length);
+    void (*flush)(void);
+    const flashGeometry_t *(*getGeometry)(void);
+    bool detected;
+} flashDriver_t;
+
 bool flashInit(void);
 
 bool flashIsReady(void);

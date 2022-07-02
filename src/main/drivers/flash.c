@@ -38,49 +38,37 @@
 #include "drivers/io.h"
 #include "drivers/time.h"
 
-typedef struct
-{
-    bool (*init)(int flashNumToUse);
-    bool (*isReady)(void);
-    bool (*waitForReady)(timeMs_t timeoutMillis);
-    void (*eraseSector)(uint32_t address);
-    void (*eraseCompletely)(void);
-    uint32_t (*pageProgram)(uint32_t address, const uint8_t *data, int length);
-    int (*readBytes)(uint32_t address, uint8_t *buffer, int length);
-    void (*flush)(void);
-    const flashGeometry_t *(*getGeometry)(void);
-    bool detected;
-} flashDriver_t;
-
 static flashDriver_t flashDrivers[] = {
 
 #ifdef USE_SPI
 
 #ifdef USE_FLASH_M25P16
-    {.init = m25p16_init,
-     .isReady = m25p16_isReady,
-     .waitForReady = m25p16_waitForReady,
-     .eraseSector = m25p16_eraseSector,
-     .eraseCompletely = m25p16_eraseCompletely,
-     .pageProgram = m25p16_pageProgram,
-     .readBytes = m25p16_readBytes,
-     .getGeometry = m25p16_getGeometry,
-     .flush = NULL,
-     .detected = true
+    {
+        .init = m25p16_init,
+        .isReady = m25p16_isReady,
+        .waitForReady = m25p16_waitForReady,
+        .eraseSector = m25p16_eraseSector,
+        .eraseCompletely = m25p16_eraseCompletely,
+        .pageProgram = m25p16_pageProgram,
+        .readBytes = m25p16_readBytes,
+        .getGeometry = m25p16_getGeometry,
+        .flush = NULL,
+        .detected = true
     },
 #endif
 
 #ifdef USE_FLASH_W25N01G
-    {.init = w25n01g_init,
-     .isReady = w25n01g_isReady,
-     .waitForReady = w25n01g_waitForReady,
-     .eraseSector = w25n01g_eraseSector,
-     .eraseCompletely = w25n01g_eraseCompletely,
-     .pageProgram = w25n01g_pageProgram,
-     .readBytes = w25n01g_readBytes,
-     .getGeometry = w25n01g_getGeometry,
-     .flush = w25n01g_flush,
-     .detected = true
+    {
+        .init = w25n01g_init,
+        .isReady = w25n01g_isReady,
+        .waitForReady = w25n01g_waitForReady,
+        .eraseSector = w25n01g_eraseSector,
+        .eraseCompletely = w25n01g_eraseCompletely,
+        .pageProgram = w25n01g_pageProgram,
+        .readBytes = w25n01g_readBytes,
+        .getGeometry = w25n01g_getGeometry,
+        .flush = w25n01g_flush,
+        .detected = true
     },
 #endif
 
@@ -106,6 +94,7 @@ static bool flashDeviceInit(void)
 
 bool flashIsReady(void)
 {
+    // prevent the machine cycle from crashing if there is no external flash memory
     if (!flash->detected) {
         return false;
     }
@@ -147,6 +136,7 @@ const flashGeometry_t *flashGetGeometry(void)
 {
     static flashGeometry_t fgNone = {0};
 
+    // prevent the machine cycle from crashing if there is no external flash memory
     if (!flash->detected) {
         return &fgNone;
     }
@@ -290,12 +280,10 @@ bool flashInit(void)
     memset(&flashPartitionTable, 0, sizeof(flashPartitionTable));
 
     bool haveFlash = flashDeviceInit();
-    
-    if (!haveFlash) {
-        return false;
-    }
 
-    flashConfigurePartitions();
+    if (haveFlash) {
+        flashConfigurePartitions();
+    }
 
     return haveFlash;
 }

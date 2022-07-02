@@ -143,6 +143,7 @@ static void w25n01g_setTimeout(timeMs_t timeoutMillis)
 {
     timeMs_t now = millis();
     timeoutAt = now + timeoutMillis;
+    couldBeBusy = true;
 }
 
 /**
@@ -470,8 +471,7 @@ int w25n01g_readBytes(uint32_t address, uint8_t *buffer, int length)
         }
         currentPage = UINT32_MAX;
         w25n01g_performCommandWithPageAddress(W25N01G_INSTRUCTION_PAGE_DATA_READ, targetPage);
-        w25n01g_setTimeout(W25N01G_TIMEOUT_PAGE_READ_MS);
-        if (!w25n01g_waitForReadyInternal()) {
+        if (!w25n01g_waitForReady(W25N01G_TIMEOUT_PAGE_READ_MS)) {
             return 0;
         }
         currentPage = targetPage;
@@ -486,18 +486,12 @@ int w25n01g_readBytes(uint32_t address, uint8_t *buffer, int length)
         transferLength = length;
     }
 
-    uint8_t cmd[4];
-    cmd[0] = W25N01G_INSTRUCTION_READ_DATA;
-    cmd[1] = (column >> 8) & 0xff;
-    cmd[2] = (column >> 0) & 0xff;
-    cmd[3] = 0;
+    const uint8_t cmd[4] = {W25N01G_INSTRUCTION_READ_DATA, (column >> 8) & 0xff, (column >> 0) & 0xff, 0};
 
-    busTransferDescriptor_t readDescr[] = {{.length = sizeof(cmd), .rxBuf = NULL, .txBuf = cmd}, {.length = length, .rxBuf = buffer, .txBuf = NULL}};
+    busTransferDescriptor_t readDescr[] = {{.length = sizeof(cmd), .rxBuf = NULL, .txBuf = cmd}, {.length = transferLength, .rxBuf = buffer, .txBuf = NULL}};
     busTransferMultiple(busDev, readDescr, sizeof(readDescr) / sizeof(readDescr[0]));
 
-    w25n01g_setTimeout(W25N01G_TIMEOUT_PAGE_READ_MS);
-
-    if (!w25n01g_waitForReadyInternal()) {
+    if (!w25n01g_waitForReady(W25N01G_TIMEOUT_PAGE_READ_MS)) {
         return 0;
     }
 

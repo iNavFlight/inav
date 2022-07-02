@@ -614,7 +614,10 @@ void init(void)
             if (!flashDeviceInitialized) {
                 flashDeviceInitialized = flashInit();
             }
-            flashfsInit();
+            if (flashDeviceInitialized) {
+                // do not initialize flashfs if no flash was found
+                flashfsInit();
+            }
             break;
 #endif
 
