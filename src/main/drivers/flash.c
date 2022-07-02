@@ -39,6 +39,7 @@
 #include "drivers/time.h"
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 typedef struct
 {
@@ -54,7 +55,6 @@ typedef struct
     bool detected;
 } flashDriver_t;
 
->>>>>>> 4192069e9 (maybe a final code)
 static flashDriver_t flashDrivers[] = {
 
 #ifdef USE_SPI
@@ -297,10 +297,6 @@ bool flashInit(void)
     memset(&flashPartitionTable, 0, sizeof(flashPartitionTable));
 
     bool haveFlash = flashDeviceInit();
-    
-    if (!haveFlash) {
-        return false;
-    }
 
     if (haveFlash) {
         flashConfigurePartitions();
