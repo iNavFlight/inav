@@ -53,7 +53,6 @@ typedef struct
     int (*readBytes)(uint32_t address, uint8_t *buffer, int length);
     void (*flush)(void);
     const flashGeometry_t *(*getGeometry)(void);
-    bool detected;
 } flashDriver_t;
 
 bool flashInit(void);

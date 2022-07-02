@@ -52,8 +52,7 @@ static flashDriver_t flashDrivers[] = {
         .pageProgram = m25p16_pageProgram,
         .readBytes = m25p16_readBytes,
         .getGeometry = m25p16_getGeometry,
-        .flush = NULL,
-        .detected = true
+        .flush = NULL
     },
 #endif
 
@@ -67,8 +66,7 @@ static flashDriver_t flashDrivers[] = {
         .pageProgram = w25n01g_pageProgram,
         .readBytes = w25n01g_readBytes,
         .getGeometry = w25n01g_getGeometry,
-        .flush = w25n01g_flush,
-        .detected = true
+        .flush = w25n01g_flush
     },
 #endif
 
@@ -78,24 +76,26 @@ static flashDriver_t flashDrivers[] = {
 
 static flashDriver_t *flash;
 
+static bool flashDetected = false;
+
 static bool flashDeviceInit(void)
 {
     for (uint32_t idx = 0; idx <= sizeof(flashDrivers) / sizeof(flashDrivers[0]); idx++)
     {
-        flash->detected = flashDrivers[idx].init(0);
-        if (flash->detected)
+        flashDetected = flashDrivers[idx].init(0);
+        if (flashDetected)
         {
             flash = &flashDrivers[idx];
             break;
         }
     }
-    return flash->detected;
+    return flashDetected;
 }
 
 bool flashIsReady(void)
 {
     // prevent the machine cycle from crashing if there is no external flash memory
-    if (!flash->detected) {
+    if (!flashDetected) {
         return false;
     }
 
@@ -137,7 +137,7 @@ const flashGeometry_t *flashGetGeometry(void)
     static flashGeometry_t fgNone = {0};
 
     // prevent the machine cycle from crashing if there is no external flash memory
-    if (!flash->detected) {
+    if (!flashDetected) {
         return &fgNone;
     }
 
