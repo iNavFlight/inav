@@ -450,11 +450,10 @@ void setDesiredSurfaceOffset(float surfaceOffset);
 void setDesiredPositionToFarAwayTarget(int32_t yaw, int32_t distance, navSetWaypointFlags_t useMask);
 void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAltitudeControllerMode_e mode);
 
-bool isWaypointReached(const navWaypointPosition_t * waypoint, const bool isWaypointHome);
-bool isWaypointMissed(const navWaypointPosition_t * waypoint);
 bool isNavHoldPositionActive(void);
 bool isLastMissionWaypoint(void);
 float getActiveWaypointSpeed(void);
+bool isWaypointNavTrackingRoute(void);
 
 void updateActualHeading(bool headingValid, int32_t newHeading);
 void updateActualHorizontalPositionAndVelocity(bool estPosValid, bool estVelValid, float newX, float newY, float newVelX, float newVelY);

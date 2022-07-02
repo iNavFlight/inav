@@ -3272,6 +3272,26 @@ Pitch Angle deadband when soaring mode enabled (deg). Angle mode inactive within
 
 ---
 
+### nav_fw_wp_tracking_accuracy
+
+Sets the maximum allowed distance from the waypoint course line when waypoint tracking is active [cm]. When the craft is outside this distance it will head toward the the course line as quickly as possible. The course tracking response can be tuned by making small changes to the accuracy setting, higher values damp the response. A value of 250 is a good starting point. If set to 0 course tracking is disabled and the craft will head directly to the next waypoint from whatever position was achieved after the last waypoint turn.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 1000 |
+
+---
+
+### nav_fw_wp_turn_smoothing_dist
+
+Provides a means of smoothing waypoint turns by reaching waypoints earlier as turns become tighter. Applied as an increasing multiple of nav_fw_wp_turn_smoothing_dist [cm] starting at 1 for turns exceeding 60 degrees to a maximum of 10 for turns of 105 degrees and over, e.g. a 90 degree turn is reached when 7 x nav_fw_wp_turn_smoothing_dist from waypoint. Set to 0 to disable turn smoothing.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 2000 |
+
+---
+
 ### nav_fw_yaw_deadband
 
 Deadband for heading trajectory PID controller. When heading error is below the deadband, controller assumes that vehicle is on course
