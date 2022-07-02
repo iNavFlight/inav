@@ -93,8 +93,6 @@ static flashDriver_t flashDrivers[] = {
 
 static flashDriver_t *flash;
 
-static bool flashDetected = false;
-
 static bool flashDeviceInit(void)
 {
     bool detected = false;
