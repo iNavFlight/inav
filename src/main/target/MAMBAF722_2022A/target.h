@@ -158,7 +158,6 @@
 #define WS2811_PIN                      PB3
 
 // ******* FEATURES ********
-#define DEFAULT_RX_FEATURE              FEATURE_RX_SERIAL
 #define SERIALRX_UART                   SERIAL_PORT_USART1
 #define SERIALRX_PROVIDER               SERIALRX_SBUS
 
@@ -181,7 +180,6 @@
 #define RANGEFINDER_I2C_BUS         DEFAULT_I2C_BUS
 #define TEMPERATURE_I2C_BUS         DEFAULT_I2C_BUS
 #define PITOT_I2C_BUS               DEFAULT_I2C_BUS
-#define BNO055_I2C_BUS              DEFAULT_I2C_BUS
 
 // *************** PINIO ***************************
 #define USE_PINIO

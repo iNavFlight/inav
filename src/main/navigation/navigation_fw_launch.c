@@ -260,7 +260,7 @@ static inline bool isLaunchMaxAltitudeReached(void)
 
 static inline bool areSticksMoved(timeMs_t initialTime, timeUs_t currentTimeUs)
 {
-    return (initialTime + currentStateElapsedMs(currentTimeUs)) > navConfig()->fw.launch_min_time && isRollPitchStickDeflected();
+    return (initialTime + currentStateElapsedMs(currentTimeUs)) > navConfig()->fw.launch_min_time && isRollPitchStickDeflected(LAUNCH_ABORT_STICK_DEADBAND);
 }
 
 static void resetPidsIfNeeded(void) {
@@ -438,7 +438,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_FINISH(timeUs_t curr
     const timeMs_t elapsedTimeMs = currentStateElapsedMs(currentTimeUs);
     const timeMs_t endTimeMs = navConfig()->fw.launch_end_time;
 
-    if (elapsedTimeMs > endTimeMs || isRollPitchStickDeflected()) {
+    if (elapsedTimeMs > endTimeMs || isRollPitchStickDeflected(LAUNCH_ABORT_STICK_DEADBAND)) {
         return FW_LAUNCH_EVENT_SUCCESS;     // End launch go to FW_LAUNCH_STATE_FLYING state
     }
     else {

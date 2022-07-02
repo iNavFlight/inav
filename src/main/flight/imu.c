@@ -480,19 +480,19 @@ static float imuCalculateAccelerometerWeight(const float dT)
 
     const float accWeight_Nearness = bellCurve(fast_fsqrtf(accMagnitudeSq) - 1.0f, MAX_ACC_NEARNESS);
 
-    // Experiment: if rotation rate on a FIXED_WING_LEGACY is higher than a threshold - centrifugal force messes up too much and we 
+    // Experiment: if rotation rate on a FIXED_WING_LEGACY is higher than a threshold - centrifugal force messes up too much and we
     // should not use measured accel for AHRS comp
     //      Centrifugal acceleration AccelC = Omega^2 * R = Speed^2 / R
     //          Omega = Speed / R
     //      For a banked turn R = Speed^2 / (G * tan(Roll))
-    //          Omega = G * tan(Roll) / Speed 
+    //          Omega = G * tan(Roll) / Speed
     //      Knowing the typical airspeed is around ~20 m/s we can calculate roll angles that yield certain angular rate
     //          1 deg   =>  0.49 deg/s
     //          2 deg   =>  0.98 deg/s
     //          5 deg   =>  2.45 deg/s
     //         10 deg   =>  4.96 deg/s
     //      Therefore for a typical plane a sustained angular rate of ~2.45 deg/s will yield a banking error of ~5 deg
-    //  Since we can't do proper centrifugal compensation at the moment we pass the magnitude of angular rate through an 
+    //  Since we can't do proper centrifugal compensation at the moment we pass the magnitude of angular rate through an
     //  LPF with a low cutoff and if it's larger than our threshold - invalidate accelerometer
 
     // Default - don't apply rate/ignore scaling
@@ -552,6 +552,8 @@ static void imuCalculateEstimatedAttitude(float dT)
                 // Force reset of heading hold target
                 resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
             }
+        } else if (!ARMING_FLAG(ARMED)) {
+            gpsHeadingInitialized = false;
         }
     }
     else {

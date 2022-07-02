@@ -792,76 +792,6 @@ Q factor for dynamic notches
 
 ---
 
-### eleres_freq
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 435 | 415 | 450 |
-
----
-
-### eleres_loc_delay
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 240 | 30 | 1800 |
-
----
-
-### eleres_loc_en
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
-
----
-
-### eleres_loc_power
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 7 | 0 | 7 |
-
----
-
-### eleres_signature
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 |  | 4294967295 |
-
----
-
-### eleres_telemetry_en
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
-
----
-
-### eleres_telemetry_power
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 7 | 0 | 7 |
-
----
-
 ### esc_sensor_listen_only
 
 Enable when BLHeli32 Auto Telemetry function is used. Disable in every other case
@@ -4044,7 +3974,7 @@ Max pitch, in degrees, for OSD artificial horizon
 
 ### osd_ahi_reverse_roll
 
-_// TODO_
+Switches the artificial horizon in the OSD to instead be a bank indicator, by reversing the direction of its movement.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5279,36 +5209,6 @@ Defines the shortest pulse width value used when ensuring the channel value is v
 | Default | Min | Max |
 | --- | --- | --- |
 | 885 | PWM_PULSE_MIN | PWM_PULSE_MAX |
-
----
-
-### rx_spi_id
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 0 |
-
----
-
-### rx_spi_protocol
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| _target default_ |  |  |
-
----
-
-### rx_spi_rf_channel_count
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 8 |
 
 ---
 

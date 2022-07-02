@@ -76,7 +76,6 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 | `dfu` | DFU mode on reboot |
 | `diff` | List configuration changes from default |
 | `dump` | Dump configuration |
-| `eleres_bind` |  |
 | `exit` |  |
 | `feature` | List or enable <val> or disable <-val> |
 | `flash_erase` | Erase flash chip |

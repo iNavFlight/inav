@@ -209,11 +209,3 @@ void updateUsedModeActivationConditionFlags(void)
                         isModeActivationConditionPresent(BOXNAVCRUISE) ||
                         isModeActivationConditionPresent(BOXNAVWP);
 }
-
-void configureModeActivationCondition(int macIndex, boxId_e modeId, uint8_t auxChannelIndex, uint16_t startPwm, uint16_t endPwm)
-{
-    modeActivationConditionsMutable(macIndex)->modeId = modeId;
-    modeActivationConditionsMutable(macIndex)->auxChannelIndex = auxChannelIndex;
-    modeActivationConditionsMutable(macIndex)->range.startStep = CHANNEL_VALUE_TO_STEP(startPwm);
-    modeActivationConditionsMutable(macIndex)->range.endStep = CHANNEL_VALUE_TO_STEP(endPwm);
-}

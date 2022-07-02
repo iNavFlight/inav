@@ -37,7 +37,6 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/sensor.h"
-#include "drivers/accgyro/accgyro_bno055.h"
 #include "drivers/accgyro/accgyro_bno055_serial.h"
 
 #include "fc/settings.h"
@@ -47,7 +46,7 @@
 #include "sensors/boardalignment.h"
 #include "sensors/compass.h"
 
-PG_REGISTER_WITH_RESET_FN(secondaryImuConfig_t, secondaryImuConfig, PG_SECONDARY_IMU, 1);
+PG_REGISTER_WITH_RESET_FN(secondaryImuConfig_t, secondaryImuConfig, PG_SECONDARY_IMU, 2);
 
 EXTENDED_FASTRAM secondaryImuState_t secondaryImuState;
 
@@ -100,15 +99,7 @@ void secondaryImuInit(void)
 
     requestedSensors[SENSOR_INDEX_IMU2] = secondaryImuConfig()->hardwareType;
 
-    if (secondaryImuConfig()->hardwareType == SECONDARY_IMU_BNO055) {
-        secondaryImuState.active = bno055Init(calibrationData, (secondaryImuConfig()->calibrationRadiusAcc && secondaryImuConfig()->calibrationRadiusMag));
-
-        if (secondaryImuState.active) {
-            detectedSensors[SENSOR_INDEX_IMU2] = SECONDARY_IMU_BNO055;
-            rescheduleTask(TASK_SECONDARY_IMU, TASK_PERIOD_HZ(10));
-        }
-
-    } else if (secondaryImuConfig()->hardwareType == SECONDARY_IMU_BNO055_SERIAL) {
+    if (secondaryImuConfig()->hardwareType == SECONDARY_IMU_BNO055_SERIAL) {
         secondaryImuState.active = bno055SerialInit(calibrationData, (secondaryImuConfig()->calibrationRadiusAcc && secondaryImuConfig()->calibrationRadiusMag));
 
         if (secondaryImuState.active) {
@@ -174,19 +165,7 @@ void taskSecondaryImu(timeUs_t currentTimeUs)
      */
     UNUSED(currentTimeUs);
 
-    if (secondaryImuConfig()->hardwareType == SECONDARY_IMU_BNO055) {
-        bno055FetchEulerAngles(secondaryImuState.eulerAngles.raw);
-        secondaryImuProcess();
-
-        /*
-        * Every 2 seconds fetch current calibration state
-        */
-        if (tick == 20)
-        {
-            secondaryImuState.calibrationStatus = bno055GetCalibStat();
-            tick = 0;
-        }
-    } else if (secondaryImuConfig()->hardwareType == SECONDARY_IMU_BNO055_SERIAL) {
+    if (secondaryImuConfig()->hardwareType == SECONDARY_IMU_BNO055_SERIAL) {
         /*
          * Every 2 seconds fetch current calibration state
          */
@@ -203,9 +182,7 @@ void taskSecondaryImu(timeUs_t currentTimeUs)
 void secondaryImuFetchCalibration(void) {
     bno055CalibrationData_t calibrationData;
 
-    if (secondaryImuConfig()->hardwareType == SECONDARY_IMU_BNO055) {
-        calibrationData = bno055GetCalibrationData();
-    } else if (secondaryImuConfig()->hardwareType == SECONDARY_IMU_BNO055_SERIAL) {
+    if (secondaryImuConfig()->hardwareType == SECONDARY_IMU_BNO055_SERIAL) {
         calibrationData = bno055SerialGetCalibrationData();
     } else {
         return;

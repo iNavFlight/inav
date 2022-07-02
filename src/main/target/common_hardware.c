@@ -421,11 +421,4 @@
     BUSDEV_REGISTER_I2C(busdev_pcf8574,      DEVHW_PCF8574,       PCF8574_I2C_BUS,     0x20,               NONE,           DEVFLAGS_NONE, 0);
 #endif
 
-#ifdef USE_IMU_BNO055
-#ifndef BNO055_I2C_BUS
-    #define BNO055_I2C_BUS BUS_I2C1
-#endif
-    BUSDEV_REGISTER_I2C(busdev_bno055,      DEVHW_BNO055,       BNO055_I2C_BUS,     0x29,               NONE,           DEVFLAGS_NONE, 0);
-#endif
-
 #endif  // USE_TARGET_HARDWARE_DESCRIPTORS

@@ -113,22 +113,6 @@ set serialrx_inverted = ON
 set serialrx_halfduplex = ON
 ```
 
-### XBUS
-
-The firmware currently supports the MODE B version of the XBus protocol.
-Make sure to set your TX to use "MODE B" for XBUS in the TX menus!
-See here for info on JR's XBUS protocol: http://www.jrpropo.com/english/propo/XBus/
-
-These receivers are reported working:
-
-XG14 14ch DMSS System w/RG731BX XBus Receiver
-http://www.jramericas.com/233794/JRP00631/
-
-There exist a remote receiver made for small BNF-models like the Align T-Rex 150 helicopter. The code also supports using the Align DMSS RJ01 receiver directly with the INAV software.
-To use this receiver you must power it with 3V from the hardware, and then connect the serial line as other serial RX receivers.
-In order for this receiver to work, you need to specify the XBUS_MODE_B_RJ01 for serialrx_provider. Note that you need to set your radio mode for XBUS "MODE B" also for this receiver to work.
-Receiver name: Align DMSS RJ01 (HER15001)
-
 ### SUMD
 
 16 channels via serial currently supported.
@@ -268,20 +252,9 @@ Allowed values: NONE, PPM, SERIAL, MSP, SPI, UIB
 
 # get serialrx
 serialrx_provider = SBUS
-Allowed values: SPEK1024, SPEK2048, SBUS, SUMD, SUMH, XB-B, XB-B-RJ01, IBUS, JETIEXBUS, CRSF, FPORT, SBUS_FAST, FPORT2, SRXL2
+Allowed values: SPEK1024, SPEK2048, SBUS, SUMD, SUMH, IBUS, JETIEXBUS, CRSF, FPORT, SBUS_FAST, FPORT2, SRXL2
 
 ```
-
-### PPM/PWM input filtering.
-
-Hardware input filtering can be enabled if you are experiencing interference on the signal sent via your PWM/PPM RX.
-
-Use the `input_filtering_mode` CLI setting to select a mode.
-
-| Value | Meaning   |
-| ----- | --------- |
-| 0     | Disabled  |
-| 1     | Enabled   |
 
 ## Receiver configuration.
 
