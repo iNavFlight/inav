@@ -92,8 +92,6 @@ typedef enum {
 
 extern const char rcChannelLetters[];
 
-#define MAX_MAPPABLE_RX_INPUTS 4
-
 #define MAX_INVALID_RX_PULSE_TIME    300
 
 #define RSSI_VISIBLE_VALUE_MIN 0
@@ -108,7 +106,7 @@ PG_DECLARE_ARRAY(rxChannelRangeConfig_t, NON_AUX_CHANNEL_COUNT, rxChannelRangeCo
 
 typedef struct rxConfig_s {
     uint8_t receiverType;                   // RC receiver type (rxReceiverType_e enum)
-    uint8_t rcmap[MAX_MAPPABLE_RX_INPUTS];  // mapping of radio channels to internal RPYTA+ order
+    uint8_t rcmap[STICK_CHANNEL_COUNT];  // mapping of radio channels to internal RPYTA+ order
     uint8_t serialrx_provider;              // Type of UART-based receiver (rxSerialReceiverType_e enum). Only used if receiverType is RX_TYPE_SERIAL
     uint8_t serialrx_inverted;              // Flip the default inversion of the protocol - e.g. sbus (Futaba, FrSKY) is inverted if this is false, uninverted if it's true. Support for uninverted OpenLRS (and modified FrSKY) receivers.
     uint8_t halfDuplex;                     // allow rx to operate in half duplex mode. From tristate_e.

@@ -529,7 +529,7 @@ void parseRcChannels(const char *input)
 {
     for (const char *c = input; *c; c++) {
         const char *s = strchr(rcChannelLetters, *c);
-        if (s && (s < rcChannelLetters + MAX_MAPPABLE_RX_INPUTS))
+        if (s && (s < rcChannelLetters + STICK_CHANNEL_COUNT))
             rxConfigMutable()->rcmap[s - rcChannelLetters] = c - input;
     }
 }

@@ -1032,7 +1032,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_RX_MAP:
-        sbufWriteData(dst, rxConfig()->rcmap, MAX_MAPPABLE_RX_INPUTS);
+        sbufWriteData(dst, rxConfig()->rcmap, STICK_CHANNEL_COUNT);
         break;
 
     case MSP2_COMMON_SERIAL_CONFIG:
@@ -2624,8 +2624,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP_SET_RX_MAP:
-        if (dataSize == MAX_MAPPABLE_RX_INPUTS) {
-            for (int i = 0; i < MAX_MAPPABLE_RX_INPUTS; i++) {
+        if (dataSize == STICK_CHANNEL_COUNT) {
+            for (int i = 0; i < STICK_CHANNEL_COUNT; i++) {
                 rxConfigMutable()->rcmap[i] = sbufReadU8(src);
             }
         } else

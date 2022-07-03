@@ -2768,11 +2768,11 @@ static void printMap(uint8_t dumpMask, const rxConfig_t *rxConfig, const rxConfi
     char bufDefault[16];
     uint32_t i;
 
-    for (i = 0; i < MAX_MAPPABLE_RX_INPUTS; i++) {
+    for (i = 0; i < STICK_CHANNEL_COUNT; i++) {
         buf[i] = bufDefault[i] = 0;
     }
 
-    for (i = 0; i < MAX_MAPPABLE_RX_INPUTS; i++) {
+    for (i = 0; i < STICK_CHANNEL_COUNT; i++) {
         buf[rxConfig->rcmap[i]] = rcChannelLetters[i];
         if (defaultRxConfig) {
             bufDefault[defaultRxConfig->rcmap[i]] = rcChannelLetters[i];
@@ -2789,16 +2789,16 @@ static void printMap(uint8_t dumpMask, const rxConfig_t *rxConfig, const rxConfi
 static void cliMap(char *cmdline)
 {
     uint32_t len;
-    char out[MAX_MAPPABLE_RX_INPUTS + 1];
+    char out[STICK_CHANNEL_COUNT + 1];
 
     len = strlen(cmdline);
 
-    if (len == MAX_MAPPABLE_RX_INPUTS) {
+    if (len == STICK_CHANNEL_COUNT) {
         // uppercase it
-        for (uint32_t i = 0; i < MAX_MAPPABLE_RX_INPUTS; i++) {
+        for (uint32_t i = 0; i < STICK_CHANNEL_COUNT; i++) {
             cmdline[i] = sl_toupper((unsigned char)cmdline[i]);
         }
-        for (uint32_t i = 0; i < MAX_MAPPABLE_RX_INPUTS; i++) {
+        for (uint32_t i = 0; i < STICK_CHANNEL_COUNT; i++) {
             if (strchr(rcChannelLetters, cmdline[i]) && !strchr(cmdline + i + 1, cmdline[i])) {
                 continue;
             }
@@ -2811,7 +2811,7 @@ static void cliMap(char *cmdline)
     }
     cliPrint("Map: ");
     uint32_t i;
-    for (i = 0; i < MAX_MAPPABLE_RX_INPUTS; i++){
+    for (i = 0; i < STICK_CHANNEL_COUNT; i++){
         out[rxConfig()->rcmap[i]] = rcChannelLetters[i];
     }
     out[i] = '\0';
