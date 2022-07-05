@@ -429,7 +429,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IN_PROGRESS(timeUs_t
         if (isThrottleLow()) {
             fwLaunch.currentStateTimeUs = currentTimeUs;
             fwLaunch.pitchAngle = 0;
-            if (isRollPitchStickDeflected()) {
+            if (isRollPitchStickDeflected(LAUNCH_ABORT_STICK_DEADBAND)) {
                 return FW_LAUNCH_EVENT_ABORT;
             }
         } else {
