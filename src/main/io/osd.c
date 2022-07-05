@@ -920,7 +920,11 @@ static const char * navigationStateMessage(void)
         case MW_NAV_STATE_RTH_CLIMB:
             return OSD_MESSAGE_STR(OSD_MSG_RTH_CLIMB);
         case MW_NAV_STATE_RTH_ENROUTE:
-            return OSD_MESSAGE_STR(OSD_MSG_HEADING_HOME);
+            if (posControl.flags.rthTrackbackActive) {
+                return OSD_MESSAGE_STR(OSD_MSG_RTH_TRACKBACK);
+            } else {
+                return OSD_MESSAGE_STR(OSD_MSG_HEADING_HOME);
+            }
         case MW_NAV_STATE_HOLD_INFINIT:
             // Used by HOLD flight modes. No information to add.
             break;

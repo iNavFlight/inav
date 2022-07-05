@@ -99,7 +99,6 @@
 #define USE_MAG_VCM5883
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
-#define BNO055_I2C_BUS          BUS_I2C1
 #define PITOT_I2C_BUS           BUS_I2C1
 
 #define USE_RANGEFINDER
@@ -148,7 +147,7 @@
 
 // *************** ADC *****************************
 #define USE_ADC
-#define ADC_INSTANCE                ADC1
+#define ADC_INSTANCE                ADC3
 
 #define ADC_CHANNEL_1_PIN           PC1
 #define ADC_CHANNEL_2_PIN           PC3
