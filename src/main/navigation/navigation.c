@@ -3999,7 +3999,8 @@ bool navigationIsExecutingAnEmergencyLanding(void)
 bool navigationInAutomaticThrottleMode(void)
 {
     navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
-    return (stateFlags & (NAV_CTL_ALT | NAV_CTL_EMERG | NAV_CTL_LAUNCH | NAV_CTL_LAND));
+    return (stateFlags & (NAV_CTL_ALT | NAV_CTL_EMERG | NAV_CTL_LAND)) ||
+           ((stateFlags & NAV_CTL_LAUNCH) && !navConfig()->fw.launch_manual_throttle);
 }
 
 bool navigationIsControllingThrottle(void)

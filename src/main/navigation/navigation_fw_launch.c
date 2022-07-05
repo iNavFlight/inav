@@ -271,7 +271,7 @@ static inline bool isProbablyNotFlying(void)
 
 static void resetPidsIfNeeded(void) {
     // Don't use PID I-term and reset TPA filter until motors are started or until flight is detected
-    if (isProbablyNotFlying() || fwLaunch.currentState < FW_LAUNCH_STATE_MOTOR_SPINUP) {
+    if (isProbablyNotFlying() || fwLaunch.currentState < FW_LAUNCH_STATE_MOTOR_SPINUP || (navConfig()->fw.launch_manual_throttle && isThrottleLow())) {
         pidResetErrorAccumulators();
         pidResetTPAFilter();
     }
@@ -433,7 +433,9 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IN_PROGRESS(timeUs_t
                 return FW_LAUNCH_EVENT_ABORT;
             }
         } else {
-            if (isProbablyNotFlying()) fwLaunch.currentStateTimeUs = currentTimeUs;
+            if (isProbablyNotFlying()) {
+                fwLaunch.currentStateTimeUs = currentTimeUs;
+            }
             fwLaunch.pitchAngle = navConfig()->fw.launch_climb_angle;
         }
     } else {
