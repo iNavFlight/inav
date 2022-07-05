@@ -2256,7 +2256,7 @@ static bool isWaypointReached(const fpVector3_t * waypointPos, const int32_t * w
     }
 
     uint16_t turnEarlyDistance = 0;
-    if (FLIGHT_MODE(NAV_WP_MODE)) {
+    if (navGetStateFlags(posControl.navState) & NAV_WP_MODE) {
         // Check if waypoint was missed based on bearing to WP exceeding 100 degrees relative to waypointYaw
         if (ABS(wrap_18000(calculateBearingToDestination(waypointPos) - *waypointYaw)) > 10000) {
             return true;
