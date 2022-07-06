@@ -66,16 +66,12 @@ static sqrt_controller_t alt_hold_sqrt_controller;
 // Position to velocity controller for Z axis
 static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
 {
-    float pos_desired_z = posControl.desiredState.pos.z;
-
     float targetVel = sqrtControllerApply(
         &alt_hold_sqrt_controller,
-        &pos_desired_z,
+        posControl.desiredState.pos.z,
         navGetCurrentActualPositionAndVelocity()->pos.z,
         US2S(deltaMicros)
     );
-
-    posControl.desiredState.pos.z = pos_desired_z;
 
     // hard limit desired target velocity to max_climb_rate
     float vel_max_z = 0.0f;
@@ -537,7 +533,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
 
     const float setpointX = posControl.desiredState.vel.x;
     const float setpointY = posControl.desiredState.vel.y;
-    const float setpointXY = fast_fsqrtf(sq(setpointX) + sq(setpointY));
+    const float setpointXY = calc_length_pythagorean_2D(setpointX, setpointY);
 
     // Calculate velocity error
     const float velErrorX = setpointX - measurementX;
@@ -558,7 +554,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     // Apply additional jerk limiting of 1700 cm/s^3 (~100 deg/s), almost any copter should be able to achieve this rate
     // This will assure that we wont't saturate out LEVEL and RATE PID controller
 
-    float maxAccelChange = US2S(deltaMicros) * 1700.0f;
+    float maxAccelChange = US2S(deltaMicros) * MC_POS_CONTROL_JERK_LIMIT_CMSSS;
     //When braking, raise jerk limit even if we are not boosting acceleration
 #ifdef USE_MR_BRAKING_MODE
     if (STATE(NAV_CRUISE_BRAKING)) {

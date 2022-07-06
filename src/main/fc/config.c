@@ -37,7 +37,6 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/system.h"
-#include "drivers/rx_spi.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
 #include "drivers/serial.h"
@@ -59,7 +58,6 @@
 #include "io/osd.h"
 
 #include "rx/rx.h"
-#include "rx/rx_spi.h"
 
 #include "flight/mixer.h"
 #include "flight/servos.h"
@@ -80,9 +78,6 @@
 
 #ifndef DEFAULT_FEATURES
 #define DEFAULT_FEATURES 0
-#endif
-#ifndef RX_SPI_DEFAULT_PROTOCOL
-#define RX_SPI_DEFAULT_PROTOCOL 0
 #endif
 
 #define BRUSHED_MOTORS_PWM_RATE 16000
@@ -107,12 +102,15 @@ PG_RESET_TEMPLATE(featureConfig_t, featureConfig,
     .enabledFeatures = DEFAULT_FEATURES | COMMON_DEFAULT_FEATURES
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 5);
+PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 6);
 
 PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .current_profile_index = 0,
     .current_battery_profile_index = 0,
     .debug_mode = SETTING_DEBUG_MODE_DEFAULT,
+#ifdef USE_DEV_TOOLS
+    .groundTestMode = SETTING_GROUND_TEST_MODE_DEFAULT,     // disables motors, set heading trusted for FW (for dev use)
+#endif
 #ifdef USE_I2C
     .i2c_speed = SETTING_I2C_SPEED_DEFAULT,
 #endif
@@ -214,12 +212,6 @@ void validateAndFixConfig(void)
     }
 #endif
 
-#ifndef USE_PWM_SERVO_DRIVER
-    if (servoConfig()->servo_protocol == SERVO_TYPE_SERVO_DRIVER) {
-        servoConfigMutable()->servo_protocol = SERVO_TYPE_PWM;
-    }
-#endif
-
 #ifndef USE_SERVO_SBUS
     if (servoConfig()->servo_protocol == SERVO_TYPE_SBUS || servoConfig()->servo_protocol == SERVO_TYPE_SBUS_PWM) {
         servoConfigMutable()->servo_protocol = SERVO_TYPE_PWM;
@@ -236,41 +228,7 @@ void validateAndFixConfig(void)
     // Limitations of different protocols
 #if !defined(USE_DSHOT)
     if (motorConfig()->motorPwmProtocol > PWM_TYPE_BRUSHED) {
-        motorConfigMutable()->motorPwmProtocol = PWM_TYPE_STANDARD;
-    }
-#endif
-
-#ifdef BRUSHED_MOTORS
-    motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 500, 32000);
-#else
-    switch (motorConfig()->motorPwmProtocol) {
-    default:
-    case PWM_TYPE_STANDARD: // Limited to 490 Hz
-        motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 490);
-        break;
-    case PWM_TYPE_ONESHOT125:   // Limited to 3900 Hz
-        motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 3900);
-        break;
-    case PWM_TYPE_MULTISHOT:    // 2-16 kHz
-        motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 2000, 16000);
-        break;
-    case PWM_TYPE_BRUSHED:      // 500Hz - 32kHz
-        motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 500, 32000);
-        break;
-#ifdef USE_DSHOT
-    // One DSHOT packet takes 16 bits x 19 ticks + 2uS = 304 timer ticks + 2uS
-    case PWM_TYPE_DSHOT150:
-        motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 4000);
-        break;
-    case PWM_TYPE_DSHOT300:
-        motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 8000);
-        break;
-    // Although DSHOT 600+ support >16kHz update rate it's not practical because of increased CPU load
-    // It's more reasonable to use slower-speed DSHOT at higher rate for better reliability
-    case PWM_TYPE_DSHOT600:
-        motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 16000);
-        break;
-#endif
+        motorConfigMutable()->motorPwmProtocol = PWM_TYPE_MULTISHOT;
     }
 #endif
 

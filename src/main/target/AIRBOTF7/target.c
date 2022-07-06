@@ -41,7 +41,7 @@ BUSDEV_REGISTER_SPI_TAG(busdev_imu1_mpu6000,    DEVHW_MPU6000,  GYRO_1_SPI_BUS, 
 BUSDEV_REGISTER_SPI_TAG(busdev_imu1_mpu6500,    DEVHW_MPU6500,  GYRO_1_SPI_BUS,  GYRO_1_CS_PIN,   GYRO_1_EXTI_PIN,     1,  DEVFLAGS_NONE,   GYRO_1_ALIGN);
 #endif
 
-const timerHardware_t timerHardware[] = {
+timerHardware_t timerHardware[] = {
     DEF_TIM(TIM2,  CH1, PA15, TIM_USE_LED,              0, 0), // LED
     DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_ANY,              0, 0), // Cam control, SS, UNUSED
 

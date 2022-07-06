@@ -42,11 +42,6 @@ bool flashIsReady(void);
 bool flashWaitForReady(timeMs_t timeoutMillis);
 void flashEraseSector(uint32_t address);
 void flashEraseCompletely(void);
-#if 0
-void flashPageProgramBegin(uint32_t address);
-void flashPageProgramContinue(const uint8_t *data, int length);
-void flashPageProgramFinish(void);
-#endif
 uint32_t flashPageProgram(uint32_t address, const uint8_t *data, int length);
 int flashReadBytes(uint32_t address, uint8_t *buffer, int length);
 void flashFlush(void);

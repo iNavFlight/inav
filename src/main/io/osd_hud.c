@@ -202,17 +202,48 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
 
     // Distance
 
-    if (((millis() / 1000) % 6 == 0) && poiType > 0) { // For Radar and WPs, display the difference in altitude
-        altc = ((osd_unit_e)osdConfig()->units == OSD_UNIT_IMPERIAL) ? constrain(CENTIMETERS_TO_FEET(poiAltitude * 100), -99, 99) : constrain(poiAltitude, -99 , 99);
-        tfp_sprintf(buff, "%3d", altc);
-        buff[0] = (poiAltitude >= 0) ? SYM_HUD_ARROWS_U3 : SYM_HUD_ARROWS_D3;
-    }
-    else { // Display the distance by default 
-        if ((osd_unit_e)osdConfig()->units == OSD_UNIT_IMPERIAL) {
-            osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(poiDistance * 100), FEET_PER_MILE, 0, 3, 3);
+    if (poiType > 0 && 
+        ((millis() / 1000) % (osdConfig()->hud_radar_alt_difference_display_time + osdConfig()->hud_radar_distance_display_time) < (osdConfig()->hud_radar_alt_difference_display_time % (osdConfig()->hud_radar_alt_difference_display_time + osdConfig()->hud_radar_distance_display_time)))
+       ) { // For Radar and WPs, display the difference in altitude, then distance. Time is pilot defined
+        altc = constrain(poiAltitude, -99 , 99);
+
+        switch ((osd_unit_e)osdConfig()->units) {
+            case OSD_UNIT_UK:
+                FALLTHROUGH;
+            case OSD_UNIT_GA:
+                FALLTHROUGH;
+            case OSD_UNIT_IMPERIAL:
+                // Convert to feet
+                altc = constrain(CENTIMETERS_TO_FEET(poiAltitude * 100), -99, 99);
+                break;
+            default:
+                FALLTHROUGH;
+            case OSD_UNIT_METRIC_MPH:
+                FALLTHROUGH;
+            case OSD_UNIT_METRIC:
+                // Already in metres
+                break;
         }
-        else {
-            osdFormatCentiNumber(buff, poiDistance * 100, METERS_PER_KILOMETER, 0, 3, 3);
+
+        tfp_sprintf(buff, "%3d", altc);
+        buff[0] = (poiAltitude >= 0) ? SYM_DIRECTION : SYM_DIRECTION+4;
+    } else { // Display the distance by default 
+        switch ((osd_unit_e)osdConfig()->units) {
+            case OSD_UNIT_UK:
+                FALLTHROUGH;
+            case OSD_UNIT_IMPERIAL:
+                osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(poiDistance * 100), FEET_PER_MILE, 0, 3, 3);
+                break;
+            case OSD_UNIT_GA:
+                osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(poiDistance * 100), FEET_PER_NAUTICALMILE, 0, 3, 3);
+                break;
+            default:
+                FALLTHROUGH;
+            case OSD_UNIT_METRIC_MPH:
+                FALLTHROUGH;
+            case OSD_UNIT_METRIC:
+                osdFormatCentiNumber(buff, poiDistance * 100, METERS_PER_KILOMETER, 0, 3, 3);
+                break;
         }
     }
 

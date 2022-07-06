@@ -155,7 +155,6 @@
 #define USE_MAG_LIS3MDL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
-#define BNO055_I2C_BUS          BUS_I2C2
 
 #define USE_RANGEFINDER
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
@@ -196,5 +195,3 @@
 #define TARGET_IO_PORTC 0xffff
 #define TARGET_IO_PORTD 0xffff
 #define TARGET_IO_PORTE 0xffff
-
-#define PCA9685_I2C_BUS         BUS_I2C2

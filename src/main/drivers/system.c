@@ -29,7 +29,7 @@
 #include "drivers/system.h"
 #include "drivers/time.h"
 
-#if defined(STM32F3) || defined(STM32F4) || defined(STM32F7) || defined(STM32H7)
+#if defined(STM32F4) || defined(STM32F7) || defined(STM32H7)
 // See "RM CoreSight Architecture Specification"
 // B2.3.10  "LSR and LAR, Software Lock Status Register and Software Lock Access Register"
 // "E1.2.11  LAR, Lock Access Register"
@@ -57,7 +57,7 @@ void cycleCounterInit(void)
 
 #if defined(STM32F7) || defined(STM32H7)
     DWT->LAR = DWT_LAR_UNLOCK_VALUE;
-#elif defined(STM32F3) || defined(STM32F4)
+#elif defined(STM32F4)
     volatile uint32_t *DWTLAR = (uint32_t *)(DWT_BASE + 0x0FB0);
     *(DWTLAR) = DWT_LAR_UNLOCK_VALUE;
 #endif

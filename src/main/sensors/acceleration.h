@@ -67,7 +67,6 @@ typedef struct acc_s {
 extern acc_t acc;
 
 typedef struct accelerometerConfig_s {
-    sensor_align_e acc_align;               // acc alignment
     uint8_t acc_hardware;                   // Which acc hardware to use on boards with more than one device
     uint16_t acc_lpf_hz;                    // cutoff frequency for the low pass filter used on the acc z-axis for althold in Hz
     flightDynamicsTrims_t accZero;          // Accelerometer offset

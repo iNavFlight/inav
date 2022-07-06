@@ -52,7 +52,6 @@
 
 #define USE_RANGEFINDER
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
-#define BNO055_I2C_BUS          BUS_I2C2
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
@@ -127,5 +126,3 @@
 #define TARGET_IO_PORTB 0xffff
 #define TARGET_IO_PORTC 0xffff
 #define TARGET_IO_PORTD 0xffff
-
-#define PCA9685_I2C_BUS         BUS_I2C2

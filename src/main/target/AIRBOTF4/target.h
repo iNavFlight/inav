@@ -64,7 +64,6 @@
 #define USE_PITOT_ADC
 #define PITOT_I2C_BUS           BUS_I2C2
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
-#define BNO055_I2C_BUS          BUS_I2C2
 
 #define M25P16_CS_PIN           PB3
 #define M25P16_SPI_BUS          BUS_SPI3
@@ -143,8 +142,6 @@
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
-
-#define PCA9685_I2C_BUS         BUS_I2C2
 
 #define USE_DSHOT
 #define USE_ESC_SENSOR

@@ -18,8 +18,14 @@
 
 #pragma once
 
+#ifdef KAKUTEH7MINI
 #define TARGET_BOARD_IDENTIFIER "KTH7"
 #define USBD_PRODUCT_STRING     "KAKUTEH7"
+#else
+#define TARGET_BOARD_IDENTIFIER "KH7M"
+#define USBD_PRODUCT_STRING     "KAKUTEH7MINI"
+
+#endif
 
 #define USE_TARGET_CONFIG
 
@@ -41,6 +47,17 @@
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PA7
 
+#ifdef KAKUTEH7MINI
+
+#define USE_FLASHFS
+#define USE_FLASH_M25P16
+#define M25P16_CS_PIN           PA4
+#define M25P16_SPI_BUS          BUS_SPI1
+
+#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+
+#else
+
 #define USE_SDCARD
 #define USE_SDCARD_SPI
 #define SDCARD_SPI_BUS          BUS_SPI1
@@ -49,6 +66,9 @@
 #define SDCARD_DETECT_PIN       PA3
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
+
+#endif
+
 
 // *************** SPI2 ***********************
 #define USE_SPI_DEVICE_2
@@ -98,7 +118,6 @@
 #define USE_MAG_VCM5883
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
-#define BNO055_I2C_BUS          BUS_I2C1
 #define PITOT_I2C_BUS           BUS_I2C1
 
 #define USE_RANGEFINDER
@@ -151,7 +170,13 @@
 // *************** PINIO ***************************
 #define USE_PINIO
 #define USE_PINIOBOX
+
+#ifdef KAKUTEH7MINI
+#define PINIO1_PIN                  PB11
+#define PINIO1_FLAGS				PINIO_FLAGS_INVERTED
+#else
 #define PINIO1_PIN                  PE13
+#endif
 
 // *************** LEDSTRIP ************************
 #define USE_LED_STRIP

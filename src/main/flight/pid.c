@@ -592,8 +592,7 @@ int16_t angleFreefloatDeadband(int16_t deadband, flight_dynamics_index_t axis)
     }
 }
 
-static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float horizonRateMagnitude, float dT)
-{
+static float computePidLevelTarget(flight_dynamics_index_t axis) {
     // This is ROLL/PITCH, run ANGLE/HORIZON controllers
     float angleTarget = pidRcCommandToAngle(rcCommand[axis], pidProfile()->max_angle_inclination[axis]);
 
@@ -621,6 +620,12 @@ static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float h
         DEBUG_SET(DEBUG_AUTOLEVEL, 3, angleTarget * 10);
     }
 
+    return angleTarget;
+}
+
+static void pidLevel(const float angleTarget, pidState_t *pidState, flight_dynamics_index_t axis, float horizonRateMagnitude, float dT)
+{
+    
 #ifdef USE_SECONDARY_IMU
     float actual;
     if (secondaryImuState.active && secondaryImuConfig()->useForStabilized) {
@@ -703,13 +708,13 @@ static float pTermProcess(pidState_t *pidState, float rateError, float dT) {
 }
 
 #ifdef USE_D_BOOST
-static float FAST_CODE applyDBoost(pidState_t *pidState, float dT) {
+static float FAST_CODE applyDBoost(pidState_t *pidState, float currentRateTarget, float dT) {
 
     float dBoost = 1.0f;
 
     const float dBoostGyroDelta = (pidState->gyroRate - pidState->previousRateGyro) / dT;
     const float dBoostGyroAcceleration = fabsf(biquadFilterApply(&pidState->dBoostGyroLpf, dBoostGyroDelta));
-    const float dBoostRateAcceleration = fabsf((pidState->rateTarget - pidState->previousRateTarget) / dT);
+    const float dBoostRateAcceleration = fabsf((currentRateTarget - pidState->previousRateTarget) / dT);
 
     if (dBoostGyroAcceleration >= dBoostRateAcceleration) {
         //Gyro is accelerating faster than setpoint, we want to smooth out
@@ -732,7 +737,7 @@ static float applyDBoost(pidState_t *pidState, float dT) {
 }
 #endif
 
-static float dTermProcess(pidState_t *pidState, float dT) {
+static float dTermProcess(pidState_t *pidState, float currentRateTarget, float dT) {
     // Calculate new D-term
     float newDTerm = 0;
     if (pidState->kD == 0) {
@@ -745,7 +750,7 @@ static float dTermProcess(pidState_t *pidState, float dT) {
         delta = dTermLpf2FilterApplyFn((filter_t *) &pidState->dtermLpf2State, delta);
 
         // Calculate derivative
-        newDTerm =  delta * (pidState->kD / dT) * applyDBoost(pidState, dT);
+        newDTerm =  delta * (pidState->kD / dT) * applyDBoost(pidState, currentRateTarget, dT);
     }
     return(newDTerm);
 }
@@ -767,10 +772,12 @@ static void nullRateController(pidState_t *pidState, flight_dynamics_index_t axi
 
 static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT)
 {
-    const float rateError = pidState->rateTarget - pidState->gyroRate;
+    const float rateTarget = getFlightAxisRateOverride(axis, pidState->rateTarget);
+
+    const float rateError = rateTarget - pidState->gyroRate;
     const float newPTerm = pTermProcess(pidState, rateError, dT);
-    const float newDTerm = dTermProcess(pidState, dT);
-    const float newFFTerm = pidState->rateTarget * pidState->kFF;
+    const float newDTerm = dTermProcess(pidState, rateTarget, dT);
+    const float newFFTerm = rateTarget * pidState->kFF;
 
     /*
      * Integral should be updated only if axis Iterm is not frozen
@@ -795,7 +802,7 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
 
 #ifdef USE_AUTOTUNE_FIXED_WING
     if (FLIGHT_MODE(AUTO_TUNE) && !FLIGHT_MODE(MANUAL_MODE)) {
-        autotuneFixedWingUpdate(axis, pidState->rateTarget, pidState->gyroRate, constrainf(newPTerm + newFFTerm, -pidState->pidSumLimit, +pidState->pidSumLimit));
+        autotuneFixedWingUpdate(axis, rateTarget, pidState->gyroRate, constrainf(newPTerm + newFFTerm, -pidState->pidSumLimit, +pidState->pidSumLimit));
     }
 #endif
 
@@ -804,7 +811,7 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
     axisPID_I[axis] = pidState->errorGyroIf;
     axisPID_D[axis] = newDTerm;
     axisPID_F[axis] = newFFTerm;
-    axisPID_Setpoint[axis] = pidState->rateTarget;
+    axisPID_Setpoint[axis] = rateTarget;
 #endif
 
     pidState->previousRateGyro = pidState->gyroRate;
@@ -830,11 +837,13 @@ static float FAST_CODE applyItermRelax(const int axis, float currentPidSetpoint,
 static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT)
 {
 
-    const float rateError = pidState->rateTarget - pidState->gyroRate;
-    const float newPTerm = pTermProcess(pidState, rateError, dT);
-    const float newDTerm = dTermProcess(pidState, dT);
+    const float rateTarget = getFlightAxisRateOverride(axis, pidState->rateTarget);
 
-    const float rateTargetDelta = pidState->rateTarget - pidState->previousRateTarget;
+    const float rateError = rateTarget - pidState->gyroRate;
+    const float newPTerm = pTermProcess(pidState, rateError, dT);
+    const float newDTerm = dTermProcess(pidState, rateTarget, dT);
+
+    const float rateTargetDelta = rateTarget - pidState->previousRateTarget;
     const float rateTargetDeltaFiltered = pt3FilterApply(&pidState->rateTargetFilter, rateTargetDelta);
 
     /*
@@ -846,7 +855,7 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
     const float newOutput = newPTerm + newDTerm + pidState->errorGyroIf + newCDTerm;
     const float newOutputLimited = constrainf(newOutput, -pidState->pidSumLimit, +pidState->pidSumLimit);
 
-    float itermErrorRate = applyItermRelax(axis, pidState->rateTarget, rateError);
+    float itermErrorRate = applyItermRelax(axis, rateTarget, rateError);
 
 #ifdef USE_ANTIGRAVITY
     itermErrorRate *= iTermAntigravityGain;
@@ -869,10 +878,10 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
     axisPID_I[axis] = pidState->errorGyroIf;
     axisPID_D[axis] = newDTerm;
     axisPID_F[axis] = newCDTerm;
-    axisPID_Setpoint[axis] = pidState->rateTarget;
+    axisPID_Setpoint[axis] = rateTarget;
 #endif
 
-    pidState->previousRateTarget = pidState->rateTarget;
+    pidState->previousRateTarget = rateTarget;
     pidState->previousRateGyro = pidState->gyroRate;
 }
 
@@ -1094,6 +1103,12 @@ void FAST_CODE pidController(float dT)
     bool canUseFpvCameraMix = true;
     uint8_t headingHoldState = getHeadingHoldState();
 
+    // In case Yaw override is active, we engage the Heading Hold state
+    if (isFlightAxisAngleOverrideActive(FD_YAW)) {
+        headingHoldState = HEADING_HOLD_ENABLED;
+        headingHoldTarget = getFlightAxisAngleOverride(FD_YAW, 0);
+    }
+
     if (headingHoldState == HEADING_HOLD_UPDATE_HEADING) {
         updateHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
     }
@@ -1132,14 +1147,18 @@ void FAST_CODE pidController(float dT)
     }
 
     // Step 3: Run control for ANGLE_MODE, HORIZON_MODE, and HEADING_LOCK
-    if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE)) {
-        const float horizonRateMagnitude = calcHorizonRateMagnitude();
-        pidLevel(&pidState[FD_ROLL], FD_ROLL, horizonRateMagnitude, dT);
-        pidLevel(&pidState[FD_PITCH], FD_PITCH, horizonRateMagnitude, dT);
-        canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with ANGLE/HORIZON
-        levelingEnabled = true;
-    } else {
-        levelingEnabled = false;
+    const float horizonRateMagnitude = calcHorizonRateMagnitude();
+    levelingEnabled = false;
+    for (uint8_t axis = FD_ROLL; axis <= FD_PITCH; axis++) {
+        if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || isFlightAxisAngleOverrideActive(axis)) {
+            //If axis angle override, get the correct angle from Logic Conditions
+            float angleTarget = getFlightAxisAngleOverride(axis, computePidLevelTarget(axis));
+
+            //Apply the Level PID controller
+            pidLevel(angleTarget, &pidState[axis], axis, horizonRateMagnitude, dT);
+            canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with ANGLE/HORIZON
+            levelingEnabled = true;
+        }       
     }
 
     if ((FLIGHT_MODE(TURN_ASSISTANT) || navigationRequiresTurnAssistance()) && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || navigationRequiresTurnAssistance())) {

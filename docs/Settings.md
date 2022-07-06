@@ -212,16 +212,6 @@ ADC channel to use for analog pitot tube (airspeed) sensor. If board doesn't hav
 
 ---
 
-### align_acc
-
-When running on non-default hardware or adding support for new sensors/sensor boards, these values are used for sensor orientation. When carefully understood, these values can also be used to rotate (in 90deg steps) or flip the board. Possible values are: DEFAULT, CW0_DEG, CW90_DEG, CW180_DEG, CW270_DEG, CW0_DEG_FLIP, CW90_DEG_FLIP, CW180_DEG_FLIP, CW270_DEG_FLIP.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| DEFAULT |  |  |
-
----
-
 ### align_board_pitch
 
 Arbitrary board rotation in deci-degrees (0.1 degree), to allow mounting it sideways / upside down / rotated etc
@@ -249,16 +239,6 @@ Arbitrary board rotation in deci-degrees (0.1 degree), to allow mounting it side
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | -1800 | 3600 |
-
----
-
-### align_gyro
-
-When running on non-default hardware or adding support for new sensors/sensor boards, these values are used for sensor orientation. When carefully understood, these values can also be used to rotate (in 90deg steps) or flip the board. Possible values are: DEFAULT, CW0_DEG, CW90_DEG, CW180_DEG, CW270_DEG, CW0_DEG_FLIP, CW90_DEG_FLIP, CW180_DEG_FLIP, CW270_DEG_FLIP.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| DEFAULT |  |  |
 
 ---
 
@@ -798,7 +778,7 @@ Minimum frequency for dynamic notches. Default value of `150` works best with 5"
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 50 | 30 | 1000 |
+| 50 | 30 | 250 |
 
 ---
 
@@ -809,76 +789,6 @@ Q factor for dynamic notches
 | Default | Min | Max |
 | --- | --- | --- |
 | 120 | 1 | 1000 |
-
----
-
-### eleres_freq
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 435 | 415 | 450 |
-
----
-
-### eleres_loc_delay
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 240 | 30 | 1800 |
-
----
-
-### eleres_loc_en
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
-
----
-
-### eleres_loc_power
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 7 | 0 | 7 |
-
----
-
-### eleres_signature
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 |  | 4294967295 |
-
----
-
-### eleres_telemetry_en
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
-
----
-
-### eleres_telemetry_power
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 7 | 0 | 7 |
 
 ---
 
@@ -1394,11 +1304,11 @@ Reference airspeed. Set this to airspeed at which PIDs were tuned. Usually shoul
 
 ### fw_tpa_time_constant
 
-TPA smoothing and delay time constant to reflect non-instant speed/throttle response of the plane. Planes with low thrust/weight ratio generally need higher time constant. Default is zero for compatibility with old setups
+TPA smoothing and delay time constant to reflect non-instant speed/throttle response of the plane. See **PID Attenuation and scaling** Wiki for full details.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 5000 |
+| 1500 | 0 | 5000 |
 
 ---
 
@@ -1434,7 +1344,7 @@ Yaw Iterm is frozen when bank angle is above this threshold [degrees]. This solv
 
 ### gps_auto_baud
 
-Automatic configuration of GPS baudrate(The specified baudrate in configured in ports will be used) when used with UBLOX GPS. When used with NAZA/DJI it will automatic detect GPS baudrate and change to it, ignoring the selected baudrate set in ports
+Automatic configuration of GPS baudrate(The specified baudrate in configured in ports will be used) when used with UBLOX GPS
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1495,6 +1405,16 @@ Which SBAS mode to be used
 ### gps_ublox_use_galileo
 
 Enable use of Galileo satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires M8N and Ublox firmware 3.x (or later) [OFF/ON].
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### ground_test_mode
+
+For developer ground test use. Disables motors, sets heading status = Trusted on FW.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2844,11 +2764,11 @@ Protocol that is used to send motor updates to ESCs. Possible values - STANDARD,
 
 ### motor_pwm_rate
 
-Output frequency (in Hz) for motor pins. Default is 400Hz for motor with motor_pwm_protocol set to STANDARD. For *SHOT (e.g. ONESHOT125) values of 1000 and 2000 have been tested by the development team and are supported. It may be possible to use higher values. For BRUSHED values of 8000 and above should be used. Setting to 8000 will use brushed mode at 8kHz switching frequency. Up to 32kHz is supported for brushed. Default is 16000 for boards with brushed motors. Note, that in brushed mode, minthrottle is offset to zero. For brushed mode, set max_throttle to 2000.
+Output frequency (in Hz) for motor pins.  Applies only to brushed motors. 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 400 | 50 | 32000 |
+| 16000 | 50 | 32000 |
 
 ---
 
@@ -3882,6 +3802,26 @@ If set to ON drone will return tail-first. Obviously meaningless for airplanes.
 
 ---
 
+### nav_rth_trackback_distance
+
+Maximum distance allowed for RTH trackback. Normal RTH is executed once this distance is exceeded [m].
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 500 | 50 | 2000 |
+
+---
+
+### nav_rth_trackback_mode
+
+Useage modes for RTH Trackback. OFF = disabled, ON = Normal and Failsafe RTH, FS = Failsafe RTH only.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF |  |  |
+
+---
+
 ### nav_use_fw_yaw_control
 
 Enables or Disables the use of the heading PID controller on fixed wing. Heading PID controller is always enabled for rovers and boats
@@ -4034,7 +3974,7 @@ Max pitch, in degrees, for OSD artificial horizon
 
 ### osd_ahi_reverse_roll
 
-_// TODO_
+Switches the artificial horizon in the OSD to instead be a bank indicator, by reversing the direction of its movement.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4352,6 +4292,16 @@ Top and bottom margins for the hud area
 
 ---
 
+### osd_hud_radar_alt_difference_display_time
+
+Time in seconds to display the altitude difference in radar
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3 | 0 | 10 |
+
+---
+
 ### osd_hud_radar_disp
 
 Maximum count of nearby aircrafts or points of interest to display in the hud, as sent from an ESP32 LoRa module. Set to 0 to disable (show nothing). The nearby aircrafts will appear as markers A, B, C, etc
@@ -4359,6 +4309,16 @@ Maximum count of nearby aircrafts or points of interest to display in the hud, a
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 4 |
+
+---
+
+### osd_hud_radar_distance_display_time
+
+Time in seconds to display the distance in radar
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3 | 1 | 10 |
 
 ---
 
@@ -4439,6 +4399,16 @@ LQ % indicator blinks below this value. For Crossfire use 70%, for Tracer use 50
 | Default | Min | Max |
 | --- | --- | --- |
 | 70 | 0 | 100 |
+
+---
+
+### osd_mah_used_precision
+
+Number of digits used to display mAh used.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 4 | 4 | 6 |
 
 ---
 
@@ -4652,6 +4622,96 @@ Auto swap display time interval between disarm stats pages (seconds). Reverts to
 
 ---
 
+### osd_switch_indicator_one_channel
+
+RC Channel to use for OSD switch indicator 1.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 5 | MAX_SUPPORTED_RC_CHANNEL_COUNT |
+
+---
+
+### osd_switch_indicator_one_name
+
+Character to use for OSD switch incicator 1.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| GEAR |  | 5 |
+
+---
+
+### osd_switch_indicator_three_channel
+
+RC Channel to use for OSD switch indicator 3.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 5 | MAX_SUPPORTED_RC_CHANNEL_COUNT |
+
+---
+
+### osd_switch_indicator_three_name
+
+Character to use for OSD switch incicator 3.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| LIGT |  | 5 |
+
+---
+
+### osd_switch_indicator_two_channel
+
+RC Channel to use for OSD switch indicator 2.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 5 | MAX_SUPPORTED_RC_CHANNEL_COUNT |
+
+---
+
+### osd_switch_indicator_two_name
+
+Character to use for OSD switch incicator 2.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| CAM |  | 5 |
+
+---
+
+### osd_switch_indicator_zero_channel
+
+RC Channel to use for OSD switch indicator 0.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 5 | MAX_SUPPORTED_RC_CHANNEL_COUNT |
+
+---
+
+### osd_switch_indicator_zero_name
+
+Character to use for OSD switch incicator 0.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| FLAP |  | 5 |
+
+---
+
+### osd_switch_indicators_align_left
+
+Align text to left of switch indicators
+
+| Default | Min | Max |
+| --- | --- | --- |
+| ON | OFF | ON |
+
+---
+
 ### osd_system_msg_display_time
 
 System message display cycle time for multiple messages (milliseconds).
@@ -4705,6 +4765,16 @@ IMPERIAL, METRIC, UK
 ### osd_video_system
 
 Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, and `HD`
+
+| Default | Min | Max |
+| --- | --- | --- |
+| AUTO |  |  |
+
+---
+
+### output_mode
+
+Output function assignment mode. AUTO assigns outputs according to the default mapping, SERVOS assigns all outputs to servos, MOTORS assigns all outputs to motors
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5142,36 +5212,6 @@ Defines the shortest pulse width value used when ensuring the channel value is v
 
 ---
 
-### rx_spi_id
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 0 |
-
----
-
-### rx_spi_protocol
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| _target default_ |  |  |
-
----
-
-### rx_spi_rf_channel_count
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 8 |
-
----
-
 ### safehome_max_distance
 
 In order for a safehome to be used, it must be less than this distance (in cm) from the arming point.
@@ -5274,7 +5314,7 @@ Selects the servo PWM output cutoff frequency. Value is in [Hz]
 
 ### servo_protocol
 
-An option to chose the protocol/option that would be used to output servo data. Possible options `PWM` (FC servo outputs), `SERVO_DRIVER` (I2C PCA9685 peripheral), `SBUS` (S.Bus protocol output via a configured serial port)
+An option to chose the protocol/option that would be used to output servo data. Possible options `PWM` (FC servo outputs), `SBUS` (S.Bus protocol output via a configured serial port)
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5308,7 +5348,7 @@ Quality factor of the setpoint Kalman filter. Higher values means less filtering
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 100 | 1 | 16000 |
+| 100 | 1 | 1000 |
 
 ---
 
@@ -5738,7 +5778,7 @@ Configure the VTX band. Set to zero to use `vtx_freq`. Bands: 1: A, 2: B, 3: E, 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 4 | VTX_SETTINGS_NO_BAND | VTX_SETTINGS_MAX_BAND |
+| 1 | VTX_SETTINGS_NO_BAND | VTX_SETTINGS_MAX_BAND |
 
 ---
 
@@ -5749,6 +5789,16 @@ Channel to use within the configured `vtx_band`. Valid values are [1, 8].
 | Default | Min | Max |
 | --- | --- | --- |
 | 1 | VTX_SETTINGS_MIN_CHANNEL | VTX_SETTINGS_MAX_CHANNEL |
+
+---
+
+### vtx_frequency_group
+
+VTx Frequency group to use. Frequency groups: FREQUENCYGROUP_5G8: 5.8GHz, FREQUENCYGROUP_2G4: 2.4GHz, FREQUENCYGROUP_1G3: 1.3GHz.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| FREQUENCYGROUP_5G8 | 0 | 2 |
 
 ---
 
@@ -5819,6 +5869,26 @@ Enable workaround for early AKK SAudio-enabled VTX bug.
 | Default | Min | Max |
 | --- | --- | --- |
 | ON | OFF | ON |
+
+---
+
+### vtx_smartaudio_stopbits
+
+Set stopbit count for serial (TBS Sixty9 SmartAudio 2.1 require value of 1 bit)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 2 | 1 | 2 |
+
+---
+
+### vtx_softserial_shortstop
+
+Enable the 3x shorter stopbit on softserial. Need for some IRC Tramp VTXes.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
 
 ---
 

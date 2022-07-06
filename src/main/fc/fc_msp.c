@@ -161,10 +161,9 @@ typedef enum {
 } mspFlashfsFlags_e;
 
 typedef enum {
-    MSP_PASSTHROUGH_SERIAL_ID = 0xFD,
+    MSP_PASSTHROUGH_SERIAL_ID          = 0xFD,
     MSP_PASSTHROUGH_SERIAL_FUNCTION_ID = 0xFE,
-
-    MSP_PASSTHROUGH_ESC_4WAY = 0xFF,
+    MSP_PASSTHROUGH_ESC_4WAY           = 0xFF,
  } mspPassthroughType_e;
 
 static uint8_t mspPassthroughMode;
@@ -1005,15 +1004,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, 0); // for compatibility with betaflight (rcInterpolation)
         sbufWriteU8(dst, 0); // for compatibility with betaflight (rcInterpolationInterval)
         sbufWriteU16(dst, 0); // for compatibility with betaflight (airModeActivateThreshold)
-#ifdef USE_RX_SPI
-        sbufWriteU8(dst, rxConfig()->rx_spi_protocol);
-        sbufWriteU32(dst, rxConfig()->rx_spi_id);
-        sbufWriteU8(dst, rxConfig()->rx_spi_rf_channel_count);
-#else
         sbufWriteU8(dst, 0);
         sbufWriteU32(dst, 0);
         sbufWriteU8(dst, 0);
-#endif
         sbufWriteU8(dst, 0); // for compatibility with betaflight (fpvCamAngleDegrees)
         sbufWriteU8(dst, rxConfig()->receiverType);
         break;
@@ -1154,8 +1147,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_SENSOR_ALIGNMENT:
-        sbufWriteU8(dst, gyroConfig()->gyro_align);
-        sbufWriteU8(dst, accelerometerConfig()->acc_align);
+        sbufWriteU8(dst, 0); // was gyroConfig()->gyro_align
+        sbufWriteU8(dst, 0); // was accelerometerConfig()->acc_align
 #ifdef USE_MAG
         sbufWriteU8(dst, compassConfig()->mag_align);
 #else
@@ -1484,8 +1477,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP2_INAV_OUTPUT_MAPPING:
         for (uint8_t i = 0; i < timerHardwareCount; ++i)
-            if (!(timerHardware[i].usageFlags & (TIM_USE_PPM | TIM_USE_PWM)))
+            if (!(timerHardware[i].usageFlags & (TIM_USE_PPM | TIM_USE_PWM))) {
                 sbufWriteU8(dst, timerHardware[i].usageFlags);
+            }
         break;
 
     case MSP2_INAV_MC_BRAKING:
@@ -1544,6 +1538,23 @@ static mspResult_e mspFcSafeHomeOutCommand(sbuf_t *dst, sbuf_t *src)
         return MSP_RESULT_ACK;
     } else {
          return MSP_RESULT_ERROR;
+    }
+}
+
+static mspResult_e mspFcLogicConditionCommand(sbuf_t *dst, sbuf_t *src) {
+    const uint8_t idx = sbufReadU8(src);
+    if (idx < MAX_LOGIC_CONDITIONS) {
+        sbufWriteU8(dst, logicConditions(idx)->enabled);
+        sbufWriteU8(dst, logicConditions(idx)->activatorId);
+        sbufWriteU8(dst, logicConditions(idx)->operation);
+        sbufWriteU8(dst, logicConditions(idx)->operandA.type);
+        sbufWriteU32(dst, logicConditions(idx)->operandA.value);
+        sbufWriteU8(dst, logicConditions(idx)->operandB.type);
+        sbufWriteU32(dst, logicConditions(idx)->operandB.value);
+        sbufWriteU8(dst, logicConditions(idx)->flags);
+        return MSP_RESULT_ACK;
+    } else {
+        return MSP_RESULT_ERROR;
     }
 }
 
@@ -2043,8 +2054,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_SENSOR_ALIGNMENT:
         if (dataSize == 4) {
-            gyroConfigMutable()->gyro_align = sbufReadU8(src);
-            accelerometerConfigMutable()->acc_align = sbufReadU8(src);
+            sbufReadU8(src); // was gyroConfigMutable()->gyro_align
+            sbufReadU8(src); // was accelerometerConfigMutable()->acc_align
 #ifdef USE_MAG
             compassConfigMutable()->mag_align = sbufReadU8(src);
 #else
@@ -2574,15 +2585,9 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU8(src); // for compatibility with betaflight (rcInterpolation)
             sbufReadU8(src); // for compatibility with betaflight (rcInterpolationInterval)
             sbufReadU16(src); // for compatibility with betaflight (airModeActivateThreshold)
-#ifdef USE_RX_SPI
-            rxConfigMutable()->rx_spi_protocol = sbufReadU8(src);
-            rxConfigMutable()->rx_spi_id = sbufReadU32(src);
-            rxConfigMutable()->rx_spi_rf_channel_count = sbufReadU8(src);
-#else
             sbufReadU8(src);
             sbufReadU32(src);
             sbufReadU8(src);
-#endif
             sbufReadU8(src); // for compatibility with betaflight (fpvCamAngleDegrees)
             rxConfigMutable()->receiverType = sbufReadU8(src);              // Won't be modified if buffer is not large enough
         } else
@@ -3225,6 +3230,11 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         break;
 #endif
 
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    case MSP2_INAV_LOGIC_CONDITIONS_SINGLE:
+        *ret = mspFcLogicConditionCommand(dst, src);
+        break;
+#endif
     case MSP2_INAV_SAFEHOME:
          *ret = mspFcSafeHomeOutCommand(dst, src);
          break;

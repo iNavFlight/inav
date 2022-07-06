@@ -52,7 +52,6 @@
 #define USE_MAG_LIS3MDL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
-#define BNO055_I2C_BUS          BUS_I2C1
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
@@ -133,5 +132,3 @@
 #define TARGET_IO_PORTA 0xffff
 #define TARGET_IO_PORTB 0xffff
 #define TARGET_IO_PORTC 0xffff
-
-#define PCA9685_I2C_BUS         BUS_I2C2

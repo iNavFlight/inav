@@ -31,17 +31,23 @@
 #define NAV_THROTTLE_CUTOFF_FREQENCY_HZ     4       // low-pass filter on throttle output
 #define NAV_FW_CONTROL_MONITORING_RATE      2
 #define NAV_DTERM_CUT_HZ                    10.0f
-#define NAV_VEL_Z_DERIVATIVE_CUT_HZ 5.0f
-#define NAV_VEL_Z_ERROR_CUT_HZ 5.0f
+#define NAV_VEL_Z_DERIVATIVE_CUT_HZ         5.0f
+#define NAV_VEL_Z_ERROR_CUT_HZ              5.0f
 #define NAV_ACCELERATION_XY_MAX             980.0f  // cm/s/s       // approx 45 deg lean angle
 
 #define INAV_SURFACE_MAX_DISTANCE           40
 
-#define MC_LAND_CHECK_VEL_XY_MOVING 100.0f // cm/s
-#define MC_LAND_CHECK_VEL_Z_MOVING 25.0f   // cm/s
-#define MC_LAND_THR_STABILISE_DELAY 1      // seconds
-#define MC_LAND_DESCEND_THROTTLE 40        // uS
-#define MC_LAND_SAFE_SURFACE 5.0f          // cm
+#define MC_POS_CONTROL_JERK_LIMIT_CMSSS     1700.0f // jerk limit on horizontal acceleration (cm/s^3)
+
+#define MC_LAND_CHECK_VEL_XY_MOVING         100.0f  // cm/s
+#define MC_LAND_CHECK_VEL_Z_MOVING          25.0f   // cm/s
+#define MC_LAND_THR_STABILISE_DELAY         1       // seconds
+#define MC_LAND_DESCEND_THROTTLE            40      // uS
+#define MC_LAND_SAFE_SURFACE                5.0f    // cm
+
+#define NAV_RTH_TRACKBACK_POINTS            50      // max number RTH trackback points
+
+#define LAUNCH_ABORT_STICK_DEADBAND         250     // pitch/roll stick deflection for launch abort (us)
 
 #define MAX_POSITION_UPDATE_INTERVAL_US     HZ2US(MIN_POSITION_UPDATE_RATE_HZ)        // convenience macro
 _Static_assert(MAX_POSITION_UPDATE_INTERVAL_US <= TIMEDELTA_MAX, "deltaMicros can overflow!");
@@ -100,10 +106,12 @@ typedef struct navigationFlags_s {
     bool forcedRTHActivated;
     bool forcedEmergLandingActivated;
 
-    bool wpMissionPlannerActive;               // Activation status of WP mission planner
+    bool wpMissionPlannerActive;            // Activation status of WP mission planner
 
     /* Landing detector */
     bool resetLandingDetector;
+
+    bool rthTrackbackActive;                // Activation status of RTH trackback
 } navigationFlags_t;
 
 typedef struct {
@@ -141,22 +149,26 @@ typedef enum {
     NAV_FSM_EVENT_SWITCH_TO_ALTHOLD,
     NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D,
     NAV_FSM_EVENT_SWITCH_TO_RTH,
-    NAV_FSM_EVENT_SWITCH_TO_RTH_HOVER_ABOVE_HOME,
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT,
     NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING,
     NAV_FSM_EVENT_SWITCH_TO_LAUNCH,
+    NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD,
+    NAV_FSM_EVENT_SWITCH_TO_CRUISE,
+    NAV_FSM_EVENT_SWITCH_TO_COURSE_ADJ,
 
     NAV_FSM_EVENT_STATE_SPECIFIC_1,             // State-specific event
     NAV_FSM_EVENT_STATE_SPECIFIC_2,             // State-specific event
     NAV_FSM_EVENT_STATE_SPECIFIC_3,             // State-specific event
+    NAV_FSM_EVENT_STATE_SPECIFIC_4,             // State-specific event
+    NAV_FSM_EVENT_STATE_SPECIFIC_5,             // State-specific event
+    NAV_FSM_EVENT_STATE_SPECIFIC_6,             // State-specific event
     NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING = NAV_FSM_EVENT_STATE_SPECIFIC_1,
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_RTH_LAND = NAV_FSM_EVENT_STATE_SPECIFIC_1,
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_FINISHED = NAV_FSM_EVENT_STATE_SPECIFIC_2,
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_HOLD_TIME = NAV_FSM_EVENT_STATE_SPECIFIC_3,
-
-    NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD,
-    NAV_FSM_EVENT_SWITCH_TO_CRUISE,
-    NAV_FSM_EVENT_SWITCH_TO_COURSE_ADJ,
+    NAV_FSM_EVENT_SWITCH_TO_RTH_HOVER_ABOVE_HOME = NAV_FSM_EVENT_STATE_SPECIFIC_4,
+    NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_RTH_TRACKBACK = NAV_FSM_EVENT_STATE_SPECIFIC_5,
+    NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_RTH_INITIALIZE = NAV_FSM_EVENT_STATE_SPECIFIC_6,
     NAV_FSM_EVENT_COUNT,
 } navigationFSMEvent_t;
 
@@ -212,6 +224,7 @@ typedef enum {
     NAV_PERSISTENT_ID_WAYPOINT_HOLD_TIME                        = 35,
     NAV_PERSISTENT_ID_RTH_HOVER_ABOVE_HOME                      = 36,
     NAV_PERSISTENT_ID_UNUSED_4                                  = 37, // was NAV_STATE_WAYPOINT_HOVER_ABOVE_HOME
+    NAV_PERSISTENT_ID_RTH_TRACKBACK                             = 38,
 
 } navigationPersistentId_e;
 
@@ -228,6 +241,7 @@ typedef enum {
 
     NAV_STATE_RTH_INITIALIZE,
     NAV_STATE_RTH_CLIMB_TO_SAFE_ALT,
+    NAV_STATE_RTH_TRACKBACK,
     NAV_STATE_RTH_HEAD_HOME,
     NAV_STATE_RTH_HOVER_PRIOR_TO_LANDING,
     NAV_STATE_RTH_HOVER_ABOVE_HOME,
@@ -389,6 +403,12 @@ typedef struct {
     float                       wpDistance;                 // Distance to active WP
     timeMs_t                    wpReachedTime;              // Time the waypoint was reached
     bool                        wpAltitudeReached;          // WP altitude achieved
+
+    /* RTH Trackback */
+    fpVector3_t                 rthTBPointsList[NAV_RTH_TRACKBACK_POINTS];
+    int8_t                      rthTBLastSavedIndex;        // last trackback point index saved
+    int8_t                      activeRthTBPointIndex;
+    int8_t                      rthTBWrapAroundCounter;     // stores trackpoint array overwrite index position
 
     /* Internals & statistics */
     int16_t                     rcAdjustment[4];

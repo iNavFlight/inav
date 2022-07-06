@@ -42,6 +42,13 @@ typedef enum {
     PLATFORM_OTHER          = 6
 } flyingPlatformType_e;
 
+
+typedef enum {
+    OUTPUT_MODE_AUTO     = 0,
+    OUTPUT_MODE_MOTORS,
+    OUTPUT_MODE_SERVOS
+} outputMode_e;
+
 typedef struct motorAxisCorrectionLimits_s {
     int16_t min;
     int16_t max;
@@ -62,6 +69,7 @@ typedef struct mixerConfig_s {
     uint8_t platformType;
     bool hasFlaps;
     int16_t appliedMixerPreset;
+    uint8_t outputMode;
 } mixerConfig_t;
 
 PG_DECLARE(mixerConfig_t, mixerConfig);

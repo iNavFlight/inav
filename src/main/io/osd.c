@@ -920,7 +920,11 @@ static const char * navigationStateMessage(void)
         case MW_NAV_STATE_RTH_CLIMB:
             return OSD_MESSAGE_STR(OSD_MSG_RTH_CLIMB);
         case MW_NAV_STATE_RTH_ENROUTE:
-            return OSD_MESSAGE_STR(OSD_MSG_HEADING_HOME);
+            if (posControl.flags.rthTrackbackActive) {
+                return OSD_MESSAGE_STR(OSD_MSG_RTH_TRACKBACK);
+            } else {
+                return OSD_MESSAGE_STR(OSD_MSG_HEADING_HOME);
+            }
         case MW_NAV_STATE_HOLD_INFINIT:
             // Used by HOLD flight modes. No information to add.
             break;
@@ -1504,6 +1508,40 @@ int8_t getGeoWaypointNumber(int8_t waypointIndex)
     return geoWaypointIndex + 1;
 }
 
+void osdDisplaySwitchIndicator(const char *swName, int rcValue, char *buff) {
+    int8_t ptr = 0;
+
+    if (osdConfig()->osd_switch_indicators_align_left) {
+        for (ptr = 0; ptr < constrain(strlen(swName), 0, OSD_SWITCH_INDICATOR_NAME_LENGTH); ptr++) {
+            buff[ptr] = swName[ptr];
+        }
+
+        if ( rcValue < 1333) {
+            buff[ptr++] = SYM_SWITCH_INDICATOR_LOW;
+        } else if ( rcValue > 1666) {
+            buff[ptr++] = SYM_SWITCH_INDICATOR_HIGH;
+        } else {
+            buff[ptr++] = SYM_SWITCH_INDICATOR_MID;
+        }
+    } else {
+        if ( rcValue < 1333) {
+            buff[ptr++] = SYM_SWITCH_INDICATOR_LOW;
+        } else if ( rcValue > 1666) {
+            buff[ptr++] = SYM_SWITCH_INDICATOR_HIGH;
+        } else {
+            buff[ptr++] = SYM_SWITCH_INDICATOR_MID;
+        }
+
+        for (ptr = 1; ptr < constrain(strlen(swName), 0, OSD_SWITCH_INDICATOR_NAME_LENGTH) + 1; ptr++) {
+            buff[ptr] = swName[ptr-1];
+        }
+
+        ptr++;
+    }
+
+    buff[ptr] = '\0';
+}
+
 static bool osdDrawSingleElement(uint8_t item)
 {
     uint16_t pos = osdLayoutsConfig()->item_pos[currentLayout][item];
@@ -1546,13 +1584,18 @@ static bool osdDrawSingleElement(uint8_t item)
         }
         break;
 
-    case OSD_MAH_DRAWN:
-        tfp_sprintf(buff, "%4d", (int)getMAhDrawn());
-        buff[4] = SYM_MAH;
-        buff[5] = '\0';
+    case OSD_MAH_DRAWN: {
+        if (osdFormatCentiNumber(buff, getMAhDrawn() * 100, 1000, 0, (osdConfig()->mAh_used_precision - 2), osdConfig()->mAh_used_precision)) {
+           // Shown in mAh
+           buff[osdConfig()->mAh_used_precision] = SYM_AH;
+        } else {
+          // Shown in Ah
+            buff[osdConfig()->mAh_used_precision] = SYM_MAH;
+        }
+        buff[(osdConfig()->mAh_used_precision + 1)] = '\0';
         osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
         break;
-
+    }
     case OSD_WH_DRAWN:
         osdFormatCentiNumber(buff, getMWhDrawn() / 10, 0, 2, 0, 3);
         osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
@@ -2272,6 +2315,22 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 #endif
 
+    case OSD_SWITCH_INDICATOR_0:
+        osdDisplaySwitchIndicator(osdConfig()->osd_switch_indicator0_name, rxGetChannelValue(osdConfig()->osd_switch_indicator0_channel - 1), buff);
+        break;
+
+    case OSD_SWITCH_INDICATOR_1:
+        osdDisplaySwitchIndicator(osdConfig()->osd_switch_indicator1_name, rxGetChannelValue(osdConfig()->osd_switch_indicator1_channel - 1), buff);
+        break;
+
+    case OSD_SWITCH_INDICATOR_2:
+        osdDisplaySwitchIndicator(osdConfig()->osd_switch_indicator2_name, rxGetChannelValue(osdConfig()->osd_switch_indicator2_channel - 1), buff);
+        break;
+
+    case OSD_SWITCH_INDICATOR_3:
+        osdDisplaySwitchIndicator(osdConfig()->osd_switch_indicator3_name, rxGetChannelValue(osdConfig()->osd_switch_indicator3_channel - 1), buff);
+        break;
+
     case OSD_ACTIVE_PROFILE:
         tfp_sprintf(buff, "%c%u", SYM_PROFILE, (getConfigProfile() + 1));
         displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
@@ -2962,6 +3021,16 @@ static bool osdDrawSingleElement(uint8_t item)
 
             return true;
         }
+    case OSD_TPA_TIME_CONSTANT:
+        {
+            osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "TPA TC", 0, currentControlRateProfile->throttle.fixedWingTauMs, 4, 0, ADJUSTMENT_FW_TPA_TIME_CONSTANT);
+            return true;
+        }
+    case OSD_FW_LEVEL_TRIM:
+        {
+            osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "LEVEL", 0, pidProfileMutable()->fixedWingLevelTrim, 3, 1, ADJUSTMENT_FW_LEVEL_TRIM);
+            return true;
+        }
 
     case OSD_NAV_FW_CONTROL_SMOOTHNESS:
         osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "CTL S", 0, navConfig()->fw.control_smoothness, 1, 0, ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS);
@@ -3204,6 +3273,8 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .hud_radar_disp = SETTING_OSD_HUD_RADAR_DISP_DEFAULT,
     .hud_radar_range_min = SETTING_OSD_HUD_RADAR_RANGE_MIN_DEFAULT,
     .hud_radar_range_max = SETTING_OSD_HUD_RADAR_RANGE_MAX_DEFAULT,
+    .hud_radar_alt_difference_display_time = SETTING_OSD_HUD_RADAR_ALT_DIFFERENCE_DISPLAY_TIME_DEFAULT,
+    .hud_radar_distance_display_time = SETTING_OSD_HUD_RADAR_DISTANCE_DISPLAY_TIME_DEFAULT,
     .hud_wp_disp = SETTING_OSD_HUD_WP_DISP_DEFAULT,
     .left_sidebar_scroll = SETTING_OSD_LEFT_SIDEBAR_SCROLL_DEFAULT,
     .right_sidebar_scroll = SETTING_OSD_RIGHT_SIDEBAR_SCROLL_DEFAULT,
@@ -3216,6 +3287,16 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .pan_servo_index = SETTING_OSD_PAN_SERVO_INDEX_DEFAULT,
     .pan_servo_pwm2centideg = SETTING_OSD_PAN_SERVO_PWM2CENTIDEG_DEFAULT,
     .esc_rpm_precision = SETTING_OSD_ESC_RPM_PRECISION_DEFAULT,
+    .mAh_used_precision = SETTING_OSD_MAH_USED_PRECISION_DEFAULT,
+    .osd_switch_indicator0_name = SETTING_OSD_SWITCH_INDICATOR_ZERO_NAME_DEFAULT,
+    .osd_switch_indicator0_channel = SETTING_OSD_SWITCH_INDICATOR_ZERO_CHANNEL_DEFAULT,
+    .osd_switch_indicator1_name = SETTING_OSD_SWITCH_INDICATOR_ONE_NAME_DEFAULT,
+    .osd_switch_indicator1_channel = SETTING_OSD_SWITCH_INDICATOR_ONE_CHANNEL_DEFAULT,
+    .osd_switch_indicator2_name = SETTING_OSD_SWITCH_INDICATOR_TWO_NAME_DEFAULT,
+    .osd_switch_indicator2_channel = SETTING_OSD_SWITCH_INDICATOR_TWO_CHANNEL_DEFAULT,
+    .osd_switch_indicator3_name = SETTING_OSD_SWITCH_INDICATOR_THREE_NAME_DEFAULT,
+    .osd_switch_indicator3_channel = SETTING_OSD_SWITCH_INDICATOR_THREE_CHANNEL_DEFAULT,
+    .osd_switch_indicators_align_left = SETTING_OSD_SWITCH_INDICATORS_ALIGN_LEFT_DEFAULT,
     .system_msg_display_time = SETTING_OSD_SYSTEM_MSG_DISPLAY_TIME_DEFAULT,
     .units = SETTING_OSD_UNITS_DEFAULT,
     .main_voltage_decimals = SETTING_OSD_MAIN_VOLTAGE_DECIMALS_DEFAULT,
@@ -3377,6 +3458,11 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_GVAR_1] = OSD_POS(1, 2);
     osdLayoutsConfig->item_pos[0][OSD_GVAR_2] = OSD_POS(1, 3);
     osdLayoutsConfig->item_pos[0][OSD_GVAR_3] = OSD_POS(1, 4);
+
+    osdLayoutsConfig->item_pos[0][OSD_SWITCH_INDICATOR_0] = OSD_POS(2, 7);
+    osdLayoutsConfig->item_pos[0][OSD_SWITCH_INDICATOR_1] = OSD_POS(2, 8);
+    osdLayoutsConfig->item_pos[0][OSD_SWITCH_INDICATOR_2] = OSD_POS(2, 9);
+    osdLayoutsConfig->item_pos[0][OSD_SWITCH_INDICATOR_3] = OSD_POS(2, 10);
 
 #if defined(USE_ESC_SENSOR)
     osdLayoutsConfig->item_pos[0][OSD_ESC_RPM] = OSD_POS(1, 2);
@@ -4323,6 +4409,13 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_WP_MISSION_LOADED);
             }
         }
+
+        /* Messages that are shown regardless of Arming state */
+#ifdef USE_DEV_TOOLS
+        if (systemConfig()->groundTestMode) {
+            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_GRD_TEST_MODE);
+        }
+#endif
 
         if (messageCount > 0) {
             message = messages[OSD_ALTERNATING_CHOICES(systemMessageCycleTime(messageCount, messages), messageCount)];

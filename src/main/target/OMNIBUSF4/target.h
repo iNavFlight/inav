@@ -99,7 +99,6 @@
 #define USE_MAG_AK8975
 
 #define TEMPERATURE_I2C_BUS     I2C_EXT_BUS
-#define BNO055_I2C_BUS          I2C_EXT_BUS
 
 #define USE_BARO
 
@@ -191,6 +190,10 @@
 #define SERIAL_PORT_COUNT       5       // VCP, USART1, USART3, USART6, SOFTSERIAL1
 #endif
 
+#define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
+#define SERIALRX_PROVIDER       SERIALRX_SBUS
+#define SERIALRX_UART           SERIAL_PORT_USART1
+
 #define USE_SPI
 
 #define USE_SPI_DEVICE_1
@@ -258,7 +261,6 @@
   #define WS2811_PIN                   PA1
 #endif
 
-#define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define DISABLE_RX_PWM_FEATURE
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX | FEATURE_VBAT | FEATURE_OSD)
 
@@ -281,5 +283,3 @@
 #ifdef OMNIBUSF4PRO
 #define CURRENT_METER_SCALE   265
 #endif
-
-#define PCA9685_I2C_BUS         I2C_EXT_BUS

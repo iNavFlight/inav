@@ -21,7 +21,7 @@
 #include "drivers/rcc_types.h"
 #include "drivers/dma.h"
 
-#if defined(STM32F4) || defined(STM32F3)
+#if defined(STM32F4)
 #define SPI_IO_AF_CFG           IO_CONFIG(GPIO_Mode_AF,  GPIO_Speed_50MHz, GPIO_OType_PP, GPIO_PuPd_NOPULL)
 #define SPI_IO_AF_SCK_CFG       IO_CONFIG(GPIO_Mode_AF,  GPIO_Speed_50MHz, GPIO_OType_PP, GPIO_PuPd_DOWN)
 #define SPI_IO_AF_MISO_CFG      IO_CONFIG(GPIO_Mode_AF,  GPIO_Speed_50MHz, GPIO_OType_PP, GPIO_PuPd_UP)
@@ -54,7 +54,7 @@ typedef enum SPIDevice {
     SPIDEV_4
 } SPIDevice;
 
-#if defined(STM32F3) || defined(STM32F4)
+#if defined(STM32F4)
 #define SPIDEV_COUNT 3
 #elif defined(STM32F7) || defined(STM32H7)
 #define SPIDEV_COUNT 4
@@ -69,7 +69,13 @@ typedef struct SPIDevice_s {
     ioTag_t mosi;
     ioTag_t miso;
     rccPeriphTag_t rcc;
+#if defined(STM32F7) || defined(STM32H7)
+    uint8_t sckAF;
+    uint8_t misoAF;
+    uint8_t mosiAF;
+#else
     uint8_t af;
+#endif
     const uint32_t * divisorMap;
     volatile uint16_t errorCount;
     bool initDone;

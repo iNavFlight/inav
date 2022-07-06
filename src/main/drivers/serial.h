@@ -50,6 +50,9 @@ typedef enum portOptions_t {
     SERIAL_BIDIR_PP      = 1 << 4,
     SERIAL_BIDIR_NOPULL  = 1 << 5, // disable pulls in BIDIR RX mode
     SERIAL_BIDIR_UP      = 0 << 5, // enable pullup in BIDIR mode
+
+    SERIAL_LONGSTOP      = 0 << 6,
+    SERIAL_SHORTSTOP     = 1 << 6,
 } portOptions_t;
 
 typedef void (*serialReceiveCallbackPtr)(uint16_t data, void *rxCallbackData);   // used by serial drivers to return frames to app

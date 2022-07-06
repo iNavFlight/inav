@@ -3,10 +3,9 @@
 
 #ifdef USE_LIGHTS
 
-#if (!defined(LIGHTS_USE_PCA9685_OUTPUT)) && (!defined(LIGHTS_OUTPUT_MODE))
+#ifndef LIGHTS_OUTPUT_MODE
     #define LIGHTS_OUTPUT_MODE IOCFG_OUT_PP
 #endif
-
 
 static IO_t lightsIO = DEFIO_IO(NONE);
 

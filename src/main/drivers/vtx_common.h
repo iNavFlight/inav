@@ -66,6 +66,12 @@ typedef enum {
     VTXDEV_UNKNOWN    = 0xFF,
 } vtxDevType_e;
 
+typedef enum {
+    FREQUENCYGROUP_5G8 = 0,
+    FREQUENCYGROUP_2G4 = 1,
+    FREQUENCYGROUP_1G3 = 2,
+} vtxFrequencyGroups_e;
+
 struct vtxVTable_s;
 
 typedef struct vtxDeviceCapability_s {

@@ -52,7 +52,6 @@ extern timeUs_t sectionTimes[2][4];
 
 typedef enum {
     DEBUG_NONE,
-    DEBUG_GYRO,
     DEBUG_AGL,
     DEBUG_FLOW_RAW,
     DEBUG_FLOW,
