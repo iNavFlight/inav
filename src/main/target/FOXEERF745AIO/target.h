@@ -25,12 +25,6 @@
 #define BEEPER                  PD2
 #define BEEPER_INVERTED
 
-/*** IMU sensors ***/
-#define USE_EXTI
-
-
-#define USE_MPU_DATA_READY_SIGNAL
-
 // MPU6000
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW180_DEG

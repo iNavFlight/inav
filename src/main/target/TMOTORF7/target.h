@@ -45,8 +45,7 @@
 #define MPU6000_SPI_BUS         BUS_SPI1
 #define MPU6000_EXTI_PIN        PC4
 
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
+
 
 // *************** I2C Mag *********************
 #define USE_I2C

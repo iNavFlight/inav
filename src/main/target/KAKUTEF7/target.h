@@ -36,8 +36,7 @@
 #define USE_DSHOT
 #define USE_ESC_SENSOR
 
-#define USE_MPU_DATA_READY_SIGNAL
-#define USE_EXTI
+
 
 // ICM-20689
 #define USE_IMU_ICM20689

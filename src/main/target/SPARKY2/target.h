@@ -29,8 +29,7 @@
 
 #define BEEPER                  PC9
 
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
+
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
 #define USE_IMU_MPU9250

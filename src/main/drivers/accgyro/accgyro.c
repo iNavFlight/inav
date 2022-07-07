@@ -73,7 +73,6 @@ const gyroFilterAndRateConfig_t * chooseGyroConfig(uint8_t desiredLpf, uint16_t 
 /*
  * Gyro interrupt service routine
  */
-#if defined(USE_MPU_DATA_READY_SIGNAL) && defined(USE_EXTI)
 static void gyroIntExtiHandler(extiCallbackRec_t *cb)
 {
     gyroDev_t *gyro = container_of(cb, gyroDev_t, exti);
@@ -82,7 +81,6 @@ static void gyroIntExtiHandler(extiCallbackRec_t *cb)
         gyro->updateFn(gyro);
     }
 }
-#endif
 
 void gyroIntExtiInit(gyroDev_t *gyro)
 {
@@ -90,7 +88,6 @@ void gyroIntExtiInit(gyroDev_t *gyro)
         return;
     }
 
-#if defined(USE_MPU_DATA_READY_SIGNAL) && defined(USE_EXTI)
 #ifdef ENSURE_MPU_DATA_READY_IS_LOW
     uint8_t status = IORead(gyro->busDev->irqPin);
     if (status) {
@@ -110,7 +107,6 @@ void gyroIntExtiInit(gyroDev_t *gyro)
     EXTIHandlerInit(&gyro->exti, gyroIntExtiHandler);
     EXTIConfig(gyro->busDev->irqPin, &gyro->exti, NVIC_PRIO_GYRO_INT_EXTI, EXTI_Trigger_Rising);
     EXTIEnable(gyro->busDev->irqPin, true);
-#endif
 #endif
 }
 

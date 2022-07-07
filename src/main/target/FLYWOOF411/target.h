@@ -56,13 +56,12 @@
 #define ICM20689_SPI_BUS        BUS_SPI1
 #define IMU_ICM20689_ALIGN      CW180_DEG
 
-#define USE_EXTI
 #ifdef FLYWOOF411_V2
 #define GYRO_INT_EXTI           PB5
 #else
 #define GYRO_INT_EXTI           PB3
 #endif
-#define USE_MPU_DATA_READY_SIGNAL
+
 
 // *************** Baro *****************************
 

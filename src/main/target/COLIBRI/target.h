@@ -41,10 +41,8 @@
 
 #define USE_IMU_MPU6000
 
-// MPU6000 interrupts
-#define USE_EXTI
+// MPU6000 interrupt
 #define GYRO_INT_EXTI            PC0
-#define USE_MPU_DATA_READY_SIGNAL
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C3

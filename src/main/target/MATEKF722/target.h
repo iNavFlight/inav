@@ -40,9 +40,8 @@
 #define MPU6500_CS_PIN          PC2
 #define MPU6500_SPI_BUS         BUS_SPI1
 
-#define USE_EXTI
 #define GYRO_INT_EXTI            PC3
-#define USE_MPU_DATA_READY_SIGNAL
+
 
 
 // *************** I2C/Baro/Mag *********************

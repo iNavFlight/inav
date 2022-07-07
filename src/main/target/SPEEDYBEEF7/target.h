@@ -57,8 +57,7 @@
 #define USE_SPI
 #define USE_SPI_DEVICE_1
 
-#define USE_MPU_DATA_READY_SIGNAL
-#define USE_EXTI
+
 
 #define USE_IMU_ICM20689
 #define IMU_ICM20689_ALIGN          CW0_DEG

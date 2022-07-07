@@ -94,10 +94,8 @@ static void mpu6050AccAndGyroInit(gyroDev_t *gyro)
         busWrite(gyro->busDev, MPU_RA_INT_PIN_CFG, 0 << 7 | 0 << 6 | 0 << 5 | 0 << 4 | 0 << 3 | 0 << 2 | 1 << 1 | 0 << 0); // INT_PIN_CFG   -- INT_LEVEL_HIGH, INT_OPEN_DIS, LATCH_INT_DIS, INT_RD_CLEAR_DIS, FSYNC_INT_LEVEL_HIGH, FSYNC_INT_DIS, I2C_BYPASS_EN, CLOCK_DIS
         delayMicroseconds(15);
 
-#ifdef USE_MPU_DATA_READY_SIGNAL
         busWrite(gyro->busDev, MPU_RA_INT_ENABLE, MPU_RF_DATA_RDY_EN);
         delayMicroseconds(15);
-#endif
 
         mpu6050InitDone = true;
     }

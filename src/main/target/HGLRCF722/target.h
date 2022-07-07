@@ -57,8 +57,7 @@
 #define BMI270_CS_PIN           PB2
 #define BMI270_EXTI_PIN         PC4
 
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
+
 
 // *************** I2C /Baro/Mag *********************
 #define USE_I2C

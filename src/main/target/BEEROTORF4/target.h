@@ -26,11 +26,8 @@
 #define BEEPER_INVERTED
 
 // ICM20689 interrupt
-#define USE_EXTI
 #define GYRO_INT_EXTI            PA8
-#define EXTI_CALLBACK_HANDLER_COUNT 1 // MPU data ready
-//#define DEBUG_MPU_DATA_READY_INTERRUPT
-#define USE_MPU_DATA_READY_SIGNAL
+
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
 #define MPU6500_CS_PIN          SPI1_NSS_PIN

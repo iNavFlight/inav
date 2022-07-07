@@ -53,8 +53,7 @@
 #define BMI270_CS_PIN           PC14
 #define BMI270_EXTI_PIN         PC15
 
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
+
 
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI1

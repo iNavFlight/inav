@@ -33,9 +33,8 @@
 
 
 // ******* GYRO and ACC ********
-#define USE_EXTI
 #define GYRO_INT_EXTI                   PC4
-#define USE_MPU_DATA_READY_SIGNAL
+
 
 //MPU6000
 #define USE_IMU_MPU6000

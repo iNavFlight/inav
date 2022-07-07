@@ -113,10 +113,8 @@ static void mpu6000AccAndGyroInit(gyroDev_t *gyro)
     busWrite(busDev, MPU_RA_INT_PIN_CFG, 0 << 7 | 0 << 6 | 0 << 5 | 1 << 4 | 0 << 3 | 0 << 2 | 0 << 1 | 0 << 0);  // INT_ANYRD_2CLEAR
     delayMicroseconds(15);
 
-#ifdef USE_MPU_DATA_READY_SIGNAL
     busWrite(busDev, MPU_RA_INT_ENABLE, MPU_RF_DATA_RDY_EN);
     delayMicroseconds(15);
-#endif
 
     // Accel and Gyro DLPF Setting
     busWrite(busDev, MPU_RA_CONFIG, config->gyroConfigValues[0]);

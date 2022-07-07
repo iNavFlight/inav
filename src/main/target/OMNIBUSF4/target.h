@@ -64,10 +64,9 @@
 
 #define UG2864_I2C_BUS I2C_EXT_BUS
 
-// MPU6000 interrupts
-#define USE_EXTI
+// MPU6000 interrupt
 #define GYRO_INT_EXTI            PC4
-#define USE_MPU_DATA_READY_SIGNAL
+
 
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1

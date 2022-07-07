@@ -29,10 +29,8 @@
 #define USE_I2C_DEVICE_2
 #define I2C_DEVICE_2_SHARES_UART3
 
-// MPU6000 interrupts
-#define USE_EXTI
+// MPU6000 interrupt
 #define GYRO_INT_EXTI            PC4
-#define USE_MPU_DATA_READY_SIGNAL
 
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW270_DEG

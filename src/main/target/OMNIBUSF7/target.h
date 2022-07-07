@@ -63,8 +63,7 @@
 #   define MPU6500_EXTI_PIN         PE8
 #endif
 
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
+
 
 #define USE_VCP
 #define VBUS_SENSING_PIN PC4

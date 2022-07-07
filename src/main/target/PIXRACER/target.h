@@ -28,7 +28,6 @@
 // PixRacer target requires some hardware to be set up before booting and detecting sensors
 #define USE_HARDWARE_PREBOOT_SETUP
 
-#define USE_EXTI
 
 #define LED0                    PB11    //red
 #define LED1                    PB3     //blue
@@ -81,9 +80,7 @@
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
 // MPU9250 interrupt
-#define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
-#define EXTI_CALLBACK_HANDLER_COUNT 1 // MPU data ready
 
 #define USE_VCP
 #define VBUS_SENSING_PIN PA9

@@ -250,9 +250,7 @@ void init(void)
 
     ledInit(false);
 
-#ifdef USE_EXTI
     EXTIInit();
-#endif
 
 #ifdef USE_SPEKTRUM_BIND
     if (rxConfig()->receiverType == RX_TYPE_SERIAL) {

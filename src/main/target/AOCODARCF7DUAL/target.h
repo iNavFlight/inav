@@ -34,9 +34,8 @@
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PB15
 
-#define USE_EXTI
 #define USE_DUAL_GYRO
-#define USE_MPU_DATA_READY_SIGNAL
+
 #define ENSURE_MPU_DATA_READY_IS_LOW
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 

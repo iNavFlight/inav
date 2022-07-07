@@ -51,8 +51,7 @@
 #define MPU6500_1_EXTI_PIN      PA8
 
 
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
+
 
 // *************** I2C/Baro/Mag *********************
 #define USE_I2C

@@ -48,8 +48,7 @@
 #define BMI270_SPI_BUS          BUS_SPI1
 #define BMI270_EXTI_PIN
 
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
+
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
 // *************** I2C1 Baro/Mag *********************

@@ -32,8 +32,7 @@
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PA7
 
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
+
 #define GYRO_INT_EXTI           PC4
 
 #define USE_IMU_BMI270

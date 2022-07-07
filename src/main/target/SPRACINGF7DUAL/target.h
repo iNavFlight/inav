@@ -36,11 +36,10 @@
 #define BEEPER                  PC15
 #define BEEPER_INVERTED
 
-#define USE_EXTI
 #define GYRO_1_EXTI_PIN         PC13
 #define GYRO_2_EXTI_PIN         PC14
 
-#define USE_MPU_DATA_READY_SIGNAL
+
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS

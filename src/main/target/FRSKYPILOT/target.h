@@ -67,9 +67,6 @@
 #define USE_IMU_MPU6000
 #define USE_IMU_MPU6500
 
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
-
 //#define USE_ONBOARD_IMU
 //#define USE_BOX_IMU
 #define USE_DUAL_GYRO

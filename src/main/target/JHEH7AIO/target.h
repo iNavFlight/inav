@@ -42,8 +42,7 @@
 #define MPU6000_SPI_BUS         BUS_SPI1
 #define MPU6000_EXTI_PIN        PD0
 
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
+
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
 // *************** I2C1 Baro/Mag *********************

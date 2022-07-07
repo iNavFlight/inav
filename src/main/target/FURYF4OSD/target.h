@@ -45,9 +45,8 @@
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
-#define USE_EXTI
 #define GYRO_INT_EXTI            PC4
-#define USE_MPU_DATA_READY_SIGNAL
+
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 #define USE_SPI_DEVICE_3

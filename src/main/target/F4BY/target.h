@@ -28,10 +28,8 @@
 #define BEEPER_INVERTED
 
 
-// MPU6000 interrupts
-#define USE_MPU_DATA_READY_SIGNAL
+// MPU6000 interrupt
 #define GYRO_INT_EXTI            PB0
-#define USE_EXTI
 
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1

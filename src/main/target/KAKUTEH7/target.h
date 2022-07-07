@@ -36,8 +36,7 @@
 
 // *************** IMU generic ***********************
 
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
+
 
 
 // *************** SPI1 ****************

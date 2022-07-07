@@ -23,12 +23,9 @@
 #define BEEPER                  PC14
 #define BEEPER_INVERTED
 
-/*** IMU sensors ***/
-#define USE_EXTI
-
 // We use dual IMU sensors, they have to be described in the target file
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
-#define USE_MPU_DATA_READY_SIGNAL
+
 #define USE_DUAL_GYRO
 
 #define USE_IMU_MPU6000

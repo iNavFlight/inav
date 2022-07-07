@@ -71,9 +71,6 @@
 #define ICM42605_EXTI_PIN       PC13
 #endif
 
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
-
 // *************** I2C /Baro/Mag *********************
 #define USE_I2C
 #define USE_I2C_DEVICE_1
