@@ -72,6 +72,9 @@ void dynamicGyroNotchFiltersUpdate(dynamicGyroNotchState_t *state, int axis, flo
 
     if (state->enabled) {
         for (int i = 0; i < DYN_NOTCH_PEAK_COUNT; i++) {
+
+            state->frequency[axis][i] = frequency[i];
+
             // Filter update happens only if peak was detected 
             if (frequency[i] > 0.0f) {
                 biquadFilterUpdate(&state->filters[axis][i], frequency[i], state->looptime, state->dynNotchQ, FILTER_NOTCH);

@@ -69,7 +69,6 @@ FILE_COMPILE_FOR_SPEED
 
 #include "flight/gyroanalyse.h"
 #include "flight/rpm_filter.h"
-#include "flight/dynamic_gyro_notch.h"
 #include "flight/kalman.h"
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
