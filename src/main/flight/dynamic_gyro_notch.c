@@ -64,12 +64,6 @@ void dynamicGyroNotchFiltersInit(dynamicGyroNotchState_t *state) {
 
 void dynamicGyroNotchFiltersUpdate(dynamicGyroNotchState_t *state, int axis, float frequency[]) {
 
-    if (axis == FD_ROLL) {
-        for (int i = 0; i < DYN_NOTCH_PEAK_COUNT; i++) {
-            DEBUG_SET(DEBUG_DYNAMIC_FILTER_FREQUENCY, i, frequency[i]);
-        }
-    }
-
     if (state->enabled) {
         for (int i = 0; i < DYN_NOTCH_PEAK_COUNT; i++) {
 
