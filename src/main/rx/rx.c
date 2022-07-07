@@ -644,11 +644,6 @@ rssiSource_e getRSSISource(void)
     return activeRssiSource;
 }
 
-uint16_t rxGetRefreshRate(void)
-{
-    return rxRuntimeConfig.rxRefreshRate;
-}
-
 int16_t rxGetChannelValue(unsigned channelNumber)
 {
     if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_RC_CHANNEL)) {

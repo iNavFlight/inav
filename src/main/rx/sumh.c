@@ -121,8 +121,6 @@ bool sumhInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
     UNUSED(rxConfig);
 
     rxRuntimeConfig->channelCount = SUMH_MAX_CHANNEL_COUNT;
-    rxRuntimeConfig->rxRefreshRate = 11000;
-
     rxRuntimeConfig->rcReadRawFn = sumhReadRawRC;
     rxRuntimeConfig->rcFrameStatusFn = sumhFrameStatus;
 
