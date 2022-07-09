@@ -378,8 +378,6 @@ bool fportRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
     sbusChannelsInit(rxRuntimeConfig);
 
     rxRuntimeConfig->channelCount = SBUS_MAX_CHANNEL;
-    rxRuntimeConfig->rxRefreshRate = 11000;
-
     rxRuntimeConfig->rcFrameStatusFn = fportFrameStatus;
     rxRuntimeConfig->rcProcessFrameFn = fportProcessFrame;
 

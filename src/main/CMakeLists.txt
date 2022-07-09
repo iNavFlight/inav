@@ -94,8 +94,6 @@ main_sources(COMMON_SRC
     drivers/accgyro/accgyro_mpu6500.h
     drivers/accgyro/accgyro_mpu9250.c
     drivers/accgyro/accgyro_mpu9250.h
-    drivers/accgyro/accgyro_bno055.c
-    drivers/accgyro/accgyro_bno055.h
     drivers/accgyro/accgyro_bno055_serial.c
     drivers/accgyro/accgyro_bno055_serial.h
 
@@ -240,8 +238,6 @@ main_sources(COMMON_SRC
     drivers/resource.h
     drivers/rcc.c
     drivers/rcc.h
-    drivers/rx_spi.c
-    drivers/rx_spi.h
     drivers/serial.c
     drivers/serial.h
     drivers/sound_beeper.c
@@ -381,8 +377,6 @@ main_sources(COMMON_SRC
 
     rx/crsf.c
     rx/crsf.h
-    rx/eleres.c
-    rx/eleres.h
     rx/fport.c
     rx/fport.h
     rx/fport2.c
@@ -404,8 +398,6 @@ main_sources(COMMON_SRC
     rx/frsky_crc.h
     rx/rx.c
     rx/rx.h
-    rx/rx_spi.c
-    rx/rx_spi.h
     rx/sbus.c
     rx/sbus.h
     rx/sbus_channels.c
@@ -416,10 +408,6 @@ main_sources(COMMON_SRC
     rx/srxl2.h
     rx/sumd.c
     rx/sumd.h
-    rx/sumh.c
-    rx/sumh.h
-    rx/xbus.c
-    rx/xbus.h
 
     scheduler/scheduler.c
     scheduler/scheduler.h

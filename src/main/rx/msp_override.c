@@ -222,11 +222,6 @@ void mspOverrideChannels(rcChannel_t *rcChannels)
     }
 }
 
-uint16_t mspOverrideGetRefreshRate(void)
-{
-    return rxRuntimeConfigMSP.rxRefreshRate;
-}
-
 int16_t mspOverrideGetChannelValue(unsigned channelNumber)
 {
     return mspRcChannels[channelNumber].data;
