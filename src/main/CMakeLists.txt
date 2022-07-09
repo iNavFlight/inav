@@ -408,8 +408,6 @@ main_sources(COMMON_SRC
     rx/srxl2.h
     rx/sumd.c
     rx/sumd.h
-    rx/sumh.c
-    rx/sumh.h
 
     scheduler/scheduler.c
     scheduler/scheduler.h

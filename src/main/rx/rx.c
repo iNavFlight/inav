@@ -61,7 +61,6 @@
 #include "rx/spektrum.h"
 #include "rx/srxl2.h"
 #include "rx/sumd.h"
-#include "rx/sumh.h"
 #include "rx/ghst.h"
 #include "rx/mavlink.h"
 
@@ -207,11 +206,6 @@ bool serialRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
 #ifdef USE_SERIALRX_SUMD
     case SERIALRX_SUMD:
         enabled = sumdInit(rxConfig, rxRuntimeConfig);
-        break;
-#endif
-#ifdef USE_SERIALRX_SUMH
-    case SERIALRX_SUMH:
-        enabled = sumhInit(rxConfig, rxRuntimeConfig);
         break;
 #endif
 #ifdef USE_SERIALRX_IBUS
