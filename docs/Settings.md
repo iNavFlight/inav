@@ -3492,6 +3492,16 @@ Multicopter hover throttle hint for altitude controller. Should be set to approx
 
 ---
 
+### nav_mc_pos_acc_filter_smooth_lpf_hz
+
+Lowpass filter cutoff frequency for position controller acceleration filter
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 1 | 40 |
+
+---
+
 ### nav_mc_pos_deceleration_time
 
 Used for stoping distance calculation. Stop position is computed as _speed_ * _nav_mc_pos_deceleration_time_ from the place where sticks are released. Braking mode overrides this setting
@@ -4919,16 +4929,6 @@ Defines UAV platform type. Allowed values: "MULTIROTOR", "AIRPLANE", "HELICOPTER
 | Default | Min | Max |
 | --- | --- | --- |
 | MULTIROTOR |  |  |
-
----
-
-### pos_acc_filter_smooth_lpf_hz
-
-Lowpass filter cutoff frequency for position controller acceleration filter
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 5 | 1 | 40 |
 
 ---
 
