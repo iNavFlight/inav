@@ -151,7 +151,6 @@ typedef struct rxLinkQualityTracker_s {
 
 typedef struct rxRuntimeConfig_s {
     uint8_t channelCount;                  // number of rc channels as reported by current input driver
-    timeUs_t rxRefreshRate;
     timeUs_t rxSignalTimeout;
     rcReadRawDataFnPtr rcReadRawFn;
     rcFrameStatusFnPtr rcFrameStatusFn;
@@ -213,8 +212,6 @@ void resetAllRxChannelRangeConfigurations(void);
 
 void suspendRxSignal(void);
 void resumeRxSignal(void);
-
-uint16_t rxGetRefreshRate(void);
 
 // Processed RC channel value. These values might include
 // filtering and some extra processing like value holding
