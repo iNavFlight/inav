@@ -174,7 +174,6 @@ static bool sbusInitEx(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeC
     sbusChannelsInit(rxRuntimeConfig);
 
     rxRuntimeConfig->channelCount = SBUS_MAX_CHANNEL;
-    rxRuntimeConfig->rxRefreshRate = 11000;
 
     rxRuntimeConfig->rcFrameStatusFn = sbusFrameStatus;
 

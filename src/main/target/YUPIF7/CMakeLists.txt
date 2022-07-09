@@ -1,1 +1,1 @@
-target_stm32f722xe(YUPIF7)
+target_stm32f722xe(YUPIF7 SKIP_RELEASES)

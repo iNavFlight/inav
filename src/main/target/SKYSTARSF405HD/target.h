@@ -35,15 +35,21 @@
 #define SPI1_MISO_PIN	        PA6
 #define SPI1_MOSI_PIN	        PA7
 
-#define MPU6000_CS_PIN          PA4
-#define MPU6000_SPI_BUS         BUS_SPI1
-
 #define USE_EXTI
 #define GYRO_INT_EXTI           PC4
 #define USE_MPU_DATA_READY_SIGNAL
 
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW180_DEG_FLIP
+#define MPU6000_SPI_BUS         BUS_SPI1
+#define MPU6000_CS_PIN          PA4
+//#define MPU6000_EXTI_PIN        GYRO_INT_EXTI
+
+#define USE_IMU_BMI270
+#define IMU_BMI270_ALIGN        CW180_DEG_FLIP
+#define BMI270_SPI_BUS          BUS_SPI1
+#define BMI270_CS_PIN           PA4
+#define BMI270_EXTI_PIN         GYRO_INT_EXTI
 
 // *************** M25P256 flash ********************
 #define USE_FLASHFS
@@ -127,8 +133,6 @@
 #define USE_MAG_LIS3MDL
 
 #define TEMPERATURE_I2C_BUS     DEFAULT_I2C_BUS
-
-#define BNO055_I2C_BUS          DEFAULT_I2C_BUS
 
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_MSP

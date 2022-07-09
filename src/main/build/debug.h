@@ -52,7 +52,6 @@ extern timeUs_t sectionTimes[2][4];
 
 typedef enum {
     DEBUG_NONE,
-    DEBUG_GYRO,
     DEBUG_AGL,
     DEBUG_FLOW_RAW,
     DEBUG_FLOW,
@@ -69,8 +68,6 @@ typedef enum {
     DEBUG_RPM_FILTER,
     DEBUG_RPM_FREQ,
     DEBUG_NAV_YAW,
-    DEBUG_DYNAMIC_FILTER,
-    DEBUG_DYNAMIC_FILTER_FREQUENCY,
     DEBUG_IRLOCK,
     DEBUG_KALMAN_GAIN,
     DEBUG_PID_MEASUREMENT,
