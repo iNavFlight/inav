@@ -3430,6 +3430,8 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 
 				simulatorData.flags = 0;
 				//review: many states were affected. reboot?
+
+				disarm(DISARM_SWITCH);  //disarm to prevent motor output!!!
 			}
 		}
 		else if (!areSensorsCalibrating()) {
