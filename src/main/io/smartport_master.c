@@ -367,10 +367,6 @@ static void decodeVS600Data(uint32_t sdata)
     vs600->power = (sdata >> 8) & 0xFF;
     vs600->band = (sdata >> 16) & 0xFF;
     vs600->channel = (sdata >> 24) & 0xFF;
-    DEBUG_SET(DEBUG_SPM_VS600, 0, sdata);
-    DEBUG_SET(DEBUG_SPM_VS600, 1, vs600->channel);
-    DEBUG_SET(DEBUG_SPM_VS600, 2, vs600->band);
-    DEBUG_SET(DEBUG_SPM_VS600, 3, vs600->power);
 }
 
 static void decodeAltitudeData(uint32_t sdata)

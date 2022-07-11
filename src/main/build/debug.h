@@ -69,7 +69,6 @@ typedef enum {
     DEBUG_IRLOCK,
     DEBUG_KALMAN_GAIN,
     DEBUG_PID_MEASUREMENT,
-    DEBUG_SPM_VS600,    // Smartport master VS600 VTX
     DEBUG_SPM_VARIO,    // Smartport master variometer
     DEBUG_PCF8574,
     DEBUG_DYNAMIC_GYRO_LPF,
