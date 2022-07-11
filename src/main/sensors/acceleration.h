@@ -35,7 +35,6 @@
 typedef enum {
     ACC_NONE = 0,
     ACC_AUTODETECT,
-    ACC_MPU6050,
     ACC_MPU6000,
     ACC_MPU6500,
     ACC_MPU9250,

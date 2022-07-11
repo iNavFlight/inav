@@ -41,7 +41,6 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_mpu.h"
 #include "drivers/accgyro/accgyro_mpu6000.h"
-#include "drivers/accgyro/accgyro_mpu6050.h"
 #include "drivers/accgyro/accgyro_mpu6500.h"
 #include "drivers/accgyro/accgyro_mpu9250.h"
 
@@ -134,15 +133,6 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     switch (gyroHardware) {
     case GYRO_AUTODETECT:
         FALLTHROUGH;
-
-#ifdef USE_IMU_MPU6050
-    case GYRO_MPU6050:
-        if (mpu6050GyroDetect(dev)) {
-            gyroHardware = GYRO_MPU6050;
-            break;
-        }
-        FALLTHROUGH;
-#endif
 
 #ifdef USE_IMU_MPU6000
     case GYRO_MPU6000:
