@@ -358,11 +358,6 @@ static void decodeCellsData(uint32_t sdata)
         cd->count = count;
         cd->voltage[voltageStartIndex] = voltage1;
         cd->voltage[voltageStartIndex+1] = voltage2;
-
-        DEBUG_SET(DEBUG_SPM_CELLS, 0, cd->count);
-        for (uint8_t i = 0; i < 6; ++i) {
-            DEBUG_SET(DEBUG_SPM_CELLS, i+1, cd->voltage[i]);
-        }
     }
 }
 
