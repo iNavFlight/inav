@@ -372,13 +372,11 @@ static void decodeVS600Data(uint32_t sdata)
 static void decodeAltitudeData(uint32_t sdata)
 {
     sensorsData.altitude = sdata * 5; // cm
-    DEBUG_SET(DEBUG_SPM_VARIO, 0, sensorsData.altitude);
 }
 
 static void decodeVarioData(uint32_t sdata)
 {
     sensorsData.vario = sdata * 2; // mm/s
-    DEBUG_SET(DEBUG_SPM_VARIO, 1, sensorsData.vario);
 }
 
 static void processSensorPayload(smartPortPayload_t *payload, timeUs_t currentTimeUs)
