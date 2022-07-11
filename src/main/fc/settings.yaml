@@ -92,7 +92,7 @@ tables:
       "FLOW", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "NAV_YAW", 
-      "PID_MEASUREMENT", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "IMU2", "ALTITUDE",
+      "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "IMU2", "ALTITUDE",
       "SMITH_PREDICTOR", "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING"]
   - name: aux_operator
     values: ["OR", "AND"]
