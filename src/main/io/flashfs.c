@@ -76,6 +76,23 @@ void flashfsEraseCompletely(void)
     flashfsSetTailAddress(0);
 }
 
+void flashfsClose(void)
+{
+    const flashGeometry_t *geometry = flashGetGeometry();
+
+    switch(geometry->flashType) {
+    case FLASH_TYPE_NOR:
+        break;
+
+    case FLASH_TYPE_NAND:
+        flashFlush();
+        // Advance tailAddress to next page boundary.
+        uint32_t pageSize = geometry->pageSize;
+        flashfsSetTailAddress((tailAddress + pageSize - 1) & ~(pageSize - 1));
+        break;
+    }
+}
+
 /**
  * Start and end must lie on sector boundaries, or they will be rounded out to sector boundaries such that
  * all the bytes in the range [start...end) are erased.
@@ -336,6 +353,8 @@ void flashfsFlushSync(void)
 
     // We've written our entire buffer now:
     flashfsClearBuffer();
+
+    flashFlush();
 }
 
 void flashfsSeekAbs(uint32_t offset)
