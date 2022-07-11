@@ -178,6 +178,8 @@ main_sources(COMMON_SRC
     drivers/flash.h
     drivers/flash_m25p16.c
     drivers/flash_m25p16.h
+    drivers/flash_w25n01g.c
+    drivers/flash_w25n01g.h
     drivers/io.c
     drivers/io.h
     drivers/io_pcf8574.c
