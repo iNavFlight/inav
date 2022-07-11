@@ -55,7 +55,6 @@ typedef enum {
     DEBUG_AGL,
     DEBUG_FLOW_RAW,
     DEBUG_FLOW,
-    DEBUG_SBUS,
     DEBUG_FPORT,
     DEBUG_ALWAYS,
     DEBUG_SAG_COMP_VOLTAGE,
