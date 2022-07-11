@@ -69,7 +69,6 @@ FILE_COMPILE_FOR_SPEED
 
 #include "flight/gyroanalyse.h"
 #include "flight/rpm_filter.h"
-#include "flight/dynamic_gyro_notch.h"
 #include "flight/kalman.h"
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
@@ -450,9 +449,7 @@ void FAST_CODE NOINLINE gyroFilter()
         float gyroADCf = gyro.gyroADCf[axis];
 
 #ifdef USE_RPM_FILTER
-        DEBUG_SET(DEBUG_RPM_FILTER, axis, gyroADCf);
         gyroADCf = rpmFilterGyroApply(axis, gyroADCf);
-        DEBUG_SET(DEBUG_RPM_FILTER, axis + 3, gyroADCf);
 #endif
 
         gyroADCf = gyroLpf2ApplyFn((filter_t *) &gyroLpf2State[axis], gyroADCf);
@@ -460,9 +457,7 @@ void FAST_CODE NOINLINE gyroFilter()
 #ifdef USE_DYNAMIC_FILTERS
         if (dynamicGyroNotchState.enabled) {
             gyroDataAnalysePush(&gyroAnalyseState, axis, gyroADCf);
-            DEBUG_SET(DEBUG_DYNAMIC_FILTER, axis, gyroADCf);
             gyroADCf = dynamicGyroNotchFiltersApply(&dynamicGyroNotchState, axis, gyroADCf);
-            DEBUG_SET(DEBUG_DYNAMIC_FILTER, axis + 3, gyroADCf);
         }
 #endif
 

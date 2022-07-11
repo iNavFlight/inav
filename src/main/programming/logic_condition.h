@@ -168,16 +168,16 @@ typedef enum {
 } logicConditionFlags_e;
 
 typedef struct logicOperand_s {
-    logicOperandType_e type;
     int32_t value;
+    logicOperandType_e type;
 } logicOperand_t;
 
 typedef struct logicCondition_s {
+    logicOperand_t operandA;
+    logicOperand_t operandB;
     uint8_t enabled;
     int8_t activatorId;
     logicOperation_e operation;
-    logicOperand_t operandA;
-    logicOperand_t operandB;
     uint8_t flags;
 } logicCondition_t;
 
@@ -189,15 +189,15 @@ typedef struct logicConditionState_s {
 } logicConditionState_t;
 
 typedef struct rcChannelOverride_s {
-    uint8_t active;
     int value;
+    uint8_t active;
 } rcChannelOverride_t;
 
 typedef struct flightAxisOverride_s {
-    uint8_t rateTargetActive;
-    uint8_t angleTargetActive;
     int angleTarget;
     int rateTarget;
+    uint8_t rateTargetActive;
+    uint8_t angleTargetActive;
 } flightAxisOverride_t;
 
 extern int logicConditionValuesByType[LOGIC_CONDITION_LAST];

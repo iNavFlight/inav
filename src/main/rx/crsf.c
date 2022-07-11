@@ -307,8 +307,6 @@ bool crsfRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
     }
 
     rxRuntimeConfig->channelCount = CRSF_MAX_CHANNEL;
-    rxRuntimeConfig->rxRefreshRate = CRSF_TIME_BETWEEN_FRAMES_US; //!!TODO this needs checking
-
     rxRuntimeConfig->rcReadRawFn = crsfReadRawRC;
     rxRuntimeConfig->rcFrameStatusFn = crsfFrameStatus;
 
