@@ -47,15 +47,11 @@
 
 #include "flight/mixer.h"
 
+// RC Interpolation is not allowed to go below this value.
+#define RC_INTERPOLATION_MIN_FREQUENCY 15
+
 static pt3Filter_t rcSmoothFilter[4];
 static float rcStickUnfiltered[4];
-
-static void rcInterpolationInit(int rcFilterFreqency)
-{
-    for (int stick = 0; stick < 4; stick++) {
-        pt3FilterInit(&rcSmoothFilter[stick], pt3FilterGain(rcFilterFreqency, getLooptime() * 1e-6f));
-    }
-}
 
 static int32_t applyRcUpdateFrequencyMedianFilter(int32_t newReading)
 {
@@ -78,23 +74,21 @@ void rcInterpolationApply(bool isRXDataNew, timeUs_t currentTimeUs)
 {
     // Compute the RC update frequency
     static timeUs_t previousRcData;
-
-    if (isRXDataNew) {
-        const timeDelta_t delta = cmpTimeUs(currentTimeUs, previousRcData);
-        const float rcUpdateFrequency = applyRcUpdateFrequencyMedianFilter(1.0f / (delta * 0.000001f));
-
-        DEBUG_SET(DEBUG_ALWAYS, 0, rcUpdateFrequency);
-
-        previousRcData = currentTimeUs;
-    }
-
+    static int filterFrequency;
     static bool initDone = false;
-    static float initFilterFreqency = 0;
+
+    const float dT = getLooptime() * 1e-6f;
 
     if (isRXDataNew) {
-        if (!initDone || (initFilterFreqency != rxConfig()->rcFilterFrequency)) {
-            rcInterpolationInit(rxConfig()->rcFilterFrequency);
-            initFilterFreqency = rxConfig()->rcFilterFrequency;
+        if (!initDone) {
+
+            filterFrequency = rxConfig()->rcFilterFrequency;
+
+            // Initialize the RC smooth filter
+            for (int stick = 0; stick < 4; stick++) {
+                pt3FilterInit(&rcSmoothFilter[stick], pt3FilterGain(filterFrequency, dT));
+            }
+
             initDone = true;
         }
 
@@ -108,6 +102,34 @@ void rcInterpolationApply(bool isRXDataNew, timeUs_t currentTimeUs)
         return;
     }
 
+    if (isRXDataNew && rxConfig()->autoSmooth) {
+        const timeDelta_t delta = cmpTimeUs(currentTimeUs, previousRcData);
+        const int32_t rcUpdateFrequency = applyRcUpdateFrequencyMedianFilter(1.0f / (delta * 0.000001f));
+
+        const int nyquist = rcUpdateFrequency / 2;
+
+        int newFilterFrequency = scaleRange(
+            rxConfig()->autoSmoothFactor,
+            1,
+            100,
+            nyquist,
+            rcUpdateFrequency / 10
+        );
+        
+        // Do not allow filter frequency to go below RC_INTERPOLATION_MIN_FREQUENCY or above nuyquist frequency.
+        newFilterFrequency = constrain(newFilterFrequency, RC_INTERPOLATION_MIN_FREQUENCY, nyquist);
+
+        if (newFilterFrequency != filterFrequency) {
+
+            for (int stick = 0; stick < 4; stick++) {
+                pt3FilterUpdateCutoff(&rcSmoothFilter[stick], pt3FilterGain(newFilterFrequency, dT));
+            }
+            filterFrequency = newFilterFrequency;
+        }
+
+        previousRcData = currentTimeUs;
+    } 
+    
     for (int stick = 0; stick < 4; stick++) {
         rcCommand[stick] = pt3FilterApply(&rcSmoothFilter[stick], rcStickUnfiltered[stick]);
     }
