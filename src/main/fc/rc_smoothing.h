@@ -28,4 +28,4 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-void rcInterpolationApply(bool isRXDataNew);
+void rcInterpolationApply(bool isRXDataNew, timeUs_t currentTimeUs);

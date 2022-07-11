@@ -886,7 +886,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     annexCode(dT);
 
     if (rxConfig()->rcFilterFrequency) {
-        rcInterpolationApply(isRXDataNew);
+        rcInterpolationApply(isRXDataNew, currentTimeUs);
     }
 
     if (isRXDataNew) {

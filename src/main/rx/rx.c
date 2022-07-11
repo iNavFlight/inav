@@ -451,7 +451,7 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
     }
 
     rxDataProcessingRequired = false;
-    rxNextUpdateAtUs = currentTimeUs + DELAY_50_HZ;
+    rxNextUpdateAtUs = currentTimeUs + DELAY_10_HZ;
 
     // only proceed when no more samples to skip and suspend period is over
     if (skipRxSamples) {
