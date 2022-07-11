@@ -540,7 +540,7 @@ static float computeVelocityScale(
  * @param maxAccelLimit - maximum acceleration in cm/s/s
  * @param maxSpeed - maximum speed in cm/s
  */
-static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxAccelLimit, const float maxSpeed)
+static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxAccelLimit, const float maxSpeed, const float smoothnessFactor)
 {
     const float measurementX = navGetCurrentActualPositionAndVelocity()->vel.x;
     const float measurementY = navGetCurrentActualPositionAndVelocity()->vel.y;
@@ -724,10 +724,45 @@ static void applyMulticopterPositionController(timeUs_t currentTimeUs)
             if (!bypassPositionController) {
                 // Update position controller
                 if (deltaMicrosPositionUpdate < MAX_POSITION_UPDATE_INTERVAL_US) {
+                    
                     // Get max speed from generic NAV (waypoint specific), don't allow to move slower than 0.5 m/s
                     const float maxSpeed = getActiveWaypointSpeed();
+
+                    float smoothnessFactor = 0.0f;
+                    if (posControl.flags.isAdjustingPosition) {
+                        /*
+                        * In this case, pilot is adjusting position manually. 
+                        * Acceleration smoothness depends on the stick deflection
+                        * The bigger the deflection, the more smooth the acceleration should be
+                        */
+
+                        const float deflection = calc_length_pythagorean_2D(
+                            applyDeadbandRescaled(rcCommand[ROLL], rcControlsConfig()->pos_hold_deadband, -500, 500),
+                            applyDeadbandRescaled(rcCommand[PITCH], rcControlsConfig()->pos_hold_deadband, -500, 500)
+                        );
+
+                        //smoothnes depends on deflection and is capped at 1.0f
+                        smoothnessFactor = constrainf(scaleRangef(deflection, 0.0f, 500.0f, 0.0f, 1.0f), 0.0f, 1.0f);
+                    } else {
+                        // In this case, INAV controls position. Acceleration smoothness depends on the fact if desired position is reached or not
+
+                        //TODO: implement this
+
+                        /*
+                         * Plan: 
+                         * 1. Calculate distance to target
+                         * 2. If distance is small, smoothnessFactor should be 0.0f
+                         * 3. If distance is big, smoothnessFactor should be 1.0f
+                         * 
+                         * Assumptions: 0.0f should be applied as long as distance is smaller than the one that causes half of the speed
+                         * by the updatePositionVelocityController_MC
+                         */
+
+
+                    }
+
                     updatePositionVelocityController_MC(maxSpeed);
-                    updatePositionAccelController_MC(deltaMicrosPositionUpdate, NAV_ACCELERATION_XY_MAX, maxSpeed);
+                    updatePositionAccelController_MC(deltaMicrosPositionUpdate, NAV_ACCELERATION_XY_MAX, maxSpeed, smoothnessFactor);
                 }
                 else {
                     // Position update has not occurred in time (first start or glitch), reset altitude controller
