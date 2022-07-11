@@ -358,11 +358,6 @@ static void decodeCellsData(uint32_t sdata)
         cd->count = count;
         cd->voltage[voltageStartIndex] = voltage1;
         cd->voltage[voltageStartIndex+1] = voltage2;
-
-        DEBUG_SET(DEBUG_SPM_CELLS, 0, cd->count);
-        for (uint8_t i = 0; i < 6; ++i) {
-            DEBUG_SET(DEBUG_SPM_CELLS, i+1, cd->voltage[i]);
-        }
     }
 }
 
@@ -372,22 +367,16 @@ static void decodeVS600Data(uint32_t sdata)
     vs600->power = (sdata >> 8) & 0xFF;
     vs600->band = (sdata >> 16) & 0xFF;
     vs600->channel = (sdata >> 24) & 0xFF;
-    DEBUG_SET(DEBUG_SPM_VS600, 0, sdata);
-    DEBUG_SET(DEBUG_SPM_VS600, 1, vs600->channel);
-    DEBUG_SET(DEBUG_SPM_VS600, 2, vs600->band);
-    DEBUG_SET(DEBUG_SPM_VS600, 3, vs600->power);
 }
 
 static void decodeAltitudeData(uint32_t sdata)
 {
     sensorsData.altitude = sdata * 5; // cm
-    DEBUG_SET(DEBUG_SPM_VARIO, 0, sensorsData.altitude);
 }
 
 static void decodeVarioData(uint32_t sdata)
 {
     sensorsData.vario = sdata * 2; // mm/s
-    DEBUG_SET(DEBUG_SPM_VARIO, 1, sensorsData.vario);
 }
 
 static void processSensorPayload(smartPortPayload_t *payload, timeUs_t currentTimeUs)

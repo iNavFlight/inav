@@ -449,9 +449,7 @@ void FAST_CODE NOINLINE gyroFilter()
         float gyroADCf = gyro.gyroADCf[axis];
 
 #ifdef USE_RPM_FILTER
-        DEBUG_SET(DEBUG_RPM_FILTER, axis, gyroADCf);
         gyroADCf = rpmFilterGyroApply(axis, gyroADCf);
-        DEBUG_SET(DEBUG_RPM_FILTER, axis + 3, gyroADCf);
 #endif
 
         gyroADCf = gyroLpf2ApplyFn((filter_t *) &gyroLpf2State[axis], gyroADCf);
