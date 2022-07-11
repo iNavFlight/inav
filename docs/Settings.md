@@ -3572,36 +3572,6 @@ D gain of Position-Rate (Velocity to Acceleration) PID controller. It can damp P
 
 ---
 
-### nav_mc_vel_xy_dterm_attenuation
-
-Maximum D-term attenution percentage for horizontal velocity PID controller (Multirotor). It allows to smooth the PosHold CRUISE, WP and RTH when Multirotor is traveling at full speed. Dterm is not attenuated at low speeds, breaking and accelerating.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 90 | 0 | 100 |
-
----
-
-### nav_mc_vel_xy_dterm_attenuation_end
-
-A point (in percent of both target and current horizontal velocity) where nav_mc_vel_xy_dterm_attenuation reaches maximum
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 60 | 0 | 100 |
-
----
-
-### nav_mc_vel_xy_dterm_attenuation_start
-
-A point (in percent of both target and current horizontal velocity) where nav_mc_vel_xy_dterm_attenuation begins
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 10 | 0 | 100 |
-
----
-
 ### nav_mc_vel_xy_dterm_lpf_hz
 
 _// TODO_
