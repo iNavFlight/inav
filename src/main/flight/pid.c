@@ -1133,9 +1133,7 @@ void FAST_CODE pidController(float dT)
 #endif
 
 #ifdef USE_SMITH_PREDICTOR
-        DEBUG_SET(DEBUG_SMITH_PREDICTOR, axis, pidState[axis].gyroRate);
         pidState[axis].gyroRate = applySmithPredictor(axis, &pidState[axis].smithPredictor, pidState[axis].gyroRate);
-        DEBUG_SET(DEBUG_SMITH_PREDICTOR, axis + 3, pidState[axis].gyroRate);
 #endif
     }
 
