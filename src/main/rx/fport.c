@@ -150,11 +150,7 @@ static serialPort_t *fportPort;
 
 static void reportFrameError(uint8_t errorReason) {
     static volatile uint16_t frameErrors = 0;
-
     frameErrors++;
-
-    DEBUG_SET(DEBUG_FPORT, DEBUG_FPORT_FRAME_ERRORS, frameErrors);
-    DEBUG_SET(DEBUG_FPORT, DEBUG_FPORT_FRAME_LAST_ERROR, errorReason);
 }
 
 // Receive ISR callback
@@ -193,7 +189,6 @@ static void fportDataReceive(uint16_t c, void *data)
                 telemetryFrame = false;
             }
 
-            DEBUG_SET(DEBUG_FPORT, DEBUG_FPORT_FRAME_INTERVAL, currentTimeUs - lastFrameReceivedUs);
             lastFrameReceivedUs = currentTimeUs;
 
             escapedCharacter = false;
@@ -361,7 +356,6 @@ static bool fportProcessFrame(const rxRuntimeConfig_t *rxRuntimeConfig)
             clearToSend = false;
         }
 
-        DEBUG_SET(DEBUG_FPORT, DEBUG_FPORT_TELEMETRY_INTERVAL, currentTimeUs - lastTelemetryFrameSentUs);
         lastTelemetryFrameSentUs = currentTimeUs;
     }
 

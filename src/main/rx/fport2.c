@@ -196,11 +196,7 @@ static timeUs_t readyToUpdateFirmwareTimestamp = 0;
 static volatile uint16_t frameErrors = 0;
 
 static void reportFrameError(uint8_t errorReason) {
-
     frameErrors++;
-
-    DEBUG_SET(DEBUG_FPORT, DEBUG_FPORT2_FRAME_ERRORS, frameErrors);
-    DEBUG_SET(DEBUG_FPORT, DEBUG_FPORT2_FRAME_LAST_ERROR, errorReason);
 }
 
 static uint8_t bufferCount(void)
@@ -315,9 +311,6 @@ static void fportDataReceive(uint16_t byte, void *callback_data)
             break;
 
     }
-
-    DEBUG_SET(DEBUG_FPORT, DEBUG_FPORT2_MAX_BUFFER_USAGE, MAX(bufferCount(), debug[DEBUG_FPORT2_MAX_BUFFER_USAGE]));
-
 }
 
 #if defined(USE_TELEMETRY_SMARTPORT)
@@ -468,7 +461,6 @@ static uint8_t frameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
                                             otaPrevDataAddress = otaDataAddress;
                                             otaGotData = false;
                                             otaDataNeedsProcessing = true;
-                                            DEBUG_SET(DEBUG_FPORT, DEBUG_FPORT2_OTA_RECEIVED_BYTES, debug[DEBUG_FPORT2_OTA_RECEIVED_BYTES] + FPORT2_OTA_DATA_FRAME_BYTES);
                                         }
                                         hasTelemetryRequest = true;
                                         otaJustStarted = false;
@@ -596,7 +588,6 @@ static bool processFrame(const rxRuntimeConfig_t *rxRuntimeConfig)
             timeDelta_t otaResponseTime = cmpTimeUs(micros(), otaFrameEndTimestamp);
             if (!firmwareUpdateError && (otaResponseTime <= otaMaxResponseTime)) { // We can answer in time (firmwareUpdateStore can take time because it might need to erase flash)
                 writeUplinkFramePhyID(downlinkPhyID, otaResponsePayload);
-                DEBUG_SET(DEBUG_FPORT, DEBUG_FPORT2_OTA_FRAME_RESPONSE_TIME, otaResponseTime);
             }
 
             otaResponsePayload = NULL;
@@ -641,9 +632,7 @@ static bool processFrame(const rxRuntimeConfig_t *rxRuntimeConfig)
 
         sendNullFrame = false;
 
-        DEBUG_SET(DEBUG_FPORT, DEBUG_FPORT2_TELEMETRY_INTERVAL, currentTimeUs - lastTelemetryFrameSentUs);
         lastTelemetryFrameSentUs = currentTimeUs;
-
     }
 #endif
 
