@@ -64,7 +64,6 @@ static bool prepareForTakeoffOnReset = false;
 static sqrt_controller_t alt_hold_sqrt_controller;
 
 static pt1Filter_t mcPosXYAccelerationFilterState[2];
-static pt1Filter_t mcPosAccelerationFilterLpfState;
 
 // Position to velocity controller for Z axis
 static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
@@ -512,26 +511,6 @@ static void updatePositionVelocityController_MC(const float maxSpeed)
     navDesiredVelocity[Y] = constrain(lrintf(posControl.desiredState.vel.y), -32678, 32767);
 }
 
-static float computeNormalizedVelocity(const float value, const float maxValue)
-{
-    return constrainf(scaleRangef(fabsf(value), 0, maxValue, 0.0f, 1.0f), 0.0f, 1.0f);
-}
-
-static float computeVelocityScale(
-    const float value,
-    const float maxValue,
-    const float attenuationFactor,
-    const float attenuationStart,
-    const float attenuationEnd
-)
-{
-    const float normalized = computeNormalizedVelocity(value, maxValue);
-
-    float scale = scaleRangef(normalized, attenuationStart, attenuationEnd, 0, attenuationFactor);
-    return constrainf(scale, 0, attenuationFactor);
-}
-
-
 /**
  * This controller translated desired linear velocity into required acceleration
  * Acceleration is approximated to the roll and pitch angle that multirotor should achieve (attitude)
@@ -540,14 +519,13 @@ static float computeVelocityScale(
  * @param maxAccelLimit - maximum acceleration in cm/s/s
  * @param maxSpeed - maximum speed in cm/s
  */
-static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxAccelLimit, const float maxSpeed, const float smoothnessFactor)
+static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxAccelLimit, const float smoothnessFactor)
 {
     const float measurementX = navGetCurrentActualPositionAndVelocity()->vel.x;
     const float measurementY = navGetCurrentActualPositionAndVelocity()->vel.y;
 
     const float setpointX = posControl.desiredState.vel.x;
     const float setpointY = posControl.desiredState.vel.y;
-    const float setpointXY = calc_length_pythagorean_2D(setpointX, setpointY);
 
     // Calculate velocity error
     const float velErrorX = setpointX - measurementX;
@@ -583,29 +561,18 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
 
     // TODO: Verify if we need jerk limiting after all
 
-    /*
-     * This PID controller has dynamic dTerm scale. It's less active when controller
-     * is tracking setpoint at high speed. Full dTerm is required only for position hold,
-     * acceleration and deceleration
-     * Scale down dTerm with 2D speed
-     */
-    const float dTermSetpointScale = computeVelocityScale(
-        setpointXY,
-        maxSpeed,
-        multicopterPosXyCoefficients.dTermAttenuation,
-        multicopterPosXyCoefficients.dTermAttenuationStart,
-        multicopterPosXyCoefficients.dTermAttenuationEnd
-    );
-    const float dTermMeasurementScale = computeVelocityScale(
-        posControl.actualState.velXY,
-        maxSpeed,
-        multicopterPosXyCoefficients.dTermAttenuation,
-        multicopterPosXyCoefficients.dTermAttenuationStart,
-        multicopterPosXyCoefficients.dTermAttenuationEnd
-    );
+    //Convert Smoothness factor to dTerm scale
+    float dtermScale;
 
-    //Choose smaller attenuation factor and convert from attenuation to scale
-    const float dtermScale = 1.0f - MIN(dTermSetpointScale, dTermMeasurementScale);
+    if (smoothnessFactor < 0.1f) {
+        dtermScale = 1.0f;
+    } else if (smoothnessFactor < 0.6f) {
+        dtermScale = scaleRangef(smoothnessFactor, 0.1f, 0.6f, 1.0f, 0.1f);
+    } else {
+        dtermScale = 0.1f;
+    }
+
+    DEBUG_SET(DEBUG_NAV_SMOOTHNESS, 2, dtermScale * 100.0f);
 
     // Apply PID with output limiting and I-term anti-windup
     // Pre-calculated accelLimit and the logic of navPidApply2 function guarantee that our newAccel won't exceed maxAccelLimit
@@ -635,22 +602,11 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
 
     int32_t maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.max_bank_angle);
 
-    const float setpointNormalized = computeNormalizedVelocity(setpointXY, maxSpeed);
-    const float measurementNormalized = computeNormalizedVelocity(posControl.actualState.velXY, maxSpeed);
-    const float speedScale = MIN(setpointNormalized, measurementNormalized);
-
-    float mcPosXYAccelerationFilterLpf = scaleRangef(speedScale, 0.0f, 1.0f, navConfig()->mc.pos_stationary_lpf_hz, navConfig()->mc.pos_moving_lpf_hz);
+    float mcPosXYAccelerationFilterLpf = scaleRangef(smoothnessFactor, 0.0f, 1.0f, navConfig()->mc.pos_stationary_lpf_hz, navConfig()->mc.pos_moving_lpf_hz);
     mcPosXYAccelerationFilterLpf = constrainf(mcPosXYAccelerationFilterLpf, 0.1f, navConfig()->mc.pos_stationary_lpf_hz);
 
-    DEBUG_SET(DEBUG_ALWAYS, 0, setpointNormalized * 100.0f);
-    DEBUG_SET(DEBUG_ALWAYS, 1, measurementNormalized * 100.0f);
-    DEBUG_SET(DEBUG_ALWAYS, 2, mcPosXYAccelerationFilterLpf * 100.0f);
-
-    // Smoothen the acceleration LPF to avoid rapid changes
-    mcPosXYAccelerationFilterLpf = pt1FilterApply4(&mcPosAccelerationFilterLpfState, mcPosXYAccelerationFilterLpf, navConfig()->mc.pos_acc_filter_smooth_lpf_hz, US2S(deltaMicros));
-
     DEBUG_SET(DEBUG_ALWAYS, 3, mcPosXYAccelerationFilterLpf * 100.0f);
-
+    
 #ifdef USE_MR_BRAKING_MODE
     //Boost required accelerations
     if (STATE(NAV_CRUISE_BRAKING_BOOST) && multicopterPosXyCoefficients.breakingBoostFactor > 0.0f) {
@@ -743,6 +699,8 @@ static void applyMulticopterPositionController(timeUs_t currentTimeUs)
 
                         //smoothnes depends on deflection and is capped at 1.0f
                         smoothnessFactor = constrainf(scaleRangef(deflection, 0.0f, 500.0f, 0.0f, 1.0f), 0.0f, 1.0f);
+
+                        DEBUG_SET(DEBUG_NAV_SMOOTHNESS, 0, 1);
                     } else {
                         // In this case, INAV controls position. Acceleration smoothness depends on the fact if desired position is reached or not
 
@@ -757,12 +715,28 @@ static void applyMulticopterPositionController(timeUs_t currentTimeUs)
                          * Assumptions: 0.0f should be applied as long as distance is smaller than the one that causes half of the speed
                          * by the updatePositionVelocityController_MC
                          */
+                        const float error2D = calc_length_pythagorean_2D(
+                            posControl.desiredState.pos.x - navGetCurrentActualPositionAndVelocity()->pos.x,
+                            posControl.desiredState.pos.y - navGetCurrentActualPositionAndVelocity()->pos.y
+                        ); 
 
+                        // This distance causes max response from the Position-To-Velocity controller
+                        const float thresholdDistance = maxSpeed / posControl.pids.pos[X].param.kP;
 
+                        if (error2D < thresholdDistance) {
+                            smoothnessFactor = 0.0f;
+                        }  if (error2D < 2 * thresholdDistance) {
+                            smoothnessFactor = constrainf(scaleRangef(error2D, thresholdDistance, 2 * thresholdDistance, 0.0f, 1.0f), 0.0f, 1.0f);
+                        } else {
+                            smoothnessFactor = 1.0f;
+                        }
+                        DEBUG_SET(DEBUG_NAV_SMOOTHNESS, 0, 2);
                     }
 
+                    DEBUG_SET(DEBUG_NAV_SMOOTHNESS, 1, smoothnessFactor);
+
                     updatePositionVelocityController_MC(maxSpeed);
-                    updatePositionAccelController_MC(deltaMicrosPositionUpdate, NAV_ACCELERATION_XY_MAX, maxSpeed, smoothnessFactor);
+                    updatePositionAccelController_MC(deltaMicrosPositionUpdate, NAV_ACCELERATION_XY_MAX, smoothnessFactor);
                 }
                 else {
                     // Position update has not occurred in time (first start or glitch), reset altitude controller

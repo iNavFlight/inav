@@ -3957,13 +3957,6 @@ void navigationUsePIDs(void)
         );
     }
 
-    /*
-     * Set coefficients used in MC VEL_XY
-     */
-    multicopterPosXyCoefficients.dTermAttenuation = pidProfile()->navVelXyDtermAttenuation / 100.0f;
-    multicopterPosXyCoefficients.dTermAttenuationStart = pidProfile()->navVelXyDtermAttenuationStart / 100.0f;
-    multicopterPosXyCoefficients.dTermAttenuationEnd = pidProfile()->navVelXyDtermAttenuationEnd / 100.0f;
-
 #ifdef USE_MR_BRAKING_MODE
     multicopterPosXyCoefficients.breakingBoostFactor = (float) navConfig()->mc.braking_boost_factor / 100.0f;
 #endif

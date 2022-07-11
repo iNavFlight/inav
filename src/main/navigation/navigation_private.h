@@ -416,9 +416,6 @@ typedef struct {
 } navigationPosControl_t;
 
 typedef struct {
-    float dTermAttenuation;
-    float dTermAttenuationStart;
-    float dTermAttenuationEnd;
     float breakingBoostFactor;
 } multicopterPosXyCoefficients_t;
 

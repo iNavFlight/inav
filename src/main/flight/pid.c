@@ -172,7 +172,7 @@ static EXTENDED_FASTRAM bool levelingEnabled = false;
 static EXTENDED_FASTRAM float fixedWingLevelTrim;
 static EXTENDED_FASTRAM pidController_t fixedWingLevelTrimController;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 4);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 5);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -280,9 +280,6 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
 
         .loiter_direction = SETTING_FW_LOITER_DIRECTION_DEFAULT,
         .navVelXyDTermLpfHz = SETTING_NAV_MC_VEL_XY_DTERM_LPF_HZ_DEFAULT,
-        .navVelXyDtermAttenuation = SETTING_NAV_MC_VEL_XY_DTERM_ATTENUATION_DEFAULT,
-        .navVelXyDtermAttenuationStart = SETTING_NAV_MC_VEL_XY_DTERM_ATTENUATION_START_DEFAULT,
-        .navVelXyDtermAttenuationEnd = SETTING_NAV_MC_VEL_XY_DTERM_ATTENUATION_END_DEFAULT,
         .iterm_relax_cutoff = SETTING_MC_ITERM_RELAX_CUTOFF_DEFAULT,
         .iterm_relax = SETTING_MC_ITERM_RELAX_DEFAULT,
 
