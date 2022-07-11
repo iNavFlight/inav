@@ -209,7 +209,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .yawControlDeadband = SETTING_NAV_FW_YAW_DEADBAND_DEFAULT,
         .soaring_pitch_deadband = SETTING_NAV_FW_SOARING_PITCH_DEADBAND_DEFAULT,// pitch angle mode deadband when Saoring mode enabled
         .auto_disarm_delay = SETTING_NAV_FW_AUTO_DISARM_DELAY_DEFAULT,          // ms - time delay to disarm when auto disarm after landing enabled
-        .waypoint_tracking_accuracy = SETTING_NAV_FW_WP_TRACKING_ACCURACY_DEFAULT,  // 0 cm
+        .waypoint_tracking_accuracy = SETTING_NAV_FW_WP_TRACKING_ACCURACY_DEFAULT,  // 0 m
         .wp_turn_smoothing_dist = SETTING_NAV_FW_WP_TURN_SMOOTHING_DIST_DEFAULT,    // 0 cm
     }
 );
@@ -2256,7 +2256,7 @@ static bool isWaypointReached(const fpVector3_t * waypointPos, const int32_t * w
     }
 
     uint16_t turnEarlyDistance = 0;
-    if (navGetStateFlags(posControl.navState) & NAV_WP_MODE) {
+    if (navGetStateFlags(posControl.navState) & NAV_AUTO_WP) {
         // Check if waypoint was missed based on bearing to WP exceeding 100 degrees relative to waypointYaw
         if (ABS(wrap_18000(calculateBearingToDestination(waypointPos) - *waypointYaw)) > 10000) {
             return true;
@@ -2268,7 +2268,7 @@ static bool isWaypointReached(const fpVector3_t * waypointPos, const int32_t * w
             fpVector3_t nextWpPos;
             if (getLocalPosNextWaypoint(&nextWpPos)) {
                 int32_t bearingToNextWP = ABS(wrap_18000(calculateBearingBetweenLocalPositions(waypointPos, &nextWpPos) - *waypointYaw));
-                turnEarlyDistance = navConfig()->fw.wp_turn_smoothing_dist * constrain((bearingToNextWP - 5500) / 500, 0, 10);
+                turnEarlyDistance = navConfig()->fw.wp_turn_smoothing_dist * constrain((bearingToNextWP - 4000) / 500, 0, 10);
             }
         }
     }

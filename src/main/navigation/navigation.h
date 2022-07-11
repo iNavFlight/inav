@@ -307,7 +307,7 @@ typedef struct navConfig_s {
         uint8_t  yawControlDeadband;
         uint8_t  soaring_pitch_deadband;     // soaring mode pitch angle deadband (deg)
         uint16_t auto_disarm_delay;          // fixed wing disarm delay for landing detector
-        uint16_t waypoint_tracking_accuracy; // fixed wing tracking distance accuracy [cm]
+        uint8_t  waypoint_tracking_accuracy; // fixed wing tracking distance accuracy [m]
         uint16_t wp_turn_smoothing_dist;     // distance increment to smooth turns during fixed wing waypoint missions [cm]
     } fw;
 } navConfig_t;

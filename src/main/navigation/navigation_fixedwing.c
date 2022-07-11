@@ -370,17 +370,19 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
                                    posControl.wpDistance * sin_approx(CENTIDEGREES_TO_RADIANS(posControl.activeWaypoint.yaw));
             float distToCourseLine = calculateDistanceToDestination(&virtualCoursePoint);
 
-            int32_t courseCorrection = wrap_18000(posControl.activeWaypoint.yaw - virtualTargetBearing);
-            // lock virtualTargetBearing to wp course heading if within accuracy dead band and wp course heading error < 10 degrees
-            if (distToCourseLine < navConfig()->fw.waypoint_tracking_accuracy &&
-               ABS(wrap_18000(posControl.activeWaypoint.yaw - posControl.actualState.yaw)) < 1000) {
-                virtualTargetBearing = posControl.activeWaypoint.yaw;
-            } else {
-                float courseCorrectionFactor = constrainf((distToCourseLine - navConfig()->fw.waypoint_tracking_accuracy) /
-                                                (15.0f * navConfig()->fw.waypoint_tracking_accuracy), 0.0f, 1.0f);
-                courseCorrection = courseCorrection < 0 ? -8000 * courseCorrectionFactor : 8000 * courseCorrectionFactor;
-                virtualTargetBearing = wrap_36000(posControl.activeWaypoint.yaw - courseCorrection);
-            }
+            int32_t courseVirtualCorrection = wrap_18000(posControl.activeWaypoint.yaw - virtualTargetBearing);
+            int32_t courseHeadingError = wrap_18000(posControl.activeWaypoint.yaw - posControl.actualState.yaw);
+
+            float courseCorrectionFactor = constrainf(distToCourseLine / (100.0f * navConfig()->fw.waypoint_tracking_accuracy), 0.0f, 1.0f);
+            courseCorrectionFactor = courseVirtualCorrection < 0 ? -courseCorrectionFactor : courseCorrectionFactor;
+
+            float courseHeadingFactor = constrainf(sq(courseHeadingError / 18000.0f), 0.0f, 1.0f);
+            courseHeadingFactor = courseHeadingError < 0 ? -courseHeadingFactor : courseHeadingFactor;
+
+            courseCorrectionFactor = constrainf(courseCorrectionFactor - courseHeadingFactor, -1.0f, 1.0f);
+            courseVirtualCorrection = 8000 * courseCorrectionFactor;
+
+            virtualTargetBearing = wrap_36000(posControl.activeWaypoint.yaw - courseVirtualCorrection);
         }
     }
 

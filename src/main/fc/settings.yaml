@@ -2423,13 +2423,13 @@ groups:
         min: 0
         max: 9
       - name: nav_fw_wp_tracking_accuracy
-        description: "Sets the maximum allowed distance from the waypoint course line when waypoint tracking is active [cm]. When the craft is outside this distance it will head toward the the course line as quickly as possible. The course tracking response can be tuned by making small changes to the accuracy setting, higher values damp the response. A value of 250 is a good starting point. If set to 0 course tracking is disabled and the craft will head directly to the next waypoint from whatever position was achieved after the last waypoint turn."
+        description: "Sets a reference distance to the waypoint course line that affects the accuracy of waypoint course tracking [m]. If set to 0 course tracking is disabled and the craft will head directly to the next waypoint from whatever position was achieved after the last waypoint turn. Otherwise course tracking will be enabled which will force the craft to quickly head toward and track along the the course line as closely as possible. The course tracking response can be tuned by changing the accuracy setting. Lower values will push the craft toward the course line quicker but may result in overshoot. 40 is a good starting point."
         default_value: 0
         field: fw.waypoint_tracking_accuracy
         min: 0
-        max: 1000
+        max: 100
       - name: nav_fw_wp_turn_smoothing_dist
-        description: "Provides a means of smoothing waypoint turns by reaching waypoints earlier as turns become tighter. Applied as an increasing multiple of nav_fw_wp_turn_smoothing_dist [cm] starting at 1 for turns exceeding 60 degrees to a maximum of 10 for turns of 105 degrees and over, e.g. a 90 degree turn is reached when 7 x nav_fw_wp_turn_smoothing_dist from waypoint. Set to 0 to disable turn smoothing."
+        description: "Provides a means of smoothing waypoint turns by reaching waypoints earlier as turns become tighter. Applied as an increasing multiple of nav_fw_wp_turn_smoothing_dist [cm] starting at 1 for turns exceeding 45 degrees to a maximum of 10 for turns of 90 degrees and over, e.g. a 70 degree turn is reached when 6 x nav_fw_wp_turn_smoothing_dist from waypoint. 200 is a good starting point. Set to 0 to disable turn smoothing."
         default_value: 0
         field: fw.wp_turn_smoothing_dist
         min: 0
