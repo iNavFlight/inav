@@ -3607,6 +3607,10 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 		sbufWriteU8(dst, tmp_u8 );
 		sbufWriteU32(dst, debug[simulatorData.debugIndex]);
 
+		sbufWriteU16(dst, attitude.values.roll);
+		sbufWriteU16(dst, attitude.values.pitch);
+		sbufWriteU16(dst, attitude.values.yaw);
+
 		mspWriteSimulatorOSD(dst);
 
         *ret = MSP_RESULT_ACK;
