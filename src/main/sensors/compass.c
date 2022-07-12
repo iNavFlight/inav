@@ -369,6 +369,11 @@ bool compassIsCalibrationComplete(void)
 
 void compassUpdate(timeUs_t currentTimeUs)
 {
+	if (ARMING_FLAG(SIMULATOR_MODE)) {
+		magUpdatedAtLeastOnce = 1;
+		return;
+	}
+
     static sensorCalibrationState_t calState;
     static timeUs_t calStartedAt = 0;
     static int16_t magPrev[XYZ_AXIS_COUNT];

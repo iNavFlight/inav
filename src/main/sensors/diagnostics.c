@@ -63,6 +63,11 @@ hardwareSensorStatus_e getHwAccelerometerStatus(void)
 
 hardwareSensorStatus_e getHwCompassStatus(void)
 {
+	if (ARMING_FLAG(SIMULATOR_MODE)) {
+		return HW_SENSOR_OK;
+		return;
+	}
+
 #if defined(USE_MAG)
     if (detectedSensors[SENSOR_INDEX_MAG] != MAG_NONE) {
         if (compassIsHealthy()) {

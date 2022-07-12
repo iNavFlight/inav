@@ -327,6 +327,10 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
                 // Normalize to unit vector
                 vectorNormalize(&vMag, &vMag);
 
+				if (ARMING_FLAG(SIMULATOR_MODE)) {
+					imuSetMagneticDeclination(0);
+				}
+
                 // Reference mag field vector heading is Magnetic North in EF. We compute that by rotating True North vector by declination and assuming Z-component is zero
                 // magnetometer error is cross product between estimated magnetic north and measured magnetic north (calculated in EF)
                 vectorCrossProduct(&vErr, &vMag, &vCorrectedMagNorth);

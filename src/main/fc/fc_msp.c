@@ -3418,7 +3418,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         break;
     case MSP_SIMULATOR:
 		tmp_u8 = sbufReadU8(src); //MSP_SIMULATOR version
-		if (tmp_u8 != 1) break;
+		if (tmp_u8 != 2) break;
 
 		simulatorData.flags = sbufReadU8(src);
         if ((simulatorData.flags & SIMU_ENABLE) == 0) {
@@ -3427,6 +3427,9 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				DISABLE_ARMING_FLAG(SIMULATOR_MODE);
 
 				baroStartCalibration();
+
+				DISABLE_STATE(COMPASS_CALIBRATED);
+				compassInit();
 
 				simulatorData.flags = 0;
 				//review: many states were affected. reboot?
@@ -3437,12 +3440,15 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 		else if (!areSensorsCalibrating()) {
 			if (!ARMING_FLAG(SIMULATOR_MODE)) { // just once
 				baroStartCalibration(); 
-
-				//todo: magnetometer emulation support
-				sensorsClear(SENSOR_MAG);
-				mag.magADC[X] = 0;
-				mag.magADC[Y] = 0;
-				mag.magADC[Z] = 0;
+				
+				if (compassConfig()->mag_hardware != 0){
+					sensorsSet(SENSOR_MAG);
+					ENABLE_STATE(COMPASS_CALIBRATED);
+					DISABLE_ARMING_FLAG(ARMING_DISABLED_HARDWARE_FAILURE);
+					mag.magADC[X] = 800;
+					mag.magADC[Y] = 0;
+					mag.magADC[Z] = 0;
+				}
 
 				ENABLE_ARMING_FLAG(SIMULATOR_MODE);
 				LOG_D(SYSTEM, "Simulator enabled");
@@ -3550,6 +3556,16 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				else {
 					sbufAdvance(src,4);
 				}
+
+				if (sensors(SENSOR_MAG))
+				{
+					mag.magADC[X] = ((int16_t)sbufReadU16(src)) / 20;  //16000/20 = 800uT
+					mag.magADC[Y] = ((int16_t)sbufReadU16(src)) / 20;
+					mag.magADC[Z] = ((int16_t)sbufReadU16(src)) / 20;
+				}
+				else {
+					sbufAdvance(src, 2*3);
+				}
 			}
 			else {
 				DISABLE_STATE(GPS_FIX);
@@ -3560,6 +3576,27 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 		sbufWriteU16(dst, (uint16_t)input[INPUT_STABILIZED_PITCH]);
 		sbufWriteU16(dst, (uint16_t)input[INPUT_STABILIZED_YAW]);
 		sbufWriteU16(dst, (uint16_t)(ARMING_FLAG(ARMED) ? input[INPUT_STABILIZED_THROTTLE] : -500));
+
+		/*
+		debug[0] = mag.magADC[X];
+		debug[1] = mag.magADC[Y];
+		debug[2] = mag.magADC[Z];
+		//debug[3] = sensors(SENSOR_MAG) ? 1 : 0;
+		//debug[4] = STATE(COMPASS_CALIBRATED) ? 1 : 0;
+        fpVector3_t vMag;
+        fpVector3_t magBF;
+		magBF.x = mag.magADC[X];
+		magBF.y = mag.magADC[Y];
+		magBF.z = mag.magADC[Z];
+		quaternionRotateVectorInv(&vMag, &magBF, &orientation);    // BF -> EF
+		debug[3] = vMag.x;
+		debug[4] = vMag.y;
+		debug[5] = vMag.z;
+		
+		debug[6] = getvCorrectedMagNorth().x*1000;
+		debug[7] = getvCorrectedMagNorth().y*1000;
+		*/
+
 
 		simulatorData.debugIndex++;
 		if (simulatorData.debugIndex == 8){
