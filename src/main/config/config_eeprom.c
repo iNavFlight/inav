@@ -123,17 +123,6 @@ void initEEPROM(void)
 #endif
 }
 
-static uint16_t updateCRC(uint16_t crc, const void *data, uint32_t length)
-{
-    const uint8_t *p = (const uint8_t *)data;
-    const uint8_t *pend = p + length;
-
-    for (; p != pend; p++) {
-        crc = crc16_ccitt(crc, *p);
-    }
-    return crc;
-}
-
 // Scan the EEPROM config. Returns true if the config is valid.
 bool isEEPROMContentValid(void)
 {
@@ -143,7 +132,7 @@ bool isEEPROMContentValid(void)
     if (header->format != EEPROM_CONF_VERSION) {
         return false;
     }
-    uint16_t crc = updateCRC(0, header, sizeof(*header));
+    uint16_t crc = crc16_ccitt_update(0, header, sizeof(*header));
     p += sizeof(*header);
 
     for (;;) {
@@ -164,13 +153,13 @@ bool isEEPROMContentValid(void)
             return false;
         }
 
-        crc = updateCRC(crc, p, record->size);
+        crc = crc16_ccitt_update(crc, p, record->size);
 
         p += record->size;
     }
 
     const configFooter_t *footer = (const configFooter_t *)p;
-    crc = updateCRC(crc, footer, sizeof(*footer));
+    crc = crc16_ccitt_update(crc, footer, sizeof(*footer));
     p += sizeof(*footer);
     const uint16_t checkSum = *(uint16_t *)p;
     p += sizeof(checkSum);
@@ -255,7 +244,7 @@ static bool writeSettingsToEEPROM(void)
     if (config_streamer_write(&streamer, (uint8_t *)&header, sizeof(header)) < 0) {
         return false;
     }
-    uint16_t crc = updateCRC(0, (uint8_t *)&header, sizeof(header));
+    uint16_t crc = crc16_ccitt_update(0, (uint8_t *)&header, sizeof(header));
     PG_FOREACH(reg) {
         const uint16_t regSize = pgSize(reg);
         configRecord_t record = {
@@ -271,11 +260,11 @@ static bool writeSettingsToEEPROM(void)
             if (config_streamer_write(&streamer, (uint8_t *)&record, sizeof(record)) < 0) {
                 return false;
             }
-            crc = updateCRC(crc, (uint8_t *)&record, sizeof(record));
+            crc = crc16_ccitt_update(crc, (uint8_t *)&record, sizeof(record));
             if (config_streamer_write(&streamer, reg->address, regSize) < 0) {
                 return false;
             }
-            crc = updateCRC(crc, reg->address, regSize);
+            crc = crc16_ccitt_update(crc, reg->address, regSize);
         } else {
             // write one instance for each profile
             for (uint8_t profileIndex = 0; profileIndex < MAX_PROFILE_COUNT; profileIndex++) {
@@ -285,12 +274,12 @@ static bool writeSettingsToEEPROM(void)
                 if (config_streamer_write(&streamer, (uint8_t *)&record, sizeof(record)) < 0) {
                     return false;
                 }
-                crc = updateCRC(crc, (uint8_t *)&record, sizeof(record));
+                crc = crc16_ccitt_update(crc, (uint8_t *)&record, sizeof(record));
                 const uint8_t *address = reg->address + (regSize * profileIndex);
                 if (config_streamer_write(&streamer, address, regSize) < 0) {
                     return false;
                 }
-                crc = updateCRC(crc, address, regSize);
+                crc = crc16_ccitt_update(crc, address, regSize);
             }
         }
     }
@@ -302,7 +291,7 @@ static bool writeSettingsToEEPROM(void)
     if (config_streamer_write(&streamer, (uint8_t *)&footer, sizeof(footer)) < 0) {
         return false;
     }
-    crc = updateCRC(crc, (uint8_t *)&footer, sizeof(footer));
+    crc = crc16_ccitt_update(crc, (uint8_t *)&footer, sizeof(footer));
 
     // append checksum now
     if (config_streamer_write(&streamer, (uint8_t *)&crc, sizeof(crc)) < 0) {
