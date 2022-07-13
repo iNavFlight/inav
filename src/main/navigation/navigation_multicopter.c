@@ -602,10 +602,19 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
 
     int32_t maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.max_bank_angle);
 
-    float mcPosXYAccelerationFilterLpf = scaleRangef(smoothnessFactor, 0.0f, 1.0f, navConfig()->mc.pos_stationary_lpf_hz, navConfig()->mc.pos_moving_lpf_hz);
-    mcPosXYAccelerationFilterLpf = constrainf(mcPosXYAccelerationFilterLpf, 0.1f, navConfig()->mc.pos_stationary_lpf_hz);
+    const float mcPosXYAccelerationFilterLpf = constrainf(
+        scaleRangef(
+            smoothnessFactor, 
+            0.0f, 
+            1.0f, 
+            navConfig()->mc.pos_stationary_lpf_hz, 
+            navConfig()->mc.pos_moving_lpf_hz
+        ), 
+        0.1f, 
+        navConfig()->mc.pos_stationary_lpf_hz
+    );
 
-    DEBUG_SET(DEBUG_ALWAYS, 3, mcPosXYAccelerationFilterLpf * 100.0f);
+    DEBUG_SET(DEBUG_NAV_SMOOTHNESS, 3, mcPosXYAccelerationFilterLpf * 100.0f);
     
 #ifdef USE_MR_BRAKING_MODE
     //Boost required accelerations
@@ -632,8 +641,8 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     }
 #endif
 
-    DEBUG_SET(DEBUG_ALWAYS, 4, newAccelX * 100.0f);
-    DEBUG_SET(DEBUG_ALWAYS, 5, newAccelY * 100.0f);
+    DEBUG_SET(DEBUG_NAV_SMOOTHNESS, 4, newAccelX * 100.0f);
+    DEBUG_SET(DEBUG_NAV_SMOOTHNESS, 5, newAccelY * 100.0f);
 
     /*
      * Apply the dynamic LPF on acceleration target
@@ -642,8 +651,8 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     float accelerationXFiltered = pt1FilterApply4(&mcPosXYAccelerationFilterState[X], newAccelX, mcPosXYAccelerationFilterLpf, US2S(deltaMicros));
     float accelerationYFiltered = pt1FilterApply4(&mcPosXYAccelerationFilterState[Y], newAccelY, mcPosXYAccelerationFilterLpf, US2S(deltaMicros));
 
-    DEBUG_SET(DEBUG_ALWAYS, 6, accelerationXFiltered * 100.0f);
-    DEBUG_SET(DEBUG_ALWAYS, 7, accelerationYFiltered * 100.0f);
+    DEBUG_SET(DEBUG_NAV_SMOOTHNESS, 6, accelerationXFiltered * 100.0f);
+    DEBUG_SET(DEBUG_NAV_SMOOTHNESS, 7, accelerationYFiltered * 100.0f);
 
     // Save last acceleration target
     lastAccelTargetX = accelerationXFiltered;
@@ -704,16 +713,11 @@ static void applyMulticopterPositionController(timeUs_t currentTimeUs)
                     } else {
                         // In this case, INAV controls position. Acceleration smoothness depends on the fact if desired position is reached or not
 
-                        //TODO: implement this
-
                         /*
                          * Plan: 
                          * 1. Calculate distance to target
                          * 2. If distance is small, smoothnessFactor should be 0.0f
                          * 3. If distance is big, smoothnessFactor should be 1.0f
-                         * 
-                         * Assumptions: 0.0f should be applied as long as distance is smaller than the one that causes half of the speed
-                         * by the updatePositionVelocityController_MC
                          */
                         const float error2D = calc_length_pythagorean_2D(
                             posControl.desiredState.pos.x - navGetCurrentActualPositionAndVelocity()->pos.x,
@@ -733,7 +737,7 @@ static void applyMulticopterPositionController(timeUs_t currentTimeUs)
                         DEBUG_SET(DEBUG_NAV_SMOOTHNESS, 0, 2);
                     }
 
-                    DEBUG_SET(DEBUG_NAV_SMOOTHNESS, 1, smoothnessFactor);
+                    DEBUG_SET(DEBUG_NAV_SMOOTHNESS, 1, smoothnessFactor * 100.0f);
 
                     updatePositionVelocityController_MC(maxSpeed);
                     updatePositionAccelController_MC(deltaMicrosPositionUpdate, NAV_ACCELERATION_XY_MAX, smoothnessFactor);
