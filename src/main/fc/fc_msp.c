@@ -116,6 +116,7 @@
 #include "sensors/gyro.h"
 #include "sensors/opflow.h"
 #include "sensors/temperature.h"
+#include "sensors/esc_sensor.h"
 
 #include "telemetry/telemetry.h"
 
@@ -1517,6 +1518,19 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             int16_t temperature;
             bool valid = getSensorTemperature(index, &temperature);
             sbufWriteU16(dst, valid ? temperature : -1000);
+        }
+        break;
+#endif
+
+#ifdef USE_ESC_SENSOR
+    case MSP2_INAV_ESC_RPM:
+        {
+            uint8_t motorCount = getMotorCount();
+
+            for (uint8_t i = 0; i < motorCount; i++){
+                const escSensorData_t *escState = getEscTelemetry(i); //Get ESC telemetry
+                sbufWriteU32(dst, escState->rpm);
+            }
         }
         break;
 #endif

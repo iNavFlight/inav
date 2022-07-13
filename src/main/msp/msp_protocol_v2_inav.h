@@ -81,3 +81,5 @@
 
 #define MSP2_INAV_MISC2                         0x203A
 #define MSP2_INAV_LOGIC_CONDITIONS_SINGLE       0x203B
+
+#define MSP2_INAV_ESC_RPM                       0x2040
