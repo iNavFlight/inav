@@ -52,6 +52,11 @@
 
 static pt3Filter_t rcSmoothFilter[4];
 static float rcStickUnfiltered[4];
+static uint16_t rcUpdateFrequency;
+
+uint16_t getRcUpdateFrequency(void) {
+    return rcUpdateFrequency;
+}
 
 static int32_t applyRcUpdateFrequencyMedianFilter(int32_t newReading)
 {
@@ -102,34 +107,39 @@ void rcInterpolationApply(bool isRXDataNew, timeUs_t currentTimeUs)
         return;
     }
 
-    if (isRXDataNew && rxConfig()->autoSmooth) {
+    if (isRXDataNew) {
         const timeDelta_t delta = cmpTimeUs(currentTimeUs, previousRcData);
-        const int32_t rcUpdateFrequency = applyRcUpdateFrequencyMedianFilter(1.0f / (delta * 0.000001f));
+        rcUpdateFrequency = applyRcUpdateFrequencyMedianFilter(1.0f / (delta * 0.000001f));
+        previousRcData = currentTimeUs;
 
-        const int nyquist = rcUpdateFrequency / 2;
+        /*
+         * If auto smoothing is enabled, update the filters
+         */
+        if (rxConfig()->autoSmooth) {
+            const int nyquist = rcUpdateFrequency / 2;
 
-        int newFilterFrequency = scaleRange(
-            rxConfig()->autoSmoothFactor,
-            1,
-            100,
-            nyquist,
-            rcUpdateFrequency / 10
-        );
-        
-        // Do not allow filter frequency to go below RC_INTERPOLATION_MIN_FREQUENCY or above nuyquist frequency.
-        newFilterFrequency = constrain(newFilterFrequency, RC_INTERPOLATION_MIN_FREQUENCY, nyquist);
+            int newFilterFrequency = scaleRange(
+                rxConfig()->autoSmoothFactor,
+                1,
+                100,
+                nyquist,
+                rcUpdateFrequency / 10
+            );
+            
+            // Do not allow filter frequency to go below RC_INTERPOLATION_MIN_FREQUENCY or above nuyquist frequency.
+            newFilterFrequency = constrain(newFilterFrequency, RC_INTERPOLATION_MIN_FREQUENCY, nyquist);
 
-        if (newFilterFrequency != filterFrequency) {
+            if (newFilterFrequency != filterFrequency) {
 
-            for (int stick = 0; stick < 4; stick++) {
-                pt3FilterUpdateCutoff(&rcSmoothFilter[stick], pt3FilterGain(newFilterFrequency, dT));
+                for (int stick = 0; stick < 4; stick++) {
+                    pt3FilterUpdateCutoff(&rcSmoothFilter[stick], pt3FilterGain(newFilterFrequency, dT));
+                }
+                filterFrequency = newFilterFrequency;
             }
-            filterFrequency = newFilterFrequency;
         }
 
-        previousRcData = currentTimeUs;
-    } 
-    
+    }
+
     for (int stick = 0; stick < 4; stick++) {
         rcCommand[stick] = pt3FilterApply(&rcSmoothFilter[stick], rcStickUnfiltered[stick]);
     }
