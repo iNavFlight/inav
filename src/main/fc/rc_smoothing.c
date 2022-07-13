@@ -134,27 +134,3 @@ void rcInterpolationApply(bool isRXDataNew, timeUs_t currentTimeUs)
         rcCommand[stick] = pt3FilterApply(&rcSmoothFilter[stick], rcStickUnfiltered[stick]);
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
