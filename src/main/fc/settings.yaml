@@ -649,11 +649,6 @@ groups:
         description: "Selection of baro hardware. See Wiki Sensor auto detect and hardware failure detection for more info"
         default_value: "AUTO"
         table: baro_hardware
-      - name: baro_median_filter
-        description: "3-point median filtering for barometer readouts. No reason to change this setting"
-        default_value: ON
-        field: use_median_filtering
-        type: bool
       - name: baro_cal_tolerance
         description: "Baro calibration tolerance in cm. The default should allow the noisiest baro to complete calibration [cm]."
         default_value: 150

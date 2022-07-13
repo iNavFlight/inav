@@ -362,16 +362,6 @@ Selection of baro hardware. See Wiki Sensor auto detect and hardware failure det
 
 ---
 
-### baro_median_filter
-
-3-point median filtering for barometer readouts. No reason to change this setting
-
-| Default | Min | Max |
-| --- | --- | --- |
-| ON | OFF | ON |
-
----
-
 ### bat_cells
 
 Number of cells of the battery (0 = auto-detect), see battery documentation. 7S, 9S and 11S batteries cannot be auto-detected.
