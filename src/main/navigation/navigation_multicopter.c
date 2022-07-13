@@ -670,6 +670,55 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     posControl.rcAdjustment[PITCH] = constrain(RADIANS_TO_DECIDEGREES(desiredPitch), -maxBankAngle, maxBankAngle);
 }
 
+static float computeSmoothingFactor(float maxSpeed) {
+    float smoothnessFactor = 0.0f;
+
+    if (posControl.flags.isAdjustingPosition) {
+        /*
+        * In this case, pilot is adjusting position manually. 
+        * Acceleration smoothness depends on the stick deflection
+        * The bigger the deflection, the more smooth the acceleration should be
+        */
+
+        const float deflection = calc_length_pythagorean_2D(
+            applyDeadbandRescaled(rcCommand[ROLL], rcControlsConfig()->pos_hold_deadband, -500, 500),
+            applyDeadbandRescaled(rcCommand[PITCH], rcControlsConfig()->pos_hold_deadband, -500, 500)
+        );
+
+        //smoothnes depends on deflection and is capped at 1.0f
+        smoothnessFactor = constrainf(scaleRangef(deflection, 0.0f, 500.0f, 0.0f, 1.0f), 0.0f, 1.0f);
+
+        DEBUG_SET(DEBUG_NAV_SMOOTHNESS, 0, 1);
+    } else {
+        // In this case, INAV controls position. Acceleration smoothness depends on the fact if desired position is reached or not
+
+        /*
+        * Plan: 
+        * 1. Calculate distance to target
+        * 2. If distance is small, smoothnessFactor should be 0.0f
+        * 3. If distance is big, smoothnessFactor should be 1.0f
+        */
+        const float error2D = calc_length_pythagorean_2D(
+            posControl.desiredState.pos.x - navGetCurrentActualPositionAndVelocity()->pos.x,
+            posControl.desiredState.pos.y - navGetCurrentActualPositionAndVelocity()->pos.y
+        ); 
+
+        // This distance causes max response from the Position-To-Velocity controller
+        const float thresholdDistance = maxSpeed / posControl.pids.pos[X].param.kP;
+
+        if (error2D < thresholdDistance) {
+            smoothnessFactor = 0.0f;
+        }  if (error2D < 2 * thresholdDistance) {
+            smoothnessFactor = constrainf(scaleRangef(error2D, thresholdDistance, 2 * thresholdDistance, 0.0f, 1.0f), 0.0f, 1.0f);
+        } else {
+            smoothnessFactor = 1.0f;
+        }
+        DEBUG_SET(DEBUG_NAV_SMOOTHNESS, 0, 2);
+    }
+
+    return smoothnessFactor;
+}
+
 static void applyMulticopterPositionController(timeUs_t currentTimeUs)
 {
     static timeUs_t previousTimePositionUpdate = 0;     // Occurs @ GPS update rate
@@ -693,49 +742,8 @@ static void applyMulticopterPositionController(timeUs_t currentTimeUs)
                     // Get max speed from generic NAV (waypoint specific), don't allow to move slower than 0.5 m/s
                     const float maxSpeed = getActiveWaypointSpeed();
 
-                    float smoothnessFactor = 0.0f;
-                    if (posControl.flags.isAdjustingPosition) {
-                        /*
-                        * In this case, pilot is adjusting position manually. 
-                        * Acceleration smoothness depends on the stick deflection
-                        * The bigger the deflection, the more smooth the acceleration should be
-                        */
-
-                        const float deflection = calc_length_pythagorean_2D(
-                            applyDeadbandRescaled(rcCommand[ROLL], rcControlsConfig()->pos_hold_deadband, -500, 500),
-                            applyDeadbandRescaled(rcCommand[PITCH], rcControlsConfig()->pos_hold_deadband, -500, 500)
-                        );
-
-                        //smoothnes depends on deflection and is capped at 1.0f
-                        smoothnessFactor = constrainf(scaleRangef(deflection, 0.0f, 500.0f, 0.0f, 1.0f), 0.0f, 1.0f);
-
-                        DEBUG_SET(DEBUG_NAV_SMOOTHNESS, 0, 1);
-                    } else {
-                        // In this case, INAV controls position. Acceleration smoothness depends on the fact if desired position is reached or not
-
-                        /*
-                         * Plan: 
-                         * 1. Calculate distance to target
-                         * 2. If distance is small, smoothnessFactor should be 0.0f
-                         * 3. If distance is big, smoothnessFactor should be 1.0f
-                         */
-                        const float error2D = calc_length_pythagorean_2D(
-                            posControl.desiredState.pos.x - navGetCurrentActualPositionAndVelocity()->pos.x,
-                            posControl.desiredState.pos.y - navGetCurrentActualPositionAndVelocity()->pos.y
-                        ); 
-
-                        // This distance causes max response from the Position-To-Velocity controller
-                        const float thresholdDistance = maxSpeed / posControl.pids.pos[X].param.kP;
-
-                        if (error2D < thresholdDistance) {
-                            smoothnessFactor = 0.0f;
-                        }  if (error2D < 2 * thresholdDistance) {
-                            smoothnessFactor = constrainf(scaleRangef(error2D, thresholdDistance, 2 * thresholdDistance, 0.0f, 1.0f), 0.0f, 1.0f);
-                        } else {
-                            smoothnessFactor = 1.0f;
-                        }
-                        DEBUG_SET(DEBUG_NAV_SMOOTHNESS, 0, 2);
-                    }
+                    // Compute smoothness factor that depends on flight mode, stick deflection and distance to target
+                    const float smoothnessFactor = computeSmoothingFactor(maxSpeed);
 
                     DEBUG_SET(DEBUG_NAV_SMOOTHNESS, 1, smoothnessFactor * 100.0f);
 
