@@ -722,11 +722,22 @@ groups:
         min: 500
         max: 10000
         default_value: 3000
-      - name: rc_filter_frequency
+      - name: rc_filter_lpf_hz
         description: "RC data biquad filter cutoff frequency. Lower cutoff frequencies result in smoother response at expense of command control delay. Practical values are 20-50. Set to zero to disable entirely and use unsmoothed RC stick values"
         default_value: 50
         field: rcFilterFrequency
-        min: 0
+        min: 15
+        max: 250
+      - name: rc_filter_auto
+        description: "When enabled, INAV will set RC filtering based on refresh rate and smoothing factor."
+        type: bool
+        default_value: OFF
+        field: autoSmooth
+      - name: rc_filter_smoothing_factor
+        description: "The RC filter smoothing factor. The higher the value, the more smoothing but also the more delay in response. Value 1 sets the filter at half the refresh rate. Value 100 sets the filter to aprox. 10% of the RC refresh rate"
+        field: autoSmoothFactor
+        default_value: 30
+        min: 1
         max: 100
       - name: serialrx_provider
         description: "When feature SERIALRX is enabled, this allows connection to several receivers which output data via digital interface resembling serial. See RX section."
