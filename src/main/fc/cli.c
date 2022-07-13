@@ -163,13 +163,26 @@ static const char * const featureNames[] = {
 
 #ifdef USE_BLACKBOX
 static const char * const blackboxIncludeFlagNames[] = {
-    "NAV_ACC", "NAV_POS", "NAV_PID", "MAG", "ACC", "ATTI", "RC_DATA", "RC_COMMAND", "MOTORS", "GYRO_RAW", NULL
+    "NAV_ACC",
+    "NAV_POS",
+    "NAV_PID",
+    "MAG",
+    "ACC",
+    "ATTI",
+    "RC_DATA",
+    "RC_COMMAND",
+    "MOTORS",
+    "GYRO_RAW",
+    "PEAKS_R",
+    "PEAKS_P",
+    "PEAKS_Y",
+    NULL
 };
 #endif
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status command output) */
 // sync with gyroSensor_e
-static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6050", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"};
+static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"};
 
 // sync this with sensors_e
 static const char * const sensorTypeNames[] = {

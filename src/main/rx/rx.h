@@ -72,7 +72,6 @@ typedef enum {
     SERIALRX_SPEKTRUM2048,
     SERIALRX_SBUS,
     SERIALRX_SUMD,
-    SERIALRX_SUMH,
     SERIALRX_IBUS,
     SERIALRX_JETIEXBUS,
     SERIALRX_CRSF,
@@ -125,6 +124,8 @@ typedef struct rxConfig_s {
     uint16_t rx_min_usec;
     uint16_t rx_max_usec;
     uint8_t rcFilterFrequency;              // RC filter cutoff frequency (smoothness vs response sharpness)
+    uint8_t autoSmooth;                     // auto smooth rx input (0 = off, 1 = on)
+    uint8_t autoSmoothFactor;               // auto smooth rx input factor (1 = no smoothing, 100 = lots of smoothing)
     uint16_t mspOverrideChannels;           // Channels to override with MSP RC when BOXMSPRCOVERRIDE is active
     uint8_t rssi_source;
 #ifdef USE_SERIALRX_SRXL2
@@ -152,7 +153,6 @@ typedef struct rxLinkQualityTracker_s {
 
 typedef struct rxRuntimeConfig_s {
     uint8_t channelCount;                  // number of rc channels as reported by current input driver
-    timeUs_t rxRefreshRate;
     timeUs_t rxSignalTimeout;
     rcReadRawDataFnPtr rcReadRawFn;
     rcFrameStatusFnPtr rcFrameStatusFn;
@@ -214,8 +214,6 @@ void resetAllRxChannelRangeConfigurations(void);
 
 void suspendRxSignal(void);
 void resumeRxSignal(void);
-
-uint16_t rxGetRefreshRate(void);
 
 // Processed RC channel value. These values might include
 // filtering and some extra processing like value holding

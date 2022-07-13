@@ -41,7 +41,6 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_mpu.h"
 #include "drivers/accgyro/accgyro_mpu6000.h"
-#include "drivers/accgyro/accgyro_mpu6050.h"
 #include "drivers/accgyro/accgyro_mpu6500.h"
 #include "drivers/accgyro/accgyro_mpu9250.h"
 
@@ -69,7 +68,6 @@ FILE_COMPILE_FOR_SPEED
 
 #include "flight/gyroanalyse.h"
 #include "flight/rpm_filter.h"
-#include "flight/dynamic_gyro_notch.h"
 #include "flight/kalman.h"
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
@@ -135,15 +133,6 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     switch (gyroHardware) {
     case GYRO_AUTODETECT:
         FALLTHROUGH;
-
-#ifdef USE_IMU_MPU6050
-    case GYRO_MPU6050:
-        if (mpu6050GyroDetect(dev)) {
-            gyroHardware = GYRO_MPU6050;
-            break;
-        }
-        FALLTHROUGH;
-#endif
 
 #ifdef USE_IMU_MPU6000
     case GYRO_MPU6000:
@@ -450,9 +439,7 @@ void FAST_CODE NOINLINE gyroFilter()
         float gyroADCf = gyro.gyroADCf[axis];
 
 #ifdef USE_RPM_FILTER
-        DEBUG_SET(DEBUG_RPM_FILTER, axis, gyroADCf);
         gyroADCf = rpmFilterGyroApply(axis, gyroADCf);
-        DEBUG_SET(DEBUG_RPM_FILTER, axis + 3, gyroADCf);
 #endif
 
         gyroADCf = gyroLpf2ApplyFn((filter_t *) &gyroLpf2State[axis], gyroADCf);
@@ -460,9 +447,7 @@ void FAST_CODE NOINLINE gyroFilter()
 #ifdef USE_DYNAMIC_FILTERS
         if (dynamicGyroNotchState.enabled) {
             gyroDataAnalysePush(&gyroAnalyseState, axis, gyroADCf);
-            DEBUG_SET(DEBUG_DYNAMIC_FILTER, axis, gyroADCf);
             gyroADCf = dynamicGyroNotchFiltersApply(&dynamicGyroNotchState, axis, gyroADCf);
-            DEBUG_SET(DEBUG_DYNAMIC_FILTER, axis + 3, gyroADCf);
         }
 #endif
 

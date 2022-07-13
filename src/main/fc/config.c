@@ -102,7 +102,7 @@ PG_RESET_TEMPLATE(featureConfig_t, featureConfig,
     .enabledFeatures = DEFAULT_FEATURES | COMMON_DEFAULT_FEATURES
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 6);
+PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 7);
 
 PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .current_profile_index = 0,
@@ -421,16 +421,10 @@ void setGyroCalibrationAndWriteEEPROM(int16_t getGyroZero[XYZ_AXIS_COUNT]) {
     gyroConfigMutable()->gyro_zero_cal[X] = getGyroZero[X];
     gyroConfigMutable()->gyro_zero_cal[Y] = getGyroZero[Y];
     gyroConfigMutable()->gyro_zero_cal[Z] = getGyroZero[Z];
-    // save the calibration
-    writeEEPROM();
-    readEEPROM();
 }
 
 void setGravityCalibrationAndWriteEEPROM(float getGravity) {
     gyroConfigMutable()->gravity_cmss_cal = getGravity;
-    // save the calibration
-    writeEEPROM();
-    readEEPROM();
 }
 
 void beeperOffSet(uint32_t mask)
