@@ -88,8 +88,6 @@ main_sources(COMMON_SRC
     drivers/accgyro/accgyro_mpu.h
     drivers/accgyro/accgyro_mpu6000.c
     drivers/accgyro/accgyro_mpu6000.h
-    drivers/accgyro/accgyro_mpu6050.c
-    drivers/accgyro/accgyro_mpu6050.h
     drivers/accgyro/accgyro_mpu6500.c
     drivers/accgyro/accgyro_mpu6500.h
     drivers/accgyro/accgyro_mpu9250.c
