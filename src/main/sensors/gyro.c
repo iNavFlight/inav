@@ -92,6 +92,7 @@ STATIC_FASTRAM filter_t gyroLpf2State[XYZ_AXIS_COUNT];
 
 EXTENDED_FASTRAM gyroAnalyseState_t gyroAnalyseState;
 EXTENDED_FASTRAM dynamicGyroNotchState_t dynamicGyroNotchState;
+EXTENDED_FASTRAM secondaryDynamicGyroNotchState_t secondaryDynamicGyroNotchState;
 
 #endif
 
@@ -298,6 +299,9 @@ bool gyroInit(void)
 #ifdef USE_DYNAMIC_FILTERS
     // Dynamic notch running at PID frequency
     dynamicGyroNotchFiltersInit(&dynamicGyroNotchState);
+
+    secondaryDynamicGyroNotchFiltersInit(&secondaryDynamicGyroNotchState);
+
     gyroDataAnalyseStateInit(
         &gyroAnalyseState,
         gyroConfig()->dynamicGyroNotchMinHz,
@@ -449,6 +453,16 @@ void FAST_CODE NOINLINE gyroFilter()
             gyroDataAnalysePush(&gyroAnalyseState, axis, gyroADCf);
             gyroADCf = dynamicGyroNotchFiltersApply(&dynamicGyroNotchState, axis, gyroADCf);
         }
+
+        /**
+         * Secondary dynamic notch filter. 
+         * In some cases, noise amplitude is high enough not to be filtered by the primary filter.
+         * This happens on the first frequency with the biggest aplitude
+         */
+        DEBUG_SET(DEBUG_ALWAYS, axis, gyroADCf);
+        secondaryDynamicGyroNotchFiltersApply(&secondaryDynamicGyroNotchState, axis, gyroADCf);
+        DEBUG_SET(DEBUG_ALWAYS, axis + 3, gyroADCf);
+
 #endif
 
 #ifdef USE_GYRO_KALMAN
@@ -470,6 +484,13 @@ void FAST_CODE NOINLINE gyroFilter()
                 gyroAnalyseState.filterUpdateAxis,
                 gyroAnalyseState.centerFrequency[gyroAnalyseState.filterUpdateAxis]
             );
+
+            secondaryDynamicGyroNotchFiltersUpdate(
+                &secondaryDynamicGyroNotchState,
+                gyroAnalyseState.filterUpdateAxis,
+                gyroAnalyseState.centerFrequency[gyroAnalyseState.filterUpdateAxis]
+            );
+
         }
     }
 #endif

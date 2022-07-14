@@ -24,6 +24,7 @@
 #include "config/parameter_group.h"
 #include "drivers/sensor.h"
 #include "flight/dynamic_gyro_notch.h"
+#include "flight/secondary_dynamic_gyro_notch.h"
 
 typedef enum {
     GYRO_NONE = 0,

@@ -28,22 +28,16 @@
 #include "common/axis.h"
 #include "common/filter.h"
 
-#define DYNAMIC_NOTCH_DEFAULT_CENTER_HZ 350
-
-/*
- * Number of peaks to detect with Dynamic Notch Filter aka Matrixc Filter. This is equal to the number of dynamic notch filters
- */
-#define DYN_NOTCH_PEAK_COUNT 3
-typedef struct dynamicGyroNotchState_s {
-    uint16_t frequency[XYZ_AXIS_COUNT][DYN_NOTCH_PEAK_COUNT];
+typedef struct secondaryDynamicGyroNotchState_s {
+    uint16_t frequency[XYZ_AXIS_COUNT];
     float dynNotchQ;
     uint32_t looptime;
     uint8_t enabled;
     
-    biquadFilter_t filters[XYZ_AXIS_COUNT][DYN_NOTCH_PEAK_COUNT];
-    filterApplyFnPtr filtersApplyFn[XYZ_AXIS_COUNT][DYN_NOTCH_PEAK_COUNT];
-} dynamicGyroNotchState_t;
+    biquadFilter_t filters[XYZ_AXIS_COUNT];
+    filterApplyFnPtr filtersApplyFn[XYZ_AXIS_COUNT];
+} secondaryDynamicGyroNotchState_t;
 
-void dynamicGyroNotchFiltersInit(dynamicGyroNotchState_t *state);
-void dynamicGyroNotchFiltersUpdate(dynamicGyroNotchState_t *state, int axis, float frequency[]);
-float dynamicGyroNotchFiltersApply(dynamicGyroNotchState_t *state, int axis, float input);
+void secondaryDynamicGyroNotchFiltersInit(secondaryDynamicGyroNotchState_t *state);
+void secondaryDynamicGyroNotchFiltersUpdate(secondaryDynamicGyroNotchState_t *state, int axis, float frequency[]);
+float secondaryDynamicGyroNotchFiltersApply(secondaryDynamicGyroNotchState_t *state, int axis, float input);
