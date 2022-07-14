@@ -1001,7 +1001,7 @@ void osdCrosshairPosition(uint8_t *x, uint8_t *y)
 {
     *x = osdDisplayPort->cols / 2;
     *y = osdDisplayPort->rows / 2;
-    *y += osdConfig()->horizon_offset;
+    *y -= osdConfig()->horizon_offset; // positive horizon_offset moves the HUD up, negative moves down
 }
 
 /**
