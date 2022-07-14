@@ -2822,7 +2822,7 @@ static bool osdDrawSingleElement(uint8_t item)
             bool valid = isEstimatedWindSpeedValid();
             float verticalWindSpeed;
             if (valid) {
-                verticalWindSpeed = getEstimatedWindSpeed(Z);
+                verticalWindSpeed = -getEstimatedWindSpeed(Z);  //from NED to NEU
                 if (verticalWindSpeed < 0) {
                     buff[1] = SYM_AH_DECORATION_DOWN;
                     verticalWindSpeed = -verticalWindSpeed;
