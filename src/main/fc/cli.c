@@ -125,10 +125,6 @@ bool cliMode = false;
 #include "telemetry/telemetry.h"
 #include "build/debug.h"
 
-#if MCU_FLASH_SIZE > 128
-#define PLAY_SOUND
-#endif
-
 extern timeDelta_t cycleTime; // FIXME dependency on mw.c
 extern uint8_t detectedSensors[SENSOR_INDEX_COUNT];
 
@@ -2956,7 +2952,6 @@ static void cliMotor(char *cmdline)
     cliPrintLinef("motor %d: %d", motor_index, motor_disarmed[motor_index]);
 }
 
-#ifdef PLAY_SOUND
 static void cliPlaySound(char *cmdline)
 {
     int i;
@@ -2989,7 +2984,6 @@ static void cliPlaySound(char *cmdline)
     cliPrintLinef("Playing sound %d: %s", i, name);
     beeper(beeperModeForTableIndex(i));
 }
-#endif
 
 static void cliProfile(char *cmdline)
 {
@@ -3907,9 +3901,7 @@ const clicmd_t cmdTable[] = {
 #ifdef USE_USB_MSC
     CLI_COMMAND_DEF("msc", "switch into msc mode", NULL, cliMsc),
 #endif
-#ifdef PLAY_SOUND
     CLI_COMMAND_DEF("play_sound", NULL, "[<index>]\r\n", cliPlaySound),
-#endif
     CLI_COMMAND_DEF("profile", "change profile",
         "[<index>]", cliProfile),
     CLI_COMMAND_DEF("battery_profile", "change battery profile",
