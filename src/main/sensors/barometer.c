@@ -60,9 +60,9 @@ baro_t baro;                        // barometer access functions
 
 #ifdef USE_BARO
 
-// timeouts for health reporting
-#define BARO_TIMEOUT_MS                 500     // timeout in ms since last successful read
-#define BARO_DATA_CHANGE_TIMEOUT_MS     2000    // timeout in ms since last successful read that involved temperature of pressure changing
+// Timeouts for health reporting
+#define BARO_TIMEOUT_MS                 500     // Timeout in ms since last successful read
+#define BARO_DATA_CHANGE_TIMEOUT_MS     2000    // Timeout in ms since last successful read that involved temperature of pressure changing
 
 PG_REGISTER_WITH_RESET_TEMPLATE(barometerConfig_t, barometerConfig, PG_BAROMETER_CONFIG, 4);
 
