@@ -283,7 +283,7 @@ uint32_t baroUpdate(void)
 
             baro.dev.calculate(&baro.dev, &baro.baroPressure, &baro.baroTemperature);
 
-            timeMs_t now = millis();
+            const timeMs_t now = millis();
 
             // Check for changes in data values
             if ((baro.baroLastPressure != baro.baroPressure) || (baro.baroLastTemperature != baro.baroTemperature)) {
