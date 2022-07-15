@@ -41,8 +41,14 @@ typedef enum {
 typedef struct baro_s {
     baroDev_t dev;
     int32_t BaroAlt;
-    int32_t baroTemperature;            // Use temperature for telemetry
-    int32_t baroPressure;               // Use pressure for telemetry
+    int32_t baroTemperature;
+    int32_t baroPressure;
+    
+    int32_t baroLastTemperature;
+    int32_t baroLastPressure;
+
+    timeMs_t lastChangeMs;
+    timeMs_t lastUpdateMs;
 } baro_t;
 
 extern baro_t baro;
@@ -55,7 +61,6 @@ typedef struct barometerConfig_s {
 } barometerConfig_t;
 
 PG_DECLARE(barometerConfig_t, barometerConfig);
-
 
 bool baroInit(void);
 bool baroIsCalibrationComplete(void);

@@ -60,12 +60,21 @@ baro_t baro;                        // barometer access functions
 
 #ifdef USE_BARO
 
+// timeouts for health reporting
+#define BARO_TIMEOUT_MS                 500     // timeout in ms since last successful read
+#define BARO_DATA_CHANGE_TIMEOUT_MS     2000    // timeout in ms since last successful read that involved temperature of pressure changing
+
 PG_REGISTER_WITH_RESET_TEMPLATE(barometerConfig_t, barometerConfig, PG_BAROMETER_CONFIG, 4);
 
 PG_RESET_TEMPLATE(barometerConfig_t, barometerConfig,
     .baro_hardware = SETTING_BARO_HARDWARE_DEFAULT,
     .baro_calibration_tolerance = SETTING_BARO_CAL_TOLERANCE_DEFAULT
 );
+
+typedef enum {
+    BAROMETER_NEEDS_SAMPLES = 0,
+    BAROMETER_NEEDS_CALCULATION
+} barometerState_e;
 
 static zeroCalibrationScalar_t zeroCalibration;
 static float baroGroundAltitude = 0;
@@ -247,11 +256,6 @@ bool baroInit(void)
     return true;
 }
 
-typedef enum {
-    BAROMETER_NEEDS_SAMPLES = 0,
-    BAROMETER_NEEDS_CALCULATION
-} barometerState_e;
-
 uint32_t baroUpdate(void)
 {
     static barometerState_e state = BAROMETER_NEEDS_SAMPLES;
@@ -276,7 +280,20 @@ uint32_t baroUpdate(void)
             if (baro.dev.start_ut) {
                 baro.dev.start_ut(&baro.dev);
             }
+
             baro.dev.calculate(&baro.dev, &baro.baroPressure, &baro.baroTemperature);
+
+            timeMs_t now = millis();
+
+            // Check for changes in data values
+            if ((baro.baroLastPressure != baro.baroPressure) || (baro.baroLastTemperature != baro.baroTemperature)) {
+                baro.lastChangeMs = now;
+            }
+
+            baro.baroLastPressure = baro.baroPressure;
+            baro.baroLastTemperature = baro.baroTemperature;
+            baro.lastUpdateMs = now;
+
             state = BAROMETER_NEEDS_SAMPLES;
             return baro.dev.ut_delay;
         break;
@@ -343,7 +360,10 @@ int16_t baroGetTemperature(void)
 
 bool baroIsHealthy(void)
 {
-    return true;
+    // Consider a sensor as healthy if it has had an update in the last 0.5 seconds and values are non-zero and have changed within the last 2 seconds
+    const timeMs_t now = millis();
+
+    return (now - baro.lastUpdateMs < BARO_TIMEOUT_MS) && (now - baro.lastChangeMs < BARO_DATA_CHANGE_TIMEOUT_MS) &&  (baro.baroLastPressure != 0);
 }
 
 #endif /* BARO */
