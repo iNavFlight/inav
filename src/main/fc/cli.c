@@ -3473,7 +3473,6 @@ static void cliStatus(char *cmdline)
     }
 }
 
-#ifndef SKIP_TASK_STATISTICS
 static void cliTasks(char *cmdline)
 {
     UNUSED(cmdline);
@@ -3502,7 +3501,6 @@ static void cliTasks(char *cmdline)
     cliPrintLinef("Task check function %13d %7d %25d", (uint32_t)checkFuncInfo.maxExecutionTime, (uint32_t)checkFuncInfo.averageExecutionTime, (uint32_t)checkFuncInfo.totalExecutionTime / 1000);
     cliPrintLinef("Total (excluding SERIAL) %21d.%1d%% %4d.%1d%%", maxLoadSum/10, maxLoadSum%10, averageLoadSum/10, averageLoadSum%10);
 }
-#endif
 
 static void cliVersion(char *cmdline)
 {
@@ -3535,7 +3533,6 @@ static void cliMemory(char *cmdline)
     }
 }
 
-#if !defined(SKIP_TASK_STATISTICS) && !defined(SKIP_CLI_RESOURCES)
 static void cliResource(char *cmdline)
 {
     UNUSED(cmdline);
@@ -3554,7 +3551,6 @@ static void cliResource(char *cmdline)
         }
     }
 }
-#endif
 
 static void backupConfigs(void)
 {
@@ -3906,9 +3902,7 @@ const clicmd_t cmdTable[] = {
         "[<index>]", cliProfile),
     CLI_COMMAND_DEF("battery_profile", "change battery profile",
         "[<index>]", cliBatteryProfile),
-#if !defined(SKIP_TASK_STATISTICS) && !defined(SKIP_CLI_RESOURCES)
     CLI_COMMAND_DEF("resource", "view currently used resources", NULL, cliResource),
-#endif
     CLI_COMMAND_DEF("rxrange", "configure rx channel ranges", NULL, cliRxRange),
 #ifdef USE_SECONDARY_IMU
     CLI_COMMAND_DEF("imu2", "Secondary IMU", NULL, cliImu2),
@@ -3943,9 +3937,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("sd_info", "sdcard info", NULL, cliSdInfo),
 #endif
     CLI_COMMAND_DEF("status", "show status", NULL, cliStatus),
-#ifndef SKIP_TASK_STATISTICS
     CLI_COMMAND_DEF("tasks", "show task stats", NULL, cliTasks),
-#endif
 #ifdef USE_TEMPERATURE_SENSOR
     CLI_COMMAND_DEF("temp_sensor", "change temp sensor settings", NULL, cliTempSensor),
 #endif
