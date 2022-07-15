@@ -482,6 +482,8 @@ void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D, bool _max);
 // Returns a heading angle in degrees normalized to [0, 360).
 int osdGetHeadingAngle(int angle);
 
+int16_t osdGetPanServoOffset(void);
+
 /**
  * @brief Get the OSD system message
  * @param buff pointer to the message buffer

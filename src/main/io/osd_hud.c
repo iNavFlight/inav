@@ -137,6 +137,10 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
 
     osdCrosshairPosition(&center_x, &center_y);
 
+    if (!(osdConfig()->pan_servo_pwm2centideg == 0)){
+        poiDistance = poiDistance + osdGetPanServoOffset();
+    }
+
     int16_t error_x = hudWrap180(poiDirection - DECIDEGREES_TO_DEGREES(osdGetHeading()));
 
     if ((error_x > -(osdConfig()->camera_fov_h / 2)) && (error_x < osdConfig()->camera_fov_h / 2)) { // POI might be in sight, extra geometry needed
@@ -161,8 +165,9 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
     }
 
     // Out-of-sight arrows and stacking
+    // Always show with ESP32 Radar
 
-    if (poi_is_oos) {
+    if (poi_is_oos || poiType == 1) {
         uint16_t d;
         uint16_t c;
 
@@ -208,7 +213,7 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
     else if (poiType == 2) { // Waypoint,
         osdHudWrite(poi_x - 1, poi_y, SYM_HUD_ARROWS_U1 + poiP2, 1);
         osdHudWrite(poi_x + 1, poi_y, poiP1, 1);
-        }
+    }
 
     // Distance
 
