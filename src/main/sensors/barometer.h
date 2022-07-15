@@ -20,6 +20,7 @@
 #include "config/parameter_group.h"
 
 #include "drivers/barometer/barometer.h"
+#include "common/time.h"
 
 typedef enum {
     BARO_NONE = 0,
