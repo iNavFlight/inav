@@ -209,8 +209,8 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .yawControlDeadband = SETTING_NAV_FW_YAW_DEADBAND_DEFAULT,
         .soaring_pitch_deadband = SETTING_NAV_FW_SOARING_PITCH_DEADBAND_DEFAULT,// pitch angle mode deadband when Saoring mode enabled
         .auto_disarm_delay = SETTING_NAV_FW_AUTO_DISARM_DELAY_DEFAULT,          // ms - time delay to disarm when auto disarm after landing enabled
-        .waypoint_tracking_accuracy = SETTING_NAV_FW_WP_TRACKING_ACCURACY_DEFAULT,  // 0 m
-        .wp_turn_smoothing_dist = SETTING_NAV_FW_WP_TURN_SMOOTHING_DIST_DEFAULT,    // 0 cm
+        .waypoint_tracking_accuracy = SETTING_NAV_FW_WP_TRACKING_ACCURACY_DEFAULT,  // 0 m, improves course tracking during FW WP missions
+        .waypoint_turn_smoothing = SETTING_NAV_FW_WP_TURN_SMOOTHING_DEFAULT,    // OFF, smooths turns during FW WP mode missions
     }
 );
 
@@ -1203,6 +1203,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigati
             if (trackbackActive && posControl.activeRthTBPointIndex >= 0 && !isWaypointMissionRTHActive()) {
                 updateRthTrackback(true);       // save final trackpoint for altitude and max trackback distance reference
                 posControl.flags.rthTrackbackActive = true;
+                posControl.wpReached = false;
                 calculateAndSetActiveWaypointToLocalPosition(rthGetTrackbackPos());
                 return NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_RTH_TRACKBACK;
             }
@@ -1569,6 +1570,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
             posControl.wpInitialDistance = calculateDistanceToDestination(&posControl.activeWaypoint.pos);
             posControl.wpInitialAltitude = posControl.actualState.abs.pos.z;
             posControl.wpAltitudeReached = false;
+            posControl.wpReached = false;
             return NAV_FSM_EVENT_SUCCESS;       // will switch to NAV_STATE_WAYPOINT_IN_PROGRESS
 
                 // We use p3 as the volatile jump counter (p2 is the static value)
@@ -2213,7 +2215,7 @@ bool navCalculatePathToDestination(navDestinationPath_t *result, const fpVector3
     return true;
 }
 
-static bool getLocalPosNextWaypoint(fpVector3_t * nextWpPos)
+bool getLocalPosNextWaypoint(fpVector3_t * nextWpPos)
 {
     // Only for WP Mode not Trackback. Ignore non geo waypoints except RTH and JUMP.
     if (FLIGHT_MODE(NAV_WP_MODE) && !isLastMissionWaypoint()) {
@@ -2255,25 +2257,16 @@ static bool isWaypointReached(const fpVector3_t * waypointPos, const int32_t * w
         return true;
     }
 
-    uint16_t turnEarlyDistance = 0;
-    if (navGetStateFlags(posControl.navState) & NAV_AUTO_WP) {
+    if (navGetStateFlags(posControl.navState) & NAV_AUTO_WP || posControl.flags.rthTrackbackActive) {
         // Check if waypoint was missed based on bearing to WP exceeding 100 degrees relative to waypointYaw
-        if (ABS(wrap_18000(calculateBearingToDestination(waypointPos) - *waypointYaw)) > 10000) {
+        // Also check if WP reached when turn smoothing used
+        if (ABS(wrap_18000(calculateBearingToDestination(waypointPos) - *waypointYaw)) > 10000 || posControl.wpReached) {
+            posControl.wpReached = false;
             return true;
-        }
-
-        // fixed wing option to reach waypoint earlier to help smooth tighter turns to next waypoint.
-        // factor applied from 1 to 10 for turns > 60 to 105 degs and over
-        if (navConfig()->fw.wp_turn_smoothing_dist && STATE(AIRPLANE) && posControl.activeWaypointIndex > 0) {
-            fpVector3_t nextWpPos;
-            if (getLocalPosNextWaypoint(&nextWpPos)) {
-                int32_t bearingToNextWP = ABS(wrap_18000(calculateBearingBetweenLocalPositions(waypointPos, &nextWpPos) - *waypointYaw));
-                turnEarlyDistance = navConfig()->fw.wp_turn_smoothing_dist * constrain((bearingToNextWP - 4000) / 500, 0, 10);
-            }
         }
     }
 
-    return posControl.wpDistance <= (navConfig()->general.waypoint_radius + turnEarlyDistance);
+    return posControl.wpDistance <= (navConfig()->general.waypoint_radius);
 }
 
 bool isWaypointAltitudeReached(void)

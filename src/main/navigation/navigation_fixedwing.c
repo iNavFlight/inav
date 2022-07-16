@@ -275,20 +275,48 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
     float trackingDistance = trackingPeriod * MAX(posControl.actualState.velXY, 100.0f);
 
     uint32_t navLoiterRadius = getLoiterRadius(navConfig()->fw.loiter_radius);
+    fpVector3_t loiterCenterPos = posControl.desiredState.pos;
+    int8_t turnDirection = loiterDirection();
 
-    // If angular visibility of a waypoint is less than 30deg, don't calculate circular loiter, go straight to the target
+    // Detemine if a circular loiter is required.
+    // For waypoints only use circular loiter when angular visibility is > 30 degs, otherwise head straight toward target
     #define TAN_15DEG    0.26795f
     needToCalculateCircularLoiter = isNavHoldPositionActive() &&
                                     (distanceToActualTarget <= (navLoiterRadius / TAN_15DEG)) &&
                                     (distanceToActualTarget > 50.0f);
 
-    // Calculate virtual position for straight movement
-    if (needToCalculateCircularLoiter) {
-        // We are closing in on a waypoint, calculate circular loiter
-        float loiterAngle = atan2_approx(-posErrorY, -posErrorX) + DEGREES_TO_RADIANS(loiterDirection() * 45.0f);
+    /* WP turn smoothing option - switch to loiter path when distance to waypoint < navLoiterRadius.
+     * Loiter centered on point inside turn at navLoiterRadius distance from waypoint and
+     * on a bearing midway between current and next waypoint course bearings */
+    if (navConfig()->fw.waypoint_turn_smoothing && isWaypointNavTrackingRoute() && !needToCalculateCircularLoiter) {
+        if (posControl.wpDistance < navLoiterRadius) {
+            fpVector3_t posNextWp;
+            if (getLocalPosNextWaypoint(&posNextWp)) {
+                int32_t bearingNextWp = calculateBearingBetweenLocalPositions(&posControl.activeWaypoint.pos, &posNextWp);
+                int32_t loiterCenterBearing = wrap_36000(((wrap_18000(bearingNextWp - posControl.activeWaypoint.yaw - 18000)) / 2) +
+                                              posControl.activeWaypoint.yaw + 18000);
+                loiterCenterPos.x = posControl.activeWaypoint.pos.x + navLoiterRadius * cos_approx(CENTIDEGREES_TO_RADIANS(loiterCenterBearing));
+                loiterCenterPos.y = posControl.activeWaypoint.pos.y + navLoiterRadius * sin_approx(CENTIDEGREES_TO_RADIANS(loiterCenterBearing));
+                posErrorX = loiterCenterPos.x - navGetCurrentActualPositionAndVelocity()->pos.x;
+                posErrorY = loiterCenterPos.y - navGetCurrentActualPositionAndVelocity()->pos.y;
 
-        float loiterTargetX = posControl.desiredState.pos.x + navLoiterRadius * cos_approx(loiterAngle);
-        float loiterTargetY = posControl.desiredState.pos.y + navLoiterRadius * sin_approx(loiterAngle);
+                // turn direction to next waypoint
+                turnDirection = wrap_18000(bearingNextWp - posControl.activeWaypoint.yaw) > 0 ? 1 : -1;  // 1 = right
+
+                // if waypoint not reached based on distance from waypoint then waypoint considered
+                // reached if difference between actual heading and waypoint bearing exceeds 90 degs
+                posControl.wpReached = ABS(wrap_18000(posControl.activeWaypoint.yaw - posControl.actualState.yaw)) > 9000;
+
+                needToCalculateCircularLoiter = true;
+            }
+        }
+    }
+
+    // We are closing in on a waypoint, calculate circular loiter if required
+    if (needToCalculateCircularLoiter) {
+        float loiterAngle = atan2_approx(-posErrorY, -posErrorX) + DEGREES_TO_RADIANS(turnDirection * 45.0f);
+        float loiterTargetX = loiterCenterPos.x + navLoiterRadius * cos_approx(loiterAngle);
+        float loiterTargetY = loiterCenterPos.y + navLoiterRadius * sin_approx(loiterAngle);
 
         // We have temporary loiter target. Recalculate distance and position error
         posErrorX = loiterTargetX - navGetCurrentActualPositionAndVelocity()->pos.x;
@@ -358,8 +386,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
     // We have virtual position target, calculate heading error
     int32_t virtualTargetBearing = calculateBearingToDestination(&virtualDesiredPosition);
 
-    /* If waypoint tracking enabled force craft toward waypoint course line
-     * and hold within set accuracy distance from line */
+    /* If waypoint tracking enabled quickly force craft toward waypoint course line and track along it */
     if (navConfig()->fw.waypoint_tracking_accuracy && isWaypointNavTrackingRoute() && !needToCalculateCircularLoiter) {
         // only apply course tracking correction if target bearing error < 90 degs or when close to waypoint (within 10m)
         if (ABS(wrap_18000(virtualTargetBearing - posControl.actualState.yaw)) < 9000 || posControl.wpDistance < 1000.0f) {
@@ -370,16 +397,20 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
                                    posControl.wpDistance * sin_approx(CENTIDEGREES_TO_RADIANS(posControl.activeWaypoint.yaw));
             float distToCourseLine = calculateDistanceToDestination(&virtualCoursePoint);
 
+            // courseVirtualCorrection initially used to determine current position relative to course line for later use
             int32_t courseVirtualCorrection = wrap_18000(posControl.activeWaypoint.yaw - virtualTargetBearing);
-            int32_t courseHeadingError = wrap_18000(posControl.activeWaypoint.yaw - posControl.actualState.yaw);
 
+            // bias between reducing distance to course line and aligning with course heading adjusted by waypoint_tracking_accuracy
             float courseCorrectionFactor = constrainf(distToCourseLine / (100.0f * navConfig()->fw.waypoint_tracking_accuracy), 0.0f, 1.0f);
             courseCorrectionFactor = courseVirtualCorrection < 0 ? -courseCorrectionFactor : courseCorrectionFactor;
 
+            int32_t courseHeadingError = wrap_18000(posControl.activeWaypoint.yaw - posControl.actualState.yaw);
             float courseHeadingFactor = constrainf(sq(courseHeadingError / 18000.0f), 0.0f, 1.0f);
             courseHeadingFactor = courseHeadingError < 0 ? -courseHeadingFactor : courseHeadingFactor;
 
             courseCorrectionFactor = constrainf(courseCorrectionFactor - courseHeadingFactor, -1.0f, 1.0f);
+
+            // final courseVirtualCorrection using max 80 deg heading adjustment toward course line
             courseVirtualCorrection = 8000 * courseCorrectionFactor;
 
             virtualTargetBearing = wrap_36000(posControl.activeWaypoint.yaw - courseVirtualCorrection);

@@ -3282,13 +3282,13 @@ Sets a reference distance to the waypoint course line that affects the accuracy 
 
 ---
 
-### nav_fw_wp_turn_smoothing_dist
+### nav_fw_wp_turn_smoothing
 
-Provides a means of smoothing waypoint turns by reaching waypoints earlier as turns become tighter. Applied as an increasing multiple of nav_fw_wp_turn_smoothing_dist [cm] starting at 1 for turns exceeding 45 degrees to a maximum of 10 for turns of 90 degrees and over, e.g. a 70 degree turn is reached when 6 x nav_fw_wp_turn_smoothing_dist from waypoint. 200 is a good starting point. Set to 0 to disable turn smoothing.
+Smooths turns during WP missions by switching to a loiter path when within the nav_fw_loiter_radius from the waypoint. The loiter is centered relative to the waypoint such that the craft passes through the waypoint during the loiter at which point the waypoint is considered to have been reached.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 2000 |
+| OFF | OFF | ON |
 
 ---
 
