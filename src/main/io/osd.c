@@ -4342,7 +4342,8 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 }
             } else {    /* messages shown only when Failsafe, WP, RTH or Emergency Landing not active */
                 if (STATE(FIXED_WING_LEGACY) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
-                    messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_AUTOLAUNCH);
+                    messages[messageCount++] = navConfig()->fw.launch_manual_throttle ? OSD_MESSAGE_STR(OSD_MSG_AUTOLAUNCH_MANUAL) :
+                                                                                        OSD_MESSAGE_STR(OSD_MSG_AUTOLAUNCH);
                     const char *launchStateMessage = fixedWingLaunchStateMessage();
                     if (launchStateMessage) {
                         messages[messageCount++] = launchStateMessage;
