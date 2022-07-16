@@ -127,7 +127,7 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
     uint8_t center_x;
     uint8_t center_y;
     bool poi_is_oos = 0;
-    char buff[3];
+    char buff[4];
     int altc = 0;
 
     uint8_t minX = osdConfig()->hud_margin_h + 2;
@@ -149,8 +149,7 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
 
         if (poi_x < minX || poi_x > maxX ) { // In camera view, but out of the hud area
             poi_is_oos = 1;
-        }
-        else { // POI is on sight, compute the vertical
+        } else { // POI is on sight, compute the vertical
             float poi_angle = atan2_approx(-poiAltitude, poiDistance);
             poi_angle = RADIANS_TO_DEGREES(poi_angle);
             int16_t plane_angle = attitude.values.pitch / 10;
@@ -159,8 +158,7 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
             float scaled_y = sin_approx(DEGREES_TO_RADIANS(error_y)) / sin_approx(DEGREES_TO_RADIANS(osdConfig()->camera_fov_v / 2));
             poi_y = constrain(center_y + (osdGetDisplayPort()->rows / 2) * scaled_y, minY, maxY - 1);
         }
-    }
-    else {
+    } else {
         poi_is_oos = 1; // POI is out of camera view for sure
     }
 
@@ -171,8 +169,10 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
         uint16_t d;
         uint16_t c;
 
-        poi_x = (error_x > 0 ) ? maxX : minX;
-        poi_y = center_y - 1;
+        if (poi_is_oos) {
+            poi_x = (error_x > 0 ) ? maxX : minX;
+            poi_y = center_y - 1;
+        }
 
         if (displayReadCharWithAttr(osdGetDisplayPort(), poi_x, poi_y, &c, NULL) && c != SYM_BLANK) {
             poi_y = center_y - 3;
@@ -241,12 +241,13 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
         }
 
         if (poiType == 1) {
-            altc = constrain(altc, -999 , 999);
+            altc = ABS(constrain(altc, -999, 999));
+            tfp_sprintf(buff+1, "%3d", altc);
         } else {
-            altc = constrain(altc, -99 , 99);
+            altc = constrain(altc, -99, 99);
+            tfp_sprintf(buff, "%3d", altc);
         }
 
-        tfp_sprintf(buff, "%3d", altc);
         buff[0] = (poiAltitude >= 0) ? SYM_AH_DIRECTION_UP : SYM_AH_DIRECTION_DOWN;
     } else { // Display the distance by default 
         switch ((osd_unit_e)osdConfig()->units) {
