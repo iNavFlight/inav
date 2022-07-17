@@ -2802,7 +2802,7 @@ static bool osdDrawSingleElement(uint8_t item)
             if (valid) {
                 uint16_t angle;
                 horizontalWindSpeed = getEstimatedHorizontalWindSpeed(&angle);
-                int16_t windDirection = osdGetHeadingAngle( DECIDEGREES_TO_DEGREES(attitude.values.yaw) - CENTIDEGREES_TO_DEGREES((int)angle) + 22);
+                int16_t windDirection = osdGetHeadingAngle( CENTIDEGREES_TO_DEGREES((int)angle) - DECIDEGREES_TO_DEGREES(attitude.values.yaw) + 22);
                 buff[1] = SYM_DIRECTION + (windDirection*2 / 90);
             } else {
                 horizontalWindSpeed = 0;
