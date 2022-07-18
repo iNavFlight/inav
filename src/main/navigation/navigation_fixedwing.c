@@ -287,28 +287,28 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
 
     /* WP turn smoothing option - switch to loiter path when distance to waypoint < navLoiterRadius.
      * Loiter centered on point inside turn at navLoiterRadius distance from waypoint and
-     * on a bearing midway between current and next waypoint course bearings */
-    if (navConfig()->fw.waypoint_turn_smoothing && isWaypointNavTrackingRoute() && !needToCalculateCircularLoiter) {
-        if (posControl.wpDistance < navLoiterRadius) {
-            fpVector3_t posNextWp;
-            if (getLocalPosNextWaypoint(&posNextWp)) {
-                int32_t bearingNextWp = calculateBearingBetweenLocalPositions(&posControl.activeWaypoint.pos, &posNextWp);
-                int32_t loiterCenterBearing = wrap_36000(((wrap_18000(bearingNextWp - posControl.activeWaypoint.yaw - 18000)) / 2) +
-                                              posControl.activeWaypoint.yaw + 18000);
-                loiterCenterPos.x = posControl.activeWaypoint.pos.x + navLoiterRadius * cos_approx(CENTIDEGREES_TO_RADIANS(loiterCenterBearing));
-                loiterCenterPos.y = posControl.activeWaypoint.pos.y + navLoiterRadius * sin_approx(CENTIDEGREES_TO_RADIANS(loiterCenterBearing));
-                posErrorX = loiterCenterPos.x - navGetCurrentActualPositionAndVelocity()->pos.x;
-                posErrorY = loiterCenterPos.y - navGetCurrentActualPositionAndVelocity()->pos.y;
+     * on a bearing midway between current and next waypoint course bearings
+     * Only for turns > 30 degs, navLoiterRadius factored down between 30 to 60 degs to align with course line */
+    if (navConfig()->fw.waypoint_turn_smoothing && isWaypointNavTrackingRoute() && !needToCalculateCircularLoiter &&
+        posControl.activeWaypoint.bearingToNextWp != -1) {
+        int32_t turnAngle = wrap_18000(posControl.activeWaypoint.bearingToNextWp - posControl.activeWaypoint.yaw);
+        float turnFactor = ABS(turnAngle) < 3000 ? 0.0f : constrainf(ABS(turnAngle) / 6000.0f, 0.5f, 1.0f);
+        if (posControl.wpDistance < navLoiterRadius * turnFactor) {
+            int32_t loiterCenterBearing = wrap_36000(((wrap_18000(posControl.activeWaypoint.bearingToNextWp - posControl.activeWaypoint.yaw - 18000)) / 2)                              + posControl.activeWaypoint.yaw + 18000);
+            loiterCenterPos.x = posControl.activeWaypoint.pos.x + navLoiterRadius * cos_approx(CENTIDEGREES_TO_RADIANS(loiterCenterBearing));
+            loiterCenterPos.y = posControl.activeWaypoint.pos.y + navLoiterRadius * sin_approx(CENTIDEGREES_TO_RADIANS(loiterCenterBearing));
 
-                // turn direction to next waypoint
-                turnDirection = wrap_18000(bearingNextWp - posControl.activeWaypoint.yaw) > 0 ? 1 : -1;  // 1 = right
+            posErrorX = loiterCenterPos.x - navGetCurrentActualPositionAndVelocity()->pos.x;
+            posErrorY = loiterCenterPos.y - navGetCurrentActualPositionAndVelocity()->pos.y;
 
-                // if waypoint not reached based on distance from waypoint then waypoint considered
-                // reached if difference between actual heading and waypoint bearing exceeds 90 degs
-                posControl.wpReached = ABS(wrap_18000(posControl.activeWaypoint.yaw - posControl.actualState.yaw)) > 9000;
+            // if waypoint not reached based on distance from waypoint then waypoint considered
+            // reached if difference between actual heading and waypoint bearing exceeds 90 degs
+            posControl.wpReached = ABS(wrap_18000(posControl.activeWaypoint.yaw - posControl.actualState.yaw)) > 9000;
 
-                needToCalculateCircularLoiter = true;
-            }
+            // turn direction to next waypoint
+            turnDirection = turnAngle > 0 ? 1 : -1;  // 1 = right
+
+            needToCalculateCircularLoiter = true;
         }
     }
 

@@ -2215,7 +2215,7 @@ bool navCalculatePathToDestination(navDestinationPath_t *result, const fpVector3
     return true;
 }
 
-bool getLocalPosNextWaypoint(fpVector3_t * nextWpPos)
+static bool getLocalPosNextWaypoint(fpVector3_t * nextWpPos)
 {
     // Only for WP Mode not Trackback. Ignore non geo waypoints except RTH and JUMP.
     if (FLIGHT_MODE(NAV_WP_MODE) && !isLastMissionWaypoint()) {
@@ -2258,10 +2258,11 @@ static bool isWaypointReached(const fpVector3_t * waypointPos, const int32_t * w
     }
 
     if (navGetStateFlags(posControl.navState) & NAV_AUTO_WP || posControl.flags.rthTrackbackActive) {
-        // Check if waypoint was missed based on bearing to WP exceeding 100 degrees relative to waypointYaw
-        // Also check if WP reached when turn smoothing used
-        if (ABS(wrap_18000(calculateBearingToDestination(waypointPos) - *waypointYaw)) > 10000 || posControl.wpReached) {
-            posControl.wpReached = false;
+        // Check if WP reached when turn smoothing used
+        // Otherwise check if waypoint was missed based on bearing to WP exceeding 100 degrees relative to waypoint Yaw
+        if (navConfig()->fw.waypoint_turn_smoothing && posControl.activeWaypoint.bearingToNextWp != -1) {
+            return posControl.wpReached;
+        } else if (ABS(wrap_18000(calculateBearingToDestination(waypointPos) - *waypointYaw)) > 10000) {
             return true;
         }
     }
@@ -3334,6 +3335,7 @@ static void calculateAndSetActiveWaypointToLocalPosition(const fpVector3_t * pos
     } else {
         posControl.activeWaypoint.yaw = calculateBearingToDestination(pos);
     }
+    posControl.activeWaypoint.bearingToNextWp = -1;     // reset to NO next WP (-1), will be set by WP mode as required
 
     posControl.activeWaypoint.pos = *pos;
 
@@ -3351,6 +3353,13 @@ static void calculateAndSetActiveWaypoint(const navWaypoint_t * waypoint)
     fpVector3_t localPos;
     mapWaypointToLocalPosition(&localPos, waypoint, waypointMissionAltConvMode(waypoint->p3));
     calculateAndSetActiveWaypointToLocalPosition(&localPos);
+
+    if (navConfig()->fw.waypoint_turn_smoothing) {
+        fpVector3_t posNextWp;
+        if (getLocalPosNextWaypoint(&posNextWp)) {
+            posControl.activeWaypoint.bearingToNextWp = calculateBearingBetweenLocalPositions(&posControl.activeWaypoint.pos, &posNextWp);
+        }
+    }
 }
 
 /* Checks if active waypoint is last in mission */
