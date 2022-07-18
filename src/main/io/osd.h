@@ -271,6 +271,7 @@ typedef enum {
     OSD_GROUND_COURSE,      // 140
     OSD_CROSS_TRACK_ERROR,
     OSD_PILOT_NAME,
+    OSD_PAN_SERVO_CENTRED,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 

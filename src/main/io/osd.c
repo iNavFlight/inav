@@ -2482,6 +2482,16 @@ static bool osdDrawSingleElement(uint8_t item)
         osdDisplaySwitchIndicator(osdConfig()->osd_switch_indicator3_name, rxGetChannelValue(osdConfig()->osd_switch_indicator3_channel - 1), buff);
         break;
 
+    case OSD_PAN_SERVO_CENTRED:
+        {
+            if (osdGetPanServoOffset() != 0) {
+                displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_SERVO_PAN_IS_OFFSET);
+            } else {
+                displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_SERVO_PAN_IS_CENTRED);
+            }
+        }
+        break;
+
     case OSD_ACTIVE_PROFILE:
         tfp_sprintf(buff, "%c%u", SYM_PROFILE, (getConfigProfile() + 1));
         displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);

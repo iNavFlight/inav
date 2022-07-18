@@ -254,6 +254,9 @@
 
 #define SYM_HUD_CARDINAL            0x1BA // 442-453 Cardinal direction in 30 degree segments
 
+#define SYM_SERVO_PAN_IS_CENTRED    0x1C6 // 454 Pan servo is centred
+#define SYM_SERVO_PAN_IS_OFFSET     0x1C7 // 455 Pan servo is offset
+
 #else
 
 #define TEMP_SENSOR_SYM_COUNT 0
