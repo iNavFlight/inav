@@ -38,9 +38,17 @@ cd /c/Workspace
 # you can also check out your own fork here which makes contributing easier
 git clone https://github.com/iNavFlight/inav
 cd inav
-# switch to release you want or skip next 2 lines if you want latest
+```
+
+(Optional) Switch to a release
+```
+# switch to a release you want or skip next 2 lines if you want latest
 git fetch origin
-git checkout -b release_2.6.1 origin/release_2.6.1
+# tags/5.0.0 is the release tag, local_5.0.0 is the name of a local branch you will create.
+# tags can be found on https://github.com/iNavFlight/inav/tags as well as the releases page
+git checkout tags/5.0.0 -b local_5.0.0
+# you can also checkout with a branch if applicable:
+# git checkout -b release_5.1.0 origin/release_5.1.0
 ```
 Now create the build and xpack directories and get the toolkit version you need for your inav version
 ```
@@ -54,13 +62,13 @@ This will give you the version you need for any given release or master branch. 
 
 https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/
 ```
-# for version 2.6.1, version needed is 9.2.1
-wget https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/download/v9.2.1-1.1/xpack-arm-none-eabi-gcc-9.2.1-1.1-win32-x64.zip
-unzip xpack-arm-none-eabi-gcc-9.2.1-1.1-win32-x64.zip
+# for version 5.0.0, version needed is 10.2.1
+wget https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/download/v10.2.1-1.1/xpack-arm-none-eabi-gcc-10.2.1-1.1-win32-x64.zip
+unzip xpack-arm-none-eabi-gcc-10.2.1-1.1-win32-x64.zip
 ```
 This is important, put the toolkit first before your path so that it is  picked up ahead of any other versions that may be present on your system
 ```
-export PATH=/c/Workspace/xpack/xpack-arm-none-eabi-gcc-9.2.1-1.1/bin:$PATH
+export PATH=/c/Workspace/xpack/xpack-arm-none-eabi-gcc-10.2.1-1.1/bin:$PATH
 cd /c/Workspace/inav/build
 ```
 You may need to run rm -rf * in build directory if you had any failed previous runs now run cmake
@@ -68,7 +76,7 @@ You may need to run rm -rf * in build directory if you had any failed previous r
 # while inside the build directory
 cmake ..
 ```
-Once that's done you can compile the firmware for your controller
+Once that's done you can compile the firmware for your flight controller
 ```
 make DALRCF405
 ```
