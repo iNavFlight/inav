@@ -4392,6 +4392,26 @@ Index of the pan servo to adjust osd home heading direction based on camera pan.
 
 ---
 
+### osd_pan_servo_indicator_show_degrees
+
+Show the degress of offset from centre on the pan servo OSD display element.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### osd_pan_servo_offcentre_warning
+
+Degrees around the pan servo centre that it is assumed camera is wanted to be facing forwards; but isn't at 0. If in this range and not 0 for longer than 10 seconds, the pan servo offset OSD element will blink.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | 0 | 45 |
+
+---
+
 ### osd_pan_servo_pwm2centideg
 
 Centidegrees of pan servo rotation us PWM signal. A servo with 180 degrees of rotation from 1000 to 2000 us PWM typically needs `18` for this setting. Change sign to inverse direction.

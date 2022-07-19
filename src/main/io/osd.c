@@ -2484,11 +2484,48 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_PAN_SERVO_CENTRED:
         {
-            if (osdGetPanServoOffset() != 0) {
-                displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_SERVO_PAN_IS_OFFSET);
+            int16_t panOffset = osdGetPanServoOffset();
+            const timeMs_t panServoTimeNow = millis();
+            static timeMs_t panServoTimeOffCentre = 0;
+
+            if (panOffset < 0) {
+                if (osdConfig()->pan_servo_offcentre_warning != 0 && panOffset >= -osdConfig()->pan_servo_offcentre_warning) {
+                    if (panServoTimeOffCentre == 0) {
+                        panServoTimeOffCentre = panServoTimeNow;
+                    } else if (panServoTimeNow >= (panServoTimeOffCentre + 10000 )) {
+                        TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+                    }
+                } else {
+                    panServoTimeOffCentre = 0;
+                }
+
+                if (osdConfig()->pan_servo_indicator_show_degrees) {
+                    tfp_sprintf(buff, "%3d%c", -panOffset, SYM_DEGREES);
+                    displayWriteWithAttr(osdDisplayPort, elemPosX+1, elemPosY, buff, elemAttr);
+                }
+                displayWriteCharWithAttr(osdDisplayPort, elemPosX, elemPosY, SYM_SERVO_PAN_IS_OFFSET_L, elemAttr);
+            } else if (panOffset > 0) {
+                if (osdConfig()->pan_servo_offcentre_warning != 0 && panOffset <= osdConfig()->pan_servo_offcentre_warning) {
+                    if (panServoTimeOffCentre == 0) {
+                        panServoTimeOffCentre = panServoTimeNow;
+                    } else if (panServoTimeNow >= (panServoTimeOffCentre + 10000 )) {
+                        TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+                    }
+                } else {
+                    panServoTimeOffCentre = 0;
+                }
+
+                if (osdConfig()->pan_servo_indicator_show_degrees) {
+                    tfp_sprintf(buff, "%3d%c", panOffset, SYM_DEGREES);
+                    displayWriteWithAttr(osdDisplayPort, elemPosX+1, elemPosY, buff, elemAttr);
+                }
+                displayWriteCharWithAttr(osdDisplayPort, elemPosX, elemPosY, SYM_SERVO_PAN_IS_OFFSET_R, elemAttr);
             } else {
+                panServoTimeOffCentre = 0;
                 displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_SERVO_PAN_IS_CENTRED);
             }
+
+            return true;
         }
         break;
 
@@ -3493,6 +3530,8 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .osd_home_position_arm_screen = SETTING_OSD_HOME_POSITION_ARM_SCREEN_DEFAULT,
     .pan_servo_index = SETTING_OSD_PAN_SERVO_INDEX_DEFAULT,
     .pan_servo_pwm2centideg = SETTING_OSD_PAN_SERVO_PWM2CENTIDEG_DEFAULT,
+    .pan_servo_offcentre_warning = SETTING_OSD_PAN_SERVO_OFFCENTRE_WARNING_DEFAULT,
+    .pan_servo_indicator_show_degrees = SETTING_OSD_PAN_SERVO_INDICATOR_SHOW_DEGREES_DEFAULT,
     .esc_rpm_precision = SETTING_OSD_ESC_RPM_PRECISION_DEFAULT,
     .mAh_used_precision = SETTING_OSD_MAH_USED_PRECISION_DEFAULT,
     .osd_switch_indicator0_name = SETTING_OSD_SWITCH_INDICATOR_ZERO_NAME_DEFAULT,

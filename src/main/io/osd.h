@@ -428,6 +428,8 @@ typedef struct osdConfig_s {
     bool    osd_home_position_arm_screen;
     uint8_t pan_servo_index;                    // Index of the pan servo used for home direction offset
     int8_t  pan_servo_pwm2centideg;             // Centidegrees of servo rotation per us pwm
+    uint8_t pan_servo_offcentre_warning;        // Degrees around the centre, that is assumed camera is wanted to be facing forwards, but isn't centred
+    bool    pan_servo_indicator_show_degrees;   // Show the degrees of offset for the pan servo
     uint8_t crsf_lq_format;
     uint8_t sidebar_height;                     // sidebar height in rows, 0 turns off sidebars leaving only level indicator arrows
     uint8_t telemetry; 				            // use telemetry on displayed pixel line 0
