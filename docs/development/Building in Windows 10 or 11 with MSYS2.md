@@ -40,11 +40,10 @@ git clone https://github.com/iNavFlight/inav
 cd inav
 ```
 
-(Optional) Switch to a release
+(Optional) Switch to a release instead of master
 ```
-# switch to a release you want or skip next 2 lines if you want latest
 git fetch origin
-# tags/5.0.0 is the release tag, local_5.0.0 is the name of a local branch you will create.
+# on the next line, tags/5.0.0 is the release's tag, and local_5.0.0 is the name of a local branch you will create.
 # tags can be found on https://github.com/iNavFlight/inav/tags as well as the releases page
 git checkout tags/5.0.0 -b local_5.0.0
 # you can also checkout with a branch if applicable:
@@ -62,7 +61,7 @@ This will give you the version you need for any given release or master branch. 
 
 https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/
 ```
-# for version 5.0.0, version needed is 10.2.1
+# for iNav version 5.0.0, tookchain version needed is 10.2.1
 wget https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/download/v10.2.1-1.1/xpack-arm-none-eabi-gcc-10.2.1-1.1-win32-x64.zip
 unzip xpack-arm-none-eabi-gcc-10.2.1-1.1-win32-x64.zip
 ```
