@@ -4404,7 +4404,7 @@ Show the degress of offset from centre on the pan servo OSD display element.
 
 ### osd_pan_servo_offcentre_warning
 
-Degrees around the pan servo centre that it is assumed camera is wanted to be facing forwards; but isn't at 0. If in this range and not 0 for longer than 10 seconds, the pan servo offset OSD element will blink.
+Degrees either side of the pan servo centre; where it is assumed camera is wanted to be facing forwards, but isn't at 0. If in this range and not 0 for longer than 10 seconds, the pan servo offset OSD element will blink.
 
 | Default | Min | Max |
 | --- | --- | --- |
