@@ -3443,10 +3443,10 @@ groups:
         description: Should home position coordinates be displayed on the arming screen.
 
       - name: osd_pan_servo_index
-        description: Index of the pan servo to adjust osd home heading direction based on camera pan. Note that this feature does not work with continiously rotating servos.
+        description: Index of the pan servo, used to adjust osd home heading direction based on camera pan. Note that this feature does not work with continiously rotating servos.
         field: pan_servo_index
         min: 0
-        max: 10
+        max: 16
         default_value: 0
 
       - name: osd_pan_servo_pwm2centideg
