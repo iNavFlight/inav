@@ -112,6 +112,8 @@ typedef struct navigationFlags_s {
     bool resetLandingDetector;
 
     bool rthTrackbackActive;                // Activation status of RTH trackback
+
+    bool wpTurnSmoothingActive;             // Activation status WP turn smoothing
 } navigationFlags_t;
 
 typedef struct {
@@ -401,7 +403,6 @@ typedef struct {
     float                       wpInitialAltitude;          // Altitude at start of WP
     float                       wpInitialDistance;          // Distance when starting flight to WP
     float                       wpDistance;                 // Distance to active WP
-    bool                        wpReached;                  // WP reached when using turn smoothing
     timeMs_t                    wpReachedTime;              // Time the waypoint was reached
     bool                        wpAltitudeReached;          // WP altitude achieved
 

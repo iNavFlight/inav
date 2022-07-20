@@ -1203,7 +1203,6 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigati
             if (trackbackActive && posControl.activeRthTBPointIndex >= 0 && !isWaypointMissionRTHActive()) {
                 updateRthTrackback(true);       // save final trackpoint for altitude and max trackback distance reference
                 posControl.flags.rthTrackbackActive = true;
-                posControl.wpReached = false;
                 calculateAndSetActiveWaypointToLocalPosition(rthGetTrackbackPos());
                 return NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_RTH_TRACKBACK;
             }
@@ -1570,7 +1569,6 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
             posControl.wpInitialDistance = calculateDistanceToDestination(&posControl.activeWaypoint.pos);
             posControl.wpInitialAltitude = posControl.actualState.abs.pos.z;
             posControl.wpAltitudeReached = false;
-            posControl.wpReached = false;
             return NAV_FSM_EVENT_SUCCESS;       // will switch to NAV_STATE_WAYPOINT_IN_PROGRESS
 
                 // We use p3 as the volatile jump counter (p2 is the static value)
@@ -2258,11 +2256,10 @@ static bool isWaypointReached(const fpVector3_t * waypointPos, const int32_t * w
     }
 
     if (navGetStateFlags(posControl.navState) & NAV_AUTO_WP || posControl.flags.rthTrackbackActive) {
-        // Check if WP reached when turn smoothing used
-        // Otherwise check if waypoint was missed based on bearing to WP exceeding 100 degrees relative to waypoint Yaw
-        if (navConfig()->fw.waypoint_turn_smoothing && posControl.activeWaypoint.bearingToNextWp != -1) {
-            return posControl.wpReached;
-        } else if (ABS(wrap_18000(calculateBearingToDestination(waypointPos) - *waypointYaw)) > 10000) {
+        // Check if waypoint was missed based on bearing to WP exceeding 100 degrees relative to waypoint Yaw
+        // Same method for turn smoothing option but relative bearing set at 45 degrees
+        uint16_t relativeBearing = posControl.flags.wpTurnSmoothingActive ? 4500 : 10000;
+        if (ABS(wrap_18000(calculateBearingToDestination(waypointPos) - *waypointYaw)) > relativeBearing) {
             return true;
         }
     }
