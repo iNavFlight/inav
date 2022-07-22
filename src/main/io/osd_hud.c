@@ -138,7 +138,7 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
     osdCrosshairPosition(&center_x, &center_y);
 
     if (!(osdConfig()->pan_servo_pwm2centideg == 0)){
-        poiDistance = poiDistance + osdGetPanServoOffset();
+        poiDirection = poiDirection + osdGetPanServoOffset();
     }
 
     int16_t error_x = hudWrap180(poiDirection - DECIDEGREES_TO_DEGREES(osdGetHeading()));
