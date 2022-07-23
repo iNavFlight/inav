@@ -40,6 +40,17 @@ typedef enum {
     GYRO_FAKE
 } gyroSensor_e;
 
+typedef enum {
+    DYNAMIC_NOTCH_MODE_2D = 0,
+    DYNAMIC_NOTCH_MODE_R,
+    DYNAMIC_NOTCH_MODE_P,
+    DYNAMIC_NOTCH_MODE_Y,
+    DYNAMIC_NOTCH_MODE_RP,
+    DYNAMIC_NOTCH_MODE_RY,
+    DYNAMIC_NOTCH_MODE_PY,
+    DYNAMIC_NOTCH_MODE_3D
+} dynamicGyroNotchMode_e;
+
 typedef struct gyro_s {
     bool initialized;
     uint32_t targetLooptime;
@@ -69,6 +80,8 @@ typedef struct gyroConfig_s {
     uint16_t dynamicGyroNotchQ;
     uint16_t dynamicGyroNotchMinHz;
     uint8_t dynamicGyroNotchEnabled;
+    uint8_t dynamicGyroNotchMode;
+    uint16_t dynamicGyroNotch3dQ;
 #endif
 #ifdef USE_GYRO_KALMAN
     uint16_t kalman_q;

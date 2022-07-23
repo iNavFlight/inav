@@ -42,21 +42,50 @@ void secondaryDynamicGyroNotchFiltersInit(secondaryDynamicGyroNotchState_t *stat
         state->filtersApplyFn[axis] = nullFilterApply;
     }
 
-    state->dynNotchQ = gyroConfig()->dynamicGyroNotchQ / 100.0f;
-    state->enabled = gyroConfig()->dynamicGyroNotchEnabled;
+    state->dynNotchQ = gyroConfig()->dynamicGyroNotch3dQ / 100.0f;
+    state->enabled = gyroConfig()->dynamicGyroNotchMode != DYNAMIC_NOTCH_MODE_2D;
     state->looptime = getLooptime();
 
-    if (state->enabled) {
-        /*
-         * Step 1 - init all filters even if they will not be used further down the road
+    if (
+        gyroConfig()->dynamicGyroNotchMode == DYNAMIC_NOTCH_MODE_R ||
+        gyroConfig()->dynamicGyroNotchMode == DYNAMIC_NOTCH_MODE_RP ||
+        gyroConfig()->dynamicGyroNotchMode == DYNAMIC_NOTCH_MODE_RY ||
+        gyroConfig()->dynamicGyroNotchMode == DYNAMIC_NOTCH_MODE_3D
+    ) {
+        /* 
+         * Enable ROLL filter
          */
-        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            //Any initial notch Q is valid sice it will be updated immediately after
-            biquadFilterInit(&state->filters[axis], SECONDARY_DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, state->looptime, 1.0f, FILTER_NOTCH);
-            state->filtersApplyFn[axis] = (filterApplyFnPtr)biquadFilterApplyDF1;
-        }
-
+        biquadFilterInit(&state->filters[FD_ROLL], SECONDARY_DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, state->looptime, 1.0f, FILTER_NOTCH);
+        state->filtersApplyFn[FD_ROLL] = (filterApplyFnPtr)biquadFilterApplyDF1;
     }
+
+    if (
+        gyroConfig()->dynamicGyroNotchMode == DYNAMIC_NOTCH_MODE_P ||
+        gyroConfig()->dynamicGyroNotchMode == DYNAMIC_NOTCH_MODE_RP ||
+        gyroConfig()->dynamicGyroNotchMode == DYNAMIC_NOTCH_MODE_PY ||
+        gyroConfig()->dynamicGyroNotchMode == DYNAMIC_NOTCH_MODE_3D
+    ) {
+        /* 
+         * Enable PITCH filter
+         */
+        biquadFilterInit(&state->filters[FD_PITCH], SECONDARY_DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, state->looptime, 1.0f, FILTER_NOTCH);
+        state->filtersApplyFn[FD_PITCH] = (filterApplyFnPtr)biquadFilterApplyDF1;
+    }
+
+    if (
+        gyroConfig()->dynamicGyroNotchMode == DYNAMIC_NOTCH_MODE_Y ||
+        gyroConfig()->dynamicGyroNotchMode == DYNAMIC_NOTCH_MODE_PY ||
+        gyroConfig()->dynamicGyroNotchMode == DYNAMIC_NOTCH_MODE_RY ||
+        gyroConfig()->dynamicGyroNotchMode == DYNAMIC_NOTCH_MODE_3D
+    ) {
+        /* 
+         * Enable YAW filter
+         */
+        biquadFilterInit(&state->filters[FD_YAW], SECONDARY_DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, state->looptime, 1.0f, FILTER_NOTCH);
+        state->filtersApplyFn[FD_YAW] = (filterApplyFnPtr)biquadFilterApplyDF1;
+    }
+
+    
 }
 
 void secondaryDynamicGyroNotchFiltersUpdate(secondaryDynamicGyroNotchState_t *state, int axis, float frequency[]) {
