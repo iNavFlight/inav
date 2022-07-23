@@ -752,6 +752,16 @@ Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`,
 
 ---
 
+### dynamic_gyro_notch_3d_q
+
+Q factor for 3D dynamic notches
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 200 | 1 | 1000 |
+
+---
+
 ### dynamic_gyro_notch_enabled
 
 Enable/disable dynamic gyro notch also known as Matrix Filter
@@ -769,6 +779,16 @@ Minimum frequency for dynamic notches. Default value of `150` works best with 5"
 | Default | Min | Max |
 | --- | --- | --- |
 | 50 | 30 | 250 |
+
+---
+
+### dynamic_gyro_notch_mode
+
+Gyro dynamic notch type
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 2D |  |  |
 
 ---
 
