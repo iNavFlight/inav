@@ -32,6 +32,6 @@ float getEstimatedWindSpeed(int axis);
 // optionally, its heading in EF in 0.01deg ([0, 360*100)).
 float getEstimatedHorizontalWindSpeed(uint16_t *angle);
 
-void updateWindEstimator(timeUs_t currentTimeUs);
+//void updateWindEstimator(timeUs_t currentTimeUs);
 
 #endif

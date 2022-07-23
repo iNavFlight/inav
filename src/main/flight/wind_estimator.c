@@ -74,7 +74,7 @@ float getEstimatedHorizontalWindSpeed(uint16_t *angle)
     }
     return calc_length_pythagorean_2D(xWindSpeed, yWindSpeed);
 }
-
+/*
 void updateWindEstimator(timeUs_t currentTimeUs)
 {
     static timeUs_t lastUpdateUs = 0;
@@ -170,5 +170,5 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         hasValidWindEstimate = true;
     }
 }
-
+*/
 #endif

@@ -134,6 +134,7 @@ void gpsSetProtocolTimeout(timeMs_t timeoutMs)
 {
     gpsState.lastLastMessageMs = gpsState.lastMessageMs;
     gpsState.lastMessageMs = millis();
+    gpsStats.lastFixTime = millis();
     gpsState.timeoutMs = timeoutMs;
 }
 

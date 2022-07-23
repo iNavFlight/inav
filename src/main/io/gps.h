@@ -145,6 +145,7 @@ typedef struct {
     uint32_t    errors;                // gps error counter - crc error/lost of data/sync etc..
     uint32_t    timeouts;
     uint32_t    packetCount;
+    timeMs_t    lastFixTime;
 } gpsStatistics_t;
 
 extern gpsSolutionData_t gpsSol;

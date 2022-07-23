@@ -154,10 +154,10 @@ void taskProcessGPS(timeUs_t currentTimeUs)
     // if GPS feature is enabled, gpsThread() will be called at some intervals to check for stuck
     // hardware, wrong baud rates, init GPS if needed, etc. Don't use SENSOR_GPS here as gpsThread() can and will
     // change this based on available hardware
-    if (feature(FEATURE_GPS)) {
+    if (feature(FEATURE_GPS) && STATE(FIXED_WING_LEGACY)) {
         if (gpsUpdate()) {
 #ifdef USE_WIND_ESTIMATOR
-            updateWindEstimator(currentTimeUs);
+            updateWindEstimator();
 #endif
         }
     }

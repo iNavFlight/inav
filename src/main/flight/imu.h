@@ -74,3 +74,5 @@ void imuTransformVectorBodyToEarth(fpVector3_t * v);
 void imuTransformVectorEarthToBody(fpVector3_t * v);
 
 void imuInit(void);
+
+void updateWindEstimator(void);
