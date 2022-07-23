@@ -462,7 +462,7 @@ void FAST_CODE NOINLINE gyroFilter()
          * This happens on the first frequency with the biggest aplitude
          */
         DEBUG_SET(DEBUG_ALWAYS, axis, gyroADCf);
-        secondaryDynamicGyroNotchFiltersApply(&secondaryDynamicGyroNotchState, axis, gyroADCf);
+        gyroADCf = secondaryDynamicGyroNotchFiltersApply(&secondaryDynamicGyroNotchState, axis, gyroADCf);
         DEBUG_SET(DEBUG_ALWAYS, axis + 3, gyroADCf);
 
 #endif
