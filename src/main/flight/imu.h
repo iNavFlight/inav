@@ -24,22 +24,19 @@
 #include "common/time.h"
 #include "config/parameter_group.h"
 
-extern fpVector3_t imuMeasuredAccelBF;         // cm/s/s
-extern fpVector3_t imuMeasuredRotationBF;       // rad/s
+extern fpVector3_t imuMeasuredAccelBF;    // cm/s/s
+extern fpVector3_t imuMeasuredRotationBF; // rad/s
 
 typedef union {
     int16_t raw[XYZ_AXIS_COUNT];
     struct {
-        // absolute angle inclination in multiple of 0.1 degree    180 deg = 1800
         int16_t roll;
         int16_t pitch;
         int16_t yaw;
     } values;
 } attitudeEulerAngles_t;
 
-extern fpQuaternion_t orientation;
 extern attitudeEulerAngles_t attitude;
-extern float rMat[3][3];
 
 typedef struct imuConfig_s {
     uint16_t dcm_kp_acc;                    // DCM filter proportional gain ( x 10000) for accelerometer
@@ -55,24 +52,23 @@ PG_DECLARE(imuConfig_t, imuConfig);
 
 typedef struct imuRuntimeConfig_s {
     float dcm_kp_acc;
-    float dcm_ki_acc;
     float dcm_kp_mag;
-    float dcm_ki_mag;
-    uint8_t small_angle;
+    float gps_gain;
+    float beta;
 } imuRuntimeConfig_t;
 
-void imuConfigure(void);
+void ahrsInit(void);
 
-void imuSetMagneticDeclination(float declinationDeg);
-void imuUpdateAttitude(timeUs_t currentTimeUs);
-void imuUpdateAccelerometer(void);
-float calculateCosTiltAngle(void);
-bool isImuReady(void);
-bool isImuHeadingValid(void);
+void ahrsConfigure(void);
 
-void imuTransformVectorBodyToEarth(fpVector3_t * v);
-void imuTransformVectorEarthToBody(fpVector3_t * v);
+bool ahrsSetMagneticDeclination(float declinationDeg);
+void ahrsReset(bool recover_eulers);
+void ahrsUpdate(timeUs_t currentTimeUs);
+float ahrsGetCosTiltAngle(void);
+bool ahrsIsHealthy(void);
+bool isAhrsHeadingValid(void);
 
-void imuInit(void);
+void ahrsTransformVectorBodyToEarth(fpVector3_t * v);
+void ahrsTransformVectorEarthToBody(fpVector3_t * v);
 
 void updateWindEstimator(void);

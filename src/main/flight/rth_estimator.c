@@ -223,7 +223,7 @@ float calculateRemainingDistanceBeforeRTH(bool takeWindIntoAccount) {
     // check requirements
     const bool areBatterySettingsOK = feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER) && batteryWasFullWhenPluggedIn();
     const bool areRTHEstimatorSettingsOK = batteryMetersConfig()->cruise_power > 0 && currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MWH &&currentBatteryProfile->capacity.value > 0 && navConfig()->fw.cruise_speed > 0;
-    const bool isNavigationOK = navigationPositionEstimateIsHealthy() && isImuHeadingValid();
+    const bool isNavigationOK = navigationPositionEstimateIsHealthy() && isAhrsHeadingValid();
 
     if (!(areBatterySettingsOK && areRTHEstimatorSettingsOK && isNavigationOK)) {
         return -1;

@@ -524,7 +524,7 @@ void init(void)
 
     pidInitFilters();
 
-    imuInit();
+    ahrsInit();
 
     // Sensors have now been detected, mspFcInit() can now be called
     // to set the boxes up

@@ -113,7 +113,6 @@ typedef struct {
 } pidState_t;
 
 STATIC_FASTRAM bool pidFiltersConfigured = false;
-static EXTENDED_FASTRAM float headingHoldCosZLimit;
 static EXTENDED_FASTRAM int16_t headingHoldTarget;
 static EXTENDED_FASTRAM pt1Filter_t headingHoldRateFilter;
 static EXTENDED_FASTRAM pt1Filter_t fixedWingTpaFilter;
@@ -897,8 +896,11 @@ int16_t getHeadingHoldTarget() {
 
 static uint8_t getHeadingHoldState(void)
 {
+    // Calculate max overall tilt (max pitch + max roll combined) as a limit to heading hold
+    const int16_t headingHoldMaxAngleInclination = DECIDEGREES_TO_DEGREES(pidProfile()->max_angle_inclination[FD_ROLL] + pidProfile()->max_angle_inclination[FD_PITCH]);
+
     // Don't apply heading hold if overall tilt is greater than maximum angle inclination
-    if (calculateCosTiltAngle() < headingHoldCosZLimit) {
+    if (RADIANS_TO_DEGREES(ahrsGetCosTiltAngle()) > headingHoldMaxAngleInclination) {
         return HEADING_HOLD_DISABLED;
     }
 
@@ -987,7 +989,7 @@ static void NOINLINE pidTurnAssistant(pidState_t *pidState, float bankAngleTarge
     targetRates.y = 0.0f;
 
     if (STATE(AIRPLANE)) {
-        if (calculateCosTiltAngle() >= 0.173648f) {
+        if (RADIANS_TO_DEGREES(ahrsGetCosTiltAngle()) >= 10.0f) {
             // Ideal banked turn follow the equations:
             //      forward_vel^2 / radius = Gravity * tan(roll_angle)
             //      yaw_rate = forward_vel / radius
@@ -1024,7 +1026,7 @@ static void NOINLINE pidTurnAssistant(pidState_t *pidState, float bankAngleTarge
     }
 
     // Transform calculated rate offsets into body frame and apply
-    imuTransformVectorEarthToBody(&targetRates);
+    ahrsTransformVectorEarthToBody(&targetRates);
 
     // Add in roll and pitch
     pidState[ROLL].rateTarget = constrainf(pidState[ROLL].rateTarget + targetRates.x, -currentControlRateProfile->stabilized.rates[ROLL] * 10.0f, currentControlRateProfile->stabilized.rates[ROLL] * 10.0f);
@@ -1197,10 +1199,6 @@ pidType_e pidIndexGetType(pidIndex_e pidIndex)
 
 void pidInit(void)
 {
-    // Calculate max overall tilt (max pitch + max roll combined) as a limit to heading hold
-    headingHoldCosZLimit = cos_approx(DECIDEGREES_TO_RADIANS(pidProfile()->max_angle_inclination[FD_ROLL])) *
-                           cos_approx(DECIDEGREES_TO_RADIANS(pidProfile()->max_angle_inclination[FD_PITCH]));
-
     pidGainsUpdateRequired = false;
 
     itermRelax = pidProfile()->iterm_relax;

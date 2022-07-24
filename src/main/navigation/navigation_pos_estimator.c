@@ -216,7 +216,7 @@ void onNewGPSData(void)
             static bool magDeclinationSet = false;
             if (positionEstimationConfig()->automatic_mag_declination && !magDeclinationSet) {
                 const float declination = geoCalculateMagDeclination(&newLLH);
-                imuSetMagneticDeclination(declination);
+                ahrsSetMagneticDeclination(declination);
 #ifdef USE_SECONDARY_IMU
                 secondaryImuSetMagneticDeclination(declination);
 #endif
@@ -399,7 +399,7 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
     const float dt = US2S(currentTimeUs - posEstimator.imu.lastUpdateTime);
     posEstimator.imu.lastUpdateTime = currentTimeUs;
 
-    if (!isImuReady()) {
+    if (!ahrsIsHealthy()) {
         posEstimator.imu.accelNEU.x = 0.0f;
         posEstimator.imu.accelNEU.y = 0.0f;
         posEstimator.imu.accelNEU.z = 0.0f;
@@ -423,7 +423,7 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
         accelBF.z -= posEstimator.imu.accelBias.z;
 
         /* Rotate vector to Earth frame - from Forward-Right-Down to North-East-Up*/
-        imuTransformVectorBodyToEarth(&accelBF);
+        ahrsTransformVectorBodyToEarth(&accelBF);
 
         /* Read acceleration data in NEU frame from IMU */
         posEstimator.imu.accelNEU.x = accelBF.x;
@@ -477,11 +477,11 @@ static bool navIsHeadingUsable(void)
 {
     if (sensors(SENSOR_GPS)) {
         // If we have GPS - we need true IMU north (valid heading)
-        return isImuHeadingValid();
+        return isAhrsHeadingValid();
     }
     else {
         // If we don't have GPS - we may use whatever we have, other sensors are operating in body frame
-        return isImuHeadingValid() || positionEstimationConfig()->allow_dead_reckoning;
+        return isAhrsHeadingValid() || positionEstimationConfig()->allow_dead_reckoning;
     }
 }
 
@@ -698,7 +698,7 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
     posEstimator.est.lastUpdateTime = currentTimeUs;
 
     /* If IMU is not ready we can't estimate anything */
-    if (!isImuReady()) {
+    if (!ahrsIsHealthy()) {
         posEstimator.est.eph = positionEstimationConfig()->max_eph_epv + 0.001f;
         posEstimator.est.epv = positionEstimationConfig()->max_eph_epv + 0.001f;
         posEstimator.flags = 0;
@@ -748,7 +748,7 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
         const float accelBiasCorrMagnitudeSq = sq(ctx.accBiasCorr.x) + sq(ctx.accBiasCorr.y) + sq(ctx.accBiasCorr.z);
         if (accelBiasCorrMagnitudeSq < sq(INAV_ACC_BIAS_ACCEPTANCE_VALUE)) {
             /* transform error vector from NEU frame to body frame */
-            imuTransformVectorEarthToBody(&ctx.accBiasCorr);
+            ahrsTransformVectorEarthToBody(&ctx.accBiasCorr);
 
             /* Correct accel bias */
             posEstimator.imu.accelBias.x += ctx.accBiasCorr.x * positionEstimationConfig()->w_acc_bias * ctx.dt;

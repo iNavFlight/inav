@@ -1988,15 +1988,6 @@ static fpVector3_t * rthGetHomeTargetPosition(rthTargetMode_e mode)
 }
 
 /*-----------------------------------------------------------
- * Detects if thrust vector is facing downwards
- *-----------------------------------------------------------*/
-bool isThrustFacingDownwards(void)
-{
-    // Tilt angle <= 80 deg; cos(80) = 0.17364817766693034885171662676931
-    return (calculateCosTiltAngle() >= 0.173648178f);
-}
-
-/*-----------------------------------------------------------
  * Checks if position sensor (GPS) is failing for a specified timeout (if enabled)
  *-----------------------------------------------------------*/
 bool checkForPositionSensorTimeout(void)

@@ -430,7 +430,6 @@ extern multicopterPosXyCoefficients_t multicopterPosXyCoefficients;
 /* Internally used functions */
 const navEstimatedPosVel_t * navGetCurrentActualPositionAndVelocity(void);
 
-bool isThrustFacingDownwards(void);
 uint32_t calculateDistanceToDestination(const fpVector3_t * destinationPos);
 int32_t calculateBearingToDestination(const fpVector3_t * destinationPos);
 

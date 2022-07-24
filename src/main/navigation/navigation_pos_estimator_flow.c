@@ -82,7 +82,7 @@ bool estimationCalculateCorrection_XY_FLOW(estimationContext_t * ctx)
     };
 
     // At this point flowVel will hold linear velocities in earth frame
-    imuTransformVectorBodyToEarth(&flowVel);
+    ahrsTransformVectorBodyToEarth(&flowVel);
 
     // Calculate velocity correction
     const float flowVelXInnov = flowVel.x - posEstimator.est.vel.x;

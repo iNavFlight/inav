@@ -302,7 +302,7 @@ static void activateConfig(void)
     accSetCalibrationValues();
     accInitFilters();
 
-    imuConfigure();
+    ahrsConfigure();
 
     pidInit();
 
