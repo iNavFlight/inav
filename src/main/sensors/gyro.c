@@ -461,9 +461,7 @@ void FAST_CODE NOINLINE gyroFilter()
          * In some cases, noise amplitude is high enough not to be filtered by the primary filter.
          * This happens on the first frequency with the biggest aplitude
          */
-        DEBUG_SET(DEBUG_ALWAYS, axis, gyroADCf);
         gyroADCf = secondaryDynamicGyroNotchFiltersApply(&secondaryDynamicGyroNotchState, axis, gyroADCf);
-        DEBUG_SET(DEBUG_ALWAYS, axis + 3, gyroADCf);
 
 #endif
 
