@@ -1543,12 +1543,11 @@ void drift_correction(float deltat)
         return;
     }
 
-    // equation 9: get the corrected acceleration vector in earth frame. Units
-    // are m/s/s
+    // equation 9: get the corrected acceleration vector in earth frame. Units are cm/s/s
     fpVector3_t GA_e;
     GA_e.x = 0.0f;
     GA_e.y = 0.0f;
-    GA_e.z = -1.0f;
+    GA_e.z = 1.0f;
 
     if (_ra_deltat <= 0) {
         // waiting for more data
@@ -1556,7 +1555,7 @@ void drift_correction(float deltat)
     }
     
     bool using_gps_corrections = false;
-    float ra_scale = 1.0f / (_ra_deltat * GRAVITY_MSS);
+    float ra_scale = 1.0f / (_ra_deltat * GRAVITY_CMSS);
 
     if (ARMING_FLAG(ARMED) && (_have_gps_lock || fly_forward)) {
         const float v_scale = gps_gain * ra_scale;
@@ -1812,7 +1811,7 @@ void update(float delta_t)
     // about that axis (ie a negative offset)
     _roll = atan2_approx(rMat[2][1], rMat[2][2]);
     _pitch = -asin_approx(rMat[2][0]);
-    _yaw = atan2_approx(rMat[1][0], rMat[0][0]);
+    _yaw = -atan2_approx(rMat[1][0], rMat[0][0]);
 
     // pre-calculate some trig for CPU purposes:
     _cos_yaw = cos_approx(_yaw);
@@ -1828,11 +1827,10 @@ void update(float delta_t)
 
     calc_trig(&_cos_roll, &_cos_pitch, &_cos_yaw, &_sin_roll, &_sin_pitch, &_sin_yaw);
     
-    DEBUG_SET(DEBUG_CRUISE, 0, RADIANS_TO_CENTIDEGREES(calculateCosTiltAngle()));
-    DEBUG_SET(DEBUG_CRUISE, 1, RADIANS_TO_CENTIDEGREES(smallAngleCosZ));
+    DEBUG_SET(DEBUG_CRUISE, 0, RADIANS_TO_DEGREES(calculateCosTiltAngle()));
 
     // Update small angle state 
-    if (calculateCosTiltAngle() > smallAngleCosZ) {
+    if (RADIANS_TO_DEGREES(calculateCosTiltAngle()) < imuRuntimeConfig.small_angle) {
         ENABLE_STATE(SMALL_ANGLE);
     } else {
         DISABLE_STATE(SMALL_ANGLE);
