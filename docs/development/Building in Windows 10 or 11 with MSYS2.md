@@ -80,7 +80,7 @@ Once that's done you can compile the firmware for your flight controller
 make DALRCF405
 ```
 To get a list of available targets in INAV, see the target src folder
-https://github.com/tednv/inav/tree/master/src/main/target
+[https://github.com/tednv/inav/tree/master/src/main/target](https://github.com/inavflight/inav/tree/master/src/main/target)
 
 The generated hex file will be in /c/Workspace/inav/build folder
 
