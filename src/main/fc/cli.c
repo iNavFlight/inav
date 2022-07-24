@@ -164,7 +164,7 @@ static const char * const featureNames[] = {
 
 #ifdef USE_BLACKBOX
 static const char * const blackboxIncludeFlagNames[] = {
-    "NAV_ACC", "NAV_POS", "NAV_PID", "MAG", "ACC", "ATTI", "RC_DATA", "RC_COMMAND", "MOTORS", NULL
+    "NAV_ACC", "NAV_POS", "NAV_PID", "MAG", "ACC", "ATTI", "RC_DATA", "RC_COMMAND", "MOTORS", "GYRO_RAW", NULL
 };
 #endif
 
@@ -2803,35 +2803,39 @@ static void printMap(uint8_t dumpMask, const rxConfig_t *rxConfig, const rxConfi
 static void cliMap(char *cmdline)
 {
     uint32_t len;
-    char out[5];
+    char out[MAX_MAPPABLE_RX_INPUTS + 1];
 
     len = strlen(cmdline);
 
-    if (len == 4) {
+    if (len == MAX_MAPPABLE_RX_INPUTS) {
         // uppercase it
-        for (uint32_t i = 0; i < 4; i++)
+        for (uint32_t i = 0; i < MAX_MAPPABLE_RX_INPUTS; i++) {
             cmdline[i] = sl_toupper((unsigned char)cmdline[i]);
-        for (uint32_t i = 0; i < 4; i++) {
-            if (strchr(rcChannelLetters, cmdline[i]) && !strchr(cmdline + i + 1, cmdline[i]))
+        }
+        for (uint32_t i = 0; i < MAX_MAPPABLE_RX_INPUTS; i++) {
+            if (strchr(rcChannelLetters, cmdline[i]) && !strchr(cmdline + i + 1, cmdline[i])) {
                 continue;
+            }
             cliShowParseError();
             return;
         }
         parseRcChannels(cmdline);
-    } else if (len != 0)
+    } else if (len != 0) {
         cliShowParseError();
+    }
     cliPrint("Map: ");
     uint32_t i;
-    for (i = 0; i < 4; i++)
+    for (i = 0; i < MAX_MAPPABLE_RX_INPUTS; i++){
         out[rxConfig()->rcmap[i]] = rcChannelLetters[i];
+    }
     out[i] = '\0';
     cliPrintLinef("%s", out);
 }
 
 static const char *checkCommand(const char *cmdLine, const char *command)
 {
-    if (!sl_strncasecmp(cmdLine, command, strlen(command))   // command names match
-        && !sl_isalnum((unsigned)cmdLine[strlen(command)])) {   // next characted in bufffer is not alphanumeric (command is correctly terminated)
+    if (!sl_strncasecmp(cmdLine, command, strlen(command))    // command names match
+        && !sl_isalnum((unsigned)cmdLine[strlen(command)])) { // next characted in bufffer is not alphanumeric (command is correctly terminated)
         return cmdLine + strlen(command) + 1;
     } else {
         return 0;

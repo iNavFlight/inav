@@ -94,8 +94,6 @@ main_sources(COMMON_SRC
     drivers/accgyro/accgyro_mpu6500.h
     drivers/accgyro/accgyro_mpu9250.c
     drivers/accgyro/accgyro_mpu9250.h
-    drivers/accgyro/accgyro_bno055.c
-    drivers/accgyro/accgyro_bno055.h
     drivers/accgyro/accgyro_bno055_serial.c
     drivers/accgyro/accgyro_bno055_serial.h
 
@@ -418,8 +416,6 @@ main_sources(COMMON_SRC
     rx/sumd.h
     rx/sumh.c
     rx/sumh.h
-    rx/xbus.c
-    rx/xbus.h
 
     scheduler/scheduler.c
     scheduler/scheduler.h
@@ -506,7 +502,6 @@ main_sources(COMMON_SRC
     io/gps.h
     io/gps_ublox.c
     io/gps_nmea.c
-    io/gps_naza.c
     io/gps_msp.c
     io/gps_private.h
     io/ledstrip.c
