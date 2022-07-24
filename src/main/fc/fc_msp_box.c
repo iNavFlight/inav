@@ -103,7 +103,7 @@ static uint8_t activeBoxIds[CHECKBOX_ITEM_COUNT];
 uint8_t activeBoxIdCount = 0;
 
 #define RESET_BOX_ID_COUNT activeBoxIdCount = 0
-#define ADD_ACTIVE_BOX(box) activeBoxIds[activeBoxIdCount++] = box 
+#define ADD_ACTIVE_BOX(box) activeBoxIds[activeBoxIdCount++] = box
 
 const box_t *findBoxByActiveBoxId(uint8_t activeBoxId)
 {
@@ -196,7 +196,7 @@ void initActiveBoxIds(void)
             ADD_ACTIVE_BOX(BOXHEADFREE);
             ADD_ACTIVE_BOX(BOXHEADADJ);
         }
-        if (sensors(SENSOR_BARO) && sensors(SENSOR_RANGEFINDER) && sensors(SENSOR_OPFLOW)) {
+        if (sensors(SENSOR_BARO) && sensors(SENSOR_RANGEFINDER)) {
             ADD_ACTIVE_BOX(BOXSURFACE);
         }
         ADD_ACTIVE_BOX(BOXFPVANGLEMIX);

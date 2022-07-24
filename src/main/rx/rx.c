@@ -37,7 +37,6 @@
 
 
 #include "drivers/adc.h"
-#include "drivers/rx_spi.h"
 #include "drivers/serial.h"
 #include "drivers/time.h"
 
@@ -52,23 +51,18 @@
 
 #include "rx/rx.h"
 #include "rx/crsf.h"
-#include "rx/eleres.h"
 #include "rx/ibus.h"
 #include "rx/jetiexbus.h"
 #include "rx/fport.h"
 #include "rx/fport2.h"
 #include "rx/msp.h"
 #include "rx/msp_override.h"
-#include "rx/rx_spi.h"
 #include "rx/sbus.h"
 #include "rx/spektrum.h"
 #include "rx/srxl2.h"
 #include "rx/sumd.h"
-#include "rx/sumh.h"
 #include "rx/ghst.h"
 #include "rx/mavlink.h"
-
-//#define DEBUG_RX_SIGNAL_LOSS
 
 const char rcChannelLetters[] = "AERT";
 
@@ -107,11 +101,8 @@ rxLinkStatistics_t rxLinkStatistics;
 rxRuntimeConfig_t rxRuntimeConfig;
 static uint8_t rcSampleIndex = 0;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 11);
+PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 12);
 
-#ifndef RX_SPI_DEFAULT_PROTOCOL
-#define RX_SPI_DEFAULT_PROTOCOL 0
-#endif
 #ifndef SERIALRX_PROVIDER
 #define SERIALRX_PROVIDER 0
 #endif
@@ -126,9 +117,6 @@ PG_RESET_TEMPLATE(rxConfig_t, rxConfig,
     .rcmap = {0, 1, 3, 2},      // Default to AETR map
     .halfDuplex = SETTING_SERIALRX_HALFDUPLEX_DEFAULT,
     .serialrx_provider = SERIALRX_PROVIDER,
-#ifdef USE_RX_SPI
-    .rx_spi_protocol = RX_SPI_DEFAULT_PROTOCOL,
-#endif
 #ifdef USE_SPEKTRUM_BIND
     .spektrum_sat_bind = SETTING_SPEKTRUM_SAT_BIND_DEFAULT,
 #endif
@@ -141,7 +129,9 @@ PG_RESET_TEMPLATE(rxConfig_t, rxConfig,
     .rssiMin = SETTING_RSSI_MIN_DEFAULT,
     .rssiMax = SETTING_RSSI_MAX_DEFAULT,
     .sbusSyncInterval = SETTING_SBUS_SYNC_INTERVAL_DEFAULT,
-    .rcFilterFrequency = SETTING_RC_FILTER_FREQUENCY_DEFAULT,
+    .rcFilterFrequency = SETTING_RC_FILTER_LPF_HZ_DEFAULT,
+    .autoSmooth = SETTING_RC_FILTER_AUTO_DEFAULT,
+    .autoSmoothFactor = SETTING_RC_FILTER_SMOOTHING_FACTOR_DEFAULT,
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     .mspOverrideChannels = SETTING_MSP_OVERRIDE_CHANNELS_DEFAULT,
 #endif
@@ -218,11 +208,6 @@ bool serialRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
 #ifdef USE_SERIALRX_SUMD
     case SERIALRX_SUMD:
         enabled = sumdInit(rxConfig, rxRuntimeConfig);
-        break;
-#endif
-#ifdef USE_SERIALRX_SUMH
-    case SERIALRX_SUMH:
-        enabled = sumhInit(rxConfig, rxRuntimeConfig);
         break;
 #endif
 #ifdef USE_SERIALRX_IBUS
@@ -321,16 +306,6 @@ void rxInit(void)
 #ifdef USE_RX_MSP
         case RX_TYPE_MSP:
             rxMspInit(rxConfig(), &rxRuntimeConfig);
-            break;
-#endif
-
-#ifdef USE_RX_SPI
-        case RX_TYPE_SPI:
-            if (!rxSpiInit(rxConfig(), &rxRuntimeConfig)) {
-                rxConfigMutable()->receiverType = RX_TYPE_NONE;
-                rxRuntimeConfig.rcReadRawFn = nullReadRawRC;
-                rxRuntimeConfig.rcFrameStatusFn = nullFrameStatus;
-            }
             break;
 #endif
 
@@ -478,7 +453,7 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
     }
 
     rxDataProcessingRequired = false;
-    rxNextUpdateAtUs = currentTimeUs + DELAY_50_HZ;
+    rxNextUpdateAtUs = currentTimeUs + DELAY_10_HZ;
 
     // only proceed when no more samples to skip and suspend period is over
     if (skipRxSamples) {
@@ -663,11 +638,6 @@ uint16_t getRSSI(void)
 rssiSource_e getRSSISource(void)
 {
     return activeRssiSource;
-}
-
-uint16_t rxGetRefreshRate(void)
-{
-    return rxRuntimeConfig.rxRefreshRate;
 }
 
 int16_t rxGetChannelValue(unsigned channelNumber)

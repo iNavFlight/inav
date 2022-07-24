@@ -301,6 +301,8 @@ typedef struct navConfig_s {
         uint16_t launch_max_altitude;        // cm, altitude where to consider launch ended
         uint8_t  launch_climb_angle;         // Target climb angle for launch (deg)
         uint8_t  launch_max_angle;           // Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg]
+        bool     launch_manual_throttle;     // Allows launch with manual throttle control
+        uint8_t  launch_abort_deadband;      // roll/pitch stick movement deadband for launch abort
         uint8_t  cruise_yaw_rate;            // Max yaw rate (dps) when CRUISE MODE is enabled
         bool     allow_manual_thr_increase;
         bool     useFwNavYawControl;
@@ -342,11 +344,11 @@ typedef enum {
 } navWaypointFlags_e;
 
 typedef struct {
-    uint8_t action;
     int32_t lat;
     int32_t lon;
     int32_t alt;
     int16_t p1, p2, p3;
+    uint8_t action;
     uint8_t flag;
 } navWaypoint_t;
 

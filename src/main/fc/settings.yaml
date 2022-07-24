@@ -4,7 +4,7 @@ tables:
   - name: gyro_lpf
     values: ["256HZ", "188HZ", "98HZ", "42HZ", "20HZ", "10HZ"]
   - name: acc_hardware
-    values: ["NONE", "AUTO", "MPU6050", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"]
+    values: ["NONE", "AUTO", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"]
     enum: accelerationSensor_e
   - name: rangefinder_hardware
     values: ["NONE", "SRF10", "VL53L0X", "MSP", "BENEWAKE", "VL53L1X", "US42", "TOF10120_I2C"]
@@ -25,13 +25,10 @@ tables:
     values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE", "MSP"]
     enum: pitotSensor_e
   - name: receiver_type
-    values: ["NONE", "SERIAL", "MSP", "SPI"]
+    values: ["NONE", "SERIAL", "MSP"]
     enum: rxReceiverType_e
   - name: serial_rx
-    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2", "GHST", "MAVLINK"]
-  - name: rx_spi_protocol
-    values: ["ELERES"]
-    enum: rx_spi_protocol_e
+    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2", "GHST", "MAVLINK"]
   - name: blackbox_device
     values: ["SERIAL", "SPIFLASH", "SDCARD"]
   - name: motor_pwm_protocol
@@ -91,12 +88,10 @@ tables:
   - name: i2c_speed
     values: ["400KHZ", "800KHZ", "100KHZ", "200KHZ"]
   - name: debug_modes
-    values: ["NONE", "AGL", "FLOW_RAW",
-      "FLOW", "SBUS", "FPORT", "ALWAYS", "SAG_COMP_VOLTAGE",
+    values: ["NONE", "AGL", "FLOW_RAW", "FLOW", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
-      "ERPM", "RPM_FILTER", "RPM_FREQ", "NAV_YAW", "DYNAMIC_FILTER", "DYNAMIC_FILTER_FREQUENCY",
-      "IRLOCK", "KALMAN_GAIN", "PID_MEASUREMENT", "SPM_CELLS", "SPM_VS600", "SPM_VARIO", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "IMU2", "ALTITUDE",
-      "SMITH_PREDICTOR", "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING"]
+      "NAV_YAW", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "IMU2", "ALTITUDE",
+      "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING"]
   - name: aux_operator
     values: ["OR", "AND"]
     enum: modeActivationOperator_e
@@ -192,6 +187,9 @@ tables:
   - name: rth_trackback_mode
     values: ["OFF", "ON", "FS"]
     enum: rthTrackbackMode_e
+  - name: dynamic_gyro_notch_mode
+    values: ["2D", "3D_R", "3D_P", "3D_Y", "3D_RP", "3D_RY", "3D_PY", "3D"]
+    enum: dynamicGyroNotchMode_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -290,6 +288,19 @@ groups:
         condition: USE_DYNAMIC_FILTERS
         min: 30
         max: 250
+      - name: dynamic_gyro_notch_mode
+        description: "Gyro dynamic notch type"
+        default_value: "2D"
+        table: dynamic_gyro_notch_mode
+        field: dynamicGyroNotchMode
+        condition: USE_DYNAMIC_FILTERS
+      - name: dynamic_gyro_notch_3d_q
+        description: "Q factor for 3D dynamic notches"
+        default_value: 200
+        field: dynamicGyroNotch3dQ
+        condition: USE_DYNAMIC_FILTERS
+        min: 1
+        max: 1000
       - name: gyro_to_use
         condition: USE_DUAL_GYRO
         min: 0
@@ -654,11 +665,6 @@ groups:
         description: "Selection of baro hardware. See Wiki Sensor auto detect and hardware failure detection for more info"
         default_value: "AUTO"
         table: baro_hardware
-      - name: baro_median_filter
-        description: "3-point median filtering for barometer readouts. No reason to change this setting"
-        default_value: ON
-        field: use_median_filtering
-        type: bool
       - name: baro_cal_tolerance
         description: "Baro calibration tolerance in cm. The default should allow the noisiest baro to complete calibration [cm]."
         default_value: 150
@@ -732,11 +738,22 @@ groups:
         min: 500
         max: 10000
         default_value: 3000
-      - name: rc_filter_frequency
+      - name: rc_filter_lpf_hz
         description: "RC data biquad filter cutoff frequency. Lower cutoff frequencies result in smoother response at expense of command control delay. Practical values are 20-50. Set to zero to disable entirely and use unsmoothed RC stick values"
         default_value: 50
         field: rcFilterFrequency
-        min: 0
+        min: 15
+        max: 250
+      - name: rc_filter_auto
+        description: "When enabled, INAV will set RC filtering based on refresh rate and smoothing factor."
+        type: bool
+        default_value: OFF
+        field: autoSmooth
+      - name: rc_filter_smoothing_factor
+        description: "The RC filter smoothing factor. The higher the value, the more smoothing but also the more delay in response. Value 1 sets the filter at half the refresh rate. Value 100 sets the filter to aprox. 10% of the RC refresh rate"
+        field: autoSmoothFactor
+        default_value: 30
+        min: 1
         max: 100
       - name: serialrx_provider
         description: "When feature SERIALRX is enabled, this allows connection to several receivers which output data via digital interface resembling serial. See RX section."
@@ -748,20 +765,6 @@ groups:
         default_value: OFF
         condition: USE_SERIAL_RX
         type: bool
-      - name: rx_spi_protocol
-        condition: USE_RX_SPI
-        table: rx_spi_protocol
-        default_value: :target
-      - name: rx_spi_id
-        condition: USE_RX_SPI
-        min: 0
-        max: 0
-        default_value: :zero
-      - name: rx_spi_rf_channel_count
-        condition: USE_RX_SPI
-        min: 0
-        max: 8
-        default_value: :zero
       - name: spektrum_sat_bind
         description: "0 = disabled. Used to bind the spektrum satellite to RX"
         condition: USE_SPEKTRUM_BIND
@@ -1556,7 +1559,7 @@ groups:
         field: appliedDefaults
         type: uint8_t
         min: 0
-        max: 3
+        max: 4
 
   - name: PG_RPM_FILTER_CONFIG
     headers: ["flight/rpm_filter.h"]
@@ -2835,6 +2838,17 @@ groups:
         field: fw.launch_climb_angle
         min: 5
         max: 45
+      - name: nav_fw_launch_manual_throttle
+        description: "Allows launch with manually controlled throttle. INAV only levels wings and controls climb pitch during launch. Throttle is controlled directly by throttle stick movement. IF USED WITHOUT A GPS LOCK plane must be launched immediately after throttle is increased to avoid issues with climb out stabilisation and the launch ending sooner than expected (launch end timer starts as soon as the throttle stick is raised)."
+        default_value: OFF
+        field: fw.launch_manual_throttle
+        type: bool
+      - name: nav_fw_launch_abort_deadband
+        description: "Launch abort stick deadband in [r/c points], applied after r/c deadband and expo. The Roll/Pitch stick needs to be deflected beyond this deadband to abort the launch."
+        default_value: 100
+        field: fw.launch_abort_deadband
+        min: 2
+        max: 250
       - name: nav_fw_cruise_yaw_rate
         description: "Max YAW rate when NAV CRUISE mode is enabled (0=disable control via yaw stick) [dps]"
         default_value: 20
@@ -3037,44 +3051,6 @@ groups:
         min: 1
         max: 2
         default_value: 2
-  - name: PG_ELERES_CONFIG
-    type: eleresConfig_t
-    headers: ["rx/eleres.h"]
-    condition: USE_RX_ELERES
-    members:
-      - name: eleres_freq
-        field: eleresFreq
-        min: 415
-        max: 450
-        default_value: 435
-      - name: eleres_telemetry_en
-        field: eleresTelemetryEn
-        type: bool
-        default_value: OFF
-      - name: eleres_telemetry_power
-        description: "For eLeReS recievers, power level of telemetry"
-        field: eleresTelemetryPower
-        min: 0
-        max: 7
-        default_value: 7
-      - name: eleres_loc_en
-        field: eleresLocEn
-        type: bool
-        default_value: OFF
-      - name: eleres_loc_power
-        field: eleresLocPower
-        min: 0
-        max: 7
-        default_value: 7
-      - name: eleres_loc_delay
-        field: eleresLocDelay
-        min: 30
-        max: 1800
-        default_value: 240
-      - name: eleres_signature
-        field: eleresSignature
-        max: UINT32_MAX
-        default_value: :zero
 
   - name: PG_LED_STRIP_CONFIG
     type: ledStripConfig_t

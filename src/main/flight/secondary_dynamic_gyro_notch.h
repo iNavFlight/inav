@@ -24,18 +24,20 @@
 
 #pragma once
 
-#include "config/parameter_group.h"
+#include <stdint.h>
+#include "common/axis.h"
+#include "common/filter.h"
 
-typedef enum {
-    APPLIED_DEFAULTS_NONE = 0,
-    APPLIED_DEFAULTS_CUSTOM = 1,
-    APPLIED_DEFAULTS_MULTIROTOR = 2,
-    APPLIED_DEFAULTS_AIRPLANE_WITH_TAIL = 3,
-    APPLIED_DEFAULTS_AIRPLANE_WITHOUT_TAIL = 4,
-} appliedDefaults_e;
+typedef struct secondaryDynamicGyroNotchState_s {
+    uint16_t frequency[XYZ_AXIS_COUNT];
+    float dynNotchQ;
+    uint32_t looptime;
+    uint8_t enabled;
+    
+    biquadFilter_t filters[XYZ_AXIS_COUNT];
+    filterApplyFnPtr filtersApplyFn[XYZ_AXIS_COUNT];
+} secondaryDynamicGyroNotchState_t;
 
-typedef struct generalSettings_s {
-    int8_t appliedDefaults;
-} generalSettings_t;
-
-PG_DECLARE(generalSettings_t, generalSettings);
+void secondaryDynamicGyroNotchFiltersInit(secondaryDynamicGyroNotchState_t *state);
+void secondaryDynamicGyroNotchFiltersUpdate(secondaryDynamicGyroNotchState_t *state, int axis, float frequency[]);
+float secondaryDynamicGyroNotchFiltersApply(secondaryDynamicGyroNotchState_t *state, int axis, float input);

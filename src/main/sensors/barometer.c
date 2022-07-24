@@ -60,11 +60,10 @@ baro_t baro;                        // barometer access functions
 
 #ifdef USE_BARO
 
-PG_REGISTER_WITH_RESET_TEMPLATE(barometerConfig_t, barometerConfig, PG_BAROMETER_CONFIG, 3);
+PG_REGISTER_WITH_RESET_TEMPLATE(barometerConfig_t, barometerConfig, PG_BAROMETER_CONFIG, 4);
 
 PG_RESET_TEMPLATE(barometerConfig_t, barometerConfig,
     .baro_hardware = SETTING_BARO_HARDWARE_DEFAULT,
-    .use_median_filtering = SETTING_BARO_MEDIAN_FILTER_DEFAULT,
     .baro_calibration_tolerance = SETTING_BARO_CAL_TOLERANCE_DEFAULT
 );
 
@@ -248,51 +247,6 @@ bool baroInit(void)
     return true;
 }
 
-#define PRESSURE_SAMPLES_MEDIAN 3
-
-/*
-altitude pressure
-      0m   101325Pa
-    100m   100129Pa delta = 1196
-   1000m    89875Pa
-   1100m    88790Pa delta = 1085
-At sea level an altitude change of 100m results in a pressure change of 1196Pa, at 1000m pressure change is 1085Pa
-So set glitch threshold at 1000 - this represents an altitude change of approximately 100m.
-*/
-#define PRESSURE_DELTA_GLITCH_THRESHOLD 1000
-static int32_t applyBarometerMedianFilter(int32_t newPressureReading)
-{
-    static int32_t barometerFilterSamples[PRESSURE_SAMPLES_MEDIAN];
-    static int currentFilterSampleIndex = 0;
-    static bool medianFilterReady = false;
-
-    int nextSampleIndex = currentFilterSampleIndex + 1;
-    if (nextSampleIndex == PRESSURE_SAMPLES_MEDIAN) {
-        nextSampleIndex = 0;
-        medianFilterReady = true;
-    }
-    int previousSampleIndex = currentFilterSampleIndex - 1;
-    if (previousSampleIndex < 0) {
-        previousSampleIndex = PRESSURE_SAMPLES_MEDIAN - 1;
-    }
-    const int previousPressureReading = barometerFilterSamples[previousSampleIndex];
-
-    if (medianFilterReady) {
-        if (ABS(previousPressureReading - newPressureReading) < PRESSURE_DELTA_GLITCH_THRESHOLD) {
-            barometerFilterSamples[currentFilterSampleIndex] = newPressureReading;
-            currentFilterSampleIndex = nextSampleIndex;
-            return quickMedianFilter3(barometerFilterSamples);
-        } else {
-            // glitch threshold exceeded, so just return previous reading and don't add the glitched reading to the filter array
-            return barometerFilterSamples[previousSampleIndex];
-        }
-    } else {
-        barometerFilterSamples[currentFilterSampleIndex] = newPressureReading;
-        currentFilterSampleIndex = nextSampleIndex;
-        return newPressureReading;
-    }
-}
-
 typedef enum {
     BAROMETER_NEEDS_SAMPLES = 0,
     BAROMETER_NEEDS_CALCULATION
@@ -325,9 +279,6 @@ uint32_t baroUpdate(void)
             if (! ARMING_FLAG(SIMULATOR_MODE)) {
 				//output: baro.baroPressure, baro.baroTemperature
                 baro.dev.calculate(&baro.dev, &baro.baroPressure, &baro.baroTemperature);
-                if (barometerConfig()->use_median_filtering) {
-                    baro.baroPressure = applyBarometerMedianFilter(baro.baroPressure);
-                }
             }
 
             state = BAROMETER_NEEDS_SAMPLES;

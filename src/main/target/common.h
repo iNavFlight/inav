@@ -66,8 +66,6 @@
 #define SCHEDULER_DELAY_LIMIT           100
 #endif
 
-#if (MCU_FLASH_SIZE > 256)
-
 #if defined(MAG_I2C_BUS) || defined(VCM5883_I2C_BUS)
 #define USE_MAG_VCM5883
 #endif
@@ -152,11 +150,6 @@
 
 #define USE_POWER_LIMITS
 
-#else // MCU_FLASH_SIZE < 256
-#define LOG_LEVEL_MAXIMUM LOG_LEVEL_ERROR
-#endif
-
-#if (MCU_FLASH_SIZE > 128)
 #define NAV_FIXED_WING_LANDING
 #define USE_SAFE_HOME
 #define USE_AUTOTUNE_FIXED_WING
@@ -191,20 +184,12 @@
 // Wind estimator
 #define USE_WIND_ESTIMATOR
 
-#else // MCU_FLASH_SIZE < 128
-
-#define SKIP_TASK_STATISTICS
-
-#endif
-
 //Designed to free space of F722 and F411 MCUs
 #if (MCU_FLASH_SIZE > 512)
 
 #define USE_VTX_FFPV
 #define USE_PITOT_VIRTUAL
-
 #define USE_SERIALRX_SUMD
-#define USE_SERIALRX_SUMH
 #define USE_TELEMETRY_HOTT
 #define USE_HOTT_TEXTMODE
 

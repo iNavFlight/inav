@@ -125,12 +125,6 @@ http://www.graupner.de/en/products/33512/product.aspx
 Graupner receiver GR-12SH+ HoTT
 http://www.graupner.de/en/products/870ade17-ace8-427f-943b-657040579906/33565/product.aspx
 
-### SUMH
-
-8 channels via serial currently supported.
-
-SUMH is a legacy Graupner protocol.  Graupner have issued a firmware updates for many recivers that lets them use SUMD instead.
-
 ### IBUS
 
 10 channels via serial currently supported.
@@ -252,7 +246,7 @@ Allowed values: NONE, PPM, SERIAL, MSP, SPI, UIB
 
 # get serialrx
 serialrx_provider = SBUS
-Allowed values: SPEK1024, SPEK2048, SBUS, SUMD, SUMH, IBUS, JETIEXBUS, CRSF, FPORT, SBUS_FAST, FPORT2, SRXL2
+Allowed values: SPEK1024, SPEK2048, SBUS, SUMD, IBUS, JETIEXBUS, CRSF, FPORT, SBUS_FAST, FPORT2, SRXL2
 
 ```
 
