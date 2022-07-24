@@ -2802,8 +2802,8 @@ static bool osdDrawSingleElement(uint8_t item)
             if (valid) {
                 uint16_t angle;
                 horizontalWindSpeed = getEstimatedHorizontalWindSpeed(&angle);
-                int16_t windDirection = osdGetHeadingAngle((int)angle - DECIDEGREES_TO_DEGREES(attitude.values.yaw));
-                buff[1] = SYM_DIRECTION + (windDirection * 2 / 90);
+                int16_t windDirection = osdGetHeadingAngle( CENTIDEGREES_TO_DEGREES((int)angle) - DECIDEGREES_TO_DEGREES(attitude.values.yaw) + 22);
+                buff[1] = SYM_DIRECTION + (windDirection*2 / 90);
             } else {
                 horizontalWindSpeed = 0;
                 buff[1] = SYM_BLANK;
@@ -2824,7 +2824,7 @@ static bool osdDrawSingleElement(uint8_t item)
             bool valid = isEstimatedWindSpeedValid();
             float verticalWindSpeed;
             if (valid) {
-                verticalWindSpeed = getEstimatedWindSpeed(Z);
+                verticalWindSpeed = -getEstimatedWindSpeed(Z);  //from NED to NEU
                 if (verticalWindSpeed < 0) {
                     buff[1] = SYM_AH_DECORATION_DOWN;
                     verticalWindSpeed = -verticalWindSpeed;
