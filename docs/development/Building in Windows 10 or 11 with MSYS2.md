@@ -1,6 +1,6 @@
 # General Info
 
-This is a guide on how to use Windows MSYS2 distribution and building platform to build iNav firmware. This environment is very simple to manage and does not require installing docker for Windows which may get in the way of VMWare or any other virtualization software you already have running for other reasons. Another benefit of this approach is that the compiler runs natively on Windows, so performance is much better than compiling in a virtual environment or a container. You can also integrate with whatever IDE you are using to make code edits and work with github, which makes the entire development and testing workflow a lot more efficient. In addition to MSYS2, this build environment also uses Arm Embedded GCC tolkit from The xPack Project, which provides many benefits over the toolkits maintained by arm.com
+This is a guide on how to use Windows MSYS2 distribution and building platform to build INAV firmware. This environment is very simple to manage and does not require installing docker for Windows which may get in the way of VMWare or any other virtualization software you already have running for other reasons. Another benefit of this approach is that the compiler runs natively on Windows, so performance is much better than compiling in a virtual environment or a container. You can also integrate with whatever IDE you are using to make code edits and work with github, which makes the entire development and testing workflow a lot more efficient. In addition to MSYS2, this build environment also uses Arm Embedded GCC tolkit from The xPack Project, which provides many benefits over the toolkits maintained by arm.com
 
 Some of those benefits are described here:
 
@@ -49,7 +49,7 @@ git checkout tags/5.0.0 -b local_5.0.0
 # you can also checkout with a branch if applicable:
 # git checkout -b release_5.1.0 origin/release_5.1.0
 ```
-Now create the build and xpack directories and get the toolkit version you need for your inav version
+Now create the build and xpack directories and get the toolkit version you need for your INAV version
 ```
 mkdir build
 cd build
@@ -61,7 +61,7 @@ This will give you the version you need for any given release or master branch. 
 
 https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/
 ```
-# for iNav version 5.0.0, tookchain version needed is 10.2.1
+# for INAV version 5.0.0, toolchain version needed is 10.2.1
 wget https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/download/v10.2.1-1.1/xpack-arm-none-eabi-gcc-10.2.1-1.1-win32-x64.zip
 unzip xpack-arm-none-eabi-gcc-10.2.1-1.1-win32-x64.zip
 ```
@@ -79,9 +79,9 @@ Once that's done you can compile the firmware for your flight controller
 ```
 make DALRCF405
 ```
-To get a list of available targets in iNav, see the target src folder
+To get a list of available targets in INAV, see the target src folder
 https://github.com/tednv/inav/tree/master/src/main/target
 
 The generated hex file will be in /c/Workspace/inav/build folder
 
-At the time of writting this document, I believe this is the fastest, easiest, and most efficient Windows build environment that is available. I have used this approach several years ago and was very happy with it building iNav 2.1 and 2.2, and now I'm getting back into it so figured I would share my method
+At the time of writting this document, I believe this is the fastest, easiest, and most efficient Windows build environment that is available. I have used this approach several years ago and was very happy with it building INAV 2.1 and 2.2, and now I'm getting back into it so figured I would share my method
