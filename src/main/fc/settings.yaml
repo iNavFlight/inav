@@ -2797,6 +2797,11 @@ groups:
         field: fw.launch_idle_motor_timer
         min: 0
         max: 60000
+      - name: nav_fw_launch_jerk_wake_idle
+        description: "Trigger the idle throttle by jerking the plane"
+        field: fw.launch_jerk_wake_idle
+        type: bool
+        default_value: OFF
       - name: nav_fw_launch_motor_delay
         description: "Delay between detected launch and launch sequence start and throttling up (ms)"
         default_value: 500

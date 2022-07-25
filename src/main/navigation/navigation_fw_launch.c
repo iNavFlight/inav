@@ -312,16 +312,28 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_THROTTLE(timeUs
 
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IDLE_MOTOR_DELAY(timeUs_t currentTimeUs)
 {
+    bool isIdleJerkActivationTriggered = false;
+
     if (isThrottleLow()) {
         return FW_LAUNCH_EVENT_THROTTLE_LOW; // go back to FW_LAUNCH_STATE_WAIT_THROTTLE
     }
 
     applyThrottleIdleLogic(true);
 
-    if (currentStateElapsedMs(currentTimeUs) > navConfig()->fw.launch_idle_motor_timer) {
+    // Check to see if the plane has been jerked. If so, wake the idle throttle now
+    if (navConfig()->fw.launch_jerk_wake_idle) {
+        const float preIdleSwingVelocity = (fabsf(imuMeasuredRotationBF.z) > SWING_LAUNCH_MIN_ROTATION_RATE) ? (imuMeasuredAccelBF.y / imuMeasuredRotationBF.z) : 0;
+        const bool  isPreIdleSwingLaunched = (preIdleSwingVelocity > navConfig()->fw.launch_velocity_thresh) && (imuMeasuredAccelBF.x > 0);
+        const bool  isPreIdleForwardAccelerationHigh = (imuMeasuredAccelBF.x > navConfig()->fw.launch_accel_thresh);
+
+        isIdleJerkActivationTriggered = (isPreIdleSwingLaunched || isPreIdleForwardAccelerationHigh);
+    }
+
+    if ((currentStateElapsedMs(currentTimeUs) > navConfig()->fw.launch_idle_motor_timer) || isIdleJerkActivationTriggered) {
         idleMotorAboutToStart = false;
         return FW_LAUNCH_EVENT_SUCCESS;
     }
+
     // 5 second warning motor about to start at idle, changes Beeper sound
     idleMotorAboutToStart = navConfig()->fw.launch_idle_motor_timer - currentStateElapsedMs(currentTimeUs) < 5000;
 
