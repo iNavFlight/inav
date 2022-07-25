@@ -451,6 +451,7 @@ void osdOverrideLayout(int layout, timeMs_t duration);
 // set by the user configuration (modes, etc..) or by overriding it.
 int osdGetActiveLayout(bool *overridden);
 bool osdItemIsFixed(osd_items_e item);
+uint8_t osdIncElementIndex(uint8_t elementIndex);
 
 displayPort_t *osdGetDisplayPort(void);
 displayCanvas_t *osdGetDisplayPortCanvas(void);
