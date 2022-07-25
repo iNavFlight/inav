@@ -355,7 +355,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_DETECTION(timeU
 
     const float swingVelocity = (fabsf(imuMeasuredRotationBF.z) > SWING_LAUNCH_MIN_ROTATION_RATE) ? (imuMeasuredAccelBF.y / imuMeasuredRotationBF.z) : 0;
     const bool isForwardAccelerationHigh = (imuMeasuredAccelBF.x > navConfig()->fw.launch_accel_thresh);
-    const bool isAircraftAlmostLevel = RADIANS_TO_DEGREES(ahrsGetCosTiltAngle()) <= navConfig()->fw.launch_max_angle;
+    const bool isAircraftAlmostLevel = RADIANS_TO_DEGREES(ahrsGetTiltAngle()) <= navConfig()->fw.launch_max_angle;
 
     const bool isBungeeLaunched = isForwardAccelerationHigh && isAircraftAlmostLevel;
     const bool isSwingLaunched = (swingVelocity > navConfig()->fw.launch_velocity_thresh) && (imuMeasuredAccelBF.x > 0);

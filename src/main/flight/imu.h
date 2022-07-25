@@ -39,22 +39,18 @@ typedef union {
 extern attitudeEulerAngles_t attitude;
 
 typedef struct imuConfig_s {
-    uint16_t dcm_kp_acc;                    // DCM filter proportional gain ( x 10000) for accelerometer
-    uint16_t dcm_ki_acc;                    // DCM filter integral gain ( x 10000) for accelerometer
-    uint16_t dcm_kp_mag;                    // DCM filter proportional gain ( x 10000) for magnetometer and GPS heading
-    uint16_t dcm_ki_mag;                    // DCM filter integral gain ( x 10000) for magnetometer and GPS heading
+    uint16_t dcm_kp_acc;
+    uint16_t dcm_kp_mag;
+    uint16_t dcm_gps_gain;
     uint8_t small_angle;
-    uint8_t acc_ignore_rate;
-    uint8_t acc_ignore_slope;
 } imuConfig_t;
 
 PG_DECLARE(imuConfig_t, imuConfig);
 
 typedef struct imuRuntimeConfig_s {
-    float dcm_kp_acc;
-    float dcm_kp_mag;
+    float kp_acc;
+    float kp_mag;
     float gps_gain;
-    float beta;
 } imuRuntimeConfig_t;
 
 void ahrsInit(void);
@@ -64,11 +60,13 @@ void ahrsConfigure(void);
 bool ahrsSetMagneticDeclination(float declinationDeg);
 void ahrsReset(bool recover_eulers);
 void ahrsUpdate(timeUs_t currentTimeUs);
-float ahrsGetCosTiltAngle(void);
 bool ahrsIsHealthy(void);
 bool isAhrsHeadingValid(void);
+float ahrsGetTiltAngle(void);
+void updateWindEstimator(void);
 
 void ahrsTransformVectorBodyToEarth(fpVector3_t * v);
 void ahrsTransformVectorEarthToBody(fpVector3_t * v);
 
-void updateWindEstimator(void);
+float ahrsGetCosYaw(void);
+float ahrsGetSinYaw(void);

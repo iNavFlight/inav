@@ -419,8 +419,8 @@ bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcR
             const float rcVelY = rcRollAdjustment * navConfig()->general.max_manual_speed / (float)(500 - rcControlsConfig()->pos_hold_deadband);
 
             // Rotate these velocities from body frame to to earth frame
-            const float neuVelX = rcVelX * posControl.actualState.cosYaw - rcVelY * posControl.actualState.sinYaw;
-            const float neuVelY = rcVelX * posControl.actualState.sinYaw + rcVelY * posControl.actualState.cosYaw;
+            const float neuVelX = rcVelX * ahrsGetCosYaw() - rcVelY * ahrsGetSinYaw();
+            const float neuVelY = rcVelX * ahrsGetSinYaw() + rcVelY * ahrsGetCosYaw();
 
             // Calculate new position target, so Pos-to-Vel P-controller would yield desired velocity
             posControl.desiredState.pos.x = navGetCurrentActualPositionAndVelocity()->pos.x + (neuVelX / posControl.pids.pos[X].param.kP);
@@ -651,8 +651,8 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     lastAccelTargetY = newAccelY;
 
     // Rotate acceleration target into forward-right frame (aircraft)
-    const float accelForward = newAccelX * posControl.actualState.cosYaw + newAccelY * posControl.actualState.sinYaw;
-    const float accelRight = -newAccelX * posControl.actualState.sinYaw + newAccelY * posControl.actualState.cosYaw;
+    const float accelForward = newAccelX * ahrsGetCosYaw() + newAccelY * ahrsGetSinYaw();
+    const float accelRight = -newAccelX * ahrsGetSinYaw() + newAccelY * ahrsGetCosYaw();
 
     // Calculate banking angles
     const float desiredPitch = atan2_approx(accelForward, GRAVITY_CMSS);

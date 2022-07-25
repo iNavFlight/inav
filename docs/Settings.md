@@ -182,6 +182,36 @@ Calculated value after '6 position avanced calibration'. See Wiki page.
 
 ---
 
+### ahrs_gps_gain
+
+This controls how much to use the GPS to correct the attitude. This should never be set to zero for a plane as it would result in the plane losing control in turns. For a plane please use the default value of 10.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | 0 | 10 |
+
+---
+
+### ahrs_kp_acc
+
+This controls how fast the accelerometers correct the attitude
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 20 | 10 | 40 |
+
+---
+
+### ahrs_kp_mag
+
+This controls the weight the compass or GPS has on the heading. A higher value means the heading will track the yaw source (GPS or compass) more rapidly.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 20 | 10 | 40 |
+
+---
+
 ### airmode_throttle_threshold
 
 Defines airmode THROTTLE activation threshold when `airmode_type` **THROTTLE_THRESHOLD** is used
@@ -1749,66 +1779,6 @@ If set to ON, Secondary IMU data will be used for Angle, Horizon and all other m
 | Default | Min | Max |
 | --- | --- | --- |
 | OFF | OFF | ON |
-
----
-
-### imu_acc_ignore_rate
-
-Total gyro rotation rate threshold [deg/s] to consider accelerometer trustworthy on airplanes
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 20 |
-
----
-
-### imu_acc_ignore_slope
-
-Half-width of the interval to gradually reduce accelerometer weight. Centered at `imu_acc_ignore_rate` (exactly 50% weight)
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 5 |
-
----
-
-### imu_dcm_ki
-
-Inertial Measurement Unit KI Gain for accelerometer measurements
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 50 |  | 65535 |
-
----
-
-### imu_dcm_ki_mag
-
-Inertial Measurement Unit KI Gain for compass measurements
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 |  | 65535 |
-
----
-
-### imu_dcm_kp
-
-Inertial Measurement Unit KP Gain for accelerometer measurements
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 1000 |  | 65535 |
-
----
-
-### imu_dcm_kp_mag
-
-Inertial Measurement Unit KP Gain for compass measurements
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 5000 |  | 65535 |
 
 ---
 

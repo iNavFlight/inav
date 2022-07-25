@@ -41,7 +41,7 @@ PG_DECLARE(rangefinderConfig_t, rangefinderConfig);
 
 typedef struct rangefinder_s {
     rangefinderDev_t dev;
-    float maxTiltCos;
+    float maxTilt;
     int32_t rawAltitude;
     int32_t calculatedAltitude;
     timeMs_t lastValidResponseTimeMs;
@@ -55,5 +55,5 @@ int32_t rangefinderGetLatestAltitude(void);
 int32_t rangefinderGetLatestRawAltitude(void);
 
 timeDelta_t rangefinderUpdate(void);
-bool rangefinderProcess(float cosTiltAngle);
+bool rangefinderProcess(float TiltAngle);
 bool rangefinderIsHealthy(void);

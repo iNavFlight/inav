@@ -224,7 +224,7 @@ void taskUpdateRangefinder(timeUs_t currentTimeUs)
     /*
      * Process raw rangefinder readout
      */
-    if (rangefinderProcess(ahrsGetCosTiltAngle())) {
+    if (rangefinderProcess(ahrsGetTiltAngle())) {
         updatePositionEstimator_SurfaceTopic(currentTimeUs, rangefinderGetLatestAltitude());
     }
 }

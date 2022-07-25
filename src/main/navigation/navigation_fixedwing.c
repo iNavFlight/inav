@@ -307,8 +307,8 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
             float rcShiftY = rcRollAdjustment * navConfig()->general.max_manual_speed / 500.0f * trackingPeriod;
 
             // Rotate this target shift from body frame to to earth frame and apply to position target
-            virtualDesiredPosition.x += -rcShiftY * posControl.actualState.sinYaw;
-            virtualDesiredPosition.y +=  rcShiftY * posControl.actualState.cosYaw;
+            virtualDesiredPosition.x += -rcShiftY * ahrsGetSinYaw();
+            virtualDesiredPosition.y +=  rcShiftY * ahrsGetCosYaw();
         }
     }
 }

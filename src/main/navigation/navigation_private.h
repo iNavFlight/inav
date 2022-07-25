@@ -124,8 +124,6 @@ typedef struct {
     int32_t                 yaw;
 
     // Service values
-    float                   sinYaw;
-    float                   cosYaw;
     float                   surfaceMin;
     float                   velXY;
 } navigationEstimatedState_t;

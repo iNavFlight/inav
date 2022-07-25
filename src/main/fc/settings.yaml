@@ -1471,43 +1471,29 @@ groups:
     type: imuConfig_t
     headers: ["flight/imu.h"]
     members:
-      - name: imu_dcm_kp
-        description: "Inertial Measurement Unit KP Gain for accelerometer measurements"
-        default_value: 1000
+      - name: ahrs_kp_acc
+        description: "This controls how fast the accelerometers correct the attitude"
+        default_value: 20
         field: dcm_kp_acc
-        max: UINT16_MAX
-      - name: imu_dcm_ki
-        description: "Inertial Measurement Unit KI Gain for accelerometer measurements"
-        default_value: 50
-        field: dcm_ki_acc
-        max: UINT16_MAX
-      - name: imu_dcm_kp_mag
-        description: "Inertial Measurement Unit KP Gain for compass measurements"
-        default_value: 5000
+        min: 10
+        max: 40
+      - name: ahrs_kp_mag
+        description: "This controls the weight the compass or GPS has on the heading. A higher value means the heading will track the yaw source (GPS or compass) more rapidly."
+        default_value: 20
         field: dcm_kp_mag
-        max: UINT16_MAX
-      - name: imu_dcm_ki_mag
-        description: "Inertial Measurement Unit KI Gain for compass measurements"
-        default_value: 0
-        field: dcm_ki_mag
-        max: UINT16_MAX
+        min: 10
+        max: 40
+      - name: ahrs_gps_gain
+        description: "This controls how much to use the GPS to correct the attitude. This should never be set to zero for a plane as it would result in the plane losing control in turns. For a plane please use the default value of 10."
+        default_value: 10
+        field: dcm_gps_gain
+        min: 0
+        max: 10
       - name: small_angle
         description: "If the aircraft tilt angle exceed this value the copter will refuse to arm."
         default_value: 25
         min: 0
         max: 180
-      - name: imu_acc_ignore_rate
-        description: "Total gyro rotation rate threshold [deg/s] to consider accelerometer trustworthy on airplanes"
-        default_value: 0
-        field: acc_ignore_rate
-        min: 0
-        max: 20
-      - name: imu_acc_ignore_slope
-        description: "Half-width of the interval to gradually reduce accelerometer weight. Centered at `imu_acc_ignore_rate` (exactly 50% weight)"
-        default_value: 0
-        field: acc_ignore_slope
-        min: 0
-        max: 5
 
   - name: PG_ARMING_CONFIG
     type: armingConfig_t

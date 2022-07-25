@@ -67,28 +67,21 @@ FILE_COMPILE_FOR_SPEED
  *      Z-axis = Up
  */
 
-#define AP_AHRS_RP_P_MIN 0.05f // minimum value for AHRS_RP_P parameter
-#define AP_AHRS_YAW_P_MIN 0.05f // minimum value for AHRS_YAW_P parameter
+#define RP_KP_MIN 0.05f
+#define YAW_KP_MIN 0.05f
 
-// this is the speed in m/s above which we first get a yaw lock with
-// the GPS
+// this is the speed in m/s above which we first get a yaw lock with the GPS
 #define GPS_SPEED_MIN 3
 
-// the limit (in degrees/second) beyond which we stop integrating
-// omega_I. At larger spin rates the DCM PI controller can get 'dizzy'
-// which results in false gyro drift. See
-// http://gentlenav.googlecode.com/files/fastRotations.pdf
+// the limit (in degrees/second) beyond which we stop integrating omega_I. At larger spin rates the DCM PI controller can get 'dizzy' which results in false gyro drift.
 #define SPIN_RATE_LIMIT 20
 
 FASTRAM fpVector3_t imuMeasuredAccelBF;
 FASTRAM fpVector3_t imuMeasuredRotationBF;
 
-FASTRAM fpQuaternion_t orientation;
 FASTRAM attitudeEulerAngles_t attitude;
 
 STATIC_FASTRAM imuRuntimeConfig_t imuRuntimeConfig;
-
-STATIC_FASTRAM bool isAccelUpdatedAtLeastOnce;
 
 fpMat3_t rotationMatrix;
 fpVector3_t _omega;
@@ -137,28 +130,20 @@ uint32_t _last_wind_time;
 static float _ki = 0.0087f;
 static  float _ki_yaw = 0.01f;
 
-// configurable
-float _kp = 0.2f;
-float _kp_yaw = 0.2f;
-float gps_gain = 1.0f;
-float beta = 0.1f;
-
-PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 3);
 
 PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
-    .dcm_kp_acc = SETTING_IMU_DCM_KP_DEFAULT,                   // 0.25 * 10000
-    .dcm_ki_acc = SETTING_IMU_DCM_KI_DEFAULT,                   // 0.005 * 10000
-    .dcm_kp_mag = SETTING_IMU_DCM_KP_MAG_DEFAULT,               // 1.00 * 10000
-    .dcm_ki_mag = SETTING_IMU_DCM_KI_MAG_DEFAULT,               // 0.00 * 10000
-    .small_angle = SETTING_SMALL_ANGLE_DEFAULT,
-    .acc_ignore_rate = SETTING_IMU_ACC_IGNORE_RATE_DEFAULT,
-    .acc_ignore_slope = SETTING_IMU_ACC_IGNORE_SLOPE_DEFAULT
+    .dcm_kp_acc = SETTING_AHRS_KP_ACC_DEFAULT,
+    .dcm_kp_mag = SETTING_AHRS_KP_MAG_DEFAULT,
+    .dcm_gps_gain = SETTING_AHRS_GPS_GAIN_DEFAULT,
+    .small_angle = SETTING_SMALL_ANGLE_DEFAULT
 );
 
 void ahrsConfigure(void)
 {
-    imuRuntimeConfig.dcm_kp_acc = imuConfig()->dcm_kp_acc / 10000.0f;
-    imuRuntimeConfig.dcm_kp_mag = imuConfig()->dcm_kp_mag / 10000.0f;
+    imuRuntimeConfig.kp_acc = imuConfig()->dcm_kp_acc / 100.0f;
+    imuRuntimeConfig.kp_mag = imuConfig()->dcm_kp_mag / 100.0f;
+    imuRuntimeConfig.gps_gain = imuConfig()->dcm_gps_gain / 10.0f;
 }
 
 void ahrsInit(void)
@@ -166,9 +151,6 @@ void ahrsInit(void)
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         imuMeasuredAccelBF.v[axis] = 0;
     }
-
-    // Explicitly initialize FASTRAM statics
-    isAccelUpdatedAtLeastOnce = false;
 
     // Create magnetic declination matrix
 #ifdef USE_MAG
@@ -795,9 +777,9 @@ void drift_correction_yaw(void)
     // integration at higher rates
     const float spin_rate = calc_length_pythagorean_3D(_omega.x, _omega.y, _omega.z);
 
-    // sanity check _kp_yaw
-    if (_kp_yaw < AP_AHRS_YAW_P_MIN) {
-        _kp_yaw = AP_AHRS_YAW_P_MIN;
+    // sanity check imuRuntimeConfig.kp_mag
+    if (imuRuntimeConfig.kp_mag < YAW_KP_MIN) {
+        imuRuntimeConfig.kp_mag = YAW_KP_MIN;
     }
 
     // update the proportional control to drag the
@@ -808,7 +790,7 @@ void drift_correction_yaw(void)
     // is proportional to how observable the heading is from the acceerations and GPS velocity
     // The accelration derived heading will be more reliable in turns than compass or GPS
 
-    _omega_yaw_P.z = error_z * _P_gain(spin_rate) * _kp_yaw * _yaw_gain();
+    _omega_yaw_P.z = error_z * _P_gain(spin_rate) * imuRuntimeConfig.kp_mag * _yaw_gain();
 
     if (use_fast_gains()) {
         _omega_yaw_P.z *= 8;
@@ -980,7 +962,7 @@ void drift_correction(float deltat)
     float ra_scale = 1.0f / (_ra_deltat * GRAVITY_CMSS);
 
     if (ARMING_FLAG(ARMED) && (_have_gps_lock || fly_forward)) {
-        const float v_scale = gps_gain * ra_scale;
+        const float v_scale = imuRuntimeConfig.gps_gain * ra_scale;
         fpVector3_t vdelta;
         vdelta.x = (velocity.x - _last_velocity.x) * v_scale;
         vdelta.y = (velocity.y - _last_velocity.y) * v_scale;
@@ -1048,7 +1030,7 @@ void drift_correction(float deltat)
     // flat, but still allow for yaw correction using the
     // accelerometers at high roll angles as long as we have a GPS
     if (use_compass()) {
-        if (have_gps() && gps_gain == 1.0f) {
+        if (have_gps() && imuRuntimeConfig.gps_gain == 1.0f) {
             error.z *= sin_approx(fabsf(_roll));
         } else {
             error.z = 0;
@@ -1078,17 +1060,17 @@ void drift_correction(float deltat)
     // base the P gain on the spin rate
     const float spin_rate = calc_length_pythagorean_3D(_omega.x, _omega.y, _omega.z);
 
-    // sanity check _kp value
-    if (_kp < AP_AHRS_RP_P_MIN) {
-        _kp = AP_AHRS_RP_P_MIN;
+    // sanity check imuRuntimeConfig.kp_acc value
+    if (imuRuntimeConfig.kp_acc < RP_KP_MIN) {
+        imuRuntimeConfig.kp_acc = RP_KP_MIN;
     }
 
     // we now want to calculate _omega_P and _omega_I. The
     // _omega_P value is what drags us quickly to the
     // accelerometer reading.
-    _omega_P.x = error.x * _P_gain(spin_rate) * _kp;
-    _omega_P.y = error.y * _P_gain(spin_rate) * _kp;
-    _omega_P.z = error.z * _P_gain(spin_rate) * _kp;
+    _omega_P.x = error.x * _P_gain(spin_rate) * imuRuntimeConfig.kp_acc;
+    _omega_P.y = error.y * _P_gain(spin_rate) * imuRuntimeConfig.kp_acc;
+    _omega_P.z = error.z * _P_gain(spin_rate) * imuRuntimeConfig.kp_acc;
 
     if (use_fast_gains()) {
         _omega_P.x *= 8;
@@ -1244,10 +1226,8 @@ void dcmUpdate(float delta_t)
 
     calc_trig(&_cos_roll, &_cos_pitch, &_cos_yaw, &_sin_roll, &_sin_pitch, &_sin_yaw);
     
-    DEBUG_SET(DEBUG_CRUISE, 0, RADIANS_TO_DEGREES(ahrsGetCosTiltAngle()));
-
     // Update small angle state 
-    if (RADIANS_TO_DEGREES(ahrsGetCosTiltAngle()) < imuConfig()->small_angle) {
+    if (RADIANS_TO_DEGREES(ahrsGetTiltAngle()) < imuConfig()->small_angle) {
         ENABLE_STATE(SMALL_ANGLE);
     } else {
         DISABLE_STATE(SMALL_ANGLE);
@@ -1259,12 +1239,10 @@ void ahrsUpdate(timeUs_t currentTimeUs)
 #ifdef HIL
     if (sensors(SENSOR_ACC) && !hilActive) {
         accUpdate();
-        isAccelUpdatedAtLeastOnce = true;
     }
 #else
     if (sensors(SENSOR_ACC)) {
         accUpdate();
-        isAccelUpdatedAtLeastOnce = true;
     }
 #endif
 
@@ -1273,11 +1251,11 @@ void ahrsUpdate(timeUs_t currentTimeUs)
     const float dT = (currentTimeUs - previousIMUUpdateTimeUs) * 1e-6;
     previousIMUUpdateTimeUs = currentTimeUs;
     
-    if (sensors(SENSOR_ACC) && isAccelUpdatedAtLeastOnce) {
+    if (sensors(SENSOR_ACC)) {
 #ifdef HIL
         if (!hilActive) {
-            gyroGetMeasuredRotationRate(&imuMeasuredRotationBF);    // Calculate gyro rate in body frame in rad/s
-            accGetMeasuredAcceleration(&imuMeasuredAccelBF);  // Calculate accel in body frame in cm/s/s
+            gyroGetMeasuredRotationRate(&imuMeasuredRotationBF); // Calculate gyro rate in body frame in rad/s
+            accGetMeasuredAcceleration(&imuMeasuredAccelBF);     // Calculate accel in body frame in cm/s/s
             imuCheckVibrationLevels();
             dcmUpdate(dT);
         }
@@ -1297,8 +1275,8 @@ void ahrsUpdate(timeUs_t currentTimeUs)
             imuUpdateMeasuredAcceleration();
         }
 #else
-        gyroGetMeasuredRotationRate(&imuMeasuredRotationBF);    // Calculate gyro rate in body frame in rad/s
-        accGetMeasuredAcceleration(&imuMeasuredAccelBF);  // Calculate accel in body frame in cm/s/s
+        gyroGetMeasuredRotationRate(&imuMeasuredRotationBF); // Calculate gyro rate in body frame in rad/s
+        accGetMeasuredAcceleration(&imuMeasuredAccelBF);     // Calculate accel in body frame in cm/s/s
         imuCheckVibrationLevels();
         dcmUpdate(dT);
 #endif
@@ -1317,8 +1295,7 @@ void updateWindEstimator(void)
     velocity.y = _last_velocity.y;
     velocity.z = _last_velocity.z;
 
-    // this is based on the wind speed estimation code from MatrixPilot by
-    // Bill Premerlani. Adaption for ArduPilot by Jon Challinger
+    // this is based on the wind speed estimation code from MatrixPilot by Bill Premerlani. Adaption for ArduPilot by Jon Challinger
     // See http://gentlenav.googlecode.com/files/WindEstimation.pdf
     fpVector3_t fuselageDirection;
     fuselageDirection.x = rotationMatrix.m[0][0];
@@ -1431,14 +1408,14 @@ bool ahrsIsHealthy(void)
     return (_last_failure_ms == 0 || millis() - _last_failure_ms > 5000);
 }
 
-float ahrsGetCosTiltAngle(void)
-{
-    return acos_approx(_cos_roll * _cos_pitch);
-}
-
 bool isAhrsHeadingValid(void)
 {
     return (sensors(SENSOR_MAG) && STATE(COMPASS_CALIBRATED)) || (STATE(FIXED_WING_LEGACY) && have_initial_yaw);
+}
+
+float ahrsGetTiltAngle(void)
+{
+    return acos_approx(_cos_roll * _cos_pitch);
 }
 
 void ahrsTransformVectorBodyToEarth(fpVector3_t * v)
@@ -1458,4 +1435,14 @@ void ahrsTransformVectorEarthToBody(fpVector3_t * v)
 
     // From earth frame to body frame
     mul_transpose(v);
+}
+
+float ahrsGetCosYaw(void)
+{
+    return _cos_yaw;
+}
+
+float ahrsGetSinYaw(void)
+{
+    return _sin_yaw;
 }

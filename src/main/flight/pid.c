@@ -900,7 +900,7 @@ static uint8_t getHeadingHoldState(void)
     const int16_t headingHoldMaxAngleInclination = DECIDEGREES_TO_DEGREES(pidProfile()->max_angle_inclination[FD_ROLL] + pidProfile()->max_angle_inclination[FD_PITCH]);
 
     // Don't apply heading hold if overall tilt is greater than maximum angle inclination
-    if (RADIANS_TO_DEGREES(ahrsGetCosTiltAngle()) > headingHoldMaxAngleInclination) {
+    if (RADIANS_TO_DEGREES(ahrsGetTiltAngle()) > headingHoldMaxAngleInclination) {
         return HEADING_HOLD_DISABLED;
     }
 
@@ -989,7 +989,7 @@ static void NOINLINE pidTurnAssistant(pidState_t *pidState, float bankAngleTarge
     targetRates.y = 0.0f;
 
     if (STATE(AIRPLANE)) {
-        if (RADIANS_TO_DEGREES(ahrsGetCosTiltAngle()) >= 10.0f) {
+        if (RADIANS_TO_DEGREES(ahrsGetTiltAngle()) >= 10.0f) {
             // Ideal banked turn follow the equations:
             //      forward_vel^2 / radius = Gravity * tan(roll_angle)
             //      yaw_rate = forward_vel / radius

@@ -166,7 +166,7 @@ bool rangefinderInit(void)
     rangefinder.dev.init(&rangefinder.dev);
     rangefinder.rawAltitude = RANGEFINDER_OUT_OF_RANGE;
     rangefinder.calculatedAltitude = RANGEFINDER_OUT_OF_RANGE;
-    rangefinder.maxTiltCos = cos_approx(DECIDEGREES_TO_RADIANS(rangefinder.dev.detectionConeExtendedDeciDegrees / 2.0f));
+    rangefinder.maxTilt = DECIDEGREES_TO_RADIANS(rangefinder.dev.detectionConeExtendedDeciDegrees / 2.0f);
     rangefinder.lastValidResponseTimeMs = millis();
 
     return true;
@@ -205,7 +205,7 @@ timeDelta_t rangefinderUpdate(void)
 /**
  * Get the last distance measured by the sonar in centimeters. When the ground is too far away, RANGEFINDER_OUT_OF_RANGE is returned.
  */
-bool rangefinderProcess(float cosTiltAngle)
+bool rangefinderProcess(float TiltAngle)
 {
     if (rangefinder.dev.read) {
         const int32_t distance = rangefinder.dev.read(&rangefinder.dev);
@@ -243,10 +243,10 @@ bool rangefinderProcess(float cosTiltAngle)
     *
     * When the ground is too far away or the tilt is too large, RANGEFINDER_OUT_OF_RANGE is returned.
     */
-    if (cosTiltAngle < rangefinder.maxTiltCos || rangefinder.rawAltitude < 0) {
+    if (TiltAngle > rangefinder.maxTilt || rangefinder.rawAltitude < 0) {
         rangefinder.calculatedAltitude = RANGEFINDER_OUT_OF_RANGE;
     } else {
-        rangefinder.calculatedAltitude = rangefinder.rawAltitude * cosTiltAngle;
+        rangefinder.calculatedAltitude = rangefinder.rawAltitude * TiltAngle;
     }
 
     return true;
