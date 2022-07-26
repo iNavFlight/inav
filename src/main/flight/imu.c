@@ -76,59 +76,57 @@ FILE_COMPILE_FOR_SPEED
 // the limit (in degrees/second) beyond which we stop integrating omega_I. At larger spin rates the DCM PI controller can get 'dizzy' which results in false gyro drift.
 #define SPIN_RATE_LIMIT 20
 
-FASTRAM fpVector3_t imuMeasuredAccelBF;
-FASTRAM fpVector3_t imuMeasuredRotationBF;
-
+FASTRAM fpMat3_t rotationMatrix;
 FASTRAM attitudeEulerAngles_t attitude;
+FASTRAM fpVector3_t imuMeasuredRotationBF;
+FASTRAM fpVector3_t imuMeasuredAccelBF;
+STATIC_FASTRAM fpVector3_t BodyFrameAccInMss;
+STATIC_FASTRAM fpVector3_t _omega;
+STATIC_FASTRAM fpVector3_t _omega_I;
+STATIC_FASTRAM fpVector3_t _omega_I_sum;
+STATIC_FASTRAM fpVector3_t _omega_P;
+STATIC_FASTRAM fpVector3_t _omega_yaw_P;
+STATIC_FASTRAM fpVector3_t _ra_sum;
+STATIC_FASTRAM fpVector3_t _ra_delay_buffer;
+STATIC_FASTRAM fpVector3_t _last_velocity;
+STATIC_FASTRAM fpVector3_t _accel_ef;
+STATIC_FASTRAM fpVector3_t _wind;
+STATIC_FASTRAM fpVector3_t _last_fuse;
+STATIC_FASTRAM fpVector3_t _last_vel;
+STATIC_FASTRAM fpVector3_t _mag_earth;
 
-STATIC_FASTRAM imuRuntimeConfig_t imuRuntimeConfig;
+STATIC_FASTRAM bool _have_gps_lock;
+STATIC_FASTRAM bool have_initial_yaw;
 
-fpMat3_t rotationMatrix;
-fpVector3_t _omega;
-fpVector3_t _omega_I;
-fpVector3_t _omega_I_sum;
-fpVector3_t _omega_P;
-fpVector3_t _omega_yaw_P;
-fpVector3_t _ra_sum;
-fpVector3_t _ra_delay_buffer;
-fpVector3_t _last_velocity;
-fpVector3_t _accel_ef;
-fpVector3_t _wind;
-fpVector3_t _last_fuse;
-fpVector3_t _last_vel;
-fpVector3_t _mag_earth;
-
-bool _have_gps_lock;
-bool have_initial_yaw;
-
-float _omega_I_sum_time;
-float _ra_deltat;
-float _last_airspeed;
-float _last_declination;
+STATIC_FASTRAM float _omega_I_sum_time;
+STATIC_FASTRAM float _ra_deltat;
+STATIC_FASTRAM float _last_airspeed;
 
 // euler angles
-float _roll;
-float _pitch;
-float _yaw;
+STATIC_FASTRAM float _roll;
+STATIC_FASTRAM float _pitch;
+STATIC_FASTRAM float _yaw;
 
 // helper trig variables
-float _cos_roll = 1.0f;
-float _cos_pitch = 1.0f;
-float _cos_yaw = 1.0f;
-float _sin_roll;
-float _sin_pitch;
-float _sin_yaw;
+STATIC_FASTRAM float _cos_roll = 1.0f;
+STATIC_FASTRAM float _cos_pitch = 1.0f;
+STATIC_FASTRAM float _cos_yaw = 1.0f;
+STATIC_FASTRAM float _sin_roll;
+STATIC_FASTRAM float _sin_pitch;
+STATIC_FASTRAM float _sin_yaw;
 
-uint32_t _last_startup_ms;
-uint32_t _ra_sum_start;
-uint32_t _last_failure_ms;
-uint32_t _last_consistent_heading;
-uint32_t _gps_last_update;
-uint32_t _last_wind_time;
+timeMs_t _last_consistent_heading;
+timeMs_t _last_startup_ms;
+timeMs_t _ra_sum_start;
+timeMs_t _last_failure_ms;
+timeMs_t _gps_last_update;
+timeMs_t _last_wind_time;
+
+timeUs_t _compass_last_update;
 
 // not configurable
 static float _ki = 0.0087f;
-static  float _ki_yaw = 0.01f;
+static float _ki_yaw = 0.01f;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 3);
 
@@ -139,26 +137,20 @@ PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
     .small_angle = SETTING_SMALL_ANGLE_DEFAULT
 );
 
-void ahrsConfigure(void)
-{
-    imuRuntimeConfig.kp_acc = imuConfig()->dcm_kp_acc / 100.0f;
-    imuRuntimeConfig.kp_mag = imuConfig()->dcm_kp_mag / 100.0f;
-    imuRuntimeConfig.gps_gain = imuConfig()->dcm_gps_gain / 10.0f;
-}
-
 void ahrsInit(void)
 {
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        imuMeasuredAccelBF.v[axis] = 0;
+        imuMeasuredAccelBF.v[axis] = 0.0f;
+        BodyFrameAccInMss.v[axis] = 0.0f;
     }
 
     // Create magnetic declination matrix
 #ifdef USE_MAG
-    const int deg = compassConfig()->mag_declination / 100;
-    const int min = compassConfig()->mag_declination   % 100;
+    const int16_t deg = compassConfig()->mag_declination / 100;
+    const int16_t min = compassConfig()->mag_declination % 100;
 #else
-    const int deg = 0;
-    const int min = 0;
+    const int16_t deg = 0;
+    const int16_t min = 0;
 #endif
 
     if (!ahrsSetMagneticDeclination(deg + min / 60.0f)) {
@@ -281,6 +273,13 @@ void mul_transpose(fpVector3_t *v)
     v->z = rotationMatrix.m[0][2] * v->x + rotationMatrix.m[1][2] * v->y + rotationMatrix.m[2][2] * v->z;                
 }
 
+void mul_transpose_inverse(fpVector3_t *v)
+{
+    v->x = v->x * rotationMatrix.m[0][0] + v->x * rotationMatrix.m[1][0] + v->x * rotationMatrix.m[2][0];
+    v->y = v->y * rotationMatrix.m[0][1] + v->y * rotationMatrix.m[1][1] + v->y * rotationMatrix.m[2][1];
+    v->z = v->z * rotationMatrix.m[0][2] + v->z * rotationMatrix.m[1][2] + v->z * rotationMatrix.m[2][2];
+}
+
 // multiplication by a vector, extracting only the xy components
 void mulXY(fpVector3_t *v) {
     v->x = rotationMatrix.m[0][0] * v->x + rotationMatrix.m[0][1] * v->y + rotationMatrix.m[0][2] * v->z;
@@ -338,11 +337,11 @@ void ahrsReset(bool recover_eulers)
         from_euler(_roll, _pitch, _yaw);
     } else {
         // normalise the acceleration vector
-        if (calc_length_pythagorean_3D(imuMeasuredAccelBF.x, imuMeasuredAccelBF.y, imuMeasuredAccelBF.z) > 5.0f) {
+        if (calc_length_pythagorean_3D(BodyFrameAccInMss.x, BodyFrameAccInMss.y, BodyFrameAccInMss.z) > 5.0f) {
             // calculate initial pitch angle
-            _pitch = atan2_approx(imuMeasuredAccelBF.x, calc_length_pythagorean_2D(imuMeasuredAccelBF.y, imuMeasuredAccelBF.z));
+            _pitch = atan2_approx(BodyFrameAccInMss.x, calc_length_pythagorean_2D(BodyFrameAccInMss.y, BodyFrameAccInMss.z));
             // calculate initial roll angle
-            _roll = atan2_approx(-imuMeasuredAccelBF.y, -imuMeasuredAccelBF.z);
+            _roll = atan2_approx(BodyFrameAccInMss.y, BodyFrameAccInMss.z);
         } else {
             // If we can't use the accel vector, then align flat
             _roll = 0.0f;
@@ -496,19 +495,28 @@ void check_matrix(void)
 #endif
 }
 
+void getMagField(fpVector3_t *v) {
+
+    const float range_scale = 1000.0f / 3000.0f; // scale for QMC5883
+
+    v->x = (float)mag.magADC[X] * range_scale;
+    v->y = (float)mag.magADC[Y] * range_scale;
+    v->z = (float)mag.magADC[Z] * range_scale;
+}
+
 // produce a yaw error value. The returned value is proportional to sin() of the current heading error in earth frame
 float yaw_error_compass(void)
 {
-    const float range_scale = 1000.0f / 3000.0f;
+    fpVector3_t magField;
 
-    fpVector3_t magField = { .v = { (float)mag.magADC[X] * range_scale/*/ 1090.0f*/, (float)mag.magADC[Y] /*/ 1090.0f*/ * range_scale, 0.0f } };
+    getMagField(&magField);
 
     // get the mag vector in the earth frame
     mulXY(&magField);
     
     const float magFieldLength = calc_length_pythagorean_2D(magField.x, magField.y);
 
-    if (magFieldLength  < 0.0f) {
+    if (magFieldLength < 0.0f) {
         return 0.0f;
     }
     
@@ -520,19 +528,6 @@ float yaw_error_compass(void)
         // not a valid vector
         return 0.0f;
     }
-/*
-    // update vector holding earths magnetic field (if required)
-    if(_last_declination != compass.get_declination()) {
-        _last_declination = compass.get_declination();
-        _mag_earth.x = cosf(_last_declination);
-        _mag_earth.y = sinf(_last_declination);
-    }
-*/
-/*
-    if (_mag_earth.x != 0.0f && _mag_earth.y != 0.0f) {
-        _mag_earth.x = vCorrectedMagNorth.x;
-        _mag_earth.y = vCorrectedMagNorth.y;
-    }*/
 
     // calculate the error term in earth frame
     // calculate the Z component of the cross product of magField and _mag_earth
@@ -671,12 +666,16 @@ bool use_compass(void)
 // calculate a compass heading given the attitude from DCM and the mag vector
 float calculate_heading(void)
 {
+    fpVector3_t magField;
+
+    getMagField(&magField);
+
     float cos_pitch_sq = 1.0f - (rotationMatrix.m[2][0] * rotationMatrix.m[2][0]);
 
-    float headY =  rotationMatrix.m[2][2] * rotationMatrix.m[2][1];
+    float headY = magField.y * rotationMatrix.m[2][2] - magField.z * rotationMatrix.m[2][1];
 
     // Tilt compensated magnetic field X component:
-    float headX = cos_pitch_sq - rotationMatrix.m[2][0] * (rotationMatrix.m[2][1] + rotationMatrix.m[2][2]);
+    float headX = magField.x * cos_pitch_sq - rotationMatrix.m[2][0] * (magField.y * rotationMatrix.m[2][1] + magField.z * rotationMatrix.m[2][2]);
 
     // magnetic heading
     // 6/4/11 - added constrain to keep bad values from ruining DCM Yaw - Jason S.
@@ -702,28 +701,35 @@ void drift_correction_yaw(void)
     if (use_compass()) {
         /*
           we are using compass for yaw
-         */
-        // we force an additional compass read()
-        // here. This has the effect of throwing away
-        // the first compass value, which can be bad
-        if (!have_initial_yaw) {
-            const float heading = calculate_heading();
-            from_euler(_roll, _pitch, heading);
-            _omega_yaw_P.x = 0.0f;
-            _omega_yaw_P.y = 0.0f;
-            _omega_yaw_P.z = 0.0f;
-            have_initial_yaw = true;
+        */
+        if (compassLastUpdate() != _compass_last_update) {
+            yaw_deltat = US2S(compassLastUpdate() - _compass_last_update);
+            _compass_last_update = compassLastUpdate();
+            // we force an additional compass read()
+            // here. This has the effect of throwing away
+            // the first compass value, which can be bad
+            if (!have_initial_yaw) {
+                const float heading = calculate_heading();
+                from_euler(_roll, _pitch, heading);
+                _omega_yaw_P.x = 0.0f;
+                _omega_yaw_P.y = 0.0f;
+                _omega_yaw_P.z = 0.0f;
+                have_initial_yaw = true;
+            }
+            new_value = true;
+            yaw_error = yaw_error_compass();
+            
+            // also update the _gps_last_update, so if we later
+            // disable the compass due to significant yaw error we
+            // don't suddenly change yaw with a reset
+            _gps_last_update = gpsStats.lastFixTime;
         }
-        new_value = true;
-        yaw_error = yaw_error_compass();
-
-        _gps_last_update = gpsStats.lastFixTime;
     } else if (get_fly_forward() && have_gps()) {
         /*
           we are using GPS for yaw
          */
         if (gpsStats.lastFixTime != _gps_last_update && gpsSol.groundSpeed >= GPS_SPEED_MIN) {
-            yaw_deltat = (gpsStats.lastFixTime - _gps_last_update) * 1.0e-3f;
+            yaw_deltat = US2MS(gpsStats.lastFixTime - _gps_last_update);
             _gps_last_update = gpsStats.lastFixTime;
             new_value = true;
             const float gps_course_rad = DEGREES_TO_RADIANS(gpsSol.groundCourse);
@@ -740,13 +746,13 @@ void drift_correction_yaw(void)
                is more than 20 seconds ago, which means we may have
                suffered from considerable gyro drift
 
-               3) if we are over 3*GPS_SPEED_MIN (which means 9m/s)
+               3) if we are over 3 * GPS_SPEED_MIN (which means 9m/s)
                and our yaw error is over 60 degrees, which means very
                poor yaw. This can happen on bungee launch when the
                operator pulls back the plane rapidly enough then on
                release the GPS heading changes very rapidly
             */
-            if (!have_initial_yaw || (gpsSol.groundSpeed >= 3 * GPS_SPEED_MIN && fabsf(yaw_error_rad) >= 1.047f)) {
+            if (!have_initial_yaw || yaw_deltat > 20 || (gpsSol.groundSpeed >= 3 * GPS_SPEED_MIN && fabsf(yaw_error_rad) >= 1.047f)) {
                 // reset DCM matrix based on current yaw
                 from_euler(_roll, _pitch, gps_course_rad);
                 // Force reset of heading hold target
@@ -755,7 +761,7 @@ void drift_correction_yaw(void)
                 _omega_yaw_P.y = 0.0f;
                 _omega_yaw_P.z = 0.0f;
                 have_initial_yaw = true;
-                yaw_error = 0;
+                yaw_error = 0.0f;
             }
         }
     }
@@ -776,10 +782,12 @@ void drift_correction_yaw(void)
     // the spin rate changes the P gain, and disables the
     // integration at higher rates
     const float spin_rate = calc_length_pythagorean_3D(_omega.x, _omega.y, _omega.z);
+    
+    float kP_Mag = (float)imuConfig()->dcm_kp_mag / 100.0f;
 
-    // sanity check imuRuntimeConfig.kp_mag
-    if (imuRuntimeConfig.kp_mag < YAW_KP_MIN) {
-        imuRuntimeConfig.kp_mag = YAW_KP_MIN;
+    // sanity check kP_Mag
+    if (kP_Mag < YAW_KP_MIN) {
+        kP_Mag = YAW_KP_MIN;
     }
 
     // update the proportional control to drag the
@@ -790,10 +798,10 @@ void drift_correction_yaw(void)
     // is proportional to how observable the heading is from the acceerations and GPS velocity
     // The accelration derived heading will be more reliable in turns than compass or GPS
 
-    _omega_yaw_P.z = error_z * _P_gain(spin_rate) * imuRuntimeConfig.kp_mag * _yaw_gain();
+    _omega_yaw_P.z = error_z * _P_gain(spin_rate) * kP_Mag * _yaw_gain();
 
     if (use_fast_gains()) {
-        _omega_yaw_P.z *= 8;
+        _omega_yaw_P.z *= 8.0f;
     }
 
     // don't update the drift term if we lost the yaw reference for more than 2 seconds
@@ -848,14 +856,14 @@ void drift_correction(float deltat)
 
     // rotate accelerometer values into the earth frame
     /*
-        by using get_imuMeasuredAccelBF() instead of get_accel() the
+        by using get_imuMeasuredAccelBFinMss() instead of get_accel() the
         accel value is sampled over the right time delta for
         each sensor, which prevents an aliasing effect
     */
     if (deltat > 0.0f) {
-        _accel_ef.x = rotationMatrix.m[0][0] * imuMeasuredAccelBF.x + rotationMatrix.m[0][1] * imuMeasuredAccelBF.y + rotationMatrix.m[0][2] * imuMeasuredAccelBF.z;
-        _accel_ef.y = rotationMatrix.m[1][0] * imuMeasuredAccelBF.x + rotationMatrix.m[1][1] * imuMeasuredAccelBF.y + rotationMatrix.m[1][2] * imuMeasuredAccelBF.z;
-        _accel_ef.z = rotationMatrix.m[2][0] * imuMeasuredAccelBF.x + rotationMatrix.m[2][1] * imuMeasuredAccelBF.y + rotationMatrix.m[2][2] * imuMeasuredAccelBF.z;
+        _accel_ef.x = rotationMatrix.m[0][0] * BodyFrameAccInMss.x + rotationMatrix.m[0][1] * BodyFrameAccInMss.y + rotationMatrix.m[0][2] * BodyFrameAccInMss.z;
+        _accel_ef.y = rotationMatrix.m[1][0] * BodyFrameAccInMss.x + rotationMatrix.m[1][1] * BodyFrameAccInMss.y + rotationMatrix.m[1][2] * BodyFrameAccInMss.z;
+        _accel_ef.z = rotationMatrix.m[2][0] * BodyFrameAccInMss.x + rotationMatrix.m[2][1] * BodyFrameAccInMss.y + rotationMatrix.m[2][2] * BodyFrameAccInMss.z;
         // integrate the accel vector in the earth frame between GPS readings
         _ra_sum.x += _accel_ef.x * deltat;
         _ra_sum.y += _accel_ef.y * deltat;
@@ -959,10 +967,11 @@ void drift_correction(float deltat)
     }
     
     bool using_gps_corrections = false;
-    float ra_scale = 1.0f / (_ra_deltat * GRAVITY_CMSS);
+    float ra_scale = 1.0f / (_ra_deltat * GRAVITY_MSS);
+    const float GPS_Gain = (float)imuConfig()->dcm_gps_gain / 10.0f;
 
     if (ARMING_FLAG(ARMED) && (_have_gps_lock || fly_forward)) {
-        const float v_scale = imuRuntimeConfig.gps_gain * ra_scale;
+        const float v_scale = GPS_Gain * ra_scale;
         fpVector3_t vdelta;
         vdelta.x = (velocity.x - _last_velocity.x) * v_scale;
         vdelta.y = (velocity.y - _last_velocity.y) * v_scale;
@@ -1030,10 +1039,10 @@ void drift_correction(float deltat)
     // flat, but still allow for yaw correction using the
     // accelerometers at high roll angles as long as we have a GPS
     if (use_compass()) {
-        if (have_gps() && imuRuntimeConfig.gps_gain == 1.0f) {
+        if (have_gps() && GPS_Gain == 1.0f) {
             error.z *= sin_approx(fabsf(_roll));
         } else {
-            error.z = 0;
+            error.z = 0.0f;
         }
     }
 
@@ -1059,29 +1068,28 @@ void drift_correction(float deltat)
     
     // base the P gain on the spin rate
     const float spin_rate = calc_length_pythagorean_3D(_omega.x, _omega.y, _omega.z);
+    
+    float kP_Acc = (float)imuConfig()->dcm_kp_acc / 100.0f;
 
-    // sanity check imuRuntimeConfig.kp_acc value
-    if (imuRuntimeConfig.kp_acc < RP_KP_MIN) {
-        imuRuntimeConfig.kp_acc = RP_KP_MIN;
+    // sanity check kP_Acc value
+    if (kP_Acc < RP_KP_MIN) {
+        kP_Acc = RP_KP_MIN;
     }
 
     // we now want to calculate _omega_P and _omega_I. The
     // _omega_P value is what drags us quickly to the
     // accelerometer reading.
-    _omega_P.x = error.x * _P_gain(spin_rate) * imuRuntimeConfig.kp_acc;
-    _omega_P.y = error.y * _P_gain(spin_rate) * imuRuntimeConfig.kp_acc;
-    _omega_P.z = error.z * _P_gain(spin_rate) * imuRuntimeConfig.kp_acc;
+    _omega_P.x = error.x * _P_gain(spin_rate) * kP_Acc;
+    _omega_P.y = error.y * _P_gain(spin_rate) * kP_Acc;
+    _omega_P.z = error.z * _P_gain(spin_rate) * kP_Acc;
 
     if (use_fast_gains()) {
-        _omega_P.x *= 8;
-        _omega_P.y *= 8;
-        _omega_P.z *= 8;
+        _omega_P.x *= 8.0f;
+        _omega_P.y *= 8.0f;
+        _omega_P.z *= 8.0f;
     }
 
-    fpVector3_t get_accel;
-    accGetMeasuredAcceleration(&get_accel);
-
-    if (fly_forward && have_gps() && gpsSol.groundSpeed < GPS_SPEED_MIN && get_accel.x >= 7 && _pitch > DEGREES_TO_RADIANS(-30) && _pitch < DEGREES_TO_RADIANS(30)) {
+    if (fly_forward && have_gps() && gpsSol.groundSpeed < GPS_SPEED_MIN && BodyFrameAccInMss.x >= 7.0f && _pitch > DEGREES_TO_RADIANS(-30) && _pitch < DEGREES_TO_RADIANS(30)) {
         // assume we are in a launch acceleration, and reduce the
         // rp gain by 50% to reduce the impact of GPS lag on
         // takeoff attitude when using a catapult
@@ -1098,7 +1106,7 @@ void drift_correction(float deltat)
         _omega_I_sum_time += _ra_deltat;
     }
 
-    if (_omega_I_sum_time >= 5) {
+    if (_omega_I_sum_time >= 5.0f) {
         // limit the rate of change of omega_I to the hardware
         // reported maximum gyro drift rate. This ensures that
         // short term errors don't cause a buildup of omega_I
@@ -1110,15 +1118,15 @@ void drift_correction(float deltat)
         _omega_I.x += _omega_I_sum.x;
         _omega_I.y += _omega_I_sum.y;
         _omega_I.z += _omega_I_sum.z;
-        _omega_I_sum.x = 0;
-        _omega_I_sum.y = 0;
-        _omega_I_sum.z = 0;
-        _omega_I_sum_time = 0;
+        _omega_I_sum.x = 0.0f;
+        _omega_I_sum.y = 0.0f;
+        _omega_I_sum.z = 0.0f;
+        _omega_I_sum_time = 0.0f;
     }
 
     // zero our accumulator ready for the next GPS step
     memset((void *)&_ra_sum, 0, sizeof(_ra_sum));
-    _ra_deltat = 0;
+    _ra_deltat = 0.0f;
     _ra_sum_start = last_correction_time;
 
     // remember the velocity for next time
@@ -1180,11 +1188,10 @@ void calc_trig(float *cr, float *cp, float *cy, float *sr, float *sp, float *sy)
 // run a full DCM update round
 void dcmUpdate(float delta_t)
 {
-    // if the update call took more than 0.2 seconds then discard it,
-    // otherwise we may move too far.
+    // if the update call took more than 0.2 seconds then discard it, otherwise we may move too far.
     if (delta_t > 0.2f) {
         memset((void *)&_ra_sum, 0, sizeof(_ra_sum));
-        _ra_deltat = 0;
+        _ra_deltat = 0.0f;
         return;
     }
     
@@ -1248,14 +1255,17 @@ void ahrsUpdate(timeUs_t currentTimeUs)
 
     /* Calculate dT */
     static timeUs_t previousIMUUpdateTimeUs;
-    const float dT = (currentTimeUs - previousIMUUpdateTimeUs) * 1e-6;
+    const float dT = US2S(currentTimeUs - previousIMUUpdateTimeUs);
     previousIMUUpdateTimeUs = currentTimeUs;
     
     if (sensors(SENSOR_ACC)) {
 #ifdef HIL
         if (!hilActive) {
-            gyroGetMeasuredRotationRate(&imuMeasuredRotationBF); // Calculate gyro rate in body frame in rad/s
             accGetMeasuredAcceleration(&imuMeasuredAccelBF);     // Calculate accel in body frame in cm/s/s
+            gyroGetMeasuredRotationRate(&imuMeasuredRotationBF); // Calculate gyro rate in body frame in rad/s
+            BodyFrameAccInMss.x = imuMeasuredAccelBF.x * 0.01f;
+            BodyFrameAccInMss.y = imuMeasuredAccelBF.y * 0.01f;
+            BodyFrameAccInMss.z = imuMeasuredAccelBF.z * 0.01f;
             imuCheckVibrationLevels();
             dcmUpdate(dT);
         }
@@ -1275,8 +1285,11 @@ void ahrsUpdate(timeUs_t currentTimeUs)
             imuUpdateMeasuredAcceleration();
         }
 #else
-        gyroGetMeasuredRotationRate(&imuMeasuredRotationBF); // Calculate gyro rate in body frame in rad/s
         accGetMeasuredAcceleration(&imuMeasuredAccelBF);     // Calculate accel in body frame in cm/s/s
+        gyroGetMeasuredRotationRate(&imuMeasuredRotationBF); // Calculate gyro rate in body frame in rad/s
+        BodyFrameAccInMss.x = imuMeasuredAccelBF.x * 0.01f;
+        BodyFrameAccInMss.y = imuMeasuredAccelBF.y * 0.01f;
+        BodyFrameAccInMss.z = imuMeasuredAccelBF.z * 0.01f;
         imuCheckVibrationLevels();
         dcmUpdate(dT);
 #endif
@@ -1307,7 +1320,7 @@ void updateWindEstimator(void)
     fuselageDirectionDiff.y = fuselageDirection.y - _last_fuse.y;
     fuselageDirectionDiff.z = fuselageDirection.z - _last_fuse.z;
 
-    const uint32_t now = millis();
+    const timeMs_t now = millis();
 
     // scrap our data and start over if we're taking too long to get a direction change
     if (now - _last_wind_time > 10000) {
@@ -1420,20 +1433,11 @@ float ahrsGetTiltAngle(void)
 
 void ahrsTransformVectorBodyToEarth(fpVector3_t * v)
 {
-    v->x = v->x * rotationMatrix.m[0][0] * v->x * rotationMatrix.m[1][0] * v->x * rotationMatrix.m[2][0];
-    v->y = v->y * rotationMatrix.m[0][1] * v->y * rotationMatrix.m[1][1] * v->y * rotationMatrix.m[2][1];
-    v->z = v->z * rotationMatrix.m[0][2] * v->z * rotationMatrix.m[1][2] * v->z * rotationMatrix.m[2][2];
-
-    // HACK: This is needed to correctly transform from NED (sensor frame) to NEU (navigation)
-    v->y = -v->y;
+    mul_transpose_inverse(v);
 }
 
 void ahrsTransformVectorEarthToBody(fpVector3_t * v)
 {
-    // HACK: This is needed to correctly transform from NED (sensor frame) to NEU (navigation)
-    v->y = -v->y;
-
-    // From earth frame to body frame
     mul_transpose(v);
 }
 

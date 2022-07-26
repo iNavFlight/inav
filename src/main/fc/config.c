@@ -302,8 +302,6 @@ static void activateConfig(void)
     accSetCalibrationValues();
     accInitFilters();
 
-    ahrsConfigure();
-
     pidInit();
 
     navigationUsePIDs();

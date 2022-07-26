@@ -398,7 +398,7 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
 {
     const float dt = US2S(currentTimeUs - posEstimator.imu.lastUpdateTime);
     posEstimator.imu.lastUpdateTime = currentTimeUs;
-
+    
     if (!ahrsIsHealthy()) {
         posEstimator.imu.accelNEU.x = 0.0f;
         posEstimator.imu.accelNEU.y = 0.0f;
@@ -424,7 +424,7 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
 
         /* Rotate vector to Earth frame - from Forward-Right-Down to North-East-Up*/
         ahrsTransformVectorBodyToEarth(&accelBF);
-
+        
         /* Read acceleration data in NEU frame from IMU */
         posEstimator.imu.accelNEU.x = accelBF.x;
         posEstimator.imu.accelNEU.y = accelBF.y;

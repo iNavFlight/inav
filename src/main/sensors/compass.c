@@ -81,6 +81,7 @@ PG_RESET_TEMPLATE(compassConfig_t, compassConfig,
 );
 
 static uint8_t magUpdatedAtLeastOnce = 0;
+timeUs_t last_update_usec;
 
 bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 {
@@ -472,7 +473,13 @@ void compassUpdate(timeUs_t currentTimeUs)
         applySensorAlignment(mag.magADC, mag.magADC, mag.dev.magAlign.onBoard);
         applyBoardAlignment(mag.magADC);
     }
-
+    
+    last_update_usec = micros();
     magUpdatedAtLeastOnce = 1;
 }
+
+timeUs_t compassLastUpdate(void) {
+    return last_update_usec;
+}
+
 #endif

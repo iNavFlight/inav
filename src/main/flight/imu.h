@@ -47,15 +47,7 @@ typedef struct imuConfig_s {
 
 PG_DECLARE(imuConfig_t, imuConfig);
 
-typedef struct imuRuntimeConfig_s {
-    float kp_acc;
-    float kp_mag;
-    float gps_gain;
-} imuRuntimeConfig_t;
-
 void ahrsInit(void);
-
-void ahrsConfigure(void);
 
 bool ahrsSetMagneticDeclination(float declinationDeg);
 void ahrsReset(bool recover_eulers);

@@ -479,7 +479,7 @@ static void applyAccelerationZero(const flightDynamicsTrims_t * accZero, const f
 }
 
 /*
- * Calculate measured acceleration in body frame in m/s^2
+ * Calculate measured acceleration in body frame in cm/s^2
  */
 void accGetMeasuredAcceleration(fpVector3_t *measuredAcc)
 {

@@ -246,7 +246,7 @@ bool rangefinderProcess(float TiltAngle)
     if (TiltAngle > rangefinder.maxTilt || rangefinder.rawAltitude < 0) {
         rangefinder.calculatedAltitude = RANGEFINDER_OUT_OF_RANGE;
     } else {
-        rangefinder.calculatedAltitude = rangefinder.rawAltitude * TiltAngle;
+        rangefinder.calculatedAltitude = rangefinder.rawAltitude * (1.0f - TiltAngle);
     }
 
     return true;
