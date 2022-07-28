@@ -752,6 +752,16 @@ Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`,
 
 ---
 
+### dynamic_gyro_notch_3d_q
+
+Q factor for 3D dynamic notches
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 200 | 1 | 1000 |
+
+---
+
 ### dynamic_gyro_notch_enabled
 
 Enable/disable dynamic gyro notch also known as Matrix Filter
@@ -769,6 +779,16 @@ Minimum frequency for dynamic notches. Default value of `150` works best with 5"
 | Default | Min | Max |
 | --- | --- | --- |
 | 50 | 30 | 250 |
+
+---
+
+### dynamic_gyro_notch_mode
+
+Gyro dynamic notch type
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 2D |  |  |
 
 ---
 
@@ -3009,6 +3029,16 @@ Launch idle throttle - throttle to be set before launch sequence is initiated. I
 | Default | Min | Max |
 | --- | --- | --- |
 | 1000 | 1000 | 2000 |
+
+---
+
+### nav_fw_launch_manual_throttle
+
+Allows launch with manually controlled throttle. INAV only levels wings and controls climb pitch during launch. Throttle is controlled directly by throttle stick movement. IF USED WITHOUT A GPS LOCK plane must be launched immediately after throttle is increased to avoid issues with climb out stabilisation and the launch ending sooner than expected (launch end timer starts as soon as the throttle stick is raised).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
 
 ---
 

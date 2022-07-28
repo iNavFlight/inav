@@ -187,6 +187,9 @@ tables:
   - name: rth_trackback_mode
     values: ["OFF", "ON", "FS"]
     enum: rthTrackbackMode_e
+  - name: dynamic_gyro_notch_mode
+    values: ["2D", "3D_R", "3D_P", "3D_Y", "3D_RP", "3D_RY", "3D_PY", "3D"]
+    enum: dynamicGyroNotchMode_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -285,6 +288,19 @@ groups:
         condition: USE_DYNAMIC_FILTERS
         min: 30
         max: 250
+      - name: dynamic_gyro_notch_mode
+        description: "Gyro dynamic notch type"
+        default_value: "2D"
+        table: dynamic_gyro_notch_mode
+        field: dynamicGyroNotchMode
+        condition: USE_DYNAMIC_FILTERS
+      - name: dynamic_gyro_notch_3d_q
+        description: "Q factor for 3D dynamic notches"
+        default_value: 200
+        field: dynamicGyroNotch3dQ
+        condition: USE_DYNAMIC_FILTERS
+        min: 1
+        max: 1000
       - name: gyro_to_use
         condition: USE_DUAL_GYRO
         min: 0
@@ -2822,6 +2838,11 @@ groups:
         field: fw.launch_climb_angle
         min: 5
         max: 45
+      - name: nav_fw_launch_manual_throttle
+        description: "Allows launch with manually controlled throttle. INAV only levels wings and controls climb pitch during launch. Throttle is controlled directly by throttle stick movement. IF USED WITHOUT A GPS LOCK plane must be launched immediately after throttle is increased to avoid issues with climb out stabilisation and the launch ending sooner than expected (launch end timer starts as soon as the throttle stick is raised)."
+        default_value: OFF
+        field: fw.launch_manual_throttle
+        type: bool
       - name: nav_fw_launch_abort_deadband
         description: "Launch abort stick deadband in [r/c points], applied after r/c deadband and expo. The Roll/Pitch stick needs to be deflected beyond this deadband to abort the launch."
         default_value: 100
