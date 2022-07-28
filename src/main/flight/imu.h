@@ -49,7 +49,7 @@ PG_DECLARE(imuConfig_t, imuConfig);
 
 void ahrsInit(void);
 
-bool ahrsSetMagneticDeclination(float declinationDeg);
+void ahrsSetMagneticDeclination(float declinationDeg);
 void ahrsReset(bool recover_eulers);
 void ahrsUpdate(timeUs_t currentTimeUs);
 bool ahrsIsHealthy(void);

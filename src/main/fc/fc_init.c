@@ -579,7 +579,6 @@ void init(void)
     }
 #endif
 
-
     navigationInit();
 
 #ifdef USE_LED_STRIP
@@ -683,6 +682,7 @@ void init(void)
 #ifdef USE_SECONDARY_IMU
     secondaryImuInit();
 #endif
+
     fcTasksInit();
 
 #ifdef USE_OSD

@@ -59,6 +59,7 @@ FILE_COMPILE_FOR_SPEED
 #include "sensors/barometer.h"
 #include "sensors/compass.h"
 #include "sensors/gyro.h"
+#include "sensors/pitotmeter.h"
 #include "sensors/sensors.h"
 
 /*
@@ -81,19 +82,19 @@ FASTRAM attitudeEulerAngles_t attitude;
 FASTRAM fpVector3_t imuMeasuredRotationBF;
 FASTRAM fpVector3_t imuMeasuredAccelBF;
 STATIC_FASTRAM fpVector3_t BodyFrameAccInMss;
+STATIC_FASTRAM fpVector3_t _accel_ef;
 STATIC_FASTRAM fpVector3_t _omega;
-STATIC_FASTRAM fpVector3_t _omega_I;
-STATIC_FASTRAM fpVector3_t _omega_I_sum;
 STATIC_FASTRAM fpVector3_t _omega_P;
 STATIC_FASTRAM fpVector3_t _omega_yaw_P;
+STATIC_FASTRAM fpVector3_t _omega_I;
+STATIC_FASTRAM fpVector3_t _omega_I_sum;
+STATIC_FASTRAM fpVector3_t _mag_earth;
 STATIC_FASTRAM fpVector3_t _ra_sum;
 STATIC_FASTRAM fpVector3_t _ra_delay_buffer;
 STATIC_FASTRAM fpVector3_t _last_velocity;
-STATIC_FASTRAM fpVector3_t _accel_ef;
 STATIC_FASTRAM fpVector3_t _wind;
 STATIC_FASTRAM fpVector3_t _last_fuse;
 STATIC_FASTRAM fpVector3_t _last_vel;
-STATIC_FASTRAM fpVector3_t _mag_earth;
 
 STATIC_FASTRAM bool _have_gps_lock;
 STATIC_FASTRAM bool have_initial_yaw;
@@ -121,7 +122,6 @@ timeMs_t _ra_sum_start;
 timeMs_t _last_failure_ms;
 timeMs_t _gps_last_update;
 timeMs_t _last_wind_time;
-
 timeUs_t _compass_last_update;
 
 // not configurable
@@ -153,10 +153,7 @@ void ahrsInit(void)
     const int16_t min = 0;
 #endif
 
-    if (!ahrsSetMagneticDeclination(deg + min / 60.0f)) {
-        _mag_earth.x = 1.0f;
-        _mag_earth.y = 0.0f;
-    }
+    ahrsSetMagneticDeclination(deg + min / 60.0f);
     
     rotationMatrix.m[0][0] = 1.0f;
     rotationMatrix.m[0][1] = 0.0f;
@@ -173,14 +170,13 @@ void ahrsInit(void)
     ahrsReset(false);
 }
 
-bool ahrsSetMagneticDeclination(float declinationDeg)
+void ahrsSetMagneticDeclination(float declinationDeg)
 {
     const float declinationRad = -DEGREES_TO_RADIANS(declinationDeg);
+    
     _mag_earth.x = cos_approx(declinationRad);
     _mag_earth.y = sin_approx(declinationRad);
     _mag_earth.z = 0.0f;
-
-    return (_mag_earth.x != 0.0f && _mag_earth.y != 0.0f);
 }
 
 void imuCheckVibrationLevels(void)
@@ -515,7 +511,7 @@ float yaw_error_compass(void)
     mulXY(&magField);
     
     const float magFieldLength = calc_length_pythagorean_2D(magField.x, magField.y);
-
+    
     if (magFieldLength < 0.0f) {
         return 0.0f;
     }
@@ -890,11 +886,10 @@ void drift_correction(float deltat)
         }
 
         float airspeed = _last_airspeed;
-#if AP_AIRSPEED_ENABLED
-        if (airspeed_sensor_enabled()) {
-            airspeed = AP::airspeed()->get_airspeed();
+
+        if (realPitotEnabled()) {
+            airspeed = pitotCalculateAirSpeed();
         }
-#endif
 
         // use airspeed to estimate our ground velocity in earth frame by subtracting the wind
         velocity.x = rotationMatrix.m[0][0] * airspeed;
@@ -968,10 +963,10 @@ void drift_correction(float deltat)
     
     bool using_gps_corrections = false;
     float ra_scale = 1.0f / (_ra_deltat * GRAVITY_MSS);
-    const float GPS_Gain = (float)imuConfig()->dcm_gps_gain / 10.0f;
+    const float gps_gain = (float)imuConfig()->dcm_gps_gain / 10.0f;
 
     if (ARMING_FLAG(ARMED) && (_have_gps_lock || fly_forward)) {
-        const float v_scale = GPS_Gain * ra_scale;
+        const float v_scale = gps_gain * ra_scale;
         fpVector3_t vdelta;
         vdelta.x = (velocity.x - _last_velocity.x) * v_scale;
         vdelta.y = (velocity.y - _last_velocity.y) * v_scale;
@@ -1039,7 +1034,7 @@ void drift_correction(float deltat)
     // flat, but still allow for yaw correction using the
     // accelerometers at high roll angles as long as we have a GPS
     if (use_compass()) {
-        if (have_gps() && GPS_Gain == 1.0f) {
+        if (have_gps() && gps_gain == 1.0f) {
             error.z *= sin_approx(fabsf(_roll));
         } else {
             error.z = 0.0f;
@@ -1387,31 +1382,44 @@ void updateWindEstimator(void)
         return;
     }
 
-#if AP_AIRSPEED_ENABLED
-    if (now - _last_wind_time > 2000 && airspeed_sensor_enabled()) {
+    if (now - _last_wind_time > 2000 && realPitotEnabled()) {
         // when flying straight use airspeed to get wind estimate if available
-        const Vector3f airspeed = _dcm_matrix.colx() * AP::airspeed()->get_airspeed();
-        const Vector3f wind = velocity - (airspeed * get_EAS2TAS());
-        _wind = _wind * 0.92f + wind * 0.08f;
+        fpVector3_t airspeed;
+        airspeed.x = rotationMatrix.m[0][0] * pitotCalculateAirSpeed();
+        airspeed.y = rotationMatrix.m[1][0] * pitotCalculateAirSpeed();
+        airspeed.z = rotationMatrix.m[2][0] * pitotCalculateAirSpeed();
+        fpVector3_t wind;
+        wind.x = velocity.x - airspeed.x;
+        wind.y = velocity.y - airspeed.y;
+        wind.z = velocity.z - airspeed.z;
+        _wind.x = _wind.x * 0.92f + wind.x * 0.08f;
+        _wind.y = _wind.y * 0.92f + wind.y * 0.08f;
+        _wind.z = _wind.z * 0.92f + wind.z * 0.08f;
     }
-#endif
 }
 
-float airspeed_estimate(void)
+// airspeed_ret: will always be filled-in by get_unconstrained_airspeed_estimate which fills in airspeed_ret in this order:
+//               airspeed as filled-in by an enabled airsped sensor
+//               if no airspeed sensor: airspeed estimated using the GPS speed & wind_speed_estimation
+//               Or if none of the above, fills-in using the previous airspeed estimate
+// Return false: if we are using the previous airspeed estimate
+bool airspeed_estimate(float *airspeed_ret)
 {
-    float airspeed_ret;
-
-#if AP_AIRSPEED_ENABLED
-    if (airspeed_sensor_enabled(airspeed_index)) {
-        airspeed_ret = AP::airspeed()->get_airspeed(airspeed_index);
-        return airspeed_ret;
+    if (realPitotEnabled()) {
+        *airspeed_ret = pitotCalculateAirSpeed();
+        return true;
     }
-#endif
+
+    if (virtualPitotEnabled() && have_gps()) {
+        // estimated via GPS speed and wind
+        *airspeed_ret = _last_airspeed;
+        return true;
+    }
 
     // Else give the last estimate. This is used by the dead-reckoning code
-    airspeed_ret = _last_airspeed;
+    *airspeed_ret = _last_airspeed;
 
-    return airspeed_ret;
+    return false;
 }
 
 // check if the AHRS subsystem is healthy

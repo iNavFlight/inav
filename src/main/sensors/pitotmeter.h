@@ -67,5 +67,7 @@ void pitotStartCalibration(void);
 void pitotUpdate(void);
 int32_t pitotCalculateAirSpeed(void);
 bool pitotIsHealthy(void);
+bool realPitotEnabled(void);
+bool virtualPitotEnabled(void);
 
 #endif
