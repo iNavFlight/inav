@@ -49,6 +49,7 @@
 #include "io/gps.h"
 
 #include "sensors/battery.h"
+#include "sensors/gyro.h"
 
 #define SWING_LAUNCH_MIN_ROTATION_RATE      DEGREES_TO_RADIANS(100)     // expect minimum 100dps rotation rate
 #define LAUNCH_MOTOR_IDLE_SPINUP_TIME 1500                              // ms
@@ -79,20 +80,22 @@ typedef enum {
 
 typedef enum {  // if changed update navFwLaunchStatus_e
     FW_LAUNCH_STATE_WAIT_THROTTLE = 0,
+    FW_LAUNCH_STATE_IDLE_WIGGLE_WAIT,
     FW_LAUNCH_STATE_IDLE_MOTOR_DELAY,
     FW_LAUNCH_STATE_MOTOR_IDLE,
     FW_LAUNCH_STATE_WAIT_DETECTION,
-    FW_LAUNCH_STATE_DETECTED,   // 4
+    FW_LAUNCH_STATE_DETECTED,           // FW_LAUNCH_DETECTED = 5
     FW_LAUNCH_STATE_MOTOR_DELAY,
     FW_LAUNCH_STATE_MOTOR_SPINUP,
     FW_LAUNCH_STATE_IN_PROGRESS,
     FW_LAUNCH_STATE_FINISH,
-    FW_LAUNCH_STATE_ABORTED,    // 9
-    FW_LAUNCH_STATE_FLYING,     // 10
+    FW_LAUNCH_STATE_ABORTED,            // FW_LAUNCH_ABORTED = 10
+    FW_LAUNCH_STATE_FLYING,             // FW_LAUNCH_FLYING = 11
     FW_LAUNCH_STATE_COUNT
 } fixedWingLaunchState_t;
 
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_THROTTLE(timeUs_t currentTimeUs);
+static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IDLE_WIGGLE_WAIT(timeUs_t currentTimeUs);
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IDLE_MOTOR_DELAY(timeUs_t currentTimeUs);
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_MOTOR_IDLE(timeUs_t currentTimeUs);
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_DETECTION(timeUs_t currentTimeUs);
@@ -124,10 +127,20 @@ static const fixedWingLaunchStateDescriptor_t launchStateMachine[FW_LAUNCH_STATE
     [FW_LAUNCH_STATE_WAIT_THROTTLE] = {
         .onEntry                                    = fwLaunchState_FW_LAUNCH_STATE_WAIT_THROTTLE,
         .onEvent = {
-            [FW_LAUNCH_EVENT_SUCCESS]               = FW_LAUNCH_STATE_IDLE_MOTOR_DELAY,
+            [FW_LAUNCH_EVENT_SUCCESS]               = FW_LAUNCH_STATE_IDLE_WIGGLE_WAIT,
             [FW_LAUNCH_EVENT_GOTO_DETECTION]        = FW_LAUNCH_STATE_WAIT_DETECTION
         },
         .messageType                                = FW_LAUNCH_MESSAGE_TYPE_WAIT_THROTTLE
+    },
+
+    [FW_LAUNCH_STATE_IDLE_WIGGLE_WAIT] = {
+        .onEntry                                    = fwLaunchState_FW_LAUNCH_STATE_IDLE_WIGGLE_WAIT,
+        .onEvent = {
+            [FW_LAUNCH_EVENT_SUCCESS]               = FW_LAUNCH_STATE_MOTOR_IDLE,
+            [FW_LAUNCH_EVENT_GOTO_DETECTION]        = FW_LAUNCH_STATE_IDLE_MOTOR_DELAY,
+            [FW_LAUNCH_EVENT_THROTTLE_LOW]          = FW_LAUNCH_STATE_WAIT_THROTTLE,
+        },
+        .messageType                                = FW_LAUNCH_MESSAGE_TYPE_WAIT_IDLE
     },
 
     [FW_LAUNCH_STATE_IDLE_MOTOR_DELAY] = {
@@ -253,6 +266,47 @@ static inline bool isThrottleLow(void)
     return calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC) == THROTTLE_LOW;
 }
 
+static bool hasIdleWakeWiggleSucceeded(timeUs_t currentTimeUs) {
+    static timeMs_t wiggleTime = 0;
+    static timeMs_t wigglesTime = 0;
+    static int8_t   wiggleStageOne = 0;
+    static uint8_t  wiggleCount = 0;  
+    const bool      isAircraftWithinLaunchAngle = (calculateCosTiltAngle() >= cos_approx(DEGREES_TO_RADIANS(navConfig()->fw.launch_max_angle)));
+    const uint8_t   wiggleStrength = (navConfig()->fw.launch_wiggle_wake_idle == 1) ? 50 : 40;
+    int8_t wiggleDirection = 0;
+    int16_t yawRate = (int16_t)(gyroRateDps(YAW) * (4 / 16.4));
+
+    // Check to see if yaw rate has exceeded 50 dps. If so proceed to the next stage or continue to idle
+    if ((yawRate < -wiggleStrength || yawRate > wiggleStrength) && isAircraftWithinLaunchAngle) {
+        wiggleDirection = (yawRate > 0) ? 1 : -1;
+
+        if (wiggleStageOne == 0) {
+            wiggleStageOne = wiggleDirection;
+            wigglesTime = US2MS(currentTimeUs);
+        } else if (wiggleStageOne != wiggleDirection) {
+            wiggleStageOne = 0;
+            wiggleCount++;
+            
+            if (wiggleCount == navConfig()->fw.launch_wiggle_wake_idle) {
+                return true;
+            }
+        }
+ 
+        wiggleTime = US2MS(currentTimeUs);
+    }
+
+    // If time between wiggle stages is > 100ms, or the time between two wiggles is > 1s. Reset the wiggle
+    if (
+        ((wiggleStageOne != 0) && (US2MS(currentTimeUs) > (wiggleTime + 100))) ||
+        ((wiggleCount != 0) && (US2MS(currentTimeUs) > (wigglesTime + 500)))
+    ) {
+        wiggleStageOne = 0;
+        wiggleCount = 0;
+    }
+
+    return false;
+}
+
 static inline bool isLaunchMaxAltitudeReached(void)
 {
     return (navConfig()->fw.launch_max_altitude > 0) && (getEstimatedActualPosition(Z) >= navConfig()->fw.launch_max_altitude);
@@ -310,26 +364,34 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_THROTTLE(timeUs
     return FW_LAUNCH_EVENT_NONE;
 }
 
+static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IDLE_WIGGLE_WAIT(timeUs_t currentTimeUs) {
+    if (isThrottleLow()) {
+        return FW_LAUNCH_EVENT_THROTTLE_LOW; // go back to FW_LAUNCH_STATE_WAIT_THROTTLE
+    }
+
+    if (navConfig()->fw.launch_wiggle_wake_idle == 0 || navConfig()->fw.launch_idle_motor_timer > 0 ) {
+        return FW_LAUNCH_EVENT_GOTO_DETECTION;  
+    }
+
+    applyThrottleIdleLogic(true);
+
+    if (hasIdleWakeWiggleSucceeded(currentTimeUs)) {
+        idleMotorAboutToStart = false;
+        return FW_LAUNCH_EVENT_SUCCESS;
+    }
+
+    return FW_LAUNCH_EVENT_NONE;
+}
+
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IDLE_MOTOR_DELAY(timeUs_t currentTimeUs)
 {
-    bool isIdleJerkActivationTriggered = false;
-
     if (isThrottleLow()) {
         return FW_LAUNCH_EVENT_THROTTLE_LOW; // go back to FW_LAUNCH_STATE_WAIT_THROTTLE
     }
 
     applyThrottleIdleLogic(true);
 
-    // Check to see if the plane has been jerked. If so, wake the idle throttle now
-    if (navConfig()->fw.launch_jerk_wake_idle) {
-        const float preIdleSwingVelocity = (fabsf(imuMeasuredRotationBF.z) > SWING_LAUNCH_MIN_ROTATION_RATE) ? (imuMeasuredAccelBF.y / imuMeasuredRotationBF.z) : 0;
-        const bool  isPreIdleSwingLaunched = (preIdleSwingVelocity > navConfig()->fw.launch_velocity_thresh) && (imuMeasuredAccelBF.x > 0);
-        const bool  isPreIdleForwardAccelerationHigh = (imuMeasuredAccelBF.x > navConfig()->fw.launch_accel_thresh);
-
-        isIdleJerkActivationTriggered = (isPreIdleSwingLaunched || isPreIdleForwardAccelerationHigh);
-    }
-
-    if ((currentStateElapsedMs(currentTimeUs) > navConfig()->fw.launch_idle_motor_timer) || isIdleJerkActivationTriggered) {
+    if ((currentStateElapsedMs(currentTimeUs) > navConfig()->fw.launch_idle_motor_timer) || (navConfig()->fw.launch_wiggle_wake_idle > 0 && hasIdleWakeWiggleSucceeded(currentTimeUs))) {
         idleMotorAboutToStart = false;
         return FW_LAUNCH_EVENT_SUCCESS;
     }

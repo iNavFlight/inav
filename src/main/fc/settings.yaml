@@ -2774,10 +2774,10 @@ groups:
         min: 100
         max: 10000
       - name: nav_fw_launch_accel
-        description: "Forward acceleration threshold for bungee launch of throw launch [cm/s/s], 1G = 981 cm/s/s"
+        description: "Forward acceleration threshold for bungee launch or throw launch [cm/s/s], 1G = 981 cm/s/s"
         default_value: 1863
         field: fw.launch_accel_thresh
-        min: 1000
+        min: 1500
         max: 20000
       - name: nav_fw_launch_max_angle
         description: "Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg]"
@@ -2797,11 +2797,13 @@ groups:
         field: fw.launch_idle_motor_timer
         min: 0
         max: 60000
-      - name: nav_fw_launch_jerk_wake_idle
-        description: "Trigger the idle throttle by jerking the plane"
-        field: fw.launch_jerk_wake_idle
-        type: bool
-        default_value: OFF
+      - name: nav_fw_launch_wiggle_to_wake_idle
+        description: "Trigger the idle throttle by wiggling the plane. 0 = disabled. 1 and 2 signify 1 or 2 yaw wiggles to activate. 1 wiggle has a higher detection point, for airplanes without a tail. 2 wiggles has a lower detection point, but requires the repeated action. This is intended for larger models and airplanes with tails."
+        field: fw.launch_wiggle_wake_idle
+        type: uint8_t
+        default_value: 0
+        min: 0
+        max: 2
       - name: nav_fw_launch_motor_delay
         description: "Delay between detected launch and launch sequence start and throttling up (ms)"
         default_value: 500

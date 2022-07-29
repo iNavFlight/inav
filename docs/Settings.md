@@ -2974,11 +2974,11 @@ Launch abort stick deadband in [r/c points], applied after r/c deadband and expo
 
 ### nav_fw_launch_accel
 
-Forward acceleration threshold for bungee launch of throw launch [cm/s/s], 1G = 981 cm/s/s
+Forward acceleration threshold for bungee launch or throw launch [cm/s/s], 1G = 981 cm/s/s
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1863 | 1000 | 20000 |
+| 1863 | 1500 | 20000 |
 
 ---
 
@@ -3029,16 +3029,6 @@ Launch idle throttle - throttle to be set before launch sequence is initiated. I
 | Default | Min | Max |
 | --- | --- | --- |
 | 1000 | 1000 | 2000 |
-
----
-
-### nav_fw_launch_jerk_wake_idle
-
-Trigger the idle throttle by jerking the plane
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
 
 ---
 
@@ -3129,6 +3119,16 @@ Forward velocity threshold for swing-launch detection [cm/s]
 | Default | Min | Max |
 | --- | --- | --- |
 | 300 | 100 | 10000 |
+
+---
+
+### nav_fw_launch_wiggle_to_wake_idle
+
+Trigger the idle throttle by wiggling the plane. 0 = disabled. 1 and 2 signify 1 or 2 yaw wiggles to activate. 1 wiggle has a higher detection point, for airplanes without a tail. 2 wiggles has a lower detection point, but requires the repeated action. This is intended for larger models and airplanes with tails.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 2 |
 
 ---
 
