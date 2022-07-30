@@ -34,9 +34,6 @@
 #define M_Ef        2.71828182845904523536f
 
 #define RAD    (M_PIf / 180.0f)
-// Conversion constants between Rad/sec and Deg/sec
-#define DEG2RAD         (.017453292519943f) /* PI / 180 */
-#define RAD2DEG         (57.2957795130823f) /* 180 / PI */
 
 #define DEGREES_TO_CENTIDEGREES(angle) ((angle) * 100)
 #define CENTIDEGREES_TO_DEGREES(angle) ((angle) / 100)
@@ -51,13 +48,13 @@
 #define DEGREES_TO_DEKADEGREES(angle) ((angle) / DEGREES_PER_DEKADEGREE)
 #define DEKADEGREES_TO_DEGREES(angle) ((angle) * DEGREES_PER_DEKADEGREE)
 
-#define DEGREES_TO_RADIANS(angle) ((angle) * DEG2RAD)
-#define RADIANS_TO_DEGREES(angle) ((angle) * RAD2DEG)
-#define DECIDEGREES_TO_RADIANS(angle) (((angle) / 10.0f) * DEG2RAD)
-#define RADIANS_TO_DECIDEGREES(angle) (((angle) * 10.0f) * RAD2DEG)
+#define DEGREES_TO_RADIANS(angle) ((angle) * RAD)
+#define RADIANS_TO_DEGREES(angle) ((angle) / RAD)
+#define DECIDEGREES_TO_RADIANS(angle) (((angle) / 10.0f) * RAD)
+#define RADIANS_TO_DECIDEGREES(angle) (((angle) * 10.0f) / RAD)
 
-#define CENTIDEGREES_TO_RADIANS(angle) (((angle) / 100.0f) * DEG2RAD)
-#define RADIANS_TO_CENTIDEGREES(angle) (((angle) * 100.0f) * RAD2DEG)
+#define RADIANS_TO_CENTIDEGREES(angle) (((angle) * 100.0f) / RAD)
+#define CENTIDEGREES_TO_RADIANS(angle) (((angle) / 100.0f) * RAD)
 
 #define CENTIMETERS_TO_CENTIFEET(cm)            (cm / 0.3048)
 #define CENTIMETERS_TO_FEET(cm)                 (cm / 30.48)
