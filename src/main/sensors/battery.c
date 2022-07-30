@@ -290,13 +290,16 @@ static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
             vbat = 0;
             break;
     }
-
-	if (simulatorData.flags & SIMU_SIMULATE_BATTERY) {
-		vbat = 1260;
-		batteryFullVoltage = 1210;
-		batteryWarningVoltage = 1020;
-		batteryCriticalVoltage = 960;
+#ifdef USE_SIMULATOR
+	if (!ARMING_FLAG(SIMULATOR_MODE)) {
+		if (simulatorData.flags & SIMU_SIMULATE_BATTERY) {
+			vbat = 1260;
+			batteryFullVoltage = 1210;
+			batteryWarningVoltage = 1020;
+			batteryCriticalVoltage = 960;
+		}
 	}
+#endif
     if (justConnected) {
         pt1FilterReset(&vbatFilterState, vbat);
     } else {

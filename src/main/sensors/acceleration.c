@@ -503,18 +503,19 @@ float accGetMeasuredMaxG(void)
 
 void accUpdate(void)
 {
+#ifdef USE_SIMULATOR
     if (ARMING_FLAG(SIMULATOR_MODE)) {
 		//output: acc.accADCf
 		//unused: acc.dev.ADCRaw[], acc.accClipCount, acc.accVibeSq[]
         return;
     }
+#endif
     if (!acc.dev.readFn(&acc.dev)) {
         return;
     }
 
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         accADC[axis] = acc.dev.ADCRaw[axis];
-        DEBUG_SET(DEBUG_ACC, axis, accADC[axis]);
     }
 
     performAcclerationCalibration();

@@ -3474,35 +3474,12 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 						gpsSol.groundSpeed = (int16_t)sbufReadU16(src);
 						gpsSol.groundCourse = (int16_t)sbufReadU16(src);
 
-						//gpsSol.velNED[X] = gpsSol.groundSpeed * cos_approx(DECIDEGREES_TO_RADIANS(gpsSol.groundCourse));
-						//gpsSol.velNED[Y] = gpsSol.groundSpeed * sin_approx(DECIDEGREES_TO_RADIANS(gpsSol.groundCourse));
-						//gpsSol.velNED[Z] = 0;
-
 						gpsSol.velNED[X] = (int16_t)sbufReadU16(src);
 						gpsSol.velNED[Y] = (int16_t)sbufReadU16(src);
 						gpsSol.velNED[Z] = (int16_t)sbufReadU16(src);
 
 						gpsSol.eph = 100;
 						gpsSol.epv = 100;
-
-						/*
-						//------------------------
-						gpsSol.flags.validVelNE = 0;
-						gpsSol.flags.validVelD = 0;
-						gpsSol.flags.validEPE = 0;
-
-						debug[0] = gpsSol.velNED[X];
-						debug[1] = gpsSol.velNED[Y];
-						debug[2] = gpsSol.velNED[Z];
-
-						debug[3] = posEstimator.gps.vel.x;
-						debug[4] = posEstimator.gps.vel.y;
-						debug[5] = posEstimator.gps.vel.z;
-
-						debug[6] = gpsSol.groundSpeed * cos_approx(DECIDEGREES_TO_RADIANS(gpsSol.groundCourse));
-						debug[7] = gpsSol.groundSpeed * sin_approx(DECIDEGREES_TO_RADIANS(gpsSol.groundCourse));
-						//------------------------
-						*/
 
 						ENABLE_STATE(GPS_FIX);
 
@@ -3526,16 +3503,6 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				else
 				{
 					sbufAdvance(src, 2*3);
-					
-					/*
-					debug[0] = (int16_t)sbufReadU16(src);
-					debug[1] = (int16_t)sbufReadU16(src);
-					debug[2] = (int16_t)sbufReadU16(src);
-
-					debug[3] = attitude.values.roll;
-					debug[4] = attitude.values.pitch;
-					debug[5] = attitude.values.yaw;
-					*/
 				}
 
 				acc.accADCf[X] = ((int16_t)sbufReadU16(src)) / 1000.0f;// acceleration in 1G units
@@ -3551,7 +3518,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 
 				if (sensors(SENSOR_BARO))
 				{
-					baro.baroPressure = sbufReadU32(src);
+					baro.baroPressure = (int32_t)sbufReadU32(src);
 					baro.baroTemperature = 2500;
 				}
 				else {
@@ -3573,10 +3540,10 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 			}
 		}
 
-		sbufWriteU16(dst, (uint16_t)input[INPUT_STABILIZED_ROLL]);
-		sbufWriteU16(dst, (uint16_t)input[INPUT_STABILIZED_PITCH]);
-		sbufWriteU16(dst, (uint16_t)input[INPUT_STABILIZED_YAW]);
-		sbufWriteU16(dst, (uint16_t)(ARMING_FLAG(ARMED) ? input[INPUT_STABILIZED_THROTTLE] : -500));
+		sbufWriteU16(dst, (uint16_t)simulatorData.INPUT_STABILIZED_ROLL);
+		sbufWriteU16(dst, (uint16_t)simulatorData.INPUT_STABILIZED_PITCH);
+		sbufWriteU16(dst, (uint16_t)simulatorData.INPUT_STABILIZED_YAW);
+		sbufWriteU16(dst, (uint16_t)(ARMING_FLAG(ARMED) ? simulatorData.INPUT_STABILIZED_THROTTLE : -500));
 
 		/*
 		debug[0] = mag.magADC[X];

@@ -846,8 +846,10 @@ static const char * osdArmingDisabledReasonMessage(void)
             FALLTHROUGH;
         case ARMED:
             FALLTHROUGH;
+#ifdef USE_SIMULATOR
         case SIMULATOR_MODE:
             FALLTHROUGH;
+#endif
         case WAS_EVER_ARMED:
             break;
     }
@@ -4409,12 +4411,6 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     char buf[6];
                     osdFormatDistanceSymbol(buf, posControl.wpDistance, 0);
                     tfp_sprintf(messageBuf, "TO WP %u/%u (%s)", getGeoWaypointNumber(posControl.activeWaypointIndex), posControl.geoWaypointCount, buf);
-                    messages[messageCount++] = messageBuf;
-                } else if (NAV_Status.state == MW_NAV_STATE_RTH_ENROUTE) {
-                    // Countdown display for RTH minutes
-                    char buf[6];
-                    osdFormatDistanceSymbol(buf, GPS_distanceToHome * 60 * 60 * 3.6/ gpsSol.groundSpeed , 0);
-                    tfp_sprintf(messageBuf, "EN ROUTE TO HOME (%s)", buf);
                     messages[messageCount++] = messageBuf;
                 } else if (NAV_Status.state == MW_NAV_STATE_HOLD_TIMED) {
                     if (navConfig()->general.flags.waypoint_enforce_altitude && !posControl.wpAltitudeReached) {

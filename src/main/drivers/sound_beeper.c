@@ -46,9 +46,13 @@ void systemBeep(bool onoff)
     UNUSED(onoff);
 #else
 
-	if (simulatorData.flags & SIMU_MUTE_BEEPER) {
-		onoff = false;
+#ifdef USE_SIMULATOR
+	if (ARMING_FLAG(SIMULATOR_MODE)) {
+		if (simulatorData.flags & SIMU_MUTE_BEEPER) {
+			onoff = false;
+		}
 	}
+#endif
 
     if (beeperConfig()->pwmMode) {
         pwmWriteBeeper(onoff);

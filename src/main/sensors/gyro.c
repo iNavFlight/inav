@@ -437,12 +437,6 @@ static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroC
 
 void FAST_CODE NOINLINE gyroFilter()
 {
-	/*
-    if (ARMING_FLAG(SIMULATOR_MODE)) {
-        return;
-    }
-	*/
-
     if (!gyro.initialized) {
         return;
     }
@@ -505,12 +499,13 @@ void FAST_CODE NOINLINE gyroFilter()
 
 void FAST_CODE NOINLINE gyroUpdate()
 {
+#ifdef USE_SIMULATOR
     if (ARMING_FLAG(SIMULATOR_MODE)) {
 		//output: gyro.gyroADCf[axis]
 		//unused: dev->gyroADCRaw[], dev->gyroZero[];
         return;
     }
-
+#endif
     if (!gyro.initialized) {
         return;
     }

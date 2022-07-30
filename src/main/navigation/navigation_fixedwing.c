@@ -146,8 +146,7 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
     //  speedWeight = 1.0 : pitch will only control airspeed and won't control altitude
     //  speedWeight = 0.5 : pitch will be used to control both airspeed and altitude
     //  speedWeight = 0.0 : pitch will only control altitude
-    const float speedWeight = 0.7f; // no speed sensing for now
-//    const float speedWeight = 1.0f - constrainf(fabs(demSPE - estSPE) / GRAVITY_MSS, 0.0f, 1.0f); // no speed sensing for now
+    const float speedWeight = 0.0f; // no speed sensing for now
 
     const float demSEB = demSPE * (1.0f - speedWeight) - demSKE * speedWeight;
     const float estSEB = estSPE * (1.0f - speedWeight) - estSKE * speedWeight;
@@ -537,7 +536,6 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         if (navStateFlags & NAV_CTL_LAND) {
             // During LAND we do not allow to raise THROTTLE when nose is up to reduce speed
             throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, 0);
-            throttleCorrection = minThrottleCorrection;
         } else {
 #endif
             throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, maxThrottleCorrection);

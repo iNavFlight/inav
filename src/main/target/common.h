@@ -193,4 +193,6 @@
 #define USE_TELEMETRY_HOTT
 #define USE_HOTT_TEXTMODE
 
+#define USE_SIMULATOR
+
 #endif
