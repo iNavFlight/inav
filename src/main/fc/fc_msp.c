@@ -3188,6 +3188,12 @@ static bool mspParameterGroupsCommand(sbuf_t *dst, sbuf_t *src)
     return true;
 }
 
+bool isOSDTypeSupportedBySimulator(void)
+{
+	displayPort_t *osdDisplayPort = osdGetDisplayPort();
+	return (osdDisplayPort && osdDisplayPort->cols == 30 && (osdDisplayPort->rows == 13 || osdDisplayPort->rows == 16));
+}
+
 void mspWriteSimulatorOSD(sbuf_t *dst)
 {
 	//RLE encoding
@@ -3202,7 +3208,7 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 
 	displayPort_t *osdDisplayPort = osdGetDisplayPort();
 	
-	if (osdDisplayPort && osdDisplayPort->cols == 30 && (osdDisplayPort->rows == 13 || osdDisplayPort->rows == 16))
+	if (isOSDTypeSupportedBySimulator())
 	{
 		sbufWriteU8(dst, osdPos_y | (osdDisplayPort->rows == 16 ? 128: 0));
 		sbufWriteU8(dst, osdPos_x);
@@ -3571,7 +3577,11 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 			simulatorData.debugIndex = 0;
 		}
 
-		tmp_u8 = simulatorData.debugIndex | ((mixerConfig()->platformType == PLATFORM_AIRPLANE) ? 128 : 0) | (ARMING_FLAG(ARMED) ? 64 : 0);
+		tmp_u8 = simulatorData.debugIndex | 
+			((mixerConfig()->platformType == PLATFORM_AIRPLANE) ? 128 : 0) | 
+			(ARMING_FLAG(ARMED) ? 64 : 0) |
+			(!feature(FEATURE_OSD) ? 32: 0) |
+			(!isOSDTypeSupportedBySimulator() ? 16: 0);
 		sbufWriteU8(dst, tmp_u8 );
 		sbufWriteU32(dst, debug[simulatorData.debugIndex]);
 
