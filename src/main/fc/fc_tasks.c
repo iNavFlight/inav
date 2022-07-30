@@ -311,7 +311,7 @@ void taskUpdateAux(timeUs_t currentTimeUs)
         updateFixedWingLevelTrim(currentTimeUs);
     }
 #else
-	updateFixedWingLevelTrim(currentTimeUs);
+    updateFixedWingLevelTrim(currentTimeUs);
 #endif
 }
 

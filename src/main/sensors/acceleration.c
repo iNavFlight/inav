@@ -516,7 +516,7 @@ void accUpdate(void)
 
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         accADC[axis] = acc.dev.ADCRaw[axis];
-        DEBUG_SET(DEBUG_ACC, axis, accADC[axis]);    
+        DEBUG_SET(DEBUG_ACC, axis, accADC[axis]);
     }
 
     performAcclerationCalibration();

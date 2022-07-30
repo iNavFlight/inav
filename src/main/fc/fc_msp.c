@@ -3204,10 +3204,11 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 	static uint8_t osdPos_y = 0;
 	static uint8_t osdPos_x = 0;
 
-	displayPort_t *osdDisplayPort = osdGetDisplayPort();
-	
+
 	if (isOSDTypeSupportedBySimulator())
 	{
+		displayPort_t *osdDisplayPort = osdGetDisplayPort();
+
 		sbufWriteU8(dst, osdPos_y | (osdDisplayPort->rows == 16 ? 128: 0));
 		sbufWriteU8(dst, osdPos_x);
 
@@ -3221,7 +3222,7 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 
 		int processedRows = 16;
 
-		while (bytesCount < 80) //whole replay should be less 155 bytes at worst. 
+		while (bytesCount < 80) //whole response should be less 155 bytes at worst. 
 		{
 			bool blink1;
 			uint16_t lastChar;
