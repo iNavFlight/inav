@@ -3402,6 +3402,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 		if (tmp_u8 != 2) break;
 
 		simulatorData.flags = sbufReadU8(src);
+
         if ((simulatorData.flags & SIMU_ENABLE) == 0) {
 
 			if (ARMING_FLAG(SIMULATOR_MODE)) { // just once
@@ -3518,6 +3519,13 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				else {
 					sbufAdvance(src, 2*3);
 				}
+
+                if (simulatorData.flags & SIMU_EXT_BATTERY_VOLTAGE) {
+                     simulatorData.vbat = sbufReadU8(src);
+                }
+                else {
+                     simulatorData.vbat = 126;
+                }
 			}
 			else {
 				DISABLE_STATE(GPS_FIX);
