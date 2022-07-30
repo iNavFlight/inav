@@ -3730,6 +3730,17 @@ static void printConfig(const char *cmdline, bool doDiff)
         printOsdLayout(dumpMask, &osdLayoutsConfig_Copy, osdLayoutsConfig(), -1, -1);
 #endif
 
+#ifdef USE_PROGRAMMING_FRAMEWORK
+        cliPrintHashLine("logic");
+        printLogic(dumpMask, logicConditions_CopyArray, logicConditions(0));
+
+        cliPrintHashLine("global vars");
+        printGvar(dumpMask, globalVariableConfigs_CopyArray, globalVariableConfigs(0));
+
+        cliPrintHashLine("programmable pid controllers");
+        printPid(dumpMask, programmingPids_CopyArray, programmingPids(0));
+#endif
+
         cliPrintHashLine("master");
         dumpAllValues(MASTER_VALUE, dumpMask);
 
@@ -3769,17 +3780,6 @@ static void printConfig(const char *cmdline, bool doDiff)
     }
 
     if ((dumpMask & DUMP_MASTER) || (dumpMask & DUMP_ALL)) {
-#ifdef USE_PROGRAMMING_FRAMEWORK
-        cliPrintHashLine("logic");
-        printLogic(dumpMask, logicConditions_CopyArray, logicConditions(0));
-
-        cliPrintHashLine("global vars");
-        printGvar(dumpMask, globalVariableConfigs_CopyArray, globalVariableConfigs(0));
-
-        cliPrintHashLine("programmable pid controllers");
-        printPid(dumpMask, programmingPids_CopyArray, programmingPids(0));
-#endif
-        
         cliPrintHashLine("save configuration\r\nsave");
     }
 
