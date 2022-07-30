@@ -278,7 +278,7 @@ uint32_t baroUpdate(void)
             }
 #ifdef USE_SIMULATOR
             if (!ARMING_FLAG(SIMULATOR_MODE)) {
-				//output: baro.baroPressure, baro.baroTemperature
+                //output: baro.baroPressure, baro.baroTemperature
                 baro.dev.calculate(&baro.dev, &baro.baroPressure, &baro.baroTemperature);
             }
 #else
@@ -332,7 +332,7 @@ int32_t baroCalculateAltitude(void)
         }
 #endif
         // calculates height from ground via baro readings
-		baro.BaroAlt = pressureToAltitude(baro.baroPressure) - baroGroundAltitude;
+        baro.BaroAlt = pressureToAltitude(baro.baroPressure) - baroGroundAltitude;
    }
 
     return baro.BaroAlt;

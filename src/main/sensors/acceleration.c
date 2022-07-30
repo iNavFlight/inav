@@ -505,8 +505,8 @@ void accUpdate(void)
 {
 #ifdef USE_SIMULATOR
     if (ARMING_FLAG(SIMULATOR_MODE)) {
-		//output: acc.accADCf
-		//unused: acc.dev.ADCRaw[], acc.accClipCount, acc.accVibeSq[]
+        //output: acc.accADCf
+        //unused: acc.dev.ADCRaw[], acc.accClipCount, acc.accVibeSq[]
         return;
     }
 #endif
@@ -516,6 +516,7 @@ void accUpdate(void)
 
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         accADC[axis] = acc.dev.ADCRaw[axis];
+        DEBUG_SET(DEBUG_ACC, axis, accADC[axis]);    
     }
 
     performAcclerationCalibration();

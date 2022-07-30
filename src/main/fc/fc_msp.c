@@ -607,7 +607,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_ALTITUDE:
- 		sbufWriteU32(dst, lrintf(getEstimatedActualPosition(Z)));
+        sbufWriteU32(dst, lrintf(getEstimatedActualPosition(Z)));
         sbufWriteU16(dst, lrintf(getEstimatedActualVelocity(Z)));
 #if defined(USE_BARO)
         sbufWriteU32(dst, baroGetLatestAltitude());
@@ -2478,7 +2478,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #ifdef USE_GPS
     case MSP_SET_RAW_GPS:
         if (dataSize == 14) {
-			if (sbufReadU8(src)) {
+            if (sbufReadU8(src)) {
                 ENABLE_STATE(GPS_FIX);
             } else {
                 DISABLE_STATE(GPS_FIX);
@@ -3395,31 +3395,6 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
          *ret = mspFcSafeHomeOutCommand(dst, src);
          break;
 
-    case MSP_TELEMETRY:
-        sbufWriteU8(dst, ARMING_FLAG(ARMED)); // arming status
-        sbufWriteU8(dst, 0); // modes
-        sbufWriteU32(dst, flightModeFlags);
-
-        sbufWriteU8(dst, 1); // messages
-        char buff[50] = {" "};
-        osdGetSystemMessage(buff, sizeof(buff), false);
-        const char *c = buff;
-        while (*c) {
-            sbufWriteU8(dst, *c++);
-        }
-        sbufWriteU8(dst, '\0'); // last symbol
-
-        sbufWriteU8(dst, 2); // home position
-        sbufWriteU16(dst, GPS_distanceToHome);
-        sbufWriteU16(dst, GPS_directionToHome);
-        sbufWriteU32(dst, baro.BaroAlt);
-        sbufWriteU8(dst, 3); // throttle
-        sbufWriteU8(dst, getThrottlePercent());
-        sbufWriteU8(dst, 4); // vario
-        sbufWriteU16(dst, getEstimatedActualVelocity(Z) + 32000);
-
-        *ret = MSP_RESULT_ACK;
-        break;
 #ifdef USE_SIMULATOR
     case MSP_SIMULATOR:
 		tmp_u8 = sbufReadU8(src); //MSP_SIMULATOR version

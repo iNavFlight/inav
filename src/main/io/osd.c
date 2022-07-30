@@ -846,10 +846,8 @@ static const char * osdArmingDisabledReasonMessage(void)
             FALLTHROUGH;
         case ARMED:
             FALLTHROUGH;
-#ifdef USE_SIMULATOR
         case SIMULATOR_MODE:
             FALLTHROUGH;
-#endif
         case WAS_EVER_ARMED:
             break;
     }
