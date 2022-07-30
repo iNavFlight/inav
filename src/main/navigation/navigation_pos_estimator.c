@@ -629,7 +629,7 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
     }
 
     DEBUG_SET(DEBUG_ALTITUDE, 0, posEstimator.est.pos.z);       // Position estimate
-    DEBUG_SET(DEBUG_ALTITUDE, 2, imuMeasuredAccelBF.z);        // Baro altitude
+    DEBUG_SET(DEBUG_ALTITUDE, 2, posEstimator.baro.alt);        // Baro altitude
     DEBUG_SET(DEBUG_ALTITUDE, 4, posEstimator.gps.pos.z);       // GPS altitude
     DEBUG_SET(DEBUG_ALTITUDE, 6, accGetVibrationLevel());       // Vibration level
     DEBUG_SET(DEBUG_ALTITUDE, 1, posEstimator.est.vel.z);       // Vertical speed estimate
@@ -857,7 +857,6 @@ void initializePositionEstimator(void)
     pt1FilterInit(&posEstimator.baro.avgFilter, INAV_BARO_AVERAGE_HZ, 0.0f);
     pt1FilterInit(&posEstimator.surface.avgFilter, INAV_SURFACE_AVERAGE_HZ, 0.0f);
 }
-
 
 /**
  * Update estimator

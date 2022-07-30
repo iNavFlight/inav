@@ -245,8 +245,7 @@ void writeServos(void)
 
 void servoMixer(float dT)
 {
-	int16_t input[INPUT_SOURCE_COUNT]; // Range [-500:+500]
-
+    int16_t input[INPUT_SOURCE_COUNT]; // Range [-500:+500]
     if (FLIGHT_MODE(MANUAL_MODE)) {
         input[INPUT_STABILIZED_ROLL] = rcCommand[ROLL];
         input[INPUT_STABILIZED_PITCH] = rcCommand[PITCH];
@@ -321,10 +320,10 @@ void servoMixer(float dT)
 #undef GET_RX_CHANNEL_INPUT
 
 #ifdef USE_SIMULATOR
-		simulatorData.INPUT_STABILIZED_ROLL = input[INPUT_STABILIZED_ROLL];
-		simulatorData.INPUT_STABILIZED_PITCH = input[INPUT_STABILIZED_PITCH];
-		simulatorData.INPUT_STABILIZED_YAW = input[INPUT_STABILIZED_YAW];
-		simulatorData.INPUT_STABILIZED_THROTTLE = input[INPUT_STABILIZED_THROTTLE];
+	simulatorData.INPUT_STABILIZED_ROLL = input[INPUT_STABILIZED_ROLL];
+	simulatorData.INPUT_STABILIZED_PITCH = input[INPUT_STABILIZED_PITCH];
+	simulatorData.INPUT_STABILIZED_YAW = input[INPUT_STABILIZED_YAW];
+	simulatorData.INPUT_STABILIZED_THROTTLE = input[INPUT_STABILIZED_THROTTLE];
 #endif
 
     for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
@@ -572,9 +571,11 @@ void processContinuousServoAutotrim(const float dT)
 }
 
 void processServoAutotrim(const float dT) {
+#ifdef USE_SIMULATOR
     if (ARMING_FLAG(SIMULATOR_MODE)) {
         return;
     }
+#endif
     if (feature(FEATURE_FW_AUTOTRIM)) {
         processContinuousServoAutotrim(dT);
     } else {

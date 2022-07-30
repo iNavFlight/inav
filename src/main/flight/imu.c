@@ -600,12 +600,37 @@ static void imuCalculateEstimatedAttitude(float dT)
     imuUpdateEulerAngles();
 }
 
+#ifdef HIL
+void imuHILUpdate(void)
+{
+    /* Set attitude */
+    attitude.values.roll = hilToFC.rollAngle;
+    attitude.values.pitch = hilToFC.pitchAngle;
+    attitude.values.yaw = hilToFC.yawAngle;
+
+    /* Compute rotation quaternion for future use */
+    imuComputeQuaternionFromRPY(attitude.values.roll, attitude.values.pitch, attitude.values.yaw);
+
+    /* Fake accADC readings */
+    accADCf[X] = hilToFC.bodyAccel[X] / GRAVITY_CMSS;
+    accADCf[Y] = hilToFC.bodyAccel[Y] / GRAVITY_CMSS;
+    accADCf[Z] = hilToFC.bodyAccel[Z] / GRAVITY_CMSS;
+}
+#endif
+
 void imuUpdateAccelerometer(void)
 {
+#ifdef HIL
+    if (sensors(SENSOR_ACC) && !hilActive) {
+        accUpdate();
+        isAccelUpdatedAtLeastOnce = true;
+    }
+#else
     if (sensors(SENSOR_ACC)) {
         accUpdate();
         isAccelUpdatedAtLeastOnce = true;
     }
+#endif
 }
 
 void imuCheckVibrationLevels(void)
@@ -630,10 +655,23 @@ void imuUpdateAttitude(timeUs_t currentTimeUs)
     previousIMUUpdateTimeUs = currentTimeUs;
 
     if (sensors(SENSOR_ACC) && isAccelUpdatedAtLeastOnce) {
+#ifdef HIL
+        if (!hilActive) {
+            gyroGetMeasuredRotationRate(&imuMeasuredRotationBF);    // Calculate gyro rate in body frame in rad/s
+            accGetMeasuredAcceleration(&imuMeasuredAccelBF);  // Calculate accel in body frame in cm/s/s
+            imuCheckVibrationLevels();
+            imuCalculateEstimatedAttitude(dT);  // Update attitude estimate
+        }
+        else {
+            imuHILUpdate();
+            imuUpdateMeasuredAcceleration();
+        }
+#else
         gyroGetMeasuredRotationRate(&imuMeasuredRotationBF);    // Calculate gyro rate in body frame in rad/s
         accGetMeasuredAcceleration(&imuMeasuredAccelBF);  // Calculate accel in body frame in cm/s/s
         imuCheckVibrationLevels();
         imuCalculateEstimatedAttitude(dT);  // Update attitude estimate
+#endif
     } else {
         acc.accADCf[X] = 0.0f;
         acc.accADCf[Y] = 0.0f;

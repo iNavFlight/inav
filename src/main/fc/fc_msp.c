@@ -21,7 +21,7 @@
 #include <string.h>
 #include <math.h>
 
-#include "common/log.h"
+#include "common/log.h" //for MSP_SIMULATOR
 #include "platform.h"
 
 #include "blackbox/blackbox.h"
@@ -100,8 +100,8 @@
 #include "msp/msp_serial.h"
 
 #include "navigation/navigation.h"
-#include "navigation/navigation_private.h"
-#include "navigation/navigation_pos_estimator_private.h"
+#include "navigation/navigation_private.h" //for MSP_SIMULATOR
+#include "navigation/navigation_pos_estimator_private.h" //for MSP_SIMULATOR
 
 #include "rx/rx.h"
 #include "rx/msp.h"
@@ -607,13 +607,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_ALTITUDE:
+ 		sbufWriteU32(dst, lrintf(getEstimatedActualPosition(Z)));
+        sbufWriteU16(dst, lrintf(getEstimatedActualVelocity(Z)));
 #if defined(USE_BARO)
-        sbufWriteU32(dst, baro.BaroAlt);
-        sbufWriteU32(dst, baro.BaroMslAlt);
-        sbufWriteU32(dst, baro.baroPressure);
+        sbufWriteU32(dst, baroGetLatestAltitude());
 #else
-        sbufWriteU32(dst, 0);
-        sbufWriteU32(dst, 0);
         sbufWriteU32(dst, 0);
 #endif
         break;
@@ -2480,8 +2478,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #ifdef USE_GPS
     case MSP_SET_RAW_GPS:
         if (dataSize == 14) {
-            gpsSol.fixType = sbufReadU8(src);
-            if (gpsSol.fixType) {
+			if (sbufReadU8(src)) {
                 ENABLE_STATE(GPS_FIX);
             } else {
                 DISABLE_STATE(GPS_FIX);
@@ -3188,6 +3185,7 @@ static bool mspParameterGroupsCommand(sbuf_t *dst, sbuf_t *src)
     return true;
 }
 
+#ifdef USE_SIMULATOR
 bool isOSDTypeSupportedBySimulator(void)
 {
 	displayPort_t *osdDisplayPort = osdGetDisplayPort();
@@ -3320,12 +3318,11 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 		sbufWriteU8(dst, 255);
 	}
 }
+#endif
 
 bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResult_e *ret)
 {
     uint8_t tmp_u8;
-//    uint16_t tmp_u16;
-
     const unsigned int dataSize = sbufBytesRemaining(src);
 
     switch (cmdMSP) {
@@ -3423,6 +3420,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 
         *ret = MSP_RESULT_ACK;
         break;
+#ifdef USE_SIMULATOR
     case MSP_SIMULATOR:
 		tmp_u8 = sbufReadU8(src); //MSP_SIMULATOR version
 		if (tmp_u8 != 2) break;
@@ -3551,29 +3549,8 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 		sbufWriteU16(dst, (uint16_t)simulatorData.INPUT_STABILIZED_YAW);
 		sbufWriteU16(dst, (uint16_t)(ARMING_FLAG(ARMED) ? simulatorData.INPUT_STABILIZED_THROTTLE : -500));
 
-		/*
-		debug[0] = mag.magADC[X];
-		debug[1] = mag.magADC[Y];
-		debug[2] = mag.magADC[Z];
-		//debug[3] = sensors(SENSOR_MAG) ? 1 : 0;
-		//debug[4] = STATE(COMPASS_CALIBRATED) ? 1 : 0;
-        fpVector3_t vMag;
-        fpVector3_t magBF;
-		magBF.x = mag.magADC[X];
-		magBF.y = mag.magADC[Y];
-		magBF.z = mag.magADC[Z];
-		quaternionRotateVectorInv(&vMag, &magBF, &orientation);    // BF -> EF
-		debug[3] = vMag.x;
-		debug[4] = vMag.y;
-		debug[5] = vMag.z;
-		
-		debug[6] = getvCorrectedMagNorth().x*1000;
-		debug[7] = getvCorrectedMagNorth().y*1000;
-		*/
-
-
 		simulatorData.debugIndex++;
-		if (simulatorData.debugIndex == 8){
+		if (simulatorData.debugIndex == 8) {
 			simulatorData.debugIndex = 0;
 		}
 
@@ -3593,6 +3570,8 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 
         *ret = MSP_RESULT_ACK;
         break;
+#endif
+
     default:
         // Not handled
         return false;

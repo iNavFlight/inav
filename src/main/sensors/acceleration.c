@@ -552,7 +552,6 @@ void accUpdate(void)
     // Filter acceleration
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         acc.accADCf[axis] = accSoftLpfFilterApplyFn(accSoftLpfFilter[axis], acc.accADCf[axis]);
-        DEBUG_SET(DEBUG_ACC, axis, acc.accADCf[axis] * 1000);
     }
 
     if (accelerometerConfig()->acc_notch_hz) {

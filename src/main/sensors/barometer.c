@@ -332,7 +332,7 @@ int32_t baroCalculateAltitude(void)
         }
 #endif
         // calculates height from ground via baro readings
-        baro.BaroMslAlt = pressureToAltitude(baro.baroPressure) - baroGroundAltitude;
+		baro.BaroAlt = pressureToAltitude(baro.baroPressure) - baroGroundAltitude;
    }
 
     return baro.BaroAlt;

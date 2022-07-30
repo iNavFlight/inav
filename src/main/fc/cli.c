@@ -2876,7 +2876,7 @@ void cliRxBind(char *cmdline){
 #endif
         }
     }
-        }
+}
 #endif
 
 static void cliExit(char *cmdline)
