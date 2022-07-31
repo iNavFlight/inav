@@ -1089,6 +1089,24 @@ static inline int32_t osdGetAltitudeMsl(void)
     return getEstimatedActualPosition(Z)+GPS_home.alt;
 }
 
+uint16_t osdGetRemainingGlideTime(void) {
+    float value = getEstimatedActualVelocity(Z);
+    static pt1Filter_t glideTimeFilterState;
+    const  timeMs_t curTimeMs = millis();
+    static timeMs_t glideTimeUpdatedMs;
+
+    value = pt1FilterApply4(&glideTimeFilterState, isnormal(value) ? value : 0, 0.5, MS2S(curTimeMs - glideTimeUpdatedMs));
+    glideTimeUpdatedMs = curTimeMs;
+    
+    if (value < 0) {
+        value = osdGetAltitude() / abs((int)value);
+    } else {
+        value = 0;
+    }
+
+    return (uint16_t)round(value);
+}
+
 static bool osdIsHeadingValid(void)
 {
 #ifdef USE_SECONDARY_IMU
@@ -2312,6 +2330,93 @@ static bool osdDrawSingleElement(uint8_t item)
             buff[4] = '\0';
             break;
         }
+    case OSD_CLIMB_EFFICIENCY:
+        {
+            // amperage is in centi amps (10mA), vertical speed is in cms/s. We want
+            // Ah/dist only to show when vertical speed > 1m/s.
+            static pt1Filter_t veFilterState;
+            static timeUs_t vEfficiencyUpdated = 0;
+            int32_t value = 0;
+            timeUs_t currentTimeUs = micros();
+            timeDelta_t vEfficiencyTimeDelta = cmpTimeUs(currentTimeUs, vEfficiencyUpdated);
+            if (getEstimatedActualVelocity(Z) > 0) {
+                if (vEfficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
+                                                            // Centiamps (kept for osdFormatCentiNumber) / m/s - Will appear as A / m/s in OSD
+                    value = pt1FilterApply4(&veFilterState, (float)getAmperage() / (getEstimatedActualVelocity(Z) / 100.0f), 1, US2S(vEfficiencyTimeDelta));
+
+                    vEfficiencyUpdated = currentTimeUs;
+                } else {
+                    value = veFilterState.state;
+                }
+            }
+            bool efficiencyValid = (value > 0) && (getEstimatedActualVelocity(Z) > 100);
+            switch (osdConfig()->units) {
+                case OSD_UNIT_UK:
+                    FALLTHROUGH;
+                case OSD_UNIT_GA:
+                    FALLTHROUGH;
+                case OSD_UNIT_IMPERIAL:
+                    // mAh/foot
+                    if (efficiencyValid) {
+                        osdFormatCentiNumber(buff, (value * METERS_PER_FOOT), 1, 2, 2, 3);
+                        tfp_sprintf(buff, "%s%c%c", buff, SYM_AH_V_FT_0, SYM_AH_V_FT_1);
+                    } else {
+                        buff[0] = buff[1] = buff[2] = '-';
+                        buff[3] = SYM_AH_V_FT_0;
+                        buff[4] = SYM_AH_V_FT_1;
+                        buff[5] = '\0';
+                    }
+                    break;
+                case OSD_UNIT_METRIC_MPH:
+                    FALLTHROUGH;
+                case OSD_UNIT_METRIC:
+                    // mAh/metre
+                    if (efficiencyValid) {
+                        osdFormatCentiNumber(buff, value, 1, 2, 2, 3);
+                        tfp_sprintf(buff, "%s%c%c", buff, SYM_AH_V_M_0, SYM_AH_V_M_1);
+                    } else {
+                        buff[0] = buff[1] = buff[2] = '-';
+                        buff[3] = SYM_AH_V_M_0;
+                        buff[4] = SYM_AH_V_M_1;
+                        buff[5] = '\0';
+                    }
+                    break;
+            }
+            break;
+        }
+    case OSD_GLIDE_TIME_REMAINING: 
+        {
+            uint16_t glideTime = osdGetRemainingGlideTime();
+            buff[0] = SYM_GLIDE_MINS;
+            if (glideTime > 0) {
+                // Maximum value we can show in minutes is 99 minutes and 59 seconds. It is extremely unlikely that glide
+                // time will be longer than 99 minutes. If it is, it will show 99:^^
+                if (glideTime > (99 * 60) + 59) {
+                    tfp_sprintf(buff + 1, "%02d:", (int)(glideTime / 60));
+                    buff[4] = SYM_DIRECTION;
+                    buff[5] = SYM_DIRECTION;
+                } else {
+                    tfp_sprintf(buff + 1, "%02d:%02d", (int)(glideTime / 60), (int)(glideTime % 60));
+                }
+            } else {
+               tfp_sprintf(buff + 1, "%s", "--:--");
+            }
+            buff[6] = '\0';
+            break;
+        }
+    case OSD_GLIDE_RANGE:
+        {
+            uint16_t glideSeconds = osdGetRemainingGlideTime();
+            buff[0] = SYM_GLIDE_DIST;
+            if (glideSeconds > 0) {
+                uint32_t glideRangeCM = glideSeconds * gpsSol.groundSpeed;
+                osdFormatDistanceSymbol(buff + 1, glideRangeCM, 0);
+            } else {
+                tfp_sprintf(buff + 1, "%s%c", "---", SYM_BLANK);
+                buff[5] = '\0';
+            }
+            break;
+        }
 #endif
 
     case OSD_SWITCH_INDICATOR_0:
@@ -2801,8 +2906,8 @@ static bool osdDrawSingleElement(uint8_t item)
             if (valid) {
                 uint16_t angle;
                 horizontalWindSpeed = getEstimatedHorizontalWindSpeed(&angle);
-                int16_t windDirection = osdGetHeadingAngle((int)angle - DECIDEGREES_TO_DEGREES(attitude.values.yaw));
-                buff[1] = SYM_DIRECTION + (windDirection * 2 / 90);
+                int16_t windDirection = osdGetHeadingAngle( CENTIDEGREES_TO_DEGREES((int)angle) - DECIDEGREES_TO_DEGREES(attitude.values.yaw) + 22);
+                buff[1] = SYM_DIRECTION + (windDirection*2 / 90);
             } else {
                 horizontalWindSpeed = 0;
                 buff[1] = SYM_BLANK;
@@ -2823,7 +2928,7 @@ static bool osdDrawSingleElement(uint8_t item)
             bool valid = isGPSHeadingValid();
             float verticalWindSpeed;
             if (valid) {
-                verticalWindSpeed = getEstimatedWindSpeed(Z);
+                verticalWindSpeed = -getEstimatedWindSpeed(Z);  //from NED to NEU
                 if (verticalWindSpeed < 0) {
                     buff[1] = SYM_AH_DECORATION_DOWN;
                     verticalWindSpeed = -verticalWindSpeed;
