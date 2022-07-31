@@ -1105,7 +1105,7 @@ void handleMAVLinkTelemetry(timeUs_t currentTimeUs)
 
     if ((currentTimeUs - lastMavlinkMessage) >= TELEMETRY_MAVLINK_DELAY) {
         // Only process scheduled data if we didn't serve any incoming request this cycle
-        if (!incomingRequestServed) {
+        if (!incomingRequestServed || !tristateWithDefaultOnIsActive(rxConfig()->halfDuplex)) {
             processMAVLinkTelemetry(currentTimeUs);
         }
         lastMavlinkMessage = currentTimeUs;
