@@ -32,8 +32,8 @@
 
 #include "fc/config.h"
 
+#include "flight/ahrs.h"
 #include "flight/pid.h"
-#include "flight/wind_estimator.h"
 
 #include "io/gps.h"
 
@@ -64,7 +64,7 @@ static void virtualPitotCalculate(pitotDev_t *pitot, float *pressure, float *tem
     UNUSED(pitot);
     float airSpeed = 0.0f;
     if (pitotIsCalibrationComplete()) {
-        if (isEstimatedWindSpeedValid()) {
+        if (isGPSHeadingValid()) {
             uint16_t windHeading; //centidegrees
             float windSpeed = getEstimatedHorizontalWindSpeed(&windHeading); //cm/s
             float horizontalWindSpeed = windSpeed * cos_approx(CENTIDEGREES_TO_RADIANS(windHeading - posControl.actualState.yaw)); //yaw int32_t centidegrees

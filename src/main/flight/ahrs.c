@@ -1407,9 +1407,9 @@ void updateWindEstimator(void)
     if (now - _last_wind_time > 2000 && realPitotEnabled()) {
         // when flying straight use airspeed to get wind estimate if available
         fpVector3_t airspeed;
-        airspeed.x = rotationMatrix.m[0][0] * pitotCalculateAirSpeed();
-        airspeed.y = rotationMatrix.m[1][0] * pitotCalculateAirSpeed();
-        airspeed.z = rotationMatrix.m[2][0] * pitotCalculateAirSpeed();
+        airspeed.x = fuselageDirection.x * pitotCalculateAirSpeed();
+        airspeed.y = fuselageDirection.y * pitotCalculateAirSpeed();
+        airspeed.z = fuselageDirection.z * pitotCalculateAirSpeed();
         fpVector3_t wind;
         wind.x = velocity.x - airspeed.x;
         wind.y = velocity.y - airspeed.y;
@@ -1418,6 +1418,27 @@ void updateWindEstimator(void)
         _wind.y = _wind.y * 0.92f + wind.y * 0.08f;
         _wind.z = _wind.z * 0.92f + wind.z * 0.08f;
     }
+}
+
+float getEstimatedWindSpeed(int axis)
+{
+    return _wind.v[axis];
+}
+
+float getEstimatedHorizontalWindSpeed(uint16_t *angle)
+{
+    float xWindSpeed = getEstimatedWindSpeed(X);
+    float yWindSpeed = getEstimatedWindSpeed(Y);
+    if (angle) {
+        float horizontalWindAngle = atan2_approx(yWindSpeed, xWindSpeed);
+        // atan2 returns [-M_PI, M_PI], with 0 indicating the vector points in the X direction
+        // We want [0, 360) in degrees
+        if (horizontalWindAngle < 0) {
+            horizontalWindAngle += 2 * M_PIf;
+        }
+        *angle = RADIANS_TO_CENTIDEGREES(horizontalWindAngle);
+    }
+    return calc_length_pythagorean_2D(xWindSpeed, yWindSpeed);
 }
 
 // airspeed_ret: will always be filled-in by get_unconstrained_airspeed_estimate which fills in airspeed_ret in this order:

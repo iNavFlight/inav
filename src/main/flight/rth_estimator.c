@@ -10,7 +10,6 @@
 
 #include "flight/ahrs.h"
 #include "flight/mixer.h"
-#include "flight/wind_estimator.h"
 
 #include "navigation/navigation.h"
 
@@ -215,7 +214,7 @@ float calculateRemainingDistanceBeforeRTH(bool takeWindIntoAccount) {
     }
 
 #ifdef USE_WIND_ESTIMATOR
-    if (takeWindIntoAccount && !isEstimatedWindSpeedValid()) {
+    if (takeWindIntoAccount && !isGPSHeadingValid()) {
         return -1;
     }
 #endif

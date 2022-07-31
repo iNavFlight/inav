@@ -89,7 +89,6 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/rth_estimator.h"
 #include "flight/secondary_imu.h"
 #include "flight/servos.h"
-#include "flight/wind_estimator.h"
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
@@ -2797,7 +2796,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_WIND_SPEED_HORIZONTAL:
 #ifdef USE_WIND_ESTIMATOR
         {
-            bool valid = isEstimatedWindSpeedValid();
+            bool valid = isGPSHeadingValid();
             float horizontalWindSpeed;
             if (valid) {
                 uint16_t angle;
@@ -2821,7 +2820,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             buff[0] = SYM_WIND_VERTICAL;
             buff[1] = SYM_BLANK;
-            bool valid = isEstimatedWindSpeedValid();
+            bool valid = isGPSHeadingValid();
             float verticalWindSpeed;
             if (valid) {
                 verticalWindSpeed = getEstimatedWindSpeed(Z);
