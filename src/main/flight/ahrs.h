@@ -38,14 +38,14 @@ typedef union {
 
 extern attitudeEulerAngles_t attitude;
 
-typedef struct imuConfig_s {
+typedef struct ahrsConfig_s {
     uint16_t dcm_kp_acc;
     uint16_t dcm_kp_mag;
     uint16_t dcm_gps_gain;
     uint8_t small_angle;
-} imuConfig_t;
+} ahrsConfig_t;
 
-PG_DECLARE(imuConfig_t, imuConfig);
+PG_DECLARE(ahrsConfig_t, ahrsConfig);
 
 void ahrsInit(void);
 

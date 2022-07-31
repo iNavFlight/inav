@@ -44,7 +44,7 @@
 #include "fc/runtime_config.h"
 
 #include "flight/dynamic_lpf.h"
-#include "flight/imu.h"
+#include "flight/ahrs.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/power_limits.h"

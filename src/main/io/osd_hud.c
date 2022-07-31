@@ -22,7 +22,7 @@
 #include "common/constants.h"
 #include "common/printf.h"
 
-#include "flight/imu.h"
+#include "flight/ahrs.h"
 
 #include "io/osd.h"
 #include "io/osd_hud.h"

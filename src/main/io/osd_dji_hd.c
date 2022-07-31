@@ -51,7 +51,7 @@
 #include "fc/settings.h"
 #include "fc/rc_adjustments.h"
 
-#include "flight/imu.h"
+#include "flight/ahrs.h"
 #include "flight/pid.h"
 #include "flight/mixer.h"
 

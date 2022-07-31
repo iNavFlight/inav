@@ -44,7 +44,7 @@
 
 #include "flight/mixer.h"
 #include "flight/pid.h"
-#include "flight/imu.h"
+#include "flight/ahrs.h"
 
 #include "io/gps.h"
 #include "io/serial.h"

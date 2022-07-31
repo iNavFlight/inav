@@ -46,7 +46,7 @@ FILE_COMPILE_FOR_SPEED
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 
-#include "flight/imu.h"
+#include "flight/ahrs.h"
 
 #include "io/gps.h"
 #include "io/serial.h"

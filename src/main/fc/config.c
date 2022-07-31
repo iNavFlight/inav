@@ -62,7 +62,7 @@
 #include "flight/mixer.h"
 #include "flight/servos.h"
 #include "flight/pid.h"
-#include "flight/imu.h"
+#include "flight/ahrs.h"
 #include "flight/failsafe.h"
 
 #include "fc/config.h"

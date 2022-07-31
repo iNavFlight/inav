@@ -49,7 +49,7 @@
 #include "sensors/sensors.h"
 #include "io/gps.h"
 
-#include "flight/imu.h"
+#include "flight/ahrs.h"
 #include "flight/failsafe.h"
 
 #include "navigation/navigation.h"

@@ -71,7 +71,7 @@
 #include "fc/settings.h"
 
 #include "flight/failsafe.h"
-#include "flight/imu.h"
+#include "flight/ahrs.h"
 #include "flight/hil.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"

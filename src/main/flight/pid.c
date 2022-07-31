@@ -43,7 +43,7 @@ FILE_COMPILE_FOR_SPEED
 #include "fc/settings.h"
 
 #include "flight/pid.h"
-#include "flight/imu.h"
+#include "flight/ahrs.h"
 #include "flight/mixer.h"
 #include "flight/rpm_filter.h"
 #include "flight/secondary_imu.h"

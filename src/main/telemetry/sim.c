@@ -29,7 +29,7 @@
 #include "fc/fc_core.h"
 #include "fc/runtime_config.h"
 
-#include "flight/imu.h"
+#include "flight/ahrs.h"
 
 #include "io/gps.h"
 #include "io/serial.h"

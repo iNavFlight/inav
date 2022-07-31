@@ -44,7 +44,7 @@
 #endif
 #include "fc/settings.h"
 
-#include "flight/imu.h"
+#include "flight/ahrs.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
 

@@ -42,7 +42,7 @@
 #include "fc/stats.h"
 #include "fc/settings.h"
 
-#include "flight/imu.h"
+#include "flight/ahrs.h"
 #include "flight/mixer.h"
 
 #include "navigation/navigation.h"

@@ -39,7 +39,7 @@
 #include "sensors/boardalignment.h"
 
 #include "flight/pid.h"
-#include "flight/imu.h"
+#include "flight/ahrs.h"
 #include "flight/hil.h"
 
 #include "fc/config.h"

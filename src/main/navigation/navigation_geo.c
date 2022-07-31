@@ -33,7 +33,7 @@
 #include "sensors/boardalignment.h"
 
 #include "flight/pid.h"
-#include "flight/imu.h"
+#include "flight/ahrs.h"
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"

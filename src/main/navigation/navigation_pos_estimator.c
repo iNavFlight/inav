@@ -37,7 +37,7 @@
 #include "fc/config.h"
 #include "fc/settings.h"
 
-#include "flight/imu.h"
+#include "flight/ahrs.h"
 #include "flight/secondary_imu.h"
 
 #include "io/gps.h"

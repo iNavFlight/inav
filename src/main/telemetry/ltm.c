@@ -50,7 +50,7 @@
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
 
-#include "flight/imu.h"
+#include "flight/ahrs.h"
 #include "flight/failsafe.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"

@@ -8,7 +8,7 @@
 #include "fc/fc_core.h"
 #include "fc/runtime_config.h"
 
-#include "flight/imu.h"
+#include "flight/ahrs.h"
 #include "flight/mixer.h"
 #include "flight/wind_estimator.h"
 

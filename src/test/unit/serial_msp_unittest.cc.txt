@@ -61,7 +61,7 @@ extern "C" {
     #include "flight/mixer.h"
     #include "flight/pid.h"
     #include "flight/navigation.h"
-    #include "flight/imu.h"
+    #include "flight/ahrs.h"
     #include "flight/failsafe.h"
 
     #include "config/runtime_config.h"
@@ -276,7 +276,7 @@ uint8_t GPS_svinfo_quality[GPS_SV_MAXSATS]; // Bitfield Qualtity
 uint8_t GPS_svinfo_cno[GPS_SV_MAXSATS];     // Carrier to Noise Ratio (Signal Strength)
 // from gyro.c
 int32_t gyroADC[XYZ_AXIS_COUNT];
-// form imu.c
+// form ahrs.c
 attitudeEulerAngles_t attitude = { { 0, 0, 0 } };     // absolute angle inclination in multiple of 0.1 degree    180 deg = 1800
 int16_t accSmooth[XYZ_AXIS_COUNT];
 // from ledstrip.c

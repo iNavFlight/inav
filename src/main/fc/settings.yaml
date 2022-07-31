@@ -1467,9 +1467,9 @@ groups:
         min: 48
         max: 126
 
-  - name: PG_IMU_CONFIG
-    type: imuConfig_t
-    headers: ["flight/imu.h"]
+  - name: PG_AHRS_CONFIG
+    type: ahrsConfig_t
+    headers: ["flight/ahrs.h"]
     members:
       - name: ahrs_kp_acc
         description: "This controls how fast the accelerometers correct the attitude"

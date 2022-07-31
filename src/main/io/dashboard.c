@@ -43,7 +43,7 @@
 #include "fc/rc_controls.h"
 
 #include "flight/pid.h"
-#include "flight/imu.h"
+#include "flight/ahrs.h"
 #include "flight/failsafe.h"
 
 #include "io/dashboard.h"

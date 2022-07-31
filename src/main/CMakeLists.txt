@@ -304,8 +304,8 @@ main_sources(COMMON_SRC
     flight/failsafe.h
     flight/hil.c
     flight/hil.h
-    flight/imu.c
-    flight/imu.h
+    flight/ahrs.c
+    flight/ahrs.h
     flight/kalman.c
     flight/kalman.h
     flight/smith_predictor.c

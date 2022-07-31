@@ -39,7 +39,7 @@
 #include "sensors/rangefinder.h"
 #include "sensors/opflow.h"
 
-#include "flight/imu.h"
+#include "flight/ahrs.h"
 
 extern navigationPosEstimator_t posEstimator;
 

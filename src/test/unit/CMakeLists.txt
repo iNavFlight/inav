@@ -11,7 +11,7 @@ set_property(SOURCE bitarray_unittest.cc PROPERTY depends "common/bitarray.c")
 
 set_property(SOURCE flight_imu_unittest.cc PROPERTY depends     "build/debug.c"
     "common/maths.c" "common/calibration.c" "common/filter.c"
-    "drivers/accgyro/accgyro_fake.c" "flight/imu.c" "sensors/boardalignment.c"
+    "drivers/accgyro/accgyro_fake.c" "flight/ahrs.c" "sensors/boardalignment.c"
     "sensors/gyro.c")
 
 set_property(SOURCE maths_unittest.cc PROPERTY depends "common/maths.c")

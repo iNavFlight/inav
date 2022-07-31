@@ -43,7 +43,7 @@
 #include "sensors/battery.h"
 #include "sensors/pitotmeter.h"
 #include "sensors/rangefinder.h"
-#include "flight/imu.h"
+#include "flight/ahrs.h"
 #include "flight/pid.h"
 #include "drivers/io_port_expander.h"
 #include "io/osd_common.h"

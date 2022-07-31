@@ -36,7 +36,7 @@
 #include "io/beeper.h"
 
 #include "flight/pid.h"
-#include "flight/imu.h"
+#include "flight/ahrs.h"
 #include "flight/mixer.h"
 
 #include "fc/config.h"

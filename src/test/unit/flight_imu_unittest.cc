@@ -29,7 +29,7 @@ extern "C" {
 
     #include "io/gps.h"
 
-    #include "flight/imu.h"
+    #include "flight/ahrs.h"
 }
 
 #include "unittest_macros.h"
