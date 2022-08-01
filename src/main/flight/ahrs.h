@@ -24,9 +24,6 @@
 #include "common/time.h"
 #include "config/parameter_group.h"
 
-extern fpVector3_t imuMeasuredAccelBF;    // cm/s/s
-extern fpVector3_t imuMeasuredRotationBF; // rad/s
-
 typedef union {
     int16_t raw[XYZ_AXIS_COUNT];
     struct {
@@ -36,7 +33,7 @@ typedef union {
     } values;
 } attitudeEulerAngles_t;
 
-extern attitudeEulerAngles_t attitude;
+
 
 typedef struct ahrsConfig_s {
     uint16_t dcm_kp_acc;
@@ -46,6 +43,10 @@ typedef struct ahrsConfig_s {
 } ahrsConfig_t;
 
 PG_DECLARE(ahrsConfig_t, ahrsConfig);
+
+extern fpVector3_t imuMeasuredAccelBF;    // cm/s/s
+extern fpVector3_t imuMeasuredRotationBF; // rad/s
+extern attitudeEulerAngles_t attitude;
 
 void ahrsInit(void);
 

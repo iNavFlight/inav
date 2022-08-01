@@ -68,13 +68,14 @@ FILE_COMPILE_FOR_SPEED
  *      Z-axis = Up
  */
 
+// Sanity Check
 #define RP_KP_MIN 0.05f
 #define YAW_KP_MIN 0.05f
 
-// this is the speed in m/s above which we first get a yaw lock with the GPS
+// This is the speed in cm/s above which we first get a yaw lock with the GPS
 #define GPS_SPEED_MIN 300
 
-// the limit (in degrees/second) beyond which we stop integrating omega_I. At larger spin rates the DCM PI controller can get 'dizzy' which results in false gyro drift.
+// The limit (in degrees/second) beyond which we stop integrating omega_I. At larger spin rates the DCM PI controller can get 'dizzy' which results in false gyro drift.
 #define SPIN_RATE_LIMIT 20
 
 FASTRAM fpMat3_t rotationMatrix;
@@ -97,7 +98,7 @@ STATIC_FASTRAM fpVector3_t _last_vel;
 
 STATIC_FASTRAM bool _have_gps_lock;
 STATIC_FASTRAM bool have_initial_yaw;
-bool fly_forward = false; // true for planes, rover and boat / false for copter
+STATIC_FASTRAM bool fly_forward; // true for planes, rover and boat / false for copter
 
 STATIC_FASTRAM float _omega_I_sum_time;
 STATIC_FASTRAM float _ra_deltat;
@@ -225,8 +226,7 @@ bool rotationMatrixIsNAN(void) {
     return isNaN;
 }
 
-// create a rotation matrix given some euler angles
-// this is based on http://gentlenav.googlecode.com/files/EulerAngles.pdf
+// Create a rotation matrix given some euler angles
 void from_euler(float roll, float pitch, float yaw)
 {
     const float cp = cos_approx(pitch);
@@ -249,7 +249,7 @@ void from_euler(float roll, float pitch, float yaw)
     rotationMatrix.m[2][2] = cr * cp;
 }
 
-// apply an additional rotation from a body frame gyro vector to a rotation matrix.
+// Apply an additional rotation from a body frame gyro vector to a rotation matrix.
 void rotate(const fpVector3_t g)
 {
     rotationMatrix.m[0][0] += rotationMatrix.m[0][1] * g.z - rotationMatrix.m[0][2] * g.y;
@@ -302,7 +302,7 @@ void mulXY(fpVector3_t *v)
     v->y = rotationMatrix.m[1][0] * v2.x + rotationMatrix.m[1][1] * v2.y + rotationMatrix.m[1][2] * v2.z; 
 }
 
-// update the DCM matrix using only the gyros
+// Update the DCM matrix using only the gyros
 void matrix_update(float _G_Dt)
 {
     // note that we do not include the P terms in _omega. This is
@@ -660,7 +660,7 @@ bool use_compass(void)
     // degrees and the estimated wind speed is less than 80% of the
     // ground speed, then switch to GPS navigation. This will help
     // prevent flyaways with very bad compass offsets
-    const float error = ABS(wrap_180(RADIANS_TO_DEGREES(_yaw) - wrap_360(gpsSol.groundCourse)));
+    const float error = fabsf(wrap_180(RADIANS_TO_DEGREES(_yaw) - wrap_360(gpsSol.groundCourse)));
     if (error > 45 && calc_length_pythagorean_3D(_wind.x, _wind.y, _wind.z) < gpsSol.groundSpeed * 0.8f) {
         if (millis() - _last_consistent_heading > 2000) {
             // start using the GPS for heading if the compass has been
