@@ -33,8 +33,6 @@ typedef union {
     } values;
 } attitudeEulerAngles_t;
 
-
-
 typedef struct ahrsConfig_s {
     uint16_t dcm_kp_acc;
     uint16_t dcm_kp_mag;

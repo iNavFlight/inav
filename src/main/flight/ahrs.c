@@ -15,8 +15,6 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Inertial Measurement Unit (IMU)
-
 #include <stdbool.h>
 #include <stdint.h>
 #include <math.h>
@@ -62,11 +60,7 @@ FILE_COMPILE_FOR_SPEED
 #include "sensors/pitotmeter.h"
 #include "sensors/sensors.h"
 
-/*
- *      X-axis = North/Forward
- *      Y-axis = East/Right
- *      Z-axis = Up
- */
+// AHRS - Attitude Heading Reference System
 
 // Sanity Check
 #define RP_KP_MIN 0.05f
