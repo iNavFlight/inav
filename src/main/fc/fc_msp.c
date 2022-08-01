@@ -72,7 +72,6 @@
 
 #include "flight/failsafe.h"
 #include "flight/imu.h"
-#include "flight/hil.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
@@ -397,15 +396,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteData(dst, buildTime, BUILD_TIME_LENGTH);
         sbufWriteData(dst, shortGitRevision, GIT_SHORT_REVISION_LENGTH);
         break;
-
-#ifdef HIL
-    case MSP_HIL_STATE:
-        sbufWriteU16(dst, hilToSIM.pidCommand[ROLL]);
-        sbufWriteU16(dst, hilToSIM.pidCommand[PITCH]);
-        sbufWriteU16(dst, hilToSIM.pidCommand[YAW]);
-        sbufWriteU16(dst, hilToSIM.pidCommand[THROTTLE]);
-        break;
-#endif
 
     case MSP_SENSOR_STATUS:
         sbufWriteU8(dst, isHardwareHealthy() ? 1 : 0);
