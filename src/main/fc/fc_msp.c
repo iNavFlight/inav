@@ -3526,6 +3526,10 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
                 else {
                      simulatorData.vbat = 126;
                 }
+
+                if (simulatorData.flags & SIMU_AIRSPEED) {
+                     simulatorData.airSpeed = sbufReadU16(src);   
+			    }
 			}
 			else {
 				DISABLE_STATE(GPS_FIX);
