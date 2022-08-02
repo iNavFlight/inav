@@ -272,18 +272,6 @@ void mul_transpose(fpVector3_t *v)
     v->z = rotationMatrix.m[0][2] * v2.x + rotationMatrix.m[1][2] * v2.y + rotationMatrix.m[2][2] * v2.z;                
 }
 
-void mul_transpose_inverse(fpVector3_t *v)
-{
-    fpVector3_t v2;
-    v2.x = v->x;
-    v2.y = v->y;
-    v2.z = v->z;
-
-    v->x = v2.x * rotationMatrix.m[0][0] + v2.x * rotationMatrix.m[1][0] + v2.x * rotationMatrix.m[2][0];
-    v->y = v2.y * rotationMatrix.m[0][1] + v2.y * rotationMatrix.m[1][1] + v2.y * rotationMatrix.m[2][1];
-    v->z = v2.z * rotationMatrix.m[0][2] + v2.z * rotationMatrix.m[1][2] + v2.z * rotationMatrix.m[2][2];
-}
-
 // multiplication by a vector, extracting only the xy components
 void mulXY(fpVector3_t *v) 
 {
@@ -967,7 +955,7 @@ void drift_correction(float deltat)
     }
     
     bool using_gps_corrections = false;
-    float ra_scale = 1.0f / (_ra_deltat * GRAVITY_CMSS);
+    float ra_scale = US2S(_ra_deltat * GRAVITY_CMSS); //1.0f / (_ra_deltat * GRAVITY_CMSS);
     const float gps_gain = (float)ahrsConfig()->dcm_gps_gain / 10.0f;
 
     if (ARMING_FLAG(ARMED) && (_have_gps_lock || fly_forward)) {
@@ -1461,14 +1449,35 @@ float ahrsGetTiltAngle(void)
     return acos_approx(_cos_roll * _cos_pitch);
 }
 
-void ahrsTransformVectorBodyToEarth(fpVector3_t * v)
-{
-    mul_transpose_inverse(v);
-}
-
+// Convert earth frame to body frame
 void ahrsTransformVectorEarthToBody(fpVector3_t * v)
 {
-    mul_transpose(v);
+    fpVector3_t ef_vector;
+    ef_vector.x = v->x;
+    ef_vector.y = v->y;
+    ef_vector.z = v->z;
+
+    v->x = ef_vector.x - _sin_pitch * ef_vector.z;
+    v->y = _cos_roll  * ef_vector.y + _sin_roll * _cos_pitch * ef_vector.z;
+    v->z = _sin_roll * ef_vector.y + _cos_pitch * _cos_roll * ef_vector.z;
+}
+
+// Convert earth frame to body frame
+void ahrsTransformVectorBodyToEarth(fpVector3_t * v)
+{
+    // avoid divide by zero
+    if (_cos_pitch == 0.0f) {
+        return;
+    }
+    
+    fpVector3_t bf_vector;
+    bf_vector.x = v->x;
+    bf_vector.y = v->y;
+    bf_vector.z = v->z;
+
+    v->x = bf_vector.x + _sin_roll * (_sin_pitch / _cos_pitch) * bf_vector.y + _cos_roll * (_sin_pitch / _cos_pitch) * bf_vector.z;
+    v->y = _cos_roll  * bf_vector.y - _sin_roll * bf_vector.z;
+    v->z = (_sin_roll / _cos_pitch) * bf_vector.y + (_cos_roll / _cos_pitch) * bf_vector.z;
 }
 
 float ahrsGetCosYaw(void)
