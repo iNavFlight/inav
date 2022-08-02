@@ -64,7 +64,7 @@ hardwareSensorStatus_e getHwAccelerometerStatus(void)
 hardwareSensorStatus_e getHwCompassStatus(void)
 {
 #ifdef USE_SIMULATOR
-	if (ARMING_FLAG(SIMULATOR_MODE)) {
+	if (ARMING_FLAG(SIMULATOR_MODE) && sensors(SENSOR_MAG)) {
 		return HW_SENSOR_OK;
 	}
 #endif

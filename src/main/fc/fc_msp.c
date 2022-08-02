@@ -3427,7 +3427,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				baroStartCalibration(); 
 #endif			
 #ifdef USE_MAG
-				if (compassConfig()->mag_hardware != 0){
+				if (compassConfig()->mag_hardware != MAG_NONE){
 					sensorsSet(SENSOR_MAG);
 					ENABLE_STATE(COMPASS_CALIBRATED);
 					DISABLE_ARMING_FLAG(ARMING_DISABLED_HARDWARE_FAILURE);
