@@ -489,30 +489,78 @@ void mavlinkSendSystemStatus(void)
 void mavlinkSendRCChannelsAndRSSI(void)
 {
 #define GET_CHANNEL_VALUE(x) ((rxRuntimeConfig.channelCount >= (x + 1)) ? rxGetChannelValue(x) : 0)
-    mavlink_msg_rc_channels_raw_pack(mavSystemId, mavComponentId, &mavSendMsg,
-        // time_boot_ms Timestamp (milliseconds since system boot)
-        millis(),
-        // port Servo output port (set of 8 outputs = 1 port). Most MAVs will just use one, but this allows to encode more than 8 servos.
-        0,
-        // chan1_raw RC channel 1 value, in microseconds
-        GET_CHANNEL_VALUE(0),
-        // chan2_raw RC channel 2 value, in microseconds
-        GET_CHANNEL_VALUE(1),
-        // chan3_raw RC channel 3 value, in microseconds
-        GET_CHANNEL_VALUE(2),
-        // chan4_raw RC channel 4 value, in microseconds
-        GET_CHANNEL_VALUE(3),
-        // chan5_raw RC channel 5 value, in microseconds
-        GET_CHANNEL_VALUE(4),
-        // chan6_raw RC channel 6 value, in microseconds
-        GET_CHANNEL_VALUE(5),
-        // chan7_raw RC channel 7 value, in microseconds
-        GET_CHANNEL_VALUE(6),
-        // chan8_raw RC channel 8 value, in microseconds
-        GET_CHANNEL_VALUE(7),
-        // rssi Receive signal strength indicator, 0: 0%, 254: 100%
-		//https://github.com/mavlink/mavlink/issues/1027
-        scaleRange(getRSSI(), 0, 1023, 0, 254));
+    if (telemetryConfig()->mavlink.version == 1) {
+        mavlink_msg_rc_channels_raw_pack(mavSystemId, mavComponentId, &mavSendMsg,
+            // time_boot_ms Timestamp (milliseconds since system boot)
+            millis(),
+            // port Servo output port (set of 8 outputs = 1 port). Most MAVs will just use one, but this allows to encode more than 8 servos.
+            0,
+            // chan1_raw RC channel 1 value, in microseconds
+            GET_CHANNEL_VALUE(0),
+            // chan2_raw RC channel 2 value, in microseconds
+            GET_CHANNEL_VALUE(1),
+            // chan3_raw RC channel 3 value, in microseconds
+            GET_CHANNEL_VALUE(2),
+            // chan4_raw RC channel 4 value, in microseconds
+            GET_CHANNEL_VALUE(3),
+            // chan5_raw RC channel 5 value, in microseconds
+            GET_CHANNEL_VALUE(4),
+            // chan6_raw RC channel 6 value, in microseconds
+            GET_CHANNEL_VALUE(5),
+            // chan7_raw RC channel 7 value, in microseconds
+            GET_CHANNEL_VALUE(6),
+            // chan8_raw RC channel 8 value, in microseconds
+            GET_CHANNEL_VALUE(7),
+            // rssi Receive signal strength indicator, 0: 0%, 254: 100%
+    		//https://github.com/mavlink/mavlink/issues/1027
+            scaleRange(getRSSI(), 0, 1023, 0, 254));
+	} 
+    else {
+        mavlink_msg_rc_channels_pack(mavSystemId, mavComponentId, &mavSendMsg,
+            // time_boot_ms Timestamp (milliseconds since system boot)
+            millis(),
+            // Total number of RC channels being received. 
+            rxRuntimeConfig.channelCount,
+            // chan1_raw RC channel 1 value, in microseconds
+            GET_CHANNEL_VALUE(0),
+            // chan2_raw RC channel 2 value, in microseconds
+            GET_CHANNEL_VALUE(1),
+            // chan3_raw RC channel 3 value, in microseconds
+            GET_CHANNEL_VALUE(2),
+            // chan4_raw RC channel 4 value, in microseconds
+            GET_CHANNEL_VALUE(3),
+            // chan5_raw RC channel 5 value, in microseconds
+            GET_CHANNEL_VALUE(4),
+            // chan6_raw RC channel 6 value, in microseconds
+            GET_CHANNEL_VALUE(5),
+            // chan7_raw RC channel 7 value, in microseconds
+            GET_CHANNEL_VALUE(6),
+            // chan8_raw RC channel 8 value, in microseconds
+            GET_CHANNEL_VALUE(7),
+            // chan9_raw RC channel 9 value, in microseconds
+            GET_CHANNEL_VALUE(8),
+            // chan10_raw RC channel 10 value, in microseconds
+            GET_CHANNEL_VALUE(9),
+            // chan11_raw RC channel 11 value, in microseconds
+            GET_CHANNEL_VALUE(10),
+            // chan12_raw RC channel 12 value, in microseconds
+            GET_CHANNEL_VALUE(11),
+            // chan13_raw RC channel 13 value, in microseconds
+            GET_CHANNEL_VALUE(12),
+            // chan14_raw RC channel 14 value, in microseconds
+            GET_CHANNEL_VALUE(13),
+            // chan15_raw RC channel 15 value, in microseconds
+            GET_CHANNEL_VALUE(14),
+            // chan16_raw RC channel 16 value, in microseconds
+            GET_CHANNEL_VALUE(15),
+            // chan17_raw RC channel 17 value, in microseconds
+            GET_CHANNEL_VALUE(16),
+            // chan18_raw RC channel 18 value, in microseconds
+            GET_CHANNEL_VALUE(17),
+            // rssi Receive signal strength indicator, 0: 0%, 254: 100%
+    		//https://github.com/mavlink/mavlink/issues/1027
+            scaleRange(getRSSI(), 0, 1023, 0, 254));
+    }
 #undef GET_CHANNEL_VALUE
 
     mavlinkSendMessage();
