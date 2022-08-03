@@ -180,10 +180,6 @@ flightModeForTelemetry_e getFlightModeForTelemetry(void)
 #ifdef USE_SIMULATOR
 simulatorData_t simulatorData = { 
 	flags: 0, 
-	debugIndex: 0,
-	INPUT_STABILIZED_ROLL: 0,
-	INPUT_STABILIZED_PITCH: 0,
-	INPUT_STABILIZED_YAW: 0,
-	INPUT_STABILIZED_THROTTLE: 0
+	debugIndex: 0
 };
 #endif
