@@ -209,8 +209,8 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .yawControlDeadband = SETTING_NAV_FW_YAW_DEADBAND_DEFAULT,
         .soaring_pitch_deadband = SETTING_NAV_FW_SOARING_PITCH_DEADBAND_DEFAULT,// pitch angle mode deadband when Saoring mode enabled
         .auto_disarm_delay = SETTING_NAV_FW_AUTO_DISARM_DELAY_DEFAULT,          // ms - time delay to disarm when auto disarm after landing enabled
-        .waypoint_tracking_accuracy = SETTING_NAV_FW_WP_TRACKING_ACCURACY_DEFAULT,  // 0 m, improves course tracking during FW WP missions
-        .waypoint_turn_smoothing = SETTING_NAV_FW_WP_TURN_SMOOTHING_DEFAULT,    // OFF, smooths turns during FW WP mode missions
+        .waypoint_tracking_accuracy = SETTING_NAV_FW_WP_TRACKING_ACCURACY_DEFAULT,  // 0, improves course tracking during FW WP missions
+        .waypoint_turn_smoothing = SETTING_NAV_FW_WP_TURN_SMOOTHING_DEFAULT,    // 0, smooths turns during FW WP mode missions
     }
 );
 
@@ -2257,8 +2257,8 @@ static bool isWaypointReached(const fpVector3_t * waypointPos, const int32_t * w
 
     if (navGetStateFlags(posControl.navState) & NAV_AUTO_WP || posControl.flags.rthTrackbackActive) {
         // Check if waypoint was missed based on bearing to WP exceeding 100 degrees relative to waypoint Yaw
-        // Same method for turn smoothing option but relative bearing set at 45 degrees
-        uint16_t relativeBearing = posControl.flags.wpTurnSmoothingActive ? 4500 : 10000;
+        // Same method for turn smoothing option but relative bearing set at 60 degrees
+        uint16_t relativeBearing = posControl.flags.wpTurnSmoothingActive ? 6000 : 10000;
         if (ABS(wrap_18000(calculateBearingToDestination(waypointPos) - *waypointYaw)) > relativeBearing) {
             return true;
         }
@@ -3327,12 +3327,12 @@ static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint
 static void calculateAndSetActiveWaypointToLocalPosition(const fpVector3_t * pos)
 {
     // Calculate bearing towards waypoint and store it in waypoint yaw parameter (this will further be used to detect missed waypoints)
-    if (isWaypointNavTrackingRoute()) {
+    if (isWaypointNavTrackingActive() && !(posControl.activeWaypoint.pos.x == pos->x && posControl.activeWaypoint.pos.y == pos->y)) {
         posControl.activeWaypoint.yaw = calculateBearingBetweenLocalPositions(&posControl.activeWaypoint.pos, pos);
     } else {
         posControl.activeWaypoint.yaw = calculateBearingToDestination(pos);
     }
-    posControl.activeWaypoint.bearingToNextWp = -1;     // reset to NO next WP (-1), will be set by WP mode as required
+    posControl.activeWaypoint.nextTurnAngle = -1;     // no turn angle set (-1), will be set by WP mode as required
 
     posControl.activeWaypoint.pos = *pos;
 
@@ -3354,7 +3354,8 @@ static void calculateAndSetActiveWaypoint(const navWaypoint_t * waypoint)
     if (navConfig()->fw.waypoint_turn_smoothing) {
         fpVector3_t posNextWp;
         if (getLocalPosNextWaypoint(&posNextWp)) {
-            posControl.activeWaypoint.bearingToNextWp = calculateBearingBetweenLocalPositions(&posControl.activeWaypoint.pos, &posNextWp);
+            int32_t bearingToNextWp = calculateBearingBetweenLocalPositions(&posControl.activeWaypoint.pos, &posNextWp);
+            posControl.activeWaypoint.nextTurnAngle = wrap_18000(bearingToNextWp - posControl.activeWaypoint.yaw);
         }
     }
 }
@@ -3406,11 +3407,13 @@ float getActiveWaypointSpeed(void)
     }
 }
 
-bool isWaypointNavTrackingRoute(void)
+bool isWaypointNavTrackingActive(void)
 {
-    // true when established on route beyond first waypoint
-    return (FLIGHT_MODE(NAV_WP_MODE) && posControl.activeWaypointIndex > 0) ||
-            (posControl.flags.rthTrackbackActive && posControl.activeRthTBPointIndex != posControl.rthTBLastSavedIndex);
+    // NAV_WP_MODE flag used rather than state flag NAV_AUTO_WP to ensure heading to initial waypoint
+    // is set from current position not previous WP. Works for WP Restart intermediate WP as well as first mission WP.
+    // (NAV_WP_MODE flag isn't set until WP initialisation is finished, i.e. after calculateAndSetActiveWaypoint called)
+
+    return FLIGHT_MODE(NAV_WP_MODE) || (posControl.flags.rthTrackbackActive && posControl.activeRthTBPointIndex != posControl.rthTBLastSavedIndex);
 }
 
 /*-----------------------------------------------------------

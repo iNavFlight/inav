@@ -307,8 +307,8 @@ typedef struct navConfig_s {
         uint8_t  yawControlDeadband;
         uint8_t  soaring_pitch_deadband;     // soaring mode pitch angle deadband (deg)
         uint16_t auto_disarm_delay;          // fixed wing disarm delay for landing detector
-        uint8_t  waypoint_tracking_accuracy; // fixed wing tracking distance accuracy [m]
-        uint8_t  waypoint_turn_smoothing;    // Smooths turns during WP missions
+        uint8_t  waypoint_tracking_accuracy; // fixed wing tracking accuracy response factor
+        uint8_t  waypoint_turn_smoothing;    // WP mission turn smoothing options
     } fw;
 } navConfig_t;
 
@@ -376,7 +376,7 @@ extern radar_pois_t radar_pois[RADAR_MAX_POIS];
 typedef struct {
     fpVector3_t pos;
     int32_t     yaw;                // centidegrees
-    int32_t     bearingToNextWp;    // centidegrees
+    int32_t     nextTurnAngle;      // centidegrees
 } navWaypointPosition_t;
 
 typedef struct navDestinationPath_s {

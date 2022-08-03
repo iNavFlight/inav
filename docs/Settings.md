@@ -3274,21 +3274,21 @@ Pitch Angle deadband when soaring mode enabled (deg). Angle mode inactive within
 
 ### nav_fw_wp_tracking_accuracy
 
-Sets a reference distance to the waypoint course line that affects the accuracy of waypoint course tracking [m]. If set to 0 course tracking is disabled and the craft will head directly to the next waypoint from whatever position was achieved after the last waypoint turn. Otherwise course tracking will be enabled which will force the craft to quickly head toward and track along the the course line as closely as possible. The course tracking response can be tuned by changing the accuracy setting. Lower values will push the craft toward the course line quicker but may result in overshoot. 40 is a good starting point.
+Waypoint tracking accuracy forces the craft to quickly head toward and track along the waypoint course line as closely as possible. Settings 1 to 5 adjust the course tracking response. Higher values dampen the response reducing possible overshoot. A value of 2 is a good starting point. Set to 0 to disable.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 100 |
+| 0 | 0 | 5 |
 
 ---
 
 ### nav_fw_wp_turn_smoothing
 
-Smooths turns during WP missions by switching to a loiter path when within the nav_fw_loiter_radius from the waypoint. The loiter is centered relative to the waypoint such that the craft passes through the waypoint during the loiter at which point the waypoint is considered to have been reached.
+Smooths turns during WP missions by switching to a loiter turn at waypoints. 2 settings are possible. Setting 1 uses a loiter path that passes through the waypoint. Setting 2 uses a loiter path that cuts inside the turn without passing through the waypoint. Set to 0 to disable.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF | OFF | ON |
+| 0 | 0 | 2 |
 
 ---
 

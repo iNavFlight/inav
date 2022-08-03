@@ -398,7 +398,7 @@ typedef struct {
     int8_t                      loadedMultiMissionStartWP;  // selected multi mission start WP
     int8_t                      loadedMultiMissionWPCount;  // number of WPs in selected multi mission
 #endif
-    navWaypointPosition_t       activeWaypoint;             // Local position, current bearing and bearing to next WP, filled on waypoint activation
+    navWaypointPosition_t       activeWaypoint;             // Local position, current bearing and turn angle to next WP, filled on waypoint activation
     int8_t                      activeWaypointIndex;
     float                       wpInitialAltitude;          // Altitude at start of WP
     float                       wpInitialDistance;          // Distance when starting flight to WP
@@ -455,7 +455,7 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAlti
 bool isNavHoldPositionActive(void);
 bool isLastMissionWaypoint(void);
 float getActiveWaypointSpeed(void);
-bool isWaypointNavTrackingRoute(void);
+bool isWaypointNavTrackingActive(void);
 
 void updateActualHeading(bool headingValid, int32_t newHeading);
 void updateActualHorizontalPositionAndVelocity(bool estPosValid, bool estVelValid, float newX, float newY, float newVelX, float newVelY);
