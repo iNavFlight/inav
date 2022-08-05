@@ -333,20 +333,17 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
         distanceToActualTarget = calc_length_pythagorean_2D(posErrorX, posErrorY);
     } else if (navConfig()->fw.waypoint_tracking_accuracy && isWpTrackingActive) {
         // track along waypoint course line if tracking accuracy used
-        fpVector3_t tempPos;
+        float tempPosErrorX;
+        float tempPosErrorY;
         fpVector3_t currentWPPos = posControl.activeWaypoint.pos;
         uint32_t currentCourse = posControl.activeWaypoint.yaw;
-        uint8_t distanceFactor;
-        uint8_t setting = navConfig()->fw.waypoint_tracking_accuracy;
 
         if (currentCourse == 9000 || currentCourse == 27000) {
-            distanceFactor = constrain(4 + setting - (fabsf(posErrorX) / 750), setting, setting + 4);
-            tempPos.x = currentWPPos.x;
-            tempPos.y = navGetCurrentActualPositionAndVelocity()->pos.y + trackingDistance * distanceFactor * (currentCourse == 9000 ? 1 : -1);
+            tempPosErrorX = currentWPPos.x - navGetCurrentActualPositionAndVelocity()->pos.x;
+            tempPosErrorY = navGetCurrentActualPositionAndVelocity()->pos.y - navGetCurrentActualPositionAndVelocity()->pos.y;
         } else if (currentCourse == 0 || currentCourse == 18000) {
-            distanceFactor = constrain(4 + setting - (fabsf(posErrorY) / 750), setting, setting + 4);
-            tempPos.x = navGetCurrentActualPositionAndVelocity()->pos.x + trackingDistance * distanceFactor * (currentCourse == 0 ? 1 : -1);
-            tempPos.y = currentWPPos.y;
+            tempPosErrorX = navGetCurrentActualPositionAndVelocity()->pos.x - navGetCurrentActualPositionAndVelocity()->pos.x;
+            tempPosErrorY = currentWPPos.y - navGetCurrentActualPositionAndVelocity()->pos.y;
         } else {
             // using y = mx + c
             // constant2 = y axis intercept of line normal to course line passing through actual position
@@ -354,19 +351,15 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
             float gradient = tan_approx(CENTIDEGREES_TO_RADIANS(posControl.activeWaypoint.yaw));
             float constant = currentWPPos.y - gradient * currentWPPos.x;
             float constant2 = navGetCurrentActualPositionAndVelocity()->pos.y + navGetCurrentActualPositionAndVelocity()->pos.x / gradient;
-            tempPos.x = (constant2 - constant) / (gradient + 1 / gradient);
-            tempPos.y = gradient * tempPos.x + constant;
-            distanceFactor = constrain(4 + setting - (calculateDistanceToDestination(&tempPos) / 750), setting, setting + 4);
-            if (fabsf(gradient) > 1) {     // increment in y
-                tempPos.y += trackingDistance * distanceFactor * (currentCourse < 18000 ? 1 : -1);
-                tempPos.x = (tempPos.y - constant) / gradient;
-            } else {    // increment in x
-                tempPos.x += trackingDistance * distanceFactor * (currentCourse > 27000 || currentCourse < 9000 ? 1 : -1);
-                tempPos.y = gradient * tempPos.x + constant;
-            }
+            float tempPosX = (constant2 - constant) / (gradient + 1 / gradient);
+            tempPosErrorX = tempPosX - navGetCurrentActualPositionAndVelocity()->pos.x;
+            tempPosErrorY = (gradient * tempPosX + constant) - navGetCurrentActualPositionAndVelocity()->pos.y;
         }
-        posErrorX = tempPos.x - navGetCurrentActualPositionAndVelocity()->pos.x;
-        posErrorY = tempPos.y - navGetCurrentActualPositionAndVelocity()->pos.y;
+        // uint32_t distanceline = calc_length_pythagorean_2D(tempPosErrorX, tempPosErrorY);
+        float distanceRatio = constrainf(posControl.wpDistance > 0 ? trackingDistance * navConfig()->fw.waypoint_tracking_accuracy / posControl.wpDistance :
+        0, 0.0f, 1.0f);
+        posErrorX = distanceRatio * (posErrorX - tempPosErrorX) + tempPosErrorX;
+        posErrorY = distanceRatio * (posErrorY - tempPosErrorY) + tempPosErrorY;
         distanceToActualTarget = calc_length_pythagorean_2D(posErrorX, posErrorY);
     }
 

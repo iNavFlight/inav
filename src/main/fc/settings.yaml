@@ -2421,11 +2421,11 @@ groups:
         min: 0
         max: 9
       - name: nav_fw_wp_tracking_accuracy
-        description: "Waypoint tracking accuracy forces the craft to quickly head toward and track along the waypoint course line as closely as possible. Settings 1 to 5 adjust the course tracking response. Higher values dampen the response reducing possible overshoot. A value of 2 is a good starting point. Set to 0 to disable."
+        description: "Waypoint tracking accuracy forces the craft to quickly head toward and track along the waypoint course line as closely as possible. Settings 1 to 5 adjust the course tracking response. Higher values dampen the response reducing possible overshoot. A value of 5 is a good starting point. Set to 0 to disable."
         default_value: 0
         field: fw.waypoint_tracking_accuracy
         min: 0
-        max: 5
+        max: 10
       - name: nav_fw_wp_turn_smoothing
         description: "Smooths turns during WP missions by switching to a loiter turn at waypoints. 2 settings are possible. Setting 1 uses a loiter path that passes through the waypoint. Setting 2 uses a loiter path that cuts inside the turn without passing through the waypoint. Set to 0 to disable."
         default_value: 0
