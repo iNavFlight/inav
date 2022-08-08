@@ -157,3 +157,13 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
 
+
+// *************** PINIO ***************************
+#if defined(FOXEERF722V2)
+#define USE_PINIO
+#define USE_PINIOBOX
+#define PINIO1_PIN                  PC6 // Enable GPS power
+#define PINIO1_FLAGS            PINIO_FLAGS_INVERTED
+#endif
+
+
