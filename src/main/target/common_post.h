@@ -31,11 +31,11 @@ extern uint8_t __config_end;
 
 // Enable MSP_DISPLAYPORT for F3 targets without builtin OSD,
 // since it's used to display CMS on MWOSD
-#if !defined(USE_MSP_DISPLAYPORT) && (MCU_FLASH_SIZE > 128) && !defined(USE_OSD)
+#if !defined(USE_MSP_DISPLAYPORT) && !defined(USE_OSD)
 #define USE_MSP_DISPLAYPORT
 #endif
 
-#if defined(USE_OSD) && (MCU_FLASH_SIZE > 256)
+#if defined(USE_OSD)
 #define USE_CANVAS
 #endif
 

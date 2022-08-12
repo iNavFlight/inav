@@ -9,6 +9,8 @@ There are 2 basic types of receivers:
 
 ## PPM Receivers
 
+**Only supported in inav 3.x and below**
+
 PPM is sometimes known as PPM SUM or CPPM.
 
 12 channels via a single input pin, not as accurate or jitter free as methods that use serial communications, but readily available.

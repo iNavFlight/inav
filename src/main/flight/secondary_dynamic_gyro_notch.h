@@ -1,5 +1,5 @@
 /*
- * This file is part of INAV.
+ * This file is part of INAV Project.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -24,9 +24,20 @@
 
 #pragma once
 
-#include <stdbool.h>
-#include <stdlib.h>
 #include <stdint.h>
+#include "common/axis.h"
+#include "common/filter.h"
 
-uint16_t getRcUpdateFrequency(void);
-void rcInterpolationApply(bool isRXDataNew, timeUs_t currentTimeUs);
+typedef struct secondaryDynamicGyroNotchState_s {
+    uint16_t frequency[XYZ_AXIS_COUNT];
+    float dynNotchQ;
+    uint32_t looptime;
+    uint8_t enabled;
+    
+    biquadFilter_t filters[XYZ_AXIS_COUNT];
+    filterApplyFnPtr filtersApplyFn[XYZ_AXIS_COUNT];
+} secondaryDynamicGyroNotchState_t;
+
+void secondaryDynamicGyroNotchFiltersInit(secondaryDynamicGyroNotchState_t *state);
+void secondaryDynamicGyroNotchFiltersUpdate(secondaryDynamicGyroNotchState_t *state, int axis, float frequency[]);
+float secondaryDynamicGyroNotchFiltersApply(secondaryDynamicGyroNotchState_t *state, int axis, float input);

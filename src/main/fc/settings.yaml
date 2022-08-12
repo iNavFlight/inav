@@ -4,7 +4,7 @@ tables:
   - name: gyro_lpf
     values: ["256HZ", "188HZ", "98HZ", "42HZ", "20HZ", "10HZ"]
   - name: acc_hardware
-    values: ["NONE", "AUTO", "MPU6050", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"]
+    values: ["NONE", "AUTO", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"]
     enum: accelerationSensor_e
   - name: rangefinder_hardware
     values: ["NONE", "SRF10", "VL53L0X", "MSP", "BENEWAKE", "VL53L1X", "US42", "TOF10120_I2C"]
@@ -187,9 +187,12 @@ tables:
   - name: rth_trackback_mode
     values: ["OFF", "ON", "FS"]
     enum: rthTrackbackMode_e
+  - name: dynamic_gyro_notch_mode
+    values: ["2D", "3D_R", "3D_P", "3D_Y", "3D_RP", "3D_RY", "3D_PY", "3D"]
+    enum: dynamicGyroNotchMode_e
   - name: nav_fw_wp_turn_smoothing
     values: ["OFF", "ON", "ON-CUT"]
-    enum: wpFwTurnSmoothing_e
+    enum: wpFwTurnSmoothing_e    
 
 constants:
   RPYL_PID_MIN: 0
@@ -288,6 +291,19 @@ groups:
         condition: USE_DYNAMIC_FILTERS
         min: 30
         max: 250
+      - name: dynamic_gyro_notch_mode
+        description: "Gyro dynamic notch type"
+        default_value: "2D"
+        table: dynamic_gyro_notch_mode
+        field: dynamicGyroNotchMode
+        condition: USE_DYNAMIC_FILTERS
+      - name: dynamic_gyro_notch_3d_q
+        description: "Q factor for 3D dynamic notches"
+        default_value: 200
+        field: dynamicGyroNotch3dQ
+        condition: USE_DYNAMIC_FILTERS
+        min: 1
+        max: 1000
       - name: gyro_to_use
         condition: USE_DUAL_GYRO
         min: 0
@@ -652,11 +668,6 @@ groups:
         description: "Selection of baro hardware. See Wiki Sensor auto detect and hardware failure detection for more info"
         default_value: "AUTO"
         table: baro_hardware
-      - name: baro_median_filter
-        description: "3-point median filtering for barometer readouts. No reason to change this setting"
-        default_value: ON
-        field: use_median_filtering
-        type: bool
       - name: baro_cal_tolerance
         description: "Baro calibration tolerance in cm. The default should allow the noisiest baro to complete calibration [cm]."
         default_value: 150
@@ -730,11 +741,22 @@ groups:
         min: 500
         max: 10000
         default_value: 3000
-      - name: rc_filter_frequency
+      - name: rc_filter_lpf_hz
         description: "RC data biquad filter cutoff frequency. Lower cutoff frequencies result in smoother response at expense of command control delay. Practical values are 20-50. Set to zero to disable entirely and use unsmoothed RC stick values"
         default_value: 50
         field: rcFilterFrequency
-        min: 0
+        min: 15
+        max: 250
+      - name: rc_filter_auto
+        description: "When enabled, INAV will set RC filtering based on refresh rate and smoothing factor."
+        type: bool
+        default_value: OFF
+        field: autoSmooth
+      - name: rc_filter_smoothing_factor
+        description: "The RC filter smoothing factor. The higher the value, the more smoothing but also the more delay in response. Value 1 sets the filter at half the refresh rate. Value 100 sets the filter to aprox. 10% of the RC refresh rate"
+        field: autoSmoothFactor
+        default_value: 30
+        min: 1
         max: 100
       - name: serialrx_provider
         description: "When feature SERIALRX is enabled, this allows connection to several receivers which output data via digital interface resembling serial. See RX section."
@@ -2830,6 +2852,17 @@ groups:
         field: fw.launch_climb_angle
         min: 5
         max: 45
+      - name: nav_fw_launch_manual_throttle
+        description: "Allows launch with manually controlled throttle. INAV only levels wings and controls climb pitch during launch. Throttle is controlled directly by throttle stick movement. IF USED WITHOUT A GPS LOCK plane must be launched immediately after throttle is increased to avoid issues with climb out stabilisation and the launch ending sooner than expected (launch end timer starts as soon as the throttle stick is raised)."
+        default_value: OFF
+        field: fw.launch_manual_throttle
+        type: bool
+      - name: nav_fw_launch_abort_deadband
+        description: "Launch abort stick deadband in [r/c points], applied after r/c deadband and expo. The Roll/Pitch stick needs to be deflected beyond this deadband to abort the launch."
+        default_value: 100
+        field: fw.launch_abort_deadband
+        min: 2
+        max: 250
       - name: nav_fw_cruise_yaw_rate
         description: "Max YAW rate when NAV CRUISE mode is enabled (0=disable control via yaw stick) [dps]"
         default_value: 20

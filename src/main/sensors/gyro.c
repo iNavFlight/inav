@@ -41,7 +41,6 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_mpu.h"
 #include "drivers/accgyro/accgyro_mpu6000.h"
-#include "drivers/accgyro/accgyro_mpu6050.h"
 #include "drivers/accgyro/accgyro_mpu6500.h"
 #include "drivers/accgyro/accgyro_mpu9250.h"
 
@@ -93,10 +92,11 @@ STATIC_FASTRAM filter_t gyroLpf2State[XYZ_AXIS_COUNT];
 
 EXTENDED_FASTRAM gyroAnalyseState_t gyroAnalyseState;
 EXTENDED_FASTRAM dynamicGyroNotchState_t dynamicGyroNotchState;
+EXTENDED_FASTRAM secondaryDynamicGyroNotchState_t secondaryDynamicGyroNotchState;
 
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 4);
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 5);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_lpf = SETTING_GYRO_HARDWARE_LPF_DEFAULT,
@@ -117,6 +117,8 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .dynamicGyroNotchQ = SETTING_DYNAMIC_GYRO_NOTCH_Q_DEFAULT,
     .dynamicGyroNotchMinHz = SETTING_DYNAMIC_GYRO_NOTCH_MIN_HZ_DEFAULT,
     .dynamicGyroNotchEnabled = SETTING_DYNAMIC_GYRO_NOTCH_ENABLED_DEFAULT,
+    .dynamicGyroNotchMode = SETTING_DYNAMIC_GYRO_NOTCH_MODE_DEFAULT,
+    .dynamicGyroNotch3dQ = SETTING_DYNAMIC_GYRO_NOTCH_3D_Q_DEFAULT,
 #endif
 #ifdef USE_GYRO_KALMAN
     .kalman_q = SETTING_SETPOINT_KALMAN_Q_DEFAULT,
@@ -134,15 +136,6 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     switch (gyroHardware) {
     case GYRO_AUTODETECT:
         FALLTHROUGH;
-
-#ifdef USE_IMU_MPU6050
-    case GYRO_MPU6050:
-        if (mpu6050GyroDetect(dev)) {
-            gyroHardware = GYRO_MPU6050;
-            break;
-        }
-        FALLTHROUGH;
-#endif
 
 #ifdef USE_IMU_MPU6000
     case GYRO_MPU6000:
@@ -308,6 +301,9 @@ bool gyroInit(void)
 #ifdef USE_DYNAMIC_FILTERS
     // Dynamic notch running at PID frequency
     dynamicGyroNotchFiltersInit(&dynamicGyroNotchState);
+
+    secondaryDynamicGyroNotchFiltersInit(&secondaryDynamicGyroNotchState);
+
     gyroDataAnalyseStateInit(
         &gyroAnalyseState,
         gyroConfig()->dynamicGyroNotchMinHz,
@@ -459,6 +455,14 @@ void FAST_CODE NOINLINE gyroFilter()
             gyroDataAnalysePush(&gyroAnalyseState, axis, gyroADCf);
             gyroADCf = dynamicGyroNotchFiltersApply(&dynamicGyroNotchState, axis, gyroADCf);
         }
+
+        /**
+         * Secondary dynamic notch filter. 
+         * In some cases, noise amplitude is high enough not to be filtered by the primary filter.
+         * This happens on the first frequency with the biggest aplitude
+         */
+        gyroADCf = secondaryDynamicGyroNotchFiltersApply(&secondaryDynamicGyroNotchState, axis, gyroADCf);
+
 #endif
 
 #ifdef USE_GYRO_KALMAN
@@ -480,6 +484,13 @@ void FAST_CODE NOINLINE gyroFilter()
                 gyroAnalyseState.filterUpdateAxis,
                 gyroAnalyseState.centerFrequency[gyroAnalyseState.filterUpdateAxis]
             );
+
+            secondaryDynamicGyroNotchFiltersUpdate(
+                &secondaryDynamicGyroNotchState,
+                gyroAnalyseState.filterUpdateAxis,
+                gyroAnalyseState.centerFrequency[gyroAnalyseState.filterUpdateAxis]
+            );
+
         }
     }
 #endif

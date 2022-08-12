@@ -362,16 +362,6 @@ Selection of baro hardware. See Wiki Sensor auto detect and hardware failure det
 
 ---
 
-### baro_median_filter
-
-3-point median filtering for barometer readouts. No reason to change this setting
-
-| Default | Min | Max |
-| --- | --- | --- |
-| ON | OFF | ON |
-
----
-
 ### bat_cells
 
 Number of cells of the battery (0 = auto-detect), see battery documentation. 7S, 9S and 11S batteries cannot be auto-detected.
@@ -762,6 +752,16 @@ Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`,
 
 ---
 
+### dynamic_gyro_notch_3d_q
+
+Q factor for 3D dynamic notches
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 200 | 1 | 1000 |
+
+---
+
 ### dynamic_gyro_notch_enabled
 
 Enable/disable dynamic gyro notch also known as Matrix Filter
@@ -779,6 +779,16 @@ Minimum frequency for dynamic notches. Default value of `150` works best with 5"
 | Default | Min | Max |
 | --- | --- | --- |
 | 50 | 30 | 250 |
+
+---
+
+### dynamic_gyro_notch_mode
+
+Gyro dynamic notch type
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 2D |  |  |
 
 ---
 
@@ -2952,6 +2962,16 @@ Dive angle that airplane will use during final landing phase. During dive phase,
 
 ---
 
+### nav_fw_launch_abort_deadband
+
+Launch abort stick deadband in [r/c points], applied after r/c deadband and expo. The Roll/Pitch stick needs to be deflected beyond this deadband to abort the launch.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 2 | 250 |
+
+---
+
 ### nav_fw_launch_accel
 
 Forward acceleration threshold for bungee launch of throw launch [cm/s/s], 1G = 981 cm/s/s
@@ -3009,6 +3029,16 @@ Launch idle throttle - throttle to be set before launch sequence is initiated. I
 | Default | Min | Max |
 | --- | --- | --- |
 | 1000 | 1000 | 2000 |
+
+---
+
+### nav_fw_launch_manual_throttle
+
+Allows launch with manually controlled throttle. INAV only levels wings and controls climb pitch during launch. Throttle is controlled directly by throttle stick movement. IF USED WITHOUT A GPS LOCK plane must be launched immediately after throttle is increased to avoid issues with climb out stabilisation and the launch ending sooner than expected (launch end timer starts as soon as the throttle stick is raised).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
 
 ---
 
@@ -5052,13 +5082,33 @@ Exposition value used for the PITCH/ROLL axes by all the stabilized flights mode
 
 ---
 
-### rc_filter_frequency
+### rc_filter_auto
+
+When enabled, INAV will set RC filtering based on refresh rate and smoothing factor.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### rc_filter_lpf_hz
 
 RC data biquad filter cutoff frequency. Lower cutoff frequencies result in smoother response at expense of command control delay. Practical values are 20-50. Set to zero to disable entirely and use unsmoothed RC stick values
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 50 | 0 | 100 |
+| 50 | 15 | 250 |
+
+---
+
+### rc_filter_smoothing_factor
+
+The RC filter smoothing factor. The higher the value, the more smoothing but also the more delay in response. Value 1 sets the filter at half the refresh rate. Value 100 sets the filter to aprox. 10% of the RC refresh rate
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 30 | 1 | 100 |
 
 ---
 

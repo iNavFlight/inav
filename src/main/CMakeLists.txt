@@ -88,8 +88,6 @@ main_sources(COMMON_SRC
     drivers/accgyro/accgyro_mpu.h
     drivers/accgyro/accgyro_mpu6000.c
     drivers/accgyro/accgyro_mpu6000.h
-    drivers/accgyro/accgyro_mpu6050.c
-    drivers/accgyro/accgyro_mpu6050.h
     drivers/accgyro/accgyro_mpu6500.c
     drivers/accgyro/accgyro_mpu6500.h
     drivers/accgyro/accgyro_mpu9250.c
@@ -333,6 +331,8 @@ main_sources(COMMON_SRC
     flight/rpm_filter.h
     flight/dynamic_gyro_notch.c
     flight/dynamic_gyro_notch.h
+    flight/secondary_dynamic_gyro_notch.c
+    flight/secondary_dynamic_gyro_notch.h
     flight/dynamic_lpf.c
     flight/dynamic_lpf.h
     flight/secondary_imu.c
