@@ -295,7 +295,7 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
     if (waypointTurnAngle > 3000 && waypointTurnAngle < 12000 && isWaypointNavTrackingActive() && !needToCalculateCircularLoiter) {
         // turnFactor adjusts start of loiter based on turn angle
         float turnFactor = 0.0f;
-        if (navConfig()->fw.waypoint_turn_smoothing == 1) {     // passes through WP
+        if (navConfig()->fw.waypoint_turn_smoothing == WP_TURN_SMOOTHING_ON) {     // passes through WP
             turnFactor = waypointTurnAngle / 6000.0f;
         } else {
             turnFactor = tan_approx(CENTIDEGREES_TO_RADIANS(waypointTurnAngle / 2.0f));    // cut inside turn missing WP
@@ -304,7 +304,7 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
         if (posControl.wpDistance < navLoiterRadius * turnFactor) {
             int32_t loiterCenterBearing = wrap_36000(((wrap_18000(posControl.activeWaypoint.nextTurnAngle - 18000)) / 2) + posControl.activeWaypoint.yaw + 18000);
             float distToTurnCentre = navLoiterRadius;
-            if (navConfig()->fw.waypoint_turn_smoothing == 2) {
+            if (navConfig()->fw.waypoint_turn_smoothing == WP_TURN_SMOOTHING_CUT) {
                 distToTurnCentre = navLoiterRadius / cos_approx(CENTIDEGREES_TO_RADIANS(waypointTurnAngle / 2.0f));
             }
             loiterCenterPos.x = posControl.activeWaypoint.pos.x + distToTurnCentre * cos_approx(CENTIDEGREES_TO_RADIANS(loiterCenterBearing));

@@ -3284,11 +3284,11 @@ Waypoint tracking accuracy forces the craft to quickly head toward and track alo
 
 ### nav_fw_wp_turn_smoothing
 
-Smooths turns during WP missions by switching to a loiter turn at waypoints. 2 settings are possible. Setting 1 uses a loiter path that passes through the waypoint. Setting 2 uses a loiter path that cuts inside the turn without passing through the waypoint. Set to 0 to disable.
+Smooths turns during WP missions by switching to a loiter turn at waypoints. When set to ON the craft will reach the waypoint during the turn. When set to ON-CUT the craft will turn inside the waypoint without actually reaching it (cuts the corner).
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 2 |
+| OFF |  |  |
 
 ---
 
