@@ -29,14 +29,14 @@
 timerHardware_t timerHardware[] = {
     DEF_TIM(TIM4, CH2, PB7,  TIM_USE_PPM,   0, 0),  // PPM
 
-    DEF_TIM(TIM3, CH1, BO6,     TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 1),  // S1
-    DEF_TIM(TIM3, CH2, BO5,     TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 1),  // S2
-    DEF_TIM(TIM3, CH3, B00,    TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 1),  // S3
-    DEF_TIM(TIM3, CH4, C08,     TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR, 0, 0),  // S4
+    DEF_TIM(TIM1, CH1, A15,     TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 1),  // S1
+    DEF_TIM(TIM1, CH2, B03,     TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 1),  // S2
+    DEF_TIM(TIM1, CH3, B01,    TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 1),  // S3
+    DEF_TIM(TIM3, CH4, B01,     TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR, 0, 0),  // S4
 
-    DEF_TIM(TIM8, CH3, A03,  TIM_USE_LED, 0, 0),    // LED
+    DEF_TIM(TIM8, CH2N, PB0,  TIM_USE_LED, 0, 0),    // LED
 
-    DEF_TIM(TIM5, CH1, A00,  TIM_USE_ANY, 0, 0), // Camera Control
+    DEF_TIM(TIM5, CH1, PA0,  TIM_USE_ANY, 0, 0), // Camera Control
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
