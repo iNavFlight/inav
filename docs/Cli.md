@@ -57,6 +57,9 @@ To perform the restore simply paste the saved commands in the Configurator CLI t
 
 After restoring it's always a good idea to `dump` or `diff` the settings once again and compare the output with previous one to verify if everything is set as it should be.
 
+## Flight Controller opereration while connected to the CLI
+
+While connected to the CLI, all Logical Switches are temporarily disabled (5.1.0 onwards).
 
 ## CLI Command Reference
 
