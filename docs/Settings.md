@@ -3312,6 +3312,16 @@ Waypoint tracking accuracy forces the craft to quickly head toward and track alo
 
 ---
 
+### nav_fw_wp_tracking_max_angle
+
+Sets the maximum allowed alignment convergence angle to the waypoint course line when nav_fw_wp_tracking_accuracy is active [degrees]. Lower values result in smoother alignment with the course line but will take more distance until this is achieved.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 60 | 30 | 80 |
+
+---
+
 ### nav_fw_wp_turn_smoothing
 
 Smooths turns during WP missions by switching to a loiter turn at waypoints. When set to ON the craft will reach the waypoint during the turn. When set to ON-CUT the craft will turn inside the waypoint without actually reaching it (cuts the corner).
