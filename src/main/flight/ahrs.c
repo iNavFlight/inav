@@ -246,7 +246,7 @@ void from_euler(float roll, float pitch, float yaw)
 }
 
 // Apply an additional rotation from a body frame gyro vector to a rotation matrix.
-void rotate(const fpVector3_t g)
+void dcmMatrixRotate(const fpVector3_t g)
 {
     rotationMatrix.m[0][0] += rotationMatrix.m[0][1] * g.z - rotationMatrix.m[0][2] * g.y;
     rotationMatrix.m[0][1] += rotationMatrix.m[0][2] * g.x - rotationMatrix.m[0][0] * g.z;
@@ -286,6 +286,19 @@ void mulXY(fpVector3_t *v)
     v->y = rotationMatrix.m[1][0] * v2.x + rotationMatrix.m[1][1] * v2.y + rotationMatrix.m[1][2] * v2.z; 
 }
 
+// multiplication by a vector
+void row_times_mat(fpVector3_t *v) 
+{
+    fpVector3_t v2;
+    v2.x = v->x;
+    v2.y = v->y;
+    v2.z = v->z;
+
+    v->x = rotationMatrix.m[0][0] * v2.x + rotationMatrix.m[0][1] * v2.y + rotationMatrix.m[0][2] * v2.z;
+    v->y = rotationMatrix.m[1][0] * v2.x + rotationMatrix.m[1][1] * v2.y + rotationMatrix.m[1][2] * v2.z;
+    v->z = rotationMatrix.m[2][0] * v2.x + rotationMatrix.m[2][1] * v2.y + rotationMatrix.m[2][2] * v2.z;
+}
+
 // Update the DCM matrix using only the gyros
 void matrix_update(float _G_Dt)
 {
@@ -293,9 +306,6 @@ void matrix_update(float _G_Dt)
     // because the spin_rate is calculated from _omega.length(),
     // and including the P terms would give positive feedback into
     // the _P_gain() calculation, which can lead to a very large P value
-    _omega.x = 0.0f;
-    _omega.y = 0.0f;
-    _omega.z = 0.0f;
 
     // average across first two healthy gyros. This reduces noise on
     // systems with more than one gyro. We don't use the 3rd gyro
@@ -312,7 +322,7 @@ void matrix_update(float _G_Dt)
         allOmegaSum.x = (_omega.x + _omega_P.x + _omega_yaw_P.x) * _G_Dt;
         allOmegaSum.y = (_omega.y + _omega_P.y + _omega_yaw_P.y) * _G_Dt;
         allOmegaSum.z = (_omega.z + _omega_P.z + _omega_yaw_P.z) * _G_Dt;
-        rotate(allOmegaSum);
+        dcmMatrixRotate(allOmegaSum);
     }
 }
 
@@ -653,7 +663,7 @@ bool use_compass(void)
     // ground speed, then switch to GPS navigation. This will help
     // prevent flyaways with very bad compass offsets
     const float error = fabsf(wrap_180(RADIANS_TO_DEGREES(_yaw) - wrap_360(gpsSol.groundCourse / 10.0f)));
-    if (error > 45 && calc_length_pythagorean_3D(_wind.x, _wind.y, _wind.z) < gpsSol.groundSpeed * 0.8f) {
+    if (error > 45 && calc_length_pythagorean_3D(_wind.x, _wind.y, _wind.z) < gpsSol.groundSpeed * 0.008f) {
         if (millis() - _last_consistent_heading > 2000) {
             // start using the GPS for heading if the compass has been
             // inconsistent with the GPS for 2 seconds
@@ -912,7 +922,7 @@ void drift_correction(float deltat)
 
         // use airspeed to estimate our ground velocity in earth frame by subtracting the wind
         velocity.x = rotationMatrix.m[0][0] * airspeed;
-        velocity.y = rotationMatrix.m[1][0] * airspeed;
+        velocity.y = -rotationMatrix.m[1][0] * airspeed;
         velocity.z = rotationMatrix.m[2][0] * airspeed;
 
         // add in wind estimate
@@ -983,7 +993,7 @@ void drift_correction(float deltat)
     const float gps_gain = (float)ahrsConfig()->dcm_gps_gain / 10.0f;
     
     const bool should_correct_centrifugal = STATE(FIXED_WING_LEGACY) ? true : ARMING_FLAG(ARMED);
-/*
+
     if (should_correct_centrifugal && (_have_gps_lock || fly_forward)) {
         const float v_scale = gps_gain * ra_scale;
         fpVector3_t vdelta;
@@ -1002,7 +1012,7 @@ void drift_correction(float deltat)
             return;
         }
         using_gps_corrections = true;
-    }*/
+    }
 
     // calculate the error term in earth frame.
     // we do this for each available accelerometer then pick the
@@ -1151,7 +1161,7 @@ void drift_correction(float deltat)
 void calc_trig(float *cr, float *cp, float *cy, float *sr, float *sp, float *sy) {
 
     fpVector3_t yaw_vector;
-    yaw_vector.x = -rotationMatrix.m[0][0];
+    yaw_vector.x = rotationMatrix.m[0][0];
     yaw_vector.y = -rotationMatrix.m[1][0];
     yaw_vector.z = 0.0f;
 
@@ -1181,7 +1191,7 @@ void calc_trig(float *cr, float *cp, float *cy, float *sr, float *sp, float *sy)
     }
 
     *cp = constrainf(*cp, 0.0f, 1.0f);
-    *cr = constrainf(*cr, -1.0f, 1.0f); // this relies on constrain_float() of infinity doing the right thing
+    *cr = constrainf(*cr, -1.0f, 1.0f); // this relies on constrainf() of infinity doing the right thing
 
     *sp = -rotationMatrix.m[2][0];
 
@@ -1228,7 +1238,7 @@ void dcmUpdate(float delta_t)
     // about that axis (ie a negative offset)
     _roll = atan2_approx(rotationMatrix.m[2][1], rotationMatrix.m[2][2]);
     _pitch = -asin_approx(rotationMatrix.m[2][0]);
-    _yaw = -atan2_approx(rotationMatrix.m[1][0], rotationMatrix.m[0][0]);
+    _yaw = atan2_approx(-rotationMatrix.m[1][0], rotationMatrix.m[0][0]);
 
     // pre-calculate some trig for CPU purposes:
     _cos_yaw = cos_approx(_yaw);
@@ -1243,15 +1253,6 @@ void dcmUpdate(float delta_t)
     }
 
     calc_trig(&_cos_roll, &_cos_pitch, &_cos_yaw, &_sin_roll, &_sin_pitch, &_sin_yaw);
-
-    DEBUG_SET(DEBUG_CRUISE, 0, RADIANS_TO_DECIDEGREES(_cos_roll));
-    DEBUG_SET(DEBUG_CRUISE, 1, RADIANS_TO_DECIDEGREES(_cos_pitch));
-
-    DEBUG_SET(DEBUG_CRUISE, 2, RADIANS_TO_DECIDEGREES(_cos_yaw));
-    DEBUG_SET(DEBUG_CRUISE, 3, RADIANS_TO_DECIDEGREES(_sin_roll));
-
-    DEBUG_SET(DEBUG_CRUISE, 4, RADIANS_TO_DECIDEGREES(_sin_pitch));
-    DEBUG_SET(DEBUG_CRUISE, 5, RADIANS_TO_DECIDEGREES(_sin_yaw));
 
     // Update small angle state 
     if (RADIANS_TO_DEGREES(ahrsGetTiltAngle()) < ahrsConfig()->small_angle) {
@@ -1326,7 +1327,7 @@ void updateWindEstimator(void)
     // See http://gentlenav.googlecode.com/files/WindEstimation.pdf
     fpVector3_t fuselageDirection;
     fuselageDirection.x = rotationMatrix.m[0][0];
-    fuselageDirection.y = rotationMatrix.m[1][0];
+    fuselageDirection.y = -rotationMatrix.m[1][0];
     fuselageDirection.z = rotationMatrix.m[2][0];
 
     fpVector3_t fuselageDirectionDiff;
@@ -1451,7 +1452,7 @@ bool airspeed_estimate(float *airspeed_ret)
     }
 
     if (virtualPitotEnabled() && have_gps()) {
-        // estimated via GPS speed and wind
+        // Estimated via GPS speed and wind
         *airspeed_ret = _last_airspeed;
         return true;
     }
@@ -1462,7 +1463,7 @@ bool airspeed_estimate(float *airspeed_ret)
     return false;
 }
 
-// check if the AHRS subsystem is healthy
+// Check if the AHRS subsystem is healthy
 bool ahrsIsHealthy(void)
 {
     // consider ourselves healthy if there have been no failures for 5 seconds
@@ -1479,35 +1480,16 @@ float ahrsGetTiltAngle(void)
     return acos_approx(_cos_roll * _cos_pitch);
 }
 
-// Convert earth frame to body frame
+// Convert earth-frame to body-frame
 void ahrsTransformVectorEarthToBody(fpVector3_t * v)
 {
-    fpVector3_t ef_vector;
-    ef_vector.x = v->x;
-    ef_vector.y = v->y;
-    ef_vector.z = v->z;
-
-    v->x = ef_vector.x - _sin_pitch * ef_vector.z;
-    v->y = _cos_roll  * ef_vector.y + _sin_roll * _cos_pitch * ef_vector.z;
-    v->z = _sin_roll * ef_vector.y + _cos_pitch * _cos_roll * ef_vector.z;
+    mul_transpose(v);
 }
 
-// Convert earth frame to body frame
+// Convert body-frame to earth-frame
 void ahrsTransformVectorBodyToEarth(fpVector3_t * v)
 {
-    // avoid divide by zero
-    if (_cos_pitch == 0.0f) {
-        return;
-    }
-    
-    fpVector3_t bf_vector;
-    bf_vector.x = v->x;
-    bf_vector.y = v->y;
-    bf_vector.z = v->z;
-
-    v->x = bf_vector.x + _sin_roll * (_sin_pitch / _cos_pitch) * bf_vector.y + _cos_roll * (_sin_pitch / _cos_pitch) * bf_vector.z;
-    v->y = _cos_roll  * bf_vector.y - _sin_roll * bf_vector.z;
-    v->z = (_sin_roll / _cos_pitch) * bf_vector.y + (_cos_roll / _cos_pitch) * bf_vector.z;
+    row_times_mat(v);
 }
 
 float ahrsGetCosYaw(void)

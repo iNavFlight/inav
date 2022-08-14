@@ -134,7 +134,6 @@ void gpsSetProtocolTimeout(timeMs_t timeoutMs)
 {
     gpsState.lastLastMessageMs = gpsState.lastMessageMs;
     gpsState.lastMessageMs = millis();
-    gpsStats.lastFixTime = millis();
     gpsState.timeoutMs = timeoutMs;
 }
 
@@ -143,6 +142,7 @@ void gpsProcessNewSolutionData(void)
     // Set GPS fix flag only if we have 3D fix
     if (gpsSol.fixType == GPS_FIX_3D && gpsSol.numSat >= gpsConfig()->gpsMinSats) {
         ENABLE_STATE(GPS_FIX);
+        gpsStats.lastFixTime = millis();
     }
     else {
         /* When no fix available - reset flags as well */
