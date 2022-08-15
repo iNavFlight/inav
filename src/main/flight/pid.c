@@ -1322,7 +1322,7 @@ void updateFixedWingLevelTrim(timeUs_t currentTimeUs)
     if (
         !IS_RC_MODE_ACTIVE(BOXAUTOLEVEL) ||
         areSticksDeflected() ||
-        (!FLIGHT_MODE(ANGLE_MODE) && !FLIGHT_MODE(HORIZON_MODE)) ||
+        (!FLIGHT_MODE(ANGLE_MODE) && !FLIGHT_MODE(HORIZON_MODE) && !FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) ||
         FLIGHT_MODE(SOARING_MODE) ||
         navigationIsControllingAltitude()
     ) {
