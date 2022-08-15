@@ -96,6 +96,11 @@ PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
 
 #define resetTimer(tim, currentTimeUs) { (tim)->deltaTime = 0; (tim)->lastTriggeredTime = currentTimeUs; }
 #define getTimerDeltaMicros(tim) ((tim)->deltaTime)
+
+static pt1Filter_t accel_ef_lpf;
+
+static float accel_ef_length;
+
 static bool updateTimer(navigationTimer_t * tim, timeUs_t interval, timeUs_t currentTimeUs)
 {
     if ((currentTimeUs - tim->lastTriggeredTime) >= interval) {
@@ -456,6 +461,8 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
             posEstimator.imu.accelNEU.z = 0.0f;
         }
 
+        accel_ef_length = pt1FilterApply4(&accel_ef_lpf, calc_length_pythagorean_3D(posEstimator.imu.accelNEU.x, posEstimator.imu.accelNEU.y, posEstimator.imu.accelNEU.z), 1.0f, dt);
+
         /* Update blackbox values */
         navAccNEU[X] = posEstimator.imu.accelNEU.x;
         navAccNEU[Y] = posEstimator.imu.accelNEU.y;
@@ -809,12 +816,19 @@ bool isGPSGlitchDetected(void)
 }
 #endif
 
-float getEstimatedAglPosition(void) {
+float getEstimatedAglPosition(void) 
+{
     return posEstimator.est.aglAlt;
 }
 
-bool isEstimatedAglTrusted(void) {
+bool isEstimatedAglTrusted(void) 
+{
     return (posEstimator.est.aglQual == SURFACE_QUAL_HIGH) ? true : false;
+}
+
+float get_accel_ef_length(void)
+{
+    return accel_ef_length;
 }
 
 /**

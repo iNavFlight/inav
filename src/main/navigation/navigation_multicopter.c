@@ -712,9 +712,9 @@ static void applyMulticopterPositionController(timeUs_t currentTimeUs)
 bool isMulticopterFlying(void)
 {
     bool throttleCondition = rcCommand[THROTTLE] > currentBatteryProfile->nav.mc.hover_throttle;
-    bool gyroCondition = averageAbsGyroRates() > 7.0f;
+    bool accel_stationary = get_accel_ef_length() > MC_CHECK_ACCEL_MOVING;
 
-    return throttleCondition && gyroCondition;
+    return throttleCondition && accel_stationary;
 }
 
 /*-----------------------------------------------------------
@@ -738,12 +738,13 @@ bool isMulticopterLandingDetected(void)
     }
 
     // check vertical and horizontal velocities are low (cm/s)
-    bool velCondition = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < MC_LAND_CHECK_VEL_Z_MOVING &&
-                        posControl.actualState.velXY < MC_LAND_CHECK_VEL_XY_MOVING;
-    // check gyro rates are low (degs/s)
-    bool gyroCondition = averageAbsGyroRates() < 2.0f;
+    bool velCondition = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < MC_LAND_CHECK_VEL_Z_MOVING;
+    
+    // check that the airframe is not accelerating (not falling or braking after fast forward flight)
+    bool accel_stationary = get_accel_ef_length() <= LAND_DETECTOR_ACCEL_MAX;
+
     DEBUG_SET(DEBUG_LANDING, 2, velCondition);
-    DEBUG_SET(DEBUG_LANDING, 3, gyroCondition);
+    DEBUG_SET(DEBUG_LANDING, 3, accel_stationary);
 
     bool possibleLandingDetected = false;
     const timeUs_t currentTimeUs = micros();
@@ -780,7 +781,7 @@ bool isMulticopterLandingDetected(void)
     } else {    // non autonomous and emergency landing
         DEBUG_SET(DEBUG_LANDING, 4, 2);
         if (landingDetectorStartedAt) {
-            possibleLandingDetected = velCondition && gyroCondition;
+            possibleLandingDetected = velCondition && accel_stationary;
         } else {
             landingDetectorStartedAt = currentTimeUs;
             return false;

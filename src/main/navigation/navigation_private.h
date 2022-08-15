@@ -39,11 +39,14 @@
 
 #define MC_POS_CONTROL_JERK_LIMIT_CMSSS     1700.0f // jerk limit on horizontal acceleration (cm/s^3)
 
-#define MC_LAND_CHECK_VEL_XY_MOVING         100.0f  // cm/s
-#define MC_LAND_CHECK_VEL_Z_MOVING          25.0f   // cm/s
+#define MC_LAND_CHECK_VEL_Z_MOVING          100.0f  // cm/s
 #define MC_LAND_THR_STABILISE_DELAY         1       // seconds
 #define MC_LAND_DESCEND_THROTTLE            40      // uS
 #define MC_LAND_SAFE_SURFACE                5.0f    // cm
+
+#define MC_CHECK_ACCEL_MOVING               300.0f  // cm/s
+
+#define LAND_DETECTOR_ACCEL_MAX             100.0f  // cm/s
 
 #define NAV_RTH_TRACKBACK_POINTS            50      // max number RTH trackback points
 
