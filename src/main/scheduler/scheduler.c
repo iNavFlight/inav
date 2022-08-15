@@ -223,7 +223,7 @@ void FAST_CODE NOINLINE scheduler(void)
     for (cfTask_t *task = queueFirst(); task != NULL; task = queueNext()) {
         // Task has checkFunc - event driven
         if (task->checkFunc) {
-            const timeUs_t currentTimeBeforeCheckFuncCallUs = micros();
+            const timeUs_t currentTimeBeforeCheckFuncCallUs = currentTimeUs;
 
             // Increase priority for event driven tasks
             if (task->dynamicPriority > 0) {
@@ -231,7 +231,7 @@ void FAST_CODE NOINLINE scheduler(void)
                 task->dynamicPriority = 1 + task->staticPriority * task->taskAgeCycles;
                 waitingTasks++;
             } else if (task->checkFunc(currentTimeBeforeCheckFuncCallUs, currentTimeBeforeCheckFuncCallUs - task->lastExecutedAt)) {
-                const timeUs_t checkFuncExecutionTime = micros() - currentTimeBeforeCheckFuncCallUs;
+                const timeUs_t checkFuncExecutionTime = currentTimeUs - currentTimeBeforeCheckFuncCallUs;
                 checkFuncMovingSumExecutionTime -= checkFuncMovingSumExecutionTime / TASK_MOVING_SUM_COUNT;
                 checkFuncMovingSumExecutionTime += checkFuncExecutionTime;
                 checkFuncTotalExecutionTime += checkFuncExecutionTime;   // time consumed by scheduler + task
@@ -279,9 +279,9 @@ void FAST_CODE NOINLINE scheduler(void)
         selectedTask->dynamicPriority = 0;
 
         // Execute task
-        const timeUs_t currentTimeBeforeTaskCall = micros();
+        const timeUs_t currentTimeBeforeTaskCall = currentTimeUs;
         selectedTask->taskFunc(currentTimeBeforeTaskCall);
-        const timeUs_t taskExecutionTime = micros() - currentTimeBeforeTaskCall;
+        const timeUs_t taskExecutionTime = currentTimeUs - currentTimeBeforeTaskCall;
         selectedTask->movingSumExecutionTime += taskExecutionTime - selectedTask->movingSumExecutionTime / TASK_MOVING_SUM_COUNT;
         selectedTask->totalExecutionTime += taskExecutionTime;   // time consumed by scheduler + task
         selectedTask->maxExecutionTime = MAX(selectedTask->maxExecutionTime, taskExecutionTime);
@@ -289,10 +289,10 @@ void FAST_CODE NOINLINE scheduler(void)
     
     if (!selectedTask || forcedRealTimeTask) {
         // Execute system real-time callbacks and account for them to SYSTEM account
-        const timeUs_t currentTimeBeforeTaskCall = micros();
+        const timeUs_t currentTimeBeforeTaskCall = currentTimeUs;
         taskRunRealtimeCallbacks(currentTimeBeforeTaskCall);
         selectedTask = &cfTasks[TASK_SYSTEM];
-        const timeUs_t taskExecutionTime = micros() - currentTimeBeforeTaskCall;
+        const timeUs_t taskExecutionTime = currentTimeUs - currentTimeBeforeTaskCall;
         selectedTask->movingSumExecutionTime += taskExecutionTime - selectedTask->movingSumExecutionTime / TASK_MOVING_SUM_COUNT;
         selectedTask->totalExecutionTime += taskExecutionTime;   // time consumed by scheduler + task
         selectedTask->maxExecutionTime = MAX(selectedTask->maxExecutionTime, taskExecutionTime);
