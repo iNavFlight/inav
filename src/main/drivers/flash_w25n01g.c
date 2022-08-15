@@ -301,7 +301,7 @@ static void w25n01g_programDataLoad(uint16_t columnAddress, const uint8_t *data,
     uint8_t cmd[3] = {W25N01G_INSTRUCTION_PROGRAM_DATA_LOAD, columnAddress >> 8, columnAddress & 0xff};
 
     busTransferDescriptor_t transferDescr[] = {{.length = sizeof(cmd), .rxBuf = NULL, .txBuf = cmd}, {.length = length, .rxBuf = NULL, .txBuf = (uint8_t *)data}};
-    busTransferMultiple(busDev, transferDescr, ARRAYLEN(transferDescr);
+    busTransferMultiple(busDev, transferDescr, ARRAYLEN(transferDescr));
 
     w25n01g_setTimeout(W25N01G_TIMEOUT_PAGE_PROGRAM_MS);
 }
@@ -313,7 +313,7 @@ static void w25n01g_randomProgramDataLoad(uint16_t columnAddress, const uint8_t 
     uint8_t cmd[3] = {W25N01G_INSTRUCTION_RANDOM_PROGRAM_DATA_LOAD, columnAddress >> 8, columnAddress & 0xff};
 
     busTransferDescriptor_t transferDescr[] = {{.length = sizeof(cmd), .rxBuf = NULL, .txBuf = cmd}, {.length = length, .rxBuf = NULL, .txBuf = (uint8_t *)data}};
-    busTransferMultiple(busDev, transferDescr, ARRAYLEN(transferDescr);
+    busTransferMultiple(busDev, transferDescr, ARRAYLEN(transferDescr));
 
     w25n01g_setTimeout(W25N01G_TIMEOUT_PAGE_PROGRAM_MS);
 }
