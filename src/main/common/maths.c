@@ -27,7 +27,7 @@
 
 #ifdef USE_ARM_MATH
 #include "arm_math.h"
-#endif 
+#endif
 
 FILE_COMPILE_FOR_SPEED
 
@@ -127,7 +127,7 @@ int32_t wrap_18000(int32_t angle)
 
 int32_t wrap_36000(int32_t angle)
 {
-    if (angle > 36000)
+    if (angle >= 36000)
         angle -= 36000;
     if (angle < 0)
         angle += 36000;
@@ -527,7 +527,7 @@ float fast_fsqrtf(const double value) {
     float ret = 0.0f;
 #ifdef USE_ARM_MATH
     arm_sqrt_f32(value, &ret);
-#else 
+#else
     ret = sqrtf(value);
 #endif
     if (isnan(ret))
