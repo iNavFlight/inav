@@ -1098,7 +1098,7 @@ uint16_t osdGetRemainingGlideTime(void) {
 
     value = pt1FilterApply4(&glideTimeFilterState, isnormal(value) ? value : 0, 0.5, MS2S(curTimeMs - glideTimeUpdatedMs));
     glideTimeUpdatedMs = curTimeMs;
-    
+
     if (value < 0) {
         value = osdGetAltitude() / abs((int)value);
     } else {
@@ -2385,7 +2385,7 @@ static bool osdDrawSingleElement(uint8_t item)
             }
             break;
         }
-    case OSD_GLIDE_TIME_REMAINING: 
+    case OSD_GLIDE_TIME_REMAINING:
         {
             uint16_t glideTime = osdGetRemainingGlideTime();
             buff[0] = SYM_GLIDE_MINS;
@@ -4409,7 +4409,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     tfp_sprintf(messageBuf, "TO WP %u/%u (%s)", getGeoWaypointNumber(posControl.activeWaypointIndex), posControl.geoWaypointCount, buf);
                     messages[messageCount++] = messageBuf;
                 } else if (NAV_Status.state == MW_NAV_STATE_HOLD_TIMED) {
-                    if (navConfig()->general.flags.waypoint_enforce_altitude && !posControl.wpAltitudeReached) {
+                    if (navConfig()->general.waypoint_enforce_altitude && !posControl.wpAltitudeReached) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ADJUSTING_WP_ALT);
                     } else {
                         // WP hold time countdown in seconds
