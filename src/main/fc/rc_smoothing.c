@@ -82,7 +82,7 @@ void rcInterpolationApply(bool isRXDataNew, timeUs_t currentTimeUs)
     static int filterFrequency;
     static bool initDone = false;
 
-    const float dT = getLooptime() * 1e-6f;
+    const float dT = US2S(getLooptime());
 
     if (isRXDataNew) {
         if (!initDone) {

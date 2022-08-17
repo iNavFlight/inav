@@ -189,7 +189,7 @@ STATIC_PROTOTHREAD(pitotThread)
 
     // Init filter
     pitot.lastMeasurementUs = micros();
-    pt1FilterInit(&pitot.lpfState, pitotmeterConfig()->pitot_lpf_milli_hz / 1000.0f, 0);
+    pt1FilterInit(&pitot.lpfState, pitotmeterConfig()->pitot_lpf_milli_hz / 1000.0f, 0.0f);
 
     while(1) {
         // Start measurement
@@ -209,7 +209,7 @@ STATIC_PROTOTHREAD(pitotThread)
 
         // Filter pressure
         currentTimeUs = micros();
-        pitot.pressure = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, (currentTimeUs - pitot.lastMeasurementUs) * 1e-6f);
+        pitot.pressure = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
         pitot.lastMeasurementUs = currentTimeUs;
         ptDelayUs(pitot.dev.delay);
 
