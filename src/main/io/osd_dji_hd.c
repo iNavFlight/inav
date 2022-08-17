@@ -689,7 +689,7 @@ void osdDJIFormatVelocityStr(char* buff)
         case OSD_SPEED_SOURCE_AIR:
             strcpy(sourceBuf, "AIR");
 #ifdef USE_PITOT
-            vel = pitot.airSpeed;
+            vel = getAirspeedEstimate();
 #endif
             break;
     }

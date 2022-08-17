@@ -596,12 +596,12 @@ bool isFixedWingAutoThrottleManuallyIncreased()
 
 bool isFixedWingFlying(void)
 {
-    float airspeed = 0;
+    float airspeed = 0.0f;
 #ifdef USE_PITOT
-    airspeed = pitot.airSpeed;
+    airspeed = getAirspeedEstimate();
 #endif
     bool throttleCondition = getMotorCount() == 0 || rcCommand[THROTTLE] > currentBatteryProfile->nav.fw.cruise_throttle;
-    bool velCondition = posControl.actualState.velXY > 250 || airspeed > 250;
+    bool velCondition = posControl.actualState.velXY > 250.0f || airspeed > 250.0f;
     bool launchCondition = isNavLaunchEnabled() && fixedWingLaunchStatus() == FW_LAUNCH_FLYING;
 
     return (isImuHeadingValid() && throttleCondition && velCondition) || launchCondition;

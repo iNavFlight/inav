@@ -504,7 +504,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_AIR_SPEED: // cm/s
         #ifdef USE_PITOT
-            return constrain(pitot.airSpeed, 0, INT16_MAX);
+            return constrain(getAirspeedEstimate(), 0, INT16_MAX);
         #else
             return false;
         #endif

@@ -517,7 +517,7 @@ static int32_t osdCanvasSidebarGetValue(osd_sidebar_scroll_e scroll)
         case OSD_SIDEBAR_SCROLL_SPEED:
             {
 #if defined(USE_GPS)
-                int speed = osdGetSpeedFromSelectedSource();
+                int16_t speed = osdGetSpeedFromSelectedSource();
                 switch ((osd_unit_e)osdConfig()->units) {
                     case OSD_UNIT_UK:
                         FALLTHROUGH;
