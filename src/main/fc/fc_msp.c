@@ -2474,8 +2474,9 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #ifdef USE_GPS
     case MSP_SET_RAW_GPS:
         if (dataSize == 14) {
-            if (sbufReadU8(src)) {
-                ENABLE_STATE(GPS_FIX);
+	    gpsSol.fixType = sbufReadU8(src);
+	    if (gpsSol.fixType) {
+		ENABLE_STATE(GPS_FIX);
             } else {
                 DISABLE_STATE(GPS_FIX);
             }
