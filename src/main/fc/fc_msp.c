@@ -2485,7 +2485,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             gpsSol.numSat = sbufReadU8(src);
             gpsSol.llh.lat = sbufReadU32(src);
             gpsSol.llh.lon = sbufReadU32(src);
-            gpsSol.llh.alt = sbufReadU16(src);
+            gpsSol.llh.alt = 100* sbufReadU16(src); // require cm
             gpsSol.groundSpeed = sbufReadU16(src);
             gpsSol.velNED[X] = 0;
             gpsSol.velNED[Y] = 0;
