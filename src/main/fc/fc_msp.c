@@ -3474,7 +3474,8 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 					}
 					else {
 						sbufAdvance(src, 4 + 4 + 4 + 2 + 2 + 2 * 3);
-						DISABLE_STATE(GPS_FIX);
+						// Feed data to navigation
+						gpsProcessNewSolutionData();
 					}
 				}
 				else {
