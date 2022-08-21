@@ -6,7 +6,7 @@ Video demonstration
 
 There is possibility to allow plane to estimate it's position when GPS fix is lost.
 The main purpose is RTH without GPS.
-It works on fixed wing only.
+It works for fixed wing only.
 
 Plane should have the following sensors:
 - acceleromenter, gyroscope
@@ -59,7 +59,7 @@ Example: 100 km/h = 100 * 27.77 = 2777 m/s
 
 ```set fw_reference_airspeed=2777```
 
-*It is important, that plane fly with specified speed in CRUISE mode. If you have set option "Icrease cruise speed with throttle"  - do not use it without GPS Fix.*
+*It is important, that plane fly with specified speed in CRUISE mode. If you have set option "Increase cruise speed with throttle"  - do not use it without GPS Fix.*
 
 *If pitot is available, pitot sensor data will be used instead of constant.*
 
