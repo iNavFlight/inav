@@ -43,6 +43,9 @@
 #define USE_MPU_DATA_READY_SIGNAL
 
 
+// *************** OLED ******************************
+#define UG2864_I2C_BUS		BUS_I2C2  // I2C2 is used instead of the default I2C1 due to its higher mechanical robustness
+
 // *************** I2C /Baro/Mag *********************
 #define USE_I2C
 #define USE_I2C_DEVICE_1
