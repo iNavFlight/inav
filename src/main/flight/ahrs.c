@@ -369,11 +369,7 @@ void ahrsReset(bool recover_eulers)
 // renormalise one vector component of the DCM matrix this will return false if renormalization fails
 bool renorm(fpVector3_t a, fpVector3_t *result)
 {
-    // numerical errors will slowly build up over time in DCM,
-    // causing inaccuracies. We can keep ahead of those errors
-    // using the renormalization technique from the DCM IMU paper
-    // (see equations 18 to 21).
-
+    // numerical errors will slowly build up over time in DCM, causing inaccuracies. We can keep ahead of those errors using the renormalization technique from the DCM IMU paper (see equations 18 to 21).
     const float renorm_val = 1.0f / calc_length_pythagorean_3D(a.x, a.y, a.z);
 
     if (!(renorm_val < 2.0f && renorm_val > 0.5f)) {
