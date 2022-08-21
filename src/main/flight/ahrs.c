@@ -77,7 +77,7 @@ FILE_COMPILE_FOR_SPEED
 // The limit (in degrees/second) beyond which we stop integrating omega_I. At larger spin rates the DCM PI controller can get 'dizzy' which results in false gyro drift.
 #define SPIN_RATE_LIMIT 20
 
-STATIC_FASTRAM flightLogEvent_IMUError_t imuErrorEvent;
+STATIC_FASTRAM flightLogEvent_IMUError_t ahrsErrorEvent;
 STATIC_FASTRAM flightLogEvent_IMUError_t prev_ahrsErrorEvent;
 
 FASTRAM fpMat3_t rotationMatrix;
@@ -119,13 +119,13 @@ STATIC_FASTRAM float _sin_roll;
 STATIC_FASTRAM float _sin_pitch;
 STATIC_FASTRAM float _sin_yaw;
 
-STATIC_FASTRAM timeMs_t _last_consistent_heading;
-STATIC_FASTRAM timeMs_t _last_startup_ms;
-STATIC_FASTRAM timeMs_t _ra_sum_start;
-STATIC_FASTRAM timeMs_t _last_failure_ms;
-STATIC_FASTRAM timeMs_t _gps_last_update;
-STATIC_FASTRAM timeMs_t _last_wind_time;
-STATIC_FASTRAM timeUs_t _compass_last_update;
+static timeMs_t _last_consistent_heading;
+static timeMs_t _last_startup_ms;
+static timeMs_t _ra_sum_start;
+static timeMs_t _last_failure_ms;
+static timeMs_t _gps_last_update;
+static timeMs_t _last_wind_time;
+static timeUs_t _compass_last_update;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(ahrsConfig_t, ahrsConfig, PG_AHRS_CONFIG, 3);
 
@@ -374,8 +374,8 @@ bool renorm(fpVector3_t a, fpVector3_t *result)
         // This is larger than it should get - log it as a warning
         if (!(renorm_val < 1.0e6f && renorm_val > 1.0e-6f)) {
             // We are getting values which are way out of range, we will reset the matrix and hope we can recover our attitude using drift correction before we hit the ground!
-            LOG_E(IMU, "AHRS ERROR: DCM renormalisation error");
-            imuErrorEvent.errorCode = 3;
+            LOG_E(AHRS, "AHRS ERROR: DCM renormalisation error");
+            ahrsErrorEvent.errorCode = 4;
             return false;
         }
     }
@@ -449,6 +449,8 @@ void normalize(void)
 void checkMatrix(void)
 {
     if (rotationMatrixIsNAN()) {
+        LOG_E(AHRS, "AHRS Matrix is NaN. Reseting the AHRS");
+        ahrsErrorEvent.errorCode = 1;
         ahrsReset(true);
         return;
     }
@@ -458,12 +460,12 @@ void checkMatrix(void)
         // We have an invalid matrix. Force a normalisation.
         normalize();
 
-        LOG_E(IMU, "AHRS invalid Matrix. Forcing a new normalization");
-        imuErrorEvent.errorCode = 1;
+        LOG_E(AHRS, "AHRS invalid Matrix. Forcing a new normalization");
+        ahrsErrorEvent.errorCode = 2;
 
         if (rotationMatrixIsNAN() || fabsf(rotationMatrix.m[2][0]) > 10.0f) {
-            LOG_E(IMU, "AHRS Matrix normalisation error. Reset to last known good value");
-            imuErrorEvent.errorCode = 2;
+            LOG_E(AHRS, "AHRS Matrix normalisation error. Reset to last known good value");
+            ahrsErrorEvent.errorCode = 3;
             ahrsReset(true);
         } 
     }
@@ -471,15 +473,15 @@ void checkMatrix(void)
 
 static void updateLogError(void) 
 {
-    if (prev_ahrsErrorEvent.errorCode == imuErrorEvent.errorCode) {
+    if (prev_ahrsErrorEvent.errorCode == ahrsErrorEvent.errorCode) {
         return;
     }
 
-    prev_ahrsErrorEvent.errorCode = imuErrorEvent.errorCode;
+    prev_ahrsErrorEvent.errorCode = ahrsErrorEvent.errorCode;
 
 #ifdef USE_BLACKBOX
     if (feature(FEATURE_BLACKBOX)) {
-        blackboxLogEvent(FLIGHT_LOG_EVENT_IMU_FAILURE, (flightLogEventData_t*)&imuErrorEvent);
+        blackboxLogEvent(FLIGHT_LOG_EVENT_IMU_FAILURE, (flightLogEventData_t*)&ahrsErrorEvent);
     }
 #endif
 }
@@ -653,8 +655,7 @@ float calculateHeading(void)
     // Tilt compensated magnetic field X component:
     float headX = magField.x * cos_pitch_sq - rotationMatrix.m[2][0] * (magField.y * rotationMatrix.m[2][1] + magField.z * rotationMatrix.m[2][2]);
 
-    // magnetic heading
-    // 6/4/11 - added constrain to keep bad values from ruining DCM Yaw - Jason S.
+    // Magnetic Heading
     float heading = constrainf(atan2_approx(-headY, headX), -M_PIf, M_PIf);
 
     return heading;
@@ -705,14 +706,14 @@ void driftCorrectionYaw(void)
             yaw_error = sin_approx(yaw_error_rad);
 
             /* 
-            Reset yaw to match GPS heading under any of thefollowing 3 conditions:
+            Reset yaw to match GPS heading under any of the following 3 conditions:
 
-            1) if we have reached GPS_SPEED_MIN and have never had yaw information before
+            1) if we have reached GPS_SPEED_MIN and have never had yaw information before.
 
-            2) if the last time we got yaw information from the GPS is more than 20 seconds ago, which means we may have suffered from considerable gyro drift
+            2) if the last time we got yaw information from the GPS is more than 20 seconds ago, which means we may have suffered from considerable gyro drift.
 
             3) if we are over GPS_SPEED_MIN * 3 (which means 900cm/s) and our yaw error is over 60 degrees, which means very poor yaw. 
-            This can happen on bungee launch when the operator pulls back the plane rapidly enough then on release the GPS heading changes very rapidly
+            This can happen on bungee launch when the operator pulls back the plane rapidly enough then on release the GPS heading changes very rapidly.
             */
 
             if (!have_initial_yaw || yaw_deltaTime > 20 || (gpsSol.groundSpeed >= GPS_SPEED_MIN * 3 && fabsf(yaw_error_rad) >= 1.047f)) {

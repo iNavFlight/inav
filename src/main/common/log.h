@@ -25,7 +25,7 @@ typedef enum {
     LOG_TOPIC_PITOT,            // 3, mask = 8
     LOG_TOPIC_PWM,              // 4, mask = 16
     LOG_TOPIC_TIMER,            // 5, mask = 32
-    LOG_TOPIC_IMU,              // 6, mask = 64
+    LOG_TOPIC_AHRS,             // 6, mask = 64
     LOG_TOPIC_TEMPERATURE,      // 7, mask = 128
     LOG_TOPIC_POS_ESTIMATOR,    // 8, mask = 256
     LOG_TOPIC_VTX,              // 9, mask = 512
