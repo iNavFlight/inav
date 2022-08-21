@@ -253,9 +253,4 @@ bool realPitotEnabled(void)
     return detectedSensors[SENSOR_INDEX_PITOT] != PITOT_NONE && detectedSensors[SENSOR_INDEX_PITOT] != PITOT_VIRTUAL && detectedSensors[SENSOR_INDEX_PITOT] != PITOT_FAKE;
 }
 
-bool virtualPitotEnabled(void) 
-{
-    return detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL;
-}
-
 #endif /* PITOT */

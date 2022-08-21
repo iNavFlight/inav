@@ -1,18 +1,18 @@
 /*
- * This file is part of Cleanflight.
+ * This file is part of iNav.
  *
- * Cleanflight is free software: you can redistribute it and/or modify
+ * iNav is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Cleanflight is distributed in the hope that it will be useful,
+ * iNav is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
+ * along with iNav.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <stdbool.h>
@@ -72,6 +72,9 @@ FILE_COMPILE_FOR_SPEED
 // The limit (in degrees/second) beyond which we stop integrating omega_I. At larger spin rates the DCM PI controller can get 'dizzy' which results in false gyro drift.
 #define SPIN_RATE_LIMIT 20
 
+STATIC_FASTRAM flightLogEvent_IMUError_t imuErrorEvent;
+STATIC_FASTRAM flightLogEvent_IMUError_t prev_ahrsErrorEvent;
+
 FASTRAM fpMat3_t rotationMatrix;
 FASTRAM attitudeEulerAngles_t attitude;
 FASTRAM fpVector3_t imuMeasuredRotationBF;
@@ -95,7 +98,7 @@ STATIC_FASTRAM bool have_initial_yaw;
 STATIC_FASTRAM bool fly_forward; // true for planes, rover and boat / false for copter
 
 STATIC_FASTRAM float _omega_I_sum_time;
-STATIC_FASTRAM float _ra_deltat;
+STATIC_FASTRAM float _ra_deltaTime;
 STATIC_FASTRAM float _last_airspeed;
 
 // euler angles
@@ -246,28 +249,29 @@ void from_euler(float roll, float pitch, float yaw)
 }
 
 // Apply an additional rotation from a body frame gyro vector to a rotation matrix.
-void dcmMatrixRotate(const fpVector3_t g)
+void dcmMatrixRotate(const fpVector3_t gyro)
 {
-    rotationMatrix.m[0][0] += rotationMatrix.m[0][1] * g.z - rotationMatrix.m[0][2] * g.y;
-    rotationMatrix.m[0][1] += rotationMatrix.m[0][2] * g.x - rotationMatrix.m[0][0] * g.z;
-    rotationMatrix.m[0][2] += rotationMatrix.m[0][0] * g.y - rotationMatrix.m[0][1] * g.x;
+    fpMat3_t rotationMatrix2 = { .m = { { rotationMatrix.m[0][0], rotationMatrix.m[0][1], rotationMatrix.m[0][2] },
+                                        { rotationMatrix.m[1][0], rotationMatrix.m[1][1], rotationMatrix.m[1][2] },
+                                        { rotationMatrix.m[2][0], rotationMatrix.m[2][1], rotationMatrix.m[2][2] } } };
 
-    rotationMatrix.m[1][0] += rotationMatrix.m[1][1] * g.z - rotationMatrix.m[1][2] * g.y;
-    rotationMatrix.m[1][1] += rotationMatrix.m[1][2] * g.x - rotationMatrix.m[1][0] * g.z;
-    rotationMatrix.m[1][2] += rotationMatrix.m[1][0] * g.y - rotationMatrix.m[1][1] * g.x;
+    rotationMatrix.m[0][0] += rotationMatrix2.m[0][1] * gyro.z - rotationMatrix2.m[0][2] * gyro.y;
+    rotationMatrix.m[0][1] += rotationMatrix2.m[0][2] * gyro.x - rotationMatrix2.m[0][0] * gyro.z;
+    rotationMatrix.m[0][2] += rotationMatrix2.m[0][0] * gyro.y - rotationMatrix2.m[0][1] * gyro.x;
 
-    rotationMatrix.m[2][0] += rotationMatrix.m[2][1] * g.z - rotationMatrix.m[2][2] * g.y;
-    rotationMatrix.m[2][1] += rotationMatrix.m[2][2] * g.x - rotationMatrix.m[2][0] * g.z;
-    rotationMatrix.m[2][2] += rotationMatrix.m[2][0] * g.y - rotationMatrix.m[2][1] * g.x;
+    rotationMatrix.m[1][0] += rotationMatrix2.m[1][1] * gyro.z - rotationMatrix2.m[1][2] * gyro.y;
+    rotationMatrix.m[1][1] += rotationMatrix2.m[1][2] * gyro.x - rotationMatrix2.m[1][0] * gyro.z;
+    rotationMatrix.m[1][2] += rotationMatrix2.m[1][0] * gyro.y - rotationMatrix2.m[1][1] * gyro.x;
+
+    rotationMatrix.m[2][0] += rotationMatrix2.m[2][1] * gyro.z - rotationMatrix2.m[2][2] * gyro.y;
+    rotationMatrix.m[2][1] += rotationMatrix2.m[2][2] * gyro.x - rotationMatrix2.m[2][0] * gyro.z;
+    rotationMatrix.m[2][2] += rotationMatrix2.m[2][0] * gyro.y - rotationMatrix2.m[2][1] * gyro.x;
 }
 
 // multiplication of transpose by a vector
 void mul_transpose(fpVector3_t *v)
 {
-    fpVector3_t v2;
-    v2.x = v->x;
-    v2.y = v->y;
-    v2.z = v->z;
+    fpVector3_t v2 = { .v = { v->x, v->y, v->z } };
 
     v->x = rotationMatrix.m[0][0] * v2.x + rotationMatrix.m[1][0] * v2.y + rotationMatrix.m[2][0] * v2.z;
     v->y = rotationMatrix.m[0][1] * v2.x + rotationMatrix.m[1][1] * v2.y + rotationMatrix.m[2][1] * v2.z;
@@ -277,10 +281,7 @@ void mul_transpose(fpVector3_t *v)
 // multiplication by a vector, extracting only the xy components
 void mulXY(fpVector3_t *v) 
 {
-    fpVector3_t v2;
-    v2.x = v->x;
-    v2.y = v->y;
-    v2.z = v->z;
+    fpVector3_t v2 = { .v = { v->x, v->y, v->z } };
 
     v->x = rotationMatrix.m[0][0] * v2.x + rotationMatrix.m[0][1] * v2.y + rotationMatrix.m[0][2] * v2.z;
     v->y = rotationMatrix.m[1][0] * v2.x + rotationMatrix.m[1][1] * v2.y + rotationMatrix.m[1][2] * v2.z; 
@@ -289,10 +290,7 @@ void mulXY(fpVector3_t *v)
 // multiplication by a vector
 void row_times_mat(fpVector3_t *v) 
 {
-    fpVector3_t v2;
-    v2.x = v->x;
-    v2.y = v->y;
-    v2.z = v->z;
+    fpVector3_t v2 = { .v = { v->x, v->y, v->z } };
 
     v->x = rotationMatrix.m[0][0] * v2.x + rotationMatrix.m[0][1] * v2.y + rotationMatrix.m[0][2] * v2.z;
     v->y = rotationMatrix.m[1][0] * v2.x + rotationMatrix.m[1][1] * v2.y + rotationMatrix.m[1][2] * v2.z;
@@ -300,7 +298,7 @@ void row_times_mat(fpVector3_t *v)
 }
 
 // Update the DCM matrix using only the gyros
-void matrix_update(float _G_Dt)
+void matrix_update(float deltaTime)
 {
     // note that we do not include the P terms in _omega. This is
     // because the spin_rate is calculated from _omega.length(),
@@ -312,16 +310,16 @@ void matrix_update(float _G_Dt)
     // unless another is unhealthy as 3rd gyro on PH2 has a lot more noise
     fpVector3_t allOmegaSum;
     
-    if (_G_Dt > 0.0f) {
+    if (deltaTime > 0.0f) {
         _omega.x = imuMeasuredRotationBF.x;
         _omega.y = imuMeasuredRotationBF.y;
         _omega.z = imuMeasuredRotationBF.z;
         _omega.x += _omega_I.x;
         _omega.y += _omega_I.y;
         _omega.z += _omega_I.z;
-        allOmegaSum.x = (_omega.x + _omega_P.x + _omega_yaw_P.x) * _G_Dt;
-        allOmegaSum.y = (_omega.y + _omega_P.y + _omega_yaw_P.y) * _G_Dt;
-        allOmegaSum.z = (_omega.z + _omega_P.z + _omega_yaw_P.z) * _G_Dt;
+        allOmegaSum.x = (_omega.x + _omega_P.x + _omega_yaw_P.x) * deltaTime;
+        allOmegaSum.y = (_omega.y + _omega_P.y + _omega_yaw_P.y) * deltaTime;
+        allOmegaSum.z = (_omega.z + _omega_P.z + _omega_yaw_P.z) * deltaTime;
         dcmMatrixRotate(allOmegaSum);
     }
 }
@@ -376,30 +374,14 @@ bool renorm(fpVector3_t a, fpVector3_t *result)
     // using the renormalization technique from the DCM IMU paper
     // (see equations 18 to 21).
 
-    // For APM we don't bother with the taylor expansion
-    // optimisation from the paper as on our 2560 CPU the cost of
-    // the sqrt() is 44 microseconds, and the small time saving of
-    // the taylor expansion is not worth the potential of
-    // additional error buildup.
-
-    // Note that we can get significant renormalisation values
-    // when we have a larger delta_t due to a glitch eleswhere in
-    // APM, such as a I2c timeout or a set of EEPROM writes. While
-    // we would like to avoid these if possible, if it does happen
-    // we don't want to compound the error by making DCM less
-    // accurate.
-
     const float renorm_val = 1.0f / calc_length_pythagorean_3D(a.x, a.y, a.z);
 
     if (!(renorm_val < 2.0f && renorm_val > 0.5f)) {
         // this is larger than it should get - log it as a warning
         if (!(renorm_val < 1.0e6f && renorm_val > 1.0e-6f)) {
-            // we are getting values which are way out of
-            // range, we will reset the matrix and hope we
-            // can recover our attitude using drift
-            // correction before we hit the ground!
-            //Serial.printf("ERROR: DCM renormalisation error. renorm_val=%f\n",
-            //	   renorm_val);
+            // we are getting values which are way out of range, we will reset the matrix and hope we can recover our attitude using drift correction before we hit the ground!
+            LOG_E(IMU, "AHRS ERROR: DCM renormalisation error");
+            imuErrorEvent.errorCode = 3;
             return false;
         }
     }
@@ -424,16 +406,16 @@ bool renorm(fpVector3_t a, fpVector3_t *result)
 void normalize(void)
 {
     const float error = rotationMatrix.m[0][0] * rotationMatrix.m[1][0] + rotationMatrix.m[0][1] * rotationMatrix.m[1][1] + rotationMatrix.m[0][2] * rotationMatrix.m[1][2]; // eq.18
-
-    fpVector3_t t0;
-    t0.x = rotationMatrix.m[0][0] - (rotationMatrix.m[1][0] * (0.5f * error)); // eq.19
-    t0.y = rotationMatrix.m[0][1] - (rotationMatrix.m[1][1] * (0.5f * error)); // eq.19
-    t0.z = rotationMatrix.m[0][2] - (rotationMatrix.m[1][2] * (0.5f * error)); // eq.19
-
-    fpVector3_t t1;
-    t1.x = rotationMatrix.m[1][0] - (rotationMatrix.m[0][0] * (0.5f * error)); // eq.19
-    t1.y = rotationMatrix.m[1][1] - (rotationMatrix.m[0][1] * (0.5f * error)); // eq.19
-    t1.z = rotationMatrix.m[1][2] - (rotationMatrix.m[0][2] * (0.5f * error)); // eq.19
+    
+    // eq.19
+    fpVector3_t t0 = { .v = { rotationMatrix.m[0][0] - (rotationMatrix.m[1][0] * (0.5f * error)), 
+                              rotationMatrix.m[0][1] - (rotationMatrix.m[1][1] * (0.5f * error)),
+                              rotationMatrix.m[0][2] - (rotationMatrix.m[1][2] * (0.5f * error)) } };
+    
+    // eq.19
+    fpVector3_t t1 = { .v = { rotationMatrix.m[1][0] - (rotationMatrix.m[0][0] * (0.5f * error)),
+                              rotationMatrix.m[1][1] - (rotationMatrix.m[0][1] * (0.5f * error)),
+                              rotationMatrix.m[1][2] - (rotationMatrix.m[0][2] * (0.5f * error)) } }; 
 
     fpVector3_t t2; 
     vectorCrossProduct(&t2, &t0, &t1); // eq.20
@@ -446,9 +428,7 @@ void normalize(void)
     const bool checkMatrixB = renorm(t1, &matrixB); 
     const bool checkMatrixC = renorm(t2, &matrixC); 
 
-    if (!checkMatrixA || 
-        !checkMatrixB || 
-        !checkMatrixC) {
+    if (!checkMatrixA || !checkMatrixB || !checkMatrixC) {
         // Our solution is blowing up and we will force back to last euler angles
         _last_failure_ms = millis();
         ahrsReset(true);
@@ -483,10 +463,7 @@ void check_matrix(void)
         return;
     }
 
-    flightLogEvent_IMUError_t imuErrorEvent;
-
-    // Some DCM matrix values can lead to an out of range error in the pitch calculation via asin(). 
-    // These NaN values can feed back into the rest of the DCM matrix via the error_course value.
+    // Some DCM matrix values can lead to an out of range error in the pitch calculation via asin(). These NaN values can feed back into the rest of the DCM matrix via the error_course value.
     if (!(rotationMatrix.m[2][0] < 1.0f && rotationMatrix.m[2][0] > -1.0f)) {
         // We have an invalid matrix. Force a normalisation.
         normalize();
@@ -498,8 +475,17 @@ void check_matrix(void)
             LOG_E(IMU, "AHRS Matrix normalisation error. Reset to last known good value");
             imuErrorEvent.errorCode = 2;
             ahrsReset(true);
-        }
+        } 
     }
+}
+
+static void updateLogError(void) 
+{
+    if (prev_ahrsErrorEvent.errorCode == imuErrorEvent.errorCode) {
+        return;
+    }
+
+    prev_ahrsErrorEvent.errorCode = imuErrorEvent.errorCode;
 
 #ifdef USE_BLACKBOX
     if (feature(FEATURE_BLACKBOX)) {
@@ -542,7 +528,6 @@ float yaw_error_compass(void)
         return 0.0f;
     }
 
-    // calculate the error term in earth frame
     // calculate the Z component of the cross product of magField and _mag_earth
     return magField.x * _mag_earth.y - magField.y * _mag_earth.x; 
 }
@@ -658,15 +643,12 @@ bool use_compass(void)
         return true;
     }
 
-    // if the current yaw differs from the GPS yaw by more than 45
-    // degrees and the estimated wind speed is less than 80% of the
-    // ground speed, then switch to GPS navigation. This will help
-    // prevent flyaways with very bad compass offsets
+    // if the current yaw differs from the GPS yaw by more than 45 degrees and the estimated wind speed is less than 80% of the ground speed, then switch to GPS navigation. 
+    // This will help prevent flyaways with very bad compass offsets
     const float error = fabsf(wrap_180(RADIANS_TO_DEGREES(_yaw) - wrap_360(gpsSol.groundCourse / 10.0f)));
-    if (error > 45 && calc_length_pythagorean_3D(_wind.x, _wind.y, _wind.z) < gpsSol.groundSpeed * 0.008f) {
+    if (error > 45 && calc_length_pythagorean_3D(_wind.x, _wind.y, _wind.z) < gpsSol.groundSpeed * 0.8f) {
         if (millis() - _last_consistent_heading > 2000) {
-            // start using the GPS for heading if the compass has been
-            // inconsistent with the GPS for 2 seconds
+            // start using the GPS for heading if the compass has been inconsistent with the GPS for 2 seconds
             return false;
         }
     } else {
@@ -698,14 +680,12 @@ float calculate_heading(void)
     return heading;
 }
 
-// yaw drift correction using the compass or GPS
-// this function prodoces the _omega_yaw_P vector, and also
-// contributes to the _omega_I.z long term yaw drift estimate
+// yaw drift correction using the compass or GPS this function prodoces the _omega_yaw_P vector, and also contributes to the _omega_I.z long term yaw drift estimate
 void drift_correction_yaw(void)
 {
     bool new_value = false;
     float yaw_error;
-    float yaw_deltat;
+    float yaw_deltaTime;
 
     if (sensors(SENSOR_MAG)) {
         if (!compassIsCalibrationComplete()) {
@@ -719,7 +699,7 @@ void drift_correction_yaw(void)
           we are using compass for yaw
         */
         if (compassLastUpdate() != _compass_last_update) {
-            yaw_deltat = US2S(compassLastUpdate() - _compass_last_update);
+            yaw_deltaTime = US2S(compassLastUpdate() - _compass_last_update);
             _compass_last_update = compassLastUpdate();
             // we force an additional compass read()
             // here. This has the effect of throwing away
@@ -749,7 +729,7 @@ void drift_correction_yaw(void)
         //DEBUG_SET(DEBUG_CRUISE, 2, _gps_last_update);
 
         if (gpsStats.lastFixTime != _gps_last_update && gpsSol.groundSpeed >= GPS_SPEED_MIN) {
-            yaw_deltat = MS2S(gpsStats.lastFixTime - _gps_last_update);
+            yaw_deltaTime = MS2S(gpsStats.lastFixTime - _gps_last_update);
             _gps_last_update = gpsStats.lastFixTime;
             new_value = true;
             const float gps_course_rad = DEGREES_TO_RADIANS(wrap_360(gpsSol.groundCourse / 10.0f));
@@ -773,7 +753,7 @@ void drift_correction_yaw(void)
                release the GPS heading changes very rapidly
             */
 
-            if (!have_initial_yaw || yaw_deltat > 20 || (gpsSol.groundSpeed >= GPS_SPEED_MIN * 3 && fabsf(yaw_error_rad) >= 1.047f)) {
+            if (!have_initial_yaw || yaw_deltaTime > 20 || (gpsSol.groundSpeed >= GPS_SPEED_MIN * 3 && fabsf(yaw_error_rad) >= 1.047f)) {
                 // reset DCM matrix based on current yaw
                 from_euler(_roll, _pitch, gps_course_rad);
                 // Force reset of heading hold target
@@ -787,7 +767,7 @@ void drift_correction_yaw(void)
         }
     }
     
-    //DEBUG_SET(DEBUG_CRUISE, 0, yaw_deltat * 1000);
+    //DEBUG_SET(DEBUG_CRUISE, 0, yaw_deltaTime * 1000);
 
     if (!new_value) {
         // we don't have any new yaw information
@@ -828,9 +808,9 @@ void drift_correction_yaw(void)
     }
 
     // don't update the drift term if we lost the yaw reference for more than 2 seconds
-    if (yaw_deltat < 2.0f && spin_rate < DEGREES_TO_RADIANS(SPIN_RATE_LIMIT)) {
+    if (yaw_deltaTime < 2.0f && spin_rate < DEGREES_TO_RADIANS(SPIN_RATE_LIMIT)) {
         // also add to the I term
-        _omega_I_sum.z += error_z * _ki_yaw * yaw_deltat;
+        _omega_I_sum.z += error_z * _ki_yaw * yaw_deltaTime;
     }
 }
 
@@ -873,7 +853,7 @@ void ra_delayed(fpVector3_t ra, fpVector3_t *v)
 // This drift correction implementation is based on a paper
 // by Bill Premerlani from here:
 //   http://gentlenav.googlecode.com/files/RollPitchDriftCompensation.pdf
-void drift_correction(float deltat)
+void drift_correction(float deltaTime)
 {
     fpVector3_t velocity;
     timeMs_t last_correction_time;
@@ -888,28 +868,24 @@ void drift_correction(float deltat)
         accel value is sampled over the right time delta for
         each sensor, which prevents an aliasing effect
     */
-    if (deltat > 0.0f) {
+    if (deltaTime > 0.0f) {
         _accel_ef.x = rotationMatrix.m[0][0] * imuMeasuredAccelBF.x + rotationMatrix.m[0][1] * imuMeasuredAccelBF.y + rotationMatrix.m[0][2] * imuMeasuredAccelBF.z;
         _accel_ef.y = rotationMatrix.m[1][0] * imuMeasuredAccelBF.x + rotationMatrix.m[1][1] * imuMeasuredAccelBF.y + rotationMatrix.m[1][2] * imuMeasuredAccelBF.z;
         _accel_ef.z = rotationMatrix.m[2][0] * imuMeasuredAccelBF.x + rotationMatrix.m[2][1] * imuMeasuredAccelBF.y + rotationMatrix.m[2][2] * imuMeasuredAccelBF.z;
         // integrate the accel vector in the earth frame between GPS readings
-        _ra_sum.x += _accel_ef.x * deltat;
-        _ra_sum.y += _accel_ef.y * deltat;
-        _ra_sum.z += _accel_ef.z * deltat;
+        _ra_sum.x += _accel_ef.x * deltaTime;
+        _ra_sum.y += _accel_ef.y * deltaTime;
+        _ra_sum.z += _accel_ef.z * deltaTime;
     }
 
-    // keep a sum of the deltat values, so we know how much time we have integrated over
-    _ra_deltat += deltat;
+    // keep a sum of the deltaTime values, so we know how much time we have integrated over
+    _ra_deltaTime += deltaTime;
 
-    if (!have_gps() || gpsSol.numSat < 6) {
-        // no GPS, or not a good lock. From experience we need at
-        // least 6 satellites to get a really reliable velocity number
-        // from the GPS.
-        //
+    if (!have_gps()) {
         // As a fallback we use the fixed wing acceleration correction
         // if we have an airspeed estimate (which we only have if
         // _fly_forward is set), otherwise no correction
-        if (_ra_deltat < 0.2f) {
+        if (_ra_deltaTime < 0.2f) {
             // not enough time has accumulated
             return;
         }
@@ -923,7 +899,7 @@ void drift_correction(float deltat)
         // use airspeed to estimate our ground velocity in earth frame by subtracting the wind
         velocity.x = rotationMatrix.m[0][0] * airspeed;
         velocity.y = -rotationMatrix.m[1][0] * airspeed;
-        velocity.z = rotationMatrix.m[2][0] * airspeed;
+        velocity.z = -rotationMatrix.m[2][0] * airspeed;
 
         // add in wind estimate
         velocity.x += _wind.x;
@@ -967,8 +943,7 @@ void drift_correction(float deltat)
         _last_airspeed = MAX(airspeed.x, 0.0f);
     }
 
-    // see if this is our first time through - in which case we
-    // just setup the start times and return
+    // see if this is our first time through - in which case we just setup the start times and return
     if (_ra_sum_start == 0) {
         _ra_sum_start = last_correction_time;
         _last_velocity.x = velocity.x;
@@ -983,13 +958,13 @@ void drift_correction(float deltat)
     GA_e.y = 0.0f;
     GA_e.z = 1.0f;
 
-    if (_ra_deltat <= 0) {
+    if (_ra_deltaTime <= 0.0f) {
         // waiting for more data
         return;
     }
     
     bool using_gps_corrections = false;
-    float ra_scale = 1.0f / (_ra_deltat * GRAVITY_CMSS);
+    const float ra_scale = 1.0f / (_ra_deltaTime * GRAVITY_CMSS);
     const float gps_gain = (float)ahrsConfig()->dcm_gps_gain / 10.0f;
     
     const bool should_correct_centrifugal = STATE(FIXED_WING_LEGACY) ? true : ARMING_FLAG(ARMED);
@@ -1110,9 +1085,7 @@ void drift_correction(float deltat)
     }
 
     if (fly_forward && have_gps() && gpsSol.groundSpeed < GPS_SPEED_MIN && imuMeasuredAccelBF.x >= 700.0f && _pitch > DEGREES_TO_RADIANS(-30) && _pitch < DEGREES_TO_RADIANS(30)) {
-        // assume we are in a launch acceleration, and reduce the
-        // rp gain by 50% to reduce the impact of GPS lag on
-        // takeoff attitude when using a catapult
+        // assume we are in a launch acceleration, and reduce the rp gain by 50% to reduce the impact of GPS lag on takeoff attitude when using a catapult
         _omega_P.x *= 0.5f;
         _omega_P.y *= 0.5f;
         _omega_P.z *= 0.5f;
@@ -1120,10 +1093,10 @@ void drift_correction(float deltat)
 
     // accumulate some integrator error
     if (spin_rate < DEGREES_TO_RADIANS(SPIN_RATE_LIMIT)) {
-        _omega_I_sum.x += error.x * _ki * _ra_deltat;
-        _omega_I_sum.y += error.y * _ki * _ra_deltat;
-        _omega_I_sum.z += error.z * _ki * _ra_deltat;
-        _omega_I_sum_time += _ra_deltat;
+        _omega_I_sum.x += error.x * _ki * _ra_deltaTime;
+        _omega_I_sum.y += error.y * _ki * _ra_deltaTime;
+        _omega_I_sum.z += error.z * _ki * _ra_deltaTime;
+        _omega_I_sum_time += _ra_deltaTime;
     }
 
     if (_omega_I_sum_time >= 5.0f) {
@@ -1145,8 +1118,8 @@ void drift_correction(float deltat)
     }
 
     // zero our accumulator ready for the next GPS step
-    memset((void *)&_ra_sum, 0, sizeof(_ra_sum));
-    _ra_deltat = 0.0f;
+    memset(&_ra_sum, 0, sizeof(_ra_sum));
+    _ra_deltaTime = 0.0f;
     _ra_sum_start = last_correction_time;
 
     // remember the velocity for next time
@@ -1207,12 +1180,12 @@ void calc_trig(float *cr, float *cp, float *cy, float *sr, float *sp, float *sy)
 }
 
 // run a full DCM update round
-void dcmUpdate(float delta_t)
+void dcmUpdate(float deltaTime)
 {
     // if the update call took more than 0.2 seconds then discard it, otherwise we may move too far.
-    if (delta_t > 0.2f) {
-        memset((void *)&_ra_sum, 0, sizeof(_ra_sum));
-        _ra_deltat = 0.0f;
+    if (deltaTime > 0.2f) {
+        memset(&_ra_sum, 0, sizeof(_ra_sum));
+        _ra_deltaTime = 0.0f;
         return;
     }
     
@@ -1221,17 +1194,20 @@ void dcmUpdate(float delta_t)
     }
 
     // Integrate the DCM matrix using gyro inputs
-    matrix_update(delta_t);
+    matrix_update(deltaTime);
 
     // Normalize the DCM matrix
     normalize();
 
     // Perform drift correction
-    drift_correction(delta_t);
+    drift_correction(deltaTime);
 
     // paranoid check for bad values in the DCM matrix
     check_matrix();
-
+    
+    // Perform AHRS log error
+    updateLogError();
+    
     // calculate the euler angles and DCM matrix which will be used
     // for high level navigation control. Apply trim such that a
     // positive trim value results in a positive vehicle rotation
@@ -1323,12 +1299,11 @@ void updateWindEstimator(void)
     velocity.y = _last_velocity.y;
     velocity.z = _last_velocity.z;
 
-    // this is based on the wind speed estimation code from MatrixPilot by Bill Premerlani. Adaption for ArduPilot by Jon Challinger
-    // See http://gentlenav.googlecode.com/files/WindEstimation.pdf
+    // this is based on the wind speed estimation code from MatrixPilot by Bill Premerlani.
     fpVector3_t fuselageDirection;
     fuselageDirection.x = rotationMatrix.m[0][0];
     fuselageDirection.y = -rotationMatrix.m[1][0];
-    fuselageDirection.z = rotationMatrix.m[2][0];
+    fuselageDirection.z = -rotationMatrix.m[2][0];
 
     fpVector3_t fuselageDirectionDiff;
     fuselageDirectionDiff.x = fuselageDirection.x - _last_fuse.x;
@@ -1351,8 +1326,7 @@ void updateWindEstimator(void)
 
     float diff_length = calc_length_pythagorean_3D(fuselageDirectionDiff.x, fuselageDirectionDiff.y, fuselageDirectionDiff.z);
     if (diff_length > 0.2f) {
-        // when turning, use the attitude response to estimate
-        // wind speed
+        // when turning, use the attitude response to estimate wind speed
         float V;
         fpVector3_t velocityDiff;
         velocityDiff.x = velocity.x - _last_vel.x;
@@ -1391,7 +1365,7 @@ void updateWindEstimator(void)
         wind.y *= 0.5f;
         wind.z *= 0.5f;
 
-        if (calc_length_pythagorean_3D(wind.x, wind.y, wind.z) < calc_length_pythagorean_3D(_wind.x, _wind.y, _wind.z) + 20) {
+        if (calc_length_pythagorean_3D(wind.x, wind.y, wind.z) < calc_length_pythagorean_3D(_wind.x, _wind.y, _wind.z) + 2000) {
             _wind.x = _wind.x * 0.95f + wind.x * 0.05f;
             _wind.y = _wind.y * 0.95f + wind.y * 0.05f;
             _wind.z = _wind.z * 0.95f + wind.z * 0.05f;
@@ -1439,28 +1413,14 @@ float getEstimatedHorizontalWindSpeed(uint16_t *angle)
     return calc_length_pythagorean_2D(xWindSpeed, yWindSpeed);
 }
 
-// airspeed_ret: will always be filled-in by get_unconstrained_airspeed_estimate which fills in airspeed_ret in this order:
-//               airspeed as filled-in by an enabled airsped sensor
-//               if no airspeed sensor: airspeed estimated using the GPS speed & wind_speed_estimation
-//               Or if none of the above, fills-in using the previous airspeed estimate
-// Return false: if we are using the previous airspeed estimate
-bool airspeed_estimate(float *airspeed_ret)
+float ahrsGetAirspeedEstimate(void)
 {
     if (realPitotEnabled()) {
-        *airspeed_ret = pitotCalculateAirSpeed();
-        return true;
+        return pitotCalculateAirSpeed();
     }
 
-    if (virtualPitotEnabled() && have_gps()) {
-        // Estimated via GPS speed and wind
-        *airspeed_ret = _last_airspeed;
-        return true;
-    }
-
-    // Else give the last estimate. This is used by the dead-reckoning code
-    *airspeed_ret = _last_airspeed;
-
-    return false;
+    // Estimated via GPS speed and wind, or give the last estimate.
+    return _last_airspeed;
 }
 
 // Check if the AHRS subsystem is healthy
@@ -1475,6 +1435,7 @@ bool isAhrsHeadingValid(void)
     return (sensors(SENSOR_MAG) && STATE(COMPASS_CALIBRATED)) || (STATE(FIXED_WING_LEGACY) && have_initial_yaw);
 }
 
+// AHRS tilt angle in Radians
 float ahrsGetTiltAngle(void)
 {
     return acos_approx(_cos_roll * _cos_pitch);
@@ -1483,6 +1444,9 @@ float ahrsGetTiltAngle(void)
 // Convert earth-frame to body-frame
 void ahrsTransformVectorEarthToBody(fpVector3_t * v)
 {
+    // HACK: This is needed to correctly transform from NEU (navigation) to NED (sensor frame)
+    v->y = -v->y;
+
     mul_transpose(v);
 }
 
@@ -1490,6 +1454,9 @@ void ahrsTransformVectorEarthToBody(fpVector3_t * v)
 void ahrsTransformVectorBodyToEarth(fpVector3_t * v)
 {
     row_times_mat(v);
+
+    // HACK: This is needed to correctly transform from NED (sensor frame) to NEU (navigation)
+    v->y = -v->y;
 }
 
 float ahrsGetCosYaw(void)

@@ -57,10 +57,8 @@
 
 rangefinder_t rangefinder;
 
-#define RANGEFINDER_HARDWARE_TIMEOUT_MS         500     // Accept 500ms of non-responsive sensor, report HW failure otherwise
-
-#define RANGEFINDER_DYNAMIC_THRESHOLD           600     //Used to determine max. usable rangefinder disatance
-#define RANGEFINDER_DYNAMIC_FACTOR              75
+#define RANGEFINDER_HARDWARE_TIMEOUT_MS 500 // Accept 500ms of non-responsive sensor, report HW failure otherwise
+#define RANGEFINDER_DYNAMIC_THRESHOLD   600 //Used to determine max. usable rangefinder disatance
 
 #ifdef USE_RANGEFINDER
 PG_REGISTER_WITH_RESET_TEMPLATE(rangefinderConfig_t, rangefinderConfig, PG_RANGEFINDER_CONFIG, 3);
@@ -166,7 +164,7 @@ bool rangefinderInit(void)
     rangefinder.dev.init(&rangefinder.dev);
     rangefinder.rawAltitude = RANGEFINDER_OUT_OF_RANGE;
     rangefinder.calculatedAltitude = RANGEFINDER_OUT_OF_RANGE;
-    rangefinder.maxTilt = DECIDEGREES_TO_RADIANS(rangefinder.dev.detectionConeExtendedDeciDegrees / 2.0f);
+    rangefinder.maxTiltAngle = DECIDEGREES_TO_RADIANS(rangefinder.dev.detectionConeExtendedDeciDegrees / 2.0f);
     rangefinder.lastValidResponseTimeMs = millis();
 
     return true;
@@ -243,10 +241,10 @@ bool rangefinderProcess(float TiltAngle)
     *
     * When the ground is too far away or the tilt is too large, RANGEFINDER_OUT_OF_RANGE is returned.
     */
-    if (TiltAngle > rangefinder.maxTilt || rangefinder.rawAltitude < 0) {
+    if (TiltAngle > rangefinder.maxTiltAngle || rangefinder.rawAltitude < 0) {
         rangefinder.calculatedAltitude = RANGEFINDER_OUT_OF_RANGE;
     } else {
-        rangefinder.calculatedAltitude = rangefinder.rawAltitude * (1.0f - TiltAngle);
+        rangefinder.calculatedAltitude = rangefinder.rawAltitude * TiltAngle;
     }
 
     return true;
