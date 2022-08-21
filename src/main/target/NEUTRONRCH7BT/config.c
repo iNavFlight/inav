@@ -15,12 +15,21 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include <stdint.h>
 
-#define FEET_PER_MILE                           5280
-#define FEET_PER_NAUTICALMILE                   6076.118
-#define FEET_PER_KILOFEET                       1000 // Used for altitude
-#define METERS_PER_KILOMETER                    1000
-#define METERS_PER_MILE                         1609.344
-#define METERS_PER_FOOT                         3.28084
-#define METERS_PER_NAUTICALMILE                 1852.001
+#include "platform.h"
+
+#include "fc/fc_msp_box.h"
+#include "fc/config.h"
+
+#include "io/piniobox.h"
+#include "io/serial.h"
+
+void targetConfiguration(void)
+{
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART3)].functionMask = FUNCTION_MSP;
+    pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
+    pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
+    pinioBoxConfigMutable()->permanentId[2] = BOX_PERMANENT_ID_USER3;
+    // compassConfigMutable()->mag_align = XXX;
+}
