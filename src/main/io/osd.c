@@ -3164,7 +3164,7 @@ static bool osdDrawSingleElement(uint8_t item)
             }
 #ifdef USE_MULTI_MISSION
             else {
-                if (ARMING_FLAG(ARMED) && !IS_RC_MODE_ACTIVE(BOXCHANGEMISSION)){    // CR74
+                if (ARMING_FLAG(ARMED) && !(IS_RC_MODE_ACTIVE(BOXCHANGEMISSION) && posControl.multiMissionCount > 1)){    // CR74
                     // Limit field size when Armed, only show selected mission
                     tfp_sprintf(buff, "M%u       ", posControl.loadedMultiMissionIndex);
                 } else if (posControl.multiMissionCount && navConfig()->general.waypoint_multi_mission_index){
@@ -3172,7 +3172,7 @@ static bool osdDrawSingleElement(uint8_t item)
                         tfp_sprintf(buff, "M%u/%u>LOAD", navConfig()->general.waypoint_multi_mission_index, posControl.multiMissionCount);
                     } else {
                         // wpCount source for selected mission changes after Arming (until next mission load)
-                        int8_t wpCount = posControl.loadedMultiMissionWPCount ? posControl.loadedMultiMissionWPCount : posControl.waypointCount;
+                        int8_t wpCount = posControl.loadedMissionWPCount;   // CR74
                         if (posControl.waypointListValid && wpCount > 0) {
                             tfp_sprintf(buff, "M%u/%u>%2uWP", posControl.loadedMultiMissionIndex, posControl.multiMissionCount, wpCount);
                         } else {
