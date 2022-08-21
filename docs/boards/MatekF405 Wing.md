@@ -16,6 +16,7 @@
 
 * For Matek F405-WING use `MATEKF405SE` firmware.
 * SBUS pin is connected to UART2
+* I2C OLED display is connected to I2C2
 * SmartPort telemetry can be setup with `SoftwareSerial` feature turned on, SmartPort configured in SoftwareSerial1 and receiver connected to UART2 TX pad
 
 ## Where to buy:
