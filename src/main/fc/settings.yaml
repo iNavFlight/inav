@@ -2280,6 +2280,11 @@ groups:
         default_value: OFF
         field: allow_dead_reckoning
         type: bool
+      - name: inav_allow_gps_fix_estimation
+        description: "Defines if inav will estimate GPS fix with magnetometer and barometer on GPS outages. Enables navigation and RTH without GPS."
+        default_value: OFF
+        field: allow_gps_fix_estimation
+        type: bool
       - name: inav_reset_altitude
         description: "Defines when relative estimated altitude is reset to zero. Variants - `NEVER` (once reference is acquired it's used regardless); `FIRST_ARM` (keep altitude at zero until firstly armed), `EACH_ARM` (altitude is reset to zero on each arming)"
         default_value: "FIRST_ARM"

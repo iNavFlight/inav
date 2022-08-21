@@ -76,7 +76,7 @@ uint16_t frskyGetGPSState(void)
     tmpi += (9 - constrain((gpsSol.hdop - 51) / 50, 0, 9)) * 100;
 
     // thousands column (GPS fix status)
-    if (STATE(GPS_FIX))
+    if (STATE(GPS_FIX) || STATE(GPS_ESTIMATED_FIX))
         tmpi += 1000;
     if (STATE(GPS_FIX_HOME))
         tmpi += 2000;

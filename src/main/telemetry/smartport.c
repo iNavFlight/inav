@@ -346,7 +346,7 @@ static bool smartPortShouldSendGPSData(void)
     // or the craft has never been armed yet. This way if GPS stops working
     // while in flight, the user will easily notice because the sensor will stop
     // updating.
-    return feature(FEATURE_GPS) && (STATE(GPS_FIX) || !ARMING_FLAG(WAS_EVER_ARMED));
+    return feature(FEATURE_GPS) && (STATE(GPS_FIX) || STATE(GPS_ESTIMATED_FIX) || !ARMING_FLAG(WAS_EVER_ARMED));
 }
 
 void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clearToSend, const uint32_t *requestTimeout)

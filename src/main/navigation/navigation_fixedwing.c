@@ -697,7 +697,7 @@ bool isFixedWingLandingDetected(void)
     timeMs_t currentTimeMs = millis();
 
     // Check horizontal and vertical volocities are low (cm/s)
-    bool velCondition = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < 50.0f && posControl.actualState.velXY < 100.0f;
+    bool velCondition = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < 50.0f && ((posControl.actualState.velXY < 100.0f) || STATE(GPS_ESTIMATED_FIX));
     // Check angular rates are low (degs/s)
     bool gyroCondition = averageAbsGyroRates() < 2.0f;
     DEBUG_SET(DEBUG_LANDING, 2, velCondition);

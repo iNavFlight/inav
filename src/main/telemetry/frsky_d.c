@@ -181,7 +181,7 @@ static void sendGpsAltitude(void)
 {
     uint16_t altitude = gpsSol.llh.alt / 100; // meters
     //Send real GPS altitude only if it's reliable (there's a GPS fix)
-    if (!STATE(GPS_FIX)) {
+    if (!(STATE(GPS_FIX) || STATE(GPS_ESTIMATED_FIX))) {
         altitude = 0;
     }
     sendDataHead(ID_GPS_ALTIDUTE_BP);
@@ -221,7 +221,7 @@ static void sendSatalliteSignalQualityAsTemperature2(void)
 
 static void sendSpeed(void)
 {
-    if (!STATE(GPS_FIX)) {
+    if (!(STATE(GPS_FIX) || STATE(GPS_ESTIMATED_FIX))) {
         return;
     }
     //Speed should be sent in knots (GPS speed is in cm/s)
@@ -234,7 +234,7 @@ static void sendSpeed(void)
 
 static void sendHomeDistance(void)
 {
-    if (!STATE(GPS_FIX)) {
+    if (!(STATE(GPS_FIX) || STATE(GPS_ESTIMATED_FIX))) {
         return;
     }
     sendDataHead(ID_HOME_DIST);

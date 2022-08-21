@@ -1227,7 +1227,7 @@ static void osdDrawMap(int referenceHeading, uint16_t referenceSym, uint16_t cen
         }
     }
 
-    if (STATE(GPS_FIX)) {
+    if (STATE(GPS_FIX) || STATE(GPS_ESTIMATED_FIX)) {
 
         int directionToPoi = osdGetHeadingAngle(poiDirection - referenceHeading);
         float poiAngle = DEGREES_TO_RADIANS(directionToPoi);
@@ -1341,7 +1341,7 @@ static void osdDisplayTelemetry(void)
     static uint16_t   trk_bearing   = 0;
 
     if (ARMING_FLAG(ARMED)) {
-      if (STATE(GPS_FIX)){
+      if (STATE(GPS_FIX) || STATE(GPS_ESTIMATED_FIX)){
         if (GPS_distanceToHome > 5) {
           trk_bearing = GPS_directionToHome;
           trk_bearing += 360 + 180;
@@ -1662,8 +1662,10 @@ static bool osdDrawSingleElement(uint8_t item)
         buff[0] = SYM_SAT_L;
         buff[1] = SYM_SAT_R;
         tfp_sprintf(buff + 2, "%2d", gpsSol.numSat);
-        if (!STATE(GPS_FIX)) {
-            if (getHwGPSStatus() == HW_SENSOR_UNAVAILABLE || getHwGPSStatus() == HW_SENSOR_UNHEALTHY) {
+        if (STATE(GPS_ESTIMATED_FIX)) {
+			if (!STATE(GPS_FIX)) {
+				strcpy(buff + 2, "ES");
+			} else if (getHwGPSStatus() == HW_SENSOR_UNAVAILABLE || getHwGPSStatus() == HW_SENSOR_UNHEALTHY) {
                 strcpy(buff + 2, "X!");
             }
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
@@ -1717,7 +1719,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_HOME_DIR:
         {
-            if (STATE(GPS_FIX) && STATE(GPS_FIX_HOME) && isImuHeadingValid()) {
+            if ((STATE(GPS_FIX) || STATE(GPS_ESTIMATED_FIX)) && STATE(GPS_FIX_HOME) && isImuHeadingValid()) {
                 if (GPS_distanceToHome < (navConfig()->general.min_rth_distance / 100) ) {
                     displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_HOME_NEAR);
                 }
@@ -2178,11 +2180,11 @@ static bool osdDrawSingleElement(uint8_t item)
         osdCrosshairPosition(&elemPosX, &elemPosY);
         osdHudDrawCrosshair(osdGetDisplayPortCanvas(), elemPosX, elemPosY);
 
-        if (osdConfig()->hud_homing && STATE(GPS_FIX) && STATE(GPS_FIX_HOME) && isImuHeadingValid()) {
+        if (osdConfig()->hud_homing && (STATE(GPS_FIX) || STATE(GPS_ESTIMATED_FIX)) && STATE(GPS_FIX_HOME) && isImuHeadingValid()) {
             osdHudDrawHoming(elemPosX, elemPosY);
         }
 
-        if (STATE(GPS_FIX) && isImuHeadingValid()) {
+        if ((STATE(GPS_FIX) || STATE(GPS_ESTIMATED_FIX)) && isImuHeadingValid()) {
 
             if (osdConfig()->hud_homepoint || osdConfig()->hud_radar_disp > 0 || osdConfig()->hud_wp_disp > 0) {
                     osdHudClear();
@@ -2721,7 +2723,7 @@ static bool osdDrawSingleElement(uint8_t item)
             bool moreThanAh = false;
             timeUs_t currentTimeUs = micros();
             timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
-            if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
+            if ((STATE(GPS_FIX) || STATE(GPS_ESTIMATED_FIX)) && gpsSol.groundSpeed > 0) {
                 if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
                     value = pt1FilterApply4(&eFilterState, ((float)getAmperage() / gpsSol.groundSpeed) / 0.0036f,
                         1, US2S(efficiencyTimeDelta));
@@ -2792,7 +2794,7 @@ static bool osdDrawSingleElement(uint8_t item)
             int32_t value = 0;
             timeUs_t currentTimeUs = micros();
             timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
-            if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
+            if ((STATE(GPS_FIX) || STATE(GPS_ESTIMATED_FIX))&& gpsSol.groundSpeed > 0) {
                 if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
                     value = pt1FilterApply4(&eFilterState, ((float)getPower() / gpsSol.groundSpeed) / 0.0036f,
                         1, US2S(efficiencyTimeDelta));
@@ -2953,7 +2955,7 @@ static bool osdDrawSingleElement(uint8_t item)
             STATIC_ASSERT(GPS_DEGREES_DIVIDER == OLC_DEG_MULTIPLIER, invalid_olc_deg_multiplier);
             int digits = osdConfig()->plus_code_digits;
             int digitsRemoved = osdConfig()->plus_code_short * 2;
-            if (STATE(GPS_FIX)) {
+            if ((STATE(GPS_FIX) || STATE(GPS_ESTIMATED_FIX))) {
                 olc_encode(gpsSol.llh.lat, gpsSol.llh.lon, digits, buff, sizeof(buff));
             } else {
                 // +codes with > 8 digits have a + at the 9th digit

@@ -348,7 +348,7 @@ static void sendSMS(void)
 
     memset(pluscode_url, 0, sizeof(pluscode_url));
 
-    if (sensors(SENSOR_GPS) && STATE(GPS_FIX)) {
+    if (sensors(SENSOR_GPS) && (STATE(GPS_FIX) || STATE(GPS_ESTIMATED_FIX))) {
         groundSpeed = gpsSol.groundSpeed / 100;
 
         char buf[20];

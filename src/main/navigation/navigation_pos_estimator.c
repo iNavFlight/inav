@@ -91,7 +91,9 @@ PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
         .w_acc_bias = SETTING_INAV_W_ACC_BIAS_DEFAULT,
 
         .max_eph_epv = SETTING_INAV_MAX_EPH_EPV_DEFAULT,
-        .baro_epv = SETTING_INAV_BARO_EPV_DEFAULT
+        .baro_epv = SETTING_INAV_BARO_EPV_DEFAULT,
+
+        .allow_gps_fix_estimation = SETTING_INAV_ALLOW_GPS_FIX_ESTIMATION_DEFAULT
 );
 
 #define resetTimer(tim, currentTimeUs) { (tim)->deltaTime = 0; (tim)->lastTriggeredTime = currentTimeUs; }
@@ -150,6 +152,13 @@ static bool detectGPSGlitch(timeUs_t currentTimeUs)
 
     bool isGlitching = false;
 
+	if (STATE(GPS_ESTIMATED_FIX)) {
+		//disable sanity checks in GPS estimation mode
+		//when estimated GPS fix is replaced with real fix, coordinates may jump 
+		previousTime = 0;
+		return true;
+	}
+
     if (previousTime == 0) {
         isGlitching = false;
     }
@@ -202,7 +211,7 @@ void onNewGPSData(void)
     newLLH.alt = gpsSol.llh.alt;
 
     if (sensors(SENSOR_GPS)) {
-        if (!STATE(GPS_FIX)) {
+        if (!(STATE(GPS_FIX) || STATE(GPS_ESTIMATED_FIX))) {
             isFirstGPSUpdate = true;
             return;
         }

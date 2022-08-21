@@ -45,20 +45,30 @@
 #include "fc/runtime_config.h"
 #endif
 
+#include "fc/rc_modes.h"
+
 #include "sensors/sensors.h"
 #include "sensors/compass.h"
+#include "sensors/barometer.h"
+#include "sensors/pitotmeter.h"
 
 #include "io/serial.h"
 #include "io/gps.h"
 #include "io/gps_private.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_private.h"
 
 #include "config/feature.h"
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
+
+#include "flight/imu.h"
+#include "flight/wind_estimator.h"
+#include "flight/pid.h"
+#include "flight/mixer.h"
 
 typedef struct {
     bool                isDriverBased;
@@ -137,6 +147,117 @@ void gpsSetProtocolTimeout(timeMs_t timeoutMs)
     gpsState.timeoutMs = timeoutMs;
 }
 
+
+bool canEstimateGPSFix(void)
+{
+	return positionEstimationConfig()->allow_gps_fix_estimation && STATE(AIRPLANE) && sensors(SENSOR_GPS) && sensors(SENSOR_BARO) && sensors(SENSOR_MAG) && ARMING_FLAG(WAS_EVER_ARMED) && STATE(GPS_FIX_HOME);
+}
+
+void updateEstimatedGPSFix(void) {
+
+	static uint32_t lastUpdateMs = 0;
+	static int32_t estimated_lat = 0;
+	static int32_t estimated_lon = 0;
+	static int32_t estimated_alt = 0;
+
+	uint32_t t = millis();
+	int32_t dt = t - lastUpdateMs;
+	lastUpdateMs = t;
+
+	static int32_t last_lat = 0;
+	static int32_t last_lon = 0;
+	static int32_t last_alt = 0;
+
+	if (IS_RC_MODE_ACTIVE(BOXGPSOFF))
+	{
+		gpsSol.fixType = GPS_NO_FIX;
+		gpsSol.hdop = 9999;
+		gpsSol.numSat = 0;
+
+		//freeze coordinates
+		gpsSol.llh.lat = last_lat;
+		gpsSol.llh.lon = last_lon;
+		gpsSol.llh.alt = last_alt;
+
+		DISABLE_STATE(GPS_FIX);
+	}
+	else
+	{
+		last_lat = gpsSol.llh.lat;
+		last_lon = gpsSol.llh.lon;
+		last_alt = gpsSol.llh.alt;
+	}
+
+	if (STATE(GPS_FIX) || !canEstimateGPSFix()) {
+		DISABLE_STATE(GPS_ESTIMATED_FIX);
+		estimated_lat = gpsSol.llh.lat;
+		estimated_lon = gpsSol.llh.lon;
+		estimated_alt = posControl.gpsOrigin.alt + baro.BaroAlt;
+		return;
+	}
+	
+	ENABLE_STATE(GPS_ESTIMATED_FIX);
+
+	gpsSol.fixType = GPS_FIX_3D;
+	gpsSol.hdop = 99;
+	gpsSol.flags.hasNewData = true;
+	gpsSol.numSat = 99;
+
+	gpsSol.eph = 100;
+	gpsSol.epv = 100;
+
+	gpsSol.flags.validVelNE = 1;
+	gpsSol.flags.validVelD = 0;  //do not provide velocity.z
+	gpsSol.flags.validEPE = 1;
+
+	float speed = pidProfile()->fixedWingReferenceAirspeed;
+
+#ifdef USE_PITOT
+	if (sensors(SENSOR_PITOT) && pitotIsHealthy())
+	{
+		speed = pitotCalculateAirSpeed();
+	}
+#endif
+
+	float velX = rMat[0][0] * speed;
+	float velY = -rMat[1][0] * speed;
+	// here (velX, velY) is estimated horizontal speed without wind influence = airspeed, cm/sec in NEU frame
+
+	if (isEstimatedWindSpeedValid()) {
+		velX += getEstimatedWindSpeed(X);
+		velY += getEstimatedWindSpeed(Y);
+	}
+	// here (velX, velY) is estimated horizontal speed with wind influence = ground speed
+
+	if (STATE(LANDING_DETECTED) || ((posControl.navState == NAV_STATE_RTH_LANDING) && (getThrottlePercent() == 0)))
+	{
+		velX = 0;
+		velY = 0;
+	}
+
+	estimated_lat += (int32_t)( velX * dt / (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * 1000 ) );
+	estimated_lon += (int32_t)( velY * dt / (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * 1000 * posControl.gpsOrigin.scale) );
+	estimated_alt = posControl.gpsOrigin.alt + baro.BaroAlt;
+
+	gpsSol.llh.lat = estimated_lat;
+	gpsSol.llh.lon = estimated_lon;
+	gpsSol.llh.alt = estimated_alt;
+	
+	gpsSol.groundSpeed = (int16_t)fast_fsqrtf(velX * velX + velY * velY);
+
+	float groundCourse = atan2_approx(velY, velX); // atan2 returns [-M_PI, M_PI], with 0 indicating the vector points in the X direction
+	if (groundCourse < 0) {
+		groundCourse += 2 * M_PIf;
+	}
+	gpsSol.groundCourse = RADIANS_TO_DECIDEGREES(groundCourse);
+
+	gpsSol.velNED[X] = (int16_t)(velX);
+	gpsSol.velNED[Y] = (int16_t)(velY);
+	gpsSol.velNED[Z] = 0;
+}
+
+
+
 void gpsProcessNewSolutionData(void)
 {
     // Set GPS fix flag only if we have 3D fix
@@ -153,6 +274,8 @@ void gpsProcessNewSolutionData(void)
 
     // Set sensor as ready and available
     sensorsSet(SENSOR_GPS);
+
+	updateEstimatedGPSFix();
 
     // Pass on GPS update to NAV and IMU
     onNewGPSData();
