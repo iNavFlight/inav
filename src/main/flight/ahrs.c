@@ -66,6 +66,11 @@ FILE_COMPILE_FOR_SPEED
 #define RP_KP_MIN 0.05f
 #define YAW_KP_MIN 0.05f
 
+// These are experimentally derived from the simulator with large drift levels
+// Not Configurable
+#define DCM_KI_ACC 0.0087f
+#define DCM_KI_MAG 0.01f
+
 // This is the speed in cm/s above which we first get a yaw lock with the GPS
 #define GPS_SPEED_MIN 300
 
@@ -114,17 +119,13 @@ STATIC_FASTRAM float _sin_roll;
 STATIC_FASTRAM float _sin_pitch;
 STATIC_FASTRAM float _sin_yaw;
 
-timeMs_t _last_consistent_heading;
-timeMs_t _last_startup_ms;
-timeMs_t _ra_sum_start;
-timeMs_t _last_failure_ms;
-timeMs_t _gps_last_update;
-timeMs_t _last_wind_time;
-timeUs_t _compass_last_update;
-
-// not configurable
-static float _ki = 0.0087f;
-static float _ki_yaw = 0.01f;
+STATIC_FASTRAM timeMs_t _last_consistent_heading;
+STATIC_FASTRAM timeMs_t _last_startup_ms;
+STATIC_FASTRAM timeMs_t _ra_sum_start;
+STATIC_FASTRAM timeMs_t _last_failure_ms;
+STATIC_FASTRAM timeMs_t _gps_last_update;
+STATIC_FASTRAM timeMs_t _last_wind_time;
+STATIC_FASTRAM timeUs_t _compass_last_update;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(ahrsConfig_t, ahrsConfig, PG_AHRS_CONFIG, 3);
 
@@ -366,16 +367,17 @@ void ahrsReset(bool recover_eulers)
     _last_startup_ms = millis();
 }
 
-// renormalise one vector component of the DCM matrix this will return false if renormalization fails
+// Renormalise one vector component of the DCM matrix this will return false if renormalization fails
 bool renorm(fpVector3_t a, fpVector3_t *result)
 {
-    // numerical errors will slowly build up over time in DCM, causing inaccuracies. We can keep ahead of those errors using the renormalization technique from the DCM IMU paper (see equations 18 to 21).
+    // Numerical errors will slowly build up over time in DCM, causing inaccuracies. 
+    // We can keep ahead of those errors using the renormalization technique from the DCM IMU paper (see equations 18 to 21).
     const float renorm_val = 1.0f / calc_length_pythagorean_3D(a.x, a.y, a.z);
 
     if (!(renorm_val < 2.0f && renorm_val > 0.5f)) {
-        // this is larger than it should get - log it as a warning
+        // This is larger than it should get - log it as a warning
         if (!(renorm_val < 1.0e6f && renorm_val > 1.0e-6f)) {
-            // we are getting values which are way out of range, we will reset the matrix and hope we can recover our attitude using drift correction before we hit the ground!
+            // We are getting values which are way out of range, we will reset the matrix and hope we can recover our attitude using drift correction before we hit the ground!
             LOG_E(IMU, "AHRS ERROR: DCM renormalisation error");
             imuErrorEvent.errorCode = 3;
             return false;
@@ -806,7 +808,7 @@ void drift_correction_yaw(void)
     // don't update the drift term if we lost the yaw reference for more than 2 seconds
     if (yaw_deltaTime < 2.0f && spin_rate < DEGREES_TO_RADIANS(SPIN_RATE_LIMIT)) {
         // also add to the I term
-        _omega_I_sum.z += error_z * _ki_yaw * yaw_deltaTime;
+        _omega_I_sum.z += error_z * DCM_KI_MAG * yaw_deltaTime;
     }
 }
 
@@ -1089,9 +1091,9 @@ void drift_correction(float deltaTime)
 
     // accumulate some integrator error
     if (spin_rate < DEGREES_TO_RADIANS(SPIN_RATE_LIMIT)) {
-        _omega_I_sum.x += error.x * _ki * _ra_deltaTime;
-        _omega_I_sum.y += error.y * _ki * _ra_deltaTime;
-        _omega_I_sum.z += error.z * _ki * _ra_deltaTime;
+        _omega_I_sum.x += error.x * DCM_KI_ACC * _ra_deltaTime;
+        _omega_I_sum.y += error.y * DCM_KI_ACC * _ra_deltaTime;
+        _omega_I_sum.z += error.z * DCM_KI_ACC * _ra_deltaTime;
         _omega_I_sum_time += _ra_deltaTime;
     }
 
