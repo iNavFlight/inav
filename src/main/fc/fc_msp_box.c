@@ -87,14 +87,14 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { .boxId = BOXUSER1,            .boxName = "USER1",             .permanentId = BOX_PERMANENT_ID_USER1 },
     { .boxId = BOXUSER2,            .boxName = "USER2",             .permanentId = BOX_PERMANENT_ID_USER2 },
     { .boxId = BOXUSER3,            .boxName = "USER3",             .permanentId = BOX_PERMANENT_ID_USER3 },
-    { .boxId = BOXLOITERDIRCHN,     .boxName = "LOITER CHANGE",     .permanentId = 49 },
+    { .boxId = BOXLOITERDIRCHN,     .boxName = "LOITER CHANGE",     .permanentId = 57 }, //BOX_PERMANENT_ID_USER3 = 49
     { .boxId = BOXMSPRCOVERRIDE,    .boxName = "MSP RC OVERRIDE",   .permanentId = 50 },
     { .boxId = BOXPREARM,           .boxName = "PREARM",            .permanentId = 51 },
     { .boxId = BOXTURTLE,           .boxName = "TURTLE",            .permanentId = 52 },
     { .boxId = BOXNAVCRUISE,        .boxName = "NAV CRUISE",        .permanentId = 53 },
     { .boxId = BOXAUTOLEVEL,        .boxName = "AUTO LEVEL",        .permanentId = 54 },
     { .boxId = BOXPLANWPMISSION,    .boxName = "WP PLANNER",        .permanentId = 55 },
-    { .boxId = BOXSOARING,          .boxName = "SOARING",           .permanentId = 56 },
+    { .boxId = BOXSOARING,          .boxName = "SOARING",           .permanentId = 56 }, 
     { .boxId = CHECKBOX_ITEM_COUNT, .boxName = NULL,                .permanentId = 0xFF }
 };
 
