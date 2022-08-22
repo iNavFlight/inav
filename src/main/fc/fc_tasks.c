@@ -72,8 +72,6 @@
 #include "msp/msp_serial.h"
 
 #include "rx/rx.h"
-#include "rx/eleres.h"
-#include "rx/rx_spi.h"
 
 #include "scheduler/scheduler.h"
 
@@ -461,7 +459,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskName = "RX",
         .checkFunc = taskUpdateRxCheck,
         .taskFunc = taskUpdateRxMain,
-        .desiredPeriod = TASK_PERIOD_HZ(50),      // If event-based scheduling doesn't work, fallback to periodic scheduling
+        .desiredPeriod = TASK_PERIOD_HZ(10),      // If event-based scheduling doesn't work, fallback to periodic scheduling
         .staticPriority = TASK_PRIORITY_HIGH,
     },
 

@@ -183,14 +183,6 @@ extern const uint8_t __pg_resetdata_end[];
     PG_REGISTER_ARRAY_I(_type, _size, _name, _pgn, _version, .reset = {.fn = (pgResetFunc*)&pgResetFn_ ## _name}) \
     /**/
 
-#if 0
-// ARRAY reset mechanism is not implemented yet, only few places in code would benefit from it - See pgResetInstance
-#define PG_REGISTER_ARRAY_WITH_RESET_TEMPLATE(_type, _size, _name, _pgn, _version) \
-    extern const _type pgResetTemplate_ ## _name;                       \
-    PG_REGISTER_ARRAY_I(_type, _size, _name, _pgn, _version, .reset = {.ptr = (void*)&pgResetTemplate_ ## _name}) \
-    /**/
-#endif
-
 #ifdef UNIT_TEST
 # define _PG_PROFILE_CURRENT_DECL(_type, _name)                  \
     _type *_name ## _ProfileCurrent = &_name ## _Storage[0];

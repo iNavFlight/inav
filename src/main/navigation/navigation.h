@@ -119,9 +119,8 @@ typedef enum {
 } navRTHAllowLanding_e;
 
 typedef enum {
-    NAV_EXTRA_ARMING_SAFETY_OFF = 0,
-    NAV_EXTRA_ARMING_SAFETY_ON = 1,
-    NAV_EXTRA_ARMING_SAFETY_ALLOW_BYPASS = 2, // Allow disabling by holding THR+YAW low
+    NAV_EXTRA_ARMING_SAFETY_ON = 0,
+    NAV_EXTRA_ARMING_SAFETY_ALLOW_BYPASS = 1, // Allow disabling by holding THR + YAW high
 } navExtraArmingSafety_e;
 
 typedef enum {
@@ -163,6 +162,12 @@ typedef enum {
     WP_MISSION_RESUME,
     WP_MISSION_SWITCH,
 } navMissionRestart_e;
+
+typedef enum {
+    RTH_TRACKBACK_OFF,
+    RTH_TRACKBACK_ON,
+    RTH_TRACKBACK_FS,
+} rthTrackbackMode_e;
 
 typedef struct positionEstimationConfig_s {
     uint8_t automatic_mag_declination;
@@ -223,6 +228,7 @@ typedef struct navConfig_s {
             uint8_t mission_planner_reset;      // Allow WP Mission Planner reset using mode toggle (resets WPs to 0)
             uint8_t waypoint_mission_restart;   // Waypoint mission restart action
             uint8_t waypoint_enforce_altitude;  // Forces waypoint altitude to be achieved
+            uint8_t rth_trackback_mode;         // Useage mode setting for RTH trackback
         } flags;
 
         uint8_t  pos_failure_timeout;               // Time to wait before switching to emergency landing (0 - disable)
@@ -250,6 +256,7 @@ typedef struct navConfig_s {
         uint16_t max_terrain_follow_altitude;       // Max altitude to be used in SURFACE TRACKING mode
         uint16_t safehome_max_distance;             // Max distance that a safehome is from the arming point
         uint16_t max_altitude;                      // Max altitude when in AltHold mode (not Surface Following)
+        uint16_t rth_trackback_distance;            // RTH trackback maximum distance [m]
     } general;
 
     struct {
@@ -294,6 +301,7 @@ typedef struct navConfig_s {
         uint16_t launch_max_altitude;        // cm, altitude where to consider launch ended
         uint8_t  launch_climb_angle;         // Target climb angle for launch (deg)
         uint8_t  launch_max_angle;           // Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg]
+        bool     launch_manual_throttle;     // Allows launch with manual throttle control
         uint8_t  launch_abort_deadband;      // roll/pitch stick movement deadband for launch abort
         uint8_t  cruise_yaw_rate;            // Max yaw rate (dps) when CRUISE MODE is enabled
         bool     allow_manual_thr_increase;
@@ -336,11 +344,11 @@ typedef enum {
 } navWaypointFlags_e;
 
 typedef struct {
-    uint8_t action;
     int32_t lat;
     int32_t lon;
     int32_t alt;
     int16_t p1, p2, p3;
+    uint8_t action;
     uint8_t flag;
 } navWaypoint_t;
 

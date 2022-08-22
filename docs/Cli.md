@@ -79,7 +79,6 @@ While connected to the CLI, all Logical Switches are temporarily disabled (5.1.0
 | `dfu` | DFU mode on reboot |
 | `diff` | List configuration changes from default |
 | `dump` | Dump configuration |
-| `eleres_bind` |  |
 | `exit` |  |
 | `feature` | List or enable <val> or disable <-val> |
 | `flash_erase` | Erase flash chip |

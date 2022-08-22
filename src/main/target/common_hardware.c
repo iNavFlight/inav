@@ -36,10 +36,6 @@
         BUSDEV_REGISTER_SPI(busdev_mpu6000,     DEVHW_MPU6000,      MPU6000_SPI_BUS,    MPU6000_CS_PIN,     GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_MPU6000_ALIGN);
     #endif
 
-    #if defined(USE_IMU_MPU6050)
-        BUSDEV_REGISTER_I2C(busdev_mpu6050,     DEVHW_MPU6050,      MPU6050_I2C_BUS,    MPU_ADDRESS,        GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_MPU6050_ALIGN);
-    #endif
-
     #if defined(USE_IMU_MPU6500)
         #if defined(MPU6500_SPI_BUS)
         BUSDEV_REGISTER_SPI(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_SPI_BUS,    MPU6500_CS_PIN,     GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_MPU6500_ALIGN);
@@ -103,7 +99,10 @@
     #if !defined(BMP280_I2C_BUS)
         #define BMP280_I2C_BUS BARO_I2C_BUS
     #endif
-    BUSDEV_REGISTER_I2C(busdev_bmp280,      DEVHW_BMP280,       BMP280_I2C_BUS,     0x76,               NONE,           DEVFLAGS_NONE,      0);
+    #if !defined(BMP280_I2C_ADDR)
+        #define BMP280_I2C_ADDR (0x76)
+    #endif
+    BUSDEV_REGISTER_I2C(busdev_bmp280,      DEVHW_BMP280,       BMP280_I2C_BUS,     BMP280_I2C_ADDR,	NONE,           DEVFLAGS_NONE,      0);
     #endif
 #endif
 
@@ -416,13 +415,6 @@
     #endif
 
     BUSDEV_REGISTER_I2C(busdev_pcf8574,      DEVHW_PCF8574,       PCF8574_I2C_BUS,     0x20,               NONE,           DEVFLAGS_NONE, 0);
-#endif
-
-#ifdef USE_IMU_BNO055
-#ifndef BNO055_I2C_BUS
-    #define BNO055_I2C_BUS BUS_I2C1
-#endif
-    BUSDEV_REGISTER_I2C(busdev_bno055,      DEVHW_BNO055,       BNO055_I2C_BUS,     0x29,               NONE,           DEVFLAGS_NONE, 0);
 #endif
 
 #endif  // USE_TARGET_HARDWARE_DESCRIPTORS

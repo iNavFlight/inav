@@ -38,7 +38,6 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/time.h"
 #include "drivers/system.h"
 #include "drivers/pwm_output.h"
-#include "drivers/accgyro/accgyro_bno055.h"
 
 #include "sensors/sensors.h"
 #include "sensors/diagnostics.h"
@@ -265,7 +264,26 @@ static void updateArmingStatus(void)
 #endif
 
         /* CHECK: */
-        if (sensors(SENSOR_ACC) && !STATE(ACCELEROMETER_CALIBRATED)) {
+        if (
+            sensors(SENSOR_ACC) && 
+            !STATE(ACCELEROMETER_CALIBRATED) &&
+            // Require ACC calibration only if any of the setting might require it
+            (
+                isModeActivationConditionPresent(BOXNAVPOSHOLD) ||
+                isModeActivationConditionPresent(BOXNAVRTH) ||
+                isModeActivationConditionPresent(BOXNAVWP) ||
+                isModeActivationConditionPresent(BOXANGLE) ||
+                isModeActivationConditionPresent(BOXHORIZON) ||
+                isModeActivationConditionPresent(BOXNAVALTHOLD) ||
+                isModeActivationConditionPresent(BOXHEADINGHOLD) ||
+                isModeActivationConditionPresent(BOXNAVLAUNCH) ||
+                isModeActivationConditionPresent(BOXTURNASSIST) ||
+                isModeActivationConditionPresent(BOXNAVCOURSEHOLD) ||
+                isModeActivationConditionPresent(BOXSOARING) ||
+                failsafeConfig()->failsafe_procedure != FAILSAFE_PROCEDURE_DROP_IT
+
+            )
+        ) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_ACCELEROMETER_NOT_CALIBRATED);
         }
         else {
@@ -868,7 +886,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     annexCode(dT);
 
     if (rxConfig()->rcFilterFrequency) {
-        rcInterpolationApply(isRXDataNew);
+        rcInterpolationApply(isRXDataNew, currentTimeUs);
     }
 
     if (isRXDataNew) {

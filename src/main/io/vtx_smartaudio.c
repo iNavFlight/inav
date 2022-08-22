@@ -236,11 +236,6 @@ static void saAutobaud(void)
         return;
     }
 
-#if 0
-    LOG_D(VTX, "autobaud: %d rcvd %d/%d (%d)",
-        sa_smartbaud, saStat.pktrcvd, saStat.pktsent, ((saStat.pktrcvd * 100) / saStat.pktsent)));
-#endif
-
     if (((saStat.pktrcvd * 100) / saStat.pktsent) >= 70) {
         // This is okay
         saStat.pktsent = 0; // Should be more moderate?
@@ -641,13 +636,6 @@ void saSetPitFreq(uint16_t freq)
 {
     saSetFreq(freq | SA_FREQ_SETPIT);
 }
-
-#if 0
-static void saGetPitFreq(void)
-{
-    saDoDevSetFreq(SA_FREQ_GETPIT);
-}
-#endif
 
 static bool saValidateBandAndChannel(uint8_t band, uint8_t channel)
 {
