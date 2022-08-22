@@ -190,6 +190,9 @@ tables:
   - name: dynamic_gyro_notch_mode
     values: ["2D", "3D_R", "3D_P", "3D_Y", "3D_RP", "3D_RY", "3D_PY", "3D"]
     enum: dynamicGyroNotchMode_e
+  - name: nav_fw_wp_turn_smoothing
+    values: ["OFF", "ON", "ON-CUT"]
+    enum: wpFwTurnSmoothing_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -2407,10 +2410,11 @@ groups:
         min: 10
         max: 10000
       - name: nav_wp_enforce_altitude
-        description: "Forces craft to achieve the set WP altitude as well as position before moving to next WP. Position is held and altitude adjusted as required before moving on."
-        default_value: OFF
-        field: general.flags.waypoint_enforce_altitude
-        type: bool
+        description: "Forces craft to achieve the set WP altitude as well as position before moving to next WP. Position is held and altitude adjusted as required before moving on. 0 = disabled, otherwise setting defines altitude capture tolerance [cm], e.g. 100 means required altitude is achieved when within 100cm of waypoint altitude setting."
+        default_value: 0
+        field: general.waypoint_enforce_altitude
+        min: 0
+        max: 2000
       - name: nav_wp_safe_distance
         description: "First waypoint in the mission should be closer than this value [cm]. A value of 0 disables this check."
         default_value: 10000
@@ -2428,6 +2432,23 @@ groups:
         condition: USE_MULTI_MISSION
         min: 0
         max: 9
+      - name: nav_fw_wp_tracking_accuracy
+        description: "Waypoint tracking accuracy forces the craft to quickly head toward and track along the waypoint course line as closely as possible. Settings 1 to 10 adjust the course tracking response. Higher values dampen the response reducing possible overshoot. A value of 5 is a good starting point. Set to 0 to disable."
+        default_value: 0
+        field: fw.wp_tracking_accuracy
+        min: 0
+        max: 10
+      - name: nav_fw_wp_tracking_max_angle
+        description: "Sets the maximum allowed alignment convergence angle to the waypoint course line when nav_fw_wp_tracking_accuracy is active [degrees]. Lower values result in smoother alignment with the course line but will take more distance until this is achieved."
+        default_value: 60
+        field: fw.wp_tracking_max_angle
+        min: 30
+        max: 80
+      - name: nav_fw_wp_turn_smoothing
+        description: "Smooths turns during WP missions by switching to a loiter turn at waypoints. When set to ON the craft will reach the waypoint during the turn. When set to ON-CUT the craft will turn inside the waypoint without actually reaching it (cuts the corner)."
+        default_value: "OFF"
+        field: fw.wp_turn_smoothing
+        table: nav_fw_wp_turn_smoothing
       - name: nav_auto_speed
         description: "Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no specific WP speed set. [Multirotor only]"
         default_value: 300

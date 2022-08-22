@@ -61,8 +61,6 @@
 #include "sensors/boardalignment.h"
 #include "sensors/battery.h"
 
-#define WP_ALTITUDE_MARGIN_CM   100      // WP enforce altitude tolerance, used when WP altitude setting enforced when WP reached
-
 // Multirotors:
 #define MR_RTH_CLIMB_OVERSHOOT_CM   100  // target this amount of cm *above* the target altitude to ensure it is actually reached (Vz > 0 at target alt)
 #define MR_RTH_CLIMB_MARGIN_MIN_CM  100  // start cruising home this amount of cm *before* reaching the cruise altitude (while continuing the ascend)
@@ -100,7 +98,7 @@ STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_rang
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 2);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 2);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -122,7 +120,6 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
             .mission_planner_reset = SETTING_NAV_MISSION_PLANNER_RESET_DEFAULT,       // Allow mode switch toggle to reset Mission Planner WPs
             .waypoint_mission_restart = SETTING_NAV_WP_MISSION_RESTART_DEFAULT,       // WP mission restart action
             .soaring_motor_stop = SETTING_NAV_FW_SOARING_MOTOR_STOP_DEFAULT,          // stops motor when Saoring mode enabled
-            .waypoint_enforce_altitude = SETTING_NAV_WP_ENFORCE_ALTITUDE_DEFAULT,     // Forces set wp altitude to be achieved
             .rth_trackback_mode = SETTING_NAV_RTH_TRACKBACK_MODE_DEFAULT              // RTH trackback useage mode
         },
 
@@ -153,6 +150,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .safehome_max_distance = SETTING_SAFEHOME_MAX_DISTANCE_DEFAULT,                         // Max distance that a safehome is from the arming point
         .max_altitude = SETTING_NAV_MAX_ALTITUDE_DEFAULT,
         .rth_trackback_distance = SETTING_NAV_RTH_TRACKBACK_DISTANCE_DEFAULT,                   // Max distance allowed for RTH trackback
+        .waypoint_enforce_altitude = SETTING_NAV_WP_ENFORCE_ALTITUDE_DEFAULT,                   // Forces set wp altitude to be achieved
     },
 
     // MC-specific
@@ -203,14 +201,15 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .launch_max_altitude = SETTING_NAV_FW_LAUNCH_MAX_ALTITUDE_DEFAULT,      // cm, altitude where to consider launch ended
         .launch_climb_angle = SETTING_NAV_FW_LAUNCH_CLIMB_ANGLE_DEFAULT,        // 18 degrees
         .launch_max_angle = SETTING_NAV_FW_LAUNCH_MAX_ANGLE_DEFAULT,            // 45 deg
-        .launch_manual_throttle = SETTING_NAV_FW_LAUNCH_MANUAL_THROTTLE_DEFAULT,// OFF
-        .launch_abort_deadband = SETTING_NAV_FW_LAUNCH_ABORT_DEADBAND_DEFAULT,  // 100 us
         .cruise_yaw_rate  = SETTING_NAV_FW_CRUISE_YAW_RATE_DEFAULT,             // 20dps
         .allow_manual_thr_increase = SETTING_NAV_FW_ALLOW_MANUAL_THR_INCREASE_DEFAULT,
         .useFwNavYawControl = SETTING_NAV_USE_FW_YAW_CONTROL_DEFAULT,
         .yawControlDeadband = SETTING_NAV_FW_YAW_DEADBAND_DEFAULT,
         .soaring_pitch_deadband = SETTING_NAV_FW_SOARING_PITCH_DEADBAND_DEFAULT,// pitch angle mode deadband when Saoring mode enabled
         .auto_disarm_delay = SETTING_NAV_FW_AUTO_DISARM_DELAY_DEFAULT,          // ms - time delay to disarm when auto disarm after landing enabled
+        .wp_tracking_accuracy = SETTING_NAV_FW_WP_TRACKING_ACCURACY_DEFAULT,    // 0, improves course tracking accuracy during FW WP missions
+        .wp_tracking_max_angle = SETTING_NAV_FW_WP_TRACKING_MAX_ANGLE_DEFAULT,  // 60 degs    CR67
+        .wp_turn_smoothing = SETTING_NAV_FW_WP_TURN_SMOOTHING_DEFAULT,          // 0, smooths turns during FW WP mode missions
     }
 );
 
@@ -251,7 +250,7 @@ static void calculateAndSetActiveWaypointToLocalPosition(const fpVector3_t * pos
 void calculateInitialHoldPosition(fpVector3_t * pos);
 void calculateFarAwayTarget(fpVector3_t * farAwayPos, int32_t yaw, int32_t distance);
 void calculateNewCruiseTarget(fpVector3_t * origin, int32_t yaw, int32_t distance);
-static bool isWaypointPositionReached(const fpVector3_t * pos, const bool isWaypointHome);
+static bool isWaypointReached(const fpVector3_t * waypointPos, const int32_t * waypointYaw);
 bool isWaypointAltitudeReached(void);
 static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint_t * waypoint, geoAltitudeConversionMode_e altConv);
 static navigationFSMEvent_t nextForNonGeoStates(void);
@@ -1334,7 +1333,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_TRACKBACK(navigatio
             return NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_RTH_INITIALIZE;    // procede to home after final trackback point
         }
 
-        if (isWaypointReached(&posControl.activeWaypoint, false) || isWaypointMissed(&posControl.activeWaypoint)) {
+        if (isWaypointReached(&posControl.activeWaypoint.pos, &posControl.activeWaypoint.yaw)) {
             posControl.activeRthTBPointIndex--;
 
             if (posControl.rthTBWrapAroundCounter > -1 && posControl.activeRthTBPointIndex < 0) {
@@ -1368,7 +1367,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigatio
     if ((posControl.flags.estPosStatus >= EST_USABLE)) {
         fpVector3_t * tmpHomePos = rthGetHomeTargetPosition(RTH_HOME_ENROUTE_PROPORTIONAL);
 
-        if (isWaypointPositionReached(tmpHomePos, true)) {
+        if (isWaypointReached(tmpHomePos, 0)) {
             // Successfully reached position target - update XYZ-position
             setDesiredPosition(tmpHomePos, posControl.rthState.homePosition.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
             return NAV_FSM_EVENT_SUCCESS;       // NAV_STATE_RTH_HOVER_PRIOR_TO_LANDING
@@ -1624,7 +1623,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_IN_PROGRESS(na
             case NAV_WP_ACTION_HOLD_TIME:
             case NAV_WP_ACTION_WAYPOINT:
             case NAV_WP_ACTION_LAND:
-                if (isWaypointReached(&posControl.activeWaypoint, false) || isWaypointMissed(&posControl.activeWaypoint)) {
+                if (isWaypointReached(&posControl.activeWaypoint.pos, &posControl.activeWaypoint.yaw)) {
                     return NAV_FSM_EVENT_SUCCESS;   // will switch to NAV_STATE_WAYPOINT_REACHED
                 }
                 else {
@@ -1670,13 +1669,13 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_REACHED(naviga
 {
     UNUSED(previousState);
 
-    if (navConfig()->general.flags.waypoint_enforce_altitude) {
+    if (navConfig()->general.waypoint_enforce_altitude) {
         posControl.wpAltitudeReached = isWaypointAltitudeReached();
     }
 
     switch ((navWaypointActions_e)posControl.waypointList[posControl.activeWaypointIndex].action) {
         case NAV_WP_ACTION_WAYPOINT:
-            if (navConfig()->general.flags.waypoint_enforce_altitude && !posControl.wpAltitudeReached) {
+            if (navConfig()->general.waypoint_enforce_altitude && !posControl.wpAltitudeReached) {
                 return NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_HOLD_TIME;
             } else {
                 return NAV_FSM_EVENT_SUCCESS;   // NAV_STATE_WAYPOINT_NEXT
@@ -1709,7 +1708,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_HOLD_TIME(navi
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
 
-    if (navConfig()->general.flags.waypoint_enforce_altitude && !posControl.wpAltitudeReached) {
+    if (navConfig()->general.waypoint_enforce_altitude && !posControl.wpAltitudeReached) {
         // Adjust altitude to waypoint setting
         if (STATE(AIRPLANE)) {
             int8_t altitudeChangeDirection = posControl.activeWaypoint.pos.z > navGetCurrentActualPositionAndVelocity()->pos.z ? 1 : -1;
@@ -2180,6 +2179,14 @@ int32_t calculateBearingToDestination(const fpVector3_t * destinationPos)
     return calculateBearingFromDelta(deltaX, deltaY);
 }
 
+int32_t calculateBearingBetweenLocalPositions(const fpVector3_t * startPos, const fpVector3_t * endPos)
+{
+    const float deltaX = endPos->x - startPos->x;
+    const float deltaY = endPos->y - startPos->y;
+
+    return calculateBearingFromDelta(deltaX, deltaY);
+}
+
 bool navCalculatePathToDestination(navDestinationPath_t *result, const fpVector3_t * destinationPos)
 {
     if (posControl.flags.estPosStatus == EST_NONE ||
@@ -2197,40 +2204,63 @@ bool navCalculatePathToDestination(navDestinationPath_t *result, const fpVector3
     return true;
 }
 
+static bool getLocalPosNextWaypoint(fpVector3_t * nextWpPos)
+{
+    // Only for WP Mode not Trackback. Ignore non geo waypoints except RTH and JUMP.
+    if (FLIGHT_MODE(NAV_WP_MODE) && !isLastMissionWaypoint()) {
+        navWaypointActions_e nextWpAction = posControl.waypointList[posControl.activeWaypointIndex + 1].action;
+
+        if (!(nextWpAction == NAV_WP_ACTION_SET_POI || nextWpAction == NAV_WP_ACTION_SET_HEAD)) {
+            uint8_t nextWpIndex = posControl.activeWaypointIndex + 1;
+            if (nextWpAction == NAV_WP_ACTION_JUMP) {
+                if (posControl.waypointList[posControl.activeWaypointIndex + 1].p3 != 0 ||
+                    posControl.waypointList[posControl.activeWaypointIndex + 1].p2 == -1) {
+                    nextWpIndex = posControl.waypointList[posControl.activeWaypointIndex + 1].p1;
+                } else if (posControl.activeWaypointIndex + 2 <= posControl.waypointCount - 1) {
+                    if (posControl.waypointList[posControl.activeWaypointIndex + 2].action != NAV_WP_ACTION_JUMP) {
+                        nextWpIndex++;
+                    } else {
+                        return false;   // give up - too complicated
+                    }
+                }
+            }
+            mapWaypointToLocalPosition(nextWpPos, &posControl.waypointList[nextWpIndex], 0);
+            return true;
+        }
+    }
+
+    return false;   // no position available
+}
+
 /*-----------------------------------------------------------
- * Check if waypoint is/was reached. Assume that waypoint-yaw stores initial bearing
+ * Check if waypoint is/was reached.
+ * waypointYaw stores initial bearing to waypoint
  *-----------------------------------------------------------*/
-bool isWaypointMissed(const navWaypointPosition_t * waypoint)
+static bool isWaypointReached(const fpVector3_t * waypointPos, const int32_t * waypointYaw)
 {
-    int32_t bearingError = calculateBearingToDestination(&waypoint->pos) - waypoint->yaw;
-    bearingError = wrap_18000(bearingError);
+    posControl.wpDistance = calculateDistanceToDestination(waypointPos);
 
-    return ABS(bearingError) > 10000; // TRUE if we passed the waypoint by 100 degrees
-}
-
-static bool isWaypointPositionReached(const fpVector3_t * pos, const bool isWaypointHome)
-{
-    // We consider waypoint reached if within specified radius
-    posControl.wpDistance = calculateDistanceToDestination(pos);
-
-    if (STATE(FIXED_WING_LEGACY) && isWaypointHome) {
-        // Airplane will do a circular loiter over home and might never approach it closer than waypoint_radius - need extra check
-        return (posControl.wpDistance <= navConfig()->general.waypoint_radius)
-                || (posControl.wpDistance <= (navConfig()->fw.loiter_radius * 1.10f));  // 10% margin of desired circular loiter radius
+    // Airplane will do a circular loiter at hold waypoints and might never approach them closer than waypoint_radius
+    // Check within 10% margin of circular loiter radius
+    if (STATE(AIRPLANE) && isNavHoldPositionActive() && posControl.wpDistance <= (navConfig()->fw.loiter_radius * 1.10f)) {
+        return true;
     }
-    else {
-        return (posControl.wpDistance <= navConfig()->general.waypoint_radius);
-    }
-}
 
-bool isWaypointReached(const navWaypointPosition_t * waypoint, const bool isWaypointHome)
-{
-    return isWaypointPositionReached(&waypoint->pos, isWaypointHome);
+    if (navGetStateFlags(posControl.navState) & NAV_AUTO_WP || posControl.flags.rthTrackbackActive) {
+        // Check if waypoint was missed based on bearing to WP exceeding 100 degrees relative to waypoint Yaw
+        // Same method for turn smoothing option but relative bearing set at 60 degrees
+        uint16_t relativeBearing = posControl.flags.wpTurnSmoothingActive ? 6000 : 10000;
+        if (ABS(wrap_18000(calculateBearingToDestination(waypointPos) - *waypointYaw)) > relativeBearing) {
+            return true;
+        }
+    }
+
+    return posControl.wpDistance <= (navConfig()->general.waypoint_radius);
 }
 
 bool isWaypointAltitudeReached(void)
 {
-    return ABS(navGetCurrentActualPositionAndVelocity()->pos.z - posControl.activeWaypoint.pos.z) < WP_ALTITUDE_MARGIN_CM;
+    return ABS(navGetCurrentActualPositionAndVelocity()->pos.z - posControl.activeWaypoint.pos.z) < navConfig()->general.waypoint_enforce_altitude;
 }
 
 static void updateHomePositionCompatibility(void)
@@ -3287,10 +3317,15 @@ static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint
 
 static void calculateAndSetActiveWaypointToLocalPosition(const fpVector3_t * pos)
 {
-    posControl.activeWaypoint.pos = *pos;
+    // Calculate bearing towards waypoint and store it in waypoint yaw parameter (this will further be used to detect missed waypoints)
+    if (isWaypointNavTrackingActive() && !(posControl.activeWaypoint.pos.x == pos->x && posControl.activeWaypoint.pos.y == pos->y)) {
+        posControl.activeWaypoint.yaw = calculateBearingBetweenLocalPositions(&posControl.activeWaypoint.pos, pos);
+    } else {
+        posControl.activeWaypoint.yaw = calculateBearingToDestination(pos);
+    }
+    posControl.activeWaypoint.nextTurnAngle = -1;     // no turn angle set (-1), will be set by WP mode as required
 
-    // Calculate initial bearing towards waypoint and store it in waypoint yaw parameter (this will further be used to detect missed waypoints)
-    posControl.activeWaypoint.yaw = calculateBearingToDestination(pos);
+    posControl.activeWaypoint.pos = *pos;
 
     // Set desired position to next waypoint (XYZ-controller)
     setDesiredPosition(&posControl.activeWaypoint.pos, posControl.activeWaypoint.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
@@ -3306,6 +3341,14 @@ static void calculateAndSetActiveWaypoint(const navWaypoint_t * waypoint)
     fpVector3_t localPos;
     mapWaypointToLocalPosition(&localPos, waypoint, waypointMissionAltConvMode(waypoint->p3));
     calculateAndSetActiveWaypointToLocalPosition(&localPos);
+
+    if (navConfig()->fw.wp_turn_smoothing) {
+        fpVector3_t posNextWp;
+        if (getLocalPosNextWaypoint(&posNextWp)) {
+            int32_t bearingToNextWp = calculateBearingBetweenLocalPositions(&posControl.activeWaypoint.pos, &posNextWp);
+            posControl.activeWaypoint.nextTurnAngle = wrap_18000(bearingToNextWp - posControl.activeWaypoint.yaw);
+        }
+    }
 }
 
 /* Checks if active waypoint is last in mission */
@@ -3353,6 +3396,15 @@ float getActiveWaypointSpeed(void)
 
         return waypointSpeed;
     }
+}
+
+bool isWaypointNavTrackingActive(void)
+{
+    // NAV_WP_MODE flag used rather than state flag NAV_AUTO_WP to ensure heading to initial waypoint
+    // is set from current position not previous WP. Works for WP Restart intermediate WP as well as first mission WP.
+    // (NAV_WP_MODE flag isn't set until WP initialisation is finished, i.e. after calculateAndSetActiveWaypoint called)
+
+    return FLIGHT_MODE(NAV_WP_MODE) || (posControl.flags.rthTrackbackActive && posControl.activeRthTBPointIndex != posControl.rthTBLastSavedIndex);
 }
 
 /*-----------------------------------------------------------

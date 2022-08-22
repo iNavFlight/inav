@@ -169,6 +169,12 @@ typedef enum {
     RTH_TRACKBACK_FS,
 } rthTrackbackMode_e;
 
+typedef enum {
+    WP_TURN_SMOOTHING_OFF,
+    WP_TURN_SMOOTHING_ON,
+    WP_TURN_SMOOTHING_CUT,
+} wpFwTurnSmoothing_e;
+
 typedef struct positionEstimationConfig_s {
     uint8_t automatic_mag_declination;
     uint8_t reset_altitude_type; // from nav_reset_type_e
@@ -227,7 +233,6 @@ typedef struct navConfig_s {
             uint8_t soaring_motor_stop;         // stop motor when Soaring mode enabled
             uint8_t mission_planner_reset;      // Allow WP Mission Planner reset using mode toggle (resets WPs to 0)
             uint8_t waypoint_mission_restart;   // Waypoint mission restart action
-            uint8_t waypoint_enforce_altitude;  // Forces waypoint altitude to be achieved
             uint8_t rth_trackback_mode;         // Useage mode setting for RTH trackback
         } flags;
 
@@ -257,6 +262,7 @@ typedef struct navConfig_s {
         uint16_t safehome_max_distance;             // Max distance that a safehome is from the arming point
         uint16_t max_altitude;                      // Max altitude when in AltHold mode (not Surface Following)
         uint16_t rth_trackback_distance;            // RTH trackback maximum distance [m]
+        uint16_t waypoint_enforce_altitude;         // Forces waypoint altitude to be achieved
     } general;
 
     struct {
@@ -309,6 +315,9 @@ typedef struct navConfig_s {
         uint8_t  yawControlDeadband;
         uint8_t  soaring_pitch_deadband;     // soaring mode pitch angle deadband (deg)
         uint16_t auto_disarm_delay;          // fixed wing disarm delay for landing detector
+        uint8_t  wp_tracking_accuracy;       // fixed wing tracking accuracy response factor
+        uint8_t  wp_tracking_max_angle;      // fixed wing tracking accuracy max alignment angle [degs]
+        uint8_t  wp_turn_smoothing;          // WP mission turn smoothing options
     } fw;
 } navConfig_t;
 
@@ -375,7 +384,8 @@ extern radar_pois_t radar_pois[RADAR_MAX_POIS];
 
 typedef struct {
     fpVector3_t pos;
-    int32_t     yaw;             // deg * 100
+    int32_t     yaw;                // centidegrees
+    int32_t     nextTurnAngle;      // centidegrees
 } navWaypointPosition_t;
 
 typedef struct navDestinationPath_s {

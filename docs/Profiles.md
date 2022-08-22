@@ -36,6 +36,12 @@ Or using the speed to change profiles. In this example:
 
 [![Using speed to change profiles](https://i.imgur.com/WjkuhhWl.png)](https://i.imgur.com/WjkuhhW.png)
 
+#### Configurator use with profile changing logic.
+
+If you have logic conditions that change the profiles. You may find that if you manually change the profile using the drop down boxes in the top right of Configurator; that they switch back to a different profile. This is because the logic conditions are still running in the background. If this is the case, the simplest solutuion is to temporarily disable the switches that trigger the `set profile` operations. Remember to re-enable these switches after you have made your changes.
+
+[![Disabled SET PROFILE switches](https://i.imgur.com/AeH9ll7l.png)](https://i.imgur.com/AeH9ll7.png)
+
 ## Profile Contents
 The values contained within a profile can be seen by using the CLI `dump profile` command.
 

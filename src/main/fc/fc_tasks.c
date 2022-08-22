@@ -308,7 +308,13 @@ void taskUpdateAux(timeUs_t currentTimeUs)
 {
     updatePIDCoefficients();
     dynamicLpfGyroTask();
+#ifdef USE_SIMULATOR
+    if (!ARMING_FLAG(SIMULATOR_MODE)) {
+        updateFixedWingLevelTrim(currentTimeUs);
+    }
+#else
     updateFixedWingLevelTrim(currentTimeUs);
+#endif
 }
 
 void fcTasksInit(void)

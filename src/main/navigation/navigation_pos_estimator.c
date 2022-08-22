@@ -341,7 +341,7 @@ void updatePositionEstimator_BaroTopic(timeUs_t currentTimeUs)
  */
 void updatePositionEstimator_PitotTopic(timeUs_t currentTimeUs)
 {
-    posEstimator.pitot.airspeed = pitot.airSpeed;
+    posEstimator.pitot.airspeed = getAirspeedEstimate();
     posEstimator.pitot.lastUpdateTime = currentTimeUs;
 }
 #endif
@@ -448,6 +448,11 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
 
         /* If calibration is incomplete - report zero acceleration */
         if (gravityCalibrationComplete()) {
+#ifdef USE_SIMULATOR
+            if (ARMING_FLAG(SIMULATOR_MODE)) {
+                posEstimator.imu.calibratedGravityCMSS = GRAVITY_CMSS;
+            }
+#endif
             posEstimator.imu.accelNEU.z -= posEstimator.imu.calibratedGravityCMSS;
         }
         else {

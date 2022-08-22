@@ -147,6 +147,7 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER1,                              // 9
     LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER2,                              // 10
     LOGIC_CONDITION_OPERAND_FLIGHT_MODE_COURSE_HOLD,                        // 11
+    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER3,                              // 12
 } logicFlightModeOperands_e;
 
 typedef enum {

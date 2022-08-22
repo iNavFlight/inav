@@ -378,7 +378,7 @@ bool pidInitFilters(void)
 void pidResetTPAFilter(void)
 {
     if (usedPidControllerType == PID_TYPE_PIFF && currentControlRateProfile->throttle.fixedWingTauMs > 0) {
-        pt1FilterInitRC(&fixedWingTpaFilter, currentControlRateProfile->throttle.fixedWingTauMs * 1e-3f, TASK_PERIOD_HZ(TASK_AUX_RATE_HZ) * 1e-6f);
+        pt1FilterInitRC(&fixedWingTpaFilter, MS2S(currentControlRateProfile->throttle.fixedWingTauMs), TASK_PERIOD_HZ(TASK_AUX_RATE_HZ) * 1e-6f);
         pt1FilterReset(&fixedWingTpaFilter, getThrottleIdleValue());
     }
 }
@@ -999,15 +999,13 @@ static void NOINLINE pidTurnAssistant(pidState_t *pidState, float bankAngleTarge
             //      yaw_rate = tan(roll_angle) * Gravity / forward_vel
 
 #if defined(USE_PITOT)
-            float airspeedForCoordinatedTurn = sensors(SENSOR_PITOT) ?
-                    pitot.airSpeed :
-                    pidProfile()->fixedWingReferenceAirspeed;
+            float airspeedForCoordinatedTurn = sensors(SENSOR_PITOT) ? getAirspeedEstimate() : pidProfile()->fixedWingReferenceAirspeed;
 #else
             float airspeedForCoordinatedTurn = pidProfile()->fixedWingReferenceAirspeed;
 #endif
 
             // Constrain to somewhat sane limits - 10km/h - 216km/h
-            airspeedForCoordinatedTurn = constrainf(airspeedForCoordinatedTurn, 300, 6000);
+            airspeedForCoordinatedTurn = constrainf(airspeedForCoordinatedTurn, 300.0f, 6000.0f);
 
             // Calculate rate of turn in Earth frame according to FAA's Pilot's Handbook of Aeronautical Knowledge
             bankAngleTarget = constrainf(bankAngleTarget, -DEGREES_TO_RADIANS(60), DEGREES_TO_RADIANS(60));
@@ -1044,8 +1042,8 @@ static void NOINLINE pidTurnAssistant(pidState_t *pidState, float bankAngleTarge
 static void pidApplyFpvCameraAngleMix(pidState_t *pidState, uint8_t fpvCameraAngle)
 {
     static uint8_t lastFpvCamAngleDegrees = 0;
-    static float cosCameraAngle = 1.0;
-    static float sinCameraAngle = 0.0;
+    static float cosCameraAngle = 1.0f;
+    static float sinCameraAngle = 0.0f;
 
     if (lastFpvCamAngleDegrees != fpvCameraAngle) {
         lastFpvCamAngleDegrees = fpvCameraAngle;
@@ -1320,7 +1318,7 @@ void updateFixedWingLevelTrim(timeUs_t currentTimeUs)
     if (
         !IS_RC_MODE_ACTIVE(BOXAUTOLEVEL) ||
         areSticksDeflected() ||
-        (!FLIGHT_MODE(ANGLE_MODE) && !FLIGHT_MODE(HORIZON_MODE)) ||
+        (!FLIGHT_MODE(ANGLE_MODE) && !FLIGHT_MODE(HORIZON_MODE) && !FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) ||
         FLIGHT_MODE(SOARING_MODE) ||
         navigationIsControllingAltitude()
     ) {

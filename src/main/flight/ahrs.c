@@ -520,6 +520,12 @@ float yawErrorCompass(void)
         // Not a valid vector
         return 0.0f;
     }
+    
+#ifdef USE_SIMULATOR
+            if (ARMING_FLAG(SIMULATOR_MODE)) {
+                    imuSetMagneticDeclination(0);
+                }
+#endif
 
     // Calculate the Z component of the cross product of magField and _mag_earth
     return magField.x * _mag_earth.y - magField.y * _mag_earth.x; 
@@ -1137,9 +1143,18 @@ void dcmUpdate(float deltaTime)
     _cos_yaw = cos_approx(_yaw);
     _sin_yaw = sin_approx(_yaw);
     
-    attitude.values.roll = RADIANS_TO_DECIDEGREES(_roll);
-    attitude.values.pitch = RADIANS_TO_DECIDEGREES(_pitch);
-    attitude.values.yaw = RADIANS_TO_DECIDEGREES(_yaw);
+#ifdef USE_SIMULATOR
+	if (ARMING_FLAG(SIMULATOR_MODE) && ((simulatorData.flags & SIMU_USE_SENSORS) == 0)) {
+		matrixFromEuler(DECIDEGREES_TO_RADIANS(attitude.values.roll), DECIDEGREES_TO_RADIANS(attitude.values.pitch), DECIDEGREES_TO_RADIANS(attitude.values.yaw));
+		matrixUpdate(deltaTime);
+	}
+	else
+#endif
+	{
+        attitude.values.roll = RADIANS_TO_DECIDEGREES(_roll);
+        attitude.values.pitch = RADIANS_TO_DECIDEGREES(_pitch);
+        attitude.values.yaw = RADIANS_TO_DECIDEGREES(_yaw);
+    }
 
     if (attitude.values.yaw < 0) {
         attitude.values.yaw += 3600;

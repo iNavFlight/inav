@@ -3272,6 +3272,36 @@ Pitch Angle deadband when soaring mode enabled (deg). Angle mode inactive within
 
 ---
 
+### nav_fw_wp_tracking_accuracy
+
+Waypoint tracking accuracy forces the craft to quickly head toward and track along the waypoint course line as closely as possible. Settings 1 to 10 adjust the course tracking response. Higher values dampen the response reducing possible overshoot. A value of 5 is a good starting point. Set to 0 to disable.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 10 |
+
+---
+
+### nav_fw_wp_tracking_max_angle
+
+Sets the maximum allowed alignment convergence angle to the waypoint course line when nav_fw_wp_tracking_accuracy is active [degrees]. Lower values result in smoother alignment with the course line but will take more distance until this is achieved.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 60 | 30 | 80 |
+
+---
+
+### nav_fw_wp_turn_smoothing
+
+Smooths turns during WP missions by switching to a loiter turn at waypoints. When set to ON the craft will reach the waypoint during the turn. When set to ON-CUT the craft will turn inside the waypoint without actually reaching it (cuts the corner).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF |  |  |
+
+---
+
 ### nav_fw_yaw_deadband
 
 Deadband for heading trajectory PID controller. When heading error is below the deadband, controller assumes that vehicle is on course
@@ -3854,11 +3884,11 @@ Defines how Pitch/Roll input from RC receiver affects flight in POSHOLD mode: AT
 
 ### nav_wp_enforce_altitude
 
-Forces craft to achieve the set WP altitude as well as position before moving to next WP. Position is held and altitude adjusted as required before moving on.
+Forces craft to achieve the set WP altitude as well as position before moving to next WP. Position is held and altitude adjusted as required before moving on. 0 = disabled, otherwise setting defines altitude capture tolerance [cm], e.g. 100 means required altitude is achieved when within 100cm of waypoint altitude setting.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF | OFF | ON |
+| 0 | 0 | 2000 |
 
 ---
 

@@ -1627,7 +1627,7 @@ static void loadMainState(timeUs_t currentTimeUs)
 #endif
 
 #ifdef USE_PITOT
-    blackboxCurrent->airSpeed = pitot.airSpeed;
+    blackboxCurrent->airSpeed = getAirspeedEstimate();
 #endif
 
 #ifdef USE_RANGEFINDER
