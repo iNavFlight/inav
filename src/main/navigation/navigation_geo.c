@@ -167,3 +167,35 @@ bool geoConvertLocalToGeodetic(gpsLocation_t *llh, const gpsOrigin_t * origin, c
     llh->alt += lrintf(pos->z);
     return origin->valid;
 }
+
+// Wrap longitude for -180e7 to 180e7
+int32_t wrap_longitude(int64_t lon)
+{
+    if (lon > 1800000000L) {
+        lon = (int32_t)(lon - 3600000000LL);
+    } else if (lon < -1800000000L) {
+        lon = (int32_t)(lon + 3600000000LL);
+    }
+    return (int32_t)lon;
+}
+
+// Limit lattitude to -90e7 to 90e7
+int32_t limit_latitude(int32_t lat)
+{
+    if (lat > 900000000L) {
+        lat = 1800000000LL - lat;
+    } else if (lat < -900000000L) {
+        lat = -(1800000000LL + lat);
+    }
+    return lat;
+}
+
+// Extrapolate Latitude/Longitude given distances (in meters) North and East
+void geoOffsetLatLng(int32_t *lat, int32_t *lng, float ofs_north, float ofs_east)
+{
+    const int32_t dlat = ofs_north * LOCATION_SCALING_FACTOR_INV;
+    const int64_t dlng = (ofs_east * LOCATION_SCALING_FACTOR_INV) / constrainf(cos_approx((ABS(*lat + dlat / 2) / 10000000.0f) * 0.0174532925f), 0.01f, 1.0f);
+    *lat += dlat;
+    *lat = limit_latitude(*lat);
+    *lng = wrap_longitude(dlng + *lng);
+}

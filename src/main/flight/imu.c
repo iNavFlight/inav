@@ -60,6 +60,7 @@ FILE_COMPILE_FOR_SPEED
 #include "sensors/gyro.h"
 #include "sensors/sensors.h"
 
+#include "navigation/navigation.h"
 
 /*
  *      X-axis = North/Forward
@@ -91,6 +92,8 @@ STATIC_FASTRAM imuRuntimeConfig_t imuRuntimeConfig;
 STATIC_FASTRAM pt1Filter_t rotRateFilter;
 
 STATIC_FASTRAM bool gpsHeadingInitialized;
+
+static timeMs_t last_pos_ms;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 2);
 
@@ -568,6 +571,10 @@ static void imuCalculateEstimatedAttitude(float dT)
         useMag = true;
     }
 #endif
+    
+    if (STATE(GPS_FIX)) {
+        last_pos_ms = millis();
+    }
 
     fpVector3_t measuredMagBF = { .v = { mag.magADC[X], mag.magADC[Y], mag.magADC[Z] } };
 
@@ -677,4 +684,32 @@ bool isImuHeadingValid(void)
 float calculateCosTiltAngle(void)
 {
     return 1.0f - 2.0f * sq(orientation.q1) - 2.0f * sq(orientation.q2);
+}
+
+// The GPS lag helps correlate the GPS information with the IMU information.
+void imuCorrectGPSLag(int32_t *lat, int32_t *lon)
+{
+    timeMs_t now = millis();
+    float dt = 0.0f;
+
+    // Matek M8Q (aka MSP GPS)
+    //lag_sec = 0.11f;
+
+    // Ublox 5 and 6
+    //lag_sec = 0.22f;
+
+    // Ublox 7 and M8
+    // lag_sec = 0.12f;
+
+    // Ublox F9 and M9
+    //lag_sec = 0.12f;
+         
+    // NMEA
+    //lag_sec = 0.2f;
+        
+    dt = 0.12f; // Use Ublox 7 and M8 Lag
+
+    dt += constrainf(MS2S(now - last_pos_ms), 0.0f, 0.5f);
+    fpVector3_t dpos = { .v = { gpsSol.velNED[X] * dt, gpsSol.velNED[Y] * dt, 0.0f } };
+    geoOffsetLatLng(lat, lon, dpos.x, dpos.y);
 }

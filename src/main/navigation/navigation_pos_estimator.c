@@ -201,6 +201,8 @@ void onNewGPSData(void)
     newLLH.lon = gpsSol.llh.lon;
     newLLH.alt = gpsSol.llh.alt;
 
+    imuCorrectGPSLag(&newLLH.lat, &newLLH.lon);
+
     if (sensors(SENSOR_GPS)) {
         if (!STATE(GPS_FIX)) {
             isFirstGPSUpdate = true;

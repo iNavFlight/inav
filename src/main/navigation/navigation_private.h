@@ -17,7 +17,8 @@
 
 #pragma once
 
-#define DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR    1.113195f  // MagicEarthNumber from APM
+#define DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR 1.113195f  // MagicEarthNumber from APM
+#define LOCATION_SCALING_FACTOR_INV                      89.83204651f
 
 #include "common/axis.h"
 #include "common/maths.h"

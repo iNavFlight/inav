@@ -74,3 +74,5 @@ void imuTransformVectorBodyToEarth(fpVector3_t * v);
 void imuTransformVectorEarthToBody(fpVector3_t * v);
 
 void imuInit(void);
+
+void imuCorrectGPSLag(int32_t *lat, int32_t *lon);
