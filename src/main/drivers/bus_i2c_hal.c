@@ -107,7 +107,7 @@ static i2cState_t i2cState[I2CDEV_COUNT];
 
 void i2cSetSpeed(uint8_t speed)
 {
-    for (unsigned int i = 0; i < sizeof(i2cHardwareMap) / sizeof(i2cHardwareMap[0]); i++) {
+    for (unsigned int i = 0; i < ARRAYLEN(i2cHardwareMap); i++) {
         i2cHardwareMap[i].speed = speed;
     }
 }

@@ -183,6 +183,8 @@ typedef struct {
     fpVector3_t accBiasCorr;
 } estimationContext_t;
 
+extern navigationPosEstimator_t posEstimator;
+
 extern float updateEPE(const float oldEPE, const float dt, const float newEPE, const float w);
 extern void estimationCalculateAGL(estimationContext_t * ctx);
 extern bool estimationCalculateCorrection_XY_FLOW(estimationContext_t * ctx);

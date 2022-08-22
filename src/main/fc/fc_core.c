@@ -942,6 +942,18 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     }
 
     //Servos should be filtered or written only when mixer is using servos or special feaures are enabled
+
+#ifdef USE_SMULATOR
+	if (!ARMING_FLAG(SIMULATOR_MODE)) {
+	    if (isServoOutputEnabled()) {
+	        writeServos();
+	    }
+
+	    if (motorControlEnable) {
+	        writeMotors();
+	    }
+	}
+#else
     if (isServoOutputEnabled()) {
         writeServos();
     }
@@ -949,6 +961,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     if (motorControlEnable) {
         writeMotors();
     }
+#endif
 
     // Check if landed, FW and MR
     if (STATE(ALTITUDE_CONTROL)) {
