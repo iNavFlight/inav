@@ -205,6 +205,11 @@ STATIC_PROTOTHREAD(pitotThread)
         }
 
         pitot.dev.calculate(&pitot.dev, &pitotPressureTmp, NULL);
+#ifdef USE_SIMULATOR
+    	if (simulatorData.flags & SIMU_AIRSPEED) {
+        	pitotPressureTmp = sq(simulatorData.airSpeed) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;
+    	}
+#endif
         ptYield();
 
         // Filter pressure
@@ -228,6 +233,11 @@ STATIC_PROTOTHREAD(pitotThread)
             performPitotCalibrationCycle();
             pitot.airSpeed = 0;
         }
+#ifdef USE_SIMULATOR
+    	if (simulatorData.flags & SIMU_AIRSPEED) {
+        	pitot.airSpeed = simulatorData.airSpeed;
+    	}
+#endif
     }
 
     ptEnd(0);
