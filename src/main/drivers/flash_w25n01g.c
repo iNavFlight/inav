@@ -301,7 +301,7 @@ static void w25n01g_programDataLoad(uint16_t columnAddress, const uint8_t *data,
     uint8_t cmd[3] = {W25N01G_INSTRUCTION_PROGRAM_DATA_LOAD, columnAddress >> 8, columnAddress & 0xff};
 
     busTransferDescriptor_t transferDescr[] = {{.length = sizeof(cmd), .rxBuf = NULL, .txBuf = cmd}, {.length = length, .rxBuf = NULL, .txBuf = (uint8_t *)data}};
-    busTransferMultiple(busDev, transferDescr, sizeof(transferDescr) / sizeof(transferDescr[0]));
+    busTransferMultiple(busDev, transferDescr, ARRAYLEN(transferDescr));
 
     w25n01g_setTimeout(W25N01G_TIMEOUT_PAGE_PROGRAM_MS);
 }
@@ -313,7 +313,7 @@ static void w25n01g_randomProgramDataLoad(uint16_t columnAddress, const uint8_t 
     uint8_t cmd[3] = {W25N01G_INSTRUCTION_RANDOM_PROGRAM_DATA_LOAD, columnAddress >> 8, columnAddress & 0xff};
 
     busTransferDescriptor_t transferDescr[] = {{.length = sizeof(cmd), .rxBuf = NULL, .txBuf = cmd}, {.length = length, .rxBuf = NULL, .txBuf = (uint8_t *)data}};
-    busTransferMultiple(busDev, transferDescr, sizeof(transferDescr) / sizeof(transferDescr[0]));
+    busTransferMultiple(busDev, transferDescr, ARRAYLEN(transferDescr));
 
     w25n01g_setTimeout(W25N01G_TIMEOUT_PAGE_PROGRAM_MS);
 }
@@ -489,7 +489,7 @@ int w25n01g_readBytes(uint32_t address, uint8_t *buffer, int length)
     const uint8_t cmd[4] = {W25N01G_INSTRUCTION_READ_DATA, (column >> 8) & 0xff, (column >> 0) & 0xff, 0};
 
     busTransferDescriptor_t readDescr[] = {{.length = sizeof(cmd), .rxBuf = NULL, .txBuf = cmd}, {.length = transferLength, .rxBuf = buffer, .txBuf = NULL}};
-    busTransferMultiple(busDev, readDescr, sizeof(readDescr) / sizeof(readDescr[0]));
+    busTransferMultiple(busDev, readDescr, ARRAYLEN(readDescr));
 
     if (!w25n01g_waitForReady(W25N01G_TIMEOUT_PAGE_READ_MS)) {
         return 0;
@@ -530,7 +530,7 @@ int w25n01g_readExtensionBytes(uint32_t address, uint8_t *buffer, int length)
     cmd[3] = 0;
 
     busTransferDescriptor_t readDescr[] = {{.length = sizeof(cmd), .rxBuf = NULL, .txBuf = cmd}, {.length = length, .rxBuf = buffer, .txBuf = NULL}};
-    busTransferMultiple(busDev, readDescr, sizeof(readDescr) / sizeof(readDescr[0]));
+    busTransferMultiple(busDev, readDescr, ARRAYLEN(readDescr));
 
     w25n01g_setTimeout(W25N01G_TIMEOUT_PAGE_READ_MS);
 
