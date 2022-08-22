@@ -379,7 +379,7 @@ bool pidInitFilters(void)
 void pidResetTPAFilter(void)
 {
     if (usedPidControllerType == PID_TYPE_PIFF && currentControlRateProfile->throttle.fixedWingTauMs > 0) {
-        pt1FilterInitRC(&fixedWingTpaFilter, currentControlRateProfile->throttle.fixedWingTauMs * 1e-3f, TASK_PERIOD_HZ(TASK_AUX_RATE_HZ) * 1e-6f);
+        pt1FilterInitRC(&fixedWingTpaFilter, MS2S(currentControlRateProfile->throttle.fixedWingTauMs), TASK_PERIOD_HZ(TASK_AUX_RATE_HZ) * 1e-6f);
         pt1FilterReset(&fixedWingTpaFilter, getThrottleIdleValue());
     }
 }
