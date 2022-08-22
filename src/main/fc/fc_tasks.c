@@ -51,7 +51,6 @@
 #include "flight/rpm_filter.h"
 #include "flight/secondary_imu.h"
 #include "flight/servos.h"
-#include "flight/wind_estimator.h"
 
 #include "navigation/navigation.h"
 

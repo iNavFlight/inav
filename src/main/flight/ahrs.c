@@ -253,7 +253,7 @@ void matrixFromEuler(float roll, float pitch, float yaw)
 // Apply an additional rotation from a body frame gyro vector to a rotation matrix.
 void dcmMatrixRotate(const fpVector3_t gyro)
 {
-    fpMat3_t rotationMatrix2 = { .m = { { rotationMatrix.m[0][0], rotationMatrix.m[0][1], rotationMatrix.m[0][2] },
+    const fpMat3_t rotationMatrix2 = { .m = { { rotationMatrix.m[0][0], rotationMatrix.m[0][1], rotationMatrix.m[0][2] },
                                         { rotationMatrix.m[1][0], rotationMatrix.m[1][1], rotationMatrix.m[1][2] },
                                         { rotationMatrix.m[2][0], rotationMatrix.m[2][1], rotationMatrix.m[2][2] } } };
 
@@ -273,7 +273,7 @@ void dcmMatrixRotate(const fpVector3_t gyro)
 // Multiplication of transpose by a vector
 void multiplicationTranspose(fpVector3_t *v)
 {
-    fpVector3_t v2 = { .v = { v->x, v->y, v->z } };
+    const fpVector3_t v2 = { .v = { v->x, v->y, v->z } };
 
     v->x = rotationMatrix.m[0][0] * v2.x + rotationMatrix.m[1][0] * v2.y + rotationMatrix.m[2][0] * v2.z;
     v->y = rotationMatrix.m[0][1] * v2.x + rotationMatrix.m[1][1] * v2.y + rotationMatrix.m[2][1] * v2.z;
@@ -283,7 +283,7 @@ void multiplicationTranspose(fpVector3_t *v)
 // Multiplication by a vector, extracting only the XY components
 void multiplicationXY(fpVector3_t *v) 
 {
-    fpVector3_t v2 = { .v = { v->x, v->y, v->z } };
+    const fpVector3_t v2 = { .v = { v->x, v->y, v->z } };
 
     v->x = rotationMatrix.m[0][0] * v2.x + rotationMatrix.m[0][1] * v2.y + rotationMatrix.m[0][2] * v2.z;
     v->y = rotationMatrix.m[1][0] * v2.x + rotationMatrix.m[1][1] * v2.y + rotationMatrix.m[1][2] * v2.z; 
@@ -292,7 +292,7 @@ void multiplicationXY(fpVector3_t *v)
 // Multiplication by a vector
 void multiplicationXYZ(fpVector3_t *v) 
 {
-    fpVector3_t v2 = { .v = { v->x, v->y, v->z } };
+    const fpVector3_t v2 = { .v = { v->x, v->y, v->z } };
 
     v->x = rotationMatrix.m[0][0] * v2.x + rotationMatrix.m[0][1] * v2.y + rotationMatrix.m[0][2] * v2.z;
     v->y = rotationMatrix.m[1][0] * v2.x + rotationMatrix.m[1][1] * v2.y + rotationMatrix.m[1][2] * v2.z;
@@ -410,8 +410,9 @@ void normalize(void)
                               rotationMatrix.m[1][1] - (rotationMatrix.m[0][1] * (0.5f * error)),
                               rotationMatrix.m[1][2] - (rotationMatrix.m[0][2] * (0.5f * error)) } }; 
 
+    // eq.20
     fpVector3_t t2; 
-    vectorCrossProduct(&t2, &t0, &t1); // eq.20
+    vectorCrossProduct(&t2, &t0, &t1);
 
     fpVector3_t matrixA = { .v = { rotationMatrix.m[0][0], rotationMatrix.m[0][1], rotationMatrix.m[0][2] } };
     fpVector3_t matrixB = { .v = { rotationMatrix.m[1][0], rotationMatrix.m[1][1], rotationMatrix.m[1][2] } };
@@ -522,9 +523,9 @@ float yawErrorCompass(void)
     }
     
 #ifdef USE_SIMULATOR
-            if (ARMING_FLAG(SIMULATOR_MODE)) {
-                    imuSetMagneticDeclination(0);
-                }
+    if (ARMING_FLAG(SIMULATOR_MODE)) {
+        ahrsSetMagneticDeclination(0.0f);
+    }
 #endif
 
     // Calculate the Z component of the cross product of magField and _mag_earth
@@ -659,7 +660,7 @@ float calculateHeading(void)
 
     float headY = magField.y * rotationMatrix.m[2][2] - magField.z * rotationMatrix.m[2][1];
 
-    // Tilt compensated magnetic field X component:
+    // Tilt compensated magnetic field X component
     float headX = magField.x * cos_pitch_sq - rotationMatrix.m[2][0] * (magField.y * rotationMatrix.m[2][1] + magField.z * rotationMatrix.m[2][2]);
 
     // Magnetic Heading
@@ -778,10 +779,7 @@ void driftCorrectionYaw(void)
 void raDelayed(fpVector3_t ra, fpVector3_t *v)
 {
     // Get the old element, and then fill it with the new element
-    fpVector3_t ret;
-    ret.x = _ra_delay_buffer.x;
-    ret.y = _ra_delay_buffer.y;
-    ret.z = _ra_delay_buffer.z;
+    fpVector3_t ret = { .v = { _ra_delay_buffer.x, _ra_delay_buffer.y, _ra_delay_buffer.z } };
 
     _ra_delay_buffer.x = ra.x;
     _ra_delay_buffer.y = ra.y;
@@ -835,7 +833,7 @@ void driftCorrection(float deltaTime)
         float airspeed = _last_airspeed;
 
         if (realPitotEnabled()) {
-            airspeed = pitotCalculateAirSpeed();
+            airspeed = getAirspeedEstimate();
         }
 
         // Use airspeed to estimate our ground velocity in Earth-Frame by subtracting the wind
@@ -873,10 +871,7 @@ void driftCorrection(float deltaTime)
         _have_gps_lock = true;
 
         // Keep last airspeed estimate for dead-reckoning purposes
-        fpVector3_t airspeed;
-        airspeed.x = velocity.x - _wind.x;
-        airspeed.y = velocity.y - _wind.y;
-        airspeed.z = velocity.z - _wind.z;
+        fpVector3_t airspeed = { .v = { velocity.x - _wind.x, velocity.y - _wind.y, velocity.z - _wind.z } };
 
         // Rotate vector to body frame
         multiplicationTranspose(&airspeed);
@@ -895,10 +890,7 @@ void driftCorrection(float deltaTime)
     }
 
     // Equation 9: get the corrected acceleration vector in Earth-Frame. Units are cm/s/s
-    fpVector3_t GA_e;
-    GA_e.x = 0.0f;
-    GA_e.y = 0.0f;
-    GA_e.z = 1.0f;
+    fpVector3_t GA_e = { .v = { 0.0f, 0.0f, 1.0f } };
 
     if (_ra_deltaTime <= 0.0f) {
         // Waiting for more data
@@ -912,14 +904,11 @@ void driftCorrection(float deltaTime)
     const bool should_correct_centrifugal = STATE(FIXED_WING_LEGACY) ? true : ARMING_FLAG(ARMED);
 
     if (should_correct_centrifugal && (_have_gps_lock || fly_forward)) {
-        const float v_scale = gps_gain * ra_scale;
-        fpVector3_t vdelta;
-        vdelta.x = (velocity.x - _last_velocity.x) * v_scale;
-        vdelta.y = (velocity.y - _last_velocity.y) * v_scale;
-        vdelta.z = (velocity.z - _last_velocity.z) * v_scale;
-        GA_e.x += vdelta.x;
-        GA_e.y += vdelta.y;
-        GA_e.z += vdelta.z;
+        const float vel_scale = gps_gain * ra_scale;
+        const fpVector3_t vel_delta = { .v = { (velocity.x - _last_velocity.x) * vel_scale, (velocity.y - _last_velocity.y) * vel_scale, (velocity.z - _last_velocity.z) * vel_scale } };
+        GA_e.x += vel_delta.x;
+        GA_e.y += vel_delta.y;
+        GA_e.z += vel_delta.z;
         GA_e.x /= calc_length_pythagorean_3D(GA_e.x, GA_e.y, GA_e.z);
         GA_e.y /= calc_length_pythagorean_3D(GA_e.x, GA_e.y, GA_e.z);
         GA_e.z /= calc_length_pythagorean_3D(GA_e.x, GA_e.y, GA_e.z);
@@ -1058,10 +1047,7 @@ void driftCorrection(float deltaTime)
 // Calculate Sine and Cosine of Roll, Pitch and Yaw from a NED rotation matrix
 void calculateTrigonometry(float *cr, float *cp, float *cy, float *sr, float *sp, float *sy) {
 
-    fpVector3_t yaw_vector;
-    yaw_vector.x = rotationMatrix.m[0][0];
-    yaw_vector.y = -rotationMatrix.m[1][0];
-    yaw_vector.z = 0.0f;
+    fpVector3_t yaw_vector = { .v = { rotationMatrix.m[0][0], -rotationMatrix.m[1][0], 0.0f } };
 
     if (fabsf(yaw_vector.x) > 0.0f || fabsf(yaw_vector.y) > 0.0f) {
         yaw_vector.x /= calc_length_pythagorean_2D(yaw_vector.x, yaw_vector.y);
@@ -1226,11 +1212,11 @@ void ahrsUpdate(timeUs_t currentTimeUs)
 // Update our wind speed estimate
 void updateWindEstimator(void)
 {
-    fpVector3_t velocity = { .v = { _last_velocity.x, _last_velocity.y, _last_velocity.z } };
+    const fpVector3_t velocity = { .v = { _last_velocity.x, _last_velocity.y, _last_velocity.z } };
 
-    fpVector3_t fuselageDirection = { .v = { rotationMatrix.m[0][0], -rotationMatrix.m[1][0], -rotationMatrix.m[2][0] } };
+    const fpVector3_t fuselageDirection = { .v = { rotationMatrix.m[0][0], -rotationMatrix.m[1][0], -rotationMatrix.m[2][0] } };
 
-    fpVector3_t fuselageDirectionDiff = { .v = { fuselageDirection.x - _last_fuse.x, fuselageDirection.y - _last_fuse.y, fuselageDirection.z - _last_fuse.z } };
+    const fpVector3_t fuselageDirectionDiff = { .v = { fuselageDirection.x - _last_fuse.x, fuselageDirection.y - _last_fuse.y, fuselageDirection.z - _last_fuse.z } };
 
     const timeMs_t now = millis();
 
@@ -1249,15 +1235,14 @@ void updateWindEstimator(void)
     float diff_length = calc_length_pythagorean_3D(fuselageDirectionDiff.x, fuselageDirectionDiff.y, fuselageDirectionDiff.z);
     if (diff_length > 0.2f) {
         // When turning, use the attitude response to estimate wind speed
-        float V;
-        fpVector3_t velocityDiff = { .v = { velocity.x - _last_vel.x, velocity.y - _last_vel.y, velocity.z - _last_vel.z } };
+        const fpVector3_t velocityDiff = { .v = { velocity.x - _last_vel.x, velocity.y - _last_vel.y, velocity.z - _last_vel.z } };
 
         // Estimate airspeed it using equation 6
-        V = calc_length_pythagorean_3D(velocityDiff.x, velocityDiff.y, velocityDiff.z) / diff_length;
+        const float velDiff = calc_length_pythagorean_3D(velocityDiff.x, velocityDiff.y, velocityDiff.z) / diff_length;
 
-        fpVector3_t fuselageDirectionSum = { .v = { fuselageDirection.x + _last_fuse.x, fuselageDirection.y + _last_fuse.y, fuselageDirection.z + _last_fuse.z } };
+        const fpVector3_t fuselageDirectionSum = { .v = { fuselageDirection.x + _last_fuse.x, fuselageDirection.y + _last_fuse.y, fuselageDirection.z + _last_fuse.z } };
 
-        fpVector3_t velocitySum = { .v = { velocity.x + _last_vel.x, velocity.y + _last_vel.y, velocity.z + _last_vel.z } };
+        const fpVector3_t velocitySum = { .v = { velocity.x + _last_vel.x, velocity.y + _last_vel.y, velocity.z + _last_vel.z } };
 
         _last_fuse.x = fuselageDirection.x;
         _last_fuse.y = fuselageDirection.y;
@@ -1271,9 +1256,9 @@ void updateWindEstimator(void)
         const float costheta = cos_approx(theta);
 
         fpVector3_t wind;
-        wind.x = velocitySum.x - V * (costheta * fuselageDirectionSum.x - sintheta * fuselageDirectionSum.y);
-        wind.y = velocitySum.y - V * (sintheta * fuselageDirectionSum.x + costheta * fuselageDirectionSum.y);
-        wind.z = velocitySum.z - V * fuselageDirectionSum.z;
+        wind.x = velocitySum.x - velDiff * (costheta * fuselageDirectionSum.x - sintheta * fuselageDirectionSum.y);
+        wind.y = velocitySum.y - velDiff * (sintheta * fuselageDirectionSum.x + costheta * fuselageDirectionSum.y);
+        wind.z = velocitySum.z - velDiff * fuselageDirectionSum.z;
         wind.x *= 0.5f;
         wind.y *= 0.5f;
         wind.z *= 0.5f;
@@ -1291,8 +1276,8 @@ void updateWindEstimator(void)
 
     // When flying straight use airspeed to get wind estimate if available
     if (now - _last_wind_time > 2000 && realPitotEnabled()) {
-        fpVector3_t airspeed = { .v = { fuselageDirection.x * pitotCalculateAirSpeed(), fuselageDirection.y * pitotCalculateAirSpeed(), fuselageDirection.z * pitotCalculateAirSpeed() } };
-        fpVector3_t wind = { .v = {velocity.x - airspeed.x, velocity.y - airspeed.y, velocity.z - airspeed.z  } };
+        const fpVector3_t airspeed = { .v = { fuselageDirection.x * getAirspeedEstimate(), fuselageDirection.y * getAirspeedEstimate(), fuselageDirection.z * getAirspeedEstimate() } };
+        const fpVector3_t wind = { .v = {velocity.x - airspeed.x, velocity.y - airspeed.y, velocity.z - airspeed.z  } };
         _wind.x = _wind.x * 0.92f + wind.x * 0.08f;
         _wind.y = _wind.y * 0.92f + wind.y * 0.08f;
         _wind.z = _wind.z * 0.92f + wind.z * 0.08f;
@@ -1323,7 +1308,7 @@ float getEstimatedHorizontalWindSpeed(uint16_t *angle)
 float ahrsGetAirspeedEstimate(void)
 {
     if (realPitotEnabled()) {
-        return pitotCalculateAirSpeed();
+        return getAirspeedEstimate();
     }
 
     // Estimated via GPS speed and wind, or give the last estimate.

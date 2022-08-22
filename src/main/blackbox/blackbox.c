@@ -81,7 +81,6 @@
 #include "sensors/rangefinder.h"
 #include "sensors/sensors.h"
 #include "sensors/esc_sensor.h"
-#include "flight/wind_estimator.h"
 #include "sensors/temperature.h"
 
 

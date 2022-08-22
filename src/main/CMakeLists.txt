@@ -323,8 +323,6 @@ main_sources(COMMON_SRC
     flight/rth_estimator.h
     flight/servos.c
     flight/servos.h
-    flight/wind_estimator.c
-    flight/wind_estimator.h
     flight/gyroanalyse.c
     flight/gyroanalyse.h
     flight/rpm_filter.c
