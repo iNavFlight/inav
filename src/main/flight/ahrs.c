@@ -77,11 +77,9 @@ FILE_COMPILE_FOR_SPEED
 // The limit (in degrees/second) beyond which we stop integrating omega_I. At larger spin rates the DCM PI controller can get 'dizzy' which results in false gyro drift.
 #define SPIN_RATE_LIMIT 20
 
-STATIC_FASTRAM flightLogEvent_IMUError_t ahrsErrorEvent;
-STATIC_FASTRAM flightLogEvent_IMUError_t prev_ahrsErrorEvent;
-
 FASTRAM fpMat3_t rotationMatrix;
 FASTRAM attitudeEulerAngles_t attitude;
+
 FASTRAM fpVector3_t imuMeasuredRotationBF;
 FASTRAM fpVector3_t imuMeasuredAccelBF;
 STATIC_FASTRAM fpVector3_t _accel_ef;
@@ -97,6 +95,17 @@ STATIC_FASTRAM fpVector3_t _last_velocity;
 STATIC_FASTRAM fpVector3_t _wind;
 STATIC_FASTRAM fpVector3_t _last_fuse;
 STATIC_FASTRAM fpVector3_t _last_vel;
+
+STATIC_FASTRAM flightLogEvent_IMUError_t ahrsErrorEvent;
+STATIC_FASTRAM flightLogEvent_IMUError_t prev_ahrsErrorEvent;
+
+static timeMs_t _last_consistent_heading;
+static timeMs_t _last_startup_ms;
+static timeMs_t _ra_sum_start;
+static timeMs_t _last_failure_ms;
+static timeMs_t _gps_last_update;
+static timeMs_t _last_wind_time;
+static timeUs_t _compass_last_update;
 
 STATIC_FASTRAM bool _have_gps_lock;
 STATIC_FASTRAM bool have_initial_yaw;
@@ -118,14 +127,6 @@ STATIC_FASTRAM float _cos_yaw = 1.0f;
 STATIC_FASTRAM float _sin_roll;
 STATIC_FASTRAM float _sin_pitch;
 STATIC_FASTRAM float _sin_yaw;
-
-static timeMs_t _last_consistent_heading;
-static timeMs_t _last_startup_ms;
-static timeMs_t _ra_sum_start;
-static timeMs_t _last_failure_ms;
-static timeMs_t _gps_last_update;
-static timeMs_t _last_wind_time;
-static timeUs_t _compass_last_update;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(ahrsConfig_t, ahrsConfig, PG_AHRS_CONFIG, 3);
 
