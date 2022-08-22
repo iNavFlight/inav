@@ -341,7 +341,7 @@ void updatePositionEstimator_BaroTopic(timeUs_t currentTimeUs)
  */
 void updatePositionEstimator_PitotTopic(timeUs_t currentTimeUs)
 {
-    posEstimator.pitot.airspeed = pitot.airSpeed;
+    posEstimator.pitot.airspeed = getAirspeedEstimate();
     posEstimator.pitot.lastUpdateTime = currentTimeUs;
 }
 #endif

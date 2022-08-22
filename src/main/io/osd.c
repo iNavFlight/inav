@@ -2632,11 +2632,12 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_AIR_SPEED:
         {
         #ifdef USE_PITOT
+            const float airspeed_estimate = getAirspeedEstimate();
             buff[0] = SYM_AIR;
-            osdFormatVelocityStr(buff + 1, pitot.airSpeed, false, false);
+            osdFormatVelocityStr(buff + 1, airspeed_estimate, false, false);
 
-            if ((osdConfig()->airspeed_alarm_min != 0 && pitot.airSpeed < osdConfig()->airspeed_alarm_min) ||
-                (osdConfig()->airspeed_alarm_max != 0 && pitot.airSpeed > osdConfig()->airspeed_alarm_max)) {
+            if ((osdConfig()->airspeed_alarm_min != 0 && airspeed_estimate < osdConfig()->airspeed_alarm_min) ||
+                (osdConfig()->airspeed_alarm_max != 0 && airspeed_estimate > osdConfig()->airspeed_alarm_max)) {
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             }
         #else
@@ -3777,14 +3778,16 @@ static void osdUpdateStats(void)
 
     if (feature(FEATURE_GPS)) {
         value = osdGet3DSpeed();
+        const float airspeed_estimate = getAirspeedEstimate();
+
         if (stats.max_3D_speed < value)
             stats.max_3D_speed = value;
 
         if (stats.max_speed < gpsSol.groundSpeed)
             stats.max_speed = gpsSol.groundSpeed;
 
-        if (stats.max_air_speed < pitot.airSpeed)
-            stats.max_air_speed = pitot.airSpeed;
+        if (stats.max_air_speed < airspeed_estimate)
+            stats.max_air_speed = airspeed_estimate;
 
         if (stats.max_distance < GPS_distanceToHome)
             stats.max_distance = GPS_distanceToHome;
