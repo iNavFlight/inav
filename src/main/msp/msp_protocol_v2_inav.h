@@ -53,6 +53,8 @@
 #define MSP2_INAV_SET_TEMP_SENSOR_CONFIG        0x201D
 #define MSP2_INAV_TEMPERATURES                  0x201E
 
+#define MSP_SIMULATOR							0x201F
+
 #define MSP2_INAV_SERVO_MIXER                   0x2020
 #define MSP2_INAV_SET_SERVO_MIXER               0x2021
 #define MSP2_INAV_LOGIC_CONDITIONS              0x2022

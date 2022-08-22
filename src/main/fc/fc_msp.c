@@ -21,6 +21,7 @@
 #include <string.h>
 #include <math.h>
 
+#include "common/log.h" //for MSP_SIMULATOR
 #include "platform.h"
 
 #include "blackbox/blackbox.h"
@@ -92,12 +93,15 @@
 #include "io/serial_4way.h"
 #include "io/vtx.h"
 #include "io/vtx_string.h"
+#include "io/gps_private.h"  //for MSP_SIMULATOR
 
 #include "msp/msp.h"
 #include "msp/msp_protocol.h"
 #include "msp/msp_serial.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_private.h" //for MSP_SIMULATOR
+#include "navigation/navigation_pos_estimator_private.h" //for MSP_SIMULATOR
 
 #include "rx/rx.h"
 #include "rx/msp.h"
@@ -1424,7 +1428,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP2_INAV_AIR_SPEED:
 #ifdef USE_PITOT
-        sbufWriteU32(dst, pitot.airSpeed);
+        sbufWriteU32(dst, getAirspeedEstimate());
 #else
         sbufWriteU32(dst, 0);
 #endif
@@ -2474,8 +2478,9 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #ifdef USE_GPS
     case MSP_SET_RAW_GPS:
         if (dataSize == 14) {
-            if (sbufReadU8(src)) {
-                ENABLE_STATE(GPS_FIX);
+	    gpsSol.fixType = sbufReadU8(src);
+	    if (gpsSol.fixType) {
+		ENABLE_STATE(GPS_FIX);
             } else {
                 DISABLE_STATE(GPS_FIX);
             }
@@ -2485,7 +2490,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             gpsSol.numSat = sbufReadU8(src);
             gpsSol.llh.lat = sbufReadU32(src);
             gpsSol.llh.lon = sbufReadU32(src);
-            gpsSol.llh.alt = sbufReadU16(src);
+            gpsSol.llh.alt = 100 * sbufReadU16(src); // require cm
             gpsSol.groundSpeed = sbufReadU16(src);
             gpsSol.velNED[X] = 0;
             gpsSol.velNED[Y] = 0;
@@ -3181,8 +3186,147 @@ static bool mspParameterGroupsCommand(sbuf_t *dst, sbuf_t *src)
     return true;
 }
 
+#ifdef USE_SIMULATOR
+bool isOSDTypeSupportedBySimulator(void)
+{
+	displayPort_t *osdDisplayPort = osdGetDisplayPort();
+	return (osdDisplayPort && osdDisplayPort->cols == 30 && (osdDisplayPort->rows == 13 || osdDisplayPort->rows == 16));
+}
+
+void mspWriteSimulatorOSD(sbuf_t *dst)
+{
+	//RLE encoding
+	//scan displayBuffer iteratively
+	//no more than 80+3+2 bytes output in single run
+	//0 and 255 are special symbols
+	//255 - font bank switch
+	//0  - font bank switch, blink switch and character repeat
+
+	static uint8_t osdPos_y = 0;
+	static uint8_t osdPos_x = 0;
+
+
+	if (isOSDTypeSupportedBySimulator())
+	{
+		displayPort_t *osdDisplayPort = osdGetDisplayPort();
+
+		sbufWriteU8(dst, osdPos_y | (osdDisplayPort->rows == 16 ? 128: 0));
+		sbufWriteU8(dst, osdPos_x);
+
+		int bytesCount = 0;
+
+		uint16_t c = 0;
+		textAttributes_t attr = 0;
+		bool highBank = false;
+		bool blink = false;
+		int count = 0;
+
+		int processedRows = 16;
+
+		while (bytesCount < 80) //whole response should be less 155 bytes at worst. 
+		{
+			bool blink1;
+			uint16_t lastChar;
+
+			count = 0;
+			while ( true )
+			{
+				displayReadCharWithAttr(osdDisplayPort, osdPos_x, osdPos_y, &c, &attr);
+				if (c == 0 || c == 255) c = 32;
+
+				//REVIEW: displayReadCharWithAttr() should return mode with _TEXT_ATTRIBUTES_BLINK_BIT !
+				//for max7456 it returns mode with MAX7456_MODE_BLINK instead (wrong)
+				//because max7456ReadChar() does not decode from MAX7456_MODE_BLINK to _TEXT_ATTRIBUTES_BLINK_BIT
+				//it should!
+
+				//bool blink2 = TEXT_ATTRIBUTES_HAVE_BLINK(attr);
+				bool blink2 = attr & (1<<4); //MAX7456_MODE_BLINK
+
+				if (count == 0)
+				{
+					lastChar = c;
+					blink1 = blink2;
+				}
+				else if (lastChar != c || blink2 != blink1 || count == 63)
+				{
+					break;
+				}
+
+				count++;
+
+				osdPos_x++;
+				if (osdPos_x == 30)
+				{
+					osdPos_x = 0;
+					osdPos_y++;
+					processedRows--;
+					if (osdPos_y == 16)
+					{
+						osdPos_y = 0;
+					}
+				}
+			}
+
+			uint8_t cmd = 0;
+			if (blink1 != blink)
+			{
+				cmd |= 128;//switch blink attr
+				blink = blink1;
+			}
+
+			bool highBank1 = lastChar > 255;
+			if (highBank1 != highBank)
+			{
+				cmd |= 64;//switch bank attr
+				highBank = highBank1;
+			}
+
+			if (count == 1 && cmd == 64)
+			{
+				sbufWriteU8(dst, 255);  //short command for bank switch
+				sbufWriteU8(dst, lastChar & 0xff);
+				bytesCount += 2;
+			}
+			else if (count > 2 || cmd !=0 )
+			{
+				cmd |= count;  //long command for blink/bank switch and symbol repeat
+				sbufWriteU8(dst, 0); 
+				sbufWriteU8(dst, cmd);
+				sbufWriteU8(dst, lastChar & 0xff);
+				bytesCount += 3;
+			}
+			else if (count == 2)  //cmd == 0 here
+			{
+				sbufWriteU8(dst, lastChar & 0xff);  
+				sbufWriteU8(dst, lastChar & 0xff);
+				bytesCount+=2;
+			}
+			else
+			{
+				sbufWriteU8(dst, lastChar & 0xff);
+				bytesCount++;
+			}
+
+			if ( processedRows <= 0 )
+			{
+				break;
+			}
+		}
+		sbufWriteU8(dst, 0);  //command 0 with length=0 -> stop
+		sbufWriteU8(dst, 0);
+	}
+	else
+	{
+		sbufWriteU8(dst, 255);
+	}
+}
+#endif
+
 bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResult_e *ret)
 {
+    uint8_t tmp_u8;
+    const unsigned int dataSize = sbufBytesRemaining(src);
+
     switch (cmdMSP) {
 
     case MSP_WP:
@@ -3252,6 +3396,175 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
     case MSP2_INAV_SAFEHOME:
          *ret = mspFcSafeHomeOutCommand(dst, src);
          break;
+
+#ifdef USE_SIMULATOR
+    case MSP_SIMULATOR:
+		tmp_u8 = sbufReadU8(src); //MSP_SIMULATOR version
+		if (tmp_u8 != 2) break;
+
+		simulatorData.flags = sbufReadU8(src);
+
+        if ((simulatorData.flags & SIMU_ENABLE) == 0) {
+
+			if (ARMING_FLAG(SIMULATOR_MODE)) { // just once
+				DISABLE_ARMING_FLAG(SIMULATOR_MODE);
+
+#ifdef USE_BARO
+				baroStartCalibration();
+#endif
+#ifdef USE_MAG
+				DISABLE_STATE(COMPASS_CALIBRATED);
+				compassInit();
+#endif
+				simulatorData.flags = 0;
+				//review: many states were affected. reboot?
+
+				disarm(DISARM_SWITCH);  //disarm to prevent motor output!!!
+			}
+		}
+		else if (!areSensorsCalibrating()) {
+			if (!ARMING_FLAG(SIMULATOR_MODE)) { // just once
+#ifdef USE_BARO
+				baroStartCalibration(); 
+#endif			
+#ifdef USE_MAG
+				if (compassConfig()->mag_hardware != MAG_NONE){
+					sensorsSet(SENSOR_MAG);
+					ENABLE_STATE(COMPASS_CALIBRATED);
+					DISABLE_ARMING_FLAG(ARMING_DISABLED_HARDWARE_FAILURE);
+					mag.magADC[X] = 800;
+					mag.magADC[Y] = 0;
+					mag.magADC[Z] = 0;
+				}
+#endif
+				ENABLE_ARMING_FLAG(SIMULATOR_MODE);
+				LOG_D(SYSTEM, "Simulator enabled");
+			}
+
+			if (dataSize >= 14) {
+
+				if (feature(FEATURE_GPS) && ((simulatorData.flags & SIMU_HAS_NEW_GPS_DATA)!=0) ) {
+					gpsSol.fixType = sbufReadU8(src);
+					gpsSol.hdop = gpsSol.fixType == GPS_NO_FIX ? 9999 : 100;
+					gpsSol.flags.hasNewData = true;
+					gpsSol.numSat = sbufReadU8(src);
+
+					if (gpsSol.fixType != GPS_NO_FIX) {
+						gpsSol.flags.validVelNE = 1;
+						gpsSol.flags.validVelD = 1;
+						gpsSol.flags.validEPE = 1;
+
+						gpsSol.llh.lat = sbufReadU32(src);
+						gpsSol.llh.lon = sbufReadU32(src);
+						gpsSol.llh.alt = sbufReadU32(src);
+						gpsSol.groundSpeed = (int16_t)sbufReadU16(src);
+						gpsSol.groundCourse = (int16_t)sbufReadU16(src);
+
+						gpsSol.velNED[X] = (int16_t)sbufReadU16(src);
+						gpsSol.velNED[Y] = (int16_t)sbufReadU16(src);
+						gpsSol.velNED[Z] = (int16_t)sbufReadU16(src);
+
+						gpsSol.eph = 100;
+						gpsSol.epv = 100;
+
+						ENABLE_STATE(GPS_FIX);
+
+						// Feed data to navigation
+						gpsProcessNewSolutionData();
+					}
+					else {
+						sbufAdvance(src, 4 + 4 + 4 + 2 + 2 + 2 * 3);
+						// Feed data to navigation
+						gpsProcessNewSolutionData();
+					}
+				}
+				else {
+					sbufAdvance(src, 1 + 1 + 4 + 4 + 4 + 2 + 2 + 2 * 3);
+				}
+
+				if ((simulatorData.flags & SIMU_USE_SENSORS) == 0) {
+					attitude.values.roll = (int16_t)sbufReadU16(src);
+					attitude.values.pitch = (int16_t)sbufReadU16(src);
+					attitude.values.yaw = (int16_t)sbufReadU16(src);
+				}
+				else
+				{
+					sbufAdvance(src, 2*3);
+				}
+
+				acc.accADCf[X] = ((int16_t)sbufReadU16(src)) / 1000.0f;// acceleration in 1G units
+				acc.accADCf[Y] = ((int16_t)sbufReadU16(src)) / 1000.0f;
+				acc.accADCf[Z] = ((int16_t)sbufReadU16(src)) / 1000.0f;
+				acc.accVibeSq[X] = 0;
+				acc.accVibeSq[Y] = 0;
+				acc.accVibeSq[Z] = 0;
+
+				gyro.gyroADCf[X] = ((int16_t)sbufReadU16(src)) / 16.0f;
+				gyro.gyroADCf[Y] = ((int16_t)sbufReadU16(src)) / 16.0f;
+				gyro.gyroADCf[Z] = ((int16_t)sbufReadU16(src)) / 16.0f;
+
+				if (sensors(SENSOR_BARO))
+				{
+					baro.baroPressure = (int32_t)sbufReadU32(src);
+					baro.baroTemperature = 2500;
+				}
+				else {
+					sbufAdvance(src,4);
+				}
+
+				if (sensors(SENSOR_MAG))
+				{
+					mag.magADC[X] = ((int16_t)sbufReadU16(src)) / 20;  //16000/20 = 800uT
+					mag.magADC[Y] = ((int16_t)sbufReadU16(src)) / 20;
+					mag.magADC[Z] = ((int16_t)sbufReadU16(src)) / 20;
+				}
+				else {
+					sbufAdvance(src, 2*3);
+				}
+
+                if (simulatorData.flags & SIMU_EXT_BATTERY_VOLTAGE) {
+                     simulatorData.vbat = sbufReadU8(src);
+                }
+                else {
+                     simulatorData.vbat = 126;
+                }
+
+                if (simulatorData.flags & SIMU_AIRSPEED) {
+                     simulatorData.airSpeed = sbufReadU16(src);   
+			    }
+			}
+			else {
+				DISABLE_STATE(GPS_FIX);
+			}
+		}
+
+		sbufWriteU16(dst, (uint16_t)simulatorData.INPUT_STABILIZED_ROLL);
+		sbufWriteU16(dst, (uint16_t)simulatorData.INPUT_STABILIZED_PITCH);
+		sbufWriteU16(dst, (uint16_t)simulatorData.INPUT_STABILIZED_YAW);
+		sbufWriteU16(dst, (uint16_t)(ARMING_FLAG(ARMED) ? simulatorData.INPUT_STABILIZED_THROTTLE : -500));
+
+		simulatorData.debugIndex++;
+		if (simulatorData.debugIndex == 8) {
+			simulatorData.debugIndex = 0;
+		}
+
+		tmp_u8 = simulatorData.debugIndex | 
+			((mixerConfig()->platformType == PLATFORM_AIRPLANE) ? 128 : 0) | 
+			(ARMING_FLAG(ARMED) ? 64 : 0) |
+			(!feature(FEATURE_OSD) ? 32: 0) |
+			(!isOSDTypeSupportedBySimulator() ? 16: 0);
+		sbufWriteU8(dst, tmp_u8 );
+		sbufWriteU32(dst, debug[simulatorData.debugIndex]);
+
+		sbufWriteU16(dst, attitude.values.roll);
+		sbufWriteU16(dst, attitude.values.pitch);
+		sbufWriteU16(dst, attitude.values.yaw);
+
+		mspWriteSimulatorOSD(dst);
+
+        *ret = MSP_RESULT_ACK;
+        break;
+#endif
 
     default:
         // Not handled

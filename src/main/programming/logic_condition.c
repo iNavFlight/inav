@@ -35,6 +35,7 @@
 #include "rx/rx.h"
 #include "common/maths.h"
 #include "fc/config.h"
+#include "fc/cli.h"
 #include "fc/fc_core.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
@@ -411,7 +412,7 @@ void logicConditionProcess(uint8_t i) {
 
     const int activatorValue = logicConditionGetValue(logicConditions(i)->activatorId);
 
-    if (logicConditions(i)->enabled && activatorValue) {
+    if (logicConditions(i)->enabled && activatorValue && !cliMode) {
         
         /*
          * Process condition only when latch flag is not set
@@ -504,7 +505,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_AIR_SPEED: // cm/s
         #ifdef USE_PITOT
-            return constrain(pitot.airSpeed, 0, INT16_MAX);
+            return constrain(getAirspeedEstimate(), 0, INT16_MAX);
         #else
             return false;
         #endif

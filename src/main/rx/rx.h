@@ -136,7 +136,7 @@ typedef struct rxConfig_s {
 
 PG_DECLARE(rxConfig_t, rxConfig);
 
-#define REMAPPABLE_CHANNEL_COUNT (sizeof(((rxConfig_t *)0)->rcmap) / sizeof(((rxConfig_t *)0)->rcmap[0]))
+#define REMAPPABLE_CHANNEL_COUNT ARRAYLEN(((rxConfig_t *)0)->rcmap)
 
 typedef struct rxRuntimeConfig_s rxRuntimeConfig_t;
 typedef uint16_t (*rcReadRawDataFnPtr)(const rxRuntimeConfig_t *rxRuntimeConfig, uint8_t chan); // used by receiver driver to return channel data
