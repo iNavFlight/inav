@@ -382,8 +382,8 @@ typedef struct {
     /* Waypoint list */
     navWaypoint_t               waypointList[NAV_MAX_WAYPOINTS];
     bool                        waypointListValid;
-    int8_t                      waypointCount;              // number of WPs loaded from WP source CR74
-    int8_t                      loadedMissionWPCount;       // number of WPs in loaded mission CR74
+    int8_t                      waypointCount;              // number of WPs loaded from WP source
+    int8_t                      loadedMissionWPCount;       // number of WPs in loaded mission
     int8_t                      geoWaypointCount;           // total geospatial WPs in mission
     bool                        wpMissionRestart;           // mission restart from first waypoint
 
@@ -394,6 +394,7 @@ typedef struct {
     /* Multi Missions */
     int8_t                      multiMissionCount;          // number of missions in multi mission entry
     int8_t                      loadedMultiMissionIndex;    // index of selected multi mission
+    int8_t                      totalMultiMissionWpCount;   // total number of waypoints in all multi missions
 #endif
     navWaypointPosition_t       activeWaypoint;             // Local position, current bearing and turn angle to next WP, filled on waypoint activation
     int8_t                      activeWaypointIndex;
