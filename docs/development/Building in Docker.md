@@ -39,4 +39,6 @@ You'll have to manually execute the same steps that the build script does:
    + Where `<PATH_TO_REPO>` must be replaced with the absolute path of where you cloned this repo (see above), and `<TARGET>` with the name of the target that you want to build.
    + Note that on Windows/WSL 2 mounted /src folder is writeable for root user only. You have to run build under root user. You can achieve this by using `-u root` option in the command line above, or by removing "USER inav" line from the .\DockerFile before building image.   
 
+3. If you need to update `Settings.md`, run `docker run --rm -it -u root -v <PATH_TO_REPO>:/src inav-build --entrypoint="/src/cmake/docker-docs.sh"`
+
 Refer to the [Linux](#Linux) instructions or the [build script](/build.sh) for more details.
