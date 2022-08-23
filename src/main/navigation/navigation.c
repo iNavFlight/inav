@@ -1570,8 +1570,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
 
                 // We use p3 as the volatile jump counter (p2 is the static value)
         case NAV_WP_ACTION_JUMP:
-            if (posControl.waypointList[posControl.activeWaypointIndex].p3 != -1){
-                if(posControl.waypointList[posControl.activeWaypointIndex].p3 == 0){
+            if (posControl.waypointList[posControl.activeWaypointIndex].p3 != -1) {
+                if (posControl.waypointList[posControl.activeWaypointIndex].p3 == 0) {
                     resetJumpCounter();
                     return nextForNonGeoStates();
                 }
@@ -3159,6 +3159,7 @@ void resetWaypointList(void)
 #ifdef USE_MULTI_MISSION
         posControl.totalMultiMissionWpCount = 0;
         posControl.loadedMultiMissionIndex = 0;
+        posControl.multiMissionCount = 0;
 #endif
     }
 }
@@ -3188,15 +3189,15 @@ void loadSelectedMultiMission(uint8_t missionIndex)
 
     for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {
         if ((missionCount == missionIndex)) {
+            /* store details of selected mission: start wp index, mission wp count, geo wp count */
             if (!(posControl.waypointList[i].action == NAV_WP_ACTION_SET_POI ||
                     posControl.waypointList[i].action == NAV_WP_ACTION_SET_HEAD ||
                         posControl.waypointList[i].action == NAV_WP_ACTION_JUMP)) {
                 posControl.geoWaypointCount++;
             }
-            /* store details of selected mission */
             // mission start WP
             if (posControl.loadedMissionWPCount == 0) {
-                posControl.loadedMissionWPCount = 1;   // start marker only, value here unimportant (but not 0)
+                posControl.loadedMissionWPCount = 1;   // start marker only, value unimportant (but not 0)
                 wpMissionStartIndex = i;
             }
             // mission end WP
@@ -3215,18 +3216,25 @@ void loadSelectedMultiMission(uint8_t missionIndex)
 
 bool updateWpMissionChange(void)
 {
-    /* Function only called when ARMED */
+    /* Function only called when ARMED.
+     * Note: On disarm wpMissionStartIndex set to 0, posControl.waypointCount set to totalMultiMissionWpCount.
+     * wpMissionStartIndex and posControl.waypointCount reset for flight on arming */
 
     if (posControl.multiMissionCount <= 1 || posControl.wpPlannerActiveWPIndex) {
         posControl.multiMissionCount = posControl.wpPlannerActiveWPIndex ? 0 : posControl.multiMissionCount;
         return true;
     }
 
+    uint8_t setMissionIndex = navConfig()->general.waypoint_multi_mission_index;
     if (!IS_RC_MODE_ACTIVE(BOXCHANGEMISSION)) {
-        if (posControl.loadedMultiMissionIndex != navConfig()->general.waypoint_multi_mission_index ||
-        (navConfig()->general.waypoint_multi_mission_index > 1 && wpMissionStartIndex == 0)) {
-            loadSelectedMultiMission(navConfig()->general.waypoint_multi_mission_index);
-        } else if (posControl.waypointCount != posControl.loadedMissionWPCount) {
+        /* reload mission if mission index changed or wpMissionStartIndex not aligned with mission index > 1
+         * (wpMissionStartIndex may have been set to 0 on previous disarm) */
+        if (posControl.loadedMultiMissionIndex != setMissionIndex || (setMissionIndex > 1 && wpMissionStartIndex == 0)) {
+            loadSelectedMultiMission(setMissionIndex);
+        }
+        /* align waypointCount with loadedMissionWPCount on arming
+         * (waypointCount is set to totalMultiMissionWpCount when disarmed) */
+        if (posControl.waypointCount != posControl.loadedMissionWPCount) {
             posControl.waypointCount = posControl.loadedMissionWPCount;
         }
         return true;
@@ -3234,7 +3242,7 @@ bool updateWpMissionChange(void)
 
     static bool toggleFlag = true;
     if (IS_RC_MODE_ACTIVE(BOXNAVWP) && toggleFlag) {
-        if (navConfig()->general.waypoint_multi_mission_index == posControl.multiMissionCount) {
+        if (setMissionIndex == posControl.multiMissionCount) {
             navConfigMutable()->general.waypoint_multi_mission_index = 1;
         } else {
             selectMultiMissionIndex(1);
@@ -3243,7 +3251,7 @@ bool updateWpMissionChange(void)
     } else if (!IS_RC_MODE_ACTIVE(BOXNAVWP)) {
         toggleFlag = true;
     }
-    return false;
+    return false;   // block WP mode while changing mission when armed
 }
 
 bool checkMissionCount(int8_t waypoint)
@@ -3876,7 +3884,8 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
     if (wpCount) {
         for (uint8_t wp = wpMissionStartIndex; wp < wpCount + wpMissionStartIndex; wp++){
             if (posControl.waypointList[wp].action == NAV_WP_ACTION_JUMP){
-                if (wp == wpMissionStartIndex || posControl.waypointList[wp].p1 == (wp - wpMissionStartIndex + 1) || posControl.waypointList[wp].p1 == (wp - wpMissionStartIndex - 1) || posControl.waypointList[wp].p1 >= wpCount || posControl.waypointList[wp].p2 < -1) {
+                if (wp == wpMissionStartIndex || posControl.waypointList[wp].p1 >= wpCount ||
+                posControl.waypointList[wp].p1 == (wp - wpMissionStartIndex + 1) || posControl.waypointList[wp].p1 == (wp - wpMissionStartIndex - 1) || posControl.waypointList[wp].p2 < -1) {
                     return NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR;
                 }
 
