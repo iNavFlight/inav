@@ -1308,13 +1308,14 @@ static void loadSlowState(blackboxSlowState_t *slow)
                            (getHwGPSStatus()            << 2 * 4) |
                            (getHwRangefinderStatus()    << 2 * 5) |
                            (getHwPitotmeterStatus()     << 2 * 6);
+                           
     slow->powerSupplyImpedance = getPowerSupplyImpedance();
     slow->sagCompensatedVBat = getBatterySagCompensatedVoltage();
 
-    for (int i = 0; i < XYZ_AXIS_COUNT; i++)
+    for (uint8_t i = 0; i < XYZ_AXIS_COUNT; i++)
     {
 #ifdef USE_WIND_ESTIMATOR
-        slow->wind[i] = getEstimatedWindSpeed(i);
+        slow->wind[i] = ahrsGetEstimatedWindSpeed(i);
 #else
         slow->wind[i] = 0;
 #endif

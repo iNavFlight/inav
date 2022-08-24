@@ -109,7 +109,7 @@ static timeUs_t _compass_last_update;
 
 STATIC_FASTRAM bool _have_gps_lock;
 STATIC_FASTRAM bool have_initial_yaw;
-STATIC_FASTRAM bool fly_forward; // true for planes, rover and boat / false for copter
+STATIC_FASTRAM bool fly_forward; // True for planes, rover and boat / false for copter
 
 STATIC_FASTRAM float _omega_I_sum_time;
 STATIC_FASTRAM float _ra_deltaTime;
@@ -913,7 +913,7 @@ void driftCorrection(float deltaTime)
         GA_e.y /= calc_length_pythagorean_3D(GA_e.x, GA_e.y, GA_e.z);
         GA_e.z /= calc_length_pythagorean_3D(GA_e.x, GA_e.y, GA_e.z);
         if (isinf(GA_e.x) || isinf(GA_e.y) || isinf(GA_e.z)) {
-            // wait for some non-zero acceleration information
+            // Wait for some non-zero acceleration information
             _last_failure_ms = millis();
             return;
         }
@@ -1057,7 +1057,7 @@ void calculateTrigonometry(float *cr, float *cp, float *cy, float *sr, float *sp
     *sy = constrainf(yaw_vector.y, -1.0f, 1.0f);
     *cy = constrainf(yaw_vector.x, -1.0f, 1.0f);
 
-    // sanity checks
+    // Sanity checks
     if (isinf(yaw_vector.x) || isinf(yaw_vector.y) || isinf(yaw_vector.z) || 
         isnan(yaw_vector.x) || isnan(yaw_vector.y) || isnan(yaw_vector.z)) {
         *sy = 0.0f;
@@ -1103,6 +1103,16 @@ void dcmUpdate(float deltaTime)
     if (!gyroIsCalibrationComplete()) {
         resetGyroDrift();
     }
+    
+    bool useHITLOutAngles = false;
+
+#ifdef USE_SIMULATOR
+    useHITLOutAngles = ARMING_FLAG(SIMULATOR_MODE) && ((simulatorData.flags & SIMU_USE_SENSORS) == 0);
+
+    if (useHITLOutAngles) {
+        matrixFromEuler(DECIDEGREES_TO_RADIANS(attitude.values.roll), DECIDEGREES_TO_RADIANS(attitude.values.pitch), DECIDEGREES_TO_RADIANS(attitude.values.yaw));
+    }
+#endif
 
     // Integrate the DCM matrix using gyro inputs
     matrixUpdate(deltaTime);
@@ -1129,14 +1139,7 @@ void dcmUpdate(float deltaTime)
     _cos_yaw = cos_approx(_yaw);
     _sin_yaw = sin_approx(_yaw);
     
-#ifdef USE_SIMULATOR
-	if (ARMING_FLAG(SIMULATOR_MODE) && ((simulatorData.flags & SIMU_USE_SENSORS) == 0)) {
-		matrixFromEuler(DECIDEGREES_TO_RADIANS(attitude.values.roll), DECIDEGREES_TO_RADIANS(attitude.values.pitch), DECIDEGREES_TO_RADIANS(attitude.values.yaw));
-		matrixUpdate(deltaTime);
-	}
-	else
-#endif
-	{
+    if (!useHITLOutAngles) {
         attitude.values.roll = RADIANS_TO_DECIDEGREES(_roll);
         attitude.values.pitch = RADIANS_TO_DECIDEGREES(_pitch);
         attitude.values.yaw = RADIANS_TO_DECIDEGREES(_yaw);
@@ -1210,7 +1213,7 @@ void ahrsUpdate(timeUs_t currentTimeUs)
 }
 
 // Update our wind speed estimate
-void updateWindEstimator(void)
+void ahrsUpdateWindEstimator(void)
 {
     const fpVector3_t velocity = { .v = { _last_velocity.x, _last_velocity.y, _last_velocity.z } };
 
@@ -1252,12 +1255,12 @@ void updateWindEstimator(void)
         _last_vel.z = velocity.z;
 
         const float theta = atan2_approx(velocityDiff.y, velocityDiff.x) - atan2_approx(fuselageDirectionDiff.y, fuselageDirectionDiff.x);
-        const float sintheta = sin_approx(theta);
-        const float costheta = cos_approx(theta);
+        const float sinTheta = sin_approx(theta);
+        const float cosTheta = cos_approx(theta);
 
         fpVector3_t wind;
-        wind.x = velocitySum.x - velDiff * (costheta * fuselageDirectionSum.x - sintheta * fuselageDirectionSum.y);
-        wind.y = velocitySum.y - velDiff * (sintheta * fuselageDirectionSum.x + costheta * fuselageDirectionSum.y);
+        wind.x = velocitySum.x - velDiff * (cosTheta * fuselageDirectionSum.x - sinTheta * fuselageDirectionSum.y);
+        wind.y = velocitySum.y - velDiff * (sinTheta * fuselageDirectionSum.x + cosTheta * fuselageDirectionSum.y);
         wind.z = velocitySum.z - velDiff * fuselageDirectionSum.z;
         wind.x *= 0.5f;
         wind.y *= 0.5f;
@@ -1284,27 +1287,26 @@ void updateWindEstimator(void)
     }
 }
 
-float getEstimatedWindSpeed(int axis)
+// Wind velocity vectors in cm/s relative to the Earth-Frame
+float ahrsGetEstimatedWindSpeed(uint8_t axis)
 {
     return _wind.v[axis];
 }
 
-float getEstimatedHorizontalWindSpeed(uint16_t *angle)
+// Returns the horizontal wind velocity as a magnitude in cm/s and, optionally, its heading in Earth-Frame in 0.01deg ([0, 360 * 100)).
+uint16_t ahrsGetEstimatedHorizontalWindSpeed(void)
 {
-    float xWindSpeed = getEstimatedWindSpeed(X);
-    float yWindSpeed = getEstimatedWindSpeed(Y);
-    if (angle) {
-        float horizontalWindAngle = atan2_approx(yWindSpeed, xWindSpeed);
-        // atan2 returns [-M_PI, M_PI], with 0 indicating the vector points in the X direction
-        // We want [0, 360) in degrees
-        if (horizontalWindAngle < 0) {
-            horizontalWindAngle += 2 * M_PIf;
-        }
-        *angle = RADIANS_TO_CENTIDEGREES(horizontalWindAngle);
+    float horizontalWindAngle = atan2_approx(ahrsGetEstimatedWindSpeed(Y), ahrsGetEstimatedWindSpeed(X));
+    // atan2 returns [-M_PI, M_PI], with 0 indicating the vector points in the X direction
+    // We want [0, 360) in degrees
+    if (horizontalWindAngle < 0.0f) {
+        horizontalWindAngle += (2 * M_PIf);
     }
-    return calc_length_pythagorean_2D(xWindSpeed, yWindSpeed);
+
+    return RADIANS_TO_CENTIDEGREES(horizontalWindAngle);
 }
 
+// Returns the air velocity value of the real or virtual Pitot Tube (using the Wind Estimator)
 float ahrsGetAirspeedEstimate(void)
 {
     if (realPitotEnabled()) {
@@ -1334,7 +1336,7 @@ float ahrsGetTiltAngle(void)
 }
 
 // Convert earth-frame to body-frame
-void ahrsTransformVectorEarthToBody(fpVector3_t * v)
+void ahrsTransformVectorEarthToBody(fpVector3_t *v)
 {
     // HACK: This is needed to correctly transform from NEU (navigation) to NED (sensor frame)
     v->y = -v->y;
@@ -1343,7 +1345,7 @@ void ahrsTransformVectorEarthToBody(fpVector3_t * v)
 }
 
 // Convert body-frame to earth-frame
-void ahrsTransformVectorBodyToEarth(fpVector3_t * v)
+void ahrsTransformVectorBodyToEarth(fpVector3_t *v)
 {
     multiplicationXYZ(v);
 

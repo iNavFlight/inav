@@ -157,7 +157,7 @@ void taskProcessGPS(timeUs_t currentTimeUs)
         if (gpsUpdate()) {
 #ifdef USE_WIND_ESTIMATOR
             if (STATE(FIXED_WING_LEGACY)) {
-                updateWindEstimator();
+                ahrsUpdateWindEstimator();
             }
 #endif
         }

@@ -2907,10 +2907,10 @@ static bool osdDrawSingleElement(uint8_t item)
             bool valid = isGPSHeadingValid();
             float horizontalWindSpeed;
             if (valid) {
-                uint16_t angle;
-                horizontalWindSpeed = getEstimatedHorizontalWindSpeed(&angle);
+                uint16_t angle = ahrsGetEstimatedHorizontalWindSpeed();
+                horizontalWindSpeed = ahrsGetAirspeedEstimate();
                 int16_t windDirection = osdGetHeadingAngle( CENTIDEGREES_TO_DEGREES((int)angle) - DECIDEGREES_TO_DEGREES(attitude.values.yaw) + 22);
-                buff[1] = SYM_DIRECTION + (windDirection*2 / 90);
+                buff[1] = SYM_DIRECTION + (windDirection * 2 / 90);
             } else {
                 horizontalWindSpeed = 0;
                 buff[1] = SYM_BLANK;
@@ -2931,7 +2931,7 @@ static bool osdDrawSingleElement(uint8_t item)
             bool valid = isGPSHeadingValid();
             float verticalWindSpeed;
             if (valid) {
-                verticalWindSpeed = -getEstimatedWindSpeed(Z);  //from NED to NEU
+                verticalWindSpeed = -ahrsGetEstimatedWindSpeed(Z);  // from NED to NEU
                 if (verticalWindSpeed < 0) {
                     buff[1] = SYM_AH_DECORATION_DOWN;
                     verticalWindSpeed = -verticalWindSpeed;
@@ -2956,8 +2956,7 @@ static bool osdDrawSingleElement(uint8_t item)
             if (STATE(GPS_FIX)) {
                 olc_encode(gpsSol.llh.lat, gpsSol.llh.lon, digits, buff, sizeof(buff));
             } else {
-                // +codes with > 8 digits have a + at the 9th digit
-                // and we only support 10 and up.
+                // +codes with > 8 digits have a + at the 9th digit and we only support 10 and up.
                 memset(buff, '-', digits + 1);
                 buff[8] = '+';
                 buff[digits + 1] = '\0';

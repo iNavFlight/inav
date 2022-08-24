@@ -55,14 +55,13 @@ bool ahrsIsHealthy(void);
 bool isAhrsHeadingValid(void);
 float ahrsGetTiltAngle(void);
 
-void updateWindEstimator(void);
-// Wind velocity vectors in cm/s relative to the earth frame
-float getEstimatedWindSpeed(int axis);
-// Returns the horizontal wind velocity as a magnitude in cm/s and, optionally, its heading in EF in 0.01deg ([0, 360 * 100)).
-float getEstimatedHorizontalWindSpeed(uint16_t *angle);
+void ahrsUpdateWindEstimator(void);
+float ahrsGetEstimatedWindSpeed(uint8_t axis);
+uint16_t ahrsGetEstimatedHorizontalWindSpeed(void);
+float ahrsGetAirspeedEstimate(void);
 
-void ahrsTransformVectorBodyToEarth(fpVector3_t * v);
-void ahrsTransformVectorEarthToBody(fpVector3_t * v);
+void ahrsTransformVectorBodyToEarth(fpVector3_t *v);
+void ahrsTransformVectorEarthToBody(fpVector3_t *v);
 
 float ahrsGetCosYaw(void);
 float ahrsGetSinYaw(void);
