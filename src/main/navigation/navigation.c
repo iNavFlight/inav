@@ -3072,8 +3072,8 @@ void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData)
     }
     // WP #1 - #60 - common waypoints - pre-programmed mission
     else if ((wpNumber >= 1) && (wpNumber <= NAV_MAX_WAYPOINTS)) {
-        if (wpNumber <= posControl.waypointCount + wpMissionStartIndex) {
-            *wpData = posControl.waypointList[wpNumber - 1];
+        if (wpNumber <= posControl.waypointCount) {
+            *wpData = posControl.waypointList[wpNumber + wpMissionStartIndex - 1];
             if(wpData->action == NAV_WP_ACTION_JUMP) {
                 wpData->p1 += 1; // make WP # (vice index)
             }
