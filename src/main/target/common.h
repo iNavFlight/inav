@@ -184,6 +184,8 @@
 // Wind estimator
 #define USE_WIND_ESTIMATOR
 
+#define USE_SIMULATOR
+
 //Designed to free space of F722 and F411 MCUs
 #if (MCU_FLASH_SIZE > 512)
 
