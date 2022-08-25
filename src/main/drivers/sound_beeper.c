@@ -48,7 +48,7 @@ void systemBeep(bool onoff)
 
 #ifdef USE_SIMULATOR
 	if (ARMING_FLAG(SIMULATOR_MODE)) {
-		if (simulatorData.flags & SIMU_MUTE_BEEPER) {
+		if (SIMULATOR_OPTION_ENABLED(SIMU_MUTE_BEEPER)) {
 			onoff = false;
 		}
 	}

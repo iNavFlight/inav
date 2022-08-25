@@ -329,8 +329,8 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
 
 #ifdef USE_SIMULATOR
             if (ARMING_FLAG(SIMULATOR_MODE)) {
-                    imuSetMagneticDeclination(0);
-                }
+                imuSetMagneticDeclination(0);
+            }
 #endif
 
                 // Reference mag field vector heading is Magnetic North in EF. We compute that by rotating True North vector by declination and assuming Z-component is zero
@@ -462,7 +462,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
 STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
 {
 #ifdef USE_SIMULATOR
-	if (ARMING_FLAG(SIMULATOR_MODE) && ((simulatorData.flags & SIMU_USE_SENSORS) == 0)) {
+	if (ARMING_FLAG(SIMULATOR_MODE) && SIMULATOR_OPTION_DISABLED(SIMU_USE_IMU)) {
 		imuComputeQuaternionFromRPY(attitude.values.roll, attitude.values.pitch, attitude.values.yaw);
 		imuComputeRotationMatrix();
 	}
