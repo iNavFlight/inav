@@ -462,7 +462,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
 STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
 {
 #ifdef USE_SIMULATOR
-	if (ARMING_FLAG(SIMULATOR_MODE) && SIMULATOR_OPTION_DISABLED(SIMU_USE_IMU)) {
+	if (ARMING_FLAG(SIMULATOR_MODE) && !SIMULATOR_HAS_OPTION(HITL_USE_IMU)) {
 		imuComputeQuaternionFromRPY(attitude.values.roll, attitude.values.pitch, attitude.values.yaw);
 		imuComputeRotationMatrix();
 	}

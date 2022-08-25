@@ -3400,14 +3400,15 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 #ifdef USE_SIMULATOR
     case MSP_SIMULATOR:
 		tmp_u8 = sbufReadU8(src); // Get the Simulator MSP version
-
+        
+        // Check the MSP version of simulator
 		if (tmp_u8 != SIMULATOR_MSP_VERSION) {
             break;
         }
 
 		simulatorData.flags = sbufReadU8(src);
 
-        if (SIMULATOR_OPTION_DISABLED(SIMU_ENABLE)) {
+        if (!SIMULATOR_HAS_OPTION(HITL_ENABLE)) {
 
 			if (ARMING_FLAG(SIMULATOR_MODE)) { // Just once
 				DISABLE_ARMING_FLAG(SIMULATOR_MODE);
@@ -3419,7 +3420,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				DISABLE_STATE(COMPASS_CALIBRATED);
 				compassInit();
 #endif
-				simulatorData.flags = SIMU_RESET_FLAGS;
+				simulatorData.flags = HITL_RESET_FLAGS;
                 // Review: Many states were affected. Reboot?
 
 				disarm(DISARM_SWITCH);  // Disarm to prevent motor output!!!
@@ -3445,7 +3446,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 
 			if (dataSize >= 14) {
 
-				if (feature(FEATURE_GPS) && SIMULATOR_OPTION_ENABLED(SIMU_HAS_NEW_GPS_DATA)) {
+				if (feature(FEATURE_GPS) && SIMULATOR_HAS_OPTION(HITL_HAS_NEW_GPS_DATA)) {
 					gpsSol.fixType = sbufReadU8(src);
 					gpsSol.hdop = gpsSol.fixType == GPS_NO_FIX ? 9999 : 100;
 					gpsSol.flags.hasNewData = true;
@@ -3479,7 +3480,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 					sbufAdvance(src, sizeof(uint8_t) + sizeof(uint8_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint16_t) * 3);
 				}
 
-				if (SIMULATOR_OPTION_DISABLED(SIMU_USE_IMU)) {
+				if (!SIMULATOR_HAS_OPTION(HITL_USE_IMU)) {
 					attitude.values.roll = (int16_t)sbufReadU16(src);
 					attitude.values.pitch = (int16_t)sbufReadU16(src);
 					attitude.values.yaw = (int16_t)sbufReadU16(src);
@@ -3515,13 +3516,13 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 					sbufAdvance(src, sizeof(uint16_t) * XYZ_AXIS_COUNT);
 				}
 
-                if (SIMULATOR_OPTION_ENABLED(SIMU_EXT_BATTERY_VOLTAGE)) {
+                if (SIMULATOR_HAS_OPTION(HITL_EXT_BATTERY_VOLTAGE)) {
                     simulatorData.vbat = sbufReadU8(src);
                 } else {
                     simulatorData.vbat = (uint8_t)(SIMULATOR_FULL_BATTERY * 10.0f);
                 }
 
-                if (SIMULATOR_OPTION_ENABLED(SIMU_AIRSPEED)) {
+                if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
                     simulatorData.airSpeed = sbufReadU16(src);   
 			    }
 			} else {
@@ -3529,10 +3530,10 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 			}
 		}
 
-		sbufWriteU16(dst, (uint16_t)simulatorData.INPUT_STABILIZED_ROLL);
-		sbufWriteU16(dst, (uint16_t)simulatorData.INPUT_STABILIZED_PITCH);
-		sbufWriteU16(dst, (uint16_t)simulatorData.INPUT_STABILIZED_YAW);
-		sbufWriteU16(dst, (uint16_t)(ARMING_FLAG(ARMED) ? simulatorData.INPUT_STABILIZED_THROTTLE : -500));
+		sbufWriteU16(dst, (uint16_t)simulatorData.input[INPUT_STABILIZED_ROLL]);
+		sbufWriteU16(dst, (uint16_t)simulatorData.input[INPUT_STABILIZED_PITCH]);
+		sbufWriteU16(dst, (uint16_t)simulatorData.input[INPUT_STABILIZED_YAW]);
+		sbufWriteU16(dst, (uint16_t)(ARMING_FLAG(ARMED) ? simulatorData.input[INPUT_STABILIZED_THROTTLE] : -500));
 
 		simulatorData.debugIndex++;
 		if (simulatorData.debugIndex == 8) {
