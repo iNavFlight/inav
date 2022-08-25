@@ -639,7 +639,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         int32_t finalAltitude = navConfig()->general.land_slowdown_minalt + posControl.rthState.homeTmpWaypoint.z;
 
         if ((posControl.flags.estAltStatus >= EST_USABLE && navGetCurrentActualPositionAndVelocity()->pos.z <= finalAltitude) ||
-           (posControl.flags.estAglStatus == EST_TRUSTED && posControl.actualState.agl.pos.z <= finalAltitude)) {
+           (posControl.flags.estAglStatus == EST_TRUSTED && posControl.actualState.agl.pos.z <= navConfig()->general.land_slowdown_minalt)) {
 
             // Set motor to min. throttle and stop it when MOTOR_STOP feature is enabled
             rcCommand[THROTTLE] = getThrottleIdleValue();
