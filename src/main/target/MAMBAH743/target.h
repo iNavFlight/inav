@@ -63,7 +63,7 @@
 // #define SPI4_MOSI_PIN           PE14
 
 #define USE_IMU_ICM42605
-#define IMU_ICM42605_ALIGN      CW90_DEG_FLIP
+#define IMU_ICM42605_ALIGN      CW90_DEG
 #define ICM42605_SPI_BUS        BUS_SPI1
 #define ICM42605_CS_PIN         PA4
 #define ICM42605_EXTI_PIN       PC4
@@ -175,11 +175,22 @@
 
 #define DEFAULT_RX_TYPE RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER SERIALRX_SBUS
-#define SERIALRX_UART SERIAL_PORT_USART6
 
 // *************** ADC *****************************
 #define USE_ADC
 #define ADC_INSTANCE ADC3
+
+#ifdef MAMBAH743_2022B
+
+#define ADC_CHANNEL_1_PIN PC1
+#define ADC_CHANNEL_2_PIN PC3
+#define ADC_CHANNEL_3_PIN PC0
+
+#define VBAT_ADC_CHANNEL ADC_CHN_1
+#define CURRENT_METER_ADC_CHANNEL ADC_CHN_2
+#define AIRSPEED_ADC_CHANNEL ADC_CHN_3
+
+#else
 
 #define ADC_CHANNEL_1_PIN PC1
 #define ADC_CHANNEL_2_PIN PC3
@@ -191,10 +202,22 @@
 #define RSSI_ADC_CHANNEL ADC_CHN_3
 #define AIRSPEED_ADC_CHANNEL ADC_CHN_4
 
+#endif
+
 // *************** PINIO ***************************
 #define USE_PINIO
 #define USE_PINIOBOX
+
+#ifdef MAMBAH743_2022B
+
+#define PINIO1_PIN PC2
+#define PINIO2_PIN PC5
+
+#else
+
 #define PINIO1_PIN PC5
+
+#endif
 
 // *************** LEDSTRIP ************************
 #define USE_LED_STRIP
