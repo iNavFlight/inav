@@ -36,12 +36,23 @@
 #define USE_DUAL_GYRO
 #endif
 
+#if defined(FOXEERF722V2) || defined(FOXEERF722DUAL)
 // MPU6000
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_CS_PIN          PB2
 #define MPU6000_SPI_BUS         BUS_SPI1
 #define MPU6000_EXTI_PIN        PC4
+#endif
+
+#ifdef FOXEERF722V3
+// BMI270
+#define USE_IMU_BMI270
+#define IMU_BMI270_ALIGN        CW180_DEG
+#define BMI270_SPI_BUS          BUS_SPI1
+#define BMI270_CS_PIN           PB2
+#define BMI270_EXTI_PIN         PC4
+#endif
 
 // ICM20602 - handled by MPU6500 driver
 #ifdef FOXEERF722DUAL
@@ -109,6 +120,7 @@
 #define UART5_RX_PIN            PD2  
 
 #define SERIAL_PORT_COUNT       6
+
 
 /*** BARO & MAG ***/
 #define USE_BARO
