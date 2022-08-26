@@ -19,8 +19,17 @@
 
 #define USE_TARGET_CONFIG
 
+#ifdef MAMBAF722_2022B
+
+#define TARGET_BOARD_IDENTIFIER         "M72B"
+#define USBD_PRODUCT_STRING             "MAMBAF722_2022B"
+
+#else
+
 #define TARGET_BOARD_IDENTIFIER         "M72A"
 #define USBD_PRODUCT_STRING             "MAMBAF722_2022A"
+
+#endif
 
 // ******** Board LEDs  **********************
 #define LED0                            PC15

@@ -19,9 +19,14 @@
 
 #define USE_TARGET_CONFIG
 
-#define TARGET_BOARD_IDENTIFIER         "M42A"
 
+#ifdef MAMBAF405_2022B
+#define USBD_PRODUCT_STRING             "MAMBAF405_2022B"
+#define TARGET_BOARD_IDENTIFIER         "M42B"
+#else
+#define TARGET_BOARD_IDENTIFIER         "M42A"
 #define USBD_PRODUCT_STRING             "MAMBAF405_2022A"
+#endif
 
 // ******** Board LEDs  **********************
 #define LED0                            PC15
@@ -55,6 +60,16 @@
 #define BMI270_SPI_BUS                  BUS_SPI1
 #define BMI270_CS_PIN                   SPI1_NSS_PIN
 #define BMI270_EXTI_PIN                 GYRO_INT_EXTI
+
+#ifdef MAMBAF405_2022B
+
+#define USE_IMU_ICM42605
+#define IMU_ICM42605_ALIGN      CW270_DEG
+#define ICM42605_SPI_BUS        BUS_SPI1
+#define ICM42605_CS_PIN         SPI1_NSS_PIN
+#define ICM42605_EXTI_PIN       GYRO_INT_EXTI
+
+#endif
 
 // *************** Baro **************************
 #define USE_I2C
@@ -147,6 +162,7 @@
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
 
 #define VBAT_SCALE_DEFAULT              1100
+#define CURRENT_METER_SCALE             183
 
 // ******* OSD ********
 #define USE_MAX7456
