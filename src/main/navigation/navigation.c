@@ -3240,7 +3240,7 @@ bool updateWpMissionChange(void)
         return true;
     }
 
-    static bool toggleFlag = true;
+    static bool toggleFlag = false;
     if (IS_RC_MODE_ACTIVE(BOXNAVWP) && toggleFlag) {
         if (setMissionIndex == posControl.multiMissionCount) {
             navConfigMutable()->general.waypoint_multi_mission_index = 1;
