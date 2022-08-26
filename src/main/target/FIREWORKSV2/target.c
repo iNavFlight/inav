@@ -73,7 +73,6 @@ void validateAndFixTargetConfig(void)
     if (mixerConfig()->platformType != PLATFORM_MULTIROTOR && mixerConfig()->platformType != PLATFORM_TRICOPTER) {
         if (motorConfig()->motorPwmProtocol >= PWM_TYPE_DSHOT150) {
             motorConfigMutable()->motorPwmProtocol = PWM_TYPE_STANDARD;
-            motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 490);
         }
     }
 }

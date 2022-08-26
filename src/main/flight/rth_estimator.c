@@ -127,7 +127,7 @@ static float estimateRTHDistanceAndHeadingAfterAltitudeChange(float altitudeChan
         float triangleAltitudeToReturnStart = estimatedAltitudeChangeGroundDistance - GPS_distanceToHome * cos_approx(headingDiff);
         const float reverseHeadingDiff = RADIANS_TO_DEGREES(atan2_approx(triangleAltitude, triangleAltitudeToReturnStart));
         *heading = CENTIDEGREES_TO_DEGREES(wrap_36000(DEGREES_TO_CENTIDEGREES(180 + reverseHeadingDiff + DECIDEGREES_TO_DEGREES((float)attitude.values.yaw))));
-        return sqrt(sq(triangleAltitude) + sq(triangleAltitudeToReturnStart));
+        return calc_length_pythagorean_2D(triangleAltitude, triangleAltitudeToReturnStart);
     } else {
         *heading = GPS_directionToHome;
         return GPS_distanceToHome - estimatedAltitudeChangeGroundDistance;
@@ -153,7 +153,7 @@ static float calculateRemainingEnergyBeforeRTH(bool takeWindIntoAccount) {
     uint16_t windHeading; // centidegrees
     const float horizontalWindSpeed = takeWindIntoAccount ? getEstimatedHorizontalWindSpeed(&windHeading) / 100 : 0; // m/s
     const float windHeadingDegrees = CENTIDEGREES_TO_DEGREES((float)windHeading);
-    const float verticalWindSpeed = getEstimatedWindSpeed(Z) / 100;
+    const float verticalWindSpeed = -getEstimatedWindSpeed(Z) / 100; //from NED to NEU
 
     const float RTH_distance = estimateRTHDistanceAndHeadingAfterAltitudeChange(RTH_initial_altitude_change, horizontalWindSpeed, windHeadingDegrees, verticalWindSpeed, &RTH_heading);
     const float RTH_speed = windCompensatedForwardSpeed((float)navConfig()->fw.cruise_speed / 100, RTH_heading, horizontalWindSpeed, windHeadingDegrees);

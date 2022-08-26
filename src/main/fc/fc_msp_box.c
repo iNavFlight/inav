@@ -46,55 +46,56 @@
 #define BOX_SUFFIX_LEN 1
 
 static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
-    { BOXARM, "ARM", 0 },
-    { BOXANGLE, "ANGLE", 1 },
-    { BOXHORIZON, "HORIZON", 2 },
-    { BOXNAVALTHOLD, "NAV ALTHOLD", 3 },
-    { BOXHEADINGHOLD, "HEADING HOLD", 5 },
-    { BOXHEADFREE, "HEADFREE", 6 },
-    { BOXHEADADJ, "HEADADJ", 7 },
-    { BOXCAMSTAB, "CAMSTAB", 8 },
-    { BOXNAVRTH, "NAV RTH", 10 },
-    { BOXNAVPOSHOLD, "NAV POSHOLD", 11 },
-    { BOXMANUAL, "MANUAL", 12 },
-    { BOXBEEPERON, "BEEPER", 13 },
-    { BOXLEDLOW, "LEDS OFF", 15 },
-    { BOXLIGHTS, "LIGHTS", 16 },
-    { BOXOSD, "OSD OFF", 19 },
-    { BOXTELEMETRY, "TELEMETRY", 20 },
-    { BOXAUTOTUNE, "AUTO TUNE", 21 },
-    { BOXBLACKBOX, "BLACKBOX", 26 },
-    { BOXFAILSAFE, "FAILSAFE", 27 },
-    { BOXNAVWP, "NAV WP", 28 },
-    { BOXAIRMODE, "AIR MODE", 29 },
-    { BOXHOMERESET, "HOME RESET", 30 },
-    { BOXGCSNAV, "GCS NAV", 31 },
-    { BOXFPVANGLEMIX, "FPV ANGLE MIX", 32 },
-    { BOXSURFACE, "SURFACE", 33 },
-    { BOXFLAPERON, "FLAPERON", 34 },
-    { BOXTURNASSIST, "TURN ASSIST", 35 },
-    { BOXNAVLAUNCH, "NAV LAUNCH", 36 },
-    { BOXAUTOTRIM, "SERVO AUTOTRIM", 37 },
-    { BOXKILLSWITCH, "KILLSWITCH", 38 },
-    { BOXCAMERA1, "CAMERA CONTROL 1", 39 },
-    { BOXCAMERA2, "CAMERA CONTROL 2", 40 },
-    { BOXCAMERA3, "CAMERA CONTROL 3", 41 },
-    { BOXOSDALT1, "OSD ALT 1", 42 },
-    { BOXOSDALT2, "OSD ALT 2", 43 },
-    { BOXOSDALT3, "OSD ALT 3", 44 },
-    { BOXNAVCOURSEHOLD, "NAV COURSE HOLD", 45 },
-    { BOXBRAKING, "MC BRAKING", 46 },
-    { BOXUSER1, "USER1", BOX_PERMANENT_ID_USER1 },
-    { BOXUSER2, "USER2", BOX_PERMANENT_ID_USER2 },
-    { BOXLOITERDIRCHN, "LOITER CHANGE", 49 },
-    { BOXMSPRCOVERRIDE, "MSP RC OVERRIDE", 50 },
-    { BOXPREARM, "PREARM", 51 },
-    { BOXTURTLE, "TURTLE", 52 },
-    { BOXNAVCRUISE, "NAV CRUISE", 53 },
-    { BOXAUTOLEVEL, "AUTO LEVEL", 54 },
-    { BOXPLANWPMISSION, "WP PLANNER", 55 },
-    { BOXSOARING, "SOARING", 56 },
-    { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
+    { .boxId = BOXARM,              .boxName = "ARM",               .permanentId = 0 },
+    { .boxId = BOXANGLE,            .boxName = "ANGLE",             .permanentId = 1 },
+    { .boxId = BOXHORIZON,          .boxName = "HORIZON",           .permanentId = 2 },
+    { .boxId = BOXNAVALTHOLD,       .boxName = "NAV ALTHOLD",       .permanentId = 3 },
+    { .boxId = BOXHEADINGHOLD,      .boxName = "HEADING HOLD",      .permanentId = 5 },
+    { .boxId = BOXHEADFREE,         .boxName = "HEADFREE",          .permanentId = 6 },
+    { .boxId = BOXHEADADJ,          .boxName = "HEADADJ",           .permanentId = 7 },
+    { .boxId = BOXCAMSTAB,          .boxName = "CAMSTAB",           .permanentId = 8 },
+    { .boxId = BOXNAVRTH,           .boxName = "NAV RTH",           .permanentId = 10 },
+    { .boxId = BOXNAVPOSHOLD,       .boxName = "NAV POSHOLD",       .permanentId = 11 },
+    { .boxId = BOXMANUAL,           .boxName = "MANUAL",            .permanentId = 12 },
+    { .boxId = BOXBEEPERON,         .boxName = "BEEPER",            .permanentId = 13 },
+    { .boxId = BOXLEDLOW,           .boxName = "LEDS OFF",          .permanentId = 15 },
+    { .boxId = BOXLIGHTS,           .boxName = "LIGHTS",            .permanentId = 16 },
+    { .boxId = BOXOSD,              .boxName = "OSD OFF",           .permanentId = 19 },
+    { .boxId = BOXTELEMETRY,        .boxName = "TELEMETRY",         .permanentId = 20 },
+    { .boxId = BOXAUTOTUNE,         .boxName = "AUTO TUNE",         .permanentId = 21 },
+    { .boxId = BOXBLACKBOX,         .boxName = "BLACKBOX",          .permanentId = 26 },
+    { .boxId = BOXFAILSAFE,         .boxName = "FAILSAFE",          .permanentId = 27 },
+    { .boxId = BOXNAVWP,            .boxName = "NAV WP",            .permanentId = 28 },
+    { .boxId = BOXAIRMODE,          .boxName = "AIR MODE",          .permanentId = 29 },
+    { .boxId = BOXHOMERESET,        .boxName = "HOME RESET",        .permanentId = 30 },
+    { .boxId = BOXGCSNAV,           .boxName = "GCS NAV",           .permanentId = 31 },
+    { .boxId = BOXFPVANGLEMIX,      .boxName = "FPV ANGLE MIX",     .permanentId = 32 },
+    { .boxId = BOXSURFACE,          .boxName = "SURFACE",           .permanentId = 33 },
+    { .boxId = BOXFLAPERON,         .boxName = "FLAPERON",          .permanentId = 34 },
+    { .boxId = BOXTURNASSIST,       .boxName = "TURN ASSIST",       .permanentId = 35 },
+    { .boxId = BOXNAVLAUNCH,        .boxName = "NAV LAUNCH",        .permanentId = 36 },
+    { .boxId = BOXAUTOTRIM,         .boxName = "SERVO AUTOTRIM",    .permanentId = 37 },
+    { .boxId = BOXKILLSWITCH,       .boxName = "KILLSWITCH",        .permanentId = 38 },
+    { .boxId = BOXCAMERA1,          .boxName = "CAMERA CONTROL 1",  .permanentId = 39 },
+    { .boxId = BOXCAMERA2,          .boxName = "CAMERA CONTROL 2",  .permanentId = 40 },
+    { .boxId = BOXCAMERA3,          .boxName = "CAMERA CONTROL 3",  .permanentId = 41 },
+    { .boxId = BOXOSDALT1,          .boxName = "OSD ALT 1",         .permanentId = 42 },
+    { .boxId = BOXOSDALT2,          .boxName = "OSD ALT 2",         .permanentId = 43 },
+    { .boxId = BOXOSDALT3,          .boxName = "OSD ALT 3",         .permanentId = 44 },
+    { .boxId = BOXNAVCOURSEHOLD,    .boxName = "NAV COURSE HOLD",   .permanentId = 45 },
+    { .boxId = BOXBRAKING,          .boxName = "MC BRAKING",        .permanentId = 46 },
+    { .boxId = BOXUSER1,            .boxName = "USER1",             .permanentId = BOX_PERMANENT_ID_USER1 },
+    { .boxId = BOXUSER2,            .boxName = "USER2",             .permanentId = BOX_PERMANENT_ID_USER2 },
+    { .boxId = BOXUSER3,            .boxName = "USER3",             .permanentId = BOX_PERMANENT_ID_USER3 },
+    { .boxId = BOXLOITERDIRCHN,     .boxName = "LOITER CHANGE",     .permanentId = 50 },
+    { .boxId = BOXMSPRCOVERRIDE,    .boxName = "MSP RC OVERRIDE",   .permanentId = 51 },
+    { .boxId = BOXPREARM,           .boxName = "PREARM",            .permanentId = 52 },
+    { .boxId = BOXTURTLE,           .boxName = "TURTLE",            .permanentId = 53 },
+    { .boxId = BOXNAVCRUISE,        .boxName = "NAV CRUISE",        .permanentId = 54 },
+    { .boxId = BOXAUTOLEVEL,        .boxName = "AUTO LEVEL",        .permanentId = 55 },
+    { .boxId = BOXPLANWPMISSION,    .boxName = "WP PLANNER",        .permanentId = 56 },
+    { .boxId = BOXSOARING,          .boxName = "SOARING",           .permanentId = 57 },
+    { .boxId = CHECKBOX_ITEM_COUNT, .boxName = NULL,                .permanentId = 0xFF }
 };
 
 // this is calculated at startup based on enabled features.
@@ -103,7 +104,7 @@ static uint8_t activeBoxIds[CHECKBOX_ITEM_COUNT];
 uint8_t activeBoxIdCount = 0;
 
 #define RESET_BOX_ID_COUNT activeBoxIdCount = 0
-#define ADD_ACTIVE_BOX(box) activeBoxIds[activeBoxIdCount++] = box 
+#define ADD_ACTIVE_BOX(box) activeBoxIds[activeBoxIdCount++] = box
 
 const box_t *findBoxByActiveBoxId(uint8_t activeBoxId)
 {
@@ -196,7 +197,7 @@ void initActiveBoxIds(void)
             ADD_ACTIVE_BOX(BOXHEADFREE);
             ADD_ACTIVE_BOX(BOXHEADADJ);
         }
-        if (sensors(SENSOR_BARO) && sensors(SENSOR_RANGEFINDER) && sensors(SENSOR_OPFLOW)) {
+        if (sensors(SENSOR_BARO) && sensors(SENSOR_RANGEFINDER)) {
             ADD_ACTIVE_BOX(BOXSURFACE);
         }
         ADD_ACTIVE_BOX(BOXFPVANGLEMIX);
@@ -313,6 +314,7 @@ void initActiveBoxIds(void)
     // USER modes are only used for PINIO at the moment
     ADD_ACTIVE_BOX(BOXUSER1);
     ADD_ACTIVE_BOX(BOXUSER2);
+    ADD_ACTIVE_BOX(BOXUSER3);
 #endif
 
 #if defined(USE_OSD) && defined(OSD_LAYOUT_COUNT)
@@ -373,9 +375,7 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_WP_MODE)),              BOXNAVWP);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXAIRMODE)),         BOXAIRMODE);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXGCSNAV)),          BOXGCSNAV);
-#ifdef USE_FLM_FLAPERON
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(FLAPERON)),                 BOXFLAPERON);
-#endif
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(TURN_ASSISTANT)),           BOXTURNASSIST);
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_LAUNCH_MODE)),          BOXNAVLAUNCH);
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(AUTO_TUNE)),                BOXAUTOTUNE);
@@ -392,6 +392,7 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXBRAKING)),         BOXBRAKING);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXUSER1)),           BOXUSER1);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXUSER2)),           BOXUSER2);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXUSER3)),           BOXUSER3);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXLOITERDIRCHN)),    BOXLOITERDIRCHN);
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE)),   BOXMSPRCOVERRIDE);

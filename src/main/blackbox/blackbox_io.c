@@ -293,6 +293,12 @@ void blackboxDeviceClose(void)
             mspSerialAllocatePorts();
         }
         break;
+#ifdef USE_FLASHFS
+    case BLACKBOX_DEVICE_FLASH:
+        // Some flash device, e.g., NAND devices, require explicit close to flush internally buffered data.
+        flashfsClose();
+        break;
+#endif
     default:
         ;
     }

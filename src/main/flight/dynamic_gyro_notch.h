@@ -27,15 +27,16 @@
 #include <stdint.h>
 #include "common/axis.h"
 #include "common/filter.h"
-#include "sensors/gyro.h"
 
 #define DYNAMIC_NOTCH_DEFAULT_CENTER_HZ 350
 
+/*
+ * Number of peaks to detect with Dynamic Notch Filter aka Matrix Filter. This is equal to the number of dynamic notch filters
+ */
+#define DYN_NOTCH_PEAK_COUNT 3
 typedef struct dynamicGyroNotchState_s {
-    // uint16_t frequency[XYZ_AXIS_COUNT];
+    uint16_t frequency[XYZ_AXIS_COUNT][DYN_NOTCH_PEAK_COUNT];
     float dynNotchQ;
-    float dynNotch1Ctr;
-    float dynNotch2Ctr;
     uint32_t looptime;
     uint8_t enabled;
     

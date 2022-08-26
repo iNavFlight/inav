@@ -82,7 +82,6 @@ bool mavlinkRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfi
 
     rxRuntimeConfig->channelData = mavlinkChannelData;
     rxRuntimeConfig->channelCount = MAVLINK_CHANNEL_COUNT;
-    rxRuntimeConfig->rxRefreshRate = 11000;
     rxRuntimeConfig->rcReadRawFn = mavlinkReadRawRC;
     rxRuntimeConfig->rcFrameStatusFn = mavlinkFrameStatus;
 

@@ -191,10 +191,6 @@ void rpmFilterUpdateTask(timeUs_t currentTimeUs)
         const escSensorData_t *escState = getEscTelemetry(i); //Get ESC telemetry
         const float baseFrequency = pt1FilterApply(&motorFrequencyFilter[i], escState->rpm * HZ_TO_RPM); //Filter motor frequency
 
-        if (i < 4) {
-            DEBUG_SET(DEBUG_RPM_FREQ, i, (int)baseFrequency);
-        }
-
         rpmGyroUpdateFn(&gyroRpmFilters, i, baseFrequency);
     }
 }

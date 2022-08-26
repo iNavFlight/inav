@@ -30,6 +30,8 @@
 void flashfsEraseCompletely(void);
 void flashfsEraseRange(uint32_t start, uint32_t end);
 
+void flashfsClose(void);
+
 uint32_t flashfsGetSize(void);
 uint32_t flashfsGetOffset(void);
 uint32_t flashfsGetWriteBufferFreeSpace(void);

@@ -64,7 +64,7 @@ mag_t mag;                   // mag access functions
 
 #ifdef USE_MAG
 
-PG_REGISTER_WITH_RESET_TEMPLATE(compassConfig_t, compassConfig, PG_COMPASS_CONFIG, 5);
+PG_REGISTER_WITH_RESET_TEMPLATE(compassConfig_t, compassConfig, PG_COMPASS_CONFIG, 6);
 
 PG_RESET_TEMPLATE(compassConfig_t, compassConfig,
     .mag_align = SETTING_ALIGN_MAG_DEFAULT,
@@ -137,19 +137,6 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 #ifdef USE_MAG_AK8963
         if (ak8963Detect(dev)) {
             magHardware = MAG_AK8963;
-            break;
-        }
-#endif
-        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
-        if (magHardwareToUse != MAG_AUTODETECT) {
-            break;
-        }
-        FALLTHROUGH;
-
-    case MAG_GPS:
-#ifdef USE_GPS
-        if (gpsMagDetect(dev)) {
-            magHardware = MAG_GPS;
             break;
         }
 #endif
@@ -369,6 +356,12 @@ bool compassIsCalibrationComplete(void)
 
 void compassUpdate(timeUs_t currentTimeUs)
 {
+#ifdef USE_SIMULATOR
+	if (ARMING_FLAG(SIMULATOR_MODE)) {
+		magUpdatedAtLeastOnce = 1;
+		return;
+	}
+#endif
     static sensorCalibrationState_t calState;
     static timeUs_t calStartedAt = 0;
     static int16_t magPrev[XYZ_AXIS_COUNT];

@@ -77,7 +77,6 @@ typedef enum {
 
     /* Combined ACC/GYRO chips */
     DEVHW_MPU6000,
-    DEVHW_MPU6050,
     DEVHW_MPU6500,
     DEVHW_BMI160,
     DEVHW_BMI088_GYRO,
@@ -140,11 +139,11 @@ typedef enum {
     /* Other hardware */
     DEVHW_MS4525,       // Pitot meter
     DEVHW_M25P16,       // SPI NOR flash
+    DEVHW_W25N01G,      // SPI 128MB flash
     DEVHW_UG2864,       // I2C OLED display
     DEVHW_SDCARD,       // Generic SD-Card
     DEVHW_IRLOCK,       // IR-Lock visual positioning hardware
     DEVHW_PCF8574,      // 8-bit I/O expander
-    DEVHW_BNO055,       // BNO055 IMU
 } devHardwareType_e;
 
 typedef enum {

@@ -29,11 +29,7 @@
 #define NOINLINE
 #endif
 
-#if defined(STM32F3)
-#define DYNAMIC_HEAP_SIZE   1024
-#else
 #define DYNAMIC_HEAP_SIZE   2048
-#endif
 
 #define I2C1_OVERCLOCK false
 #define I2C2_OVERCLOCK false
@@ -49,14 +45,6 @@
 //#define USE_DEV_TOOLS           // tools for dev use only. Undefine for release builds.
 
 #define COMMON_DEFAULT_FEATURES (FEATURE_TX_PROF_SEL)
-
-#if defined(STM32F3)
-#define USE_UNDERCLOCK
-//save flash for F3 targets
-#define CLI_MINIMAL_VERBOSITY
-#define SKIP_CLI_COMMAND_HELP
-#define SKIP_CLI_RESOURCES
-#endif
 
 #if defined(STM32F4) || defined(STM32F7)
 #define USE_SERVO_SBUS
@@ -78,8 +66,6 @@
 #define SCHEDULER_DELAY_LIMIT           100
 #endif
 
-#if (MCU_FLASH_SIZE > 256)
-
 #if defined(MAG_I2C_BUS) || defined(VCM5883_I2C_BUS)
 #define USE_MAG_VCM5883
 #endif
@@ -93,9 +79,6 @@
 #define USE_SMITH_PREDICTOR
 #define USE_RATE_DYNAMICS
 #define USE_EXTENDED_CMS_MENUS
-
-// NAZA GPS support for F4+ only
-#define USE_GPS_PROTO_NAZA
 
 // Allow default rangefinders
 #define USE_RANGEFINDER
@@ -144,7 +127,6 @@
 #define USE_I2C_IO_EXPANDER
 
 #define USE_GPS_PROTO_NMEA
-#define USE_GPS_PROTO_MTK
 
 #define USE_TELEMETRY_SIM
 #define USE_TELEMETRY_MAVLINK
@@ -168,11 +150,6 @@
 
 #define USE_POWER_LIMITS
 
-#else // MCU_FLASH_SIZE < 256
-#define LOG_LEVEL_MAXIMUM LOG_LEVEL_ERROR
-#endif
-
-#if (MCU_FLASH_SIZE > 128)
 #define NAV_FIXED_WING_LANDING
 #define USE_SAFE_HOME
 #define USE_AUTOTUNE_FIXED_WING
@@ -199,31 +176,22 @@
 #define USE_VTX_SMARTAUDIO
 #define USE_VTX_TRAMP
 
-#ifndef STM32F3 //F3 series does not have enoug RAM to support logic conditions
 #define USE_PROGRAMMING_FRAMEWORK
 #define USE_CLI_BATCH
-#endif
 
 //Enable DST calculations
 #define RTC_AUTOMATIC_DST
 // Wind estimator
 #define USE_WIND_ESTIMATOR
 
-#else // MCU_FLASH_SIZE < 128
-
-#define SKIP_TASK_STATISTICS
-
-#endif
+#define USE_SIMULATOR
 
 //Designed to free space of F722 and F411 MCUs
 #if (MCU_FLASH_SIZE > 512)
 
 #define USE_VTX_FFPV
 #define USE_PITOT_VIRTUAL
-
 #define USE_SERIALRX_SUMD
-#define USE_SERIALRX_SUMH
-#define USE_SERIALRX_XBUS
 #define USE_TELEMETRY_HOTT
 #define USE_HOTT_TEXTMODE
 

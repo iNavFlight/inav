@@ -28,13 +28,32 @@
 
 typedef uint16_t flashSector_t;
 
+typedef enum {
+    FLASH_TYPE_NOR = 0,
+    FLASH_TYPE_NAND
+} flashType_e;
+
 typedef struct flashGeometry_s {
     flashSector_t sectors; // Count of the number of erasable blocks on the device
-    uint16_t pageSize; // In bytes
-    uint32_t sectorSize; // This is just pagesPerSector * pageSize
-    uint32_t totalSize;  // This is just sectorSize * sectors
+    uint16_t pageSize;     // In bytes
+    uint32_t sectorSize;   // This is just pagesPerSector * pageSize
+    uint32_t totalSize;    // This is just sectorSize * sectors
     uint16_t pagesPerSector;
+    flashType_e flashType;
 } flashGeometry_t;
+
+typedef struct
+{
+    bool (*init)(int flashNumToUse);
+    bool (*isReady)(void);
+    bool (*waitForReady)(timeMs_t timeoutMillis);
+    void (*eraseSector)(uint32_t address);
+    void (*eraseCompletely)(void);
+    uint32_t (*pageProgram)(uint32_t address, const uint8_t *data, int length);
+    int (*readBytes)(uint32_t address, uint8_t *buffer, int length);
+    void (*flush)(void);
+    const flashGeometry_t *(*getGeometry)(void);
+} flashDriver_t;
 
 bool flashInit(void);
 
@@ -42,11 +61,6 @@ bool flashIsReady(void);
 bool flashWaitForReady(timeMs_t timeoutMillis);
 void flashEraseSector(uint32_t address);
 void flashEraseCompletely(void);
-#if 0
-void flashPageProgramBegin(uint32_t address);
-void flashPageProgramContinue(const uint8_t *data, int length);
-void flashPageProgramFinish(void);
-#endif
 uint32_t flashPageProgram(uint32_t address, const uint8_t *data, int length);
 int flashReadBytes(uint32_t address, uint8_t *buffer, int length);
 void flashFlush(void);
