@@ -21,9 +21,11 @@
 
 #include "fc/fc_msp_box.h"
 
+#if defined(FOXEERF722V2)
 #include "io/piniobox.h"
 
 void targetConfiguration(void)
 {
     pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
 }
+#endif
