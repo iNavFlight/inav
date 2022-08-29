@@ -327,6 +327,12 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
                 // Normalize to unit vector
                 vectorNormalize(&vMag, &vMag);
 
+#ifdef USE_SIMULATOR
+            if (ARMING_FLAG(SIMULATOR_MODE)) {
+                    imuSetMagneticDeclination(0);
+                }
+#endif
+
                 // Reference mag field vector heading is Magnetic North in EF. We compute that by rotating True North vector by declination and assuming Z-component is zero
                 // magnetometer error is cross product between estimated magnetic north and measured magnetic north (calculated in EF)
                 vectorCrossProduct(&vErr, &vMag, &vCorrectedMagNorth);
@@ -455,10 +461,19 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
 
 STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
 {
-    /* Compute pitch/roll angles */
-    attitude.values.roll = RADIANS_TO_DECIDEGREES(atan2_approx(rMat[2][1], rMat[2][2]));
-    attitude.values.pitch = RADIANS_TO_DECIDEGREES((0.5f * M_PIf) - acos_approx(-rMat[2][0]));
-    attitude.values.yaw = RADIANS_TO_DECIDEGREES(-atan2_approx(rMat[1][0], rMat[0][0]));
+#ifdef USE_SIMULATOR
+	if (ARMING_FLAG(SIMULATOR_MODE) && ((simulatorData.flags & SIMU_USE_SENSORS) == 0)) {
+		imuComputeQuaternionFromRPY(attitude.values.roll, attitude.values.pitch, attitude.values.yaw);
+		imuComputeRotationMatrix();
+	}
+	else
+#endif
+	{
+		/* Compute pitch/roll angles */
+		attitude.values.roll = RADIANS_TO_DECIDEGREES(atan2_approx(rMat[2][1], rMat[2][2]));
+		attitude.values.pitch = RADIANS_TO_DECIDEGREES((0.5f * M_PIf) - acos_approx(-rMat[2][0]));
+		attitude.values.yaw = RADIANS_TO_DECIDEGREES(-atan2_approx(rMat[1][0], rMat[0][0]));
+	}
 
     if (attitude.values.yaw < 0)
         attitude.values.yaw += 3600;

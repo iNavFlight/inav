@@ -118,7 +118,7 @@ void dmaSetHandler(DMA_t dma, dmaCallbackHandlerFuncPtr callback, uint32_t prior
 
 DMA_t dmaGetByRef(const DMA_Stream_TypeDef* ref)
 {
-    for (unsigned i = 0; i < (sizeof(dmaDescriptors) / sizeof(dmaDescriptors[0])); i++) {
+    for (unsigned i = 0; i < ARRAYLEN(dmaDescriptors); i++) {
         if (ref == dmaDescriptors[i].ref) {
             return &dmaDescriptors[i];
         }
