@@ -164,7 +164,7 @@ static int clearScreen(displayPort_t *displayPort)
 {
     uint8_t subcmd[] = { MSP_CLEAR_SCREEN };
 
-    if (IS_RC_MODE_ACTIVE(BOXOSD)) { // OSD off
+    if (!cmsInMenu && IS_RC_MODE_ACTIVE(BOXOSD)) { // OSD off
         output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
         subcmd[0] = MSP_DRAW_SCREEN;
         vtxReset = true;
@@ -280,7 +280,7 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
 {
     static uint8_t counter = 0;
 
-    if ((cmsInMenu && IS_RC_MODE_ACTIVE(BOXOSD)) || (counter++ % DRAW_FREQ_DENOM)) {
+    if ((!cmsInMenu && IS_RC_MODE_ACTIVE(BOXOSD)) || (counter++ % DRAW_FREQ_DENOM)) {
         return 0;
     }
 
