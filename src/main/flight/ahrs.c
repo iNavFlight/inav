@@ -250,7 +250,7 @@ void matrixFromEuler(float roll, float pitch, float yaw)
     rotationMatrix.m[2][2] = cr * cp;
 }
 
-// Apply an additional rotation from a body frame gyro vector to a rotation matrix.
+// Apply an additional rotation from a Body-Frame gyro vector to a rotation matrix.
 void dcmMatrixRotate(const fpVector3_t gyro)
 {
     const fpMat3_t rotationMatrix2 = { .m = { { rotationMatrix.m[0][0], rotationMatrix.m[0][1], rotationMatrix.m[0][2] },
@@ -746,7 +746,7 @@ void driftCorrectionYaw(void)
         return;
     }
 
-    // Convert the error vector to body frame
+    // Convert the error vector to Body-Frame
     const float error_z = rotationMatrix.m[2][2] * yaw_error;
 
     // The spin rate changes the P gain, and disables the integration at higher rates
@@ -857,7 +857,7 @@ void driftCorrection(float deltaTime)
 
         velocity.x = gpsSol.velNED[X];
         velocity.y = gpsSol.velNED[Y];
-        velocity.z = gpsSol.velNED[Z];
+        velocity.z = -gpsSol.velNED[Z];
 
         last_correction_time = gpsStats.lastFixTime;
 
@@ -873,7 +873,7 @@ void driftCorrection(float deltaTime)
         // Keep last airspeed estimate for dead-reckoning purposes
         fpVector3_t airspeed = { .v = { velocity.x - _wind.x, velocity.y - _wind.y, velocity.z - _wind.z } };
 
-        // Rotate vector to body frame
+        // Rotate vector to Body-Frame
         multiplicationTranspose(&airspeed);
 
         // Take positive component in X direction. This mimics a pitot tube
@@ -969,7 +969,7 @@ void driftCorrection(float deltaTime)
         error.y = 0.0f;
         error.z = 0.0f;
     } else {
-        // Convert the error term to body frame
+        // Convert the error term to Body-Frame
         multiplicationTranspose(&error);
     }
 
@@ -1058,8 +1058,8 @@ void calculateTrigonometry(float *cr, float *cp, float *cy, float *sr, float *sp
     *cy = constrainf(yaw_vector.x, -1.0f, 1.0f);
 
     // Sanity checks
-    if (isinf(yaw_vector.x) || isinf(yaw_vector.y) || isinf(yaw_vector.z) || 
-        isnan(yaw_vector.x) || isnan(yaw_vector.y) || isnan(yaw_vector.z)) {
+    if (isinf(yaw_vector.x) || isinf(yaw_vector.y) || 
+        isnan(yaw_vector.x) || isnan(yaw_vector.y)) {
         *sy = 0.0f;
         *cy = 1.0f;
     }
@@ -1179,8 +1179,8 @@ void ahrsUpdate(timeUs_t currentTimeUs)
     if (sensors(SENSOR_ACC)) {
 #ifdef HIL
         if (!hilActive) {
-            accGetMeasuredAcceleration(&imuMeasuredAccelBF);     // Calculate accel in body frame in cm/s/s
-            gyroGetMeasuredRotationRate(&imuMeasuredRotationBF); // Calculate gyro rate in body frame in rad/s
+            accGetMeasuredAcceleration(&imuMeasuredAccelBF);     // Calculate accel in Body-Frame in cm/s/s
+            gyroGetMeasuredRotationRate(&imuMeasuredRotationBF); // Calculate gyro rate in Body-Frame in rad/s
             imuCheckVibrationLevels();
             dcmUpdate(deltaTime);
         }
@@ -1200,8 +1200,8 @@ void ahrsUpdate(timeUs_t currentTimeUs)
             imuUpdateMeasuredAcceleration();
         }
 #else
-        accGetMeasuredAcceleration(&imuMeasuredAccelBF);     // Calculate accel in body frame in cm/s/s
-        gyroGetMeasuredRotationRate(&imuMeasuredRotationBF); // Calculate gyro rate in body frame in rad/s
+        accGetMeasuredAcceleration(&imuMeasuredAccelBF);     // Calculate accel in Body-Frame in cm/s/s
+        gyroGetMeasuredRotationRate(&imuMeasuredRotationBF); // Calculate gyro rate in Body-Frame in rad/s
         imuCheckVibrationLevels();
         dcmUpdate(deltaTime);
 #endif
