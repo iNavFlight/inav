@@ -2909,7 +2909,7 @@ static bool osdDrawSingleElement(uint8_t item)
             if (valid) {
                 uint16_t angle = ahrsGetEstimatedHorizontalWindSpeed();
                 horizontalWindSpeed = ahrsGetAirspeedEstimate();
-                int16_t windDirection = osdGetHeadingAngle( CENTIDEGREES_TO_DEGREES((int)angle) - DECIDEGREES_TO_DEGREES(attitude.values.yaw) + 22);
+                int16_t windDirection = osdGetHeadingAngle(CENTIDEGREES_TO_DEGREES((int16_t)angle) - DECIDEGREES_TO_DEGREES(attitude.values.yaw) + 22);
                 buff[1] = SYM_DIRECTION + (windDirection * 2 / 90);
             } else {
                 horizontalWindSpeed = 0;

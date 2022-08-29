@@ -855,9 +855,9 @@ void driftCorrection(float deltaTime)
             return;
         }
 
-        velocity.x = gpsSol.velNED[X];
+        velocity.x = -gpsSol.velNED[X];
         velocity.y = gpsSol.velNED[Y];
-        velocity.z = -gpsSol.velNED[Z];
+        velocity.z = gpsSol.velNED[Z];
 
         last_correction_time = gpsStats.lastFixTime;
 
@@ -1235,7 +1235,8 @@ void ahrsUpdateWindEstimator(void)
         return;
     }
 
-    float diff_length = calc_length_pythagorean_3D(fuselageDirectionDiff.x, fuselageDirectionDiff.y, fuselageDirectionDiff.z);
+    const float diff_length = calc_length_pythagorean_3D(fuselageDirectionDiff.x, fuselageDirectionDiff.y, fuselageDirectionDiff.z);
+
     if (diff_length > 0.2f) {
         // When turning, use the attitude response to estimate wind speed
         const fpVector3_t velocityDiff = { .v = { velocity.x - _last_vel.x, velocity.y - _last_vel.y, velocity.z - _last_vel.z } };
@@ -1258,10 +1259,9 @@ void ahrsUpdateWindEstimator(void)
         const float sinTheta = sin_approx(theta);
         const float cosTheta = cos_approx(theta);
 
-        fpVector3_t wind;
-        wind.x = velocitySum.x - velDiff * (cosTheta * fuselageDirectionSum.x - sinTheta * fuselageDirectionSum.y);
-        wind.y = velocitySum.y - velDiff * (sinTheta * fuselageDirectionSum.x + cosTheta * fuselageDirectionSum.y);
-        wind.z = velocitySum.z - velDiff * fuselageDirectionSum.z;
+        fpVector3_t wind = { .v = { velocitySum.x - velDiff * (cosTheta * fuselageDirectionSum.x - sinTheta * fuselageDirectionSum.y),
+                                    velocitySum.y - velDiff * (sinTheta * fuselageDirectionSum.x + cosTheta * fuselageDirectionSum.y),
+                                    velocitySum.z - velDiff * fuselageDirectionSum.z } };
         wind.x *= 0.5f;
         wind.y *= 0.5f;
         wind.z *= 0.5f;
@@ -1280,7 +1280,7 @@ void ahrsUpdateWindEstimator(void)
     // When flying straight use airspeed to get wind estimate if available
     if (now - _last_wind_time > 2000 && realPitotEnabled()) {
         const fpVector3_t airspeed = { .v = { fuselageDirection.x * getAirspeedEstimate(), fuselageDirection.y * getAirspeedEstimate(), fuselageDirection.z * getAirspeedEstimate() } };
-        const fpVector3_t wind = { .v = {velocity.x - airspeed.x, velocity.y - airspeed.y, velocity.z - airspeed.z  } };
+        const fpVector3_t wind = { .v = { velocity.x - airspeed.x, velocity.y - airspeed.y, velocity.z - airspeed.z  } };
         _wind.x = _wind.x * 0.92f + wind.x * 0.08f;
         _wind.y = _wind.y * 0.92f + wind.y * 0.08f;
         _wind.z = _wind.z * 0.92f + wind.z * 0.08f;
@@ -1314,7 +1314,7 @@ float ahrsGetAirspeedEstimate(void)
     }
 
     // Estimated via GPS speed and wind, or give the last estimate.
-    return _last_airspeed;
+    return /*calc_length_pythagorean_2D(ahrsGetEstimatedWindSpeed(X), ahrsGetEstimatedWindSpeed(Y));*/ _last_airspeed;
 }
 
 // Check if the AHRS subsystem is healthy
