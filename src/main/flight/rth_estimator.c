@@ -149,8 +149,8 @@ static float calculateRemainingEnergyBeforeRTH(bool takeWindIntoAccount) {
 
     float RTH_heading; // degrees
 #ifdef USE_WIND_ESTIMATOR
-    uint16_t windHeading = ahrsGetEstimatedHorizontalWindSpeed(); // centidegrees
-    const float horizontalWindSpeed = takeWindIntoAccount ? ahrsGetAirspeedEstimate() / 100 : 0; // m/s
+    uint16_t windHeading = ahrsGetEstimatedHorizontalWindAngle(); // centidegrees
+    const float horizontalWindSpeed = takeWindIntoAccount ? ahrsGetEstimatedHorizontalWindSpeed() / 100 : 0; // m/s
     const float windHeadingDegrees = CENTIDEGREES_TO_DEGREES((float)windHeading);
     const float verticalWindSpeed = -ahrsGetEstimatedWindSpeed(Z) / 100; // from NED to NEU
 

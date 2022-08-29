@@ -1294,7 +1294,7 @@ float ahrsGetEstimatedWindSpeed(uint8_t axis)
 }
 
 // Returns the horizontal wind velocity as a magnitude in cm/s and, optionally, its heading in Earth-Frame in 0.01deg ([0, 360 * 100)).
-uint16_t ahrsGetEstimatedHorizontalWindSpeed(void)
+uint16_t ahrsGetEstimatedHorizontalWindAngle(void)
 {
     float horizontalWindAngle = atan2_approx(ahrsGetEstimatedWindSpeed(Y), ahrsGetEstimatedWindSpeed(X));
     // atan2 returns [-M_PI, M_PI], with 0 indicating the vector points in the X direction
@@ -1306,7 +1306,13 @@ uint16_t ahrsGetEstimatedHorizontalWindSpeed(void)
     return RADIANS_TO_CENTIDEGREES(horizontalWindAngle);
 }
 
-// Returns the air velocity value of the real or virtual Pitot Tube (using the Wind Estimator)
+// Returns the estimated horizontal wind speed (using the Wind Estimator)
+float ahrsGetEstimatedHorizontalWindSpeed(void)
+{
+    return calc_length_pythagorean_2D(ahrsGetEstimatedWindSpeed(X), ahrsGetEstimatedWindSpeed(Y));
+}
+
+// Returns the air velocity value of the real Pitot Tube. If not, return estimated via GPS speed and wind, or give the last estimate.
 float ahrsGetAirspeedEstimate(void)
 {
     if (realPitotEnabled()) {
@@ -1314,7 +1320,7 @@ float ahrsGetAirspeedEstimate(void)
     }
 
     // Estimated via GPS speed and wind, or give the last estimate.
-    return /*calc_length_pythagorean_2D(ahrsGetEstimatedWindSpeed(X), ahrsGetEstimatedWindSpeed(Y));*/ _last_airspeed;
+    return _last_airspeed;
 }
 
 // Check if the AHRS subsystem is healthy

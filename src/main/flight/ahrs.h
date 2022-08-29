@@ -57,7 +57,8 @@ float ahrsGetTiltAngle(void);
 
 void ahrsUpdateWindEstimator(void);
 float ahrsGetEstimatedWindSpeed(uint8_t axis);
-uint16_t ahrsGetEstimatedHorizontalWindSpeed(void);
+uint16_t ahrsGetEstimatedHorizontalWindAngle(void);
+float ahrsGetEstimatedHorizontalWindSpeed(void);
 float ahrsGetAirspeedEstimate(void);
 
 void ahrsTransformVectorBodyToEarth(fpVector3_t *v);
