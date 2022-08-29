@@ -39,6 +39,8 @@ FILE_COMPILE_FOR_SPEED
 #include "common/time.h"
 #include "common/bitarray.h"
 
+#include "cms/cms.h"
+
 #include "drivers/display.h"
 #include "drivers/display_font_metadata.h"
 #include "drivers/osd_symbols.h"
@@ -119,6 +121,11 @@ static int chk = 0;
 static uint8_t determineOsdMode(void)
 {
     chk++;
+
+    if (cmsInMenu) {
+        return HD_5018;
+    }
+
     // Check if all visible widgets are in the center 30x16 chars of the canvas.
     int activeLayout = osdGetActiveLayout(NULL);
     osd_items_e index = 0;
@@ -157,7 +164,7 @@ static int clearScreen(displayPort_t *displayPort)
 {
     uint8_t subcmd[] = { MSP_CLEAR_SCREEN };
 
-    if (IS_RC_MODE_ACTIVE(BOXOSD)) {
+    if (IS_RC_MODE_ACTIVE(BOXOSD)) { // OSD off
         output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
         subcmd[0] = MSP_DRAW_SCREEN;
         vtxReset = true;
@@ -273,7 +280,7 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
 {
     static uint8_t counter = 0;
 
-    if (IS_RC_MODE_ACTIVE(BOXOSD) || (counter++ % DRAW_FREQ_DENOM)) {
+    if ((cmsInMenu && IS_RC_MODE_ACTIVE(BOXOSD)) || (counter++ % DRAW_FREQ_DENOM)) {
         return 0;
     }
 
