@@ -1,1 +1,2 @@
 target_stm32f405xg(MAMBAF405_2022A)
+target_stm32f405xg(MAMBAF405_2022B)
