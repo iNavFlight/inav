@@ -42,6 +42,7 @@
 #include "fc/settings.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_private.h"
 
 #include "flight/mixer.h"
 #include "flight/pid.h"
@@ -295,6 +296,10 @@ static const adjustmentConfig_t defaultAdjustmentConfigs[ADJUSTMENT_FUNCTION_COU
         .data = { .stepConfig = { .step = 5 }}
     }, {
         .adjustmentFunction = ADJUSTMENT_FW_LEVEL_TRIM,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_NAV_WP_MULTI_MISSION_INDEX,
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 1 }}
     }
@@ -587,7 +592,7 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
         case ADJUSTMENT_TPA_BREAKPOINT:
             applyAdjustmentU16(ADJUSTMENT_TPA_BREAKPOINT, &controlRateConfig->throttle.pa_breakpoint, delta, PWM_RANGE_MIN, PWM_RANGE_MAX);
             break;
-        case ADJUSTMENT_FW_TPA_TIME_CONSTANT: 
+        case ADJUSTMENT_FW_TPA_TIME_CONSTANT:
             applyAdjustmentU16(ADJUSTMENT_FW_TPA_TIME_CONSTANT, &controlRateConfig->throttle.fixedWingTauMs, delta, SETTING_FW_TPA_TIME_CONSTANT_MIN, SETTING_FW_TPA_TIME_CONSTANT_MAX);
             break;
         case ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS:
@@ -602,6 +607,13 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
             blackboxLogInflightAdjustmentEvent(ADJUSTMENT_FW_LEVEL_TRIM, (int)(newValue * 10.0f));
             break;
         }
+#ifdef USE_MULTI_MISSION
+        case ADJUSTMENT_NAV_WP_MULTI_MISSION_INDEX:
+            if (posControl.multiMissionCount) {
+                applyAdjustmentU8(ADJUSTMENT_NAV_WP_MULTI_MISSION_INDEX, &navConfigMutable()->general.waypoint_multi_mission_index, delta, SETTING_NAV_WP_MULTI_MISSION_INDEX_MIN, posControl.multiMissionCount);
+            }
+            break;
+#endif
         default:
             break;
     };

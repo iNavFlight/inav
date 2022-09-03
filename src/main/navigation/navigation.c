@@ -40,6 +40,7 @@
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 #ifdef USE_MULTI_MISSION
+#include "fc/rc_adjustments.h"
 #include "fc/cli.h"
 #endif
 #include "fc/settings.h"
@@ -3149,19 +3150,16 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
 
 void resetWaypointList(void)
 {
-    /* Can only reset waypoint list if not armed */
-    if (!ARMING_FLAG(ARMED)) {
-        posControl.waypointCount = 0;
-        posControl.waypointListValid = false;
-        posControl.geoWaypointCount = 0;
-        wpMissionStartIndex = 0;
-        posControl.loadedMissionWPCount = 0;
+    posControl.waypointCount = 0;
+    posControl.waypointListValid = false;
+    posControl.geoWaypointCount = 0;
+    wpMissionStartIndex = 0;
+    posControl.loadedMissionWPCount = 0;
 #ifdef USE_MULTI_MISSION
-        posControl.totalMultiMissionWpCount = 0;
-        posControl.loadedMultiMissionIndex = 0;
-        posControl.multiMissionCount = 0;
+    posControl.totalMultiMissionWpCount = 0;
+    posControl.loadedMultiMissionIndex = 0;
+    posControl.multiMissionCount = 0;
 #endif
-    }
 }
 
 bool isWaypointListValid(void)
@@ -3177,7 +3175,7 @@ int getWaypointCount(void)
 void selectMultiMissionIndex(int8_t increment)
 {
     if (posControl.multiMissionCount > 1) {     // stick selection only active when multi mission loaded
-        navConfigMutable()->general.waypoint_multi_mission_index = constrain(navConfigMutable()->general.waypoint_multi_mission_index + increment, 0, posControl.multiMissionCount);
+        navConfigMutable()->general.waypoint_multi_mission_index = constrain(navConfigMutable()->general.waypoint_multi_mission_index + increment, 1, posControl.multiMissionCount);
     }
 }
 
@@ -3211,7 +3209,7 @@ void loadSelectedMultiMission(uint8_t missionIndex)
     }
 
     posControl.loadedMultiMissionIndex = posControl.multiMissionCount ? missionIndex : 0;
-    posControl.wpMissionRestart = true;
+    posControl.activeWaypointIndex = wpMissionStartIndex;
 }
 
 bool updateWpMissionChange(void)
@@ -3226,7 +3224,7 @@ bool updateWpMissionChange(void)
     }
 
     uint8_t setMissionIndex = navConfig()->general.waypoint_multi_mission_index;
-    if (!IS_RC_MODE_ACTIVE(BOXCHANGEMISSION)) {
+    if (!(IS_RC_MODE_ACTIVE(BOXCHANGEMISSION) || isAdjustmentFunctionSelected(ADJUSTMENT_NAV_WP_MULTI_MISSION_INDEX))) {
         /* reload mission if mission index changed or wpMissionStartIndex not aligned with mission index > 1
          * (wpMissionStartIndex may have been set to 0 on previous disarm) */
         if (posControl.loadedMultiMissionIndex != setMissionIndex || (setMissionIndex > 1 && wpMissionStartIndex == 0)) {
@@ -3270,13 +3268,8 @@ bool checkMissionCount(int8_t waypoint)
 #ifdef NAV_NON_VOLATILE_WAYPOINT_STORAGE
 bool loadNonVolatileWaypointList(bool clearIfLoaded)
 {
-#ifdef USE_MULTI_MISSION
-    /* multi_mission_index 0 only used for non NVM missions - don't load.
-     * Don't load if mission planner WP count > 0 */
-    if (ARMING_FLAG(ARMED) || !navConfig()->general.waypoint_multi_mission_index || posControl.wpPlannerActiveWPIndex) {
-#else
+    /* Don't load if armed or mission planner active */
     if (ARMING_FLAG(ARMED) || posControl.wpPlannerActiveWPIndex) {
-#endif
         return false;
     }
 
@@ -3978,7 +3971,6 @@ void missionPlannerSetWaypoint(void)
     posControl.waypointList[posControl.wpPlannerActiveWPIndex].p3 = 1;                      // use absolute altitude datum
     posControl.waypointList[posControl.wpPlannerActiveWPIndex].flag = NAV_WP_FLAG_LAST;
     posControl.waypointListValid = true;
-    wpMissionStartIndex = 0;
 
     if (posControl.wpPlannerActiveWPIndex) {
         posControl.waypointList[posControl.wpPlannerActiveWPIndex - 1].flag = 0; // rollling reset of previous end of mission flag when new WP added

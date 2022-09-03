@@ -3141,9 +3141,17 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 
     case OSD_NAV_FW_CONTROL_SMOOTHNESS:
-        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "CTL S", 0, navConfig()->fw.control_smoothness, 1, 0, ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS);
-        return true;
-
+        {
+            osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "CTL S", 0, navConfig()->fw.control_smoothness, 1, 0, ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS);
+            return true;
+        }
+#ifdef USE_MULTI_MISSION
+    case OSD_NAV_WP_MULTI_MISSION_INDEX:
+        {
+            osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "WP NO", 0, navConfig()->general.waypoint_multi_mission_index, 1, 0, ADJUSTMENT_NAV_WP_MULTI_MISSION_INDEX);
+            return true;
+        }
+#endif
     case OSD_MISSION:
         {
             if (IS_RC_MODE_ACTIVE(BOXPLANWPMISSION)) {
@@ -3170,11 +3178,10 @@ static bool osdDrawSingleElement(uint8_t item)
                 if (ARMING_FLAG(ARMED) && !(IS_RC_MODE_ACTIVE(BOXCHANGEMISSION) && posControl.multiMissionCount > 1)){
                     // Limit field size when Armed, only show selected mission
                     tfp_sprintf(buff, "M%u       ", posControl.loadedMultiMissionIndex);
-                } else if (posControl.multiMissionCount && navConfig()->general.waypoint_multi_mission_index){
+                } else if (posControl.multiMissionCount) {
                     if (navConfig()->general.waypoint_multi_mission_index != posControl.loadedMultiMissionIndex) {
                         tfp_sprintf(buff, "M%u/%u>LOAD", navConfig()->general.waypoint_multi_mission_index, posControl.multiMissionCount);
                     } else {
-                        // wpCount source for selected mission changes after Arming (until next mission load)
                         int8_t wpCount = posControl.loadedMissionWPCount;
                         if (posControl.waypointListValid && wpCount > 0) {
                             tfp_sprintf(buff, "M%u/%u>%2uWP", posControl.loadedMultiMissionIndex, posControl.multiMissionCount, wpCount);
@@ -3182,7 +3189,7 @@ static bool osdDrawSingleElement(uint8_t item)
                             tfp_sprintf(buff, "M0/%u> 0WP", posControl.multiMissionCount);
                         }
                     }
-                } else {    // multi_mission_index 0 - show active WP count
+                } else {    // no multi mission loaded - show active WP count from other source
                     tfp_sprintf(buff, "WP CNT>%2u", posControl.waypointCount);
                 }
             }
