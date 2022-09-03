@@ -24,7 +24,7 @@
 #define USBD_PRODUCT_STRING  "SpeedyBeeF7V3"
 
 #define LED0                PA14
-#define LED1                PA15
+#define LED1                PA13
 
 #define USE_BEEPER
 #define BEEPER              PC13
