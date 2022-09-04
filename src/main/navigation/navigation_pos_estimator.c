@@ -482,11 +482,11 @@ static bool navIsHeadingUsable(void)
 {
     if (sensors(SENSOR_GPS)) {
         // If we have GPS - we need true IMU north (valid heading)
-        return isAhrsHeadingValid();
+        return ahrsYawInitialised();
     }
     else {
         // If we don't have GPS - we may use whatever we have, other sensors are operating in body frame
-        return isAhrsHeadingValid() || positionEstimationConfig()->allow_dead_reckoning;
+        return ahrsYawInitialised() || positionEstimationConfig()->allow_dead_reckoning;
     }
 }
 

@@ -52,7 +52,7 @@ void ahrsSetMagneticDeclination(float declinationDeg);
 void ahrsReset(bool recover_eulers);
 void ahrsUpdate(timeUs_t currentTimeUs);
 bool ahrsIsHealthy(void);
-bool isAhrsHeadingValid(void);
+bool ahrsYawInitialised(void);
 float ahrsGetTiltAngle(void);
 
 void ahrsUpdateWindEstimator(void);

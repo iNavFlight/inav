@@ -1115,10 +1115,10 @@ static bool osdIsHeadingValid(void)
     if (secondaryImuState.active && secondaryImuConfig()->useForOsdHeading) {
         return true;
     } else {
-        return isAhrsHeadingValid();
+        return ahrsYawInitialised();
     }
 #else
-    return isAhrsHeadingValid();
+    return ahrsYawInitialised();
 #endif
 }
 
@@ -1716,7 +1716,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_HOME_DIR:
         {
-            if (STATE(GPS_FIX) && STATE(GPS_FIX_HOME) && isAhrsHeadingValid()) {
+            if (STATE(GPS_FIX) && STATE(GPS_FIX_HOME) && ahrsYawInitialised()) {
                 if (GPS_distanceToHome < (navConfig()->general.min_rth_distance / 100) ) {
                     displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_HOME_NEAR);
                 }
@@ -1745,7 +1745,7 @@ static bool osdDrawSingleElement(uint8_t item)
             buff[0] = SYM_HOME;
             buff[1] = SYM_HEADING;
 
-            if (isAhrsHeadingValid() && navigationPositionEstimateIsHealthy()) {
+            if (ahrsYawInitialised() && navigationPositionEstimateIsHealthy()) {
                 int16_t h = lrintf(CENTIDEGREES_TO_DEGREES((float)wrap_18000(DEGREES_TO_CENTIDEGREES((int32_t)GPS_directionToHome) - DECIDEGREES_TO_CENTIDEGREES((int32_t)osdGetHeading()))));
                 tfp_sprintf(buff + 2, "%4d", h);
             } else {
@@ -2177,11 +2177,11 @@ static bool osdDrawSingleElement(uint8_t item)
         osdCrosshairPosition(&elemPosX, &elemPosY);
         osdHudDrawCrosshair(osdGetDisplayPortCanvas(), elemPosX, elemPosY);
 
-        if (osdConfig()->hud_homing && STATE(GPS_FIX) && STATE(GPS_FIX_HOME) && isAhrsHeadingValid()) {
+        if (osdConfig()->hud_homing && STATE(GPS_FIX) && STATE(GPS_FIX_HOME) && ahrsYawInitialised()) {
             osdHudDrawHoming(elemPosX, elemPosY);
         }
 
-        if (STATE(GPS_FIX) && isAhrsHeadingValid()) {
+        if (STATE(GPS_FIX) && ahrsYawInitialised()) {
 
             if (osdConfig()->hud_homepoint || osdConfig()->hud_radar_disp > 0 || osdConfig()->hud_wp_disp > 0) {
                     osdHudClear();

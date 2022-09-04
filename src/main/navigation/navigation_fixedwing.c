@@ -668,7 +668,7 @@ bool isFixedWingFlying(void)
     bool velCondition = posControl.actualState.velXY > 250.0f || airspeed > 250.0f;
     bool launchCondition = isNavLaunchEnabled() && fixedWingLaunchStatus() == FW_LAUNCH_FLYING;
 
-    return (isAhrsHeadingValid() && throttleCondition && velCondition) || launchCondition;
+    return (ahrsYawInitialised() && throttleCondition && velCondition) || launchCondition;
 }
 
 /*-----------------------------------------------------------

@@ -65,7 +65,6 @@ static void virtualPitotCalculate(pitotDev_t *pitot, float *pressure, float *tem
     float airSpeed = 0.0f;
     if (pitotIsCalibrationComplete()) {
         if (isGPSHeadingValid()) {
-            uint16_t windHeading = ahrsGetEstimatedHorizontalWindAngle(); // centidegrees
             airSpeed = ahrsGetAirspeedEstimate();
         } else {
             airSpeed = pidProfile()->fixedWingReferenceAirspeed; // float cm/s

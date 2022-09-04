@@ -66,8 +66,7 @@ FILE_COMPILE_FOR_SPEED
 #define RP_KP_MIN 0.05f
 #define YAW_KP_MIN 0.05f
 
-// These are experimentally derived from the simulator with large drift levels
-// Not Configurable
+// These are experimentally derived from the simulator with large drift levels (Not Configurable)
 #define DCM_KI_ACC 0.0087f
 #define DCM_KI_MAG 0.01f
 
@@ -254,8 +253,8 @@ void matrixFromEuler(float roll, float pitch, float yaw)
 void dcmMatrixRotate(const fpVector3_t gyro)
 {
     const fpMat3_t rotationMatrix2 = { .m = { { rotationMatrix.m[0][0], rotationMatrix.m[0][1], rotationMatrix.m[0][2] },
-                                        { rotationMatrix.m[1][0], rotationMatrix.m[1][1], rotationMatrix.m[1][2] },
-                                        { rotationMatrix.m[2][0], rotationMatrix.m[2][1], rotationMatrix.m[2][2] } } };
+                                              { rotationMatrix.m[1][0], rotationMatrix.m[1][1], rotationMatrix.m[1][2] },
+                                              { rotationMatrix.m[2][0], rotationMatrix.m[2][1], rotationMatrix.m[2][2] } } };
 
     rotationMatrix.m[0][0] += rotationMatrix2.m[0][1] * gyro.z - rotationMatrix2.m[0][2] * gyro.y;
     rotationMatrix.m[0][1] += rotationMatrix2.m[0][2] * gyro.x - rotationMatrix2.m[0][0] * gyro.z;
@@ -635,8 +634,9 @@ bool useCompass(void)
 
     // If the current yaw differs from the GPS yaw by more than 45 degrees and the estimated wind speed is less than 80% of the ground speed, then switch to GPS navigation. 
     // This will help prevent flyaways with very bad compass offsets
-    const float error = fabsf(wrap_180(RADIANS_TO_DEGREES(_yaw) - wrap_360(gpsSol.groundCourse / 10.0f)));
-    if (error > 45 && calc_length_pythagorean_3D(_wind.x, _wind.y, _wind.z) < gpsSol.groundSpeed * 0.8f) {
+    const float error = fabsf(wrap_180(RADIANS_TO_DEGREES(wrap_2PI(1.0f - _yaw)) - wrap_360(DECIDEGREES_TO_DEGREES(gpsSol.groundCourse))));
+
+    if (error > 45.0f && calc_length_pythagorean_3D(_wind.x, _wind.y, _wind.z) < gpsSol.groundSpeed * 0.8f) {
         if (millis() - _last_consistent_heading > 2000) {
             // Start using the GPS for heading if the compass has been inconsistent with the GPS for 2 seconds
             return false;
@@ -708,10 +708,18 @@ void driftCorrectionYaw(void)
         if (gpsStats.lastFixTime != _gps_last_update && gpsSol.groundSpeed >= GPS_SPEED_MIN) {
             yaw_deltaTime = MS2S(gpsStats.lastFixTime - _gps_last_update);
             _gps_last_update = gpsStats.lastFixTime;
-            new_value = true;
-            const float gps_course_rad = DEGREES_TO_RADIANS(wrap_360(gpsSol.groundCourse / 10.0f));
-            const float yaw_error_rad = wrap_PI(gps_course_rad - _yaw);
+            const float gps_course_rad = DEGREES_TO_RADIANS(wrap_360(DECIDEGREES_TO_DEGREES(gpsSol.groundCourse)));
+            const float yaw_sensor = 1.0f - _yaw;
+            const float yaw_error_rad = wrap_PI(gps_course_rad - yaw_sensor);
             yaw_error = sin_approx(yaw_error_rad);
+            new_value = true;
+
+            DEBUG_SET(DEBUG_CRUISE, 0, RADIANS_TO_DEGREES(gps_course_rad));
+            DEBUG_SET(DEBUG_CRUISE, 1, RADIANS_TO_DEGREES(yaw_sensor));
+            DEBUG_SET(DEBUG_CRUISE, 2, RADIANS_TO_DEGREES(yaw_error_rad));
+            DEBUG_SET(DEBUG_CRUISE, 3, DECIDEGREES_TO_DEGREES(attitude.values.yaw));
+            static float _error_yaw;
+            DEBUG_SET(DEBUG_CRUISE, 4, RADIANS_TO_DEGREES(_error_yaw = 0.8f * _error_yaw + 0.2f * fabsf(yaw_error)));
 
             /* 
             Reset yaw to match GPS heading under any of the following 3 conditions:
@@ -779,7 +787,7 @@ void driftCorrectionYaw(void)
 void raDelayed(fpVector3_t ra, fpVector3_t *v)
 {
     // Get the old element, and then fill it with the new element
-    fpVector3_t ret = { .v = { _ra_delay_buffer.x, _ra_delay_buffer.y, _ra_delay_buffer.z } };
+    const fpVector3_t ret = { .v = { _ra_delay_buffer.x, _ra_delay_buffer.y, _ra_delay_buffer.z } };
 
     _ra_delay_buffer.x = ra.x;
     _ra_delay_buffer.y = ra.y;
@@ -855,7 +863,7 @@ void driftCorrection(float deltaTime)
             return;
         }
 
-        velocity.x = -gpsSol.velNED[X];
+        velocity.x = gpsSol.velNED[X];
         velocity.y = gpsSol.velNED[Y];
         velocity.z = gpsSol.velNED[Z];
 
@@ -1130,7 +1138,6 @@ void dcmUpdate(float deltaTime)
     updateLogError();
     
     // Calculate the euler angles and DCM matrix which will be used for high level navigation control. 
-    // Apply trim such that a positive trim value results in a positive vehicle rotation about that axis (ie a negative offset)
     _roll = atan2_approx(rotationMatrix.m[2][1], rotationMatrix.m[2][2]);
     _pitch = -asin_approx(rotationMatrix.m[2][0]);
     _yaw = atan2_approx(-rotationMatrix.m[1][0], rotationMatrix.m[0][0]);
@@ -1293,7 +1300,7 @@ float ahrsGetEstimatedWindSpeed(uint8_t axis)
     return _wind.v[axis];
 }
 
-// Returns the horizontal wind velocity as a magnitude in cm/s and, optionally, its heading in Earth-Frame in 0.01deg ([0, 360 * 100)).
+// Returns the horizontal wind angle
 uint16_t ahrsGetEstimatedHorizontalWindAngle(void)
 {
     float horizontalWindAngle = atan2_approx(ahrsGetEstimatedWindSpeed(Y), ahrsGetEstimatedWindSpeed(X));
@@ -1330,7 +1337,7 @@ bool ahrsIsHealthy(void)
     return (_last_failure_ms == 0 || millis() - _last_failure_ms > 5000);
 }
 
-bool isAhrsHeadingValid(void)
+bool ahrsYawInitialised(void)
 {
     return (sensors(SENSOR_MAG) && STATE(COMPASS_CALIBRATED)) || (STATE(FIXED_WING_LEGACY) && have_initial_yaw);
 }
