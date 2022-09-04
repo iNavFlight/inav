@@ -1,1 +1,2 @@
-target_stm32f745xg(FOXEERF745AIO)
+target_stm32f745xg(FOXEERF745AIOV1)
+target_stm32f745xg(FOXEERF745AIOV2)

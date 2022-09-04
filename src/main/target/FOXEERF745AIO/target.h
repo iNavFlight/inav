@@ -18,7 +18,14 @@
 #pragma once
 
 #define TARGET_BOARD_IDENTIFIER "FXF5"
-#define USBD_PRODUCT_STRING     "FOXEERF745AIO"
+
+#if defined(FOXEERF745AIOV1)
+#define USBD_PRODUCT_STRING     "FOXEERF745AIOV1"
+#endif
+
+#if defined(FOXEERF745AIOV2)
+#define USBD_PRODUCT_STRING     "FOXEERF745AIOV2"
+#endif
 
 /*** Indicators ***/
 #define LED0                    PC13
@@ -27,17 +34,25 @@
 
 /*** IMU sensors ***/
 #define USE_EXTI
-
-
 #define USE_MPU_DATA_READY_SIGNAL
 
+#if defined(FOXEERF745AIOV1)
 // MPU6000
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW180_DEG
 #define MPU6000_CS_PIN          PA15
 #define MPU6000_SPI_BUS         BUS_SPI3
 #define MPU6000_EXTI_PIN        PD0
+#endif
 
+#if defined(FOXEERF745AIOV2)
+// BMI270
+#define USE_IMU_BMI270
+#define IMU_BMI270_ALIGN       CW0_DEG
+#define BMI270_CS_PIN          PA15
+#define BMI270_SPI_BUS         BUS_SPI3
+#define BMI270_EXTI_PIN        PD0
+#endif
 
 /*** SPI/I2C bus ***/
 #define USE_SPI
@@ -94,7 +109,6 @@
 #define USE_UART7   
 #define UART7_TX_PIN            PE8
 #define UART7_RX_PIN            PE7
-
 
 #define SERIAL_PORT_COUNT       6
 
