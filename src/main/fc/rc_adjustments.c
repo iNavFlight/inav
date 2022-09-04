@@ -609,7 +609,7 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
         }
 #ifdef USE_MULTI_MISSION
         case ADJUSTMENT_NAV_WP_MULTI_MISSION_INDEX:
-            if (posControl.multiMissionCount) {
+            if (posControl.multiMissionCount && !FLIGHT_MODE(NAV_WP_MODE)) {
                 applyAdjustmentU8(ADJUSTMENT_NAV_WP_MULTI_MISSION_INDEX, &navConfigMutable()->general.waypoint_multi_mission_index, delta, SETTING_NAV_WP_MULTI_MISSION_INDEX_MIN, posControl.multiMissionCount);
             }
             break;

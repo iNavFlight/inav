@@ -3218,7 +3218,7 @@ bool updateWpMissionChange(void)
      * Note: On disarm wpMissionStartIndex set to 0, posControl.waypointCount set to totalMultiMissionWpCount.
      * wpMissionStartIndex and posControl.waypointCount reset for flight on arming */
 
-    if (posControl.multiMissionCount <= 1 || posControl.wpPlannerActiveWPIndex) {
+    if (posControl.multiMissionCount <= 1 || posControl.wpPlannerActiveWPIndex || FLIGHT_MODE(NAV_WP_MODE)) {
         posControl.multiMissionCount = posControl.wpPlannerActiveWPIndex ? 0 : posControl.multiMissionCount;
         return true;
     }
