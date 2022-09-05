@@ -383,7 +383,8 @@ typedef struct {
     navWaypoint_t               waypointList[NAV_MAX_WAYPOINTS];
     bool                        waypointListValid;
     int8_t                      waypointCount;              // number of WPs loaded from WP source
-    int8_t                      loadedMissionWPCount;       // number of WPs in loaded mission
+    int8_t                      startWpIndex;               // index of first waypoint in mission
+    int8_t                      loadedMissionWpCount;       // number of WPs in loaded mission
     int8_t                      geoWaypointCount;           // total geospatial WPs in mission
     bool                        wpMissionRestart;           // mission restart from first waypoint
 
