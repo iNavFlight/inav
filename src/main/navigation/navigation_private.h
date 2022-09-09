@@ -47,8 +47,6 @@
 
 #define NAV_RTH_TRACKBACK_POINTS            50      // max number RTH trackback points
 
-#define LAUNCH_ABORT_STICK_DEADBAND         250     // pitch/roll stick deflection for launch abort (us)
-
 #define MAX_POSITION_UPDATE_INTERVAL_US     HZ2US(MIN_POSITION_UPDATE_RATE_HZ)        // convenience macro
 _Static_assert(MAX_POSITION_UPDATE_INTERVAL_US <= TIMEDELTA_MAX, "deltaMicros can overflow!");
 
@@ -112,6 +110,8 @@ typedef struct navigationFlags_s {
     bool resetLandingDetector;
 
     bool rthTrackbackActive;                // Activation status of RTH trackback
+
+    bool wpTurnSmoothingActive;             // Activation status WP turn smoothing
 } navigationFlags_t;
 
 typedef struct {
@@ -396,7 +396,7 @@ typedef struct {
     int8_t                      loadedMultiMissionStartWP;  // selected multi mission start WP
     int8_t                      loadedMultiMissionWPCount;  // number of WPs in selected multi mission
 #endif
-    navWaypointPosition_t       activeWaypoint;             // Local position and initial bearing, filled on waypoint activation
+    navWaypointPosition_t       activeWaypoint;             // Local position, current bearing and turn angle to next WP, filled on waypoint activation
     int8_t                      activeWaypointIndex;
     float                       wpInitialAltitude;          // Altitude at start of WP
     float                       wpInitialDistance;          // Distance when starting flight to WP
@@ -450,11 +450,10 @@ void setDesiredSurfaceOffset(float surfaceOffset);
 void setDesiredPositionToFarAwayTarget(int32_t yaw, int32_t distance, navSetWaypointFlags_t useMask);
 void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAltitudeControllerMode_e mode);
 
-bool isWaypointReached(const navWaypointPosition_t * waypoint, const bool isWaypointHome);
-bool isWaypointMissed(const navWaypointPosition_t * waypoint);
 bool isNavHoldPositionActive(void);
 bool isLastMissionWaypoint(void);
 float getActiveWaypointSpeed(void);
+bool isWaypointNavTrackingActive(void);
 
 void updateActualHeading(bool headingValid, int32_t newHeading);
 void updateActualHorizontalPositionAndVelocity(bool estPosValid, bool estVelValid, float newX, float newY, float newVelX, float newVelY);

@@ -47,7 +47,6 @@ FILE_COMPILE_FOR_SPEED
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
 
-#include "flight/hil.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
@@ -194,7 +193,7 @@ void imuTransformVectorEarthToBody(fpVector3_t * v)
     quaternionRotateVector(v, v, &orientation);
 }
 
-#if defined(USE_GPS) || defined(HIL)
+#if defined(USE_GPS)
 STATIC_UNIT_TESTED void imuComputeQuaternionFromRPY(int16_t initialRoll, int16_t initialPitch, int16_t initialYaw)
 {
     if (initialRoll > 1800) initialRoll -= 3600;
@@ -327,6 +326,12 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
                 // Normalize to unit vector
                 vectorNormalize(&vMag, &vMag);
 
+#ifdef USE_SIMULATOR
+            if (ARMING_FLAG(SIMULATOR_MODE)) {
+                    imuSetMagneticDeclination(0);
+                }
+#endif
+
                 // Reference mag field vector heading is Magnetic North in EF. We compute that by rotating True North vector by declination and assuming Z-component is zero
                 // magnetometer error is cross product between estimated magnetic north and measured magnetic north (calculated in EF)
                 vectorCrossProduct(&vErr, &vMag, &vCorrectedMagNorth);
@@ -455,10 +460,19 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
 
 STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
 {
-    /* Compute pitch/roll angles */
-    attitude.values.roll = RADIANS_TO_DECIDEGREES(atan2_approx(rMat[2][1], rMat[2][2]));
-    attitude.values.pitch = RADIANS_TO_DECIDEGREES((0.5f * M_PIf) - acos_approx(-rMat[2][0]));
-    attitude.values.yaw = RADIANS_TO_DECIDEGREES(-atan2_approx(rMat[1][0], rMat[0][0]));
+#ifdef USE_SIMULATOR
+	if (ARMING_FLAG(SIMULATOR_MODE) && ((simulatorData.flags & SIMU_USE_SENSORS) == 0)) {
+		imuComputeQuaternionFromRPY(attitude.values.roll, attitude.values.pitch, attitude.values.yaw);
+		imuComputeRotationMatrix();
+	}
+	else
+#endif
+	{
+		/* Compute pitch/roll angles */
+		attitude.values.roll = RADIANS_TO_DECIDEGREES(atan2_approx(rMat[2][1], rMat[2][2]));
+		attitude.values.pitch = RADIANS_TO_DECIDEGREES((0.5f * M_PIf) - acos_approx(-rMat[2][0]));
+		attitude.values.yaw = RADIANS_TO_DECIDEGREES(-atan2_approx(rMat[1][0], rMat[0][0]));
+	}
 
     if (attitude.values.yaw < 0)
         attitude.values.yaw += 3600;
@@ -585,37 +599,12 @@ static void imuCalculateEstimatedAttitude(float dT)
     imuUpdateEulerAngles();
 }
 
-#ifdef HIL
-void imuHILUpdate(void)
-{
-    /* Set attitude */
-    attitude.values.roll = hilToFC.rollAngle;
-    attitude.values.pitch = hilToFC.pitchAngle;
-    attitude.values.yaw = hilToFC.yawAngle;
-
-    /* Compute rotation quaternion for future use */
-    imuComputeQuaternionFromRPY(attitude.values.roll, attitude.values.pitch, attitude.values.yaw);
-
-    /* Fake accADC readings */
-    accADCf[X] = hilToFC.bodyAccel[X] / GRAVITY_CMSS;
-    accADCf[Y] = hilToFC.bodyAccel[Y] / GRAVITY_CMSS;
-    accADCf[Z] = hilToFC.bodyAccel[Z] / GRAVITY_CMSS;
-}
-#endif
-
 void imuUpdateAccelerometer(void)
 {
-#ifdef HIL
-    if (sensors(SENSOR_ACC) && !hilActive) {
-        accUpdate();
-        isAccelUpdatedAtLeastOnce = true;
-    }
-#else
     if (sensors(SENSOR_ACC)) {
         accUpdate();
         isAccelUpdatedAtLeastOnce = true;
     }
-#endif
 }
 
 void imuCheckVibrationLevels(void)
@@ -640,23 +629,10 @@ void imuUpdateAttitude(timeUs_t currentTimeUs)
     previousIMUUpdateTimeUs = currentTimeUs;
 
     if (sensors(SENSOR_ACC) && isAccelUpdatedAtLeastOnce) {
-#ifdef HIL
-        if (!hilActive) {
-            gyroGetMeasuredRotationRate(&imuMeasuredRotationBF);    // Calculate gyro rate in body frame in rad/s
-            accGetMeasuredAcceleration(&imuMeasuredAccelBF);  // Calculate accel in body frame in cm/s/s
-            imuCheckVibrationLevels();
-            imuCalculateEstimatedAttitude(dT);  // Update attitude estimate
-        }
-        else {
-            imuHILUpdate();
-            imuUpdateMeasuredAcceleration();
-        }
-#else
         gyroGetMeasuredRotationRate(&imuMeasuredRotationBF);    // Calculate gyro rate in body frame in rad/s
         accGetMeasuredAcceleration(&imuMeasuredAccelBF);  // Calculate accel in body frame in cm/s/s
         imuCheckVibrationLevels();
         imuCalculateEstimatedAttitude(dT);  // Update attitude estimate
-#endif
     } else {
         acc.accADCf[X] = 0.0f;
         acc.accADCf[Y] = 0.0f;

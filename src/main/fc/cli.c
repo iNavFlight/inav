@@ -125,10 +125,6 @@ bool cliMode = false;
 #include "telemetry/telemetry.h"
 #include "build/debug.h"
 
-#if MCU_FLASH_SIZE > 128
-#define PLAY_SOUND
-#endif
-
 extern timeDelta_t cycleTime; // FIXME dependency on mw.c
 extern uint8_t detectedSensors[SENSOR_INDEX_COUNT];
 
@@ -163,13 +159,26 @@ static const char * const featureNames[] = {
 
 #ifdef USE_BLACKBOX
 static const char * const blackboxIncludeFlagNames[] = {
-    "NAV_ACC", "NAV_POS", "NAV_PID", "MAG", "ACC", "ATTI", "RC_DATA", "RC_COMMAND", "MOTORS", "GYRO_RAW", NULL
+    "NAV_ACC",
+    "NAV_POS",
+    "NAV_PID",
+    "MAG",
+    "ACC",
+    "ATTI",
+    "RC_DATA",
+    "RC_COMMAND",
+    "MOTORS",
+    "GYRO_RAW",
+    "PEAKS_R",
+    "PEAKS_P",
+    "PEAKS_Y",
+    NULL
 };
 #endif
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status command output) */
 // sync with gyroSensor_e
-static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6050", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"};
+static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"};
 
 // sync this with sensors_e
 static const char * const sensorTypeNames[] = {
@@ -2943,7 +2952,6 @@ static void cliMotor(char *cmdline)
     cliPrintLinef("motor %d: %d", motor_index, motor_disarmed[motor_index]);
 }
 
-#ifdef PLAY_SOUND
 static void cliPlaySound(char *cmdline)
 {
     int i;
@@ -2976,7 +2984,6 @@ static void cliPlaySound(char *cmdline)
     cliPrintLinef("Playing sound %d: %s", i, name);
     beeper(beeperModeForTableIndex(i));
 }
-#endif
 
 static void cliProfile(char *cmdline)
 {
@@ -3466,7 +3473,6 @@ static void cliStatus(char *cmdline)
     }
 }
 
-#ifndef SKIP_TASK_STATISTICS
 static void cliTasks(char *cmdline)
 {
     UNUSED(cmdline);
@@ -3495,7 +3501,6 @@ static void cliTasks(char *cmdline)
     cliPrintLinef("Task check function %13d %7d %25d", (uint32_t)checkFuncInfo.maxExecutionTime, (uint32_t)checkFuncInfo.averageExecutionTime, (uint32_t)checkFuncInfo.totalExecutionTime / 1000);
     cliPrintLinef("Total (excluding SERIAL) %21d.%1d%% %4d.%1d%%", maxLoadSum/10, maxLoadSum%10, averageLoadSum/10, averageLoadSum%10);
 }
-#endif
 
 static void cliVersion(char *cmdline)
 {
@@ -3528,7 +3533,6 @@ static void cliMemory(char *cmdline)
     }
 }
 
-#if !defined(SKIP_TASK_STATISTICS) && !defined(SKIP_CLI_RESOURCES)
 static void cliResource(char *cmdline)
 {
     UNUSED(cmdline);
@@ -3547,7 +3551,6 @@ static void cliResource(char *cmdline)
         }
     }
 }
-#endif
 
 static void backupConfigs(void)
 {
@@ -3636,7 +3639,7 @@ static void printConfig(const char *cmdline, bool doDiff)
         printMotorMix(dumpMask, primaryMotorMixer_CopyArray, primaryMotorMixer(0));
 
         // print custom servo mixer if exists
-        cliPrintHashLine("servo mix");
+        cliPrintHashLine("servo mixer");
         cliDumpPrintLinef(dumpMask, customServoMixers_CopyArray[0].rate == 0, "smix reset\r\n");
         printServoMix(dumpMask, customServoMixers_CopyArray, customServoMixers(0));
 
@@ -3647,16 +3650,6 @@ static void printConfig(const char *cmdline, bool doDiff)
 #if defined(USE_SAFE_HOME)
         cliPrintHashLine("safehome");
         printSafeHomes(dumpMask, safeHomeConfig_CopyArray, safeHomeConfig(0));
-#endif
-#ifdef USE_PROGRAMMING_FRAMEWORK
-        cliPrintHashLine("logic");
-        printLogic(dumpMask, logicConditions_CopyArray, logicConditions(0));
-
-        cliPrintHashLine("gvar");
-        printGvar(dumpMask, globalVariableConfigs_CopyArray, globalVariableConfigs(0));
-
-        cliPrintHashLine("pid");
-        printPid(dumpMask, programmingPids_CopyArray, programmingPids(0));
 #endif
 
         cliPrintHashLine("feature");
@@ -3713,6 +3706,17 @@ static void printConfig(const char *cmdline, bool doDiff)
         printOsdLayout(dumpMask, &osdLayoutsConfig_Copy, osdLayoutsConfig(), -1, -1);
 #endif
 
+#ifdef USE_PROGRAMMING_FRAMEWORK
+        cliPrintHashLine("logic");
+        printLogic(dumpMask, logicConditions_CopyArray, logicConditions(0));
+
+        cliPrintHashLine("global vars");
+        printGvar(dumpMask, globalVariableConfigs_CopyArray, globalVariableConfigs(0));
+
+        cliPrintHashLine("programmable pid controllers");
+        printPid(dumpMask, programmingPids_CopyArray, programmingPids(0));
+#endif
+
         cliPrintHashLine("master");
         dumpAllValues(MASTER_VALUE, dumpMask);
 
@@ -3733,7 +3737,6 @@ static void printConfig(const char *cmdline, bool doDiff)
             cliPrintLinef("profile %d", currentProfileIndexSave + 1);
             cliPrintLinef("battery_profile %d", currentBatteryProfileIndexSave + 1);
 
-            cliPrintHashLine("save configuration\r\nsave");
 #ifdef USE_CLI_BATCH
             batchModeEnabled = false;
 #endif
@@ -3750,6 +3753,10 @@ static void printConfig(const char *cmdline, bool doDiff)
 
     if (dumpMask & DUMP_BATTERY_PROFILE) {
         cliDumpBatteryProfile(getConfigBatteryProfile(), dumpMask);
+    }
+
+    if ((dumpMask & DUMP_MASTER) || (dumpMask & DUMP_ALL)) {
+        cliPrintHashLine("save configuration\r\nsave");
     }
 
 #ifdef USE_CLI_BATCH
@@ -3894,16 +3901,12 @@ const clicmd_t cmdTable[] = {
 #ifdef USE_USB_MSC
     CLI_COMMAND_DEF("msc", "switch into msc mode", NULL, cliMsc),
 #endif
-#ifdef PLAY_SOUND
     CLI_COMMAND_DEF("play_sound", NULL, "[<index>]\r\n", cliPlaySound),
-#endif
     CLI_COMMAND_DEF("profile", "change profile",
         "[<index>]", cliProfile),
     CLI_COMMAND_DEF("battery_profile", "change battery profile",
         "[<index>]", cliBatteryProfile),
-#if !defined(SKIP_TASK_STATISTICS) && !defined(SKIP_CLI_RESOURCES)
     CLI_COMMAND_DEF("resource", "view currently used resources", NULL, cliResource),
-#endif
     CLI_COMMAND_DEF("rxrange", "configure rx channel ranges", NULL, cliRxRange),
 #ifdef USE_SECONDARY_IMU
     CLI_COMMAND_DEF("imu2", "Secondary IMU", NULL, cliImu2),
@@ -3938,9 +3941,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("sd_info", "sdcard info", NULL, cliSdInfo),
 #endif
     CLI_COMMAND_DEF("status", "show status", NULL, cliStatus),
-#ifndef SKIP_TASK_STATISTICS
     CLI_COMMAND_DEF("tasks", "show task stats", NULL, cliTasks),
-#endif
 #ifdef USE_TEMPERATURE_SENSOR
     CLI_COMMAND_DEF("temp_sensor", "change temp sensor settings", NULL, cliTempSensor),
 #endif

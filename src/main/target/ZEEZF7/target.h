@@ -113,6 +113,9 @@
 #define M25P16_SPI_BUS          BUS_SPI2
 #define M25P16_CS_PIN           PB12
 
+#define W25N01G_SPI_BUS         BUS_SPI2
+#define W25N01G_CS_PIN          PB12
+
 #else
 
 #define USE_SPI_DEVICE_1
@@ -123,10 +126,14 @@
 #define M25P16_SPI_BUS          BUS_SPI1
 #define M25P16_CS_PIN           PA4
 
+#define W25N01G_SPI_BUS         BUS_SPI1
+#define W25N01G_CS_PIN          PA4
+
 #endif
 
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
+#define USE_FLASH_W25N01G
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
 // *************** OSD *****************************

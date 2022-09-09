@@ -94,8 +94,6 @@
 #define I2C_DEVICE_2_SHARES_UART3
 //#define USE_I2C_PULLUP
 
-//#define HIL
-
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PC0
 #define ADC_CHANNEL_2_PIN               PC1

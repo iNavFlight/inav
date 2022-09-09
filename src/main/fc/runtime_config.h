@@ -21,6 +21,7 @@
 typedef enum {
     ARMED                                           = (1 << 2),
     WAS_EVER_ARMED                                  = (1 << 3),
+    SIMULATOR_MODE                                  = (1 << 4),
 
     ARMING_DISABLED_FAILSAFE_SYSTEM                 = (1 << 7),
     ARMING_DISABLED_NOT_LEVEL                       = (1 << 8),
@@ -163,6 +164,32 @@ typedef enum {
 } flightModeForTelemetry_e;
 
 flightModeForTelemetry_e getFlightModeForTelemetry(void);
+
+#ifdef USE_SIMULATOR
+typedef enum {
+	SIMU_ENABLE					= (1 << 0),
+	SIMU_SIMULATE_BATTERY		= (1 << 1),
+	SIMU_MUTE_BEEPER			= (1 << 2),
+	SIMU_USE_SENSORS			= (1 << 3),
+	SIMU_HAS_NEW_GPS_DATA		= (1 << 4),
+	SIMU_EXT_BATTERY_VOLTAGE	= (1 << 5),//extend MSP_SIMULATOR format 2
+    SIMU_AIRSPEED               = (1 << 6) 
+} simulatorFlags_t;
+
+typedef struct {
+	simulatorFlags_t flags;
+	uint8_t debugIndex;
+    uint8_t vbat;  //126 ->12.6V
+	uint16_t airSpeed;  //cm/s
+
+	int16_t INPUT_STABILIZED_ROLL;
+	int16_t INPUT_STABILIZED_PITCH;
+	int16_t INPUT_STABILIZED_YAW;
+	int16_t INPUT_STABILIZED_THROTTLE;
+} simulatorData_t;
+
+extern simulatorData_t simulatorData;
+#endif
 
 uint32_t enableFlightMode(flightModeFlags_e mask);
 uint32_t disableFlightMode(flightModeFlags_e mask);

@@ -61,7 +61,6 @@
 #include "rx/spektrum.h"
 #include "rx/srxl2.h"
 #include "rx/sumd.h"
-#include "rx/sumh.h"
 #include "rx/ghst.h"
 #include "rx/mavlink.h"
 
@@ -102,7 +101,7 @@ rxLinkStatistics_t rxLinkStatistics;
 rxRuntimeConfig_t rxRuntimeConfig;
 static uint8_t rcSampleIndex = 0;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 11);
+PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 12);
 
 #ifndef SERIALRX_PROVIDER
 #define SERIALRX_PROVIDER 0
@@ -130,7 +129,9 @@ PG_RESET_TEMPLATE(rxConfig_t, rxConfig,
     .rssiMin = SETTING_RSSI_MIN_DEFAULT,
     .rssiMax = SETTING_RSSI_MAX_DEFAULT,
     .sbusSyncInterval = SETTING_SBUS_SYNC_INTERVAL_DEFAULT,
-    .rcFilterFrequency = SETTING_RC_FILTER_FREQUENCY_DEFAULT,
+    .rcFilterFrequency = SETTING_RC_FILTER_LPF_HZ_DEFAULT,
+    .autoSmooth = SETTING_RC_FILTER_AUTO_DEFAULT,
+    .autoSmoothFactor = SETTING_RC_FILTER_SMOOTHING_FACTOR_DEFAULT,
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     .mspOverrideChannels = SETTING_MSP_OVERRIDE_CHANNELS_DEFAULT,
 #endif
@@ -207,11 +208,6 @@ bool serialRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
 #ifdef USE_SERIALRX_SUMD
     case SERIALRX_SUMD:
         enabled = sumdInit(rxConfig, rxRuntimeConfig);
-        break;
-#endif
-#ifdef USE_SERIALRX_SUMH
-    case SERIALRX_SUMH:
-        enabled = sumhInit(rxConfig, rxRuntimeConfig);
         break;
 #endif
 #ifdef USE_SERIALRX_IBUS
@@ -457,7 +453,7 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
     }
 
     rxDataProcessingRequired = false;
-    rxNextUpdateAtUs = currentTimeUs + DELAY_50_HZ;
+    rxNextUpdateAtUs = currentTimeUs + DELAY_10_HZ;
 
     // only proceed when no more samples to skip and suspend period is over
     if (skipRxSamples) {

@@ -102,8 +102,8 @@ void updateWindEstimator(timeUs_t currentTimeUs)
 
     // Fuselage direction in earth frame
     fuselageDirection[X] = rMat[0][0];
-    fuselageDirection[Y] = rMat[1][0];
-    fuselageDirection[Z] = rMat[2][0];
+    fuselageDirection[Y] = -rMat[1][0];
+    fuselageDirection[Z] = -rMat[2][0];
 
     timeDelta_t timeDelta = cmpTimeUs(currentTimeUs, lastUpdateUs);
     // scrap our data and start over if we're taking too long to get a direction change
@@ -131,7 +131,7 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         // when turning, use the attitude response to estimate wind speed
         groundVelocityDiff[X] = groundVelocity[X] - lastGroundVelocity[X];
         groundVelocityDiff[Y] = groundVelocity[Y] - lastGroundVelocity[Y];
-        groundVelocityDiff[Z] = groundVelocity[X] - lastGroundVelocity[Z];
+        groundVelocityDiff[Z] = groundVelocity[Z] - lastGroundVelocity[Z];
 
         // estimate airspeed it using equation 6
         float V = (calc_length_pythagorean_3D(groundVelocityDiff[X], groundVelocityDiff[Y], groundVelocityDiff[Z])) / fast_fsqrtf(diffLengthSq);

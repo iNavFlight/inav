@@ -15,6 +15,21 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include <stdint.h>
 
-bool sumhInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
+#include "platform.h"
+
+#include "fc/fc_msp_box.h"
+#include "fc/config.h"
+
+#include "io/piniobox.h"
+#include "io/serial.h"
+
+void targetConfiguration(void)
+{
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART3)].functionMask = FUNCTION_MSP;
+    pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
+    pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
+    pinioBoxConfigMutable()->permanentId[2] = BOX_PERMANENT_ID_USER3;
+    // compassConfigMutable()->mag_align = XXX;
+}

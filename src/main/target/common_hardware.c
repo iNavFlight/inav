@@ -33,10 +33,6 @@
         BUSDEV_REGISTER_SPI(busdev_mpu6000,     DEVHW_MPU6000,      MPU6000_SPI_BUS,    MPU6000_CS_PIN,     NONE,  DEVFLAGS_NONE,  IMU_MPU6000_ALIGN);
     #endif
 
-    #if defined(USE_IMU_MPU6050)
-        BUSDEV_REGISTER_I2C(busdev_mpu6050,     DEVHW_MPU6050,      MPU6050_I2C_BUS,    MPU_ADDRESS,        NONE,  DEVFLAGS_NONE,  IMU_MPU6050_ALIGN);
-    #endif
-
     #if defined(USE_IMU_MPU6500)
         #if defined(MPU6500_SPI_BUS)
         BUSDEV_REGISTER_SPI(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_SPI_BUS,    MPU6500_CS_PIN,     NONE,  DEVFLAGS_NONE,  IMU_MPU6500_ALIGN);
@@ -368,6 +364,10 @@
 
 #if defined(USE_FLASH_M25P16)
     BUSDEV_REGISTER_SPI(busdev_m25p16,      DEVHW_M25P16,       M25P16_SPI_BUS,     M25P16_CS_PIN,      NONE,           DEVFLAGS_NONE,  0);
+#endif
+
+#if defined(USE_FLASH_W25N01G)
+    BUSDEV_REGISTER_SPI(busdev_w25n01g,     DEVHW_W25N01G,      W25N01G_SPI_BUS,    W25N01G_CS_PIN,     NONE,           DEVFLAGS_NONE,  0);
 #endif
 
 #if defined(USE_SDCARD) && defined(USE_SDCARD_SPI)

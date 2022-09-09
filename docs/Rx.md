@@ -9,6 +9,8 @@ There are 2 basic types of receivers:
 
 ## PPM Receivers
 
+**Only supported in inav 3.x and below**
+
 PPM is sometimes known as PPM SUM or CPPM.
 
 12 channels via a single input pin, not as accurate or jitter free as methods that use serial communications, but readily available.
@@ -124,12 +126,6 @@ http://www.graupner.de/en/products/33512/product.aspx
 
 Graupner receiver GR-12SH+ HoTT
 http://www.graupner.de/en/products/870ade17-ace8-427f-943b-657040579906/33565/product.aspx
-
-### SUMH
-
-8 channels via serial currently supported.
-
-SUMH is a legacy Graupner protocol.  Graupner have issued a firmware updates for many recivers that lets them use SUMD instead.
 
 ### IBUS
 
@@ -252,7 +248,7 @@ Allowed values: NONE, PPM, SERIAL, MSP, SPI, UIB
 
 # get serialrx
 serialrx_provider = SBUS
-Allowed values: SPEK1024, SPEK2048, SBUS, SUMD, SUMH, IBUS, JETIEXBUS, CRSF, FPORT, SBUS_FAST, FPORT2, SRXL2
+Allowed values: SPEK1024, SPEK2048, SBUS, SUMD, IBUS, JETIEXBUS, CRSF, FPORT, SBUS_FAST, FPORT2, SRXL2
 
 ```
 

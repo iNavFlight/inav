@@ -81,6 +81,13 @@
   #define MPU6500_SPI_BUS         MPU6000_SPI_BUS
   #define USE_IMU_MPU6500
   #define IMU_MPU6500_ALIGN       IMU_MPU6000_ALIGN
+
+  //BMI270
+  #define USE_IMU_BMI270
+  #define IMU_BMI270_ALIGN        IMU_MPU6000_ALIGN
+  #define BMI270_SPI_BUS          MPU6000_SPI_BUS
+  #define BMI270_CS_PIN           MPU6000_CS_PIN
+  #define BMI270_EXTI_PIN         GYRO_INT_EXTI
 #endif
 
 #define USE_MAG
