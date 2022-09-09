@@ -199,7 +199,7 @@ void imuCheckVibrationLevels(void)
 }
 
 // Reset the current gyro drift estimate should be called if gyro offsets are recalculated
-void resetGyroDrift(void)
+static void resetGyroDrift(void)
 {
     _omega.x = 0.0f;
     _omega.y = 0.0f;
@@ -210,7 +210,7 @@ void resetGyroDrift(void)
     _omega_I_sum_time = 0.0f;
 }
 
-bool rotationMatrixIsNAN(void) {
+static bool rotationMatrixIsNAN(void) {
 
     bool isNaN = false;
 
@@ -227,7 +227,7 @@ bool rotationMatrixIsNAN(void) {
 }
 
 // Create a rotation matrix given some euler angles
-void matrixFromEuler(float roll, float pitch, float yaw)
+static void matrixFromEuler(float roll, float pitch, float yaw)
 {
     const float cp = cos_approx(pitch);
     const float sp = sin_approx(pitch);
@@ -250,7 +250,7 @@ void matrixFromEuler(float roll, float pitch, float yaw)
 }
 
 // Apply an additional rotation from a Body-Frame gyro vector to a rotation matrix.
-void dcmMatrixRotate(const fpVector3_t gyro)
+static void dcmMatrixRotate(const fpVector3_t gyro)
 {
     const fpMat3_t rotationMatrix2 = { .m = { { rotationMatrix.m[0][0], rotationMatrix.m[0][1], rotationMatrix.m[0][2] },
                                               { rotationMatrix.m[1][0], rotationMatrix.m[1][1], rotationMatrix.m[1][2] },
@@ -270,7 +270,7 @@ void dcmMatrixRotate(const fpVector3_t gyro)
 }
 
 // Multiplication of transpose by a vector
-void multiplicationTranspose(fpVector3_t *v)
+static void multiplicationTranspose(fpVector3_t *v)
 {
     const fpVector3_t v2 = { .v = { v->x, v->y, v->z } };
 
@@ -280,7 +280,7 @@ void multiplicationTranspose(fpVector3_t *v)
 }
 
 // Multiplication by a vector, extracting only the XY components
-void multiplicationXY(fpVector3_t *v) 
+static void multiplicationXY(fpVector3_t *v) 
 {
     const fpVector3_t v2 = { .v = { v->x, v->y, v->z } };
 
@@ -289,7 +289,7 @@ void multiplicationXY(fpVector3_t *v)
 }
 
 // Multiplication by a vector
-void multiplicationXYZ(fpVector3_t *v) 
+static void multiplicationXYZ(fpVector3_t *v) 
 {
     const fpVector3_t v2 = { .v = { v->x, v->y, v->z } };
 
@@ -299,7 +299,7 @@ void multiplicationXYZ(fpVector3_t *v)
 }
 
 // Update the DCM matrix using only the gyros
-void matrixUpdate(float deltaTime)
+static void matrixUpdate(float deltaTime)
 {
     // Note that we do not include the P terms in _omega. This is  because the spin_rate is calculated from calc_length_pythagorean_3D(_omega.x, _omega.y, _omega.z), 
     // and including the P terms would give positive feedback into the proportionalGain() calculation, which can lead to a very large P value.
@@ -324,18 +324,19 @@ void matrixUpdate(float deltaTime)
 void ahrsReset(bool recover_eulers)
 {
     // Reset the integration terms
+    _omega.x = 0.0f;
+    _omega.y = 0.0f;
+    _omega.z = 0.0f;
+    _omega_yaw_P.x = 0.0f;
+    _omega_yaw_P.y = 0.0f;
+    _omega_yaw_P.z = 0.0f;
     _omega_I.x = 0.0f;
     _omega_I.y = 0.0f;
     _omega_I.z = 0.0f;
     _omega_P.x = 0.0f;
     _omega_P.y = 0.0f;
     _omega_P.z = 0.0f;
-    _omega_yaw_P.x = 0.0f;
-    _omega_yaw_P.y = 0.0f;
-    _omega_yaw_P.z = 0.0f;
-    _omega.x = 0.0f;
-    _omega.y = 0.0f;
-    _omega.z = 0.0f;
+
 
     if (recover_eulers && !isnan(_roll) && !isnan(_pitch) && !isnan(_yaw)) {
         matrixFromEuler(_roll, _pitch, _yaw);
@@ -351,7 +352,6 @@ void ahrsReset(bool recover_eulers)
             _roll = 0.0f;
             _pitch = 0.0f;
         }
-    
         matrixFromEuler(_roll, _pitch, 0.0f);
     }
 
@@ -363,7 +363,7 @@ void ahrsReset(bool recover_eulers)
 }
 
 // Renormalise one vector component of the DCM matrix this will return false if renormalization fails
-bool renorm(fpVector3_t a, fpVector3_t *result)
+static bool renorm(fpVector3_t a, fpVector3_t *result)
 {
     // Numerical errors will slowly build up over time in DCM, causing inaccuracies. 
     // We can keep ahead of those errors using the renormalization technique from the DCM IMU paper (see equations 18 to 21).
@@ -395,7 +395,7 @@ bool renorm(fpVector3_t a, fpVector3_t *result)
  *  longer describe a rigid body. Fortunately, numerical error accumulates very slowly, so it is a simple matter to stay ahead of it.
  *  We call the process of enforcing the orthogonality conditions: renormalization.
  */
-void normalize(void)
+static void normalize(void)
 {
     const float error = rotationMatrix.m[0][0] * rotationMatrix.m[1][0] + rotationMatrix.m[0][1] * rotationMatrix.m[1][1] + rotationMatrix.m[0][2] * rotationMatrix.m[1][2]; // eq.18
     
@@ -447,7 +447,7 @@ void normalize(void)
 }
 
 // Check the DCM matrix for pathological values
-void checkMatrix(void)
+static void checkMatrix(void)
 {
     if (rotationMatrixIsNAN()) {
         LOG_E(AHRS, "AHRS Matrix is NaN. Reseting the AHRS");
@@ -497,7 +497,7 @@ void getMagField(fpVector3_t *v) {
 }
 
 // Produce a yaw error value. The returned value is proportional to sin() of the current heading error in Earth-Frame
-float yawErrorCompass(void)
+static float yawErrorCompass(void)
 {
     fpVector3_t magField;
 
@@ -532,7 +532,7 @@ float yawErrorCompass(void)
 }
 
 // The _P_gain raises the gain of the PI controller when we are spinning fast.
-float proportionalGain(float spin_rate)
+static float proportionalGain(float spin_rate)
 {
     if (spin_rate < DEGREES_TO_RADIANS(50)) {
         return 1.0f;
@@ -548,7 +548,7 @@ float proportionalGain(float spin_rate)
 // This function reduces the gain of the PI controller applied to heading errors when observability from change of velocity is good (eg changing speed or turning)
 // This reduces unwanted roll and pitch coupling due to compass errors for planes.
 // High levels of noise on _accel_ef will cause the gain to drop and could lead to increased heading drift during straight and level flight, however some gain is always available.
-float yawGain(void)
+static float yawGain(void)
 {
     const float VdotEFmag = calc_length_pythagorean_2D(_accel_ef.x, _accel_ef.y) * 0.01f;
 
@@ -560,7 +560,7 @@ float yawGain(void)
 }
 
 // Return true if we have and should use GPS
-bool haveGPS(void)
+static bool haveGPS(void)
 {
     if (!STATE(GPS_FIX) || !sensors(SENSOR_GPS)) {
         return false;
@@ -571,51 +571,28 @@ bool haveGPS(void)
 
 // When we are getting the initial attitude we want faster gains so that if the board starts upside down we quickly approach the right attitude.
 // We don't want to keep those high gains for too long though as high P gains cause slow gyro offset learning. So we keep the high gains for a maximum of 20 seconds
-bool useFastGains(void)
+static bool useFastGains(void)
 {
     return !ARMING_FLAG(ARMED) && (millis() - _last_startup_ms) < 20000U;
 }
 
-float wrap_360(const float angle)
-{
-    float res = fmodf(angle, 360.0f);
-    if (res < 0.0f) {
-        res += 360.0f;
-    }
-    return res;
-}
-
-float wrap_180(const float angle)
-{
-    float res = wrap_360(angle);
-    if (res > 180.0f) {
-        res -= 360.0f;
-    }
-    return res;
-}
-
-#define M_2PI (2.0f * M_PIf)
-
-float wrap_2PI(const float radian)
-{
-    float res = fmodf(radian, M_2PI);
-    if (res < 0.0f) {
-        res += M_2PI;
-    }
-    return res;
-}
-
+// Wrap an angle in radians to -PI ~ PI (equivalent to +- 180 degrees)
 float wrap_PI(const float radian)
 {
-    float res = wrap_2PI(radian);
+    float res = fmodf(radian, 2.0f * M_PIf);
+
+    if (res < 0.0f) {
+        res += 2.0f * M_PIf;
+    }
+
     if (res > M_PIf) {
-        res -= M_2PI;
+        res -= 2.0f * M_PIf;
     }
     return res;
 }
 
 // Return true if we should use the compass for yaw correction
-bool useCompass(void)
+static bool useCompass(void)
 {
     if (!sensors(SENSOR_MAG)) {
         // No compass available
@@ -634,8 +611,7 @@ bool useCompass(void)
 
     // If the current yaw differs from the GPS yaw by more than 45 degrees and the estimated wind speed is less than 80% of the ground speed, then switch to GPS navigation. 
     // This will help prevent flyaways with very bad compass offsets
-    const float error = fabsf(wrap_180(RADIANS_TO_DEGREES(wrap_2PI(1.0f - _yaw)) - wrap_360(DECIDEGREES_TO_DEGREES(gpsSol.groundCourse))));
-
+    const float error = RADIANS_TO_DEGREES(wrap_PI(-DEGREES_TO_RADIANS(DECIDEGREES_TO_DEGREES(gpsSol.groundCourse)) - _yaw));
     if (error > 45.0f && calc_length_pythagorean_3D(_wind.x, _wind.y, _wind.z) < gpsSol.groundSpeed * 0.8f) {
         if (millis() - _last_consistent_heading > 2000) {
             // Start using the GPS for heading if the compass has been inconsistent with the GPS for 2 seconds
@@ -650,7 +626,7 @@ bool useCompass(void)
 }
 
 // Calculate a compass heading given the attitude from DCM and the mag vector
-float calculateHeading(void)
+static float calculateHeading(void)
 {
     fpVector3_t magField;
 
@@ -670,7 +646,7 @@ float calculateHeading(void)
 }
 
 // Yaw drift correction using the compass or GPS this function prodoces the _omega_yaw_P vector, and also contributes to the _omega_I.z long term yaw drift estimate
-void driftCorrectionYaw(void)
+static void driftCorrectionYaw(void)
 {
     bool new_value = false;
     float yaw_error;
@@ -708,18 +684,10 @@ void driftCorrectionYaw(void)
         if (gpsStats.lastFixTime != _gps_last_update && gpsSol.groundSpeed >= GPS_SPEED_MIN) {
             yaw_deltaTime = MS2S(gpsStats.lastFixTime - _gps_last_update);
             _gps_last_update = gpsStats.lastFixTime;
-            const float gps_course_rad = DEGREES_TO_RADIANS(wrap_360(DECIDEGREES_TO_DEGREES(gpsSol.groundCourse)));
-            const float yaw_sensor = 1.0f - _yaw;
-            const float yaw_error_rad = wrap_PI(gps_course_rad - yaw_sensor);
+            const float gps_course_rad = -DEGREES_TO_RADIANS(DECIDEGREES_TO_DEGREES(gpsSol.groundCourse));
+            const float yaw_error_rad = wrap_PI(gps_course_rad - _yaw);
             yaw_error = sin_approx(yaw_error_rad);
             new_value = true;
-
-            DEBUG_SET(DEBUG_CRUISE, 0, RADIANS_TO_DEGREES(gps_course_rad));
-            DEBUG_SET(DEBUG_CRUISE, 1, RADIANS_TO_DEGREES(yaw_sensor));
-            DEBUG_SET(DEBUG_CRUISE, 2, RADIANS_TO_DEGREES(yaw_error_rad));
-            DEBUG_SET(DEBUG_CRUISE, 3, DECIDEGREES_TO_DEGREES(attitude.values.yaw));
-            static float _error_yaw;
-            DEBUG_SET(DEBUG_CRUISE, 4, RADIANS_TO_DEGREES(_error_yaw = 0.8f * _error_yaw + 0.2f * fabsf(yaw_error)));
 
             /* 
             Reset yaw to match GPS heading under any of the following 3 conditions:
@@ -784,7 +752,7 @@ void driftCorrectionYaw(void)
 }
 
 // Return an accel vector delayed
-void raDelayed(fpVector3_t ra, fpVector3_t *v)
+static void raDelayed(fpVector3_t ra, fpVector3_t *v)
 {
     // Get the old element, and then fill it with the new element
     const fpVector3_t ret = { .v = { _ra_delay_buffer.x, _ra_delay_buffer.y, _ra_delay_buffer.z } };
@@ -809,7 +777,7 @@ void raDelayed(fpVector3_t ra, fpVector3_t *v)
 // Perform drift correction. This function aims to update _omega_P and _omega_I with our best estimate of the short term and long term gyro error. 
 // The _omega_P value is what pulls our attitude solution back towards the reference vector quickly. The _omega_I term is an attempt to learn the long term drift rate of the gyros.
 // This drift correction implementation is based on a paper by Bill Premerlani
-void driftCorrection(float deltaTime)
+static void driftCorrection(float deltaTime)
 {
     fpVector3_t velocity;
     timeMs_t last_correction_time;
@@ -865,7 +833,7 @@ void driftCorrection(float deltaTime)
 
         velocity.x = gpsSol.velNED[X];
         velocity.y = gpsSol.velNED[Y];
-        velocity.z = gpsSol.velNED[Z];
+        velocity.z = -gpsSol.velNED[Z];
 
         last_correction_time = gpsStats.lastFixTime;
 
@@ -910,7 +878,7 @@ void driftCorrection(float deltaTime)
     const float gps_gain = (float)ahrsConfig()->dcm_gps_gain / 10.0f;
     
     const bool should_correct_centrifugal = STATE(FIXED_WING_LEGACY) ? true : ARMING_FLAG(ARMED);
-
+/*
     if (should_correct_centrifugal && (_have_gps_lock || fly_forward)) {
         const float vel_scale = gps_gain * ra_scale;
         const fpVector3_t vel_delta = { .v = { (velocity.x - _last_velocity.x) * vel_scale, (velocity.y - _last_velocity.y) * vel_scale, (velocity.z - _last_velocity.z) * vel_scale } };
@@ -926,7 +894,7 @@ void driftCorrection(float deltaTime)
             return;
         }
         using_gps_corrections = true;
-    }
+    }*/
 
     // Calculate the error term in Earth-Frame.
     fpVector3_t error;
@@ -1053,7 +1021,7 @@ void driftCorrection(float deltaTime)
 }
 
 // Calculate Sine and Cosine of Roll, Pitch and Yaw from a NED rotation matrix
-void calculateTrigonometry(float *cr, float *cp, float *cy, float *sr, float *sp, float *sy) {
+static void calculateTrigonometry(float *cr, float *cp, float *cy, float *sr, float *sp, float *sy) {
 
     fpVector3_t yaw_vector = { .v = { rotationMatrix.m[0][0], -rotationMatrix.m[1][0], 0.0f } };
 
@@ -1099,7 +1067,7 @@ void calculateTrigonometry(float *cr, float *cp, float *cy, float *sr, float *sp
 }
 
 // Run a full DCM update round
-void dcmUpdate(float deltaTime)
+static void dcmUpdate(float deltaTime)
 {
     // If the update call took more than 0.2 seconds then discard it, otherwise we may move too far.
     if (deltaTime > 0.2f) {
@@ -1118,7 +1086,7 @@ void dcmUpdate(float deltaTime)
     useHITLOutAngles = ARMING_FLAG(SIMULATOR_MODE) && ((simulatorData.flags & SIMU_USE_SENSORS) == 0);
 
     if (useHITLOutAngles) {
-        matrixFromEuler(DECIDEGREES_TO_RADIANS(attitude.values.roll), DECIDEGREES_TO_RADIANS(attitude.values.pitch), DECIDEGREES_TO_RADIANS(attitude.values.yaw));
+        matrixFromEuler(DECIDEGREES_TO_RADIANS(attitude.values.roll) * 0.5f, DECIDEGREES_TO_RADIANS(attitude.values.pitch) * 0.5f, DECIDEGREES_TO_RADIANS(attitude.values.yaw) * 0.5f);
     }
 #endif
 
