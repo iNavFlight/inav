@@ -34,7 +34,6 @@
 #include "drivers/system.h"
 #include "drivers/time.h"
 #include "drivers/io.h"
-#include "drivers/exti.h"
 #include "drivers/bus.h"
 
 #include "drivers/sensor.h"
@@ -196,8 +195,6 @@ static void bmi270UploadConfig(busDevice_t * busDev)
 static void bmi270AccAndGyroInit(gyroDev_t *gyro)
 {
     busDevice_t * busDev = gyro->busDev;
-
-    gyroIntExtiInit(gyro);
 
     // Perform a soft reset to set all configuration to default
     // Delay 100ms before continuing configuration

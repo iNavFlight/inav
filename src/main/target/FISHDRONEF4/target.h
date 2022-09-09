@@ -44,11 +44,6 @@
 #define USE_IMU_MPU9250
 #define IMU_MPU9250_ALIGN       CW180_DEG
 
-// MPU6500 interrupts
-#define GYRO_INT_EXTI            PC4
-
-#define ENSURE_MPU_DATA_READY_IS_LOW
-
 // *************** Compass *****************************
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1

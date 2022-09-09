@@ -41,13 +41,11 @@
 // ICM-20689
 #define USE_IMU_ICM20689
 #define IMU_ICM20689_ALIGN       CW270_DEG
-#define GYRO_INT_EXTI            PE1
 #define ICM20689_CS_PIN          SPI4_NSS_PIN
 #define ICM20689_SPI_BUS         BUS_SPI4
 
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW270_DEG
-#define GYRO_INT_EXTI           PE1
 #define MPU6000_CS_PIN          SPI4_NSS_PIN
 #define MPU6000_SPI_BUS         BUS_SPI4
 

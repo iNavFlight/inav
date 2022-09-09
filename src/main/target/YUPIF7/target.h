@@ -28,11 +28,6 @@
 #define BEEPER_INVERTED
 #define BEEPER_PWM_FREQUENCY    3150
 
-// Gyro interrupt
-#define GYRO_INT_EXTI           PC4
-
-#define ENSURE_MPU_DATA_READY_IS_LOW
-
 // ICM 20689
 #define USE_IMU_ICM20689
 #define IMU_ICM20689_ALIGN      CW90_DEG

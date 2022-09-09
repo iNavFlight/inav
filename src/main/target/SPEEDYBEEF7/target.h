@@ -62,7 +62,6 @@
 #define USE_IMU_ICM20689
 #define IMU_ICM20689_ALIGN          CW0_DEG
 
-#define GYRO_INT_EXTI               PC4
 #define ICM20689_CS_PIN             PA4
 #define ICM20689_SPI_BUS            BUS_SPI1
 

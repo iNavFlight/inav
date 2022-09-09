@@ -38,9 +38,6 @@
 #define BEEPER                  PC9
 #define BEEPER_INVERTED
 
-#define GYRO_INT_EXTI            PC5
-
-
 #define USE_IMU_MPU6500
 #define IMU_MPU6500_ALIGN       CW270_DEG
 #define MPU6500_CS_PIN          PC4

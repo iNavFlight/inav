@@ -30,9 +30,6 @@
 #define BEEPER                  PC15
 #define BEEPER_INVERTED
 
-#define GYRO_INT_EXTI            PC13
-
-
 #define USE_MAG_DATA_READY_SIGNAL
 #define ENSURE_MAG_DATA_READY_IS_HIGH
 

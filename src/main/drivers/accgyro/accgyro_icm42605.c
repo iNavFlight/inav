@@ -29,7 +29,6 @@
 
 #include "drivers/system.h"
 #include "drivers/time.h"
-#include "drivers/exti.h"
 
 #include "drivers/sensor.h"
 #include "drivers/accgyro/accgyro.h"
@@ -155,8 +154,6 @@ static void icm42605AccAndGyroInit(gyroDev_t *gyro)
     const gyroFilterAndRateConfig_t * config = chooseGyroConfig(gyro->lpf, 1000000 / gyro->requestedSampleIntervalUs,
                                                                 &icm42605GyroConfigs[0], ARRAYLEN(icm42605GyroConfigs));
     gyro->sampleRateIntervalUs = 1000000 / config->gyroRateHz;
-
-    gyroIntExtiInit(gyro);
 
     busSetSpeed(dev, BUS_SPEED_INITIALIZATION);
 

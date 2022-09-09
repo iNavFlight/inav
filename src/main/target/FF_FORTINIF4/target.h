@@ -34,12 +34,6 @@
 //#define CAMERA_CONTROL_PIN      PB7
 /*---------------------------------*/
 
-/*------------SENSORS--------------*/
-// MPU interrupt
-#define GYRO_INT_EXTI            PC4
-
-#define ENSURE_MPU_DATA_READY_IS_LOW
-
 #define MPU6500_CS_PIN          PA8
 #define MPU6500_SPI_BUS         BUS_SPI1
 

@@ -27,10 +27,6 @@
 #define BEEPER                  PE5
 #define BEEPER_INVERTED
 
-
-// MPU6000 interrupt
-#define GYRO_INT_EXTI            PB0
-
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
 #define ICM20689_CS_PIN         PA4

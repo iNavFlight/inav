@@ -36,26 +36,22 @@
 
 #define USE_DUAL_GYRO
 
-#define ENSURE_MPU_DATA_READY_IS_LOW
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_CS_PIN          PB12
 #define MPU6000_SPI_BUS         BUS_SPI2
-#define MPU6000_EXTI_PIN        PC4
 
 #define USE_IMU_MPU6500
 #define IMU_MPU6500_ALIGN       CW270_DEG
 #define MPU6500_CS_PIN          PB12
 #define MPU6500_SPI_BUS         BUS_SPI2
-#define MPU6500_EXTI_PIN        PC4
 
 #define USE_IMU_BMI270
 #define IMU_BMI270_ALIGN        CW180_DEG
 #define BMI270_CS_PIN           PA13
 #define BMI270_SPI_BUS          BUS_SPI2
-#define BMI270_EXTI_PIN         PA8
 
 // *************** I2C /Baro/Mag *********************
 #define USE_I2C

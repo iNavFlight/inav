@@ -32,11 +32,6 @@
 
 #define INVERTER_PIN_USART2     PC15
 
-// MPU interrupt
-#define GYRO_INT_EXTI            PC14
-
-#define ENSURE_MPU_DATA_READY_IS_LOW
-
 #define MPU6500_CS_PIN          SPI1_NSS_PIN
 #define MPU6500_SPI_BUS         BUS_SPI1
 

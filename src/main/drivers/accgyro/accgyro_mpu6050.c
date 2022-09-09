@@ -34,7 +34,6 @@
 #include "drivers/system.h"
 #include "drivers/time.h"
 #include "drivers/io.h"
-#include "drivers/exti.h"
 #include "drivers/bus.h"
 
 #include "drivers/sensor.h"
@@ -60,8 +59,6 @@ static void mpu6050AccAndGyroInit(gyroDev_t *gyro)
 {
     const gyroFilterAndRateConfig_t * config = mpuChooseGyroConfig(gyro->lpf, 1000000 / gyro->requestedSampleIntervalUs);
     gyro->sampleRateIntervalUs = 1000000 / config->gyroRateHz;
-
-    gyroIntExtiInit(gyro);
 
     busSetSpeed(gyro->busDev, BUS_SPEED_INITIALIZATION);
 

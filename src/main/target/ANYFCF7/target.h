@@ -33,9 +33,6 @@
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN CW270_DEG
 
-// MPU6000 interrupt
-#define GYRO_INT_EXTI            PC4
-
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
 #define USE_MAG_HMC5883

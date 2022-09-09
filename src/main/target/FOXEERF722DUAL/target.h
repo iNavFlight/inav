@@ -37,7 +37,6 @@
 #define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_CS_PIN          PB2
 #define MPU6000_SPI_BUS         BUS_SPI1
-#define MPU6000_EXTI_PIN        PC4
 
 // ICM20602 - handled by MPU6500 driver
 #ifdef FOXEERF722DUAL
@@ -45,7 +44,6 @@
 #define IMU_MPU6500_ALIGN       CW180_DEG
 #define MPU6500_CS_PIN          PB1
 #define MPU6500_SPI_BUS         BUS_SPI1
-#define MPU6500_EXTI_PIN        PB0
 #endif
 
 /*** SPI/I2C bus ***/

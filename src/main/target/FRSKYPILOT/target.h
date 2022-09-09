@@ -67,23 +67,15 @@
 #define USE_IMU_MPU6000
 #define USE_IMU_MPU6500
 
-//#define USE_ONBOARD_IMU
-//#define USE_BOX_IMU
 #define USE_DUAL_GYRO
 
-//#if defined(USE_ONBOARD_IMU)
-#define MPU6500_EXTI_PIN        PE8
 #define MPU6500_SPI_BUS         BUS_SPI3
 #define MPU6500_CS_PIN          SPI3_NSS_PIN
 #define IMU_MPU6500_ALIGN       CW0_DEG_FLIP
 
-//#elif defined(USE_BOX_IMU)
-#define MPU6000_EXTI_PIN        NONE
 #define MPU6000_SPI_BUS         BUS_SPI2
 #define MPU6000_CS_PIN          SPI2_NSS_PIN
-#define IMU_MPU6000_ALIGN       CW270_DEG_FLIP // XXX check
-
-//#endif // IMU SELECTION
+#define IMU_MPU6000_ALIGN       CW270_DEG_FLIP
 
 // *************** SPI4: SDCARD *******************
 

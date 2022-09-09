@@ -40,10 +40,6 @@
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW180_DEG
 
-#define GYRO_INT_EXTI           PC4
-
-
-
 // *************** I2C/Baro/Mag *********************
 #define USE_I2C
 

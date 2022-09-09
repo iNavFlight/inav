@@ -39,10 +39,6 @@
 #define MPU6000_CS_PIN          PC4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
-#define GYRO_INT_EXTI            PA4
-
-
-
 // *************** I2C/Baro/Mag *********************
 #define USE_I2C
 #define USE_I2C_DEVICE_1

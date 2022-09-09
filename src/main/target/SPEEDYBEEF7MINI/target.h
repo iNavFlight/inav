@@ -39,9 +39,6 @@
 #define IMU_MPU6000_ALIGN       CW0_DEG
 #define MPU6000_CS_PIN          PB2
 #define MPU6000_SPI_BUS         BUS_SPI1
-#define MPU6000_EXTI_PIN        PC4
-
-
 
 // *************** I2C /Baro/Mag *********************
 #define USE_I2C

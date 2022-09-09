@@ -58,8 +58,6 @@
 #define I2C_DEVICE_2_SHARES_UART3
 #endif
 
-#define GYRO_INT_EXTI            PC8
-
 #define USE_DUAL_GYRO
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS     // Don't use common busdev descriptors for IMU
 #define USE_IMU_MPU6500

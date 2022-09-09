@@ -44,14 +44,9 @@
 
 #define MPU6500_0_CS_PIN        PC3
 #define MPU6500_0_SPI_BUS       BUS_SPI1
-#define MPU6500_0_EXTI_PIN      PB2
 
 #define MPU6500_1_CS_PIN        PA15
 #define MPU6500_1_SPI_BUS       BUS_SPI1
-#define MPU6500_1_EXTI_PIN      PA8
-
-
-
 
 // *************** I2C/Baro/Mag *********************
 #define USE_I2C

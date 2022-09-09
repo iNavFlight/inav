@@ -29,10 +29,6 @@
 
 #define USE_DSHOT
 
-// MPU interrupt
-#define GYRO_INT_EXTI            PC4
-
-
 #define MPU9250_CS_PIN          PC0
 #define MPU9250_SPI_BUS         BUS_SPI3
 

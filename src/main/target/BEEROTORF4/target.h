@@ -25,11 +25,6 @@
 #define BEEPER                  PB3
 #define BEEPER_INVERTED
 
-// ICM20689 interrupt
-#define GYRO_INT_EXTI            PA8
-
-#define ENSURE_MPU_DATA_READY_IS_LOW
-
 #define MPU6500_CS_PIN          SPI1_NSS_PIN
 #define MPU6500_SPI_BUS         BUS_SPI1
 

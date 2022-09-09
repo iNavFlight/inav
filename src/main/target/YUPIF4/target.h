@@ -44,10 +44,6 @@
 #define BEEPER_PWM_FREQUENCY    3150
 #endif
 
-#define GYRO_INT_EXTI            PC4
-
-#define ENSURE_MPU_DATA_READY_IS_LOW
-
 #define MPU6500_CS_PIN          SPI1_NSS_PIN
 #define MPU6500_SPI_BUS         BUS_SPI1
 

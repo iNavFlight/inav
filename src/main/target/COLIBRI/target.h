@@ -38,11 +38,7 @@
 
 #define MPU6000_CS_PIN          PC4
 #define MPU6000_SPI_BUS         BUS_SPI1
-
 #define USE_IMU_MPU6000
-
-// MPU6000 interrupt
-#define GYRO_INT_EXTI            PC0
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C3

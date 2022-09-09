@@ -48,10 +48,6 @@
 #define MPU6000_CS_PIN          PB12
 #define MPU6000_SPI_BUS         BUS_SPI2
 
-#define GYRO_INT_EXTI           PA8
-
-
-
 // *************** SPI BARO *****************************
 #define USE_BARO
 #define USE_BARO_BMP280

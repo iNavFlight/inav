@@ -17,7 +17,6 @@
 
 #pragma once
 
-#include "drivers/exti.h"
 #include "drivers/sensor.h"
 #include "drivers/accgyro/accgyro.h"
 

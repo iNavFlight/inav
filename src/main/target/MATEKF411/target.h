@@ -45,9 +45,6 @@
 #define MPU6500_CS_PIN          PA4
 #define MPU6500_SPI_BUS         BUS_SPI1
 
-#define GYRO_INT_EXTI            PA1
-
-
 // *************** SPI2 OSD *****************************
 #define USE_SPI_DEVICE_2
 #define SPI2_SCK_PIN            PB13
