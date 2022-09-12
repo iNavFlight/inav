@@ -352,6 +352,14 @@ typedef enum {
     NAV_WP_FLAG_LAST = 0xA5
 } navWaypointFlags_e;
 
+typedef enum {
+    NAV_WP_ALTMODE = (1<<0),
+    NAV_WP_USER1 = (1<<1),
+    NAV_WP_USER2 = (1<<2),
+    NAV_WP_USER3 = (1<<3),
+    NAV_WP_USER4 = (1<<4)
+} navWaypointP3Flags_e;
+
 typedef struct {
     int32_t lat;
     int32_t lon;
