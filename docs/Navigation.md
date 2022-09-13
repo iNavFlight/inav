@@ -77,13 +77,24 @@ Parameters:
 
   * `<lon>` - Longitude.
 
-  * `<alt>` - Altitude in cm.
+  * `<alt>` - Altitude in cm. See `p3` bit 0 for datum definition.
 
   * `<p1>` - For a RTH waypoint, p1 > 0 enables landing. For a normal waypoint it is the speed to this waypoint (cm/s), it is taken into account only for multicopters and when > 50 and < nav_auto_speed. For POSHOLD TIME waypoint it is time to loiter in seconds. For JUMP it is the target WP **index** (not number). For SET_HEAD, it is the desired heading (0-359) or -1 to cancel a previous SET_HEAD or SET_POI.
 
   * `<p2>` - For a POSHOLD TIME it is the speed to this waypoint (cm/s), it is taken into account only for multicopters and when > 50 and < nav_auto_speed. For JUMP it is the number of iterations of the JUMP.
 
-  * `<p3>` - Reserved for future use. If `p2` is provided, then `p3` is also required.
+  * `<p3>` - A  bitfield with four bits reserved for user specified actions. It is anticipated that these actions will be exposed through the logic conditions.
+      * Bit 0 - Altitude (`alt`) : Relative (to home altitude) (0) or Absolute (AMSL) (1).
+	  * Bit 1 - WP Action 1
+	  * Bit 2 - WP Action 2
+      * Bit 3 - WP Action 3
+      * Bit 4 - WP Action 4
+	  * Bits 5 - 15 : undefined / reserved.
+
+      Note:
+
+	  * If `p2` is specified, then `p3` is also required.
+	  * `p3` is only defined for geographic WP types (WAYPOINT, POSHOLD_TIME, SET_POI, LAND). The affect of specifying a non-zero `p3` for other WP types is undefined.
 
   * `<flag>` - Last waypoint must have `flag` set to 165 (0xA5).
 
@@ -116,7 +127,8 @@ wp 59 0 0 0 0 0 0 0 0
 
 Note that the `wp` CLI command shows waypoint list indices, while the MW-XML definition used by mwp, ezgui and the configurator use WP numbers.
 
-**Multi-missions**\
+## Multi-missions
+
 Multi-missions allows up to 9 missions to be stored in the FC at the same time. It is possible to load them into the FC using the CLI. This is acheived by entering single missions into the CLI followed by `wp save` **after** the final mission has been entered (the single missions can be entered one after the other or as a single block entry, it doesn't matter). All missions will then be saved as a Multi Mission in the FC. Saved multi missions display consecutive WP indices from 0 to the last WP in the last mission when displayed using the `wp` command.
 
 E.g. to enter 3 missions in the CLI enter each mission as a single mission (start WP index for each mission must be 0).

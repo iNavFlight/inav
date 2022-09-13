@@ -352,6 +352,7 @@ typedef enum {
     NAV_WP_FLAG_LAST = 0xA5
 } navWaypointFlags_e;
 
+/* A reminder that P3 is a bitfield */
 typedef enum {
     NAV_WP_ALTMODE = (1<<0),
     NAV_WP_USER1 = (1<<1),
