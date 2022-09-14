@@ -99,7 +99,7 @@ PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
 
 static pt1Filter_t accel_ef_lpf;
 
-static float accel_ef_length;
+static float accel_ef_length_filter;
 
 static bool updateTimer(navigationTimer_t * tim, timeUs_t interval, timeUs_t currentTimeUs)
 {
@@ -461,8 +461,8 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
             posEstimator.imu.accelNEU.z = 0.0f;
         }
         
-        const float acc_ef_length = calc_length_pythagorean_3D(posEstimator.imu.accelNEU.x, posEstimator.imu.accelNEU.y, posEstimator.imu.accelNEU.z);
-        accel_ef_length = pt1FilterApply4(&accel_ef_lpf, acc_ef_length, LAND_DETECTOR_ACCEL_LPF_CUTOFF, dt);
+        const float accel_ef_length = calc_length_pythagorean_3D(posEstimator.imu.accelNEU.x, posEstimator.imu.accelNEU.y, posEstimator.imu.accelNEU.z);
+        accel_ef_length_filter = pt1FilterApply4(&accel_ef_lpf, accel_ef_length, LAND_DETECTOR_ACCEL_LPF_CUTOFF, dt);
 
         /* Update blackbox values */
         navAccNEU[X] = posEstimator.imu.accelNEU.x;
@@ -829,7 +829,7 @@ bool isEstimatedAglTrusted(void)
 
 float get_accel_ef_length(void)
 {
-    return accel_ef_length;
+    return accel_ef_length_filter;
 }
 
 /**
